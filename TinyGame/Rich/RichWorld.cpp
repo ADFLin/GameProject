@@ -64,10 +64,10 @@ namespace Rich
 		std::fill_n( mAreaMap , MaxAreaNum , static_cast< Area* >( 0 ) );
 		mIdxLastArea = 1;
 		mAreaMap[ EMPTY_AREA_ID ] = &gEmptyArea;
-		mIdxFreeAreaId = -1;
+		mIdxFreeAreaId = INDEX_NONE;
 	}
 
-	Rich::AreaId World::registerArea( Area* area , AreaId idReg /*= BLOCK_AREA_ID */ )
+	AreaId World::registerArea( Area* area , AreaId idReg /*= BLOCK_AREA_ID */ )
 	{
 		assert( area );
 		assert( mIdxLastArea < MaxAreaNum );
@@ -77,7 +77,7 @@ namespace Rich
 		{
 			id = idReg;
 		}
-		else if ( mIdxFreeAreaId != -1 )
+		else if ( mIdxFreeAreaId != INDEX_NONE)
 		{
 			id = AreaId( mIdxFreeAreaId );
 			mIdxFreeAreaId = intptr_t( mAreaMap[ mIdxFreeAreaId ] );

@@ -93,11 +93,11 @@ namespace BomberMan
 		gTypeMask[ OT_TRIGGER ]  = CMB_TRIGGER;
 		gTypeMask[ OT_MINE_CAR ] = CMB_SOILD;
 
-		std::fill_n( mPlayerMap , gMaxPlayerNum , (Player*)NULL );
+		std::fill_n( mPlayerMap , gMaxPlayerNum , (Player*)nullptr );
 		mPlayerNum = 0;
-		mUsingIndex = -1;
-		mFreeIndex  = -1;
-		mListener = NULL;
+		mUsingIndex = INDEX_NONE;
+		mFreeIndex  = INDEX_NONE;
+		mListener = nullptr;
 		mIsEntitiesDirty = true;
 	}
 
@@ -255,7 +255,7 @@ namespace BomberMan
 	int World::addBomb( Player& player , Vec2i const& pos , int power , int time , unsigned flag )
 	{
 		int index;
-		if ( mFreeIndex != -1 )
+		if ( mFreeIndex != INDEX_NONE)
 		{
 			index = mFreeIndex;
 			mFreeIndex = mBombList[ index ].next;
@@ -263,8 +263,8 @@ namespace BomberMan
 		else
 		{
 			index = mBombList.size();
-			mBombList.push_back( Bomb() );
-			mBombList[ index ].next = -1;
+			mBombList.emplace_back();
+			mBombList[ index ].next = INDEX_NONE;
 		}
 
 		Bomb& bomb = mBombList[ index ];
@@ -274,7 +274,7 @@ namespace BomberMan
 		bomb.flag  = flag;
 
 		bomb.owner  = &player;
-		bomb.obj    = NULL;
+		bomb.obj    = nullptr;
 		bomb.timer  = time;
 
 		bomb.next   = mUsingIndex;
@@ -475,7 +475,7 @@ namespace BomberMan
 					if ( bomb.obj )
 					{
 						removeEntity( bomb.obj );
-						bomb.obj = NULL;
+						bomb.obj = nullptr;
 					}
 
 					bomb.owner->onBombEvent( bomb , Player::eDESTROY );
@@ -514,7 +514,7 @@ namespace BomberMan
 
 						bomb.state = Bomb::eONTILE;
 						removeEntity( bomb.obj );
-						bomb.obj = NULL;
+						bomb.obj = nullptr;
 
 						checkFireBomb( bomb );
 					}
@@ -534,7 +534,7 @@ namespace BomberMan
 		if ( bomb.obj )
 		{
 			removeEntity( bomb.obj );
-			bomb.obj = NULL;
+			bomb.obj = nullptr;
 		}
 
 		bomb.fireLength[0] = bomb.fireLength[1] = -1;
@@ -546,7 +546,7 @@ namespace BomberMan
 	Player* World::addPlayer( Vec2i const& pos )
 	{
 		if ( mPlayerNum == gMaxPlayerNum )
-			return NULL;
+			return nullptr;
 
 		Player* player = new Player( (unsigned)mPlayerNum );
 		player->reset();
@@ -780,9 +780,9 @@ namespace BomberMan
 	TileData* World::getTileWithPos( Vector2 const& pos , Vec2i& tPos )
 	{
 		if ( 0 > pos.x || pos.x > (float) gTileLength * mMap.getSizeX() )
-			return NULL;
+			return nullptr;
 		if ( 0 > pos.y || pos.y > (float) gTileLength * mMap.getSizeY() )
-			return NULL;
+			return nullptr;
 		tPos = PosToTile( pos );
 		return &getTile( tPos );
 	}
@@ -795,16 +795,16 @@ namespace BomberMan
 	class EmptyAnimManager : public IAnimManager
 	{	
 	public:
-		virtual void setupLevel( LevelTheme theme ){}
-		virtual void restartLevel( bool beInit ){}
-		virtual void setPlayerAnim( Player& player , AnimAction action ){}
-		virtual void setTileAnim( Vec2i const& pos , AnimAction action ){}
+		void setupLevel( LevelTheme theme ) override{}
+		void restartLevel( bool beInit ) override{}
+		void setPlayerAnim( Player& player , AnimAction action ) override{}
+		void setTileAnim( Vec2i const& pos , AnimAction action ) override{}
 	} gEmptyAimManager;
 
 	void World::setAnimManager( IAnimManager* manager )
 	{
 		mAimManager = manager;
-		if ( mAimManager == NULL )
+		if ( mAimManager == nullptr )
 			mAimManager = &gEmptyAimManager;
 	}
 
@@ -917,9 +917,9 @@ namespace BomberMan
 		colTile[0] = testBlocked( p1 );
 		colTile[1] = testBlocked( p2 );
 
-		if ( colTile[0] == NULL )
+		if ( colTile[0] == nullptr )
 		{
-			if ( colTile[1] == NULL )
+			if ( colTile[1] == nullptr )
 			{
 				goalPos[ idxMove ] = pos[ idxMove ] + offset * gDirFactor[ moveDir ];
 				goalPos[ idxFix  ] = pos[ idxFix ];
@@ -943,7 +943,7 @@ namespace BomberMan
 				}
 			}
 		}
-		else if ( colTile[1] == NULL )
+		else if ( colTile[1] == nullptr )
 		{
 			int fixPos = (int)p2[ idxFix ];
 			float diff = float( fixPos ) + 1.0f - p2[ idxFix ];
@@ -974,11 +974,11 @@ namespace BomberMan
 		Vec2i tPos;
 		TileData* tile = getWorld()->getTileWithPos( pos , tPos );
 
-		if ( tile == NULL )
-			return NULL;
+		if ( tile == nullptr )
+			return nullptr;
 
 		if ( !tile->isBlocked() )
-			return NULL;
+			return nullptr;
 
 		return tile;
 	}
@@ -1049,7 +1049,7 @@ namespace BomberMan
 		case STATE_INVICIBLE:
 		case STATE_NORMAL:
 			{
-				TileData* tiles[4] = { NULL };
+				TileData* tiles[4] = { nullptr };
 
 				Vector2 const& bSize = getHalfBoundSize();
 				int numTile = 0;
@@ -1198,7 +1198,7 @@ namespace BomberMan
 	{
 		Vec2i tPos;
 		TileData* tile = getWorld()->getTileWithPos( pos , tPos );
-		if ( tile == NULL )
+		if ( tile == nullptr )
 			return numTile;
 
 		for( int i = 0 ; i < numTile ; ++i )
@@ -1346,11 +1346,11 @@ namespace BomberMan
 			{
 			case MO_BOMB:
 				if ( haveItem( ITEM_BOMB_PASS ) )
-					return NULL;
+					return nullptr;
 				break;
 			case MO_WALL:
 				if ( haveItem( ITEM_WALL_PASS ) )
-					return NULL;
+					return nullptr;
 				break;
 			}
 		}
@@ -1910,7 +1910,7 @@ namespace BomberMan
 	Entity::Entity( ObjectType type ) 
 		:mType( type )
 	{
-		mWorld = NULL;
+		mWorld = nullptr;
 		mNeedRemove = false;
 	}
 
@@ -1956,7 +1956,7 @@ namespace BomberMan
 		setColMask( CMB_SOILD | CMB_TRIGGER );
 		setHalfBoundSize( gTileCenterOffset );
 		setPosWithTile( tPos );
-		mRider = NULL;
+		mRider = nullptr;
 	}
 
 	void MineCar::onCollision( ColObject* objPart , CollisionInfo const& info )
@@ -2084,7 +2084,7 @@ namespace BomberMan
 				mRider->changeAction( Player::AS_IDLE );
 				mRider->setPosWithTile( mGoalTilePos );
 
-				mRider = NULL;
+				mRider = nullptr;
 			}
 			else
 			{

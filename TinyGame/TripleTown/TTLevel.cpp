@@ -665,7 +665,7 @@ namespace TripleTown
 		mCheckCount = 0;
 		mStep = 0;
 		mActorStorage.clear();
-		mIdxFreeEntity = -1;
+		mIdxFreeEntity = INDEX_NONE;
 
 		switch( mLandType )
 		{
@@ -934,7 +934,7 @@ namespace TripleTown
 		assert( id != OBJ_NULL );
 		assert( tile.isEmpty() );
 		tile.id   = id;
-		tile.link = -1;
+		tile.link = INDEX_NONE;
 		tile.meta =  0;
 		tile.bSpecial = false;
 		--mNumEmptyTile;

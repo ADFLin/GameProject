@@ -211,7 +211,7 @@ namespace Poker { namespace Big2 {
 	void Scene::refreshUI( bool haveChange )
 	{
 		bool beE = getLevel().getNextShowSlot() == getLevel().getPlayerStatus().slotId;
-		mButton[ ActionButton::ePASS ]->enable( beE && getLevel().getLastShowSlot() != -1 );
+		mButton[ ActionButton::ePASS ]->enable( beE && getLevel().getLastShowSlot() != INDEX_NONE );
 		mButton[ ActionButton::eSHOW_CARD ]->enable( beE );
 
 		if ( haveChange )

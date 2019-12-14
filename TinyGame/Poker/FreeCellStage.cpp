@@ -31,7 +31,7 @@ namespace Poker
 
 	class ChioceGamePanel : public GPanel
 	{
-		typedef GPanel BaseClass;
+		using BaseClass = GPanel;
 	public:
 		ChioceGamePanel( int id , Vec2i const& pos , GWidget* parent )
 			:GPanel( id , pos , Vec2i( 200 , 60 ) , parent )
@@ -231,16 +231,16 @@ namespace Poker
 	{
 		int index;
 		index = getGroupCellIndex( pos , SCellStartPos , SCellNum  , SCellGap  , 500 );
-		if ( index != -1 )
+		if ( index != INDEX_NONE)
 			return &getCell( SCellIndex + index );
 		index = getGroupCellIndex( pos , FCellStartPos , FCellNum  , FCellGap  , mCardSize.y );
-		if ( index != -1 )
+		if ( index != INDEX_NONE)
 			return &getCell( FCellIndex + index );
 		index = getGroupCellIndex( pos , GCellStartPos , 4  , GCellGap  , mCardSize.y );
-		if ( index != -1 )
+		if ( index != INDEX_NONE)
 			return &getCell( GCellIndex + index );
 
-		return NULL;
+		return nullptr;
 	}
 
 	int FreeCellStage::clickCard( StackCell& cell , Vec2i const& pos )
@@ -296,7 +296,7 @@ namespace Poker
 					++mMoveStep;
 				}
 			}
-			mSelectCell = NULL;
+			mSelectCell = nullptr;
 		}
 		else if ( msg.onLeftDown() )
 		{
@@ -309,13 +309,13 @@ namespace Poker
 					{
 						if ( tryMoveCard( *mSelectCell , *to ) )
 						{
-							mSelectCell = NULL;
+							mSelectCell = nullptr;
 							++mMoveStep;
 						}
 					}
 					else
 					{
-						mSelectCell = NULL;
+						mSelectCell = nullptr;
 					}
 				}
 			}
@@ -367,7 +367,7 @@ namespace Poker
 		else if ( msg.onRightDClick() )
 		{
 			undoMove();
-			mSelectCell = NULL;
+			mSelectCell = nullptr;
 		}
 		return false;
 	}
@@ -390,7 +390,7 @@ namespace Poker
 			return false;
 		case UI_CHIOCE_GAME:
 			{
-				ChioceGamePanel* panel = new ChioceGamePanel( UI_ANY , Vec2i(0,0) , NULL );
+				ChioceGamePanel* panel = new ChioceGamePanel( UI_ANY , Vec2i(0,0) , nullptr );
 				Vec2i pos = GUISystem::calcScreenCenterPos( panel->getSize() );
 				panel->stage = this;
 				panel->setPos( pos );
@@ -421,7 +421,7 @@ namespace Poker
 	void FreeCellStage::restart()
 	{
 		FreeCellLevel::setupGame( mSeed );
-		mSelectCell = NULL;
+		mSelectCell = nullptr;
 		mMoveStep   = 0;
 		mMoveInfoVec.clear();
 		mbUndoMove  = false;
@@ -540,7 +540,7 @@ namespace Poker
 
 	bool FreeCellStage::playAnimation( Card const& card , Vec2i const& to , float delay , int animType)
 	{
-		typedef Easing::IOCubic MyFun;
+		using MyFun = Easing::IOCubic;
 		int idx = card.getIndex();
 		Sprite& spr = mSprites[ idx ];
 

@@ -38,6 +38,8 @@ namespace Render
 		ShaderClassType classType = ShaderClassType::Common;
 		std::vector< ShaderCompileInfo > shaders;
 		bool           bShowComplieInfo = false;
+
+		std::string    sourceFile;
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 		virtual void postFileModify(FileAction action) override;

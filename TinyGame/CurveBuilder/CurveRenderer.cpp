@@ -35,7 +35,7 @@ namespace CB
 	class CurveMeshProgram : public CurveMeshBaseProgram
 	{
 		DECLARE_SHADER_PROGRAM(CurveMeshProgram, Global)
-		typedef CurveMeshBaseProgram BaseClass;
+		using BaseClass = CurveMeshBaseProgram;
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const enties[] =
@@ -51,14 +51,14 @@ namespace CB
 	{
 		DECLARE_SHADER_PROGRAM(CurveMeshOITProgram, Global)
 
-		typedef CurveMeshProgram BaseClass;
+		using BaseClass = CurveMeshProgram;
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
 			option.addDefine(SHADER_PARAM(USE_OIT), true);
 		}
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamOITCommon.bindParameters(parameterMap);
@@ -92,7 +92,7 @@ namespace CB
 			return enties;
 		}
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamNormalLength.bind(parameterMap, SHADER_PARAM(NormalLength));
 			mParamNormalColor.bind(parameterMap, SHADER_PARAM(NormalColor));
@@ -186,16 +186,14 @@ namespace CB
 		{
 			if( surface.getColor().a < 1.0 )
 			{
-				auto DrawFun = [this, &surface](RHICommandList& commandList)
+				mTranslucentDraw.emplace_back([this, &surface](RHICommandList& commandList)
 				{
 					RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHIResource());
 					mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
 					mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
 					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 					drawMesh(surface);
-				};
-				mTranslucentDraw.push_back(DrawFun);
-
+				});
 			}
 			else
 			{
@@ -212,7 +210,7 @@ namespace CB
 	template< bool bHaveNormal >
 	struct LineDrawer
 	{
-		typedef TRenderRT< bHaveNormal ? RTVF_XYZ_CA_N : RTVF_XYZ_CA > MyRender;
+		using MyRender = TRenderRT< bHaveNormal ? RTVF_XYZ_CA_N : RTVF_XYZ_CA >;
 
 		static void Draw(Surface3D& surface , LinearColor const& color)
 		{
@@ -296,7 +294,7 @@ namespace CB
 		assert(vertexData);
 
 		int const stride = data->getVertexSize();
-		if( data->getNormalOffset() != -1 )
+		if( data->getNormalOffset() != INDEX_NONE )
 		{
 			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , surface.getColor() , data->getVertexSize());
 		}
@@ -386,7 +384,7 @@ namespace CB
 		RenderData* data = surface.getRenderData();
 		assert(data);
 
-		if( data->getNormalOffset() == -1 )
+		if( data->getNormalOffset() == INDEX_NONE )
 			return;
 
 
@@ -461,7 +459,7 @@ namespace CB
 
 	}
 
-	void CurveRenderer::reloadShaer()
+	void CurveRenderer::reloadShader()
 	{
 		ShaderManager::Get().reloadShader(*mProgCurveMesh);
 		ShaderManager::Get().reloadShader(*mProgCurveMeshOIT);
@@ -475,8 +473,8 @@ namespace CB
 		public:
 			CurveRenderer& drawer;
 			DarwShapeVisitor(CurveRenderer& drawer_) :drawer(drawer_) {}
-			void visit(Surface3D& surface) { drawer.drawSurface(surface); }
-			void visit(Curve3D& curve) { drawer.drawCurve3D(curve); }
+			void visit(Surface3D& surface) override { drawer.drawSurface(surface); }
+			void visit(Curve3D& curve) override { drawer.drawCurve3D(curve); }
 		};
 
 		DarwShapeVisitor visitor(*this);

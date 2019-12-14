@@ -42,6 +42,9 @@
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderManager.h"
 
+#include <iostream>
+
+
 #define GAME_SETTING_PATH "Game.ini"
 
 int g_DevMsgLevel = -1;
@@ -52,6 +55,30 @@ TINY_API IGameNetInterface* gGameNetInterfaceImpl;
 TINY_API IDebugInterface*   gDebugInterfaceImpl;
 
 TConsoleVariable< bool > gbShowFPS(false, "ShowFPS");
+
+namespace EOutputColor
+{
+	enum Type
+	{
+		Black = 0,
+		Red     = PLATFORM_WIN_VALUE(FOREGROUND_RED, 0x004),
+		Blue    = PLATFORM_WIN_VALUE(FOREGROUND_BLUE, 0x001),
+		Green   = PLATFORM_WIN_VALUE(FOREGROUND_GREEN, 0x002),
+		Cyan    = Green | Blue,
+		
+		Magenta = Red | Blue,
+		Yellow  = Red | Green,
+		Gray    = Red | Green | Blue,
+		LightGray    = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8),
+		LightBlue    = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Blue,
+		LightGreen   = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Green,
+		LightCyan    = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Green | Blue,
+		LightRed     = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red,
+		LightMagenta = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red | Blue,
+		LightYellow  = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red | Green,
+		White        = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red | Green | Blue,
+	};
+}
 
 class GameLogPrinter : public LogOutput
 	                 , public IDebugInterface
@@ -64,22 +91,67 @@ public:
 	}
 	void init()
 	{
-
+		std::cout.sync_with_stdio(true);
 	}
 	static int const MaxLineNum = 20;
 
-	virtual void receiveLog( LogChannel channel , char const* str ) override
+	char const* GetChannelPrefixStr(LogChannel channel)
 	{
-		Mutex::Locker locker( mMutex );
-		if ( mMsgList.size() > MaxLineNum )
-			mMsgList.pop_front();
+		switch (channel)
+		{
+		case LOG_MSG: return "Log: ";
+		case LOG_DEV: return "Dev: ";
+		case LOG_WARNING: return "Warning: ";
+		case LOG_ERROR: return "Error: ";
+		}
+		return "";
 
-		mMsgList.push_back( str );
-		if ( mMsgList.size() == 1 )
+	}
+
+	static void OutputConsoleString(char const* prefixStr, char const* text, EOutputColor::Type prefixStrColor, EOutputColor::Type textColor)
+	{
+#if SYS_PLATFORM_WIN
+		auto hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		SetConsoleTextAttribute(hConsole, prefixStrColor);
+		std::cout << prefixStr;
+		SetConsoleTextAttribute(hConsole, textColor);
+		std::cout << text << std::endl;
+#else
+		std::cout << prefixStr << text << std::endl;
+#endif
+	}
+
+
+	void receiveLog( LogChannel channel , char const* str ) override
+	{
+		Mutex::Locker locker(mMutex);
+
+		switch (channel)
+		{
+		case LOG_MSG:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::White, EOutputColor::White); break;
+		case LOG_DEV:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Blue, EOutputColor::LightBlue); break;
+		case LOG_WARNING: OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Yellow , EOutputColor::LightYellow); break;
+		case LOG_ERROR:   OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Red, EOutputColor::LightRed); break;
+		}
+
+#if SYS_PLATFORM_WIN
+		if (IsDebuggerPresent())
+		{
+			std::string outText = GetChannelPrefixStr(channel);
+			outText += str;
+			outText += "\n";
+			OutputDebugString(outText.c_str());
+		}
+#endif
+		if ( mLogTextList.size() > MaxLineNum )
+			mLogTextList.pop_front();
+
+		mLogTextList.emplace_back( str );
+		if ( mLogTextList.size() == 1 )
 			mTime = 0;
 	}
 
-	virtual bool filterLog(LogChannel channel, int level) override
+	bool filterLog(LogChannel channel, int level) override
 	{
 		if( channel == LOG_DEV )
 		{
@@ -94,8 +166,8 @@ public:
 		if ( mTime > 2000 )
 		{
 			Mutex::Locker locker( mMutex );
-			if ( !mMsgList.empty() )
-				mMsgList.pop_front();
+			if ( !mLogTextList.empty() )
+				mLogTextList.pop_front();
 			mTime = 0;
 		}
 	}
@@ -108,40 +180,42 @@ public:
 		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor(Color3ub(255 , 255 , 0));
 		Mutex::Locker locker( mMutex );
-		for( StringList::iterator iter = mMsgList.begin();
-			iter != mMsgList.end() ; ++ iter )
+		for( auto& text : mLogTextList)
 		{
-			g.drawText( pos , iter->c_str() );
+			g.drawText( pos , text.c_str() );
 			pos.y += 14;
 		}
 	}
 
-	void clearDebugMsg()
+	void clearDebugMsg() override
 	{
 		Mutex::Locker locker(mMutex);
-		mMsgList.clear();
+		mLogTextList.clear();
 		mTime = 0;
 	}
 
 	//bool     beInited;
 	Mutex    mMutex;
 	unsigned mTime;
-	typedef  std::list< std::string > StringList;
-	StringList mMsgList;
+	using StringList = std::list< std::string >;
+	StringList mLogTextList;
 };
 
 
 class GameConfigAsset : public IAssetViewer
 {
 public:
-	virtual void getDependentFilePaths(std::vector< std::wstring >& paths) 
+	void getDependentFilePaths(std::vector< std::wstring >& paths) override 
 	{
 		paths.push_back(FCString::CharToWChar(GAME_SETTING_PATH));
 	}
-	virtual void postFileModify(FileAction action) 
+
+	void postFileModify(FileAction action) override 
 	{
-		if( action == FileAction::Modify )
+		if (action == FileAction::Modify)
+		{
 			Global::GameConfig().loadFile(GAME_SETTING_PATH);
+		}
 	}
 
 };
@@ -150,8 +224,8 @@ static GameLogPrinter gLogPrinter;
 static GameConfigAsset gGameConfigAsset;
 
 TinyGameApp::TinyGameApp()
-	:mRenderEffect( NULL )
-	,mNetWorker( NULL )
+	:mRenderEffect( nullptr )
+	,mNetWorker( nullptr )
 	,mStageMode( nullptr )
 {
 	mShowErrorMsg = false;
@@ -177,42 +251,62 @@ void Foo2(Vector2 const& a, Vector2 const& b)
 	Vector2 c = a + b;
 	LogMsg("%f %f", c.x, c.y);
 }
+
+#if SYS_PLATFORM_WIN
+#include <fcntl.h>
+#include <corecrt_io.h>
+#include <iostream>
+#endif
+void RedirectStdIO()
+{
+#if SYS_PLATFORM_WIN
+	if (AllocConsole()) 
+	{
+		FILE* pCout;
+		freopen_s(&pCout, "CONOUT$", "w", stdout);
+		SetConsoleTitle(TEXT("Debug Console"));
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), EOutputColor::White);
+	}
+#endif
+}
+
+
 bool TinyGameApp::initializeGame()
 {
+	RedirectStdIO();
+
+	gLogPrinter.addChannel(LOG_DEV);
+	gLogPrinter.addChannel(LOG_MSG);
+	gLogPrinter.addChannel(LOG_WARNING);
+	gLogPrinter.addChannel(LOG_ERROR);
+
+	if (!Global::GameConfig().loadFile(GAME_SETTING_PATH))
+	{
+		LogWarning(0,"Can't load config file : %s" , GAME_SETTING_PATH );
+	}
+
+	if (!createWindowInternal(mGameWindow, gDefaultScreenWidth, gDefaultScreenHeight, TEXT("Tiny Game")))
+		return false;
+
+
 	ConsoleSystem::Get().initialize();
 
 	::Global::Initialize();
-
 
 	Render::ShaderManager::Get().setDataCache(&::Global::DataCache());
 
 	GameLoop::setUpdateTime( gDefaultTickTime );
 
-	if ( !Global::GameConfig().loadFile( GAME_SETTING_PATH ) )
-	{
-
-	}
-
-
 	::Global::GetAssetManager().init();
-
 	::Global::GetAssetManager().registerViewer(&gGameConfigAsset);
 
 	exportUserProfile();
 
 	mbLockFPS = ::Global::GameConfig().getIntValue("bLockFPS", nullptr, 0);
 
-	gLogPrinter.addChannel( LOG_DEV );
-	gLogPrinter.addChannel( LOG_MSG );
-	gLogPrinter.addChannel( LOG_ERROR  );
-
-	if ( !createWindowInternal( mGameWindow, gDefaultScreenWidth , gDefaultScreenHeight, TEXT("Tiny Game") ) )
-		return false;
-
 	::Global::GetDrawEngine().initialize( *this );
 
 	::Global::GUI().initialize( *this );
-
 
 	mConsoleWidget = new ConsoleFrame(UI_ANY, Vec2i(10, 10), Vec2i(600, 500), nullptr);
 	mConsoleWidget->setGlobal();
@@ -225,7 +319,6 @@ bool TinyGameApp::initializeGame()
 	loadModules();
 
 	setupStage();
-
 
 	setConsoleShowMode(ConsoleShowMode::Screen);
 
@@ -378,7 +471,7 @@ void TinyGameApp::closeNetwork()
 	{
 		mNetWorker->closeNetwork();
 		delete mNetWorker;
-		mNetWorker = NULL;
+		mNetWorker = nullptr;
 	}
 }
 
@@ -393,7 +486,7 @@ ServerWorker* TinyGameApp::createServer()
 		::Global::GUI().showMessageBox( 
 			UI_ANY , LOCTEXT("Can't Create Server") , GMB_OK );
 		delete server;
-		return NULL;
+		return nullptr;
 	}
 	mNetWorker = server;
 
@@ -422,7 +515,7 @@ ClientWorker* TinyGameApp::createClinet()
 	{
 		delete worker;
 		::Global::GUI().showMessageBox( UI_ANY , LOCTEXT("Can't Create Client") ,  GMB_OK);
-		return NULL;
+		return nullptr;
 	}
 
 	mNetWorker = worker;
@@ -550,7 +643,7 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 	else if ( msg.onEnd() )
 	{
 		if ( mRenderEffect == task )
-			mRenderEffect = NULL;
+			mRenderEffect = nullptr;
 	}
 }
 
@@ -706,7 +799,7 @@ void TinyGameApp::importUserProfile()
 
 StageBase* TinyGameApp::createStage( StageID stageId )
 {
-	StageBase* newStage = NULL;
+	StageBase* newStage = nullptr;
 
 	IGameModule* curGame = Global::ModuleManager().getRunningGame();
 
@@ -737,7 +830,7 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 #undef CASE_STAGE
 		default:
 			LogError( "Can't find Stage %d " , stageId );
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -747,7 +840,7 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 
 GameStageMode* TinyGameApp::createGameStageMode(StageID stageId)
 {
-	GameStageMode* stageMode = NULL;
+	GameStageMode* stageMode = nullptr;
 
 	switch( stageId )
 	{
@@ -933,8 +1026,6 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 		}
 		break;
 	}
-
-	return;
 }
 
 GameWindow& TinyGameApp::getMainWindow()

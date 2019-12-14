@@ -6,7 +6,7 @@
 
 namespace Render
 {
-#define CHECK_PARAMETER( PARAM ) if ( !PARAM.isBound() ){ LogWarning( 0 ,"Shader Param not bounded" ); return; }
+#define CHECK_PARAMETER( PARAM ) { static bool bOnce = true; if ( !PARAM.isBound() && bOnce ){  bOnce = false; LogWarning( 0 ,"Shader Param not bounded" ); return; } }
 
 	static RHIContext& GetContext(RHICommandList& commandList)
 	{
@@ -223,4 +223,5 @@ namespace Render
 			return;
 		GetContext(commandList).setShaderValue(*mRHIResource, param, (Matrix4 const*)value, num);
 	}
+
 }//namespace Render

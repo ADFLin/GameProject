@@ -13,11 +13,11 @@
 #include <algorithm>
 
 
-typedef Math::Vector2 Vector2;
-typedef Math::TBoundBox< Vector2 > BoundBox2D;
-typedef Math::TRay< Vector2 > Ray2D;
+using Vector2 = Math::Vector2;
+using BoundBox2D = Math::TBoundBox< Vector2 >;
+using Ray2D = Math::TRay< Vector2 >;
 
-typedef TKDTree< 2 > KDTree;
+using KDTree = TKDTree< 2 >;
 
 class BVH
 {
@@ -32,7 +32,7 @@ class BVH
 
 class SpatialIndexTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	enum
 	{
@@ -52,7 +52,7 @@ public:
 		mRayResult.indexData = -1;
 	}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
@@ -64,12 +64,12 @@ public:
 		return true;
 	}
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 		BaseClass::onEnd();
 	}
 
-	virtual void onUpdate(long time)
+	void onUpdate(long time) override
 	{
 		BaseClass::onUpdate(time);
 
@@ -115,11 +115,11 @@ public:
 		return (pos - Vector2(50, 50)) / 5.0f;
 	}
 
-	void onRender(float dFrame);
+	void onRender(float dFrame) override;
 
 	int mIndexNearset = -1;
 
-	bool onMouse(MouseMsg const& msg)
+	bool onMouse(MouseMsg const& msg) override
 	{
 		if( !BaseClass::onMouse(msg) )
 			return false;
@@ -129,7 +129,7 @@ public:
 			Vector2 worldPos = convertToWorld(msg.getPos());
 			mTestRay.pos = worldPos;
 
-			mRayResult.indexData = -1;
+			mRayResult.indexData = INDEX_NONE;
 			mTree.raycast(mTestRay, mRayResult);
 			struct DistFun
 			{
@@ -150,12 +150,12 @@ public:
 			{
 				mTestRay.dir = Vector2(1, 0);
 			}
-			mRayResult.indexData = -1;
+			mRayResult.indexData = INDEX_NONE;
 			mTree.raycast(mTestRay, mRayResult);
 		}
 		return true;
 	}
-	bool onKey(KeyMsg const& msg)
+	bool onKey(KeyMsg const& msg) override
 	{
 		if( !msg.isDown())
 			return false;

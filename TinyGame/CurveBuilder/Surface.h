@@ -11,10 +11,10 @@ namespace CB
 	class ShapeMeshBuilder;
 
 	class ShapeVisitor;
-	class ShapeFunVisitor;
+	class ShapeFuncVisitor;
 
 
-	class ShapeFunBase;
+	class ShapeFuncBase;
 
 	class ShapeBase
 	{
@@ -24,11 +24,10 @@ namespace CB
 
 	public:
 
-		bool               parseFunction(FunctionParser& parser);
 		bool               update(ShapeMeshBuilder& builder);
 		void               visible(bool visable) { mbVisible = visable; }
 		bool               isVisible() { return mbVisible; }
-		ShapeFunBase*      getFunction() const { return mShapeFun; }
+		ShapeFuncBase*     getFunction() const { return mShapeFun; }
 		void               setColor(Color4f const& color);
 		Color4f const&     getColor() const { return mColor; }
 		RenderData*        getRenderData() { return &mRenderData; }
@@ -43,10 +42,10 @@ namespace CB
 
 
 	protected:
-		void    setFunctionInternal(ShapeFunBase* FunData);
+		void    setFunctionInternal(ShapeFuncBase* FunData);
 		ShapeBase(ShapeBase const& rhs);
 	private:
-		ShapeFunBase*  mShapeFun;
+		ShapeFuncBase*  mShapeFun;
 		bool           mbVisible;
 		Color4f        mColor;
 		RenderData     mRenderData;
@@ -55,7 +54,7 @@ namespace CB
 	};
 
 
-	class SurfaceFun;
+	class SurfaceFunc;
 
 	class Surface3D : public ShapeBase
 	{
@@ -63,11 +62,11 @@ namespace CB
 		Surface3D();
 		~Surface3D();
 
-		void setFunction(SurfaceFun* fun);
-		int  getShapeType() { return mCurType; }
-		virtual Surface3D*  clone();
-		virtual void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder);
-		virtual void acceptVisit(ShapeVisitor& visitor);
+		void setFunction(SurfaceFunc* fun);
+		int  getShapeType() override { return mCurType; }
+		Surface3D*  clone() override;
+		void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder) override;
+		void acceptVisit(ShapeVisitor& visitor) override;
 
 		void setDataSampleNum(int nu, int nv);
 		SampleParam const& getParamU() const { return mParamU; }
@@ -107,7 +106,7 @@ namespace CB
 
 
 
-	class Curve3DFun;
+	class Curve3DFunc;
 
 	class Curve3D : public ShapeBase
 	{
@@ -115,20 +114,20 @@ namespace CB
 		Curve3D();
 		~Curve3D();
 
-		virtual Curve3D*  clone();
+		Curve3D* clone() override;
 
-		void setFunction(Curve3DFun* fun);
+		void setFunction(Curve3DFunc* func);
 
-		int  getShapeType() { return TYPE_CURVE_3D; }
+		int  getShapeType() override { return TYPE_CURVE_3D; }
 		void setNumData(int n);
 
 		SampleParam const& getParamS() const { return mParamS; }
 		void setRangeS(Range const& range) { mParamS.range = range; }
 
-		virtual void acceptVisit(ShapeVisitor& visitor);
+		void acceptVisit(ShapeVisitor& visitor) override;
 
 	protected:
-		virtual void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder);
+		void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder) override;
 		Curve3D(Curve3D const& rhs);
 
 

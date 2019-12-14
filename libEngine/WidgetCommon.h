@@ -264,7 +264,7 @@ public:
 	TItemOwnerUI( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
 		:CoreImpl( pos , size , parent )
 	{
-		mCurSelect   = -1;
+		mCurSelect = INDEX_NONE;
 	}
 
 	~TItemOwnerUI()
@@ -280,7 +280,7 @@ public:
 	unsigned getItemNum(){ return mItemList.size(); }
 	void*    getSelectedItemData()
 	{ 
-		if ( mCurSelect != -1 ) 
+		if ( mCurSelect != INDEX_NONE )
 			return getItemData( mCurSelect );
 		return nullptr;
 	}
@@ -299,7 +299,7 @@ public:
 			if ( mItemList[i].value == value )
 				return i;
 		}
-		return -1;
+		return INDEX_NONE;
 	}
 
 	void    setItemData( unsigned pos , void* data )
@@ -321,8 +321,8 @@ public:
 
 	char const* getSelectValue() const
 	{ 
-		if ( mCurSelect == -1 )
-			return NULL;
+		if ( mCurSelect == INDEX_NONE)
+			return nullptr;
 		return mItemList[ mCurSelect ].value.c_str();
 	}
 
@@ -370,7 +370,7 @@ public:
 	WChoiceT( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
 		:TItemOwnerUI< Impl , CoreImpl >( pos , size , parent )
 	{
-		mLightSelect = -1;
+		mLightSelect = INDEX_NONE;
 	}
 
 	class Menu : public CoreImpl

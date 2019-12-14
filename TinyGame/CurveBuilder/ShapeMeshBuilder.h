@@ -16,7 +16,7 @@
 
 namespace CB
 {
-	class ShapeFunBase;
+	class ShapeFuncBase;
 
 	struct SampleParam;
 	struct ShapeUpdateInfo;
@@ -36,7 +36,7 @@ namespace CB
 		void            updateCurveData(ShapeUpdateInfo const& info, SampleParam const& paramS);
 		void            updateSurfaceData(ShapeUpdateInfo const& info, SampleParam const& paramU, SampleParam const& paramV);
 		void            setTime(float t) { mVarTime = t; }
-		bool            parseFunction(ShapeFunBase& func);
+		bool            parseFunction(ShapeFuncBase& func);
 
 	private:
 		void  setColor(float p, float* color);

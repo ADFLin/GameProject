@@ -361,7 +361,7 @@ namespace CAR
 				if ( com.numParam != 2 )
 					return false;
 
-				auto myData = static_cast< GameDeployActorData* >( mActionData );
+				auto* myData = static_cast< GameDeployActorData* >( mActionData );
 				myData->resultIndex = com.getInt(0);
 				myData->resultType  = (ActorType) com.getInt(1);
 			}
@@ -373,13 +373,13 @@ namespace CAR
 				if ( com.numParam != 1 )
 					return false;
 
-				auto myData = static_cast< GameSelectActionData* >( mActionData );
+				auto* myData = static_cast< GameSelectActionData* >( mActionData );
 				myData->resultIndex = com.getInt(0);
 			}
 			break;
 		case ACTION_AUCTION_TILE:
 			{
-				auto myData = static_cast< GameAuctionTileData* >( mActionData );
+				auto* myData = static_cast< GameAuctionTileData* >( mActionData );
 
 				if ( com.numParam != ( myData->playerId == myData->pIdRound ? 2 : 1 ) )
 					return false;
@@ -396,7 +396,7 @@ namespace CAR
 				if( com.numParam != 1 )
 					return false;
 
-				auto myData = static_cast<GameExchangeActorPosData*>(mActionData);
+				auto* myData = static_cast<GameExchangeActorPosData*>(mActionData);
 				myData->resultActorType = (ActorType)com.getInt(0);
 			}
 			break;

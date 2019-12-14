@@ -171,7 +171,7 @@ namespace Render
 		void reload();
 
 		//RenderTechnique
-		virtual void setupWorld(RenderContext& context , Matrix4 const& mat) override
+		void setupWorld(RenderContext& context , Matrix4 const& mat) override
 		{
 			RHICommandList& commandList = context.getCommnadList();
 			RenderTechnique::setupWorld( context , mat);
@@ -181,9 +181,9 @@ namespace Render
 			}
 		}
 
-		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context,  MaterialMaster& material , VertexFactory* vertexFactory ) override;
+		MaterialShaderProgram* getMaterialShader(RenderContext& context,  MaterialMaster& material , VertexFactory* vertexFactory ) override;
 
-		virtual void setupMaterialShader(RenderContext& context, MaterialShaderProgram& shader) override
+		void setupMaterialShader(RenderContext& context, MaterialShaderProgram& shader) override
 		{
 			RHICommandList& commandList = context.getCommnadList();
 			shader.setParam(commandList, SHADER_PARAM(DepthShadowMatrix), mShadowMatrix);
@@ -205,7 +205,7 @@ namespace Render
 		RHITexture2DRef    mCascadeTexture;
 		OpenGLFrameBuffer     mShadowBuffer;
 
-		ShaderProgram  mProgShadowDepth[3];
+		ShaderProgram  mProgShadowDepthList[3];
 		ShaderProgram  mProgLighting;
 
 		Matrix4       mShadowMatrix;
@@ -396,7 +396,7 @@ namespace Render
 		Mesh mSphereMesh;
 		Mesh mConeMesh;
 
-		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory);
+		MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory) override;
 
 		void reload();
 	};
@@ -484,8 +484,8 @@ namespace Render
 		OpenGLFrameBuffer mFrameBuffer;
 
 		void setupShader(RHICommandList& commandList, ShaderProgram& program);
-		virtual MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
-		virtual void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) override;
+		MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
+		void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) override;
 
 	};
 }//namespace Render

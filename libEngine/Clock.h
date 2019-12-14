@@ -2,6 +2,7 @@
 #define Clock_h__
 
 #include "WindowsHeader.h"
+#include "Core/IntegerType.h"
 
 class HighResClock
 {
@@ -17,8 +18,8 @@ public:
 
 	/// Returns the time in ms since the last call to reset or since 
 	/// the btClock was created.
-	unsigned long int getTimeMilliseconds() { return getTimeMicroseconds() / 1000; }
-	unsigned long int getTimeMicroseconds();
+	uint64 getTimeMilliseconds() { return getTimeMicroseconds() / 1000; }
+	uint64 getTimeMicroseconds();
 
 private:
 	LARGE_INTEGER mClockFrequency;

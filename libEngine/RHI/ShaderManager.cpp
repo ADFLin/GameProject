@@ -300,6 +300,7 @@ namespace Render
 		VertexFactoryType& vertexFactoryType,
 		MaterialShaderPairVec& outShaders )
 	{
+		LogDevMsg( 0 , "VertexFactory Type : %s" ,  vertexFactoryType.fileName );
 		std::string path = GetFilePath(info.name);
 		std::vector< char > materialCode;
 		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode, true) )
@@ -330,11 +331,12 @@ namespace Render
 				break;
 			}
 
+			option.addMeta("SourceFile", path.c_str());
 			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, ShaderClassType::Material, option );
 
 			if( shaderProgram )
 			{
-				outShaders.push_back({ pShaderClass , shaderProgram });
+				outShaders.emplace_back(pShaderClass , shaderProgram);
 				++result;
 			}
 		}
@@ -374,7 +376,7 @@ namespace Render
 	{
 		ShaderCompileOption option;
 		mShaderFormat->setupShaderCompileOption(option);
-		return constructShaderInternal(shaderClass, ShaderClassType::Global, option);
+		return constructShaderInternal(shaderClass, ShaderClassType::Global, option );
 	}
 
 	GlobalShaderProgram* ShaderManager::constructShaderInternal(GlobalShaderProgramClass const& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
@@ -490,6 +492,9 @@ namespace Render
 		info->classType = classType;
 		info->shaderProgram = &shaderProgram;
 		info->bShowComplieInfo = option.bShowComplieInfo;
+		char const* sourceFile = option.getMeta("SourceFile");
+		if (sourceFile)
+			info->sourceFile = sourceFile;
 		generateCompileSetup(*info, entries, option, additionalCode , fileName , bSingleFile );
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -569,7 +574,7 @@ namespace Render
 			}
 			headCode = option.getCode(entry, headCode.c_str(), additionalCode);
 
-			info->shaders.push_back({ entry.type, filePaths[i]  , std::move(headCode) , entry.name });
+			info->shaders.emplace_back(entry.type, filePaths[i]  , std::move(headCode) , entry.name);
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -637,9 +642,26 @@ namespace Render
 	{
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, info) )
 		{
-			LogMsg("%s Use Cache Data", info.shaders[0].filePath.c_str());
+			if (!info.sourceFile.empty())
+			{
+				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", info.shaders[0].filePath.c_str(), info.sourceFile.c_str());
+			}
+			else
+			{
+				LogDevMsg(0, "Use Cache Data : %s ", info.shaders[0].filePath.c_str());
+			}
 			return true;
 		}
+
+		if (!info.sourceFile.empty())
+		{
+			LogDevMsg(0, "Recompile shader : %s , source file : %s ", info.shaders[0].filePath.c_str() , info.sourceFile.c_str() );
+		}
+		else
+		{
+			LogDevMsg(0, "Recompile shader : %s ", info.shaders[0].filePath.c_str());
+		}
+		
 		if( !shaderProgram.mRHIResource.isValid() )
 		{
 			shaderProgram.mRHIResource = RHICreateShaderProgram();

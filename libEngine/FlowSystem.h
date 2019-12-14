@@ -12,7 +12,6 @@
 class FlowNodeBase;
 class FlowExecuteContext;
 
-#define INDEX_NONE (-1)
 enum FlowEvent
 {
 	FEVT_INIT  ,

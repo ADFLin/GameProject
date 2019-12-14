@@ -51,4 +51,10 @@ else
 #endif
 
 
+#if SYS_PLATFORM_WIN
+#define PLATFORM_WIN_VALUE( VALUE , NOT_PLATFORM_VALUE ) VALUE
+#else
+#define PLATFORM_WIN_VALUE( VALUE , NOT_PLATFORM_VALUE ) NOT_PLATFORM_VALUE
+#endif
+
 #endif // PlatformConfig_h__

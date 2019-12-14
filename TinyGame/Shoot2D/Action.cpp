@@ -7,7 +7,7 @@ namespace Shoot2D
 {
 	void PathMove::update( Object& obj , long time )
 	{
-		if ( nextIndex == -1 )
+		if ( nextIndex == INDEX_NONE )
 		{
 			computeNextMove( obj );
 			return;

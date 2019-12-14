@@ -464,7 +464,7 @@ void CDMask::setConnectEvent( CActor* actor , char const* name )
 	//TEventSystem::instance().disconnectEvent( this , EVT_PLAY_CD_START );
 	if ( name )
 	{
-		UG_ConnectEvent( EVT_PLAY_CD_START ,  actor->getRefID() , EvtCallBack( this , &CDMask::startCD )  );
+		UG_ConnectEvent( EVT_PLAY_CD_START ,  actor->getRefID() , EventCallBack( this , &CDMask::startCD )  );
 	}
 }
 

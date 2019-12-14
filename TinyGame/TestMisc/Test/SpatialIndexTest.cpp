@@ -77,7 +77,7 @@ void SpatialIndexTestStage::onRender(float dFrame)
 
 
 	float rayDist = 200;
-	if( mRayResult.indexData == -1 )
+	if( mRayResult.indexData == INDEX_NONE)
 	{
 		RenderUtility::SetPen(g, EColor::Orange);
 	}

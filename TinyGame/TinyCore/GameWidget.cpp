@@ -849,7 +849,7 @@ String GFileListCtrl::getSelectedFilePath() const
 
 void GFileListCtrl::deleteSelectdFile()
 {
-	if( getSelection() == -1 )
+	if( getSelection() == INDEX_NONE )
 		return;
 	String path = getSelectedFilePath();
 	FileSystem::DeleteFile(path.c_str());

@@ -321,14 +321,14 @@ namespace RenderVulkan
 				{
 					std::vector< VkQueueFamilyProperties > queueFamilies = GetEnumValues(vkGetPhysicalDeviceQueueFamilyProperties, mUsagePhysicalDevice);
 					int indexCurrent = 0;
-					int indexGraphics = -1;
-					int indexCompute = -1;
-					int indexPresent = -1;
+					int indexGraphics = INDEX_NONE;
+					int indexCompute = INDEX_NONE;
+					int indexPresent = INDEX_NONE;
 					for( auto& queueFamilyProp : queueFamilies )
 					{
 						if( queueFamilyProp.queueCount > 0 )
 						{
-							if( indexPresent == -1 )
+							if( indexPresent == INDEX_NONE)
 							{
 								VkBool32 presentSupport = VK_FALSE;
 								vkGetPhysicalDeviceSurfaceSupportKHR(mUsagePhysicalDevice, indexCurrent, mWindowSurface, &presentSupport);
@@ -337,11 +337,11 @@ namespace RenderVulkan
 									indexPresent = indexCurrent;
 								}
 							}
-							if( indexGraphics == -1 && (queueFamilyProp.queueFlags & VK_QUEUE_GRAPHICS_BIT) )
+							if( indexGraphics == INDEX_NONE && (queueFamilyProp.queueFlags & VK_QUEUE_GRAPHICS_BIT) )
 							{
 								indexGraphics = indexCurrent;
 							}
-							if( indexCompute == -1 && (queueFamilyProp.queueFlags & VK_QUEUE_COMPUTE_BIT) )
+							if( indexCompute == INDEX_NONE && (queueFamilyProp.queueFlags & VK_QUEUE_COMPUTE_BIT) )
 							{
 								indexCompute = indexCurrent;
 							}
@@ -349,7 +349,7 @@ namespace RenderVulkan
 						++indexCurrent;
 					}
 
-					if( indexGraphics == -1 || indexCompute == -1 || indexPresent == -1 )
+					if( indexGraphics == INDEX_NONE || indexCompute == INDEX_NONE || indexPresent == INDEX_NONE)
 						return false;
 					mUsageQueueFamilyIndices[EQueueFamily::Graphics] = indexGraphics;
 					mUsageQueueFamilyIndices[EQueueFamily::Present] = indexPresent;

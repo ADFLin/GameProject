@@ -63,10 +63,10 @@ namespace Render
 	class ParticleInitProgram : public ParticleSimBaseProgram
 	{
 		DECLARE_SHADER_PROGRAM(ParticleInitProgram, Global);
-		typedef ParticleSimBaseProgram BaseClass;
+		using BaseClass = ParticleSimBaseProgram;
 
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 		}
 
@@ -98,9 +98,9 @@ namespace Render
 	{
 
 		DECLARE_SHADER_PROGRAM(ParticleUpdateProgram, Global);
-		typedef ParticleSimBaseProgram BaseClass;
+		using BaseClass = ParticleSimBaseProgram;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamDeltaTime.bind(parameterMap, SHADER_PARAM(DeltaTime));
@@ -145,9 +145,9 @@ namespace Render
 	{
 	public:
 		DECLARE_SHADER_PROGRAM(SimpleSpriteParticleProgram, Global);
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamBaseTexture.bind(parameterMap, SHADER_PARAM(BaseTexture));
 		}
@@ -189,11 +189,11 @@ namespace Render
 	{
 	public:
 		DECLARE_SHADER_PROGRAM(SplineProgram, Global);
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 
 		static bool constexpr UseTesselation = true;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 
 		}
@@ -244,9 +244,9 @@ namespace Render
 	{
 	public:
 		DECLARE_SHADER_PROGRAM(TTessellationProgram, Global);
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 
 		}
@@ -304,9 +304,9 @@ namespace Render
 	class WaterSimulationProgram : public GlobalShaderProgram
 	{
 		DECLARE_SHADER_PROGRAM(WaterSimulationProgram, Global);
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamDataIn.bind(parameterMap, SHADER_PARAM(WaterDataInBlock));
@@ -353,9 +353,9 @@ namespace Render
 	class WaterUpdateNormalProgram : public GlobalShaderProgram
 	{
 		DECLARE_SHADER_PROGRAM(WaterUpdateNormalProgram, Global);
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamData.bind(parameterMap, SHADER_PARAM(WaterDataOutBlock));
@@ -396,9 +396,9 @@ namespace Render
 	class WaterProgram : public GlobalShaderProgram
 	{
 		DECLARE_SHADER_PROGRAM(WaterProgram, Global);
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamDataIn.bind(parameterMap, SHADER_PARAM(WaterDataInBlock));
@@ -408,7 +408,10 @@ namespace Render
 		void setParameters(RHICommandList& commandList, int TileNum, RHIVertexBuffer& DataIn)
 		{
 			setStorageBuffer(commandList, mParamDataIn, DataIn);
-			setParam(commandList, mParamTileNum, TileNum);
+			if (mParamTileNum.isBound())
+			{
+				setParam(commandList, mParamTileNum, TileNum);
+			}
 		}
 
 
@@ -534,7 +537,7 @@ namespace Render
 	class GPUParticleTestStage : public TestRenderStageBase
 		                       , public GPUParticleData
 	{
-		typedef TestRenderStageBase BaseClass;
+		using BaseClass = TestRenderStageBase;
 	public:
 		GPUParticleTestStage() {}
 
@@ -568,7 +571,7 @@ namespace Render
 		SplineProgram* mProgSpline;
 		bool bUseTessellation = true;
 		bool bWireframe = false;
-		virtual bool onInit()
+		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
@@ -647,7 +650,7 @@ namespace Render
 			return true;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			BaseClass::onEnd();
 		}
@@ -683,14 +686,14 @@ namespace Render
 
 			}
 		}
-		void restart() 
+		void restart() override 
 		{
 			initParticleData(RHICommandList::GetImmediateList());
 		}
-		void tick() {}
-		void updateFrame(int frame) {}
+		void tick() override {}
+		void updateFrame(int frame) override {}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -704,7 +707,7 @@ namespace Render
 		ShaderProgram mProgSimpleParticle;
 
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 
@@ -855,14 +858,14 @@ namespace Render
 		}
 
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
 		}
 
-		bool onKey(KeyMsg const& msg)
+		bool onKey(KeyMsg const& msg) override
 		{
 			if( msg.isDown() )
 			{
@@ -883,7 +886,7 @@ namespace Render
 			return BaseClass::onKey(msg);
 		}
 
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
 			{

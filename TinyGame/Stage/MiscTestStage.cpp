@@ -665,8 +665,8 @@ namespace Bsp2D
 
 		Vector2 outOffset = offset;
 
-		int idxCol = -1;
-		int idxHitEdge = -1;
+		int idxCol = INDEX_NONE;
+		int idxHitEdge = INDEX_NONE;
 		float frac = 1.0f;
 		for( int i = 0 ; i < 4 ; ++i )
 		{

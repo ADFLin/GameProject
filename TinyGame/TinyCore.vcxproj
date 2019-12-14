@@ -181,7 +181,7 @@
     <ClInclude Include="CurveBuilder\FunctionParser.h" />
     <ClInclude Include="CurveBuilder\RenderData.h" />
     <ClInclude Include="CurveBuilder\ShapeCommon.h" />
-    <ClInclude Include="CurveBuilder\ShapeFun.h" />
+    <ClInclude Include="CurveBuilder\ShapeFunction.h" />
     <ClInclude Include="CurveBuilder\ShapeMeshBuilder.h" />
     <ClInclude Include="CurveBuilder\Surface.h" />
     <ClInclude Include="GameMenuStage.h" />
@@ -218,7 +218,7 @@
     <ClCompile Include="CurveBuilder\FPUCompiler.cpp" />
     <ClCompile Include="CurveBuilder\FunctionParser.cpp" />
     <ClCompile Include="CurveBuilder\RenderData.cpp" />
-    <ClCompile Include="CurveBuilder\ShapeFun.cpp" />
+    <ClCompile Include="CurveBuilder\ShapeFunction.cpp" />
     <ClCompile Include="CurveBuilder\ShapeMeshBuilder.cpp">
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</OpenMPSupport>

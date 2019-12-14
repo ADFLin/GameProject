@@ -10,6 +10,28 @@ namespace Render
 
 	struct ImageBaseLightingData;
 
+	struct IBLBuildSetting
+	{
+		int envSize;
+
+		int irradianceSize;
+		int irradianceSampleCount[2];
+		int perfilteredSize;
+		int prefilterSampleCount;
+		int BRDFSampleCount;
+
+		IBLBuildSetting()
+		{
+			envSize = 1024;
+			irradianceSize = 256;
+			perfilteredSize = 256;
+			irradianceSampleCount[0] = 128;
+			irradianceSampleCount[1] = 64;
+			prefilterSampleCount = 2048;
+			BRDFSampleCount = 2048;
+		}
+	};
+
 	struct IBLResource
 	{
 		static int const NumPerFilteredLevel = 5;
@@ -25,12 +47,13 @@ namespace Render
 		}
 		static void FillSharedBRDFData(std::vector< uint8 >& outData)
 		{
-			return GetTextureData(*IBLResource::SharedBRDFTexture , Texture::eFloatRGBA, 0, outData);
+			return ReadTextureData(*IBLResource::SharedBRDFTexture , Texture::eFloatRGBA, 0, outData);
 
 		}
-		bool initializeRHI(ImageBaseLightingData* IBLData);
-
+		bool initializeRHI(ImageBaseLightingData& IBLData);
+		bool initializeRHI(IBLBuildSetting const& setting);
 		void fillData(ImageBaseLightingData& outData);
+
 		static void GetCubeMapData(std::vector< uint8 >& data , Texture::Format format, int size , int level, void* outData[])
 		{
 			int formatSize = Texture::GetFormatSize(format);
@@ -41,7 +64,7 @@ namespace Render
 				outData[i] = &data[i * faceDataSize];
 		}
 
-		static void GetTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+		static void ReadTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
 		{
 			int formatSize = Texture::GetFormatSize(format);
 			int textureSize = Math::Max(texture.getSize() >> level, 1);
@@ -55,7 +78,7 @@ namespace Render
 			OpenGLCast::To(&texture)->unbind();
 		}
 
-		static void GetTextureData(RHITexture2D& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+		static void ReadTextureData(RHITexture2D& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
 		{
 			int formatSize = Texture::GetFormatSize(format);
 			int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
@@ -307,20 +330,7 @@ namespace Render
 	};
 
 
-	struct IBLBuildSetting
-	{
-		int irradianceSampleCount[2];
-		int prefilterSampleCount;
-		int BRDFSampleCount;
 
-		IBLBuildSetting()
-		{
-			irradianceSampleCount[0] = 128;
-			irradianceSampleCount[1] = 64;
-			prefilterSampleCount = 2048;
-			BRDFSampleCount = 2048;
-		}
-	};
 	class IBLResourceBuilder
 	{
 	public:

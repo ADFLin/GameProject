@@ -312,9 +312,8 @@ namespace CAR
 
 	void GameLogic::calcFinalScore()
 	{
-		for( int i = 0 ; i < mFeatureMap.size() ; ++i )
+		for(FeatureBase* build : mFeatureMap)
 		{
-			FeatureBase* build = mFeatureMap[i];
 			if ( build->group == ERROR_GROUP_ID )
 				continue;
 
@@ -380,20 +379,19 @@ namespace CAR
 			int numCityComplete = 0;
 			int numRoadComplete = 0;
 
-			for( int i = 0 ; i < mFeatureMap.size() ; ++i )
+			for(FeatureBase* feature : mFeatureMap)
 			{
-				FeatureBase* build = mFeatureMap[i];
-				if ( build->group == ERROR_GROUP_ID )
+				if ( feature->group == ERROR_GROUP_ID )
 					continue;
-				if ( build->checkComplete() == false )
+				if ( feature->checkComplete() == false )
 					continue;
 
-				if ( build->type == FeatureType::eCity )
+				if ( feature->type == FeatureType::eCity )
 				{
-					if ( static_cast< CityFeature* >( build )->isCastle == false )
+					if ( static_cast< CityFeature* >( feature )->isCastle == false )
 						++numCityComplete;
 				}
-				else if ( build->type == FeatureType::eRoad )
+				else if ( feature->type == FeatureType::eRoad )
 					++numRoadComplete;
 			}
 
@@ -540,10 +538,10 @@ namespace CAR
 			bool bNeedShuffle;
 		};
 
-		std::vector< ShuffleGroup > shuffleGroup;
+		std::vector< ShuffleGroup > shuffleGroups;
 		auto PushShuffleGroup = [&]( bool bNeedShuffle )
 		{
-			shuffleGroup.push_back({ (int)mTilesQueue.size() , bNeedShuffle });
+			shuffleGroups.push_back({ (int)mTilesQueue.size() , bNeedShuffle });
 		};
 
 		if ( bUseRiver )
@@ -554,10 +552,8 @@ namespace CAR
 				mTilesQueue.push_back( tileIdFristPlay );
 				PushShuffleGroup(false);
 			}
-			for( TileIdVec::const_iterator iter = idSetGroup.begin() , itEnd = idSetGroup.end() ; 
-				iter != itEnd ; ++iter )
+			for(TileId id : idSetGroup)
 			{
-				TileId id = *iter;
 				if ( tilePieceMap[id] != 0)
 					mTilesQueue.insert( mTilesQueue.end() , tilePieceMap[id] , id );
 			}
@@ -594,12 +590,12 @@ namespace CAR
 		auto AddGroupTitles = [&](TileSet::EGroup group, bool bNeedShuffle)
 		{
 			TileIdVec const& idSetGroup = mTileSetManager.getGroup(group);
-			for( TileIdVec::const_iterator iter = idSetGroup.begin(), itEnd = idSetGroup.end();
-				iter != itEnd; ++iter )
+			for(TileId id : idSetGroup)
 			{
-				TileId id = *iter;
-				if( tilePieceMap[id] )
+				if (tilePieceMap[id])
+				{
 					mTilesQueue.insert(mTilesQueue.end(), tilePieceMap[id], id);
+				}
 			}
 
 			PushShuffleGroup(bNeedShuffle);
@@ -613,12 +609,13 @@ namespace CAR
 		AddGroupTitles(TileSet::eCommon, true);
 
 		int idxPrev = 0;
-		for( int i = 0 ; i < shuffleGroup.size() ; ++i )
+		for(ShuffleGroup const& group : shuffleGroups)
 		{
-			auto const& group = shuffleGroup[i];
 			int idx = group.indexEnd;
-			if ( idx != idxPrev && group.bNeedShuffle )
-				shuffleTiles( &mTilesQueue[0] + idxPrev , &mTilesQueue[0] + idx );
+			if (idx != idxPrev && group.bNeedShuffle)
+			{
+				shuffleTiles(&mTilesQueue[0] + idxPrev, &mTilesQueue[0] + idx);
+			}
 			idxPrev = idx;
 		}
 
@@ -1564,10 +1561,8 @@ namespace CAR
 			CityFeature& city = static_cast< CityFeature& >( completedFeature );
 			if ( mSetting->have( Rule::eTraders ) )
 			{
-				for( std::vector< SideNode* >::iterator iter = city.nodes.begin() , itEnd = city.nodes.end();
-					iter != itEnd ; ++iter )
+				for(SideNode* node : city.nodes)
 				{
-					SideNode* node = *iter;
 					MapTile const* mapTile = node->getMapTile();
 					SideContentType content = mapTile->getSideContnet( node->index );
 					if ( content & SideContent::eClothHouse )
@@ -1674,10 +1669,10 @@ namespace CAR
 				 ( completedFeature.type == FeatureType::eCity || completedFeature.type == FeatureType::eRoad ) )
 			{
 				int numNeighborCastle = 0;
-				for( int i = 0 ; i < mGermanCastles.size() ; ++i )
+				for(GermanCastleFeature* castle : mGermanCastles)
 				{
-					MapTile const* tileA = *mGermanCastles[i]->mapTiles.begin();
-					MapTile const* tileB = *(++mGermanCastles[i]->mapTiles.begin());
+					MapTile const* tileA = *castle->mapTiles.begin();
+					MapTile const* tileB = *(++castle->mapTiles.begin());
 					Vec2i min , max;
 					bool beH = tileA->pos.x == tileB->pos.x;
 					if ( beH )
@@ -1802,9 +1797,8 @@ namespace CAR
 				castleGroup.push_back( info );
 			}
 
-			for( int i = 0 ; i < castleGroup.size() ; ++i )
+			for(CastleInfo* info : castleGroup)
 			{
-				CastleInfo* info = castleGroup[i];
 				CastleScoreInfo* scoreInfo;
 				if ( info->featureScores.size() == 1 )
 				{
@@ -1898,10 +1892,9 @@ namespace CAR
 
 			moveTilesBefore[ step ] = dragon.mapTile;
 			moveActor( &dragon , ActorPos::Tile() , data.mapTiles[ data.resultIndex ] );
-			
-			for( int i = 0 ; i < dragon.mapTile->mActors.size() ; ++i )
+				
+			for(LevelActor* actor : dragon.mapTile->mActors)
 			{
-				LevelActor* actor = dragon.mapTile->mActors[i];
 				bool bDrageCanEat = ( BIT( actor->type ) & DRAGON_EAT_ACTOR_TYPE_MASK ) != 0;
 
 				if ( bDrageCanEat == false )
@@ -1910,9 +1903,9 @@ namespace CAR
 				if ( mSetting->have( Rule::eShepherdAndSheep ) && actor->type == ActorType::eShepherd )
 				{
 					ShepherdActor* shepherd = static_cast< ShepherdActor* >( actor );
-					for( int i = 0 ; i < (int)shepherd->ownSheep.size() ; ++ i )
+					for(auto token : shepherd->ownSheep)
 					{
-						mSheepBags.push_back( shepherd->ownSheep[i] );
+						mSheepBags.push_back(token);
 					}
 				}
 				//#TODO
@@ -1934,9 +1927,8 @@ namespace CAR
 		int playerId = turnContext.getPlayer()->getId();
 
 		std::set< MapTile* > mapTileSet;
-		for( int i = 0 ; i < mFeatureMap.size() ; ++i )
+		for(FeatureBase* feature : mFeatureMap)
 		{
-			FeatureBase* feature = mFeatureMap[i];
 			if ( feature->group == ERROR_GROUP_ID )
 				continue;
 			if ( feature->checkComplete() )
@@ -1944,10 +1936,8 @@ namespace CAR
 			if ( feature->haveActorFromType( mSetting->getFollowerMask() ) )
 				continue;
 
-			for( MapTileSet::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end();
-				iter != itEnd ; ++iter )
+			for (MapTile* mapTile : feature->mapTiles)
 			{
-				MapTile* mapTile = *iter;
 				if ( !mapTile->canDeployFollower() )
 					continue;
 				mapTileSet.insert( mapTile );
@@ -2012,16 +2002,15 @@ namespace CAR
 				int iter = 0;
 				while( ShepherdActor* shepherd = static_cast< ShepherdActor* >( feature->iteratorActor( AllPlayerMask , BIT( ActorType::eShepherd ) , iter ) ) )
 				{
-					for( int i = 0 ; i < (int)shepherd->ownSheep.size() ; ++i )
+					for( auto token : shepherd->ownSheep )
 					{
-						score += shepherd->ownSheep[i];
-						mSheepBags.push_back( shepherd->ownSheep[i] );
+						score += token;
+						mSheepBags.push_back(token);
 					}
 					shepherds.push_back( shepherd );
 				}
-				for( int i = 0 ; i < shepherds.size() ; ++i )
+				for(ShepherdActor* shepherd : shepherds)
 				{
-					ShepherdActor* shepherd = shepherds[i];
 					PlayerId ownerId = shepherd->ownerId;
 					returnActorToPlayer(shepherd);
 					CHECK_RESOLVE_RESULT( resolveScorePlayer(turnContext, ownerId, score) );
@@ -2071,10 +2060,8 @@ namespace CAR
 				if ( tileCheck == nullptr )
 					continue;
 
-				for( int n = 0 ; n < tileCheck->mActors.size() ; ++n )
+				for( LevelActor * actor : tileCheck->mActors)
 				{
-					LevelActor* actor = tileCheck->mActors[n];
-
 					if ( mSetting->isFollower( actor->type ) == false )
 						continue;
 
@@ -2114,12 +2101,12 @@ namespace CAR
 			info.ownerId = turnContext.getPlayer()->getId();
 
 			std::vector< ActorInfo > actorInfos;
-			for( int i = 0 ; i < mPrisoners.size() ; ++i )
+			for(auto & prisoner : mPrisoners)
 			{
-				if ( mPrisoners[i].playerId == info.ownerId && 
-					 mPrisoners[i].ownerId == info.playerId )
+				if ( prisoner.playerId == info.ownerId && 
+					 prisoner.ownerId == info.playerId )
 				{
-					actorInfos.push_back( mPrisoners[i] );
+					actorInfos.push_back( prisoner );
 				}
 			}
 
@@ -2201,9 +2188,9 @@ namespace CAR
 		if ( getRemainingTileNum() < mOrderedPlayers.size() )
 			return;
 
-		for( int i = 0 ; i < mOrderedPlayers.size() ; ++i )
+		for(auto player : mOrderedPlayers)
 		{
-			if( mOrderedPlayers[i]->getFieldValue(FieldType::eTileIdAuctioned) != FAIL_TILE_ID )
+			if(player->getFieldValue(FieldType::eTileIdAuctioned) != FAIL_TILE_ID )
 				return;
 		}
 
@@ -2310,9 +2297,8 @@ namespace CAR
 		std::vector< LevelActor* > mageWitchGroup;
 		std::vector< LevelActor* > hereticMonkGroup;
 		std::vector< LevelActor* > otherGroup;
-		for( int i = 0; i < feature.mActors.size(); ++i )
+		for( LevelActor * actor : feature.mActors)
 		{
-			LevelActor* actor = feature.mActors[i];
 			PlayerBase* player = getOwnedPlayer(actor);
 			if ( player  )
 			{
@@ -2384,7 +2370,7 @@ namespace CAR
 				GameFeatureTileSelectData data;
 				data.bCanSkip = true;
 				data.reason = SAR_WAGON_MOVE_TO_FEATURE;
-				for( int i = 0 ; i < wagonGroup.size() ; ++i )
+				for(auto wagon : wagonGroup)
 				{
 					data.infos.clear();
 					mapTiles.clear();
@@ -2393,7 +2379,7 @@ namespace CAR
 
 					if ( data.bSkipActionForResult == true )
 					{
-						returnActorToPlayer( wagonGroup[i] );
+						returnActorToPlayer(wagon);
 					}
 					else 
 					{
@@ -2403,8 +2389,8 @@ namespace CAR
 						ActorPos actorPos;
 						bool isOK = selectedFeature->getActorPos( *mapTiles[ data.resultIndex ] , actorPos );
 						assert( isOK );
-						moveActor( wagonGroup[i] , actorPos , mapTiles[data.resultIndex] );
-						selectedFeature->addActor( *wagonGroup[i] );
+						moveActor(wagon , actorPos , mapTiles[data.resultIndex] );
+						selectedFeature->addActor( *wagon );
 						linkFeatures.erase( std::find( linkFeatures.begin() , linkFeatures.end() , selectedFeature ) );
 					}
 				}
@@ -3148,7 +3134,7 @@ namespace CAR
 		int result = 0;
 		if( mapTile.isHalflingType() )
 		{
-			//TODO
+			//#TODO
 
 
 		}
@@ -3297,10 +3283,8 @@ namespace CAR
 		int minTileNum = INT_MAX;
 
 		FeatureBase* result = nullptr;
-		for( int i = 0; i < mFeatureMap.size(); ++i )
+		for(FeatureBase * feature : mFeatureMap)
 		{
-			FeatureBase* feature = mFeatureMap[i];
-
 			if( feature->type != type )
 				continue;
 			if( feature->group == ERROR_GROUP_ID )
@@ -3514,10 +3498,8 @@ namespace CAR
 			{
 				int messageSocre = 0;
 				FeatureBase* result = nullptr;
-				for (int i = 0; i < mFeatureMap.size(); ++i)
+				for (FeatureBase* feature : mFeatureMap)
 				{
-					FeatureBase* feature = mFeatureMap[i];
-
 					if( feature->group == ERROR_GROUP_ID )
 						continue;
 					if( feature->checkComplete() )
@@ -3536,10 +3518,8 @@ namespace CAR
 				int messageSocre = 0;
 				std::vector< LevelActor* > kinghts;
 				FeatureBase* result = nullptr;
-				for( int i = 0; i < mFeatureMap.size(); ++i )
+				for(FeatureBase* feature : mFeatureMap)
 				{
-					FeatureBase* feature = mFeatureMap[i];
-
 					if( feature->group == ERROR_GROUP_ID )
 						continue;
 					if( feature->checkComplete() )
@@ -3561,10 +3541,8 @@ namespace CAR
 				int messageSocre = 0;
 				std::vector< LevelActor* > farmer;
 				FeatureBase* result = nullptr;
-				for( int i = 0; i < mFeatureMap.size(); ++i )
+				for(FeatureBase* feature : mFeatureMap)
 				{
-					FeatureBase* feature = mFeatureMap[i];
-
 					if( feature->group == ERROR_GROUP_ID )
 						continue;
 					if( feature->checkComplete() )
@@ -3637,9 +3615,8 @@ namespace CAR
 	int GameLogic::getFollowers(unsigned playerIdMask , ActorList& outActors , LevelActor* actorSkip )
 	{
 		int result = 0;
-		for( int i = 0 ; i < mActors.size() ; ++i )
+		for(LevelActor* actor : mActors)
 		{
-			LevelActor* actor = mActors[i];
 			if ( actor == actorSkip )
 				continue;
 
@@ -3722,9 +3699,8 @@ namespace CAR
 			actor->mapTile->removeActor(*actor);
 		}
 
-		for( int i = 0 ; i < actor->followers.size(); ++i )
+		for( LevelActor * followActor : actor->followers)
 		{
-			LevelActor* followActor = actor->followers[i];
 			switch( followActor->type )
 			{
 			case ActorType::eFariy:
@@ -3978,9 +3954,9 @@ namespace CAR
 			int iter = 0;
 			while( ShepherdActor* shepherd = static_cast< ShepherdActor* >( farm->findActorFromType( BIT( ActorType::eShepherd ) ) ) )
 			{
-				for( int i = 0 ; i < shepherd->ownSheep.size() ; ++i )
+				for(auto token : shepherd->ownSheep)
 				{
-					mSheepBags.push_back( shepherd->ownSheep[i] );
+					mSheepBags.push_back(token);
 				}
 				returnActorToPlayer( shepherd );
 			}

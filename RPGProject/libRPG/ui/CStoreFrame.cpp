@@ -68,7 +68,7 @@ CStoreFrame::CStoreFrame( Vec2i const& pos )
 			Vec2i( btnSize , btnSize ) , this  );
 
 		UG_ConnectEvent( EVT_UI_BUTTON_CLICK , button->getSprite()->getEntityID() , 
-			EvtCallBack( this , &CStoreFrame::pageUp ) );
+			EventCallBack( this , &CStoreFrame::pageUp ) );
 	}
 
 	{
@@ -79,7 +79,7 @@ CStoreFrame::CStoreFrame( Vec2i const& pos )
 			Vec2i( btnSize , btnSize ) , this  );
 
 		UG_ConnectEvent( EVT_UI_BUTTON_CLICK , button->getSprite()->getEntityID() ,
-			EvtCallBack( this, &CStoreFrame::pageDown ) );
+			EventCallBack( this, &CStoreFrame::pageDown ) );
 	}
 
 	int d1 = ( CellSize - BoardSize )/2;
@@ -103,8 +103,8 @@ CStoreFrame::CStoreFrame( Vec2i const& pos )
 
 CStoreFrame::~CStoreFrame()
 {
-	UG_DisconnectEvent( EVT_UI_BUTTON_CLICK , EvtCallBack( this , &CStoreFrame::pageUp ) );
-	UG_DisconnectEvent( EVT_UI_BUTTON_CLICK , EvtCallBack( this, &CStoreFrame::pageDown ) );
+	UG_DisconnectEvent( EVT_UI_BUTTON_CLICK , EventCallBack( this , &CStoreFrame::pageUp ) );
+	UG_DisconnectEvent( EVT_UI_BUTTON_CLICK , EventCallBack( this, &CStoreFrame::pageDown ) );
 }
 
 void CStoreFrame::refreshGoods( int page )

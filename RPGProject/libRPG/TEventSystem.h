@@ -25,7 +25,7 @@ enum  EventType;
 #define CONNECT_FAIL_NO_SOLT_RESIGTE   -5
 
 
-class EvtCallBack;
+class EventCallBack;
 
 class TEventSystem : public SingletonT< TEventSystem >
 {
@@ -47,13 +47,13 @@ public:
 	void  updateFrame();
 	void  addEvent( TEvent& event );
 
-	int   connectEvent(  EventType type ,int id , EvtCallBack const& callback , HandledObject* holder );
+	int   connectEvent(  EventType type ,int id , EventCallBack const& callback , HandledObject* holder );
 
 
 	//int   connectSignal( TRefObj* holder , int type , TRefObj* sender , int signalID , SlotFunBase* slot );
 	//void  disconnectSignal( TRefObj* holder , int type , TRefObj* sender , int signalID , SlotFunBase* slot );
 
-	void  disconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder  = nullptr );
+	void  disconnectEvent( EventType type , EventCallBack const& callback , HandledObject* holder  = nullptr );
 	
 	//void addSignal( int slotType , int id ,TRefObj* obj , void* data );
 
@@ -71,7 +71,7 @@ protected:
 		EventType     type;
 		int           id;
 		RefHandle     holder;
-		EvtCallBack   callBack;
+		EventCallBack   callBack;
 		//SlotFunBase* slotFun;
 		//for signal;
 		//RefHandle     sender;
@@ -81,13 +81,13 @@ protected:
 	{
 		EventType     type;
 		HandledObject*      holder;
-		EvtCallBack   callBack;
+		EventCallBack   callBack;
 	};
 	typedef std::list< EvtRemove > EvtRemoveList;
 	EvtRemoveList mDisConEvtList;
 
 	typedef std::list< TEventReg > EvtRegList;
-	int  checkEvent( EvtCallBack const& callback , HandledObject* holder , EventType type ,int id , EvtRegList** regList 
+	int  checkEvent( EventCallBack const& callback , HandledObject* holder , EventType type ,int id , EvtRegList** regList 
 		            /*, TRefObj* sender , SlotFunBase* slot*/ );
 	void removeEvent( EvtRemove const& er );
 

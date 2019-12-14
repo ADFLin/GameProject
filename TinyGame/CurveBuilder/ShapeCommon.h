@@ -56,18 +56,18 @@ namespace CB
 		float getIncrement() const { return (range.Max - range.Min) / numData; }
 	};
 
-	class ShapeFunVisitor;
+	class ShapeFuncVisitor;
 
-	class ShapeFunBase
+	class ShapeFuncBase
 	{
 	public:
-		virtual ~ShapeFunBase() {}
+		virtual ~ShapeFuncBase() {}
 		virtual bool   parseExpression(FunctionParser& parser) = 0;
 		virtual bool   isParsed() = 0;
 		virtual int    getFunType() = 0;
-		virtual void   acceptVisit(ShapeFunVisitor& visitor) = 0;
+		virtual void   acceptVisit(ShapeFuncVisitor& visitor) = 0;
 		bool    isDynamic() { return mbDynamic; }
-		virtual ShapeFunBase* clone() = 0;
+		virtual ShapeFuncBase* clone() = 0;
 		uint8   getUsedInputMask() const { return mUsedInputMask; }
 
 	protected:
@@ -90,7 +90,7 @@ namespace CB
 	{
 		RenderData*   data;
 		unsigned      flag;
-		ShapeFunBase* fun;
+		ShapeFuncBase* func;
 		Color4f       color;
 	};
 

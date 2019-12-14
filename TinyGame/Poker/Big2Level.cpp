@@ -57,7 +57,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 	{
 		++mCycleCount;
 		mNextShowSlot = slotId;
-		mLastShowSlot = -1;
+		mLastShowSlot = INDEX_NONE;
 		for( int i = 0 ; i < PlayerNum ; ++i )
 			mSlotStatus[i].bPassed = false;
 	}
@@ -66,7 +66,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 	{
 		mCycleCount   = 0;
 		mNextShowSlot = slotId ;
-		mLastShowSlot = -1;
+		mLastShowSlot = INDEX_NONE;
 		for( int i = 0 ; i < PlayerNum ; ++i )
 			mSlotStatus[i].bPassed = false;
 	}
@@ -94,7 +94,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
 	void LevelBase::doRoundEnd()
 	{
-		mNextShowSlot = -1;
+		mNextShowSlot = INDEX_NONE;
 	}
 
 	void LevelBase::sortCards( CardDeck& cards )
@@ -347,7 +347,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 		if ( getNextShowSlot() != slotId )
 			return false;
 
-		if ( getLastShowSlot() == -1 )
+		if ( getLastShowSlot() == INDEX_NONE )
 			return false;
 
 		mPassCount += 1;
@@ -407,7 +407,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 		do 
 		{
 			int slot = getNextShowSlot();
-			if ( slot == -1 )
+			if ( slot == INDEX_NONE )
 				break;
 
 			if ( !updateBotImpl( slot ) )

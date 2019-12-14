@@ -7,31 +7,18 @@
 
 #include <atomic>
 
-HighResClock  gProfileClock;
-
-inline void Profile_GetTicks(unsigned long int * ticks)
-{
-	*ticks = gProfileClock.getTimeMicroseconds();
-}
-
-inline float Profile_GetTickRate(void)
-{
-	//	return 1000000.f;
-	return 1000.f;
-}
-
 class ProfileSystemImpl : public ProfileSystem
 {
 public:
 
-	void  cleanup();
-	void  resetSample();
+	void   cleanup() override;
+	void   resetSample() override;
 
-	void  incrementFrameCount();
-	int	  getFrameCountSinceReset() { return mFrameCounter; }
-	float  getTimeSinceReset();
+	void   incrementFrameCount() override;
+	int	   getFrameCountSinceReset() override { return mFrameCounter; }
+	float  getTimeSinceReset() override;
 
-	ProfileSampleIterator getSampleIterator(uint32 ThreadId = 0);
+	ProfileSampleIterator getSampleIterator(uint32 ThreadId = 0) override;
 
 #if 0
 	void   dumpRecursive(ProfileSampleIterator* profileIterator, int spacing);
@@ -44,15 +31,19 @@ private:
 	ProfileSystemImpl(char const* rootName = "Root");
 	~ProfileSystemImpl();
 
-	int				         mFrameCounter;
-	unsigned long int        ResetTime;
+	int	       mFrameCounter;
+	uint64     mResetTime;
 };
+
+CORE_API HighResClock  gProfileClock;
 
 #if CORE_SHARE_CODE
 
-
-HighResClock* TimeScope::sClock = nullptr;
-
+thread_local int sStackCount = 0;
+CORE_API int& TimeScope::GetStaticCount()
+{
+	return sStackCount;
+}
 
 #if 0
 Mutex gInstanceLock;
@@ -94,9 +85,21 @@ ProfileSampleScope::~ProfileSampleScope(void)
 #endif //CORE_SHARE_CODE
 
 
+inline void Profile_GetTicks(uint64 * ticks)
+{
+	*ticks = gProfileClock.getTimeMicroseconds();
+}
+
+inline float Profile_GetTickRate()
+{
+	//	return 1000000.f;
+	return 1000.f;
+}
+
+
 ProfileSystemImpl::ProfileSystemImpl(char const* rootName)
 	:mFrameCounter(0)
-	,ResetTime(0)
+	,mResetTime(0)
 {
 
 
@@ -116,11 +119,9 @@ void ProfileSystemImpl::resetSample()
 {
 	gProfileClock.reset();
 	mFrameCounter = 0;
-	Profile_GetTicks(&ResetTime);
+	Profile_GetTicks(&mResetTime);
 	//ThreadData reset
 }
-
-
 
 void ProfileSystemImpl::incrementFrameCount()
 {
@@ -130,9 +131,9 @@ void ProfileSystemImpl::incrementFrameCount()
 
 float ProfileSystemImpl::getTimeSinceReset()
 {
-	unsigned long int time;
+	uint64 time;
 	Profile_GetTicks(&time);
-	time -= ResetTime;
+	time -= mResetTime;
 	return (float)time / Profile_GetTickRate();
 }
 
@@ -253,12 +254,12 @@ ProfileSampleNode* ProfileSampleNode::getSubNode( const char * name )
 		}
 		child = child->mSibling;
 	}
-	return NULL;
+	return nullptr;
 
 }
 
 
-void ProfileSampleNode::reset( void )
+void ProfileSampleNode::reset()
 {
 	TotalCalls = 0;
 	TotalTime = 0.0f;
@@ -274,7 +275,7 @@ void ProfileSampleNode::reset( void )
 }
 
 
-void ProfileSampleNode::onCall( void )
+void ProfileSampleNode::onCall()
 {
 	TotalCalls++;
 	if (RecursionCounter++ == 0) 
@@ -284,11 +285,11 @@ void ProfileSampleNode::onCall( void )
 }
 
 
-bool ProfileSampleNode::onReturn( void )
+bool ProfileSampleNode::onReturn()
 {
 	if ( --RecursionCounter == 0 && TotalCalls != 0 ) 
 	{ 
-		unsigned long int time;
+		uint64 time;
 		Profile_GetTicks(&time);
 		time-=StartTime;
 		TotalTime += (float)time / Profile_GetTickRate();
@@ -327,7 +328,7 @@ void ProfileSampleIterator::next()
 
 bool ProfileSampleIterator::isDone()
 {
-	return curNode == NULL;
+	return curNode == nullptr;
 }
 
 void ProfileSampleIterator::enterChild( int index )
@@ -356,7 +357,7 @@ void ProfileSampleIterator::enterChild()
 
 void ProfileSampleIterator::enterParent()
 {
-	if ( parent->getParent() != NULL ) 
+	if ( parent->getParent() != nullptr ) 
 	{
 		parent = parent->getParent();
 	}
@@ -383,7 +384,7 @@ ThreadProfileData::ThreadProfileData(char const* rootName)
 {
 	mCurFlag = 0;
 
-	mRootSample.reset(CreateNode(rootName, NULL));
+	mRootSample.reset(CreateNode(rootName, nullptr));
 	mRootSample->mPrevFlag = 0;
 	mRootSample->mStackNum = 0;
 
@@ -482,4 +483,27 @@ void ThreadProfileData::cleanup()
 	mRootSample->mSibling = nullptr;
 	resetSample();
 
+}
+
+TimeScope::TimeScope(char const* name)
+{
+	level = GetStaticCount();
+	mName = name;
+	Profile_GetTicks(&startTime);
+	++GetStaticCount();
+}
+
+TimeScope::~TimeScope()
+{
+	--GetStaticCount();
+	uint64 endTime;
+	Profile_GetTicks(&endTime);
+	if (level)
+	{
+		LogMsg("%*c%s = %.3f", 2 * level , '-', mName, (endTime - startTime) / 1000.0f);
+	}
+	else
+	{
+		LogMsg("%s = %.3f", mName, (endTime - startTime) / 1000.0f);
+	}
 }

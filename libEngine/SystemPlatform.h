@@ -103,11 +103,11 @@ public:
 		return mMillisecond < rhs.mMillisecond;
 	}
 
-	bool operator <= (DateTime const& rhs) const
+	bool operator > (DateTime const& rhs) const
 	{
 #define CMP( VAR )\
-	if ( VAR < rhs.VAR ) return true;\
-	if ( rhs.VAR < VAR ) return false;
+	if ( VAR > rhs.VAR ) return true;\
+	if ( rhs.VAR > VAR ) return false;
 
 		CMP(mYear);
 		CMP(mMonth);
@@ -117,13 +117,13 @@ public:
 		CMP(mSecond);
 
 #undef CMP
-		return mMillisecond <= rhs.mMillisecond;
+		return mMillisecond > rhs.mMillisecond;
 	}
 
 
 	bool operator != (DateTime const& rhs) const { return !(*this == rhs); }
 	bool operator >= (DateTime const& rhs) const { return !(*this < rhs); }
-	bool operator > (DateTime const& rhs) const { return !(*this <= rhs); }
+	bool operator <= (DateTime const& rhs) const { return !(*this > rhs); }
 
 private:
 

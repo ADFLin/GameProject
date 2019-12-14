@@ -1,5 +1,7 @@
 #include "ClassTree.h"
 
+#include "MarcoCommon.h"
+
 void ClassTreeNode::offsetQueryIndex(int offset)
 {
 	indexQuery += offset;
@@ -13,10 +15,10 @@ void ClassTreeNode::offsetQueryIndex(int offset)
 ClassTreeNode::ClassTreeNode(ClassTreeNode* parent)
 	:parent(parent)
 	,numTotalChildren(0)
-	,indexQuery(-1)
+	,indexQuery(INDEX_NONE)
 #if CLASS_TREE_USE_INTRLIST
 #else
-	, indexParentSlot(-1)
+	, indexParentSlot(INDEX_NONE)
 #endif
 
 {
@@ -31,10 +33,10 @@ ClassTreeNode::ClassTreeNode(ClassTreeNode* parent)
 ClassTreeNode::ClassTreeNode(ERootConstruct)
 	:parent(nullptr)
 	,numTotalChildren(0)
-	,indexQuery(-1)
+	,indexQuery(INDEX_NONE)
 #if CLASS_TREE_USE_INTRLIST
 #else
-	, indexParentSlot(-1)
+	, indexParentSlot(INDEX_NONE)
 #endif
 
 {
@@ -58,7 +60,7 @@ bool ClassTreeNode::isChildOf(ClassTreeNode* testParent)
 #if CLASS_TREE_USE_INTRLIST
 	assert(childHook.isLinked() && testParent->childHook.isLinked());
 #else
-	assert(indexParentSlot != -1 && testParent->indexParentSlot != -1);
+	assert(indexParentSlot != INDEX_NONE && testParent->indexParentSlot != INDEX_NONE);
 #endif
 	return unsigned(indexQuery - testParent->indexQuery) <= testParent->numTotalChildren;
 }
@@ -85,9 +87,9 @@ void ClassTree::UnregisterAllNode_R(ClassTreeNode* node)
 	node->childHook.unlink();
 #else
 	node->children.clear();
-	node->indexParentSlot = -1;
+	node->indexParentSlot = INDEX_NONE;
 #endif
-	node->indexQuery = -1;
+	node->indexQuery = INDEX_NONE;
 	node->numTotalChildren = 0;
 }
 
@@ -180,7 +182,7 @@ void ClassTree::registerClass(ClassTreeNode* node)
 #if CLASS_TREE_USE_INTRLIST
 	assert(!node->childHook.isLinked());
 #else
-	assert(node->indexParentSlot == -1);
+	assert(node->indexParentSlot == INDEX_NONE);
 #endif
 	if( node->parent == nullptr )
 	{
@@ -193,7 +195,7 @@ void ClassTree::registerClass(ClassTreeNode* node)
 #else
 	node->indexParentSlot = parent->children.size();
 #endif
-	if( node->indexQuery != -1 )
+	if( node->indexQuery != INDEX_NONE)
 	{
 		int offset = (parent->indexQuery + parent->numTotalChildren + 1) - node->indexQuery;
 		if( offset )
@@ -217,7 +219,7 @@ void ClassTree::unregisterClass(ClassTreeNode* node, bool bReregister)
 #if CLASS_TREE_USE_INTRLIST
 	assert(node->childHook.isLinked());
 #else
-	assert(node->indexParentSlot != -1);
+	assert(node->indexParentSlot != INDEX_NONE);
 #endif
 	ClassTreeNode* parent = node->parent;
 	assert(parent);
@@ -240,7 +242,7 @@ void ClassTree::unregisterClass(ClassTreeNode* node, bool bReregister)
 		child->offsetQueryIndex(-numChildren);
 	}
 	parent->children.erase(parent->children.begin() + node->indexParentSlot);
-	node->indexParentSlot = -1;
+	node->indexParentSlot = INDEX_NONE;
 #endif
 	UpdateChildNumChanged(parent, -numChildren);
 
@@ -260,7 +262,7 @@ void ClassTree::unregisterClass(ClassTreeNode* node, bool bReregister)
 		for( size_t i = 0; i < node->children.size(); ++i )
 		{
 			ClassTreeNode* child = node->children[i];
-			child->indexParentSlot = -1;
+			child->indexParentSlot = INDEX_NONE;
 			child->parent = nullptr;
 			registerClass(child);
 		}

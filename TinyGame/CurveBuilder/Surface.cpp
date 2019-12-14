@@ -2,15 +2,17 @@
 
 #include "FunctionParser.h"
 #include "ShapeMeshBuilder.h"
-#include "ShapeFun.h"
+#include "ShapeFunction.h"
+#include "ProfileSystem.h"
 
 #include <cassert>
 #include <cmath>
 
+
 namespace CB
 {
 	ShapeBase::ShapeBase()
-		:mShapeFun(NULL)
+		: mShapeFun(nullptr)
 		, mbVisible(true)
 		, mUpdateBit(RUF_ALL_UPDATE_BIT)
 		, mColor(Color4f(1, 0, 0, 0.5f))
@@ -33,7 +35,7 @@ namespace CB
 		delete mShapeFun;
 	}
 
-	void ShapeBase::setFunctionInternal(ShapeFunBase* FunData)
+	void ShapeBase::setFunctionInternal(ShapeFuncBase* FunData)
 	{
 		delete mShapeFun;
 		mShapeFun = FunData;
@@ -50,6 +52,7 @@ namespace CB
 	{
 		if( mUpdateBit & RUF_FUNCTION )
 		{
+			TIME_SCOPE("Pares Shape Function");
 			mUpdateBit &= ~RUF_FUNCTION;
 			if( !getFunction()->isParsed() )
 			{
@@ -73,7 +76,7 @@ namespace CB
 			info.color = getColor();
 			info.data  = &mRenderData;
 			info.flag  = mUpdateBit;
-			info.fun   = getFunction();
+			info.func   = getFunction();
 
 			mUpdateBit = 0;
 			updateRenderData(info, builder);
@@ -150,10 +153,10 @@ namespace CB
 		visitor.visit(*this);;
 	}
 
-	void Surface3D::setFunction(SurfaceFun* fun)
+	void Surface3D::setFunction(SurfaceFunc* func)
 	{
-		setFunctionInternal(fun);
-		mCurType = (fun) ? fun->getFunType() : TYPE_SURFACE;
+		setFunctionInternal(func);
+		mCurType = (func) ? func->getFunType() : TYPE_SURFACE;
 	}
 
 
@@ -178,9 +181,9 @@ namespace CB
 
 	}
 
-	void Curve3D::setFunction(Curve3DFun* fun)
+	void Curve3D::setFunction(Curve3DFunc* func)
 	{
-		setFunctionInternal(fun);
+		setFunctionInternal(func);
 	}
 
 

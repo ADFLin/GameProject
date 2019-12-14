@@ -15,7 +15,7 @@ namespace Asmeta
 		Label()
 		{
 			mState  = eUnused;
-			mLink   = NULL;
+			mLink   = nullptr;
 			mOffset = 0;
 		}
 		bool    isBound(){ return mState == eBound; }
@@ -1198,7 +1198,7 @@ namespace Asmeta
 				label->mState  = Label::eUnused;
 				label->mOffset = 0;
 #if _DEBUG
-				label->mIndex  = -1;
+				label->mIndex  = INDEX_NONE;
 #endif
 				
 			}

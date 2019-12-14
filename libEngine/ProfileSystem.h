@@ -78,7 +78,7 @@ protected:
 	const char *	    mName;
 	int				    TotalCalls;
 	float			    TotalTime;
-	unsigned long int	StartTime;
+	uint64           	StartTime;
 	int				    RecursionCounter;
 
 	bool                mIsShowChild;
@@ -277,23 +277,15 @@ public:
 
 struct TimeScope
 {
-	TimeScope(char const* name)
-	{
-		if( sClock == nullptr )
-		{
-			sClock = new HighResClock;
-		}
-		mName = name;
-		sClock->reset();
-	}
-	~TimeScope()
-	{
-		LogMsg("%s = %.3f", mName, sClock->getTimeMicroseconds() / 1000.0f);
-	}
+	TimeScope(char const* name);
+	~TimeScope();
 
 private:
-	CORE_API static HighResClock* sClock;
-	char const*   mName;
+	uint64 startTime;
+
+	CORE_API static int& GetStaticCount();
+	int level;
+	char const* mName;
 };
 
 #define TIME_SCOPE( NAME ) TimeScope ANONYMOUS_VARIABLE(timeScope)( NAME );

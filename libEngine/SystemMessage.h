@@ -1,8 +1,13 @@
 #ifndef SysMsg_h__
 #define SysMsg_h__
 
+#include "PlatformConfig.h"
 #include "Math/TVector2.h"
 #include "Core/IntegerType.h"
+
+#if SYS_PLATFORM_WIN
+#include "WindowsHeader.h"
+#endif
 
 using Vec2i = TVector2< int >;
 
@@ -22,8 +27,8 @@ namespace EKeyCode
 {
 	enum Type
 	{
-		Cancel         = 0x03 ,
-		Back           = 0x08 ,
+		Cancel         = PLATFORM_WIN_VALUE( VK_CANCEL , 0x03 ) ,
+		Back           = PLATFORM_WIN_VALUE( VK_BACK,  0x08 ) ,
 		Tab            = 0x09 ,
 		Clear          = 0x0C ,
 		Return         = 0x0D ,

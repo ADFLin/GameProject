@@ -65,11 +65,11 @@ namespace MV
 		editMeshPos = Vec3f(0,0,0);
 		editMeshId = 0;
 		editSnapFactor = 0;
-		editIdxMeshSelect = -1;
+		editIdxMeshSelect = INDEX_NONE;
 
-		idxGroupUse = -1;
-		idxSpaceCtrlUse = -1;
-		idxModifierUse = -1;
+		idxGroupUse = INDEX_NONE;
+		idxSpaceCtrlUse = INDEX_NONE;
+		idxModifierUse = INDEX_NONE;
 
 	
 		
@@ -121,10 +121,10 @@ namespace MV
 		{
 			mUsageControllor = NULL;
 			//Edit Var
-			idxGroupUse = -1;
-			idxSpaceCtrlUse = -1;
-			idxModifierUse = -1;
-			editIdxMeshSelect = -1;
+			idxGroupUse = INDEX_NONE;
+			idxSpaceCtrlUse = INDEX_NONE;
+			idxModifierUse = INDEX_NONE;
+			editIdxMeshSelect = INDEX_NONE;
 			mSelectBlocks.clear();
 		}
 	}
@@ -321,8 +321,8 @@ namespace MV
 
 
 #define KEY_CHANGE_INDEX_RANGE( KEY1 , KEY2 , VAR , C )\
-		case KEY1: if ( C.empty() ){ VAR = -1; } else { --VAR; if ( VAR < 0 ) VAR = C.size() - 1; } break;\
-		case KEY2: if ( C.empty() ){ VAR = -1; } else { ++VAR; if ( VAR >= C.size() ) VAR = 0; } break; 
+		case KEY1: if ( C.empty() ){ VAR = INDEX_NONE; } else { --VAR; if ( VAR < 0 ) VAR = C.size() - 1; } break;\
+		case KEY2: if ( C.empty() ){ VAR = INDEX_NONE; } else { ++VAR; if ( VAR >= C.size() ) VAR = 0; } break; 
 
 	bool TestStage::onKey(KeyMsg const& msg)
 	{
@@ -474,10 +474,10 @@ namespace MV
 		case EKeyCode::Right: ++editSnapFactor; break;
 		case EKeyCode::E: Level::createMesh( editMeshPos , editMeshId , Vec3f(0,0,0)  ); break;
 		case EKeyCode::Delete:
-			if ( editIdxMeshSelect != -1 )
+			if ( editIdxMeshSelect != INDEX_NONE)
 			{
 				Level::destroyMeshByIndex( editIdxMeshSelect ); 
-				editIdxMeshSelect = -1;
+				editIdxMeshSelect = INDEX_NONE;
 			}
 		}
 	}

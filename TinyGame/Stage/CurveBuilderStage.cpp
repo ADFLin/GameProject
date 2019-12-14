@@ -1,7 +1,7 @@
 #include "TestStageHeader.h"
 
 #include "CurveBuilder/ShapeCommon.h"
-#include "CurveBuilder/ShapeFun.h"
+#include "CurveBuilder/ShapeFunction.h"
 #include "CurveBuilder/ShapeMeshBuilder.h"
 #include "CurveBuilder/Surface.h"
 
@@ -17,6 +17,7 @@
 #include "RHI/RHICommand.h"
 
 #include "GL/wglew.h"
+#include <memory>
 
 namespace CB
 {
@@ -24,7 +25,7 @@ namespace CB
 
 	class TestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 
 		std::unique_ptr<ShapeMeshBuilder>   mMeshBuilder;
@@ -40,10 +41,12 @@ namespace CB
 
 		}
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
+
+			::Global::GetDrawEngine().changeScreenSize(1200, 800);
 
 			if( !::Global::GetDrawEngine().startOpenGL(4) )
 				return false;
@@ -53,19 +56,19 @@ namespace CB
 
 #if USE_PARALLEL_UPDATE
 			int numThread = SystemPlatform::GetProcessorNumber();
-			mUpdateThreadPool.reset(new QueueThreadPool);
+			mUpdateThreadPool = std::make_unique<QueueThreadPool>();
 			mUpdateThreadPool->init(numThread);
 #endif
 
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
-			mRenderer.reset( new CurveRenderer );
+			mRenderer = std::make_unique<CurveRenderer>();
 			if( !mRenderer->initialize(screenSize) )
 				return false;
 
 			mCamera.setPos(Vector3(20, 20, 20));
 			mCamera.setViewDir(Vector3(-1, -1, -1), Vector3(0, 0, 1));
 
-			mMeshBuilder.reset( new ShapeMeshBuilder );
+			mMeshBuilder = std::make_unique<ShapeMeshBuilder>();
 
 			wglSwapIntervalEXT(0);
 			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -76,16 +79,16 @@ namespace CB
 			{
 				Surface3D* surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 0.3));
 				//Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
-				surface = createSurfaceXY("sin(x)", Color4f(1, 0.6, 0.4, 0.5));
+				surface = createSurfaceXY("sin(sqrt(x*x+y*y) + 0.1*t)", Color4f(1, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 
 				GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
-				textCtrl->setValue( static_cast<SurfaceXYFun*>( surface->getFunction() )->getExprString().c_str());
+				textCtrl->setValue( static_cast<SurfaceXYFunc*>( surface->getFunction() )->getExprString().c_str());
 				textCtrl->onEvent = [surface,this](int event, GWidget* widget)
 				{
 					if ( event == EVT_TEXTCTRL_ENTER )
 					{
-						SurfaceXYFun* fun = (SurfaceXYFun*)surface->getFunction();
+						SurfaceXYFunc* fun = (SurfaceXYFunc*)surface->getFunction();
 						fun->setExpr(widget->cast<GTextCtrl>()->getValue());
 						surface->addUpdateBit(RUF_FUNCTION);
 					}
@@ -95,7 +98,7 @@ namespace CB
 				::Global::GUI().addWidget(textCtrl);
 			}
 
-			//ProfileSystem::Get().reset();
+			ProfileSystem::Get().resetSample();
 			restart();
 			return true;
 		}
@@ -103,7 +106,7 @@ namespace CB
 		Surface3D* createSurfaceXY(char const* expr , Color4f const& color )
 		{
 			Surface3D* surface = new Surface3D;
-			SurfaceXYFun* fun = new SurfaceXYFun;
+			SurfaceXYFunc* fun = new SurfaceXYFunc;
 			surface->setFunction(fun);
 			fun->setExpr(expr);
 
@@ -126,7 +129,7 @@ namespace CB
 			return surface;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			::Global::GetDrawEngine().shutdownRHI(true);
 
@@ -164,7 +167,7 @@ namespace CB
 
 		void updateFrame(int frame) {}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -175,7 +178,7 @@ namespace CB
 			updateFrame(frame);
 		}
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 			PROFILE_ENTRY("Stage.Render");
 			GLGraphics2D& g = Global::GetRHIGraphics2D();
@@ -215,7 +218,7 @@ namespace CB
 			g.endRender();
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos = msg.getPos();
 
@@ -236,24 +239,24 @@ namespace CB
 			return true;
 		}
 
-		bool onKey(KeyMsg const& msg)
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !msg.isDown())
-				return false;
-
-			float moveDist = 0.1;
-			switch(msg.getCode())
+			if( msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::W: mCamera.moveFront(moveDist); break;
-			case EKeyCode::S: mCamera.moveFront(-moveDist); break;
-			case EKeyCode::D: mCamera.moveRight(moveDist); break;
-			case EKeyCode::A: mCamera.moveRight(-moveDist); break;
-			case EKeyCode::Z: mCamera.moveUp(0.5); break;
-			case EKeyCode::X: mCamera.moveUp(-0.5); break;
-			case EKeyCode::F5: mRenderer->reloadShaer(); break;
-			case EKeyCode::Add: modifyParamIncrement(0.5); break;
-			case EKeyCode::Subtract: modifyParamIncrement(2); break;
+				float moveDist = 0.1;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::W: mCamera.moveFront(moveDist); break;
+				case EKeyCode::S: mCamera.moveFront(-moveDist); break;
+				case EKeyCode::D: mCamera.moveRight(moveDist); break;
+				case EKeyCode::A: mCamera.moveRight(-moveDist); break;
+				case EKeyCode::Z: mCamera.moveUp(0.5); break;
+				case EKeyCode::X: mCamera.moveUp(-0.5); break;
+				case EKeyCode::F5: mRenderer->reloadShader(); break;
+				case EKeyCode::Add: modifyParamIncrement(0.5); break;
+				case EKeyCode::Subtract: modifyParamIncrement(2); break;
+				}
 			}
 			return false;
 		}
@@ -267,7 +270,7 @@ namespace CB
 			}
 		}
 
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
 			{

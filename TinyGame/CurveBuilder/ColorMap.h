@@ -2,9 +2,9 @@
 #define ColorMap_H
 
 #include "Color.h"
+#include "Core/IntegerType.h"
 
 class ColorMap;
-typedef unsigned char uint8;
 
 enum
 {

@@ -111,7 +111,7 @@ namespace Poker { namespace Big2 {
 	class LevelBase
 	{
 	public:
-		TrickInfo const* getLastShowCards(){ return ( mLastShowSlot != -1 )? &mLastShowCard : NULL; }
+		TrickInfo const* getLastShowCards(){ return ( mLastShowSlot != INDEX_NONE)? &mLastShowCard : nullptr; }
 		int              getLastShowSlot(){ return mLastShowSlot; }
 		int              getNextShowSlot(){ return mNextShowSlot; }
 		bool             checkShowCard( CardDeck& cards , int pIndex[] , int num , TrickInfo& info );
@@ -184,7 +184,7 @@ namespace Poker { namespace Big2 {
 	private:
 		
 		void        onRecvData( int slotId , int dataId , void* data , int dataSize );
-		void        doSetupTransfer();
+		void        doSetupTransfer() override;
 		void        updateBot();
 		bool        updateBotImpl( int slotId );
 
@@ -198,11 +198,11 @@ namespace Poker { namespace Big2 {
 	class CBot : public IBot
 	{
 	public:
-		virtual void  init( int slotId , CardDeck& cards )
+		void  init( int slotId , CardDeck& cards ) override
 		{
 
 		}
-		virtual int   think( int lastShowId , TrickInfo const* lastTrick , int index[] )
+		int   think( int lastShowId , TrickInfo const* lastTrick , int index[] ) override
 		{
 			if ( lastTrick )
 			{
@@ -213,11 +213,11 @@ namespace Poker { namespace Big2 {
 			index[0] = 0;
 			return 1;
 		}
-		virtual void  postThink( bool beOk ,int index[] , int num )
+		void  postThink( bool beOk ,int index[] , int num ) override
 		{
 
 		}
-		virtual void  onSlotShowCard( int slotId , TrickInfo const* info ){}
+		void  onSlotShowCard( int slotId , TrickInfo const* info ) override{}
 
 		TrickHelper mHelper;
 	};
@@ -264,7 +264,7 @@ namespace Poker { namespace Big2 {
 		void          onRecvData( int playerId , int dataId , void* data , int dataSize );
 
 
-		void          doSetupTransfer();
+		void          doSetupTransfer() override;
 		
 	private:
 		Listener*      mListener;

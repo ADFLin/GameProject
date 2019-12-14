@@ -41,7 +41,7 @@ void TEventSystem::addEvent( TEvent& event )
 	//process( event );
 }
 
-int TEventSystem::checkEvent( EvtCallBack const& callback , HandledObject* holder , EventType type ,int id , EvtRegList** regList 
+int TEventSystem::checkEvent( EventCallBack const& callback , HandledObject* holder , EventType type ,int id , EvtRegList** regList 
 							/*, TRefObj* sender , SlotFunBase* slot*/ )
 {
 	EvtTypeDataMap::iterator evtIter = m_evtTypeMap.find( type );
@@ -145,7 +145,7 @@ void TEventSystem::processInternal( TEvent& event )
 //		     m_curEventReg->memfun == fun );
 //}
 
-void TEventSystem::disconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder  )
+void TEventSystem::disconnectEvent( EventType type , EventCallBack const& callback , HandledObject* holder  )
 {
 	TEventReg  evtReg;
 	evtReg.type   = type;
@@ -246,7 +246,7 @@ void TEventSystem::processDisconnect()
 	mDisConEvtList.clear();
 }
 
-int TEventSystem::connectEvent( EventType type ,int id , EvtCallBack const& callback , HandledObject* holder )
+int TEventSystem::connectEvent( EventType type ,int id , EventCallBack const& callback , HandledObject* holder )
 {
 	EvtRegList* regList = NULL;
 	int result = checkEvent( callback , holder , type , id , &regList );
@@ -287,11 +287,11 @@ void UG_ProcessEvent( TEvent& event )
 	TEventSystem::Get().process( event );
 }
 
-void  UG_ConnectEvent( EventType type , int id , EvtCallBack const& callback , HandledObject* holder )
+void  UG_ConnectEvent( EventType type , int id , EventCallBack const& callback , HandledObject* holder )
 {
 	TEventSystem::Get().connectEvent( type , id , callback , holder );
 }
-void  UG_DisconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder )
+void  UG_DisconnectEvent( EventType type , EventCallBack const& callback , HandledObject* holder )
 {
 	TEventSystem::Get().disconnectEvent( type , callback , holder );
 }

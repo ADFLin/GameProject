@@ -3,7 +3,7 @@
 #include "Base.h"
 #include "ShapeCommon.h"
 #include "RenderData.h"
-#include "ShapeFun.h"
+#include "ShapeFunction.h"
 
 #include "ProfileSystem.h"
 #include "SystemPlatform.h"
@@ -60,7 +60,7 @@ namespace CB
 
 	void ShapeMeshBuilder::updateCurveData(ShapeUpdateInfo const& info, SampleParam const& paramS)
 	{
-		assert(info.fun->getFunType() == TYPE_CURVE_3D);
+		assert(info.func->getFunType() == TYPE_CURVE_3D);
 
 		RenderData* data = info.data;
 
@@ -81,7 +81,7 @@ namespace CB
 			float ds = paramS.getIncrement();
 			float s = paramS.getRangeMin();
 
-			Curve3DFun* fun = static_cast<Curve3DFun*>(info.fun);
+			Curve3DFunc* fun = static_cast<Curve3DFunc*>(info.func);
 
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
 			for( int i = 0; i < paramS.numData; ++i )
@@ -108,7 +108,7 @@ namespace CB
 	{
 		PROFILE_ENTRY("UpdateSurfaceData");
 
-		assert(isSurface(info.fun->getFunType()));
+		assert(isSurface(info.func->getFunType()));
 
 		RenderData* data = info.data;
 		unsigned flag = info.flag;
@@ -117,7 +117,7 @@ namespace CB
 
 		if( flag & RUF_DATA_SAMPLE )
 		{
-			if( data->getVertexNum() < vertexNum || data->getIndexNum() < indexNum )
+			if( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum )
 			{
 				data->release();
 				data->create(vertexNum, indexNum, true);
@@ -133,12 +133,11 @@ namespace CB
 			float du = paramU.getIncrement();
 			float dv = paramV.getIncrement();
 
-			if( info.fun->getFunType() == TYPE_SURFACE_UV )
+			if( info.func->getFunType() == TYPE_SURFACE_UV )
 			{
-				SurfaceUVFun* fun = static_cast<SurfaceUVFun*>(info.fun);
+				SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(info.func);
 
-
-				switch( fun->getUsedInputMask() )
+				switch( func->getUsedInputMask() )
 				{
 				case BIT(0):
 					{
@@ -146,7 +145,7 @@ namespace CB
 						{
 							float u = paramU.getRangeMin() + i * du;
 							Vector3 value;
-							fun->evalExpr(value, u, 0);
+							func->evalExpr(value, u, 0);
 							for( int j = 0; j < paramV.numData; ++j )
 							{
 								float v = paramV.getRangeMin() + j * dv;
@@ -163,7 +162,7 @@ namespace CB
 						{
 							float v = paramV.getRangeMin() + j * dv;
 							Vector3 value;
-							fun->evalExpr(value, 0, v);
+							func->evalExpr(value, 0, v);
 							for( int i = 0; i < paramU.numData; ++i )
 							{
 								float u = paramU.getRangeMin() + i * du;
@@ -184,7 +183,7 @@ namespace CB
 								float u = paramU.getRangeMin() + i * du;		
 								int idx = paramU.numData * j + i;
 								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								fun->evalExpr(*pPos, u, v);
+								func->evalExpr(*pPos, u, v);
 							}
 						}
 					}
@@ -192,7 +191,7 @@ namespace CB
 				default:
 					{
 						Vector3 value;
-						fun->evalExpr(value, 0, 0);
+						func->evalExpr(value, 0, 0);
 						for( int j = 0; j < paramV.numData; ++j )
 						{
 							float v = paramV.getRangeMin() + j * dv;
@@ -209,11 +208,11 @@ namespace CB
 					break;
 				}
 			}
-			else if( info.fun->getFunType() == TYPE_SURFACE_XY )
+			else if( info.func->getFunType() == TYPE_SURFACE_XY )
 			{
-				SurfaceXYFun* fun = static_cast<SurfaceXYFun*>(info.fun);
+				SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(info.func);
 
-				switch( fun->getUsedInputMask() )
+				switch( func->getUsedInputMask() )
 				{
 				case BIT(0):
 					{
@@ -221,7 +220,7 @@ namespace CB
 						{
 							float u = paramU.getRangeMin() + i * du;
 							Vector3 value;
-							fun->evalExpr(value, u, 0);
+							func->evalExpr(value, u, 0);
 
 							for( int j = 0; j < paramV.numData; ++j )
 							{
@@ -240,7 +239,7 @@ namespace CB
 							float v = paramV.getRangeMin() + j * dv;
 
 							Vector3 value;
-							fun->evalExpr(value, 0, v);
+							func->evalExpr(value, 0, v);
 
 							for( int i = 0; i < paramU.numData; ++i )
 							{
@@ -264,7 +263,7 @@ namespace CB
 
 								int idx = paramU.numData * j + i;
 								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-								fun->evalExpr(*pPos, u, v);
+								func->evalExpr(*pPos, u, v);
 							}
 						}
 					}
@@ -272,7 +271,7 @@ namespace CB
 				default:
 					{
 						Vector3 value;
-						fun->evalExpr(value, 0, 0);
+						func->evalExpr(value, 0, 0);
 						for( int j = 0; j < paramV.numData; ++j )
 						{
 							float v = paramV.getRangeMin() + j * dv;
@@ -311,7 +310,7 @@ namespace CB
 				}
 			}
 
-			if( data->getNormalOffset() != -1 )
+			if( data->getNormalOffset() != INDEX_NONE )
 			{
 #if USE_PARALLEL_UPDATE
 				std::vector< Vector3 > mCacheNormal;
@@ -372,7 +371,7 @@ namespace CB
 		}
 	}
 
-	bool ShapeMeshBuilder::parseFunction(ShapeFunBase& func)
+	bool ShapeMeshBuilder::parseFunction(ShapeFuncBase& func)
 	{
 #if USE_PARALLEL_UPDATE
 		Mutex::Locker locker(mParserLock);

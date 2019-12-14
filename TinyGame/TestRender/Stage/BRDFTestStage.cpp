@@ -18,41 +18,49 @@ namespace Render
 		outData.envMapSize = texture->getSize();
 		outData.irradianceSize = irradianceTexture->getSize();
 		outData.perFilteredSize = perfilteredTexture->getSize();
-		GetTextureData(*texture, Texture::eFloatRGBA, 0, outData.envMap);
-		GetTextureData(*irradianceTexture, Texture::eFloatRGBA, 0, outData.irradiance);
+		ReadTextureData(*texture, Texture::eFloatRGBA, 0, outData.envMap);
+		ReadTextureData(*irradianceTexture, Texture::eFloatRGBA, 0, outData.irradiance);
 		for( int level = 0; level < IBLResource::NumPerFilteredLevel; ++level )
 		{
-			GetTextureData(*perfilteredTexture, Texture::eFloatRGBA, level, outData.perFiltered[level]);
+			ReadTextureData(*perfilteredTexture, Texture::eFloatRGBA, level, outData.perFiltered[level]);
 		}
 	}
 
-	bool IBLResource::initializeRHI(ImageBaseLightingData* IBLData)
+	bool IBLResource::initializeRHI(ImageBaseLightingData& IBLData)
 	{
-		if( IBLData )
+		void* data[6];
 		{
-			void* data[6];
-			GetCubeMapData(IBLData->envMap, Texture::eFloatRGBA, IBLData->envMapSize, 0, data);
-			VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, IBLData->envMapSize, 1, TCF_DefalutValue, data));
-			GetCubeMapData(IBLData->irradiance, Texture::eFloatRGBA, IBLData->irradianceSize, 0, data);
-			VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, IBLData->irradianceSize, 1, TCF_DefalutValue, data));
+			TIME_SCOPE("Create EnvMap Texture");
+			GetCubeMapData(IBLData.envMap, Texture::eFloatRGBA, IBLData.envMapSize, 0, data);
+			VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, IBLData.envMapSize, 1, TCF_DefalutValue, data));
+		}
+		{
+			TIME_SCOPE("Create Irradiance Texture");
+			GetCubeMapData(IBLData.irradiance, Texture::eFloatRGBA, IBLData.irradianceSize, 0, data);
+			VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, IBLData.irradianceSize, 1, TCF_DefalutValue, data));
+		}
 
+		{
+			TIME_SCOPE("Create Perfiltered Texture");
 			VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, 256, NumPerFilteredLevel));
-			for( int level = 0; level < IBLResource::NumPerFilteredLevel; ++level )
+			for (int level = 0; level < IBLResource::NumPerFilteredLevel; ++level)
 			{
-				GetCubeMapData(IBLData->perFiltered[level], Texture::eFloatRGBA, IBLData->perFilteredSize, level, data);
-				for( int face = 0; face < Texture::FaceCount; ++face )
+				GetCubeMapData(IBLData.perFiltered[level], Texture::eFloatRGBA, IBLData.perFilteredSize, level, data);
+				for (int face = 0; face < Texture::FaceCount; ++face)
 				{
-					int size = Math::Max(1, IBLData->perFilteredSize >> level);
+					int size = Math::Max(1, IBLData.perFilteredSize >> level);
 					perfilteredTexture->update(Texture::Face(face), 0, 0, size, size, Texture::eFloatRGBA, data[face], level);
 				}
 			}
 		}
-		else
-		{
-			VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, 1024));
-			VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, 256));
-			VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, 256, NumPerFilteredLevel));
-		}
+		return true;
+	}
+
+	bool IBLResource::initializeRHI(IBLBuildSetting const& setting)
+	{
+		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, setting.envSize));
+		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.irradianceSize));
+		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.perfilteredSize , NumPerFilteredLevel));
 		return true;
 	}
 
@@ -352,21 +360,28 @@ namespace Render
 			DataCacheKey cacheKey;
 			cacheKey.typeName = "IBL";
 			cacheKey.version = "7A38AC9D-1EFC-4537-898E-BC8552AD7758";
-			cacheKey.keySuffix.add(path , setting.irradianceSampleCount[0] , setting.irradianceSampleCount[1] , setting.prefilterSampleCount );
+			cacheKey.keySuffix.add(path , setting.envSize , setting.irradianceSize , setting.perfilteredSize,
+				setting.irradianceSampleCount[0] , setting.irradianceSampleCount[1] , setting.prefilterSampleCount );
 
 			auto LoadFun = [&resource](IStreamSerializer& serializer) -> bool
 			{
 				ImageBaseLightingData IBLData;
-				serializer >> IBLData;
-				if( !resource.initializeRHI(&IBLData) )
-					return false;
+				{
+					TIME_SCOPE("Load ImageBaseLighting Data");
+					serializer >> IBLData;
+				}
+				{
+					TIME_SCOPE("Init IBLResource RHI");
+					if (!resource.initializeRHI(IBLData))
+						return false;
+				}
 
 				return true;
 			};
 
 			if( !dataCache.loadDelegate(cacheKey, LoadFun) )
 			{
-				resource.initializeRHI(nullptr);
+				resource.initializeRHI(setting);
 				if( !buildIBLResource(HDRImage, resource, setting) )
 				{
 					return false;
@@ -395,13 +410,20 @@ namespace Render
 				auto LoadFun = [this](IStreamSerializer& serializer) -> bool
 				{
 					std::vector< uint8 > data;
-					serializer >> data;
-					if( !IBLResource::InitializeBRDFTexture(data.data()) )
-						return false;
+					{
+						TIME_SCOPE("Serialize BRDF Data");
+						serializer >> data;
+					}
+					{
+						TIME_SCOPE("Initialize BRDF Texture");
+						if (!IBLResource::InitializeBRDFTexture(data.data()))
+							return false;
+					}
 
 					return true;
 				};
 
+				TIME_SCOPE("Load BRDF Data");
 				if( !dataCache.loadDelegate(GetBRDFCacheKey(), LoadFun) )
 				{
 					return false;

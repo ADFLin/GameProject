@@ -11,7 +11,7 @@
 #include "WindowsHeader.h"
 static void* AllocExecutableMemory(size_t size)
 {
-	return ::VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	return ::VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 }
 static void  FreeExecutableMemory(void* ptr)
 {
@@ -36,7 +36,7 @@ class AsmCodeGenerator : public Asmeta::AssemblerT< FPUCodeGeneratorV0 >
 {
 public:
 
-	typedef AssemblerT< FPUCodeGeneratorV0 > Asm;
+	using Asm = AssemblerT< FPUCodeGeneratorV0 >;
 
 	void   emitByte(uint8 byte1) { mData->pushCode(byte1); }
 	void   emitWord(uint16 val) { mData->pushCodeT(val); }
@@ -54,7 +54,7 @@ public:
 class FPUCodeGeneratorBase : public AsmCodeGenerator
 {
 public:
-	typedef double ValueType;
+	using ValueType = double;
 #define VALUE_PTR qword_ptr
 	static int const FpuRegNum = 8;
 
@@ -93,7 +93,7 @@ public:
 				stackValue.offset = mConstStack.back().offset + GetLayoutSize(mConstStack.back().layout);
 			}
 			mConstStack.push_back(stackValue);
-			mConstStorage.resize(mConstStack.size() + GetLayoutSize(val.layout));
+			mConstStorage.resize(mConstStorage.size() + GetLayoutSize(val.layout));
 			val.assignTo(&mConstStorage[stackValue.offset]);
 		}
 
@@ -305,7 +305,7 @@ public:
 class FPUCodeGeneratorV0 : public FPUCodeGeneratorBase
 {
 	
-	typedef FPUCodeGeneratorBase BaseClass;
+	using BaseClass = FPUCodeGeneratorBase;
 public:
 
 	void codeInit(int numInput, ValueLayout inputLayouts[])
@@ -409,7 +409,7 @@ public:
 		Asm::call(ptr((void*)&info.funcPtr));
 		Asm::add(esp, imm8u(uint8(espOffset)));
 
-		mRegStack.push_back(ValueInfo());
+		mRegStack.emplace_back();
 		mNumInstruction += 3;
 
 		mNumVarStack -= numParam - 1;
@@ -577,7 +577,7 @@ protected:
 				}
 			}
 		}
-		return -1;
+		return INDEX_NONE;
 	}
 };
 
@@ -628,7 +628,7 @@ public:
 		ValueInfo info;
 		info.type = VALUE_CONST;
 		info.idxCV = idx;
-		info.idxStack = -1;
+		info.idxStack = INDEX_NONE;
 		mStackValues.push_back(info);
 	}
 	void codeVar(VariableInfo const& varInfo)
@@ -636,7 +636,7 @@ public:
 		ValueInfo info;
 		info.type = VALUE_VARIABLE;
 		info.var = &varInfo;
-		info.idxStack = -1;
+		info.idxStack = INDEX_NONE;
 		mStackValues.push_back(info);
 	}
 	void codeInput(uint8 inputIndex)
@@ -644,7 +644,7 @@ public:
 		ValueInfo info;
 		info.type = VALUE_INPUT;
 		info.idxInput = inputIndex;
-		info.idxStack = -1;
+		info.idxStack = INDEX_NONE;
 		mStackValues.push_back(info);
 	}
 
@@ -663,7 +663,7 @@ public:
 			else
 			{
 				uint8 indexReg = getRegIndex(value);
-				if( indexReg != -1 )
+				if( indexReg != INDEX_NONE )
 				{
 					Asm::fst(st(indexReg));
 				}
@@ -688,9 +688,9 @@ public:
 
 		Asm::bind(&mConstLabel);
 		int   num = mData->getCodeLength();
-		for( int i = 0; i < mConstTable.size(); ++i )
+		for(RealType cValue : mConstTable)
 		{
-			mData->pushCode(mConstTable[i]);
+			mData->pushCode(cValue);
 		}
 
 		Asm::reloc(mData->mCode);
@@ -718,7 +718,7 @@ protected:
 
 FPUCompiler::FPUCompiler()
 {
-	mOptimization = false;
+	mOptimization = true;
 }
 
 __declspec(noinline) double FooTest(double x, double y)

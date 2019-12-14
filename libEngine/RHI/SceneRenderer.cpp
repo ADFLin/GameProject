@@ -131,9 +131,9 @@ namespace Render
 
 	void ShadowDepthTech::reload()
 	{
-		for( int i = 0; i < 3; ++i )
+		for(auto& shader : mProgShadowDepthList)
 		{
-			ShaderManager::Get().reloadShader(mProgShadowDepth[i]);
+			ShaderManager::Get().reloadShader(shader);
 		}
 		ShaderManager::Get().reloadShader(mProgLighting);
 	}
@@ -142,7 +142,7 @@ namespace Render
 	class ShadowDepthProgram : public MaterialShaderProgram
 	{
 	public:
-		typedef MaterialShaderProgram BaseClass;
+		using BaseClass = MaterialShaderProgram;
 		DECLARE_EXPORTED_SHADER_PROGRAM(ShadowDepthProgram , Material , CORE_API );
 
 
@@ -240,8 +240,8 @@ namespace Render
 		lightView.mUniformBuffer = nullptr;
 
 #if !USE_MATERIAL_SHADOW
-		RHISetShaderProgram(commandList, mProgShadowDepth->getRHIResource());
-		mEffectCur = &mProgShadowDepth[LIGHTTYPE_POINT];
+		RHISetShaderProgram(commandList, mProgShadowDepthList->getRHIResource());
+		mEffectCur = &mProgShadowDepthList[LIGHTTYPE_POINT];
 		mEffectCur->setParam(SHADER_PARAM(DepthParam), depthParam[0], depthParam[1]);
 #endif
 		Matrix4 biasMatrix(
@@ -451,12 +451,12 @@ namespace Render
 		float MaxLen = 10000000;
 		Vector3 Vmin = Vector3(MaxLen, MaxLen, MaxLen);
 		Vector3 Vmax = -Vmin;
-		for( int i = 0; i < 8; ++i )
+		for(auto const& pos : boundPos)
 		{
 			Vector3 v;
-			v.x = xAxis.dot(boundPos[i]);
-			v.y = yAxis.dot(boundPos[i]);
-			v.z = zAxis.dot(boundPos[i]);
+			v.x = xAxis.dot(pos);
+			v.y = yAxis.dot(pos);
+			v.z = zAxis.dot(pos);
 			Vmin.min(v);
 			Vmax.max(v);
 		}
@@ -473,7 +473,7 @@ namespace Render
 	class DeferredLightingProgram : public GlobalShaderProgram
 	{
 	public:
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamGBuffer.bindParameters(parameterMap, true);
 		}
@@ -509,7 +509,7 @@ namespace Render
 	class TDeferredLightingProgram : public DeferredLightingProgram
 	{
 		DECLARE_SHADER_PROGRAM( TDeferredLightingProgram, Global)
-		typedef DeferredLightingProgram BaseClass;
+		using BaseClass = DeferredLightingProgram;
 
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
@@ -554,7 +554,7 @@ namespace Render
 	class LightingShowBoundProgram : public DeferredLightingProgram
 	{
 		DECLARE_SHADER_PROGRAM(LightingShowBoundProgram, Global)
-		typedef DeferredLightingProgram BaseClass;
+		using BaseClass = DeferredLightingProgram;
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
@@ -776,7 +776,7 @@ namespace Render
 
 	class DeferredBasePassProgram : public MaterialShaderProgram
 	{
-		typedef MaterialShaderProgram BaseClass;
+		using BaseClass = MaterialShaderProgram;
 		DECLARE_EXPORTED_SHADER_PROGRAM(DeferredBasePassProgram, Material, CORE_API);
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -817,21 +817,20 @@ namespace Render
 
 	bool GBufferParamData::initializeRHI(IntVector2 const& size, int numSamples)
 	{
-		for( int i = 0; i < NumBuffer; ++i )
+		for(auto& texture : textures)
 		{
-			textures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
+			texture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
 
-			if( !textures[i].isValid() )
+			if( !texture.isValid() )
 				return false;
 
-			OpenGLCast::To(textures[i])->bind();
+			OpenGLCast::To(texture)->bind();
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			OpenGLCast::To(textures[i])->unbind();
+			OpenGLCast::To(texture)->unbind();
 		}
-
 
 		return true;
 	}
@@ -908,7 +907,7 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap const& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap) override;
 		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
 
 		GBufferShaderParameters mParamGBuffer;
@@ -938,7 +937,7 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap const& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap) override;
 		void setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture);
 
 		ShaderParameter mParamTextureSSAO;
@@ -965,7 +964,7 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap const& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap) override;
 		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
 
 		GBufferShaderParameters mParamGBuffer;
@@ -1106,10 +1105,10 @@ namespace Render
 	bool SceneRenderTargets::initializeRHI(IntVector2 const& size , int numSamples )
 	{
 		mIdxRenderFrameTexture = 0;
-		for( int i = 0; i < 2; ++i )
+		for(auto& frameTexture : mFrameTextures)
 		{
-			mFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
-			if( !mFrameTextures[i].isValid() )
+			frameTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
+			if( !frameTexture.isValid() )
 				return false;
 		}
 
@@ -1190,7 +1189,7 @@ namespace Render
 
 		DECLARE_SHADER_PROGRAM(BMAResolveProgram, Global);
 
-		void bindParameters(ShaderParameterMap const& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap) override;
 
 		void setParameters(RHICommandList& commandList, OITShaderData& data);
 
@@ -1355,8 +1354,8 @@ namespace Render
 	{
 		ShaderManager::Get().reloadShader(mShaderBassPassTest);
 		ShaderManager::Get().reloadShader(*mShaderResolve);
-		for( int i = 0; i < NumBMALevel; ++i )
-			ShaderManager::Get().reloadShader(*mShaderBMAResolves[i]);
+		for(auto shader : mShaderBMAResolves)
+			ShaderManager::Get().reloadShader(*shader);
 	}
 
 	void OITTechnique::renderInternal(RHICommandList& commandList, ViewInfo& view, std::function< void(RHICommandList&) > drawFuncion , SceneRenderTargets* sceneRenderTargets )
@@ -1493,7 +1492,7 @@ namespace Render
 
 	class OITBBasePassProgram : public MaterialShaderProgram
 	{
-		typedef MaterialShaderProgram BaseClass;
+		using BaseClass = MaterialShaderProgram;
 		DECLARE_EXPORTED_SHADER_PROGRAM(OITBBasePassProgram , Material, CORE_API);
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -1516,7 +1515,7 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamOITCommon.bindParameters(parameterMap);
@@ -1807,7 +1806,7 @@ namespace Render
 			};
 			return entries;
 		}
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamTextureR.bind(parameterMap, SHADER_PARAM(TextureR));
 			mParamTextureG.bind(parameterMap, SHADER_PARAM(TextureG));
@@ -1929,7 +1928,7 @@ namespace Render
 		static int constexpr SizeZ = 8;
 
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamBufferRW.bind(parameterMap, SHADER_PARAM(TargetRWTexture));
 			mParamClearValue.bind(parameterMap, SHADER_PARAM(ClearValue));
@@ -1989,7 +1988,7 @@ namespace Render
 		static int constexpr GroupSizeX = 8;
 		static int constexpr GroupSizeY = 8;
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamVolumeBufferA.bind(parameterMap, SHADER_PARAM(VolumeBufferA));
 			mParamVolumeBufferB.bind(parameterMap, SHADER_PARAM(VolumeBufferB));

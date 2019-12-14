@@ -66,7 +66,7 @@ namespace CB
 
 		ViewInfo& getViewInfo() { return mViewInfo; }
 
-		void reloadShaer();
+		void reloadShader();
 	private:
 
 		std::vector< unsigned > mIndexArray;

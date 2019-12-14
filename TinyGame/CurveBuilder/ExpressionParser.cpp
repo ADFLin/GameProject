@@ -31,6 +31,16 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 	case UOP_MINS:   cout<<"-";  break;
 	case BOP_ASSIGN: cout<<"=";  break;
 	case VALUE_CONST: cout << unit.constValue.toReal ; break;
+	case VALUE_INPUT:
+		{
+			char const* name = table.getInputName(unit.symbol->inputIndex);
+			if (name)
+				cout << name;
+			else
+				cout << "unknowInput";
+
+		}
+		break;
 	case FUN_DEF:
 		{
 			char const* name = table.getFunName( unit.symbol->func );
@@ -1389,6 +1399,17 @@ char const* SymbolTable::getVarName( void* var ) const
 	{
 		if( pair.second.type == SymbolEntry::eVariable &&
 		    pair.second.varValue.ptr == var )
+			return pair.first.c_str();
+	}
+	return nullptr;
+}
+
+char const* SymbolTable::getInputName(int index) const
+{
+	for (auto const& pair : mNameToEntryMap)
+	{
+		if (pair.second.type == SymbolEntry::eInputVar &&
+			pair.second.inputIndex == index)
 			return pair.first.c_str();
 	}
 	return nullptr;

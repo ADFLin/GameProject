@@ -750,59 +750,59 @@ namespace CAR
 
 	bool LevelStage::onKey(KeyMsg const& msg)
 	{
-		if ( !msg.isDown())
-			return false;
-
-		float offset = 0.2f;
-		switch(msg.getCode())
+		if ( msg.isDown() )
 		{
-		case EKeyCode::Z: mb2DView = !mb2DView; setRenderOffset( mRenderOffset ); break;
-		case EKeyCode::R: getStageMode()->restart( false ); break;
-		case EKeyCode::F: gDrawFarmLink = !gDrawFarmLink; break;
-		case EKeyCode::S: gDrawSideLink = !gDrawSideLink; break;
-		case EKeyCode::Q: 
-			++mRotation; 
-			if ( mRotation == FDir::TotalNum ) mRotation = 0; 
-			break;
-		case EKeyCode::E: 
-			if ( canInput() )
+			float offset = 0.2f;
+			switch (msg.getCode())
 			{
-				TileId id = mGameLogic.mUseTileId + 1;
-				if ( id == mGameLogic.mTileSetManager.getRegisterTileNum() ) 
-					id = 0;
+			case EKeyCode::Z: mb2DView = !mb2DView; setRenderOffset(mRenderOffset); break;
+			case EKeyCode::R: getStageMode()->restart(false); break;
+			case EKeyCode::F: gDrawFarmLink = !gDrawFarmLink; break;
+			case EKeyCode::S: gDrawSideLink = !gDrawSideLink; break;
+			case EKeyCode::Q:
+				++mRotation;
+				if (mRotation == FDir::TotalNum) mRotation = 0;
+				break;
+			case EKeyCode::E:
+				if (canInput())
+				{
+					TileId id = mGameLogic.mUseTileId + 1;
+					if (id == mGameLogic.mTileSetManager.getRegisterTileNum())
+						id = 0;
 
-				mInput.changePlaceTile( id );
-				updateShowTileObject( id );
-			}
-			break;
-		case EKeyCode::W: 
-			if ( canInput() )
-			{
-				TileId id = mGameLogic.mUseTileId;
-				if ( id == 0 ) 
-					id = mGameLogic.mTileSetManager.getRegisterTileNum() - 1;
+					mInput.changePlaceTile(id);
+					updateShowTileObject(id);
+				}
+				break;
+			case EKeyCode::W:
+				if (canInput())
+				{
+					TileId id = mGameLogic.mUseTileId;
+					if (id == 0)
+						id = mGameLogic.mTileSetManager.getRegisterTileNum() - 1;
+					else
+						id -= 1;
+
+					mInput.changePlaceTile(id);
+					updateShowTileObject(id);
+				}
+				break;
+			case EKeyCode::O:
+				++mIdxShowFeature;
+				if (mIdxShowFeature == mGameLogic.mFeatureMap.size())
+					mIdxShowFeature = 0;
+				break;
+			case EKeyCode::P:
+				if (mIdxShowFeature == 0)
+					mIdxShowFeature = mGameLogic.mFeatureMap.size() - 1;
 				else
-					id -= 1;
-
-				mInput.changePlaceTile( id );
-				updateShowTileObject( id );
+					--mIdxShowFeature;
+				break;
+			case EKeyCode::Up:    setRenderOffset(mRenderOffset - Vector2(0, offset)); break;
+			case EKeyCode::Down:  setRenderOffset(mRenderOffset + Vector2(0, offset)); break;
+			case EKeyCode::Left:  setRenderOffset(mRenderOffset + Vector2(offset, 0)); break;
+			case EKeyCode::Right: setRenderOffset(mRenderOffset - Vector2(offset, 0)); break;
 			}
-			break;
-		case EKeyCode::O: 
-			++mIdxShowFeature; 
-			if ( mIdxShowFeature == mGameLogic.mFeatureMap.size() ) 
-				mIdxShowFeature = 0;
-			break;
-		case EKeyCode::P: 
-			if ( mIdxShowFeature == 0 ) 
-				mIdxShowFeature = mGameLogic.mFeatureMap.size() - 1;
-			else
-				--mIdxShowFeature;
-			break;
-		case EKeyCode::Up:    setRenderOffset( mRenderOffset - Vector2( 0,offset ) ); break;
-		case EKeyCode::Down:  setRenderOffset( mRenderOffset + Vector2( 0,offset ) ); break;
-		case EKeyCode::Left:  setRenderOffset( mRenderOffset + Vector2( offset , 0 ) ); break;
-		case EKeyCode::Right: setRenderOffset( mRenderOffset - Vector2( offset , 0 ) ); break;
 		}
 		return false;
 	}

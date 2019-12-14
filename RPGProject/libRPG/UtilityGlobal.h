@@ -7,13 +7,13 @@ struct DamageInfo;
 void       UG_InputDamage( DamageInfo& info );
 
 struct TEvent;
-class  EvtCallBack;
+class  EventCallBack;
 enum   EventType;
 class  HandledObject;
 void       UG_SendEvent( TEvent& event );
 void       UG_ProcessEvent( TEvent& event );
-void       UG_ConnectEvent( EventType type , int id , EvtCallBack const& callback , HandledObject* holder = nullptr );
-void       UG_DisconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder = nullptr );
+void       UG_ConnectEvent( EventType type , int id , EventCallBack const& callback , HandledObject* holder = nullptr );
+void       UG_DisconnectEvent( EventType type , EventCallBack const& callback , HandledObject* holder = nullptr );
 
 class TEffectBase;
 class TEntityBase;

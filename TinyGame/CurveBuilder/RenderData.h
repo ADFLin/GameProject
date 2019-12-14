@@ -21,7 +21,7 @@ namespace CB
 		uint8*      getVertexData() { return (mVertexBuffer.empty()) ? nullptr : &mVertexBuffer[0]; }
 		int         getPositionOffset()  const { return 0 * sizeof(float); }
 		int         getColorOffset() const { return 3 * sizeof(float); }
-		int         getNormalOffset() const { return mbNormalOwned ? (7 * sizeof(float)) : -1; }
+		int         getNormalOffset() const { return mbNormalOwned ? (7 * sizeof(float)) : INDEX_NONE; }
 
 		int         getVertexNum() const { return mVertexNum; }
 		int         getVertexSize() const {  return mVertexSize;  }

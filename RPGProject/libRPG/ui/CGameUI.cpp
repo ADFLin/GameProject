@@ -74,7 +74,7 @@ CGameUI::CGameUI( CHero* player )
 	showButton[ SB_SKILL ] = new CTextButton( "Skill" , length , resizePos , NULL );
 	uiSystem.addWidget( showButton[ SB_SKILL ] );
 
-	EvtCallBack callback( this , &CGameUI::showFrameEvent );
+	EventCallBack callback( this , &CGameUI::showFrameEvent );
 	UG_ConnectEvent( EVT_UI_BUTTON_CLICK , showButton[ SB_ITEMBAG ]->getID() , callback );
 	UG_ConnectEvent( EVT_UI_BUTTON_CLICK , showButton[ SB_EQUIP ]->getID() , callback );
 	UG_ConnectEvent( EVT_UI_BUTTON_CLICK , showButton[ SB_SKILL ]->getID() , callback );
@@ -100,13 +100,13 @@ CGameUI::CGameUI( CHero* player )
 	//equipPanel->show( false );
 	//itemBagPanel->show( false );
 
-	UG_ConnectEvent( EVT_HOT_KEY , EVENT_ANY_ID , EvtCallBack( this , &CGameUI::onHotKey ) );
+	UG_ConnectEvent( EVT_HOT_KEY , EVENT_ANY_ID , EventCallBack( this , &CGameUI::onHotKey ) );
 }
 
 CGameUI::~CGameUI()
 {
-	UG_DisconnectEvent( EVT_UI_BUTTON_CLICK , EvtCallBack( this , &CGameUI::showFrameEvent ) );
-	UG_DisconnectEvent( EVT_HOT_KEY , EvtCallBack( this , &CGameUI::onHotKey ) );
+	UG_DisconnectEvent( EVT_UI_BUTTON_CLICK , EventCallBack( this , &CGameUI::showFrameEvent ) );
+	UG_DisconnectEvent( EVT_HOT_KEY , EventCallBack( this , &CGameUI::onHotKey ) );
 }
 
 void CGameUI::resizeScreenArea( int w , int h )
@@ -174,9 +174,9 @@ CBuffBarUI::CBuffBarUI( Vec2i const& pos , CHero* player , Thinkable* thinkable 
 {
 	m_progessBar.reset( new CBloodBar( thinkable , mSprite , 100 , Vec3D(1,1,1) , Vec2i( Size.x - 2 , Size.y - 2 ) , Color3f( 1 ,0 ,0 ) ) );
 
-	UG_ConnectEvent(  EVT_SKILL_BUFF_START , m_player->getRefID() , EvtCallBack( this , &CBuffBarUI::onStartBuff ) );
-	UG_ConnectEvent(  EVT_SKILL_CANCEL , m_player->getRefID() , EvtCallBack( this , &CBuffBarUI::onCanelSKill ) );
-	UG_ConnectEvent(  EVT_SKILL_END , m_player->getRefID() , EvtCallBack( this , &CBuffBarUI::onCanelSKill ) );
+	UG_ConnectEvent(  EVT_SKILL_BUFF_START , m_player->getRefID() , EventCallBack( this , &CBuffBarUI::onStartBuff ) );
+	UG_ConnectEvent(  EVT_SKILL_CANCEL , m_player->getRefID() , EventCallBack( this , &CBuffBarUI::onCanelSKill ) );
+	UG_ConnectEvent(  EVT_SKILL_END , m_player->getRefID() , EventCallBack( this , &CBuffBarUI::onCanelSKill ) );
 }
 
 void CBuffBarUI::onUpdateUI()
@@ -208,10 +208,10 @@ void CBuffBarUI::onCanelSKill( TEvent const& event )
 CTalkWidget::CTalkWidget( Vec2i const pos )
 	:BaseClass( CToolTipUI::DefultTemplate ,  pos , Size , NULL )
 {
-	UG_ConnectEvent( EVT_TALK_CONCENT , EVENT_ANY_ID , EvtCallBack( this , &CTalkWidget::receiveTalkStr ) );
-	UG_ConnectEvent( EVT_TALK_SECTION_END , EVENT_ANY_ID , EvtCallBack( this , &CTalkWidget::onEvent ) );
-	UG_ConnectEvent( EVT_TALK_START , EVENT_ANY_ID , EvtCallBack( this , &CTalkWidget::onEvent ) );
-	UG_ConnectEvent( EVT_TALK_END   , EVENT_ANY_ID , EvtCallBack( this , &CTalkWidget::onEvent ) );
+	UG_ConnectEvent( EVT_TALK_CONCENT , EVENT_ANY_ID , EventCallBack( this , &CTalkWidget::receiveTalkStr ) );
+	UG_ConnectEvent( EVT_TALK_SECTION_END , EVENT_ANY_ID , EventCallBack( this , &CTalkWidget::onEvent ) );
+	UG_ConnectEvent( EVT_TALK_START , EVENT_ANY_ID , EventCallBack( this , &CTalkWidget::onEvent ) );
+	UG_ConnectEvent( EVT_TALK_END   , EVENT_ANY_ID , EventCallBack( this , &CTalkWidget::onEvent ) );
 
 	sTextFont.setColor( Color4ub( 255 , 255 , 255 ) );
 

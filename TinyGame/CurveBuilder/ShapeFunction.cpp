@@ -1,17 +1,13 @@
-#include "ShapeFun.h"
+#include "ShapeFunction.h"
 
 #include "FunctionParser.h"
 
 
 namespace CB
 {
-	void SurfaceXYFun::evalExpr(Vector3& out, float x, float y)
-	{
-		assert(isParsed());
-		out.setValue(x, y, mExpr.eval(x,y));
-	}
 
-	bool SurfaceXYFun::parseExpression(FunctionParser& parser)
+
+	bool SurfaceXYFunc::parseExpression(FunctionParser& parser)
 	{
 		SymbolTable& table = parser.getSymbolDefine();
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
@@ -25,24 +21,24 @@ namespace CB
 		return isParsed();
 	}
 
-	SurfaceXYFun* SurfaceXYFun::clone()
+	SurfaceXYFunc* SurfaceXYFunc::clone()
 	{
-		return new SurfaceXYFun(*this);
+		return new SurfaceXYFunc(*this);
 	}
 
-	void SurfaceXYFun::acceptVisit(ShapeFunVisitor& visitor)
+	void SurfaceXYFunc::acceptVisit(ShapeFuncVisitor& visitor)
 	{
 		visitor.visit(*this);
 	}
 
 
-	void SurfaceUVFun::evalExpr(Vector3& out, float u, float v)
+	void SurfaceUVFunc::evalExpr(Vector3& out, float u, float v)
 	{
 		assert(isParsed());
 		out.setValue(mAixsExpr[0].eval(u,v), mAixsExpr[1].eval(u,v), mAixsExpr[2].eval(u,v));
 	}
 
-	bool SurfaceUVFun::parseExpression(FunctionParser& parser)
+	bool SurfaceUVFunc::parseExpression(FunctionParser& parser)
 	{
 		SymbolTable& table = parser.getSymbolDefine();
 		bool bDynamic = false;
@@ -65,34 +61,34 @@ namespace CB
 		return isParsed();
 	}
 
-	bool SurfaceUVFun::isParsed()
+	bool SurfaceUVFunc::isParsed()
 	{
 		return mAixsExpr[0].isParsed() && mAixsExpr[1].isParsed() && mAixsExpr[2].isParsed();
 	}
 
 
-	SurfaceUVFun* SurfaceUVFun::clone()
+	SurfaceUVFunc* SurfaceUVFunc::clone()
 	{
-		return new SurfaceUVFun(*this);
+		return new SurfaceUVFunc(*this);
 	}
 
-	void SurfaceUVFun::acceptVisit(ShapeFunVisitor& visitor)
-	{
-		visitor.visit(*this);
-	}
-
-
-	Curve3DFun* Curve3DFun::clone()
-	{
-		return new Curve3DFun(*this);
-	}
-
-	void Curve3DFun::acceptVisit(ShapeFunVisitor& visitor)
+	void SurfaceUVFunc::acceptVisit(ShapeFuncVisitor& visitor)
 	{
 		visitor.visit(*this);
 	}
 
-	bool Curve3DFun::parseExpression(FunctionParser& parser)
+
+	Curve3DFunc* Curve3DFunc::clone()
+	{
+		return new Curve3DFunc(*this);
+	}
+
+	void Curve3DFunc::acceptVisit(ShapeFuncVisitor& visitor)
+	{
+		visitor.visit(*this);
+	}
+
+	bool Curve3DFunc::parseExpression(FunctionParser& parser)
 	{
 		bool bDynamic = false;
 		SymbolTable& table = parser.getSymbolDefine();
@@ -108,12 +104,12 @@ namespace CB
 		return isParsed();
 	}
 
-	bool Curve3DFun::isParsed()
+	bool Curve3DFunc::isParsed()
 	{
 		return mCoordExpr[0].isParsed() && mCoordExpr[1].isParsed() && mCoordExpr[2].isParsed();
 	}
 
-	void Curve3DFun::evalExpr(Vector3& out, float s)
+	void Curve3DFunc::evalExpr(Vector3& out, float s)
 	{
 		assert(isParsed());
 		out.setValue(mCoordExpr[0].eval(s), mCoordExpr[1].eval(s), mCoordExpr[2].eval(s));

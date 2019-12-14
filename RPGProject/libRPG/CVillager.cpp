@@ -74,9 +74,9 @@ bool CVillager::init( GameObject* gameObject , GameObjectInitHelper const& helpe
 		return false;
 
 	UG_ConnectEvent( EVT_TALK_END , m_roleID , 
-		EvtCallBack( this , &CVillager::onEvent ) , this );
+		EventCallBack( this , &CVillager::onEvent ) , this );
 	UG_ConnectEvent( EVT_TALK_SECTION_END , m_roleID , 
-		EvtCallBack( this , &CVillager::onEvent ) , this );
+		EventCallBack( this , &CVillager::onEvent ) , this );
 
 	return true;
 }

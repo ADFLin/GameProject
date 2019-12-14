@@ -429,7 +429,7 @@ namespace Render
 			return true;
 		}
 
-		typedef std::unique_ptr<Material> MaterialPtr;
+		using MaterialPtr = std::unique_ptr<Material>;
 		MaterialPtr mCurMaterial;
 		std::unordered_map< std::string, MaterialPtr > mLoadedMaterials;
 		MaterialAssetProvider& mProvider;
@@ -439,7 +439,7 @@ namespace Render
 
 	struct ForwordLightingProgram : public MaterialShaderProgram
 	{
-		typedef MaterialShaderProgram BaseClass;
+		using BaseClass = MaterialShaderProgram;
 
 		DECLARE_SHADER_PROGRAM(ForwordLightingProgram ,Material);
 
@@ -469,7 +469,7 @@ namespace Render
 	class DrawCallOptimizationStage : public StageBase
 		                            , public MaterialAssetProvider
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 		DrawCallOptimizationStage() {}
 
@@ -524,6 +524,15 @@ namespace Render
 
 		std::vector<DrawObject>  mObjects;
 		std::vector<DrawObject*> mDrawOrderObjects;
+
+		enum EDrawOrderMethod
+		{
+
+
+
+
+		};
+
 		class ViewFrustum
 		{
 		public:
@@ -541,6 +550,8 @@ namespace Render
 		ViewInfo      mView;
 		ViewFrustum   mViewFrustum;
 		SimpleCamera  mCamera;
+		Material* mMaterials[MaterialIdCount];
+
 
 		bool loadMaterial(char const* path)
 		{
@@ -569,10 +580,8 @@ namespace Render
 			return true;
 		}
 
-		Material* mMaterials[MaterialIdCount];
 
-
-		virtual bool onInit()
+		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
@@ -599,9 +608,9 @@ namespace Render
 			};
 
 			Matrix4 MeshTransform[MODEL_MESH_END];
-			for( int i = 0; i < MODEL_MESH_END; ++i )
+			for(auto& xform : MeshTransform)
 			{
-				MeshTransform[i].setIdentity();
+				xform.setIdentity();
 			}
 			Matrix4 FixRotation = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(90));
 			MeshTransform[MeshId::Teapot] = Matrix4::Scale(0.05) * FixRotation;
@@ -659,7 +668,7 @@ namespace Render
 			return true;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			BaseClass::onEnd();
 		}
@@ -668,7 +677,7 @@ namespace Render
 		void tick() {}
 		void updateFrame(int frame) {}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -679,7 +688,7 @@ namespace Render
 			updateFrame(frame);
 		}
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 
 			{
@@ -758,7 +767,7 @@ namespace Render
 
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos = msg.getPos();
 
@@ -779,7 +788,7 @@ namespace Render
 			return true;
 		}
 
-		bool onKey(KeyMsg const& msg)
+		bool onKey(KeyMsg const& msg) override
 		{
 			if( !msg.isDown())
 				return false;
@@ -802,7 +811,7 @@ namespace Render
 			return false;
 		}
 
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
 			{
@@ -813,18 +822,28 @@ namespace Render
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
 
-		virtual Material*     createMaterial(char const* name)
-		{
 
+		std::unordered_map< HashString, MaterialMaster* > mMaterialMap;
+
+		Material*     createMaterial(char const* name) override
+		{
+			HashString hashName{ name };
+			auto iter = mMaterialMap.find(hashName);
+			if (iter != mMaterialMap.end() )
+			{
+				MaterialInstance* instance = new MaterialInstance(iter->second);
+				return instance;
+			}
 			MaterialMaster* material = new MaterialMaster;
 			if( !material->loadFile(name) )
 			{
 				delete material;
 				return nullptr;
 			}
+			mMaterialMap.emplace(hashName, material);
 			return material;
 		}
-		virtual RHITexture2D* getTexture2D(char const* name)
+		RHITexture2D* getTexture2D(char const* name) override
 		{
 			return RHIUtility::LoadTexture2DFromFile(name);
 		}

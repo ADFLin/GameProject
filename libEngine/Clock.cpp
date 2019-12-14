@@ -9,7 +9,7 @@ HighResClock::HighResClock()
 	reset();
 }
 
-unsigned long int HighResClock::getTimeMicroseconds()
+uint64 HighResClock::getTimeMicroseconds()
 {
 	LARGE_INTEGER currentTime;
 	QueryPerformanceCounter(&currentTime);
@@ -39,7 +39,7 @@ unsigned long int HighResClock::getTimeMicroseconds()
 	mPrevElapsedTime = elapsedTime;
 
 	// Convert to microseconds.
-	unsigned long usecTicks = (unsigned long)(1000000 * elapsedTime / 
+	uint64 usecTicks = (unsigned long)(1000000 * elapsedTime /
 		mClockFrequency.QuadPart);
 
 	return usecTicks;

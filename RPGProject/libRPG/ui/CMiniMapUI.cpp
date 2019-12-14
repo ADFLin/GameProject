@@ -49,7 +49,7 @@ CMiniMapUI::CMiniMapUI( Vec2i const& pos )
 		CButtonUI* button  = new CSimpleButton( dir , &texName[0] , 
 			Vec2i( size.x - btnSize - 5 , Length / 2 - shift_y - btnSize ) ,
 			Vec2i( btnSize , btnSize ) , this  );
-		UG_ConnectEvent( EVT_UI_BUTTON_CLICK , button->getID() , EvtCallBack( this , &CMiniMapUI::increaseMapViewDist ) );
+		UG_ConnectEvent( EVT_UI_BUTTON_CLICK , button->getID() , EventCallBack( this , &CMiniMapUI::increaseMapViewDist ) );
 	}
 
 	{
@@ -58,7 +58,7 @@ CMiniMapUI::CMiniMapUI( Vec2i const& pos )
 		CButtonUI* button  = new CSimpleButton( dir , &texName[0] , 
 			Vec2i( size.x - btnSize - 5 , Length / 2 + shift_y ) , 
 			Vec2i( btnSize , btnSize ) , this  );
-		UG_ConnectEvent( EVT_UI_BUTTON_CLICK , button->getID() , EvtCallBack( this , &CMiniMapUI::decreaseMapViewDist ) );
+		UG_ConnectEvent( EVT_UI_BUTTON_CLICK , button->getID() , EventCallBack( this , &CMiniMapUI::decreaseMapViewDist ) );
 	}
 
 	rotateMap = true;

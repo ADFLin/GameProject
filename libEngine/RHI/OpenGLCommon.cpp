@@ -257,12 +257,16 @@ namespace Render
 		bind();
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
-		for( int i = 0; i < 6; ++i )
 		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
-						 OpenGLTranslate::To(format), size, size, 0,
-						 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), 
-						 data ? data[i] : nullptr );
+			GLenum formatGL = OpenGLTranslate::To(format);
+			GLenum baseFormat = OpenGLTranslate::BaseFormat(format);
+			GLenum componentType = OpenGLTranslate::TextureComponentType(format);
+			for (int i = 0; i < 6; ++i)
+			{
+				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+					formatGL, size, size, 0,
+					baseFormat, componentType, data ? data[i] : nullptr);
+			}
 		}
 
 		if( numMipLevel > 1 )

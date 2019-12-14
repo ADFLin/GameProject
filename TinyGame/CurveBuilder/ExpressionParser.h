@@ -397,6 +397,7 @@ public:
 
 	char const*     getFunName( FuncInfo const& info ) const;
 	char const*     getVarName( void* var ) const;
+	char const*     getInputName(int index) const;
 
 	bool            isFunDefined(char const* name) const{  return isDefinedInternal( name , SymbolEntry::eFunction ); }
 	bool            isVarDefined(char const* name) const{ return isDefinedInternal(name, SymbolEntry::eVariable ); }
@@ -453,7 +454,7 @@ public:
 
 class ExprTreeBuilder : public ExprParse
 {
-	typedef ExprParse::Unit Unit;
+	using Unit = ExprParse::Unit;
 public:
 
 	void build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*throw ParseException */;
@@ -641,6 +642,7 @@ void ParseResult::generateCode( TCodeGenerator& generator , int numInput, ValueL
 			}
 		}
 	}
+
 	generator.codeEnd();
 }
 

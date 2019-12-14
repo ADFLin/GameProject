@@ -8,6 +8,8 @@
 #define BIT( n ) ( 1 << ( n ) )
 #endif 
 
+#define INDEX_NONE (-1)
+
 template< class T, size_t N >
 size_t array_size(T(&ar)[N]) { return N; }
 #define ARRAY_SIZE( var ) array_size( var )

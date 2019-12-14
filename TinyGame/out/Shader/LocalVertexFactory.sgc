@@ -4,6 +4,10 @@
 #include "ViewParam.sgc"
 #include "PrimitiveParam.sgc"
 
+#ifndef USE_INSTANCED
+#define USE_INSTANCED 0
+#endif // !USE_INSTANCED
+
 #ifndef VERTEX_FACTORY_USE_GEOMETRY_SHADER
 #define VERTEX_FACTORY_USE_GEOMETRY_SHADER 0
 #endif
@@ -73,10 +77,18 @@ float3 VertexFactory_GetWorldPos(in FactoryInterpolantsParam Param)
 in VertexFactoryInputParameters
 {
 #endif
-	layout(location = ATTRIBUTE_POSITION) in float4 VertexInput_position;
-	layout(location = ATTRIBUTE_NORMAL) in float3 VertexInput_normal;
-	layout(location = ATTRIBUTE_COLOR) in float4 VertexInput_color;
-	layout(location = ATTRIBUTE_TANGENT) in float4 VertexInput_tangent;
+	DECLARE_VERTEX_INPUT(float4, position ,ATTRIBUTE_POSITION)
+	DECLARE_VERTEX_INPUT(float3, normal, ATTRIBUTE_NORMAL)
+	DECLARE_VERTEX_INPUT(float4, color , ATTRIBUTE_COLOR)
+
+#if USE_INSTANCED
+	DECLARE_VERTEX_INPUT(float4, InstanceParam0, ATTRIBUTE6)
+	DECLARE_VERTEX_INPUT(float4, InstanceParam1, ATTRIBUTE7)
+	DECLARE_VERTEX_INPUT(float4, InstanceParam2, ATTRIBUTE8)
+	DECLARE_VERTEX_INPUT(float4, InstanceParam3, ATTRIBUTE9)
+#endif
+
+	DECLARE_VERTEX_INPUT(float4, tangent, ATTRIBUTE_TANGENT);
 
 #if MATERIAL_TEXCOORD_NUM
 	#if MATERIAL_TEXCOORD_NUM > 0
@@ -108,21 +120,55 @@ struct VertexFactoryIntermediatesVS
 	uint   haveTangent;
 };
 
+float4x4 GetLocalToWorldTransform()
+{
+#if USE_INSTANCED
+	float4x4 instanceTransform;
+	instanceTransform[0] = float4(VERTEX_INPUT(InstanceParam0).xyz, 0);
+	instanceTransform[1] = float4(VERTEX_INPUT(InstanceParam1).xyz, 0);
+	instanceTransform[2] = float4(VERTEX_INPUT(InstanceParam2).xyz, 0);
+	instanceTransform[3] = float4(VERTEX_INPUT(InstanceParam3).xyz, 1);
+	return instanceTransform * Primitive.localToWorld;
+#else
+	return Primitive.localToWorld;
+#endif
+}
+
+float4x4 GetWorldToLocalTransform()
+{
+#if USE_INSTANCED
+	float4x4 instanceTransform;
+	instanceTransform[0] = float4(VERTEX_INPUT(InstanceParam0).xyz, 0);
+	instanceTransform[1] = float4(VERTEX_INPUT(InstanceParam1).xyz, 0);
+	instanceTransform[2] = float4(VERTEX_INPUT(InstanceParam2).xyz, 0);
+	instanceTransform[3] = float4(VERTEX_INPUT(InstanceParam3).xyz, 1);
+	return Primitive.worldToLocal * inverse( instanceTransform );
+#else
+	return Primitive.worldToLocal;
+#endif
+
+}
+
 VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
 {
 	VertexFactoryIntermediatesVS intermediates;
 	float noramlFactor = 1;// gl_FrontFacing ? 1 : -1;
+
+	float4x4 worldToLocal = GetWorldToLocalTransform();
+	float4x4 localToWorld = GetLocalToWorldTransform();
+	    
+
 #if VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
-	intermediates.normal = noramlFactor * float4(VertexInput_normal, 0) * Primitive.worldToLocal;
-	intermediates.tangent = noramlFactor * float4(VertexInput_tangent.xyz, 0) * Primitive.worldToLocal;
-	intermediates.tangent.w = VertexInput_tangent.w;
-	intermediates.worldPos = Primitive.localToWorld * VertexInput_position;
-	intermediates.vertexColor = VertexInput_color;
+	intermediates.normal = noramlFactor * float4(VERTEX_INPUT(normal), 0) * worldToLocal;
+	intermediates.tangent = noramlFactor * float4(VERTEX_INPUT(tangent).xyz, 0) * worldToLocal;
+	intermediates.tangent.w = VERTEX_INPUT(tangent).w;
+	intermediates.worldPos = worldToLocal * VERTEX_INPUT( position );
+	intermediates.vertexColor = VERTEX_INPUT(color);
 #else //USE_VERTEX_ATTRIBUTE_INDEX
 	intermediates.normal = noramlFactor * float4(gl_Normal, 0) * Primitive.worldToLocal;
 	intermediates.tangent = noramlFactor * float4(gl_Tangent.xyz, 0) * Primitive.worldToLocal;
 	intermediates.tangent.w = gl_Tangent.w;
-	intermediates.worldPos = Primitive.localToWorld * gl_Vertex;
+	intermediates.worldPos = worldToLocal * gl_Vertex;
 	intermediates.vertexColor = gl_Color;
 #endif //USE_VERTEX_ATTRIBUTE_INDEX
 

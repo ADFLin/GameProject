@@ -54,6 +54,8 @@ namespace Go
 			{
 				if (SystemPlatform::OpenFileName(filePath, filePath.max_size(), nullptr, nullptr) )
 					return false;
+
+				return false;
 			};
 		}
 

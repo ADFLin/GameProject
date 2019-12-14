@@ -69,7 +69,7 @@ void  TItemOwnerUI<Impl, CoreImpl>::removeItem( unsigned pos )
 	_this()->onRemoveItem( *iter );
 	mItemList.erase( iter );
 	if ( mCurSelect == (int)pos )
-		mCurSelect = -1;
+		mCurSelect = INDEX_NONE;
 	else if ( mCurSelect > (int)pos )
 		--mCurSelect;
 }
@@ -83,7 +83,7 @@ void  TItemOwnerUI<Impl, CoreImpl>::removeAllItem()
 		_this()->onRemoveItem( mItemList[i] );
 	}
 	mItemList.clear();
-	mCurSelect = -1;
+	mCurSelect = INDEX_NONE;
 }
 
 template < class Impl, class CoreImpl >
@@ -102,8 +102,8 @@ void TItemOwnerUI<Impl, CoreImpl>::removeItem( char const* str )
 
 	if ( iter != mItemList.end() )
 	{
-		if ( mCurSelect != -1 && iter == mItemList.begin() + mCurSelect )
-			mCurSelect = -1;
+		if ( mCurSelect != INDEX_NONE && iter == mItemList.begin() + mCurSelect )
+			mCurSelect = INDEX_NONE;
 		_this()->onRemoveItem( *iter );
 		mItemList.erase( iter );
 	}
@@ -112,7 +112,7 @@ void TItemOwnerUI<Impl, CoreImpl>::removeItem( char const* str )
 template < class Impl, class CoreImpl >
 void TItemOwnerUI<Impl, CoreImpl>::tryMoveSelect( bool beNext )
 {
-	if ( mCurSelect == -1 )
+	if ( mCurSelect == INDEX_NONE)
 	{
 		if ( mItemList.size() )
 		{

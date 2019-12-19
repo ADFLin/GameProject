@@ -11,6 +11,7 @@
 #include "RHI/OpenGLCommon.h"
 #include "RHI/RenderContext.h"
 #include "RHI/SceneRenderer.h"
+#include "FrameAllocator.h"
 
 namespace CB
 {
@@ -69,7 +70,7 @@ namespace CB
 		void reloadShader();
 	private:
 
-		std::vector< unsigned > mIndexArray;
+		FrameAllocator mAllocaator;
 		SampleParam mAxis[3];
 		ViewInfo mViewInfo;
 		class CurveMeshProgram* mProgCurveMesh;

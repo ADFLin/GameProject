@@ -1168,10 +1168,10 @@ namespace Render
 	class MaterialStringStreamReader : public tinyobj::MaterialReader
 	{
 	public:
-		virtual std::string operator() (
+		std::string operator() (
 			const std::string& matId,
 			std::vector< tinyobj::material_t >& materials,
-			std::map<std::string, int>& matMap)
+			std::map<std::string, int>& matMap) override
 		{
 			return "";
 		}
@@ -1503,7 +1503,7 @@ namespace Render
 	class TIcoSphereBuilder
 	{
 	public:
-		typedef typename VertexTraits::Type VertexType;
+		using VertexType = typename VertexTraits::Type;
 		void init( int numDiv , float radius )
 		{
 			mRadius = radius;
@@ -1578,8 +1578,8 @@ namespace Render
 		}
 		int    mNumV;
 		float  mRadius;
-		typedef uint64 KeyType;
-		typedef std::unordered_map< KeyType , int > KeyMap;
+		using KeyType = uint64;
+		using KeyMap = std::unordered_map< KeyType , int >;
 		std::vector< VertexType > mVertices;
 		KeyMap  mKeyMap;
 	};
@@ -1876,7 +1876,7 @@ namespace Render
 		outResult.volumeData.resize(gridSize.x * gridSize.y * gridSize.z);
 
 #if USE_KDTREE
-		typedef TKDTree<3> MyTree;
+		using MyTree = TKDTree<3>;
 		MyTree tree;
 		{
 			int* pIndex = pIndexData;
@@ -1984,8 +1984,8 @@ namespace Render
 			{
 				MyTask(decltype(TaskFun)& fun , float inDistSqr , int inNz)
 					:mFun(fun),maxDistanceSqr(inDistSqr),nz(inNz) {}
-				virtual void executeWork() override { mFun(nz , maxDistanceSqr); }
-				virtual void release() override {}
+				void executeWork() override { mFun(nz , maxDistanceSqr); }
+				void release() override {}
 				decltype( TaskFun )& mFun;
 				float maxDistanceSqr;
 				int nz;
@@ -2035,7 +2035,7 @@ namespace Render
 			{
 				mIb = new nv::IndexBuffer(triIndices, nv::IBT_U32, numTirangle * 3, false);
 			}
-			virtual nv::Vertex getVertex(unsigned int index) const
+			nv::Vertex getVertex(unsigned int index) const override
 			{
 				nv::Vertex v;
 				Vector3 pos = mPositionReader.get(index);

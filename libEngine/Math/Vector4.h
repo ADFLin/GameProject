@@ -14,8 +14,8 @@ namespace Math
 
 		Vector4( float x , float y , float z , float w )
 			:x(x),y(y),z(z),w(w){}
-		Vector4( float* ptr )
-			:x(ptr[0]),y(ptr[1]), z(ptr[2]), w(ptr[3]){ }
+		explicit Vector4( float const v[] )
+			:x(v[0]),y(v[1]), z(v[2]), w(v[3]){ }
 		explicit Vector4( Vector3 const& v , float w  = 1.0 )
 			:x(v.x),y(v.y),z(v.z),w(w){}
 

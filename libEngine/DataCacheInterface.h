@@ -12,7 +12,7 @@
 #include <vector>
 #include <functional>
 
-typedef std::function< bool (IStreamSerializer&) > SerializeDelegate;
+using SerializeDelegate = std::function< bool (IStreamSerializer&) >;
 struct DataCacheArg
 {
 	DataCacheArg();
@@ -51,7 +51,7 @@ struct DataCacheKey
 	DataCacheArg keySuffix;
 };
 
-typedef uint32 DataCacheHandle;
+using DataCacheHandle = uint32;
 
 #define ERROR_DATA_CACHE_HANDLE DataCacheHandle(-1)
 

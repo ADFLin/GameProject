@@ -45,7 +45,7 @@ namespace MV
 		{ 1 , 0.5 , 1 },
 		{ 0.5 , 1 , 1 },
 	};
-	static RenderEngine* gRE = NULL;
+	static RenderEngine* gRE = nullptr;
 
 
 	Matrix4 ToMatrix(AxisRoataion const& rotation)
@@ -66,6 +66,7 @@ namespace MV
 	RenderEngine& getRenderEngine(){ return *gRE; }
 
 	RenderEngine::RenderEngine()
+		:mAllocator(4096)
 	{
 		gRE = this;
 	}
@@ -77,10 +78,8 @@ namespace MV
 
 		mCommandList = &RHICommandList::GetImmediateList();
 
-		//mEffect.getParameter( )
-		mEffect.getParameter( "dirX" , paramDirX );
-		mEffect.getParameter( "dirZ" , paramDirZ );
-		mEffect.getParameter( "localScale", paramLocalScale );
+		mEffect.getParameter(SHADER_PARAM(Rotation) , paramRotation );
+		mEffect.getParameter(SHADER_PARAM(LocalScale), paramLocalScale );
 
 		{
 			if ( !MeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
@@ -110,21 +109,17 @@ namespace MV
 
 
 
-	void RenderEngine::renderScene(Mat4 const& matView)
+	void RenderEngine::renderScene(RenderContext& context)
 	{
 		RHICommandList& commandList = *mCommandList;
-		float det;
-		matView.inverse(mViewToWorld, det );
+		beginRender();
 
-		RHISetShaderProgram(commandList, mEffect.getRHIResource());
-		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld) , mViewToWorld);
+		renderGroup(context, mParam.world->mRootGroup );
 
-		glLoadMatrixf( matView );
-		renderGroup( mParam.world->mRootGroup );
-		RHISetShaderProgram(commandList, nullptr);
+		endRender();
 	}
 
-	void RenderEngine::renderBlock(Block& block , Vec3i const& pos)
+	void RenderEngine::renderBlock(RenderContext& context, Block& block , Vec3i const& pos)
 	{
 		RHICommandList& commandList = *mCommandList;
 		if ( mParam.bShowGroupColor )
@@ -136,12 +131,12 @@ namespace MV
 		{
 			glColor3f( 1 , 1 , 1 );
 		}
+		context.stack.push();
+		context.stack.translate( Vector3( pos.x , pos.y , pos.z ) );
 
-		glPushMatrix();
-		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam(commandList, paramDirX , (int)block.rotation[0] );
-		mEffect.setParam(commandList, paramDirZ , (int)block.rotation[2] );
-		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
+		mEffect.setParam(commandList, paramRotation , Vec2i( (int)block.rotation[0] , (int)block.rotation[2] ));
+		context.setupShader(commandList, mEffect);
+		context.setupPrimitiveParams(commandList, mEffect);
 		mMesh[ block.idMesh ].draw(commandList);
 
 		for( int i = 0 ; i < 6 ; ++i )
@@ -150,90 +145,99 @@ namespace MV
 			if ( surface.fun == NFT_LADDER )
 			{
 				Vec3f offset = 0.5 * FDir::OffsetF( block.rotation.toWorld( Dir(i) ) );
-				glTranslatef( offset.x , offset.y , offset.z );
+				context.stack.translate(offset);
+				context.setupPrimitiveParams(commandList, mEffect);
 				mMesh[ MESH_LADDER ].draw(commandList);
 			}
 		}
-		glPopMatrix();
+		context.stack.pop();
 	}
 
-	void RenderEngine::renderPath( Path& path , PointVec& points)
+	void RenderEngine::renderPath(RenderContext& context, Path& path , PointVec& points)
 	{
 		RHICommandList& commandList = *mCommandList;
 		if ( !points.empty() )
 			TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
 	}
 
-	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , Vec3f const& rotation)
+	void RenderEngine::renderMesh(RenderContext& context, int idMesh , Vec3f const& pos , Vec3f const& rotation)
 	{
 		RHICommandList& commandList = *mCommandList;
-		glPushMatrix();
-		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam(commandList, paramDirX , (int)Dir::X );
-		mEffect.setParam(commandList, paramDirZ , (int)Dir::Z );
-		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
+		context.stack.push();
+		context.stack.translate(pos);
+
+		mEffect.setParam(commandList, paramRotation , Vec2i( (int)Dir::X , (int)Dir::Z ) );
+		context.setupShader(commandList, mEffect);
+		context.setupPrimitiveParams(commandList, mEffect);
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
-		glMultMatrixf( Matrix4::Rotate( q ) );
+
+		context.stack.rotate(q);
 		mMesh[ idMesh ].draw(commandList);
-		glPopMatrix();
+
+
+		context.stack.pop();
+		
 	}
 
-	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , AxisRoataion const& rotation)
+	void RenderEngine::renderMesh(RenderContext& context, int idMesh , Vec3f const& pos , AxisRoataion const& rotation)
 	{
 		RHICommandList& commandList = *mCommandList;
-		glPushMatrix();
-		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam(commandList, paramDirX , (int)rotation[0] );
-		mEffect.setParam(commandList, paramDirZ , (int)rotation[2] );
-		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
+		context.stack.push();
+		context.stack.translate(pos);
+	
+		mEffect.setParam(commandList, paramRotation , Vec2i((int)rotation[0], (int)rotation[2]) );
+		context.setupShader(commandList, mEffect);
+		context.setupPrimitiveParams(commandList, mEffect);
 		mMesh[ idMesh ].draw(commandList);
-		glPopMatrix();
+
+		context.stack.pop();
+
 	}
 
-	void RenderEngine::renderGroup(ObjectGroup& group)
+	void RenderEngine::renderGroup(RenderContext& context, ObjectGroup& group)
 	{
 		if ( group.node )
-			group.node->prevRender();
+			group.node->prevRender(context);
 
 		for( BlockList::iterator iter = group.blocks.begin() , itEnd = group.blocks.end();
 			iter != itEnd ; ++iter )
 		{
 			Block* block = *iter;
-			renderBlock( *block , block->pos );
+			renderBlock(context, *block , block->pos );
 		}
 
 		if ( mParam.bShowNavNode )
 		{
-			renderNav( group );
+			renderNav(context, group );
 		}
 		for( ActorList::iterator iter = group.actors.begin() , itEnd = group.actors.end();
 			iter != itEnd ; ++iter)
 		{
 			Actor* actor = *iter;
-			renderActor( *actor );
+			renderActor(context, *actor );
 		}
 
 		for( MeshList::iterator iter = group.meshs.begin() , itEnd = group.meshs.end();
 			iter != itEnd ; ++iter)
 		{
 			MeshObject* mesh = *iter;
-			renderMesh( mesh->idMesh , mesh->pos , mesh->rotation );
+			renderMesh(context, mesh->idMesh , mesh->pos , mesh->rotation );
 		}
 
 		if ( group.node )
 		{
 			if ( !group.node->bModifyChildren )
-				group.node->postRender();
+				group.node->postRender(context);
 
 			for( GroupList::iterator iter = group.children.begin() , itEnd = group.children.end();
 				iter != itEnd ; ++iter )
 			{
 				ObjectGroup* child = *iter;
-				renderGroup( *child );
+				renderGroup(context, *child );
 			}
 
 			if ( group.node->bModifyChildren )
-				group.node->postRender();
+				group.node->postRender(context);
 		}
 		else
 		{
@@ -241,17 +245,23 @@ namespace MV
 				iter != itEnd ; ++iter )
 			{
 				ObjectGroup* child = *iter;
-				renderGroup( *child );
+				renderGroup(context, *child );
 			}
 
 		}
 	}
 
-	void RenderEngine::renderActor(Actor& actor)
+
+	struct Vertex_XYZ_C
+	{
+		Vec3f pos;
+		Vec3f color;
+	};
+
+	void RenderEngine::renderActor(RenderContext& context, Actor& actor)
 	{
 		RHICommandList& commandList = *mCommandList;
 
-		glPushMatrix();
 
 		Vec3f pos = actor.renderPos + 0.5 * FDir::OffsetF( actor.actFaceDir );
 
@@ -262,39 +272,51 @@ namespace MV
 		{
 		case Actor::eActClimb: pos += 0.5 * upOffset; break;
 		}
-		glTranslatef( pos.x , pos.y , pos.z );
+		context.stack.push();
+		context.stack.translate(pos);
 
-		mEffect.setParam(commandList, paramDirX , (int)actor.rotation[0] );
-		mEffect.setParam(commandList, paramDirZ , (int)actor.rotation[2] );
-		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
+		mEffect.setParam(commandList, paramRotation , Vec2i((int)actor.rotation[0], (int)actor.rotation[2]));
+		context.setupShader(commandList, mEffect);
+		context.setupPrimitiveParams(commandList, mEffect);
+		glColor3f(0.5, 0.5, 0.5);
 
-		glColor3f( 0.5 , 0.5 , 0.5 );
 
-		glPushMatrix();
 		mEffect.setParam(commandList, paramLocalScale , Vec3f( 0.4 , 0.6 , 1.0 ) );
 		mMesh[ MESH_BOX ].draw(commandList);
 		mEffect.setParam(commandList, paramLocalScale , Vec3f( 1.0 , 1.0 , 1.0 ) );
-		glPopMatrix();
 
 		//Vector3 offset = actor.moveOffset * cast( frontOffset ) - 0.2 * cast( upOffset );
-		glTranslatef( 0.9 * upOffset.x, 0.9 * upOffset.y, 0.9 * upOffset.z );
-
+		context.stack.translate(0.9 * upOffset);
+		context.setupPrimitiveParams(commandList, mEffect);
 		mMesh[ MESH_SPHERE ].draw(*mCommandList);
 
+
+
+		Vertex_XYZ_C vertices[]
+		{
+			{ Vec3f(0,0,0) , Vec3f(1,0,0) },{ frontOffset, Vec3f(1,0,0) },
+			{ Vec3f(0,0,0) , Vec3f(0,0,1) },{ upOffset, Vec3f(0,0,1) },
+		};
+
 		RHISetShaderProgram(commandList, nullptr);
-		glBegin( GL_LINES );
-		glColor3f(1,0,0); glVertex3f(0,0,0); glVertex3f(frontOffset.x,frontOffset.y,frontOffset.z);
-		glColor3f(0,0,1); glVertex3f(0,0,0); glVertex3f(upOffset.x,upOffset.y,upOffset.z); 
-		glEnd();
+		context.setupPipeline(commandList);
+		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, vertices, ARRAY_SIZE(vertices));
 		RHISetShaderProgram(commandList, mEffect.getRHIResource());
-		glPopMatrix();
+
+		context.stack.pop();
+		
 	}
 
-	void RenderEngine::renderNav(ObjectGroup &group)
+	void RenderEngine::renderNav(RenderContext& context, ObjectGroup &group)
 	{
 		RHICommandList& commandList = *mCommandList;
-		RHISetShaderProgram(commandList, nullptr);
-		float* buffer = useCacheBuffer( group.blocks.size() * 6 * 4 * 2 * 2 * 6 );
+
+#if 1
+		StackMaker marker(mAllocator);
+		float* buffer = (float*)mAllocator.alloc(sizeof(float) * group.getBlockNum() * 6 * 4 * 2 * 2 * 6);
+#else
+		float* buffer = useCacheBuffer(group.getBlockNum() * 6 * 4 * 2 * 2 * 6);
+#endif
 
 		float* v = buffer;
 		int nV = 0;
@@ -340,6 +362,8 @@ namespace MV
 				}
 			}
 		}
+
+		context.setupPipeline(commandList);
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, buffer , nV  );
 		RHISetShaderProgram(commandList, mEffect.getRHIResource());
 	}

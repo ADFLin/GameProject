@@ -9,68 +9,152 @@ class FrameAllocator
 public:
 	FrameAllocator( size_t size )
 	{
-		mUsageSize = 0;
-		mUsage = allocPage( size );
-		mUsage->link = NULL;
+		mOffset = 0;
+
+		mCur = allocChunk( size );
+		mCur->link = nullptr;
+		mUsageList = mCur;
+		mFreeList = nullptr;
 	}
 
 	~FrameAllocator()
 	{
-		Page* page = mUsage;
-		while( page )
-		{ 
-			Page* next = page->link;  
-			::free( page );
-			page = next;
-		};
+		freePageList(mUsageList);
+		freePageList(mFreeList);
+	}
+
+	void cleanup()
+	{
+		freePageList(mUsageList);
+		mUsageList = nullptr;
+		freePageList(mFreeList);
+		mFreeList = nullptr;
 	}
 
 	void* alloc( size_t size )
 	{
-		if ( mUsage->size < mUsageSize + size )
+		if ( mCur->size < mOffset + size )
 		{
-			Page* page = allocPage( mUsage->size * 2 );
-			page->link = mUsage;
-			mUsage = page;
-			mUsageSize = 0;
+			Chunk* page = nullptr;
+			if (mFreeList)
+			{
+				if (mFreeList->size > size)
+				{
+					page = mFreeList;
+					mFreeList = mFreeList->link;
+				}
+			}
+			if (page == nullptr)
+			{
+				size_t allocSize = 2 * mCur->size;
+				while (allocSize < size) { allocSize *= 2; }
+				page = allocChunk(allocSize);
+			}
+
+			page->link = mCur;
+			mCur = page;
+			mOffset = 0;
 		}
 
-		uint8* out = &mUsage->storage[0] + mUsageSize;
-		mUsageSize += size;
+		uint8* out = &mCur->storage[0] + mOffset;
+		mOffset += size;
 		return out;
 	}
 
 	void clearFrame()
 	{
-		Page* page = mUsage->link;
-		while( page )
-		{ 
-			Page* next = page->link;  
-			::free( page );
-			page = next;
-		};
-		mUsage->link = NULL;
-		mUsageSize = 0;
+		if (mFreeList)
+		{
+			if (mCur)
+			{
+				freePageList(mCur->link);
+				mCur->link = nullptr;
+			}
+			mCur = mFreeList;
+			mFreeList = mCur->link;
+			mCur->link = nullptr;
+		}
+		else
+		{
+			if (mCur->link)
+			{
+				freePageList(mCur->link);
+				mCur->link = nullptr;
+			}
+		}
+		mOffset = 0;
 	}
 
-	struct Page
+	struct Chunk
 	{
 		size_t size;
-		Page*  link;
+		Chunk* link;
 		uint8  storage[0];
 	};
 
 
-	Page* allocPage( size_t size )
+	struct StackMarkInfo 
 	{
-		Page* page = (Page*)::malloc( size + sizeof( Page ) );
-		page->size = size;
-		return page;
+		Chunk*  chunk;
+		uint32 offset;
+	};
+
+	void markStack(StackMarkInfo& info)
+	{
+		info.chunk = mCur;
+		info.offset = mOffset;
 	}
 
-	Page*  mUsage;
-	int    mUsageSize;
+	void  freeStack(StackMarkInfo& info)
+	{
+		assert(info.chunk);
+		if (info.chunk != mCur)
+		{
+			mCur->link = mFreeList;
+			mFreeList = mCur;
+		}
 
+		mCur = info.chunk;
+		mOffset = info.offset;
+	}
+
+	Chunk* allocChunk( size_t size )
+	{
+		Chunk* chunk = (Chunk*)::malloc( size + sizeof( Chunk ) );
+		chunk->size = size;
+		return chunk;
+	}
+
+	void freePageList(Chunk* chunk)
+	{
+		while (chunk)
+		{
+			Chunk* next = chunk->link;
+			::free(chunk);
+			chunk = next;
+		}
+	}
+
+	Chunk*  mUsageList;
+	Chunk*  mFreeList;
+	Chunk*  mCur;
+	uint32  mOffset;
+};
+
+struct StackMaker
+{
+	StackMaker(FrameAllocator& allocator)
+		:mAllocator(allocator)
+	{
+		mAllocator.markStack(info);
+	}
+
+	~StackMaker()
+	{
+		mAllocator.freeStack(info);
+	}
+	FrameAllocator& mAllocator;
+	FrameAllocator::StackMarkInfo info;
 };
 
 inline void* operator new ( size_t size , FrameAllocator& allocator  )

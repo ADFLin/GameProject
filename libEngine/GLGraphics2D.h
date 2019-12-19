@@ -6,16 +6,129 @@
 #include "Math/Vector2.h"
 #include "Graphics2DBase.h"
 #include "Core/IntegerType.h"
-
+#include "RHI/SimpleRenderState.h"
 
 
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include "Math/Matrix2.h"
+
+
+namespace Render
+{
+	using ::Math::Matrix2;
+	struct RenderTransform2D
+	{
+		Matrix2 M;
+		Vector2 P;
+
+		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
+		RenderTransform2D operator * (RenderTransform2D const& rhs) const
+		{
+			return { M * rhs.M , rhs.M.leftMul(P) + P };
+		}
+
+		Vector2 tranformPosition(Vector2 const& v) const
+		{
+			return P + M.leftMul(v);
+		}
+
+		Vector2 tranformVector(Vector2 const& v) const
+		{
+			return M.leftMul(v);
+		}
+
+		void applyTranslate(Vector2 const& offset)
+		{
+			P += offset;
+		}
+
+		void applyRotate(float angle)
+		{
+			M = M * Matrix2::Rotate(angle);
+		}
+
+		void applyScale(Vector2 const& scale)
+		{
+			M = M * Matrix2::Scale(scale);
+		}
+
+		Matrix4 toMatrix4() const
+		{
+			return Matrix4(
+				M[0], M[1], 0, 0,
+				M[0], M[1], 0, 0,
+				   0,    0, 1, 0,
+				 P.x,  P.y, 0, 1);
+		}
+	};
+
+
+	struct TransformStack2D
+	{
+
+		void clear()
+		{
+			mStack.clear();
+			mCurrent = RenderTransform2D::Identity();
+		}
+
+		FORCEINLINE void set(RenderTransform2D const& xform)
+		{
+			mCurrent = xform;
+		}
+
+		FORCEINLINE void setIdentity()
+		{
+			mCurrent = RenderTransform2D::Identity();
+		}
+
+		FORCEINLINE void transform(RenderTransform2D const& xform)
+		{
+			mCurrent = xform * mCurrent;
+		}
+
+		FORCEINLINE void translate(Vector2 const& offset)
+		{
+			mCurrent.applyTranslate(offset);
+		}
+
+		FORCEINLINE void rotate(float angle)
+		{
+			mCurrent.applyRotate(angle);
+		}
+
+		FORCEINLINE void scale(Vector2 const& scale)
+		{
+			mCurrent.applyScale(scale);
+		}
+
+		void push()
+		{
+			assert(!mStack.empty());
+			mStack.push_back(mCurrent);
+		}
+
+		void pop()
+		{
+			assert(!mStack.empty());
+			mCurrent = mStack.back();
+			mStack.pop_back();
+		}
+
+		RenderTransform2D const& get() { return mCurrent; }
+
+		RenderTransform2D mCurrent;
+		std::vector< RenderTransform2D > mStack;
+	};
+}
 
 using Vector2 = Math::Vector2;
 using GLFont = Render::FontDrawer;
-using GLTexture2D = Render::RHITexture2D; 
+using GLTexture2D = Render::RHITexture2D;
+using RenderTransform2D = Render::RenderTransform2D;
+using TransformStack2D = Render::TransformStack2D;
 
 class GLGraphics2D
 {
@@ -30,10 +143,10 @@ public:
 	void  pushXForm(){ glPushMatrix(); }
 	void  popXForm(){ glPopMatrix(); }
 
-	void  identityXForm(){ glLoadIdentity(); }
-	void  translateXForm( float ox , float oy ){  glTranslatef( ox , oy , 0 );  }
-	void  rotateXForm( float angle ){  glRotatef( angle , 0 , 0 , 1 );  }
-	void  scaleXForm( float sx , float sy  ){ glScalef( sx , sy , 1 ); }
+	void  identityXForm();
+	void  translateXForm( float ox , float oy );
+	void  rotateXForm( float angle );
+	void  scaleXForm( float sx , float sy  );
 
 	void  beginRender();
 	void  endRender();
@@ -136,6 +249,10 @@ private:
 	GLuint    mColorKeyShader;
 	GLFont*   mFont;
 	std::vector< float > mBuffer;
+
+	TransformStack2D mXFormStack;
+
+	
 };
 
 #endif // GLGraphics2D_h__

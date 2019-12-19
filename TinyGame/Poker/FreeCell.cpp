@@ -91,8 +91,8 @@ namespace Poker
 
 	void FreeCellLevel::setupGame( int seed )
 	{
-		for ( int i = 0 ; i < TotalCellNum ; ++i )
-			mCells[i]->clear();
+		for (auto* cell : mCells)
+			cell->clear();
 
 		int card[52];
 		if ( seed == 0 )

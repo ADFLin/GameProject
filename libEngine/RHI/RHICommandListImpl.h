@@ -37,6 +37,8 @@ namespace Render
 
 		RHI_FUNC(void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ));
 
+		RHI_FUNC(void RHIFlushCommand());
+
 		//Shader
 		RHI_FUNC(void RHISetShaderProgram(RHIShaderProgram* shaderProgram));
 

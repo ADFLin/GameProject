@@ -22,15 +22,16 @@ void ConsoleFrame::onRender()
 	pos += Vec2i(5, 5);
 	IGraphics2D& g = ::Global::GetIGraphics2D();
 
-	int numLines = getSize().y / 12;
-	RenderUtility::SetFont(g, FONT_S8);
+	int const yOffset = 14;
+	int numLines = getSize().y / yOffset;
+	RenderUtility::SetFont(g, FONT_S10);
 
 	int lineCount = 0;
 	for( auto const& line : mLines )
 	{
 		g.setTextColor(line.color);
 		g.drawText(pos, line.content.c_str());
-		pos.y += 12;
+		pos.y += yOffset;
 
 		++lineCount;
 		if( lineCount >= numLines )

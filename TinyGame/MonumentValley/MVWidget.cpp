@@ -38,9 +38,9 @@ namespace MV
 			Mat4 matView = LookAtMatrix( Vec3f(0,0,0) , -Vec3f( FDir::ParallaxOffset(0) ) , Vector3(0,0,1) );
 			Render::MatrixSaveScope Scope( matProj , matView );
 			
-			re.beginRender( matView );
+			re.beginRender();
 			glColor3f(1,1,1);
-			re.renderMesh( idMesh , Vec3f(0,0,0) , AxisRoataion::Identity() );
+			//re.renderMesh( idMesh , Vec3f(0,0,0) , AxisRoataion::Identity() );
 			re.endRender();
 		}
 		glDisable( GL_DEPTH_TEST );

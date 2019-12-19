@@ -109,42 +109,42 @@ namespace Render
 	class OpenglProfileCore : public RHIProfileCore
 	{
 	public:
-		virtual void releaseRHI()
+		void releaseRHI() override
 		{
 		}
-		virtual void beginFrame()
+		void beginFrame() override
 		{
 
 		}
-		virtual bool endFrame()
+		bool endFrame() override
 		{
 			return true;
 		}
-		virtual uint32 fetchTiming()
+		uint32 fetchTiming() override
 		{
 			uint32 result = mTimingStorage.size();
 			mTimingStorage.resize(mTimingStorage.size() + 1);
 			return result;
 		}
 
-		virtual void startTiming(uint32 timingHandle)
+		void startTiming(uint32 timingHandle) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
 			timing.start();
 
 		}
-		virtual void endTiming(uint32 timingHandle)
+		void endTiming(uint32 timingHandle) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
 			timing.end();
 		}
 
-		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion)
+		bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
 			return timing.getTime(outDurtion);
 		}
-		virtual double getCycleToMillisecond()
+		double getCycleToMillisecond() override
 		{
 			return 1.0 / 1000000.0;
 		}
@@ -164,20 +164,22 @@ namespace Render
 
 		char const* vendorStr = (char const*) glGetString(GL_VENDOR);
 
-		if( strstr(vendorStr, "NVIDIA") != 0 )
+		if( strstr(vendorStr, "NVIDIA") != nullptr )
 		{
 			gRHIDeviceVendorName = DeviceVendorName::NVIDIA;
 		}
-		else if( strstr(vendorStr, "ATI") != 0 )
+		else if( strstr(vendorStr, "ATI") != nullptr )
 		{
 			gRHIDeviceVendorName = DeviceVendorName::ATI;
 		}
-		else if( strstr(vendorStr, "Intel") != 0 )
+		else if( strstr(vendorStr, "Intel") != nullptr )
 		{
 			gRHIDeviceVendorName = DeviceVendorName::Intel;
 		}
 
-		if( 1 )
+		bool bEnableDebugOutput = true;
+
+		if(bEnableDebugOutput)
 		{
 			glDebugMessageCallback(GLDebugCallback, nullptr);
 			glEnable(GL_DEBUG_OUTPUT);
@@ -813,6 +815,11 @@ namespace Render
 	void OpenGLContext::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 	{
 		glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+	}
+
+	void OpenGLContext::RHIFlushCommand()
+	{
+		glFlush();
 	}
 
 	void OpenGLContext::RHISetShaderProgram(RHIShaderProgram* shaderProgram)

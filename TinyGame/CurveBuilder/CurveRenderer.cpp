@@ -6,6 +6,7 @@
 #include "RHI/DrawUtility.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
+#include "ProfileSystem.h"
 
 namespace CB
 {
@@ -21,7 +22,7 @@ namespace CB
 		}
 
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 
 		}
@@ -95,21 +96,17 @@ namespace CB
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamNormalLength.bind(parameterMap, SHADER_PARAM(NormalLength));
-			mParamNormalColor.bind(parameterMap, SHADER_PARAM(NormalColor));
 			mParamDensityAndSize.bind(parameterMap, SHADER_PARAM(DensityAndSize));
 		}
 
 		void setParameters(RHICommandList& commandList, Vector4 const& inColor , float inNormalLength , int inDensity , int inSize )
 		{
 			setParam(commandList, mParamNormalLength, inNormalLength);
-			if ( mParamNormalColor.isBound() )
-				setParam(commandList, mParamNormalColor, inColor);
 			setParam(commandList, mParamDensityAndSize, IntVector2( inDensity , inSize ) );
 		}
 
 		ShaderParameter mParamDensityAndSize;
 		ShaderParameter mParamNormalLength;
-		ShaderParameter mParamNormalColor;
 	};
 
 
@@ -118,6 +115,7 @@ namespace CB
 	IMPLEMENT_SHADER_PROGRAM(MeshNormalVisualizeProgram);
 
 	CurveRenderer::CurveRenderer()
+		:mAllocaator(1024)
 	{
 
 		setAxisRange(0, Range(-10, 10));
@@ -401,23 +399,33 @@ namespace CB
 		float d1 = axis1.getIncrement();
 		float d2 = axis2.getIncrement();
 
-		glBegin(GL_LINES);
+		StackMaker marker(mAllocaator);
+		int numVertices = 2 * ( axis1.getNumData() + axis2.getNumData() );
+		Vector2* pVertices = (Vector2*)mAllocaator.alloc(sizeof(Vector2) * numVertices);
+
 		float x1 = axis1.getRangeMin();
-		for( int i = 0; i < axis1.getNumData(); ++i )
+		Vector2* pVX = pVertices;
+		for (int i = 0; i < axis1.getNumData(); ++i)
 		{
 			x1 += d1;
-			glVertex2f(x1, axis2.getRangeMin());
-			glVertex2f(x1, axis2.getRangeMax());
+			pVX->setValue(x1, axis2.getRangeMin());
+			++pVX;
+			pVX->setValue(x1, axis2.getRangeMax());
+			++pVX;
 		}
 
 		float x2 = axis2.getRangeMin();
-		for( int i = 0; i < axis2.getNumData(); ++i )
+		for (int i = 0; i < axis2.getNumData(); ++i)
 		{
 			x2 += d2;
-			glVertex2f(axis1.getRangeMin(), x2);
-			glVertex2f(axis1.getRangeMax(), x2);
+			pVX->setValue(axis1.getRangeMin(), x2);
+			++pVX;
+			pVX->setValue(axis1.getRangeMax(), x2);
+			++pVX;
 		}
-		glEnd();
+
+		TRenderRT< RTVF_XY >::Draw(*mCommandList, PrimitiveType::LineList, pVertices, numVertices);
+
 	}
 
 	void CurveRenderer::drawCoordText(SampleParam const& axis1, int drawMode1, float offest1,

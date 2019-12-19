@@ -34,7 +34,7 @@ public:
 		uint32 nameHash = HashValue(fileName.data(), fileName.length());
 		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 100) % 10, fileName.c_str());
 	}
-	virtual bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override
+	bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override
 	{
 		FixString<512> filePath;
 		getFilePath(key, filePath);
@@ -61,7 +61,7 @@ public:
 		return true;
 	}
 
-	virtual bool saveDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
+	bool saveDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
 	{
 		FixString<512> filePath;
 		getFilePath(key, filePath);
@@ -88,7 +88,7 @@ public:
 	}
 
 
-	virtual bool loadDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
+	bool loadDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
 	{
 		FixString<512> filePath;
 		getFilePath(key, filePath);
@@ -114,7 +114,7 @@ public:
 		return true;
 	}
 
-	virtual bool load(DataCacheKey const& key, std::vector<uint8>& outBuffer) override
+	bool load(DataCacheKey const& key, std::vector<uint8>& outBuffer) override
 	{
 		FixString<512> filePath;
 		getFilePath(key, filePath);
@@ -141,12 +141,12 @@ public:
 		return true;
 	}
 
-	virtual DataCacheHandle find(DataCacheKey const& key) override
+	DataCacheHandle find(DataCacheKey const& key) override
 	{
 		return ERROR_DATA_CACHE_HANDLE;
 	}
 
-	virtual void release() override
+	void release() override
 	{
 		delete this;
 	}

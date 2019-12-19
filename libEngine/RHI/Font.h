@@ -115,8 +115,9 @@ namespace Render
 		CharData const& findOrAddChar(uint32 charWord);
 		int getFontHeight() const
 		{
-			return mProvider->getFontHeight();
+			return mFontHeight;
 		}
+		int mFontHeight;
 		ICharDataProvider* mProvider;
 		TextureAtlas* mUsedTextAtlas;
 		std::unordered_map< uint32, CharData > mCharMap;

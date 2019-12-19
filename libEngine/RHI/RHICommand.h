@@ -69,7 +69,6 @@ namespace Render
 
 	};
 
-	void             RHIFlushCommand();
 
 	RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info);
 
@@ -153,6 +152,7 @@ namespace Render
 	void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
 	void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
 
+	void RHIFlushCommand(RHICommandList& commandList);
 
 #define RHI_FUNC( FUN ) virtual FUN = 0
 

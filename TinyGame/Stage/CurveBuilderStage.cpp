@@ -213,8 +213,7 @@ namespace CB
 			mRenderer->endRender();
 
 			g.beginRender();
-
-			::Global::GetDrawEngine().drawProfile(Vec2i(400, 20));
+			//::Global::GetDrawEngine().drawProfile(Vec2i(400, 20));
 			g.endRender();
 		}
 

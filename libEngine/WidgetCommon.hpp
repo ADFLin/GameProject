@@ -208,7 +208,7 @@ bool WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& 
 		mLightSelect = posSelect;
 		if ( msg.onLeftUp() )
 		{
-			if ( mItemList.size() )
+			if ( !mItemList.empty() )
 			{
 				if ( mCurSelect != mLightSelect )
 				{

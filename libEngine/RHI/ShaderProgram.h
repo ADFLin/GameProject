@@ -130,18 +130,6 @@ namespace Render
 			StructuredBufferInfo* structInfo = nullptr;
 		};
 
-
-		void setStructedUniformBuffer(RHICommandList& commandList, StructuredBlockInfo const& blockInfo, RHIVertexBuffer& buffer)
-		{
-			setUniformBuffer(commandList, blockInfo.param, buffer);
-		}
-
-		void setStructedStorageBuffer(RHICommandList& commandList, StructuredBlockInfo const& blockInfo, RHIVertexBuffer& buffer)
-		{
-			setStorageBuffer(commandList, blockInfo.param, buffer);
-		}
-
-
 		template< class TStruct >
 		void setStructuredUniformBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer)
 		{
@@ -150,16 +138,17 @@ namespace Render
 			{
 				if( block.structInfo == &bufferStruct )
 				{
-					setStructedUniformBuffer(commandList, block, buffer);
+					setUniformBuffer(commandList, block.param, buffer);
 					return;
 				}
 			}
 
 			StructuredBlockInfo block;
+			block.structInfo = &bufferStruct;
 			if( mRHIResource->getResourceParameter(EShaderResourceType::Uniform, bufferStruct.blockName, block.param) )
 			{
 				mBoundedBlocks.push_back(block);
-				setStructedUniformBuffer(commandList, block, buffer);
+				setUniformBuffer(commandList, block.param, buffer);
 			}
 		}
 
@@ -171,16 +160,17 @@ namespace Render
 			{
 				if( block.structInfo == &bufferStruct )
 				{
-					setStructedStorageBuffer(commandList, block, buffer);
+					setStorageBuffer(commandList, block.param, buffer);
 					return;
 				}
 			}
 
 			StructuredBlockInfo block;
+			block.structInfo = &bufferStruct;
 			if( mRHIResource->getResourceParameter(EShaderResourceType::Storage, bufferStruct.blockName, block.param) )
 			{
 				mBoundedBlocks.push_back(block);
-				setStructedStorageBuffer(commandList, block, buffer);
+				setStorageBuffer(commandList, block.param, buffer);
 			}
 		}
 

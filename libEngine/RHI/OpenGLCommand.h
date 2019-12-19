@@ -88,6 +88,7 @@ namespace Render
 		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
+		void RHIFlushCommand();
 
 		//Shader
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);

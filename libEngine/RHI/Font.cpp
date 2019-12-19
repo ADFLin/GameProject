@@ -27,9 +27,8 @@ namespace Render
 			}
 		}
 
-		virtual bool getCharData(uint32 charWord, CharImageData& data);
-
-		int      getFontHeight() const { return textureDC.getHeight(); }
+		bool     getCharData(uint32 charWord, CharImageData& data) override;
+		int      getFontHeight() const override { return textureDC.getHeight(); }
 		int      mSize;
 		BitmapDC textureDC;
 		uint8*   pDataTexture = nullptr;
@@ -67,7 +66,7 @@ namespace Render
 		BITMAPINFO& bmpInfo = *(BITMAPINFO*)(alloca(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 0));
 		bmpInfo.bmiHeader.biSize = sizeof(bmpInfo.bmiHeader);
 		bmpInfo.bmiHeader.biWidth = tm.tmMaxCharWidth;
-		bmpInfo.bmiHeader.biHeight = -fontHeight;
+		bmpInfo.bmiHeader.biHeight = -tm.tmHeight;
 		bmpInfo.bmiHeader.biPlanes = 1;
 		bmpInfo.bmiHeader.biBitCount = 32;
 		bmpInfo.bmiHeader.biCompression = BI_RGB;
@@ -219,6 +218,7 @@ namespace Render
 		if( mProvider == nullptr )
 			return false;
 
+		mFontHeight = mProvider->getFontHeight();
 		return true;
 	}
 

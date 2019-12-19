@@ -5,17 +5,25 @@ template< class T >
 class TVector3
 {
 public:
-	typedef T InputType;
-	typedef T ScaleType;
+	using InputType = T;
+	using ScaleType = T;
 
 	TVector3() = default;
 	TVector3(TVector3 const&) = default;
 
-	TVector3( T v[] ){ setValue( v[0] , v[1] , v[2] ); }
-	TVector3( InputType sx,InputType sy, InputType sz);
+	constexpr explicit TVector3(T const v[])
+		:x(v[0]), y(v[1]), z(v[2])
+	{
+
+	}
+	constexpr TVector3( InputType sx,InputType sy, InputType sz)
+		:x(sx), y(sy), z(sz)
+	{
+
+	}
 
 	template< class Q >
-	TVector3( TVector3< Q > const& rhs )
+	constexpr TVector3( TVector3< Q > const& rhs )
 		:x( rhs.x ),y(rhs.y),z(rhs.z){}
 
 	void setValue( InputType sx,InputType sy,InputType sz)
@@ -52,14 +60,6 @@ private:
 	void operator -=( int ) const;
 };
 
-
-
-template< class T >
-FORCEINLINE TVector3<T>::TVector3( InputType sx, InputType sy, InputType sz )
-	:x(sx),y(sy),z(sz)
-{
-
-}
 
 template< class T >
 FORCEINLINE T TVector3<T>::dot( TVector3 const& b ) const

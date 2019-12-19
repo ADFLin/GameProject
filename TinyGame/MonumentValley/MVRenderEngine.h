@@ -9,11 +9,42 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 
+#include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/ShaderProgram.h"
+#include "RHI/SimpleRenderState.h"
+#include "RHI/RHICommand.h"
+#include "FrameAllocator.h"
 
 namespace MV
 {
+	using Render::SimpleRenderState;
+	using Render::ViewInfo;
+	using Render::RHICommandList;
+	using Render::ShaderProgram;
+
+#define USE_RENDER_CONTEXT 1
+
+	struct RenderContext : public SimpleRenderState
+	{
+		void setupShader(RHICommandList& commandList, ShaderProgram& shader)
+		{
+			mView->setupShader(commandList, shader);
+			
+		}
+
+		void setupPrimitiveParams(RHICommandList& commandList, ShaderProgram& shader)
+		{
+			shader.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), stack.get());
+		}
+
+		void setupPipeline(RHICommandList& commandList)
+		{
+			RHISetupFixedPipelineState(commandList, stack.get() * mView->worldToClip, mColor, nullptr , 0);
+		}
+
+		ViewInfo* mView;
+	};
 	class CRotator : public IRotator
 	{
 	public:
@@ -21,25 +52,29 @@ namespace MV
 		{
 			rotateAngle = 0.0f;
 		}
-		virtual void prevRender()
+		void prevRender(RenderContext& context) override
 		{
 			if ( !isUse )
 				return;
 
 			Vec3f const& axis = FDir::OffsetF( mDir );
-			glPushMatrix();
-			glTranslatef( mPos.x , mPos.y , mPos.z );
-			glRotatef( rotateAngle , axis.x , axis.y , axis.z );
-			glTranslatef( -mPos.x , -mPos.y , -mPos.z );
+
+			Vec3f pos = Vec3f(mPos.x, mPos.y, mPos.z);
+			context.stack.push();
+			context.stack.translate(pos);
+			context.stack.rotate(Quat::Rotate(axis, Math::Deg2Rad(rotateAngle)));
+			context.stack.translate(-pos);
+
 		}
-		virtual void postRender()
+		void postRender(RenderContext& context) override
 		{
 			if ( !isUse )
 				return;
-			glPopMatrix();
+		
+			context.stack.pop();
 		}
 
-		virtual void updateValue( float factor )
+		void updateValue( float factor ) override
 		{
 			rotateAngle = 90 * factor;
 		}
@@ -53,7 +88,7 @@ namespace MV
 		{
 			rotateAngle = 0.0f;
 		}
-		virtual void prevRender()
+		void prevRender(RenderContext& context) override
 		{
 			if ( !isUse )
 				return;
@@ -64,11 +99,12 @@ namespace MV
 			//glRotatef( rotateAngle , axis.x , axis.y , axis.z );
 			//glTranslatef( -mPos.x , -mPos.y , -mPos.z );
 		}
-		virtual void postRender()
+		void postRender(RenderContext& context) override
 		{
 			if ( !isUse )
 				return;
-			glPopMatrix();
+			
+			context.stack.pop();
 		}
 
 		virtual void updateValue( float factor , float crtlFactor )
@@ -126,11 +162,6 @@ namespace MV
 		bool   bShowGroupColor;
 	};
 
-	struct View
-	{
-		Mat4 worldToClip;
-		Mat4 worldToView;
-	};
 
 	class RenderEngine : public CModifyCreator
 	{
@@ -138,17 +169,11 @@ namespace MV
 		RenderEngine();
 		bool init();
 
-		void renderScene( Mat4 const& matView );
+		void renderScene(RenderContext& context);
 
-		void beginRender( Mat4 const& matView )
+		void beginRender()
 		{
-			Mat4 matViewInv;
-			float det;
-			matView.inverse( matViewInv , det );
-			glLoadMatrixf( matView );
-
 			RHISetShaderProgram(*mCommandList, mEffect.getRHIResource());
-			mEffect.setParam( *mCommandList, SHADER_PARAM(Global.matViewInv) , matViewInv );
 		}
 
 		void endRender()
@@ -156,22 +181,22 @@ namespace MV
 			RHISetShaderProgram(*mCommandList, nullptr);
 		}
 
-		void renderBlock(Block& block , Vec3i const& pos );
-		void renderPath( Path& path , PointVec& points );
-		void renderMesh(int idMesh , Vec3f const& pos , Vec3f const& rotation );
-		void renderMesh(int idMesh , Vec3f const& pos , AxisRoataion const& rotation );
-		void renderGroup(ObjectGroup& group);
-		void renderActor(Actor& actor);
-		void renderNav(ObjectGroup &group);
+		void renderBlock(RenderContext& context, Block& block , Vec3i const& pos );
+		void renderPath(RenderContext& context, Path& path , PointVec& points );
+		void renderMesh(RenderContext& context, int idMesh , Vec3f const& pos , Vec3f const& rotation );
+		void renderMesh(RenderContext& context, int idMesh , Vec3f const& pos , AxisRoataion const& rotation );
+		void renderGroup(RenderContext& context, ObjectGroup& group);
+		void renderActor(RenderContext& context, Actor& actor);
+		void renderNav(RenderContext& context, ObjectGroup &group);
 
 		RenderParam mParam;
 
 		Mat4 mViewToWorld;
 		Render::RHICommandList* mCommandList;
 		Render::ShaderProgram   mEffect;
-		Render::ShaderParameter paramDirX;
-		Render::ShaderParameter paramDirZ;
+		Render::ShaderParameter paramRotation;
 		Render::ShaderParameter paramLocalScale;
+
 
 		Render::Mesh mMesh[ NUM_MESH ];
 
@@ -183,13 +208,9 @@ namespace MV
 			return &mCacheBuffer[0];
 		}
 
-		void pushMatrix() { mWorldXFormStack.push_back(mWorldXFormStack.back()); }
-		void popMatrix()  { mWorldXFormStack.pop_back(); }
-		void loadMatrix(Mat4 const& m) { mWorldXFormStack.back() = m; }
-		void multiMatrix(Mat4 const& m){ mWorldXFormStack.back() = m * mWorldXFormStack.back(); }
+		FrameAllocator mAllocator;
 
-		std::vector< Mat4 > mWorldXFormStack;
-
+		ViewInfo mView;
 
 	};
 

@@ -99,10 +99,10 @@ namespace Render
 		{
 			mMesh = &InMesh;
 			InputLayoutDesc desc = InMesh.mInputLayoutDesc;
-			desc.addElement(1, Vertex::ATTRIBUTE10, Vertex::eFloat4, false, true, 1);
-			desc.addElement(1, Vertex::ATTRIBUTE11, Vertex::eFloat4, false, true, 1);
-			desc.addElement(1, Vertex::ATTRIBUTE12, Vertex::eFloat4, false, true, 1);
-			desc.addElement(1, Vertex::ATTRIBUTE13, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, Vertex::ATTRIBUTE4, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, Vertex::ATTRIBUTE5, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, Vertex::ATTRIBUTE6, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, Vertex::ATTRIBUTE7, Vertex::eFloat4, false, true, 1);
 			mInputLayout = RHICreateInputLayout(desc);
 		}
 
@@ -118,7 +118,11 @@ namespace Render
 		int addInstance(Vector3 const& pos, Vector3 const& scale, Quaternion const& rotation, Vector4 const& param)
 		{
 			Matrix4 xform = Matrix4::Scale(scale) * Matrix4::Rotate(rotation) * Matrix4::Translate(pos);
+			return addInstance(xform, param);
+		}
 
+		int addInstance(Matrix4 const& xform, Vector4 const& param)
+		{
 			int result = mInstanceTransforms.size();
 			mInstanceTransforms.push_back(xform);
 			mInstanceParams.push_back(param);

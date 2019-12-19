@@ -106,7 +106,7 @@ namespace MV
 			return mWorld.createBlock( pos , model.mesh , model.surfaces , updateNav , group );
 		}
 
-		void renderScene( Matrix4 const& matView );
+		void renderScene(Mat4 const& viewMatrix , Mat4 const& projectMatrix);
 
 		Vec3f getViewPos();
 		int  findBlockFromScreenPos( Vec2i const& pos , Vec3f const& viewPos , Dir& outDir );

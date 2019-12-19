@@ -83,6 +83,7 @@ namespace Render
 		EXECUTE_RHI_FUNC( RHIEndRender(bPresent) );
 	}
 
+
 	RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
 	{
 		return EXECUTE_RHI_FUNC( RHICreateRenderWindow(info) );

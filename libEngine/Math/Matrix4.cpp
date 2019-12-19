@@ -168,7 +168,8 @@ namespace Math
 			);
 	}
 
-	Matrix4 Matrix4::rightMul( Matrix3 const& m ) const
+
+	Matrix4 Matrix4::rightMul(Matrix3 const& m) const
 	{
 		//FIXME
 		assert(0);

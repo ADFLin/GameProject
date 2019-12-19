@@ -14,7 +14,7 @@ namespace Math
 	class Matrix4
 	{
 	public:
-		Matrix4(){}
+		Matrix4() = default;
 		Matrix4( float const values[])
 		{
 			for( int i = 0 ; i < 16 ; ++i )
@@ -170,13 +170,14 @@ namespace Math
 
 		Vector3 getTranslation() const { return Vector3( mValues[12] , mValues[13] , mValues[14] ); }
 
+
+		// result = m * this 
+		Matrix4   leftMul(Matrix3 const& m ) const;
+		Vector3   leftMul(Vector3 const& v) const;
+		Vector4   leftMul(Vector4 const& v) const;
 		// result = this * m
-		Matrix4 leftMul ( Matrix3 const& m ) const;
-		// result = m * this
 		Matrix4   rightMul( Matrix3 const& m ) const;
-		Vector3   leftMul ( Vector3 const& v ) const;
 		Vector3   rightMul( Vector3 const& v ) const;
-		Vector4   leftMul ( Vector4 const& v ) const;
 		Vector4   rightMul( Vector4 const& v ) const;
 
 		float     deter() const

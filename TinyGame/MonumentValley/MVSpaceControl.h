@@ -10,11 +10,13 @@
 
 namespace MV
 {
-	typedef TIntrList< 
+	class RenderContext;
+
+	using ObjectGroupList = TIntrList< 
 		ObjectGroup , 
 		MemberHook< ObjectGroup , &ObjectGroup::spaceHook > , 
 		PointerType 
-	> ObjectGroupList;
+	>;
 
 	enum ModifyType
 	{
@@ -41,8 +43,8 @@ namespace MV
 		virtual void postModify( World& world ) = 0;
 
 		virtual void updateValue( float factor ) = 0;
-		virtual void prevRender() = 0;
-		virtual void postRender() = 0;
+		virtual void prevRender(RenderContext& context) = 0;
+		virtual void postRender(RenderContext& context) = 0;
 
 		bool  isUse;
 		bool  bModifyChildren;

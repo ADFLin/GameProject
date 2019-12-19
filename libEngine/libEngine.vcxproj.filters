@@ -445,6 +445,9 @@
     <ClCompile Include="..\OtherLib\minisat\utils\System.cc">
       <Filter>OtherLib\minisat</Filter>
     </ClCompile>
+    <ClCompile Include="Math\Matrix2.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -1094,6 +1097,9 @@
     </ClInclude>
     <ClInclude Include="FunctionTraits.h">
       <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Matrix2.h">
+      <Filter>Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

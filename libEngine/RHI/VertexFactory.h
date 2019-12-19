@@ -16,8 +16,8 @@ namespace Render
 	{
 	public:
 
-		typedef VertexFactoryShaderData* (*CreateShaderDataFun)();
-		typedef void (*ModifyCompilationOptionFun)(ShaderCompileOption& opation);
+		using CreateShaderDataFun = VertexFactoryShaderData* (*)();
+		using ModifyCompilationOptionFun = void (*)(ShaderCompileOption& opation);
 
 		CORE_API VertexFactoryType(char const* inFileName , ModifyCompilationOptionFun MCO );
 		
@@ -44,6 +44,7 @@ namespace Render
 	{
 	public:
 		virtual VertexFactoryType& getType() = 0;
+
 		static VertexFactoryShaderData* CreateShaderData() { return nullptr; }
 		static void ModifyCompilationOption(ShaderCompileOption& option){}
 	};

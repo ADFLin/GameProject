@@ -82,10 +82,10 @@ in VertexFactoryInputParameters
 	DECLARE_VERTEX_INPUT(float4, color , ATTRIBUTE_COLOR)
 
 #if USE_INSTANCED
-	DECLARE_VERTEX_INPUT(float4, InstanceParam0, ATTRIBUTE6)
-	DECLARE_VERTEX_INPUT(float4, InstanceParam1, ATTRIBUTE7)
-	DECLARE_VERTEX_INPUT(float4, InstanceParam2, ATTRIBUTE8)
-	DECLARE_VERTEX_INPUT(float4, InstanceParam3, ATTRIBUTE9)
+	DECLARE_VERTEX_INPUT(float4, InstanceParam0, ATTRIBUTE4)
+	DECLARE_VERTEX_INPUT(float4, InstanceParam1, ATTRIBUTE5)
+	DECLARE_VERTEX_INPUT(float4, InstanceParam2, ATTRIBUTE6)
+	DECLARE_VERTEX_INPUT(float4, InstanceParam3, ATTRIBUTE7)
 #endif
 
 	DECLARE_VERTEX_INPUT(float4, tangent, ATTRIBUTE_TANGENT);
@@ -137,16 +137,10 @@ float4x4 GetLocalToWorldTransform()
 float4x4 GetWorldToLocalTransform()
 {
 #if USE_INSTANCED
-	float4x4 instanceTransform;
-	instanceTransform[0] = float4(VERTEX_INPUT(InstanceParam0).xyz, 0);
-	instanceTransform[1] = float4(VERTEX_INPUT(InstanceParam1).xyz, 0);
-	instanceTransform[2] = float4(VERTEX_INPUT(InstanceParam2).xyz, 0);
-	instanceTransform[3] = float4(VERTEX_INPUT(InstanceParam3).xyz, 1);
-	return Primitive.worldToLocal * inverse( instanceTransform );
+	return inverse(GetLocalToWorldTransform());
 #else
 	return Primitive.worldToLocal;
 #endif
-
 }
 
 VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
@@ -159,6 +153,7 @@ VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
 	    
 
 #if VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
+	// NormalMatrix = ( inverse( localToWorld ) )^t
 	intermediates.normal = noramlFactor * float4(VERTEX_INPUT(normal), 0) * worldToLocal;
 	intermediates.tangent = noramlFactor * float4(VERTEX_INPUT(tangent).xyz, 0) * worldToLocal;
 	intermediates.tangent.w = VERTEX_INPUT(tangent).w;

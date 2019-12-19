@@ -1,60 +1,63 @@
 #include "Common.sgc"
+#include "PrimitiveParam.sgc"
+#include "ViewParam.sgc"
 
-struct PrimitiveParameters
-{
-	mat4 localToWorld;
-	mat4 worldToLocal;
-};
-
-uniform PrimitiveParameters Primitive = PrimitiveParameters( 
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
-
-const float3 dirOffset[ 6 ] = float3[](
+const float3 DirOffset[ 6 ] = float3[](
    float3( 1 , 0 , 0 ) , float3( -1 , 0 , 0 ) ,
    float3( 0 , 1 , 0 ) , float3( 0 , -1 , 0 ) ,
    float3( 0 , 0 , 1 ) , float3( 0 , 0 , -1 ) ); 
 
-uniform mat4   ViewToWorld;
 uniform float3 color = float3( 0.7 , 0.8 , 0.75 );
-uniform float3 lightDir = float3( 0.4 , 0.5 , 0.8 );
-uniform float3 localScale = float3( 1 , 1 , 1 );
-uniform int  dirX = 0;
-uniform int  dirZ = 4;
+uniform float3 LightDir = float3( 0.4 , 0.5 , 0.8 );
+uniform float3 LocalScale = float3( 1 , 1 , 1 );
+uniform int2 Rotation = int2(0,4);
 
 varying float3 outColor;
 varying float3 normal;
 
+
+struct OutputVSParam
+{
+	float3 normal;
+};
+
+
 #if VERTEX_SHADER
 
+DECLARE_VERTEX_INPUT(float3, pos, ATTRIBUTE_POSITION)
+DECLARE_VERTEX_INPUT(float3, normal, ATTRIBUTE_NORMAL)
+out OutputVSParam OutputVS;
 void MainVS()
 {
-	mat4 matWorld = ViewToWorld * gl_ModelViewMatrix;
-	float3 axisX = dirOffset[ dirX ];
-	float3 axisZ = dirOffset[ dirZ ];
+	
+	float3 axisX = DirOffset[Rotation.x];
+	float3 axisZ = DirOffset[Rotation.y];
 	float3 axisY = cross( axisZ , axisX );
 
-	mat4 matDir = mat4( 
-		float4( localScale.x * axisX , 0 ) , 
-		float4( localScale.y * axisY , 0 ) , 
-		float4( localScale.z * axisZ , 0 ) , 
+	float4x4 localScale = float4x4(
+		float4( LocalScale.x * axisX , 0 ) , 
+		float4( LocalScale.y * axisY , 0 ) , 
+		float4( LocalScale.z * axisZ , 0 ) , 
 		float4( 0,0,0,1) );
 
-	normal = ( matWorld * ( matDir * float4( gl_Normal , 0 ) ) ).xyz;
-	outColor = abs( dot( normal , normalize(lightDir) ) ) * float3(1,1,1);
-	gl_Position = gl_ModelViewProjectionMatrix * matDir * gl_Vertex;
+	float4x4 localToWorld = Primitive.localToWorld * localScale;
+	// NormalMatrix = ( inverse( localToWorld ) )^t
+	OutputVS.normal = VERTEX_INPUT(normal) * float3x3( inverse(localToWorld) );
+
+	gl_Position = View.worldToClip * localToWorld * float4( VERTEX_INPUT(pos) , 1 );
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
+in OutputVSParam OutputVS;
+layout(location = 0) out float4 OutColor;
 void MainPS() 
 {
-	float3 N = normalize( normal );
-	gl_FragColor = float4( outColor , 1.0 );
-	//gl_FragColor = float4(1, 0, 0, 1);
-	//gl_FragColor = vec4( 0.5 * N + 0.5 , 1.0 );
+	float3 N = normalize(OutputVS.normal);
+	OutColor.rgb = abs(dot(N, normalize(LightDir))) * float3(1, 1, 1);
+	OutColor.a = 1;
 }
 
 #endif //PIXEL_SHADER

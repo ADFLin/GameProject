@@ -74,7 +74,7 @@ namespace MV
 		NavNode()
 		{
 			flag = 0;
-			link = NULL;
+			link = nullptr;
 		}
 		enum FlagMask
 		{
@@ -94,8 +94,8 @@ namespace MV
 		void disconnect()
 		{
 			assert( link );
-			link->link = NULL;
-			link = NULL;
+			link->link = nullptr;
+			link = nullptr;
 			flag = 0;
 		}
 
@@ -125,7 +125,7 @@ namespace MV
 	{
 		GameObject()
 		{
-			group = NULL;
+			group = nullptr;
 		}
 		ObjectGroup* group;
 		LinkHook     groupHook;
@@ -138,8 +138,8 @@ namespace MV
 	public:
 		Block()
 		{
-			for( int i = 0 ; i < BLOCK_FACE_NUM; ++i )
-				surfaces[i].block = this;
+			for(auto& surface : surfaces)
+				surface.block = this;
 		}
 		int          id;
 		int          idMesh;
@@ -224,69 +224,84 @@ namespace MV
 
 	};
 
-	typedef TIntrList< Block , MemberHook< GameObject , &GameObject::groupHook > , PointerType > BlockList;
-	typedef TIntrList< Actor , MemberHook< GameObject , &GameObject::groupHook > , PointerType > ActorList;
-	typedef TIntrList< MeshObject , MemberHook< GameObject , &GameObject::groupHook > , PointerType > MeshList;
-	typedef TIntrList< ObjectGroup , MemberHook< GameObject , &GameObject::groupHook > , PointerType > GroupList;
+	using BlockList = TIntrList< Block , MemberHook< GameObject , &GameObject::groupHook > , PointerType >;
+	using ActorList = TIntrList< Actor , MemberHook< GameObject , &GameObject::groupHook > , PointerType >;
+	using MeshList  = TIntrList< MeshObject , MemberHook< GameObject , &GameObject::groupHook > , PointerType >;
+	using GroupList = TIntrList< ObjectGroup , MemberHook< GameObject , &GameObject::groupHook > , PointerType >;
 
 	class ObjectGroup : public GameObject
 	{
 	public:
 		ObjectGroup()
 		{
-			node = NULL;
+			node = nullptr;
+			bBlockListModify = true;
 		}
-#define ADD_FUN( TYPE , LIST )\
+#define DECL_LIST( TYPE , LIST )\
 	void add( TYPE& data )\
 	{\
 		LIST.push_back( &data );\
 		data.group = this;\
 	}
 
-		ADD_FUN( Block , blocks )
-		ADD_FUN( Actor , actors )
-		ADD_FUN( MeshObject , meshs )
-		ADD_FUN( ObjectGroup , children )
+#define DECL_LIST_WITH_NUM( TYPE , LIST )\
+	mutable bool b##TYPE##ListModify;\
+	mutable int  cached##TYPE##Num;\
+	void add( TYPE& data )\
+	{\
+		LIST.push_back( &data );\
+		data.group = this;\
+		b##TYPE##ListModify = true;\
+	}\
+	void remove(TYPE& data)\
+	{\
+		data.groupHook.unlink();\
+		data.group = nullptr;\
+		b##TYPE##ListModify = true;\
+	}\
+	int get##TYPE##Num() const\
+	{\
+		if (b##TYPE##ListModify)\
+		{\
+			b##TYPE##ListModify = false;\
+			cached##TYPE##Num = LIST.size();\
+		}\
+		return cached##TYPE##Num;\
+	}
 
-#undef ADD_FUN
+		DECL_LIST_WITH_NUM( Block , blocks )
+		DECL_LIST( Actor , actors )
+		DECL_LIST( MeshObject , meshs )
+		DECL_LIST( ObjectGroup , children )
+
+#undef DECL_LIST
 
 		void remove( GameObject& obj )
 		{
 			obj.groupHook.unlink();
-			obj.group = NULL;
+			obj.group = nullptr;
 		}
 
-		template< class Fun >
-		void removeAll( Fun& fun )
+		template< class T , class TFunc >
+		void removeList(T& objectList, TFunc& func)
 		{
-			while ( !blocks.empty() )
+			while (!objectList.empty())
 			{
-				Block* object = blocks.front();
-				remove( *object );
-				fun( object );
-			}
-
-			while ( !actors.empty() )
-			{
-				Actor* object = actors.front();
-				remove( *object );
-				fun( object );
-			}
-
-			while ( !meshs.empty() )
-			{
-				MeshObject* object = meshs.front();
-				remove( *object );
-				fun( object );
-			}
-
-			while ( !children.empty() )
-			{
-				ObjectGroup* object = children.front();
-				remove( *object );
-				fun( object );
+				auto object = objectList.front();
+				remove(*object);
+				func(object);
 			}
 		}
+		template< class TFunc >
+		void removeAll( TFunc& func )
+		{
+			removeList(blocks, func);
+			removeList(actors, func);
+			removeList(meshs, func);
+			removeList(children, func);
+		}
+
+
 
 		int            idx;
 		BlockList      blocks;
@@ -294,8 +309,8 @@ namespace MV
 		MeshList       meshs;
 		GroupList      children;
 
-		IGroupModifier*    node;
-		LinkHook       spaceHook;
+		IGroupModifier* node;
+		LinkHook        spaceHook;
 	};
 
 

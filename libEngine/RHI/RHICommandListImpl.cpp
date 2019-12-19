@@ -115,4 +115,10 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetShaderProgram(shaderProgram));
 	}
 
+	void RHIFlushCommand(RHICommandList& commandList)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIFlushCommand());
+	}
+
+
 }//namespace Render

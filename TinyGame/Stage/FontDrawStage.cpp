@@ -23,6 +23,7 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
+		LogMsg("花瓣的顏色愈妖艷　我郤愈憔悴");
 		VERIFY_RETURN_FALSE(::Global::GetDrawEngine().startOpenGL(4));
 
 		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());
@@ -154,7 +155,7 @@ public:
 		glClearColor(0.2, 0.2, 0.2, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		DrawUtility::DrawTexture(commandList, mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(400, 400));
+		DrawUtility::DrawTexture(commandList, mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
 
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"
@@ -211,8 +212,8 @@ public:
 		{
 			0,1,2,0,2,3,
 		};
-		TRenderRT<RTVF_XY>::DrawIndexed(commandList, PrimitiveType::TriangleList, vertices, 4, indices, 6);
-		DrawUtility::DrawTexture(commandList, *mTexture, TStaticSamplerState< Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI() , Vec2i(0, 0), Vec2i(200, 200));
+		//TRenderRT<RTVF_XY>::DrawIndexed(commandList, PrimitiveType::TriangleList, vertices, 4, indices, 6);
+		//DrawUtility::DrawTexture(commandList, *mTexture, TStaticSamplerState< Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI() , Vec2i(0, 0), Vec2i(200, 200));
 		g.endRender();
 
 	}

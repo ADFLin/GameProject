@@ -11,25 +11,25 @@
 
 namespace MV
 {
-	typedef TVector3< int >  Vec3i;
-	typedef TVector2< int >  Vec2i;
+	using Vec3i = TVector3< int >;
+	using Vec2i = TVector2< int >;
 
-	typedef Math::Quaternion Quat;
-	typedef Math::Matrix4    Mat4;
+	using Quat = Math::Quaternion;
+	using Mat4 = Math::Matrix4;
 
 	class Vec3f : public Math::Vector3
 	{
 	public:
 		Vec3f() = default;
+		using Math::Vector3::Vector3;
 
 		Vec3f( Vec3i const& v ):Math::Vector3(v.x , v.y , v.z ){}
-		Vec3f( float x , float y , float z ):Math::Vector3(x , y , z ){}
 		Vec3f( Math::Vector3 const& v ):Math::Vector3(v.x , v.y , v.z ){}
 	};
 
 
-	float const Sqrt3 =  1.732050807568877f;
-	float const Sqrt_2d3 = 0.8164965809277f; // sqrt( 2 / 3 );
+	float constexpr Sqrt3 =  1.732050807568877f;
+	float constexpr Sqrt_2d3 = 0.8164965809277f; // sqrt( 2 / 3 );
 
 	enum Dir
 	{
@@ -41,12 +41,12 @@ namespace MV
 		InvZ = 5,
 	};
 
-	Dir const gDirInvertMap[6] = 
+	Dir constexpr gDirInvertMap[6] =
 	{ 
 		Dir::InvX , Dir::X , Dir::InvY , Dir::Y , Dir::InvZ , Dir::Z 
 	};
 
-	Dir const gDirRotateMap[6][6] =
+	Dir constexpr gDirRotateMap[6][6] =
 	{
 		{ Dir::X , Dir::InvX , Dir::Z , Dir::InvZ , Dir::InvY , Dir::Y } ,
 		{ Dir::X , Dir::InvX , Dir::InvZ , Dir::Z , Dir::Y , Dir::InvY } ,
@@ -56,7 +56,7 @@ namespace MV
 		{ Dir::InvY , Dir::Y , Dir::X , Dir::InvX , Dir::Z , Dir::InvZ } ,
 	};
 
-	int const gDirCrossMap[6][6] =
+	int constexpr gDirCrossMap[6][6] =
 	{
 		{ -1 , -1 , Dir::Z , Dir::InvZ , Dir::InvY , Dir::Y } ,
 		{ -1 , -1 , Dir::InvZ , Dir::Z , Dir::Y , Dir::InvY } ,
@@ -66,7 +66,7 @@ namespace MV
 		{ Dir::InvY , Dir::Y , Dir::X , Dir::InvX , -1 , -1 } ,
 	};
 
-	int const gDirDotMap[6][6] =
+	int constexpr gDirDotMap[6][6] =
 	{
 		1, -1, 0, 0, 0, 0,
 		-1, 1, 0, 0, 0, 0,
@@ -76,31 +76,31 @@ namespace MV
 		0, 0, 0, 0, -1, 1, 
 	};
 
-	Dir const gDirNeighborMap[3][4] =
+	Dir constexpr gDirNeighborMap[3][4] =
 	{
 		{ Dir::Y , Dir::InvY , Dir::Z , Dir::InvZ } ,
 		{ Dir::Z , Dir::InvZ , Dir::X , Dir::InvX } ,
 		{ Dir::X , Dir::InvX , Dir::Y , Dir::InvY } ,
 	};
 
-	int const gDirNeighborIndexMap[3][6] = 
+	int constexpr gDirNeighborIndexMap[3][6] = 
 	{
 		{ -1 , -1 ,  0 ,  1 ,  2 ,  3 } ,
 		{  2 ,  3 , -1 , -1 ,  0 ,  1 } ,
 		{  0 ,  1 ,  2 ,  3 , -1 , -1 } ,
 	};
 
-	Vec3i const gParallaxDirMap[4] =
+	Vec3i constexpr gParallaxDirMap[4] =
 	{
 		Vec3i(1,1,1),Vec3i( 1,-1,1),Vec3i(-1,-1,1),Vec3i(-1,1,1),
 	};
 
-	Vec3i const gDirOffsetMap[6] = 
+	Vec3i constexpr gDirOffsetMap[6] =
 	{ 
 		Vec3i(1,0,0),Vec3i(-1,0,0),Vec3i(0,1,0),Vec3i(0,-1,0),Vec3i(0,0,1),Vec3i(0,0,-1) 
 	};
 
-	Vec3f const gDirOffsetMapF[6] = 
+	Vec3f constexpr gDirOffsetMapF[6] =
 	{ 
 		Vec3f(1,0,0),Vec3f(-1,0,0),Vec3f(0,1,0),Vec3f(0,-1,0),Vec3f(0,0,1),Vec3f(0,0,-1) 
 	};

@@ -22,10 +22,10 @@ namespace CB
 		}
 		ExecutableCode&  getEvalData() { return mEvalData; }
 		string const& getExprString() const { return mStrExpr; }
-		double eval() const { return mEvalData.evalT<double>(); }
-		double eval(double p0) const { return mEvalData.evalT<double>(p0); }
-		double eval(double p0, double p1) const { return mEvalData.evalT<double>(p0,p1); }
-		double eval(double p0, double p1, double p2) const { return mEvalData.evalT<double>(p0,p1,p2); }
+		FORCEINLINE double eval() const { return mEvalData.evalT<double>(); }
+		FORCEINLINE double eval(double p0) const { return mEvalData.evalT<double>(p0); }
+		FORCEINLINE double eval(double p0, double p1) const { return mEvalData.evalT<double>(p0,p1); }
+		FORCEINLINE double eval(double p0, double p1, double p2) const { return mEvalData.evalT<double>(p0,p1,p2); }
 
 	private:
 		bool          mIsParsed;

@@ -18,23 +18,23 @@ namespace Poker {
 		{
 			mBugFixDC.initialize( ::Global::GetGraphics2D().getTargetDC() , CardLib::CardSizeX , CardLib::CardSizeY );
 		}
-		Vec2i getSize()
+		Vec2i getSize() override
 		{
 			return Vec2i( CardLib::CardSizeX , CardLib::CardSizeY );
 		}
-		void draw( Graphics2D& g , Vec2i const& pos , Card const& card )
+		void draw( Graphics2D& g , Vec2i const& pos , Card const& card ) override
 		{
 			if( card == Card::None() )
 				return;
 			cdtDraw( mBugFixDC.getHandle() , 0  , 0 , card.getIndex() , mdFACES , RGB( 0,0,0 )  );
 			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
 		}
-		void drawCardBack( Graphics2D& g , Vec2i const& pos )
+		void drawCardBack( Graphics2D& g , Vec2i const& pos ) override
 		{
 			cdtDraw( mBugFixDC.getHandle() , 0 , 0 , 58 , mdBACKS, RGB( 255 , 255 , 255 ) );
 			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
 		}
-		void release()
+		void release() override
 		{
 			delete this;
 		}
@@ -73,7 +73,7 @@ namespace Poker {
 			calcCardPos();
 		}
 
-		Vec2i getSize()
+		Vec2i getSize() override
 		{
 			return CardSize;
 		}
@@ -99,7 +99,7 @@ namespace Poker {
 
 			return out;
 		}
-		void draw( Graphics2D& g , Vec2i const& pos , Card const& card )
+		void draw( Graphics2D& g , Vec2i const& pos , Card const& card ) override
 		{
 			if( card == Card::None() )
 				return;
@@ -107,7 +107,7 @@ namespace Poker {
 			Vec2i const& posImg = mCardPos[ card.getIndex() ];
 			mBmpDC.bitBltTo( g.getRenderDC() , pos.x , pos.y , posImg.x , posImg.y , CardSize.x , CardSize.y );
 		}
-		void drawCardBack( Graphics2D& g , Vec2i const& pos )
+		void drawCardBack( Graphics2D& g , Vec2i const& pos ) override
 		{
 			PosInfo const& info = CardBackPos[ type ];
 			int x = info.x;
@@ -115,7 +115,7 @@ namespace Poker {
 			mBmpDC.bitBltTo( g.getRenderDC() , pos.x , pos.y , x * CardSize.x , y * CardSize.y , CardSize.x , CardSize.y );
 		}
 
-		void release()
+		void release() override
 		{
 			delete this;
 		}
@@ -138,12 +138,12 @@ namespace Poker {
 	{
 	public:
 		static Vec2i CardSize;
-		Vec2i getSize()
+		Vec2i getSize() override
 		{
 			return CardSize;
 		}
 		static int const RoundSize = 12;
-		void draw( Graphics2D& g , Vec2i const& pos , Card const& card )
+		void draw( Graphics2D& g , Vec2i const& pos , Card const& card ) override
 		{
 			if( card == Card::None() )
 				return;
@@ -161,7 +161,7 @@ namespace Poker {
 			g.drawText( pos, Vec2i(25,20), str.c_str());
 			g.drawText( pos + CardSize - Vec2i(25, 20), Vec2i(25, 20), str.c_str());
 		}
-		void drawCardBack( Graphics2D& g , Vec2i const& pos )
+		void drawCardBack( Graphics2D& g , Vec2i const& pos ) override
 		{
 			RenderUtility::SetPen(g, EColor::Black);
 			RenderUtility::SetBrush(g, EColor::White);
@@ -170,7 +170,7 @@ namespace Poker {
 			Vec2i border = Vec2i(4, 4);
 			g.drawRoundRect(pos +border , CardSize - 2 * border , Vec2i(RoundSize, RoundSize));
 		}
-		void release()
+		void release() override
 		{
 			delete this;
 		}

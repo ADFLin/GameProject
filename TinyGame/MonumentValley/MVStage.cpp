@@ -46,12 +46,13 @@ namespace MV
 		//testRotation();
 
 
-		mCamera.setPos( Vector3( 20 , 20 , 20 ) );
+		//mCamera.setPos( Vector3( 20 , 20 , 20 ) );
+		mCamera.setPos(Vec3f(0, 0, 0));
 		mCamera.setRotation( Math::Deg2Rad( 225 ) , Math::Deg2Rad( 45 ) , 0 );
 
 		bCameraView = false;
 		mViewWidth = 32;
-		mUsageControllor = NULL;
+		mUsageControllor = nullptr;
 		
 		//Editor
 		mEditType = eEditBlock;
@@ -98,7 +99,7 @@ namespace MV
 		frame->addButton( UI_LOAD_LEVEL , "Load Level" );
 
 
-		MeshViewPanel* panel = new MeshViewPanel( UI_MESH_VIEW_PANEL , Vec2i(0,0) , Vec2i(30,30) , NULL );
+		MeshViewPanel* panel = new MeshViewPanel( UI_MESH_VIEW_PANEL , Vec2i(0,0) , Vec2i(30,30) , nullptr );
 		panel->idMesh = 3;
 		::Global::GUI().addWidget( panel );
 
@@ -119,7 +120,7 @@ namespace MV
 
 		if ( !beDestroy )
 		{
-			mUsageControllor = NULL;
+			mUsageControllor = nullptr;
 			//Edit Var
 			idxGroupUse = INDEX_NONE;
 			idxSpaceCtrlUse = INDEX_NONE;
@@ -237,7 +238,7 @@ namespace MV
 				{
 					if ( mUsageControllor->modify( mWorld , mCtrlFactor ) )
 					{
-						mUsageControllor = NULL;
+						mUsageControllor = nullptr;
 					}
 				}
 				else if ( msg.onMoving() && msg.isLeftDown() )
@@ -602,13 +603,8 @@ namespace MV
 		RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(width, height, -100, 100)));
 		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
-		glMatrixMode(GL_PROJECTION);
 
-		glLoadMatrixf( AdjProjectionMatrixForRHI(OrthoMatrix( width , height , -100 , 100 )) );
-		glMatrixMode(GL_MODELVIEW);
-
-		
-
+		Matrix4  projectMatrix = OrthoMatrix(width, height, -100, 100);
 		Vec3f viewPos = getViewPos();
 
 		switch ( mViewMode )
@@ -618,33 +614,28 @@ namespace MV
 				int width = window.getWidth() / 2;
 				int height = window.getHeight() / 2;
 				Matrix4 matView;
-				glViewport( 0 , height , width , height );
+				RHISetViewport(commandList, 0 , height , width , height );
 				matView = LookAtMatrix( viewPos , -Vec3f( mWorld.mParallaxOffset ) , Vector3(0,0,1) );
-				renderScene( matView );
+				renderScene( matView , projectMatrix);
 
-				glViewport( width , height , width , height );
+				RHISetViewport(commandList, width , height , width , height );
 				matView = LookAtMatrix( viewPos  , Vec3f( 0 , 0, -1 ) , Vector3(0,1,0) );
-				renderScene( matView );
+				renderScene( matView, projectMatrix);
 
-				glViewport( 0 , 0 , width , height );
+				RHISetViewport(commandList, 0 , 0 , width , height );
 				matView = LookAtMatrix( viewPos , Vec3f( -1 , 0 , 0 ) , Vector3(0,0,1) );
-				renderScene( matView );
+				renderScene( matView, projectMatrix);
 
-				glViewport( width , 0 , width , height );
+				RHISetViewport(commandList, width , 0 , width , height );
 				matView = LookAtMatrix( viewPos , Vec3f( 0 , 1 , 0 ) , Vector3(0,0,1) );
-				renderScene( matView );
+				renderScene( matView, projectMatrix);
 
 				int vp[4];
-				glViewport( 0 , 0 , window.getWidth() , window.getHeight() );
+				RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
 			
+				projectMatrix = OrthoMatrix(0 , window.getWidth() , 0 , window.getHeight() , -1 , 1 );
 
-				glMatrixMode( GL_PROJECTION );
-				glLoadIdentity();
-				glOrtho(0 , window.getWidth() , 0 , window.getHeight() , -1 , 1 );
-				glMatrixMode( GL_MODELVIEW );
-				glLoadIdentity();
-
-				glColor3f( 1 , 1 , 1 );
+				RHISetupFixedPipelineState(commandList, projectMatrix);
 				glBegin( GL_LINES );
 				glVertex2i( width , 0 ); glVertex2i( width , 2 * height );
 				glVertex2i( 0 , height ); glVertex2i( 2 * width , height );
@@ -659,13 +650,10 @@ namespace MV
 				glViewport( 0 , 0 , width , height );
 				if ( bCameraView )
 				{
-					glMatrixMode(GL_PROJECTION);
-					glLoadIdentity();
 					//glOrtho(0, window.getWidth() , 0 , window.getHeight() , -10000 , 100000 );
 					float aspect = float( window.getWidth() ) / window.getHeight();
-					gluPerspective( 100.0f / aspect , aspect , 0.01 , 1000 );
-					glMatrixMode( GL_MODELVIEW );
 
+					projectMatrix = PerspectiveMatrix(100.0f / aspect, aspect, 0.01, 1000);
 					Vector3 camPos  = mCamera.getPos();
 					Vector3 viewDir = mCamera.getViewDir();
 					Vector3 upDir   = mCamera.getUpDir();
@@ -676,7 +664,7 @@ namespace MV
 				{
 					matView = LookAtMatrix( viewPos , -Vec3f( mWorld.mParallaxOffset ) , Vector3(0,0,1) );
 				}
-				renderScene( matView );
+				renderScene( matView, projectMatrix);
 
 #if 0				
 				Vector3 v1 = Vector3(1,0,0) * matView; 
@@ -756,20 +744,23 @@ namespace MV
 		}
 	}
 
-	void TestStage::renderScene( Mat4 const& matView)
+	void TestStage::renderScene( Mat4 const& viewMatrix , Mat4 const& projectMatrix )
 	{
+		RenderContext context;
+		context.mView = &mRenderEngine.mView;
+		context.mView->setupTransform(viewMatrix, projectMatrix);
+
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RenderParam& param = mRenderEngine.mParam;
 		param.world = &mWorld;
 
-		mRenderEngine.renderScene( matView );
-		return;
+		mRenderEngine.renderScene(context);
 
 		if ( param.bShowNavPath )
 		{
-			glColor3f( 0.2 , 0.8 , 0.8 );
-			mRenderEngine.renderPath( mNavigator.mPath , mNavigator.mMovePoints );
+			context.setColor(LinearColor(0.2, 0.8, 0.8));
+			mRenderEngine.renderPath(context, mNavigator.mPath , mNavigator.mMovePoints );
 		}
 
 		if ( isEditMode )
@@ -777,24 +768,24 @@ namespace MV
 			glDisable( GL_DEPTH_TEST );
 			//glEnable( GL_POLYGON_OFFSET_LINE );
 			//glPolygonOffset( -0.4f, 0.2f );
-
-			glPushMatrix();
-			if ( mEditType == eEditMesh )
-				glTranslatef( editMeshPos.x - 0.5 , editMeshPos.y - 0.5 , editMeshPos.z - 0.5 );
+			context.stack.push();
+			if (mEditType == eEditMesh)
+				context.stack.translate(editMeshPos - Vec3f(0.5));
 			else
-				glTranslatef( editPos.x - 0.5 , editPos.y - 0.5 , editPos.z - 0.5 );
-			glColor3f(1,1,1);
+				context.stack.translate( Vec3f(editPos) - Vec3f(0.5));
+
+			context.setColor(LinearColor(1, 1, 1));
+			context.setupPipeline(commandList);
 			DrawUtility::CubeLine(commandList);
-			glPopMatrix();
+
+			context.stack.pop();
 
 			//glDisable( GL_POLYGON_OFFSET_LINE );
 			glEnable( GL_DEPTH_TEST );
 
 			float len = 50;
 
-			glColor3f(0.3,0.3,0.3);
-
-
+			context.setColor(LinearColor(0.3, 0.3, 0.3));
 			{
 				int num = int(len);
 				int size = 3 * 4 * ( 2 * num + 1 ); 
@@ -809,14 +800,16 @@ namespace MV
 					v[0] = -len; v[1] = p; v[2] = z; v += 3;
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
+				context.setupPipeline(commandList);
 				TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineList , buffer , size / 3 );
 			}
 
 			{
-				glPushMatrix();
-				glScalef( len , len , len );
+				context.stack.push();
+				context.stack.scale(Vec3f(len));
+				context.setupPipeline(commandList);
 				DrawUtility::AixsLine(commandList);
-				glPopMatrix();
+				context.stack.pop();
 			}
 
 			switch( mEditType )
@@ -824,40 +817,49 @@ namespace MV
 			case eEditBlock:
 				{
 					BlockModel& model = gModels[editModelId];
-					glEnable( GL_BLEND );
-					glBlendFunc( GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA );
-					glColor4f( 1 , 1 , 1 , 0.75 );
-					mRenderEngine.renderMesh( model.mesh , editPos , AxisRoataion::Identity() );
-					glDisable( GL_BLEND );
+					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 
-					glColor3f(1,0,1);
+					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
+
+					mRenderEngine.beginRender();
+					mRenderEngine.renderMesh( context , model.mesh , editPos , AxisRoataion::Identity() );
+					mRenderEngine.endRender();
+
+					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+					context.setColor(LinearColor(1,0,1) );
 					if ( !mSelectBlocks.empty() )
 					{
 						for( Block* block : mSelectBlocks )
 						{
-							glPushMatrix();
-							glTranslatef( block->pos.x - 0.5 , block->pos.y - 0.5 , block->pos.z - 0.5 );
+							context.stack.push();
+							context.stack.translate(Vec3f(block->pos) - Vec3f(0.5));
 							DrawUtility::CubeLine(commandList);
-							glPopMatrix();
+							context.stack.pop();
 						}
 					}
 				}
 				break;
 			case eEditMesh:
 				{
-					glEnable( GL_BLEND );
-					glBlendFunc( GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA );
-					glColor4f( 1 , 1 , 1 , 0.75 );
-					mRenderEngine.renderMesh( editMeshId , editMeshPos , Vec3f(0,0,0));
-					glDisable( GL_BLEND );
+					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
+
+					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
+
+					mRenderEngine.beginRender();
+					mRenderEngine.renderMesh( context , editMeshId , editMeshPos , Vec3f(0,0,0));
+					mRenderEngine.endRender();
+
+					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
 
 					if ( editIdxMeshSelect != -1 )
 					{
 						MeshObject* mesh = Level::mMeshVec[ editIdxMeshSelect ];
-						glPushMatrix();
-						glTranslatef( mesh->pos.x - 0.5 , mesh->pos.y - 0.5 , mesh->pos.z - 0.5 );
+						context.stack.push();
+						context.stack.translate(mesh->pos - Vec3f(0.5));
 						DrawUtility::CubeLine(commandList);
-						glPopMatrix();
+						context.stack.pop();
 					}
 				}
 
@@ -874,19 +876,15 @@ namespace MV
 							{
 								CRotator* rotator = static_cast< CRotator* >( modifier );
 
-								glColor3f(1,0,0);
-								glPushMatrix();
-								glTranslatef( rotator->mPos.x - 0.5 , rotator->mPos.y - 0.5 , rotator->mPos.z - 0.5 );
-								glScalef( 1.3 , 1.3 , 1.3 );
+								context.setColor(LinearColor(1, 0, 0));
+								context.stack.push();
+								context.stack.translate(Vec3f(rotator->mPos) - Vec3f(0.5));
+								context.stack.scale(Vec3f(1.3));
 								DrawUtility::CubeLine(commandList);
-								glPopMatrix();
+								context.stack.pop();
 							}
 							break;
 						}
-
-
-
-
 					}
 				}
 				break;
@@ -1053,7 +1051,7 @@ namespace MV
 			//return Vec3f(10,10,10); 
 		}
 
-		return Vec3f(10,10,0);
+		return Vec3f(0,0,0);
 		//return ( Level::mWorld.mMapOffset + Level::mWorld.mMapSize ) / 2;
 	}
 

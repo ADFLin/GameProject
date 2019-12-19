@@ -84,10 +84,9 @@ namespace MV
 			mUpdateCount = -1;
 		}
 
-		for( GroupVec::iterator iter = mGroups.begin() , itEnd = mGroups.end() ; 
-			iter != itEnd ; ++iter )
+		for(auto* group : mGroups)
 		{
-			delete *iter;
+			delete group;
 		}
 		mGroups.clear();
 	}

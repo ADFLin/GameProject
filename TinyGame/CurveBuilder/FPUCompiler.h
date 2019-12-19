@@ -15,9 +15,9 @@ public:
 	~ExecutableCode();
 
 	template< class RT , class ...Args >
-	RT evalT(Args ...args) const
+	FORCEINLINE RT evalT(Args ...args) const
 	{
-		typedef RT (*EvalFun)(Args...);
+		using EvalFun = RT (*)(Args...);
 		return reinterpret_cast<EvalFun>(&mCode[0])(args...);
 	}
 

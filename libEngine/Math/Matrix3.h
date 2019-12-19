@@ -12,7 +12,7 @@ namespace Math
 	class Matrix3
 	{
 	public:
-		Matrix3(){}
+		Matrix3() = default;
 
 		FORCEINLINE
 		Matrix3( float const values[] )
@@ -126,7 +126,7 @@ namespace Math
 		};
 	};
 
-	inline Matrix3 Matrix3::operator * ( Matrix3 const& rhs ) const
+	FORCEINLINE Matrix3 Matrix3::operator * ( Matrix3 const& rhs ) const
 	{
 #define MAT_MUL( v1 , v2 , idx1 , idx2 )\
 	( v1[3*idx1]*v2[idx2] + v1[3*idx1+1]*v2[idx2+3] + v1[3*idx1+2]*v2[idx2+6] )

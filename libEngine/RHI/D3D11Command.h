@@ -56,7 +56,7 @@ namespace Render
 			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 			bufferDesc.CPUAccessFlags = 0;
 			bufferDesc.MiscFlags = 0;
-			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, NULL, &resource));
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, nullptr, &resource));
 			return true;
 		}
 
@@ -79,7 +79,7 @@ namespace Render
 		{
 			if( updateDataSize )
 			{
-				context->UpdateSubresource(resource, 0, NULL, &updateData[0], updateDataSize, updateDataSize);
+				context->UpdateSubresource(resource, 0, nullptr, &updateData[0], updateDataSize, updateDataSize);
 				updateDataSize = 0;
 			}
 		}
@@ -356,6 +356,12 @@ namespace Render
 			}	
 		}
 
+		void RHIFlushCommand()
+		{
+			mDeviceContext->Flush();
+		}
+
+
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 		{
 			commitComputeState();
@@ -440,6 +446,7 @@ namespace Render
 		{
 
 		}
+
 		RHICommandList&  getImmediateCommandList()
 		{
 			return *mImmediateCommandList;

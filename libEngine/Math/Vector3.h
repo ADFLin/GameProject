@@ -9,9 +9,9 @@ namespace Math
 	{
 	public:
 		Vector3() = default;
-		Vector3( float const v[] ){ setValue( v[0] , v[1] , v[2] ); }
-		Vector3(float sx,float sy,float sz);
-		Vector3(float value):x(value),y(value),z(value){}
+		constexpr explicit Vector3( float const v[] ): x(v[0]),y(v[1]),z(v[2]){}
+		constexpr Vector3(float sx, float sy, float sz) :x(sx), y(sy), z(sz){}
+		constexpr explicit Vector3(float value):x(value),y(value),z(value){}
 
 		Vector3 getNormal() const;
 
@@ -138,13 +138,6 @@ namespace Math
 	FORCEINLINE  Vector3 Cross( Vector3 const& a, Vector3 const& b )
 	{
 		return a.cross( b );
-	}
-
-
-	FORCEINLINE  Vector3::Vector3( float sx , float sy , float sz ) 
-		:x(sx),y(sy),z(sz)
-	{
-
 	}
 
 	FORCEINLINE  float Vector3::dot( Vector3 const& b ) const

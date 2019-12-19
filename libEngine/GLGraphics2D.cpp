@@ -13,6 +13,16 @@
 #include <algorithm>
 
 
+#include "Math/Vector3.h"
+#include "Math/Quaternion.h"
+#include "Math/Matrix4.h"
+
+using Math::Vector3;
+using Math::Quaternion;
+using Math::Matrix4;
+
+#define RHI_GRAPHICS_2D_USE_TRANSFORM_STACK 1
+
 static char const* vertexShader = CODE_STRING(
 	varying vec2 vTexCoord;
 	void main(void)
@@ -139,6 +149,43 @@ void GLGraphics2D::finishXForm()
 
 }
 
+void GLGraphics2D::identityXForm()
+{
+#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
+	mXFormStack.set(RenderTransform2D::Identity());
+#else
+	glLoadIdentity();
+#endif
+}
+
+void GLGraphics2D::translateXForm(float ox, float oy)
+{
+#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
+	mXFormStack.translate(Vector2(ox, oy));
+#else
+	glTranslatef(ox, oy, 0);
+#endif
+}
+
+void GLGraphics2D::rotateXForm(float angle)
+{
+
+#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
+	mXFormStack.rotate(Math::Deg2Rad(angle));
+#else
+	glRotatef(angle, 0, 0, 1);
+#endif
+}
+
+void GLGraphics2D::scaleXForm(float sx, float sy)
+{
+#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
+	mXFormStack.scale(Vector2(sx, sy));
+#else
+	glScalef(sx, sy, 1);
+#endif
+}
+
 void GLGraphics2D::beginRender()
 {
 	glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
@@ -156,13 +203,16 @@ void GLGraphics2D::beginRender()
 	RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(0 , mWidth, mHeight, 0 , -1, 1)));
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
+	mXFormStack.clear();
 	//glDisable(GL_TEXTURE_2D);
 }
 
 void GLGraphics2D::endRender()
 {
-	glFlush();
-	glMatrixMode(GL_MODELVIEW);
+	using namespace Render;
+
+	RHICommandList& commandList = GetCommandList();
+	RHIFlushCommand(commandList);
 	glPopAttrib();
 }
 
@@ -291,15 +341,29 @@ void GLGraphics2D::emitLineVertex(Vector2 const &p1, Vector2 const &p2)
 
 void GLGraphics2D::emitVertex(float x , float y)
 {
-	mBuffer.push_back( x );
-	mBuffer.push_back( y );
+#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
+	Vector2 v = mXFormStack.get().tranformPosition(Vector2(x, y));
+	mBuffer.push_back(v.x);
+	mBuffer.push_back(v.y);
+#else
+
+	mBuffer.push_back(x);
+	mBuffer.push_back(y);
+#endif
+
 }
 
 void GLGraphics2D::emitVertex( float v[] )
 {
-	mBuffer.push_back( v[0] );
-	mBuffer.push_back( v[1] );
+#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
+	Vector2 temp = mXFormStack.get().tranformPosition(Vector2(v[0],v[1]));
+	mBuffer.push_back(temp.x);
+	mBuffer.push_back(temp.y);
+#else
 
+	mBuffer.push_back(v[0]);
+	mBuffer.push_back(v[1]);
+#endif
 }
 
 void GLGraphics2D::drawPixel(Vector2 const& p , Color3ub const& color)

@@ -1,5 +1,8 @@
 #include "CString.h"
 
+#if SYS_PLATFORM_WIN
+#include "WindowsHeader.h"
+#endif
 
 void FCString::Stricpy(char * dest, char const* src)
 {
@@ -42,7 +45,11 @@ std::wstring FCString::CharToWChar(const char *c)
 {
 	const size_t cSize = strlen(c) + 1;
 	wchar_t buff[1024 * 256];
-	setlocale(LC_ALL, "cht");
+#if SYS_PLATFORM_WIN
+	::MultiByteToWideChar(0,0, c, cSize + 1 , buff , ARRAY_SIZE(buff));
+#else
+	//setlocale(LC_ALL, "cht");
 	mbstowcs(buff, c, cSize);
+#endif
 	return buff;
 }

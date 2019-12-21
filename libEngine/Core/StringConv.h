@@ -2,6 +2,7 @@
 #ifndef StringConv_H_1F1C04BF_8321_4E8A_BFBA_5C015EE4EAE4
 #define StringConv_H_1F1C04BF_8321_4E8A_BFBA_5C015EE4EAE4
 
+#include "CppVersion.h"
 #include "CString.h"
 #include "Template/TypeFormatTraits.h"
 
@@ -61,5 +62,29 @@ public:
 
 	template< class CharT = TChar >
 	FORCEINLINE static CharT const* From(CharT const* value) { return value; }
+
+	template< class T , class CharT = TChar >
+	FORCEINLINE static bool ToCheck(CharT const* value, int len , T& outValue )
+	{
+#if CPP_CHARCONV_SUPPORT
+		return std::from_chars(value, value + len, outValue).ec == std::errc();
+#else
+#error "No impl"
+#endif
+
+	}
+
+	template< class T, class CharT = TChar >
+	FORCEINLINE static T To(CharT const* value, int len)
+	{
+#if CPP_CHARCONV_SUPPORT
+		T result = T();
+		std::from_chars(value, value +  len, result);
+		return result;
+#else
+#error "No impl"
+#endif
+	}
 };
+
 #endif // StringConv_H_1F1C04BF_8321_4E8A_BFBA_5C015EE4EAE4

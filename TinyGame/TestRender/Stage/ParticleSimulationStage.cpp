@@ -745,7 +745,9 @@ namespace Render
 				RHISetShaderProgram(commandList, mProgParticleRender->getRHIResource());
 				mView.setupShader(commandList, *mProgParticleRender);
 				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
-				glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
+				//glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
+
+				RHIDrawPrimitive(commandList, PrimitiveType::Points, 0, mParticleBuffer.getElementNum() - 2);
 			}
 
 

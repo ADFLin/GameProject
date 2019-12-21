@@ -63,6 +63,7 @@ public:
 		eDelimsType = 2,
 	};
 	static TokenType StringToken(char const*& inoutStr, DelimsTable const& table, StringView& outToken);
+	static void      SkipDelims(char const*& inoutStr, DelimsTable const& table);
 
 	static TokenType StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, StringView& outToken);
 	static bool      StringToken(char const*& inoutStr, char const* dropDelims, StringView& outToken);
@@ -96,7 +97,7 @@ class Tokenizer : public DelimsTable
 public:
 	Tokenizer(char const* str, char const* dropDelims, char const* stopDelims = "");
 
-	typedef FStringParse::TokenType TokenType;
+	using TokenType = FStringParse::TokenType;
 
 	void        reset(char const* str);
 	char        nextChar() { return *mPtr; }
@@ -104,8 +105,12 @@ public:
 	void        skipDropDelims();
 	int         skipToChar(char c);
 
+	bool        takeUntil( char stopChar, StringView& token);
+	bool        takeChar(char c);
 
-	TokenType  take(StringView& str);
+	TokenType  take(DelimsTable const& table , StringView& token);
+	TokenType  take(StringView& token);
+
 	int        calcOffset(char const* ptr)
 	{
 		return mPtr - ptr;

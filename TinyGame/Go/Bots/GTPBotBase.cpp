@@ -80,23 +80,13 @@ namespace Go
 		FixString<128> com;
 		com.format("komi %.1f\n", setting.komi);
 		inputCommand(com, { GTPCommand::eKomi , 0 });
-		if (setting.numHandicap)
+		if (setting.numHandicap && setting.bFixedHandicap )
 		{
-			if (setting.bFixedHandicap)
-			{
-				com.format("fixed_handicap %d\n", setting.numHandicap);
-				inputCommand(com, { GTPCommand::eHandicap , setting.numHandicap });
-			}
-			else
-			{
-				for (int i = 0; i < i < setting.numHandicap; ++i)
-				{
-					com.format("genmove %s\n", "b");
-					if (!inputCommand(com, { GTPCommand::eGenmove , StoneColor::eBlack }))
-						return false;
-				}
-			}
+			com.format("fixed_handicap %d\n", setting.numHandicap);
+			inputCommand(com, { GTPCommand::eHandicap , setting.numHandicap });
 		}
+
+		inputCommand("clear_board\n", { GTPCommand::eRestart , 0 });
 		//com.format()
 
 		return true;

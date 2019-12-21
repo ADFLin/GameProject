@@ -38,9 +38,38 @@ int Tokenizer::skipToChar(char c)
 	return mPtr - prev;
 }
 
-Tokenizer::TokenType Tokenizer::take(StringView& str)
+Tokenizer::TokenType Tokenizer::take(StringView& token)
 {
-	return FStringParse::StringToken(mPtr, *this, str);
+	return FStringParse::StringToken(mPtr, *this, token);
+}
+
+Tokenizer::TokenType Tokenizer::take(DelimsTable const& table, StringView& token)
+{
+	return FStringParse::StringToken(mPtr, table, token);
+}
+
+bool Tokenizer::takeUntil(char stopChar, StringView& token)
+{
+	char const* content = mPtr;
+	char const* contentEnd = FStringParse::FindChar(mPtr, ']');
+	if (*contentEnd == 0)
+	{
+		return false;
+	}
+	token = StringView(content, contentEnd - content);
+	mPtr = contentEnd + 1;
+	return true;
+}
+
+bool Tokenizer::takeChar(char c)
+{
+	FStringParse::SkipDelims(mPtr, *this);
+	if (*mPtr == c)
+	{
+		++mPtr;
+		return true;
+	}
+	return false;
 }
 
 void Tokenizer::reset(char const* str)
@@ -536,6 +565,23 @@ FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, DelimsT
 	return FStringParse::eStringType;
 }
 
+void FStringParse::SkipDelims(char const*& inoutStr, DelimsTable const& table)
+{
+	for (;;)
+	{
+		char cur = *(inoutStr+1);
+		if (cur == '\0')
+		{
+			return;
+		}
+		if (!table.isDropDelims(cur))
+			break;
+
+		++inoutStr;
+	}
+}
+
+
 FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, StringView& outToken)
 {
 	char cur = *(inoutStr++);
@@ -572,6 +618,7 @@ FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, char co
 	return FStringParse::eStringType;
 }
 
+
 bool FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, StringView& outToken)
 {
 	inoutStr = SkipChar(inoutStr, dropDelims);
@@ -585,6 +632,8 @@ bool FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, St
 	outToken = StringView(ptr, inoutStr - ptr);
 	return true;
 }
+
+
 
 StringView FStringParse::StringTokenLine(char const*& inoutStr)
 {

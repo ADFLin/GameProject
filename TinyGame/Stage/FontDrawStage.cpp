@@ -23,7 +23,6 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		LogMsg("花瓣的顏色愈妖艷　我郤愈憔悴");
 		VERIFY_RETURN_FALSE(::Global::GetDrawEngine().startOpenGL(4));
 
 		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());

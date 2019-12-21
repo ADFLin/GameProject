@@ -52,7 +52,7 @@ namespace Go
 			button->setTitle("..");
 			button->onEvent = [this](int event, GWidget*) -> bool
 			{
-				if (SystemPlatform::OpenFileName(filePath, filePath.max_size(), nullptr, nullptr) )
+				if (SystemPlatform::OpenFileName(filePath, filePath.max_size(), {}, nullptr, nullptr))
 					return false;
 
 				return false;
@@ -278,7 +278,9 @@ namespace Go
 		class UnderCurveAreaProgram* mProgUnderCurveArea = nullptr;
 
 		bool toggleAnalysisPonder();
+
 		bool tryEnableAnalysis(bool bCopyGame);
+		void synchronizeAnalysisState();
 
 		bool canAnalysisPonder(MatchPlayer& player)
 		{

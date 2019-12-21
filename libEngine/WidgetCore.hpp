@@ -425,6 +425,9 @@ void TWidgetManager<T>::postProcMsg()
 template< class T >
 bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 {
+	//System maybe send callback
+	if (mProcessingMsg)
+		return false;
 	WIDGET_PROFILE_ENTRY("UI System");
 
 	ProcMsgScope scope(this);
@@ -584,6 +587,9 @@ bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag ,
 template< class T >
 bool TWidgetManager<T>::procCharMsg( unsigned code )
 {
+	//System maybe send callback
+	if (mProcessingMsg)
+		return false;
 	ProcMsgScope scope(this);
 	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_CHAR_EVENT, WIF_REROUTE_CHAR_EVENT_UNHANDLED, [code](WidgetCore* ui)
 	{
@@ -595,6 +601,10 @@ bool TWidgetManager<T>::procCharMsg( unsigned code )
 template< class T >
 bool TWidgetManager<T>::procKeyMsg(KeyMsg const& msg)
 {
+	//System maybe send callback
+	if (mProcessingMsg)
+		return false;
+
 	ProcMsgScope scope(this);
 	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [msg](WidgetCore* ui)
 	{

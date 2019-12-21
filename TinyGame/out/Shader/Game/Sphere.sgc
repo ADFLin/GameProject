@@ -110,7 +110,7 @@ float3 CalcLighting( in FSInput inFS )
 	vec3 color = vec3(0,0,0);
 	for( int i = 0 ; i < 4 ; ++i )
 	{
-		vec3 L = normalize( LightPos[i] );
+		vec3 L = normalize( LightPos[i] - P );
 		float diff = clamp( dot( L , N ) , 0.0 , 1.0 );
 		float spec = 0;
 

@@ -8,7 +8,7 @@ template < class T >
 class TStringView
 {
 public:
-	typedef typename TStringTraits<T>::StdString StdString;
+	using StdString = typename TStringTraits<T>::StdString;
 
 	TStringView():mData(nullptr),mNum(0){}
 
@@ -34,11 +34,11 @@ public:
 
 	//operator T const* () const { return mData; }
 
-	typedef T const* iterator;
+	using iterator = T const*;
 	iterator begin() { return mData; }
 	iterator end() { return mData + mNum; }
 
-	typedef T const* const_iterator;
+	using const_iterator = T const*;
 	const_iterator begin() const { return mData; }
 	const_iterator end() const { return mData + mNum; }
 
@@ -107,14 +107,17 @@ public:
 	template< size_t BufferSize = 256 >
 	TCStringConvable< BufferSize > toCString() const { return TCStringConvable<BufferSize>(mData, mNum); }
 
-	bool toFloat(float& value) const
+	template<class Q>
+	Q toValue() const
 	{
-		//TODO : optimize
-		auto temp = toCString<128>();
-		T* endPtr;
-		value = FCString::Strtof(temp, &endPtr);
-		return endPtr == temp.mPtr + mNum;
+		return FStringConv::To<Q>(mData, mNum);
 	}
+	template<class Q>
+	bool toValueCheck(Q& outValue) const
+	{
+		return FStringConv::ToCheck<Q>(mData, mNum, outValue);
+	}
+
 protected:
 
 	int compareInternal(char const* other, int numOhter) const
@@ -136,8 +139,8 @@ protected:
 	size_t   mNum;
 };
 
-typedef TStringView<char>    StringView;
-typedef TStringView<wchar_t> WStringView;
+using StringView = TStringView<char>;
+using WStringView = TStringView<wchar_t>;
 
 
 #endif // StringView_H_CA843BB9_3C9D_487D_9EC7_9D3F1EE8E800

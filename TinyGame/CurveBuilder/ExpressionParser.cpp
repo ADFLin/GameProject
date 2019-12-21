@@ -66,17 +66,15 @@ void ExprParse::print( UnitCodes const& codes , SymbolTable const& table , bool 
 {
 	if (!haveBracket) 
 	{
-		for( size_t i=0;i< codes.size();++i)
+		for(auto const& unit : codes)
 		{
-			Unit const& unit = codes[i];
 			print( unit , table );
 		}
 	}
 	else
 	{
-		for( size_t i=0;i< codes.size();++i)
+		for(auto const& unit : codes)
 		{
-			Unit const& unit = codes[i];
 			std::cout << "[";
 			if ( IsBinaryOperator( unit.type ) && unit.isReverse )
 				std::cout << "re" ;
@@ -186,7 +184,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 
 			if( type != TOKEN_TYPE_ERROR )
 			{
-				infixCode.push_back(Unit(type));
+				infixCode.emplace_back(type);
 			}
 		}
 
@@ -202,25 +200,25 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 				case SymbolEntry::eFunction:
 					{
 						type = FUN_DEF;
-						infixCode.push_back(Unit(type, symbol));
+						infixCode.emplace_back(type, symbol);
 					}
 					break;
 				case SymbolEntry::eConstValue:
 					{
 						type = VALUE_CONST;
-						infixCode.push_back(Unit(type, symbol->constValue));
+						infixCode.emplace_back(type, symbol->constValue);
 					}
 					break;
 				case SymbolEntry::eVariable:
 					{
 						type = VALUE_VARIABLE;
-						infixCode.push_back(Unit(type, symbol));
+						infixCode.emplace_back(type, symbol);
 					}
 					break;
 				case SymbolEntry::eInputVar:
 					{
 						type = VALUE_INPUT;
-						infixCode.push_back(Unit(type, symbol));
+						infixCode.emplace_back(type, symbol);
 					}
 					break;
 				}
@@ -232,7 +230,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 				if( *ptrEnd == '\0' )
 				{
 					type = VALUE_CONST;
-					infixCode.push_back(Unit(type, val));
+					infixCode.emplace_back(type, val);
 				}
 			}
 		}
@@ -253,8 +251,8 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 void ExpressionParser::convertCode( UnitCodes& infixCode , UnitCodes& postfixCode )
 {
 	UnitCodes stack;
-	stack.push_back( Unit(TOKEN_LBAR) );
-	infixCode.push_back( Unit(TOKEN_RBAR) );
+	stack.emplace_back(TOKEN_LBAR);
+	infixCode.emplace_back(TOKEN_RBAR);
 	
 	postfixCode.clear();
 
@@ -894,7 +892,7 @@ void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*t
 
 	Node& node = mTreeNodes[ idxNode ];
 	node.parent  = 0;
-	node.opUnit  = 0;
+	node.opUnit  = nullptr;
 	node.children[ CN_LEFT  ]  = idxLeft;
 	node.children[ CN_RIGHT ]  = 0;
 }
@@ -1458,24 +1456,24 @@ ConstValueInfo const* SymbolTable::findConst(char const* name) const
 int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 {;
 	int index = 0;
-	for( auto iter = mNameToEntryMap.begin(); iter != mNameToEntryMap.end(); ++iter )
+	for(auto const& pair : mNameToEntryMap)
 	{
-		if ( iter->second.type != SymbolEntry::eVariable )
+		if ( pair.second.type != SymbolEntry::eVariable )
 			continue;
 
-		if ( varStr ) varStr[index] = iter->first.c_str();
+		if ( varStr ) varStr[index] = pair.first.c_str();
 		if( varVal )
 		{
-			switch( iter->second.varValue.layout )
+			switch( pair.second.varValue.layout )
 			{
 			case ValueLayout::Double:
-				varVal[index] = *(double*)iter->second.varValue.ptr;
+				varVal[index] = *(double*)pair.second.varValue.ptr;
 				break;
 			case ValueLayout::Float:
-				varVal[index] = *(float*)iter->second.varValue.ptr;
+				varVal[index] = *(float*)pair.second.varValue.ptr;
 				break;
 			case ValueLayout::Int32:
-				varVal[index] = *(int32*)iter->second.varValue.ptr;
+				varVal[index] = *(int32*)pair.second.varValue.ptr;
 				break;
 			default:
 				assert(0);

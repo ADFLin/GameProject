@@ -373,7 +373,7 @@ public:// System Message
 	}
 	bool  onKey(KeyMsg const& msg)
 	{ 
-		if ( !isDown )
+		if ( !msg.isDown() )
 			return true;
 
 
@@ -397,7 +397,7 @@ public:// System Message
 		rcViewport& vp = mLevelScene->getViewPort();
 
 		int moveSpeed = 5;
-		switch( key )
+		switch( msg.getCode() )
 		{
 		case EKeyCode::S: vp.shiftScreenOffset( Vec2i( 0 , moveSpeed ) ); break;
 		case EKeyCode::W: vp.shiftScreenOffset( Vec2i( 0 , -moveSpeed ) ); break;

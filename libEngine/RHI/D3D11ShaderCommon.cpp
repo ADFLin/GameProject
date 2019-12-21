@@ -121,11 +121,7 @@ namespace Render
 			{
 				if( bUsePreprocess )
 				{
-					std::ofstream of("temp" SHADER_FILE_SUBNAME, std::ios::binary);
-					if( of.is_open() )
-					{
-						of.write(&codeBuffer[0], codeBuffer.size());
-					}
+					FileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
 				}
 
 				if( bRecompile )

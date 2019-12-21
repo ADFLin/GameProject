@@ -236,7 +236,7 @@ namespace Render
 					return false;
 				}
 
-				if( !token.toFloat(outValues[num]) )
+				if( !token.toValueCheck(outValues[num]) )
 					return false;
 
 				++num;

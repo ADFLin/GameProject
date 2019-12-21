@@ -24,7 +24,7 @@ namespace Render
 	
 	class TestD3D11Stage : public TestRenderStageBase
 	{
-		typedef TestRenderStageBase BaseClass;
+		using BaseClass = TestRenderStageBase;
 	public:
 		TestD3D11Stage() {}
 		D3D11System* mRHISystem;
@@ -45,7 +45,7 @@ namespace Render
 		RHIInputLayoutRef  mAxisInputLayout;
 		RHIVertexBufferRef mAxisVertexBuffer;
 
-		virtual RHITargetName getRHITargetName() { return RHITargetName::D3D11; }
+		RHITargetName getRHITargetName() override { return RHITargetName::D3D11; }
 
 		struct MyVertex
 		{
@@ -60,7 +60,7 @@ namespace Render
 			Vector3 color;
 		};
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
@@ -99,7 +99,7 @@ namespace Render
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
 			TComPtr< ID3D11Texture2D > backBuffer;
 			VERIFY_D3D11RESULT_RETURN_FALSE( mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
-			VERIFY_D3D11RESULT_RETURN_FALSE( device->CreateRenderTargetView( backBuffer , NULL, &renderTargetView) );
+			VERIFY_D3D11RESULT_RETURN_FALSE( device->CreateRenderTargetView( backBuffer , nullptr, &renderTargetView) );
 			mDepthTexture = RHICreateTextureDepth(Texture::eDepth32F, window.getWidth(), window.getHeight() );
 
 
@@ -154,20 +154,20 @@ namespace Render
 			return true;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			BaseClass::onEnd();
 		}
 
-		void restart() {}
-		void tick() {}
-		void updateFrame(int frame) {}
+		void restart() override {}
+		void tick() override {}
+		void updateFrame(int frame) override {}
 
 
 		float angle = 0;
 		float worldTime = 0;
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -184,7 +184,7 @@ namespace Render
 
 
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 			GPU_PROFILE("Render");
 
@@ -345,13 +345,13 @@ namespace Render
 					int w = ::Global::GetDrawEngine().getScreenWidth();
 					int h = ::Global::GetDrawEngine().getScreenHeight();
 					::BitBlt(g.getRenderDC(), 0, 0, w, h, hDC, 0, 0, SRCCOPY);
-					VERIFY_D3D11RESULT(surface->ReleaseDC(NULL), );
+					VERIFY_D3D11RESULT(surface->ReleaseDC(nullptr), );
 				}
 			}
 		}
 
 
-		bool onKey(KeyMsg const& msg)
+		bool onKey(KeyMsg const& msg) override
 		{
 			if(msg.isDown())
 			{
@@ -374,7 +374,7 @@ namespace Render
 			return BaseClass::onKey(msg);
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;

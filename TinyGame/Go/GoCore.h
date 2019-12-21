@@ -336,8 +336,9 @@ namespace Go
 
 	struct GameDescription
 	{
-		std::string blackName;
-		std::string whiteName;
+		std::string gameName;
+		std::string blackPlayer;
+		std::string whitePlayer;
 		std::string date;
 		std::string mathResult;
 	};
@@ -350,6 +351,24 @@ namespace Go
 		virtual void emitAddStone(int x, int y, int color) = 0;
 		virtual void emitPlayPass(int color) = 0;
 		virtual void emitUndo() = 0;
+
+		static bool LoadSGF(char const*path, IGameCopier& copier, GameDescription* des = nullptr);
+	};
+
+	template< class TGame >
+	class TGameCopier : public IGameCopier
+	{
+	public:
+		TGameCopier(TGame& game)
+			:mGame(game){}
+
+		void emitSetup(GameSetting const& setting) override { mGame.setSetting(setting); mGame.restart(); }
+		void emitPlayStone(int x, int y, int color) override { mGame.playStone(x, y); }
+		void emitAddStone(int x, int y, int color) override { mGame.addStone(x, y, color); }
+		void emitPlayPass(int color) override { mGame.playPass(); }
+		void emitUndo() override { mGame.undo(); }
+
+		TGame& mGame;
 	};
 
 	class Game
@@ -425,6 +444,11 @@ namespace Go
 		void    print( int x , int y );
 
 		bool    saveSGF( char const* path , GameDescription const* description = nullptr ) const;
+		bool    loadSGF(char const*path)
+		{
+			TGameCopier<Game> copier(*this);
+			return IGameCopier::LoadSGF(path, copier);
+		}
 
 		int     getCurrentStep() const	{  return mCurrentStep; }
 		int     getLastStep() const  {  return mStepHistory.size() - 1;  }

@@ -238,7 +238,10 @@ namespace Go
 			if( &game == &getViewingGame() )
 			{
 				updateViewGameTerritory();
-
+				if (bAnalysisEnabled)
+				{
+					synchronizeAnalysisState();
+				}
 			}
 
 			if( bReviewingGame && &game == &mGame && mGame.guid == mReviewGame.guid )
@@ -291,7 +294,7 @@ namespace Go
 			if ( mGameMode != GameMode::Analysis )
 			{
 				cleanupModeData();
-				buildAnalysisMode();
+				buildAnalysisMode(false);
 
 				mReviewGame.copy(mGame);
 				Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
@@ -402,6 +405,11 @@ namespace Go
 		{
 			bReviewingGame = !bReviewingGame;
 
+			if (bAnalysisEnabled)
+			{
+				synchronizeAnalysisState();
+			}
+
 			if( bReviewingGame )
 			{
 				mReviewGame.copy(mGame);
@@ -509,6 +517,16 @@ namespace Go
 			return false;
 		});
 
+		devFrame->addButton("Load Game", [&](int eventId, GWidget* widget) ->bool
+		{
+			FixString<512> path = "";
+			if (SystemPlatform::OpenFileName(path, path.max_size(), { {"SGF files" , "*.sgf"} , { "All files" , "*.*"} }))
+			{
+				mGame.load(path);
+				LogMsg(path);
+			}
+			return false;
+		});
 
 		return true;
 	}
@@ -595,19 +613,6 @@ namespace Go
 						}
 					}
 					break;
-				case GameCommand::ePlayStone:
-					if ( mGameMode == GameMode::Analysis )
-					{
-						if( mGame.playStone(com.pos[0], com.pos[1]) )
-						{
-
-						}
-						else
-						{
-							LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
-						}
-					}
-					break;
 				}
 			};
 			mLeelaAIRun.outputThread->procOutputCommand(ProcFun);
@@ -659,7 +664,7 @@ namespace Go
 			g.drawCircle(pos, context.stoneRadius / 2);
 		}
 
-		if( bAnalysisEnabled && bShowAnalysis && analysisPonderColor == mGame.getInstance().getNextPlayColor() )
+		if( bAnalysisEnabled && bShowAnalysis && analysisPonderColor == getViewingGame().getInstance().getNextPlayColor() )
 		{
 			drawAnalysis( g , renderState, context );
 		}
@@ -816,6 +821,8 @@ namespace Go
 	{
 		GPU_PROFILE("Draw Analysis");
 
+		GameProxy& game = getViewingGame();
+
 		auto iter = analysisResult.end();
 		if( showBranchVertex != PlayVertex::Undefiend() )
 		{
@@ -824,7 +831,7 @@ namespace Go
 		}
 		if( iter != analysisResult.end() )
 		{
-			mBoardRenderer.drawStoneSequence(renderState, context, iter->vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
+			mBoardRenderer.drawStoneSequence(renderState, context, iter->vSeq, game.getInstance().getNextPlayColor(), 0.7);
 		}
 		else
 		{
@@ -1138,17 +1145,11 @@ namespace Go
 					int color = mGame.getInstance().getNextPlayColor();
 					if( InputManager::Get().isKeyDown(EKeyCode::Control) )
 					{
-						if( mGame.addStone(pos.x, pos.y, color) )
-						{
-							executeAnalysisAICommand([this, pos, color] {  mLeelaAIRun.addStone(pos.x, pos.y, color); });
-						}
+						mGame.addStone(pos.x, pos.y, color);
 					}
 					else
 					{
-						if( mGame.playStone(pos.x, pos.y) )
-						{
-							executeAnalysisAICommand([this, pos, color] {  mLeelaAIRun.playStone(pos.x, pos.y, color); });
-						}
+						mGame.playStone(pos.x, pos.y);
 					}
 				}
 			}
@@ -1161,10 +1162,7 @@ namespace Go
 			}
 			else if( mGameMode == GameMode::Analysis )
 			{
-				if( mGame.undo() )
-				{
-					executeAnalysisAICommand([this] { mLeelaAIRun.undo(); });
-				}
+				mGame.undo();
 			}
 
 		}
@@ -1326,7 +1324,7 @@ namespace Go
 		FixString<256> path;
 		path.format("%s/%s/%s" , LeelaAppRun::InstallDir , LEELA_NET_DIR_NAME ,  weightNameA );
 		path.replace('/', '\\');
-		if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
+		if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr))
 		{
 			weightNameA = FileUtility::GetFileName(path);
 			::Global::GameConfig().setKeyValue("LeelaLastOpenWeight", "Go", weightNameA);
@@ -1388,7 +1386,7 @@ namespace Go
 			path.replace('/', '\\');
 
 
-			if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
+			if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr))
 			{
 				setting.weightName = FileUtility::GetFileName(path);
 			}
@@ -1975,41 +1973,82 @@ namespace Go
 
 		if ( bCopyGame )
 		{
-			class MyCopier : public IGameCopier
-			{
-			public:
-				MyCopier(LeelaAppRun& AI) :AI(AI) {}
-
-				void emitSetup(GameSetting const& setting) override
-				{
-					AI.setupGame(setting);
-				}
-				void emitPlayStone(int x, int y, int color) override
-				{
-					AI.playStone(x, y, color);
-				}
-				void emitAddStone(int x, int y, int color) override
-				{
-					AI.addStone(x, y, color);
-				}
-				void emitPlayPass(int color) override
-				{
-					AI.playPass(color);
-				}
-				void emitUndo() override
-				{
-					AI.undo();
-				}
-
-				LeelaAppRun& AI;
-			};
-			MyCopier copier(mLeelaAIRun);
-			mGame.getInstance().synchronizeState(copier , true);
+			synchronizeAnalysisState();
 		}
 
 		return true;
 	}
 
+	void LeelaZeroGoStage::synchronizeAnalysisState()
+	{
+
+		class AnalysisCopier : public IGameCopier
+		{
+		public:
+			AnalysisCopier(LeelaAppRun& AI) :AI(AI) 
+			{
+				mLastQueryId = Guid::New();
+			}
+
+			Guid mLastQueryId;
+			int  mNextCopyStep;
+
+			void copyGame(GameProxy& game)
+			{
+				if (mLastQueryId != game.guid || mNextCopyStep > game.getInstance().getCurrentStep())
+				{
+					game.getInstance().synchronizeState(*this, true);
+					mLastQueryId = game.guid;
+				}
+				else if (mNextCopyStep == game.getInstance().getCurrentStep())
+				{
+					return;
+				}
+				else
+				{
+					game.getInstance().synchronizeStateKeep(*this, mNextCopyStep, true);
+				}
+				mNextCopyStep = game.getInstance().getCurrentStep();
+			}
+
+			void emitSetup(GameSetting const& setting) override
+			{
+				AI.setupGame(setting);
+			}
+			void emitPlayStone(int x, int y, int color) override
+			{
+				AI.playStone(x, y, color);
+			}
+			void emitAddStone(int x, int y, int color) override
+			{
+				AI.addStone(x, y, color);
+			}
+			void emitPlayPass(int color) override
+			{
+				AI.playPass(color);
+			}
+			void emitUndo() override
+			{
+				AI.undo();
+			}
+
+			LeelaAppRun& AI;
+		};
+
+		if (bAnalysisPondering)
+		{
+			mLeelaAIRun.stopPonder();
+		}
+
+		static AnalysisCopier copier(mLeelaAIRun);
+		copier.copyGame(getViewingGame());
+		analysisPonderColor = getViewingGame().getInstance().getNextPlayColor();
+
+		if (bAnalysisPondering)
+		{
+			mLeelaAIRun.startPonder(analysisPonderColor);
+		}
+	}
 
 	bool LeelaZeroGoStage::toggleAnalysisPonder()
 	{
@@ -2046,8 +2085,8 @@ namespace Go
 		FixString< 512 > dateString;
 		dateString.format("%d-%d-%d", date.getYear(), date.getMonth(), date.getDay());
 		GameDescription description;
-		description.blackName = mMatchData.getPlayer(StoneColor::eBlack).getName();
-		description.whiteName = mMatchData.getPlayer(StoneColor::eWhite).getName();
+		description.blackPlayer = mMatchData.getPlayer(StoneColor::eBlack).getName();
+		description.whitePlayer = mMatchData.getPlayer(StoneColor::eWhite).getName();
 		description.date = dateString.c_str();
 		if( matchResult )
 			description.mathResult = matchResult;

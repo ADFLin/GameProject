@@ -5,10 +5,10 @@
 #include "MarcoCommon.h"
 
 #ifdef CPP_COMPILER_MSVC
-#	if ( _MSC_VER >= 1914 && _HAS_CXX17 ) 
+#	if ( _MSC_VER >= 1914 && _MSVC_LANG > 201402L ) 
 #		define CPP_CHARCONV_SUPPORT 1
 #   endif
-#	if ( _MSC_VER >= 1912 && _HAS_CXX17 ) 
+#	if ( _MSC_VER >= 1912 && _MSVC_LANG > 201402L ) 
 #		define CPP_FOLD_EXPRESSION_SUPPORT 1
 #   endif
 #	if ( _MSC_VER >= 1700 ) 

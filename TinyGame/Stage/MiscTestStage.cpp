@@ -158,7 +158,7 @@ namespace MRT
 				{
 					if( bGetDistance )
 					{
-						if( !str.toFloat( distance ) )
+						if( !str.toValueCheck( distance ) )
 						{
 							return false;
 						}

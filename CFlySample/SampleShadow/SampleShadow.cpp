@@ -96,11 +96,11 @@ public:
 			Vector3 normal = calcNormal( v0 , v1 , v2 );
 			meshBuilder.setNormal( normal );
 
-			meshBuilder.setPosition( v0 );
+			meshBuilder.setPosition(Vector3(v0));
 			meshBuilder.addVertex();
-			meshBuilder.setPosition( v1 );
+			meshBuilder.setPosition(Vector3(v1));
 			meshBuilder.addVertex();
-			meshBuilder.setPosition( v2 );
+			meshBuilder.setPosition(Vector3(v2));
 			meshBuilder.addVertex();
 
 			int n0 = numVtx;

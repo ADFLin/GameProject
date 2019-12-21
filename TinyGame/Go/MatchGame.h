@@ -75,16 +75,15 @@ namespace Go
 		{
 			guid = Guid::New();
 			mGame.restart();
-			if( onStateChanged )
-				onStateChanged(*this);
+			notifyStateChanged();
 		}
+
 		bool canPlay(int x, int y) const { return mGame.canPlay(x, y); }
 		bool playStone(int x, int y)
 		{
 			if( mGame.playStone(x, y) )
 			{
-				if( onStateChanged )
-					onStateChanged(*this);
+				notifyStateChanged();
 				return true;
 			}
 			return false;
@@ -93,8 +92,7 @@ namespace Go
 		{
 			if( mGame.addStone(x, y, color) )
 			{
-				if( onStateChanged )
-					onStateChanged(*this);
+				notifyStateChanged();
 				return true;
 			}
 			return false;
@@ -102,20 +100,35 @@ namespace Go
 		void    playPass()
 		{
 			mGame.playPass();
-			if( onStateChanged )
-				onStateChanged(*this);
+			notifyStateChanged();
 		}
 		bool undo()
 		{
 			if( mGame.undo() )
 			{
-				if( onStateChanged )
-					onStateChanged(*this);
+				notifyStateChanged();
 				return true;
 			}
 			return false;
 		}
 
+		bool load(char const* path)
+		{
+			guid = Guid::New();
+			if (mGame.loadSGF(path))
+			{
+				notifyStateChanged();
+				return true;
+			}
+
+			return false;
+		}
+
+		void notifyStateChanged()
+		{
+			if (onStateChanged)
+				onStateChanged(*this);
+		}
 		int reviewBeginStep()
 		{
 			int result = mGame.reviewBeginStep();

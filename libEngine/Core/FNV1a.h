@@ -38,7 +38,7 @@ public:
 	};
 
 	template< class T >
-	static T MakeStringHash(char const* pStr, T offsetBias = Table<T>::OffsetBias )
+	static constexpr T MakeStringHash(char const* pStr, T offsetBias = Table<T>::OffsetBias )
 	{
 		T result = offsetBias;
 		while( *pStr )
@@ -51,7 +51,7 @@ public:
 	}
 
 	template< class T >
-	static T MakeHash(uint8 const* pValue, int num , T offsetBias = Table<T>::OffsetBias )
+	static constexpr T MakeHash(uint8 const* pValue, int num , T offsetBias = Table<T>::OffsetBias )
 	{
 		T result = offsetBias;
 		for( ; num ; --num )

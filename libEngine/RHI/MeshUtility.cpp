@@ -46,12 +46,6 @@ namespace Render
 		if( !mInputLayout.isValid() )
 			return false;
 
-#if 0
-		InputLayoutDesc desc = mInputLayoutDesc;
-		desc.setElementUnusable(Vertex::ATTRIBUTE_COLOR);
-		desc.addElement(1, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
-		mInputLayoutOverwriteColor = RHICreateInputLayout(mInputLayoutDesc);
-#endif
 
 		mVertexBuffer = RHICreateVertexBuffer(mInputLayoutDesc.getVertexSize(), nV, 0 , pVertex);
 		if( !mVertexBuffer.isValid() )
@@ -76,24 +70,45 @@ namespace Render
 		if( mVertexBuffer == nullptr )
 			return;
 
-		drawInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
+		drawInternal(commandList, mType, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), mIndexBuffer);
 	}
 
 	void Mesh::draw(RHICommandList& commandList, LinearColor const& color)
 	{
-		if( mVertexBuffer == nullptr )
+		if (mVertexBuffer == nullptr)
 			return;
-		drawInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
+
+		if (gRHISystem->getName() == RHISytemName::Opengl)
+		{
+			//glColor4fv(color);
+			drawInternal(commandList, mType, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), mIndexBuffer);
+		}
+		else
+		{
+			setupColorOverride(color);
+			drawWithColorInternal(commandList, mType, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), mIndexBuffer);
+		}
+
+	}
+
+	void Mesh::drawAdj(RHICommandList& commandList)
+	{
+		if( mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr )
+			return;
+
+		drawInternal(commandList, PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer);
 	}
 
 	void Mesh::drawAdj(RHICommandList& commandList, LinearColor const& color)
 	{
-		if( mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr )
+		if (mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr)
 			return;
-		drawShaderInternalEx(commandList, PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer, &color);
+
+		setupColorOverride(color);
+		drawWithColorInternal(commandList, PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer);
 	}
 
-	void Mesh::drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer )
+	void Mesh::drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
@@ -102,7 +117,7 @@ namespace Render
 		if ( indexBuffer == nullptr  )
 			return;
 
-		drawShaderInternalEx(commandList, PrimitiveType::Patchs, 0, indexBuffer->getNumElements(), indexBuffer, nullptr);
+		drawInternal(commandList, PrimitiveType::Patchs, 0, indexBuffer->getNumElements(), indexBuffer);
 	}
 
 
@@ -111,32 +126,16 @@ namespace Render
 		if( mVertexBuffer == nullptr )
 			return;
 		MeshSection& section = mSections[idx];
-		drawShaderInternal(commandList, section.start, section.num);
+		drawInternal(commandList, mType, section.start, section.num, mIndexBuffer);
 	}
 
-	void Mesh::drawInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer , LinearColor const* color)
+	void Mesh::drawInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer )
 	{
 		assert(mVertexBuffer != nullptr);
 		InputStreamInfo inputStream;
 		inputStream.buffer = mVertexBuffer;
 		RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 
-		if( indexBuffer )
-		{
-			RHISetIndexBuffer(commandList, indexBuffer);
-			RHIDrawIndexedPrimitive(commandList, mType, idxStart, num);
-		}
-		else
-		{
-			RHIDrawPrimitive(commandList, mType, idxStart, num);
-		}
-	}
-
-	void Mesh::drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
-	{
-		InputStreamInfo inputStream;
-		inputStream.buffer = mVertexBuffer;
-		RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 		if( indexBuffer )
 		{
 			RHISetIndexBuffer(commandList, indexBuffer);
@@ -147,9 +146,41 @@ namespace Render
 			RHIDrawPrimitive(commandList, type, idxStart, num);
 		}
 	}
-	void Mesh::drawShaderInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
+
+	void Mesh::setupColorOverride(LinearColor const& color)
 	{
-		drawShaderInternalEx(commandList, mType , idxStart, num, indexBuffer, color);
+		if (!mInputLayoutOverwriteColor.isValid())
+		{
+			InputLayoutDesc desc = mInputLayoutDesc;
+			desc.setElementUnusable(Vertex::ATTRIBUTE_COLOR);
+			desc.addElement(1, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
+			mInputLayoutOverwriteColor = RHICreateInputLayout(mInputLayoutDesc);
+			mColorBuffer = RHICreateVertexBuffer(sizeof(LinearColor), 1, BCF_DefalutValue | BCF_UsageDynamic);
+		}
+
+		LinearColor* pColor = (LinearColor* )RHILockBuffer(mColorBuffer, ELockAccess::WriteDiscard);
+		*pColor = color;
+		RHIUnlockBuffer(mColorBuffer);
+	}
+
+	void Mesh::drawWithColorInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer)
+	{
+		assert(mVertexBuffer != nullptr);
+		InputStreamInfo inputStreams[2];
+		inputStreams[0].buffer = mVertexBuffer;
+		inputStreams[1].buffer = mColorBuffer;
+		inputStreams[1].stride = 0;
+		RHISetInputStream(commandList, mInputLayoutOverwriteColor, inputStreams, 2);
+
+		if (indexBuffer)
+		{
+			RHISetIndexBuffer(commandList, indexBuffer);
+			RHIDrawIndexedPrimitive(commandList, type, idxStart, num);
+		}
+		else
+		{
+			RHIDrawPrimitive(commandList, type, idxStart, num);
+		}
 	}
 
 	bool Mesh::generateVertexAdjacency()

@@ -1,4 +1,5 @@
 #include "D3D11Common.h"
+#include "D3D11ShaderCommon.h"
 
 namespace Render
 {
@@ -293,6 +294,28 @@ namespace Render
 		result += "_";
 		result += featureName;
 		return result;
+	}
+
+	ID3D11InputLayout* D3D11InputLayout::GetShaderLayout(ID3D11Device* device, RHIShader* shader)
+	{
+		auto iter = mResourceMap.find(shader);
+		if (iter != mResourceMap.end())
+		{
+			return iter->second;
+		}
+
+		ID3D11InputLayout* inputLayoutResource = nullptr;
+		std::vector< uint8 > const& byteCode = static_cast<D3D11Shader*>(shader)->byteCode;
+		HRESULT hr = device->CreateInputLayout(elements.data(), elements.size(), byteCode.data(), byteCode.size(), &inputLayoutResource);
+		if (hr != S_OK)
+		{
+			LogWarning(0 , "Can't create D3D11InputLayout , code = %d" , hr );
+			mResource->AddRef();
+			mResourceMap.insert(std::make_pair(shader, mResource));
+			return mResource;
+		}
+		mResourceMap.insert(std::make_pair(shader, inputLayoutResource));
+		return inputLayoutResource;
 	}
 
 }//namespace Render

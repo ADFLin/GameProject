@@ -115,14 +115,14 @@ struct NameSlot
 	{
 		if( bCaseSensitive )
 			return str.compare( other );
-		return stricmp(str, other);
+		return FCString::CompareIgnoreCase(str, other);
 	}
 
 	int compareN(char const* other, int len , bool bCaseSensitive)
 	{
 		if( bCaseSensitive )
 			return str.compareN(other, len);
-		return strnicmp(str, other, len);
+		return FCString::CompareIgnoreCaseN(str, other, len);
 	}
 
 };
@@ -265,12 +265,6 @@ HashString::HashString(EName name, char const* str)
 	assert((mIndex >> 1) == (uint32)name);
 }
 
-uint32 hash_value(HashString const & string)
-{
-	NameSlot& slot = HashStringInternal::sNameSlots[string.getSlotIndex()];
-	return slot.hashValue;
-}
-
 char const* HashString::c_str() const
 {
 	if( mIndex == 0 )
@@ -278,6 +272,12 @@ char const* HashString::c_str() const
 
 	NameSlot& slot = HashStringInternal::sNameSlots[getSlotIndex()];
 	return slot.str;
+}
+
+uint32 HashString::getHash() const
+{
+	NameSlot& slot = HashStringInternal::sNameSlots[getSlotIndex()];
+	return slot.hashValue;
 }
 
 bool HashString::operator==(char const* str) const

@@ -1,6 +1,7 @@
 #include "FlowFreeSolver.h"
 
 #include "BitUtility.h"
+#include "ProfileSystem.h"
 
 
 namespace FlowFree
@@ -412,7 +413,7 @@ namespace FlowFree
 		LogMsg("Var = %d : Clause = %d", mSolver.nVars(), mSolver.nClauses());
 
 		bool bSolved = mSolver.solve();
-		mConnectMaskMap.resize(size.x, size.y);
+		mSolution.resize(size.x, size.y);
 		if (bSolved)
 		{
 			for (int i = 0; i < size.x; ++i)
@@ -438,13 +439,17 @@ namespace FlowFree
 						}
 					}
 
-					mConnectMaskMap(i, j) = mask;
+					mSolution(i, j).mask = mask;
 				}
 			}
 		}
 		else
 		{
-			mConnectMaskMap.fillValue(0);
+			SolvedCell c;
+			c.color = 0;
+			c.color2 = 0;
+			c.mask = 0;
+			mSolution.fillValue(c);
 
 			for (int i = 0; i < size.x; ++i)
 			{
@@ -469,12 +474,17 @@ namespace FlowFree
 						}
 					}
 
-					mConnectMaskMap(i, j) = mask;
+					mSolution(i, j).mask = mask;
 				}
 			}
 		}
 
 		return bSolved;
+	}
+
+	static void execbreak()
+	{
+		int i = 1;
 	}
 
 	bool SATSolverCell::solve(Level& level)
@@ -484,165 +494,217 @@ namespace FlowFree
 		mColorCount = level.mSourceLocations.size() / 2;
 		assert(mColorCount <= MaxColorCount);
 
-		mVarMap.resize(size.x, size.y);
-		for (int j = 0; j < size.y; ++j)
+		
 		{
-			for (int i = 0; i < size.x; ++i)
+			TIME_SCOPE("SAT Setup");
+
+			mVarMap.resize(size.x, size.y);
+			for (int j = 0; j < size.y; ++j)
 			{
-				for (int c = 0; c < mColorCount; ++c)
+				for (int i = 0; i < size.x; ++i)
 				{
-					auto var = mSolver.newVar();
-					mVarMap(i, j).colors[c] = var;
-				}
-
-				for (int t = 0; t < ConnectTypeCount; ++t)
-				{
-					auto var = mSolver.newVar();
-					mVarMap(i, j).conTypes[t] = var;
-				}
-			}
-		}
-
-		for (int j = 0; j < size.y; ++j)
-		{
-			for (int i = 0; i < size.x; ++i)
-			{
-				Vec2i pos = Vec2i(i, j);
-
-				Cell const& cell = level.getCellChecked(pos);
-
-				//Every cell is assigned a single color
-				//#TODO: check bridge cell
-				{
-					Minisat::vec< SATLit > literals;
 					for (int c = 0; c < mColorCount; ++c)
 					{
-						literals.push(Lit(getColorVar(i, j, c)));
+						auto var = mSolver.newVar();
+						mVarMap(i, j).colors[c] = var;
 					}
-					ExactlyOne(mSolver, literals);
-				}
 
-				switch (cell.func)
-				{
-				case CellFunc::Source:
+					for (int t = 0; t < ConnectTypeCount; ++t)
 					{
-						//The color of every endpoint cell is known and specified
-						int sourceColor = cell.funcMeta - 1;
+						auto var = mSolver.newVar();
+						mVarMap(i, j).conTypes[t] = var;
+					}
+				}
+			}
+
+#define CHECK_OK_INTERNAL( FILE , LINE , FUNC )  if (! mSolver.okay() ) { execbreak(); LogMsg( "%s(%d) : %s Sat is not OK" , FILE , LINE , FUNC ); }
+#define CHECK_OK CHECK_OK_INTERNAL(__FILE__ , __LINE__ , __FUNCTION__)
+
+			for (int j = 0; j < size.y; ++j)
+			{
+				for (int i = 0; i < size.x; ++i)
+				{
+					Vec2i pos = Vec2i(i, j);
+
+					Cell const& cell = level.getCellChecked(pos);
+
+					//Every cell is assigned a single color
+					//#TODO: check bridge cell
+					{
+						Minisat::vec< SATLit > literals;
 						for (int c = 0; c < mColorCount; ++c)
 						{
-							if (c == sourceColor)
-							{
-								mSolver.addClause(Lit(getColorVar(i, j, c)));
-							}
-							else
-							{
-								mSolver.addClause(~Lit(getColorVar(i, j, c)));
-							}
+							literals.push(Lit(getColorVar(pos, c)));
 						}
-
-						//Every endpoint cell has exactly one neighbor which matches its color
-						Minisat::vec< SATLit > literals;
-						for (int dir = 0; dir < DirCount; ++dir)
-						{
-							Vec2i linkPos = level.getLinkPos(pos, dir);
-							if (cell.blockMask & BIT(dir))
-								continue;
-
-							literals.push(Lit(getColorVar(linkPos.x, linkPos.y, sourceColor)));
-						}
-
-						if (!literals.empty())
-						{
-							ExactlyOne(mSolver, literals);
-						}
-
-						for (int t = 0; t < ConnectTypeCount; ++t)
-						{
-							mSolver.addClause(~Lit(getConTypeVar(i, j, t)));
-						}
+						ExactlyOne(mSolver, literals);
+						CHECK_OK;
 					}
-					break;
-				case CellFunc::Empty:
+
+					switch (cell.func)
 					{
-						//The flow through every non-endpoint cell matches exactly one of the six direction types
+					case CellFunc::Source:
 						{
-							Minisat::vec< SATLit > literals;
-							for (int t = 0; t < ConnectTypeCount; ++t)
+							//The color of every endpoint cell is known and specified
+							int sourceColor = cell.funcMeta - 1;
+							for (int c = 0; c < mColorCount; ++c)
 							{
-								uint8 conTypMask = GetEmptyConnectTypeMask(ConnectType(t));
-								if (conTypMask & cell.blockMask)
+								if (c == sourceColor)
 								{
-									mSolver.addClause(~Lit(getConTypeVar(i, j, t)));
+									mSolver.addClause(Lit(getColorVar(pos, c)));
 								}
 								else
 								{
-									literals.push(Lit(getConTypeVar(i, j, t)));
+									mSolver.addClause(~Lit(getColorVar(pos, c)));
 								}
+							}
+
+							//Every endpoint cell has exactly one neighbor which matches its color
+							Minisat::vec< SATLit > literals;
+							for (int dir = 0; dir < DirCount; ++dir)
+							{
+								Vec2i linkPos = level.getLinkPos(pos, dir);
+								if (cell.blockMask & BIT(dir))
+								{
+									continue;
+								}
+
+								literals.push(Lit(getColorVar(linkPos, sourceColor)));
 							}
 
 							if (!literals.empty())
 							{
 								ExactlyOne(mSolver, literals);
+
 							}
-						}
 
-
-						for (int t = 0; t < ConnectTypeCount; ++t)
-						{
-							int const* linkDirs = GetEmptyConnectTypeLinkDir(ConnectType(t));
-
-							auto Tij = Lit(getConTypeVar(i, j, t));
-
-							Vec2i ConPos0 = level.getLinkPos(pos, linkDirs[0]);
-							Vec2i ConPos1 = level.getLinkPos(pos, linkDirs[1]);
-							for (int c = 0; c < mColorCount; ++c)
+							for (int t = 0; t < ConnectTypeCount; ++t)
 							{
-								auto Cij = Lit(getColorVar(i, j, c));
-								//The neighbors of a cell specified by its direction type must match its color
-								mSolver.addClause(~Tij, ~Cij, Lit(getColorVar(ConPos0.x, ConPos0.y, c)));
-								mSolver.addClause(~Tij, Cij, ~Lit(getColorVar(ConPos0.x, ConPos0.y, c)));
-								mSolver.addClause(~Tij, ~Cij, Lit(getColorVar(ConPos1.x, ConPos1.y, c)));
-								mSolver.addClause(~Tij, Cij, ~Lit(getColorVar(ConPos1.x, ConPos1.y, c)));
-
-								//The neighbors of a cell not specified by its direction type must not match its color
-								for (int dir = 0; dir < DirCount; ++dir)
+								mSolver.addClause(~Lit(getConTypeVar(pos, t)));
+							}
+							CHECK_OK;
+						}
+						break;
+					case CellFunc::Empty:
+						{
+							//The flow through every non-endpoint cell matches exactly one of the six direction types
+							{
+								Minisat::vec< SATLit > literals;
+								for (int t = 0; t < ConnectTypeCount; ++t)
 								{
-									if (dir == linkDirs[0] || dir == linkDirs[1])
-										continue;
-
-									Vec2i linkPos = level.getLinkPos(pos, dir);
-									mSolver.addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos.x, linkPos.y, c)));
+									uint8 conTypMask = GetEmptyConnectTypeMask(ConnectType(t));
+									if (conTypMask & cell.blockMask)
+									{
+										mSolver.addClause(~Lit(getConTypeVar(pos, t)));
+									}
+									else
+									{
+										literals.push(Lit(getConTypeVar(pos, t)));
+									}
 								}
+
+								if (!literals.empty())
+								{
+									ExactlyOne(mSolver, literals);
+								}
+								CHECK_OK;
+							}
+
+
+							for (int t = 0; t < ConnectTypeCount; ++t)
+							{
+								int const* linkDirs = GetEmptyConnectTypeLinkDir(ConnectType(t));
+								uint8 conTypMask = GetEmptyConnectTypeMask(ConnectType(t));
+
+
+
+								auto Tij = Lit(getConTypeVar(pos, t));
+
+								Vec2i ConPos0 = level.getLinkPos(pos, linkDirs[0]);
+								Vec2i ConPos1 = level.getLinkPos(pos, linkDirs[1]);
+								for (int c = 0; c < mColorCount; ++c)
+								{
+									auto Cij = Lit(getColorVar(pos, c));
+									//The neighbors of a cell specified by its direction type must match its color
+									mSolver.addClause(~Tij, ~Cij, Lit(getColorVar(ConPos0, c)));
+									mSolver.addClause(~Tij, Cij, ~Lit(getColorVar(ConPos0, c)));
+									mSolver.addClause(~Tij, ~Cij, Lit(getColorVar(ConPos1, c)));
+									mSolver.addClause(~Tij, Cij, ~Lit(getColorVar(ConPos1, c)));
+									CHECK_OK;
+									//The neighbors of a cell not specified by its direction type must not match its color
+									for (int dir = 0; dir < DirCount; ++dir)
+									{
+										if (dir == linkDirs[0] || dir == linkDirs[1])
+											continue;
+
+										if (BIT(dir) & cell.blockMask)
+											continue;
+
+										Vec2i linkPos = level.getLinkPos(pos, dir);
+										mSolver.addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos, c)));
+									}
+									CHECK_OK;
+								}
+
 							}
 
 						}
-
+						break;
 					}
-					break;
 				}
 			}
 		}
 
 		LogMsg("Var = %d : Clause = %d", mSolver.nVars(), mSolver.nClauses());
-		bool bSolved = mSolver.solve();
-		mConnectMaskMap.resize(size.x, size.y);
-		mConnectMaskMap.fillValue(0);
+		mSolver.simplify();
+		//LogMsg("Var = %d : Clause = %d", mSolver.nVars(), mSolver.nClauses());
+
+		bool bSolved;
+		{
+			TIME_SCOPE("SAT Solve");
+			bSolved = mSolver.solve();
+		}
+
+		mSolution.resize(size.x, size.y);
+
+		{
+
+			SolvedCell c;
+			c.color = 0;
+			c.color2 = 0;
+			c.mask = 0;
+			mSolution.fillValue(c);
+		}
+		
 		if (bSolved)
 		{
 			for (int j = 0; j < size.y; ++j)
 			{
 				for (int i = 0; i < size.x; ++i)
 				{
+					Vec2i pos = Vec2i(i, j);
 					for (int t = 0; t < ConnectTypeCount; ++t)
 					{
-						if (mSolver.modelValue(getConTypeVar(i, j, t)).isTrue())
+						if (mSolver.modelValue(getConTypeVar(pos, t)).isTrue())
 						{
-							mConnectMaskMap(i, j) = GetEmptyConnectTypeMask(ConnectType(t));
+							mSolution(i, j).mask = GetEmptyConnectTypeMask(ConnectType(t));
+							break;
+						}
+					}
+
+					for (int c = 0; c < mColorCount; ++c)
+					{
+						if (mSolver.modelValue(getColorVar(pos, c)).isTrue())
+						{
+							mSolution(i, j).color = c + 1;
 							break;
 						}
 					}
 				}
 			}
+		}
+		else
+		{
+
 		}
 
 		return bSolved;

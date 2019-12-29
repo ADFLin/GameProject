@@ -6,8 +6,11 @@
 
 namespace Render
 {
-#define CHECK_PARAMETER( PARAM ) { static bool bOnce = true; if ( !PARAM.isBound() && bOnce ){  bOnce = false; LogWarning( 0 ,"Shader Param not bounded" ); return; } }
-
+#if _DEBUG
+#define CHECK_PARAMETER( PARAM ) { if ( !PARAM.isBound() ){  if (!PARAM.bHasLogWarning){ const_cast<ShaderParameter&>( PARAM ).bHasLogWarning = true; LogWarning( 0 ,"Shader Param is not bounded : %s" , PARAM.mName.c_str() ); } return; } }
+#else
+#define CHECK_PARAMETER( PARAM ) { if ( !PARAM.isBound() ){ return; } }
+#endif
 	static RHIContext& GetContext(RHICommandList& commandList)
 	{
 		return static_cast<RHICommandListImpl&>(commandList).getExecutionContext();

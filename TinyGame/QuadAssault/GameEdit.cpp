@@ -128,7 +128,7 @@ bool PropData::setValue( char const* str )
 	case PROP_VEC3F:
 		{
 			Vec3f value;
-			int num = ::scanf( str , "%f %f %f" , value.x , value.y , value.z );
+			int num = ::scanf( str , "%f %f %f" , &value.x , &value.y , &value.z );
 			if ( num != 3 )
 				return false;
 			cast< Vec3f >() = value;

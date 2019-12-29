@@ -2,15 +2,18 @@
 
 struct VSInput
 {
-	float3 pos : ATTRIBUTE_POSITION;
-	float3 color : ATTRIBUTE_COLOR;
-	float2 uv : ATTRIBUTE_TEXCOORD;
+	float3 pos    : ATTRIBUTE0;
+	//float3 normal : ATTRIBUTE2;	
+	float4 color  : ATTRIBUTE3;
+	float2 uv     : ATTRIBUTE8;
+	
 };
+
 struct VSOutput
 {
 	float4 svPosition : SV_POSITION;
-	float3 color : TEXCOORD0;
-	float2 uv : TEXCOORD1;
+	float3 color      : TEXCOORD0;
+	float2 uv         : TEXCOORD1;
 };
 
 

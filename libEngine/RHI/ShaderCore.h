@@ -129,11 +129,13 @@ namespace Render
 		{
 			mLoc = -1;
 		}
+
 		ShaderParameter(int loc)
 			:mLoc(loc)
 		{
 
 		}
+
 		ShaderParameter(uint32 inBindIndex, uint16 inOffset, uint16 inSize)
 			:bindIndex(inBindIndex), offset(inOffset), size(inSize)
 		{
@@ -147,6 +149,11 @@ namespace Render
 		bool bind(ShaderParameterMap const& paramMap, char const* name);
 	public:
 		friend class ShaderProgram;
+
+#if _DEBUG
+		HashString mName;
+		bool bHasLogWarning = false;
+#endif
 		union
 		{
 			int32 mLoc;
@@ -202,21 +209,23 @@ namespace Render
 
 	class RHIShader : public RHIResource
 	{
-
-
+	public:
+		RHIShader():RHIResource(TRACE_TYPE_NAME("Shader")){}
 	};
-	typedef TRefCountPtr< RHIShader > RHIShaderRef;
+	using RHIShaderRef = TRefCountPtr< RHIShader >;
 
 	class RHIShaderProgram : public RHIResource
 	{
 	public:
+		RHIShaderProgram() :RHIResource(TRACE_TYPE_NAME("ShaderProgram")) {}
+
 		virtual bool setupShaders(RHIShaderRef shaders[], int numShader) = 0;
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 	};
 
 	
-	typedef TRefCountPtr< RHIShaderProgram > RHIShaderProgramRef;
+	using RHIShaderProgramRef = TRefCountPtr< RHIShaderProgram >;
 
 	class ShaderResource
 	{

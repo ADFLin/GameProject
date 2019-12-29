@@ -7,7 +7,6 @@
 
 #include "EasingFun.h"
 
-#include "stb/stb_image.h"
 #include "Core/IntegerType.h"
 #include <fstream>
 
@@ -273,12 +272,28 @@ namespace TripleTown
 		if( mLevel )
 			mLevel->setListener(nullptr);
 
-		releaseResource();
+		//releaseResource();
 	}
 
 	void Scene::releaseResource()
 	{
+		mFontTextures[0].release();
+		mFontTextures[1].release();
 
+		mTexAtlas.finalize();
+
+		for (int i = 0; i < NUM_OBJ; ++i)
+		{
+			for (int j = 0; j < EItemImage::Count; ++j)
+			{
+				mItemImageMap[i][j].texture.release();
+			}
+		}
+
+		for (auto& texPtr : mTexMap)
+		{
+			texPtr.release();
+		}
 	}
 
 	float value;
@@ -355,6 +370,7 @@ namespace TripleTown
 			return false;
 
 		mTexMap[textureId] = RHICreateTexture2D(Texture::eRGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
+
 		OpenGLCast::To(mTexMap[textureId])->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -373,7 +389,6 @@ namespace TripleTown
 	bool Scene::loadItemImageResource(ItemImageLoadInfo& info)
 	{
 		FixString< 256 > path;
-		unsigned w, h;
 		path.format("%s/item_%s.tex", gResourceDir, info.fileName);
 
 		VERIFY_RETURN_FALSE(loadImageTexFile(path, info.id, EItemImage::eNormal));

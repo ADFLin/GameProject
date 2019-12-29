@@ -71,18 +71,18 @@ namespace Poker
 	public:
 		StackCell():Cell( Cell::eSTACK ){ mCards.reserve( 20 ); }
 
-		bool  isEmpty()    const { return mCards.empty(); }
+		bool  isEmpty()    const override { return mCards.empty(); }
 		int   getCardNum() const { return (int)mCards.size(); }
-		void  pop(){ mCards.pop_back(); }
-		Card const& getCard() const {  return mCards.back(); }
+		void  pop() override{ mCards.pop_back(); }
+		Card const& getCard() const override {  return mCards.back(); }
 		
-		void  push( Card const& card ){	mCards.push_back( card );  }
-		void  clear(){ mCards.clear(); }
+		void  push( Card const& card ) override{	mCards.push_back( card );  }
+		void  clear() override{ mCards.clear(); }
 
 		Card const& getCard(size_t idx) const {  return mCards[idx]; }
 
 		void  moveCard(StackCell& to,int num);
-		bool  testRule( Card const& card );
+		bool  testRule( Card const& card ) override;
 
 		std::vector< Card >   mCards;
 	};
@@ -92,8 +92,8 @@ namespace Poker
 	public:
 		FreeCell();
 
-		void   pop() { mCard = Card::None(); }
-		bool   testRule( Card const& card );
+		void   pop() override { mCard = Card::None(); }
+		bool   testRule( Card const& card ) override;
 
 	};
 
@@ -102,8 +102,8 @@ namespace Poker
 	public:
 		GoalCell();
 
-		void   pop();
-		bool   testRule( Card const& card );
+		void   pop() override;
+		bool   testRule( Card const& card ) override;
 	};
 
 	class FreeCellLevel
@@ -112,12 +112,12 @@ namespace Poker
 
 		FreeCellLevel();
 		virtual ~FreeCellLevel();
-		typedef   Card::Suit Suit;
+		using Suit = Card::Suit;
 
 		void      setupGame( int seed );
-		bool      tryMoveToFreeCell( StackCell& mc );
-		bool      tryMoveToGoalCell( StackCell& mc );
-		bool      tryMoveToStackCell( FreeCell& fc );
+		bool      tryMoveToFreeCell( StackCell& sCell );
+		bool      tryMoveToGoalCell( StackCell& cell );
+		bool      tryMoveToStackCell( FreeCell& fCell );
 		bool      tryMoveCard( Cell& from , Cell& to );
 		bool      moveToGoalCellAuto();
 

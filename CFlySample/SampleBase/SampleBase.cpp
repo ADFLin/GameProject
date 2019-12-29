@@ -89,13 +89,13 @@ bool SampleBase::handleMouseEvent( MouseMsg const& msg )
 	return true;
 }
 
-bool SampleBase::handleKeyEvent( unsigned key , bool isDown )
+bool SampleBase::handleKeyEvent(KeyMsg const& msg)
 {
 	float moveSpeed = 10;
-	if ( !isDown )
+	if ( !msg.isDown() )
 		return false;
 
-	switch( key )
+	switch( msg.getCode() )
 	{
 	case EKeyCode::Escape: setLoopOver( true ); break;
 	case EKeyCode::W: mMainCamera->translate( Vector3( 0,0,-moveSpeed ) , CFTO_LOCAL ); break;

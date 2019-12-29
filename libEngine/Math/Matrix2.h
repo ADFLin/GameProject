@@ -1,5 +1,14 @@
+#ifndef Matrix2_H_DC434CB1_AA9F_4F30_8D03_F5EC8510BCFE
+#define Matrix2_H_DC434CB1_AA9F_4F30_8D03_F5EC8510BCFE
+
 #include "Math/Base.h"
 #include "Math/Vector2.h"
+
+#define MATRIX2_USE_SIMD 1
+
+#if MATRIX2_USE_SIMD
+#include "Math/SIMD.h"
+#endif
 
 namespace Math
 {
@@ -46,6 +55,21 @@ namespace Math
 			Matrix2 m; m.setScale(scale); return m;
 		}
 
+		FORCEINLINE static Matrix2 ScaleThenRotate(Vector2 const& scale, float angle)
+		{
+			float c, s;
+			Math::SinCos(angle, s, c);
+			return Matrix2(scale.x * c, scale.x * s, -scale.y * s, scale.y * c);
+
+		}
+
+		FORCEINLINE static Matrix2 RotateThenScale(float angle, Vector2 const& scale)
+		{
+			float c, s;
+			Math::SinCos(angle, s, c);
+			return Matrix2(scale.x * c, scale.y * s, -scale.x * s, scale.y * c);
+		}
+
 		operator float* () { return mValues; }
 		operator const float* () const { return mValues; }
 
@@ -66,18 +90,44 @@ namespace Math
 
 		Vector2 leftMul(Vector2 const& v) const
 		{
+#if MATRIX2_USE_SIMD
+			__m128 lv = _mm_setr_ps(v.x, v.x, v.y, v.y);
+			__m128 mv = _mm_loadu_ps(mValues);
+			__m128 xv = _mm_dp_ps(lv, mv, 0x51);
+			__m128 yv = _mm_dp_ps(lv, mv, 0xa1);
+			return Vector2(xv.m128_f32[0], yv.m128_f32[0]);
+
+#else	
 #define MAT_MUL( m , index )\
 	( v.x * m[ index ] + v.y * m[ index + 2 ] )
 			return Vector2(MAT_MUL(mValues, 0), MAT_MUL(mValues, 1));
 #undef MAT_MUL
+#endif
 		}
 
 		Vector2 rightMul(Vector2 const& v) const
 		{
+#if MATRIX2_USE_SIMD
+			__m128 rv = _mm_setr_ps(v.x, v.y, v.x, v.y);
+			__m128 mv = _mm_loadu_ps(mValues);
+			__m128 xv = _mm_dp_ps(mv, rv, 0x31);
+			__m128 yv = _mm_dp_ps(mv, rv, 0xc1);
+#else
 #define MAT_MUL( m , index )\
 	( v.x * m[ 2 * index ] + v.y * m[ 2 * index + 1 ] )
 			return Vector2(MAT_MUL(mValues, 0), MAT_MUL(mValues, 1));
 #undef MAT_MUL
+#endif
+		}
+
+		friend Vector2 operator * (Vector2 const& lhs, Matrix2 const& rhs)
+		{
+			return rhs.leftMul(lhs);
+		}
+
+		friend Vector2 operator * (Matrix2 const& lhs, Vector2 const& rhs)
+		{
+			return lhs.rightMul(rhs);
 		}
 
 		float deter() const
@@ -114,6 +164,17 @@ namespace Math
 
 	FORCEINLINE Matrix2 Matrix2::operator * (Matrix2 const& rhs) const
 	{
+#if MATRIX2_USE_SIMD
+		__m128 lv = _mm_loadu_ps(mValues);
+		__m128 rv = _mm_loadu_ps(rhs.mValues);
+		__m128 r02 = _mm_shuffle_ps(rv, rv, _MM_SHUFFLE(2, 0, 2, 0));
+		__m128 r13 = _mm_shuffle_ps(rv, rv, _MM_SHUFFLE(3, 1, 3, 1));
+		return Matrix2(
+			_mm_dp_ps(lv, r02, 0x31).m128_f32[0],
+			_mm_dp_ps(lv, r13, 0x31).m128_f32[0],
+			_mm_dp_ps(lv, r02, 0xc1).m128_f32[0],
+			_mm_dp_ps(lv, r13, 0xc1).m128_f32[0]);
+#else	
 #define MAT_MUL( v1 , v2 , idx1 , idx2 )\
 	( v1[2*idx1]*v2[idx2] + v1[2*idx1+1]*v2[idx2+2] )
 		return Matrix2(
@@ -123,7 +184,9 @@ namespace Math
 			MAT_MUL(mValues, rhs.mValues, 1, 0),
 			MAT_MUL(mValues, rhs.mValues, 1, 1));
 #undef MAT_MUL
-
+#endif
 	}
 
 }
+
+#endif // Matrix2_H_DC434CB1_AA9F_4F30_8D03_F5EC8510BCFE

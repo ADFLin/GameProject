@@ -11,117 +11,19 @@
 #include "RHI/RHICommon.h"
 #include "RHI/RHICommand.h"
 #include "RHI/TextureAtlas.h"
-
+#include "Math/Matrix2.h"
 
 #include <gl/GL.h>
-#include "Math/SIMD.h"
-#define USE_SIMD 1
+
+
+
 
 class Graphics2D;
 
 namespace TripleTown
 {
 	using namespace Render;
-
-	class Matrix2
-	{
-	public:
-		Matrix2() = default;
-		Matrix2(float a0, float a1, float a2, float a3)
-		{
-			value[0] = a0; value[1] = a1; value[2] = a2; value[3] = a3;
-		}
-
-
-		static Matrix2 Identity() { return Matrix2(1,0,0,1); }
-		static Matrix2 Zero() { return Matrix2(0,0,0,0); }
-		static Matrix2 ScaleThenRotate(Vector2 const& scale  , float angle )
-		{
-			float c, s;
-			Math::SinCos(angle, s, c);
-			return Matrix2(scale.x * c, scale.x * s, -scale.y * s, scale.y * c);
-
-		}
-
-		static Matrix2 RotateThenScale(float angle, Vector2 const& scale)
-		{
-			float c, s;
-			Math::SinCos(angle, s, c);
-			return Matrix2(scale.x * c, scale.y * s, -scale.x * s, scale.y * c);
-
-		}
-
-		static Matrix2 Rotate(float angle)
-		{
-			float c, s;
-			Math::SinCos(angle, s, c);
-			return Matrix2( c, s, -s, c);
-		}
-
-		static Matrix2 Scale(Vector2 const& scale)
-		{
-			return Matrix2(scale.x, 0, 0, scale.y);
-		}
-		
-		Matrix2 operator * (Matrix2 const& rhs) const
-		{
-#if USE_SIMD
-			__m128 lv = _mm_loadu_ps(value);
-			__m128 rv = _mm_loadu_ps(rhs.value);
-			__m128 r02 = _mm_shuffle_ps(rv, rv, _MM_SHUFFLE(2, 0, 2, 0));
-			__m128 r13 = _mm_shuffle_ps(rv, rv, _MM_SHUFFLE(3, 1, 3, 1));
-			return Matrix2(
-				_mm_dp_ps(lv, r02, 0x31).m128_f32[0],
-				_mm_dp_ps(lv, r13, 0x31).m128_f32[0],
-				_mm_dp_ps(lv, r02, 0xc1).m128_f32[0],
-				_mm_dp_ps(lv, r13, 0xc1).m128_f32[0]);
-#else	
-#define MAT_MUL( v1 , v2 , idx1 , idx2 ) v1[2*idx1]*v2[idx2] + v1[2*idx1+1]*v2[idx2+2]
-
-			return Matrix2(
-				MAT_MUL(value, rhs.value, 0, 0),
-				MAT_MUL(value, rhs.value, 0, 1),
-				MAT_MUL(value, rhs.value, 1, 0),
-				MAT_MUL(value, rhs.value, 1, 1));
-#undef MAT_MUL
-#endif
-
-		}
-
-		friend Vector2 operator * ( Vector2 const& lhs, Matrix2 const& rhs )
-		{
-#if USE_SIMD
-			__m128 lv = _mm_setr_ps(lhs.x, lhs.x, lhs.y, lhs.y);
-			__m128 mv = _mm_loadu_ps(rhs.value);
-			__m128 xv = _mm_dp_ps(lv, mv, 0x51);
-			__m128 yv = _mm_dp_ps(lv, mv, 0xa1);
-			return Vector2(xv.m128_f32[0], yv.m128_f32[0]);
-
-#else	
-			return Vector2(lhs[0] * rhs.m[0][0] + lhs[1] * rhs.m[1][0],
-						   lhs[0] * rhs.m[0][1] + lhs[1] * rhs.m[1][1]);
-#endif
-		}
-
-		friend Vector2 operator * (Matrix2 const& lhs, Vector2 const& rhs)
-		{
-#if USE_SIMD
-			__m128 rv = _mm_setr_ps(rhs.x, rhs.y, rhs.x, rhs.y);
-			__m128 mv = _mm_loadu_ps(lhs.value);
-			__m128 xv = _mm_dp_ps(mv, rv, 0x31);
-			__m128 yv = _mm_dp_ps(mv, rv, 0xc1);
-			return Vector2(xv.m128_f32[0], yv.m128_f32[0]);
-#else	
-			return Vector2(lhs.m[0][0] * rhs[0] + lhs.m[0][1] * rhs[1],
-						   lhs.m[1][0] * rhs[0] + lhs.m[1][1] * rhs[1]);
-#endif
-		}
-		union 
-		{
-			float   m[2][2];
-			float   value[4];
-		};
-	};
+	using Math::Matrix2;
 
 
 	class Transform2D

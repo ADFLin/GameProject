@@ -73,6 +73,56 @@ namespace CB
 		OITCommonParameter mParamOITCommon;
 	};
 
+#define SHADER_BIND_PARAM( NAME ) mParam##NAME.bind(parameterMap, SHADER_PARAM(NAME))
+
+	class CurveContourProgram : public GlobalShaderProgram
+	{
+
+		DECLARE_SHADER_PROGRAM(CurveContourProgram, Global)
+
+		using BaseClass = GlobalShaderProgram;
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/CurveContour";
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const enties[] =
+			{
+				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
+			};
+			return enties;
+		}
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			BaseClass::bindParameters(parameterMap);
+			SHADER_BIND_PARAM(BaseColor);
+			SHADER_BIND_PARAM(RefLocation);
+			SHADER_BIND_PARAM(RefDirection);
+			SHADER_BIND_PARAM(LineParams);
+		}
+
+		void setParameters(RHICommandList& commandList, LinearColor const& color , Vector4 const& lineParams , Vector3 const& refLocation , Vector3 const& refDirection )
+		{
+			setParam(commandList, mParamBaseColor, color);
+			setParam(commandList, mParamLineParams, lineParams);
+			setParam(commandList, mParamRefDirection, refDirection);
+			setParam(commandList, mParamRefLocation, refLocation);
+		}
+
+		ShaderParameter mParamBaseColor;
+		ShaderParameter mParamRefLocation;
+		ShaderParameter mParamRefDirection;
+		ShaderParameter mParamLineParams;
+
+	};
+
 	class MeshNormalVisualizeProgram : public CurveMeshBaseProgram
 	{
 		DECLARE_SHADER_PROGRAM(MeshNormalVisualizeProgram, Global)
@@ -112,6 +162,7 @@ namespace CB
 
 	IMPLEMENT_SHADER_PROGRAM(CurveMeshProgram);
 	IMPLEMENT_SHADER_PROGRAM(CurveMeshOITProgram);
+	IMPLEMENT_SHADER_PROGRAM(CurveContourProgram);
 	IMPLEMENT_SHADER_PROGRAM(MeshNormalVisualizeProgram);
 
 	CurveRenderer::CurveRenderer()
@@ -131,6 +182,7 @@ namespace CB
 	{
 		VERIFY_RETURN_FALSE( mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< CurveMeshProgram >(true) );
 		VERIFY_RETURN_FALSE( mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< CurveMeshOITProgram >(true) );
+		VERIFY_RETURN_FALSE( mProgCurveContour = ShaderManager::Get().getGlobalShaderT< CurveContourProgram >(true) );
 		VERIFY_RETURN_FALSE( mProgMeshNormalVisualize = ShaderManager::Get().getGlobalShaderT< MeshNormalVisualizeProgram >(true) );
 		VERIFY_RETURN_FALSE( mOITTech.init(screenSize) );
 		return true;
@@ -167,6 +219,25 @@ namespace CB
 			return;
 
 		RHICommandList& commandList = *mCommandList;
+
+		bool bDrawContour = true;
+		if (bDrawContour)
+		{
+			glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(1, 1);
+
+			RHISetShaderProgram(commandList, mProgCurveContour->getRHIResource());
+			mViewInfo.setupShader(commandList, *mProgCurveContour);
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+			mProgCurveContour->setParameters(commandList, LinearColor(1, 1, 1, 0), Vector4(0.25, 0.04, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 1));
+
+			drawMesh(surface);
+			glDisable(GL_POLYGON_OFFSET_FILL);
+		}
+
+
 		if( surface.needDrawLine() )
 		{
 			glEnable(GL_POLYGON_OFFSET_FILL);
@@ -175,7 +246,9 @@ namespace CB
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
 			RHISetupFixedPipelineState(commandList, mViewInfo.worldToClip, color);
-			drawMeshLine( surface , color );
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+			drawMeshLine(surface, color);
 
 			glDisable(GL_POLYGON_OFFSET_FILL);
 		}

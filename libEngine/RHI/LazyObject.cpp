@@ -18,6 +18,8 @@ LazyObjectPtrBase::~LazyObjectPtrBase()
 
 void LazyObjectManager::registerResolveCallback(LazyObjectPtrBase& object, ResolveCallback callback)
 {
+	Mutex::Locker locker(mMutex);
+
 	auto iter = mObjectNodeMap.find(&object);
 
 	if( iter != mObjectNodeMap.end() )
@@ -29,6 +31,8 @@ void LazyObjectManager::registerResolveCallback(LazyObjectPtrBase& object, Resol
 
 void LazyObjectManager::unregisterObject(LazyObjectPtrBase& object)
 {
+	Mutex::Locker locker(mMutex);
+
 	assert(object.mId != -1);
 	auto iterNode = mObjectNodeMap.find(&object);
 	assert(iterNode != mObjectNodeMap.end());
@@ -38,6 +42,8 @@ void LazyObjectManager::unregisterObject(LazyObjectPtrBase& object)
 
 void LazyObjectManager::registerObject(uint64& id, LazyObjectPtrBase& object)
 {
+	Mutex::Locker locker(mMutex);
+
 	if( id == -1 )
 	{
 		id = mCurId;
@@ -58,6 +64,8 @@ void LazyObjectManager::registerObject(uint64& id, LazyObjectPtrBase& object)
 
 void LazyObjectManager::resolveObject(uint64 id, void* object)
 {
+	Mutex::Locker locker(mMutex);
+
 	auto iter = mResolveMap.find(id);
 	if( iter == mResolveMap.end() )
 		return;

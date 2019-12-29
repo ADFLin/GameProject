@@ -191,11 +191,11 @@ public:
 
 				meshBuilder.setNormal( normal );
 
-				meshBuilder.setPosition( v0 );
+				meshBuilder.setPosition(Vector3(v0));
 				meshBuilder.addVertex();
-				meshBuilder.setPosition( v1 );
+				meshBuilder.setPosition(Vector3(v1));
 				meshBuilder.addVertex();
-				meshBuilder.setPosition( v2 );
+				meshBuilder.setPosition(Vector3(v2));
 				meshBuilder.addVertex();
 
 				int n0 = numVtx;
@@ -403,18 +403,18 @@ public:
 		return time;
 	}
 
-	bool handleKeyEvent( unsigned key , bool isDown )
+	bool handleKeyEvent(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown() )
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
 		case EKeyCode::O: lightHeight += 1; break;
 		case EKeyCode::P: lightHeight -= 1; break;
 		}
 
-		return SampleBase::handleKeyEvent( key , isDown );
+		return SampleBase::handleKeyEvent(msg);
 	}
 
 

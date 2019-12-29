@@ -6,6 +6,10 @@
 #include "RHI/ShaderCore.h"
 #include "RHI/GpuProfiler.h"
 
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
+
 namespace Render
 {
 	bool gForceInitState = true;
@@ -254,6 +258,7 @@ namespace Render
 	{
 		return CreateOpenGLResourceT< OpenGLTexture1D >(format, length, numMipLevel, createFlags, data);
 	}
+
 
 	RHITexture2D* OpenGLSystem::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
@@ -660,6 +665,8 @@ namespace Render
 		if( !commitInputStream() )
 			return;
 
+		commitRenderStates();
+
 		glDrawArrays(OpenGLTranslate::To(type), start, nv);
 	}
 
@@ -672,6 +679,8 @@ namespace Render
 
 		if( !commitInputStream() )
 			return;
+
+		commitRenderStates();
 
 		OpenGLCast::To(mLastIndexBuffer)->bind();
 		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
@@ -690,6 +699,8 @@ namespace Render
 	{
 		if( !commitInputStream() )
 			return;
+
+		commitRenderStates();
 
 		assert(commandBuffer);
 		GLenum priType = OpenGLTranslate::To(type);
@@ -720,6 +731,8 @@ namespace Render
 
 		if( !commitInputStream() )
 			return;
+		
+		commitRenderStates();
 
 		OpenGLCast::To(mLastIndexBuffer)->bind();
 		assert(commandBuffer);
@@ -743,6 +756,8 @@ namespace Render
 		if( !commitInputStream() )
 			return;
 
+		commitRenderStates();
+
 		GLenum priType = OpenGLTranslate::To(type);
 		if( baseInstance )
 		{
@@ -763,6 +778,9 @@ namespace Render
 		}
 		if( !commitInputStream() )
 			return;
+
+		commitRenderStates();
+		
 		GLenum priType = OpenGLTranslate::To(type);
 	
 		OpenGLCast::To(mLastIndexBuffer)->bind();
@@ -798,6 +816,8 @@ namespace Render
 		if( !commitInputStreamUP(dataInfos, numData) )
 			return;
 
+		commitRenderStates();
+
 		glDrawArrays(OpenGLTranslate::To(type), 0, numVertex);
 	}
 
@@ -809,11 +829,14 @@ namespace Render
 		if( !commitInputStreamUP(dataInfos, numVertexData) )
 			return;
 
+		commitRenderStates();
+
 		glDrawElements(OpenGLTranslate::To(type), numIndex, GL_UNSIGNED_INT, (void*)pIndices);
 	}
 
 	void OpenGLContext::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 	{
+		commitSamplerStates();
 		glDispatchCompute(numGroupX, numGroupY, numGroupZ);
 	}
 
@@ -912,56 +935,44 @@ namespace Render
 	void OpenGLContext::setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
 	{
 		CHECK_PARAMETER(param);
+		setShaderResourceViewInternal(shaderProgram, param, resourceView);
 	}
 
 	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		CHECK_PARAMETER(param);
-
-		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
-		int idx = mIdxTextureAutoBind;
-		++mIdxTextureAutoBind;
-		glActiveTexture(GL_TEXTURE0 + idx);
-		glBindTexture(resourceViewImpl.typeEnum, resourceViewImpl.handle);
-		glBindSampler(idx, 0);
-		glUniform1i(param.mLoc, idx);
-		glActiveTexture(GL_TEXTURE0);
+		setShaderResourceViewInternal(shaderProgram, param, *texture.getBaseResourceView());
 	}
 
 	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
 	{
 		CHECK_PARAMETER(param);
-		//CHECK_PARAMETER(paramSampler);
-		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
-		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
-		int idx = mIdxTextureAutoBind;
-		++mIdxTextureAutoBind;
-		glActiveTexture(GL_TEXTURE0 + idx);
-		glBindTexture(resourceViewImpl.typeEnum, resourceViewImpl.handle);
-		glBindSampler(idx, samplerImpl.getHandle());
-		glUniform1i(param.mLoc, idx);
-		glActiveTexture(GL_TEXTURE0);
+		setShaderResourceViewInternal(shaderProgram, param, *texture.getBaseResourceView(), sampler);
 	}
 
 	void OpenGLContext::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
 	{
 		CHECK_PARAMETER(param);
-#if 0
-		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
 
-		glActiveTexture(GL_TEXTURE0 + idx);
-		glBindSampler(idx, 0);
-		glUniform1i(param.mLoc, idx);
-		glActiveTexture(GL_TEXTURE0);
-#endif
+		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
+		for (int index = 0; index < mNextAutoBindSamplerSlotIndex; ++index)
+		{
+			if (mSamplerStates[index].loc = param.mLoc)
+			{
+				mSamplerStates[index].samplerHandle = samplerImpl.getHandle();
+
+				mSimplerSlotDirtyMask |= BIT(index);
+				break;
+			}
+		}
 	}
 
 	void OpenGLContext::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
-		int idx = mIdxTextureAutoBind;
-		++mIdxTextureAutoBind;
+		int idx = mNextAutoBindSamplerSlotIndex;
+		++mNextAutoBindSamplerSlotIndex;
 		glBindImageTexture(idx, resourceViewImpl.handle, 0, GL_FALSE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
 		glUniform1i(param.mLoc, idx);
 	}
@@ -990,4 +1001,37 @@ namespace Render
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
 	}
 
+	void OpenGLContext::setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(resourceView);
+		int index = mNextAutoBindSamplerSlotIndex++;
+		SamplerState& state = mSamplerStates[index];
+		mSimplerSlotDirtyMask |= BIT(index);
+
+		state.loc = param.mLoc;
+		state.textureHandle = resourceViewImpl.handle;
+		state.typeEnum = resourceViewImpl.typeEnum;
+		state.samplerHandle = 0;
+		state.bWrite = false;
+	}
+
+	void OpenGLContext::setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler)
+	{
+		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(resourceView);
+		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
+		int index = mNextAutoBindSamplerSlotIndex++;
+		mSimplerSlotDirtyMask |= BIT(index);
+
+		SamplerState& state = mSamplerStates[index];
+		state.loc = param.mLoc;
+		state.textureHandle = resourceViewImpl.handle;
+		state.typeEnum = resourceViewImpl.typeEnum;
+		state.samplerHandle = samplerImpl.getHandle();
+		state.bWrite = false;
+	}
+
 }
+
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif

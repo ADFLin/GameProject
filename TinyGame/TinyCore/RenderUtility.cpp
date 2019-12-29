@@ -50,7 +50,7 @@ void RenderUtility::Initialize()
 
 	for(int i = 1; i < EColor::Number ; ++i )
 	{
-		hBrush[ COLOR_NORMAL ][i] = ::CreateSolidBrush( gColorMap[COLOR_NORMAL][i].toXBGR() );
+#if 1
 		gColorMap[COLOR_DEEP][i] = Color3ub(
 			int(gColorMap[COLOR_NORMAL][i].r) * 60 / 100 , 
 			int(gColorMap[COLOR_NORMAL][i].g) * 60 / 100 ,
@@ -59,7 +59,15 @@ void RenderUtility::Initialize()
 			min( gColorMap[COLOR_NORMAL][i].r + 180 , 255 )  , 
 			min( gColorMap[COLOR_NORMAL][i].g + 180 , 255 )  ,
 			min( gColorMap[COLOR_NORMAL][i].b + 180 , 255 )  );
+#else
+		Vector3 hsv = FColorConv::RGBToHSV(Color3f(gColorMap[COLOR_NORMAL][i]));
+		Vector3 hsvLight = hsv; hsvLight.y = Math::Clamp<float>(2 * hsvLight.y, 0, 1);
+		Vector3 hsvDark = hsv; hsvDark.y = Math::Clamp<float>(2 * hsvDark.y, 0, 1);
 
+		gColorMap[COLOR_DEEP][i] = Color3ub(FColorConv::HSVToRGB(hsvDark));
+		gColorMap[COLOR_LIGHT][i] = Color3ub( FColorConv::HSVToRGB(hsvLight));
+#endif
+		hBrush[ COLOR_NORMAL][i] = ::CreateSolidBrush(gColorMap[COLOR_NORMAL][i].toXBGR());
 		hBrush[ COLOR_DEEP ][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i].toXBGR() );
 		hBrush[ COLOR_LIGHT ][i] = ::CreateSolidBrush( gColorMap[COLOR_LIGHT][i].toXBGR() );
 		hCPen[COLOR_NORMAL][ i ] = CreatePen( PS_SOLID , 1 , gColorMap[COLOR_NORMAL][i].toXBGR() );

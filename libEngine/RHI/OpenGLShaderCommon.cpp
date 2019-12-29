@@ -152,7 +152,7 @@ namespace Render
 			glGetActiveUniform(handle, GLuint(i), sizeof(name) - 1,
 							   &name_len, &num, &type, name);
 
-			GLuint location = glGetUniformLocation(mHandle, name);
+			GLuint location = glGetUniformLocation(handle, name);
 
 			if( location == -1 )
 				continue;
@@ -173,6 +173,12 @@ namespace Render
 			char name[1024];
 			assert(values[0] < ARRAY_SIZE(name));
 			glGetProgramResourceName(handle, GL_UNIFORM, paramIndex, ARRAY_SIZE(name), NULL, &name[0]);
+
+			char const* pFind = FCString::FindChar(name, '[');
+			if (*pFind)
+			{
+				*(char*)pFind = 0;
+			}
 
 			if( values[1] == -1 )
 			{
@@ -262,7 +268,10 @@ namespace Render
 		{
 			if( getType() == type )
 				return true;
-			mGLObject.destroyHandle();
+			if (!mGLObject.destroyHandle())
+			{
+
+			}
 		}
 		return mGLObject.fetchHandle(OpenGLTranslate::To(type));
 	}

@@ -48,7 +48,7 @@ public:
 
 public:
 	CRTP_FUNC bool handleMouseEvent( MouseMsg const& msg ){ return true; }
-	CRTP_FUNC bool handleKeyEvent( unsigned key , bool isDown ){ return true; }
+	CRTP_FUNC bool handleKeyEvent(KeyMsg const& msg ){ return true; }
 	CRTP_FUNC bool handleCharEvent( unsigned code ){ return true; }
 	CRTP_FUNC bool handleWindowActivation( bool beA ){ return true; }
 	CRTP_FUNC void handleWindowPaint( HDC hDC ){}

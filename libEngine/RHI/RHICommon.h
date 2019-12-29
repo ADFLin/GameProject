@@ -6,10 +6,21 @@
 #include "RHIDefine.h"
 
 #include "MarcoCommon.h"
+#include "HashString.h"
 #include "RefCount.h"
 #include "Serialize/SerializeFwd.h"
+#include "Core/StringConv.h"
 
 #include <vector>
+
+
+#define USE_RHI_RESOURCE_TRACE 0
+
+#if USE_RHI_RESOURCE_TRACE
+#define TRACE_TYPE_NAME(str) str
+#else 
+#define TRACE_TYPE_NAME(...)
+#endif
 
 class IStreamSerializer;
 
@@ -156,17 +167,59 @@ namespace Render
 		}
 	};
 
+	struct ResTraceInfo
+	{
+		ResTraceInfo()
+			:mFileName("")
+			,mFuncName("")
+			,mLineNumber(-1)
+		{
+
+		}
+		ResTraceInfo(char const* fileName, char const* funcName, int lineNum)
+			:mFileName(fileName)
+			, mFuncName(funcName)
+			, mLineNumber(lineNum)
+		{
+
+
+		}
+
+		std::string toString() const
+		{
+			std::string result;
+			result += mFileName;
+			result += "(";
+			result += FStringConv::From(mLineNumber);
+			result += ") ->";
+			result += mFuncName;
+			return result;
+		}
+
+		char const* mFileName;
+		char const* mFuncName;
+		int  mLineNumber;
+	};
 
 	class RHIResource
 	{
 	public:
+#if USE_RHI_RESOURCE_TRACE
+		RHIResource(char const* typeName)
+			:mTypeName(typeName)
+#else
 		RHIResource()
+#endif
 		{
-			++TotalCount;
+#if USE_RHI_RESOURCE_TRACE
+			RegisterResource(this);
+#endif
 		}
 		virtual ~RHIResource()
 		{
-			--TotalCount;
+#if USE_RHI_RESOURCE_TRACE
+			UnregisterResource(this);
+#endif
 		}
 		virtual void incRef() = 0;
 		virtual bool decRef() = 0;
@@ -177,21 +230,37 @@ namespace Render
 			releaseResource();
 			delete this;
 		}
-		static uint32 TotalCount;
+
+
+		static CORE_API void DumpResource();
+#if USE_RHI_RESOURCE_TRACE
+		static CORE_API void RegisterResource(RHIResource* resource);
+		static CORE_API void UnregisterResource(RHIResource* resource);
+
+		HashString   mTypeName;
+		ResTraceInfo mTrace;
+#endif
 	};
 
 
 	class RHIShaderResourceView : public RHIResource
 	{
+	public:
+		RHIShaderResourceView():RHIResource(TRACE_TYPE_NAME("ShaderResourceView")){}
 	};
 
-	typedef TRefCountPtr< RHIShaderResourceView > RHIShaderResourceViewRef;
+	using RHIShaderResourceViewRef = TRefCountPtr< RHIShaderResourceView >;
 
 
 	class RHITextureBase : public RHIResource
 	{
 	public:
+#if USE_RHI_RESOURCE_TRACE
+		RHITextureBase(char const* name)
+			:RHIResource(name)
+#else
 		RHITextureBase()
+#endif
 		{
 			mNumSamples = 0;
 			mNumMipLevel = 0;
@@ -212,11 +281,13 @@ namespace Render
 		Texture::Format mFormat;
 	};
 
-	typedef  TRefCountPtr< RHIResource > RHIResourceRef;
+	using RHIResourceRef = TRefCountPtr< RHIResource >;
 
 	class RHITexture1D : public RHITextureBase
 	{
 	public:
+		RHITexture1D():RHITextureBase(TRACE_TYPE_NAME("Texture1D")){}
+
 		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0) = 0;
 
 		int  getSize() const { return mSize; }
@@ -230,6 +301,8 @@ namespace Render
 	class RHITexture2D : public RHITextureBase
 	{
 	public:
+		RHITexture2D() :RHITextureBase(TRACE_TYPE_NAME("Texture2D")) {}
+
 		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
 
@@ -246,6 +319,8 @@ namespace Render
 	class RHITexture3D : public RHITextureBase
 	{
 	public:
+		RHITexture3D() :RHITextureBase(TRACE_TYPE_NAME("Texture3D")) {}
+
 		int  getSizeX() const  { return mSizeX; }
 		int  getSizeY() const  { return mSizeY; }
 		int  getSizeZ() const  { return mSizeZ; }
@@ -262,6 +337,8 @@ namespace Render
 	class RHITextureCube : public RHITextureBase
 	{
 	public:
+		RHITextureCube() :RHITextureBase(TRACE_TYPE_NAME("TextureCube")) {}
+
 		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0) = 0;
 		int getSize() const { return mSize; }
@@ -275,6 +352,8 @@ namespace Render
 	class RHITexture2DArray : public RHITextureBase
 	{
 	public:
+		RHITexture2DArray() :RHITextureBase(TRACE_TYPE_NAME("Texture2DArray")) {}
+
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
 		int  getLayerNum() const { return mLayerNum; }
@@ -292,6 +371,8 @@ namespace Render
 	class RHITextureDepth : public RHITextureBase
 	{
 	public:
+		RHITextureDepth() :RHITextureBase(TRACE_TYPE_NAME("TextureDepth")) {}
+
 		Texture::DepthFormat getFormat() { return mFormat; }
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
@@ -305,6 +386,8 @@ namespace Render
 	class RHIFrameBuffer : public RHIResource
 	{
 	public:
+		RHIFrameBuffer() :RHIResource(TRACE_TYPE_NAME("FrameBuffer")) {}
+
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
 		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
@@ -462,6 +545,7 @@ namespace Render
 		BCF_CreateUAV = BIT(1),
 		BCF_UsageDynamic = BIT(2),
 		BCF_UsageStage = BIT(3),
+		BCF_UsageConst = BIT(4),
 
 
 		BCF_DefalutValue = 0,
@@ -539,14 +623,19 @@ namespace Render
 
 	class RHIInputLayout : public RHIResource
 	{
-
+	public:
+		RHIInputLayout() :RHIResource(TRACE_TYPE_NAME("InputLayout")) {}
 	};
 
 
 	class RHIBufferBase : public RHIResource
 	{
 	public:
-		RHIBufferBase()
+#if USE_RHI_RESOURCE_TRACE
+		RHIBufferBase(char const* name):RHIResource(name)
+#else
+		RHIBufferBase(): RHIResource()
+#endif
 		{
 			mNumElements = 0;
 			mElementSize = 0;
@@ -566,7 +655,7 @@ namespace Render
 	class RHIVertexBuffer : public RHIBufferBase
 	{
 	public:
-		RHIVertexBuffer() {}
+		RHIVertexBuffer() :RHIBufferBase(TRACE_TYPE_NAME("VertexBuffer")) {}
 
 		virtual void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data) = 0;
 		virtual void  updateData(uint32 vStart, uint32 numVertices, void* data) = 0;
@@ -575,8 +664,7 @@ namespace Render
 	class RHIIndexBuffer : public RHIBufferBase
 	{
 	public:
-		RHIIndexBuffer() {}
-
+		RHIIndexBuffer() :RHIBufferBase(TRACE_TYPE_NAME("IndexBuffer")) {}
 		bool  isIntType() const { return mElementSize == 4; }
 	};
 
@@ -604,7 +692,8 @@ namespace Render
 
 	class RHISamplerState : public RHIResource
 	{
-
+	public:
+		RHISamplerState() :RHIResource(TRACE_TYPE_NAME("SamplerState")) {}
 	};
 
 
@@ -618,6 +707,8 @@ namespace Render
 
 	class RHIRasterizerState : public RHIResource
 	{
+	public:
+		RHIRasterizerState():RHIResource(TRACE_TYPE_NAME("RasterizerState")) {}
 	};
 
 
@@ -642,6 +733,8 @@ namespace Render
 
 	class RHIDepthStencilState : public RHIResource
 	{
+	public:
+		RHIDepthStencilState():RHIResource(TRACE_TYPE_NAME("DepthStencilState")) {}
 	};
 
 	constexpr int NumBlendStateTarget = 1;
@@ -663,26 +756,25 @@ namespace Render
 
 	class RHIBlendState : public RHIResource
 	{
+	public:
+		RHIBlendState():RHIResource(TRACE_TYPE_NAME("BlendState")) {}
 	};
 
-
-
-
-	typedef TRefCountPtr< RHITextureBase > RHITextureRef;
-	typedef TRefCountPtr< RHITexture1D > RHITexture1DRef;
-	typedef TRefCountPtr< RHITexture2D > RHITexture2DRef;
-	typedef TRefCountPtr< RHITexture3D > RHITexture3DRef;
-	typedef TRefCountPtr< RHITextureCube > RHITextureCubeRef;
-	typedef TRefCountPtr< RHITexture2DArray > RHITexture2DArrayRef;
-	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
-	typedef TRefCountPtr< RHIFrameBuffer > RHIFrameBufferRef;
-	typedef TRefCountPtr< RHIVertexBuffer > RHIVertexBufferRef;
-	typedef TRefCountPtr< RHIIndexBuffer >  RHIIndexBufferRef;
-	typedef TRefCountPtr< RHISamplerState > RHISamplerStateRef;
-	typedef TRefCountPtr< RHIRasterizerState > RHIRasterizerStateRef;
-	typedef TRefCountPtr< RHIDepthStencilState > RHIDepthStencilStateRef;
-	typedef TRefCountPtr< RHIBlendState > RHIBlendStateRef;
-	typedef TRefCountPtr< RHIInputLayout > RHIInputLayoutRef;
+	using RHITextureRef           = TRefCountPtr< RHITextureBase >;
+	using RHITexture1DRef         = TRefCountPtr< RHITexture1D >;
+	using RHITexture2DRef         = TRefCountPtr< RHITexture2D >;
+	using RHITexture3DRef         = TRefCountPtr< RHITexture3D >;
+	using RHITextureCubeRef       = TRefCountPtr< RHITextureCube >;
+	using RHITexture2DArrayRef    = TRefCountPtr< RHITexture2DArray >;
+	using RHITextureDepthRef      = TRefCountPtr< RHITextureDepth >;
+	using RHIFrameBufferRef       = TRefCountPtr< RHIFrameBuffer >;
+	using RHIVertexBufferRef      = TRefCountPtr< RHIVertexBuffer >;
+	using RHIIndexBufferRef       = TRefCountPtr< RHIIndexBuffer >;
+	using RHISamplerStateRef      = TRefCountPtr< RHISamplerState >;
+	using RHIRasterizerStateRef   = TRefCountPtr< RHIRasterizerState >;
+	using RHIDepthStencilStateRef = TRefCountPtr< RHIDepthStencilState >;
+	using RHIBlendStateRef        = TRefCountPtr< RHIBlendState >;
+	using RHIInputLayoutRef       = TRefCountPtr< RHIInputLayout >;
 
 }//namespace Render
 

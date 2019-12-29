@@ -191,11 +191,9 @@ float parallaxSoftShadowMultiplier(in vec3 L, in vec2 initialTexCoord,
 
 void MainPS()
 {
-	gl_FragColor = vec4(1,0,0, 1.0);
-	return;
 
-	vec3 E = normalize( viewOffset );
-	vec3 L = normalize( lightOffset );
+	float3 E = normalize( viewOffset );
+	float3 L = normalize( lightOffset );
 
 
 	POMParameters pomParams;
@@ -209,19 +207,19 @@ void MainPS()
 	
 	POMOutput pomOutput = POMapping(texNormal , pomParams, E, gl_TexCoord[0].st);
 	float parallaxDepth = pomOutput.depth;
-	vec2 T = pomOutput.UVs;
+	float2 T = pomOutput.UVs;
 
-	vec3 N = texture2D( texNormal , T ).xyz * 2.0 - 1.0;
-	vec3 baseColor = texture2D( texBase , T ).rgb;
+	float3 N = texture2D( texNormal , T ).xyz * 2.0 - 1.0;
+	float3 baseColor = texture2D( texBase , T ).rgb;
 
-	vec3 color = vec3(0,0,0);
+	float3 color = vec3(0,0,0);
 
 	float diff = max(0.0, dot(N, L));
 	float spec = 0.0;
 
 	if(diff != 0.0)
 	{
-		vec3 H = normalize(L + E);
+		float3 H = normalize(L + E);
 		spec = pow( max( dot(N,H), 0.0 ) , 10.0 );
 	}
 
@@ -234,23 +232,23 @@ void MainPS()
 
 
 #if PARALLAX_DEPTH_CORRECT
-	vec3 tz = normalize( tangentZ );
-	vec3 tx = normalize( tangentX - tangentZ * dot( tangentZ , tangentX ) );
-	vec3 ty = cross( tz , tx );
-	vec3 V = - mat3( tx , ty , tz ) * ( viewOffset + E * ( parallaxDepth / E.z ) );
+	float3 tz = normalize( tangentZ );
+	float3 tx = normalize( tangentX - tangentZ * dot( tangentZ , tangentX ) );
+	float3 ty = cross( tz , tx );
+	float3 V = - mat3( tx , ty , tz ) * ( viewOffset + E * ( parallaxDepth / E.z ) );
 #if PARALLAX_USE_VIEW_TSPACE
-	vec4 depth = gl_ProjectionMatrix * vec4( V , 1.0 );
+	float4 depth = gl_ProjectionMatrix * float4( V , 1.0 );
 #else
-	vec4 depth = gl_ModelViewProjectionMatrix * vec4( V , 1.0 );
+	float4 depth = gl_ModelViewProjectionMatrix * float4( V , 1.0 );
 #endif
 	gl_FragDepth = ( gl_DepthRange.diff * depth.z / depth.w + gl_DepthRange.near + gl_DepthRange.far ) * 0.5 ;
-	gl_FragColor = vec4( 2.0 * vec3( depth.z / depth.w / depth.w ) - 0.1 , 1 ); 
+	gl_FragColor = float4( 2.0 * float3( depth.z / depth.w / depth.w ) - 0.1 , 1 );
 #endif
-	//gl_FragColor = vec4( E , 1.0 );
+	//gl_FragColor = float4( E , 1.0 );
 	//gl_FragColor = texture2D( tex , gl_TexCoord[0].xy ) ;
-	//gl_FragColor = vec4( color , 1.0 );
-	//gl_FragColor = vec4( baseColor , 1.0 );
-	gl_FragColor = vec4( color * baseColor , 1.0 );
+	//gl_FragColor = float4( color , 1.0 );
+	//gl_FragColor = float4( baseColor , 1.0 );
+	gl_FragColor = float4( color * baseColor , 1.0 );
 }
 
 #endif //PIXEL_SHADER

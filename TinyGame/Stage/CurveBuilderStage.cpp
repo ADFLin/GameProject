@@ -15,9 +15,11 @@
 #include "RHI/DrawUtility.h"
 #include "RHI/RenderContext.h"
 #include "RHI/RHICommand.h"
+#include "RHI/ShaderManager.h"
 
 #include "GL/wglew.h"
 #include <memory>
+
 
 namespace CB
 {
@@ -97,6 +99,8 @@ namespace CB
 
 				::Global::GUI().addWidget(textCtrl);
 			}
+
+			ShaderManager::Get().registerShaderAssets(::Global::GetAssetManager());
 
 			ProfileSystem::Get().resetSample();
 			restart();

@@ -59,7 +59,7 @@ namespace Render
 		FontFaceKey(FontFaceInfo const& fontFace)
 			:fontFace(fontFace)
 		{
-			cachedHash = hash_value(fontFace.name);
+			cachedHash = HashValue(fontFace.name);
 			HashCombine(cachedHash, fontFace.size);
 			HashCombine(cachedHash, fontFace.bBold);
 			HashCombine(cachedHash, fontFace.bUnderLine);

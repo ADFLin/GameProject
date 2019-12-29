@@ -350,7 +350,6 @@ bool TinyGameApp::initializeGame()
 void TinyGameApp::finalizeGame()
 {
 	cleanup();
-
 }
 
 void TinyGameApp::cleanup()
@@ -619,6 +618,7 @@ bool TinyGameApp::handleWindowDestroy(HWND hWnd )
 
 void TinyGameApp::handleWindowPaint(HDC hDC)
 {
+
 	if( !::Global::GetDrawEngine().isInitialized() )
 		return;
 
@@ -864,7 +864,7 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	case FailReason::InitFail:
 		if( ::Global::GetDrawEngine().isOpenGLEnabled() )
 		{
-			::Global::GetDrawEngine().stopOpenGL();
+			::Global::GetDrawEngine().stopOpenGL(false);
 		}
 		break;
 	case FailReason::NoStage:

@@ -1,13 +1,9 @@
 #include "Material.h"
 
-
 #include "RHICommand.h"
 #include "ShaderManager.h"
 #include "VertexFactory.h"
 #include "FileSystem.h"
-
-
-#include "stb/stb_image.h"
 
 namespace Render
 {

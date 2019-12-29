@@ -109,7 +109,7 @@ namespace FlowFree
 	{
 	public:
 
-		void setSize(Vec2i const& size);
+		void setup(Vec2i const& size);
 
 		void addMapBoundBlock();
 		Vec2i getSize() const

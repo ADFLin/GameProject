@@ -75,6 +75,7 @@ namespace CB
 		ViewInfo mViewInfo;
 		class CurveMeshProgram* mProgCurveMesh;
 		class CurveMeshOITProgram* mProgCurveMeshOIT;
+		class CurveContourProgram* mProgCurveContour;
 		class MeshNormalVisualizeProgram* mProgMeshNormalVisualize;
 		std::vector< std::function< void(RHICommandList&) > > mTranslucentDraw;
 		OITTechnique mOITTech;

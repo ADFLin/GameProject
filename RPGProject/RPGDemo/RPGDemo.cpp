@@ -552,12 +552,12 @@ public:
 		return true;
 	}
 
-	bool handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE
+	bool handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
 	{
-		if ( !isDown )
+		if ( !msg.isDown() )
 			return false;
 
-		switch( key )
+		switch( msg.getCode() )
 		{
 		case EKeyCode::Escape: setLoopOver( true ); break;
 		//case EKeyCode::W: mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;

@@ -2,6 +2,7 @@
 
 #include "stb/stb_image.h"
 
+#include "Image/ImageData.h"
 #include "RHICommand.h"
 
 namespace Render
@@ -31,28 +32,23 @@ namespace Render
 
 	int TextureAtlas::addImageFile(char const* path)
 	{
-		int w;
-		int h;
-		int comp;
-		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
-
-		if( !image )
-			return -1;
+		ImageData imageData;
+		if (!imageData.load(path , false , false))
+			return false;
 
 		int result = -1;
 
 		//#TODO
-		switch( comp )
+		switch(imageData.numComponent)
 		{
 		case 3:
-			result = addImage(w, h, Texture::eRGB8, image);
+			result = addImage(imageData.width, imageData.height, Texture::eRGB8, imageData.data);
 			break;
 		case 4:
-			result = addImage(w, h, Texture::eRGBA8, image);
+			result = addImage(imageData.width, imageData.height, Texture::eRGBA8, imageData.data);
 			break;
 		}
 		//glGenerateMipmap( texType);
-		stbi_image_free(image);
 		return result;
 	}
 

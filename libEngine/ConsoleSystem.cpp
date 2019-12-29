@@ -173,7 +173,7 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 		totalArgSize += arg.size;
 	}
 
-#if 1
+#if 0
 	uint8* dataBuffer = (uint8*)alloca(totalArgSize);
 #else
 	uint8 dataBuffer[DATA_BUFFER_SIZE];

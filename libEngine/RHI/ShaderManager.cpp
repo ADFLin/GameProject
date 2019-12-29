@@ -210,7 +210,7 @@ namespace Render
 
 
 
-	const char const* ShaderPosfixNames[] =
+	char const* const ShaderPosfixNames[] =
 	{
 		"VS" SHADER_FILE_SUBNAME ,
 		"PS" SHADER_FILE_SUBNAME ,
@@ -220,7 +220,7 @@ namespace Render
 		"DS" SHADER_FILE_SUBNAME ,
 	};
 
-	const char const* gShaderDefines[] =
+	 char const* const gShaderDefines[] =
 	{
 		"#define VERTEX_SHADER 1\n" ,
 		"#define PIXEL_SHADER 1\n" ,

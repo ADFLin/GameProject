@@ -1,4 +1,5 @@
 #include "FlowFreeGameStage.h"
+#include "GLGraphics2D.h"
 
 REGISTER_STAGE("Flow Free Game", FlowFree::TestStage , EStageGroup::Test);
 
@@ -21,7 +22,7 @@ namespace FlowFree
 			Open,
 		};
 	}
-	LevelData Level0 = { 15 , 15 , EBoundType::Close ,
+	LevelData Level15_0 = { 15 , 15 , EBoundType::Close ,
 		"a - - - - - b - - - - - - - -"
 		"- - - - - - - - - - - - d c -"
 		"- - - - - - - - - - - - c - d"
@@ -37,6 +38,24 @@ namespace FlowFree
 		"- - - - - - - - - o - - - - -"
 		"- - - - - - - n - - - f - - -"
 		"- - - - - - - - m - - - - l e"
+	};
+
+	LevelData Level15_1 = { 15 , 15 , EBoundType::Close ,
+		"a - - - - - - - e - - - - - -"
+		"- - - - - - - - - - - - - - -"
+		"- - i - o - - - - - - - c d -"
+		"- - - - - - - - - - c - e b -"
+		"a - - - - g - - - - d - - - -"
+		"- - - - - - - - - - - - i b -"
+		"- - - - - f - - - - - n - - -"
+		"- - - - - - - - - - - m - - -"
+		"- - - - - - - - - - - - - - -"
+		"- - - - h - i j - - k l - - -"
+		"- - i - - - j - - f - - - - -"
+		"- - g - - - - - - - - - - - -"
+		"- - h - - - - - - o - - l - -"
+		"- - - - - - - - - - - - - - -"
+		"- - - - - - - k - - - - n m -"
 	};
 
 	LevelData Level1 = { 8 , 8 , EBoundType::Close ,
@@ -93,6 +112,10 @@ namespace FlowFree
 		"c - c d"
 	};
 
+	LevelData Level6 = { 3 , 2 , EBoundType::Close ,
+		"- - a"
+		"a b b"
+	};
 
 	void ReadLevel(Level& level, char const* mapData )
 	{
@@ -121,7 +144,7 @@ namespace FlowFree
 
 	void LoadLevel(Level& level, LevelData& data)
 	{
-		level.setSize(Vec2i(data.sizeX, data.sizeY));
+		level.setup(Vec2i(data.sizeX, data.sizeY));
 		if (data.type == EBoundType::Close)
 		{
 			level.addMapBoundBlock();
@@ -132,9 +155,39 @@ namespace FlowFree
 
 	int const CellLength = 30;
 	Vec2i ScreenOffset = Vec2i(20, 20);
-	int const FlowWidth = 16;
+	int const FlowWidth = 12;
 	int const FlowGap = (CellLength - FlowWidth) / 2;
 	int const FlowSourceRadius = 12;
+
+	bool TestStage::onInit()
+	{
+		if (!BaseClass::onInit())
+			return false;
+
+		if (!::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL))
+			return false;
+		::Global::GUI().cleanupWidget();
+
+
+		auto frame = WidgetUtility::CreateDevFrame();
+
+		frame->addButton("Load And Solve Image Level", [this](int event, GWidget* widget)
+		{
+			FixString< 512 > imagePath;
+			if (SystemPlatform::OpenFileName(imagePath, imagePath.max_size(), {}, nullptr , nullptr , ::Global::GetDrawEngine().getWindowHandle() ) )
+			{
+				if (mReader.loadLevel(mLevel, imagePath))
+				{
+					mSolver2.solve(mLevel);
+				}
+			}
+
+			return false;
+		});
+			
+		restart();
+		return true;
+	}
 
 	void TestStage::restart()
 	{
@@ -150,15 +203,17 @@ namespace FlowFree
 		mLevel.addSource(Vec2i(3, 3), Vec2i(4, 0), EColor::Yellow);
 		mLevel.addSource(Vec2i(3, 4), Vec2i(4, 1), EColor::Orange);
 #else
-		LoadLevel(mLevel, Level2);
+		LoadLevel(mLevel, Level15_1);
 #endif
 
 #if 0
 		mSolver.setup(mLevel);
 		mSolver.solve();
 #else
-		mSolver2.solve(mLevel);
+		//mSolver2.solve(mLevel);
 #endif
+
+		int i = 1;
 	}
 
 	Vec2i TestStage::ToScreenPos(Vec2i const& cellPos)
@@ -173,7 +228,12 @@ namespace FlowFree
 
 	void TestStage::onRender(float dFrame)
 	{
-		Graphics2D& g = Global::GetGraphics2D();
+		GLGraphics2D& g = Global::GetRHIGraphics2D();
+
+		g.beginRender();
+
+		glClearColor(0.2, 0.2, 0.2, 0);
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		Vec2i size = mLevel.getSize();
 
@@ -191,6 +251,15 @@ namespace FlowFree
 			g.drawLine(start, start + Vec2i(size.x * CellLength, 0));
 		}
 
+
+		auto SetColor = [&g]( int colorMeta )
+		{
+			int const ColorNum = 8;
+			int color = (colorMeta - 1) % ColorNum + 1;
+			int colorType = (colorMeta - 1) / ColorNum;
+			RenderUtility::SetPen(g, color , colorType);
+			RenderUtility::SetBrush(g, color, colorType);
+		};
 		for( int i = 0; i < size.x; ++i )
 		{
 			for( int j = 0; j < size.y; ++j )
@@ -208,8 +277,7 @@ namespace FlowFree
 				switch( cell.func )
 				{
 				case CellFunc::Source:
-					RenderUtility::SetPen(g, cell.funcMeta);
-					RenderUtility::SetBrush(g, cell.funcMeta);
+					SetColor(cell.funcMeta);
 					g.drawCircle( posCellLT + Vec2i(CellLength, CellLength) / 2, FlowSourceRadius );
 					break;
 				case CellFunc::Bridge:
@@ -233,9 +301,7 @@ namespace FlowFree
 					if ( !cell.colors[dir] )
 						continue;
 
-					RenderUtility::SetPen(g, cell.colors[dir]);
-					RenderUtility::SetBrush(g, cell.colors[dir]);
-
+					SetColor(cell.funcMeta);
 					DrawConnection(dir);
 				}
 
@@ -259,19 +325,27 @@ namespace FlowFree
 				}
 
 				bool bDrawSolveDebug = true;
-				if (bDrawSolveDebug)
+				if (bDrawSolveDebug && mSolver2.mSolution.getSizeX() == mLevel.getSize().x && mSolver2.mSolution.getSizeY() == mLevel.getSize().y)
 				{
 #if 0
 					Solver::CellState& cellState = mSolver.mState.cells[cellIndex];
 					uint8 connectMask = cellState.connectMask;
 #else
-					uint8 connectMask = mSolver2.getConnectMask(cellPos);
+
+					auto solvedCell = mSolver2.getSolvedCell(cellPos);
 #endif
-					RenderUtility::SetPen(g, EColor::Gray);
-					RenderUtility::SetBrush(g, EColor::Null);
+					if (solvedCell.color)
+					{
+						SetColor(solvedCell.color);
+					}
+					else
+					{
+						RenderUtility::SetPen(g, EColor::Gray);
+						RenderUtility::SetBrush(g, EColor::Null);
+					}
 					for (int dir = 0; dir < DirCount; ++dir)
 					{
-						if (connectMask & BIT(dir))
+						if (solvedCell.mask & BIT(dir))
 						{
 							DrawConnection(dir);
 						}
@@ -279,6 +353,8 @@ namespace FlowFree
 				}
 			}
 		}
+
+		g.endRender();
 	}
 
 	bool TestStage::onMouse(MouseMsg const& msg)

@@ -1999,12 +1999,17 @@ namespace Render
 
 		void setParameters(RHICommandList& commandList, ViewInfo& view , VolumetricLightingParameter& parameter )
 		{
-			setTexture(commandList, mParamVolumeBufferA, *parameter.volumeBuffer[0]);
-			setTexture(commandList, mParamVolumeBufferB, *parameter.volumeBuffer[1]);
-			setRWTexture(commandList, mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
+			if (mParamVolumeBufferA.isBound())
+				setTexture(commandList, mParamVolumeBufferA, *parameter.volumeBuffer[0]);
+			if (mParamVolumeBufferB.isBound())
+				setTexture(commandList, mParamVolumeBufferB, *parameter.volumeBuffer[1]);
+			if (mParamScatteringRWBuffer.isBound())
+				setRWTexture(commandList, mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
+
 			setStructuredStorageBufferT<TiledLightInfo>(commandList, *parameter.lightBuffer);
 			view.setupShader(commandList, *this);
-			setParam(commandList, mParamTiledLightNum, parameter.numLights);
+			if (mParamTiledLightNum.isBound())
+				setParam(commandList, mParamTiledLightNum, parameter.numLights);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)

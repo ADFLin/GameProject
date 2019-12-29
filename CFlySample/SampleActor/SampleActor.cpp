@@ -329,12 +329,12 @@ public:
 		return time;
 	}
 
-	bool handleKeyEvent( unsigned key , bool isDown )
+	bool handleKeyEvent(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
 		case EKeyCode::Up:    cam->translate( Vector3( 0,0,10 ) , CFTO_LOCAL ); break;
 		case EKeyCode::Down:  cam->translate( Vector3( 0,0,-10 ) , CFTO_LOCAL); break;
@@ -343,7 +343,7 @@ public:
 		case EKeyCode::P: std::swap( mMainCamera , cam );break;
 		case EKeyCode::O: g_useObjFrushumClip = !g_useObjFrushumClip; break;
 		default:
-			SampleBase::handleKeyEvent( key , isDown );
+			SampleBase::handleKeyEvent( msg );
 		}
 		return true;
 	}

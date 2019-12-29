@@ -119,7 +119,8 @@ enum class RHITargetName
 {
 	None   ,
 	OpenGL ,
-	D3D11 ,
+	D3D11  ,
+	D3D12  ,
 	Vulkan ,
 };
 
@@ -167,8 +168,9 @@ public:
 	WindowsGLContext*    getGLContext(){ return mGLContext; }
 	
 	GameWindow& getWindow(){ return *mGameWindow; }
+	TINY_API void* getWindowHandle();
 
-	TINY_API void drawProfile(Vec2i const& pos);
+	TINY_API void  drawProfile(Vec2i const& pos);
 
 
 	bool isRHIEnabled() const { return mRHIName != RHITargetName::None; }
@@ -184,7 +186,7 @@ public:
 	TINY_API bool  initializeRHI(RHITargetName targetName , RHIInitializeParams initParams = RHIInitializeParams() );
 	TINY_API void  shutdownRHI(bool bDeferred);
 	TINY_API bool  startOpenGL( int numSamples = 1 );
-	TINY_API void  stopOpenGL(bool bDeferred = false);
+	TINY_API void  stopOpenGL(bool bDeferred = true);
 	TINY_API bool  beginRender();
 	TINY_API void  endRender();
 

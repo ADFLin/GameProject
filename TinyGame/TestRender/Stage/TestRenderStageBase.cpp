@@ -5,6 +5,7 @@
 
 namespace Render
 {
+	IMPLEMENT_SHADER_PROGRAM(SphereProgram);
 
 	void TextureShowFrame::onRender()
 	{
@@ -123,10 +124,9 @@ namespace Render
 		return false;
 	}
 
-	bool SharedAssetData::createCommonShader()
+	bool SharedAssetData::loadCommonShader()
 	{
-		VERIFY_RETURN_FALSE(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
-
+		VERIFY_RETURN_FALSE( mProgSphere = ShaderManager::Get().getGlobalShaderT<SphereProgram>() );
 		return true;
 	}
 
@@ -197,10 +197,107 @@ namespace Render
 		BaseClass::onEnd();
 	}
 
+	void TestRenderStageBase::onUpdate(long time)
+	{
+		BaseClass::onUpdate(time);
+
+		int frame = time / gDefaultTickTime;
+		for (int i = 0; i < frame; ++i)
+		{
+			float dt = gDefaultTickTime / 1000.0;
+			mView.gameTime += dt;
+
+			if (!mbGamePased)
+			{
+				mView.gameTime += dt;
+			}
+			tick();
+		}
+
+		float dt = float(time) / 1000;
+		updateFrame(frame);
+	}
+
+	void TestRenderStageBase::initializeRenderState()
+	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+		mView.frameCount += 1;
+
+		GameWindow& window = Global::GetDrawEngine().getWindow();
+
+		mView.rectOffset = IntVector2(0, 0);
+		mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
+
+		Matrix4 matView = mCamera.getViewMatrix();
+		mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadMatrixf(mView.viewToClip);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadMatrixf(mView.worldToView);
+
+		glClearColor(0.2, 0.2, 0.2, 1);
+		glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+		RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
+		RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?
+			TStaticDepthStencilState< true, ECompareFun::Greater >::GetRHI() :
+			TStaticDepthStencilState<>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+	}
+
+	bool TestRenderStageBase::onMouse(MouseMsg const& msg)
+	{
+		static Vec2i oldPos = msg.getPos();
+
+		if (msg.onLeftDown())
+		{
+			oldPos = msg.getPos();
+		}
+		if (msg.onMoving() && msg.isLeftDown())
+		{
+			float rotateSpeed = 0.01;
+			Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
+			mCamera.rotateByMouse(off.x, off.y);
+			oldPos = msg.getPos();
+		}
+
+		if (!BaseClass::onMouse(msg))
+			return false;
+		return true;
+	}
+
+	bool TestRenderStageBase::onKey(KeyMsg const& msg)
+	{
+		if (!msg.isDown())
+			return false;
+		switch (msg.getCode())
+		{
+		case EKeyCode::W: mCamera.moveFront(1); break;
+		case EKeyCode::S: mCamera.moveFront(-1); break;
+		case EKeyCode::D: mCamera.moveRight(1); break;
+		case EKeyCode::A: mCamera.moveRight(-1); break;
+		case EKeyCode::Z: mCamera.moveUp(0.5); break;
+		case EKeyCode::X: mCamera.moveUp(-0.5); break;
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::F2:
+			{
+				ShaderManager::Get().reloadAll();
+				//initParticleData();
+			}
+			break;
+		}
+		return false;
+	}
+
 	void TestRenderStageBase::drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights)
 	{
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+		RHISetShaderProgram(commandList, mProgSphere->getRHIResource());
+		view.setupShader(commandList, *mProgSphere);
 
 		float radius = 0.15f;
 		for( auto const& light : lights )
@@ -208,14 +305,21 @@ namespace Render
 			if( !light.testVisible(view) )
 				continue;
 
-			RHISetShaderProgram( commandList , mProgSphere.getRHIResource());
-			view.setupShader(commandList, mProgSphere);
-			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.radius), radius);
-			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.worldPos), light.pos);
-			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.baseColor), light.color);
+			mProgSphere->setParameters(commandList, light.pos, radius, light.color);
 			mSimpleMeshs[SimpleMeshId::SpherePlane].draw(commandList);
 		}
 	}
 
+
+	void TestRenderStageBase::handleShowTexture(char const* name)
+	{
+		auto iter = mTextureMap.find(name);
+		if (iter != mTextureMap.end())
+		{
+			TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
+			textureFrame->texture = iter->second;
+			::Global::GUI().addWidget(textureFrame);
+		}
+	}
 
 }//namespace Render

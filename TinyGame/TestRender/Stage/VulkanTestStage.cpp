@@ -1055,7 +1055,7 @@ namespace RenderVulkan
 			}
 			std::string GlslangValidatorPath = VulkanSDKDir;
 			GlslangValidatorPath += "/Bin/glslangValidator.exe";
-			static const char const* ShaderNames[] =
+			static char const* const ShaderNames[] =
 			{
 				"vert","frag","geom","comp","tesc","tese"
 			};

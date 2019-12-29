@@ -58,7 +58,7 @@ namespace TripleTown
 
 	void LevelStage::onEnd()
 	{
-		::Global::GetDrawEngine().stopOpenGL();
+		::Global::GetDrawEngine().stopOpenGL(true);
 	}
 
 	void LevelStage::onRestart(bool beInit)

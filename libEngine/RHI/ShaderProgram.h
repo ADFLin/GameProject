@@ -193,7 +193,7 @@ namespace Render
 		using ShaderClassType = CALSS_TYPE_NAME##ShaderProgramClass; \
 		static API ShaderClassType ShaderClass; \
 		static ShaderClassType const& GetShaderClass(){ return ShaderClass; }\
-		static CLASS* CreateShader() { return new CLASS; }
+		static CLASS* CreateShader() { return new CLASS(); }
 
 #define DECLARE_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , ...) DECLARE_EXPORTED_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , , __VA_ARGS__ )
 

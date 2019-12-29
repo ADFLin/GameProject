@@ -9,7 +9,7 @@
 #include "Core/ScopeExit.h"
 
 #include "ProfileSystem.h"
-#include "ImageProcessing.h"
+#include "Image/ImageProcessing.h"
 #include "Math/PrimitiveTest.h"
 #include "Math/GeometryPrimitive.h"
 

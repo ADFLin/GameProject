@@ -183,6 +183,38 @@ namespace Render
 		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
 	}
 
+	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color)
+	{
+		Sprite(commandList, pos, size, pivot, color, Vector2(0, 0), Vector2(1, 1));
+	}
+
+	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color, IntVector2 const& framePos, IntVector2 const& frameDim)
+	{
+		Vector2 dtex = Vector2(1.0 / frameDim.x, 1.0 / frameDim.y);
+		Vector2 texLT = Vector2(framePos).mul(dtex);
+
+		Sprite(commandList, pos, size, pivot, color, texLT, dtex);
+	}
+
+	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color, Vector2 const& texPos, Vector2 const& texSize)
+	{
+		Vector2 posLT = pos - size.mul(pivot);
+		Vector2 posRB = posLT + size;
+
+		Vector2 texLT = texPos;
+		Vector2 texRB = texLT + texSize;
+
+		VertexXY_CA_T1 vertices[4] =
+		{
+			{ posLT , color ,texLT },
+			{ Vector2(posRB.x, posLT.y) , color ,Vector2(texRB.x, texLT.y) },
+			{ posRB , color ,texRB },
+			{ Vector2(posLT.x, posRB.y) , color , Vector2(texLT.x, texRB.y) },
+		};
+
+		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
+	}
+
 	void DrawUtility::DrawTexture(RHICommandList& commandList, RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
 	{
 		glEnable(GL_TEXTURE_2D);

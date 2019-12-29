@@ -67,18 +67,18 @@ namespace Render
 
 #endif
 
-		void destroyHandle()
+		bool destroyHandle()
 		{
 			if( mHandle )
 			{
 				RMPolicy::Destroy(mHandle);
-				if( !VerifyOpenGLStatus() )
+				mHandle = 0;
+				if (!VerifyOpenGLStatus())
 				{
-					//#TODO
-					LogError("Can't Destory GL Object");
+					return false;
 				}
 			}
-			mHandle = 0;
+			return true;
 		}
 
 		GLuint mHandle;
@@ -118,7 +118,17 @@ namespace Render
 
 		virtual void incRef() { mGLObject.incRef();  }
 		virtual bool decRef() { return mGLObject.decRef();  }
-		virtual void releaseResource() { mGLObject.destroyHandle(); }
+		virtual void releaseResource() 
+		{
+			if (!mGLObject.destroyHandle())
+			{
+#if USE_RHI_RESOURCE_TRACE
+				LogError("Can't Destory GL Object : %s %s", mTypeName.c_str(), mTrace.toString().c_str());
+#else
+				LogError("Can't Destory GL Object");
+#endif
+			}
+		}
 
 		TOpenGLObject< RMPolicy > mGLObject;
 	};
@@ -624,14 +634,14 @@ namespace Render
 	public:
 		OpenGLInputLayout( InputLayoutDesc const& desc );
 
-		void bindAttrib( InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor = nullptr);
+		void bindAttrib( InputStreamInfo inputStreams[], int numInputStream);
 		void bindAttribUP(InputStreamInfo inputStreams[], int numInputStream);
-		void unbindAttrib(int numInputStream, LinearColor const* overwriteColor = nullptr);
+		void unbindAttrib(int numInputStream);
 	
-		void bindPointer(LinearColor const* overwriteColor = nullptr);
+		void bindPointer();
 		void bindPointerUP(InputStreamInfo inputStreams[], int numInputStream);
 		void bindPointer(InputStreamInfo inputStreams[], int numInputStream);
-		void unbindPointer(LinearColor const* overwriteColor = nullptr);
+		void unbindPointer();
 
 		struct Element
 		{

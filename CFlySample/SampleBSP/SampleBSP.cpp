@@ -93,12 +93,12 @@ public:
 		}
 	}
 
-	bool handleKeyEvent( unsigned key , bool isDown )
+	bool handleKeyEvent(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
 		case EKeyCode::Q:
 			--mIdxLeafDBG;
@@ -117,7 +117,7 @@ public:
 			break;
 		}
 
-		return BaseClass::handleKeyEvent( key , isDown );
+		return BaseClass::handleKeyEvent( msg );
 	}
 
 	enum Mode

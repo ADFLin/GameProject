@@ -154,11 +154,7 @@ public:
 	void  enablePen( bool beE ){ mDrawPen = beE; }
 	void  enableBrush( bool beE ){ mDrawBrush = beE; }
 
-	void  setPen( Color3ub const& color )  
-	{
-		mColorPen = color;
-	}
-	void  setPen(Color3f const& color)
+	void  setPen( Color3f const& color )
 	{
 		mColorPen = color;
 	}
@@ -171,10 +167,7 @@ public:
 			mWidthPen = width;
 		}
 	}
-	void  setBrush( Color3ub const& color )                
-	{  
-		mColorBrush = color;
-	}
+
 	void  setBrush(Color3f const& color)
 	{
 		mColorBrush = color;

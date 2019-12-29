@@ -1,0 +1,71 @@
+#include "Common.sgc"
+
+#include "ViewParam.sgc"
+
+struct OutputVSParam
+{
+	float3 pos;
+	float3 normal;
+};
+
+
+#if VERTEX_SHADER
+
+layout(location = ATTRIBUTE_POSITION) in float3 InPos;
+layout(location = ATTRIBUTE_COLOR) in float4 InColor;
+layout(location = ATTRIBUTE_NORMAL) in float3 InNormal;
+
+out OutputVSParam OutputVS;
+void MainVS()
+{
+	OutputVS.pos = InPos;
+	OutputVS.normal = InNormal;
+	gl_Position = View.worldToClip * float4(InPos, 1.0);
+}
+
+#endif //VERTEX_SHADER
+
+uniform float4 BaseColor = float4(0, 0, 0, 1);
+uniform float3 RefLocation = float3(0,0,0);
+uniform float3 RefDirection = float3(0,0,1);
+uniform float4 LineParams = float4(10, 1, 1, 0);
+
+#if PIXEL_SHADER
+in OutputVSParam OutputVS;
+
+layout(location = 0) out float4 OutColor;
+void MainPS()
+{
+#if 0
+	float Height = dot(OutputVS.pos - RefLocation, RefDirection);
+
+#if 0
+	float3 normal = normalize(OutputVS.normal);
+
+	float thinkness = LineParams.y * dot(RefDirection, normal);
+#else
+	float thinkness = LineParams.y;
+#endif
+
+	float frac = mod(Height + 0.5 * thinkness, LineParams.x);
+	if (frac > thinkness)
+	{
+		discard;
+	}
+
+	OutColor = BaseColor;
+#else
+	float3 p = OutputVS.pos * 20.0;
+	vec3 f = fract(p);
+	vec3 df = abs( dFdx(p) ) + abs( dFdy(p) );
+
+	vec3 g = smoothstep(df * 1.0, df * 2.0, f);
+
+	if (g.z > 0.01)
+		discard;
+
+	OutColor = BaseColor;
+#endif
+}
+
+#endif //PIXEL_SHADER

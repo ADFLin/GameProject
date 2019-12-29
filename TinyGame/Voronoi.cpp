@@ -930,21 +930,16 @@ namespace Vor2
 	{
 	}
 
-#pragma argsused
-	void
-		line(float ax, float ay, float bx, float by)
+
+	void line(float ax, float ay, float bx, float by)
 	{
 	}
 
-#pragma argsused
-	void
-		circle(float ax, float ay, float radius)
+	void circle(float ax, float ay, float radius)
 	{
 	}
 
-#pragma argsused
-	void
-		range(float pxmin, float pxmax, float pymin, float pymax)
+	void range(float pxmin, float pxmax, float pymin, float pymax)
 	{
 	}
 

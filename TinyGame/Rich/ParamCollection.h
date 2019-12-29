@@ -54,7 +54,7 @@ struct ParamCollection
 	}
 
 	template< class T >
-	T const& getParam(int idx = 0) const
+	T getParam(int idx = 0) const
 	{
 		return params[idx].get<T>();
 	}

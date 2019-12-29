@@ -21,7 +21,7 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/SimpleRenderState.h"
 
-#include "ImageProcessing.h"
+#include "Image/ImageProcessing.h"
 #include "ProfileSystem.h"
 
 #include <Dbghelp.h>
@@ -238,7 +238,12 @@ namespace Go
 			if( &game == &getViewingGame() )
 			{
 				updateViewGameTerritory();
-				if (bAnalysisEnabled)
+
+			}
+
+			if (bAnalysisEnabled)
+			{
+				if (&game == &getAnalysisGame())
 				{
 					synchronizeAnalysisState();
 				}
@@ -520,7 +525,8 @@ namespace Go
 		devFrame->addButton("Load Game", [&](int eventId, GWidget* widget) ->bool
 		{
 			FixString<512> path = "";
-			if (SystemPlatform::OpenFileName(path, path.max_size(), { {"SGF files" , "*.sgf"} , { "All files" , "*.*"} }))
+			if (SystemPlatform::OpenFileName(path, path.max_size(), { {"SGF files" , "*.sgf"} , { "All files" , "*.*"} }, 
+				nullptr , nullptr , ::Global::GetDrawEngine().getWindowHandle()))
 			{
 				mGame.load(path);
 				LogMsg(path);
@@ -664,7 +670,7 @@ namespace Go
 			g.drawCircle(pos, context.stoneRadius / 2);
 		}
 
-		if( bAnalysisEnabled && bShowAnalysis && analysisPonderColor == getViewingGame().getInstance().getNextPlayColor() )
+		if( bAnalysisEnabled && bShowAnalysis && analysisPonderColor == getAnalysisGame().getInstance().getNextPlayColor() )
 		{
 			drawAnalysis( g , renderState, context );
 		}
@@ -821,7 +827,7 @@ namespace Go
 	{
 		GPU_PROFILE("Draw Analysis");
 
-		GameProxy& game = getViewingGame();
+		GameProxy& game = getAnalysisGame();
 
 		auto iter = analysisResult.end();
 		if( showBranchVertex != PlayVertex::Undefiend() )
@@ -1324,7 +1330,7 @@ namespace Go
 		FixString<256> path;
 		path.format("%s/%s/%s" , LeelaAppRun::InstallDir , LEELA_NET_DIR_NAME ,  weightNameA );
 		path.replace('/', '\\');
-		if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr))
+		if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr, nullptr , ::Global::GetDrawEngine().getWindowHandle()))
 		{
 			weightNameA = FileUtility::GetFileName(path);
 			::Global::GameConfig().setKeyValue("LeelaLastOpenWeight", "Go", weightNameA);
@@ -2041,8 +2047,8 @@ namespace Go
 		}
 
 		static AnalysisCopier copier(mLeelaAIRun);
-		copier.copyGame(getViewingGame());
-		analysisPonderColor = getViewingGame().getInstance().getNextPlayColor();
+		copier.copyGame(getAnalysisGame());
+		analysisPonderColor = getAnalysisGame().getInstance().getNextPlayColor();
 
 		if (bAnalysisPondering)
 		{

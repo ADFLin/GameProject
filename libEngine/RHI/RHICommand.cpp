@@ -12,6 +12,11 @@
 #include "Serialize/DataStream.h"
 #include "Image/ImageData.h"
 
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
+
+
 namespace Render
 {
 #if CORE_SHARE_CODE
@@ -19,6 +24,8 @@ namespace Render
 #endif
 	float gRHIClipZMin = 0;
 	float gRHIProjectYSign = 1;
+
+
 #define EXECUTE_RHI_FUNC( CODE ) gRHISystem->CODE
 
 	bool RHISystemInitialize(RHISytemName name, RHISystemInitParams const& initParam)
@@ -42,8 +49,11 @@ namespace Render
 				ShaderFormat* shaderFormat = gRHISystem->createShaderFormat();
 				ShaderManager::Get().mShaderFormat = shaderFormat;
 
+				GlobalRHIResourceBase::ReleaseAllResource();
+
 				//#FIXME
-				if( gRHISystem->getName() != RHISytemName::D3D11 )
+				if( gRHISystem->getName() != RHISytemName::D3D11 ||
+					gRHISystem->getName() != RHISytemName::D3D12 )
 				{
 					InitGlobalRHIResource();
 				}
@@ -59,17 +69,17 @@ namespace Render
 		ShaderManager::Get().clearnupRHIResouse();
 
 		//#FIXME
-		if( gRHISystem->getName() != RHISytemName::D3D11 )
+		if( gRHISystem->getName() != RHISytemName::D3D11 ||
+			gRHISystem->getName() != RHISytemName::D3D12 )
 			ReleaseGlobalRHIResource();
 
+		GlobalRHIResourceBase::ReleaseAllResource();
+
 		gRHISystem->shutdown();
+		delete gRHISystem;
 		gRHISystem = nullptr;
 
-
-		if( 1 )
-		{
-			LogMsg("%d RHI Resource not release" , RHIResource::TotalCount );
-		}
+		RHIResource::DumpResource();
 	}
 
 
@@ -94,11 +104,23 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateTexture1D(format, length, numMipLevel, creationFlags , data) );
 	}
 
-	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
+#if USE_RHI_RESOURCE_TRACE
+	RHITexture2D* RHICreateTexture2DTrace( ResTraceInfo const& traceInfo,
+		Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
 	{
-		return EXECUTE_RHI_FUNC( RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags , data, dataAlign) );
+		RHITexture2D* result = EXECUTE_RHI_FUNC( RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags , data, dataAlign) );
+		if (result)
+		{
+			result->mTrace = traceInfo;
+		}
+		return result;
 	}
-
+#else
+	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data, int dataAlign)
+	{
+		return EXECUTE_RHI_FUNC(RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags, data, dataAlign));
+	}
+#endif
 	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , int numMipLevel, int numSamples, uint32 creationFlags , void* data)
 	{
 		return EXECUTE_RHI_FUNC( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel , numSamples, creationFlags, data) );
@@ -119,15 +141,39 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateTextureDepth(format, w, h, numMipLevel, numSamples) );
 	}
 
+#if USE_RHI_RESOURCE_TRACE
+	RHIVertexBuffer* RHICreateVertexBufferTrace(ResTraceInfo const& traceInfo, uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	{
+		auto result = EXECUTE_RHI_FUNC( RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data) );
+		if (result)
+		{
+			result->mTrace = traceInfo;
+		}
+		return result;
+	}
+#else
 	RHIVertexBuffer* RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
-		return EXECUTE_RHI_FUNC( RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data) );
+		return EXECUTE_RHI_FUNC(RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data));
 	}
+#endif
 
+#if USE_RHI_RESOURCE_TRACE
+	RHIIndexBuffer* RHICreateIndexBufferTrace(ResTraceInfo const& traceInfo, uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
+	{
+		auto result = EXECUTE_RHI_FUNC(RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data));
+		if (result)
+		{
+			result->mTrace = traceInfo;
+		}
+		return result;
+	}
+#else
 	RHIIndexBuffer* RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
 		return EXECUTE_RHI_FUNC( RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data) );
 	}
+#endif
 
 	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
@@ -154,10 +200,22 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateFrameBuffer() );
 	}
 
+#if USE_RHI_RESOURCE_TRACE
+	RHIInputLayout* RHICreateInputLayoutTrace(ResTraceInfo const& traceInfo, InputLayoutDesc const& desc)
+	{
+		auto result = EXECUTE_RHI_FUNC(RHICreateInputLayout(desc));
+		if (result)
+		{
+			result->mTrace = traceInfo;
+		}
+		return result;
+	}
+#else
 	RHIInputLayout* RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
 		return EXECUTE_RHI_FUNC(RHICreateInputLayout(desc));
 	}
+#endif
 
 	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
 	{
@@ -184,10 +242,22 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateShader(type) );
 	}
 
+#if USE_RHI_RESOURCE_TRACE
+	RHIShaderProgram* RHICreateShaderProgramTrace(ResTraceInfo const& traceInfo)
+	{
+		RHIShaderProgram* result = EXECUTE_RHI_FUNC(RHICreateShaderProgram());
+		if (result)
+		{
+			result->mTrace = traceInfo;
+		}
+		return result;
+	}
+#else
 	RHIShaderProgram* RHICreateShaderProgram()
 	{
-		return EXECUTE_RHI_FUNC( RHICreateShaderProgram() );
+		return EXECUTE_RHI_FUNC(RHICreateShaderProgram());
 	}
+#endif
 
 	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode)
 	{
@@ -216,7 +286,9 @@ namespace Render
 #undef SWITCH_CULL_MODE
 	}
 
-
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)
 	{
@@ -324,3 +396,5 @@ namespace Render
 	}
 
 }
+
+

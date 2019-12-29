@@ -1,9 +1,42 @@
 #include "RHICommon.h"
 
+#include "CoreShare.h"
+
+#include <unordered_map>
+#include <unordered_set>
 
 namespace Render
 {
 	DeviceVendorName gRHIDeviceVendorName = DeviceVendorName::Unknown;
+
+
+	
+#if CORE_SHARE
+#if USE_RHI_RESOURCE_TRACE
+	static std::unordered_set< RHIResource* > Resources;
+
+	void RHIResource::RegisterResource(RHIResource* resource)
+	{
+		Resources.insert(resource);
+	}
+	void RHIResource::UnregisterResource(RHIResource* resource)
+	{
+		Resources.erase( Resources.find(resource) );
+	}
+
+#endif
+	
+	void RHIResource::DumpResource()
+	{
+#if USE_RHI_RESOURCE_TRACE
+		for (auto res : Resources)
+		{
+			LogDevMsg(0, "%s : %s", res->mTypeName.c_str(), res->mTrace.toString().c_str());
+		}
+#endif
+	}
+
+#endif
 
 	InputLayoutDesc::InputLayoutDesc()
 	{

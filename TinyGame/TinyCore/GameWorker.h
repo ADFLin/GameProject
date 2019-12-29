@@ -10,6 +10,7 @@
 #include "SocketBuffer.h"
 
 #include <vector>
+#include <functional>
 
 class NetSocket;
 class IFrameUpdater;

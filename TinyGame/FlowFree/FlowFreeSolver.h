@@ -217,11 +217,25 @@ namespace FlowFree
 
 		EdgeMask getConnectMask(Vec2i const& pos)
 		{
-			return mConnectMaskMap(pos.x, pos.y);
+			return mSolution(pos.x, pos.y).mask;
+		}		
+		
+		struct SolvedCell
+		{
+			int      color;
+			EdgeMask mask;
+			//for bridge
+			int      color2;
+		};
+
+		SolvedCell const& getSolvedCell(Vec2i const& pos)
+		{
+			return mSolution(pos.x, pos.y);
 		}
 
-		TGrid2D< EdgeMask > mConnectMaskMap;
-		Minisat::Solver    mSolver;
+		TGrid2D< SolvedCell > mSolution;
+		TGrid2D< EdgeMask >   mConnectMaskMap;
+		Minisat::Solver       mSolver;
 	};
 
 	class SATSolverEdge : public SATSolverBase
@@ -322,14 +336,15 @@ namespace FlowFree
 
 		TGrid2D< VarInfo > mVarMap;
 
-		SATVar getColorVar(int x, int y, int c)
+		SATVar getColorVar(Vec2i const& pos, int c)
 		{
-			return mVarMap(x, y).colors[c];
+			assert(c < mColorCount);
+			return mVarMap(pos.x, pos.y).colors[c];
 		}
 
-		SATVar getConTypeVar(int x, int y, int t)
+		SATVar getConTypeVar(Vec2i const& pos, int t)
 		{
-			return mVarMap(x, y).conTypes[t];
+			return mVarMap(pos.x, pos.y).conTypes[t];
 		}
 	};
 

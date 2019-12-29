@@ -252,6 +252,7 @@
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp" />
     <ClCompile Include="Image\GIFLoader.cpp" />
     <ClCompile Include="Image\ImageData.cpp" />
+    <ClCompile Include="Image\ImageProcessing.cpp" />
     <ClCompile Include="Json.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
@@ -278,6 +279,9 @@
     <ClCompile Include="RHI\D3D11Command.cpp" />
     <ClCompile Include="RHI\D3D11Common.cpp" />
     <ClCompile Include="RHI\D3D11ShaderCommon.cpp" />
+    <ClCompile Include="RHI\D3D12Command.cpp" />
+    <ClCompile Include="RHI\D3D12Common.cpp" />
+    <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
     <ClCompile Include="RHI\OpenGLCommon.cpp" />
@@ -354,6 +358,7 @@
     <ClInclude Include="Core\ScopeExit.h" />
     <ClInclude Include="Core\StringConv.h" />
     <ClInclude Include="Core\ThreadSafeCounter.h" />
+    <ClInclude Include="Core\TypeHash.h" />
     <ClInclude Include="CPreprocessor.h" />
     <ClInclude Include="CString.h" />
     <ClInclude Include="DataBitSerialize.h" />
@@ -383,6 +388,7 @@
     <ClInclude Include="Hardware\GPUDeviceQuery.h" />
     <ClInclude Include="Image\GIFLoader.h" />
     <ClInclude Include="Image\ImageData.h" />
+    <ClInclude Include="Image\ImageProcessing.h" />
     <ClInclude Include="Json.h" />
     <ClInclude Include="Math\GeometryAlgo2D.h" />
     <ClInclude Include="Math\GeometryPrimitive.h" />
@@ -453,6 +459,10 @@
     <ClInclude Include="RefCount.h" />
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="ReflectionCollect.h" />
+    <ClInclude Include="RHI\D3D12Command.h" />
+    <ClInclude Include="RHI\D3D12Common.h" />
+    <ClInclude Include="RHI\D3D12ShaderCommon.h" />
+    <ClInclude Include="RHI\RHITraceScope.h" />
     <ClInclude Include="RHI\RHIType.h" />
     <ClInclude Include="RHI\D3D11Command.h" />
     <ClInclude Include="RHI\D3D11Common.h" />
@@ -517,7 +527,6 @@
     <ClInclude Include="TQuadTreeTile.h" />
     <ClInclude Include="NetSocket.h" />
     <ClInclude Include="TypeConstruct.h" />
-    <ClInclude Include="TypeHash.h" />
     <ClInclude Include="WidgetCommon.h" />
     <ClInclude Include="WidgetCommon.hpp" />
     <ClInclude Include="WidgetCore.h" />

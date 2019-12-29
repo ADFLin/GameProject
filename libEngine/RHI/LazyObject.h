@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <typeindex>
 #include <functional>
+#include "PlatformThread.h"
 
 class LazyObjectPtrBase
 {
@@ -34,17 +35,20 @@ public:
 	template< class T >
 	void registerDefalutObject(T* object)
 	{
+		Mutex::Locker locker(mMutex);
 		mDefaultMap[typeid(T)] = object;
 	}
 	template< class T >
 	T* getDefaultObject()
 	{
+		Mutex::Locker locker(mMutex);
 		return static_cast<T*>(mDefaultMap[typeid(T)]);
 	}
 	void unregisterObject(LazyObjectPtrBase& object);
 	void registerObject(uint64& id, LazyObjectPtrBase& object);
 	void resolveObject(uint64 id, void* object);
 
+private:
 	uint64 mCurId;
 
 	struct ObjectResolveInfo
@@ -56,6 +60,8 @@ public:
 	std::unordered_map< uint64, ObjectResolveList > mResolveMap;
 	std::unordered_map< LazyObjectPtrBase*, ObjectResolveList::iterator > mObjectNodeMap;
 	std::unordered_map< std::type_index, void* > mDefaultMap;
+
+	Mutex mMutex;
 
 };
 

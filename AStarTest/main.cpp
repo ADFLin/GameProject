@@ -244,11 +244,11 @@ public:
 		return true; 
 	}
 
-	bool handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE
+	bool handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
 	{
-		if ( isDown)
+		if (msg.isDown())
 		{
-			switch( key )
+			switch( msg.getCode() )
 			{
 			case EKeyCode::Q: ++mCellSize; break;
 			case EKeyCode::A: --mCellSize; break;

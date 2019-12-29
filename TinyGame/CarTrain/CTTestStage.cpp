@@ -54,15 +54,32 @@ namespace CarTrain
 			collisionType = ECollision::Wall;
 			collisionMask = 0xffffffff;
 		}
+
+		template< class OP >
+		void serialize(OP op)
+		{
+			op & bodyType & collisionType & collisionMask & mass;
+		}
 	};
+
+
+	TYPE_SUPPORT_SERIALIZE_FUNC(PhyObjectDef)
 
 	struct BoxObjectDef : PhyObjectDef
 	{
 		Vector2 extend;
 		XForm2D transform;
+
+		template< class OP >
+		void serialize(OP op)
+		{
+			PhyObjectDef::serialize(op);
+			op & extend & transform;
+		}
+
 	};
 
-
+	TYPE_SUPPORT_SERIALIZE_FUNC(BoxObjectDef)
 	struct RayHitInfo
 	{
 		float   fraction;
@@ -127,7 +144,7 @@ namespace CarTrain
 		void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
 		{
 			g.enableBrush(false);
-			g.setPen(B2Conv::To(color));
+			g.setPen(B2Conv::To(color).rgb());
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
@@ -148,7 +165,7 @@ namespace CarTrain
 		{
 			g.enableBrush(true);
 			g.setPen(Color3f(0,0,0));
-			g.setBrush(B2Conv::To(color));
+			g.setBrush( B2Conv::To(color).rgb() );
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
@@ -303,9 +320,20 @@ namespace CarTrain
 	public:
 		void setup(GameWorld& world )
 		{
+			for (auto const& def : mBoxObjects)
+			{
+				world.getPhysicsScene()->addBox(def);
+			}
 
 
 
+		}
+
+
+		template< class OP >
+		void serialize( OP op )
+		{
+			op & mBoxObjects;
 		}
 
 
@@ -372,7 +400,13 @@ namespace CarTrain
 		XForm2D  mTransform;
 	};
 
-
+	class IEditMode
+	{
+	public:
+		virtual void render() {}
+		virtual void tick() {}
+		virtual bool onMouse(MouseMsg const& msg) { return true; }
+	};
 
 	class TestStage : public StageBase
 	{
@@ -469,8 +503,11 @@ namespace CarTrain
 
 		bool onMouse(MouseMsg const& msg) override
 		{
-			if (!BaseClass::onMouse(msg))
-				return false;
+			if (bEditMode && mEditMode)
+			{
+				if (!mEditMode->onMouse(msg))
+					return false;
+			}
 
 			if (msg.onLeftDown() || msg.onRightDown())
 			{
@@ -491,19 +528,20 @@ namespace CarTrain
 				}
 			}
 
-
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
 		bool onKey(KeyMsg const& msg) override
 		{
-			if (!msg.isDown() )
-				return false;
-			switch (msg.getCode())
-			{
-			case EKeyCode::R: restart(); break;
+
+			if ( msg.isDown() )
+			{	
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override
@@ -518,6 +556,7 @@ namespace CarTrain
 		}
 
 		bool bEditMode = false;
+		IEditMode* mEditMode;
 	};
 
 

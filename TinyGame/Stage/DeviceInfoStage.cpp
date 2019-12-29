@@ -5,7 +5,7 @@
 
 class DeviceInfoStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 
 	DeviceInfoStage() {}
@@ -13,7 +13,7 @@ public:
 	GPUDeviceQuery* query;
 	GPUInfo gpuInfo;
 	
-	virtual bool onInit()
+	bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
@@ -29,7 +29,7 @@ public:
 		return true;
 	}
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 		BaseClass::onEnd();
 	}
@@ -38,7 +38,7 @@ public:
 	void tick() {}
 	void updateFrame(int frame) {}
 
-	virtual void onUpdate(long time)
+	void onUpdate(long time) override
 	{
 		BaseClass::onUpdate(time);
 
@@ -49,7 +49,7 @@ public:
 		updateFrame(frame);
 	}
 
-	void onRender(float dFrame)
+	void onRender(float dFrame) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 
@@ -60,14 +60,14 @@ public:
 										   gpuInfo.name.c_str() , status.usage , status.temperature , status.freeMemory , status.totalMemory - status.freeMemory ) );
 	}
 
-	bool onMouse(MouseMsg const& msg)
+	bool onMouse(MouseMsg const& msg) override
 	{
 		if( !BaseClass::onMouse(msg) )
 			return false;
 		return true;
 	}
 
-	bool onKey(KeyMsg const& msg)
+	bool onKey(KeyMsg const& msg) override
 	{
 		if( !msg.isDown())
 			return false;
@@ -78,7 +78,7 @@ public:
 		return false;
 	}
 
-	virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+	bool onWidgetEvent(int event, int id, GWidget* ui) override
 	{
 		switch( id )
 		{

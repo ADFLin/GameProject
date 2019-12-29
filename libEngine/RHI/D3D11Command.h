@@ -23,6 +23,9 @@
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
 
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
 
 namespace Render
 {
@@ -338,7 +341,8 @@ namespace Render
 				}
 
 			}
-			mDeviceContext->IASetInputLayout(inputLayout ? D3D11Cast::GetResource(inputLayout) : nullptr);
+
+			mInputLayout = inputLayout;
 			if( numInputStream )
 			{
 				mDeviceContext->IASetVertexBuffers(0, numInputStream, buffers, strides, offsets);
@@ -417,7 +421,11 @@ namespace Render
 
 		D3D11DynamicBuffer    mDynamicVBuffer;
 		D3D11DynamicBuffer    mDynamicIBuffer;
+
+		RHIShader* mVertexShader = nullptr;
 		TComPtr< ID3D11DeviceContext >  mDeviceContext;
+		TComPtr< ID3D11Device > mDevice;
+		RHIInputLayout* mInputLayout = nullptr;
 
 	};
 
@@ -465,8 +473,9 @@ namespace Render
 
 		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 createFlags, 
+			int numMipLevel, int numSamples, uint32 createFlags,
 			void* data, int dataAlign);
+
 
 		RHITexture3D*    RHICreateTexture3D(
 			Texture::Format format, int sizeX, int sizeY, int sizeZ, 
@@ -576,5 +585,10 @@ namespace Render
 
 
 }//namespace Render
+
+
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
 
 #endif // D3D11Command_H_97458D19_2E17_42B7_89F9_A576B704814B

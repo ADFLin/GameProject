@@ -58,10 +58,11 @@ namespace Render
 		
 		MaterialBuildFun buildFun = [this](int id, StaticMesh* mesh, int section, OBJMaterialInfo const* matInfo)
 		{
+
 			if( matInfo == nullptr )
 				return;
 
-			auto textureLoadFun = [this]( OBJMaterialInfo const* matInfo , char const* textureDir ) -> Material*
+			auto CreateMaterial = [this , id , matInfo ]( char const* textureDir ) -> Material*
 			{
 				char const* noramlTexture = matInfo->normalTextureName;
 				if( noramlTexture == nullptr )
@@ -76,47 +77,53 @@ namespace Render
 					FixString< 256 > path = textureDir;
 					path += noramlTexture;
 					RHITexture2DRef tex = RHIUtility::LoadTexture2DFromFile(path);
-					mat->setParameter(SHADER_PARAM(TextureB), *tex);
+					addGameCommand
+					(
+						[mat, tex]()
+						{
+							mat->setParameter(SHADER_PARAM(TextureB), const_cast<RHITexture2D&>(*tex));
+						}
+					);			
 				}
 				else
 				{
 					mat = new MaterialInstance( getMaterial(MaterialId::Havoc) );
 				}
 				
-				if( matInfo->diffuseTextureName )
+				if( matInfo->diffuseTextureName && id != MeshId::Lightning )
 				{
 					FixString< 256 > path = textureDir;
 					path += matInfo->diffuseTextureName;
 					RHITexture2DRef tex = RHIUtility::LoadTexture2DFromFile(path);
-					mat->setParameter(SHADER_PARAM(TextureBase), *tex);
+					addGameCommand(
+						[mat, tex]()
+						{
+							mat->setParameter(SHADER_PARAM(TextureBase), const_cast<RHITexture2D&>(*tex));
+						}
+					);
 				}
 				return mat;
 			};
 
-			if( id == MeshId::Lightning )
+			MaterialPtr mat;
+			switch (id)
 			{
-				MaterialPtr mat{ textureLoadFun( matInfo, "Model/Lightning/") };
-				mesh->setMaterial(section, mat);
+			case MeshId::Lightning: mat = MaterialPtr{ CreateMaterial("Model/Lightning/") }; break;
+			case MeshId::Vanille: mat = MaterialPtr{ CreateMaterial("Model/Vanille/") }; break;
+			case MeshId::Havoc: mat = MaterialPtr{ CreateMaterial("Model/Havoc/") }; break;
+			case MeshId::Sponza: mat = MaterialPtr{ CreateMaterial("Model/") }; break;
+			case MeshId::Elephant: mat = MaterialPtr{ CreateMaterial("Model/Elephant/") }; break;
+			default:
+				break;
 			}
-			else if( id == MeshId::Vanille )
+			if (mat)
 			{
-				MaterialPtr mat{ textureLoadFun( matInfo, "Model/Vanille/") };
-				mesh->setMaterial(section, mat);
-			}
-			else if( id == MeshId::Havoc )
-			{
-				MaterialPtr mat{ textureLoadFun(matInfo, "Model/Havoc/") };
-				mesh->setMaterial(section, mat);
-			}
-			else if( id == MeshId::Sponza )
-			{
-				MaterialPtr mat{ textureLoadFun(matInfo, "Model/") };
-				mesh->setMaterial(section, mat);
-			}
-			else if( id == MeshId::Elephant )
-			{
-				MaterialPtr mat{ textureLoadFun(matInfo, "Model/Elephant/") };
-				mesh->setMaterial(section, mat);
+				addGameCommand(
+					[mesh, mat, section]()
+					{
+						mesh->setMaterial(section, mat);
+					}
+				);
 			}
 
 		};
@@ -211,24 +218,25 @@ namespace Render
 			materialBuilder.function = buildFun;
 			for( int i = 0; i < ARRAY_SIZE(gMeshLists); ++i )
 			{
-
-				if( i == MeshId::Sponza )
-				{
-					int a = 1;
-				}
+				if ( i == MeshId::Vanille )
+					continue;
 				prevLoading();
 				StaticMesh* mesh{ new StaticMesh };
 				materialBuilder.id = i;
 				materialBuilder.mesh = mesh;
+				LogDevMsg(0, "Load Mesh = %s" , gMeshLists[i].name);
 				if( MeshBuild::LoadObjectFile(*mesh, gMeshLists[i].name, &MeshTransform[i], &materialBuilder, MeshSkip[i]) )
 				{
-					mesh->postLoad();
-					mesh->name = gMeshLists[i].name;
-					mMeshs[i] = mesh;
-					for( SceneAssetPtr& sceneAsset : mSceneAssets )
+					addGameCommand([this , mesh , i]
 					{
-						sceneAsset->scene.bNeedUpdatePrimitive = true;
-					}
+						mesh->postLoad();
+						mesh->name = gMeshLists[i].name;
+						mMeshs[i] = mesh;
+						for (SceneAssetPtr& sceneAsset : mSceneAssets)
+						{
+							sceneAsset->scene.bNeedUpdatePrimitive = true;
+						}
+					});
 				}
 				postLoading();
 			}

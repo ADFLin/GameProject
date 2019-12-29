@@ -92,22 +92,16 @@ namespace Render
 		void draw(RHICommandList& commandList);
 		void draw(RHICommandList& commandList, LinearColor const& color);
 
+		void drawAdj(RHICommandList& commandList);
 		void drawAdj(RHICommandList& commandList, LinearColor const& color);
 		void drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer = false);
 
 		void drawSection(RHICommandList& commandList, int idx);
 
-		void drawInternal(RHICommandList& commandList, int idxStart, int num, LinearColor const* color = nullptr)
-		{
-			drawInternal(commandList ,idxStart, num, mIndexBuffer, color);
-		}
-		void drawInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color);
-		void drawShaderInternal(RHICommandList& commandList, int idxStart, int num, LinearColor const* color = nullptr)
-		{
-			drawShaderInternal(commandList, idxStart, num, mIndexBuffer, color);
-		}
-		void drawShaderInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
-		void drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
+
+		void setupColorOverride(LinearColor const& color);
+		void drawWithColorInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
+		void drawInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
 
 		VertexElementReader makePositionReader(uint8 const* pData)
 		{
@@ -140,6 +134,7 @@ namespace Render
 		RHIInputLayoutRef   mInputLayout;
 		RHIInputLayoutRef   mInputLayoutOverwriteColor;
 		RHIVertexBufferRef  mVertexBuffer;
+		RHIVertexBufferRef  mColorBuffer;
 		RHIIndexBufferRef   mIndexBuffer;
 		RHIIndexBufferRef   mVertexAdjIndexBuffer;
 		RHIIndexBufferRef   mTessAdjIndexBuffer;

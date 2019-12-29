@@ -4,6 +4,7 @@
 
 #include "CoreShare.h"
 #include "Core/IntegerType.h"
+#include "Core/TypeHash.h"
 #include "Template/StringView.h"
 
 
@@ -62,7 +63,8 @@ public:
 		return mIndex < rhs.mIndex || (!(rhs.mIndex < mIndex) && mNumber < rhs.mNumber);
 	}
 	
-	CORE_API friend uint32 hash_value(HashString const & string);
+	CORE_API uint32 getHash() const;
+	friend uint32 HashValue(HashString const & string) { return string.getHash(); }
 private:
 	CORE_API void init(char const* str, bool bCaseSensitive = true);
 	CORE_API void init(char const* str, int len , bool bCaseSensitive = true);
@@ -72,21 +74,8 @@ private:
 	uint32 mNumber;
 	uint32 mIndex;
 
-
 };
 
-#include <functional>
-
-namespace std
-{
-	template<>
-	struct hash< HashString >
-	{
-		size_t operator()(const HashString& value ) const
-		{
-			return hash_value(value);
-		}
-	};
-}
+EXPORT_MEMBER_HASH_TO_STD(HashString);
 
 #endif // HashString_h__

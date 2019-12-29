@@ -630,7 +630,6 @@ namespace MV
 				matView = LookAtMatrix( viewPos , Vec3f( 0 , 1 , 0 ) , Vector3(0,0,1) );
 				renderScene( matView, projectMatrix);
 
-				int vp[4];
 				RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
 			
 				projectMatrix = OrthoMatrix(0 , window.getWidth() , 0 , window.getHeight() , -1 , 1 );

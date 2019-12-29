@@ -160,8 +160,8 @@ namespace Go
 	class KataBot : public TGTPLikeBot< KataAppRun >
 	{
 	public:
-		virtual bool initialize(void* settingData) override;
-		virtual bool isGPUBased() const override { return true; }
+		bool initialize(void* settingData) override;
+		bool isGPUBased() const override { return true; }
 	};
 
 }//namespace Go

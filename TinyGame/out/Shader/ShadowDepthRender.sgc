@@ -105,7 +105,7 @@ void MainPS()
 #if USE_PERSPECTIVE_DEPTH
 		outDepth = outPosition.z / outPosition.w;
 #else
-		outDepth = outPosition.z * ShadowParam.y;
+		outDepth = (outPosition.z / outPosition.w) * ShadowParam.y;
 #endif
 	}
 	WritePixelDepth(NDC.z);

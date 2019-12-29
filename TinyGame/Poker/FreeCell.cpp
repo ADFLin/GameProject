@@ -263,29 +263,27 @@ namespace Poker
 			if ( cell->isEmpty() )
 				return cell;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	GoalCell* FreeCellLevel::getGoalCell( Card::Suit suit )
 	{
-		for( int i = 0; i < 4 ; ++i )
+		for(GoalCell& cell : mGCells)
 		{
-			GoalCell& cell = mGCells[i];
 			if ( !cell.isEmpty() )
 			{
 				if ( cell.getCard().getSuit() == suit )
 					return &cell;
 			}
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	void FreeCellLevel::getMinGoalCardRank(int& blackRank, int& redRank)
 	{
 		int rank[4] = { 0,0,0,0 };
-		for( int i = 0; i < 4; ++i )
+		for(GoalCell& cell : mGCells)
 		{
-			GoalCell& cell = mGCells[i];
 			if( !cell.isEmpty() )
 			{
 				Card const& card = cell.getCard();
@@ -300,15 +298,15 @@ namespace Poker
 	{
 		int blackRank , redRank;
 		getMinGoalCardRank(blackRank, redRank);
-		for (int i = 0; i < SCellNum ; ++i )
+		for (auto& cell : mSCells)
 		{
-			if ( tryMoveToGoalCellInternal( mSCells[i] , blackRank , redRank  ) )
+			if ( tryMoveToGoalCellInternal( cell , blackRank , redRank  ) )
 				return true;
 		}
 
-		for (int i = 0; i < FCellNum ; ++i )
+		for (auto& cell : mFCells)
 		{
-			if ( tryMoveToGoalCellInternal( mFCells[i] , blackRank , redRank  ) )
+			if ( tryMoveToGoalCellInternal( cell , blackRank , redRank  ) )
 				return true;
 		}
 
@@ -367,14 +365,14 @@ namespace Poker
 		return true;
 	}
 
-	bool FreeCellLevel::tryMoveToStackCell( FreeCell& fc )
+	bool FreeCellLevel::tryMoveToStackCell( FreeCell& fCell )
 	{
-		if ( fc.isEmpty() )
+		if ( fCell.isEmpty() )
 			return false;
 
-		Card const& card = fc.getCard();
+		Card const& card = fCell.getCard();
 
-		Cell* emptyCell = NULL;
+		Cell* emptyCell = nullptr;
 		for ( int i = 0 ; i < SCellNum ; ++i )
 		{
 			StackCell& cell = getStackCell( i );
@@ -385,36 +383,36 @@ namespace Poker
 				continue;
 			}
 			if ( cell.testRule( card ) )
-				return processMoveCard( fc , cell , 1 );
+				return processMoveCard( fCell , cell , 1 );
 		}
 
 		if ( emptyCell )
-			return processMoveCard( fc , *emptyCell , 1 );
+			return processMoveCard( fCell , *emptyCell , 1 );
 
 		return false;
 	}
 
-	bool FreeCellLevel::tryMoveToFreeCell( StackCell& mc )
+	bool FreeCellLevel::tryMoveToFreeCell( StackCell& sCell )
 	{
-		if ( mc.isEmpty() )
+		if ( sCell.isEmpty() )
 			return false;
 		
 		FreeCell* cell = getEmptyFreeCell();
-		if ( cell == NULL )
+		if ( cell == nullptr )
 			return false;
 
-		return processMoveCard( mc , *cell , 1 );
+		return processMoveCard( sCell , *cell , 1 );
 	}
 
-	bool FreeCellLevel::tryMoveToGoalCell( StackCell& mc )
+	bool FreeCellLevel::tryMoveToGoalCell( StackCell& cell )
 	{
-		if( mc.isEmpty() )
+		if( cell.isEmpty() )
 			return false;
 
 		int blackRank, redRank;
 		getMinGoalCardRank(blackRank, redRank);
 
-		return tryMoveToGoalCellInternal( mc , blackRank, redRank);
+		return tryMoveToGoalCellInternal( cell , blackRank, redRank);
 	}
 
 	bool FreeCellLevel::tryMoveCard(Cell& from, Cell& to)
@@ -449,9 +447,8 @@ namespace Poker
 	int FreeCellLevel::getGoalCardNum()
 	{
 		int result = 0;
-		for(int i=0 ; i< 4 ; ++i)
+		for(GoalCell& cell : mGCells)
 		{
-			GoalCell& cell = mGCells[i];
 			if ( !cell.isEmpty() )
 				result += cell.getCard().getFaceRank() + 1;
 		}

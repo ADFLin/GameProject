@@ -19,8 +19,8 @@ namespace Go
 	class AQBot : public TGTPLikeBot< AQAppRun >
 	{
 	public:
-		virtual bool initialize(void* settingData) override;
-		virtual bool isGPUBased() const override { return true; }
+		bool initialize(void* settingData) override;
+		bool isGPUBased() const override { return true; }
 	};
 
 

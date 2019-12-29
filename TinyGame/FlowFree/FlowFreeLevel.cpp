@@ -192,9 +192,10 @@ namespace FlowFree
 		return 0;
 	}
 
-	void Level::setSize(Vec2i const& size)
+	void Level::setup(Vec2i const& size)
 	{
 		mCellMap.resize(size.x, size.y);
+		mSourceLocations.clear();
 	}
 
 	void Level::addMapBoundBlock()

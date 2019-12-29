@@ -30,7 +30,8 @@ namespace CFly
 			CLIP_DEFAULT_PRECIS,
 			DEFAULT_PITCH,
 		};
-		strcpy( fontDesc.FaceName , fontName );
+
+		FCString::Copy(fontDesc.FaceName, fontName);
 		::D3DXCreateFontIndirect( d3dDevice , &fontDesc ,&mD3DFont );
 
 		TEXTMETRIC metric;

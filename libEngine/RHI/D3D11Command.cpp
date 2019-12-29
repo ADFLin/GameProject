@@ -5,6 +5,10 @@
 #include "LogSystem.h"
 #include "GpuProfiler.h"
 
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
+
 namespace Render
 {
 
@@ -212,9 +216,16 @@ namespace Render
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.ByteWidth = vertexSize * numVertices;
 		bufferDesc.Usage = (creationFlag & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
-		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		if( creationFlag & BCF_CreateSRV )
-			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+		if (creationFlag & BCF_UsageConst)
+		{
+			bufferDesc.BindFlags |= D3D11_BIND_CONSTANT_BUFFER;
+		}
+		else
+		{
+			bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			if (creationFlag & BCF_CreateSRV)
+				bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+		}
 
 		bufferDesc.CPUAccessFlags = (creationFlag & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
 		bufferDesc.MiscFlags = 0;
@@ -225,7 +236,8 @@ namespace Render
 			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &BufferResource),
 			{
 				return nullptr;
-			});
+			}
+		);
 
 		D3D11VertexBuffer* buffer = new D3D11VertexBuffer(mDevice, BufferResource.release(), numVertices, vertexSize, creationFlag);
 
@@ -302,8 +314,10 @@ namespace Render
 			return iter->second;
 		}
 
-		char const* FakeCodeTemplate = CODE_STRING(
-			struct VSInput
+		FixString<512> fakeCode;
+		{
+			char const* FakeCodeTemplate = CODE_STRING(
+				struct VSInput
 			{
 				%s
 			};
@@ -311,17 +325,30 @@ namespace Render
 			{
 				svPosition = float4(0, 0, 0, 1);
 			}
-		);
+			);
 
-		std::string vertexCode;
-		for( auto const& e : key.elements )
-		{
-			FixString< 128 > str;
-			str.format("float%d v%d : ATTRIBUTE%d;", Vertex::GetComponentNum(e.format) , e.attribute, e.attribute );
-			vertexCode += str.c_str();
+			std::string vertexCode;
+			std::vector< InputElementDesc const* > sortedElements;
+			for (auto const& e : key.elements)
+			{
+				sortedElements.push_back(&e);
+			}
+			
+			std::sort(sortedElements.begin() , sortedElements.end(),
+				[](auto lhs, auto rhs)
+				{
+					return lhs->attribute < rhs->attribute;
+				}
+			);
+			for (auto e : sortedElements)
+			{
+				FixString< 128 > str;
+				str.format("float%d v%d : ATTRIBUTE%d;", Vertex::GetComponentNum(e->format), e->attribute, e->attribute);
+				vertexCode += str.c_str();
+			}
+
+			fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
 		}
-		FixString<512> fakeCode;
-		fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
 
 		TComPtr< ID3D10Blob > errorCode;
 		TComPtr< ID3D10Blob > byteCode;
@@ -337,7 +364,7 @@ namespace Render
 		);
 
 		std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
-		for( auto const& e : desc.mElements )
+		for (auto const& e : desc.mElements)
 		{
 			D3D11_INPUT_ELEMENT_DESC element;
 
@@ -352,13 +379,28 @@ namespace Render
 			descList.push_back(element);
 		}
 
+		D3D11InputLayout* inputLayout = new D3D11InputLayout;
+		for (auto const& e : desc.mElements)
+		{
+			D3D11_INPUT_ELEMENT_DESC element;
+
+			element.SemanticName = "ATTRIBUTE";
+			element.SemanticIndex = e.attribute;
+			element.Format = D3D11Translate::To(Vertex::Format(e.format), e.bNormalized);
+			element.InputSlot = e.idxStream;
+			element.AlignedByteOffset = e.offset;
+			element.InputSlotClass = e.bIntanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
+			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
+
+			inputLayout->elements.push_back(element);
+		}
+
 		TComPtr< ID3D11InputLayout > inputLayoutResource;
 		VERIFY_D3D11RESULT(
-			mDevice->CreateInputLayout(&descList[0], descList.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
+			mDevice->CreateInputLayout(inputLayout->elements.data(), inputLayout->elements.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
 			return nullptr;
 		);
-
-		RHIInputLayout* inputLayout = new D3D11InputLayout(inputLayoutResource.release());
+		inputLayout->mResource = inputLayoutResource.release();
 		mInputLayoutMap.emplace(key, inputLayout);
 		return inputLayout;
 	}
@@ -701,6 +743,7 @@ namespace Render
 
 	bool D3D11Context::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
 	{
+		mDevice = device;
 		mDeviceContext = deviceContext;
 		for( int i = 0; i < Shader::Count; ++i )
 		{
@@ -985,8 +1028,15 @@ namespace Render
 				setShader< SHADER_TYPE >( mBoundedShaders[SHADER_TYPE] );\
 			}
 
+
+		if (mInputLayout && mVertexShader)
+		{
+			mDeviceContext->IASetInputLayout(static_cast<D3D11InputLayout*>(mInputLayout)->GetShaderLayout(mDevice, mVertexShader));
+		}
+
 		if( mBoundedShaderDirtyMask )
 		{
+
 			SET_SHADER(Shader::eVertex);
 			SET_SHADER(Shader::ePixel);
 			SET_SHADER(Shader::eGeometry);
@@ -1025,6 +1075,7 @@ namespace Render
 		if( shaderProgram == nullptr )
 		{
 			mBoundedShaderMask = 0;
+			mVertexShader = nullptr;
 			for( int i = 0; i < Shader::Count; ++i )
 			{
 				if( mBoundedShaders[i].resource )
@@ -1045,6 +1096,11 @@ namespace Render
 
 				auto& shaderImpl = static_cast<D3D11Shader&>(*shaderProgramImpl.mShaders[i]);
 				auto  type = shaderImpl.mResource.type;
+
+				if (type == Shader::eVertex)
+				{
+					mVertexShader = &shaderImpl;
+				}
 
 				mBoundedShaderMask |= BIT(type);
 				if( mBoundedShaders[type].resource != shaderImpl.mResource.ptr )
@@ -1157,3 +1213,7 @@ namespace Render
 	}
 
 }//namespace Render
+
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif

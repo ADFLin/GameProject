@@ -84,23 +84,18 @@ template< class T >
 class TColor3
 {
 public:
-	using Vector3 = Math::Vector3;
-	
+
 	typedef TColorElementTraits< T > CET;
 
 	T  r, g, b;
 
-	TColor3() {}
+	TColor3() = default;
 	TColor3(T cr, T cg, T cb)
 		:r(cr), g(cg), b(cb)
 	{
 	}
 	TColor3(T const* v)
 		:r(v[0]), g(v[1]), b(v[2])
-	{
-	}
-	TColor3(Vector3 const& v)
-		:r(v.x), g(v.y), b(v.z)
 	{
 	}
 
@@ -135,17 +130,13 @@ template< class T >
 class TColor4 : public TColor3< T >
 {
 public:
-	using Vector4 = Math::Vector4;
-
 	T a;
 
-	TColor4() {}
+	TColor4() = default;
 	TColor4(T cr, T cg, T cb, T ca = CET::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
 	TColor4(TColor3<T> const& rh , float ca = CET::Max()) :TColor3<T>(rh), a(ca) {}
 
 	TColor4(T const* v) :TColor3<T>(v), a(v[3]) {}
-	TColor4(Vector3 const& v) :TColor3<T>(v) , a(CET::Max()){}
-	TColor4(Vector4 const& v) :TColor3<T>(v), a(v.w) {}
 
 	TColor4& operator = (TColor3< T > const& rhs)
 	{
@@ -158,9 +149,7 @@ public:
 
 	template< class Q >
 	TColor4(TColor4<Q> const& c)
-		: r(CET::Normalize(c.r))
-		, g(CET::Normalize(c.g))
-		, b(CET::Normalize(c.b))
+		: TColor3(CET::Normalize(c.r), CET::Normalize(c.g), CET::Normalize(c.b))
 		, a(CET::Normalize(c.a))
 	{
 	}
@@ -175,30 +164,37 @@ public:
 		return *this;
 	}
 
-	TColor4 bgra() { return TColor4(b, g, r, a); }
+	TColor4 bgra() const { return TColor4(b, g, r, a); }
+	TColor3<T> rgb() const { return TColor3<T>(r, g, b); }
 	operator T const*() const { return &r; }
 	operator T*      () { return &r; }
 	uint32 toARGB() const { return FColor::ToARGB(r, g, b, a); }
-	uint32 toRGBA() const { return FColor::ToRGBA(r, g, b, a); }	
+	uint32 toRGBA() const { return FColor::ToRGBA(r, g, b, a); }
 };
 
-#if 0
 
 class Color3ub : public TColor3< uint8 >
 {
 public:
-	Color3ub() {}
+	using TColor3<uint8>::TColor3;
+
+	Color3ub() = default;
 	Color3ub(uint8 cr, uint8 cg, uint8 cb)
-		:Color3T< uint8 >(cr, cg, cb) {}
+		:TColor3< uint8 >(cr, cg, cb) {}
 
 };
 
 class Color3f : public TColor3< float >
 {
+	using Vector3 = Math::Vector3;
 public:
-	Color3f() {}
+	using TColor3<float>::TColor3;
+
+	Color3f() = default;
 	Color3f(float cr, float cg, float cb)
-		:Color3T< float >(cr, cg, cb) {}
+		:TColor3< float >(cr, cg, cb) {}
+
+	operator Vector3() const { return Vector3(r, g, b); }
 };
 
 
@@ -206,36 +202,40 @@ public:
 class Color4ub : public TColor4< uint8 >
 {
 public:
-	Color4ub() {}
+	using TColor4<uint8>::TColor4;
+
+	Color4ub() = default;
 	Color4ub(uint8 cr, uint8 cg, uint8 cb, uint8 ca = 0xff)
 		:TColor4< uint8 >(cr, cg, cb, ca) {}
 };
 
 class Color4f : public TColor4< float >
 {
+	using Vector3 = Math::Vector3;
+	using Vector4 = Math::Vector4;
+
 public:
-	Color4f() {}
+	using TColor4<float>::TColor4;
+
+	Color4f() = default;
 	Color4f(float cr, float cg, float cb, float ca = 1.0f)
 		:TColor4< float >(cr, cg, cb, ca) {}
+
+	Color4f(Vector3 const& v) :TColor4<float>(v.x, v.y, v.z, CET::Max()) {}
+	Color4f(Vector4 const& v) :TColor4<float>(v.x, v.y, v.z, v.w) {}
+
 };
-#else
-
-typedef TColor4< uint8 > Color4ub;
-typedef TColor3< uint8 > Color3ub;
-typedef TColor4< float > Color4f;
-typedef TColor3< float > Color3f;
 
 
-#endif
-
-typedef Color4f   LinearColor;
+using LinearColor = Color4f;
 
 
 class FColorConv
 {
 public:
 	using Vector3 = Math::Vector3;
-	static Vector3 HSVToRGB(Vector3 hsv);
+	static Color3f HSVToRGB(Vector3 hsv);
+	static Vector3 RGBToHSV(Color3f rgb);
 };
 
 

@@ -67,7 +67,7 @@ namespace CFly
 
 	World::World( HWND hWnd , int w, int h , int cDepth , bool fullscreen , TextureFormat backBufferFormat ) 
 		:mhWnd( hWnd )
-		,mD3dDevice( NULL )
+		,mD3dDevice( nullptr )
 		,mFont( nullptr )
 	{
 		mErrorMsgListener = new MsgBoxOutput( hWnd );

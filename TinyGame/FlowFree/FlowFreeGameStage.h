@@ -7,9 +7,11 @@
 
 #include "FlowFreeLevel.h"
 #include "FlowFreeSolver.h"
+#include "FlowFreeLevelReader.h"
 
 #include "Template/ArrayView.h"
 #include "PlatformThread.h"
+
 
 namespace FlowFree
 {
@@ -32,20 +34,14 @@ namespace FlowFree
 		DepthFirstSolver& mSolver;
 	};
 
+
 	class TestStage : public StageBase
 	{
 		using BaseClass = StageBase;
 	public:
 		TestStage() {}
 
-		virtual bool onInit() override
-		{
-			if( !BaseClass::onInit() )
-				return false;
-			::Global::GUI().cleanupWidget();
-			restart();
-			return true;
-		}
+		virtual bool onInit() override;
 
 		virtual void onEnd() override
 		{
@@ -73,7 +69,7 @@ namespace FlowFree
 
 		void onRender(float dFrame) override;
 
-
+		ImageReader mReader;
 
 		Vec2i     flowOutCellPos;
 		ColorType flowOutColor;

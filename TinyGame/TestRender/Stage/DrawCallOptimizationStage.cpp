@@ -758,7 +758,6 @@ namespace Render
 			GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 			FixString< 512 > str;
-			Vector3 v;
 
 			g.beginRender();
 			

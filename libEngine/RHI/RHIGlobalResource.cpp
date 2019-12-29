@@ -30,8 +30,6 @@ namespace Render
 	bool InitGlobalRHIResource()
 	{
 
-		GlobalRHIResourceBase::RestoreAllResource();
-
 		uint32 colorW[] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[] = { 0, 0 , 0 , 0 , 0 , 0 , 0 , 0 };
 
@@ -104,8 +102,6 @@ namespace Render
 		}
 
 		GSimpleBasePass.releaseRHI();
-
-		GlobalRHIResourceBase::ReleaseAllResource();
 	}
 
 

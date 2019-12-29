@@ -86,7 +86,6 @@ namespace Render
 #if USE_GL_MATRIX_STACK
 			glPushMatrix();
 #else
-			assert(!mStack.empty());
 			mStack.push_back(mCurrent);
 #endif
 		}

@@ -200,18 +200,18 @@ public:
 
 	 }
 
-	 bool handleKeyEvent( unsigned key , bool isDown )
+	 bool handleKeyEvent(KeyMsg const& msg)
 	 {
-		 if ( !isDown )
+		 if ( !msg.isDown())
 			 return false;
 
-		 switch( key )
+		 switch(msg.getCode())
 		 {
 		 case EKeyCode::O: viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(1) , CFTO_LOCAL);  break;
 		 case EKeyCode::P: viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(-1) , CFTO_LOCAL );  break;
 		 }
 
-		 return SampleBase::handleKeyEvent( key , isDown );
+		 return SampleBase::handleKeyEvent( msg );
 	 }
 
 

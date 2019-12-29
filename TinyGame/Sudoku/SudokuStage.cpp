@@ -157,7 +157,6 @@ public:
 			g.drawLine(p2, p2 + Vec2i(TotalSize, 0));
 		}
 
-		TCHAR temp[128];
 		FixString< 128 > str;
 		int const* prob = mSolver.getProblem();
 

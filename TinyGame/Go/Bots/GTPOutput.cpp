@@ -209,7 +209,7 @@ namespace Go
 		char const* cur = buffer;
 		if (*cur == '=')
 		{
-			LogDevMsg(0, "%d - %s - %u", com.id, buffer , mProcQueue.size() );
+			//LogDevMsg(0, "%d - %s - %u", com.id, buffer , mProcQueue.size() );
 			cur = FStringParse::SkipSpace(cur + 1);
 
 			bool bCommadTextReadFinish = true;
@@ -276,7 +276,7 @@ namespace Go
 		}
 		else if (*cur == '?')
 		{
-			LogDevMsg(0, "%d - %s - %u", com.id, buffer, mProcQueue.size());
+			//LogDevMsg(0, "%d - %s - %u", com.id, buffer, mProcQueue.size());
 			cur = FStringParse::SkipSpace(cur + 1);
 			//error operator handled
 

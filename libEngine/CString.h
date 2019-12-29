@@ -78,8 +78,11 @@ struct FCString
 	FORCEINLINE static int    Compare(char const* s1, char const* s2) { return ::strcmp(s1, s2); }
 	FORCEINLINE static int    Compare(wchar_t const* s1, wchar_t const* s2) { return ::wcscmp(s1, s2); }
 
-	FORCEINLINE static int    CompareIgnoreCase(char const* s1, char const* s2) { return ::stricmp(s1, s2); }
-	FORCEINLINE static int    CompareIgnoreCase(wchar_t const* s1, wchar_t const* s2) { return ::wcsicmp(s1, s2); }
+	FORCEINLINE static int    CompareIgnoreCase(char const* s1, char const* s2) { return ::_stricmp(s1, s2); }
+	FORCEINLINE static int    CompareIgnoreCase(wchar_t const* s1, wchar_t const* s2) { return ::_wcsicmp(s1, s2); }
+
+	FORCEINLINE static int    CompareIgnoreCaseN(char const* s1, char const* s2, size_t num) { return ::_strnicmp(s1, s2, num); }
+	FORCEINLINE static int    CompareIgnoreCaseN(wchar_t const* s1, wchar_t const* s2, size_t num) { return ::_wcsnicmp(s1, s2, num); }
 
 	FORCEINLINE static int    CompareN(char const* s1, char const* s2 , size_t num ) { return ::strncmp(s1, s2 , num ); }
 	FORCEINLINE static int    CompareN(wchar_t const* s1, wchar_t const* s2 , size_t num ) { return ::wcsncmp(s1, s2 , num ); }

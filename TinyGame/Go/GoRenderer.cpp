@@ -135,15 +135,13 @@ namespace Go
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 #if DRAW_TEXTURE
-		glColor3f(1, 1, 1);
-
 		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE0);
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[TextureId::eBoardA]);
 			DrawUtility::Sprite(commandList,
-				context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0),
-				Vector2(0, 0), 2 * Vector2(1, 1));
+				context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0), 
+				LinearColor(1,1,1,1),Vector2(0, 0), 2 * Vector2(1, 1));
 		}
 		glDisable(GL_TEXTURE_2D);
 #else

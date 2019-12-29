@@ -7,9 +7,14 @@
 
 #include "WGLContext.h"
 
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
+
+
 namespace Render
 {
-	
+
 	struct OpenGLDeviceState
 	{
 		OpenGLDeviceState()
@@ -166,12 +171,14 @@ namespace Render
 		}
 		void resetBindIndex()
 		{
-			mIdxTextureAutoBind = IdxTextureAutoBindStart;
+			mNextAutoBindSamplerSlotIndex = 0;
+			mSimplerSlotDirtyMask = 0;
+
 			mNextUniformSlot = 0;
 			mNextStorageSlot = 0;
 		}
 
-		int  mIdxTextureAutoBind;
+		
 		int  mNextUniformSlot;
 		int  mNextStorageSlot;
 
@@ -187,7 +194,56 @@ namespace Render
 		static int const MaxSimulationInputStreamSlots = 8;
 		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];
 		int mNumInputStream;
+		uint32 mSimplerSlotDirtyMask;
 
+		struct SamplerState 
+		{
+			uint32 loc;
+			GLuint typeEnum;
+			GLuint textureHandle;
+			GLuint samplerHandle;
+			bool   bWrite;
+		};
+		static int constexpr MaxSimulationSamplerSlots = 8;
+		int  mNextAutoBindSamplerSlotIndex;
+		SamplerState mSamplerStates[MaxSimulationSamplerSlots];
+
+		void setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+		void setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler);
+
+		void commitRenderStates()
+		{
+			commitSamplerStates();
+		}
+
+		void commitSamplerStates()
+		{
+			if (mSimplerSlotDirtyMask)
+			{
+				for (int index = 0; index < mNextAutoBindSamplerSlotIndex; ++index)
+				{
+					if (mSimplerSlotDirtyMask & BIT(index))
+					{
+						SamplerState& state = mSamplerStates[index];
+						if (state.bWrite)
+						{
+
+
+						}
+						else
+						{
+							glActiveTexture(GL_TEXTURE0 + index);
+							glBindTexture(state.typeEnum, state.textureHandle);
+							glBindSampler(index, state.samplerHandle);
+						}
+						glUniform1i(state.loc, index);
+					}
+				}
+
+				mSimplerSlotDirtyMask = 0;
+				glActiveTexture(GL_TEXTURE0);
+			}
+		}
 	};
 
 	class OpenGLSystem : public RHISystem
@@ -207,14 +263,15 @@ namespace Render
 		RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
 			int numMipLevel , uint32 createFlags, void* data);
+
 		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign);
+
 		RHITexture3D*      RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data);
 		RHITextureCube*    RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 		RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
 		RHITextureDepth*   RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples);
-		
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
@@ -244,5 +301,9 @@ namespace Render
 #endif
 	};
 }
+
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
 
 

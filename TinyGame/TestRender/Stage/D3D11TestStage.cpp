@@ -229,14 +229,14 @@ namespace Render
 				mCBuffer.unlock();
 			}
 
+			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < Sampler::eTrilinear >::GetRHI());
+			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
+			mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
+			mView.setupShader(commandList, mProgTest);
+
 			{
 				GPU_PROFILE("Triangle");
 
-				mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < Sampler::eTrilinear >::GetRHI());
-
-				mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
-				mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
-				mView.setupShader(commandList, mProgTest);
 				Matrix4 xform = Matrix4::Translate(Vector3(0, 0, 0));
 				mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
 				{
@@ -275,11 +275,12 @@ namespace Render
 					mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList);
 				}
 			}
+
 			{
 				GPU_PROFILE("Sphere");
 				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(-10, 5, 5));
 				{
-					mSimpleMeshs[SimpleMeshId::Sphere].draw(commandList);
+					mSimpleMeshs[SimpleMeshId::Sphere].draw(commandList, Vector3(1, 0, 0));
 				}
 			}
 

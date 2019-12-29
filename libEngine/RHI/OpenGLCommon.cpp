@@ -8,8 +8,6 @@ namespace Render
 {
 	int const GLDefalutUnpackAlignment = 4;
 
-	uint32 RHIResource::TotalCount = 0;
-
 	bool VerifyOpenGLStatus()
 	{
 		GLenum error = glGetError();
@@ -1240,7 +1238,7 @@ namespace Render
 		});
 	}
 
-	void OpenGLInputLayout::bindAttrib(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor /*= nullptr*/)
+	void OpenGLInputLayout::bindAttrib(InputStreamInfo inputStreams[], int numInputStream)
 	{
 		assert(numInputStream > 0);
 		int index = 0;
@@ -1264,11 +1262,6 @@ namespace Render
 		}
 
 		OpenGLCast::To(inputStreams[0].buffer)->unbind();
-		if( overwriteColor )
-		{
-			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
-			glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
-		}
 	}
 
 	void OpenGLInputLayout::bindAttribUP(InputStreamInfo inputStreams[], int numInputStream)
@@ -1306,7 +1299,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLInputLayout::unbindAttrib(int numInputStream, LinearColor const* overwriteColor)
+	void OpenGLInputLayout::unbindAttrib(int numInputStream)
 	{
 		for( auto const& e : mElements )
 		{
@@ -1335,15 +1328,26 @@ namespace Render
 			glNormalPointer(e.componentType, stride, (void*)(offset));
 			break;
 		case Vertex::eColor:
-			if( e.idx == 0 )
+			if (stride > 0 )
 			{
-				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+				if (e.idx == 0)
+				{
+					glEnableClientState(GL_COLOR_ARRAY);
+					glColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+				}
+				else
+				{
+					glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
+					glSecondaryColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+				}
 			}
 			else
 			{
-				glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
-				glSecondaryColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+				if (e.idx == 0)
+				{
+					glEnableClientState(GL_COLOR_ARRAY);
+					glColor4fv((GLfloat const*)offset);
+				}
 			}
 			break;
 		case Vertex::eTangent:
@@ -1410,7 +1414,7 @@ namespace Render
 		}
 	}
 
-	void UnbindElementPointer(OpenGLInputLayout::Element const& e, LinearColor const* overwriteColor, bool& haveTex)
+	void UnbindElementPointer(OpenGLInputLayout::Element const& e, bool& haveTex)
 	{
 		switch( e.semantic )
 		{
@@ -1421,8 +1425,7 @@ namespace Render
 			glDisableClientState(GL_NORMAL_ARRAY);
 			break;
 		case Vertex::eColor:
-			if( overwriteColor == nullptr )
-				glDisableClientState((e.idx == 0) ? GL_COLOR_ARRAY : GL_SECONDARY_COLOR_ARRAY);
+			glDisableClientState((e.idx == 0) ? GL_COLOR_ARRAY : GL_SECONDARY_COLOR_ARRAY);
 			break;
 		case Vertex::eTangent:
 			haveTex = true;
@@ -1455,16 +1458,16 @@ namespace Render
 		{
 			bool haveTex = false;
 
-			for( int i = 0; i < numInputStream; ++i )
+			for( int idxSteam = 0; idxSteam < numInputStream; ++idxSteam )
 			{
-				auto& inputStream = inputStreams[i];
+				auto& inputStream = inputStreams[idxSteam];
 
 				OpenGLCast::To(inputStream.buffer)->bind();
 				int index = 0;
 				for( ; index < mElements.size(); ++index )
 				{
 					auto const& e = mElements[index];
-					if( e.idxStream > index )
+					if( e.idxStream > idxSteam )
 						break;
 
 					uint32 offset = inputStreams[e.idxStream].offset;
@@ -1495,9 +1498,9 @@ namespace Render
 		}
 		else
 		{
-			for( int i = 0; i < numInputStream; ++i )
+			for( int idxStream = 0; idxStream < numInputStream; ++idxStream )
 			{
-				auto& inputStream = inputStreams[i];
+				auto& inputStream = inputStreams[idxStream];
 				int index = 0;
 				for( ; index < mElements.size(); ++index )
 				{
@@ -1517,7 +1520,7 @@ namespace Render
 
 	}
 
-	void OpenGLInputLayout::bindPointer(LinearColor const* overwriteColor)
+	void OpenGLInputLayout::bindPointer()
 	{
 		bool haveTex = false;
 		for( auto const& e : mElements )
@@ -1526,25 +1529,17 @@ namespace Render
 			uint32 stride = e.stride;
 			BindElementPointer(e, offset, stride, haveTex);
 		}
-
-		if( overwriteColor )
-		{
-			glColor4fv(*overwriteColor);
-		}
 	}
 
-	void OpenGLInputLayout::unbindPointer(LinearColor const* overwriteColor)
+	void OpenGLInputLayout::unbindPointer()
 	{
 		bool haveTex = false;
 		for( auto const& e : mElements )
 		{
-			UnbindElementPointer(e, overwriteColor , haveTex);
+			UnbindElementPointer(e, haveTex);
 		}
 
-		if( overwriteColor )
-		{
-			glColor4f(1, 1, 1, 1);
-		}
+
 		if( haveTex )
 		{
 			glClientActiveTexture(GL_TEXTURE0);

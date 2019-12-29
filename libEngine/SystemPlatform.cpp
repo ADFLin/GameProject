@@ -233,14 +233,14 @@ DateTime SystemPlatform::GetLocalTime()
 
 #include "FileSystem.h"
 
-bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, TArrayView< OpenFileFilterInfo const > filters, char const* initDir, char const* title )
+bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, TArrayView< OpenFileFilterInfo const > filters, char const* initDir, char const* title, void* windowOwner)
 {
 #if SYS_PLATFORM_WIN
 	OPENFILENAME ofn;
 	// a another memory buffer to contain the file name
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL;
+	ofn.hwndOwner = (HWND)windowOwner;
 	ofn.lpstrFile = inoutPath;
 	ofn.nMaxFile = pathSize;
 
@@ -291,7 +291,6 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, TArrayView< Op
 
 int CALLBACK BrowseForFolderCallback(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData)
 {
-	char szPath[MAX_PATH];
 
 	switch (uMsg)
 	{
@@ -300,9 +299,12 @@ int CALLBACK BrowseForFolderCallback(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pDa
 		break;
 #if 0
 	case BFFM_SELCHANGED:
-		if (SHGetPathFromIDList((LPITEMIDLIST)lp, szPath))
 		{
-			SendMessage(hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM)szPath);
+			char szPath[MAX_PATH];
+			if (SHGetPathFromIDList((LPITEMIDLIST)lp, szPath))
+			{
+				SendMessage(hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM)szPath);
+			}
 		}
 		break;
 #endif

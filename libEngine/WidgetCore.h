@@ -266,6 +266,9 @@ public:
 	template< class Visitor >
 	void      visitWidgets( Visitor visitor );
 
+
+	bool isProcessingMsg() const { return mbProcessingMsg; }
+
 protected:
 	void        destroyWidgetChildren_R(WidgetCore* ui);
 	void        destroyWidgetActually(WidgetCore* ui );
@@ -326,7 +329,7 @@ private:
 	WidgetList   mTopWidgetList;
 	WidgetList   mDeferredDestroyWidgets;
 
-	bool         mProcessingMsg;
+	bool         mbProcessingMsg;
 	MouseMsg     mLastMouseMsg;
 
 	friend class WidgetCore;

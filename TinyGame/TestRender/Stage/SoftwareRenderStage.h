@@ -8,8 +8,6 @@
 #include "Widget/WidgetUtility.h"
 #include "Math/Base.h"
 
-#include "stb/stb_image.h"
-
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"

@@ -13,8 +13,7 @@
 Texture gEmptyTexture;
 
 #if USE_SFML
-#else
-#include "stb/stb_image.h"
+
 #endif
 
 Texture::Texture()

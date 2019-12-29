@@ -31,6 +31,7 @@
 #include <limits>
 #include <memory>
 #include <typeindex>
+#include "PlatformThread.h"
 
 class Thread;
 
@@ -526,6 +527,7 @@ namespace Render
 		{
 			BaseClass::onUpdate( time );
 
+			executeGameCommand();
 			int frame = time / gDefaultTickTime;
 			for( int i = 0 ; i < frame ; ++i )
 				tick();
@@ -772,6 +774,30 @@ namespace Render
 		std::vector< SampleTest > mSampleTests;
 		int    mIdxTestChioce;
 		bool bInitialized = false;
+
+
+
+		Mutex mMutexGameThreadCommonds;
+		std::vector< std::function< void() > > mGameThreadCommonds;
+
+		template< class TFunc >
+		void addGameCommand(TFunc func)
+		{
+			Mutex::Locker locker(mMutexGameThreadCommonds);
+			mGameThreadCommonds.push_back(func);
+		}
+
+		void executeGameCommand()
+		{
+			assert(IsInGameThead());
+			Mutex::Locker locker(mMutexGameThreadCommonds);
+			for (auto& com : mGameThreadCommonds)
+			{
+				com();
+			}
+			mGameThreadCommonds.clear();
+		}
+
 
 	};
 

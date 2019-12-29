@@ -107,7 +107,7 @@ public:
 	struct  MemberFuncData
 	{
 		T* ptr;
-		typedef RetType(T::*MemberFuncType)(Args...);
+		using MemberFuncType = RetType(T::*)(Args...);
 		MemberFuncType memberFunc;
 	};
 

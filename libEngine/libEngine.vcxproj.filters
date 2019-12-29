@@ -134,6 +134,9 @@
     <Filter Include="OtherLib\minisat">
       <UniqueIdentifier>{8e429900-dede-426f-b67c-523616ccedce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RHI\D3D12">
+      <UniqueIdentifier>{03a43dab-c2e1-4c0e-962c-4bddd27eaf5e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -448,6 +451,18 @@
     <ClCompile Include="Math\Matrix2.cpp">
       <Filter>Math</Filter>
     </ClCompile>
+    <ClCompile Include="RHI\D3D12Command.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D12Common.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D12ShaderCommon.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Image\ImageProcessing.cpp">
+      <Filter>Image</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -701,9 +716,6 @@
     </ClInclude>
     <ClInclude Include="CompressAlgo.h">
       <Filter>Algo</Filter>
-    </ClInclude>
-    <ClInclude Include="TypeHash.h">
-      <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="DataBitSerialize.h">
       <Filter>Utility</Filter>
@@ -1100,6 +1112,24 @@
     </ClInclude>
     <ClInclude Include="Math\Matrix2.h">
       <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\TypeHash.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHITraceScope.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12Command.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12Common.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12ShaderCommon.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Image\ImageProcessing.h">
+      <Filter>Image</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

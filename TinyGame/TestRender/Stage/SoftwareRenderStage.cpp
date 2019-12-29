@@ -5,6 +5,7 @@
 #if USE_OMP
 #include "omp.h"
 #endif
+#include "Image/ImageData.h"
 
 REGISTER_STAGE("Software Renderer", SR::TestStage, EStageGroup::GraphicsTest);
 
@@ -37,25 +38,20 @@ namespace SR
 
 	bool Texture::load(char const* path)
 	{
-		int w;
-		int h;
-		int comp;
-		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
-
-		if( !image )
+		ImageData imageData;
+		if (!imageData.load(path, false, false))
 			return false;
 
-		mSize.x = w;
-		mSize.y = h;
-
+		mSize.x = imageData.width;
+		mSize.y = imageData.height;
 
 		//#TODO
-		switch( comp )
+		switch( imageData.numComponent )
 		{
 		case 3:
 			{
-				mData.resize(w * h);
-				unsigned char* pPixel = image;
+				mData.resize(mSize.x * mSize.y);
+				unsigned char* pPixel = (unsigned char*)imageData.data;
 				for( int i = 0; i < mData.size(); ++i )
 				{
 					mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], 0xff);
@@ -65,8 +61,8 @@ namespace SR
 			break;
 		case 4:
 			{
-				mData.resize(w * h);
-				unsigned char* pPixel = image;
+				mData.resize(mSize.x * mSize.y);
+				unsigned char* pPixel = (unsigned char*)imageData.data;
 				for( int i = 0; i < mData.size(); ++i )
 				{
 					mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], pPixel[3]);
@@ -75,8 +71,7 @@ namespace SR
 			}
 			break;
 		}
-		//glGenerateMipmap( texType);
-		stbi_image_free(image);
+
 		return mData.empty() == false;
 	}
 

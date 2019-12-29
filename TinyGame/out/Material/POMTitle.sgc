@@ -43,10 +43,12 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 	inputPS.roughness = 0.5;
 	inputPS.specular = 0.1;
 	inputPS.normal = GetTextureNormal(NoramlTexture, pomOutput.UVs);
+#if 1
 	if( pomOutput.depth > 0 )
-		inputPS.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.clipPos.z;
+		inputPS.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.NDC.z;
 	else
 		inputPS.depthOffset = 0;
+#endif
 	float2 value = 2 * frac(5 * (parameters.texCoords[0].xy)) - 1;
 	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
 	//inputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );

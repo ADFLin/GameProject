@@ -106,7 +106,7 @@ namespace Render
 	{
 		if( !mUniformBuffer.isValid() )
 		{
-			mUniformBuffer = RHICreateVertexBuffer(sizeof(ViewBufferData), 1, BCF_UsageDynamic);
+			mUniformBuffer = RHICreateVertexBuffer(sizeof(ViewBufferData), 1, BCF_UsageConst | BCF_UsageDynamic);
 		}
 
 		if( mbDataDirty )

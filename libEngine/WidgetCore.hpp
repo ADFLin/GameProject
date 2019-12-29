@@ -396,7 +396,7 @@ void WidgetCoreT<T>::deleteChildren_R()
 
 template< class T >
 TWidgetManager<T>::TWidgetManager()
-	:mProcessingMsg(false)
+	:mbProcessingMsg(false)
 {
 	std::fill_n(mNamedSlots, (int)ESlotName::Num, nullptr);
 }
@@ -411,14 +411,14 @@ TWidgetManager<T>::~TWidgetManager()
 template< class T >
 void TWidgetManager<T>::prevProcMsg()
 {
-	assert(mProcessingMsg == false);
-	mProcessingMsg = true;
+	assert(mbProcessingMsg == false);
+	mbProcessingMsg = true;
 }
 
 template< class T >
 void TWidgetManager<T>::postProcMsg()
 {
-	mProcessingMsg = false;
+	mbProcessingMsg = false;
 	cleanupPaddingKillWidgets();
 }
 
@@ -426,7 +426,7 @@ template< class T >
 bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 {
 	//System maybe send callback
-	if (mProcessingMsg)
+	if (mbProcessingMsg)
 		return false;
 	WIDGET_PROFILE_ENTRY("UI System");
 
@@ -588,7 +588,7 @@ template< class T >
 bool TWidgetManager<T>::procCharMsg( unsigned code )
 {
 	//System maybe send callback
-	if (mProcessingMsg)
+	if (mbProcessingMsg)
 		return false;
 	ProcMsgScope scope(this);
 	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_CHAR_EVENT, WIF_REROUTE_CHAR_EVENT_UNHANDLED, [code](WidgetCore* ui)
@@ -602,7 +602,7 @@ template< class T >
 bool TWidgetManager<T>::procKeyMsg(KeyMsg const& msg)
 {
 	//System maybe send callback
-	if (mProcessingMsg)
+	if (mbProcessingMsg)
 		return false;
 
 	ProcMsgScope scope(this);
@@ -722,7 +722,7 @@ void TWidgetManager<T>::destroyWidget( WidgetCore* ui )
 		return;
 
 	ui->addFlagInternal(WIF_MARK_DESTROY);
-	if ( mProcessingMsg || ui->checkFlag( WIF_DEFERRED_DESTROY ))
+	if ( mbProcessingMsg || ui->checkFlag( WIF_DEFERRED_DESTROY ))
 	{
 		ui->unlinkInternal(false);
 		mDeferredDestroyWidgets.push_back(*static_cast<T*>(ui));

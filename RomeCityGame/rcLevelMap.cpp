@@ -77,7 +77,7 @@ void rcLevelMap::visitMapData( rcLevelMap::Visitor& visitor , Vec2i const& pos ,
 	else
 		endPos.x = std::min( pos.x + size.x , getSizeX() );
 
-	if ( endPos.y == -1 )
+	if ( size.y == -1 )
 		endPos.y = getSizeY();
 	else
 		endPos.y = std::min( pos.y + size.y , getSizeY() );

@@ -127,7 +127,7 @@ public:
 	void update( long time ){ mManager.update(); }
 	void render()           { mManager.render(); }
 	bool procMouse( MouseMsg const& msg )       { return mManager.procMouseMsg( msg ); }
-	bool procKey( unsigned key , bool isDown ){ return mManager.procKeyMsg( key , isDown ); }
+	bool procKey(  KeyMsg const& msg ){ return mManager.procKeyMsg(msg); }
 	bool procChar( unsigned key )             { return mManager.procCharMsg( key ); }
 
 	void procUIEvent( rcWidget* widget , int evtID , void* data );

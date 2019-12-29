@@ -138,6 +138,7 @@ public:
 		cleanup();
 		build( x , y );
 	}
+
 	void fillValue( T const& val ){	std::fill_n( mStorage , mSizeX * mSizeY , val );  }
 
 	bool checkRange( int i , int j ) const

@@ -231,10 +231,47 @@ namespace Render
 		float mAspect;
 	};
 
+	class SphereProgram : public GlobalShaderProgram
+	{
+		DECLARE_EXPORTED_SHADER_PROGRAM(SphereProgram, Global , TINY_API)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/Sphere";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamRadius.bind(parameterMap, SHADER_PARAM(Sphere.radius));
+			mParamWorldPos.bind(parameterMap, SHADER_PARAM(Sphere.worldPos));
+			mParamBaseColor.bind(parameterMap, SHADER_PARAM(Sphere.baseColor));
+		}
+		void setParameters(RHICommandList& commandList, Vector3 const& pos , float radius , Vector3 const& baseColor)
+		{
+			setParam(commandList, mParamRadius, radius);
+			setParam(commandList, mParamWorldPos, pos);
+			setParam(commandList, mParamBaseColor, baseColor);
+		}
+
+		ShaderParameter mParamRadius;
+		ShaderParameter mParamWorldPos;
+		ShaderParameter mParamBaseColor;
+	};
+
 
 	struct TINY_API SharedAssetData
 	{
-		bool createCommonShader();
+		bool loadCommonShader();
 		bool createSimpleMesh();
 
 		struct SimpleMeshId
@@ -255,11 +292,10 @@ namespace Render
 			};
 		};
 
-		ShaderProgram mProgSphere;
+		SphereProgram* mProgSphere;
 
 		Mesh   mSimpleMeshs[SimpleMeshId::NumSimpleMesh];
 	};
-
 
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
@@ -280,103 +316,15 @@ namespace Render
 		virtual void restart(){}
 		virtual void tick() {}
 		virtual void updateFrame(int frame) {}
-		void onUpdate(long time) override
-		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-			{
-				float dt = gDefaultTickTime / 1000.0;
-				mView.gameTime += dt;
-
-				if( !mbGamePased )
-				{
-					mView.gameTime += dt;
-				}
-				tick();
-			}
-
-			float dt = float(time) / 1000;
-			updateFrame(frame);
-		}
+		void onUpdate(long time) override;
 
 		virtual RHITargetName getRHITargetName() { return RHITargetName::OpenGL; }
 
-		void initializeRenderState()
-		{
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
+		void initializeRenderState();
 
-			mView.frameCount += 1;
+		bool onMouse(MouseMsg const& msg) override;
 
-			GameWindow& window = Global::GetDrawEngine().getWindow();
-
-			mView.rectOffset = IntVector2(0, 0);
-			mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
-
-			Matrix4 matView = mCamera.getViewMatrix();
-			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
-
-			glMatrixMode(GL_PROJECTION);
-			glLoadMatrixf(mView.viewToClip);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadMatrixf(mView.worldToView);
-
-			glClearColor(0.2, 0.2, 0.2, 1);
-			glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-			RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-			RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?
-				TStaticDepthStencilState< true , ECompareFun::Greater >::GetRHI() :
-				TStaticDepthStencilState<>::GetRHI());
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-
-		}
-
-		bool onMouse(MouseMsg const& msg) override
-		{
-			static Vec2i oldPos = msg.getPos();
-
-			if( msg.onLeftDown() )
-			{
-				oldPos = msg.getPos();
-			}
-			if( msg.onMoving() && msg.isLeftDown() )
-			{
-				float rotateSpeed = 0.01;
-				Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
-				mCamera.rotateByMouse(off.x, off.y);
-				oldPos = msg.getPos();
-			}
-
-			if( !BaseClass::onMouse(msg) )
-				return false;
-			return true;
-		}
-
-		bool onKey(KeyMsg const& msg) override
-		{
-			if( !msg.isDown())
-				return false;
-			switch(msg.getCode())
-			{
-			case EKeyCode::W: mCamera.moveFront(1); break;
-			case EKeyCode::S: mCamera.moveFront(-1); break;
-			case EKeyCode::D: mCamera.moveRight(1); break;
-			case EKeyCode::A: mCamera.moveRight(-1); break;
-			case EKeyCode::Z: mCamera.moveUp(0.5); break;
-			case EKeyCode::X: mCamera.moveUp(-0.5); break;
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::F2:
-				{
-					ShaderManager::Get().reloadAll();
-					//initParticleData();
-				}
-				break;
-			}
-			return false;
-		}
+		bool onKey(KeyMsg const& msg) override;
 
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override
@@ -393,16 +341,7 @@ namespace Render
 
 		void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
 
-		void handleShowTexture(char const* name)
-		{
-			auto iter = mTextureMap.find(name);
-			if( iter != mTextureMap.end() )
-			{
-				TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
-				textureFrame->texture = iter->second;
-				::Global::GUI().addWidget(textureFrame);
-			}
-		}
+		void handleShowTexture(char const* name);
 
 		void registerTexture(char const* name, RHITexture2D& texture)
 		{

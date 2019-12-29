@@ -13,6 +13,9 @@ namespace Render
 
 	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
 	{
+#if _DEBUG
+		mName = name;
+#endif
 		auto iter = paramMap.mMap.find(name);
 		if( iter == paramMap.mMap.end() )
 		{

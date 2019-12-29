@@ -576,6 +576,7 @@ namespace Render
 			if( !BaseClass::onInit() )
 				return false;
 
+			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 			VERIFY_RETURN_FALSE(GPUParticleData::initialize());
 			
 			VERIFY_RETURN_FALSE(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
@@ -585,7 +586,6 @@ namespace Render
 			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones_NM_height.tga"));
 
 			VERIFY_RETURN_FALSE(mTexture.isValid());
-			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
 			Vector3 v[] =
 			{
 				Vector3(1,1,0),
@@ -659,11 +659,10 @@ namespace Render
 		{
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-			RHISetShaderProgram(commandList, mProgSphere.getRHIResource());
-			mView.setupShader(commandList, mProgSphere);
-			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.radius), radius);
-			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.worldPos), pos);
-			
+			RHISetShaderProgram(commandList, mProgSphere->getRHIResource());
+			mView.setupShader(commandList, *mProgSphere);
+
+			mProgSphere->setParameters(commandList, pos, radius, Color3f(1, 1, 1));
 			mSpherePlane.draw(commandList);
 		}
 
@@ -702,7 +701,6 @@ namespace Render
 			upateWaterData(RHICommandList::GetImmediateList(), dt);
 		}
 
-		ShaderProgram mProgSphere;
 		Mesh mSpherePlane;
 		ShaderProgram mProgSimpleParticle;
 

@@ -7,6 +7,8 @@
 
 #include "D3D11.h"
 
+#include <unordered_map>
+
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
 	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
 
@@ -136,13 +138,51 @@ namespace Render
 	class TD3D11Resource : public RHIResoureType
 	{
 	public:
-		virtual void incRef() { mResource->AddRef(); }
-		virtual bool decRef() { return mResource->Release() == 1; }
-		virtual void releaseResource() { mResource->Release(); mResource = nullptr; }
+
+		~TD3D11Resource()
+		{
+			if (mResource != nullptr)
+			{
+				LogWarning(0, "D3D11Resource no release");
+			}
+		}
+		virtual void incRef() 
+		{ 
+#if _DEBUG
+			++mCount;
+#endif
+			mResource->AddRef(); 
+		}
+		virtual bool decRef() 
+		{ 
+#if _DEBUG
+			--mCount;
+			int count = mResource->Release();
+			assert(mCount + 1 == count);
+			return count == 1;
+#else
+			return mResource->Release() == 1; 
+#endif
+		}
+		virtual void releaseResource() 
+		{
+#if _DEBUG
+			if (mCount != 0)
+			{
+				LogWarning(0, "D3D11Resource refcount error");
+			}
+#endif
+			mResource->Release();
+			mResource = nullptr; 
+		}
 
 		typedef typename TD3D11TypeTraits< RHIResoureType >::ResourceType ResourceType;
 
 		ResourceType* getResource() { return mResource; }
+
+#if _DEBUG
+		int mCount = 0;
+#endif
 		ResourceType* mResource;
 	};
 
@@ -297,7 +337,7 @@ namespace Render
 				HRESULT hr = device->CreateShaderResourceView(resource, NULL, &mSRVResource);
 				if( hr != S_OK )
 				{
-					LogWarning(0, "Can't buffer's SRV ! error code : %d", hr);
+					LogWarning(0, "Can't Create buffer's SRV ! error code : %d", hr);
 				}
 			}
 			if( creationFlag & BCF_CreateUAV )
@@ -390,25 +430,54 @@ namespace Render
 
 	};
 
-	class D3D11InputLayout : public TD3D11Resource< RHIInputLayout >
+	class D3D11InputLayout : public RHIInputLayout
 	{
 	public:
-		D3D11InputLayout(ID3D11InputLayout* inputLayout)
+		D3D11InputLayout()
 		{
-			mResource = inputLayout;
+			mRefcount = 0;
 		}
+
+		void incRef() override
+		{
+			++mRefcount;
+
+		}
+		bool decRef() override
+		{
+			--mRefcount;
+			return mRefcount <= 0;
+		}
+
+		void releaseResource() override
+		{
+			for (auto& pair : mResourceMap)
+			{
+				pair.second->Release();
+			}
+			mResourceMap.clear();
+			mResource->Release();
+			mResource = nullptr;
+		}
+
+		ID3D11InputLayout* GetShaderLayout( ID3D11Device* device , RHIShader* shader);
+
+		int mRefcount;
+		std::vector< D3D11_INPUT_ELEMENT_DESC > elements;
+		ID3D11InputLayout* mResource;
+		std::unordered_map< RHIShader*, ID3D11InputLayout* > mResourceMap;
 	};
 
 	struct D3D11Cast
 	{
 		template< class TRHIResource >
-		static auto To(TRHIResource* resource) { return static_cast< typename TD3D11TypeTraits< TRHIResource >::ImplType*>(resource); }
+		static auto* To(TRHIResource* resource) { return static_cast< typename TD3D11TypeTraits< TRHIResource >::ImplType*>(resource); }
 		
 		template< class TRHIResource >
-		static auto To(TRHIResource& resource) { return static_cast<typename TD3D11TypeTraits< TRHIResource >::ImplType& >(resource); }
+		static auto& To(TRHIResource& resource) { return static_cast<typename TD3D11TypeTraits< TRHIResource >::ImplType& >(resource); }
 
 		template < class T >
-		static auto To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }
+		static auto* To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }
 
 		template< class T >
 		static auto GetResource(T& RHIObject) { return D3D11Cast::To(&RHIObject)->getResource(); }
@@ -440,5 +509,6 @@ namespace Render
 		ID3D11HullShader*     hull;
 		ID3D11DomainShader*   domain;
 	};
+
 
 }

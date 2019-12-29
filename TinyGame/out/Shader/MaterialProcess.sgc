@@ -35,7 +35,7 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS inputPS, i
 	float3 worldPos = parameters.worldPos;
 #if MATERIAL_USE_DEPTH_OFFSET
 	float4 NDC = parameters.NDC;
-	if(inputPS.depthOffset != 0 )
+	if( inputPS.depthOffset != 0 )
 	{
 		NDC.z += inputPS.depthOffset;
 		float4 worldPosH = View.clipToWorld * NDC;

@@ -104,7 +104,7 @@ void DrawEngine::release()
 {
 	mPlatformGraphics->releaseReources();
 
-	if( isRHIEnabled() )
+	if( isRHIEnabled() || bRHIShutdownDeferred )
 		RHISystemShutdown();
 
 	RenderUtility::Finalize();
@@ -145,6 +145,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 		{
 		case RHITargetName::OpenGL: return RHISytemName::Opengl;
 		case RHITargetName::D3D11: return RHISytemName::D3D11;
+		case RHITargetName::D3D12: return RHISytemName::D3D12;
 		}
 		return RHISytemName::Opengl;
 	}();
@@ -320,6 +321,15 @@ public:
 	Vec2i        mTextPos;
 	IGraphics2D& mGraphics2D;
 };
+
+void* DrawEngine::getWindowHandle()
+{
+#if SYS_PLATFORM_WIN
+	return (void*)mGameWindow->getHWnd();
+#else
+	return nullptr;
+#endif
+}
 
 void DrawEngine::drawProfile(Vec2i const& pos)
 {

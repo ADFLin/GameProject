@@ -38,8 +38,6 @@ namespace Go
 	};
 
 
-
-
 	class GFilePicker : public GWidget
 	{
 		using BaseClass = GWidget;
@@ -52,7 +50,7 @@ namespace Go
 			button->setTitle("..");
 			button->onEvent = [this](int event, GWidget*) -> bool
 			{
-				if (SystemPlatform::OpenFileName(filePath, filePath.max_size(), {}, nullptr, nullptr))
+				if (SystemPlatform::OpenFileName(filePath, filePath.max_size(), {}, nullptr, nullptr, ::Global::GetDrawEngine().getWindowHandle()))
 					return false;
 
 				return false;
@@ -461,7 +459,12 @@ namespace Go
 		uint32         mLastMatchRecordWinCounts[2];
 		void recordMatchResult( bool bSaveToFile );
 
-
+		GameProxy& getAnalysisGame()
+		{
+			if (bReviewingGame)
+				return mReviewGame;
+			return mGame;
+		}
 		GameProxy& getViewingGame()
 		{
 			if( bTryPlayingGame )

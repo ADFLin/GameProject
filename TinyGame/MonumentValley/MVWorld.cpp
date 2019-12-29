@@ -690,9 +690,6 @@ namespace MV
 		//   |___|___|
 
 		Vec3i destblockPos;
-		Vec3i tempBlockPos;
-		int   tempBlockId;
-
 		int   destBlockId;
 		// Block O
 		Vec3i destPos = block.pos + linkOffset + info.faceOffset;

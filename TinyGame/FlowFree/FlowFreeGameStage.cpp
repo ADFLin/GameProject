@@ -157,7 +157,7 @@ namespace FlowFree
 	Vec2i ScreenOffset = Vec2i(20, 20);
 	int const FlowWidth = 12;
 	int const FlowGap = (CellLength - FlowWidth) / 2;
-	int const FlowSourceRadius = 12;
+	int const FlowSourceRadius = 10;
 
 	bool TestStage::onInit()
 	{
@@ -168,15 +168,22 @@ namespace FlowFree
 			return false;
 		::Global::GUI().cleanupWidget();
 
+		for (int i = 0; i < ARRAY_SIZE(mColorMap); ++i)
+		{
+			int const ColorNum = 8;
+			int color = (i) % ColorNum + 1; 
+			int colorType = (i) / ColorNum;
+			mColorMap[i] = RenderUtility::GetColor(color, colorType);
+		}
 
 		auto frame = WidgetUtility::CreateDevFrame();
 
-		frame->addButton("Load And Solve Image Level", [this](int event, GWidget* widget)
+		frame->addButton("Load/Solve Image Level", [this](int event, GWidget* widget)
 		{
 			FixString< 512 > imagePath;
 			if (SystemPlatform::OpenFileName(imagePath, imagePath.max_size(), {}, nullptr , nullptr , ::Global::GetDrawEngine().getWindowHandle() ) )
 			{
-				if (mReader.loadLevel(mLevel, imagePath))
+				if (mReader.loadLevel(mLevel, imagePath, mColorMap))
 				{
 					mSolver2.solve(mLevel);
 				}
@@ -232,13 +239,129 @@ namespace FlowFree
 
 		g.beginRender();
 
-		glClearColor(0.2, 0.2, 0.2, 0);
+		glClearColor(0, 0, 0, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		Vec2i size = mLevel.getSize();
 
-		RenderUtility::SetPen(g, EColor::White);
+
+		auto SetColor = [this , &g](int colorMeta)
+		{
+			g.setPen(mColorMap[colorMeta - 1]);
+			g.setBrush(mColorMap[colorMeta - 1]);
+		};
+
+		auto DrawConnection = [&](Vec2i const& posLT, int dir, int width = FlowWidth)
+		{
+			int const gap = (CellLength - width) / 2;
+			switch (dir)
+			{
+			case 0: g.drawRect(posLT + Vec2i(gap, gap), Vec2i(CellLength - gap, width)); break;
+			case 1: g.drawRect(posLT + Vec2i(gap, gap), Vec2i(width, CellLength - gap)); break;
+			case 2: g.drawRect(posLT + Vec2i(0, gap), Vec2i(CellLength - gap, width)); break;
+			case 3: g.drawRect(posLT + Vec2i(gap, 0), Vec2i(width, CellLength - gap)); break;
+			}
+		};
+
+		bool bDrawSolveDebug = true;
+		if (bDrawSolveDebug && 
+			mSolver2.mSolution.getSizeX() == mLevel.getSize().x && 
+			mSolver2.mSolution.getSizeY() == mLevel.getSize().y)
+		{
+			for (int i = 0; i < size.x; ++i)
+			{
+				for (int j = 0; j < size.y; ++j)
+				{
+					Vec2i cellPos = Vec2i(i, j);
+					int cellIndex = mLevel.mCellMap.toIndex(i, j);
+					Cell const& cell = mLevel.getCellChecked(Vec2i(i, j));
+
+					Vec2i posCellLT = ScreenOffset + CellLength * Vec2i(i, j);
+#if 0
+					Solver::CellState& cellState = mSolver.mState.cells[cellIndex];
+					uint8 connectMask = cellState.connectMask;
+#else
+
+					auto solvedCell = mSolver2.getSolvedCell(cellPos);
+#endif
+
+					if (cell.func == CellFunc::Bridge)
+					{
+						if (solvedCell.color2)
+						{
+							SetColor(solvedCell.color2);
+						}
+						else
+						{
+							RenderUtility::SetPen(g, EColor::Gray);
+							RenderUtility::SetBrush(g, EColor::Null);
+						}
+
+						DrawConnection(posCellLT, EDir::Top);
+						DrawConnection(posCellLT, EDir::Bottom);
+
+						RenderUtility::SetPen(g, EColor::Black);
+						RenderUtility::SetBrush(g, EColor::Black);
+
+						DrawConnection(posCellLT, EDir::Top, FlowWidth - 4);
+						DrawConnection(posCellLT, EDir::Bottom, FlowWidth - 4);
+
+						if (solvedCell.color)
+						{
+							SetColor(solvedCell.color);
+						}
+						else
+						{
+							RenderUtility::SetPen(g, EColor::Gray);
+							RenderUtility::SetBrush(g, EColor::Null);
+						}
+
+						DrawConnection(posCellLT, EDir::Left);
+						DrawConnection(posCellLT, EDir::Right);
+
+						RenderUtility::SetPen(g, EColor::Black);
+						RenderUtility::SetBrush(g, EColor::Black);
+						DrawConnection(posCellLT, EDir::Left, FlowWidth - 4);
+						DrawConnection(posCellLT, EDir::Right, FlowWidth - 4);
+
+					}
+					else
+					{
+						if (solvedCell.color)
+						{
+							SetColor(solvedCell.color);
+						}
+						else
+						{
+							RenderUtility::SetPen(g, EColor::Gray);
+							RenderUtility::SetBrush(g, EColor::Null);
+						}
+						for (int dir = 0; dir < DirCount; ++dir)
+						{
+							if (solvedCell.mask & BIT(dir))
+							{
+								DrawConnection(posCellLT, dir);
+							}
+						}
+
+						RenderUtility::SetPen(g, EColor::Black);
+						RenderUtility::SetBrush(g, EColor::Black);
+
+						for (int dir = 0; dir < DirCount; ++dir)
+						{
+							if (solvedCell.mask & BIT(dir))
+							{
+								DrawConnection(posCellLT, dir, FlowWidth - 4);
+							}
+						}
+					}
+
+				}
+			}
+		}
 		
+		RenderUtility::SetPen(g, EColor::White);
+
 		for( int i = 0; i <= size.x; ++i )
 		{
 			Vec2i start = ScreenOffset + Vec2i(i * CellLength, 0);
@@ -252,14 +375,7 @@ namespace FlowFree
 		}
 
 
-		auto SetColor = [&g]( int colorMeta )
-		{
-			int const ColorNum = 8;
-			int color = (colorMeta - 1) % ColorNum + 1;
-			int colorType = (colorMeta - 1) / ColorNum;
-			RenderUtility::SetPen(g, color , colorType);
-			RenderUtility::SetBrush(g, color, colorType);
-		};
+
 		for( int i = 0; i < size.x; ++i )
 		{
 			for( int j = 0; j < size.y; ++j )
@@ -285,16 +401,6 @@ namespace FlowFree
 					break;
 				}
 
-				auto DrawConnection = [&]( int dir )
-				{
-					switch (dir)
-					{
-					case 0: g.drawRect(posCellLT + Vec2i(FlowGap, FlowGap), Vec2i(CellLength - FlowGap, FlowWidth)); break;
-					case 1: g.drawRect(posCellLT + Vec2i(FlowGap, FlowGap), Vec2i(FlowWidth, CellLength - FlowGap)); break;
-					case 2: g.drawRect(posCellLT + Vec2i(0, FlowGap), Vec2i(CellLength - FlowGap, FlowWidth)); break;
-					case 3: g.drawRect(posCellLT + Vec2i(FlowGap, 0), Vec2i(FlowWidth, CellLength - FlowGap)); break;
-					}
-				};
 
 				for( int dir = 0; dir < DirCount; ++dir )
 				{
@@ -302,7 +408,7 @@ namespace FlowFree
 						continue;
 
 					SetColor(cell.funcMeta);
-					DrawConnection(dir);
+					DrawConnection(posCellLT, dir);
 				}
 
 				if (cell.blockMask)
@@ -323,32 +429,31 @@ namespace FlowFree
 						}
 					}
 				}
-
-				bool bDrawSolveDebug = true;
-				if (bDrawSolveDebug && mSolver2.mSolution.getSizeX() == mLevel.getSize().x && mSolver2.mSolution.getSizeY() == mLevel.getSize().y)
+			}
+		}
+		if (IndexReaderTextureShow != ImageReader::DebugTextureCount)
+		{
+			RHITexture2DRef& tex = mReader.mDebugTextures[IndexReaderTextureShow];
+			if (tex.isValid())
+			{
+				float scale = float(tex->getSizeY()) / tex->getSizeX();
+				if (IndexReaderTextureShow == ImageReader::eLineHough)
 				{
-#if 0
-					Solver::CellState& cellState = mSolver.mState.cells[cellIndex];
-					uint8 connectMask = cellState.connectMask;
-#else
+					scale = 1;
+				}
+				Vector2 size = Vector2(300, 300 * scale);
+				Vector2 pos = ::Global::GetDrawEngine().getScreenSize() - size - Vector2(10, 10);
+				g.drawTexture(*tex, pos, size);
 
-					auto solvedCell = mSolver2.getSolvedCell(cellPos);
-#endif
-					if (solvedCell.color)
+				if (IndexReaderTextureShow == ImageReader::eOrigin || 
+					IndexReaderTextureShow == ImageReader::eFliter)
+				{
+					for (auto line : mReader.debugLines)
 					{
-						SetColor(solvedCell.color);
-					}
-					else
-					{
-						RenderUtility::SetPen(g, EColor::Gray);
-						RenderUtility::SetBrush(g, EColor::Null);
-					}
-					for (int dir = 0; dir < DirCount; ++dir)
-					{
-						if (solvedCell.mask & BIT(dir))
-						{
-							DrawConnection(dir);
-						}
+						Vector2 start = pos + size.mul(line.start);
+						Vector2 end = pos + size.mul(line.end);
+						g.setPen(line.color);
+						g.drawLine(start, end);
 					}
 				}
 			}

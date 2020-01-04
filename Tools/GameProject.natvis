@@ -13,6 +13,22 @@
     <DisplayString>{{{x}, {y}, {z}, {w}}}</DisplayString>
   </Type>
 
+  <Type Name="Color3f">
+    <DisplayString>{{{r}, {g}, {b}}}</DisplayString>
+  </Type>
+
+  <Type Name="Color3ub">
+    <DisplayString>{{{r}, {g}, {b}}}</DisplayString>
+  </Type>
+
+  <Type Name="Color4f">
+    <DisplayString>{{{r}, {g}, {b}, {a}}}</DisplayString>
+  </Type>
+
+  <Type Name="Color4ub">
+    <DisplayString>{{{r}, {g}, {b}, {a}}}</DisplayString>
+  </Type>
+
   <Type Name="FixString&lt;*&gt;" >
     <DisplayString>{mData}</DisplayString>
   </Type>

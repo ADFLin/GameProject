@@ -315,7 +315,7 @@ int CALLBACK BrowseForFolderCallback(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pDa
 
 #endif
 
-bool SystemPlatform::OpenDirectoryName(char outPath[], int pathSize, char const* initDir /*= nullptr*/, char const* title )
+bool SystemPlatform::OpenDirectoryName(char outPath[], int pathSize, char const* initDir, char const* title, void* windowOwner)
 {
 #if SYS_PLATFORM_WIN
 	BROWSEINFO bi = { 0 };
@@ -331,6 +331,7 @@ bool SystemPlatform::OpenDirectoryName(char outPath[], int pathSize, char const*
 	bi.lParam = (LPARAM)initDir;
 	bi.ulFlags = BIF_USENEWUI;
 	bi.pszDisplayName = nullptr;
+	bi.hwndOwner = (HWND)windowOwner;
 	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
 	if (pidl != NULL)
 	{

@@ -194,7 +194,7 @@ namespace Render
 		static int const MaxSimulationInputStreamSlots = 8;
 		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];
 		int mNumInputStream;
-		uint32 mSimplerSlotDirtyMask;
+		uint32 mSimplerSlotDirtyMask = 0;
 
 		struct SamplerState 
 		{

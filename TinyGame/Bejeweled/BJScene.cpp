@@ -126,23 +126,21 @@ namespace Bejeweled
 			drawGem( g , renderPos , type );
 		}
 
-		for( GemMoveVec::iterator iter = mGemMoveVec.begin();
-			iter != mGemMoveVec.end() ; ++iter )
+		for(auto& move : mGemMoveVec)
 		{
 			Vec2i renderPos;
-			renderPos = mBoardPos + iter->pos;
+			renderPos = mBoardPos + move.pos;
 
-			int type = getLevel().getBoardGem( iter->index );
+			int type = getLevel().getBoardGem( move.index );
 			renderPos += Vec2i( CellLength , CellLength ) / 2 ;
 
 			drawGem( g , renderPos , type );
 		}
 
-		for( GemFadeOutVec::iterator iter = mGemFadeOutVec.begin();
-			iter != mGemFadeOutVec.end() ; ++iter )
+		for(auto& fadeOut : mGemFadeOutVec)
 		{
-			int type = iter->type;
-			int idx  = iter->index;
+			int type = fadeOut.type;
+			int idx  = fadeOut.index;
 
 			Vec2i cellPos = mBoardPos + CellLength * Vec2i(  idx % BoardSize , idx / BoardSize );
 			Vec2i renderPos = cellPos + Vec2i( CellLength , CellLength ) / 2 ;
@@ -316,10 +314,9 @@ namespace Bejeweled
 
 	void Scene::removeAllGemAnim()
 	{
-		for( GemMoveVec::iterator iter = mGemMoveVec.begin();
-			iter != mGemMoveVec.end() ; ++iter )
+		for(auto& move : mGemMoveVec)
 		{
-			mGemRenderFlag[ iter->index ] &= ~RF_RENDER_ANIM;
+			mGemRenderFlag[ move.index ] &= ~RF_RENDER_ANIM;
 		}
 		mGemMoveVec.clear();
 		mTweener.clear();

@@ -320,7 +320,7 @@ bool TinyGameApp::initializeGame()
 
 	setupStage();
 
-	setConsoleShowMode(ConsoleShowMode::Screen);
+	setConsoleShowMode(ConsoleShowMode::None);
 
 	bool havePlayGame = false;
 	char const* gameName;

@@ -9,23 +9,65 @@
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
+
+
+class ExecutableHeapManager
+{
+public:
+	ExecutableHeapManager()
+	{
+		mHandle = ::HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, 1 * 1024 * 1204, 128 * 1024 * 1204);
+	}
+
+	~ExecutableHeapManager()
+	{
+		::HeapDestroy(mHandle);
+	}
+
+	static ExecutableHeapManager& Get() { static ExecutableHeapManager sInstance; return sInstance; }
+
+	void* alloc(size_t size)
+	{
+		return ::HeapAlloc(mHandle, 0, size);
+	}
+	void* realloc(void* p, size_t size)
+	{
+		return ::HeapReAlloc(mHandle, 0, p, size);
+	}
+
+	void free(void* p)
+	{
+		::HeapFree(mHandle, 0, p);
+	}
+
+	HANDLE mHandle;
+};
 static void* AllocExecutableMemory(size_t size)
 {
-	return ::VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	return ExecutableHeapManager::Get().alloc(size);
+}
+static void* ReallocExecutableMemory(void* ptr, size_t size)
+{
+	return ExecutableHeapManager::Get().realloc(ptr, size);
 }
 static void  FreeExecutableMemory(void* ptr)
 {
-	::VirtualFree(ptr, 0, MEM_RELEASE);
+	return ExecutableHeapManager::Get().free(ptr);
 }
 #else
 static void* AllocExecutableMemory(size_t size)
 {
 	return ::malloc(size);
 }
+static void* ReallocExecutableMemory(void* ptr, size_t size)
+{
+	return realloc(ptr, size);
+}
 static void  FreeExecutableMemory(void* ptr)
 {
 	::free(ptr);
 }
+
 #endif
 
 //#include "FPUCode.h"
@@ -879,7 +921,7 @@ void ExecutableCode::printCode()
 
 ExecutableCode::ExecutableCode( int size )
 {
-	mMaxCodeSize = ( size ) ? size : 128;
+	mMaxCodeSize = ( size ) ? size : 64;
 	mCode = ( uint8* ) AllocExecutableMemory( mMaxCodeSize );
 	assert( mCode );
 	clearCode();
@@ -900,12 +942,10 @@ void ExecutableCode::checkCodeSize( int freeSize )
 	int newSize = 2 * mMaxCodeSize;
 	assert( newSize >= codeNum + freeSize );
 
-	uint8* newPtr = (uint8*)AllocExecutableMemory( newSize );
-	if ( !newPtr )
+	uint8* newPtr = (uint8*)ReallocExecutableMemory(mCode , newSize);
+	if (!newPtr)
 		throw std::bad_alloc();
 
-	memcpy( newPtr , mCode , codeNum );
-	FreeExecutableMemory( mCode );
 	mCode = newPtr;
 	mCodeEnd = mCode + codeNum;
 	mMaxCodeSize = newSize;

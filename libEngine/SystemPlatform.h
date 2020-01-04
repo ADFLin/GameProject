@@ -176,7 +176,7 @@ public:
 	static DateTime GetLocalTime();
 
 	static bool OpenFileName(char inoutPath[] , int pathSize, TArrayView< OpenFileFilterInfo const > filters, char const* initDir = nullptr, char const* title = nullptr , void* windowOwner = nullptr);
-	static bool OpenDirectoryName(char outPath[], int pathSize, char const* initDir = nullptr , char const* title = nullptr);
+	static bool OpenDirectoryName(char outPath[], int pathSize, char const* initDir = nullptr , char const* title = nullptr, void* windowOwner = nullptr);
 	static int64 GetTickCount();
 };
 

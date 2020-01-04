@@ -19,7 +19,7 @@ public:
 		{
 			char const* dirPath = "D:\\DownloadsNew";
 			char path[1024];
-			if (SystemPlatform::OpenDirectoryName(path, ARRAYSIZE(path), dirPath , "Select Convert Directory"))
+			if (SystemPlatform::OpenDirectoryName(path, ARRAYSIZE(path), dirPath , "Select Convert Directory" , ::Global::GetDrawEngine().getWindowHandle()))
 			{
 				convFileName(path);
 			}

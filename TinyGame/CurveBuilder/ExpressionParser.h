@@ -18,7 +18,7 @@ class SymbolTable;
 struct SymbolEntry;
 
 
-typedef double RealType;
+using RealType = double;
 enum class ValueLayout
 {
 	Int32,
@@ -214,12 +214,12 @@ struct VariableInfo
 };
 
 
-typedef RealType (__cdecl *FunType0)();
-typedef RealType (__cdecl *FunType1)(RealType);
-typedef RealType (__cdecl *FunType2)(RealType,RealType);
-typedef RealType (__cdecl *FunType3)(RealType,RealType,RealType);
-typedef RealType (__cdecl *FunType4)(RealType,RealType,RealType,RealType);
-typedef RealType (__cdecl *FunType5)(RealType,RealType,RealType,RealType,RealType);
+using FunType0 = RealType (__cdecl *)();
+using FunType1 = RealType (__cdecl *)(RealType);
+using FunType2 = RealType (__cdecl *)(RealType,RealType);
+using FunType3 = RealType (__cdecl *)(RealType,RealType,RealType);
+using FunType4 = RealType (__cdecl *)(RealType,RealType,RealType,RealType);
+using FunType5 = RealType (__cdecl *)(RealType,RealType,RealType,RealType,RealType);
 
 class ExprParse
 {
@@ -303,7 +303,7 @@ public:
 	};
 
 	
-	typedef std::vector<Unit> UnitCodes;
+	using UnitCodes = std::vector<Unit>;
 	static void print( Unit const& unit , SymbolTable const& table );
 	static void print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket );
 
@@ -328,7 +328,7 @@ public:
 			return LEAF_UNIT_INDEX( children[ idxChild ] ); 
 		}
 	};
-	typedef std::vector< Node > NodeVec;
+	using NodeVec = std::vector< Node >;
 };
 
 
@@ -530,7 +530,7 @@ private:
 class ParseResult : public ExprParse
 {
 public:
-	typedef ExprParse::Unit Unit;
+	using Unit = ExprParse::Unit;
 
 	bool   isUsingVar( char const* name ) const;
 	bool   isUsingInput(char const* name) const;
@@ -571,7 +571,7 @@ public:
 class TCodeGenerator
 {
 public:
-	typedef ParseResult::TokenType TokenType;
+	using TokenType = ParseResult::TokenType;
 	void codeInit();
 	void codeConstValue(ConstValueInfo const&val);
 	void codeVar( VariableInfo const& varInfo);

@@ -864,7 +864,9 @@ void GLGraphics2DTestStage::onRender(float dFrame)
 	g.drawCircle( Vec2i( 150 , 150 ) , 10 );
 
 	g.drawRect( Vec2i(200,200) , Vec2i( 100 , 100 ) );
-	g.drawRoundRect( Vec2i(200,200) , Vec2i( 100 , 100 ) , Vec2i(20, 30 ) );
+	g.drawRoundRect( Vec2i(200,200) , Vec2i( 100 , 100 ) , Vec2i(30, 30 ) );
+
+	RenderUtility::DrawCapsuleX(g, Vec2i(40,40), Vec2i(400,200) );
 
 	RenderUtility::SetFont( g , FONT_S8 );
 	g.drawText( Vec2i( 10 , 10 ) , "aa");

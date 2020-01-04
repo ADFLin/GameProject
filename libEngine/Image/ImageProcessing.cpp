@@ -61,7 +61,7 @@ void Normalize(TImageView< float >& input)
 	}
 }
 
-void HoughLines(HoughSetting const& setting, TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView, std::vector< HoughLine >& outLines)
+void HoughLines(HoughSetting const& setting, TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView, std::vector< HoughLine >& outLines, std::vector<float>* outDebugData)
 {
 #define USE_FAST_MATH 1
 
@@ -99,6 +99,8 @@ void HoughLines(HoughSetting const& setting, TImageView< float > const& input, s
 #if USE_FAST_MATH
 	static FFastMath sMath;
 #endif
+	float const offsetX = 0.5f - halfWidth;
+	float const offsetY = 0.5f - halfHeight;
 	for (int y = 0; y < input.getHeight(); ++y)
 	{
 		for (int x = 0; x < input.getWidth(); ++x)
@@ -115,7 +117,7 @@ void HoughLines(HoughSetting const& setting, TImageView< float > const& input, s
 					float c, s;
 					Math::SinCos(Math::Deg2Rad(index * HoughAngleDelta), s, c);
 #endif
-					float r = (x - halfWidth) * c + (y - halfHeight) * s;
+					float r = (x + offsetX) * c + (y + offsetY) * s;
 					int ri = (int)Math::Round(r / HoughDistDelta);
 					if (-HeightSizeHalf <= ri && ri < HeightSizeHalf)
 					{
@@ -127,6 +129,11 @@ void HoughLines(HoughSetting const& setting, TImageView< float > const& input, s
 	}
 
 	Normalize(houghView);
+
+	if (outDebugData)
+	{
+		*outDebugData = outData;
+	}
 
 	for (int y = 0; y < houghView.getHeight(); ++y)
 	{
@@ -142,11 +149,13 @@ void HoughLines(HoughSetting const& setting, TImageView< float > const& input, s
 
 					float threshold = 0;
 					float maxValue = 0;
+					int   removeCount = 0;
 					int yMax;
 					int xMax;
 					void operator ()(int x, int y)
 					{
 						float value = houghView(x, y);
+						++removeCount;
 						houghView(x, y) = 0;
 						if (value > maxValue)
 						{
@@ -186,6 +195,8 @@ void HoughLines(HoughSetting const& setting, TImageView< float > const& input, s
 				HoughLine line;
 				line.dist = (finder.yMax - HeightSizeHalf) * HoughDistDelta;
 				line.theta = HoughAngleDelta * finder.xMax;
+				line.removeCount = finder.removeCount;
+				line.maxValue = finder.maxValue;
 				outLines.push_back(line);
 			}
 		}

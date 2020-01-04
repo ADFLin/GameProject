@@ -173,7 +173,18 @@ public:
 };
 
 
-class Color3ub : public TColor3< uint8 >
+template<class T , class CompType >
+class ColorEnumT
+{
+	using CET = TColorElementTraits<CompType>;
+public:
+	static T Black() { return T( 0, 0, 0 ); }
+	static T White() { return T( CET::Max(), CET::Max(), CET::Max()); }
+
+};
+
+class Color3ub : public TColor3< uint8 > 
+	           , public ColorEnumT<Color3ub , uint8 >
 {
 public:
 	using TColor3<uint8>::TColor3;
@@ -184,7 +195,10 @@ public:
 
 };
 
+
+
 class Color3f : public TColor3< float >
+	          , public ColorEnumT<Color3f , float >
 {
 	using Vector3 = Math::Vector3;
 public:
@@ -200,6 +214,7 @@ public:
 
 
 class Color4ub : public TColor4< uint8 >
+	           , public ColorEnumT<Color4ub, uint8>
 {
 public:
 	using TColor4<uint8>::TColor4;
@@ -210,6 +225,7 @@ public:
 };
 
 class Color4f : public TColor4< float >
+	          , public ColorEnumT<Color4f , float>
 {
 	using Vector3 = Math::Vector3;
 	using Vector4 = Math::Vector4;

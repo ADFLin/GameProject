@@ -83,7 +83,7 @@ namespace FlowFree
 #endif
 		
 		int numCellFilled = 0;
-
+		int IndexReaderTextureShow = ImageReader::DebugTextureCount;
 
 		bool onMouse(MouseMsg const& msg) override;
 
@@ -96,6 +96,8 @@ namespace FlowFree
 			case EKeyCode::R: restart(); break;
 			case EKeyCode::X: mSolver.solveNext(); break;
 			case EKeyCode::C: for (int i = 0; i < 97; ++i) mSolver.solveNext(); break;
+			case EKeyCode::P: ++IndexReaderTextureShow; if (IndexReaderTextureShow > ImageReader::DebugTextureCount) IndexReaderTextureShow = 0; break;
+			case EKeyCode::O: --IndexReaderTextureShow; if (IndexReaderTextureShow < 0) IndexReaderTextureShow = ImageReader::DebugTextureCount; break;
 			}
 			return false;
 		}
@@ -113,6 +115,8 @@ namespace FlowFree
 
 		Level mLevel;
 	protected:
+
+		Color3ub mColorMap[32];
 	};
 }
 

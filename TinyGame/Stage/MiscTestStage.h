@@ -845,7 +845,7 @@ public:
 
 	bool onInit() override
 	{
-		::Global::GetDrawEngine().changeScreenSize(1600, 1200);
+		::Global::GetDrawEngine().changeScreenSize(800, 600);
 		::Global::GUI().cleanupWidget();
 		if ( !::Global::GetDrawEngine().startOpenGL() )
 			return false;

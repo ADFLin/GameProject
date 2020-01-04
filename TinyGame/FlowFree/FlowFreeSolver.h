@@ -223,9 +223,11 @@ namespace FlowFree
 		struct SolvedCell
 		{
 			int      color;
-			EdgeMask mask;
-			//for bridge
-			int      color2;
+			union 
+			{
+				EdgeMask mask;
+				int      color2;
+			};
 		};
 
 		SolvedCell const& getSolvedCell(Vec2i const& pos)
@@ -235,7 +237,16 @@ namespace FlowFree
 
 		TGrid2D< SolvedCell > mSolution;
 		TGrid2D< EdgeMask >   mConnectMaskMap;
-		Minisat::Solver       mSolver;
+
+		struct SATWapper
+		{
+			void reset() { mImpl.reset(new Minisat::Solver); }
+			operator Minisat::Solver& () { return *mImpl.get(); }
+			Minisat::Solver* operator->() { return mImpl.get(); }
+			std::unique_ptr< Minisat::Solver > mImpl;
+		};
+
+		SATWapper  mSAT;
 	};
 
 	class SATSolverEdge : public SATSolverBase

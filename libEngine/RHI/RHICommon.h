@@ -286,7 +286,10 @@ namespace Render
 	class RHITexture1D : public RHITextureBase
 	{
 	public:
-		RHITexture1D():RHITextureBase(TRACE_TYPE_NAME("Texture1D")){}
+		RHITexture1D():RHITextureBase(TRACE_TYPE_NAME("Texture1D"))
+		{
+			mSize = 0;
+		}
 
 		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0) = 0;
 
@@ -301,7 +304,11 @@ namespace Render
 	class RHITexture2D : public RHITextureBase
 	{
 	public:
-		RHITexture2D() :RHITextureBase(TRACE_TYPE_NAME("Texture2D")) {}
+		RHITexture2D() :RHITextureBase(TRACE_TYPE_NAME("Texture2D")) 
+		{
+			mSizeX = 0;
+			mSizeY = 0;
+		}
 
 		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
@@ -319,7 +326,12 @@ namespace Render
 	class RHITexture3D : public RHITextureBase
 	{
 	public:
-		RHITexture3D() :RHITextureBase(TRACE_TYPE_NAME("Texture3D")) {}
+		RHITexture3D() :RHITextureBase(TRACE_TYPE_NAME("Texture3D")) 
+		{
+			mSizeX = 0;
+			mSizeY = 0;
+			mSizeZ = 0;
+		}
 
 		int  getSizeX() const  { return mSizeX; }
 		int  getSizeY() const  { return mSizeY; }

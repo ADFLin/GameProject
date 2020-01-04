@@ -294,6 +294,8 @@ namespace FlowFree
 
 	bool SATSolverEdge::solve(Level& level)
 	{
+		mSAT.reset();
+
 		Vec2i size = level.getSize();
 
 		int colorCount = level.mSourceLocations.size() / 2;
@@ -308,8 +310,8 @@ namespace FlowFree
 				VarInfo& info = mVarTable(i, j);
 				for (int c = 0; c < colorCount; ++c)
 				{
-					info.edges[0].colors[c] = mSolver.newVar();
-					info.edges[1].colors[c] = mSolver.newVar();
+					info.edges[0].colors[c] = mSAT->newVar();
+					info.edges[1].colors[c] = mSAT->newVar();
 				}
 			}
 		}
@@ -326,7 +328,7 @@ namespace FlowFree
 					{
 						for (int c = 0; c < colorCount; ++c)
 						{
-							mSolver.addClause(~Lit(info.edges[dir].colors[c]));
+							mSAT->addClause(~Lit(info.edges[dir].colors[c]));
 						}
 					}
 				}
@@ -358,14 +360,14 @@ namespace FlowFree
 							auto c3 = edges[3]->colors[c];
 							if (c == cell.funcMeta - 1)
 							{
-								ExactlyOne(mSolver, { c0, c1 , c2 , c3 });
+								ExactlyOne(mSAT, { c0, c1 , c2 , c3 });
 							}
 							else
 							{
-								mSolver.addClause(~Lit(c0));
-								mSolver.addClause(~Lit(c1));
-								mSolver.addClause(~Lit(c2));
-								mSolver.addClause(~Lit(c3));
+								mSAT->addClause(~Lit(c0));
+								mSAT->addClause(~Lit(c1));
+								mSAT->addClause(~Lit(c2));
+								mSAT->addClause(~Lit(c3));
 							}
 						}
 					}
@@ -402,7 +404,7 @@ namespace FlowFree
 						auto c1 = edges[(dir + 1) % DirCount]->colors[c];
 						auto c2 = edges[(dir + 2) % DirCount]->colors[c];
 						auto c3 = edges[(dir + 3) % DirCount]->colors[c];
-						ExactlyTwo(mSolver, c0, c1, c2, c3);
+						ExactlyTwo(mSAT, c0, c1, c2, c3);
 #endif
 					}
 					break;
@@ -410,9 +412,9 @@ namespace FlowFree
 			}
 		}
 
-		LogMsg("Var = %d : Clause = %d", mSolver.nVars(), mSolver.nClauses());
+		LogMsg("Var = %d : Clause = %d", mSAT->nVars(), mSAT->nClauses());
 
-		bool bSolved = mSolver.solve();
+		bool bSolved = mSAT->solve();
 		mSolution.resize(size.x, size.y);
 		if (bSolved)
 		{
@@ -431,7 +433,7 @@ namespace FlowFree
 					{
 						for (int c = 0; c < colorCount; ++c)
 						{
-							if (mSolver.modelValue(edges[dir]->colors[c]).isTrue())
+							if (mSAT->modelValue(edges[dir]->colors[c]).isTrue())
 							{
 								mask |= BIT(dir);
 								break;
@@ -466,7 +468,7 @@ namespace FlowFree
 					{
 						for (int c = 0; c < colorCount; ++c)
 						{
-							if (mSolver.value(edges[dir]->colors[c]).isTrue())
+							if (mSAT->value(edges[dir]->colors[c]).isTrue())
 							{
 								mask |= BIT(dir);
 								break;
@@ -489,11 +491,28 @@ namespace FlowFree
 
 	bool SATSolverCell::solve(Level& level)
 	{
+		mSAT.reset();
+
 		Vec2i size = level.getSize();
 		mSize = size;
 		mColorCount = level.mSourceLocations.size() / 2;
 		assert(mColorCount <= MaxColorCount);
 
+
+		auto GetLinkPosSkipBirdge = [&level](Vec2i const& pos, int dir) -> Vec2i
+		{
+			Vec2i linkPos = pos;
+			for(;;)
+			{
+				linkPos = level.getLinkPos(linkPos, dir);
+				Cell& cell = level.getCellChecked(linkPos);
+				if (cell.func != CellFunc::Bridge)
+				{
+					break;
+				}
+			}
+			return linkPos;
+		};
 		
 		{
 			TIME_SCOPE("SAT Setup");
@@ -505,19 +524,19 @@ namespace FlowFree
 				{
 					for (int c = 0; c < mColorCount; ++c)
 					{
-						auto var = mSolver.newVar();
+						auto var = mSAT->newVar();
 						mVarMap(i, j).colors[c] = var;
 					}
 
 					for (int t = 0; t < ConnectTypeCount; ++t)
 					{
-						auto var = mSolver.newVar();
+						auto var = mSAT->newVar();
 						mVarMap(i, j).conTypes[t] = var;
 					}
 				}
 			}
 
-#define CHECK_OK_INTERNAL( FILE , LINE , FUNC )  if (! mSolver.okay() ) { execbreak(); LogMsg( "%s(%d) : %s Sat is not OK" , FILE , LINE , FUNC ); }
+#define CHECK_OK_INTERNAL( FILE , LINE , FUNC )  if (! mSAT->okay() ) { execbreak(); LogMsg( "%s(%d) : %s Sat is not OK" , FILE , LINE , FUNC ); }
 #define CHECK_OK CHECK_OK_INTERNAL(__FILE__ , __LINE__ , __FUNCTION__)
 
 			for (int j = 0; j < size.y; ++j)
@@ -536,7 +555,7 @@ namespace FlowFree
 						{
 							literals.push(Lit(getColorVar(pos, c)));
 						}
-						ExactlyOne(mSolver, literals);
+						ExactlyOne(mSAT, literals);
 						CHECK_OK;
 					}
 
@@ -550,11 +569,11 @@ namespace FlowFree
 							{
 								if (c == sourceColor)
 								{
-									mSolver.addClause(Lit(getColorVar(pos, c)));
+									mSAT->addClause(Lit(getColorVar(pos, c)));
 								}
 								else
 								{
-									mSolver.addClause(~Lit(getColorVar(pos, c)));
+									mSAT->addClause(~Lit(getColorVar(pos, c)));
 								}
 							}
 
@@ -562,24 +581,23 @@ namespace FlowFree
 							Minisat::vec< SATLit > literals;
 							for (int dir = 0; dir < DirCount; ++dir)
 							{
-								Vec2i linkPos = level.getLinkPos(pos, dir);
 								if (cell.blockMask & BIT(dir))
 								{
 									continue;
 								}
 
+								Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
 								literals.push(Lit(getColorVar(linkPos, sourceColor)));
 							}
 
 							if (!literals.empty())
 							{
-								ExactlyOne(mSolver, literals);
-
+								ExactlyOne(mSAT, literals);
 							}
 
 							for (int t = 0; t < ConnectTypeCount; ++t)
 							{
-								mSolver.addClause(~Lit(getConTypeVar(pos, t)));
+								mSAT->addClause(~Lit(getConTypeVar(pos, t)));
 							}
 							CHECK_OK;
 						}
@@ -594,7 +612,7 @@ namespace FlowFree
 									uint8 conTypMask = GetEmptyConnectTypeMask(ConnectType(t));
 									if (conTypMask & cell.blockMask)
 									{
-										mSolver.addClause(~Lit(getConTypeVar(pos, t)));
+										mSAT->addClause(~Lit(getConTypeVar(pos, t)));
 									}
 									else
 									{
@@ -604,7 +622,7 @@ namespace FlowFree
 
 								if (!literals.empty())
 								{
-									ExactlyOne(mSolver, literals);
+									ExactlyOne(mSAT, literals);
 								}
 								CHECK_OK;
 							}
@@ -619,16 +637,16 @@ namespace FlowFree
 
 								auto Tij = Lit(getConTypeVar(pos, t));
 
-								Vec2i ConPos0 = level.getLinkPos(pos, linkDirs[0]);
-								Vec2i ConPos1 = level.getLinkPos(pos, linkDirs[1]);
+								Vec2i ConPos0 = GetLinkPosSkipBirdge(pos, linkDirs[0]);
+								Vec2i ConPos1 = GetLinkPosSkipBirdge(pos, linkDirs[1]);
 								for (int c = 0; c < mColorCount; ++c)
 								{
 									auto Cij = Lit(getColorVar(pos, c));
 									//The neighbors of a cell specified by its direction type must match its color
-									mSolver.addClause(~Tij, ~Cij, Lit(getColorVar(ConPos0, c)));
-									mSolver.addClause(~Tij, Cij, ~Lit(getColorVar(ConPos0, c)));
-									mSolver.addClause(~Tij, ~Cij, Lit(getColorVar(ConPos1, c)));
-									mSolver.addClause(~Tij, Cij, ~Lit(getColorVar(ConPos1, c)));
+									mSAT->addClause(~Tij, ~Cij, Lit(getColorVar(ConPos0, c)));
+									mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos0, c)));
+									mSAT->addClause(~Tij, ~Cij, Lit(getColorVar(ConPos1, c)));
+									mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos1, c)));
 									CHECK_OK;
 									//The neighbors of a cell not specified by its direction type must not match its color
 									for (int dir = 0; dir < DirCount; ++dir)
@@ -639,8 +657,8 @@ namespace FlowFree
 										if (BIT(dir) & cell.blockMask)
 											continue;
 
-										Vec2i linkPos = level.getLinkPos(pos, dir);
-										mSolver.addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos, c)));
+										Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
+										mSAT->addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos, c)));
 									}
 									CHECK_OK;
 								}
@@ -654,14 +672,14 @@ namespace FlowFree
 			}
 		}
 
-		LogMsg("Var = %d : Clause = %d", mSolver.nVars(), mSolver.nClauses());
-		mSolver.simplify();
-		//LogMsg("Var = %d : Clause = %d", mSolver.nVars(), mSolver.nClauses());
+		LogMsg("Var = %d : Clause = %d", mSAT->nVars(), mSAT->nClauses());
+		mSAT->simplify();
+		//LogMsg("Var = %d : Clause = %d", mSolver->nVars(), mSolver->nClauses());
 
 		bool bSolved;
 		{
 			TIME_SCOPE("SAT Solve");
-			bSolved = mSolver.solve();
+			bSolved = mSAT->solve();
 		}
 
 		mSolution.resize(size.x, size.y);
@@ -670,35 +688,89 @@ namespace FlowFree
 
 			SolvedCell c;
 			c.color = 0;
-			c.color2 = 0;
 			c.mask = 0;
 			mSolution.fillValue(c);
 		}
 		
 		if (bSolved)
 		{
+			
+			std::vector< Vec2i > specialCellPosList;
 			for (int j = 0; j < size.y; ++j)
 			{
 				for (int i = 0; i < size.x; ++i)
 				{
 					Vec2i pos = Vec2i(i, j);
-					for (int t = 0; t < ConnectTypeCount; ++t)
-					{
-						if (mSolver.modelValue(getConTypeVar(pos, t)).isTrue())
-						{
-							mSolution(i, j).mask = GetEmptyConnectTypeMask(ConnectType(t));
-							break;
-						}
-					}
+					Cell const& cell = level.getCellChecked(pos);
 
-					for (int c = 0; c < mColorCount; ++c)
+					auto& cellSolution = mSolution(i, j);
+					switch (cell.func)
 					{
-						if (mSolver.modelValue(getColorVar(pos, c)).isTrue())
+					case CellFunc::Empty:
 						{
-							mSolution(i, j).color = c + 1;
+							for (int t = 0; t < ConnectTypeCount; ++t)
+							{
+								if (mSAT->modelValue(getConTypeVar(pos, t)).isTrue())
+								{
+									cellSolution.mask = GetEmptyConnectTypeMask(ConnectType(t));
+									break;
+								}
+							}
+
+							for (int c = 0; c < mColorCount; ++c)
+							{
+								if (mSAT->modelValue(getColorVar(pos, c)).isTrue())
+								{
+									cellSolution.color = c + 1;
+									break;
+								}
+							}
+						}
+						break;
+					case CellFunc::Source:
+					case CellFunc::Bridge:
+						specialCellPosList.push_back(pos);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+
+
+			for( auto pos : specialCellPosList )
+			{
+				Cell const& cell = level.getCellChecked(pos);
+				
+				if (cell.func == CellFunc::Source)
+				{
+					auto& cellSolution = mSolution(pos.x, pos.y);
+					cellSolution.color = cell.funcMeta;
+
+					for (int dir = 0; dir < DirCount; ++dir)
+					{
+						Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
+						auto const& linkCell = mSolution(linkPos.x, linkPos.y);
+
+						if (linkCell.mask & BIT(InverseDir(dir)))
+						{
+							cellSolution.mask = BIT(dir);
 							break;
 						}
 					}
+				}
+			}
+	
+			for (auto pos : specialCellPosList)
+			{
+				Cell const& cell = level.getCellChecked(pos);
+				if (cell.func == CellFunc::Bridge)
+				{
+					auto& cellSolution = mSolution(pos.x, pos.y);
+					Vec2i linkPosX = GetLinkPosSkipBirdge(pos, EDir::Left);
+					Vec2i linkPosY = GetLinkPosSkipBirdge(pos, EDir::Bottom);
+					cellSolution.color = mSolution(linkPosX.x, linkPosX.y).color;
+					cellSolution.color2 = mSolution(linkPosY.x, linkPosY.y).color;
 				}
 			}
 		}

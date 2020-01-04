@@ -111,7 +111,7 @@ public:
 
 static inline int calcCircleSemgmentNum( int r )
 {
-	return std::max( 4 * ( r / 2 ) , 32 );
+	return std::max( 4 * ( r / 2 ) , 32 ) * 10;
 }
 
 
@@ -242,9 +242,9 @@ void GLGraphics2D::emintRectVertex(Vector2 const& p1 , Vector2 const& p2)
 
 void GLGraphics2D::emitCircleVertex(float cx, float cy, float r, int numSegment)
 {
-	float theta = 2 * 3.1415926 / float(numSegment); 
-	float c = cos(theta);//precalculate the sine and cosine
-	float s = sin(theta);
+	float theta = 2 * Math::PI / float(numSegment); 
+	float c, s;
+	Math::SinCos(theta, s, c);
 
 	float x = r;//we start at angle = 0 
 	float y = 0;
@@ -264,9 +264,9 @@ void GLGraphics2D::emitCircleVertex(float cx, float cy, float r, int numSegment)
 
 void GLGraphics2D::emitEllipseVertex(float cx, float cy, float r , float yFactor , int numSegment)
 {
-	float theta = 2 * 3.1415926 / float(numSegment); 
-	float c = cos(theta);//precalculate the sine and cosine
-	float s = sin(theta);
+	float theta = 2 * Math::PI / float(numSegment);
+	float c, s;
+	Math::SinCos(theta, s, c);
 
 	float x = r;//we start at angle = 0 
 	float y = 0;
@@ -288,42 +288,74 @@ void GLGraphics2D::emitRoundRectVertex( Vector2 const& pos , Vector2 const& rect
 	float yFactor = float( circleSize.y ) / circleSize.x;
 	int num = numSegment / 4;
 
-	float theta = 2 * Math::PI / float(numSegment); 
-	float c = cos(theta);//precalculate the sine and cosine
-	float s = sin(theta);
+	double theta = 2 * Math::PI / float(numSegment);
+	double c = cos(theta);//precalculate the sine and cosine
+	double s = sin(theta);
 
 	float cvn[4][2] =
 	{
 		float( pos.x + rectSize.x - circleSize.x ) , float( pos.y + rectSize.y - circleSize.y ) ,
-		float( pos.x + circleSize.x ) , float( pos.y + rectSize.y - circleSize.y ) ,
-		float( pos.x + circleSize.x ) , float( pos.y + circleSize.y ) ,
+		float( pos.x + circleSize.x )              , float( pos.y + rectSize.y - circleSize.y ) ,
+		float( pos.x + circleSize.x )              , float( pos.y + circleSize.y ) ,
 		float( pos.x + rectSize.x - circleSize.x ) , float( pos.y + circleSize.y ) ,
 	};
 
 	float v[2];
-	float x , y;
+	double x , y;
 	float cx = cvn[0][0];
 	float cy = cvn[0][1];
-	for( int n = 0 ; n < 4 ; ++n )
+	switch (0)
 	{
-		switch( n )
-		{
-		case 0: x = circleSize.x; y = 0; break;
-		case 1: y = circleSize.x; x = 0; break;
-		case 2: x = -circleSize.x; y = 0; break;
-		case 3: y = -circleSize.x; x = 0; break;
-		}
-		for(int i = 0; i < num; ++i) 
+	case 0: x = circleSize.x; y = 0; break;
+	case 1: x = 0; y = circleSize.x; break;
+	case 2: x = -circleSize.x; y = 0; break;
+	case 3: x = 0; y = -circleSize.x; break;
+	}
+
+	for( int side = 0 ; side < 4 ; ++side )
+	{
+		v[0] = cx + x;
+		v[1] = cy + yFactor * y;
+		emitVertex(v);
+
+		for(int i = 0; i < num ; ++i) 
 		{ 
+			if ( i == num / 2 )
+			{
+				float tc, ts;
+				Math::SinCos(theta * i , ts, tc);
+				float x0, y0;
+				switch (side)
+				{
+				case 0: x0 = circleSize.x; y0 = 0; break;
+				case 1: x0 = 0; y0 = circleSize.x; break;
+				case 2: x0 = -circleSize.x; y0 = 0; break;
+				case 3: x0 = 0; y0 = -circleSize.x; break;
+				}
+
+				x = tc * x0 - ts * y0;
+				y = ts * x0 + tc * y0;
+			}
+			else
+			{
+				double x0 = x;
+				x = c * x0 - s * y;
+				y = s * x0 + c * y;
+			}
+
 			v[0] = cx + x;
 			v[1] = cy + yFactor * y;
-			emitVertex( v );
-
-			float temp = x;
-			x = c * temp - s * y;
-			y = s * temp + c * y;
+			emitVertex(v);
 		}
-		int next = ( n == 3 ) ? 0 : n + 1;
+
+		int next = ( side == 3 ) ? 0 : side + 1;
+		switch (next)
+		{
+		case 0: x = circleSize.x; y = 0; break;
+		case 1: x = 0; y = circleSize.x; break;
+		case 2: x = -circleSize.x; y = 0; break;
+		case 3: x = 0; y = -circleSize.x; break;
+		}
 		cx = cvn[next][0];
 		cy = cvn[next][1];
 		v[0] = cx + x;

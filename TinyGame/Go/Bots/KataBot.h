@@ -60,7 +60,7 @@ namespace Go
 		ScoringRule scoringRule = AREA;
 
 		//Is multiple - stone suicide legal ? (Single - stone suicide is always illegal).
-		bool multiStoneSuicideLegal = true;
+		bool multiStoneSuicideLegal = false;
 
 		// Make the bot capture stones that are part of pass - alive territory
 		// This is necessary to get correct play under tromp - taylor rules since the bot otherwise assumes(and is trained under)

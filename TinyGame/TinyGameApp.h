@@ -187,7 +187,7 @@ private:
 
 		Count ,
 	};
-	ConsoleShowMode mConsoleShowMode;
+	ConsoleShowMode mConsoleShowMode = ConsoleShowMode::None;
 	void setConsoleShowMode(ConsoleShowMode mode);
 
 	class ConsoleFrame* mConsoleWidget = nullptr;

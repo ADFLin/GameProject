@@ -3,7 +3,7 @@
 #define ImageProcessing_H_560E20F5_C146_4AA4_B6D2_487C811E7C59
 
 #include "Core/Color.h"
-
+#include "Math/TVector2.h"
 #include <vector>
 
 template< class T >
@@ -11,36 +11,55 @@ class TImageView
 {
 public:
 	TImageView()
+		:mSize(TVector2<int>::Zero())
 	{
-		mWidth = 0;
-		mHeight = 0;
+		mStride = mSize.x;
 		mData = nullptr;
 	}
 	TImageView(T* data, int w, int h)
 	{
 		mData = data;
-		mWidth = w;
-		mHeight = h;
+		mStride = w;
+		mSize.x = w;
+		mSize.y = h;
 	}
 
-	bool isValidRange(int x, int y)
+	bool isValidRange(int x, int y) const
 	{
-		return 0 <= x && x < mWidth && 0 <= y && y < mHeight;
+		return 0 <= x && x < mSize.x && 0 <= y && y < mSize.y;
 	}
 	T*  getData() { return mData; }
 	T&  operator()( int x, int y )
 	{
-		return mData[y * mWidth + x];
+		assert(isValidRange(x, y));
+		return mData[y * mStride + x];
 	}
 	T const&  operator()(int x, int y) const
 	{
-		return mData[y * mWidth + x];
+		assert(isValidRange(x, y));
+		return mData[y * mStride + x];
 	}
-	int getWidth() const { return mWidth; }
-	int getHeight() const { return mHeight; }
 
-	int mWidth;
-	int mHeight;
+	int getWidth() const { return mSize.x; }
+	int getHeight() const { return mSize.y; }
+	TVector2<int> getSize() const { return mSize; }
+
+	TVector2<float> getPixelCenterToUV( TVector2<int> const& pos) const 
+	{ 
+		TVector2< float > temp = TVector2<float>(pos) + TVector2(0.5f, 0.5f);
+		return temp.div( mSize );
+	}
+
+	TVector2<int>   getPixelPos(TVector2<float> const& uv) const
+	{
+		TVector2< float > temp = uv.mul( mSize );
+		TVector2<int> result;
+		result.x = Math::FloorToInt(temp.x);
+		result.y = Math::FloorToInt(temp.y);
+		return  result;
+	}
+	TVector2<int> mSize;
+	int mStride;
 	T*  mData;
 };
 
@@ -73,10 +92,11 @@ void GrayScale(TImageView< T > const& input, TImageView< Q >& output)
 			float g = FColorTraits::GetG<float>(c);
 			float b = FColorTraits::GetB<float>(c);
 
-			output(x, y) = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+			output(x, y) = TColorElementTraits<Q>::Normalize(float(0.2126 * r + 0.7152 * g + 0.0722 * b));
 		}
 	}
 }
+
 
 void Downsample(TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView);
 
@@ -100,12 +120,24 @@ void Sobel(TImageView< float > const& input, TImageView< float >& output);
 template< class T , class TFunc >
 void Transform(TImageView< T >& inoutput , TFunc&& func = TFunc() )
 {
-	for (int y = 0; y < input.getHeight(); ++y)
+	for (int y = 0; y < inoutput.getHeight(); ++y)
 	{
-		for (int x = 0; x < input.getWidth(); ++x)
+		for (int x = 0; x < inoutput.getWidth(); ++x)
 		{
 			T& value = inoutput(x, y);
 			value = func(value);
+		}
+	}
+}
+template< class T , class T2  >
+void Fill(TImageView<T>& inoutput, TVector2<int> const& pos, TVector2<int> const& size , T2 const& value)
+{
+	TVector2<int> end = pos + size;
+	for (int y = pos.y; y < end.y; ++y)
+	{
+		for (int x = pos.x; x < end.x; ++x)
+		{
+			inoutput(x, y) = value;
 		}
 	}
 }
@@ -114,6 +146,8 @@ struct HoughLine
 {
 	float dist;
 	float theta;
+	int   removeCount;
+	float maxValue;
 };
 
 struct HoughSetting 
@@ -123,7 +157,7 @@ struct HoughSetting
 
 void Normalize(TImageView< float >& input);
 
-void HoughLines(HoughSetting const& setting, TImageView< float > const& input , std::vector< float >& outData , TImageView<float>& outView , std::vector< HoughLine >& outLines );
+void HoughLines(HoughSetting const& setting, TImageView< float > const& input , std::vector< float >& outData , TImageView<float>& outView , std::vector< HoughLine >& outLines , std::vector<float>* outDebugData = nullptr );
 
 template< class T >
 void Conv(TImageView< T > const& input, TImageView< T > const& fliter, TImageView< T >& output)

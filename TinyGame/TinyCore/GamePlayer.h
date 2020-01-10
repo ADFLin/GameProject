@@ -7,8 +7,8 @@
 
 #include <map>
 
-typedef unsigned PlayerId;
-typedef int      SlotId;
+using PlayerId = unsigned;
+using SlotId = int;
 #define ERROR_PLAYER_ID  PlayerId(-1)
 #define SERVER_PLAYER_ID PlayerId(-2)
 #define ERROR_SLOT_ID    SlotId(-1)
@@ -50,13 +50,23 @@ struct PlayerInfo
 class  GamePlayer
 {	
 public:
-	GamePlayer(){ mInfo = NULL ; mAI = NULL; }
+	GamePlayer()
+	{ 
+		mInfo = nullptr; 
+		mAI = nullptr; 
+	}
+
 	void        init( PlayerInfo& info ){  mInfo = &info;  }
-	PlayerId    getId()        { return getInfo().playerId; }
-	PlayerType  getType()      { return getInfo().type; }
-	char const* getName()      { return getInfo().name; }
-	unsigned    getActionPort(){ return getInfo().actionPort;  }
-	SlotId      getSlot()      { return getInfo().slot; }
+	PlayerId    getId()        { return mInfo->playerId; }
+	PlayerType  getType()      { return mInfo->type; }
+	char const* getName()      { return mInfo->name; }
+	unsigned    getActionPort(){ return mInfo->actionPort;  }
+	SlotId      getSlot()      { return mInfo->slot; }
+
+
+	void        setType(PlayerType type) { mInfo->type = type; }
+	void        setSlot(SlotId slot) { mInfo->slot = slot; }
+	void        setActionPort(unsigned port) { mInfo->actionPort = port; }
 
 	PlayerInfo& getInfo(){ return *mInfo; }
 	void        setInfo( PlayerInfo const& info ){ *mInfo = info; }
@@ -87,7 +97,7 @@ public:
 
 		operator bool() const { return haveMore(); }
 
-		Iterator& operator++(void)  { goNext(); return *this; }
+		Iterator& operator++()  { goNext(); return *this; }
 		Iterator  operator++(int) { Iterator temp = *this; goNext(); return temp; }
 
 	private:
@@ -102,7 +112,7 @@ public:
 	GamePlayer*  getUser()
 	{ 
 		PlayerId id = getUserID();
-		return id == ERROR_PLAYER_ID ? NULL : getPlayer( id );
+		return id == ERROR_PLAYER_ID ? nullptr : getPlayer( id );
 	}
 
 };
@@ -110,7 +120,7 @@ public:
 template< class T > 
 class SimplePlayerManagerT : public IPlayerManager
 {
-	typedef T PlayerType;
+	using PlayerType = T;
 public:
 	SimplePlayerManagerT(){ mUserID = ERROR_PLAYER_ID; }
 	~SimplePlayerManagerT()
@@ -122,7 +132,7 @@ public:
 		}
 	}
 
-	PlayerType* getPlayer( PlayerId id )
+	PlayerType* getPlayer( PlayerId id ) override
 	{
 		PlayerTable::iterator iter = mPlayerTable.find( id );
 		if ( iter != mPlayerTable.end() )
@@ -160,12 +170,12 @@ public:
 		return player;
 	}
 
-	size_t        getPlayerNum(){  return mPlayerTable.size();  }
-	PlayerId      getUserID(){  return mUserID;  }
+	size_t        getPlayerNum() override{  return mPlayerTable.size();  }
+	PlayerId      getUserID() override{  return mUserID;  }
 	void          setUserID( PlayerId id ){ mUserID = id; }
 
 protected:
-	typedef std::map< PlayerId , PlayerType* > PlayerTable;
+	using PlayerTable = std::map< PlayerId , PlayerType* >;
 	PlayerTable mPlayerTable;
 	PlayerId    mUserID;
 	PlayerInfo  mPlayerInfo[ MAX_PLAYER_NUM ];

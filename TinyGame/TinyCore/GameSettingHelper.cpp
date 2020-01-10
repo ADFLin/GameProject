@@ -83,7 +83,7 @@ void NetRoomSettingHelper::setMaxPlayerNum( int num )
 						break;
 					case PT_PLAYER:
 						GamePlayer* player = mServer->getPlayerManager()->getPlayer( slot.info->playerId );
-						player->getInfo().type = PT_SPECTATORS;
+						player->setType( PT_SPECTATORS );
 						break;
 					}
 
@@ -143,7 +143,7 @@ bool NetRoomSettingHelper::addPlayerSV( PlayerId id )
 		//FIXME
 	}
 
-	player->getInfo().slot = slotId;
+	player->setSlot( slotId );
 	sendPlayerStatusSV();
 	sendSlotStateSV();
 	return true;

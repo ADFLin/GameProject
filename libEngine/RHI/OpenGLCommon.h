@@ -612,13 +612,17 @@ namespace Render
 	struct GLBlendStateValue
 	{
 		bool bEnableAlphaToCoverage;
+		bool bEnableIndependent;
 		GLTargetBlendValue targetValues[NumBlendStateTarget];
 		GLBlendStateValue() {}
 		GLBlendStateValue(EForceInit)
 		{
 			bEnableAlphaToCoverage = false;
-			for( int i = 0; i < NumBlendStateTarget; ++i )
-				targetValues[0] = GLTargetBlendValue(ForceInit);
+			bEnableIndependent = false;
+			for (int i = 0; i < NumBlendStateTarget; ++i)
+			{
+				targetValues[i] = GLTargetBlendValue(ForceInit);
+			}
 		}
 	};
 

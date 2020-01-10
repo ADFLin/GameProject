@@ -450,8 +450,8 @@ namespace Render
 	
 		D3D11_BLEND_DESC desc = { 0 };
 		desc.AlphaToCoverageEnable = initializer.bEnableAlphaToCoverage;
-		desc.IndependentBlendEnable = true;
-		for( int i = 0; i < NumBlendStateTarget; ++i )
+		desc.IndependentBlendEnable = initializer.bEnableIndependent;
+		for( int i = 0; i < ( initializer.bEnableIndependent ? NumBlendStateTarget : 1 ); ++i )
 		{
 			auto const& targetValue = initializer.targetValues[i];
 			auto& targetValueD3D11 = desc.RenderTarget[i];

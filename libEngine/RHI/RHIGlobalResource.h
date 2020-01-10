@@ -107,12 +107,14 @@ namespace Render
 	CORE_API extern TGlobalRHIResource<RHITextureCube>  GWhiteTextureCube;
 	CORE_API extern TGlobalRHIResource<RHITextureCube>  GBlackTextureCube;
 
-	template<
+	template
+	<
 		Sampler::Filter Filter = Sampler::ePoint,
 		Sampler::AddressMode AddressU = Sampler::eWarp,
 		Sampler::AddressMode AddressV = Sampler::eWarp,
-		Sampler::AddressMode AddressW = Sampler::eWarp >
-	class TStaticSamplerState : public StaticRHIResourceT <
+		Sampler::AddressMode AddressW = Sampler::eWarp 
+	>
+	class TStaticSamplerState : public StaticRHIResourceT< 
 		TStaticSamplerState< Filter, AddressU, AddressV, AddressW >, 
 		RHISamplerState >
 	{
@@ -128,10 +130,12 @@ namespace Render
 		}
 	};
 
-	template<
+	template
+	<
 		ECullMode CullMode = ECullMode::Back,
 		EFillMode FillMode = EFillMode::Solid,
-		bool bEnableScissor = false >
+		bool bEnableScissor = false 
+	>
 	class TStaticRasterizerState : public StaticRHIResourceT<
 		TStaticRasterizerState< CullMode, FillMode, bEnableScissor >,
 		RHIRasterizerState >
@@ -150,7 +154,8 @@ namespace Render
 
 	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode);
 
-	template <
+	template 
+	<
 		bool bWriteDepth = true,
 		ECompareFun DepthFun = ECompareFun::Less,
 		bool bEnableStencilTest = false,
@@ -163,7 +168,8 @@ namespace Render
 		Stencil::Operation BackZFailOp = Stencil::eKeep,
 		Stencil::Operation BackZPassOp = Stencil::eKeep,
 		uint32 StencilReadMask = -1,
-		uint32 StencilWriteMask = -1 >
+		uint32 StencilWriteMask = -1 
+	>
 	class TStaticDepthStencilSeparateState : public StaticRHIResourceT<
 		TStaticDepthStencilSeparateState<
 			bWriteDepth, DepthFun, bEnableStencilTest, StencilFun, StencilFailOp,
@@ -192,7 +198,8 @@ namespace Render
 		}
 	};
 
-	template <
+	template
+	<
 		bool bWriteDepth = true,
 		ECompareFun DepthFun = ECompareFun::Less,
 		bool bEnableStencilTest = false,
@@ -201,7 +208,8 @@ namespace Render
 		Stencil::Operation ZFailOp = Stencil::eKeep,
 		Stencil::Operation ZPassOp = Stencil::eKeep,
 		uint32 StencilReadMask = -1,
-		uint32 StencilWriteMask = -1 >
+		uint32 StencilWriteMask = -1 
+	>
 	class TStaticDepthStencilState : public TStaticDepthStencilSeparateState<
 		bWriteDepth, DepthFun, bEnableStencilTest,
 		StencilFun, StencilFailOp, ZFailOp, ZPassOp,
@@ -211,9 +219,10 @@ namespace Render
 
 	};
 
-	typedef TStaticDepthStencilState<false, ECompareFun::Always> StaticDepthDisableState;
+	using StaticDepthDisableState = TStaticDepthStencilState<false, ECompareFun::Always>;
 
-	template<
+	template
+	<
 		ColorWriteMask WriteColorMask0 = CWM_RGBA,
 		Blend::Factor SrcColorFactor0 = Blend::eOne,
 		Blend::Factor DestColorFactor0 = Blend::eZero,
@@ -221,9 +230,40 @@ namespace Render
 		Blend::Factor SrcAlphaFactor0 = Blend::eOne,
 		Blend::Factor DestAlphaFactor0 = Blend::eZero,
 		Blend::Operation AlphaOp0 = Blend::eAdd,
-		bool bEnableAlphaToCoverage = false >
-	class TStaticBlendSeparateState : public StaticRHIResourceT<
-			TStaticBlendSeparateState< WriteColorMask0, SrcColorFactor0, DestColorFactor0, ColorOp0, SrcAlphaFactor0, DestAlphaFactor0, AlphaOp0, bEnableAlphaToCoverage >,
+		bool bEnableAlphaToCoverage = false ,
+		bool bEnableIndependent = false ,
+		ColorWriteMask WriteColorMask1 = CWM_RGBA,
+		Blend::Factor SrcColorFactor1 = Blend::eOne,
+		Blend::Factor DestColorFactor1 = Blend::eZero,
+		Blend::Operation ColorOp1 = Blend::eAdd,
+		Blend::Factor SrcAlphaFactor1 = Blend::eOne,
+		Blend::Factor DestAlphaFactor1 = Blend::eZero,
+		Blend::Operation AlphaOp1 = Blend::eAdd ,
+		ColorWriteMask WriteColorMask2 = CWM_RGBA,
+		Blend::Factor SrcColorFactor2 = Blend::eOne,
+		Blend::Factor DestColorFactor2 = Blend::eZero,
+		Blend::Operation ColorOp2 = Blend::eAdd,
+		Blend::Factor SrcAlphaFactor2 = Blend::eOne,
+		Blend::Factor DestAlphaFactor2 = Blend::eZero,
+		Blend::Operation AlphaOp2 = Blend::eAdd,
+		ColorWriteMask WriteColorMask3 = CWM_RGBA,
+		Blend::Factor SrcColorFactor3 = Blend::eOne,
+		Blend::Factor DestColorFactor3 = Blend::eZero,
+		Blend::Operation ColorOp3 = Blend::eAdd,
+		Blend::Factor SrcAlphaFactor3 = Blend::eOne,
+		Blend::Factor DestAlphaFactor3 = Blend::eZero,
+		Blend::Operation AlphaOp3 = Blend::eAdd
+	>
+	class TStaticBlendSeparateState : public StaticRHIResourceT
+		<
+			TStaticBlendSeparateState
+			< 
+				WriteColorMask0, SrcColorFactor0, DestColorFactor0, ColorOp0, SrcAlphaFactor0, DestAlphaFactor0, AlphaOp0,
+				bEnableAlphaToCoverage, bEnableIndependent,
+				WriteColorMask1, SrcColorFactor1, DestColorFactor1, ColorOp1, SrcAlphaFactor1, DestAlphaFactor1, AlphaOp1, 
+				WriteColorMask2, SrcColorFactor2, DestColorFactor2, ColorOp2, SrcAlphaFactor2, DestAlphaFactor2, AlphaOp2, 
+				WriteColorMask3, SrcColorFactor3, DestColorFactor3, ColorOp3, SrcAlphaFactor3, DestAlphaFactor3, AlphaOp3 
+			>,
 			RHIBlendState
 		>
 	{
@@ -243,27 +283,56 @@ namespace Render
 
 			SET_TRAGET_VALUE(0);
 			initializer.bEnableAlphaToCoverage = bEnableAlphaToCoverage;
+			initializer.bEnableIndependent = bEnableIndependent;
+			if (bEnableIndependent)
+			{
+				SET_TRAGET_VALUE(1);
+				SET_TRAGET_VALUE(2);
+				SET_TRAGET_VALUE(3);
+			}
 #undef SET_TRAGET_VALUE
 			return RHICreateBlendState(initializer);
-
 		}
 	};
 
 
-	template<
+	template
+	<
 		ColorWriteMask WriteColorMask0 = CWM_RGBA,
 		Blend::Factor SrcFactor0 = Blend::eOne,
 		Blend::Factor DestFactor0 = Blend::eZero,
 		Blend::Operation Op0 = Blend::eAdd,
-		bool bEnableAlphaToCoverage = false >
-	class TStaticBlendState : public TStaticBlendSeparateState< WriteColorMask0, SrcFactor0, DestFactor0, Op0, SrcFactor0, DestFactor0, Op0, bEnableAlphaToCoverage >
+		bool bEnableAlphaToCoverage = false,
+	    bool bEnableIndependent = false,
+		ColorWriteMask WriteColorMask1 = CWM_RGBA,
+		Blend::Factor SrcFactor1 = Blend::eOne,
+		Blend::Factor DestFactor1 = Blend::eZero,
+		Blend::Operation Op1 = Blend::eAdd,
+		ColorWriteMask WriteColorMask2 = CWM_RGBA,
+		Blend::Factor SrcFactor2 = Blend::eOne,
+		Blend::Factor DestFactor2 = Blend::eZero,
+		Blend::Operation Op2 = Blend::eAdd,
+		ColorWriteMask WriteColorMask3 = CWM_RGBA,
+		Blend::Factor SrcFactor3 = Blend::eOne,
+		Blend::Factor DestFactor3 = Blend::eZero,
+		Blend::Operation Op3 = Blend::eAdd
+	>
+	class TStaticBlendState : public TStaticBlendSeparateState<
+			WriteColorMask0, SrcFactor0, DestFactor0, Op0, SrcFactor0, DestFactor0, Op0,
+			bEnableAlphaToCoverage ,bEnableIndependent,
+			WriteColorMask1, SrcFactor1, DestFactor1, Op1, SrcFactor1, DestFactor1, Op1,
+			WriteColorMask2, SrcFactor2, DestFactor2, Op2, SrcFactor2, DestFactor2, Op2,
+			WriteColorMask3, SrcFactor3, DestFactor3, Op3, SrcFactor3, DestFactor3, Op3
+		>
 	{
+
 	};
 
 	template< ColorWriteMask WriteColorMask0 = CWM_RGBA >
 	class TStaticAlphaToCoverageBlendState : public TStaticBlendState<
 		WriteColorMask0, Blend::eOne, Blend::eZero, Blend::eAdd, true >
 	{
+
 	};
 
 }//namespace Render

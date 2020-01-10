@@ -75,9 +75,10 @@ namespace Poker { namespace Big2 {
 		for( int i = 0 ; i < 4 ; ++i )
 		{
 			GamePlayer* player = playerManager.createPlayer( i );
-			player->getInfo().slot = i;
-			player->getInfo().actionPort = i;
-			player->getInfo().type = ( i == 0 ) ? PT_PLAYER : PT_COMPUTER;
+			player->setSlot( i );
+			player->setActionPort(i);
+			player->setType( ( i == 0 ) ? PT_PLAYER : PT_COMPUTER );
+			
 		}
 		playerManager.setUserID( 0 );
 	}
@@ -101,7 +102,7 @@ namespace Poker { namespace Big2 {
 			{
 				GamePlayer* player = iter.getElement();
 				int slotId = player->getInfo().slot;
-				player->getInfo().actionPort = slotId;
+				player->setActionPort( slotId );
 
 				assert( player->getType() != PT_SPECTATORS );
 				if ( player->getType() == PT_COMPUTER )
@@ -124,7 +125,7 @@ namespace Poker { namespace Big2 {
 			assert( player->getType() != PT_SPECTATORS );
 
 			mClientLevel->getSlotStatus( player->getSlot() ).playerId = player->getId();
-			player->getInfo().actionPort = player->getSlot();
+			player->setActionPort( player->getSlot() );
 			if ( player->getId() == playerManager.getUserID() )
 			{
 				userSlotId = player->getSlot();

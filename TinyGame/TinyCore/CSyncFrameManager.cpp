@@ -223,7 +223,6 @@ bool SVSyncFrameManager::sendFrameData()
 			{
 				try
 				{
-					
 					mFrameCollector->processClientFrameData(data.id, data.buffer);
 				}
 				catch( BufferException& )
@@ -400,10 +399,10 @@ void SVSyncFrameManager::fireAction( ActionTrigger& trigger )
 		GamePlayer* player = iter.getElement();
 		if ( mLocalDataBits & BIT( player->getId() ) )
 		{
-			if ( player->getInfo().actionPort == ERROR_ACTION_PORT )
+			if ( player->getActionPort() == ERROR_ACTION_PORT )
 				continue;
 
-			mActionTemplate->firePortAction(player->getInfo().actionPort,  trigger );
+			mActionTemplate->firePortAction(player->getActionPort(),  trigger );
 		}
 	}
 }
@@ -509,10 +508,10 @@ void CLSyncFrameManager::procFrameData( IComPacket* cp)
 
 void CLSyncFrameManager::fireAction( ActionTrigger& trigger )
 {
-	if ( mUserPlayer->getInfo().actionPort == ERROR_ACTION_PORT )
+	if ( mUserPlayer->getActionPort() == ERROR_ACTION_PORT )
 		return;
 
-	mActionTemplate->firePortAction(mUserPlayer->getInfo().actionPort , trigger );
+	mActionTemplate->firePortAction(mUserPlayer->getActionPort(), trigger );
 }
 
 void CLSyncFrameManager::resetFrameData()

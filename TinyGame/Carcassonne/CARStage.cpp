@@ -526,10 +526,8 @@ namespace CAR
 
 					RenderUtility::SetBrush( g , EColor::Null );
 					RenderUtility::SetPen( g , EColor::White );
-					for( int i = 0 ; i < mGameActionUI.size() ; ++i )
+					for(GWidget* widget : mGameActionUI)
 					{
-						GWidget* widget = mGameActionUI[i];
-
 						if ( widget->getID() == UI_ACTOR_POS_BUTTON )
 						{
 							auto button = widget->cast< ActorPosButton >();
@@ -924,9 +922,8 @@ namespace CAR
 		float det;
 		mWorldToClip.inverse( mClipToWorld , det );
 
-		for( int i = 0; i < mGameActionUI.size() ; ++i )
+		for(GWidget* widget : mGameActionUI)
 		{
-			GWidget* widget = mGameActionUI[i];
 			switch( widget->getID() )
 			{
 			case UI_ACTOR_POS_BUTTON:
@@ -1549,7 +1546,7 @@ namespace CAR
 					PlayerBase* carPlayer = new PlayerBase;
 					carPlayer->mTeam = player->getSlot();
 					mPlayerManager.addPlayer( carPlayer );
-					player->getInfo().actionPort = carPlayer->getId();
+					player->setActionPort( carPlayer->getId() );
 				}
 				break;
 			case PT_SPECTATORS:

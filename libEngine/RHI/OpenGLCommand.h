@@ -22,10 +22,14 @@ namespace Render
 			Initialize();
 		}
 		RHIRasterizerState* rasterizerStateUsage;
+		RHIRasterizerState* rasterizerStateCommit;
 		GLRasterizerStateValue rasterizerStateValue;
 		RHIDepthStencilState* depthStencilStateUsage;
+		RHIDepthStencilState* depthStencilStateCommit;
+		uint32 stencilRefCommit;
 		GLDepthStencilStateValue depthStencilStateValue;
 		RHIBlendState* blendStateUsage;
+		RHIBlendState* blendStateCommit;
 		GLBlendStateValue blendStateValue;
 
 		bool bScissorRectEnabled;
@@ -33,10 +37,13 @@ namespace Render
 		void Initialize()
 		{
 			rasterizerStateUsage = nullptr;
+			rasterizerStateCommit = nullptr;
 			rasterizerStateValue = GLRasterizerStateValue(ForceInit);
 			depthStencilStateUsage = nullptr;
+			depthStencilStateCommit = nullptr;
 			depthStencilStateValue = GLDepthStencilStateValue(ForceInit);
 			blendStateUsage = nullptr;
+			blendStateCommit = nullptr;
 			blendStateValue = GLBlendStateValue(ForceInit);
 			bScissorRectEnabled = false;
 		}
@@ -120,6 +127,10 @@ namespace Render
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		static int const IdxTextureAutoBindStart = 2;
+
+		void commitRasterizerState();
+		void commitBlendState();
+		void commitDepthStencilState();
 
 		bool commitInputStream()
 		{
@@ -213,6 +224,9 @@ namespace Render
 
 		void commitRenderStates()
 		{
+			commitRasterizerState();
+			commitDepthStencilState();
+			commitBlendState();
 			commitSamplerStates();
 		}
 

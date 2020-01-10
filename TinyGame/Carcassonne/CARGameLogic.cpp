@@ -312,52 +312,51 @@ namespace CAR
 
 	void GameLogic::calcFinalScore()
 	{
-		for(FeatureBase* build : mFeatureMap)
-		{
-			if ( build->group == ERROR_GROUP_ID )
-				continue;
-
-			FeatureScoreInfo featureScore;
-			if ( build->checkComplete() )
+		visitFeatures(
+			[this](FeatureBase* feature)
 			{
-				if ( build->type == FeatureType::eCity )
+				FeatureScoreInfo featureScore;
+				if ( feature->checkComplete() )
 				{
-					CityFeature* city = static_cast< CityFeature* >( build );
-					switch( mSetting->getFarmScoreVersion() )
+					if ( feature->type == FeatureType::eCity )
 					{
-					case 1:
+						CityFeature* city = static_cast< CityFeature* >( feature );
+						switch( mSetting->getFarmScoreVersion() )
 						{
-							for( FarmFeature* farm : city->linkedFarms )
+						case 1:
 							{
-								farm->generateMajority(featureScore.controllerScores);
+								for( FarmFeature* farm : city->linkedFarms )
+								{
+									farm->generateMajority(featureScore.controllerScores);
+								}
+								//int numPlayer = FeatureBase::evalMajorityControl( scoreInfos );
+								//for( int i = 0 ; i < numPlayer ; ++i )
+								//{
+								//	scoreInfos[i].score = farm->calcPlayerScore( scoreInfos[i].id );
+								//}
 							}
-							//int numPlayer = FeatureBase::evalMajorityControl( scoreInfos );
-							//for( int i = 0 ; i < numPlayer ; ++i )
-							//{
-							//	scoreInfos[i].score = farm->calcPlayerScore( scoreInfos[i].id );
-							//}
-						}
-						break;
-					case 2:
+							break;
+						case 2:
 
-						break;
+							break;
+						}
 					}
 				}
-			}
-			else
-			{
-				build->calcScore( *mPlayerManager , featureScore );
-				if( featureScore.numController > 0 )
+				else
 				{
-					for( int i = 0; i < featureScore.numController; ++i )
+					feature->calcScore( *mPlayerManager , featureScore );
+					if( featureScore.numController > 0 )
 					{
-						auto& controllerScore = featureScore.controllerScores[i];
-						modifyPlayerScore(controllerScore.playerId, controllerScore.score);
+						for( int i = 0; i < featureScore.numController; ++i )
+						{
+							auto& controllerScore = featureScore.controllerScores[i];
+							modifyPlayerScore(controllerScore.playerId, controllerScore.score);
+						}
 					}
 				}
-					
 			}
-		}
+		);
+
 
 		if ( mSetting->have(Rule::eTraders) )
 		{
@@ -379,21 +378,21 @@ namespace CAR
 			int numCityComplete = 0;
 			int numRoadComplete = 0;
 
-			for(FeatureBase* feature : mFeatureMap)
-			{
-				if ( feature->group == ERROR_GROUP_ID )
-					continue;
-				if ( feature->checkComplete() == false )
-					continue;
-
-				if ( feature->type == FeatureType::eCity )
+			visitFeatures(
+				[&numCityComplete,&numRoadComplete](FeatureBase* feature)
 				{
-					if ( static_cast< CityFeature* >( feature )->isCastle == false )
-						++numCityComplete;
+					if ( feature->checkComplete() == false )
+						return;
+
+					if ( feature->type == FeatureType::eCity )
+					{
+						if ( static_cast< CityFeature* >( feature )->isCastle == false )
+							++numCityComplete;
+					}
+					else if ( feature->type == FeatureType::eRoad )
+						++numRoadComplete;
 				}
-				else if ( feature->type == FeatureType::eRoad )
-					++numRoadComplete;
-			}
+			);
 
 			if ( mMaxCityTileNum != 0 )
 			{
@@ -1927,22 +1926,22 @@ namespace CAR
 		int playerId = turnContext.getPlayer()->getId();
 
 		std::set< MapTile* > mapTileSet;
-		for(FeatureBase* feature : mFeatureMap)
-		{
-			if ( feature->group == ERROR_GROUP_ID )
-				continue;
-			if ( feature->checkComplete() )
-				continue;
-			if ( feature->haveActorFromType( mSetting->getFollowerMask() ) )
-				continue;
-
-			for (MapTile* mapTile : feature->mapTiles)
+		visitFeatures(
+			[this,&mapTileSet](FeatureBase* feature)
 			{
-				if ( !mapTile->canDeployFollower() )
-					continue;
-				mapTileSet.insert( mapTile );
+				if ( feature->checkComplete() )
+					return;
+				if ( feature->haveActorFromType( mSetting->getFollowerMask() ) )
+					return;
+
+				for (MapTile* mapTile : feature->mapTiles)
+				{
+					if ( !mapTile->canDeployFollower() )
+						continue;
+					mapTileSet.insert( mapTile );
+				}
 			}
-		}
+		);
 
 		if ( mapTileSet.empty() == false )
 		{
@@ -2521,22 +2520,21 @@ namespace CAR
 		}
 
 		std::vector< FeatureBase* > destFeatures;
-		for( auto feature : mFeatureMap )
-		{
-			if( feature->group == ERROR_GROUP_ID )
-				continue;
+		visitFeatures(
+			[skipActor,&destFeatures]( FeatureBase* feature)
+			{
+				if (skipActor->feature == feature)
+					return;
 
-			if ( skipActor->feature == feature )
-				continue;
+				if (feature->type != FeatureType::eCity && feature->type != FeatureType::eRoad)
+					return;
 
-			if( feature->type != FeatureType::eCity && feature->type != FeatureType::eRoad )
-				continue;
+				if (feature->checkComplete())
+					return;
 
-			if( feature->checkComplete() )
-				continue;
-
-			destFeatures.push_back(feature);
-		}
+				destFeatures.push_back(feature);
+			}
+		);
 
 		if( destFeatures.empty() )
 		{
@@ -2814,7 +2812,7 @@ namespace CAR
 				}
 			}
 			if( haveUpdate )
-				updateResult.mUpdateFeatures.push_back(FeatureUpdateInfo(feature));
+				updateResult.mUpdateFeatures.emplace_back(feature);
 		};
 
 		if ( mapTile.have(TileContent::eCloister) )
@@ -2841,7 +2839,7 @@ namespace CAR
 				FeatureBase* feature = getFeature( dataCheck->group );
 				if ( feature->updateForAdjacentTile( mapTile ) )
 				{
-					updateResult.mUpdateFeatures.push_back( FeatureUpdateInfo(feature) );
+					updateResult.mUpdateFeatures.emplace_back( feature );
 				}
 			}
 		}
@@ -3283,28 +3281,28 @@ namespace CAR
 		int minTileNum = INT_MAX;
 
 		FeatureBase* result = nullptr;
-		for(FeatureBase * feature : mFeatureMap)
-		{
-			if( feature->type != type )
-				continue;
-			if( feature->group == ERROR_GROUP_ID )
-				continue;
-			if( feature->checkComplete() )
-				continue;
-			if( !feature->haveActor(playerMask, actorTypeMask) )
-				continue;
-			int num = feature->getScoreTileNum();
-			if( num == minTileNum )
+		visitFeatures(
+			[type, playerMask, actorTypeMask, &minTileNum,&outFeatures](FeatureBase* feature)
 			{
-				outFeatures.push_back(feature);
+				if( feature->type != type )
+					return;
+				if( feature->checkComplete() )
+					return;
+				if( !feature->haveActor(playerMask, actorTypeMask) )
+					return;
+				int num = feature->getScoreTileNum();
+				if( num == minTileNum )
+				{
+					outFeatures.push_back(feature);
+				}
+				else if( num < minTileNum )
+				{
+					outFeatures.clear();
+					outFeatures.push_back(feature);
+					minTileNum = num;
+				}
 			}
-			else if( num < minTileNum )
-			{
-				outFeatures.clear();
-				outFeatures.push_back(feature);
-				minTileNum = num;
-			}
-		}
+		);
 	}
 
 	void GameLogic::getFeatureNeighborMapTile(FeatureBase& feature, MapTileSet& outMapTile)
@@ -3474,6 +3472,8 @@ namespace CAR
 				case EMessageTile::ScoreSmallestCloister:
 					selectFeatureType = FeatureType::eCloister;
 					break;
+				default:
+					NEVER_REACH("");
 				}
 				getMinTitlesNoCompletedFeature(selectFeatureType, BIT(turnContext.getPlayer()->getId()), mSetting->getFollowerMask(), minScoreTilefeatures);
 
@@ -3498,65 +3498,67 @@ namespace CAR
 			{
 				int messageSocre = 0;
 				FeatureBase* result = nullptr;
-				for (FeatureBase* feature : mFeatureMap)
-				{
-					if( feature->group == ERROR_GROUP_ID )
-						continue;
-					if( feature->checkComplete() )
-						continue;
-					if( !feature->haveActor(BIT(turnContext.getPlayer()->getId()), mSetting->getFollowerMask()) )
-						continue;
-					if( feature->type != FeatureType::eCity )
-						continue;
-					int numPennant = static_cast<CityFeature*>(feature)->getSideContentNum(BIT(SideContent::ePennant));
-					messageSocre += 2 * numPennant;
-				}
+				visitFeatures(
+					[this, &turnContext, &messageSocre](FeatureBase* feature)
+					{
+						if( feature->checkComplete() )
+							return;
+						if( !feature->haveActor(BIT(turnContext.getPlayer()->getId()), mSetting->getFollowerMask()) )
+							return;
+						if( feature->type != FeatureType::eCity )
+							return;
+
+						int numPennant = static_cast<CityFeature*>(feature)->getSideContentNum(BIT(SideContent::ePennant));
+						messageSocre += 2 * numPennant;
+					}
+				);
 			}
 			break;
 		case EMessageTile::TwoPointsForEachKnight:
 			{
 				int messageSocre = 0;
-				std::vector< LevelActor* > kinghts;
+				int kinghtCount = 0;
 				FeatureBase* result = nullptr;
-				for(FeatureBase* feature : mFeatureMap)
-				{
-					if( feature->group == ERROR_GROUP_ID )
-						continue;
-					if( feature->checkComplete() )
-						continue;
-					if( feature->type != FeatureType::eCity )
-						continue;
-
-					int iter = 0;
-					while( auto actor = feature->iteratorActor(BIT(turnContext.getPlayer()->getId()), KINGHT_MASK, iter) )
+				visitFeatures(
+					[&turnContext, &kinghtCount](FeatureBase* feature)
 					{
-						kinghts.push_back(actor);
+						if( feature->checkComplete() )
+							return;
+						if( feature->type != FeatureType::eCity )
+							return;
+
+						int iter = 0;
+						while( auto actor = feature->iteratorActor(BIT(turnContext.getPlayer()->getId()), KINGHT_MASK, iter) )
+						{
+							++kinghtCount;
+						}
 					}
-				}
-				messageSocre += 2 * kinghts.size();
+				);
+				messageSocre += 2 * kinghtCount;
 			}
 			break;
 		case EMessageTile::TwoPointsForEachFarmer:
 			{
 				int messageSocre = 0;
 				std::vector< LevelActor* > farmer;
+				int farmerCount = 0;
 				FeatureBase* result = nullptr;
-				for(FeatureBase* feature : mFeatureMap)
-				{
-					if( feature->group == ERROR_GROUP_ID )
-						continue;
-					if( feature->checkComplete() )
-						continue;
-					if( feature->type != FeatureType::eFarm )
-						continue;
-
-					int iter = 0;
-					while( auto actor = feature->iteratorActor(BIT(turnContext.getPlayer()->getId()), FARMER_MASK, iter) )
+				visitFeatures(
+					[&turnContext, &farmerCount](FeatureBase* feature)
 					{
-						farmer.push_back(actor);
+						if( feature->checkComplete() )
+							return;
+						if( feature->type != FeatureType::eFarm )
+							return;
+
+						int iter = 0;
+						while( auto actor = feature->iteratorActor(BIT(turnContext.getPlayer()->getId()), FARMER_MASK, iter) )
+						{
+							++farmerCount;
+						}
 					}
-				}
-				messageSocre += 2 * farmer.size();
+				);
+				messageSocre += 2 * farmerCount;
 			}
 			break;
 		case EMessageTile::OneTile:

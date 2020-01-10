@@ -525,14 +525,14 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 	case NAS_ROOM_READY:
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerId );
-			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getInfo().slot );
+			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getSlot() );
 			slot.choice->setColorName( EColor::Green );
 		}
 		break;
 	case NAS_ROOM_WAIT:
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerId );
-			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getInfo().slot );
+			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getSlot() );
 			slot.choice->setColorName( EColor::Blue );
 		}
 		break;
@@ -569,7 +569,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerId );
 			if ( player )
 			{
-				PlayerListPanel::Slot& slot = mPlayerPanel->getSlot(player->getInfo().slot);
+				PlayerListPanel::Slot& slot = mPlayerPanel->getSlot(player->getSlot());
 				slot.choice->setColorName(EColor::Blue);
 
 				{
@@ -655,7 +655,7 @@ void NetRoomStage::procSlotState( IComPacket* cp)
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( PlayerId( com->state[i] ) );
 			if ( player )
-				player->getInfo().slot = SlotId( i );
+				player->setSlot( i );
 		}
 	}
 

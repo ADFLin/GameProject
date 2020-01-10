@@ -67,8 +67,8 @@ protected:
 
 struct KeyFrameData
 {
-	unsigned  port;
-	unsigned  keyActBit;
+	uint32  port;
+	uint32  keyActBit;
 
 	bool haveData() const
 	{
@@ -101,7 +101,7 @@ public:
 		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
-			unsigned port = player->getInfo().actionPort;
+			unsigned port = player->getActionPort();
 			if ( port != ERROR_ACTION_PORT )
 			{
 				if ( mPortDataMap[ port ] == ERROR_DATA_ID )

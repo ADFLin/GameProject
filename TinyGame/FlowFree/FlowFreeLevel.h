@@ -111,7 +111,7 @@ namespace FlowFree
 
 		void setup(Vec2i const& size);
 
-		void addMapBoundBlock();
+		void addMapBoundBlock(bool bHEdge = true , bool bVEdge= true);
 		Vec2i getSize() const
 		{
 			return Vec2i(mCellMap.getSizeX(), mCellMap.getSizeY());

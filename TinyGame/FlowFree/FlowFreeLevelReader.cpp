@@ -10,69 +10,79 @@
 
 namespace FlowFree
 {
-	bool ImageReader::loadLevel(Level& level, char const* path, Color3ub* colorMap)
-	{
-		debugLines.clear();
 
+	bool ImageReader::LoadImage(char const* path, TProcImage<Color3ub>& outImage)
+	{
 		ImageData imageData;
-		{
-			TIME_SCOPE("Load Image");
-			if (!imageData.load(path, false, false))
-				return false;
-		}
+
+		if (!imageData.load(path, false, false))
+			return false;
 
 		int width = imageData.width;
 		int height = imageData.height;
 
-
-		std::vector< Color3ub > mBaseImage;
 		switch (imageData.numComponent)
 		{
 		case 1:
 			{
-				mBaseImage.resize(width * height);
+				outImage.data.resize(width * height);
 				unsigned char* pPixel = (unsigned char*)imageData.data;
-				for (int i = 0; i < mBaseImage.size(); ++i)
+				for (int i = 0; i < outImage.data.size(); ++i)
 				{
-					mBaseImage[i] = Color3ub(pPixel[0], pPixel[0], pPixel[0]);
+					outImage.data[i] = Color3ub(pPixel[0], pPixel[0], pPixel[0]);
 					pPixel += 1;
 				}
 			}
 			break;
 		case 3:
 			{
-				mBaseImage.resize(width * height);
+				outImage.data.resize(width * height);
 				unsigned char* pPixel = (unsigned char*)imageData.data;
-				for (int i = 0; i < mBaseImage.size(); ++i)
+				for (int i = 0; i < outImage.data.size(); ++i)
 				{
-					mBaseImage[i] = Color3ub(pPixel[0], pPixel[1], pPixel[2]);
+					outImage.data[i] = Color3ub(pPixel[0], pPixel[1], pPixel[2]);
 					pPixel += 3;
 				}
 			}
 			break;
 		case 4:
 			{
-				mBaseImage.resize(width * height);
+				outImage.data.resize(width * height);
 				unsigned char* pPixel = (unsigned char*)imageData.data;
-				for (int i = 0; i < mBaseImage.size(); ++i)
+				for (int i = 0; i < outImage.data.size(); ++i)
 				{
-					mBaseImage[i] = Color3ub(pPixel[0], pPixel[1], pPixel[2]);
+					outImage.data[i] = Color3ub(pPixel[0], pPixel[1], pPixel[2]);
 					pPixel += 4;
 				}
 			}
 			break;
 		}
 
-		TImageView< Color3ub > imageView(mBaseImage.data(), width, height);
+		outImage.view = TImageView<Color3ub>(outImage.data.data(), width, height);
+		return true;
+	}
 
+	ImageReadResult ImageReader::loadLevel(Level& level, char const* path, LoadParams const& params)
+	{
+		TProcImage<Color3ub > baseImage;
+		{
+			TIME_SCOPE("Load Image");
+			if (LoadImage(path, baseImage))
+				return IRR_LoadImageFail;
+		}
+		return loadLevel(level, baseImage, params);
+	}
+
+	ImageReadResult ImageReader::loadLevel(Level& level, TProcImage<Color3ub> const& baseImage, LoadParams const& params)
+	{
+		TImageView< Color3ub > imageView = baseImage.view;
 		int widthProc;
 		int heightProc;
-		{
+		{		
+			TIME_SCOPE("Image Process");
 
 			mDebugTextures[eOrigin] = RHICreateTexture2D(Texture::eRGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
-
-
-			TIME_SCOPE("Image Process");
+		
 			{
 				TIME_SCOPE("Fill");
 				Fill(imageView, Vec2i(0, 0), Vec2i(imageView.getWidth(), 120), Color3ub::Black());
@@ -82,10 +92,12 @@ namespace FlowFree
 			}
 			{
 				TIME_SCOPE("Fliter");
-				Transform(imageView, [](Color3ub const& c) -> Color3ub
+
+				float threshold = params.fliterThreshold;
+				Transform(imageView, [threshold](Color3ub const& c) -> Color3ub
 				{
 					Vector3 hsv = FColorConv::RGBToHSV(c);
-					if (hsv.z > 0.21)
+					if (hsv.z > threshold)
 					{
 						return c;
 					}
@@ -94,8 +106,8 @@ namespace FlowFree
 
 			}
 
-			std::vector< float > grayScaleData(width * height);
-			TImageView< float > grayView(grayScaleData.data(), width, height);
+			std::vector< float > grayScaleData(imageView.getWidth() * imageView.getHeight());
+			TImageView< float > grayView(grayScaleData.data(), imageView.getWidth() , imageView.getHeight());
 
 			mDebugTextures[eFliter] = RHICreateTexture2D(Texture::eRGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
 
@@ -161,34 +173,27 @@ namespace FlowFree
 		}
 
 		std::vector< HoughLine > lines = mLines;
-		if (!buildLevel(imageView, lines, Vec2i(widthProc, heightProc), level, colorMap, false))
-		{
-			//if (!buildLevel(imageView, mLines, Vec2i(widthProc, heightProc), level, colorMap, true))
-			{
-				return false;
-			}
-		}
-		return true;
+		return buildLevel(imageView, lines, Vec2i(widthProc, heightProc), level, params);
 	}
 
 
-	bool ImageReader::buildLevel(TImageView< Color3ub > const& imageView, std::vector< HoughLine >& lines, Vec2i const& houghSize, Level& level, Color3ub* colorMap , bool bRemoveFristHLine )
+	ImageReadResult ImageReader::buildLevel(TImageView< Color3ub > const& imageView, std::vector< HoughLine >& lines, Vec2i const& houghSize, Level& level, LoadParams const& params  )
 	{
-		TIME_SCOPE("Build data");
+		TIME_SCOPE("Build Level");
 
 		debugLines.clear();
 
 		std::sort(mLines.begin(), mLines.end(),
 			[](HoughLine const& lineA, HoughLine const& lineB) -> bool
-		{
-			if (lineA.theta < lineB.theta)
-				return true;
+			{
+				if (lineA.theta < lineB.theta)
+					return true;
 
-			if (lineA.theta == lineB.theta)
-				return lineA.dist < lineB.dist;
+				if (lineA.theta == lineB.theta)
+					return lineA.dist < lineB.dist;
 
-			return false;
-		}
+				return false;
+			}
 		);
 
 		for (int i = 0; i < mLines.size(); ++i)
@@ -231,14 +236,15 @@ namespace FlowFree
 			}
 		}
 
-		if (bRemoveFristHLine)
+		if (params.removeHeadHLineCount > 0)
 		{
-			HLines.erase(HLines.begin());
+			for( int i = 0 ; i < params.removeHeadHLineCount; ++i)
+				HLines.erase(HLines.begin());
 		}
 
 		if (HLines.size() < 2 || HLines.size() < 2)
 		{
-			return false;
+			return IRR_CantDetectGridLine;
 		}
 		std::sort(HLines.begin(), HLines.end(), std::less());
 		std::sort(VLines.begin(), VLines.end(), std::less());
@@ -263,7 +269,17 @@ namespace FlowFree
 			}
 
 			std::sort(lens.begin(), lens.end());
-			return lens[lens.size() / 2];
+			if (lines.size() >= 10)
+			{
+				float accLen = 0;
+				for (int i = 0; i < lens.size() - 2; ++i)
+					accLen += lens[i];
+				return accLen / (lens.size() - 2);
+			}
+			else
+			{
+				return lens[lens.size() / 2];
+			}
 		};
 
 		gridUVSize.x = FindCellLength(VLines);
@@ -272,6 +288,7 @@ namespace FlowFree
 		addDebugRect(boundUVMin, gridUVSize, Color3ub(255, 100, 100));
 
 		Vec2i levelSize;
+		Vector2 debugSize = boundUVSize.div(gridUVSize);
 		levelSize.x = Math::RoundToInt(boundUVSize.x / gridUVSize.x);
 		levelSize.y = Math::RoundToInt(boundUVSize.y / gridUVSize.y);
 
@@ -300,8 +317,6 @@ namespace FlowFree
 		{
 			FillUndetectedGridLine(HLines, gridUVSize.y);
 		}
-
-
 
 		struct FLocal
 		{
@@ -423,8 +438,7 @@ namespace FlowFree
 					{
 						if (iter->bUsed)
 						{
-
-							return false;
+							return IRR_SourceDetectFail;
 						}
 						iter->bUsed = true;
 						level.addSource(iter->pos, Vec2i(i, j), iter->colorId);
@@ -588,20 +602,68 @@ namespace FlowFree
 			{
 			case 0:
 				{
+					//TODO :check full unbound case
+				
+					Vector2 p[4] =
 					{
+						boundUVMin , Vector2(boundUVMin.x , boundUVMax.y) ,
+						Vector2(boundUVMax.x , boundUVMin.y) ,boundUVMax ,
+					};
 
+					float offset = 0.2;
+					float detectUVLength = 0.2;
+					Vector2 offsetX[4] =
+					{
+						Vector2(-offset , 0),Vector2(-offset , 0),
+						Vector2(offset , 0),Vector2(offset , 0),
+					};
+					Vector2 offsetY[4] =
+					{
+						Vector2(0, -offset),Vector2(0,offset),
+						Vector2(0, -offset),Vector2(0,offset),
+					};
 
+					bool haveUnboundV = true;
+					bool haveUnboundH = true;
+					for (int i = 0; i < 4; ++i)
+					{
+						Vector2 edgeUV = p[i] + gridUVSize.mul(offsetX[i]);
+						Vector2 startUV = edgeUV + gridUVSize.mul(Vector2(0, -detectUVLength));
+						Vector2 stopUV = edgeUV + gridUVSize.mul(Vector2(0, detectUVLength));
+						Vec2i startPos = imageView.getPixelPos(startUV);
+						Vec2i stopPos = imageView.getPixelPos(stopUV);
+						int len = stopPos.y - startPos.y + 1;
+						int thinkness = FLocal::CalcThinkness(imageView, startPos, Vec2i(0, 1), len);
 
+						if (thinkness == 0)
+						{
+							haveUnboundV = false;
+							break;
+						}
 
+						addDebugLine(startUV, stopUV, Color3ub(100, 100, 255));
 					}
 
+					for (int i = 0; i < 4; ++i)
+					{
+						Vector2 edgeUV = p[i] + gridUVSize.mul(offsetY[i]);
+						Vector2 startUV = edgeUV + gridUVSize.mul(Vector2(-detectUVLength, 0));
+						Vector2 stopUV = edgeUV + gridUVSize.mul(Vector2(detectUVLength, 0));
+						Vec2i startPos = imageView.getPixelPos(startUV);
+						Vec2i stopPos = imageView.getPixelPos(stopUV);
+						int len = stopPos.x - startPos.x + 1;
+						int thinkness = FLocal::CalcThinkness(imageView, startPos, Vec2i(1,0), len);
 
+						if (thinkness == 0)
+						{
+							haveUnboundH = false;
+							break;
+						}
 
+						addDebugLine(startUV, stopUV, Color3ub(100, 100, 255));
+					}
 
-
-
-					level.addMapBoundBlock();
-
+					level.addMapBoundBlock(!haveUnboundH , !haveUnboundV);
 				}		
 				break;
 			case 1:
@@ -618,24 +680,26 @@ namespace FlowFree
 			case 3:
 				{
 					LogWarning(0, "need impl case");
-					return false;
+					return IRR_EdgeDetectFail;
 				}
 			default:
-				return false;
+				return IRR_EdgeDetectFail;
 			}
 		}
 
-		if (colorMap)
+		if (params.colorMap)
 		{
 			for (auto const& source : sources)
 			{
 				if (!source.bUsed)
 				{
 					LogWarning(0, "pos(%d,%d) is no pair", source.pos.x, source.pos.y);
-					return false;
+					return IRR_SourceNoPair;
 				}
-				colorMap[source.colorId - 1] = source.color;
+				params.colorMap[source.colorId - 1] = source.color;
 			}
 		}
+
+		return IRR_OK;
 	}
 }//namespace FlowFree

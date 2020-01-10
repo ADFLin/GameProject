@@ -9,11 +9,61 @@ namespace FlowFree
 	using namespace Render;
 
 	class Level;
+
+	enum ImageReadResult
+	{
+		IRR_OK,
+		IRR_LoadImageFail,
+		IRR_CantDetectGridLine ,
+		IRR_SourceDetectFail ,
+		IRR_SourceNoPair ,
+		IRR_EdgeDetectFail ,
+
+	};
+
 	class ImageReader
 	{
 	public:
-		bool loadLevel(Level& level , char const* path , Color3ub* colorMap = nullptr );
 
+		struct LoadParams
+		{
+			float fliterThreshold = 0.21;
+			float houghThreshold  = 0.60;
+
+			Color3ub* colorMap = nullptr;
+
+			int removeHeadHLineCount = 0;
+		};
+
+	
+		template<class T>
+		struct TProcImage
+		{
+			TProcImage() = default;
+
+			TProcImage(TProcImage&& rhs)
+				:data( std::move(rhs.data))
+				,view( std::move(rhs.view) )
+			{
+
+
+			}
+
+			TProcImage& operator = ( TProcImage&& rhs )
+			{
+				data = std::move(rhs.data);
+				view = std::move(rhs.view);
+				return *this;
+			}
+
+			std::vector< T > data;
+			TImageView< T > view;
+		};
+
+		static bool LoadImage(char const* path, TProcImage<Color3ub>& outImage);
+
+		ImageReadResult loadLevel(Level& level , char const* path , LoadParams const& params );
+		ImageReadResult loadLevel(Level& level, TProcImage<Color3ub> const& baseImage , LoadParams const& params);
 		Vector2 boundUVMin;
 		Vector2 boundUVMax;
 		Vector2 boundUVSize;
@@ -51,7 +101,7 @@ namespace FlowFree
 			addDebugLine(p3, pos, color);
 		}
 
-		bool buildLevel(TImageView< Color3ub > const& imageView,  std::vector< HoughLine >& lines, Vec2i const& houghSize , Level& level, Color3ub* colorMap , bool bRemoveFristHLine);
+		ImageReadResult buildLevel(TImageView< Color3ub > const& imageView,  std::vector< HoughLine >& lines, Vec2i const& houghSize , Level& level, LoadParams const& params);
 
 		struct Line
 		{

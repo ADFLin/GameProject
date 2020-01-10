@@ -17,7 +17,7 @@ namespace Bubble
 {
 	LevelStage::LevelStage()
 	{
-		mMode = NULL;
+		mMode = nullptr;
 	}
 
 	bool LevelStage::onInit()
@@ -25,7 +25,7 @@ namespace Bubble
 		if( !BaseClass::onInit() )
 			return false;
 
-		if ( mMode == NULL )
+		if ( mMode == nullptr )
 		{
 			mMode = new TestMode;
 		}
@@ -57,7 +57,7 @@ namespace Bubble
 			getGame()->getController() );
 		
 		int numLevel = 0;
-		PlayerData* mainViewPlayer = NULL;
+		PlayerData* mainViewPlayer = nullptr;
 		std::vector< PlayerData* > otherPlayersData;
 		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
@@ -66,14 +66,14 @@ namespace Bubble
 			{
 				++numLevel;
 				PlayerData* data = mDataManager.createData();
-				player->getInfo().actionPort = data->getId();
+				player->setActionPort( data->getId() );
 
 				if ( player->getId() == playerManager.getUserID() )
 				{
 					mainViewPlayer = data;
 					controller.setPortControl( data->getId() , 0 );
 				}
-				else if ( playerManager.getUser()->getType() == PT_SPECTATORS && mainViewPlayer == NULL )
+				else if ( playerManager.getUser()->getType() == PT_SPECTATORS && mainViewPlayer == nullptr )
 				{
 					mainViewPlayer = data;
 				}
@@ -151,7 +151,7 @@ namespace Bubble
 				return actionTemp;
 			}
 		}
-		return NULL;
+		return nullptr;
 
 	}
 

@@ -129,7 +129,7 @@ namespace Tetris
 
 	int ChallengeMode::markRecord( RecordManager& manager, GamePlayer* player )
 	{
-		LevelData* lvData = getWorld()->getLevelData( player->getInfo().actionPort );
+		LevelData* lvData = getWorld()->getLevelData( player->getActionPort() );
 		if ( !lvData )
 			return -1;
 

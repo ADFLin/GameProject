@@ -198,22 +198,27 @@ namespace FlowFree
 		mSourceLocations.clear();
 	}
 
-	void Level::addMapBoundBlock()
+	void Level::addMapBoundBlock( bool bHEdge , bool bVEdge)
 	{
-		for (int i = 0; i < mCellMap.getSizeX(); ++i)
+		if ( bHEdge )
 		{
-			Cell& topCell = mCellMap.getData(i, 0);
-			topCell.blockMask |= BIT(3);
-			Cell& bottomCell = mCellMap.getData(i, mCellMap.getSizeY() - 1);
-			bottomCell.blockMask |= BIT(1);
+			for (int i = 0; i < mCellMap.getSizeX(); ++i)
+			{
+				Cell& topCell = mCellMap.getData(i, 0);
+				topCell.blockMask |= BIT(3);
+				Cell& bottomCell = mCellMap.getData(i, mCellMap.getSizeY() - 1);
+				bottomCell.blockMask |= BIT(1);
+			}
 		}
-
-		for (int i = 0; i < mCellMap.getSizeY(); ++i)
+		if ( bVEdge )
 		{
-			Cell& leftCell = mCellMap.getData(0, i);
-			leftCell.blockMask |= BIT(2);
-			Cell& rightCell = mCellMap.getData(mCellMap.getSizeX() - 1, i);
-			rightCell.blockMask |= BIT(0);
+			for (int i = 0; i < mCellMap.getSizeY(); ++i)
+			{
+				Cell& leftCell = mCellMap.getData(0, i);
+				leftCell.blockMask |= BIT(2);
+				Cell& rightCell = mCellMap.getData(mCellMap.getSizeX() - 1, i);
+				rightCell.blockMask |= BIT(0);
+			}
 		}
 	}
 

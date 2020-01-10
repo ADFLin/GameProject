@@ -90,10 +90,10 @@ namespace Lighting2D
 
 	class TestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 
-		typedef std::vector< Light > LightList;
-		typedef std::vector< Block > BlockList;
+		using LightList = std::vector< Light >;
+		using BlockList = std::vector< Block >;
 	public:
 
 		enum
@@ -111,13 +111,14 @@ namespace Lighting2D
 
 		std::vector< Vector2 > mBuffers;
 
-		virtual bool onInit();
-		virtual void onInitFail() override;
-		virtual void onEnd();
-		virtual void onUpdate( long time );
+		bool bUseGeometryShader = true;
 
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override;
-		void onRender( float dFrame );
+		bool onInit() override;
+		void onInitFail() override;
+		void onEnd() override;
+		void onUpdate( long time ) override;
+		bool onWidgetEvent(int event, int id, GWidget* ui) override;
+		void onRender( float dFrame ) override;
 
 
 		void renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex );
@@ -135,9 +136,9 @@ namespace Lighting2D
 
 		}
 
-		bool onMouse( MouseMsg const& msg );
+		bool onMouse( MouseMsg const& msg ) override;
 
-		bool onKey(KeyMsg const& msg)
+		bool onKey(KeyMsg const& msg) override
 		{
 			if ( !msg.isDown() )
 				return false;

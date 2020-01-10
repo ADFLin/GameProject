@@ -33,7 +33,7 @@ namespace GreedySnake
 			if( player->getType() == PT_SPECTATORS )
 				continue;
 
-			player->getInfo().actionPort = 0;
+			player->setActionPort( 0 );
 		}
 	}
 
@@ -97,7 +97,7 @@ namespace GreedySnake
 			if( player->getType() == PT_SPECTATORS )
 				continue;
 
-			player->getInfo().actionPort = mNumPlayer;
+			player->setActionPort( mNumPlayer );
 			++mNumPlayer;
 		}
 	}

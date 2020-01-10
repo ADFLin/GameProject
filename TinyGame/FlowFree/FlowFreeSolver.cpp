@@ -694,8 +694,9 @@ namespace FlowFree
 		
 		if (bSolved)
 		{
-			
-			std::vector< Vec2i > specialCellPosList;
+			TIME_SCOPE("Read Solution");
+			std::vector< Vec2i > sourceCellPosList;
+			std::vector< Vec2i > bridgeCellPosList;
 			for (int j = 0; j < size.y; ++j)
 			{
 				for (int i = 0; i < size.x; ++i)
@@ -728,8 +729,10 @@ namespace FlowFree
 						}
 						break;
 					case CellFunc::Source:
+						sourceCellPosList.push_back(pos);
+						break;
 					case CellFunc::Bridge:
-						specialCellPosList.push_back(pos);
+						bridgeCellPosList.push_back(pos);
 						break;
 					default:
 						break;
@@ -738,40 +741,38 @@ namespace FlowFree
 			}
 
 
-			for( auto pos : specialCellPosList )
+			for( auto pos : sourceCellPosList )
 			{
 				Cell const& cell = level.getCellChecked(pos);
 				
-				if (cell.func == CellFunc::Source)
+				assert(cell.func == CellFunc::Source);
+
+				auto& cellSolution = mSolution(pos.x, pos.y);
+				cellSolution.color = cell.funcMeta;
+
+				for (int dir = 0; dir < DirCount; ++dir)
 				{
-					auto& cellSolution = mSolution(pos.x, pos.y);
-					cellSolution.color = cell.funcMeta;
+					Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
+					auto const& linkCell = mSolution(linkPos.x, linkPos.y);
 
-					for (int dir = 0; dir < DirCount; ++dir)
+					if (linkCell.mask & BIT(InverseDir(dir)))
 					{
-						Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
-						auto const& linkCell = mSolution(linkPos.x, linkPos.y);
-
-						if (linkCell.mask & BIT(InverseDir(dir)))
-						{
-							cellSolution.mask = BIT(dir);
-							break;
-						}
+						cellSolution.mask = BIT(dir);
+						break;
 					}
 				}
 			}
 	
-			for (auto pos : specialCellPosList)
+			for (auto pos : bridgeCellPosList)
 			{
 				Cell const& cell = level.getCellChecked(pos);
-				if (cell.func == CellFunc::Bridge)
-				{
-					auto& cellSolution = mSolution(pos.x, pos.y);
-					Vec2i linkPosX = GetLinkPosSkipBirdge(pos, EDir::Left);
-					Vec2i linkPosY = GetLinkPosSkipBirdge(pos, EDir::Bottom);
-					cellSolution.color = mSolution(linkPosX.x, linkPosX.y).color;
-					cellSolution.color2 = mSolution(linkPosY.x, linkPosY.y).color;
-				}
+				assert(cell.func == CellFunc::Bridge);
+
+				auto& cellSolution = mSolution(pos.x, pos.y);
+				Vec2i linkPosX = GetLinkPosSkipBirdge(pos, EDir::Left);
+				Vec2i linkPosY = GetLinkPosSkipBirdge(pos, EDir::Bottom);
+				cellSolution.color = mSolution(linkPosX.x, linkPosX.y).color;
+				cellSolution.color2 = mSolution(linkPosY.x, linkPosY.y).color;
 			}
 		}
 		else

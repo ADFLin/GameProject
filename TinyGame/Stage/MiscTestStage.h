@@ -1852,7 +1852,7 @@ namespace Net
 				GamePlayer* player = iter.getElement();
 				if ( player->getType() == PT_PLAYER )
 				{
-					player->getInfo().actionPort = mDataMap.size();
+					player->setActionPort( mDataMap.size() );
 					mDataMap.push_back( TestObj() );
 					mDataMap.back().pos = Vector2( 0 , 0 );
 				}

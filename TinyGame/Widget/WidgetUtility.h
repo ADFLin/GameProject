@@ -15,6 +15,7 @@ public:
 	GCheckBox* addCheckBox(int id, char const* tile);
 	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
 	GSlider*   addSlider( int id );
+	GTextCtrl* addTextCtrl(int id);
 	GText*     addText(char const* pText, bool bUseBroder = false);
 
 private:
@@ -122,7 +123,7 @@ struct WidgetPropery
 		WidgetPropery::Set(widget, valueRef);
 		widget->onEvent = [&valueRef, min, max](int event, GWidget* widget)
 		{
-			valueRef = Math::Clamp(  WidgetPropery::Get<T>(widget->cast<GSlider>()) , min , max );
+			valueRef = Math::Clamp(  WidgetPropery::Get<T>(widget->cast<GTextCtrl>()) , min , max );
 			return false;
 		};
 	}

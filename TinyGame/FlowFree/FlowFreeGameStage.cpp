@@ -159,6 +159,41 @@ namespace FlowFree
 	int const FlowGap = (CellLength - FlowWidth) / 2;
 	int const FlowSourceRadius = 10;
 
+	class LoadParamFrame : public DevFrame
+	{
+		using BaseClass = DevFrame;
+	public:
+		LoadParamFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:BaseClass(id, pos, size, parent)
+		{
+			addText("fliterThreshold");
+			WidgetPropery::Bind(addSlider(UI_ANY), mParams.fliterThreshold, 0.0f, 1.0f);
+			addText("houghThreshold");
+			WidgetPropery::Bind(addSlider(UI_ANY), mParams.houghThreshold, 0.0f, 1.0f);
+			addText("removeHeadHLineCount");
+			WidgetPropery::Bind(addTextCtrl(UI_ANY), mParams.removeHeadHLineCount, 0 , 5);
+
+			addButton("BuildAndSolve", [this](int event, GWidget *)
+			{
+				if (stage->mReader.loadLevel(stage->mLevel, imageData, mParams) == IRR_OK)
+				{
+					stage->mSolver2.solve(stage->mLevel);
+				}
+				return false;
+			});
+
+			addButton("Close", [this](int event, GWidget *)
+			{
+				destroy();
+				return false;
+			});
+		}
+
+		TestStage* stage;
+		ImageReader::TProcImage< Color3ub > imageData;
+		ImageReader::LoadParams mParams;
+	};
+
 	bool TestStage::onInit()
 	{
 		if (!BaseClass::onInit())
@@ -183,10 +218,26 @@ namespace FlowFree
 			FixString< 512 > imagePath;
 			if (SystemPlatform::OpenFileName(imagePath, imagePath.max_size(), {}, nullptr , nullptr , ::Global::GetDrawEngine().getWindowHandle() ) )
 			{
-				if (mReader.loadLevel(mLevel, imagePath, mColorMap))
+				ImageReader::LoadParams params;
+				params.colorMap = mColorMap;
+
+				ImageReader::TProcImage< Color3ub > imageData;
+				if (ImageReader::LoadImage(imagePath, imageData))
 				{
-					mSolver2.solve(mLevel);
+					if (mReader.loadLevel(mLevel, imageData, params) == IRR_OK)
+					{
+						mSolver2.solve(mLevel);
+					}
+					else
+					{
+						LoadParamFrame* frame = new LoadParamFrame(UI_ANY, Vec2i(100, 100), Vec2i(150, 200), nullptr);
+						frame->stage = this;
+						frame->mParams.colorMap = mColorMap;
+						frame->imageData = std::move(imageData);
+						::Global::GUI().addWidget(frame);
+					}
 				}
+
 			}
 
 			return false;

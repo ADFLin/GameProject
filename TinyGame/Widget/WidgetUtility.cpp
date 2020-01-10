@@ -84,6 +84,15 @@ GSlider* DevFrame::addSlider(int id)
 }
 
 
+GTextCtrl* DevFrame::addTextCtrl(int id)
+{
+	return addWidget<GTextCtrl>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
+	{
+		GTextCtrl* widget = new GTextCtrl(id, widgetPos, widgetSize.x, this);
+		return widget;
+	});
+}
+
 GText* DevFrame::addText(char const* pText, bool bUseBroder)
 {
 	return addWidget<GText>([&](Vec2i const& widgetPos , Vec2i const& widgetSize ) ->auto

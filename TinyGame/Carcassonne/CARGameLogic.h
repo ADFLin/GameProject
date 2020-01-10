@@ -225,6 +225,17 @@ namespace CAR
 		void       destroyFeature( FeatureBase* build );
 
 		std::vector< FeatureBase* > mFeatureMap;
+		template< class TFunc >
+		void visitFeatures(TFunc&& func)
+		{
+			for (auto feature : mFeatureMap)
+			{
+				if (feature->group == ERROR_GROUP_ID)
+					continue;
+
+				func(feature);
+			}
+		}
 
 		int getFollowers( unsigned playerIdMask , ActorList& outActors , LevelActor* actorSkip  = nullptr );
 		LevelActor* createActor( ActorType type );
@@ -238,6 +249,8 @@ namespace CAR
 		void cleanupData();
 
 		PlayerBase* getOwnedPlayer(LevelActor* actor);
+
+
 
 		static GameParamCollection& GetParamCollection(GameLogic& logic);
 		//

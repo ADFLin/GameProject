@@ -1157,7 +1157,8 @@ namespace Render
 	OpenGLBlendState::OpenGLBlendState(BlendStateInitializer const& initializer)
 	{
 		mStateValue.bEnableAlphaToCoverage = initializer.bEnableAlphaToCoverage;
-		for( int i = 0; i < NumBlendStateTarget; ++i )
+		mStateValue.bEnableIndependent = initializer.bEnableIndependent;
+		for( int i = 0; i < (initializer.bEnableIndependent ? NumBlendStateTarget : 1); ++i )
 		{
 			auto const& targetValue = initializer.targetValues[i];
 			auto& targetValueGL = mStateValue.targetValues[i];
@@ -1165,7 +1166,7 @@ namespace Render
 			targetValueGL.bEnable = (targetValue.srcColor != Blend::eOne) || (targetValue.srcAlpha != Blend::eOne) ||
 				(targetValue.destColor != Blend::eZero) || (targetValue.destAlpha != Blend::eZero);
 
-			targetValueGL.bSeparateBlend = (targetValue.srcColor != targetValue.srcAlpha) || (targetValue.destColor != targetValue.destAlpha);
+			targetValueGL.bSeparateBlend = (targetValue.srcColor != targetValue.srcAlpha) || (targetValue.destColor != targetValue.destAlpha) || (targetValue.op != targetValue.opAlpha);
 
 			targetValueGL.srcColor = OpenGLTranslate::To(targetValue.srcColor);
 			targetValueGL.srcAlpha = OpenGLTranslate::To(targetValue.srcAlpha);

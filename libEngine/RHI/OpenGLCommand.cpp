@@ -12,7 +12,7 @@
 
 namespace Render
 {
-	bool gForceInitState = true;
+	bool gForceInitState = false;
 
 	void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
 	{
@@ -235,7 +235,7 @@ namespace Render
 			RHISetDepthStencilState(*mImmediateCommandList, TStaticDepthStencilState<>::GetRHI(), 0xff);
 			RHISetBlendState(*mImmediateCommandList, TStaticBlendState<>::GetRHI());
 			RHISetRasterizerState(*mImmediateCommandList, TStaticRasterizerState<>::GetRHI());
-			//gForceInitState = false;
+			gForceInitState = false;
 		}
 
 		return true;
@@ -361,235 +361,18 @@ namespace Render
 
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 	{
-		if( !gForceInitState && &rasterizerState == mDeviceState.rasterizerStateUsage )
-		{
-			return;
-		}
-		mDeviceState.rasterizerStateUsage = &rasterizerState;
-
-		OpenGLRasterizerState& rasterizerStateGL = static_cast<OpenGLRasterizerState&>(rasterizerState);
-		auto& deviceValue = mDeviceState.rasterizerStateValue;
-		auto const& setupValue = rasterizerStateGL.mStateValue;
-
-		if( GL_STATE_VAR_TEST(fillMode) )
-		{
-			GL_STATE_VAR_ASSIGN(fillMode);
-			glPolygonMode(GL_FRONT_AND_BACK, setupValue.fillMode);
-		}
-
-		if( GL_STATE_VAR_TEST(bEnableScissor) )
-		{
-			GL_STATE_VAR_ASSIGN(bEnableScissor);
-			EnableGLState(GL_SCISSOR_TEST, setupValue.bEnableScissor);
-		}
-
-		if( GL_STATE_VAR_TEST(bEnableCull) )
-		{
-			GL_STATE_VAR_ASSIGN(bEnableCull);
-			EnableGLState(GL_CULL_FACE, setupValue.bEnableCull);
-
-			if( GL_STATE_VAR_TEST(cullFace) )
-			{
-				GL_STATE_VAR_ASSIGN(cullFace);
-				glCullFace(setupValue.cullFace);
-			}
-		}
+		mDeviceState.rasterizerStateCommit = &rasterizerState;
 	}
 
 	void OpenGLContext::RHISetBlendState(RHIBlendState& blendState)
 	{
-
-		if( !gForceInitState && &blendState == mDeviceState.blendStateUsage )
-			return;
-
-		mDeviceState.blendStateUsage = &blendState;
-		OpenGLBlendState& BlendStateGL = static_cast<OpenGLBlendState&>(blendState);
-
-		{
-			auto& deviceValue = mDeviceState.blendStateValue;
-			auto const& setupValue = BlendStateGL.mStateValue;
-			if( GL_STATE_VAR_TEST(bEnableAlphaToCoverage) )
-			{
-				GL_STATE_VAR_ASSIGN(bEnableAlphaToCoverage);
-				EnableGLState(GL_SAMPLE_ALPHA_TO_COVERAGE, setupValue.bEnableAlphaToCoverage);
-			}
-		}
-
-		for( int i = 0; i < NumBlendStateTarget; ++i )
-		{
-			auto& deviceValue = mDeviceState.blendStateValue.targetValues[i];
-			auto const& setupValue = BlendStateGL.mStateValue.targetValues[i];
-
-			bool bFroceReset = false;
-
-			if( GL_STATE_VAR_TEST(writeMask) )
-			{
-				bFroceReset = true;
-				GL_STATE_VAR_ASSIGN(writeMask);
-				glColorMaski(i, setupValue.writeMask & CWM_R,
-							 setupValue.writeMask & CWM_G,
-							 setupValue.writeMask & CWM_B,
-							 setupValue.writeMask & CWM_A);
-			}
-
-			if( setupValue.writeMask )
-			{
-
-				if( GL_STATE_VAR_TEST(bEnable) )
-				{
-					GL_STATE_VAR_ASSIGN(bEnable);
-					EnableGLStateIndex(GL_BLEND, i, setupValue.bEnable);
-				}
-
-				if( setupValue.bEnable )
-				{
-					if( bFroceReset || GL_STATE_VAR_TEST(bSeparateBlend) || GL_STATE_VAR_TEST(srcColor) || GL_STATE_VAR_TEST(destColor) || GL_STATE_VAR_TEST(srcAlpha) || GL_STATE_VAR_TEST(destAlpha) )
-					{
-						GL_STATE_VAR_ASSIGN(bSeparateBlend);
-						GL_STATE_VAR_ASSIGN(srcColor);
-						GL_STATE_VAR_ASSIGN(destColor);
-						GL_STATE_VAR_ASSIGN(srcAlpha);
-						GL_STATE_VAR_ASSIGN(destAlpha);
-
-						if( setupValue.bSeparateBlend )
-						{
-
-							glBlendFuncSeparatei(i, setupValue.srcColor, setupValue.destColor,
-												 setupValue.srcAlpha, setupValue.destAlpha);
-						}
-						else
-						{
-							glBlendFunci(i, setupValue.srcColor, setupValue.destColor);
-						}
-					}
-				}
-			}
-		}
+		mDeviceState.blendStateCommit = &blendState;
 	}
 
 	void OpenGLContext::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
-		auto& deviceValue = mDeviceState.depthStencilStateValue;
-		if( !gForceInitState && &depthStencilState == mDeviceState.depthStencilStateUsage )
-		{
-			if( deviceValue.stencilRef != stencilRef )
-			{
-				deviceValue.stencilRef = stencilRef;
-				glStencilFunc(deviceValue.stencilFun, stencilRef, deviceValue.stencilReadMask);
-			}
-			return;
-		}
-		mDeviceState.depthStencilStateUsage = &depthStencilState;
-		
-		OpenGLDepthStencilState& depthStencilStateGL = static_cast<OpenGLDepthStencilState&>(depthStencilState);
-
-		auto const& setupValue = depthStencilStateGL.mStateValue;
-
-		if( GL_STATE_VAR_TEST(bEnableDepthTest) )
-		{
-			GL_STATE_VAR_ASSIGN(bEnableDepthTest);
-			EnableGLState(GL_DEPTH_TEST, setupValue.bEnableDepthTest);
-		}
-
-		if( setupValue.bEnableDepthTest )
-		{
-			if( GL_STATE_VAR_TEST(bWriteDepth) )
-			{
-				GL_STATE_VAR_ASSIGN(bWriteDepth);
-				glDepthMask(setupValue.bWriteDepth);
-			}
-			if( GL_STATE_VAR_TEST(depthFun) )
-			{
-				GL_STATE_VAR_ASSIGN(depthFun);
-				glDepthFunc(setupValue.depthFun);
-			}
-		}
-		else
-		{
-			//#TODO : Check State Value
-		}
-
-		if( GL_STATE_VAR_TEST(bEnableStencilTest) )
-		{
-			GL_STATE_VAR_ASSIGN(bEnableStencilTest);
-			EnableGLState(GL_STENCIL_TEST, setupValue.bEnableStencilTest);
-		}
-
-		if( GL_STATE_VAR_TEST(stencilWriteMask) )
-		{
-			GL_STATE_VAR_ASSIGN(stencilWriteMask);
-			glStencilMask(setupValue.stencilWriteMask);
-		}
-
-		if( setupValue.bEnableStencilTest )
-		{
-
-			bool bForceRestOp = false;
-			if( GL_STATE_VAR_TEST(bUseSeparateStencilOp) )
-			{
-				GL_STATE_VAR_ASSIGN(bUseSeparateStencilOp);
-				bForceRestOp = true;
-			}
-
-			bool bForceRestFun = false;
-			if( GL_STATE_VAR_TEST(bUseSeparateStencilFun) )
-			{
-				GL_STATE_VAR_ASSIGN(bUseSeparateStencilFun);
-				bForceRestFun = true;
-			}
-
-			if( setupValue.bUseSeparateStencilOp )
-			{
-				if( bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp) || GL_STATE_VAR_TEST(stencilFailOpBack) || GL_STATE_VAR_TEST(stencilZFailOpBack) || GL_STATE_VAR_TEST(stencilZPassOpBack) )
-				{
-					GL_STATE_VAR_ASSIGN(stencilFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZPassOp);
-					GL_STATE_VAR_ASSIGN(stencilFailOpBack);
-					GL_STATE_VAR_ASSIGN(stencilZFailOpBack);
-					GL_STATE_VAR_ASSIGN(stencilZPassOpBack);
-					glStencilOpSeparate(GL_FRONT, setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
-					glStencilOpSeparate(GL_BACK, setupValue.stencilFailOpBack, setupValue.stencilZFailOpBack, setupValue.stencilZPassOpBack);
-				}
-			}
-			else
-			{
-				if( bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp) )
-				{
-					GL_STATE_VAR_ASSIGN(stencilFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZPassOp);
-					glStencilOp(setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
-				}
-			}
-			if( setupValue.bUseSeparateStencilFun )
-			{
-				if( bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || GL_STATE_VAR_TEST(stencilFunBack) || deviceValue.stencilRef != stencilRef || GL_STATE_VAR_TEST(stencilReadMask) )
-				{
-					GL_STATE_VAR_ASSIGN(stencilFun);
-					GL_STATE_VAR_ASSIGN(stencilFunBack);
-					GL_STATE_VAR_ASSIGN(stencilReadMask);
-					deviceValue.stencilRef = stencilRef;
-					glStencilFuncSeparate(GL_FRONT, setupValue.stencilFun, stencilRef, setupValue.stencilReadMask);
-					glStencilFuncSeparate(GL_BACK, setupValue.stencilFunBack, stencilRef, setupValue.stencilReadMask);
-				}
-			}
-			else
-			{
-				if( bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || deviceValue.stencilRef != stencilRef || GL_STATE_VAR_TEST(stencilReadMask) )
-				{
-					GL_STATE_VAR_ASSIGN(stencilFun);
-					GL_STATE_VAR_ASSIGN(stencilReadMask);
-					deviceValue.stencilRef = stencilRef;
-					glStencilFunc(setupValue.stencilFun, stencilRef, setupValue.stencilReadMask);
-				}
-			}
-		}
-		else
-		{
-
-
-		}
+		mDeviceState.depthStencilStateCommit = &depthStencilState;
+		mDeviceState.stencilRefCommit = stencilRef;
 	}
 
 	void OpenGLContext::RHISetViewport(int x, int y, int w, int h)
@@ -601,8 +384,6 @@ namespace Render
 	{
 		glScissor(x, y, w, h);
 	}
-
-
 
 	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture)
 	{
@@ -999,6 +780,296 @@ namespace Render
 	{
 		CHECK_PARAMETER(param);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
+	}
+
+	void OpenGLContext::commitRasterizerState()
+	{
+		if (!gForceInitState && mDeviceState.rasterizerStateCommit == mDeviceState.rasterizerStateUsage)
+		{
+			return;
+		}
+		mDeviceState.rasterizerStateUsage = mDeviceState.rasterizerStateCommit;
+
+		OpenGLRasterizerState& rasterizerStateGL = static_cast<OpenGLRasterizerState&>(*mDeviceState.rasterizerStateCommit);
+		auto& deviceValue = mDeviceState.rasterizerStateValue;
+		auto const& setupValue = rasterizerStateGL.mStateValue;
+
+		if (GL_STATE_VAR_TEST(fillMode))
+		{
+			GL_STATE_VAR_ASSIGN(fillMode);
+			glPolygonMode(GL_FRONT_AND_BACK, setupValue.fillMode);
+		}
+
+		if (GL_STATE_VAR_TEST(bEnableScissor))
+		{
+			GL_STATE_VAR_ASSIGN(bEnableScissor);
+			EnableGLState(GL_SCISSOR_TEST, setupValue.bEnableScissor);
+		}
+
+		if (GL_STATE_VAR_TEST(bEnableCull))
+		{
+			GL_STATE_VAR_ASSIGN(bEnableCull);
+			EnableGLState(GL_CULL_FACE, setupValue.bEnableCull);
+
+			if (GL_STATE_VAR_TEST(cullFace))
+			{
+				GL_STATE_VAR_ASSIGN(cullFace);
+				glCullFace(setupValue.cullFace);
+			}
+		}
+	}
+
+	void OpenGLContext::commitBlendState()
+	{
+		if (!gForceInitState && mDeviceState.blendStateCommit == mDeviceState.blendStateUsage)
+			return;
+
+		mDeviceState.blendStateUsage = mDeviceState.blendStateCommit;
+		OpenGLBlendState& BlendStateGL = static_cast<OpenGLBlendState&>(*mDeviceState.blendStateCommit);
+		bool bForceAllReset = false;
+		{
+			auto& deviceValue = mDeviceState.blendStateValue;
+			auto const& setupValue = BlendStateGL.mStateValue;
+			if (GL_STATE_VAR_TEST(bEnableAlphaToCoverage))
+			{
+				GL_STATE_VAR_ASSIGN(bEnableAlphaToCoverage);
+				EnableGLState(GL_SAMPLE_ALPHA_TO_COVERAGE, setupValue.bEnableAlphaToCoverage);
+			}
+			if (GL_STATE_VAR_TEST(bEnableIndependent))
+			{
+				GL_STATE_VAR_ASSIGN(bEnableAlphaToCoverage);
+				bForceAllReset = true;
+			}
+		}
+
+		if (BlendStateGL.mStateValue.bEnableIndependent)
+		{
+			for (int i = 0; i < NumBlendStateTarget; ++i)
+			{
+				auto& deviceValue = mDeviceState.blendStateValue.targetValues[i];
+				auto const& setupValue = BlendStateGL.mStateValue.targetValues[i];
+
+				bool bForceReset = false;
+
+				if (bForceAllReset || GL_STATE_VAR_TEST(writeMask))
+				{
+					bForceReset = true;
+					GL_STATE_VAR_ASSIGN(writeMask);
+					glColorMaski(i, setupValue.writeMask & CWM_R,
+						setupValue.writeMask & CWM_G,
+						setupValue.writeMask & CWM_B,
+						setupValue.writeMask & CWM_A);
+				}
+
+				if (bForceAllReset || setupValue.writeMask)
+				{
+
+					if (bForceAllReset || GL_STATE_VAR_TEST(bEnable))
+					{
+						GL_STATE_VAR_ASSIGN(bEnable);
+						EnableGLStateIndex(GL_BLEND, i, setupValue.bEnable);
+					}
+
+					if (setupValue.bEnable)
+					{
+						if (bForceReset || GL_STATE_VAR_TEST(bSeparateBlend) || GL_STATE_VAR_TEST(srcColor) || GL_STATE_VAR_TEST(destColor) || GL_STATE_VAR_TEST(srcAlpha) || GL_STATE_VAR_TEST(destAlpha))
+						{
+							GL_STATE_VAR_ASSIGN(bSeparateBlend);
+							GL_STATE_VAR_ASSIGN(srcColor);
+							GL_STATE_VAR_ASSIGN(destColor);
+							GL_STATE_VAR_ASSIGN(srcAlpha);
+							GL_STATE_VAR_ASSIGN(destAlpha);
+
+							if (setupValue.bSeparateBlend)
+							{
+
+								glBlendFuncSeparatei(i, setupValue.srcColor, setupValue.destColor,
+									setupValue.srcAlpha, setupValue.destAlpha);
+							}
+							else
+							{
+								glBlendFunci(i, setupValue.srcColor, setupValue.destColor);
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			auto& deviceValue = mDeviceState.blendStateValue.targetValues[0];
+			auto const& setupValue = BlendStateGL.mStateValue.targetValues[0];
+
+			bool bForceReset = false;
+
+			if (bForceAllReset || GL_STATE_VAR_TEST(writeMask))
+			{
+				bForceReset = true;
+				GL_STATE_VAR_ASSIGN(writeMask);
+				glColorMask(setupValue.writeMask & CWM_R,
+					setupValue.writeMask & CWM_G,
+					setupValue.writeMask & CWM_B,
+					setupValue.writeMask & CWM_A);
+			}
+
+			if (bForceAllReset || setupValue.writeMask)
+			{
+
+				if (bForceAllReset || GL_STATE_VAR_TEST(bEnable))
+				{
+					GL_STATE_VAR_ASSIGN(bEnable);
+					EnableGLState(GL_BLEND, setupValue.bEnable);
+				}
+
+				if (setupValue.bEnable)
+				{
+					if (bForceReset || GL_STATE_VAR_TEST(bSeparateBlend) || GL_STATE_VAR_TEST(srcColor) || GL_STATE_VAR_TEST(destColor) || GL_STATE_VAR_TEST(srcAlpha) || GL_STATE_VAR_TEST(destAlpha))
+					{
+						GL_STATE_VAR_ASSIGN(bSeparateBlend);
+						GL_STATE_VAR_ASSIGN(srcColor);
+						GL_STATE_VAR_ASSIGN(destColor);
+						GL_STATE_VAR_ASSIGN(srcAlpha);
+						GL_STATE_VAR_ASSIGN(destAlpha);
+
+						if (setupValue.bSeparateBlend)
+						{
+
+							glBlendFuncSeparate(setupValue.srcColor, setupValue.destColor,
+								setupValue.srcAlpha, setupValue.destAlpha);
+						}
+						else
+						{
+							glBlendFunc(setupValue.srcColor, setupValue.destColor);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void OpenGLContext::commitDepthStencilState()
+	{
+		auto& deviceValue = mDeviceState.depthStencilStateValue;
+		if (!gForceInitState && mDeviceState.depthStencilStateCommit == mDeviceState.depthStencilStateUsage)
+		{
+			if (deviceValue.stencilRef != mDeviceState.stencilRefCommit )
+			{
+				deviceValue.stencilRef = mDeviceState.stencilRefCommit;
+				glStencilFunc(deviceValue.stencilFun, mDeviceState.stencilRefCommit, deviceValue.stencilReadMask);
+			}
+			return;
+		}
+		mDeviceState.depthStencilStateUsage = mDeviceState.depthStencilStateCommit;
+
+		OpenGLDepthStencilState& depthStencilStateGL = static_cast<OpenGLDepthStencilState&>(*mDeviceState.depthStencilStateCommit);
+
+		auto const& setupValue = depthStencilStateGL.mStateValue;
+
+		if (GL_STATE_VAR_TEST(bEnableDepthTest))
+		{
+			GL_STATE_VAR_ASSIGN(bEnableDepthTest);
+			EnableGLState(GL_DEPTH_TEST, setupValue.bEnableDepthTest);
+		}
+
+		if (setupValue.bEnableDepthTest)
+		{
+			if (GL_STATE_VAR_TEST(bWriteDepth))
+			{
+				GL_STATE_VAR_ASSIGN(bWriteDepth);
+				glDepthMask(setupValue.bWriteDepth);
+			}
+			if (GL_STATE_VAR_TEST(depthFun))
+			{
+				GL_STATE_VAR_ASSIGN(depthFun);
+				glDepthFunc(setupValue.depthFun);
+			}
+		}
+		else
+		{
+			//#TODO : Check State Value
+		}
+
+		if (GL_STATE_VAR_TEST(bEnableStencilTest))
+		{
+			GL_STATE_VAR_ASSIGN(bEnableStencilTest);
+			EnableGLState(GL_STENCIL_TEST, setupValue.bEnableStencilTest);
+		}
+
+		if (GL_STATE_VAR_TEST(stencilWriteMask))
+		{
+			GL_STATE_VAR_ASSIGN(stencilWriteMask);
+			glStencilMask(setupValue.stencilWriteMask);
+		}
+
+		if (setupValue.bEnableStencilTest)
+		{
+
+			bool bForceRestOp = false;
+			if (GL_STATE_VAR_TEST(bUseSeparateStencilOp))
+			{
+				GL_STATE_VAR_ASSIGN(bUseSeparateStencilOp);
+				bForceRestOp = true;
+			}
+
+			bool bForceRestFun = false;
+			if (GL_STATE_VAR_TEST(bUseSeparateStencilFun))
+			{
+				GL_STATE_VAR_ASSIGN(bUseSeparateStencilFun);
+				bForceRestFun = true;
+			}
+
+			if (setupValue.bUseSeparateStencilOp)
+			{
+				if (bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp) || GL_STATE_VAR_TEST(stencilFailOpBack) || GL_STATE_VAR_TEST(stencilZFailOpBack) || GL_STATE_VAR_TEST(stencilZPassOpBack))
+				{
+					GL_STATE_VAR_ASSIGN(stencilFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZPassOp);
+					GL_STATE_VAR_ASSIGN(stencilFailOpBack);
+					GL_STATE_VAR_ASSIGN(stencilZFailOpBack);
+					GL_STATE_VAR_ASSIGN(stencilZPassOpBack);
+					glStencilOpSeparate(GL_FRONT, setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
+					glStencilOpSeparate(GL_BACK, setupValue.stencilFailOpBack, setupValue.stencilZFailOpBack, setupValue.stencilZPassOpBack);
+				}
+			}
+			else
+			{
+				if (bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp))
+				{
+					GL_STATE_VAR_ASSIGN(stencilFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZPassOp);
+					glStencilOp(setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
+				}
+			}
+			if (setupValue.bUseSeparateStencilFun)
+			{
+				if (bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || GL_STATE_VAR_TEST(stencilFunBack) || deviceValue.stencilRef != mDeviceState.stencilRefCommit || GL_STATE_VAR_TEST(stencilReadMask))
+				{
+					GL_STATE_VAR_ASSIGN(stencilFun);
+					GL_STATE_VAR_ASSIGN(stencilFunBack);
+					GL_STATE_VAR_ASSIGN(stencilReadMask);
+					deviceValue.stencilRef = mDeviceState.stencilRefCommit;
+					glStencilFuncSeparate(GL_FRONT, setupValue.stencilFun, mDeviceState.stencilRefCommit, setupValue.stencilReadMask);
+					glStencilFuncSeparate(GL_BACK, setupValue.stencilFunBack, mDeviceState.stencilRefCommit, setupValue.stencilReadMask);
+				}
+			}
+			else
+			{
+				if (bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || deviceValue.stencilRef != mDeviceState.stencilRefCommit || GL_STATE_VAR_TEST(stencilReadMask))
+				{
+					GL_STATE_VAR_ASSIGN(stencilFun);
+					GL_STATE_VAR_ASSIGN(stencilReadMask);
+					deviceValue.stencilRef = mDeviceState.stencilRefCommit;
+					glStencilFunc(setupValue.stencilFun, mDeviceState.stencilRefCommit, setupValue.stencilReadMask);
+				}
+			}
+		}
+		else
+		{
+
+
+		}
 	}
 
 	void OpenGLContext::setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)

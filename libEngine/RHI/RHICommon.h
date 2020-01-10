@@ -749,7 +749,7 @@ namespace Render
 		RHIDepthStencilState():RHIResource(TRACE_TYPE_NAME("DepthStencilState")) {}
 	};
 
-	constexpr int NumBlendStateTarget = 1;
+	constexpr int NumBlendStateTarget = 4;
 	struct BlendStateInitializer
 	{
 		struct TargetValue
@@ -763,6 +763,7 @@ namespace Render
 			Blend::Factor    destAlpha;
 		};
 		bool bEnableAlphaToCoverage;
+		bool bEnableIndependent;
 		TargetValue    targetValues[NumBlendStateTarget];
 	};
 

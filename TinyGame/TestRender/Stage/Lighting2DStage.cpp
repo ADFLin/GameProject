@@ -51,6 +51,9 @@ namespace Lighting2D
 		::Global::GUI().cleanupWidget();
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
+
+		WidgetPropery::Bind(frame->addCheckBox(UI_ANY , "bUseGeometryShader"), bUseGeometryShader);
+
 		restart();
 
 		return true;
@@ -90,7 +93,7 @@ namespace Lighting2D
 		case UI_RUN_BENCHMARK:
 			{
 				int lightNum = 100;
-				int blockNum = 500;
+				int blockNum = 5000;
 				GameWindow& window = Global::GetDrawEngine().getWindow();
 
 				int w = window.getWidth();
@@ -112,7 +115,7 @@ namespace Lighting2D
 					Vector2 pos;
 					pos.x = ::Global::Random() % w;
 					pos.y = ::Global::Random() % h;
-					block.setBox(pos, Vector2(25, 25));
+					block.setBox(pos, Vector2(10, 10));
 					blocks.push_back(std::move(block));
 
 				}
@@ -130,9 +133,10 @@ namespace Lighting2D
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
+
+		Matrix4 projectMatrix = OrthoMatrix(0, window.getWidth(), 0, window.getHeight(), 1, -1);
 		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, window.getWidth(), 0 , window.getHeight(), 1, -1);
+		glLoadMatrixf(AdjProjectionMatrixForRHI(projectMatrix));
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
@@ -142,14 +146,16 @@ namespace Lighting2D
 		int w = window.getWidth();
 		int h = window.getHeight();
 
-#if SHADOW_USE_GEOMETRY_SHADER
-		mBuffers.clear();
-		for( Block& block : blocks )
+		if (bUseGeometryShader)
 		{
-			renderPolyShadow(Light(), block.pos, block.getVertices(), block.getVertexNum());
+			mBuffers.clear();
+			for (Block& block : blocks)
+			{
+				renderPolyShadow(Light(), block.pos, block.getVertices(), block.getVertexNum());
+			}
 		}
-#endif
-		for ( Light& light : lights )
+
+		for ( Light const& light : lights )
 		{
 
 			RHISetDepthStencilState(commandList,
@@ -163,26 +169,32 @@ namespace Lighting2D
 
 			{
 
-#if SHADOW_USE_GEOMETRY_SHADER
-				RHISetShaderProgram(commandList, mProgShadow.getRHIResource());
-				mProgShadow.setParameters(commandList, light.pos);
-#endif
-
-#if !SHADOW_USE_GEOMETRY_SHADER
-				mBuffers.clear();
-				for( Block& block : blocks )
+				if (bUseGeometryShader)
 				{
-					renderPolyShadow(light, block.pos, block.getVertices(), block.getVertexNum());
+					RHISetShaderProgram(commandList, mProgShadow.getRHIResource());
+					mProgShadow.setParameters(commandList, light.pos);
 				}
-#endif
-
-				if( !mBuffers.empty() )
+				else
 				{
-#if SHADOW_USE_GEOMETRY_SHADER
-					TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
-#else
-					TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
-#endif
+					mBuffers.clear();
+					for (Block& block : blocks)
+					{
+						renderPolyShadow(light, block.pos, block.getVertices(), block.getVertexNum());
+					}
+				}
+
+				if (!mBuffers.empty())
+				{
+
+					if (bUseGeometryShader)
+					{
+						TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
+					}
+					else
+					{
+						TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
+					}
+					
 				}
 			}
 			
@@ -238,41 +250,43 @@ namespace Lighting2D
 
 	void TestStage::renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex  )
 	{
-#if SHADOW_USE_GEOMETRY_SHADER
 
-		int idxPrev = numVertex - 1;
-		for( int idxCur = 0; idxCur < numVertex; idxPrev = idxCur, ++idxCur )
+		if (bUseGeometryShader)
 		{
-			Vector2 const& prev = pos + vertices[idxPrev];
-			Vector2 const& cur = pos + vertices[idxCur];
-			mBuffers.push_back(prev);
-			mBuffers.push_back(cur);
-		}
-
-#else
-		int idxPrev = numVertex - 1;
-		for( int idxCur = 0 ; idxCur < numVertex ; idxPrev = idxCur , ++idxCur )
-		{
-			Vector2 const& prev = pos + vertices[ idxPrev ];
-			Vector2 const& cur = pos + vertices[idxCur];
-			Vector2 edge = cur - prev;
-
-			Vector2 dirCur = cur - light.pos;
-			Vector2 dirPrev = prev - light.pos;
-
-			if ( dirCur.x * edge.y - dirCur.y * edge.x < 0 )
+			int idxPrev = numVertex - 1;
+			for (int idxCur = 0; idxCur < numVertex; idxPrev = idxCur, ++idxCur)
 			{
-				Vector2 v1 = prev + 1000 * dirPrev;
-				Vector2 v2 = cur + 1000 * dirCur;
-
+				Vector2 const& prev = pos + vertices[idxPrev];
+				Vector2 const& cur = pos + vertices[idxCur];
 				mBuffers.push_back(prev);
-				mBuffers.push_back(v1);
-				mBuffers.push_back(v2);
 				mBuffers.push_back(cur);
 			}
 		}
+		else
+		{
+			int idxPrev = numVertex - 1;
+			for (int idxCur = 0; idxCur < numVertex; idxPrev = idxCur, ++idxCur)
+			{
+				Vector2 const& prev = pos + vertices[idxPrev];
+				Vector2 const& cur = pos + vertices[idxCur];
+				Vector2 edge = cur - prev;
 
-#endif
+				Vector2 dirCur = cur - light.pos;
+				Vector2 dirPrev = prev - light.pos;
+
+				if (dirCur.x * edge.y - dirCur.y * edge.x < 0)
+				{
+					Vector2 v1 = prev + 1000 * dirPrev;
+					Vector2 v2 = cur + 1000 * dirCur;
+
+					mBuffers.push_back(prev);
+					mBuffers.push_back(v1);
+					mBuffers.push_back(v2);
+					mBuffers.push_back(cur);
+				}
+			}
+		}
+
 	}
 
 	bool TestStage::onMouse( MouseMsg const& msg )

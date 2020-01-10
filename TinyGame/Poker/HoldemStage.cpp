@@ -59,9 +59,9 @@ namespace Poker { namespace Holdem {
 		for( int i = 0 ; i < 6 ; ++i )
 		{
 			GamePlayer* player = playerManager.createPlayer( i );
-			player->getInfo().slot = i;
-			player->getInfo().actionPort = i;
-			player->getInfo().type = ( i == 0 ) ? PT_PLAYER : PT_COMPUTER;
+			player->setSlot( i );
+			player->setActionPort( i );
+			player->setType( (i == 0 ) ? PT_PLAYER : PT_COMPUTER );
 		}
 		playerManager.setUserID( 0 );
 
@@ -79,8 +79,8 @@ namespace Poker { namespace Holdem {
 		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
-			int slotId = player->getInfo().slot;
-			player->getInfo().actionPort = slotId;
+			int slotId = player->getSlot();
+			player->setActionPort( slotId );
 
 			assert( player->getType() != PT_SPECTATORS );
 			int money = 200 /*+ 50 * player->getId()*/;

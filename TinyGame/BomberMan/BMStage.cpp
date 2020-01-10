@@ -111,7 +111,7 @@ namespace BomberMan
 			GamePlayer* player = iter.getElement();
 			if ( player->getType() != PT_SPECTATORS )
 			{
-				player->getInfo().actionPort = mMode->addPlayer()->getId();
+				player->setActionPort( mMode->addPlayer()->getId() );
 			}
 		}
 

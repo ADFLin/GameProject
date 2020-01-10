@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Stage">
+      <UniqueIdentifier>{c813b015-b704-448a-a775-5e5a0485110a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Script">
+      <UniqueIdentifier>{79b226fc-5e41-4c4e-9934-5a1ae6e65394}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="out\Script\SceneA.chai">
+      <Filter>Script</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TestRender\SceneScript.h" />
+    <ClInclude Include="TestRender\RenderAssetId.h" />
+    <ClInclude Include="TestRender\Stage\RenderGLStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\Stage\SoftwareRenderStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\Stage\FluidSimStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\Stage\Lighting2DStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestRender\TestRenderPCH.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="TestRender\SceneScript.cpp" />
+    <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\RenderGLStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\SoftwareRenderStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\FluidSimStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\FractialStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\D3D11TestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\Lighting2DStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\TestRender.cpp" />
+    <ClCompile Include="TestRender\TestRenderPCH.cpp" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,229 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Stage">
+      <UniqueIdentifier>{e1bba0fb-6f49-490f-a657-0ac18f4b9275}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{37e7dfa7-8176-44ad-a709-abdc413b710a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SuperFractial">
+      <UniqueIdentifier>{11dcb7fa-966e-432a-9eeb-0f01f18ee7c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CurveBuilder">
+      <UniqueIdentifier>{0dcfa5f2-c992-41a3-aa90-3178ffc7b77c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CurveBuilder\Shader">
+      <UniqueIdentifier>{d296853c-2372-47a4-8343-b873d7d26115}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TinyCore\DataTransfer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\DataTransferImpl.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameAction.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameConfig.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameDefines.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\PropertyKey.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyGamePCH.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="GameMenuStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\StageBase.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameWidgetID.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\UserProfile.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\OptionNoteBook.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\ServerListPanel.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameModule.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\WidgetLayout.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\WidgetUtility.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\ConsoleFrame.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameStageMode.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="SuperFractial\SelectRectBase.h">
+      <Filter>SuperFractial</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\AsmetaBase.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Assembler.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ColorMap.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\DifferentialParser.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Expression.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionParser.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\FPUCompiler.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\FunctionParser.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\CurveRenderer.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Base.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\RenderData.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ShapeCommon.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ShapeMeshBuilder.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Surface.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\DataStreamBuffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ShapeFunction.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="TinyCore\DataTransferImpl.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\PropertyKey.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyGamePCH.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="GameMenuStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\GameStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\StageBase.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\ServeListPanel.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\OptionNoteBook.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\GameModule.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\WidgetUtility.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\ConsoleFrame.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\GameStageMode.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="SuperFractial\SelectRectBase.cpp">
+      <Filter>SuperFractial</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ColorMap.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\DifferentialParser.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Expression.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ExpressionParser.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\FPUCompiler.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\FunctionParser.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\CurveRenderer.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\RenderData.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ShapeMeshBuilder.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Surface.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\DataStreamBuffer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ShapeFunction.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TinyCore\ColorName.h">
+      <Filter>Common</Filter>
+    </None>
+    <None Include="out\Shader\Game\CurveMesh.sgc">
+      <Filter>CurveBuilder\Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\MeshNormalVisualize.sgc">
+      <Filter>CurveBuilder\Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\CurveContour.sgc">
+      <Filter>CurveBuilder\Shader</Filter>
+    </None>
+  </ItemGroup>
+</Project>

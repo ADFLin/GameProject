@@ -1,0 +1,419 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="TestMisc\TestMisc.cpp" />
+    <ClCompile Include="TestMisc\TestMiscPCH.cpp" />
+    <ClCompile Include="TestMisc\Test\FunctionFitTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\MatrixTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\PreprocessTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\SpatialIndexTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\AsyncWokTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\BehaviorTreeTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\BoneIKTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\DelegateTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\BloxorzStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\GGJStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\RubiksStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\AudioTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TripleTown\TTLevel.cpp">
+      <Filter>GameTripleTown</Filter>
+    </ClCompile>
+    <ClCompile Include="TripleTown\TTScene.cpp">
+      <Filter>GameTripleTown</Filter>
+    </ClCompile>
+    <ClCompile Include="Bejeweled\BJLevel.cpp">
+      <Filter>GameBejeweled</Filter>
+    </ClCompile>
+    <ClCompile Include="Bejeweled\BJScene.cpp">
+      <Filter>GameBejeweled</Filter>
+    </ClCompile>
+    <ClCompile Include="Bejeweled\BJStage.cpp">
+      <Filter>GameBejeweled</Filter>
+    </ClCompile>
+    <ClCompile Include="Cantan\CantanLevel.cpp">
+      <Filter>GameCantan</Filter>
+    </ClCompile>
+    <ClCompile Include="FlappyBird\FBLevel.cpp">
+      <Filter>GameFlappyBird</Filter>
+    </ClCompile>
+    <ClCompile Include="FlappyBird\FBStage.cpp">
+      <Filter>GameFlappyBird</Filter>
+    </ClCompile>
+    <ClCompile Include="FlappyBird\TrainManager.cpp">
+      <Filter>GameFlappyBird</Filter>
+    </ClCompile>
+    <ClCompile Include="TripleTown\TTStage.cpp">
+      <Filter>GameTripleTown</Filter>
+    </ClCompile>
+    <ClCompile Include="Qix\QixLevel.cpp">
+      <Filter>GameQix</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Action.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\AxisSweepDetector.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\CollisionSystem.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\FlightGame.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Object.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\ObjectManger.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\ObjModel.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Player.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\RenderEngine.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\ResourcesLoader.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Weapon.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Mario\MBLevel.cpp">
+      <Filter>GameMario</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVCommon.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVLevel.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVObject.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVPathFinder.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVRenderEngine.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVSpaceControl.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVStage.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVWidget.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVWorld.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="Mario\MBStage.cpp">
+      <Filter>GameMario</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libEngine\Algo\FFT.cpp" />
+    <ClCompile Include="TestMisc\Test\HTTPTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\PWTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\GControlerWin7.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\ImageScanser.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\InputHook.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\MinesweeperHook.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\MineSweeperSolver.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\CSPSolveStrategy.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\ExpSolveStrategy.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\CSolverFrame.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\MineLevelStage.cpp">
+      <Filter>GameMinesweeper</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\CompressionTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\FileNameConvStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="CarTrain\CTTestStage.cpp">
+      <Filter>GameCarTrain</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TestMisc\TestMiscPCH.h" />
+    <ClInclude Include="TestMisc\Test\SpatialIndexTest.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\BloxorzStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\GGJStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\RubiksStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\StickMoveStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\AudioTestStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TextureId.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TTLevel.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TTScene.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TTStage.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="Bejeweled\BJLevel.h">
+      <Filter>GameBejeweled</Filter>
+    </ClInclude>
+    <ClInclude Include="Bejeweled\BJScene.h">
+      <Filter>GameBejeweled</Filter>
+    </ClInclude>
+    <ClInclude Include="Bejeweled\BJStage.h">
+      <Filter>GameBejeweled</Filter>
+    </ClInclude>
+    <ClInclude Include="Cantan\CantanLevel.h">
+      <Filter>GameCantan</Filter>
+    </ClInclude>
+    <ClInclude Include="Cantan\CantanStage.h">
+      <Filter>GameCantan</Filter>
+    </ClInclude>
+    <ClInclude Include="Civ\CvCity.h">
+      <Filter>GameCiv</Filter>
+    </ClInclude>
+    <ClInclude Include="Civ\CvMap.h">
+      <Filter>GameCiv</Filter>
+    </ClInclude>
+    <ClInclude Include="Fight\FightLevel.h">
+      <Filter>GameFight</Filter>
+    </ClInclude>
+    <ClInclude Include="FlappyBird\FBLevel.h">
+      <Filter>GameFlappyBird</Filter>
+    </ClInclude>
+    <ClInclude Include="FlappyBird\FBStage.h">
+      <Filter>GameFlappyBird</Filter>
+    </ClInclude>
+    <ClInclude Include="FlappyBird\TrainManager.h">
+      <Filter>GameFlappyBird</Filter>
+    </ClInclude>
+    <ClInclude Include="Qix\QixLevel.h">
+      <Filter>GameQix</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Action.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\AxisSweepDetector.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\CollisionSystem.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Common.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\CommonFwd.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\FlightGame.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\GridManger.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Object.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ObjectFactory.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ObjectManger.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ObjModel.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Player.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\RenderEngine.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ResourcesLoader.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Weapon.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Mario\MBLevel.h">
+      <Filter>GameMario</Filter>
+    </ClInclude>
+    <ClInclude Include="LordMonarch\LmLevel.h">
+      <Filter>GameLordMonarch</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVCommon.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVLevel.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVObject.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVPathFinder.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVRenderEngine.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVSpaceControl.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVStage.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVWidget.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVWorld.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="Mario\MBStage.h">
+      <Filter>GameMario</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libEngine\Algo\FFT.h" />
+    <ClInclude Include="Minesweeper\GameInterface.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\GControlerWin7.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\ImageScanser.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\InputHook.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\MineSweeperSolver.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\CSPSolveStrategy.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\ExpSolveStrategy.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\CSolverFrame.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\MineDefines.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Test">
+      <UniqueIdentifier>{c6724913-ed8a-4b23-b779-a7bd919a4aa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Stage">
+      <UniqueIdentifier>{8b38c96c-cda1-4f98-abe2-f2e2c5bac484}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameTripleTown">
+      <UniqueIdentifier>{dc86ee53-fa8a-42f6-be74-2ad70fab2a73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameBejeweled">
+      <UniqueIdentifier>{70d29e17-6c01-4f90-a65b-19c059b389fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameCantan">
+      <UniqueIdentifier>{26259c9b-ff37-407f-8fc4-12e41ba93382}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameCiv">
+      <UniqueIdentifier>{0576c7a7-acf4-46c9-a0ec-8cf8718a229a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameFight">
+      <UniqueIdentifier>{b9d1e046-6af0-49bb-addf-405366b58258}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameFlappyBird">
+      <UniqueIdentifier>{8ddecf95-eefc-4e5c-8a6e-053683266651}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameQix">
+      <UniqueIdentifier>{9130d5e0-d5d6-4705-83f9-45544473cb34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameShoot2D">
+      <UniqueIdentifier>{22ffe9da-4fbb-4762-8943-40c5ea016d02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameMario">
+      <UniqueIdentifier>{fcad8299-ba46-4a95-bd18-f2c66c40f0c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameLordMonarch">
+      <UniqueIdentifier>{6c4ccd18-cafe-47d0-9cdc-26948a05eff4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameMonumentValley">
+      <UniqueIdentifier>{54ec6160-7e12-4d39-9175-e5469d7962a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameMinesweeper">
+      <UniqueIdentifier>{d67b9cbe-7181-4e4c-b625-2bbbfe9ab5f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameCarTrain">
+      <UniqueIdentifier>{ce9e2ea3-d41d-4c07-8f9d-b581e1e540a0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

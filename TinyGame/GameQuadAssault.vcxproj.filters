@@ -1,0 +1,452 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="QuadAssault\Actor.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Block.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Collision.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Game.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\GameInput.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\GlobalVariable.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\GUISystem.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Level.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\LevelStage.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\main.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\MathCore.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Message.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Object.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\SoundManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\QAGame.cpp" />
+    <ClCompile Include="QuadAssault\PlatformWin.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\PlatformSFML.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\RenderEngine.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Renderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\RenderSystem.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\RenderUtility.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\TextureManager.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\QA_PCH.cpp" />
+    <ClCompile Include="QuadAssault\DevStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\GBuffer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\GameStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Laser.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\LaserBullet.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\KeyPickup.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Particle.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Plasma.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\PlasmaBullet.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\PlasmaMob.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Player.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Weapon.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\MenuStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\ItemPickup.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\LaserMob.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\LightObject.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Minigun.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\MinigunBullet.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\MinigunMob.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Mob.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\SmokeParticle.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Trigger.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\WeaponPickup.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\WeaponRenderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\ObjectRenderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\LevelEditStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\DebrisPickup.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\DebrisParticle.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Bullet.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Explosion.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\GameEdit.cpp">
+      <Filter>Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\EditorWidget.cpp">
+      <Filter>Editor</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="QuadAssault\Actor.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Base.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Block.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\ClassReflection.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\ColBody.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Collision.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\DataPath.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Dependence.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Game.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\GameInput.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\GameInterface.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\GlobalVariable.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\GUISystem.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Level.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\LevelEditor.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\LevelFile.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\LevelStage.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Light.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\MathCore.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Message.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Movement.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Object.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\ObjectFactory.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\PlayerSetting.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Renderable.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\SoundManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\QAGame.h" />
+    <ClInclude Include="QuadAssault\Platform.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\PlatformBase.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\PlatformWin.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\PlatformSFML.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\RenderEngine.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Renderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\RenderSystem.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\RenderUtility.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Texture.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\TextureManager.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\QA_PCH.h" />
+    <ClInclude Include="QuadAssault\DevStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\GBuffer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\GameStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Laser.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\LaserBullet.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\KeyPickup.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Particle.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Plasma.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\PlasmaBullet.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\PlasmaMob.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Player.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Weapon.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\MenuStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\ItemPickup.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\LaserMob.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\LightObject.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Minigun.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\MinigunMob.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\MinigunBullet.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Mob.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\SmokeParticle.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Trigger.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\WeaponPickup.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\WeaponRenderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\ObjectRenderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\LevelEditStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\DebrisPickup.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\DebrisParticle.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Bullet.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Explosion.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\BlockId.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\GameEdit.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\EditorWidget.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="QuadAssault\GPL.txt">
+      <Filter>Core</Filter>
+    </Text>
+    <Text Include="QuadAssault\Readme.txt">
+      <Filter>Core</Filter>
+    </Text>
+    <Text Include="out\QuadAssault\shader\NormalFS.txt">
+      <Filter>Shader</Filter>
+    </Text>
+    <Text Include="out\QuadAssault\shader\NormalVS.txt">
+      <Filter>Shader</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Core">
+      <UniqueIdentifier>{7ae72798-5887-4c2f-acac-16df6b7e98b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{2e094350-cbd7-426b-8dd0-92e07718da3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{3294bf28-73b7-46e3-9ac0-c95191183bd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Stage">
+      <UniqueIdentifier>{ced65335-ad52-4306-aba3-18ad43ca304c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render">
+      <UniqueIdentifier>{00004df1-5dc7-4562-a8ce-2a093ca2c292}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{cfe3e7f2-8d62-4f9f-bcb6-b4f110bd3b18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Editor">
+      <UniqueIdentifier>{3d116533-b682-4ea3-8949-6c7eb3282cd0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="out\QuadAssault\shader\GeomDefaultVS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\SceneFS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\LightFS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\LightVS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\SceneGeometryFS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\SceneLightingFS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\SceneVS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\GeomDefaultFS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\LightingPointVS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\LightingPointFS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\LightingGlowVS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\LightingGlowFS.sgc">
+      <Filter>Shader</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -202,6 +202,10 @@ namespace CB
 		{
 			auto DrawFun = [this](RHICommandList& commandList)
 			{
+				RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHIResource());
+				mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
+				mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 				for( auto& fun : mTranslucentDraw )
 				{
 					fun(commandList);
@@ -259,10 +263,6 @@ namespace CB
 			{
 				mTranslucentDraw.emplace_back([this, &surface](RHICommandList& commandList)
 				{
-					RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHIResource());
-					mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
-					mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
-					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 					drawMesh(surface);
 				});
 			}

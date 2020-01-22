@@ -29,11 +29,11 @@ void Sobel(TImageView< float > const& input, TImageView< float >& output)
 			float sx = Conv2D(data, input.getWidth(), Gx);
 			float sy = Conv2D(data, input.getWidth(), Gy);
 
-			float v = Math::Sqrt(sx * sx + sy * sy);
+			float vSqure = sx * sx + sy * sy;
 
-			if (v > 0.7)
+			if (vSqure > 0.7 * 0.7)
 			{
-				output(x + 1, y + 1) = v;
+				output(x + 1, y + 1) = Math::Sqrt(vSqure);
 			}
 		}
 	}

@@ -137,6 +137,9 @@
     <Filter Include="RHI\D3D12">
       <UniqueIdentifier>{03a43dab-c2e1-4c0e-962c-4bddd27eaf5e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RHI\Vulkan">
+      <UniqueIdentifier>{7d4f4d9d-152b-4cee-9f2c-ceab637e2cf1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -462,6 +465,9 @@
     </ClCompile>
     <ClCompile Include="Image\ImageProcessing.cpp">
       <Filter>Image</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\VulkanCommon.cpp">
+      <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1130,6 +1136,12 @@
     </ClInclude>
     <ClInclude Include="Image\ImageProcessing.h">
       <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\VulkanCommand.h">
+      <Filter>RHI\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\VulkanCommon.h">
+      <Filter>RHI\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

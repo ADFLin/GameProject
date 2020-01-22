@@ -263,6 +263,7 @@ namespace CB
 			{
 				mTranslucentDraw.emplace_back([this, &surface](RHICommandList& commandList)
 				{
+
 					drawMesh(surface);
 				});
 			}

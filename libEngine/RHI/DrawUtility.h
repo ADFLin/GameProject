@@ -353,6 +353,7 @@ namespace Render
 		}
 
 		int operator[](int idx) const { return value[idx]; }
+		ViewportInfo mValue;
 		int value[4];
 		RHICommandList& mCommandList;
 	};

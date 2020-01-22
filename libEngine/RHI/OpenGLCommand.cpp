@@ -235,7 +235,7 @@ namespace Render
 			RHISetDepthStencilState(*mImmediateCommandList, TStaticDepthStencilState<>::GetRHI(), 0xff);
 			RHISetBlendState(*mImmediateCommandList, TStaticBlendState<>::GetRHI());
 			RHISetRasterizerState(*mImmediateCommandList, TStaticRasterizerState<>::GetRHI());
-			gForceInitState = false;
+			gForceInitState = true;
 		}
 
 		return true;
@@ -362,22 +362,26 @@ namespace Render
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 	{
 		mDeviceState.rasterizerStateCommit = &rasterizerState;
+		commitRasterizerState();
 	}
 
 	void OpenGLContext::RHISetBlendState(RHIBlendState& blendState)
 	{
 		mDeviceState.blendStateCommit = &blendState;
+		commitBlendState();
 	}
 
 	void OpenGLContext::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
 		mDeviceState.depthStencilStateCommit = &depthStencilState;
 		mDeviceState.stencilRefCommit = stencilRef;
+		commitDepthStencilState();
 	}
 
-	void OpenGLContext::RHISetViewport(int x, int y, int w, int h)
+	void OpenGLContext::RHISetViewport(int x, int y, int w, int h , float zNear, float zFar)
 	{
 		glViewport(x, y, w, h);
+		glDepthRange(zNear, zFar);
 	}
 
 	void OpenGLContext::RHISetScissorRect(int x, int y, int w, int h)

@@ -1,3 +1,7 @@
+#pragma once
+#ifndef D3D12Common_H_50BC1EFB_7DF9_4106_940C_B7F26AC43893
+#define D3D12Common_H_50BC1EFB_7DF9_4106_940C_B7F26AC43893
+
 #include "RHICommon.h"
 
 #include "LogSystem.h"
@@ -435,3 +439,5 @@ namespace Render
 	};
 #endif
 }
+
+#endif // D3D12Common_H_50BC1EFB_7DF9_4106_940C_B7F26AC43893

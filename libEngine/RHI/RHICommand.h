@@ -165,7 +165,16 @@ namespace Render
 	void RHISetBlendState(RHICommandList& commandList , RHIBlendState& blendState);
 	void RHISetDepthStencilState(RHICommandList& commandList, RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
 
-	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h);
+	struct ViewportInfo
+	{
+		int x;
+		int y;
+		int w;
+		int h;
+		float zNear;
+		float zFar;
+	};
+	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h, float zNear = 0, float zFar = 1);
 	void RHISetScissorRect(RHICommandList& commandList , int x = 0, int y = 0, int w = 0, int h = 0);
 
 	

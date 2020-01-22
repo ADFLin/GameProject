@@ -94,14 +94,14 @@ namespace FlowFree
 				TIME_SCOPE("Fliter");
 
 				float threshold = params.fliterThreshold;
-				Transform(imageView, [threshold](Color3ub const& c) -> Color3ub
+				Transform(imageView, [threshold](Color3ub& c)
 				{
-					Vector3 hsv = FColorConv::RGBToHSV(c);
-					if (hsv.z > threshold)
+					float v = Math::Max(c.r, Math::Max(c.g, c.b)) / 255.0f;
+					//Vector3 hsv = FColorConv::RGBToHSV(c);
+					if (v < threshold)
 					{
-						return c;
+						c = Color3ub::Black();
 					}
-					return Color3ub::Black();
 				});
 
 			}

@@ -1,5 +1,6 @@
-#ifndef Singleton_h__
-#define Singleton_h__
+#pragma once
+#ifndef Singleton_H_F86B29AF_4177_4F6E_B1CD_1CE60D5366B2
+#define Singleton_H_F86B29AF_4177_4F6E_B1CD_1CE60D5366B2
 
 #include "CppVersion.h"
 #include "CoreShare.h"
@@ -24,7 +25,7 @@ public:
 		}
 	}
 protected:
-	SingletonT() {}
+	SingletonT() = default;
 
 	FUNCTION_DELETE(SingletonT(SingletonT const& sing));
 	FUNCTION_DELETE(SingletonT& operator = (SingletonT const& sing));
@@ -36,4 +37,4 @@ private:
 template< class T >
 T* SingletonT< T >::_instance = 0;
 
-#endif // Singleton_h__
+#endif // Singleton_H_F86B29AF_4177_4F6E_B1CD_1CE60D5366B2

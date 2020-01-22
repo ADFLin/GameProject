@@ -1218,6 +1218,9 @@ namespace Render
 	{
 		for( auto const& e : desc.mElements )
 		{
+			if (e.attribute == Vertex::ATTRIBUTE_UNUSED )
+				continue;
+
 			Element element;
 			element.idxStream = e.idxStream;
 			element.attribute = e.attribute;

@@ -17,9 +17,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetDepthStencilState(depthStencilState, stencilRef));
 	}
 
-	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h)
+	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h, float zNear, float zFar)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetViewport(x, y, w, h));
+		RHI_COMMAND_FUNC(commandList, RHISetViewport(x, y, w, h, zNear, zFar));
 	}
 
 	void RHISetScissorRect(RHICommandList& commandList, int x, int y, int w, int h)

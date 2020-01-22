@@ -761,6 +761,11 @@ namespace Render
 			Blend::Operation opAlpha;
 			Blend::Factor    srcAlpha;
 			Blend::Factor    destAlpha;
+
+			bool isEnabled() const
+			{
+				return (srcColor != Blend::eOne) || (srcAlpha != Blend::eOne) || (destColor != Blend::eZero) || (destAlpha != Blend::eZero);
+			}
 		};
 		bool bEnableAlphaToCoverage;
 		bool bEnableIndependent;
@@ -788,6 +793,26 @@ namespace Render
 	using RHIDepthStencilStateRef = TRefCountPtr< RHIDepthStencilState >;
 	using RHIBlendStateRef        = TRefCountPtr< RHIBlendState >;
 	using RHIInputLayoutRef       = TRefCountPtr< RHIInputLayout >;
+
+
+	enum EResourceHold
+	{
+		EnumValue,
+	};
+	template< class RHIResourceType >
+	class TRefcountResource : public RHIResourceType
+	{
+	public:
+		TRefcountResource(EResourceHold) { mRefcount = 10000; }
+		TRefcountResource() { mRefcount = 0; }
+
+		virtual void incRef() { ++mRefcount; }
+		virtual bool decRef() { --mRefcount; return mRefcount == 0; }
+		virtual void releaseResource() {}
+
+		int mRefcount;
+	};
+
 
 }//namespace Render
 

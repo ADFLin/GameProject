@@ -125,12 +125,12 @@ void GrayScale(TImageView< T > const& input, TImageView< Q >& output)
 void Downsample(TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView);
 
 
-FORCEINLINE float Dot3(float const* a, float const* b)
+FORCEINLINE float Dot3(float const* RESTRICT a, float const* RESTRICT b)
 {
 	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-FORCEINLINE float Conv2D(float const* v, int stride, float const* fliter)
+FORCEINLINE float Conv2D(float const* RESTRICT v, int stride, float const* RESTRICT fliter)
 {
 	float result = Dot3(v, fliter);
 	result += Dot3(v + stride, fliter + 3);
@@ -149,7 +149,7 @@ void Transform(TImageView< T >& inoutput , TFunc&& func = TFunc() )
 		for (int x = 0; x < inoutput.getWidth(); ++x)
 		{
 			T& value = inoutput(x, y);
-			value = func(value);
+			func(value);
 		}
 	}
 }

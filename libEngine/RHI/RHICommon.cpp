@@ -58,21 +58,19 @@ namespace Render
 		return *this;
 	}
 
-	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze, bool bInstanceData, int instanceStepRate)
+	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format format, bool bNormailzed, bool bInstanceData, int instanceStepRate)
 	{
-		if ( attribute != Vertex::ATTRIBUTE_UNUSED )
-		{
-			InputElementDesc element;
-			element.idxStream = idxStream;
-			element.attribute = attribute;
-			element.format = f;
-			element.offset = mVertexSizes[element.idxStream];
-			element.bNormalized = bNormailze;
-			element.bIntanceData = bInstanceData;
-			element.instanceStepRate = instanceStepRate;
-			mElements.push_back(element);
-		}
-		mVertexSizes[idxStream] += Vertex::GetFormatSize(f);
+		InputElementDesc element;
+		element.idxStream = idxStream;
+		element.attribute = attribute;
+		element.format = format;
+		element.offset = mVertexSizes[element.idxStream];
+		element.bNormalized = bNormailzed;
+		element.bIntanceData = bInstanceData;
+		element.instanceStepRate = instanceStepRate;
+		mElements.push_back(element);
+
+		mVertexSizes[idxStream] += Vertex::GetFormatSize(format);
 		return *this;
 	}
 
@@ -165,9 +163,9 @@ namespace Render
 		switch( Vertex::GetCompValueType(Vertex::Format(format)) )
 		{
 		case CVT_Float:  return sizeof(float) * num;
-		case CVT_Half:   return sizeof(float) / 2 * num;
+		case CVT_Half:   return sizeof(uint16) * num;
 		case CVT_UInt:   return sizeof(uint32) * num;
-		case CVT_Int:    return sizeof(int) * num;
+		case CVT_Int:    return sizeof(int32) * num;
 		case CVT_UShort: return sizeof(uint16) * num;
 		case CVT_Short:  return sizeof(int16) * num;
 		case CVT_UByte:  return sizeof(uint8) * num;

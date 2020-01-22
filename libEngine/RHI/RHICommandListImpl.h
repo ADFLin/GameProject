@@ -17,7 +17,7 @@ namespace Render
 		RHI_FUNC(void RHISetBlendState(RHIBlendState& blendState));
 		RHI_FUNC(void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1));
 
-		RHI_FUNC(void RHISetViewport(int x, int y, int w, int h));
+		RHI_FUNC(void RHISetViewport(int x, int y, int w, int h, float zNear, float zFar));
 		RHI_FUNC(void RHISetScissorRect(int x, int y, int w, int h));
 
 		RHI_FUNC(void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv));

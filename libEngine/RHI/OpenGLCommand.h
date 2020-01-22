@@ -61,7 +61,7 @@ namespace Render
 		void RHISetBlendState(RHIBlendState& blendState);
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
 
-		void RHISetViewport(int x, int y, int w, int h);
+		void RHISetViewport(int x, int y, int w, int h, float zNear, float zFar);
 		void RHISetScissorRect(int x, int y, int w, int h);
 
 

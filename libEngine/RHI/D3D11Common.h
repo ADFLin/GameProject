@@ -427,7 +427,6 @@ namespace Render
 		{
 			mResource = inResource;
 		}
-
 	};
 
 	class D3D11InputLayout : public RHIInputLayout

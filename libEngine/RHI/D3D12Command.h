@@ -1,26 +1,21 @@
-#if 0
 #pragma once
-#ifndef D3D11Command_H_97458D19_2E17_42B7_89F9_A576B704814B
-#define D3D11Command_H_97458D19_2E17_42B7_89F9_A576B704814B
+#ifndef D3D12Command_H_AE2B294E_ACAB_461C_99EA_AB1F1C47045C
+#define D3D12Command_H_AE2B294E_ACAB_461C_99EA_AB1F1C47045C
 
 #include "RHICommand.h"
 #include "RHICommandListImpl.h"
 #include "ShaderCore.h"
 
-#include "D3D11Common.h"
+#include "D3D12Common.h"
 #include "FixString.h"
 #include "Core/ScopeExit.h"
 #include "Core/TypeHash.h"
 
-
-#include <D3D11Shader.h>
-
-
+#include <D3D12Shader.h>
 #include <D3Dcompiler.h>
-#include <D3DX11async.h>
 
-#pragma comment(lib , "D3D11.lib")
-#pragma comment(lib , "D3DX11.lib")
+#pragma comment(lib , "D3D12.lib")
+#pragma comment(lib , "D3DX12.lib")
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
 
@@ -28,23 +23,32 @@
 #include "RHITraceScope.h"
 #endif
 
+
 namespace Render
 {
 
+
+#if 0
 	template<class T>
 	struct ToShaderEnum {};
-	template<> struct ToShaderEnum< ID3D11VertexShader > { static Shader::Type constexpr Result = Shader::eVertex; };
-	template<> struct ToShaderEnum< ID3D11PixelShader > { static Shader::Type constexpr Result = Shader::ePixel; };
-	template<> struct ToShaderEnum< ID3D11GeometryShader > { static Shader::Type constexpr Result = Shader::eGeometry; };
-	template<> struct ToShaderEnum< ID3D11ComputeShader > { static Shader::Type constexpr Result = Shader::eCompute; };
-	template<> struct ToShaderEnum< ID3D11HullShader > { static Shader::Type constexpr Result = Shader::eHull; };
-	template<> struct ToShaderEnum< ID3D11DomainShader > { static Shader::Type constexpr Result = Shader::eDomain; };
+	template<> struct ToShaderEnum< ID3D12VertexShader > { static Shader::Type constexpr Result = Shader::eVertex; };
+	template<> struct ToShaderEnum< ID3D12PixelShader > { static Shader::Type constexpr Result = Shader::ePixel; };
+	template<> struct ToShaderEnum< ID3D12GeometryShader > { static Shader::Type constexpr Result = Shader::eGeometry; };
+	template<> struct ToShaderEnum< ID3D12ComputeShader > { static Shader::Type constexpr Result = Shader::eCompute; };
+	template<> struct ToShaderEnum< ID3D12HullShader > { static Shader::Type constexpr Result = Shader::eHull; };
+	template<> struct ToShaderEnum< ID3D12DomainShader > { static Shader::Type constexpr Result = Shader::eDomain; };
+#endif
+
+#if 0
+
 
 	struct FrameSwapChain
 	{
 
 		TComPtr<IDXGISwapChain> ptr;
 	};
+
+
 	struct ShaderConstDataBuffer
 	{
 		TComPtr< ID3D11Buffer > resource;
@@ -433,10 +437,11 @@ namespace Render
 
 
 
-	class D3D11System : public RHISystem
+
+	class D3D12System : public RHISystem
 	{
 	public:
-		RHISytemName getName() const { return RHISytemName::D3D11; }
+		RHISytemName getName() const { return RHISytemName::D3D12; }
 		bool initialize(RHISystemInitParams const& initParam);
 		void shutdown()
 		{
@@ -515,7 +520,17 @@ namespace Render
 		}
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
-		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
+		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
+		{
+#if 0
+			D3D12_STATIC_SAMPLER_DESC desc = {};
+			desc.Filter = D3D12Translate::To(initializer.filter);
+			desc.AddressU = D3D12Translate::To(initializer.addressU);
+			desc.AddressV = D3D12Translate::To(initializer.addressV);
+			desc.AddressW = D3D12Translate::To(initializer.addressW);
+			mDevice->CreateSampler(&desc , );
+#endif
+		}
 
 		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
@@ -578,12 +593,11 @@ namespace Render
 		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFuncHasher > mInputLayoutMap;
 		D3D11Context   mRenderContext;
 		FrameSwapChain mSwapChain;
-		TComPtr< ID3D11Device > mDevice;
-		TComPtr< ID3D11DeviceContext > mDeviceContext;
+		TComPtr< ID3D12Device > mDevice;
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 	};
 
-
+#endif
 
 }//namespace Render
 
@@ -592,5 +606,6 @@ namespace Render
 #include "RHITraceScope.h"
 #endif
 
-#endif // D3D11Command_H_97458D19_2E17_42B7_89F9_A576B704814B
-#endif
+
+
+#endif // D3D12Command_H_AE2B294E_ACAB_461C_99EA_AB1F1C47045C

@@ -133,24 +133,6 @@ namespace Render
 		TOpenGLObject< RMPolicy > mGLObject;
 	};
 
-	enum EResourceHold
-	{
-		EnumValue ,
-	};
-	template< class RHIResourceType >
-	class TOpenGLSimpleResource : public RHIResourceType
-	{
-	public:
-		TOpenGLSimpleResource(EResourceHold) { mRefcount = 10000; }
-		TOpenGLSimpleResource() { mRefcount = 0; }
-
-		virtual void incRef() { ++mRefcount; }
-		virtual bool decRef() { --mRefcount; return mRefcount == 0; }
-		virtual void releaseResource() {}
-
-		int mRefcount;
-	};
-
 	template< class RHITextureType >
 	struct OpenGLTextureTraits {};
 
@@ -191,10 +173,10 @@ namespace Render
 		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE;
 	};
 
-	class OpenGLShaderResourceView : public TOpenGLSimpleResource< RHIShaderResourceView >
+	class OpenGLShaderResourceView : public TRefcountResource< RHIShaderResourceView >
 	{
 	public:
-		OpenGLShaderResourceView(EResourceHold):TOpenGLSimpleResource< RHIShaderResourceView >(EResourceHold::EnumValue){}
+		OpenGLShaderResourceView(EResourceHold):TRefcountResource< RHIShaderResourceView >(EResourceHold::EnumValue){}
 
 		GLuint handle;
 		GLenum typeEnum;
@@ -516,7 +498,7 @@ namespace Render
 		}
 	};
 
-	class OpenGLRasterizerState : public TOpenGLSimpleResource< RHIRasterizerState >
+	class OpenGLRasterizerState : public TRefcountResource< RHIRasterizerState >
 	{
 	public:
 		OpenGLRasterizerState(RasterizerStateInitializer const& initializer);
@@ -572,7 +554,7 @@ namespace Render
 		}
 	};
 
-	class OpenGLDepthStencilState : public TOpenGLSimpleResource< RHIDepthStencilState >
+	class OpenGLDepthStencilState : public TRefcountResource< RHIDepthStencilState >
 	{
 	public:
 		OpenGLDepthStencilState(DepthStencilStateInitializer const& initializer);
@@ -626,14 +608,14 @@ namespace Render
 		}
 	};
 
-	class OpenGLBlendState : public TOpenGLSimpleResource< RHIBlendState >
+	class OpenGLBlendState : public TRefcountResource< RHIBlendState >
 	{
 	public:
 		OpenGLBlendState(BlendStateInitializer const& initializer);
 		GLBlendStateValue mStateValue;
 	};
 
-	class OpenGLInputLayout : public TOpenGLSimpleResource< RHIInputLayout >
+	class OpenGLInputLayout : public TRefcountResource< RHIInputLayout >
 	{
 	public:
 		OpenGLInputLayout( InputLayoutDesc const& desc );

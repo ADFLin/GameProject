@@ -1,8 +1,8 @@
-#if 0
 #pragma once
-#ifndef D3D11Shader_H_9211AFBF_3162_4D63_A2AC_097ED054E79B
-#define D3D11Shader_H_9211AFBF_3162_4D63_A2AC_097ED054E79B
+#ifndef D3D12ShaderCommon_H_D3F31F2B_0ADA_4339_AEEC_B308A897E7AA
+#define D3D12ShaderCommon_H_D3F31F2B_0ADA_4339_AEEC_B308A897E7AA
 
+#if 0
 #include "ShaderCore.h"
 #include "ShaderFormat.h"
 
@@ -240,6 +240,7 @@ namespace Render
 	};
 
 }//namespace Render
-
-#endif // D3D11Shader_H_9211AFBF_3162_4D63_A2AC_097ED054E79B
 #endif
+
+
+#endif // D3D12ShaderCommon_H_D3F31F2B_0ADA_4339_AEEC_B308A897E7AA

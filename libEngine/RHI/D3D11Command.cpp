@@ -331,6 +331,9 @@ namespace Render
 			std::vector< InputElementDesc const* > sortedElements;
 			for (auto const& e : key.elements)
 			{
+				if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+					continue;
+
 				sortedElements.push_back(&e);
 			}
 			
@@ -366,6 +369,9 @@ namespace Render
 		std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
 		for (auto const& e : desc.mElements)
 		{
+			if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+				continue;
+
 			D3D11_INPUT_ELEMENT_DESC element;
 
 			element.SemanticName = "ATTRIBUTE";
@@ -401,7 +407,7 @@ namespace Render
 			return nullptr;
 		);
 		inputLayout->mResource = inputLayoutResource.release();
-		mInputLayoutMap.emplace(key, inputLayout);
+		mInputLayoutMap.insert( std::make_pair(key, inputLayout) );
 		return inputLayout;
 	}
 
@@ -465,8 +471,7 @@ namespace Render
 			if( targetValue.writeMask & CWM_A )
 				targetValueD3D11.RenderTargetWriteMask |= D3D11_COLOR_WRITE_ENABLE_ALPHA;
 
-			targetValueD3D11.BlendEnable = (targetValue.srcColor != Blend::eOne) || (targetValue.srcAlpha != Blend::eOne) ||
-				(targetValue.destColor != Blend::eZero) || (targetValue.destAlpha != Blend::eZero);
+			targetValueD3D11.BlendEnable = targetValue.isEnabled();
 			targetValueD3D11.BlendOp = D3D11Translate::To(targetValue.op);
 			targetValueD3D11.SrcBlend = D3D11Translate::To(targetValue.srcColor);
 			targetValueD3D11.DestBlend = D3D11Translate::To(targetValue.destColor);
@@ -779,13 +784,13 @@ namespace Render
 		mDeviceContext->OMSetDepthStencilState(D3D11Cast::GetResource(depthStencilState), stencilRef);
 	}
 
-	void D3D11Context::RHISetViewport(int x, int y, int w, int h)
+	void D3D11Context::RHISetViewport(int x, int y, int w, int h, float zNear, float zFar)
 	{
 		D3D11_VIEWPORT vp;
 		vp.Width = w;
 		vp.Height = h;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
+		vp.MinDepth = zNear;
+		vp.MaxDepth = zFar;
 		vp.TopLeftX = x;
 		vp.TopLeftY = y;
 		mDeviceContext->RSSetViewports(1, &vp);

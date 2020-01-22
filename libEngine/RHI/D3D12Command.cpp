@@ -1,7 +1,5 @@
-#if 0
-#include "D3D11Command.h"
-
-#include "D3D11ShaderCommon.h"
+#include "D3D12Command.h"
+#include "D3D12ShaderCommon.h"
 
 #include "LogSystem.h"
 #include "GpuProfiler.h"
@@ -12,6 +10,8 @@
 
 namespace Render
 {
+
+#if 0
 
 #define RESULT_FAILED( hr ) ( hr ) != S_OK
 	class D3D11ProfileCore : public RHIProfileCore
@@ -1213,9 +1213,11 @@ namespace Render
 		});
 	}
 
+#endif
+
+
 }//namespace Render
 
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
-#endif
 #endif

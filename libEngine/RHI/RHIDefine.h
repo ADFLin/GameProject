@@ -46,9 +46,9 @@ namespace Render
 
 	enum class ECullMode
 	{
+		None,
 		Front ,
 		Back ,
-		None ,
 	};
 
 	enum class ECompareFun

@@ -251,7 +251,7 @@ namespace Render
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
-		void RHISetViewport(int x, int y, int w, int h);
+		void RHISetViewport(int x, int y, int w, int h, float zNear, float zFar);
 		void RHISetScissorRect(int x, int y, int w, int h);
 
 		void PostDrawPrimitive();
@@ -560,6 +560,9 @@ namespace Render
 				hash = 0x1a21df14;
 				for( auto const& e : elements )
 				{
+					if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+						continue;
+
 					HashCombine(hash, HashValue(&e , sizeof(e)) );
 				}
 			}

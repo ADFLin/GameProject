@@ -20,11 +20,11 @@
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
 	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
 
-#define VERIFY_VKRESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
+#define VERIFY_VK_RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
 	{ VkResult vkResult = CODE; if( vkResult != VK_SUCCESS ){ ERROR_MSG_GENERATE( vkResult , CODE, FILE, LINE ); ERRORCODE } }
 
-#define VERIFY_VK_FAILCDOE( CODE , ERRORCODE ) VERIFY_VKRESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
-#define VERIFY_VK_RETURN_FALSE( CODE ) VERIFY_VKRESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
+#define VERIFY_VK_FAILCDOE( CODE , ERRORCODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
+#define VERIFY_VK_RETURN_FALSE( CODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
 
 #define SAFE_VK_DESTROY( VKHANDLE , CODE )\
 	if( VKHANDLE != VK_NULL_HANDLE )\
@@ -151,6 +151,7 @@ namespace RenderVulkan
 		uint32 startIndex;
 		uint32 endIndex;
 	};
+
 	class VulkanProfileCore : public RHIProfileCore
 	{
 		bool initiailize(VkDevice device)
@@ -416,7 +417,7 @@ namespace RenderVulkan
 				vkGetPhysicalDeviceFeatures(mUsagePhysicalDevice, &deviceFeatures);
 
 				VkDeviceCreateInfo deviceInfo = {};
-				deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO;
+				deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 				deviceInfo.pQueueCreateInfos = queueCreateInfos.data();
 				deviceInfo.queueCreateInfoCount = queueCreateInfos.size();
 				deviceInfo.pEnabledFeatures = &deviceFeatures;
@@ -852,10 +853,11 @@ namespace RenderVulkan
 				vertexInputState.pVertexBindingDescriptions = vertexInputBindingDescs;
 				vertexInputState.vertexBindingDescriptionCount = ARRAY_SIZE(vertexInputBindingDescs);
 
+				VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT };
 				VkPipelineDynamicStateCreateInfo dynamicState = {};
 				dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-				dynamicState.pDynamicStates = nullptr;
-				dynamicState.dynamicStateCount = 0;
+				dynamicState.pDynamicStates = dynamicStates;
+				dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStates);
 
 				VkGraphicsPipelineCreateInfo pipelineInfo = {};
 				pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -904,7 +906,7 @@ namespace RenderVulkan
 				VkCommandPoolCreateInfo poolInfo = {};
 				poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 				poolInfo.queueFamilyIndex = mUsageQueueFamilyIndices[EQueueFamily::Graphics];
-				poolInfo.flags = 0;
+				poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 				VERIFY_VK_RETURN_FALSE(vkCreateCommandPool(mDevice, &poolInfo, gAllocCB, &mCommandPool));
 			}
 
@@ -950,7 +952,18 @@ namespace RenderVulkan
 				passBeginInfo.pClearValues = &clearColor;
 				passBeginInfo.clearValueCount = 1;
 
+
 				vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				VkViewport viewport;
+				viewport.x = 0;
+				viewport.y = 0;
+				viewport.width = mSwapChainExtent.width;
+				viewport.height = mSwapChainExtent.height;
+				viewport.minDepth = 0;
+				viewport.maxDepth = 1;
+				vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mSimplePipeline);
 
 				VkBuffer vertexBuffers[] = { mVertexBuffer.handle };
@@ -1051,7 +1064,7 @@ namespace RenderVulkan
 			char const* VulkanSDKDir = SystemPlatform::GetEnvironmentVariable("VULKAN_SDK");
 			if( VulkanSDKDir == nullptr )
 			{
-				VulkanSDKDir = "C:/VulkanSDK/1.1.82.1";
+				VulkanSDKDir = "C:/VulkanSDK/1.1.130.0";
 			}
 			std::string GlslangValidatorPath = VulkanSDKDir;
 			GlslangValidatorPath += "/Bin/glslangValidator.exe";

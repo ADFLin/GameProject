@@ -50,8 +50,9 @@ namespace CB
 
 			::Global::GetDrawEngine().changeScreenSize(1200, 800);
 
-			if( !::Global::GetDrawEngine().startOpenGL(4) )
-				return false;
+			RHIInitializeParams initParamsRHI;
+			initParamsRHI.numSamples = 4;
+			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, initParamsRHI));
 
 			if( !ShaderHelper::Get().init() )
 				return false;
@@ -135,7 +136,7 @@ namespace CB
 
 		void onEnd() override
 		{
-			::Global::GetDrawEngine().shutdownRHI(true);
+			::Global::GetDrawEngine().shutdownRHI();
 
 			BaseClass::onEnd();
 		}

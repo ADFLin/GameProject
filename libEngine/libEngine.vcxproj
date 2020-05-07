@@ -414,7 +414,7 @@
     <ClInclude Include="CppVersion.h" />
     <ClInclude Include="EnumCommon.h" />
     <ClInclude Include="LogSystem.h" />
-    <ClInclude Include="EasingFun.h" />
+    <ClInclude Include="EasingFunction.h" />
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="FixString.h" />
     <ClInclude Include="Flag.h" />

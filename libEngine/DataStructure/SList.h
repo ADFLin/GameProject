@@ -12,14 +12,14 @@ public:
 	~SList();
 
 	int      size() const { return mNum; }
-	bool     empty() const { return mFirst != 0; }
+	bool     empty() const { return mHead != 0; }
 
 	void     push_front( T const& val );
 	void     push_back( T const& val );
-	T const& front() const {  return mFirst->data;  }
-	T&       front()       {  return mFirst->data;  }
-	T const& back() const  {  return mLast->data;  }
-	T&       back()        {  return mLast->data;  }
+	T const& front() const {  return mHead->data;  }
+	T&       front()       {  return mHead->data;  }
+	T const& back() const  {  return mTail->data;  }
+	T&       back()        {  return mTail->data;  }
 
 	void     inverse();
 	void     rotateFront();
@@ -29,7 +29,7 @@ public:
 	class Iterator
 	{
 	public:
-		Iterator(const SList&l):mCur( l.mFirst ){};
+		Iterator(const SList&l):mCur( l.mHead ){};
 		bool haveMore() const { return mCur != 0; }
 		T&   getValue(){ assert( mCur ); return mCur->data; }
 		void next(){ mCur = mCur->link; }
@@ -37,7 +37,7 @@ public:
 		Node* mCur;//points to a node in list
 	};
 
-	Iterator getIterator(){ return Iterator( *this ); }
+	Iterator createIterator(){ return Iterator( *this ); }
 
 
 private:
@@ -51,8 +51,8 @@ private:
 	};
 	Node*    getPrevNode( Node* node )
 	{
-		assert( node != mFirst );
-		Node* result = mFirst;
+		assert( node != mHead );
+		Node* result = mHead;
 		for(;;)
 		{
 			if ( result->link == node )
@@ -60,19 +60,19 @@ private:
 			result = result->link;
 		}
 		assert( 0 );
-		return 0;
+		return nullptr;
 	}
 
 	int   mNum;
-	Node* mFirst;
-	Node* mLast;
+	Node* mHead;
+	Node* mTail;
 };
 
 template <class T>
 SList<T>::SList()
 {
-	mFirst = 0;
-	mLast  = 0;
+	mHead  = nullptr;
+	mTail  = nullptr;
 	mNum   = 0;
 }
 
@@ -80,10 +80,10 @@ template <class T>
 SList<T>::~SList()
 {
 	Node* next;
-	for(;mFirst;mFirst = next)
+	for(;mHead;mHead = next)
 	{
-		next = mFirst->link;
-		delete mFirst;
+		next = mHead->link;
+		delete mHead;
 	}
 }
 
@@ -93,14 +93,14 @@ void SList<T>::push_front( T const& val )
 	Node* newnode = buyNode( val );
 
 	++mNum;
-	if( mFirst )
+	if( mHead )
 	{
-		newnode->link = mFirst;
-		mFirst = newnode;
+		newnode->link = mHead;
+		mHead = newnode;
 	}
 	else
 	{
-		mFirst = mLast = newnode;
+		mHead = mTail = newnode;
 	}
 }
 
@@ -108,24 +108,24 @@ template <class T>
 void SList<T>::push_back( T const& val )
 {
 	Node* newnode = buyNode( val );
-	newnode->link = 0;
+	newnode->link = nullptr;
 	++mNum;
-	if( mLast )
+	if( mTail )
 	{
-		mLast->link = newnode;
-		mLast = newnode;
+		mTail->link = newnode;
+		mTail = newnode;
 	}
 	else
 	{
-		mFirst = mLast = newnode;
+		mHead = mTail = newnode;
 	}
 }
 
 template <class T>
 void SList<T>::inverse()
 {
-	Node* p = mFirst;
-	Node* q = 0;
+	Node* p = mHead;
+	Node* q = nullptr;
 	while(p)
 	{
 		Node* r = q;
@@ -133,33 +133,33 @@ void SList<T>::inverse()
 		p = p->link;
 		q->link = r;
 	}
-	mFirst = q;
+	mHead = q;
 }
 
 template <class T>
 void SList<T>::rotateFront()
 {
-	if ( mFirst == mLast )
+	if ( mHead == mTail )
 		return;
 
-	Node* node = mFirst;
-	mFirst = mFirst->link;
-	mLast->link = node;
-	mLast = node;
-	mLast->link = 0;
+	Node* node = mHead;
+	mHead = mHead->link;
+	mTail->link = node;
+	mTail = node;
+	mTail->link = nullptr;
 }
 
 template <class T>
 void SList<T>::rotateBack()
 {
-	if ( mFirst == mLast )
+	if ( mHead == mTail )
 		return;
 
-	Node* node = getPrevNode( mLast );
-	mLast->link = mFirst;
-	mFirst = mLast;
-	mLast = node;
-	mLast->link = 0;
+	Node* node = getPrevNode( mTail );
+	mTail->link = mHead;
+	mHead = mTail;
+	mTail = node;
+	mTail->link = nullptr;
 }
 
 #endif // SList_h__

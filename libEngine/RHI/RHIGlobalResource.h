@@ -157,13 +157,13 @@ namespace Render
 	template 
 	<
 		bool bWriteDepth = true,
-		ECompareFun DepthFun = ECompareFun::Less,
+		ECompareFunc DepthFun = ECompareFunc::Less,
 		bool bEnableStencilTest = false,
-		ECompareFun StencilFun = ECompareFun::Always,
+		ECompareFunc StencilFun = ECompareFunc::Always,
 		Stencil::Operation StencilFailOp = Stencil::eKeep,
 		Stencil::Operation ZFailOp = Stencil::eKeep,
 		Stencil::Operation ZPassOp = Stencil::eKeep,
-		ECompareFun BackStencilFun = ECompareFun::Always,
+		ECompareFunc BackStencilFun = ECompareFunc::Always,
 		Stencil::Operation BackStencilFailOp = Stencil::eKeep,
 		Stencil::Operation BackZFailOp = Stencil::eKeep,
 		Stencil::Operation BackZPassOp = Stencil::eKeep,
@@ -182,9 +182,9 @@ namespace Render
 		{
 			DepthStencilStateInitializer initializer;
 			initializer.bWriteDepth = bWriteDepth;
-			initializer.depthFun = DepthFun;
+			initializer.depthFunc = DepthFun;
 			initializer.bEnableStencilTest = bEnableStencilTest;
-			initializer.stencilFun = StencilFun;
+			initializer.stencilFunc = StencilFun;
 			initializer.stencilFailOp = StencilFailOp;
 			initializer.zFailOp = ZFailOp;
 			initializer.zPassOp = ZPassOp;
@@ -201,9 +201,9 @@ namespace Render
 	template
 	<
 		bool bWriteDepth = true,
-		ECompareFun DepthFun = ECompareFun::Less,
+		ECompareFunc DepthFun = ECompareFunc::Less,
 		bool bEnableStencilTest = false,
-		ECompareFun StencilFun = ECompareFun::Always,
+		ECompareFunc StencilFun = ECompareFunc::Always,
 		Stencil::Operation StencilFailOp = Stencil::eKeep,
 		Stencil::Operation ZFailOp = Stencil::eKeep,
 		Stencil::Operation ZPassOp = Stencil::eKeep,
@@ -219,7 +219,7 @@ namespace Render
 
 	};
 
-	using StaticDepthDisableState = TStaticDepthStencilState<false, ECompareFun::Always>;
+	using StaticDepthDisableState = TStaticDepthStencilState<false, ECompareFunc::Always>;
 
 	template
 	<

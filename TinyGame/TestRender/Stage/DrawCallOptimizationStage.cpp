@@ -586,8 +586,7 @@ namespace Render
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !Global::GetDrawEngine().startOpenGL() )
-				return false;
+			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 			wglSwapIntervalEXT(0);
 

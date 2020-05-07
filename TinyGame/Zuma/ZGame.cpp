@@ -88,7 +88,7 @@ namespace Zuma
 
 			//HDC hDC = ::Global::getGraphics2D().getTargetDC();
 			HDC hDC = window.getHDC();
-			drawEngine.startOpenGL( false );
+			drawEngine.initializeRHI( RHITargetName::OpenGL );
 
 			GLRenderSystem* renderSys = new GLRenderSystem;
 			renderSys->mNeedSweepBuffer = false;
@@ -120,7 +120,7 @@ namespace Zuma
 		{
 			mGameCore->cleanup();
 
-			::Global::GetDrawEngine().stopOpenGL();
+			::Global::GetDrawEngine().shutdownRHI();
 			::Global::GetDrawEngine().changeScreenSize( mOldSize.x , mOldSize.y );
 
 			BaseClass::onEnd();

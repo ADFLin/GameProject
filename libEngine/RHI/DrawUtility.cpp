@@ -32,7 +32,7 @@ namespace Render
 		Vector2 tex;
 	};
 
-	static const VertexXYZW_T1 GScreenVertices[] =
+	static const VertexXYZW_T1 GScreenVertices_Rect[] =
 	{
 		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
 		{ Vector4(1 , -1 , 0 , 1) , Vector2(1,0) },
@@ -40,6 +40,12 @@ namespace Render
 		{ Vector4(-1, 1, 0 , 1) , Vector2(0,1) },
 	};
 
+	static const VertexXYZW_T1 GScreenVertices_OptimisedTriangle[] =
+	{
+		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
+		{ Vector4(3 , -1 , 0 , 1) , Vector2(2,0) },
+		{ Vector4(-1, 3 , 0 , 1) , Vector2(0,2) },
+	};
 
 	void DrawUtility::CubeLine(RHICommandList& commandList)
 	{
@@ -52,7 +58,7 @@ namespace Render
 			Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0),Vector3(1,1,0),
 			Vector3(0,1,1),Vector3(1,1,1),Vector3(0,0,1),Vector3(1,0,1),
 		};
-		TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineList, v, 4 * 6, sizeof(Vector3));
+		TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineList, v, 4 * 6, sizeof(Vector3));
 	}
 
 	void DrawUtility::CubeMesh(RHICommandList& commandList)
@@ -78,7 +84,7 @@ namespace Render
 			Vector3(1,0,0),Vector3(0,0,-1),Vector3(0,0,0),Vector3(0,0,-1),
 			Vector3(0,1,0),Vector3(0,0,-1),Vector3(1,1,0),Vector3(0,0,-1),
 		};
-		TRenderRT< RTVF_XYZ_N >::Draw(commandList, PrimitiveType::Quad, v, 4 * 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_N >::Draw(commandList, EPrimitive::Quad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
 	void DrawUtility::AixsLine(RHICommandList& commandList)
@@ -89,7 +95,7 @@ namespace Render
 			Vector3(0,0,0),Vector3(0,1,0), Vector3(0,1,0),Vector3(0,1,0),
 			Vector3(0,0,0),Vector3(0,0,1), Vector3(0,0,1),Vector3(0,0,1),
 		};
-		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, v, 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
 	void DrawUtility::Rect(RHICommandList& commandList, int x, int y, int width, int height , LinearColor const& color )
@@ -104,7 +110,7 @@ namespace Render
 			{ Vector2(x , y2) , color , Vector2(0,1) },
 		};
 
-		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
 	void DrawUtility::Rect(RHICommandList& commandList, int x, int y, int width, int height)
@@ -119,7 +125,7 @@ namespace Render
 			{ Vector2(x , y2 ) , Vector2(0,1) },
 		};
 
-		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
 	void DrawUtility::Rect(RHICommandList& commandList, int width, int height)
@@ -131,12 +137,20 @@ namespace Render
 			{ Vector2(width , height) , Vector2(1,1) },
 			{ Vector2(0 , height) , Vector2(0,1) },
 		};
-		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
-	void DrawUtility::ScreenRect(RHICommandList& commandList)
+	void DrawUtility::ScreenRect(RHICommandList& commandList, EScreenRenderMethod method)
 	{
-		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, PrimitiveType::Quad, GScreenVertices, 4);
+		switch (method)
+		{
+		case Render::Rect:
+			TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::Quad, GScreenVertices_Rect, 4);
+			break;
+		case Render::OptimisedTriangle:
+			TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::TriangleList, GScreenVertices_OptimisedTriangle, 3);
+			break;
+		}
 	}
 
 	void DrawUtility::ScreenRect(RHICommandList& commandList, int with, int height)
@@ -148,7 +162,7 @@ namespace Render
 			{ Vector4(1, 1 , 0 , 1) , Vector2(with,height) },
 			{ Vector4(-1, 1, 0 , 1) , Vector2(0,height) },
 		};
-		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, PrimitiveType::Quad, screenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::Quad, screenVertices, 4);
 	}
 
 	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
@@ -180,7 +194,7 @@ namespace Render
 			{ Vector2(posLT.x, posRB.y) , Vector2(texLT.x, texRB.y) },
 		};
 
-		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
 	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color)
@@ -212,7 +226,7 @@ namespace Render
 			{ Vector2(posLT.x, posRB.y) , color , Vector2(texLT.x, texRB.y) },
 		};
 
-		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
 	void DrawUtility::DrawTexture(RHICommandList& commandList, RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
@@ -307,7 +321,7 @@ namespace Render
 		{
 			GL_BIND_LOCK_OBJECT(texCube);
 			glColor3f(1, 1, 1);
-			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, PrimitiveType::Quad, vertices, ARRAY_SIZE(vertices));
+			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
 		}
 		glDisable(GL_TEXTURE_CUBE_MAP);
 	}

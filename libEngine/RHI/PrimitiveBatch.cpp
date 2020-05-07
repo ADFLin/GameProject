@@ -109,7 +109,7 @@ namespace Render
 		glBindVertexArray(mVAO);
 		context.setShader(mShader);
 		mShader.setParam(commandList, SHADER_PARAM(VertexTransform), context.getView().worldToClip);
-		glDrawArrays(OpenGLTranslate::To(PrimitiveType::TriangleList), 0, numVertices);
+		glDrawArrays(OpenGLTranslate::To(EPrimitive::TriangleList), 0, numVertices);
 		glBindVertexArray(0);
 	}
 

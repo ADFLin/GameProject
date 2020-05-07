@@ -132,7 +132,7 @@ public:
 
 				if( !IsEmptyLeaf(nodeId) )
 				{
-					Leaf const& leaf = mLeaves[-(nodeId + 1)];
+					Leaf const& leaf = getLeaf(nodeId);
 
 					BoundType rayBound;
 					rayBound.min = rayBound.max = ray.getPosition(curPath.range[0]);
@@ -267,10 +267,11 @@ public:
 
 
 		std::sort(edges.begin(), edges.end(),
-				  [](Edge const& lhs, Edge const& rhs)->bool
-		{
-			return lhs.value < rhs.value;
-		});
+			[](Edge const& lhs, Edge const& rhs)->bool
+			{
+				return lhs.value < rhs.value;
+			}
+		);
 
 		int numEdge = dataIndices.size() * 2;
 		int numShared = 0;
@@ -406,7 +407,7 @@ public:
 			{
 				if( !IsEmptyLeaf(stackData.nodeId) )
 				{
-					Leaf const& leaf = mLeaves[-(stackData.nodeId + 1)];
+					Leaf const& leaf = getLeaf(stackData.nodeId);
 
 					for( auto index : leaf.dataIndices )
 					{
@@ -450,42 +451,89 @@ public:
 		return indexMinDist;
 	}
 
-
-
-	template< class Fun >
-	void visitNode(Fun& visitFun)
+	template< class TFunc >
+	struct Visitor
 	{
-		visitNode_R(mRootId, visitFun, mBound);
+		Visitor(TFunc& inFunc, TKDTree& inTree)
+			:func(inFunc), tree(inTree)
+		{
+
+		}
+
+		void visit(int nodeId, BoundType bound)
+		{
+			if (IsLeaf(nodeId))
+			{
+				if (!IsEmptyLeaf(nodeId))
+				{
+					Leaf const& leaf = tree.mLeaves[-(nodeId + 1)];
+					visitFun(leaf, bound);
+				}
+				return;
+			}
+
+			Node const& node = tree.mNodes[nodeId];
+
+			func(node, bound);
+
+			{
+				BoundType childBound = bound;
+				childBound.max[node.axis] = node.value;
+				visit(node.idxLeft, childBound);
+			}
+
+			{
+				BoundType childBound = bound;
+				childBound.min[node.axis] = node.value;
+				visit(node.idxRight, childBound);
+			}
+
+		}
+
+		TFunc&    func;
+		TKDTree& tree;
+	};
+
+	template< class TFunc >
+	void visitNode(TFunc& visitFunc) const
+	{
+		visitNode_R(mRootId, visitFunc, mBound);
 	}
 
-	template< class Fun >
-	void visitNode_R(int nodeId, Fun& visitFun, BoundType bound)
+	template< class TFunc >
+	void visitNode_R(int nodeId, TFunc& visitFunc, BoundType bound) const
 	{
 		if( IsLeaf(nodeId) )
 		{
 			if( !IsEmptyLeaf(nodeId) )
 			{
-				Leaf const& leaf = mLeaves[-(nodeId + 1)];
-				visitFun(leaf, bound);
+				Leaf const& leaf = getLeaf(nodeId);
+				visitFunc(leaf, bound);
 			}
 			return;
 		}
 
 		Node const& node = mNodes[nodeId];
 
-		visitFun(node, bound);
+		visitFunc(node, bound);
 
 		{
 			BoundType childBound = bound;
 			childBound.max[node.axis] = node.value;
-			visitNode_R(node.idxLeft, visitFun, childBound);
+			visitNode_R(node.idxLeft, visitFunc, childBound);
 		}
 
 		{
 			BoundType childBound = bound;
 			childBound.min[node.axis] = node.value;
-			visitNode_R(node.idxRight, visitFun, childBound);
+			visitNode_R(node.idxRight, visitFunc, childBound);
 		}
+	}
+
+	Leaf const& getLeaf(int nodeId) const
+	{
+		assert(IsLeaf(nodeId) && !IsEmptyLeaf(nodeId));
+		return mLeaves[-(nodeId + 1)];
 	}
 
 	int mRootId;

@@ -50,7 +50,7 @@ namespace CFly
 		static DWORD getDefaultValue( RenderOption option );
 
 		static D3DBLEND             convert( BlendMode blendMode );
-		static D3DPRIMITIVETYPE     convert( PrimitiveType type );
+		static D3DPRIMITIVETYPE     convert( EPrimitive type );
 		static D3DTEXTUREFILTERTYPE convert( FilterMode fiter );
 		static D3DCULL              convert( CullFace cullface );
 		static D3DFORMAT            convert( TextureFormat format );
@@ -110,7 +110,7 @@ namespace CFly
 		void setupStream( int idx , VertexBuffer& buffer );
 		void setFillMode( RenderMode mode );
 		void setVertexBlend( VertexType vertexType );
-		void renderPrimitive( PrimitiveType type , unsigned numEle , unsigned numVertex , IndexBuffer* indexBuffer );
+		void renderPrimitive( EPrimitive type , unsigned numEle , unsigned numVertex , IndexBuffer* indexBuffer );
 
 
 		void setupTexAdressMode( int idxSampler , TextureType texType , TexAddressMode mode[] );

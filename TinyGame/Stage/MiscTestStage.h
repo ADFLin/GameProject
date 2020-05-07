@@ -294,7 +294,7 @@ public:
 		{
 			printBits( flag );
 			printBits( bit );
-			int index = BitUtility::CountTrailingZeros( bit );
+			int index = FBitUtility::CountTrailingZeros( bit );
 			int i;
 		}	
 	}
@@ -847,8 +847,7 @@ public:
 	{
 		::Global::GetDrawEngine().changeScreenSize(800, 600);
 		::Global::GUI().cleanupWidget();
-		if ( !::Global::GetDrawEngine().startOpenGL() )
-			return false;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 		GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
@@ -860,7 +859,7 @@ public:
 
 	void onEnd() override
 	{
-		::Global::GetDrawEngine().stopOpenGL();
+		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void onUpdate( long time ) override
@@ -1155,7 +1154,7 @@ namespace TankGame
 		{
 			::Global::GUI().cleanupWidget();
 
-			Global::GetDrawEngine().startOpenGL();
+			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 			GameWindow& window = Global::GetDrawEngine().getWindow();
 
 			restart();
@@ -1164,7 +1163,7 @@ namespace TankGame
 
 		void onEnd() override
 		{
-			Global::GetDrawEngine().stopOpenGL();
+			::Global::GetDrawEngine().shutdownRHI();
 		}
 
 		void onUpdate( long time ) override
@@ -1380,7 +1379,7 @@ namespace Bsp2D
 
 
 #include "Tween.h"
-#include "EasingFun.h"
+#include "EasingFunction.h"
 
 class TweenTestStage : public StageBase
 {

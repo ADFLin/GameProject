@@ -35,7 +35,7 @@ namespace Render
 
 	struct MeshBatch
 	{
-		PrimitiveType    primitiveType;
+		EPrimitive       primitiveType;
 		RHIInputLayout*  inputLayout;
 		Material*        material;
 		RHIVertexBuffer* vertexBuffer;

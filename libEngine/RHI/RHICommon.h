@@ -726,13 +726,13 @@ namespace Render
 
 	struct DepthStencilStateInitializer
 	{
-		ECompareFun depthFun;
+		ECompareFunc depthFunc;
 		bool bEnableStencilTest;
-		ECompareFun stencilFun;
+		ECompareFunc stencilFunc;
 		Stencil::Operation stencilFailOp;
 		Stencil::Operation zFailOp;
 		Stencil::Operation zPassOp;
-		ECompareFun stencilFunBack;
+		ECompareFunc stencilFunBack;
 		Stencil::Operation stencilFailOpBack;
 		Stencil::Operation zFailOpBack;
 		Stencil::Operation zPassOpBack;

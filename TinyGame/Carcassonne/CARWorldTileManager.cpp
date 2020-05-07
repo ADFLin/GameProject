@@ -9,60 +9,6 @@
 
 namespace CAR
 {
-	static int const gBitIndexMap[ 9 ] = { 0 , 0 , 1 , 1 , 2 , 2 , 2 , 2 , 3 };
-
-	int FBit::ToIndex4( unsigned bit )
-	{
-		assert( (bit&0xf) == bit );
-		assert( ( bit & ( bit - 1 ) ) == 0 );
-		return gBitIndexMap[ bit ];
-	}
-	int FBit::ToIndex8( unsigned bit )
-	{
-		assert( (bit&0xff) == bit );
-		assert( ( bit & ( bit - 1 ) ) == 0 );
-		int result = 0;
-		if ( bit & 0xf0 ){ result += 4; bit >>= 4; }
-		return result + gBitIndexMap[ bit ];
-	}
-	int FBit::ToIndex32( unsigned bit )
-	{
-		assert( (bit&0xffffffff) == bit );
-		assert( ( bit & ( bit - 1 ) ) == 0 );
-		int result = 0;
-		if ( bit & 0xffff0000 ){ result += 16; bit >>= 16; }
-		if ( bit & 0x0000ff00 ){ result += 8; bit >>= 8; }
-		if ( bit & 0x000000f0 ){ result += 4; bit >>= 4; }
-		return result + gBitIndexMap[ bit ];
-	}
-
-#if TARGET_PLATFORM_64BITS
-	int FBit::ToIndex64(unsigned bit)
-	{
-		assert((bit & 0xffffffffffffffffULL) == bit);
-		assert((bit & (bit - 1)) == 0);
-		int result = 0;
-		if( bit & 0xffffffff00000000ULL ) { result += 32; bit >>= 32; }
-		if( bit & 0x00000000ffff0000ULL ) { result += 16; bit >>= 16; }
-		if( bit & 0x000000000000ff00ULL ) { result += 8; bit >>= 8; }
-		if( bit & 0x00000000000000f0ULL ) { result += 4; bit >>= 4; }
-		return result + gBitIndexMap[bit];
-	}
-#endif
-
-	unsigned FBit::RotateRight(unsigned bits , unsigned offset , unsigned numBit)
-	{
-		assert( offset <= numBit );
-		unsigned mask = ( 1 << numBit ) - 1;
-		return ( ( bits >> offset ) | ( bits << ( numBit - offset ) ) ) & mask;
-	}
-
-	unsigned FBit::RotateLeft(unsigned bits , unsigned offset , unsigned numBit)
-	{
-		assert( offset <= numBit );
-		unsigned mask = ( 1 << numBit ) - 1;
-		return ( ( bits << offset ) | ( bits >> ( numBit - offset ) ) ) & mask;
-	}
 
 	WorldTileManager::WorldTileManager(TileSetManager& manager)
 		:mTileSetManager(&manager)
@@ -109,9 +55,9 @@ namespace CAR
 						int dirRiverLinkLocal = FDir::ToLocal(result.dirRiverLink, rotation);
 						unsigned linkMask = MapTile::LocalToWorldSideLinkMask(tile.sides[dirRiverLinkLocal].linkDirMask, rotation);
 						linkMask &= ~BIT( result.dirRiverLink );
-						if ( linkMask && FBit::Extract( linkMask ) == linkMask )
+						if ( linkMask && FBitUtility::ExtractTrailingBit( linkMask ) == linkMask )
 						{
-							if ( !checkRiverLinkDirection( result.riverLink->pos , FDir::Inverse( result.dirRiverLink ) , FBit::ToIndex4( linkMask ) ) )
+							if ( !checkRiverLinkDirection( result.riverLink->pos , FDir::Inverse( result.dirRiverLink ) , FBitUtility::ToIndex4( linkMask ) ) )
 								return false;
 						}
 					}
@@ -287,10 +233,10 @@ namespace CAR
 			mask &= ~BIT( dirLink );
 			if ( mask == 0 )
 				return true;
-			if ( FBit::Extract( mask ) != mask )
+			if ( FBitUtility::ExtractTrailingBit( mask ) != mask )
 				return true;
 
-			int dirCheck = FBit::ToIndex4( mask );
+			int dirCheck = FBitUtility::ToIndex4( mask );
 			if ( dirCheck == dir )
 				return false;
 
@@ -805,8 +751,8 @@ namespace CAR
 		unsigned result = 0;
 		while( linkMask )
 		{
-			unsigned bit = FBit::Extract( linkMask );
-			int idx = FBit::ToIndex8( bit );
+			unsigned bit = FBitUtility::ExtractTrailingBit( linkMask );
+			int idx = FBitUtility::ToIndex8( bit );
 			result |= BIT( TilePiece::FarmSideDir( idx ) );
 			linkMask &= ~bit;
 		}

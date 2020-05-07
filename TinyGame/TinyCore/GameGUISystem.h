@@ -1,6 +1,7 @@
 #ifndef GameGUISystem_h__
 #define GameGUISystem_h__
 
+#include "GameConfig.h"
 #include "GameWidget.h"
 
 class IGUIDelegate
@@ -29,7 +30,7 @@ public:
 	TINY_API void         addTask( TaskBase* task , bool beGlobal = false );
 
 	TINY_API void         addWidget( GWidget* widget );
-	TINY_API void         cleanupWidget(bool bForceCleanup = false , bool bGlobalIncluded = false);
+	TINY_API void         cleanupWidget(bool bForceCleanup = false , bool bPersistentIncluded = false);
 
 	UIManager&   getManager(){ return mUIManager; }
 
@@ -47,10 +48,10 @@ public:
 
 	typedef Tween::GroupTweener< float > Tweener;
 	Tweener&     getTweener(){ return mTweener; }
-	template< class Fun >
+	template< class TFun >
 	void         addMotion( GWidget* widget , Vec2i const& from , Vec2i const& to , long time , long delay = 0 , Tween::FinishCallback cb = Tween::FinishCallback() )
 	{
-		mTweener.tween< Fun , WidgetPos >( *widget , from , to , time , delay ).finishCallback( cb );
+		mTweener.tween< TFun , WidgetPos >( *widget , from , to , time , delay ).finishCallback( cb );
 	}
 
 	TINY_API GWidget* findTopWidget( int id );

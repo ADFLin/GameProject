@@ -176,7 +176,7 @@ public:
 			}
 			else
 			{
-				mNumPort = BitUtility::CountSet(mActivePortMask);
+				mNumPort = FBitUtility::CountSet(mActivePortMask);
 				for(uint32 i = 0; i < mNumPort; ++i )
 				{
 					op & mFrameData[i];

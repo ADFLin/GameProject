@@ -86,7 +86,7 @@ namespace StickMove
 		float mLength;
 
 		float mMoveTime;
-		float mMoveDurtion;
+		float mMoveDuration;
 		float mMoveAngle;
 	};
 

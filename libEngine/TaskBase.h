@@ -3,7 +3,7 @@
 
 #include <list>
 #include <cassert>
-#include "EasingFun.h"
+#include "EasingFunction.h"
 
 class TaskBase;
 

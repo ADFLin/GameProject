@@ -862,9 +862,9 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	switch( reason )
 	{
 	case FailReason::InitFail:
-		if( ::Global::GetDrawEngine().isOpenGLEnabled() )
+		if( ::Global::GetDrawEngine().isRHIEnabled() )
 		{
-			::Global::GetDrawEngine().stopOpenGL(false);
+			::Global::GetDrawEngine().shutdownRHI(false);
 		}
 		break;
 	case FailReason::NoStage:

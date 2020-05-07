@@ -202,9 +202,9 @@ namespace Go
 
 		::Global::GetDrawEngine().changeScreenSize(1080, 720);
 
-		if( !::Global::GetDrawEngine().startOpenGL(8) )
-			return false;
-
+		RHIInitializeParams initParamsRHI;
+		initParamsRHI.numSamples = 8;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL , initParamsRHI));
 
 		mDeviceQuery = GPUDeviceQuery::Create();
 		if( mDeviceQuery == nullptr )
@@ -541,7 +541,7 @@ namespace Go
 	{
 		cleanupModeData( true );
 		mBoardRenderer.releaseRHI();
-		::Global::GetDrawEngine().stopOpenGL(true);
+		::Global::GetDrawEngine().shutdownRHI();
 		BaseClass::onEnd();
 	}
 
@@ -960,12 +960,12 @@ namespace Go
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
 
-					TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
+					TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, &winRateHistory[0], winRateHistory.size());
 				}
 
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetupFixedPipelineState(commandList, matProj );
-				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size() , colors[i] );
+				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, &winRateHistory[0], winRateHistory.size() , colors[i] );
 			}
 
 			static std::vector<Vector2> buffer;
@@ -986,7 +986,7 @@ namespace Go
 			if( !buffer.empty() )
 			{			
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());		
-				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &buffer[0], buffer.size(), LinearColor(0, 0, 1));
+				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &buffer[0], buffer.size(), LinearColor(0, 0, 1));
 			}
 
 			{
@@ -998,7 +998,7 @@ namespace Go
 					Vector2(0,yMax) , Vector2(xMax,yMax),
 				};
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(0, 0, 1));
+				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(0, 0, 1));
 			}
 
 			if( bReviewingGame )
@@ -1007,7 +1007,7 @@ namespace Go
 				Vector2 const lines[] = { Vector2(posX , yMin) , Vector2(posX , yMax) };
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 1, 0));
+				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 1, 0));
 			}
 
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -1110,7 +1110,7 @@ namespace Go
 		analysisResult.clear();
 		if( bAnalysisPondering && bKeepPonder )
 		{
-			analysisPonderColor = mGame.getInstance().getNextPlayColor();
+			analysisPonderColor = getAnalysisGame().getInstance().getNextPlayColor();
 			mLeelaAIRun.startPonder(analysisPonderColor);
 		}
 	}
@@ -2063,7 +2063,7 @@ namespace Go
 
 		if( bAnalysisPondering )
 		{
-			analysisPonderColor = mGame.getInstance().getNextPlayColor();
+			analysisPonderColor = getAnalysisGame().getInstance().getNextPlayColor();
 			mLeelaAIRun.startPonder(analysisPonderColor);
 		}
 		else
@@ -2234,6 +2234,10 @@ namespace Go
 		GTextCtrl* textCtrl;
 		textCtrl = addTextCtrl(id + UPARAM_VISITS, "Max Visits", BIT(idxPlayer), idxPlayer);
 		textCtrl->setValue(std::to_string(setting.maxVisits).c_str());
+
+		auto*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Model Name", BIT(idxPlayer), idxPlayer);
+		filePicker->filePath.format("%s/%s/%s", KataAppRun::InstallDir, KATA_MODEL_DIR_NAME, KataAppRun::GetLastModeltName().c_str());
+		filePicker->filePath.replace('/', '\\');
 	}
 
 	void MatchSettingPanel::addZenParamWidget(int id, int idxPlayer)
@@ -2337,6 +2341,11 @@ namespace Go
 					KataAISetting setting;
 					//setting.rootNoiseEnabled = true;
 					setting.maxVisits = getParamValue< int , GTextCtrl >(id + UPARAM_VISITS);
+					setting.bUseDefaultConfig = true;
+
+					std::string modelName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
+					setting.modelName = FileUtility::GetFileName( modelName.c_str() );
+
 					if( !matchData.players[i].initialize(types[i], &setting, otherPlayer) )
 						return false;
 				}

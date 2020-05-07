@@ -244,7 +244,7 @@ namespace Render
 					inputStream.buffer = mVertexBuffer;
 					RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 					RHISetIndexBuffer(commandList, mIndexBuffer);
-					RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
+					RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
 				}
 
 				xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0, 0, 1));
@@ -254,7 +254,7 @@ namespace Render
 					inputStream.buffer = mVertexBuffer;
 					RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 					RHISetIndexBuffer(commandList, mIndexBuffer);
-					RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
+					RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
 				}
 			}
 		
@@ -265,7 +265,7 @@ namespace Render
 				inputStream.buffer = mAxisVertexBuffer;
 				RHISetInputStream(commandList, mAxisInputLayout, &inputStream , 1 );
 
-				RHIDrawPrimitive(commandList, PrimitiveType::LineList, 0, 6);
+				RHIDrawPrimitive(commandList, EPrimitive::LineList, 0, 6);
 			}
 
 			{
@@ -302,7 +302,7 @@ namespace Render
 						{ Vector3(2,2,0) , Vector3(1,1,1) },
 						{ Vector3(0,2,0) , Vector3(0,0,1) },
 					};
-					TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::Quad, vetices, 4);
+					TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::Quad, vetices, 4);
 				}
 
 				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(0, 10, 0));
@@ -319,7 +319,7 @@ namespace Render
 						{ Vector3(2,2,0) },
 						{ Vector3(0,2,0) },
 					};
-					TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::Quad, vetices, 4, Vector3(1, 0, 0));
+					TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::Quad, vetices, 4, Vector3(1, 0, 0));
 				}
 
 			}

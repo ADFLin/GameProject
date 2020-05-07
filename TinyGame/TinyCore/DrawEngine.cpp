@@ -188,19 +188,6 @@ void DrawEngine::shutdownRHI(bool bDeferred)
 	setupBuffer(getScreenWidth(), getScreenHeight());
 }
 
-bool DrawEngine::startOpenGL( int numSamples )
-{
-	RHIInitializeParams initParams;
-	initParams.numSamples = numSamples;
-	return initializeRHI(RHITargetName::OpenGL, initParams);
-}
-
-void DrawEngine::stopOpenGL(bool bDeferred)
-{
-	shutdownRHI(bDeferred);
-}
-
-
 bool DrawEngine::beginRender()
 {
 	if ( isRHIEnabled() )

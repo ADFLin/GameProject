@@ -31,7 +31,7 @@ public:
 
 	static uint32 GetCurrentThreadId();
 
-	bool create( ThreadFunc fun , void* ptr , uint32 stackSize = 0 );
+	bool create( ThreadFunc func , void* ptr , uint32 stackSize = 0 );
 	void detach();
 
 	bool     kill();
@@ -112,11 +112,11 @@ protected:
 		return result;
 	}
 
-	template< class Fun >
-	bool doWait( WinMutex& mutex , Fun fun )
+	template< class TFunc >
+	bool doWait( WinMutex& mutex , TFunc func )
 	{
 		bool result = true;
-		while( !fun() )
+		while( !func() )
 		{
 			result = SleepConditionVariableCS( &mCV , &mutex.mCS , INFINITE ) !=0;
 		}
@@ -238,14 +238,14 @@ public:
 };
 
 
-template< class T >
-class TFunctionThread : public RunnableThreadT< TFunctionThread<T> >
+template< class TFunc >
+class TFunctionThread : public RunnableThreadT< TFunctionThread<TFunc> >
 {
 public:
-	TFunctionThread( T fun ):mFunction( fun ){}
+	TFunctionThread( TFunc&& func ):mFunction( std::forward<TFunc>(func) ){}
 	unsigned run(){  (mFunction)(); return 0; }
 private:
-	T mFunction;
+	TFunc mFunction;
 };
 
 class Mutex : public PlatformMutex
@@ -275,10 +275,10 @@ public:
 		return PlatformConditionVariable::doWait(locker.mMutex);
 	}
 
-	template< class Fun >
-	bool wait(Mutex::Locker& locker, Fun fun )
+	template< class TFunc >
+	bool wait(Mutex::Locker& locker, TFunc func )
 	{
-		return PlatformConditionVariable::doWait(locker.mMutex, fun );
+		return PlatformConditionVariable::doWait(locker.mMutex, func );
 	}
 	bool waitTime(Mutex::Locker& locker, uint32 time = WAIT_TIME_INFINITE )
 	{ 

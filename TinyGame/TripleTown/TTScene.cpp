@@ -5,7 +5,7 @@
 #include "RenderUtility.h"
 
 
-#include "EasingFun.h"
+#include "EasingFunction.h"
 
 #include "Core/IntegerType.h"
 #include <fstream>
@@ -945,7 +945,7 @@ namespace TripleTown
 	{
 		if( !mBatchedVertices.empty() )
 		{
-			TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, mBatchedVertices.data(), mBatchedVertices.size());
+			TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, mBatchedVertices.data(), mBatchedVertices.size());
 			mBatchedVertices.clear();
 		}
 	}

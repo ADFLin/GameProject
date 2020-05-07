@@ -152,9 +152,9 @@ void GUISystem::addWidget( GWidget* widget )
 	mUIManager.addWidget( widget );
 }
 
-void GUISystem::cleanupWidget(bool bForceCleanup , bool bGlobalIncluded)
+void GUISystem::cleanupWidget(bool bForceCleanup , bool bPersistentIncluded)
 {
-	mUIManager.cleanupWidgets(bGlobalIncluded);
+	mUIManager.cleanupWidgets(bPersistentIncluded);
 	mTweener.clear();
 	if( bForceCleanup )
 		mUIManager.cleanupPaddingKillWidgets();

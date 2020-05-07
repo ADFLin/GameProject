@@ -260,7 +260,7 @@ namespace Chromatron
 
 		bool solveSingleColor( Vec2i const& pos , Dir const& dir , Color color )
 		{
-			assert( BitUtility::CountSet((uint8)color) == 1 );
+			assert( FBitUtility::CountSet((uint8)color) == 1 );
 
 			Color receivedColor = mContext.getTile(pos).getReceivedLightColor(dir.inverse());
 			//if ( !(receivedColor & color ) )

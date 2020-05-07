@@ -346,7 +346,7 @@ namespace Render
 		if( !mSurfaceVertices.empty() && !mSurfaceIndices.empty() )
 		{
 			//MyRender::BindVertexPointer((uint8*)&mSurfaceVertices[0], MyRender::GetVertexSize());
-			//RHIDrawIndexedPrimitive(RHICommandList::GetImmediateList(), PrimitiveType::TriangleList, CVT_UInt, (int)&mSurfaceIndices[0] , mSurfaceIndices.size());
+			//RHIDrawIndexedPrimitive(RHICommandList::GetImmediateList(), EPrimitive::TriangleList, CVT_UInt, (int)&mSurfaceIndices[0] , mSurfaceIndices.size());
 			//MyRender::UnbindVertexPointer();
 
 
@@ -357,7 +357,7 @@ namespace Render
 		if( !mLinesVertices.empty() && !mLineIndices.empty() )
 		{
 			//MyRender::BindVertexPointer((uint8*)&mLinesVertices[0], MyRender::GetVertexSize());
-			//RHIDrawIndexedPrimitive(RHICommandList::GetImmediateList(), PrimitiveType::LineList, CVT_UInt, (int)&mLineIndices[0], mLineIndices.size());
+			//RHIDrawIndexedPrimitive(RHICommandList::GetImmediateList(), EPrimitive::LineList, CVT_UInt, (int)&mLineIndices[0], mLineIndices.size());
 			//MyRender::UnbindVertexPointer();
 
 			mLinesVertices.clear();

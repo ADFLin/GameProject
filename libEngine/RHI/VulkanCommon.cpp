@@ -2,22 +2,22 @@
 
 namespace Render
 {
-	VkPrimitiveTopology VulkanTranslate::To(PrimitiveType type)
+	VkPrimitiveTopology VulkanTranslate::To(EPrimitive type)
 	{
 		switch (type)
 		{
-		case PrimitiveType::Points: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-		case PrimitiveType::TriangleList: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		case PrimitiveType::TriangleStrip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-		case PrimitiveType::LineList: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-		case PrimitiveType::LineStrip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-		case PrimitiveType::TriangleAdjacency: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
-		case PrimitiveType::TriangleFan: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-		case PrimitiveType::Patchs: return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+		case EPrimitive::Points: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		case EPrimitive::TriangleList: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		case EPrimitive::TriangleStrip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		case EPrimitive::LineList: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		case EPrimitive::LineStrip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+		case EPrimitive::TriangleAdjacency: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+		case EPrimitive::TriangleFan: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+		case EPrimitive::Patchs: return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 
-		case PrimitiveType::LineLoop:
-		case PrimitiveType::Quad:
-		case PrimitiveType::Polygon:
+		case EPrimitive::LineLoop:
+		case EPrimitive::Quad:
+		case EPrimitive::Polygon:
 			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
 		}
@@ -247,18 +247,18 @@ namespace Render
 	}
 
 
-	VkCompareOp VulkanTranslate::To(ECompareFun func)
+	VkCompareOp VulkanTranslate::To(ECompareFunc func)
 	{
 		switch (func)
 		{
-		case ECompareFun::Never: return VK_COMPARE_OP_NEVER;
-		case ECompareFun::Less:  return VK_COMPARE_OP_LESS;
-		case ECompareFun::Equal: return VK_COMPARE_OP_EQUAL;
-		case ECompareFun::NotEqual: return VK_COMPARE_OP_NOT_EQUAL;
-		case ECompareFun::LessEqual: return VK_COMPARE_OP_LESS_OR_EQUAL;
-		case ECompareFun::Greater: return VK_COMPARE_OP_GREATER;
-		case ECompareFun::GeraterEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
-		case ECompareFun::Always: return VK_COMPARE_OP_ALWAYS;
+		case ECompareFunc::Never: return VK_COMPARE_OP_NEVER;
+		case ECompareFunc::Less:  return VK_COMPARE_OP_LESS;
+		case ECompareFunc::Equal: return VK_COMPARE_OP_EQUAL;
+		case ECompareFunc::NotEqual: return VK_COMPARE_OP_NOT_EQUAL;
+		case ECompareFunc::LessEqual: return VK_COMPARE_OP_LESS_OR_EQUAL;
+		case ECompareFunc::Greater: return VK_COMPARE_OP_GREATER;
+		case ECompareFunc::GeraterEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+		case ECompareFunc::Always: return VK_COMPARE_OP_ALWAYS;
 		}
 		return VK_COMPARE_OP_ALWAYS;
 	}

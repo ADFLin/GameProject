@@ -238,6 +238,8 @@ namespace Render
 		return sInatance;
 	}
 
+
+
 	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass const& shaderClass, bool bForceLoad)
 	{
 
@@ -256,6 +258,11 @@ namespace Render
 #endif //CORE_SHARE_CODE
 
 
+	bool ShaderManager::initialize(ShaderFormat& shaderFormat)
+	{
+		mShaderFormat = &shaderFormat;
+		return true;
+	}
 
 	ShaderManager::ShaderManager()
 	{

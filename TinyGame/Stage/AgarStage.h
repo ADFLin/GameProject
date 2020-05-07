@@ -14,8 +14,7 @@ namespace Agar
 
 		virtual bool onInit()
 		{
-			if ( !::Global::GetDrawEngine().startOpenGL() )
-				return false;
+			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 			::Global::GUI().cleanupWidget();
 			restart();
@@ -24,8 +23,7 @@ namespace Agar
 
 		virtual void onEnd()
 		{
-
-			::Global::GetDrawEngine().stopOpenGL();
+			::Global::GetDrawEngine().shutdownRHI();
 		}
 
 		virtual void onUpdate( long time )

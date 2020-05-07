@@ -35,7 +35,7 @@
 #include "Plasma.h"
 #include "Minigun.h"
 
-#include "EasingFun.h"
+#include "EasingFunction.h"
 #include "FixString.h"
 
 

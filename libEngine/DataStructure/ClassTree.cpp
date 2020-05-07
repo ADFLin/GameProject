@@ -50,9 +50,11 @@ ClassTreeNode::~ClassTreeNode()
 #if CLASS_TREE_USE_INTRLIST
 	if( childHook.isLinked() )
 #else
-	if( indexParentSlot != -1 )
+	if (indexParentSlot != -1)
 #endif
+	{
 		ClassTree::Get().unregisterClass(this, false);
+	}
 }
 
 bool ClassTreeNode::isChildOf(ClassTreeNode* testParent)

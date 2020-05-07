@@ -138,7 +138,7 @@ namespace Tetris
 		NormalModeData* modeData = static_cast< ChallengeModeData* >( lvData->getModeData() );
 		record->level   = modeData->gravityLevel;
 		record->score   = modeData->score;
-		record->durtion = lvData->getLevel()->getTimeDuration();
+		record->duration = lvData->getLevel()->getTimeDuration();
 
 		strcpy_s( record->name , "???" );
 

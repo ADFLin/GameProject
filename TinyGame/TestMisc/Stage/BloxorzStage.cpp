@@ -1,7 +1,7 @@
 #include "BloxorzStage.h"
 #include "StageRegister.h"
 
-#include "EasingFun.h"
+#include "EasingFunction.h"
 #include "DrawEngine.h"
 #include "GameGUISystem.h"
 #include "InputManager.h"
@@ -160,8 +160,7 @@ namespace Bloxorz
 	{
 		::Global::GUI().cleanupWidget();
 
-		if ( !::Global::GetDrawEngine().startOpenGL() )
-			return false;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 		GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
@@ -209,7 +208,7 @@ namespace Bloxorz
 	void TestStage::onEnd()
 	{
 		glDeleteLists( mCubeList , 1 );
-		::Global::GetDrawEngine().stopOpenGL();
+		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void TestStage::restart()

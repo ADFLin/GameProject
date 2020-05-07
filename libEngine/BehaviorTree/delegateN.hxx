@@ -5,48 +5,48 @@ class DelegateN
 public:
 	DelegateN(){ mPtr = 0;  }
 	template < class OBJ >
-	DelegateN( OBJ* obj , RetType (OBJ::*fun)( SIG_ARG ) ){  bind( obj , fun );  }
+	DelegateN( OBJ* obj , RetType (OBJ::*func)( SIG_ARG ) ){  bind( obj , func );  }
 	template < class OBJ >
 	DelegateN( OBJ* obj )                                 {  bind( obj );  }
-	DelegateN( RetType (*fun)( SIG_ARG ) )                {  bind( fun );  }
+	DelegateN( RetType (*func)( SIG_ARG ) )                {  bind( func );  }
 
 	template < class OBJ >
-	void bind( OBJ* obj , RetType (OBJ::*fun)( SIG_ARG ) ){  new ( mStorage ) MemFun< OBJ >( obj , fun );  }
+	void bind( OBJ* obj , RetType (OBJ::*func)( SIG_ARG ) ){  new ( mStorage ) MemFun< OBJ >( obj , func );  }
 	template < class OBJ >
 	void bind( OBJ* obj )                                 {  new ( mStorage ) OpFun< OBJ >( obj );  }
-	void bind( RetType (*fun)( SIG_ARG ) )                {  new ( mStorage ) BaseFun( fun );  }
+	void bind( RetType (*func)( SIG_ARG ) )                {  new ( mStorage ) BaseFun( func );  }
 
 public:
 	RetType  operator()( FUN_ARG ){ return  castFunPtr()->exec( PARAM_ARG ); }
 
 private:
-	struct Fun
+	struct FuncBase
 	{
 	public:
 		virtual RetType exec( FUN_ARG ) = 0;
 	};
-	Fun*     castFunPtr(){ return reinterpret_cast< Fun* >( mStorage ); }
+	FuncBase*     castFunPtr(){ return reinterpret_cast< FuncBase* >( mStorage ); }
 
 	template < class OBJ >
-	struct MemFun : public Fun
+	struct MemFun : public FuncBase
 	{
-		typedef RetType (OBJ::*FunType)( SIG_ARG );
-		MemFun( OBJ* obj , FunType fun ):obj(obj),fun(fun){}
-		virtual RetType exec( FUN_ARG ){  return ( obj->*fun )( PARAM_ARG );  }
+		typedef RetType (OBJ::*FuncType)( SIG_ARG );
+		MemFun( OBJ* obj , FuncType func ):obj(obj),func(func){}
+		virtual RetType exec( FUN_ARG ){  return ( obj->*func )( PARAM_ARG );  }
 		OBJ*    obj;
-		FunType fun;
+		FuncType func;
 	};
 
-	struct BaseFun : public Fun
+	struct BaseFun : public FuncBase
 	{
-		typedef RetType (*FunType)( SIG_ARG );
-		BaseFun( FunType fun ):fun(fun){}
-		virtual RetType exec( FUN_ARG ){  return ( *fun )( PARAM_ARG );  }
-		FunType fun;
+		typedef RetType (*FuncType)( SIG_ARG );
+		BaseFun(FuncType func ):func(func){}
+		virtual RetType exec( FUN_ARG ){  return ( *func )( PARAM_ARG );  }
+		FuncType func;
 	};
 
 	template < class OBJ >
-	struct OpFun : public Fun
+	struct OpFun : public FuncBase
 	{
 		OpFun( OBJ* obj ):obj(obj){}
 		virtual RetType exec( FUN_ARG ){  return ( *obj)( PARAM_ARG );  }

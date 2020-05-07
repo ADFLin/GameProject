@@ -24,8 +24,8 @@ namespace IDA
 		bool      isEqual(StateType& state1,StateType& state2 ){  NEVER_REACH("Need impl isEqual"); return false; }
 		bool      isGoal (StateType& state ){ NEVER_REACH("Need impl isGoal"); return false; }
 		//  call addSreachNode for all possible next state
-		template < class Fun >
-		void      processNeighborNode( StateType& node , ScoreType const& score , Fun& fun ){  NEVER_REACH("Need impl processNeighborNode"); }
+		template < class TFunc >
+		void      processNeighborNode( StateType& node , ScoreType const& score , TFunc& fun ){  NEVER_REACH("Need impl processNeighborNode"); }
 
 	public:
 		void startSreach()
@@ -39,6 +39,7 @@ namespace IDA
 			RS_OVER_THRESHOLD = 1,
 			RS_NO_FOUND = 2 ,
 		};
+
 		struct SreachResult
 		{
 			SreachResult( ScoreType inScore , ResultState inState )
@@ -49,7 +50,8 @@ namespace IDA
 			ResultState state;
 			ScoreType   score;
 		};
-		struct SreachNeighborFun
+
+		struct SreachNeighborFunc
 		{
 			bool operator()( StateType const& newState , ScoreType const& score )
 			{
@@ -64,9 +66,9 @@ namespace IDA
 				return true;
 			}
 
-			static SreachResult sreachInternal( StateType const& state , ScoreType const& score , SreachNeighborFun& fun )
+			static SreachResult sreachInternal( StateType const& state , ScoreType const& score , SreachNeighborFunc& func )
 			{
-				if ( score > fun.threshold )
+				if ( score > func.threshold )
 				{
 					return SreachResult( RS_OVER_THRESHOLD , score );
 				}
@@ -75,8 +77,8 @@ namespace IDA
 					return SreachResult( RS_FOUND );
 				}
 
-				fun.mThis->processNeighborNode( state , score , fun );
-				if ( fun.result.state == RS_FOUND )
+				func.mThis->processNeighborNode( state , score , func);
+				if (func.result.state == RS_FOUND )
 					return SreachResult( RS_FOUND );
 
 				return SreachResult( RS_NO_FOUND );
@@ -93,13 +95,13 @@ namespace IDA
 		{
 			startSreach( start );
 
-			SreachNeighborFun fun;
-			fun.mThis = _this();
+			SreachNeighborFunc func;
+			func.mThis = _this();
 			ScoreType threshold = calcHeuristic( start );
 			for(;;)
 			{
-				fun.minScore = std::numeric_limits< ScoreType >::max();
-				SreachResult result = SreachNeighborFun::sreachInternal( start , ScoreType(0) , fun );
+				func.minScore = std::numeric_limits< ScoreType >::max();
+				SreachResult result = SreachNeighborFunc::sreachInternal( start , ScoreType(0) , func);
 
 				if ( result.state == RS_FOUND )
 				{
@@ -107,7 +109,7 @@ namespace IDA
 				}
 				else
 				{
-					fun.threshold = fun.minScore;
+					func.threshold = func.minScore;
 				}
 			}
 

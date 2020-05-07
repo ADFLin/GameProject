@@ -21,7 +21,7 @@
 
 #include "GameSettingHelper.h"
 
-#include "EasingFun.h"
+#include "EasingFunction.h"
 #include "InputManager.h"
 
 #include <cmath>

@@ -10,8 +10,7 @@ namespace TripleTown
 	{
 		::Global::GUI().cleanupWidget();
 
-		if( !::Global::GetDrawEngine().startOpenGL() )
-			return false;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 
 		srand(generateRandSeed());
@@ -58,7 +57,7 @@ namespace TripleTown
 
 	void LevelStage::onEnd()
 	{
-		::Global::GetDrawEngine().stopOpenGL(true);
+		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void LevelStage::onRestart(bool beInit)

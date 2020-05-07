@@ -56,7 +56,7 @@ namespace StickMove
 	void Stick::tick(float dt)
 	{
 		mMoveTime += dt;
-		if( mMoveTime >= mMoveDurtion )
+		if( mMoveTime >= mMoveDuration )
 		{
 			changePivot();
 			evalMovePoint();
@@ -66,19 +66,19 @@ namespace StickMove
 			auto& pivot = getPivot();
 			auto& endpoint = getEndpoint();
 
-			Vector2 dir = RotateVector(mDir, mMoveAngle * mMoveTime / mMoveDurtion);
+			Vector2 dir = RotateVector(mDir, mMoveAngle * mMoveTime / mMoveDuration);
 			endpoint.pos = pivot.pos + dir * mLength;
 		}
 	}
 
 	void Stick::changeMoveSpeed(float value)
 	{
-		if( mMoveDurtion != 0 )
+		if( mMoveDuration != 0 )
 		{
-			float ratio = mMoveTime / mMoveDurtion;
+			float ratio = mMoveTime / mMoveDuration;
 			mDir = RotateVector(mDir, mMoveAngle * ratio);
 			mMoveAngle = mMoveAngle * (1 - ratio);
-			mMoveDurtion = Math::Abs(mMoveAngle) / value;
+			mMoveDuration = Math::Abs(mMoveAngle) / value;
 			mMoveTime = 0;
 		}
 		moveSpeed = value;
@@ -121,7 +121,7 @@ namespace StickMove
 			mDir *= -1;
 			++count;
 		}
-		mMoveDurtion = Math::Abs(mMoveAngle) / moveSpeed;
+		mMoveDuration = Math::Abs(mMoveAngle) / moveSpeed;
 		mMoveTime = 0;
 	}
 

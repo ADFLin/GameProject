@@ -17,8 +17,7 @@ namespace Lighting2D
 {
 	bool TestStage::onInit()
 	{
-		if ( !Global::GetDrawEngine().startOpenGL() )
-			return false;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 		wglSwapIntervalEXT(0);
 
@@ -61,12 +60,12 @@ namespace Lighting2D
 
 	void TestStage::onInitFail()
 	{
-		Global::GetDrawEngine().stopOpenGL(true);
+		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void TestStage::onEnd()
 	{
-		Global::GetDrawEngine().stopOpenGL(true);
+		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void TestStage::restart()
@@ -160,8 +159,8 @@ namespace Lighting2D
 
 			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState<
-					true , ECompareFun::Always ,
-					true , ECompareFun::Always , 
+					true , ECompareFunc::Always ,
+					true , ECompareFunc::Always , 
 					Stencil::eKeep , Stencil::eKeep , Stencil::eReplace ,0x1 
 				>::GetRHI(), 0x1 );
 			
@@ -188,11 +187,11 @@ namespace Lighting2D
 
 					if (bUseGeometryShader)
 					{
-						TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
+						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &mBuffers[0], mBuffers.size());
 					}
 					else
 					{
-						TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
+						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, &mBuffers[0], mBuffers.size());
 					}
 					
 				}
@@ -200,8 +199,8 @@ namespace Lighting2D
 			
 			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState<
-					true, ECompareFun::Always,
-					true, ECompareFun::Equal, 
+					true, ECompareFunc::Always,
+					true, ECompareFunc::Equal, 
 					Stencil::eKeep, Stencil::eKeep, Stencil::eKeep,0x1 
 				>::GetRHI(), 0x0);
 
@@ -233,7 +232,7 @@ namespace Lighting2D
 		{
 			0,1,2,0,2,3,
 		};
-		TRenderRT<RTVF_XY>::DrawIndexed(PrimitiveType::eTriangleList, vertices, 4, indices, 6);
+		TRenderRT<RTVF_XY>::DrawIndexed(EPrimitive::eTriangleList, vertices, 4, indices, 6);
 #endif
 
 		GLGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();

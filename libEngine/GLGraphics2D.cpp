@@ -21,8 +21,6 @@ using Math::Vector3;
 using Math::Quaternion;
 using Math::Matrix4;
 
-#define RHI_GRAPHICS_2D_USE_TRANSFORM_STACK 1
-
 static char const* vertexShader = CODE_STRING(
 	varying vec2 vTexCoord;
 	void main(void)
@@ -149,41 +147,34 @@ void GLGraphics2D::finishXForm()
 
 }
 
+void GLGraphics2D::pushXForm()
+{
+	mXFormStack.push();
+}
+
+void GLGraphics2D::popXForm()
+{
+	mXFormStack.pop();
+}
+
 void GLGraphics2D::identityXForm()
 {
-#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
 	mXFormStack.set(RenderTransform2D::Identity());
-#else
-	glLoadIdentity();
-#endif
 }
 
 void GLGraphics2D::translateXForm(float ox, float oy)
 {
-#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
 	mXFormStack.translate(Vector2(ox, oy));
-#else
-	glTranslatef(ox, oy, 0);
-#endif
 }
 
 void GLGraphics2D::rotateXForm(float angle)
 {
-
-#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
 	mXFormStack.rotate(Math::Deg2Rad(angle));
-#else
-	glRotatef(angle, 0, 0, 1);
-#endif
 }
 
 void GLGraphics2D::scaleXForm(float sx, float sy)
 {
-#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
 	mXFormStack.scale(Vector2(sx, sy));
-#else
-	glScalef(sx, sy, 1);
-#endif
 }
 
 void GLGraphics2D::beginRender()
@@ -373,29 +364,16 @@ void GLGraphics2D::emitLineVertex(Vector2 const &p1, Vector2 const &p2)
 
 void GLGraphics2D::emitVertex(float x , float y)
 {
-#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
 	Vector2 v = mXFormStack.get().tranformPosition(Vector2(x, y));
 	mBuffer.push_back(v.x);
 	mBuffer.push_back(v.y);
-#else
-
-	mBuffer.push_back(x);
-	mBuffer.push_back(y);
-#endif
-
 }
 
 void GLGraphics2D::emitVertex( float v[] )
 {
-#if RHI_GRAPHICS_2D_USE_TRANSFORM_STACK
 	Vector2 temp = mXFormStack.get().tranformPosition(Vector2(v[0],v[1]));
 	mBuffer.push_back(temp.x);
 	mBuffer.push_back(temp.y);
-#else
-
-	mBuffer.push_back(v[0]);
-	mBuffer.push_back(v[1]);
-#endif
 }
 
 void GLGraphics2D::drawPixel(Vector2 const& p , Color3ub const& color)
@@ -406,7 +384,7 @@ void GLGraphics2D::drawPixel(Vector2 const& p , Color3ub const& color)
 		Math::Vector2 pos;
 		Color4f c;
 	} v = { p , Color4f( color , mAlpha ) };
-	TRenderRT<RTVF_XY_CA>::Draw( GetCommandList() , PrimitiveType::Points, &v, 1);
+	TRenderRT<RTVF_XY_CA>::Draw( GetCommandList() , EPrimitive::Points, &v, 1);
 }
 
 void GLGraphics2D::drawRect(int left , int top , int right , int bottom)
@@ -505,11 +483,9 @@ void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 	mFont->draw(GetCommandList(), Vector2(int(ox),int(oy)) , str );
 }
 
-#define USE_RENDER_RT 1
 
 void GLGraphics2D::drawPolygonBuffer()
 {
-
 	using namespace Render;
 #if	IGNORE_NSIGHT_UNSUPPORT_CODE
 	return;
@@ -517,53 +493,29 @@ void GLGraphics2D::drawPolygonBuffer()
 
 	assert(!mBuffer.empty());
 
-#if 1
-
 	if( mDrawBrush )
 	{
-		TRenderRT<RTVF_XY>::Draw(GetCommandList(), PrimitiveType::Polygon, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorBrush, mAlpha));
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::Polygon, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorBrush, mAlpha));
 	}
 	if( mDrawPen )
 	{
-		TRenderRT<RTVF_XY>::Draw(GetCommandList(), PrimitiveType::LineLoop, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorPen, mAlpha));
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorPen, mAlpha));
 	}
-#else
-	RHISetInputStream(GetCommandList(), nullptr, nullptr, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, sizeof(float) * 2 , &mBuffer[0]);
-	if( mDrawBrush )
-	{
-		glColor4f(mColorBrush.r, mColorBrush.g, mColorBrush.b, mAlpha);
-		glDrawArrays(GL_POLYGON, 0, mBuffer.size() / 2);
-	}
-	if( mDrawPen )
-	{
-		glColor4f(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
-		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
-	}
-	glDisableClientState(GL_VERTEX_ARRAY);
-
-#endif
 
 }
 
 void GLGraphics2D::drawLineBuffer()
 {
+	using namespace Render;
+
 #if	IGNORE_NSIGHT_UNSUPPORT_CODE
 	return;
 #endif
+	assert(!mBuffer.empty());
 
-	if( mDrawPen )
+	if (mDrawPen)
 	{
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glVertexPointer(2, GL_FLOAT, 0, &mBuffer[0]);
-
-		glColor4f(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
-		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
-
-		glDisableClientState(GL_VERTEX_ARRAY);
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorPen, mAlpha));
 	}
 }
 

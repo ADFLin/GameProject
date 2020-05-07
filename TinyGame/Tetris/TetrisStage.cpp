@@ -916,14 +916,14 @@ namespace Tetris
 			{
 				Record* curRecord = *recordIter;
 
-				long sec = ( curRecord->durtion / 1000 );
+				long sec = ( curRecord->duration / 1000 );
 				long min = ( sec / 60 ); 
 
 				propList[0].drawText( g , x , y , i + 1 );
 				propList[1].drawText( g , x , y , curRecord->name );
 				propList[2].drawText( g , x , y , curRecord->score );
 				propList[3].drawText( g , x , y , curRecord->level );
-				propList[4].drawText( g , x , y , min , sec % 60 , curRecord->durtion % 1000 );
+				propList[4].drawText( g , x , y , min , sec % 60 , curRecord->duration % 1000 );
 
 				++recordIter;
 			}

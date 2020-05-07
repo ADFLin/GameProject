@@ -7,7 +7,7 @@
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
 
-#include "EasingFun.h"
+#include "EasingFunction.h"
 #include <functional>
 
 namespace Poker

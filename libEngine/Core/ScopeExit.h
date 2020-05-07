@@ -4,12 +4,12 @@
 
 namespace ScopeExitSupport
 {
-	template< class Fun >
+	template< class TFunc >
 	struct TScopeGuard
 	{
 	public:
-		FORCEINLINE TScopeGuard(Fun&& fun)
-			:mFun(std::forward<Fun>(fun))
+		FORCEINLINE TScopeGuard(TFunc&& fun)
+			:mFun(std::forward<TFunc>(fun))
 		{
 		}
 
@@ -20,15 +20,15 @@ namespace ScopeExitSupport
 			mFun();
 		}
 
-		Fun mFun;
+		TFunc mFun;
 	};
 
 	struct Syntax
 	{
-		template <typename Fun>
-		FORCEINLINE TScopeGuard<Fun> operator+(Fun&& fun) const
+		template <typename TFunc>
+		FORCEINLINE TScopeGuard<TFunc> operator+(TFunc&& fun) const
 		{
-			return TScopeGuard<Fun>(std::forward<Fun>(fun));
+			return TScopeGuard<TFunc>(std::forward<TFunc>(fun));
 		}
 	};
 

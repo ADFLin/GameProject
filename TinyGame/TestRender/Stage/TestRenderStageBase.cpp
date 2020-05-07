@@ -243,7 +243,7 @@ namespace Render
 
 		RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
 		RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?
-			TStaticDepthStencilState< true, ECompareFun::Greater >::GetRHI() :
+			TStaticDepthStencilState< true, ECompareFunc::Greater >::GetRHI() :
 			TStaticDepthStencilState<>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	}

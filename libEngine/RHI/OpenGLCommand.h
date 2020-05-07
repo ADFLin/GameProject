@@ -65,15 +65,15 @@ namespace Render
 		void RHISetScissorRect(int x, int y, int w, int h);
 
 
-		void RHIDrawPrimitive(PrimitiveType type, int start, int nv);
-		void RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex);
-		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
-		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
-		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
-		void RHIDrawIndexedPrimitiveInstanced(PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
+		void RHIDrawPrimitive(EPrimitive type, int start, int nv);
+		void RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex, uint32 baseVertex);
+		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
+		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
 
-		void RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData);
-		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
 		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture);
 
@@ -128,51 +128,15 @@ namespace Render
 
 		static int const IdxTextureAutoBindStart = 2;
 
+		void commitRenderStates();
+		void commitSamplerStates();
 		void commitRasterizerState();
 		void commitBlendState();
 		void commitDepthStencilState();
 
-		bool commitInputStream()
-		{
-			if( mLastInputLayout.isValid() )
-			{
-				mWasBindAttrib = false;
-				if( mbUseFixedPipeline )
-				{
-					OpenGLCast::To(mLastInputLayout)->bindPointer(mUsedInputStreams, mNumInputStream);
-				}
-				else
-				{
-					OpenGLCast::To(mLastInputLayout)->bindAttrib(mUsedInputStreams, mNumInputStream);
-					mWasBindAttrib = true;
-				}
-			}
-			return true;
-		}
+		bool commitInputStream();
 
-		bool commitInputStreamUP(VertexDataInfo dataInfos[], int numData)
-		{
-			if( !mLastInputLayout.isValid() )
-				return false;
-			
-			for( int i = 0 ; i < numData; ++i )
-			{
-				mUsedInputStreams[i].offset = (uint32)dataInfos[i].ptr;
-				mUsedInputStreams[i].stride = dataInfos[i].stride;
-			}
-			mNumInputStream = numData;
-			mWasBindAttrib = false;
-			if( mbUseFixedPipeline )
-			{
-				OpenGLCast::To(mLastInputLayout)->bindPointerUP(mUsedInputStreams, mNumInputStream);
-			}
-			else
-			{
-				OpenGLCast::To(mLastInputLayout)->bindAttribUP(mUsedInputStreams, mNumInputStream);
-				mWasBindAttrib = true;
-			}
-			return true;
-		}
+		bool commitInputStreamUP(VertexDataInfo dataInfos[], int numData);
 
 		bool commitInputStreamUP()
 		{
@@ -222,42 +186,7 @@ namespace Render
 		void setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 		void setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler);
 
-		void commitRenderStates()
-		{
-			commitRasterizerState();
-			commitDepthStencilState();
-			commitBlendState();
-			commitSamplerStates();
-		}
 
-		void commitSamplerStates()
-		{
-			if (mSimplerSlotDirtyMask)
-			{
-				for (int index = 0; index < mNextAutoBindSamplerSlotIndex; ++index)
-				{
-					if (mSimplerSlotDirtyMask & BIT(index))
-					{
-						SamplerState& state = mSamplerStates[index];
-						if (state.bWrite)
-						{
-
-
-						}
-						else
-						{
-							glActiveTexture(GL_TEXTURE0 + index);
-							glBindTexture(state.typeEnum, state.textureHandle);
-							glBindSampler(index, state.samplerHandle);
-						}
-						glUniform1i(state.loc, index);
-					}
-				}
-
-				mSimplerSlotDirtyMask = 0;
-				glActiveTexture(GL_TEXTURE0);
-			}
-		}
 	};
 
 	class OpenGLSystem : public RHISystem

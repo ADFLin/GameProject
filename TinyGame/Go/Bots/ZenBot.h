@@ -601,7 +601,7 @@ namespace Go
 		void destroy() override;
 		bool setupGame(GameSetting const& setting) override;
 		bool restart() override;
-		bool playStone(int x, int y, int color) override;
+		EBotExecResult playStone(int x, int y, int color) override;
 		bool playPass(int color) override;
 		bool undo() override;
 		bool requestUndo() override;
@@ -611,7 +611,7 @@ namespace Go
 
 		void update(IGameCommandListener& listener) override;
 		bool getMetaData(int id, uint8* dataBuffer, int size) override;
-		EBotExecuteResult readBoard(int* outState) override;
+		EBotExecResult readBoard(int* outState) override;
 
 		static int FormZColor(Zen::Color color)
 		{

@@ -312,13 +312,13 @@ namespace BT
 		T operator()() const { return  (*VAR);  }
 	};
 
-	template < class T , T (*FUN)() >
+	template < class T , T (*FUNC)() >
 	struct ConstFunRef
 	{
 		typedef T          RetType;
 		typedef EmptyType  Context;
 		typedef EmptyType  RefHolder;
-		T operator()() const { return  (*FUN)();  }
+		T operator()() const { return  (*FUNC)();  }
 	};
 
 	template< class T >
@@ -340,11 +340,11 @@ namespace BT
 		typedef T            RetType;
 		typedef EmptyType    Context;
 		typedef GlobalFunRef RefHolder;
-		T operator()() const { return  (*mFun)();  }
+		T operator()() const { return  (*mFunc)();  }
 
-		typedef T (*Fun)();
-		GlobalFunRef( Fun fun ):mFun( Fun ){}
-		Fun  mFun;
+		typedef T (*Func)();
+		GlobalFunRef(Func func):mFunc( Func ){}
+		Func  mFunc;
 	};
 
 	template< class T >
@@ -384,11 +384,11 @@ namespace BT
 		typedef T    RetType;
 		typedef Base Context;
 		typedef ContextMemFunRef RefHolder;
-		T operator()( Context* c ) const { return  (c->*mMemFun)();  }
+		T operator()( Context* c ) const { return  (c->*mMemFunc)();  }
 
-		typedef T   (Base::*MemberFun)();
-		ContextMemFunRef( MemberFun fun ):mMemFun(fun){}
-		MemberFun mMemFun;
+		typedef T   (Base::*MemberFunc)();
+		ContextMemFunRef( MemberFunc func ):mMemFunc(func){}
+		MemberFunc mMemFunc;
 	};
 
 

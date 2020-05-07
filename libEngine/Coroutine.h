@@ -17,11 +17,11 @@ class FunctionJumper
 
 public:
 
-	template< class Fun >
-	void start( Fun fun )
+	template< class TFunc >
+	void start( TFunc func )
 	{
 		mbYeild = false;
-		auto entryFun = std::bind(&FunctionJumper::execEntry< Fun >, this, std::placeholders::_1, fun );
+		auto entryFun = std::bind(&FunctionJumper::execEntry< TFunc >, this, std::placeholders::_1, func );
 		//entryFun(*(YeildType*)0);
 		mImpl = ImplType( entryFun );
 	}
@@ -44,8 +44,8 @@ public:
 
 private:
 
-	template< class Fun >
-	void execEntry( YeildType& type , Fun fun )
+	template< class TFunc >
+	void execEntry( YeildType& type , TFunc fun )
 	{
 		mYeild = &type;
 		fun();

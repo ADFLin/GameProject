@@ -3,7 +3,7 @@
 #define ComUtility_H_66793974_BDBF_45BB_BC40_E0A745733BD5
 
 #define CHECK_RETRUN( EXPR , RT_VALUE )\
-	if( HRESULT hr = EXPR < 0 )\
+	if( HRESULT hr = (EXPR) < 0 )\
 		return RT_VALUE;
 
 struct ReleaseDeleter

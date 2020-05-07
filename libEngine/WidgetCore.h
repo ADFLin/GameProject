@@ -23,24 +23,24 @@
 
 enum WidgetInternalFlag
 {
-	WIF_STAY_TOP             = BIT(1) ,
-	WIF_WORLD_POS_CACHED     = BIT(2) ,
-	WIF_DISABLE              = BIT(3) ,
-	WIF_BE_HIDDEN            = BIT(4) ,
-	WIF_HITTEST_CHILDREN     = BIT(5) ,
-	WIF_DEFERRED_DESTROY     = BIT(6) ,
+	WIF_PERSISTENT           = BIT(0),
+	WIF_STAY_TOP             = BIT(1),
+	WIF_WORLD_POS_CACHED     = BIT(2),
+	WIF_DISABLE              = BIT(3),
+	WIF_HAD_HIDDEN           = BIT(4),
+	WIF_HITTEST_CHILDREN     = BIT(5),
+	WIF_DEFERRED_DESTROY     = BIT(6),
 
 	WIF_MARK_DESTROY         = BIT(7),
 	WIF_EFFECT_DISABLE_CHILD = BIT(8),
 	WIF_MANAGER_REF          = BIT(9),
-	WIF_GLOBAL               = BIT(10),
 
-	WIF_REROUTE_MOUSE_EVENT_UNHANDLED = BIT(11),
-	WIF_REROUTE_KEY_EVENT_UNHANDLED = BIT(12),
-	WIF_REROUTE_CHAR_EVENT_UNHANDLED = BIT(13),
-	WIF_REROUTE_MOUSE_EVENT = BIT(14),
-	WIF_REROUTE_KEY_EVENT = BIT(15),
-	WIF_REROUTE_CHAR_EVENT = BIT(16),
+	WIF_REROUTE_MOUSE_EVENT_UNHANDLED = BIT(10),
+	WIF_REROUTE_KEY_EVENT_UNHANDLED   = BIT(11),
+	WIF_REROUTE_CHAR_EVENT_UNHANDLED  = BIT(12),
+	WIF_REROUTE_MOUSE_EVENT           = BIT(13),
+	WIF_REROUTE_KEY_EVENT             = BIT(14),
+	WIF_REROUTE_CHAR_EVENT            = BIT(15),
 };
 
 #ifdef max
@@ -101,7 +101,7 @@ public:
 	T&             addChild(WidgetCoreT* ui);
 	void           destroy();
 
-	T&             setGlobal() { addFlagInternal(WIF_GLOBAL); return *_this(); }
+	T&             setGlobal() { addFlagInternal(WIF_PERSISTENT); return *_this(); }
 
 
 public:
@@ -232,7 +232,7 @@ public:
 	void      render();
 
 	void      destroyWidget(WidgetCore* ui );
-	void      cleanupWidgets( bool bGlobalIncluded = false);
+	void      cleanupWidgets( bool bPersistentIncluded = false);
 
 	bool      isTopWidget( WidgetCore* ui );
 	MouseMsg& getLastMouseMsg(){ return mLastMouseMsg; }
@@ -281,8 +281,8 @@ protected:
 	void        prevProcMsg();
 	void        postProcMsg();
 
-	template< class Func >
-	bool processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, Func func);
+	template< class TFunc >
+	bool processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, TFunc func);
 
 	struct ProcMsgScope
 	{

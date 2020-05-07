@@ -214,8 +214,8 @@ namespace ECS
 		uint32 mNextSerialNumber = 1;
 
 
-		template< class Fun >
-		void notifyEvent(Fun&& fun)
+		template< class TFunc >
+		void notifyEvent(TFunc&& fun)
 		{
 			for( auto listener : mEventListers )
 			{

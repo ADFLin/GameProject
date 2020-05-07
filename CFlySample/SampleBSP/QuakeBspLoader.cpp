@@ -252,7 +252,7 @@ void HLBspFileDataV30::buildLightMap()
 {
 	int lightMapLen = getLumpDataLength( BspV30::LUMP_LIGHTING ) / 3;
 
-	int mapSize = BitUtility::NextNumberOfPow2( (int)Math::Sqrt( lightMapLen  ) );
+	int mapSize = FBitUtility::NextNumberOfPow2( (int)Math::Sqrt( lightMapLen  ) );
 
 	mHelper = new BspLightMapMergeHelper( mapSize ,  mapSize );
 

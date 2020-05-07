@@ -1,5 +1,5 @@
-#ifndef EasingFun_h__
-#define EasingFun_h__
+#ifndef EasingFunction_h__
+#define EasingFunction_h__
 
 #include "Math/Base.h"
 
@@ -491,12 +491,12 @@ namespace Easing {
         }
     };
 
-	template< class T , class Fun >
+	template< class T , class TFunc >
 	class ElasticParam
 	{
 	public:
-		typedef Fun EasingFun;
-		T operator()( float t, T const& b, T const& c, float const& d ){ Fun().operator()( t , b , c , d , a , p ); }
+		typedef TFunc EasingFunc;
+		T operator()( float t, T const& b, T const& c, float const& d ){ TFunc().operator()( t , b , c , d , a , p ); }
 		T     a;
 		float p;
 	};
@@ -579,13 +579,13 @@ namespace Easing {
         }
     };
 
-	template< class Fun >
+	template< class TFunc >
 	class BackParam
 	{
 	public:
-		typedef Fun EasingFun;
+		typedef TFunc EasingFun;
 		template< class T >
-		T operator()( float t, T const& b, T const& c, float const& d ){ Fun().operator()( t , b , c , d , s ); }
+		T operator()( float t, T const& b, T const& c, float const& d ){ TFunc().operator()( t , b , c , d , s ); }
 		float s;
 	};
 
@@ -708,14 +708,14 @@ namespace Easing {
 
 
 
-	template< class Fun >
+	template< class TFunc >
 	struct CycleFun
 	{
 		template<class T>
 		T operator()( float t , T const& b, T const& c, float const& d ) 
 		{
-			if (t < d/2) return Fun()( t , b , c , d / 2 );
-			return  Fun()( d - t , b , c , d / 2 );
+			if (t < d/2) return TFunc()( t , b , c , d / 2 );
+			return  TFunc()( d - t , b , c , d / 2 );
 		}
 	};
 	typedef CycleFun< Linear  > CLinear;
@@ -730,4 +730,4 @@ namespace Easing {
 } //namespace Earsing
 
 
-#endif // EasingFun_h__
+#endif // EasingFunction_h__

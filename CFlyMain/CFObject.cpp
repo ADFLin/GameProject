@@ -135,7 +135,7 @@ namespace CFly
 	}
 
 
-	int Object::createMesh( Material* mat , PrimitiveType primitive , MeshBase* shapeVertexShared , int* idx /*= nullptr */, int numIdx /*= 0 */ )
+	int Object::createMesh( Material* mat , EPrimitive primitive , MeshBase* shapeVertexShared , int* idx /*= nullptr */, int numIdx /*= 0 */ )
 	{
 		MeshCreator* manager = getScene()->getWorld()->_getMeshCreator();
 		MeshBase* mesh = manager->createMesh( primitive , shapeVertexShared , idx , numIdx  );

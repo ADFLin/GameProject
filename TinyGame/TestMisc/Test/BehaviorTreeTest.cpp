@@ -127,7 +127,7 @@ void TestBTMain()
 		| Node< ParallelNode >()->setSuccessPolicy( RequireOne ) >>
 			( Node< LoopDecNode >()->setMaxCount( 2 ) >> Node< PrintActin >()->text("AA").resultState( TS_FAILED )
 			| Node< SequenceNode >() >>
-				( Condition< GreaterCmp >( MemberFun( &PlayerContext::getIdleTime ) )->setValue( 1 )
+				( Condition< GreaterCmp >( MemberFunc( &PlayerContext::getIdleTime ) )->setValue( 1 )
 				| Node< LoopDecNode >()->setMaxCount( 10 ) >> Node< PrintActin >()->text("BB")
 				)
 			)

@@ -164,7 +164,7 @@ public:
 	void      unlink(){  Algorithm::unlink( this );  }
 
 	template< class T , LinkHook T::*Member >
-	static T& cast( LinkHook& node ){ return *TypeCast::memberToClass( &node , Member ); }
+	static T& cast( LinkHook& node ){ return *FTypeCast::MemberToClass( &node , Member ); }
 };
 
 struct HookTraits

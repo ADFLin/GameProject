@@ -27,19 +27,19 @@ public:
 	void  addWork(IQueuedWork* work);
 	bool  retractWork(IQueuedWork* work);
 
-	template< class Fun >
-	void  addFunctionWork(Fun fun)
+	template< class TFunc >
+	void  addFunctionWork(TFunc&& fun)
 	{
-		class FunWork : public IQueuedWork
+		class TFuncWork : public IQueuedWork
 		{
 		public:
-			FunWork(Fun fun):mFun(fun){}
-			virtual void executeWork() override { mFun(); }
+			TFuncWork(TFunc&& func):mFunc(std::forward<TFunc>(func)){}
+			virtual void executeWork() override { mFunc(); }
 			virtual void release() override { delete this; }
-			Fun mFun;
+			TFunc mFunc;
 		};
 
-		FunWork* work = new FunWork(fun);
+		TFuncWork* work = new TFuncWork(std::forward<TFunc>(fun));
 		addWork(work);
 	}
 

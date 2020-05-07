@@ -55,7 +55,7 @@ WidgetCoreT<T>* WidgetCoreT<T>::hitTestInternal(Vec2i const& testPos , WidgetLis
 		WidgetCoreT* ui = &(*childiter);
 
 		bool testFail = true;
-		if( !ui->checkFlag(WIF_DISABLE | WIF_BE_HIDDEN) )
+		if( !ui->checkFlag(WIF_DISABLE | WIF_HAD_HIDDEN) )
 			// ui->isEnable() && ui->isShow()
 		{
 			if( ui->checkFlag(WIF_HITTEST_CHILDREN) )
@@ -155,7 +155,7 @@ T&  WidgetCoreT<T>::show( bool beS )
 	bool bShown = isShow();
 	if ( bShown != beS )
 	{
-		enableFlag(WIF_BE_HIDDEN, !beS);
+		enableFlag(WIF_HAD_HIDDEN, !beS);
 		_this()->onShow( beS );
 
 		for( auto ui = createChildrenIterator() ; ui ; ++ui )
@@ -192,7 +192,7 @@ bool WidgetCoreT<T>::isEnable() const
 template< class T >
 bool WidgetCoreT<T>::isShow() const
 {
-	return !checkFlag(WIF_BE_HIDDEN);
+	return !checkFlag(WIF_HAD_HIDDEN);
 }
 
 template< class T >
@@ -557,8 +557,8 @@ WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
 
 
 template< class T >
-template< class Func >
-bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , Func func)
+template< class TFunc >
+bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , TFunc func)
 {
 	bool result = true;
 	while( ui != nullptr )
@@ -784,9 +784,9 @@ void TWidgetManager<T>::cleanupPaddingKillWidgets()
 }
 
 template< class T >
-void TWidgetManager<T>::cleanupWidgets(bool bGlobalIncluded )
+void TWidgetManager<T>::cleanupWidgets(bool bPersistentIncluded)
 {
-	if( bGlobalIncluded )
+	if(bPersistentIncluded)
 	{
 		while( !mTopWidgetList.empty() )
 		{
@@ -799,7 +799,7 @@ void TWidgetManager<T>::cleanupWidgets(bool bGlobalIncluded )
 		{
 			WidgetCore& widget = *iter;
 			++iter;
-			if( !widget.checkFlag(WIF_GLOBAL) )
+			if( !widget.checkFlag(WIF_PERSISTENT) )
 			{
 				destroyWidget(&widget);
 			}

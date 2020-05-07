@@ -369,7 +369,7 @@ namespace CAR
 			SideContentType content = mapTile->getSideContnet( node->index ) & contentMask;
 			while ( content )
 			{
-				content &= ~FBit::Extract( content );
+				content &= ~FBitUtility::ExtractTrailingBit( content );
 				++result;
 			}
 		}
@@ -396,7 +396,7 @@ namespace CAR
 		}
 
 		int dir1;
-		while( FBit::MaskIterator< FDir::TotalNum >(roadMask, dir1) )
+		while( FBitUtility::MaskIterator< FDir::TotalNum >(roadMask, dir1) )
 		{
 			MapTile::SideNode const& linkNode = mapTile->sideNodes[dir1];
 			if( linkNode.group == skipGroup )
@@ -421,7 +421,7 @@ namespace CAR
 
 								unsigned roadMaskLink = mapTileLink->getRoadLinkMask(invDir);
 								int dir2;
-								while( FBit::MaskIterator< FDir::TotalNum >(roadMaskLink, dir2) )
+								while( FBitUtility::MaskIterator< FDir::TotalNum >(roadMaskLink, dir2) )
 								{
 									GenerateSideFeatureRoadLinkFeatures_R(worldTileManager, mapTile, skipGroup, dir2, outFeatures);
 								}

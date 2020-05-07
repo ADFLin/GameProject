@@ -74,7 +74,7 @@ namespace CFly
 		return D3DFMT_D24S8;
 	}
 
-	void RenderSystem::renderPrimitive( PrimitiveType type , unsigned numEle , unsigned numVertex , IndexBuffer* indexBuffer )
+	void RenderSystem::renderPrimitive( EPrimitive type , unsigned numEle , unsigned numVertex , IndexBuffer* indexBuffer )
 	{
 		HRESULT hr;
 		CF_PROFILE("renderPrimitive");
@@ -333,7 +333,7 @@ namespace CFly
 		return sRenderOptionMap[ option ].defaultValue;
 	}
 
-	D3DPRIMITIVETYPE D3DTypeMapping::convert( PrimitiveType type )
+	D3DPRIMITIVETYPE D3DTypeMapping::convert( EPrimitive type )
 	{
 		return (D3DPRIMITIVETYPE )type;
 	}

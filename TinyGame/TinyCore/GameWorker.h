@@ -224,22 +224,22 @@ protected:
 	typedef std::vector< INetStateListener* > NetMsgListenerVec;
 	INetStateListener* mNetListener;
 
-	template< class Fun >
-	void addGameThreadCommnad(Fun&& fun)
+	template< class TFun >
+	void addGameThreadCommnad(TFun&& fun)
 	{
 #if NETWORKER_PROCESS_COMMAND_DEFERRED
 		NET_MUTEX_LOCK(mMutexGameThreadCommands);
-		mGameThreadCommands.push_back(std::forward<Fun>(fun));
+		mGameThreadCommands.push_back(std::forward<TFun>(fun));
 #else
 		fun();
 #endif
 	}
-	template< class Fun >
-	void addNetThreadCommnad(Fun&& fun)
+	template< class TFun >
+	void addNetThreadCommnad(TFun&& fun)
 	{
 #if NETWORKER_PROCESS_COMMAND_DEFERRED
 		NET_MUTEX_LOCK(mMutexNetThreadCommands);
-		mNetThreadCommands.push_back(std::forward<Fun>(fun));
+		mNetThreadCommands.push_back(std::forward<TFun>(fun));
 #else
 		fun();
 #endif

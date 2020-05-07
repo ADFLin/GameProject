@@ -47,7 +47,17 @@ namespace Render
 			if( gRHISystem )
 			{
 				ShaderFormat* shaderFormat = gRHISystem->createShaderFormat();
-				ShaderManager::Get().mShaderFormat = shaderFormat;
+				if (shaderFormat == nullptr)
+				{
+					LogError("Can't create shader format for %d system" , (int)gRHISystem->getName() );
+					return false;
+				}
+
+				if (!ShaderManager::Get().initialize(*shaderFormat))
+				{
+					LogError("ShaderManager can't initialize");
+					return false;
+				}
 
 				GlobalRHIResourceBase::ReleaseAllResource();
 

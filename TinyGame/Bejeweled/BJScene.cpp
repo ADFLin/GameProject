@@ -3,7 +3,7 @@
 
 #include "RenderUtility.h"
 #include "SystemMessage.h"
-#include "EasingFun.h"
+#include "EasingFunction.h"
 
 namespace Bejeweled
 {

@@ -16,7 +16,7 @@ int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR lpCmd
 	char* argv[ 128 ];
 	int   argc = 0;
 
-	char* context;
+	char* context = nullptr;
 	char* ptrCmd;
 
 	if( *lpCmdLine == '\"' )

@@ -23,8 +23,7 @@ public:
 	{
 		if( !BaseClass::onInit() )
 			return false;
-		if (!::Global::GetDrawEngine().startOpenGL(true) )
-			return false;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 		Render::ShaderManager::Get().setBaseDir("QuadAssault/shader/");
 		::Global::GUI().cleanupWidget();

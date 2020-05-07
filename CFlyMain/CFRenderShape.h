@@ -40,7 +40,7 @@ namespace CFly
 			numVertices = 0;
 			numIndices  = 0;
 		}
-		PrimitiveType primitiveType;
+		EPrimitive    primitiveType;
 		VertexType    vertexType;
 		void*         pVertex;
 		int           numVertices;
@@ -96,7 +96,7 @@ namespace CFly
 		MeshBase*  clone();
 		MeshBase*  xform( Matrix4 const& trans , bool beAllInstance );
 
-		PrimitiveType getPrimitiveType(){ return mPrimitiveType; }
+		EPrimitive getPrimitiveType(){ return mPrimitiveType; }
 		void          calcBoundSphere( BoundSphere& sphere );
 		unsigned      getVertexNum(){ return mNumVertex; }
 		int           getTriangleNum();
@@ -132,7 +132,7 @@ namespace CFly
 		TRefCountPtr<VertexBuffer> mVertexBuffer[ NUM_STREAM_GROUP ];
 		TRefCountPtr<IndexBuffer>  mIndexBuffer;
 		
-		PrimitiveType         mPrimitiveType;
+		EPrimitive         mPrimitiveType;
 		uint32                mNumElement;
 		uint32                mNumVertex;
 
@@ -158,7 +158,7 @@ namespace CFly
 		MeshCreator( D3DDevice* d3dDevice);
 
 		MeshBase*       createMesh( MeshInfo const& info );
-		MeshBase*       createMesh( PrimitiveType primitive , MeshBase* shapeVertexShared , int* idx , int numIdx );
+		MeshBase*       createMesh( EPrimitive primitive , MeshBase* shapeVertexShared , int* idx , int numIdx );
 		MeshBase*       createLines( LineType type , VertexType vType , float* v , int nV );
 		
 		VertexBuffer*   createVertexBufferFVF( DWORD FVF , unsigned vertexSize , unsigned numVertex );

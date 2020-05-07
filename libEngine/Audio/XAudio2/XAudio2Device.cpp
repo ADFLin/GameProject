@@ -2,7 +2,7 @@
 
 #include "LogSystem.h"
 
-float gStreamLockedDurtion = 1;
+float gStreamLockedDuration = 1;
 bool XAudio2Device::initialize()
 {
 

@@ -218,7 +218,7 @@ public:
 		dsp.addInstance(hash, *this);
 	}
 
-	float getDurtion()
+	float getDuration()
 	{
 		if( streamSource )
 			return float( streamSource->getTotalSampleNum() ) / format.sampleRate;

@@ -33,7 +33,7 @@ namespace BT
 
 	template< class T , class Base >
 	FORCEINLINE ContextMemFunRef< T, Base >  
-	MemberFun( T (Base::*fun)() ){ return ContextMemFunRef< T , Base >( fun );  }
+	MemberFunc( T (Base::*func)() ){ return ContextMemFunRef< T , Base >( func );  }
 
 	template< class T , class Base >
 	FORCEINLINE ContextMemberRef< T , Base > 
@@ -45,7 +45,7 @@ namespace BT
 
 	template< class T >
 	FORCEINLINE GlobalFunRef< T >     
-	FunPtr( T (*fun)() ){ return GlobalFunRef< T >( fun ); }
+	FuncPtr( T (*func)() ){ return GlobalFunRef< T >( func ); }
 
 	template< class CmpOp , class Var , Var* VAR >
 	FORCEINLINE auto Condition()
@@ -126,8 +126,6 @@ namespace BT
 		typedef typename TFilterNodeInstance< ContextFunRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
-
-
 
 }//namespace BT
 #endif // TreeBuilder_h__

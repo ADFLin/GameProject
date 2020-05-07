@@ -368,11 +368,11 @@ namespace CB
 		int const stride = data->getVertexSize();
 		if( data->getNormalOffset() != INDEX_NONE )
 		{
-			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , surface.getColor() , data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , surface.getColor() , data->getVertexSize());
 		}
 		else
 		{
-			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), surface.getColor() , data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), surface.getColor() , data->getVertexSize());
 		}
 	}
 
@@ -396,7 +396,7 @@ namespace CB
 				{ Vector3(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min), Vector3(0, 0, 1) },
 				{ Vector3(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Max), Vector3(0, 0, 1) },
 			};
-			TRenderRT<RTVF_XYZ_C>::Draw(*mCommandList, PrimitiveType::LineList, axisVertices, ARRAY_SIZE(axisVertices));
+			TRenderRT<RTVF_XYZ_C>::Draw(*mCommandList, EPrimitive::LineList, axisVertices, ARRAY_SIZE(axisVertices));
 		}
 
 		{
@@ -409,7 +409,7 @@ namespace CB
 				{ Vector3(0, 0, mAxis[2].range.Min), Vector3(0, 0, 1) },
 				{ Vector3(0, 0, mAxis[2].range.Max), Vector3(0, 0, 1) },
 			};
-			TRenderRT<RTVF_XYZ_C>::Draw(*mCommandList, PrimitiveType::LineList, axisVertices, ARRAY_SIZE(axisVertices));
+			TRenderRT<RTVF_XYZ_C>::Draw(*mCommandList, EPrimitive::LineList, axisVertices, ARRAY_SIZE(axisVertices));
 		}
 
 
@@ -446,7 +446,7 @@ namespace CB
 	{
 		RenderData* data = shape.getRenderData();
 		assert(data);
-		TRenderRT< RTVF_XYZ_CA >::Draw(*mCommandList, PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA >::Draw(*mCommandList, EPrimitive::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 	}
 
 
@@ -464,7 +464,7 @@ namespace CB
 		RHISetShaderProgram(commandList, mProgMeshNormalVisualize->getRHIResource());
 		mProgMeshNormalVisualize->setParameters(commandList, Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
 		mViewInfo.setupShader(commandList, *mProgMeshNormalVisualize);
-		TRenderRT< RTVF_XYZ_CA_N >::Draw(commandList, PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA_N >::Draw(commandList, EPrimitive::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 
 	}
 
@@ -498,7 +498,7 @@ namespace CB
 			++pVX;
 		}
 
-		TRenderRT< RTVF_XY >::Draw(*mCommandList, PrimitiveType::LineList, pVertices, numVertices);
+		TRenderRT< RTVF_XY >::Draw(*mCommandList, EPrimitive::LineList, pVertices, numVertices);
 
 	}
 
@@ -568,7 +568,7 @@ namespace CB
 		RenderData* data = curve.getRenderData();
 		assert(data);
 		glLineWidth(2);
-		TRenderRT< RTVF_XYZ_CA >::Draw(*mCommandList, PrimitiveType::LineStrip, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA >::Draw(*mCommandList, EPrimitive::LineStrip, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 		glLineWidth(1);
 	}
 

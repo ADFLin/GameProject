@@ -746,7 +746,7 @@ namespace CFly
 		return idxBuffer;
 	}
 
-	MeshBase* MeshCreator::createMesh( PrimitiveType primitive , MeshBase* shapeVertexShared , int* idx , int numIdx  )
+	MeshBase* MeshCreator::createMesh( EPrimitive primitive , MeshBase* shapeVertexShared , int* idx , int numIdx  )
 	{
 		assert( idx );
 

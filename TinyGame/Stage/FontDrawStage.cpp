@@ -23,7 +23,9 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		VERIFY_RETURN_FALSE(::Global::GetDrawEngine().startOpenGL(4));
+		RHIInitializeParams initParamsRHI;
+		initParamsRHI.numSamples = 4;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, initParamsRHI));
 
 		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());
 
@@ -113,7 +115,7 @@ public:
 			{
 				glEnable(GL_TEXTURE_2D);
 				GL_BIND_LOCK_OBJECT(mCharDataSet->getTexture());
-				TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, &mBuffer[0], mBuffer.size());
+				TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, &mBuffer[0], mBuffer.size());
 				glDisable(GL_TEXTURE_2D);
 			}
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -211,7 +213,7 @@ public:
 		{
 			0,1,2,0,2,3,
 		};
-		//TRenderRT<RTVF_XY>::DrawIndexed(commandList, PrimitiveType::TriangleList, vertices, 4, indices, 6);
+		//TRenderRT<RTVF_XY>::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, indices, 6);
 		//DrawUtility::DrawTexture(commandList, *mTexture, TStaticSamplerState< Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI() , Vec2i(0, 0), Vec2i(200, 200));
 		g.endRender();
 

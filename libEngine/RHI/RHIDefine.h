@@ -51,7 +51,7 @@ namespace Render
 		Back ,
 	};
 
-	enum class ECompareFun
+	enum class ECompareFunc
 	{
 		Never,
 		Less,
@@ -123,7 +123,7 @@ namespace Render
 		AO_READ_AND_WRITE,
 	};
 
-	enum class PrimitiveType
+	enum class EPrimitive
 	{
 		Points,
 		TriangleList,
@@ -136,7 +136,7 @@ namespace Render
 		LineLoop,
 		Quad,
 		Polygon ,
-		
+		//
 		Patchs ,
 	};
 

@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
+#include "HashString.h"
 
 
 class IStreamSerializer
@@ -20,6 +21,9 @@ public:
 	//virtual bool isValid() const = 0;
 	virtual void read(void* ptr, size_t num) = 0;
 	virtual void write(void const* ptr, size_t num) = 0;
+	virtual void  registerVersion( HashString name , int32 version ){}
+	virtual int32 getVersion(HashString name) { return 0; }
+
 
 	struct StreamDataPolicy
 	{
@@ -343,6 +347,8 @@ public:
 		template< class T >
 		ThisOp& operator >> (T& value) { serializer >> value; return *this; }
 
+		int32 version(HashString name) { return 0; }
+
 		IStreamSerializer& serializer;
 	};
 
@@ -358,6 +364,8 @@ public:
 		ThisOp& operator << (T const& value) { serializer << value; return *this; }
 		template< class T >
 		ThisOp& operator >> (T const& value) { return *this; }
+
+		int32 version(HashString name) { return serializer.getVersion(name); }
 
 		IStreamSerializer& serializer;
 	};

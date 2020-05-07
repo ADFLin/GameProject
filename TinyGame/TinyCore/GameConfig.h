@@ -14,11 +14,9 @@
 #	else
 #		define TINY_API DLLIMPORT
 #	endif
-#endif //TG_DLL
-
-#ifndef TINY_API
+#else
 #	define TINY_API
-#endif
+#endif //TG_DLL
 
 #define TINY_USE_NET_THREAD 0
 

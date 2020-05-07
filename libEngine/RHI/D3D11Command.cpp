@@ -87,7 +87,7 @@ namespace Render
 			mDeviceContext->End(mEndQueries[timingHandle]);
 		}
 
-		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion) override
+		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
 		{
 			if( RESULT_FAILED(mDeviceContext->GetData(mStartQueries[timingHandle], NULL, 0, 0)) ||
 			    RESULT_FAILED(mDeviceContext->GetData(mEndQueries[timingHandle], NULL, 0, 0)) )
@@ -97,7 +97,7 @@ namespace Render
 			mDeviceContext->GetData(mStartQueries[timingHandle], &startData, sizeof(startData), 0);
 			UINT64 endData;
 			mDeviceContext->GetData(mEndQueries[timingHandle], &endData, sizeof(endData), 0);
-			outDurtion = endData - startData;
+			outDuration = endData - startData;
 			return true;
 		}
 
@@ -493,14 +493,14 @@ namespace Render
 	Render::RHIDepthStencilState* D3D11System::RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
 	{
 		D3D11_DEPTH_STENCIL_DESC desc;
-		desc.DepthEnable = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
+		desc.DepthEnable = (initializer.depthFunc != ECompareFunc::Always) || (initializer.bWriteDepth);
 		desc.DepthWriteMask = initializer.bWriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-		desc.DepthFunc = D3D11Translate::To( initializer.depthFun );
+		desc.DepthFunc = D3D11Translate::To( initializer.depthFunc );
 		desc.StencilEnable = initializer.bEnableStencilTest;
 		desc.StencilReadMask = initializer.stencilReadMask;
 		desc.StencilWriteMask = initializer.stencilWriteMask;
 
-		desc.FrontFace.StencilFunc = D3D11Translate::To(initializer.stencilFun);
+		desc.FrontFace.StencilFunc = D3D11Translate::To(initializer.stencilFunc);
 		desc.FrontFace.StencilPassOp = D3D11Translate::To(initializer.zPassOp);
 		desc.FrontFace.StencilDepthFailOp = D3D11Translate::To( initializer.zFailOp );
 		desc.FrontFace.StencilFailOp = D3D11Translate::To( initializer.stencilFailOp );
@@ -822,9 +822,9 @@ namespace Render
 	}
 
 
-	bool D3D11Context::determitPrimitiveTopologyUP(PrimitiveType primitiveType, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
+	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive EPrimitive, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
 	{
-		if( primitiveType == PrimitiveType::Quad )
+		if( EPrimitive == EPrimitive::Quad )
 		{
 			int numQuad = num / 4;
 			int indexBufferSize = sizeof(uint32) * numQuad * 6;
@@ -865,7 +865,7 @@ namespace Render
 			outIndexNum = numQuad * 6;
 			return true;
 		}
-		else if( primitiveType == PrimitiveType::LineLoop )
+		else if( EPrimitive == EPrimitive::LineLoop )
 		{
 			if( pIndices )
 			{
@@ -888,7 +888,7 @@ namespace Render
 			return true;
 		}
 
-		outPrimitiveTopology = D3D11Translate::To(primitiveType);
+		outPrimitiveTopology = D3D11Translate::To(EPrimitive);
 		if( outPrimitiveTopology != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED )
 		{
 			if( pIndices )
@@ -907,7 +907,7 @@ namespace Render
 		return false;
 	}
 
-	void D3D11Context::RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData)
+	void D3D11Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData)
 	{
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
@@ -916,7 +916,7 @@ namespace Render
 		if( !determitPrimitiveTopologyUP(type, numVertex, nullptr, primitiveTopology, &indexBuffer, numDrawIndex) )
 			return;
 
-		if( type == PrimitiveType::LineLoop )
+		if( type == EPrimitive::LineLoop )
 			++numVertex;
 		uint32 vertexBufferSize = 0;
 		for( int i = 0; i < numVertexData; ++i )
@@ -941,7 +941,7 @@ namespace Render
 				offsets[i] = dataOffset;
 				vertexBuffers[i] = vertexBuffer;
 
-				if( type == PrimitiveType::LineLoop )
+				if( type == EPrimitive::LineLoop )
 				{
 					memcpy(pVBufferData + dataOffset, info.ptr, info.size + info.stride);
 					dataOffset += info.size + info.stride;
@@ -969,7 +969,7 @@ namespace Render
 		}
 	}
 
-	void D3D11Context::RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
+	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
 	{
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
 		ID3D11Buffer* indexBuffer = nullptr;

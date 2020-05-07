@@ -19,7 +19,7 @@ namespace Tetris
 	{
 		return r1.score > r2.score || (r1.score == r2.score &&
 			(r1.level > r2.level || (r1.level == r2.level &&
-									   (r1.durtion > r2.durtion))));
+									   (r1.duration > r2.duration))));
 	}
 	int RecordManager::addRecord(Record* record)
 	{
@@ -67,7 +67,7 @@ namespace Tetris
 			fs.write(record->name, sizeof(record->name));
 			fs.write((char*)&record->score, sizeof(record->score));
 			fs.write((char*)&record->level, sizeof(record->level));
-			fs.write((char*)&record->durtion, sizeof(record->durtion));
+			fs.write((char*)&record->duration, sizeof(record->duration));
 			record = record->next;
 			++num;
 		}
@@ -94,7 +94,7 @@ namespace Tetris
 			fs.read(record->name, sizeof(record->name));
 			fs.read((char*)&record->score, sizeof(record->score));
 			fs.read((char*)&record->level, sizeof(record->level));
-			fs.read((char*)&record->durtion, sizeof(record->durtion));
+			fs.read((char*)&record->duration, sizeof(record->duration));
 
 			if( prevRecord )
 				prevRecord->next = record;

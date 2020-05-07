@@ -90,7 +90,7 @@ namespace Go
 				if( !mSpriteVertices.empty() )
 				{
 					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
+					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, &mSpriteVertices[0], mSpriteVertices.size());
 					mSpriteVertices.clear();
 				}
 			}
@@ -261,7 +261,7 @@ namespace Go
 				if( !mSpriteVertices.empty() )
 				{
 					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
+					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, &mSpriteVertices[0], mSpriteVertices.size());
 					mSpriteVertices.clear();
 				}
 			}

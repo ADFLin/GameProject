@@ -3,7 +3,7 @@
 
 namespace CFly
 {
-	enum PrimitiveType
+	enum EPrimitive
 	{
 		CFPT_UNKNOWN          = 0,
 		CFPT_POINTLIST        = 1,

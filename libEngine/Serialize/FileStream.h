@@ -6,6 +6,13 @@
 
 #include <fstream>
 
+
+class FileVersionData
+{
+	std::unordered_map< HashString, int32 > versionMap;
+};
+
+
 template< class FileSteamType >
 class TFileFileSerializer : public IStreamSerializer
 {
@@ -23,6 +30,7 @@ protected:
 	FileSteamType mFS;
 
 };
+
 class InputFileSerializer : public TFileFileSerializer< std::ifstream >
 {
 public:
@@ -46,7 +54,8 @@ public:
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
 	size_t getSize();
-
 };
+
+
 
 #endif // FileStream_H_FD26BF8C_47A3_4547_AD8F_E03F1D9EC3D6

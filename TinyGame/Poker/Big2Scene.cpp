@@ -9,7 +9,7 @@
 #include "GameGUISystem.h"
 #include "GamePlayer.h"
 
-#include "EasingFun.h"
+#include "EasingFunction.h"
 #include "resource.h"
 
 

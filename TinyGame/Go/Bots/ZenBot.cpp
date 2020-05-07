@@ -457,9 +457,11 @@ namespace Go
 		return true;
 	}
 
-	bool ZenBot::playStone(int x, int y, int color)
+	EBotExecResult ZenBot::playStone(int x, int y, int color)
 	{
-		return mCore->playStone(x, y, ToZColor(color));
+		if (mCore->playStone(x, y, ToZColor(color)))
+			return BOT_OK;
+		return BOT_FAIL;
 	}
 
 	bool ZenBot::playPass(int color)
@@ -583,7 +585,7 @@ namespace Go
 		return false;
 	}
 
-	EBotExecuteResult ZenBot::readBoard(int* outState)
+	EBotExecResult ZenBot::readBoard(int* outState)
 	{
 		int size = mCore->getBoardSize();
 		for (int j = 0; j < size; ++j)

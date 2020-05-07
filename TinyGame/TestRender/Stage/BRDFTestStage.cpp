@@ -285,7 +285,7 @@ namespace Render
 				mView.setupShader(commandList, *mProgVisualize);
 				mProgVisualize->setParameters(commandList, mIBLResource);
 				RHISetInputStream(commandList, nullptr , nullptr , 0 );
-				RHIDrawPrimitiveInstanced(commandList, PrimitiveType::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
+				RHIDrawPrimitiveInstanced(commandList, EPrimitive::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
 			}
 		}
 

@@ -260,7 +260,7 @@ namespace Render
 		void RHISetScissorRect(int x, int y, int w, int h);
 
 		void PostDrawPrimitive();
-		void RHIDrawPrimitive(PrimitiveType type, int start, int nv)
+		void RHIDrawPrimitive(EPrimitive type, int start, int nv)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
@@ -268,7 +268,7 @@ namespace Render
 			PostDrawPrimitive();
 		}
 
-		void RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex)
+		void RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex, uint32 baseVertex)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
@@ -276,13 +276,13 @@ namespace Render
 			PostDrawPrimitive();
 		}
 
-		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 			PostDrawPrimitive();
 		}
-		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
@@ -296,7 +296,7 @@ namespace Render
 			}
 			PostDrawPrimitive();
 		}
-		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
+		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
@@ -304,7 +304,7 @@ namespace Render
 			PostDrawPrimitive();
 		}
 
-		void RHIDrawIndexedPrimitiveInstanced(PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
+		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
@@ -312,9 +312,9 @@ namespace Render
 			PostDrawPrimitive();
 		}
 
-		void RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
+		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
 
-		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
 
 		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* textures[], int numTexture)
@@ -383,7 +383,7 @@ namespace Render
 		void commitRenderShaderState();
 
 		void commitComputeState();
-		bool determitPrimitiveTopologyUP(PrimitiveType primitiveType, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
+		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
 
 
 		//

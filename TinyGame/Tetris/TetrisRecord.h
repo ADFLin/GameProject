@@ -8,7 +8,7 @@ namespace Tetris
 		char    name[4];
 		int     score;
 		int     level;
-		long    durtion;
+		long    duration;
 		Record* next;
 	};
 

@@ -165,19 +165,19 @@ namespace CAR
 	unsigned MapTile::LocalToWorldRoadLinkMask(unsigned roadMask, int rotation)
 	{
 		unsigned bitCenter = roadMask & TilePiece::CenterMask;
-		return bitCenter | FBit::RotateLeft(roadMask & TilePiece::AllSideMask, rotation, TilePiece::NumSide );
+		return bitCenter | FBitUtility::RotateLeft(roadMask & TilePiece::AllSideMask, rotation, TilePiece::NumSide );
 	}
 
 	unsigned MapTile::LocalToWorldSideLinkMask(unsigned mask, int rotation)
 	{
 		assert((mask & ~TilePiece::AllSideMask) == 0);
-		return FBit::RotateLeft(mask, rotation, TilePiece::NumSide );
+		return FBitUtility::RotateLeft(mask, rotation, TilePiece::NumSide );
 	}
 
 	unsigned MapTile::LocalToWorldFarmLinkMask(unsigned mask, int rotation)
 	{
 		assert((mask & ~TilePiece::AllFarmMask) == 0);
-		return FBit::RotateLeft(mask, 2 * rotation, TilePiece::NumFarm );
+		return FBitUtility::RotateLeft(mask, 2 * rotation, TilePiece::NumFarm );
 	}
 
 	unsigned MapTile::getFarmLinkMask(int idx) const
@@ -354,7 +354,7 @@ namespace CAR
 	{
 		SideData const& sideData = sides[lDir];
 		assert(sideData.linkType == SideType::eCity);
-		return (sideData.linkDirMask == FBit::Extract(sideData.linkDirMask)) &&
+		return (sideData.linkDirMask == FBitUtility::ExtractTrailingBit(sideData.linkDirMask)) &&
 			((sideData.contentFlag & SideContent::eNotSemiCircularCity) == 0);
 	}
 

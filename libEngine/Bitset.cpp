@@ -80,10 +80,10 @@ size_t Bitset::count() const
 	size_t size = mSize / STORAGE_BIT_NUM;
 	size_t numBit = mSize % STORAGE_BIT_NUM;
 	for( size_t i = 0 ; i < size ; ++i )
-		result += BitUtility::CountSet( mStorage[i] );
+		result += FBitUtility::CountSet( mStorage[i] );
 	
 	if ( numBit )
-		result += BitUtility::CountSet(StorageType( mStorage[ size ] & (( 1 << (numBit+1) )- 1 )) );
+		result += FBitUtility::CountSet(StorageType( mStorage[ size ] & (( 1 << (numBit+1) )- 1 )) );
 
 	return result;
 }

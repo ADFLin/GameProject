@@ -390,7 +390,7 @@ namespace Render
 				}
 			}
 
-			outMesh.mType = PrimitiveType::TriangleList;
+			outMesh.mType = EPrimitive::TriangleList;
 			bool result = outMesh.createRHIResource(vertexBufferData.data(), numVertices, indexBufferData.data(), indexBufferData.size(), true);
 
 			return result;
@@ -550,7 +550,7 @@ namespace Render
 					mProgVisualize->setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture);
 					mView.setupShader(commandList, *mProgVisualize);
 					mProgVisualize->setParameters(commandList, mIBLResource);
-					RHIDrawPrimitiveInstanced(commandList, PrimitiveType::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
+					RHIDrawPrimitiveInstanced(commandList, EPrimitive::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
 				}
 
 			}

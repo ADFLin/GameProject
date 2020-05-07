@@ -589,7 +589,7 @@ namespace Render
 				GPU_PROFILE("ResolveDepth");
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFun::Always >::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFunc::Always >::GetRHI());
 
 				RHISetShaderProgram(commandList, mProgResolveDepth->getRHIResource());
 				mProgResolveDepth->setTexture(commandList, SHADER_PARAM(UnsolvedDepthTexture), *mDepthBuffer);
@@ -659,7 +659,7 @@ namespace Render
 			OrthoMatrix matProj(200, 400, 200, 400, -1, 1);
 			RHISetShaderProgram(commandList, mProgPointToRectOutline->getRHIResource());
 			mProgPointToRectOutline->setParameters(commandList, 0.5, AdjProjectionMatrixForRHI( matProj ), LinearColor(1, 1, 0, 1));
-			TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::Points, mImagePixels.data(), mImagePixels.size());
+			TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Points, mImagePixels.data(), mImagePixels.size());
 		}
 
 		RHISetShaderProgram(commandList, nullptr);

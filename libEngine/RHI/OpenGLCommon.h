@@ -267,12 +267,12 @@ namespace Render
 	public:
 		static GLenum To(EAccessOperator op);
 		static GLenum To(Texture::Format format);
-		static GLenum To(PrimitiveType type);
+		static GLenum To(EPrimitive type);
 		static GLenum To(Shader::Type type);
 		static GLenum To(ELockAccess access);
 		static GLenum To(Blend::Factor factor);
 		static GLenum To(Blend::Operation op);
-		static GLenum To(ECompareFun fun);
+		static GLenum To(ECompareFunc fun);
 		static GLenum To(Stencil::Operation op);
 		static GLenum To(ECullMode mode);
 		static GLenum To(EFillMode mode);

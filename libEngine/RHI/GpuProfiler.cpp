@@ -49,7 +49,7 @@ namespace Render
 						if( sample->timingHandle != RHI_ERROR_PROFILE_HANDLE )
 						{
 							uint64 time;
-							while( !mCore->getTimingDurtion(sample->timingHandle, time) )
+							while( !mCore->getTimingDuration(sample->timingHandle, time) )
 							{
 								SystemPlatform::Sleep(0);
 							}

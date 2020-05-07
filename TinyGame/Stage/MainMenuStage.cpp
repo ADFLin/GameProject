@@ -17,7 +17,7 @@
 #include "Poker/PokerGame.h"
 #include "MiscTestStage.h"
 
-#include "EasingFun.h"
+#include "EasingFunction.h"
 
 #include <cmath>
 

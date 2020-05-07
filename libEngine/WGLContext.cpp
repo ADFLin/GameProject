@@ -61,10 +61,10 @@ typedef BOOL(WINAPI * PFNWGLCHOOSEPIXELFORMATARBPROC) (HDC hdc, const int *piAtt
 
 static PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = nullptr;
 
-template< class Fun >
-bool LoadGLFunction(char const* name, Fun& fun)
+template< class TFunc >
+bool LoadGLFunction(char const* name, TFunc& fun)
 {
-	fun = (Fun)wglGetProcAddress(name);
+	fun = (TFunc)wglGetProcAddress(name);
 	return fun != nullptr;
 }
 

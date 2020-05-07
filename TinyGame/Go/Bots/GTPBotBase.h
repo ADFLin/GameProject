@@ -149,9 +149,11 @@ namespace Go
 		{
 			return mAI.restart();
 		}
-		bool playStone(int x, int y, int color) override
+		EBotExecResult playStone(int x, int y, int color) override
 		{
-			return mAI.playStone(x, y, color);
+			if (!mAI.playStone(x, y, color))
+				return BOT_OK;
+			return BOT_OK;
 		}
 		bool playPass(int color) override
 		{
@@ -184,7 +186,7 @@ namespace Go
 			mAI.outputThread->procOutputCommand(MyFun);
 		}
 
-		EBotExecuteResult readBoard(int* outState) override { mAI.readBoard(outState); return BOT_WAIT; }
+		EBotExecResult readBoard(int* outState) override { mAI.readBoard(outState); return BOT_WAIT; }
 
 		bool inputProcessStream(char const* command)
 		{

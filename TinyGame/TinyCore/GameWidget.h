@@ -4,6 +4,7 @@
 #include "WidgetCore.h"
 #include "WidgetCommon.h"
 
+#include "GameConfig.h"
 #include "DrawEngine.h"
 #include "Singleton.h"
 #include "TaskBase.h"
@@ -12,6 +13,7 @@
 #include "Tween.h"
 
 #include <functional>
+
 
 
 class DrawEngine;
@@ -216,11 +218,11 @@ public:
 	virtual void postRender( GWidget* ui ) = 0;
 	virtual void release(){}
 
-	template < class T , class MemFun >
-	static RenderCallBack* Create( T* ptr , MemFun fun );
+	template < class T , class TMemFunc >
+	static RenderCallBack* Create( T* ptr , TMemFunc func );
 
-	template< class Fun >
-	static RenderCallBack* Create(Fun fun);
+	template< class TFun >
+	static RenderCallBack* Create(TFun func);
 
 };
 
@@ -236,39 +238,39 @@ class UIMotionTask;
 
 namespace Private{
 
-	template < class T , class MemFun >
+	template < class T , class TMemFunc >
 	class TMemberRenderCallBack : public RenderCallBack
 	{
-		MemFun mFun;
-		T*     mPtr;
+		TMemFunc mFunc;
+		T*       mPtr;
 	public:
-		TMemberRenderCallBack( T* ptr , MemFun fun )
-			:mPtr(ptr), mFun( fun ){}
-		virtual void postRender( GWidget* ui ){  (mPtr->*mFun)( ui );  }
+		TMemberRenderCallBack( T* ptr , TMemFunc func )
+			:mPtr(ptr), mFunc( func ){}
+		virtual void postRender( GWidget* ui ){  (mPtr->*mFunc)( ui );  }
 		virtual void release(){ delete this; }
 	};
 
-	template< class Fun >
+	template< class TFun >
 	class TFunctionRenderCallBack : public RenderCallBack
 	{
 	public:
-		TFunctionRenderCallBack( Fun fun ):fun(fun){}
-		Fun fun;
-		virtual void postRender(GWidget* ui) { fun(ui); }
+		TFunctionRenderCallBack( TFun func ):mFunc(func){}
+		TFun mFunc;
+		virtual void postRender(GWidget* ui) { mFunc(ui); }
 		virtual void release() { delete this; }
 	};
 }
 
-template < class T , class MemFun >
-RenderCallBack* RenderCallBack::Create( T* ptr , MemFun fun )
+template < class T , class TMemFunc >
+RenderCallBack* RenderCallBack::Create( T* ptr , TMemFunc func)
 {
-	return new Private::TMemberRenderCallBack< T , MemFun >( ptr , fun );
+	return new Private::TMemberRenderCallBack< T , TMemFunc >( ptr , func);
 }
 
-template < class Fun >
-RenderCallBack* RenderCallBack::Create(Fun fun)
+template < class TFun >
+RenderCallBack* RenderCallBack::Create(TFun func)
 {
-	return new Private::TFunctionRenderCallBack< Fun >(fun);
+	return new Private::TFunctionRenderCallBack< TFun >(func);
 }
 
 
@@ -463,7 +465,7 @@ public:
 
 };
 
-template< class Fun >
+template< class TFun >
 class WidgetMotionTask : public TaskBase
 {
 public:
@@ -472,7 +474,7 @@ public:
 
 	void onStart()
 	{
-		::Global::GUI().addMotion< Fun >( widget , from , to , time , delay , std::tr1::bind( WidgetMotionTask< Fun >::onFinish , this ) ); 
+		::Global::GUI().addMotion< TFun >( widget , from , to , time , delay , std::tr1::bind( WidgetMotionTask< TFun >::onFinish , this ) ); 
 	}
 	bool onUpdate( long time ){ return false; }
 	void onEnd( bool beComplete ){ if ( !beComplete ) widget->setPos( to ); }

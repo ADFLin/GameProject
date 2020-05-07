@@ -157,7 +157,7 @@ namespace MV
 	{
 		RHICommandList& commandList = *mCommandList;
 		if ( !points.empty() )
-			TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
+			TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
 	}
 
 	void RenderEngine::renderMesh(RenderContext& context, int idMesh , Vec3f const& pos , Vec3f const& rotation)
@@ -300,7 +300,7 @@ namespace MV
 
 		RHISetShaderProgram(commandList, nullptr);
 		context.setupPipeline(commandList);
-		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, vertices, ARRAY_SIZE(vertices));
+		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices));
 		RHISetShaderProgram(commandList, mEffect.getRHIResource());
 
 		context.stack.pop();
@@ -364,7 +364,7 @@ namespace MV
 		}
 
 		context.setupPipeline(commandList);
-		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, buffer , nV  );
+		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, buffer , nV  );
 		RHISetShaderProgram(commandList, mEffect.getRHIResource());
 	}
 

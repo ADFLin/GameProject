@@ -15,7 +15,7 @@ namespace Render
 {
 	struct VulkanTranslate
 	{
-		static VkPrimitiveTopology To(PrimitiveType type);
+		static VkPrimitiveTopology To(EPrimitive type);
 		static VkFormat To(Vertex::Format format, bool bNormalized);
 		static VkFormat To(Texture::Format format);
 		static VkFormat To(Texture::DepthFormat format);
@@ -26,7 +26,7 @@ namespace Render
 		static VkFilter To(Sampler::Filter filter);
 		static VkSamplerMipmapMode ToMipmapMode(Sampler::Filter filter);
 		static VkSamplerAddressMode To(Sampler::AddressMode mode);
-		static VkCompareOp To(ECompareFun func);
+		static VkCompareOp To(ECompareFunc func);
 		static VkStencilOp To(Stencil::Operation op);
 	};
 
@@ -66,9 +66,9 @@ namespace Render
 
 			depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 			depthStencilState.flags = 0;
-			depthStencilState.depthTestEnable = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
+			depthStencilState.depthTestEnable = (initializer.depthFunc != ECompareFunc::Always) || (initializer.bWriteDepth);
 			depthStencilState.depthWriteEnable = initializer.bWriteDepth;
-			depthStencilState.depthCompareOp = VulkanTranslate::To(initializer.depthFun);
+			depthStencilState.depthCompareOp = VulkanTranslate::To(initializer.depthFunc);
 			depthStencilState.depthBoundsTestEnable = VK_FALSE;
 			depthStencilState.stencilTestEnable = initializer.bEnableStencilTest;
 
@@ -76,7 +76,7 @@ namespace Render
 			depthStencilState.front.failOp = VulkanTranslate::To(initializer.stencilFailOp);
 			depthStencilState.front.passOp = VulkanTranslate::To(initializer.zPassOp);
 			depthStencilState.front.depthFailOp = VulkanTranslate::To(initializer.zFailOp); 
-			depthStencilState.front.compareOp = VulkanTranslate::To(initializer.stencilFun);
+			depthStencilState.front.compareOp = VulkanTranslate::To(initializer.stencilFunc);
 			depthStencilState.front.compareMask = initializer.stencilReadMask;
 			depthStencilState.front.writeMask = initializer.stencilWriteMask;
 			depthStencilState.front.reference = 0xff;

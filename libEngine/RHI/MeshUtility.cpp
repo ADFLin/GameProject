@@ -32,7 +32,7 @@ namespace Render
 
 	Mesh::Mesh()
 	{
-		mType = PrimitiveType::TriangleList;
+		mType = EPrimitive::TriangleList;
 	}
 
 	Mesh::~Mesh()
@@ -53,7 +53,7 @@ namespace Render
 
 		if( nIndices )
 		{
-			if( gbOptimizeVertexCache && mType == PrimitiveType::TriangleList )
+			if( gbOptimizeVertexCache && mType == EPrimitive::TriangleList )
 			{
 				MeshUtility::OptimizeVertexCache(pIdx, nIndices, bIntIndex);		
 			}
@@ -96,7 +96,7 @@ namespace Render
 		if( mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr )
 			return;
 
-		drawInternal(commandList, PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer);
+		drawInternal(commandList, EPrimitive::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer);
 	}
 
 	void Mesh::drawAdj(RHICommandList& commandList, LinearColor const& color)
@@ -105,7 +105,7 @@ namespace Render
 			return;
 
 		setupColorOverride(color);
-		drawWithColorInternal(commandList, PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer);
+		drawWithColorInternal(commandList, EPrimitive::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer);
 	}
 
 	void Mesh::drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer)
@@ -117,7 +117,7 @@ namespace Render
 		if ( indexBuffer == nullptr  )
 			return;
 
-		drawInternal(commandList, PrimitiveType::Patchs, 0, indexBuffer->getNumElements(), indexBuffer);
+		drawInternal(commandList, EPrimitive::Patchs, 0, indexBuffer->getNumElements(), indexBuffer);
 	}
 
 
@@ -129,7 +129,7 @@ namespace Render
 		drawInternal(commandList, mType, section.start, section.num, mIndexBuffer);
 	}
 
-	void Mesh::drawInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer )
+	void Mesh::drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer )
 	{
 		assert(mVertexBuffer != nullptr);
 		InputStreamInfo inputStream;
@@ -163,7 +163,7 @@ namespace Render
 		RHIUnlockBuffer(mColorBuffer);
 	}
 
-	void Mesh::drawWithColorInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer)
+	void Mesh::drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer)
 	{
 		assert(mVertexBuffer != nullptr);
 		InputStreamInfo inputStreams[2];
@@ -269,7 +269,7 @@ namespace Render
 	{
 		uint8 type;
 		serializer >> type;
-		mType = PrimitiveType(type);
+		mType = EPrimitive(type);
 		std::vector<uint8> vertexData;
 		std::vector<uint8> indexData;
 
@@ -814,7 +814,7 @@ namespace Render
 		if ( !mesh.createRHIResource( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
 			return false;
 
-		mesh.mType = PrimitiveType::Quad;
+		mesh.mType = EPrimitive::Quad;
 		return true;
 	}
 	bool MeshBuild::CubeShare(Mesh& mesh, float halfLen)
@@ -857,7 +857,7 @@ namespace Render
 		};
 
 		FillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
-		mesh.mType = PrimitiveType::TriangleList;
+		mesh.mType = EPrimitive::TriangleList;
 		if( !mesh.createRHIResource(&v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices), true) )
 			return false;
 		return true;
@@ -921,7 +921,7 @@ namespace Render
 		};
 
 		FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 6);
-		mesh.mType = PrimitiveType::TriangleList;
+		mesh.mType = EPrimitive::TriangleList;
 		if( !mesh.createRHIResource(&v[0], 6 * 4, &indices[0], 6 * 6, true) )
 			return false;
 #else
@@ -936,7 +936,7 @@ namespace Render
 		};
 
 		fillTangent_QuadList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 4);
-		mesh.mType = PrimitiveType::Quad;
+		mesh.mType = EPrimitive::Quad;
 		if( !mesh.createRHIResource(&v[0], 6 * 4, &indices[0], 6 * 4, true) )
 			return false;
 #endif
@@ -1719,13 +1719,13 @@ namespace Render
 		return true;
 	}
 	template< class IndexType >
-	int* ConvertToTriangleListIndices(PrimitiveType type, IndexType* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle)
+	int* ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle)
 	{
 		outNumTriangle = 0;
 
 		switch( type )
 		{
-		case PrimitiveType::TriangleList:
+		case EPrimitive::TriangleList:
 			{
 				int numElements = numData / 3;
 				if( numElements <= 0 )
@@ -1741,7 +1741,7 @@ namespace Render
 				return (int*)data;
 			}
 			break;
-		case PrimitiveType::TriangleStrip:
+		case EPrimitive::TriangleStrip:
 			{
 				int numElements = numData - 2;
 				if( numElements <= 0 )
@@ -1772,7 +1772,7 @@ namespace Render
 				}
 			}
 			break;
-		case PrimitiveType::TriangleAdjacency:
+		case EPrimitive::TriangleAdjacency:
 			{
 				int numElements = numData / 6;
 				if( numElements <= 0 )
@@ -1790,7 +1790,7 @@ namespace Render
 				}
 			}
 			break;
-		case PrimitiveType::TriangleFan:
+		case EPrimitive::TriangleFan:
 			{
 				int numElements = numData - 2;
 				if( numElements <= 0 )
@@ -1813,7 +1813,7 @@ namespace Render
 				}
 			}
 			break;
-		case PrimitiveType::Quad:
+		case EPrimitive::Quad:
 			{
 				int numElements = numData / 4;
 				if( numElements <= 0 )
@@ -1833,11 +1833,30 @@ namespace Render
 				return &outConvertBuffer[0];
 			}
 			break;
+		case EPrimitive::Polygon:
+			{
+				if (numData < 3)
+					return nullptr;
+
+				outNumTriangle = numData - 2;
+				outConvertBuffer.resize(3 * outNumTriangle);
+				IndexType* src = data;
+				int* dest = &outConvertBuffer[0];
+				for (int i = 2; i < numData; ++i)
+				{
+					dest[0] = src[0];
+					dest[1] = src[i-1];
+					dest[2] = src[i];
+					dest += 3;
+				}
+				return &outConvertBuffer[0];
+			}
+			break;
 		}
 		return nullptr;
 	}
 
-	int* MeshUtility::ConvertToTriangleList(PrimitiveType type, void* pIndexData , int numIndices, bool bIntType , std::vector< int >& outConvertBuffer, int& outNumTriangles)
+	int* MeshUtility::ConvertToTriangleList(EPrimitive type, void* pIndexData , int numIndices, bool bIntType , std::vector< int >& outConvertBuffer, int& outNumTriangles)
 	{
 		if( bIntType )
 		{
@@ -2021,17 +2040,16 @@ namespace Render
 				float maxDistanceSqr;
 				int nz;
 			};
+
 			std::vector< std::unique_ptr< MyTask > > allTasks;
 			for( int nz = 0; nz < gridSize.z; ++nz )
 			{
 				auto task = std::make_unique<MyTask>( TaskFun , boundMaxDistanceSqr , nz );
 				setting.WorkTaskPool->addWork(task.get());
 				allTasks.push_back(std::move(task));
-				
-				
 			}
-			setting.WorkTaskPool->waitAllWorkComplete();
 
+			setting.WorkTaskPool->waitAllWorkComplete();
 			for( auto& ptr : allTasks )
 			{
 				if( maxDistanceSqr > ptr->maxDistanceSqr )
@@ -2075,7 +2093,7 @@ namespace Render
 				v.pos.z = pos.z;
 				if( mTexcoordReader )
 				{
-					Vector2 uv = mTexcoordReader->getV2(index);
+					Vector2 uv = mTexcoordReader->get<Vector2>(index);
 					v.uv.x = uv.x;
 					v.uv.y = uv.y;
 				}

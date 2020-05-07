@@ -745,7 +745,7 @@ namespace Render
 				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
 				//glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
 
-				RHIDrawPrimitive(commandList, PrimitiveType::Points, 0, mParticleBuffer.getElementNum() - 2);
+				RHIDrawPrimitive(commandList, EPrimitive::Points, 0, mParticleBuffer.getElementNum() - 2);
 			}
 
 
@@ -776,7 +776,7 @@ namespace Render
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter0), TessFactor2);
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter1), TessFactor1);
 				glPatchParameteri(GL_PATCH_VERTICES, 4);
-				TRenderRT< RTVF_XY | RTVF_C > ::Draw(commandList, SplineProgram::UseTesselation ? PrimitiveType::Patchs : PrimitiveType::LineStrip , vertices, 4);
+				TRenderRT< RTVF_XY | RTVF_C > ::Draw(commandList, SplineProgram::UseTesselation ? EPrimitive::Patchs : EPrimitive::LineStrip , vertices, 4);
 	
 			}
 
@@ -842,7 +842,7 @@ namespace Render
 				int indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
 
 				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexed(commandList,
-					bUseTessellation ? PrimitiveType::Patchs : PrimitiveType::TriangleList, 
+					bUseTessellation ? EPrimitive::Patchs : EPrimitive::TriangleList, 
 					vertices, ARRAY_SIZE(vertices) , indices , ARRAY_SIZE(indices) );
 #else
 				//mTilePlane.drawTessellation(commandList);

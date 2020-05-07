@@ -13,14 +13,54 @@ public:
 		:mImpl(j){ }
 
 	void release() override { delete this; }
-	bool tryGet(char const* key, std::string& str) override
+
+	template< class T >
+	bool tryGetT(char const* key, T& outValue)
 	{
 		auto iter = mImpl.find(key);
 		if( iter == mImpl.end() || !iter->is_string() )
 			return false;
-		str = iter->get<std::string>();
+		outValue = iter->get<T>();
 		return true;
 	}
+
+	bool tryGet(char const* key, std::string& outValue) override 
+	{
+		auto iter = mImpl.find(key);
+		if (iter == mImpl.end() || !iter->is_string())
+			return false;
+		outValue = iter->get<std::string>();
+		return true;
+	}
+
+	bool tryGet(char const* key, int& outValue) override
+	{
+		auto iter = mImpl.find(key);
+		if (iter == mImpl.end() || !iter->is_number_integer())
+			return false;
+		outValue = iter->get<int>();
+		return true;
+	}
+
+	bool tryGet(char const* key, float& outValue) override 
+	{
+		auto iter = mImpl.find(key);
+		if (iter == mImpl.end() || !iter->is_number_float())
+			return false;
+		outValue = iter->get<float>();
+		return true;
+	}
+
+	bool tryGet(char const* key, bool& outValue) override 
+	{
+		auto iter = mImpl.find(key);
+		if (iter == mImpl.end() || !iter->is_boolean())
+			return false;
+		outValue = iter->get<bool>();
+		return true;
+	}
+
+
 	ImplType mImpl;
 };
 

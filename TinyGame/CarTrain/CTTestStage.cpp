@@ -68,15 +68,13 @@ namespace CarTrain
 	struct BoxObjectDef : PhyObjectDef
 	{
 		Vector2 extend;
-		XForm2D transform;
 
 		template< class OP >
 		void serialize(OP op)
 		{
 			PhyObjectDef::serialize(op);
-			op & extend & transform;
+			op & extend;
 		}
-
 	};
 
 	TYPE_SUPPORT_SERIALIZE_FUNC(BoxObjectDef)
@@ -91,16 +89,18 @@ namespace CarTrain
 	{
 	public:
 		virtual float getMass() = 0;
-
-
-
+		virtual PhyObjectDef* getDefine() = 0;
+		virtual XForm2D getTransform() const = 0;
+		virtual Vector2 getLinearVel() const = 0;
+		virtual float   getAngularVel() const = 0;
 	};
+
 	class IPhysicsScene
 	{
 	public:
 		virtual bool initialize() = 0;
 		virtual void release() = 0;
-		virtual void addBox(BoxObjectDef const& def) = 0;
+		virtual void addBox(BoxObjectDef const& def, XForm2D xForm) = 0;
 
 		virtual bool rayCast(Vector2 const& startPos, Vector2 const& endPos, RayHitInfo& outInfo) = 0;
 
@@ -114,6 +114,13 @@ namespace CarTrain
 	{
 		static b2Vec2   To(Vector2 const& v) { return b2Vec2(v.x, v.y); }
 		static Vector2  To(b2Vec2 const& v) { return Vector2(v.x, v.y); }
+		static XForm2D  To(b2Transform const& xForm)
+		{
+			XForm2D result;
+			result.setTranslation(To(xForm.p));
+			result.setRoatation(xForm.q.GetAngle());
+			return result;
+		}
 		static Color4f  To(b2Color const& c) { return Color4f(c.r, c.g, c.b, c.a); }
 	};
 
@@ -131,6 +138,54 @@ namespace CarTrain
 
 	};
 
+
+	class Renderer
+	{
+	public:
+
+		struct DrawElement
+		{
+			enum EType
+			{
+				Rect,
+				Circle,
+			};
+			EType     type;
+			RenderTransform2D xform;
+			Vector2   pos;
+			HitProxy* proxy;
+			union
+			{
+				Vector2 size;
+				float radius;
+			};
+		};
+
+		void drawRect(Vector2 const& pos , Vector2 const& size , HitProxy* proxy = nullptr)
+		{
+			DrawElement element;
+			element.type = DrawElement::Rect;
+			element.pos = pos;
+			element.size = size;
+			element.proxy = proxy;
+			element.xform = mXFormStack.get();
+			mElements.push_back(element);
+		}
+		void drawCircle( Vector2 const& pos , float radius, HitProxy* proxy = nullptr)
+		{
+			DrawElement element;
+			element.type = DrawElement::Circle;
+			element.pos = pos;
+			element.radius = radius;
+			element.proxy = proxy;
+			element.xform = mXFormStack.get();
+			mElements.push_back(element);
+		}
+
+		TransformStack2D& getXFormStack() { return mXFormStack; }
+		TransformStack2D mXFormStack;
+		std::vector<DrawElement> mElements;
+	};
 
 	class Box2DDraw : public b2Draw
 	{
@@ -202,6 +257,42 @@ namespace CarTrain
 
 	};
 
+
+	class PhyBodyBox2D : public IPhysicsBody
+	{
+	public:
+		void initialize(b2Body* body, PhyObjectDef& def)
+		{
+			mBody = body;
+		}
+		virtual float getMass()
+		{
+
+
+		}
+
+		virtual XForm2D getTransform() const override
+		{
+			return B2Conv::To( mBody->GetTransform() );
+
+		}
+		virtual PhyObjectDef* getDefine() override
+		{
+
+		}
+		virtual Vector2 getLinearVel() const override
+		{
+			return B2Conv::To(mBody->GetLinearVelocity());
+		}
+
+		virtual float getAngularVel() const override
+		{
+			return mBody->GetAngularVelocity();
+		}
+
+		std::unique_ptr< PhyObjectDef >mPhyDef;
+		b2Body* mBody;
+	};
 	class PhysicsSceneBox2D : public IPhysicsScene
 	{
 	public:
@@ -227,21 +318,20 @@ namespace CarTrain
 			delete this;
 		}
 
-		void addBox(BoxObjectDef const& def) override
+		void addBox(BoxObjectDef const& def, XForm2D xForm) override
 		{
-
 			b2BodyDef bodyDef;
 			bodyDef.type = b2_staticBody;
-			bodyDef.position = B2Conv::To(def.transform.getPos());
-			bodyDef.angle = def.transform.getRotateAngle();
+			bodyDef.position = B2Conv::To(xForm.getPos());
+			bodyDef.angle = xForm.getRotateAngle();
 			auto body = mWorld->CreateBody(&bodyDef);
-
 			b2PolygonShape shape;
 			shape.SetAsBox(def.extend.x / 2, def.extend.y / 2);
 			b2FixtureDef   fixtureDef;
-			//fixtureDef.density;
+			//fixtureDef.density = 1.0;
 			fixtureDef.shape = &shape;
 			body->CreateFixture(&fixtureDef);
+
 		}
 
 		bool rayCast(Vector2 const& startPos, Vector2 const& endPos, RayHitInfo& outInfo) override
@@ -311,18 +401,32 @@ namespace CarTrain
 		{
 			mPhyScene->drawDebug();
 		}
+
 		IPhysicsScene* getPhysicsScene() { return mPhyScene; }
 		IPhysicsScene* mPhyScene = nullptr;
 	};
 
-	class GameLevel
+	struct GameBoxDef : BoxObjectDef
+	{
+		typedef BoxObjectDef BaseClass;
+		XForm2D transform;
+		template< class OP >
+		void serialize(OP op)
+		{
+			BaseClass::serialize(op);
+			op & transform;
+		}
+
+	};
+	TYPE_SUPPORT_SERIALIZE_FUNC(GameBoxDef)
+	class LevelData
 	{
 	public:
 		void setup(GameWorld& world )
 		{
 			for (auto const& def : mBoxObjects)
 			{
-				world.getPhysicsScene()->addBox(def);
+				world.getPhysicsScene()->addBox(def , def.transform);
 			}
 
 
@@ -335,10 +439,7 @@ namespace CarTrain
 		{
 			op & mBoxObjects;
 		}
-
-
-
-		std::vector< BoxObjectDef > mBoxObjects;
+		std::vector< GameBoxDef > mBoxObjects;
 	};
 
 	enum class EAxisControl
@@ -408,6 +509,16 @@ namespace CarTrain
 		virtual bool onMouse(MouseMsg const& msg) { return true; }
 	};
 
+	class GameEntity
+	{
+	public:
+
+
+
+
+		IPhysicsBody* body;
+	};
+
 	class TestStage : public StageBase
 	{
 		using BaseClass = StageBase;
@@ -415,7 +526,7 @@ namespace CarTrain
 		TestStage() {}
 
 		GameWorld mWorld;
-
+		std::unique_ptr< LevelData > mLevelData;
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
@@ -426,20 +537,22 @@ namespace CarTrain
 
 			mWorld.getPhysicsScene()->setupDebugView(Global::GetRHIGraphics2D());
 
+			mLevelData = std::make_unique<LevelData>();
 			{
-				BoxObjectDef def;
+				GameBoxDef def;
 				def.extend = Vector2(20, 5);
 				def.transform = XForm2D(Vector2(200, 100));
-				mWorld.getPhysicsScene()->addBox(def);
+				mLevelData->mBoxObjects.push_back(def);
 			}
 
 			{
-				BoxObjectDef def;
+				GameBoxDef def;
 				def.extend = Vector2(20, 5);
 				def.transform = XForm2D(Vector2(100, 100));
-				mWorld.getPhysicsScene()->addBox(def);
+				mLevelData->mBoxObjects.push_back(def);
 			}
 
+			mLevelData->setup(mWorld);
 			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
@@ -481,7 +594,20 @@ namespace CarTrain
 			glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
 
 			g.beginRender();
-			mWorld.drawDebug();
+
+			for(;;)
+			{
+
+
+
+
+
+			}
+
+			if (bDrawPhyDebug)
+			{
+				mWorld.drawDebug();
+			}
 
 			RenderUtility::SetPen(g, mbRayCastHitted ? EColor::Red : EColor::Yellow);
 			g.drawLine(mRayCastStart, mRayCastEnd);
@@ -556,6 +682,7 @@ namespace CarTrain
 		}
 
 		bool bEditMode = false;
+		bool bDrawPhyDebug = false;
 		IEditMode* mEditMode;
 	};
 

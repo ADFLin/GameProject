@@ -5,12 +5,12 @@
 #include "Core/IntegerType.h"
 #include <cstddef>
 
-class TypeCast
+class FTypeCast
 {
 public:
 	//Impl By Boost
 	template< class T , class Member >
-	static T* memberToClass( Member* member , Member T::*ptrMember )
+	static T* MemberToClass( Member* member , Member T::*ptrMember )
 	{
 		ptrdiff_t memberOffset;
 		//The implementation of a pointer to member is compiler dependent.

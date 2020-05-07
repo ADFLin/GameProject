@@ -277,8 +277,7 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::GetDrawEngine().startOpenGL() )
-			return false;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 		::Global::GUI().cleanupWidget();
 
 		mProgMandelbrot = ::ShaderManager::Get().getGlobalShaderT< MandelbrotProgram >(true);

@@ -249,8 +249,7 @@ namespace FlappyBird
 
 	bool LevelStage::onInit()
 	{
-		::Global::GetDrawEngine().startOpenGL();
-
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 		::Global::GUI().cleanupWidget();
 
 		if( !loadResource() )
@@ -581,6 +580,7 @@ namespace FlappyBird
 	{
 		IGraphics2D& g = Global::GetIGraphics2D();
 
+		glClearColor(0.2, 0.2, 0.2, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		glDisable(GL_DEPTH_TEST);

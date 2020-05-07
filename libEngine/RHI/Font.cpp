@@ -379,7 +379,7 @@ namespace Render
 			{
 				glEnable(GL_TEXTURE_2D);
 				GL_BIND_LOCK_OBJECT(mCharDataSet->getTexture());
-				TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, &mBuffer[0], mBuffer.size());
+				TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, &mBuffer[0], mBuffer.size());
 				glDisable(GL_TEXTURE_2D);
 			}
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());

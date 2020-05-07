@@ -229,7 +229,12 @@
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
-    <ClCompile Include="TestRender\Stage\SoftwareRenderStage.cpp" />
+    <ClCompile Include="TestRender\Stage\SoftwareRenderStage.cpp">
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</OpenMPSupport>
+    </ClCompile>
     <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp" />
     <ClCompile Include="TestRender\TestRender.cpp" />
     <ClCompile Include="TestRender\TestRenderPCH.cpp">

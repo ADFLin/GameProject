@@ -827,21 +827,21 @@ namespace Render
 		return GL_READ_WRITE;
 	}
 
-	GLenum OpenGLTranslate::To(PrimitiveType type)
+	GLenum OpenGLTranslate::To(EPrimitive type)
 	{
 		switch( type )
 		{
-		case PrimitiveType::TriangleList:  return GL_TRIANGLES;
-		case PrimitiveType::TriangleStrip: return GL_TRIANGLE_STRIP;
-		case PrimitiveType::TriangleFan:   return GL_TRIANGLE_FAN;
-		case PrimitiveType::LineList:      return GL_LINES;
-		case PrimitiveType::LineStrip:     return GL_LINE_STRIP;
-		case PrimitiveType::LineLoop:      return GL_LINE_LOOP;
-		case PrimitiveType::TriangleAdjacency:   return GL_TRIANGLES_ADJACENCY;
-		case PrimitiveType::Quad:          return GL_QUADS;
-		case PrimitiveType::Polygon:       return GL_POLYGON;
-		case PrimitiveType::Points:        return GL_POINTS;
-		case PrimitiveType::Patchs:        return GL_PATCHES;
+		case EPrimitive::TriangleList:  return GL_TRIANGLES;
+		case EPrimitive::TriangleStrip: return GL_TRIANGLE_STRIP;
+		case EPrimitive::TriangleFan:   return GL_TRIANGLE_FAN;
+		case EPrimitive::LineList:      return GL_LINES;
+		case EPrimitive::LineStrip:     return GL_LINE_STRIP;
+		case EPrimitive::LineLoop:      return GL_LINE_LOOP;
+		case EPrimitive::TriangleAdjacency:   return GL_TRIANGLES_ADJACENCY;
+		case EPrimitive::Quad:          return GL_QUADS;
+		case EPrimitive::Polygon:       return GL_POLYGON;
+		case EPrimitive::Points:        return GL_POINTS;
+		case EPrimitive::Patchs:        return GL_PATCHES;
 		}
 		return GL_POINTS;
 	}
@@ -906,18 +906,18 @@ namespace Render
 		return GL_FUNC_ADD;
 	}
 
-	GLenum OpenGLTranslate::To(ECompareFun fun)
+	GLenum OpenGLTranslate::To(ECompareFunc fun)
 	{
 		switch( fun )
 		{
-		case ECompareFun::Never:       return GL_NEVER;
-		case ECompareFun::Less:        return GL_LESS;
-		case ECompareFun::Equal:       return GL_EQUAL;
-		case ECompareFun::NotEqual:    return GL_NOTEQUAL;
-		case ECompareFun::LessEqual:   return GL_LEQUAL;
-		case ECompareFun::Greater:     return GL_GREATER;
-		case ECompareFun::GeraterEqual:return GL_GEQUAL;
-		case ECompareFun::Always:      return GL_ALWAYS;
+		case ECompareFunc::Never:       return GL_NEVER;
+		case ECompareFunc::Less:        return GL_LESS;
+		case ECompareFunc::Equal:       return GL_EQUAL;
+		case ECompareFunc::NotEqual:    return GL_NOTEQUAL;
+		case ECompareFunc::LessEqual:   return GL_LEQUAL;
+		case ECompareFunc::Greater:     return GL_GREATER;
+		case ECompareFunc::GeraterEqual:return GL_GEQUAL;
+		case ECompareFunc::Always:      return GL_ALWAYS;
 		}
 		return GL_LESS;
 	}
@@ -1180,13 +1180,13 @@ namespace Render
 	OpenGLDepthStencilState::OpenGLDepthStencilState(DepthStencilStateInitializer const& initializer)
 	{
 		//When depth testing is disabled, writes to the depth buffer are also disabled
-		mStateValue.bEnableDepthTest = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
-		mStateValue.depthFun = OpenGLTranslate::To(initializer.depthFun);
+		mStateValue.bEnableDepthTest = (initializer.depthFunc != ECompareFunc::Always) || (initializer.bWriteDepth);
+		mStateValue.depthFun = OpenGLTranslate::To(initializer.depthFunc);
 		mStateValue.bWriteDepth = initializer.bWriteDepth;
 
 		mStateValue.bEnableStencilTest = initializer.bEnableStencilTest;
 
-		mStateValue.stencilFun = OpenGLTranslate::To(initializer.stencilFun);
+		mStateValue.stencilFun = OpenGLTranslate::To(initializer.stencilFunc);
 		mStateValue.stencilFailOp = OpenGLTranslate::To(initializer.stencilFailOp);
 		mStateValue.stencilZFailOp = OpenGLTranslate::To(initializer.zFailOp);
 		mStateValue.stencilZPassOp = OpenGLTranslate::To(initializer.zPassOp);

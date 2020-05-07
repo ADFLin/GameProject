@@ -34,12 +34,12 @@ private:
 	};
 
 	mutable int mCacheGetType = NoCache;
-	union SaveValue
+	union SavedValue
 	{
 		int   intValue;
 		float floatValue;
 	};
-	mutable SaveValue mCacheGetValue;
+	mutable SavedValue mCacheGetValue;
 	friend class KeySection;
 	friend class PropertyKey;
 	int  mSequenceOrder = -1;

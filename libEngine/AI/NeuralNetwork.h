@@ -10,8 +10,8 @@
 typedef double NNScale;
 typedef NNScale (*NNActivationFunc)(NNScale);
 typedef void    (*NNActivationTrasnformFunc)(NNScale* inoutValues, int numValues);
-template< class T , class Q , class Fun >
-void Transform(T begin, T end, T dest, Fun fun = Fun())
+template< class T , class Q , class TFunc >
+void Transform(T begin, T end, T dest, TFunc fun = TFunc())
 {
 	T cur = begin;
 	while( cur != end )
@@ -47,7 +47,7 @@ public:
 			return 0;
 		if( value > 10 )
 			return 0;
-		float v = 1.0 / (1.0 + exp(-value));
+		NNScale v = 1.0 / (1.0 + exp(-value));
 		return v * (1 - v);
 	}
 	static NNScale Tanh(NNScale value)
@@ -88,14 +88,14 @@ public:
 };
 
 
-template< NNScale (*Func)(NNScale) >
+template< NNScale (*StaticFunc)(NNScale) >
 struct FNNFuncHelper
 {
 	static void Trasnform(NNScale* inoutValues, int numValues)
 	{
 		for( int i = numValues; i ; --i )
 		{
-			*inoutValues = (*Func)(*inoutValues);
+			*inoutValues = (*StaticFunc)(*inoutValues);
 			++inoutValues;
 		}
 	}

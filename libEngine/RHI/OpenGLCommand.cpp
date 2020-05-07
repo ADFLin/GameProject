@@ -10,6 +10,8 @@
 #include "RHITraceScope.h"
 #endif
 
+#define COMMIT_STATE_IMMEDIATELY 1
+
 namespace Render
 {
 	bool gForceInitState = false;
@@ -22,7 +24,7 @@ namespace Render
 		LogMsg(message);
 	}
 
-#define GL_STATE_VAR_TEST( NAME )  gForceInitState || ( deviceValue.##NAME != setupValue.##NAME )
+#define GL_STATE_VAR_TEST( NAME )  ( gForceInitState || ( deviceValue.##NAME != setupValue.##NAME ) )
 #define GL_STATE_VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
 
 	static void EnableGLState(GLenum param, bool bEnable)
@@ -77,7 +79,7 @@ namespace Render
 		{
 			glQueryCounter(mHandles[1], GL_TIMESTAMP);
 		}
-		bool getTime(uint64& result)
+		bool getDuration(uint64& outDuration)
 		{
 			GLuint isAvailable = GL_TRUE;
 			glGetQueryObjectuiv(mHandles[0], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
@@ -92,7 +94,7 @@ namespace Render
 					GLuint64 endTimeStamp;
 					glGetQueryObjectui64v(mHandles[1], GL_QUERY_RESULT, &endTimeStamp);
 
-					result = endTimeStamp - startTimeStamp;
+					outDuration = endTimeStamp - startTimeStamp;
 					return true;
 				}
 			}
@@ -143,10 +145,10 @@ namespace Render
 			timing.end();
 		}
 
-		bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion) override
+		bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
 		{
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
-			return timing.getTime(outDurtion);
+			return timing.getDuration(outDuration);
 		}
 		double getCycleToMillisecond() override
 		{
@@ -362,20 +364,26 @@ namespace Render
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 	{
 		mDeviceState.rasterizerStateCommit = &rasterizerState;
+#if COMMIT_STATE_IMMEDIATELY
 		commitRasterizerState();
+#endif
 	}
 
 	void OpenGLContext::RHISetBlendState(RHIBlendState& blendState)
 	{
 		mDeviceState.blendStateCommit = &blendState;
+#if COMMIT_STATE_IMMEDIATELY
 		commitBlendState();
+#endif
 	}
 
 	void OpenGLContext::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
 		mDeviceState.depthStencilStateCommit = &depthStencilState;
 		mDeviceState.stencilRefCommit = stencilRef;
+#if COMMIT_STATE_IMMEDIATELY
 		commitDepthStencilState();
+#endif
 	}
 
 	void OpenGLContext::RHISetViewport(int x, int y, int w, int h , float zNear, float zFar)
@@ -445,7 +453,7 @@ namespace Render
 		mLastIndexBuffer = indexBuffer;	
 	}
 
-	void OpenGLContext::RHIDrawPrimitive(PrimitiveType type, int start, int nv)
+	void OpenGLContext::RHIDrawPrimitive(EPrimitive type, int start, int nv)
 	{
 		if( !commitInputStream() )
 			return;
@@ -455,7 +463,7 @@ namespace Render
 		glDrawArrays(OpenGLTranslate::To(type), start, nv);
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex , uint32 baseVertex )
+	void OpenGLContext::RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex , uint32 baseVertex )
 	{
 		if( !mLastIndexBuffer.isValid() )
 		{
@@ -480,7 +488,7 @@ namespace Render
 		OpenGLCast::To(mLastIndexBuffer)->unbind();
 	}
 
-	void OpenGLContext::RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
+	void OpenGLContext::RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
 	{
 		if( !commitInputStream() )
 			return;
@@ -502,7 +510,7 @@ namespace Render
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
+	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
 	{
 		if( !mLastIndexBuffer.isValid() )
 		{
@@ -536,7 +544,7 @@ namespace Render
 		OpenGLCast::To(mLastIndexBuffer)->unbind();
 	}
 
-	void OpenGLContext::RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
+	void OpenGLContext::RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 	{
 		if( !commitInputStream() )
 			return;
@@ -555,7 +563,7 @@ namespace Render
 		
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveInstanced(PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
+	void OpenGLContext::RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
 	{
 		if( !mLastIndexBuffer.isValid() )
 		{
@@ -596,7 +604,7 @@ namespace Render
 		OpenGLCast::To(mLastIndexBuffer)->unbind();
 	}
 
-	void OpenGLContext::RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData)
+	void OpenGLContext::RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData)
 	{
 		if( !commitInputStreamUP(dataInfos, numData) )
 			return;
@@ -606,7 +614,7 @@ namespace Render
 		glDrawArrays(OpenGLTranslate::To(type), 0, numVertex);
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , int const* pIndices, int numIndex)
+	void OpenGLContext::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , int const* pIndices, int numIndex)
 	{
 		if( pIndices == nullptr )
 			return;
@@ -784,6 +792,45 @@ namespace Render
 	{
 		CHECK_PARAMETER(param);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
+	}
+
+	void OpenGLContext::commitRenderStates()
+	{
+#if COMMIT_STATE_IMMEDIATELY == 0
+		commitRasterizerState();
+		commitDepthStencilState();
+		commitBlendState();
+#endif
+		commitSamplerStates();
+	}
+
+	void OpenGLContext::commitSamplerStates()
+	{
+		if (mSimplerSlotDirtyMask)
+		{
+			for (int index = 0; index < mNextAutoBindSamplerSlotIndex; ++index)
+			{
+				if (mSimplerSlotDirtyMask & BIT(index))
+				{
+					SamplerState& state = mSamplerStates[index];
+					if (state.bWrite)
+					{
+
+
+					}
+					else
+					{
+						glActiveTexture(GL_TEXTURE0 + index);
+						glBindTexture(state.typeEnum, state.textureHandle);
+						glBindSampler(index, state.samplerHandle);
+					}
+					glUniform1i(state.loc, index);
+				}
+			}
+
+			mSimplerSlotDirtyMask = 0;
+			glActiveTexture(GL_TEXTURE0);
+		}
 	}
 
 	void OpenGLContext::commitRasterizerState()
@@ -1076,6 +1123,48 @@ namespace Render
 		}
 	}
 
+	bool OpenGLContext::commitInputStream()
+	{
+		if (mLastInputLayout.isValid())
+		{
+			mWasBindAttrib = false;
+			if (mbUseFixedPipeline)
+			{
+				OpenGLCast::To(mLastInputLayout)->bindPointer(mUsedInputStreams, mNumInputStream);
+			}
+			else
+			{
+				OpenGLCast::To(mLastInputLayout)->bindAttrib(mUsedInputStreams, mNumInputStream);
+				mWasBindAttrib = true;
+			}
+		}
+		return true;
+	}
+
+	bool OpenGLContext::commitInputStreamUP(VertexDataInfo dataInfos[], int numData)
+	{
+		if (!mLastInputLayout.isValid())
+			return false;
+
+		for (int i = 0; i < numData; ++i)
+		{
+			mUsedInputStreams[i].offset = (uint32)dataInfos[i].ptr;
+			mUsedInputStreams[i].stride = dataInfos[i].stride;
+		}
+		mNumInputStream = numData;
+		mWasBindAttrib = false;
+		if (mbUseFixedPipeline)
+		{
+			OpenGLCast::To(mLastInputLayout)->bindPointerUP(mUsedInputStreams, mNumInputStream);
+		}
+		else
+		{
+			OpenGLCast::To(mLastInputLayout)->bindAttribUP(mUsedInputStreams, mNumInputStream);
+			mWasBindAttrib = true;
+		}
+		return true;
+	}
+
 	void OpenGLContext::setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
 	{
 		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(resourceView);
@@ -1104,6 +1193,8 @@ namespace Render
 		state.samplerHandle = samplerImpl.getHandle();
 		state.bWrite = false;
 	}
+
+
 
 }
 

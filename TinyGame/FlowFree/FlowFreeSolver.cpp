@@ -75,7 +75,7 @@ namespace FlowFree
 			if (rhs.cell->func == CellFunc::Source && lhs.cell->func != CellFunc::Source)
 				return false;
 
-			return BitUtility::CountSet(lhs.cell->blockMask) > BitUtility::CountSet(rhs.cell->blockMask);
+			return FBitUtility::CountSet(lhs.cell->blockMask) > FBitUtility::CountSet(rhs.cell->blockMask);
 		}
 		);
 
@@ -513,25 +513,44 @@ namespace FlowFree
 			}
 			return linkPos;
 		};
-		
+
+
 		{
 			TIME_SCOPE("SAT Setup");
+#define IGNORE_CELLS 1
+
+			auto DoseHaveVar = [](Cell const& cell)
+			{
+#if IGNORE_CELLS
+				if (cell.func == CellFunc::Block ||
+					cell.func == CellFunc::Bridge)
+					return false;
+#endif
+				return true;
+			};
 
 			mVarMap.resize(size.x, size.y);
 			for (int j = 0; j < size.y; ++j)
 			{
 				for (int i = 0; i < size.x; ++i)
 				{
-					for (int c = 0; c < mColorCount; ++c)
-					{
-						auto var = mSAT->newVar();
-						mVarMap(i, j).colors[c] = var;
-					}
+					Vec2i pos = Vec2i(i, j);
 
-					for (int t = 0; t < ConnectTypeCount; ++t)
+					Cell const& cell = level.getCellChecked(pos);
+
+					if ( DoseHaveVar(cell) )
 					{
-						auto var = mSAT->newVar();
-						mVarMap(i, j).conTypes[t] = var;
+						for (int c = 0; c < mColorCount; ++c)
+						{
+							auto var = mSAT->newVar();
+							mVarMap(i, j).colors[c] = var;
+						}
+
+						for (int t = 0; t < ConnectTypeCount; ++t)
+						{
+							auto var = mSAT->newVar();
+							mVarMap(i, j).conTypes[t] = var;
+						}
 					}
 				}
 			}
@@ -548,7 +567,7 @@ namespace FlowFree
 					Cell const& cell = level.getCellChecked(pos);
 
 					//Every cell is assigned a single color
-					//#TODO: check bridge cell
+					if ( DoseHaveVar(cell) )
 					{
 						Minisat::vec< SATLit > literals;
 						for (int c = 0; c < mColorCount; ++c)
@@ -561,6 +580,7 @@ namespace FlowFree
 
 					switch (cell.func)
 					{
+
 					case CellFunc::Source:
 						{
 							//The color of every endpoint cell is known and specified
@@ -633,38 +653,45 @@ namespace FlowFree
 								int const* linkDirs = GetEmptyConnectTypeLinkDir(ConnectType(t));
 								uint8 conTypMask = GetEmptyConnectTypeMask(ConnectType(t));
 
-
-
 								auto Tij = Lit(getConTypeVar(pos, t));
 
 								Vec2i ConPos0 = GetLinkPosSkipBirdge(pos, linkDirs[0]);
 								Vec2i ConPos1 = GetLinkPosSkipBirdge(pos, linkDirs[1]);
-								for (int c = 0; c < mColorCount; ++c)
+#if IGNORE_CELLS
+								if (DoseHaveVar(level.getCellChecked(ConPos0)) && DoseHaveVar(level.getCellChecked(ConPos1)))
+#endif
 								{
-									auto Cij = Lit(getColorVar(pos, c));
-									//The neighbors of a cell specified by its direction type must match its color
-									mSAT->addClause(~Tij, ~Cij, Lit(getColorVar(ConPos0, c)));
-									mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos0, c)));
-									mSAT->addClause(~Tij, ~Cij, Lit(getColorVar(ConPos1, c)));
-									mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos1, c)));
-									CHECK_OK;
-									//The neighbors of a cell not specified by its direction type must not match its color
-									for (int dir = 0; dir < DirCount; ++dir)
+									for (int c = 0; c < mColorCount; ++c)
 									{
-										if (dir == linkDirs[0] || dir == linkDirs[1])
-											continue;
+										auto Cij = Lit(getColorVar(pos, c));
+										//The neighbors of a cell specified by its direction type must match its color
+										mSAT->addClause(~Tij, ~Cij, Lit(getColorVar(ConPos0, c)));
+										mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos0, c)));
+										mSAT->addClause(~Tij, ~Cij, Lit(getColorVar(ConPos1, c)));
+										mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos1, c)));
+										CHECK_OK;
+										//The neighbors of a cell not specified by its direction type must not match its color
+										for (int dir = 0; dir < DirCount; ++dir)
+										{
+											if (dir == linkDirs[0] || dir == linkDirs[1])
+												continue;
 
-										if (BIT(dir) & cell.blockMask)
-											continue;
+											if (BIT(dir) & cell.blockMask)
+												continue;
 
-										Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
-										mSAT->addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos, c)));
+											Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
+											mSAT->addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos, c)));
+										}
+										CHECK_OK;
 									}
-									CHECK_OK;
 								}
-
+#if IGNORE_CELLS
+								else
+								{
+									mSAT->addClause(~Tij);
+								}
+#endif
 							}
-
 						}
 						break;
 					}
@@ -685,7 +712,6 @@ namespace FlowFree
 		mSolution.resize(size.x, size.y);
 
 		{
-
 			SolvedCell c;
 			c.color = 0;
 			c.mask = 0;
@@ -734,6 +760,12 @@ namespace FlowFree
 					case CellFunc::Bridge:
 						bridgeCellPosList.push_back(pos);
 						break;
+					case CellFunc::Block:
+						{
+							cellSolution.color = 0;
+							cellSolution.color2 = 0;
+							cellSolution.mask = 0;
+						}
 					default:
 						break;
 					}

@@ -49,7 +49,7 @@ namespace Render
 
 	struct D3D12Translate
 	{
-		static D3D12_PRIMITIVE_TOPOLOGY To(PrimitiveType type);
+		static D3D12_PRIMITIVE_TOPOLOGY To(EPrimitive type);
 		static DXGI_FORMAT To(Vertex::Format format, bool bNormalized);
 		static DXGI_FORMAT To(Texture::Format format);
 		static DXGI_FORMAT To(Texture::DepthFormat format);
@@ -59,7 +59,7 @@ namespace Render
 		static D3D12_FILL_MODE To(EFillMode mode);
 		static D3D12_FILTER To(Sampler::Filter filter);
 		static D3D12_TEXTURE_ADDRESS_MODE To(Sampler::AddressMode mode);
-		static D3D12_COMPARISON_FUNC To(ECompareFun func);
+		static D3D12_COMPARISON_FUNC To(ECompareFunc func);
 		static D3D12_STENCIL_OP To(Stencil::Operation op);
 	};
 

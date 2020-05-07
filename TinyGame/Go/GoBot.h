@@ -89,7 +89,7 @@ namespace Go
 		virtual void notifyCommand(GameCommand const& com) = 0;
 	};
 
-	enum EBotExecuteResult
+	enum EBotExecResult
 	{
 		BOT_OK ,
 		BOT_FAIL ,
@@ -104,7 +104,7 @@ namespace Go
 		virtual void destroy() = 0;
 		virtual bool setupGame(GameSetting const& setting ) = 0;
 		virtual bool restart() = 0;
-		virtual bool playStone(int x , int y , int color) = 0;
+		virtual EBotExecResult playStone(int x , int y , int color) = 0;
 		virtual bool playPass(int color) = 0;
 		virtual bool undo() = 0;
 		virtual bool requestUndo() = 0;
@@ -116,7 +116,7 @@ namespace Go
 		virtual bool isGPUBased() const { return false; }
 
 		
-		virtual EBotExecuteResult readBoard(int* outState) { return BOT_FAIL; }
+		virtual EBotExecResult readBoard(int* outState) { return BOT_FAIL; }
 
 
 		template< class T >
@@ -138,7 +138,7 @@ namespace Go
 		void destroy() override {}
 		bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
 		bool restart() override { if( bUsedInMatch ) return true; return mBot->restart(); }
-		bool playStone(int x, int y, int color) override { if( bUsedInMatch ) return true; return mBot->playStone(x, y, color); }
+		EBotExecResult playStone(int x, int y, int color) override { if( bUsedInMatch ) return BOT_OK; return mBot->playStone(x, y, color); }
 		bool playPass(int color) override { if( bUsedInMatch ) return true; return mBot->playPass(color); }
 		bool undo() override { if( bUsedInMatch ) return true; return mBot->undo(); }
 		
@@ -150,7 +150,7 @@ namespace Go
 
 		bool requestUndo() override { if (bUsedInMatch) return true; return mBot->requestUndo(); }
 
-		EBotExecuteResult readBoard(int* outState) override { return mBot->readBoard(outState); }
+		EBotExecResult readBoard(int* outState) override { return mBot->readBoard(outState); }
 	private:
 
 		IBot* mBot;

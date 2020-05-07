@@ -20,7 +20,7 @@ uint32 WinThread::GetCurrentThreadId()
 	return ::GetCurrentThreadId();
 }
 
-bool WinThread::create( ThreadFunc fun , void* ptr , uint32 stackSize )
+bool WinThread::create( ThreadFunc func , void* ptr , uint32 stackSize )
 {
 	if ( !mbRunning )
 	{
@@ -28,7 +28,7 @@ bool WinThread::create( ThreadFunc fun , void* ptr , uint32 stackSize )
 			CloseHandle(mhThread);
 
 		mhThread = (HANDLE) _beginthreadex(
-			NULL, stackSize , fun , ptr ,
+			NULL, stackSize , func , ptr ,
 			0,&mThreadID );
 		if ( mhThread == NULL )
 			return false;
@@ -140,9 +140,9 @@ uint32 PosixThread::GetCurrentThreadId()
 	return static_cast<uint32>(pthread_self());
 }
 
-bool PosixThread::create(ThreadFunc fun, void* ptr, uint32 stackSize)
+bool PosixThread::create(ThreadFunc func, void* ptr, uint32 stackSize)
 {
-	if( pthread_create(&mHandle, NULL, fun, ptr) == 0 )
+	if( pthread_create(&mHandle, NULL, func, ptr) == 0 )
 		return true;
 
 	return false;

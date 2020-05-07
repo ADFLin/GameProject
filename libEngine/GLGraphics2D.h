@@ -24,37 +24,37 @@ namespace Render
 		Vector2 P;
 
 		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
-		RenderTransform2D operator * (RenderTransform2D const& rhs) const
+		FORCEINLINE RenderTransform2D operator * (RenderTransform2D const& rhs) const
 		{
 			return { M * rhs.M , rhs.M.leftMul(P) + P };
 		}
 
-		Vector2 tranformPosition(Vector2 const& v) const
+		FORCEINLINE Vector2 tranformPosition(Vector2 const& v) const
 		{
 			return P + M.leftMul(v);
 		}
 
-		Vector2 tranformVector(Vector2 const& v) const
+		FORCEINLINE Vector2 tranformVector(Vector2 const& v) const
 		{
 			return M.leftMul(v);
 		}
 
-		void applyTranslate(Vector2 const& offset)
+		FORCEINLINE void applyTranslate(Vector2 const& offset)
 		{
 			P += offset;
 		}
 
-		void applyRotate(float angle)
+		FORCEINLINE void applyRotate(float angle)
 		{
 			M = M * Matrix2::Rotate(angle);
 		}
 
-		void applyScale(Vector2 const& scale)
+		FORCEINLINE void applyScale(Vector2 const& scale)
 		{
 			M = M * Matrix2::Scale(scale);
 		}
 
-		Matrix4 toMatrix4() const
+		FORCEINLINE Matrix4 toMatrix4() const
 		{
 			return Matrix4(
 				M[0], M[1], 0, 0,
@@ -140,8 +140,8 @@ public:
 	void  beginXForm();
 	void  finishXForm();
 
-	void  pushXForm(){ glPushMatrix(); }
-	void  popXForm(){ glPopMatrix(); }
+	void  pushXForm();
+	void  popXForm();
 
 	void  identityXForm();
 	void  translateXForm( float ox , float oy );

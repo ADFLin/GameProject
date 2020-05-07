@@ -98,7 +98,7 @@ namespace CFly
 		void       render2D( Viewport* viewport , unsigned flag = CFRF_DEFULT  );
 		void       renderNode( SceneNode* node , Matrix4 const& worldTrans , Camera* camera , Viewport* viewport , unsigned flag = CFRF_DEFULT );
 		void       renderObject( Object* obj , Camera* camera , Viewport* viewport , unsigned flag = CFRF_DEFULT  );
-		//void renderShape( PrimitiveType priType , VertexType vtxType , float* vtxData , int numVtx , void* idxData , int numIdx , bool UsageIntIndex , unsigned flag = CFRF_DEFULT )
+		//void renderShape( EPrimitive priType , VertexType vtxType , float* vtxData , int numVtx , void* idxData , int numIdx , bool UsageIntIndex , unsigned flag = CFRF_DEFULT )
 		//{
 
 		//}

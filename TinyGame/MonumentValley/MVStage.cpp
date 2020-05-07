@@ -39,8 +39,7 @@ namespace MV
 	{
 		::Global::GUI().cleanupWidget();
 
-		if ( !Global::GetDrawEngine().startOpenGL() )
-			return false;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 		//testRotation();
@@ -109,7 +108,7 @@ namespace MV
 	void TestStage::onEnd()
 	{
 		cleanup( true );
-		Global::GetDrawEngine().stopOpenGL();
+		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void TestStage::cleanup( bool beDestroy )
@@ -800,7 +799,7 @@ namespace MV
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
 				context.setupPipeline(commandList);
-				TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineList , buffer , size / 3 );
+				TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineList , buffer , size / 3 );
 			}
 
 			{

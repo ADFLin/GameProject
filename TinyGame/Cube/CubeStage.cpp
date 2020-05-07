@@ -9,8 +9,8 @@ namespace Cube
 
 	bool TestStage::onInit()
 	{
-		VERIFY_RETURN_FALSE( Global::GetDrawEngine().startOpenGL() );
-		
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
+
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
 		::Global::GUI().cleanupWidget();

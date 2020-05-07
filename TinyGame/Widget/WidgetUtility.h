@@ -60,12 +60,7 @@ struct WidgetPropery
 	template< class T >
 	static T Get(GTextCtrl* widget)
 	{
-		return std::atof(widget->getValue());
-	}
-	template<>
-	static int Get<int>(GTextCtrl* widget)
-	{
-		return std::atoi(widget->getValue());
+		return FStringConv::To<T>(widget->getValue() , FCString::Strlen(widget->getValue()));
 	}
 
 	template< class T >

@@ -184,9 +184,7 @@ public:
 	bool isInitialized() { return mbInitialized; }
 
 	TINY_API bool  initializeRHI(RHITargetName targetName , RHIInitializeParams initParams = RHIInitializeParams() );
-	TINY_API void  shutdownRHI(bool bDeferred);
-	TINY_API bool  startOpenGL( int numSamples = 1 );
-	TINY_API void  stopOpenGL(bool bDeferred = true);
+	TINY_API void  shutdownRHI(bool bDeferred = true);
 	TINY_API bool  beginRender();
 	TINY_API void  endRender();
 

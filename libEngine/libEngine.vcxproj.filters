@@ -513,9 +513,6 @@
     <ClInclude Include="Clock.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="EasingFun.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
     <ClInclude Include="FixString.h">
       <Filter>Utility</Filter>
     </ClInclude>
@@ -1142,6 +1139,9 @@
     </ClInclude>
     <ClInclude Include="RHI\VulkanCommon.h">
       <Filter>RHI\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="EasingFunction.h">
+      <Filter>Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -118,11 +118,11 @@ public:
 	template< int Side >
 	static Node* getNeighborAdjNode( Node* node );
 
-	template< int Side , class Fun >
-	static void visitNode( Node* node , Fun& fun );
+	template< int Side , class TFunc >
+	static void visitNode( Node* node , TFunc& fun );
 
-	template< class Fun >
-	static void  visitNeighborNode( Node* node, Fun& fun );
+	template< class TFunc >
+	static void  visitNeighborNode( Node* node, TFunc& fun );
 
 	GrayNode  mHead;
 };
@@ -134,23 +134,23 @@ public:
 #define CLASS_PARAM I,L,C
 
 TEMPLATE_PARAM
-template< int Side , class Fun >
-void TQuadTree< CLASS_PARAM >::visitNode( Node* node , Fun& fun )
+template< int Side , class TFunc >
+void TQuadTree< CLASS_PARAM >::visitNode( Node* node , TFunc& func )
 {
 	if ( node->isLeaf() )
 	{
-		fun( node );
+		func( node );
 		return;
 	}
 
 	if ( DirAdj[Side][ 0 ] )
-		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(0) , fun );
+		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(0) , func );
 	if ( DirAdj[Side][ 1 ] )
-		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(1) , fun );
+		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(1) , func );
 	if ( DirAdj[Side][ 2 ] )
-		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(2) , fun );
+		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(2) , func );
 	if ( DirAdj[Side][ 3 ] )
-		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(3) , fun );
+		visitNode< Side >( static_cast< GrayNode* >( node )->getChild(3) , func );
 }
 
 TEMPLATE_PARAM
@@ -171,22 +171,22 @@ TQuadTree<CLASS_PARAM>::getNeighborAdjNode( Node* node )
 }
 
 TEMPLATE_PARAM
-template< class Fun >
-void TQuadTree<CLASS_PARAM>::visitNeighborNode( Node* node, Fun& fun )
+template< class TFunc >
+void TQuadTree<CLASS_PARAM>::visitNeighborNode( Node* node, TFunc& func )
 {
 	Node* p;
 
 	p = getNeighborAdjNode< NS_NORTH >( node );
-	if ( p ) visitNode< NS_SOUTH >( p ,fun );
+	if ( p ) visitNode< NS_SOUTH >( p ,func );
 
 	p = getNeighborAdjNode< NS_EAST >( node );
-	if ( p ) visitNode< NS_WEST >(  p ,fun );
+	if ( p ) visitNode< NS_WEST >(  p ,func );
 
 	p = getNeighborAdjNode< NS_SOUTH >( node );
-	if ( p ) visitNode< NS_NORTH >( p , fun );
+	if ( p ) visitNode< NS_NORTH >( p , func );
 
 	p = getNeighborAdjNode< NS_WEST >( node );
-	if ( p ) visitNode< NS_EAST >( p , fun );
+	if ( p ) visitNode< NS_EAST >( p , func );
 }
 
 

@@ -27,37 +27,37 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetScissorRect(x, y, w, h));
 	}
 
-	void RHIDrawPrimitive(RHICommandList& commandList, PrimitiveType type, int start, int nv)
+	void RHIDrawPrimitive(RHICommandList& commandList, EPrimitive type, int start, int nv)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitive(type, start, nv));
 	}
 
-	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex)
+	void RHIDrawIndexedPrimitive(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 baseVertex)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitive(type, indexStart, nIndex, baseVertex));
 	}
 
-	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
 	}
 
-	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
 	}
 
-	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
+	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveInstanced(type, vStart, nv, numInstance, baseInstance));
 	}
 
-	void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
+	void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveInstanced(type, indexStart, nIndex, numInstance, baseVertex , baseInstance));
 	}
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVertex, int vetexStride)
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride)
 	{
 		VertexDataInfo info;
 		info.ptr = pVertices;
@@ -66,12 +66,12 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertex, &info , 1 ));
 	}
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData)
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertex, dataInfos, numData));
 	}
 
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVertex, int vetexStride, int const* pIndices, int numIndex)
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, int const* pIndices, int numIndex)
 	{
 		VertexDataInfo info;
 		info.ptr = pVertices;
@@ -80,7 +80,7 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVertex, &info, 1, pIndices, numIndex));
 	}
 
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVerex, dataInfos, numVertexData, pIndices, numIndex));
 	}

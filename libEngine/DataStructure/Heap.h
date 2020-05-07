@@ -168,8 +168,8 @@ protected:
 			this->prev = otherPrev;
 		}
 
-		template< class Fun >
-		void visitList( Fun fun )
+		template< class TFunc >
+		void visitList( TFunc fun )
 		{
 			T* node = next;
 			while( node != this )

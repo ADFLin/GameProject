@@ -191,10 +191,10 @@ namespace RenderVulkan
 		{
 
 		}
-		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion)
+		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration)
 		{
 
-			
+			return false;
 		}
 		virtual double getCycleToSecond()
 		{
@@ -505,14 +505,15 @@ namespace RenderVulkan
 				{
 					if( availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR )
 					{
-						return availablePresentMode;
+						bestMode = availablePresentMode;
+						break;
 					}
 					else if( availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR )
 					{
 						bestMode = availablePresentMode;
 					}
 				}
-				return VK_PRESENT_MODE_FIFO_KHR;
+				return bestMode;
 			};
 
 			auto ChooseSwapExtent = [](const VkSurfaceCapabilitiesKHR& capabilities) -> VkExtent2D
@@ -615,8 +616,7 @@ namespace RenderVulkan
 
 		void cleanupWindowSwapchain()
 		{
-
-			if( mSwapChainFramebuffers.empty() )
+			if( !mSwapChainFramebuffers.empty() )
 			{
 				for( auto buffer : mSwapChainFramebuffers )
 				{
@@ -624,7 +624,6 @@ namespace RenderVulkan
 				}
 				mSwapChainFramebuffers.clear();
 			}
-			mSwapChainImages.clear();
 
 			if( !mSwapChainImageViews.empty() )
 			{
@@ -634,6 +633,7 @@ namespace RenderVulkan
 				}
 				mSwapChainImageViews.clear();
 			}
+			mSwapChainImages.clear();
 
 			SAFE_VK_DESTROY(mSwapChain, vkDestroySwapchainKHR(mDevice, mSwapChain, gAllocCB));
 		}

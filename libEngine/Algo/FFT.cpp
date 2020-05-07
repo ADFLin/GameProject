@@ -348,12 +348,12 @@ void FFT::Transform(float data[], int numData, Complex outData[])
 		context.factors.resize(numData);
 		context.reverseIndices.resize(numData);
 		context.sampleSize = numData;
-		uint32 count = BitUtility::CountTrailingZeros(numData);
-		uint32 offset = 32 - BitUtility::CountTrailingZeros(numData);
+		uint32 count = FBitUtility::CountTrailingZeros(numData);
+		uint32 offset = 32 - FBitUtility::CountTrailingZeros(numData);
 		for( int i = 0; i < numData; ++i )
 		{
 			context.factors[i] = Complex::Expi(-2 * Math::PI * i / numData);
-			context.reverseIndices[i] = BitUtility::Reverse(uint32(i)) >> offset;
+			context.reverseIndices[i] = FBitUtility::Reverse(uint32(i)) >> offset;
 		}
 
 		for( uint32 i = 0; i < numData; ++i )

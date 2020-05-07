@@ -529,9 +529,10 @@ namespace Go
 		}
 
 
-		bool playStone(int x, int y, int color) override
+		EBotExecResult playStone(int x, int y, int color) override
 		{
 
+			return BOT_FAIL;
 		}
 
 		bool playPass(int color) override

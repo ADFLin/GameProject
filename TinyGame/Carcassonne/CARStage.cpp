@@ -580,8 +580,8 @@ namespace CAR
 					int indexPrev = i;
 					while( mask )
 					{
-						unsigned bit = FBit::Extract( mask );
-						int idx = FBit::ToIndex8( bit );
+						unsigned bit = FBitUtility::ExtractTrailingBit( mask );
+						int idx = FBitUtility::ToIndex8( bit );
 						RenderUtility::SetPen( g , color , COLOR_DEEP );
 						g.drawLine( convertToScreenPos( mapPos + FarmPos[indexPrev] ) , convertToScreenPos( mapPos + FarmPos[idx] ) );
 						mask &= ~bit;
@@ -631,8 +631,8 @@ namespace CAR
 						unsigned mask = mapTile->getSideLinkMask(dir) & ~((BIT(i + 1) - 1));
 						while( mask )
 						{
-							unsigned bit = FBit::Extract(mask);
-							int idx = FBit::ToIndex4(bit);
+							unsigned bit = FBitUtility::ExtractTrailingBit(mask);
+							int idx = FBitUtility::ToIndex4(bit);
 							RenderUtility::SetPen(g, color, COLOR_LIGHT);
 							g.drawLine(convertToScreenPos(mapPos + SidePos[dir]),
 									   convertToScreenPos(mapPos + SidePos[idx]));
@@ -644,8 +644,8 @@ namespace CAR
 						unsigned mask = tile.getSideLinkMask(i) & ~((BIT(i + 1) - 1));
 						while( mask )
 						{
-							unsigned bit = FBit::Extract(mask);
-							int idx = FBit::ToIndex4(bit);
+							unsigned bit = FBitUtility::ExtractTrailingBit(mask);
+							int idx = FBitUtility::ToIndex4(bit);
 							RenderUtility::SetPen(g, color, COLOR_LIGHT);
 							g.drawLine(convertToScreenPos(mapPos + SidePos[dir]),
 									   convertToScreenPos(mapPos + SidePos[FDir::ToWorld(idx, rotation)]));

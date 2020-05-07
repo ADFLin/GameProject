@@ -40,7 +40,7 @@ bool CalcFrequencySpectrum(SoundWave& sound, float t, int samplesToRead, int num
 	if( samplesToRead <= 0 )
 		return false;
 
-	int pot = BitUtility::NextNumberOfPow2(samplesToRead);
+	int pot = FBitUtility::NextNumberOfPow2(samplesToRead);
 	firstSample = Math::Max(0, firstSample - (pot - samplesToRead) / 2);
 	samplesToRead = pot;
 	lastSample = firstSample + samplesToRead;
@@ -362,8 +362,8 @@ static bool WriteWaveFile(IMFSourceReader *pReader, WaveFormatInfo& outWaveForma
 		CoTaskMemFree(pWavFormat);
 	}
 
-	int64 durtion = GetSourceDuration(pReader);
-	int64 dataSize = outWaveFormat.byteRate * durtion;
+	int64 duration = GetSourceDuration(pReader);
+	int64 dataSize = outWaveFormat.byteRate * duration;
 	LogMsg("%lld", dataSize);
 
 	{
@@ -467,8 +467,8 @@ public:
 			CoTaskMemFree(pWavFormat);
 		}
 
-		int64 durtion = GetSourceDuration(mSourceReader);
-		mTotalSampleNum = mWaveFormat.sampleRate * durtion  / 10000000;
+		int64 duration = GetSourceDuration(mSourceReader);
+		mTotalSampleNum = mWaveFormat.sampleRate * duration  / 10000000;
 
 		return true;
 	}
@@ -856,7 +856,7 @@ void AudioTestStage::onUpdate(long time)
 		double timePos = double(soundInstance->samplesPlayed) / format.sampleRate;
 
 		//LogMsg("%lld", soundInstance->samplesPlayed);
-		mTimeWidget->setValue(timePos / soundInstance->soundwave->getDurtion() * (mTimeWidget->getMaxValue() - mTimeWidget->getMinValue()));
+		mTimeWidget->setValue(timePos / soundInstance->soundwave->getDuration() * (mTimeWidget->getMaxValue() - mTimeWidget->getMinValue()));
 
 		if( CalcFrequencySpectrum(*soundInstance->soundwave, timePos, 1024 * 4, mNumFreqGroup, mFreqValues) )
 		{

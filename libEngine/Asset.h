@@ -38,6 +38,7 @@ public:
 	Win32FileModifyMonitor()
 	{
 		mhIOCP = NULL;
+		mLastError = NO_ERROR;
 	}
 	bool init();
 	void cleanup();

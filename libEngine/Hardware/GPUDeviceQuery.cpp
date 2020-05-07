@@ -420,7 +420,7 @@ public:
 		if( mDllHandle == nullptr )
 			return false;
 
-		if( !getFunAddress("nvapi_QueryInterface", nvapi_QueryInterface) )
+		if( !getFuncAddress("nvapi_QueryInterface", nvapi_QueryInterface) )
 			return false;
 
 #define QUERY_INTERFACE( NAME )\
@@ -479,17 +479,17 @@ public:
 		return true;
 	}
 
-	template< class Fun >
-	bool getFunAddress(char const* name, Fun& fun)
+	template< class TFunc >
+	bool getFuncAddress(char const* name, TFunc& func)
 	{
-		fun = (Fun) ::GetProcAddress(mDllHandle, name);
-		return fun != nullptr;
+		func = (TFunc) ::GetProcAddress(mDllHandle, name);
+		return func != nullptr;
 	}
-	template< class Fun >
-	bool queryInterface(unsigned int interfaceId, Fun& fun)
+	template< class TFunc >
+	bool queryInterface(unsigned int interfaceId, TFunc& func)
 	{
-		fun = (Fun)nvapi_QueryInterface(interfaceId);
-		return fun != nullptr;
+		func = (TFunc)nvapi_QueryInterface(interfaceId);
+		return func != nullptr;
 	}
 
 	void* (*nvapi_QueryInterface)(unsigned int uiInterfaceID);

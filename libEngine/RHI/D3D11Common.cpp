@@ -3,20 +3,20 @@
 
 namespace Render
 {
-	D3D_PRIMITIVE_TOPOLOGY D3D11Translate::To(PrimitiveType type)
+	D3D_PRIMITIVE_TOPOLOGY D3D11Translate::To(EPrimitive type)
 	{
 		switch( type )
 		{
-		case PrimitiveType::Points: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-		case PrimitiveType::TriangleList: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		case PrimitiveType::TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-		case PrimitiveType::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-		case PrimitiveType::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-		case PrimitiveType::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-		case PrimitiveType::Patchs: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
-		case PrimitiveType::TriangleFan:
-		case PrimitiveType::LineLoop:
-		case PrimitiveType::Quad:
+		case EPrimitive::Points: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+		case EPrimitive::TriangleList: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case EPrimitive::TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		case EPrimitive::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		case EPrimitive::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+		case EPrimitive::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+		case EPrimitive::Patchs: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+		case EPrimitive::TriangleFan:
+		case EPrimitive::LineLoop:
+		case EPrimitive::Quad:
 
 		default:
 			LogWarning(0, "D3D11 No Support Primitive %d", (int)type);
@@ -235,18 +235,18 @@ namespace Render
 		return D3D11_TEXTURE_ADDRESS_WRAP;
 	}
 
-	D3D11_COMPARISON_FUNC D3D11Translate::To(ECompareFun func)
+	D3D11_COMPARISON_FUNC D3D11Translate::To(ECompareFunc func)
 	{
 		switch( func )
 		{
-		case ECompareFun::Never:        return D3D11_COMPARISON_NEVER;
-		case ECompareFun::Less:         return D3D11_COMPARISON_LESS;
-		case ECompareFun::Equal:        return D3D11_COMPARISON_EQUAL;
-		case ECompareFun::NotEqual:     return D3D11_COMPARISON_NOT_EQUAL;
-		case ECompareFun::LessEqual:    return D3D11_COMPARISON_LESS_EQUAL;
-		case ECompareFun::Greater:      return D3D11_COMPARISON_GREATER;
-		case ECompareFun::GeraterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
-		case ECompareFun::Always:       return D3D11_COMPARISON_ALWAYS;
+		case ECompareFunc::Never:        return D3D11_COMPARISON_NEVER;
+		case ECompareFunc::Less:         return D3D11_COMPARISON_LESS;
+		case ECompareFunc::Equal:        return D3D11_COMPARISON_EQUAL;
+		case ECompareFunc::NotEqual:     return D3D11_COMPARISON_NOT_EQUAL;
+		case ECompareFunc::LessEqual:    return D3D11_COMPARISON_LESS_EQUAL;
+		case ECompareFunc::Greater:      return D3D11_COMPARISON_GREATER;
+		case ECompareFunc::GeraterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
+		case ECompareFunc::Always:       return D3D11_COMPARISON_ALWAYS;
 		}
 		return D3D11_COMPARISON_NEVER;
 	}

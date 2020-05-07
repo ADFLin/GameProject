@@ -49,8 +49,8 @@ class PASet
 {
 public:
 	void clear(){ mNumberBit = 0; }
-	int  getNumber(){ assert( size() == 1 ); return BitUtility::CountLeadingZeros(mNumberBit); }
-	int  size(){ return BitUtility::CountSet( mNumberBit ); }
+	int  getNumber(){ assert( size() == 1 ); return FBitUtility::CountLeadingZeros(mNumberBit); }
+	int  size(){ return FBitUtility::CountSet( mNumberBit ); }
 	void add( int number ){ mNumberBit |= BIT( number ); }
 	void sub( int number ){ mNumberBit &= ~BIT( number ); }
 

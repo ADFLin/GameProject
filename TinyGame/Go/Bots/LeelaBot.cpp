@@ -636,7 +636,7 @@ namespace Go
 #else
 		setting.bNoise = ::Global::GameConfig().getIntValue("bNoise", "LeelaZeroSetting", 0);
 		setting.bDumbPass = ::Global::GameConfig().getIntValue("bDumbPass", "LeelaZeroSetting", 0);
-		setting.numThread = ::Global::GameConfig().getIntValue("numThread", "LeelaZeroSetting", 7);
+		setting.numThread = ::Global::GameConfig().getIntValue("numThread", "LeelaZeroSetting", Math::Min(8,SystemPlatform::GetProcessorNumber()));
 		setting.visits = ::Global::GameConfig().getIntValue("visits", "LeelaZeroSetting", 20000);
 		setting.playouts = ::Global::GameConfig().getIntValue("playouts", "LeelaZeroSetting", 0);
 #endif

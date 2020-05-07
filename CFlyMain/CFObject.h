@@ -62,7 +62,7 @@ namespace CFly
 
 		int createMesh(
 			Material* mat , 
-			PrimitiveType primitive , 
+			EPrimitive primitive , 
 			MeshBase* shapeVertexShared ,
 			int* idx = nullptr , int numIdx = 0 );
 

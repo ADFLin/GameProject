@@ -229,7 +229,7 @@ class Color4f : public TColor4< float >
 {
 	using Vector3 = Math::Vector3;
 	using Vector4 = Math::Vector4;
-
+	using CET = TColorElementTraits<float>;
 public:
 	using TColor4<float>::TColor4;
 

@@ -117,6 +117,18 @@ namespace FlowFree
 		"a b b"
 	};
 
+	LevelData Level7 = { 9 , 9 , EBoundType::Close ,
+		"- - - a - - - - -"
+		"- - b - - a - - -"
+		"- - - - # # b - c"
+		"- - - d - - - - -"
+		"- - - - - - - - -"
+		"- - # # - - - - -"
+		"- - # # - c d - -"
+		"- - - - - - - - -"
+		"- - - - - - - - -"
+	};
+
 	void ReadLevel(Level& level, char const* mapData )
 	{
 		int index = 0;
@@ -125,19 +137,23 @@ namespace FlowFree
 			char c = *mapData;
 			if ( c == ' ' )
 			{
-
+				--index;
 			}
 			else if (c == '-')
 			{
-				++index;
+
+			}
+			else if (c == '#')
+			{
+				level.setCellFunc(Vec2i(index % level.getSize().x, index / level.getSize().x), CellFunc::Block);
 			}
 			else
 			{
 				int color = c - 'a' + 1;
 				level.addSource(Vec2i(index % level.getSize().x, index / level.getSize().x), color);
-				++index;
 			}
 
+			++index;
 			++mapData;
 		}
 	}
@@ -261,14 +277,14 @@ namespace FlowFree
 		mLevel.addSource(Vec2i(3, 3), Vec2i(4, 0), EColor::Yellow);
 		mLevel.addSource(Vec2i(3, 4), Vec2i(4, 1), EColor::Orange);
 #else
-		LoadLevel(mLevel, Level15_1);
+		LoadLevel(mLevel, Level7);
 #endif
 
 #if 0
 		mSolver.setup(mLevel);
 		mSolver.solve();
 #else
-		//mSolver2.solve(mLevel);
+		mSolver2.solve(mLevel);
 #endif
 
 		int i = 1;
@@ -315,9 +331,9 @@ namespace FlowFree
 		};
 
 		bool bDrawSolveDebug = true;
-		if (bDrawSolveDebug && 
-			mSolver2.mSolution.getSizeX() == mLevel.getSize().x && 
-			mSolver2.mSolution.getSizeY() == mLevel.getSize().y)
+		if ( bDrawSolveDebug && 
+			 mSolver2.mSolution.getSizeX() == mLevel.getSize().x && 
+			 mSolver2.mSolution.getSizeY() == mLevel.getSize().y)
 		{
 			for (int i = 0; i < size.x; ++i)
 			{
@@ -326,6 +342,9 @@ namespace FlowFree
 					Vec2i cellPos = Vec2i(i, j);
 					int cellIndex = mLevel.mCellMap.toIndex(i, j);
 					Cell const& cell = mLevel.getCellChecked(Vec2i(i, j));
+
+					if (cell.func == CellFunc::Block )
+						continue;
 
 					Vec2i posCellLT = ScreenOffset + CellLength * Vec2i(i, j);
 #if 0

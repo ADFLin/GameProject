@@ -57,6 +57,8 @@ namespace Render
 
 		static CORE_API ShaderManager& Get();
 
+		bool initialize(ShaderFormat& shaderFormat);
+
 		void setBaseDir(char const* dir){  mBaseDir = dir;  }
 		void clearnupRHIResouse();
 

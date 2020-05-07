@@ -201,12 +201,12 @@ namespace Render
 		if( bMultiple )
 		{
 			//glDepthFunc(GL_EQUAL);
-			RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFun::Equal >::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFunc::Equal >::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			RenderContext context(commandList, view, *this);
 			scene.render(context);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-			RHISetDepthStencilState(commandList, TStaticDepthStencilState< true, ECompareFun::Less >::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState< true, ECompareFunc::Less >::GetRHI());
 			//glDepthFunc(GL_LESS);
 		}
 		else
@@ -697,8 +697,8 @@ namespace Render
 					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Back >::GetRHI());
 					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState<
-							bWriteDepth, ECompareFun::Greater,
-							bEnableStencilTest, ECompareFun::Always,
+							bWriteDepth, ECompareFunc::Greater,
+							bEnableStencilTest, ECompareFunc::Always,
 							Stencil::eKeep, Stencil::eKeep, Stencil::eDecr, 0x0 
 						>::GetRHI(), 0x0);
 
@@ -713,8 +713,8 @@ namespace Render
 				{
 					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState<
-							bWriteDepth, ECompareFun::Always,
-							bEnableStencilTest, ECompareFun::Equal,
+							bWriteDepth, ECompareFunc::Always,
+							bEnableStencilTest, ECompareFunc::Equal,
 							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
 						>::GetRHI(), 0x1);
 				}
@@ -722,8 +722,8 @@ namespace Render
 				{
 					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState<
-							bWriteDepth, ECompareFun::GeraterEqual,
-							bEnableStencilTest, ECompareFun::Equal,
+							bWriteDepth, ECompareFunc::GeraterEqual,
+							bEnableStencilTest, ECompareFunc::Equal,
 							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
 						>::GetRHI(), 0x1);
 				}
@@ -732,12 +732,12 @@ namespace Render
 			{
 				if( debugMode == DebugMode::eShowVolume )
 				{
-					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFun::Always >::GetRHI());
+					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFunc::Always >::GetRHI());
 
 				}
 				else
 				{
-					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFun::GeraterEqual >::GetRHI());
+					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFunc::GeraterEqual >::GetRHI());
 				}
 			}
 
@@ -1411,8 +1411,8 @@ namespace Render
 
 			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState< 
-					bWriteDepth , ECompareFun::Less , 
-					true , ECompareFun::Always , Stencil::eKeep , Stencil::eKeep , Stencil::eIncr , 0xff
+					bWriteDepth , ECompareFunc::Less , 
+					true , ECompareFunc::Always , Stencil::eKeep , Stencil::eKeep , Stencil::eIncr , 0xff
 				>::GetRHI(), 0 );
 
 		}
@@ -1455,8 +1455,8 @@ namespace Render
 				{
 					GPU_PROFILE("BMA=%d", BMA_MaxPixelCounts[i]);
 					RHISetDepthStencilState(commandList,
-						TStaticDepthStencilState< bWriteDepth, ECompareFun::Always ,
-							true , ECompareFun::LessEqual , Stencil::eKeep , Stencil::eZero , Stencil::eZero , 0xff 
+						TStaticDepthStencilState< bWriteDepth, ECompareFunc::Always ,
+							true , ECompareFunc::LessEqual , Stencil::eKeep , Stencil::eZero , Stencil::eZero , 0xff 
 						>::GetRHI() , BMA_InternalValMin[i]);
 
 					BMAResolveProgram* shaderprogram = mShaderBMAResolves[i];
@@ -1468,7 +1468,7 @@ namespace Render
 			}
 			else
 			{
-				RHISetDepthStencilState(commandList, TStaticDepthStencilState< bWriteDepth , ECompareFun::Always >::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState< bWriteDepth , ECompareFunc::Always >::GetRHI());
 
 				BMAResolveProgram* shaderprogram = mShaderBMAResolves[0];
 				RHISetShaderProgram(commandList, shaderprogram->getRHIResource());

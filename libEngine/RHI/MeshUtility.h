@@ -54,13 +54,10 @@ namespace Render
 
 	struct VertexElementReader
 	{
-		Vector3 const& get(int idx) const
+		template< class T = Vector3 >
+		T const& get(int idx) const
 		{
-			return *(Vector3 const*)(pVertexData + idx * vertexDataStride);
-		}
-		Vector2 const& getV2(int idx) const
-		{
-			return *(Vector2 const*)(pVertexData + idx * vertexDataStride);
+			return *(T const*)(pVertexData + idx * vertexDataStride);
 		}
 		int32  getNum() const { return numVertex; }
 		uint8 const* pVertexData;
@@ -100,8 +97,8 @@ namespace Render
 
 
 		void setupColorOverride(LinearColor const& color);
-		void drawWithColorInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
-		void drawInternal(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
+		void drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
+		void drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
 
 		VertexElementReader makePositionReader(uint8 const* pData)
 		{
@@ -129,7 +126,7 @@ namespace Render
 		bool save(IStreamSerializer& serializer);
 		bool load(IStreamSerializer& serializer);
 
-		PrimitiveType       mType;
+		EPrimitive          mType;
 		InputLayoutDesc     mInputLayoutDesc;
 		RHIInputLayoutRef   mInputLayout;
 		RHIInputLayoutRef   mInputLayoutOverwriteColor;
@@ -214,7 +211,7 @@ namespace Render
 	{
 	public:
 		static void CalcAABB(VertexElementReader const& positionReader, Vector3& outMin, Vector3& outMax);
-		static int* ConvertToTriangleList(PrimitiveType type, void* pIndexData, int numIndices ,bool bIntType, std::vector< int >& outConvertBuffer, int& outNumTriangles);
+		static int* ConvertToTriangleList(EPrimitive type, void* pIndexData, int numIndices ,bool bIntType, std::vector< int >& outConvertBuffer, int& outNumTriangles);
 		static bool BuildDistanceField(Mesh& mesh, DistanceFieldBuildSetting const& setting , DistanceFieldData& outResult);
 		static bool BuildDistanceField(VertexElementReader const& positionReader, int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
 

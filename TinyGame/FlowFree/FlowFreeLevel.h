@@ -136,12 +136,20 @@ namespace FlowFree
 			mSourceLocations.push_back(posB);
 		}
 
-		void setCellFunc(Vec2i const& posA, CellFunc func)
+		void setCellFunc(Vec2i const& pos, CellFunc func)
 		{
 			assert(func != CellFunc::Source);
-			Cell& cell = getCellChecked(posA);
+			Cell& cell = getCellChecked(pos);
 			cell.func = func;
 			cell.funcMeta = 0;
+
+			if (func == CellFunc::Block)
+			{
+				for (int dir = 0; dir < DirCount; ++dir)
+				{
+					setCellBlocked(pos, dir);
+				}
+			}
 		}
 
 		void setCellBlocked(Vec2i const& pos, int dir)

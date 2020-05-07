@@ -105,12 +105,12 @@ public:
 	TINY_API static unsigned WriteBuffer( SocketBuffer& buffer , IComPacket* cp );
 	TINY_API static bool     ReadBuffer( SocketBuffer& buffer , IComPacket* cp );
 
-	template< class GamePacket , class T , class Fun >
-	bool setWorkerFun( T* processer, Fun fun , Fun funSocket );
-	template< class GamePacket , class T , class Fun >
-	bool setWorkerFun( T* processer, Fun fun , void* );
-	template< class GamePacket , class T , class Fun >
-	bool setUserFun( T* processer , Fun fun );
+	template< class GamePacket , class T , class TFun >
+	bool setWorkerFun( T* processer, TFun func, TFun funSocket );
+	template< class GamePacket , class T , class TFun >
+	bool setWorkerFun( T* processer, TFun func, void* );
+	template< class GamePacket , class T , class TFun >
+	bool setUserFun( T* processer , TFun func);
 
 	TINY_API void  removeProcesserFun( void* processer );
 	TINY_API void  procCommand( ComVisitor& visitor );
@@ -162,8 +162,8 @@ private:
 };
 
 
-template< class GamePacket , class T , class Fun >
-bool ComEvaluator::setUserFun( T* processer , Fun fun )
+template< class GamePacket , class T , class TFun >
+bool ComEvaluator::setUserFun( T* processer , TFun func)
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
@@ -172,14 +172,14 @@ bool ComEvaluator::setUserFun( T* processer , Fun fun )
 
 	factory->userProcesser = processer;
 
-	if ( fun )
-		factory->userFun.bind( processer , fun );
+	if (func)
+		factory->userFun.bind( processer , func);
 
 	return true;
 }
 
-template< class GamePacket , class T , class Fun >
-bool ComEvaluator::setWorkerFun( T* processer, Fun fun , void* )
+template< class GamePacket , class T , class TFun >
+bool ComEvaluator::setWorkerFun( T* processer, TFun func, void* )
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
@@ -188,13 +188,13 @@ bool ComEvaluator::setWorkerFun( T* processer, Fun fun , void* )
 
 	factory->workerProcesser = processer;
 
-	if ( fun )
-		factory->workerFun.bind( processer , fun );
+	if (func)
+		factory->workerFun.bind( processer , func);
 	return true;
 }
 
-template< class GamePacket , class T , class Fun >
-bool ComEvaluator::setWorkerFun( T* processer, Fun fun , Fun funSocket )
+template< class GamePacket , class T , class TFun >
+bool ComEvaluator::setWorkerFun( T* processer, TFun func, TFun funSocket )
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
@@ -203,8 +203,8 @@ bool ComEvaluator::setWorkerFun( T* processer, Fun fun , Fun funSocket )
 
 	factory->workerProcesser = processer;
 
-	if ( fun )
-		factory->workerFun.bind( processer , fun );
+	if (func)
+		factory->workerFun.bind( processer , func);
 
 	if ( funSocket )
 		factory->workerFunSocket.bind( processer , funSocket );

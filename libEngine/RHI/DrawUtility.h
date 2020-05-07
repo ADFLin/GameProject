@@ -129,7 +129,7 @@ namespace Render
 	class TRenderRT
 	{
 	public:
-		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer& buffer , int numVertex, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer& buffer , int numVertex, int vertexStride = GetVertexSize())
 		{
 			InputStreamInfo inputStream;
 			inputStream.buffer = &buffer;
@@ -139,20 +139,20 @@ namespace Render
 			RHIDrawPrimitive(commandList, type, 0, numVertex);
 		}
 
-		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, int vertexStride = GetVertexSize())
 		{
 			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
 			RHIDrawPrimitiveUP(commandList, type, vetrices , numVertex, vertexStride);
 		}
 
 
-		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, int const* indices, int nIndex, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
 			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
 			RHIDrawIndexedPrimitiveUP(commandList, type, vetrices, numVertex, vertexStride , indices , nIndex );
 		}
 
-		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, LinearColor const& color, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
 			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat , RTVF_CA >::GetRHI(), nullptr, 0);
 			VertexDataInfo infos[2];
@@ -165,7 +165,7 @@ namespace Render
 			RHIDrawPrimitiveUP(commandList, type, numVertex, infos , 2 );
 		}
 
-		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, int const* indices, int nIndex, LinearColor const& color, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, int const* indices, int nIndex, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
 			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat, RTVF_CA >::GetRHI(), nullptr, 0);
 			VertexDataInfo infos[2];
@@ -190,6 +190,12 @@ namespace Render
 #undef USE_SEMANTIC
 
 
+	enum EScreenRenderMethod : uint8
+	{
+		Rect ,
+		OptimisedTriangle ,
+	};
+
 	class DrawUtility
 	{
 	public:
@@ -203,7 +209,7 @@ namespace Render
 		static void Rect(RHICommandList& commandList, int x , int y , int width, int height);
 		static void Rect(RHICommandList& commandList, int x, int y, int width, int height, LinearColor const& color);
 		static void Rect(RHICommandList& commandList, int width, int height);
-		static void ScreenRect(RHICommandList& commandList);
+		static void ScreenRect(RHICommandList& commandList, EScreenRenderMethod method = EScreenRenderMethod::Rect );
 		static void ScreenRect(RHICommandList& commandList, int with, int height);
 
 		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);

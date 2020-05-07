@@ -15,6 +15,7 @@
 
 #include <vector>
 #include "StdUtility.h"
+#include "BitUtility.h"
 
 namespace CAR
 {
@@ -37,48 +38,6 @@ namespace CAR
 			   min.y <= pos.y && pos.y <= max.y;
 	}
 
-	struct FBit
-	{
-		static unsigned Extract( unsigned bits ){ return bits & ~( bits - 1 );} 
-		static int ToIndex4( unsigned bit );
-		static int ToIndex8( unsigned bit );
-		static int ToIndex32( unsigned bit );
-#if TARGET_PLATFORM_64BITS
-		static int ToIndex64( unsigned bit );
-#endif
-		static unsigned RotateRight(unsigned bits, unsigned offset, unsigned numBit);
-		static unsigned RotateLeft( unsigned bits , unsigned offset , unsigned numBit );
-
-		template< unsigned NumBits >
-		static int ToIndex( unsigned bit )
-		{ 
-#if TARGET_PLATFORM_64BITS
-			if( NumBits > 32 )
-				return ToIndex64(bit);
-			else
-				return ToIndex32(bit);
-#else
-			return ToIndex32( bit ); 
-#endif
-		}
-		template<>
-		static int ToIndex<4>( unsigned bit ){ return ToIndex4( bit ); }
-		template<>
-		static int ToIndex<8>( unsigned bit ){ return ToIndex8( bit ); }
-
-		template< unsigned NumBits >
-		static bool MaskIterator( unsigned& mask , int& index )
-		{
-			if ( mask == 0 )
-				return false;
-			unsigned bit = FBit::Extract( mask );
-			index = FBit::ToIndex< NumBits >( bit );
-			mask &= ~bit;
-			return true;
-		}
-
-	};
-
 	template< unsigned NumBits >
 	struct TBitMaskIterator
 	{
@@ -93,7 +52,7 @@ namespace CAR
 		}
 		operator bool()
 		{ 
-			return FBit::MaskIterator< NumBits >(mask, index);
+			return FBitUtility::MaskIterator< NumBits >(mask, index);
 		}
 		void operator ++(int) {}
 		void operator ++(){}

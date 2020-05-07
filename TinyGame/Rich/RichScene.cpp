@@ -198,7 +198,7 @@ namespace Rich
 		virtual bool update( long time )
 		{
 			curTime += time;
-			if ( curTime > durtion )
+			if ( curTime > duration )
 				return false;
 			return true;
 		}
@@ -220,14 +220,14 @@ namespace Rich
 			g.drawRoundRect( pos , Vec2i( 80 , 80 ) , Vec2i( 10 , 10 ) );
 			g.setTextColor(Color3ub(0 , 0 , 0) );
 			FixString< 32 > str;
-			if ( curTime < durtion / 2 )
+			if ( curTime < duration / 2 )
 				str.format( "%d" , ::Global::Random() % 6 + 1 );
 			else
 				str.format( "%d" , value );
 			g.drawText( pos , Vec2i( 80 , 80 ) , str );
 		}
 		long curTime;
-		long durtion;
+		long duration;
 		int  numDice;
 		int  value[ MAX_MOVE_POWER ];
 	};
@@ -235,7 +235,7 @@ namespace Rich
 	class ActorMoveAnimation : public Animation
 	{
 	public:
-		ActorMoveAnimation( ActorComp& actor , long durtion )
+		ActorMoveAnimation( ActorComp& actor , long duration )
 		{
 			comp = actor.getOwner()->getComponentT< ActorRenderComp >( COMP_RENDER );
 			comp->bUpdatePos = false;
@@ -243,7 +243,7 @@ namespace Rich
 			from = actor.getPrevPos();
 			dif  = actor.getPos() - actor.getPrevPos();
 			timeCur = 0;
-			timeTotal = durtion;
+			timeTotal = duration;
 		}
 		virtual bool update( long time )
 		{
@@ -291,7 +291,7 @@ namespace Rich
 		case MSG_THROW_DICE:
 			{
 				DiceAnimation* anim = new DiceAnimation;
-				anim->durtion = 1000;
+				anim->duration = 1000;
 				anim->numDice = msg.getParam<int>(0);
 				for( int i = 0 ; i < anim->numDice ; ++i )
 					anim->value[i] = msg.getParam<int*>(1)[i];

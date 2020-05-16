@@ -139,17 +139,17 @@ public:
 	{ 
 		return iterator(&m_hash[m_hashSize] , NULL ); 
 	}
-	template < class FindNodeFun >
-	inline iterator find_if( FindNodeFun fun )
+	template < class FindNodeFunc >
+	inline iterator find_if( FindNodeFunc func )
 	{
-		unsigned index = hash_value( fun.getState() );
+		unsigned index = hash_value( func.getState() );
 		index %= m_hashSize;
 
 		Node* node =  m_hash[index];
 
 		while ( node )
 		{
-			if ( fun( node->val ) )
+			if ( func( node->val ) )
 				return iterator( &m_hash[index] , node );
 			node = node->next;
 		}

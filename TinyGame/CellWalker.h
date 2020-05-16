@@ -31,13 +31,13 @@ public:
 		{
 		case 1: 
 			{
-				funNext = &CellWalker::getNext1;
+				funcNext = &CellWalker::getNext1;
 				idxWork[0] = ( dif.x != 0 ) ? 0 : ( ( dif.y != 0 ) ? 1 : 2 );
 			}
 			break;
 		case 2: 
 			{
-				funNext = &CellWalker::getNext2;
+				funcNext = &CellWalker::getNext2;
 				int idx = ( dif.x == 0 ) ? 0 : ( ( dif.y == 0 ) ? 1 : 2 );
 				idxWork[0] = ( idx + 1 ) % 3;
 				idxWork[1] = ( idx + 2 ) % 3;
@@ -46,7 +46,7 @@ public:
 			break;
 		case 3: 
 			{
-				funNext = &CellWalker::getNext3;
+				funcNext = &CellWalker::getNext3;
 
 				float slopeFactor[0] = dif.x / dif.z;
 				if ( slopeFactor[0] < 0 )
@@ -74,11 +74,11 @@ public:
 		return zeroCount;
 	}
 	bool  haveNext(){ return tpCur != tpTo; }
-	void  getNext() { (this->*funNext )(); }
+	void  getNext() { (this->*funcNext )(); }
 
 
 	typedef void ( CellWalker::*FunNext )();
-	FunNext funNext;
+	FunNext funcNext;
 
 	void  getNext1()
 	{

@@ -37,7 +37,7 @@ namespace AStar
 		void free(T* ptr);
 	};
 
-	template< class T , class CmpFun >
+	template< class T , class CmpFunc >
 	class QueuePolicy
 	{
 	public:
@@ -82,7 +82,7 @@ namespace AStar
 		bool isClose(){ return ( flag & eCLOSE ) != 0; }
 		bool isPath() { return ( flag & ePATH ) != 0; }
 
-		struct CmpFun
+		struct CmpFunc
 		{
 			template< class T >
 			bool operator()(T* a , T* b)
@@ -134,7 +134,7 @@ namespace AStar
 		using NodeType = Node;
 		using Allocator = AllocatePolicy< NodeType >;
 		using MapType = MapPolicy< NodeType* >;
-		using QueueType = QueuePolicy< NodeType*, typename NodeType::CmpFun >;
+		using QueueType = QueuePolicy< NodeType*, typename NodeType::CmpFunc >;
 		using ScoreType = typename NodeType::ScoreType;
 		using StateType = typename NodeType::StateType;
 

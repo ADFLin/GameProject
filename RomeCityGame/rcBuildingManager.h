@@ -18,14 +18,14 @@ struct LeafData
 	typedef std::list< rcBuilding* > BuildingList;
 	BuildingList buildList;
 
-	template < class Fun >
-	rcBuilding* visitBuilding( Fun& fun )
+	template < class TFunc >
+	rcBuilding* visitBuilding( TFunc& func )
 	{
 		for ( BuildingList::iterator iter = buildList.begin();
 			  iter != buildList.end(); ++iter )
 		{
 			rcBuilding* building = *iter;
-			if ( !fun( building ) )
+			if ( !func( building ) )
 				return building;
 		}
 		return NULL;

@@ -666,7 +666,7 @@ namespace TowerDefend
 		case AID_BT_TOWER_CIRCLE:
 			{
 				Bullet* bullet = new Bullet( 
-					Bullet::MoveFun( this , &Tower::bulletNormalMove ) );
+					Bullet::MoveFunc( this , &Tower::bulletNormalMove ) );
 				if ( entity )
 				{
 					bullet->mTarget        = entity;
@@ -676,8 +676,8 @@ namespace TowerDefend
 				{
 					bullet->mLocationParam = pos;
 				}
-				bullet->setHitFun( 
-					Bullet::HitFun( this , &Tower::bulletNormalHit ));
+				bullet->setHitFunc( 
+					Bullet::HitFunc( this , &Tower::bulletNormalHit ));
 				bullet->setPos( getPos() );
 				getWorld()->getEntityMgr().addEntity( bullet );
 			}
@@ -815,11 +815,11 @@ namespace TowerDefend
 
 	void Bullet::onTick()
 	{
-		if ( !mMoveFun( *this ) )
+		if ( !mMoveFunc( *this ) )
 		{
-			if ( mHitFun )
+			if ( mHitFunc )
 			{
-				mHitFun( *this );
+				mHitFunc( *this );
 			}
 			destroy();
 		}

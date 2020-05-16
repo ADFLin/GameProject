@@ -168,7 +168,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		return false;
 	}
 
-	typedef Easing::OQuart EasingFun;
+	typedef Easing::OQuart EasingFunc;
 
 	long const timeUIAnim = 1000;
 
@@ -187,7 +187,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 			mPlayerPanel->show(true);
 			Vec2i from = Vec2i(-mPlayerPanel->getSize().x, panelPos.y);
 			mPlayerPanel->setPos(Vec2i(-mPlayerPanel->getSize().x, panelPos.y));
-			::Global::GUI().addMotion< EasingFun >(mPlayerPanel, from, panelPos, timeUIAnim);
+			::Global::GUI().addMotion< EasingFunc >(mPlayerPanel, from, panelPos, timeUIAnim);
 		}
 		else
 		{
@@ -221,7 +221,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		{
 			mSettingPanel->show(true);
 			Vec2i from = Vec2i(Global::GetDrawEngine().getScreenWidth(), pos.y);
-			::Global::GUI().addMotion< EasingFun >(mSettingPanel, from, pos, timeUIAnim);
+			::Global::GUI().addMotion< EasingFunc >(mSettingPanel, from, pos, timeUIAnim);
 		}
 		else
 		{
@@ -242,7 +242,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		{
 			mMsgPanel->show(true);
 			Vec2i from = Vec2i(-mMsgPanel->getSize().x, pos.y);
-			::Global::GUI().addMotion< EasingFun >(mMsgPanel, from, pos, timeUIAnim);
+			::Global::GUI().addMotion< EasingFunc >(mMsgPanel, from, pos, timeUIAnim);
 		}
 		else
 		{
@@ -270,7 +270,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 
 		{
 			Vec2i from = Vec2i(Global::GetDrawEngine().getScreenWidth(), btnPos.y);
-			::Global::GUI().addMotion< EasingFun >(button, from, btnPos, timeUIAnim);
+			::Global::GUI().addMotion< EasingFunc >(button, from, btnPos, timeUIAnim);
 		}
 
 		button->setFontType(FONT_S10);
@@ -285,36 +285,36 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		mExitButton = button;
 		{
 			Vec2i from = Vec2i(Global::GetDrawEngine().getScreenWidth(), btnPos.y);
-			::Global::GUI().addMotion< EasingFun >(button, from, btnPos, timeUIAnim);
+			::Global::GUI().addMotion< EasingFunc >(button, from, btnPos, timeUIAnim);
 		}
 	}
 
 	return true;
 }
 
-void NetRoomStage::setupServerProcFun( ComEvaluator& evaluator )
+void NetRoomStage::setupServerProcFunc( ComEvaluator& evaluator )
 {
 
-#define DEFINE_CP_USER_FUN( Class , Func )\
-	evaluator.setUserFun< Class >( this , &NetRoomStage::Func );
+#define DEFINE_CP_USER_FUNC( Class , Func )\
+	evaluator.setUserFunc< Class >( this , &NetRoomStage::Func );
 
-	DEFINE_CP_USER_FUN( CSPPlayerState , procPlayerStateSv )
-#undef  DEFINE_CP_USER_FUN
+	DEFINE_CP_USER_FUNC( CSPPlayerState , procPlayerStateSv )
+#undef  DEFINE_CP_USER_FUNC
 
 }
 
-void NetRoomStage::setupWorkerProcFun( ComEvaluator& evaluator )
+void NetRoomStage::setupWorkerProcFunc( ComEvaluator& evaluator )
 {
 
-#define DEFINE_CP_USER_FUN( Class , Func )\
-	evaluator.setUserFun< Class >( this , &NetRoomStage::Func );
+#define DEFINE_CP_USER_FUNC( Class , Func )\
+	evaluator.setUserFunc< Class >( this , &NetRoomStage::Func );
 
-	DEFINE_CP_USER_FUN( CSPMsg         , procMsg )
-	DEFINE_CP_USER_FUN( CSPPlayerState , procPlayerState )
-	DEFINE_CP_USER_FUN( CSPRawData     , procRawData )
-	DEFINE_CP_USER_FUN( SPPlayerStatus , procPlayerStatus )
-	DEFINE_CP_USER_FUN( SPSlotState    , procSlotState )
-#undef  DEFINE_CP_USER_FUN
+	DEFINE_CP_USER_FUNC( CSPMsg         , procMsg )
+	DEFINE_CP_USER_FUNC( CSPPlayerState , procPlayerState )
+	DEFINE_CP_USER_FUNC( CSPRawData     , procRawData )
+	DEFINE_CP_USER_FUNC( SPPlayerStatus , procPlayerStatus )
+	DEFINE_CP_USER_FUNC( SPSlotState    , procSlotState )
+#undef  DEFINE_CP_USER_FUNC
 
 }
 
@@ -861,10 +861,10 @@ void NetStageData::initWorker( ComWorker* worker , ServerWorker* server /*= NULL
 
 void NetStageData::unregisterNetEvent( void* processor )
 {
-	mWorker->getEvaluator().removeProcesserFun( processor );
+	mWorker->getEvaluator().removeProcesserFunc( processor );
 	if ( mServer )
 	{
-		mServer->getEvaluator().removeProcesserFun( processor );
+		mServer->getEvaluator().removeProcesserFunc( processor );
 	}
 	else
 	{
@@ -874,10 +874,10 @@ void NetStageData::unregisterNetEvent( void* processor )
 
 void NetStageData::registerNetEvent()
 {
-	setupWorkerProcFun( mWorker->getEvaluator() );
+	setupWorkerProcFunc( mWorker->getEvaluator() );
 	if ( haveServer() )
 	{
-		setupServerProcFun( mServer->getEvaluator() );
+		setupServerProcFunc( mServer->getEvaluator() );
 	}
 	else
 	{
@@ -1105,28 +1105,28 @@ void NetLevelStageMode::tick()
 	actionProcessor.endAction();
 }
 
-void NetLevelStageMode::setupServerProcFun(ComEvaluator& evaluator)
+void NetLevelStageMode::setupServerProcFunc(ComEvaluator& evaluator)
 {
-#define DEFINE_CP_USER_FUN( Class , Func )\
-		evaluator.setUserFun< Class >( this , &NetLevelStageMode::Func );
+#define DEFINE_CP_USER_FUNC( Class , Func )\
+		evaluator.setUserFunc< Class >( this , &NetLevelStageMode::Func );
 
-	DEFINE_CP_USER_FUN(CSPPlayerState, procPlayerStateSv);
+	DEFINE_CP_USER_FUNC(CSPPlayerState, procPlayerStateSv);
 
-#undef  DEFINE_CP_USER_FUN
+#undef  DEFINE_CP_USER_FUNC
 }
 
-void NetLevelStageMode::setupWorkerProcFun(ComEvaluator& evaluator)
+void NetLevelStageMode::setupWorkerProcFunc(ComEvaluator& evaluator)
 {
-#define DEFINE_CP_USER_FUN( Class , Func )\
-		evaluator.setUserFun< Class >( this , &NetLevelStageMode::Func );
+#define DEFINE_CP_USER_FUNC( Class , Func )\
+		evaluator.setUserFunc< Class >( this , &NetLevelStageMode::Func );
 
-	DEFINE_CP_USER_FUN(CSPPlayerState, procPlayerState);
-	DEFINE_CP_USER_FUN(SPLevelInfo, procLevelInfo);
-	DEFINE_CP_USER_FUN(CSPMsg, procMsg);
-	DEFINE_CP_USER_FUN(SPNetControlRequest, procNetControlRequest);
+	DEFINE_CP_USER_FUNC(CSPPlayerState, procPlayerState);
+	DEFINE_CP_USER_FUNC(SPLevelInfo, procLevelInfo);
+	DEFINE_CP_USER_FUNC(CSPMsg, procMsg);
+	DEFINE_CP_USER_FUNC(SPNetControlRequest, procNetControlRequest);
 
 
-#undef  DEFINE_CP_USER_FUN
+#undef  DEFINE_CP_USER_FUNC
 }
 
 void NetLevelStageMode::procPlayerStateSv(IComPacket* cp)

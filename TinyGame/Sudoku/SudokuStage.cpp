@@ -59,8 +59,8 @@ public:
 		this->evalSimpleColourMethod(ToCellIndex(4,5));
 		
 
-		std::function< void() > fun = std::bind(&SudokuSolver::solveLogic, (SudokuSolver*)this);
-		Jumper.start( fun );
+		std::function< void() > func = std::bind(&SudokuSolver::solveLogic, (SudokuSolver*)this);
+		Jumper.start( func );
 	}
 
 	bool        bRelatedCell[NumberNum * NumberNum];

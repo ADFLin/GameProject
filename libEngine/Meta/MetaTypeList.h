@@ -2,6 +2,7 @@
 #define MetaTypeList_h__
 
 #include "MetaBase.h"
+#include "Select.h"
 
 namespace Meta
 {
@@ -54,7 +55,7 @@ namespace Meta
 		template< class TList , int N >
 		struct ListLenghImpl
 		{
-			typedef typename Select< 
+			typedef typename TSelect< 
 				IsSameType< typename TList::TypeValue  , NullType >::Result ,
 				Count< N > , ListLenghImpl< typename TList::Next, N + 1 >
 			>::ResultType ResultType;
@@ -65,7 +66,7 @@ namespace Meta
 		template< class TList , class T , int N >
 		struct ListFindImpl
 		{
-			typedef typename Select< 
+			typedef typename TSelect< 
 				IsSameType< typename TList::TypeValue  , T >::Result ,
 				TrueType , ListFindImpl< typename TList::Next, T , N + 1 >
 			>::ResultType ResultType;
@@ -73,7 +74,7 @@ namespace Meta
 			enum { Result = ResultType::Result };
 			enum 
 			{ 
-				Index  = SelectValue< 
+				Index  = TSelectValue< 
 				IsSameType< typename TList::TypeValue  , T >::Result  ,
 				N ,
 				ListFindImpl< typename TList::Next, T , N + 1 >::Index

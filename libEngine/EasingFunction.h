@@ -709,7 +709,7 @@ namespace Easing {
 
 
 	template< class TFunc >
-	struct CycleFun
+	struct TCycleFunc
 	{
 		template<class T>
 		T operator()( float t , T const& b, T const& c, float const& d ) 
@@ -718,13 +718,13 @@ namespace Easing {
 			return  TFunc()( d - t , b , c , d / 2 );
 		}
 	};
-	typedef CycleFun< Linear  > CLinear;
-	typedef CycleFun< IQuad   > CIQuad;
-	typedef CycleFun< OQuad   > COQuad;
-	typedef CycleFun< IOQuad  > CIOQuad;
-	typedef CycleFun< ICubic  > CICubic;
-	typedef CycleFun< OCubic  > COCubic;
-	typedef CycleFun< IOCubic > CIOCubic;
+	typedef TCycleFunc< Linear  > CLinear;
+	typedef TCycleFunc< IQuad   > CIQuad;
+	typedef TCycleFunc< OQuad   > COQuad;
+	typedef TCycleFunc< IOQuad  > CIOQuad;
+	typedef TCycleFunc< ICubic  > CICubic;
+	typedef TCycleFunc< OCubic  > COCubic;
+	typedef TCycleFunc< IOCubic > CIOCubic;
 	
 
 } //namespace Earsing

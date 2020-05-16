@@ -313,7 +313,7 @@ namespace BT
 	};
 
 	template < class T , T (*FUNC)() >
-	struct ConstFunRef
+	struct ConstFuncRef
 	{
 		typedef T          RetType;
 		typedef EmptyType  Context;
@@ -335,15 +335,15 @@ namespace BT
 
 
 	template< class T >
-	struct GlobalFunRef
+	struct GlobalFuncRef
 	{
-		typedef T            RetType;
-		typedef EmptyType    Context;
-		typedef GlobalFunRef RefHolder;
+		typedef T             RetType;
+		typedef EmptyType     Context;
+		typedef GlobalFuncRef RefHolder;
 		T operator()() const { return  (*mFunc)();  }
 
 		typedef T (*Func)();
-		GlobalFunRef(Func func):mFunc( Func ){}
+		GlobalFuncRef(Func func):mFunc( Func ){}
 		Func  mFunc;
 	};
 
@@ -357,7 +357,7 @@ namespace BT
 	};
 
 	template< class T >
-	struct ContextFunRef
+	struct ContextFuncRef
 	{
 		typedef T RetType;
 		typedef T (Context)();
@@ -379,15 +379,15 @@ namespace BT
 	};
 
 	template < class T , class Base >
-	struct ContextMemFunRef
+	struct ContextMemFuncRef
 	{
 		typedef T    RetType;
 		typedef Base Context;
-		typedef ContextMemFunRef RefHolder;
+		typedef ContextMemFuncRef RefHolder;
 		T operator()( Context* c ) const { return  (c->*mMemFunc)();  }
 
 		typedef T   (Base::*MemberFunc)();
-		ContextMemFunRef( MemberFunc func ):mMemFunc(func){}
+		ContextMemFuncRef( MemberFunc func ):mMemFunc(func){}
 		MemberFunc mMemFunc;
 	};
 

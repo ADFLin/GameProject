@@ -72,15 +72,15 @@ struct TEvent
 class EventCallBack
 {
 public:
-	template< class T , class Fun >
-	EventCallBack( T* ptr , Fun fun )
+	template< class T , class TFunc >
+	EventCallBack( T* ptr , TFunc func )
 	{
-		mCallback.bind( ptr , fun );
+		mCallback.bind( ptr , func );
 	}
-	template< class Fun >
-	EventCallBack( Fun fun )
+	template< class TFunc >
+	EventCallBack(TFunc func )
 	{
-		mCallback.bind( fun );
+		mCallback.bind( func );
 	}
 	EventCallBack(){}
 

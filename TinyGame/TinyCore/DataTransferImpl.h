@@ -12,11 +12,11 @@ class CTestDataTransfer : public IDataTransfer
 {
 public:
 	void sendData( int recvId , int dataId , void* data , int num );
-	void setRecvFun( RecvFun fun ){ mFun = fun; }
+	void setRecvFunc( RecvFunc func ){ mFunc = func; }
 	int                slotId;
 	CTestDataTransfer* conTransfer;
 private:
-	RecvFun            mFun;
+	RecvFunc            mFunc;
 };
 
 class CWorkerDataTransfer : public IDataTransfer
@@ -26,7 +26,7 @@ public:
 
 	virtual void sendTcpCommand( int recvId , IComPacket* cp );
 	void  sendData( int recvId , int dataId , void* data , int num );
-	void  setRecvFun( RecvFun fun ){  mFun = fun;  }
+	void  setRecvFunc( RecvFunc func ){  mFunc = func;  }
 
 	//
 	void  procPacket( IComPacket* cp );
@@ -34,7 +34,7 @@ public:
 	int        mSlotId;
 	GDPStream  mStream;
 	ComWorker* mWorker;
-	RecvFun    mFun;
+	RecvFunc   mFunc;
 };
 
 class CSVWorkerDataTransfer : public CWorkerDataTransfer

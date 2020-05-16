@@ -8,8 +8,8 @@ namespace ScopeExitSupport
 	struct TScopeGuard
 	{
 	public:
-		FORCEINLINE TScopeGuard(TFunc&& fun)
-			:mFun(std::forward<TFunc>(fun))
+		FORCEINLINE TScopeGuard(TFunc&& func)
+			:mFunc(std::forward<TFunc>(func))
 		{
 		}
 
@@ -17,18 +17,18 @@ namespace ScopeExitSupport
 
 		~TScopeGuard()
 		{
-			mFun();
+			mFunc();
 		}
 
-		TFunc mFun;
+		TFunc mFunc;
 	};
 
 	struct Syntax
 	{
 		template <typename TFunc>
-		FORCEINLINE TScopeGuard<TFunc> operator+(TFunc&& fun) const
+		FORCEINLINE TScopeGuard<TFunc> operator+(TFunc&& func) const
 		{
-			return TScopeGuard<TFunc>(std::forward<TFunc>(fun));
+			return TScopeGuard<TFunc>(std::forward<TFunc>(func));
 		}
 	};
 

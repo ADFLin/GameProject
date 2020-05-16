@@ -432,6 +432,7 @@ namespace FlowFree
 		
 		RenderUtility::SetPen(g, EColor::White);
 
+#if 1
 		for( int i = 0; i <= size.x; ++i )
 		{
 			Vec2i start = ScreenOffset + Vec2i(i * CellLength, 0);
@@ -443,7 +444,7 @@ namespace FlowFree
 			Vec2i start = ScreenOffset + Vec2i(0, j * CellLength);
 			g.drawLine(start, start + Vec2i(size.x * CellLength, 0));
 		}
-
+#endif
 
 
 		for( int i = 0; i < size.x; ++i )
@@ -486,6 +487,9 @@ namespace FlowFree
 					for (int dir = 0; dir < DirCount; ++dir)
 					{
 						RenderUtility::SetPen(g, EColor::Red);
+
+						if (cell.func == CellFunc::Block && mLevel.getCellChecked(mLevel.getLinkPos(cellPos, dir)).func == CellFunc::Block)
+							continue;
 
 						if ( cell.blockMask & BIT(dir) )
 						{

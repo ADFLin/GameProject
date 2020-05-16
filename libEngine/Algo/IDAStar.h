@@ -25,7 +25,7 @@ namespace IDA
 		bool      isGoal (StateType& state ){ NEVER_REACH("Need impl isGoal"); return false; }
 		//  call addSreachNode for all possible next state
 		template < class TFunc >
-		void      processNeighborNode( StateType& node , ScoreType const& score , TFunc& fun ){  NEVER_REACH("Need impl processNeighborNode"); }
+		void      processNeighborNode( StateType& node , ScoreType const& score , TFunc& func ){  NEVER_REACH("Need impl processNeighborNode"); }
 
 	public:
 		void startSreach()
@@ -72,7 +72,7 @@ namespace IDA
 				{
 					return SreachResult( RS_OVER_THRESHOLD , score );
 				}
-				if ( fun.mThis->isGoal( state ) )
+				if ( func.mThis->isGoal( state ) )
 				{
 					return SreachResult( RS_FOUND );
 				}

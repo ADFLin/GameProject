@@ -8,7 +8,7 @@ namespace Render
 	VertexFactoryType* VertexFactoryType::DefaultType = &LocalVertexFactory::StaticType;
 	std::vector< VertexFactoryType* > VertexFactoryType::TypeList;
 
-	VertexFactoryType::VertexFactoryType(char const* inFileName, ModifyCompilationOptionFun MCO)
+	VertexFactoryType::VertexFactoryType(char const* inFileName, ModifyCompilationOptionFunc MCO)
 		:fileName(inFileName)
 		, ModifyCompilationOption(MCO)
 	{

@@ -195,14 +195,14 @@ namespace Poker { namespace Holdem {
 
 	void LevelStage::onRoundEnd()
 	{
-		auto fun = [this](long time)->bool
+		auto func = [this](long time)->bool
 		{
 			mServerLevel->startNewRound(mRandom);
 			return false;
 		};
 
 		DelayTask* delay = new DelayTask(2000);
-		delay->setNextTask( TaskUtility::DelegateFun(fun) );
+		delay->setNextTask( TaskUtility::DelegateFunc(func) );
 		addTask(delay);
 	}
 

@@ -28,7 +28,7 @@ public:
 	bool  retractWork(IQueuedWork* work);
 
 	template< class TFunc >
-	void  addFunctionWork(TFunc&& fun)
+	void  addFunctionWork(TFunc&& func)
 	{
 		class TFuncWork : public IQueuedWork
 		{
@@ -39,7 +39,7 @@ public:
 			TFunc mFunc;
 		};
 
-		TFuncWork* work = new TFuncWork(std::forward<TFunc>(fun));
+		TFuncWork* work = new TFuncWork(std::forward<TFunc>(func));
 		addWork(work);
 	}
 

@@ -91,8 +91,8 @@ namespace CB
 				{
 					if ( event == EVT_TEXTCTRL_ENTER )
 					{
-						SurfaceXYFunc* fun = (SurfaceXYFunc*)surface->getFunction();
-						fun->setExpr(widget->cast<GTextCtrl>()->getValue());
+						SurfaceXYFunc* func = (SurfaceXYFunc*)surface->getFunction();
+						func->setExpr(widget->cast<GTextCtrl>()->getValue());
 						surface->addUpdateBit(RUF_FUNCTION);
 					}
 					return false;
@@ -111,9 +111,9 @@ namespace CB
 		Surface3D* createSurfaceXY(char const* expr , Color4f const& color )
 		{
 			Surface3D* surface = new Surface3D;
-			SurfaceXYFunc* fun = new SurfaceXYFunc;
-			surface->setFunction(fun);
-			fun->setExpr(expr);
+			SurfaceXYFunc* func = new SurfaceXYFunc;
+			surface->setFunction(func);
+			func->setExpr(expr);
 
 			double Max = 10, Min = -10;
 			surface->setRangeU(Range(Min, Max));

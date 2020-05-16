@@ -39,10 +39,10 @@ namespace Render
 	{
 	public:
 		CORE_API MaterialShaderProgramClass(
-			FunCreateShader inFunCreateShader,
-			FunSetupShaderCompileOption inFunSetupShaderCompileOption,
-			FunGetShaderFileName inFunGetShaderFileName,
-			FunGetShaderEntries inFunGetShaderEntries);
+			CreateShaderFunc inCreateShader,
+			SetupShaderCompileOptionFunc inSetupShaderCompileOption,
+			GetShaderFileNameFunc inGetShaderFileName,
+			GetShaderEntriesFunc inGetShaderEntries);
 
 		CORE_API static std::vector< MaterialShaderProgramClass* > ClassList;
 	};

@@ -8,6 +8,13 @@ namespace Go
 {
 	using Vec2i = TVector2<int>;
 
+	enum EBotExecResult
+	{
+		BOT_OK,
+		BOT_FAIL,
+		BOT_WAIT,
+	};
+
 	struct GameCommand
 	{
 		enum
@@ -21,6 +28,8 @@ namespace Go
 			eEnd   ,
 			eBoardState ,
 			eParam ,
+
+			eExecResult,
 		};
 		int   id;
 
@@ -50,7 +59,7 @@ namespace Go
 				uint8 playColor;
 				uint8 pos[2];
 			};
-
+			EBotExecResult result;
 			int* pBoardData;
 		};
 
@@ -89,13 +98,6 @@ namespace Go
 		virtual void notifyCommand(GameCommand const& com) = 0;
 	};
 
-	enum EBotExecResult
-	{
-		BOT_OK ,
-		BOT_FAIL ,
-		BOT_WAIT , 
-	};
-
 
 	class IBot
 	{
@@ -105,8 +107,8 @@ namespace Go
 		virtual bool setupGame(GameSetting const& setting ) = 0;
 		virtual bool restart() = 0;
 		virtual EBotExecResult playStone(int x , int y , int color) = 0;
-		virtual bool playPass(int color) = 0;
-		virtual bool undo() = 0;
+		virtual EBotExecResult playPass(int color) = 0;
+		virtual EBotExecResult undo() = 0;
 		virtual bool requestUndo() = 0;
 
 		virtual bool thinkNextMove(int color) = 0;
@@ -139,8 +141,8 @@ namespace Go
 		bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
 		bool restart() override { if( bUsedInMatch ) return true; return mBot->restart(); }
 		EBotExecResult playStone(int x, int y, int color) override { if( bUsedInMatch ) return BOT_OK; return mBot->playStone(x, y, color); }
-		bool playPass(int color) override { if( bUsedInMatch ) return true; return mBot->playPass(color); }
-		bool undo() override { if( bUsedInMatch ) return true; return mBot->undo(); }
+		EBotExecResult playPass(int color) override { if( bUsedInMatch ) return BOT_OK; return mBot->playPass(color); }
+		EBotExecResult undo() override { if( bUsedInMatch ) return BOT_OK; return mBot->undo(); }
 		
 		bool thinkNextMove(int color) override { return mBot->thinkNextMove(color);  }
 		bool isThinking() override { return mBot->isThinking(); }

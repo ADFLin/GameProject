@@ -61,7 +61,7 @@ class AllocTakeOperator : public SocketBuffer::TakeOperator
 public:
 	AllocTakeOperator( SocketBuffer& buffer ):SocketBuffer::TakeOperator( buffer ){}
 
-	static void* alloc( unsigned size ){ return malloc( size ); }
+	static void* alloc( unsigned size ){ return ::malloc( size ); }
 	static void  free( void* ptr ){ ::free( ptr ); }
 
 	template< class T > 
@@ -148,11 +148,11 @@ inline SocketBuffer& operator << (SocketBuffer& buffer, TArrayData< T > const& v
 }
 
 template< class T , int ID >
-class GamePacket : public IComPacket
+class GamePacketT : public IComPacket
 {
 public:
 	enum { PID = ID , };
-	GamePacket():IComPacket( ID ){}
+	GamePacketT():IComPacket( ID ){}
 	void doRead( SocketBuffer& buffer )
 	{  
 		AllocTakeOperator takeOp( buffer ); 
@@ -175,11 +175,11 @@ public:
 };
 
 template< class T , int ID >
-class GameFramePacket : public FramePacket
+class GameFramePacketT : public FramePacket
 {
 public:
 	enum { PID = ID , };
-	GameFramePacket():FramePacket( ID ){}
+	GameFramePacketT():FramePacket( ID ){}
 
 	void doRead( SocketBuffer& buffer )
 	{  
@@ -198,7 +198,7 @@ public:
 };
 
 
-class GDPFrameStream : public GameFramePacket< GDPFrameStream , GDP_FARME_STREAM >
+class GDPFrameStream : public GameFramePacketT< GDPFrameStream , GDP_FARME_STREAM >
 {
 public:
 	DataStreamBuffer buffer;
@@ -210,7 +210,7 @@ public:
 	}
 };
 
-class GDPStream : public GamePacket< GDPStream , GDP_STREAM >
+class GDPStream : public GamePacketT< GDPStream , GDP_STREAM >
 {
 public:
 	DataStreamBuffer buffer;
@@ -221,7 +221,7 @@ public:
 	}
 };
 
-class CPLogin : public GamePacket< CPLogin , CP_LOGIN >
+class CPLogin : public GamePacketT< CPLogin , CP_LOGIN >
 {
 public:
 	SessionId       id;
@@ -235,7 +235,7 @@ public:
 };
 
 
-class CSPRawData : public GamePacket< CSPRawData , CSP_RAW_DATA >
+class CSPRawData : public GamePacketT< CSPRawData , CSP_RAW_DATA >
 {
 public:
 	int   id;
@@ -250,7 +250,7 @@ public:
 
 
 
-class CPEcho : public GamePacket< CPEcho , CP_ECHO >
+class CPEcho : public GamePacketT< CPEcho , CP_ECHO >
 {
 public:
 	FixString< 256 > content;
@@ -262,7 +262,7 @@ public:
 };
 
 
-class CSPMsg : public GamePacket< CSPMsg , CSP_MSG >
+class CSPMsg : public GamePacketT< CSPMsg , CSP_MSG >
 {
 public:
 
@@ -287,7 +287,7 @@ public:
 	}
 };
 
-class SPSlotState : public GamePacket< SPSlotState , SP_SLOT_STATE  >
+class SPSlotState : public GamePacketT< SPSlotState , SP_SLOT_STATE  >
 {
 public:
 	int idx[ MAX_PLAYER_NUM ];
@@ -300,7 +300,7 @@ public:
 	}
 };
 
-class CSPComMsg : public GamePacket< CSPComMsg , CSP_COM_MSG >
+class CSPComMsg : public GamePacketT< CSPComMsg , CSP_COM_MSG >
 {
 public:
 	static int const MaxMsgLength = 128;
@@ -313,7 +313,7 @@ public:
 	}
 };
 
-class CSPPlayerState : public GamePacket< CSPPlayerState , CSP_PLAYER_STATE >
+class CSPPlayerState : public GamePacketT< CSPPlayerState , CSP_PLAYER_STATE >
 {
 public:
 	int8     playerId;
@@ -333,7 +333,7 @@ public:
 
 };
 
-class CSPClockSynd : public GamePacket< CSPClockSynd , CSP_ClOCK_SYN >
+class CSPClockSynd : public GamePacketT< CSPClockSynd , CSP_ClOCK_SYN >
 {
 public:
 	enum
@@ -365,7 +365,7 @@ public:
 };
 
 
-class SPServerInfo : public GamePacket< SPServerInfo , SP_SERVER_INFO >
+class SPServerInfo : public GamePacketT< SPServerInfo , SP_SERVER_INFO >
 {
 public:
 	static int const MAX_NAME_LENGTH = 32;
@@ -379,7 +379,7 @@ public:
 	}
 };
 
-class SPLevelInfo : public GamePacket< SPLevelInfo , SP_LEVEL_INFO >
+class SPLevelInfo : public GamePacketT< SPLevelInfo , SP_LEVEL_INFO >
 	              , public GameLevelInfo
 {
 public:
@@ -408,7 +408,7 @@ public:
 	bool needFree;
 };
 
-class CPUdpCon : public GamePacket< CPUdpCon , CP_UPD_CON >
+class CPUdpCon : public GamePacketT< CPUdpCon , CP_UPD_CON >
 {
 public:
 	SessionId   id;
@@ -418,7 +418,7 @@ public:
 		op & id;
 	}
 };
-class SPConSetting : public GamePacket< SPConSetting , SP_CON_SETTING >
+class SPConSetting : public GamePacketT< SPConSetting , SP_CON_SETTING >
 {
 public:
 	enum
@@ -437,7 +437,7 @@ public:
 	}
 };
 
-class SPPlayerStatus : public GamePacket< SPPlayerStatus , SP_PLAYER_STATUS >
+class SPPlayerStatus : public GamePacketT< SPPlayerStatus , SP_PLAYER_STATUS >
 {
 public:
 	SPPlayerStatus()
@@ -486,13 +486,13 @@ private:
 	bool needFree;
 };
 
-class SPNetControlRequest : public GamePacket< SPNetControlRequest, SP_NET_CONTROL_REQUEST >
+class SPNetControlRequest : public GamePacketT< SPNetControlRequest, SP_NET_CONTROL_REQUEST >
 {
 public:
 	uint8 action;
 };
 
-class CPNetControlReply : public GamePacket< CPNetControlReply, CP_NET_CONTROL_REPLAY >
+class CPNetControlReply : public GamePacketT< CPNetControlReply, CP_NET_CONTROL_REPLAY >
 {
 public:
 	uint32 playerId;
@@ -507,7 +507,7 @@ struct GameSvInfo
 	uint16  port;
 };
 
-class GPGameSvList : public GamePacket< GPGameSvList , GP_GAME_SV_LIST  >
+class GPGameSvList : public GamePacketT< GPGameSvList , GP_GAME_SV_LIST  >
 {
 public:
 	size_t getGameSvInfoNum(){  return gameSvInfo.size();  }

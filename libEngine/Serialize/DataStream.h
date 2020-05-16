@@ -4,6 +4,7 @@
 #include "SerializeFwd.h"
 #include "DataBitSerialize.h"
 #include "Meta/MetaBase.h"
+#include "Meta/EnableIf.h"
 
 #include <vector>
 #include <set>
@@ -51,7 +52,7 @@ public:
 	};
 
 	template< class T >
-	typename Meta::EnableIf< HaveBitDataOutput< BitWriter, T >::Value >::Type
+	typename TEnableIf< THaveBitDataOutput< BitWriter, T >::Value >::Type
 	write(TArrayBitData<T> const& data)
 	{
 		if( data.length )
@@ -66,7 +67,7 @@ public:
 	}
 
 	template< class T >
-	typename Meta::EnableIf< !HaveBitDataOutput< BitWriter, T >::Value >::Type
+	typename TEnableIf< !THaveBitDataOutput< BitWriter, T >::Value >::Type
 	write(TArrayBitData<T> const& data)
 	{
 		if( data.length )
@@ -78,7 +79,7 @@ public:
 	}
 
 	template< class T>
-	typename Meta::EnableIf< HaveBitDataInput< BitReader, T >::Value >::Type
+	typename TEnableIf< THaveBitDataInput< BitReader, T >::Value >::Type
 	read(TArrayBitData<T> const& data)
 	{
 		if( data.length )
@@ -92,7 +93,7 @@ public:
 	}
 
 	template< class T>
-	typename Meta::EnableIf< !HaveBitDataInput< BitReader, T >::Value >::Type
+	typename TEnableIf< !THaveBitDataInput< BitReader, T >::Value >::Type
 	read(TArrayBitData<T> const& data)
 	{
 		if( data.length )
@@ -121,14 +122,14 @@ public:
 		}
 	}
 	template < class T >
-	typename Meta::EnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
+	typename TEnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
 	write(T const& value)
 	{
 		const_cast<T&>(value).serialize(WriteOp(*this));
 	}
 
 	template < class T >
-	typename Meta::EnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
+	typename TEnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
 	read(T& value)
 	{
 		value.serialize(ReadOp(*this));
@@ -136,7 +137,7 @@ public:
 
 
 	template < class T >
-	typename Meta::EnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
+	typename TEnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
 	write(T const& value)
 	{
 		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
@@ -145,7 +146,7 @@ public:
 
 
 	template < class T >
-	typename Meta::EnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
+	typename TEnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
 	read(T& value)
 	{
 		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
@@ -154,25 +155,25 @@ public:
 
 	template< class T >
 	struct CanUseInputSequence : Meta::HaveResult< Meta::IsPod<T>::Value &&
-		 !( HaveSerializerInput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
+		 !( THaveSerializerInput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 
 	template< class T >
 	struct CanUseOutputSequence : Meta::HaveResult < Meta::IsPod<T>::Value &&
-		! (HaveSerializerOutput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
+		! (THaveSerializerOutput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 
 	template < class T >
-	typename Meta::EnableIf< CanUseInputSequence<T>::Value >::Type
+	typename TEnableIf< CanUseInputSequence<T>::Value >::Type
 	readSequence(T* ptr, size_t num)
 	{
 		read((void*)ptr, num * sizeof(T));
 	}
 
 	template < class T >
-	typename Meta::EnableIf< !CanUseInputSequence<T>::Value >::Type
+	typename TEnableIf< !CanUseInputSequence<T>::Value >::Type
 	readSequence(T* ptr, size_t num)
 	{
 		for( size_t i = 0; i < num; ++i )
@@ -182,14 +183,14 @@ public:
 	}
 
 	template< class T >
-	typename Meta::EnableIf< CanUseOutputSequence<T>::Value >::Type
+	typename TEnableIf< CanUseOutputSequence<T>::Value >::Type
 	writeSequence(T const* ptr, size_t num)
 	{
 		write((void const*)ptr, num * sizeof(T));
 	}
 
 	template< class T >
-	typename Meta::EnableIf< !CanUseOutputSequence<T>::Value >::Type
+	typename TEnableIf< !CanUseOutputSequence<T>::Value >::Type
 	writeSequence(T const* ptr, size_t num)
 	{
 		for( size_t i = 0; i < num; ++i )

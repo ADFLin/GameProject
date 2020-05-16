@@ -1613,15 +1613,37 @@ namespace Go
 				else
 				{
 					mMatchData.advanceStep();
+
+					auto CheckRunAnalysis = [this]
+					{
+						if (bAnalysisEnabled)
+						{
+							executeAnalysisAICommand([this] { mLeelaAIRun.playPass(); }, canAnalysisPonder(mMatchData.getCurTurnPlayer()));
+						}
+					};
+
 					IBot* bot = mMatchData.getCurTurnBot();
 					if( bot )
 					{
-						bot->playPass(color);
-						bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
+						auto execResult = bot->playPass(color);
+						checkWaitBotCommand(execResult, [this , bot , CheckRunAnalysis](EBotExecResult inResult)
+						{
+							if (inResult == BOT_FAIL)
+							{
+								LogWarning(0, "Game can't sync : Bot Can't pass");
+								return;
+							}
+							if (!bot->thinkNextMove(mGame.getInstance().getNextPlayColor()))
+							{
+
+
+							}
+							CheckRunAnalysis();
+						});
 					}
-					if( bAnalysisEnabled )
+					else
 					{
-						executeAnalysisAICommand([this] { mLeelaAIRun.playPass(); }, canAnalysisPonder( mMatchData.getCurTurnPlayer() ));
+						CheckRunAnalysis();
 					}
 				}
 			}
@@ -1684,14 +1706,32 @@ namespace Go
 					mWinRateHistory[indexPlayer].pop_back();
 				}
 				mMatchData.advanceStep();
+
+				auto CheckRunAnalysis = [this]
+				{
+					if (bAnalysisEnabled)
+					{
+						executeAnalysisAICommand([this] { mLeelaAIRun.undo(); }, canAnalysisPonder(mMatchData.getCurTurnPlayer()));
+					}
+				};
+
 				IBot* bot = mMatchData.getCurTurnBot();
 				if( bot )
 				{
-					bot->undo();
+					auto execResult = bot->undo();
+					checkWaitBotCommand(execResult, [CheckRunAnalysis](EBotExecResult inResult)
+					{
+						if (inResult == BOT_FAIL)
+						{
+							LogWarning(0, "Game can't sync : Bot Can't undo");
+							return;
+						}
+						CheckRunAnalysis();
+					});
 				}
-				if( bAnalysisEnabled )
+				else
 				{
-					executeAnalysisAICommand([this] { mLeelaAIRun.undo(); }, canAnalysisPonder(mMatchData.getCurTurnPlayer()));
+					CheckRunAnalysis();
 				}
 			}
 			break;
@@ -1775,22 +1815,41 @@ namespace Go
 		case GameCommand::ePlayStone:
 		default:
 			{
-				if( mGame.playStone(com.pos[0], com.pos[1]) )
+				int x = com.pos[0];
+				int y = com.pos[1];
+				if( mGame.playStone(x, y) )
 				{
 					resetTurnParam();
-
 					mMatchData.advanceStep();
+
+					auto CheckRunAnalysis = [this, x , y, color]
+					{
+						if (bAnalysisEnabled)
+						{
+							executeAnalysisAICommand([this, x, y, color] { mLeelaAIRun.playStone(x, y, color); }, canAnalysisPonder(mMatchData.getCurTurnPlayer()));
+						}
+					};
 					IBot* bot = mMatchData.getCurTurnBot();
 					if( bot )
 					{
-						bot->playStone(com.pos[0], com.pos[1], color);
-						bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
+						auto execResult = bot->playStone(com.pos[0], com.pos[1], color);
+						checkWaitBotCommand(execResult, [=]( EBotExecResult inResult)
+						{
+							if (inResult == BOT_FAIL)
+							{
+								LogWarning(0, "Game can't sync : Bot Can't play stone");
+								return;
+							}
+							if (!bot->thinkNextMove(mGame.getInstance().getNextPlayColor()))
+							{
+
+							}
+							CheckRunAnalysis();
+						});		
 					}
-					if( bAnalysisEnabled )
+					else
 					{
-						int x = com.pos[0];
-						int y = com.pos[1];
-						executeAnalysisAICommand( [this,x,y,color] { mLeelaAIRun.playStone(x,y,color); }, canAnalysisPonder(mMatchData.getCurTurnPlayer()));
+						CheckRunAnalysis();
 					}
 				}
 				else
@@ -1798,6 +1857,13 @@ namespace Go
 					LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 				}
 
+			}
+			break;
+		case GameCommand::eExecResult:
+			{
+				assert((bool)mWaitBotCommandDelegate);
+				mWaitBotCommandDelegate(com.result);
+				mWaitBotCommandDelegate = nullptr;
 			}
 			break;
 		}

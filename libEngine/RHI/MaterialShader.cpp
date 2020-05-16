@@ -6,22 +6,26 @@ namespace Render
 #if CORE_SHARE_CODE
 	std::vector< MaterialShaderProgramClass* > MaterialShaderProgramClass::ClassList;
 
-	MaterialShaderProgramClass::MaterialShaderProgramClass(FunCreateShader inFunCreateShader, FunSetupShaderCompileOption inFunSetupShaderCompileOption, FunGetShaderFileName inFunGetShaderFileName, FunGetShaderEntries inFunGetShaderEntries)
-		:GlobalShaderProgramClass(inFunCreateShader, inFunSetupShaderCompileOption, inFunGetShaderFileName, inFunGetShaderEntries)
+	MaterialShaderProgramClass::MaterialShaderProgramClass(
+		CreateShaderFunc inCreateShader, 
+		SetupShaderCompileOptionFunc inSetupShaderCompileOption, 
+		GetShaderFileNameFunc inGetShaderFileName, 
+		GetShaderEntriesFunc inGetShaderEntries)
+		:GlobalShaderProgramClass(inCreateShader, inSetupShaderCompileOption, inGetShaderFileName, inGetShaderEntries)
 	{
 		ClassList.push_back(this);
 	}
 
 #if 1
 	GlobalShaderProgramClass::GlobalShaderProgramClass(
-		FunCreateShader inFunCreateShader,
-		FunSetupShaderCompileOption inFunSetupShaderCompileOption,
-		FunGetShaderFileName inFunGetShaderFileName,
-		FunGetShaderEntries inFunGetShaderEntries)
-		: funCreateShader(inFunCreateShader)
-		, funSetupShaderCompileOption(inFunSetupShaderCompileOption)
-		, funGetShaderFileName(inFunGetShaderFileName)
-		, funGetShaderEntries(inFunGetShaderEntries)
+		CreateShaderFunc inCreateShader,
+		SetupShaderCompileOptionFunc inSetupShaderCompileOption,
+		GetShaderFileNameFunc inGetShaderFileName,
+		GetShaderEntriesFunc inGetShaderEntries)
+		: CreateShader(inCreateShader)
+		, SetupShaderCompileOption(inSetupShaderCompileOption)
+		, GetShaderFileName(inGetShaderFileName)
+		, GetShaderEntries(inGetShaderEntries)
 	{
 		ShaderManager::Get().registerGlobalShader(*this);
 	}

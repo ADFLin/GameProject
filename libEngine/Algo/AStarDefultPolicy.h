@@ -6,7 +6,7 @@
 
 namespace AStar
 {
-	template< class T , class CmpFun >
+	template< class T , class CmpFunc >
 	class STLHeapQueuePolicy
 	{
 	public:
@@ -14,11 +14,11 @@ namespace AStar
 		void      insert(T const& val)
 		{ 
 			mStorage.push_back( val );
-			push_heap( mStorage.begin() , mStorage.end() , CmpFun() );
+			push_heap( mStorage.begin() , mStorage.end() , CmpFunc() );
 		}
 		void      pop()
 		{
-			pop_heap( mStorage.begin() , mStorage.end() , CmpFun() );
+			pop_heap( mStorage.begin() , mStorage.end() , CmpFunc() );
 			mStorage.pop_back();
 		}
 		T&       front(){ return mStorage.front(); }

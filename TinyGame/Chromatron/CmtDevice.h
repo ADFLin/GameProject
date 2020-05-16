@@ -30,25 +30,25 @@ namespace Chromatron
 	class LightTrace;
 	class Device;
 
-	using EffectFun = void (*)( Device& , WorldUpdateContext& , LightTrace const& );
-	using UpdateFun = void (*)( Device& , WorldUpdateContext& );
-	using CheckFun  = bool (*)( Device& , WorldUpdateContext& );
+	using EffectFunc = void (*)( Device& , WorldUpdateContext& , LightTrace const& );
+	using UpdateFunc = void (*)( Device& , WorldUpdateContext& );
+	using CheckFunc  = bool (*)( Device& , WorldUpdateContext& );
 
 	struct DeviceInfo
 	{
 		DeviceId  id;
 		unsigned  flag;
-		EffectFun funEffect;
-		UpdateFun funUpdate;
-		CheckFun  funCheck;
+		EffectFunc funcEffect;
+		UpdateFunc funcUpdate;
+		CheckFunc  funcCheck;
 
 		DeviceInfo()= default;
-		DeviceInfo( DeviceId id , unsigned flag , EffectFun fun , UpdateFun funUpdate , CheckFun funCheck )
+		DeviceInfo( DeviceId id , unsigned flag , EffectFunc func , UpdateFunc funcUpdate , CheckFunc funcCheck )
 			:id(id)
 			,flag(flag)
-			,funEffect(fun)
-			,funUpdate( funUpdate )
-			,funCheck( funCheck )
+			,funcEffect(func)
+			,funcUpdate( funcUpdate )
+			,funcCheck( funcCheck )
 		{}
 	};
 
@@ -67,10 +67,10 @@ namespace Chromatron
 		Dir   const& getDir()   const { return mDir; }
 		Color        getColor() const { return mColor; }
 
-		void         update( WorldUpdateContext& context ){ mInfo->funUpdate( *this , context ); }
-		void         effect( WorldUpdateContext& context , LightTrace const& light ){  mInfo->funEffect( *this , context , light ); }
+		void         update( WorldUpdateContext& context ){ mInfo->funcUpdate( *this , context ); }
+		void         effect( WorldUpdateContext& context , LightTrace const& light ){  mInfo->funcEffect( *this , context , light ); }
 
-		bool         checkFinish(WorldUpdateContext& context) { return mInfo->funCheck(*this, context); }
+		bool         checkFinish(WorldUpdateContext& context) { return mInfo->funcCheck(*this, context); }
 
 		bool         isRotatable() const { return !mFlag.checkBits( DFB_UNROTATABLE ); }
 		bool         isStatic()    const { return mFlag.checkBits( DFB_STATIC ); }

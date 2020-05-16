@@ -127,7 +127,7 @@ namespace BomberMan
 		
 	private:
 		int  evalFrame( unsigned flag , int numFrame , int frame );
-		typedef int (*FrameFun)( unsigned , int , int );
+		typedef int (*FrameFunc)( unsigned , int , int );
 		struct AnimKey
 		{
 			Vec2i    pos;
@@ -138,11 +138,11 @@ namespace BomberMan
 		std::vector< AnimKey > mAnimKeys;
 		struct AnimDesc
 		{
-			int      keyPos;
-			int      numFrame;
-			Vec2i    frameSize;
-			unsigned flag;
-			FrameFun fun;
+			int       keyPos;
+			int       numFrame;
+			Vec2i     frameSize;
+			unsigned  flag;
+			FrameFunc func;
 		};
 		std::vector< AnimDesc > mAnimDesc;
 		std::vector< int >      mAnimMap;
@@ -156,7 +156,7 @@ namespace BomberMan
 		AnimDesc& desc = mAnimDesc[ mAnimMap[ animId ] ];
 		AnimKey&  key  = mAnimKeys[ desc.keyPos + idx ];
 
-		frame = (*desc.fun)( desc.flag , desc.numFrame , frame );
+		frame = (*desc.func)( desc.flag , desc.numFrame , frame );
 		//frame = evalFrame( desc.flag , desc.numFrame , frame );
 		if ( frame == -1 )
 			return;
@@ -180,7 +180,7 @@ namespace BomberMan
 		return desc.numFrame;
 	}
 
-	static int FrameFunCycle( unsigned flag , int numFrame , int frame )
+	static int FrameFuncCycle( unsigned flag , int numFrame , int frame )
 	{
 		assert( (flag & AF_FRAME_MASK ) == AF_CYCLE );
 		frame = frame % numFrame;
@@ -188,7 +188,7 @@ namespace BomberMan
 			frame += numFrame;
 		return frame;
 	}
-	static int FrameFunOnce( unsigned flag , int numFrame , int frame )
+	static int FrameFuncOnce( unsigned flag , int numFrame , int frame )
 	{
 		assert( (flag & AF_FRAME_MASK ) == AF_ONCE );
 		if ( frame >= numFrame )
@@ -200,7 +200,7 @@ namespace BomberMan
 		return frame;
 	}
 
-	static int FrameFunRetrace( unsigned flag , int numFrame , int frame )
+	static int FrameFuncRetrace( unsigned flag , int numFrame , int frame )
 	{
 		assert( (flag & AF_FRAME_MASK ) == AF_RETRACE );
 
@@ -309,9 +309,9 @@ namespace BomberMan
 
 		switch( flag & AF_FRAME_MASK )
 		{
-		case AF_CYCLE:    desc.fun = &FrameFunCycle; break;
-		case AF_ONCE:     desc.fun = &FrameFunOnce; break;
-		case AF_RETRACE:  desc.fun = &FrameFunRetrace; break;
+		case AF_CYCLE:    desc.func = &FrameFuncCycle; break;
+		case AF_ONCE:     desc.func = &FrameFuncOnce; break;
+		case AF_RETRACE:  desc.func = &FrameFuncRetrace; break;
 		default:
 			assert(0);
 		}

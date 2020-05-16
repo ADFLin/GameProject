@@ -399,7 +399,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
 	void ServerLevel::doSetupTransfer()
 	{
-		getTransfer().setRecvFun( RecvFun( this , &ServerLevel::onRecvData ) );
+		getTransfer().setRecvFunc( RecvFunc( this , &ServerLevel::onRecvData ) );
 	}
 
 	void ServerLevel::updateBot()
@@ -586,7 +586,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
 	void ClientLevel::doSetupTransfer()
 	{
-		getTransfer().setRecvFun( RecvFun( this , &ClientLevel::onRecvData ) );
+		getTransfer().setRecvFunc( RecvFunc( this , &ClientLevel::onRecvData ) );
 	}
 
 	TablePos ClientLevel::getTablePos( int slotId )

@@ -9,8 +9,8 @@
 
 void rcWidget::procEvent( int evtID , void* data )
 {
-	if ( mFunEvt )
-		mFunEvt( this , evtID , data );
+	if ( mFuncEvt )
+		mFuncEvt( this , evtID , data );
 
 	rcWidget* cur = this;
 	do

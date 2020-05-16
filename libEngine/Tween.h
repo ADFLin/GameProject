@@ -1,11 +1,13 @@
-#ifndef Tween_h__
-#define Tween_h__
+#pragma once
+#ifndef Tween_H_50802EDF_8D8D_47C6_B3C4_E1EB66015C6C
+#define Tween_H_50802EDF_8D8D_47C6_B3C4_E1EB66015C6C
 
 #include <functional>
 #include <vector>
 #include <algorithm>
 
 #include "Meta/MetaBase.h"
+#include "Meta/Select.h"
 
 namespace Tween
 {
@@ -73,7 +75,7 @@ namespace Tween
 			Access()( mData  , FunParam::operator()< TFunc >( t , mFrom , mDiff , duration ) );
 		}
 
-		typedef typename Meta::Select< BE_REF , DataType& , DataType >::Type HoldType;
+		typedef typename TSelect< BE_REF , DataType& , DataType >::Type HoldType;
 		HoldType  mData;
 		ValueType mFrom;
 		ValueType mDiff;
@@ -106,11 +108,11 @@ namespace Tween
 	{
 		T*   _this(){ return static_cast< T* >( this ); }
 	public:
-		T&   finishCallback( FinishCallback func ){ mFinishFun = func; return *_this(); }
+		T&   finishCallback( FinishCallback func ){ mFinishFunc = func; return *_this(); }
 	protected:
-		void finishCB(){ if ( mFinishFun ) mFinishFun(); }
+		void finishCB(){ if ( mFinishFunc ) mFinishFunc(); }
 	private:
-		FinishCallback mFinishFun;
+		FinishCallback mFinishFunc;
 	};
 
 	template< class T >
@@ -207,14 +209,14 @@ namespace Tween
 
 
 			bool  isFinished() const           { return mRepeat == 0 && mCurTime > mDuration; }
-			//T&    finishCallback( FinishCallback fun ){ mFinishFun = fun; return *_this(); }
+			//T&    finishCallback( FinishCallback func ){ mFinishFunc = func; return *_this(); }
 			T&    repeat( int num )            { mTotalRepeat = mRepeat = num; return *_this(); }
 			T&    delay( TimeType time )       { mDelay = time ; mCurTime = -time; return *_this(); }
 			T&    repeatDelay( TimeType time ) { mRepeatTime = mDuration + time; return *_this(); }
 			T&    cycle()                      { mTotalRepeat = mRepeat = -1; return *_this(); }
 
 		protected:
-			//FinishCallback mFinishFun;
+			//FinishCallback mFinishFunc;
 
 			int       mTotalRepeat;
 			int       mRepeat;
@@ -525,8 +527,8 @@ namespace Tween
 
 			inline P& end(){ return mPrev; }
 
-			//Tween fun
-			inline ThisType& finishCallback( FinishCallback fun ){ mCur.finishCallback( fun ); return *this; }
+			//Tween func
+			inline ThisType& finishCallback( FinishCallback func ){ mCur.finishCallback( func ); return *this; }
 			inline ThisType& repeat( int num )                   { mCur.repeat( num ); return *this; }
 			inline ThisType& delay( TimeType time )              { mCur.delay( time ); return *this; }
 			inline ThisType& repeatDelay( TimeType time )        { mCur.repeatDelay( time ); return *this; }
@@ -556,7 +558,7 @@ namespace Tween
 				FunParam const& param )
 			{  return makeBuilder( mCur.add< TFunc , Access >( data , from , to , param ) );  }
 
-			//Tweener fun
+			//Tweener func
 			template< class TFunc , class T >
 			inline Builder< ThisType , CTween< TFunc , ValueAccess< T > > >
 				tweenValue( T& data , T const& from , T const& to , TimeType duration , TimeType delay = 0 )
@@ -887,4 +889,4 @@ namespace Tween
 
 }//namespace Tween
 
-#endif // Tween_h__
+#endif // Tween_H_50802EDF_8D8D_47C6_B3C4_E1EB66015C6C

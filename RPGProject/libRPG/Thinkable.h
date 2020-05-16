@@ -16,7 +16,7 @@ enum ThinkMode
 class Thinkable;
 struct ThinkContent;
 
-typedef fastdelegate::FastDelegate< void ( ThinkContent& ) > ThinkFun;
+typedef fastdelegate::FastDelegate< void ( ThinkContent& ) > ThinkFunc;
 struct ThinkContent
 {
 public:
@@ -34,7 +34,7 @@ public:
 
 private:
 	ThinkMode     mode;
-	ThinkFun      fun;
+	ThinkFunc     func;
 	float         lastTime;
 
 	friend class Thinkable;
@@ -52,24 +52,24 @@ public:
 	
 	
 
-	template< class T , class Fun >
-	ThinkContent* setupThink( T* obj , Fun fun , ThinkMode mode = THINK_ONCE , float loopTime = 0.0 )
+	template< class T , class TFunc >
+	ThinkContent* setupThink( T* obj , TFunc func , ThinkMode mode = THINK_ONCE , float loopTime = 0.0 )
 	{
-		ThinkFun thinkFun;
-		thinkFun.bind( obj , fun );
-		return setupThinkInternal( thinkFun , mode , loopTime );
+		ThinkFunc thinkFunc;
+		thinkFunc.bind( obj , func );
+		return setupThinkInternal( thinkFunc , mode , loopTime );
 	}
-	template<  class Fun >
-	ThinkContent* setupThink( Fun fun , ThinkMode mode = THINK_ONCE , float loopTime = 0.0 )
+	template<  class TFunc >
+	ThinkContent* setupThink( TFunc func , ThinkMode mode = THINK_ONCE , float loopTime = 0.0 )
 	{
-		ThinkFun thinkFun;
-		thinkFun.bind( fun );
-		return setupThinkInternal( thinkFun , mode , loopTime );
+		ThinkFunc thinkFunc;
+		thinkFunc.bind( func );
+		return setupThinkInternal( thinkFunc , mode , loopTime );
 	}
 
 private:
 
-	ThinkContent* setupThinkInternal( ThinkFun const& fun , ThinkMode mode = THINK_ONCE , float loopTime = 0.0 );
+	ThinkContent* setupThinkInternal( ThinkFunc const& func , ThinkMode mode = THINK_ONCE , float loopTime = 0.0 );
 	
 	static void setupContent( ThinkContent& content , ThinkMode mode , float loopTime );
 	typedef std::list< ThinkContent > ContentList;

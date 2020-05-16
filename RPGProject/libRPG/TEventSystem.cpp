@@ -138,11 +138,11 @@ void TEventSystem::processInternal( TEvent& event )
 	}
 }
 
-//bool TEventSystem::isProcessInFun( TRefObj* entity , FnMemEvent fun )
+//bool TEventSystem::isProcessInFunc( TRefObj* entity , FnMemEvent func )
 //{
 //	if ( !m_curEventReg ) return false;
 //	return ( m_curEventReg->holder == entity &&
-//		     m_curEventReg->memfun == fun );
+//		     m_curEventReg->memfunc == func );
 //}
 
 void TEventSystem::disconnectEvent( EventType type , EventCallBack const& callback , HandledObject* holder  )

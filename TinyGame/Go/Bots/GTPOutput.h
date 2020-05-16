@@ -4,6 +4,7 @@
 
 
 #include "GTPBotBase.h"
+#include "Delegate.h"
 
 namespace Go
 {
@@ -22,6 +23,7 @@ namespace Go
 
 	static int const gStartSleepMillionSecond = 2000;
 #define AUTO_GTP_DEBUG 1
+
 
 	class CGameOutputThread : public IGameOutputThread
 	{
@@ -54,6 +56,8 @@ namespace Go
 		int parsePlayResult(char const* str, int color);
 	};
 
+	DECLARE_DELEGATE(GTPCommandResultDelegate, void (GTPCommand , EGTPComExecuteResult))
+
 
 	class GTPOutputThread : public CGameOutputThread
 	{
@@ -74,6 +78,7 @@ namespace Go
 			mProcQueue.clear();
 		}
 
+		GTPCommandResultDelegate onCommandResult;
 		void processBuffer() override;
 
 		virtual void dumpCommandMsgBegin(GTPCommand com) {}

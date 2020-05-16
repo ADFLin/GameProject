@@ -38,8 +38,8 @@ protected:
 	void  registerNetEvent();
 	void  unregisterNetEvent( void* processor );
 	void  disconnect();
-	virtual void setupServerProcFun( ComEvaluator& evaluator ) = 0;
-	virtual void setupWorkerProcFun( ComEvaluator& evaluator ) = 0;
+	virtual void setupServerProcFunc( ComEvaluator& evaluator ) = 0;
+	virtual void setupWorkerProcFunc( ComEvaluator& evaluator ) = 0;
 	ComWorker*    mWorker;
 	ServerWorker* mServer;
 	bool          bCloseNetWork;
@@ -91,8 +91,8 @@ public:
 	void onAddPlayer( PlayerId id );
 	void onRemovePlayer( PlayerInfo const& info );
 
-	void setupServerProcFun( ComEvaluator& evaluator );
-	void setupWorkerProcFun( ComEvaluator& evaluator );
+	void setupServerProcFunc( ComEvaluator& evaluator );
+	void setupWorkerProcFunc( ComEvaluator& evaluator );
 
 	void  setupGame( char const* name );
 	bool  setupUI(bool bFullSetting);
@@ -162,8 +162,8 @@ public:
 	void  updateFrame(int frame);
 	void  tick();
 
-	void setupServerProcFun(ComEvaluator& evaluator);
-	void setupWorkerProcFun(ComEvaluator& evaluator);
+	void setupServerProcFunc(ComEvaluator& evaluator);
+	void setupWorkerProcFunc(ComEvaluator& evaluator);
 
 	void procPlayerStateSv(IComPacket* cp);
 	void procPlayerState  (IComPacket* cp);

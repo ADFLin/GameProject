@@ -163,9 +163,9 @@ namespace GreedySnake
 
 	void Scene::drawFood(Graphics2D& g)
 	{
-		auto fun = [&g](FoodInfo const& info)
+		getLevel().visitFood([&g](FoodInfo const& info)
 		{
-			switch( info.type )
+			switch (info.type)
 			{
 			case FOOD_GROW:
 				RenderUtility::SetBrush(g, EColor::Red);
@@ -181,8 +181,7 @@ namespace GreedySnake
 				break;
 			}
 			g.drawCircle(BlockSize * info.pos + Vec2i(BlockSize / 2, BlockSize / 2), SnakeWidth / 2);
-		};
-		getLevel().visitFood(fun);
+		});
 	}
 
 	void Scene::render(Graphics2D& g, float dFrame)

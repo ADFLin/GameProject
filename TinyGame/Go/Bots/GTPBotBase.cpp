@@ -72,7 +72,7 @@ namespace Go
 
 	bool GTPLikeAppRun::requestUndo()
 	{
-		return inputCommand("undo\n", { GTPCommand::eUndo , 1 });
+		return inputCommand("undo\n", { GTPCommand::eRequestUndo , 1 });
 	}
 
 	bool GTPLikeAppRun::setupGame(GameSetting const& setting)
@@ -120,6 +120,31 @@ namespace Go
 	{
 		int numWrite = 0;
 		return process.writeInputStream(command, length ? length : strlen(command), numWrite);
+	}
+
+	void GTPLikeAppRun::notifyCommandResult(GTPCommand com, EGTPComExecuteResult result)
+	{
+		LogMsg("== %s %s", GTPCommand::ToString( com.id ) , result == EGTPComExecuteResult::Success ? "true" : "false" );
+		switch (com.id)
+		{
+		case GTPCommand::ePlay:
+		case GTPCommand::ePass:
+		case GTPCommand::eUndo:
+			{
+				GameCommand resultCom;
+				resultCom.id = GameCommand::eExecResult;
+				resultCom.result = result == EGTPComExecuteResult::Success ? EBotExecResult::BOT_OK : EBotExecResult::BOT_FAIL;
+				outputThread->addOutputCommand(resultCom);
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	void GTPLikeAppRun::bindCallback()
+	{
+		static_cast<GTPOutputThread*>(outputThread)->onCommandResult = GTPCommandResultDelegate(this, &GTPLikeAppRun::notifyCommandResult);
 	}
 
 }//namespace Go

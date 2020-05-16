@@ -70,10 +70,10 @@ private:
 //public:
 //	DelegateN():BaseClass(){}
 //	template < class OBJ >
-//	DelegateN( OBJ* obj , RetType (OBJ::*fun)( SIG_ARG ) ):BaseClass( obj , fun ){}
+//	DelegateN( OBJ* obj , RetType (OBJ::*func)( SIG_ARG ) ):BaseClass( obj , func ){}
 //	template < class OBJ >
 //	DelegateN( OBJ* obj ):BaseClass( obj ){}
-//	DelegateN( RetType (*fun)( SIG_ARG ) ):BaseClass( fun ){}
+//	DelegateN( RetType (*func)( SIG_ARG ) ):BaseClass( func ){}
 //};
 
 #undef DelegateN

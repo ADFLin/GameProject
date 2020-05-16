@@ -290,7 +290,7 @@ namespace Go
 		}
 
 		template< class TFunc >
-		void executeAnalysisAICommand(TFunc&& fun, bool bKeepPonder = true);
+		void executeAnalysisAICommand(TFunc&& func, bool bKeepPonder = true);
 
 		bool bAnalysisEnabled = false;
 		bool bAnalysisPondering;
@@ -301,6 +301,25 @@ namespace Go
 		int  analysisPonderColor = 0;
 		PlayVertex  showBranchVertex = PlayVertex::Undefiend();
 
+		template< class TFunc >
+		bool checkWaitBotCommand(EBotExecResult result , TFunc&& func)
+		{
+			switch (result)
+			{
+			case BOT_OK:
+				func(result); return true;
+			case BOT_FAIL:
+				return false;
+			}
+			mWaitBotCommandDelegate = func;
+		}
+
+		bool isWatingBotResult()
+		{
+			return bool(mWaitBotCommandDelegate);
+		}
+
+		std::function< void(EBotExecResult) > mWaitBotCommandDelegate;
 
 		bool bSwapEachMatch = true;
 		int  unknownWinerCount = 0;

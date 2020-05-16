@@ -2,6 +2,7 @@
 #define Flag_h__
 
 #include "Meta/MetaBase.h"
+#include "Meta/Select.h"
 #include "Core/IntegerType.h"
 
 #ifndef BIT
@@ -87,7 +88,7 @@ namespace Private
 	struct FlagBitsSelector
 	{
 		static int const N = 8 * sizeof(T);
-		typedef typename Meta::Select<
+		typedef typename TSelect<
 			BitNum <= N, FlagValue< T >, FlagValueArray< BitNum , T >
 		>::Type Type;
 	};

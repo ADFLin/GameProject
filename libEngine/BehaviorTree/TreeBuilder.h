@@ -32,8 +32,8 @@ namespace BT
 	}
 
 	template< class T , class Base >
-	FORCEINLINE ContextMemFunRef< T, Base >  
-	MemberFunc( T (Base::*func)() ){ return ContextMemFunRef< T , Base >( func );  }
+	FORCEINLINE ContextMemFuncRef< T, Base >  
+	MemberFunc( T (Base::*func)() ){ return ContextMemFuncRef< T , Base >( func );  }
 
 	template< class T , class Base >
 	FORCEINLINE ContextMemberRef< T , Base > 
@@ -44,8 +44,8 @@ namespace BT
 	VarPtr( T* ptr ){ return GlobalVarRef< T >( ptr ); }
 
 	template< class T >
-	FORCEINLINE GlobalFunRef< T >     
-	FuncPtr( T (*func)() ){ return GlobalFunRef< T >( func ); }
+	FORCEINLINE GlobalFuncRef< T >     
+	FuncPtr( T (*func)() ){ return GlobalFuncRef< T >( func ); }
 
 	template< class CmpOp , class Var , Var* VAR >
 	FORCEINLINE auto Condition()
@@ -54,11 +54,11 @@ namespace BT
 		return NodeBuilder< Node >( new Node );
 	}
 
-	template< class CmpOp  , class Var , Var (*FUN)() >
-	FORCEINLINE NodeBuilder< typename TConditionNodeInstance< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
+	template< class CmpOp  , class Var , Var (*FUNC)() >
+	FORCEINLINE NodeBuilder< typename TConditionNodeInstance< ConstFuncRef< Var , FUNC > , CmpOp  >::NodeType >
 	Condition()
 	{
-		typedef typename TConditionNodeInstance< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
+		typedef typename TConditionNodeInstance< ConstFuncRef< Var , FUNC > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -71,10 +71,10 @@ namespace BT
 	}
 
 	template< class CmpOp , class Var >
-	FORCEINLINE NodeBuilder< typename TConditionNodeInstance< ContextFunRef< Var > , CmpOp  >::NodeType >
-	ConditionFun()
+	FORCEINLINE NodeBuilder< typename TConditionNodeInstance< ContextFuncRef< Var > , CmpOp  >::NodeType >
+	ConditionFunc()
 	{
-		typedef typename TConditionNodeInstance< ContextFunRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename TConditionNodeInstance< ContextFuncRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -103,11 +103,11 @@ namespace BT
 		return NodeBuilder< Node >( new Node );
 	}
 
-	template< class CmpOp , class Var , Var (*FUN)() >
-	FORCEINLINE NodeBuilder< typename TFilterNodeInstance< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
+	template< class CmpOp , class Var , Var (*FUNC)() >
+	FORCEINLINE NodeBuilder< typename TFilterNodeInstance< ConstFuncRef< Var , FUNC > , CmpOp  >::NodeType >
 	Filter()
 	{
-		typedef typename TFilterNodeInstance< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
+		typedef typename TFilterNodeInstance< ConstFuncRef< Var , FUNC > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -120,10 +120,10 @@ namespace BT
 	}
 
 	template< class CmpOp , class Var >
-	FORCEINLINE NodeBuilder< typename TFilterNodeInstance< ContextFunRef< Var > , CmpOp  >::NodeType >
+	FORCEINLINE NodeBuilder< typename TFilterNodeInstance< ContextFuncRef< Var > , CmpOp  >::NodeType >
 	Filter()
 	{
-		typedef typename TFilterNodeInstance< ContextFunRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename TFilterNodeInstance< ContextFuncRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 

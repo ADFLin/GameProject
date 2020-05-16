@@ -131,9 +131,9 @@ namespace CAR
 	{
 		assert(!controllerScores.empty());
 
-		struct CmpFun
+		struct CmpFunc
 		{
-			CmpFun()
+			CmpFunc()
 			{
 				useHomeRule = false;
 			}
@@ -170,8 +170,8 @@ namespace CAR
 
 
 
-		CmpFun fun;
-		std::sort( controllerScores.begin() , controllerScores.end() , fun );
+		CmpFunc func;
+		std::sort( controllerScores.begin() , controllerScores.end() , func );
 
 		int numController = 0;
 		if ( controllerScores[0].majority != 0 )
@@ -179,7 +179,7 @@ namespace CAR
 			++numController;
 			for( int i = 1; i < controllerScores.size(); ++i )
 			{
-				if( fun.isEqual(controllerScores[0], controllerScores[i]) == false )
+				if( func.isEqual(controllerScores[0], controllerScores[i]) == false )
 					break;
 				++numController;
 			}

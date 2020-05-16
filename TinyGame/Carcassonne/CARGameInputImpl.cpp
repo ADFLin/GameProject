@@ -466,7 +466,7 @@ namespace CAR
 	void CGameInput::setDataTransfer(IDataTransfer* transfer)
 	{
 		mDataTransfer = transfer;
-		mDataTransfer->setRecvFun( RecvFun( this , &CGameInput::onRecvCommon ) );
+		mDataTransfer->setRecvFunc( RecvFunc( this , &CGameInput::onRecvCommon ) );
 	}
 
 	void CGameInput::onRecvCommon(int slot , int dataId , void* data , int dataSize)

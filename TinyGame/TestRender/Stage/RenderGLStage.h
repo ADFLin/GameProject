@@ -590,18 +590,18 @@ namespace Render
 		virtual void render(RenderContext& context) override;
 		virtual void renderTranslucent(RenderContext& context) override;
 		
-		template< class Fun >
-		void visitLights( Fun& fun )
+		template< class TFunc >
+		void visitLights(TFunc& func )
 		{
 			for( int i = 0; i < mNumLightDraw; ++i )
 			{
 				LightInfo const& light = mLights[i];
-				fun( i , light);
+				func( i , light);
 			}
 			for( int i = 0; i < getScene().lights.size(); ++i )
 			{
 				LightInfo const& light = getScene().lights[i]->info;
-				fun(i, light);
+				func(i, light);
 			}
 		}
 

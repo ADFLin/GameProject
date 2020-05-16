@@ -89,8 +89,8 @@ namespace Shoot2D
 #endif
 		};
 
-		template <class FunType>
-		void visit(FunType fun);
+		template <class TFunc>
+		void visit(TFunc func);
 
 		static void updatColData(ColData& data);
 
@@ -127,20 +127,20 @@ namespace Shoot2D
 	};
 
 
-	template <class FunType>
-	void AxisSweepDetector::visit( FunType fun )
+	template <class TFunc>
+	void AxisSweepDetector::visit(TFunc func)
 	{
 		for(size_t i=0; i < NumColObj ; ++i )
 		{
 			ColData* data = colVec[i];
-			fun( data->obj );
+			func( data->obj );
 		}
 
 		for( ObjList::iterator iter = noCol.begin();
 			iter!= noCol.end(); ++iter )
 		{
 			Object* obj=(*iter);
-			fun( obj );
+			func( obj );
 		}
 	}
 

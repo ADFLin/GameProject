@@ -274,10 +274,10 @@ public:
 	bool  isSleeping();
 	void  enableCollisionDetection( bool beE = true );
 
-	template< class Fun >
-	void  setCollisionCallback( Fun fun )               {  mCollisionCB.bind( fun );  }
-	template< class T , class Fun >
-	void  setCollisionCallback( T* component , Fun fun ){  mCollisionCB.bind( component , fun );  }
+	template< class TFun >
+	void  setCollisionCallback( TFun func )               {  mCollisionCB.bind( func );  }
+	template< class T , class TFun >
+	void  setCollisionCallback( T* component , TFun func ){  mCollisionCB.bind( component , func );  }
 	void  clearCallback(){  mCollisionCB.clear();  }
 
 

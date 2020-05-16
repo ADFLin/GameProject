@@ -62,10 +62,10 @@ typedef BOOL(WINAPI * PFNWGLCHOOSEPIXELFORMATARBPROC) (HDC hdc, const int *piAtt
 static PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = nullptr;
 
 template< class TFunc >
-bool LoadGLFunction(char const* name, TFunc& fun)
+bool GetOpenGLFunction(char const* name, TFunc& func)
 {
-	fun = (TFunc)wglGetProcAddress(name);
-	return fun != nullptr;
+	func = (TFunc)wglGetProcAddress(name);
+	return func != nullptr;
 }
 
 LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -147,7 +147,7 @@ int ChoiceMultiSamplePixelFormat(HDC hDC, WGLPixelFormat const& setting, bool bW
 	{
 		if( !CreateFakeGLContext() )
 			return 0;
-		if( !LoadGLFunction("wglChoosePixelFormatARB", wglChoosePixelFormatARB) )
+		if( !GetOpenGLFunction("wglChoosePixelFormatARB", wglChoosePixelFormatARB) )
 			return 0;
 	}
 

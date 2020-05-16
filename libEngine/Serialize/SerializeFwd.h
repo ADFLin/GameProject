@@ -3,11 +3,12 @@
 #define SerializeFwd_H_A7297718_219D_4AB8_8139_11C3B1DDAC5F
 
 #include "Meta/MetaBase.h"
+#include "Meta/FunctionCall.h"
 
-DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializerOutput, operator<<, &, const&);
-DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializerInput, operator >> , &, &);
-DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveBitDataOutput, operator<<, &, const &);
-DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveBitDataInput, operator >> , &, &);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(THaveSerializerOutput, operator<<, &, const&);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(THaveSerializerInput, operator >> , &, &);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(THaveBitDataOutput, operator<<, &, const &);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(THaveBitDataInput, operator >> , &, &);
 
 template< class T >
 struct TTypeSupportSerializeOPFunc

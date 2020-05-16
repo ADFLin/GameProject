@@ -200,7 +200,7 @@ namespace Render
 #define IMPLEMENT_SHADER_PROGRAM( CLASS )\
 	CLASS::ShaderClassType CLASS::ShaderClass\
 	(\
-		(GlobalShaderProgramClass::FunCreateShader) &CLASS::CreateShader,\
+		(GlobalShaderProgramClass::CreateShaderFunc) &CLASS::CreateShader,\
 		CLASS::SetupShaderCompileOption,\
 		CLASS::GetShaderFileName, \
 		CLASS::GetShaderEntries \

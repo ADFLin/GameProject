@@ -8,7 +8,7 @@
 namespace MV
 {
 
-	enum NavFunType
+	enum NavFuncType
 	{
 		NFT_NULL   = 0 ,
 		NFT_LADDER = 1 ,
@@ -48,8 +48,8 @@ namespace MV
 
 	struct SurfaceDef
 	{
-		NavFunType fun;
-		int        meta;
+		NavFuncType func;
+		int         meta;
 	};
 
 	enum NodeType

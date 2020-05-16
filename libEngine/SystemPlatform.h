@@ -38,6 +38,7 @@ struct TimeSpan
 {
 	int64 usec;
 };
+
 struct DateTime
 {
 public:
@@ -85,8 +86,6 @@ public:
 		   mMillisecond == rhs.mMillisecond;
 	}
 
-
-
 	bool operator < (DateTime const& rhs) const
 	{
 #define CMP( VAR )\
@@ -129,13 +128,13 @@ public:
 private:
 
 	int32 mYear;
+	int32 mMillisecond;
 	uint8 mMonth;
-	mutable int8 mCachedDayOfWeek;
 	uint8 mDay;
 	uint8 mHour;
 	uint8 mMinute;
 	uint8 mSecond;
-	int32 mMillisecond;
+	mutable int8 mCachedDayOfWeek;
 };
 
 TYPE_SERIALIZE_AS_RAW_DATA(DateTime);

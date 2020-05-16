@@ -37,8 +37,8 @@ namespace Poker { namespace Big2 {
 		void   selectIndex( int pIndex[] , int num );
 		void   clearSelect();
 
-		typedef fastdelegate::FastDelegate< void ( int* , int ) > Fun;
-		Fun  onChangeIndexSelected;
+		typedef fastdelegate::FastDelegate< void ( int* , int ) > Func;
+		Func  onChangeIndexSelected;
 
 		Vec2i  getBasePos(){ return mBasePos; }
 

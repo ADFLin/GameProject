@@ -7,7 +7,7 @@ void CTestDataTransfer::sendData( int recvId , int dataId , void* data , int num
 {
 	if ( recvId == conTransfer->slotId || recvId == SLOT_SERVER )
 	{
-		conTransfer->mFun( slotId , dataId , data , num );
+		conTransfer->mFunc( slotId , dataId , data , num );
 	}
 }
 
@@ -15,7 +15,7 @@ CWorkerDataTransfer::CWorkerDataTransfer( ComWorker* worker , int slotId )
 {
 	mWorker = worker;
 	mSlotId = slotId;
-	mWorker->getEvaluator().setUserFun< GDPStream >( this , &CWorkerDataTransfer::procPacket );
+	mWorker->getEvaluator().setUserFunc< GDPStream >( this , &CWorkerDataTransfer::procPacket );
 }
 
 void CWorkerDataTransfer::sendTcpCommand( int recvId , IComPacket* cp )
@@ -47,7 +47,7 @@ void CWorkerDataTransfer::procPacket( IComPacket* cp)
 	int dataSize = com->buffer.getAvailableSize();
 	if( dataSizeRecord == dataSize )
 	{
-		mFun(slotId, dataId, data, dataSize);
+		mFunc(slotId, dataId, data, dataSize);
 	}
 	else
 	{

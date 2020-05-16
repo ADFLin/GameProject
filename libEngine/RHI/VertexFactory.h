@@ -16,14 +16,14 @@ namespace Render
 	{
 	public:
 
-		using CreateShaderDataFun = VertexFactoryShaderData* (*)();
-		using ModifyCompilationOptionFun = void (*)(ShaderCompileOption& opation);
+		using CreateShaderDataFunc = VertexFactoryShaderData* (*)();
+		using ModifyCompilationOptionFunc = void (*)(ShaderCompileOption& opation);
 
-		CORE_API VertexFactoryType(char const* inFileName , ModifyCompilationOptionFun MCO );
+		CORE_API VertexFactoryType(char const* inFileName , ModifyCompilationOptionFunc MCO );
 		
 		char const* fileName;
-		ModifyCompilationOptionFun ModifyCompilationOption;
-		CreateShaderDataFun CreateShaderData;
+		ModifyCompilationOptionFunc ModifyCompilationOption;
+		CreateShaderDataFunc CreateShaderData;
 
 		void getCompileOption(ShaderCompileOption& option);
 		virtual void setupShader( MaterialShaderProgram& shader , VertexFactoryShaderData* shaderData)

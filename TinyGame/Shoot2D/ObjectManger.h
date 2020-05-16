@@ -32,8 +32,8 @@ namespace Shoot2D
 		void addObj(Object* obj);
 		void removeObj( Object* obj );
 
-		template <class FunType>
-		void visit(FunType fun);
+		template <class TFunc>
+		void visit(TFunc func);
 
 		bool updateObjCell( Object& obj , Cell* cell);
 		void testCollision( );
@@ -49,8 +49,8 @@ namespace Shoot2D
 	};
 
 
-	template <class FunType>
-	void ObjectManger::visit( FunType fun )
+	template <class TFunc>
+	void ObjectManger::visit( TFunc func )
 	{
 		for ( int i = 0 ; i < NumCellX ; ++i )
 		{
@@ -64,7 +64,7 @@ namespace Shoot2D
 				for( Cell::iterator iter = cell->begin();
 					iter!= cell->end();++iter )
 				{
-					fun( *iter );
+					func( *iter );
 				}
 			}
 		}

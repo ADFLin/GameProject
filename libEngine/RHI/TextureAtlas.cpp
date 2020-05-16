@@ -118,7 +118,22 @@ namespace Render
 
 	void TextureAtlas::getRectUV(int id, Vector2& outMin, Vector2& outMax) const
 	{
-		auto rect = mHelper.getNode(id)->rect;
+		auto* node = mHelper.getNode(id);
+		if (node)
+		{
+			auto rect = node->rect;
+			outMin.x = float(rect.x + mBorder) / mTexture->getSizeX();
+			outMin.y = float(rect.y + mBorder) / mTexture->getSizeY();
+			outMax.x = float(rect.x + rect.w - mBorder) / mTexture->getSizeX();
+			outMax.y = float(rect.y + rect.h - mBorder) / mTexture->getSizeY();
+		}
+	}
+
+	void TextureAtlas::getRectUVChecked(int id, Vector2& outMin, Vector2& outMax) const
+	{
+		auto* node = mHelper.getNode(id);
+		assert(node);
+		auto rect = node->rect;
 		outMin.x = float(rect.x + mBorder) / mTexture->getSizeX();
 		outMin.y = float(rect.y + mBorder) / mTexture->getSizeY();
 		outMax.x = float(rect.x + rect.w - mBorder) / mTexture->getSizeX();

@@ -119,10 +119,10 @@ public:
 	static Node* getNeighborAdjNode( Node* node );
 
 	template< int Side , class TFunc >
-	static void visitNode( Node* node , TFunc& fun );
+	static void visitNode( Node* node , TFunc& func );
 
 	template< class TFunc >
-	static void  visitNeighborNode( Node* node, TFunc& fun );
+	static void  visitNeighborNode( Node* node, TFunc& func );
 
 	GrayNode  mHead;
 };

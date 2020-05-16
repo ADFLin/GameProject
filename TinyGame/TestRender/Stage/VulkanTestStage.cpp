@@ -275,8 +275,8 @@ namespace RenderVulkan
 				bool bHaveDebugUtils = FPropertyName::Find(extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 				if ( bHaveDebugUtils )
 				{
-					auto fun = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
-					if( fun )
+					auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
+					if( func )
 					{
 						VkDebugUtilsMessengerCreateInfoEXT debugInfo = {};
 						debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -284,7 +284,7 @@ namespace RenderVulkan
 						debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 						debugInfo.pfnUserCallback = DebugVKCallback;
 						debugInfo.pUserData = nullptr;
-						VERIFY_VK_RETURN_FALSE(fun(mInstance, &debugInfo, gAllocCB, &mCallback));
+						VERIFY_VK_RETURN_FALSE(func(mInstance, &debugInfo, gAllocCB, &mCallback));
 					}
 
 				}
@@ -446,8 +446,8 @@ namespace RenderVulkan
 
 			if( mCallback != VK_NULL_HANDLE )
 			{
-				auto fun = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
-				fun(mInstance, mCallback, gAllocCB);
+				auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
+				func(mInstance, mCallback, gAllocCB);
 				mCallback = VK_NULL_HANDLE;
 			}
 			SAFE_VK_DESTROY(mInstance, vkDestroyInstance(mInstance, gAllocCB));

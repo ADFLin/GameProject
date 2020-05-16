@@ -5,9 +5,9 @@
 #include "fmod_errors.h"
 
 
-#define FMOD_CHECK( FUN )\
+#define FMOD_CHECK( FUNC )\
 	{\
-	FMOD_RESULT  result = FUN;\
+	FMOD_RESULT  result = FUNC;\
 	ERRCHECK(result);\
 }\
 

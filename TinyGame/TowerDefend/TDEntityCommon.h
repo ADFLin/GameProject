@@ -257,19 +257,19 @@ namespace TowerDefend
 		typedef Entity BaseClass;
 		DEF_TD_ENTITY_TYPE( ET_BULLET )
 	public:
-		typedef fastdelegate::FastDelegate< void ( Bullet& ) > HitFun;
-		typedef fastdelegate::FastDelegate< bool ( Bullet& ) > MoveFun;
+		typedef fastdelegate::FastDelegate< void ( Bullet& ) > HitFunc;
+		typedef fastdelegate::FastDelegate< bool ( Bullet& ) > MoveFunc;
 
-		Bullet( MoveFun const& fun ): mMoveFun( fun ){ ADD_ENTITY_TYPE() }
+		Bullet( MoveFunc const& func ): mMoveFunc( func ){ ADD_ENTITY_TYPE() }
 
 		void onTick() override;
 
 		void doRender( Renderer& renderer );
-		void setHitFun( HitFun const& fun ){ mHitFun = fun; }
+		void setHitFunc( HitFunc const& func ){ mHitFunc = func; }
 
-		HitFun     mHitFun;
-		MoveFun    mMoveFun;
-		Vector2      mLocationParam;
+		HitFunc    mHitFunc;
+		MoveFunc   mMoveFunc;
+		Vector2    mLocationParam;
 		ActorPtr   mTarget;
 	};
 

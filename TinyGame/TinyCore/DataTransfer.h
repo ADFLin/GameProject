@@ -26,13 +26,13 @@ struct DataTransferTypeToId {};
 template< class T >
 struct THaveGetSendSizeFunc : Meta::HaveResult< THaveGetSendSizeFuncImpl<T>::Value >{};
 
-typedef fastdelegate::FastDelegate< void ( int recvId , int dataId , void* data , int dataSize ) > RecvFun;
+typedef fastdelegate::FastDelegate< void ( int recvId , int dataId , void* data , int dataSize ) > RecvFunc;
 
 class IDataTransfer
 {
 public:
 	virtual void sendData( int recvId , int dataId , void* data , int num ) = 0;
-	virtual void setRecvFun( RecvFun fun ) = 0;
+	virtual void setRecvFunc( RecvFunc func ) = 0;
 
 	template< class T >
 	void sendData(int recvId, T& data)

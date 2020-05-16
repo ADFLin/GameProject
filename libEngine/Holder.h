@@ -14,11 +14,11 @@ namespace Detail
 		void setZero( ManageType& ptr ){ ptr = 0; }
 	};
 
-	template< class T , class FreeFun >
-	struct PtrFunFreePolicy
+	template< class T , class TFreeFunc >
+	struct TPtrReleaseFuncPolicy
 	{
 		typedef T* ManageType;
-		void destroy( ManageType ptr ){  if ( ptr ) FreeFun()( ptr );  }
+		void destroy( ManageType ptr ){  if ( ptr ) TFreeFunc()( ptr );  }
 		void setZero( ManageType& ptr ){ ptr = 0; }
 	};
 
@@ -37,31 +37,31 @@ namespace Detail
 	public:
 		typedef typename MP::ManageType ManageType;
 
-		HolderImpl(){ MP::setZero( m_ptr ); }
-		explicit HolderImpl( ManageType ptr):m_ptr(ptr){}
-		~HolderImpl(){	MP::destroy( m_ptr );  }
+		HolderImpl(){ MP::setZero( mPtr ); }
+		explicit HolderImpl( ManageType ptr):mPtr(ptr){}
+		~HolderImpl(){	MP::destroy( mPtr );  }
 
 		void reset( ManageType  ptr )
 		{
-			MP::destroy( m_ptr );
-			m_ptr = ptr;
+			MP::destroy( mPtr );
+			mPtr = ptr;
 		}
 
 		void clear()
 		{
-			MP::destroy( m_ptr );
-			MP::setZero( m_ptr );
+			MP::destroy( mPtr );
+			MP::setZero( mPtr );
 		}
 		ManageType release()
 		{
-			ManageType temp = m_ptr;
-			MP::setZero( m_ptr );
+			ManageType temp = mPtr;
+			MP::setZero( mPtr );
 			return temp;
 		}
-		ManageType get() const { return m_ptr; }
+		ManageType get() const { return mPtr; }
 
 	protected:
-		ManageType m_ptr;
+		ManageType mPtr;
 	private:
 		template < class M >
 		HolderImpl<T , M >& operator=( ManageType ptr);
@@ -79,12 +79,12 @@ public:
 	TPtrHolderBase(){}
 	explicit TPtrHolderBase(T* ptr):Detail::HolderImpl< T , Policy >(ptr){}
 
-	T&       operator*()        { return *this->m_ptr; }
-	T const& operator*()  const { return *this->m_ptr; }
-	T*       operator->()       { return this->m_ptr; }
-	T const* operator->() const { return this->m_ptr; }
-	operator T*()               { return this->m_ptr; }
-	operator T const*() const   { return this->m_ptr; }
+	T&       operator*()        { return *this->mPtr; }
+	T const& operator*()  const { return *this->mPtr; }
+	T*       operator->()       { return this->mPtr; }
+	T const* operator->() const { return this->mPtr; }
+	operator T*()               { return this->mPtr; }
+	operator T const*() const   { return this->mPtr; }
 };
 
 template< class T >
@@ -98,12 +98,12 @@ public:
 };
 
 
-template< class T , class FreeFun >
-class TPtrFunFreeHolder : public TPtrHolderBase< T , Detail::PtrFunFreePolicy< T , FreeFun > >
+template< class T , class TFreeFunc >
+class TPtrReleaseFuncHolder : public TPtrHolderBase< T , Detail::TPtrReleaseFuncPolicy< T , TFreeFunc > >
 {
 public:
-	TPtrFunFreeHolder(){}
-	TPtrFunFreeHolder(T* ptr):TPtrHolderBase< T , Detail::PtrFunFreePolicy< T , FreeFun > >(ptr){}
+	TPtrReleaseFuncHolder(){}
+	TPtrReleaseFuncHolder(T* ptr):TPtrHolderBase< T , Detail::TPtrReleaseFuncPolicy< T , TFreeFunc > >(ptr){}
 };
 
 
@@ -116,8 +116,8 @@ public:
 
 	TArrayHolder(TArrayHolder<T>&& Other) :Detail::HolderImpl< T, Detail::ArrayPtrPolicy< T > >(Other.release()) {}
 
-	operator T*()             { return this->m_ptr;  }
-	operator T const*() const { return this->m_ptr;  }
+	operator T*()             { return this->mPtr;  }
+	operator T const*() const { return this->mPtr;  }
 };
 
 #endif // THolder_h__

@@ -535,15 +535,15 @@ namespace Go
 			return BOT_FAIL;
 		}
 
-		bool playPass(int color) override
+		EBotExecResult playPass(int color) override
 		{
 			//
-
+			return BOT_FAIL;
 		}
 
-		bool undo() override
+		EBotExecResult undo() override
 		{
-			return false;
+			return BOT_FAIL;
 		}
 
 

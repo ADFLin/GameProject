@@ -659,7 +659,7 @@ namespace Poker { namespace Holdem {
 	{
 		assert( transfer );
 		mTransfer = transfer;
-		mTransfer->setRecvFun( RecvFun( this , &LevelBase::procRecvData ) );
+		mTransfer->setRecvFunc( RecvFunc( this , &LevelBase::procRecvData ) );
 	}
 
 	void LevelBase::updatePotPool( bool beEnd )

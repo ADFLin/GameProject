@@ -17,7 +17,7 @@ namespace Go
 		CSP_PLAY = GDP_NEXT_ID ,
 	};
 
-	class CSPPlay : public GamePacket< CSPPlay  , CSP_PLAY >
+	class CSPPlay : public GamePacketT< CSPPlay  , CSP_PLAY >
 	{
 	public:
 		short idxPos;
@@ -34,7 +34,7 @@ namespace Go
 		void setup( NetWorker* worker )
 		{
 			ComEvaluator& evaluator = worker->getEvaluator();
-			evaluator.setUserFun< CSPPlay >( this , &Server::procPlay );
+			evaluator.setUserFunc< CSPPlay >( this , &Server::procPlay );
 		}
 		void procPlay( IComPacket* cp)
 		{

@@ -215,11 +215,11 @@ namespace ECS
 
 
 		template< class TFunc >
-		void notifyEvent(TFunc&& fun)
+		void notifyEvent(TFunc&& func)
 		{
 			for( auto listener : mEventListers )
 			{
-				fun(listener);
+				func(listener);
 			}
 		}
 

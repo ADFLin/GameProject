@@ -1,14 +1,17 @@
 #ifndef StreamBuffer_h__
 #define StreamBuffer_h__
 
-#include "Meta/MetaBase.h"
-#include "CompilerConfig.h"
 #include "DataStream.h"
+
+#include "CompilerConfig.h"
+#include "Meta/MetaBase.h"
+#include "Meta/Select.h"
 
 #include <exception>
 #include <memory>
 #include <cassert>
 #include <vector>
+
 
 class CheckPolicy
 {
@@ -154,7 +157,7 @@ public:
 		if ( !checkFill( sizeof( T ) ) )
 			return;
 
-		typedef typename Meta::Select< 
+		typedef typename TSelect< 
 			(sizeof(T) > 8) && ( Meta::IsPod< T >::Value || TTypeSerializeAsRawData<T>::Value ) ,
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;
@@ -169,7 +172,7 @@ public:
 		if ( !checkTake( sizeof( T ) ) )
 			return;
 
-		typedef typename Meta::Select< 
+		typedef typename TSelect< 
 			( sizeof( T ) > 8 ) && (Meta::IsPod< T >::Value || TTypeSerializeAsRawData<T>::Value),
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;

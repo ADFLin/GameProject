@@ -160,8 +160,8 @@ namespace CAR
 
 	private:
 
-#define REQUEST_ACTION( FUN , DATA , DATA_ID )\
-	virtual void FUN( DATA& data ) override {  requestActionImpl( DATA_ID , data ); }
+#define REQUEST_ACTION( FUNC , DATA , DATA_ID )\
+	virtual void FUNC( DATA& data ) override {  requestActionImpl( DATA_ID , data ); }
 
 		REQUEST_ACTION( requestPlaceTile , GamePlaceTileData , ACTION_PLACE_TILE );
 		REQUEST_ACTION( requestDeployActor , GameDeployActorData , ACTION_DEPLOY_ACTOR );

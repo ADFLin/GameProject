@@ -59,14 +59,14 @@ namespace MV
 					state.isPrevParallax = ( n == 1 ) ;
 					state.upDir = aNode.state.upDir;
 
-					if ( srcSurface->fun != destSurface->fun )
+					if ( srcSurface->func != destSurface->func )
 					{
-						switch( srcSurface->fun )
+						switch( srcSurface->func )
 						{
 						case NFT_LADDER :
 							{
 								Dir destFaceDir = Block::WorldDir( *destSurface );
-								if ( destSurface->fun != NFT_PLANE_LADDER ||
+								if ( destSurface->func != NFT_PLANE_LADDER ||
 									destFaceDir != Block::WorldDir( *srcSurface ) )
 								{
 									if ( destFaceDir != aNode.state.upDir )
@@ -128,7 +128,7 @@ namespace MV
 		Vec3f faceOffset = 0.5 * FDir::OffsetF( pathNode.faceDir );
 		Vec3f faceCenterPos = Vec3f( state.block->pos ) + faceOffset;
 
-		switch( surf->fun )
+		switch( surf->func )
 		{
 		case NFT_STAIR:
 			points.push_back( Vec3f( state.block->pos ) );
@@ -244,12 +244,12 @@ namespace MV
 				NavNode* node = nextState->prevBlockNode;
 				BlockSurface* surf = node->getSurface();
 				BlockSurface* nextSurf = node->link->getSurface();
-				switch ( surf->fun )
+				switch ( surf->func )
 				{
 				case NFT_ROTATOR_C:
 				case NFT_ROTATOR_NC:
 				case NFT_STAIR:
-					if ( surf->fun == nextSurf->fun && surf->block == nextSurf->block )
+					if ( surf->func == nextSurf->func && surf->block == nextSurf->block )
 						needAddNode = false;
 					break;
 				}
@@ -408,7 +408,7 @@ namespace MV
 		PathNode const& node = mPath.getNode( mIdxNode );
 		mWorld->setActorBlock( *mHost , node.block->id , node.faceDir , false);
 
-		switch( node.block->getFace( node.faceDir ).fun )
+		switch( node.block->getFace( node.faceDir ).func )
 		{
 		case NFT_LADDER:
 			mHost->actState = Actor::eActClimb;

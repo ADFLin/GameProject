@@ -6,7 +6,9 @@
 #include "WindowsHeader.h"
 #include "SystemMessage.h"
 #include "Meta/MetaBase.h"
+#include "Meta/Select.h"
 #include "Core/CRTPCheck.h"
+
 
 enum
 {
@@ -34,7 +36,7 @@ namespace Private
 #define MSG_DEUFLT MSG_CHAR | MSG_KEY | MSG_MOUSE | MSG_ACTIAVTE | MSG_PAINT
 
 template< class T , unsigned MSG = MSG_DEUFLT >
-class WindowsMessageHandlerT : private Meta::Select< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::Type
+class WindowsMessageHandlerT : private TSelect< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::Type
 {
 
 	typedef WindowsMessageHandlerT< T , MSG >  ThisType;
@@ -43,7 +45,7 @@ public:
 
 	WindowsMessageHandlerT()
 	{
-		s_MsgHandler = this;
+		sMsgHandler = this;
 	}
 
 public:
@@ -60,7 +62,7 @@ public:
 	static LRESULT CALLBACK MsgProc( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam );
 
 private:
-	static WindowsMessageHandlerT* s_MsgHandler;
+	static WindowsMessageHandlerT* sMsgHandler;
 
 	static EKeyCode::Type ConvToKeyCode(WPARAM wParam) { return EKeyCode::Type(wParam); }
 
@@ -112,12 +114,12 @@ private:
 	}
 	inline  T* _this(){ return static_cast< T* >( this ); }
 
-	template< bool (ThisType::*FUN)( HWND , UINT , WPARAM , LPARAM , LRESULT& ) >
-	struct EvalFun
+	template< bool (ThisType::*FUNC)( HWND , UINT , WPARAM , LPARAM , LRESULT& ) >
+	struct EvalFunc
 	{
 		inline bool operator()( ThisType* handler , HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 		{
-			return (handler->*FUN)( hWnd , msg , wParam , lParam , result );
+			return (handler->*FUNC)( hWnd , msg , wParam , lParam , result );
 		}
 	};
 
@@ -125,7 +127,7 @@ private:
 
 
 template< class T , unsigned MSG >
-WindowsMessageHandlerT<T,MSG>* WindowsMessageHandlerT<T, MSG>::s_MsgHandler = NULL;
+WindowsMessageHandlerT<T,MSG>* WindowsMessageHandlerT<T, MSG>::sMsgHandler = nullptr;
 
 template< class T , unsigned MSG >
 LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam )
@@ -133,15 +135,15 @@ LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg ,
 	LRESULT result = 0;
 
 	using namespace Meta;
-	typedef EvalFun< &ThisType::_procDefault > DefaultEval;
+	typedef EvalFunc< &ThisType::_procDefault > DefaultEval;
 	
 	switch ( msg )                  /* handle the messages */
 	{
 
-#define PROC_MSG_FUN(  CASE_MSG , FUN )\
+#define PROC_MSG_FUNC(  CASE_MSG , FUNC )\
 	{\
-		typename Select< ( MSG & CASE_MSG ) != 0 , EvalFun< &ThisType::FUN > , DefaultEval >::Type evaler;\
-		if ( !evaler( s_MsgHandler , hWnd , msg , wParam , lParam , result ) )\
+		typename TSelect< ( MSG & CASE_MSG ) != 0 , EvalFunc< &ThisType::FUNC > , DefaultEval >::Type evaler;\
+		if ( !evaler( sMsgHandler , hWnd , msg , wParam , lParam , result ) )\
 		return result;\
 	}
 
@@ -150,30 +152,30 @@ LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg ,
 		break;
 
 	case WM_ACTIVATE: 
-		PROC_MSG_FUN( MSG_ACTIAVTE , _procActivateMsg ); 
+		PROC_MSG_FUNC( MSG_ACTIAVTE , _procActivateMsg ); 
 		break;
 	case WM_KEYDOWN: case WM_KEYUP: 
-		PROC_MSG_FUN( MSG_KEY   , _procKeyMsg ); 
+		PROC_MSG_FUNC( MSG_KEY   , _procKeyMsg ); 
 		break;
 	case WM_CHAR:
-		PROC_MSG_FUN( MSG_CHAR ,  _procCharMsg ); 
+		PROC_MSG_FUNC( MSG_CHAR ,  _procCharMsg ); 
 		break;
 	case WM_MBUTTONDOWN : case WM_MBUTTONUP : case WM_MBUTTONDBLCLK :
 	case WM_LBUTTONDOWN : case WM_LBUTTONUP : case WM_LBUTTONDBLCLK :
 	case WM_RBUTTONDOWN : case WM_RBUTTONUP : case WM_RBUTTONDBLCLK :
 	case WM_MOUSEMOVE:    case WM_MOUSEWHEEL:
-		PROC_MSG_FUN( MSG_MOUSE , _procMouseMsg ); 
+		PROC_MSG_FUNC( MSG_MOUSE , _procMouseMsg ); 
 		break;
 	case WM_PAINT:
-		PROC_MSG_FUN( MSG_PAINT , _procPaintMsg ); 
+		PROC_MSG_FUNC( MSG_PAINT , _procPaintMsg ); 
 		break;
 	case WM_PASTE:
-		PROC_MSG_FUN( MSG_DATA , _procPasteMsg );
+		PROC_MSG_FUNC( MSG_DATA , _procPasteMsg );
 		break;
 	case WM_DESTROY:
 		{
-			typename Select< ( MSG & MSG_DESTROY ) != 0 , EvalFun< &ThisType::_procDestroyMsg > , DefaultEval >::Type evaler;
-			evaler( s_MsgHandler , hWnd , msg , wParam , lParam , result );
+			typename TSelect< ( MSG & MSG_DESTROY ) != 0 , EvalFunc< &ThisType::_procDestroyMsg > , DefaultEval >::Type evaler;
+			evaler( sMsgHandler , hWnd , msg , wParam , lParam , result );
 		}
 		break;
 	case WM_IME_CHAR:

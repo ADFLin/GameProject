@@ -12,13 +12,13 @@ namespace FlowFree
 
 	enum ImageReadResult
 	{
-		IRR_OK,
+		IRR_OK = 0,
+
 		IRR_LoadImageFail,
 		IRR_CantDetectGridLine ,
 		IRR_SourceDetectFail ,
 		IRR_SourceNoPair ,
 		IRR_EdgeDetectFail ,
-
 	};
 
 	class ImageReader

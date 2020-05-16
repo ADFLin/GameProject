@@ -62,7 +62,7 @@ namespace CB
 		Surface3D();
 		~Surface3D();
 
-		void setFunction(SurfaceFunc* fun);
+		void setFunction(SurfaceFunc* func);
 		int  getShapeType() override { return mCurType; }
 		Surface3D*  clone() override;
 		void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder) override;

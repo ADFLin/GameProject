@@ -399,9 +399,13 @@
     <ClInclude Include="Math\TVector2.h" />
     <ClInclude Include="Math\TVector3.h" />
     <ClInclude Include="Math\TVector4.h" />
+    <ClInclude Include="Meta\EnableIf.h" />
+    <ClInclude Include="Meta\FunctionCall.h" />
+    <ClInclude Include="Meta\IsBaseOf.h" />
     <ClInclude Include="Meta\MetaBase.h" />
     <ClInclude Include="Meta\MetaFunction.h" />
     <ClInclude Include="Meta\MetaTypeList.h" />
+    <ClInclude Include="Meta\Select.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
     <ClInclude Include="ObjectHandle.h" />

@@ -906,9 +906,9 @@ namespace Render
 		return GL_FUNC_ADD;
 	}
 
-	GLenum OpenGLTranslate::To(ECompareFunc fun)
+	GLenum OpenGLTranslate::To(ECompareFunc func)
 	{
-		switch( fun )
+		switch(func)
 		{
 		case ECompareFunc::Never:       return GL_NEVER;
 		case ECompareFunc::Less:        return GL_LESS;

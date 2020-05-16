@@ -114,14 +114,14 @@ public:
 };
 
 
-template < class FunSig , class T = void >
-struct TMemberFunConsoleCommand : public ConsoleCommandBase
+template < class TFunc, class T = void >
+struct TMemberFuncConsoleCom : public ConsoleCommandBase
 {
-	FunSig mFunc;
+	TFunc  mFunc;
 	T*     mObject;
 
-	TMemberFunConsoleCommand( char const* inName , FunSig inFunc, T* inObj = NULL )
-		:ConsoleCommandBase(inName, TCommandFuncTraints<FunSig>::GetArgs() )
+	TMemberFuncConsoleCom( char const* inName , TFunc inFunc, T* inObj = NULL )
+		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() )
 		, mFunc(inFunc), mObject(inObj)
 	{
 	}
@@ -132,12 +132,12 @@ struct TMemberFunConsoleCommand : public ConsoleCommandBase
 	}
 };
 
-template < class FunSig >
-struct BaseFunCom : public ConsoleCommandBase
+template < class TFunc >
+struct BaseFuncConsoleCom : public ConsoleCommandBase
 {
-	FunSig mFunc;
-	BaseFunCom( char const* inName, FunSig inFunc)
-		:ConsoleCommandBase(inName, TCommandFuncTraints<FunSig>::GetArgs() )
+	TFunc mFunc;
+	BaseFuncConsoleCom( char const* inName, TFunc inFunc)
+		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() )
 		,mFunc(inFunc)
 	{
 	}
@@ -211,17 +211,17 @@ public:
 		insertCommand(command);
 	}
 
-	template < class FunSig , class T >
-	 void registerCommand( char const* name , FunSig fun , T* obj )
+	template < class TFunc, class T >
+	 void registerCommand( char const* name , TFunc func , T* obj )
 	{
-		auto* command = new TMemberFunConsoleCommand<FunSig , T >( name ,fun , obj );
+		auto* command = new TMemberFuncConsoleCom<TFunc, T >( name ,func , obj );
 		insertCommand(command);
 	}
 
-	template < class FunSig >
-	void registerCommand( char const* name , FunSig fun )
+	template < class TFunc >
+	void registerCommand( char const* name , TFunc func )
 	{
-		auto* command = new BaseFunCom<FunSig>( name ,fun );
+		auto* command = new BaseFuncConsoleCom<TFunc>( name ,func );
 		insertCommand(command);
 	}
 

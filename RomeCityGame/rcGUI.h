@@ -22,7 +22,7 @@ struct rcWidgetInfo
 
 class rcWidget;
 typedef TWidgetLibrary< rcWidget > rcGUI;
-typedef fastdelegate::FastDelegate< void ( rcWidget* , int , void* ) > FunUIEvent;
+typedef fastdelegate::FastDelegate< void ( rcWidget* , int , void* ) > FuncUIEvent;
 
 class rcWidget : public WidgetCoreT< rcWidget >
 {
@@ -36,8 +36,8 @@ public:
 	}
 	int getID(){ return mID; }
 
-	template< class T , class Fun >
-	void setEventFun( T* obj , Fun fun ){   mFunEvt.bind( obj , fun );  }
+	template< class T , class TFunc >
+	void setEventFunc( T* obj , TFunc func ){  mFuncEvt.bind( obj , func );  }
 
 	virtual void onRender(){}
 	virtual void onUpdate(){}
@@ -52,8 +52,8 @@ public:
 protected:
 	rcWidgetInfo const& getWidgetInfo();
 	void procEvent( int evtID , void* data );
-	FunUIEvent mFunEvt;
-	int        mID;
+	FuncUIEvent mFuncEvt;
+	int         mID;
 };
 
 typedef TWidgetLibrary< rcWidget > rcGUI;

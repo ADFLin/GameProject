@@ -218,10 +218,10 @@ public:
 	};
 
 	template< class T , class Q >
-	void  setOnTileCallback( T* ptr , void (Q::*fun)( rcWorker* ) )
+	void  setOnTileCallback( T* ptr , void (Q::*func)( rcWorker* ) )
 	{
-		mRandNavigator.onTile.bind( ptr , fun );
-		mPathNavigator.onTile.bind( ptr , fun );
+		mRandNavigator.onTile.bind( ptr , func );
+		mPathNavigator.onTile.bind( ptr , func );
 	}
 
 

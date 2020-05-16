@@ -208,7 +208,7 @@ namespace Render
 
 	void RHIFlushCommand(RHICommandList& commandList);
 
-#define RHI_FUNC( FUN ) virtual FUN = 0
+#define RHI_FUNC( FUNC ) virtual FUNC = 0
 
 	class RHISystem
 	{

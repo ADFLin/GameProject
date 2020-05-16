@@ -115,7 +115,7 @@ namespace Zuma
 		void loadLayerSetImage      ( Stream& stream , ZFontLayer* layer );
 
 	public:
-		typedef void (ZFontLoader::*LoadFun)( Stream& , ZFontLayer* );
+		typedef void (ZFontLoader::*LoadFunc)( Stream& , ZFontLayer* );
 	};
 
 }//namespace Zuma

@@ -85,6 +85,18 @@ public:
 #error "No impl"
 #endif
 	}
+
+	template< class T, class CharT = TChar >
+	FORCEINLINE static T To(CharT const* value)
+	{
+#if CPP_CHARCONV_SUPPORT
+		T result = T();
+		std::from_chars(value, value + FCString::Strlen(value), result);
+		return result;
+#else
+#error "No impl"
+#endif
+	}
 };
 
 #endif // StringConv_H_1F1C04BF_8321_4E8A_BFBA_5C015EE4EAE4

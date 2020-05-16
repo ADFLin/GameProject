@@ -38,7 +38,7 @@ namespace Priv
 }
 
 template< class T >
-class FObjectPtr : public TPtrFunFreeHolder< T , Priv::ReleaseFree >
+class FObjectPtr : public TPtrReleaseFuncHolder< T , Priv::ReleaseFree >
 {
 
 };

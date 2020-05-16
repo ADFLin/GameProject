@@ -347,8 +347,6 @@ namespace TripleTown
 			VERIFY_RETURN_FALSE(loadItemImageResource(info));
 		}
 
-
-
 		LogMsg("Atlas = %f", mTexAtlas.calcUsageAreaRatio());
 		return true;
 	}
@@ -821,12 +819,7 @@ namespace TripleTown
 #if USE_BATCHED_RENDER
 		submitRenderCommand(commandList);
 #endif
-
-
-
 		mRenderState.popTransform();
-
-
 
 		assert(mRenderState.xfromStack.size() == 1);
 		glDisable(GL_TEXTURE_2D);
@@ -950,8 +943,8 @@ namespace TripleTown
 		}
 	}
 
-	template< class Fun >
-	class MoveFun
+	template< class TFunc >
+	class MoveFunc
 	{
 	public:
 		Vector2 operator()(float t, Vector2 const& b, Vector2 const& c, float const& d)
@@ -959,8 +952,8 @@ namespace TripleTown
 			float const height = 1500;
 			float const dest = d / 2;
 			if( t < dest )
-				return Fun().operator() < Vector2 > (t, b, Vector2(0, -height), dest);
-			return Fun().operator() < Vector2 > (t - dest, b + c - Vector2(0, height), Vector2(0, height), dest);
+				return TFunc().operator() < Vector2 > (t, b, Vector2(0, -height), dest);
+			return TFunc().operator() < Vector2 > (t - dest, b + c - Vector2(0, height), Vector2(0, height), dest);
 		}
 
 	};
@@ -976,7 +969,7 @@ namespace TripleTown
 			mTweener.tweenValue< Easing::IOQuad >(data.pos, posRFrom, posRTo, AnimTime, 0);
 			break;
 		case OBJ_NINJA:
-			mTweener.tweenValue< MoveFun< Easing::Linear > >(data.pos, posRFrom, posRTo, AnimTime, 0);
+			mTweener.tweenValue< MoveFunc< Easing::Linear > >(data.pos, posRFrom, posRTo, AnimTime, 0);
 			break;
 		}
 	}

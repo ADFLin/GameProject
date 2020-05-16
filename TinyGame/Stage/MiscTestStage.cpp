@@ -348,9 +348,9 @@ REGISTER_MISC_TEST("Calc Money", CalcMoney);
 
 typedef boost::coroutines::asymmetric_coroutine< int > CoroutineType;
 
-struct FooFun
+struct FooFunc
 {
-	FooFun()
+	FooFunc()
 	{
 		num = 0;
 	}
@@ -370,16 +370,16 @@ struct FooFun
 		ca( -1 );
 	}
 	int num;
-} gFun;
+} gFunc;
 
 static CoroutineType::pull_type gCor;
 static FunctionJumper gJumper;
 
 template< class TFunc >
-void foo( TFunc fun )
+void foo( TFunc func )
 {
 	static int i = 2;
-	boost::unwrap_ref(fun)(i);
+	boost::unwrap_ref(func)(i);
 }
 
 struct Foo
@@ -414,8 +414,8 @@ bool CoroutineTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();
 	WidgetUtility::CreateDevFrame();
-	gFun.num = 0;
-	gCor = CoroutineType::pull_type( std::bind( &FooFun::foo , std::ref(gFun) , std::placeholders::_1 ) );
+	gFunc.num = 0;
+	gCor = CoroutineType::pull_type( std::bind( &FooFunc::foo , std::ref(gFunc) , std::placeholders::_1 ) );
 	int id = gCor.get();
 
 	Foo f;
@@ -433,7 +433,7 @@ bool CoroutineTestStage::onWidgetEvent( int event , int id , GWidget* ui )
 	switch( id )
 	{
 	case UI_TEST_BUTTON:
-		gFun.num += 1;
+		gFunc.num += 1;
 		gCor();
 		return false;
 	case UI_TEST_BUTTON2:
@@ -934,7 +934,7 @@ namespace Meta
 		};
 		typedef FindValueWithMaskImpl< Mask, FindValue, Index + 1, TUint32List< Args... > > NextFindType;
 		static constexpr bool   IsFound = ((Value & Mask) == FindValue);
-		typedef typename Select< IsFound, FoundResultType, NextFindType >::Type FindResultType;
+		typedef typename TSelect< IsFound, FoundResultType, NextFindType >::Type FindResultType;
 		
 		static constexpr bool   Result = FindResultType::Result;
 		static constexpr uint32 ResultValue = FindResultType::ResultValue;
@@ -1306,7 +1306,7 @@ bool MiscTestStage::onInit()
 }
 
 
-void MiscTestStage::addTest(char const* name , TestFun const& func)
+void MiscTestStage::addTest(char const* name , TestFunc const& func)
 {
 	Vec2i pos;
 	pos.x = 20 + 120 * ( mInfos.size() % 5 );
@@ -1334,7 +1334,7 @@ bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
 			return 0;
 		}
 		void exit(){ delete this; }
-		MiscTestStage::TestFun func;
+		MiscTestStage::TestFunc func;
 	};
 
 	switch ( id )
@@ -1363,7 +1363,8 @@ namespace SIMD
 	Vector3 gTemp3;
 	Vector2 gTemp2;
 	float gTempV;
-	void TestFun()
+
+	void TestFunc()
 	{
 		SVector4 v1(1, 2, 3, 4);
 		SVector4 v2(1, 2, 3, 4);
@@ -1392,7 +1393,7 @@ namespace SIMD
 	}
 }
 
-REGISTER_MISC_TEST("SIMD Test", SIMD::TestFun);
+REGISTER_MISC_TEST("SIMD Test", SIMD::TestFunc);
 
 #include "minisat/core/Solver.h"
 void SATTest()

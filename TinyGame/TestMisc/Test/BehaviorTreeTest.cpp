@@ -10,10 +10,10 @@
 
 namespace BT
 {
-	typedef Delegate0< void > TaskFun;
+	typedef Delegate0< void > TaskFunc;
 	class Task
 	{
-		TaskFun fun;
+		TaskFunc func;
 	};
 
 	class Schedule : public TreeWalker

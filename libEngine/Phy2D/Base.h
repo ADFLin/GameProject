@@ -47,8 +47,8 @@ namespace Phy2D
 		}
 	};
 
-	typedef void(*DebugJumpFun)();
-	extern DebugJumpFun GDebugJumpFun;
+	typedef void(*DebugJumpFunc)();
+	extern DebugJumpFunc GDebugJumpFun;
 
 	class Shape;
 	class CollideObject;

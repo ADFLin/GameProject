@@ -388,16 +388,16 @@ namespace Render
 
 	GlobalShaderProgram* ShaderManager::constructShaderInternal(GlobalShaderProgramClass const& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
 	{
-		GlobalShaderProgram* result = (*shaderClass.funCreateShader)();
+		GlobalShaderProgram* result = (*shaderClass.CreateShader)();
 		if( result )
 		{
 			result->myClass = &shaderClass;
 			
-			(*shaderClass.funSetupShaderCompileOption)(option);
+			(*shaderClass.SetupShaderCompileOption)(option);
 
-			if( !loadInternal(*result, (*shaderClass.funGetShaderFileName)(), (*shaderClass.funGetShaderEntries)(), option, nullptr, true , classType ) )
+			if( !loadInternal(*result, (*shaderClass.GetShaderFileName)(), (*shaderClass.GetShaderEntries)(), option, nullptr, true , classType ) )
 			{
-				LogWarning(0, "Can't Load Shader %s", (*shaderClass.funGetShaderFileName)());
+				LogWarning(0, "Can't Load Shader %s", (*shaderClass.GetShaderFileName)());
 
 				delete result;
 				result = nullptr;
@@ -627,10 +627,10 @@ namespace Render
 			mShaderFormat->setupShaderCompileOption(option);
 
 			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
-			(*myClass.funSetupShaderCompileOption)(option);
+			(*myClass.SetupShaderCompileOption)(option);
 
 			info->shaders.clear();
-			generateCompileSetup(*info, (*myClass.funGetShaderEntries)(), option, nullptr,  (*myClass.funGetShaderFileName)(), true);
+			generateCompileSetup(*info, (*myClass.GetShaderEntries)(), option, nullptr,  (*myClass.GetShaderFileName)(), true);
 		}
 
 		return updateShaderInternal(shaderProgram, *info , true);

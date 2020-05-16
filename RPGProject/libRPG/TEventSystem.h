@@ -59,7 +59,7 @@ public:
 
 	void  process( TEvent& event );
 
-	//bool   isProcessInFun( TRefObj* entity , FnMemEvent fun );
+	//bool   isProcessInFunc( TRefObj* entity , FnMemEvent func );
 protected:
 	void processInternal( TEvent& event );
 

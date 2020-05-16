@@ -45,10 +45,10 @@ public:
 private:
 
 	template< class TFunc >
-	void execEntry( YeildType& type , TFunc fun )
+	void execEntry( YeildType& type , TFunc func )
 	{
 		mYeild = &type;
-		fun();
+		func();
 		mYeild = NULL;
 	}
 
@@ -66,8 +66,8 @@ public:
 	typedef boost::coroutines::asymmetric_coroutine< T >::pull_type ImplType;
 	typedef boost::coroutines::asymmetric_coroutine< T >::push_type YeildType;
 
-	template< class Fun >
-	void start( Fun fun )
+	template< class TFunc >
+	void start( TFunc func )
 	{
 
 	}

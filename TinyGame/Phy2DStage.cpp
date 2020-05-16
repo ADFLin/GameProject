@@ -301,8 +301,8 @@ namespace Phy2D
 		//body->setPos( Vector2( 0 , 20 ) );
 
 
-		std::function< void() > fun = std::bind(&WorldTestStage::debugEntry, this);
-		gDebugJumper.start(fun);
+		std::function< void() > func = std::bind(&WorldTestStage::debugEntry, this);
+		gDebugJumper.start(func);
 
 		restart();
 		return true;
@@ -424,8 +424,8 @@ namespace Phy2D
 			else
 			{
 				gDebugStep = true;
-				std::function< void() > fun = std::bind(&WorldTestStage::debugEntry, this);
-				gDebugJumper.start(fun);
+				std::function< void() > func = std::bind(&WorldTestStage::debugEntry, this);
+				gDebugJumper.start(func);
 			}
 		}
 		break;

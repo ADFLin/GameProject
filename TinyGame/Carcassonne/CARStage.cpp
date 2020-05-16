@@ -25,18 +25,18 @@ namespace CAR
 		virtual ~IInputCommand() {}
 		virtual void execute(CGameInput&) = 0;
 	};
-	template < class Fun >
-	class TFunInputCommand : public IInputCommand
+	template < class TFunc >
+	class TFuncInputCommand : public IInputCommand
 	{
 	public:
-		TFunInputCommand(Fun inFun) :fun(inFun) {}
-		void execute(CGameInput& input) override { fun(input); }
-		Fun fun;
+		TFuncInputCommand(TFunc func) :mFunc(func) {}
+		void execute(CGameInput& input) override { mFunc(input); }
+		TFunc mFunc;
 	};
 #define CAR_INPUT_COMMAND( CODE , ...)\
 	{\
 		auto func = [__VA_ARGS__](CGameInput& mInput) CODE; \
-		addInputCommand( new TFunInputCommand< decltype ( func ) >( func ) );\
+		addInputCommand( new TFuncInputCommand< decltype ( func ) >( func ) );\
 	}
 #else
 #define CAR_INPUT_COMMAND( CODE , ...) CODE
@@ -1576,7 +1576,7 @@ namespace CAR
 			if ( ::Global::GameNet().getNetWorker()->isServer() )
 			{
 				mServerDataTranfser = new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), MaxPlayerNum );
-				mServerDataTranfser->setRecvFun( RecvFun( this , &LevelStage::onRecvDataSV ) );
+				mServerDataTranfser->setRecvFunc( RecvFunc( this , &LevelStage::onRecvDataSV ) );
 			}
 		}
 	}

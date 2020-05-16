@@ -42,19 +42,19 @@ public:
 	int    getGroup() { return mGroup; }
 	void*  getUserData() { return mUserData; }
 
-	template < class GamePacket >
-	GamePacket* cast()
+	template < class GamePacketT >
+	GamePacketT* cast()
 	{
-		assert( mId == GamePacket::PID );
-		return static_cast< GamePacket* >( this );
+		assert( mId == GamePacketT::PID );
+		return static_cast< GamePacketT* >( this );
 	}
 
-	template < class GamePacket >
-	GamePacket* safeCast()
+	template < class GamePacketT >
+	GamePacketT* safeCast()
 	{
-		if ( mId != GamePacket::PID )
+		if ( mId != GamePacketT::PID )
 			return NULL;
-		return static_cast< GamePacket* >( this );
+		return static_cast< GamePacketT* >( this );
 	}
 
 protected:
@@ -93,11 +93,11 @@ class ComLibrary
 
 };
 
-typedef fastdelegate::FastDelegate< void ( IComPacket*) > ComProcFun;
+typedef fastdelegate::FastDelegate< void ( IComPacket*) > ComProcFunc;
 class  ComEvaluator : public ComLibrary
 {
 public:
-	typedef ComProcFun ProcFun;
+	typedef ComProcFunc ProcFunc;
 
 	TINY_API ComEvaluator();
 	TINY_API ~ComEvaluator();
@@ -105,14 +105,14 @@ public:
 	TINY_API static unsigned WriteBuffer( SocketBuffer& buffer , IComPacket* cp );
 	TINY_API static bool     ReadBuffer( SocketBuffer& buffer , IComPacket* cp );
 
-	template< class GamePacket , class T , class TFun >
-	bool setWorkerFun( T* processer, TFun func, TFun funSocket );
-	template< class GamePacket , class T , class TFun >
-	bool setWorkerFun( T* processer, TFun func, void* );
-	template< class GamePacket , class T , class TFun >
-	bool setUserFun( T* processer , TFun func);
+	template< class GamePacketT , class T , class TFunc >
+	bool setWorkerFunc( T* processer, TFunc func, TFunc funcSocket );
+	template< class GamePacketT , class T , class TFunc >
+	bool setWorkerFunc( T* processer, TFunc func, void* );
+	template< class GamePacketT , class T , class TFunc >
+	bool setUserFunc( T* processer , TFunc func);
 
-	TINY_API void  removeProcesserFun( void* processer );
+	TINY_API void  removeProcesserFunc( void* processer );
 	TINY_API void  procCommand( ComVisitor& visitor );
 	TINY_API void  procCommand();
 
@@ -130,20 +130,20 @@ private:
 		unsigned id;
 		void*    userProcesser;
 		void*    workerProcesser;
-		ProcFun  userFun;         //app thread;
-		ProcFun  workerFun;       //app thread;
-		ProcFun  workerFunSocket; //socket thread;
+		ProcFunc userFunc;         //app thread;
+		ProcFunc workerFunc;       //app thread;
+		ProcFunc workerFuncSocket; //socket thread;
 	};
 
 
-	template < class GamePacket >
+	template < class GamePacketT >
 	struct CPFactory : public ICPFactory
 	{
-		CPFactory(){  id = GamePacket::PID;  }
-		virtual IComPacket* createCom(){   return new GamePacket;  }
+		CPFactory(){  id = GamePacketT::PID;  }
+		virtual IComPacket* createCom(){   return new GamePacketT;  }
 	};
 
-	template< class GamePacket > 
+	template< class GamePacketT > 
 	ICPFactory* addFactory();
 	TINY_API ICPFactory* findFactory( ComID com );
 
@@ -162,65 +162,71 @@ private:
 };
 
 
-template< class GamePacket , class T , class TFun >
-bool ComEvaluator::setUserFun( T* processer , TFun func)
+template< class GamePacketT , class T , class TFunc >
+bool ComEvaluator::setUserFunc( T* processer , TFunc func)
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	ICPFactory* factory = addFactory< GamePacket >();
+	ICPFactory* factory = addFactory< GamePacketT >();
 	if ( !factory )
 		return false;
 
 	factory->userProcesser = processer;
 
 	if (func)
-		factory->userFun.bind( processer , func);
-
+	{
+		factory->userFunc.bind(processer, func);
+	}
 	return true;
 }
 
-template< class GamePacket , class T , class TFun >
-bool ComEvaluator::setWorkerFun( T* processer, TFun func, void* )
+template< class GamePacketT , class T , class TFunc >
+bool ComEvaluator::setWorkerFunc( T* processer, TFunc func, void* )
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	ICPFactory* factory = addFactory< GamePacket >();
+	ICPFactory* factory = addFactory< GamePacketT >();
 	if ( !factory )
 		return false;
 
 	factory->workerProcesser = processer;
 
 	if (func)
-		factory->workerFun.bind( processer , func);
+	{
+		factory->workerFunc.bind(processer, func);
+	}
 	return true;
 }
 
-template< class GamePacket , class T , class TFun >
-bool ComEvaluator::setWorkerFun( T* processer, TFun func, TFun funSocket )
+template< class GamePacketT , class T , class TFunc >
+bool ComEvaluator::setWorkerFunc( T* processer, TFunc func, TFunc funcSocket )
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	ICPFactory* factory = addFactory< GamePacket >();
+	ICPFactory* factory = addFactory< GamePacketT >();
 	if ( !factory )
 		return false;
 
 	factory->workerProcesser = processer;
 
 	if (func)
-		factory->workerFun.bind( processer , func);
+	{
+		factory->workerFunc.bind(processer, func);
+	}
 
-	if ( funSocket )
-		factory->workerFunSocket.bind( processer , funSocket );
-
+	if (funcSocket)
+	{
+		factory->workerFuncSocket.bind(processer, funcSocket);
+	}
 	return true;
 }
 
-template< class GamePacket >
+template< class GamePacketT >
 ComEvaluator::ICPFactory* ComEvaluator::addFactory()
 {
 	NET_MUTEX_LOCK( mMutexCPFactoryMap );
-	ICPFactory* factory = findFactory( GamePacket::PID );
+	ICPFactory* factory = findFactory( GamePacketT::PID );
 	if ( factory == nullptr )
 	{
-		factory = new CPFactory< GamePacket >;
-		mCPFactoryMap.insert( std::make_pair( GamePacket::PID , factory ) );
+		factory = new CPFactory< GamePacketT >;
+		mCPFactoryMap.insert( std::make_pair( GamePacketT::PID , factory ) );
 	}
 	return factory;
 }

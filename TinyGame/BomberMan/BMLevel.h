@@ -721,14 +721,14 @@ namespace BomberMan
 		void          addColObject( ColObject& obj );
 		void          removeColObject( ColObject& obj );
 
-		template< class T >
-		void         visitColObjects( T fun )
+		template< class TFunc >
+		void         visitColObjects( TFunc func )
 		{
 			for ( ColObjectList::iterator iter = mColObjList.begin();
 				iter != mColObjList.end() ; ++iter )
 			{
 				ColObject* obj = iter->obj;
-				fun( obj );
+				func( obj );
 			}
 		}
 
@@ -759,8 +759,8 @@ namespace BomberMan
 			return result;
 		}
 
-		template< class T >
-		void visitEntities( T fun )
+		template< class TFunc >
+		void visitEntities( TFunc func )
 		{
 			for ( EntityList::iterator iter = mEnities.begin();
 				iter != mEnities.end() ; ++iter )
@@ -768,7 +768,7 @@ namespace BomberMan
 				Entity* entity = iter->entity;
 				if ( entity->mNeedRemove )
 					continue;
-				fun( entity );
+				func( entity );
 			}
 		}
 		

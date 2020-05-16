@@ -5,6 +5,7 @@
 #include "Go/GoBot.h"
 #include "PlatformThread.h"
 #include "Platform/Windows/WindowsProcess.h"
+#include "Meta/IsBaseOf.h"
 
 namespace Go
 {
@@ -21,14 +22,37 @@ namespace Go
 			eGenmove,
 			ePass,
 			eUndo,
+			eRequestUndo,
 			eFinalScore,
 			eShowBoard,
 			eQuit,
-
 			eStartPonder,
 			eStopPonder,
 		};
 
+		static char const* ToString(Id id)
+		{
+			switch (id)
+			{
+			case eKomi:     return "Komi";
+			case eHandicap: return "Handicap";
+			case eRestart:  return "Restart";
+			case ePlay:     return "Play";
+			case eAdd:      return "Add";
+			case eGenmove:  return "Genmove";
+			case ePass:     return "Handicap";
+			case eUndo:        return "Undo";
+			case eRequestUndo: return "RequestUndo";
+			case eFinalScore:  return "FinalScore";
+			case eShowBoard:   return "ShowBoard";
+			case eQuit:        return "Quit";
+			case eStartPonder: return "StartPonder";
+			case eStopPonder:  return "StopPonder";
+			}
+
+			NEVER_REACH("error id");
+			return "";
+		}
 		Id  id;
 		int meta;
 	};
@@ -84,6 +108,13 @@ namespace Go
 
 	};
 
+
+	enum class EGTPComExecuteResult
+	{
+		Success,
+		Fail,
+	};
+
 	class GTPLikeAppRun
 	{
 	public:
@@ -115,6 +146,10 @@ namespace Go
 		bool inputCommand(char const* command, GTPCommand com);
 		bool inputProcessStream(char const* command, int length = 0);
 
+		void notifyCommandResult(GTPCommand com, EGTPComExecuteResult result);
+
+		void bindCallback();
+
 		template< class T >
 		std::enable_if_t< std::is_base_of_v< IGameOutputThread , T > , bool>
 		buildProcessT(char const* appPath, char const* command)
@@ -128,6 +163,10 @@ namespace Go
 			myThread->setDisplayName("Output Thread");
 			outputThread = myThread;
 
+			if (TIsBaseOf< T, GTPOutputThread >::Value)
+			{
+				bindCallback();
+			}
 			return true;
 		}
 	};
@@ -149,20 +188,28 @@ namespace Go
 		{
 			return mAI.restart();
 		}
+
 		EBotExecResult playStone(int x, int y, int color) override
 		{
 			if (!mAI.playStone(x, y, color))
-				return BOT_OK;
-			return BOT_OK;
+				return BOT_FAIL;
+			return BOT_WAIT;
 		}
-		bool playPass(int color) override
+
+		EBotExecResult playPass(int color) override
 		{
-			return mAI.playPass(color);
+			if (!mAI.playPass(color))
+				return BOT_FAIL;
+			return BOT_WAIT;
 		}
-		bool undo() override
+
+		EBotExecResult undo() override
 		{
-			return mAI.undo();
+			if (!mAI.undo())
+				return BOT_FAIL;
+			return BOT_WAIT;
 		}
+
 		bool requestUndo() override
 		{
 			return mAI.requestUndo();
@@ -179,11 +226,11 @@ namespace Go
 		void update(IGameCommandListener& listener) override
 		{
 			mAI.update();
-			auto MyFun = [&](GameCommand const& com)
+			auto MyFunc = [&](GameCommand const& com)
 			{
 				listener.notifyCommand(com);
 			};
-			mAI.outputThread->procOutputCommand(MyFun);
+			mAI.outputThread->procOutputCommand(MyFunc);
 		}
 
 		EBotExecResult readBoard(int* outState) override { mAI.readBoard(outState); return BOT_WAIT; }

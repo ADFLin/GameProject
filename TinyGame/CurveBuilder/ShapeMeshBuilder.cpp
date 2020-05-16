@@ -81,13 +81,13 @@ namespace CB
 			float ds = paramS.getIncrement();
 			float s = paramS.getRangeMin();
 
-			Curve3DFunc* fun = static_cast<Curve3DFunc*>(info.func);
+			Curve3DFunc* func = static_cast<Curve3DFunc*>(info.func);
 
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
 			for( int i = 0; i < paramS.numData; ++i )
 			{
 				Vector3* pPos = (Vector3*)( posData );
-				fun->evalExpr(*pPos, s);
+				func->evalExpr(*pPos, s);
 				s += ds;
 				posData += data->getVertexSize();
 			}

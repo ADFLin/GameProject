@@ -4,7 +4,7 @@
 #include <vector>
 #include <algorithm>
 
-template< class T , class CmpFun = std::less< T >  >
+template< class T , class CmpFunc = std::less< T >  >
 class TVectorSet
 {
 	typedef std::vector< T > ImplType;
@@ -28,7 +28,7 @@ public:
 	}
 	iterator find( T const& value )
 	{
-		ImplType::iterator iter = std::lower_bound( mImpl.begin() , mImpl.end() , value ,  CmpFun() );
+		ImplType::iterator iter = std::lower_bound( mImpl.begin() , mImpl.end() , value ,  CmpFunc() );
 		if ( iter != mImpl.end() )
 		{
 			if ( value == *iter )
@@ -39,7 +39,7 @@ public:
 
 	void insert( T const& value )
 	{
-		ImplType::iterator iter = std::lower_bound( mImpl.begin() , mImpl.end() , value ,  CmpFun() );
+		ImplType::iterator iter = std::lower_bound( mImpl.begin() , mImpl.end() , value ,  CmpFunc() );
 		if ( iter != mImpl.end() )
 		{
 			if ( value == *iter )

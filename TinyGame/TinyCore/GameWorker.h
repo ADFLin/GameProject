@@ -65,9 +65,9 @@ enum class NetControlAction
 
 enum LoginResult
 {
-	LOGIN_SUCCESS    =  1 ,
-	LOGIN_IN_PW = -1 ,
-	LOGIN_BAN        = -2 ,
+	LOGIN_SUCCESS          =  1 ,
+	LOGIN_INVALID_PASSWORD = -1 ,
+	LOGIN_BAN              = -2 ,
 	LOGIN_GAME_VERSION_ERROR = -3 ,
 };
 
@@ -162,7 +162,7 @@ public:
 	virtual void onChangeActionState( NetActionState state ){}
 };
 
-class Channel
+class NetChannel
 {
 	enum Type
 	{
@@ -171,6 +171,9 @@ class Channel
 		eTCP ,
 	};
 	Type getType();
+
+
+	virtual void closeNet() = 0;
 };
 
 typedef std::function< void() > NetCommandDelegate;
@@ -224,24 +227,24 @@ protected:
 	typedef std::vector< INetStateListener* > NetMsgListenerVec;
 	INetStateListener* mNetListener;
 
-	template< class TFun >
-	void addGameThreadCommnad(TFun&& fun)
+	template< class TFunc >
+	void addGameThreadCommnad(TFunc&& func)
 	{
 #if NETWORKER_PROCESS_COMMAND_DEFERRED
 		NET_MUTEX_LOCK(mMutexGameThreadCommands);
-		mGameThreadCommands.push_back(std::forward<TFun>(fun));
+		mGameThreadCommands.push_back(std::forward<TFunc>(func));
 #else
-		fun();
+		func();
 #endif
 	}
-	template< class TFun >
-	void addNetThreadCommnad(TFun&& fun)
+	template< class TFunc >
+	void addNetThreadCommnad(TFunc&& func)
 	{
 #if NETWORKER_PROCESS_COMMAND_DEFERRED
 		NET_MUTEX_LOCK(mMutexNetThreadCommands);
-		mNetThreadCommands.push_back(std::forward<TFun>(fun));
+		mNetThreadCommands.push_back(std::forward<TFunc>(func));
 #else
-		fun();
+		func();
 #endif
 	}
 

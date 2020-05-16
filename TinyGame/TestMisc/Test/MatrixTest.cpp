@@ -282,7 +282,7 @@ namespace Homework
 			}
 			return SparseMatrix(row,rhs.col,std::move(tempData));
 		}
-		template< class Fun >
+		template< class Func >
 		SparseMatrix opFun(SparseMatrix const& rhs) const
 		{
 			assert(col == rhs.col && row == rhs.row);
@@ -307,7 +307,7 @@ namespace Homework
 				auto const& e2 = rhs.data[idx2];
 				if( e1.index == e2.index )
 				{
-					T value = Fun()(e1.value, e2.value);
+					T value = Func()(e1.value, e2.value);
 					if ( value != 0 )
 						tempData.push_back({ e1.index  , });
 					++idx1;
@@ -315,20 +315,20 @@ namespace Homework
 				}
 				else if( e1.index < e2.index )
 				{
-					if ( !Fun::bZeroMissmatch )
+					if ( !Func::bZeroMissmatch )
 						tempData.push_back({ e1.index  , e1.value });
 					++idx1;
 				}
 				else
 				{
-					if( !Fun::bZeroMissmatch )
+					if( !Func::bZeroMissmatch )
 						tempData.push_back({ e2.index  , e2.value });
 					++idx2;
 				}
 
 				if ( idx1 >= data.size() )
 				{
-					if( !Fun::bZeroMissmatch )
+					if( !Func::bZeroMissmatch )
 					{
 						while( idx2 < rhs.data.size() )
 						{
@@ -340,7 +340,7 @@ namespace Homework
 				}
 				else if( idx2 >= rhs.data.size() )
 				{
-					if( !Fun::bZeroMissmatch )
+					if( !Func::bZeroMissmatch )
 					{
 						while( idx1 < data.size() )
 						{
@@ -357,7 +357,7 @@ namespace Homework
 
 		FORCEINLINE SparseMatrix operator + (SparseMatrix const& rhs) const
 		{
-			struct Fun
+			struct Func
 			{
 				enum { bZeroMissmatch = false };
 				float operator()(T const& v1, T const& v2) const
@@ -365,11 +365,11 @@ namespace Homework
 					return v1 + v2;
 				}
 			};
-			return opFun< Fun >( rhs );
+			return c< Func >( rhs );
 		}
 		FORCEINLINE SparseMatrix operator - (SparseMatrix const& rhs) const
 		{
-			struct Fun
+			struct Func
 			{
 				enum { bZeroMissmatch = false };
 				float operator()(T const& v1, T const& v2) const
@@ -377,7 +377,7 @@ namespace Homework
 					return v1 - v2;
 				}
 			};
-			return opFun< Fun >( rhs );
+			return opFunc< Func >( rhs );
 		}
 
 		size_t lowerBound(size_t index) const

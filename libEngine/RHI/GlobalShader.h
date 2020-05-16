@@ -41,21 +41,21 @@ namespace Render
 	class GlobalShaderProgramClass
 	{
 	public:
-		typedef GlobalShaderProgram* (*FunCreateShader)();
-		typedef void(*FunSetupShaderCompileOption)(ShaderCompileOption&);
-		typedef char const* (*FunGetShaderFileName)();
-		typedef TArrayView< ShaderEntryInfo const > (*FunGetShaderEntries)();
+		typedef GlobalShaderProgram* (*CreateShaderFunc)();
+		typedef void(*SetupShaderCompileOptionFunc)(ShaderCompileOption&);
+		typedef char const* (*GetShaderFileNameFunc)();
+		typedef TArrayView< ShaderEntryInfo const > (*GetShaderEntriesFunc)();
 
-		FunCreateShader funCreateShader;
-		FunSetupShaderCompileOption funSetupShaderCompileOption;
-		FunGetShaderFileName funGetShaderFileName;
-		FunGetShaderEntries funGetShaderEntries;
+		CreateShaderFunc CreateShader;
+		SetupShaderCompileOptionFunc SetupShaderCompileOption;
+		GetShaderFileNameFunc GetShaderFileName;
+		GetShaderEntriesFunc GetShaderEntries;
 
 		CORE_API GlobalShaderProgramClass(
-			FunCreateShader inFunCreateShader,
-			FunSetupShaderCompileOption inFunSetupShaderCompileOption,
-			FunGetShaderFileName inFunGetShaderFileName,
-			FunGetShaderEntries inFunGetShaderEntries);
+			CreateShaderFunc inCreateShader,
+			SetupShaderCompileOptionFunc inSetupShaderCompileOption,
+			GetShaderFileNameFunc inGetShaderFileName,
+			GetShaderEntriesFunc inGetShaderEntries);
 	};
 
 

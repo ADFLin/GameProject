@@ -174,8 +174,8 @@ BOOL FPlatformProcess::ResumeProcess(HANDLE ProcessHandle)
 	return TRUE;
 }
 
-template< class TFun >
-void VisitProcess( TFun&& fun )
+template< class TFunc >
+void VisitProcess( TFunc&& func )
 {
 	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
 	if( hSnapshot != INVALID_HANDLE_VALUE )
@@ -186,7 +186,7 @@ void VisitProcess( TFun&& fun )
 		{
 			do
 			{
-				if ( !fun( entry ) )
+				if ( !func( entry ) )
 					break;
 			}
 			while( Process32Next(hSnapshot, &entry) == TRUE );

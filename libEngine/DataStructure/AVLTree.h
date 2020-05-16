@@ -6,12 +6,12 @@
 #include <iostream>
 #include <cassert>
 
-template< class T , template< class > class CmpFun = std::less >
+template< class T , template< class > class CmpFunc = std::less >
 class TAVLTree
 {
 public:
 	typedef  T           value_type;
-	typedef  CmpFun< T > CmpType;
+	typedef  CmpFunc< T > CmpType;
 	TAVLTree();
 
 	void insert( unsigned val );
@@ -131,14 +131,14 @@ private:
 using namespace std;
 
 #define AVLTREE_TEMPLATE_ARG()\
-	template< class T , template< class > class CmpFun >
+	template< class T , template< class > class CmpFunc >
 
-#define AVLTREE_FUN( RetType )\
+#define AVLTREE_FUNC( RetType )\
 	AVLTREE_TEMPLATE_ARG()\
-	RetType TAVLTree< T , CmpFun >::
+	RetType TAVLTree< T , CmpFunc >::
 
 AVLTREE_TEMPLATE_ARG()
-TAVLTree< T, CmpFun >::Node::Node(T const& val, Node* pNode, Node** link)
+TAVLTree< T, CmpFunc >::Node::Node(T const& val, Node* pNode, Node** link)
 	:val(val), link(link)
 	, prev(NULL), next(NULL)
 	, parent(pNode)
@@ -149,13 +149,13 @@ TAVLTree< T, CmpFun >::Node::Node(T const& val, Node* pNode, Node** link)
 }
 
 AVLTREE_TEMPLATE_ARG()
-TAVLTree< T, CmpFun >::TAVLTree()
+TAVLTree< T, CmpFunc >::TAVLTree()
 	:m_root(NULL)
 {
 
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 print(Node* node, int depth)
 {
 	if( !node )
@@ -182,14 +182,14 @@ print(Node* node, int depth)
 		print(node->next, depth + 1);
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 print()
 {
 	print(m_root, 0);
 	cout << "==================" << endl;
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 remove(unsigned val)
 {
 	Node** link = &m_root;
@@ -285,7 +285,7 @@ remove(unsigned val)
 	}
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 insert(unsigned val)
 {
 	Node** link = &m_root;
@@ -314,7 +314,7 @@ insert(unsigned val)
 	balance(m_root, newNode);
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 balance(Node* curNode, Node* destNode)
 {
 	Node* chNode = curNode->getNode(destNode->val);
@@ -366,7 +366,7 @@ balance(Node* curNode, Node* destNode)
 	}
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 rotate(Node* oldR, Node* newR, Node** chLink)
 {
 	Node** link = newR->getLink();
@@ -380,7 +380,7 @@ rotate(Node* oldR, Node* newR, Node** chLink)
 		chNode->parent = oldR;
 }
 
-AVLTREE_FUN(int)
+AVLTREE_FUNC(int)
 computeHeight(Node* curNode, Node* destNode)
 {
 	assert(curNode);
@@ -394,7 +394,7 @@ computeHeight(Node* curNode, Node* destNode)
 }
 
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 cutlink(Node* node)
 {
 	Node** link = node->getLink();
@@ -402,7 +402,7 @@ cutlink(Node* node)
 		*(link) = NULL;
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 clear(Node* node)
 {
 	if( node->prev )
@@ -414,21 +414,21 @@ clear(Node* node)
 	destoryNode(node);
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 destoryNode(Node* node)
 {
 	assert(*node->getLink() != node);
 	delete node;
 }
 
-AVLTREE_FUN(void)
+AVLTREE_FUNC(void)
 relink(Node** link, Node* node)
 {
 	if( link )
 		*link = node;
 }
 
-#undef AVLTREE_FUN
+#undef AVLTREE_FUNC
 #undef AVLTREE_TEMPLATE_ARG
 
 #endif // AVLTree_h__

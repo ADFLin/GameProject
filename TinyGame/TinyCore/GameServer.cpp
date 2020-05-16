@@ -58,15 +58,15 @@ bool ServerWorker::doStartNetwork()
 
 	typedef ServerWorker ThisClass;
 
-#define COM_PACKET_SET( Class , Processer , Fun , Fun2 )\
-	getEvaluator().setWorkerFun< Class >( Processer , Fun , Fun2 );
+#define COM_PACKET_SET( Class , Processer , Func , Func2 )\
+	getEvaluator().setWorkerFunc< Class >( Processer , Func , Func2 );
 
-#define COM_THIS_PACKET_SET( Class , Fun )\
-	COM_PACKET_SET( Class , this , &ThisClass::Fun , NULL )
+#define COM_THIS_PACKET_SET( Class , Func )\
+	COM_PACKET_SET( Class , this , &ThisClass::Func , NULL )
 
 
-#define COM_THIS_PACKET_SET_2( Class , Fun , SocketFun )\
-	COM_PACKET_SET( Class , this , &ThisClass::Fun , &ThisClass::SocketFun )
+#define COM_THIS_PACKET_SET_2( Class , Func , SocketFunc )\
+	COM_PACKET_SET( Class , this , &ThisClass::Func , &ThisClass::SocketFunc )
 
 	COM_THIS_PACKET_SET( CPLogin       , procLogin )
 	COM_THIS_PACKET_SET( CPEcho        , procEcho )
@@ -1223,14 +1223,14 @@ LocalWorker::LocalWorker( ServerWorker* worker )
 	mServer = worker;
 	mPlayerMgr = worker->getPlayerManager();
 
-#define COM_PACKET_SET( Class , Processer , Fun , Fun2 )\
-	getEvaluator().setWorkerFun< Class >( Processer , Fun , Fun2 );
+#define COM_PACKET_SET( Class , Processer , Func , Fun2 )\
+	getEvaluator().setWorkerFunc< Class >( Processer , Func , Fun2 );
 
-#define COM_THIS_PACKET_SET( Class , Fun )\
-	COM_PACKET_SET( Class , this , &LocalWorker::Fun , NULL )
+#define COM_THIS_PACKET_SET( Class , Func )\
+	COM_PACKET_SET( Class , this , &LocalWorker::Func , NULL )
 
-#define COM_THIS_PACKET_SET_2( Class , Fun , SocketFun )\
-	COM_PACKET_SET( Class , this , &LocalWorker::Fun , &LocalWorker::SocketFun )
+#define COM_THIS_PACKET_SET_2( Class , Func , SocketFunc )\
+	COM_PACKET_SET( Class , this , &LocalWorker::Func , &LocalWorker::SocketFunc )
 
 	COM_THIS_PACKET_SET( CSPPlayerState , procPlayerState )
 	COM_THIS_PACKET_SET( CSPClockSynd   , procClockSynd )

@@ -11,25 +11,25 @@ typedef double NNScale;
 typedef NNScale (*NNActivationFunc)(NNScale);
 typedef void    (*NNActivationTrasnformFunc)(NNScale* inoutValues, int numValues);
 template< class T , class Q , class TFunc >
-void Transform(T begin, T end, T dest, TFunc fun = TFunc())
+void Transform(T begin, T end, T dest, TFunc func = TFunc())
 {
 	T cur = begin;
 	while( cur != end )
 	{
-		dest = fun(*cur);
+		dest = func(*cur);
 		++cur;
 		++dest;
 	}
 }
 
-class NNFun
+class NNFunc
 {
 public:
 	enum Name
 	{
-		SigmoidFun ,
-		TanhFun ,
-		ReLuFun ,
+		eSigmoid ,
+		eTanh ,
+		eReLu ,
 	};
 
 	static NNScale Sigmoid(NNScale value)
@@ -101,6 +101,8 @@ struct FNNFuncHelper
 	}
 };
 
+
+
 struct NeuralLayer
 {
 	int weightOffset;
@@ -112,10 +114,10 @@ struct NeuralLayer
 	{
 		numNode = 0;
 		weightOffset = 0;
-		func = NNFun::Sigmoid;
-		funcDif = NNFun::SigmoidDif;
-		transformFunc = FNNFuncHelper< &NNFun::Sigmoid >::Trasnform;
-		//fun = NNFun::ReLU;
+		//func = NNFun::ReLU;
+		func = NNFunc::Sigmoid;
+		funcDif = NNFunc::SigmoidDif;
+		transformFunc = FNNFuncHelper< &NNFunc::Sigmoid >::Trasnform;
 	}
 };
 
@@ -134,8 +136,8 @@ struct NeuralConv2DLayer : NeuralLayer
 
 	NeuralConv2DLayer()
 	{
-		func = NNFun::ReLU;
-		transformFunc = FNNFuncHelper< &NNFun::ReLU >::Trasnform;
+		func = NNFunc::ReLU;
+		transformFunc = FNNFuncHelper< &NNFunc::ReLU >::Trasnform;
 	}
 };
 

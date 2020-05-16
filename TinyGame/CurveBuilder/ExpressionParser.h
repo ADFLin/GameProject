@@ -386,7 +386,7 @@ public:
 	template< class T >
 	void            defineVar( char const* name , T* varPtr){  mNameToEntryMap[name] = VariableInfo(varPtr); }
 	template< class T>
-	void            defineFunc(char const* name, T fun ) { mNameToEntryMap[name] = FuncInfo(fun); }
+	void            defineFunc(char const* name, T func ) { mNameToEntryMap[name] = FuncInfo(func); }
 
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
 	
@@ -395,11 +395,11 @@ public:
 	VariableInfo const*   findVar(char const* name) const;
 	int                   findInput(char const* name) const;
 
-	char const*     getFunName( FuncInfo const& info ) const;
+	char const*     getFuncName( FuncInfo const& info ) const;
 	char const*     getVarName( void* var ) const;
 	char const*     getInputName(int index) const;
 
-	bool            isFunDefined(char const* name) const{  return isDefinedInternal( name , SymbolEntry::eFunction ); }
+	bool            isFuncDefined(char const* name) const{  return isDefinedInternal( name , SymbolEntry::eFunction ); }
 	bool            isVarDefined(char const* name) const{ return isDefinedInternal(name, SymbolEntry::eVariable ); }
 	bool            isConstDefined(char const* name) const{ return isDefinedInternal(name, SymbolEntry::eConstValue); }
 

@@ -253,20 +253,20 @@ thread_local TDelegate< void(int) > delegate;
 thread_local std::function< void(int) > delegate2;
 thread_local fastdelegate::FastDelegate< void(int) > delegate3;
 
-template< class Fun , class ...Args >
-void RunTest(char const* name , HighResClock& clock , Fun& fun , Args... args )
+template< class TFunc , class ...Args >
+void RunTest(char const* name , HighResClock& clock , TFunc& func , Args... args )
 {
 	GInt = 0;
 	for( int i = 0; i < 10000000; ++i )
 	{
-		fun(i, std::forward<Args>(args)...);
+		func(i, std::forward<Args>(args)...);
 	}
 
 	GInt = 0;
 	clock.reset();
 	for( int i = 0; i < 50000000; ++i )
 	{
-		fun( i , std::forward<Args>(args)...);
+		func( i , std::forward<Args>(args)...);
 	}
 	LogMsg("%s = %.3f  %ld", name , clock.getTimeMicroseconds() / 1000.0f , GInt );
 }

@@ -175,7 +175,7 @@ namespace MV
 
 		for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 		{
-			block->surfaces[i].fun  = surfaceDef[i].fun;
+			block->surfaces[i].func = surfaceDef[i].func;
 			block->surfaces[i].meta = surfaceDef[i].meta;
 		}
 		block->idMesh = idMesh;
@@ -304,19 +304,19 @@ namespace MV
 	{
 		FUN_IAVE ,
 	};
-	class ActionNavFun
+	class ActionNavFunc
 	{
 	public:
 		virtual int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL ) = 0;
 		virtual int precessNeighborBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL ) = 0;
 	};
 
-	class MoveActionNavFun : public ActionNavFun
+	class MoveActionNavFunc : public ActionNavFunc
 	{
 	public:
 		int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
-			switch ( destSurface.fun )
+			switch ( destSurface.func )
 			{
 			case NFT_PLANE_LADDER:
 			case NFT_LADDER:
@@ -349,7 +349,7 @@ namespace MV
 				}
 				return -1;
 			case NFT_PLANE:
-				if ( info.surface->fun == NFT_STAIR )
+				if ( info.surface->func == NFT_STAIR )
 				{
 					if ( info.block->rotation.toWorld( Dir( info.surface->meta ) ) == destBlock->rotation.toWorld( destFaceDirL ) )
 					{
@@ -369,7 +369,7 @@ namespace MV
 
 		int precessNeighborBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
-			switch( destSurface.fun )
+			switch( destSurface.func )
 			{
 			case NFT_PLANE:
 			case NFT_PLANE_LADDER:
@@ -398,12 +398,12 @@ namespace MV
 		}
 	};
 
-	class ClimbActionNavFun : public ActionNavFun
+	class ClimbActionNavFunc : public ActionNavFunc
 	{
 	public:
 		int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
-			switch ( destSurface.fun )
+			switch ( destSurface.func )
 			{
 
 			case NFT_PLANE_LADDER:
@@ -430,7 +430,7 @@ namespace MV
 
 		int precessNeighborBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
-			switch( destSurface.fun )
+			switch( destSurface.func )
 			{
 			case NFT_LADDER:
 			case NFT_PLANE_LADDER:
@@ -448,23 +448,23 @@ namespace MV
 	};
 
 
-	class RotateActionNavFun : public ActionNavFun
+	class RotateActionNavFunc : public ActionNavFunc
 	{
 	public:
-		RotateActionNavFun( bool beConvex ):beConvex( beConvex ){}
+		RotateActionNavFunc( bool beConvex ):beConvex( beConvex ){}
 
 		int precessObstacleBlock( NavLinkInfo& info , Block* destBlock , BlockSurface& destSurface , Dir destFaceDirL )
 		{
 			if ( beConvex )
 			{
-				switch( destSurface.fun )
+				switch( destSurface.func )
 				{
 
 				}
 			}
 			else
 			{
-				switch( destSurface.fun )
+				switch( destSurface.func )
 				{
 
 				}
@@ -476,14 +476,14 @@ namespace MV
 		{
 			if ( beConvex )
 			{
-				switch( destSurface.fun )
+				switch( destSurface.func )
 				{
 
 				}
 			}
 			else
 			{
-				switch( destSurface.fun )
+				switch( destSurface.func )
 				{
 				case NFT_PLANE:
 				case NFT_PLANE_LADDER:
@@ -549,7 +549,7 @@ namespace MV
 		assert( info.faceDirL == block.rotation.toLocal( info.faceDir ) );
 		info.surface = &block.getLocalFace( info.faceDirL );
 
-		if ( info.surface->fun == NFT_NULL )
+		if ( info.surface->func == NFT_NULL )
 			return;
 
 		info.faceOffset = FDir::Offset( info.faceDir );
@@ -563,7 +563,7 @@ namespace MV
 			Block* destBlock = mBlocks[ destBlockId ];
 			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( info.faceDir ) );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			if ( destSurface.fun != NFT_NULL )
+			if ( destSurface.func != NFT_NULL )
 			{
 				for( int idx = 0 ; idx < 4 ; ++idx )
 				{
@@ -598,18 +598,18 @@ namespace MV
 
 	void World::buildSurfaceNavNode( Block &block, NavLinkInfo &info )
 	{
-		switch( info.surface->fun )
+		switch( info.surface->func )
 		{
 		case NFT_PLANE:
 			for( int idx = 0 ; idx < 4 ; ++idx )
 			{
-				buildNavLinkFromIndex( block , info , MoveActionNavFun() , idx );
+				buildNavLinkFromIndex( block , info , MoveActionNavFunc() , idx );
 			}
 			break;
 		case NFT_SUPER_PLANE:
 			for( int idx = 0 ; idx < 4 ; ++idx )
 			{
-				if ( buildNavLinkFromIndex( block , info , MoveActionNavFun() , idx ) == 0 )
+				if ( buildNavLinkFromIndex( block , info , MoveActionNavFunc() , idx ) == 0 )
 				{
 					connectBlockNavNode( block , info.faceDirL , info.linkDirL );
 				}
@@ -620,26 +620,26 @@ namespace MV
 			{
 				Dir dirL = Dir( info.surface->meta );
 				connectBlockNavNode( block , info.faceDirL , dirL );
-				buildNavLinkFromDir( block , info , RotateActionNavFun( false ) , FDir::Inverse( dirL ) );
+				buildNavLinkFromDir( block , info , RotateActionNavFunc( false ) , FDir::Inverse( dirL ) );
 			}
 			break;
 		case NFT_STAIR:
 			{
 				Dir dirL = Dir( info.surface->meta );
 				connectBlockNavNode( block , info.faceDirL , dirL );
-				buildNavLinkFromDir( block , info , MoveActionNavFun() , FDir::Inverse( dirL ) );
+				buildNavLinkFromDir( block , info , MoveActionNavFunc() , FDir::Inverse( dirL ) );
 			}
 			break;
 		case NFT_LADDER:
 			for( int i = 0 ; i < 2 ; ++i )
 			{
 				int idx = 2 * info.surface->meta + i;
-				if ( buildNavLinkFromIndex( block , info , ClimbActionNavFun() , idx ) == 0 )
+				if ( buildNavLinkFromIndex( block , info , ClimbActionNavFunc() , idx ) == 0 )
 				{
 					BlockSurface& surfaceN = block.getLocalFace( info.linkDirL );
 
-					if ( surfaceN.fun == NFT_PLANE || 
-						 surfaceN.fun == NFT_PLANE_LADDER )
+					if ( surfaceN.func == NFT_PLANE || 
+						 surfaceN.func == NFT_PLANE_LADDER )
 					{
 						connectBlockNavNode( block , info.faceDirL , info.linkDirL );
 					}
@@ -649,34 +649,34 @@ namespace MV
 		}
 	}
 
-	int World::buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFun& fun , int idx )
+	int World::buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFunc& func , int idx )
 	{
 		info.setupNodeFromIndex( 0 , idx );
 		info.linkDir = block.rotation.toWorld( info.linkDirL );
-		int result = buildNeighborNavLink( block , info , fun );
+		int result = buildNeighborNavLink( block , info , func );
 		if ( info.testParallax )
 		{
 			info.setupNodeFromIndex( 1 , idx );
-			buildParallaxNavLink( block , info , fun );
+			buildParallaxNavLink( block , info , func );
 		}
 		return result;
 	}
 
 
-	int World::buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFun& fun , Dir dirL )
+	int World::buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFunc& func , Dir dirL )
 	{
 		info.setupNodeFromDir( 0 , dirL );
 		info.linkDir = block.rotation.toWorld( info.linkDirL );
-		int result = buildNeighborNavLink( block , info , fun );
+		int result = buildNeighborNavLink( block , info , func );
 		if ( info.testParallax )
 		{
 			info.setupNodeFromDir( 1 , dirL );
-			buildParallaxNavLink( block , info , fun );
+			buildParallaxNavLink( block , info , func );
 		}
 		return result;
 	}
 
-	int World::buildNeighborNavLink( Block& block , NavLinkInfo& info , ActionNavFun& fun )
+	int World::buildNeighborNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func )
 	{
 		if ( info.node->link )
 			return 2;
@@ -699,7 +699,7 @@ namespace MV
 			Block* destBlock = mBlocks[ destBlockId ];
 			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( info.linkDir ) );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = fun.precessObstacleBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessObstacleBlock( info , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 				return ret; 
 		}
@@ -711,7 +711,7 @@ namespace MV
 			Block* destBlock = mBlocks[ destBlockId ];
 			Dir destFaceDirL = destBlock->rotation.toLocal( info.faceDir );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = fun.precessNeighborBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessNeighborBlock( info , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 			{
 				return ret; 
@@ -721,7 +721,7 @@ namespace MV
 		return 0;
 	}
 
-	int World::buildParallaxNavLink( Block& block , NavLinkInfo& info , ActionNavFun& fun )
+	int World::buildParallaxNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func )
 	{
 		if ( info.node->link )
 			return 2;
@@ -770,7 +770,7 @@ namespace MV
 			Block* destBlock = mBlocks[ destBlockId ];
 			Dir destFaceDirL = destBlock->rotation.toLocal( FDir::Inverse( info.linkDir ) );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = fun.precessObstacleBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessObstacleBlock( info , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 				return ret; 
 		}
@@ -789,7 +789,7 @@ namespace MV
 				BlockSurface& surf = ( FDir::IsPositive( info.linkDir ) ) ? 
 					info.block->getFace( info.linkDir ) :
 				mBlocks[ destBlockId ]->getFace( FDir::Inverse( info.linkDir ) );
-				if ( surf.fun != NFT_PASS_VIEW )
+				if ( surf.func != NFT_PASS_VIEW )
 				{
 					destBlockId = 0;
 					specialTest = 0;
@@ -801,7 +801,7 @@ namespace MV
 			Block* destBlock = mBlocks[ destBlockId ];
 			Dir destFaceDirL = destBlock->rotation.toLocal( info.faceDir );
 			BlockSurface& destSurface = destBlock->getLocalFace( destFaceDirL );
-			int ret = fun.precessNeighborBlock( info , destBlock , destSurface , destFaceDirL );
+			int ret = func.precessNeighborBlock( info , destBlock , destSurface , destFaceDirL );
 			if ( ret )
 			{
 				if ( ret == 1 && specialTest )

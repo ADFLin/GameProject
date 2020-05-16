@@ -132,7 +132,7 @@ private:
 
 
 typedef WinThread PlatformThread;
-typedef WinMutex PlatformMutex;
+typedef WinMutex  PlatformMutex;
 typedef WinConditionVariable PlatformConditionVariable;
 
 #elif SYS_SUPPORT_POSIX_THREAD
@@ -144,7 +144,7 @@ public:
 
 	static uint32 GetCurrentThreadId();
 
-	bool create( ThreadFunc fun , void* ptr , uint32 stackSize);
+	bool create( ThreadFunc func , void* ptr , uint32 stackSize);
 	void detach()
 	{
 		

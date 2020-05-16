@@ -16,11 +16,11 @@ namespace Zen
 		mhModule = NULL;
 	}
 
-	template<class FunType>
-	static inline bool readProcAddress(HMODULE dll, FunType& fun, char* funName)
+	template<class TFunc>
+	static inline bool readProcAddress(HMODULE dll, TFunc& func, char* funcName)
 	{
-		fun = (FunType)GetProcAddress(dll, funName);
-		return fun != nullptr;
+		func = (TFunc)GetProcAddress(dll, funcName);
+		return func != nullptr;
 	}
 
 	bool DynamicLibrary::initialize(int version)
@@ -40,65 +40,65 @@ namespace Zen
 		if( mhModule == NULL )
 			return false;
 
-#define LoadZenFun( FN , NAME )\
-		if ( !readProcAddress(mhModule,  FN, NAME ) )\
+#define LoadZenFunc( FUNC , NAME )\
+		if ( !readProcAddress(mhModule,  FUNC, NAME ) )\
 		{\
-			LogError("Can't Load %s!!" , #FN );\
+			LogError("Can't Load %s!!" , #FUNC );\
 			return false;\
 		}
 
-		LoadZenFun(ZenAddStone, "?ZenAddStone@@YA_NHHH@Z");
-		LoadZenFun(ZenClearBoard, "?ZenClearBoard@@YAXXZ");
-		LoadZenFun(ZenFixedHandicap, "?ZenFixedHandicap@@YAXH@Z");
-		LoadZenFun(ZenGetBestMoveRate, "?ZenGetBestMoveRate@@YAHXZ");
-		LoadZenFun(ZenGetBoardColor, "?ZenGetBoardColor@@YAHHH@Z");
-		LoadZenFun(ZenGetHistorySize, "?ZenGetHistorySize@@YAHXZ");
-		LoadZenFun(ZenGetNextColor, "?ZenGetNextColor@@YAHXZ");
-		LoadZenFun(ZenGetNumBlackPrisoners, "?ZenGetNumBlackPrisoners@@YAHXZ");
-		LoadZenFun(ZenGetNumWhitePrisoners, "?ZenGetNumWhitePrisoners@@YAHXZ");
-		LoadZenFun(ZenGetTerritoryStatictics, "?ZenGetTerritoryStatictics@@YAXQAY0BD@H@Z");
-		LoadZenFun(ZenGetTopMoveInfo, "?ZenGetTopMoveInfo@@YAXHAAH00AAMPADH@Z");
-		LoadZenFun(ZenInitialize, "?ZenInitialize@@YAXPBD@Z");
-		LoadZenFun(ZenIsLegal, "?ZenIsLegal@@YA_NHHH@Z");
-		LoadZenFun(ZenIsSuicide, "?ZenIsSuicide@@YA_NHHH@Z");
-		LoadZenFun(ZenIsThinking, "?ZenIsThinking@@YA_NXZ");
-		LoadZenFun(ZenMakeShapeName, "?ZenMakeShapeName@@YAXHHHPADH@Z");
-		LoadZenFun(ZenPass, "?ZenPass@@YAXH@Z");
-		LoadZenFun(ZenPlay, "?ZenPlay@@YA_NHHH@Z");
-		LoadZenFun(ZenReadGeneratedMove, "?ZenReadGeneratedMove@@YAXAAH0AA_N1@Z");
+		LoadZenFunc(ZenAddStone, "?ZenAddStone@@YA_NHHH@Z");
+		LoadZenFunc(ZenClearBoard, "?ZenClearBoard@@YAXXZ");
+		LoadZenFunc(ZenFixedHandicap, "?ZenFixedHandicap@@YAXH@Z");
+		LoadZenFunc(ZenGetBestMoveRate, "?ZenGetBestMoveRate@@YAHXZ");
+		LoadZenFunc(ZenGetBoardColor, "?ZenGetBoardColor@@YAHHH@Z");
+		LoadZenFunc(ZenGetHistorySize, "?ZenGetHistorySize@@YAHXZ");
+		LoadZenFunc(ZenGetNextColor, "?ZenGetNextColor@@YAHXZ");
+		LoadZenFunc(ZenGetNumBlackPrisoners, "?ZenGetNumBlackPrisoners@@YAHXZ");
+		LoadZenFunc(ZenGetNumWhitePrisoners, "?ZenGetNumWhitePrisoners@@YAHXZ");
+		LoadZenFunc(ZenGetTerritoryStatictics, "?ZenGetTerritoryStatictics@@YAXQAY0BD@H@Z");
+		LoadZenFunc(ZenGetTopMoveInfo, "?ZenGetTopMoveInfo@@YAXHAAH00AAMPADH@Z");
+		LoadZenFunc(ZenInitialize, "?ZenInitialize@@YAXPBD@Z");
+		LoadZenFunc(ZenIsLegal, "?ZenIsLegal@@YA_NHHH@Z");
+		LoadZenFunc(ZenIsSuicide, "?ZenIsSuicide@@YA_NHHH@Z");
+		LoadZenFunc(ZenIsThinking, "?ZenIsThinking@@YA_NXZ");
+		LoadZenFunc(ZenMakeShapeName, "?ZenMakeShapeName@@YAXHHHPADH@Z");
+		LoadZenFunc(ZenPass, "?ZenPass@@YAXH@Z");
+		LoadZenFunc(ZenPlay, "?ZenPlay@@YA_NHHH@Z");
+		LoadZenFunc(ZenReadGeneratedMove, "?ZenReadGeneratedMove@@YAXAAH0AA_N1@Z");
 		
-		LoadZenFun(ZenSetBoardSize, "?ZenSetBoardSize@@YAXH@Z");
-		LoadZenFun(ZenSetKomi, "?ZenSetKomi@@YAXM@Z");
-		LoadZenFun(ZenSetMaxTime, "?ZenSetMaxTime@@YAXM@Z");
-		LoadZenFun(ZenSetNextColor, "?ZenSetNextColor@@YAXH@Z");
-		LoadZenFun(ZenSetNumberOfSimulations, "?ZenSetNumberOfSimulations@@YAXH@Z");
-		LoadZenFun(ZenSetNumberOfThreads, "?ZenSetNumberOfThreads@@YAXH@Z");
+		LoadZenFunc(ZenSetBoardSize, "?ZenSetBoardSize@@YAXH@Z");
+		LoadZenFunc(ZenSetKomi, "?ZenSetKomi@@YAXM@Z");
+		LoadZenFunc(ZenSetMaxTime, "?ZenSetMaxTime@@YAXM@Z");
+		LoadZenFunc(ZenSetNextColor, "?ZenSetNextColor@@YAXH@Z");
+		LoadZenFunc(ZenSetNumberOfSimulations, "?ZenSetNumberOfSimulations@@YAXH@Z");
+		LoadZenFunc(ZenSetNumberOfThreads, "?ZenSetNumberOfThreads@@YAXH@Z");
 
-		LoadZenFun(ZenStartThinking, "?ZenStartThinking@@YAXH@Z");
-		LoadZenFun(ZenStopThinking, "?ZenStopThinking@@YAXXZ");
-		LoadZenFun(ZenTimeLeft, "?ZenTimeLeft@@YAXHHH@Z");
-		LoadZenFun(ZenTimeSettings, "?ZenTimeSettings@@YAXHHH@Z");
-		LoadZenFun(ZenUndo, "?ZenUndo@@YA_NH@Z");
+		LoadZenFunc(ZenStartThinking, "?ZenStartThinking@@YAXH@Z");
+		LoadZenFunc(ZenStopThinking, "?ZenStopThinking@@YAXXZ");
+		LoadZenFunc(ZenTimeLeft, "?ZenTimeLeft@@YAXHHH@Z");
+		LoadZenFunc(ZenTimeSettings, "?ZenTimeSettings@@YAXHHH@Z");
+		LoadZenFunc(ZenUndo, "?ZenUndo@@YA_NH@Z");
 
 		if( version <= 6 )
 		{
-			LoadZenFun(ZenSetAmafWeightFactor, "?ZenSetAmafWeightFactor@@YAXM@Z");
-			LoadZenFun(ZenSetPriorWeightFactor, "?ZenSetPriorWeightFactor@@YAXM@Z");
+			LoadZenFunc(ZenSetAmafWeightFactor, "?ZenSetAmafWeightFactor@@YAXM@Z");
+			LoadZenFunc(ZenSetPriorWeightFactor, "?ZenSetPriorWeightFactor@@YAXM@Z");
 		}
 		if( version == 6 )
 		{
-			LoadZenFun(ZenSetDCNN, "?ZenSetDCNN@@YAX_N@Z");
-			LoadZenFun(ZenGetPriorKnowledge, "?ZenGetPriorKnowledge@@YAXQAY0BD@H@Z");
+			LoadZenFunc(ZenSetDCNN, "?ZenSetDCNN@@YAX_N@Z");
+			LoadZenFunc(ZenGetPriorKnowledge, "?ZenGetPriorKnowledge@@YAXQAY0BD@H@Z");
 		}
 		else if( version == 7 )
 		{
-			LoadZenFun(ZenGetPolicyKnowledge,"?ZenGetPolicyKnowledge@@YAXQAY0BD@H@Z");
-			LoadZenFun(ZenSetPnLevel,"?ZenSetPnLevel@@YAXH@Z");
-			LoadZenFun(ZenSetPnWeight,"?ZenSetPnWeight@@YAXM@Z");
-			LoadZenFun(ZenSetVnMixRate, "?ZenSetVnMixRate@@YAXM@Z");
+			LoadZenFunc(ZenGetPolicyKnowledge,"?ZenGetPolicyKnowledge@@YAXQAY0BD@H@Z");
+			LoadZenFunc(ZenSetPnLevel,"?ZenSetPnLevel@@YAXH@Z");
+			LoadZenFunc(ZenSetPnWeight,"?ZenSetPnWeight@@YAXM@Z");
+			LoadZenFunc(ZenSetVnMixRate, "?ZenSetVnMixRate@@YAXM@Z");
 		}
 
-#undef ZenFunLoad
+#undef LoadZenFunc
 		return true;
 	}
 
@@ -464,15 +464,16 @@ namespace Go
 		return BOT_FAIL;
 	}
 
-	bool ZenBot::playPass(int color)
+	EBotExecResult ZenBot::playPass(int color)
 	{
+		auto curColor = mCore->getNextColor();
 		mCore->playPass(ToZColor(color));
-		return true;
+		return curColor != mCore->getNextColor() ? BOT_OK : BOT_FAIL;
 	}
 
-	bool ZenBot::undo()
+	EBotExecResult ZenBot::undo()
 	{
-		return mCore->undo();
+		return mCore->undo() ? BOT_OK : BOT_FAIL;
 	}
 
 	bool ZenBot::requestUndo()

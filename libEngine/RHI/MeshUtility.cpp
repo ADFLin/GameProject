@@ -1954,7 +1954,7 @@ namespace Render
 #endif
 
 		Vector3 minCellPos = boundMin + 0.5 * gridLength;
-		auto TaskFun = [positionReader , pIndexData , gridSize , minCellPos , gridLength, &tree , &outResult](int nz , float& maxDistanceSqr)
+		auto TaskFunc = [positionReader , pIndexData , gridSize , minCellPos , gridLength, &tree , &outResult](int nz , float& maxDistanceSqr)
 		{
 			for( int ny = 0; ny < gridSize.y; ++ny )
 			{
@@ -1967,7 +1967,7 @@ namespace Render
 #if USE_KDTREE
 					int count = 0;
 					float side = 1.0;
-					auto DistFun = [&](MyTree::PrimitiveData const& data, Vector3 const& pos, float minDistSqr)
+					auto DistFunc = [&](MyTree::PrimitiveData const& data, Vector3 const& pos, float minDistSqr)
 					{
 						++count;
 						int* pIndex = pIndexData + 3 * data.id;
@@ -1989,7 +1989,7 @@ namespace Render
 						return distSqr;
 					};
 					float distSqr;
-					tree.findNearst(p, DistFun, distSqr);
+					tree.findNearst(p, DistFunc, distSqr);
 
 					outResult.volumeData[indexCell] = side * Math::Sqrt(distSqr);
 #else
@@ -2024,7 +2024,7 @@ namespace Render
 		{	
 			for( int nz = 0; nz < gridSize.z; ++nz )
 			{
-				TaskFun(nz, maxDistanceSqr);
+				TaskFunc(nz, maxDistanceSqr);
 			}
 		}
 		else
@@ -2032,11 +2032,11 @@ namespace Render
 			
 			struct MyTask : public IQueuedWork
 			{
-				MyTask(decltype(TaskFun)& fun , float inDistSqr , int inNz)
-					:mFun(fun),maxDistanceSqr(inDistSqr),nz(inNz) {}
-				void executeWork() override { mFun(nz , maxDistanceSqr); }
+				MyTask(decltype(TaskFunc)& func , float inDistSqr , int inNz)
+					:mFunc(func),maxDistanceSqr(inDistSqr),nz(inNz) {}
+				void executeWork() override { mFunc(nz , maxDistanceSqr); }
 				void release() override {}
-				decltype( TaskFun )& mFun;
+				decltype( TaskFunc )& mFunc;
 				float maxDistanceSqr;
 				int nz;
 			};
@@ -2044,7 +2044,7 @@ namespace Render
 			std::vector< std::unique_ptr< MyTask > > allTasks;
 			for( int nz = 0; nz < gridSize.z; ++nz )
 			{
-				auto task = std::make_unique<MyTask>( TaskFun , boundMaxDistanceSqr , nz );
+				auto task = std::make_unique<MyTask>( TaskFunc , boundMaxDistanceSqr , nz );
 				setting.WorkTaskPool->addWork(task.get());
 				allTasks.push_back(std::move(task));
 			}

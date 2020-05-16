@@ -103,9 +103,12 @@ namespace Go
 		virtual bool isGPUBased() const override { return true; }
 		virtual bool getMetaData(int id, uint8* dataBuffer, int size);
 
-		virtual bool playPass(int color) override
+		virtual EBotExecResult playPass(int color) override
 		{
-			return mAI.playPass(color);
+			if (!mAI.playPass(color))
+				return BOT_FAIL;
+
+			return BOT_OK;
 		}
 
 	};

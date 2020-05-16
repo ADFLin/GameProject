@@ -11,10 +11,10 @@ BOOL (WINAPI* cdtInit)(int*, int*);
 BOOL (WINAPI* cdtTerm)(void);
 
 
-template<class FunType>
-static inline void readProcAddress( HMODULE dll , FunType& fun , char* funName )
+template<class TFunc >
+static inline void GetFunctionAddress( HMODULE dll , TFunc& func , char* funcName )
 {
-	fun = (FunType) GetProcAddress( dll , funName );
+	func = (TFunc) GetProcAddress( dll , funcName );
 }
 
 bool CardLib::InitCardsDll32()
@@ -28,11 +28,11 @@ bool CardLib::InitCardsDll32()
 	if ( ( hCardDll = ::LoadLibraryA("cards.dll") ) == 0 ) 
 		return false;
 
-	readProcAddress( hCardDll , cdtInit , "cdtInit" );
-	readProcAddress( hCardDll , cdtDraw , "cdtDraw" );
-	readProcAddress( hCardDll , cdtDrawExt , "cdtDrawExt" );
-	readProcAddress( hCardDll , cdtAnimate , "cdtAnimate" );
-	readProcAddress( hCardDll , cdtTerm , "cdtTerm" );
+	GetFunctionAddress( hCardDll , cdtInit , "cdtInit" );
+	GetFunctionAddress( hCardDll , cdtDraw , "cdtDraw" );
+	GetFunctionAddress( hCardDll , cdtDrawExt , "cdtDrawExt" );
+	GetFunctionAddress( hCardDll , cdtAnimate , "cdtAnimate" );
+	GetFunctionAddress( hCardDll , cdtTerm , "cdtTerm" );
 
 
 	cdtInit( &CardSizeX , &CardSizeY );

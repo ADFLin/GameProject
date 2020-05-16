@@ -142,7 +142,7 @@ namespace MV
 		for( int i = 0 ; i < 6 ; ++i )
 		{
 			BlockSurface& surface =  block.getLocalFace( Dir( i ) );
-			if ( surface.fun == NFT_LADDER )
+			if ( surface.func == NFT_LADDER )
 			{
 				Vec3f offset = 0.5 * FDir::OffsetF( block.rotation.toWorld( Dir(i) ) );
 				context.stack.translate(offset);

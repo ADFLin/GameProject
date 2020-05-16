@@ -1143,6 +1143,18 @@
     <ClInclude Include="EasingFunction.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="Meta\IsBaseOf.h">
+      <Filter>Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta\Select.h">
+      <Filter>Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta\FunctionCall.h">
+      <Filter>Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta\EnableIf.h">
+      <Filter>Meta</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

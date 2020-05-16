@@ -161,7 +161,7 @@ SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 
 	mWorker->setNetListener( this );
 	mWorker->setComListener( frameCollector );
-	mWorker->getEvaluator().setUserFun< GDPFrameStream >( this , &SVSyncFrameManager::procFrameData );
+	mWorker->getEvaluator().setUserFunc< GDPFrameStream >( this , &SVSyncFrameManager::procFrameData );
 
 	frameCollector->reflashPlayer( *mWorker->getPlayerManager() );
 
@@ -188,7 +188,7 @@ SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 
 SVSyncFrameManager::~SVSyncFrameManager()
 {
-	mWorker->getEvaluator().removeProcesserFun( this );
+	mWorker->getEvaluator().removeProcesserFunc( this );
 	mWorker->setNetListener( NULL );
 	mWorker->setComListener( NULL );
 }
@@ -426,7 +426,7 @@ CLSyncFrameManager::CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 {
 	assert( !worker->isServer() );
 	mWorker = worker;
-	mWorker->getEvaluator().setUserFun< GDPFrameStream >( this , &CLSyncFrameManager::procFrameData );
+	mWorker->getEvaluator().setUserFunc< GDPFrameStream >( this , &CLSyncFrameManager::procFrameData );
 	mUserPlayer = mWorker->getPlayerManager()->getUser();
 
 	mLastSendDataFrame = 0;
@@ -435,9 +435,8 @@ CLSyncFrameManager::CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 
 CLSyncFrameManager::~CLSyncFrameManager()
 {
-	mWorker->getEvaluator().removeProcesserFun( this );
+	mWorker->getEvaluator().removeProcesserFunc( this );
 }
-
 
 bool CLSyncFrameManager::sendFrameData()
 {

@@ -9,7 +9,7 @@
 namespace Phy2D
 {
 	void EmptyDebugJump(){}
-	DebugJumpFun GDebugJumpFun = EmptyDebugJump;
+	DebugJumpFunc GDebugJumpFun = EmptyDebugJump;
 
 	void World::simulate(float dt)
 	{

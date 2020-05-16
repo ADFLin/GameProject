@@ -79,9 +79,9 @@
 #endif
 
 #if CPP_FUNCTION_DELETE_SUPPORT
-#	define FUNCTION_DELETE( FUN ) FUN = delete;
+#	define FUNCTION_DELETE( FUNC ) FUNC = delete;
 #else
-#	define FUNCTION_DELETE( FUN ) private: FUN {}
+#	define FUNCTION_DELETE( FUNC ) private: FUNC {}
 #endif
 
 //#TODO

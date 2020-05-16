@@ -200,18 +200,18 @@ namespace CB
 	{
 		if( !mTranslucentDraw.empty() )
 		{
-			auto DrawFun = [this](RHICommandList& commandList)
+			auto DrawFunc = [this](RHICommandList& commandList)
 			{
 				RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHIResource());
 				mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
 				mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-				for( auto& fun : mTranslucentDraw )
+				for( auto& func : mTranslucentDraw )
 				{
-					fun(commandList);
+					func(commandList);
 				}
 			};
-			mOITTech.renderInternal(*mCommandList , mViewInfo, DrawFun, nullptr);
+			mOITTech.renderInternal(*mCommandList , mViewInfo, DrawFunc, nullptr);
 		}
 	}
 

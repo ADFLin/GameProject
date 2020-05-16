@@ -8,22 +8,22 @@ namespace Zuma
 {
 	static bool sbInitFunMap = false;
 
-	typedef std::map< std::string , ZFontLoader::LoadFun > LayerFunMap;
-	static LayerFunMap sLayerFunMap;
+	typedef std::map< std::string , ZFontLoader::LoadFunc > LayerFunMap;
+	static LayerFunMap sLayerFuncMap;
 
 	ZFontLoader::ZFontLoader()
 	{
 		if ( !sbInitFunMap )
 		{
-			sLayerFunMap["LayerSetCharWidths"]  = &ZFontLoader::loadLayerSetCharWidths;
-			sLayerFunMap["LayerSetImageMap"]    = &ZFontLoader::loadLayerSetImageMap;
-			sLayerFunMap["LayerSetCharOffsets"] = &ZFontLoader::loadLayerSetCharOffsets;
-			sLayerFunMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
-			sLayerFunMap["LayerSetPointSize" ]  = &ZFontLoader::loadLayerSetPointSize;
-			//layerFunMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
-			//layerFunMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
-			//layerFunMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
-			//layerFunMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
+			sLayerFuncMap["LayerSetCharWidths"]  = &ZFontLoader::loadLayerSetCharWidths;
+			sLayerFuncMap["LayerSetImageMap"]    = &ZFontLoader::loadLayerSetImageMap;
+			sLayerFuncMap["LayerSetCharOffsets"] = &ZFontLoader::loadLayerSetCharOffsets;
+			sLayerFuncMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
+			sLayerFuncMap["LayerSetPointSize" ]  = &ZFontLoader::loadLayerSetPointSize;
+			//layerFuncMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
+			//layerFuncMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
+			//layerFuncMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
+			//layerFuncMap["LayerSetImage" ]      = &ZFontLoader::loadLayerSetImage;
 			sbInitFunMap = true;
 		}
 	}
@@ -344,16 +344,16 @@ namespace Zuma
 			}
 			else if ( strncmp( token ,  "Layer" , 5 ) == 0 )
 			{
-				std::string layerFun = token;
+				std::string layerFunc = token;
 				getToken( stream , token );
 
 				ZFontLayer* layer = layerMap[ token ];
 
 				if ( layer != NULL )
 				{
-					LoadFun fun = sLayerFunMap[ layerFun ];
-					if ( fun )
-						(this->*fun)( stream , layer );
+					LoadFunc func = sLayerFuncMap[ layerFunc ];
+					if ( func )
+						(this->*func)( stream , layer );
 				}
 			}
 			else if ( strcmp( token ,  "SetCharMap" ) == 0 )

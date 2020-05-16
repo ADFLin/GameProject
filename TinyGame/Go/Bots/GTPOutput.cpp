@@ -2,6 +2,7 @@
 
 #include "StringParse.h"
 #include "SystemPlatform.h"
+#include "Core/StringConv.h"
 
 namespace Go
 {
@@ -80,7 +81,7 @@ namespace Go
 		}
 		else
 		{
-			resultNum = atof(str);
+			resultNum = FStringConv::To<float>(str);
 		}
 		return color;
 	}
@@ -214,20 +215,26 @@ namespace Go
 
 			bool bCommadTextReadFinish = true;
 
+			if (onCommandResult && com.id != GTPCommand::eNone)
+			{
+				onCommandResult(com , EGTPComExecuteResult::Success);
+			}
+
 			switch (com.id)
 			{
 			case GTPCommand::eGenmove:
-			{
-				GameCommand gameCom;
-				if (!parsePlayResult(cur, com.meta, gameCom))
-					return false;
-				addOutputCommand(gameCom);
-				onOutputCommand(com, gameCom);
-			}
-			break;
+				{
+					GameCommand gameCom;
+					if (!parsePlayResult(cur, com.meta, gameCom))
+						return false;
+					addOutputCommand(gameCom);
+					onOutputCommand(com, gameCom);
+				}
+				break;
 			case GTPCommand::ePlay:
 				break;
 			case GTPCommand::eUndo:
+			case GTPCommand::eRequestUndo:
 				if (com.meta)
 				{
 					GameCommand gameCom;
@@ -282,14 +289,17 @@ namespace Go
 
 			if (com.id != GTPCommand::eNone)
 			{
+				if (onCommandResult)
+				{
+					onCommandResult(com, EGTPComExecuteResult::Fail);
+				}
+
 				//mProcQueue.pop_front(); 
 				mProcQueue.erase(mProcQueue.begin());
 
 				bDumping = false;
 				dumpCommandMsgEnd(com);
 			}
-
-
 		}
 		else
 		{

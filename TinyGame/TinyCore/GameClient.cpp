@@ -26,14 +26,14 @@ bool ClientWorker::doStartNetwork()
 	mUdpClient.initialize();
 	mNetSelect.addSocket(mUdpClient.getSocket());
 
-#define COM_PACKET_SET( Class , Processer , Fun , Fun2 )\
-	getEvaluator().setWorkerFun< Class >( Processer , Fun , Fun2 );
+#define COM_PACKET_SET( Class , Processer , Func , Func2 )\
+	getEvaluator().setWorkerFunc< Class >( Processer , Func , Func2 );
 
-#define COM_THIS_PACKET_SET( Class , Fun )\
-	COM_PACKET_SET( Class , this , &ClientWorker::Fun , NULL )
+#define COM_THIS_PACKET_SET( Class , Func )\
+	COM_PACKET_SET( Class , this , &ClientWorker::Func , NULL )
 
-#define COM_THIS_PACKET_SET_2( Class , Fun , SocketFun )\
-	COM_PACKET_SET( Class , this , &ClientWorker::Fun , &ClientWorker::SocketFun )
+#define COM_THIS_PACKET_SET_2( Class , Func , SocketFunc )\
+	COM_PACKET_SET( Class , this , &ClientWorker::Func , &ClientWorker::SocketFunc )
 
 	COM_THIS_PACKET_SET ( SPConSetting , procConSetting )
 	COM_THIS_PACKET_SET ( SPPlayerStatus , procPlayerStatus )

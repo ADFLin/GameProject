@@ -477,6 +477,10 @@ namespace Go
 		{
 			return players[idxPlayerTurn].bot.get();
 		}
+		IBot* getNextTurnBot()
+		{
+			return players[1 - idxPlayerTurn].bot.get();
+		}
 	};
 
 

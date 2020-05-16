@@ -202,29 +202,29 @@ public:
 class DelegateTask : public TaskBase
 {
 public:
-	typedef std::function< bool(long) > DelegateFun;
+	typedef std::function< bool(long) > DelegateFunc;
 
 	template< class FunType >
-	DelegateTask(FunType fun)
-		:mFun(fun)
+	DelegateTask(FunType func)
+		:mFunc(func)
 	{
 
 	}
 	void release() { delete this; }
-	bool onUpdate(long time) { return mFun( time ); }
-	DelegateFun mFun;
+	bool onUpdate(long time) { return mFunc( time ); }
+	DelegateFunc mFunc;
 };
 
-template < class T , class MemFun >
-class MemberFunTask : public TaskBase
+template < class T , class MemFunc >
+class MemberFuncTask : public TaskBase
 {
-	MemFun mFun;
-	T*     mPtr;
+	MemFunc mFunc;
+	T*      mPtr;
 public:
-	MemberFunTask( T* ptr , MemFun fun )
-		:mPtr(ptr), mFun( fun ){}
+	MemberFuncTask( T* ptr , MemFunc func )
+		:mPtr(ptr), mFunc( func ){}
 	void release(){ delete this; }
-	bool onUpdate( long time ){ return (mPtr->*mFun)( time ); }
+	bool onUpdate( long time ){ return (mPtr->*mFunc)( time ); }
 };
 
 
@@ -236,22 +236,22 @@ public:
 	{
 		return new ValueModifyTask< T , CV >( val , from , to , time );
 	}
-	template < class T, class MemFun >
-	static MemberFunTask< T , MemFun >* MemberFun( T* ptr , MemFun fun )
+	template < class T, class MemFunc >
+	static MemberFuncTask< T , MemFunc >* MemberFun( T* ptr , MemFunc func )
 	{
-		return new MemberFunTask< T , MemFun >( ptr , fun );
+		return new MemberFuncTask< T , MemFunc >( ptr , func );
 	}
 
-	template < class T, class EasingFun >
+	template < class T, class EasingFunc >
 	static TaskBase* ValueEasing( T& val , T const& from, T const& to , long time )
 	{
 		return nullptr;
 	}
 
-	template < class FunType >
-	static DelegateTask* DelegateFun( FunType fun )
+	template < class TFunc >
+	static DelegateTask* DelegateFunc( TFunc func )
 	{
-		return new DelegateTask(fun);
+		return new DelegateTask(func);
 	}
 };
 

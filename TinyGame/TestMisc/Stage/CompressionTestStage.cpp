@@ -203,11 +203,11 @@ namespace Compression
 	};
 
 
-	DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializeOutput, operator<< , & , const& );
+	DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(THaveSerializeOutput, operator<< , & , const& );
 
 
-	typedef Foo& (*Fun)(Foo& foo, MyTest const& v);
-	typedef Foo& (*Fun2)(Foo& foo, int v);
+	typedef Foo& (*Func)(Foo& foo, MyTest const& v);
+	typedef Foo& (*Func2)(Foo& foo, int v);
 
 
 	class TestStage : public StageBase
@@ -222,18 +222,18 @@ namespace Compression
 		{
 
 
-			int a = HaveFuncionCallOperator< FooCall, int >::Value;
-			int a2 = HaveFuncionCallOperator< FooCall, uint32 >::Value;
-			int v = HaveBitDataOutput< IStreamSerializer::BitWriter, uint32 >::Value;
+			int a = THaveFuncionCallOperator< FooCall, int >::Value;
+			int a2 = THaveFuncionCallOperator< FooCall, uint32 >::Value;
+			int v = THaveBitDataOutput< IStreamSerializer::BitWriter, uint32 >::Value;
 
-			int i = HaveSerializeOutput< Foo , MyTest >::Value;
-			int i2 = HaveSerializeOutput< Foo , int >::Value;
-			int i3 = HaveSerializeOutput< Foo , MyTest2 >::Value;
-			int i4 = HaveSerializeOutput< Foo , MyTest3 >::Value;
+			int i = THaveSerializeOutput< Foo , MyTest >::Value;
+			int i2 = THaveSerializeOutput< Foo , int >::Value;
+			int i3 = THaveSerializeOutput< Foo , MyTest2 >::Value;
+			int i4 = THaveSerializeOutput< Foo , MyTest3 >::Value;
 
 			Foo foo;
-			Fun fun = &operator <<;
-			(*fun)(foo, MyTest());
+			Func func = &operator <<;
+			(*func)(foo, MyTest());
 			
 			foo << MyTest();
 			foo << MyTest2();

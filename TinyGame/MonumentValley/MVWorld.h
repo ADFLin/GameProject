@@ -10,7 +10,7 @@ namespace MV
 {
 
 	struct NavLinkInfo;
-	class  ActionNavFun;
+	class  ActionNavFunc;
 
 	class World
 	{
@@ -105,10 +105,10 @@ namespace MV
 		void updateBlockNavNode( ObjectGroup& group );
 		void updateSurfaceNavNode( Block& block , Dir faceDirL , bool testParallax );
 		void buildSurfaceNavNode( Block &block, NavLinkInfo &info );
-		int  buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFun& fun , int idx );
-		int  buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFun& fun , Dir dir );
-		int  buildNeighborNavLink( Block& block , NavLinkInfo& info , ActionNavFun& fun );
-		int  buildParallaxNavLink( Block& block , NavLinkInfo& info , ActionNavFun& fun );
+		int  buildNavLinkFromIndex( Block& block , NavLinkInfo& info , ActionNavFunc& func , int idx );
+		int  buildNavLinkFromDir( Block& block , NavLinkInfo& info , ActionNavFunc& func , Dir dir );
+		int  buildNeighborNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func );
+		int  buildParallaxNavLink( Block& block , NavLinkInfo& info , ActionNavFunc& func );
 
 		void connectBlockNavNode( Block& block , Dir dirL , Dir linkDirL );
 

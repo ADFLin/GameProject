@@ -43,7 +43,7 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 		break;
 	case FUN_DEF:
 		{
-			char const* name = table.getFunName( unit.symbol->func );
+			char const* name = table.getFuncName( unit.symbol->func );
 			if ( name )
 				cout << name;
 			else
@@ -973,11 +973,11 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 	{
 		++idxStart;
 		if ( mExprCodes[ idxStart ].type != TOKEN_LBAR )
-			throw ParseException( eExprError , "Error fun format" );
+			throw ParseException( eExprError , "Error function format" );
 
 		--idxEnd;
 		if ( mExprCodes[ idxEnd ].type != TOKEN_RBAR )
-			throw ParseException( eExprError , "Error fun format" );
+			throw ParseException( eExprError , "Error function format" );
 
 		int idxNode = mNumNodes++;
 
@@ -1380,7 +1380,7 @@ void ExprTreeBuilder::printTree( SymbolTable const& table )
 	}
 }
 
-char const* SymbolTable::getFunName( FuncInfo const& info ) const
+char const* SymbolTable::getFuncName( FuncInfo const& info ) const
 {
 	for( auto const& pair : mNameToEntryMap )
 	{

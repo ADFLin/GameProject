@@ -149,9 +149,9 @@ namespace Render
 	{
 		switch( type )
 		{
-#define CASE_SHADER(  TYPE , FUN ,VAR )\
+#define CASE_SHADER(  TYPE , FUNC ,VAR )\
 				case TYPE:\
-					VERIFY_D3D11RESULT_RETURN_FALSE( device->FUN(inByteCode->GetBufferPointer(), inByteCode->GetBufferSize(), NULL, &VAR) );\
+					VERIFY_D3D11RESULT_RETURN_FALSE( device->FUNC(inByteCode->GetBufferPointer(), inByteCode->GetBufferSize(), NULL, &VAR) );\
 					break;
 
 			CASE_SHADER(Shader::eVertex, CreateVertexShader, mResource.vertex);

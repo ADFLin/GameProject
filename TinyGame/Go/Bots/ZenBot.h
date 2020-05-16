@@ -602,8 +602,8 @@ namespace Go
 		bool setupGame(GameSetting const& setting) override;
 		bool restart() override;
 		EBotExecResult playStone(int x, int y, int color) override;
-		bool playPass(int color) override;
-		bool undo() override;
+		EBotExecResult playPass(int color) override;
+		EBotExecResult undo() override;
 		bool requestUndo() override;
 		bool thinkNextMove(int color) override;
 		bool isThinking() override;

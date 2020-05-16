@@ -66,12 +66,12 @@ public:
 		updateFrame( frame );
 	}
 
-	using TestFun = std::function< void() >; 
-	void addTest( char const* name , TestFun const& func );
+	using TestFunc = std::function< void() >; 
+	void addTest( char const* name , TestFunc const& func );
 
 	struct TestInfo
 	{
-		TestFun func;
+		TestFunc func;
 	};
 	std::vector< TestInfo > mInfos;
 

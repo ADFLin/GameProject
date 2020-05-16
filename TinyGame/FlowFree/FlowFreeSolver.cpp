@@ -489,6 +489,9 @@ namespace FlowFree
 		int i = 1;
 	}
 
+#define CHECK_SAT_STATUS_INTERNAL( FILE , LINE , FUNC )  if (! mSAT->okay() ) { execbreak(); LogMsg( "%s(%d) : %s Sat is not OK" , FILE , LINE , FUNC ); }
+#define CHECK_SAT_STATUS CHECK_SAT_STATUS_INTERNAL(__FILE__ , __LINE__ , __FUNCTION__)
+
 	bool SATSolverCell::solve(Level& level)
 	{
 		mSAT.reset();
@@ -518,7 +521,6 @@ namespace FlowFree
 		{
 			TIME_SCOPE("SAT Setup");
 #define IGNORE_CELLS 1
-
 			auto DoseHaveVar = [](Cell const& cell)
 			{
 #if IGNORE_CELLS
@@ -555,8 +557,7 @@ namespace FlowFree
 				}
 			}
 
-#define CHECK_OK_INTERNAL( FILE , LINE , FUNC )  if (! mSAT->okay() ) { execbreak(); LogMsg( "%s(%d) : %s Sat is not OK" , FILE , LINE , FUNC ); }
-#define CHECK_OK CHECK_OK_INTERNAL(__FILE__ , __LINE__ , __FUNCTION__)
+
 
 			for (int j = 0; j < size.y; ++j)
 			{
@@ -575,7 +576,7 @@ namespace FlowFree
 							literals.push(Lit(getColorVar(pos, c)));
 						}
 						ExactlyOne(mSAT, literals);
-						CHECK_OK;
+						CHECK_SAT_STATUS;
 					}
 
 					switch (cell.func)
@@ -619,7 +620,7 @@ namespace FlowFree
 							{
 								mSAT->addClause(~Lit(getConTypeVar(pos, t)));
 							}
-							CHECK_OK;
+							CHECK_SAT_STATUS;
 						}
 						break;
 					case CellFunc::Empty:
@@ -644,7 +645,7 @@ namespace FlowFree
 								{
 									ExactlyOne(mSAT, literals);
 								}
-								CHECK_OK;
+								CHECK_SAT_STATUS;
 							}
 
 
@@ -658,7 +659,11 @@ namespace FlowFree
 								Vec2i ConPos0 = GetLinkPosSkipBirdge(pos, linkDirs[0]);
 								Vec2i ConPos1 = GetLinkPosSkipBirdge(pos, linkDirs[1]);
 #if IGNORE_CELLS
-								if (DoseHaveVar(level.getCellChecked(ConPos0)) && DoseHaveVar(level.getCellChecked(ConPos1)))
+								if ( !(DoseHaveVar(level.getCellChecked(ConPos0)) && DoseHaveVar(level.getCellChecked(ConPos1))) )		
+								{
+									mSAT->addClause(~Tij);
+								}
+								else
 #endif
 								{
 									for (int c = 0; c < mColorCount; ++c)
@@ -669,7 +674,7 @@ namespace FlowFree
 										mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos0, c)));
 										mSAT->addClause(~Tij, ~Cij, Lit(getColorVar(ConPos1, c)));
 										mSAT->addClause(~Tij, Cij, ~Lit(getColorVar(ConPos1, c)));
-										CHECK_OK;
+										CHECK_SAT_STATUS;
 										//The neighbors of a cell not specified by its direction type must not match its color
 										for (int dir = 0; dir < DirCount; ++dir)
 										{
@@ -682,15 +687,10 @@ namespace FlowFree
 											Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
 											mSAT->addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos, c)));
 										}
-										CHECK_OK;
+										CHECK_SAT_STATUS;
 									}
 								}
-#if IGNORE_CELLS
-								else
-								{
-									mSAT->addClause(~Tij);
-								}
-#endif
+
 							}
 						}
 						break;
@@ -701,7 +701,7 @@ namespace FlowFree
 
 		LogMsg("Var = %d : Clause = %d", mSAT->nVars(), mSAT->nClauses());
 		mSAT->simplify();
-		//LogMsg("Var = %d : Clause = %d", mSolver->nVars(), mSolver->nClauses());
+		LogMsg("Var = %d : Clause = %d", mSAT->nVars(), mSAT->nClauses());
 
 		bool bSolved;
 		{

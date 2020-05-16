@@ -60,12 +60,12 @@ private:
 template < class Impl >
 class StageDesigner : public IStageManage
 {
-	void setupStageFun( Stage& newStage , StageEvent& event ){}
+	void setupStageFunc( Stage& newStage , StageEvent& event ){}
 
 
 	class IRule
 	{
-		void doSetupFun( Impl& impl , Stage& newStage , StageEvent& event ) = 0;
+		void doSetupFunc( Impl& impl , Stage& newStage , StageEvent& event ) = 0;
 	};
 
 	template < class SrcStage , class DstStage , class Event , void (Impl::*setupFun)( event& ) >
@@ -75,7 +75,7 @@ class StageDesigner : public IStageManage
 		{
 
 		}
-		void doSetupFun( Impl& impl , Stage& newStage , StageEvent& event )
+		void doSetupFunc( Impl& impl , Stage& newStage , StageEvent& event )
 		{
 			(impl.*setupFun)( newStage , event );
 		}

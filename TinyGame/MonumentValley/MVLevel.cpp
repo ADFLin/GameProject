@@ -56,7 +56,7 @@ namespace MV
 			for( int i = 0 ; i < 6 ; ++i )
 			{
 				BlockSurface& surf = block->surfaces[i];
-				op & surf.fun;
+				op & surf.func;
 				op & surf.meta;
 			}
 		}
@@ -130,7 +130,7 @@ namespace MV
 		}
 	}
 
-	NavFunType NavFunMapV1[] =
+	NavFuncType NavFunMapV1[] =
 	{
 		NFT_NULL ,
 		NFT_LADDER  ,
@@ -181,11 +181,11 @@ namespace MV
 			for( int i = 0 ; i < 6 ; ++i )
 			{
 				SurfaceDef& surf = surfaces[i];
-				op & surf.fun;
+				op & surf.func;
 				op & surf.meta;
 				if ( version <= 1 )
 				{
-					surf.fun = NavFunMapV1[ surf.fun ];
+					surf.func = NavFunMapV1[ surf.func ];
 				}
 			}
 			ObjectGroup* group = ( ptrId == 0 ) ? ( &mWorld.mRootGroup ) : mWorld.mGroups[ ptrId - 1 ]; 

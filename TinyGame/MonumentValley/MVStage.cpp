@@ -995,15 +995,15 @@ namespace MV
 		if ( id[0] )
 		{
 			Block* block = mWorld.getBlock( id[0] );
-			if ( block->getFace( dir[0] ).fun == NFT_PASS_VIEW ||
-				 block->getFace( Dir::InvZ ).fun == NFT_PASS_VIEW )
+			if ( block->getFace( dir[0] ).func == NFT_PASS_VIEW ||
+				 block->getFace( Dir::InvZ ).func == NFT_PASS_VIEW )
 				id[0] = 0;
 		}
 		if ( id[1] )
 		{
 			Block* block = mWorld.getBlock( id[1] );
-			if ( block->getFace( FDir::Inverse( dir[0] ) ).fun == NFT_PASS_VIEW ||
-				 block->getFace( Dir::Z ).fun == NFT_PASS_VIEW )
+			if ( block->getFace( FDir::Inverse( dir[0] ) ).func == NFT_PASS_VIEW ||
+				 block->getFace( Dir::Z ).func == NFT_PASS_VIEW )
 				id[1] = 0;
 		}
 
@@ -1018,7 +1018,7 @@ namespace MV
 			if ( i <= 1 )
 			{
 				Block* block = mWorld.getBlock( id[i] );
-				if ( block->getFace( dirCheck[i] ).fun == NFT_PASS_VIEW )
+				if ( block->getFace( dirCheck[i] ).func == NFT_PASS_VIEW )
 					continue;
 			}
 			if ( findPos[i].z >= maxZ )

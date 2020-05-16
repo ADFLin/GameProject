@@ -3,12 +3,12 @@
 
 #include <algorithm>
 
-template< class KT , class CmpFun = std::less< KT > >
+template< class KT , class CmpFunc = std::less< KT > >
 class TBinaryHeap
 {
 public:
 	typedef KT     KeyType;
-	typedef CmpFun CompareFunType;
+	typedef CmpFunc CompareFunType;
 
 	typedef KeyType Node;
 
@@ -169,12 +169,12 @@ protected:
 		}
 
 		template< class TFunc >
-		void visitList( TFunc fun )
+		void visitList( TFunc func )
 		{
 			T* node = next;
 			while( node != this )
 			{
-				fun(node);
+				func(node);
 				node = node->next;
 			}
 		}
@@ -184,7 +184,7 @@ protected:
 };
 
 
-template < class KT , class CmpFun = std::less< KT > >
+template < class KT , class CmpFunc = std::less< KT > >
 class TFibonaccilHeap : public TreeHeapBase
 {
 public:
@@ -204,7 +204,7 @@ public:
 
 	struct Node;
 	typedef KT     KeyType;
-	typedef CmpFun CompareFunType;
+	typedef CmpFunc CompareFunType;
 	typedef Node*  NodeHandle;
 
 	static NodeHandle EmptyHandle() { return nullptr; }
@@ -408,7 +408,7 @@ private:
 };
 
 
-template< class KT , class CmpFun = std::less< KT > >
+template< class KT , class CmpFunc = std::less< KT > >
 class TPairingHeap : public TreeHeapBase
 {
 public:
@@ -416,7 +416,7 @@ public:
 	struct Node;
 	typedef KT    KeyType;
 	typedef Node* HandleType;
-	typedef CmpFun CompareFunType;
+	typedef CmpFunc CompareFunType;
 
 	struct Node : ListHook< Node >
 	{

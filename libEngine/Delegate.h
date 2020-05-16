@@ -7,7 +7,7 @@
 #if USE_FAST_DELEGATE
 #include "FastDelegate/FastDelegate.h"
 #define DECLARE_DELEGATE( NAME , ... )\
-	typedef fastdelegate::FastDelegate< __VA_ARGS__ > NAME;
+	typedef ::fastdelegate::FastDelegate< __VA_ARGS__ > NAME;
 #else
 #include <functional>
 #define DECLARE_DELEGATE( NAME , ... )\

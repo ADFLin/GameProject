@@ -17,11 +17,11 @@ template < class T >
 class ThinkObjT
 {
 public:
-	typedef void (T::*ThinkFun)( ThinkData* );
+	typedef void (T::*ThinkFunc)( ThinkData* );
 
 	bool haveThink()
 	{
-		return ( mContent.fun != NULL || mContent.time != NEVER_THINK );
+		return ( mContent.func != NULL || mContent.time != NEVER_THINK );
 	}
 
 	void processThink( unsigned time )
@@ -32,13 +32,13 @@ public:
 		if ( mContent.time < time )
 		{
 			mContent.time = NEVER_THINK;
-			( _this()->*mContent.fun )( mContent.data );
+			( _this()->*mContent.func )( mContent.data );
 		}
 	}
 
-	void  setThink( ThinkFun fun , ThinkData* data = NULL )
+	void  setThink( ThinkFunc func , ThinkData* data = NULL )
 	{
-		mContent.fun = fun;
+		mContent.func = func;
 
 		if ( mContent.data )
 			mContent.data->release();
@@ -53,7 +53,7 @@ private:
 	{
 		ThinkContent()
 		{
-			fun  = NULL;
+			func = NULL;
 			time = NEVER_THINK;
 			data = NULL;
 		}
@@ -67,7 +67,7 @@ private:
 
 		ThinkData*  data;
 		unsigned    time;
-		ThinkFun    fun;
+		ThinkFunc   func;
 	};
 	
 	ThinkContent mContent;

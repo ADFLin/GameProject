@@ -78,19 +78,19 @@ namespace Chromatron
 		World const&  getWorld() const { return mWorld;  }
 		void     restart();
 
-		template< class Fun >
-		void      visitAllDevice( Fun fun )
+		template< class TFunc >
+		void      visitAllDevice( TFunc func )
 		{
 			for (auto & data : mMapDCList)
 			{
 				Device* dc = data.dc;
 				if (dc->isStatic())
-					fun(dc);
+					func(dc);
 			}
 
 			for (Device * dc : mUserDC)
 			{
-				fun(dc);
+				func(dc);
 			}
 
 		}

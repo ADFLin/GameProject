@@ -21,7 +21,7 @@ void Thinkable::update( long time )
 			else if ( content.mode == THINK_LOOP )
 				content.nextTime = thinkTime + content.loopTime;
 
-			content.fun( content );
+			content.func( content );
 			content.lastTime = g_GlobalVal.curtime;
 		}
 	}
@@ -36,7 +36,7 @@ void Thinkable::setupContent( ThinkContent& content , ThinkMode mode , float loo
 	content.nextTime = NEVER_THINK;
 }
 
-ThinkContent* Thinkable::setupThinkInternal( ThinkFun const& fun , ThinkMode mode /*= THINK_ONCE */, float loopTime /*= 0.0 */ )
+ThinkContent* Thinkable::setupThinkInternal( ThinkFunc const& func , ThinkMode mode /*= THINK_ONCE */, float loopTime /*= 0.0 */ )
 {
 	ContentList::iterator removeIter = mContentList.end();
 	for( ContentList::iterator iter = mContentList.begin();
@@ -44,7 +44,7 @@ ThinkContent* Thinkable::setupThinkInternal( ThinkFun const& fun , ThinkMode mod
 	{
 		ThinkContent& content = *iter;
 
-		if ( content.fun == fun )
+		if ( content.func == func )
 		{
 			setupContent( content , mode , loopTime );
 			return &content;
@@ -61,13 +61,13 @@ ThinkContent* Thinkable::setupThinkInternal( ThinkFun const& fun , ThinkMode mod
 	if ( removeIter != mContentList.end() )
 	{
 		ThinkContent& content = *removeIter;
-		content.fun = fun;
+		content.func = func;
 		setupContent( content , mode , loopTime );
 		return &content;
 	}
 
 	ThinkContent content;
-	content.fun = fun;
+	content.func = func;
 	setupContent( content , mode , loopTime );
 	mContentList.push_back( content );
 	return &mContentList.back();

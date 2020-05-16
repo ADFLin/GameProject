@@ -79,8 +79,8 @@ namespace Shoot2D
 			obj2.getPos() , md2.r );
 	}
 
-	typedef bool (*TestColFun)( Object&  , ObjModel const&  , Object&  , ObjModel const&  );
-	static TestColFun sColMap[ NUM_GEOM_TYPE ][ NUM_GEOM_TYPE ] =
+	typedef bool (*TestColFunc)( Object&  , ObjModel const&  , Object&  , ObjModel const&  );
+	static TestColFunc sColMap[ NUM_GEOM_TYPE ][ NUM_GEOM_TYPE ] =
 	{
 		{ testColRectRect , testColRectCircle } ,
 		{ testColCircleRect , testColCircleCircle } ,
@@ -93,8 +93,8 @@ namespace Shoot2D
 		ObjModel const& md1 = manger.getModel(obj1.getModelId());
 		ObjModel const& md2 = manger.getModel(obj2.getModelId());
 
-		TestColFun fun = sColMap[ md2.geomType ][ md1.geomType ];
-		return (*fun)( obj1 , md1 , obj2 , md2 );
+		TestColFunc func = sColMap[ md2.geomType ][ md1.geomType ];
+		return (*func)( obj1 , md1 , obj2 , md2 );
 	}
 
 	void CollisionSystem::processCollision( Object& obj1 , Object& obj2 )

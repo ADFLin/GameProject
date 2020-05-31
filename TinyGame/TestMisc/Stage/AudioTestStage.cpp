@@ -833,7 +833,7 @@ bool AudioTestStage::onInit()
 	mTimeWidget->setRange(0, 1000);
 
 	frame->addText("Freq");
-	WidgetPropery::Bind(frame->addSlider(UI_ANY), mSineWaveStreamSource.mWaveGenerator.freq, 20, 15100, 2);
+	FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSineWaveStreamSource.mWaveGenerator.freq, 20, 15100, 2);
 
 
 	restart();

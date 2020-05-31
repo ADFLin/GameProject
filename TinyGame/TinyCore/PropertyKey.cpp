@@ -221,7 +221,8 @@ bool PropertyKey::saveFile( char const* path )
 		[](auto lhs, auto rhs)
 		{
 			return lhs->second.mSequenceOrder < rhs->second.mSequenceOrder;
-		});
+		}
+	);
 
 	for( auto iter : sortedSectionIters )
 	{
@@ -234,28 +235,28 @@ bool PropertyKey::saveFile( char const* path )
 }
 
 
-static char* skipTo( char* str , char c )
+static char* SkipTo( char* str , char c )
 {
 	return strchr( str , c );
 }
 
-static char* skipTo( char* str , char* s )
+static char* SkipTo( char* str , char* s )
 {
 	return strpbrk( str , s );
 }
 
 
-static char* skipSpace( char* str )
+static char* SkipSpace( char* str )
 {
 	char* p = str;
-	while( ::isspace( *p ) ){  ++p; }
+	while( FCString::IsSpace( *p ) ){  ++p; }
 	return p;
 }
 
-static void cutBackSpace( char* str )
+static void CutBackSpace( char* str )
 {
 	char* p = str;
-	do { --p; } while( ::isspace( *p ) );
+	do { --p; } while( FCString::IsSpace( *p ) );
 	*( p + 1 ) = '\0';
 }
 
@@ -271,7 +272,7 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 {
 	char* token;
 	char* test;
-	token = skipSpace( buffer );
+	token = SkipSpace( buffer );
 
 	if ( token[0] == '\0' )
 		return PARSE_SUCCESS;
@@ -283,17 +284,17 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 	}
 	else if ( token[0] == '[' )
 	{
-		token = skipSpace( token + 1 );
+		token = SkipSpace( token + 1 );
 		char* sectionName = token;
 
-		token = skipTo( token , ']' );
+		token = SkipTo( token , ']' );
 
 		if ( token == nullptr )
 			return PARSE_SECTION_ERROR;
 
-		cutBackSpace( token );
+		CutBackSpace( token );
 
-		token = skipSpace( token + 1 );
+		token = SkipSpace( token + 1 );
 		if ( *token != '\0' )
 			return PARSE_SECTION_ERROR;
 
@@ -302,7 +303,7 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 		(*curSection)->mSequenceOrder = mNextSectionSeqOrder;
 		++mNextSectionSeqOrder;
 	}
-	else if ( test = skipTo( token , '=' ) )
+	else if ( test = SkipTo( token , '=' ) )
 	{
 		switch( *test )
 		{
@@ -311,12 +312,12 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 				char* keyName = token;
 				token = test;
 
-				cutBackSpace( token );
+				CutBackSpace( token );
 
-				token = skipSpace( token + 1 );
+				token = SkipSpace( token + 1 );
 				char* keyValueString = token;
 
-				cutBackSpace( token + strlen( token ) );
+				CutBackSpace( token + strlen( token ) );
 
 				auto pKeyValue = (*curSection)->addKeyValue( keyName , keyValueString );
 

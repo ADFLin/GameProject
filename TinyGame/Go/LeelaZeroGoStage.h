@@ -152,7 +152,7 @@ namespace Go
 		template< class T , class Widget >
 		T getParamValue(int id)
 		{
-			return WidgetPropery::Get<T>(findChildT<Widget>(id));
+			return FWidgetPropery::Get<T>(findChildT<Widget>(id));
 		}
 	};
 

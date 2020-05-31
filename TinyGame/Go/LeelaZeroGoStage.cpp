@@ -316,7 +316,7 @@ namespace Go
 					widget->cast<GButton>()->setTitle(GetPonderingButtonString());
 					return false;
 				});
-				WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show Analysis"), bShowAnalysis);
+				FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show Analysis"), bShowAnalysis);
 				frame->addButton("Restart Leela", [this](int eventId, GWidget* widget)->bool
 				{
 					cleanupModeData();

@@ -12,9 +12,6 @@
     <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
-    <ClCompile Include="TestMisc\Test\PreprocessTest.cpp">
-      <Filter>Test</Filter>
-    </ClCompile>
     <ClCompile Include="TestMisc\Test\SpatialIndexTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
@@ -189,6 +186,12 @@
     </ClCompile>
     <ClCompile Include="CarTrain\CTTestStage.cpp">
       <Filter>GameCarTrain</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\PreprocessorTest.cpp">
+      <Filter>Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

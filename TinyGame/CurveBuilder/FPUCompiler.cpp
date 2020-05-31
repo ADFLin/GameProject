@@ -97,7 +97,7 @@ class FPUCodeGeneratorBase : public AsmCodeGenerator
 {
 public:
 	using ValueType = double;
-#define VALUE_PTR qword_ptr
+
 	static int const FpuRegNum = 8;
 
 	struct StackValue
@@ -153,8 +153,8 @@ public:
 		union
 		{
 			VariableInfo const* var;
+			InputInfo const*    input;
 			int     idxCV;
-			int     idxInput;
 		};
 		int     idxStack;
 	};
@@ -162,15 +162,21 @@ public:
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
 		mInputStack.resize(numInput);
-		SysInt offset = 0;
+		//#TODO : consider func call type
+		// ebp + 0 : esp
+		SysInt offset = 8;
 		for( int i = 0; i < numInput; ++i )
 		{
-			offset += GetLayoutSize(inputLayouts[i]);
 			mInputStack[i].layout = inputLayouts[i];
 			mInputStack[i].offset = offset;
+			offset += GetLayoutSize(inputLayouts[i]);
 		}
 		mConstStorage.clear();
 		mConstStack.clear();
+
+		Asm::push(ebp);
+		Asm::mov(ebp, esp);
+		mNumInstruction += 2;
 	}
 
 	template< class Type >
@@ -268,13 +274,25 @@ public:
 	template< class ...Args >
 	int emitBOPWithLayout(TokenType opType, bool isReverse, ValueLayout layout, Args&& ...args)
 	{
-		switch( layout )
+		if (IsPointer(layout))
 		{
-		case ValueLayout::Double: return emitBOP(opType, isReverse, qword_ptr(args...)); break;
-		case ValueLayout::Float:  return emitBOP(opType, isReverse, dword_ptr(args...)); break;
-		case ValueLayout::Int32:  return emitBOPInt(opType, isReverse, dword_ptr(args...)); break;
+			Asm::mov(eax, SYSTEM_PTR(std::forward<Args>(args)...));
+			return 1 + emitBOPWithBaseLayout( opType , isReverse , ToBase(layout), eax);
+		}
+
+		return emitBOPWithBaseLayout(opType , isReverse , layout , std::forward<Args>(args)...);
+	}
+
+	template< class ...Args >
+	int emitBOPWithBaseLayout(TokenType opType, bool isReverse, ValueLayout layout, Args&& ...args)
+	{
+		switch (layout)
+		{
+		case ValueLayout::Double: return emitBOP(opType, isReverse, qword_ptr(std::forward<Args>(args)...));
+		case ValueLayout::Float:  return emitBOP(opType, isReverse, dword_ptr(std::forward<Args>(args)...));
+		case ValueLayout::Int32:  return emitBOPInt(opType, isReverse, dword_ptr(std::forward<Args>(args)...));
 		default:
-			assert(0);
+			NEVER_REACH("emitBOPWithBaseLayout miss case");
 		}
 		return 0;
 	}
@@ -282,43 +300,78 @@ public:
 	template< class ...Args >
 	int emitStoreValueWithLayout(ValueLayout layout, Args&& ...args)
 	{
-		switch( layout )
+		if (IsPointer(layout))
 		{
-		case ValueLayout::Double: Asm::fst(qword_ptr(args...)); break;
-		case ValueLayout::Float:  Asm::fst(dword_ptr(args...)); break;
-		case ValueLayout::Int32:  Asm::fist(dword_ptr(args...)); break;
-		default:
-			assert(0);
+			Asm::mov(eax, SYSTEM_PTR(std::forward<Args>(args)...));
+			return 1 + emitStoreValueWithBaseLayout(ToBase(layout), eax);
 		}
-		return 1;
+		return emitStoreValueWithBaseLayout(layout, std::forward<Args>(args)...);
+	}
+
+	template< class ...Args >
+	int emitStoreValueWithBaseLayout(ValueLayout layout, Args&& ...args)
+	{
+		switch (layout)
+		{
+		case ValueLayout::Double: Asm::fst(qword_ptr(std::forward<Args>(args)...)); return 1;
+		case ValueLayout::Float:  Asm::fst(dword_ptr(std::forward<Args>(args)...)); return 1;
+		case ValueLayout::Int32:  Asm::fist(dword_ptr(std::forward<Args>(args)...)); return 1;
+		default:
+			NEVER_REACH("emitStoreValueWithBaseLayout miss case");
+		}
+		return 0;
 	}
 
 	template< class ...Args >
 	int emitStoreValuePopWithLayout(ValueLayout layout, Args&& ...args)
 	{
-		switch( layout )
+		if (IsPointer(layout))
 		{
-		case ValueLayout::Double: Asm::fstp(qword_ptr(args...)); break;
-		case ValueLayout::Float:  Asm::fstp(dword_ptr(args...)); break;
-		case ValueLayout::Int32:  Asm::fistp(dword_ptr(args...)); break;
-		default:
-			assert(0);
+			Asm::mov(eax, SYSTEM_PTR(std::forward<Args>(args)...));
+			return 1 + emitStoreValuePopWithBaseLayout(ToBase(layout), eax);
 		}
-		return 1;
+
+		return emitStoreValuePopWithBaseLayout(layout, std::forward<Args>(args)...);
+	}
+
+	template< class ...Args >
+	int emitStoreValuePopWithBaseLayout(ValueLayout layout, Args&& ...args)
+	{
+		switch (layout)
+		{
+		case ValueLayout::Double: Asm::fstp(qword_ptr(std::forward<Args>(args)...)); return 1;
+		case ValueLayout::Float:  Asm::fstp(dword_ptr(std::forward<Args>(args)...)); return 1;
+		case ValueLayout::Int32:  Asm::fistp(dword_ptr(std::forward<Args>(args)...)); return 1;
+		default:
+			NEVER_REACH("emitStoreValuePopWithBaseLayout miss case");
+		}
+		return 0;
 	}
 
 	template< class ...Args >
 	int emitLoadValueWithLayout(ValueLayout layout, Args&& ...args)
 	{
-		switch( layout )
+		if (IsPointer(layout))
 		{
-		case ValueLayout::Double: Asm::fld(qword_ptr(args...)); break;
-		case ValueLayout::Float:  Asm::fld(dword_ptr(args...)); break;
-		case ValueLayout::Int32:  Asm::fild(dword_ptr(args...)); break;
-		default:
-			return 0;
+			Asm::mov(eax, SYSTEM_PTR(std::forward<Args>(args)...));
+			return 1 + emitLoadValueWithBaseLayout(ToBase(layout), eax);
 		}
-		return 1;
+
+		return emitLoadValueWithBaseLayout(layout, std::forward<Args>(args)...);
+	}
+
+	template< class ...Args >
+	int emitLoadValueWithBaseLayout(ValueLayout layout, Args&& ...args)
+	{
+		switch (layout)
+		{
+		case ValueLayout::Double: Asm::fld(qword_ptr(std::forward<Args>(args)...)); return 1;
+		case ValueLayout::Float:  Asm::fld(dword_ptr(std::forward<Args>(args)...)); return 1;
+		case ValueLayout::Int32:  Asm::fild(dword_ptr(std::forward<Args>(args)...)); return 1;
+		default:
+			NEVER_REACH("emitLoadValueWithBaseLayout miss case");
+		}
+		return 0;
 	}
 
 	int emitLoadValue(ValueInfo const& info)
@@ -329,7 +382,7 @@ public:
 			return emitLoadValueWithLayout(info.var->layout, info.var->ptr);
 		case VALUE_INPUT:
 			{
-				StackValue& inputValue = mInputStack[info.idxInput];
+				StackValue& inputValue = mInputStack[info.input->index];
 				return emitLoadValueWithLayout(inputValue.layout, ebp, inputValue.offset);
 			}
 		case VALUE_CONST:
@@ -352,21 +405,18 @@ public:
 
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
-		BaseClass::codeInit(numInput, inputLayouts);
-		//m_pData->eval();
+		mData->clearCode();
 		mNumVarStack = 0;
 		mNumInstruction = 0;
 
 		mPrevValue.type = TOKEN_NONE;
 		mPrevValue.var = nullptr;
 
-
-		mData->clearCode();
 		Asm::clearLink();
 
-		Asm::push(ebp);
-		Asm::mov(ebp, esp);
-		mNumInstruction += 2;
+		BaseClass::codeInit(numInput, inputLayouts);
+		//m_pData->eval();
+
 
 		// ??
 		//mData->pushCode(MSTART);
@@ -394,12 +444,12 @@ public:
 		mPrevValue.idxStack = findStack(mPrevValue);
 	}
 
-	void codeInput(uint8 inputIndex)
+	void codeInput(InputInfo const& input)
 	{
 		checkStackPrevValPtr();
 
-		mPrevValue.type = VALUE_INPUT;
-		mPrevValue.idxInput = inputIndex;
+		mPrevValue.type     = VALUE_INPUT;
+		mPrevValue.input = &input;
 		mPrevValue.idxStack = findStack(mPrevValue);
 	}
 
@@ -421,12 +471,13 @@ public:
 				int numCpuStack = mNumVarStack - FpuRegNum;
 				int numCpuParam = std::min(numParam, numCpuStack);
 
+				//TODO : consider value layout
 				paramOffset -= numCpuStack * sizeof(ValueType);
 				for( int num = 0; num < numCpuParam; ++num )
 				{
 					paramOffset -= sizeof(ValueType);
-					Asm::fstp(VALUE_PTR(esp, int8(paramOffset)));
-					Asm::fld(VALUE_PTR(ebp, int8(-(numCpuStack - num) * sizeof(ValueType))));
+					Asm::fstp(SYSTEM_PTR(esp, int8(paramOffset)));
+					Asm::fld(SYSTEM_PTR(ebp, int8(-(numCpuStack - num) * sizeof(ValueType))));
 
 					mRegStack.back().type = TOKEN_NONE;
 				}
@@ -441,7 +492,7 @@ public:
 			for( int num = 0; num < numSPUParam; ++num )
 			{
 				paramOffset -= sizeof(ValueType);
-				Asm::fstp(VALUE_PTR(esp, int8(paramOffset)));
+				Asm::fstp(SYSTEM_PTR(esp, int8(paramOffset)));
 				mRegStack.pop_back();
 			}
 			mNumInstruction += 1 * numSPUParam;
@@ -463,7 +514,23 @@ public:
 	{
 		if( opType == BOP_ASSIGN )
 		{
-			mNumInstruction += emitStoreValueWithLayout(mPrevValue.var->layout, mPrevValue.var->ptr);
+			switch (mPrevValue.type)
+			{
+			case VALUE_INPUT:
+				{
+					StackValue& inputValue = mInputStack[mPrevValue.input->index];
+					if ( !IsPointer( inputValue.layout) )
+					{
+						throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Input value layout is not pointer when assign");
+					}
+					mNumInstruction += emitStoreValueWithLayout(inputValue.layout, ebp, inputValue.offset);
+				}
+				break;
+			case VALUE_VARIABLE:
+				{
+					mNumInstruction += emitStoreValueWithLayout(mPrevValue.var->layout, mPrevValue.var->ptr);
+				}
+			}		
 		}
 		else
 		{
@@ -491,7 +558,7 @@ public:
 					break;
 				case VALUE_INPUT:
 					{
-						StackValue& inputValue = mInputStack[mPrevValue.idxInput];
+						StackValue& inputValue = mInputStack[mPrevValue.input->index];
 						mNumInstruction += emitBOPWithLayout(opType, isReverse, inputValue.layout, ebp, inputValue.offset);
 					}
 					break;
@@ -510,7 +577,7 @@ public:
 				if( mNumVarStack > FpuRegNum )
 				{
 					int32 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
-					mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(ebp, SysInt(offset)));
+					mNumInstruction += emitBOP(opType, isReverse, SYSTEM_PTR(ebp, SysInt(offset)));
 
 					mRegStack.back().type = TOKEN_NONE;
 				}
@@ -582,7 +649,7 @@ protected:
 		{
 			//fstp        qword ptr [ebp - offset] 
 			int8 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
-			Asm::fstp(VALUE_PTR(ebp, offset));
+			Asm::fstp(SYSTEM_PTR(ebp, offset));
 			mRegStack.pop_back();
 			++mNumInstruction;
 		}
@@ -613,7 +680,7 @@ protected:
 						return i;
 					break;
 				case VALUE_INPUT:
-					if( value.idxInput == mRegStack[i].idxInput )
+					if( value.input == mRegStack[i].input )
 						return i;
 					break;
 				}
@@ -681,11 +748,11 @@ public:
 		info.idxStack = INDEX_NONE;
 		mStackValues.push_back(info);
 	}
-	void codeInput(uint8 inputIndex)
+	void codeInput(InputInfo const& input)
 	{
 		ValueInfo info;
 		info.type = VALUE_INPUT;
-		info.idxInput = inputIndex;
+		info.input = &input;
 		info.idxStack = INDEX_NONE;
 		mStackValues.push_back(info);
 	}
@@ -763,88 +830,25 @@ FPUCompiler::FPUCompiler()
 	mOptimization = true;
 }
 
-__declspec(noinline) double FooTest(double x, double y)
-{
-	return x + y;
-}
-
-__declspec(noinline) double FooTest2(double x, double y)
-{
-	return x - y;
-}
-
-float gc;
-float ga = 1.2f;
-float gb;
-
-__declspec(noinline) static void foo()
-{
-
-	float a1 = 1;
-	float a2 = 2;
-	float a3 = 3;
-	float a4 = 4;
-	float a5 = 5;
-	float a6 = 6;
-	float a7 = 7;
-	float a8 = 8;
-	float a9 = 9;
-
-#if 0
-	__asm
-	{
-		fld a1;
-		fld a2;
-		fld a3;
-		fld a4;
-		fld a5;
-		fld a6;
-		fld a7;
-		fld a8;
-		fld a9;
-
-		fstp a1;
-	}
-#endif
-
-	gc = ga * ga * ga;
-}
-
-
-double gC;
 bool FPUCompiler::compile( char const* expr , SymbolTable const& table , ExecutableCode& data , int numInput , ValueLayout inputLayouts[] )
 {
-#if 1
-	ga = 1.2f;
-	foo();
-	double x = 1;
-	double y = 2;
-
-	double(*pFun)(double x, double y);
-	pFun = rand() % 2 ? FooTest : FooTest2;
-	gc = pFun(x, y);
-
-	LogMsg("%f", gc);
-#endif
-
 	try
 	{
 		ExpressionParser parser;
-
-		if ( !parser.parse( expr , table , mResult ) )
+		if (!parser.parse(expr, table, mResult))
 			return false;
 
 		if (mOptimization)
 			mResult.optimize();
 
 		FPUCodeGeneratorV0 generator;
-		data.mNumInput = numInput;
 		generator.setCodeData( &data );
 		mResult.generateCode(generator , numInput, inputLayouts);
 		return true;
 	}
-	catch ( ParseException&  )
+	catch ( ExprParseException& e)
 	{
+		LogMsg("Compile error : (%d) : %s", e.errorCode, e.what());
 		return false;
 	}
 	catch ( std::exception& )
@@ -944,7 +948,9 @@ void ExecutableCode::checkCodeSize( int freeSize )
 
 	uint8* newPtr = (uint8*)ReallocExecutableMemory(mCode , newSize);
 	if (!newPtr)
-		throw std::bad_alloc();
+	{
+		throw ExprParseException(eAllocFailed, "");
+	}
 
 	mCode = newPtr;
 	mCodeEnd = mCode + codeNum;

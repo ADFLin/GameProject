@@ -6,10 +6,12 @@
 #include "HashString.h"
 
 #include <vector>
-#include <set>
-#include <map>
 #include <string>
 #include <ostream>
+#include "Core/FNV1a.h"
+#include <unordered_map>
+#include <functional>
+#include <unordered_set>
 
 namespace CPP
 {
@@ -46,21 +48,171 @@ namespace CPP
 
 	};
 
-
-	class CodeInput
+	class CodeLoc
 	{
 	public:
-		void appendString(char const* str)
+		void skipToNextLine()
 		{
-			if ( !mBuffer.empty() )
-				mBuffer.pop_back();
-			mBuffer.insert(mBuffer.end(), str, str + strlen(str));
-			mBuffer.push_back(0);
+			for(;;)
+			{
+				mCur = FStringParse::FindChar(mCur, '\\', '\n');
+				if (*mCur == 0)
+					break;
+
+				if (*mCur == '\\')
+				{
+					if (mCur[1] == '\n')
+					{
+						mCur += 2;
+						mLine += 1;
+					}
+					else if (mCur[1] == '\r' && mCur[2] == '\n')
+					{
+						mCur += 3;
+						mLine += 1;
+					}
+				}
+				else
+				{
+					++mLine;
+					++mCur;
+					break;
+				}
+			}
 		}
+
+		void skipToLineEnd()
+		{
+			for (;;)
+			{
+				mCur = FStringParse::FindChar(mCur, '\\', '\n');
+				if (*mCur == 0)
+					break;
+
+				if (*mCur == '\\')
+				{
+					if (mCur[1] == '\n')
+					{
+						mCur += 2;
+						mLine += 1;
+					}
+					else if (mCur[1] == '\r' && mCur[2] == '\n')
+					{
+						mCur += 3;
+						mLine += 1;
+					}
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+
+		void skipSpace()
+		{
+			while (*mCur)
+			{
+				if (!::FCString::IsSpace(*mCur))
+					break;
+
+				if (*mCur == '\n')
+					++mLine;
+				++mCur;
+			}
+		}
+
+		void skipSpaceInLine()
+		{
+			while (*mCur)
+			{
+				if (*mCur != ' ' && *mCur != '\t' && *mCur != '\r')
+					break;
+
+				advance();
+			}
+		}
+
+
+		void advance()
+		{
+			++mCur;
+			if (mCur[0] == '\\')
+			{
+				if (mCur[1] == '\n')
+				{
+					mCur += 2;
+					mLine += 1;
+				}
+				else if (mCur[1] == '\r' && mCur[2] == '\n')
+				{
+					mCur += 3;
+					mLine += 1;
+				}
+			}
+		}
+
+		bool isEof() const { return *mCur == 0; }
+
+		static void Advance(char const*& code)
+		{
+			++code;
+			if (code[0] == '\\')
+			{
+				if (code[1] == '\n')
+				{
+					code += 2;
+				}
+				else if (code[1] == '\r' && code[2] == '\n')
+				{
+					code += 3;
+				}			
+			}
+		}
+		static void Backward(char const*& code)
+		{
+			--code;
+			if (code[0] == '\n')
+			{
+				if (code[-1] == '\\')
+				{
+					code -= 2;
+				}
+				else if (code[-1] == '\r' && code[-2] == '\\')
+				{
+					code -= 3;
+				}
+			}
+		}
+
+		char const* mCur;
+		int mLine;
+	};
+
+	class CodeSource
+	{
+	public:
+		void appendString(char const* str);
 		bool loadFile(char const* path);
+
+	private:
+
+		std::vector< char > mBuffer;
+		HashString    mFilePath;
+		friend class Preprocessor;
+		friend class CodeInput;
+	};
+
+	class CodeInput : public CodeLoc
+	{
+	public:
+		CodeSource* source;
+
 		void resetSeek()
 		{
-			mCur = &mBuffer[0];
+			assert(source);
+			mCur = &source->mBuffer[0];
 			//skip BOM
 			if( mCur[0] == '\xef' &&
 			    mCur[1] == '\xbb' &&
@@ -71,62 +223,13 @@ namespace CPP
 
 			mLine = 0;
 		}
-
-		void skipToNextLine()
+		void setLoc(CodeLoc const& loc)
 		{
-			mCur = FStringParse::FindChar(mCur, '\n');
-			if( *mCur != 0 )
-			{
-				++mLine;
-				++mCur;
-			}
+			mCur = loc.mCur;
+			mLine = loc.mLine;
 		}
-		void skipSpace()
-		{
-			while( *mCur )
-			{
-				if( !::isspace(*mCur) )
-					break;
-
-				if( *mCur == '\n' )
-					++mLine;
-				++mCur;
-			}
-		}
-
 	private:
 		friend class Preprocessor;
-		std::vector< char > mBuffer;
-		HashString    mFilePath;
-		char const*   mCur;
-		int mLine;
-	};
-
-	enum TokenType
-	{
-
-		Token_String ,
-		Token_Eof ,
-		Token_Unknown ,
-	};
-
-	struct TokenInfo
-	{
-		TokenInfo(){}
-		TokenInfo(StringView inStr)
-		{
-			type = Token_String;
-			str = inStr;
-		}
-
-		TokenType type;
-
-		union
-		{
-			char delimChar;
-			StringView str;
-		};
-
 	};
 
 	class SyntaxError : public std::exception
@@ -135,28 +238,25 @@ namespace CPP
 		STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( SyntaxError )
 	};
 
-	enum class Command
-	{
-		Include,
-		Define,
-		If,
-		Ifdef,
-		Ifndef,
-		Elif,
-		Else,
-		Endif,
-		Pragma,
-
-		None,
-	};
-
 	struct MarcoSymbol
 	{
-		StringView name;
+		StringView  name;
 		std::string expr;
-		std::vector< uint8 > paramEntry;
+
+		void setExpression(StringView const& exprText)
+		{
+			expr = exprText.toStdString();
+		}
+		
+		struct ArgEntry
+		{
+			int indexArg;
+			int pos;
+		};
+		std::vector< ArgEntry > argEntries;
+		
 		int cacheEvalValue;
-		int EvalFrame;
+		int evalFrame;
 	};
 
 	class Preprocessor
@@ -165,160 +265,210 @@ namespace CPP
 		Preprocessor();
 		~Preprocessor();
 
-		void translate( CodeInput& input );
+		void translate( CodeSource& sorce );
 		void setOutput( CodeOutput& output);
 		void addSreachDir(char const* dir);
-		void define(char const* name, int value){}
+		void addDefine(char const* name, int value)
+		{
+
+
+
+		}
 
 		void getIncludeFiles(std::vector< HashString >& outFiles);
 
 		bool bSupportMarcoArg = false;
+		bool bReplaceMarcoText = false;
 		bool bCanRedefineMarco = false;
 		bool bCommentIncludeFileName = true;
 		bool bAddLineMarco = false;
 
 	private:
 
-		TokenInfo nextToken(CodeInput& input);
-
-
-
-		bool execInclude(CodeInput& input);
-		bool execIf(CodeInput& input);
-		bool execDefine(CodeInput& input);
-
-		bool execDefined(CodeInput& input)
+		bool ensureInputValid()
 		{
-
-		}
-
-
-		bool execEvalCommad(CodeInput& input, Command& outCommand)
-		{
-
-
-			return false;
-		}
-
-		bool execCommand(CodeInput& input , char const* str)
-		{
-			return false;
-		}
-
-		bool execStatement(CodeInput& input)
-		{
-			Command com;
-			bool bExecIf = false;
-			bool retVal = false;
-			if( execCommand(input, "if") )
+			if (mInput.isEof())
 			{
-				bExecIf = true;
-				int evalValue;
-				if( !execExpression(input, evalValue) )
-				{
+				if (mInputStack.empty())
+					return false;
 
-				}
-				retVal = evalValue != 0;
+				if (mInputStack.back().onFinish)
+					mInputStack.back().onFinish();
+
+				mInput = mInputStack.back().input;
+				mInputStack.pop_back();
 			}
-			else if( execCommand(input, "ifdef") )
+			return true;
+		}
+		bool haveMore()
+		{
+			ensureInputValid();
+			return !mInput.isEof();
+		}
+
+		bool skipSpace()
+		{
+			while (ensureInputValid())
 			{
-				retVal = execDefined(input);
-			}
-
-			if( bExecIf )
-			{
-				while( retVal == false)
-				for (;;)
-				{
-					if( retVal )
-					{
-						if( !execStatement(input) )
-						{
-
-						}
-						break;
-					}
-
-					if( execCommand(input, "elif") )
-					{
-
-					
-					}
-					else
-					{
-						
-					}
-
-					int evalValue;
-					if( !execExpression(input, evalValue) )
-					{
-
-					}
-					retVal = evalValue != 0;
-				}
+				mInput.skipSpace();
+				if (!mInput.isEof())
+					return true;
 			}
 			
-			retVal = execBlock(input);
+			return false;
+		}
 
-			if ( !execCommand(input, "endif") )
+		bool skipToNextLine()
+		{
+			if (mInput.isEof())
 			{
-
-
+				ensureInputValid();
 			}
+			else
+			{
+				mInput.skipToNextLine();
+				if (mInput.isEof())
+					return false;
+			}
+			return true;
+		}
+
+		bool skipSpaceInLine()
+		{
+			mInput.skipSpaceInLine();
+			return !mInput.isEof();
+		}
+
+		bool tokenChar(char c)
+		{
+			if (*mInput.mCur != c)
+				return false;
+
+			mInput.advance();
+			return true;
+		}
+
+		static bool IsValidStartCharForIdentifier(char c)
+		{
+			return ::isalpha(c) || c == '_';
+		}
+
+		static bool IsValidCharForIdentifier(char c)
+		{
+			return ::isalnum(c) || c == '_';
+		}
+
+
+		bool tokenIdentifier(StringView& outIdentifier)
+		{
+			char const* start = mInput.mCur;
+
+			if (!IsValidStartCharForIdentifier(*mInput.mCur))
+				return false;
+
+			for (;;)
+			{
+				mInput.advance();
+				if ( !IsValidCharForIdentifier(*mInput.mCur) )
+					break;
+			}
+
+			outIdentifier = StringView(start, mInput.mCur - start);
+			return true;
+		}
+
+		bool tokenNumber(int& outValue);
+
+		bool tokenString(StringView& outString)
+		{
+			if (!skipSpaceInLine())
+				return false;
+
+			char const* start = mInput.mCur;
+			mInput.skipToLineEnd();	
+			char const* end = mInput.mCur;
+			if (end == start)
+				return false;
+
+			while (end != start)
+			{
+				if ( !FCString::IsSpace(*end))
+					break;
+
+				CodeLoc::Backward(end);
+			}
+
+			outString = StringView(start, end - start + 1);
+			return true;
+		}
+
+		bool tokenControl(StringView& outName)
+		{
+			if (!skipSpaceInLine())
+				return false;
+
+			if (!tokenChar('#'))
+				return false;
+
+			skipSpaceInLine();
+			if (!tokenIdentifier(outName))
+				return false;
+			
+			return true;
+		}
+
+		enum EControlPraseResult
+		{
+			OK ,
+			ExitBlock ,
+			RetainText ,
+		};
+
+		bool parseControlLine(EControlPraseResult& result);
+		bool parseCode(bool bSkip);
+		bool parseDefine();
+		bool parseIf();
+		bool parseIfdef();
+		bool parseIfndef();
+		bool parseIfInternal(int exprRet);
+
+		bool parsePragma();
+		bool parseExpression(int& ret);
+		bool parseDefined(int& ret);
+
+		bool parseExprValue(int& ret);
+		bool parseExprPart(int& ret);
+		bool parseExprTerm(int& ret);
+		bool parseExprFactor(int& ret);
+		bool parseExprAtom(int& ret);
+		int mCurFrame = 0;
+		bool parseInclude();
+
+		struct ScopeState
+		{
+			bool bSkipText;
+		};
+		std::vector< ScopeState > mScopeStack;
+		
+		bool isSkipText()
+		{
+			return mScopeStack.back().bSkipText;
+		}
+		int numLine = 0;
+		bool warning(char const*)
+		{
+
+
 
 			return true;
 		}
+
+		int mIfScopeDepth;
+		std::unordered_map< HashString, MarcoSymbol > mMarcoSymbolMap;
 
 		bool execExpression(CodeInput& input, int& evalValue)
 		{
 			return false;
-		}
-		bool isCommand(CodeInput& input , Command& com )
-		{
-
-			return false;
-		}
-		bool execBlock(CodeInput& input)
-		{
-			Command com;
-			if( isCommand( input , com ) )
-			{
-				switch( com )
-				{
-				case Command::Include:
-					if( !execInclude(input) )
-						return false;
-					break;
-				case Command::Define:
-					break;
-				case Command::If:
-					break;
-				case Command::Ifdef:
-					{
-						if( execDefined(input) )
-						{
-
-
-						}
-
-
-
-					}
-					break;
-				case Command::Endif:
-					break;
-				case Command::Pragma:
-					break;
-				}
-			}
-			return true;
-		}
-
-		bool execCommand(CodeInput& input, Command com)
-		{
-
-
-
 		}
 
 		bool execExpression( std::string const& expr , int& outValue )
@@ -327,30 +477,18 @@ namespace CPP
 			return true;
 		}
 
-		struct StrCmp
+		CodeInput mInput;
+		struct  InputEntry
 		{
-			bool operator()(StringView const& lhs, StringView const& rhs) const
-			{
-				return lhs.compare(rhs) < 0;
-			}
+			CodeInput input;
+			std::function< void() > onFinish;
 		};
-		static std::map< StringView, Command , StrCmp > sCommandMap;
+		std::vector< InputEntry > mInputStack;
 
-		Command nextCommand(CodeInput& input, bool bOutString, char const*& comStart);
-
-		bool evalNeedOutput()
-		{
-			return true;
-		}
 
 		bool findFile(std::string const& name, std::string& fullPath);
 
-		int mScopeCount;
-		DelimsTable mDelimsTable;
-		DelimsTable mExprDelimsTable;
 		CodeOutput* mOutput;
-
-		std::map< StringView , MarcoSymbol , StrCmp > mMarcoSymbolMap;
 
 		MarcoSymbol* findMarco(StringView token)
 		{
@@ -359,93 +497,19 @@ namespace CPP
 				return nullptr;
 			return &iter->second;
 		}
-		std::set< HashString >  mParamOnceSet;
 
-		struct State
-		{
-			bool bEval;
-			bool bHaveElse;
-		};
-
-		std::vector< State >       mStateStack;
+		std::unordered_set< HashString >  mParamOnceSet;
 		std::vector< std::string > mFileSreachDirs;
-		std::vector< CodeInput* >  mLoadedInputs;
+		std::unordered_map< HashString, CodeSource* > mLoadedSourceMap;
 
 
-
-
-		//expr eval
-		struct ExprToken
-		{
-			enum Type
-			{
-				eOP,
-				eString,
-				eNumber,
-				eEof,
-			} type;
-
-			union
-			{
-				StringView string;
-				int value;
-			};
-
-			ExprToken(Type inType,int inValue = 0):type(inType),value(inValue){}
-			ExprToken(StringView inString):type(eString),string(inString){}
-
-
-		};
-
-		enum OpType
-		{
-			OP_EQ = 1,
-			OP_BEQ ,
-			OP_SEQ ,
-			OP_NEQ ,
-			OP_LOFFSET,
-			OP_ROFFSET,
-		};
-
-		ExprToken nextExprToken(CodeInput& input);
-
-		struct EvalRet
-		{
-			int value;
-		};
-
-		
 		struct OperatorInfo
 		{
 			char value;
 			bool bRightAssoc;
 			int  prodence;
 		};
-		bool eval_Compare(ExprToken token , CodeInput& input)
-		{
-			if( token.type == ExprToken::eOP )
-			{
-				int lvalue , rvalue;
-				switch( token.value )
-				{
-				case '>': 
-					lvalue = eval_Compare( nextExprToken(input) , input );
-				case '<':
-				case OP_BEQ:
-				case OP_SEQ:
-				case OP_EQ:
-				case OP_NEQ:
-					break;
-				}
-			}
-			return 0;
-		}
-		bool eval_MulDiv(ExprToken token, CodeInput& input)
-		{
 
-			return 0;
-		}
-		bool eval_Atom(ExprToken token , CodeInput& input);
 	};
 }
 

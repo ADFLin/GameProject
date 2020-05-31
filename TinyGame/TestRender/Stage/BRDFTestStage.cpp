@@ -218,8 +218,8 @@ namespace Render
 		::Global::GUI().cleanupWidget();
 
 		auto frame = WidgetUtility::CreateDevFrame();
-		WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Tonemap"), bEnableTonemap);
-		WidgetPropery::Bind(frame->addSlider(UI_ANY), SkyboxShowIndex , 0 , (int)ESkyboxShow::Count - 1);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Tonemap"), bEnableTonemap);
+		FWidgetPropery::Bind(frame->addSlider(UI_ANY), SkyboxShowIndex , 0 , (int)ESkyboxShow::Count - 1);
 
 
 		return true;

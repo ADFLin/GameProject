@@ -97,6 +97,7 @@
       <ForcedIncludeFiles>TestMiscPCH.h</ForcedIncludeFiles>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -159,6 +160,7 @@
       </DisableSpecificWarnings>
       <ForcedIncludeFiles>TestMiscPCH.h</ForcedIncludeFiles>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -437,11 +439,12 @@
     <ClCompile Include="TestMisc\Test\BehaviorTreeTest.cpp" />
     <ClCompile Include="TestMisc\Test\BoneIKTest.cpp" />
     <ClCompile Include="TestMisc\Test\DelegateTest.cpp" />
+    <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp" />
     <ClCompile Include="TestMisc\Test\FunctionFitTest.cpp" />
     <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp" />
     <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp" />
-    <ClCompile Include="TestMisc\Test\PreprocessTest.cpp" />
+    <ClCompile Include="TestMisc\Test\PreprocessorTest.cpp" />
     <ClCompile Include="TestMisc\Test\PWTest.cpp" />
     <ClCompile Include="TestMisc\Test\SpatialIndexTest.cpp" />
     <ClCompile Include="TripleTown\TTLevel.cpp" />

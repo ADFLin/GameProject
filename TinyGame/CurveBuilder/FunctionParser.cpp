@@ -20,17 +20,17 @@ namespace CB
 
 	bool FunctionParser::checkValid(char const* expr)
 	{
-		bool result;
 		try
 		{
 			ExpressionParser parser;
-			result = parser.parse(expr, mSymbolDefine);
+			if (!parser.parse(expr, mSymbolDefine))
+				return false;
 		}
-		catch( ParseException&  )
+		catch( ExprParseException&  )
 		{
 			return false;
 		}
-		return result;
+		return true;
 	}
 
 	bool FunctionParser::parse(Expression& expr , int numInput , ValueLayout inputLayouts[] )

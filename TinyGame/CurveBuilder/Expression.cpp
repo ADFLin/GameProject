@@ -13,7 +13,7 @@ namespace CB
 	Expression::Expression(Expression const& rhs)
 		:mStrExpr(rhs.mStrExpr)
 		, mIsParsed(rhs.mIsParsed)
-		, mEvalData()
+		, mEvalCode()
 	{
 		mIsParsed = false;
 	}
@@ -27,7 +27,7 @@ namespace CB
 	Expression& Expression::operator=(const Expression& expr)
 	{
 		mStrExpr = expr.mStrExpr;
-		mEvalData.clearCode();
+		mEvalCode.clearCode();
 		mIsParsed = false;
 		return *this;
 	}

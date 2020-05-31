@@ -10,7 +10,7 @@
 #include "MaterialProcess.sgc"
 #include "VertexFactoryProcess.sgc"
 #include "ShadowCommon.sgc"
-
+#include "LightingCommon.sgc"
 
 
 #ifndef SHADOW_LIGHT_TYPE

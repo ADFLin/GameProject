@@ -140,6 +140,9 @@
     <Filter Include="RHI\Vulkan">
       <UniqueIdentifier>{7d4f4d9d-152b-4cee-9f2c-ceab637e2cf1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Reflection">
+      <UniqueIdentifier>{ffb3b22c-63cb-4ece-8314-c237834cc77d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -1154,6 +1157,9 @@
     </ClInclude>
     <ClInclude Include="Meta\EnableIf.h">
       <Filter>Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Reflection\ReflectClass.h">
+      <Filter>Reflection</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

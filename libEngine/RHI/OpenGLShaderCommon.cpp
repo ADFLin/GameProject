@@ -382,24 +382,22 @@ namespace Render
 
 			if( bUsePreprocess )
 			{
-				CPP::CodeInput sourceInput;
+				CPP::CodeSource source;
 
 				if( def )
 				{
-					sourceInput.appendString(def);
+					source.appendString(def);
 				}
-				sourceInput.appendString(&codeBuffer[0]);
+				source.appendString(&codeBuffer[0]);
 
-				sourceInput.resetSeek();
-
-				CPP::Preprocessor preporcessor;
+				CPP::Preprocessor preprocessor;
 
 				std::stringstream oss;
 				CPP::CodeOutput codeOutput(oss);
 
 				char const* DefaultDir = "Shader";
-				preporcessor.setOutput(codeOutput);
-				preporcessor.addSreachDir(DefaultDir);
+				preprocessor.setOutput(codeOutput);
+				preprocessor.addSreachDir(DefaultDir);
 				char const* dirPathEnd = FileUtility::GetFileName(path);
 				if( dirPathEnd != path )
 				{
@@ -408,12 +406,12 @@ namespace Render
 				if( strncmp(DefaultDir, path, dirPathEnd - path) != 0 )
 				{
 					std::string dir(path, dirPathEnd);
-					preporcessor.addSreachDir(dir.c_str());
+					preprocessor.addSreachDir(dir.c_str());
 				}
 
 				try
 				{
-					preporcessor.translate(sourceInput);
+					preprocessor.translate(source);
 				}
 				catch( std::exception& e )
 				{
@@ -423,7 +421,7 @@ namespace Render
 
 				if( compileInfo )
 				{
-					preporcessor.getIncludeFiles(compileInfo->includeFiles);
+					preprocessor.getIncludeFiles(compileInfo->includeFiles);
 				}
 #if 1
 				codeBuffer.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());

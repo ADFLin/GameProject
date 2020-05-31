@@ -141,6 +141,12 @@ namespace Asmeta
 		Reg32( Reg::Code type ): RegX86< 4 >( type ){}
 	};
 
+	class Reg64 : public RegX86< 8 >
+	{
+	public:
+		Reg64(Reg::Code type) : RegX86< 8 >(type) {}
+	};
+
 	class RegST
 	{
 	public:

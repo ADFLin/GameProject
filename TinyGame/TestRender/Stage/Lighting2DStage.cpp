@@ -51,7 +51,7 @@ namespace Lighting2D
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
 
-		WidgetPropery::Bind(frame->addCheckBox(UI_ANY , "bUseGeometryShader"), bUseGeometryShader);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY , "bUseGeometryShader"), bUseGeometryShader);
 
 		restart();
 

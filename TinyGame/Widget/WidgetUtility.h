@@ -29,7 +29,7 @@ private:
 };
 
 
-struct WidgetPropery
+struct FWidgetPropery
 {
 	template< class T >
 	static T Get(GCheckBox* widget);
@@ -74,10 +74,10 @@ struct WidgetPropery
 		float constexpr scale = 0.001;
 		float len = max - min;
 		widget->setRange(0, len / scale);
-		WidgetPropery::Set(widget, (valueRef - min) / scale);
+		FWidgetPropery::Set(widget, (valueRef - min) / scale);
 		widget->onEvent = [&valueRef, scale, min](int event, GWidget* widget)
 		{
-			valueRef = min + scale * WidgetPropery::Get<float>(widget->cast<GSlider>());
+			valueRef = min + scale * FWidgetPropery::Get<float>(widget->cast<GSlider>());
 			return false;
 		};
 	}
@@ -88,10 +88,10 @@ struct WidgetPropery
 		float constexpr scale = 0.001;
 		widget->setRange(0, 1 / scale);
 		float delta = max - min;
-		WidgetPropery::Set(widget, Math::Exp( Math::Log( (valueRef - min ) / delta ) / power ) / scale );
+		FWidgetPropery::Set(widget, Math::Exp( Math::Log( (valueRef - min ) / delta ) / power ) / scale );
 		widget->onEvent = [&valueRef, scale, min , delta , power , inDelegate](int event, GWidget* widget)
 		{
-			float factor = scale * WidgetPropery::Get<float>(widget->cast<GSlider>());
+			float factor = scale * FWidgetPropery::Get<float>(widget->cast<GSlider>());
 			valueRef = min + delta * Math::Pow(factor, power);
 			if( inDelegate )
 			{
@@ -104,10 +104,10 @@ struct WidgetPropery
 	static void Bind(GSlider* widget, int& valueRef, int min, int max )
 	{
 		widget->setRange(min, max);
-		WidgetPropery::Set(widget, valueRef);
+		FWidgetPropery::Set(widget, valueRef);
 		widget->onEvent = [&valueRef](int event, GWidget* widget)
 		{
-			valueRef = WidgetPropery::Get<int>(widget->cast<GSlider>());
+			valueRef = FWidgetPropery::Get<int>(widget->cast<GSlider>());
 			return false;
 		};
 	}
@@ -115,10 +115,10 @@ struct WidgetPropery
 	template< class T >
 	static void Bind(GTextCtrl* widget, T& valueRef, T min, T max)
 	{
-		WidgetPropery::Set(widget, valueRef);
+		FWidgetPropery::Set(widget, valueRef);
 		widget->onEvent = [&valueRef, min, max](int event, GWidget* widget)
 		{
-			valueRef = Math::Clamp(  WidgetPropery::Get<T>(widget->cast<GTextCtrl>()) , min , max );
+			valueRef = Math::Clamp(  FWidgetPropery::Get<T>(widget->cast<GTextCtrl>()) , min , max );
 			return false;
 		};
 	}
@@ -126,10 +126,10 @@ struct WidgetPropery
 	template< class T >
 	static void Bind(GCheckBox* widget, T& valueRef)
 	{
-		WidgetPropery::Set(widget, valueRef);
+		FWidgetPropery::Set(widget, valueRef);
 		widget->onEvent = [&valueRef](int event, GWidget* widget)
 		{
-			valueRef = WidgetPropery::Get<T>(widget->cast<GCheckBox>());
+			valueRef = FWidgetPropery::Get<T>(widget->cast<GCheckBox>());
 			return false;
 		};
 	}

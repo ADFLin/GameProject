@@ -30,8 +30,8 @@ namespace TripleTown
 
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart");
-		WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show preview texture"), mScene.bShowPreviewTexture);
-		WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show TexAtlas"), mScene.bShowTexAtlas);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show preview texture"), mScene.bShowPreviewTexture);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show TexAtlas"), mScene.bShowTexAtlas);
 		return true;
 	}
 

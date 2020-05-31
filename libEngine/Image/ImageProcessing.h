@@ -35,18 +35,6 @@ public:
 	}
 	TImageView(TImageView const& rhs) = default;
 	TImageView& operator = (TImageView const& rhs) = default;
-	TImageView& operator = (TImageView&& rhs)
-	{
-		mData = rhs.mData;
-		mSize = rhs.mSize;
-		mStride = rhs.mStride;
-		rhs.mData = nullptr;
-		rhs.mSize = TVector2<int>::Zero();
-		rhs.mStride = 0;
-
-		return *this;
-	}
-
 
 	bool isValidRange(int x, int y) const
 	{

@@ -466,9 +466,9 @@ namespace Render
 			}
 
 			auto frame = ::Global::GUI().findTopWidget< DevFrame >();
-			WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
-			WidgetPropery::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
-			WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
+			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
+			FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
+			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
  			return true;
 		}
 

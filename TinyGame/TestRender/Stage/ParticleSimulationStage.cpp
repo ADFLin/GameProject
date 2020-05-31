@@ -636,15 +636,15 @@ namespace Render
 			auto devFrame = WidgetUtility::CreateDevFrame();
 			devFrame->addText("Water Speed");
 			auto slider = devFrame->addSlider(UI_ANY);
-			WidgetPropery::Bind(slider, mWaterSpeed, 0, 10);
+			FWidgetPropery::Bind(slider, mWaterSpeed, 0, 10);
 			devFrame->addText("TessFactor");
-			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 0, 70);
-			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 0, 70);
-			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor3, 0, 70);
-			WidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "UseTess"), bUseTessellation);
-			WidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "WireFrame"), bWireframe);
+			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 0, 70);
+			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 0, 70);
+			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor3, 0, 70);
+			FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "UseTess"), bUseTessellation);
+			FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "WireFrame"), bWireframe);
 			devFrame->addText("DispFactor");
-			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mDispFactor, 0, 10);
+			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mDispFactor, 0, 10);
 			restart();
 
 			return true;

@@ -9,7 +9,6 @@
 #ifndef COMPILER_GLSL
 #define COMPILER_GLSL 0
 #endif
-
 #ifndef COMPILER_HLSL
 #define COMPILER_HLSL 0
 #endif
@@ -17,23 +16,18 @@
 #ifndef VERTEX_SHADER
 #define VERTEX_SHADER 0
 #endif
-
 #ifndef PIXEL_SHADER
 #define PIXEL_SHADER 0
 #endif
-
 #ifndef GEOMETRY_SHADER
 #define GEOMETRY_SHADER 0
 #endif
-
 #ifndef HULL_SHADER
 #define HULL_SHADER 0
 #endif
-
 #ifndef DOMAIN_SHADER
 #define DOMAIN_SHADER 0
 #endif
-
 #ifndef COMPUTE_SHADER
 #define COMPUTE_SHADER 0
 #endif
@@ -55,7 +49,6 @@
 
 #if COMPILER_GLSL
 #define USE_RIGHT_HAND_COORD 1
-#elif COMPILER_HLSL
 #endif
 
 //#undef VECTOR_FUNCTION_LIST
@@ -65,11 +58,12 @@
 #ifndef USE_RIGHT_HAND_COORD
 #define USE_RIGHT_HAND_COORD 0
 #endif
-
 #ifndef USE_MATERIAL
 #define USE_MATERIAL 0
 #endif
-
+#ifndef USE_TESSELLATION
+#define USE_TESSELLATION 0
+#endif
 
 #if USE_RIGHT_HAND_COORD
 #define SCENE_DEPTH_FACTOR (-1.0)

@@ -464,32 +464,32 @@ namespace Render
 		::Global::GUI().cleanupWidget();
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
-		WidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
-		WidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use OptMesh"), mbUseOptMesh);
+		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
+		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use OptMesh"), mbUseOptMesh);
 
 		devFrame->addText("FBM Shift");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
 		devFrame->addText("FBM Scale");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.y, 0, 3);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.y, 0, 3);
 		devFrame->addText("FBM Rotate Angle");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
 		devFrame->addText("FBM Octaves");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
 
 		devFrame->addText("StepSize");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.stepSize, 0.001, 10, 2);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.stepSize, 0.001, 10, 2);
 
 		devFrame->addText("DensityFactor");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.densityFactor, 0, 40, 2);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.densityFactor, 0, 40, 2);
 		devFrame->addText("PhaseG");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.phaseG, -1, 1);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.phaseG, -1, 1);
 		devFrame->addText("ScatterCoefficient");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.scatterCoefficient, 0, 10);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.scatterCoefficient, 0, 10);
 		devFrame->addText("Albedo");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.albedo, 0, 1);
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.albedo, 0, 1);
 
 		devFrame->addText("LightInstensity");
-		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mLights[0].intensity, 0, 200 , 2 , [&]( float value )
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mLights[0].intensity, 0, 200 , 2 , [&]( float value )
 		{
 			for( int i = 1; i < mLights.size(); ++i )
 			{
@@ -556,9 +556,10 @@ namespace Render
 
 						for( int n = 0; n < gGrassNum; ++n )
 						{
+							Vector3 pos = Vector3(n / 100, n % 100, 12);
 							for( int i = 0; i < 10; ++i )
 							{
-								progGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate(n / 100, n % 100, 12));
+								progGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate(pos));
 								meshUsed.draw(commandList);
 							}
 						}

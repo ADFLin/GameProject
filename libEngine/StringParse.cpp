@@ -305,7 +305,7 @@ char const* FStringParse::SkipSpace(char const* str)
 	char const* p = str;
 	while( *p ) 
 	{
-		if ( !::isspace(*p) )
+		if ( !FCString::IsSpace(*p) )
 			break;
 		++p; 
 	}

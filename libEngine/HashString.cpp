@@ -239,7 +239,7 @@ void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
 
 		slot = new (ptr) NameSlot;
 		slot->hashValue = hashValue;
-		slot->str = str;
+		slot->str = StringView(str, len);
 		slot->index = idx;
 		slot->next = nullptr;
 

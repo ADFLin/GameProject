@@ -24,7 +24,6 @@ public:
 	void   printCode();
 	void   clearCode();
 	int    getCodeLength() const { return mCodeEnd - mCode; }
-	int    getInputNum() const { return mNumInput; }
 
 protected:
 	void pushCode(uint8 byte);
@@ -49,7 +48,6 @@ protected:
 	void   pushCodeInternal(uint8 byte);
 	__declspec(noinline)  void  checkCodeSize( int freeSize );
 
-	int     mNumInput;
 	uint8*  mCode;
 	uint8*  mCodeEnd;
 	int     mMaxCodeSize;

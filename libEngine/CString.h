@@ -96,6 +96,11 @@ struct FCString
 	FORCEINLINE static float   Strtof(char const* s, char** end) { return ::strtof(s, end); }
 	FORCEINLINE static float   Strtof(wchar_t const* s, wchar_t** end) { return ::wcstof(s, end); }
 
+	FORCEINLINE static bool	   IsSpace(char c) { return ::isspace(c); }
+	FORCEINLINE static bool	   IsSpace(wchar_t c) { return ::iswspace(c); }
+
+	FORCEINLINE static bool	   IsAlpha(char c) { return ::isalpha(c); }
+	FORCEINLINE static bool	   IsAlpha(wchar_t c) { return ::iswalpha(c); }
 
 	template< class CharT >
 	static CharT const* FindChar(CharT const* str, CharT c)

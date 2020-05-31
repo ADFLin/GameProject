@@ -38,4 +38,11 @@
       { ((EngineShare.dll!NameSlot*)(EngineShare.dll!HashStringInternal::sNameSlots.mChunkStorage[ ( mIndex &gt;&gt; 1 ) / EngineShare.dll!NameSlotChunkNum ]) + ( mIndex &gt;&gt; 1 ) % EngineShare.dll!NameSlotChunkNum)->str }
     </DisplayString>
   </Type>
+
+  <Type Name="TStringView&lt;*&gt;">
+    <DisplayString>
+      {mData,[mNum]}
+    </DisplayString>
+  </Type>
+  
 </AutoVisualizer>

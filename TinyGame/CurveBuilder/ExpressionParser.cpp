@@ -33,7 +33,7 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 	case VALUE_CONST: cout << unit.constValue.toReal ; break;
 	case VALUE_INPUT:
 		{
-			char const* name = table.getInputName(unit.symbol->inputIndex);
+			char const* name = table.getInputName(unit.symbol->input.index);
 			if (name)
 				cout << name;
 			else
@@ -82,6 +82,7 @@ void ExprParse::print( UnitCodes const& codes , SymbolTable const& table , bool 
 			std::cout << "]";
 		}
 	}
+	std::cout << '\n';
 }
 
 
@@ -147,32 +148,52 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 			case '>':
 				{
 					if ( tok.nextChar() == '=' )
-					{	type = BOP_BIGEQU; tok.offset( 1 );	}
-					else type = BOP_BIG;
+					{	
+						type = BOP_BIGEQU;
+						tok.offset( 1 );	
+					}
+					else
+					{
+						type = BOP_BIG;
+					}
 				}
 				break;
 			case '<':
 				{
 					if ( tok.nextChar() == '=' )
-					{	type = BOP_SMLEQU; tok.offset( 1 );	}
-					else type = BOP_SML;
+					{	
+						type = BOP_SMLEQU; 
+						tok.offset( 1 );	
+					}
+					else
+					{
+						type = BOP_SML;
+					}
 				}
 				break;
 			case '=':
 				{
 					if ( tok.nextChar() == '=' )
-					{	type = BOP_EQU; tok.offset( 1 ); }
-					else if ( typePrev == VALUE_VARIABLE )
+					{	
+						type = BOP_EQU; tok.offset( 1 ); 
+					}
+					else if ( typePrev == VALUE_VARIABLE || ( typePrev == VALUE_INPUT ) )
 					{
 						type = BOP_ASSIGN;
 					}
-					else return false;
+					else
+					{
+						return false;
+					}
 				}
 				break;
 			case '!':
 				{
 					if ( tok.nextChar() == '=' )
-					{	type = BOP_NEQU; tok.offset( 1 );}
+					{
+						type = BOP_NEQU; 
+						tok.offset( 1 );
+					}
 					else 
 					{
 						mErrorMsg = "No = after !";
@@ -340,7 +361,7 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table )
 	{
 		builder.build(result.mTreeNodes, &result.mIFCodes[0], result.mIFCodes.size());
 	}
-	catch( ParseException& e )
+	catch( ExprParseException& e )
 	{
 		mErrorMsg = e.what();
 		return false;
@@ -359,7 +380,6 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 
 #if _DEBUG
 	result.printInfixCodes();
-	std::cout << std::endl;
 #endif
 
 	ExprTreeBuilder builder;
@@ -367,7 +387,7 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	{
 		builder.build( result.mTreeNodes , &result.mIFCodes[0] , result.mIFCodes.size() );
 	}
-	catch ( ParseException& e )
+	catch ( ExprParseException& e )
 	{
 		mErrorMsg = e.what();
 		return false;
@@ -378,7 +398,7 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	builder.printTree( table );
 #	endif
 
-	int error = builder.checkTreeError();
+	auto error = builder.checkTreeError();
 
 	if ( error != ExprTreeBuilder::TREE_NO_ERROR )
 	{
@@ -395,7 +415,6 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 
 #if _DEBUG
 	result.printPostfixCodes();
-	std::cout << std::endl;
 #endif
 	return true;
 }
@@ -867,7 +886,7 @@ void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*t
 		else if ( unit.type == TOKEN_LBAR )
 		{
 			if ( idxDepthStack.empty() )
-				throw ParseException( eExprError , "Error bar format" );
+				throw ExprParseException( eExprError , "Error bar format" );
 
 			idxNext = idxDepthStack.back();
 			idxDepthStack.pop_back();
@@ -880,7 +899,7 @@ void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*t
 	}
 
 	if ( !idxDepthStack.empty() )
-		throw ParseException( eExprError , "Error bar format" );
+		throw ExprParseException( eExprError , "Error bar format" );
 
 	nodes.resize( numNode + 1 );
 
@@ -907,7 +926,7 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 		Unit& unit = mExprCodes[idxStart];
 
 		if ( !IsValue( unit.type ) )
-			throw ParseException( eExprError , "Leaf is not value");
+			throw ExprParseException( eExprError , "Leaf is not value");
 
 		return -( idxStart + 1 );
 	}
@@ -973,11 +992,11 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 	{
 		++idxStart;
 		if ( mExprCodes[ idxStart ].type != TOKEN_LBAR )
-			throw ParseException( eExprError , "Error function format" );
+			throw ExprParseException( eExprError , "Error function format" );
 
 		--idxEnd;
 		if ( mExprCodes[ idxEnd ].type != TOKEN_RBAR )
-			throw ParseException( eExprError , "Error function format" );
+			throw ExprParseException( eExprError , "Error function format" );
 
 		int idxNode = mNumNodes++;
 
@@ -993,11 +1012,11 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 	}
 
 	if ( mExprCodes[idxStart].type != TOKEN_LBAR )
-		throw ParseException( eExprError , "Error format" );
+		throw ExprParseException( eExprError , "Error format" );
 
 	--idxEnd;
 	if ( mExprCodes[ idxEnd ].type != TOKEN_RBAR )
-		throw ParseException( eExprError , "Error format" );
+		throw ExprParseException( eExprError , "Error format" );
 
 	++idxStart;
 	return buildTree_R( idxParent , idxStart , idxEnd , false );
@@ -1099,7 +1118,7 @@ int ExprTreeBuilder::optimizeNodeOrder_R( int idxNode )
 	return (( depthL > depthR ) ? depthL : depthR ) + 1 ;
 }
 
-int ExprTreeBuilder::checkTreeError()
+ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError()
 {
 	if ( mNumNodes != 0 )
 	{
@@ -1109,7 +1128,7 @@ int ExprTreeBuilder::checkTreeError()
 	return TREE_NO_ERROR;
 }
 
-int ExprTreeBuilder::checkTreeError_R( int idxNode )
+ExprTreeBuilder::ErrorCode ExprTreeBuilder::checkTreeError_R( int idxNode )
 {
 	if ( idxNode <= 0 )
 		return TREE_NO_ERROR;
@@ -1125,7 +1144,10 @@ int ExprTreeBuilder::checkTreeError_R( int idxNode )
 		{
 			if ( node.children[ CN_LEFT ] > 0 )
 				return TREE_ASSIGN_LEFT_NOT_VAR;
-			if ( mExprCodes[ node.getLeaf( CN_LEFT ) ].type != ExprParse::VALUE_VARIABLE )
+
+			auto const& leftNode = mExprCodes[node.getLeaf(CN_LEFT)];
+			if (leftNode.type != ExprParse::VALUE_VARIABLE &&
+				leftNode.type != ExprParse::VALUE_INPUT )
 				return TREE_ASSIGN_LEFT_NOT_VAR;
 		}
 	}
@@ -1157,7 +1179,7 @@ int ExprTreeBuilder::checkTreeError_R( int idxNode )
 			return TREE_FUN_PARAM_NUM_NO_MATCH;
 	}
 
-	int error;
+	ErrorCode error;
 	error = checkTreeError_R( node.children[ CN_LEFT ] );
 	if ( error != TREE_NO_ERROR )
 		return error;
@@ -1407,7 +1429,7 @@ char const* SymbolTable::getInputName(int index) const
 	for (auto const& pair : mNameToEntryMap)
 	{
 		if (pair.second.type == SymbolEntry::eInputVar &&
-			pair.second.inputIndex == index)
+			pair.second.input.index == index)
 			return pair.first.c_str();
 	}
 	return nullptr;
@@ -1423,14 +1445,14 @@ VariableInfo const* SymbolTable::findVar(char const* name) const
 	return nullptr;
 }
 
-int SymbolTable::findInput(char const*  name) const
+InputInfo const* SymbolTable::findInput(char const*  name) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eInputVar);
 	if( entry )
 	{
-		return entry->inputIndex;
+		return &entry->input;
 	}
-	return -1;
+	return nullptr;
 }
 
 FuncInfo const* SymbolTable::findFunc(char const* name) const

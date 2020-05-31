@@ -19,14 +19,51 @@ struct SymbolEntry;
 
 
 using RealType = double;
+
+enum EFundamentalType
+{
+
+
+};
+
+struct TypeLayout
+{
+
+	bool bPointer;
+
+};
 enum class ValueLayout
 {
-	Int32,
+	Int32  = 0,
 	Double,
 	Float,
 
+	PointerStart ,
+
+	Int32Ptr = PointerStart,
+	DoublePtr,
+	FloatPtr,
+
 	Real = sizeof(RealType) == sizeof(double) ? Double : Float,
+	RealPtr = sizeof(RealType) == sizeof(double) ? DoublePtr : FloatPtr,
 };
+
+inline bool IsPointer(ValueLayout layout)
+{
+	return layout >= ValueLayout::PointerStart;
+}
+
+inline ValueLayout ToPointer(ValueLayout layout)
+{
+	assert(!IsPointer(layout));
+	return  ValueLayout(int(layout) + int(ValueLayout::PointerStart) );
+}
+
+inline ValueLayout ToBase(ValueLayout layout)
+{
+	assert(IsPointer(layout));
+	return  ValueLayout(int(layout) - int(ValueLayout::PointerStart) );
+}
 
 inline uint32 GetLayoutSize(ValueLayout layout)
 {
@@ -35,6 +72,10 @@ inline uint32 GetLayoutSize(ValueLayout layout)
 	case ValueLayout::Int32: return sizeof(int32);
 	case ValueLayout::Double: return sizeof(double);
 	case ValueLayout::Float: return sizeof(float);
+	case ValueLayout::DoublePtr:
+	case ValueLayout::Int32Ptr:
+	case ValueLayout::FloatPtr:
+		return sizeof(void*);
 	default:
 		break;
 	}
@@ -57,6 +98,22 @@ template<>
 struct TTypeToValueLayout< int32 >
 {
 	static const ValueLayout Result = ValueLayout::Int32;
+};
+
+template<>
+struct TTypeToValueLayout< double* >
+{
+	static const ValueLayout Result = ValueLayout::DoublePtr;
+};
+template<>
+struct TTypeToValueLayout< float* >
+{
+	static const ValueLayout Result = ValueLayout::FloatPtr;
+};
+template<>
+struct TTypeToValueLayout< int32* >
+{
+	static const ValueLayout Result = ValueLayout::Int32Ptr;
 };
 
 
@@ -213,6 +270,11 @@ struct VariableInfo
 	}
 };
 
+struct InputInfo
+{
+	uint8       index;
+};
+
 
 using FunType0 = RealType (__cdecl *)();
 using FunType1 = RealType (__cdecl *)(RealType);
@@ -345,7 +407,7 @@ struct SymbolEntry
 
 	union
 	{
-		uint8          inputIndex;
+		InputInfo      input;
 		FuncInfo       func;
 		ConstValueInfo constValue;
 		VariableInfo   varValue;
@@ -370,9 +432,9 @@ struct SymbolEntry
 
 	}
 
-	SymbolEntry(uint8 index)
+	SymbolEntry(InputInfo value)
 		:type(eInputVar)
-		,inputIndex(index)
+		,input(value)
 	{
 	}
 };
@@ -388,12 +450,12 @@ public:
 	template< class T>
 	void            defineFunc(char const* name, T func ) { mNameToEntryMap[name] = FuncInfo(func); }
 
-	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
+	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = InputInfo{ inputIndex }; }
 	
 	ConstValueInfo const* findConst(char const* name) const;
 	FuncInfo const*       findFunc(char const* name) const;
 	VariableInfo const*   findVar(char const* name) const;
-	int                   findInput(char const* name) const;
+	InputInfo const*      findInput(char const* name) const;
 
 	char const*     getFuncName( FuncInfo const& info ) const;
 	char const*     getVarName( void* var ) const;
@@ -437,19 +499,20 @@ protected:
 };
 
 
-enum ParseErrorCode
+enum EExprErrorCode
 {
 	eExprError  ,
 	eAllocFailed ,
+	eGenerateCodeFailed ,
 };
 
-class ParseException : public std::exception
+class ExprParseException : public std::exception
 {
 public:
-	ParseException( ParseErrorCode code , char const* what )
+	ExprParseException( EExprErrorCode code , char const* what )
 		:std::exception( what )
 		,errorCode( code ){}
-	ParseErrorCode errorCode;
+	EExprErrorCode errorCode;
 };
 
 class ExprTreeBuilder : public ExprParse
@@ -459,15 +522,14 @@ public:
 
 	void build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*throw ParseException */;
 	void convertPostfixCode( UnitCodes& codes );
-	enum
+	enum ErrorCode
 	{
 		TREE_NO_ERROR = 0 ,
 		TREE_OP_NO_CHILD ,
 		TREE_ASSIGN_LEFT_NOT_VAR ,
 		TREE_FUN_PARAM_NUM_NO_MATCH ,
-
 	};
-	int   checkTreeError();
+	ErrorCode checkTreeError();
 
 	void  optimizeNodeOrder();
 	bool  optimizeNodeConstValue(int idxNode );
@@ -481,7 +543,7 @@ private:
 	void  printTree_R( int idxNode , int depth );
 	int   buildTree_R( int idxParent , int idxStart , int idxEnd , bool funDef );
 	void  convertPostfixCode_R( UnitCodes& codes , int idxNode );
-	int   checkTreeError_R( int idxNode );
+	ErrorCode   checkTreeError_R( int idxNode );
 	int   optimizeNodeOrder_R( int idxNode );
 
 	bool  canExchangeNode( int idxNode , TokenType type )
@@ -572,10 +634,10 @@ class TCodeGenerator
 {
 public:
 	using TokenType = ParseResult::TokenType;
-	void codeInit();
+	void codeInit(int numInput, ValueLayout inputLayouts[]);
 	void codeConstValue(ConstValueInfo const&val);
 	void codeVar( VariableInfo const& varInfo);
-	void codeInput(uint8 inputIndex);
+	void codeInput( InputInfo const& input );
 	void codeFunction(FuncInfo const& info);
 	void codeBinaryOp(TokenType type,bool isReverse);
 	void codeUnaryOp(TokenType type);
@@ -625,7 +687,7 @@ void ParseResult::generateCode( TCodeGenerator& generator , int numInput, ValueL
 			generator.codeVar(unit.symbol->varValue);
 			break;
 		case ExprParse::VALUE_INPUT:
-			generator.codeInput(unit.symbol->inputIndex);
+			generator.codeInput(unit.symbol->input);
 			break;
 		default:
 			switch( unit.type & TOKEN_MASK )

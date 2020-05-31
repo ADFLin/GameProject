@@ -1,9 +1,10 @@
 #ifndef Assembler_h__
 #define Assembler_h__
 
+#include "AsmetaBase.h"
+
 #include <cassert>
 #include <vector>
-#include "AsmetaBase.h"
 
 namespace Asmeta
 {
@@ -151,6 +152,11 @@ namespace Asmeta
 	ASMETA_INLINE RefMem< RegPtr , 8 >  qword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift ){ return RefMem< RegPtr , 8 >( RegPtr( base , index , shift ) );  }
 	ASMETA_INLINE RefMem< RegPtr , 10 > tword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift ){ return RefMem< RegPtr , 10 >( RegPtr( base , index , shift ) );  }
 
+#if TARGET_PLATFORM_64BITS
+#	define SYSTEM_PTR qword_ptr
+#else
+#	define SYSTEM_PTR dword_ptr
+#endif
 
 	ASMETA_INLINE Disp< 4 > disp32( void* val ){ return Disp< 4 >( val ); }
 	ASMETA_INLINE Disp< 4 > disp32( uint32 val ){ return Disp< 4 >( val ); }
@@ -212,7 +218,7 @@ namespace Asmeta
 		template< class Ref , int Size >
 		ASMETA_INLINE void mov( RefMem< Ref , Size > const& dst , RegX86< Size > const& src ){  encodeIntInist< Size >( igMOV , dst , src.code() ); }
 		template< class Ref , int Size >
-		ASMETA_INLINE void mov( RegX86< Size > const& dst , RefMem< Ref , Size > const& src ){  encodeIntInistR< Size >( igMOV , src , dst.code() , 1 ); }
+		ASMETA_INLINE void mov( RegX86< Size > const& dst , RefMem< Ref , Size > const& src ){  encodeIntInistR< Size >( igMOV , src , dst.code() ); }
 
 		ASMETA_INLINE void mov( RegX86< 2 > const& dst ,  RegSeg const& src ){  encodeIntInistRM< 2 >( 0x8c , dst , src.code()  ); }
 		ASMETA_INLINE void mov( RegSeg const& dst , RegX86< 2 > const& src ) {  encodeIntInistRM< 2 >( 0x8e , src  , dst.code()  ); }
@@ -222,111 +228,37 @@ namespace Asmeta
 		ASMETA_INLINE void mov( RegSeg const& dst , RefMem< Ref , 2 >const& src ) {  encodeIntInistRM< 2 >( 0x8e , src.ref()  , dst.code() ); }
 
 
-		template< int Size >
-		ASMETA_INLINE void adc( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igADC , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void adc( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igADC , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void adc( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igADC , src , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void adc( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igADC , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void adc( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igADC , dst , imm );  }
-
-		template< int Size >
-		ASMETA_INLINE void add( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igADD , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void add( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igADD , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void add( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igADD , src , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void add( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igADD , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void add( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igADD , dst , imm );  }
-		
-
-		template< int Size >
-		ASMETA_INLINE void sub( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igSUB , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void sub( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igSUB , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void sub( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igSUB , src , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void sub( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igSUB , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void sub( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igSUB , dst , imm );  }
-
-		template< int Size >
-		ASMETA_INLINE void sbb( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igSBB , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void sbb( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igSBB , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void sbb( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igSBB , src , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void sbb( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igSBB , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void sbb( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igSBB , dst , imm );  }
-
-		template< int Size >
-		ASMETA_INLINE void and( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igAND , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void and( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igAND , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void and( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igAND , src , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void and( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igAND , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void and( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igAND , dst , imm );  }
-
-		template< int Size >
-		ASMETA_INLINE void or( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igOR , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void or( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igOR , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void or( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igOR , src  , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void or( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igOR , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void or( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igOR , dst , imm );  }
-
-		template< int Size >
-		ASMETA_INLINE void xor( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igXOR , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void xor( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igXOR , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void xor( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igXOR , src  , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void xor( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igXOR , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void xor( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igXOR , dst , imm );  }
-
-		template< int Size >
-		ASMETA_INLINE void cmp( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igCMP , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void cmp( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igCMP , dst , src.code() ); }
-		template< class Ref , int Size >
-		ASMETA_INLINE void cmp( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igCMP , src  , dst.code() , 1 ); }
-		template< int Size , int ImmSize >	
-		ASMETA_INLINE void cmp( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igCMP , dst , imm );  }
-		template< class Ref , int Size , int ImmSize >	
-		ASMETA_INLINE void cmp( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igCMP , dst , imm );  }
-
-
-
 #define DEF_ALU_INST( NAME , CODE )\
 	template< int Size >\
 	ASMETA_INLINE void NAME( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( CODE , dst , src.code() ); }\
 	template< class Ref , int Size >\
 	ASMETA_INLINE void NAME( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( CODE , dst , src.code() ); }\
 	template< class Ref , int Size >\
-	ASMETA_INLINE void NAME( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( CODE , src , dst.code() , 1 ); }\
+	ASMETA_INLINE void NAME( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( CODE , src , dst.code() ); }\
 	template< int Size , int ImmSize >\
 	ASMETA_INLINE void NAME( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( CODE , dst , imm );  }\
 	template< class Ref , int Size , int ImmSize >\
 	ASMETA_INLINE void NAME( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( CODE , dst , imm );  }
 
+		DEF_ALU_INST(adc, igADC);
+		DEF_ALU_INST(add, igADD);
+		DEF_ALU_INST(sub, igSUB);
+		DEF_ALU_INST(and, igAND);
+		DEF_ALU_INST( or, igOR);
+		DEF_ALU_INST(xor, igXOR);
 
 #undef DEF_ALU_INST
+
+		template< int Size >
+		ASMETA_INLINE void cmp( RegX86< Size > const& dst , RegX86< Size > const& src )            {  encodeIntInist< Size >( igCMP , dst , src.code() ); }
+		template< class Ref , int Size >
+		ASMETA_INLINE void cmp( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( igCMP , dst , src.code() ); }
+		template< class Ref , int Size >
+		ASMETA_INLINE void cmp( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( igCMP , src  , dst.code() ); }
+		template< int Size , int ImmSize >	
+		ASMETA_INLINE void cmp( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( igCMP , dst , imm );  }
+		template< class Ref , int Size , int ImmSize >	
+		ASMETA_INLINE void cmp( RefMem< Ref , Size > const& dst , Immediate< ImmSize > const& imm ){  encodeIntInistSW< Size >( igCMP , dst , imm );  }
 
 		template< int Size >
 		ASMETA_INLINE void test( RegX86< Size > const& reg1 , RegX86< Size > const& reg2 )     { encodeIntInist< Size >( igTEST , reg1 , reg2.code() ); }
@@ -567,7 +499,6 @@ namespace Asmeta
 		ASMETA_INLINE void std(){ encodeByteInist( 0xfc | 0x1 ); }
 		ASMETA_INLINE void sti(){ encodeByteInist( 0xfa | 0x1 ); }
 
-
 		template< class Ref , int Size >
 		ASMETA_INLINE void push( RefMem< Ref , Size > const& mem ) { encodePushPopInist< Size >( igPUSH , mem ); }
 		template< int Size >
@@ -607,7 +538,6 @@ namespace Asmeta
 		ASMETA_INLINE void xadd( RegX86< Size > const& reg1 , RegX86< Size > const& reg2 )     {  encodeByteInist( 0x0f ); encodeIntInistWRM< Size >( 0xc0 , reg2 , reg1.code() );  }
 		template< class Ref ,int Size >
 		ASMETA_INLINE void xadd(  RefMem< Ref , Size > const& mem , RegX86< Size > const& reg ){  encodeByteInist( 0x0f ); encodeIntInistWRM< Size >( 0xc0 , mem , reg.code() ); }
-
 
 		template< int DispSize >
 		ASMETA_INLINE void  jo  ( Disp< DispSize > const& disp ){  encodeJccInist( CTF_O , disp );  }
@@ -824,7 +754,6 @@ namespace Asmeta
 			encodeImmediateNoForce( imm );
 		}
 
-
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistSW( IntInstCode code , RMType const& rm , Immediate< ImmSize > const& imm  )
 		{
@@ -860,7 +789,6 @@ namespace Asmeta
 			encodeModRM( rm , INT_INIST_OPR( code ) );
 			encodeImmediateForce< Size >( imm );
 		}
-
 
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistRMI( uint8 op , RMType const& rm , uint8 opR , Immediate< ImmSize > const& imm  )
@@ -907,7 +835,6 @@ namespace Asmeta
 		template< class Ref, int Size >
 		ASMETA_INLINE void fild(RefMem< Ref, Size > const& mem) { encodeFPInst(fgFLD, SPFMap< Size >::IntFormat, mem.reference()); }
 
-
 		ASMETA_INLINE void fld1()   {  encodeFPInst( 0 , 0x08 ); }
 		ASMETA_INLINE void fldl2t() {  encodeFPInst( 0 , 0x09 ); }
 		ASMETA_INLINE void fldl2e() {  encodeFPInst( 0 , 0x0a ); }
@@ -922,7 +849,6 @@ namespace Asmeta
 		ASMETA_INLINE void fsin()   {  encodeFPInst( 0 , 0x1e ); }
 		ASMETA_INLINE void fcos()   {  encodeFPInst( 0 , 0x1f ); }
 		ASMETA_INLINE void fsincos(){  encodeFPInst( 0 , 0x1b ); }
-
 
 		template< class Ref , int Size >
 		ASMETA_INLINE void fstp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgSTP , SPFMap< Size >::RealFormat , mem.reference() );  }
@@ -999,8 +925,6 @@ namespace Asmeta
 
 		ASMETA_INLINE void fxch( RegST const& dst ){  encodeFPInst( 0 , 0 , 0x1 , 0x1 , 0 , dst ); } 
 
-
-
 	protected:
 
 		ASMETA_INLINE void encodeFPInst( FPInstCode code , RegST const& dst , RegST const& src , uint8 r , uint8 mask , uint8 pop = 0 )
@@ -1053,7 +977,6 @@ namespace Asmeta
 				uint8( 0xe0 | op ) );
 		}
 
-
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void encodeImmediate( Immediate< ImmSize > const& imm , bool forceSize )
 		{
@@ -1093,7 +1016,6 @@ namespace Asmeta
 		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 2 > ){  _this()->emitWord( value );  }
 		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 4 > ){  _this()->emitDWord( value );  }
 
-
 		template< class Ref , int Size >
 		ASMETA_INLINE void encodeModRM( RefMem< Ref , Size > const& ptr , uint8 reg )
 		{
@@ -1102,7 +1024,7 @@ namespace Asmeta
 
 		ASMETA_INLINE void encodeModRM( Label* label , uint8 reg )
 		{
-			_this()->emitByte( MOD_RM_BYTE(  MOD_M ,  reg  , RM_M_DISP ) );
+			_this()->emitByte( MOD_RM_BYTE(  MOD_M , reg , RM_M_DISP ) );
 			addLabelLink( label , Label::eLinkAbs , sizeof( SysInt ) );
 			_this()->emitPtr( (void*)0xdededede );
 		}
@@ -1200,7 +1122,6 @@ namespace Asmeta
 #if _DEBUG
 				label->mIndex  = INDEX_NONE;
 #endif
-				
 			}
 			mLabelList.clear();
 		}

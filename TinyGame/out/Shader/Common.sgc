@@ -12,7 +12,6 @@
 #ifndef COMPILER_HLSL
 #define COMPILER_HLSL 0
 #endif
-
 #ifndef VERTEX_SHADER
 #define VERTEX_SHADER 0
 #endif

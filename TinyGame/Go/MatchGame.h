@@ -395,7 +395,7 @@ namespace Go
 			FixString<128> result;
 			result.format("size=%d handicap=%d komi=%f start=%c",
 						  gameSetting.boardSize, gameSetting.numHandicap,
-						  gameSetting.komi, gameSetting.bBlackFrist ? 'b' : 'w');
+						  gameSetting.komi, gameSetting.bBlackFirst ? 'b' : 'w');
 			return result.c_str();
 		}
 

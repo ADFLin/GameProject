@@ -17,7 +17,6 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, in MaterialParametersPS 
 }
 #endif //PIXEL_SHADER
 #endif
-
 #if PIXEL_SHADER
 
 float3 GetMaterialWorldNormal(in MaterialInputPS inputPS, inout MaterialParametersPS parameters)
@@ -44,7 +43,6 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS inputPS, i
 	WritePixelDepth(NDC.z);
 #endif
 	return worldPos;
-	
 }
 
 void CalcMaterialParameters(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)

@@ -50,7 +50,7 @@ namespace CAR
 		enum
 		{
 			ShowAllTitles = BIT(0),
-			DrawTestTileFrist = BIT(1),
+			DrawTestTileFirst = BIT(1),
 			RemoveBasicTitles = BIT(2),
 		};
 	}

@@ -344,7 +344,7 @@ namespace CAR
 					//link farm
 					if( tile.canLinkFarm(lDir) )
 					{
-						int idx = TilePiece::DirToFarmIndexFrist(dir);
+						int idx = TilePiece::DirToFarmIndexFirst(dir);
 						mapTilePlace->connectFarm(idx, *mapTileCheck);
 						mapTilePlace->connectFarm(idx + 1, *mapTileCheck);
 					}
@@ -694,7 +694,7 @@ namespace CAR
 		{
 			if( tile.canRemoveFarm(i) )
 			{
-				int idx = TilePiece::DirToFarmIndexFrist(i);
+				int idx = TilePiece::DirToFarmIndexFirst(i);
 				noFarmIndexMask |= BIT(idx) | BIT(idx + 1);
 			}
 		}

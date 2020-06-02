@@ -270,7 +270,7 @@ namespace Go
 		int   boardSize;
 		int   numHandicap;
 		float komi;
-		bool  bBlackFrist;
+		bool  bBlackFirst;
 		bool  bFixedHandicap;
 
 		GameSetting()
@@ -278,7 +278,7 @@ namespace Go
 			boardSize = 19;
 			numHandicap = 0;
 			komi = 6.5;
-			bBlackFrist = true;
+			bBlackFirst = true;
 			bFixedHandicap = true;
 		}
 
@@ -288,7 +288,7 @@ namespace Go
 			return boardSize == rhs.boardSize &&
 				   numHandicap == rhs.numHandicap &&
 				   komi == rhs.komi &&
-				   bBlackFrist == rhs.bBlackFrist && 
+				   bBlackFirst == rhs.bBlackFirst && 
 				   bFixedHandicap == rhs.bFixedHandicap;
 		}
 	};
@@ -435,7 +435,7 @@ namespace Go
 		std::vector< StepInfo > const& getStepHistory() const { return mStepHistory; }
 
 		DataType getNextPlayColor() const { return mNextPlayColor; }
-		DataType getFristPlayColor() const { return mSetting.bBlackFrist ? StoneColor::eBlack : StoneColor::eWhite; }
+		DataType getFirstPlayColor() const { return mSetting.bBlackFirst ? StoneColor::eBlack : StoneColor::eWhite; }
 		Board const& getBoard() const { return mBoard; }
 
 		int     getBlackCapturedNum() const { return mNumBlackCaptured; }

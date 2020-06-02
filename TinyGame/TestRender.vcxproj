@@ -92,6 +92,7 @@
       <ForcedIncludeFiles>TestRenderPCH.h</ForcedIncludeFiles>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>

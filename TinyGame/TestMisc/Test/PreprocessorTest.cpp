@@ -12,18 +12,28 @@ void PreprocessorTest()
 	Preprocessor preprocessor;
 	preprocessor.addSreachDir("Test");
 	CodeSource source;
-	source.loadFile("Test/PTest.h");
+	char const* filePath = "Test/PTest.h";
+	source.loadFile(filePath);
+	source.filePath = filePath;
 
 	std::stringstream oss;
 	CPP::CodeOutput codeOutput(oss);
+
 	preprocessor.setOutput(codeOutput);
 
-	preprocessor.translate(source);
-
-	std::vector<char> codeBuffer;
-	codeBuffer.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
-	codeBuffer.push_back(0);
-	LogMsg(codeBuffer.data());
+	try
+	{
+		preprocessor.translate(source);
+	}
+	catch (std::exception& e)
+	{
+		LogWarning(0, "PreprocessorTest fial :%s", e.what());
+		throw;
+	}
+	std::string code;
+	code += "\n";
+	code.append(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
+	LogMsg(code.data());
 
 }
 

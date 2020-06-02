@@ -93,7 +93,7 @@ namespace CAR
 		}
 
 		static int FarmSideDir( int idx ){ return idx / 2; }
-		static int DirToFarmIndexFrist( int dir ){ return 2 * dir; }
+		static int DirToFarmIndexFirst( int dir ){ return 2 * dir; }
 
 		static int ToLocalFarmIndex( int idx , int roatation )
 		{

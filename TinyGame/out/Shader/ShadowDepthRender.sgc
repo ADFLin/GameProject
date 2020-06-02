@@ -59,7 +59,6 @@ void MainVS()
 	OutputVS.passInterpolants.depth = outPosition.z * ShadowParam.y;
 #	endif
 #endif
-
 }
 #endif //VERTEX_SHADER
 

@@ -235,10 +235,7 @@ VECTOR_FUNCTION_LIST(Pow4T)
 VECTOR_FUNCTION_LIST(Pow5T)
 #undef Pow5T
 
-#if SHADER_COMPILING
-
-
-#else
+#if !SHADER_COMPILING
 
 template< class T >
 T atan(T, T);

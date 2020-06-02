@@ -164,6 +164,7 @@ public:
 		mInputStack.resize(numInput);
 		//#TODO : consider func call type
 		// ebp + 0 : esp
+#if 1
 		SysInt offset = 8;
 		for( int i = 0; i < numInput; ++i )
 		{
@@ -171,6 +172,15 @@ public:
 			mInputStack[i].offset = offset;
 			offset += GetLayoutSize(inputLayouts[i]);
 		}
+#else
+		SysInt offset = 0;
+		for (int i = 0; i < numInput; ++i)
+		{
+			offset += GetLayoutSize(inputLayouts[i]);
+			mInputStack[i].layout = inputLayouts[i];
+			mInputStack[i].offset = offset;
+		}
+#endif
 		mConstStorage.clear();
 		mConstStack.clear();
 

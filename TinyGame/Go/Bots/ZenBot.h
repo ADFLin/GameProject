@@ -294,7 +294,7 @@ namespace Zen
 			}
 
 			ZenSetKomi(setting.komi);
-			ZenSetNextColor(setting.bBlackFrist ? (int)Color::Black : (int)Color::White);
+			ZenSetNextColor(setting.bBlackFirst ? (int)Color::Black : (int)Color::White);
 			if( Version == 6 )
 			{
 				ZenSetDCNN(true);

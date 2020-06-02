@@ -172,7 +172,7 @@ namespace CAR
 			{
 				mTileSetManager.addExpansion(EXP_BASIC);
 			}
-			if( mDebugMode & EDebugModeMask::DrawTestTileFrist )
+			if( mDebugMode & EDebugModeMask::DrawTestTileFirst )
 			{
 				mTileSetManager.addExpansion(EXP_TEST);
 			}
@@ -458,7 +458,7 @@ namespace CAR
 			return -1;
 		};
 
-		bool bUseTestTiles = !!(mDebugMode & EDebugModeMask::DrawTestTileFrist);
+		bool bUseTestTiles = !!(mDebugMode & EDebugModeMask::DrawTestTileFirst);
 		bool bUseRiver = false;
 		if( mSetting->have(Rule::eHaveRiverTile) )
 		{
@@ -481,7 +481,7 @@ namespace CAR
 				idx = FindSpecialTileIndex( EXP_THE_RIVER_II , TILE_END_TAG );
 				if ( idx != -1 )
 					tileIdRiverEnd = specialTileList[ idx ];
-				idx = FindSpecialTileIndex( EXP_THE_RIVER_II , TILE_FRIST_PLAY_TAG );
+				idx = FindSpecialTileIndex( EXP_THE_RIVER_II , TILE_FIRST_PLAY_TAG );
 				if ( idx != -1 )
 					tileIdFristPlay = specialTileList[ idx ];
 			}
@@ -3203,7 +3203,7 @@ namespace CAR
 						continue;
 
 
-					FarmFeature* farm = static_cast<FarmFeature*>(getFeature(mapTile.farmNodes[TilePiece::DirToFarmIndexFrist(i) + 1].group));
+					FarmFeature* farm = static_cast<FarmFeature*>(getFeature(mapTile.farmNodes[TilePiece::DirToFarmIndexFirst(i) + 1].group));
 					if( farm->haveBarn )
 						continue;
 
@@ -3225,7 +3225,7 @@ namespace CAR
 						info.pos.type = ActorPos::eTileCorner;
 						info.pos.meta = i;
 						info.actorTypeMask = BIT(ActorType::eBarn);
-						info.group = mapTile.farmNodes[TilePiece::DirToFarmIndexFrist(i) + 1].group;
+						info.group = mapTile.farmNodes[TilePiece::DirToFarmIndexFirst(i) + 1].group;
 						outInfo.push_back(info);
 						result += 1;
 					}
@@ -3254,7 +3254,7 @@ namespace CAR
 					continue;
 				if ( mapTile.getLinkType(i) != SideType::eField )
 					continue;
-				int group = mapTile.farmNodes[ TilePiece::DirToFarmIndexFrist( i ) + 1 ].group;
+				int group = mapTile.farmNodes[ TilePiece::DirToFarmIndexFirst( i ) + 1 ].group;
 				
 				FeatureBase* farm = getFeature( group );
 				if ( farm->haveActorFromType( BIT( ActorType::eShepherd )) )

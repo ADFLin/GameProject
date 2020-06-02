@@ -1,5 +1,6 @@
 #include "MiscTestRegister.h"
 #include "CurveBuilder/FPUCompiler.h"
+#include <cmath>
 
 namespace
 {
@@ -42,16 +43,22 @@ __declspec(noinline) static void foo()
 	gc = ga * ga * ga;
 }
 
-
-__declspec(noinline) double FooTest(double x, double* y, double* z)
+double foo(double x)
 {
-	return x + *y + *z;
+	return 2 * x;
 }
 
-__declspec(noinline) double FooTest2(double x, double* y, double* z)
+
+__declspec(noinline) double FooTest(double x, double y, double z)
 {
-	return x - *y + *z;
+	return foo(x);
 }
+
+__declspec(noinline) double FooTest2(double x, double y, double z)
+{
+	return foo(x);
+}
+
 
 void TestFPUCompile()
 {
@@ -62,10 +69,9 @@ void TestFPUCompile()
 		double x = 1;
 		double y = 2;
 
-		double(*pFun)(double x, double* y, double* z);
-		pFun = rand() % 2 ? FooTest : FooTest2;
-		double z = 3;
-		gc = pFun(x, &y, &z);
+		auto pFun = rand() % 2 ? FooTest : FooTest2;
+		float z = 3;
+		gc = pFun(x,0,0);
 
 		LogMsg("%f", gc);
 	}
@@ -73,13 +79,15 @@ void TestFPUCompile()
 
 	ExecutableCode code;
 
-	ValueLayout layouts[] = { ValueLayout::Double , ValueLayout::DoublePtr , ValueLayout::FloatPtr };
+	ValueLayout layouts[] = { ValueLayout::Double , ValueLayout::Double ,ValueLayout::Float };
 	FPUCompiler comiler;
 	SymbolTable table;
 	table.defineVarInput("x", 0);
 	table.defineVarInput("y", 1);
 	table.defineVarInput("z", 2);
-	if (!comiler.compile("x+y+z,z=x+y", table, code, 3, layouts))
+	table.defineFunc("sin", static_cast<double(*)(double)>(sin));
+	table.defineFunc("foo", static_cast<double(*)(double)>(foo));
+	if (!comiler.compile("foo(x)", table, code, ARRAY_SIZE(layouts) , layouts))
 	{
 		return;
 	}
@@ -87,7 +95,7 @@ void TestFPUCompile()
 	double x = 1;
 	double y = 2;
 	float z = 10;
-	double value = code.evalT< double >(x, &y, &z);
+	double value = code.evalT< double >(x,y,z);
 	LogMsg("%lf %lf", value , z);
 }
 

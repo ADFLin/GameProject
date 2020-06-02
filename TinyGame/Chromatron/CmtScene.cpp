@@ -555,7 +555,7 @@ namespace Chromatron
 
 				if( dc  )
 				{
-					if ( dc->getFlag().checkBits( DFB_DRAW_FRIST )  )
+					if ( dc->getFlag().checkBits( DFB_DRAW_FIRST )  )
 					{
 						drawDevice( g , centerPos , *dc );
 						drawLight( g , centerPos ,tile );

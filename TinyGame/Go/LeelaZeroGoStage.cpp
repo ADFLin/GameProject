@@ -1367,12 +1367,12 @@ namespace Go
 		setting.numHandicap = 0;
 		if( setting.numHandicap )
 		{
-			setting.bBlackFrist = false;
+			setting.bBlackFirst = false;
 			setting.komi = 0.5;
 		}
 		else
 		{
-			setting.bBlackFrist = true;
+			setting.bBlackFirst = true;
 			setting.komi = 7.5;
 		}
 		
@@ -1420,7 +1420,7 @@ namespace Go
 		GameSetting setting;
 		setting.numHandicap = 0;
 		if( setting.numHandicap )
-			setting.bBlackFrist = false;
+			setting.bBlackFirst = false;
 
 		if( !startMatchGame(setting) )
 			return false;
@@ -1494,7 +1494,7 @@ namespace Go
 
 		resetGameParam();
 
-		mMatchData.idxPlayerTurn = (setting.bBlackFrist) ? 0 : 1;
+		mMatchData.idxPlayerTurn = (setting.bBlackFirst) ? 0 : 1;
 		if( mMatchData.bSwapColor )
 			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
 
@@ -2007,7 +2007,7 @@ namespace Go
 		}
 
 
-		mMatchData.idxPlayerTurn = (mGame.getSetting().bBlackFrist) ? 0 : 1;
+		mMatchData.idxPlayerTurn = (mGame.getSetting().bBlackFirst) ? 0 : 1;
 		if( mMatchData.bSwapColor )
 			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
 
@@ -2367,12 +2367,12 @@ namespace Go
 		outSetting.numHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
 		if (outSetting.numHandicap)
 		{
-			outSetting.bBlackFrist = false;
+			outSetting.bBlackFirst = false;
 			outSetting.komi = 0.5;
 		}
 		else
 		{
-			outSetting.bBlackFrist = true;
+			outSetting.bBlackFirst = true;
 			outSetting.komi = 7.5;
 		}
 

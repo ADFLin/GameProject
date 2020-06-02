@@ -3,14 +3,15 @@
 
 #include "MaterialCommon.sgc"
 #include "ViewParam.sgc"
-
 uniform sampler2D BaseTexture;
 
-#if VERTEX_SHADER
 
+
+#if VERTEX_SHADER
 void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
 {
 	inputVS.worldOffset = float3(0.0);
+
 }
 
 #endif //VERTEX_SHADER

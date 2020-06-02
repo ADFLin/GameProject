@@ -214,7 +214,7 @@ namespace Go
 
 		Zen::GameSetting gameSetting;
 		gameSetting.boardSize = game.getBoard().getSize();
-		gameSetting.bBlackFrist = game.getFristPlayColor() == StoneColor::eBlack;
+		gameSetting.bBlackFirst = game.getFirstPlayColor() == StoneColor::eBlack;
 
 		botA.startGame(gameSetting);
 		botB.startGame(gameSetting);

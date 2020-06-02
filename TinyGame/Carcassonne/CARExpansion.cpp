@@ -244,7 +244,7 @@ namespace CAR
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
 /*00*/ 	{ 1, { LF,LF,LS,LF }, SL3(0,1,3)   , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_START_TAG } ,
-/*01*/ 	{ 1, { LS,LF,LS,LS }, SL3(0,2,3)   , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , TILE_FRIST_PLAY_TAG } ,
+/*01*/ 	{ 1, { LS,LF,LS,LS }, SL3(0,2,3)   , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , TILE_FIRST_PLAY_TAG } ,
 /*02*/ 	{ 1, { LF,LC,LF,LS }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT4(7,0,1,2) , FL_RE } , 0 } ,
 /*03*/ 	{ 1, { LF,LF,LS,LF }, SL3(0,1,3)   , SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_END_TAG } ,
 /*04*/ 	{ 1, { LC,LC,LS,LS }, SL22(0,1,2,3), SL_NONE      , 0, {SPE, 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,

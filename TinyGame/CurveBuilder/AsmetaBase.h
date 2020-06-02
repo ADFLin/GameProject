@@ -197,11 +197,17 @@ namespace Asmeta
 		typedef RegPtr RefType;
 		RegPtr( Reg32 const& base )                                                 {  init( base );  }
 		RegPtr( Reg32 const& base , int8 disp )                                     {  init( base , MOD_DISP8 , disp );  }
-		RegPtr( Reg32 const& base , SysInt disp )                                   {  init( base , MOD_DISP32 , disp );  }
+		RegPtr( Reg32 const& base , SysInt disp )                                   {  init( base , GetDispMode(disp), disp );  }
 		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift )              {  init( base , MOD_M , index , shift , 0 );  }
-		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){  init( base , MOD_DISP32 , index , shift , disp );  }
+		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){  init( base , GetDispMode(disp), index , shift , disp );  }
 		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift , int8 disp )  {  init( base , MOD_DISP8 , index , shift , disp );  }
 	private:
+
+		static FlagModRM GetDispMode(SysInt disp)
+		{
+			return (int8(disp) == disp) ? MOD_DISP8: MOD_DISP32 ;
+		}
+
 		void init( Reg32 const& base )
 		{
 			switch( base.code() )

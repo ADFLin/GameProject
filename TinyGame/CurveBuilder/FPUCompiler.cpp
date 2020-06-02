@@ -70,6 +70,8 @@ static void  FreeExecutableMemory(void* ptr)
 
 #endif
 
+#define VALUE_PTR qword_ptr
+
 //#include "FPUCode.h"
 using namespace Asmeta;
 
@@ -486,8 +488,8 @@ public:
 				for( int num = 0; num < numCpuParam; ++num )
 				{
 					paramOffset -= sizeof(ValueType);
-					Asm::fstp(SYSTEM_PTR(esp, int8(paramOffset)));
-					Asm::fld(SYSTEM_PTR(ebp, int8(-(numCpuStack - num) * sizeof(ValueType))));
+					Asm::fstp(VALUE_PTR(esp, SysInt(paramOffset)));
+					Asm::fld(VALUE_PTR(ebp, SysInt(-(numCpuStack - num) * sizeof(ValueType))));
 
 					mRegStack.back().type = TOKEN_NONE;
 				}
@@ -497,12 +499,11 @@ public:
 				espOffset += sizeof(ValueType) * numCpuStack;
 			}
 
-			assert(numParam < 256 / sizeof(ValueType));
 
 			for( int num = 0; num < numSPUParam; ++num )
 			{
 				paramOffset -= sizeof(ValueType);
-				Asm::fstp(SYSTEM_PTR(esp, int8(paramOffset)));
+				Asm::fstp(VALUE_PTR(esp, SysInt(paramOffset)));
 				mRegStack.pop_back();
 			}
 			mNumInstruction += 1 * numSPUParam;
@@ -587,7 +588,7 @@ public:
 				if( mNumVarStack > FpuRegNum )
 				{
 					int32 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
-					mNumInstruction += emitBOP(opType, isReverse, SYSTEM_PTR(ebp, SysInt(offset)));
+					mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(ebp, SysInt(offset)));
 
 					mRegStack.back().type = TOKEN_NONE;
 				}
@@ -659,7 +660,7 @@ protected:
 		{
 			//fstp        qword ptr [ebp - offset] 
 			int8 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
-			Asm::fstp(SYSTEM_PTR(ebp, offset));
+			Asm::fstp(VALUE_PTR(ebp, offset));
 			mRegStack.pop_back();
 			++mNumInstruction;
 		}

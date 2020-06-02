@@ -49,29 +49,29 @@ double foo(double x)
 }
 
 
-__declspec(noinline) double FooTest(double x, double y, double z)
+__declspec(noinline) double FooTest(double x, double y, float z)
 {
-	return foo(x);
+	return sin(x);
 }
 
-__declspec(noinline) double FooTest2(double x, double y, double z)
+__declspec(noinline) double FooTest2(double x, double y, float z)
 {
-	return foo(x);
+	return sin(x);
 }
 
 
 void TestFPUCompile()
 {
+	double x = 1;
+	double y = 2;
+	float z = 10;
 #if 1
 	{
 		ga = 1.2f;
 		foo();
-		double x = 1;
-		double y = 2;
-
 		auto pFun = rand() % 2 ? FooTest : FooTest2;
 		float z = 3;
-		gc = pFun(x,0,0);
+		gc = pFun(x,y,z);
 
 		LogMsg("%f", gc);
 	}
@@ -87,14 +87,12 @@ void TestFPUCompile()
 	table.defineVarInput("z", 2);
 	table.defineFunc("sin", static_cast<double(*)(double)>(sin));
 	table.defineFunc("foo", static_cast<double(*)(double)>(foo));
-	if (!comiler.compile("foo(x)", table, code, ARRAY_SIZE(layouts) , layouts))
+	if (!comiler.compile("sin(x)", table, code, ARRAY_SIZE(layouts) , layouts))
 	{
 		return;
 	}
 
-	double x = 1;
-	double y = 2;
-	float z = 10;
+
 	double value = code.evalT< double >(x,y,z);
 	LogMsg("%lf %lf", value , z);
 }

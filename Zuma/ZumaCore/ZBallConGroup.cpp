@@ -151,7 +151,7 @@ namespace Zuma
 	}
 
 
-	ZConBall* ZConBallGroup::getFristBall() const
+	ZConBall* ZConBallGroup::getFirstBall() const
 	{
 		return ( mBallList.empty() ) ? NULL : mBallList.front();
 	}

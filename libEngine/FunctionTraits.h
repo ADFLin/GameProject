@@ -2,6 +2,7 @@
 #define FunCallback_h__
 
 #include "Meta/MetaTypeList.h"
+#include "Meta/IndexList.h"
 
 namespace Meta
 {
@@ -77,34 +78,6 @@ namespace Meta
 
 		enum { NumArgs = ArgList::Length };
 	};
-
-	template <size_t... Is>
-	struct TIndexList{};
-
-	// Collects internal details for generating index ranges [MIN, MAX)
-	namespace detail
-	{
-		// Declare primary template for index range builder
-		template <size_t MIN, size_t N, size_t... Is>
-		struct TRangeBuilder;
-
-		// Base step
-		template <size_t MIN, size_t... Is>
-		struct TRangeBuilder<MIN, MIN, Is...>
-		{
-			typedef TIndexList<Is...> type;
-		};
-
-		// Induction step
-		template <size_t MIN, size_t N, size_t... Is>
-		struct TRangeBuilder : public TRangeBuilder<MIN, N - 1, N - 1, Is...>
-		{
-		};
-	}
-
-	// Meta-function that returns a [MIN, MAX) index range
-	template<size_t MIN, size_t MAX>
-	using TIndexRange = typename detail::TRangeBuilder<MIN, MAX>::type;
 
 	template< class RT, class T >
 	FORCEINLINE RT Invoke(RT(T::*func)(), T* pObject, void* argsData[])

@@ -98,7 +98,7 @@ class TLinkableList
 {
 public:
 	void size() const { return mSize;  }
-	T&   front(){ return *static_cast< T* >( mFrist );  }
+	T&   front(){ return *static_cast< T* >( mFirst );  }
 	T&   back() { return *static_cast< T* >( mLast );  }
 	bool empty(){ return mSize == 0;  }
 
@@ -112,7 +112,7 @@ public:
 
 private:
 	typedef TLinkable< T > Node;
-	Node*   mFrist;
+	Node*   mFirst;
 	Node*   mLast;
 	size_t  mSize;
 };

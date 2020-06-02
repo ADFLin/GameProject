@@ -53,10 +53,10 @@ protected:
 	CameraView* mCamera;
 };
 
-class FristViewCamControl : public CamControl
+class FirstViewCamControl : public CamControl
 {
 public:
-	FristViewCamControl( CameraView* cam );
+	FirstViewCamControl( CameraView* cam );
 
 	void  moveForward();
 	void  moveBack();

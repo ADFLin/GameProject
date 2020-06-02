@@ -23,14 +23,14 @@ Vec3D CameraView::calcScreenRayDir( int xPos ,int yPos , int screenWidth , int s
 	return rayTo;
 }
 
-FristViewCamControl::FristViewCamControl( CameraView* cam ) 
+FirstViewCamControl::FirstViewCamControl( CameraView* cam ) 
 :CamControl( cam )
 {
 	m_MoveSpeed = 20;
 	m_TurnSpeed = 0.005f;
 }
 
-void FristViewCamControl::rotateByMouse( int dx , int dy )
+void FirstViewCamControl::rotateByMouse( int dx , int dy )
 {
 	Vec3D dir = mCamera->getViewDir();
 	float yaw , pitch;
@@ -49,7 +49,7 @@ void FristViewCamControl::rotateByMouse( int dx , int dy )
 }
 
 
-void FristViewCamControl::trunRight( float angle )
+void FirstViewCamControl::trunRight( float angle )
 {
 	Vec3D dir = mCamera->getViewDir();
 	float yaw , pitch;
@@ -64,19 +64,19 @@ void FristViewCamControl::trunRight( float angle )
 }
 
 
-void FristViewCamControl::moveForward()
+void FirstViewCamControl::moveForward()
 {
 	mCamera->move( m_MoveSpeed* mCamera->getViewDir() );
 }
-void FristViewCamControl::moveBack()
+void FirstViewCamControl::moveBack()
 {
 	mCamera->move( (-m_MoveSpeed )* mCamera->getViewDir() );
 }
-void FristViewCamControl::moveLeft()
+void FirstViewCamControl::moveLeft()
 {
 	mCamera->moveLocal(  m_MoveSpeed * Vec3D(0,1,0) );
 }
-void FristViewCamControl::moveRight()
+void FirstViewCamControl::moveRight()
 {
 	mCamera->moveLocal( -m_MoveSpeed * Vec3D(0,1,0) );
 }

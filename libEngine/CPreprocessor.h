@@ -5,16 +5,77 @@
 #include "StringParse.h"
 #include "HashString.h"
 
+#include "Template/StaticString.h"
+
 #include <vector>
 #include <string>
 #include <ostream>
-#include "Core/FNV1a.h"
 #include <unordered_map>
 #include <functional>
 #include <unordered_set>
 
 namespace CPP
 {
+	struct EOperatorPrecedence
+	{
+		enum Type
+		{
+			LogicalOR,
+			LogicalAND,
+			BitwiseOR,
+			BitwiseXOR,
+			BitwiseAND,
+			Equality,
+			Comparsion,
+			Shift,
+			Addition,
+			Multiplication,
+			Preifx,
+		};
+	};
+
+#define BINARY_OPERATOR_LIST(op)\
+		op( LogicalOR  , || , EOperatorPrecedence::LogicalOR )\
+		op( LogicalAND , && , EOperatorPrecedence::LogicalAND )\
+		op( BitwiseOR  , | , EOperatorPrecedence::BitwiseOR )\
+		op( BitwiseXOR , ^ , EOperatorPrecedence::BitwiseXOR )\
+		op( BitwiseAND , & , EOperatorPrecedence::BitwiseAND )\
+		op( EQ , == , EOperatorPrecedence::Equality )\
+		op( NEQ, != , EOperatorPrecedence::Equality )\
+		op(	CompGE, >= , EOperatorPrecedence::Comparsion )\
+		op( CompG , > , EOperatorPrecedence::Comparsion )\
+		op( CompLE, <= , EOperatorPrecedence::Comparsion )\
+		op( CompL , < , EOperatorPrecedence::Comparsion )\
+		op( LShift, <<  , EOperatorPrecedence::Shift )\
+		op( RShift, >> , EOperatorPrecedence::Shift )\
+		op( Add , + , EOperatorPrecedence::Addition )\
+		op( Sub , - , EOperatorPrecedence::Addition )\
+		op( Mul , * , EOperatorPrecedence::Multiplication)\
+		op( Div , / , EOperatorPrecedence::Multiplication)\
+		op( Rem , % , EOperatorPrecedence::Multiplication)\
+
+	namespace EOperator
+	{
+		enum Type
+		{
+#define ENUM_OP( NAME , OP , P ) NAME ,
+			BINARY_OPERATOR_LIST(ENUM_OP)
+
+#undef ENUM_OP
+			Plus,
+			Minus,
+			LogicalNOT,
+			BitwiseNOT,
+
+		};
+	};
+
+	struct OperationInfo
+	{
+		EOperator::Type type;
+		StaticString  text;
+	};
+
 	class CodeOutput
 	{
 	public:
@@ -23,18 +84,13 @@ namespace CPP
 		{
 		}
 
-		void pushNewline() { push('\n'); }
+		void pushNewline() { push("\r\n", 2); }
 		void pushSpace(int num = 1)
 		{
 			for( int i = 0; i < num; ++i )
 				push(' ');
 		}
 		void push(StringView const& str) { push(str.data(), str.size()); }
-		void push(char const* str)
-		{
-			push(str, strlen(str));
-		}
-
 		void push(char c)
 		{
 			mStream.write(&c, 1);
@@ -48,9 +104,17 @@ namespace CPP
 
 	};
 
+	class FExpressionUitlity
+	{
+	public:
+		static int FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType);
+		static OperationInfo GetOperationInfo(EOperator::Type type);
+	};
+
 	class CodeLoc
 	{
 	public:
+
 		void skipToNextLine()
 		{
 			for(;;)
@@ -59,22 +123,9 @@ namespace CPP
 				if (*mCur == 0)
 					break;
 
-				if (*mCur == '\\')
+				++mLineCount;
+				if (!SkipConcat(mCur))
 				{
-					if (mCur[1] == '\n')
-					{
-						mCur += 2;
-						mLine += 1;
-					}
-					else if (mCur[1] == '\r' && mCur[2] == '\n')
-					{
-						mCur += 3;
-						mLine += 1;
-					}
-				}
-				else
-				{
-					++mLine;
 					++mCur;
 					break;
 				}
@@ -89,18 +140,9 @@ namespace CPP
 				if (*mCur == 0)
 					break;
 
-				if (*mCur == '\\')
-				{
-					if (mCur[1] == '\n')
-					{
-						mCur += 2;
-						mLine += 1;
-					}
-					else if (mCur[1] == '\r' && mCur[2] == '\n')
-					{
-						mCur += 3;
-						mLine += 1;
-					}
+				if (SkipConcat(mCur))
+				{			
+					++mLineCount;
 				}
 				else
 				{
@@ -109,16 +151,17 @@ namespace CPP
 			}
 		}
 
-
 		void skipSpace()
 		{
 			while (*mCur)
 			{
-				if (!::FCString::IsSpace(*mCur))
+				if (!FCString::IsSpace(*mCur))
 					break;
 
 				if (*mCur == '\n')
-					++mLine;
+				{
+					++mLineCount;
+				}
 				++mCur;
 			}
 		}
@@ -134,41 +177,60 @@ namespace CPP
 			}
 		}
 
+		void advanceNoConcat()
+		{
+			if (mCur[0] == '\n')
+			{
+				++mLineCount;
+			}
+
+			++mCur;
+
+			if (SkipConcat(mCur))
+			{
+				++mLineCount;
+			}
+		}
 
 		void advance()
 		{
-			++mCur;
-			if (mCur[0] == '\\')
+			if (mCur[0] == '\n')
 			{
-				if (mCur[1] == '\n')
-				{
-					mCur += 2;
-					mLine += 1;
-				}
-				else if (mCur[1] == '\r' && mCur[2] == '\n')
-				{
-					mCur += 3;
-					mLine += 1;
-				}
+				++mLineCount;
+			}
+			
+			++mCur;
+
+			if (SkipConcat(mCur))
+			{
+				++mLineCount;
 			}
 		}
 
 		bool isEof() const { return *mCur == 0; }
 
+		static bool SkipConcat(char const*& Code)
+		{
+			if (Code[0] == '\\')
+			{
+				if (Code[1] == '\n')
+				{
+					Code += 2;
+					return true;
+				}
+				else if (Code[1] == '\r' && Code[2] == '\n')
+				{
+					Code += 3;
+					return true;
+				}
+			}
+			return false;
+		}
+
 		static void Advance(char const*& code)
 		{
 			++code;
-			if (code[0] == '\\')
-			{
-				if (code[1] == '\n')
-				{
-					code += 2;
-				}
-				else if (code[1] == '\r' && code[2] == '\n')
-				{
-					code += 3;
-				}			
-			}
+			SkipConcat(code);
 		}
 		static void Backward(char const*& code)
 		{
@@ -185,48 +247,74 @@ namespace CPP
 				}
 			}
 		}
+		static bool SkipBOM(char const*& code)
+		{
+			if (code[0] == '\xef' &&
+				code[1] == '\xbb' &&
+				code[2] == '\xbF')
+			{
+				code += 3;
+				return true;
+			}
+
+			return false;
+		}
 
 		char const* mCur;
-		int mLine;
+		int mLineCount;
 	};
 
 	class CodeSource
 	{
 	public:
 		void appendString(char const* str);
+		void appendString(char const* str, int num);
 		bool loadFile(char const* path);
 
+		HashString    filePath;
+		int lineOffset = 0;
 	private:
 
 		std::vector< char > mBuffer;
-		HashString    mFilePath;
+
 		friend class Preprocessor;
 		friend class CodeInput;
 	};
+
 
 	class CodeInput : public CodeLoc
 	{
 	public:
 		CodeSource* source;
 
+
+		int getLine() const
+		{
+#if _DEBUG
+			int linCount = countCharFormStart('\n');
+			assert(linCount == mLineCount);
+#endif
+			return mLineCount + source->lineOffset + 1;
+		}
+
 		void resetSeek()
 		{
 			assert(source);
 			mCur = &source->mBuffer[0];
 			//skip BOM
-			if( mCur[0] == '\xef' &&
-			    mCur[1] == '\xbb' &&
-			    mCur[2] == '\xbF' )
-			{
-				mCur += 3;
-			}
 
-			mLine = 0;
+			SkipBOM(mCur);
+			mLineCount = 0;
 		}
 		void setLoc(CodeLoc const& loc)
 		{
 			mCur = loc.mCur;
-			mLine = loc.mLine;
+			mLineCount = loc.mLineCount;
+		}
+
+		int countCharFormStart(char c) const
+		{
+			return FStringParse::CountChar(&source->mBuffer[0], mCur, c);
 		}
 	private:
 		friend class Preprocessor;
@@ -243,11 +331,6 @@ namespace CPP
 		StringView  name;
 		std::string expr;
 
-		void setExpression(StringView const& exprText)
-		{
-			expr = exprText.toStdString();
-		}
-		
 		struct ArgEntry
 		{
 			int indexArg;
@@ -265,8 +348,8 @@ namespace CPP
 		Preprocessor();
 		~Preprocessor();
 
-		void translate( CodeSource& sorce );
-		void setOutput( CodeOutput& output);
+		void translate(CodeSource& sorce);
+		void setOutput(CodeOutput& output);
 		void addSreachDir(char const* dir);
 		void addDefine(char const* name, int value)
 		{
@@ -281,72 +364,46 @@ namespace CPP
 		bool bReplaceMarcoText = false;
 		bool bCanRedefineMarco = false;
 		bool bCommentIncludeFileName = true;
-		bool bAddLineMarco = false;
+		bool bAddLineMarco = true;
 
 	private:
 
-		bool ensureInputValid()
+
+		enum EControlPraseResult
 		{
-			if (mInput.isEof())
-			{
-				if (mInputStack.empty())
-					return false;
+			OK,
+			ExitBlock,
+			RetainText,
+		};
 
-				if (mInputStack.back().onFinish)
-					mInputStack.back().onFinish();
+		bool parseCode(bool bSkip);
+		bool parseControlLine(EControlPraseResult& result);
+		bool parseInclude();
+		bool parseDefine();
+		bool parseIf();
+		bool parseIfdef();
+		bool parseIfndef();
+		bool parseIfInternal(int exprRet);
 
-				mInput = mInputStack.back().input;
-				mInputStack.pop_back();
-			}
-			return true;
-		}
-		bool haveMore()
-		{
-			ensureInputValid();
-			return !mInput.isEof();
-		}
+		bool parsePragma();
+		bool parseDefined(int& ret);
 
-		bool skipSpace()
-		{
-			while (ensureInputValid())
-			{
-				mInput.skipSpace();
-				if (!mInput.isEof())
-					return true;
-			}
-			
-			return false;
-		}
+		bool parseExpression(int& ret);
+		bool tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType);
+		bool parseExprOp(int& ret , EOperatorPrecedence::Type precedence = EOperatorPrecedence::Type(0));
+		bool parseExprFactor(int& ret);
+		bool parseExprValue(int& ret);
 
-		bool skipToNextLine()
-		{
-			if (mInput.isEof())
-			{
-				ensureInputValid();
-			}
-			else
-			{
-				mInput.skipToNextLine();
-				if (mInput.isEof())
-					return false;
-			}
-			return true;
-		}
+		int mCurFrame = 0;
 
-		bool skipSpaceInLine()
-		{
-			mInput.skipSpaceInLine();
-			return !mInput.isEof();
-		}
+		bool ensureInputValid();
+		bool haveMore();
+		bool skipSpace();
+		bool skipToNextLine();
+		bool skipSpaceInLine();
+		bool tokenChar(char c);
 
-		bool tokenChar(char c)
-		{
-			if (*mInput.mCur != c)
-				return false;
-
-			mInput.advance();
-			return true;
-		}
+		void replaceMarco(StringView const& text , std::string& outText );
 
 		static bool IsValidStartCharForIdentifier(char c)
 		{
@@ -359,90 +416,11 @@ namespace CPP
 		}
 
 
-		bool tokenIdentifier(StringView& outIdentifier)
-		{
-			char const* start = mInput.mCur;
-
-			if (!IsValidStartCharForIdentifier(*mInput.mCur))
-				return false;
-
-			for (;;)
-			{
-				mInput.advance();
-				if ( !IsValidCharForIdentifier(*mInput.mCur) )
-					break;
-			}
-
-			outIdentifier = StringView(start, mInput.mCur - start);
-			return true;
-		}
-
+		bool tokenIdentifier(StringView& outIdentifier);
 		bool tokenNumber(int& outValue);
+		bool tokenString(StringView& outString);
+		bool tokenControl(StringView& outName);
 
-		bool tokenString(StringView& outString)
-		{
-			if (!skipSpaceInLine())
-				return false;
-
-			char const* start = mInput.mCur;
-			mInput.skipToLineEnd();	
-			char const* end = mInput.mCur;
-			if (end == start)
-				return false;
-
-			while (end != start)
-			{
-				if ( !FCString::IsSpace(*end))
-					break;
-
-				CodeLoc::Backward(end);
-			}
-
-			outString = StringView(start, end - start + 1);
-			return true;
-		}
-
-		bool tokenControl(StringView& outName)
-		{
-			if (!skipSpaceInLine())
-				return false;
-
-			if (!tokenChar('#'))
-				return false;
-
-			skipSpaceInLine();
-			if (!tokenIdentifier(outName))
-				return false;
-			
-			return true;
-		}
-
-		enum EControlPraseResult
-		{
-			OK ,
-			ExitBlock ,
-			RetainText ,
-		};
-
-		bool parseControlLine(EControlPraseResult& result);
-		bool parseCode(bool bSkip);
-		bool parseDefine();
-		bool parseIf();
-		bool parseIfdef();
-		bool parseIfndef();
-		bool parseIfInternal(int exprRet);
-
-		bool parsePragma();
-		bool parseExpression(int& ret);
-		bool parseDefined(int& ret);
-
-		bool parseExprValue(int& ret);
-		bool parseExprPart(int& ret);
-		bool parseExprTerm(int& ret);
-		bool parseExprFactor(int& ret);
-		bool parseExprAtom(int& ret);
-		int mCurFrame = 0;
-		bool parseInclude();
 
 		struct ScopeState
 		{
@@ -466,22 +444,33 @@ namespace CPP
 		int mIfScopeDepth;
 		std::unordered_map< HashString, MarcoSymbol > mMarcoSymbolMap;
 
-		bool execExpression(CodeInput& input, int& evalValue)
-		{
-			return false;
-		}
 
-		bool execExpression( std::string const& expr , int& outValue )
-		{
-			//#TODO:support \ connect
-			return true;
-		}
+		bool bRequestSourceLine = false;
+		void emitSourceLine(int lineOffset = 0);
+		void emitCode(StringView const& code);
 
+		struct InputLocScope
+		{	
+			InputLocScope(Preprocessor& p, CodeLoc const& loc)
+				:mP(p)
+			{
+				mPrevLoc = p.mInput;
+				p.mInput.setLoc(loc);
+			}
+
+			~InputLocScope()
+			{
+				mP.mInput.setLoc(mPrevLoc);
+			}
+			Preprocessor& mP;
+			CodeLoc mPrevLoc;
+
+		};
 		CodeInput mInput;
 		struct  InputEntry
 		{
 			CodeInput input;
-			std::function< void() > onFinish;
+			std::function< void() > onChildFinish;
 		};
 		std::vector< InputEntry > mInputStack;
 
@@ -502,15 +491,34 @@ namespace CPP
 		std::vector< std::string > mFileSreachDirs;
 		std::unordered_map< HashString, CodeSource* > mLoadedSourceMap;
 
-
-		struct OperatorInfo
-		{
-			char value;
-			bool bRightAssoc;
-			int  prodence;
-		};
-
+		friend class ExpressionEvaluator;
 	};
+
+
+
+	class ExpressionEvaluator
+	{
+	public:
+		ExpressionEvaluator(Preprocessor& preprocessor , CodeLoc const& loc)
+			:mProcesser(preprocessor)
+			,mLoc(loc)
+		{
+
+
+
+		}
+
+		bool evaluate(int& ret)
+		{
+
+
+
+		}
+
+		CodeLoc mLoc;
+		Preprocessor& mProcesser;
+	};
+
 }
 
 

@@ -551,7 +551,7 @@ namespace Zuma
 				for ( int i = 0 ; i < level.getBallGroupNum() ; ++i )
 				{
 					ZConBallGroup* group = level.getBallGroup(i);
-					ZConBall* ball = group->getFristBall();
+					ZConBall* ball = group->getFirstBall();
 					if ( ball && ball->getPathPos() < group->getFollowPath()->getPathLength() )
 						finish = false;
 				}

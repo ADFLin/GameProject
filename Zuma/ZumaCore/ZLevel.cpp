@@ -468,7 +468,7 @@ namespace Zuma
 
 	void ZLevel::generateBall( ZConBallGroup& group , int numBall ,int numColor , int repet , int repetDec )
 	{
-		ZConBall* ball = group.getFristBall();
+		ZConBall* ball = group.getFirstBall();
 
 		ZColor color;
 		if ( ball )
@@ -557,7 +557,7 @@ namespace Zuma
 			if ( mCurComboGauge >= mMaxComboGauge )
 				continue;
 
-			ZConBall* ball = group->getFristBall();
+			ZConBall* ball = group->getFirstBall();
 			if ( ball == NULL || ball->getPathPos() > -10 )
 			{
 				generateBall( *group , 

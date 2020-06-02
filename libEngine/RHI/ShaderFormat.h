@@ -23,6 +23,7 @@ namespace Render
 	{
 		HashString   filePath;
 		Shader::Type type;
+		
 		std::string  headCode;
 		std::vector< HashString > includeFiles;
 		std::string  entryName;
@@ -61,6 +62,7 @@ namespace Render
 		virtual void setupParameters(ShaderProgram& shaderProgram) = 0;
 		virtual bool compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def) = 0;
 		
+		static bool PreprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes );
 		
 		bool bRecompile = true;
 		bool bUsePreprocess = true;

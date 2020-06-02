@@ -302,6 +302,7 @@
     <ClCompile Include="RHI\Scene.cpp" />
     <ClCompile Include="RHI\SceneObject.cpp" />
     <ClCompile Include="RHI\SceneRenderer.cpp" />
+    <ClCompile Include="RHI\ShaderFormat.cpp" />
     <ClCompile Include="RHI\ShaderManager.cpp" />
     <ClCompile Include="RHI\ShaderCore.cpp" />
     <ClCompile Include="RHI\ShaderProgram.cpp" />
@@ -401,6 +402,7 @@
     <ClInclude Include="Math\TVector4.h" />
     <ClInclude Include="Meta\EnableIf.h" />
     <ClInclude Include="Meta\FunctionCall.h" />
+    <ClInclude Include="Meta\IndexList.h" />
     <ClInclude Include="Meta\IsBaseOf.h" />
     <ClInclude Include="Meta\MetaBase.h" />
     <ClInclude Include="Meta\MetaFunction.h" />
@@ -521,6 +523,7 @@
     <ClInclude Include="SystemPlatform.h" />
     <ClInclude Include="TemplateMisc.h" />
     <ClInclude Include="Template\ArrayView.h" />
+    <ClInclude Include="Template\StaticString.h" />
     <ClInclude Include="Template\StringView.h" />
     <ClInclude Include="Template\TypeFormatTraits.h" />
     <ClInclude Include="WindowsMessageHander.h" />

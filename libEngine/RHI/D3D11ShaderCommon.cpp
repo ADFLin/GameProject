@@ -36,55 +36,8 @@ namespace Render
 					return false;
 				}
 
-
-				CPP::CodeSource source;
-
-				if( def )
-				{
-					source.appendString(def);
-				}
-				source.appendString(&codeBuffer[0]);
-
-				CPP::Preprocessor preprocessor;
-
-				std::stringstream oss;
-				CPP::CodeOutput codeOutput(oss);
-
-				char const* DefaultDir = "Shader";
-				preprocessor.setOutput(codeOutput);
-				preprocessor.addSreachDir(DefaultDir);
-				char const* dirPathEnd = FileUtility::GetFileName(path);
-				if( dirPathEnd != path )
-				{
-					--dirPathEnd;
-				}
-				if( strncmp(DefaultDir, path, dirPathEnd - path) != 0 )
-				{
-					std::string dir(path, dirPathEnd);
-					preprocessor.addSreachDir(dir.c_str());
-				}
-
-				try
-				{
-					preprocessor.translate(source);
-				}
-				catch( std::exception& e )
-				{
-					e.what();
+				if (!PreprocessCode(path, compileInfo, def, codeBuffer))
 					return false;
-				}
-
-				if( compileInfo )
-				{
-					preprocessor.getIncludeFiles(compileInfo->includeFiles);
-				}
-#if 1
-				codeBuffer.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
-#else
-				std::string code = oss.str();
-				codeBuffer.assign(code.begin(), code.end());
-#endif
-				codeBuffer.push_back(0);
 			}
 			else
 			{

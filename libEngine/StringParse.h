@@ -86,6 +86,21 @@ public:
 	static char const* TrySkipToCharSectionEnd(char const* str) { return TrySkipToSectionEnd(str, '\''); }
 	static char const* CheckAndSkipToCommentSectionEnd(char const* str);
 
+
+	static int CountChar(char const* start, char const* end, char c)
+	{
+		char const* p = start;
+		int result = 0;
+		while (p < end)
+		{
+			if (*p == c)
+				++result;
+
+			++p;
+		}
+		return result;
+	}
+
 private:
 	static char const* TrySkipToSectionEnd(char const* str, char c);
 

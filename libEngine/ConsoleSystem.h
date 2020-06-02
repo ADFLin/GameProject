@@ -212,7 +212,7 @@ public:
 	}
 
 	template < class TFunc, class T >
-	 void registerCommand( char const* name , TFunc func , T* obj )
+	void registerCommand( char const* name , TFunc func , T* obj )
 	{
 		auto* command = new TMemberFuncConsoleCom<TFunc, T >( name ,func , obj );
 		insertCommand(command);

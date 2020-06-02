@@ -61,7 +61,7 @@ struct SgxImageGroupInfo
 	int32  width;
 	int32  height;
 	uint32 numImage;
-	uint32 indexFrist;
+	uint32 indexFirst;
 	uint32 indexLast;
 
 	uint8   reserve[200 - 136];

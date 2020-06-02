@@ -386,7 +386,7 @@ public:
 
 		mCamera.setPosition( Vec3D(0,0,0) );
 		mCamera.setViewDir( Vec3D(1,0,0) );
-		mCamControl = new FristViewCamControl( &mCamera );
+		mCamControl = new FirstViewCamControl( &mCamera );
 
 		return true; 
 	}
@@ -588,7 +588,7 @@ private:
 	
 	PlayerControl*       mPlayerControl;
 	CameraView           mCamera;
-	FristViewCamControl* mCamControl;
+	FirstViewCamControl* mCamControl;
 
 	CSceneLevel*         mSceneLevel;
 

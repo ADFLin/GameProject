@@ -298,7 +298,6 @@ namespace Render
 	{
 		std::string path("Material/");
 		path += name;
-		path += SHADER_FILE_SUBNAME;
 		return path;
 	}
 
@@ -309,9 +308,6 @@ namespace Render
 	{
 		LogDevMsg( 0 , "VertexFactory Type : %s" ,  vertexFactoryType.fileName );
 		std::string path = GetFilePath(info.name);
-		std::vector< char > materialCode;
-		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode, true) )
-			return 0;
 #if 0
 		std::vector< std::string > classNames;
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
@@ -320,11 +316,12 @@ namespace Render
 		}
 #endif
 		int result = 0;
+
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
 		{
 			ShaderCompileOption option;
 			mShaderFormat->setupShaderCompileOption(option);
-			option.addCode(&materialCode[0]);
+			option.addInclude(path.c_str());
 			vertexFactoryType.getCompileOption(option);
 
 			switch( info.tessellationMode )

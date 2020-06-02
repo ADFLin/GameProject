@@ -53,7 +53,7 @@ namespace Zuma
 		ZConBall*   getNextConBall( ZConBall& ball ) const;
 		ZConBall*   getLastBall() const;
 
-		ZConBall*   getFristBall() const;
+		ZConBall*   getFirstBall() const;
 
 		int       calcComboNum( ZConBall& ball , ZBallNode& start , ZBallNode& end );
 

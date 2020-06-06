@@ -32,7 +32,7 @@ public:
 		{
 			FontFaceInfo fontFace;
 			fontFace.name = "微軟正黑體";
-			fontFace.size = 12;
+			fontFace.size = 8;
 			VERIFY_RETURN_FALSE(mCharDataSet = FontCharCache::Get().getCharDataSet(fontFace));
 		}
 		{

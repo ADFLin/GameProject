@@ -4,7 +4,7 @@
 #include "CARGameLogic.h"
 
 #include "GameGlobal.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 
 #include "CppVersion.h"
 

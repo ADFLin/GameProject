@@ -8,7 +8,7 @@
 
 #include "GameGUISystem.h"
 #include "Math/Base.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 
 #include "GameWorker.h"
 #include "NetGameMode.h"
@@ -286,8 +286,9 @@ namespace CAR
 		if ( mGameLogic.mIsStartGame )
 		{
 			FixString< 512 > str;
-			g.drawText( 10 , 200 , str.format( "pID = %d tileId = %d , rotation = %d , pos = %d , %d " , mGameLogic.getTurnPlayer()->getId() ,
-				mGameLogic.mUseTileId , mRotation , mCurMapPos.x , mCurMapPos.y ) );
+			str.format("pID = %d tileId = %d , rotation = %d , pos = %d , %d ", mGameLogic.getTurnPlayer()->getId(),
+				mGameLogic.mUseTileId, mRotation, mCurMapPos.x, mCurMapPos.y);
+			g.drawText( 10 , 200 , str );
 		}
 
 		{
@@ -675,9 +676,11 @@ namespace CAR
 		for( int i = 0 ; i < player->mFieldValues.size() ; ++i )
 		{
 			FixString< 32 > temp;
-			fieldStr += temp.format( ( i == 0 ) ? "%d" : " %d" , player->mFieldValues[i] );
+			temp.format((i == 0) ? "%d" : " %d", player->mFieldValues[i]);
+			fieldStr += temp;
 		}
-		g.drawText( tempPos , str.format( "id=%d score=%d f=[ %s ]" , player->getId() , player->mScore , fieldStr.c_str() ) );
+		str.format("id=%d score=%d f=[ %s ]", player->getId(), player->mScore, fieldStr.c_str());
+		g.drawText( tempPos , str);
 		tempPos.y += offsetY;
 
 		return tempPos;
@@ -687,9 +690,9 @@ namespace CAR
 	{
 		FixString< 512 > str;
 		Vec2i tempPos = pos;
-
-		g.drawText( tempPos , str.format( "Group=%2d Type=%d TileNum=%d ActorNum=%d IsComplete=%d" ,
-			build->group , build->type , build->mapTiles.size() , build->mActors.size() , build->checkComplete() ? 1 : 0 ) );
+		str.format("Group=%2d Type=%d TileNum=%d ActorNum=%d IsComplete=%d",
+			build->group, build->type, build->mapTiles.size(), build->mActors.size(), build->checkComplete() ? 1 : 0);
+		g.drawText( tempPos , str);
 		tempPos.y += offsetY;
 		switch( build->type )
 		{
@@ -697,9 +700,10 @@ namespace CAR
 			{
 				CityFeature* myFeature = static_cast< CityFeature* >( build );
 				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
-				g.drawText( tempPos , str.format( " City: ( %d %d , %d ) NodeNum=%d OpenCount=%d HSCount=%d FarmNum=%d " ,
-					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
-					myFeature->nodes.size() , myFeature->openCount , myFeature->halfSepareteCount , myFeature->linkedFarms.size() ) ) ;
+				str.format(" City: ( %d %d , %d ) NodeNum=%d OpenCount=%d HSCount=%d FarmNum=%d ",
+					mapTile->pos.x, mapTile->pos.y, myFeature->nodes[0]->index,
+					myFeature->nodes.size(), myFeature->openCount, myFeature->halfSepareteCount, myFeature->linkedFarms.size());
+				g.drawText( tempPos , str ) ;
 				tempPos.y += offsetY;
 			}
 			break;
@@ -707,9 +711,10 @@ namespace CAR
 			{
 				RoadFeature* myFeature = static_cast< RoadFeature* >( build );
 				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
-				g.drawText( tempPos , str.format( " Road: ( %d %d , %d ) NodeNum=%d OpenCount=%d" ,  
-					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
-					myFeature->nodes.size() , myFeature->openCount ) );
+				str.format(" Road: ( %d %d , %d ) NodeNum=%d OpenCount=%d",
+					mapTile->pos.x, mapTile->pos.y, myFeature->nodes[0]->index,
+					myFeature->nodes.size(), myFeature->openCount);
+				g.drawText( tempPos , str );
 				tempPos.y += offsetY;
 			}
 			break;
@@ -717,23 +722,26 @@ namespace CAR
 			{
 				FarmFeature* myFeature = static_cast< FarmFeature* >( build );
 				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
-				g.drawText( tempPos , str.format( " Farm: ( %d %d , %d ) NodeNum=%d CityNum=%d" , 
-					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
-					myFeature->nodes.size() , myFeature->linkedCities.size() ) );
+				str.format(" Farm: ( %d %d , %d ) NodeNum=%d CityNum=%d",
+					mapTile->pos.x, mapTile->pos.y, myFeature->nodes[0]->index,
+					myFeature->nodes.size(), myFeature->linkedCities.size());
+				g.drawText( tempPos , str );
 				tempPos.y += offsetY;
 			}
 			break;
 		case FeatureType::eCloister:
 			{
 				auto myFeature = static_cast< CloisterFeature* >( build );
-				g.drawText( tempPos , str.format( " Cloister: LinkTile=%d" , myFeature->neighborTiles.size() ) );
+				str.format(" Cloister: LinkTile=%d", myFeature->neighborTiles.size());
+				g.drawText( tempPos , str );
 				tempPos.y += offsetY;
 			}
 			break;
 		case FeatureType::eGarden:
 			{
 				auto myFeature = static_cast<GardenFeature*>(build);
-				g.drawText(tempPos, str.format(" Garden: LinkTile=%d", myFeature->neighborTiles.size()));
+				str.format(" Garden: LinkTile=%d", myFeature->neighborTiles.size());
+				g.drawText(tempPos, str);
 				tempPos.y += offsetY;
 			}
 			break;
@@ -1269,7 +1277,8 @@ namespace CAR
 			{
 				auto* myData = data->cast< GameAuctionTileData >();
 				FixString< 512 > str;
-				::Global::GUI().showMessageBox( UI_BUY_AUCTION_TILE , str.format( "Can You Buy Tile : Score = %d , Id = %d" , myData->maxScore , myData->pIdCallMaxScore ) );
+				str.format("Can You Buy Tile : Score = %d , Id = %d", myData->maxScore, myData->pIdCallMaxScore);
+				::Global::GUI().showMessageBox( UI_BUY_AUCTION_TILE , str );
 			}
 			break;
 		case ACTION_BUILD_CASTLE:
@@ -1693,7 +1702,8 @@ namespace CAR
 
 		g.setTextColor(Color3ub(0 , 0 , 0) );
 		FixString< 128 > str;
-		g.drawText( pos , size , str.format( "%s" , gActorShortNames[ type ] ) , true );
+		str.format("%s", gActorShortNames[type]);
+		g.drawText( pos , size , str , true );
 	}
 
 	void SelectButton::onRender()
@@ -1790,14 +1800,16 @@ namespace CAR
 		FixString< 512 > str;
 		g.setTextColor(Color3ub(255 , 255 , 0) );
 		RenderUtility::SetFont( g , FONT_S12 );
-		g.drawText( pos + Vec2i(10,10) , str.format( "Round = %d , PlayerId = %d" , mData->pIdRound , mData->playerId ) );
+		str.format("Round = %d , PlayerId = %d", mData->pIdRound, mData->playerId);
+		g.drawText( pos + Vec2i(10,10) , str);
 		if ( mData->playerId == mData->pIdRound )
 		{
 
 		}
 		else
 		{
-			g.drawText( pos + Vec2i(10,30) , str.format( "Max Score = %d , Id = %d" , mData->maxScore , mData->pIdCallMaxScore  ) );
+			str.format("Max Score = %d , Id = %d", mData->maxScore, mData->pIdCallMaxScore);
+			g.drawText( pos + Vec2i(10,30) , str);
 		}
 	} 
 

@@ -160,7 +160,8 @@ namespace G2D
 
 			FixString<256> str;
 			g.setTextColor( Color3ub(255, 255, 0) );
-			g.drawText(Vector2(200, 50), str.format("Is Convex = %s", mbConvex ? "Yes" : "No"));
+			str.format("Is Convex = %s", mbConvex ? "Yes" : "No");
+			g.drawText(Vector2(200, 50), str);
 
 		}
 
@@ -303,7 +304,8 @@ namespace G2D
 			{
 				Vec2i p2 = pos + Vec2i(10 * mPoly[i]);
 				g.drawLine(pos, p2);
-				g.drawText(p2, str.format("%d", i));
+				str.format("%d", i);
+				g.drawText(p2, str);
 			}
 		}
 

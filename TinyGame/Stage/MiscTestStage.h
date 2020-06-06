@@ -482,7 +482,8 @@ public:
 		for( int i = 0 ; i < mOut.size() ; ++i )
 		{
 			FixString< 128 > str;
-			g.drawText( Vec2i( 40 + 20 * i , 40 ) , str.format( "%d" , mOut[i] ) );
+			str.format("%d", mOut[i]);
+			g.drawText( Vec2i( 40 + 20 * i , 40 ) , str );
 		}
 	}
 
@@ -567,7 +568,7 @@ namespace MRT
 	struct Station;
 	struct LinkInfo;
 	struct StationCmp;
-	using StationHeap = TFibonaccilHeap< Station*, StationCmp >;
+	using StationHeap = TFibonacciHeap< Station*, StationCmp >;
 	struct Station
 	{
 		std::string name;
@@ -1625,7 +1626,6 @@ public:
 		return BaseClass::onKey(msg);
 	}
 
-
 	bool onWidgetEvent( int event , int id , GWidget* ui ) override
 	{
 		switch( id )
@@ -1653,10 +1653,6 @@ protected:
 
 	MyTree mTree;
 };
-
-
-
-
 
 
 class NetTestStage : public GameStageBase

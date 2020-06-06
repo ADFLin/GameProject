@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "GameGlobal.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 
 namespace Zen
 {

@@ -2,7 +2,7 @@
 #include "ServerListPanel.h"
 
 #include "GameClient.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 #include "GameNetPacket.h"
 #include "GameWidgetID.h"
 

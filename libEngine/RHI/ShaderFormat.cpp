@@ -4,21 +4,24 @@
 #include "FileSystem.h"
 
 #include <sstream>
+#include "ProfileSystem.h"
 
 
 namespace Render
 {
 	bool ShaderFormat::PreprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes)
 	{
+		TimeScope scope("PreprocessCode");
+
 		CPP::CodeSource source;
 
 		if (def)
 		{
 			int len = strlen(def);
-			source.appendString(def, len);
+			source.appendString(StringView(def, len));
 			source.lineOffset = -FStringParse::CountChar(def, def + len + 1, '\n');
 		}
-		source.appendString(&inoutCodes[0] , inoutCodes.size());
+		source.appendString( StringView(&inoutCodes[0] , inoutCodes.size() ));
 		source.filePath = path;
 
 		CPP::Preprocessor preprocessor;
@@ -46,7 +49,7 @@ namespace Render
 		}
 		catch (std::exception& e)
 		{
-			LogWarning( 0 , "Preprocess Shader code fial :%s" , e.what() );
+			LogWarning( 0 , "Preprocess Shader code fail : %s" , e.what() );
 			return false;
 		}
 
@@ -60,7 +63,7 @@ namespace Render
 		std::string code = oss.str();
 		inoutCodes.assign(code.begin(), code.end());
 #endif
-		inoutCodes.push_back(0);
+		inoutCodes.push_back('\0');
 		return true;
 	}
 

@@ -703,19 +703,23 @@ namespace MV
 			switch( mEditType )
 			{
 			case eEditBlock:
-				g.drawText( pos , str.format( "Edit Type = Block , Model = %d" , editModelId ) );
+				str.format("Edit Type = Block , Model = %d", editModelId);
+				g.drawText( pos , str );
 				pos.y += 10;
 				break;
 			case eEditSpaceNode:
-				g.drawText( pos , str.format( "Edit Type = Modifier , idxNode = %d  " , idxModifierUse  ) );
+				str.format("Edit Type = Modifier , idxNode = %d  ", idxModifierUse);
+				g.drawText( pos , str );
 				pos.y += 10;
 				break;
 			case eEditMesh:
-				g.drawText( pos , str.format( "Edit Type = Mesh , idMesh = %d , SnapFactor = %d" , editMeshId  , editSnapFactor ) );
+				str.format("Edit Type = Mesh , idMesh = %d , SnapFactor = %d", editMeshId, editSnapFactor);
+				g.drawText( pos , str );
 				pos.y += 10;
 				break;
 			}
-			g.drawText( pos , str.format( "idxGroup = %d , idxCtrl = %d" , idxGroupUse , idxSpaceCtrlUse ) );
+			str.format("idxGroup = %d , idxCtrl = %d", idxGroupUse, idxSpaceCtrlUse);
+			g.drawText( pos , str );
 			pos.y += 10;
 		}
 
@@ -902,9 +906,12 @@ namespace MV
 		GLGraphics2D& g = Global::GetRHIGraphics2D();
 		FixString< 256 > str;
 		glColor3f(1,1,0);
-		g.drawText( pos.x , pos.y , str.format("( %d %d %d ) dir = %d", pos2Dbg.x , pos2Dbg.y , pos2Dbg.z , (int)dirDBG ) );
-		g.drawText( pos.x , pos.y + 10 , str.format( "( %f %f %f )", posDbg.x , posDbg.y , posDbg.z ) );
-		g.drawText( pos.x , pos.y + 20 , str.format( "( %d %d %d )", pos3Dbg.x , pos3Dbg.y , pos3Dbg.z ) );
+		str.format("( %d %d %d ) dir = %d", pos2Dbg.x, pos2Dbg.y, pos2Dbg.z, (int)dirDBG);
+		g.drawText( pos.x , pos.y , str );
+		str.format("( %f %f %f )", posDbg.x, posDbg.y, posDbg.z);
+		g.drawText( pos.x , pos.y + 10 , str );
+		str.format("( %d %d %d )", pos3Dbg.x, pos3Dbg.y, pos3Dbg.z);
+		g.drawText( pos.x , pos.y + 20 , str );
 	}
 
 	int TestStage::findBlockFromScreenPos( Vec2i const& pos ,Vec3f const& viewPos , Dir& outDir )

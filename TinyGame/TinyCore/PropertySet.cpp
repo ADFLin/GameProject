@@ -1,5 +1,6 @@
 #include "TinyGamePCH.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
+#include "Core/StringConv.h"
 
 
 #define GLOBAL_SECTION "__GLOBAL__"
@@ -8,7 +9,10 @@ float KeyValue::getFloat() const
 {
 	if( mCacheGetType != CacheFloat )
 	{
-		mCacheGetValue.floatValue = float(::atof(mValue.c_str()));
+		if (!FStringConv::ToCheck(mValue.data(), mValue.size(), mCacheGetValue.floatValue))
+		{
+			mCacheGetValue.floatValue = 0;
+		}
 		mCacheGetType = CacheFloat;
 	}
 	return mCacheGetValue.floatValue;
@@ -18,7 +22,10 @@ int KeyValue::getInt() const
 {
 	if( mCacheGetType != CacheInt )
 	{
-		mCacheGetValue.intValue = ::atoi(mValue.c_str());
+		if (!FStringConv::ToCheck(mValue.data(), mValue.size(), mCacheGetValue.intValue))
+		{
+			mCacheGetValue.intValue = 0;
+		}
 		mCacheGetType = CacheInt;
 	}
 	return mCacheGetValue.intValue;
@@ -28,33 +35,30 @@ bool KeyValue::getBool() const
 {
 	if( mCacheGetType != CacheInt )
 	{
-		if( FCString::CompareIgnoreCase(mValue.c_str(), "true") == 0 ||
-		    FCString::CompareIgnoreCase(mValue.c_str(), "t") == 0)
-			mCacheGetValue.intValue = 1;
-		else if( FCString::CompareIgnoreCase(mValue.c_str(), "false") == 0 ||
-				 FCString::CompareIgnoreCase(mValue.c_str(), "f") == 0 )
+		bool temp;
+		if (FStringConv::ToCheck(mValue.data(), mValue.size(), temp))
+		{
+			mCacheGetValue.intValue = temp ? 1 : 0;
+		}
+		else
+		{
 			mCacheGetValue.intValue = 0;
-		else 
-			mCacheGetValue.intValue = ::atoi(mValue.c_str());
+		}
 		mCacheGetType = CacheInt;
 	}
 	return mCacheGetValue.intValue;
 }
 
 void  KeyValue::setFloat( float value )
-{ 
-	std::stringstream ss;
-	ss << value;
-	mValue = ss.str();
+{
+	mValue = FStringConv::From( value );
 	mCacheGetType = CacheFloat;
 	mCacheGetValue.floatValue = value;
 }
 
 void KeyValue::setInt( int value )
 {
-	std::stringstream ss;
-	ss << value;
-	mValue = ss.str();
+	mValue = FStringConv::From(value);
 	mCacheGetType = CacheInt;
 	mCacheGetValue.intValue = value;
 }
@@ -101,13 +105,13 @@ void KeySection::serializtion( std::ostream& os )
 	}
 }
 
-PropertyKey::PropertyKey()
+PropertySet::PropertySet()
 {
 	mNextSectionSeqOrder = 0;
 	mNextValueSeqOrder = 0;
 }
 
-KeyValue* PropertyKey::getKeyValue( char const* group, char const* keyName )
+KeyValue* PropertySet::getKeyValue( char const* group, char const* keyName )
 {
 	if ( !group )
 		group = GLOBAL_SECTION;
@@ -126,7 +130,7 @@ template<>  struct KeyOp< char > { static  char  Get( KeyValue const* value ){ r
 template<>  struct KeyOp< char const* >{ static char const* Get( KeyValue const* value ){ return value->getString(); } };
 
 template< class T >
-bool PropertyKey::tryGetValueT( char const* keyName , char const* group , T& value )
+bool PropertySet::tryGetValueT( char const* keyName , char const* group , T& value )
 {
 	KeyValue const* keyValue = getKeyValue( group, keyName );
 	if ( !keyValue )
@@ -137,7 +141,7 @@ bool PropertyKey::tryGetValueT( char const* keyName , char const* group , T& val
 }
 
 template< class T >
-T PropertyKey::getValueT( char const* keyName , char const* group , T defaultValue )
+T PropertySet::getValueT( char const* keyName , char const* group , T defaultValue )
 {
 	if( !group )
 		group = GLOBAL_SECTION;
@@ -151,47 +155,47 @@ T PropertyKey::getValueT( char const* keyName , char const* group , T defaultVal
 	return defaultValue;
 }
 
-bool PropertyKey::tryGetCharValue( char const* keyName , char const* group , char& value )
+bool PropertySet::tryGetCharValue( char const* keyName , char const* group , char& value )
 {
 	return tryGetValueT( keyName , group , value );
 }
 
-bool PropertyKey::tryGetIntValue( char const* keyName , char const* group , int& value )
+bool PropertySet::tryGetIntValue( char const* keyName , char const* group , int& value )
 {
 	return tryGetValueT( keyName , group , value );
 }
 
-bool PropertyKey::tryGetFloatValue( char const* keyName , char const* group , float& value )
+bool PropertySet::tryGetFloatValue( char const* keyName , char const* group , float& value )
 {
 	return tryGetValueT( keyName , group , value );
 }
 
-bool PropertyKey::tryGetStringValue( char const* keyName , char const* group , char const*& value )
+bool PropertySet::tryGetStringValue( char const* keyName , char const* group , char const*& value )
 {
 	return tryGetValueT( keyName , group , value );
 }
 
-char PropertyKey::getCharValue( char const* keyName , char const* group , char defaultValue )
+char PropertySet::getCharValue( char const* keyName , char const* group , char defaultValue )
 {
 	return getValueT( keyName , group , defaultValue );
 }
 
-int PropertyKey::getIntValue( char const* keyName , char const* group , int defaultValue )
+int PropertySet::getIntValue( char const* keyName , char const* group , int defaultValue )
 {
 	return getValueT( keyName , group , defaultValue );
 }
 
-float PropertyKey::getFloatValue( char const* keyName , char const* group , float defaultValue )
+float PropertySet::getFloatValue( char const* keyName , char const* group , float defaultValue )
 {
 	return getValueT( keyName , group , defaultValue );
 }
 
-char const* PropertyKey::getStringValue( char const* keyName , char const* group , char const* defaultValue )
+char const* PropertySet::getStringValue( char const* keyName , char const* group , char const* defaultValue )
 {
 	return getValueT( keyName , group , defaultValue );
 }
 
-bool PropertyKey::saveFile( char const* path )
+bool PropertySet::saveFile( char const* path )
 {
 	std::ofstream fs( path );
 
@@ -268,7 +272,7 @@ enum
 	PARSE_KEYVALUE_ERROR ,
 };
 
-int PropertyKey::parseLine( char* buffer , KeySection** curSection )
+int PropertySet::parseLine( char* buffer , KeySection** curSection )
 {
 	char* token;
 	char* test;
@@ -338,7 +342,7 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 	return PARSE_SUCCESS;
 }
 
-bool PropertyKey::loadFile( char const* path )
+bool PropertySet::loadFile( char const* path )
 {
 	std::ifstream fs( path );
 	if ( !fs.is_open() )

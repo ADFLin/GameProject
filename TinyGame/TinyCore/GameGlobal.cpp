@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "GameGlobal.h"
 
-#include "PropertyKey.h"
+#include "PropertySet.h"
 #include "DrawEngine.h"
 #include "Random.h"
 #include "GameModuleManager.h"
@@ -84,9 +84,9 @@ void Global::RandSeed(unsigned seed )
 }
 
 
-PropertyKey& Global::GameConfig()
+PropertySet& Global::GameConfig()
 {
-	static PropertyKey settingKey;
+	static PropertySet settingKey;
 	return settingKey;
 }
 

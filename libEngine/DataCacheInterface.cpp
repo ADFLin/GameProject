@@ -30,8 +30,8 @@ public:
 	void getFilePath(DataCacheKey const& key, FixString<512>& outPath)
 	{
 		FixString<512> fileName;
-		fileName.format("%s_%s_%0llX", key.typeName, key.version, key.keySuffix.value);
-		uint32 nameHash = HashValue(fileName.data(), fileName.length());
+		int length = fileName.format("%s_%s_%0llX", key.typeName, key.version, key.keySuffix.value);
+		uint32 nameHash = HashValue(fileName.data(), length);
 		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 100) % 10, fileName.c_str());
 	}
 	bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override

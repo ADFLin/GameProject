@@ -6,6 +6,8 @@
 #include <fstream>
 #include <unordered_map>
 
+#include "Template/StringView.h"
+
 class  KeyValue
 {
 public:
@@ -18,7 +20,8 @@ public:
 	char        getChar() const { return mValue[0]; }
 	float       getFloat() const;
 	int         getInt() const ;
-	char const* getString() const { return mValue.c_str();  }
+	char const* getString() const { return mValue.c_str(); }
+	StringView  getStringView() const { return StringView(mValue.data(), mValue.size()); }
 	bool        getBool() const;
 	void        setFloat( float value );
 	void        setInt( int value );
@@ -41,7 +44,7 @@ private:
 	};
 	mutable SavedValue mCacheGetValue;
 	friend class KeySection;
-	friend class PropertyKey;
+	friend class PropertySet;
 	int  mSequenceOrder = -1;
 	std::string mValue;
 };
@@ -71,16 +74,16 @@ protected:
 	};
 	using KeyValueMap = std::unordered_map< std::string , KeyValue >;
 
-	friend class PropertyKey;
+	friend class PropertySet;
 	int  mSequenceOrder = -1;
 	KeyValueMap mKeyMap;
 };
 
 
-class  PropertyKey
+class  PropertySet
 {
 public:
-	PropertyKey();
+	PropertySet();
 	KeyValue*   getKeyValue( char const* keyName , char const* group );
 
 	char        getCharValue  ( char const* keyName , char const* group , char defaultValue );
@@ -113,6 +116,18 @@ public:
 		}
 	}
 
+	template< class TFunc >
+	void visitGroup( char const* group , TFunc&& func )
+	{
+		auto iter = mSectionMap.find(group);
+		if (iter != mSectionMap.end())
+		{
+			for (auto& pair : iter->second.mKeyMap)
+			{
+				func(pair.first.c_str(), pair.second);
+			}
+		}
+	}
 private:
 	template< class T >
 	T     getValueT( char const* keyName , char const* group , T defaultValue );

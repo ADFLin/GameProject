@@ -3,17 +3,26 @@
 #define StringView_H_CA843BB9_3C9D_487D_9EC7_9D3F1EE8E800
 
 #include "CString.h"
+#include "EnumCommon.h"
+#include "Meta/EnableIf.h"
+#include "Meta/MetaBase.h"
 
-template < class T >
+template < typename T >
 class TStringView
 {
 public:
 	using StdString = typename TStringTraits<T>::StdString;
 
-	TStringView():mData(nullptr),mNum(0){}
+	TStringView() = default;
+	TStringView( EForceInit ):mData(nullptr),mNum(0){}
 
-	TStringView(T const* str)
-		:mData(str), mNum( str ? FCString::Strlen(str) : 0 ){}
+	template< typename Q >
+	TStringView(Q str, typename TEnableIf< Meta::IsSameType< T const* , Q >::Value >::Type* = 0)
+		:mData(str), mNum(FCString::Strlen(str)){}
+
+	template< size_t N >
+	TStringView( T const (&str)[N])
+		:mData(str), mNum(N - 1){}
 
 	TStringView( T const* str , size_t num )
 		:mData(str),mNum(num){}

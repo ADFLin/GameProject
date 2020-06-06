@@ -41,9 +41,6 @@
     <ClInclude Include="TinyCore\GameDefines.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="TinyCore\PropertyKey.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="TinyGamePCH.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -134,12 +131,12 @@
     <ClInclude Include="CurveBuilder\ShapeFunction.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\PropertySet.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="TinyCore\PropertyKey.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="TinyGamePCH.cpp">
@@ -210,6 +207,9 @@
     </ClCompile>
     <ClCompile Include="CurveBuilder\ShapeFunction.cpp">
       <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\PropertySet.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

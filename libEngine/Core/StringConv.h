@@ -74,6 +74,32 @@ public:
 
 	}
 
+	template< class CharT = TChar >
+	FORCEINLINE static bool ToCheck(CharT const* value, int len, bool& outValue)
+	{
+#if CPP_CHARCONV_SUPPORT
+		if (FCString::CompareIgnoreCase(STRING_LITERAL(CharT, "true"), value) == 0)
+		{
+			outValue = true;
+			return true;
+		}
+		if (FCString::CompareIgnoreCase(STRING_LITERAL(CharT, "false"), value) == 0)
+		{
+			outValue = false;
+			return true;
+		}
+		int temp = 0;
+		if (std::from_chars(value, value + len, temp).ec == std::errc())
+		{
+			outValue = temp != 0;
+			return true;
+		}
+		return false;
+#else
+#error "No impl"
+#endif
+	}
+
 	template< class T, class CharT = TChar >
 	FORCEINLINE static T To(CharT const* value, int len)
 	{

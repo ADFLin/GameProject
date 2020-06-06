@@ -182,7 +182,8 @@ public:
 					g.setTextColor(Color3ub(255, 255, 55));
 
 				RenderUtility::SetFont(g, FONT_S24);
-				g.drawText(ptBox, str.format("%d", SudokuSolver::Bit2Num(sol)));
+				str.format("%d", SudokuSolver::Bit2Num(sol));
+				g.drawText(ptBox, str );
 			}
 			else
 			{
@@ -207,7 +208,8 @@ public:
 					else
 						g.setTextColor(Color3ub(255, 255, 255));
 
-					g.drawText( pt , str.format("%d", n + 1));
+					str.format("%d", n + 1);
+					g.drawText( pt , str );
 				}
 			}
 		}
@@ -253,7 +255,7 @@ public:
 
 			for( int i = 0; i < n; ++i )
 			{
-				g.drawText(200 + 20 * i, 0, str.format("%d", num[i]));
+				g.drawText(200 + 20 * i, 0, FStringConv::From(num[i]));
 			}
 		}
 	}

@@ -7,10 +7,22 @@
 #include "Core/StringConv.h"
 #include "Core/FNV1a.h"
 
-#define PARSE_ERROR( MSG ) throw SyntaxError( MSG );
+#define PARSE_ERROR( MSG , ... ) \
+	{\
+		FixString<512> msg; msg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , msg.c_str() , ##__VA_ARGS__ );\
+		throw SyntaxError( msg );\
+	}
+#define PARSE_WARNING( MSG , ... )\
+	{\
+		FixString<512> msg; msg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , msg.c_str() , ##__VA_ARGS__ );\
+		warning( msg );\
+	}
+
 #define FUNCTION_CHECK( func ) func
 
 #define PARSE_DEFINE_IF 1
+
+#define USE_OPERATION_CACHE 1
 
 namespace CPP
 {
@@ -23,6 +35,7 @@ namespace CPP
 		return FNV1a::MakeStringHash<uint32>(str) & 0xffff;
 	}
 
+	std::unordered_map< HashString, CodeSource* > Preprocessor::mLoadedSourceMap;
 
 	Preprocessor::Preprocessor()
 	{
@@ -31,11 +44,13 @@ namespace CPP
 
 	Preprocessor::~Preprocessor()
 	{
+#if 0
 		for( auto& pair : mLoadedSourceMap )
 		{
 			delete pair.second;
 		}
 		mLoadedSourceMap.clear();
+#endif
 	}
 
 	void Preprocessor::translate(CodeSource& sorce)
@@ -91,8 +106,9 @@ namespace CPP
 
 				if (bReplaceMarcoText)
 				{
+					//TODO
 					emitCode(StringView(start.mCur, mInput.mCur - start.mCur));
-					//FIXME
+					
 				}
 				else
 				{
@@ -102,11 +118,6 @@ namespace CPP
 			else
 			{
 				mInput.skipToNextLine();
-			}
-
-			if (numLine == 214)
-			{
-				int i = 1;
 			}
 		}
 
@@ -152,9 +163,16 @@ namespace CPP
 #endif
 			break;
 		case HashValue("include"):
-			if (!parseInclude())
+			if (isSkipText())
 			{
+				skipToNextLine();
+			}
+			else
+			{
+				if (!parseInclude())
+				{
 
+				}
 			}
 			break;
 		case HashValue("if"):
@@ -197,16 +215,11 @@ namespace CPP
 			}
 			else
 			{
-				result = EControlPraseResult::RetainText;
-			}
-			break;
-		case HashValue("error"):
-			if (isSkipText())
-			{
-				skipToNextLine();
-			}
-			else
-			{
+				if (parseUndef())
+				{
+
+
+				}
 				result = EControlPraseResult::RetainText;
 			}
 			break;
@@ -233,6 +246,19 @@ namespace CPP
 #else
 			result = EControlPraseResult::RetainText;
 #endif
+			break;
+		case HashValue("error"):
+			if (isSkipText())
+			{
+				skipToNextLine();
+			}
+			else
+			{
+				if (parseError())
+				{
+
+				}
+			}
 			break;
 		default:
 			{
@@ -277,11 +303,13 @@ namespace CPP
 
 		std::string fullPath;
 		if (!findFile(path.toStdString(), fullPath))
-			PARSE_ERROR("Can't find include file");
+			PARSE_ERROR("Can't find include file : %s", fullPath.c_str() );
 
 		skipToNextLine();
 
 		HashString fullPathHS = HashString(fullPath.c_str());
+
+		mUsedFiles.insert(fullPathHS);
 		if (mParamOnceSet.find(fullPathHS) == mParamOnceSet.end())
 		{
 			auto iter = mLoadedSourceMap.find(fullPathHS);
@@ -292,7 +320,7 @@ namespace CPP
 				TPtrHolder< CodeSource > includeSourcePtr(new CodeSource);
 				if (!includeSourcePtr->loadFile(fullPath.c_str()))
 				{
-					PARSE_ERROR("Can't open include file");
+					PARSE_ERROR("Can't load include file : %s" , fullPath.c_str());
 				}
 				includeSource = includeSourcePtr.get();
 				mLoadedSourceMap.emplace(fullPathHS, includeSourcePtr.release());
@@ -309,7 +337,7 @@ namespace CPP
 			{
 				mOutput->push("//Include ");
 				mOutput->push(path);
-				mOutput->pushNewline();
+				mOutput->pushEoL();
 			}
 
 			InputEntry entry;
@@ -317,12 +345,12 @@ namespace CPP
 
 			entry.onChildFinish = [this,path]()
 			{
-				mOutput->pushNewline();
+				mOutput->pushEoL();
 				if (bCommentIncludeFileName)
 				{
 					mOutput->push("//~Include ");
 					mOutput->push(path);
-					mOutput->pushNewline();
+					mOutput->pushEoL();
 				}
 
 				bRequestSourceLine = true;
@@ -357,7 +385,6 @@ namespace CPP
 				return false;
 
 			MarcoSymbol marco;
-			marco.name = marcoName;
 
 			StringView exprText;
 			if (tokenString(exprText))
@@ -396,20 +423,23 @@ namespace CPP
 		if (!tokenString(exprText))
 			return false;
 
-		int exprRet;
+		int exprRet = 0;
+		if (!isSkipText())
 		{
 			std::string exprTextConv;
 			replaceMarco(exprText, exprTextConv);
+
 			CodeLoc exprLoc;
 			exprLoc.mCur = exprTextConv.c_str();
 			exprLoc.mLineCount = 0;
-
-			InputLocScope scope(*this, exprLoc);
-
-			if (!parseExpression(exprRet))
+			if (!parseExpression(exprLoc , exprRet))
 			{
-				PARSE_ERROR("Condition Expresstion of If eval Fail");
+				PARSE_ERROR("Condition Expresstion of If eval Fail : %s" , exprText.toCString());
 			}
+
+			skipSpaceInLine();
+			if (!mInput.isEoF() && !mInput.isEoL())
+				return false;
 		}
 
 		skipToNextLine();
@@ -418,9 +448,12 @@ namespace CPP
 
 	bool Preprocessor::parseIfdef()
 	{
-		int exprRet;
-		if (!parseDefined(exprRet))
-			return false;
+		int exprRet = 0;
+		if (!isSkipText())
+		{
+			if (!parseDefined(exprRet))
+				return false;
+		}
 
 		skipToNextLine();
 		return parseIfInternal(exprRet);
@@ -428,9 +461,12 @@ namespace CPP
 
 	bool Preprocessor::parseIfndef()
 	{
-		int exprRet;
-		if (!parseDefined(exprRet))
-			return false;
+		int exprRet = 0;
+		if (!isSkipText())
+		{
+			if (!parseDefined(exprRet))
+				return false;
+		}
 
 		skipToNextLine();
 		return parseIfInternal(!exprRet);
@@ -445,7 +481,6 @@ namespace CPP
 		{
 			return false;
 		}
-
 		while (haveMore())
 		{
 			bool bElseFind = false;
@@ -462,9 +497,13 @@ namespace CPP
 						PARSE_ERROR("if error");
 					}
 
-					if (!exprRet)
+					if (!exprRet && !isSkipText())
 					{
 						if (!parseExpression(exprRet))
+							return false;
+
+						skipSpaceInLine();
+						if (!mInput.isEoF() && !mInput.isEoL())
 							return false;
 
 						skipToNextLine();
@@ -544,16 +583,34 @@ namespace CPP
 		return true;
 	}
 
+	bool Preprocessor::parseError()
+	{
+		StringView text;
+		tokenString(text);
+		PARSE_ERROR("Error");
+		return true;
+	}
+
+	bool Preprocessor::parseUndef()
+	{
+		StringView idName;
+		if (!tokenIdentifier(idName))
+			return false;
+
+		mMarcoSymbolMap.erase(idName);
+		return true;
+	}
+
 	bool Preprocessor::parseDefined(int& ret)
 	{
 		if (!skipSpaceInLine())
 			return false;
 
-		StringView value;
-		if (!tokenIdentifier(value))
+		StringView idName;
+		if (!tokenIdentifier(idName))
 			return false;
 
-		auto marco = mMarcoSymbolMap.find(value);
+		auto marco = mMarcoSymbolMap.find(idName);
 		ret = (marco == mMarcoSymbolMap.end()) ? 0 : 1;
 		return true;
 	}
@@ -563,7 +620,10 @@ namespace CPP
 		if (!skipSpaceInLine())
 			return false;
 
-		return parseExprOp(ret);
+		if ( !parseExprOp(ret) )
+			return false;
+
+		return true;
 	}
 
 	bool Preprocessor::parseExprOp(int& ret, EOperatorPrecedence::Type precedence /*= 0*/)
@@ -577,8 +637,6 @@ namespace CPP
 
 		if (!parseExprOp(ret, EOperatorPrecedence::Type(precedence + 1)))
 			return false;
-
-		skipSpaceInLine();
 
 		EOperator::Type op;
 		while (tokenOp(precedence, op))
@@ -606,8 +664,7 @@ namespace CPP
 		case '+':
 			if (mInput.mCur[1] == '+')
 			{
-				mInput.advance();
-				mInput.advance();
+				mInput.advanceNoEoL(2);
 				if (!parseExprFactor(ret))
 					return false;
 
@@ -615,7 +672,7 @@ namespace CPP
 			}
 			else
 			{
-				mInput.advance();
+				mInput.advanceNoEoL(1);
 				if (!parseExprFactor(ret))
 					return false;
 			}
@@ -623,8 +680,7 @@ namespace CPP
 		case '-':
 			if (mInput.mCur[1] == '-')
 			{
-				mInput.advance();
-				mInput.advance();
+				mInput.advanceNoEoL(2);
 				if (!parseExprFactor(ret))
 					return false;
 
@@ -632,18 +688,27 @@ namespace CPP
 			}
 			else
 			{
-				mInput.advance();
+				mInput.advanceNoEoL(1);
 				if (!parseExprFactor(ret))
 					return false;
 
 				ret = -ret;
 			}
 			break;
-		case '!':
+		case '~':
 			{
-				mInput.advance();
+				mInput.advanceNoEoL(1);
 				if (!parseExprFactor(ret))
 					return false;
+				ret = ~ret;
+			}
+			break;
+		case '!':
+			{
+				mInput.advanceNoEoL(1);
+				if (!parseExprFactor(ret))
+					return false;
+
 				ret = !ret;
 			}
 			break;
@@ -652,6 +717,7 @@ namespace CPP
 				return false;
 		}
 
+		skipSpaceInLine();
 		return true;
 	}
 
@@ -662,12 +728,13 @@ namespace CPP
 			parseExpression(ret);
 
 			if (!tokenChar(')'))
-				PARSE_ERROR("Error Expression");
+				PARSE_ERROR("Expression is invalid : less \')\'" );
 
 			return true;
 		}
 		else if (tokenNumber(ret))
 		{
+			skipSpaceInLine();
 			return true;
 		}
 		StringView value;
@@ -677,45 +744,75 @@ namespace CPP
 		auto marco = mMarcoSymbolMap.find(value);
 		if (marco == mMarcoSymbolMap.end())
 		{
+			warning("");
 			ret = 0;
 			return true;
 		}
-
-		if (marco->second.evalFrame < mCurFrame)
+		else
 		{
-			CodeLoc exprLoc;
-			exprLoc.mCur = marco->second.expr.c_str();
-			exprLoc.mLineCount = 0;
-			InputLocScope scope(*this, exprLoc);
-			if (!parseExpression(marco->second.cacheEvalValue))
+			if (marco->second.evalFrame < mCurFrame)
 			{
-				PARSE_ERROR("Define is not eval Expresstion");
+				CodeLoc exprLoc;
+				exprLoc.mCur = marco->second.expr.c_str();
+				exprLoc.mLineCount = 0;
+				if (!parseExpression(exprLoc, marco->second.cacheEvalValue))
+				{
+					PARSE_ERROR("Define \"%s\" is not Const Expresstion", (char const*)value.toCString());
+				}
+				marco->second.evalFrame = mCurFrame;
 			}
-			marco->second.evalFrame = mCurFrame;
+
+			ret = marco->second.cacheEvalValue;
 		}
 
-		ret = marco->second.cacheEvalValue;
 		return true;
 	}
 
 	bool Preprocessor::tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType)
 	{
-		int len = FExpressionUitlity::FindOperator( mInput.mCur , precedence , outType );
+#if USE_OPERATION_CACHE
+		if (mParsedCachedOP == EOperator::None)
+		{
+			if (mInput.isEoL())
+			{
+				return false;
+			}
+
+			int len = FExpressionUitlity::FindOperatorToEnd(mInput.mCur, precedence, mParsedCachedOP);
+			if (len == 0)
+				return false;
+
+			assert(len <= 2);
+			mParesedCacheOPPrecedence = FExpressionUitlity::GetOperationInfo(mParsedCachedOP).precedence;
+			mInput.advanceNoEoL(len);
+		}
+
+		if (mParesedCacheOPPrecedence != precedence)
+			return false;
+
+		outType = mParsedCachedOP;
+		mParsedCachedOP = EOperator::None;
+		return true;
+
+#else
+		if (mInput.isEoL())
+		{
+			return false;
+		}
+
+		int len = FExpressionUitlity::FindOperator(mInput.mCur, precedence, outType);
 		if (len == 0)
 			return false;
-		
+
 		assert(len <= 2);
-		mInput.advance();
-		if (len == 2)
-		{
-			mInput.advance();
-		}
+		mInput.advanceNoEoL(len);
 		return true;
+#endif
 	}
 
 	bool Preprocessor::ensureInputValid()
 	{
-		if (mInput.isEof())
+		while (mInput.isEoF())
 		{
 			if (mInputStack.empty())
 				return false;
@@ -733,31 +830,20 @@ namespace CPP
 	bool Preprocessor::haveMore()
 	{
 		ensureInputValid();
-		return !mInput.isEof();
+		return !mInput.isEoF();
 	}
 
-	bool Preprocessor::skipSpace()
-	{
-		while (ensureInputValid())
-		{
-			mInput.skipSpace();
-			if (!mInput.isEof())
-				return true;
-		}
-
-		return false;
-	}
 
 	bool Preprocessor::skipToNextLine()
 	{
-		if (mInput.isEof())
+		if (mInput.isEoF())
 		{
 			ensureInputValid();
 		}
 		else
 		{
 			mInput.skipToNextLine();
-			if (mInput.isEof())
+			if (mInput.isEoF())
 				return false;
 		}
 		return true;
@@ -766,7 +852,7 @@ namespace CPP
 	bool Preprocessor::skipSpaceInLine()
 	{
 		mInput.skipSpaceInLine();
-		return !mInput.isEof();
+		return !mInput.isEoF();
 	}
 
 	bool Preprocessor::tokenChar(char c)
@@ -780,20 +866,21 @@ namespace CPP
 
 	void Preprocessor::replaceMarco(StringView const& text, std::string& outText)
 	{
-		char const* cur = text.data();
-		char const* end = text.data() + text.size();
+		char const* cur = text.begin();
+		char const* end = text.end();
 		while (cur < end)
 		{
 			if (IsValidStartCharForIdentifier(*cur))
 			{
 				char const* pIdStart = cur;
 
-				for (;;)
+				do 
 				{
 					CodeLoc::Advance(cur);
-					if (!IsValidCharForIdentifier(*cur))
+					if (cur >= end)
 						break;
 				}
+				while (IsValidCharForIdentifier(*cur));
 
 				StringView id = StringView(pIdStart, cur - pIdStart);
 
@@ -804,7 +891,7 @@ namespace CPP
 				}
 				else
 				{
-					outText.append(id.data(), id.size());
+					outText.append(id.begin(), id.end());
 				}
 			}
 			else
@@ -831,7 +918,6 @@ namespace CPP
 		return false;
 	}
 
-
 	void Preprocessor::setOutput(CodeOutput& output)
 	{
 		mOutput = &output;
@@ -847,19 +933,25 @@ namespace CPP
 		}
 	}
 
+	void Preprocessor::addDefine(char const* name, int value)
+	{
+		MarcoSymbol marco;
+		marco.expr = FStringConv::From(value);
+		marco.evalFrame = INT_MAX;
+		marco.cacheEvalValue = value;
+		mMarcoSymbolMap.emplace(name, std::move(marco));
+	}
+
 	void Preprocessor::getIncludeFiles(std::vector< HashString >& outFiles)
 	{
-		for( auto& pair : mLoadedSourceMap )
-		{
-			outFiles.push_back(pair.first);
-		}
+		outFiles.insert(outFiles.end(), mUsedFiles.begin(), mUsedFiles.end());
 	}
 
 	void Preprocessor::emitSourceLine(int lineOffset)
 	{
 		FixString< 512 > lineMarco;
-		lineMarco.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, (mInput.source) ? mInput.source->filePath.c_str() : "");
-		mOutput->push(StringView(lineMarco.c_str()));
+		int len = lineMarco.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, (mInput.source) ? mInput.source->filePath.c_str() : "");
+		mOutput->push(StringView(lineMarco.c_str(), len));
 	}
 
 	void Preprocessor::emitCode(StringView const& code)
@@ -885,13 +977,11 @@ namespace CPP
 
 		if (!IsValidStartCharForIdentifier(*mInput.mCur))
 			return false;
-
-		for (;;)
+		do
 		{
 			mInput.advance();
-			if (!IsValidCharForIdentifier(*mInput.mCur))
-				break;
-		}
+		} 
+		while (IsValidCharForIdentifier(*mInput.mCur));
 
 		outIdentifier = StringView(start, mInput.mCur - start);
 		return true;
@@ -953,19 +1043,11 @@ namespace CPP
 		return true;
 	}
 
-	void CodeSource::appendString(char const* str)
+	void CodeSource::appendString(StringView const& str)
 	{
 		if (!mBuffer.empty())
 			mBuffer.pop_back();
-		mBuffer.insert(mBuffer.end(), str, str + strlen(str));
-		mBuffer.push_back(0);
-	}
-
-	void CodeSource::appendString(char const* str , int num)
-	{
-		if (!mBuffer.empty())
-			mBuffer.pop_back();
-		mBuffer.insert(mBuffer.end(), str, str + num);
+		mBuffer.insert(mBuffer.end(), str.begin() , str.end());
 		mBuffer.push_back(0);
 	}
 
@@ -984,12 +1066,8 @@ namespace CPP
 			int first;
 			int last;
 		};
-		struct OpInfo
-		{
-			EOperator::Type type;
-			StaticString    text;
-		};
 
+		//TODO
 		static const OpRange PrecedenceOpRange[] =
 		{
 			{0,0},
@@ -1002,12 +1080,6 @@ namespace CPP
 			{11,12},
 			{13,14},
 			{15,17},
-		};
-		static const OpInfo OpInfos[] =
-		{
-#define OPINFO_OP( NAME , OP , P ) { EOperator::NAME , #OP } ,
-				BINARY_OPERATOR_LIST(OPINFO_OP)
-#undef OPINFO_OP
 		};
 
 		OpRange range = PrecedenceOpRange[precedence];
@@ -1039,11 +1111,56 @@ namespace CPP
 		return 0;
 	}
 
-	CPP::OperationInfo FExpressionUitlity::GetOperationInfo(EOperator::Type type)
+	int FExpressionUitlity::FindOperatorToEnd(char const* code, EOperatorPrecedence::Type precedenceStart, EOperator::Type& outType)
+	{
+		static const int PrecedenceStartIndex[] =
+		{
+			0,
+			1,
+			2,
+			3,
+			4,
+			6,
+			10,
+			12,
+			14,
+			17,
+		};
+
+		for (int index = PrecedenceStartIndex[precedenceStart]; index >= 0; --index)
+		{
+			OperationInfo const& info = GetOperationInfo(EOperator::Type(index));
+
+			assert(info.text.size() <= 2);
+			if (code[0] != info.text[0])
+				continue;
+			
+			if (info.text.size() == 2)
+			{
+				if (code[1] != info.text[1])
+				{
+					continue;
+				}
+			}
+			else
+			{
+				// '||' and '&&' case
+				if (code[1] == '|' || code[1] == '&')
+					continue;
+			}
+
+			outType = info.type;
+			return info.text.size();
+
+		}
+		return 0;
+	}
+
+	OperationInfo FExpressionUitlity::GetOperationInfo(EOperator::Type type)
 	{
 		static const OperationInfo OpInfos[] =
 		{
-#define OPINFO_OP( NAME , OP , P ) { EOperator::NAME , #OP } ,
+#define OPINFO_OP( NAME , OP , P ) { EOperator::NAME , #OP , P } ,
 				BINARY_OPERATOR_LIST(OPINFO_OP)
 #undef OPINFO_OP
 		};

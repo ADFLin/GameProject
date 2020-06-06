@@ -13,9 +13,10 @@
 
 #include <iterator>
 
-extern CORE_API TConsoleVariable< bool > gbUseShaderCacheCom;
+extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
+
 #if CORE_SHARE_CODE
-TConsoleVariable< bool > gbUseShaderCacheCom( true , "bUseShaderCache" );
+TConsoleVariable< bool > CVarShaderUseCache( true , "Shader.bUseCache" , CVF_CONFIG );
 #endif
 
 namespace Render
@@ -175,10 +176,10 @@ namespace Render
 
 		bool loadCacheData(ShaderFormat& format, ShaderProgramCompileInfo& info)
 		{
-			if( !format.isSupportBinaryCode() )
+			if (!CVarShaderUseCache.getValue())
 				return false;
 
-			if( !gbUseShaderCacheCom.getValue() )
+			if( !format.isSupportBinaryCode() )
 				return false;
 
 			DataCacheKey key;

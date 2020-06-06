@@ -242,7 +242,8 @@ namespace Lighting2D
 		RenderUtility::SetFont( g , FONT_S8 );
 		FixString< 256 > str;
 		Vec2i pos = Vec2i( 10 , 10 );
-		g.drawText( pos , str.format( "Lights Num = %u" , lights.size() ) );
+		str.format("Lights Num = %u", lights.size());
+		g.drawText( pos , str );
 
 		g.endRender();
 	}

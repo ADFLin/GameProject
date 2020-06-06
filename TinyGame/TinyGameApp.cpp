@@ -5,7 +5,7 @@
 #include "GLGraphics2D.h"
 #include "RenderUtility.h"
 
-#include "PropertyKey.h"
+#include "PropertySet.h"
 #include "InputManager.h"
 #include "FileSystem.h"
 #include "ProfileSystem.h"
@@ -46,6 +46,7 @@
 
 
 #define GAME_SETTING_PATH "Game.ini"
+#define CONFIG_SECTION "SystemSetting"
 
 int g_DevMsgLevel = -1;
 
@@ -80,6 +81,48 @@ namespace EOutputColor
 	};
 }
 
+class FConsoleConfigUtilities
+{
+public:
+	static int Export(PropertySet& configs, char const* sectionGroup)
+	{
+		int result = 0;
+		ConsoleSystem::Get().visitAllVariables(
+			[sectionGroup, &configs ,&result](VariableConsoleCommadBase* var)
+			{
+				if (var->getFlags() & CVF_CONFIG)
+				{
+					configs.setKeyValue(var->name.c_str(), sectionGroup, var->toString().c_str());
+					++result;
+				}
+			}
+		);
+		return result;
+	}
+
+	static int Import(PropertySet& configs, char const* sectionGroup)
+	{
+		int result = 0;
+		configs.visitGroup(sectionGroup , 
+			[&configs, &result](char const* key, KeyValue const& value)
+			{
+			   auto com = ConsoleSystem::Get().findCommand(key);
+			   if (com)
+			   {
+				   auto var = com->asVariable();
+				   if ( var && (var->getFlags() & CVF_CONFIG) )
+				   {
+					   if (var->fromString(value.getStringView()))
+					   {
+						   ++result;
+					   }				   
+				   }
+			   }
+			}
+		);
+		return result;
+	}
+};
 class GameLogPrinter : public LogOutput
 	                 , public IDebugInterface
 {
@@ -288,8 +331,9 @@ bool TinyGameApp::initializeGame()
 	if (!createWindowInternal(mGameWindow, gDefaultScreenWidth, gDefaultScreenHeight, TEXT("Tiny Game")))
 		return false;
 
-
 	ConsoleSystem::Get().initialize();
+
+	FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION);
 
 	::Global::Initialize();
 
@@ -354,6 +398,8 @@ void TinyGameApp::finalizeGame()
 
 void TinyGameApp::cleanup()
 {
+	FConsoleConfigUtilities::Export(Global::GameConfig(), CONFIG_SECTION);
+
 	StageManager::cleanup();
 
 	closeNetwork();
@@ -708,7 +754,8 @@ void TinyGameApp::render( float dframe )
 		FixString< 256 > str;
 		RenderUtility::SetFont(g, FONT_S8);
 		g.setTextColor(Color3ub(255, 255, 0));
-		g.drawText(Vec2i(5, 5), str.format("FPS = %3.1f", mFPSCalc.getFPS()));
+		str.format("FPS = %3.1f", mFPSCalc.getFPS());
+		g.drawText(Vec2i(5, 5), str);
 		//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
 	}
 
@@ -756,7 +803,7 @@ void TinyGameApp::render( float dframe )
 
 void TinyGameApp::exportUserProfile()
 {
-	PropertyKey& setting = Global::GameConfig();
+	PropertySet& setting = Global::GameConfig();
 	UserProfile& userPorfile = Global::GetUserProfile();
 
 	userPorfile.name = setting.getStringValue( "Name" , "Player" , "Player" );
@@ -779,7 +826,7 @@ void TinyGameApp::exportUserProfile()
 
 void TinyGameApp::importUserProfile()
 {
-	PropertyKey& setting = Global::GameConfig();
+	PropertySet& setting = Global::GameConfig();
 
 	UserProfile& userPorfile = Global::GetUserProfile();
 

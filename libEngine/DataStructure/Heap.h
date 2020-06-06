@@ -185,18 +185,18 @@ protected:
 
 
 template < class KT , class CmpFunc = std::less< KT > >
-class TFibonaccilHeap : public TreeHeapBase
+class TFibonacciHeap : public TreeHeapBase
 {
 public:
 
-	TFibonaccilHeap()
+	TFibonacciHeap()
 	{
 		mNumNode = 0;
 		mNodeMin = nullptr;
 		mRoot.init();
 	}
 
-	~TFibonaccilHeap()
+	~TFibonacciHeap()
 	{
 		cleanupNode();
 	}

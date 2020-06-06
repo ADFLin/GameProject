@@ -375,10 +375,12 @@ public:
 
 
 		FixString<246> str;
-		g.drawText(200, 10, str.format("%f %f", mPosOnMouse.x, mPosOnMouse.y));
+		str.format("%f %f", mPosOnMouse.x, mPosOnMouse.y);
+		g.drawText(200, 10, str);
 		if( mSelectRect.isEnable() )
 		{
-			g.drawText(200, 10 + 15, str.format("%f %f", mPosRectCenter.x, mPosRectCenter.y));
+			str.format("%f %f", mPosRectCenter.x, mPosRectCenter.y);
+			g.drawText(200, 10 + 15, str);
 		}
 		g.endRender();
 	}

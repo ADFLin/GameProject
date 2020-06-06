@@ -50,8 +50,11 @@ namespace Cantan
 				MapCell* cell = *iter;
 				Vector2 rPos = convertToScreenPos( cell->pos );
 				g.drawCircle( rPos , 3 );
-				if ( drawCoord )
-					g.drawText( rPos , str.format("(%d %d)" , cell->pos.x , cell->pos.y) );
+				if (drawCoord)
+				{
+					str.format("(%d %d)", cell->pos.x, cell->pos.y);
+					g.drawText(rPos, str);
+				}
 
 			}
 
@@ -73,8 +76,11 @@ namespace Cantan
 				MapCell::Vertex* v = *iter;
 				Vector2 rPos = convertToScreenPos( v->pos );
 				g.drawCircle( rPos , 3 );
-				if ( drawCoord )
-					g.drawText( rPos , str.format("(%d %d)" , v->pos.x , v->pos.y) );
+				if (drawCoord)
+				{
+					str.format("(%d %d)", v->pos.x, v->pos.y);
+					g.drawText(rPos, str);
+				}
 			}
 
 		}

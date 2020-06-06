@@ -8,7 +8,7 @@
 #include "RandomUtility.h"
 #include "Widget/WidgetUtility.h"
 #include "GameGlobal.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 #include "FileSystem.h"
 #include "InputManager.h"
 #include "ConsoleSystem.h"
@@ -65,7 +65,7 @@ namespace Go
 					--subName;
 				}
 
-				if( !LeelaWeightTable::IsOfficialFormat(fileIter.getFileName(), subName) )
+				if( !LeelaWeightTable::IsOfficialFormat( fileIter.getFileName(), subName ) )
 					continue;
 
 
@@ -224,9 +224,9 @@ namespace Go
 
 		VERIFY_RETURN_FALSE( mProgUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaProgram >( true ) );
 
-		LeelaAppRun::InstallDir = ::Global::GameConfig().getStringValue("LeelaZeroInstallDir", "Go" , "E:/Desktop/LeelaZero");
-		KataAppRun::InstallDir = ::Global::GameConfig().getStringValue("KataInstallDir", "Go", "E:/Desktop/KataGo");
-		AQAppRun::InstallDir = ::Global::GameConfig().getStringValue("AQInstallDir", "Go", "E:/Desktop/AQ");
+		LeelaAppRun::InstallDir = ::Global::GameConfig().getStringValue("Leela.InstallDir", "Go" , "E:/Desktop/LeelaZero");
+		KataAppRun::InstallDir = ::Global::GameConfig().getStringValue("Kata.InstallDir", "Go", "E:/Desktop/KataGo");
+		AQAppRun::InstallDir = ::Global::GameConfig().getStringValue("AQ.InstallDir", "Go", "E:/Desktop/AQ");
 		
 
 		::Global::GUI().cleanupWidget();
@@ -1297,11 +1297,11 @@ namespace Go
 		if( !bestWeigetName.empty() )
 		{
 			weightName = bestWeigetName.c_str();
-			::Global::GameConfig().setKeyValue("LeelaLastMatchWeight", "Go", weightName);
+			::Global::GameConfig().setKeyValue("Leela.LastMatchWeight", "Go", weightName);
 		}
 		else
 		{
-			weightName = Global::GameConfig().getStringValue("LeelaLastMatchWeight", "Go", DERAULT_LEELA_WEIGHT_NAME);
+			weightName = Global::GameConfig().getStringValue("Leela.LastMatchWeight", "Go", DERAULT_LEELA_WEIGHT_NAME);
 		}
 		{
 			if( !mMatchData.players[0].initialize(ControllerType::ePlayer) )
@@ -1325,7 +1325,7 @@ namespace Go
 
 	bool LeelaZeroGoStage::buildLeelaMatchMode()
 	{
-		char const* weightNameA = ::Global::GameConfig().getStringValue( "LeelaLastOpenWeight" , "Go" , DERAULT_LEELA_WEIGHT_NAME );
+		char const* weightNameA = ::Global::GameConfig().getStringValue( "Leela.LastOpenWeight" , "Go" , DERAULT_LEELA_WEIGHT_NAME );
 
 		FixString<256> path;
 		path.format("%s/%s/%s" , LeelaAppRun::InstallDir , LEELA_NET_DIR_NAME ,  weightNameA );
@@ -1333,7 +1333,7 @@ namespace Go
 		if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr, nullptr , ::Global::GetDrawEngine().getWindowHandle()))
 		{
 			weightNameA = FileUtility::GetFileName(path);
-			::Global::GameConfig().setKeyValue("LeelaLastOpenWeight", "Go", weightNameA);
+			::Global::GameConfig().setKeyValue("Leela.LastOpenWeight", "Go", weightNameA);
 		}
 
 		std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
@@ -1940,7 +1940,7 @@ namespace Go
 							}
 							if( index == ELFWeights.size() )
 							{
-								::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+								::Global::GameConfig().setKeyValue("Leela.LastNetWeight", "Go", com.strParam);
 							}
 						}
 						break;
@@ -1959,7 +1959,7 @@ namespace Go
 						LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 					}
 
-					if( mGame.getInstance().getCurrentStep() - 1 >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
+					if( mGame.getInstance().getCurrentStep() - 1 >= ::Global::GameConfig().getIntValue( "Leela.LearnMaxSetp" , "Go" , 400 ) )
 					{
 						mbRestartLearning = true;
 						return;
@@ -2265,8 +2265,7 @@ namespace Go
 		choice = addChoice(UI_FIXED_HANDICAP, "Fixed Handicap", 0, sortOrder);
 		for( int i = 0; i <= 9; ++i )
 		{
-			FixString<128> str;
-			choice->addItem(str.format("%d", i));
+			choice->addItem(FStringConv::From(i));
 		}
 		choice->setSelection(0);
 
@@ -2314,7 +2313,8 @@ namespace Go
 		textCtrl->setValue(std::to_string(setting.numSimulations).c_str());
 		textCtrl = addTextCtrl(id + UPARAM_MAX_TIME, "Max Time", BIT(idxPlayer), idxPlayer);
 		FixString<512> valueStr;
-		textCtrl->setValue(valueStr.format("%g", setting.maxTime));
+		valueStr.format("%g", setting.maxTime);
+		textCtrl->setValue(valueStr);
 	}
 
 	GChoice* MatchSettingPanel::addPlayerChoice(int idxPlayer, char const* title)

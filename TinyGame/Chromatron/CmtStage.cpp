@@ -17,7 +17,7 @@
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
 #include "RenderUtility.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 
 
 

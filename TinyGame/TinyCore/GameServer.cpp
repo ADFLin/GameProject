@@ -7,6 +7,7 @@ int const CLIENT_GROUP = 1;
 #define SERVER_USE_CONNECTED_UDP 1
 
 TConsoleVariable<bool> CVarSvUseConnectedUDP(false, "sv.UseConnectedUDP");
+
 ServerWorker::ServerWorker()
 	:NetWorker()
 	,mEventResolver( nullptr )

@@ -331,10 +331,9 @@ namespace Go
 			RenderUtility::SetFontColor(g, EColor::Purple);
 			RenderUtility::SetFont(g, FONT_S8);
 			FixString< 128 > str;
-			g.drawText(pos, str.format("%d", value));
+			str.format("%d", value);
+			g.drawText(pos, str);
 #endif
-
-
 
 		}
 	}

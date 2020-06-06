@@ -55,7 +55,7 @@ class GLGraphics2D;
 class GameModuleManager;
 class AssetManager;
 class IGameInstance;
-class PropertyKey;
+class PropertySet;
 class GUISystem;
 struct UserProfile;
 class NetWorker;
@@ -100,7 +100,7 @@ public:
 
 	static TINY_API IGameNetInterface&   GameNet();
 	static TINY_API IDebugInterface&     Debug();
-	static TINY_API PropertyKey&         GameConfig();
+	static TINY_API PropertySet&         GameConfig();
 	static TINY_API GUISystem&           GUI();
 	
 	static TINY_API DrawEngine&   GetDrawEngine();

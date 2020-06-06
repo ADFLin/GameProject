@@ -231,8 +231,8 @@ namespace MRT
 
 			Vec2i posMid = ( posA + posB ) / 2;
 			g.drawLine(posA + sizeA / 2, posB + sizeB / 2);
-			FixString< 128 > str;
-			g.drawText(posMid, str.format("%.2f", link->distance));
+			FixString< 128 > str; str.format("%.2f", link->distance);
+			g.drawText(posMid, str);
 		}
 	}
 
@@ -363,7 +363,8 @@ struct FooFunc
 			FixString< 32 > str;
 			process = num;
 			GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON , Vec2i( 100 , 100 + 30 * process ) , Vec2i( 100 , 20 ) , nullptr );
-			button->setTitle( str.format( "%d" , num ) );
+			str.format("%d", num);
+			button->setTitle( str );
 			::Global::GUI().addWidget( button );
 			ca( process );
 		}
@@ -975,9 +976,8 @@ void MyMethod()
 	int count = 0;
 	while( !heap.empty() )
 	{
-		FixString< 1024 > temp;
 		++count;
-		str += temp.format( "%d " , heap.top() );
+		str += FStringConv::From(heap.top());
 		if ( count == 30 )
 		{
 			count = 0;
@@ -991,14 +991,14 @@ void MyMethod()
 
 void TestHeap()
 {
-	typedef TFibonaccilHeap< int > MyHeap;
+	typedef TFibonacciHeap< int > MyHeap;
 	MyHeap heap;
 	heap.push(4);
 	heap.push(2);
 	heap.push(7);
 	MyHeap::NodeHandle handle = heap.push(10);
 	heap.update(handle, 1);
-	LogMsg( "%d" , heap.top() );
+	LogMsg("%d", heap.top());
 	heap.pop();
 	LogMsg("%d", heap.top());
 	heap.pop();
@@ -1007,7 +1007,7 @@ void TestHeap()
 	LogMsg("%d", heap.top());
 
 #if 1
-	MyMethod< TFibonaccilHeap< int > >();
+	MyMethod< TFibonacciHeap< int > >();
 	MyMethod< TPairingHeap< int > >();
 	MyMethod< TBinaryHeap< int > >();
 #endif

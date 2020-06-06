@@ -6,6 +6,12 @@
 #include <sstream>
 #include "CPreprocessor.h"
 
+#define AA  1
+#define BB  1
+#define AABB 1
+#define CC CC
+#define DD BB
+
 void PreprocessorTest()
 {
 	using namespace CPP;

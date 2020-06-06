@@ -18,7 +18,12 @@
 
 #include <string>
 #include <map>
+#include "Core/StringConv.h"
 
+enum EConsoleVariableFlag
+{
+	CVF_CONFIG = 1 << 0,
+};
 
 struct ConsoleArgTypeInfo
 {
@@ -98,6 +103,7 @@ struct TCommandFuncTraints< RT(T::*)(Args...) >
 };
 
 
+class VariableConsoleCommadBase;
 
 class ConsoleCommandBase
 {
@@ -110,6 +116,7 @@ public:
 
 	virtual void execute( void* argsData[] ) = 0;
 	virtual void getValue( void* pDest ){}
+	virtual VariableConsoleCommadBase* asVariable() { return nullptr; }
 
 };
 
@@ -133,10 +140,10 @@ struct TMemberFuncConsoleCom : public ConsoleCommandBase
 };
 
 template < class TFunc >
-struct BaseFuncConsoleCom : public ConsoleCommandBase
+struct BaseFuncConsoleCommand : public ConsoleCommandBase
 {
 	TFunc mFunc;
-	BaseFuncConsoleCom( char const* inName, TFunc inFunc)
+	BaseFuncConsoleCommand( char const* inName, TFunc inFunc)
 		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() )
 		,mFunc(inFunc)
 	{
@@ -148,16 +155,44 @@ struct BaseFuncConsoleCom : public ConsoleCommandBase
 	}
 };
 
+class VariableConsoleCommadBase : public ConsoleCommandBase
+{
+public:
+	VariableConsoleCommadBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs, uint32 flags)
+		:ConsoleCommandBase(inName, inArgs)
+		, mFlags(flags)
+	{
+
+	}
+
+	virtual VariableConsoleCommadBase* asVariable() { return this; }
+	virtual std::string toString() const = 0;
+	virtual bool fromString(StringView const& str) = 0;
+
+	uint32 getFlags() { return mFlags; }
+	uint32 mFlags;
+};
 
 template < class Type >
-struct TVariableConsoleCommad : public ConsoleCommandBase
+struct TVariableConsoleCommad : public VariableConsoleCommadBase
 {
 	Type* mPtr;
 
-	TVariableConsoleCommad( char const* inName, Type* inPtr )
-		:ConsoleCommandBase(inName, GetArg() )
+	TVariableConsoleCommad( char const* inName, Type* inPtr , uint32 flags = 0)
+		:VariableConsoleCommadBase(inName, GetArg() , flags)
 		,mPtr(inPtr)
 	{
+
+	}
+
+	virtual std::string toString() const
+	{
+		return FStringConv::From(*mPtr);
+	}
+
+	virtual bool fromString(StringView const& str)
+	{
+		return FStringConv::ToCheck(str.data(), str.length(), *mPtr);
 	}
 
 	static TArrayView< ConsoleArgTypeInfo const > GetArg()
@@ -221,9 +256,23 @@ public:
 	template < class TFunc >
 	void registerCommand( char const* name , TFunc func )
 	{
-		auto* command = new BaseFuncConsoleCom<TFunc>( name ,func );
+		auto* command = new BaseFuncConsoleCommand<TFunc>( name ,func );
 		insertCommand(command);
 	}
+
+	template < class TFunc >
+	void  visitAllVariables(TFunc&& visitFunc)
+	{
+		for (auto const& pair : mNameMap)
+		{
+			auto variable = pair.second->asVariable();
+			if (variable)
+			{
+				visitFunc(variable);
+			}
+		}
+	}
+
 
 protected:
 
@@ -265,10 +314,10 @@ template< class T >
 class TConsoleVariable
 {
 public:
-	TConsoleVariable(T const& val , char const* name )
+	TConsoleVariable(T const& val , char const* name, uint32 flags = 0)
 		:mValue(val)
 	{
-		mCommand = new TVariableConsoleCommad<T>( name , &mValue );
+		mCommand = new TVariableConsoleCommad<T>( name, &mValue, flags);
 		ConsoleSystem::Get().insertCommand(mCommand);
 	}
 	~TConsoleVariable()
@@ -292,10 +341,10 @@ template< class T >
 class TConsoleVariableRef
 {
 public:
-	TConsoleVariableRef(T& val, char const* name)
+	TConsoleVariableRef(T& val, char const* name, uint32 flags = 0)
 		:mValueRef(val)
 	{
-		mCommand = new TVariableConsoleCommad<T>(name, &mValueRef);
+		mCommand = new TVariableConsoleCommad<T>(name, &mValueRef, flags);
 		ConsoleSystem::Get().insertCommand(mCommand);
 	}
 	~TConsoleVariableRef()

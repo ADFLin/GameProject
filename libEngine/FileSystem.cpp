@@ -325,5 +325,5 @@ StringView FileUtility::CutDirAndExtension(char const* filePath)
 	{
 		return StringView(fileName, subName - fileName - 1);
 	}
-	return StringView(fileName);
+	return fileName;
 }

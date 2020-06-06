@@ -8,7 +8,7 @@
 
 #include "CSyncFrameManager.h"
 #include "RenderUtility.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"

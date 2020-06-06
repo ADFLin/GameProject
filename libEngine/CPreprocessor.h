@@ -35,45 +35,52 @@ namespace CPP
 	};
 
 #define BINARY_OPERATOR_LIST(op)\
-		op( LogicalOR  , || , EOperatorPrecedence::LogicalOR )\
-		op( LogicalAND , && , EOperatorPrecedence::LogicalAND )\
-		op( BitwiseOR  , | , EOperatorPrecedence::BitwiseOR )\
-		op( BitwiseXOR , ^ , EOperatorPrecedence::BitwiseXOR )\
-		op( BitwiseAND , & , EOperatorPrecedence::BitwiseAND )\
-		op( EQ , == , EOperatorPrecedence::Equality )\
-		op( NEQ, != , EOperatorPrecedence::Equality )\
-		op(	CompGE, >= , EOperatorPrecedence::Comparsion )\
-		op( CompG , > , EOperatorPrecedence::Comparsion )\
-		op( CompLE, <= , EOperatorPrecedence::Comparsion )\
-		op( CompL , < , EOperatorPrecedence::Comparsion )\
-		op( LShift, <<  , EOperatorPrecedence::Shift )\
-		op( RShift, >> , EOperatorPrecedence::Shift )\
-		op( Add , + , EOperatorPrecedence::Addition )\
-		op( Sub , - , EOperatorPrecedence::Addition )\
-		op( Mul , * , EOperatorPrecedence::Multiplication)\
-		op( Div , / , EOperatorPrecedence::Multiplication)\
-		op( Rem , % , EOperatorPrecedence::Multiplication)\
+	op( LogicalOR  , || , EOperatorPrecedence::LogicalOR )\
+	op( LogicalAND , && , EOperatorPrecedence::LogicalAND )\
+	op( BitwiseOR  , | , EOperatorPrecedence::BitwiseOR )\
+	op( BitwiseXOR , ^ , EOperatorPrecedence::BitwiseXOR )\
+	op( BitwiseAND , & , EOperatorPrecedence::BitwiseAND )\
+	op( EQ , == , EOperatorPrecedence::Equality )\
+	op( NEQ, != , EOperatorPrecedence::Equality )\
+	op(	CompGE, >= , EOperatorPrecedence::Comparsion )\
+	op( CompG , > , EOperatorPrecedence::Comparsion )\
+	op( CompLE, <= , EOperatorPrecedence::Comparsion )\
+	op( CompL , < , EOperatorPrecedence::Comparsion )\
+	op( LShift, <<  , EOperatorPrecedence::Shift )\
+	op( RShift, >> , EOperatorPrecedence::Shift )\
+	op( Add , + , EOperatorPrecedence::Addition )\
+	op( Sub , - , EOperatorPrecedence::Addition )\
+	op( Mul , * , EOperatorPrecedence::Multiplication)\
+	op( Div , / , EOperatorPrecedence::Multiplication)\
+	op( Rem , % , EOperatorPrecedence::Multiplication)\
+
+#define UNARY_OPERATOR_LIST(op)\
+	op( Plus , + , EOperatorPrecedence::Preifx)\
+	op( Minus , - , EOperatorPrecedence::Preifx)\
+	op( LogicalNOT , ! , EOperatorPrecedence::Preifx)\
+	op( BitwiseNOT , ~ , EOperatorPrecedence::Preifx)\
+	op( Inc , ++ , EOperatorPrecedence::Preifx)\
+	op( Dec , -- , EOperatorPrecedence::Preifx)\
 
 	namespace EOperator
 	{
 		enum Type
 		{
+			None = -1,
 #define ENUM_OP( NAME , OP , P ) NAME ,
 			BINARY_OPERATOR_LIST(ENUM_OP)
-
+			UNARY_OPERATOR_LIST(ENUM_OP)
 #undef ENUM_OP
-			Plus,
-			Minus,
-			LogicalNOT,
-			BitwiseNOT,
 
+			BINARY_OPERATOR_COUNT = Plus,
 		};
 	};
 
 	struct OperationInfo
 	{
 		EOperator::Type type;
-		StaticString  text;
+		StaticString    text;
+		EOperatorPrecedence::Type precedence;
 	};
 
 	class CodeOutput
@@ -84,7 +91,7 @@ namespace CPP
 		{
 		}
 
-		void pushNewline() { push("\r\n", 2); }
+		void pushEoL() { push("\r\n", 2); }
 		void pushSpace(int num = 1)
 		{
 			for( int i = 0; i < num; ++i )
@@ -108,6 +115,7 @@ namespace CPP
 	{
 	public:
 		static int FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType);
+		static int FindOperatorToEnd(char const* code, EOperatorPrecedence::Type precedenceStart, EOperator::Type& outType);
 		static OperationInfo GetOperationInfo(EOperator::Type type);
 	};
 
@@ -151,21 +159,6 @@ namespace CPP
 			}
 		}
 
-		void skipSpace()
-		{
-			while (*mCur)
-			{
-				if (!FCString::IsSpace(*mCur))
-					break;
-
-				if (*mCur == '\n')
-				{
-					++mLineCount;
-				}
-				++mCur;
-			}
-		}
-
 		void skipSpaceInLine()
 		{
 			while (*mCur)
@@ -192,6 +185,17 @@ namespace CPP
 			}
 		}
 
+		void advanceNoEoL(int offset)
+		{
+			assert(FStringParse::CountChar(mCur, mCur + offset, '\n') == 0);
+
+			mCur += offset;
+			if (SkipConcat(mCur))
+			{
+				++mLineCount;
+			}
+		}
+
 		void advance()
 		{
 			if (mCur[0] == '\n')
@@ -207,7 +211,8 @@ namespace CPP
 			}
 		}
 
-		bool isEof() const { return *mCur == 0; }
+		bool isEoF() const { return *mCur == 0; }
+		bool isEoL() const { return *mCur == '\n'; }
 
 		static bool SkipConcat(char const*& Code)
 		{
@@ -232,7 +237,7 @@ namespace CPP
 			++code;
 			SkipConcat(code);
 		}
-		static void Backward(char const*& code)
+		static bool Backward(char const*& code)
 		{
 			--code;
 			if (code[0] == '\n')
@@ -240,12 +245,15 @@ namespace CPP
 				if (code[-1] == '\\')
 				{
 					code -= 2;
+					return true;
 				}
 				else if (code[-1] == '\r' && code[-2] == '\\')
 				{
 					code -= 3;
+					return true;
 				}
 			}
+			return false;
 		}
 		static bool SkipBOM(char const*& code)
 		{
@@ -267,8 +275,7 @@ namespace CPP
 	class CodeSource
 	{
 	public:
-		void appendString(char const* str);
-		void appendString(char const* str, int num);
+		void appendString(StringView const& str);
 		bool loadFile(char const* path);
 
 		HashString    filePath;
@@ -323,23 +330,7 @@ namespace CPP
 	class SyntaxError : public std::exception
 	{
 	public:
-		STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( SyntaxError )
-	};
-
-	struct MarcoSymbol
-	{
-		StringView  name;
-		std::string expr;
-
-		struct ArgEntry
-		{
-			int indexArg;
-			int pos;
-		};
-		std::vector< ArgEntry > argEntries;
-		
-		int cacheEvalValue;
-		int evalFrame;
+		STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT(SyntaxError)
 	};
 
 	class Preprocessor
@@ -351,12 +342,7 @@ namespace CPP
 		void translate(CodeSource& sorce);
 		void setOutput(CodeOutput& output);
 		void addSreachDir(char const* dir);
-		void addDefine(char const* name, int value)
-		{
-
-
-
-		}
+		void addDefine(char const* name, int value);
 
 		void getIncludeFiles(std::vector< HashString >& outFiles);
 
@@ -386,19 +372,25 @@ namespace CPP
 		bool parseIfInternal(int exprRet);
 
 		bool parsePragma();
+		bool parseError();
+		bool parseUndef();
 		bool parseDefined(int& ret);
 
 		bool parseExpression(int& ret);
+		bool parseExpression(CodeLoc const& loc, int& ret)
+		{
+			InputLocScope scope(*this, loc);
+			return parseExpression(ret);
+		}
+
 		bool tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType);
 		bool parseExprOp(int& ret , EOperatorPrecedence::Type precedence = EOperatorPrecedence::Type(0));
 		bool parseExprFactor(int& ret);
 		bool parseExprValue(int& ret);
 
-		int mCurFrame = 0;
 
 		bool ensureInputValid();
 		bool haveMore();
-		bool skipSpace();
 		bool skipToNextLine();
 		bool skipSpaceInLine();
 		bool tokenChar(char c);
@@ -441,11 +433,28 @@ namespace CPP
 			return true;
 		}
 
+
+		struct MarcoSymbol
+		{
+			StringView  name;
+			std::string expr;
+
+			struct ArgEntry
+			{
+				int indexArg;
+				int pos;
+			};
+			std::vector< ArgEntry > argEntries;
+
+			int cacheEvalValue;
+			int evalFrame;
+		};
+
 		int mIfScopeDepth;
 		std::unordered_map< HashString, MarcoSymbol > mMarcoSymbolMap;
-
-
+		int mCurFrame = 0;
 		bool bRequestSourceLine = false;
+		
 		void emitSourceLine(int lineOffset = 0);
 		void emitCode(StringView const& code);
 
@@ -489,7 +498,13 @@ namespace CPP
 
 		std::unordered_set< HashString >  mParamOnceSet;
 		std::vector< std::string > mFileSreachDirs;
-		std::unordered_map< HashString, CodeSource* > mLoadedSourceMap;
+		std::unordered_set< HashString >  mUsedFiles;
+
+
+		EOperator::Type mParsedCachedOP = EOperator::None;
+		EOperatorPrecedence::Type mParesedCacheOPPrecedence;
+
+		static std::unordered_map< HashString, CodeSource* > mLoadedSourceMap;
 
 		friend class ExpressionEvaluator;
 	};

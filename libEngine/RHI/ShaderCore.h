@@ -5,10 +5,11 @@
 #include "RHICommon.h"
 
 #include "HashString.h"
-#include "FixString.h"
+#include "Core/StringConv.h"
 
 #include <vector>
 #include <unordered_map>
+
 
 namespace Render
 {
@@ -37,16 +38,14 @@ namespace Render
 		{
 			ConfigVar var;
 			var.name = name;
-			FixString<128> str;
-			var.value = str.format("%d", value);
+			var.value = FStringConv::From(value);
 			mConfigVars.push_back(var);
 		}
 		void addDefine(char const* name, float value)
 		{
 			ConfigVar var;
 			var.name = name;
-			FixString<128> str;
-			var.value = str.format("%f", value);
+			var.value = FStringConv::From(value);
 			mConfigVars.push_back(var);
 		}
 		void addDefine(char const* name)

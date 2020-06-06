@@ -3,6 +3,10 @@
 
 #include "CString.h"
 #include "Template/StringView.h"
+#include "Meta/EnableIf.h"
+#include "Meta/MetaBase.h"
+
+#define FIXSTRING_USE_LENGTH_MEMBER 0
 
 template< int N , class T = TChar >
 class FixString
@@ -10,18 +14,44 @@ class FixString
 	typedef T CharT;
 	typedef typename TStringTraits< CharT >::StdString StdString;
 public:
-	FORCEINLINE FixString() { mData[0] = 0; }
-	FORCEINLINE explicit FixString(CharT const* str) { assign(str); }
-	FORCEINLINE explicit FixString(CharT const* str, int num) { FCString::CopyN(mData, str, num); }
+	FORCEINLINE FixString()
+	{
+		mData[0] = 0;
+#if FIXSTRING_USE_LENGTH_MEMBER
+		mLength = 0;
+#endif
+	}
+
+	FORCEINLINE explicit FixString(CharT const* str, int num) { assign(str, num); }
+
+	template< typename Q >
+	explicit FixString(Q str, typename TEnableIf< Meta::IsSameType< T const*, Q >::Value >::Type* = 0)
+	{
+		assign(str);
+	}
+
+	template< size_t N >
+	explicit FixString(T const (&str)[N])
+	{
+		assign(str, N);
+	}
+
 	template< int M >
-	FORCEINLINE FixString(FixString< M, CharT > const& other) { assign(other.mData); }
-	FORCEINLINE FixString(StdString const& str) { assign(str.c_str()); }
+	FORCEINLINE FixString(FixString< M, CharT > const& other) 
+	{ 
+#if FIXSTRING_USE_LENGTH_MEMBER
+		assign(other.mData , other.mLength);
+#else
+		assign(other.mData);
+#endif
+	}
+	FORCEINLINE FixString(StdString const& str) { assign(str.c_str(), str.length()); }
 
 	FORCEINLINE FixString& operator = (CharT const* str) { assign(str); return *this; }
 	FORCEINLINE FixString& operator = (FixString< N, CharT > const& other) { assign(other.mData);  return *this; }
 	template< int M >
 	FORCEINLINE FixString& operator = (FixString< M, CharT > const& other) { assign(other.mData);  return *this; }
-	FORCEINLINE FixString& operator = (StdString const& str) { assign(str.c_str()); return *this; }
+	FORCEINLINE FixString& operator = (StdString const& str) { assign(str.c_str(), str.length()); return *this; }
 	FORCEINLINE FixString& operator = (TStringView<T> const& str) { assign(str.data(), str.length());  return *this; }
 
 	FORCEINLINE bool operator == (CharT const* str) const { return compare(str) == 0; }
@@ -32,21 +62,38 @@ public:
 
 	FORCEINLINE bool  empty() const { return mData[0] == 0; }
 	FORCEINLINE void  assign(CharT const* str) { FCString::Copy(mData, str); }
-	FORCEINLINE void  assign(CharT const* str, int num) { FCString::CopyN(mData, str, num); }
-	FORCEINLINE void  clear() { mData[0] = 0; }
-	FORCEINLINE size_t length() const { return FCString::Strlen(mData); }
+	FORCEINLINE void  assign(CharT const* str, int num)
+	{ 
+		FCString::CopyN(mData, str, num);
+#if FIXSTRING_USE_LENGTH_MEMBER
+		mLength = len; 
+#endif
+	}
+	FORCEINLINE void  clear()
+	{ 
+		mData[0] = 0;
+#if FIXSTRING_USE_LENGTH_MEMBER
+		mLength = 0; 
+#endif
+	}
+	FORCEINLINE size_t length() const 
+	{ 
+#if FIXSTRING_USE_LENGTH_MEMBER
+		return mLength;
+#else
+		return FCString::Strlen(mData);
+#endif
+	}
 	
 	template< class ...Args>
-	FORCEINLINE FixString& format(CharT const* fmt, Args&& ...args)
+	FORCEINLINE int format(CharT const* fmt, Args&& ...args)
 	{
-		FCString::PrintfT(mData, fmt , args...);
-		return *this;
+		return FCString::PrintfT(mData, fmt , std::forward<Args>(args)...);
 	}
 
-	FORCEINLINE FixString& formatVA(CharT const* fmt, va_list arg)
+	FORCEINLINE int formatVA(CharT const* fmt, va_list arg)
 	{
-		FCString::PrintfV(mData, fmt, arg);
-		return *this;
+		return FCString::PrintfV(mData, fmt, arg);
 	}
 
 	FORCEINLINE void replace(CharT from, CharT to)
@@ -71,13 +118,31 @@ public:
 	FORCEINLINE int   compareN(CharT const* str, int len) const { return FCString::CompareN(mData, str, len); }
 	FORCEINLINE size_t max_size() const{  return N;  }
 
+
+	template < int N = 512, typename CharT = TChar, typename ...Args >
+	friend FixString< N > MakeString(CharT const* format, Args&& ...args);
 private:
 	
 	template< int M , class T >
 	friend  class FixString;
-
-	CharT mData[ N ];
+#if FIXSTRING_USE_LENGTH_MEMBER
+	size_t mLength;
+#endif
+	CharT  mData[ N ];
 };
+
+
+template < int N = 512, typename CharT = TChar, typename ...Args >
+FORCEINLINE FixString< N > MakeString(CharT const* format, Args&& ...args)
+{
+	FixString< N > str;
+	int len = FCString::PrintfT(str.mData, fmt, std::forward<Args>(args)...);
+#if FIXSTRING_USE_LENGTH_MEMBER
+	str.mLength = len;
+#endif
+	return str;
+}
+
 
 
 #endif // FixString_h__

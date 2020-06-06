@@ -165,7 +165,7 @@ namespace Go
 	bool MatchResultMap::convertLeelaWeight(LeelaWeightTable const& table)
 	{
 		std::vector< MatchResultData > requireUpdatedData;
-		StringView leelaZeroName{ GetControllerName(ControllerType::eLeelaZero) };
+		StringView leelaZeroName = GetControllerName(ControllerType::eLeelaZero);
 
 		std::string bestWeightName = LeelaAppRun::GetBestWeightName();
 

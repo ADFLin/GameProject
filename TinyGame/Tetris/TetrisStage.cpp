@@ -878,7 +878,8 @@ namespace Tetris
 				FixString< 128 > str;
 				va_list vl;
 				va_start( vl ,y );
-				g.drawText( x + valPos , y , str.formatVA( fmt , vl ) );
+				str.formatVA(fmt, vl);
+				g.drawText( x + valPos , y , str );
 				va_end(vl);
 			}
 

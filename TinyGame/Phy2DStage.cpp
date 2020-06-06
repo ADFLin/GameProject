@@ -206,7 +206,8 @@ namespace Phy2D
 
 		if( mIsCollided )
 		{
-			g.drawText(10, 20, str.format("%f , %f , %f", mContact.normal.x, mContact.normal.y, mContact.depth));
+			str.format("%f , %f , %f", mContact.normal.x, mContact.normal.y, mContact.depth);
+			g.drawText(10, 20, str);
 		}
 		g.endRender();
 	}
@@ -381,11 +382,13 @@ namespace Phy2D
 			//#TODO: normal change need concerned
 			float depth2 = c.normal.dot(cpA - cpB);
 
-			g.drawText(100, 20, str.format("vn = %f depth = %f", vn, depth2));
+			str.format("vn = %f depth = %f", vn, depth2);
+			g.drawText(100, 20, str);
 		}
-
-		g.drawText(100, 30, str.format("v = %f %f", mBody[0]->mLinearVel.x, mBody[0]->mLinearVel.y));
-		g.drawText(100, 40, str.format("v = %f %f", mBody[1]->mLinearVel.x, mBody[1]->mLinearVel.y));
+		str.format("v = %f %f", mBody[0]->mLinearVel.x, mBody[0]->mLinearVel.y);
+		g.drawText(100, 30, str);
+		str.format("v = %f %f", mBody[1]->mLinearVel.x, mBody[1]->mLinearVel.y);
+		g.drawText(100, 40, str);
 
 
 		//g.drawText( 10 , 10 , str.format( "%f , %f , %f" , mContact.normal.x , mContact.normal.y , mContact.depth ) );

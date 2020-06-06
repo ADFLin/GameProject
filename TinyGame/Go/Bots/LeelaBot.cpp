@@ -4,7 +4,7 @@
 #include "FileSystem.h"
 #include "StringParse.h"
 #include "Core/StringConv.h"
-#include "PropertyKey.h"
+#include "PropertySet.h"
 
 //TODO:remove me
 #include "GameGlobal.h"
@@ -616,7 +616,7 @@ namespace Go
 	std::string LeelaAppRun::GetBestWeightName()
 	{
 		char const* name;
-		if( ::Global::GameConfig().tryGetStringValue("LeelaLastNetWeight", "Go", name) )
+		if( ::Global::GameConfig().tryGetStringValue("Leela.LastNetWeight", "Go", name) )
 		{
 			return std::string(name) + ".gz";
 			//return name;

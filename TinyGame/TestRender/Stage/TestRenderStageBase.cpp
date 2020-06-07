@@ -3,6 +3,8 @@
 #include "GLGraphics2D.h"
 #include "ConsoleSystem.h"
 
+#include "Asset.h"
+
 namespace Render
 {
 	IMPLEMENT_SHADER_PROGRAM(SphereProgram);

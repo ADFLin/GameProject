@@ -339,6 +339,7 @@
     <ClInclude Include="AllocFIFO.h" />
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
+    <ClInclude Include="AssetViewer.h" />
     <ClInclude Include="AStarTile2D.h" />
     <ClInclude Include="AsyncWork.h" />
     <ClInclude Include="Audio\AudioDevice.h" />

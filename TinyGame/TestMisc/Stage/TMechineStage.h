@@ -2,7 +2,7 @@
 #ifndef TMechineStage_H_CD5B0DFC_4BF1_44BD_AC6F_FC622344621E
 #define TMechineStage_H_CD5B0DFC_4BF1_44BD_AC6F_FC622344621E
 
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 #include "Template/ArrayView.h"
 #include "MarcoCommon.h"
 
@@ -240,9 +240,9 @@ namespace TMechine
 
 			switch( key )
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eX: mechine.runStep(); break;
-			case Keyboard::eC: bExecuting = true; break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::X: mechine.runStep(); break;
+			case EKeyCode::C: bExecuting = true; break;
 			}
 			return false;
 		}

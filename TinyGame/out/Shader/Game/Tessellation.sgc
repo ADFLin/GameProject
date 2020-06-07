@@ -62,7 +62,7 @@ struct VertexOutputParamDS
 #define VertexOutputParameters VertexOutputParamVSToPS
 #endif
 
-uniform mat4 XForm;
+uniform float4x4 XForm;
 
 #if VERTEX_SHADER
 

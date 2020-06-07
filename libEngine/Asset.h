@@ -1,6 +1,8 @@
-#ifndef Asset_h__
-#define Asset_h__
+#pragma once
+#ifndef Asset_H_5448C020_E85D_4A18_B426_922C38A0BB67
+#define Asset_H_5448C020_E85D_4A18_B426_922C38A0BB67
 
+#include "AssetViewer.h"
 #include "PlatformConfig.h"
 #include "Core/IntegerType.h"
 #include "FastDelegate/FastDelegate.h"
@@ -8,24 +10,6 @@
 #include <set>
 #include <map>
 #include <vector>
-
-
-enum class FileAction
-{
-	Rename,
-	Modify,
-	Remove,
-	Created,
-};
-
-class IAssetViewer
-{
-public:
-	virtual void getDependentFilePaths(std::vector< std::wstring >& paths) {}
-protected:
-	friend class AssetManager;
-	virtual void postFileModify(FileAction action){}
-};
 
 #if SYS_PLATFORM_WIN
 
@@ -63,7 +47,7 @@ public:
 		delete dmInfo;
 	}
 	typedef fastdelegate::FastDelegate<
-		void( wchar_t const* path , FileAction action )
+		void( wchar_t const* path , EFileAction action )
 	> NotifyCallback;
 
 	NotifyCallback onNotify;
@@ -111,14 +95,14 @@ public:
 
 #endif //SYS_PLATFORM_WIN
 
-class AssetManager
+class AssetManager : public IAssetViewerRegister
 {
 public:
 	bool init();
 	void cleanup();
 	void tick(long time);
-	bool registerViewer(IAssetViewer* asset);
-	void unregisterViewer(IAssetViewer* asset);
+	bool registerViewer(IAssetViewer* asset) override;
+	void unregisterViewer(IAssetViewer* asset) override;
 
 	
 	struct StrCmp
@@ -135,14 +119,14 @@ public:
 	struct FileModifyInfo
 	{
 		std::wstring path;
-		FileAction  action;
+		EFileAction  action;
 	};
 
 #if SYS_PLATFORM_WIN
 	Win32FileModifyMonitor mFileModifyMonitor;
-	void procDirModify(wchar_t const* path, FileAction action);
+	void procDirModify(wchar_t const* path, EFileAction action);
 #endif
 };
 
 
-#endif // Asset_h__
+#endif // Asset_H_5448C020_E85D_4A18_B426_922C38A0BB67

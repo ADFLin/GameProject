@@ -7,10 +7,9 @@
 #include "GameModuleManager.h"
 #include "GameGUISystem.h"
 #include "UserProfile.h"
-#include "Asset.h"
-
 #include "DataCacheInterface.h"
 #include "PlatformThread.h"
+#include "Asset.h"
 
 #include <cstdlib>
 

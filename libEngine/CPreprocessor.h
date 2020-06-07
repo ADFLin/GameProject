@@ -128,13 +128,22 @@ namespace CPP
 			for(;;)
 			{
 				mCur = FStringParse::FindChar(mCur, '\\', '\n');
-				if (*mCur == 0)
-					break;
-
-				++mLineCount;
-				if (!SkipConcat(mCur))
+				switch (*mCur)
 				{
+				case 0: return;
+				case '\n':
+					++mLineCount;
 					++mCur;
+					return;
+				default:
+					if (SkipConcat(mCur))
+					{
+						++mLineCount;
+					}
+					else
+					{
+						++mCur;
+					}
 					break;
 				}
 			}
@@ -145,15 +154,19 @@ namespace CPP
 			for (;;)
 			{
 				mCur = FStringParse::FindChar(mCur, '\\', '\n');
-				if (*mCur == 0)
-					break;
-
-				if (SkipConcat(mCur))
-				{			
-					++mLineCount;
-				}
-				else
+				switch (*mCur)
 				{
+				case 0: return;
+				case '\n': return;
+				default:
+					if (SkipConcat(mCur))
+					{
+						++mLineCount;
+					}
+					else
+					{
+						++mCur;
+					}
 					break;
 				}
 			}
@@ -294,12 +307,11 @@ namespace CPP
 	public:
 		CodeSource* source;
 
-
 		int getLine() const
 		{
 #if _DEBUG
-			int linCount = countCharFormStart('\n');
-			assert(linCount == mLineCount);
+			int lineCountActual = countCharFormStart('\n');
+			assert(lineCountActual == mLineCount);
 #endif
 			return mLineCount + source->lineOffset + 1;
 		}
@@ -504,7 +516,7 @@ namespace CPP
 		EOperator::Type mParsedCachedOP = EOperator::None;
 		EOperatorPrecedence::Type mParesedCacheOPPrecedence;
 
-		static std::unordered_map< HashString, CodeSource* > mLoadedSourceMap;
+		std::unordered_map< HashString, CodeSource* > mLoadedSourceMap;
 
 		friend class ExpressionEvaluator;
 	};

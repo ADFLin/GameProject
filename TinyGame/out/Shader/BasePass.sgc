@@ -68,7 +68,7 @@ void BasePassPS()
 	GBuffer.shadingModel = materialInput.shadingModel;
 	float4 clipPos = View.worldToClip * float4(materialParameters.worldPos, 1);
 	clipPos = materialParameters.clipPos;
-	GBuffer.sceneDepth = -materialParameters.clipPos.z;
+	GBuffer.sceneDepth = materialParameters.NDC.z;
 
 #if FORWARD_SHADING
 	gl_FragData[0] = float4( GBuffer.baseColor , 1 );

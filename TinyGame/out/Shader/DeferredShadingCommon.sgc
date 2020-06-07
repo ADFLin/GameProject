@@ -29,6 +29,16 @@ float3 GetGBufferNormal(float2 UVs)
 	return texture2D(GBufferTextureB, UVs).xyz;
 }
 
+float3 EncodeNormal(float3 value)
+{
+	return value;
+}
+
+float3 DecodeNormal(float3 value)
+{
+	return value;
+}
+
 uint DecodeShadingModel(float value)
 {
 	return (uint(round(value * float(0xff)))) & 0xff;
@@ -46,7 +56,7 @@ void EncodeGBuffer(in GBufferData GBuffer ,
 				   out float4 GBufferD)
 {
 	GBufferA = float4(GBuffer.worldPos, GBuffer.sceneDepth);
-	GBufferB = float4(GBuffer.normal, GBuffer.sceneDepth);
+	GBufferB = float4(EncodeNormal(GBuffer.normal), GBuffer.sceneDepth);
 	GBufferC = float4(GBuffer.baseColor, GBuffer.sceneDepth);
 
 	GBufferD.r = GBuffer.metallic;
@@ -59,8 +69,9 @@ GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBuf
 {
 	GBufferData GBuffer;
 	GBuffer.worldPos = GBufferA.rgb;
+	GBuffer.normal = DecodeNormal( GBufferB.rgb );
 	GBuffer.sceneDepth = GBufferC.a;
-	GBuffer.normal = GBufferB.rgb;
+	
 	GBuffer.baseColor = GBufferC.rgb;
 
 	GBuffer.metallic = GBufferD.r;

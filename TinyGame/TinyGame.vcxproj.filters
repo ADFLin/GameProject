@@ -761,5 +761,8 @@
       <Filter>Shader\Game</Filter>
     </None>
     <None Include="out\Game.ini" />
+    <None Include="out\Shader\DecalRender.sgc">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -433,6 +433,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\ComplexCommon.sgc" />
     <None Include="out\Shader\CopyTexture.sgc" />
     <None Include="out\Shader\BasePass.sgc" />
+    <None Include="out\Shader\DecalRender.sgc" />
     <None Include="out\Shader\DeferredLighting.sgc" />
     <None Include="out\Shader\DeferredShadingCommon.sgc" />
     <None Include="out\Shader\DFFTCommon.sgc" />

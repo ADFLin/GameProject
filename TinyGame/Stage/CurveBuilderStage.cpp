@@ -101,8 +101,6 @@ namespace CB
 				::Global::GUI().addWidget(textCtrl);
 			}
 
-			ShaderManager::Get().registerShaderAssets(::Global::GetAssetManager());
-
 			ProfileSystem::Get().resetSample();
 			restart();
 			return true;

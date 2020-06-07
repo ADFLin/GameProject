@@ -1170,6 +1170,9 @@
     <ClInclude Include="Meta\IndexList.h">
       <Filter>Meta</Filter>
     </ClInclude>
+    <ClInclude Include="AssetViewer.h">
+      <Filter>DataManage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

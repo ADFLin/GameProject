@@ -253,9 +253,9 @@ public:
 		paths.push_back(FCString::CharToWChar(GAME_SETTING_PATH));
 	}
 
-	void postFileModify(FileAction action) override 
+	void postFileModify(EFileAction action) override 
 	{
-		if (action == FileAction::Modify)
+		if (action == EFileAction::Modify)
 		{
 			Global::GameConfig().loadFile(GAME_SETTING_PATH);
 		}
@@ -343,6 +343,8 @@ bool TinyGameApp::initializeGame()
 
 	::Global::GetAssetManager().init();
 	::Global::GetAssetManager().registerViewer(&gGameConfigAsset);
+
+	Render::ShaderManager::Get().setAssetViewerRegister(&Global::GetAssetManager());
 
 	exportUserProfile();
 

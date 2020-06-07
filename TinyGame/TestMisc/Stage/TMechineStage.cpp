@@ -176,8 +176,10 @@ LevelData const gLevels[] =
 		{
 			if( data == NullValue )
 				return "N";
+
 			static FixString< 128 > str;
-			return str.format("%d", data);
+			str.format("%d", data);
+			return str;
 		};
 		FixString< 128 > str;
 		switch( op.code )
@@ -243,7 +245,7 @@ LevelData const gLevels[] =
 			if( data == NullValue )
 				continue;
 			FixString< 128 > str;
-			g.drawText(Vec2i(100 + 10 * i, 80), str.format("%d", data));
+			g.drawText(Vec2i(100 + 10 * i, 80), MakeString("%d", data) );
 		}
 	}
 

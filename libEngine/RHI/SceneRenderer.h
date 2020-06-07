@@ -26,32 +26,33 @@ namespace Render
 	class RenderContext;
 	struct LightInfo;
 
-	class SceneRenderer
+
+	namespace EGBufferId
 	{
-	public:
-
-
-
-
-		SceneInterface* mRenderScene;
-	};
-
-	struct GBufferParamData
-	{
-		enum BufferId
+		enum Type
 		{
-			BufferA, //xyz : WorldPos
-			BufferB, //xyz : Noraml
-			BufferC, //xyz : BaseColor
-			BufferD,
+			A, //xyz : WorldPos
+			B, //xyz : Noraml
+			C, //xyz : BaseColor
+			D,
 
-			NumBuffer,
+			Count,
 		};
-
-		RHITexture2DRef textures[NumBuffer];
+	};
+	struct GBufferResource
+	{
+		RHITexture2DRef textures[EGBufferId::Count];
 		RHITextureDepthRef depthTexture;
 
 		bool initializeRHI(IntVector2 const& size , int numSamples );
+		void releaseRHI()
+		{
+			for (auto& texture : textures)
+			{
+				texture.release();
+			}
+			depthTexture.release();
+		}
 		void setupShader(RHICommandList& commandList, ShaderProgram& program);
 
 		void drawTextures(RHICommandList& commandList, IntVector2 const& size, IntVector2 const& gapSize);
@@ -65,9 +66,15 @@ namespace Render
 		RHITexture2DRef resolvedTexture;
 	};
 
-	class SceneRenderTargets
+	class FrameRenderTargets
 	{
 	public:
+
+		bool prepare(IntVector2 const& size, int numSamples = 1);
+
+		bool createBufferRHIResource(IntVector2 const& size, int numSamples = 1);
+		void releaseBufferRHIResource();
+
 		bool initializeRHI(IntVector2 const& size, int numSamples = 1);
 
 		RHITexture2D&  getFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
@@ -78,8 +85,8 @@ namespace Render
 			mFrameBuffer.setTexture(0, getFrameTexture());
 		}
 
-		GBufferParamData&   getGBuffer() { return mGBuffer; }
-		RHITextureDepth&    getDepthTexture() { return *mDepthTexture; }
+		GBufferResource& getGBuffer() { return mGBuffer; }
+		RHITextureDepth&  getDepthTexture() { return *mDepthTexture; }
 
 
 
@@ -91,7 +98,11 @@ namespace Render
 
 		void drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height);
 
-		GBufferParamData   mGBuffer;
+
+		IntVector2         mSize = IntVector2(0,0);
+		int                mNumSamples = 0;
+
+		GBufferResource    mGBuffer;
 		RHITexture2DRef    mFrameTextures[2];
 		int                mIdxRenderFrameTexture;
 		OpenGLFrameBuffer  mFrameBuffer;
@@ -105,8 +116,8 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap, bool bUseDepth = false);
 
-		void setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferParamData& GBufferData);
-		void setParameters(RHICommandList& commandList, ShaderProgram& program, SceneRenderTargets& sceneRenderTargets);
+		void setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferResource& GBufferData);
+		void setParameters(RHICommandList& commandList, ShaderProgram& program, FrameRenderTargets& sceneRenderTargets);
 
 		ShaderParameter mParamGBufferTextureA;
 		ShaderParameter mParamGBufferTextureB;
@@ -197,13 +208,13 @@ namespace Render
 
 		ShaderProgram* mEffectCur;
 
-		Mesh          mCubeMesh;
+		Mesh           mCubeMesh;
 		ShaderProgram  mEffectCube;
 
 		RHITexture2DRef    mShadowMap2;
 		RHITextureCubeRef  mShadowMap;
 		RHITexture2DRef    mCascadeTexture;
-		OpenGLFrameBuffer     mShadowBuffer;
+		OpenGLFrameBuffer  mShadowBuffer;
 
 		ShaderProgram  mProgShadowDepthList[3];
 		ShaderProgram  mProgLighting;
@@ -233,7 +244,7 @@ namespace Render
 
 		bool init(IntVector2 const& size);
 
-		void render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
+		void render(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets);
 		void drawSSAOTexture(RHICommandList& commandList, IntVector2 const& pos , IntVector2 const& size );
 
 		void reload();
@@ -273,7 +284,7 @@ namespace Render
 	{
 	public:
 		bool init(IntVector2 const& size);
-		void render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
+		void render(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets);
 
 		OpenGLFrameBuffer mFrameBufferGen;
 		RHITexture2DRef mTextureNear;
@@ -322,6 +333,29 @@ namespace Render
 		Matrix4 worldToShadow;
 
 		void setValue(LightInfo const& light);
+	};
+
+	struct DecalInfo
+	{
+		Vector3    centerPos;
+		Quaternion rotation;
+		Vector3    size;
+
+		Matrix4 getTransform()
+		{
+			return Matrix4::Translate(-centerPos) * Matrix4::Rotate(rotation.inverse()) * Matrix4::Scale(Vector3(1.0f).div(size)) * Matrix4::Translate(Vector3(0.5));
+		}
+
+		Material*  material;
+		int        order;
+	};
+
+	class DecalRenderTech : public RenderTechnique
+	{
+
+
+
+
 	};
 
 
@@ -378,7 +412,7 @@ namespace Render
 		bool bShowBound = false;
 		LightBoundMethod boundMethod = LBM_GEMO_BOUND_SHAPE_WITH_STENCIL;
 
-		bool init(SceneRenderTargets& sceneRenderTargets);
+		bool init(FrameRenderTargets& sceneRenderTargets);
 
 		void renderBassPass(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene);
 
@@ -386,12 +420,12 @@ namespace Render
 		void renderLight(RHICommandList& commandList, ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam );
 
 		OpenGLFrameBuffer   mBassPassBuffer;
-		OpenGLFrameBuffer   mLightBuffer;
+		OpenGLFrameBuffer   mLightingBuffer;
 		class DeferredLightingProgram* mProgLightingScreenRect[3];
 		class DeferredLightingProgram* mProgLighting[3];
 		class DeferredLightingProgram* mProgLightingShowBound;
 
-		SceneRenderTargets* mSceneRenderTargets;
+		FrameRenderTargets* mSceneRenderTargets;
 
 		Mesh mSphereMesh;
 		Mesh mConeMesh;
@@ -453,11 +487,11 @@ namespace Render
 
 		bool init(IntVector2 const& screenSize);
 
-		void render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender , SceneRenderTargets* sceneRenderTargets );
-		void renderTest(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
+		void render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender , FrameRenderTargets* sceneRenderTargets );
+		void renderTest(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
 		void reload();
 
-		void renderInternal(RHICommandList& commandList, ViewInfo& view , std::function< void(RHICommandList&) > drawFuncion , SceneRenderTargets* sceneRenderTargets = nullptr );
+		void renderInternal(RHICommandList& commandList, ViewInfo& view , std::function< void(RHICommandList&) > drawFuncion , FrameRenderTargets* sceneRenderTargets = nullptr );
 
 		
 		static constexpr int BMA_MaxPixelCounts[] =
@@ -488,6 +522,38 @@ namespace Render
 		void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) override;
 
 	};
+
+	class SceneRenderer
+	{
+	public:
+
+		bool Initialize(SceneInterface& scene)
+		{
+			mScene = &scene;
+		}
+
+		bool InitializeRHI()
+		{
+			//VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI(screenSize));
+			VERIFY_RETURN_FALSE(mTechDeferredShading.init(mSceneRenderTargets));
+		}
+
+		void render(ViewInfo& view)
+		{
+
+
+
+
+		}
+
+
+
+
+		FrameRenderTargets   mSceneRenderTargets;
+		DeferredShadingTech  mTechDeferredShading;
+		SceneInterface*      mScene;
+	};
+
 }//namespace Render
 
 

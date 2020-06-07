@@ -191,14 +191,14 @@ Win32FileModifyMonitor::Status Win32FileModifyMonitor::checkDirectoryStatus(uint
 				filePath = wbuf;
 		}
 
-		FileAction action = FileAction::Modify;
+		EFileAction action = EFileAction::Modify;
 		switch( pIter->Action )
 		{
-		case FILE_ACTION_ADDED: action = FileAction::Created; break;
-		case FILE_ACTION_MODIFIED: action = FileAction::Modify; break;
-		case FILE_ACTION_REMOVED: action = FileAction::Remove; break;
-		case FILE_ACTION_RENAMED_OLD_NAME: action = FileAction::Rename; break;
-		case FILE_ACTION_RENAMED_NEW_NAME: action = FileAction::Rename; break;
+		case FILE_ACTION_ADDED: action = EFileAction::Created; break;
+		case FILE_ACTION_MODIFIED: action = EFileAction::Modify; break;
+		case FILE_ACTION_REMOVED: action = EFileAction::Remove; break;
+		case FILE_ACTION_RENAMED_OLD_NAME: action = EFileAction::Rename; break;
+		case FILE_ACTION_RENAMED_NEW_NAME: action = EFileAction::Rename; break;
 		}
 
 		onNotify(filePath.c_str(), action);
@@ -332,7 +332,7 @@ void AssetManager::unregisterViewer(IAssetViewer* asset)
 	}
 }
 
-void AssetManager::procDirModify(wchar_t const* path, FileAction action)
+void AssetManager::procDirModify(wchar_t const* path, EFileAction action)
 {
 	auto iter = mAssetMap.find(path);
 

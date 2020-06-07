@@ -136,7 +136,7 @@ template < int N = 512, typename CharT = TChar, typename ...Args >
 FORCEINLINE FixString< N > MakeString(CharT const* format, Args&& ...args)
 {
 	FixString< N > str;
-	int len = FCString::PrintfT(str.mData, fmt, std::forward<Args>(args)...);
+	int len = FCString::PrintfT(str.mData, format, std::forward<Args>(args)...);
 #if FIXSTRING_USE_LENGTH_MEMBER
 	str.mLength = len;
 #endif

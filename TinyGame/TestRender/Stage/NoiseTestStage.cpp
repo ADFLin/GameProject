@@ -459,8 +459,6 @@ namespace Render
 		VERIFY_RETURN_FALSE(mLightsBuffer.initializeResource(mLights.size(), BCF_DefalutValue | BCF_UsageDynamic));
 		updateLightToBuffer();
 
-		ShaderManager::Get().registerShaderAssets(::Global::GetAssetManager());
-
 		::Global::GUI().cleanupWidget();
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
@@ -678,7 +676,6 @@ namespace Render
 
 	void NoiseTestStage::onEnd()
 	{
-		ShaderManager::Get().unregisterShaderAssets(::Global::GetAssetManager());
 		BaseClass::onEnd();
 	}
 

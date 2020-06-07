@@ -1,12 +1,11 @@
-#ifndef PropertyKey_h__
-#define PropertyKey_h__
-
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <unordered_map>
+#pragma once
+#ifndef PropertySet_H_F7B8B66E_A07B_44DF_BA67_8895369C3C8E
+#define PropertySet_H_F7B8B66E_A07B_44DF_BA67_8895369C3C8E
 
 #include "Template/StringView.h"
+
+#include <string>
+#include <unordered_map>
 
 class  KeyValue
 {
@@ -143,5 +142,4 @@ private:
 	int mNextValueSeqOrder;
 };
 
-
-#endif // PropertyKey_h__
+#endif // PropertySet_H_F7B8B66E_A07B_44DF_BA67_8895369C3C8E

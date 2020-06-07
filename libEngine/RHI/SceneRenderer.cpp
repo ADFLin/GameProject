@@ -89,11 +89,11 @@ namespace Render
 		//mBuffer.addTexture( mShadowMap , Texture::eFaceX , false );
 
 #if 0
-		if( !ShaderManager::getInstance().loadFile( mProgShadowDepth[0],"Shader/ShadowMap", "#define SHADOW_LIGHT_TYPE LIGHTTYPE_SPOT") )
+		if( !ShaderManager::getInstance().loadFile(mProgShadowDepthList[0],"Shader/ShadowMap", "#define SHADOW_LIGHT_TYPE LIGHTTYPE_SPOT") )
 			return false;
-		if( !ShaderManager::getInstance().loadFile(mProgShadowDepth[1],"Shader/ShadowMap", "#define SHADOW_LIGHT_TYPE LIGHTTYPE_SPOT") )
+		if( !ShaderManager::getInstance().loadFile(mProgShadowDepthList[1],"Shader/ShadowMap", "#define SHADOW_LIGHT_TYPE LIGHTTYPE_SPOT") )
 			return false;
-		if( !ShaderManager::getInstance().loadFile(mProgShadowDepth[2],"Shader/ShadowMap", "#define SHADOW_LIGHT_TYPE LIGHTTYPE_SPOT") )
+		if( !ShaderManager::getInstance().loadFile(mProgShadowDepthList[2],"Shader/ShadowMap", "#define SHADOW_LIGHT_TYPE LIGHTTYPE_SPOT") )
 			return false;
 		if( !ShaderManager::getInstance().loadFile(mProgLighting , "Shader/ShadowLighting") )
 			return false;
@@ -477,7 +477,7 @@ namespace Render
 		{
 			mParamGBuffer.bindParameters(parameterMap, true);
 		}
-		void setParamters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets)
+		void setParamters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets)
 		{
 			mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets);
 		}
@@ -576,27 +576,27 @@ namespace Render
 
 	IMPLEMENT_SHADER_PROGRAM(LightingShowBoundProgram)
 
-	bool DeferredShadingTech::init( SceneRenderTargets& sceneRenderTargets )
+	bool DeferredShadingTech::init( FrameRenderTargets& sceneRenderTargets )
 	{
 		mSceneRenderTargets = &sceneRenderTargets;
 
-		GBufferParamData& GBuffer = sceneRenderTargets.getGBuffer();
+		GBufferResource& GBuffer = sceneRenderTargets.getGBuffer();
 
 		if( !mBassPassBuffer.create() )
 			return false;
-		if( !mLightBuffer.create() )
+		if( !mLightingBuffer.create() )
 			return false;
 
 		mBassPassBuffer.addTexture(*GBuffer.textures[0]);
-		for( int i = 0; i < GBufferParamData::NumBuffer; ++i )
+		for( int i = 0; i < EGBufferId::Count; ++i )
 		{
 			mBassPassBuffer.addTexture(*GBuffer.textures[i]);
 		}
 
 		mBassPassBuffer.setDepth(sceneRenderTargets.getDepthTexture());
 
-		mLightBuffer.addTexture( sceneRenderTargets.getFrameTexture() );
-		mLightBuffer.setDepth( sceneRenderTargets.getDepthTexture() );
+		mLightingBuffer.addTexture( sceneRenderTargets.getFrameTexture() );
+		mLightingBuffer.setDepth( sceneRenderTargets.getDepthTexture() );
 
 
 		VERIFY_RETURN_FALSE(MeshBuild::LightSphere(mSphereMesh));
@@ -624,7 +624,7 @@ namespace Render
 		float const depthValue = 1.0;
 		{
 			GPU_PROFILE("Clear Buffer");
-			mBassPassBuffer.clearBuffer(&Vector4(0, 0, 0, 1), &depthValue);
+			mBassPassBuffer.clearBuffer(&Vector4(0, 0, 0, 0), &depthValue);
 		}
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RenderContext context(commandList, view, *this);
@@ -652,7 +652,7 @@ namespace Render
 		{
 			DeferredLightingProgram* lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
 
-			mLightBuffer.setTexture(0, mSceneRenderTargets->getFrameTexture());
+			mLightingBuffer.setTexture(0, mSceneRenderTargets->getFrameTexture());
 
 			Mesh* boundMesh;
 			Matrix4 lightXForm;
@@ -686,10 +686,10 @@ namespace Render
 			if( boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
 			{
 				constexpr bool bEnableStencilTest = true;
-				mLightBuffer.bindDepthOnly();
+				mLightingBuffer.bindDepthOnly();
 				glClearStencil(1);
 				glClear(GL_STENCIL_BUFFER_BIT);
-				mLightBuffer.unbind();
+				mLightingBuffer.unbind();
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
 				//if ( debugMode != DebugMode::eShowVolume )
@@ -702,9 +702,9 @@ namespace Render
 							Stencil::eKeep, Stencil::eKeep, Stencil::eDecr, 0x0 
 						>::GetRHI(), 0x0);
 
-					mLightBuffer.bindDepthOnly();
+					mLightingBuffer.bindDepthOnly();
 					DrawBoundShape(commandList, false);
-					mLightBuffer.unbind();
+					mLightingBuffer.unbind();
 
 				}
 
@@ -744,7 +744,7 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Front >::GetRHI());
 			{
-				GL_BIND_LOCK_OBJECT(mLightBuffer);
+				GL_BIND_LOCK_OBJECT(mLightingBuffer);
 				RHISetShaderProgram(commandList, lightShader->getRHIResource());
 				//if( debugMode == DebugMode::eNone )
 				{
@@ -815,7 +815,7 @@ namespace Render
 		ShaderManager::Get().reloadShader(*mProgLightingShowBound);
 	}
 
-	bool GBufferParamData::initializeRHI(IntVector2 const& size, int numSamples)
+	bool GBufferResource::initializeRHI(IntVector2 const& size, int numSamples)
 	{
 		for(auto& texture : textures)
 		{
@@ -835,16 +835,16 @@ namespace Render
 		return true;
 	}
 
-	void GBufferParamData::setupShader(RHICommandList& commandList, ShaderProgram& program)
+	void GBufferResource::setupShader(RHICommandList& commandList, ShaderProgram& program)
 	{
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureA), *textures[BufferA]);
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureB), *textures[BufferB]);
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureC), *textures[BufferC]);
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureD), *textures[BufferD]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureA), *textures[EGBufferId::A]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureB), *textures[EGBufferId::B]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureC), *textures[EGBufferId::C]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureD), *textures[EGBufferId::D]);
 
 	}
 
-	void GBufferParamData::drawTextures(RHICommandList& commandList, IntVector2 const& size , IntVector2 const& gapSize )
+	void GBufferResource::drawTextures(RHICommandList& commandList, IntVector2 const& size , IntVector2 const& gapSize )
 	{
 
 		int width = size.x;
@@ -854,34 +854,34 @@ namespace Render
 		int drawWidth = width - 2 * gapX;
 		int drawHeight = height - 2 * gapY;
 
-		drawTexture(commandList, 0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferA);
+		drawTexture(commandList, 0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::A, Vector4(0, 0, 0, 1));
 		{
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float colorBias[2] = { 0.5 , 0.5 };
-			ShaderHelper::Get().copyTextureBiasToBuffer(commandList, *textures[BufferB], colorBias);
+			ShaderHelper::Get().copyTextureBiasToBuffer(commandList, *textures[EGBufferId::B], colorBias);
 
 		}
 		//drawTexture(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferB);
-		drawTexture(commandList, 2 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferC);
-		drawTexture(commandList, 3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(1, 0, 0, 0));
-		drawTexture(commandList, 3 * width + gapX, 2 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(0, 1, 0, 0));
-		drawTexture(commandList, 3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(0, 0, 1, 0));
+		drawTexture(commandList, 2 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::C);
+		drawTexture(commandList, 3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(1, 0, 0, 0));
+		drawTexture(commandList, 3 * width + gapX, 2 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 1, 0, 0));
+		drawTexture(commandList, 3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 0, 1, 0));
 		{
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float valueFactor[2] = { 255 , 0 };
-			ShaderHelper::Get().mapTextureColorToBuffer(commandList, *textures[BufferD], Vector4(0, 0, 0, 1), valueFactor);
+			ShaderHelper::Get().mapTextureColorToBuffer(commandList, *textures[EGBufferId::D], Vector4(0, 0, 0, 1), valueFactor);
 		}
 		//renderDepthTexture(width , 3 * height, width, height);
 	}
 
-	void GBufferParamData::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer)
+	void GBufferResource::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer)
 	{
 		DrawUtility::DrawTexture(commandList, *textures[idxBuffer], IntVector2(x, y), IntVector2(width, height));
 	}
 
-	void GBufferParamData::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
+	void GBufferResource::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
 	{
 		ViewportSaveScope vpScope(commandList);
 		RHISetViewport(commandList, x, y, width, height);
@@ -908,7 +908,7 @@ namespace Render
 		}
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap) override;
-		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
+		void setParameters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
 
 		GBufferShaderParameters mParamGBuffer;
 		ShaderParameter mParamKernelNum;
@@ -965,7 +965,7 @@ namespace Render
 		}
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap) override;
-		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
+		void setParameters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
 
 		GBufferShaderParameters mParamGBuffer;
 		ShaderParameter mParamTextureSSAO;
@@ -1003,7 +1003,7 @@ namespace Render
 		return true;
 	}
 
-	void PostProcessSSAO::render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
+	void PostProcessSSAO::render(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets)
 	{
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		{
@@ -1102,24 +1102,43 @@ namespace Render
 		}
 	}
 
-	bool SceneRenderTargets::initializeRHI(IntVector2 const& size , int numSamples )
+	bool FrameRenderTargets::prepare(IntVector2 const& size, int numSamples /*= 1*/)
+	{
+		if (mSize != size || mNumSamples != numSamples)
+		{
+			releaseBufferRHIResource();
+
+			if (!createBufferRHIResource(size, numSamples))
+			{
+				return false;
+
+			}
+
+			mFrameBuffer.addTexture(getFrameTexture());
+			mSize = size;
+			mNumSamples = numSamples;
+		}
+		return true;
+	}
+
+	bool FrameRenderTargets::createBufferRHIResource(IntVector2 const& size, int numSamples /*= 1*/)
 	{
 		mIdxRenderFrameTexture = 0;
-		for(auto& frameTexture : mFrameTextures)
+		for (auto& frameTexture : mFrameTextures)
 		{
-			frameTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
-			if( !frameTexture.isValid() )
+			frameTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget);
+			if (!frameTexture.isValid())
 				return false;
 		}
 
-		if( !mGBuffer.initializeRHI(size , numSamples) )
-			return false;
-		
-		mDepthTexture = RHICreateTextureDepth(Texture::eD32FS8, size.x, size.y, 1, numSamples );
-		if( !mDepthTexture.isValid() )
+		if (!mGBuffer.initializeRHI(size, numSamples))
 			return false;
 
-		if( numSamples > 1 )
+		mDepthTexture = RHICreateTextureDepth(Texture::eD32FS8, size.x, size.y, 1, numSamples);
+		if (!mDepthTexture.isValid())
+			return false;
+
+		if (numSamples > 1)
 		{
 
 
@@ -1139,13 +1158,31 @@ namespace Render
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 		OpenGLCast::To(mResolvedDepthTexture)->unbind();
 
-		if( !mFrameBuffer.create() )
-			return false;
-		mFrameBuffer.addTexture(getFrameTexture());
 		return true;
 	}
 
-	void SceneRenderTargets::drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height)
+	void FrameRenderTargets::releaseBufferRHIResource()
+	{
+		for (auto& frameTexture : mFrameTextures)
+		{
+			frameTexture.release();
+		}
+		mGBuffer.releaseRHI();
+	}
+
+	bool FrameRenderTargets::initializeRHI(IntVector2 const& size, int numSamples)
+	{
+		if (!mFrameBuffer.create())
+			return false;
+
+		//TODO: remove
+		if (!prepare(size, numSamples))
+			return false;
+
+		return true;
+	}
+
+	void FrameRenderTargets::drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height)
 	{
 		//PROB
 		glLoadIdentity();
@@ -1264,7 +1301,7 @@ namespace Render
 		return true;
 	}
 
-	void OITTechnique::render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
+	void OITTechnique::render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender, FrameRenderTargets* sceneRenderTargets)
 	{
 
 		auto DrawFun = [this, &view, &scnenRender](RHICommandList& commandList)
@@ -1290,7 +1327,7 @@ namespace Render
 		}
 	}
 
-	void OITTechnique::renderTest(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
+	void OITTechnique::renderTest(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
 	{
 		auto DrawFun = [this , &view , &mesh , material ](RHICommandList& commandList)
 		{
@@ -1358,7 +1395,7 @@ namespace Render
 			ShaderManager::Get().reloadShader(*shader);
 	}
 
-	void OITTechnique::renderInternal(RHICommandList& commandList, ViewInfo& view, std::function< void(RHICommandList&) > drawFuncion , SceneRenderTargets* sceneRenderTargets )
+	void OITTechnique::renderInternal(RHICommandList& commandList, ViewInfo& view, std::function< void(RHICommandList&) > drawFuncion , FrameRenderTargets* sceneRenderTargets )
 	{
 		GPU_PROFILE("OIT");
 		
@@ -1570,7 +1607,7 @@ namespace Render
 		mParamOcclusionRadius.bind(parameterMap, SHADER_PARAM(OcclusionRadius));
 	}
 
-	void SSAOGenerateProgram::setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector)
+	void SSAOGenerateProgram::setParameters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector)
 	{
 		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets);
 		setParam(commandList, mParamKernelNum, (int)numKernelVector);
@@ -1597,7 +1634,7 @@ namespace Render
 		mParamTextureSamplerSSAO.bind(parameterMap, SHADER_PARAM(TextureSamplerSSAO));
 	}
 
-	void SSAOAmbientProgram::setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
+	void SSAOAmbientProgram::setParameters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
 	{
 		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets.getGBuffer());
 		setTexture(commandList, mParamTextureSSAO, SSAOTexture , mParamTextureSamplerSSAO ,
@@ -1616,19 +1653,19 @@ namespace Render
 		}
 	}
 
-	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferParamData& GBufferData)
+	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferResource& GBufferData)
 	{
 		if( mParamGBufferTextureA.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureA, *GBufferData.textures[GBufferParamData::BufferA]);
+			program.setTexture(commandList, mParamGBufferTextureA, *GBufferData.textures[EGBufferId::A]);
 		if( mParamGBufferTextureB.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureB, *GBufferData.textures[GBufferParamData::BufferB]);
+			program.setTexture(commandList, mParamGBufferTextureB, *GBufferData.textures[EGBufferId::B]);
 		if( mParamGBufferTextureC.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureC, *GBufferData.textures[GBufferParamData::BufferC]);
+			program.setTexture(commandList, mParamGBufferTextureC, *GBufferData.textures[EGBufferId::C]);
 		if( mParamGBufferTextureD.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureD, *GBufferData.textures[GBufferParamData::BufferD]);
+			program.setTexture(commandList, mParamGBufferTextureD, *GBufferData.textures[EGBufferId::D]);
 	}
 
-	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, SceneRenderTargets& sceneRenderTargets)
+	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, FrameRenderTargets& sceneRenderTargets)
 	{
 		setParameters(commandList, program, sceneRenderTargets.getGBuffer());
 		if( mParamFrameDepthTexture.isBound() )
@@ -1883,7 +1920,7 @@ namespace Render
 	}
 
 
-	void PostProcessDOF::render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
+	void PostProcessDOF::render(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets)
 	{
 
 		auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp , Sampler::eClamp >::GetRHI();

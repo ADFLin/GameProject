@@ -133,9 +133,9 @@ namespace Render
 				paths.push_back(FCString::CharToWChar(cPath.c_str()));
 			}
 		}
-		virtual void postFileModify(FileAction action) override
+		virtual void postFileModify(EFileAction action) override
 		{
-			if ( action == FileAction::Modify )
+			if ( action == EFileAction::Modify )
 				material->reload();
 		}
 	};
@@ -160,9 +160,9 @@ namespace Render
 			paths.push_back(FCString::CharToWChar(cPath.c_str()));
 		}
 
-		virtual void postFileModify(FileAction action) override
+		virtual void postFileModify(EFileAction action) override
 		{
-			if( action == FileAction::Modify )
+			if( action == EFileAction::Modify )
 			{
 				scene.removeAll();
 				loadInternal();
@@ -635,6 +635,7 @@ namespace Render
 		ShaderProgram mProgTerrain;
 
 		class ShadowVolumeProgram* mProgShadowVolume;
+		class DecalRenderProgram* mProgDecal;
 
 		Mesh   mFrustumMesh;
 		Mesh   mSpritePosMesh;
@@ -739,7 +740,7 @@ namespace Render
 
 		bool  mLineMode;
 
-		SceneRenderTargets    mSceneRenderTargets;
+		FrameRenderTargets    mSceneRenderTargets;
 		
 		DeferredShadingTech    mTechDeferredShading;
 		ShadowDepthTech        mTechShadow;

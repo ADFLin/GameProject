@@ -1,3 +1,4 @@
+#pragma once
 #ifndef SHADER_COMPILING
 #define SHADER_COMPILING 0
 #endif

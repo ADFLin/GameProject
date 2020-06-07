@@ -30,6 +30,10 @@ namespace Render
 {
 	extern CORE_API class RHISystem* gRHISystem;
 
+	FORCEINLINE bool RHIIsInitialized()
+	{
+		return gRHISystem;
+	}
 
 	struct RHISystemInitParams
 	{

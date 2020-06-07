@@ -52,6 +52,8 @@ namespace Render
 		virtual bool getParameter(char const* name, ShaderParameter& parameter) override;
 		virtual bool getResourceParameter(EShaderResourceType type, char const* name, ShaderParameter& parameter) override;
 
+
+		bool bValid = false;
 	};
 
 

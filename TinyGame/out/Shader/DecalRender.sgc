@@ -1,0 +1,45 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+#if PIXEL_SHADER
+
+#if USE_MATERIAL
+#define MATERIAL_TEXCOORD_NUM 1
+#include "MaterialProcess.sgc"
+#include "DeferredShadingCommon.sgc"
+
+uniform sampler2D NormalTexture;
+#endif
+
+uniform sampler2D WorldPositionTexture;
+uniform float4x4  DecalTransform;
+in VSOutputParameters VSOutput;
+
+layout(location = 0) out float4 OutColor;
+
+void MainPS()
+{
+	float3 worldPos = texture2D(WorldPositionTexture, VSOutput.UVs).rgb;
+	float  sceneDepth = texture2D(WorldPositionTexture, VSOutput.UVs).a;
+	float3 localPos = float3(DecalTransform * float4( worldPos , 1 ) );
+
+	if ( sceneDepth == 0.0 || any(lessThan( localPos , float3(0.0) ) ) || any( greaterThan(localPos, float3(1.0)) ))
+		discard;
+
+	float2 DecalUV = localPos.xy;
+#if USE_MATERIAL
+
+	MaterialInputPS materialInput = InitMaterialInputPS();
+	MaterialParametersPS materialParameters;
+	materialParameters.worldPos = worldPos;
+	materialParameters.worldNormal = DecodeNormal(texture2D(NormalTexture, VSOutput.UVs).rgb) );
+	materialParameters.texCoords[0] = DecalUV;
+	CalcMaterialParameters(materialInput, materialParameters);
+	OutColor = float4( materialInput.emissiveColor , materialInput.opacity );
+
+#else
+	OutColor = float4(DecalUV, 0 , 1);
+#endif
+}
+
+#endif

@@ -2,6 +2,7 @@
 
 #include "TiledLightCommon.sgc"
 #include "ScatteringCommon.sgc"
+
 //                                 o L
 //                                /  \
 //                               /     \  

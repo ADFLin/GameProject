@@ -27,9 +27,11 @@ namespace Render
 	class SceneInterface
 	{
 	public:
-		virtual void render( RenderContext& param) = 0;
+		virtual void render( RenderContext& param ) = 0;
 		//virtual void renderShadow(LightInfo const& info , RenderContext& param) = 0;
 		virtual void renderTranslucent( RenderContext& param) = 0;
+
+		virtual void addLight(){}
 	};
 
 

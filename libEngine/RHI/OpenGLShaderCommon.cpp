@@ -59,11 +59,22 @@ namespace Render
 			LogMsg("Can't Link Program : %s", buffer);
 		}
 
+		bValid = true;
 		return true;
 	}
 
 	bool OpenGLShaderProgram::setupShaders(RHIShaderRef shaders[], int numShader)
 	{
+		if (bValid)
+		{
+			GLuint shaders[Shader::Count];
+			GLsizei numShaders = 0;
+			glGetAttachedShaders(getHandle(), ARRAY_SIZE(shaders), &numShaders, shaders);
+			for (int i = 0; i < numShaders; ++i)
+			{
+				glDetachShader(getHandle(), shaders[i]);
+			}
+		}
 		for( int i = 0; i < numShader; ++i )
 		{
 			assert(shaders[i]);

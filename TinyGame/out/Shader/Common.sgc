@@ -4,6 +4,7 @@
 #define SHADER_COMPILING 0
 #endif
 
+
 #if SHADER_COMPILING
 
 #ifndef COMPILER_GLSL
@@ -41,6 +42,7 @@
 #define HULL_SHADER 1
 #define DOMAIN_SHADER 1
 #define COMPUTE_SHADER 1
+
 
 #endif
 

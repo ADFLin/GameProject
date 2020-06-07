@@ -50,7 +50,7 @@ namespace Render
 			material = nullptr;
 			vertexBuffer = nullptr;
 			inputLayout = nullptr;
-			VAOHandle = 0;
+			VAOHandle;
 		}
 	};
 

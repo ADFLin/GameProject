@@ -2,6 +2,7 @@
 #include "PropertySet.h"
 #include "Core/StringConv.h"
 
+#include <fstream>
 
 #define GLOBAL_SECTION "__GLOBAL__"
 

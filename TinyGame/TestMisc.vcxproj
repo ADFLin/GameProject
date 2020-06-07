@@ -274,6 +274,7 @@
     <ClInclude Include="TestMisc\Stage\GGJStage.h" />
     <ClInclude Include="TestMisc\Stage\RubiksStage.h" />
     <ClInclude Include="TestMisc\Stage\StickMoveStage.h" />
+    <ClInclude Include="TestMisc\Stage\TMechineStage.h" />
     <ClInclude Include="TestMisc\TestMiscPCH.h" />
     <ClInclude Include="TestMisc\Test\SpatialIndexTest.h" />
     <ClInclude Include="TripleTown\TextureId.h" />
@@ -430,6 +431,7 @@
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\TMechineStage.cpp" />
     <ClCompile Include="TestMisc\TestMisc.cpp" />
     <ClCompile Include="TestMisc\TestMiscPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

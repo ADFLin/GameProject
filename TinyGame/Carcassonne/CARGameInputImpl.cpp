@@ -8,6 +8,8 @@
 
 #include "CppVersion.h"
 
+#include <fstream>
+
 namespace CAR
 {
 

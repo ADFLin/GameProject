@@ -6,7 +6,7 @@
 #include "GlobalShader.h"
 
 #include "Singleton.h"
-#include "Asset.h"
+#include "AssetViewer.h"
 
 #include "FixString.h"
 
@@ -42,7 +42,7 @@ namespace Render
 		std::string    sourceFile;
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
-		virtual void postFileModify(FileAction action) override;
+		virtual void postFileModify(EFileAction action) override;
 	};
 
 
@@ -63,6 +63,7 @@ namespace Render
 		void clearnupRHIResouse();
 
 		void setDataCache(DataCacheInterface* dataCache);
+		void setAssetViewerRegister(IAssetViewerRegister* reigster);
 
 		template< class ShaderType >
 		ShaderType* getGlobalShaderT(bool bForceLoad = true)
@@ -123,21 +124,8 @@ namespace Render
 
 		void reloadAll();
 
-		void registerShaderAssets(AssetManager& assetManager)
-		{
-			for( auto pair : mShaderCompileMap )
-			{
-				assetManager.registerViewer(pair.second);
-			}
-		}
-
-		void unregisterShaderAssets(AssetManager& assetManager)
-		{
-			for( auto pair : mShaderCompileMap )
-			{
-				assetManager.unregisterViewer(pair.second);
-			}
-		}
+		void registerShaderAssets();
+		void unregisterShaderAssets();
 
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
@@ -167,27 +155,21 @@ namespace Render
 		bool updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info , bool bForceReload = false );
 
 
-		void removeFromShaderCompileMap( ShaderProgram& shader )
-		{
-			auto iter = mShaderCompileMap.find(&shader);
-
-			if( iter != mShaderCompileMap.end() )
-			{
-				delete iter->second;
-				mShaderCompileMap.erase(iter);
-			}
-		}
+		void removeFromShaderCompileMap( ShaderProgram& shader );
 
 		void  generateCompileSetup( 
 			ShaderProgramCompileInfo& compileInfo , TArrayView< ShaderEntryInfo const > entries,
 			ShaderCompileOption const& option, char const* additionalCode ,
 			char const* fileName , bool bSingleFile );
 
+		void postShaderLoaded(ShaderProgram& shader, ShaderProgramCompileInfo* info);
+
 		uint32          mDefaultVersion;
 		ShaderFormat*   mShaderFormat = nullptr;
 		std::string     mBaseDir;
 		class ShaderCache* mShaderCache = nullptr;
 
+		IAssetViewerRegister* mAssetViewerReigster;
 		ShaderCache* getCache();
 
 #if 1

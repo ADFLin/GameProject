@@ -35,7 +35,7 @@ namespace CPP
 		return FNV1a::MakeStringHash<uint32>(str) & 0xffff;
 	}
 
-	std::unordered_map< HashString, CodeSource* > Preprocessor::mLoadedSourceMap;
+	//std::unordered_map< HashString, CodeSource* > Preprocessor::mLoadedSourceMap;
 
 	Preprocessor::Preprocessor()
 	{

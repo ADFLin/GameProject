@@ -213,8 +213,6 @@ namespace Render
 
 		mSceneRenderTargets.initializeRHI(screenSize);
 
-		ShaderManager::Get().registerShaderAssets(::Global::GetAssetManager());
-
 		::Global::GUI().cleanupWidget();
 
 		auto frame = WidgetUtility::CreateDevFrame();

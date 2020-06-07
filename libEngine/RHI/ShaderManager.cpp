@@ -14,9 +14,11 @@
 #include <iterator>
 
 extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
+extern CORE_API TConsoleVariable< bool > CVarShaderDectectFileMoidfy;
 
 #if CORE_SHARE_CODE
 TConsoleVariable< bool > CVarShaderUseCache( true , "Shader.bUseCache" , CVF_CONFIG );
+TConsoleVariable< bool > CVarShaderDectectFileMoidfy(true, "Shader.DetectFileModiy", CVF_CONFIG);
 #endif
 
 namespace Render
@@ -294,6 +296,22 @@ namespace Render
 		getCache()->mDataCache = dataCache;
 	}
 
+	void ShaderManager::setAssetViewerRegister(IAssetViewerRegister* reigster)
+	{
+		if (reigster == nullptr)
+		{
+			if (mAssetViewerReigster)
+			{
+				unregisterShaderAssets();
+			}
+		}
+		mAssetViewerReigster = reigster;
+		if (mAssetViewerReigster)
+		{
+			registerShaderAssets();
+		}
+	}
+
 	//TODO: Remove
 	std::string GetFilePath(char const* name)
 	{
@@ -508,7 +526,7 @@ namespace Render
 			return false;
 		}
 
-		mShaderCompileMap.insert({ &shaderProgram , info });
+		postShaderLoaded(shaderProgram, info);
 		return true;
 	}
 
@@ -588,7 +606,7 @@ namespace Render
 			return false;
 		}
 
-		mShaderCompileMap.insert({ &shaderProgram , info });
+		postShaderLoaded(shaderProgram, info);
 		return true;
 	}
 
@@ -643,8 +661,33 @@ namespace Render
 		}
 	}
 
-	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info , bool bForceReload )
+	void ShaderManager::registerShaderAssets()
 	{
+		if ( CVarShaderDectectFileMoidfy )
+		{
+			for (auto pair : mShaderCompileMap)
+			{
+				mAssetViewerReigster->registerViewer(pair.second);
+			}
+		}
+	}
+
+	void ShaderManager::unregisterShaderAssets()
+	{
+		if (CVarShaderDectectFileMoidfy)
+		{
+			for (auto pair : mShaderCompileMap)
+			{
+				mAssetViewerReigster->unregisterViewer(pair.second);
+			}
+		}
+	}
+
+	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info, bool bForceReload)
+	{
+		if ( !RHIIsInitialized() )
+			return false;
+
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, info) )
 		{
 			if (!info.sourceFile.empty())
@@ -708,7 +751,22 @@ namespace Render
 		return true;
 	}
 
-	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode , char const* fileName , bool bSingleFile )
+	void ShaderManager::removeFromShaderCompileMap(ShaderProgram& shader)
+	{
+		auto iter = mShaderCompileMap.find(&shader);
+
+		if (iter != mShaderCompileMap.end())
+		{
+			if (mAssetViewerReigster && CVarShaderDectectFileMoidfy)
+			{
+				mAssetViewerReigster->unregisterViewer(iter->second);
+			}
+			delete iter->second;
+			mShaderCompileMap.erase(iter);
+		}
+	}
+
+	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
 	{
 		assert( fileName &&  compileInfo.shaders.empty());
 
@@ -729,6 +787,15 @@ namespace Render
 				path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
 			}
 			compileInfo.shaders.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
+		}
+	}
+
+	void ShaderManager::postShaderLoaded(ShaderProgram& shader, ShaderProgramCompileInfo* info)
+	{
+		mShaderCompileMap.insert({ &shader , info });
+		if (mAssetViewerReigster && CVarShaderDectectFileMoidfy)
+		{
+			mAssetViewerReigster->registerViewer(info);
 		}
 	}
 
@@ -757,9 +824,9 @@ namespace Render
 		}
 	}
 
-	void ShaderProgramCompileInfo::postFileModify(FileAction action)
+	void ShaderProgramCompileInfo::postFileModify(EFileAction action)
 	{
-		if ( action == FileAction::Modify )
+		if ( action == EFileAction::Modify )
 			ShaderManager::Get().updateShaderInternal(*shaderProgram, *this, true);
 	}
 

@@ -362,7 +362,7 @@ namespace Render
 
 		TStructuredBuffer< LightProbeVisualizeParams > mParamBuffer;
 
-		SceneRenderTargets mSceneRenderTargets;
+		FrameRenderTargets mSceneRenderTargets;
 
 		RHITexture2DRef mNormalTexture;
 		RHITexture2DRef mHDRImage;
@@ -380,7 +380,6 @@ namespace Render
 
 		void onEnd() override
 		{
-			ShaderManager::Get().unregisterShaderAssets(::Global::GetAssetManager());
 			BaseClass::onEnd();
 		}
 

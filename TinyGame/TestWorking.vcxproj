@@ -212,6 +212,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
     <ClCompile Include="TestWorking\TestWorking.cpp" />

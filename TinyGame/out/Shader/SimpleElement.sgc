@@ -23,7 +23,7 @@ void MainVS()
 
 #if PIXEL_SHADER
 
-layout(location = 0) out vec4 OutColor;
+layout(location = 0) out float4 OutColor;
 in OutputVSParam OutputVS;
 void MainPS()
 {

@@ -193,6 +193,9 @@
     <ClCompile Include="TestMisc\Test\PreprocessorTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\TMechineStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />
@@ -370,6 +373,9 @@
     </ClInclude>
     <ClInclude Include="Minesweeper\MineDefines.h">
       <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\TMechineStage.h">
+      <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

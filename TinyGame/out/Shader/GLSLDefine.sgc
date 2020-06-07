@@ -134,19 +134,15 @@ float3 InvTransformVector(float3 v, float3x3 m)
 
 #if !SHADER_COMPILING
 
-class sampler1D;
-class sampler2D;
-class sampler3D;
-class samplerCUBE;
-class texture;
-class sampler_state;
+class sampler1D {};
+class sampler2D {};
+class sampler3D {};
+class samplerCube {};
+class samplerCUBE {};
+class sampler_state {};
 
-class sampler1D;
-class sampler2D;
-class sampler3D;
-class sampler2DMS;
-class sampler2DArray;
-class samplerCube;
+class sampler2DMS {};
+class sampler2DArray {};
 
 vec4 texture1D(sampler1D, float);
 vec4 texture2D(sampler2D, vec2);

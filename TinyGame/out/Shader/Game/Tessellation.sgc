@@ -202,7 +202,7 @@ void MainHS()
 	TYPE ComponentMul(float3 b, TYPE v0, TYPE v1, TYPE v2) { return b.x * v0 + b.y * v1 + b.z * v2; }\
 	TYPE ComponentMul(float4 b, TYPE v0, TYPE v1, TYPE v2, TYPE v3) { return b.x * v0 + b.y * v1 + b.z * v2 + b.w * v3; }
 
-VECTOR_FUNCTION_LIST(ComponentMulT)
+VECTOR_TYPE_LIST(ComponentMulT)
 #undef  ComponentMulT
 
 

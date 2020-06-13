@@ -258,11 +258,11 @@ namespace Render
 	class TD3D11Buffer : public TD3D11Resource< RHIBufferType >
 	{
 	public:
-		TD3D11Buffer(ID3D11Device* device, ID3D11Buffer* resource, uint32 creationFlag)
+		TD3D11Buffer(ID3D11Device* device, ID3D11Buffer* resource, uint32 creationFlags)
 		{
 			mResource = resource;
-			mCreationFlags = creationFlag;
-			if( creationFlag & BCF_CreateSRV )
+			mCreationFlags = creationFlags;
+			if( creationFlags & BCF_CreateSRV )
 			{
 				HRESULT hr = device->CreateShaderResourceView(resource, NULL, &mSRVResource);
 				if( hr != S_OK )
@@ -270,7 +270,7 @@ namespace Render
 					LogWarning(0, "Can't Create buffer's SRV ! error code : %d", hr);
 				}
 			}
-			if( creationFlag & BCF_CreateUAV )
+			if( creationFlags & BCF_CreateUAV )
 			{
 				device->CreateUnorderedAccessView(resource, NULL, &mUAVResource);
 			}
@@ -284,8 +284,8 @@ namespace Render
 	{
 	public:
 		using TD3D11Buffer< RHIVertexBuffer >::TD3D11Buffer;
-		D3D11VertexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numVertices , int vertexSize , uint32 creationFlag)
-			:TD3D11Buffer< RHIVertexBuffer >(device, resource, creationFlag)
+		D3D11VertexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numVertices , int vertexSize , uint32 creationFlags)
+			:TD3D11Buffer< RHIVertexBuffer >(device, resource, creationFlags)
 		{
 			mNumElements = numVertices;
 			mElementSize = vertexSize;
@@ -313,8 +313,8 @@ namespace Render
 	class D3D11IndexBuffer : public TD3D11Buffer< RHIIndexBuffer >
 	{
 	public:
-		D3D11IndexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numIndices, bool bIntType , uint32 creationFlag)
-			:TD3D11Buffer< RHIIndexBuffer >(device, resource, creationFlag)
+		D3D11IndexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numIndices, bool bIntType , uint32 creationFlags)
+			:TD3D11Buffer< RHIIndexBuffer >(device, resource, creationFlags)
 		{
 			mNumElements = numIndices;
 			mElementSize = bIntType ? 4 : 2;

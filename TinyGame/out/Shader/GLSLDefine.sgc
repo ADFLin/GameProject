@@ -25,6 +25,7 @@
 
 #else
 
+#define PIXEL_SHADER 1
 #define uniform
 #define attribute
 #define varying
@@ -57,7 +58,6 @@ typedef float4x4 mat4;
 #define BRANCH
 #define FLATTEN
 
-
 #define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) layout(location = ATTRIBUTE) in TYPE VertexInput_##NAME;
 #define VERTEX_INPUT( NAME ) VertexInput_##NAME
 
@@ -84,7 +84,7 @@ DEFINE_VECTOR_FUNCTION(saturate, { return clamp(x, 0.0, 1.0); })
 		s = sin(x);\
 		c = cos(x);\
 	}
-VECTOR_FUNCTION_LIST(SincosT)
+VECTOR_TYPE_LIST(SincosT)
 #undef SincosT
 
 float BufferDepthToClipZ(float bufferDepth)
@@ -99,6 +99,20 @@ float BufferDepthToClipZ(float bufferDepth)
 
 #if PIXEL_SHADER
 
+void clip(float x)
+{
+	if (x < 0.0)
+		discard;
+}
+
+#define ClipT( TYPE )\
+	void clip(TYPE x)\
+	{\
+		if ( any( lessThan(x , TYPE(0.0)) ) )\
+			discard;\
+	}
+VECTOR_TYPE_NO_FLOAT_LIST(ClipT)
+#undef ClipT
 
 void WritePixelDepth(float NDCz)
 {

@@ -218,14 +218,14 @@ namespace TripleTown
 
 		void importState( DataStreamBuffer& dataBuffer )
 		{
-			auto serializer = MakeBufferSerializer(dataBuffer);
+			auto serializer = MakeSerializer(dataBuffer);
 			IStreamSerializer::ReadOp op(serializer);
 			serialize(op);
 		}
 
 		void exportState( DataStreamBuffer& dataBuffer)
 		{
-			auto serializer = MakeBufferSerializer(dataBuffer);
+			auto serializer = MakeSerializer(dataBuffer);
 			IStreamSerializer::WriteOp op(serializer);
 			serialize(op);
 		}

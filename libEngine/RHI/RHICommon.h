@@ -178,8 +178,8 @@ namespace Render
 		}
 		ResTraceInfo(char const* fileName, char const* funcName, int lineNum)
 			:mFileName(fileName)
-			, mFuncName(funcName)
-			, mLineNumber(lineNum)
+			,mFuncName(funcName)
+			,mLineNumber(lineNum)
 		{
 
 
@@ -749,7 +749,7 @@ namespace Render
 		RHIDepthStencilState():RHIResource(TRACE_TYPE_NAME("DepthStencilState")) {}
 	};
 
-	constexpr int NumBlendStateTarget = 4;
+	constexpr int MaxBlendStateTargetCount = 4;
 	struct BlendStateInitializer
 	{
 		struct TargetValue
@@ -769,7 +769,7 @@ namespace Render
 		};
 		bool bEnableAlphaToCoverage;
 		bool bEnableIndependent;
-		TargetValue    targetValues[NumBlendStateTarget];
+		TargetValue    targetValues[MaxBlendStateTargetCount];
 	};
 
 	class RHIBlendState : public RHIResource
@@ -807,7 +807,7 @@ namespace Render
 		TRefcountResource() { mRefcount = 0; }
 
 		virtual void incRef() { ++mRefcount; }
-		virtual bool decRef() { --mRefcount; return mRefcount == 0; }
+		virtual bool decRef() { --mRefcount; return mRefcount <= 0; }
 		virtual void releaseResource() {}
 
 		int mRefcount;

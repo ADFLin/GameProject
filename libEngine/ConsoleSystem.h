@@ -1,9 +1,8 @@
-#ifndef ConsoleSystem_h__
-#define ConsoleSystem_h__
-
+#pragma once
+#ifndef ConsoleSystem_H_D2FC89F2_0A99_4F1A_89D4_DB18A8247D7C
+#define ConsoleSystem_H_D2FC89F2_0A99_4F1A_89D4_DB18A8247D7C
 
 #include "CoreShare.h"
-
 
 #include "FunctionTraits.h"
 #include <cstring>
@@ -111,8 +110,8 @@ public:
  	ConsoleCommandBase( char const* inName , TArrayView< ConsoleArgTypeInfo const > inArgs );
 	virtual ~ConsoleCommandBase(){}
 
-	std::string   name;
-	TArrayView< ConsoleArgTypeInfo const > args;
+	std::string   mName;
+	TArrayView< ConsoleArgTypeInfo const > mArgs;
 
 	virtual void execute( void* argsData[] ) = 0;
 	virtual void getValue( void* pDest ){}
@@ -140,10 +139,10 @@ struct TMemberFuncConsoleCom : public ConsoleCommandBase
 };
 
 template < class TFunc >
-struct BaseFuncConsoleCommand : public ConsoleCommandBase
+struct TBaseFuncConsoleCommand : public ConsoleCommandBase
 {
 	TFunc mFunc;
-	BaseFuncConsoleCommand( char const* inName, TFunc inFunc)
+	TBaseFuncConsoleCommand( char const* inName, TFunc inFunc)
 		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() )
 		,mFunc(inFunc)
 	{
@@ -160,7 +159,7 @@ class VariableConsoleCommadBase : public ConsoleCommandBase
 public:
 	VariableConsoleCommadBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs, uint32 flags)
 		:ConsoleCommandBase(inName, inArgs)
-		, mFlags(flags)
+		,mFlags(flags)
 	{
 
 	}
@@ -222,7 +221,6 @@ public:
 	CORE_API bool        initialize();
 	CORE_API void        finalize();
 
-	
 	CORE_API bool        executeCommand(char const* comStr);
 	CORE_API int         findCommandName( char const* includeStr, char const** findStr , int maxNum );
 	CORE_API int         findCommandName2( char const* includeStr , char const** findStr , int maxNum );
@@ -240,24 +238,27 @@ public:
 	char const* getErrorMsg() const { return mLastErrorMsg.c_str(); }
 
 	template < class T >
-	void registerVar( char const* name , T* obj )
+	auto* registerVar( char const* name , T* obj )
 	{
 		auto* command = new TVariableConsoleCommad<T>( name , obj );
 		insertCommand(command);
+		return command;
 	}
 
 	template < class TFunc, class T >
-	void registerCommand( char const* name , TFunc func , T* obj )
+	auto* registerCommand( char const* name , TFunc func , T* obj )
 	{
 		auto* command = new TMemberFuncConsoleCom<TFunc, T >( name ,func , obj );
 		insertCommand(command);
+		return command;
 	}
 
 	template < class TFunc >
-	void registerCommand( char const* name , TFunc func )
+	auto* registerCommand( char const* name , TFunc func )
 	{
-		auto* command = new BaseFuncConsoleCommand<TFunc>( name ,func );
+		auto* command = new TBaseFuncConsoleCommand<TFunc>( name ,func );
 		insertCommand(command);
+		return command;
 	}
 
 	template < class TFunc >
@@ -273,9 +274,7 @@ public:
 		}
 	}
 
-
 protected:
-
 
 	static int const NumMaxParams = 16;
 	struct ExecuteContext
@@ -302,9 +301,8 @@ protected:
 	};
 	typedef std::map< char const* , ConsoleCommandBase* , StrCmp > CommandMap;
 
-	CommandMap  mNameMap;
-	bool        mbInitialized = false;
-	ConsoleCommandBase* mRegisterdCommand = nullptr;
+	CommandMap   mNameMap;
+	bool         mbInitialized = false;
 	std::string  mLastErrorMsg;
 
 	friend class ConsoleCommandBase;
@@ -363,6 +361,30 @@ public:
 	T& mValueRef;
 };
 
+class AutoConsoleCommand
+{
+public:
+	template< class TFunc >
+	AutoConsoleCommand(char const* name, TFunc func)
+	{
+		mCommand = ConsoleSystem::Get().registerCommand(name, func);
+	}
 
+	template< class TFunc , class T >
+	AutoConsoleCommand(char const* name, TFunc func, T* object)
+	{
+		mCommand = ConsoleSystem::Get().registerCommand(name, func, object);
+	}
 
-#endif // ConsoleSystem_h__
+	~AutoConsoleCommand()
+	{
+		if (ConsoleSystem::Get().isInitialized())
+		{
+			ConsoleSystem::Get().unregisterCommand(mCommand);
+		}
+	}
+
+	ConsoleCommandBase* mCommand;
+};
+
+#endif // ConsoleSystem_H_D2FC89F2_0A99_4F1A_89D4_DB18A8247D7C

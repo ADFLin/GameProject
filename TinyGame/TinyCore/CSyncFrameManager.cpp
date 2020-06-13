@@ -68,7 +68,7 @@ void FrameDataManager::restoreData( IFrameActionTemplate* actionTemp  )
 		iter != mProcessData.end() ; ++iter )
 	{
 		auto& buffer = *iter->iter;
-		auto dataSteam = MakeBufferSerializer(*(iter->iter));
+		auto dataSteam = MakeSerializer(*(iter->iter));
 		actionTemp->restoreFrameData( dataSteam , buffer.getAvailableSize() != 0);
 
 	}
@@ -284,7 +284,7 @@ bool SVSyncFrameManager::sendFrameData()
 	mFrameStream->buffer.clear();
 	mFrameStream->frame = frame;
 
-	auto dataSteam = MakeBufferSerializer(mFrameStream->buffer);
+	auto dataSteam = MakeSerializer(mFrameStream->buffer);
 	if( mFrameCollector->haveFrameData(frame) )
 	{
 		mFrameCollector->collectFrameData(dataSteam);
@@ -448,7 +448,7 @@ bool CLSyncFrameManager::sendFrameData()
 
 	if ( mFrameCollector->haveFrameData(frame) )
 	{
-		auto dataStream = MakeBufferSerializer(mFrameStream->buffer);
+		auto dataStream = MakeSerializer(mFrameStream->buffer);
 		mFrameCollector->collectFrameData(dataStream);
 	}
 

@@ -1158,7 +1158,7 @@ namespace Render
 	{
 		mStateValue.bEnableAlphaToCoverage = initializer.bEnableAlphaToCoverage;
 		mStateValue.bEnableIndependent = initializer.bEnableIndependent;
-		for( int i = 0; i < (initializer.bEnableIndependent ? NumBlendStateTarget : 1); ++i )
+		for( int i = 0; i < (initializer.bEnableIndependent ? MaxBlendStateTargetCount : 1); ++i )
 		{
 			auto const& targetValue = initializer.targetValues[i];
 			auto& targetValueGL = mStateValue.targetValues[i];

@@ -7,135 +7,20 @@
 #include "FileSystem.h"
 #include "Core/ScopeExit.h"
 
-#include "vulkan/vulkan.h"
-#if SYS_PLATFORM_WIN
-#include "vulkan/vulkan_win32.h"
-#endif
+
 //#include "shaderc/shaderc.h"
-
-
-#pragma comment(lib , "vulkan-1.lib")
 //#pragma comment(lib , "shaderc_combined.lib")
 
-#define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
-	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
-
-#define VERIFY_VK_RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
-	{ VkResult vkResult = CODE; if( vkResult != VK_SUCCESS ){ ERROR_MSG_GENERATE( vkResult , CODE, FILE, LINE ); ERRORCODE } }
-
-#define VERIFY_VK_FAILCDOE( CODE , ERRORCODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
-#define VERIFY_VK_RETURN_FALSE( CODE ) VERIFY_VK_RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
-
-#define SAFE_VK_DESTROY( VKHANDLE , CODE )\
-	if( VKHANDLE != VK_NULL_HANDLE )\
-	{\
-		CODE;\
-		VKHANDLE = VK_NULL_HANDLE;\
-	}
+#include "RHI/VulkanCommon.h"
+#include "RHI/VulkanCommand.h"
 
 
-namespace Meta
-{
-	template< int Index, class ...Args >
-	struct GetArgsType {};
 
-	template< int Index, class T, class ...Args >
-	struct GetArgsType< Index, T, Args... >
-	{
-		typedef typename GetArgsType< Index - 1, Args... >::Type Type;
-	};
-
-	template< class T, class ...Args >
-	struct GetArgsType< 0, T, Args... >
-	{
-		typedef T Type;
-	};
-
-	template< class ...Args >
-	struct TypeList
-	{
-		enum { Length = sizeof...( Args ); };
-	};
-
-	template< class FunType >
-	struct FuncTraits {};
-	template< class RT, class ...Args >
-	struct FuncTraits< RT(*)(Args...) >
-	{
-		typedef TypeList< Args... > ArgList;
-	};
-}
-
-VkAllocationCallbacks* gAllocCB = nullptr;
 
 namespace RenderVulkan
 {
 	using namespace Meta;
 	using namespace Render;
-
-	template< class ...FuncArgs, class ...Args >
-	FORCEINLINE static auto GetEnumValues(VkResult(VKAPI_CALL &Func)(FuncArgs...), Args... args)
-	{
-		using namespace Meta;
-		typedef typename GetArgsType< sizeof...(FuncArgs) - 1, FuncArgs... >::Type ArgType;
-		typedef typename std::remove_pointer< ArgType >::type PropertyType;
-		uint32_t count = 0;
-		VERIFY_VK_FAILCDOE(Func(std::forward<Args>(args)..., &count, nullptr), );
-		std::vector< PropertyType > result{ count };
-		VERIFY_VK_FAILCDOE(Func(std::forward<Args>(args)..., &count, result.data()), );
-		return result;
-	}
-
-	template< class ...FuncArgs, class ...Args >
-	FORCEINLINE static auto GetEnumValues(void(VKAPI_CALL &Func)(FuncArgs...), Args... args)
-	{
-		using namespace Meta;
-		typedef typename GetArgsType< sizeof...(FuncArgs) - 1, FuncArgs... >::Type ArgType;
-		typedef typename std::remove_pointer< ArgType >::type PropertyType;
-
-		uint32_t count = 0;
-		Func(std::forward<Args>(args)..., &count, nullptr);
-		std::vector< PropertyType > result{ count };
-		Func(std::forward<Args>(args)..., &count, result.data());
-		return result;
-	}
-
-	struct FPropertyName
-	{
-		static char const* Get(VkLayerProperties const& p) { return p.layerName; }
-		static char const* Get(VkExtensionProperties const& p) { return p.extensionName; }
-		static char const* Get(char const* name) { return name; }
-
-		template< class T >
-		static bool Find(std::vector<T> const& v, char const* name)
-		{
-			for( auto& element : v )
-			{
-				if( strcmp(FPropertyName::Get(element), name) == 0 )
-					return true;
-			}
-			return false;
-		}
-
-		template< class T >
-		static void GetAll(std::vector<T> const& v, std::vector< char const* >& outNames)
-		{
-			for( auto& element : v )
-			{
-				outNames.push_back(FPropertyName::Get(element));
-			}
-		}
-	};
-
-	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugVKCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData)
-	{
-		LogWarning(0, pCallbackData->pMessage);
-		return VK_FALSE;
-	}
 
 
 	struct GpuTiming
@@ -163,7 +48,7 @@ namespace RenderVulkan
 			queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
 			queryPoolInfo.queryCount = mQueryCount;
 			queryPoolInfo.pipelineStatistics = 0;
-			VERIFY_VK_RETURN_FALSE(vkCreateQueryPool(mDevice, &queryPoolInfo, gAllocCB, &mTimestampQueryPool));
+			VK_VERIFY_RETURN_FALSE(vkCreateQueryPool(mDevice, &queryPoolInfo, gAllocCB, &mTimestampQueryPool));
 		}
 
 
@@ -209,30 +94,46 @@ namespace RenderVulkan
 		double mCycleToSecond;
 	};
 
+
 	class VulkanSystemData
 	{
 	public:
 		VkInstance mInstance = VK_NULL_HANDLE;
 		VkPhysicalDevice mUsagePhysicalDevice = VK_NULL_HANDLE;
-		VkPhysicalDeviceProperties mPhysicalDeviceProp;
 
 		VkDevice mDevice = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT mCallback = VK_NULL_HANDLE;
 		VkQueue mGraphicsQueue = VK_NULL_HANDLE;
 		VkQueue mPresentQueue = VK_NULL_HANDLE;
 
-		struct EQueueFamily
-		{
-			enum Type
-			{
-				Graphics = 0,
-				Present = 1,
-				Compute = 2,
-				Count,
-			};
-		};
-		uint32 mUsageQueueFamilyIndices[EQueueFamily::Count];
+		VkSurfaceKHR   mWindowSurface = VK_NULL_HANDLE;
+		VkSwapchainKHR mSwapChain = VK_NULL_HANDLE;
 
+		VkExtent2D             mSwapChainExtent;
+		VkFormat               mSwapChainImageFormat;
+
+		VulkanSystem* mSystem;
+
+		bool InitTemp()
+		{
+			mSystem = static_cast<VulkanSystem*>(gRHISystem);
+			mInstance = mSystem->instance;
+			mUsagePhysicalDevice = mSystem->mDevice->physicalDevice;
+			mDevice = mSystem->mDevice->logicalDevice;
+
+			vkGetDeviceQueue(mDevice, mSystem->mUsageQueueFamilyIndices[EQueueFamily::Graphics], 0, &mGraphicsQueue);
+			VERIFY_RETURN_FALSE(mGraphicsQueue);
+			vkGetDeviceQueue(mDevice, mSystem->mUsageQueueFamilyIndices[EQueueFamily::Present], 0, &mPresentQueue);
+			VERIFY_RETURN_FALSE(mPresentQueue);
+
+			mWindowSurface = mSystem->mWindowSurface;
+			mSwapChain = mSystem->mSwapChain->mSwapChain;
+
+			mSwapChainExtent = mSystem->mSwapChain->mImageSize;
+			mSwapChainImageFormat = mSystem->mSwapChain->mImageFormat;
+			return true;
+		}
+#if 0
 		bool initializeSystem(HWND hWnd)
 		{
 			{
@@ -270,7 +171,7 @@ namespace RenderVulkan
 				instanceInfo.ppEnabledExtensionNames = enableExtensions.data();
 				instanceInfo.enabledExtensionCount = enableExtensions.size();
 
-				VERIFY_VK_RETURN_FALSE(vkCreateInstance(&instanceInfo, gAllocCB, &mInstance));
+				VK_VERIFY_RETURN_FALSE(vkCreateInstance(&instanceInfo, gAllocCB, &mInstance));
 
 				bool bHaveDebugUtils = FPropertyName::Find(extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 				if ( bHaveDebugUtils )
@@ -284,7 +185,7 @@ namespace RenderVulkan
 						debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 						debugInfo.pfnUserCallback = DebugVKCallback;
 						debugInfo.pUserData = nullptr;
-						VERIFY_VK_RETURN_FALSE(func(mInstance, &debugInfo, gAllocCB, &mCallback));
+						VK_VERIFY_RETURN_FALSE(func(mInstance, &debugInfo, gAllocCB, &mCallback));
 					}
 
 				}
@@ -426,7 +327,7 @@ namespace RenderVulkan
 				deviceInfo.ppEnabledExtensionNames = enabledExtensionNames.data();
 				deviceInfo.enabledExtensionCount = enabledExtensionNames.size();
 
-				VERIFY_VK_RETURN_FALSE(vkCreateDevice(mUsagePhysicalDevice, &deviceInfo, gAllocCB, &mDevice));
+				VK_VERIFY_RETURN_FALSE(vkCreateDevice(mUsagePhysicalDevice, &deviceInfo, gAllocCB, &mDevice));
 
 
 				vkGetDeviceQueue(mDevice, mUsageQueueFamilyIndices[EQueueFamily::Graphics], 0, &mGraphicsQueue);
@@ -438,30 +339,24 @@ namespace RenderVulkan
 			return true;
 		}
 
-
 		void cleanupSystem()
 		{
-			SAFE_VK_DESTROY(mDevice, vkDestroyDevice(mDevice, gAllocCB));
-			SAFE_VK_DESTROY(mWindowSurface, vkDestroySurfaceKHR(mInstance, mWindowSurface, gAllocCB));
+			VK_SAFE_DESTROY(mDevice, vkDestroyDevice(mDevice, gAllocCB));
+			VK_SAFE_DESTROY(mWindowSurface, vkDestroySurfaceKHR(mInstance, mWindowSurface, gAllocCB));
 
-			if( mCallback != VK_NULL_HANDLE )
+			if (mCallback != VK_NULL_HANDLE)
 			{
 				auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
 				func(mInstance, mCallback, gAllocCB);
 				mCallback = VK_NULL_HANDLE;
 			}
-			SAFE_VK_DESTROY(mInstance, vkDestroyInstance(mInstance, gAllocCB));
+			VK_SAFE_DESTROY(mInstance, vkDestroyInstance(mInstance, gAllocCB));
 		}
+#endif
 
-		VkSurfaceKHR   mWindowSurface = VK_NULL_HANDLE;
-		VkSwapchainKHR mSwapChain = VK_NULL_HANDLE;
-		std::vector< VkImageView >   mSwapChainImageViews;
-		std::vector< VkFramebuffer > mSwapChainFramebuffers;
 
-		VkExtent2D             mSwapChainExtent;
-		VkFormat               mSwapChainImageFormat;
-		std::vector< VkImage > mSwapChainImages;
 
+#if 0
 #if SYS_PLATFORM_WIN
 		VkSurfaceKHR createWindowSurface(HWND hWnd)
 		{
@@ -470,7 +365,7 @@ namespace RenderVulkan
 			surfaceInfo.hwnd = hWnd;
 			surfaceInfo.hinstance = GetModuleHandleA(NULL);
 			VkSurfaceKHR result;
-			VERIFY_VK_FAILCDOE(vkCreateWin32SurfaceKHR(mInstance, &surfaceInfo, gAllocCB, &result), return VK_NULL_HANDLE;);
+			VK_VERIFY_FAILCDOE(vkCreateWin32SurfaceKHR(mInstance, &surfaceInfo, gAllocCB, &result), return VK_NULL_HANDLE;);
 			return result;
 		}
 #endif
@@ -559,7 +454,7 @@ namespace RenderVulkan
 				swapChainInfo.queueFamilyIndexCount = 0;
 			}
 
-			VERIFY_VK_RETURN_FALSE(vkCreateSwapchainKHR(mDevice, &swapChainInfo, gAllocCB, &mSwapChain));
+			VK_VERIFY_RETURN_FALSE(vkCreateSwapchainKHR(mDevice, &swapChainInfo, gAllocCB, &mSwapChain));
 
 			//mSwapChainImages = GetEnumValues(vkGetSwapchainImagesKHR, mDevice, mSwapChain);
 			vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, nullptr);
@@ -584,21 +479,46 @@ namespace RenderVulkan
 				imageViewInfo.subresourceRange.layerCount = 1;
 
 				VkImageView imageView;
-				VERIFY_VK_RETURN_FALSE(vkCreateImageView(mDevice, &imageViewInfo, gAllocCB, &imageView));
+				VK_VERIFY_RETURN_FALSE(vkCreateImageView(mDevice, &imageViewInfo, gAllocCB, &imageView));
 				mSwapChainImageViews.push_back(imageView);
 			}
 
 			return true;
 		}
 
+		void cleanupWindowSwapchain()
+		{
+			if (!mSwapChainFramebuffers.empty())
+			{
+				for (auto buffer : mSwapChainFramebuffers)
+				{
+					vkDestroyFramebuffer(mDevice, buffer, gAllocCB);
+				}
+				mSwapChainFramebuffers.clear();
+			}
+
+			if (!mSwapChainImageViews.empty())
+			{
+				for (auto view : mSwapChainImageViews)
+				{
+					vkDestroyImageView(mDevice, view, gAllocCB);
+				}
+				mSwapChainImageViews.clear();
+			}
+			mSwapChainImages.clear();
+
+			VK_SAFE_DESTROY(mSwapChain, vkDestroySwapchainKHR(mDevice, mSwapChain, gAllocCB));
+		}
+#endif
+		std::vector< VkFramebuffer > mSwapChainFramebuffers;
 
 		bool createSwapchainFrameBuffers()
 		{
-			mSwapChainFramebuffers.resize(mSwapChainImageViews.size());
+			mSwapChainFramebuffers.resize(mSystem->mSwapChain->mImageViews.size());
 
-			for( int i = 0; i < mSwapChainImageViews.size(); ++i )
+			for( int i = 0; i < mSystem->mSwapChain->mImageViews.size(); ++i )
 			{
-				VkImageView attachments[] = { mSwapChainImageViews[i] };
+				VkImageView attachments[] = { mSystem->mSwapChain->mImageViews[i] };
 				VkFramebufferCreateInfo frameBufferInfo = {};
 				frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 				frameBufferInfo.renderPass = mSimpleRenderPass;
@@ -608,54 +528,31 @@ namespace RenderVulkan
 				frameBufferInfo.height = mSwapChainExtent.height;
 				frameBufferInfo.layers = 1;
 
-				VERIFY_VK_RETURN_FALSE(vkCreateFramebuffer(mDevice, &frameBufferInfo, gAllocCB, &mSwapChainFramebuffers[i]));
+				VK_VERIFY_RETURN_FALSE(vkCreateFramebuffer(mDevice, &frameBufferInfo, gAllocCB, &mSwapChainFramebuffers[i]));
 			}
 
 			return true;
 		}
-
-		void cleanupWindowSwapchain()
-		{
-			if( !mSwapChainFramebuffers.empty() )
-			{
-				for( auto buffer : mSwapChainFramebuffers )
-				{
-					vkDestroyFramebuffer(mDevice, buffer, gAllocCB);
-				}
-				mSwapChainFramebuffers.clear();
-			}
-
-			if( !mSwapChainImageViews.empty() )
-			{
-				for( auto view : mSwapChainImageViews )
-				{
-					vkDestroyImageView(mDevice, view, gAllocCB);
-				}
-				mSwapChainImageViews.clear();
-			}
-			mSwapChainImages.clear();
-
-			SAFE_VK_DESTROY(mSwapChain, vkDestroySwapchainKHR(mDevice, mSwapChain, gAllocCB));
-		}
-
-
 
 
 		VkPipeline mSimplePipeline = VK_NULL_HANDLE;
 		VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
 		VkRenderPass mSimpleRenderPass = VK_NULL_HANDLE;
 
-
 		struct BufferData
 		{
 			VkBuffer handle;
 			VkDeviceMemory memory;
 		};
-		BufferData mVertexBuffer;
-		BufferData mIndexBuffer;
+		RHIVertexBufferRef mVertexBuffer;
+		RHIIndexBufferRef  mIndexBuffer;
 
 		bool createSimplePipepline()
 		{
+
+			setupDescriptorPool();
+			setupDescriptorSetLayout();
+			setupDescriptorSet();
 
 			{
 
@@ -684,13 +581,22 @@ namespace RenderVulkan
 				subpass.preserveAttachmentCount = 0;
 				subpass.pPreserveAttachments = nullptr;
 
-				VkSubpassDependency dependency = {};
-				dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-				dependency.dstSubpass = 0;
-				dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				dependency.srcAccessMask = 0;
-				dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				VkSubpassDependency dependencies[2] = {};
+				dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+				dependencies[0].dstSubpass = 0;
+				dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				dependencies[0].srcAccessMask = 0;
+				dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+				dependencies[1].srcSubpass = 0;                                               // Producer of the dependency is our single subpass
+				dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;                             // Consumer are all commands outside of the renderpass
+				dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // is a storeOp stage for color attachments
+				dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;          // Do not block any subsequent work
+				dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;         // is a storeOp `STORE` access mask for color attachments
+				dependencies[1].dstAccessMask = 0;
+				dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 				VkRenderPassCreateInfo renderPassInfo = {};
 				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -698,41 +604,44 @@ namespace RenderVulkan
 				renderPassInfo.attachmentCount = 1;
 				renderPassInfo.pSubpasses = &subpass;
 				renderPassInfo.subpassCount = 1;
-				renderPassInfo.pDependencies = &dependency;
-				renderPassInfo.dependencyCount = 1;
+				renderPassInfo.pDependencies = dependencies;
+				renderPassInfo.dependencyCount = 2;
 
-				VERIFY_VK_RETURN_FALSE(vkCreateRenderPass(mDevice, &renderPassInfo, gAllocCB, &mSimpleRenderPass));
+				VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(mDevice, &renderPassInfo, gAllocCB, &mSimpleRenderPass));
 
 			}
 
 			{
-				VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+				VkPipelineLayoutCreateInfo pipelineLayoutInfo = FVulkanInit::pipelineLayoutCreateInfo();
 				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 				pipelineLayoutInfo.pSetLayouts = nullptr;
 				pipelineLayoutInfo.setLayoutCount = 0;
 				pipelineLayoutInfo.pPushConstantRanges = nullptr;
 				pipelineLayoutInfo.pushConstantRangeCount = 0;
-				VERIFY_VK_RETURN_FALSE(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, gAllocCB, &mEmptyPipelineLayout));
+				VK_VERIFY_RETURN_FALSE(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, gAllocCB, &mEmptyPipelineLayout));
 			}
 
 			struct Vertex
 			{
 				Vector2 pos;
+				Vector2 uv;
 				Vector3 color;
 			};
 
 			Vertex v[] =
 			{
-				Vector2(0.0, -0.5),Vector3(1.0, 0.0, 0.0),
-				Vector2(0.5, 0.5), Vector3(0.0, 1.0, 0.0),
-				Vector2(-0.5, 0.5),Vector3(1.0, 1.0, 1.0),
+				Vector2(0.5, -0.5),Vector2(1, 0),Vector3(1.0, 0.0, 0.0),
+				Vector2(0.5, 0.5),Vector2(1, 1), Vector3(0.0, 1.0, 0.0),
+				Vector2(-0.5, 0.5),Vector2(0, 1),Vector3(1.0, 1.0, 1.0),
+				Vector2(-0.5, -0.5),Vector2(0, 0),Vector3(1.0, 1.0, 1.0),
 			};
-			VERIFY_RETURN_FALSE(createBuffer(mVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, sizeof(Vertex), ARRAY_SIZE(v), v));
+			VERIFY_RETURN_FALSE(mVertexBuffer = RHICreateVertexBuffer(sizeof(Vertex), ARRAY_SIZE(v), BCF_DefalutValue, v));
 			uint32 indices[] =
 			{
-				0,1,2
+				0,1,2,
+				0,2,3,
 			};
-			VERIFY_RETURN_FALSE(createBuffer(mIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, sizeof(uint32), ARRAY_SIZE(indices), indices));
+			VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true , BCF_DefalutValue , indices));
 			VkVertexInputBindingDescription vertexInputBindingDescs[] =
 			{
 				//binding stride , rate
@@ -743,7 +652,8 @@ namespace RenderVulkan
 			{
 				//location binding format offset
 				{0 , 0, VK_FORMAT_R32G32_SFLOAT , offsetof(Vertex , pos) },
-				{1 , 0, VK_FORMAT_R32G32B32_SFLOAT , offsetof(Vertex , color) },
+				{1 , 0, VK_FORMAT_R32G32_SFLOAT , offsetof(Vertex , uv) },
+				{2 , 0, VK_FORMAT_R32G32B32_SFLOAT , offsetof(Vertex , color) },
 			};
 
 			{
@@ -859,7 +769,11 @@ namespace RenderVulkan
 				dynamicState.pDynamicStates = dynamicStates;
 				dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStates);
 
-				VkGraphicsPipelineCreateInfo pipelineInfo = {};
+				VkGraphicsPipelineCreateInfo pipelineInfo =
+					FVulkanInit::pipelineCreateInfo(
+						pipelineLayout,
+						mSimpleRenderPass,
+						0);
 				pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 				pipelineInfo.pViewportState = &viewportState;
 				pipelineInfo.pRasterizationState = &rasterizationState;
@@ -875,17 +789,14 @@ namespace RenderVulkan
 				pipelineInfo.pVertexInputState = &vertexInputState;
 				pipelineInfo.pDynamicState = &dynamicState;
 
-				pipelineInfo.layout = mEmptyPipelineLayout;
-
-				pipelineInfo.renderPass = mSimpleRenderPass;
 				pipelineInfo.subpass = 0;
 				pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 				pipelineInfo.basePipelineIndex = 0;
 
-				VERIFY_VK_RETURN_FALSE(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, gAllocCB, &mSimplePipeline));
+				VK_VERIFY_RETURN_FALSE(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, gAllocCB, &mSimplePipeline));
 
-				SAFE_VK_DESTROY(vertexModule, vkDestroyShaderModule(mDevice, vertexModule, gAllocCB));
-				SAFE_VK_DESTROY(pixelModule, vkDestroyShaderModule(mDevice, pixelModule, gAllocCB));
+				VK_SAFE_DESTROY(vertexModule, vkDestroyShaderModule(mDevice, vertexModule, gAllocCB));
+				VK_SAFE_DESTROY(pixelModule, vkDestroyShaderModule(mDevice, pixelModule, gAllocCB));
 			}
 
 			return true;
@@ -893,9 +804,9 @@ namespace RenderVulkan
 
 		void cleanupSimplePipeline()
 		{
-			SAFE_VK_DESTROY(mSimpleRenderPass, vkDestroyRenderPass(mDevice, mSimpleRenderPass, gAllocCB));
-			SAFE_VK_DESTROY(mEmptyPipelineLayout, vkDestroyPipelineLayout(mDevice, mEmptyPipelineLayout, gAllocCB));
-			SAFE_VK_DESTROY(mSimplePipeline, vkDestroyPipeline(mDevice, mSimplePipeline, gAllocCB));
+			VK_SAFE_DESTROY(mSimpleRenderPass, vkDestroyRenderPass(mDevice, mSimpleRenderPass, gAllocCB));
+			VK_SAFE_DESTROY(mEmptyPipelineLayout, vkDestroyPipelineLayout(mDevice, mEmptyPipelineLayout, gAllocCB));
+			VK_SAFE_DESTROY(mSimplePipeline, vkDestroyPipeline(mDevice, mSimplePipeline, gAllocCB));
 		}
 
 		VkCommandPool mCommandPool = VK_NULL_HANDLE;
@@ -905,9 +816,9 @@ namespace RenderVulkan
 			{
 				VkCommandPoolCreateInfo poolInfo = {};
 				poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-				poolInfo.queueFamilyIndex = mUsageQueueFamilyIndices[EQueueFamily::Graphics];
+				poolInfo.queueFamilyIndex = mSystem->mUsageQueueFamilyIndices[EQueueFamily::Graphics];
 				poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-				VERIFY_VK_RETURN_FALSE(vkCreateCommandPool(mDevice, &poolInfo, gAllocCB, &mCommandPool));
+				VK_VERIFY_RETURN_FALSE(vkCreateCommandPool(mDevice, &poolInfo, gAllocCB, &mCommandPool));
 			}
 
 			{
@@ -917,7 +828,7 @@ namespace RenderVulkan
 				allocInfo.commandPool = mCommandPool;
 				allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 				allocInfo.commandBufferCount = mCommandBuffers.size();
-				VERIFY_VK_RETURN_FALSE(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()));
+				VK_VERIFY_RETURN_FALSE(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()));
 			}
 			{
 				for( size_t i = 0; i < mCommandBuffers.size(); ++i )
@@ -929,8 +840,84 @@ namespace RenderVulkan
 			return true;
 		}
 
+		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		VkPipelineLayout pipelineLayout;
+		VkDescriptorSet descriptorSet;
+		VkDescriptorSetLayout descriptorSetLayout;
 
+		void setupDescriptorPool()
+		{
+			// Example uses one ubo and one image sampler
+			std::vector<VkDescriptorPoolSize> poolSizes =
+			{
+				FVulkanInit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+			};
 
+			VkDescriptorPoolCreateInfo descriptorPoolInfo =
+				FVulkanInit::descriptorPoolCreateInfo(
+					static_cast<uint32_t>(poolSizes.size()),
+					poolSizes.data(),
+					2);
+
+			VK_CHECK_RESULT(vkCreateDescriptorPool(mDevice, &descriptorPoolInfo, nullptr, &descriptorPool));
+		}
+
+		void setupDescriptorSetLayout()
+		{
+			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
+			{
+				// Binding 1 : Fragment shader image sampler
+				FVulkanInit::descriptorSetLayoutBinding(
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					VK_SHADER_STAGE_FRAGMENT_BIT,
+					0)
+			};
+
+			VkDescriptorSetLayoutCreateInfo descriptorLayout =
+				FVulkanInit::descriptorSetLayoutCreateInfo(
+					setLayoutBindings.data(),
+					static_cast<uint32_t>(setLayoutBindings.size()));
+
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
+
+			VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
+				FVulkanInit::pipelineLayoutCreateInfo(
+					&descriptorSetLayout,
+					1);
+
+			VK_CHECK_RESULT(vkCreatePipelineLayout(mDevice, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+		}
+
+		RHITexture2DRef texture;
+		void setupDescriptorSet()
+		{
+			texture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.jpg");
+			
+			VkDescriptorSetAllocateInfo allocInfo =
+				FVulkanInit::descriptorSetAllocateInfo(
+					descriptorPool,
+					&descriptorSetLayout,
+					1);
+
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(mDevice, &allocInfo, &descriptorSet));
+
+			// Setup a descriptor image info for the current texture to be used as a combined image sampler
+			VkDescriptorImageInfo textureDescriptor;
+			textureDescriptor.imageView = VulkanCast::To(texture)->view; // The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
+			textureDescriptor.sampler = VulkanCast::GetHandle(TStaticSamplerState<>::GetRHI()); // The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
+			textureDescriptor.imageLayout = VulkanCast::To(texture)->mImageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+			{
+				FVulkanInit::writeDescriptorSet(
+					descriptorSet,
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,		// The descriptor set will use a combined image sampler (sampler and image could be split)
+					0,												// Shader binding point 1
+					&textureDescriptor)								// Pointer to the descriptor image for our texture
+			};
+
+			vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		}
 
 		bool generateRenderCommand(VkCommandBuffer commandBuffer , VkFramebuffer frameBuffer )
 		{
@@ -939,7 +926,7 @@ namespace RenderVulkan
 			bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			bufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 			bufferBeginInfo.pInheritanceInfo = nullptr;
-			VERIFY_VK_RETURN_FALSE(vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo));
+			VK_VERIFY_RETURN_FALSE(vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo));
 
 			{
 				VkRenderPassBeginInfo passBeginInfo = {};
@@ -964,24 +951,26 @@ namespace RenderVulkan
 				viewport.maxDepth = 1;
 				vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mSimplePipeline);
 
-				VkBuffer vertexBuffers[] = { mVertexBuffer.handle };
+				VkBuffer vertexBuffers[] = { VulkanCast::GetHandle( mVertexBuffer ) };
 				VkDeviceSize offsets[] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffer, 0, ARRAY_SIZE(vertexBuffers), vertexBuffers, offsets);
-				vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer.handle, 0, VK_INDEX_TYPE_UINT32);
-				vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+				vkCmdBindIndexBuffer(commandBuffer, VulkanCast::GetHandle(mIndexBuffer), 0, VK_INDEX_TYPE_UINT32);
+				//vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+				vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
 				vkCmdEndRenderPass(commandBuffer);
 			}
 
-			VERIFY_VK_RETURN_FALSE(vkEndCommandBuffer(commandBuffer));
+			VK_VERIFY_RETURN_FALSE(vkEndCommandBuffer(commandBuffer));
 
 			return true;
 		}
 
 		void cleanupRenderCommand()
 		{
-			SAFE_VK_DESTROY(mCommandPool, vkDestroyCommandPool(mDevice, mCommandPool, gAllocCB));
+			VK_SAFE_DESTROY(mCommandPool, vkDestroyCommandPool(mDevice, mCommandPool, gAllocCB));
 
 		}
 
@@ -992,61 +981,9 @@ namespace RenderVulkan
 			moduleInfo.pCode = (uint32*)pCode;
 			moduleInfo.codeSize = codeSize;
 			VkShaderModule module;
-			VERIFY_VK_FAILCDOE(vkCreateShaderModule(mDevice, &moduleInfo, gAllocCB, &module), return VK_NULL_HANDLE;);
+			VK_VERIFY_FAILCDOE(vkCreateShaderModule(mDevice, &moduleInfo, gAllocCB, &module), return VK_NULL_HANDLE;);
 
 			return module;
-		}
-
-
-		bool createBuffer(BufferData& bufferData , VkBufferUsageFlags usage ,  uint32 elementSize, uint32 numElement, void* pData )
-		{
-			uint32 dataSize = elementSize * numElement;
-			VkBufferCreateInfo bufferInfo = {};
-			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			bufferInfo.usage = usage;
-			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			bufferInfo.pQueueFamilyIndices = nullptr;
-			bufferInfo.queueFamilyIndexCount = 0;
-			bufferInfo.size = dataSize;
-			VERIFY_VK_FAILCDOE(vkCreateBuffer(mDevice, &bufferInfo, gAllocCB, &bufferData.handle), return false;);
-
-			VkMemoryRequirements memoryRequirments;
-			vkGetBufferMemoryRequirements(mDevice, bufferData.handle, &memoryRequirments);
-			VkPhysicalDeviceMemoryProperties memoryProperties;
-			vkGetPhysicalDeviceMemoryProperties(mUsagePhysicalDevice, &memoryProperties);
-			auto GetTypeIndex =[&](uint32 propertyFlags ) -> uint32
-			{
-				for( uint32 idx = 0; idx < memoryProperties.memoryTypeCount; ++idx )
-				{
-					if( (memoryRequirments.memoryTypeBits & (1 << idx) ) && 
-					    ( memoryProperties.memoryTypes[idx].propertyFlags & propertyFlags) == propertyFlags )
-						return idx;
-				}
-				LogError("No memory type");
-				return 0;
-			};
-			VkMemoryAllocateInfo memoryInfo = {};
-			memoryInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			memoryInfo.allocationSize = memoryRequirments.size;
-			memoryInfo.memoryTypeIndex = GetTypeIndex(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-			vkAllocateMemory(mDevice, &memoryInfo, gAllocCB, &bufferData.memory);
-			vkBindBufferMemory(mDevice, bufferData.handle, bufferData.memory, 0);
-
-			if( pData )
-			{
-				void* pDest;
-				VERIFY_VK_FAILCDOE( vkMapMemory(mDevice , bufferData.memory , 0 , dataSize, 0 , &pDest ) , );
-				memcpy(pDest, pData, dataSize);
-				vkUnmapMemory(mDevice, bufferData.memory);
-			}
-			return true;
-		}
-
-		void destroyBuffer( BufferData& bufferData )
-		{
-			vkDestroyBuffer(mDevice, bufferData.handle, gAllocCB);
-			vkFreeMemory(mDevice, bufferData.memory, gAllocCB);
 		}
 
 		VkSemaphore createSemphore()
@@ -1054,13 +991,12 @@ namespace RenderVulkan
 			VkSemaphoreCreateInfo createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 			VkSemaphore result;
-			VERIFY_VK_FAILCDOE(vkCreateSemaphore(mDevice, &createInfo, gAllocCB, &result), return VK_NULL_HANDLE; );
+			VK_VERIFY_FAILCDOE(vkCreateSemaphore(mDevice, &createInfo, gAllocCB, &result), return VK_NULL_HANDLE; );
 			return result;
 		}
 
 		bool compileShader(char const* inPath, char const* outPath,  Shader::Type type)
 		{
-
 			char const* VulkanSDKDir = SystemPlatform::GetEnvironmentVariable("VULKAN_SDK");
 			if( VulkanSDKDir == nullptr )
 			{
@@ -1104,7 +1040,7 @@ namespace RenderVulkan
 
 			return loadShader(code.data(),code.size());
 #else
-			std::vector<char> scoreCode;
+			std::vector<uint8> scoreCode;
 			if( !FileUtility::LoadToBuffer(path, scoreCode) )
 				return VK_NULL_HANDLE;
 
@@ -1165,15 +1101,20 @@ namespace RenderVulkan
 		{
 			if( !BaseClass::onInit() )
 				return false;
-			::Global::GUI().cleanupWidget();
 
 			::Global::GetDrawEngine().bUsePlatformBuffer = false;
 
-			VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
-			VERIFY_RETURN_FALSE( createWindowSwapchain() );
+			if (!::Global::GetDrawEngine().initializeRHI(RHITargetName::Vulkan))
+				return false;
+
+			//VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
+			//VERIFY_RETURN_FALSE( createWindowSwapchain() );
+			InitTemp();
 			VERIFY_RETURN_FALSE( createSimplePipepline() );
 			VERIFY_RETURN_FALSE( createSwapchainFrameBuffers() );
 			VERIFY_RETURN_FALSE( createRenderCommand() );
+
+			TStaticSamplerState<>::GetRHI();
 
 			mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 			mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1188,6 +1129,8 @@ namespace RenderVulkan
 				mRenderFinishedSemaphores[i] = createSemphore();
 				vkCreateFence(mDevice, &fenceInfo, gAllocCB, &mInFlightFences[i]);
 			}
+
+			::Global::GUI().cleanupWidget();
 
 			restart();
 			return true;
@@ -1209,8 +1152,8 @@ namespace RenderVulkan
 
 			cleanupRenderCommand();
 			cleanupSimplePipeline();
-			cleanupWindowSwapchain();
-			cleanupSystem();
+			//cleanupWindowSwapchain();
+			//cleanupSystem();
 			BaseClass::onEnd();
 		}
 
@@ -1259,7 +1202,7 @@ namespace RenderVulkan
 			submitInfo.pSignalSemaphores = signalSemaphores;
 			submitInfo.signalSemaphoreCount = ARRAY_SIZE(signalSemaphores);
 
-			VERIFY_VK_FAILCDOE(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFences[mCurrentFrame]), );
+			VK_VERIFY_FAILCDOE(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFences[mCurrentFrame]), );
 
 			VkPresentInfoKHR presentInfo = {};
 			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1273,7 +1216,7 @@ namespace RenderVulkan
 
 			presentInfo.pImageIndices = &imageIndex;
 			presentInfo.pResults = nullptr;
-			VERIFY_VK_FAILCDOE(vkQueuePresentKHR(mPresentQueue, &presentInfo) , );
+			VK_VERIFY_FAILCDOE(vkQueuePresentKHR(mPresentQueue, &presentInfo) , );
 
 			mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 		}

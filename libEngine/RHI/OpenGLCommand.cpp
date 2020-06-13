@@ -895,7 +895,7 @@ namespace Render
 
 		if (BlendStateGL.mStateValue.bEnableIndependent)
 		{
-			for (int i = 0; i < NumBlendStateTarget; ++i)
+			for (int i = 0; i < MaxBlendStateTargetCount; ++i)
 			{
 				auto& deviceValue = mDeviceState.blendStateValue.targetValues[i];
 				auto const& setupValue = BlendStateGL.mStateValue.targetValues[i];

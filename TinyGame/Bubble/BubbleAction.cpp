@@ -75,7 +75,7 @@ namespace Bubble
 		if( buffer.getAvailableSize() )
 		{
 			BuFrameData data;
-			auto serializer = MakeBufferSerializer(buffer);
+			auto serializer = MakeSerializer(buffer);
 			IStreamSerializer::ReadOp op(serializer);
 			data.serialize(op);
 			if( data.port == ERROR_ACTION_PORT )

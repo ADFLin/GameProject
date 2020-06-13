@@ -206,6 +206,7 @@
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">None</DebugInformationFormat>
       <FavorSizeOrSpeed Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Speed</FavorSizeOrSpeed>
     </ClCompile>
+    <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c" />
     <ClCompile Include="..\OtherLib\stb\stb_compile.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
       <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</IntrinsicFunctions>
@@ -308,7 +309,9 @@
     <ClCompile Include="RHI\ShaderProgram.cpp" />
     <ClCompile Include="RHI\TextureAtlas.cpp" />
     <ClCompile Include="RHI\VertexFactory.cpp" />
+    <ClCompile Include="RHI\VulkanCommand.cpp" />
     <ClCompile Include="RHI\VulkanCommon.cpp" />
+    <ClCompile Include="RHI\VulkanShaderCommon.cpp" />
     <ClCompile Include="Serialize\DataStream.cpp" />
     <ClCompile Include="Serialize\FileStream.cpp" />
     <ClCompile Include="SocketBuffer.cpp" />
@@ -328,6 +331,7 @@
     <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h" />
     <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h" />
     <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h" />
+    <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h" />
     <ClInclude Include="..\OtherLib\stb\stb_image.h" />
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
     <ClInclude Include="AI\GeneticAlgorithm.h" />
@@ -508,6 +512,7 @@
     <ClInclude Include="RHI\VertexFactory.h" />
     <ClInclude Include="RHI\VulkanCommand.h" />
     <ClInclude Include="RHI\VulkanCommon.h" />
+    <ClInclude Include="RHI\VulkanShaderCommon.h" />
     <ClInclude Include="Serialize\DataBitSerialize.h" />
     <ClInclude Include="Serialize\DataStream.h" />
     <ClInclude Include="Serialize\FileStream.h" />

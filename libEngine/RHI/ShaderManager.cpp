@@ -698,56 +698,59 @@ namespace Render
 			{
 				LogDevMsg(0, "Use Cache Data : %s ", info.shaders[0].filePath.c_str());
 			}
-			return true;
-		}
-
-		if (!info.sourceFile.empty())
-		{
-			LogDevMsg(0, "Recompile shader : %s , source file : %s ", info.shaders[0].filePath.c_str() , info.sourceFile.c_str() );
 		}
 		else
 		{
-			LogDevMsg(0, "Recompile shader : %s ", info.shaders[0].filePath.c_str());
-		}
-		
-		if( !shaderProgram.mRHIResource.isValid() )
-		{
-			shaderProgram.mRHIResource = RHICreateShaderProgram();
-			if( !shaderProgram.mRHIResource.isValid() )
+			if (!info.sourceFile.empty())
+			{
+				LogDevMsg(0, "Recompile shader : %s , source file : %s ", info.shaders[0].filePath.c_str(), info.sourceFile.c_str());
+			}
+			else
+			{
+				LogDevMsg(0, "Recompile shader : %s ", info.shaders[0].filePath.c_str());
+			}
+
+			if (!shaderProgram.mRHIResource.isValid())
+			{
+				shaderProgram.mRHIResource = RHICreateShaderProgram();
+				if (!shaderProgram.mRHIResource.isValid())
+					return false;
+			}
+
+			RHIShaderRef shaders[Shader::Count];
+			int numShader = 0;
+			bool bFailed = false;
+			for (ShaderCompileInfo& shaderInfo : info.shaders)
+			{
+				shaders[numShader] = RHICreateShader(shaderInfo.type);
+				if (!mShaderFormat->compileCode(shaderInfo.type, *shaders[numShader], shaderInfo.filePath.c_str(), &shaderInfo, shaderInfo.headCode.c_str()))
+				{
+					bFailed = true;
+					break;
+				}
+
+				if (info.bShowComplieInfo)
+				{
+
+				}
+				++numShader;
+			}
+
+			if (bFailed)
+			{
 				return false;
-		}
-		
-		RHIShaderRef shaders[Shader::Count];
-		int numShader = 0;
-		bool bFailed = false;
-		for( ShaderCompileInfo& shaderInfo : info.shaders )
-		{
-			shaders[numShader] = RHICreateShader( shaderInfo.type );
-			if( !mShaderFormat->compileCode(shaderInfo.type, *shaders[numShader] , shaderInfo.filePath.c_str(), &shaderInfo, shaderInfo.headCode.c_str()) )
-			{
-				bFailed = true;
-				break;
 			}
 
-			if( info.bShowComplieInfo )
+			if (!shaderProgram.mRHIResource->setupShaders(shaders, numShader))
 			{
-
+				return false;
 			}
-			++numShader;
+
+			mShaderFormat->setupParameters(shaderProgram);
+			getCache()->saveCacheData(*mShaderFormat, info);
 		}
 
-		if( bFailed )
-		{
-			return false;
-		}
-
-		if( !shaderProgram.mRHIResource->setupShaders(shaders, numShader) )
-		{
-			return false;
-		}
-
-		mShaderFormat->setupParameters(shaderProgram);
-		getCache()->saveCacheData(*mShaderFormat, info);
+		mShaderFormat->postShaderLoaded(*shaderProgram.mRHIResource);
 		return true;
 	}
 

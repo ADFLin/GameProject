@@ -165,8 +165,6 @@ namespace Render
 		};
 	};
 
-
-
 	class ShaderParameterMap
 	{
 	public:
@@ -178,9 +176,6 @@ namespace Render
 
 		std::unordered_map< HashString, ShaderParameter > mMap;
 	};
-
-
-
 
 	struct StructuredBufferInfo
 	{
@@ -211,6 +206,7 @@ namespace Render
 	public:
 		RHIShader():RHIResource(TRACE_TYPE_NAME("Shader")){}
 	};
+
 	using RHIShaderRef = TRefCountPtr< RHIShader >;
 
 	class RHIShaderProgram : public RHIResource
@@ -223,7 +219,6 @@ namespace Render
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 	};
 
-	
 	using RHIShaderProgramRef = TRefCountPtr< RHIShaderProgram >;
 
 	class ShaderResource
@@ -231,9 +226,6 @@ namespace Render
 	public:
 		virtual ~ShaderResource();
 	};
-
-
-
 
 }//namespace Render
 

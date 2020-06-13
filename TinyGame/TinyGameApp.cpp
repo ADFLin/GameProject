@@ -57,6 +57,22 @@ TINY_API IDebugInterface*   gDebugInterfaceImpl;
 
 TConsoleVariable< bool > gbShowFPS(false, "ShowFPS");
 
+AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
+
+
+void Foo(int a, int b)
+{
+	LogMsg("%d+%d=%d", a, b, a + b);
+}
+
+void Foo2(Vector2 const& a, Vector2 const& b)
+{
+	Vector2 c = a + b;
+	LogMsg("%f %f", c.x, c.y);
+}
+AutoConsoleCommand CmdFoo("Foo", Foo);
+AutoConsoleCommand CmdFoo2("Foo2", Foo2);
+
 namespace EOutputColor
 {
 	enum Type
@@ -92,7 +108,7 @@ public:
 			{
 				if (var->getFlags() & CVF_CONFIG)
 				{
-					configs.setKeyValue(var->name.c_str(), sectionGroup, var->toString().c_str());
+					configs.setKeyValue(var->mName.c_str(), sectionGroup, var->toString().c_str());
 					++result;
 				}
 			}
@@ -284,17 +300,6 @@ TinyGameApp::~TinyGameApp()
 }
 
 
-void Foo(int a, int b)
-{
-	LogMsg("%d+%d=%d", a, b, a + b);
-}
-
-void Foo2(Vector2 const& a, Vector2 const& b)
-{
-	Vector2 c = a + b;
-	LogMsg("%f %f", c.x, c.y);
-}
-
 #if SYS_PLATFORM_WIN
 #include <fcntl.h>
 #include <corecrt_io.h>
@@ -388,8 +393,6 @@ bool TinyGameApp::initializeGame()
 	mFPSCalc.init( getMillionSecond() );
 
 	ConsoleSystem::Get().registerCommand("ProfileGPU", &TinyGameApp::handleToggleProflieGPU, this);
-	ConsoleSystem::Get().registerCommand("Foo", Foo);
-	ConsoleSystem::Get().registerCommand("Foo2", Foo2);
 	return true;
 }
 

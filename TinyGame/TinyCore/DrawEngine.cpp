@@ -146,6 +146,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 		case RHITargetName::OpenGL: return RHISytemName::Opengl;
 		case RHITargetName::D3D11: return RHISytemName::D3D11;
 		case RHITargetName::D3D12: return RHISytemName::D3D12;
+		case RHITargetName::Vulkan: return RHISytemName::Vulkan;
 		}
 		return RHISytemName::Opengl;
 	}();

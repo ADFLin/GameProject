@@ -23,7 +23,24 @@ enum class RHISytemName
 	D3D11,
 	D3D12,
 	Opengl,
+	Vulkan,
 };
+
+#if USE_RHI_RESOURCE_TRACE
+#define RHI_TRACE_FUNC_NAME(NAME) NAME##Trace
+#define RHI_TRACE_FUNC( NAME , ... ) RHI_TRACE_FUNC_NAME(NAME)(ResTraceInfo const& traceInfo, ##__VA_ARGS__)
+#define RHI_TRACE_CODE( CODE )\
+	auto* result = CODE;\
+	if (result)\
+	{\
+		result->mTrace = traceInfo;\
+	}\
+	return result;
+#else
+#define RHI_TRACE_FUNC_NAME(NAME) NAME
+#define RHI_TRACE_FUNC( NAME , ... ) NAME(__VA_ARGS__)
+#define RHI_TRACE_CODE( CODE ) return CODE
+#endif
 
 
 namespace Render
@@ -86,46 +103,32 @@ namespace Render
 	RHITexture1D*    RHICreateTexture1D(Texture::Format format, int length ,
 										int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,void* data = nullptr);
 
-#if USE_RHI_RESOURCE_TRACE
-	RHITexture2D*    RHICreateTexture2DTrace(ResTraceInfo const& traceInfo,
-#else
-	RHITexture2D*    RHICreateTexture2D(
-#endif
+	RHITexture2D*   RHI_TRACE_FUNC(RHICreateTexture2D,
 		Texture::Format format, int w, int h,
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue,
 		void* data = nullptr, int dataAlign = 0);
 
-
-
-	RHITexture3D*    RHICreateTexture3D(
+	RHITexture3D*    RHI_TRACE_FUNC(RHICreateTexture3D,
 		Texture::Format format, int sizeX, int sizeY, int sizeZ , 
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue , 
 		void* data = nullptr);
 
-	RHITextureCube*  RHICreateTextureCube(
+	RHITextureCube*  RHI_TRACE_FUNC(RHICreateTextureCube,
 		Texture::Format format, int size, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue, 
 		void* data[] = nullptr);
 
-	RHITexture2DArray* RHICreateTexture2DArray(
+	RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray,
 		Texture::Format format, int w, int h, int layerSize,
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue, 
 		void* data = nullptr);
 
-	RHITextureDepth* RHICreateTextureDepth(
+	RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth,
 		Texture::DepthFormat format, int w, int h , int numMipLevel = 1 , int numSamples = 1);
 
-#if USE_RHI_RESOURCE_TRACE
-	RHIVertexBuffer*  RHICreateVertexBufferTrace(ResTraceInfo const& traceInfo,
-#else
-	RHIVertexBuffer*  RHICreateVertexBuffer(
-#endif
+	RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
-#if USE_RHI_RESOURCE_TRACE
-	RHIIndexBuffer*   RHICreateIndexBufferTrace(ResTraceInfo const& traceInfo,
-#else
-	RHIIndexBuffer*   RHICreateIndexBuffer(
-#endif
+	RHIIndexBuffer*  RHI_TRACE_FUNC(RHICreateIndexBuffer,
 		uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
 	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
@@ -230,16 +233,16 @@ namespace Render
 
 		RHI_FUNC(RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
-			int numMipLevel, uint32 creationFlag, void* data));
+			int numMipLevel, uint32 creationFlags, void* data));
 
 		RHI_FUNC(RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 creationFlag,
+			int numMipLevel, int numSamples, uint32 creationFlags,
 			void* data, int dataAlign));
 
 		RHI_FUNC(RHITexture3D*    RHICreateTexture3D(
 			Texture::Format format, int sizeX, int sizeY, int sizeZ,
-			int numMipLevel, int numSamples , uint32 creationFlag , 
+			int numMipLevel, int numSamples , uint32 creationFlags , 
 			void* data));
 		RHI_FUNC(RHITextureCube*  RHICreateTextureCube(
 			Texture::Format format, int size, 
@@ -255,8 +258,8 @@ namespace Render
 			Texture::DepthFormat format, int w, int h , 
 			int numMipLevel, int numSamples ) );
 		
-		RHI_FUNC(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data));
-		RHI_FUNC(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data));
+		RHI_FUNC(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data));
+		RHI_FUNC(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data));
 
 		RHI_FUNC(void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
 		RHI_FUNC(void  RHIUnlockBuffer(RHIVertexBuffer* buffer));

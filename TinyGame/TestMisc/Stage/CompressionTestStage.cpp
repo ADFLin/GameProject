@@ -286,7 +286,7 @@ namespace Compression
 					srcData.push_back(i);
 				}
 				DataStreamBuffer Buffer;
-				auto serializer = MakeBufferSerializer(Buffer);
+				auto serializer = MakeSerializer(Buffer);
 				{
 					IStreamSerializer::WriteOp writeOp(serializer);
 					writeOp & IStreamSerializer::MakeArrayBit(srcData, 11);
@@ -331,7 +331,7 @@ namespace Compression
 				size_t posHeader = compressBuffer.getFillSize();
 				compressBuffer.fillValue(0, sizeof(CompressHeader));
 
-				auto serializer = MakeBufferSerializer(compressBuffer);
+				auto serializer = MakeSerializer(compressBuffer);
 				IStreamSerializer::WriteOp writeOp(serializer);
 				//writeOp & dict;
 				size_t sizeDict = compressBuffer.getFillSize() - posHeader;

@@ -106,6 +106,6 @@ namespace Render
 
 }//namespace Render
 
-#define GPU_PROFILE( name , ... ) Render::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , __VA_ARGS__);
+#define GPU_PROFILE( name , ... ) Render::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , ##__VA_ARGS__);
 
 #endif // GpuProfiler_H_5CF3071A_820F_435C_BC97_1975A2C6D546

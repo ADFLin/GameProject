@@ -306,13 +306,13 @@ namespace Render
 
 		ID3D11InputLayout* inputLayoutResource = nullptr;
 		std::vector< uint8 > const& byteCode = static_cast<D3D11Shader*>(shader)->byteCode;
-		HRESULT hr = device->CreateInputLayout(elements.data(), elements.size(), byteCode.data(), byteCode.size(), &inputLayoutResource);
+		HRESULT hr = device->CreateInputLayout(mDescList.data(), mDescList.size(), byteCode.data(), byteCode.size(), &inputLayoutResource);
 		if (hr != S_OK)
 		{
 			LogWarning(0 , "Can't create D3D11InputLayout , code = %d" , hr );
-			mResource->AddRef();
-			mResourceMap.insert(std::make_pair(shader, mResource));
-			return mResource;
+			mUniversalResource->AddRef();
+			mResourceMap.insert(std::make_pair(shader, mUniversalResource));
+			return mUniversalResource;
 		}
 		mResourceMap.insert(std::make_pair(shader, inputLayoutResource));
 		return inputLayoutResource;

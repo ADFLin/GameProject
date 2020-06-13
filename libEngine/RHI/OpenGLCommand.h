@@ -1,3 +1,7 @@
+#pragma once
+#ifndef OpenGLCommand_H_B1DE1168_106C_49AB_9275_1AA61D14E11D
+#define OpenGLCommand_H_B1DE1168_106C_49AB_9275_1AA61D14E11D
+
 #include "RHICommand.h"
 #include "RHICommandListImpl.h"
 
@@ -250,3 +254,4 @@ namespace Render
 #endif
 
 
+#endif // OpenGLCommand_H_B1DE1168_106C_49AB_9275_1AA61D14E11D

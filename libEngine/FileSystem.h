@@ -20,6 +20,7 @@ public:
 	static char const*    GetExtension( char const* fileName );
 	static char const*    GetFileName(char const* filePath);
 	static wchar_t const* GetFileName(wchar_t const* filePath);
+
 	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer, bool bAppendZeroAfterEnd = false, bool bAppendToBuffer = false);
 	static bool SaveFromBuffer(char const* path, char const* data, uint32 dataSize);
 	static std::string    GetFullPath(char const* path);

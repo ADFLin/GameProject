@@ -17,15 +17,7 @@ public:
 	int  getRefCount(){ return mRefCount; }
 
 public:
-	bool  decRef()
-	{ 
-		--mRefCount;
-		if ( mRefCount <= 0 )
-		{
-			return true;
-		}
-		return false; 
-	}
+	bool  decRef(){ --mRefCount;  return mRefCount <= 0; }
 	void  incRef(){ ++mRefCount; }
 private:
 	T*  _this(){ return static_cast< T* >( this ); }
@@ -41,11 +33,10 @@ public:
 	TRefCountPtr():mPtr(0){}
 	TRefCountPtr( T* ptr ){  init( ptr );  }
 	TRefCountPtr( TRefCountPtr const& other ){  init( other.mPtr ); }
-	~TRefCountPtr(){  cleanup(); }
-
 	template< class Q >
 	TRefCountPtr( TRefCountPtr< Q > const& other ) { init(other.mPtr); }
 
+	~TRefCountPtr() { cleanup(); }
 
 	T*       operator->()       { return mPtr; }
 	T const* operator->() const { return mPtr; }

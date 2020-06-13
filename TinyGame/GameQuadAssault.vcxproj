@@ -100,7 +100,7 @@
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>../OtherLib/DirectX/Lib/x86;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/DirectX/Lib/x86;../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetDir)$(TargetName).dll $(ProjectDir)out\$(TargetName)D.dll</Command>
@@ -163,7 +163,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>../OtherLib/DirectX/Lib/x86;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/DirectX/Lib/x86;../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>

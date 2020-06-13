@@ -2,17 +2,17 @@
 
 #include "MemorySecurity.h"
 #include "LogSystem.h"
+#include "StringParse.h"
+
 #include <cstdlib>
 #include <malloc.h>
-
 
 #define STRING_BUFFER_SIZE 256
 #define DATA_BUFFER_SIZE 1024
 
-
 ConsoleCommandBase::ConsoleCommandBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs)
-	:name(inName)
-	,args(inArgs)
+	:mName(inName)
+	,mArgs(inArgs)
 {
 
 }
@@ -99,7 +99,7 @@ int ConsoleSystem::findCommandName( char const* includeStr , char const** findSt
 
 void ConsoleSystem::unregisterCommand(ConsoleCommandBase* commond)
 {
-	unregisterCommandByName(commond->name.c_str());
+	unregisterCommandByName(commond->mName.c_str());
 }
 
 void ConsoleSystem::unregisterCommandByName(char const* name)
@@ -115,7 +115,7 @@ void ConsoleSystem::unregisterCommandByName(char const* name)
 void ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 {
 	std::pair<CommandMap::iterator, bool> result =
-		mNameMap.insert(std::make_pair(com->name.c_str(), com));
+		mNameMap.insert(std::make_pair(com->mName.c_str(), com));
 	if( !result.second )
 		delete com;
 }
@@ -123,11 +123,7 @@ void ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 bool ConsoleSystem::executeCommand(char const* comStr)
 {
 	bool result = executeCommandImpl(comStr);
-	if( result )
-	{
-		LogMsg("Com : \"%s\"", comStr);
-	}
-	else
+	if( !result )
 	{
 		LogMsg("Com : Fail \"%s\" : %s", comStr, mLastErrorMsg.c_str());
 	}
@@ -168,7 +164,7 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 #endif
 
 	int totalArgSize = 0;
-	for (auto const& arg : context.command->args)
+	for (auto const& arg : context.command->mArgs)
 	{
 		totalArgSize += arg.size;
 	}
@@ -179,11 +175,11 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 	uint8 dataBuffer[DATA_BUFFER_SIZE];
 #endif
 	void*  argData[NumMaxParams];
-	assert(context.command->args.size() <= NumMaxParams);
+	assert(context.command->mArgs.size() <= NumMaxParams);
 	uint8* pData = dataBuffer;
-	for( int argIndex = 0; argIndex < context.command->args.size(); ++argIndex )
+	for( int argIndex = 0; argIndex < context.command->mArgs.size(); ++argIndex )
 	{
-		ConsoleArgTypeInfo const& arg = context.command->args[argIndex];
+		ConsoleArgTypeInfo const& arg = context.command->mArgs[argIndex];
 
 		if (!fillParameterData(context, arg, pData))
 			return false;
@@ -191,6 +187,8 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 		argData[argIndex] = pData;
 		pData += arg.size;
 	}
+
+	LogMsg("Execute Com : \"%s\"", comStr);
 	context.command->execute(argData);
 
 	return true;
@@ -215,12 +213,12 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 		if ( context.numUsedParam >= context.numArgs )
 		{
 			mLastErrorMsg = "less param : ";
-			mLastErrorMsg += context.command->name;
-			for ( int i = 0 ; i < context.command->args.size() ; ++ i )
+			mLastErrorMsg += context.command->mName;
+			for ( int i = 0 ; i < context.command->mArgs.size() ; ++ i )
 			{
 				mLastErrorMsg += std::string(" ");
 
-				char const* pStr = context.command->args[i].format;
+				char const* pStr = context.command->mArgs[i].format;
 				switch( pStr[1] )
 				{
 				case 'd': mLastErrorMsg += "#int"; break;
@@ -241,15 +239,15 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 		if ( paramString[0] =='$')
 		{
 			++paramString;
-			ConsoleCommandBase* cdata = findCommand( paramString );
-			if ( !cdata || cdata->args.size() != 1)
+			ConsoleCommandBase* paramCom = findCommand( paramString );
+			if ( !paramCom || paramCom->mArgs.size() != 1)
 			{
 				mLastErrorMsg = "No match ComVar";
 				return 0;
 			}
-			if ( !strncmp( cdata->args[0].format , fptr , strlen(cdata->args[0].format) ) )
+			if ( FCString::CompareN( paramCom->mArgs[0].format , fptr , FCString::Strlen(paramCom->mArgs[0].format) ) == 0 )
 			{
-				cdata->getValue( outData );
+				paramCom->getValue( outData );
 			}
 			else
 			{
@@ -307,9 +305,6 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 
 	return fillSize != 0;
 }
-
-
-#include "StringParse.h"
 
 bool ConsoleSystem::ExecuteContext::init(char const* inCommandString)
 {

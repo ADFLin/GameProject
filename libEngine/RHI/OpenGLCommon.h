@@ -595,13 +595,13 @@ namespace Render
 	{
 		bool bEnableAlphaToCoverage;
 		bool bEnableIndependent;
-		GLTargetBlendValue targetValues[NumBlendStateTarget];
+		GLTargetBlendValue targetValues[MaxBlendStateTargetCount];
 		GLBlendStateValue() {}
 		GLBlendStateValue(EForceInit)
 		{
 			bEnableAlphaToCoverage = false;
 			bEnableIndependent = false;
-			for (int i = 0; i < NumBlendStateTarget; ++i)
+			for (int i = 0; i < MaxBlendStateTargetCount; ++i)
 			{
 				targetValues[i] = GLTargetBlendValue(ForceInit);
 			}
@@ -659,50 +659,51 @@ namespace Render
 	class ShaderProgram;
 
 	template< class TRHIResource >
-	struct TOpengGLResourceTraits {};
+	struct TOpengGLCastTraits {};
 
-	template<> struct TOpengGLResourceTraits< RHITexture1D > { typedef OpenGLTexture1D ImplType; };
-	template<> struct TOpengGLResourceTraits< RHITexture2D > { typedef OpenGLTexture2D ImplType; };
-	template<> struct TOpengGLResourceTraits< RHITexture3D > { typedef OpenGLTexture3D ImplType; };
-	template<> struct TOpengGLResourceTraits< RHITextureCube > { typedef OpenGLTextureCube ImplType; };
-	template<> struct TOpengGLResourceTraits< RHITexture2DArray > { typedef OpenGLTexture2DArray ImplType; };
-	template<> struct TOpengGLResourceTraits< RHITextureDepth > { typedef OpenGLTextureDepth ImplType; };
-	template<> struct TOpengGLResourceTraits< RHIVertexBuffer > { typedef OpenGLVertexBuffer ImplType; };
-	template<> struct TOpengGLResourceTraits< RHIIndexBuffer > { typedef OpenGLIndexBuffer ImplType; };
-	template<> struct TOpengGLResourceTraits< RHIInputLayout > { typedef OpenGLInputLayout ImplType; };
-	template<> struct TOpengGLResourceTraits< RHISamplerState > { typedef OpenGLSamplerState ImplType; };
-	template<> struct TOpengGLResourceTraits< RHIBlendState > { typedef OpenGLBlendState ImplType; };
-	template<> struct TOpengGLResourceTraits< RHIRasterizerState > { typedef OpenGLRasterizerState ImplType; };
-	template<> struct TOpengGLResourceTraits< RHIDepthStencilState > { typedef OpenGLDepthStencilState ImplType; };
-	template<> struct TOpengGLResourceTraits< RHIFrameBuffer > { typedef OpenGLFrameBuffer ImplType; };
+	template<> struct TOpengGLCastTraits< RHITexture1D > { typedef OpenGLTexture1D CastType; };
+	template<> struct TOpengGLCastTraits< RHITexture2D > { typedef OpenGLTexture2D CastType; };
+	template<> struct TOpengGLCastTraits< RHITexture3D > { typedef OpenGLTexture3D CastType; };
+	template<> struct TOpengGLCastTraits< RHITextureCube > { typedef OpenGLTextureCube CastType; };
+	template<> struct TOpengGLCastTraits< RHITexture2DArray > { typedef OpenGLTexture2DArray CastType; };
+	template<> struct TOpengGLCastTraits< RHITextureDepth > { typedef OpenGLTextureDepth CastType; };
+	template<> struct TOpengGLCastTraits< RHIVertexBuffer > { typedef OpenGLVertexBuffer CastType; };
+	template<> struct TOpengGLCastTraits< RHIIndexBuffer > { typedef OpenGLIndexBuffer CastType; };
+	template<> struct TOpengGLCastTraits< RHIInputLayout > { typedef OpenGLInputLayout CastType; };
+	template<> struct TOpengGLCastTraits< RHISamplerState > { typedef OpenGLSamplerState CastType; };
+	template<> struct TOpengGLCastTraits< RHIBlendState > { typedef OpenGLBlendState CastType; };
+	template<> struct TOpengGLCastTraits< RHIRasterizerState > { typedef OpenGLRasterizerState CastType; };
+	template<> struct TOpengGLCastTraits< RHIDepthStencilState > { typedef OpenGLDepthStencilState CastType; };
+	template<> struct TOpengGLCastTraits< RHIFrameBuffer > { typedef OpenGLFrameBuffer CastType; };
 
 	struct OpenGLCast
 	{
 		template< class TRHIResource >
 		static auto To(TRHIResource* resource)
 		{
-			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType* >(resource);
+			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType*>(resource);
 		}
 		template< class TRHIResource >
 		static auto To(TRHIResource const* resource)
 		{
-			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType const* >(resource);
+			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType const*>(resource);
 		}
 		template< class TRHIResource >
 		static auto& To(TRHIResource& resource)
 		{
-			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType& >(resource);
+			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType&>(resource);
 		}
 		template< class TRHIResource >
 		static auto& To(TRHIResource const& resource)
 		{
-			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType const& >(resource);
+			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType const&>(resource);
 		}
-
-		static auto To(OpenGLFrameBuffer* buffer) { return buffer; }
 
 		template < class TRHIResource >
 		static auto To(TRefCountPtr<TRHIResource>& ptr) { return To(ptr.get()); }
+
+
+		static auto To(OpenGLFrameBuffer* buffer) { return buffer; }
 
 		template < class TRHIResource >
 		static GLuint GetHandle(TRHIResource& RHIObject)

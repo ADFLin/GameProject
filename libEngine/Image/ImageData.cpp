@@ -1,6 +1,6 @@
 #include "ImageData.h"
 
-#include "stb\stb_image.h"
+#include "stb/stb_image.h"
 
 ImageData::ImageData()
 {

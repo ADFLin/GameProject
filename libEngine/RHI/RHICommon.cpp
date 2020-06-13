@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "ConsoleSystem.h"
+
 namespace Render
 {
 	DeviceVendorName gRHIDeviceVendorName = DeviceVendorName::Unknown;
@@ -29,10 +31,13 @@ namespace Render
 	void RHIResource::DumpResource()
 	{
 #if USE_RHI_RESOURCE_TRACE
+		LogDevMsg(0, "RHI Resource Number = %u", Resources.size());
 		for (auto res : Resources)
 		{
 			LogDevMsg(0, "%s : %s", res->mTypeName.c_str(), res->mTrace.toString().c_str());
 		}
+#else
+		LogDevMsg(0, "RHI Resource Trace is disabled!!");
 #endif
 	}
 

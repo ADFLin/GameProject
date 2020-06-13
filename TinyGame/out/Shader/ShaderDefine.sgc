@@ -39,16 +39,26 @@
 
 #define PI 3.1415926535897932
 
-#define VECTOR_FUNCTION_LIST( NAME )\
-	NAME( float )\
-	NAME( float2 )\
-	NAME( float3 )\
-	NAME( float4 )
+#define VECTOR_TYPE_NO_FLOAT_LIST( op )\
+	op( float2 )\
+	op( float3 )\
+	op( float4 )
+
+#define VECTOR_TYPE_LIST( op )\
+	op( float )\
+	op( float2 )\
+	op( float3 )\
+	op( float4 )
+
 #define DEFINE_FUNCTION_INNER( TYPE , NAME , CODE ) TYPE NAME( TYPE x ) CODE
 #define DEFINE_VECTOR_FUNCTION( NAME , CODE )\
 	DEFINE_FUNCTION_INNER( float2 , NAME , CODE )\
 	DEFINE_FUNCTION_INNER( float3 , NAME , CODE )\
 	DEFINE_FUNCTION_INNER( float4 , NAME , CODE )
+#define DEFINE_VECTOR_FUNCTION_WITH_RESULT( RESULT , NAME , CODE )\
+	DEFINE_FUNCTION_INNER( RESULT , NAME , CODE )\
+	DEFINE_FUNCTION_INNER( RESULT , NAME , CODE )\
+	DEFINE_FUNCTION_INNER( RESULT , NAME , CODE )
 
 #if !SHADER_COMPILING
 
@@ -224,7 +234,7 @@ DEFINE_VECTOR_FUNCTION(Pow3, { return x * x * x; })
 		TYPE x2 = x*x;\
 		return x2 * x2;\
 	}
-VECTOR_FUNCTION_LIST(Pow4T)
+VECTOR_TYPE_LIST(Pow4T)
 #undef Pow4T
 
 #define Pow5T( TYPE )\
@@ -233,7 +243,7 @@ VECTOR_FUNCTION_LIST(Pow4T)
 		TYPE x2 = x*x;\
 		return x2 * x2 * x;\
 	}
-VECTOR_FUNCTION_LIST(Pow5T)
+VECTOR_TYPE_LIST(Pow5T)
 #undef Pow5T
 
 #if !SHADER_COMPILING

@@ -9,10 +9,73 @@
 #include <streambuf>
 #include <fstream>
 #include <sstream>
+#include "Serialize/StreamBuffer.h"
+#include "RHICommand.h"
 
 
 namespace Render
 {
+
+	void ShaderFormatHLSL::setupShaderCompileOption(ShaderCompileOption& option)
+	{
+		option.addMeta("ShaderFormat", getName());
+	}
+
+	void ShaderFormatHLSL::getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry)
+	{
+		inoutCode += "#define COMPILER_HLSL 1\n";
+	}
+
+	bool ShaderFormatHLSL::isSupportBinaryCode() const
+	{
+		return true;
+	}
+
+	bool ShaderFormatHLSL::getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode)
+	{
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		auto serializer = CreateSerializer<VectorWriteBuffer>(outBinaryCode);
+		uint8 numShaders = shaderProgramImpl.mNumShaders;
+		serializer.write(numShaders);
+		for (int i = 0; i < numShaders; ++i)
+		{
+			D3D11Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
+			uint8 shaderType = shaderImpl.mResource.type;
+			serializer.write(shaderType);
+			serializer.write(shaderImpl.byteCode);
+		}
+
+		return true;
+	}
+
+	bool ShaderFormatHLSL::setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode)
+	{
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+
+		auto serializer = CreateSerializer<SimpleReadBuffer>(MakeView(binaryCode));
+		uint8 numShaders = shaderProgramImpl.mNumShaders;
+		serializer.read(numShaders);
+
+		RHIShaderRef shaders[Shader::Count];
+		for (int i = 0; i < numShaders; ++i)
+		{
+			D3D11Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
+			uint8 shaderType;
+			serializer.read(shaderType);
+			std::vector< uint8 > byteCode;
+			serializer.read(byteCode);
+
+			D3D11Shader* shader = (D3D11Shader*)RHICreateShader(Shader::Type(shaderType));
+			shaders[i] = shader;
+			if (!shader->initialize(Shader::Type(shaderType), mDevice, std::move(byteCode)))
+				return false;
+		}
+
+		if (!shaderProgramImpl.setupShaders(shaders, numShaders))
+			return false;
+
+		return true;
+	}
 
 	void ShaderFormatHLSL::setupParameters(ShaderProgram& shaderProgram)
 	{
@@ -95,27 +158,58 @@ namespace Render
 		return bSuccess;
 	}
 
+	void ShaderFormatHLSL::postShaderLoaded(RHIShaderProgram& shaderProgram)
+	{
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
+		{
+			D3D11Shader& shader = *shaderProgramImpl.mShaders[i];
+			if (shader.mResource.type != Shader::eVertex)
+			{
+				shader.byteCode.clear();
+			}
+		}
+	}
+
 	bool D3D11Shader::initialize(Shader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
 	{
-		switch( type )
+		if (!createResource(type, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
+			return false;
+
+		byteCode.assign((uint8*)inByteCode->GetBufferPointer() , (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
+
+		return true;
+	}
+
+	bool D3D11Shader::initialize(Shader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode)
+	{
+		if (!createResource(type, device, inByteCode.data(), inByteCode.size()))
+			return false;
+
+		byteCode = std::move(inByteCode);
+		return true;
+	}
+
+	bool D3D11Shader::createResource(Shader::Type type, TComPtr<ID3D11Device>& device , uint8 const* pCode , size_t codeSize)
+	{
+		switch (type)
 		{
 #define CASE_SHADER(  TYPE , FUNC ,VAR )\
-				case TYPE:\
-					VERIFY_D3D11RESULT_RETURN_FALSE( device->FUNC(inByteCode->GetBufferPointer(), inByteCode->GetBufferSize(), NULL, &VAR) );\
-					break;
+		case TYPE:\
+			VERIFY_D3D11RESULT_RETURN_FALSE( device->FUNC(pCode, codeSize, NULL, &VAR) );\
+			break;
 
-			CASE_SHADER(Shader::eVertex, CreateVertexShader, mResource.vertex);
-			CASE_SHADER(Shader::ePixel, CreatePixelShader, mResource.pixel);
-			CASE_SHADER(Shader::eGeometry, CreateGeometryShader, mResource.geometry);
-			CASE_SHADER(Shader::eCompute, CreateComputeShader, mResource.compute);
-			CASE_SHADER(Shader::eHull, CreateHullShader, mResource.hull);
-			CASE_SHADER(Shader::eDomain, CreateDomainShader, mResource.domain);
+		CASE_SHADER(Shader::eVertex, CreateVertexShader, mResource.vertex);
+		CASE_SHADER(Shader::ePixel, CreatePixelShader, mResource.pixel);
+		CASE_SHADER(Shader::eGeometry, CreateGeometryShader, mResource.geometry);
+		CASE_SHADER(Shader::eCompute, CreateComputeShader, mResource.compute);
+		CASE_SHADER(Shader::eHull, CreateHullShader, mResource.hull);
+		CASE_SHADER(Shader::eDomain, CreateDomainShader, mResource.domain);
 
 #undef CASE_SHADER
 		default:
-			assert(0);
+			NEVER_REACH("D3D11Shader::createResource unknown shader Type");
 		}
-		byteCode.assign((uint8*)inByteCode->GetBufferPointer() , (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
 		mResource.type = type;
 		mResource.ptr->AddRef();
 		return true;
@@ -176,6 +270,88 @@ namespace Render
 		}
 
 		return true;
+	}
+
+	bool D3D11ShaderProgram::setupShaders(RHIShaderRef shaders[], int numShaders)
+	{
+		assert(ARRAY_SIZE(mShaders) >= numShaders);
+		mNumShaders = numShaders;
+		for (int i = 0; i < numShaders; ++i)
+		{
+			mShaders[i] = &static_cast< D3D11Shader& >(*shaders[i]);
+			auto& shaderImpl = *mShaders[i];
+			ShaderParameterMap parameterMap;
+			D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
+			addShaderParameterMap(shaderImpl.mResource.type, parameterMap);
+		}
+		finalizeParameterMap();
+		return true;
+	}
+
+	bool D3D11ShaderProgram::getParameter(char const* name, ShaderParameter& outParam)
+	{
+		return outParam.bind(mParameterMap, name);
+	}
+
+	bool D3D11ShaderProgram::getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam)
+	{
+		return outParam.bind(mParameterMap, name);
+	}
+
+	void D3D11ShaderProgram::releaseResource()
+	{
+		for (int i = 0; i < mNumShaders; ++i)
+		{
+			mShaders[i].release();
+		}
+	}
+
+	void D3D11ShaderProgram::addShaderParameterMap(Shader::Type shaderType, ShaderParameterMap const& parameterMap)
+	{
+		for (auto const& pair : parameterMap.mMap)
+		{
+			auto& param = mParameterMap.mMap[pair.first];
+
+			if (param.mLoc == -1)
+			{
+				param.mLoc = mParamEntryMap.size();
+				ParameterEntry entry;
+				entry.numParam = 0;
+				mParamEntryMap.push_back(entry);
+			}
+
+			ParameterEntry& entry = mParamEntryMap[param.mLoc];
+
+			entry.numParam += 1;
+			ShaderParamEntry paramEntry;
+			paramEntry.type = shaderType;
+			paramEntry.param = pair.second;
+			paramEntry.loc = param.mLoc;
+			mParamEntries.push_back(paramEntry);
+		}
+	}
+
+	void D3D11ShaderProgram::finalizeParameterMap()
+	{
+		std::sort(mParamEntries.begin(), mParamEntries.end(), [](ShaderParamEntry const& lhs, ShaderParamEntry const& rhs)
+		{
+			if (lhs.loc < rhs.loc)
+				return true;
+			else if (lhs.loc > rhs.loc)
+				return false;
+			return lhs.type < rhs.type;
+		});
+
+		int curLoc = -1;
+		for (int index = 0; index < mParamEntries.size(); ++index)
+		{
+			auto& paramEntry = mParamEntries[index];
+			if (paramEntry.loc != curLoc)
+			{
+				mParamEntryMap[paramEntry.loc].paramIndex = index;
+				curLoc = paramEntry.loc;
+			}
+		}
 	}
 
 }

@@ -31,33 +31,34 @@ namespace Render
 	}
 
 
-	bool OpenGLShaderProgram::updateShader(bool bNoLink)
+	bool OpenGLShaderProgram::updateShader( bool bLinkShader )
 	{
 		uint32 handle = getHandle();
 
-		GLchar buffer[4096 * 32];
-
-		if( !bNoLink )
-			glLinkProgram(handle);
-
-		GLint value = 0;
-		glGetProgramiv(handle, GL_LINK_STATUS, &value);
-		if( value != GL_TRUE )
+		auto CheckStatus = [handle](GLenum statusName, char const* errorTitle) -> bool
 		{
-			GLsizei size = 0;
-			glGetProgramInfoLog(handle, ARRAY_SIZE(buffer), &size, buffer);
-			LogMsg("Can't Link Program : %s", buffer);
-			return false;
+			GLchar buffer[4096 * 32];
+			GLint value = 0;
+			glGetProgramiv(handle, statusName, &value);
+			if (value != GL_TRUE)
+			{
+				GLsizei size = 0;
+				glGetProgramInfoLog(handle, ARRAY_SIZE(buffer), &size, buffer);
+				LogMsg("%s : %s", errorTitle , buffer);
+				return false;
+			}
+			return true;
+		};
+		if(bLinkShader)
+		{
+			glLinkProgram(handle);
+			if (!CheckStatus(GL_LINK_STATUS, "Can't Link Program"))
+				return false;
 		}
 
 		glValidateProgram(handle);
-		glGetProgramiv(handle, GL_VALIDATE_STATUS, &value);
-		if( value != GL_TRUE )
-		{
-			GLsizei size;
-			glGetProgramInfoLog(handle, ARRAY_SIZE(buffer), &size, buffer);
-			LogMsg("Can't Link Program : %s", buffer);
-		}
+		if (!CheckStatus(GL_VALIDATE_STATUS, "Can't Validate Program"))
+			return false;
 
 		bValid = true;
 		return true;
@@ -65,7 +66,7 @@ namespace Render
 
 	bool OpenGLShaderProgram::setupShaders(RHIShaderRef shaders[], int numShader)
 	{
-		if (bValid)
+		auto DetachAllShader =  [this]()
 		{
 			GLuint shaders[Shader::Count];
 			GLsizei numShaders = 0;
@@ -74,14 +75,23 @@ namespace Render
 			{
 				glDetachShader(getHandle(), shaders[i]);
 			}
+		};
+
+		if (bValid)
+		{
+			DetachAllShader();
 		}
+
 		for( int i = 0; i < numShader; ++i )
 		{
 			assert(shaders[i]);
 			glAttachShader(getHandle(), static_cast< OpenGLShader& >( *shaders[i] ).getHandle());
 		}
 		bool result = updateShader();
-
+		if (!result)
+		{
+			DetachAllShader();
+		}
 		return result;
 	}
 
@@ -123,6 +133,7 @@ namespace Render
 		parameter.mLoc = index;
 		return true;
 	}
+
 
 
 	void OpenGLShaderProgram::generateParameterMap(ShaderParameterMap& parameterMap)
@@ -370,7 +381,7 @@ namespace Render
 		{
 			return false;
 		}
-		if( !shaderProgramImpl.updateShader(true) )
+		if( !shaderProgramImpl.updateShader(false) )
 		{
 			return false;
 		}

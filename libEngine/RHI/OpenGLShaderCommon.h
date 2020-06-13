@@ -43,15 +43,15 @@ namespace Render
 
 		bool    create();
 
-		bool    updateShader(bool bNoLink = false);
+		bool    updateShader(bool bLinkShader = true);
 		void    bind();
 		void    unbind();
 		void    generateParameterMap(ShaderParameterMap& parameterMap);
 		int     getParamLoc(char const* name) { return glGetUniformLocation(getHandle(), name); }	
 		virtual bool setupShaders(RHIShaderRef shaders[], int numShader);
+
 		virtual bool getParameter(char const* name, ShaderParameter& parameter) override;
 		virtual bool getResourceParameter(EShaderResourceType type, char const* name, ShaderParameter& parameter) override;
-
 
 		bool bValid = false;
 	};

@@ -196,9 +196,9 @@ namespace Render
 
 	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
 	{
-		uint32 creationFlag = 0;
+		uint32 creationFlags = 0;
 		Texture2DCreationResult creationResult;
-		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, creationFlag, nullptr, 0, true, creationResult) )
+		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, creationFlags, nullptr, 0, true, creationResult) )
 		{
 			return new D3D11TextureDepth(format, creationResult);
 		}
@@ -206,7 +206,7 @@ namespace Render
 		return nullptr;
 	}
 
-	RHIVertexBuffer* D3D11System::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data)
+	RHIVertexBuffer* D3D11System::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
 		D3D11_SUBRESOURCE_DATA initData = { 0 };
 		initData.pSysMem = data;
@@ -215,19 +215,19 @@ namespace Render
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.ByteWidth = vertexSize * numVertices;
-		bufferDesc.Usage = (creationFlag & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
-		if (creationFlag & BCF_UsageConst)
+		bufferDesc.Usage = (creationFlags & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+		if (creationFlags & BCF_UsageConst)
 		{
 			bufferDesc.BindFlags |= D3D11_BIND_CONSTANT_BUFFER;
 		}
 		else
 		{
 			bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			if (creationFlag & BCF_CreateSRV)
+			if (creationFlags & BCF_CreateSRV)
 				bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 		}
 
-		bufferDesc.CPUAccessFlags = (creationFlag & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
+		bufferDesc.CPUAccessFlags = (creationFlags & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
 
@@ -239,12 +239,12 @@ namespace Render
 			}
 		);
 
-		D3D11VertexBuffer* buffer = new D3D11VertexBuffer(mDevice, BufferResource.release(), numVertices, vertexSize, creationFlag);
+		D3D11VertexBuffer* buffer = new D3D11VertexBuffer(mDevice, BufferResource.release(), numVertices, vertexSize, creationFlags);
 
 		return buffer;
 	}
 
-	Render::RHIIndexBuffer* D3D11System::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
+	Render::RHIIndexBuffer* D3D11System::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
 		D3D11_SUBRESOURCE_DATA initData = { 0 };
 		initData.pSysMem = data;
@@ -253,12 +253,12 @@ namespace Render
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.ByteWidth = nIndices * (bIntIndex ? 4 : 2);
-		bufferDesc.Usage = (creationFlag & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+		bufferDesc.Usage = (creationFlags & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		if( creationFlag & BCF_CreateSRV )
+		if( creationFlags & BCF_CreateSRV )
 			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 
-		bufferDesc.CPUAccessFlags = (creationFlag & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
+		bufferDesc.CPUAccessFlags = (creationFlags & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
 
@@ -269,7 +269,7 @@ namespace Render
 				return nullptr;
 			});
 
-		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(mDevice, BufferResource.release(), nIndices, bIntIndex, creationFlag);
+		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(mDevice, BufferResource.release(), nIndices, bIntIndex, creationFlags);
 		return buffer;
 	}
 
@@ -318,13 +318,13 @@ namespace Render
 		{
 			char const* FakeCodeTemplate = CODE_STRING(
 				struct VSInput
-			{
-				%s
-			};
-			void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
-			{
-				svPosition = float4(0, 0, 0, 1);
-			}
+				{
+					%s
+				};
+				void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
+				{
+					svPosition = float4(0, 0, 0, 1);
+				}
 			);
 
 			std::string vertexCode;
@@ -366,14 +366,13 @@ namespace Render
 			}
 		);
 
-		std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
+		D3D11InputLayout* inputLayout = new D3D11InputLayout;
 		for (auto const& e : desc.mElements)
 		{
 			if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
 				continue;
 
 			D3D11_INPUT_ELEMENT_DESC element;
-
 			element.SemanticName = "ATTRIBUTE";
 			element.SemanticIndex = e.attribute;
 			element.Format = D3D11Translate::To(Vertex::Format(e.format), e.bNormalized);
@@ -382,31 +381,15 @@ namespace Render
 			element.InputSlotClass = e.bIntanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
 			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
 
-			descList.push_back(element);
-		}
-
-		D3D11InputLayout* inputLayout = new D3D11InputLayout;
-		for (auto const& e : desc.mElements)
-		{
-			D3D11_INPUT_ELEMENT_DESC element;
-
-			element.SemanticName = "ATTRIBUTE";
-			element.SemanticIndex = e.attribute;
-			element.Format = D3D11Translate::To(Vertex::Format(e.format), e.bNormalized);
-			element.InputSlot = e.idxStream;
-			element.AlignedByteOffset = e.offset;
-			element.InputSlotClass = e.bIntanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
-			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
-
-			inputLayout->elements.push_back(element);
+			inputLayout->mDescList.push_back(element);
 		}
 
 		TComPtr< ID3D11InputLayout > inputLayoutResource;
 		VERIFY_D3D11RESULT(
-			mDevice->CreateInputLayout(inputLayout->elements.data(), inputLayout->elements.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
+			mDevice->CreateInputLayout(inputLayout->mDescList.data(), inputLayout->mDescList.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
 			return nullptr;
 		);
-		inputLayout->mResource = inputLayoutResource.release();
+		inputLayout->mUniversalResource = inputLayoutResource.release();
 		mInputLayoutMap.insert( std::make_pair(key, inputLayout) );
 		return inputLayout;
 	}
@@ -414,7 +397,7 @@ namespace Render
 	RHISamplerState* D3D11System::RHICreateSamplerState(SamplerStateInitializer const& initializer)
 	{
 		D3D11_SAMPLER_DESC desc = {};
-		desc.Filter = D3D11Translate::To(initializer.filter);
+		desc.Filter   = D3D11Translate::To(initializer.filter);
 		desc.AddressU = D3D11Translate::To(initializer.addressU);
 		desc.AddressV = D3D11Translate::To(initializer.addressV);
 		desc.AddressW = D3D11Translate::To(initializer.addressW);
@@ -457,7 +440,7 @@ namespace Render
 		D3D11_BLEND_DESC desc = { 0 };
 		desc.AlphaToCoverageEnable = initializer.bEnableAlphaToCoverage;
 		desc.IndependentBlendEnable = initializer.bEnableIndependent;
-		for( int i = 0; i < ( initializer.bEnableIndependent ? NumBlendStateTarget : 1 ); ++i )
+		for( int i = 0; i < ( initializer.bEnableIndependent ? MaxBlendStateTargetCount : 1 ); ++i )
 		{
 			auto const& targetValue = initializer.targetValues[i];
 			auto& targetValueD3D11 = desc.RenderTarget[i];
@@ -529,7 +512,7 @@ namespace Render
 		return new D3D11ShaderProgram;
 	}
 
-	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize, bool bDepth , Texture2DCreationResult& outResult)
+	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth , Texture2DCreationResult& outResult)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
 		desc.Format = format;
@@ -540,11 +523,11 @@ namespace Render
 
 		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
-		if( creationFlag & TCF_RenderTarget )
+		if( creationFlags & TCF_RenderTarget )
 			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-		if( creationFlag & TCF_CreateSRV )
+		if( creationFlags & TCF_CreateSRV )
 			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-		if( creationFlag & TCF_CreateUAV )
+		if( creationFlags & TCF_CreateUAV )
 			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
 
 
@@ -561,15 +544,15 @@ namespace Render
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? &initData : nullptr , &outResult.resource));
-		if( creationFlag & TCF_RenderTarget )
+		if( creationFlags & TCF_RenderTarget )
 		{
 			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
 		}
-		if( creationFlag & TCF_CreateSRV )
+		if( creationFlags & TCF_CreateSRV )
 		{
 			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
 		}
-		if( creationFlag & TCF_CreateUAV )
+		if( creationFlags & TCF_CreateUAV )
 		{
 			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
 		}
@@ -1041,7 +1024,6 @@ namespace Render
 
 		if( mBoundedShaderDirtyMask )
 		{
-
 			SET_SHADER(Shader::eVertex);
 			SET_SHADER(Shader::ePixel);
 			SET_SHADER(Shader::eGeometry);
@@ -1099,18 +1081,18 @@ namespace Render
 				if( !shaderProgramImpl.mShaders[i].isValid() )
 					break;
 
-				auto& shaderImpl = static_cast<D3D11Shader&>(*shaderProgramImpl.mShaders[i]);
-				auto  type = shaderImpl.mResource.type;
+				auto& shader = *shaderProgramImpl.mShaders[i];
+				auto  type = shader.mResource.type;
 
 				if (type == Shader::eVertex)
 				{
-					mVertexShader = &shaderImpl;
+					mVertexShader = &shader;
 				}
 
 				mBoundedShaderMask |= BIT(type);
-				if( mBoundedShaders[type].resource != shaderImpl.mResource.ptr )
+				if( mBoundedShaders[type].resource != shader.mResource.ptr )
 				{
-					mBoundedShaders[type].resource = shaderImpl.mResource.ptr;
+					mBoundedShaders[type].resource = shader.mResource.ptr;
 					mBoundedShaderDirtyMask |= BIT(type);
 				}
 			}

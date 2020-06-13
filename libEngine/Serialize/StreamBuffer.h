@@ -6,11 +6,13 @@
 #include "CompilerConfig.h"
 #include "Meta/MetaBase.h"
 #include "Meta/Select.h"
+#include "Template/ArrayView.h"
 
 #include <exception>
 #include <memory>
 #include <cassert>
 #include <vector>
+
 
 
 class CheckPolicy
@@ -361,12 +363,18 @@ protected:
 
 };
 
-template < class BufferType >
+template < class BufferType , bool bRef >
 class TBufferSerializer : public IStreamSerializer
 {
 public:
 	TBufferSerializer(BufferType& buffer)
-		:mBuffer(buffer)
+		:mBuffer(std::forward<BufferType>(buffer))
+	{
+	}
+
+	template< class ...Args >
+	TBufferSerializer(Args&& ...args)
+		: mBuffer(std::forward<Args>(args)...)
 	{
 	}
 	//virtual bool isValid() const override { return true; }
@@ -382,13 +390,68 @@ public:
 	using IStreamSerializer::read;
 	using IStreamSerializer::write;
 private:
-	BufferType& mBuffer;
+	typedef typename TSelect< bRef, BufferType&, BufferType >::Type HoldType;
+	HoldType mBuffer;
 };
 
 template< class BufferType >
-auto MakeBufferSerializer(BufferType& buffer)
+auto MakeSerializer(BufferType& buffer)
 {
-	return TBufferSerializer< BufferType >(buffer);
+	return TBufferSerializer< BufferType , true >(buffer);
 }
+
+template< class BufferType , class ...Args >
+auto CreateSerializer(Args&& ...args)
+{
+	return TBufferSerializer< BufferType , false >(std::forward<Args>(args)...);
+}
+
+class VectorWriteBuffer
+{
+public:
+	VectorWriteBuffer(std::vector<uint8>& inData)
+		:mData(inData)
+	{
+	}
+
+	void take(void* ptr, size_t num)
+	{
+
+	}
+
+	void fill(void const* ptr, size_t num)
+	{
+		mData.insert(mData.end(), static_cast<uint8 const*>(ptr), static_cast<uint8 const*>(ptr) + num);
+	}
+
+	std::vector<uint8>& mData;
+};
+
+
+class SimpleReadBuffer
+{
+public:
+	SimpleReadBuffer(TArrayView< uint8 const > inData)
+		:mData(inData)
+	{
+	}
+
+	void take(void* ptr, size_t num)
+	{
+		assert(mReadPos + num <= mData.size());
+		uint8 const* cur = mData.data() + mReadPos;
+		std::copy(cur, cur + num, (uint8*)ptr);
+		mReadPos += num;
+	}
+
+	void fill(void const* ptr, size_t num)
+	{
+
+	}
+
+	size_t mReadPos = 0;
+	TArrayView< uint8 const > mData;
+};
+
 
 #endif // StreamBuffer_h__

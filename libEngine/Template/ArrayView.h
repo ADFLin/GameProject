@@ -49,6 +49,7 @@ public:
 	T*     data() { return mData; }
 	size_t size() const { return mNum; }
 
+	T const* data() const { return mData; }
 protected:
 	T*     mData;
 	size_t mNum;
@@ -63,6 +64,8 @@ TArrayView<T const> MakeView(T const(&data)[N]) { return TArrayView<T const>(dat
 template< class T >
 TArrayView<T> MakeView(std::vector< T >& v) { return TArrayView<T>(v.data(), v.size()); }
 
+template< class T >
+TArrayView<T const> MakeConstView(std::vector< T >& v) { return TArrayView<T const>(v.data(), v.size()); }
 template< class T >
 TArrayView<T const> MakeView(std::vector< T > const& v) { return TArrayView<T const>(v.data(), v.size()); }
 

@@ -1,6 +1,50 @@
 #pragma once
+
 #ifndef SHADER_COMPILING
 #define SHADER_COMPILING 0
+#endif
+
+#if SHADER_COMPILING
+
+#ifndef SYSTEM_VULKAN
+#define SYSTEM_VULKAN 0
+#endif
+#ifndef COMPILER_GLSL
+#define COMPILER_GLSL 0
+#endif
+#ifndef COMPILER_HLSL
+#define COMPILER_HLSL 0
+#endif
+#ifndef VERTEX_SHADER
+#define VERTEX_SHADER 0
+#endif
+#ifndef PIXEL_SHADER
+#define PIXEL_SHADER 0
+#endif
+#ifndef GEOMETRY_SHADER
+#define GEOMETRY_SHADER 0
+#endif
+#ifndef HULL_SHADER
+#define HULL_SHADER 0
+#endif
+#ifndef DOMAIN_SHADER
+#define DOMAIN_SHADER 0
+#endif
+#ifndef COMPUTE_SHADER
+#define COMPUTE_SHADER 0
+#endif
+
+#else
+
+#define COMPILER_GLSL 1
+#define COMPILER_HLSL 1
+#define VERTEX_SHADER 1
+#define PIXEL_SHADER 1
+#define GEOMETRY_SHADER 1
+#define HULL_SHADER 1
+#define DOMAIN_SHADER 1
+#define COMPUTE_SHADER 1
+
 #endif
 
 #if (!SHADER_COMPILING) || COMPILER_GLSL

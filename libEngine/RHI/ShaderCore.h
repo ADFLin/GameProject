@@ -18,6 +18,14 @@ namespace Render
 	struct ShaderEntryInfo;
 	class ShaderParameterMap;
 
+
+	struct ShaderEntryInfo
+	{
+		Shader::Type type;
+		char const*  name;
+	};
+
+
 	class ShaderCompileOption
 	{
 	public:
@@ -208,13 +216,14 @@ namespace Render
 	};
 
 	using RHIShaderRef = TRefCountPtr< RHIShader >;
+	
+
 
 	class RHIShaderProgram : public RHIResource
 	{
 	public:
 		RHIShaderProgram() :RHIResource(TRACE_TYPE_NAME("ShaderProgram")) {}
 
-		virtual bool setupShaders(RHIShaderRef shaders[], int numShader) = 0;
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 	};

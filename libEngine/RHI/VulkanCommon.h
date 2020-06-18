@@ -785,6 +785,7 @@ namespace Render
 		static VkSamplerAddressMode To(Sampler::AddressMode mode);
 		static VkCompareOp To(ECompareFunc func);
 		static VkStencilOp To(Stencil::Operation op);
+		static VkShaderStageFlagBits To(Shader::Type type);
 	};
 
 
@@ -793,14 +794,14 @@ namespace Render
 	public:
 		VulkanRasterizerState(RasterizerStateInitializer const& initializer)
 		{
-			rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-			rasterizationState.polygonMode = VulkanTranslate::To(initializer.fillMode);
-			rasterizationState.cullMode = VulkanTranslate::To(initializer.cullMode);
-			rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-			rasterizationState.rasterizerDiscardEnable = VK_FALSE;
-			rasterizationState.depthBiasEnable = VK_FALSE;
-			rasterizationState.depthClampEnable = VK_FALSE;
-			rasterizationState.lineWidth = 1.0f;
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+			createInfo.polygonMode = VulkanTranslate::To(initializer.fillMode);
+			createInfo.cullMode = VulkanTranslate::To(initializer.cullMode);
+			createInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+			createInfo.rasterizerDiscardEnable = VK_FALSE;
+			createInfo.depthBiasEnable = VK_FALSE;
+			createInfo.depthClampEnable = VK_FALSE;
+			createInfo.lineWidth = 1.0f;
 
 			multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 			multisampleState.rasterizationSamples;
@@ -812,7 +813,7 @@ namespace Render
 		}
 
 		VkPipelineMultisampleStateCreateInfo   multisampleState = {};
-		VkPipelineRasterizationStateCreateInfo rasterizationState = {};
+		VkPipelineRasterizationStateCreateInfo createInfo = {};
 	};
 
 	class VulkanDepthStencilState : public TRefcountResource< RHIDepthStencilState >
@@ -821,37 +822,37 @@ namespace Render
 		VulkanDepthStencilState(DepthStencilStateInitializer const& initializer)
 		{
 
-			depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-			depthStencilState.flags = 0;
-			depthStencilState.depthTestEnable = (initializer.depthFunc != ECompareFunc::Always) || (initializer.bWriteDepth);
-			depthStencilState.depthWriteEnable = initializer.bWriteDepth;
-			depthStencilState.depthCompareOp = VulkanTranslate::To(initializer.depthFunc);
-			depthStencilState.depthBoundsTestEnable = VK_FALSE;
-			depthStencilState.stencilTestEnable = initializer.bEnableStencilTest;
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+			createInfo.flags = 0;
+			createInfo.depthTestEnable = (initializer.depthFunc != ECompareFunc::Always) || (initializer.bWriteDepth);
+			createInfo.depthWriteEnable = initializer.bWriteDepth;
+			createInfo.depthCompareOp = VulkanTranslate::To(initializer.depthFunc);
+			createInfo.depthBoundsTestEnable = VK_FALSE;
+			createInfo.stencilTestEnable = initializer.bEnableStencilTest;
 
 
-			depthStencilState.front.failOp = VulkanTranslate::To(initializer.stencilFailOp);
-			depthStencilState.front.passOp = VulkanTranslate::To(initializer.zPassOp);
-			depthStencilState.front.depthFailOp = VulkanTranslate::To(initializer.zFailOp); 
-			depthStencilState.front.compareOp = VulkanTranslate::To(initializer.stencilFunc);
-			depthStencilState.front.compareMask = initializer.stencilReadMask;
-			depthStencilState.front.writeMask = initializer.stencilWriteMask;
-			depthStencilState.front.reference = 0xff;
+			createInfo.front.failOp = VulkanTranslate::To(initializer.stencilFailOp);
+			createInfo.front.passOp = VulkanTranslate::To(initializer.zPassOp);
+			createInfo.front.depthFailOp = VulkanTranslate::To(initializer.zFailOp); 
+			createInfo.front.compareOp = VulkanTranslate::To(initializer.stencilFunc);
+			createInfo.front.compareMask = initializer.stencilReadMask;
+			createInfo.front.writeMask = initializer.stencilWriteMask;
+			createInfo.front.reference = 0xff;
 
-			depthStencilState.back.failOp = VulkanTranslate::To(initializer.stencilFailOpBack);
-			depthStencilState.back.passOp = VulkanTranslate::To(initializer.zPassOpBack);
-			depthStencilState.back.depthFailOp = VulkanTranslate::To(initializer.zFailOpBack);
-			depthStencilState.back.compareOp = VulkanTranslate::To(initializer.stencilFunBack);
-			depthStencilState.back.compareMask = initializer.stencilReadMask;
-			depthStencilState.back.writeMask = initializer.stencilWriteMask;
-			depthStencilState.back.reference = 0xff;
+			createInfo.back.failOp = VulkanTranslate::To(initializer.stencilFailOpBack);
+			createInfo.back.passOp = VulkanTranslate::To(initializer.zPassOpBack);
+			createInfo.back.depthFailOp = VulkanTranslate::To(initializer.zFailOpBack);
+			createInfo.back.compareOp = VulkanTranslate::To(initializer.stencilFunBack);
+			createInfo.back.compareMask = initializer.stencilReadMask;
+			createInfo.back.writeMask = initializer.stencilWriteMask;
+			createInfo.back.reference = 0xff;
 
-			depthStencilState.minDepthBounds = 0.0f;
-			depthStencilState.maxDepthBounds = 1.0f;
+			createInfo.minDepthBounds = 0.0f;
+			createInfo.maxDepthBounds = 1.0f;
 
 		}
 
-		VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
+		VkPipelineDepthStencilStateCreateInfo createInfo = {};
 	};
 
 	class VulkanBlendState : public TRefcountResource< RHIBlendState >
@@ -859,17 +860,17 @@ namespace Render
 	public:
 		VulkanBlendState(BlendStateInitializer const& initializer)
 		{
-			colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-			colorBlendState.pAttachments = colorAttachmentStates;
-			colorBlendState.attachmentCount = initializer.bEnableIndependent ? MaxBlendStateTargetCount : 1;
-			colorBlendState.logicOp = VK_LOGIC_OP_COPY;
-			colorBlendState.logicOpEnable = VK_FALSE;
-			colorBlendState.blendConstants[0] = 0.0f;
-			colorBlendState.blendConstants[1] = 0.0f;
-			colorBlendState.blendConstants[2] = 0.0f;
-			colorBlendState.blendConstants[3] = 0.0f;
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+			createInfo.pAttachments = colorAttachmentStates;
+			createInfo.attachmentCount = initializer.bEnableIndependent ? MaxBlendStateTargetCount : 1;
+			createInfo.logicOp = VK_LOGIC_OP_COPY;
+			createInfo.logicOpEnable = VK_FALSE;
+			createInfo.blendConstants[0] = 0.0f;
+			createInfo.blendConstants[1] = 0.0f;
+			createInfo.blendConstants[2] = 0.0f;
+			createInfo.blendConstants[3] = 0.0f;
 
-			for (int i = 0; i < colorBlendState.attachmentCount; ++i)
+			for (int i = 0; i < createInfo.attachmentCount; ++i)
 			{
 				VkPipelineColorBlendAttachmentState& state = colorAttachmentStates[i];
 				auto const& targetValue = initializer.targetValues[i];
@@ -895,7 +896,7 @@ namespace Render
 		}
 
 		VkPipelineColorBlendAttachmentState colorAttachmentStates[MaxBlendStateTargetCount];
-		VkPipelineColorBlendStateCreateInfo colorBlendState = {};
+		VkPipelineColorBlendStateCreateInfo createInfo = {};
 	};
 
 
@@ -975,17 +976,17 @@ namespace Render
 				vertexInputBindingDescs.push_back(bindingDesc);
 			}
 
-			vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-			vertexInputState.pVertexAttributeDescriptions = vertexInputAttrDescs.data();
-			vertexInputState.vertexAttributeDescriptionCount = vertexInputAttrDescs.size();
-			vertexInputState.pVertexBindingDescriptions = vertexInputBindingDescs.data();
-			vertexInputState.vertexBindingDescriptionCount = vertexInputBindingDescs.size();
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+			createInfo.pVertexAttributeDescriptions = vertexInputAttrDescs.data();
+			createInfo.vertexAttributeDescriptionCount = vertexInputAttrDescs.size();
+			createInfo.pVertexBindingDescriptions = vertexInputBindingDescs.data();
+			createInfo.vertexBindingDescriptionCount = vertexInputBindingDescs.size();
 
 		}
 
 		std::vector< VkVertexInputAttributeDescription > vertexInputAttrDescs;
 		std::vector< VkVertexInputBindingDescription> vertexInputBindingDescs;
-		VkPipelineVertexInputStateCreateInfo vertexInputState = {};
+		VkPipelineVertexInputStateCreateInfo createInfo = {};
 	};
 
 
@@ -1319,6 +1320,9 @@ namespace Render
 	template< class TRHIResource >
 	struct TVulkanCastTraits {};
 
+	class VulkanShader;
+	class VulkanShaderProgram;
+
 	//template<> struct TVulkanCastTraits< RHITexture1D > { typedef VulkanTexture1D CastType; };
 	template<> struct TVulkanCastTraits< RHITexture2D > { typedef VulkanTexture2D CastType; };
 	//template<> struct TVulkanCastTraits< RHITexture3D > { typedef VulkanTexture3D CastType; };
@@ -1327,13 +1331,14 @@ namespace Render
 	//template<> struct TVulkanCastTraits< RHITextureDepth > { typedef VulkanTextureDepth CastType; };
 	template<> struct TVulkanCastTraits< RHIVertexBuffer > { typedef VulkanVertexBuffer CastType; };
 	template<> struct TVulkanCastTraits< RHIIndexBuffer > { typedef VulkanIndexBuffer CastType; };
-	//template<> struct TVulkanCastTraits< RHIInputLayout > { typedef VulkanInputLayout CastType; };
+	template<> struct TVulkanCastTraits< RHIInputLayout > { typedef VulkanInputLayout CastType; };
 	template<> struct TVulkanCastTraits< RHISamplerState > { typedef VulkanSamplerState CastType; };
-	//template<> struct TVulkanCastTraits< RHIBlendState > { typedef VulkanBlendState CastType; };
-	//template<> struct TVulkanCastTraits< RHIRasterizerState > { typedef VulkanRasterizerState CastType; };
-	//template<> struct TVulkanCastTraits< RHIDepthStencilState > { typedef VulkanDepthStencilState CastType; };
+	template<> struct TVulkanCastTraits< RHIBlendState > { typedef VulkanBlendState CastType; };
+	template<> struct TVulkanCastTraits< RHIRasterizerState > { typedef VulkanRasterizerState CastType; };
+	template<> struct TVulkanCastTraits< RHIDepthStencilState > { typedef VulkanDepthStencilState CastType; };
 	//template<> struct TVulkanCastTraits< RHIFrameBuffer > { typedef VulkanFrameBuffer CastType; };
-
+	template<> struct TVulkanCastTraits< RHIShader > { typedef VulkanShader CastType; };
+	template<> struct TVulkanCastTraits< RHIShaderProgram > { typedef VulkanShaderProgram CastType; };
 
 	struct VulkanCast
 	{

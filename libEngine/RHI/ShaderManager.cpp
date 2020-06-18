@@ -12,6 +12,7 @@
 #include "ConsoleSystem.h"
 
 #include <iterator>
+#include "ProfileSystem.h"
 
 extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
 extern CORE_API TConsoleVariable< bool > CVarShaderDectectFileMoidfy;
@@ -26,11 +27,8 @@ namespace Render
 	struct ShaderCacheBinaryData
 	{
 	public:
-		bool initialize( ShaderFormat& format , ShaderProgramCompileInfo const& info)
+		bool addFileDependences( ShaderProgramCompileInfo const& info )
 		{
-			if( !format.getBinaryCode( *info.shaderProgram->mRHIResource , binaryCode) )
-				return false;
-
 			std::set< HashString > assetFilePaths;
 			for( auto const& shaderInfo : info.shaders )
 			{
@@ -46,8 +44,8 @@ namespace Render
 				file.lastModifyTime = fileAttributes.lastWrite;
 				file.path = path.c_str();
 				assetDependences.push_back(std::move(file));
+
 			}
-			
 			return true;
 		}
 
@@ -65,9 +63,9 @@ namespace Render
 			return true;
 		}
 
-		bool setupProgram(ShaderFormat& format, ShaderProgram& program)
+		bool setupProgram(ShaderFormat& format, ShaderProgram& program, std::vector< ShaderCompileInfo > const& shaderCompiles )
 		{
-			if( binaryCode.empty() )
+			if( codeBuffer.empty() )
 				return false;
 
 			if( !program.mRHIResource.isValid() )
@@ -77,10 +75,10 @@ namespace Render
 					return false;
 			}
 
-			if( !format.setupProgram(*program.getRHIResource(), binaryCode) )
+			if( !format.initializeProgram(program, shaderCompiles , codeBuffer) )
 				return false;
 
-			format.setupParameters(program);
+
 			return true;
 		}
 
@@ -98,12 +96,12 @@ namespace Render
 		};
 
 		std::vector< ShaderFile > assetDependences;
-		std::vector< uint8 > binaryCode;
+		std::vector< uint8 > codeBuffer;
 
 		template< class Op >
 		void serialize(Op op)
 		{
-			op & assetDependences & binaryCode;
+			op & assetDependences & codeBuffer;
 		}
 	};
 
@@ -144,19 +142,21 @@ namespace Render
 			}
 
 		}
-		bool saveCacheData( ShaderFormat& format, ShaderProgramCompileInfo const& info)
+		bool saveCacheData( ShaderFormat& format, ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 		{
 			if( !format.isSupportBinaryCode() )
 				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
-			GetShaderCacheKey(format, info, key);
-			bool result = mDataCache->saveDelegate(key, [&info,&binaryData,&format](IStreamSerializer& serializer)
+			GetShaderCacheKey(format, *setupData.compileInfo, key);
+			bool result = mDataCache->saveDelegate(key, [&shaderProgram,&setupData,&binaryData,&format](IStreamSerializer& serializer)
 			{			
-				if( !binaryData.initialize(format, info) )
-				{
+				if (!format.getBinaryCode(shaderProgram, setupData, binaryData.codeBuffer))
 					return false;
-				}
+
+				if (!binaryData.addFileDependences(*setupData.compileInfo))
+					return false;
+
 				serializer << binaryData;
 				return true;
 			});
@@ -195,7 +195,7 @@ namespace Render
 				if( !binaryData.checkAssetNoModified() )
 					return false;
 
-				if( !binaryData.setupProgram(format, *info.shaderProgram) )
+				if( !binaryData.setupProgram(format, *info.shaderProgram, info.shaders ) )
 					return false;
 
 				for( auto const& asset : binaryData.assetDependences )
@@ -688,6 +688,8 @@ namespace Render
 		if ( !RHIIsInitialized() )
 			return false;
 
+		TIME_SCOPE("Update Shader");
+
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, info) )
 		{
 			if (!info.sourceFile.empty())
@@ -710,20 +712,32 @@ namespace Render
 				LogDevMsg(0, "Recompile shader : %s ", info.shaders[0].filePath.c_str());
 			}
 
-			if (!shaderProgram.mRHIResource.isValid())
+			//if (!shaderProgram.mRHIResource.isValid())
 			{
 				shaderProgram.mRHIResource = RHICreateShaderProgram();
 				if (!shaderProgram.mRHIResource.isValid())
 					return false;
 			}
 
-			RHIShaderRef shaders[Shader::Count];
-			int numShader = 0;
+			ShaderProgramSetupData setupData;
+			setupData.compileInfo = &info;
+
+			mShaderFormat->precompileCode(setupData);
+
+			ShaderResourceInfo shaders[Shader::Count];
+			int numShaders = 0;
 			bool bFailed = false;
 			for (ShaderCompileInfo& shaderInfo : info.shaders)
 			{
-				shaders[numShader] = RHICreateShader(shaderInfo.type);
-				if (!mShaderFormat->compileCode(shaderInfo.type, *shaders[numShader], shaderInfo.filePath.c_str(), &shaderInfo, shaderInfo.headCode.c_str()))
+				ShaderCompileInput  compileInput;
+				compileInput.type = shaderInfo.type;
+				compileInput.path = shaderInfo.filePath.c_str();
+				compileInput.definition = shaderInfo.headCode.c_str();
+				compileInput.setupData = &setupData;
+				ShaderCompileOutput compileOutput;
+				compileOutput.compileInfo = &shaderInfo;
+				compileOutput.formatData = nullptr;
+				if (!mShaderFormat->compileCode(compileInput, compileOutput))
 				{
 					bFailed = true;
 					break;
@@ -733,24 +747,33 @@ namespace Render
 				{
 
 				}
-				++numShader;
+
+				ShaderResourceInfo shaderSetup;
+				shaderSetup.type = shaderInfo.type;
+				shaderSetup.entry = shaderInfo.entryName.c_str();
+				shaderSetup.resource = compileOutput.resource;
+				shaderSetup.formatData = compileOutput.formatData;
+				setupData.shaders.push_back(shaderSetup);
+				++numShaders;
 			}
 
 			if (bFailed)
 			{
 				return false;
 			}
-
-			if (!shaderProgram.mRHIResource->setupShaders(shaders, numShader))
+	
+			if (!mShaderFormat->initializeProgram(shaderProgram, setupData))
 			{
 				return false;
 			}
 
-			mShaderFormat->setupParameters(shaderProgram);
-			getCache()->saveCacheData(*mShaderFormat, info);
+			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shaderProgram, setupData))
+			{
+
+			}
 		}
 
-		mShaderFormat->postShaderLoaded(*shaderProgram.mRHIResource);
+		mShaderFormat->postShaderLoaded(shaderProgram);
 		return true;
 	}
 

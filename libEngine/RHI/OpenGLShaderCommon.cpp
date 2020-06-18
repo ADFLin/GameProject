@@ -9,6 +9,8 @@
 #include "Core\StringConv.h"
 #include "CString.h"
 
+#include "RHICommand.h"
+
 namespace Render
 {
 
@@ -64,7 +66,7 @@ namespace Render
 		return true;
 	}
 
-	bool OpenGLShaderProgram::setupShaders(RHIShaderRef shaders[], int numShader)
+	bool OpenGLShaderProgram::setupShaders(ShaderResourceInfo shaders[], int numShaders)
 	{
 		auto DetachAllShader =  [this]()
 		{
@@ -77,21 +79,16 @@ namespace Render
 			}
 		};
 
-		if (bValid)
+		for( int i = 0; i < numShaders; ++i )
 		{
-			DetachAllShader();
+			assert(shaders[i].formatData);
+			glAttachShader(getHandle(), static_cast<OpenGLShaderObject*>(shaders[i].formatData)->mHandle );
 		}
 
-		for( int i = 0; i < numShader; ++i )
-		{
-			assert(shaders[i]);
-			glAttachShader(getHandle(), static_cast< OpenGLShader& >( *shaders[i] ).getHandle());
-		}
-		bool result = updateShader();
-		if (!result)
-		{
-			DetachAllShader();
-		}
+		bool result = updateShader(true);
+
+		DetachAllShader();
+
 		return result;
 	}
 
@@ -334,13 +331,6 @@ namespace Render
 		option.addMeta("ShaderFormat", getName());
 	}
 
-	bool ShaderFormatGLSL::isSupportBinaryCode() const
-	{
-		int numFormat = 0;
-		glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
-		return numFormat != 0;
-	}
-
 	void ShaderFormatGLSL::getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry)
 	{
 		inoutCode += "#version ";
@@ -365,44 +355,35 @@ namespace Render
 		}
 	}
 
-	bool ShaderFormatGLSL::getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode)
+	class GLSLCompileIntermediates : public ShaderCompileIntermediates
 	{
-		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
-		return GetProgramBinary(shaderProgramImpl.getHandle(), outBinaryCode);
-	}
-
-	bool ShaderFormatGLSL::setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode)
-	{
-		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
-
-		GLenum format = *(GLenum*)binaryCode.data();
-		glProgramBinary(shaderProgramImpl.getHandle(), format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
-		if( !VerifyOpenGLStatus() )
+	public:
+		~GLSLCompileIntermediates()
 		{
-			return false;
+			for (int i = 0; i < numShaders; ++i)
+			{
+				shaders[i].release();
+			}
 		}
-		if( !shaderProgramImpl.updateShader(false) )
-		{
-			return false;
-		}
-		return true;
-	}
+		OpenGLShaderObject shaders[Shader::MaxStorageSize];
+		int numShaders = 0;
+	};
 
-	bool ShaderFormatGLSL::compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def)
+	bool ShaderFormatGLSL::compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output)
 	{
 		bool bSuccess;
 		do
 		{
 			bSuccess = false;
 			std::vector< char > codeBuffer;
-			if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
+			if( !FileUtility::LoadToBuffer(input.path, codeBuffer, true) )
 				return false;
 			int numSourceCodes = 0;
 			char const* sourceCodes[2];
 
 			if( bUsePreprocess )
 			{
-				if (!PreprocessCode(path, compileInfo, def, codeBuffer))
+				if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
 					return false;
 
 				sourceCodes[numSourceCodes] = &codeBuffer[0];
@@ -410,35 +391,62 @@ namespace Render
 			}
 			else
 			{
-				if( def )
+				if(input.definition)
 				{
-					sourceCodes[numSourceCodes] = def;
+					sourceCodes[numSourceCodes] = input.definition;
 					++numSourceCodes;
 				}
 				sourceCodes[numSourceCodes] = &codeBuffer[0];
 				++numSourceCodes;
 			}
 
-
-			auto& shaderImpl = static_cast<OpenGLShader&>(shader);
-			bSuccess = shaderImpl.compileCode(type, sourceCodes, numSourceCodes);
-
-			if( !bSuccess && bUsePreprocess )
+			auto ProcessCompileError = [&]( GLuint shaderHandle )
 			{
 				{
 					std::ofstream of("temp" SHADER_FILE_SUBNAME, std::ios::binary);
-					if( of.is_open() )
+					if (of.is_open())
 					{
 						of.write(&codeBuffer[0], codeBuffer.size());
 					}
 				}
 
 				int maxLength;
-				glGetShaderiv(shaderImpl.getHandle(), GL_INFO_LOG_LENGTH, &maxLength);
+				glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &maxLength);
 				std::vector< char > buf(maxLength);
 				int logLength = 0;
-				glGetShaderInfoLog(shaderImpl.getHandle(), maxLength, &logLength, &buf[0]);
-				::MessageBoxA(NULL, &buf[0], "Shader Compile Error", 0);
+				glGetShaderInfoLog(shaderHandle, maxLength, &logLength, &buf[0]);
+				OutputError(buf.data());
+			};
+
+			if (input.setupData)
+			{
+				GLSLCompileIntermediates* myIntermediates = static_cast<GLSLCompileIntermediates*>(input.setupData->intermediateData.get());
+
+				OpenGLShaderObject& shaderObject = myIntermediates->shaders[myIntermediates->numShaders];
+
+				bSuccess = shaderObject.create(input.type, sourceCodes, numSourceCodes);
+
+				if (bSuccess)
+				{
+					output.formatData = &shaderObject;
+					++myIntermediates->numShaders;
+				}
+				else
+				{
+					ProcessCompileError(shaderObject.mHandle);
+					shaderObject.release();
+				}
+			}
+			else
+			{
+				auto* shaderImpl = static_cast<OpenGLShader*>(RHICreateShader(input.type));
+				output.resource = shaderImpl;
+				bSuccess = shaderImpl->compileCode(input.type, sourceCodes, numSourceCodes);
+
+				if (!bSuccess && bUsePreprocess)
+				{
+					ProcessCompileError(shaderImpl->getHandle());
+				}
 			}
 
 		} while( !bSuccess && bRecompile );
@@ -447,12 +455,61 @@ namespace Render
 	}
 
 
-	void ShaderFormatGLSL::setupParameters(ShaderProgram& shaderProgram)
+	void ShaderFormatGLSL::precompileCode(ShaderProgramSetupData& setupData)
+	{
+		setupData.intermediateData = std::make_unique<GLSLCompileIntermediates>();
+	}
+
+	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
 		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
+
+		if (!shaderProgramImpl.setupShaders(setupData.shaders.data(), setupData.shaders.size()))
+			return false;
+
 		ShaderParameterMap parameterMap;
 		shaderProgramImpl.generateParameterMap(parameterMap);
 		shaderProgram.bindParameters(parameterMap);
+		return true;
+	}
+
+	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode)
+	{
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
+
+		GLenum format = *(GLenum*)binaryCode.data();
+		glProgramBinary(shaderProgramImpl.getHandle(), format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
+		if (!VerifyOpenGLStatus())
+		{
+			return false;
+		}
+		if (!shaderProgramImpl.updateShader(false))
+		{
+			return false;
+		}
+
+		ShaderParameterMap parameterMap;
+		shaderProgramImpl.generateParameterMap(parameterMap);
+		shaderProgram.bindParameters(parameterMap);
+		return true;
+	}
+
+	bool ShaderFormatGLSL::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	{
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
+		return GetProgramBinary(shaderProgramImpl.getHandle(), outBinaryCode);
+	}
+
+	void ShaderFormatGLSL::postShaderLoaded(ShaderProgram& shaderProgram)
+	{
+	
+	}
+
+	bool ShaderFormatGLSL::isSupportBinaryCode() const
+	{
+		int numFormat = 0;
+		glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
+		return numFormat != 0;
 	}
 
 }

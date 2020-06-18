@@ -127,7 +127,7 @@ namespace Render
 
 				if( bRecompile )
 				{
-					::MessageBoxA(NULL, (LPCSTR) errorCode->GetBufferPointer(), "Shader Compile Error", 0);
+					OutputErrorMessage((LPCSTR) errorCode->GetBufferPointer());
 				}
 
 			}

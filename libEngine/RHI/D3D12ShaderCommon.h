@@ -76,13 +76,13 @@ namespace Render
 	{
 	public:
 
-		virtual bool setupShaders(RHIShaderRef shaders[], int numShader)
+		virtual bool setupShaders(ShaderResourceInfo shaders[], int numShaders)
 		{
-			assert(ARRAY_SIZE(mShaders) >= numShader);
-			for( int i = 0; i < numShader; ++i )
+			assert(ARRAY_SIZE(mShaders) >= numShaders);
+			for( int i = 0; i < numShaders; ++i )
 			{
-				mShaders[i] =  shaders[i];
-				auto& shaderImpl = static_cast<D3D11Shader&>(*mShaders[i]);
+				mShaders[i] =  shaders[i].resource;
+				auto& shaderImpl = static_cast<D3D11Shader&>(*shaders[i].resource);
 				ShaderParameterMap parameterMap;
 				D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
 				addShaderParameterMap(shaderImpl.mResource.type, parameterMap);

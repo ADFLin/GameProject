@@ -395,13 +395,13 @@ private:
 };
 
 template< class BufferType >
-auto MakeSerializer(BufferType& buffer)
+auto CreateSerializer(BufferType& buffer)
 {
 	return TBufferSerializer< BufferType , true >(buffer);
 }
 
 template< class BufferType , class ...Args >
-auto CreateSerializer(Args&& ...args)
+auto CreateBufferSerializer(Args&& ...args)
 {
 	return TBufferSerializer< BufferType , false >(std::forward<Args>(args)...);
 }

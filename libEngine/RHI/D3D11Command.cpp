@@ -608,7 +608,7 @@ namespace Render
 
 	}
 
-	void D3D11ShaderBoundState::setShaderValue(ShaderParameter const parameter, void const* value, int valueSize)
+	void D3D11ShaderBoundState::setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize)
 	{
 		assert(parameter.bindIndex < MaxConstBufferNum);
 		mConstBuffers[parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
@@ -1197,6 +1197,43 @@ namespace Render
 		{
 			mShaderBoundState[type].setUniformBuffer(shaderParam, buffer);
 		});
+	}
+
+	template < class ValueType >
+	void D3D11Context::setShaderValueT(RHIShader& shader, ShaderParameter const& param, ValueType const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		mShaderBoundState[shaderImpl.mResource.type].setShaderValue(param, val, sizeof(ValueType) * dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim)
+	{
+		setShaderValueT(shader, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim)
+	{
+		setShaderValueT(shader, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix4 const val[], int dim)
+	{
+		setShaderValueT(shader, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix3 const val[], int dim)
+	{
+		setShaderValueT(shader, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector3 const val[], int dim)
+	{
+		setShaderValueT(shader, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim)
+	{
+		setShaderValueT(shader, param, val, dim);
 	}
 
 }//namespace Render

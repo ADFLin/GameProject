@@ -68,6 +68,13 @@ namespace Render
 	}
 
 
+	void ShaderFormat::OutputError(char const* text)
+	{
+#if SYS_PLATFORM_WIN
+		::MessageBoxA(NULL, text, "Shader Compile Error", 0);
+#endif
+	}
+
 }//namespace Render
 
 

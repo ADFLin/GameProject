@@ -110,7 +110,7 @@ namespace Render
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim);
-		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim);
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim);
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim);
@@ -129,6 +129,29 @@ namespace Render
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+
+		void RHISetShaderProgram(Shader::Type type, RHIShader* shader){}
+
+		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
+		void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
+		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix3 const val[], int dim);
+		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix4 const val[], int dim);
+		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector3 const val[], int dim);
+		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim);
+		void setShaderMatrix22(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
+		void setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
+		void setShaderMatrix34(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
+
+		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView){}
+
+		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture){}
+		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler){}
+		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler){}
+		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op){}
+
+		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer){}
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer){}
+		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer){}
 
 		static int const IdxTextureAutoBindStart = 2;
 
@@ -174,6 +197,7 @@ namespace Render
 		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];
 		int mNumInputStream;
 		uint32 mSimplerSlotDirtyMask = 0;
+		bool mbUseShaderPipline;
 
 		struct SamplerState 
 		{
@@ -181,6 +205,8 @@ namespace Render
 			GLuint typeEnum;
 			GLuint textureHandle;
 			GLuint samplerHandle;
+			GLuint program;
+
 			bool   bWrite;
 		};
 		static int constexpr MaxSimulationSamplerSlots = 8;

@@ -13,6 +13,11 @@
 
 #include "RHI/VulkanCommon.h"
 #include "RHI/VulkanCommand.h"
+#include "RHI/VulkanShaderCommon.h"
+
+#include "RHI/ShaderProgram.h"
+#include "RHI/ShaderManager.h"
+#include "RHI/RHIGlobalResource.h"
 
 
 
@@ -95,421 +100,26 @@ namespace RenderVulkan
 	};
 
 
-	class VulkanSystemData
+	class SampleData
 	{
 	public:
-		VkInstance mInstance = VK_NULL_HANDLE;
-		VkPhysicalDevice mUsagePhysicalDevice = VK_NULL_HANDLE;
 
 		VkDevice mDevice = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT mCallback = VK_NULL_HANDLE;
-		VkQueue mGraphicsQueue = VK_NULL_HANDLE;
-		VkQueue mPresentQueue = VK_NULL_HANDLE;
-
-		VkSurfaceKHR   mWindowSurface = VK_NULL_HANDLE;
-		VkSwapchainKHR mSwapChain = VK_NULL_HANDLE;
-
-		VkExtent2D             mSwapChainExtent;
-		VkFormat               mSwapChainImageFormat;
+		VkExtent2D     mSwapChainExtent;
+		VkFormat       mSwapChainImageFormat;
 
 		VulkanSystem* mSystem;
 
-		bool InitTemp()
+		bool InitBirdge()
 		{
 			mSystem = static_cast<VulkanSystem*>(gRHISystem);
-			mInstance = mSystem->instance;
-			mUsagePhysicalDevice = mSystem->mDevice->physicalDevice;
 			mDevice = mSystem->mDevice->logicalDevice;
-
-			vkGetDeviceQueue(mDevice, mSystem->mUsageQueueFamilyIndices[EQueueFamily::Graphics], 0, &mGraphicsQueue);
-			VERIFY_RETURN_FALSE(mGraphicsQueue);
-			vkGetDeviceQueue(mDevice, mSystem->mUsageQueueFamilyIndices[EQueueFamily::Present], 0, &mPresentQueue);
-			VERIFY_RETURN_FALSE(mPresentQueue);
-
-			mWindowSurface = mSystem->mWindowSurface;
-			mSwapChain = mSystem->mSwapChain->mSwapChain;
-
 			mSwapChainExtent = mSystem->mSwapChain->mImageSize;
 			mSwapChainImageFormat = mSystem->mSwapChain->mImageFormat;
-			return true;
-		}
-#if 0
-		bool initializeSystem(HWND hWnd)
-		{
-			{
-				VkApplicationInfo appInfo = {};
-				appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-				appInfo.pApplicationName = "TinyGame";
-				appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-				appInfo.pEngineName = "TinyEngine";
-				appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-				appInfo.apiVersion = VK_API_VERSION_1_0;
-
-				std::vector<VkLayerProperties> layers = GetEnumValues(vkEnumerateInstanceLayerProperties);
-				std::vector<VkExtensionProperties> extensions = GetEnumValues(vkEnumerateInstanceExtensionProperties, nullptr);
-				std::vector< char const* > enableLayers =
-				{
-					"VK_LAYER_LUNARG_standard_validation",
-				};
-
-				for( auto str : enableLayers )
-				{
-					if( !FPropertyName::Find(layers, str) )
-					{
-						return false;
-					}
-				}
-
-				std::vector< char const* > enableExtensions;
-				FPropertyName::GetAll(extensions, enableExtensions);
-
-				VkInstanceCreateInfo instanceInfo = {};
-				instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-				instanceInfo.pApplicationInfo = &appInfo;
-				instanceInfo.ppEnabledLayerNames = enableLayers.data();
-				instanceInfo.enabledLayerCount = enableLayers.size();
-				instanceInfo.ppEnabledExtensionNames = enableExtensions.data();
-				instanceInfo.enabledExtensionCount = enableExtensions.size();
-
-				VK_VERIFY_RETURN_FALSE(vkCreateInstance(&instanceInfo, gAllocCB, &mInstance));
-
-				bool bHaveDebugUtils = FPropertyName::Find(extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-				if ( bHaveDebugUtils )
-				{
-					auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
-					if( func )
-					{
-						VkDebugUtilsMessengerCreateInfoEXT debugInfo = {};
-						debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-						debugInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-						debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-						debugInfo.pfnUserCallback = DebugVKCallback;
-						debugInfo.pUserData = nullptr;
-						VK_VERIFY_RETURN_FALSE(func(mInstance, &debugInfo, gAllocCB, &mCallback));
-					}
-
-				}
-#if SYS_PLATFORM_WIN
-				if( !FPropertyName::Find(extensions, VK_KHR_WIN32_SURFACE_EXTENSION_NAME) )
-					return false;
-				mWindowSurface = createWindowSurface(hWnd);
-#else
-				return false;
-#endif
-			}
-
-
-			{
-
-				std::vector< VkPhysicalDevice > devices = GetEnumValues(vkEnumeratePhysicalDevices, mInstance);
-
-				VkPhysicalDevice usageDevice = VK_NULL_HANDLE;
-				for( auto& device : devices )
-				{
-					VkPhysicalDeviceProperties deviceProperties;
-					vkGetPhysicalDeviceProperties(device, &deviceProperties);
-					VkPhysicalDeviceFeatures deviceFeatures;
-					vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-					if( deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU )
-					{
-						mUsagePhysicalDevice = device;
-						break;
-					}
-				}
-
-				VERIFY_RETURN_FALSE(mUsagePhysicalDevice);
-				vkGetPhysicalDeviceProperties(mUsagePhysicalDevice, &mPhysicalDeviceProp);
-
-				{
-					std::vector< VkQueueFamilyProperties > queueFamilies = GetEnumValues(vkGetPhysicalDeviceQueueFamilyProperties, mUsagePhysicalDevice);
-					int indexCurrent = 0;
-					int indexGraphics = INDEX_NONE;
-					int indexCompute = INDEX_NONE;
-					int indexPresent = INDEX_NONE;
-					for( auto& queueFamilyProp : queueFamilies )
-					{
-						if( queueFamilyProp.queueCount > 0 )
-						{
-							if( indexPresent == INDEX_NONE)
-							{
-								VkBool32 presentSupport = VK_FALSE;
-								vkGetPhysicalDeviceSurfaceSupportKHR(mUsagePhysicalDevice, indexCurrent, mWindowSurface, &presentSupport);
-								if( presentSupport )
-								{
-									indexPresent = indexCurrent;
-								}
-							}
-							if( indexGraphics == INDEX_NONE && (queueFamilyProp.queueFlags & VK_QUEUE_GRAPHICS_BIT) )
-							{
-								indexGraphics = indexCurrent;
-							}
-							if( indexCompute == INDEX_NONE && (queueFamilyProp.queueFlags & VK_QUEUE_COMPUTE_BIT) )
-							{
-								indexCompute = indexCurrent;
-							}
-						}
-						++indexCurrent;
-					}
-
-					if( indexGraphics == INDEX_NONE || indexCompute == INDEX_NONE || indexPresent == INDEX_NONE)
-						return false;
-					mUsageQueueFamilyIndices[EQueueFamily::Graphics] = indexGraphics;
-					mUsageQueueFamilyIndices[EQueueFamily::Present] = indexPresent;
-					mUsageQueueFamilyIndices[EQueueFamily::Compute] = indexCompute;
-				}
-
-				std::vector< uint32 > uniqueQueueFamilies =
-				{
-					mUsageQueueFamilyIndices[EQueueFamily::Graphics] ,
-					mUsageQueueFamilyIndices[EQueueFamily::Present] ,
-					mUsageQueueFamilyIndices[EQueueFamily::Compute]
-				};
-				MakeValueUnique(uniqueQueueFamilies);
-
-				std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-				float queuePriority = 1.0f;
-				for( auto index : uniqueQueueFamilies )
-				{
-					VkDeviceQueueCreateInfo queueInfo = {};
-					queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-					queueInfo.queueFamilyIndex = index;
-					queueInfo.queueCount = 1;
-					queueInfo.pQueuePriorities = &queuePriority;
-					queueCreateInfos.push_back(queueInfo);
-				}
-
-
-				std::vector<VkLayerProperties> deviceLayers = GetEnumValues(vkEnumerateDeviceLayerProperties, mUsagePhysicalDevice);
-
-
-				std::vector< char const* > enableLayers =
-				{
-					"VK_LAYER_LUNARG_standard_validation",
-				};
-
-				for( auto str : enableLayers )
-				{
-					if( !FPropertyName::Find(deviceLayers, str) )
-					{
-						return false;
-					}
-				}
-				std::vector< char const* > enabledExtensionNames;
-				std::vector< VkExtensionProperties > allExtensions;
-
-				{
-					auto layerExtensions = GetEnumValues(vkEnumerateDeviceExtensionProperties, mUsagePhysicalDevice, nullptr);
-					allExtensions.insert(allExtensions.end(), layerExtensions.begin(), layerExtensions.end());
-					for( auto& layer : enableLayers )
-					{
-						auto layerExtensions = GetEnumValues(vkEnumerateDeviceExtensionProperties, mUsagePhysicalDevice, layer);
-						allExtensions.insert(allExtensions.end(), layerExtensions.begin(), layerExtensions.end());
-					}
-				}
-
-				if( !FPropertyName::Find(allExtensions, VK_KHR_SWAPCHAIN_EXTENSION_NAME) )
-					return false;
-
-
-
-				FPropertyName::GetAll(allExtensions, enabledExtensionNames);
-
-				VkPhysicalDeviceFeatures deviceFeatures;
-				vkGetPhysicalDeviceFeatures(mUsagePhysicalDevice, &deviceFeatures);
-
-				VkDeviceCreateInfo deviceInfo = {};
-				deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-				deviceInfo.pQueueCreateInfos = queueCreateInfos.data();
-				deviceInfo.queueCreateInfoCount = queueCreateInfos.size();
-				deviceInfo.pEnabledFeatures = &deviceFeatures;
-				deviceInfo.ppEnabledLayerNames = enableLayers.data();
-				deviceInfo.enabledLayerCount = enableLayers.size();
-				deviceInfo.ppEnabledExtensionNames = enabledExtensionNames.data();
-				deviceInfo.enabledExtensionCount = enabledExtensionNames.size();
-
-				VK_VERIFY_RETURN_FALSE(vkCreateDevice(mUsagePhysicalDevice, &deviceInfo, gAllocCB, &mDevice));
-
-
-				vkGetDeviceQueue(mDevice, mUsageQueueFamilyIndices[EQueueFamily::Graphics], 0, &mGraphicsQueue);
-				VERIFY_RETURN_FALSE(mGraphicsQueue);
-				vkGetDeviceQueue(mDevice, mUsageQueueFamilyIndices[EQueueFamily::Present], 0, &mPresentQueue);
-				VERIFY_RETURN_FALSE(mPresentQueue);
-			}
 
 			return true;
 		}
-
-		void cleanupSystem()
-		{
-			VK_SAFE_DESTROY(mDevice, vkDestroyDevice(mDevice, gAllocCB));
-			VK_SAFE_DESTROY(mWindowSurface, vkDestroySurfaceKHR(mInstance, mWindowSurface, gAllocCB));
-
-			if (mCallback != VK_NULL_HANDLE)
-			{
-				auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
-				func(mInstance, mCallback, gAllocCB);
-				mCallback = VK_NULL_HANDLE;
-			}
-			VK_SAFE_DESTROY(mInstance, vkDestroyInstance(mInstance, gAllocCB));
-		}
-#endif
-
-
-
-#if 0
-#if SYS_PLATFORM_WIN
-		VkSurfaceKHR createWindowSurface(HWND hWnd)
-		{
-			VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
-			surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-			surfaceInfo.hwnd = hWnd;
-			surfaceInfo.hinstance = GetModuleHandleA(NULL);
-			VkSurfaceKHR result;
-			VK_VERIFY_FAILCDOE(vkCreateWin32SurfaceKHR(mInstance, &surfaceInfo, gAllocCB, &result), return VK_NULL_HANDLE;);
-			return result;
-		}
-#endif
-		bool createWindowSwapchain()
-		{
-			//swap chain
-			VkSurfaceCapabilitiesKHR capabilities;
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mUsagePhysicalDevice, mWindowSurface, &capabilities);
-			std::vector<VkSurfaceFormatKHR> formats = GetEnumValues(vkGetPhysicalDeviceSurfaceFormatsKHR, mUsagePhysicalDevice, mWindowSurface);
-			std::vector<VkPresentModeKHR> presentModes = GetEnumValues(vkGetPhysicalDeviceSurfacePresentModesKHR, mUsagePhysicalDevice, mWindowSurface);
-
-			auto  ChooseSwapSurfaceFormat = [](std::vector<VkSurfaceFormatKHR> const& availableFormats)
-			{
-				if( availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED )
-				{
-					return VkSurfaceFormatKHR{ VK_FORMAT_B8G8R8A8_UNORM,VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
-				}
-				for( const auto& availableFormat : availableFormats )
-				{
-					if( availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
-					   availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR )
-					{
-						return availableFormat;
-					}
-				}
-				return availableFormats[0];
-			};
-			auto  ChooseSwapPresentMode = [](std::vector<VkPresentModeKHR> const& availablePresentModes)
-			{
-				VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
-				for( const auto& availablePresentMode : availablePresentModes )
-				{
-					if( availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR )
-					{
-						bestMode = availablePresentMode;
-						break;
-					}
-					else if( availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR )
-					{
-						bestMode = availablePresentMode;
-					}
-				}
-				return bestMode;
-			};
-
-			auto ChooseSwapExtent = [](const VkSurfaceCapabilitiesKHR& capabilities) -> VkExtent2D
-			{
-				return capabilities.currentExtent;
-			};
-
-			auto usageFormat = ChooseSwapSurfaceFormat(formats);
-
-			mSwapChainImageFormat = usageFormat.format;
-			VkPresentModeKHR presentMode = ChooseSwapPresentMode(presentModes);
-			mSwapChainExtent = ChooseSwapExtent(capabilities);
-			VkSwapchainCreateInfoKHR swapChainInfo = {};
-
-			uint32_t imageCount = capabilities.minImageCount + 1;
-			if( capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount )
-			{
-				imageCount = capabilities.maxImageCount;
-			}
-			swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-			swapChainInfo.surface = mWindowSurface;
-			swapChainInfo.minImageCount = imageCount;
-			swapChainInfo.imageFormat = usageFormat.format;
-			swapChainInfo.imageColorSpace = usageFormat.colorSpace;
-			swapChainInfo.imageExtent = mSwapChainExtent;
-			swapChainInfo.imageArrayLayers = 1;
-			swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-			swapChainInfo.preTransform = capabilities.currentTransform;
-			swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-			swapChainInfo.presentMode = presentMode;
-			swapChainInfo.clipped = VK_TRUE;
-			swapChainInfo.oldSwapchain = VK_NULL_HANDLE;
-			if( mUsageQueueFamilyIndices[EQueueFamily::Graphics] != mUsageQueueFamilyIndices[EQueueFamily::Present] )
-			{
-				swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-				swapChainInfo.pQueueFamilyIndices = mUsageQueueFamilyIndices;
-				swapChainInfo.queueFamilyIndexCount = 2;
-			}
-			else
-			{
-				swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-				swapChainInfo.pQueueFamilyIndices = nullptr;
-				swapChainInfo.queueFamilyIndexCount = 0;
-			}
-
-			VK_VERIFY_RETURN_FALSE(vkCreateSwapchainKHR(mDevice, &swapChainInfo, gAllocCB, &mSwapChain));
-
-			//mSwapChainImages = GetEnumValues(vkGetSwapchainImagesKHR, mDevice, mSwapChain);
-			vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, nullptr);
-			mSwapChainImages.resize(imageCount);
-			vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, mSwapChainImages.data());
-
-			for( auto image : mSwapChainImages )
-			{
-				VkImageViewCreateInfo imageViewInfo = {};
-				imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-				imageViewInfo.image = image;
-				imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-				imageViewInfo.format = mSwapChainImageFormat;
-				imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-				imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-				imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-				imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-				imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				imageViewInfo.subresourceRange.baseMipLevel = 0;
-				imageViewInfo.subresourceRange.levelCount = 1;
-				imageViewInfo.subresourceRange.baseArrayLayer = 0;
-				imageViewInfo.subresourceRange.layerCount = 1;
-
-				VkImageView imageView;
-				VK_VERIFY_RETURN_FALSE(vkCreateImageView(mDevice, &imageViewInfo, gAllocCB, &imageView));
-				mSwapChainImageViews.push_back(imageView);
-			}
-
-			return true;
-		}
-
-		void cleanupWindowSwapchain()
-		{
-			if (!mSwapChainFramebuffers.empty())
-			{
-				for (auto buffer : mSwapChainFramebuffers)
-				{
-					vkDestroyFramebuffer(mDevice, buffer, gAllocCB);
-				}
-				mSwapChainFramebuffers.clear();
-			}
-
-			if (!mSwapChainImageViews.empty())
-			{
-				for (auto view : mSwapChainImageViews)
-				{
-					vkDestroyImageView(mDevice, view, gAllocCB);
-				}
-				mSwapChainImageViews.clear();
-			}
-			mSwapChainImages.clear();
-
-			VK_SAFE_DESTROY(mSwapChain, vkDestroySwapchainKHR(mDevice, mSwapChain, gAllocCB));
-		}
-#endif
 		std::vector< VkFramebuffer > mSwapChainFramebuffers;
 
 		bool createSwapchainFrameBuffers()
@@ -519,8 +129,7 @@ namespace RenderVulkan
 			for( int i = 0; i < mSystem->mSwapChain->mImageViews.size(); ++i )
 			{
 				VkImageView attachments[] = { mSystem->mSwapChain->mImageViews[i] };
-				VkFramebufferCreateInfo frameBufferInfo = {};
-				frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+				VkFramebufferCreateInfo frameBufferInfo = FVulkanInit::framebufferCreateInfo();
 				frameBufferInfo.renderPass = mSimpleRenderPass;
 				frameBufferInfo.pAttachments = attachments;
 				frameBufferInfo.attachmentCount = ARRAY_SIZE(attachments);
@@ -539,23 +148,15 @@ namespace RenderVulkan
 		VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
 		VkRenderPass mSimpleRenderPass = VK_NULL_HANDLE;
 
-		struct BufferData
-		{
-			VkBuffer handle;
-			VkDeviceMemory memory;
-		};
 		RHIVertexBufferRef mVertexBuffer;
 		RHIIndexBufferRef  mIndexBuffer;
 
+		ShaderProgram mShaderProgram;
+		RHIInputLayoutRef mInputLayout;
+
 		bool createSimplePipepline()
 		{
-
-			setupDescriptorPool();
-			setupDescriptorSetLayout();
-			setupDescriptorSet();
-
 			{
-
 				VkAttachmentDescription colorAttachmentDesc = {};
 				colorAttachmentDesc.format = mSwapChainImageFormat;
 				colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -621,40 +222,28 @@ namespace RenderVulkan
 				VK_VERIFY_RETURN_FALSE(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, gAllocCB, &mEmptyPipelineLayout));
 			}
 
-			struct Vertex
+			struct VertexData
 			{
 				Vector2 pos;
 				Vector2 uv;
 				Vector3 color;
 			};
 
-			Vertex v[] =
+			VertexData v[] =
 			{
 				Vector2(0.5, -0.5),Vector2(1, 0),Vector3(1.0, 0.0, 0.0),
 				Vector2(0.5, 0.5),Vector2(1, 1), Vector3(0.0, 1.0, 0.0),
 				Vector2(-0.5, 0.5),Vector2(0, 1),Vector3(1.0, 1.0, 1.0),
 				Vector2(-0.5, -0.5),Vector2(0, 0),Vector3(1.0, 1.0, 1.0),
 			};
-			VERIFY_RETURN_FALSE(mVertexBuffer = RHICreateVertexBuffer(sizeof(Vertex), ARRAY_SIZE(v), BCF_DefalutValue, v));
+			VERIFY_RETURN_FALSE(mVertexBuffer = RHICreateVertexBuffer(sizeof(VertexData), ARRAY_SIZE(v), BCF_DefalutValue, v));
 			uint32 indices[] =
 			{
 				0,1,2,
 				0,2,3,
 			};
 			VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true , BCF_DefalutValue , indices));
-			VkVertexInputBindingDescription vertexInputBindingDescs[] =
-			{
-				//binding stride , rate
-				{ 0 , sizeof(Vertex) , VK_VERTEX_INPUT_RATE_VERTEX },
-			};
 
-			VkVertexInputAttributeDescription vertexInputAttrDescs[] =
-			{
-				//location binding format offset
-				{0 , 0, VK_FORMAT_R32G32_SFLOAT , offsetof(Vertex , pos) },
-				{1 , 0, VK_FORMAT_R32G32_SFLOAT , offsetof(Vertex , uv) },
-				{2 , 0, VK_FORMAT_R32G32B32_SFLOAT , offsetof(Vertex , color) },
-			};
 
 			{
 				VkViewport viewport;
@@ -668,7 +257,6 @@ namespace RenderVulkan
 				VkRect2D scissorRect;
 				scissorRect.offset = { 0 , 0 };
 				scissorRect.extent = mSwapChainExtent;
-
 
 				VkPipelineViewportStateCreateInfo viewportState = {};
 				viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -687,34 +275,11 @@ namespace RenderVulkan
 				rasterizationState.depthClampEnable = VK_FALSE;
 				rasterizationState.lineWidth = 1.0f;
 
-				VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
-				depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-				depthStencilState.depthWriteEnable = VK_TRUE;
-				depthStencilState.depthTestEnable = VK_TRUE;
-				depthStencilState.depthBoundsTestEnable = VK_FALSE;
-				depthStencilState.stencilTestEnable = VK_FALSE;
+				RHIDepthStencilStateRef depthStencilStateRef = &TStaticDepthStencilState<>::GetRHI();
+				VkPipelineDepthStencilStateCreateInfo const& depthStencilState = VulkanCast::To(depthStencilStateRef)->createInfo;
 
-
-				VkPipelineColorBlendAttachmentState colorAttachmentState = {};
-				colorAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				colorAttachmentState.blendEnable = VK_FALSE;
-				colorAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-				colorAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-				colorAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-				colorAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-				colorAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-				colorAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-
-				VkPipelineColorBlendStateCreateInfo colorBlendState = {};
-				colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-				colorBlendState.pAttachments = &colorAttachmentState;
-				colorBlendState.attachmentCount = 1;
-				colorBlendState.logicOp = VK_LOGIC_OP_COPY;
-				colorBlendState.logicOpEnable = VK_FALSE;
-				colorBlendState.blendConstants[0] = 0.0f;
-				colorBlendState.blendConstants[1] = 0.0f;
-				colorBlendState.blendConstants[2] = 0.0f;
-				colorBlendState.blendConstants[3] = 0.0f;
+				RHIBlendStateRef blendStateRef = &TStaticBlendState<>::GetRHI();
+				VkPipelineColorBlendStateCreateInfo const& colorBlendState = VulkanCast::To(blendStateRef)->createInfo;
 
 				VkPipelineTessellationStateCreateInfo tesselationState = {};
 				tesselationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
@@ -729,39 +294,26 @@ namespace RenderVulkan
 				multisampleState.alphaToCoverageEnable = VK_FALSE;
 				multisampleState.alphaToOneEnable = VK_FALSE;
 
-				VkShaderModule vertexModule = compileAndLoadShader("TestShader/Vertex.sgc" , Shader::eVertex);
-				if( vertexModule == VK_NULL_HANDLE )
-					return false;
-				VkShaderModule pixelModule = compileAndLoadShader("TestShader/Pixel.sgc" , Shader::ePixel);
-				if( pixelModule == VK_NULL_HANDLE )
-					return false;
+				VERIFY_RETURN_FALSE(ShaderManager::Get().loadSimple(mShaderProgram, "TestShader/Vertex", "TestShader/Pixel"));
+				std::vector < VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(mShaderProgram.getRHIResource())->mStages;
 
-				VkPipelineShaderStageCreateInfo vertexStage = {};
-				vertexStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				vertexStage.module = vertexModule;
-				vertexStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-				vertexStage.pName = "main";
-				vertexStage.pSpecializationInfo = nullptr;
+				setupDescriptorPool();
+				setupDescriptorSetLayout();
+				setupDescriptorSet();
 
-				VkPipelineShaderStageCreateInfo pixelStage = {};
-				pixelStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				pixelStage.module = pixelModule;
-				pixelStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-				pixelStage.pName = "main";
-				pixelStage.pSpecializationInfo = nullptr;
-				std::vector < VkPipelineShaderStageCreateInfo > shaderStages = { vertexStage , pixelStage };
 
 				VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
 				inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 				inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 				inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-				VkPipelineVertexInputStateCreateInfo vertexInputState = {};
-				vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-				vertexInputState.pVertexAttributeDescriptions = vertexInputAttrDescs;
-				vertexInputState.vertexAttributeDescriptionCount = ARRAY_SIZE(vertexInputAttrDescs);
-				vertexInputState.pVertexBindingDescriptions = vertexInputBindingDescs;
-				vertexInputState.vertexBindingDescriptionCount = ARRAY_SIZE(vertexInputBindingDescs);
+				InputLayoutDesc desc;
+				desc.addElement(0, 0, Vertex::eFloat2);
+				desc.addElement(0, 1, Vertex::eFloat2);
+				desc.addElement(0, 2, Vertex::eFloat3);
+				VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
+
+				VkPipelineVertexInputStateCreateInfo const& vertexInputState = VulkanCast::To(mInputLayout)->createInfo;
 
 				VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT };
 				VkPipelineDynamicStateCreateInfo dynamicState = {};
@@ -794,9 +346,6 @@ namespace RenderVulkan
 				pipelineInfo.basePipelineIndex = 0;
 
 				VK_VERIFY_RETURN_FALSE(vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, gAllocCB, &mSimplePipeline));
-
-				VK_SAFE_DESTROY(vertexModule, vkDestroyShaderModule(mDevice, vertexModule, gAllocCB));
-				VK_SAFE_DESTROY(pixelModule, vkDestroyShaderModule(mDevice, pixelModule, gAllocCB));
 			}
 
 			return true;
@@ -809,23 +358,14 @@ namespace RenderVulkan
 			VK_SAFE_DESTROY(mSimplePipeline, vkDestroyPipeline(mDevice, mSimplePipeline, gAllocCB));
 		}
 
-		VkCommandPool mCommandPool = VK_NULL_HANDLE;
 		std::vector< VkCommandBuffer > mCommandBuffers;
 		bool createRenderCommand()
 		{
 			{
-				VkCommandPoolCreateInfo poolInfo = {};
-				poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-				poolInfo.queueFamilyIndex = mSystem->mUsageQueueFamilyIndices[EQueueFamily::Graphics];
-				poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-				VK_VERIFY_RETURN_FALSE(vkCreateCommandPool(mDevice, &poolInfo, gAllocCB, &mCommandPool));
-			}
-
-			{
 				mCommandBuffers.resize(mSwapChainFramebuffers.size());
 				VkCommandBufferAllocateInfo allocInfo = {};
 				allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-				allocInfo.commandPool = mCommandPool;
+				allocInfo.commandPool = mSystem->mGraphicsCommandPool;
 				allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 				allocInfo.commandBufferCount = mCommandBuffers.size();
 				VK_VERIFY_RETURN_FALSE(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()));
@@ -847,10 +387,11 @@ namespace RenderVulkan
 
 		void setupDescriptorPool()
 		{
-			// Example uses one ubo and one image sampler
+			// Example uses one image sampler
 			std::vector<VkDescriptorPoolSize> poolSizes =
 			{
-				FVulkanInit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+				FVulkanInit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+				FVulkanInit::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)
 			};
 
 			VkDescriptorPoolCreateInfo descriptorPoolInfo =
@@ -866,11 +407,17 @@ namespace RenderVulkan
 		{
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
 			{
-				// Binding 1 : Fragment shader image sampler
+				// Binding 0 : Fragment shader image sampler
 				FVulkanInit::descriptorSetLayoutBinding(
 					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 					VK_SHADER_STAGE_FRAGMENT_BIT,
-					0)
+					0),
+#if 0
+				FVulkanInit::descriptorSetLayoutBinding(
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ,
+					VK_SHADER_STAGE_FRAGMENT_BIT,
+					1),
+#endif
 			};
 
 			VkDescriptorSetLayoutCreateInfo descriptorLayout =
@@ -907,13 +454,21 @@ namespace RenderVulkan
 			textureDescriptor.sampler = VulkanCast::GetHandle(TStaticSamplerState<>::GetRHI()); // The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
 			textureDescriptor.imageLayout = VulkanCast::To(texture)->mImageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
 
+			VkDescriptorBufferInfo bufferDescriptor = {};
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 			{
 				FVulkanInit::writeDescriptorSet(
 					descriptorSet,
 					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,		// The descriptor set will use a combined image sampler (sampler and image could be split)
-					0,												// Shader binding point 1
-					&textureDescriptor)								// Pointer to the descriptor image for our texture
+					0,												// Shader binding point 0
+					&textureDescriptor),						    // Pointer to the descriptor image for our texture
+#if 0
+				FVulkanInit::writeDescriptorSet(
+					descriptorSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,		        // The descriptor set will use a combined image sampler (sampler and image could be split)
+					1,												// Shader binding point 0
+					&bufferDescriptor)								// Pointer to the descriptor image for our texture
+#endif
 			};
 
 			vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
@@ -968,134 +523,15 @@ namespace RenderVulkan
 			return true;
 		}
 
-		void cleanupRenderCommand()
-		{
-			VK_SAFE_DESTROY(mCommandPool, vkDestroyCommandPool(mDevice, mCommandPool, gAllocCB));
-
-		}
-
-		VkShaderModule loadShader(char const* pCode , size_t codeSize )
-		{
-			VkShaderModuleCreateInfo moduleInfo = {};
-			moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			moduleInfo.pCode = (uint32*)pCode;
-			moduleInfo.codeSize = codeSize;
-			VkShaderModule module;
-			VK_VERIFY_FAILCDOE(vkCreateShaderModule(mDevice, &moduleInfo, gAllocCB, &module), return VK_NULL_HANDLE;);
-
-			return module;
-		}
-
-		VkSemaphore createSemphore()
-		{
-			VkSemaphoreCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-			VkSemaphore result;
-			VK_VERIFY_FAILCDOE(vkCreateSemaphore(mDevice, &createInfo, gAllocCB, &result), return VK_NULL_HANDLE; );
-			return result;
-		}
-
-		bool compileShader(char const* inPath, char const* outPath,  Shader::Type type)
-		{
-			char const* VulkanSDKDir = SystemPlatform::GetEnvironmentVariable("VULKAN_SDK");
-			if( VulkanSDKDir == nullptr )
-			{
-				VulkanSDKDir = "C:/VulkanSDK/1.1.130.0";
-			}
-			std::string GlslangValidatorPath = VulkanSDKDir;
-			GlslangValidatorPath += "/Bin/glslangValidator.exe";
-			static char const* const ShaderNames[] =
-			{
-				"vert","frag","geom","comp","tesc","tese"
-			};
-
-			FixString<1024> command;
-			command.format(" -V -S %s -o %s %s", ShaderNames[type], outPath, inPath);
-
-			ChildProcess process;
-			if( !process.create(GlslangValidatorPath.c_str(), command) )
-			{
-				return false;
-			}
-			process.waitCompletion();
-			int32 exitCode;
-			if( !process.getExitCode(exitCode) || exitCode != 0 )
-			{
-				return false;
-			}
-			return true;
-		}
-
-		VkShaderModule compileAndLoadShader(char const* path, Shader::Type type)
-		{
-#if 1
-			std::string fullPath = FileUtility::GetFullPath(path);
-			char const* dirEndPos = FileUtility::GetFileName(fullPath.c_str());
-			std::string outPath = fullPath.substr(0, dirEndPos - &fullPath[0]) + "/shader.tmp";
-			if( !compileShader(fullPath.c_str() , outPath.c_str(), type) )
-				return VK_NULL_HANDLE;
-			std::vector<char> code;
-			if( !FileUtility::LoadToBuffer(outPath.c_str(), code) )
-				return VK_NULL_HANDLE;
-
-			return loadShader(code.data(),code.size());
-#else
-			std::vector<uint8> scoreCode;
-			if( !FileUtility::LoadToBuffer(path, scoreCode) )
-				return VK_NULL_HANDLE;
-
-			shaderc_compiler_t compilerHandle = shaderc_compiler_initialize();
-			shaderc_compile_options_t optionHandle = shaderc_compile_options_initialize();
-
-			ON_SCOPE_EXIT
-			{
-				shaderc_compiler_release(compilerHandle);
-				shaderc_compile_options_release(optionHandle);
-			};
-			shaderc_shader_kind ShaderKindMap[] =
-			{
-				shaderc_vertex_shader,
-				shaderc_fragment_shader,
-				shaderc_geometry_shader,
-				shaderc_compute_shader,
-				shaderc_tess_control_shader,
-				shaderc_tess_evaluation_shader,
-			};
-
-			shaderc_compilation_result_t resultHandle = shaderc_compile_into_spv(compilerHandle, scoreCode.data(), scoreCode.size(), ShaderKindMap[type], nullptr, nullptr, optionHandle);
-			ON_SCOPE_EXIT
-			{
-				shaderc_result_release(resultHandle);
-			};
-
-			if( shaderc_result_get_compilation_status(resultHandle) != shaderc_compilation_status_success )
-			{
-				return VK_NULL_HANDLE;
-			}
-
-			return loadShader(shaderc_result_get_bytes(resultHandle), shaderc_result_get_length(resultHandle));
-#endif
-		}
-
 	};
 
 
 	class TestStage : public StageBase
-		            , public VulkanSystemData
+		            , public SampleData
 	{
 		typedef StageBase BaseClass;
 	public:
 		TestStage() {}
-
-
-
-
-		std::vector< VkSemaphore > mImageAvailableSemaphores;
-		std::vector< VkSemaphore > mRenderFinishedSemaphores;
-		std::vector< VkFence >     mInFlightFences;
-		const int   MAX_FRAMES_IN_FLIGHT = 2;
-		int mCurrentFrame = 0;
-
 
 		virtual bool onInit()
 		{
@@ -1109,26 +545,10 @@ namespace RenderVulkan
 
 			//VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
 			//VERIFY_RETURN_FALSE( createWindowSwapchain() );
-			InitTemp();
+			InitBirdge();
 			VERIFY_RETURN_FALSE( createSimplePipepline() );
 			VERIFY_RETURN_FALSE( createSwapchainFrameBuffers() );
 			VERIFY_RETURN_FALSE( createRenderCommand() );
-
-			TStaticSamplerState<>::GetRHI();
-
-			mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-			mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-			mInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-			VkFenceCreateInfo fenceInfo = {};
-			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-			for( int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
-			{
-				mImageAvailableSemaphores[i] = createSemphore();
-				mRenderFinishedSemaphores[i] = createSemphore();
-				vkCreateFence(mDevice, &fenceInfo, gAllocCB, &mInFlightFences[i]);
-			}
 
 			::Global::GUI().cleanupWidget();
 
@@ -1139,21 +559,7 @@ namespace RenderVulkan
 		virtual void onEnd()
 		{
 			vkDeviceWaitIdle(mDevice);
-
-			for( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
-			{
-				vkDestroySemaphore(mDevice, mRenderFinishedSemaphores[i], gAllocCB);
-				vkDestroySemaphore(mDevice, mImageAvailableSemaphores[i], gAllocCB);
-				vkDestroyFence(mDevice, mInFlightFences[i], gAllocCB);
-			}
-			mRenderFinishedSemaphores.clear();
-			mImageAvailableSemaphores.clear();
-			mInFlightFences.clear();
-
-			cleanupRenderCommand();
 			cleanupSimplePipeline();
-			//cleanupWindowSwapchain();
-			//cleanupSystem();
 			BaseClass::onEnd();
 		}
 
@@ -1176,49 +582,26 @@ namespace RenderVulkan
 
 		void onRender(float dFrame)
 		{
-			vkWaitForFences(mDevice, 1, &mInFlightFences[mCurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
-			vkResetFences(mDevice, 1, &mInFlightFences[mCurrentFrame]);
-
-			uint32_t imageIndex; 
-			vkAcquireNextImageKHR(mDevice, mSwapChain,std::numeric_limits<uint64_t>::max(), mImageAvailableSemaphores[mCurrentFrame], VK_NULL_HANDLE, &imageIndex);
-
 			if( bDynamicGenerate )
 			{
-				generateRenderCommand(mCommandBuffers[imageIndex], mSwapChainFramebuffers[imageIndex]);
+				generateRenderCommand(mCommandBuffers[mSystem->mRenderImageIndex], mSwapChainFramebuffers[mSystem->mRenderImageIndex]);
 			}
 			VkSubmitInfo submitInfo = {};
 			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.pCommandBuffers = &mCommandBuffers[imageIndex];
+			submitInfo.pCommandBuffers = &mCommandBuffers[mSystem->mRenderImageIndex];
 			submitInfo.commandBufferCount = 1;
 
-			VkSemaphore waitSemaphores[] = { mImageAvailableSemaphores[mCurrentFrame] };
+			VkSemaphore waitSemaphores[] = { mSystem->mImageAvailableSemaphores[mSystem->mCurrentFrame] };
 			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 			submitInfo.pWaitDstStageMask = waitStages;
 			submitInfo.pWaitSemaphores = waitSemaphores;
 			submitInfo.waitSemaphoreCount = ARRAY_SIZE(waitSemaphores);
 			
-
-			VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
+			VkSemaphore signalSemaphores[] = { mSystem->mRenderFinishedSemaphores[mSystem->mCurrentFrame] };
 			submitInfo.pSignalSemaphores = signalSemaphores;
 			submitInfo.signalSemaphoreCount = ARRAY_SIZE(signalSemaphores);
 
-			VK_VERIFY_FAILCDOE(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFences[mCurrentFrame]), );
-
-			VkPresentInfoKHR presentInfo = {};
-			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-			presentInfo.waitSemaphoreCount = ARRAY_SIZE(signalSemaphores);
-			presentInfo.pWaitSemaphores = signalSemaphores;
-
-			VkSwapchainKHR swapChains[] = { mSwapChain };
-			presentInfo.pSwapchains = swapChains;
-			presentInfo.swapchainCount = ARRAY_SIZE(swapChains);
-
-			presentInfo.pImageIndices = &imageIndex;
-			presentInfo.pResults = nullptr;
-			VK_VERIFY_FAILCDOE(vkQueuePresentKHR(mPresentQueue, &presentInfo) , );
-
-			mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+			VK_VERIFY_FAILCDOE(vkQueueSubmit(mSystem->mGraphicsQueue, 1, &submitInfo, mSystem->mInFlightFences[mSystem->mCurrentFrame]), );
 		}
 
 		bool onMouse(MouseMsg const& msg)

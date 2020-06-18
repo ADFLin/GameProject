@@ -22,10 +22,8 @@ namespace Render
 {
 #if CORE_SHARE_CODE
 	RHISystem* gRHISystem = nullptr;
-#endif
 	float gRHIClipZMin = 0;
 	float gRHIProjectYSign = 1;
-
 
 #define EXECUTE_RHI_FUNC( CODE ) gRHISystem->CODE
 
@@ -49,8 +47,7 @@ namespace Render
 			if( gRHISystem )
 			{
 				//#FIXME
-				if (gRHISystem->getName() != RHISytemName::D3D12 &&
-					gRHISystem->getName() != RHISytemName::Vulkan)
+				if (gRHISystem->getName() != RHISytemName::D3D12 )
 				{
 					ShaderFormat* shaderFormat = gRHISystem->createShaderFormat();
 					if (shaderFormat == nullptr)
@@ -268,9 +265,22 @@ namespace Render
 #undef SWITCH_CULL_MODE
 	}
 
+	RHICommandList& RHICommandList::GetImmediateList()
+	{
+		return gRHISystem->getImmediateCommandList();
+	}
+
+
+#endif //CORE_SHARE_CODE
+
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+
+	bool IsSupportRGB8ComponentTexture()
+	{
+		return gRHISystem->getName() != RHISytemName::Vulkan;
+	}
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)
 	{
@@ -296,7 +306,7 @@ namespace Render
 		};
 		if( !dataCache.loadDelegate(cacheKey, LoadCache) )
 		{
-			if( !imageData.load(path, option.bHDR, option.bReverseH) )
+			if( !imageData.load(path, option.bHDR, option.bReverseH , option.bHDR ? false : !IsSupportRGB8ComponentTexture()) )
 				return false;
 
 			pData = imageData.data;
@@ -322,7 +332,7 @@ namespace Render
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{
 		ImageData imageData;
-		if( !imageData.load(path, option.bHDR , option.bReverseH) )
+		if( !imageData.load(path, option.bHDR , option.bReverseH, option.bHDR ? false : !IsSupportRGB8ComponentTexture()) )
 			return false;
 
 		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1 , option.creationFlags, imageData.data, 1);
@@ -335,7 +345,7 @@ namespace Render
 		void* data[Texture::FaceCount];
 		for( int i = 0; i < Texture::FaceCount; ++i )
 		{
-			if( !imageDatas[i].load(paths[i], option.bHDR, option.bReverseH) )
+			if( !imageDatas[i].load(paths[i], option.bHDR, option.bReverseH, option.bHDR ? false : !IsSupportRGB8ComponentTexture()) )
 				return false;
 
 			data[i] = imageDatas[i].data;
@@ -372,10 +382,6 @@ namespace Render
 		return Texture::eR8;
 	}
 
-	RHICommandList& RHICommandList::GetImmediateList()
-	{
-		return gRHISystem->getImmediateCommandList();
-	}
 
 }
 

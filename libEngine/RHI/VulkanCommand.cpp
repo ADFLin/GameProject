@@ -4,6 +4,11 @@
 #include "MarcoCommon.h"
 #include "StdUtility.h"
 #include "CoreShare.h"
+#include "VulkanShaderCommon.h"
+
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif
 
 namespace Render
 {
@@ -19,7 +24,20 @@ namespace Render
 		return VK_FALSE;
 	}
 
-	VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice)
+	VulkanDevice::VulkanDevice()
+	{
+
+	}
+
+	VulkanDevice::~VulkanDevice()
+	{
+		if (logicalDevice)
+		{
+			vkDestroyDevice(logicalDevice, gAllocCB);
+		}
+	}
+
+	bool VulkanDevice::initialize(VkPhysicalDevice physicalDevice)
 	{
 		assert(physicalDevice);
 		this->physicalDevice = physicalDevice;
@@ -28,9 +46,10 @@ namespace Render
 		// Device properties also contain limits and sparse properties
 		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 		// Features should be checked by the examples before using them
-		vkGetPhysicalDeviceFeatures(physicalDevice, &features);
+		vkGetPhysicalDeviceFeatures(physicalDevice, &supportFeatures);
 		// Memory properties are used regularly for creating all kinds of buffers
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+
 		// Queue family properties, used for setting up requested queues upon device creation
 		queueFamilyProperties = GetEnumValues(vkGetPhysicalDeviceQueueFamilyProperties, physicalDevice);
 
@@ -48,32 +67,24 @@ namespace Render
 				}
 			}
 		}
+
+		return true;
 	}
 
-	VulkanDevice::~VulkanDevice()
+	int32 VulkanDevice::getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties)
 	{
-		if (logicalDevice)
-		{
-			vkDestroyDevice(logicalDevice, nullptr);
-		}
-	}
-
-	bool VulkanDevice::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, uint32_t& outType)
-	{
-		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+		for (int32 index = 0; index < memoryProperties.memoryTypeCount; ++index)
 		{
 			if ((typeBits & 1) == 1)
 			{
-				if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				if ((memoryProperties.memoryTypes[index].propertyFlags & properties) == properties)
 				{
-					outType = i;
-					return true;
+					return index;
 				}
 			}
 			typeBits >>= 1;
 		}
-
-		return false;
+		return INDEX_NONE;
 	}
 
 	bool VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags, uint32_t& outIndex )
@@ -119,8 +130,9 @@ namespace Render
 		return false;
 	}
 
-	bool VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices )
+	bool VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures inEnabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices )
 	{
+		// enableFeatures = inEnabledFeatures;
 		// Desired queues need to be requested upon logical device creation
 		// Due to differing queue family configurations of Vulkan implementations this can be a bit tricky, especially if the application
 		// requests different queue types
@@ -153,14 +165,14 @@ namespace Render
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+		deviceCreateInfo.pEnabledFeatures = &inEnabledFeatures;
 
 		// If a pNext(Chain) has been passed, we need to add it to the device creation info
 		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 		if (pNextChain) 
 		{
 			physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-			physicalDeviceFeatures2.features = enabledFeatures;
+			physicalDeviceFeatures2.features = inEnabledFeatures;
 			physicalDeviceFeatures2.pNext = pNextChain;
 			deviceCreateInfo.pEnabledFeatures = nullptr;
 			deviceCreateInfo.pNext = &physicalDeviceFeatures2;
@@ -181,7 +193,7 @@ namespace Render
 
 		VK_VERIFY_RETURN_FALSE( vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice) );
 
-		this->enabledFeatures = enabledFeatures;
+		this->enableFeatures = enableFeatures;
 
 		return true;
 	}
@@ -199,7 +211,9 @@ namespace Render
 		vkGetBufferMemoryRequirements(logicalDevice, *buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		// Find a memory type index that fits the properties of the buffer
-		VERIFY_RETURN_FALSE( getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags, memAlloc.memoryTypeIndex) );
+		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, memoryPropertyFlags);
+		if (memAlloc.memoryTypeIndex == INDEX_NONE)
+			return false;
 
 		VK_CHECK_RESULT(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, memory));
 
@@ -241,7 +255,9 @@ namespace Render
 		vkGetBufferMemoryRequirements(logicalDevice, bufferData.buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		// Find a memory type index that fits the properties of the buffer
-		VERIFY_RETURN_FALSE( getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags, memAlloc.memoryTypeIndex) );
+		memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, memoryPropertyFlags);
+		if (memAlloc.memoryTypeIndex == INDEX_NONE)
+			return false;
 		VK_CHECK_RESULT(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &bufferData.memory));
 
 		bufferData.alignment = memReqs.alignment;
@@ -394,15 +410,14 @@ namespace Render
 		return false;
 #endif
 
-		std::vector< VkPhysicalDevice > physicalDevices = GetEnumValues(vkEnumeratePhysicalDevices, instance);
+		std::vector< VkPhysicalDevice > physicalDevices = GetEnumValues(vkEnumeratePhysicalDevices, mInstance);
 
+		//Choice Device
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 		for (auto& device : physicalDevices)
 		{
 			VkPhysicalDeviceProperties deviceProperties;
 			vkGetPhysicalDeviceProperties(device, &deviceProperties);
-			VkPhysicalDeviceFeatures deviceFeatures;
-			vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 			if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 			{
 				physicalDevice = device;
@@ -410,12 +425,11 @@ namespace Render
 			}
 		}
 
-		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-		vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
 		//TODO: EnabledFeatures
-		mDevice = new VulkanDevice(physicalDevice);
+		mDevice = new VulkanDevice();
+		if (!mDevice->initialize(physicalDevice))
+			return false;
 
 		VERIFY_RETURN_FALSE(mDevice->getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT, mUsageQueueFamilyIndices[EQueueFamily::Graphics]));
 		VERIFY_RETURN_FALSE(mDevice->getQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT, mUsageQueueFamilyIndices[EQueueFamily::Compute]));
@@ -446,13 +460,19 @@ namespace Render
 		}
 		MakeValueUnique(uniqueQueueFamilies);
 
-		void* deviceCreatepNextChain = nullptr;
-		VERIFY_RETURN_FALSE( mDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain, true , MakeConstView(uniqueQueueFamilies) ) );
+		//#TODO
+		VkPhysicalDeviceFeatures enabledDeviceFeatures = mDevice->supportFeatures;
 
-		device = mDevice->logicalDevice;
+		void* deviceCreatepNextChain = nullptr;
+		VERIFY_RETURN_FALSE( mDevice->createLogicalDevice(enabledDeviceFeatures, enabledDeviceExtensions, deviceCreatepNextChain, true , MakeConstView(uniqueQueueFamilies) ) );
+
 		VERIFY_RETURN_FALSE( mDevice->getSupportedDepthFormat(depthFormat, false) );
 
 		vkGetDeviceQueue(mDevice->logicalDevice, mUsageQueueFamilyIndices[EQueueFamily::Graphics], 0, &mGraphicsQueue);
+		VERIFY_RETURN_FALSE(mGraphicsQueue);
+		vkGetDeviceQueue(mDevice->logicalDevice, mUsageQueueFamilyIndices[EQueueFamily::Present], 0, &mPresentQueue);
+		VERIFY_RETURN_FALSE(mPresentQueue);
+
 		mGraphicsCommandPool = mDevice->createCommandPool(mUsageQueueFamilyIndices[EQueueFamily::Graphics]);
 
 		mSwapChain = new VulkanSwapChain;
@@ -460,6 +480,8 @@ namespace Render
 		{
 			return false;
 		}
+
+		VERIFY_RETURN_FALSE(initRenderResource());
 
 		return true;
 	}
@@ -482,7 +504,7 @@ namespace Render
 		samplerInfo.maxLod = 100;
 		// Enable anisotropic filtering
 		// This feature is optional, so we must check if it's supported on the device
-		if (mDevice->features.samplerAnisotropy)
+		if (mDevice->enableFeatures.samplerAnisotropy)
 		{
 			// Use max. level of anisotropy for this example
 			samplerInfo.maxAnisotropy = mDevice->properties.limits.maxSamplerAnisotropy;
@@ -498,6 +520,32 @@ namespace Render
 		VERIFY_RETURN_FALSE(samplerState->sampler.initialize(mDevice->logicalDevice, samplerInfo));
 
 		return true;
+	}
+
+	RHIRasterizerState* VulkanSystem::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+	{
+		return new VulkanRasterizerState(initializer);
+	}
+
+	RHIBlendState* VulkanSystem::RHICreateBlendState(BlendStateInitializer const& initializer)
+	{
+		return new VulkanBlendState(initializer);
+	}
+
+	RHIDepthStencilState* VulkanSystem::RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
+	{
+		return new VulkanDepthStencilState(initializer);
+	}
+
+	RHIShader* VulkanSystem::RHICreateShader(Shader::Type type)
+	{
+
+		return new VulkanShader;
+	}
+
+	RHIShaderProgram* VulkanSystem::RHICreateShaderProgram()
+	{
+		return new VulkanShaderProgram;
 	}
 
 	bool VulkanSystem::createInstance(std::vector<VkExtensionProperties> const& availableExtensions, bool enableValidation)
@@ -567,12 +615,12 @@ namespace Render
 			}
 		}
 
-		VK_VERIFY_RETURN_FALSE(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
+		VK_VERIFY_RETURN_FALSE(vkCreateInstance(&instanceCreateInfo, nullptr, &mInstance));
 
 		bool bHaveDebugUtils = FPropertyName::Find(availableExtensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		if (enableValidation && bHaveDebugUtils)
 		{
-			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
 			if (func)
 			{
 				VkDebugUtilsMessengerCreateInfoEXT debugInfo = {};
@@ -581,7 +629,7 @@ namespace Render
 				debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 				debugInfo.pfnUserCallback = DebugVKCallback;
 				debugInfo.pUserData = nullptr;
-				VK_VERIFY_RETURN_FALSE(func(instance, &debugInfo, gAllocCB, &mCallback));
+				VK_VERIFY_RETURN_FALSE(func(mInstance, &debugInfo, gAllocCB, &mCallback));
 			}
 
 		}
@@ -591,7 +639,30 @@ namespace Render
 
 	void VulkanSystem::shutdown()
 	{
+		vkDeviceWaitIdle(mDevice->logicalDevice);
 
+		cleanupRenderResource();
+
+		if (mSwapChain )
+		{
+			mSwapChain->cleanupResource();
+			delete mSwapChain;
+		}
+
+		VK_SAFE_DESTROY(mWindowSurface, vkDestroySurfaceKHR(mInstance, mWindowSurface, gAllocCB));
+
+		if (mDevice)
+		{
+			delete mDevice;
+		}
+
+		if (mCallback != VK_NULL_HANDLE)
+		{
+			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
+			func(mInstance, mCallback, gAllocCB);
+			mCallback = VK_NULL_HANDLE;
+		}
+		VK_SAFE_DESTROY(mInstance, vkDestroyInstance(mInstance, gAllocCB));
 	}
 
 #if SYS_PLATFORM_WIN
@@ -602,15 +673,92 @@ namespace Render
 		surfaceInfo.hwnd = hWnd;
 		surfaceInfo.hinstance = GetModuleHandleA(NULL);
 		VkSurfaceKHR result;
-		VK_VERIFY_FAILCDOE(vkCreateWin32SurfaceKHR(instance, &surfaceInfo, gAllocCB, &result), return VK_NULL_HANDLE;);
+		VK_VERIFY_FAILCDOE(vkCreateWin32SurfaceKHR(mInstance, &surfaceInfo, gAllocCB, &result), return VK_NULL_HANDLE;);
 		return result;
 	}
 #endif
 
 	class ShaderFormat* VulkanSystem::createShaderFormat()
 	{
-		return nullptr;
+		auto result = new ShaderFormatSpirv(mDevice->logicalDevice);
+		return result;
 	}
+
+	bool VulkanSystem::RHIBeginRender()
+	{
+		vkWaitForFences(mDevice->logicalDevice, 1, &mInFlightFences[mCurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+		vkResetFences(mDevice->logicalDevice, 1, &mInFlightFences[mCurrentFrame]);
+
+		vkAcquireNextImageKHR(mDevice->logicalDevice, mSwapChain->mSwapChain, std::numeric_limits<uint64_t>::max(), mImageAvailableSemaphores[mCurrentFrame], VK_NULL_HANDLE, &mRenderImageIndex);
+		return true;
+	}
+
+	void VulkanSystem::RHIEndRender(bool bPresent)
+	{
+		if (bPresent)
+		{
+			VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
+
+			VkPresentInfoKHR presentInfo = {};
+			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+			presentInfo.waitSemaphoreCount = ARRAY_SIZE(signalSemaphores);
+			presentInfo.pWaitSemaphores = signalSemaphores;
+
+			VkSwapchainKHR swapChains[] = { mSwapChain->mSwapChain };
+			presentInfo.pSwapchains = swapChains;
+			presentInfo.swapchainCount = ARRAY_SIZE(swapChains);
+
+			presentInfo.pImageIndices = &mRenderImageIndex;
+			presentInfo.pResults = nullptr;
+			VK_VERIFY_FAILCDOE(vkQueuePresentKHR(mPresentQueue, &presentInfo), );
+		}
+
+		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	}
+
+	RHITexture2D*  VulkanSystem::RHICreateTexture2D(
+		Texture::Format format, int w, int h,
+		int numMipLevel, int numSamples, uint32 creationFlags,
+		void* data, int dataAlign)
+	{
+		VulkanTexture2D* texture = new VulkanTexture2D;
+
+		//TODO:
+		if (format == Texture::eRGB8)
+		{
+			std::vector< uint8 > tempData;
+			tempData.resize(w * h * 4);
+
+			uint8* dest = tempData.data();
+			uint8* src = (uint8*)data;
+
+			for (int i = 0; i < w * h; ++i)
+			{
+				dest[0] = src[0];
+				dest[1] = src[1];
+				dest[2] = src[2];
+				dest[3] = 0xff;
+				dest += 4;
+				src += 3;
+			}
+			if (!initalizeTexture2DInternal(texture, Texture::eRGBA8, w, h, numMipLevel, numSamples, creationFlags, tempData.data(), dataAlign))
+			{
+				delete texture;
+				return nullptr;
+			}
+		}
+		else
+		{
+			if (!initalizeTexture2DInternal(texture, format, w, h, numMipLevel, numSamples, creationFlags, data, dataAlign))
+			{
+				delete texture;
+				return nullptr;
+			}
+		}
+		return texture;
+	}
+
 
 	bool VulkanSystem::initalizeTexture2DInternal(VulkanTexture2D* texture, Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment)
 	{
@@ -639,7 +787,7 @@ namespace Render
 		// limited amount of formats and features (mip maps, cubemaps, arrays, etc.)
 		VkBool32 useStaging = !forceLinear;
 
-		VkMemoryAllocateInfo memAllocInfo = FVulkanInit::memoryAllocateInfo();
+		VkMemoryAllocateInfo memAlloc = FVulkanInit::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
 
 		// Use a separate command buffer for texture loading
@@ -664,11 +812,13 @@ namespace Render
 			// Get memory requirements for the staging buffer (alignment, memory type bits)
 			vkGetBufferMemoryRequirements(mDevice->logicalDevice, stagingBuffer, &memReqs);
 
-			memAllocInfo.allocationSize = memReqs.size;
+			memAlloc.allocationSize = memReqs.size;
 			// Get memory type index for a host visible buffer
-			mDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memAllocInfo.memoryTypeIndex);
+			memAlloc.memoryTypeIndex = mDevice->getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			if (memAlloc.memoryTypeIndex == INDEX_NONE)
+				return false;
 
-			VK_CHECK_RESULT(vkAllocateMemory(mDevice->logicalDevice, &memAllocInfo, nullptr, &stagingMemory));
+			VK_CHECK_RESULT(vkAllocateMemory(mDevice->logicalDevice, &memAlloc, nullptr, &stagingMemory));
 			VK_CHECK_RESULT(vkBindBufferMemory(mDevice->logicalDevice, stagingBuffer, stagingMemory, 0));
 
 			// Copy texture data into staging buffer
@@ -717,10 +867,12 @@ namespace Render
 
 			vkGetImageMemoryRequirements(mDevice->logicalDevice, texture->image, &memReqs);
 
-			memAllocInfo.allocationSize = memReqs.size;
+			memAlloc.allocationSize = memReqs.size;
+			memAlloc.memoryTypeIndex = mDevice->getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			if (memAlloc.memoryTypeIndex == INDEX_NONE)
+				return false;
 
-			mDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memAllocInfo.memoryTypeIndex);
-			VERIFY_RETURN_FALSE(texture->deviceMemory.initialize(mDevice->logicalDevice, memAllocInfo));
+			VERIFY_RETURN_FALSE(texture->deviceMemory.initialize(mDevice->logicalDevice, memAlloc));
 			VK_CHECK_RESULT(vkBindImageMemory(mDevice->logicalDevice, texture->image, texture->deviceMemory, 0));
 
 			VkImageSubresourceRange subresourceRange = {};
@@ -791,14 +943,14 @@ namespace Render
 			// like size and alignment
 			vkGetImageMemoryRequirements(mDevice->logicalDevice, texture->image, &memReqs);
 			// Set memory allocation size to required memory size
-			memAllocInfo.allocationSize = memReqs.size;
-
-			// Get memory type that can be mapped to host memory
-			mDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memAllocInfo.memoryTypeIndex);
+			memAlloc.allocationSize = memReqs.size;
+			memAlloc.memoryTypeIndex = mDevice->getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
+			if (memAlloc.memoryTypeIndex == INDEX_NONE)
+				return false;
 
 			VkDeviceMemory mappableMemory;
 			// Allocate host memory
-			VK_CHECK_RESULT(vkAllocateMemory(mDevice->logicalDevice, &memAllocInfo, nullptr, &mappableMemory));
+			VK_CHECK_RESULT(vkAllocateMemory(mDevice->logicalDevice, &memAlloc, nullptr, &mappableMemory));
 
 			// Bind allocated image for use
 			VK_CHECK_RESULT(vkBindImageMemory(mDevice->logicalDevice, texture->image, mappableMemory, 0));
@@ -853,6 +1005,17 @@ namespace Render
 		return true;
 	}
 
+	RHIVertexBuffer*  VulkanSystem::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	{
+		VulkanVertexBuffer* buffer = new VulkanVertexBuffer;
+		if (!initalizeBufferInternal(buffer, vertexSize, numVertices, creationFlags, data))
+		{
+			delete buffer;
+			return nullptr;
+		}
+		return buffer;
+	}
+
 	bool VulkanSystem::initalizeBufferInternal(VulkanVertexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
 		buffer->mCreationFlags = creationFlags;
@@ -869,6 +1032,16 @@ namespace Render
 		return true;
 	}
 
+	RHIIndexBuffer*  VulkanSystem::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
+	{
+		VulkanIndexBuffer* buffer = new VulkanIndexBuffer;
+		if (!initalizeBufferInternal(buffer, bIntIndex ? sizeof(int32) : sizeof(int16), nIndices, creationFlags, data))
+		{
+			delete buffer;
+			return nullptr;
+		}
+		return buffer;
+	}
 
 	bool VulkanSystem::initalizeBufferInternal(VulkanIndexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
@@ -884,6 +1057,22 @@ namespace Render
 			buffer->getBufferData(), bufferSize, data));
 
 		return true;
+	}
+
+	RHIInputLayout* VulkanSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
+	{
+		return new VulkanInputLayout(desc);
+	}
+
+	RHISamplerState* VulkanSystem::RHICreateSamplerState(SamplerStateInitializer const& initializer)
+	{
+		VulkanSamplerState* samplerState = new VulkanSamplerState;
+		if (!initializeSamplerStateInternal(samplerState, initializer))
+		{
+			delete samplerState;
+			return nullptr;
+		}
+		return samplerState;
 	}
 
 	bool VulkanSwapChain::initialize(VulkanDevice& device, VkSurfaceKHR surface, uint32 const usageQueueFamilyIndices[], bool bVSync)
@@ -950,6 +1139,7 @@ namespace Render
 		{
 			imageCount = capabilities.maxImageCount;
 		}
+
 		swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		swapChainInfo.surface = surface;
 		swapChainInfo.minImageCount = imageCount;
@@ -1025,3 +1215,7 @@ namespace Render
 
 }//namespace Render
 
+
+#if USE_RHI_RESOURCE_TRACE
+#include "RHITraceScope.h"
+#endif

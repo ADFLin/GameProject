@@ -671,15 +671,15 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim)
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
 	{
-		CHECK_PARAMETER(parameter);
+		CHECK_PARAMETER(param);
 		switch( dim )
 		{
-		case 1: glUniform1f(parameter.mLoc, val[0]); break;
-		case 2: glUniform2f(parameter.mLoc, val[0], val[1]); break;
-		case 3: glUniform3f(parameter.mLoc, val[0], val[1], val[2]); break;
-		case 4: glUniform4f(parameter.mLoc, val[0], val[1], val[2], val[3]); break;
+		case 1: glUniform1f(param.mLoc, val[0]); break;
+		case 2: glUniform2f(param.mLoc, val[0], val[1]); break;
+		case 3: glUniform3f(param.mLoc, val[0], val[1], val[2]); break;
+		case 4: glUniform4f(param.mLoc, val[0], val[1], val[2], val[3]); break;
 		}
 	}
 
@@ -794,6 +794,82 @@ namespace Render
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
 	}
 
+
+	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		switch (dim)
+		{
+		case 1: glProgramUniform1i(shaderImpl.getHandle(), param.mLoc, val[0]); break;
+		case 2: glProgramUniform2i(shaderImpl.getHandle(), param.mLoc, val[0], val[1]); break;
+		case 3: glProgramUniform3i(shaderImpl.getHandle(), param.mLoc, val[0], val[1], val[2]); break;
+		case 4: glProgramUniform4i(shaderImpl.getHandle(), param.mLoc, val[0], val[1], val[2], val[3]); break;
+		}
+	}
+
+	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		switch (dim)
+		{
+		case 1: glProgramUniform1f(shaderImpl.getHandle(), param.mLoc, val[0]); break;
+		case 2: glProgramUniform2f(shaderImpl.getHandle(), param.mLoc, val[0], val[1]); break;
+		case 3: glProgramUniform3f(shaderImpl.getHandle(), param.mLoc, val[0], val[1], val[2]); break;
+		case 4: glProgramUniform4f(shaderImpl.getHandle(), param.mLoc, val[0], val[1], val[2], val[3]); break;
+		}
+	}
+
+	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix3 const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniformMatrix3fv(shaderImpl.getHandle(), param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix4 const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniformMatrix4fv(shaderImpl.getHandle(), param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector3 const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniform3fv(shaderImpl.getHandle(), param.mLoc, dim, (float const *)val);
+	}
+
+	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniform4fv(shaderImpl.getHandle(), param.mLoc, dim, (float const *)val);
+	}
+
+	void OpenGLContext::setShaderMatrix22(RHIShader& shader, ShaderParameter const& param, float const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniformMatrix2fv(shaderImpl.getHandle(), param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniformMatrix4x3fv(shaderImpl.getHandle(), param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setShaderMatrix34(RHIShader& shader, ShaderParameter const& param, float const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniformMatrix3x4fv(shaderImpl.getHandle(), param.mLoc, dim, false, (float const *)val);
+	}
+
 	void OpenGLContext::commitRenderStates()
 	{
 #if COMMIT_STATE_IMMEDIATELY == 0
@@ -824,7 +900,7 @@ namespace Render
 						glBindTexture(state.typeEnum, state.textureHandle);
 						glBindSampler(index, state.samplerHandle);
 					}
-					glUniform1i(state.loc, index);
+					glProgramUniform1i(state.program, state.loc, index);
 				}
 			}
 
@@ -1176,6 +1252,7 @@ namespace Render
 		state.textureHandle = resourceViewImpl.handle;
 		state.typeEnum = resourceViewImpl.typeEnum;
 		state.samplerHandle = 0;
+		state.program = static_cast<OpenGLShaderProgram&>(shaderProgram).getHandle();
 		state.bWrite = false;
 	}
 
@@ -1191,6 +1268,7 @@ namespace Render
 		state.textureHandle = resourceViewImpl.handle;
 		state.typeEnum = resourceViewImpl.typeEnum;
 		state.samplerHandle = samplerImpl.getHandle();
+		state.program = static_cast<OpenGLShaderProgram&>(shaderProgram).getHandle();
 		state.bWrite = false;
 	}
 

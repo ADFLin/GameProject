@@ -26,64 +26,7 @@ namespace Render
 		inoutCode += "#define COMPILER_HLSL 1\n";
 	}
 
-	bool ShaderFormatHLSL::isSupportBinaryCode() const
-	{
-		return true;
-	}
-
-	bool ShaderFormatHLSL::getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode)
-	{
-		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
-		auto serializer = CreateSerializer<VectorWriteBuffer>(outBinaryCode);
-		uint8 numShaders = shaderProgramImpl.mNumShaders;
-		serializer.write(numShaders);
-		for (int i = 0; i < numShaders; ++i)
-		{
-			D3D11Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
-			uint8 shaderType = shaderImpl.mResource.type;
-			serializer.write(shaderType);
-			serializer.write(shaderImpl.byteCode);
-		}
-
-		return true;
-	}
-
-	bool ShaderFormatHLSL::setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode)
-	{
-		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
-
-		auto serializer = CreateSerializer<SimpleReadBuffer>(MakeView(binaryCode));
-		uint8 numShaders = shaderProgramImpl.mNumShaders;
-		serializer.read(numShaders);
-
-		RHIShaderRef shaders[Shader::Count];
-		for (int i = 0; i < numShaders; ++i)
-		{
-			D3D11Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
-			uint8 shaderType;
-			serializer.read(shaderType);
-			std::vector< uint8 > byteCode;
-			serializer.read(byteCode);
-
-			D3D11Shader* shader = (D3D11Shader*)RHICreateShader(Shader::Type(shaderType));
-			shaders[i] = shader;
-			if (!shader->initialize(Shader::Type(shaderType), mDevice, std::move(byteCode)))
-				return false;
-		}
-
-		if (!shaderProgramImpl.setupShaders(shaders, numShaders))
-			return false;
-
-		return true;
-	}
-
-	void ShaderFormatHLSL::setupParameters(ShaderProgram& shaderProgram)
-	{
-		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.getRHIResource());
-		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
-	}
-
-	bool ShaderFormatHLSL::compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def)
+	bool ShaderFormatHLSL::compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output)
 	{
 		bool bSuccess;
 		do
@@ -93,38 +36,38 @@ namespace Render
 
 			if( bUsePreprocess )
 			{
-				if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
+				if( !FileUtility::LoadToBuffer(input.path, codeBuffer, true) )
 				{
-					LogWarning(0, "Can't load shader file %s", path);
+					LogWarning(0, "Can't load shader file %s", input.path);
 					return false;
 				}
 
-				if (!PreprocessCode(path, compileInfo, def, codeBuffer))
+				if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
 					return false;
 			}
 			else
 			{
-				if( def )
+				if(input.definition)
 				{
-					int lenDef = strlen(def);
+					int lenDef = strlen(input.definition);
 					codeBuffer.resize(lenDef);
-					codeBuffer.assign(def, def + lenDef);
+					codeBuffer.assign(input.definition, input.definition + lenDef);
 				}
 
-				if( !FileUtility::LoadToBuffer(path, codeBuffer, true, true) )
+				if( !FileUtility::LoadToBuffer(input.path, codeBuffer, true, true) )
 				{
-					LogWarning(0, "Can't load shader file %s", path);
+					LogWarning(0, "Can't load shader file %s", input.path);
 					return false;
 				}
 			}
 
 			TComPtr< ID3D10Blob > errorCode;
 			TComPtr< ID3D10Blob > byteCode;
-			FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice , type);
+			FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice , input.type);
 
 			uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 			VERIFY_D3D11RESULT(
-				D3DX11CompileFromMemory(codeBuffer.data(), codeBuffer.size(), "ShaderCode", NULL, NULL, compileInfo->entryName.c_str(), 
+				D3DX11CompileFromMemory(codeBuffer.data(), codeBuffer.size(), "ShaderCode", NULL, NULL, output.compileInfo->entryName.c_str(), 
 										profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
 				{
 					bSuccess = false;
@@ -140,14 +83,15 @@ namespace Render
 
 				if( bRecompile )
 				{
-					::MessageBoxA(NULL, (LPCSTR) errorCode->GetBufferPointer(), "Shader Compile Error", 0);
+					OutputError((LPCSTR)errorCode->GetBufferPointer());
 				}
 
 			}
 
-			auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+			auto* shaderImpl = static_cast<D3D11Shader*>(RHICreateShader(input.type));
+			output.resource = shaderImpl;
 
-			if( !shaderImpl.initialize(type, mDevice, byteCode) )
+			if( !shaderImpl->initialize(input.type, mDevice, byteCode) )
 			{
 				LogWarning(0, "Can't create shader resource");
 				return false;
@@ -158,9 +102,74 @@ namespace Render
 		return bSuccess;
 	}
 
-	void ShaderFormatHLSL::postShaderLoaded(RHIShaderProgram& shaderProgram)
+	bool ShaderFormatHLSL::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
-		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
+
+		if (!shaderProgramImpl.setupShaders(setupData.shaders.data(), setupData.shaders.size()))
+			return false;
+
+		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
+	}
+
+	bool ShaderFormatHLSL::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode)
+	{
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
+
+		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeView(binaryCode));
+		uint8 numShaders = 0;
+		serializer.read(numShaders);
+
+		ShaderResourceInfo shaders[Shader::Count];
+		for (int i = 0; i < numShaders; ++i)
+		{
+			D3D11Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
+			uint8 shaderType;
+			serializer.read(shaderType);
+			std::vector< uint8 > byteCode;
+			serializer.read(byteCode);
+
+			D3D11Shader* shader = (D3D11Shader*)RHICreateShader(Shader::Type(shaderType));
+			shaders[i].resource = shader;
+			shaders[i].type = Shader::Type(shaderType);
+			shaders[i].entry = shaderCompiles[i].entryName.c_str();
+
+			if (!shader->initialize(Shader::Type(shaderType), mDevice, std::move(byteCode)))
+				return false;
+		}
+
+		if (!shaderProgramImpl.setupShaders(shaders, numShaders))
+			return false;
+
+		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
+		return true;
+	}
+
+	bool ShaderFormatHLSL::isSupportBinaryCode() const
+	{
+		return true;
+	}
+
+	bool ShaderFormatHLSL::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	{
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
+		auto serializer = CreateBufferSerializer<VectorWriteBuffer>(outBinaryCode);
+		uint8 numShaders = shaderProgramImpl.mNumShaders;
+		serializer.write(numShaders);
+		for (int i = 0; i < numShaders; ++i)
+		{
+			D3D11Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
+			uint8 shaderType = shaderImpl.mResource.type;
+			serializer.write(shaderType);
+			serializer.write(shaderImpl.byteCode);
+		}
+
+		return true;
+	}
+
+	void ShaderFormatHLSL::postShaderLoaded(ShaderProgram& shaderProgram)
+	{
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
 		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
 		{
 			D3D11Shader& shader = *shaderProgramImpl.mShaders[i];
@@ -272,13 +281,13 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11ShaderProgram::setupShaders(RHIShaderRef shaders[], int numShaders)
+	bool D3D11ShaderProgram::setupShaders(ShaderResourceInfo shaders[], int numShaders)
 	{
 		assert(ARRAY_SIZE(mShaders) >= numShaders);
 		mNumShaders = numShaders;
 		for (int i = 0; i < numShaders; ++i)
 		{
-			mShaders[i] = &static_cast< D3D11Shader& >(*shaders[i]);
+			mShaders[i] = &static_cast< D3D11Shader& >(*shaders[i].resource);
 			auto& shaderImpl = *mShaders[i];
 			ShaderParameterMap parameterMap;
 			D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);

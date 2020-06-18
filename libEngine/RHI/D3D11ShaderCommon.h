@@ -76,7 +76,8 @@ namespace Render
 	{
 	public:
 
-		virtual bool setupShaders(RHIShaderRef shaders[], int numShaders);
+		bool setupShaders(ShaderResourceInfo shaders[], int numShaders);
+
 		virtual bool getParameter(char const* name, ShaderParameter& outParam);
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam);
 
@@ -127,19 +128,19 @@ namespace Render
 			:mDevice( inDevice ){}
 
 		virtual char const* getName() final { return "hlsl"; }
-		virtual void setupShaderCompileOption(ShaderCompileOption& option)  final;
+		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
+		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) final;
+
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) final;
+
+		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
 
 		virtual bool isSupportBinaryCode() const final;
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) final;
 
-		virtual bool getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode) final;
-		virtual bool setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode) final;
-
-		virtual void setupParameters(ShaderProgram& shaderProgram) final;
-
-		virtual bool compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def) final;
-		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram) final;
-
+		
 		TComPtr< ID3D11Device > mDevice;
 	};
 

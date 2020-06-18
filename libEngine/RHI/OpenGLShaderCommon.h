@@ -15,6 +15,45 @@ namespace Render
 		static void Destroy(GLuint& handle) { glDeleteShader(handle); }
 	};
 
+	class OpenGLShaderObject
+	{
+	public:
+
+		~OpenGLShaderObject()
+		{
+			assert(mHandle == 0);
+		}
+
+		bool create(Shader::Type type, char const* src[], int num)
+		{
+			mHandle = glCreateShader(OpenGLTranslate::To(type));
+			if (mHandle == 0)
+				return false;
+
+			glShaderSource(mHandle, num, src, 0);
+			glCompileShader(mHandle);
+
+			GLint status;
+			glGetShaderiv(mHandle, GL_COMPILE_STATUS, &status);
+			if (GL_COMPILE_STATUS == GL_FALSE)
+				return false;
+
+			return true;
+		}
+
+		void release()
+		{
+			if (mHandle)
+			{
+				glDeleteShader(mHandle);
+				mHandle = 0;
+			}
+
+		}
+
+		GLuint mHandle = 0;
+	};
+
 	class OpenGLShader : public TOpenGLResource< RHIShader , RMPShader >
 	{
 	public:
@@ -48,7 +87,7 @@ namespace Render
 		void    unbind();
 		void    generateParameterMap(ShaderParameterMap& parameterMap);
 		int     getParamLoc(char const* name) { return glGetUniformLocation(getHandle(), name); }	
-		virtual bool setupShaders(RHIShaderRef shaders[], int numShader);
+		virtual bool setupShaders(ShaderResourceInfo shaders[], int numShaders);
 
 		virtual bool getParameter(char const* name, ShaderParameter& parameter) override;
 		virtual bool getResourceParameter(EShaderResourceType type, char const* name, ShaderParameter& parameter) override;
@@ -66,16 +105,23 @@ namespace Render
 		}
 		virtual char const* getName() final { return "glsl"; }
 		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
+		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
+		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) final;
+
+		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) final;
+		virtual void postShaderLoaded(ShaderProgram& shaderProgram) override;
 
 		virtual bool isSupportBinaryCode() const final;
-		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
-		virtual bool getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode) final;
-		virtual bool setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode) final;
-		virtual void setupParameters(ShaderProgram& shaderProgram) override final;
-		virtual bool compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def) final;
-
-
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) final;
+	
 		uint32  mDefaultVersion;
+
+
+
+	
+
 	};
 
 }//namespace Render

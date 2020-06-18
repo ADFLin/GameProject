@@ -44,9 +44,9 @@ namespace Render
 		/** @brief Properties of the physical device including limits that the application can check against */
 		VkPhysicalDeviceProperties properties;
 		/** @brief Features of the physical device that an application can use to check if a feature is supported */
-		VkPhysicalDeviceFeatures features;
+		VkPhysicalDeviceFeatures supportFeatures;
 		/** @brief Features that have been enabled for use on the physical device */
-		VkPhysicalDeviceFeatures enabledFeatures;
+		VkPhysicalDeviceFeatures enableFeatures;
 		/** @brief Memory types and heaps of the physical device */
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 		/** @brief Queue family properties of the physical device */
@@ -67,7 +67,7 @@ namespace Render
 		*
 		* @param physicalDevice Physical device that is to be used
 		*/
-		VulkanDevice(VkPhysicalDevice physicalDevice);
+		VulkanDevice();
 
 		/**
 		* Default destructor
@@ -75,7 +75,11 @@ namespace Render
 		* @note Frees the logical device
 		*/
 		~VulkanDevice();
+
+
+		bool initialize(VkPhysicalDevice physicalDevice);
 	
+		
 		/**
 		* Get the index of a memory type that has all the requested property bits set
 		*
@@ -85,7 +89,7 @@ namespace Render
 		*
 		* @return Index of the requested memory type
 		*/
-		bool getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, uint32_t& outType);
+		int32 getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties);
 			
 		/**
 		* Get the index of a queue family that supports the requested queue flags
@@ -107,7 +111,7 @@ namespace Render
 		*
 		* @return VkResult of the device creation call
 		*/
-		bool createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices);
+		bool createLogicalDevice(VkPhysicalDeviceFeatures inEnabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices);
 
 		/**
 		* Create a buffer on the device
@@ -247,14 +251,59 @@ namespace Render
 			return *mImmediateCommandList;
 		}
 		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info) { return nullptr; }
-		bool RHIBeginRender()
+
+
+		std::vector< VkSemaphore > mImageAvailableSemaphores;
+		std::vector< VkSemaphore > mRenderFinishedSemaphores;
+		std::vector< VkFence >     mInFlightFences;
+		const int   MAX_FRAMES_IN_FLIGHT = 2;
+		int mCurrentFrame = 0;
+
+	
+		bool initRenderResource()
 		{
+			mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+			mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+			mInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+			VkFenceCreateInfo fenceInfo = {};
+			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+			for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+			{
+				mImageAvailableSemaphores[i] = createSemphore();
+				mRenderFinishedSemaphores[i] = createSemphore();
+				vkCreateFence(mDevice->logicalDevice, &fenceInfo, gAllocCB, &mInFlightFences[i]);
+			}
+
 			return true;
 		}
-		void RHIEndRender(bool bPresent)
-		{
 
+		void cleanupRenderResource()
+		{
+			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+			{
+				vkDestroySemaphore(mDevice->logicalDevice, mRenderFinishedSemaphores[i], gAllocCB);
+				vkDestroySemaphore(mDevice->logicalDevice, mImageAvailableSemaphores[i], gAllocCB);
+				vkDestroyFence(mDevice->logicalDevice, mInFlightFences[i], gAllocCB);
+			}
+			mRenderFinishedSemaphores.clear();
+			mImageAvailableSemaphores.clear();
+			mInFlightFences.clear();
 		}
+
+		VkSemaphore createSemphore()
+		{
+			VkSemaphoreCreateInfo createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			VkSemaphore result;
+			VK_VERIFY_FAILCDOE(vkCreateSemaphore(mDevice->logicalDevice, &createInfo, gAllocCB, &result), return VK_NULL_HANDLE; );
+			return result;
+		}
+
+		uint32_t mRenderImageIndex;
+		bool RHIBeginRender();
+		void RHIEndRender(bool bPresent);
 
 		RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
@@ -266,44 +315,7 @@ namespace Render
 		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 creationFlags,
-			void* data, int dataAlign)
-		{
-			VulkanTexture2D* texture = new VulkanTexture2D;
-
-			//TODO:
-			if (format == Texture::eRGB8)
-			{
-				std::vector< uint8 > tempData;
-				tempData.resize(w * h * 4);
-
-				uint8* dest = tempData.data();
-				uint8* src = (uint8*)data;
-
-				for (int i = 0; i < w * h; ++i)
-				{
-					dest[0] = src[0];
-					dest[1] = src[1];
-					dest[2] = src[2];
-					dest[3] = 0xff;
-					dest += 4;
-					src += 3;
-				}
-				if (!initalizeTexture2DInternal(texture, Texture::eRGBA8, w, h, numMipLevel, numSamples, creationFlags, tempData.data(), dataAlign))
-				{
-					delete texture;
-					return nullptr;
-				}
-			}
-			else
-			{
-				if (!initalizeTexture2DInternal(texture, format, w, h, numMipLevel, numSamples, creationFlags, data, dataAlign))
-				{
-					delete texture;
-					return nullptr;
-				}
-			}
-			return texture;
-		}
+			void* data, int dataAlign);
 
 		bool initalizeTexture2DInternal(VulkanTexture2D* texture, Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
 
@@ -337,28 +349,8 @@ namespace Render
 			return nullptr;
 		}
 
-		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data) 
-		{
-			VulkanVertexBuffer* buffer = new VulkanVertexBuffer;
-			if (!initalizeBufferInternal(buffer, vertexSize, numVertices, creationFlags, data))
-			{
-				delete buffer;
-				return nullptr;
-			}
-			return buffer;
-		}
-
-		
-		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data) 
-		{ 
-			VulkanIndexBuffer* buffer = new VulkanIndexBuffer;
-			if (!initalizeBufferInternal(buffer, bIntIndex ? sizeof(int32) : sizeof(int16), nIndices, creationFlags, data))
-			{
-				delete buffer;
-				return nullptr;
-			}
-			return buffer;
-		}
+		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
+		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 
 		bool initalizeBufferInternal(VulkanVertexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
 		bool initalizeBufferInternal(VulkanIndexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
@@ -370,27 +362,18 @@ namespace Render
 
 		RHIFrameBuffer*  RHICreateFrameBuffer() { return nullptr; }
 
-		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc) { return nullptr; }
+		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
 
-		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer) 
-		{
-			VulkanSamplerState* samplerState = new VulkanSamplerState;
-			if (!initializeSamplerStateInternal(samplerState, initializer))
-			{
-				delete samplerState;
-				return nullptr;
-			}
-			return samplerState;
-		}
+		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
 
 		bool initializeSamplerStateInternal(VulkanSamplerState* samplerState, SamplerStateInitializer const& initializer);
 
-		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer) { return nullptr; }
-		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer) { return nullptr; }
-		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer) { return nullptr; }
+		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
+		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
+		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
-		RHIShader* RHICreateShader(Shader::Type type) { return nullptr; }
-		RHIShaderProgram* RHICreateShaderProgram() { return nullptr; }
+		RHIShader* RHICreateShader(Shader::Type type);
+		RHIShaderProgram* RHICreateShaderProgram();
 
 		bool createInstance(std::vector<VkExtensionProperties> const& availableExtensions, bool enableValidation);
 #if SYS_PLATFORM_WIN
@@ -398,29 +381,21 @@ namespace Render
 #endif
 
 		uint32       mUsageQueueFamilyIndices[EQueueFamily::Count];
+		
+		VkInstance   mInstance;
 		VkSurfaceKHR mWindowSurface = VK_NULL_HANDLE;
-
-		VkInstance instance;
+		
 		VkDebugUtilsMessengerEXT mCallback = VK_NULL_HANDLE;
 
 		std::vector<const char*> enabledDeviceExtensions;
 		std::vector<const char*> enabledInstanceExtensions;
 
-		VkPhysicalDeviceProperties deviceProperties;
-		// Stores the features available on the selected physical device (for e.g. checking if a feature is available)
-		VkPhysicalDeviceFeatures deviceFeatures;
-		// Stores all available memory (type) properties for the physical device
-		VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
-
-		VkPhysicalDeviceFeatures enabledFeatures{};
-
 		VulkanDevice*    mDevice;
 		VulkanSwapChain* mSwapChain;
 
-		//@brief Logical device, application's view of the physical device (GPU)
-		VkDevice device;
 		//Handle to the device graphics queue that command buffers are submitted to
-		VkQueue  mGraphicsQueue;
+		VkQueue       mGraphicsQueue;
+		VkQueue       mPresentQueue;
 		VkCommandPool mGraphicsCommandPool;
 
 		VkFormat depthFormat;

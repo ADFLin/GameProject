@@ -16,6 +16,7 @@
 #include "ReflectionCollect.h"
 
 #include "Core/Color.h"
+#include "RHIDefine.h"
 
 #include <cassert>
 
@@ -65,9 +66,6 @@ namespace Render
 				0, 0, 0);
 		}
 	};
-
-	extern float gRHIClipZMin;
-	extern float gRHIProjectYSign;
 
 	FORCEINLINE Matrix4 AdjProjectionMatrixForRHI(Matrix4 const& inProjection)
 	{

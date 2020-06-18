@@ -15,7 +15,7 @@ struct ImageData
 	uint64 dataSize;
 	void*  data;
 
-	bool load(char const* path, bool bHDR = false , bool bReverseH = false);
+	bool load(char const* path, bool bHDR, bool bReverseH, bool bUpThreeCompToFour = false);
 };
 
 #endif // ImageData_H_DB4CAB9E_DC3B_48D7_9C93_9C673825862C

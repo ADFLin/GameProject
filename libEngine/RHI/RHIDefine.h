@@ -2,16 +2,19 @@
 #define RHIDefine_h__
 
 #include "Core/IntegerType.h"
+#include "CoreShare.h"
 
 #define SHADER_ENTRY( NAME ) #NAME
 #define SHADER_PARAM( NAME ) #NAME
 
 #define GPU_BUFFER_ALIGN alignas(16)
 
+#define RHI_API CORE_API
+
 namespace Render
 {
-	extern float gRHIClipZMin;
-	extern float gRHIProjectYSign;
+	extern RHI_API float gRHIClipZMin;
+	extern RHI_API float gRHIProjectYSign;
 
 	enum class DeviceVendorName
 	{
@@ -160,6 +163,7 @@ namespace Render
 			eDomain = 5,
 
 			Count,
+			MaxStorageSize = 4,
 			eEmpty = -1,
 		};
 	};

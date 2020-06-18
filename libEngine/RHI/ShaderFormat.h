@@ -12,6 +12,8 @@
 
 namespace Render
 {
+	class ShaderProgramCompileInfo;
+
 	enum ShaderFreature
 	{
 
@@ -39,12 +41,41 @@ namespace Render
 		ShaderCompileInfo() {}
 	};
 
-	struct ShaderEntryInfo
+	class ShaderCompileIntermediates
 	{
-		Shader::Type type;
-		char const*  name;
+	public:
+		virtual ~ShaderCompileIntermediates() {}
 	};
 
+	struct ShaderCompileInput
+	{
+		Shader::Type type;
+		char const* path;
+		char const* definition;
+		struct ShaderProgramSetupData* setupData;
+	};
+
+	struct ShaderCompileOutput
+	{
+		RHIShaderRef resource;
+		ShaderCompileInfo* compileInfo;
+		void*   formatData;
+	};
+
+	struct ShaderResourceInfo
+	{
+		Shader::Type type;
+		RHIShaderRef resource;
+		char const*  entry;
+		void*        formatData;
+	};
+
+	struct ShaderProgramSetupData
+	{
+		ShaderProgramCompileInfo*      compileInfo;
+		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
+		std::vector< ShaderResourceInfo > shaders;
+	};
 
 	class ShaderFormat
 	{
@@ -55,14 +86,18 @@ namespace Render
 		virtual void setupShaderCompileOption(ShaderCompileOption& option) = 0;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) = 0;
 
-		virtual bool isSupportBinaryCode() const { return false; }
-		virtual bool getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode) = 0;
-		virtual bool setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode) = 0;
+		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) = 0;
+		virtual void precompileCode(ShaderProgramSetupData& setupData){}
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) = 0;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) = 0;
 
-		virtual void setupParameters(ShaderProgram& shaderProgram) = 0;
-		virtual bool compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def) = 0;
-		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram){}
+		virtual void postShaderLoaded(ShaderProgram& shaderProgram){}
+
+		virtual bool isSupportBinaryCode() const { return false; }
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) = 0;
+
 		static bool PreprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes );
+		static void OutputError(char const* text);
 		
 		bool bRecompile = true;
 		bool bUsePreprocess = true;

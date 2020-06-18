@@ -10,6 +10,8 @@
 
 namespace Render
 {
+	struct SpirvShaderCode;
+
 	template<>
 	struct TVulkanResourceTraits<EVulkanResourceType::eVkShaderModule>
 	{
@@ -26,23 +28,12 @@ namespace Render
 		}
 	};
 
+
 	class VulkanShader : public TRefcountResource< RHIShader >
 	{
 	public:
 
-		bool initialize(VkDevice device, Shader::Type type , TArrayView< char const > code)
-		{
-			mDevice = device;
-
-			VkShaderModuleCreateInfo moduleInfo = {};
-			moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			moduleInfo.pCode = (uint32 const*)code.data();
-			moduleInfo.codeSize = code.size();
-			VERIFY_RETURN_FALSE(mModule.initialize(device, moduleInfo));
-
-			return true;
-		}
-
+		bool initialize(VkDevice device, Shader::Type type, SpirvShaderCode const& code);
 		void releaseResource()
 		{
 			mModule.destroy(mDevice);
@@ -50,7 +41,6 @@ namespace Render
 
 		ShaderParameterMap mParameterMap;
 		VK_RESOURCE_TYPE(VkShaderModule) mModule;
-		char const*    mEntryName;
 		VkDevice       mDevice;
 	};
 
@@ -58,51 +48,53 @@ namespace Render
 	{
 	public:
 
-		TRefCountPtr< VulkanShader > mShaders[Shader::Count - 1];
+		VK_RESOURCE_TYPE(VkShaderModule) mShaderModules[Shader::MaxStorageSize];
 		std::vector< VkPipelineShaderStageCreateInfo > mStages;
-		int mNumShaders;
+		int mNumShaders = 0;
+
+		bool setupShaders(VkDevice device, ShaderResourceInfo shaders[], int numShaders);
+		virtual bool getParameter(char const* name, ShaderParameter& outParam) override
+		{
+
+			return false;
+		}
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) override
+		{
+			return false;
+		}
+
+		void releaseResource()
+		{
+			for (int i = 0; i < mNumShaders; ++i)
+			{
+				mShaderModules[i].destroy(mDevice);
+			}
+		}
+		VkDevice mDevice;
 	};
 
 	class ShaderFormatSpirv : public ShaderFormat
 	{
 	public:
-
+		ShaderFormatSpirv(VkDevice device)
+			:mDevice(device)
+		{
+			bUsePreprocess = false;
+		}
 		virtual char const* getName() final { return "spir-v"; }
+		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
+		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
 
+		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) final;
+		virtual void precompileCode(ShaderProgramSetupData& setupData);
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) final;
 
-		virtual void setupShaderCompileOption(ShaderCompileOption& option)
-		{
+		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
 
+		virtual bool isSupportBinaryCode() const final;
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) final;
 
-		}
-		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry)
-		{
-
-		}
-
-		virtual bool isSupportBinaryCode() const 
-		{ 
-			return true; 
-		}
-		virtual bool getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode)
-		{
-
-		}
-		virtual bool setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode)
-		{
-
-		}
-
-		virtual void setupParameters(ShaderProgram& shaderProgram)
-		{
-
-
-		}
-		virtual bool compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def);
-		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram)
-		{
-
-		}
 
 
 		VkDevice       mDevice;

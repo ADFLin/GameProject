@@ -273,7 +273,7 @@ public:
 	{
 		if ( buffer.getAvailableSize() )
 		{
-			auto serializer = MakeSerializer(buffer);
+			auto serializer = CreateSerializer(buffer);
 			FrameData fd;
 			serializer.read(fd);
 #if DEBUG_SHOW_FRAME_DATA_TRANSITION

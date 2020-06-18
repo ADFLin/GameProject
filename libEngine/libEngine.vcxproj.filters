@@ -143,7 +143,7 @@
     <Filter Include="Reflection">
       <UniqueIdentifier>{ffb3b22c-63cb-4ece-8314-c237834cc77d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OtherLib\SprivReflect">
+    <Filter Include="OtherLib\SpirvReflect">
       <UniqueIdentifier>{d608aeec-bafe-44a0-8af7-299eb489accf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -476,7 +476,7 @@
       <Filter>原始程式檔</Filter>
     </ClCompile>
     <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c">
-      <Filter>OtherLib\SprivReflect</Filter>
+      <Filter>OtherLib\SpirvReflect</Filter>
     </ClCompile>
     <ClCompile Include="RHI\VulkanShaderCommon.cpp">
       <Filter>RHI\Vulkan</Filter>
@@ -1189,7 +1189,7 @@
       <Filter>RHI\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h">
-      <Filter>OtherLib\SprivReflect</Filter>
+      <Filter>OtherLib\SpirvReflect</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

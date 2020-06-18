@@ -180,9 +180,9 @@ namespace Render
 		for( auto pVertexFactoryType : VertexFactoryType::TypeList )
 		{
 			MaterialShaderPairVec shaderPairs;
-			int numShader = ShaderManager::Get().loadMaterialShaders(info , *pVertexFactoryType, shaderPairs);
+			int numShaders = ShaderManager::Get().loadMaterialShaders(info , *pVertexFactoryType, shaderPairs);
 
-			if( numShader == 0 )
+			if( numShaders == 0 )
 				return false;
 
 			for( auto pair : shaderPairs )

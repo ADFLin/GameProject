@@ -49,7 +49,7 @@ namespace Render
 
 	FORCEINLINE bool RHIIsInitialized()
 	{
-		return gRHISystem;
+		return gRHISystem != nullptr;
 	}
 
 	struct RHISystemInitParams
@@ -75,10 +75,10 @@ namespace Render
 		virtual void Present() = 0;
 	};
 
-	bool RHISystemInitialize(RHISytemName name , RHISystemInitParams const& initParam );
-	void RHISystemShutdown();
-	bool RHIBeginRender();
-	void RHIEndRender(bool bPresent);
+	RHI_API bool RHISystemInitialize(RHISytemName name , RHISystemInitParams const& initParam );
+	RHI_API void RHISystemShutdown();
+	RHI_API bool RHIBeginRender();
+	RHI_API void RHIEndRender(bool bPresent);
 
 	struct PlatformWindowInfo
 	{
@@ -98,79 +98,79 @@ namespace Render
 	};
 
 
-	RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info);
+	RHI_API RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info);
 
-	RHITexture1D*    RHICreateTexture1D(Texture::Format format, int length ,
+	RHI_API RHITexture1D*    RHICreateTexture1D(Texture::Format format, int length ,
 										int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,void* data = nullptr);
 
-	RHITexture2D*   RHI_TRACE_FUNC(RHICreateTexture2D,
+	RHI_API RHITexture2D*   RHI_TRACE_FUNC(RHICreateTexture2D,
 		Texture::Format format, int w, int h,
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue,
 		void* data = nullptr, int dataAlign = 0);
 
-	RHITexture3D*    RHI_TRACE_FUNC(RHICreateTexture3D,
+	RHI_API RHITexture3D*    RHI_TRACE_FUNC(RHICreateTexture3D,
 		Texture::Format format, int sizeX, int sizeY, int sizeZ , 
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue , 
 		void* data = nullptr);
 
-	RHITextureCube*  RHI_TRACE_FUNC(RHICreateTextureCube,
+	RHI_API RHITextureCube*  RHI_TRACE_FUNC(RHICreateTextureCube,
 		Texture::Format format, int size, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue, 
 		void* data[] = nullptr);
 
-	RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray,
+	RHI_API RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray,
 		Texture::Format format, int w, int h, int layerSize,
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue, 
 		void* data = nullptr);
 
-	RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth,
+	RHI_API RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth,
 		Texture::DepthFormat format, int w, int h , int numMipLevel = 1 , int numSamples = 1);
 
-	RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
+	RHI_API RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
-	RHIIndexBuffer*  RHI_TRACE_FUNC(RHICreateIndexBuffer,
+	RHI_API RHIIndexBuffer*  RHI_TRACE_FUNC(RHICreateIndexBuffer,
 		uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
-	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
-	void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
-	void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
-	void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
+	RHI_API void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
+	RHI_API void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
+	RHI_API void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
+	RHI_API void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
-	RHIFrameBuffer*  RHICreateFrameBuffer();
+	RHI_API RHIFrameBuffer*  RHICreateFrameBuffer();
 
 #if USE_RHI_RESOURCE_TRACE
-	RHIInputLayout*  RHICreateInputLayoutTrace(ResTraceInfo const& traceInfo, InputLayoutDesc const& desc);
+	RHI_API RHIInputLayout*  RHICreateInputLayoutTrace(ResTraceInfo const& traceInfo, InputLayoutDesc const& desc);
 #else
-	RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
+	RHI_API RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
 #endif
-	RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
+	RHI_API RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
 
-	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
-	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
-	RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
+	RHI_API RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
+	RHI_API RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
+	RHI_API RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
 
-	RHIShader*        RHICreateShader(Shader::Type type);
+	RHI_API RHIShader*        RHICreateShader(Shader::Type type);
 
 
 #if USE_RHI_RESOURCE_TRACE
-	RHIShaderProgram* RHICreateShaderProgramTrace(ResTraceInfo const& traceInfo);
+	RHI_API RHIShaderProgram* RHICreateShaderProgramTrace(ResTraceInfo const& traceInfo);
 #else
-	RHIShaderProgram* RHICreateShaderProgram();
+	RHI_API RHIShaderProgram* RHICreateShaderProgram();
 #endif
 
 	class RHICommandList
 	{
 	public:
 		virtual ~RHICommandList() {}
-		static RHICommandList& GetImmediateList();
+		RHI_API static RHICommandList& GetImmediateList();
 	};
 
 
 	//
-	void RHISetRasterizerState(RHICommandList& commandList , RHIRasterizerState& rasterizerState);
-	void RHISetBlendState(RHICommandList& commandList , RHIBlendState& blendState);
-	void RHISetDepthStencilState(RHICommandList& commandList, RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
+	RHI_API void RHISetRasterizerState(RHICommandList& commandList , RHIRasterizerState& rasterizerState);
+	RHI_API void RHISetBlendState(RHICommandList& commandList , RHIBlendState& blendState);
+	RHI_API void RHISetDepthStencilState(RHICommandList& commandList, RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
 
 	struct ViewportInfo
 	{
@@ -181,39 +181,39 @@ namespace Render
 		float zNear;
 		float zFar;
 	};
-	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h, float zNear = 0, float zFar = 1);
-	void RHISetScissorRect(RHICommandList& commandList , int x = 0, int y = 0, int w = 0, int h = 0);
+	RHI_API void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h, float zNear = 0, float zFar = 1);
+	RHI_API void RHISetScissorRect(RHICommandList& commandList , int x = 0, int y = 0, int w = 0, int h = 0);
 
 	
-	void RHIDrawPrimitive(RHICommandList& commandList, EPrimitive type, int vStart, int nv);
-	void RHIDrawIndexedPrimitive(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 baseVertex = 0);
-	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
-	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	RHI_API void RHIDrawPrimitive(RHICommandList& commandList, EPrimitive type, int vStart, int nv);
+	RHI_API void RHIDrawIndexedPrimitive(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 baseVertex = 0);
+	RHI_API void RHIDrawPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	RHI_API void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	
-	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance = 0);
-	void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex = 0, uint32 baseInstance = 0);
+	RHI_API void RHIDrawPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance = 0);
+	RHI_API void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex = 0, uint32 baseInstance = 0);
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride);
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, int const* pIndices, int numIndex);
+	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride);
+	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, int const* pIndices, int numIndex);
 	struct VertexDataInfo
 	{
 		void const* ptr;
 		int   size;
 		int   stride;
 	};
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[] , int numData );
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
-	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* textures[] = nullptr, int numTexture = 0);
-	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
+	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[] , int numData );
+	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+	RHI_API void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* textures[] = nullptr, int numTexture = 0);
+	RHI_API void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
 
-	void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
+	RHI_API void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
-	void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer);
+	RHI_API void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer);
 
-	void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
-	void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
+	RHI_API void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
+	RHI_API void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
 
-	void RHIFlushCommand(RHICommandList& commandList);
+	RHI_API void RHIFlushCommand(RHICommandList& commandList);
 
 #define RHI_FUNC( FUNC ) virtual FUNC = 0
 

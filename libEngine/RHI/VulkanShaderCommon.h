@@ -33,12 +33,14 @@ namespace Render
 	{
 	public:
 
-		bool initialize(VkDevice device, Shader::Type type, SpirvShaderCode const& code);
+		bool initialize(VkDevice device, EShader::Type type, SpirvShaderCode const& code);
 		void releaseResource()
 		{
 			mModule.destroy(mDevice);
 		}
 
+		virtual bool getParameter(char const* name, ShaderParameter& outParam) { return false; }
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam){ return false; }
 		ShaderParameterMap mParameterMap;
 		VK_RESOURCE_TYPE(VkShaderModule) mModule;
 		VkDevice       mDevice;
@@ -48,7 +50,7 @@ namespace Render
 	{
 	public:
 
-		VK_RESOURCE_TYPE(VkShaderModule) mShaderModules[Shader::MaxStorageSize];
+		VK_RESOURCE_TYPE(VkShaderModule) mShaderModules[EShader::MaxStorageSize];
 		std::vector< VkPipelineShaderStageCreateInfo > mStages;
 		int mNumShaders = 0;
 

@@ -96,8 +96,6 @@ namespace Render
 		}
 
 	};
-
-
 	RHI_API RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info);
 
 	RHI_API RHITexture1D*    RHICreateTexture1D(Texture::Format format, int length ,
@@ -150,7 +148,7 @@ namespace Render
 	RHI_API RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
 
-	RHI_API RHIShader*        RHICreateShader(Shader::Type type);
+	RHI_API RHIShader*        RHICreateShader(EShader::Type type);
 
 
 #if USE_RHI_RESOURCE_TRACE
@@ -212,6 +210,21 @@ namespace Render
 
 	RHI_API void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
 	RHI_API void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
+
+	struct ShaderPipelineState
+	{
+		RHIShader* vertexShader;
+		RHIShader* pixelShader;
+		RHIShader* geometryShader;
+		RHIShader* hullShader;
+		RHIShader* domainShader;
+
+		ShaderPipelineState()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+	};
+	RHI_API void RHISetShaderPipelineState(RHICommandList& commandList, ShaderPipelineState const& state);
 
 	RHI_API void RHIFlushCommand(RHICommandList& commandList);
 
@@ -276,7 +289,7 @@ namespace Render
 		RHI_FUNC(RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer));
 		RHI_FUNC(RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer));
 
-		RHI_FUNC(RHIShader* RHICreateShader(Shader::Type type));
+		RHI_FUNC(RHIShader* RHICreateShader(EShader::Type type));
 		RHI_FUNC(RHIShaderProgram* RHICreateShaderProgram());
 	};
 

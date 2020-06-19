@@ -35,8 +35,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(RayMarchingPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(RayMarchingPS) },
 			};
 			return entries;
 		}

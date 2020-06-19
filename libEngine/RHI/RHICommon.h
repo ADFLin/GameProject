@@ -794,23 +794,22 @@ namespace Render
 	using RHIBlendStateRef        = TRefCountPtr< RHIBlendState >;
 	using RHIInputLayoutRef       = TRefCountPtr< RHIInputLayout >;
 
-
-	enum EResourceHold
-	{
-		EnumValue,
-	};
 	template< class RHIResourceType >
 	class TRefcountResource : public RHIResourceType
 	{
 	public:
-		TRefcountResource(EResourceHold) { mRefcount = 10000; }
-		TRefcountResource() { mRefcount = 0; }
+		TRefcountResource(EPersistent)
+			:mRefcount(EPersistent::EnumValue)
+		{
+		} 
 
-		virtual void incRef() { ++mRefcount; }
-		virtual bool decRef() { --mRefcount; return mRefcount <= 0; }
+		TRefcountResource() {}
+
+		virtual void incRef() { mRefcount.incRef(); }
+		virtual bool decRef() { return mRefcount.decRef(); }
 		virtual void releaseResource() {}
 
-		int mRefcount;
+		RefCount mRefcount;
 	};
 
 

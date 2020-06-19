@@ -27,28 +27,42 @@ namespace Render
 	struct ShaderCacheBinaryData
 	{
 	public:
-		bool addFileDependences( ShaderProgramCompileInfo const& info )
+		bool addFileDependences( ShaderProgramManagedData const& managedData )
 		{
 			std::set< HashString > assetFilePaths;
-			for( auto const& shaderInfo : info.shaders )
+			for( auto const& compileInfo : managedData.compileInfos )
 			{
-				assetFilePaths.insert(shaderInfo.filePath);
-				assetFilePaths.insert(shaderInfo.includeFiles.begin() , shaderInfo.includeFiles.end() );
+				assetFilePaths.insert(compileInfo.filePath);
+				assetFilePaths.insert(compileInfo.includeFiles.begin() , compileInfo.includeFiles.end() );
 			}
-			for( auto path : assetFilePaths )
+
+			return addFileDependencesInternal(assetFilePaths);
+		}
+		bool addFileDependences(ShaderManagedData const& managedData)
+		{
+			std::set< HashString > assetFilePaths;
+			auto const& compileInfo = managedData.compileInfo;
+			assetFilePaths.insert(compileInfo.filePath);
+			assetFilePaths.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
+
+			return addFileDependencesInternal(assetFilePaths);
+		}
+
+		bool addFileDependencesInternal(std::set< HashString > const& assetFilePaths)
+		{
+			for (auto const& path : assetFilePaths)
 			{
 				FileAttributes fileAttributes;
-				if( !FileSystem::GetFileAttributes(path.c_str(), fileAttributes) )
+				if (!FileSystem::GetFileAttributes(path.c_str(), fileAttributes))
 					return false;
 				ShaderFile file;
 				file.lastModifyTime = fileAttributes.lastWrite;
 				file.path = path.c_str();
 				assetDependences.push_back(std::move(file));
-
 			}
+
 			return true;
 		}
-
 
 		bool checkAssetNoModified()
 		{
@@ -63,19 +77,38 @@ namespace Render
 			return true;
 		}
 
-		bool setupProgram(ShaderFormat& format, ShaderProgram& program, std::vector< ShaderCompileInfo > const& shaderCompiles )
+		bool setupProgram(ShaderFormat& format, ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles )
 		{
 			if( codeBuffer.empty() )
 				return false;
 
-			if( !program.mRHIResource.isValid() )
+			if( !shaderProgram.mRHIResource.isValid() )
 			{
-				program.mRHIResource = RHICreateShaderProgram();
-				if( !program.mRHIResource.isValid() )
+				shaderProgram.mRHIResource = RHICreateShaderProgram();
+				if( !shaderProgram.mRHIResource.isValid() )
 					return false;
 			}
 
-			if( !format.initializeProgram(program, shaderCompiles , codeBuffer) )
+			if( !format.initializeProgram(shaderProgram, shaderCompiles , codeBuffer) )
+				return false;
+
+
+			return true;
+		}
+
+		bool setupShader(ShaderFormat& format, Shader& shader, ShaderCompileInfo const& shaderCompile)
+		{
+			if (codeBuffer.empty())
+				return false;
+
+			if (!shader.mRHIResource.isValid())
+			{
+				shader.mRHIResource = RHICreateShader(shaderCompile.type);
+				if (!shader.mRHIResource.isValid())
+					return false;
+			}
+
+			if (!format.initializeShader(shader, shaderCompile, codeBuffer))
 				return false;
 
 
@@ -119,9 +152,9 @@ namespace Render
 
 		}
 
-		static void GetShaderCacheKey(ShaderFormat& format, ShaderProgramCompileInfo const& info, DataCacheKey& outKey)
+		static void GetShaderCacheKey(ShaderFormat& format, ShaderProgramManagedData const& managedData, DataCacheKey& outKey)
 		{
-			switch( info.classType )
+			switch( managedData.classType )
 			{
 			case ShaderClassType::Common:   outKey.typeName = "CSHADER"; break;
 			case ShaderClassType::Global:   outKey.typeName = "GSHADER"; break; 
@@ -130,31 +163,53 @@ namespace Render
 				break;
 			}
 			outKey.version = "4DAA6D50-0D2A-4955-BDE2-676C6D7353AE";
-			if( info.classType == ShaderClassType::Material )
+			if( managedData.classType == ShaderClassType::Material )
 			{
 
 
-
 			}
-			for( auto const& shaderInfo : info.shaders )
+			for( auto const& compileInfo : managedData.compileInfos )
 			{
-				outKey.keySuffix.add((uint8)shaderInfo.type, format.getName() , shaderInfo.filePath.c_str(), shaderInfo.headCode.c_str());
+				outKey.keySuffix.add((uint8)compileInfo.type, format.getName() , compileInfo.filePath.c_str(), compileInfo.headCode.c_str());
 			}
-
 		}
+
+		static void GetShaderCacheKey(ShaderFormat& format, ShaderManagedData const& managedData, DataCacheKey& outKey)
+		{
+			switch (managedData.classType)
+			{
+			case ShaderClassType::Common:   outKey.typeName = "CSHADER"; break;
+			case ShaderClassType::Global:   outKey.typeName = "GSHADER"; break;
+			case ShaderClassType::Material: outKey.typeName = "MSHADER"; break;
+			default:
+				break;
+			}
+			outKey.version = "4DAA6D50-0D2A-4955-BDE2-676C6D7353AE";
+			if (managedData.classType == ShaderClassType::Material)
+			{
+
+
+
+			}
+
+			auto const& compileInfo = managedData.compileInfo;
+			outKey.keySuffix.add((uint8)compileInfo.type, format.getName(), compileInfo.filePath.c_str(), compileInfo.headCode.c_str());
+		
+		}
+
 		bool saveCacheData( ShaderFormat& format, ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 		{
 			if( !format.isSupportBinaryCode() )
 				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
-			GetShaderCacheKey(format, *setupData.compileInfo, key);
+			GetShaderCacheKey(format, *setupData.managedData, key);
 			bool result = mDataCache->saveDelegate(key, [&shaderProgram,&setupData,&binaryData,&format](IStreamSerializer& serializer)
 			{			
 				if (!format.getBinaryCode(shaderProgram, setupData, binaryData.codeBuffer))
 					return false;
 
-				if (!binaryData.addFileDependences(*setupData.compileInfo))
+				if (!binaryData.addFileDependences(*setupData.managedData))
 					return false;
 
 				serializer << binaryData;
@@ -175,8 +230,39 @@ namespace Render
 			return result;
 		}
 
+		bool saveCacheData(ShaderFormat& format, Shader& shader, ShaderSetupData& setupData)
+		{
+			if (!format.isSupportBinaryCode())
+				return false;
+			ShaderCacheBinaryData binaryData;
+			DataCacheKey key;
+			GetShaderCacheKey(format, *setupData.managedData, key);
+			bool result = mDataCache->saveDelegate(key, [&shader, &setupData, &binaryData, &format](IStreamSerializer& serializer)
+			{
+				if (!format.getBinaryCode(shader, setupData, binaryData.codeBuffer))
+					return false;
 
-		bool loadCacheData(ShaderFormat& format, ShaderProgramCompileInfo& info)
+				if (!binaryData.addFileDependences(*setupData.managedData))
+					return false;
+
+				serializer << binaryData;
+				return true;
+			});
+#if 0
+			ShaderCacheBinaryData temp;
+			if (result)
+			{
+				result = mDataCache->loadDelegate(key, [&info, &temp](IStreamSerializer& serializer)
+				{
+					serializer >> temp;
+					return true;
+				});
+			}
+#endif
+			return result;
+		}
+
+		bool loadCacheData(ShaderFormat& format, ShaderProgramManagedData& managedData)
 		{
 			if (!CVarShaderUseCache.getValue())
 				return false;
@@ -185,9 +271,9 @@ namespace Render
 				return false;
 
 			DataCacheKey key;
-			GetShaderCacheKey(format, info, key);
+			GetShaderCacheKey(format, managedData, key);
 
-			bool result = mDataCache->loadDelegate(key, [&info,&format](IStreamSerializer& serializer)
+			bool result = mDataCache->loadDelegate(key, [&managedData,&format](IStreamSerializer& serializer)
 			{
 				ShaderCacheBinaryData binaryData;
 				serializer >> binaryData;
@@ -195,12 +281,45 @@ namespace Render
 				if( !binaryData.checkAssetNoModified() )
 					return false;
 
-				if( !binaryData.setupProgram(format, *info.shaderProgram, info.shaders ) )
+				if( !binaryData.setupProgram(format, *managedData.shaderProgram, managedData.compileInfos ) )
 					return false;
 
 				for( auto const& asset : binaryData.assetDependences )
 				{
-					info.shaders.front().includeFiles.push_back(asset.path.c_str());
+					managedData.compileInfos.front().includeFiles.push_back(asset.path.c_str());
+				}
+				return true;
+			});
+
+			return result;
+		}
+
+
+		bool loadCacheData(ShaderFormat& format, ShaderManagedData& managedData)
+		{
+			if (!CVarShaderUseCache.getValue())
+				return false;
+
+			if (!format.isSupportBinaryCode())
+				return false;
+
+			DataCacheKey key;
+			GetShaderCacheKey(format, managedData, key);
+
+			bool result = mDataCache->loadDelegate(key, [&managedData, &format](IStreamSerializer& serializer)
+			{
+				ShaderCacheBinaryData binaryData;
+				serializer >> binaryData;
+
+				if (!binaryData.checkAssetNoModified())
+					return false;
+
+				if (!binaryData.setupShader(format, *managedData.shader, managedData.compileInfo))
+					return false;
+
+				for (auto const& asset : binaryData.assetDependences)
+				{
+					managedData.compileInfo.includeFiles.push_back(asset.path.c_str());
 				}
 				return true;
 			});
@@ -241,18 +360,15 @@ namespace Render
 		return sInatance;
 	}
 
-
-
-	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass const& shaderClass, bool bForceLoad)
+	ShaderObject* ShaderManager::getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, bool bForceLoad)
 	{
-
-		GlobalShaderProgram* result = mGlobalShaderMap[&shaderClass];
+		ShaderObject* result = mGlobalShaderMap[&shaderObjectClass];
 		if( result == nullptr && bForceLoad )
 		{
-			result = constructGlobalShader(shaderClass);
+			result = constructGlobalShader(shaderObjectClass);
 			if( result )
 			{
-				mGlobalShaderMap[&shaderClass] = result;
+				mGlobalShaderMap[&shaderObjectClass] = result;
 			}
 		}
 		return result;
@@ -274,7 +390,7 @@ namespace Render
 
 	ShaderManager::~ShaderManager()
 	{
-		for( auto& pair : mShaderCompileMap )
+		for( auto& pair : mShaderDataMap )
 		{
 			delete pair.second;
 		}
@@ -369,7 +485,7 @@ namespace Render
 
 
 
-	bool ShaderManager::registerGlobalShader(GlobalShaderProgramClass& shaderClass)
+	bool ShaderManager::registerGlobalShader(GlobalShaderObjectClass& shaderClass)
 	{
 		mGlobalShaderMap.insert({ &shaderClass , nullptr });
 		return true;
@@ -378,16 +494,16 @@ namespace Render
 	int ShaderManager::loadAllGlobalShaders()
 	{
 		int numFailLoad = 0;
-		for( auto& pair : mGlobalShaderMap )
+		for (auto& pair : mGlobalShaderMap)
 		{
-			GlobalShaderProgram* program = pair.second;
-			GlobalShaderProgramClass const* shaderClass = pair.first;
-			if( program == nullptr )
+			ShaderObject* shaderObject = pair.second;
+			if (shaderObject == nullptr)
 			{
-				program = constructGlobalShader(*shaderClass);
-				mGlobalShaderMap[shaderClass] = program;
+				shaderObject = constructGlobalShader(*pair.first);
+				mGlobalShaderMap[pair.first] = shaderObject;
 			}
-			if( program == nullptr )
+
+			if( shaderObject == nullptr )
 			{
 				++numFailLoad;
 			}
@@ -395,36 +511,62 @@ namespace Render
 		return numFailLoad;
 	}
 
-	GlobalShaderProgram* ShaderManager::constructGlobalShader(GlobalShaderProgramClass const& shaderClass)
+	ShaderObject* ShaderManager::constructGlobalShader(GlobalShaderObjectClass const& shaderObjectClass)
 	{
 		ShaderCompileOption option;
 		mShaderFormat->setupShaderCompileOption(option);
-		return constructShaderInternal(shaderClass, ShaderClassType::Global, option );
+		return constructShaderInternal(shaderObjectClass, ShaderClassType::Global, option );
 	}
 
-	GlobalShaderProgram* ShaderManager::constructShaderInternal(GlobalShaderProgramClass const& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
+	ShaderObject* ShaderManager::constructShaderInternal(GlobalShaderObjectClass const& shaderObjectClass , ShaderClassType classType , ShaderCompileOption& option )
 	{
-		GlobalShaderProgram* result = (*shaderClass.CreateShader)();
+		ShaderObject* result = (*shaderObjectClass.CreateShaderObject)();
 		if( result )
 		{
-			result->myClass = &shaderClass;
-			
-			(*shaderClass.SetupShaderCompileOption)(option);
-
-			if( !loadInternal(*result, (*shaderClass.GetShaderFileName)(), (*shaderClass.GetShaderEntries)(), option, nullptr, true , classType ) )
+			switch (result->getType())
 			{
-				LogWarning(0, "Can't Load Shader %s", (*shaderClass.GetShaderFileName)());
-
-				delete result;
-				result = nullptr;
-			}
-
-			if ( result )
-			{
-				if( classType == ShaderClassType::Material )
+			case EShaderObjectType::Program:
 				{
-					removeFromShaderCompileMap(*result);
+					GlobalShaderProgram* shaderProgram = static_cast<GlobalShaderProgram*>(result);
+					GlobalShaderProgramClass const& shaderProgramClass = static_cast<GlobalShaderProgramClass const&>(shaderObjectClass);
+					shaderProgram->myClass = &shaderProgramClass;
+
+					shaderProgramClass.SetupShaderCompileOption(option);
+
+					if (!loadInternal(*shaderProgram, 
+						shaderProgramClass.GetShaderFileName(),
+						shaderProgramClass.GetShaderEntries(),
+						option, nullptr, true, classType))
+					{
+						LogWarning(0, "Can't Load Shader %s", shaderProgramClass.GetShaderFileName());
+						delete result;
+						result = nullptr;
+					}
 				}
+				break;
+			case EShaderObjectType::Shader:
+				{
+					GlobalShader* shader = static_cast<GlobalShader*>(result);
+					GlobalShaderClass const& shaderClass = static_cast<GlobalShaderClass const&>(shaderObjectClass);
+					shader->myClass = &shaderClass;
+
+					shaderClass.SetupShaderCompileOption(option);
+
+					if (!loadInternal(*shader,
+						shaderClass.GetShaderFileName(),
+						shaderClass.entry,
+						option, nullptr, true, classType))
+					{
+						LogWarning(0, "Can't Load Shader %s", shaderClass.GetShaderFileName());
+						delete result;
+						result = nullptr;
+					}
+
+				}
+				break;
+
+			default:
+				break;
 			}
 		}
 		else
@@ -433,6 +575,13 @@ namespace Render
 			
 		}
 
+		if (result)
+		{
+			if (classType == ShaderClassType::Material)
+			{
+				removeFromShaderCompileMap(*result);
+			}
+		}
 		return result;
 	}
 
@@ -449,8 +598,8 @@ namespace Render
 	{
 		ShaderEntryInfo entries[] =
 		{
-			{ Shader::eVertex , SHADER_ENTRY(MainVS) } ,
-			{ Shader::ePixel , SHADER_ENTRY(MainPS) } ,
+			{ EShader::Vertex , SHADER_ENTRY(MainVS) } ,
+			{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
 		};
 		return loadFile(shaderProgram , fileName, entries , def, additionalCode);
 	}
@@ -459,8 +608,8 @@ namespace Render
 	{
 		ShaderEntryInfo entries[] =
 		{
-			{ Shader::eVertex , vertexEntryName } ,
-			{ Shader::ePixel , pixelEntryName } ,
+			{ EShader::Vertex , vertexEntryName } ,
+			{ EShader::Pixel , pixelEntryName } ,
 		};
 		return loadFile(shaderProgram, fileName, entries, def, additionalCode);
 	}
@@ -479,15 +628,15 @@ namespace Render
 	{
 		ShaderEntryInfo entries[] =
 		{
-			{ Shader::eVertex , vertexEntryName } ,
-			{ Shader::ePixel , pixelEntryName } ,
+			{ EShader::Vertex , vertexEntryName } ,
+			{ EShader::Pixel , pixelEntryName } ,
 		};
 		return loadFile(shaderProgram, fileName, entries, option, additionalCode);
 	}
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
 	{
-		char const* filePaths[Shader::Count];
+		char const* filePaths[EShader::Count];
 		FixString< 256 > path;
 		path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
 		for( int i = 0; i < entries.size(); ++i )
@@ -503,7 +652,7 @@ namespace Render
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
 	{
-		ShaderEntryInfo entries[Shader::Count];
+		ShaderEntryInfo entries[EShader::Count];
 		return loadInternal(shaderProgram, fileName, MakeEntryInfos(entries, shaderMask, entryNames) , option, additionalCode, bSingleFile);
 	}
 
@@ -511,33 +660,57 @@ namespace Render
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
-		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
-		info->classType = classType;
-		info->shaderProgram = &shaderProgram;
-		info->bShowComplieInfo = option.bShowComplieInfo;
+		ShaderProgramManagedData* managedData = new ShaderProgramManagedData;
+		managedData->classType = classType;
+		managedData->shaderProgram = &shaderProgram;
+		managedData->bShowComplieInfo = option.bShowComplieInfo;
 		char const* sourceFile = option.getMeta("SourceFile");
 		if (sourceFile)
-			info->sourceFile = sourceFile;
-		generateCompileSetup(*info, entries, option, additionalCode , fileName , bSingleFile );
+			managedData->sourceFile = sourceFile;
+		generateCompileSetup(*managedData, entries, option, additionalCode , fileName , bSingleFile );
 
-		if( !updateShaderInternal(shaderProgram, *info) )
+		if( !updateShaderInternal(shaderProgram, *managedData) )
 		{
-			delete info;
+			delete managedData;
 			return false;
 		}
 
-		postShaderLoaded(shaderProgram, info);
+		postShaderLoaded(shaderProgram, *managedData);
+		return true;
+	}
+
+	bool ShaderManager::loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
+	{
+		removeFromShaderCompileMap(shader);
+
+		ShaderManagedData* managedData = new ShaderManagedData;
+		managedData->classType = classType;
+		managedData->shader = &shader;
+		managedData->bShowComplieInfo = option.bShowComplieInfo;
+		char const* sourceFile = option.getMeta("SourceFile");
+		if (sourceFile)
+			managedData->sourceFile = sourceFile;
+
+		generateCompileSetup(*managedData, entry, option, additionalCode, fileName, bSingleFile);
+
+		if (!updateShaderInternal(shader, *managedData))
+		{
+			delete managedData;
+			return false;
+		}
+
+		postShaderLoaded(shader, *managedData);
 		return true;
 	}
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingleFile, ShaderClassType classType)
 	{
 
-		ShaderEntryInfo entries[Shader::Count];
+		ShaderEntryInfo entries[EShader::Count];
 		auto entriesView = MakeEntryInfos(entries, shaderMask, entryNames);
 
-		char const* filePaths[Shader::Count];
-		FixString< 256 > paths[Shader::Count];
+		char const* filePaths[EShader::Count];
+		FixString< 256 > paths[EShader::Count];
 
 		for( int i = 0; i < entriesView.size() ; ++i )
 		{
@@ -578,7 +751,7 @@ namespace Render
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
-		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
+		ShaderProgramManagedData* info = new ShaderProgramManagedData;
 		info->classType = classType;
 		info->shaderProgram = &shaderProgram;
 
@@ -597,7 +770,7 @@ namespace Render
 			}
 			headCode = option.getCode(entry, headCode.c_str(), additionalCode);
 
-			info->shaders.emplace_back(entry.type, filePaths[i]  , std::move(headCode) , entry.name);
+			info->compileInfos.emplace_back(entry.type, filePaths[i]  , std::move(headCode) , entry.name);
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -606,21 +779,21 @@ namespace Render
 			return false;
 		}
 
-		postShaderLoaded(shaderProgram, info);
+		postShaderLoaded(shaderProgram, *info);
 		return true;
 	}
 
 	bool ShaderManager::loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def, char const* additionalCode)
 	{
-		return loadInternal(shaderProgram, fileName, BIT(Shader::eVertex) | BIT(Shader::ePixel), nullptr, def, additionalCode, false);
+		return loadInternal(shaderProgram, fileName, BIT(EShader::Vertex) | BIT(EShader::Pixel), nullptr, def, additionalCode, false);
 	}
 
 	bool ShaderManager::loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* def, char const* additionalCode)
 	{
 		ShaderEntryInfo entries[2] =
 		{
-			{ Shader::eVertex , "main" },
-			{ Shader::ePixel , "main" },
+			{ EShader::Vertex , "main" },
+			{ EShader::Pixel , "main" },
 		};
 		FixString< 256 > paths[2];
 		paths[0].format("%s%s%s", mBaseDir.c_str(), fileNameVS, SHADER_FILE_SUBNAME);
@@ -632,32 +805,68 @@ namespace Render
 
 	bool ShaderManager::reloadShader(ShaderProgram& shaderProgram)
 	{
-		auto iter = mShaderCompileMap.find(&shaderProgram);
-		if( iter == mShaderCompileMap.end() )
+		auto iter = mShaderDataMap.find(&shaderProgram);
+		if( iter == mShaderDataMap.end() )
 			return false;
 
-		ShaderProgramCompileInfo* info = iter->second;
-		if( info->classType == ShaderClassType::Global )
+		ShaderProgramManagedData* managedData = static_cast<ShaderProgramManagedData*>( iter->second );
+		if(managedData->classType == ShaderClassType::Global )
 		{
 			ShaderCompileOption option;
 			mShaderFormat->setupShaderCompileOption(option);
 
 			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
-			(*myClass.SetupShaderCompileOption)(option);
+			myClass.SetupShaderCompileOption(option);
 
-			info->shaders.clear();
-			generateCompileSetup(*info, (*myClass.GetShaderEntries)(), option, nullptr,  (*myClass.GetShaderFileName)(), true);
+			managedData->compileInfos.clear();
+			generateCompileSetup(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
 		}
 
-		return updateShaderInternal(shaderProgram, *info , true);
+		return updateShaderInternal(shaderProgram, *managedData, true);
 	}
 
 
+	bool ShaderManager::reloadShader(Shader& shader)
+	{
+		auto iter = mShaderDataMap.find(&shader);
+		if (iter == mShaderDataMap.end())
+			return false;
+
+		ShaderManagedData* info = static_cast<ShaderManagedData*>(iter->second);
+		if (info->classType == ShaderClassType::Global)
+		{
+			ShaderCompileOption option;
+			mShaderFormat->setupShaderCompileOption(option);
+
+			GlobalShaderClass const& myClass = *static_cast<GlobalShader&>(shader).myClass;
+			myClass.SetupShaderCompileOption(option);
+
+			generateCompileSetup(*info, myClass.entry , option, nullptr, myClass.GetShaderFileName(), true);
+		}
+
+		return updateShaderInternal(shader, *info, true);
+
+	}
+
 	void ShaderManager::reloadAll()
 	{
-		for( auto pair : mShaderCompileMap )
+		for( auto pair : mShaderDataMap )
 		{
-			updateShaderInternal(*pair.first, *pair.second, true);
+			switch (pair.first->getType())
+			{
+			case EShaderObjectType::Shader:
+				updateShaderInternal(
+					*static_cast<Shader*>(pair.first),
+					*static_cast<ShaderManagedData*>(pair.second),
+					true);
+				break;
+			case EShaderObjectType::Program:
+				updateShaderInternal(
+					*static_cast<ShaderProgram*>(pair.first), 
+					*static_cast<ShaderProgramManagedData*>( pair.second ), 
+					true);
+				break;
+			}		
 		}
 	}
 
@@ -665,7 +874,7 @@ namespace Render
 	{
 		if ( CVarShaderDectectFileMoidfy )
 		{
-			for (auto pair : mShaderCompileMap)
+			for (auto pair : mShaderDataMap)
 			{
 				mAssetViewerReigster->registerViewer(pair.second);
 			}
@@ -676,40 +885,40 @@ namespace Render
 	{
 		if (CVarShaderDectectFileMoidfy)
 		{
-			for (auto pair : mShaderCompileMap)
+			for (auto pair : mShaderDataMap)
 			{
 				mAssetViewerReigster->unregisterViewer(pair.second);
 			}
 		}
 	}
 
-	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info, bool bForceReload)
+	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload)
 	{
 		if ( !RHIIsInitialized() )
 			return false;
 
 		TIME_SCOPE("Update Shader");
 
-		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, info) )
+		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData) )
 		{
-			if (!info.sourceFile.empty())
+			if (!managedData.sourceFile.empty())
 			{
-				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", info.shaders[0].filePath.c_str(), info.sourceFile.c_str());
+				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", managedData.compileInfos[0].filePath.c_str(), managedData.sourceFile.c_str());
 			}
 			else
 			{
-				LogDevMsg(0, "Use Cache Data : %s ", info.shaders[0].filePath.c_str());
+				LogDevMsg(0, "Use Cache Data : %s ", managedData.compileInfos[0].filePath.c_str());
 			}
 		}
 		else
 		{
-			if (!info.sourceFile.empty())
+			if (!managedData.sourceFile.empty())
 			{
-				LogDevMsg(0, "Recompile shader : %s , source file : %s ", info.shaders[0].filePath.c_str(), info.sourceFile.c_str());
+				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.compileInfos[0].filePath.c_str(), managedData.sourceFile.c_str());
 			}
 			else
 			{
-				LogDevMsg(0, "Recompile shader : %s ", info.shaders[0].filePath.c_str());
+				LogDevMsg(0, "Recompile shader : %s ", managedData.compileInfos[0].filePath.c_str());
 			}
 
 			//if (!shaderProgram.mRHIResource.isValid())
@@ -720,20 +929,20 @@ namespace Render
 			}
 
 			ShaderProgramSetupData setupData;
-			setupData.compileInfo = &info;
+			setupData.managedData = &managedData;
 
 			mShaderFormat->precompileCode(setupData);
 
-			ShaderResourceInfo shaders[Shader::Count];
+			ShaderResourceInfo shaders[EShader::Count];
 			int numShaders = 0;
 			bool bFailed = false;
-			for (ShaderCompileInfo& shaderInfo : info.shaders)
+			for (ShaderCompileInfo& shaderInfo : managedData.compileInfos)
 			{
 				ShaderCompileInput  compileInput;
 				compileInput.type = shaderInfo.type;
 				compileInput.path = shaderInfo.filePath.c_str();
 				compileInput.definition = shaderInfo.headCode.c_str();
-				compileInput.setupData = &setupData;
+				compileInput.programSetupData = &setupData;
 				ShaderCompileOutput compileOutput;
 				compileOutput.compileInfo = &shaderInfo;
 				compileOutput.formatData = nullptr;
@@ -743,7 +952,7 @@ namespace Render
 					break;
 				}
 
-				if (info.bShowComplieInfo)
+				if (managedData.bShowComplieInfo)
 				{
 
 				}
@@ -753,7 +962,7 @@ namespace Render
 				shaderSetup.entry = shaderInfo.entryName.c_str();
 				shaderSetup.resource = compileOutput.resource;
 				shaderSetup.formatData = compileOutput.formatData;
-				setupData.shaders.push_back(shaderSetup);
+				setupData.shaderResources.push_back(shaderSetup);
 				++numShaders;
 			}
 
@@ -777,24 +986,115 @@ namespace Render
 		return true;
 	}
 
-	void ShaderManager::removeFromShaderCompileMap(ShaderProgram& shader)
-	{
-		auto iter = mShaderCompileMap.find(&shader);
 
-		if (iter != mShaderCompileMap.end())
+	bool ShaderManager::updateShaderInternal(Shader& shader, ShaderManagedData& managedData, bool bForceReload)
+	{
+		if (!RHIIsInitialized())
+			return false;
+
+
+		TIME_SCOPE("Update Shader");
+
+		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
+		{
+			if (!managedData.sourceFile.empty())
+			{
+				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", managedData.compileInfo.filePath.c_str(), managedData.sourceFile.c_str());
+			}
+			else
+			{
+				LogDevMsg(0, "Use Cache Data : %s ", managedData.compileInfo.filePath.c_str());
+			}
+		}
+		else
+		{
+			if (!managedData.sourceFile.empty())
+			{
+				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.compileInfo.filePath.c_str(), managedData.sourceFile.c_str());
+			}
+			else
+			{
+				LogDevMsg(0, "Recompile shader : %s ", managedData.compileInfo.filePath.c_str());
+			}
+
+			//if (!shaderProgram.mRHIResource.isValid())
+			{
+				shader.mRHIResource = RHICreateShader(managedData.compileInfo.type);
+				if (!shader.mRHIResource.isValid())
+					return false;
+			}
+
+			ShaderSetupData setupData;
+			setupData.managedData = &managedData;
+
+			mShaderFormat->precompileCode(setupData);
+
+			bool bFailed = false;
+			ShaderCompileInfo& shaderInfo = managedData.compileInfo;
+
+			ShaderCompileInput  compileInput;
+			compileInput.type = shaderInfo.type;
+			compileInput.path = shaderInfo.filePath.c_str();
+			compileInput.definition = shaderInfo.headCode.c_str();
+			compileInput.shaderSetupData = &setupData;
+			ShaderCompileOutput compileOutput;
+			compileOutput.compileInfo = &shaderInfo;
+			compileOutput.formatData = nullptr;
+			if (!mShaderFormat->compileCode(compileInput, compileOutput))
+			{
+				bFailed = true;
+			}
+
+			if (managedData.bShowComplieInfo)
+			{
+
+			}
+
+			ShaderResourceInfo& shaderResource = setupData.shaderResource;
+			shaderResource.type = shaderInfo.type;
+			shaderResource.entry = shaderInfo.entryName.c_str();
+			shaderResource.resource = compileOutput.resource;
+			shaderResource.formatData = compileOutput.formatData;
+
+			if (bFailed)
+			{
+				return false;
+			}
+
+			if (!mShaderFormat->initializeShader(shader, setupData))
+			{
+				return false;
+			}
+
+			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shader, setupData))
+			{
+
+			}
+		}
+
+		mShaderFormat->postShaderLoaded(shader);
+
+		return true;
+	}
+
+	void ShaderManager::removeFromShaderCompileMap(ShaderObject& shader)
+	{
+		auto iter = mShaderDataMap.find(&shader);
+
+		if (iter != mShaderDataMap.end())
 		{
 			if (mAssetViewerReigster && CVarShaderDectectFileMoidfy)
 			{
 				mAssetViewerReigster->unregisterViewer(iter->second);
 			}
 			delete iter->second;
-			mShaderCompileMap.erase(iter);
+			mShaderDataMap.erase(iter);
 		}
 	}
 
-	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
+	void ShaderManager::generateCompileSetup(ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
 	{
-		assert( fileName &&  compileInfo.shaders.empty());
+		assert( fileName &&  managedData.compileInfos.empty());
 
 		for( auto const& entry : entries )
 		{
@@ -812,16 +1112,38 @@ namespace Render
 			{
 				path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
 			}
-			compileInfo.shaders.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
+			managedData.compileInfos.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
 		}
 	}
 
-	void ShaderManager::postShaderLoaded(ShaderProgram& shader, ShaderProgramCompileInfo* info)
+	void ShaderManager::generateCompileSetup(ShaderManagedData& managedData, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
 	{
-		mShaderCompileMap.insert({ &shader , info });
+		assert(fileName);
+
+		std::string defCode;
+		mShaderFormat->getHeadCode(defCode, option, entry);
+
+		std::string headCode = option.getCode(entry, defCode.c_str(), additionalCode);
+
+		FixString< 256 > path;
+		if (bSingleFile)
+		{
+			path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);
+		}
+		else
+		{
+			path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
+		}
+		managedData.compileInfo = { entry.type , path.c_str() , std::move(headCode) , entry.name };
+
+	}
+
+	void ShaderManager::postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData)
+	{
+		mShaderDataMap.insert({ &shader , &managedData });
 		if (mAssetViewerReigster && CVarShaderDectectFileMoidfy)
 		{
-			mAssetViewerReigster->registerViewer(info);
+			mAssetViewerReigster->registerViewer(&managedData);
 		}
 	}
 
@@ -835,13 +1157,13 @@ namespace Render
 	}
 
 
-	void ShaderProgramCompileInfo::getDependentFilePaths(std::vector<std::wstring>& paths)
+	void ShaderProgramManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
-		for( ShaderCompileInfo const& shaderInfo : shaders )
+		for( ShaderCompileInfo const& compileInfo : compileInfos )
 		{
-			filePathSet.insert(shaderInfo.filePath);
-			filePathSet.insert(shaderInfo.includeFiles.begin(), shaderInfo.includeFiles.end());
+			filePathSet.insert(compileInfo.filePath);
+			filePathSet.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
 		}
 		
 		for( auto const& filePath : filePathSet )
@@ -850,11 +1172,32 @@ namespace Render
 		}
 	}
 
-	void ShaderProgramCompileInfo::postFileModify(EFileAction action)
+	void ShaderProgramManagedData::postFileModify(EFileAction action)
 	{
 		if ( action == EFileAction::Modify )
 			ShaderManager::Get().updateShaderInternal(*shaderProgram, *this, true);
 	}
+
+
+	void ShaderManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
+	{
+		std::set< HashString > filePathSet;
+
+		filePathSet.insert(compileInfo.filePath);
+		filePathSet.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
+
+		for (auto const& filePath : filePathSet)
+		{
+			paths.push_back(FCString::CharToWChar(filePath));
+		}
+	}
+
+	void ShaderManagedData::postFileModify(EFileAction action)
+	{
+		if (action == EFileAction::Modify)
+			ShaderManager::Get().updateShaderInternal(*shader, *this, true);
+	}
+
 
 	std::string ShaderCompileOption::getCode( ShaderEntryInfo const& entry , char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
 	{

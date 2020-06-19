@@ -244,8 +244,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}

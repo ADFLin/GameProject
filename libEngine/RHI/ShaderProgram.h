@@ -6,24 +6,34 @@
 
 namespace Render
 {
-
-	class ShaderProgram : public ShaderResource
+	enum class EShaderObjectType
+	{
+		Shader,
+		Program,
+	};
+	class ShaderObject
 	{
 	public:
+		virtual EShaderObjectType getType() const = 0;
 		enum EClassTypeName
 		{
 			Global,
 			Material,
 		};
-
-		ShaderProgram();
-
-		RHIShaderProgram* getRHIResource() { return mRHIResource; }
-		void releaseRHI() { mRHIResource.release(); }
-
-		virtual ~ShaderProgram();
 		virtual void bindParameters(ShaderParameterMap const& parameterMap) {}
 
+		virtual ~ShaderObject(){}
+
+		std::string  shaderName;
+	};
+
+	template< class RHIResourceType >
+	class TShaderFuncHelper : public ShaderObject
+	{
+	public:
+
+		RHIResourceType* getRHIResource() { return mRHIResource; }
+		void releaseRHI() { mRHIResource.release(); }
 
 		void setParam(RHICommandList& commandList, char const* name, int v1) { setParamT(commandList, name, v1); }
 		void setParam(RHICommandList& commandList, char const* name, int v1, int v2) { setParamT(commandList, name, IntVector2(v1, v2)); }
@@ -58,21 +68,19 @@ namespace Render
 		void setParamT(RHICommandList& commandList, char const* name, T const& v)
 		{
 			ShaderParameter param;
-			if( !getParameter(name, param) )
+			if (!getParameter(name, param))
 				return;
 			setParam(commandList, param, v);
 		}
 
 
 		void setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE);
-
-
 		void setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, char const* samplerName, RHISamplerState& sampler);
 
 		template< class RHITextureType >
 		void setTexture(RHICommandList& commandList, char const* name, TRefCountPtr<RHITextureType>& texturePtr, char const* samplerName, RHISamplerState& sampler)
 		{
-			setTexture(commandList, name, *texturePtr, samplerName , sampler);
+			setTexture(commandList, name, *texturePtr, samplerName, sampler);
 		}
 
 		void setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture);
@@ -104,7 +112,7 @@ namespace Render
 		void setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1);
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture);
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
-		
+
 		template< class RHITextureType >
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, TRefCountPtr<RHITextureType>& texturePtr)
 		{
@@ -122,8 +130,6 @@ namespace Render
 		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer);
 
-
-
 		struct StructuredBlockInfo
 		{
 			ShaderParameter param;
@@ -134,9 +140,9 @@ namespace Render
 		void setStructuredUniformBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer)
 		{
 			auto& bufferStruct = TStruct::GetStructInfo();
-			for( auto const& block : mBoundedBlocks )
+			for (auto const& block : mBoundedBlocks)
 			{
-				if( block.structInfo == &bufferStruct )
+				if (block.structInfo == &bufferStruct)
 				{
 					setUniformBuffer(commandList, block.param, buffer);
 					return;
@@ -145,7 +151,7 @@ namespace Render
 
 			StructuredBlockInfo block;
 			block.structInfo = &bufferStruct;
-			if( mRHIResource->getResourceParameter(EShaderResourceType::Uniform, bufferStruct.blockName, block.param) )
+			if (mRHIResource->getResourceParameter(EShaderResourceType::Uniform, bufferStruct.blockName, block.param))
 			{
 				mBoundedBlocks.push_back(block);
 				setUniformBuffer(commandList, block.param, buffer);
@@ -156,9 +162,9 @@ namespace Render
 		void setStructuredStorageBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer)
 		{
 			auto& bufferStruct = TStruct::GetStructInfo();
-			for( auto const& block : mBoundedBlocks )
+			for (auto const& block : mBoundedBlocks)
 			{
-				if( block.structInfo == &bufferStruct )
+				if (block.structInfo == &bufferStruct)
 				{
 					setStorageBuffer(commandList, block.param, buffer);
 					return;
@@ -167,50 +173,36 @@ namespace Render
 
 			StructuredBlockInfo block;
 			block.structInfo = &bufferStruct;
-			if( mRHIResource->getResourceParameter(EShaderResourceType::Storage, bufferStruct.blockName, block.param) )
+			if (mRHIResource->getResourceParameter(EShaderResourceType::Storage, bufferStruct.blockName, block.param))
 			{
 				mBoundedBlocks.push_back(block);
 				setStorageBuffer(commandList, block.param, buffer);
 			}
 		}
-
 		bool getParameter(char const* name, ShaderParameter& outParam);
 
 		std::vector< StructuredBlockInfo > mBoundedBlocks;
 
-		std::string  shaderName;
-		//#TODO
 	public:
-		RHIShaderProgramRef mRHIResource;
+		TRefCountPtr< RHIResourceType > mRHIResource;
 	};
 
+	extern template class TShaderFuncHelper< RHIShaderProgram >;
+	extern template class TShaderFuncHelper< RHIShader >;
 
-	class MaterialShaderProgramClass;
-	class GlobalShaderProgramClass;
+	class ShaderProgram : public TShaderFuncHelper< RHIShaderProgram >
+	{
+	public:
+		virtual EShaderObjectType getType() const override { return EShaderObjectType::Program; }
+	};
 
-#define DECLARE_EXPORTED_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , API , ...)\
-	public: \
-		using ShaderClassType = CALSS_TYPE_NAME##ShaderProgramClass; \
-		static API ShaderClassType ShaderClass; \
-		static ShaderClassType const& GetShaderClass(){ return ShaderClass; }\
-		static CLASS* CreateShader() { return new CLASS(); }
+	class Shader : public TShaderFuncHelper< RHIShader >
+	{
+	public:
+		virtual EShaderObjectType getType() const override { return EShaderObjectType::Shader; }
+	};
 
-#define DECLARE_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , ...) DECLARE_EXPORTED_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , , __VA_ARGS__ )
-
-#define IMPLEMENT_SHADER_PROGRAM( CLASS )\
-	CLASS::ShaderClassType CLASS::ShaderClass\
-	(\
-		(GlobalShaderProgramClass::CreateShaderFunc) &CLASS::CreateShader,\
-		CLASS::SetupShaderCompileOption,\
-		CLASS::GetShaderFileName, \
-		CLASS::GetShaderEntries \
-	);
-
-
-#define IMPLEMENT_SHADER_PROGRAM_T( TEMPLATE_ARGS , CLASS )\
-	TEMPLATE_ARGS \
-	IMPLEMENT_SHADER_PROGRAM( CLASS )
-
+	
 }//namespace Render
 
 

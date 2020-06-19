@@ -846,16 +846,16 @@ namespace Render
 		return GL_POINTS;
 	}
 
-	GLenum OpenGLTranslate::To(Shader::Type type)
+	GLenum OpenGLTranslate::To(EShader::Type type)
 	{
 		switch( type )
 		{
-		case Shader::eVertex:   return GL_VERTEX_SHADER;
-		case Shader::ePixel:    return GL_FRAGMENT_SHADER;
-		case Shader::eGeometry: return GL_GEOMETRY_SHADER;
-		case Shader::eCompute:  return GL_COMPUTE_SHADER;
-		case Shader::eHull:     return GL_TESS_CONTROL_SHADER;
-		case Shader::eDomain:   return GL_TESS_EVALUATION_SHADER;
+		case EShader::Vertex:   return GL_VERTEX_SHADER;
+		case EShader::Pixel:    return GL_FRAGMENT_SHADER;
+		case EShader::Geometry: return GL_GEOMETRY_SHADER;
+		case EShader::Compute:  return GL_COMPUTE_SHADER;
+		case EShader::Hull:     return GL_TESS_CONTROL_SHADER;
+		case EShader::Domain:   return GL_TESS_EVALUATION_SHADER;
 		}
 		return 0;
 	}

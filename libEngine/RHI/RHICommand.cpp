@@ -216,7 +216,7 @@ namespace Render
 		return EXECUTE_RHI_FUNC(RHICreateBlendState(initializer));
 	}
 
-	RHIShader* RHICreateShader(Shader::Type type)
+	RHIShader* RHICreateShader(EShader::Type type)
 	{
 		return EXECUTE_RHI_FUNC( RHICreateShader(type) );
 	}
@@ -237,6 +237,7 @@ namespace Render
 		return EXECUTE_RHI_FUNC(RHICreateShaderProgram());
 	}
 #endif
+
 
 	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode)
 	{

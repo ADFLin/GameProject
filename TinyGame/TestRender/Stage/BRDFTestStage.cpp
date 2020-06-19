@@ -82,8 +82,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(EquirectangularToCubePS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(EquirectangularToCubePS) },
 			};
 			return entries;
 		}
@@ -104,8 +104,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(IrradianceGenPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(IrradianceGenPS) },
 			};
 			return entries;
 		}
@@ -125,8 +125,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(PrefilteredGenPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(PrefilteredGenPS) },
 			};
 			return entries;
 		}
@@ -146,8 +146,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(PreIntegrateBRDFGenPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(PreIntegrateBRDFGenPS) },
 			};
 			return entries;
 		}

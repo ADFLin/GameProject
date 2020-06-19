@@ -3,27 +3,38 @@
 #define RefCount_H_AE7BB79E_FF29_450C_9F52_A7F3B2CF78A2
 
 #include "Meta/MetaBase.h"
+#include "Core/IntegerType.h"
 
 template < class T >
 class TRefCountPtr;
 
+
+enum EPersistent
+{
+	EnumValue,
+};
+
+class RefCount
+{
+public:
+	RefCount():mRefCount(0){}
+	RefCount(EPersistent) :mRefCount(0xfffffff){}
+	bool  decRef() { --mRefCount;  return mRefCount <= 0; }
+	void  incRef() { ++mRefCount; }
+	int   getRefCount() { return mRefCount; }
+
+	int32  mRefCount;
+};
+
 template < class T >
-class RefCountedObjectT
+class RefCountedObjectT : public RefCount
 {
 public:
 	typedef TRefCountPtr< T > RefCountPtr;
-	RefCountedObjectT():mRefCount(0){}
-	void destroyThis(){ delete static_cast< T*>( this ); }
-	int  getRefCount(){ return mRefCount; }
-
-public:
-	bool  decRef(){ --mRefCount;  return mRefCount <= 0; }
-	void  incRef(){ ++mRefCount; }
+	void destroyThis(){ delete static_cast< T*>( this ); }	
 private:
 	T*  _this(){ return static_cast< T* >( this ); }
 	friend class TRefCountPtr<T>;
-
-	int  mRefCount;
 };
 
 template < class T >

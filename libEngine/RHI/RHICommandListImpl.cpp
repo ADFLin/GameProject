@@ -115,6 +115,11 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetShaderProgram(shaderProgram));
 	}
 
+	void RHISetShaderPipelineState(RHICommandList& commandList, ShaderPipelineState const& state)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetShaderPipelineState(state));
+	}
+
 	void RHIFlushCommand(RHICommandList& commandList)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIFlushCommand());

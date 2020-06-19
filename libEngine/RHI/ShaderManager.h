@@ -32,19 +32,38 @@ namespace Render
 	};
 
 
-	struct ShaderProgramCompileInfo : public IAssetViewer
+	struct ShaderManagedDataBase : public IAssetViewer
 	{
-		ShaderProgram*  shaderProgram;
 		ShaderClassType classType = ShaderClassType::Common;
-		std::vector< ShaderCompileInfo > shaders;
-		bool           bShowComplieInfo = false;
+		union 
+		{
+			ShaderProgram*  shaderProgram;
+			Shader* shader;
+		};
 
+		bool           bShowComplieInfo = false;
+		std::string    sourceFile;
+		
+	};
+
+	struct ShaderProgramManagedData : public ShaderManagedDataBase
+	{
+
+		std::vector< ShaderCompileInfo > compileInfos;
+		bool           bShowComplieInfo = false;
 		std::string    sourceFile;
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 		virtual void postFileModify(EFileAction action) override;
 	};
 
+	struct ShaderManagedData : public ShaderManagedDataBase
+	{
+		ShaderCompileInfo compileInfo;
+	protected:
+		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
+		virtual void postFileModify(EFileAction action) override;
+	};
 
 	typedef std::vector< std::pair< MaterialShaderProgramClass*, MaterialShaderProgram* > > MaterialShaderPairVec;
 
@@ -65,28 +84,28 @@ namespace Render
 		void setDataCache(DataCacheInterface* dataCache);
 		void setAssetViewerRegister(IAssetViewerRegister* reigster);
 
-		template< class ShaderType >
-		ShaderType* getGlobalShaderT(bool bForceLoad = true)
+		template< class TShaderType >
+		TShaderType* getGlobalShaderT(bool bForceLoad = true)
 		{
-			return static_cast<ShaderType*>( getGlobalShader(ShaderType::GetShaderClass() , bForceLoad) );
+			return static_cast<TShaderType*>( getGlobalShader(TShaderType::GetShaderClass() , bForceLoad) );
 		}
 
-		template< class ShaderType >
-		ShaderType* loadGlobalShaderT( ShaderCompileOption& option)
+		template< class TShaderType >
+		TShaderType* loadGlobalShaderT( ShaderCompileOption& option)
 		{
-			return static_cast<ShaderType*>(constructShaderInternal(ShaderType::GetShaderClass(), ShaderClassType::Common , option ));
+			return static_cast<TShaderType*>(constructShaderInternal(TShaderType::GetShaderClass(), ShaderClassType::Common , option ));
 		}
 
 		int loadMaterialShaders(MaterialShaderCompileInfo const& info, VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
 
-		CORE_API GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass const& shaderClass , bool bForceLoad );
+		CORE_API ShaderObject* getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, bool bForceLoad );
 
-		bool registerGlobalShader(GlobalShaderProgramClass& shaderClass);
+		bool registerGlobalShader(GlobalShaderObjectClass& shaderClass);
 
 		int  loadAllGlobalShaders();
 
-		GlobalShaderProgram* constructGlobalShader(GlobalShaderProgramClass const& shaderClass);
-		GlobalShaderProgram* constructShaderInternal(GlobalShaderProgramClass const& shaderClass, ShaderClassType classType, ShaderCompileOption& option );
+		ShaderObject* constructGlobalShader(GlobalShaderObjectClass const& shaderObjectClass);
+		ShaderObject* constructShaderInternal(GlobalShaderObjectClass const& shaderObjectClass, ShaderClassType classType, ShaderCompileOption& option);
 
 		void cleanupGlobalShader();
 
@@ -121,6 +140,7 @@ namespace Render
 		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* def = nullptr, char const* additionalCode = nullptr);
 
 		bool reloadShader(ShaderProgram& shaderProgram);
+		bool reloadShader(Shader& shader);
 
 		void reloadAll();
 
@@ -132,14 +152,16 @@ namespace Render
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
 		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
 
+		bool loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+		
 		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{
 			int indexUsed = 0;
-			for( int i = 0; i < Shader::Count; ++i )
+			for( int i = 0; i < EShader::Count; ++i )
 			{
 				if( (shaderMask & BIT(i)) == 0 )
 					continue;
-				entries[indexUsed].type = Shader::Type(i);
+				entries[indexUsed].type = EShader::Type(i);
 				entries[indexUsed].name = (entryNames) ? entryNames[indexUsed] : "main";
 				++indexUsed;
 			}
@@ -152,17 +174,21 @@ namespace Render
 			std::string filePath;
 			std::string define;
 		};
-		bool updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info , bool bForceReload = false );
+		bool updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload = false );
+		bool updateShaderInternal(Shader& shader, ShaderManagedData& managedData, bool bForceReload = false);
 
+		void removeFromShaderCompileMap(ShaderObject& shader);
 
-		void removeFromShaderCompileMap( ShaderProgram& shader );
-
-		void  generateCompileSetup( 
-			ShaderProgramCompileInfo& compileInfo , TArrayView< ShaderEntryInfo const > entries,
+		void  generateCompileSetup(
+			ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries,
 			ShaderCompileOption const& option, char const* additionalCode ,
 			char const* fileName , bool bSingleFile );
 
-		void postShaderLoaded(ShaderProgram& shader, ShaderProgramCompileInfo* info);
+		void generateCompileSetup(ShaderManagedData& managedData, ShaderEntryInfo const& entry, 
+			ShaderCompileOption const& option, char const* additionalCode, 
+			char const* fileName, bool bSingleFile);
+
+		void postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData);
 
 		uint32          mDefaultVersion;
 		ShaderFormat*   mShaderFormat = nullptr;
@@ -173,11 +199,11 @@ namespace Render
 		ShaderCache* getCache();
 
 #if 1
-		std::unordered_map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
-		std::unordered_map< GlobalShaderProgramClass const*, GlobalShaderProgram* > mGlobalShaderMap;
+		std::unordered_map< ShaderObject*, ShaderManagedDataBase* > mShaderDataMap;
+		std::unordered_map< GlobalShaderObjectClass const*, ShaderObject* > mGlobalShaderMap;
 #else
-		std::map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
-		std::map< GlobalShaderProgramClass const*, GlobalShaderProgram* > mGlobalShaderMap;
+		std::map< ShaderObject*, ShaderProgramManagedData* > mShaderDataMap;
+		std::map< GlobalShaderObjectClass const*, GlobalShaderProgram* > mGlobalShaderMap;
 #endif
 
 	};

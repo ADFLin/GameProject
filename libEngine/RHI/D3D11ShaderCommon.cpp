@@ -106,7 +106,7 @@ namespace Render
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
 
-		if (!shaderProgramImpl.setupShaders(setupData.shaders.data(), setupData.shaders.size()))
+		if (!shaderProgramImpl.setupShaders(setupData.shaderResources.data(), setupData.shaderResources.size()))
 			return false;
 
 		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
@@ -120,7 +120,7 @@ namespace Render
 		uint8 numShaders = 0;
 		serializer.read(numShaders);
 
-		ShaderResourceInfo shaders[Shader::Count];
+		ShaderResourceInfo shaders[EShader::Count];
 		for (int i = 0; i < numShaders; ++i)
 		{
 			D3D11Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
@@ -129,12 +129,12 @@ namespace Render
 			std::vector< uint8 > byteCode;
 			serializer.read(byteCode);
 
-			D3D11Shader* shader = (D3D11Shader*)RHICreateShader(Shader::Type(shaderType));
+			D3D11Shader* shader = (D3D11Shader*)RHICreateShader(EShader::Type(shaderType));
 			shaders[i].resource = shader;
-			shaders[i].type = Shader::Type(shaderType);
+			shaders[i].type = EShader::Type(shaderType);
 			shaders[i].entry = shaderCompiles[i].entryName.c_str();
 
-			if (!shader->initialize(Shader::Type(shaderType), mDevice, std::move(byteCode)))
+			if (!shader->initialize(EShader::Type(shaderType), mDevice, std::move(byteCode)))
 				return false;
 		}
 
@@ -173,14 +173,14 @@ namespace Render
 		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
 		{
 			D3D11Shader& shader = *shaderProgramImpl.mShaders[i];
-			if (shader.mResource.type != Shader::eVertex)
+			if (shader.mResource.type != EShader::Vertex)
 			{
 				shader.byteCode.clear();
 			}
 		}
 	}
 
-	bool D3D11Shader::initialize(Shader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
+	bool D3D11Shader::initialize(EShader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
 	{
 		if (!createResource(type, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
 			return false;
@@ -190,7 +190,7 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11Shader::initialize(Shader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode)
+	bool D3D11Shader::initialize(EShader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode)
 	{
 		if (!createResource(type, device, inByteCode.data(), inByteCode.size()))
 			return false;
@@ -199,7 +199,7 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11Shader::createResource(Shader::Type type, TComPtr<ID3D11Device>& device , uint8 const* pCode , size_t codeSize)
+	bool D3D11Shader::createResource(EShader::Type type, TComPtr<ID3D11Device>& device , uint8 const* pCode , size_t codeSize)
 	{
 		switch (type)
 		{
@@ -208,12 +208,12 @@ namespace Render
 			VERIFY_D3D11RESULT_RETURN_FALSE( device->FUNC(pCode, codeSize, NULL, &VAR) );\
 			break;
 
-		CASE_SHADER(Shader::eVertex, CreateVertexShader, mResource.vertex);
-		CASE_SHADER(Shader::ePixel, CreatePixelShader, mResource.pixel);
-		CASE_SHADER(Shader::eGeometry, CreateGeometryShader, mResource.geometry);
-		CASE_SHADER(Shader::eCompute, CreateComputeShader, mResource.compute);
-		CASE_SHADER(Shader::eHull, CreateHullShader, mResource.hull);
-		CASE_SHADER(Shader::eDomain, CreateDomainShader, mResource.domain);
+		CASE_SHADER(EShader::Vertex, CreateVertexShader, mResource.vertex);
+		CASE_SHADER(EShader::Pixel, CreatePixelShader, mResource.pixel);
+		CASE_SHADER(EShader::Geometry, CreateGeometryShader, mResource.geometry);
+		CASE_SHADER(EShader::Compute, CreateComputeShader, mResource.compute);
+		CASE_SHADER(EShader::Hull, CreateHullShader, mResource.hull);
+		CASE_SHADER(EShader::Domain, CreateDomainShader, mResource.domain);
 
 #undef CASE_SHADER
 		default:
@@ -315,7 +315,7 @@ namespace Render
 		}
 	}
 
-	void D3D11ShaderProgram::addShaderParameterMap(Shader::Type shaderType, ShaderParameterMap const& parameterMap)
+	void D3D11ShaderProgram::addShaderParameterMap(EShader::Type shaderType, ShaderParameterMap const& parameterMap)
 	{
 		for (auto const& pair : parameterMap.mMap)
 		{

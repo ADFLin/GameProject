@@ -19,6 +19,12 @@
 namespace Render
 {
 
+	struct RMPShaderPipeline
+	{
+		static void Create(GLuint& handle) { glGenProgramPipelines(1, &handle); }
+		static void Destroy(GLuint& handle) { glDeleteProgramPipelines(1, &handle); }
+	};
+
 	struct OpenGLDeviceState
 	{
 		OpenGLDeviceState()
@@ -130,7 +136,7 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
-		void RHISetShaderProgram(Shader::Type type, RHIShader* shader){}
+		void RHISetShaderPipelineState(ShaderPipelineState const& state);
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
@@ -185,7 +191,16 @@ namespace Render
 		int  mNextStorageSlot;
 
 		RHIIndexBufferRef   mLastIndexBuffer;
+
+		bool mbUseShaderPipline;
+		TOpenGLObject< RMPShaderPipeline > mDefaultShaderPipeline;
+
 		RHIShaderProgramRef mLastShaderProgram;
+		RHIShaderRef        mUsageShaders[EShader::MaxStorageSize];
+		int                 mUsageShaderCount = 0;
+
+		void clearShader(bool bUseShaderPipeline);
+
 		RHIFrameBufferRef   mLastFrameBuffer;
 		OpenGLDeviceState   mDeviceState;
 
@@ -197,7 +212,7 @@ namespace Render
 		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];
 		int mNumInputStream;
 		uint32 mSimplerSlotDirtyMask = 0;
-		bool mbUseShaderPipline;
+		
 
 		struct SamplerState 
 		{
@@ -262,11 +277,12 @@ namespace Render
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
-		RHIShader* RHICreateShader(Shader::Type type);
+		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 		class OpenglProfileCore* mProfileCore = nullptr;
+
 
 		OpenGLContext     mDrawContext;
 #if SYS_PLATFORM_WIN

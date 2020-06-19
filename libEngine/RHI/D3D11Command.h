@@ -32,12 +32,12 @@ namespace Render
 
 	template<class T>
 	struct ToShaderEnum {};
-	template<> struct ToShaderEnum< ID3D11VertexShader > { static Shader::Type constexpr Result = Shader::eVertex; };
-	template<> struct ToShaderEnum< ID3D11PixelShader > { static Shader::Type constexpr Result = Shader::ePixel; };
-	template<> struct ToShaderEnum< ID3D11GeometryShader > { static Shader::Type constexpr Result = Shader::eGeometry; };
-	template<> struct ToShaderEnum< ID3D11ComputeShader > { static Shader::Type constexpr Result = Shader::eCompute; };
-	template<> struct ToShaderEnum< ID3D11HullShader > { static Shader::Type constexpr Result = Shader::eHull; };
-	template<> struct ToShaderEnum< ID3D11DomainShader > { static Shader::Type constexpr Result = Shader::eDomain; };
+	template<> struct ToShaderEnum< ID3D11VertexShader > { static EShader::Type constexpr Result = EShader::Vertex; };
+	template<> struct ToShaderEnum< ID3D11PixelShader > { static EShader::Type constexpr Result = EShader::Pixel; };
+	template<> struct ToShaderEnum< ID3D11GeometryShader > { static EShader::Type constexpr Result = EShader::Geometry; };
+	template<> struct ToShaderEnum< ID3D11ComputeShader > { static EShader::Type constexpr Result = EShader::Compute; };
+	template<> struct ToShaderEnum< ID3D11HullShader > { static EShader::Type constexpr Result = EShader::Hull; };
+	template<> struct ToShaderEnum< ID3D11DomainShader > { static EShader::Type constexpr Result = EShader::Domain; };
 
 	struct FrameSwapChain
 	{
@@ -116,9 +116,9 @@ namespace Render
 		void setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize);
 
 
-		template< Shader::Type TypeValue >
+		template< EShader::Type TypeValue >
 		void commitState( ID3D11DeviceContext* context);
-		template< Shader::Type TypeValue >
+		template< EShader::Type TypeValue >
 		void clearState(ID3D11DeviceContext* context);
 
 		static int constexpr MaxConstBufferNum = 1;
@@ -382,7 +382,7 @@ namespace Render
 
 
 		//
-		template< Shader::Type TypeValue >
+		template< EShader::Type TypeValue >
 		void setShader(D3D11ShaderVariant const& shaderVariant);
 
 		template < class ValueType >
@@ -413,7 +413,7 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 
-		void RHISetShaderProgram(Shader::Type type, RHIShader* shader) {}
+		void RHISetShaderPipelineState(ShaderPipelineState const& state) {}
 
 		template < class ValueType >
 		void setShaderValueT(RHIShader& shader, ShaderParameter const& param, ValueType const val[], int dim);
@@ -443,8 +443,8 @@ namespace Render
 
 		uint32                mBoundedShaderMask = 0;
 		uint32                mBoundedShaderDirtyMask = 0;
-		D3D11ShaderVariant    mBoundedShaders[Shader::Count];
-		D3D11ShaderBoundState mShaderBoundState[Shader::Count];
+		D3D11ShaderVariant    mBoundedShaders[EShader::Count];
+		D3D11ShaderBoundState mShaderBoundState[EShader::Count];
 
 		D3D11DynamicBuffer    mDynamicVBuffer;
 		D3D11DynamicBuffer    mDynamicIBuffer;
@@ -546,7 +546,7 @@ namespace Render
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
-		RHIShader* RHICreateShader(Shader::Type type);
+		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
 
 		bool createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult);

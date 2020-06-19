@@ -351,7 +351,7 @@ namespace Render
 		return new OpenGLDepthStencilState(initializer);
 	}
 
-	RHIShader* OpenGLSystem::RHICreateShader(Shader::Type type)
+	RHIShader* OpenGLSystem::RHICreateShader(EShader::Type type)
 	{
 		return CreateOpenGLResourceT< OpenGLShader >(type);
 	}
@@ -640,8 +640,7 @@ namespace Render
 
 	void OpenGLContext::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
 	{
-		if( mLastShaderProgram.isValid() )
-			static_cast<OpenGLShaderProgram&>(*mLastShaderProgram).unbind();
+		clearShader(false);
 
 		if( shaderProgram )
 		{
@@ -655,6 +654,29 @@ namespace Render
 			mbUseFixedPipeline = true;
 		}
 	}
+
+	void OpenGLContext::RHISetShaderPipelineState(ShaderPipelineState const& state)
+	{
+		clearShader(true);
+
+		if (state.vertexShader || state.pixelShader || state.geometryShader || state.hullShader || state.domainShader)
+		{
+			resetBindIndex();
+			if ( state.vertexShader )
+			{
+
+			}
+			else
+			{
+
+			}
+		}
+		else
+		{
+			mbUseFixedPipeline = true;
+		}
+	}
+
 
 #define CHECK_PARAMETER( PARAM ) assert( PARAM.isBound() );
 
@@ -793,7 +815,6 @@ namespace Render
 		CHECK_PARAMETER(param);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
 	}
-
 
 	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim)
 	{
@@ -1239,6 +1260,24 @@ namespace Render
 			mWasBindAttrib = true;
 		}
 		return true;
+	}
+
+	void OpenGLContext::clearShader(bool bUseShaderPipeline)
+	{
+		if (mbUseFixedPipeline)
+			return;
+
+
+		if (mbUseShaderPipline)
+		{
+
+
+		}
+		else
+		{
+			static_cast<OpenGLShaderProgram&>(*mLastShaderProgram).unbind();
+			mLastShaderProgram.release();
+		}
 	}
 
 	void OpenGLContext::setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)

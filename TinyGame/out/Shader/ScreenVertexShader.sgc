@@ -12,6 +12,10 @@ layout(location = ATTRIBUTE_TEXCOORD) in float2 InUV;
 
 out VSOutputParameters VSOutput;
 
+out gl_PerVertex
+{
+	float4 gl_Position;
+};
 void ScreenVS()
 {
 	gl_Position = InPosition;

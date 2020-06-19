@@ -457,8 +457,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(BassPassVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(BasePassPS) },
+				{ EShader::Vertex , SHADER_ENTRY(BassPassVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(BasePassPS) },
 			};
 			return entries;
 		}

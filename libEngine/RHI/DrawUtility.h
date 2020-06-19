@@ -388,6 +388,9 @@ namespace Render
 		class MappingTextureColorProgram* mProgMappingTextureColor;
 		class SimplePipelineProgram*      mProgSimplePipeline;
 
+		class ScreenVS*      mScreenVS;
+		class CopyTexturePS* mCopyTexturePS;
+
 		RHIFrameBufferRef mFrameBuffer;
 
 	};

@@ -218,16 +218,16 @@ namespace Render
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	VkShaderStageFlagBits VulkanTranslate::To(Shader::Type type)
+	VkShaderStageFlagBits VulkanTranslate::To(EShader::Type type)
 	{
 		switch (type)
 		{
-		case Shader::eVertex:   return VK_SHADER_STAGE_VERTEX_BIT;
-		case Shader::ePixel:    return VK_SHADER_STAGE_FRAGMENT_BIT;
-		case Shader::eGeometry: return VK_SHADER_STAGE_GEOMETRY_BIT;
-		case Shader::eCompute:  return VK_SHADER_STAGE_COMPUTE_BIT;
-		case Shader::eHull:     return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-		case Shader::eDomain:   return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		case EShader::Vertex:   return VK_SHADER_STAGE_VERTEX_BIT;
+		case EShader::Pixel:    return VK_SHADER_STAGE_FRAGMENT_BIT;
+		case EShader::Geometry: return VK_SHADER_STAGE_GEOMETRY_BIT;
+		case EShader::Compute:  return VK_SHADER_STAGE_COMPUTE_BIT;
+		case EShader::Hull:     return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+		case EShader::Domain:   return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 		}
 
 		return VK_SHADER_STAGE_VERTEX_BIT;

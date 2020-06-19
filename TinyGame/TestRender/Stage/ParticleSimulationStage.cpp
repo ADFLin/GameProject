@@ -87,7 +87,7 @@ namespace Render
 		{
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eCompute , SHADER_ENTRY(MainInitCS) },
+				{ EShader::Compute , SHADER_ENTRY(MainInitCS) },
 			};
 			return entries;
 		}
@@ -128,7 +128,7 @@ namespace Render
 		{
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eCompute , SHADER_ENTRY(MainUpdateCS) },
+				{ EShader::Compute , SHADER_ENTRY(MainUpdateCS) },
 			};
 			return entries;
 		}
@@ -173,9 +173,9 @@ namespace Render
 		{
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::eGeometry , SHADER_ENTRY(MainGS) },
-				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}
@@ -220,18 +220,18 @@ namespace Render
 			{
 				static ShaderEntryInfo entriesWithTesselation[] =
 				{
-					{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-					{ Shader::eHull   , SHADER_ENTRY(MainHS) },
-					{ Shader::eDomain , SHADER_ENTRY(MainDS) },
-					{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+					{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+					{ EShader::Hull   , SHADER_ENTRY(MainHS) },
+					{ EShader::Domain , SHADER_ENTRY(MainDS) },
+					{ EShader::Pixel , SHADER_ENTRY(MainPS) },
 				};
 				return entriesWithTesselation;
 			}
 
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}
@@ -273,18 +273,18 @@ namespace Render
 			{
 				static ShaderEntryInfo entriesWithTesselation[] =
 				{
-					{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-					{ Shader::eHull   , SHADER_ENTRY(MainHS) },
-					{ Shader::eDomain , SHADER_ENTRY(MainDS) },
-					{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+					{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+					{ EShader::Hull   , SHADER_ENTRY(MainHS) },
+					{ EShader::Domain , SHADER_ENTRY(MainDS) },
+					{ EShader::Pixel , SHADER_ENTRY(MainPS) },
 				};
 				return entriesWithTesselation;
 			}
 
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}
@@ -339,7 +339,7 @@ namespace Render
 		{
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eCompute , SHADER_ENTRY(MainUpdateCS) },
+				{ EShader::Compute , SHADER_ENTRY(MainUpdateCS) },
 			};
 			return entries;
 		}
@@ -383,7 +383,7 @@ namespace Render
 		{
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eCompute , SHADER_ENTRY(MainUpdateNormal) },
+				{ EShader::Compute , SHADER_ENTRY(MainUpdateNormal) },
 			};
 			return entries;
 		}
@@ -430,8 +430,8 @@ namespace Render
 		{
 			static ShaderEntryInfo entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}

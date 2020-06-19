@@ -785,7 +785,7 @@ namespace Render
 		static VkSamplerAddressMode To(Sampler::AddressMode mode);
 		static VkCompareOp To(ECompareFunc func);
 		static VkStencilOp To(Stencil::Operation op);
-		static VkShaderStageFlagBits To(Shader::Type type);
+		static VkShaderStageFlagBits To(EShader::Type type);
 	};
 
 

@@ -151,20 +151,20 @@ namespace Render
 		WriteDiscard,
 	};
 
-	struct Shader
+	namespace EShader
 	{
 		enum Type
 		{
-			eVertex = 0,
-			ePixel = 1,
-			eGeometry = 2,
-			eCompute = 3,
-			eHull = 4,
-			eDomain = 5,
+			Vertex = 0,
+			Pixel = 1,
+			Geometry = 2,
+			Compute = 3,
+			Hull = 4,
+			Domain = 5,
 
 			Count,
 			MaxStorageSize = 4,
-			eEmpty = -1,
+			Empty = -1,
 		};
 	};
 

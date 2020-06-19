@@ -15,7 +15,7 @@ namespace Render
 {
 	struct D3D11ShaderResource
 	{
-		Shader::Type type;
+		EShader::Type type;
 		union
 		{
 			ID3D11DeviceChild*    ptr;
@@ -37,10 +37,10 @@ namespace Render
 			mResource.ptr = nullptr;
 		}
 
-		bool initialize( Shader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode );
-		bool initialize( Shader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode );
+		bool initialize( EShader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode );
+		bool initialize( EShader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode );
 
-		bool createResource(Shader::Type type, TComPtr<ID3D11Device>& device, uint8 const* pCode, size_t codeSize);
+		bool createResource(EShader::Type type, TComPtr<ID3D11Device>& device, uint8 const* pCode, size_t codeSize);
 		virtual void incRef()
 		{
 			if( mResource.ptr )
@@ -66,6 +66,9 @@ namespace Render
 				mResource.ptr = nullptr;
 			}
 		}
+
+		virtual bool getParameter(char const* name, ShaderParameter& outParam) { return false; }
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) { return false; }
 
 		static bool GenerateParameterMap(std::vector< uint8 > const& byteCode , ShaderParameterMap& parameterMap);
 		std::vector< uint8 > byteCode;
@@ -97,7 +100,7 @@ namespace Render
 			}
 		}
 
-		void addShaderParameterMap(Shader::Type shaderType, ShaderParameterMap const& parameterMap);
+		void addShaderParameterMap(EShader::Type shaderType, ShaderParameterMap const& parameterMap);
 		void finalizeParameterMap();
 
 		ShaderParameterMap mParameterMap;
@@ -111,13 +114,13 @@ namespace Render
 		struct ShaderParamEntry
 		{
 			int loc;
-			Shader::Type    type;
+			EShader::Type    type;
 			ShaderParameter param;
 		};
 
 		std::vector< ParameterEntry >   mParamEntryMap;
 		std::vector< ShaderParamEntry > mParamEntries;
-		TRefCountPtr< D3D11Shader >     mShaders[Shader::Count - 1];
+		TRefCountPtr< D3D11Shader >     mShaders[EShader::Count - 1];
 		int mNumShaders;
 	};
 

@@ -41,8 +41,8 @@ namespace CB
 		{
 			static ShaderEntryInfo const enties[] =
 			{
-				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex ,  SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel ,  SHADER_ENTRY(MainPS) },
 			};
 			return enties;
 		}
@@ -94,8 +94,8 @@ namespace CB
 		{
 			static ShaderEntryInfo const enties[] =
 			{
-				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex ,  SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel ,  SHADER_ENTRY(MainPS) },
 			};
 			return enties;
 		}
@@ -136,9 +136,9 @@ namespace CB
 		{
 			static ShaderEntryInfo const enties[] =
 			{
-				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
-				{ Shader::eGeometry ,  SHADER_ENTRY(MainGS) },
-				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex ,  SHADER_ENTRY(MainVS) },
+				{ EShader::Geometry ,  SHADER_ENTRY(MainGS) },
+				{ EShader::Pixel ,  SHADER_ENTRY(MainPS) },
 			};
 			return enties;
 		}

@@ -39,7 +39,7 @@ namespace Render
 	{
 	public:
 		CORE_API MaterialShaderProgramClass(
-			CreateShaderFunc inCreateShader,
+			CreateShaderObjectFunc inCreateShaderObject,
 			SetupShaderCompileOptionFunc inSetupShaderCompileOption,
 			GetShaderFileNameFunc inGetShaderFileName,
 			GetShaderEntriesFunc inGetShaderEntries);

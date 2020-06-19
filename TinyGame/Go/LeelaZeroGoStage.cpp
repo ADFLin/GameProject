@@ -105,9 +105,9 @@ namespace Go
 		{
 			static ShaderEntryInfo const enties[] =
 			{
-				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
-				{ Shader::eGeometry ,  SHADER_ENTRY(MainGS) },
+				{ EShader::Vertex ,  SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel ,  SHADER_ENTRY(MainPS) },
+				{ EShader::Geometry ,  SHADER_ENTRY(MainGS) },
 			};
 			return enties;
 		}

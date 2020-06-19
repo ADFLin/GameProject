@@ -71,7 +71,7 @@ namespace Render
 		}
 
 
-		bool getSetLayoutBindings(Shader::Type type, std::vector<VkDescriptorSetLayoutBinding>& outBindings) const
+		bool getSetLayoutBindings(EShader::Type type, std::vector<VkDescriptorSetLayoutBinding>& outBindings) const
 		{
 			spv_reflect::ShaderModule moduleReflect(codeBuffer.size(), codeBuffer.data());
 			if (moduleReflect.GetResult() != SPV_REFLECT_RESULT_SUCCESS)
@@ -163,7 +163,7 @@ namespace Render
 		{
 			numShaders = 0;
 		}
-		SpirvShaderCode shaderCodes[Shader::MaxStorageSize];
+		SpirvShaderCode shaderCodes[EShader::MaxStorageSize];
 		int numShaders;
 	};
 
@@ -244,9 +244,9 @@ namespace Render
 			FileSystem::DeleteFile(pathSpv.c_str());
 		};
 
-		if (input.setupData)
+		if (input.programSetupData)
 		{
-			VulkanShaderCompileIntermediates* myIntermediates = static_cast<VulkanShaderCompileIntermediates*>(input.setupData->intermediateData.get());
+			VulkanShaderCompileIntermediates* myIntermediates = static_cast<VulkanShaderCompileIntermediates*>(input.programSetupData->intermediateData.get());
 			SpirvShaderCode& code = myIntermediates->shaderCodes[ myIntermediates->numShaders ];
 			VERIFY_RETURN_FALSE(FileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
 			++myIntermediates->numShaders;
@@ -307,7 +307,7 @@ namespace Render
 	{
 		auto& shaderProgramImpl = static_cast<VulkanShaderProgram&>(*shaderProgram.mRHIResource);
 
-		if (!shaderProgramImpl.setupShaders(mDevice, setupData.shaders.data(), setupData.shaders.size()))
+		if (!shaderProgramImpl.setupShaders(mDevice, setupData.shaderResources.data(), setupData.shaderResources.size()))
 			return false;
 
 		return true;
@@ -321,15 +321,15 @@ namespace Render
 		uint8 numShaders = 0;
 		serializer.read(numShaders);
 
-		ShaderResourceInfo shaders[Shader::MaxStorageSize];
-		SpirvShaderCode shaderCodes[Shader::MaxStorageSize];
+		ShaderResourceInfo shaders[EShader::MaxStorageSize];
+		SpirvShaderCode shaderCodes[EShader::MaxStorageSize];
 		for (int i = 0; i < numShaders; ++i)
 		{
 			uint8 shaderType;
 			serializer.read(shaderType);
 			serializer.read(shaderCodes[i].codeBuffer);
 			shaders[i].formatData = &shaderCodes[i];
-			shaders[i].type  = Shader::Type(shaderType);
+			shaders[i].type  = EShader::Type(shaderType);
 			shaders[i].entry = shaderCompiles[i].entryName.c_str();
 		}
 
@@ -354,13 +354,13 @@ namespace Render
 	bool ShaderFormatSpirv::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode)
 	{
 		auto serializer = CreateBufferSerializer<VectorWriteBuffer>(outBinaryCode);
-		uint8 numShaders = setupData.shaders.size();
+		uint8 numShaders = setupData.shaderResources.size();
 		serializer.write(numShaders);
 		for (int i = 0; i < numShaders; ++i)
 		{
-			SpirvShaderCode* shaderCode = static_cast<SpirvShaderCode*>(setupData.shaders[i].formatData);
+			SpirvShaderCode* shaderCode = static_cast<SpirvShaderCode*>(setupData.shaderResources[i].formatData);
 
-			uint8 shaderType = setupData.shaders[i].type;
+			uint8 shaderType = setupData.shaderResources[i].type;
 			serializer.write(shaderType);
 			serializer.write(shaderCode->codeBuffer);
 		}
@@ -368,7 +368,7 @@ namespace Render
 		return true;
 	}
 
-	bool VulkanShader::initialize(VkDevice device, Shader::Type type, SpirvShaderCode const& code)
+	bool VulkanShader::initialize(VkDevice device, EShader::Type type, SpirvShaderCode const& code)
 	{
 		mDevice = device;
 		VERIFY_RETURN_FALSE( code.createModel(mDevice, mModule) );

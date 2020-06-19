@@ -112,7 +112,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 	{
 		static ShaderEntryInfo entries[] =
 		{
-			{ Shader::eCompute , SHADER_ENTRY(MainCS) },
+			{ EShader::Compute , SHADER_ENTRY(MainCS) },
 		};
 		return entries;
 	}

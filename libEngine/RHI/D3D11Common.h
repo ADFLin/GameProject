@@ -492,7 +492,7 @@ namespace Render
 	class FD3D11Utility
 	{
 	public:
-		static FixString<32> GetShaderProfile( ID3D11Device* device , Shader::Type type);
+		static FixString<32> GetShaderProfile( ID3D11Device* device , EShader::Type type);
 	};
 
 

@@ -7,29 +7,48 @@ namespace Render
 	std::vector< MaterialShaderProgramClass* > MaterialShaderProgramClass::ClassList;
 
 	MaterialShaderProgramClass::MaterialShaderProgramClass(
-		CreateShaderFunc inCreateShader, 
+		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption, 
 		GetShaderFileNameFunc inGetShaderFileName, 
 		GetShaderEntriesFunc inGetShaderEntries)
-		:GlobalShaderProgramClass(inCreateShader, inSetupShaderCompileOption, inGetShaderFileName, inGetShaderEntries)
+		:GlobalShaderProgramClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName, inGetShaderEntries)
 	{
 		ClassList.push_back(this);
 	}
 
-#if 1
+	GlobalShaderObjectClass::GlobalShaderObjectClass(
+		CreateShaderObjectFunc inCreateShaderObject,
+		SetupShaderCompileOptionFunc inSetupShaderCompileOption,
+		GetShaderFileNameFunc inGetShaderFileName)
+		: CreateShaderObject(inCreateShaderObject)
+		, SetupShaderCompileOption(inSetupShaderCompileOption)
+		, GetShaderFileName(inGetShaderFileName)
+	{
+
+	}
+
 	GlobalShaderProgramClass::GlobalShaderProgramClass(
-		CreateShaderFunc inCreateShader,
+		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption,
 		GetShaderFileNameFunc inGetShaderFileName,
 		GetShaderEntriesFunc inGetShaderEntries)
-		: CreateShader(inCreateShader)
-		, SetupShaderCompileOption(inSetupShaderCompileOption)
-		, GetShaderFileName(inGetShaderFileName)
+		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName)
 		, GetShaderEntries(inGetShaderEntries)
 	{
 		ShaderManager::Get().registerGlobalShader(*this);
 	}
-#endif
+
+
+	GlobalShaderClass::GlobalShaderClass(
+		CreateShaderObjectFunc inCreateShaderObject,
+		SetupShaderCompileOptionFunc inSetupShaderCompileOption, 
+		GetShaderFileNameFunc inGetShaderFileName,
+		ShaderEntryInfo inEntry)
+		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName)
+		, entry(inEntry)
+	{
+		ShaderManager::Get().registerGlobalShader(*this);
+	}
 
 #endif //CORE_SHARE_CODE
 

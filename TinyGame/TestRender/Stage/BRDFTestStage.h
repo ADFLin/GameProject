@@ -184,8 +184,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}
@@ -256,8 +256,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(DownsamplePS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(DownsamplePS) },
 			};
 			return entries;
 		}
@@ -290,8 +290,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}
@@ -323,8 +323,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}

@@ -26,7 +26,7 @@ namespace Lighting2D
 		{
 			ShaderEntryInfo entries[] =
 			{
-				{ Shader::ePixel , SHADER_ENTRY(LightingPS) } ,
+				{ EShader::Pixel , SHADER_ENTRY(LightingPS) } ,
 			};
 			if( !ShaderManager::Get().loadFile(
 				mProgLighting, "Shader/Game/lighting2D", entries ) )
@@ -38,9 +38,9 @@ namespace Lighting2D
 			ShaderCompileOption option;
 			ShaderEntryInfo entries[] =
 			{ 
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel , SHADER_ENTRY(MainPS) } ,
-				{ Shader::eGeometry , SHADER_ENTRY(MainGS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
+				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
 			};
 			if( !ShaderManager::Get().loadFile(
 				mProgShadow, "Shader/Game/Lighting2DShadow", entries, option ) )

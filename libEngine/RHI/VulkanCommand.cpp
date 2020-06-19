@@ -537,7 +537,7 @@ namespace Render
 		return new VulkanDepthStencilState(initializer);
 	}
 
-	RHIShader* VulkanSystem::RHICreateShader(Shader::Type type)
+	RHIShader* VulkanSystem::RHICreateShader(EShader::Type type)
 	{
 
 		return new VulkanShader;

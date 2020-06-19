@@ -6,11 +6,6 @@
 
 namespace Render
 {
-	ShaderResource::~ShaderResource()
-	{
-
-	}
-
 	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
 	{
 #if _DEBUG

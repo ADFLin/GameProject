@@ -276,8 +276,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 		}
@@ -341,8 +341,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(TestPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(TestPS) },
 			};
 			return entries;
 		}
@@ -393,8 +393,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(SmokeRenderPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(SmokeRenderPS) },
 			};
 			return entries;
 		}
@@ -446,8 +446,8 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(SmokeBlendPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(SmokeBlendPS) },
 			};
 			return entries;
 		}
@@ -490,14 +490,17 @@ namespace Render
 		{
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(ResolveDepthPS) },
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(ResolveDepthPS) },
 			};
 			return entries;
 		}
 	};
 
+
+
 	IMPLEMENT_SHADER_PROGRAM(ResovleDepthProgram);
+
 
 	class NoiseTestStage : public TestRenderStageBase
 
@@ -513,6 +516,8 @@ namespace Render
 		NoiseShaderProgramBase* mProgNoiseTest;
 		SmokeRenderProgram*     mProgSmokeRender;
 		SmokeBlendProgram*      mProgSmokeBlend;
+
+		ScreenVS* mScreenVS;
 
 		class PointToRectOutlineProgram* mProgPointToRectOutline;
 

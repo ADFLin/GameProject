@@ -21,8 +21,17 @@ namespace Render
 
 	struct ShaderEntryInfo
 	{
-		Shader::Type type;
+		EShader::Type type;
 		char const*  name;
+
+#if 0
+		ShaderEntryInfo() = default;
+		ShaderEntryInfo(EShader::Type inType, char const* inName)
+			:type(inType), name(inName)
+		{
+
+		}
+#endif
 	};
 
 
@@ -213,6 +222,9 @@ namespace Render
 	{
 	public:
 		RHIShader():RHIResource(TRACE_TYPE_NAME("Shader")){}
+
+		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 	};
 
 	using RHIShaderRef = TRefCountPtr< RHIShader >;
@@ -229,12 +241,6 @@ namespace Render
 	};
 
 	using RHIShaderProgramRef = TRefCountPtr< RHIShaderProgram >;
-
-	class ShaderResource
-	{
-	public:
-		virtual ~ShaderResource();
-	};
 
 }//namespace Render
 

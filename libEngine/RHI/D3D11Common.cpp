@@ -269,7 +269,7 @@ namespace Render
 
 
 
-	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, Shader::Type type)
+	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, EShader::Type type)
 	{
 		char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" };
 		char const* featureName = nullptr;

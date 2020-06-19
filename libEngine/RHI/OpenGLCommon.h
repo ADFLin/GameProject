@@ -19,18 +19,19 @@
 #include <type_traits>
 
 #define IGNORE_NSIGHT_UNSUPPORT_CODE 0
+#define GL_NULL_HANDLE 0
 
 namespace Render
 {
 	bool VerifyOpenGLStatus();
 
 	template< class RMPolicy >
-	class TOpenGLObject : public RefCountedObjectT< TOpenGLObject< RMPolicy > >
+	class TOpenGLObject
 	{
 	public:
 		TOpenGLObject()
 		{
-			mHandle = 0;
+			mHandle = GL_NULL_HANDLE;
 		}
 
 		~TOpenGLObject()
@@ -38,7 +39,13 @@ namespace Render
 			destroyHandle();
 		}
 
-		bool isValid() { return mHandle != 0; }
+		TOpenGLObject(TOpenGLObject&& other)
+		{
+			mHandle = other.mHandle;
+			other.mHandle = GL_NULL_HANDLE;
+		}
+
+		bool isValid() { return mHandle != GL_NULL_HANDLE; }
 
 #if CPP_VARIADIC_TEMPLATE_SUPPORT
 		template< class ...Args >
@@ -46,7 +53,7 @@ namespace Render
 		{
 			if( !mHandle )
 				RMPolicy::Create(mHandle, std::forward<Args>(args)...);
-			return mHandle != 0;
+			return isValid();
 		}
 
 #else
@@ -54,7 +61,7 @@ namespace Render
 		{
 			if( !mHandle )
 				RMPolicy::Create(mHandle);
-			return mHandle != 0;
+			return isValid();
 		}
 
 		template< class P1 >
@@ -62,7 +69,7 @@ namespace Render
 		{
 			if( !mHandle )
 				RMPolicy::Create(mHandle, p1);
-			return mHandle != 0;
+			return isValid();
 		}
 
 #endif
@@ -72,7 +79,7 @@ namespace Render
 			if( mHandle )
 			{
 				RMPolicy::Destroy(mHandle);
-				mHandle = 0;
+				mHandle = GL_NULL_HANDLE;
 				if (!VerifyOpenGLStatus())
 				{
 					return false;
@@ -111,13 +118,11 @@ namespace Render
 	};
 
 	template< class RHIResourceType , class RMPolicy >
-	class TOpenGLResource : public RHIResourceType
+	class TOpenGLResource : public  TRefcountResource< RHIResourceType > 
 	{
 	public:
 		GLuint getHandle() const { return mGLObject.mHandle; }
 
-		virtual void incRef() { mGLObject.incRef();  }
-		virtual bool decRef() { return mGLObject.decRef();  }
 		virtual void releaseResource() 
 		{
 			if (!mGLObject.destroyHandle())
@@ -176,7 +181,7 @@ namespace Render
 	class OpenGLShaderResourceView : public TRefcountResource< RHIShaderResourceView >
 	{
 	public:
-		OpenGLShaderResourceView(EResourceHold):TRefcountResource< RHIShaderResourceView >(EResourceHold::EnumValue){}
+		OpenGLShaderResourceView(EPersistent):TRefcountResource< RHIShaderResourceView >(EPersistent::EnumValue){}
 
 		GLuint handle;
 		GLenum typeEnum;
@@ -187,7 +192,7 @@ namespace Render
 	{
 	protected:
 		TOpengGLTexture()
-			:mView(EResourceHold::EnumValue)
+			:mView(EPersistent::EnumValue)
 		{}
 		
 		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
@@ -268,7 +273,7 @@ namespace Render
 		static GLenum To(EAccessOperator op);
 		static GLenum To(Texture::Format format);
 		static GLenum To(EPrimitive type);
-		static GLenum To(Shader::Type type);
+		static GLenum To(EShader::Type type);
 		static GLenum To(ELockAccess access);
 		static GLenum To(Blend::Factor factor);
 		static GLenum To(Blend::Operation op);

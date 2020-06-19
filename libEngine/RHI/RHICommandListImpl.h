@@ -64,8 +64,7 @@ namespace Render
 		RHI_FUNC(void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 
-
-		RHI_FUNC(void RHISetShaderProgram(Shader::Type type, RHIShader* shader));
+		RHI_FUNC(void RHISetShaderPipelineState(ShaderPipelineState const& state));
 
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim));
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim));

@@ -7,12 +7,16 @@
 #include "HashString.h"
 
 #include <vector>
+#include <string>
 
 #define SHADER_FILE_SUBNAME ".sgc"
 
 namespace Render
 {
-	class ShaderProgramCompileInfo;
+	class Shader;
+	class ShaderProgram;
+	class ShaderManagedData;
+	class ShaderProgramManagedData;
 
 	enum ShaderFreature
 	{
@@ -24,14 +28,14 @@ namespace Render
 	struct ShaderCompileInfo
 	{
 		HashString   filePath;
-		Shader::Type type;
+		EShader::Type type;
 		
 		std::string  headCode;
 		std::vector< HashString > includeFiles;
 		std::string  entryName;
 
 		template< class S1 , class S2 >
-		ShaderCompileInfo(Shader::Type inType, HashString inFilePath, S1&& inCode , S2&& inEntryName )
+		ShaderCompileInfo(EShader::Type inType, HashString inFilePath, S1&& inCode , S2&& inEntryName )
 			:filePath(inFilePath), type(inType)
 			,headCode(std::forward<S1>(inCode))
 			,entryName(std::forward<S2>(inEntryName))
@@ -49,10 +53,18 @@ namespace Render
 
 	struct ShaderCompileInput
 	{
-		Shader::Type type;
+		EShader::Type type;
 		char const* path;
 		char const* definition;
-		struct ShaderProgramSetupData* setupData;
+
+		struct ShaderProgramSetupData* programSetupData;
+		struct ShaderSetupData* shaderSetupData;
+
+		ShaderCompileInput()
+		{
+			programSetupData = nullptr;
+			shaderSetupData = nullptr;
+		}
 	};
 
 	struct ShaderCompileOutput
@@ -64,7 +76,7 @@ namespace Render
 
 	struct ShaderResourceInfo
 	{
-		Shader::Type type;
+		EShader::Type type;
 		RHIShaderRef resource;
 		char const*  entry;
 		void*        formatData;
@@ -72,9 +84,16 @@ namespace Render
 
 	struct ShaderProgramSetupData
 	{
-		ShaderProgramCompileInfo*      compileInfo;
+		ShaderProgramManagedData*      managedData;
 		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
-		std::vector< ShaderResourceInfo > shaders;
+		std::vector< ShaderResourceInfo > shaderResources;
+	};
+
+	struct ShaderSetupData
+	{
+		ShaderManagedData*   managedData;
+		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
+		ShaderResourceInfo   shaderResource;
 	};
 
 	class ShaderFormat
@@ -90,11 +109,19 @@ namespace Render
 		virtual void precompileCode(ShaderProgramSetupData& setupData){}
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) = 0;
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) = 0;
-
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram){}
+		
+		virtual void precompileCode(ShaderSetupData& setupData) {}
+		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) { return false; }
+		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) { return false; }
+		virtual void postShaderLoaded(Shader& shader) {}
 
 		virtual bool isSupportBinaryCode() const { return false; }
 		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) = 0;
+		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
+		{
+			return false;
+		}
 
 		static bool PreprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes );
 		static void OutputError(char const* text);

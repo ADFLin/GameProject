@@ -372,7 +372,7 @@ namespace Render
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
-		RHIShader* RHICreateShader(Shader::Type type);
+		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
 
 		bool createInstance(std::vector<VkExtensionProperties> const& availableExtensions, bool enableValidation);

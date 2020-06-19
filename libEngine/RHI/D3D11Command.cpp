@@ -355,7 +355,7 @@ namespace Render
 
 		TComPtr< ID3D10Blob > errorCode;
 		TComPtr< ID3D10Blob > byteCode;
-		FixString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice, Shader::eVertex);
+		FixString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice, EShader::Vertex);
 
 		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 		VERIFY_D3D11RESULT(
@@ -502,7 +502,7 @@ namespace Render
 		return nullptr;
 	}
 
-	RHIShader* D3D11System::RHICreateShader(Shader::Type type)
+	RHIShader* D3D11System::RHICreateShader(EShader::Type type)
 	{
 		return new D3D11Shader;
 	}
@@ -620,7 +620,7 @@ namespace Render
 		}
 	}
 
-	template< Shader::Type TypeValue >
+	template< EShader::Type TypeValue >
 	void D3D11ShaderBoundState::commitState(ID3D11DeviceContext* context)
 	{
 #if 0
@@ -654,12 +654,12 @@ namespace Render
 					mask &= ~BIT(index);
 					switch( TypeValue )
 					{
-					case Shader::eVertex:   context->VSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case Shader::ePixel:    context->PSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case Shader::eGeometry: context->GSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case Shader::eHull:     context->HSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case Shader::eDomain:   context->DSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case Shader::eCompute:  context->CSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case EShader::Vertex:   context->VSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case EShader::Pixel:    context->PSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case EShader::Geometry: context->GSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case EShader::Hull:     context->HSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case EShader::Domain:   context->DSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case EShader::Compute:  context->CSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
 					}
 				}
 			}
@@ -676,12 +676,12 @@ namespace Render
 					mask &= ~BIT(index);
 					switch( TypeValue )
 					{
-					case Shader::eVertex:   context->VSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case Shader::ePixel:    context->PSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case Shader::eGeometry: context->GSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case Shader::eHull:     context->HSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case Shader::eDomain:   context->DSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case Shader::eCompute:  context->CSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case EShader::Vertex:   context->VSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case EShader::Pixel:    context->PSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case EShader::Geometry: context->GSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case EShader::Hull:     context->HSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case EShader::Domain:   context->DSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case EShader::Compute:  context->CSSetShaderResources(index, 1, mBoundedSRVs + index); break;
 					}
 				}
 			}
@@ -698,19 +698,19 @@ namespace Render
 					mask &= ~BIT(index);
 					switch( TypeValue )
 					{
-					case Shader::eVertex:   context->VSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case Shader::ePixel:    context->PSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case Shader::eGeometry: context->GSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case Shader::eHull:     context->HSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case Shader::eDomain:   context->DSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case Shader::eCompute:  context->CSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case EShader::Vertex:   context->VSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case EShader::Pixel:    context->PSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case EShader::Geometry: context->GSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case EShader::Hull:     context->HSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case EShader::Domain:   context->DSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case EShader::Compute:  context->CSSetSamplers(index, 1, mBoundedSamplers + index); break;
 					}
 				}
 			}
 		}
 	}
 
-	template< Shader::Type TypeValue >
+	template< EShader::Type TypeValue >
 	void D3D11ShaderBoundState::clearState(ID3D11DeviceContext* context)
 	{
 		for( int index = 0; index < 2; ++index )
@@ -718,12 +718,12 @@ namespace Render
 			ID3D11Buffer* emptyBuffer = nullptr;
 			switch( TypeValue )
 			{
-			case Shader::eVertex:   context->VSSetConstantBuffers(index, 1, &emptyBuffer); break;
-			case Shader::ePixel:    context->PSSetConstantBuffers(index, 1, &emptyBuffer); break;
-			case Shader::eGeometry: context->GSSetConstantBuffers(index, 1, &emptyBuffer); break;
-			case Shader::eHull:     context->HSSetConstantBuffers(index, 1, &emptyBuffer); break;
-			case Shader::eDomain:   context->DSSetConstantBuffers(index, 1, &emptyBuffer); break;
-			case Shader::eCompute:  context->CSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case EShader::Vertex:   context->VSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case EShader::Pixel:    context->PSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case EShader::Geometry: context->GSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case EShader::Hull:     context->HSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case EShader::Domain:   context->DSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case EShader::Compute:  context->CSSetConstantBuffers(index, 1, &emptyBuffer); break;
 			}
 		}
 	}
@@ -733,7 +733,7 @@ namespace Render
 	{
 		mDevice = device;
 		mDeviceContext = deviceContext;
-		for( int i = 0; i < Shader::Count; ++i )
+		for( int i = 0; i < EShader::Count; ++i )
 		{
 			mBoundedShaders[i].resource = nullptr;
 			mShaderBoundState[i].initialize(device, deviceContext);
@@ -795,11 +795,11 @@ namespace Render
 #define CLEAR_SHADER_STATE( SHADER_TYPE )\
 		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
 
-		CLEAR_SHADER_STATE(Shader::eVertex);
-		CLEAR_SHADER_STATE(Shader::ePixel);
-		CLEAR_SHADER_STATE(Shader::eGeometry);
-		CLEAR_SHADER_STATE(Shader::eHull);
-		CLEAR_SHADER_STATE(Shader::eDomain);
+		CLEAR_SHADER_STATE(EShader::Vertex);
+		CLEAR_SHADER_STATE(EShader::Pixel);
+		CLEAR_SHADER_STATE(EShader::Geometry);
+		CLEAR_SHADER_STATE(EShader::Hull);
+		CLEAR_SHADER_STATE(EShader::Domain);
 
 #undef CLEAR_SHADER_STATE
 	}
@@ -1002,11 +1002,11 @@ namespace Render
 #define CLEAR_SHADER_STATE( SHADER_TYPE )\
 		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
 
-		CLEAR_SHADER_STATE(Shader::eVertex);
-		CLEAR_SHADER_STATE(Shader::ePixel);
-		CLEAR_SHADER_STATE(Shader::eGeometry);
-		CLEAR_SHADER_STATE(Shader::eHull);
-		CLEAR_SHADER_STATE(Shader::eDomain);
+		CLEAR_SHADER_STATE(EShader::Vertex);
+		CLEAR_SHADER_STATE(EShader::Pixel);
+		CLEAR_SHADER_STATE(EShader::Geometry);
+		CLEAR_SHADER_STATE(EShader::Hull);
+		CLEAR_SHADER_STATE(EShader::Domain);
 
 #undef CLEAR_SHADER_STATE
 
@@ -1024,12 +1024,12 @@ namespace Render
 
 		if( mBoundedShaderDirtyMask )
 		{
-			SET_SHADER(Shader::eVertex);
-			SET_SHADER(Shader::ePixel);
-			SET_SHADER(Shader::eGeometry);
-			SET_SHADER(Shader::eHull);
-			SET_SHADER(Shader::eDomain);
-			mBoundedShaderDirtyMask = (mBoundedShaderDirtyMask & BIT(Shader::eCompute));
+			SET_SHADER(EShader::Vertex);
+			SET_SHADER(EShader::Pixel);
+			SET_SHADER(EShader::Geometry);
+			SET_SHADER(EShader::Hull);
+			SET_SHADER(EShader::Domain);
+			mBoundedShaderDirtyMask = (mBoundedShaderDirtyMask & BIT(EShader::Compute));
 		}
 #define COMMIT_SHADER_STATE( SHADER_TYPE )\
 		if( mBoundedShaderMask & BIT(SHADER_TYPE) )\
@@ -1037,11 +1037,11 @@ namespace Render
 			mShaderBoundState[SHADER_TYPE].commitState<SHADER_TYPE>(mDeviceContext.get());\
 		}
 
-		COMMIT_SHADER_STATE(Shader::eVertex);
-		COMMIT_SHADER_STATE(Shader::ePixel);
-		COMMIT_SHADER_STATE(Shader::eGeometry);
-		COMMIT_SHADER_STATE(Shader::eHull);
-		COMMIT_SHADER_STATE(Shader::eDomain);
+		COMMIT_SHADER_STATE(EShader::Vertex);
+		COMMIT_SHADER_STATE(EShader::Pixel);
+		COMMIT_SHADER_STATE(EShader::Geometry);
+		COMMIT_SHADER_STATE(EShader::Hull);
+		COMMIT_SHADER_STATE(EShader::Domain);
 
 #undef SET_SHADER
 #undef COMMIT_SHADER_STATE
@@ -1049,12 +1049,12 @@ namespace Render
 
 	void D3D11Context::commitComputeState()
 	{
-		if( mBoundedShaderDirtyMask & BIT(Shader::eCompute) )
+		if( mBoundedShaderDirtyMask & BIT(EShader::Compute) )
 		{
-			setShader<Shader::eCompute>(mBoundedShaders[Shader::eCompute]);
-			mBoundedShaderDirtyMask &= ~BIT(Shader::eCompute);
+			setShader<EShader::Compute>(mBoundedShaders[EShader::Compute]);
+			mBoundedShaderDirtyMask &= ~BIT(EShader::Compute);
 		}
-		mShaderBoundState[Shader::eCompute].commitState<Shader::eCompute>(mDeviceContext.get());
+		mShaderBoundState[EShader::Compute].commitState<EShader::Compute>(mDeviceContext.get());
 	}
 
 	void D3D11Context::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
@@ -1063,7 +1063,7 @@ namespace Render
 		{
 			mBoundedShaderMask = 0;
 			mVertexShader = nullptr;
-			for( int i = 0; i < Shader::Count; ++i )
+			for( int i = 0; i < EShader::Count; ++i )
 			{
 				if( mBoundedShaders[i].resource )
 				{
@@ -1076,7 +1076,7 @@ namespace Render
 		{
 			mBoundedShaderMask = 0;
 			auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram);
-			for( int i = 0; i < Shader::Count; ++i )
+			for( int i = 0; i < EShader::Count; ++i )
 			{
 				if( !shaderProgramImpl.mShaders[i].isValid() )
 					break;
@@ -1084,7 +1084,7 @@ namespace Render
 				auto& shader = *shaderProgramImpl.mShaders[i];
 				auto  type = shader.mResource.type;
 
-				if (type == Shader::eVertex)
+				if (type == EShader::Vertex)
 				{
 					mVertexShader = &shader;
 				}
@@ -1099,17 +1099,17 @@ namespace Render
 		}
 	}
 
-	template< Shader::Type TypeValue >
+	template< EShader::Type TypeValue >
 	void D3D11Context::setShader(D3D11ShaderVariant  const& shaderVariant)
 	{
 		switch( TypeValue )
 		{
-		case Shader::eVertex:   mDeviceContext->VSSetShader(shaderVariant.vertex, nullptr, 0); break;
-		case Shader::ePixel:    mDeviceContext->PSSetShader(shaderVariant.pixel, nullptr, 0); break;
-		case Shader::eGeometry: mDeviceContext->GSSetShader(shaderVariant.geometry, nullptr, 0); break;
-		case Shader::eHull:     mDeviceContext->HSSetShader(shaderVariant.hull, nullptr, 0); break;
-		case Shader::eDomain:   mDeviceContext->DSSetShader(shaderVariant.domain, nullptr, 0); break;
-		case Shader::eCompute:  mDeviceContext->CSSetShader(shaderVariant.compute, nullptr, 0); break;
+		case EShader::Vertex:   mDeviceContext->VSSetShader(shaderVariant.vertex, nullptr, 0); break;
+		case EShader::Pixel:    mDeviceContext->PSSetShader(shaderVariant.pixel, nullptr, 0); break;
+		case EShader::Geometry: mDeviceContext->GSSetShader(shaderVariant.geometry, nullptr, 0); break;
+		case EShader::Hull:     mDeviceContext->HSSetShader(shaderVariant.hull, nullptr, 0); break;
+		case EShader::Domain:   mDeviceContext->DSSetShader(shaderVariant.domain, nullptr, 0); break;
+		case EShader::Compute:  mDeviceContext->CSSetShader(shaderVariant.compute, nullptr, 0); break;
 		}
 	}
 
@@ -1117,7 +1117,7 @@ namespace Render
 	void D3D11Context::setShaderValueT(RHIShaderProgram& shaderProgram, ShaderParameter const& param, ValueType const val[], int dim)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
-		shaderProgramImpl.setupShader(param, [this, val, dim](Shader::Type type, ShaderParameter const& shaderParam)
+		shaderProgramImpl.setupShader(param, [this, val, dim](EShader::Type type, ShaderParameter const& shaderParam)
 		{
 			mShaderBoundState[type].setShaderValue(shaderParam, val, sizeof(ValueType) * dim);
 		});
@@ -1175,7 +1175,7 @@ namespace Render
 	void D3D11Context::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
-		shaderProgramImpl.setupShader(param, [this, &texture](Shader::Type type, ShaderParameter const& shaderParam)
+		shaderProgramImpl.setupShader(param, [this, &texture](EShader::Type type, ShaderParameter const& shaderParam)
 		{
 			mShaderBoundState[type].setTexture(shaderParam, texture);
 		});
@@ -1184,7 +1184,7 @@ namespace Render
 	void D3D11Context::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
-		shaderProgramImpl.setupShader(param, [this, &sampler](Shader::Type type, ShaderParameter const& shaderParam)
+		shaderProgramImpl.setupShader(param, [this, &sampler](EShader::Type type, ShaderParameter const& shaderParam)
 		{
 			mShaderBoundState[type].setSampler(shaderParam, sampler);
 		});
@@ -1193,7 +1193,7 @@ namespace Render
 	void D3D11Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
-		shaderProgramImpl.setupShader(param, [this, &buffer](Shader::Type type, ShaderParameter const& shaderParam)
+		shaderProgramImpl.setupShader(param, [this, &buffer](EShader::Type type, ShaderParameter const& shaderParam)
 		{
 			mShaderBoundState[type].setUniformBuffer(shaderParam, buffer);
 		});

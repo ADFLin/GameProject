@@ -45,7 +45,7 @@ namespace ECS
 			return mPackedValue == rhs.mPackedValue;
 		}
 
-		uint32 getHash() const
+		uint32 getTypeHash() const
 		{
 			return HashValue(mPackedValue);
 		}

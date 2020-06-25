@@ -7,6 +7,7 @@
 #include "ProfileSystem.h"
 
 
+
 namespace Render
 {
 
@@ -74,10 +75,6 @@ namespace Render
 		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(EquirectangularToCubeProgram, Global);
 
-		static char const* GetShaderFileName()
-		{
-			return "Shader/EnvLightTextureGen";
-		}
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -86,6 +83,23 @@ namespace Render
 				{ EShader::Pixel  , SHADER_ENTRY(EquirectangularToCubePS) },
 			};
 			return entries;
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/EnvLightTextureGen";
+		}
+	};
+
+	class EquirectangularToCubePS : public GlobalShader
+	{
+	public:
+		using BaseClass = GlobalShader;
+		DECLARE_SHADER(EquirectangularToCubePS, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/EnvLightTextureGen";
 		}
 	};
 	
@@ -111,6 +125,20 @@ namespace Render
 		}
 	};
 
+
+	class IrradianceGenPS : public GlobalShader
+	{
+	public:
+		using BaseClass = GlobalShader;
+		DECLARE_SHADER(IrradianceGenPS, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/EnvLightTextureGen";
+		}
+	};
+
+
 	class PrefilteredGenProgram : public GlobalShaderProgram
 	{
 	public:
@@ -132,6 +160,20 @@ namespace Render
 		}
 	};
 
+	class PrefilteredGenPS : public GlobalShader
+	{
+	public:
+		using BaseClass = GlobalShader;
+		DECLARE_SHADER(PrefilteredGenPS, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/EnvLightTextureGen";
+		}
+	};
+
+
+
 	class PreIntegrateBRDFGenProgram : public GlobalShaderProgram
 	{
 	public:
@@ -152,6 +194,24 @@ namespace Render
 			return entries;
 		}
 	};
+
+
+	class PreIntegrateBRDFGenPS : public GlobalShader
+	{
+	public:
+		using BaseClass = GlobalShader;
+		DECLARE_SHADER(PreIntegrateBRDFGenPS, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/EnvLightTextureGen";
+		}
+	};
+
+	IMPLEMENT_SHADER(EquirectangularToCubePS, EShader::Pixel, SHADER_ENTRY(EquirectangularToCubePS));
+	IMPLEMENT_SHADER(IrradianceGenPS, EShader::Pixel, SHADER_ENTRY(IrradianceGenPS));
+	IMPLEMENT_SHADER(PrefilteredGenPS, EShader::Pixel, SHADER_ENTRY(PrefilteredGenPS));
+	IMPLEMENT_SHADER(PreIntegrateBRDFGenPS, EShader::Pixel, SHADER_ENTRY(PreIntegrateBRDFGenPS));
 
 	IMPLEMENT_SHADER_PROGRAM(EquirectangularToCubeProgram);
 	IMPLEMENT_SHADER_PROGRAM(IrradianceGenProgram);
@@ -332,13 +392,22 @@ namespace Render
 
 	bool IBLResourceBuilder::initializeShaderProgram()
 	{
-		if( mProgEquirectangularToCube != nullptr )
+		if( mEquirectangularToCubePS != nullptr )
 			return true;
 
+#if USE_SEPARATE_SHADER
+		VERIFY_RETURN_FALSE(mScreenVS = ShaderManager::Get().getGlobalShaderT< ScreenVS >(true));
+		VERIFY_RETURN_FALSE(mEquirectangularToCubePS = ShaderManager::Get().getGlobalShaderT< EquirectangularToCubePS >(true));
+		VERIFY_RETURN_FALSE(mIrradianceGenPS = ShaderManager::Get().getGlobalShaderT< IrradianceGenPS >(true));
+		VERIFY_RETURN_FALSE(mPrefilteredGenPS = ShaderManager::Get().getGlobalShaderT< PrefilteredGenPS >(true));
+		VERIFY_RETURN_FALSE(mPreIntegrateBRDFGenPS = ShaderManager::Get().getGlobalShaderT< PreIntegrateBRDFGenPS >(true));
+#else
 		VERIFY_RETURN_FALSE(mProgEquirectangularToCube = ShaderManager::Get().getGlobalShaderT< EquirectangularToCubeProgram >(true));
 		VERIFY_RETURN_FALSE(mProgIrradianceGen = ShaderManager::Get().getGlobalShaderT< IrradianceGenProgram >(true));
-		VERIFY_RETURN_FALSE(mProgPrefilterdGen = ShaderManager::Get().getGlobalShaderT< PrefilteredGenProgram >(true));
+		VERIFY_RETURN_FALSE(mProgPrefilteredGen = ShaderManager::Get().getGlobalShaderT< PrefilteredGenProgram >(true));
 		VERIFY_RETURN_FALSE(mProgPreIntegrateBRDFGen = ShaderManager::Get().getGlobalShaderT< PreIntegrateBRDFGenProgram >(true));
+#endif	
+
 		return true;
 	}
 
@@ -377,7 +446,7 @@ namespace Render
 				return true;
 			};
 
-			if( !dataCache.loadDelegate(cacheKey, LoadFun) )
+			if( true || !dataCache.loadDelegate(cacheKey, LoadFun) )
 			{
 				resource.initializeRHI(setting);
 				if( !buildIBLResource(HDRImage, resource, setting) )
@@ -433,8 +502,8 @@ namespace Render
 	}
 
 
-	template< class Func >
-	void RenderCubeTexture(RHICommandList& commandList, OpenGLFrameBuffer& frameBuffer, RHITextureCube& cubeTexture, ShaderProgram& updateShader, int level, Func shaderSetup)
+	template< class TFunc >
+	void RenderCubeTexture(RHICommandList& commandList, RHIFrameBufferRef& frameBuffer, RHITextureCube& cubeTexture, ShaderProgram& updateShader, int level, TFunc&& shaderSetup)
 	{
 		int size = cubeTexture.getSize() >> level;
 
@@ -444,7 +513,7 @@ namespace Render
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
 		for( int i = 0; i < Texture::FaceCount; ++i )
 		{
-			frameBuffer.setTexture(0, cubeTexture, Texture::Face(i), level);
+			frameBuffer->setTexture(0, cubeTexture, Texture::Face(i), level);
 			GL_BIND_LOCK_OBJECT(frameBuffer);
 
 			RHISetShaderProgram(commandList, updateShader.getRHIResource());
@@ -452,6 +521,37 @@ namespace Render
 			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
 			shaderSetup(commandList);
 			DrawUtility::ScreenRect(commandList);
+		}
+	}
+
+	template< class TFunc >
+	void IBLResourceBuilder::renderCubeTexture(RHICommandList& commandList, RHIFrameBufferRef& frameBuffer, RHITextureCube& cubeTexture, GlobalShader& shaderPS ,int level, TFunc&& shaderSetup)
+	{
+		int size = cubeTexture.getSize() >> level;
+
+		RHISetViewport(commandList, 0, 0, size, size);
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
+
+		for (int i = 0; i < Texture::FaceCount; ++i)
+		{
+			frameBuffer->setTexture(0, cubeTexture, Texture::Face(i), level);
+
+			RHISetFrameBuffer(commandList, frameBuffer);
+
+			GraphicShaderBoundState boundState;
+			boundState.vertexShader = mScreenVS->getRHIResource();
+			boundState.pixelShader = shaderPS.getRHIResource();
+			RHISetGraphicsShaderBoundState(commandList, boundState);
+
+			shaderPS.setParam(commandList, SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
+			shaderPS.setParam(commandList, SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
+
+			shaderSetup(commandList);
+			DrawUtility::ScreenRect(commandList);
+
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 	}
 
@@ -463,47 +563,83 @@ namespace Render
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-		OpenGLFrameBuffer frameBuffer;
-		frameBuffer.create();
 
+		RHIFrameBufferRef frameBuffer = RHICreateFrameBuffer();
+
+#if USE_SEPARATE_SHADER
+		renderCubeTexture(commandList, frameBuffer, *resource.texture, *mEquirectangularToCubePS, 0, [&](RHICommandList& commandList)
+		{
+			mEquirectangularToCubePS->setTexture(commandList,
+				SHADER_PARAM(Texture), envTexture,
+				SHADER_PARAM(TextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+		});
+#else
 		RenderCubeTexture( commandList, frameBuffer, *resource.texture, *mProgEquirectangularToCube, 0, [&](RHICommandList& commandList)
 		{
-			mProgEquirectangularToCube->setTexture(commandList, 
+			mProgEquirectangularToCube->setTexture(commandList,
 				SHADER_PARAM(Texture), envTexture, 
 				SHADER_PARAM(TextureSampler) ,TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 		});
+#endif
 
+#if USE_SEPARATE_SHADER
 		//IrradianceTexture
-		RenderCubeTexture( commandList, frameBuffer, *resource.irradianceTexture, *mProgIrradianceGen, 0, [&](RHICommandList& commandList)
+		renderCubeTexture( commandList, frameBuffer, *resource.irradianceTexture, *mIrradianceGenPS, 0, [&](RHICommandList& commandList)
 		{
-			mProgIrradianceGen->setTexture(commandList, SHADER_PARAM(CubeTexture), *resource.texture, SHADER_PARAM(CubeTextureSampler) , TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			mIrradianceGenPS->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler) , TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			mIrradianceGenPS->setParam(commandList, SHADER_PARAM(IrrianceSampleCount), setting.irradianceSampleCount[0], setting.irradianceSampleCount[1]);
+		});
+#else
+		RenderCubeTexture(commandList, frameBuffer, *resource.irradianceTexture, *mProgIrradianceGen, 0, [&](RHICommandList& commandList)
+		{
+			mProgIrradianceGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 			mProgIrradianceGen->setParam(commandList, SHADER_PARAM(IrrianceSampleCount), setting.irradianceSampleCount[0], setting.irradianceSampleCount[1]);
 		});
 
+#endif
+
 		for( int level = 0; level < IBLResource::NumPerFilteredLevel; ++level )
 		{
-			RenderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mProgPrefilterdGen, level, [&](RHICommandList& commandList)
+#if USE_SEPARATE_SHADER
+			renderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mPrefilteredGenPS, level, [&](RHICommandList& commandList)
 			{
-				mProgPrefilterdGen->setParam(commandList, SHADER_PARAM(Roughness), float(level) / (IBLResource::NumPerFilteredLevel - 1));
-				mProgPrefilterdGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
-				mProgPrefilterdGen->setParam(commandList, SHADER_PARAM(PrefilterSampleCount), setting.prefilterSampleCount);
+				mPrefilteredGenPS->setParam(commandList, SHADER_PARAM(Roughness), float(level) / (IBLResource::NumPerFilteredLevel - 1));
+				mPrefilteredGenPS->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+				mPrefilteredGenPS->setParam(commandList, SHADER_PARAM(PrefilterSampleCount), setting.prefilterSampleCount);
 			});
+#else
+			RenderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mProgPrefilteredGen, level, [&](RHICommandList& commandList)
+			{
+				mProgPrefilteredGen->setParam(commandList, SHADER_PARAM(Roughness), float(level) / (IBLResource::NumPerFilteredLevel - 1));
+				mProgPrefilteredGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+				mProgPrefilteredGen->setParam(commandList, SHADER_PARAM(PrefilterSampleCount), setting.prefilterSampleCount);
+			});
+#endif
 		}
 
 		if( !resource.SharedBRDFTexture.isValid() )
 		{
 			IBLResource::InitializeBRDFTexture(nullptr);
+			frameBuffer->setTexture(0, *resource.SharedBRDFTexture);
+			RHISetFrameBuffer(commandList, frameBuffer);
 
-			frameBuffer.setTexture(0, *resource.SharedBRDFTexture);
+
 			RHISetViewport(commandList, 0, 0, resource.SharedBRDFTexture->getSizeX(), resource.SharedBRDFTexture->getSizeY());
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
 
-			GL_BIND_LOCK_OBJECT(frameBuffer);
-
+#if USE_SEPARATE_SHADER
+			GraphicShaderBoundState boundState;
+			boundState.vertexShader = mScreenVS->getRHIResource();
+			boundState.pixelShader = mPreIntegrateBRDFGenPS->getRHIResource();
+			RHISetGraphicsShaderBoundState(commandList, boundState);
+			mPreIntegrateBRDFGenPS->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
+#else
 			RHISetShaderProgram(commandList, mProgPreIntegrateBRDFGen->getRHIResource());
 			mProgPreIntegrateBRDFGen->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
+#endif
+
 			DrawUtility::ScreenRect(commandList);
 		}
 

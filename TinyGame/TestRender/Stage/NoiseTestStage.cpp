@@ -206,10 +206,9 @@ namespace Render
 
 		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, numSamples));
 		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget));
-		VERIFY_RETURN_FALSE(mFrameBuffer.create());
-		mFrameBuffer.addTexture(*mScreenBuffer);
-		
-		mFrameBuffer.setDepth(*mDepthBuffer);
+		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
+		mFrameBuffer->addTexture(*mScreenBuffer);
+		mFrameBuffer->setDepth(*mDepthBuffer);
 
 		if( numSamples != 1 )
 		{
@@ -514,9 +513,9 @@ namespace Render
 			GPU_PROFILE("Scene");
 
 			{
-				mFrameBuffer.setDepth(*mDepthBuffer);
-				GL_BIND_LOCK_OBJECT(mFrameBuffer);
+				mFrameBuffer->setDepth(*mDepthBuffer);
 
+				RHISetFrameBuffer(commandList, mFrameBuffer);
 				glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -576,7 +575,7 @@ namespace Render
 
 			{
 				GPU_PROFILE("CopyToScreen");
-				mFrameBuffer.blitToBackBuffer();
+				OpenGLCast::To( mFrameBuffer )->blitToBackBuffer();
 				//ShaderHelper::Get().copyTextureToBuffer(*mScreenBuffer);
 				//return;
 			}
@@ -616,10 +615,13 @@ namespace Render
 				mProgSmokeRender->setParam(commandList, SHADER_PARAM(TiledLightNum), (int)mLights.size());
 				mProgSmokeRender->setTexture(commandList, SHADER_PARAM(SceneDepthTexture), *mResolvedDepthBuffer);
 				DrawUtility::ScreenRect(commandList);
+
+				RHISetFrameBuffer(commandList, nullptr);
 			}
 
 			{
-				mFrameBuffer.unbind();
+				RHISetFrameBuffer(commandList, nullptr);
+
 				//GL_BIND_LOCK_OBJECT(mFrameBuffer);
 				GPU_PROFILE("SmokeBlend");
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());

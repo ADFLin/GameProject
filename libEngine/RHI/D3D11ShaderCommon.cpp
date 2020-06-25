@@ -110,6 +110,7 @@ namespace Render
 			return false;
 
 		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
+		return true;
 	}
 
 	bool ShaderFormatHLSL::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode)

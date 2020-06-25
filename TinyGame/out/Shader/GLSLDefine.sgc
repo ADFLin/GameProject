@@ -26,7 +26,7 @@
 #else
 
 #define PIXEL_SHADER 1
-#define uniform
+#define uniform struct
 #define attribute
 #define varying
 #define discard
@@ -50,6 +50,12 @@ typedef float2x2 mat2;
 typedef float3x3 mat3;
 typedef float4x4 mat4;
 
+#endif
+
+#if VERTEX_SHADER
+#define vs_out out
+#else
+#define vs_out in
 #endif
 
 #define UNROLL
@@ -89,10 +95,10 @@ VECTOR_TYPE_LIST(SincosT)
 
 float BufferDepthToClipZ(float bufferDepth)
 {
-#if COMPILER_GLSL
-	return 2 * bufferDepth / gl_DepthRange.diff - 1;
-#else
+#if SYSTEM_VULKAN
 	return bufferDepth;
+#else
+	return 2 * bufferDepth / gl_DepthRange.diff - 1;
 #endif
 }
 
@@ -116,7 +122,11 @@ VECTOR_TYPE_NO_FLOAT_LIST(ClipT)
 
 void WritePixelDepth(float NDCz)
 {
+#if SYSTEM_VULKAN
+	gl_FragDepth = NDCz;
+#else
 	gl_FragDepth = (gl_DepthRange.diff * NDCz + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
+#endif
 }
 
 void WritePixelRawDepth(float value)

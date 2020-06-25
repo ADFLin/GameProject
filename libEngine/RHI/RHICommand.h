@@ -202,7 +202,7 @@ namespace Render
 	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[] , int numData );
 	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 	RHI_API void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* textures[] = nullptr, int numTexture = 0);
-	RHI_API void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
+	RHI_API void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer);
 
 	RHI_API void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
@@ -211,7 +211,7 @@ namespace Render
 	RHI_API void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
 	RHI_API void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
 
-	struct ShaderPipelineState
+	struct GraphicShaderBoundState
 	{
 		RHIShader* vertexShader;
 		RHIShader* pixelShader;
@@ -219,12 +219,12 @@ namespace Render
 		RHIShader* hullShader;
 		RHIShader* domainShader;
 
-		ShaderPipelineState()
+		GraphicShaderBoundState()
 		{
 			::memset(this, 0, sizeof(*this));
 		}
 	};
-	RHI_API void RHISetShaderPipelineState(RHICommandList& commandList, ShaderPipelineState const& state);
+	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicShaderBoundState const& state);
 
 	RHI_API void RHIFlushCommand(RHICommandList& commandList);
 

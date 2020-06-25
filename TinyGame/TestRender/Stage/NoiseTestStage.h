@@ -517,8 +517,6 @@ namespace Render
 		SmokeRenderProgram*     mProgSmokeRender;
 		SmokeBlendProgram*      mProgSmokeBlend;
 
-		ScreenVS* mScreenVS;
-
 		class PointToRectOutlineProgram* mProgPointToRectOutline;
 
 		ResovleDepthProgram*    mProgResolveDepth;
@@ -531,7 +529,7 @@ namespace Render
 		RHIFrameBufferRef  mSmokeFrameBuffer;
 		RHIFrameBufferRef  mResolveFrameBuffer;
 
-		OpenGLFrameBuffer  mFrameBuffer;
+		RHIFrameBufferRef  mFrameBuffer;
 		RHITextureDepthRef mDepthBuffer;
 		RHITextureDepthRef mResolvedDepthBuffer;
 		RHITexture2DRef    mScreenBuffer;

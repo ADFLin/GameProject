@@ -23,7 +23,7 @@ void CopyTextureMaskPS()
 
 
 uniform float2 ColorBais;
-void CopyTextureBaisPS()
+void CopyTextureBiasPS()
 {
 	float2 UVs = VSOutput.UVs;
 	float3 color = ColorBais.x * texture2D(CopyTexture, UVs).rgb + ColorBais.y;

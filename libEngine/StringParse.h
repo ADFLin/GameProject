@@ -32,43 +32,15 @@ private:
 	uint8 mDelimsMap[256];
 };
 
-class FStringParse
+class FStringParseBase
 {
 public:
-	static char const* FindLastChar(char const* str, int num, char c);
-	static char const* FindLastChar(char const* str, char c)
-	{
-		return FindLastChar(str, strlen(str), c);
-	}
-	static char const* FindChar(char const* str, char c);
-	static char const* FindChar(char const* str, char c1, char c2);
-	static char const* FindChar(char const* str, char c1, char c2, char c3);
-	static char const* FindChar(char const* str, char c1, char c2, char c3, char c4);
-	static char const* FindChar(char const* str, char const* findChars);
-
-
-	static char const* SkipChar(char const* str, char const* skipChars);
-	static char const* SkipChar(char const* str, char skipChar);
-	static char const* SkipSpace(char const* str);
-	static char const* SkipToNextLine(char const* str);
-
-	static char const* SkipToChar(char const* str, char c, bool bCheckComment, bool bCheckString);
-	static char const* SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString);
-	static void ReplaceChar(char* str, char c, char replace);
-
 	enum TokenType
 	{
 		eNoToken = 0,
 		eStringType = 1,
 		eDelimsType = 2,
 	};
-	static TokenType StringToken(char const*& inoutStr, DelimsTable const& table, StringView& outToken);
-	static void      SkipDelims(char const*& inoutStr, DelimsTable const& table);
-
-	static TokenType StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, StringView& outToken);
-	static bool      StringToken(char const*& inoutStr, char const* dropDelims, StringView& outToken);
-	static StringView StringTokenLine(char const*& inoutStr);
-
 	enum
 	{
 		IntNumber,
@@ -78,18 +50,54 @@ public:
 		DoubleNumber,
 		ErrorNumber,
 	};
-	static int ParseNumber(char const* str, int& num);
-	//
-	static int ParseIntNumber(char const* str, int& num);
+};
 
-	static char const* TrySkipToStringSectionEnd(char const* str) { return TrySkipToSectionEnd(str, '\"'); }
-	static char const* TrySkipToCharSectionEnd(char const* str) { return TrySkipToSectionEnd(str, '\''); }
-	static char const* CheckAndSkipToCommentSectionEnd(char const* str);
-
-
-	static int CountChar(char const* start, char const* end, char c)
+template<class CharT>
+class TStringParse : public FStringParseBase
+{
+public:
+	static CharT const* FindLastChar(CharT const* str, int num, CharT c);
+	static CharT const* FindLastChar(CharT const* str, CharT c)
 	{
-		char const* p = start;
+		return FindLastChar(str, FCString::Strlen(str), c);
+	}
+	static CharT const* FindChar(CharT const* str, CharT c);
+	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2);
+	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2, CharT c3);
+	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2, CharT c3, CharT c4);
+	static CharT const* FindChar(CharT const* str, CharT const* findChars);
+
+
+	static CharT const* SkipChar(CharT const* str, CharT const* skipChars);
+	static CharT const* SkipChar(CharT const* str, CharT skipChar);
+	static CharT const* SkipSpace(CharT const* str);
+	static CharT const* SkipToNextLine(CharT const* str);
+
+	static CharT const* SkipToChar(CharT const* str, CharT c, bool bCheckComment, bool bCheckString);
+	static CharT const* SkipToChar(CharT const* str, CharT c, CharT cPair, bool bCheckComment, bool bCheckString);
+	static void ReplaceChar(CharT* str, CharT c, CharT replace);
+
+
+	static TokenType StringToken(CharT const*& inoutStr, DelimsTable const& table, TStringView<CharT>& outToken);
+	static void      SkipDelims(CharT const*& inoutStr, DelimsTable const& table);
+
+	static TokenType StringToken(CharT const*& inoutStr, CharT const* dropDelims, CharT const* stopDelims, TStringView<CharT>& outToken);
+	static bool      StringToken(CharT const*& inoutStr, CharT const* dropDelims, TStringView<CharT>& outToken);
+	static TStringView<CharT> StringTokenLine(CharT const*& inoutStr);
+
+
+	static int ParseNumber(CharT const* str, int& num);
+	//
+	static int ParseIntNumber(CharT const* str, int& num);
+
+	static CharT const* TrySkipToStringSectionEnd(CharT const* str) { return TrySkipToSectionEnd(str, STRING_LITERAL(CharT, '\"')); }
+	static CharT const* TrySkipToCharSectionEnd(CharT const* str) { return TrySkipToSectionEnd(str, STRING_LITERAL(CharT, '\'')); }
+	static CharT const* CheckAndSkipToCommentSectionEnd(CharT const* str);
+
+
+	static int CountChar(CharT const* start, CharT const* end, CharT c)
+	{
+		CharT const* p = start;
 		int result = 0;
 		while (p < end)
 		{
@@ -102,8 +110,42 @@ public:
 	}
 
 private:
-	static char const* TrySkipToSectionEnd(char const* str, char c);
+	static CharT const* TrySkipToSectionEnd(CharT const* str, CharT c);
 
+
+};
+
+
+class FStringParse : public TStringParse< char >
+	               , public TStringParse< wchar_t >
+{
+public:
+#define FUNCTION_LIST(op)\
+	op(FindLastChar)\
+	op(FindChar)\
+	op(SkipChar)\
+	op(SkipSpace)\
+	op(SkipToNextLine)\
+	op(SkipToChar)\
+	op(ReplaceChar)\
+	op(StringToken)\
+	op(SkipDelims)\
+	op(StringTokenLine)\
+	op(ParseNumber)\
+	op(ParseIntNumber)\
+	op(TrySkipToStringSectionEnd)\
+	op(TrySkipToCharSectionEnd)\
+	op(CheckAndSkipToCommentSectionEnd)\
+	op(CountChar)\
+
+#define ACCESS_OP( FUNC )\
+	 using TStringParse< char >::FUNC;\
+	 using TStringParse< wchar_t >::FUNC;
+
+	FUNCTION_LIST(ACCESS_OP)
+
+#undef ACCESS_OP
+#undef FUNCTION_LIST
 };
 
 

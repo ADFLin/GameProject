@@ -179,7 +179,7 @@ void GLGraphics2D::scaleXForm(float sx, float sy)
 
 void GLGraphics2D::beginRender()
 {
-	glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
+	//glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
 
 	using namespace Render;
 	RHICommandList& commandList = GetCommandList();
@@ -204,7 +204,7 @@ void GLGraphics2D::endRender()
 
 	RHICommandList& commandList = GetCommandList();
 	RHIFlushCommand(commandList);
-	glPopAttrib();
+	//glPopAttrib();
 }
 
 void GLGraphics2D::emitPolygonVertex(Vector2 pos[] , int num)
@@ -562,14 +562,14 @@ void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2
 void GLGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 {
 	using namespace Render;
-	RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None , EFillMode::Solid , true >::GetRHI());
+	RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None , EFillMode::Solid ,EFrontFace::Default, true >::GetRHI());
 	RHISetScissorRect(GetCommandList(), pos.x, mHeight - pos.y - size.y, size.x, size.y);
 }
 
 void GLGraphics2D::endClip()
 {
 	using namespace Render;
-	RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None, EFillMode::Solid, false >::GetRHI());
+	RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false >::GetRHI());
 }
 
 void GLGraphics2D::beginBlend(Vector2 const& pos , Vector2 const& size , float alpha)

@@ -107,12 +107,12 @@ namespace Render
 
 		void  beginClip(Vec2i const& pos, Vec2i const& size)
 		{
-			RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None , EFillMode::Solid , true >::GetRHI());
+			RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None , EFillMode::Solid , EFrontFace::Default, true >::GetRHI());
 			RHISetScissorRect(GetCommandList(), pos.x, pos.y, size.x, size.y);
 		}
 		void  endClip()
 		{
-			RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None, EFillMode::Solid, false >::GetRHI());
+			RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false >::GetRHI());
 			RHISetScissorRect(GetCommandList());
 		}
 

@@ -63,8 +63,8 @@ public:
 		return mIndex < rhs.mIndex || (!(rhs.mIndex < mIndex) && mNumber < rhs.mNumber);
 	}
 	
-	CORE_API uint32 getHash() const;
-	friend uint32 HashValue(HashString const & string) { return string.getHash(); }
+	CORE_API uint32 getTypeHash() const;
+	friend uint32 HashValue(HashString const & string) { return string.getTypeHash(); }
 private:
 	CORE_API void init(char const* str, bool bCaseSensitive = true);
 	CORE_API void init(char const* str, int len , bool bCaseSensitive = true);

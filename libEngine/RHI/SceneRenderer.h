@@ -82,7 +82,7 @@ namespace Render
 		void swapFrameTexture()
 		{
 			mIdxRenderFrameTexture = 1 - mIdxRenderFrameTexture;
-			mFrameBuffer.setTexture(0, getFrameTexture());
+			mFrameBuffer->setTexture(0, getFrameTexture());
 		}
 
 		GBufferResource& getGBuffer() { return mGBuffer; }
@@ -90,10 +90,10 @@ namespace Render
 
 
 
-		OpenGLFrameBuffer& getFrameBuffer() { return mFrameBuffer; }
+		RHIFrameBufferRef& getFrameBuffer() { return mFrameBuffer; }
 
-		void attachDepthTexture() { mFrameBuffer.setDepth(*mDepthTexture); }
-		void detachDepthTexture() { mFrameBuffer.removeDepthBuffer(); }
+		void attachDepthTexture() { mFrameBuffer->setDepth(*mDepthTexture); }
+		void detachDepthTexture() { mFrameBuffer->removeDepth(); }
 
 
 		void drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height);
@@ -105,7 +105,9 @@ namespace Render
 		GBufferResource    mGBuffer;
 		RHITexture2DRef    mFrameTextures[2];
 		int                mIdxRenderFrameTexture;
-		OpenGLFrameBuffer  mFrameBuffer;
+
+
+		RHIFrameBufferRef  mFrameBuffer;
 		RHITextureDepthRef mDepthTexture;
 		RHITextureDepthRef mResolvedDepthTexture;
 	};
@@ -214,7 +216,7 @@ namespace Render
 		RHITexture2DRef    mShadowMap2;
 		RHITextureCubeRef  mShadowMap;
 		RHITexture2DRef    mCascadeTexture;
-		OpenGLFrameBuffer  mShadowBuffer;
+		RHIFrameBufferRef  mShadowBuffer;
 
 		ShaderProgram  mProgShadowDepthList[3];
 		ShaderProgram  mProgLighting;
@@ -271,7 +273,7 @@ namespace Render
 
 	public:
 		std::vector< Vector3 > mKernelVectors;
-		OpenGLFrameBuffer  mFrameBuffer;
+		RHIFrameBufferRef  mFrameBuffer;
 		RHITexture2DRef mSSAOTextureBlur;
 		RHITexture2DRef mSSAOTexture;
 		class SSAOGenerateProgram* mProgSSAOGenerate;
@@ -286,11 +288,11 @@ namespace Render
 		bool init(IntVector2 const& size);
 		void render(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets);
 
-		OpenGLFrameBuffer mFrameBufferGen;
+		RHIFrameBufferRef mFrameBufferGen;
 		RHITexture2DRef mTextureNear;
 		RHITexture2DRef mTextureFar;
 
-		OpenGLFrameBuffer mFrameBufferBlur;
+		RHIFrameBufferRef mFrameBufferBlur;
 		RHITexture2DRef mTextureBlurR;
 		RHITexture2DRef mTextureBlurG;
 		RHITexture2DRef mTextureBlurB;
@@ -419,8 +421,9 @@ namespace Render
 		void prevRenderLights(RHICommandList& commandList, ViewInfo& view);
 		void renderLight(RHICommandList& commandList, ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam );
 
-		OpenGLFrameBuffer   mBassPassBuffer;
-		OpenGLFrameBuffer   mLightingBuffer;
+		RHIFrameBufferRef   mBassPassBuffer;
+		RHIFrameBufferRef   mLightingBuffer;
+		RHIFrameBufferRef   mLightingDepthBuffer;
 		class DeferredLightingProgram* mProgLightingScreenRect[3];
 		class DeferredLightingProgram* mProgLighting[3];
 		class DeferredLightingProgram* mProgLightingShowBound;
@@ -515,7 +518,7 @@ namespace Render
 
 		Mesh mScreenMesh;
  
-		OpenGLFrameBuffer mFrameBuffer;
+		RHIFrameBufferRef mFrameBuffer;
 
 		void setupShader(RHICommandList& commandList, ShaderProgram& program);
 		MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;

@@ -317,7 +317,7 @@ namespace Render
 
 		}
 
-		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
+		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer)
 		{
 
 		}
@@ -413,7 +413,7 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 
-		void RHISetShaderPipelineState(ShaderPipelineState const& state) {}
+		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state) {}
 
 		template < class ValueType >
 		void setShaderValueT(RHIShader& shader, ShaderParameter const& param, ValueType const val[], int dim);
@@ -595,7 +595,7 @@ namespace Render
 			std::vector< InputElementDesc > elements;
 			uint32 hash;
 
-			uint32 getHash() const { return hash; }
+			uint32 getTypeHash() const { return hash; }
 
 			bool operator == (InputLayoutKey const& rhs) const
 			{

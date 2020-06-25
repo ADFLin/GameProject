@@ -151,7 +151,7 @@ namespace Render
 			return vertexFactoryType == rhs.vertexFactoryType &&
 				shaderClass == rhs.shaderClass;
 		}
-		uint32 getHash() const
+		uint32 getTypeHash() const
 		{
 			uint32 result = HashValue(vertexFactoryType);
 			HashCombine(result, shaderClass);

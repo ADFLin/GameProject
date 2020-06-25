@@ -31,7 +31,7 @@ namespace Render
 		RHI_FUNC(void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData));
 		RHI_FUNC(void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex));
 
-		RHI_FUNC(void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture));
+		RHI_FUNC(void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer));
 		RHI_FUNC(void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream));
 		RHI_FUNC(void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer));
 		RHI_FUNC(void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture));
@@ -64,7 +64,7 @@ namespace Render
 		RHI_FUNC(void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 
-		RHI_FUNC(void RHISetShaderPipelineState(ShaderPipelineState const& state));
+		RHI_FUNC(void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state));
 
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim));
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim));

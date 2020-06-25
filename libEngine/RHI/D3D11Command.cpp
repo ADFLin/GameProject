@@ -244,7 +244,7 @@ namespace Render
 		return buffer;
 	}
 
-	Render::RHIIndexBuffer* D3D11System::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
+	RHIIndexBuffer* D3D11System::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
 		D3D11_SUBRESOURCE_DATA initData = { 0 };
 		initData.pSysMem = data;
@@ -473,7 +473,7 @@ namespace Render
 		return nullptr;
 	}
 
-	Render::RHIDepthStencilState* D3D11System::RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
+	RHIDepthStencilState* D3D11System::RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
 	{
 		D3D11_DEPTH_STENCIL_DESC desc;
 		desc.DepthEnable = (initializer.depthFunc != ECompareFunc::Always) || (initializer.bWriteDepth);

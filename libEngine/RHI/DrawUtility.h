@@ -9,10 +9,13 @@
 #include "OpenGLCommon.h"
 
 #include "Singleton.h"
+#include "GlobalShader.h"
 
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif
+
+#define USE_SEPARATE_SHADER 1
 
 namespace Render
 {
@@ -364,6 +367,15 @@ namespace Render
 		RHICommandList& mCommandList;
 	};
 
+	class ScreenVS : public GlobalShader
+	{
+		DECLARE_SHADER(ScreenVS, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/ScreenVertexShader";
+		}
+	};
 
 	class ShaderHelper : public SingletonT< ShaderHelper >
 	{
@@ -382,14 +394,19 @@ namespace Render
 
 		void reload();
 
+#if USE_SEPARATE_SHADER
+		class ScreenVS*          mScreenVS;
+		class CopyTexturePS*     mCopyTexturePS;
+		class CopyTextureMaskPS* mCopyTextureMaskPS;
+		class CopyTextureBiasPS* mCopyTextureBiasPS;
+#else
 		class CopyTextureProgram*         mProgCopyTexture;
 		class CopyTextureMaskProgram*     mProgCopyTextureMask;
 		class CopyTextureBiasProgram*     mProgCopyTextureBias;
+#endif
 		class MappingTextureColorProgram* mProgMappingTextureColor;
 		class SimplePipelineProgram*      mProgSimplePipeline;
 
-		class ScreenVS*      mScreenVS;
-		class CopyTexturePS* mCopyTexturePS;
 
 		RHIFrameBufferRef mFrameBuffer;
 

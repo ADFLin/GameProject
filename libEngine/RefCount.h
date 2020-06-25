@@ -18,7 +18,7 @@ class RefCount
 {
 public:
 	RefCount():mRefCount(0){}
-	RefCount(EPersistent) :mRefCount(0xfffffff){}
+	RefCount(EPersistent) :mRefCount(0xfffff){}
 	bool  decRef() { --mRefCount;  return mRefCount <= 0; }
 	void  incRef() { ++mRefCount; }
 	int   getRefCount() { return mRefCount; }

@@ -7,10 +7,6 @@
 #include "FileSystem.h"
 #include "Core/ScopeExit.h"
 
-
-//#include "shaderc/shaderc.h"
-//#pragma comment(lib , "shaderc_combined.lib")
-
 #include "RHI/VulkanCommon.h"
 #include "RHI/VulkanCommand.h"
 #include "RHI/VulkanShaderCommon.h"
@@ -18,8 +14,6 @@
 #include "RHI/ShaderProgram.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RHIGlobalResource.h"
-
-
 
 
 namespace RenderVulkan
@@ -157,6 +151,16 @@ namespace RenderVulkan
 		bool createSimplePipepline()
 		{
 			{
+				VkPipelineLayoutCreateInfo pipelineLayoutInfo = FVulkanInit::pipelineLayoutCreateInfo();
+				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+				pipelineLayoutInfo.pSetLayouts = nullptr;
+				pipelineLayoutInfo.setLayoutCount = 0;
+				pipelineLayoutInfo.pPushConstantRanges = nullptr;
+				pipelineLayoutInfo.pushConstantRangeCount = 0;
+				VK_VERIFY_RETURN_FALSE(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, gAllocCB, &mEmptyPipelineLayout));
+			}
+
+			{
 				VkAttachmentDescription colorAttachmentDesc = {};
 				colorAttachmentDesc.format = mSwapChainImageFormat;
 				colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -166,6 +170,18 @@ namespace RenderVulkan
 				colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 				colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+#if 0
+
+				attachments[1].format = depthFormat;
+				attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+				attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+#endif
+
 
 				VkAttachmentReference colorAttachmentRef = {};
 				colorAttachmentRef.attachment = 0;
@@ -206,20 +222,10 @@ namespace RenderVulkan
 				renderPassInfo.pSubpasses = &subpass;
 				renderPassInfo.subpassCount = 1;
 				renderPassInfo.pDependencies = dependencies;
-				renderPassInfo.dependencyCount = 2;
+				renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
 
 				VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(mDevice, &renderPassInfo, gAllocCB, &mSimpleRenderPass));
 
-			}
-
-			{
-				VkPipelineLayoutCreateInfo pipelineLayoutInfo = FVulkanInit::pipelineLayoutCreateInfo();
-				pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-				pipelineLayoutInfo.pSetLayouts = nullptr;
-				pipelineLayoutInfo.setLayoutCount = 0;
-				pipelineLayoutInfo.pPushConstantRanges = nullptr;
-				pipelineLayoutInfo.pushConstantRangeCount = 0;
-				VK_VERIFY_RETURN_FALSE(vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, gAllocCB, &mEmptyPipelineLayout));
 			}
 
 			struct VertexData
@@ -245,7 +251,51 @@ namespace RenderVulkan
 			VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true , BCF_DefalutValue , indices));
 
 
+			struct RenderPipelineState
 			{
+				RHIRasterizerState*   rasterizerState;
+				RHIDepthStencilState* depthStencilState;
+				RHIBlendState*        blendState;
+
+				GraphicShaderBoundState shaderPipelineState;
+				RHIShaderProgram*   shaderProgram;
+
+
+				EPrimitive          PrimitiveType;
+				int                 patchPointCount = 0;
+				RHIInputLayout*     inputLayout;
+			};
+
+			RenderPipelineState renderState;
+			renderState.PrimitiveType = EPrimitive::TriangleList;
+			renderState.rasterizerState = &TStaticRasterizerState<>::GetRHI();
+			renderState.depthStencilState = &TStaticDepthStencilState<>::GetRHI();
+			renderState.blendState = &TStaticBlendState<>::GetRHI();
+
+			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mShaderProgram, "Shader/Test/VulkanTest", "MainVS", "MainPS"));
+			renderState.shaderProgram = mShaderProgram.getRHIResource();
+
+			setupDescriptorPool();
+
+			pipelineLayout = VulkanCast::To(renderState.shaderProgram)->mPipelineLayout;
+			descriptorSetLayout = VulkanCast::To(renderState.shaderProgram)->mDescriptorSetLayout;
+
+			setupDescriptorSet();
+
+			InputLayoutDesc desc;
+			desc.addElement(0, 0, Vertex::eFloat2);
+			desc.addElement(0, 1, Vertex::eFloat2);
+			desc.addElement(0, 2, Vertex::eFloat3);
+			VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
+			renderState.inputLayout = mInputLayout;
+
+
+
+			{
+				VkGraphicsPipelineCreateInfo pipelineInfo = FVulkanInit::pipelineCreateInfo();
+	
+				pipelineInfo.renderPass = mSimpleRenderPass;
+
 				VkViewport viewport;
 				viewport.x = 0;
 				viewport.y = 0;
@@ -264,26 +314,11 @@ namespace RenderVulkan
 				viewportState.viewportCount = 1;
 				viewportState.pScissors = &scissorRect;
 				viewportState.scissorCount = 1;
+				pipelineInfo.pViewportState = &viewportState;
 
-				VkPipelineRasterizationStateCreateInfo rasterizationState = {};
-				rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-				rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-				rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-				rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-				rasterizationState.rasterizerDiscardEnable = VK_FALSE;
-				rasterizationState.depthBiasEnable = VK_FALSE;
-				rasterizationState.depthClampEnable = VK_FALSE;
-				rasterizationState.lineWidth = 1.0f;
-
-				RHIDepthStencilStateRef depthStencilStateRef = &TStaticDepthStencilState<>::GetRHI();
-				VkPipelineDepthStencilStateCreateInfo const& depthStencilState = VulkanCast::To(depthStencilStateRef)->createInfo;
-
-				RHIBlendStateRef blendStateRef = &TStaticBlendState<>::GetRHI();
-				VkPipelineColorBlendStateCreateInfo const& colorBlendState = VulkanCast::To(blendStateRef)->createInfo;
-
-				VkPipelineTessellationStateCreateInfo tesselationState = {};
-				tesselationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-				tesselationState.patchControlPoints = 0;
+				pipelineInfo.pRasterizationState = &VulkanCast::To(renderState.rasterizerState)->createInfo;
+				pipelineInfo.pDepthStencilState = &VulkanCast::To(renderState.depthStencilState)->createInfo;
+				pipelineInfo.pColorBlendState = &VulkanCast::To(renderState.blendState)->createInfo;
 
 				VkPipelineMultisampleStateCreateInfo multisampleState = {};
 				multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -293,52 +328,47 @@ namespace RenderVulkan
 				multisampleState.pSampleMask = nullptr;
 				multisampleState.alphaToCoverageEnable = VK_FALSE;
 				multisampleState.alphaToOneEnable = VK_FALSE;
+				VulkanCast::To(renderState.rasterizerState)->getMultiSampleState(multisampleState);
+				VulkanCast::To(renderState.blendState)->getMultiSampleState(multisampleState);
 
-				VERIFY_RETURN_FALSE(ShaderManager::Get().loadSimple(mShaderProgram, "TestShader/Vertex", "TestShader/Pixel"));
-				std::vector < VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(mShaderProgram.getRHIResource())->mStages;
-
-				setupDescriptorPool();
-				setupDescriptorSetLayout();
-				setupDescriptorSet();
-
-
-				VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
-				inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-				inputAssemblyState.primitiveRestartEnable = VK_FALSE;
-				inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-				InputLayoutDesc desc;
-				desc.addElement(0, 0, Vertex::eFloat2);
-				desc.addElement(0, 1, Vertex::eFloat2);
-				desc.addElement(0, 2, Vertex::eFloat3);
-				VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
-
-				VkPipelineVertexInputStateCreateInfo const& vertexInputState = VulkanCast::To(mInputLayout)->createInfo;
-
-				VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT };
-				VkPipelineDynamicStateCreateInfo dynamicState = {};
-				dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-				dynamicState.pDynamicStates = dynamicStates;
-				dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStates);
-
-				VkGraphicsPipelineCreateInfo pipelineInfo =
-					FVulkanInit::pipelineCreateInfo(
-						pipelineLayout,
-						mSimpleRenderPass,
-						0);
-				pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-				pipelineInfo.pViewportState = &viewportState;
-				pipelineInfo.pRasterizationState = &rasterizationState;
-				pipelineInfo.pDepthStencilState = &depthStencilState;
-				pipelineInfo.pColorBlendState = &colorBlendState;
+				VkPipelineTessellationStateCreateInfo tesselationState = {};
+				tesselationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+				tesselationState.patchControlPoints = renderState.patchPointCount;
 
 				pipelineInfo.pTessellationState = &tesselationState;
 				pipelineInfo.pMultisampleState = &multisampleState;
 
-				pipelineInfo.pStages = shaderStages.data();
-				pipelineInfo.stageCount = shaderStages.size();
+				if (renderState.shaderProgram)
+				{
+					std::vector < VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(renderState.shaderProgram)->mStages;
+					pipelineInfo.pStages = shaderStages.data();
+					pipelineInfo.stageCount = shaderStages.size();
+					pipelineInfo.layout = VulkanCast::To(renderState.shaderProgram)->mPipelineLayout;
+				}
+				else
+				{
+
+
+				}
+
+				VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
+				inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+				inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+				inputAssemblyState.topology = VulkanTranslate::To(renderState.PrimitiveType);
 				pipelineInfo.pInputAssemblyState = &inputAssemblyState;
-				pipelineInfo.pVertexInputState = &vertexInputState;
+
+				VkPipelineVertexInputStateCreateInfo const& vertexInputState = VulkanCast::To(mInputLayout)->createInfo;
+				if (renderState.inputLayout)
+				{
+					pipelineInfo.pVertexInputState = &VulkanCast::To(renderState.inputLayout)->createInfo;
+				}
+
+
+				VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_LINE_WIDTH };
+				VkPipelineDynamicStateCreateInfo dynamicState = {};
+				dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+				dynamicState.pDynamicStates = dynamicStates;
+				dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStates);
 				pipelineInfo.pDynamicState = &dynamicState;
 
 				pipelineInfo.subpass = 0;
@@ -400,46 +430,13 @@ namespace RenderVulkan
 					poolSizes.data(),
 					2);
 
-			VK_CHECK_RESULT(vkCreateDescriptorPool(mDevice, &descriptorPoolInfo, nullptr, &descriptorPool));
-		}
-
-		void setupDescriptorSetLayout()
-		{
-			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-			{
-				// Binding 0 : Fragment shader image sampler
-				FVulkanInit::descriptorSetLayoutBinding(
-					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-					VK_SHADER_STAGE_FRAGMENT_BIT,
-					0),
-#if 0
-				FVulkanInit::descriptorSetLayoutBinding(
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ,
-					VK_SHADER_STAGE_FRAGMENT_BIT,
-					1),
-#endif
-			};
-
-			VkDescriptorSetLayoutCreateInfo descriptorLayout =
-				FVulkanInit::descriptorSetLayoutCreateInfo(
-					setLayoutBindings.data(),
-					static_cast<uint32_t>(setLayoutBindings.size()));
-
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
-
-			VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo =
-				FVulkanInit::pipelineLayoutCreateInfo(
-					&descriptorSetLayout,
-					1);
-
-			VK_CHECK_RESULT(vkCreatePipelineLayout(mDevice, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout));
+			VK_CHECK_RESULT(vkCreateDescriptorPool(mDevice, &descriptorPoolInfo, gAllocCB, &descriptorPool));
 		}
 
 		RHITexture2DRef texture;
 		void setupDescriptorSet()
 		{
-			texture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.jpg");
-			
+
 			VkDescriptorSetAllocateInfo allocInfo =
 				FVulkanInit::descriptorSetAllocateInfo(
 					descriptorPool,
@@ -447,6 +444,8 @@ namespace RenderVulkan
 					1);
 
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(mDevice, &allocInfo, &descriptorSet));
+
+			texture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.jpg");
 
 			// Setup a descriptor image info for the current texture to be used as a combined image sampler
 			VkDescriptorImageInfo textureDescriptor;
@@ -459,15 +458,15 @@ namespace RenderVulkan
 			{
 				FVulkanInit::writeDescriptorSet(
 					descriptorSet,
-					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,		// The descriptor set will use a combined image sampler (sampler and image could be split)
-					0,												// Shader binding point 0
-					&textureDescriptor),						    // Pointer to the descriptor image for our texture
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					0,
+					&textureDescriptor),
 #if 0
 				FVulkanInit::writeDescriptorSet(
 					descriptorSet,
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,		        // The descriptor set will use a combined image sampler (sampler and image could be split)
-					1,												// Shader binding point 0
-					&bufferDescriptor)								// Pointer to the descriptor image for our texture
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,       
+					1,				
+					&bufferDescriptor)
 #endif
 			};
 

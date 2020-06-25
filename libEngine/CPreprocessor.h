@@ -76,6 +76,7 @@ namespace CPP
 		};
 	};
 
+	
 	struct OperationInfo
 	{
 		EOperator::Type type;
@@ -117,6 +118,9 @@ namespace CPP
 		static int FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType);
 		static int FindOperatorToEnd(char const* code, EOperatorPrecedence::Type precedenceStart, EOperator::Type& outType);
 		static OperationInfo GetOperationInfo(EOperator::Type type);
+
+		template< EOperatorPrecedence::Type Precedence >
+		static int FindOperator(char const* code, EOperator::Type& outType);
 	};
 
 	class CodeLoc
@@ -335,6 +339,7 @@ namespace CPP
 		{
 			return FStringParse::CountChar(&source->mBuffer[0], mCur, c);
 		}
+		
 	private:
 		friend class Preprocessor;
 	};
@@ -397,6 +402,14 @@ namespace CPP
 
 		bool tokenOp(EOperatorPrecedence::Type precedence, EOperator::Type& outType);
 		bool parseExprOp(int& ret , EOperatorPrecedence::Type precedence = EOperatorPrecedence::Type(0));
+		
+		template< EOperatorPrecedence::Type Precedence >
+		bool tokenOp(EOperator::Type& outType);
+		template< EOperatorPrecedence::Type Precedence >
+		bool parseExprOp(int& ret);
+
+
+
 		bool parseExprFactor(int& ret);
 		bool parseExprValue(int& ret);
 
@@ -411,7 +424,7 @@ namespace CPP
 
 		static bool IsValidStartCharForIdentifier(char c)
 		{
-			return ::isalpha(c) || c == '_';
+			return FCString::IsAlpha(c) || c == '_';
 		}
 
 		static bool IsValidCharForIdentifier(char c)
@@ -426,18 +439,34 @@ namespace CPP
 		bool tokenControl(StringView& outName);
 
 
-		struct ScopeState
+		struct BlockState
 		{
 			bool bSkipText;
 		};
-		std::vector< ScopeState > mScopeStack;
+		std::vector< BlockState > mBlockStateStack;
+
+		struct BlockScope
+		{
+			BlockScope(Preprocessor& preprocessor, BlockState const& state)
+				:preprocessor(preprocessor)
+			{
+				preprocessor.mBlockStateStack.push_back(state);
+			}
+
+			~BlockScope()
+			{
+				preprocessor.mBlockStateStack.pop_back();
+			}
+
+			Preprocessor& preprocessor;
+		};
 		
 		bool isSkipText()
 		{
-			return mScopeStack.back().bSkipText;
+			return mBlockStateStack.back().bSkipText;
 		}
 		int numLine = 0;
-		bool warning(char const*)
+		bool emitWarning(char const*)
 		{
 
 

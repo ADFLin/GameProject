@@ -57,7 +57,7 @@ void EquirectangularToCubePS()
 	OutColor = float4(color, 1);
 }
 
-uniform int2 IrrianceSampleCount = int2( 256 , 200 );
+uniform int2 IrrianceSampleCount = int2( 256 * 2 , 200 * 2 );
 
 void IrradianceGenPS()
 {
@@ -136,7 +136,7 @@ float3 ImportanceSampleGGX(float2 Xi,float roughness)
 	return H;
 }
 uniform float Roughness;
-uniform int PrefilterSampleCount = 2048;
+uniform int PrefilterSampleCount = 2048 * 2;
 void PrefilteredGenPS()
 {
 
@@ -167,7 +167,7 @@ void PrefilteredGenPS()
 }
 
 
-uniform int BRDFSampleCount = 1024;
+uniform int BRDFSampleCount = 1024 * 2;
 float2 IntegrateBRDF(float NoV, float roughness)
 {
 	float3 V;

@@ -51,6 +51,9 @@
     <Filter Include="GameFlowFree">
       <UniqueIdentifier>{6480a186-d6f6-454c-8904-bd09edc6a9bf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader\Test">
+      <UniqueIdentifier>{99a7e7b8-91ed-4dd5-b3e5-14ea187646cd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Voronoi.cpp">
@@ -763,6 +766,9 @@
     <None Include="out\Game.ini" />
     <None Include="out\Shader\DecalRender.sgc">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Test\VulkanTest.sgc">
+      <Filter>Shader\Test</Filter>
     </None>
   </ItemGroup>
 </Project>

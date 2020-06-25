@@ -12,6 +12,14 @@
 #include "SpirvReflect/spirv_reflect.h"
 #include "ShaderProgram.h"
 
+#define USE_SHADERC_COMPILE 1
+
+#if USE_SHADERC_COMPILE
+#include "shaderc/shaderc.h"
+#pragma comment(lib , "shaderc_shared.lib")
+#endif
+
+
 namespace Render
 {
 	struct FSpvReflect
@@ -52,10 +60,10 @@ namespace Render
 			case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 			case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 			}
+
+			return VK_DESCRIPTOR_TYPE_SAMPLER;
 		}
 	};
-
-
 
 	struct SpirvShaderCode
 	{
@@ -153,7 +161,18 @@ namespace Render
 
 	void ShaderFormatSpirv::getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry)
 	{
+		inoutCode += "#version 450\n";
+		inoutCode += "#extension GL_ARB_separate_shader_objects : enable\n";
 
+		inoutCode += "#define COMPILER_GLSL 1\n";
+		inoutCode += "#define SYSTEM_VULKAN 1\n";
+
+		if (entry.name && FCString::Compare(entry.name, "main") != 0)
+		{
+			inoutCode += "#define ";
+			inoutCode += entry.name;
+			inoutCode += " main\n";
+		}
 	}
 
 	class VulkanShaderCompileIntermediates : public ShaderCompileIntermediates
@@ -175,7 +194,90 @@ namespace Render
 
 	bool ShaderFormatSpirv::compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output)
 	{
-#if 1
+#if USE_SHADERC_COMPILE
+		std::vector<char> codeBuffer;
+
+		if (bUsePreprocess)
+		{
+			if (!FileUtility::LoadToBuffer(input.path, codeBuffer))
+			{
+				LogWarning(0, "Can't load shader file %s", input.path);
+				return false;
+			}
+			if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+			{
+				return false;
+			}
+			codeBuffer.pop_back();
+		}
+		else
+		{
+			if (input.definition)
+			{
+				int len = FCString::Strlen(input.definition);
+				codeBuffer.assign(input.definition, input.definition + len);
+			}
+			if (!FileUtility::LoadToBuffer(input.path, codeBuffer, false , true))
+			{
+				LogWarning(0, "Can't load shader file %s", input.path);
+				return false;
+			}
+		}
+
+		shaderc_compiler_t compilerHandle = shaderc_compiler_initialize();
+		shaderc_compile_options_t optionHandle = shaderc_compile_options_initialize();
+
+		ON_SCOPE_EXIT
+		{
+			shaderc_compiler_release(compilerHandle);
+			shaderc_compile_options_release(optionHandle);
+		};
+		shaderc_shader_kind ShaderKindMap[] =
+		{
+			shaderc_vertex_shader,
+			shaderc_fragment_shader,
+			shaderc_geometry_shader,
+			shaderc_compute_shader,
+			shaderc_tess_control_shader,
+			shaderc_tess_evaluation_shader,
+		};
+
+		shaderc_compilation_result_t resultHandle = shaderc_compile_into_spv(
+			compilerHandle, codeBuffer.data(), codeBuffer.size(), 
+			ShaderKindMap[input.type], input.path, "main", optionHandle);
+
+		ON_SCOPE_EXIT
+		{
+			shaderc_result_release(resultHandle);
+		};
+
+		if (shaderc_result_get_compilation_status(resultHandle) != shaderc_compilation_status_success)
+		{
+			OutputError( shaderc_result_get_error_message(resultHandle) );
+			return false;
+		}
+
+		char const* pCodeText = shaderc_result_get_bytes(resultHandle);
+		size_t codeLength = shaderc_result_get_length(resultHandle);
+		if (input.programSetupData)
+		{
+			VulkanShaderCompileIntermediates* myIntermediates = static_cast<VulkanShaderCompileIntermediates*>(input.programSetupData->intermediateData.get());
+			SpirvShaderCode& code = myIntermediates->shaderCodes[myIntermediates->numShaders];
+			code.codeBuffer.assign(pCodeText, pCodeText + codeLength);
+			++myIntermediates->numShaders;
+			output.formatData = &code;
+		}
+		else
+		{
+			SpirvShaderCode code;
+			code.codeBuffer.assign(pCodeText, pCodeText + codeLength);
+			auto* shaderImpl = static_cast<VulkanShader*>(RHICreateShader(input.type));
+			output.resource = shaderImpl;
+			VERIFY_RETURN_FALSE(shaderImpl->initialize(mDevice, input.type, code));
+		}
+
+		return true;
+#else
 		std::string pathFull = FileUtility::GetFullPath(input.path);
 		char const* posExtension = FileUtility::GetExtension(pathFull.c_str());
 
@@ -263,41 +365,7 @@ namespace Render
 
 
 		return true;
-#else
-		std::vector<char> scoreCode;
-		if (!FileUtility::LoadToBuffer(path, scoreCode))
-			return VK_NULL_HANDLE;
 
-		shaderc_compiler_t compilerHandle = shaderc_compiler_initialize();
-		shaderc_compile_options_t optionHandle = shaderc_compile_options_initialize();
-
-		ON_SCOPE_EXIT
-		{
-			shaderc_compiler_release(compilerHandle);
-			shaderc_compile_options_release(optionHandle);
-		};
-		shaderc_shader_kind ShaderKindMap[] =
-		{
-			shaderc_vertex_shader,
-			shaderc_fragment_shader,
-			shaderc_geometry_shader,
-			shaderc_compute_shader,
-			shaderc_tess_control_shader,
-			shaderc_tess_evaluation_shader,
-		};
-
-		shaderc_compilation_result_t resultHandle = shaderc_compile_into_spv(compilerHandle, scoreCode.data(), scoreCode.size(), ShaderKindMap[type], nullptr, nullptr, optionHandle);
-		ON_SCOPE_EXIT
-		{
-			shaderc_result_release(resultHandle);
-		};
-
-		if (shaderc_result_get_compilation_status(resultHandle) != shaderc_compilation_status_success)
-		{
-			return false;
-		}
-
-		return true;
 #endif
 	}
 
@@ -330,7 +398,7 @@ namespace Render
 			serializer.read(shaderCodes[i].codeBuffer);
 			shaders[i].formatData = &shaderCodes[i];
 			shaders[i].type  = EShader::Type(shaderType);
-			shaders[i].entry = shaderCompiles[i].entryName.c_str();
+			shaders[i].entry = "main"; // shaderCompiles[i].entryName.c_str();
 		}
 
 		if (!shaderProgramImpl.setupShaders(mDevice, shaders, numShaders))
@@ -372,6 +440,14 @@ namespace Render
 	{
 		mDevice = device;
 		VERIFY_RETURN_FALSE( code.createModel(mDevice, mModule) );
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
+		VERIFY_RETURN_FALSE(code.getSetLayoutBindings(type, setLayoutBindings) );
+		VkDescriptorSetLayoutCreateInfo descriptorLayout =
+			FVulkanInit::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				static_cast<uint32_t>(setLayoutBindings.size()));
+		VERIFY_RETURN_FALSE(mDescriptorSetLayout.initialize(device, descriptorLayout));
+
 		return true;
 	}
 
@@ -380,11 +456,12 @@ namespace Render
 		mDevice = device;
 		assert( mNumShaders == 0);
 
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
 		for (int i = 0; i < numShaders; ++i)
 		{
 			SpirvShaderCode* shaderCode = static_cast<SpirvShaderCode*>(shaders[i].formatData);
-			if (!shaderCode->createModel(device, mShaderModules[i]))
-				return false;
+			VERIFY_RETURN_FALSE(shaderCode->createModel(device, mShaderModules[i]));
+			VERIFY_RETURN_FALSE(shaderCode->getSetLayoutBindings(shaders[i].type, setLayoutBindings));
 
 			VkPipelineShaderStageCreateInfo shaderStage = {};
 			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -394,6 +471,17 @@ namespace Render
 			mStages.push_back(shaderStage);
 			++mNumShaders;
 		}
+		VkDescriptorSetLayoutCreateInfo descriptorLayout =
+			FVulkanInit::descriptorSetLayoutCreateInfo(
+				setLayoutBindings.data(),
+				static_cast<uint32_t>(setLayoutBindings.size()));
+		VERIFY_RETURN_FALSE(mDescriptorSetLayout.initialize(device, descriptorLayout));
+
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =
+			FVulkanInit::pipelineLayoutCreateInfo(
+				&mDescriptorSetLayout.mHandle,
+				1);
+		VERIFY_RETURN_FALSE(mPipelineLayout.initialize(device, pipelineLayoutCreateInfo));
 
 		return true;
 	}

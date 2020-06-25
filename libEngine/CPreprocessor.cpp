@@ -15,14 +15,14 @@
 #define PARSE_WARNING( MSG , ... )\
 	{\
 		FixString<512> msg; msg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , msg.c_str() , ##__VA_ARGS__ );\
-		warning( msg );\
+		emitWarning( msg );\
 	}
 
 #define FUNCTION_CHECK( func ) func
 
 #define PARSE_DEFINE_IF 1
-
-#define USE_OPERATION_CACHE 1
+#define USE_TEMPLATE_PARSE_OP 0
+#define USE_OPERATION_CACHE 0 && (!USE_TEMPLATE_PARSE_OP)
 
 namespace CPP
 {
@@ -58,7 +58,7 @@ namespace CPP
 		mInputStack.clear();
 		mInput.source = &sorce;
 		mInput.resetSeek();
-		mScopeStack.clear();
+		mBlockStateStack.clear();
 		mIfScopeDepth = 0;
 
 		parseCode(false);
@@ -66,9 +66,9 @@ namespace CPP
 
 	bool Preprocessor::parseCode(bool bSkip)
 	{
-		if (!mScopeStack.empty())
+		if (!mBlockStateStack.empty())
 		{
-			bSkip |= mScopeStack.back().bSkipText;
+			bSkip |= mBlockStateStack.back().bSkipText;
 
 			if (!bSkip)
 			{
@@ -76,9 +76,9 @@ namespace CPP
 			}
 		}
 
-		ScopeState state;
+		BlockState state;
 		state.bSkipText = bSkip;
-		mScopeStack.push_back(state);
+		BlockScope blockScope(*this, state);
 
 		while (haveMore())
 		{
@@ -121,7 +121,6 @@ namespace CPP
 			}
 		}
 
-		mScopeStack.pop_back();
 		return true;
 	}
 
@@ -402,7 +401,7 @@ namespace CPP
 			auto iter = mMarcoSymbolMap.find(marcoName);
 			if (iter != mMarcoSymbolMap.end())
 			{
-				if (!warning("Marco is defined"))
+				if (!emitWarning("Marco is defined"))
 					return false;
 
 				mMarcoSymbolMap.emplace_hint(iter, marcoName, std::move(marco));
@@ -620,9 +619,13 @@ namespace CPP
 		if (!skipSpaceInLine())
 			return false;
 
+#if USE_TEMPLATE_PARSE_OP
+		if (!parseExprOp< EOperatorPrecedence::Type(0)>(ret))
+			return false;
+#else
 		if ( !parseExprOp(ret) )
 			return false;
-
+#endif
 		return true;
 	}
 
@@ -650,12 +653,48 @@ namespace CPP
 			{
 #define CASE_OP( NAME , OP , P ) case EOperator::NAME: ret = ret OP rhs; break;
 				BINARY_OPERATOR_LIST(CASE_OP)
+#undef  CASE_OP
 			default:
 				break;
 			}
 		}
 		return true;
 	}
+
+	template< EOperatorPrecedence::Type Precedence >
+	bool Preprocessor::parseExprOp(int& ret)
+	{
+		char const* debugView = mInput.mCur;
+
+		if (!parseExprOp<EOperatorPrecedence::Type(Precedence + 1)>(ret))
+			return false;
+
+		EOperator::Type op;
+		while (tokenOp< Precedence >(op))
+		{
+			skipSpaceInLine();
+			int rhs;
+			if (!parseExprOp<EOperatorPrecedence::Type(Precedence + 1)>(rhs))
+				return false;
+
+			switch (op)
+			{
+#define CASE_OP( NAME , OP , P ) case EOperator::NAME: if ( P == Precedence ) ret = ret OP rhs; break;
+				BINARY_OPERATOR_LIST(CASE_OP)
+#undef  CASE_OP
+			default:
+				break;
+			}
+		}
+		return true;
+	}
+
+	template<>
+	bool Preprocessor::parseExprOp< EOperatorPrecedence::Preifx >(int& ret)
+	{
+		return parseExprFactor(ret);
+	}
+
 
 	bool Preprocessor::parseExprFactor(int& ret)
 	{
@@ -744,7 +783,7 @@ namespace CPP
 		auto marco = mMarcoSymbolMap.find(value);
 		if (marco == mMarcoSymbolMap.end())
 		{
-			warning("");
+			emitWarning("");
 			ret = 0;
 			return true;
 		}
@@ -808,6 +847,23 @@ namespace CPP
 		mInput.advanceNoEoL(len);
 		return true;
 #endif
+	}
+
+	template< EOperatorPrecedence::Type Precedence >
+	bool Preprocessor::tokenOp(EOperator::Type& outType)
+	{
+		if (mInput.isEoL())
+		{
+			return false;
+		}
+
+		int len = FExpressionUitlity::FindOperator< Precedence >(mInput.mCur, outType);
+		if (len == 0)
+			return false;
+
+		assert(len <= 2);
+		mInput.advanceNoEoL(len);
+		return true;
 	}
 
 	bool Preprocessor::ensureInputValid()
@@ -991,13 +1047,13 @@ namespace CPP
 	{
 		char const* start = mInput.mCur;
 
-		if (!isdigit(*mInput.mCur))
+		if (!FCString::IsDigit(*mInput.mCur))
 			return false;
 
 		for (;;)
 		{
 			mInput.advance();
-			if (!isdigit(*mInput.mCur))
+			if (!FCString::IsDigit(*mInput.mCur))
 				break;
 		}
 
@@ -1059,55 +1115,80 @@ namespace CPP
 		return true;
 	}
 
+	bool CompareOperatorText(char const* code, StaticString const& opText)
+	{
+		assert(opText.size() <= 2);
+
+		if (code[0] != opText[0])
+			return false;
+
+		if (opText.size() == 2)
+		{
+			if (code[1] != opText[1])
+			{
+				return false;
+			}
+		}
+		else
+		{
+			// '||' and '&&' case
+			if (code[1] == '|' || code[1] == '&')
+				return false;
+		}
+		return true;
+	}
+
+	struct OpRange
+	{
+		int first;
+		int last;
+	};
+
+	//TODO
+	const OpRange PrecedenceOpRange[] =
+	{
+		{0,0},
+		{1,1},
+		{2,2},
+		{3,3},
+		{4,4},
+		{5,6},
+		{7,10},
+		{11,12},
+		{13,14},
+		{15,17},
+	};
+
 	int FExpressionUitlity::FindOperator(char const* code, EOperatorPrecedence::Type precedence, EOperator::Type& outType)
 	{
-		struct OpRange
-		{
-			int first;
-			int last;
-		};
-
-		//TODO
-		static const OpRange PrecedenceOpRange[] =
-		{
-			{0,0},
-			{1,1},
-			{2,2},
-			{3,3},
-			{4,4},
-			{5,6},
-			{7,10},
-			{11,12},
-			{13,14},
-			{15,17},
-		};
-
 		OpRange range = PrecedenceOpRange[precedence];
 		for (int i = range.first; i <= range.last; ++i)
 		{
 			OperationInfo const& info = GetOperationInfo(EOperator::Type(i));
-			assert(info.text.size() <= 2);
-			if (code[0] != info.text[0])
-				continue;
-
-			if (info.text.size() == 2)
+		
+			if ( CompareOperatorText(code , info.text) )
 			{
-				if (code[1] != info.text[1])
-				{
-					continue;
-				}
+				outType = info.type;
+				return info.text.size();
 			}
-			else
-			{
-				// '||' and '&&' case
-				if (code[1] == '|' || code[1] == '&')
-					continue;
-			}
-
-			outType = info.type;
-			return info.text.size();
 		}
+		return 0;
+	}
 
+	template< EOperatorPrecedence::Type Precedence >
+	int FExpressionUitlity::FindOperator(char const* code, EOperator::Type& outType)
+	{
+		OpRange range = PrecedenceOpRange[Precedence];
+		for (int i = range.first; i <= range.last; ++i)
+		{
+			OperationInfo const& info = GetOperationInfo(EOperator::Type(i));
+
+			if (CompareOperatorText(code, info.text))
+			{
+				outType = info.type;
+				return info.text.size();
+			}
+		}
 		return 0;
 	}
 
@@ -1131,40 +1212,24 @@ namespace CPP
 		{
 			OperationInfo const& info = GetOperationInfo(EOperator::Type(index));
 
-			assert(info.text.size() <= 2);
-			if (code[0] != info.text[0])
-				continue;
-			
-			if (info.text.size() == 2)
+			if (CompareOperatorText(code, info.text))
 			{
-				if (code[1] != info.text[1])
-				{
-					continue;
-				}
+				outType = info.type;
+				return info.text.size();
 			}
-			else
-			{
-				// '||' and '&&' case
-				if (code[1] == '|' || code[1] == '&')
-					continue;
-			}
-
-			outType = info.type;
-			return info.text.size();
-
 		}
 		return 0;
 	}
 
-	OperationInfo FExpressionUitlity::GetOperationInfo(EOperator::Type type)
+	const OperationInfo OpInfos[] =
 	{
-		static const OperationInfo OpInfos[] =
-		{
 #define OPINFO_OP( NAME , OP , P ) { EOperator::NAME , #OP , P } ,
 				BINARY_OPERATOR_LIST(OPINFO_OP)
 #undef OPINFO_OP
-		};
+	};
 
+	OperationInfo FExpressionUitlity::GetOperationInfo(EOperator::Type type)
+	{
 		return OpInfos[type];
 	}
 

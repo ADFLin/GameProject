@@ -2,7 +2,8 @@
 
 #include "MarcoCommon.h"
 
-static int CountCharReverse(char const* str , char const* last , char c )
+template< class CharT >
+static int CountCharReverse(CharT const* str , CharT const* last , CharT c )
 {
 	int result = 0;
 	while( *str == c )
@@ -77,50 +78,93 @@ void Tokenizer::reset(char const* str)
 	mPtr = str;
 }
 
-int FStringParse::ParseNumber(char const* str, int& num)
+DelimsTable::DelimsTable()
+{
+	std::fill_n(mDelimsMap, ARRAY_SIZE(mDelimsMap), 0);
+}
+
+DelimsTable::DelimsTable(char const* dropDelims, char const* stopDelims)
+{
+	std::fill_n(mDelimsMap, ARRAY_SIZE(mDelimsMap), 0);
+	addDelims(dropDelims, DropMask);
+	addDelims(stopDelims, StopMask);
+}
+
+void DelimsTable::addDelims(char const* delims, uint8 mask)
+{
+	assert(delims);
+	for( ;;)
+	{
+		char cur = *delims;
+		if( cur == 0 )
+			return;
+		mDelimsMap[uint8(cur)] |= mask;
+		++delims;
+	}
+}
+
+bool DelimsTable::isDelims(char c) const
+{
+	return !!mDelimsMap[uint8(c)];
+}
+
+bool DelimsTable::isStopDelims(char c) const
+{
+	return !!(mDelimsMap[uint8(c)] & StopMask);
+}
+
+bool DelimsTable::isDropDelims(char c) const
+{
+	return !!(mDelimsMap[uint8(c)] & DropMask);
+}
+
+#define CharL(v) STRING_LITERAL(CharT , v)
+
+template< class CharT >
+int TStringParse< CharT >::ParseNumber(CharT const* str, int& num)
 {
 	//#TODO : hexInt support
-	char const* cur = str;
+	CharT const* cur = str;
 	int result = IntNumber;
 	//Int
 	while( *cur != 0 )
 	{
-		if( '0' > *cur || *cur > '9' )
+		if(!FCString::IsDigit(*cur))
 			break;
 		++cur;
 	}
-	if( *cur == '.' )
+	if( *cur == CharL('.') )
 	{
 		result = DoubleNumber;
 		++cur;
 		while( *cur != 0 )
 		{
-			if( '0' > *cur || *cur > '9' )
+			if (!FCString::IsDigit(*cur))
 				break;
 			++cur;
 		}
 	}
-	if( *cur == 'e' || *cur == 'E' )
+	if( *cur == CharL('e') || *cur == CharL('E') )
 	{
 		result = DoubleNumber;
 		++cur;
-		if( *cur == '-' )
+		if( *cur == CharL('-') )
 			++cur;
 		while( *cur != 0 )
 		{
-			if( '0' > *cur || *cur > '9' )
+			if (!FCString::IsDigit(*cur))
 				break;
 			++cur;
 		}
 	}
-	if( result == DoubleNumber && *cur == 'f' )
+	if( result == DoubleNumber && *cur == CharL('f') )
 	{
 		result = FloatNumber;
 		++cur;
 	}
-	if( *cur != 0 || !isspace(*cur) )
+	if( *cur != 0 || !FCString::IsSpace(*cur) )
 	{
-		if( isalpha(*cur) )
+		if( FCString::IsAlpha(*cur) )
 			return ErrorNumber;
 	}
 
@@ -128,11 +172,12 @@ int FStringParse::ParseNumber(char const* str, int& num)
 	return result;
 }
 
-int FStringParse::ParseIntNumber(char const* str, int& num)
+template< class CharT >
+int TStringParse< CharT >::ParseIntNumber(CharT const* str, int& num)
 {
-	char const* cur = str;
+	CharT const* cur = str;
 	int base = 10;
-	if( cur[0] == '0' && cur[1] == 'x' )
+	if( cur[0] == CharL('0') && cur[1] == CharL('x') )
 	{
 		cur += 2;
 		base = 16;
@@ -141,19 +186,20 @@ int FStringParse::ParseIntNumber(char const* str, int& num)
 	int result = 0;
 	while( *cur != 0 )
 	{
-		if( '0' > *cur || *cur > '9' )
+		if( !FCString::IsDigit(*cur) )
 			break;
 
 		result *= base;
-		result += int(*cur - '0');
+		result += int(*cur - CharL('0'));
 		++cur;
 	}
 	return result;
 }
 
-char const* FStringParse::FindLastChar(char const* str, int num, char c)
+template< class CharT >
+CharT const* TStringParse< CharT >::FindLastChar(CharT const* str, int num, CharT c)
 {
-	char const* ptr = str + (num - 1);
+	CharT const* ptr = str + (num - 1);
 	while( num )
 	{
 		if( *ptr == c )
@@ -164,7 +210,8 @@ char const* FStringParse::FindLastChar(char const* str, int num, char c)
 	return nullptr;
 }
 
-char const* FStringParse::FindChar(char const* str, char c)
+template< class CharT >
+CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c)
 {
 	while( *str != 0 )
 	{
@@ -175,7 +222,8 @@ char const* FStringParse::FindChar(char const* str, char c)
 	return str;
 }
 
-char const* FStringParse::FindChar(char const* str, char c1, char c2)
+template< class CharT >
+CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c1, CharT c2)
 {
 	while( *str != 0 )
 	{
@@ -186,7 +234,8 @@ char const* FStringParse::FindChar(char const* str, char c1, char c2)
 	return str;
 }
 
-char const* FStringParse::FindChar(char const* str, char c1, char c2, char c3)
+template< class CharT >
+CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c1, CharT c2, CharT c3)
 {
 	while( *str != 0 )
 	{
@@ -197,7 +246,8 @@ char const* FStringParse::FindChar(char const* str, char c1, char c2, char c3)
 	return str;
 }
 
-char const* FStringParse::FindChar(char const* str, char c1, char c2, char c3, char c4)
+template< class CharT >
+CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c1, CharT c2, CharT c3, CharT c4)
 {
 	while( *str != 0 )
 	{
@@ -208,7 +258,8 @@ char const* FStringParse::FindChar(char const* str, char c1, char c2, char c3, c
 	return str;
 }
 
-char const* FStringParse::FindChar(char const* str, char const* findChars)
+template< class CharT >
+CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT const* findChars)
 {
 	assert(str && findChars);
 	while( *str != 0 )
@@ -220,25 +271,25 @@ char const* FStringParse::FindChar(char const* str, char const* findChars)
 	return str;
 }
 
-
-char const* FStringParse::TrySkipToSectionEnd(char const* str, char c)
+template< class CharT >
+CharT const* TStringParse< CharT >::TrySkipToSectionEnd(CharT const* str, CharT c)
 {
 	assert(str && *str == c);
 
-	char const* ptr = str;
+	CharT const* ptr = str;
 	for( ;;)
 	{
 		ptr = FindChar(ptr + 1, c , '\n');
 		if( *ptr == 0 )
 			return ptr;
 
-		if( *ptr == '\n' )
+		if( *ptr == CharL('\n') )
 			return str;
 
 		//*ptr = '\"';
-		if( *(ptr - 1) == '\\' )
+		if( *(ptr - 1) == CharL('\\') )
 		{
-			if( !(CountCharReverse(ptr - 2, str, '\\') & 0x1) )
+			if( !(CountCharReverse(ptr - 2, str, CharL('\\')) & 0x1) )
 			{
 				continue;
 			}
@@ -249,23 +300,24 @@ char const* FStringParse::TrySkipToSectionEnd(char const* str, char c)
 	return ptr;
 }
 
-char const* FStringParse::CheckAndSkipToCommentSectionEnd(char const* str)
+template< class CharT >
+CharT const* TStringParse< CharT >::CheckAndSkipToCommentSectionEnd(CharT const* str)
 {
-	assert(str && *str == '/');
+	assert(str && *str == CharL('/'));
 
-	if( str[1] == '/' )
+	if( str[1] == CharL('/') )
 	{
-		str = FindChar(str + 2, '\n');
+		str = FindChar(str + 2, CharL('\n'));
 	}
-	else if( str[1] == '*' )
+	else if( str[1] == CharL('*') )
 	{
 		str += 2;
 		for(;;)
 		{
-			str = FindChar(str, '*');
+			str = FindChar(str, CharL('*'));
 			if( *str == 0 )
 				break;
-			if( str[1] == '/' )
+			if( str[1] == CharL('/') )
 			{
 				str += 1;
 				break;
@@ -277,7 +329,8 @@ char const* FStringParse::CheckAndSkipToCommentSectionEnd(char const* str)
 	return str;
 }
 
-char const* FStringParse::SkipChar(char const* str, char const* skipChars)
+template< class CharT >
+CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT const* skipChars)
 {
 	assert(str && skipChars);
 	while( *str != 0 )
@@ -289,7 +342,8 @@ char const* FStringParse::SkipChar(char const* str, char const* skipChars)
 	return str;
 }
 
-char const* FStringParse::SkipChar(char const* str, char skipChar)
+template< class CharT >
+CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT skipChar)
 {
 	while( *str != 0 )
 	{
@@ -300,9 +354,10 @@ char const* FStringParse::SkipChar(char const* str, char skipChar)
 	return str;
 }
 
-char const* FStringParse::SkipSpace(char const* str)
+template< class CharT >
+CharT const* TStringParse< CharT >::SkipSpace(CharT const* str)
 {
-	char const* p = str;
+	CharT const* p = str;
 	while( *p ) 
 	{
 		if ( !FCString::IsSpace(*p) )
@@ -312,15 +367,17 @@ char const* FStringParse::SkipSpace(char const* str)
 	return p;
 }
 
-char const* FStringParse::SkipToNextLine(char const* str)
+template< class CharT >
+CharT const* TStringParse< CharT >::SkipToNextLine(CharT const* str)
 {
-	char const* nextLine = FindChar(str, '\n');
+	CharT const* nextLine = FindChar(str, CharL('\n'));
 	if( *nextLine != 0 )
 		++nextLine;
 	return nextLine;
 }
 
-char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString)
+template< class CharT >
+CharT const* TStringParse< CharT >::SkipToChar(CharT const* str, CharT c, CharT cPair, bool bCheckComment, bool bCheckString)
 {
 	int countPair = 0;
 	if( bCheckString )
@@ -329,7 +386,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool b
 		{
 			for( ;;)
 			{
-				str = FindChar(str, c, cPair, '/', '\"');
+				str = FindChar(str, c, cPair, CharL('/'), CharL('\"'));
 				if( *str == 0 )
 					return str;
 
@@ -343,7 +400,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool b
 						break;
 					--countPair;
 				}
-				else if( *str == '\"' )
+				else if( *str == CharL('\"') )
 				{
 					str = TrySkipToStringSectionEnd(str);
 					if( *str == 0 )
@@ -363,7 +420,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool b
 		{
 			for( ;;)
 			{
-				str = FindChar(str, c, cPair, '\"');
+				str = FindChar(str, c, cPair, CharL('\"'));
 				if( *str == 0 )
 					return str;
 
@@ -377,7 +434,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool b
 						break;
 					--countPair;
 				}
-				else if( *str == '\"' )
+				else if( *str == CharL('\"') )
 				{
 					str = TrySkipToStringSectionEnd(str);
 					if( *str == 0 )
@@ -392,7 +449,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool b
 	{
 		for( ;;)
 		{
-			str = FindChar(str, c, cPair, '/');
+			str = FindChar(str, c, cPair, CharL('/'));
 			if( *str == 0 )
 				return str;
 
@@ -439,7 +496,8 @@ char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool b
 	return str;
 }
 
-char const* FStringParse::SkipToChar(char const* str, char c, bool bCheckComment, bool bCheckString)
+template< class CharT >
+CharT const* TStringParse< CharT >::SkipToChar(CharT const* str, CharT c, bool bCheckComment, bool bCheckString)
 {
 	if( bCheckString )
 	{
@@ -447,7 +505,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, bool bCheckComment
 		{
 			for( ;;)
 			{
-				str = FindChar(str, c, '/', '\"');
+				str = FindChar(str, c, CharL('/'), CharL('\"'));
 				if( *str == 0 )
 					break;
 
@@ -455,7 +513,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, bool bCheckComment
 				{
 					break;
 				}
-				else if( *str == '\"' )
+				else if( *str == CharL('\"') )
 				{
 					str = TrySkipToStringSectionEnd(str);
 					if( *str == 0 )
@@ -475,11 +533,11 @@ char const* FStringParse::SkipToChar(char const* str, char c, bool bCheckComment
 		{
 			for( ;;)
 			{
-				str = FindChar(str, c, '\"');
+				str = FindChar(str, c, CharL('\"'));
 				if( *str == 0 )
 					break;
 
-				if( *str == '\"' )
+				if( *str == CharL('\"') )
 				{
 					str = TrySkipToStringSectionEnd(str);
 					if( *str == 0 )
@@ -495,7 +553,7 @@ char const* FStringParse::SkipToChar(char const* str, char c, bool bCheckComment
 	{
 		for( ;;)
 		{
-			str = FindChar(str, c, '/');
+			str = FindChar(str, c, CharL('/'));
 			if( *str == 0 )
 				break;
 			//SkipComment
@@ -521,9 +579,10 @@ char const* FStringParse::SkipToChar(char const* str, char c, bool bCheckComment
 	return str;
 }
 
-void FStringParse::ReplaceChar(char* str, char c, char replace)
+template< class CharT >
+void TStringParse< CharT >::ReplaceChar(CharT* str, CharT c, CharT replace)
 {
-	char* ptr = str;
+	CharT* ptr = str;
 	while( *ptr != 0 )
 	{
 		if( *ptr == c )
@@ -532,14 +591,15 @@ void FStringParse::ReplaceChar(char* str, char c, char replace)
 	}
 }
 
-FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, DelimsTable const& table, StringView& outToken)
+template< class CharT >
+FStringParseBase::TokenType TStringParse< CharT >::StringToken(CharT const*& inoutStr, DelimsTable const& table, TStringView<CharT>& outToken)
 {
-	char cur = *(inoutStr++);
+	CharT cur = *(inoutStr++);
 	for( ;; )
 	{
-		if( cur == '\0' )
+		if( cur == CharL('\0') )
 		{
-			return FStringParse::eNoToken;
+			return FStringParseBase::eNoToken;
 		}
 		if( !table.isDropDelims(cur) )
 			break;
@@ -547,30 +607,31 @@ FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, DelimsT
 		cur = *(inoutStr++);
 	}
 
-	char const* ptr = inoutStr - 1;
+	CharT const* ptr = inoutStr - 1;
 	if( table.isStopDelims(cur) )
 	{
-		outToken = StringView(ptr, 1);
-		return FStringParse::eDelimsType;
+		outToken = TStringView<CharT>(ptr, 1);
+		return FStringParseBase::eDelimsType;
 	}
 
 	for( ;;)
 	{
 		cur = *inoutStr;
-		if( cur == '\0' || table.isDelims(cur) )
+		if( cur == CharL('\0') || table.isDelims(cur) )
 			break;
 		++inoutStr;
 	}
-	outToken = StringView(ptr, inoutStr - ptr);
-	return FStringParse::eStringType;
+	outToken = TStringView<CharT>(ptr, inoutStr - ptr);
+	return FStringParseBase::eStringType;
 }
 
-void FStringParse::SkipDelims(char const*& inoutStr, DelimsTable const& table)
+template< class CharT >
+void TStringParse< CharT >::SkipDelims(CharT const*& inoutStr, DelimsTable const& table)
 {
 	for (;;)
 	{
-		char cur = *(inoutStr+1);
-		if (cur == '\0')
+		CharT cur = *(inoutStr+1);
+		if (cur == CharL('\0'))
 		{
 			return;
 		}
@@ -581,15 +642,15 @@ void FStringParse::SkipDelims(char const*& inoutStr, DelimsTable const& table)
 	}
 }
 
-
-FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, StringView& outToken)
+template< class CharT >
+FStringParseBase::TokenType TStringParse< CharT >::StringToken(CharT const*& inoutStr, CharT const* dropDelims, CharT const* stopDelims, TStringView<CharT>& outToken)
 {
-	char cur = *(inoutStr++);
+	CharT cur = *(inoutStr++);
 	for( ;; )
 	{
-		if( cur == '\0' )
+		if( cur == CharL('\0') )
 		{
-			return FStringParse::eNoToken;
+			return FStringParseBase::eNoToken;
 		}
 		if (*FindChar(dropDelims, cur) == 0)
 		{
@@ -599,27 +660,27 @@ FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, char co
 		cur = *(inoutStr++);
 	}
 
-	char const* ptr = inoutStr - 1;
+	CharT const* ptr = inoutStr - 1;
 	if( *FindChar(stopDelims, cur) != 0 )
 	{
-		outToken = StringView(ptr, 1);
-		return FStringParse::eDelimsType;
+		outToken = TStringView<CharT>(ptr, 1);
+		return FStringParseBase::eDelimsType;
 	}
 
 	for( ;;)
 	{
 		cur = *inoutStr;
-		if( cur == '\0' || ( *FindChar(stopDelims, cur) ) || (*FindChar(stopDelims, cur) ) )
+		if( cur == CharL('\0') || ( *FindChar(stopDelims, cur) ) || (*FindChar(stopDelims, cur) ) )
 			break;
 		++inoutStr;
 	}
 
-	outToken = StringView(ptr, inoutStr - ptr);
-	return FStringParse::eStringType;
+	outToken = TStringView<CharT>(ptr, inoutStr - ptr);
+	return FStringParseBase::eStringType;
 }
 
-
-bool FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, StringView& outToken)
+template< class CharT >
+bool TStringParse< CharT >::StringToken(CharT const*& inoutStr, CharT const* dropDelims, TStringView<CharT>& outToken)
 {
 	inoutStr = SkipChar(inoutStr, dropDelims);
 	if( *inoutStr == 0 )
@@ -627,69 +688,34 @@ bool FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, St
 		return false;
 	}
 
-	char const* ptr = inoutStr;
+	CharT const* ptr = inoutStr;
 	inoutStr = FindChar(inoutStr, dropDelims);
-	outToken = StringView(ptr, inoutStr - ptr);
+	outToken = TStringView<CharT>(ptr, inoutStr - ptr);
 	return true;
 }
 
 
-
-StringView FStringParse::StringTokenLine(char const*& inoutStr)
+template< class CharT >
+TStringView<CharT> TStringParse< CharT >::StringTokenLine(CharT const*& inoutStr)
 {
-	char const* start = inoutStr;
-	inoutStr = FindChar(inoutStr, '\n');
-	char const* end = inoutStr;
+	CharT const* start = inoutStr;
+	inoutStr = FindChar(inoutStr, CharL('\n'));
+	CharT const* end = inoutStr;
 	if( *end != 0 )
 	{
 		++inoutStr;
-		if( *end == '\n' )
+		if( *end == CharL('\n') )
 		{
-			if( end != start && *(end - 1) == '\r' )
+			if( end != start && *(end - 1) == CharL('\r') )
 			{
 				--end;
 			}
 		}
 	}
-	return StringView( start , end - start );
+	return TStringView<CharT>( start , end - start );
 }
 
-DelimsTable::DelimsTable()
-{
-	std::fill_n(mDelimsMap, ARRAY_SIZE(mDelimsMap), 0);
-}
+#undef LCHAR
 
-DelimsTable::DelimsTable(char const* dropDelims, char const* stopDelims)
-{
-	std::fill_n(mDelimsMap, ARRAY_SIZE(mDelimsMap), 0);
-	addDelims(dropDelims, DropMask);
-	addDelims(stopDelims, StopMask);
-}
-
-void DelimsTable::addDelims(char const* delims, uint8 mask)
-{
-	assert(delims);
-	for( ;;)
-	{
-		char cur = *delims;
-		if( cur == 0 )
-			return;
-		mDelimsMap[uint8(cur)] |= mask;
-		++delims;
-	}
-}
-
-bool DelimsTable::isDelims(char c) const
-{
-	return !!mDelimsMap[uint8(c)];
-}
-
-bool DelimsTable::isStopDelims(char c) const
-{
-	return !!(mDelimsMap[uint8(c)] & StopMask);
-}
-
-bool DelimsTable::isDropDelims(char c) const
-{
-	return !!(mDelimsMap[uint8(c)] & DropMask);
-}
+template class TStringParse<char>;
+template class TStringParse<wchar_t>;

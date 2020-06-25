@@ -229,6 +229,13 @@ namespace Render
 		VulkanDevice* mDevice;
 
 		VkSwapchainKHR mSwapChain = VK_NULL_HANDLE;
+
+		struct FrameImage
+		{
+			VkImageView view;
+			VkImage     image;
+		};
+
 		std::vector< VkImageView >   mImageViews;
 		std::vector< VkImage >       mImages;
 		VkExtent2D                   mImageSize;

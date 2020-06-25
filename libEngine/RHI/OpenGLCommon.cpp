@@ -611,7 +611,7 @@ namespace Render
 
 	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, GLenum typeEnumGL)
 	{
-		removeDepthBuffer();
+		removeDepth();
 
 		mDepth.bufferRef = &resource;
 		mDepth.typeEnumGL = typeEnumGL;
@@ -656,10 +656,10 @@ namespace Render
 
 	void OpenGLFrameBuffer::setDepth(RHITextureDepth& target)
 	{
-		setDepthInternal( target , OpenGLCast::GetHandle( target ) , target.getFormat(), OpenGLCast::To(&target)->getGLTypeEnum() );
+		setDepthInternal(target, OpenGLCast::GetHandle(target), target.getFormat(), OpenGLCast::To(&target)->getGLTypeEnum());
 	}
 
-	void OpenGLFrameBuffer::removeDepthBuffer()
+	void OpenGLFrameBuffer::removeDepth()
 	{
 		if ( mDepth.bufferRef )
 		{
@@ -856,6 +856,19 @@ namespace Render
 		case EShader::Compute:  return GL_COMPUTE_SHADER;
 		case EShader::Hull:     return GL_TESS_CONTROL_SHADER;
 		case EShader::Domain:   return GL_TESS_EVALUATION_SHADER;
+		}
+		return 0;
+	}
+	GLbitfield OpenGLTranslate::ToStageBit(EShader::Type type)
+	{
+		switch (type)
+		{
+		case EShader::Vertex:   return GL_VERTEX_SHADER_BIT;
+		case EShader::Pixel:    return GL_FRAGMENT_SHADER_BIT;
+		case EShader::Geometry: return GL_GEOMETRY_SHADER_BIT;
+		case EShader::Compute:  return GL_COMPUTE_SHADER_BIT;
+		case EShader::Hull:     return GL_TESS_CONTROL_SHADER_BIT;
+		case EShader::Domain:   return GL_TESS_EVALUATION_SHADER_BIT;
 		}
 		return 0;
 	}
@@ -1231,6 +1244,7 @@ namespace Render
 			element.componentType = OpenGLTranslate::VertexComponentType(e.format);
 			element.stride = desc.getVertexSize(e.idxStream);
 			element.offset = e.offset;
+			//
 			element.semantic = Vertex::AttributeToSemantic(e.attribute , element.idx);
 
 			mElements.push_back(element);
@@ -1259,8 +1273,10 @@ namespace Render
 					break;
 
 				glEnableVertexAttribArray(e.attribute);
-				if ( e.bInstanceData )
+				if (e.bInstanceData)
+				{
 					glVertexBindingDivisor(e.attribute, e.instanceStepRate);
+				}
 				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, stride, (void*)(inputStream.offset + e.offset));			
 			}
 		}

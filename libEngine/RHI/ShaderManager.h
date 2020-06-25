@@ -137,7 +137,8 @@ namespace Render
 
 		bool loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
 
-		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* def = nullptr, char const* additionalCode = nullptr);
+		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, 
+			            char const* entryVS = nullptr, char const* entryPS = nullptr, char const* def = nullptr, char const* additionalCode = nullptr);
 
 		bool reloadShader(ShaderProgram& shaderProgram);
 		bool reloadShader(Shader& shader);

@@ -79,11 +79,11 @@ namespace Render
 			if( mHandle )
 			{
 				RMPolicy::Destroy(mHandle);
-				mHandle = GL_NULL_HANDLE;
 				if (!VerifyOpenGLStatus())
 				{
 					return false;
 				}
+				mHandle = GL_NULL_HANDLE;
 			}
 			return true;
 		}
@@ -178,11 +178,9 @@ namespace Render
 		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE;
 	};
 
-	class OpenGLShaderResourceView : public TRefcountResource< RHIShaderResourceView >
+	class OpenGLShaderResourceView : public TPersistentResource< RHIShaderResourceView >
 	{
 	public:
-		OpenGLShaderResourceView(EPersistent):TRefcountResource< RHIShaderResourceView >(EPersistent::EnumValue){}
-
 		GLuint handle;
 		GLenum typeEnum;
 	};
@@ -192,7 +190,6 @@ namespace Render
 	{
 	protected:
 		TOpengGLTexture()
-			:mView(EPersistent::EnumValue)
 		{}
 		
 		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
@@ -274,6 +271,7 @@ namespace Render
 		static GLenum To(Texture::Format format);
 		static GLenum To(EPrimitive type);
 		static GLenum To(EShader::Type type);
+		static GLbitfield ToStageBit(EShader::Type type);
 		static GLenum To(ELockAccess access);
 		static GLenum To(Blend::Factor factor);
 		static GLenum To(Blend::Operation op);
@@ -346,7 +344,7 @@ namespace Render
 		void setDepth( RHIDepthRenderBuffer& buffer );
 #endif
 		void setDepth( RHITextureDepth& target );
-		void removeDepthBuffer();
+		void removeDepth();
 
 		void clearBuffer( Vector4 const* colorValue, float const* depthValue = nullptr, uint8 stencilValue = 0);
 		void blitToBackBuffer(int index = 0);
@@ -661,6 +659,7 @@ namespace Render
 	};
 
 	class OpenGLShader;
+	class OpenGLShaderProgram;
 	class ShaderProgram;
 
 	template< class TRHIResource >
@@ -679,6 +678,8 @@ namespace Render
 	template<> struct TOpengGLCastTraits< RHIBlendState > { typedef OpenGLBlendState CastType; };
 	template<> struct TOpengGLCastTraits< RHIRasterizerState > { typedef OpenGLRasterizerState CastType; };
 	template<> struct TOpengGLCastTraits< RHIDepthStencilState > { typedef OpenGLDepthStencilState CastType; };
+	template<> struct TOpengGLCastTraits< RHIShaderProgram > { typedef OpenGLShaderProgram CastType; };
+	template<> struct TOpengGLCastTraits< RHIShader > { typedef OpenGLShader CastType; };
 	template<> struct TOpengGLCastTraits< RHIFrameBuffer > { typedef OpenGLFrameBuffer CastType; };
 
 	struct OpenGLCast

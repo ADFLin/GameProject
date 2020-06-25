@@ -326,15 +326,6 @@ namespace Render
 		glDisable(GL_TEXTURE_CUBE_MAP);
 	}
 
-	class ScreenVS : public GlobalShader
-	{
-		DECLARE_SHADER(ScreenVS, Global);
-
-		static char const* GetShaderFileName()
-		{
-			return "Shader/ScreenVertexShader";
-		}
-	};
 	IMPLEMENT_SHADER(ScreenVS, EShader::Vertex, SHADER_ENTRY(ScreenVS));
 
 	class CopyTexturePS : public GlobalShader
@@ -427,6 +418,31 @@ namespace Render
 		ShaderParameter mParamCopyTexture;
 	};
 
+	class CopyTextureMaskPS : public GlobalShader
+	{
+		DECLARE_SHADER(CopyTextureMaskPS, Global)
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/CopyTexture";
+		}
+	public:
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
+			mParamColorMask.bind(parameterMap, SHADER_PARAM(ColorMask));
+		}
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
+		{
+			setTexture(commandList, mParamCopyTexture, copyTexture);
+			setParam(commandList, mParamColorMask, colorMask);
+		}
+
+		ShaderParameter mParamColorMask;
+		ShaderParameter mParamCopyTexture;
+	};
+
+	IMPLEMENT_SHADER(CopyTextureMaskPS, EShader::Pixel, SHADER_ENTRY(CopyTextureMaskPS));
 
 	class CopyTextureBiasProgram : public GlobalShaderProgram
 	{
@@ -442,7 +458,7 @@ namespace Render
 			static ShaderEntryInfo const entries[] =
 			{
 				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(CopyTextureBaisPS) },
+				{ EShader::Pixel  , SHADER_ENTRY(CopyTextureBiasPS) },
 			};
 			return entries;
 		}
@@ -464,6 +480,37 @@ namespace Render
 		ShaderParameter mParamCopyTexture;
 
 	};
+
+
+	class CopyTextureBiasPS : public GlobalShader
+	{
+		DECLARE_SHADER(CopyTextureBiasPS, Global)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/CopyTexture";
+		}
+
+	public:
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
+			mParamColorBais.bind(parameterMap, SHADER_PARAM(ColorBais));
+		}
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
+		{
+			setTexture(commandList, mParamCopyTexture, copyTexture);
+			setParam(commandList, mParamColorBais, Vector2(colorBais[0], colorBais[1]));
+		}
+
+		ShaderParameter mParamColorBais;
+		ShaderParameter mParamCopyTexture;
+
+	};
+
+	IMPLEMENT_SHADER(CopyTextureBiasPS, EShader::Pixel, SHADER_ENTRY(CopyTextureBiasPS));
 
 	class MappingTextureColorProgram : public GlobalShaderProgram
 	{
@@ -552,11 +599,17 @@ namespace Render
 	bool ShaderHelper::init()
 	{
 		TIME_SCOPE("ShaderHelper Init");
+#if USE_SEPARATE_SHADER
 		VERIFY_RETURN_FALSE(mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(true));
 		VERIFY_RETURN_FALSE(mCopyTexturePS = ShaderManager::Get().getGlobalShaderT<CopyTexturePS>(true));
+		VERIFY_RETURN_FALSE(mCopyTextureMaskPS = ShaderManager::Get().getGlobalShaderT<CopyTextureMaskPS>(true));
+		VERIFY_RETURN_FALSE(mCopyTextureBiasPS = ShaderManager::Get().getGlobalShaderT<CopyTextureBiasPS>(true));
+#else
 		VERIFY_RETURN_FALSE(mProgCopyTexture = ShaderManager::Get().getGlobalShaderT<CopyTextureProgram>(true));
 		VERIFY_RETURN_FALSE(mProgCopyTextureMask = ShaderManager::Get().getGlobalShaderT<CopyTextureMaskProgram>(true));
 		VERIFY_RETURN_FALSE(mProgCopyTextureBias = ShaderManager::Get().getGlobalShaderT<CopyTextureBiasProgram>(true));
+#endif
+		
 		VERIFY_RETURN_FALSE(mProgMappingTextureColor = ShaderManager::Get().getGlobalShaderT<MappingTextureColorProgram>(true));
 		VERIFY_RETURN_FALSE(mProgSimplePipeline = ShaderManager::Get().getGlobalShaderT<SimplePipelineProgram>(true));
 
@@ -591,15 +644,15 @@ namespace Render
 
 	void ShaderHelper::copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture)
 	{
-#if 1
+#if USE_SEPARATE_SHADER
+		GraphicShaderBoundState state;
+		state.vertexShader = mScreenVS->getRHIResource();
+		state.pixelShader = mCopyTexturePS->getRHIResource();
+		RHISetGraphicsShaderBoundState(commandList, state);
+		mCopyTexturePS->setParameters(commandList, copyTexture);
+#else
 		RHISetShaderProgram(commandList, mProgCopyTexture->getRHIResource());
 		mProgCopyTexture->setParameters(commandList, copyTexture);
-#else
-		ShaderPipelineState state;
-		state.vertexShader = mScreenVS;
-		state.pixelShader = mCopyTexturePS;
-		RHISetShaderPipelineState(commandList, state);
-		mCopyTexturePS->setParameters(commandList, copyTexture);
 #endif
 
 		DrawUtility::ScreenRect(commandList);
@@ -608,16 +661,33 @@ namespace Render
 
 	void ShaderHelper::copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
+#if USE_SEPARATE_SHADER
+		GraphicShaderBoundState state;
+		state.vertexShader = mScreenVS->getRHIResource();
+		state.pixelShader = mCopyTextureMaskPS->getRHIResource();
+		RHISetGraphicsShaderBoundState(commandList, state);
+		mCopyTextureMaskPS->setParameters(commandList, copyTexture, colorMask);
+#else
 		RHISetShaderProgram(commandList, mProgCopyTextureMask->getRHIResource());
 		mProgCopyTextureMask->setParameters(commandList, copyTexture, colorMask);
+#endif
+
 		DrawUtility::ScreenRect(commandList);
 		RHISetShaderProgram(commandList, nullptr);
 	}
 
 	void ShaderHelper::copyTextureBiasToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 	{
+#if USE_SEPARATE_SHADER
+		GraphicShaderBoundState state;
+		state.vertexShader = mScreenVS->getRHIResource();
+		state.pixelShader = mCopyTextureBiasPS->getRHIResource();
+		RHISetGraphicsShaderBoundState(commandList, state);
+		mCopyTextureBiasPS->setParameters(commandList, copyTexture, colorBais);
+#else
 		RHISetShaderProgram(commandList, mProgCopyTextureBias->getRHIResource());
 		mProgCopyTextureBias->setParameters(commandList, copyTexture, colorBais);
+#endif
 		DrawUtility::ScreenRect(commandList);
 		RHISetShaderProgram(commandList, nullptr);
 	}
@@ -640,12 +710,17 @@ namespace Render
 
 	void ShaderHelper::reload()
 	{
+#if USE_SEPARATE_SHADER
 		ShaderManager::Get().reloadShader(*mScreenVS);
 		ShaderManager::Get().reloadShader(*mCopyTexturePS);
+		ShaderManager::Get().reloadShader(*mCopyTextureMaskPS);
+		ShaderManager::Get().reloadShader(*mCopyTextureBiasPS);
+#else
 		ShaderManager::Get().reloadShader(*mProgCopyTexture);
 		ShaderManager::Get().reloadShader(*mProgCopyTextureMask);
-		ShaderManager::Get().reloadShader(*mProgMappingTextureColor);
 		ShaderManager::Get().reloadShader(*mProgCopyTextureBias);
+#endif
+		ShaderManager::Get().reloadShader(*mProgMappingTextureColor);
 	}
 
 }

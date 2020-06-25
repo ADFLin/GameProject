@@ -135,14 +135,16 @@ namespace Render
 
 	enum class EVulkanResourceType
 	{
-		eVkDevice ,
-		eVkShaderModule ,
-		eVkImage ,
+		eVkDevice,
+		eVkShaderModule,
+		eVkImage,
 		eVkImageView,
 		eVkDeviceMemory,
 		eVkBuffer,
-		eVkBufferView ,
-		eVkSampler ,
+		eVkBufferView,
+		eVkSampler,
+		eVkDescriptorSetLayout,
+		eVkPipelineLayout,
 	};
 
 	template< EVulkanResourceType Type >
@@ -192,7 +194,7 @@ namespace Render
 			}
 		}
 
-		operator HandleType(){ return mHandle; }
+		operator HandleType() const { return mHandle; }
 		HandleType  mHandle;
 	};
 #define VK_RESOURCE_TYPE(Type) TVulkanResource< EVulkanResourceType::e##Type >
@@ -786,6 +788,7 @@ namespace Render
 		static VkCompareOp To(ECompareFunc func);
 		static VkStencilOp To(Stencil::Operation op);
 		static VkShaderStageFlagBits To(EShader::Type type);
+		static VkFrontFace To(EFrontFace face);
 	};
 
 
@@ -797,22 +800,18 @@ namespace Render
 			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 			createInfo.polygonMode = VulkanTranslate::To(initializer.fillMode);
 			createInfo.cullMode = VulkanTranslate::To(initializer.cullMode);
-			createInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+			createInfo.frontFace = VulkanTranslate::To(initializer.frontFace);
 			createInfo.rasterizerDiscardEnable = VK_FALSE;
 			createInfo.depthBiasEnable = VK_FALSE;
 			createInfo.depthClampEnable = VK_FALSE;
 			createInfo.lineWidth = 1.0f;
-
-			multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-			multisampleState.rasterizationSamples;
-			multisampleState.sampleShadingEnable;
-			multisampleState.minSampleShading;
-			multisampleState.pSampleMask;
-			multisampleState.alphaToCoverageEnable;
-			multisampleState.alphaToOneEnable;
 		}
 
-		VkPipelineMultisampleStateCreateInfo   multisampleState = {};
+		void getMultiSampleState(VkPipelineMultisampleStateCreateInfo& outState)
+		{
+
+		}
+
 		VkPipelineRasterizationStateCreateInfo createInfo = {};
 	};
 
@@ -893,7 +892,18 @@ namespace Render
 				if (targetValue.writeMask & CWM_A)
 					state.colorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
 			}
+
+			alphaToCoverageEnable = initializer.bEnableAlphaToCoverage;
 		}
+
+
+
+		void getMultiSampleState(VkPipelineMultisampleStateCreateInfo& outState)
+		{
+			outState.alphaToCoverageEnable = alphaToCoverageEnable;
+		}
+
+		VkBool32 alphaToCoverageEnable;
 
 		VkPipelineColorBlendAttachmentState colorAttachmentStates[MaxBlendStateTargetCount];
 		VkPipelineColorBlendStateCreateInfo createInfo = {};
@@ -904,12 +914,12 @@ namespace Render
 	struct TVulkanResourceTraits<EVulkanResourceType::eVkSampler>
 	{
 		typedef VkSampler HandleType;
-		static bool Create(VkDevice device, VkSampler& handle, VkSamplerCreateInfo const& info)
+		static bool Create(VkDevice device, HandleType& handle, VkSamplerCreateInfo const& info)
 		{
 			VK_VERIFY_RETURN_FALSE(vkCreateSampler(device, &info, gAllocCB, &handle));
 			return true;
 		}
-		static void Destroy(VkDevice device, VkSampler& handle)
+		static void Destroy(VkDevice device, HandleType& handle)
 		{
 			vkDestroySampler(device, handle, gAllocCB);
 		}
@@ -994,12 +1004,12 @@ namespace Render
 	struct TVulkanResourceTraits<EVulkanResourceType::eVkImage>
 	{
 		typedef VkImage HandleType;
-		static bool Create(VkDevice device, VkImage& handle, VkImageCreateInfo const& info)
+		static bool Create(VkDevice device, HandleType& handle, VkImageCreateInfo const& info)
 		{
 			VK_VERIFY_RETURN_FALSE(vkCreateImage(device, &info, gAllocCB, &handle));
 			return true;
 		}
-		static void Destroy(VkDevice device, VkImage& handle)
+		static void Destroy(VkDevice device, HandleType& handle)
 		{
 			vkDestroyImage(device, handle, gAllocCB);
 		}
@@ -1009,12 +1019,12 @@ namespace Render
 	struct TVulkanResourceTraits<EVulkanResourceType::eVkImageView>
 	{
 		typedef VkImageView HandleType;
-		static bool Create(VkDevice device, VkImageView& handle, VkImageViewCreateInfo const& info)
+		static bool Create(VkDevice device, HandleType& handle, VkImageViewCreateInfo const& info)
 		{
 			VK_VERIFY_RETURN_FALSE(vkCreateImageView(device, &info, gAllocCB, &handle));
 			return true;
 		}
-		static void Destroy(VkDevice device, VkImageView& handle)
+		static void Destroy(VkDevice device, HandleType& handle)
 		{
 			vkDestroyImageView(device, handle, gAllocCB);
 		}
@@ -1025,12 +1035,12 @@ namespace Render
 	struct TVulkanResourceTraits<EVulkanResourceType::eVkDeviceMemory>
 	{
 		typedef VkDeviceMemory HandleType;
-		static bool Create(VkDevice device, VkDeviceMemory& handle, VkMemoryAllocateInfo const& info)
+		static bool Create(VkDevice device, HandleType& handle, VkMemoryAllocateInfo const& info)
 		{
 			VK_VERIFY_RETURN_FALSE(vkAllocateMemory(device, &info, gAllocCB, &handle));
 			return true;
 		}
-		static void Destroy(VkDevice device, VkDeviceMemory& handle)
+		static void Destroy(VkDevice device, HandleType& handle)
 		{
 			vkFreeMemory(device, handle, gAllocCB);
 		}
@@ -1067,8 +1077,8 @@ namespace Render
 			SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
 		}
 	};
-	template< class RHITextureType >
-	class TVulkanTexture : public TRefcountResource< RHITextureType >
+
+	class VulkanTexture
 	{
 	public:
 		VkBuffer getHandle() { return image; }
@@ -1086,7 +1096,8 @@ namespace Render
 		VkImageLayout  mImageLayout;
 	};
 
-	class VulkanTexture2D : public TVulkanTexture< RHITexture2D >
+	class VulkanTexture2D : public TRefcountResource< RHITexture2D >
+		                  , public VulkanTexture
 	{
 	public:
 
@@ -1101,7 +1112,10 @@ namespace Render
 			return false;
 		}
 
-
+		void releaseResource()
+		{
+			VulkanTexture::releaseResource();
+		}
 	};
 
 
@@ -1109,12 +1123,12 @@ namespace Render
 	struct TVulkanResourceTraits<EVulkanResourceType::eVkBuffer>
 	{
 		typedef VkBuffer HandleType;
-		static bool Create(VkDevice device, VkBuffer& handle, VkBufferCreateInfo const& info)
+		static bool Create(VkDevice device, HandleType& handle, VkBufferCreateInfo const& info)
 		{
 			VK_VERIFY_RETURN_FALSE(vkCreateBuffer(device, &info, gAllocCB, &handle));
 			return true;
 		}
-		static void Destroy(VkDevice device, VkBuffer& handle)
+		static void Destroy(VkDevice device, HandleType& handle)
 		{
 			vkDestroyBuffer(device, handle, gAllocCB);
 		}
@@ -1123,12 +1137,12 @@ namespace Render
 	struct TVulkanResourceTraits<EVulkanResourceType::eVkBufferView>
 	{
 		typedef VkBufferView HandleType;
-		static bool Create(VkDevice device, VkBufferView& handle, VkBufferViewCreateInfo const& info)
+		static bool Create(VkDevice device, HandleType& handle, VkBufferViewCreateInfo const& info)
 		{
 			VK_VERIFY_RETURN_FALSE(vkCreateBufferView(device, &info, gAllocCB, &handle));
 			return true;
 		}
-		static void Destroy(VkDevice device, VkBufferView& handle)
+		static void Destroy(VkDevice device, HandleType& handle)
 		{
 			vkDestroyBufferView(device, handle, gAllocCB);
 		}
@@ -1317,6 +1331,111 @@ namespace Render
 	public:
 	};
 
+
+
+
+	class VulkanFrameBuffer : public RHIFrameBuffer
+	{
+	public:
+
+		virtual void setupTextureLayer(RHITextureCube& target, int level = 0) = 0;
+
+		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
+		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
+		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
+
+		virtual void setDepth(RHITextureDepth& target) = 0;
+		virtual void removeDepth() = 0;
+
+		struct BufferInfo
+		{
+			VkFormat      format;
+			RHITextureRef texture;
+		};
+
+		std::vector< BufferInfo > mColorBuffers;
+		BufferInfo mDepthBuffer;
+
+#if 0
+		void checkPipelineLayout()
+		{
+			std::vector< VkAttachmentDescription > attachmentDescriptionList;
+
+			for( auto const& colorBufferInfo :  )
+			VkAttachmentDescription colorAttachmentDesc = {};
+			colorAttachmentDesc.format = mSwapChainImageFormat;
+			colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			attachments[1].format = depthFormat;
+			attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+
+			VkAttachmentReference colorAttachmentRef = {};
+			colorAttachmentRef.attachment = 0;
+			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkSubpassDescription subpass = {};
+			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpass.pColorAttachments = &colorAttachmentRef;
+			subpass.colorAttachmentCount = 1;
+			subpass.pInputAttachments = nullptr;
+			subpass.inputAttachmentCount = 0;
+			subpass.pResolveAttachments = nullptr;
+			subpass.pDepthStencilAttachment = nullptr;
+			subpass.preserveAttachmentCount = 0;
+			subpass.pPreserveAttachments = nullptr;
+
+			VkSubpassDependency dependencies[2] = {};
+			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[0].dstSubpass = 0;
+			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[0].srcAccessMask = 0;
+			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			dependencies[1].srcSubpass = 0;                                               // Producer of the dependency is our single subpass
+			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;                             // Consumer are all commands outside of the renderpass
+			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // is a storeOp stage for color attachments
+			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;          // Do not block any subsequent work
+			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;         // is a storeOp `STORE` access mask for color attachments
+			dependencies[1].dstAccessMask = 0;
+			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			VkRenderPassCreateInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			renderPassInfo.pAttachments = &colorAttachmentDesc;
+			renderPassInfo.attachmentCount = 1;
+			renderPassInfo.pSubpasses = &subpass;
+			renderPassInfo.subpassCount = 1;
+			renderPassInfo.pDependencies = dependencies;
+			renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
+
+			VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(mDevice, &renderPassInfo, gAllocCB, &mSimpleRenderPass));
+
+		}
+#endif
+
+		VulkanDevice* mDevice;
+		bool bPipelineLayoutDirty = true;
+		bool bBufferDirty = true;
+	};
+
 	template< class TRHIResource >
 	struct TVulkanCastTraits {};
 
@@ -1336,7 +1455,7 @@ namespace Render
 	template<> struct TVulkanCastTraits< RHIBlendState > { typedef VulkanBlendState CastType; };
 	template<> struct TVulkanCastTraits< RHIRasterizerState > { typedef VulkanRasterizerState CastType; };
 	template<> struct TVulkanCastTraits< RHIDepthStencilState > { typedef VulkanDepthStencilState CastType; };
-	//template<> struct TVulkanCastTraits< RHIFrameBuffer > { typedef VulkanFrameBuffer CastType; };
+	template<> struct TVulkanCastTraits< RHIFrameBuffer > { typedef VulkanFrameBuffer CastType; };
 	template<> struct TVulkanCastTraits< RHIShader > { typedef VulkanShader CastType; };
 	template<> struct TVulkanCastTraits< RHIShaderProgram > { typedef VulkanShaderProgram CastType; };
 

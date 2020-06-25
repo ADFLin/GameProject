@@ -271,7 +271,10 @@ namespace Render
 		virtual RHITexture3D* getTexture3D() { return nullptr; }
 		virtual RHITextureCube* getTextureCube() { return nullptr; }
 		virtual RHITexture2DArray* getTexture2DArray() { return nullptr; }
+		virtual RHITextureDepth* getTextureDepth() { return nullptr; }
+
 		virtual RHIShaderResourceView* getBaseResourceView() { return nullptr; }
+
 		Texture::Format getFormat() const { return mFormat; }
 		int getNumSamples() const { return mNumSamples; }
 		int getNumMipLevel() const { return mNumMipLevel; }
@@ -388,10 +391,22 @@ namespace Render
 		Texture::DepthFormat getFormat() { return mFormat; }
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
-
+		
+		RHITextureDepth* getTextureDepth() override { return this; }
+		
 		Texture::DepthFormat mFormat;
 		int mSizeX;
 		int mSizeY;
+	};
+
+	struct BufferInfo
+	{
+		RHITextureBase* texture;
+		int level;
+		int layer;
+		Texture::Face  face;
+		EBufferLoadOp  loadOp;
+		EBufferStoreOp storeOp;
 	};
 
 
@@ -401,6 +416,7 @@ namespace Render
 		RHIFrameBuffer() :RHIResource(TRACE_TYPE_NAME("FrameBuffer")) {}
 
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
+
 		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
@@ -409,6 +425,7 @@ namespace Render
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
 		virtual void setDepth(RHITextureDepth& target) = 0; 
+		virtual void removeDepth() = 0;
 	};
 
 
@@ -711,10 +728,10 @@ namespace Render
 
 	struct RasterizerStateInitializer
 	{
-		EFillMode fillMode;
-		ECullMode cullMode;
-
-		bool      bEnableScissor;
+		EFillMode  fillMode;
+		ECullMode  cullMode;
+		EFrontFace frontFace;
+		bool       bEnableScissor;
 	};
 
 	class RHIRasterizerState : public RHIResource
@@ -810,6 +827,14 @@ namespace Render
 		virtual void releaseResource() {}
 
 		RefCount mRefcount;
+	};
+
+	template< class RHIResourceType >
+	class TPersistentResource : public RHIResourceType
+	{
+		virtual void incRef() final { }
+		virtual bool decRef() final { return false; }
+		virtual void releaseResource() final {}
 	};
 
 

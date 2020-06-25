@@ -90,9 +90,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetupFixedPipelineState(transform, color, textures, numTexture));
 	}
 
-	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
+	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetFrameBuffer(frameBuffer, overrideDepthTexture));
+		RHI_COMMAND_FUNC(commandList, RHISetFrameBuffer(frameBuffer));
 	}
 
 	void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
@@ -115,9 +115,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetShaderProgram(shaderProgram));
 	}
 
-	void RHISetShaderPipelineState(RHICommandList& commandList, ShaderPipelineState const& state)
+	void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicShaderBoundState const& state)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetShaderPipelineState(state));
+		RHI_COMMAND_FUNC(commandList, RHISetGraphicsShaderBoundState(state));
 	}
 
 	void RHIFlushCommand(RHICommandList& commandList)

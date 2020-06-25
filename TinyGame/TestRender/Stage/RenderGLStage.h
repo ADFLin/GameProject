@@ -433,8 +433,7 @@ namespace Render
 
 		bool init()
 		{
-			if( !mBuffer.create() )
-				return false;
+			VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
 
 			mTexEnv = RHICreateTextureCube(Texture::eFloatRGBA, MapSize);
 #if USE_DepthRenderBuffer
@@ -443,16 +442,16 @@ namespace Render
 				return false;
 #endif
 
-			mBuffer.addTexture(*mTexEnv, Texture::eFaceX);
+			mFrameBuffer->addTexture(*mTexEnv, Texture::eFaceX);
 #if USE_DepthRenderBuffer
-			mBuffer.setDepth(*depthBuffer);
+			mFrameBuffer->setDepth(*depthBuffer);
 #endif
 			return true;
 
 		}
 		static int const MapSize = 512;
 
-		OpenGLFrameBuffer mBuffer;
+		RHIFrameBufferRef  mFrameBuffer;
 
 		RHITextureCubeRef mTexSky;
 		RHITextureCubeRef mTexEnv;
@@ -478,10 +477,8 @@ namespace Render
 			glEnable(GL_CLIP_PLANE0);
 			glClipPlane(GL_CLIP_PLANE0, equ);
 
-			mBuffer.setTexture(0, *mReflectMap);
-			mBuffer.bind();
+			RHISetFrameBuffer(commandList, mFrameBuffer);
 			//scene.render(view, *this);
-			mBuffer.unbind();
 
 			glDisable(GL_CLIP_PLANE0);
 			glPopMatrix();
@@ -492,7 +489,7 @@ namespace Render
 		Mesh         mWaterMesh;
 		RHITexture2DRef mReflectMap;
 		RHITexture2DRef mRefractMap;
-		OpenGLFrameBuffer  mBuffer;
+		RHIFrameBufferRef  mFrameBuffer;
 	};
 
 	struct Portal
@@ -634,9 +631,11 @@ namespace Render
 
 		ShaderProgram mProgTerrain;
 
-		class ShadowVolumeProgram* mProgShadowVolume;
-		class DecalRenderProgram* mProgDecal;
+		class ScreenVS* mScreenVS;
 
+		class ShadowVolumeProgram* mProgShadowVolume;
+		class DecalRenderProgram*  mProgDecal;
+		class DecalRenderPS*       mDecalRenderPS;
 		Mesh   mFrustumMesh;
 		Mesh   mSpritePosMesh;
 		RHITextureCubeRef mTexSky;
@@ -702,7 +701,7 @@ namespace Render
 		Vector3 mIntersectPos;
 		Vector3 rayStart , rayEnd;
 
-		OpenGLFrameBuffer mLayerFrameBuffer;
+		RHIFrameBufferRef mLayerFrameBuffer;
 
 		std::vector< MaterialAsset > mMaterialAssets;
 		typedef std::shared_ptr< RHITexture2D > Texture2DPtr;

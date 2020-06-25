@@ -582,7 +582,7 @@ namespace Render
 			std::vector< InputElementDesc > elements;
 			uint32 hash;
 
-			uint32 getHash() const { return hash; }
+			uint32 getTypeHash() const { return hash; }
 
 			bool operator == (InputLayoutKey const& rhs) const
 			{

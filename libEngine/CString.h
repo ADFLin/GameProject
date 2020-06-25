@@ -35,19 +35,18 @@ struct TStringTraits< wchar_t >
 template <class CharT>
 struct TStringLiteral
 {
-	static CharT Select(char c, wchar_t) { return c; }
-	static CharT const* Select(char const* c, wchar_t const*) { return c; }
+	static constexpr CharT Select(char c, wchar_t) { return c; }
+	static constexpr CharT const* Select(char const* c, wchar_t const*) { return c; }
 };
 
 template <>
 struct TStringLiteral< wchar_t >
 {
-	static wchar_t Select(char, wchar_t c) { return c; }
-	static wchar_t const* Select(char const*, wchar_t const* c) { return c; }
+	static constexpr wchar_t Select(char, wchar_t c) { return c; }
+	static constexpr wchar_t const* Select(char const*, wchar_t const* c) { return c; }
 };
 
 #define STRING_LITERAL( TYPE , LITERAL ) TStringLiteral< TYPE >::Select( LITERAL , L##LITERAL )
-
 
 struct FCString
 {
@@ -102,17 +101,11 @@ struct FCString
 	FORCEINLINE static bool	   IsAlpha(char c) { return ::isalpha(c); }
 	FORCEINLINE static bool	   IsAlpha(wchar_t c) { return ::iswalpha(c); }
 
+	FORCEINLINE static bool    IsDigit(char c) { return ::isdigit(c); }
+	FORCEINLINE static bool    IsDigit(wchar_t c) { return ::iswdigit(c); }
+
 	template< class CharT >
-	static CharT const* FindChar(CharT const* str, CharT c)
-	{
-		while (*str != 0)
-		{
-			if (*str == c)
-				break;
-			++str;
-		}
-		return str;
-	}
+	static CharT const* FindChar(CharT const* str, CharT c);
 
 	template< class CharT, class T >
 	static bool CheckForamtStringInternal(CharT const*& format, T&& t)

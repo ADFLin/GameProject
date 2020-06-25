@@ -339,10 +339,19 @@ namespace Render
 		bool buildIBLResource(RHITexture2D& envTexture, IBLResource& resource , IBLBuildSetting const& setting );
 		bool initializeShaderProgram();
 
+		class ScreenVS* mScreenVS = nullptr;
+		class EquirectangularToCubePS* mEquirectangularToCubePS = nullptr;
+		class IrradianceGenPS* mIrradianceGenPS = nullptr;
+		class PrefilteredGenPS* mPrefilteredGenPS = nullptr;
+		class PreIntegrateBRDFGenPS* mPreIntegrateBRDFGenPS = nullptr;
+
 		class EquirectangularToCubeProgram* mProgEquirectangularToCube = nullptr;
 		class IrradianceGenProgram* mProgIrradianceGen = nullptr;
-		class PrefilteredGenProgram* mProgPrefilterdGen = nullptr;
+		class PrefilteredGenProgram* mProgPrefilteredGen = nullptr;
 		class PreIntegrateBRDFGenProgram* mProgPreIntegrateBRDFGen = nullptr;
+
+		template< class TFunc >
+		void renderCubeTexture(RHICommandList& commandList, RHIFrameBufferRef& frameBuffer, RHITextureCube& cubeTexture, GlobalShader& shaderPS, int level, TFunc&& shaderSetup);
 	};
 
 

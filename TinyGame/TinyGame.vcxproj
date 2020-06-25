@@ -213,6 +213,8 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
+      <StackCommitSize>
+      </StackCommitSize>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
@@ -505,6 +507,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\SkyBox.sgc" />
     <None Include="out\Shader\SSAO.sgc" />
     <None Include="out\Shader\Terrain.sgc" />
+    <None Include="out\Shader\Test\VulkanTest.sgc" />
     <None Include="out\Shader\TiledLightCommon.sgc" />
     <None Include="out\Shader\TiledLightInjection.sgc" />
     <None Include="out\Shader\Tonemap.sgc" />

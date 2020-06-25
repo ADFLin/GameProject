@@ -49,8 +49,7 @@ namespace Render
 
 	bool ShadowDepthTech::init()
 	{
-		if( !mShadowBuffer.create() )
-			return false;
+		VERIFY_RETURN_FALSE(mShadowBuffer = RHICreateFrameBuffer());
 
 		mShadowMap = RHICreateTextureCube(Texture::eFloatRGBA, ShadowTextureSize);
 		if( !mShadowMap.isValid())
@@ -82,9 +81,9 @@ namespace Render
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		OpenGLCast::To(mShadowMap2)->unbind();
 #if USE_DepthRenderBuffer
-		mShadowBuffer.setDepth(*depthBuffer1);
+		mShadowBuffer->setDepth(*depthBuffer1);
 #endif
-		mShadowBuffer.addTexture(*mShadowMap, Texture::eFaceX);
+		mShadowBuffer->addTexture(*mShadowMap, Texture::eFaceX);
 		//mBuffer.addTexture( mShadowMap2 );
 		//mBuffer.addTexture( mShadowMap , Texture::eFaceX , false );
 
@@ -277,10 +276,10 @@ namespace Render
 #if USE_DepthRenderBuffer
 			mShadowBuffer.setDepth(*depthBuffer1);
 #endif
-			mShadowBuffer.setTexture(0, *mCascadeTexture);
+			mShadowBuffer->setTexture(0, *mCascadeTexture);
 
-			GL_BIND_LOCK_OBJECT(mShadowBuffer);
 
+			RHISetFrameBuffer(commandList, mShadowBuffer);
 			glClearDepth(1);
 			glClearColor(1, 1, 1, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -318,6 +317,8 @@ namespace Render
 				RenderContext context(commandList, lightView, *this);
 				scene.render( context );
 			}
+
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 		else if( light.type == LightType::Spot )
 		{
@@ -334,8 +335,8 @@ namespace Render
 #if USE_DepthRenderBuffer
 			mShadowBuffer.setDepth(*depthBuffer2);
 #endif
-			mShadowBuffer.setTexture(0, *mShadowMap2);
-			GL_BIND_LOCK_OBJECT(mShadowBuffer);
+			mShadowBuffer->setTexture(0, *mShadowMap2);
+			RHISetFrameBuffer(commandList, mShadowBuffer);
 
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
@@ -347,7 +348,7 @@ namespace Render
 			lightView.setupTransform(worldToLight, shadowProject);
 			RenderContext context(commandList, lightView, *this);
 			scene.render( context );
-
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 		else if( light.type == LightType::Point )
 		{
@@ -379,14 +380,15 @@ namespace Render
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
 #if USE_DepthRenderBuffer
-			mShadowBuffer.setDepth(*depthBuffer2);
+			mShadowBuffer->setDepth(*depthBuffer2);
 #endif
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			for( int i = 0; i < 6; ++i )
 			{
 				//GPU_PROFILE("Face");
-				mShadowBuffer.setTexture(0, *mShadowMap, Texture::Face(i));
-				GL_BIND_LOCK_OBJECT(mShadowBuffer);
+				mShadowBuffer->setTexture(0, *mShadowMap, Texture::Face(i));
+
+				RHISetFrameBuffer(commandList, mShadowBuffer);
 				{
 					//GPU_PROFILE("Clear");
 					glClearDepth(1);
@@ -405,6 +407,7 @@ namespace Render
 					scene.render( context );
 				}
 
+				RHISetFrameBuffer(commandList, nullptr);
 			}
 		}
 	}
@@ -582,22 +585,20 @@ namespace Render
 
 		GBufferResource& GBuffer = sceneRenderTargets.getGBuffer();
 
-		if( !mBassPassBuffer.create() )
-			return false;
-		if( !mLightingBuffer.create() )
-			return false;
-
-		mBassPassBuffer.addTexture(*GBuffer.textures[0]);
+		VERIFY_RETURN_FALSE(mBassPassBuffer = RHICreateFrameBuffer());
+		VERIFY_RETURN_FALSE(mLightingBuffer = RHICreateFrameBuffer());
+		VERIFY_RETURN_FALSE(mLightingDepthBuffer = RHICreateFrameBuffer());
+		mBassPassBuffer->addTexture(*GBuffer.textures[0]);
 		for( int i = 0; i < EGBufferId::Count; ++i )
 		{
-			mBassPassBuffer.addTexture(*GBuffer.textures[i]);
+			mBassPassBuffer->addTexture(*GBuffer.textures[i]);
 		}
 
-		mBassPassBuffer.setDepth(sceneRenderTargets.getDepthTexture());
+		mBassPassBuffer->setDepth( sceneRenderTargets.getDepthTexture());
 
-		mLightingBuffer.addTexture( sceneRenderTargets.getFrameTexture() );
-		mLightingBuffer.setDepth( sceneRenderTargets.getDepthTexture() );
-
+		mLightingBuffer->addTexture( sceneRenderTargets.getFrameTexture() );
+		mLightingBuffer->setDepth( sceneRenderTargets.getDepthTexture() );
+		mLightingDepthBuffer->setDepth(sceneRenderTargets.getDepthTexture());
 
 		VERIFY_RETURN_FALSE(MeshBuild::LightSphere(mSphereMesh));
 		VERIFY_RETURN_FALSE(MeshBuild::LightCone(mConeMesh));
@@ -619,12 +620,12 @@ namespace Render
 
 	void DeferredShadingTech::renderBassPass(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene)
 	{
-		mBassPassBuffer.setTexture(0, mSceneRenderTargets->getFrameTexture());
-		GL_BIND_LOCK_OBJECT(mBassPassBuffer);
+		mBassPassBuffer->setTexture(0, mSceneRenderTargets->getFrameTexture());
+		RHISetFrameBuffer(commandList, mBassPassBuffer);
 		float const depthValue = 1.0;
 		{
 			GPU_PROFILE("Clear Buffer");
-			mBassPassBuffer.clearBuffer(&Vector4(0, 0, 0, 0), &depthValue);
+			OpenGLCast::To( mBassPassBuffer )->clearBuffer(&Vector4(0, 0, 0, 0), &depthValue);
 		}
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RenderContext context(commandList, view, *this);
@@ -652,7 +653,7 @@ namespace Render
 		{
 			DeferredLightingProgram* lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
 
-			mLightingBuffer.setTexture(0, mSceneRenderTargets->getFrameTexture());
+			mLightingBuffer->setTexture(0, mSceneRenderTargets->getFrameTexture());
 
 			Mesh* boundMesh;
 			Matrix4 lightXForm;
@@ -686,10 +687,11 @@ namespace Render
 			if( boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
 			{
 				constexpr bool bEnableStencilTest = true;
-				mLightingBuffer.bindDepthOnly();
+
+				RHISetFrameBuffer(commandList, mLightingDepthBuffer);
 				glClearStencil(1);
 				glClear(GL_STENCIL_BUFFER_BIT);
-				mLightingBuffer.unbind();
+				RHISetFrameBuffer(commandList, nullptr);
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
 				//if ( debugMode != DebugMode::eShowVolume )
@@ -702,9 +704,9 @@ namespace Render
 							Stencil::eKeep, Stencil::eKeep, Stencil::eDecr, 0x0 
 						>::GetRHI(), 0x0);
 
-					mLightingBuffer.bindDepthOnly();
+					RHISetFrameBuffer(commandList, mLightingDepthBuffer);
 					DrawBoundShape(commandList, false);
-					mLightingBuffer.unbind();
+					RHISetFrameBuffer(commandList, nullptr);
 
 				}
 
@@ -744,7 +746,7 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Front >::GetRHI());
 			{
-				GL_BIND_LOCK_OBJECT(mLightingBuffer);
+				RHISetFrameBuffer(commandList, mLightingBuffer);
 				RHISetShaderProgram(commandList, lightShader->getRHIResource());
 				//if( debugMode == DebugMode::eNone )
 				{
@@ -976,28 +978,15 @@ namespace Render
 
 	bool PostProcessSSAO::init(IntVector2 const& size)
 	{
-		if( !mFrameBuffer.create() )
-			return false;
-		
-		mSSAOTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
-		if( !mSSAOTexture.isValid() )
-			return false;
+		VERIFY_RETURN_FALSE( mSSAOTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y) );
+		VERIFY_RETURN_FALSE( mSSAOTextureBlur = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y) );
+		VERIFY_RETURN_FALSE( mFrameBuffer = RHICreateFrameBuffer());
 
-		mSSAOTextureBlur = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
-		if( !mSSAOTextureBlur.isValid() )
-			return false;
+		mFrameBuffer->addTexture(*mSSAOTexture);
 
-		mFrameBuffer.addTexture(*mSSAOTexture);
-
-		mProgSSAOGenerate = ShaderManager::Get().getGlobalShaderT< SSAOGenerateProgram >(true);
-		if( mProgSSAOGenerate == nullptr )
-			return false;
-		mProgSSAOBlur = ShaderManager::Get().getGlobalShaderT< SSAOBlurProgram >(true);
-		if( mProgSSAOBlur == nullptr )
-			return false;
-		mProgAmbient = ShaderManager::Get().getGlobalShaderT< SSAOAmbientProgram >(true);
-		if( mProgAmbient == nullptr )
-			return false;
+		VERIFY_RETURN_FALSE(mProgSSAOGenerate = ShaderManager::Get().getGlobalShaderT< SSAOGenerateProgram >(true) );
+		VERIFY_RETURN_FALSE(mProgSSAOBlur = ShaderManager::Get().getGlobalShaderT< SSAOBlurProgram >(true) );
+		VERIFY_RETURN_FALSE(mProgAmbient = ShaderManager::Get().getGlobalShaderT< SSAOAmbientProgram >(true));
 
 		generateKernelVectors(NumDefaultKernel);
 		return true;
@@ -1008,38 +997,38 @@ namespace Render
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		{
 			GPU_PROFILE("SSAO-Generate");
-			mFrameBuffer.setTexture(0, *mSSAOTexture);
-			GL_BIND_LOCK_OBJECT(mFrameBuffer);
+			mFrameBuffer->setTexture(0, *mSSAOTexture);
+
+			RHISetFrameBuffer(commandList, mFrameBuffer);
 			RHISetShaderProgram(commandList, mProgSSAOGenerate->getRHIResource());
 			view.setupShader(commandList, *mProgSSAOGenerate);
 			mProgSSAOGenerate->setParameters(commandList, sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
 			DrawUtility::ScreenRect(commandList);
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 
 
 		{
 			GPU_PROFILE("SSAO-Blur");
-			mFrameBuffer.setTexture(0, *mSSAOTextureBlur);
-			GL_BIND_LOCK_OBJECT(mFrameBuffer);
+			mFrameBuffer->setTexture(0, *mSSAOTextureBlur);
+			RHISetFrameBuffer(commandList, mFrameBuffer);
 			RHISetShaderProgram(commandList, mProgSSAOBlur->getRHIResource());
 			mProgSSAOBlur->setParameters(commandList, *mSSAOTexture);
 			DrawUtility::ScreenRect(commandList);
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 
 
 		{
 			GPU_PROFILE("SSAO-Ambient");
 			//sceneRenderTargets.swapFrameBufferTexture();
+			RHISetFrameBuffer(commandList, sceneRenderTargets.getFrameBuffer());
 
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
-			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());	
 			RHISetShaderProgram(commandList, mProgAmbient->getRHIResource());
 			mProgAmbient->setParameters(commandList, sceneRenderTargets, *mSSAOTextureBlur);
-			DrawUtility::ScreenRect(commandList);
-			
+			DrawUtility::ScreenRect(commandList);		
 		}
-
-
 		return;
 	}
 
@@ -1114,7 +1103,7 @@ namespace Render
 
 			}
 
-			mFrameBuffer.addTexture(getFrameTexture());
+			mFrameBuffer->addTexture(getFrameTexture());
 			mSize = size;
 			mNumSamples = numSamples;
 		}
@@ -1172,8 +1161,7 @@ namespace Render
 
 	bool FrameRenderTargets::initializeRHI(IntVector2 const& size, int numSamples)
 	{
-		if (!mFrameBuffer.create())
-			return false;
+		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
 
 		//TODO: remove
 		if (!prepare(size, numSamples))
@@ -1294,9 +1282,9 @@ namespace Render
 				return false;
 		}
 
-		mFrameBuffer.create();
-		mFrameBuffer.addTexture(*mShaderData.colorStorageTexture);
-		mFrameBuffer.addTexture(*mShaderData.nodeAndDepthStorageTexture);
+		VERIFY_RETURN_FALSE( mFrameBuffer = RHICreateFrameBuffer());
+		mFrameBuffer->addTexture(*mShaderData.colorStorageTexture);
+		mFrameBuffer->addTexture(*mShaderData.nodeAndDepthStorageTexture);
 
 		return true;
 	}
@@ -1418,7 +1406,7 @@ namespace Render
 				}
 				else
 				{
-					GL_BIND_LOCK_OBJECT(mFrameBuffer);
+					RHISetFrameBuffer(commandList, mFrameBuffer);
 					ViewportSaveScope vpScope(commandList);
 					RHISetViewport(commandList, 0, 0, OIT_StorageSize, OIT_StorageSize);
 					glClearBufferfv(GL_COLOR, 0, clearValueA);
@@ -1433,8 +1421,7 @@ namespace Render
 
 		if( sceneRenderTargets )
 		{
-			//RHISetFrameBuffer(commandList, &sceneRenderTargets->getFrameBuffer());
-			sceneRenderTargets->getFrameBuffer().bind();
+			RHISetFrameBuffer(commandList, sceneRenderTargets->getFrameBuffer());
 		}
 		else
 		{
@@ -1518,8 +1505,7 @@ namespace Render
 
 		if( sceneRenderTargets )
 		{
-			//RHISetFrameBuffer(commandList, nullptr);
-			sceneRenderTargets->getFrameBuffer().unbind();
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 		RHISetShaderProgram(commandList, nullptr);
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -1878,43 +1864,25 @@ namespace Render
 			return false;
 #endif
 
-		mProgBlurV = ShaderManager::Get().getGlobalShaderT< DOFBlurVProgram >(true);
-		if( mProgBlurV == nullptr )
-			return false;
-		mProgBlurHAndCombine = ShaderManager::Get().getGlobalShaderT< DOFBlurHAndCombineProgram >(true);
-		if( mProgBlurHAndCombine == nullptr )
-			return false;
+		VERIFY_RETURN_FALSE(mProgBlurV = ShaderManager::Get().getGlobalShaderT< DOFBlurVProgram >(true));
+		VERIFY_RETURN_FALSE(mProgBlurHAndCombine = ShaderManager::Get().getGlobalShaderT< DOFBlurHAndCombineProgram >(true));
 
-		mTextureNear = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
-		if( !mTextureNear.isValid() )
-			return false;
-		mTextureFar = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
-		if( !mTextureFar.isValid() )
-			return false;
+		VERIFY_RETURN_FALSE(mTextureNear = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureFar = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
 
+		VERIFY_RETURN_FALSE(mFrameBufferGen = RHICreateFrameBuffer());
 
-		if( !mFrameBufferGen.create() )
-			return false;
+		mFrameBufferGen->addTexture(*mTextureNear);
+		mFrameBufferGen->addTexture(*mTextureFar);
 
-		mFrameBufferGen.addTexture(*mTextureNear);
-		mFrameBufferGen.addTexture(*mTextureFar);
+		VERIFY_RETURN_FALSE(mTextureBlurR = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureBlurG = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureBlurB = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
 
-		mTextureBlurR = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
-		if( !mTextureBlurR.isValid() )
-			return false;
-		mTextureBlurG = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
-		if( !mTextureBlurG.isValid() )
-			return false;
-		mTextureBlurB = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
-		if( !mTextureBlurB.isValid() )
-			return false;
-
-		if( !mFrameBufferBlur.create() )
-			return false;
-
-		mFrameBufferBlur.addTexture(*mTextureBlurR);
-		mFrameBufferBlur.addTexture(*mTextureBlurG);
-		mFrameBufferBlur.addTexture(*mTextureBlurB);
+		VERIFY_RETURN_FALSE(mFrameBufferBlur = RHICreateFrameBuffer());
+		mFrameBufferBlur->addTexture(*mTextureBlurR);
+		mFrameBufferBlur->addTexture(*mTextureBlurG);
+		mFrameBufferBlur->addTexture(*mTextureBlurB);
 
 		return true;
 	}
@@ -1927,7 +1895,7 @@ namespace Render
 		ViewportSaveScope vpScope(commandList);
 
 		{
-			GL_BIND_LOCK_OBJECT(mFrameBufferBlur);
+			RHISetFrameBuffer(commandList, mFrameBufferBlur);
 			RHITexture2D& frameTexture = sceneRenderTargets.getFrameTexture();
 
 			RHISetViewport(commandList, 0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
@@ -1942,8 +1910,7 @@ namespace Render
 		}
 
 		{
-			//sceneRenderTargets.swapFrameBufferTexture();
-			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
+			RHISetFrameBuffer(commandList, sceneRenderTargets.getFrameBuffer());
 
 			RHITexture2D& frameTexture = sceneRenderTargets.getPrevFrameTexture();
 			RHISetViewport(commandList, 0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());

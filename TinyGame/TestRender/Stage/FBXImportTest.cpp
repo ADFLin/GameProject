@@ -441,6 +441,7 @@ namespace Render
 		{
 			if( !BaseClass::onInit() )
 				return false;
+
 			HighResClock mClock;
 			{
 				TIME_SCOPE("EnvLightingTest Shader");
@@ -590,7 +591,7 @@ namespace Render
 				}
 				else
 				{
-					mSceneRenderTargets.getFrameBuffer().blitToBackBuffer();
+					OpenGLCast::To( mSceneRenderTargets.getFrameBuffer() )->blitToBackBuffer();
 				}
 			}
 		}

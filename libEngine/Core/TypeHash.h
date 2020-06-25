@@ -51,10 +51,10 @@ inline void HashCombine(uint32& seed, const T& v)
 struct MemberFuncHasher
 {
 	template< class T >
-	uint32 operator()(T const& value) const noexcept { return value.getHash(); }
+	uint32 operator()(T const& value) const noexcept { return value.getTypeHash(); }
 };
 
 #define EXPORT_MEMBER_HASH_TO_STD( TYPE )\
-	namespace std { template<> struct hash<TYPE> { size_t operator()(TYPE const& value) const { return value.getHash(); } }; }
+	namespace std { template<> struct hash<TYPE> { size_t operator()(TYPE const& value) const { return value.getTypeHash(); } }; }
 
 #endif // TypeHash_h__

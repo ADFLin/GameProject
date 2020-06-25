@@ -329,6 +329,8 @@ namespace Render
 		ShaderParameterMap parameterMap;
 		shaderImpl.generateParameterMap(parameterMap);
 		shader.bindParameters(parameterMap);
+
+		return true;
 	}
 
 	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode)
@@ -349,6 +351,8 @@ namespace Render
 		ShaderParameterMap parameterMap;
 		shaderImpl.generateParameterMap(parameterMap);
 		shader.bindParameters(parameterMap);
+
+		return true;
 	}
 
 	void ShaderFormatGLSL::postShaderLoaded(Shader& shader)

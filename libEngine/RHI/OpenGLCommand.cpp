@@ -203,6 +203,7 @@ namespace Render
 		}
 
 		mDrawContext.initialize();
+		mDrawContext.mSystem = this;
 		mImmediateCommandList = new RHICommandListImpl(mDrawContext);
 		return true;
 	}
@@ -217,6 +218,10 @@ namespace Render
 		}
 
 		delete mImmediateCommandList;
+
+		mDrawContext.shutdown();
+
+		mGfxBoundStateMap.clear();
 
 		mGLContext.cleanup();
 	}
@@ -359,6 +364,47 @@ namespace Render
 	RHIShaderProgram* OpenGLSystem::RHICreateShaderProgram()
 	{
 		return CreateOpenGLResourceT< OpenGLShaderProgram >();
+	}
+
+	OpenglShaderPipelineState* OpenGLSystem::getShaderPipeline(GraphicShaderBoundState const& state)
+	{
+		OpenGLShaderPipelineStateKey key(state);
+		if (key.numShaders == 0)
+			return nullptr;
+
+		auto iter = mGfxBoundStateMap.find(key);
+		if (iter != mGfxBoundStateMap.end())
+		{
+			return &iter->second;
+		}
+
+		OpenglShaderPipelineState shaderPipeline;
+		if (!shaderPipeline.create(state))
+			return nullptr;
+
+		auto pair = mGfxBoundStateMap.emplace(key, std::move(shaderPipeline));
+		CHECK(pair.second);
+		return &pair.first->second;
+	}
+
+	void OpenGLContext::shutdown()
+	{
+		if (mLastFrameBuffer)
+		{
+			mLastFrameBuffer.release();
+		}
+		if (mLastShaderProgram)
+		{
+			mLastShaderProgram.release();
+		}
+		if (mLastIndexBuffer)
+		{
+			mLastIndexBuffer.release();
+		}
+		if (mLastInputLayout)
+		{
+			mLastInputLayout.release();
+		}
 	}
 
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
@@ -655,21 +701,16 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::RHISetShaderPipelineState(ShaderPipelineState const& state)
+	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state)
 	{
 		clearShader(true);
-
-		if (state.vertexShader || state.pixelShader || state.geometryShader || state.hullShader || state.domainShader)
-		{
+		OpenglShaderPipelineState* shaderpipeline = mSystem->getShaderPipeline(state);
+		if (shaderpipeline)
+		{	
+			shaderpipeline->bind();
 			resetBindIndex();
-			if ( state.vertexShader )
-			{
-
-			}
-			else
-			{
-
-			}
+			mLastShaderPipeline = shaderpipeline;
+			mbUseFixedPipeline = false;
 		}
 		else
 		{
@@ -677,6 +718,23 @@ namespace Render
 		}
 	}
 
+
+	void OpenGLContext::clearShader(bool bUseShaderPipeline)
+	{
+		if (mbUseFixedPipeline)
+			return;
+
+		if (mLastShaderPipeline)
+		{
+			mLastShaderPipeline->unbind();
+			mLastShaderPipeline = nullptr;
+		}
+		else
+		{
+			static_cast<OpenGLShaderProgram&>(*mLastShaderProgram).unbind();
+			mLastShaderProgram.release();
+		}
+	}
 
 #define CHECK_PARAMETER( PARAM ) assert( PARAM.isBound() );
 
@@ -750,36 +808,49 @@ namespace Render
 	void OpenGLContext::setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
 	{
 		CHECK_PARAMETER(param);
-		setShaderResourceViewInternal(shaderProgram, param, resourceView);
+		setShaderResourceViewInternal( OpenGLCast::GetHandle( shaderProgram ), param, resourceView);
+	}
+
+	void OpenGLContext::setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		CHECK_PARAMETER(param);
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shader), param, resourceView);
 	}
 
 	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		CHECK_PARAMETER(param);
-		setShaderResourceViewInternal(shaderProgram, param, *texture.getBaseResourceView());
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shaderProgram), param, *texture.getBaseResourceView());
 	}
 
 	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
 	{
 		CHECK_PARAMETER(param);
-		setShaderResourceViewInternal(shaderProgram, param, *texture.getBaseResourceView(), sampler);
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shaderProgram), param, *texture.getBaseResourceView(), sampler);
+	}
+
+	void OpenGLContext::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
+	{
+		CHECK_PARAMETER(param);
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shader), param, *texture.getBaseResourceView(), sampler);
 	}
 
 	void OpenGLContext::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
 	{
 		CHECK_PARAMETER(param);
+		setShaderSamplerInternal(OpenGLCast::GetHandle(shaderProgram), param, sampler);
+	}
 
-		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
-		for (int index = 0; index < mNextAutoBindSamplerSlotIndex; ++index)
-		{
-			if (mSamplerStates[index].loc = param.mLoc)
-			{
-				mSamplerStates[index].samplerHandle = samplerImpl.getHandle();
+	void OpenGLContext::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture)
+	{
+		CHECK_PARAMETER(param);
+		setShaderResourceViewInternal(OpenGLCast::GetHandle(shader), param, *texture.getBaseResourceView());
+	}
 
-				mSimplerSlotDirtyMask |= BIT(index);
-				break;
-			}
-		}
+	void OpenGLContext::setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler)
+	{
+		CHECK_PARAMETER(param);
+		setShaderSamplerInternal(OpenGLCast::GetHandle(shader), param, sampler);
 	}
 
 	void OpenGLContext::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
@@ -792,11 +863,28 @@ namespace Render
 		glUniform1i(param.mLoc, idx);
 	}
 
+	void OpenGLContext::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	{
+		CHECK_PARAMETER(param);
+		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
+		int idx = mNextAutoBindSamplerSlotIndex;
+		++mNextAutoBindSamplerSlotIndex;
+		glBindImageTexture(idx, resourceViewImpl.handle, 0, GL_FALSE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
+		glProgramUniform1i(OpenGLCast::GetHandle(shader), param.mLoc, idx);
+	}
+
 	void OpenGLContext::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
-		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
-		glUniformBlockBinding(shaderProgramImpl.getHandle(), param.mLoc, mNextUniformSlot);
+		glUniformBlockBinding(OpenGLCast::GetHandle(shaderProgram), param.mLoc, mNextUniformSlot);
+		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
+		++mNextUniformSlot;
+	}
+
+	void OpenGLContext::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		CHECK_PARAMETER(param);
+		glUniformBlockBinding(OpenGLCast::GetHandle(shader), param.mLoc, mNextUniformSlot);
 		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
 		++mNextUniformSlot;
 	}
@@ -804,13 +892,26 @@ namespace Render
 	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
-		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
-		glShaderStorageBlockBinding(shaderProgramImpl.getHandle(), param.mLoc, mNextStorageSlot);
+		glShaderStorageBlockBinding(OpenGLCast::GetHandle(shaderProgram), param.mLoc, mNextStorageSlot);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
+		++mNextStorageSlot;
+	}
+
+	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		CHECK_PARAMETER(param);
+		glShaderStorageBlockBinding(OpenGLCast::GetHandle(shader), param.mLoc, mNextStorageSlot);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
 		++mNextStorageSlot;
 	}
 
 	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		CHECK_PARAMETER(param);
+		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
+	}
+
+	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
@@ -1262,25 +1363,7 @@ namespace Render
 		return true;
 	}
 
-	void OpenGLContext::clearShader(bool bUseShaderPipeline)
-	{
-		if (mbUseFixedPipeline)
-			return;
-
-
-		if (mbUseShaderPipline)
-		{
-
-
-		}
-		else
-		{
-			static_cast<OpenGLShaderProgram&>(*mLastShaderProgram).unbind();
-			mLastShaderProgram.release();
-		}
-	}
-
-	void OpenGLContext::setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	void OpenGLContext::setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
 	{
 		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(resourceView);
 		int index = mNextAutoBindSamplerSlotIndex++;
@@ -1291,11 +1374,11 @@ namespace Render
 		state.textureHandle = resourceViewImpl.handle;
 		state.typeEnum = resourceViewImpl.typeEnum;
 		state.samplerHandle = 0;
-		state.program = static_cast<OpenGLShaderProgram&>(shaderProgram).getHandle();
+		state.program = handle;
 		state.bWrite = false;
 	}
 
-	void OpenGLContext::setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler)
+	void OpenGLContext::setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler)
 	{
 		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(resourceView);
 		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
@@ -1307,11 +1390,50 @@ namespace Render
 		state.textureHandle = resourceViewImpl.handle;
 		state.typeEnum = resourceViewImpl.typeEnum;
 		state.samplerHandle = samplerImpl.getHandle();
-		state.program = static_cast<OpenGLShaderProgram&>(shaderProgram).getHandle();
+		state.program = handle;
 		state.bWrite = false;
 	}
 
+	void OpenGLContext::setShaderSamplerInternal(GLuint handle, ShaderParameter const& param, RHISamplerState& sampler)
+	{
+		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
+		for (int index = 0; index < mNextAutoBindSamplerSlotIndex; ++index)
+		{
+			if (mSamplerStates[index].loc = param.mLoc)
+			{
+				mSamplerStates[index].samplerHandle = handle;
 
+				mSimplerSlotDirtyMask |= BIT(index);
+				break;
+			}
+		}
+	}
+
+	bool OpenglShaderPipelineState::create(GraphicShaderBoundState const& state)
+	{
+		if (!mGLObject.fetchHandle())
+			return false;
+
+		auto CheckShader = [&](RHIShader* shader, GLbitfield stageBit)
+		{
+			if (shader)
+			{
+				glUseProgramStages(getHandle(), stageBit, static_cast<OpenGLShader*>(shader)->getHandle());
+			}
+		};
+		CheckShader(state.vertexShader, GL_VERTEX_SHADER_BIT);
+		CheckShader(state.pixelShader, GL_FRAGMENT_SHADER_BIT);
+		CheckShader(state.geometryShader, GL_GEOMETRY_SHADER_BIT);
+		CheckShader(state.hullShader, GL_TESS_CONTROL_SHADER_BIT);
+		CheckShader(state.domainShader, GL_TESS_EVALUATION_SHADER_BIT);
+
+		if (!VerifyOpenGLStatus())
+			return false;
+
+		//glValidateProgramPipeline(getHandle());
+
+		return true;
+	}
 
 }
 

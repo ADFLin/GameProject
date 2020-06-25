@@ -55,6 +55,7 @@ namespace Render
 	{
 		EShader::Type type;
 		char const* path;
+		char const* entry;
 		char const* definition;
 
 		struct ShaderProgramSetupData* programSetupData;

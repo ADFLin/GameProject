@@ -19,11 +19,6 @@
 namespace Render
 {
 
-	struct RMPShaderPipeline
-	{
-		static void Create(GLuint& handle) { glGenProgramPipelines(1, &handle); }
-		static void Destroy(GLuint& handle) { glDeleteProgramPipelines(1, &handle); }
-	};
 
 	struct OpenGLDeviceState
 	{
@@ -59,6 +54,78 @@ namespace Render
 		}
 	};
 
+	class OpenGLShaderPipelineStateKey
+	{
+	public:
+		OpenGLShaderPipelineStateKey(GraphicShaderBoundState const& state)
+		{
+			hash = 0x123621;
+			numShaders = 0;
+			auto CheckShader = [&](void* shader, GLbitfield stageBit)
+			{
+				if (shader)
+				{
+					HashCombine(hash, shader);
+					stageMask |= stageBit;
+					shaders[numShaders] = shader;
+					++numShaders;
+				}
+			};
+			CheckShader(state.vertexShader, GL_VERTEX_SHADER_BIT);
+			CheckShader(state.pixelShader, GL_FRAGMENT_SHADER_BIT);
+			CheckShader(state.geometryShader, GL_GEOMETRY_SHADER_BIT);
+			CheckShader(state.hullShader, GL_TESS_CONTROL_SHADER_BIT);
+			CheckShader(state.domainShader, GL_TESS_EVALUATION_SHADER_BIT);
+		}
+		uint32     hash;
+		GLbitfield stageMask;
+		void*      shaders[EShader::MaxStorageSize];
+		int        numShaders;
+
+		bool operator == (OpenGLShaderPipelineStateKey const& rhs) const
+		{
+			if (numShaders != rhs.numShaders)
+				return false;
+
+			for (int i = 0; i < numShaders; ++i)
+			{
+				if (shaders[i] != rhs.shaders[i])
+					return false;
+			}
+
+			return true;
+		}
+
+		uint32 getTypeHash() const { return hash; }
+	};
+
+	struct RMPShaderPipeline
+	{
+		static void Create(GLuint& handle) { glGenProgramPipelines(1, &handle); }
+		static void Destroy(GLuint& handle) { glDeleteProgramPipelines(1, &handle); }
+	};
+
+	class OpenglShaderPipelineState
+	{
+	public:
+		bool create(GraphicShaderBoundState const& state);
+		void bind()
+		{
+			glBindProgramPipeline(mGLObject.mHandle);
+		}
+		void unbind()
+		{
+			glBindProgramPipeline(0);
+		}
+
+		GLuint getHandle()
+		{
+			return mGLObject.mHandle;
+		}
+
+		TOpenGLObject< RMPShaderPipeline > mGLObject;
+	};
+
 	class OpenGLContext : public RHIContext
 	{
 	public:
@@ -67,6 +134,9 @@ namespace Render
 
 
 		}
+
+		void shutdown();
+
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
@@ -87,7 +157,7 @@ namespace Render
 
 		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture);
 
-		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture )
+		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer )
 		{
 			if( mLastFrameBuffer.isValid() )
 			{
@@ -128,7 +198,8 @@ namespace Render
 		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
-		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
+
+		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
 		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 
@@ -136,7 +207,7 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
-		void RHISetShaderPipelineState(ShaderPipelineState const& state);
+		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
@@ -148,16 +219,16 @@ namespace Render
 		void setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
 		void setShaderMatrix34(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
 
-		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView){}
+		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 
-		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture){}
-		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler){}
-		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler){}
-		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op){}
+		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture);
+		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
+		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
+		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 
-		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer){}
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer){}
-		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer){}
+		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		static int const IdxTextureAutoBindStart = 2;
 
@@ -191,12 +262,19 @@ namespace Render
 		int  mNextStorageSlot;
 
 		RHIIndexBufferRef   mLastIndexBuffer;
+		OpenglShaderPipelineState* mLastShaderPipeline = nullptr;
+		RHIShader*          mLastActiveShader = nullptr;
 
-		bool mbUseShaderPipline;
-		TOpenGLObject< RMPShaderPipeline > mDefaultShaderPipeline;
+		void checkActiveShader(RHIShader& shader)
+		{
+			if (&shader != mLastActiveShader)
+			{
+				mLastShaderPipeline->getHandle();
+				mLastActiveShader = &shader;
+			}
+		}
 
 		RHIShaderProgramRef mLastShaderProgram;
-		RHIShaderRef        mUsageShaders[EShader::MaxStorageSize];
 		int                 mUsageShaderCount = 0;
 
 		void clearShader(bool bUseShaderPipeline);
@@ -212,7 +290,7 @@ namespace Render
 		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];
 		int mNumInputStream;
 		uint32 mSimplerSlotDirtyMask = 0;
-		
+		class OpenGLSystem* mSystem;
 
 		struct SamplerState 
 		{
@@ -228,9 +306,9 @@ namespace Render
 		int  mNextAutoBindSamplerSlotIndex;
 		SamplerState mSamplerStates[MaxSimulationSamplerSlots];
 
-		void setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
-		void setShaderResourceViewInternal(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler);
-
+		void setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+		void setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler);
+		void setShaderSamplerInternal(GLuint handle, ShaderParameter const& param, RHISamplerState& sampler);
 
 	};
 
@@ -282,6 +360,10 @@ namespace Render
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 		class OpenglProfileCore* mProfileCore = nullptr;
+
+		std::unordered_map< OpenGLShaderPipelineStateKey, OpenglShaderPipelineState , MemberFuncHasher > mGfxBoundStateMap;
+
+		OpenglShaderPipelineState* getShaderPipeline(GraphicShaderBoundState const& state);
 
 
 		OpenGLContext     mDrawContext;

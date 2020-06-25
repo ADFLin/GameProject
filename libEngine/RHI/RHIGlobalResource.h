@@ -134,10 +134,11 @@ namespace Render
 	<
 		ECullMode CullMode = ECullMode::Back,
 		EFillMode FillMode = EFillMode::Solid,
+		EFrontFace FrontFace = EFrontFace::Default,
 		bool bEnableScissor = false 
 	>
 	class TStaticRasterizerState : public StaticRHIResourceT<
-		TStaticRasterizerState< CullMode, FillMode, bEnableScissor >,
+		TStaticRasterizerState< CullMode, FillMode, FrontFace, bEnableScissor >,
 		RHIRasterizerState >
 	{
 	public:
@@ -146,6 +147,7 @@ namespace Render
 			RasterizerStateInitializer initializer;
 			initializer.fillMode = FillMode;
 			initializer.cullMode = CullMode;
+			initializer.frontFace = FrontFace;
 			initializer.bEnableScissor = bEnableScissor;
 			return RHICreateRasterizerState(initializer);
 		}

@@ -274,7 +274,7 @@ char const* HashString::c_str() const
 	return slot.str;
 }
 
-uint32 HashString::getHash() const
+uint32 HashString::getTypeHash() const
 {
 	NameSlot& slot = HashStringInternal::sNameSlots[getSlotIndex()];
 	return slot.hashValue;

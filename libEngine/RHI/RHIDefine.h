@@ -169,6 +169,12 @@ namespace Render
 	};
 
 
+	enum class EFrontFace
+	{
+		Default,
+		Inverse,
+	};
+
 	struct Sampler
 	{
 		enum AddressMode
@@ -188,6 +194,19 @@ namespace Render
 			eAnisotroicLinear,
 		};
 
+	};
+
+	enum class EBufferStoreOp
+	{
+		Store,
+		DontCare,
+	};
+
+	enum class EBufferLoadOp
+	{
+		Load,
+		Clear,
+		DontCare,
 	};
 
 

@@ -71,7 +71,7 @@ namespace Render
 			return fontFace == rhs.fontFace;
 		}
 
-		uint32 getHash() const
+		uint32 getTypeHash() const
 		{
 			return cachedHash;
 		}

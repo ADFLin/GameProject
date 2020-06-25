@@ -788,12 +788,12 @@ namespace Render
 		return loadInternal(shaderProgram, fileName, BIT(EShader::Vertex) | BIT(EShader::Pixel), nullptr, def, additionalCode, false);
 	}
 
-	bool ShaderManager::loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* def, char const* additionalCode)
+	bool ShaderManager::loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* entryVS , char const* entryPS , char const* def, char const* additionalCode)
 	{
 		ShaderEntryInfo entries[2] =
 		{
-			{ EShader::Vertex , "main" },
-			{ EShader::Pixel , "main" },
+			{ EShader::Vertex , entryVS ? entryVS : "main" },
+			{ EShader::Pixel ,  entryPS ? entryPS : "main" },
 		};
 		FixString< 256 > paths[2];
 		paths[0].format("%s%s%s", mBaseDir.c_str(), fileNameVS, SHADER_FILE_SUBNAME);
@@ -940,6 +940,7 @@ namespace Render
 			{
 				ShaderCompileInput  compileInput;
 				compileInput.type = shaderInfo.type;
+				compileInput.entry = shaderInfo.entryName.c_str();
 				compileInput.path = shaderInfo.filePath.c_str();
 				compileInput.definition = shaderInfo.headCode.c_str();
 				compileInput.programSetupData = &setupData;
@@ -1034,6 +1035,7 @@ namespace Render
 
 			ShaderCompileInput  compileInput;
 			compileInput.type = shaderInfo.type;
+			compileInput.entry = shaderInfo.entryName.c_str();
 			compileInput.path = shaderInfo.filePath.c_str();
 			compileInput.definition = shaderInfo.headCode.c_str();
 			compileInput.shaderSetupData = &setupData;
@@ -1156,7 +1158,6 @@ namespace Render
 		return mShaderCache;
 	}
 
-
 	void ShaderProgramManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
@@ -1164,8 +1165,7 @@ namespace Render
 		{
 			filePathSet.insert(compileInfo.filePath);
 			filePathSet.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
-		}
-		
+		}	
 		for( auto const& filePath : filePathSet )
 		{
 			paths.push_back( FCString::CharToWChar(filePath) );

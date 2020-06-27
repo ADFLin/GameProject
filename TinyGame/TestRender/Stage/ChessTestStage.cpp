@@ -41,18 +41,18 @@ namespace Chess
 
 #define B EColor::Black
 #define W EColor::White
-#define C( COLOR , TYPE ) ( COLOR * EChess::TYPE )
+#define C( COLOR , TYPE ) ( COLOR * ( EChess::TYPE + 1 ))
 #define C_EMPTY 0
 	int StandInitState[]
 	{
-		C(W , Rook),C(W , Knight),C(W , Bishop),C(W , King),C(W , Queen),C(W , Bishop),C(W , Knight),C(W , Rook),
-		C(W , Pawn),C(W , Pawn)  ,C(W , Pawn)  ,C(W , Pawn),C(W , Pawn) ,C(W , Pawn)  ,C(W , Pawn)  ,C(W , Pawn),
+		C(W , Rook),C(W, Knight),C(W, Bishop),C(W, King),C(W, Queen),C(W, Bishop),C(W, Knight),C(W, Rook),
+		C(W , Pawn),C(W, Pawn)  ,C(W, Pawn)  ,C(W, Pawn),C(W, Pawn) ,C(W, Pawn)  ,C(W, Pawn)  ,C(W, Pawn),
 		C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,
 		C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,
 		C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,
 		C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,C_EMPTY,
-		C(W , Pawn),C(W , Pawn)  ,C(W , Pawn)  ,C(W , Pawn),C(W , Pawn) ,C(W , Pawn)  ,C(W , Pawn)  ,C(W , Pawn),
-		C(W , Rook),C(W , Knight),C(W , Bishop),C(W , Queen),C(W ,King),C(W , Bishop),C(W , Knight),C(W , Rook),
+		C(B, Pawn),C(B, Pawn)  ,C(B, Pawn)  ,C(B, Pawn), C(B, Pawn),C(B, Pawn)  ,C(B, Pawn)  ,C(B, Pawn),
+		C(B, Rook),C(B, Knight),C(B, Bishop),C(B, Queen),C(B ,King),C(B, Bishop),C(B, Knight),C(B, Rook),
 		
 	};
 #undef C
@@ -74,7 +74,7 @@ namespace Chess
 				if (StandInitState[i])
 				{
 					data.color = StandInitState[i] > 0 ? EColor::White : EColor::Black;
-					data.type = (EChess::Type)std::abs(StandInitState[i]);
+					data.type = (EChess::Type)(std::abs(StandInitState[i])-1);
 				}
 				else
 				{
@@ -181,7 +181,7 @@ namespace Chess
 		}
 		struct TileData
 		{
-			int color;
+			EColor color;
 			EChess::Type type;
 			int whiteCount;
 			int blackCount;
@@ -242,6 +242,53 @@ namespace Chess
 			updateFrame(frame);
 		}
 
+
+		float TileLength = 70;
+
+		void drawChess(GLGraphics2D& g, Vector2 const& centerPos, EChess::Type type, EColor color)
+		{
+			struct ImageTileInfo
+			{
+				Vec2i pos;
+				Vec2i size;
+			};
+
+#if 1
+			int const w = 64;
+			int const h = 64;
+			static const ImageTileInfo ChessTiles[] =
+			{
+				{Vec2i(0,0),Vec2i(w,h)},
+				{Vec2i(w * 1,0),Vec2i(w,h)},
+				{Vec2i(w * 4,0),Vec2i(w,h)},
+				{Vec2i(w * 3,0),Vec2i(w,h)},
+				{Vec2i(w * 2,0),Vec2i(w,h)},
+				{Vec2i(w * 5,0),Vec2i(w,h)},
+			};
+			float sizeScale = 1.0f;
+			Vector2 pivot = Vector2(0.5, 0.5);
+#else
+			int const w = 200;
+			int const h = 326;
+			static const ImageTileInfo ChessTiles[] =
+			{
+				{Vec2i(0,0),Vec2i(w,h)},
+				{Vec2i(w * 1,0),Vec2i(w,h)},
+				{Vec2i(w * 4,0),Vec2i(w,h)},
+				{Vec2i(w * 3,0),Vec2i(w,h)},
+				{Vec2i(w * 2,0),Vec2i(w,h)},
+				{Vec2i(w * 5,0),Vec2i(w,h)},
+			};
+			Vector2 pivot = Vector2(0.5, 0.7);
+			float sizeScale = 0.8;
+#endif
+			ImageTileInfo const& tileInfo = ChessTiles[type];
+			Vector2 size;
+			size.x = sizeScale * tileInfo.size.x * TileLength / w;
+			size.y = size.x * tileInfo.size.y / tileInfo.size.x;
+			g.drawTexture(*mChessTex, centerPos - pivot * size , size , tileInfo.pos + (( color == EColor::Black ) ? Vec2i(0,0) : Vec2i(0,h)), tileInfo.size );
+
+		}
 		void onRender(float dFrame) override
 		{
 			GLGraphics2D& g = Global::GetRHIGraphics2D();
@@ -249,7 +296,42 @@ namespace Chess
 			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
 
 			g.beginRender();
-			g.drawTexture(*mChessTex, Vector2(100, 100) , Vector2(100,100));
+
+			RenderUtility::SetPen(g, ::EColor::Black);
+			for (int j = 0; j < BOARD_SIZE; ++j)
+			{
+				for (int i = 0; i < BOARD_SIZE; ++i)
+				{
+					Game::TileData const& tile = mGame.mBoard.getData(i, j);
+
+	
+					Vector2 tilePos = Vector2(10, 10) + TileLength * (Vector2(i, j));
+					RenderUtility::SetBrush(g, (i + j) % 2 ? ::EColor::Black : ::EColor::White);
+					g.drawRect(tilePos, Vector2(TileLength, TileLength));
+
+				}
+			}
+
+			g.beginBlend(Vec2i(0, 0), Vec2i(100, 100), 1.0f);
+			g.setTextColor(Color3ub(255, 0, 0));
+			for (int j = 0; j < BOARD_SIZE; ++j)
+			{
+				for (int i = 0; i < BOARD_SIZE; ++i)
+				{
+					Game::TileData const& tile = mGame.mBoard.getData(i, j);
+
+					if (tile.color != EColor::Empty)
+					{
+						Vector2 tileCenterPos = Vector2(10, 10) + TileLength * (Vector2(i, j) + Vector2(0.5, 0.5));
+						drawChess(g, tileCenterPos, tile.type, tile.color);
+
+						//g.drawText(tileCenterPos, FStringConv::From(int(tile.type)));
+					}
+
+				}
+			}
+	
+			g.endBlend();
 			g.endRender();
 		}
 

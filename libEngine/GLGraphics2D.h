@@ -199,8 +199,8 @@ public:
 
 	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Color3ub const& color = Color3ub(255, 255, 255));
 	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size , Color3ub const& color = Color3ub(255,255,255) );
-	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color);
-	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos , Vector2 const& texSize , Color3ub const& color );
+	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color = Color3ub(255, 255, 255));
+	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos , Vector2 const& texSize , Color3ub const& color = Color3ub(255, 255, 255));
 
 	void  setFont( GLFont& font )
 	{

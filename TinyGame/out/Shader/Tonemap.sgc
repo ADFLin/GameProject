@@ -35,7 +35,7 @@ vec3 lumaBasedReinhardToneMapping(vec3 color)
 
 void MainPS()
 {
-	float4 color = texture2D(TextureInput0, VSOutput.UVs);
+	float4 color = texture(TextureInput0, VSOutput.UVs);
 
 	//color.rgb = lumaBasedReinhardToneMapping(color.rgb);
 

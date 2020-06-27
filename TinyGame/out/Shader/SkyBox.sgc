@@ -49,7 +49,7 @@ float3 GetEnvRadiance(float3 dir)
 #if USE_CUBE_TEXTURE
 	return textureLod(CubeTexture, dir , CubeLevel).rgb;
 #else
-	return texture2D(Texture, EquirectangularCoord(dir)).rgb;
+	return texture(Texture, EquirectangularCoord(dir)).rgb;
 #endif
 }
 

@@ -29,7 +29,7 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 	//inputPS.baseColor = float3(parameters.texCoords[0].xy, 0);
 	inputPS.metallic = 0.9;
 	inputPS.roughness = 0;
-	//inputPS.roughness = texture2D(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
+	//inputPS.roughness = texture(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
 	inputPS.specular = 0.1;
 	float2 value = 2 * frac( 8 * ( parameters.texCoords[0].xy ) ) - 1;
 	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;

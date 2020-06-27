@@ -60,7 +60,7 @@ float BufferDepthToSceneDepth(float depth)
 
 float ScreenUVToSceneDepth(float2 screenUVs)
 {
-	float depth = texture2D(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r;
+	float depth = texture(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r;
 	return BufferDepthToSceneDepth(depth);
 }
 
@@ -74,7 +74,7 @@ float3 StoreWorldPos(float2 screenUVs, float bufferDepth)
 
 float3 ScreenUVToWorldPos(float2 screenUVs)
 {
-	return StoreWorldPos(screenUVs, texture2D(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r);
+	return StoreWorldPos(screenUVs, texture(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r);
 }
 
 #endif

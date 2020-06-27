@@ -13,6 +13,7 @@
 #include <cmath>
 #include <vector>
 #include "Math/Matrix2.h"
+#include "Math/Matrix4.h"
 
 
 namespace Render
@@ -58,7 +59,7 @@ namespace Render
 		{
 			return Matrix4(
 				M[0], M[1], 0, 0,
-				M[0], M[1], 0, 0,
+				M[2], M[3], 0, 0,
 				   0,    0, 1, 0,
 				 P.x,  P.y, 0, 1);
 		}
@@ -242,6 +243,9 @@ private:
 	GLuint    mColorKeyShader;
 	GLFont*   mFont;
 	std::vector< float > mBuffer;
+	void checkPipelineState();
+	bool     mbResetPipelineState;
+	Math::Matrix4   mBaseTransform;
 
 	TransformStack2D mXFormStack;
 

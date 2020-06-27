@@ -36,8 +36,8 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 	POMOutput pomOutput = POMapping(NoramlTexture , pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy * TileUVScale.xy );
 
 	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	inputPS.baseColor = texture2D(BaseTexture, pomOutput.UVs).rgb;
-	//inputPS.emissiveColor = texture2D(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
+	inputPS.baseColor = texture(BaseTexture, pomOutput.UVs).rgb;
+	//inputPS.emissiveColor = texture(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
 	//inputPS.emissiveColor = normalize(parameters.tangentToWorld[0]);
 	inputPS.metallic = 0.9;
 	inputPS.roughness = 0.5;

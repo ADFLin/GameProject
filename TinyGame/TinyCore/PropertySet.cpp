@@ -3,6 +3,7 @@
 #include "Core/StringConv.h"
 
 #include <fstream>
+#include "StringParse.h"
 
 #define GLOBAL_SECTION "__GLOBAL__"
 
@@ -250,14 +251,6 @@ static char* SkipTo( char* str , char* s )
 	return strpbrk( str , s );
 }
 
-
-static char* SkipSpace( char* str )
-{
-	char* p = str;
-	while( FCString::IsSpace( *p ) ){  ++p; }
-	return p;
-}
-
 static void CutBackSpace( char* str )
 {
 	char* p = str;
@@ -277,8 +270,8 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 {
 	char* token;
 	char* test;
-	token = SkipSpace( buffer );
-
+	token = const_cast< char* >( FStringParse::SkipSpace( buffer ) );
+	
 	if ( token[0] == '\0' )
 		return PARSE_SUCCESS;
 
@@ -289,7 +282,7 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 	}
 	else if ( token[0] == '[' )
 	{
-		token = SkipSpace( token + 1 );
+		token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ) );
 		char* sectionName = token;
 
 		token = SkipTo( token , ']' );
@@ -299,7 +292,7 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 
 		CutBackSpace( token );
 
-		token = SkipSpace( token + 1 );
+		token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ) );
 		if ( *token != '\0' )
 			return PARSE_SECTION_ERROR;
 
@@ -319,7 +312,7 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 
 				CutBackSpace( token );
 
-				token = SkipSpace( token + 1 );
+				token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ));
 				char* keyValueString = token;
 
 				CutBackSpace( token + strlen( token ) );

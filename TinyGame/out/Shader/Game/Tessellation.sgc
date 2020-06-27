@@ -265,7 +265,7 @@ void MainDS()
 #endif
 
 #if USE_DISPLACEMENT_MAP
-	float disp = texture2D(DispTexture, OutputDS.factoryInterpolants.uv).a;
+	float disp = texture(DispTexture, OutputDS.factoryInterpolants.uv).a;
 	float3 dispOffset = DispFactor * disp * float3(0, 0, 1);
 
 	OutputDS.factoryInterpolants.pos += dispOffset;
@@ -290,7 +290,7 @@ uniform sampler2D BaseTexture;
 out float4 OutColor;
 void MainPS()
 {
-	float4 texColor = texture2D(BaseTexture, InputPS.factoryInterpolants.uv);
+	float4 texColor = texture(BaseTexture, InputPS.factoryInterpolants.uv);
 	OutColor = float4(/*InputPS.factoryInterpolants.color **/ texColor.xyz , 1);
 	//OutColor = float4(float3( float(InputPS.factoryInterpolants.id) / 32 ) , 1);
 }

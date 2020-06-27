@@ -19,7 +19,7 @@ struct POMOutput
 
 float GetDispDepth( in sampler2D dispTexture , in POMParameters parameters , float2 inUVs )
 {
-	return dot( texture2D(dispTexture , inUVs ) , parameters.dispMask ) + parameters.dispBias;
+	return dot( texture(dispTexture , inUVs ) , parameters.dispMask ) + parameters.dispBias;
 }
 
 POMOutput BumpMapping(in sampler2D dispTexture, in POMParameters parameters , float3 viewVector , float2 inUVs )

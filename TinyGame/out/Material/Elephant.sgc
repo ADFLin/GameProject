@@ -22,14 +22,14 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 	float s = 1;// 0.5 * (sin(10 * View.gameTime) + 1);
 	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
 
-	float3 baseColor = texture2D(BaseTexture, float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y)).rgb;
+	float3 baseColor = texture(BaseTexture, float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y)).rgb;
 	//inputPS.baseColor = ( 0.5 * sin(View.gameTime) + 0.5 )* parameters.vectexColor;
 	inputPS.baseColor = s * baseColor * parameters.vectexColor.rgb /** frac( dot(parameters.worldPos, parameters.worldPos) / 100 )*/;
 	//inputPS.baseColor = float3(parameters.texCoords[0].xy, 0);
 	inputPS.metallic = 0.3;
 	inputPS.roughness = 0.83;
 	inputPS.emissiveColor = float3(0);
-	//inputPS.roughness = texture2D(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
+	//inputPS.roughness = texture(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
 	inputPS.specular = 1 * baseColor.r;
 	float2 value = 2 * frac( 10 * ( parameters.texCoords[0].xy ) ) - 1;
 	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;

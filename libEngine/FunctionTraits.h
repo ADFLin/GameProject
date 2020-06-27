@@ -51,8 +51,6 @@ namespace Meta
 		typedef T* PtrType;
 	};
 
-
-
 	class MemFuncType {};
 	class BaseFuncType {};
 

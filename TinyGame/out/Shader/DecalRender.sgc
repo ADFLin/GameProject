@@ -19,8 +19,8 @@ layout(location = 0) out float4 OutColor;
 
 void MainPS()
 {
-	float3 worldPos = texture2D(WorldPositionTexture, VSOutput.UVs).rgb;
-	float  sceneDepth = texture2D(WorldPositionTexture, VSOutput.UVs).a;
+	float3 worldPos = texture(WorldPositionTexture, VSOutput.UVs).rgb;
+	float  sceneDepth = texture(WorldPositionTexture, VSOutput.UVs).a;
 	float3 localPos = float3(DecalTransform * float4( worldPos , 1 ) );
 
 	if ( sceneDepth == 0.0 || any(lessThan( localPos , float3(0.0) ) ) || any( greaterThan(localPos, float3(1.0)) ))
@@ -32,7 +32,7 @@ void MainPS()
 	MaterialInputPS materialInput = InitMaterialInputPS();
 	MaterialParametersPS materialParameters;
 	materialParameters.worldPos = worldPos;
-	materialParameters.worldNormal = DecodeNormal(texture2D(NormalTexture, VSOutput.UVs).rgb) );
+	materialParameters.worldNormal = DecodeNormal(texture(NormalTexture, VSOutput.UVs).rgb) );
 	materialParameters.texCoords[0] = DecalUV;
 	CalcMaterialParameters(materialInput, materialParameters);
 	OutColor = float4( materialInput.emissiveColor , materialInput.opacity );

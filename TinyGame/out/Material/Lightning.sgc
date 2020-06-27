@@ -23,9 +23,9 @@ void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParameter
 void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
 	float2 UV = float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y);
-	float3 colorA = texture2D(TextureBase, UV).rgb;
-	float3 colorB = texture2D(TextureB, UV).rgb;
-	float3 colorC = texture2D(TextureC, UV).rgb;
+	float3 colorA = texture(TextureBase, UV).rgb;
+	float3 colorB = texture(TextureB, UV).rgb;
+	float3 colorC = texture(TextureC, UV).rgb;
 
 	inputPS.baseColor = colorA;
 	//inputPS.emissiveColor = colorB;

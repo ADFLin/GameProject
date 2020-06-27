@@ -9,7 +9,7 @@ uniform sampler2D CopyTexture;
 void CopyTexturePS()
 {
 	float2 UVs = VSOutput.UVs;
-	gl_FragColor = texture2D(CopyTexture, UVs);
+	gl_FragColor = texture(CopyTexture, UVs);
 }
 
 
@@ -17,7 +17,7 @@ uniform float4 ColorMask;
 void CopyTextureMaskPS()
 {
 	float2 UVs = VSOutput.UVs;
-	float c = dot(texture2D(CopyTexture, UVs), ColorMask);
+	float c = dot(texture(CopyTexture, UVs), ColorMask);
 	gl_FragColor = float4( c , c , c , 1 );
 }
 
@@ -26,8 +26,8 @@ uniform float2 ColorBais;
 void CopyTextureBiasPS()
 {
 	float2 UVs = VSOutput.UVs;
-	float3 color = ColorBais.x * texture2D(CopyTexture, UVs).rgb + ColorBais.y;
-	//color = texture2D(CopyTexture, UVs).rgb;
+	float3 color = ColorBais.x * texture(CopyTexture, UVs).rgb + ColorBais.y;
+	//color = texture(CopyTexture, UVs).rgb;
 	gl_FragColor = float4(color, 1);
 }
 
@@ -50,7 +50,7 @@ const float3 Color[] =
 void MappingTextureColorPS()
 {
 	vec2 UVs = VSOutput.UVs;
-	float c = dot(texture2D(CopyTexture, UVs), ColorMask);
+	float c = dot(texture(CopyTexture, UVs), ColorMask);
 	int idx = int( round(ValueFactor.x * c + ValueFactor.y) );
 	if ( idx < 0 || idx > 9 )
 		gl_FragColor = float4(1, 1, 1, 1);

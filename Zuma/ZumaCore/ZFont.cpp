@@ -8,7 +8,7 @@ namespace Zuma
 {
 	static bool sbInitFunMap = false;
 
-	typedef std::map< std::string , ZFontLoader::LoadFunc > LayerFunMap;
+	typedef std::map< std::string , ZFontLoader::LoadFuncc > LayerFunMap;
 	static LayerFunMap sLayerFuncMap;
 
 	ZFontLoader::ZFontLoader()
@@ -351,7 +351,7 @@ namespace Zuma
 
 				if ( layer != NULL )
 				{
-					LoadFunc func = sLayerFuncMap[ layerFunc ];
+					LoadFuncc func = sLayerFuncMap[ layerFunc ];
 					if ( func )
 						(this->*func)( stream , layer );
 				}

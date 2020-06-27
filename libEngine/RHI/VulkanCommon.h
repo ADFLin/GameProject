@@ -14,6 +14,7 @@
 #include "vulkan/vulkan_win32.h"
 #endif
 
+#include "VulkanDevice.h"
 
 #pragma comment(lib , "vulkan-1.lib")
 
@@ -145,6 +146,7 @@ namespace Render
 		eVkSampler,
 		eVkDescriptorSetLayout,
 		eVkPipelineLayout,
+		eVkRenderPass,
 	};
 
 	template< EVulkanResourceType Type >
@@ -1082,11 +1084,43 @@ namespace Render
 	{
 	public:
 		VkBuffer getHandle() { return image; }
+
+		VkImageView getView(int level, int indexLayer = 0)
+		{
+			for (auto& cachedView : mCachedViews)
+			{
+				if (cachedView.level == level &&
+					cachedView.indexLayer == indexLayer)
+					return cachedView.view;
+			}
+
+			CachedView newView;
+			VkImageViewCreateInfo creatInfo = FVulkanInit::imageViewCreateInfo();
+			creatInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			creatInfo.format = mFormatVK;
+			creatInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+			creatInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			creatInfo.subresourceRange.baseMipLevel = level;
+			creatInfo.subresourceRange.levelCount = 1;
+			creatInfo.subresourceRange.baseArrayLayer = indexLayer;
+			creatInfo.subresourceRange.layerCount = 1;
+			creatInfo.image = image;
+			newView.view.initialize(mDevice, creatInfo);
+			mCachedViews.push_back(std::move(newView));
+
+			return mCachedViews.back().view;
+
+		}
 		void releaseResource()
 		{
 			image.destroy(mDevice);
 			view.destroy(mDevice);
 			deviceMemory.destroy(mDevice);
+			for (auto& cachedView : mCachedViews)
+			{
+				cachedView.view.destroy(mDevice);
+			}
+			mCachedViews.clear();
 		}
 
 		VK_RESOURCE_TYPE( VkImage )        image;
@@ -1094,6 +1128,15 @@ namespace Render
 		VK_RESOURCE_TYPE( VkDeviceMemory ) deviceMemory;
 		VkDevice       mDevice;
 		VkImageLayout  mImageLayout;
+		VkFormat       mFormatVK;
+
+		struct CachedView
+		{
+			int level;
+			int indexLayer;
+			VK_RESOURCE_TYPE(VkImageView) view;
+		};
+		std::vector< CachedView > mCachedViews;
 	};
 
 	class VulkanTexture2D : public TRefcountResource< RHITexture2D >
@@ -1112,10 +1155,13 @@ namespace Render
 			return false;
 		}
 
+
 		void releaseResource()
 		{
 			VulkanTexture::releaseResource();
 		}
+
+
 	};
 
 
@@ -1157,8 +1203,10 @@ namespace Render
 		}
 	};
 
-	struct VulkanBufferData
+	
+	class VulkanBufferData
 	{
+	public:
 		VkDevice device;
 		VK_RESOURCE_TYPE( VkBuffer ) buffer;
 		VkDeviceMemory memory = VK_NULL_HANDLE;
@@ -1331,7 +1379,28 @@ namespace Render
 	public:
 	};
 
+	template<>
+	struct TVulkanResourceTraits<EVulkanResourceType::eVkRenderPass>
+	{
+		typedef VkRenderPass HandleType;
+		static bool Create(VkDevice device, HandleType& handle, VkRenderPassCreateInfo const& info)
+		{
+			VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(device, &info, gAllocCB, &handle));
+			return true;
+		}
+		static void Destroy(VkDevice device, HandleType& handle)
+		{
+			vkDestroyRenderPass(device, handle, gAllocCB);
+		}
+	};
 
+
+	class VulkanRenderPassState : TVulkanResource< EVulkanResourceType::eVkRenderPass >
+	{
+
+
+
+	};
 
 
 	class VulkanFrameBuffer : public RHIFrameBuffer
@@ -1340,63 +1409,120 @@ namespace Render
 
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0) = 0;
 
-		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
-		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
+		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0)
+		{
+
+
+		}
+		virtual int  addTexture(RHITexture2D& target, int level = 0)
+		{
+
+		}
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
-		virtual void setDepth(RHITextureDepth& target) = 0;
-		virtual void removeDepth() = 0;
+		virtual void setDepth(RHITextureDepth& target)
+		{
+
+
+		}
+		virtual void removeDepth()
+		{
+
+		}
 
 		struct BufferInfo
 		{
-			VkFormat      format;
 			RHITextureRef texture;
+			int level;
+			int indexLayer;
+			VkImageView   view;
+
+			VkFormat      format;
+			VkSampleCountFlagBits samples;
+			VkAttachmentLoadOp  loadOp;
+			VkAttachmentStoreOp storeOp;
+			uint32 hash;
+
+			bool operator == (BufferInfo const& rhs)
+			{
+#define CMP(MEMBER) if (MEMBER != rhs.MEMBER ) return false;
+
+				return true;
+			}
+		};
+
+		struct DepthBufferInfo : BufferInfo
+		{
+			VkAttachmentLoadOp  stencilLoadOp;
+			VkAttachmentStoreOp stencilStoreOp;
 		};
 
 		std::vector< BufferInfo > mColorBuffers;
-		BufferInfo mDepthBuffer;
+		DepthBufferInfo mDepthBuffer;
 
-#if 0
-		void checkPipelineLayout()
+		bool createRenderPass()
 		{
 			std::vector< VkAttachmentDescription > attachmentDescriptionList;
 
-			for( auto const& colorBufferInfo :  )
-			VkAttachmentDescription colorAttachmentDesc = {};
-			colorAttachmentDesc.format = mSwapChainImageFormat;
-			colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-			attachments[1].format = depthFormat;
-			attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-
-			VkAttachmentReference colorAttachmentRef = {};
-			colorAttachmentRef.attachment = 0;
-			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			std::vector< VkAttachmentReference > attachmentRefList;
 
 			VkSubpassDescription subpass = {};
+
+			int indexAttachement = 0;
+			for (auto const& bufferInfo : mColorBuffers)
+			{
+				VkAttachmentDescription attachmentDesc = {};
+				attachmentDesc.format = bufferInfo.format;
+				attachmentDesc.samples = bufferInfo.samples; //VK_SAMPLE_COUNT_1_BIT;
+				attachmentDesc.loadOp = bufferInfo.loadOp; //VK_ATTACHMENT_LOAD_OP_CLEAR;
+				attachmentDesc.storeOp = bufferInfo.storeOp; // VK_ATTACHMENT_STORE_OP_STORE;
+				attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+				attachmentDescriptionList.push_back(attachmentDesc);
+
+				VkAttachmentReference attachmentRef = {};
+				attachmentRef.attachment = indexAttachement;
+				attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				++indexAttachement;
+				attachmentRefList.push_back(attachmentRef);
+			}
+
+
+			VkAttachmentReference depthAttachmentRef = {};
+
+			if (mDepthBuffer.texture)
+			{
+				VkAttachmentDescription attachmentDesc = {};
+				attachmentDesc.format = mDepthBuffer.format;
+				attachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+				attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+
+				depthAttachmentRef.attachment = indexAttachement;
+				depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+				subpass.pDepthStencilAttachment = &depthAttachmentRef;
+			}
+
+
 			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpass.pColorAttachments = &colorAttachmentRef;
-			subpass.colorAttachmentCount = 1;
+			subpass.pColorAttachments = attachmentRefList.data();
+			subpass.colorAttachmentCount = attachmentRefList.size();
 			subpass.pInputAttachments = nullptr;
 			subpass.inputAttachmentCount = 0;
 			subpass.pResolveAttachments = nullptr;
-			subpass.pDepthStencilAttachment = nullptr;
+			
 			subpass.preserveAttachmentCount = 0;
 			subpass.pPreserveAttachments = nullptr;
 
@@ -1419,18 +1545,20 @@ namespace Render
 
 			VkRenderPassCreateInfo renderPassInfo = {};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			renderPassInfo.pAttachments = &colorAttachmentDesc;
-			renderPassInfo.attachmentCount = 1;
+			renderPassInfo.pAttachments = attachmentDescriptionList.data();
+			renderPassInfo.attachmentCount = attachmentDescriptionList.size();
 			renderPassInfo.pSubpasses = &subpass;
 			renderPassInfo.subpassCount = 1;
 			renderPassInfo.pDependencies = dependencies;
 			renderPassInfo.dependencyCount = ARRAY_SIZE(dependencies);
 
-			VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(mDevice, &renderPassInfo, gAllocCB, &mSimpleRenderPass));
+			VK_VERIFY_RETURN_FALSE(vkCreateRenderPass(mDevice->logicalDevice, &renderPassInfo, gAllocCB, &mRenderPass));
+
+			return true;
 
 		}
-#endif
 
+		VkRenderPass  mRenderPass;
 		VulkanDevice* mDevice;
 		bool bPipelineLayoutDirty = true;
 		bool bBufferDirty = true;

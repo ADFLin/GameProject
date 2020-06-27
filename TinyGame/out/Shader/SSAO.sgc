@@ -16,6 +16,8 @@ uniform float3 KernelVectors[128];
 uniform float OcclusionRadius;
 uniform float2 DepthBiasFactor = float2( 0.01 , 0.01 );
 
+out float4 OutColor;
+
 float3 GetAnyVericalVector(float3 v)
 {
 	float3 reslut = cross(v, float3(0, 0, 1));
@@ -57,7 +59,7 @@ void GeneratePS()
 	}
 	float ambientFactor = 1.0 - occlusion / KernelNum;
 
-	gl_FragData[0] = float4(ambientFactor, ambientFactor, ambientFactor, 1.0 );
+	OutColor = float4(ambientFactor, ambientFactor, ambientFactor, 1.0 );
 
 }
 
@@ -77,7 +79,7 @@ void BlurPS()
 		float3 cy = float3(0);
 		for( int j = -2; j <= 2; ++j )
 		{
-			float3 c = texture2D(TextureSSAO, vsOutput.UVs + float2(float(i), float(j)) * texSizeInv ).rgb;
+			float3 c = texture(TextureSSAO, vsOutput.UVs + float2(float(i), float(j)) * texSizeInv ).rgb;
 			cy += c * Weight[j+2];
 		}
 		color += cy * Weight[i + 2];
@@ -86,15 +88,15 @@ void BlurPS()
 	for( int i = -2; i <= 2; ++i )
 	{
 		float3 cy = float3(0);
-		cy += Weight[0] * texture2D(TextureSSAO, VSOutput.UVs + float2(float(i), float(-2)) * texSizeInv).rgb;
-		cy += Weight[1] * texture2D(TextureSSAO, VSOutput.UVs + float2(float(i), float(-1)) * texSizeInv).rgb;
-		cy += Weight[2] * texture2D(TextureSSAO, VSOutput.UVs + float2(float(i), float(-0)) * texSizeInv).rgb;
-		cy += Weight[3] * texture2D(TextureSSAO, VSOutput.UVs + float2(float(i), float( 1)) * texSizeInv).rgb;
-		cy += Weight[4] * texture2D(TextureSSAO, VSOutput.UVs + float2(float(i), float( 2)) * texSizeInv).rgb;
+		cy += Weight[0] * texture(TextureSSAO, VSOutput.UVs + float2(float(i), float(-2)) * texSizeInv).rgb;
+		cy += Weight[1] * texture(TextureSSAO, VSOutput.UVs + float2(float(i), float(-1)) * texSizeInv).rgb;
+		cy += Weight[2] * texture(TextureSSAO, VSOutput.UVs + float2(float(i), float(-0)) * texSizeInv).rgb;
+		cy += Weight[3] * texture(TextureSSAO, VSOutput.UVs + float2(float(i), float( 1)) * texSizeInv).rgb;
+		cy += Weight[4] * texture(TextureSSAO, VSOutput.UVs + float2(float(i), float( 2)) * texSizeInv).rgb;
 		color += cy * Weight[i + 2];
 	}
 #endif
-	gl_FragData[0] = float4(color, 1);
+	OutColor = float4(color, 1);
 }
 
 float3 AmbientColor =  1 * float3(1,1,1);
@@ -104,11 +106,10 @@ void AmbientPS()
 	float2 ScreenUVs = VSOutput.UVs;
 	GBufferData GBuffer = GetGBufferData(ScreenUVs);
 	float4 outColor;
-	outColor.rgb = ( GBuffer.diffuseColor * AmbientColor ) * texture2D(TextureSSAO, ScreenUVs).r;
+	outColor.rgb = ( GBuffer.diffuseColor * AmbientColor ) * texture(TextureSSAO, ScreenUVs).r;
 	//outColor.rgb = GBuffer.diffuseColor * AmbientColor;
 	outColor.a = 1;
-	gl_FragColor = outColor;
-	//gl_FragColor = 0;
+	OutColor = outColor;
 }
 
 #endif //PIXEL_SHADER

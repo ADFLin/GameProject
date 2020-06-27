@@ -11,9 +11,13 @@
 
 #include "RHICommand.h"
 #include "ShaderManager.h"
+#include "ConsoleSystem.h"
+
+extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
 
 namespace Render
 {
+
 	bool OpenGLShaderObject::compile(EShader::Type type, char const* src[], int num)
 	{
 		if (!fetchHandle(OpenGLTranslate::To(type)))
@@ -77,9 +81,11 @@ namespace Render
 				return false;
 		}
 
+#if 0
 		glValidateProgram(handle);
 		if (!FOpenGLShader::CheckProgramStatus(handle, GL_VALIDATE_STATUS, "Can't Validate Program"))
 			return false;
+#endif
 
 		return true;
 	}
@@ -101,6 +107,11 @@ namespace Render
 		{
 			assert(shaders[i].formatData);
 			glAttachShader(getHandle(), static_cast<OpenGLShaderObject*>(shaders[i].formatData)->mHandle );
+		}
+
+		if (CVarShaderUseCache)
+		{
+			glProgramParameteri(getHandle(), GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
 		}
 
 		bool result = updateShader(true);
@@ -512,8 +523,6 @@ namespace Render
 
 	bool FOpenGLShader::GetProgramBinary(GLuint handle, std::vector<uint8>& outBinary)
 	{
-		//glProgramParameteri(handle, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
-
 		GLint binaryLength = -1;
 		glGetProgramiv(handle, GL_PROGRAM_BINARY_LENGTH, &binaryLength);
 		if (binaryLength <= 0)

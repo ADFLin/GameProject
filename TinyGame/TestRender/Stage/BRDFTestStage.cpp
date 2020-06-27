@@ -138,8 +138,31 @@ namespace Render
 		}
 	};
 
+	template< class TShader >
+	class TPrefilteredGen : public TShader
+	{
+	public:
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamRoughness.bind(parameterMap, SHADER_PARAM(Roughness));
+			mParamCubeTexture.bind(parameterMap, SHADER_PARAM(CubeTexture));
+			mParamPrefilterSampleCount.bind(parameterMap, SHADER_PARAM(PrefilterSampleCount));
+		}
 
-	class PrefilteredGenProgram : public GlobalShaderProgram
+		void setParameters(RHICommandList& commandList, int level, RHITextureCube& texture, int sampleCount)
+		{
+			setParam(commandList, mParamRoughness, float(level) / (IBLResource::NumPerFilteredLevel - 1));
+			setTexture(commandList, mParamCubeTexture, texture, mParamCubeTexture, TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			setParam(commandList, SHADER_PARAM(PrefilterSampleCount), sampleCount);
+		}
+
+		ShaderParameter mParamRoughness;
+		ShaderParameter mParamCubeTexture;
+		ShaderParameter mParamPrefilterSampleCount;
+
+	};
+
+	class PrefilteredGenProgram : public TPrefilteredGen< GlobalShaderProgram >
 	{
 	public:
 		using BaseClass = GlobalShaderProgram;
@@ -160,7 +183,7 @@ namespace Render
 		}
 	};
 
-	class PrefilteredGenPS : public GlobalShader
+	class PrefilteredGenPS : public TPrefilteredGen < GlobalShader >
 	{
 	public:
 		using BaseClass = GlobalShader;
@@ -171,8 +194,6 @@ namespace Render
 			return "Shader/EnvLightTextureGen";
 		}
 	};
-
-
 
 	class PreIntegrateBRDFGenProgram : public GlobalShaderProgram
 	{
@@ -430,7 +451,7 @@ namespace Render
 			cacheKey.keySuffix.add(path , setting.envSize , setting.irradianceSize , setting.perfilteredSize,
 				setting.irradianceSampleCount[0] , setting.irradianceSampleCount[1] , setting.prefilterSampleCount );
 
-			auto LoadFun = [&resource](IStreamSerializer& serializer) -> bool
+			auto LoadFunc = [&resource](IStreamSerializer& serializer) -> bool
 			{
 				ImageBaseLightingData IBLData;
 				{
@@ -446,7 +467,7 @@ namespace Render
 				return true;
 			};
 
-			if( true || !dataCache.loadDelegate(cacheKey, LoadFun) )
+			if( true || !dataCache.loadDelegate(cacheKey, LoadFunc) )
 			{
 				resource.initializeRHI(setting);
 				if( !buildIBLResource(HDRImage, resource, setting) )
@@ -474,7 +495,7 @@ namespace Render
 			}
 			else
 			{
-				auto LoadFun = [this](IStreamSerializer& serializer) -> bool
+				auto LoadFunc = [this](IStreamSerializer& serializer) -> bool
 				{
 					std::vector< uint8 > data;
 					{
@@ -491,7 +512,7 @@ namespace Render
 				};
 
 				TIME_SCOPE("Load BRDF Data");
-				if( !dataCache.loadDelegate(GetBRDFCacheKey(), LoadFun) )
+				if( !dataCache.loadDelegate(GetBRDFCacheKey(), LoadFunc) )
 				{
 					return false;
 				}
@@ -603,16 +624,12 @@ namespace Render
 #if USE_SEPARATE_SHADER
 			renderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mPrefilteredGenPS, level, [&](RHICommandList& commandList)
 			{
-				mPrefilteredGenPS->setParam(commandList, SHADER_PARAM(Roughness), float(level) / (IBLResource::NumPerFilteredLevel - 1));
-				mPrefilteredGenPS->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
-				mPrefilteredGenPS->setParam(commandList, SHADER_PARAM(PrefilterSampleCount), setting.prefilterSampleCount);
+				mPrefilteredGenPS->setParameters(commandList, level, *resource.texture, setting.prefilterSampleCount);
 			});
 #else
 			RenderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mProgPrefilteredGen, level, [&](RHICommandList& commandList)
 			{
-				mProgPrefilteredGen->setParam(commandList, SHADER_PARAM(Roughness), float(level) / (IBLResource::NumPerFilteredLevel - 1));
-				mProgPrefilteredGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
-				mProgPrefilteredGen->setParam(commandList, SHADER_PARAM(PrefilterSampleCount), setting.prefilterSampleCount);
+				mProgPrefilteredGen->setParameters(commandList, level, *resource.texture, setting.prefilterSampleCount);
 			});
 #endif
 		}

@@ -21,7 +21,7 @@ void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParameter
 void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
 	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	inputPS.baseColor = texture2D(BaseTexture, parameters.texCoords[0].xy).rgb * parameters.vectexColor.rgb;
+	inputPS.baseColor = texture(BaseTexture, parameters.texCoords[0].xy).rgb * parameters.vectexColor.rgb;
 	inputPS.metallic  = 0.1;
 	inputPS.roughness = 0.9;
 	inputPS.specular  = 0.1;

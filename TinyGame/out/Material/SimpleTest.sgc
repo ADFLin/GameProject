@@ -20,7 +20,7 @@ void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParameter
 void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
 	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	float4 texColor = texture2D(BaseTexture, parameters.texCoords[0].xy);
+	float4 texColor = texture(BaseTexture, parameters.texCoords[0].xy);
 	inputPS.baseColor = texColor.rgb *  BaseColor.rgb;
 	inputPS.metallic = 0.9;
 	inputPS.roughness = 0;

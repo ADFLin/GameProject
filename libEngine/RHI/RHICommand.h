@@ -204,6 +204,18 @@ namespace Render
 	RHI_API void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* textures[] = nullptr, int numTexture = 0);
 	RHI_API void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer);
 
+	enum class EClearBits
+	{
+		Color = 0x1,
+		Depth = 0x2,
+		Stencil = 0x4,
+	};
+
+	FORCEINLINE EClearBits operator | (EClearBits a, EClearBits b) { return EClearBits(uint8(a) | uint8(b)); }
+	FORCEINLINE bool HaveBits( EClearBits a , EClearBits b ) { return !!(uint8(a) & uint8(b)); }
+
+	RHI_API void RHIClearRenderTargets(RHICommandList& commandList, EClearBits clearBits , LinearColor colors[] ,int numColor , float depth = 0 , uint8 stenceil = 0 );
+
 	RHI_API void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
 	RHI_API void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer);

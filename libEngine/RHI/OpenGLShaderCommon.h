@@ -80,8 +80,6 @@ namespace Render
 
 			return true;
 		}
-
-		friend class ShaderProgram;
 	};
 
 

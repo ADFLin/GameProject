@@ -39,7 +39,7 @@ float3 GetEnvRadiance(float3 dir)
 #if USE_CUBE_TEXTURE
 	return texture(CubeTexture, dir).rgb;
 #else
-	return texture2D(Texture, EquirectangularCoord(dir)).rgb;
+	return texture(Texture, EquirectangularCoord(dir)).rgb;
 #endif
 }
 
@@ -53,7 +53,7 @@ float3 GetFaceCameraDir(float2 faceUV)
 void EquirectangularToCubePS()
 {
 	float3 dir = GetFaceCameraDir(VSOutput.UVs);
-	float3 color = texture2D(Texture, EquirectangularCoord(dir)).rgb;
+	float3 color = texture(Texture, EquirectangularCoord(dir)).rgb;
 	OutColor = float4(color, 1);
 }
 

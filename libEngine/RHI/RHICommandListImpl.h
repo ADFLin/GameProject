@@ -32,6 +32,8 @@ namespace Render
 		RHI_FUNC(void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex));
 
 		RHI_FUNC(void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer));
+		RHI_FUNC(void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil));
+
 		RHI_FUNC(void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream));
 		RHI_FUNC(void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer));
 		RHI_FUNC(void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture));

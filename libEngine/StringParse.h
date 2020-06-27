@@ -94,7 +94,6 @@ public:
 	static CharT const* TrySkipToCharSectionEnd(CharT const* str) { return TrySkipToSectionEnd(str, STRING_LITERAL(CharT, '\'')); }
 	static CharT const* CheckAndSkipToCommentSectionEnd(CharT const* str);
 
-
 	static int CountChar(CharT const* start, CharT const* end, CharT c)
 	{
 		CharT const* p = start;

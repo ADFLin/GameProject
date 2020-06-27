@@ -18,11 +18,11 @@ uniform float3 TerrainScale;
 
 float  GetTerrainHeight(float2 uv)
 {
-	return texture2D(TextureHeight, uv).r * TerrainScale.z;
+	return texture(TextureHeight, uv).r * TerrainScale.z;
 }
 float3 GetTerrainLocalPos(float2 uv)
 {
-	return float3(uv, texture2D(TextureHeight, uv).r) * TerrainScale;
+	return float3(uv, texture(TextureHeight, uv).r) * TerrainScale;
 }
 float3 CalcTerrainNormal(float2 uv)
 {
@@ -66,7 +66,7 @@ void MainVS()
 	gl_Position = View.worldToClip * LocalToWorld * float4( GetTerrainLocalPos(InPos.xy) , 1 );
 	OutputVS.UV = float2(InPos.x, InPos.y);
 	OutputVS.normal = CalcTerrainNormal(InPos.xy);
-	OutputVS.data = float3(InPos.x, InPos.y, texture2D(TextureHeight, InPos.xy).r);
+	OutputVS.data = float3(InPos.x, InPos.y, texture(TextureHeight, InPos.xy).r);
 }
 
 #endif //VERTEX_SHADER
@@ -81,7 +81,7 @@ void MainPS()
 {
 	float3 normal = normalize(OutputVS.normal);
 	float b = OutputVS.data.b;
-	float3 c = texture2D(TextureBaseColor, OutputVS.UV).rgb;
+	float3 c = texture(TextureBaseColor, OutputVS.UV).rgb;
 	float shade = clamp(dot(normal, normalize(float3(1, 1, 1))), 0, 1);
 	c = c * shade;
 	OutColor = float4(c, 1);

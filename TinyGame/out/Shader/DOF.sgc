@@ -52,7 +52,7 @@ void MainGenCoc()
 {
 	float2 ScreenUVs = VSOutput.UVs;
 	float depth = ScreenUVToSceneDepth(ScreenUVs);
-	float4 color = texture2D(Texture, ScreenUVs);
+	float4 color = texture(Texture, ScreenUVs);
 	
 	float CoC = CalcCircleOfConfusion(depth);
 	
@@ -111,7 +111,7 @@ void MainBlurV()
 	for( int i = -SAMPLE_RADIUS_NUM; i <= SAMPLE_RADIUS_NUM; ++i )
 	{
 		float2 uv = ScreenUVs + float2(0,i) * duv;
-		float4 color = texture2D(Texture, uv) ;
+		float4 color = texture(Texture, uv) ;
 
 #if USE_BRACKETING_FILTER
 		float4 f = (GetFliter2(i) - FliterScaleBias.yyww) / FliterScaleBias.xxzz;
@@ -154,7 +154,7 @@ void MainBlurHAndCombine()
 	for( int i = -SAMPLE_RADIUS_NUM; i <= SAMPLE_RADIUS_NUM; ++i )
 	{
 		float2 uv = ScreenUVs + float2(0, i) * duv;
-		float4 color = texture2D(Texture, uv);
+		float4 color = texture(Texture, uv);
 		offsetR += color.r * FliterScaleBias.yyww;
 		offsetG += color.g * FliterScaleBias.yyww;
 		offsetB += color.b * FliterScaleBias.yyww;
@@ -166,9 +166,9 @@ void MainBlurHAndCombine()
 	{
 		float2 uv = ScreenUVs + float2(i) * duv;
 
-		float4 colorR = texture2D(TextureR, uv);
-		float4 colorG = texture2D(TextureG, uv);
-		float4 colorB = texture2D(TextureB, uv);
+		float4 colorR = texture(TextureR, uv);
+		float4 colorG = texture(TextureG, uv);
+		float4 colorB = texture(TextureB, uv);
 
 #if USE_BRACKETING_FILTER
 		colorR = colorR * FliterScaleBias.xxzz + offsetR;
@@ -188,9 +188,9 @@ void MainBlurHAndCombine()
 	}
 #else
 
-	float4 colorR = texture2D(TextureR, ScreenUVs);
-	float4 colorG = texture2D(TextureG, ScreenUVs);
-	float4 colorB = texture2D(TextureB, ScreenUVs);
+	float4 colorR = texture(TextureR, ScreenUVs);
+	float4 colorG = texture(TextureG, ScreenUVs);
+	float4 colorB = texture(TextureB, ScreenUVs);
 	accR += colorR;
 	accG += colorG;
 	accB += colorB;
@@ -201,7 +201,7 @@ void MainBlurHAndCombine()
 	float g = dot(accG, Weight);
 	float b = dot(accB, Weight);
 	OutColor = float4(r, g, b, 1);
-	//OutColor = float4(texture2D(TextureR, ScreenUVs).rgb, 1);
+	//OutColor = float4(texture(TextureR, ScreenUVs).rgb, 1);
 }
 
 #endif

@@ -1201,5 +1201,8 @@
     <Text Include="..\OtherLib\NvTriStrip\README.txt">
       <Filter>OtherLib\NvTriStrip</Filter>
     </Text>
+    <Text Include="RHI\VulkanDevice.h">
+      <Filter>RHI\Vulkan</Filter>
+    </Text>
   </ItemGroup>
 </Project>

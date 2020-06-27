@@ -24,7 +24,7 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 	float3 n = normalize( float3(-c, 0, 1) );
 	float3 t = normalize( float3(1, 0, c) );
 
-	float3 baseColor = texture2D(TextureD, float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y)).rgb;
+	float3 baseColor = texture(TextureD, float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y)).rgb;
 
 	inputPS.baseColor = baseColor;
 	//inputPS.emissiveColor = 0.2 * baseColor;

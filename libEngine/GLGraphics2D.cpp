@@ -36,7 +36,7 @@ static char const* fragmentShader = CODE_STRING(
 	uniform vec3 colorKey;
 	void main(void)
 	{
-		vec4 color = texture2D(myTexture, vTexCoord);
+		vec4 color = texture(myTexture, vTexCoord);
 		if( color.rgb == colorKey )
 			discard;
 		gl_FragColor = color;
@@ -191,7 +191,10 @@ void GLGraphics2D::beginRender()
 	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
-	RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(0 , mWidth, mHeight, 0 , -1, 1)));
+
+	mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
+	RHISetupFixedPipelineState(commandList, mBaseTransform);
+	mbResetPipelineState = false;
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
 	mXFormStack.clear();
@@ -479,6 +482,7 @@ void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 	return;
 #endif
 	assert( mFont );
+	checkPipelineState();
 	glColor4f( mColorFont.r , mColorFont.g , mColorFont.b , 1.0 );
 	mFont->draw(GetCommandList(), Vector2(int(ox),int(oy)) , str );
 }
@@ -492,6 +496,7 @@ void GLGraphics2D::drawPolygonBuffer()
 #endif
 
 	assert(!mBuffer.empty());
+	checkPipelineState();
 
 	if( mDrawBrush )
 	{
@@ -512,7 +517,7 @@ void GLGraphics2D::drawLineBuffer()
 	return;
 #endif
 	assert(!mBuffer.empty());
-
+	checkPipelineState();
 	if (mDrawPen)
 	{
 		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorPen, mAlpha));
@@ -526,6 +531,15 @@ Render::RHICommandList& GLGraphics2D::GetCommandList()
 	return RHICommandList::GetImmediateList();
 }
 
+void GLGraphics2D::checkPipelineState()
+{
+	if (mbResetPipelineState)
+	{
+		mbResetPipelineState = false;
+		Render::RHISetupFixedPipelineState(GetCommandList(), mBaseTransform);
+	}
+}
+
 void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Color3ub const& color /*= Color3ub(255, 255, 255)*/)
 {
 	drawTexture(texture, pos, Vector2(texture.getSizeX(), texture.getSizeY()), color);
@@ -533,13 +547,11 @@ void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Color3u
 
 void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size, Color3ub const& color /*= Color3ub(255,255,255) */)
 {
-	glEnable(GL_TEXTURE_2D);
-	{
-		GL_BIND_LOCK_OBJECT(texture);
-		glColor4fv(Color4f(Color3f(color), mAlpha));
-		Render::DrawUtility::Sprite( Render::RHICommandList::GetImmediateList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
-	}
-	glDisable(GL_TEXTURE_2D);
+	Render::RHITexture2D* textures[] = { &texture };
+	Matrix4 transform =  mXFormStack.get().toMatrix4() * mBaseTransform;
+	Render::RHISetupFixedPipelineState(GetCommandList(), transform, Color4f(Color3f(color), mAlpha), textures, 1);
+	Render::DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
+	mbResetPipelineState = true;
 }
 
 void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color)
@@ -549,14 +561,12 @@ void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2
 
 void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color)
 {
-	glEnable(GL_TEXTURE_2D);
-	{
-		GL_BIND_LOCK_OBJECT(texture);
-		glColor4fv( Color4f( Color3f(color), mAlpha) );
-		Vector2 textureSize = Vector2(texture.getSizeX(), texture.getSizeY());
-		Render::DrawUtility::Sprite(Render::RHICommandList::GetImmediateList(), pos, size, Vector2(0, 0), Vector2( texPos.div(textureSize) ), Vector2( texSize.div(textureSize) ));
-	}
-	glDisable(GL_TEXTURE_2D);
+	Render::RHITexture2D* textures[] = { &texture };
+	Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
+	Render::RHISetupFixedPipelineState(GetCommandList(), transform, Color4f(Color3f(color), mAlpha), textures, 1);
+	Vector2 textureSize = Vector2(texture.getSizeX(), texture.getSizeY());
+	Render::DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2( texPos.div(textureSize) ), Vector2( texSize.div(textureSize) ));
+	mbResetPipelineState = true;
 }
 
 void GLGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)

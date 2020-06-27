@@ -26,7 +26,7 @@ uniform sampler3D NoiseVolumeTexture;
 float MyRandom(float2 uv)
 {
 #if USE_RAND_TEXTURE
-	return texture2D(RandTexture, uv / TEX_SIZE).x;
+	return texture(RandTexture, uv / TEX_SIZE).x;
 #else
 
 	return PseudoRandom(uv);
@@ -157,7 +157,7 @@ float FBMTest(float2 uv , int octaves)
 
 	for( int i = 0; i < octaves; ++i )
 	{
-		result += amp *  texture2D(NoiseTexture, uv).x;
+		result += amp *  texture(NoiseTexture, uv).x;
 		uv = rot * uv * 2.0 + shift;
 		//uv *= 2;
 		total += amp;
@@ -169,7 +169,7 @@ float FBMTest(float2 uv , int octaves)
 void TestPS()
 {
 
-	float noise = texture2D(NoiseTexture, VSOutput.UVs).x;
+	float noise = texture(NoiseTexture, VSOutput.UVs).x;
 	OutColor = float4(noise.xxx, 1);
 
 
@@ -306,7 +306,7 @@ void SmokeRenderPS()
 	const float jitter = 0;
 #endif
 
-	float deviceDepth = texture2D(SceneDepthTexture, screenUV).x;
+	float deviceDepth = texture(SceneDepthTexture, screenUV).x;
 	float sceneDepth = BufferDepthToSceneDepth(deviceDepth);
 
 #if 1
@@ -420,25 +420,25 @@ void SmokeBlendPS()
 {
 	float2 screenUV = VSOutput.UVs;
 
-	float4 frameColor = texture2D(FrameTexture, screenUV);
+	float4 frameColor = texture(FrameTexture, screenUV);
 
 	float weight = 1;
 #if USE_REPROJECTION
 	float4 temp = View.clipToWorld * float4(2 * screenUV - 1, 1, 1);
 	float3 cameraDir = normalize(temp.xyz / temp.w - View.worldPos);
-	float depthDist = texture2D(DepthTexture, screenUV).r;
+	float depthDist = texture(DepthTexture, screenUV).r;
 	weight = (depthDist == 0) ? 1 : weight;
 	float3 worldPos = View.worldPos + depthDist * cameraDir;
 	float4 clipPrev = View.worldToClipPrev * float4( worldPos , 1 );
 	float2 screenUVPrev = 0.5 *(clipPrev.xy / clipPrev.w + float2(1, 1));
-	float4 historyColor = texture2D(HistroyTexture, screenUVPrev);
+	float4 historyColor = texture(HistroyTexture, screenUVPrev);
 
 	if( any( greaterThan(float2(0, 0)  , screenUVPrev) ) || any(greaterThan(screenUVPrev, float2(1, 1) ) ) )
 	{
 		weight = 1;
 	}
 #else
-	float4 historyColor = texture2D(HistroyTexture, screenUV);
+	float4 historyColor = texture(HistroyTexture, screenUV);
 #endif
 
 	OutColor = lerp( historyColor , frameColor , weight );

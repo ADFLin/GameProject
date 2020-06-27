@@ -26,7 +26,7 @@ struct GBufferData
 
 float3 GetGBufferNormal(float2 UVs)
 {
-	return texture2D(GBufferTextureB, UVs).xyz;
+	return texture(GBufferTextureB, UVs).xyz;
 }
 
 float3 EncodeNormal(float3 value)
@@ -87,10 +87,10 @@ GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBuf
 GBufferData GetGBufferData( in float2 UVs )
 {
 	GBufferData data = DecodeGBuffer(
-		texture2D(GBufferTextureA, UVs),
-		texture2D(GBufferTextureB, UVs),
-		texture2D(GBufferTextureC, UVs),
-		texture2D(GBufferTextureD, UVs));
+		texture(GBufferTextureA, UVs),
+		texture(GBufferTextureB, UVs),
+		texture(GBufferTextureC, UVs),
+		texture(GBufferTextureD, UVs));
 
 	return data;
 }

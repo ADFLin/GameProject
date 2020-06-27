@@ -567,6 +567,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt" />
+    <Text Include="RHI\VulkanDevice.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

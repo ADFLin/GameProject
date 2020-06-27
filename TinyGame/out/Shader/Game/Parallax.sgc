@@ -73,7 +73,7 @@ void MainVS()
 
 float getDepth( in vec2 T )
 {
-	return texture2D( texNormal , T ).a;
+	return texture( texNormal , T ).a;
 }
 
 vec2 calcParallaxPos( in vec3 V , in vec2 T , out float parallaxDepth )
@@ -209,8 +209,8 @@ void MainPS()
 	float parallaxDepth = pomOutput.depth;
 	float2 T = pomOutput.UVs;
 
-	float3 N = texture2D( texNormal , T ).xyz * 2.0 - 1.0;
-	float3 baseColor = texture2D( texBase , T ).rgb;
+	float3 N = texture( texNormal , T ).xyz * 2.0 - 1.0;
+	float3 baseColor = texture( texBase , T ).rgb;
 
 	float3 color = vec3(0,0,0);
 
@@ -245,7 +245,7 @@ void MainPS()
 	gl_FragColor = float4( 2.0 * float3( depth.z / depth.w / depth.w ) - 0.1 , 1 );
 #endif
 	//gl_FragColor = float4( E , 1.0 );
-	//gl_FragColor = texture2D( tex , gl_TexCoord[0].xy ) ;
+	//gl_FragColor = texture( tex , gl_TexCoord[0].xy ) ;
 	//gl_FragColor = float4( color , 1.0 );
 	//gl_FragColor = float4( baseColor , 1.0 );
 	gl_FragColor = float4( color * baseColor , 1.0 );

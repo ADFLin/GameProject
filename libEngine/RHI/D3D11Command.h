@@ -321,6 +321,10 @@ namespace Render
 		{
 
 		}
+		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil)
+		{
+
+		}
 
 	
 		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)

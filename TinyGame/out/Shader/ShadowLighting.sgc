@@ -71,15 +71,15 @@ float calcShadowFactor( in vec3 viewOffset )
 		vec2 dx = vec2( 1.0 / SMSize , 0 );
 		vec2 dy = vec2( 0 , 1.0 / SMSize );
 		float count;
-		count += ( texture2D( ShadowTextureCube , t ).r < depth ) ? 1.0 : 0.0;
-		count += ( texture2D( ShadowTextureCube , t + dx ).r < depth ) ? 1.0 : 0.0;
-		count += ( texture2D( ShadowTextureCube , t - dx ).r < depth ) ? 1.0 : 0.0;
-		count += ( texture2D( ShadowTextureCube , t + dy ).r < depth ) ? 1.0 : 0.0;
-		count += ( texture2D( ShadowTextureCube , t - dy ).r < depth ) ? 1.0 : 0.0;
-		//count += ( texture2D( texSM , t + dx - dy ).r < depth ) ? 1.0 : 0.0;
-		//count += ( texture2D( texSM , t + dx + dy ).r < depth ) ? 1.0 : 0.0;
-		//count += ( texture2D( texSM , t - dx - dy ).r < depth ) ? 1.0 : 0.0;
-		//count += ( texture2D( texSM , t - dx + dy ).r < depth ) ? 1.0 : 0.0;
+		count += ( texture( ShadowTextureCube , t ).r < depth ) ? 1.0 : 0.0;
+		count += ( texture( ShadowTextureCube , t + dx ).r < depth ) ? 1.0 : 0.0;
+		count += ( texture( ShadowTextureCube , t - dx ).r < depth ) ? 1.0 : 0.0;
+		count += ( texture( ShadowTextureCube , t + dy ).r < depth ) ? 1.0 : 0.0;
+		count += ( texture( ShadowTextureCube , t - dy ).r < depth ) ? 1.0 : 0.0;
+		//count += ( texture( texSM , t + dx - dy ).r < depth ) ? 1.0 : 0.0;
+		//count += ( texture( texSM , t + dx + dy ).r < depth ) ? 1.0 : 0.0;
+		//count += ( texture( texSM , t - dx - dy ).r < depth ) ? 1.0 : 0.0;
+		//count += ( texture( texSM , t - dx + dy ).r < depth ) ? 1.0 : 0.0;
 
 		c = 1 - ( 1 - factor ) * ( count ) / 5;	
 	}

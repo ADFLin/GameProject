@@ -171,11 +171,42 @@ namespace Render
 			}
 		}
 
-		void RHIClearRenderTarget( int numColor )
+		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil)
 		{
+			GLbitfield clearBitsGL = 0;
+			if (HaveBits(clearBits, EClearBits::Color))
+			{
+				if (numColor == 1)
+				{
+					glClearColor(colors[0].r, colors[0].b, colors[0].g, colors[0].a);
+					clearBitsGL |= GL_COLOR_BUFFER_BIT;
+				}
+				else
+				{
+					for (int i = 0; i < numColor; ++i)
+					{
+						glClearBufferfv(GL_COLOR, i, colors[i]);
+					}
+				}
 
+			}
+			if (HaveBits(clearBits, EClearBits::Depth))
+			{
+				glClearDepth(depth);
+				clearBitsGL |= GL_DEPTH_BUFFER_BIT;
+			}
+			if (HaveBits(clearBits, EClearBits::Stencil))
+			{
+				glClearStencil(stenceil);
+				clearBitsGL |= GL_STENCIL_BUFFER_BIT;
+			}
+			if (clearBitsGL)
+			{
+				glClear(clearBitsGL);
+			}
 
 		}
+
 		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);

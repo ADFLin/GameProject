@@ -169,7 +169,7 @@ class sampler2DMS {};
 class sampler2DArray {};
 
 vec4 texture1D(sampler1D, float);
-vec4 texture2D(sampler2D, vec2);
+vec4 texture(sampler2D, vec2);
 vec4 texture3D(sampler3D, vec3);
 
 vec4 texture(sampler1D, float);

@@ -106,16 +106,16 @@ float3 SimplePCF(sampler2D shadowTexture , float2 shadowUV, float depth)
 	float count = 0;
 	float2 dUV = 1.0 / float2(textureSize(shadowTexture, 0));
 	dUV.x /= NumCascade;
-	count += (texture2D(shadowTexture, shadowUV).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV).r >= depth) ? 1.0 : factor;
 #if 0
-	count += (texture2D(shadowTexture, shadowUV + float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
-	count += (texture2D(shadowTexture, shadowUV - float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
-	count += (texture2D(shadowTexture, shadowUV + float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (texture2D(shadowTexture, shadowUV - float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (texture2D(shadowTexture, shadowUV + dUV).r >= depth) ? 1.0 : factor;
-	count += (texture2D(shadowTexture, shadowUV - dUV).r >= depth) ? 1.0 : factor;
-	count += (texture2D(shadowTexture, shadowUV + float2(-dUV.x, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (texture2D(shadowTexture, shadowUV + float2(dUV.x, -dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV + float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV - float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV + float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV - float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV + dUV).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV - dUV).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV + float2(-dUV.x, dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (texture(shadowTexture, shadowUV + float2(dUV.x, -dUV.y)).r >= depth) ? 1.0 : factor;
 	float shadow = count / 9.0;
 #else
 	float shadow = count;

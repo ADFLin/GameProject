@@ -95,6 +95,11 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetFrameBuffer(frameBuffer));
 	}
 
+	void RHIClearRenderTargets(RHICommandList& commandList, EClearBits clearBits, LinearColor colors[], int numColor, float depth , uint8 stenceil )
+	{
+		RHI_COMMAND_FUNC(commandList, RHIClearRenderTargets(clearBits, colors, numColor, depth, stenceil));
+	}
+
 	void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetInputStream(inputLayout, inputStreams, numInputStream));

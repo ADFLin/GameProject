@@ -68,6 +68,7 @@ namespace Render
 			e2D,
 			e3D,
 			eCube,
+			e2DArray,
 			eDepth,
 		};
 		enum Format
@@ -275,6 +276,7 @@ namespace Render
 
 		virtual RHIShaderResourceView* getBaseResourceView() { return nullptr; }
 
+		Texture::Type   getType() const { return mType; }
 		Texture::Format getFormat() const { return mFormat; }
 		int getNumSamples() const { return mNumSamples; }
 		int getNumMipLevel() const { return mNumMipLevel; }
@@ -282,6 +284,7 @@ namespace Render
 		int mNumSamples;
 		int mNumMipLevel;
 		Texture::Format mFormat;
+		Texture::Type   mType;
 	};
 
 	using RHIResourceRef = TRefCountPtr< RHIResource >;
@@ -291,6 +294,7 @@ namespace Render
 	public:
 		RHITexture1D():RHITextureBase(TRACE_TYPE_NAME("Texture1D"))
 		{
+			mType = Texture::e1D;
 			mSize = 0;
 		}
 
@@ -309,6 +313,7 @@ namespace Render
 	public:
 		RHITexture2D() :RHITextureBase(TRACE_TYPE_NAME("Texture2D")) 
 		{
+			mType = Texture::e2D;
 			mSizeX = 0;
 			mSizeY = 0;
 		}
@@ -331,6 +336,7 @@ namespace Render
 	public:
 		RHITexture3D() :RHITextureBase(TRACE_TYPE_NAME("Texture3D")) 
 		{
+			mType = Texture::e3D;
 			mSizeX = 0;
 			mSizeY = 0;
 			mSizeZ = 0;
@@ -352,7 +358,11 @@ namespace Render
 	class RHITextureCube : public RHITextureBase
 	{
 	public:
-		RHITextureCube() :RHITextureBase(TRACE_TYPE_NAME("TextureCube")) {}
+		RHITextureCube() :RHITextureBase(TRACE_TYPE_NAME("TextureCube")) 
+		{
+			mType = Texture::eCube;
+			mSize = 0;
+		}
 
 		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0) = 0;
@@ -367,7 +377,13 @@ namespace Render
 	class RHITexture2DArray : public RHITextureBase
 	{
 	public:
-		RHITexture2DArray() :RHITextureBase(TRACE_TYPE_NAME("Texture2DArray")) {}
+		RHITexture2DArray() :RHITextureBase(TRACE_TYPE_NAME("Texture2DArray")) 
+		{
+			mType = mType = Texture::e2DArray;
+			mSizeX = 0;
+			mSizeY = 0;
+			mLayerNum = 0;
+		}
 
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
@@ -386,7 +402,12 @@ namespace Render
 	class RHITextureDepth : public RHITextureBase
 	{
 	public:
-		RHITextureDepth() :RHITextureBase(TRACE_TYPE_NAME("TextureDepth")) {}
+		RHITextureDepth() :RHITextureBase(TRACE_TYPE_NAME("TextureDepth")) 
+		{
+			mType = mType = Texture::eDepth;
+			mSizeX = 0;
+			mSizeY = 0;
+		}
 
 		Texture::DepthFormat getFormat() { return mFormat; }
 		int  getSizeX() const { return mSizeX; }

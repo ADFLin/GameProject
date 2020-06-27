@@ -32,7 +32,7 @@ uniform sampler2D Texture;
 in OutputVSParam OutputVS;
 void MainPS()
 {
-	float4 texColor = texture2D(Texture, OutputVS.UV);
+	float4 texColor = texture(Texture, OutputVS.UV);
 	OutColor = texColor * OutputVS.color;
 }
 

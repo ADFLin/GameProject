@@ -132,6 +132,11 @@ public:
 	T const* getRawData() const { return mStorage; }
 
 	int  toIndex( int x , int y ) const { return x + y * mSizeX; }
+	void toCoord( int index , int& outX , int& outY ) const
+	{
+		outX = index % mSizeX;
+		outY = index / mSizeX;
+	}
 
 	void resize( int x , int y )
 	{

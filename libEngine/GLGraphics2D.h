@@ -131,6 +131,13 @@ using GLTexture2D = Render::RHITexture2D;
 using RenderTransform2D = Render::RenderTransform2D;
 using TransformStack2D = Render::TransformStack2D;
 
+enum class ESimpleBlendMode
+{
+	Translucent,
+	Add ,
+	Multiply,
+};
+
 class GLGraphics2D
 {
 public:
@@ -178,6 +185,7 @@ public:
 	void  endClip();
 
 	void  beginBlend( Vector2 const& pos , Vector2 const& size , float alpha );
+	void  beginBlend(float alpha , ESimpleBlendMode mode = ESimpleBlendMode::Translucent);
 	void  endBlend();
 
 	void  drawPixel  ( Vector2 const& p , Color3ub const& color );

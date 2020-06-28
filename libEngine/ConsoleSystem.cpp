@@ -182,7 +182,32 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 		ConsoleArgTypeInfo const& arg = context.command->mArgs[argIndex];
 
 		if (!fillParameterData(context, arg, pData))
+		{
+			if (context.command->mArgs.size() == 1)
+			{
+				auto var = context.command->asVariable();
+				if (var && ( var->getFlags() & CVF_TOGGLEABLE ) )
+				{				
+					if (var->getTypeIndex() == typeid(bool))
+					{
+						bool val;
+						var->getValue(&val);
+						val = !val;
+						var->setValue(&val);
+						return true;
+					}
+					else if (var->getTypeIndex() == typeid(int))
+					{
+						int val;
+						var->getValue(&val);
+						val = !val;
+						var->setValue(&val);
+						return true;
+					}
+				}
+			}
 			return false;
+		}
 
 		argData[argIndex] = pData;
 		pData += arg.size;

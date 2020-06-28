@@ -100,9 +100,9 @@ MaterialInputPS InitMaterialInputPS()
 	return inputPS;
 }
 
-float3 GetTextureNormal(sampler2D texture, float2 UVs)
+float3 GetTextureNormal(sampler2D inTexture, float2 UVs)
 {
-	return 2 * texture(texture, UVs).xyz - 1;
+	return 2 * texture(inTexture, UVs).xyz - 1;
 }
 #endif //PIXEL_SHADER
 

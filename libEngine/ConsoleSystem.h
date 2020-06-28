@@ -18,10 +18,12 @@
 #include <string>
 #include <map>
 #include "Core/StringConv.h"
+#include <typeindex>
 
 enum EConsoleVariableFlag
 {
-	CVF_CONFIG = 1 << 0,
+	CVF_CONFIG     = 1 << 0,
+	CVF_TOGGLEABLE = 2 << 0,
 };
 
 struct ConsoleArgTypeInfo
@@ -163,11 +165,11 @@ public:
 	{
 
 	}
-
+	virtual std::type_index getTypeIndex() const = 0;
 	virtual VariableConsoleCommadBase* asVariable() { return this; }
 	virtual std::string toString() const = 0;
 	virtual bool fromString(StringView const& str) = 0;
-
+	virtual void setValue(void* pDest) {}
 	uint32 getFlags() { return mFlags; }
 	uint32 mFlags;
 };
@@ -184,12 +186,16 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 
 	}
 
-	virtual std::string toString() const
+	virtual std::type_index getTypeIndex() const override
+	{
+		return typeid(Meta::RemoveCV<Type>::Type);
+	}
+	virtual std::string toString() const override
 	{
 		return FStringConv::From(*mPtr);
 	}
 
-	virtual bool fromString(StringView const& str)
+	virtual bool fromString(StringView const& str) override
 	{
 		return FStringConv::ToCheck(str.data(), str.length(), *mPtr);
 	}
@@ -207,6 +213,11 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 	virtual void getValue(void* pDest) override
 	{
 		TypeDataHelper::Assign((Type*)pDest, *mPtr);
+	}
+
+	virtual void setValue(void* pDest) 
+	{
+		TypeDataHelper::Assign(mPtr, *(Type*)pDest);
 	}
 };
 
@@ -290,6 +301,7 @@ protected:
 
 	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData );
 	bool executeCommandImpl(char const* comStr);
+
 
 
 	struct StrCmp

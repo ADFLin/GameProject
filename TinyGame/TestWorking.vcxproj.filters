@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
+    <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
+    <ClCompile Include="TestWorking\TestWorking.cpp" />
+    <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
+    <ClCompile Include="Chess\ChessCore.cpp">
+      <Filter>GameChess</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
+    <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
+    <ClInclude Include="TestWorking\TestWorkingPCH.h" />
+    <ClInclude Include="Chess\ChessCore.h">
+      <Filter>GameChess</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="GameChess">
+      <UniqueIdentifier>{ffad3502-f911-445b-ac2c-e484697a5c3e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

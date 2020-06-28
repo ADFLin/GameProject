@@ -55,7 +55,7 @@ bool gbProfileGPU = false;
 TINY_API IGameNetInterface* gGameNetInterfaceImpl;
 TINY_API IDebugInterface*   gDebugInterfaceImpl;
 
-TConsoleVariable< bool > gbShowFPS(false, "ShowFPS");
+TConsoleVariable< bool > CVarShowFPS(false, "ShowFPS" , CVF_TOGGLEABLE);
 
 AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
 
@@ -754,7 +754,7 @@ void TinyGameApp::render( float dframe )
 	
 	mFPSCalc.increaseFrame(getMillionSecond());
 	IGraphics2D& g = ::Global::GetIGraphics2D();
-	if ( gbShowFPS )
+	if ( CVarShowFPS )
 	{
 		FixString< 256 > str;
 		RenderUtility::SetFont(g, FONT_S8);

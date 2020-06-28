@@ -584,8 +584,27 @@ void GLGraphics2D::endClip()
 
 void GLGraphics2D::beginBlend(Vector2 const& pos , Vector2 const& size , float alpha)
 {
+	beginBlend(alpha);
+}
+
+void GLGraphics2D::beginBlend(float alpha , ESimpleBlendMode mode )
+{
 	using namespace Render;
-	RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
+	switch (mode)
+	{
+	case ESimpleBlendMode::Translucent:
+		RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+		break;
+	case ESimpleBlendMode::Add:
+		RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+		break;
+	case ESimpleBlendMode::Multiply:
+		RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, Blend::eDestColor, Blend::eZero >::GetRHI());
+		break;
+	default:
+		NEVER_REACH("GLGraphics2D::beginBlend");
+	}
+	
 	mAlpha = alpha;
 }
 

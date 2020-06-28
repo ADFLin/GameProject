@@ -83,7 +83,14 @@ namespace Chess
 
 			}
 		}
+		void getPossibleMovePos(Vec2i const& pos, std::vector<Vec2i>& outPosList)
+		{
+			if (!mBoard.checkRange(pos.x, pos.y))
+				return;
 
+			TileData const& tileData = mBoard.getData(pos.x, pos.y);
+			getPossibleMovePos(pos, tileData.type, tileData.color, outPosList);
+		}
 
 		void getPossibleMovePos(Vec2i const& pos, EChess::Type type, int color , std::vector<Vec2i>& outPosList)
 		{
@@ -330,17 +337,51 @@ namespace Chess
 
 				}
 			}
+			g.endBlend();
+
+
+			g.beginBlend(Vec2i(0, 0), Vec2i(100, 100), 0.8f);
+			if (!mMovePosList.empty())
+			{
+				for (auto const& tPos : mMovePosList)
+				{
+					Vector2 sPos = toScreenPos(Vector2(tPos) + Vector2(0.5, 0.5));
+					g.drawCircle(sPos, 12);
+				}
+			}
 	
 			g.endBlend();
 			g.endRender();
 		}
 
+		Vector2 toScreenPos(Vector2 const& tPos)
+		{
+			return Vector2(10, 10) + TileLength * tPos;
+		}
+		Vec2i toTilePos(Vector2 const& pos)
+		{
+			Vector2 temp = (pos - Vector2(10, 10)) / TileLength;
+			Vec2i result;
+			result.x = Math::FloorToInt(temp.x);
+			result.y = Math::FloorToInt(temp.y);
+			return result;
+		}
 		bool onMouse(MouseMsg const& msg) override
 		{
 			if (!BaseClass::onMouse(msg))
 				return false;
+
+			Vec2i tPos = toTilePos(msg.getPos());
+			if (msg.onLeftDown())
+			{
+				mSelectTilePos = tPos;
+				mGame.getPossibleMovePos(tPos, mMovePosList);
+			}
 			return true;
 		}
+
+		Vec2i mSelectTilePos;
+		std::vector<Vec2i> mMovePosList;
 
 		bool onKey(KeyMsg const& msg) override
 		{

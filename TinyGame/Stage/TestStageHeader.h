@@ -35,35 +35,38 @@ public:
 		return Vec2i(mScale * (pos - mOffset));
 	}
 
-	void drawCircle(Graphics2D& g, Vector2 const& pos, float radius)
+	template< class TGraphic2D >
+	void drawCircle(TGraphic2D& g, Vector2 const& pos, float radius)
 	{
 		Vec2i rPos = convertToScreen(pos);
 		g.drawCircle(rPos, int(mScale * radius));
 	}
 
-	void drawRect(Graphics2D& g, Vector2 const& pos, Vector2 const& size)
+	template< class TGraphic2D >
+	void drawRect(TGraphic2D& g, Vector2 const& pos, Vector2 const& size)
 	{
 		Vec2i rSize = Vec2i(size * mScale);
 		Vec2i rPos = convertToScreen(pos);
 		g.drawRect(rPos, rSize);
 
 	}
-
-	void drawLine(Graphics2D& g, Vector2 const& v1, Vector2 const& v2)
+	template< class TGraphic2D >
+	void drawLine(TGraphic2D& g, Vector2 const& v1, Vector2 const& v2)
 	{
 		Vec2i buf[2];
 		drawLine(g, v1, v2, buf);
 	}
 
-
-	void drawPoly(Graphics2D& g, Vector2 const vertices[], int num)
+	template< class TGraphic2D >
+	void drawPoly(TGraphic2D& g, Vector2 const vertices[], int num)
 	{
 		Vec2i buf[128];
 		assert(num <= ARRAY_SIZE(buf));
 		drawPoly(g, vertices, num, buf);
 	}
 
-	void drawPoly(Graphics2D& g, Vector2 const vertices[], int num, Vec2i buf[])
+	template< class TGraphic2D >
+	void drawPoly(TGraphic2D& g, Vector2 const vertices[], int num, Vec2i buf[])
 	{
 		for( int i = 0; i < num; ++i )
 		{
@@ -72,14 +75,15 @@ public:
 		g.drawPolygon(buf, num);
 	}
 
-	void drawLine(Graphics2D& g, Vector2 const& v1, Vector2 const& v2, Vec2i buf[])
+	template< class TGraphic2D >
+	void drawLine(TGraphic2D& g, Vector2 const& v1, Vector2 const& v2, Vec2i buf[])
 	{
 		buf[0] = convertToScreen(v1);
 		buf[1] = convertToScreen(v2);
 		g.drawLine(buf[0], buf[1]);
 	}
 
-	float mScale;
+	float   mScale;
 	Vector2 mOffset;
 };
 

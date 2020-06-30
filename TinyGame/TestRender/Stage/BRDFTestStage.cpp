@@ -314,12 +314,9 @@ namespace Render
 		{
 			GPU_PROFILE("Scene");
 			mSceneRenderTargets.attachDepthTexture();
-			GL_BIND_LOCK_OBJECT(mSceneRenderTargets.getFrameBuffer());
-
-
-			glClearColor(0.2, 0.2, 0.2, 1);
-			glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+			RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth | EClearBits::Stencil,
+				&LinearColor(0.2, 0.2, 0.2, 1), mViewFrustum.bUseReverse ? 0 : 1, 0);
 
 			{
 				GPU_PROFILE("SkyBox");

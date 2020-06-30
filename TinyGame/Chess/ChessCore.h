@@ -54,6 +54,8 @@ namespace Chess
 		EMoveTag   tag;
 		Vec2i      posEffect;
 
+		MoveInfo() = default;
+
 		MoveInfo(Vec2i const& inPos)
 			:pos(inPos), tag(EMoveTag::Normal)
 		{
@@ -86,7 +88,6 @@ namespace Chess
 			}
 			return true;
 		}
-
 	};
 
 	class Game
@@ -147,6 +148,14 @@ namespace Chess
 			int          lastMoveTurn;
 		};
 
+		struct TileData;
+		struct AttackInfo
+		{
+			Vec2i     pos;
+			TileData* tile;
+			MoveInfo  move;
+		};
+
 		struct TileData
 		{
 			ChessData* chess;
@@ -160,6 +169,8 @@ namespace Chess
 
 				int attackCounts[2];
 			};
+
+			std::vector<AttackInfo> attacks;
 		};
 
 		int mCurTurn;

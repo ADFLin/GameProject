@@ -321,6 +321,8 @@ void RedirectStdIO()
 
 bool TinyGameApp::initializeGame()
 {
+	EngineInitialize();
+
 	RedirectStdIO();
 
 	gLogPrinter.addChannel(LOG_DEV);
@@ -431,6 +433,8 @@ void TinyGameApp::cleanup()
 	ILocalization::Get().saveTranslateAsset("LocText.txt");
 
 	Global::Finalize();
+
+	EngineFinalize();
 }
 
 long TinyGameApp::handleGameUpdate( long shouldTime )

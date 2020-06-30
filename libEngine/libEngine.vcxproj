@@ -285,6 +285,7 @@
     <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
+    <ClCompile Include="RHI\MeshImportor.cpp" />
     <ClCompile Include="RHI\OpenGLCommon.cpp" />
     <ClCompile Include="RHI\GpuProfiler.cpp" />
     <ClCompile Include="RHI\LazyObject.cpp" />
@@ -475,6 +476,7 @@
     <ClInclude Include="RHI\D3D12Command.h" />
     <ClInclude Include="RHI\D3D12Common.h" />
     <ClInclude Include="RHI\D3D12ShaderCommon.h" />
+    <ClInclude Include="RHI\MeshImportor.h" />
     <ClInclude Include="RHI\RHITraceScope.h" />
     <ClInclude Include="RHI\RHIType.h" />
     <ClInclude Include="RHI\D3D11Command.h" />

@@ -190,9 +190,8 @@ namespace CB
 			int width = ::Global::GetDrawEngine().getScreenWidth();
 			int height = ::Global::GetDrawEngine().getScreenHeight();
 
-			glClearDepth(1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, 
+				&LinearColor(0.7f, 0.7f, 0.7f, 1), 1, 1);
 
 			RHISetViewport(commandList, 0, 0, width, height);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());

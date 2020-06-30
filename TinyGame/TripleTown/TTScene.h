@@ -113,10 +113,10 @@ namespace TripleTown
 			color = LinearColor(1, 1, 1, 1);
 			xfromStack.push_back(Transform2D::Identity());
 		}
-		LinearColor    color;
+		LinearColor     color;
 		std::vector< Transform2D > xfromStack;
 		RHITexture2DRef texture;
-		Matrix4        projection;
+		Matrix4         projection;
 
 		Transform2D const& getTransform() const { return xfromStack.back(); }
 		Transform2D&       getTransform()       { return xfromStack.back(); }

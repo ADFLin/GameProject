@@ -203,15 +203,18 @@ namespace Chess
 			{
 				CheckMove(pos + dir);
 			}
-			//check Castling
-			if (moveState == EMoveState::NoMove)
-			{
-				TileData const& curTile = mBoard.getData(pos.x, pos.y);
 
-				if (curTile.attackCounts[1 - int(color)] == 0)
+			if (bCheckAttack == false)
+			{
+				if (moveState == EMoveState::NoMove)
 				{
-					CheckCastling(pos, Vec2i(-1, 0));
-					CheckCastling(pos, Vec2i(1, 0));
+					TileData const& curTile = mBoard.getData(pos.x, pos.y);
+
+					if (curTile.attackCounts[1 - int(color)] == 0)
+					{
+						CheckCastling(pos, Vec2i(-1, 0));
+						CheckCastling(pos, Vec2i(1, 0));
+					}
 				}
 			}
 			break;
@@ -352,12 +355,13 @@ namespace Chess
 			Game::TileData& tileData = mBoard[i];
 			tileData.blackAttackCount = 0;
 			tileData.whiteAttackCount = 0;
+			tileData.attacks.clear();
 		}
 
 		std::vector< MoveInfo > moveList;
 		for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i)
 		{
-			Game::TileData& tileData = mBoard[i];
+			TileData& tileData = mBoard[i];
 			if (tileData.chess == nullptr)
 				continue;
 
@@ -369,8 +373,14 @@ namespace Chess
 			int indexColor = (int)tileData.chess->color;
 			for (auto const& move : moveList)
 			{
-				Game::TileData& moveTileData = mBoard.getData(move.pos.x, move.pos.y);
+				TileData& moveTileData = mBoard.getData(move.pos.x, move.pos.y);
 				moveTileData.attackCounts[indexColor] += 1;
+
+				AttackInfo info;
+				info.pos  = pos;
+				info.tile = &tileData;
+				info.move = move;
+				moveTileData.attacks.push_back(info);
 			}
 		}
 	}

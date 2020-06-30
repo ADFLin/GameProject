@@ -640,12 +640,10 @@ namespace Go
 
 		using namespace Go;
 
-
-
-		glClear(GL_COLOR_BUFFER_BIT);
-
 		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 
 		g.beginRender();
 		SimpleRenderState renderState;

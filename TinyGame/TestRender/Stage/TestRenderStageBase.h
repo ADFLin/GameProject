@@ -46,8 +46,8 @@ namespace Render
 	};
 
 	bool LoadObjectMesh(StaticMesh& mesh , char const* path );
-	template< class Func, class ...Args >
-	bool BuildMesh(Mesh& mesh, char const* meshName, Func FuncMeshCreate, Args&& ...args)
+	template< class TFunc, class ...Args >
+	bool BuildMesh(Mesh& mesh, char const* meshName, TFunc&& FuncMeshCreate, Args&& ...args)
 	{
 		DataCacheKey key;
 		key.typeName = "MESH";

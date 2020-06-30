@@ -598,11 +598,9 @@ namespace Render
 				mSmokeFrameBuffer->setTexture(0, *mSmokeFrameTextures[indexFrameTexture]);		
 				//mFrameBuffer.removeDepthBuffer();
 				RHISetFrameBuffer(commandList, mSmokeFrameBuffer);
-				glClearColor(0, 0, 0, 1);
-				GLfloat clearValueA[] = { 0 ,0, 0, 1 };
-				GLfloat clearValueB[] = { 0 ,0, 0, 1 };
-				glClearBufferfv(GL_COLOR, 0, clearValueA);
-				glClearBufferfv(GL_COLOR, 1, clearValueB);
+
+				LinearColor clearColors[] = { LinearColor(0 ,0, 0, 1), LinearColor(0 ,0, 0, 1) };
+				RHIClearRenderTargets(commandList, EClearBits::Color, clearColors, 2);
 
 				GPU_PROFILE("SmokeRender");
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());

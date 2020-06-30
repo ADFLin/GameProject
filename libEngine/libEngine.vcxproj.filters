@@ -472,9 +472,6 @@
     <ClCompile Include="Image\ImageProcessing.cpp">
       <Filter>Image</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\ShaderFormat.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c">
       <Filter>OtherLib\SpirvReflect</Filter>
     </ClCompile>
@@ -486,6 +483,12 @@
     </ClCompile>
     <ClCompile Include="RHI\VulkanCommon.cpp">
       <Filter>RHI\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\ShaderFormat.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\MeshImportor.cpp">
+      <Filter>RHI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1190,6 +1193,9 @@
     </ClInclude>
     <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h">
       <Filter>OtherLib\SpirvReflect</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\MeshImportor.h">
+      <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

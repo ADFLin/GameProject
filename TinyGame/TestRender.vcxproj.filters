@@ -29,6 +29,7 @@
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="TestRender\TestRenderPCH.h" />
+    <ClInclude Include="TestRender\MeshImporterFBX.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestRender\SceneScript.cpp" />
@@ -67,5 +68,6 @@
     </ClCompile>
     <ClCompile Include="TestRender\TestRender.cpp" />
     <ClCompile Include="TestRender\TestRenderPCH.cpp" />
+    <ClCompile Include="TestRender\MeshImporterFBX.cpp" />
   </ItemGroup>
 </Project>

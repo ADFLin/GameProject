@@ -6,6 +6,18 @@
 #include "ConsoleSystem.h"
 
 
+#include "RHI/MeshImportor.h"
+
+void EngineInitialize()
+{
+
+}
+
+void EngineFinalize()
+{
+	Render::MeshImporterRegistry::Get().cleanup();
+}
+
 void CoreShareInitialize()
 {
 	HashString::Initialize();

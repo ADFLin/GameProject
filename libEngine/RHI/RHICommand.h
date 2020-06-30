@@ -209,6 +209,7 @@ namespace Render
 		Color = 0x1,
 		Depth = 0x2,
 		Stencil = 0x4,
+		All   = 0xff,
 	};
 
 	FORCEINLINE EClearBits operator | (EClearBits a, EClearBits b) { return EClearBits(uint8(a) | uint8(b)); }

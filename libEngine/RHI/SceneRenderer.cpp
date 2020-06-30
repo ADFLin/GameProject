@@ -280,9 +280,7 @@ namespace Render
 
 
 			RHISetFrameBuffer(commandList, mShadowBuffer);
-			glClearDepth(1);
-			glClearColor(1, 1, 1, 1.0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, 1);
 
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
@@ -341,9 +339,7 @@ namespace Render
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-			glClearDepth(1);
-			glClearColor(1, 1, 1, 1.0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, 1);
 
 			lightView.setupTransform(worldToLight, shadowProject);
 			RenderContext context(commandList, lightView, *this);
@@ -391,9 +387,7 @@ namespace Render
 				RHISetFrameBuffer(commandList, mShadowBuffer);
 				{
 					//GPU_PROFILE("Clear");
-					glClearDepth(1);
-					glClearColor(1, 1, 1, 1.0);
-					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+					RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, 1);
 				}
 
 				worldToLight = LookAtMatrix(light.pos, Texture::GetFaceDir(Texture::Face(i)), Texture::GetFaceUpDir(Texture::Face(i)));
@@ -689,8 +683,7 @@ namespace Render
 				constexpr bool bEnableStencilTest = true;
 
 				RHISetFrameBuffer(commandList, mLightingDepthBuffer);
-				glClearStencil(1);
-				glClear(GL_STENCIL_BUFFER_BIT);
+				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 0, 1 );
 				RHISetFrameBuffer(commandList, nullptr);
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
@@ -1430,8 +1423,7 @@ namespace Render
 
 		if( bUseBMA )
 		{
-			glClearStencil(0);
-			glClear(GL_STENCIL_BUFFER_BIT);
+			RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 0, 0);
 
 			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState< 

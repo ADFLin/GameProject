@@ -10,6 +10,22 @@ namespace Chess
 {
 	using namespace Render;
 
+
+	struct BlendScope
+	{
+		BlendScope(GLGraphics2D& g, float alpha)
+			:g(g)
+		{
+			g.beginBlend(alpha);
+		}
+
+		~BlendScope()
+		{
+			g.endBlend();
+		}
+		GLGraphics2D& g;
+	};
+
 	class TestStage : public StageBase
 	{
 		using BaseClass = StageBase;
@@ -65,7 +81,8 @@ namespace Chess
 
 		struct ChessImageTileSet 
 		{
-
+			int width;
+			int height;
 
 
 		};
@@ -91,7 +108,7 @@ namespace Chess
 				{Vec2i(w * 5,0),Vec2i(w,h)},
 			};
 			Vector2 pivot = Vector2(0.5, 0.5);
-			float sizeScale = 0.95f;
+			float sizeScale = 0.90f;
 			
 #else
 			int const w = 200;
@@ -139,6 +156,8 @@ namespace Chess
 
 			if (bShowAttackTerritory)
 			{
+				g.setTextColor(Color3ub(0, 255, 0));
+
 				for (int j = 0; j < BOARD_SIZE; ++j)
 				{
 					for (int i = 0; i < BOARD_SIZE; ++i)
@@ -154,20 +173,6 @@ namespace Chess
 #endif
 
 
-						struct BlendScope
-						{
-							BlendScope(GLGraphics2D& g , float alpha)
-								:g(g)
-							{
-								g.beginBlend(alpha);
-							}
-
-							~BlendScope()
-							{
-								g.endBlend();
-							}
-							GLGraphics2D& g;
-						};
 #if 1
 #define BLEND_SCOPE( g , alpha ) 
 #else
@@ -183,26 +188,22 @@ namespace Chess
 							EColor::Name const BlackAttackColor = EColor::Blue;
 							EColor::Name const WhiteAttackColor = EColor::Red;
 
+							BLEND_SCOPE(g, alpha);
 							if (tile.blackAttackCount == 0)
 							{
 								RenderUtility::SetBrush(g, WhiteAttackColor);
-								BLEND_SCOPE(g, alpha);
 								g.drawRect(renderPos, renderSize);
 							}
 							else if (tile.whiteAttackCount == 0)
 							{
 								RenderUtility::SetBrush(g, BlackAttackColor);
-								BLEND_SCOPE(g,alpha);
 								g.drawRect(renderPos, renderSize);
-
 							}
 							else
 							{
 								if (tile.blackAttackCount != tile.whiteAttackCount)
 								{
 									float ratio = float(tile.blackAttackCount) / (tile.blackAttackCount + tile.whiteAttackCount);
-
-									BLEND_SCOPE(g, alpha);
 									RenderUtility::SetBrush(g, BlackAttackColor);
 									g.drawRect(renderPos, Vector2(renderSize.x, renderSize.y * ratio));
 									RenderUtility::SetBrush(g, WhiteAttackColor);
@@ -211,49 +212,62 @@ namespace Chess
 								else
 								{
 									RenderUtility::SetBrush(g, EColor::Yellow);
-									BLEND_SCOPE(g, alpha);
 									g.drawRect(renderPos, renderSize);
 								}
 							}
 						}
 					}
 				}
-
-
 			}
 
 
-
-			g.setTextColor(Color3ub(255, 0, 0));
-			for (int j = 0; j < BOARD_SIZE; ++j)
 			{
-				for (int i = 0; i < BOARD_SIZE; ++i)
+				BlendScope scope(g, 1.0f);
+				for (int j = 0; j < BOARD_SIZE; ++j)
 				{
-					Game::TileData const& tile = mGame.mBoard.getData(i, j);
-					Vector2 tileCenterPos = toScreenPos(Vec2i(i, j)) + 0.5 * Vector2(TileLength , TileLength);
-					if (tile.chess)
-					{				
-						g.beginBlend(1.0f);
-						drawChess(g, tileCenterPos, tile.chess->type, tile.chess->color);
-						g.endBlend();
+					for (int i = 0; i < BOARD_SIZE; ++i)
+					{
+						Game::TileData const& tile = mGame.mBoard.getData(i, j);
+						Vector2 tileCenterPos = toScreenPos(Vec2i(i, j)) + 0.5 * Vector2(TileLength, TileLength);
+						if (tile.chess)
+						{
+							drawChess(g, tileCenterPos, tile.chess->type, tile.chess->color);
+						}
 					}
 				}
 			}
 
 
-
-			g.beginBlend(0.8f);
-			if (!mMovePosList.empty())
+			bool bShowAttackList = true;
+			if (bShowAttackList)
 			{
-				RenderUtility::SetBrush(g, EColor::Green);
-				for (auto const& move : mMovePosList)
+				BlendScope scope(g, 0.8f);
+				if (mGame.isValidPos(mMouseTilePos))
 				{
-					Vector2 sPos = toScreenPos(move.pos) + 0.5 * Vector2(TileLength, TileLength);
-					g.drawCircle(sPos, 12);
+					auto& tileData = mGame.mBoard.getData(mMouseTilePos.x, mMouseTilePos.y);
+
+					RenderUtility::SetBrush(g, EColor::Cyan);
+					for (auto const& attack : tileData.attacks)
+					{
+						Vector2 tileCenterPos = toScreenPos(attack.pos) + 0.5 * Vector2(TileLength, TileLength);
+						g.drawCircle(tileCenterPos, 12);
+					}
 				}
 			}
-			g.endBlend();
 
+
+			{
+				BlendScope scope(g, 0.8f);
+				if (!mMovePosList.empty())
+				{
+					RenderUtility::SetBrush(g, EColor::Green);
+					for (auto const& move : mMovePosList)
+					{
+						Vector2 tileCenterPos = toScreenPos(move.pos) + 0.5 * Vector2(TileLength, TileLength);
+						g.drawCircle(tileCenterPos, 12);
+					}
+				}
+			}
 			g.endRender();
 		}
 
@@ -290,6 +304,8 @@ namespace Chess
 				return false;
 
 			Vec2i tPos = toTilePos(msg.getPos());
+
+			mMouseTilePos = tPos;
 			if (msg.onLeftDown())
 			{
 				if (mGame.isValidPos(mSelectedChessPos))
@@ -325,6 +341,7 @@ namespace Chess
 		}
 		bool bShowAttackTerritory = false;
 		Vec2i mSelectedChessPos;
+		Vec2i mMouseTilePos;
 		std::vector<MoveInfo> mMovePosList;
 
 		bool onKey(KeyMsg const& msg) override

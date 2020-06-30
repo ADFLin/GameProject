@@ -239,9 +239,7 @@ namespace Render
 		glMatrixMode(GL_MODELVIEW);
 		glLoadMatrixf(mView.worldToView);
 
-		glClearColor(0.2, 0.2, 0.2, 1);
-		glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1 , mViewFrustum.bUseReverse ? 0 : 1, 0);
 
 		RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
 		RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?

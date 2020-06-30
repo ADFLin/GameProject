@@ -26,6 +26,9 @@
 #	define CORE_SHARE_CODE 0
 #endif
 
+CORE_API void EngineInitialize();
+CORE_API void EngineFinalize();
+
 CORE_API void CoreShareInitialize();
 CORE_API void CoreShareFinalize();
 

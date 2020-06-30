@@ -630,10 +630,8 @@ namespace TripleTown
 		glColor3f(1,1,1);
 
 		float scaleItem = 0.8f;
-		glClearColor(100 / 255.f, 100 / 255.f, 100 / 255.f, 1);
-		glClearDepth(1.0);
-		glClearStencil(0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(100 / 255.f, 100 / 255.f, 100 / 255.f, 1), 1, 1.0);
 
 		int wScreen = ::Global::GetDrawEngine().getScreenWidth();
 		int hScreen = ::Global::GetDrawEngine().getScreenHeight();

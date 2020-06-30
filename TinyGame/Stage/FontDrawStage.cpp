@@ -153,8 +153,7 @@ public:
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		g.beginRender();
 
-		glClearColor(0.2, 0.2, 0.2, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(1, 1, 0.2, 1), 1);
 
 		DrawUtility::DrawTexture(commandList, mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
 

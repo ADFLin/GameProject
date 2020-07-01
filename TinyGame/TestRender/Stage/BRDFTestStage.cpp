@@ -299,6 +299,7 @@ namespace Render
 		auto frame = WidgetUtility::CreateDevFrame();
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Tonemap"), bEnableTonemap);
 		FWidgetPropery::Bind(frame->addSlider(UI_ANY), SkyboxShowIndex , 0 , (int)ESkyboxShow::Count - 1);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
 
 
 		return true;
@@ -316,7 +317,7 @@ namespace Render
 			mSceneRenderTargets.attachDepthTexture();
 			RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth | EClearBits::Stencil,
-				&LinearColor(0.2, 0.2, 0.2, 1), mViewFrustum.bUseReverse ? 0 : 1, 0);
+				&LinearColor(0.2, 0.2, 0.2, 1), 1 , mViewFrustum.bUseReverse ? 0 : 1, 0);
 
 			{
 				GPU_PROFILE("SkyBox");
@@ -363,6 +364,8 @@ namespace Render
 				RHISetInputStream(commandList, nullptr , nullptr , 0 );
 				RHIDrawPrimitiveInstanced(commandList, EPrimitive::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
 			}
+
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 
 
@@ -383,7 +386,7 @@ namespace Render
 			PostProcessContext context;
 			context.mInputTexture[0] = &mSceneRenderTargets.getPrevFrameTexture();
 
-			GL_BIND_LOCK_OBJECT(mSceneRenderTargets.getFrameBuffer());
+			RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 
 			RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
@@ -391,10 +394,21 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGB >::GetRHI());
 			mProgTonemap->setParameters(commandList, context);
 			DrawUtility::ScreenRect(commandList);
+
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 
+
 		{
-			ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
+			GPU_PROFILE("Blit To Screen");
+			if (mbUseShaderBlit)
+			{
+				ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
+			}
+			else
+			{
+				OpenGLCast::To(mSceneRenderTargets.getFrameBuffer())->blitToBackBuffer();
+			}
 		}
 
 		if ( IBLResource::SharedBRDFTexture.isValid() && 0 )
@@ -532,13 +546,14 @@ namespace Render
 		for( int i = 0; i < Texture::FaceCount; ++i )
 		{
 			frameBuffer->setTexture(0, cubeTexture, Texture::Face(i), level);
-			GL_BIND_LOCK_OBJECT(frameBuffer);
+			RHISetFrameBuffer(commandList, frameBuffer);
 
 			RHISetShaderProgram(commandList, updateShader.getRHIResource());
 			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
 			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
 			shaderSetup(commandList);
 			DrawUtility::ScreenRect(commandList);
+			RHISetFrameBuffer(commandList, nullptr);
 		}
 	}
 

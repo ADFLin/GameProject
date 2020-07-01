@@ -755,13 +755,13 @@ namespace Render
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
-				GL_BIND_LOCK_OBJECT(mSceneRenderTargets->getFrameBuffer());
+				RHISetFrameBuffer(commandList, mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
 				DeferredLightingProgram* program = mProgLightingScreenRect[(int)light.type];
 				RHISetShaderProgram(commandList, program->getRHIResource());
 				BindShaderParam(commandList, *program);
 				DrawUtility::ScreenRect(commandList);
-
+				RHISetFrameBuffer(commandList, nullptr);
 				//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
 

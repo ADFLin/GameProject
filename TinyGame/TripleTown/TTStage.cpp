@@ -32,6 +32,7 @@ namespace TripleTown
 		frame->addButton( UI_RESTART_GAME , "Restart");
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show preview texture"), mScene.bShowPreviewTexture);
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show TexAtlas"), mScene.bShowTexAtlas);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use BatchedRender"), GUseBatchedRender);
 		return true;
 	}
 

@@ -379,8 +379,7 @@ namespace Render
 
 		Mesh mSkyBox;
 
-
-
+		bool mbUseShaderBlit = false;
 
 
 		IBLResource mIBLResource;

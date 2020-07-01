@@ -277,6 +277,7 @@
     <ClCompile Include="Phy2D\World.cpp" />
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
+    <ClCompile Include="Renderer\RenderTransform2D.cpp" />
     <ClCompile Include="RHI\D3D11Command.cpp" />
     <ClCompile Include="RHI\D3D11Common.cpp" />
     <ClCompile Include="RHI\D3D11ShaderCommon.cpp" />
@@ -473,6 +474,7 @@
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="ReflectionCollect.h" />
     <ClInclude Include="Reflection\ReflectClass.h" />
+    <ClInclude Include="Renderer\RenderTransform2D.h" />
     <ClInclude Include="RHI\D3D12Command.h" />
     <ClInclude Include="RHI\D3D12Common.h" />
     <ClInclude Include="RHI\D3D12ShaderCommon.h" />

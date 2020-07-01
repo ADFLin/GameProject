@@ -20,7 +20,7 @@
 #define USE_TEXTURE_ATLAS 1
 #define USE_COMPACT_IMAGE 1
 
-#define USE_BATCHED_RENDER 1
+bool GUseBatchedRender = true;
 
 namespace TripleTown
 {
@@ -622,6 +622,7 @@ namespace TripleTown
 
 	void Scene::render()
 	{
+		TransformStack2D& xformStack = mRenderState.xformStack;
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
@@ -641,7 +642,7 @@ namespace TripleTown
 
 		float scaleMap = float( TileLength ) / TileImageLength;
 	
-		mRenderState.pushTransform( Transform2D( Vector2(scaleMap , scaleMap ) , mMapOffset) );
+		xformStack.pushTransform(RenderTransform2D( Vector2(scaleMap , scaleMap ) , mMapOffset) );
 
 		TileMap const& map = mLevel->getMap();
 
@@ -660,7 +661,7 @@ namespace TripleTown
 				Tile const& tile = map.getData( i , j );
 
 				//depth offset = -1
-				mRenderState.pushTransform(Transform2D::Translate(i * TileImageLength, j * TileImageLength) );
+				xformStack.pushTransform(RenderTransform2D::Translate(i * TileImageLength, j * TileImageLength) );
 
 				switch( tile.getTerrain() )
 				{
@@ -693,13 +694,15 @@ namespace TripleTown
 					}
 				}
 
-				mRenderState.popTransform();
+				xformStack.pop();
 			}
 		}
 
-#if USE_BATCHED_RENDER
-		submitRenderCommand(commandList);
-#endif
+		if (GUseBatchedRender)
+		{
+			submitRenderCommand(commandList);
+		}
+
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
 
 		TilePos posTileMouse = calcTilePos( mLastMousePos );
@@ -713,7 +716,7 @@ namespace TripleTown
 
 				Tile const& tile = map.getData( i , j );
 
-				mRenderState.pushTransform(Transform2D::Identity());
+				xformStack.pushTransform(RenderTransform2D::Identity());
 
 				if ( tile.isEmpty() )
 				{
@@ -728,60 +731,61 @@ namespace TripleTown
 					if ( tile.haveActor() )
 					{
 						//depth offset = j
-						mRenderState.multiTransform(Transform2D::Translate(data.pos.x, data.pos.y));
-						mRenderState.pushTransform(Transform2D::Translate((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
+						xformStack.translate(data.pos);
+						xformStack.pushTransform(RenderTransform2D::Translate((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
 
 						drawItemByTexId( TID_ITEM_SHADOW_LARGE );
 
 						ActorData& e = mLevel->getActor( tile );
 						drawItem( e.id, EItemImage::eNormal );
 
-						mRenderState.popTransform();
+						xformStack.pop();
 
 					}
 					else if ( tile.id != OBJ_NULL )
 					{
 						//depth offset = j
-						mRenderState.multiTransform(Transform2D::Translate(data.pos.x, data.pos.y));
-						mRenderState.pushTransform(Transform2D::Translate((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
+						xformStack.translate(data.pos);
+						xformStack.pushTransform(RenderTransform2D::Translate((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
 
 						drawItemByTexId( TID_ITEM_SHADOW_LARGE );
 
 						drawItem( tile.id , (tile.bSpecial && gItemImageList[tile.id].addition ) ? EItemImage::eAddition : EItemImage::eNormal );
 
-						mRenderState.popTransform();
+						xformStack.pop();
 
 						if ( tile.id == OBJ_STOREHOUSE )
 						{
 							if ( tile.meta )
 							{
 								//depth offset = 0.1
-								mRenderState.pushTransform(Transform2D( Vector2(scaleItem, scaleItem) , Vector2(TileImageLength / 2, TileImageLength / 2)) );
+								xformStack.pushTransform(RenderTransform2D( Vector2(scaleItem, scaleItem) , Vector2(TileImageLength / 2, TileImageLength / 2)) );
 								drawItemCenter( tile.meta , EItemImage::eNormal );
-								mRenderState.popTransform();
+								xformStack.pop();
 							}
 						}
 					}
 				}
-				mRenderState.popTransform();
+				xformStack.pop();
 
 			}
 		}
 
-#if USE_BATCHED_RENDER
-		submitRenderCommand(commandList);
-#endif
+		if (GUseBatchedRender)
+		{
+			submitRenderCommand(commandList);
+		}
 
 		if ( renderQueue )
 		{
 			if ( mLevel->isMapRange( posTileMouse ) )
 			{
 				//depth offset = 10
-				mRenderState.pushTransform(Transform2D( Vector2(mItemScale * scaleMap, mItemScale * scaleMap) , Vector2(mLastMousePos) ) , false);
+				xformStack.pushTransform(RenderTransform2D( Vector2(mItemScale * scaleMap, mItemScale * scaleMap) , Vector2(mLastMousePos) ) , false);
 
 				drawItemCenter( mLevel->getQueueObject() , EItemImage::eNormal );
 				//drawItemOutline( mTexItemMap[ mLevel->getQueueObject() ][ 2 ] );
-				mRenderState.popTransform();
+				xformStack.pop();
 
 			}
 		}
@@ -789,37 +793,41 @@ namespace TripleTown
 		{
 
 			//depth = 50
-			mRenderState.pushTransform(Transform2D::Translate(posTileMouse.x * TileImageLength, posTileMouse.y * TileImageLength));
+			xformStack.pushTransform(RenderTransform2D::Translate(posTileMouse.x * TileImageLength, posTileMouse.y * TileImageLength));
 			drawImageByTextId(TID_UI_CURSOR, Vector2(TileImageLength, TileImageLength));
-			mRenderState.multiTransform(Transform2D(Vector2(mItemScale, mItemScale), 0.5 * Vector2(TileImageLength, TileImageLength)));
+			xformStack.transform(RenderTransform2D(Vector2(mItemScale, mItemScale), 0.5 * Vector2(TileImageLength, TileImageLength)));
 
 			drawItemCenter( mLevel->getQueueObject(), EItemImage::eNormal );
 			//drawItemOutline( mTexItemMap[ mLevel->getQueueObject() ][ 2 ] );
-			mRenderState.popTransform();
+			xformStack.pop();
 
 		}
 			
-#if USE_BATCHED_RENDER
-		submitRenderCommand(commandList);
-#endif
+		if (GUseBatchedRender)
+		{
+			submitRenderCommand(commandList);
+		}
+
 		if( bShowTexAtlas )
 		{
-			mRenderState.pushTransform(Transform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
+			xformStack.pushTransform(RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
 			drawImageInvTexY(OpenGLCast::GetHandle(mTexAtlas.getTexture()), 700, 700);
-			mRenderState.popTransform();
+			xformStack.pop();
 		}
 		else if ( mPreviewTexture.isValid() && bShowPreviewTexture )
 		{
-			mRenderState.pushTransform(Transform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
+			xformStack.pushTransform(RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
 			drawImageInvTexY(OpenGLCast::GetHandle(mPreviewTexture), 700, 700);
-			mRenderState.popTransform();
+			xformStack.pop();
 		}
-#if USE_BATCHED_RENDER
-		submitRenderCommand(commandList);
-#endif
-		mRenderState.popTransform();
 
-		assert(mRenderState.xfromStack.size() == 1);
+		if (GUseBatchedRender)
+		{
+			submitRenderCommand(commandList);
+		}
+
+		xformStack.pop();
+
 		glDisable(GL_TEXTURE_2D);
 	}
 
@@ -917,19 +925,22 @@ namespace TripleTown
 		Vector2 v1 = mRenderState.getTransform().transformPosition(Vector2(p2.x, p1.y));
 		Vector2 v2 = mRenderState.getTransform().transformPosition(p2);
 		Vector2 v3 = mRenderState.getTransform().transformPosition(Vector2(p1.x, p2.y));
-#if USE_BATCHED_RENDER
-		mBatchedVertices.push_back({ v0, uvMin });
-		mBatchedVertices.push_back({ v1, Vector2(uvMax.x, uvMin.y) });
-		mBatchedVertices.push_back({ v2, uvMax });
-		mBatchedVertices.push_back({ v3, Vector2(uvMin.x, uvMax.y) });
-#else
-		glBegin(GL_QUADS);
-		glTexCoord2f(uvMin.x, uvMin.y); glVertex2f(v0.x, v0.y);
-		glTexCoord2f(uvMax.x, uvMin.y); glVertex2f(v1.x, v1.y);
-		glTexCoord2f(uvMax.x, uvMax.y); glVertex2f(v2.x, v2.y);
-		glTexCoord2f(uvMin.x, uvMax.y); glVertex2f(v3.x, v3.y);
-		glEnd();
-#endif
+		if (GUseBatchedRender)
+		{
+			mBatchedVertices.push_back({ v0, uvMin });
+			mBatchedVertices.push_back({ v1, Vector2(uvMax.x, uvMin.y) });
+			mBatchedVertices.push_back({ v2, uvMax });
+			mBatchedVertices.push_back({ v3, Vector2(uvMin.x, uvMax.y) });
+		}
+		else
+		{
+			glBegin(GL_QUADS);
+			glTexCoord2f(uvMin.x, uvMin.y); glVertex2f(v0.x, v0.y);
+			glTexCoord2f(uvMax.x, uvMin.y); glVertex2f(v1.x, v1.y);
+			glTexCoord2f(uvMax.x, uvMax.y); glVertex2f(v2.x, v2.y);
+			glTexCoord2f(uvMin.x, uvMax.y); glVertex2f(v3.x, v3.y);
+			glEnd();
+		}
 	}
 
 	void Scene::submitRenderCommand( RHICommandList& commandList )
@@ -1039,19 +1050,22 @@ namespace TripleTown
 		Vector2 v1 = mRenderState.getTransform().transformPosition(Vector2(x2, y));
 		Vector2 v2 = mRenderState.getTransform().transformPosition(Vector2(x2, y2));
 		Vector2 v3 = mRenderState.getTransform().transformPosition(Vector2(x, y2));
-#if USE_BATCHED_RENDER
-		mBatchedVertices.push_back({ v0 , Vector2(tx2, ty) });
-		mBatchedVertices.push_back({ v1 , Vector2(tx2, ty2) });
-		mBatchedVertices.push_back({ v2 , Vector2(tx, ty2) });
-		mBatchedVertices.push_back({ v3 , Vector2(tx, ty) });
-#else
-		glBegin(GL_QUADS);
-		glTexCoord2f(tx2, ty);  glVertex2f(v0.x, v0.y);
-		glTexCoord2f(tx2, ty2); glVertex2f(v1.x, v1.y);
-		glTexCoord2f(tx, ty2);  glVertex2f(v2.x, v2.y);
-		glTexCoord2f(tx, ty);   glVertex2f(v3.x, v3.y);
-		glEnd();
-#endif		
+		if (GUseBatchedRender)
+		{
+			mBatchedVertices.push_back({ v0 , Vector2(tx2, ty) });
+			mBatchedVertices.push_back({ v1 , Vector2(tx2, ty2) });
+			mBatchedVertices.push_back({ v2 , Vector2(tx, ty2) });
+			mBatchedVertices.push_back({ v3 , Vector2(tx, ty) });
+		}
+		else
+		{
+			glBegin(GL_QUADS);
+			glTexCoord2f(tx2, ty);  glVertex2f(v0.x, v0.y);
+			glTexCoord2f(tx2, ty2); glVertex2f(v1.x, v1.y);
+			glTexCoord2f(tx, ty2);  glVertex2f(v2.x, v2.y);
+			glTexCoord2f(tx, ty);   glVertex2f(v3.x, v3.y);
+			glEnd();
+		}		
 	}
 
 

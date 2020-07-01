@@ -4,9 +4,7 @@
 #include "Math/Base.h"
 #include "Math/Vector2.h"
 
-#define MATRIX2_USE_SIMD 1
-
-#if MATRIX2_USE_SIMD
+#if USE_MATH_SIMD
 #include "Math/SIMD.h"
 #endif
 
@@ -73,24 +71,24 @@ namespace Math
 		operator float* () { return mValues; }
 		operator const float* () const { return mValues; }
 
-		void setScale(Vector2 const& factor)
+		FORCEINLINE void setScale(Vector2 const& factor)
 		{
 			setValue(factor.x, 0,
 				     0, factor.y);
 		}
 
-		void setRotation(float angle)
+		FORCEINLINE void setRotation(float angle)
 		{ 
 			float s, c;
 			Math::SinCos(angle, s, c);
 			setValue(c, s, -s, c);
 		}
 
-		void setIdentity() { setValue(1, 0, 0 , 1); }
+		FORCEINLINE void setIdentity() { setValue(1, 0, 0 , 1); }
 
-		Vector2 leftMul(Vector2 const& v) const
+		FORCEINLINE Vector2 leftMul(Vector2 const& v) const
 		{
-#if MATRIX2_USE_SIMD
+#if USE_MATH_SIMD
 			__m128 lv = _mm_setr_ps(v.x, v.x, v.y, v.y);
 			__m128 mv = _mm_loadu_ps(mValues);
 			__m128 xv = _mm_dp_ps(lv, mv, 0x51);
@@ -105,9 +103,9 @@ namespace Math
 #endif
 		}
 
-		Vector2 rightMul(Vector2 const& v) const
+		FORCEINLINE Vector2 rightMul(Vector2 const& v) const
 		{
-#if MATRIX2_USE_SIMD
+#if USE_MATH_SIMD
 			__m128 rv = _mm_setr_ps(v.x, v.y, v.x, v.y);
 			__m128 mv = _mm_loadu_ps(mValues);
 			__m128 xv = _mm_dp_ps(mv, rv, 0x31);
@@ -120,17 +118,17 @@ namespace Math
 #endif
 		}
 
-		friend Vector2 operator * (Vector2 const& lhs, Matrix2 const& rhs)
+		FORCEINLINE friend Vector2 operator * (Vector2 const& lhs, Matrix2 const& rhs)
 		{
 			return rhs.leftMul(lhs);
 		}
 
-		friend Vector2 operator * (Matrix2 const& lhs, Vector2 const& rhs)
+		FORCEINLINE friend Vector2 operator * (Matrix2 const& lhs, Vector2 const& rhs)
 		{
 			return lhs.rightMul(rhs);
 		}
 
-		float deter() const
+		FORCEINLINE float deter() const
 		{
 			return mValues[0] * mValues[3] - mValues[1] * mValues[2];
 		}
@@ -144,6 +142,23 @@ namespace Math
 			float invDet = 1.0f / det;
 			m.setValue( mValues[3] * invDet, -mValues[1] * invDet, -mValues[2] * invDet , mValues[0] * invDet );
 			return true;
+		}
+
+		FORCEINLINE void leftScale(Vector2 const& s)
+		{
+			mValues[0] *= s.x;
+			mValues[1] *= s.x;
+			mValues[2] *= s.y;
+			mValues[3] *= s.y;
+
+		}
+
+		FORCEINLINE void rightScale(Vector2 const& s)
+		{
+			mValues[0] *= s.x;
+			mValues[1] *= s.y;
+			mValues[2] *= s.x;
+			mValues[3] *= s.y;
 		}
 
 		Matrix2  operator * (Matrix2 const& rhs) const;
@@ -164,7 +179,7 @@ namespace Math
 
 	FORCEINLINE Matrix2 Matrix2::operator * (Matrix2 const& rhs) const
 	{
-#if MATRIX2_USE_SIMD
+#if USE_MATH_SIMD
 		__m128 lv = _mm_loadu_ps(mValues);
 		__m128 rv = _mm_loadu_ps(rhs.mValues);
 		__m128 r02 = _mm_shuffle_ps(rv, rv, _MM_SHUFFLE(2, 0, 2, 0));

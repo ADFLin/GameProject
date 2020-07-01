@@ -7,7 +7,7 @@
 #include "Graphics2DBase.h"
 #include "Core/IntegerType.h"
 #include "RHI/SimpleRenderState.h"
-
+#include "Renderer/RenderTransform2D.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,115 +15,6 @@
 #include "Math/Matrix2.h"
 #include "Math/Matrix4.h"
 
-
-namespace Render
-{
-	using ::Math::Matrix2;
-	struct RenderTransform2D
-	{
-		Matrix2 M;
-		Vector2 P;
-
-		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
-		FORCEINLINE RenderTransform2D operator * (RenderTransform2D const& rhs) const
-		{
-			return { M * rhs.M , rhs.M.leftMul(P) + P };
-		}
-
-		FORCEINLINE Vector2 tranformPosition(Vector2 const& v) const
-		{
-			return P + M.leftMul(v);
-		}
-
-		FORCEINLINE Vector2 tranformVector(Vector2 const& v) const
-		{
-			return M.leftMul(v);
-		}
-
-		FORCEINLINE void applyTranslate(Vector2 const& offset)
-		{
-			P += offset;
-		}
-
-		FORCEINLINE void applyRotate(float angle)
-		{
-			M = M * Matrix2::Rotate(angle);
-		}
-
-		FORCEINLINE void applyScale(Vector2 const& scale)
-		{
-			M = M * Matrix2::Scale(scale);
-		}
-
-		FORCEINLINE Matrix4 toMatrix4() const
-		{
-			return Matrix4(
-				M[0], M[1], 0, 0,
-				M[2], M[3], 0, 0,
-				   0,    0, 1, 0,
-				 P.x,  P.y, 0, 1);
-		}
-	};
-
-
-	struct TransformStack2D
-	{
-
-		void clear()
-		{
-			mStack.clear();
-			mCurrent = RenderTransform2D::Identity();
-		}
-
-		FORCEINLINE void set(RenderTransform2D const& xform)
-		{
-			mCurrent = xform;
-		}
-
-		FORCEINLINE void setIdentity()
-		{
-			mCurrent = RenderTransform2D::Identity();
-		}
-
-		FORCEINLINE void transform(RenderTransform2D const& xform)
-		{
-			mCurrent = xform * mCurrent;
-		}
-
-		FORCEINLINE void translate(Vector2 const& offset)
-		{
-			mCurrent.applyTranslate(offset);
-		}
-
-		FORCEINLINE void rotate(float angle)
-		{
-			mCurrent.applyRotate(angle);
-		}
-
-		FORCEINLINE void scale(Vector2 const& scale)
-		{
-			mCurrent.applyScale(scale);
-		}
-
-		void push()
-		{
-			assert(!mStack.empty());
-			mStack.push_back(mCurrent);
-		}
-
-		void pop()
-		{
-			assert(!mStack.empty());
-			mCurrent = mStack.back();
-			mStack.pop_back();
-		}
-
-		RenderTransform2D const& get() { return mCurrent; }
-
-		RenderTransform2D mCurrent;
-		std::vector< RenderTransform2D > mStack;
-	};
-}
 
 using Vector2 = Math::Vector2;
 using GLFont = Render::FontDrawer;

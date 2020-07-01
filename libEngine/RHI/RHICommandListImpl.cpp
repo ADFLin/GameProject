@@ -4,6 +4,7 @@ namespace Render
 {
 #define RHI_COMMAND_FUNC( COMMANDLIST , CODE ) static_cast< RHICommandListImpl& >( COMMANDLIST ).getExecutionContext().CODE
 
+#if CORE_SHARE_CODE
 	void RHISetRasterizerState(RHICommandList& commandList, RHIRasterizerState& rasterizerState)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetRasterizerState(rasterizerState));
@@ -129,6 +130,7 @@ namespace Render
 	{
 		RHI_COMMAND_FUNC(commandList, RHIFlushCommand());
 	}
+#endif
 
 
 }//namespace Render

@@ -146,6 +146,9 @@
     <Filter Include="OtherLib\SpirvReflect">
       <UniqueIdentifier>{d608aeec-bafe-44a0-8af7-299eb489accf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{5dd8e390-7e50-4213-b623-e5d756e4d64e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -489,6 +492,9 @@
     </ClCompile>
     <ClCompile Include="RHI\MeshImportor.cpp">
       <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\RenderTransform2D.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1196,6 +1202,9 @@
     </ClInclude>
     <ClInclude Include="RHI\MeshImportor.h">
       <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\RenderTransform2D.h">
+      <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

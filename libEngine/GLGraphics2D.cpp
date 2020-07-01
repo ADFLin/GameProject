@@ -367,14 +367,14 @@ void GLGraphics2D::emitLineVertex(Vector2 const &p1, Vector2 const &p2)
 
 void GLGraphics2D::emitVertex(float x , float y)
 {
-	Vector2 v = mXFormStack.get().tranformPosition(Vector2(x, y));
+	Vector2 v = mXFormStack.get().transformPosition(Vector2(x, y));
 	mBuffer.push_back(v.x);
 	mBuffer.push_back(v.y);
 }
 
 void GLGraphics2D::emitVertex( float v[] )
 {
-	Vector2 temp = mXFormStack.get().tranformPosition(Vector2(v[0],v[1]));
+	Vector2 temp = mXFormStack.get().transformPosition(Vector2(v[0],v[1]));
 	mBuffer.push_back(temp.x);
 	mBuffer.push_back(temp.y);
 }

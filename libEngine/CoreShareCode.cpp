@@ -14,6 +14,7 @@
 #include "RHI/MaterialShader.cpp"
 #include "RHI/VertexFactory.cpp"
 #include "RHI/RHICommand.cpp"
+#include "RHI/RHICommandListImpl.cpp"
 #include "RHI/Font.cpp"
 #include "RHI/GpuProfiler.cpp"
 #include "RHI/RHIGlobalResource.cpp"

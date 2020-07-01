@@ -424,8 +424,6 @@ void TinyGameApp::cleanup()
 
 	Global::GetAssetManager().cleanup();
 
-	Global::ModuleManager().cleanupModuleMemory();
-
 	importUserProfile();
 
 	Global::GameConfig().saveFile(GAME_SETTING_PATH);
@@ -435,6 +433,8 @@ void TinyGameApp::cleanup()
 	Global::Finalize();
 
 	EngineFinalize();
+	
+	Global::ModuleManager().cleanupModuleMemory();
 }
 
 long TinyGameApp::handleGameUpdate( long shouldTime )

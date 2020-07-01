@@ -36,7 +36,7 @@ namespace Render
 		RHITexture2DRef mMetalTexture;
 		RHITexture2DRef mRoughnessTexture;
 		bool mbUseMipMap = true;
-		bool mbUseShaderBlit = false;
+
 		float mSkyLightInstensity = 1.0;
 
 
@@ -91,10 +91,9 @@ namespace Render
 			{
 				GPU_PROFILE("Scene");
 				mSceneRenderTargets.attachDepthTexture();
-
-				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
+				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());	
 				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth | EClearBits::Stencil,
-					&LinearColor(0.2, 0.2, 0.2, 1), mViewFrustum.bUseReverse ? 0 : 1, 0);
+					&LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1, 0);
 
 				{
 					GPU_PROFILE("SkyBox");
@@ -154,15 +153,15 @@ namespace Render
 					RHIDrawPrimitiveInstanced(commandList, EPrimitive::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
 				}
 
+				RHISetFrameBuffer(commandList, nullptr);
 			}
-
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			{
 				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 				OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
 				MatrixSaveScope matScope(matProj);
-				//DrawUtility::DrawTexture(commandList, *mHDRImage, IntVector2(10, 10), IntVector2(512, 512));
+				DrawUtility::DrawTexture(commandList, *mHDRImage, IntVector2(10, 10), IntVector2(512, 512));
 			}
 
 			if( bEnableTonemap )
@@ -173,7 +172,7 @@ namespace Render
 				PostProcessContext context;
 				context.mInputTexture[0] = &mSceneRenderTargets.getPrevFrameTexture();
 
-				GL_BIND_LOCK_OBJECT(mSceneRenderTargets.getFrameBuffer());
+				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 
 				RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
@@ -181,6 +180,8 @@ namespace Render
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGB >::GetRHI());
 				mProgTonemap->setParameters(commandList, context);
 				DrawUtility::ScreenRect(commandList);
+
+				RHISetFrameBuffer(commandList, nullptr);
 			}
 
 			{

@@ -13,9 +13,10 @@
 #include "RHI/TextureAtlas.h"
 #include "Math/Matrix2.h"
 
+#include "Renderer/RenderTransform2D.h"
 #include <gl/GL.h>
 
-
+extern bool GUseBatchedRender;
 
 
 class Graphics2D;
@@ -25,122 +26,21 @@ namespace TripleTown
 	using namespace Render;
 	using Math::Matrix2;
 
-
-	class Transform2D
-	{
-	public:
-		Transform2D() = default;
-		Transform2D( Vector2 const& scale , float angle , Vector2 const& inOffset = Vector2::Zero())
-			:M(Matrix2::ScaleThenRotate(scale , angle ) )
-			,offset(inOffset)
-		{
-		}
-
-		Transform2D(float angle , Vector2 const& inOffset = Vector2::Zero())
-			:M(Matrix2::Rotate(angle))
-			, offset(inOffset)
-		{
-		}
-
-		Transform2D(Vector2 const& scale , Vector2 const& inOffset = Vector2::Zero())
-			:M(Matrix2::Scale(scale))
-			,offset(inOffset)
-		{
-		}
-
-		static Transform2D TranslateThenScale(Vector2 const& offset, Vector2 const& scale)
-		{
-			return Transform2D(scale, scale * offset);
-		}
-
-		static Transform2D Identity() 
-		{ 
-			Transform2D result;
-			result.M = Matrix2::Identity();
-			result.offset = Vector2::Zero();
-			return  result;
-		}
-		static Transform2D Translate(float x, float y)
-		{
-			Transform2D result;
-			result.M = Matrix2::Identity();
-			result.offset = Vector2(x,y);
-			return  result;
-		}
-
-		static Vector2 MulOffset(Vector2 const& v, Matrix2 const& m, Vector2 const& offset)
-		{
-#if USE_SIMD
-			__m128 rv = _mm_setr_ps(v.x, v.x, v.y, v.y);
-			__m128 mv = _mm_loadu_ps(m.value);
-			__m128 xv = _mm_dp_ps(rv, mv, 0x51);
-			__m128 yv = _mm_dp_ps(rv, mv, 0xa2);
-			__m128 resultV = _mm_add_ps( _mm_add_ps(xv,yv) , _mm_setr_ps(offset.x, offset.y, 0, 0) );
-			return Vector2( resultV.m128_f32[0] , resultV.m128_f32[1] );
-#else
-
-			return v * m + offset;
-#endif
-		}
-		Vector2 transformPosition(Vector2 const& pos) const
-		{
-			return MulOffset(pos, M, offset);
-		}
-		Vector2 transformVector(Vector2 const& v) const
-		{
-			return v * M;
-		}
-		Matrix2 M;
-		Vector2 offset;
-
-		Transform2D operator * (Transform2D const& rhs) const
-		{
-			//[ M  0 ] [ Mr 0 ]  =  [ M * Mr        0 ]
-			//[ P  1 ] [ Pr 1 ]     [ P * Mr + Pr   1 ]
-			Transform2D result;
-			result.M = M * rhs.M;
-			result.offset = MulOffset( offset , rhs.M , rhs.offset );
-			return result;
-		}
-
-	};
-
 	class SimpleRenderState2D
 	{
 	public:
 		SimpleRenderState2D()
 		{
 			color = LinearColor(1, 1, 1, 1);
-			xfromStack.push_back(Transform2D::Identity());
 		}
 		LinearColor     color;
-		std::vector< Transform2D > xfromStack;
+
 		RHITexture2DRef texture;
 		Matrix4         projection;
+		TransformStack2D xformStack;
 
-		Transform2D const& getTransform() const { return xfromStack.back(); }
-		Transform2D&       getTransform()       { return xfromStack.back(); }
-
-		void multiTransform(Transform2D const& xform)
-		{
-			xfromStack.back() = xform * xfromStack.back();
-		}
-
-		void pushTransform(Transform2D const& xform, bool bApplyPrev = true)
-		{
-			if( bApplyPrev )
-			{
-				xfromStack.push_back( xform * xfromStack.back() );
-			}
-			else
-			{
-				xfromStack.push_back(xform);
-			}
-		}
-		void popTransform()
-		{
-			xfromStack.pop_back();
-		}
+		RenderTransform2D const& getTransform() const { return xformStack.get(); }
+		RenderTransform2D&       getTransform()       { return xformStack.get(); }
 	};
 
 	namespace EItemImage

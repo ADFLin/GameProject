@@ -193,7 +193,7 @@ namespace CB
 		mCommandList = &commandList;
 		mTranslucentDraw.clear();
 
-		RHISetupFixedPipelineState(commandList, mViewInfo.worldToClip);
+		RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClip);
 	}
 
 	void CurveRenderer::endRender()
@@ -249,7 +249,7 @@ namespace CB
 
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
-			RHISetupFixedPipelineState(commandList, mViewInfo.worldToClip, color);
+			RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClip, color);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 			drawMeshLine(surface, color);

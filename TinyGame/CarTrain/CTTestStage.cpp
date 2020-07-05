@@ -7,7 +7,7 @@
 
 
 #include "MarcoCommon.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #define  int8 b2Int8
 #include "Box2D/Box2D.h"
@@ -104,7 +104,7 @@ namespace CarTrain
 
 		virtual bool rayCast(Vector2 const& startPos, Vector2 const& endPos, RayHitInfo& outInfo) = 0;
 
-		virtual void setupDebugView(GLGraphics2D& g) = 0;
+		virtual void setupDebugView(RHIGraphics2D& g) = 0;
 		virtual void drawDebug() = 0;
 
 		static IPhysicsScene* Create();
@@ -151,7 +151,7 @@ namespace CarTrain
 				Circle,
 			};
 			EType     type;
-			RenderTransform2D xform;
+			Render::RenderTransform2D xform;
 			Vector2   pos;
 			HitProxy* proxy;
 			union
@@ -182,15 +182,15 @@ namespace CarTrain
 			mElements.push_back(element);
 		}
 
-		TransformStack2D& getXFormStack() { return mXFormStack; }
-		TransformStack2D mXFormStack;
+		Render::TransformStack2D& getXFormStack() { return mXFormStack; }
+		Render::TransformStack2D mXFormStack;
 		std::vector<DrawElement> mElements;
 	};
 
 	class Box2DDraw : public b2Draw
 	{
 	public:
-		Box2DDraw(GLGraphics2D& g)
+		Box2DDraw(RHIGraphics2D& g)
 			:g(g)
 		{
 			SetFlags(e_shapeBit);
@@ -253,7 +253,7 @@ namespace CarTrain
 
 		}
 
-		GLGraphics2D& g;
+		RHIGraphics2D& g;
 
 	};
 
@@ -357,7 +357,7 @@ namespace CarTrain
 			return callback.bHitted;
 		}
 
-		void setupDebugView(GLGraphics2D& g) override
+		void setupDebugView(RHIGraphics2D& g) override
 		{
 			mDebugDraw = std::make_unique< Box2DDraw >(g);
 			mWorld->SetDebugDraw(mDebugDraw.get());
@@ -587,7 +587,7 @@ namespace CarTrain
 
 		void onRender(float dFrame) override
 		{
-			GLGraphics2D& g = Global::GetRHIGraphics2D();
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 			glClearDepth(1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

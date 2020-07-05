@@ -78,17 +78,8 @@ namespace Render
 		if (mVertexBuffer == nullptr)
 			return;
 
-		if (gRHISystem->getName() == RHISytemName::Opengl)
-		{
-			//glColor4fv(color);
-			drawInternal(commandList, mType, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), mIndexBuffer);
-		}
-		else
-		{
-			setupColorOverride(color);
-			drawWithColorInternal(commandList, mType, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), mIndexBuffer);
-		}
-
+		setupColorOverride(color);
+		drawWithColorInternal(commandList, mType, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), mIndexBuffer);
 	}
 
 	void Mesh::drawAdj(RHICommandList& commandList)
@@ -154,11 +145,11 @@ namespace Render
 			InputLayoutDesc desc = mInputLayoutDesc;
 			desc.setElementUnusable(Vertex::ATTRIBUTE_COLOR);
 			desc.addElement(1, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
-			mInputLayoutOverwriteColor = RHICreateInputLayout(mInputLayoutDesc);
+			mInputLayoutOverwriteColor = RHICreateInputLayout(desc);
 			mColorBuffer = RHICreateVertexBuffer(sizeof(LinearColor), 1, BCF_DefalutValue | BCF_UsageDynamic);
 		}
 
-		LinearColor* pColor = (LinearColor* )RHILockBuffer(mColorBuffer, ELockAccess::WriteDiscard);
+		LinearColor* pColor = (LinearColor*)RHILockBuffer(mColorBuffer, ELockAccess::WriteDiscard);
 		*pColor = color;
 		RHIUnlockBuffer(mColorBuffer);
 	}
@@ -328,11 +319,11 @@ namespace Render
 
 	void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
 	{
-		assert(desc.getSematicFormat(Vertex::ePosition) == Vertex::eFloat3);
-		assert(desc.getSematicFormat(Vertex::eNormal) == Vertex::eFloat3);
+		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_POSITION) == Vertex::eFloat3);
+		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_NORMAL) == Vertex::eFloat3);
 
-		int posOffset = desc.getSematicOffset(Vertex::ePosition);
-		int normalOffset = desc.getSematicOffset(Vertex::eNormal) - posOffset;
+		int posOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
+		int normalOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_NORMAL) - posOffset;
 		uint8* pV = (uint8*)(pVertex)+posOffset;
 
 		int numEle = nIdx / 3;
@@ -370,15 +361,15 @@ namespace Render
 
 	void FillNormalTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
 	{
-		assert( desc.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
-		assert( desc.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
-		assert( desc.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
-		assert( desc.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
+		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_POSITION) == Vertex::eFloat3);
+		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_NORMAL) == Vertex::eFloat3);
+		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_TEXCOORD) == Vertex::eFloat2);
+		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_TANGENT) == Vertex::eFloat4);
 
-		int posOffset = desc.getSematicOffset( Vertex::ePosition );
-		int texOffset = desc.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
-		int tangentOffset = desc.getSematicOffset( Vertex::eTangent ) - posOffset;
-		int normalOffset = desc.getSematicOffset( Vertex::eNormal ) - posOffset;
+		int posOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
+		int texOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_TEXCOORD) - posOffset;
+		int tangentOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_TANGENT) - posOffset;
+		int normalOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_NORMAL) - posOffset;
 		uint8* pV = (uint8*)(pVertex) + posOffset;
 
 		int numEle = nIdx / 3;
@@ -441,15 +432,15 @@ namespace Render
 
 	void FillTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
 	{
-		assert( desc.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
-		assert( desc.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
-		assert( desc.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
-		assert( desc.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
+		assert( desc.getAttributeFormat( Vertex::ATTRIBUTE_POSITION ) == Vertex::eFloat3 );
+		assert( desc.getAttributeFormat( Vertex::ATTRIBUTE_NORMAL ) == Vertex::eFloat3 );
+		assert( desc.getAttributeFormat( Vertex::ATTRIBUTE_TEXCOORD ) == Vertex::eFloat2 );
+		assert( desc.getAttributeFormat( Vertex::ATTRIBUTE_TANGENT ) == Vertex::eFloat4 );
 
-		int posOffset = desc.getSematicOffset( Vertex::ePosition );
-		int texOffset = desc.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
-		int tangentOffset = desc.getSematicOffset( Vertex::eTangent ) - posOffset;
-		int normalOffset = desc.getSematicOffset( Vertex::eNormal ) - posOffset;
+		int posOffset = desc.getAttributeOffset( Vertex::ATTRIBUTE_POSITION );
+		int texOffset = desc.getAttributeOffset( Vertex::ATTRIBUTE_TEXCOORD ) - posOffset;
+		int tangentOffset = desc.getAttributeOffset( Vertex::ATTRIBUTE_TANGENT ) - posOffset;
+		int normalOffset = desc.getAttributeOffset( Vertex::ATTRIBUTE_NORMAL ) - posOffset;
 		uint8* pV = (uint8*)(pVertex) + posOffset;
 
 		int numEle = nIdx / 3;
@@ -528,9 +519,9 @@ namespace Render
 		//need texcoord?
 #define TILE_NEED_TEXCOORD 1
 
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION , Vertex::eFloat3 );
 #if TILE_NEED_TEXCOORD
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat2, 0);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2, 0);
 #endif
 		
 		struct MyVertex
@@ -661,9 +652,9 @@ namespace Render
 		assert(sectors > 0);
 		assert(radius > 0);
 
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord, Vertex::eFloat2);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
 		// #FIXME: Bug
 		//mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat4, 1);
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
@@ -674,9 +665,9 @@ namespace Render
 		float const sf = 1.0 / sectors;
 		int r, s;
 
-		float* v = &vertex[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition) / sizeof(float);
-		float* n = &vertex[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::eNormal) / sizeof(float);
-		float* t = &vertex[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::eTexcoord) / sizeof(float);
+		float* v = &vertex[0] + mesh.mInputLayoutDesc.getAttributeFormat(Vertex::ATTRIBUTE_POSITION) / sizeof(float);
+		float* n = &vertex[0] + mesh.mInputLayoutDesc.getAttributeFormat(Vertex::ATTRIBUTE_NORMAL) / sizeof(float);
+		float* t = &vertex[0] + mesh.mInputLayoutDesc.getAttributeFormat(Vertex::ATTRIBUTE_TEXCOORD) / sizeof(float);
 
 		for( r = 1; r < rings; ++r )
 		{
@@ -789,8 +780,8 @@ namespace Render
 
 	bool MeshBuild::SkyBox(Mesh& mesh)
 	{
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat3 , 0 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat3 );
 		Vector3 v[] = 
 		{
 			Vector3(1,1,1),Vector3(1,1,1),
@@ -819,10 +810,10 @@ namespace Render
 	}
 	bool MeshBuild::CubeShare(Mesh& mesh, float halfLen)
 	{
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord, Vertex::eFloat2, 0);
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent, Vertex::eFloat4);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -865,10 +856,10 @@ namespace Render
 
 	bool MeshBuild::Cube( Mesh& mesh , float halfLen )
 	{
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4 );
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -957,8 +948,8 @@ namespace Render
 
 		int nV = rings * sectors;
 		std::vector< float > vertex( nV * size );
-		float* v = &vertex[0] + mesh.mInputLayoutDesc.getOffset(0) / sizeof( float );
-		float* n = &vertex[0] + mesh.mInputLayoutDesc.getOffset(1) / sizeof( float );
+		float* v = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(0) / sizeof( float );
+		float* n = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(1) / sizeof( float );
 		//float* t = &vertex[0] + mesh.mDecl.getOffset(2) / sizeof( float );
 
 		int r , s;
@@ -1252,13 +1243,13 @@ namespace Render
 		if(  numVertex == 0 )
 			return false;
 
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		
 		if( !shapes[0].mesh.texcoords.empty() )
 		{
-			mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord, Vertex::eFloat2, 0);
-			mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent, Vertex::eFloat4);
+			mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+			mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
 		}
 
 		int vertexSize = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
@@ -1482,10 +1473,10 @@ namespace Render
 
 	bool MeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
 	{
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal   , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4 );
 		struct MyVertex 
 		{
 			Vector3 v;
@@ -1617,8 +1608,8 @@ namespace Render
 
 	bool MeshBuild::IcoSphere(Mesh& mesh , float radius , int numDiv )
 	{
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal   , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3 );
 
 		struct VertexTraits
 		{
@@ -1640,7 +1631,7 @@ namespace Render
 
 	bool MeshBuild::LightSphere(Mesh& mesh)
 	{
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		struct VertexTraits
 		{
 			struct Type
@@ -1659,7 +1650,7 @@ namespace Render
 	bool MeshBuild::LightCone(Mesh& mesh)
 	{
 		int numSide = 96;
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 
@@ -1667,7 +1658,7 @@ namespace Render
 		std::vector< float > vertices(nV * size);
 		float const sf = 2 * Math::PI / numSide;
 
-		float* v = &vertices[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition) / sizeof(float);
+		float* v = &vertices[0] + mesh.mInputLayoutDesc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION) / sizeof(float);
 
 		for( int i = 0; i < numSide; ++i )
 		{
@@ -1887,7 +1878,7 @@ namespace Render
 		if( !mesh.mIndexBuffer.isValid() || !mesh.mVertexBuffer.isValid() )
 			return false;
 
-		uint8* pData = (uint8*)( RHILockBuffer( mesh.mVertexBuffer , ELockAccess::ReadOnly)) + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition);
+		uint8* pData = (uint8*)( RHILockBuffer( mesh.mVertexBuffer , ELockAccess::ReadOnly)) + mesh.mInputLayoutDesc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
 		void* pIndexBufferData = RHILockBuffer( mesh.mIndexBuffer , ELockAccess::ReadOnly);
 		ON_SCOPE_EXIT
 		{

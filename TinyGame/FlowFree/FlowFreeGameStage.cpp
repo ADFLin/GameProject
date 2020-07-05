@@ -1,5 +1,5 @@
 #include "FlowFreeGameStage.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 REGISTER_STAGE("Flow Free Game", FlowFree::TestStage , EStageGroup::Test);
 
@@ -302,7 +302,7 @@ namespace FlowFree
 
 	void TestStage::onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		g.beginRender();
 

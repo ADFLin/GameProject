@@ -155,7 +155,7 @@ namespace Render
 		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData);
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
-		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture);
+		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler);
 
 		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer )
 		{
@@ -346,7 +346,7 @@ namespace Render
 	class OpenGLSystem : public RHISystem
 	{
 	public:
-		RHISytemName getName() const  { return RHISytemName::Opengl; }
+		RHISytemName getName() const  { return RHISytemName::OpenGL; }
 		bool initialize(RHISystemInitParams const& initParam);
 		void shutdown();
 		class ShaderFormat* createShaderFormat();
@@ -356,7 +356,7 @@ namespace Render
 		{
 			return *mImmediateCommandList;
 		}
-		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info);
+		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 		RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
 			int numMipLevel , uint32 createFlags, void* data);

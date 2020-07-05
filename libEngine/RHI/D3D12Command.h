@@ -317,7 +317,7 @@ namespace Render
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
 
-		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* textures[], int numTexture)
+		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* texture, RHISamplerState* sampler)
 		{
 
 		}
@@ -465,7 +465,7 @@ namespace Render
 		{
 			return *mImmediateCommandList;
 		}
-		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
+		RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info)
 		{
 			return nullptr;
 		}

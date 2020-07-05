@@ -22,7 +22,7 @@ enum class RHISytemName
 {
 	D3D11,
 	D3D12,
-	Opengl,
+	OpenGL,
 	Vulkan,
 };
 
@@ -67,38 +67,41 @@ namespace Render
 	};
 
 
-
-	class RHIRenderWindow
-	{
-	public:
-		virtual RHITexture2D* getBackBufferTexture() = 0;
-		virtual void Present() = 0;
-	};
-
 	RHI_API bool RHISystemInitialize(RHISytemName name , RHISystemInitParams const& initParam );
 	RHI_API void RHISystemShutdown();
 	RHI_API bool RHIBeginRender();
 	RHI_API void RHIEndRender(bool bPresent);
 
-	struct PlatformWindowInfo
+
+	struct SwapChainCreationInfo
 	{
-		HWND hWnd;
-		HDC  hDC;
-		int  Width;
-		int  Height;
-		bool bFullScreen;
-		int  numSamples;
+		HWND  windowHandle;
+		bool  bWindowed;
+		IntVector2 extent;
+		Texture::Format colorForamt;
+		bool bCreateDepth;
+		Texture::DepthFormat depthFormat;
 
-		PlatformWindowInfo()
+		int numSamples;
+		int bufferCount;
+
+
+		SwapChainCreationInfo()
 		{
+			windowHandle = NULL;
+			extent = IntVector2(1, 1);
+			bWindowed = false;
+			bCreateDepth = false;
+			colorForamt = Texture::eBGRA8;
+			depthFormat = Texture::eD24S8;
 			numSamples = 1;
-			bFullScreen = false;
+			bufferCount = 1;
 		}
-
 	};
-	RHI_API RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info);
 
-	RHI_API RHITexture1D*    RHICreateTexture1D(Texture::Format format, int length ,
+	RHI_API RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info);
+
+	RHI_API RHITexture1D* RHICreateTexture1D(Texture::Format format, int length ,
 										int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,void* data = nullptr);
 
 	RHI_API RHITexture2D*   RHI_TRACE_FUNC(RHICreateTexture2D,
@@ -201,21 +204,21 @@ namespace Render
 	};
 	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[] , int numData );
 	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
-	RHI_API void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* textures[] = nullptr, int numTexture = 0);
+	RHI_API void RHISetFixedShaderPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* texture = nullptr, RHISamplerState* sampler = nullptr);
 	RHI_API void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer);
 
-	enum class EClearBits
+	enum class EClearBits : uint8
 	{
-		Color = 0x1,
-		Depth = 0x2,
+		Color   = 0x1,
+		Depth   = 0x2,
 		Stencil = 0x4,
-		All   = 0xff,
+		All     = 0xff,
 	};
 
 	FORCEINLINE EClearBits operator | (EClearBits a, EClearBits b) { return EClearBits(uint8(a) | uint8(b)); }
 	FORCEINLINE bool HaveBits( EClearBits a , EClearBits b ) { return !!(uint8(a) & uint8(b)); }
 
-	RHI_API void RHIClearRenderTargets(RHICommandList& commandList, EClearBits clearBits , LinearColor colors[] ,int numColor , float depth = 0 , uint8 stenceil = 0 );
+	RHI_API void RHIClearRenderTargets(RHICommandList& commandList, EClearBits clearBits , LinearColor colors[] ,int numColor , float depth = 1.0 , uint8 stenceil = 0 );
 
 	RHI_API void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
@@ -253,7 +256,7 @@ namespace Render
 		virtual class ShaderFormat* createShaderFormat() { return nullptr; }
 		
 		RHI_FUNC(RHICommandList& getImmediateCommandList());
-		RHI_FUNC(RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info));
+		RHI_FUNC(RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info));
 		RHI_FUNC(bool RHIBeginRender());
 		RHI_FUNC(void RHIEndRender(bool bPresent));
 

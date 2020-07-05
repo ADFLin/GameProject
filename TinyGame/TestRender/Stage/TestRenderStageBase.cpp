@@ -1,6 +1,6 @@
 #include "TestRenderStageBase.h"
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 #include "ConsoleSystem.h"
 
 #include "Asset.h"
@@ -11,7 +11,7 @@ namespace Render
 
 	void TextureShowFrame::onRender()
 	{
-		GLGraphics2D& g = Global::GetDrawEngine().getRHIGraphics();
+		RHIGraphics2D& g = Global::GetDrawEngine().getRHIGraphics();
 		g.drawTexture(*texture, getWorldPos(), getSize());
 
 		if( isFocus() )
@@ -154,7 +154,7 @@ namespace Render
 			Vector3(1,-1,0),
 		};
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-		mSimpleMeshs[SimpleMeshId::SpherePlane].mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
+		mSimpleMeshs[SimpleMeshId::SpherePlane].mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		if( !mSimpleMeshs[SimpleMeshId::SpherePlane].createRHIResource(&v[0], 4, &idx[0], 6, true) )
 			return false;
 

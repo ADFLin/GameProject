@@ -6,11 +6,7 @@
 
 int const BlockSize = 18;
 
-class GLGraphics2D;
-namespace Render
-{
-	class RHIGraphics2D;
-}
+class RHIGraphics2D;
 
 enum
 {
@@ -48,23 +44,19 @@ public:
 
 	static TINY_API void InitializeRHI();
 	static TINY_API void ReleaseRHI();
-	static TINY_API void SetPen( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
-	static TINY_API void SetBrush( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
-	static TINY_API void SetFont( GLGraphics2D& g , int fontID );
-	static TINY_API void SetFontColor( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 
-	static TINY_API void SetPen(Render::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
-	static TINY_API void SetBrush(Render::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
-	static TINY_API void SetFont(Render::RHIGraphics2D& g, int fontID);
-	static TINY_API void SetFontColor(Render::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
+	static TINY_API void SetPen( RHIGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetBrush( RHIGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetFont( RHIGraphics2D& g , int fontID );
+	static TINY_API void SetFontColor( RHIGraphics2D& g , int color , int type = COLOR_NORMAL );
 
 	static TINY_API void SetPen( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetBrush( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetFont( IGraphics2D& g , int fontID );
 	static TINY_API void SetFontColor( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 
-	template< class Graphics2D >
-	static void DrawBlock( Graphics2D& g , Vec2i const& pos , Vec2i const& size , int color )
+	template< class TGraphics2D >
+	static void DrawBlock(TGraphics2D& g , Vec2i const& pos , Vec2i const& size , int color )
 	{
 		SetPen( g , EColor::Black );
 		SetBrush( g , color , COLOR_DEEP );
@@ -75,20 +67,20 @@ public:
 		g.drawRoundRect( 
 			pos + Vec2i( 3 , 3 ) , Vec2i( size.x - 6 , size.y - 6 ) , Vec2i( 4 , 4 ) );
 	}
-	template< class Graphics2D >
-	static void DrawBlock( Graphics2D& g ,Vec2i const& pos ,  int color )
+	template< class TGraphics2D >
+	static void DrawBlock(TGraphics2D& g ,Vec2i const& pos ,  int color )
 	{
 		DrawBlock( g , pos ,  Vec2i( BlockSize  , BlockSize  ) , color );
 	}
 
-	template< class Graphics2D >
-	static void DrawBlock( Graphics2D& g ,Vec2i const& pos , int nw , int nh , int color )
+	template< class TGraphics2D >
+	static void DrawBlock(TGraphics2D& g ,Vec2i const& pos , int nw , int nh , int color )
 	{
 		DrawBlock( g , pos , BlockSize * Vec2i( nw , nh ) , color );
 	}
 
-	template< class Graphics2D >
-	static void DrawCapsuleX( Graphics2D& g , Vec2i const& pos , Vec2i const& size )
+	template< class TGraphics2D >
+	static void DrawCapsuleX(TGraphics2D& g , Vec2i const& pos , Vec2i const& size )
 	{
 		g.drawRoundRect( pos , size , Vec2i( 2 * size.y / 3 , size.y ) );
 	}

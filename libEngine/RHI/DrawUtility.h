@@ -405,7 +405,6 @@ namespace Render
 		class CopyTextureBiasProgram*     mProgCopyTextureBias;
 #endif
 		class MappingTextureColorProgram* mProgMappingTextureColor;
-		class SimplePipelineProgram*      mProgSimplePipeline;
 
 
 		RHIFrameBufferRef mFrameBuffer;

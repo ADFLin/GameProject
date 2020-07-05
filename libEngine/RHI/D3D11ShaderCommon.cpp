@@ -11,6 +11,7 @@
 #include <sstream>
 #include "Serialize/StreamBuffer.h"
 #include "RHICommand.h"
+#include "Platform/Windows/WindowsProcess.h"
 
 
 namespace Render
@@ -28,6 +29,7 @@ namespace Render
 
 	bool ShaderFormatHLSL::compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output)
 	{
+		bool bGLSLCodeConv = true;
 		bool bSuccess;
 		do
 		{
@@ -44,6 +46,22 @@ namespace Render
 
 				if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
 					return false;
+#if 0
+				if (bGLSLCodeConv)
+				{
+					codeBuffer.pop_back();
+					std::string pathGLSL = "Temp/Temp.glsl";
+					if (!FileUtility::SaveFromBuffer(pathGLSL.c_str(), codeBuffer.data(), codeBuffer.size()))
+					{
+						return false;
+					}
+
+				ChildProcess process;
+					char const* command = "glslcc --%s = %s --output = Temp/Temp.hlsl --lang = hlsl --reflect";
+					process.create("glslcc --vert = shader.vert --frag = shader.frag --output = shader.hlsl --lang = hlsl --reflect")
+
+				}
+#endif
 			}
 			else
 			{

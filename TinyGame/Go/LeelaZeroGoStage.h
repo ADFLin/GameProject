@@ -312,6 +312,7 @@ namespace Go
 				return false;
 			}
 			mWaitBotCommandDelegate = func;
+			return true;
 		}
 
 		bool isWatingBotResult()
@@ -451,7 +452,7 @@ namespace Go
 
 		void updateViewGameTerritory();
 
-		void drawAnalysis(GLGraphics2D& g, SimpleRenderState& renderState, RenderContext& context);
+		void drawAnalysis(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext& context);
 		static void DrawTerritoryStatus( BoardRenderer& renderer , SimpleRenderState& renderState, RenderContext const& context ,  Zen::TerritoryInfo const& info);
 
 

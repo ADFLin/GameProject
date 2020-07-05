@@ -46,15 +46,15 @@ public:
 	HDC       getHDC() const { return m_hDC; }
 	HWND      getHWnd() const { return m_hWnd; }
 
-	int       getWidth(){ return m_iWidth; }
-	int       getHeight(){ return m_iHeight; }
+	int       getWidth(){ return mWidth; }
+	int       getHeight(){ return mHeight; }
 
 	void      resize( int w , int h )
 	{
-		m_iWidth  = w;
-		m_iHeight = h;
+		mWidth  = w;
+		mHeight = h;
 		RECT rect;
-		SetRect (&rect , 0, 0, m_iWidth , m_iHeight );
+		SetRect (&rect , 0, 0, mWidth , mHeight );
 		AdjustWindowRectEx( &rect, _this()->getWinStyle() , FALSE , _this()->getWinExtStyle() );
 
 		// move the window back to its old position
@@ -69,10 +69,13 @@ public:
 
 	}
 
-	unsigned  getColorBits() const { return m_colorBits; }
+	unsigned  getColorBits() const { return mColorBits; }
 
 	bool      toggleFullscreen();
-
+	bool      isFullscreen() const
+	{
+		return mbFullscreen;
+	}
 	//////
 public:
 	DWORD  getWinStyle(){ return WS_MINIMIZEBOX | WS_VISIBLE | WS_CAPTION | WS_SYSMENU ; }
@@ -93,12 +96,12 @@ private:
 	bool      createWindow( TCHAR const* szTitle , bool fullscreen );
 	bool      registerWindow( WNDPROC wndProc , DWORD wIcon ,WORD wSIcon );
 
-	int       m_iWidth;
-	int       m_iHeight;
+	int       mWidth;
+	int       mHeight;
 	HWND      m_hWnd;
 	HDC       m_hDC;
-	unsigned  m_colorBits;
-	bool      m_fullscreen;
+	unsigned  mColorBits;
+	bool      mbFullscreen;
 
 	bool      mbHasRegisterClass = false;
 };
@@ -107,11 +110,11 @@ private:
 template< class T >
 WinFrameT<T>::WinFrameT()
 {
-	m_iWidth     = 0;
-	m_iHeight    = 0;
+	mWidth     = 0;
+	mHeight    = 0;
 	m_hWnd       = NULL;
 	m_hDC        = NULL;
-	m_fullscreen = false;
+	mbFullscreen = false;
 }
 
 template< class T >
@@ -124,9 +127,9 @@ template< class T >
 bool WinFrameT<T>::create( TCHAR const* szTitle, int iWidth , int iHeight, WNDPROC wndProc,
 							       bool fullscreen , unsigned colorBits )
 {
-	m_iWidth    = iWidth;
-	m_iHeight   = iHeight;
-	m_colorBits = colorBits;
+	mWidth    = iWidth;
+	mHeight   = iHeight;
+	mColorBits = colorBits;
 
 	if (!mbHasRegisterClass )
 	{
@@ -163,10 +166,10 @@ void WinFrameT<T>::destroy()
 
 	_this()->destoryWindow();
 
-	if( m_fullscreen )
+	if( mbFullscreen )
 	{
 		::ChangeDisplaySettings(NULL, 0);
-		m_fullscreen = false;
+		mbFullscreen = false;
 	}
 
 	if( m_hDC )
@@ -220,8 +223,8 @@ bool WinFrameT<T>::setFullScreen( unsigned bits )
 	memset( &dmScreenSettings , 0 , sizeof( dmScreenSettings) );
 
 	dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-	dmScreenSettings.dmPelsWidth	= m_iWidth;
-	dmScreenSettings.dmPelsHeight	= m_iHeight;
+	dmScreenSettings.dmPelsWidth	= mWidth;
+	dmScreenSettings.dmPelsHeight	= mHeight;
 	dmScreenSettings.dmBitsPerPel	= bits;
 	dmScreenSettings.dmFields       = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
 
@@ -255,12 +258,12 @@ void WinFrameT<T>::destoryWindow()
 template< class T >
 bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )
 {
-	m_fullscreen = fullscreen;
+	mbFullscreen = fullscreen;
 
 	DWORD style ,exStyle;
 	if ( fullscreen )
 	{
-		if ( !setFullScreen( m_colorBits ) )
+		if ( !setFullScreen( mColorBits ) )
 			return false;
 
 		style   = WS_POPUP;
@@ -274,7 +277,7 @@ bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )
 
 
 	RECT rect;
-	SetRect (&rect , 0, 0, m_iWidth , m_iHeight );
+	SetRect (&rect , 0, 0, mWidth , mHeight );
 	AdjustWindowRectEx(&rect,style, FALSE ,exStyle);
 
 	m_hWnd = CreateWindowEx(
@@ -333,9 +336,9 @@ bool WinFrameT<T>::toggleFullscreen()
 	}
 #else
 	static POINT pos;
-	if ( !m_fullscreen )
+	if ( !mbFullscreen )
 	{
-		if ( !setFullScreen( m_colorBits ) )
+		if ( !setFullScreen( mColorBits ) )
 			return false;
 
 		SetWindowRgn(m_hWnd, 0, false);
@@ -360,7 +363,7 @@ bool WinFrameT<T>::toggleFullscreen()
 		SetWindowLong( m_hWnd , GWL_STYLE , _this()->getWinStyle());
 
 		RECT rect;
-		SetRect (&rect , 0, 0, m_iWidth , m_iHeight );
+		SetRect (&rect , 0, 0, mWidth , mHeight );
 		AdjustWindowRectEx( &rect, _this()->getWinStyle() , FALSE , _this()->getWinExtStyle() );
 
 		// move the window back to its old position
@@ -370,7 +373,7 @@ bool WinFrameT<T>::toggleFullscreen()
 	}
 #endif
 
-	m_fullscreen = !m_fullscreen;
+	mbFullscreen = !mbFullscreen;
 	return true;
 }
 #endif // Win32Platform_h__

@@ -146,19 +146,32 @@ namespace Math
 
 		FORCEINLINE void leftScale(Vector2 const& s)
 		{
+#if USE_MATH_SIMD
+			__m128 value = _mm_loadu_ps(mValues);
+			__m128 scale = { s.x , s.x , s.y , s.y };
+			__m128 result = _mm_mul_ps(value, scale);
+			_mm_store_ps(mValues, result);
+#else
 			mValues[0] *= s.x;
 			mValues[1] *= s.x;
 			mValues[2] *= s.y;
 			mValues[3] *= s.y;
-
+#endif
 		}
 
 		FORCEINLINE void rightScale(Vector2 const& s)
 		{
+#if USE_MATH_SIMD
+			__m128 value = _mm_loadu_ps(mValues);
+			__m128 scale = { s.x , s.y , s.x , s.y };
+			__m128 result = _mm_mul_ps(value, scale);
+			_mm_store_ps(mValues, result);
+#else
 			mValues[0] *= s.x;
 			mValues[1] *= s.y;
 			mValues[2] *= s.x;
 			mValues[3] *= s.y;
+#endif
 		}
 
 		Matrix2  operator * (Matrix2 const& rhs) const;

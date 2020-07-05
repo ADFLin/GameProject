@@ -4,7 +4,7 @@
 #include "Widget/WidgetUtility.h"
 #include "RenderUtility.h"
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "RHI/ShaderManager.h"
 #include "RHI/DrawUtility.h"
@@ -235,7 +235,7 @@ namespace Lighting2D
 		TRenderRT<RTVF_XY>::DrawIndexed(EPrimitive::eTriangleList, vertices, 4, indices, 6);
 #endif
 
-		GLGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
+		RHIGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
 
 		g.beginRender();
 

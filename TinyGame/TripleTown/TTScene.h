@@ -14,10 +14,6 @@
 #include "Math/Matrix2.h"
 
 #include "Renderer/RenderTransform2D.h"
-#include <gl/GL.h>
-
-extern bool GUseBatchedRender;
-
 
 class Graphics2D;
 
@@ -33,14 +29,19 @@ namespace TripleTown
 		{
 			color = LinearColor(1, 1, 1, 1);
 		}
-		LinearColor     color;
-
-		RHITexture2DRef texture;
-		Matrix4         projection;
-		TransformStack2D xformStack;
+		LinearColor        color;
+		Matrix4            baseTransform;
+		RHITexture2DRef    texture;
+		RHISamplerStateRef sampler;
+		TransformStack2D   xformStack;
 
 		RenderTransform2D const& getTransform() const { return xformStack.get(); }
 		RenderTransform2D&       getTransform()       { return xformStack.get(); }
+
+		void setupRenderState(RHICommandList& commandList)
+		{
+			RHISetFixedShaderPipelineState(commandList, baseTransform, LinearColor(1, 1, 1, 1), texture, sampler);
+		}
 	};
 
 	namespace EItemImage
@@ -95,16 +96,13 @@ namespace TripleTown
 		void  emitQuad(Vector2 const& p1, Vector2 const& p2, Vector2 const& uvMin, Vector2 const& uvMax);
 		void  emitQuad(Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax);
 
-		void  drawImageInvTexY( GLuint tex , int w , int h );
-
+		void  drawImageInvTexY(RHITexture2D& texture, int w, int h);
 		void  drawItem(int itemId, EItemImage::Type imageType);
 		void  drawItemCenter(int itemId, EItemImage::Type imageType);
 		void  drawItemByTexId(int texId);
 		void  drawImageByTextId(int texId , Vector2 size );
 		
-
-		void  drawItemOutline( GLuint tex );
-
+		void  drawItemOutline(RHITexture2D& texture);
 		bool  loadImageTexFile(char const* path, int itemId, EItemImage::Type imageType);
 
 		void drawTilePartImpl( int x , int y , int dir , TerrainType tId , float const (*texCoord)[2] );

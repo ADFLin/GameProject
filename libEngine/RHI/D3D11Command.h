@@ -27,9 +27,9 @@
 #include "RHITraceScope.h"
 #endif
 
+
 namespace Render
 {
-
 	template<class T>
 	struct ToShaderEnum {};
 	template<> struct ToShaderEnum< ID3D11VertexShader > { static EShader::Type constexpr Result = EShader::Vertex; };
@@ -41,7 +41,6 @@ namespace Render
 
 	struct FrameSwapChain
 	{
-
 		TComPtr<IDXGISwapChain> ptr;
 	};
 	struct ShaderConstDataBuffer
@@ -233,6 +232,7 @@ namespace Render
 			mLockedIndex = -1;
 			return buffer;
 		}
+
 		ID3D11Buffer* getLockedBuffer() { return mBuffers[mLockedIndex]; }
 		std::vector< ID3D11Buffer* > mBuffers;
 		std::vector< uint32 >        mBufferSizes;
@@ -312,46 +312,18 @@ namespace Render
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
 
-		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* textures[], int numTexture)
-		{
+		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* texture, RHISamplerState* sampler);
 
-		}
 
-		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer)
-		{
 
-		}
-		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil)
-		{
+		D3D11RenderTargetsState* mRenderTargetsState = nullptr;
 
-		}
+		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer);
+
+		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil);
 
 	
-		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
-		{
-			int const MaxStreamNum = 16;
-			assert(numInputStream <= MaxStreamNum);
-			ID3D11Buffer* buffers[MaxStreamNum];
-			UINT strides[MaxStreamNum];
-			UINT offsets[MaxStreamNum];
-			
-			for( int i = 0; i < numInputStream; ++i )
-			{
-				if( inputStreams[i].buffer )
-				{
-					buffers[i] = D3D11Cast::GetResource(inputStreams[i].buffer);
-					offsets[i] = inputStreams[i].offset;
-					strides[i] = inputStreams[i].stride >= 0 ? inputStreams[i].stride : inputStreams[i].buffer->getElementSize();
-				}
-
-			}
-
-			mInputLayout = inputLayout;
-			if( numInputStream )
-			{
-				mDeviceContext->IASetVertexBuffers(0, numInputStream, buffers, strides, offsets);
-			}		
-		}
+		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
 		{
 			if( indexBuffer )
@@ -367,6 +339,7 @@ namespace Render
 		void RHIFlushCommand()
 		{
 			mDeviceContext->Flush();
+			mRenderTargetsState = nullptr;
 		}
 
 
@@ -453,6 +426,18 @@ namespace Render
 		D3D11DynamicBuffer    mDynamicVBuffer;
 		D3D11DynamicBuffer    mDynamicIBuffer;
 
+		D3D11_VIEWPORT mViewportState[8];
+
+		bool bUseFixedShaderPipeline = false;
+		struct FixedShaderParams
+		{
+			Matrix4 transform;
+			LinearColor color;
+			RHITexture2D* texture;
+			RHISamplerState* sampler;
+		};
+		FixedShaderParams mFixedShaderParams;
+
 		RHIShader* mVertexShader = nullptr;
 		TComPtr< ID3D11DeviceContext >  mDeviceContext;
 		TComPtr< ID3D11Device > mDevice;
@@ -477,22 +462,28 @@ namespace Render
 
 		bool RHIBeginRender()
 		{
+			mRenderContext.mRenderTargetsState = nullptr;
 			return true;
 		}
 
 		void RHIEndRender(bool bPresent)
 		{
-
+			if ( bPresent && mSwapChain)
+			{
+				mSwapChain->Present();
+			}
 		}
 
 		RHICommandList&  getImmediateCommandList()
 		{
 			return *mImmediateCommandList;
 		}
-		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
-		{
-			return nullptr;
-		}
+
+		TRefCountPtr< D3D11SwapChain > mSwapChain;
+
+
+
+		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 		RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
 			int numMipLevel, uint32 createFlags ,
@@ -557,7 +548,7 @@ namespace Render
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size);
 
 
-		bool createFrameSwapChain(HWND hWnd, int w, int h, bool bWindowed, FrameSwapChain& outResult)
+		bool createSwapChain(HWND hWnd, int w, int h, bool bWindowed, FrameSwapChain& outResult)
 		{
 			HRESULT hr;
 			TComPtr<IDXGIFactory> factory;
@@ -609,7 +600,6 @@ namespace Render
 
 		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFuncHasher > mInputLayoutMap;
 		D3D11Context   mRenderContext;
-		FrameSwapChain mSwapChain;
 		TComPtr< ID3D11Device > mDevice;
 		TComPtr< ID3D11DeviceContext > mDeviceContext;
 		RHICommandListImpl* mImmediateCommandList = nullptr;

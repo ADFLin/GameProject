@@ -10,7 +10,7 @@
 
 #define DRAW_TEXTURE 1
 
-class GLGraphics2D;
+class RHIGraphics2D;
 
 namespace Render
 {
@@ -104,11 +104,11 @@ namespace Go
 
 		Vector2 getStonePos(RenderContext const& context, int i, int j);
 
-		void drawBorad(GLGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr );
+		void drawBorad(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr );
 
 		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
 
-		void drawStone(GLGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0 );
+		void drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0 );
 
 
 

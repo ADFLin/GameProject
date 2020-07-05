@@ -66,7 +66,7 @@ namespace Render
 		{
 			return *mImmediateCommandList;
 		}
-		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info) { return nullptr; }
+		RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info) { return nullptr; }
 
 
 		std::vector< VkSemaphore > mImageAvailableSemaphores;

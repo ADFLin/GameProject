@@ -9,7 +9,7 @@
 #include "CurveBuilder/FPUCompiler.h"
 
 #include "AsyncWork.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 #include "ProfileSystem.h"
 
 #include "RHI/DrawUtility.h"
@@ -184,7 +184,7 @@ namespace CB
 		void onRender(float dFrame) override
 		{
 			PROFILE_ENTRY("Stage.Render");
-			GLGraphics2D& g = Global::GetRHIGraphics2D();
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			int width = ::Global::GetDrawEngine().getScreenWidth();

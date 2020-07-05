@@ -2,6 +2,7 @@
 #ifndef RenderTransform2D_H_F3F42C19_2E67_4C07_A6AD_15FC522AD4F0
 #define RenderTransform2D_H_F3F42C19_2E67_4C07_A6AD_15FC522AD4F0
 
+#include "MarcoCommon.h"
 #include "Math/Matrix2.h"
 #include "Math/Vector2.h"
 #include "Math/Matrix4.h"
@@ -174,12 +175,12 @@ namespace Render
 
 		FORCEINLINE void rotate(float angle)
 		{
-			mCurrent.rotateWorld(angle);
+			mCurrent.rotateLocal(angle);
 		}
 
 		FORCEINLINE void scale(Vector2 const& scale)
 		{
-			mCurrent.scaleWorld(scale);
+			mCurrent.scaleLocal(scale);
 		}
 
 		void pushTransform(RenderTransform2D const& xform, bool bApplyPrev = true)
@@ -212,6 +213,31 @@ namespace Render
 		RenderTransform2D mCurrent;
 		std::vector< RenderTransform2D > mStack;
 	};
+
+	class TransformStackScope
+	{
+	public:
+		FORCEINLINE TransformStackScope(TransformStack2D& stack)
+			:mStack(stack)
+		{
+			mStack.push();
+		}
+		FORCEINLINE TransformStackScope(TransformStack2D& stack , RenderTransform2D const& transform , bool bApplyPrev = true )
+			:mStack(stack)
+		{
+			mStack.pushTransform(transform , bApplyPrev);
+		}
+
+		FORCEINLINE ~TransformStackScope()
+		{
+			mStack.pop();
+		}
+
+		TransformStack2D& mStack;
+	};
+
+#define TRANSFORM_STACK_SCOPE( STACK , ... ) ::Render::TransformStackScope ANONYMOUS_VARIABLE(Scope)(STACK,##__VA_ARGS__);
+
 }//namespace Render
 
 #endif // RenderTransform2D_H_F3F42C19_2E67_4C07_A6AD_15FC522AD4F0

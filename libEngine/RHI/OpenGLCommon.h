@@ -637,12 +637,10 @@ namespace Render
 			GLenum componentType;
 			uint32 stride;
 			uint16 instanceStepRate;
-			uint8  semantic;
 			uint8  offset;
 			uint8  idxStream;
 			uint8  attribute;
 			uint8  componentNum;
-			uint8  idx;
 			bool   bNormalized;
 			bool   bInstanceData;	
 		};

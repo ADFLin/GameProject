@@ -42,6 +42,7 @@ namespace Render
 	class D3D11ShaderResourceView;
 	class D3D11SamplerState;
 	class D3D11DepthStencilState;
+	class D3D11SwapChain;
 
 	template<>
 	struct TD3D11TypeTraits< RHITexture1D > 
@@ -117,6 +118,13 @@ namespace Render
 		typedef D3D11DepthStencilState ImplType;
 	};
 
+	template<>
+	struct TD3D11TypeTraits< RHISwapChain >
+	{
+		typedef IDXGISwapChain ResourceType;
+		typedef D3D11SwapChain ImplType;
+	};
+
 	struct D3D11Translate
 	{
 		static D3D_PRIMITIVE_TOPOLOGY To(EPrimitive type);
@@ -158,7 +166,7 @@ namespace Render
 #if _DEBUG
 			--mCount;
 			int count = mResource->Release();
-			assert(mCount + 1 == count);
+			//assert(mCount + 1 == count);
 			return count == 1;
 #else
 			return mResource->Release() == 1; 
@@ -249,13 +257,17 @@ namespace Render
 
 		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 		{
+			if (format != mFormat)
+			{
+				int i = 1;
+			}
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			TComPtr<ID3D11DeviceContext> deviceContext;
 			device->GetImmediateContext(&deviceContext);
 			D3D11_BOX box;
-			box.back = 0;
-			box.front = 1;
+			box.front = 0;
+			box.back = 1;
 			box.left = ox;
 			box.right = ox + w;
 			box.top = oy;
@@ -266,13 +278,17 @@ namespace Render
 
 		bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
 		{
+			if (format != mFormat)
+			{
+				int i = 1;
+			}
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			TComPtr<ID3D11DeviceContext> deviceContext;
 			device->GetImmediateContext(&deviceContext);
 			D3D11_BOX box;
-			box.back = 0;
-			box.front = 1;
+			box.front = 0;
+			box.back = 1;
 			box.left = ox;
 			box.right = ox + w;
 			box.top = oy;
@@ -459,12 +475,80 @@ namespace Render
 			mUniversalResource = nullptr;
 		}
 
+		bool haveAttribute(uint8 attribute) const
+		{
+			for (auto const& desc : mDescList)
+			{
+				if (desc.SemanticIndex == attribute)
+					return true;
+			}
+			return false;
+		}
 		ID3D11InputLayout* GetShaderLayout( ID3D11Device* device , RHIShader* shader);
 
 		int mRefcount;
 		std::vector< D3D11_INPUT_ELEMENT_DESC > mDescList;
 		ID3D11InputLayout* mUniversalResource;
 		std::unordered_map< RHIShader*, ID3D11InputLayout* > mResourceMap;
+	};
+
+
+	struct D3D11RenderTargetsState
+	{
+		static constexpr int MaxSimulationBufferCount = 8;
+		ID3D11RenderTargetView* colorBuffers[MaxSimulationBufferCount];
+		int numColorBuffers;
+		ID3D11DepthStencilView* depthBuffer;
+
+		D3D11RenderTargetsState()
+		{
+			memset(this, 0, sizeof(*this));
+		}
+	};
+
+	class D3D11SwapChain : public TD3D11Resource< RHISwapChain >
+	{
+	public:
+
+		D3D11SwapChain(TComPtr<IDXGISwapChain>& resource , D3D11Texture2D& colorTexture , D3D11TextureDepth* depthTexture)
+			:mColorTexture(&colorTexture)
+			,mDepthTexture(depthTexture)
+		{
+			mResource = resource.release();
+			mRenderTargetsState.numColorBuffers = 1;
+			mRenderTargetsState.colorBuffers[0] = mColorTexture->mRTV;
+			if (mDepthTexture)
+			{
+				mRenderTargetsState.depthBuffer = mDepthTexture->mDSV;
+			}
+
+		}
+		virtual RHITexture2D* getBackBufferTexture() override 
+		{ 
+			return mColorTexture; 
+		}
+		virtual void Present() override
+		{
+			mResource->Present(1, 0);
+		}
+
+
+		void BitbltToDevice(HDC hTargetDC)
+		{
+			TComPtr<IDXGISurface1> surface;
+			VERIFY_D3D11RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&surface)), );
+			HDC hDC;
+			VERIFY_D3D11RESULT(surface->GetDC(FALSE, &hDC), );
+			int w = mColorTexture->getSizeX();
+			int h = mColorTexture->getSizeY();
+			::BitBlt(hTargetDC, 0, 0, w, h, hDC, 0, 0, SRCCOPY);
+			VERIFY_D3D11RESULT(surface->ReleaseDC(nullptr), );
+		}
+
+		TRefCountPtr< D3D11Texture2D >    mColorTexture;
+		TRefCountPtr< D3D11TextureDepth > mDepthTexture;
+		D3D11RenderTargetsState mRenderTargetsState;
+
 	};
 
 	struct D3D11Cast

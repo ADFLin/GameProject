@@ -1,6 +1,6 @@
 #include "Stage/TestStageHeader.h"
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "RHI/RHICommand.h"
 #include "RHI/ShaderManager.h"
@@ -206,7 +206,7 @@ public:
 			return true;
 		}
 
-		void draw(GLGraphics2D& g)
+		void draw(RHIGraphics2D& g)
 		{
 			if( !mbEnable ) return;
 
@@ -350,7 +350,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 

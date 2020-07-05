@@ -40,7 +40,7 @@ namespace MV
 
 		void setupPipeline(RHICommandList& commandList)
 		{
-			RHISetupFixedPipelineState(commandList, stack.get() * mView->worldToClip, mColor, nullptr , 0);
+			RHISetFixedShaderPipelineState(commandList, stack.get() * mView->worldToClip, mColor);
 		}
 
 		ViewInfo* mView;

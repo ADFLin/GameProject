@@ -36,7 +36,7 @@ void FCNeuralNetwork::calcForwardFeedback(NNScale inputs[], NNScale outputs[])
 {
 	FCNNLayout const& NNLayout = getLayout();
 
-	NNScale* tempInputs = (NNScale*)_malloca( 2 * NNLayout.getMaxLayerNodeNum() * sizeof(NNScale));
+	NNScale* tempInputs = (NNScale*)_alloca( 2 * NNLayout.getMaxLayerNodeNum() * sizeof(NNScale));
 	NNScale* tempOutputs = tempInputs + NNLayout.getMaxLayerNodeNum();
 
 	FNNCalc::LayerFrontFeedback(NNLayout.mLayers[0], mWeights , NNLayout.getInputNum(), inputs, tempInputs);
@@ -49,7 +49,7 @@ void FCNeuralNetwork::calcForwardFeedback(NNScale inputs[], NNScale outputs[])
 		std::swap(tempInputs, tempOutputs);
 	}
 	FNNCalc::LayerFrontFeedback(NNLayout.mLayers.back(), mWeights, curInputNum, tempInputs, outputs);
-	_freea(tempInputs);
+	//_freea(tempInputs);
 }
 
 

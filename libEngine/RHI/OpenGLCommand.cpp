@@ -256,7 +256,7 @@ namespace Render
 			mGLContext.swapBuffer();
 	}
 
-	RHIRenderWindow* OpenGLSystem::RHICreateRenderWindow(PlatformWindowInfo const& info)
+	RHISwapChain* OpenGLSystem::RHICreateSwapChain(SwapChainCreationInfo const& info)
 	{
 		return nullptr;
 	}
@@ -443,7 +443,7 @@ namespace Render
 		glScissor(x, y, w, h);
 	}
 
-	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture)
+	void OpenGLContext::RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
 	{
 		RHISetShaderProgram(nullptr);
 
@@ -453,15 +453,12 @@ namespace Render
 		glLoadMatrixf(transform);
 
 		glColor4fv(color);
-		if( numTexture )
+		if(texture)
 		{
 			glEnable(GL_TEXTURE_2D);
-			for( int i = 0; i < numTexture; ++i )
-			{
-				glActiveTexture(GL_TEXTURE0 + i);
-				glBindTexture(GL_TEXTURE_2D, textures[i] ? OpenGLCast::GetHandle(*textures[i]) : 0);
-			}
 			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, OpenGLCast::GetHandle(*texture));
+			glBindSampler(0, sampler ? OpenGLCast::GetHandle(*sampler) : 0);
 		}
 		else
 		{

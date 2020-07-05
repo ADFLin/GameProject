@@ -205,9 +205,6 @@
     <ClCompile Include="UnitTest\TestClass.cpp">
       <Filter>UnitTest</Filter>
     </ClCompile>
-    <ClCompile Include="GLGraphics2D.cpp">
-      <Filter>Opengl</Filter>
-    </ClCompile>
     <ClCompile Include="Phy2D\Collision.cpp">
       <Filter>Phy2D</Filter>
     </ClCompile>
@@ -643,9 +640,6 @@
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="GLConfig.h">
-      <Filter>Opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="GLGraphics2D.h">
       <Filter>Opengl</Filter>
     </ClInclude>
     <ClInclude Include="Asset.h">

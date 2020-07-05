@@ -13,37 +13,61 @@
 #ifdef SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #endif
+#include "TemplateMisc.h"
 
-class FileUtility
+template < class CharT >
+class TFileUtility
 {
 public:
-	static char const*    GetExtension( char const* fileName );
-	static char const*    GetFileName(char const* filePath);
-	static wchar_t const* GetFileName(wchar_t const* filePath);
+	static CharT const* GetExtension(CharT const* fileName);
+	static CharT const* GetFileName(CharT const* filePath);
+	static TStringView<CharT> GetDirectory(CharT const* filePath);
+	static TStringView<CharT> GetBaseFileName(CharT const* filePath);
 
-	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer, bool bAppendZeroAfterEnd = false, bool bAppendToBuffer = false);
-	static bool SaveFromBuffer(char const* path, char const* data, uint32 dataSize);
-	static std::string    GetFullPath(char const* path);
-	static StringView     GetDirectory(char const* filePath);
-	static StringView     CutDirAndExtension(char const* filePath);
-
-
+	static bool LoadToBuffer(CharT const* path, std::vector< char >& outBuffer, bool bAppendZeroAfterEnd = false, bool bAppendToBuffer = false);
+	static bool SaveFromBuffer(CharT const* path, char const* data, uint32 dataSize);
 };
 
-class FilePath
+
+class FileUtility : public TFileUtility<char> 
+	              , public TFileUtility< wchar_t >
 {
 public:
-	FilePath( char const* path )
+#define FUNC_LIST(op)\
+	op(GetExtension)\
+	op(GetFileName)\
+	op(GetDirectory)\
+	op(GetBaseFileName)\
+	op(LoadToBuffer)\
+	op(SaveFromBuffer)
+
+#define USING_OP( NAME )\
+	using TFileUtility<char>::NAME;\
+	using TFileUtility<wchar_t>::NAME;
+
+	FUNC_LIST(USING_OP)
+
+#undef FUNC_LIST
+#undef USING_OP
+};
+
+template< class CharT >
+class TFilePath
+{
+public:
+	TFilePath(CharT const* path )
 		:mPath( path ){}
 
-	char const* getString() const { return mPath.c_str(); }
+	CharT const* getString() const { return mPath.c_str(); }
 	//char const* getSubName(){;}
 	//bool isDirectory(){}
 private:
-	std::string mPath;
+	typename TStringTraits<CharT>::StdString mPath;
 };
 
-class FileIterator
+using FilePath = TFilePath<TChar>;
+
+class FileIterator : public Noncopyable
 {
 #ifdef SYS_PLATFORM_WIN
 
@@ -61,9 +85,8 @@ public:
 	bool   isDirectory() const;
 	bool   haveMore(){ return mHaveMore; }
 	void   goNext();
+
 private:
-	FileIterator( FileIterator& );
-	FileIterator& operator = ( FileIterator const& );
 	friend class FileSystem;
 
 	bool   mHaveMore;
@@ -86,15 +109,30 @@ class FileSystem
 public:
 	static bool FindFiles( char const* dir , char const* subName , FileIterator& iterator );
 
-	static bool IsExist( FilePath const& path ){ return IsExist( path.getString() ); }
-	static bool IsExist( char const* path );
-	static bool CreateDirectory(char const* pathDir);
-	static bool CreateDirectorySequence(char const* pathDir);
-	static bool GetFileSize( char const* path , int64& size );
-	static bool DeleteFile(char const* path);
-	static bool RenameFile(char const* path, char const* newFileName);
+	template< class CharT >
+	static bool IsExist( TFilePath< CharT > const& path ){ return IsExist( path.getString() ); }
 
-	static bool GetFileAttributes(char const* path , FileAttributes& outAttributes);
+	static bool IsExist( char const* path );
+	static bool IsExist( wchar_t const* path);
+
+	static bool CreateDirectory(char const* pathDir);
+	static bool CreateDirectory(wchar_t const* pathDir);
+
+	static bool CreateDirectorySequence(char const* pathDir);
+
+	static std::string  ConvertToFullPath(char const* path);
+	static std::wstring ConvertToFullPath(wchar_t const* path);
+
+	static bool GetFileSize(char const* path, int64& size);
+	static bool GetFileSize(wchar_t const* path, int64& size);
+
+	static bool DeleteFile(char const* path);
+	static bool DeleteFile(wchar_t const* path);
+
+	static bool RenameFile(char const* path, char const* newFileName);
+	static bool RenameFile(wchar_t const* path, wchar_t const* newFileName);
+
+	static bool GetFileAttributes(char const* path, FileAttributes& outAttributes);
 };
 
 

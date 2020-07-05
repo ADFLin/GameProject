@@ -86,9 +86,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVerex, dataInfos, numVertexData, pIndices, numIndex));
 	}
 
-	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture)
+	void RHISetFixedShaderPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetupFixedPipelineState(transform, color, textures, numTexture));
+		RHI_COMMAND_FUNC(commandList, RHISetFixedShaderPipelineState(transform, color, texture, sampler));
 	}
 
 	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer)

@@ -349,7 +349,7 @@ namespace Render
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 			{
-				RHISetupFixedPipelineState(commandList, mView.worldToClip);
+				RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 				DrawUtility::AixsLine(commandList);
 			}
 

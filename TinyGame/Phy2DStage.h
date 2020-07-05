@@ -24,7 +24,7 @@ namespace Phy2D
 		virtual void tick(){}
 		virtual void updateFrame( int frame ){}
 
-		void renderObject( GLGraphics2D& g , CollideObject& obj );
+		void renderObject( RHIGraphics2D& g , CollideObject& obj );
 
 
 	};

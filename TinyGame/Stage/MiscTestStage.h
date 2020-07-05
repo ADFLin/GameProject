@@ -834,7 +834,7 @@ namespace MRT
 
 
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 class GLGraphics2DTestStage : public StageBase
 {

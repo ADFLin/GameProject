@@ -556,46 +556,6 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(MappingTextureColorProgram);
 
 
-	class SimplePipelineProgram : public GlobalShaderProgram
-	{
-		DECLARE_SHADER_PROGRAM(SimplePipelineProgram, Global)
-
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/SimplePipelineShader";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
-			};
-			return entries;
-		}
-	public:
-		void bindParameters(ShaderParameterMap const& parameterMap)
-		{
-			mParamTexture.bind(parameterMap, SHADER_PARAM(Texture));
-			mParamColor.bind(parameterMap, SHADER_PARAM(Color));
-			mParamXForm.bind(parameterMap, SHADER_PARAM(XForm));
-		}
-
-		void setParameters(RHICommandList& commandList, Matrix4 const& transform, Vector4 const& color, RHITexture2D* copyTexture )
-		{
-			setTexture(commandList, mParamTexture, copyTexture ? *copyTexture : *GWhiteTexture2D );
-			setParam(commandList, mParamColor, color);
-			setParam(commandList, mParamXForm, transform);
-		}
-
-		ShaderParameter mParamTexture;
-		ShaderParameter mParamColor;
-		ShaderParameter mParamXForm;
-	};
-
-	IMPLEMENT_SHADER_PROGRAM(SimplePipelineProgram)
-
 	bool ShaderHelper::init()
 	{
 		TIME_SCOPE("ShaderHelper Init");
@@ -611,8 +571,6 @@ namespace Render
 #endif
 		
 		VERIFY_RETURN_FALSE(mProgMappingTextureColor = ShaderManager::Get().getGlobalShaderT<MappingTextureColorProgram>(true));
-		VERIFY_RETURN_FALSE(mProgSimplePipeline = ShaderManager::Get().getGlobalShaderT<SimplePipelineProgram>(true));
-
 		mFrameBuffer = RHICreateFrameBuffer();
 		return true;
 	}

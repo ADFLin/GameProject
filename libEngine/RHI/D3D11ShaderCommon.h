@@ -75,6 +75,34 @@ namespace Render
 		D3D11ShaderResource  mResource;
 	};
 
+	class D3D11VertexShader : public D3D11Shader
+	{
+	public:
+		std::vector<D3D11_INPUT_ELEMENT_DESC> mDescList;
+#if 0
+		bool generateInputDesc()
+		{
+			TComPtr< ID3D11ShaderReflection > reflection;
+			VERIFY_D3D11RESULT_RETURN_FALSE(D3DReflect(byteCode.data(), byteCode.size(), IID_ID3D11ShaderReflection, (void**)&reflection.mPtr));
+
+			D3D11_SHADER_DESC shaderDesc;
+			reflection->GetDesc(&shaderDesc);
+			for (int i = 0; i < shaderDesc.InputParameters; ++i)
+			{
+				D3D11_SIGNATURE_PARAMETER_DESC inputDesc;
+				reflection->GetInputParameterDesc(i, &inputDesc);
+
+				D3D11_INPUT_ELEMENT_DESC desc;
+				desc.SemanticIndex = inputDesc.SemanticIndex;
+				inputDesc.SemanticIndex;
+				inputDesc.SemanticName;
+				inputDesc.ComponentType;
+			}
+
+		}
+#endif
+	};
+
 	class D3D11ShaderProgram : public TRefcountResource< RHIShaderProgram >
 	{
 	public:

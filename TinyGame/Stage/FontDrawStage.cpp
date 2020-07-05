@@ -2,7 +2,7 @@
 
 #include "BitmapDC.h"
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "RHI/Font.h"
 
@@ -149,7 +149,7 @@ public:
 
 	void onRender(float dFrame) override
 	{
-		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		g.beginRender();
 

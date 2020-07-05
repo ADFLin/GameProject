@@ -8,7 +8,7 @@
 #include "Serialize/FileStream.h"
 #include "Widget/WidgetUtility.h"
 #include "RenderUtility.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "RHI/RHICommand.h"
 #include "RHI/DrawUtility.h"
@@ -599,7 +599,7 @@ namespace MV
 		float width = mViewWidth;
 		float height = width * window.getHeight() / window.getWidth();
 
-		RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(width, height, -100, 100)));
+		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(width, height, -100, 100)));
 		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
 
@@ -633,7 +633,7 @@ namespace MV
 			
 				projectMatrix = OrthoMatrix(0 , window.getWidth() , 0 , window.getHeight() , -1 , 1 );
 
-				RHISetupFixedPipelineState(commandList, projectMatrix);
+				RHISetFixedShaderPipelineState(commandList, projectMatrix);
 				glBegin( GL_LINES );
 				glVertex2i( width , 0 ); glVertex2i( width , 2 * height );
 				glVertex2i( 0 , height ); glVertex2i( 2 * width , height );
@@ -689,7 +689,7 @@ namespace MV
 		}
 
 
-		GLGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
+		RHIGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
 
 		g.beginRender();
 
@@ -903,7 +903,7 @@ namespace MV
 
 	void TestStage::renderDbgText( Vec2i const& pos )
 	{
-		GLGraphics2D& g = Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 		FixString< 256 > str;
 		glColor3f(1,1,0);
 		str.format("( %d %d %d ) dir = %d", pos2Dbg.x, pos2Dbg.y, pos2Dbg.z, (int)dirDBG);

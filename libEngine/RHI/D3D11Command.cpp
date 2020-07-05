@@ -161,7 +161,7 @@ namespace Render
 		}
 
 		gRHIClipZMin = 0;
-		gRHIProjectYSign = -1;
+		gRHIProjectYSign = 1;
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 #if 1
@@ -182,6 +182,43 @@ namespace Render
 	ShaderFormat* D3D11System::createShaderFormat()
 	{
 		return new ShaderFormatHLSL(mDevice);
+	}
+
+	RHISwapChain* D3D11System::RHICreateSwapChain(SwapChainCreationInfo const& info)
+	{
+		HRESULT hr;
+		TComPtr<IDXGIFactory> factory;
+		hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
+
+		DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+		swapChainDesc.OutputWindow = info.windowHandle;
+		swapChainDesc.Windowed = info.bWindowed;
+		swapChainDesc.SampleDesc.Count = info.numSamples;
+		swapChainDesc.SampleDesc.Quality = 0;
+		swapChainDesc.BufferDesc.Format = D3D11Translate::To(info.colorForamt);
+		swapChainDesc.BufferDesc.Width = info.extent.x;
+		swapChainDesc.BufferDesc.Height = info.extent.y;
+		swapChainDesc.BufferCount = info.bufferCount;
+		swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		//swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
+
+		TComPtr<IDXGISwapChain> swapChainResource;
+		VERIFY_D3D11RESULT(factory->CreateSwapChain(mDevice, &swapChainDesc, &swapChainResource), return nullptr;);
+
+		Texture2DCreationResult textureCreationResult;
+		VERIFY_D3D11RESULT(swapChainResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), return nullptr;);
+		VERIFY_D3D11RESULT(mDevice->CreateRenderTargetView(textureCreationResult.resource, nullptr, &textureCreationResult.RTV), return nullptr;);
+		TRefCountPtr< D3D11Texture2D > colorTexture = new D3D11Texture2D(info.colorForamt, textureCreationResult);
+		TRefCountPtr< D3D11TextureDepth > depthTexture;
+		if (info.bCreateDepth)
+		{
+			depthTexture = (D3D11TextureDepth*)RHICreateTextureDepth(info.depthFormat, info.extent.x, info.extent.y, 1, info.numSamples);
+		}
+		D3D11SwapChain* swapChain = new D3D11SwapChain(swapChainResource, *colorTexture, depthTexture);
+
+		mSwapChain = swapChain;
+		return swapChain;
 	}
 
 	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
@@ -769,7 +806,7 @@ namespace Render
 
 	void D3D11Context::RHISetViewport(int x, int y, int w, int h, float zNear, float zFar)
 	{
-		D3D11_VIEWPORT vp;
+		D3D11_VIEWPORT& vp = mViewportState[0];
 		vp.Width = w;
 		vp.Height = h;
 		vp.MinDepth = zNear;
@@ -781,11 +818,18 @@ namespace Render
 
 	void D3D11Context::RHISetScissorRect(int x, int y, int w, int h)
 	{
-		D3D11_RECT rect;
-		rect.top = x;
-		rect.left = y;
-		rect.bottom = x + w;
-		rect.right = y + h;
+		D3D11_VIEWPORT const& vp = mViewportState[0];
+		D3D11_RECT rect;	
+
+		rect.left = x;
+		rect.right = x + w;
+#if 1
+		rect.top = vp.Height - (y + h);
+		rect.bottom = vp.Height - (y);
+#else
+		rect.top = y;
+		rect.bottom = y + h;
+#endif
 		mDeviceContext->RSSetScissorRects(1, &rect);
 	}
 
@@ -805,9 +849,9 @@ namespace Render
 	}
 
 
-	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive EPrimitive, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
+	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
 	{
-		if( EPrimitive == EPrimitive::Quad )
+		if(primitive == EPrimitive::Quad )
 		{
 			int numQuad = num / 4;
 			int indexBufferSize = sizeof(uint32) * numQuad * 6;
@@ -834,12 +878,13 @@ namespace Render
 			{
 				for( int i = 0; i < numQuad; ++i )
 				{
-					pData[0] = i + 0;
-					pData[1] = i + 1;
-					pData[2] = i + 2;
-					pData[3] = i + 0;
-					pData[4] = i + 2;
-					pData[5] = i + 3;
+					int index = 4 * i;
+					pData[0] = index + 0;
+					pData[1] = index + 1;
+					pData[2] = index + 2;
+					pData[3] = index + 0;
+					pData[4] = index + 2;
+					pData[5] = index + 3;
 					pData += 6;
 				}
 			}
@@ -848,7 +893,7 @@ namespace Render
 			outIndexNum = numQuad * 6;
 			return true;
 		}
-		else if( EPrimitive == EPrimitive::LineLoop )
+		else if( primitive == EPrimitive::LineLoop )
 		{
 			if( pIndices )
 			{
@@ -870,24 +915,60 @@ namespace Render
 			outPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
 			return true;
 		}
-
-		outPrimitiveTopology = D3D11Translate::To(EPrimitive);
-		if( outPrimitiveTopology != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED )
+		else if (primitive == EPrimitive::Polygon)
 		{
-			if( pIndices )
-			{
-				uint32 indexBufferSize = num * sizeof(uint32);
-				void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-				if( pIndexBufferData == nullptr )
-					return false;
+			if (num <= 2)
+				return false;
 
-				memcpy(pIndexBufferData, pIndices, indexBufferSize);
-				*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+			int numTriangle = ( num - 2 );
+
+			int indexBufferSize = sizeof(uint32) * numTriangle * 3;
+			void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
+			if (pIndexBufferData == nullptr)
+				return false;
+
+			uint32* pData = (uint32*)pIndexBufferData;
+			if (pIndices)
+			{
+				for (int i = 0; i < numTriangle; ++i)
+				{
+					pData[0] = pIndices[0];
+					pData[1] = pIndices[i + 1];
+					pData[2] = pIndices[i + 2];
+					pData += 3;
+				}
 			}
+			else
+			{
+				for (int i = 0; i < numTriangle; ++i)
+				{
+					pData[0] = 0;
+					pData[1] = i + 1;
+					pData[2] = i + 2;
+					pData += 3;
+				}
+			}
+			outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+			outIndexNum = numTriangle * 3;
 			return true;
 		}
 
-		return false;
+		outPrimitiveTopology = D3D11Translate::To(primitive);
+		if (outPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
+			return false;
+
+		if (pIndices)
+		{
+			uint32 indexBufferSize = num * sizeof(uint32);
+			void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
+			if (pIndexBufferData == nullptr)
+				return false;
+
+			memcpy(pIndexBufferData, pIndices, indexBufferSize);
+			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+		}
+		return true;
 	}
 
 	void D3D11Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData)
@@ -926,7 +1007,8 @@ namespace Render
 
 				if( type == EPrimitive::LineLoop )
 				{
-					memcpy(pVBufferData + dataOffset, info.ptr, info.size + info.stride);
+					memcpy(pVBufferData + dataOffset, info.ptr, info.size );
+					memcpy(pVBufferData + dataOffset + info.size , info.ptr, info.stride);
 					dataOffset += info.size + info.stride;
 				}
 				else
@@ -997,8 +1079,140 @@ namespace Render
 		}
 	}
 
+	void D3D11Context::RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
+	{
+		bUseFixedShaderPipeline = true;
+		mFixedShaderParams.transform = transform;
+		mFixedShaderParams.color = color;
+		mFixedShaderParams.texture = texture;
+		mFixedShaderParams.sampler = sampler;
+	}
+
+	void D3D11Context::RHISetFrameBuffer(RHIFrameBuffer* frameBuffer)
+	{
+		D3D11RenderTargetsState* newState;
+		if (frameBuffer == nullptr)
+		{
+			D3D11SwapChain* swapChain = static_cast<D3D11System*>(gRHISystem)->mSwapChain.get();
+			if (swapChain == nullptr)
+			{
+				mDeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+				mRenderTargetsState = nullptr;
+				return;
+			}
+
+			newState = &swapChain->mRenderTargetsState;
+		}
+		else
+		{
+
+
+
+		}
+
+		CHECK(newState);
+		if (mRenderTargetsState != newState)
+		{
+			mRenderTargetsState = newState;
+			mDeviceContext->OMSetRenderTargets(mRenderTargetsState->numColorBuffers, mRenderTargetsState->colorBuffers, mRenderTargetsState->depthBuffer);
+		}
+	}
+
+	void D3D11Context::RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil)
+	{
+		if (mRenderTargetsState == nullptr)
+			return;
+
+		if (HaveBits(clearBits, EClearBits::Color))
+		{
+			for (int i = 0; i < numColor; ++i)
+			{
+				if (i >= mRenderTargetsState->numColorBuffers)
+					break;
+
+				mDeviceContext->ClearRenderTargetView(mRenderTargetsState->colorBuffers[i], (numColor == 1) ? colors[0] : colors[i]);
+			}
+		}
+
+		if (HaveBits(clearBits, EClearBits::Depth | EClearBits::Stencil))
+		{
+			uint32 clearFlag = 0;
+			if (HaveBits(clearBits, EClearBits::Depth))
+			{
+				clearFlag |= D3D11_CLEAR_DEPTH;
+			}
+			if (HaveBits(clearBits, EClearBits::Stencil))
+			{
+				clearFlag |= D3D11_CLEAR_STENCIL;
+			}
+			mDeviceContext->ClearDepthStencilView(mRenderTargetsState->depthBuffer, D3D11_CLEAR_DEPTH, depth, stenceil);
+		}
+	}
+
+	void D3D11Context::RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
+	{
+		int const MaxStreamNum = 16;
+		assert(numInputStream <= MaxStreamNum);
+		ID3D11Buffer* buffers[MaxStreamNum];
+		UINT strides[MaxStreamNum];
+		UINT offsets[MaxStreamNum];
+
+		for (int i = 0; i < numInputStream; ++i)
+		{
+			if (inputStreams[i].buffer)
+			{
+				buffers[i] = D3D11Cast::GetResource(inputStreams[i].buffer);
+				offsets[i] = inputStreams[i].offset;
+				strides[i] = inputStreams[i].stride >= 0 ? inputStreams[i].stride : inputStreams[i].buffer->getElementSize();
+			}
+
+		}
+
+		mInputLayout = inputLayout;
+		if (numInputStream)
+		{
+			mDeviceContext->IASetVertexBuffers(0, numInputStream, buffers, strides, offsets);
+		}
+	}
+
 	void D3D11Context::commitRenderShaderState()
 	{
+		if (bUseFixedShaderPipeline)
+		{
+			if (mInputLayout)
+			{
+				SimplePipelineProgram* program = nullptr;
+				if (D3D11Cast::To(mInputLayout)->haveAttribute(Vertex::ATTRIBUTE_COLOR))
+				{
+					if (D3D11Cast::To(mInputLayout)->haveAttribute(Vertex::ATTRIBUTE_TEXCOORD))
+					{
+						program = GSimpleShaderPiplineCT;
+					}
+					else
+					{
+						program = GSimpleShaderPiplineC;
+					}
+				}
+				else
+				{
+					if (D3D11Cast::To(mInputLayout)->haveAttribute(Vertex::ATTRIBUTE_TEXCOORD))
+					{
+						program = GSimpleShaderPiplineT;
+					}
+					else
+					{
+						program = GSimpleShaderPipline;
+					}
+				}
+
+				RHISetShaderProgram(program->getRHIResource());
+				program->setParameters(RHICommandListImpl(*this),
+					mFixedShaderParams.transform, mFixedShaderParams.color, mFixedShaderParams.texture, mFixedShaderParams.sampler);
+			}
+
+		}
+
+
 #define CLEAR_SHADER_STATE( SHADER_TYPE )\
 		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
 
@@ -1059,6 +1273,8 @@ namespace Render
 
 	void D3D11Context::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
 	{
+		bUseFixedShaderPipeline = false;
+
 		if( shaderProgram == nullptr )
 		{
 			mBoundedShaderMask = 0;

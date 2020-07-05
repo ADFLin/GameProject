@@ -8,7 +8,7 @@
 #include "RHI/RHICommand.h"
 #include "RHI/OpenGLCommand.h"
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 #include "GameGlobal.h"
 #include "RenderUtility.h"
 #include <algorithm>
@@ -61,10 +61,9 @@ public:
 IGraphics2D& DrawEngine::getIGraphics()
 {
 	static TGraphics2DProxy< Graphics2D > proxyPlatform( *mPlatformGraphics );
-	static TGraphics2DProxy< GLGraphics2D > proxyGL( *mGLGraphics );
-	static TGraphics2DProxy< Render::RHIGraphics2D > proxyRHI( *mRHIGraphics );
+	static TGraphics2DProxy< RHIGraphics2D > proxyRHI( *mRHIGraphics );
 	if ( isUsageRHIGraphic2D() )
-		return proxyGL;
+		return proxyRHI;
 	return proxyPlatform;
 }
 
@@ -78,7 +77,6 @@ DrawEngine::~DrawEngine()
 {
 	mBufferDC.release();
 	mPlatformGraphics.release();
-	mGLGraphics.release();
 	mRHIGraphics.release();
 
 }
@@ -91,11 +89,8 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getHandle() ) );
 	RenderUtility::Initialize();
 
-	mGLGraphics.reset(new GLGraphics2D);
-	mGLGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
-	mRHIGraphics.reset(new Render::RHIGraphics2D);
+	mRHIGraphics.reset(new RHIGraphics2D);
 	mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
-
 
 	mbInitialized = true;
 }
@@ -117,6 +112,14 @@ void DrawEngine::update(long deltaTime)
 		bRHIShutdownDeferred = false;
 		RHISystemShutdown();
 	}
+}
+
+bool DrawEngine::isUsageRHIGraphic2D() const
+{
+	if (mRHIName == RHITargetName::OpenGL || mRHIName == RHITargetName::D3D11 )
+		return true;
+
+	return false;
 }
 
 bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams initParams)
@@ -143,21 +146,33 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 	{
 		switch( targetName )
 		{
-		case RHITargetName::OpenGL: return RHISytemName::Opengl;
+		case RHITargetName::OpenGL: return RHISytemName::OpenGL;
 		case RHITargetName::D3D11: return RHISytemName::D3D11;
 		case RHITargetName::D3D12: return RHISytemName::D3D12;
 		case RHITargetName::Vulkan: return RHISytemName::Vulkan;
 		}
-		return RHISytemName::Opengl;
+		return RHISytemName::OpenGL;
 	}();
 	if( !RHISystemInitialize(name, initParam) )
 		return false;
 
 	mRHIName = targetName;
+
+	RenderUtility::InitializeRHI();
 	if( mRHIName == RHITargetName::OpenGL )
 	{
-		RenderUtility::InitializeRHI();
 		mGLContext = &static_cast<OpenGLSystem*>(gRHISystem)->mGLContext;
+	}
+	else if (mRHIName == RHITargetName::D3D11)
+	{
+		SwapChainCreationInfo info;
+		info.windowHandle = mGameWindow->getHWnd();
+		info.bWindowed = !mGameWindow->isFullscreen();
+		info.extent.x = mGameWindow->getWidth();
+		info.extent.y = mGameWindow->getHeight();
+		info.numSamples = initParams.numSamples;
+		info.bCreateDepth = true;
+		RHICreateSwapChain(info);
 	}
 	bHasUseRHI = true;
 	bUsePlatformBuffer = false;
@@ -331,8 +346,6 @@ void DrawEngine::changeScreenSize( int w , int h )
 	if ( mBufferDC.getWidth() != w || mBufferDC.getHeight() != h )
 	{
 		setupBuffer( w , h );
-		if ( mGLGraphics )
-			mGLGraphics->init( w , h );
 		if( mRHIGraphics )
 			mRHIGraphics->init(w, h);
 

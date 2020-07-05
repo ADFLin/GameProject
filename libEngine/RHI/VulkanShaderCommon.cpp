@@ -278,7 +278,7 @@ namespace Render
 
 		return true;
 #else
-		std::string pathFull = FileUtility::GetFullPath(input.path);
+		std::string pathFull = FileSystem::ConvertToFullPath(input.path);
 		char const* posExtension = FileUtility::GetExtension(pathFull.c_str());
 
 		std::string pathCompile;

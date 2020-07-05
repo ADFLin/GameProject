@@ -115,29 +115,27 @@
 #define inout
 #define vs_out
 
-template< class T , class VecType >
-struct VecOpT
-{
 
-	VecType operator + (VecType);
-	VecType operator - (VecType);
-	VecType operator * (VecType);
-	VecType operator / (VecType);
-	VecType operator + (T);
-	VecType operator * (T);
-	VecType operator / (T);
-	VecType operator - (T);
-
-	VecType operator - (void);
-
-	friend VecType operator * (T, VecType);
-
+#define VECTOR_OP( T , TVecType )\
+	TVecType operator + (TVecType);\
+	TVecType operator - (TVecType);\
+	TVecType operator * (TVecType);\
+	TVecType operator / (TVecType);\
+	TVecType operator + (T);\
+	TVecType operator * (T);\
+	TVecType operator / (T);\
+	TVecType operator - (T);\
+	TVecType operator - (void);\
+	friend TVecType operator * (T, TVecType);\
 	T operator[](int);
-};
+
+
 
 template< class T >
-struct TVec2 : VecOpT< T , TVec2<T> >
+struct TVec2
 {
+	VECTOR_OP( T , TVec2<T> )
+
 	T x, y;
 	T r, g;
 	T s, t;
@@ -151,8 +149,9 @@ struct TVec2 : VecOpT< T , TVec2<T> >
 };
 
 template< class T >
-struct TVec3 : TVec2<T>, VecOpT< T, TVec3<T> >
+struct TVec3 : TVec2<T>
 {
+	VECTOR_OP(T, TVec3<T>)
 	TVec3<T> xxx, yyy, zzz, xyz;
 	TVec2<T> xz, yz;
 	T  z, b, p;
@@ -164,12 +163,12 @@ struct TVec3 : TVec2<T>, VecOpT< T, TVec3<T> >
 	
 	template< class Q >
 	explicit operator TVec2<Q>();
-
 };
 
 template< class T >
-struct TVec4 : TVec3<T> , VecOpT< T, TVec4<T> >
+struct TVec4 : TVec3<T>
 {
+	VECTOR_OP(T, TVec4<T>)
 	TVec3<T> xyz, rgb, stp;
 	T  w, a, q;
 

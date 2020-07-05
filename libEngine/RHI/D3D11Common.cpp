@@ -14,6 +14,7 @@ namespace Render
 		case EPrimitive::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
 		case EPrimitive::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
 		case EPrimitive::Patchs: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+		case EPrimitive::Polygon:
 		case EPrimitive::TriangleFan:
 		case EPrimitive::LineLoop:
 		case EPrimitive::Quad:
@@ -317,5 +318,6 @@ namespace Render
 		mResourceMap.insert(std::make_pair(shader, inputLayoutResource));
 		return inputLayoutResource;
 	}
+
 
 }//namespace Render

@@ -143,7 +143,7 @@ namespace Render
 		float det;
 		worldToView.inverse(viewToWorld, det);
 		worldPos = TransformPosition(Vector3(0, 0, 0), viewToWorld);
-		viewToClip =  AdjProjectionMatrixForRHI( inProjectMatrix );
+		viewToClip = AdjProjectionMatrixForRHI( inProjectMatrix );
 		worldToClip = worldToView * viewToClip;
 
 		viewToClip.inverse(clipToView, det);

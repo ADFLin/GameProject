@@ -257,7 +257,6 @@
     <ClCompile Include="Json.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
-    <ClCompile Include="GLGraphics2D.cpp" />
     <ClCompile Include="HashString.cpp" />
     <ClCompile Include="Math\BigFloat.cpp" />
     <ClCompile Include="Math\BigInteger.cpp" />
@@ -437,7 +436,6 @@
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameLoop.h" />
     <ClInclude Include="GLConfig.h" />
-    <ClInclude Include="GLGraphics2D.h" />
     <ClInclude Include="Graphics2DBase.h" />
     <ClInclude Include="CompressAlgo.h" />
     <ClInclude Include="Core\IntegerType.h" />

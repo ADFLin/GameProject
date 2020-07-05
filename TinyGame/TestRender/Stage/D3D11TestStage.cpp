@@ -21,30 +21,26 @@ namespace Render
 		float blue;
 	};
 
-	
+
 	class TestD3D11Stage : public TestRenderStageBase
 	{
 		using BaseClass = TestRenderStageBase;
 	public:
 		TestD3D11Stage() {}
-		D3D11System* mRHISystem;
-
+		D3D11System* mD3D11System;
 		ShaderProgram mProgTest;
 		static int constexpr MaxConstBufferNum = 1;
 
-		FrameSwapChain mSwapChain;
-		RHITextureDepthRef mDepthTexture;
 		RHITexture2DRef mTexture;
 		
 		TStructuredBuffer< ColourBuffer > mCBuffer;
-		TComPtr< ID3D11RenderTargetView > renderTargetView;
+
 		RHIInputLayoutRef  mInputLayout;
 		RHIVertexBufferRef mVertexBuffer;
 		RHIIndexBufferRef  mIndexBuffer;
 
 		RHIInputLayoutRef  mAxisInputLayout;
 		RHIVertexBufferRef mAxisVertexBuffer;
-
 		RHITargetName getRHITargetName() override { return RHITargetName::D3D11; }
 
 		struct MyVertex
@@ -66,14 +62,12 @@ namespace Render
 				return false;
 
 			VERIFY_RETURN_FALSE( createSimpleMesh() );
-
-			mRHISystem = static_cast<D3D11System*>(gRHISystem);
-
 			GameWindow& window = ::Global::GetDrawEngine().getWindow();
-			::Global::GetDrawEngine().bUsePlatformBuffer = true;
-			if( !mRHISystem->createFrameSwapChain(window.getHWnd(), window.getWidth(), window.getHeight(), true, mSwapChain) )
+
+			if (gRHISystem->getName() == RHISytemName::D3D11)
 			{
-				return false;
+				mD3D11System = static_cast<D3D11System*>(gRHISystem);
+				::Global::GetDrawEngine().bUsePlatformBuffer = true;
 			}
 
 			ShaderManager::Get().loadFile(mProgTest, "Shader/Game/HLSLTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS));
@@ -94,16 +88,6 @@ namespace Render
 			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.png");
 			if( !mTexture.isValid() )
 				return false;
-
-			HRESULT hr;
-			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
-			TComPtr< ID3D11Texture2D > backBuffer;
-			VERIFY_D3D11RESULT_RETURN_FALSE( mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
-			VERIFY_D3D11RESULT_RETURN_FALSE( device->CreateRenderTargetView( backBuffer , nullptr, &renderTargetView) );
-			mDepthTexture = RHICreateTextureDepth(Texture::eDepth32F, window.getWidth(), window.getHeight() );
-
-
-			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 
 			{
 				MyVertex vertices[] =
@@ -188,7 +172,7 @@ namespace Render
 		{
 			GPU_PROFILE("Render");
 
-			Graphics2D& g = Global::GetGraphics2D();
+		
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -201,13 +185,10 @@ namespace Render
 			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
 			mView.updateBuffer();
 
-			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
-			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
+			RHISetFrameBuffer(commandList, nullptr);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
 
-			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));
-			context->ClearDepthStencilView(D3D11Cast::To(mDepthTexture)->mDSV, D3D11_CLEAR_DEPTH, 1.0, 0);
-			context->OMSetRenderTargets(1, &renderTargetView, D3D11Cast::To(mDepthTexture)->mDSV );
-			
+		
 			RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
 
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
@@ -268,6 +249,7 @@ namespace Render
 				RHIDrawPrimitive(commandList, EPrimitive::LineList, 0, 6);
 			}
 
+#if 0
 			{
 				GPU_PROFILE("Doughnut");
 				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(-10, 0, 10));
@@ -275,12 +257,13 @@ namespace Render
 					mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList);
 				}
 			}
+#endif
 
 			{
 				GPU_PROFILE("Sphere");
 				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(-10, 5, 5));
 				{
-					mSimpleMeshs[SimpleMeshId::Sphere].draw(commandList, Vector3(1, 0, 0));
+					mSimpleMeshs[SimpleMeshId::Sphere].draw(commandList, LinearColor(1, 0, 0, 1));
 				}
 			}
 
@@ -327,27 +310,20 @@ namespace Render
 			{
 				GPU_PROFILE("Context Flush");
 
-				context->Flush();
+				RHIFlushCommand(commandList);
 			}
 			{
 				GPU_PROFILE("Present");
 
-				if( !::Global::GetDrawEngine().bUsePlatformBuffer )
+				if (gRHISystem->getName() == RHISytemName::D3D11)
 				{
-					mSwapChain.ptr->Present(1, 0);
+					if (::Global::GetDrawEngine().bUsePlatformBuffer)
+					{
+						Graphics2D& g = Global::GetGraphics2D();
+						mD3D11System->mSwapChain->BitbltToDevice(g.getRenderDC());
+					}
 				}
-				else
-				{
-					TComPtr<IDXGISurface1> surface;
-					VERIFY_D3D11RESULT(mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&surface)), );
-					HDC hDC;
-					VERIFY_D3D11RESULT(surface->GetDC(FALSE, &hDC), );
 
-					int w = ::Global::GetDrawEngine().getScreenWidth();
-					int h = ::Global::GetDrawEngine().getScreenHeight();
-					::BitBlt(g.getRenderDC(), 0, 0, w, h, hDC, 0, 0, SRCCOPY);
-					VERIFY_D3D11RESULT(surface->ReleaseDC(nullptr), );
-				}
 			}
 		}
 

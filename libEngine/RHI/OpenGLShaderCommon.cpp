@@ -231,6 +231,25 @@ namespace Render
 
 				sourceCodes[numSourceCodes] = &codeBuffer[0];
 				++numSourceCodes;
+				bool bOutputCode = true;
+				if (bOutputCode)
+				{
+
+					FileSystem::CreateDirectory("ShaderOutput");
+					std::string outputPath = "ShaderOutput/";
+					outputPath += FileUtility::GetBaseFileName(input.path).toCString();
+					char const* const ShaderPosfixNames[] =
+					{
+						"VS" SHADER_FILE_SUBNAME ,
+						"PS" SHADER_FILE_SUBNAME ,
+						"GS" SHADER_FILE_SUBNAME ,
+						"CS" SHADER_FILE_SUBNAME ,
+						"HS" SHADER_FILE_SUBNAME ,
+						"DS" SHADER_FILE_SUBNAME ,
+					};
+					outputPath += ShaderPosfixNames[input.type];
+					FileUtility::SaveFromBuffer(outputPath.c_str(), &codeBuffer[0], codeBuffer.size() - 1);
+				}
 			}
 			else
 			{
@@ -246,11 +265,7 @@ namespace Render
 			auto ProcessCompileError = [&]( GLuint shaderHandle )
 			{
 				{
-					std::ofstream of("temp" SHADER_FILE_SUBNAME, std::ios::binary);
-					if (of.is_open())
-					{
-						of.write(&codeBuffer[0], codeBuffer.size());
-					}
+					FileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, &codeBuffer[0], codeBuffer.size() - 1);
 				}
 
 				if (shaderHandle)

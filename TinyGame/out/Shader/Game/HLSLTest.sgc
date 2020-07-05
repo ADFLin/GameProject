@@ -1,32 +1,32 @@
 #include "ViewParam.sgc"
 
-struct VSInput
+struct VSOutputParam
 {
-	float3 pos    : ATTRIBUTE0;
-	//float3 normal : ATTRIBUTE2;	
-	float4 color  : ATTRIBUTE3;
-	float2 uv     : ATTRIBUTE8;
-	
+	MEMBER_OUTPUT(float3 color, TEXCOORD0);
+	MEMBER_OUTPUT(float2 uv, TEXCOORD1);
 };
 
-struct VSOutput
-{
-	float4 svPosition : SV_POSITION;
-	float3 color      : TEXCOORD0;
-	float2 uv         : TEXCOORD1;
-};
+#if VERTEX_SHADER
 
+uniform float4x4 XForm;
 
-float4x4 XForm;
-
-void MainVS(in VSInput inputVS, out VSOutput output)
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos , ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InColor, ATTRIBUTE_COLOR)
+	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_LAST( VSOutputParam VSOutput, 0)
+VS_ENTRY_END(MainVS)
 {
 	//output.svPosition = mul(XForm, float4(inputVS.pos.xy, 0.5, 1));
-	float4 worldPos = mul(XForm, float4(inputVS.pos.xyz, 1) );
-	output.svPosition = mul( View.worldToClip , worldPos);
-	output.color = inputVS.color;
-	output.uv = inputVS.uv;
+	float4 worldPos = mul(XForm, float4(InPos.xyz, 1) );
+	SvPosition = mul( View.worldToClip , worldPos);
+	VSOutput.color = InColor;
+	VSOutput.uv = InUV;
 }
+
+#endif
+
+#if PIXEL_SHADER
 
 struct ColourBuffer
 {
@@ -41,14 +41,20 @@ cbuffer ColourBufferBlock
 };
 
 
-Texture2D Texture;
-SamplerState TextureSampler;
-float3 Color;
-void MainPS(in VSOutput inputVS, out float4 OutColor : SV_Target0)
+DEFINE_TEXTURE(Texture2D, Texture);
+
+uniform float3 Color;
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT(VSOutputParam InputVS, 0)
+	PS_OUTPUT_LAST(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
-	float4 color = Texture.Sample(TextureSampler, inputVS.uv);
+	float4 color = TEXTURE_SAMPE(Texture, InputVS.uv);
 	//OutColor = float4(c * Color * inputVS.color * color.rgb, 1);
-	OutColor = float4(inputVS.color, 1);
+	OutColor = float4(InputVS.color, 1);
 	//OutColor = float4(Color* inputVS.color, 1 );
 }
+
+#endif //#if PIXEL_SHADER

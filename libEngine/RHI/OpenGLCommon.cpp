@@ -1244,8 +1244,6 @@ namespace Render
 			element.componentType = OpenGLTranslate::VertexComponentType(e.format);
 			element.stride = desc.getVertexSize(e.idxStream);
 			element.offset = e.offset;
-			//
-			element.semantic = Vertex::AttributeToSemantic(e.attribute , element.idx);
 
 			mElements.push_back(element);
 		}
@@ -1266,6 +1264,7 @@ namespace Render
 			int stride = (inputStream.stride >= 0) ? inputStream.stride : inputStream.buffer->getElementSize();
 
 			OpenGLCast::To(inputStream.buffer)->bind();
+
 			for( ; index < mElements.size(); ++index )
 			{
 				auto const& e = mElements[index];
@@ -1277,7 +1276,15 @@ namespace Render
 				{
 					glVertexBindingDivisor(e.attribute, e.instanceStepRate);
 				}
-				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, stride, (void*)(inputStream.offset + e.offset));			
+
+				if (stride == 0)
+				{
+					glBindVertexBuffer(e.attribute, OpenGLCast::GetHandle(*inputStream.buffer), inputStream.offset, inputStream.stride);
+				}
+				else
+				{
+					glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, stride, (void*)(inputStream.offset + e.offset));
+				}	
 			}
 		}
 
@@ -1336,51 +1343,59 @@ namespace Render
 	void BindElementPointer(OpenGLInputLayout::Element const& e, uint32 offset, uint32 stride, bool& haveTex)
 	{
 		offset += e.offset;
-		switch( e.semantic )
+		switch( e.attribute )
 		{
-		case Vertex::ePosition:
+		case Vertex::ATTRIBUTE_POSITION:
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glVertexPointer(e.componentNum, e.componentType, stride, (void*)(offset));
 			break;
-		case Vertex::eNormal:
+		case Vertex::ATTRIBUTE_NORMAL:
 			assert(e.componentNum == 3);
 			glEnableClientState(GL_NORMAL_ARRAY);
 			glNormalPointer(e.componentType, stride, (void*)(offset));
 			break;
-		case Vertex::eColor:
-			if (stride > 0 )
+		case Vertex::ATTRIBUTE_COLOR:
+			if (stride > 0)
 			{
-				if (e.idx == 0)
-				{
-					glEnableClientState(GL_COLOR_ARRAY);
-					glColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
-				}
-				else
-				{
-					glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
-					glSecondaryColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
-				}
+				glEnableClientState(GL_COLOR_ARRAY);
+				glColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
 			}
 			else
 			{
-				if (e.idx == 0)
-				{
-					glEnableClientState(GL_COLOR_ARRAY);
-					glColor4fv((GLfloat const*)offset);
-				}
+				glEnableClientState(GL_COLOR_ARRAY);
+				glColor4fv((GLfloat const*)offset);
 			}
 			break;
-		case Vertex::eTangent:
+		case Vertex::ATTRIBUTE_COLOR2:
+			if (stride > 0 )
+			{
+				glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
+				glSecondaryColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+			}
+			else
+			{
+				//#TODO: LOG
+			}
+			break;
+		case Vertex::ATTRIBUTE_TANGENT:
 			glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
 			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 			glTexCoordPointer(e.componentNum, e.componentType, stride, (void*)(offset));
 			haveTex = true;
 			break;
-		case Vertex::eTexcoord:
-			glClientActiveTexture(GL_TEXTURE0 + e.idx);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glTexCoordPointer(e.componentNum, e.componentType, stride, (void*)(offset));
-			haveTex = true;
+		case Vertex::ATTRIBUTE_TEXCOORD:
+		case Vertex::ATTRIBUTE_TEXCOORD1:
+		case Vertex::ATTRIBUTE_TEXCOORD2:
+		case Vertex::ATTRIBUTE_TEXCOORD3:
+		case Vertex::ATTRIBUTE_TEXCOORD4:
+		case Vertex::ATTRIBUTE_TEXCOORD5:
+		case Vertex::ATTRIBUTE_TEXCOORD6:
+			{
+				glClientActiveTexture(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD);
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				glTexCoordPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+				haveTex = true;
+			}
 			break;
 		}
 	}
@@ -1388,9 +1403,9 @@ namespace Render
 	void BindElementData(OpenGLInputLayout::Element const& e, uint32 offset, uint32 stride)
 	{
 		offset += e.offset;
-		switch( e.semantic )
+		switch( e.attribute )
 		{
-		case Vertex::ePosition:
+		case Vertex::ATTRIBUTE_POSITION:
 			switch( e.componentNum )
 			{
 			case 1: glVertex2f(*(float*)(offset), 0); break;
@@ -1399,21 +1414,18 @@ namespace Render
 			case 4: glVertex4fv((float*)(offset)); break;
 			}
 			break;
-		case Vertex::eNormal:
+		case Vertex::ATTRIBUTE_NORMAL:
 			assert(e.componentNum == 3);
 			glNormal3fv((float*)e.offset); break;
 			break;
-		case Vertex::eColor:
-			if( e.idx == 0 )
+		case Vertex::ATTRIBUTE_COLOR:
+			switch( e.componentNum )
 			{
-				switch( e.componentNum )
-				{
-				case 3: glColor3fv((float*)(offset)); break;
-				case 4: glColor4fv((float*)(offset)); break;
-				}
+			case 3: glColor3fv((float*)(offset)); break;
+			case 4: glColor4fv((float*)(offset)); break;
 			}
 			break;
-		case Vertex::eTangent:
+		case Vertex::ATTRIBUTE_TANGENT:
 			switch( e.componentNum )
 			{
 			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
@@ -1422,13 +1434,19 @@ namespace Render
 			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
 			}
 			break;
-		case Vertex::eTexcoord:
+		case Vertex::ATTRIBUTE_TEXCOORD:
+		case Vertex::ATTRIBUTE_TEXCOORD1:
+		case Vertex::ATTRIBUTE_TEXCOORD2:
+		case Vertex::ATTRIBUTE_TEXCOORD3:
+		case Vertex::ATTRIBUTE_TEXCOORD4:
+		case Vertex::ATTRIBUTE_TEXCOORD5:
+		case Vertex::ATTRIBUTE_TEXCOORD6:
 			switch( e.componentNum )
 			{
-			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + e.idx, (float*)(offset));
-			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + e.idx, (float*)(offset));
-			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + e.idx, (float*)(offset));
-			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + e.idx, (float*)(offset));
+			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
+			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
+			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
+			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
 			}
 			break;
 		}
@@ -1436,25 +1454,34 @@ namespace Render
 
 	void UnbindElementPointer(OpenGLInputLayout::Element const& e, bool& haveTex)
 	{
-		switch( e.semantic )
+		switch( e.attribute )
 		{
-		case Vertex::ePosition:
+		case Vertex::ATTRIBUTE_POSITION:
 			glDisableClientState(GL_VERTEX_ARRAY);
 			break;
-		case Vertex::eNormal:
+		case Vertex::ATTRIBUTE_NORMAL:
 			glDisableClientState(GL_NORMAL_ARRAY);
 			break;
-		case Vertex::eColor:
-			glDisableClientState((e.idx == 0) ? GL_COLOR_ARRAY : GL_SECONDARY_COLOR_ARRAY);
+		case Vertex::ATTRIBUTE_COLOR:
+			glDisableClientState(GL_COLOR_ARRAY);
 			break;
-		case Vertex::eTangent:
+		case Vertex::ATTRIBUTE_COLOR2:
+			glDisableClientState(GL_SECONDARY_COLOR_ARRAY);
+			break;
+		case Vertex::ATTRIBUTE_TANGENT:
 			haveTex = true;
 			glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			break;
-		case Vertex::eTexcoord:
+		case Vertex::ATTRIBUTE_TEXCOORD:
+		case Vertex::ATTRIBUTE_TEXCOORD1:
+		case Vertex::ATTRIBUTE_TEXCOORD2:
+		case Vertex::ATTRIBUTE_TEXCOORD3:
+		case Vertex::ATTRIBUTE_TEXCOORD4:
+		case Vertex::ATTRIBUTE_TEXCOORD5:
+		case Vertex::ATTRIBUTE_TEXCOORD6:
 			haveTex = true;
-			glClientActiveTexture(GL_TEXTURE0 + e.idx);
+			glClientActiveTexture(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD);
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			break;
 		}

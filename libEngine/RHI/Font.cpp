@@ -120,6 +120,20 @@ namespace Render
 		data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelSize);
 		CopyImage(&data.imageData[0], data.imageWidth, data.imageHeight, data.pixelSize, pDataTexture, textureDC.getWidth());
 
+		if (gRHISystem->getName() == RHISytemName::D3D11)
+		{
+			uint8* pData = data.imageData.data();
+			int count = data.imageData.size() / 4;
+			for (int i = count; i ; --i )
+			{
+				if (pData[0])
+				{
+					pData[3] = pData[0];
+				}
+				pData += 4;
+			}
+		}
+
 		return true;
 	}
 #endif //SYS_PLATFORM_WIN
@@ -153,6 +167,7 @@ namespace Render
 			if( !mTextAtlas.initialize(Texture::eRGBA8, 1024, 1024, 1) )
 				return false;
 
+			if ( gRHISystem->getName() == RHISytemName::OpenGL )
 			{
 				GL_BIND_LOCK_OBJECT(mTextAtlas.getTexture());
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
@@ -268,22 +283,22 @@ namespace Render
 		cleanup();
 	}
 
-	void FontDrawer::draw(RHICommandList& commandList, Vector2 const& pos, char const* str)
+	void FontDrawer::draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str)
 	{
 		assert(isValid());
 		if( str == nullptr )
 			return;
 
 		std::wstring text = FCString::CharToWChar(str);
-		drawImpl(commandList, pos, text.c_str());
+		drawImpl(commandList, pos, transform, color, text.c_str());
 	}
 
-	void FontDrawer::draw(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str)
+	void FontDrawer::draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str)
 	{
 		assert(isValid());
 		if( str == nullptr )
 			return;
-		drawImpl(commandList, pos, str);
+		drawImpl(commandList, pos, transform, color, str);
 	}
 
 	Vector2 FontDrawer::calcTextExtent(wchar_t const* str)
@@ -340,7 +355,7 @@ namespace Render
 		return calcTextExtent(text.c_str());
 	}
 
-	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str)
+	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform , LinearColor const& color , wchar_t const* str)
 	{
 		mBuffer.clear();
 		Vector2 curPos = pos;
@@ -377,10 +392,8 @@ namespace Render
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 			{
-				glEnable(GL_TEXTURE_2D);
-				GL_BIND_LOCK_OBJECT(mCharDataSet->getTexture());
+				RHISetFixedShaderPipelineState(commandList, transform, color, &mCharDataSet->getTexture());
 				TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, &mBuffer[0], mBuffer.size());
-				glDisable(GL_TEXTURE_2D);
 			}
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		}

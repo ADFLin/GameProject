@@ -2,7 +2,7 @@
 #include "TinyGameApp.h"
 
 #include "DrawEngine.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 #include "RenderUtility.h"
 
 #include "PropertySet.h"

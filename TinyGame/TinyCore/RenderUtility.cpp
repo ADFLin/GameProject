@@ -2,7 +2,6 @@
 #include "RenderUtility.h"
 
 #include "GameGlobal.h"
-#include "GLGraphics2D.h"
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/Font.h"
 
@@ -15,7 +14,7 @@ namespace
 	HBRUSH hBrush[3][EColor::Number];
 	HPEN   hCPen[3][EColor::Number];
 	HFONT  hFont[FONT_NUM];
-	GLFont FontGL[FONT_NUM];
+	FontDrawer FontGL[FONT_NUM];
 
 	Color3ub gColorMap[3][EColor::Number];
 }
@@ -128,7 +127,7 @@ void RenderUtility::SetFont( Graphics2D& g , int fontID )
 	g.setFont( hFont[fontID] );
 }
 
-void RenderUtility::SetPen( GLGraphics2D& g , int color , int type )
+void RenderUtility::SetPen( RHIGraphics2D& g , int color , int type )
 {
 	if ( color == EColor::Null )
 	{
@@ -141,39 +140,8 @@ void RenderUtility::SetPen( GLGraphics2D& g , int color , int type )
 	}
 }
 
-void RenderUtility::SetBrush(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
-{
-	if ( color == EColor::Null )
-	{
-		g.enableBrush( false );
-	}
-	else
-	{
-		g.enableBrush( true );
-		g.setBrush(gColorMap[type][color]);
-	}
-}
 
-void RenderUtility::SetFont(GLGraphics2D& g , int fontID)
-{
-	//#TODO
-	g.setFont( FontGL[ fontID ] );
-}
-
-void RenderUtility::SetPen(Render::RHIGraphics2D& g, int color, int type)
-{
-	if( color == EColor::Null )
-	{
-		g.enablePen(false);
-	}
-	else
-	{
-		g.enablePen(true);
-		g.setPen(gColorMap[type][color]);
-	}
-}
-
-void RenderUtility::SetBrush(Render::RHIGraphics2D& g, int color, int type /*= COLOR_NORMAL */)
+void RenderUtility::SetBrush(RHIGraphics2D& g, int color, int type /*= COLOR_NORMAL */)
 {
 	if( color == EColor::Null )
 	{
@@ -186,7 +154,7 @@ void RenderUtility::SetBrush(Render::RHIGraphics2D& g, int color, int type /*= C
 	}
 }
 
-void RenderUtility::SetFont(Render::RHIGraphics2D& g, int fontID)
+void RenderUtility::SetFont(RHIGraphics2D& g, int fontID)
 {
 	//#TODO
 	g.setFont(FontGL[fontID]);
@@ -197,8 +165,7 @@ void RenderUtility::SetPen(IGraphics2D& g , int color , int type )
 	struct MyVisistor : IGraphics2D::Visitor
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetPen(  g , color );  }
-		virtual void visit(GLGraphics2D& g){  RenderUtility::SetPen(  g , color );  }
-		virtual void visit(Render::RHIGraphics2D& g) { RenderUtility::SetPen(g, color); }
+		virtual void visit(RHIGraphics2D& g){  RenderUtility::SetPen(  g , color );  }
 		int color;
 		int type;
 	} visitor;
@@ -212,8 +179,7 @@ void RenderUtility::SetBrush(IGraphics2D& g , int color , int type /*= COLOR_NOR
 	struct MyVisistor : IGraphics2D::Visitor
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetBrush(  g , color , type  );  }
-		virtual void visit(GLGraphics2D& g){  RenderUtility::SetBrush(  g , color , type );  }
-		virtual void visit(Render::RHIGraphics2D& g) { RenderUtility::SetBrush(g, color, type); }
+		virtual void visit(RHIGraphics2D& g){  RenderUtility::SetBrush(  g , color , type );  }
 		int color;
 		int type;
 	} visitor;
@@ -227,8 +193,7 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 	struct MyVisistor : IGraphics2D::Visitor
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
-		virtual void visit(GLGraphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
-		virtual void visit(Render::RHIGraphics2D& g) { RenderUtility::SetFont(g, fontID); }
+		virtual void visit(RHIGraphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
 		int fontID;
 	} visitor;
 	visitor.fontID = fontID;
@@ -239,6 +204,9 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 void RenderUtility::InitializeRHI()
 {
 	using namespace Render;
+	if (gRHISystem->getName() != RHISytemName::OpenGL &&
+		gRHISystem->getName() != RHISytemName::D3D11 )
+		return;
 
 	HDC hDC = ::Global::GetDrawEngine().getWindow().getHDC();
 	FontCharCache::Get().hDC = hDC;
@@ -265,7 +233,7 @@ void RenderUtility::SetFontColor(Graphics2D& g , int color , int type /*= COLOR_
 	g.setTextColor(gColorMap[type][color]);
 }
 
-void RenderUtility::SetFontColor(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
+void RenderUtility::SetFontColor(RHIGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	g.setTextColor(gColorMap[type][color]);
 }

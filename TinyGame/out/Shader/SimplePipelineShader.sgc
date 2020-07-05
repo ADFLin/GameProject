@@ -1,39 +1,66 @@
 #include "Common.sgc"
 
+#ifndef HAVE_VERTEX_COLOR
+#define HAVE_VERTEX_COLOR 1
+#endif
+
+#ifndef HAVE_TEXTCOORD
+#define HAVE_TEXTCOORD 1
+#endif
+
 struct OutputVSParam
 {
-	float4 color;
-	float2 UV;
+	MEMBER_OUTPUT(float4 color , TEXCOORD0);
+#if HAVE_TEXTCOORD
+	MEMBER_OUTPUT(float2 UV    , TEXCOORD1);
+#endif
 };
+
 
 #if VERTEX_SHADER
 
 uniform float4x4 XForm;
+uniform float4   Color;
 
-layout(location = ATTRIBUTE_POSITION) in float4 InPos;
-layout(location = ATTRIBUTE_TEXCOORD) in float2 InUV;
-layout(location = ATTRIBUTE_COLOR)    in float4 InColor;
-uniform float4    Color;
-out OutputVSParam OutputVS;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float4 InPos, ATTRIBUTE_POSITION)
+#if HAVE_TEXTCOORD
+	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
+#endif
+#if HAVE_VERTEX_COLOR
+	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
+#endif
+	VS_OUTPUT_LAST(OutputVSParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
 {
-	gl_Position    = XForm * InPos;
+	SvPosition = mul( XForm , InPos);
+#if HAVE_VERTEX_COLOR
 	OutputVS.color = Color * InColor;
+#else
+	OutputVS.color = Color;
+#endif
+#if HAVE_TEXTCOORD
 	OutputVS.UV    = InUV;
+#endif
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-layout(location = 0) out vec4 OutColor;
-uniform sampler2D Texture;
+DEFINE_TEXTURE( Texture2D , Texture );
 
-in OutputVSParam OutputVS;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT(OutputVSParam OutputVS, 0)
+	PS_OUTPUT_LAST(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
-	float4 texColor = texture(Texture, OutputVS.UV);
+#if HAVE_TEXTCOORD
+	float4 texColor = TEXTURE_SAMPE(Texture, OutputVS.UV);
 	OutColor = texColor * OutputVS.color;
+#else
+	OutColor = OutputVS.color;
+#endif
 }
 
 #endif //PIXEL_SHADER

@@ -123,7 +123,7 @@ namespace Render
 
 		void setupPipeline( RHICommandList& commandList , Matrix4 const& ViewProjectMatrix , RHITexture2D* textre )
 		{
-			RHISetupFixedPipelineState(commandList, ViewProjectMatrix * stack.get() , mColor, &textre, textre ? 1 : 0);
+			RHISetFixedShaderPipelineState(commandList, ViewProjectMatrix * stack.get() , mColor, textre);
 		}
 
 

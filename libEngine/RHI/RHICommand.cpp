@@ -34,7 +34,7 @@ namespace Render
 			switch( name )
 			{
 			case RHISytemName::D3D11: gRHISystem = new D3D11System; break;
-			case RHISytemName::Opengl:gRHISystem = new OpenGLSystem; break;
+			case RHISytemName::OpenGL:gRHISystem = new OpenGLSystem; break;
 			case RHISytemName::Vulkan:gRHISystem = new VulkanSystem; break;
 			}
 
@@ -65,13 +65,7 @@ namespace Render
 
 				GlobalRHIResourceBase::ReleaseAllResource();
 
-				//#FIXME
-				if( gRHISystem->getName() != RHISytemName::D3D11 &&
-					gRHISystem->getName() != RHISytemName::D3D12 &&
-					gRHISystem->getName() != RHISytemName::Vulkan )
-				{
-					InitGlobalRHIResource();
-				}
+				InitGlobalRHIResource();
 			}		
 		}
 		
@@ -109,9 +103,9 @@ namespace Render
 	}
 
 
-	RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
+	RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info)
 	{
-		return EXECUTE_RHI_FUNC( RHICreateRenderWindow(info) );
+		return EXECUTE_RHI_FUNC( RHICreateSwapChain(info) );
 	}
 
 	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data)

@@ -6,7 +6,7 @@
 #include "GameGUISystem.h"
 
 #include "GameGlobal.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 namespace Phy2D
 {
@@ -50,7 +50,7 @@ namespace Phy2D
 		updateFrame(frame);
 	}
 
-	void Phy2DStageBase::renderObject(GLGraphics2D& g, CollideObject& obj)
+	void Phy2DStageBase::renderObject(RHIGraphics2D& g, CollideObject& obj)
 	{
 		Shape* shape = obj.mShape;
 
@@ -109,7 +109,7 @@ namespace Phy2D
 
 	void CollideTestStage::onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();
@@ -311,7 +311,7 @@ namespace Phy2D
 
 	void WorldTestStage::onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();

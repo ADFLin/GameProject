@@ -174,20 +174,20 @@ namespace Render
 		int numVertices = pFBXMesh->GetPolygonVertexCount();
 		vertexBufferData.resize(numVertices * vertexSize);
 
-		auto GetBufferData = [&outMesh, &vertexBufferData](Vertex::Semantic semantic) -> uint8*
+		auto GetBufferData = [&outMesh, &vertexBufferData](Vertex::Attribute attribute) -> uint8*
 		{
-			int offset = outMesh.mInputLayoutDesc.getSematicOffset(semantic);
+			int offset = outMesh.mInputLayoutDesc.getAttributeOffset(attribute);
 			if (offset < 0)
 				return nullptr;
 			return &vertexBufferData[offset];
 		};
 
 
-		uint8* pPosition = GetBufferData(Vertex::ePosition);
-		uint8* pColor = GetBufferData(Vertex::eColor);
-		uint8* pNormal = vertexFormat.normals.empty() ? nullptr : GetBufferData(Vertex::eNormal);
-		uint8* pTangent = vertexFormat.tangents.empty() ? nullptr : GetBufferData(Vertex::eTangent);
-		uint8* pTexcoord = GetBufferData(Vertex::eTexcoord);
+		uint8* pPosition = GetBufferData(Vertex::ATTRIBUTE_POSITION);
+		uint8* pColor = GetBufferData(Vertex::ATTRIBUTE_COLOR);
+		uint8* pNormal = vertexFormat.normals.empty() ? nullptr : GetBufferData(Vertex::ATTRIBUTE_NORMAL);
+		uint8* pTangent = vertexFormat.tangents.empty() ? nullptr : GetBufferData(Vertex::ATTRIBUTE_TANGENT);
+		uint8* pTexcoord = GetBufferData(Vertex::ATTRIBUTE_TEXCOORD);
 
 		int numTriangles = 0;
 		int vertexId = 0;

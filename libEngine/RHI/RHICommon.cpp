@@ -12,7 +12,6 @@ namespace Render
 	DeviceVendorName gRHIDeviceVendorName = DeviceVendorName::Unknown;
 
 
-	
 #if CORE_SHARE
 #if USE_RHI_RESOURCE_TRACE
 	static std::unordered_set< RHIResource* > Resources;
@@ -48,21 +47,6 @@ namespace Render
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 	}
 
-	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
-	{
-		InputElementDesc element;
-		element.idxStream = idxStream;
-		element.attribute = Vertex::SemanticToAttribute(s, idx);
-		element.format = f;
-		element.offset = mVertexSizes[element.idxStream];
-		element.bNormalized = false;
-		element.bIntanceData = false;
-		element.instanceStepRate = 0;
-		mElements.push_back(element);
-		mVertexSizes[element.idxStream] += Vertex::GetFormatSize(f);
-		return *this;
-	}
-
 	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format format, bool bNormailzed, bool bInstanceData, int instanceStepRate)
 	{
 		InputElementDesc element;
@@ -81,7 +65,14 @@ namespace Render
 
 	void InputLayoutDesc::setElementUnusable(uint8 attribute)
 	{
-
+		for (auto& element : mElements)
+		{
+			if (element.attribute == attribute)
+			{
+				element.attribute == Vertex::ATTRIBUTE_UNUSED;
+				break;
+			}
+		}
 	}
 
 	InputElementDesc const* InputLayoutDesc::findElementByAttribute(uint8 attribute) const
@@ -112,12 +103,6 @@ namespace Render
 		return (info) ? info->idxStream : -1;
 	}
 
-	InputElementDesc const* InputLayoutDesc::findElementBySematic(Vertex::Semantic s, int idx) const
-	{
-		uint8 attribute = Vertex::SemanticToAttribute(s, idx);
-		return findElementByAttribute(attribute);
-	}
-
 	void InputLayoutDesc::updateVertexSize()
 	{
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
@@ -125,18 +110,6 @@ namespace Render
 		{
 			mVertexSizes[e.idxStream] += Vertex::GetFormatSize(e.format);
 		}
-	}
-
-	int InputLayoutDesc::getSematicOffset(Vertex::Semantic s, int idx) const
-	{
-		InputElementDesc const* info = findElementBySematic(s, idx);
-		return (info) ? info->offset : -1;
-	}
-
-	Vertex::Format InputLayoutDesc::getSematicFormat(Vertex::Semantic s, int idx) const
-	{
-		InputElementDesc const* info = findElementBySematic(s, idx);
-		return (info) ? Vertex::Format(info->format) : Vertex::eUnknowFormat;
 	}
 
 	Vector3 Texture::GetFaceDir(Face face)
@@ -179,33 +152,5 @@ namespace Render
 		return 0;
 	}
 
-
-	Vertex::Semantic Vertex::AttributeToSemantic(uint8 attribute, uint8& idx)
-	{
-		switch( attribute )
-		{
-		case Vertex::ATTRIBUTE_POSITION: idx = 0; return Vertex::ePosition;
-		case Vertex::ATTRIBUTE_COLOR: idx = 0; return Vertex::eColor;
-		case Vertex::ATTRIBUTE_COLOR2: idx = 1; return Vertex::eColor;
-		case Vertex::ATTRIBUTE_NORMAL: idx = 0; return Vertex::eNormal;
-		case Vertex::ATTRIBUTE_TANGENT: idx = 0; return Vertex::eTangent;
-		}
-
-		idx = attribute - Vertex::ATTRIBUTE_TEXCOORD;
-		return Vertex::eTexcoord;
-	}
-
-	uint8 Vertex::SemanticToAttribute(Semantic s, uint8 idx)
-	{
-		switch( s )
-		{
-		case Vertex::ePosition: return Vertex::ATTRIBUTE_POSITION;
-		case Vertex::eColor:    assert(idx < 2); return Vertex::ATTRIBUTE_COLOR + idx;
-		case Vertex::eNormal:   return Vertex::ATTRIBUTE_NORMAL;
-		case Vertex::eTangent:  return Vertex::ATTRIBUTE_TANGENT;
-		case Vertex::eTexcoord: assert(idx < 7); return Vertex::ATTRIBUTE_TEXCOORD + idx;
-		}
-		return 0;
-	}
 
 }//namespace Render

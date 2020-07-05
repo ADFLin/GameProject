@@ -35,14 +35,8 @@ public:
 	}
 };
 
-class GLGraphics2D;
 
-
-namespace Render
-{
-	class RHIGraphics2D;
-}
-
+class RHIGraphics2D;
 
 class IGraphics2D
 {
@@ -75,8 +69,7 @@ public:
 	{
 	public:
 		virtual void visit( Graphics2D& g ) = 0;
-		virtual void visit( GLGraphics2D& g ) = 0;
-		virtual void visit( Render::RHIGraphics2D& g) = 0;
+		virtual void visit( RHIGraphics2D& g ) = 0;
 	};
 	virtual void  accept( Visitor& visitor ) = 0;
 };
@@ -160,7 +153,7 @@ public:
 	int           getScreenWidth(){ return mBufferDC.getWidth(); }
 	int           getScreenHeight(){ return mBufferDC.getHeight(); }
 	Graphics2D&   getPlatformGraphics(){ return *mPlatformGraphics; }
-	GLGraphics2D& getRHIGraphics(){ return *mGLGraphics; }
+	RHIGraphics2D& getRHIGraphics(){ return *mRHIGraphics; }
 
 	TINY_API IGraphics2D&  getIGraphics();
 
@@ -175,12 +168,7 @@ public:
 
 	bool isRHIEnabled() const { return mRHIName != RHITargetName::None; }
 	bool isOpenGLEnabled() const { return mRHIName == RHITargetName::OpenGL; }
-	bool isUsageRHIGraphic2D() const
-	{
-		if( mRHIName == RHITargetName::OpenGL )
-			return true;
-		return false;
-	}
+	TINY_API bool isUsageRHIGraphic2D() const;
 	bool isInitialized() { return mbInitialized; }
 
 	TINY_API bool  initializeRHI(RHITargetName targetName , RHIInitializeParams initParams = RHIInitializeParams() );
@@ -203,8 +191,8 @@ private:
 
 	RHITargetName mRHIName = RHITargetName::None;
 	WindowsGLContext*  mGLContext = nullptr;
-	std::unique_ptr< GLGraphics2D >   mGLGraphics;
-	std::unique_ptr< Render::RHIGraphics2D > mRHIGraphics;
+	std::unique_ptr< RHIGraphics2D > mRHIGraphics;
+
 
 };
 

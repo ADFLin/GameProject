@@ -3,7 +3,7 @@
 #include "GoCore.h"
 
 #include "RenderUtility.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "RHI/DrawUtility.h"
 #include "RHI/GpuProfiler.h"
@@ -60,7 +60,7 @@ namespace Go
 		using namespace Render;
 		using namespace Go;
 
-		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		{
 			GPU_PROFILE("Draw Stone");
@@ -115,7 +115,7 @@ namespace Go
 		return pos;
 	}
 
-	void BoardRenderer::drawBorad(GLGraphics2D& g , SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState )
+	void BoardRenderer::drawBorad(RHIGraphics2D& g , SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState )
 	{
 		using namespace Render;
 		using namespace Go;
@@ -328,7 +328,7 @@ namespace Go
 		mSpriteVertices.push_back({ Vector2(posRB.x , posLT.y) , color , Vector2(max.x , min.y) });
 	}
 
-	void BoardRenderer::drawStone(GLGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
+	void BoardRenderer::drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 

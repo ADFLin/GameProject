@@ -520,13 +520,13 @@ namespace Render
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 #if 1
-				RHISetupFixedPipelineState(commandList, mView.worldToClip);
+				RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 				DrawUtility::AixsLine(commandList);
 
-				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToClip);
+				RHISetFixedShaderPipelineState(commandList, Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToClip);
 				mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList, LinearColor(1, 0.5, 0));
 
-				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToClip);
+				RHISetFixedShaderPipelineState(commandList, Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToClip);
 				mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(0.25, 0.5, 1));
 #endif
 
@@ -566,7 +566,7 @@ namespace Render
 				{
 					GPU_PROFILE("LightPoints");
 					//FIXME
-					RHISetupFixedPipelineState(commandList, mView.worldToClip);
+					RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 					drawLightPoints(commandList, mView, MakeView(mLights));
 
 				}

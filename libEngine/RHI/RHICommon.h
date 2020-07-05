@@ -513,7 +513,6 @@ namespace Render
 
 		enum Semantic
 		{
-			ePosition,
 			eTangent,
 			eNormal,
 			eColor,
@@ -572,11 +571,6 @@ namespace Render
 			ATTRIBUTE_TEXCOORD6 = ATTRIBUTE14,
 			//ATTRIBUTE_TEXCOORD7 = ATTRIBUTE15,
 		};
-
-
-		static Semantic AttributeToSemantic(uint8 attribute, uint8& idx);
-
-		static uint8 SemanticToAttribute(Semantic s, uint8 idx);
 	};
 
 	enum TextureCreationFlag : uint32
@@ -631,13 +625,11 @@ namespace Render
 	public:
 		InputLayoutDesc();
 
-		
+		uint16 getElementOffset(int idx) const { return mElements[idx].offset; }
+		uint8  getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }
+		void   setVertexSize(int idxStream, uint8 size){  mVertexSizes[idxStream] = size;  }
 
-		uint8 getOffset(int idx) const { return mElements[idx].offset; }
-		uint8 getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }
-		void  setVertexSize(int idxStream, uint8 size){  mVertexSizes[idxStream] = size;  }
-
-		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailzed = false, bool bInstanceData = false, int stridePerStride = 0);
+		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailzed = false, bool bInstanceData = false, int instanceStepRate = 0);
 
 		void setElementUnusable(uint8 attribute);
 
@@ -645,12 +637,6 @@ namespace Render
 		int                getAttributeOffset(uint8 attribute) const;
 		Vertex::Format     getAttributeFormat(uint8 attribute) const;
 		int                getAttributeStreamIndex(uint8 attribute) const;
-
-		InputLayoutDesc&   addElement(uint8 idxStream, Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
-
-		InputElementDesc const*   findElementBySematic(Vertex::Semantic s, int idx = 0) const;
-		int                getSematicOffset(Vertex::Semantic s, int idx = 0) const;
-		Vertex::Format     getSematicFormat(Vertex::Semantic s, int idx = 0) const;
 		
 		std::vector< InputElementDesc > mElements;
 		uint8   mVertexSizes[MAX_INPUT_STREAM_NUM];
@@ -716,6 +702,15 @@ namespace Render
 	public:
 		RHIIndexBuffer() :RHIBufferBase(TRACE_TYPE_NAME("IndexBuffer")) {}
 		bool  isIntType() const { return mElementSize == 4; }
+	};
+
+	class RHISwapChain : public RHIResource
+	{
+	public:
+		RHISwapChain() :RHIResource(TRACE_TYPE_NAME("SwapChain")) {}
+
+		virtual RHITexture2D* getBackBufferTexture() = 0;
+		virtual void Present() = 0;
 	};
 
 	struct InputStreamInfo
@@ -831,6 +826,7 @@ namespace Render
 	using RHIDepthStencilStateRef = TRefCountPtr< RHIDepthStencilState >;
 	using RHIBlendStateRef        = TRefCountPtr< RHIBlendState >;
 	using RHIInputLayoutRef       = TRefCountPtr< RHIInputLayout >;
+	using RHISwapChainRef         = TRefCountPtr< RHISwapChain >;
 
 	template< class RHIResourceType >
 	class TRefcountResource : public RHIResourceType

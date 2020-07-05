@@ -100,7 +100,7 @@ Graphics2D& Global::GetGraphics2D()
 	return GetDrawEngine().getPlatformGraphics();
 }
 
-GLGraphics2D& Global::GetRHIGraphics2D()
+RHIGraphics2D& Global::GetRHIGraphics2D()
 {
 	return GetDrawEngine().getRHIGraphics();
 }

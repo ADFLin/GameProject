@@ -13,7 +13,7 @@
 #include "InputManager.h"
 #include "ConsoleSystem.h"
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "RHI/RHICommand.h"
 #include "RHI/DrawUtility.h"
@@ -640,7 +640,7 @@ namespace Go
 
 		using namespace Go;
 
-		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
@@ -821,7 +821,7 @@ namespace Go
 		g.endRender();
 	}
 
-	void LeelaZeroGoStage::drawAnalysis(GLGraphics2D& g, SimpleRenderState& renderState , RenderContext &context)
+	void LeelaZeroGoStage::drawAnalysis(RHIGraphics2D& g, SimpleRenderState& renderState , RenderContext &context)
 	{
 		GPU_PROFILE("Draw Analysis");
 
@@ -962,7 +962,7 @@ namespace Go
 				}
 
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				RHISetupFixedPipelineState(commandList, matProj );
+				RHISetFixedShaderPipelineState(commandList, matProj );
 				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, &winRateHistory[0], winRateHistory.size() , colors[i] );
 			}
 
@@ -980,7 +980,7 @@ namespace Go
 				buffer.emplace_back(x, yMax);
 			}
 
-			RHISetupFixedPipelineState(commandList, matProj);
+			RHISetFixedShaderPipelineState(commandList, matProj);
 			if( !buffer.empty() )
 			{			
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());		
@@ -1029,7 +1029,7 @@ namespace Go
 	{
 		GPU_PROFILE("Draw Territory");
 
-		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 		Vector2 cellSize = Vector2(context.cellLength, context.cellLength);
 		RenderUtility::SetFont(g, FONT_S8);
@@ -2440,7 +2440,7 @@ namespace Go
 	void BoardFrame::onRender()
 	{
 		BaseClass::onRender();
-		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		{
 			TGuardValue<bool> gurdValue(renderer->bDrawCoord, false);
 			SimpleRenderState renderState;

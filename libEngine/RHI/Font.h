@@ -153,14 +153,15 @@ namespace Render
 		bool initialize(FontFaceInfo const& fontFace);
 		bool isValid() const { return mCharDataSet != nullptr; }
 		void cleanup();
-		void draw(RHICommandList& commandList, Vector2 const& pos, char const* str);
-		void draw(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str);
+		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
+		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
 		int  getSize() const { return mSize; }
 		int  getFontHeight() const { return mCharDataSet->getFontHeight(); }
 		Vector2 calcTextExtent(wchar_t const* str);
+
 		Vector2 calcTextExtent(char const* str);
 	private:
-		void drawImpl(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str);
+		void drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
 		CharDataSet* mCharDataSet;
 		struct TextVertex
 		{

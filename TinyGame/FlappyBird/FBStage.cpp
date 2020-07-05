@@ -11,7 +11,7 @@
 #include "SystemPlatform.h"
 
 #include "RHI/RHICommand.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 namespace FlappyBird
 {
@@ -268,6 +268,7 @@ namespace FlappyBird
 #else
 		int gDefaultTopology[] = { 2 , 4 , 1 };
 #endif
+		//mbTrainMode = false;
 		if( mbTrainMode )
 		{
 			mTrainManager = std::make_unique<TrainManager>();

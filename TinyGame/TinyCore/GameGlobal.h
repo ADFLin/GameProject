@@ -50,7 +50,7 @@ float const PI = 3.141592653589793238462643383279f;
 class DrawEngine;
 class Graphics2D;
 class IGraphics2D;
-class GLGraphics2D;
+class RHIGraphics2D;
 
 class GameModuleManager;
 class AssetManager;
@@ -105,7 +105,7 @@ public:
 	
 	static TINY_API DrawEngine&   GetDrawEngine();
 	static TINY_API Graphics2D&   GetGraphics2D();
-	static TINY_API GLGraphics2D& GetRHIGraphics2D();
+	static TINY_API RHIGraphics2D& GetRHIGraphics2D();
 	static TINY_API IGraphics2D&  GetIGraphics2D();
 
 	static TINY_API UserProfile&  GetUserProfile();

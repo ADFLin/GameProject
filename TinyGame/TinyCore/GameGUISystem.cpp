@@ -2,7 +2,7 @@
 #include "GameGUISystem.h"
 
 #include "RenderUtility.h"
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "StageBase.h"
 #include "TaskBase.h"

@@ -8,7 +8,7 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/GpuProfiler.h"
 
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "StringParse.h"
 #include "FileSystem.h"
@@ -754,7 +754,7 @@ namespace Render
 				}
 			}
 
-			GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 			FixString< 512 > str;
 

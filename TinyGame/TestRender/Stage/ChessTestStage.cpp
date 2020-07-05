@@ -4,7 +4,7 @@
 #include "RHI/RHICommand.h"
 
 #include <algorithm>
-#include "GLGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 namespace Chess
 {
@@ -13,7 +13,7 @@ namespace Chess
 
 	struct BlendScope
 	{
-		BlendScope(GLGraphics2D& g, float alpha)
+		BlendScope(RHIGraphics2D& g, float alpha)
 			:g(g)
 		{
 			g.beginBlend(alpha);
@@ -23,7 +23,7 @@ namespace Chess
 		{
 			g.endBlend();
 		}
-		GLGraphics2D& g;
+		RHIGraphics2D& g;
 	};
 
 	class TestStage : public StageBase
@@ -87,7 +87,7 @@ namespace Chess
 
 		};
 
-		void drawChess(GLGraphics2D& g, Vector2 const& centerPos, EChess::Type type, EChessColor color)
+		void drawChess(RHIGraphics2D& g, Vector2 const& centerPos, EChess::Type type, EChessColor color)
 		{
 			struct ImageTileInfo
 			{
@@ -134,7 +134,7 @@ namespace Chess
 		}
 		void onRender(float dFrame) override
 		{
-			GLGraphics2D& g = Global::GetRHIGraphics2D();
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
 

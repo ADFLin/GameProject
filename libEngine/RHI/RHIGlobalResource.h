@@ -4,14 +4,52 @@
 
 #include "RHICommon.h"
 #include "CoreShare.h"
+#include "GlobalShader.h"
 
 namespace Render
 {
 
+	class SimplePipelineProgram : public GlobalShaderProgram
+	{
+	public:
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SimplePipelineShader";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			mParamTexture.bind(parameterMap, SHADER_PARAM(Texture));
+			mParamTextureSampler.bind(parameterMap, SHADER_PARAM(TextureSampler));
+			mParamColor.bind(parameterMap, SHADER_PARAM(Color));
+			mParamXForm.bind(parameterMap, SHADER_PARAM(XForm));
+		}
+
+		void setParameters(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler);
+
+		ShaderParameter mParamTexture;
+		ShaderParameter mParamTextureSampler;
+		ShaderParameter mParamColor;
+		ShaderParameter mParamXForm;
+	};
+
 
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
-
+	CORE_API extern class SimplePipelineProgram* GSimpleShaderPipline;
+	CORE_API extern class SimplePipelineProgram* GSimpleShaderPiplineCT;
+	CORE_API extern class SimplePipelineProgram* GSimpleShaderPiplineT;
+	CORE_API extern class SimplePipelineProgram* GSimpleShaderPiplineC;
 	CORE_API extern class MaterialMaster* GDefalutMaterial;
 	CORE_API extern class MaterialShaderProgram GSimpleBasePass;
 	

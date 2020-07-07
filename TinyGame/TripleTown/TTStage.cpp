@@ -14,15 +14,14 @@ namespace TripleTown
 	{
 		::Global::GUI().cleanupWidget();
 
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11));
 
 		srand(generateRandSeed());
 
 		GameWindow& window = ::Global::GetDrawEngine().getWindow();
-		if (gRHISystem->getName() == RHISytemName::D3D11)
+		if (GRHISystem->getName() == RHISytemName::D3D11)
 		{
-			mD3D11System = static_cast<D3D11System*>(gRHISystem);
+			mD3D11System = static_cast<D3D11System*>(GRHISystem);
 			//::Global::GetDrawEngine().bUsePlatformBuffer = true;
 		}
 
@@ -50,13 +49,43 @@ namespace TripleTown
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
+		RHISetShaderProgram(commandList, nullptr);
 		RHISetFrameBuffer(commandList, nullptr);
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
+		float scaleItem = 0.8f;
+
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(100 / 255.f, 100 / 255.f, 100 / 255.f, 1), 1, 1.0);
+
+		struct Vertex
+		{
+			Vector2 pos;
+			Color4f color;
+		};
+
+		Vertex vertices[] =
+		{
+			{Vector2(0,0) , Color4f(1,1,1,1)},
+			{Vector2(0,400) , Color4f(1,1,1,1)},
+			{Vector2(400,400) , Color4f(1,1,1,1)},
+			{Vector2(400,0) , Color4f(1,1,1,1)},
+		};
+
+		int indices[] = { 0, 1, 2, 0 , 2 , 3 };
 		mScene.render();
 
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
-
 		g.beginRender();
+
+		TRenderRT<RTVF_XY_CA>::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, indices , 6);
+
+		RenderUtility::SetBrush(g, EColor::White);
+		g.setPen(Color3ub(255, 0,0));
+		g.drawRect(Vec2i(200, 200), Vec2i(100, 100));
+		g.drawCircle(Vector2(400, 400), 20);
+
+
 		SimpleTextLayout layout;
 		RenderUtility::SetFont(g, FONT_S10);
 		g.setTextColor(Color3ub(255, 255, 0));
@@ -70,7 +99,7 @@ namespace TripleTown
 
 		g.endRender();
 
-		if (gRHISystem->getName() == RHISytemName::D3D11)
+		if (GRHISystem->getName() == RHISytemName::D3D11)
 		{
 			if (::Global::GetDrawEngine().bUsePlatformBuffer)
 			{
@@ -144,8 +173,29 @@ namespace TripleTown
 				mScene.loadPreviewTexture(mFileIterator.getFileName());
 			}
 			break;
+		case EKeyCode::Z:
+			{
+				auto nextTarget = ::Global::GetDrawEngine().isOpenGLEnabled() ? RHITargetName::D3D11 : RHITargetName::OpenGL;
+				cleanupRHI();
+				
+				::Global::GetDrawEngine().shutdownRHI(false);
+				::Global::GetDrawEngine().initializeRHI(nextTarget);
+
+				initializeRHI();
+			}
+			break;
 		}
 		return true;
+	}
+
+	void LevelStage::cleanupRHI()
+	{
+		mScene.releaseResource();
+	}
+
+	void LevelStage::initializeRHI()
+	{
+		mScene.loadResource();
 	}
 
 }

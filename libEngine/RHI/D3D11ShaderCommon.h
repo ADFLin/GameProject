@@ -7,8 +7,9 @@
 
 #include "Platform/Windows/ComUtility.h"
 
+#include <D3D11.h>
 #include <D3Dcompiler.h>
-#include <D3DX11async.h>
+//#include <D3DX11async.h>
 #pragma comment(lib , "D3dcompiler.lib")
 
 namespace Render

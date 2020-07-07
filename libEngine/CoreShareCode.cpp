@@ -20,6 +20,7 @@
 #include "RHI/RHIGlobalResource.cpp"
 #include "RHI/SceneRenderer.cpp"
 #include "RHI/MeshImportor.cpp"
+#include "RHI/RHIGraphics2D.cpp"
 #endif
 
 #define EXPORT_FUN(funcc) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &func;

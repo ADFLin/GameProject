@@ -198,7 +198,7 @@ namespace Render
 		Vector4 col3 = clipToWorld.col(3);
 
 		frustumPlanes[0] = Plane::FromVector4(col3 - col2);  //zFar
-		frustumPlanes[1] = Plane::FromVector4(col3 - gRHIClipZMin * col2);  //zNear
+		frustumPlanes[1] = Plane::FromVector4(col3 - GRHIClipZMin * col2);  //zNear
 		frustumPlanes[2] = Plane::FromVector4(col3 - col0);  //top
 		frustumPlanes[3] = Plane::FromVector4(col3 + col0);  //bottom
 		frustumPlanes[4] = Plane::FromVector4(col3 - col0);  //right

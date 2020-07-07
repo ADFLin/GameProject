@@ -3,6 +3,7 @@
 #define RHIStaticStateObject_H_3909FF48_83F9_4C22_AEBB_258FB6C78C29
 
 #include "RHICommon.h"
+#include "RHICommand.h"
 #include "CoreShare.h"
 #include "GlobalShader.h"
 
@@ -106,6 +107,7 @@ namespace Render
 			static TStaticRHIResourceObject< RHIResource >* sObject;
 			if( sObject == nullptr )
 			{
+				TRACE_RESOURCE_TAG_SCOPE("StaticRHI")
 				sObject = new TStaticRHIResourceObject<RHIResource>();
 				sObject->restoreRHI();
 			}

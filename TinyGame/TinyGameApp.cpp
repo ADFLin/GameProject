@@ -48,12 +48,11 @@
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
 
-int g_DevMsgLevel = -1;
+int  GDevMsgLevel = -1;
+bool GbProfileGPU = false;
 
-bool gbProfileGPU = false;
-
-TINY_API IGameNetInterface* gGameNetInterfaceImpl;
-TINY_API IDebugInterface*   gDebugInterfaceImpl;
+TINY_API IGameNetInterface* GGameNetInterfaceImpl;
+TINY_API IDebugInterface*   GDebugInterfaceImpl;
 
 TConsoleVariable< bool > CVarShowFPS(false, "ShowFPS" , CVF_TOGGLEABLE);
 
@@ -214,7 +213,7 @@ public:
 	{
 		if( channel == LOG_DEV )
 		{
-			return g_DevMsgLevel < level;
+			return GDevMsgLevel < level;
 		}
 		return true;
 	}
@@ -290,8 +289,8 @@ TinyGameApp::TinyGameApp()
 	mShowErrorMsg = false;
 	mbLockFPS = false;
 
-	gGameNetInterfaceImpl = this;
-	gDebugInterfaceImpl = &gLogPrinter;
+	GGameNetInterfaceImpl = this;
+	GDebugInterfaceImpl = &gLogPrinter;
 }
 
 TinyGameApp::~TinyGameApp()
@@ -663,6 +662,9 @@ bool TinyGameApp::handleCharEvent( unsigned code )
 
 bool TinyGameApp::handleWindowDestroy(HWND hWnd )
 {
+	if (::Global::GetDrawEngine().bConstructWindow)
+		return false;
+
 	if( mGameWindow.getHWnd() == hWnd )
 	{
 		setLoopOver(true);
@@ -704,7 +706,7 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 
 void TinyGameApp::handleToggleProflieGPU()
 {
-	gbProfileGPU = !gbProfileGPU;
+	GbProfileGPU = !GbProfileGPU;
 }
 
 void TinyGameApp::render( float dframe )
@@ -719,7 +721,7 @@ void TinyGameApp::render( float dframe )
 	if ( !drawEngine.beginRender() )
 		return;
 
-	if ( gbProfileGPU )
+	if ( GbProfileGPU )
 		GpuProfiler::Get().beginFrame();
 
 	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
@@ -753,7 +755,7 @@ void TinyGameApp::render( float dframe )
 	}
 
 
-	if( gbProfileGPU )
+	if( GbProfileGPU )
 		GpuProfiler::Get().endFrame();
 	
 	mFPSCalc.increaseFrame(getMillionSecond());
@@ -769,7 +771,7 @@ void TinyGameApp::render( float dframe )
 	}
 
 
-	if( gbProfileGPU )
+	if( GbProfileGPU )
 	{
 
 		g.setTextColor(Color3ub(255, 0, 0));

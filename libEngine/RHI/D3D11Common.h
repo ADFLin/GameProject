@@ -5,7 +5,10 @@
 
 #include "FixString.h"
 
-#include "D3D11.h"
+#include <D3D11.h>
+#pragma comment(lib , "D3D11.lib")
+#pragma comment(lib , "DXGI.lib")
+#pragma comment(lib , "dxguid.lib")
 
 #include <unordered_map>
 
@@ -142,6 +145,8 @@ namespace Render
 		static D3D11_STENCIL_OP To(Stencil::Operation op);
 	};
 
+#define USE_D3D11_RESOURCE_CUSTOM_COUNT 1
+
 	template< class RHIResoureType >
 	class TD3D11Resource : public RHIResoureType
 	{
@@ -154,22 +159,43 @@ namespace Render
 				LogWarning(0, "D3D11Resource no release");
 			}
 		}
+
+		int getRefCount() const
+		{
+			if (mResource)
+			{
+				mResource->AddRef();
+				return mResource->Release();
+			}
+			return 0;
+		}
+
 		virtual void incRef() 
 		{ 
+#if USE_D3D11_RESOURCE_CUSTOM_COUNT
+			++mCount;
+#else
 #if _DEBUG
 			++mCount;
 #endif
-			mResource->AddRef(); 
+			int count = mResource->AddRef();
+			assert(mCount + 1 <= count);
+#endif
 		}
 		virtual bool decRef() 
 		{ 
+#if USE_D3D11_RESOURCE_CUSTOM_COUNT
+			--mCount;
+			return mCount == 0;
+#else
 #if _DEBUG
 			--mCount;
 			int count = mResource->Release();
-			//assert(mCount + 1 == count);
+			assert(mCount + 1 <= count);
 			return count == 1;
 #else
 			return mResource->Release() == 1; 
+#endif
 #endif
 		}
 		virtual void releaseResource() 
@@ -180,7 +206,25 @@ namespace Render
 				LogWarning(0, "D3D11Resource refcount error");
 			}
 #endif
+			
+#if USE_D3D11_RESOURCE_CUSTOM_COUNT
+			int count = mResource->Release();
+			if (count > 0)
+			{
+#if USE_RHI_RESOURCE_TRACE
+				if (mTag)
+				{
+					LogDevMsg(0, "D3D11Resource: %p %p %d %s : %s , %s", this , mResource , count, mTypeName.c_str(), mTag, mTrace.toString().c_str());
+				}
+				else
+				{
+					LogDevMsg(0, "D3D11Resource: %p %p %d %s : %s", this, mResource, count, mTypeName.c_str(), mTrace.toString().c_str());
+				}
+#endif
+			}
+#else
 			mResource->Release();
+#endif
 			mResource = nullptr; 
 		}
 
@@ -188,7 +232,16 @@ namespace Render
 
 		ResourceType* getResource() { return mResource; }
 
-#if _DEBUG
+
+		void release()
+		{
+			if (mResource)
+			{
+				releaseResource();
+			}
+		}
+
+#if _DEBUG || USE_D3D11_RESOURCE_CUSTOM_COUNT
 		int mCount = 0;
 #endif
 		ResourceType* mResource;
@@ -211,15 +264,13 @@ namespace Render
 		TD3D11Texture(ID3D11RenderTargetView* RTV, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
 			:mSRV(SRV), mRTV(RTV), mUAV(UAV)
 		{
-			if ( SRV )
-				SRV->AddRef();
+
 		}
 
 		virtual void releaseResource()
 		{
-			SAFE_RELEASE(mSRV.mResource);
+			mSRV.release();
 			SAFE_RELEASE(mRTV);
-			
 			SAFE_RELEASE(mUAV);
 			TD3D11Resource< RHITextureType >::releaseResource();
 		}
@@ -317,9 +368,6 @@ namespace Render
 			mNumSamples = desc.SampleDesc.Count;
 			mNumMipLevel = desc.MipLevels;
 
-			if( mSRV.getResource() )
-				mSRV.getResource()->AddRef();
-
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			HRESULT hr = device->CreateDepthStencilView(mResource, nullptr, &mDSV);
@@ -331,7 +379,7 @@ namespace Render
 
 		virtual void releaseResource()
 		{
-			SAFE_RELEASE(mSRV.mResource);
+			mSRV.release();
 			SAFE_RELEASE(mDSV);
 			TD3D11Resource< RHITextureDepth >::releaseResource();
 		}
@@ -361,6 +409,24 @@ namespace Render
 				device->CreateUnorderedAccessView(resource, NULL, &mUAVResource);
 			}
 		}
+
+#if USE_RHI_RESOURCE_TRACE
+		virtual void setTraceData(ResTraceInfo const& trace)
+		{
+			mTrace = trace;
+			if (mTag)
+			{
+				mResource->SetPrivateData(WKPDID_D3DDebugObjectName, strlen(mTag) , mTag );
+			}
+		}
+#endif
+		void releaseResource()
+		{
+			mSRVResource.reset();
+			mUAVResource.reset();
+			TD3D11Resource< RHIBufferType >::releaseResource();
+		}
+
 		TComPtr< ID3D11ShaderResourceView > mSRVResource;
 		TComPtr< ID3D11UnorderedAccessView > mUAVResource;
 	};
@@ -543,6 +609,14 @@ namespace Render
 			int h = mColorTexture->getSizeY();
 			::BitBlt(hTargetDC, 0, 0, w, h, hDC, 0, 0, SRCCOPY);
 			VERIFY_D3D11RESULT(surface->ReleaseDC(nullptr), );
+		}
+
+		virtual void releaseResource()
+		{
+			mColorTexture.release();
+			mDepthTexture.release();
+
+			TD3D11Resource< RHISwapChain >::releaseResource();
 		}
 
 		TRefCountPtr< D3D11Texture2D >    mColorTexture;

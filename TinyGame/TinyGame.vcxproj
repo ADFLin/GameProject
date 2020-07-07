@@ -108,8 +108,8 @@
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Msimg32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../OtherLib/Boost/lib/x86;../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -202,7 +202,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;Xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib\x86;../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib\x86;../OtherLib/Boost/lib/x86;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences />

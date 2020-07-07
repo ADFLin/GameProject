@@ -271,7 +271,7 @@ namespace TripleTown
 		if( mLevel )
 			mLevel->setListener(nullptr);
 
-		//releaseResource();
+		releaseResource();
 	}
 
 	void Scene::releaseResource()
@@ -281,6 +281,7 @@ namespace TripleTown
 
 		mTexAtlas.finalize();
 
+#if !USE_TEXTURE_ATLAS
 		for (int i = 0; i < NUM_OBJ; ++i)
 		{
 			for (int j = 0; j < EItemImage::Count; ++j)
@@ -288,6 +289,7 @@ namespace TripleTown
 				mItemImageMap[i][j].texture.release();
 			}
 		}
+#endif
 
 		for (auto& texPtr : mTexMap)
 		{
@@ -298,22 +300,25 @@ namespace TripleTown
 	float value;
 	bool Scene::init()
 	{
-		if ( !loadResource() )
-			return false;
-
 		mItemScale = 0.8f;
 		mMouseAnim = nullptr;
-		mTweener.tweenValue< Easing::CIOQuad >( mItemScale , 0.65f , 0.8f , 1 ).cycle();
+		mTweener.tweenValue< Easing::CIOQuad >(mItemScale, 0.65f, 0.8f, 1).cycle();
+
+		if ( !loadResource() )
+			return false;
 
 		return true;
 	}
 
 	bool Scene::loadResource()
 	{
+		TRACE_RESOURCE_TAG_SCOPE("TTScene");
 		FixString< 256 > path;
 		unsigned w, h;
 
+		TRACE_RESOURCE_TAG("TTScene.TexAtlas");
 		VERIFY_RETURN_FALSE(mTexAtlas.initialize(Texture::eRGBA8, 2048, 2048 , 1 ));
+
 		for( int i = 0; i < TEX_ID_NUM; ++i )
 		{
 			path.format("%s/%s.tex", gResourceDir, gTextureName[i]);
@@ -381,9 +386,11 @@ namespace TripleTown
 		TexImageData imageData;
 		if( !imageData.load(path) )
 			return false;
-
+		TRACE_RESOURCE_TAG_SCOPE("TTScene");
 		auto& imageInfo = mItemImageMap[itemId][imageType];
+#if !USE_TEXTURE_ATLAS
 		imageInfo.texture = RHICreateTexture2D(Texture::eRGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
+#endif
 
 #if USE_COMPACT_IMAGE
 		Vec2i compactMin, compactMax;
@@ -586,12 +593,8 @@ namespace TripleTown
 		TransformStack2D& xformStack = mRenderState.xformStack;
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 		float scaleItem = 0.8f;
-
-		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(100 / 255.f, 100 / 255.f, 100 / 255.f, 1), 1, 1.0);
 
 		int wScreen = ::Global::GetDrawEngine().getScreenWidth();
 		int hScreen = ::Global::GetDrawEngine().getScreenHeight();

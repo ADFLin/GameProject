@@ -14,15 +14,15 @@
 #include <cstdlib>
 
 
-TINY_API IGameNetInterface* gGameNetInterfaceImpl = nullptr;
-TINY_API IDebugInterface* gDebugInterfaceImpl = nullptr;
-TINY_API uint32 gGameThreadId = 0;
+TINY_API IGameNetInterface* GGameNetInterfaceImpl = nullptr;
+TINY_API IDebugInterface* GDebugInterfaceImpl = nullptr;
+TINY_API uint32 GGameThreadId = 0;
 
-DataCacheInterface* gGameDataCache = nullptr;
+DataCacheInterface* GGameDataCache = nullptr;
 
 bool IsInGameThead()
 {
-	return PlatformThread::GetCurrentThreadId() == gGameThreadId;
+	return PlatformThread::GetCurrentThreadId() == GGameThreadId;
 }
 
 uint64 generateRandSeed()
@@ -32,27 +32,27 @@ uint64 generateRandSeed()
 }
 
 
-static int g_RandCount = 0;
+static int GRandCount = 0;
 using Random::Well512;
-static Well512 gWellRng;
+static Well512 GWellRng;
 
 void Global::Initialize()
 {
-	gGameThreadId = PlatformThread::GetCurrentThreadId();
-	gGameDataCache = DataCacheInterface::Create("DataCache");
+	GGameThreadId = PlatformThread::GetCurrentThreadId();
+	GGameDataCache = DataCacheInterface::Create("DataCache");
 }
 
 void Global::Finalize()
 {
-	gGameDataCache->release();
-	gGameDataCache = nullptr;
+	GGameDataCache->release();
+	GGameDataCache = nullptr;
 }
 
 int Global::RandomNet()
 {
-	++g_RandCount;
+	++GRandCount;
 	//Msg("rand count = %d" ,g_RandCount );
-	int rt =  gWellRng.rand();
+	int rt =  GWellRng.rand();
 	if ( rt < 0 )
 		rt = -rt;
 	return rt;
@@ -66,13 +66,13 @@ void Global::RandSeedNet( uint64 seed )
 	for( int i = 0 ; i < 16 ; ++i )
 		s[i] = rand();
 
-	gWellRng.init( s );
+	GWellRng.init( s );
 }
 
 int Global::Random()
 {
-	++g_RandCount;
-	//Msg("rand count = %d" ,g_RandCount );
+	++GRandCount;
+	//Msg("rand count = %d" ,GRandCount );
 
 	return std::rand();
 }
@@ -129,14 +129,14 @@ AssetManager& Global::GetAssetManager()
 
 IGameNetInterface& Global::GameNet()
 {
-	assert(gGameNetInterfaceImpl);
-	return *gGameNetInterfaceImpl;
+	assert(GGameNetInterfaceImpl);
+	return *GGameNetInterfaceImpl;
 }
 
 IDebugInterface& Global::Debug()
 {
-	assert(gDebugInterfaceImpl);
-	return *gDebugInterfaceImpl;
+	assert(GDebugInterfaceImpl);
+	return *GDebugInterfaceImpl;
 }
 
 GUISystem& Global::GUI()
@@ -153,6 +153,6 @@ UserProfile& Global::GetUserProfile()
 
 DataCacheInterface& Global::DataCache()
 {
-	return *gGameDataCache;
+	return *GGameDataCache;
 }
 

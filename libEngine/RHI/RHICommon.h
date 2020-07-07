@@ -10,11 +10,11 @@
 #include "RefCount.h"
 #include "Serialize/SerializeFwd.h"
 #include "Core/StringConv.h"
+#include "CoreShare.h"
 
 #include <vector>
 
-
-#define USE_RHI_RESOURCE_TRACE 0
+#define USE_RHI_RESOURCE_TRACE 1
 
 #if USE_RHI_RESOURCE_TRACE
 #define TRACE_TYPE_NAME(str) str
@@ -199,6 +199,7 @@ namespace Render
 
 		char const* mFileName;
 		char const* mFuncName;
+
 		int  mLineNumber;
 	};
 
@@ -235,10 +236,17 @@ namespace Render
 
 		static CORE_API void DumpResource();
 #if USE_RHI_RESOURCE_TRACE
+		static CORE_API void SetNextResourceTag(char const* tag, int count);
 		static CORE_API void RegisterResource(RHIResource* resource);
 		static CORE_API void UnregisterResource(RHIResource* resource);
 
+		virtual void setTraceData(ResTraceInfo const& trace)
+		{
+			mTrace = trace;
+		}
+
 		HashString   mTypeName;
+		char const*  mTag = nullptr;
 		ResTraceInfo mTrace;
 #endif
 	};
@@ -856,5 +864,26 @@ namespace Render
 
 
 }//namespace Render
+
+
+#if USE_RHI_RESOURCE_TRACE
+#define TRACE_RESOURCE_TAG( TAG ) ::Render::RHIResource::SetNextResourceTag( TAG , 1 )
+struct ScopedTraceTag
+{
+	ScopedTraceTag(char const* tag)
+	{
+		::Render::RHIResource::SetNextResourceTag(tag, 0);
+	}
+
+	~ScopedTraceTag()
+	{
+		::Render::RHIResource::SetNextResourceTag(nullptr, 0);
+	}
+};
+#define TRACE_RESOURCE_TAG_SCOPE( TAG ) ScopedTraceTag ANONYMOUS_VARIABLE(ScopedTag)(TAG);
+#else 
+#define TRACE_RESOURCE_TAG( TAG )
+#define TRACE_RESOURCE_TAG_SCOPE( TAG )
+#endif
 
 #endif // RHICommon_H_F71942CB_2583_4990_B63B_D7B4FC78E1DB

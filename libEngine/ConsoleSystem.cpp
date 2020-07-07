@@ -205,6 +205,11 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 						return true;
 					}
 				}
+				else
+				{
+					LogMsg("Var %s = %s" , var->mName.c_str() , var->toString().c_str() );
+					return true;
+				}
 			}
 			return false;
 		}

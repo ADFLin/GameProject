@@ -107,7 +107,7 @@ namespace RenderVulkan
 
 		bool InitBirdge()
 		{
-			mSystem = static_cast<VulkanSystem*>(gRHISystem);
+			mSystem = static_cast<VulkanSystem*>(GRHISystem);
 			mDevice = mSystem->mDevice->logicalDevice;
 			mSwapChainExtent = mSystem->mSwapChain->mImageSize;
 			mSwapChainImageFormat = mSystem->mSwapChain->mImageFormat;

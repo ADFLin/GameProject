@@ -201,11 +201,18 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 
 }
 
+static bool IsRHISupport()
+{
+	if (GRHISystem->getName() != RHISytemName::OpenGL &&
+		GRHISystem->getName() != RHISytemName::D3D11)
+		return false;
+	return true;
+}
+
 void RenderUtility::InitializeRHI()
 {
 	using namespace Render;
-	if (gRHISystem->getName() != RHISytemName::OpenGL &&
-		gRHISystem->getName() != RHISytemName::D3D11 )
+	if (!IsRHISupport())
 		return;
 
 	HDC hDC = ::Global::GetDrawEngine().getWindow().getHDC();
@@ -222,6 +229,9 @@ void RenderUtility::InitializeRHI()
 
 void RenderUtility::ReleaseRHI()
 {
+	if (!IsRHISupport())
+		return;
+
 	for( int i = 0 ; i < FONT_NUM ; ++i)
 		FontGL[i].cleanup();
 

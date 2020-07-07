@@ -58,6 +58,10 @@ namespace TripleTown
 			mScene.updateFrame( frame );
 		}
 
+
+		void cleanupRHI();
+		void initializeRHI();
+
 		FileIterator mFileIterator;
 
 		Scene mScene;

@@ -77,6 +77,15 @@ public:
 		return *this;
 	}
 
+	int getRefCount() const
+	{
+		if ( mPtr )
+		{
+			mPtr->AddRef();
+			return mPtr->Release();
+		}
+		return 0;
+	}
 	T* get() { return mPtr; }
 
 	bool operator == (void* ptr) const { return mPtr == ptr; }

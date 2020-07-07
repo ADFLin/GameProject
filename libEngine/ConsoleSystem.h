@@ -14,11 +14,13 @@
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
 #include "Template/ArrayView.h"
+#include "Core/StringConv.h"
 
 #include <string>
 #include <map>
-#include "Core/StringConv.h"
 #include <typeindex>
+#include <functional>
+#include "Meta/EnableIf.h"
 
 enum EConsoleVariableFlag
 {
@@ -221,6 +223,73 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 	}
 };
 
+template < class Type >
+struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
+{
+	using GetValueDelegate = std::function< Type(void) >;
+	using SetValueDelegate = std::function< void(Type const& type) >;
+
+	GetValueDelegate mGetValue;
+	SetValueDelegate mSetValue;
+
+	TVariableConsoleDelegateCommad(char const* inName, GetValueDelegate inGetValue , SetValueDelegate inSetValue , uint32 flags = 0)
+		:VariableConsoleCommadBase(inName, GetArg(), flags)
+		, mGetValue(inGetValue)
+		, mSetValue(inSetValue)
+	{
+
+	}
+
+	virtual std::type_index getTypeIndex() const override
+	{
+		return typeid(Meta::RemoveCV<Type>::Type);
+	}
+	virtual std::string toString() const override
+	{
+		return FStringConv::From(mGetValue());
+	}
+
+	virtual bool fromString(StringView const& str) override
+	{
+		return formStringImpl(str, typename Meta::IsSameType< Type, char const* >::Type() );
+	}
+
+	bool formStringImpl(StringView const& str , Meta::FalseType )
+	{
+		Type value;
+		if (!FStringConv::ToCheck(str.data(), str.length(), value))
+			return false;
+		mSetValue(value);
+	}
+
+	bool formStringImpl(StringView const& str, Meta::TrueType )
+	{
+		mSetValue(str.toCString());
+		return true;
+	}
+
+	static TArrayView< ConsoleArgTypeInfo const > GetArg()
+	{
+		static ConsoleArgTypeInfo const sArg = TCommandArgTypeTraits<Type>::GetInfo();
+		return TArrayView< ConsoleArgTypeInfo const >(&sArg, 1);
+	}
+
+	virtual void execute(void* argsData[]) override
+	{
+		mSetValue(*(Type*)argsData[0]);
+	}
+
+	virtual void getValue(void* pDest) override
+	{
+		TypeDataHelper::Assign((Type*)pDest, mGetValue());
+	}
+
+	virtual void setValue(void* pDest)
+	{
+		mSetValue(*(Type*)pDest);
+	}
+};
+
 class ConsoleSystem
 {
 public:
@@ -302,8 +371,6 @@ protected:
 	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData );
 	bool executeCommandImpl(char const* comStr);
 
-
-
 	struct StrCmp
 	{
 		bool operator()(const char* s1, const char* s2) const
@@ -346,6 +413,28 @@ public:
 	T mValue;
 };
 
+template< class T >
+class TConsoleVariableDelegate
+{
+public:
+	TConsoleVariableDelegate(
+		typename TVariableConsoleDelegateCommad<T>::GetValueDelegate inGetValue ,
+		typename TVariableConsoleDelegateCommad<T>::SetValueDelegate inSetValue ,
+		char const* name, uint32 flags = 0)
+	{
+		mCommand = new TVariableConsoleDelegateCommad<T>(name, inGetValue , inSetValue , flags);
+		ConsoleSystem::Get().insertCommand(mCommand);
+	}
+	~TConsoleVariableDelegate()
+	{
+		if (ConsoleSystem::Get().isInitialized())
+		{
+			ConsoleSystem::Get().unregisterCommand(mCommand);
+		}
+	}
+
+	TVariableConsoleDelegateCommad<T>* mCommand;
+};
 
 template< class T >
 class TConsoleVariableRef

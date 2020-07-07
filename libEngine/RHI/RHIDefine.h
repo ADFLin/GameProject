@@ -13,8 +13,8 @@
 
 namespace Render
 {
-	extern RHI_API float gRHIClipZMin;
-	extern RHI_API float gRHIProjectYSign;
+	extern RHI_API float GRHIClipZMin;
+	extern RHI_API float GRHIProjectYSign;
 
 	enum class DeviceVendorName
 	{
@@ -24,7 +24,7 @@ namespace Render
 		Intel,
 	};
 
-	extern DeviceVendorName gRHIDeviceVendorName;
+	extern DeviceVendorName GRHIDeviceVendorName;
 
 	enum ColorWriteMask
 	{

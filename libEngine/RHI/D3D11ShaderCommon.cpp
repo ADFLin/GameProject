@@ -85,8 +85,8 @@ namespace Render
 
 			uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 			VERIFY_D3D11RESULT(
-				D3DX11CompileFromMemory(codeBuffer.data(), codeBuffer.size(), "ShaderCode", NULL, NULL, output.compileInfo->entryName.c_str(), 
-										profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
+				D3DCompile(codeBuffer.data(), codeBuffer.size(), "ShaderCode", NULL, NULL, output.compileInfo->entryName.c_str(),
+										profileName, compileFlag, 0, &byteCode, &errorCode),
 				{
 					bSuccess = false;
 				}

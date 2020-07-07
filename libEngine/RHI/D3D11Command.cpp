@@ -4,6 +4,7 @@
 
 #include "LogSystem.h"
 #include "GpuProfiler.h"
+#include "RHIGlobalResource.h"
 
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
@@ -155,13 +156,13 @@ namespace Render
 
 		switch( adapterDesc.VendorId )
 		{
-		case 0x10DE: gRHIDeviceVendorName = DeviceVendorName::NVIDIA; break;
-		case 0x8086: gRHIDeviceVendorName = DeviceVendorName::Intel; break;
-		case 0x1002: gRHIDeviceVendorName = DeviceVendorName::ATI; break;
+		case 0x10DE: GRHIDeviceVendorName = DeviceVendorName::NVIDIA; break;
+		case 0x8086: GRHIDeviceVendorName = DeviceVendorName::Intel; break;
+		case 0x1002: GRHIDeviceVendorName = DeviceVendorName::ATI; break;
 		}
 
-		gRHIClipZMin = 0;
-		gRHIProjectYSign = 1;
+		GRHIClipZMin = 0;
+		GRHIProjectYSign = 1;
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 #if 1
@@ -177,6 +178,30 @@ namespace Render
 #endif
 
 		return true;
+	}
+
+	void D3D11System::preShutdown()
+	{
+		mDeviceContext->ClearState();
+	}
+
+	void D3D11System::shutdown()
+	{
+		mInputLayoutMap.clear();
+		mRenderContext.release();
+		mSwapChain.release();
+
+#if _DEBUG
+		ID3D11Debug *d3dDebug;
+		HRESULT hr = mDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&d3dDebug));
+		if (SUCCEEDED(hr))
+		{
+			hr = d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+			d3dDebug->Release();
+		}
+#endif
+
+		mDevice.reset();
 	}
 
 	ShaderFormat* D3D11System::createShaderFormat()
@@ -205,6 +230,8 @@ namespace Render
 
 		TComPtr<IDXGISwapChain> swapChainResource;
 		VERIFY_D3D11RESULT(factory->CreateSwapChain(mDevice, &swapChainDesc, &swapChainResource), return nullptr;);
+
+		int count = swapChainResource.getRefCount();
 
 		Texture2DCreationResult textureCreationResult;
 		VERIFY_D3D11RESULT(swapChainResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), return nullptr;);
@@ -396,7 +423,7 @@ namespace Render
 
 		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 		VERIFY_D3D11RESULT(
-			D3DX11CompileFromMemory(fakeCode, FCString::Strlen(fakeCode), "ShaderCode", NULL, NULL, SHADER_ENTRY(MainVS), profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
+			D3DCompile(fakeCode, FCString::Strlen(fakeCode), "ShaderCode", NULL, NULL, SHADER_ENTRY(MainVS), profileName, compileFlag, 0, &byteCode, &errorCode),
 			{
 				LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
 				return nullptr;
@@ -785,8 +812,14 @@ namespace Render
 
 	void D3D11Context::release()
 	{
+		for (auto& state : mShaderBoundState)
+		{
+			state.releaseResource();
+		}
 		mDynamicVBuffer.release();
 		mDynamicIBuffer.release();
+		mDeviceContext.reset();
+		mDevice.reset();
 	}
 
 	void D3D11Context::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
@@ -801,7 +834,12 @@ namespace Render
 
 	void D3D11Context::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
+		D3D11Cast::GetResource(depthStencilState)->AddRef();
+		int Count = D3D11Cast::GetResource(depthStencilState)->Release();
 		mDeviceContext->OMSetDepthStencilState(D3D11Cast::GetResource(depthStencilState), stencilRef);
+		D3D11Cast::GetResource(depthStencilState)->AddRef();
+		int Count2 = D3D11Cast::GetResource(depthStencilState)->Release();
+		int i = 1;
 	}
 
 	void D3D11Context::RHISetViewport(int x, int y, int w, int h, float zNear, float zFar)
@@ -958,6 +996,7 @@ namespace Render
 		if (outPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
 			return false;
 
+
 		if (pIndices)
 		{
 			uint32 indexBufferSize = num * sizeof(uint32);
@@ -967,6 +1006,8 @@ namespace Render
 
 			memcpy(pIndexBufferData, pIndices, indexBufferSize);
 			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+			outIndexNum = num;
+
 		}
 		return true;
 	}
@@ -1093,7 +1134,7 @@ namespace Render
 		D3D11RenderTargetsState* newState;
 		if (frameBuffer == nullptr)
 		{
-			D3D11SwapChain* swapChain = static_cast<D3D11System*>(gRHISystem)->mSwapChain.get();
+			D3D11SwapChain* swapChain = static_cast<D3D11System*>(GRHISystem)->mSwapChain.get();
 			if (swapChain == nullptr)
 			{
 				mDeviceContext->OMSetRenderTargets(0, nullptr, nullptr);

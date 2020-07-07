@@ -115,6 +115,7 @@ enum class RHITargetName
 	D3D11  ,
 	D3D12  ,
 	Vulkan ,
+
 };
 
 struct RHIInitializeParams
@@ -177,6 +178,7 @@ public:
 	TINY_API void  endRender();
 
 	bool        bUsePlatformBuffer = true;
+	bool        bConstructWindow = false;
 private:
 	void        setupBuffer( int w , int h );
 

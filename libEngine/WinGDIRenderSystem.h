@@ -77,9 +77,9 @@ public:
 
 	void  drawTexture( GdiTexture& texture , Vec2i const& pos );
 	void  drawTexture( GdiTexture& texture, Vec2i const& pos, Vec2i const& size);
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Color3ub const& color );
+	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Color3ub const& colorKey );
 	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize );
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , Color3ub const& color );
+	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , Color3ub const& colorKey );
 	
 	void  setTextColor(Color3ub const& color);
 	void  drawText( Vec2i const& pos , char const* str );

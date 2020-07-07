@@ -186,9 +186,9 @@ void BitmapDC::bitBltFrom(HDC hDC, int x, int y)
 	::BitBlt(mhDC, x, y, mWidth , mHeight, hDC, 0, 0, SRCCOPY);
 }
 
-void BitmapDC::bitBltTransparent( HDC hdc , COLORREF color , int x /*= 0*/,int y /*= 0 */ )
+void BitmapDC::bitBltTransparent( HDC hdc , COLORREF colorKey , int x /*= 0*/,int y /*= 0 */ )
 {
-	::TransparentBlt( hdc , x , y , mWidth , mHeight, mhDC, 0,0 , mWidth , mHeight , color );
+	::TransparentBlt( hdc , x , y , mWidth , mHeight, mhDC, 0,0 , mWidth , mHeight , colorKey );
 }
 
 void BitmapDC::cleanup()

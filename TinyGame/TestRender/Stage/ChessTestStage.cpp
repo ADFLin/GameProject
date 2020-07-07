@@ -55,6 +55,7 @@ namespace Chess
 
 		void onEnd() override
 		{
+			::Global::GetDrawEngine().shutdownRHI(true);
 			BaseClass::onEnd();
 		}
 
@@ -135,7 +136,11 @@ namespace Chess
 		void onRender(float dFrame) override
 		{
 			RHIGraphics2D& g = Global::GetRHIGraphics2D();
+
+			Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
+			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
 
 			g.beginRender();
@@ -223,6 +228,7 @@ namespace Chess
 
 			{
 				BlendScope scope(g, 1.0f);
+				RenderUtility::SetBrush(g, EColor::White);
 				for (int j = 0; j < BOARD_SIZE; ++j)
 				{
 					for (int i = 0; i < BOARD_SIZE; ++i)

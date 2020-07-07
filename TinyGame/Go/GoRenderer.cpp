@@ -115,7 +115,7 @@ namespace Go
 		return pos;
 	}
 
-	void BoardRenderer::drawBorad(RHIGraphics2D& g , SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState )
+	void BoardRenderer::drawBorad(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState)
 	{
 		using namespace Render;
 		using namespace Go;
@@ -126,7 +126,7 @@ namespace Go
 		int boardSize = context.board.getSize();
 		float length = (boardSize - 1) * context.cellLength;
 
-		float const border = 0.5 * context.cellLength + (( bDrawCoord ) ? 30 : 0 );
+		float const border = 0.5 * context.cellLength + ((bDrawCoord) ? 30 : 0);
 		float const boardRenderLength = length + 2 * border;
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
@@ -140,8 +140,8 @@ namespace Go
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[TextureId::eBoardA]);
 			DrawUtility::Sprite(commandList,
-				context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0), 
-				LinearColor(1,1,1,1),Vector2(0, 0), 2 * Vector2(1, 1));
+				context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0),
+				LinearColor(1, 1, 1, 1), Vector2(0, 0), 2 * Vector2(1, 1));
 		}
 		glDisable(GL_TEXTURE_2D);
 #else
@@ -150,29 +150,17 @@ namespace Go
 		g.drawRect(renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength));
 #endif
 
-		Vector2 posV = context.renderPos;
-		Vector2 posH = context.renderPos;
-
-		RenderUtility::SetPen(g, EColor::Black);
-		RenderUtility::SetFont(g, FONT_S12);
-		g.setTextColor(Color3ub(0, 0, 0));
-		for( int i = 0; i < boardSize; ++i )
 		{
-			g.drawLine(posV, posV + Vector2(0, length));
-			g.drawLine(posH, posH + Vector2(length, 0));
-			if( bDrawCoord )
+			RenderUtility::SetPen(g, EColor::Black);
+			Vector2 posV = context.renderPos;
+			Vector2 posH = context.renderPos;
+			for (int i = 0; i < boardSize; ++i)
 			{
-				FixString< 64 > str;
-				str.format("%2d", boardSize - i );
-				g.drawText(posH - Vector2(30, 8), str);
-				g.drawText(posH + Vector2(12 + length, -8), str);
-
-				str.format("%c", CoordStr[i]);
-				g.drawText(posV - Vector2(5, 30), str);
-				g.drawText(posV + Vector2(-5, 15 + length), str);
+				g.drawLine(posV, posV + Vector2(0, length));
+				g.drawLine(posH, posH + Vector2(length, 0));
+				posV.x += context.cellLength;
+				posH.y += context.cellLength;
 			}
-			posV.x += context.cellLength;
-			posH.y += context.cellLength;
 		}
 
 		RenderUtility::SetPen(g, EColor::Black);
@@ -211,6 +199,28 @@ namespace Go
 					g.drawCircle(context.renderPos + context.cellLength * Vec2i(6, 6), context.starRadius);
 				}
 				break;
+			}
+		}
+
+		if (bDrawCoord)
+		{
+			RenderUtility::SetFont(g, FONT_S12);
+			g.setTextColor(Color3ub(0, 0, 0));
+
+			Vector2 posV = context.renderPos;
+			Vector2 posH = context.renderPos;
+			for (int i = 0; i < boardSize; ++i)
+			{
+				FixString< 64 > str;
+				str.format("%2d", boardSize - i);
+				g.drawText(posH - Vector2(30, 8), str);
+				g.drawText(posH + Vector2(12 + length, -8), str);
+
+				str.format("%c", CoordStr[i]);
+				g.drawText(posV - Vector2(5, 30), str);
+				g.drawText(posV + Vector2(-5, 15 + length), str);
+				posV.x += context.cellLength;
+				posH.y += context.cellLength;
 			}
 		}
 

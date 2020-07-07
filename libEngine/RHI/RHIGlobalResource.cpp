@@ -63,9 +63,11 @@ namespace Render
 
 	bool InitGlobalRHIResource()
 	{
-		if (gRHISystem->getName() == RHISytemName::D3D12 ||
-			gRHISystem->getName() == RHISytemName::Vulkan)
+		if (GRHISystem->getName() == RHISytemName::D3D12 ||
+			GRHISystem->getName() == RHISytemName::Vulkan)
 			return true;
+
+		TRACE_RESOURCE_TAG_SCOPE("GlobalRHIResource");
 
 		uint32 colorW[] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[] = { 0, 0 , 0 , 0 , 0 , 0 , 0 , 0 };
@@ -77,7 +79,7 @@ namespace Render
 			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
 
 
-			if( gRHISystem->getName() == RHISytemName::OpenGL )
+			if( GRHISystem->getName() == RHISytemName::OpenGL )
 			{
 				VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorW)));
 				VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorB)));
@@ -106,7 +108,7 @@ namespace Render
 			}
 		}
 
-		if (gRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISytemName::OpenGL)
 		{
 			TIME_SCOPE("EmptyMaterial");
 			GDefalutMaterial = new MaterialMaster;
@@ -121,7 +123,7 @@ namespace Render
 				return false;
 		}
 
-		if (gRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISytemName::OpenGL)
 		{
 			TIME_SCOPE("SimpleBasePass");
 			ShaderCompileOption option;

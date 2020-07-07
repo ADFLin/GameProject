@@ -89,10 +89,10 @@ NetWorker::~NetWorker()
 }
 
 #if TINY_USE_NET_THREAD
-uint32 gNetThreadId = 0;
+uint32 GNetThreadId = 0;
 bool IsInNetThread()
 {
-	return gNetThreadId == PlatformThread::GetCurrentThreadId();
+	return GNetThreadId == PlatformThread::GetCurrentThreadId();
 }
 #endif
 
@@ -100,7 +100,7 @@ bool IsInNetThread()
 #if TINY_USE_NET_THREAD
 void NetWorker::entryNetThread()
 {
-	gNetThreadId = PlatformThread::GetCurrentThreadId();
+	GNetThreadId = PlatformThread::GetCurrentThreadId();
 
 	SystemPlatform::AtomExchange(&mbRequestExitNetThread, 0);
 

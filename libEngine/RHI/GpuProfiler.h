@@ -78,10 +78,8 @@ namespace Render
 		double mCycleToSecond;
 	};
 
-
 	struct GpuProfileScope
 	{
-
 		GpuProfileScope(char const* name)
 		{
 			sample = GpuProfiler::Get().startSample(name);
@@ -97,8 +95,10 @@ namespace Render
 
 		~GpuProfileScope()
 		{
-			if( sample )
+			if (sample)
+			{
 				GpuProfiler::Get().endSample(*sample);
+			}
 		}
 
 		GpuProfileSample* sample;

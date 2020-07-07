@@ -11,17 +11,8 @@
 #include "Core/ScopeExit.h"
 #include "Core/TypeHash.h"
 
-
 #include <D3D11Shader.h>
-
-
 #include <D3Dcompiler.h>
-#include <D3DX11async.h>
-
-#pragma comment(lib , "D3D11.lib")
-#pragma comment(lib , "D3DX11.lib")
-#pragma comment(lib , "DXGI.lib")
-#pragma comment(lib , "dxguid.lib")
 
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
@@ -39,10 +30,6 @@ namespace Render
 	template<> struct ToShaderEnum< ID3D11HullShader > { static EShader::Type constexpr Result = EShader::Hull; };
 	template<> struct ToShaderEnum< ID3D11DomainShader > { static EShader::Type constexpr Result = EShader::Domain; };
 
-	struct FrameSwapChain
-	{
-		TComPtr<IDXGISwapChain> ptr;
-	};
 	struct ShaderConstDataBuffer
 	{
 		TComPtr< ID3D11Buffer > resource;
@@ -60,6 +47,12 @@ namespace Render
 			bufferDesc.MiscFlags = 0;
 			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, nullptr, &resource));
 			return true;
+		}
+
+
+		void releaseResource()
+		{
+			resource.reset();
 		}
 
 		void setUpdateValue(ShaderParameter const parameter, void const* value, int valueSize)
@@ -97,7 +90,13 @@ namespace Render
 		}
 
 		bool initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext);
-
+		void releaseResource()
+		{
+			for (auto& buffer : mConstBuffers)
+			{
+				buffer.releaseResource();
+			}
+		}
 
 		void clear()
 		{
@@ -452,10 +451,8 @@ namespace Render
 	public:
 		RHISytemName getName() const { return RHISytemName::D3D11; }
 		bool initialize(RHISystemInitParams const& initParam);
-		void shutdown()
-		{
-			mRenderContext.release();
-		}
+		void preShutdown();
+		void shutdown();
 		virtual ShaderFormat* createShaderFormat();
 
 
@@ -478,10 +475,6 @@ namespace Render
 		{
 			return *mImmediateCommandList;
 		}
-
-		TRefCountPtr< D3D11SwapChain > mSwapChain;
-
-
 
 		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 		RHITexture1D*    RHICreateTexture1D(
@@ -547,32 +540,6 @@ namespace Render
 		bool createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult);
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size);
 
-
-		bool createSwapChain(HWND hWnd, int w, int h, bool bWindowed, FrameSwapChain& outResult)
-		{
-			HRESULT hr;
-			TComPtr<IDXGIFactory> factory;
-			hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
-
-			DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-			swapChainDesc.OutputWindow = hWnd;
-			swapChainDesc.Windowed = bWindowed;
-			swapChainDesc.SampleDesc.Count = 1;
-			swapChainDesc.SampleDesc.Quality = 0;
-			swapChainDesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-			swapChainDesc.BufferDesc.Width = w;
-			swapChainDesc.BufferDesc.Height = h;
-			swapChainDesc.BufferCount = 1;
-			swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-			//swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
-			swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
-
-			VERIFY_D3D11RESULT_RETURN_FALSE(factory->CreateSwapChain(mDevice, &swapChainDesc, &outResult.ptr));
-
-
-			return true;
-		}
-
 		struct InputLayoutKey
 		{
 			InputLayoutKey(InputLayoutDesc const& desc)
@@ -598,6 +565,7 @@ namespace Render
 			}
 		};
 
+		TRefCountPtr< D3D11SwapChain > mSwapChain;
 		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFuncHasher > mInputLayoutMap;
 		D3D11Context   mRenderContext;
 		TComPtr< ID3D11Device > mDevice;

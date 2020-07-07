@@ -64,9 +64,9 @@ namespace Render
 			VERIFY_RETURN_FALSE( createSimpleMesh() );
 			GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
-			if (gRHISystem->getName() == RHISytemName::D3D11)
+			if (GRHISystem->getName() == RHISytemName::D3D11)
 			{
-				mD3D11System = static_cast<D3D11System*>(gRHISystem);
+				mD3D11System = static_cast<D3D11System*>(GRHISystem);
 				::Global::GetDrawEngine().bUsePlatformBuffer = true;
 			}
 
@@ -315,7 +315,7 @@ namespace Render
 			{
 				GPU_PROFILE("Present");
 
-				if (gRHISystem->getName() == RHISytemName::D3D11)
+				if (GRHISystem->getName() == RHISytemName::D3D11)
 				{
 					if (::Global::GetDrawEngine().bUsePlatformBuffer)
 					{

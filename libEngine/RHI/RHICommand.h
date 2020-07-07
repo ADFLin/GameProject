@@ -3,10 +3,7 @@
 #define RHICommand_H_C0CC3E6C_43AE_4582_8203_41997F0A4C7D
 
 #include "RHICommon.h"
-#include "RHIGlobalResource.h"
-
 #include "CoreShare.h"
-
 #include "SystemPlatform.h"
 
 
@@ -28,28 +25,38 @@ enum class RHISytemName
 
 #if USE_RHI_RESOURCE_TRACE
 #define RHI_TRACE_FUNC_NAME(NAME) NAME##Trace
-#define RHI_TRACE_FUNC( NAME , ... ) RHI_TRACE_FUNC_NAME(NAME)(ResTraceInfo const& traceInfo, ##__VA_ARGS__)
+#define RHI_TRACE_FUNC( NAME , ... ) RHI_TRACE_FUNC_NAME(NAME)(RHI_TRACE_PARAM_DESC, ##__VA_ARGS__)
+
 #define RHI_TRACE_CODE( CODE )\
 	auto* result = CODE;\
 	if (result)\
 	{\
-		result->mTrace = traceInfo;\
+		result->setTraceData( traceInfo );\
 	}\
 	return result;
+#define RHI_MAKE_TRACE_PARAM Render::ResTraceInfo(__FILE__, __FUNCTION__, __LINE__)
+#define RHI_TRACE_PARAM_DESC ResTraceInfo const& traceInfo
+#define RHI_TRACE_PARAM traceInfo
+#define RHI_CALL_TRACE_FRUNC( NAME , ... ) RHI_TRACE_FUNC_NAME(NAME)(RHI_TRACE_PARAM, ##__VA_ARGS__)
+
 #else
 #define RHI_TRACE_FUNC_NAME(NAME) NAME
 #define RHI_TRACE_FUNC( NAME , ... ) NAME(__VA_ARGS__)
 #define RHI_TRACE_CODE( CODE ) return CODE
+#define RHI_MAKE_TRACE_PARAM
+#define RHI_TRACE_PARAM_DESC 
+#define RHI_TRACE_PARAM
+#define RHI_CALL_TRACE_FRUNC( NAME , ... ) NAME(__VA_ARGS__)
 #endif
 
 
 namespace Render
 {
-	extern CORE_API class RHISystem* gRHISystem;
+	extern CORE_API class RHISystem* GRHISystem;
 
 	FORCEINLINE bool RHIIsInitialized()
 	{
-		return gRHISystem != nullptr;
+		return GRHISystem != nullptr;
 	}
 
 	struct RHISystemInitParams
@@ -139,26 +146,18 @@ namespace Render
 
 	RHI_API RHIFrameBuffer*  RHICreateFrameBuffer();
 
-#if USE_RHI_RESOURCE_TRACE
-	RHI_API RHIInputLayout*  RHICreateInputLayoutTrace(ResTraceInfo const& traceInfo, InputLayoutDesc const& desc);
-#else
-	RHI_API RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
-#endif
-	RHI_API RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
-
-	RHI_API RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
-	RHI_API RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
-	RHI_API RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
+	RHI_API RHIInputLayout*       RHI_TRACE_FUNC(RHICreateInputLayout, InputLayoutDesc const& desc);
+	RHI_API RHISamplerState*      RHI_TRACE_FUNC(RHICreateSamplerState, SamplerStateInitializer const& initializer);
+	RHI_API RHIRasterizerState*   RHI_TRACE_FUNC(RHICreateRasterizerState, RasterizerStateInitializer const& initializer);
+	RHI_API RHIBlendState*        RHI_TRACE_FUNC(RHICreateBlendState, BlendStateInitializer const& initializer);
+	RHI_API RHIDepthStencilState* RHI_TRACE_FUNC(RHICreateDepthStencilState, DepthStencilStateInitializer const& initializer);
 
 
 	RHI_API RHIShader*        RHICreateShader(EShader::Type type);
 
 
-#if USE_RHI_RESOURCE_TRACE
-	RHI_API RHIShaderProgram* RHICreateShaderProgramTrace(ResTraceInfo const& traceInfo);
-#else
-	RHI_API RHIShaderProgram* RHICreateShaderProgram();
-#endif
+	RHI_API RHIShaderProgram* RHI_TRACE_FUNC(RHICreateShaderProgram);
+
 
 	class RHICommandList
 	{
@@ -252,6 +251,7 @@ namespace Render
 		virtual ~RHISystem(){}
 		virtual RHISytemName getName() const = 0;
 		virtual bool initialize(RHISystemInitParams const& initParam) { return true; }
+		virtual void preShutdown(){}
 		virtual void shutdown(){}
 		virtual class ShaderFormat* createShaderFormat() { return nullptr; }
 		
@@ -308,7 +308,6 @@ namespace Render
 		RHI_FUNC(RHIShader* RHICreateShader(EShader::Type type));
 		RHI_FUNC(RHIShaderProgram* RHICreateShaderProgram());
 	};
-
 
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
@@ -373,6 +372,10 @@ namespace Render
 		static RHITextureCube* LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option = TextureLoadOption());
 		static RHITexture2D* CreateTexture2D(ImageData const& imageData, TextureLoadOption const& option);
 	};
+
+
+
+
 
 }//namespace Render
 

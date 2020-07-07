@@ -1,58 +1,62 @@
 #include "RHICommand.h"
 
 #include "RHICommon.h"
+#include "RHIGlobalResource.h"
 
 #include "OpenGLCommand.h"
 #include "D3D11Command.h"
 #include "VulkanCommand.h"
 
 #include "ShaderManager.h"
+#include "GpuProfiler.h"
 
 #include <cassert>
 #include "DataCacheInterface.h"
 #include "Serialize/DataStream.h"
 #include "Image/ImageData.h"
 
+
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 
 
+
 namespace Render
 {
 #if CORE_SHARE_CODE
-	RHISystem* gRHISystem = nullptr;
-	float gRHIClipZMin = 0;
-	float gRHIProjectYSign = 1;
+	RHISystem* GRHISystem = nullptr;
+	float GRHIClipZMin = 0;
+	float GRHIProjectYSign = 1;
 
-#define EXECUTE_RHI_FUNC( CODE ) gRHISystem->CODE
+#define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
 	bool RHISystemInitialize(RHISytemName name, RHISystemInitParams const& initParam)
 	{
-		if( gRHISystem == nullptr )
+		if( GRHISystem == nullptr )
 		{
 			switch( name )
 			{
-			case RHISytemName::D3D11: gRHISystem = new D3D11System; break;
-			case RHISytemName::OpenGL:gRHISystem = new OpenGLSystem; break;
-			case RHISytemName::Vulkan:gRHISystem = new VulkanSystem; break;
+			case RHISytemName::D3D11: GRHISystem = new D3D11System; break;
+			case RHISytemName::OpenGL:GRHISystem = new OpenGLSystem; break;
+			case RHISytemName::Vulkan:GRHISystem = new VulkanSystem; break;
 			}
 
-			if( gRHISystem && !gRHISystem->initialize(initParam) )
+			if( GRHISystem && !GRHISystem->initialize(initParam) )
 			{
-				delete gRHISystem;
-				gRHISystem = nullptr;
+				delete GRHISystem;
+				GRHISystem = nullptr;
 			}
 
-			if( gRHISystem )
+			if( GRHISystem )
 			{
 				//#FIXME
-				if (gRHISystem->getName() != RHISytemName::D3D12 )
+				if (GRHISystem->getName() != RHISytemName::D3D12 )
 				{
-					ShaderFormat* shaderFormat = gRHISystem->createShaderFormat();
+					ShaderFormat* shaderFormat = GRHISystem->createShaderFormat();
 					if (shaderFormat == nullptr)
 					{
-						LogError("Can't create shader format for %d system", (int)gRHISystem->getName());
+						LogError("Can't create shader format for %d system", (int)GRHISystem->getName());
 						return false;
 					}
 
@@ -63,30 +67,38 @@ namespace Render
 					}
 				}
 
-				GlobalRHIResourceBase::ReleaseAllResource();
+				GlobalRHIResourceBase::RestoreAllResource();
 
 				InitGlobalRHIResource();
 			}		
 		}
 		
-		return gRHISystem != nullptr;
+		return GRHISystem != nullptr;
 	}
 
 
 	void RHISystemShutdown()
 	{	
-		ShaderManager::Get().clearnupRHIResouse();
+		GRHISystem->preShutdown();
+		
+		if (GpuProfiler::Get().mCore)
+		{
+			GpuProfiler::Get().mCore->releaseRHI();
+			delete GpuProfiler::Get().mCore;
+			GpuProfiler::Get().mCore = nullptr;
+		}
 
 		//#FIXME
-		if( gRHISystem->getName() != RHISytemName::D3D11 ||
-			gRHISystem->getName() != RHISytemName::D3D12 )
+		if( GRHISystem->getName() != RHISytemName::D3D11 ||
+			GRHISystem->getName() != RHISytemName::D3D12 )
 			ReleaseGlobalRHIResource();
 
+		ShaderManager::Get().clearnupRHIResouse();
 		GlobalRHIResourceBase::ReleaseAllResource();
 
-		gRHISystem->shutdown();
-		delete gRHISystem;
-		gRHISystem = nullptr;
+		GRHISystem->shutdown();
+		delete GRHISystem;
+		GRHISystem = nullptr;
 
 		RHIResource::DumpResource();
 	}
@@ -190,24 +202,25 @@ namespace Render
 	}
 #endif
 
-	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+
+	RHIRasterizerState* RHI_TRACE_FUNC(RHICreateRasterizerState, RasterizerStateInitializer const& initializer)
 	{
-		return EXECUTE_RHI_FUNC(RHICreateRasterizerState(initializer));
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateRasterizerState(initializer)));
 	}
 
-	RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
+	RHISamplerState* RHI_TRACE_FUNC(RHICreateSamplerState, SamplerStateInitializer const& initializer)
 	{
-		return EXECUTE_RHI_FUNC(RHICreateSamplerState(initializer));
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateSamplerState(initializer)));
 	}
 
-	RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
+	RHIDepthStencilState* RHI_TRACE_FUNC(RHICreateDepthStencilState, DepthStencilStateInitializer const& initializer)
 	{
-		return EXECUTE_RHI_FUNC(RHICreateDepthStencilState(initializer));
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateDepthStencilState(initializer)));
 	}
 
-	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer)
+	RHIBlendState* RHI_TRACE_FUNC(RHICreateBlendState, BlendStateInitializer const& initializer)
 	{
-		return EXECUTE_RHI_FUNC(RHICreateBlendState(initializer));
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBlendState(initializer)));
 	}
 
 	RHIShader* RHICreateShader(EShader::Type type)
@@ -262,7 +275,7 @@ namespace Render
 
 	RHICommandList& RHICommandList::GetImmediateList()
 	{
-		return gRHISystem->getImmediateCommandList();
+		return GRHISystem->getImmediateCommandList();
 	}
 
 
@@ -274,7 +287,7 @@ namespace Render
 
 	bool IsSupportRGB8ComponentTexture()
 	{
-		return gRHISystem->getName() != RHISytemName::Vulkan;
+		return GRHISystem->getName() != RHISytemName::Vulkan;
 	}
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)

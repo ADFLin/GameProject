@@ -8,9 +8,9 @@ class TypeDataHelper
 {
 public:
 	template< class T >
-	static void Construct(T* ptr, T const& val = T() )
+	static void Construct(void* ptr, T const& val = T())
 	{
-		ConstructInternal(ptr, val, Meta::IsPod< T >::Type());
+		ConstructInternal(static_cast<T*>(ptr), val, Meta::IsPod< T >::Type());
 	}
 
 	template< class T , class Q >
@@ -21,6 +21,12 @@ public:
 
 	template< class T, class ...Args >
 	static void Construct(T* ptr, Args&& ...args)
+	{
+		::new (ptr) T(std::forward<Args>(args)...);
+	}
+
+	template< class ...Args >
+	static void Construct(void* ptr, Args&& ...args)
 	{
 		::new (ptr) T(std::forward<Args>(args)...);
 	}
@@ -63,11 +69,19 @@ public:
 	{
 		ptr->~T();
 	}
+
+	template< class T >
+	static void Destruct(void* ptr)
+	{
+		static_cast< T* >( ptr )->~T();
+	}
+
 	template< class T >
 	static void Destruct(T* ptr, size_t num )
 	{
 		DestructInternal(ptr, num, Meta::IsPod< T >::Type());
 	}
+
 private:
 	template< class T >
 	static void ConstructInternal(T* ptr, T const& val, Meta::TrueType)

@@ -5,6 +5,7 @@
 
 #include "RHI/ShaderCore.h"
 #include "RHI/GpuProfiler.h"
+#include "RHI/RHIGlobalResource.h"
 
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
@@ -172,15 +173,15 @@ namespace Render
 
 		if( strstr(vendorStr, "NVIDIA") != nullptr )
 		{
-			gRHIDeviceVendorName = DeviceVendorName::NVIDIA;
+			GRHIDeviceVendorName = DeviceVendorName::NVIDIA;
 		}
 		else if( strstr(vendorStr, "ATI") != nullptr )
 		{
-			gRHIDeviceVendorName = DeviceVendorName::ATI;
+			GRHIDeviceVendorName = DeviceVendorName::ATI;
 		}
 		else if( strstr(vendorStr, "Intel") != nullptr )
 		{
-			gRHIDeviceVendorName = DeviceVendorName::Intel;
+			GRHIDeviceVendorName = DeviceVendorName::Intel;
 		}
 
 		bool bEnableDebugOutput = true;
@@ -192,8 +193,8 @@ namespace Render
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		}
 
-		gRHIClipZMin = -1;
-		gRHIProjectYSign = 1;
+		GRHIClipZMin = -1;
+		GRHIProjectYSign = 1;
 
 
 		if( 1 )
@@ -210,13 +211,6 @@ namespace Render
 
 	void OpenGLSystem::shutdown()
 	{
-		if( mProfileCore )
-		{
-			GpuProfiler::Get().setCore(nullptr);
-			delete mProfileCore;
-			mProfileCore = nullptr;
-		}
-
 		delete mImmediateCommandList;
 
 		mDrawContext.shutdown();

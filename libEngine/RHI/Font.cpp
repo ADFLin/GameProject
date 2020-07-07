@@ -120,7 +120,7 @@ namespace Render
 		data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelSize);
 		CopyImage(&data.imageData[0], data.imageWidth, data.imageHeight, data.pixelSize, pDataTexture, textureDC.getWidth());
 
-		if (gRHISystem->getName() == RHISytemName::D3D11)
+		if (GRHISystem->getName() == RHISytemName::D3D11)
 		{
 			uint8* pData = data.imageData.data();
 			int count = data.imageData.size() / 4;
@@ -164,10 +164,11 @@ namespace Render
 	{
 		if( !bInitialized )
 		{
+			TRACE_RESOURCE_TAG("FontCharCache");
 			if( !mTextAtlas.initialize(Texture::eRGBA8, 1024, 1024, 1) )
 				return false;
 
-			if ( gRHISystem->getName() == RHISytemName::OpenGL )
+			if ( GRHISystem->getName() == RHISytemName::OpenGL )
 			{
 				GL_BIND_LOCK_OBJECT(mTextAtlas.getTexture());
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);

@@ -15,6 +15,52 @@
 #include <cmath>
 
 #include "resource.h"
+#include "ConsoleSystem.h"
+
+using namespace Render;
+
+RHITargetName GDefaultRHIName = RHITargetName::D3D11;
+
+namespace FLocal
+{
+	static char const* GetDefaultRHI()
+	{
+		switch (GDefaultRHIName)
+		{
+		case RHITargetName::OpenGL: return "OpenGL";
+		case RHITargetName::D3D11:  return "D3D11";
+		case RHITargetName::D3D12: return "D3D12";
+		case RHITargetName::Vulkan: return "Vulkan";
+		}
+		return "Unknown";
+	}
+	static void SetDefaultRHI(char const* str)
+	{
+		if (FCString::CompareIgnoreCase(str, "OpenGL") == 0)
+		{
+			GDefaultRHIName = RHITargetName::OpenGL;
+		}
+		else if (FCString::CompareIgnoreCase(str, "D3D11") == 0)
+		{
+			GDefaultRHIName = RHITargetName::D3D11;
+		}
+		else if (FCString::CompareIgnoreCase(str, "D3D12") == 0)
+		{
+			GDefaultRHIName = RHITargetName::D3D12;
+		}
+		else if (FCString::CompareIgnoreCase(str, "Vulkan") == 0)
+		{
+			GDefaultRHIName = RHITargetName::Vulkan;
+		}
+	}
+};
+
+TConsoleVariableDelegate< char const* > CVarDefalultRHISystem
+(
+	&FLocal::GetDefaultRHI , &FLocal::SetDefaultRHI,
+	"g.DefaultRHI",
+	0
+);
 
 WORD GameWindow::getIcon()
 {
@@ -26,7 +72,6 @@ WORD GameWindow::getSmallIcon()
 	return IDI_ICON1;
 }
 
-using namespace Render;
 
 template< class T >
 class TGraphics2DProxy : public IGraphics2D
@@ -127,8 +172,12 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 	if( isRHIEnabled() )
 		return true;
 
+	if (targetName == RHITargetName::None)
+		targetName = GDefaultRHIName;
+
 	if( bHasUseRHI )
 	{
+		TGuardValue<bool> value(bConstructWindow, true);
 		if( !mWindowProvider->reconstructWindow(*mGameWindow) )
 		{
 			return false;
@@ -151,7 +200,6 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 		case RHITargetName::D3D12: return RHISytemName::D3D12;
 		case RHITargetName::Vulkan: return RHISytemName::Vulkan;
 		}
-		return RHISytemName::OpenGL;
 	}();
 	if( !RHISystemInitialize(name, initParam) )
 		return false;
@@ -161,7 +209,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 	RenderUtility::InitializeRHI();
 	if( mRHIName == RHITargetName::OpenGL )
 	{
-		mGLContext = &static_cast<OpenGLSystem*>(gRHISystem)->mGLContext;
+		mGLContext = &static_cast<OpenGLSystem*>(GRHISystem)->mGLContext;
 	}
 	else if (mRHIName == RHITargetName::D3D11)
 	{
@@ -184,11 +232,7 @@ void DrawEngine::shutdownRHI(bool bDeferred)
 	if( !isRHIEnabled() )
 		return;
 
-	if( mRHIName == RHITargetName::OpenGL )
-	{
-		RenderUtility::ReleaseRHI();
-	}
-
+	RenderUtility::ReleaseRHI();
 	mRHIName = RHITargetName::None;
 
 	if( bDeferred == false )
@@ -206,6 +250,9 @@ void DrawEngine::shutdownRHI(bool bDeferred)
 
 bool DrawEngine::beginRender()
 {
+	if (bConstructWindow)
+		return false;
+
 	if ( isRHIEnabled() )
 	{
 		if( !RHIBeginRender() )

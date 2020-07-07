@@ -15,6 +15,7 @@
 #include "RHI/ShaderCore.h"
 #include "RHI/RHICommand.h"
 #include "RHI/ShaderManager.h"
+#include "RHI/RHIGlobalResource.h"
 //#REMOVE
 #include "RHI/OpenGLCommon.h"
 

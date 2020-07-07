@@ -72,9 +72,9 @@ namespace Render
 		Matrix4 clipTranslateAndScaleMatrix
 		{
 			1 ,                0 ,                0 , 0,
-			0 , gRHIProjectYSign ,                0 , 0,
-			0 ,                0 , 1 - gRHIClipZMin , 0,
-			0 ,                0 ,     gRHIClipZMin , 1
+			0 , GRHIProjectYSign ,                0 , 0,
+			0 ,                0 , 1 - GRHIClipZMin , 0,
+			0 ,                0 ,     GRHIClipZMin , 1
 		};
 
 		return inProjection * clipTranslateAndScaleMatrix;

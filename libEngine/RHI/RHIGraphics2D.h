@@ -24,6 +24,15 @@ enum class ESimpleBlendMode
 	Multiply,
 };
 
+struct ShapePaintArgs
+{
+	Color4f penColor;
+	Color4f brushColor;
+	bool bUsePen;
+	bool bUseBrush;
+	int  penWidth;
+};
+
 class RHIGraphics2D
 {
 public:
@@ -54,15 +63,7 @@ public:
 	{
 		mColorPen = color;
 	}
-	void  setPen(Color3ub const& color, int width)
-	{
-		mColorPen = color;
-		if (mWidthPen != width)
-		{
-			glLineWidth(width);
-			mWidthPen = width;
-		}
-	}
+	void  setPen(Color3ub const& color, int width);
 
 	void  setBrush(Color3f const& color)
 	{
@@ -91,10 +92,10 @@ public:
 		Vector2 const& posRB, Color3ub const& colorRB, bool bHGrad);
 
 
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Color3ub const& color = Color3ub(255, 255, 255));
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Color3ub const& color = Color3ub(255, 255, 255));
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color = Color3ub(255, 255, 255));
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color = Color3ub(255, 255, 255));
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos);
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size);
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize);
 
 	void  setFont(Render::FontDrawer& font)
 	{
@@ -107,21 +108,31 @@ public:
 
 private:
 	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
-	void emintRectVertex(Vector2 const& p1, Vector2 const& p2);
-	void emitPolygonVertex(Vector2 pos[], int num);
-	void emitPolygonVertex(Vec2i pos[], int num);
-	void emitCircleVertex(float cx, float cy, float r, int numSegment);
-	void emitEllipseVertex(float cx, float cy, float r, float yFactor, int numSegment);
-	void emitRoundRectVertex(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize);
-	void emitVertex(float x, float y);
-	void emitVertex(float v[]);
+	void emitVertex(Vector2 const& v);
 	void drawTextImpl(float ox, float oy, char const* str);
 
 	void drawPolygonBuffer();
 	void drawLineBuffer();
 
+
+
 	Render::RHICommandList& GetCommandList();
 
+	void flushBatchedElements();
+	void checkRenderStateNeedModify(RHITexture2D* texture = nullptr);
+	void preModifyRenderState();
+
+	ShapePaintArgs getPaintArgs()
+	{
+		ShapePaintArgs result;
+		result.bUseBrush = mDrawBrush;
+		result.bUsePen = mDrawPen;
+		result.brushColor = Color4f(mColorBrush, mAlpha);
+		result.penColor = Color4f(mColorPen, mAlpha);
+		result.penWidth = mPenWidth;
+		return result;
+	}
+	RHITexture2D* mCurTexture = nullptr;
 	int       mWidth;
 	int       mHeight;
 
@@ -130,12 +141,12 @@ private:
 	Color3f   mColorFont;
 	float     mAlpha;
 
-	unsigned  mWidthPen;
+	unsigned  mPenWidth;
 	bool      mDrawBrush;
 	bool      mDrawPen;
 	Render::FontDrawer*   mFont;
-	std::vector< float > mBuffer;
-	void checkPipelineState();
+	std::vector< Vector2 >  mBuffer;
+	void comitPipelineState();
 	bool     mbResetPipelineState;
 	Math::Matrix4   mBaseTransform;
 

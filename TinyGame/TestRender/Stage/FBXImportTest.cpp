@@ -186,7 +186,7 @@ namespace Render
 
 			{
 				GPU_PROFILE("Blit To Screen");
-				if( mbUseShaderBlit )
+				if( mbUseShaderBlit || GRHISystem->getName() != RHISytemName::OpenGL )
 				{
 					ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
 				}

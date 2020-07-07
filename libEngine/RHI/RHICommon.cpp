@@ -9,15 +9,53 @@
 
 namespace Render
 {
-	DeviceVendorName gRHIDeviceVendorName = DeviceVendorName::Unknown;
+	DeviceVendorName GRHIDeviceVendorName = DeviceVendorName::Unknown;
 
 
-#if CORE_SHARE
+#if CORE_SHARE_CODE
 #if USE_RHI_RESOURCE_TRACE
 	static std::unordered_set< RHIResource* > Resources;
 
+	struct TraceTagInfo
+	{
+		char const* name;
+		int count;
+	};
+	static std::vector< TraceTagInfo > GTagStack;
+	void RHIResource::SetNextResourceTag(char const* tag, int count)
+	{
+		if (tag)
+		{
+			TraceTagInfo info;
+			info.name = tag;
+			info.count = count;
+			GTagStack.push_back(info);
+		}
+		else
+		{
+			if (!GTagStack.empty())
+			{
+				GTagStack.pop_back();
+			}
+		}
+	}
+
 	void RHIResource::RegisterResource(RHIResource* resource)
 	{
+		if (!GTagStack.empty())
+		{
+			TraceTagInfo& info = GTagStack.back();
+
+			resource->mTag = info.name;
+			if (info.count)
+			{
+				--info.count;
+				if (info.count == 0)
+				{
+					GTagStack.pop_back();
+				}
+			}		
+		}
 		Resources.insert(resource);
 	}
 	void RHIResource::UnregisterResource(RHIResource* resource)
@@ -33,7 +71,15 @@ namespace Render
 		LogDevMsg(0, "RHI Resource Number = %u", Resources.size());
 		for (auto res : Resources)
 		{
-			LogDevMsg(0, "%s : %s", res->mTypeName.c_str(), res->mTrace.toString().c_str());
+			if (res->mTag)
+			{
+				LogDevMsg(0, "%s : %s , %s", res->mTypeName.c_str(), res->mTag , res->mTrace.toString().c_str());
+			}
+			else
+			{
+				LogDevMsg(0, "%s : %s", res->mTypeName.c_str(), res->mTrace.toString().c_str());
+			}
+			
 		}
 #else
 		LogDevMsg(0, "RHI Resource Trace is disabled!!");

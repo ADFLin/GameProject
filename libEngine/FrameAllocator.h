@@ -49,9 +49,12 @@ public:
 				size_t allocSize = 2 * mCur->size;
 				while (allocSize < size) { allocSize *= 2; }
 				page = allocChunk(allocSize);
+				if (page == nullptr)
+					throw std::bad_alloc();
 			}
 
-			page->link = mCur;
+			mCur->link = page;
+			page->link = nullptr;
 			mCur = page;
 			mOffset = 0;
 		}
@@ -65,22 +68,22 @@ public:
 	{
 		if (mFreeList)
 		{
-			if (mCur)
-			{
-				freePageList(mCur->link);
-				mCur->link = nullptr;
-			}
+			assert(mUsageList);
+			freePageList(mUsageList);
 			mCur = mFreeList;
 			mFreeList = mCur->link;
 			mCur->link = nullptr;
 		}
 		else
 		{
-			if (mCur->link)
+			Chunk* cur = mUsageList;
+			while ( cur != mCur )
 			{
-				freePageList(mCur->link);
-				mCur->link = nullptr;
+				Chunk* next = cur->link;
+				::free(cur);
+				cur = next;
 			}
+			mUsageList = mCur;
 		}
 		mOffset = 0;
 	}
@@ -110,11 +113,11 @@ public:
 		assert(info.chunk);
 		if (info.chunk != mCur)
 		{
-			mCur->link = mFreeList;
-			mFreeList = mCur;
+			mFreeList = info.chunk->link;
+			mCur = info.chunk;
+			mCur->link = nullptr;
 		}
 
-		mCur = info.chunk;
 		mOffset = info.offset;
 	}
 

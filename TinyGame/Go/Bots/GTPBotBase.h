@@ -121,6 +121,7 @@ namespace Go
 		ChildProcess        process;
 		IGameOutputThread*  outputThread = nullptr;
 		bool  bThinking = false;
+		bool  bWaitCommandCompletion = false;
 
 		~GTPLikeAppRun();
 
@@ -132,7 +133,7 @@ namespace Go
 
 		void stop();
 
-		bool restart();
+		bool restart(GameSetting const& setting);
 		bool playStone(int x, int y, int color);
 		bool addStone(int x, int y, int color);
 		bool playPass(int color = StoneColor::eEmpty);
@@ -142,22 +143,25 @@ namespace Go
 		bool setupGame(GameSetting const& setting);
 		bool showResult();
 		bool readBoard(int* outData);
+		bool isThinking();
 
 		bool inputCommand(char const* command, GTPCommand com);
 		bool inputProcessStream(char const* command, int length = 0);
 
+		bool waitCommandCompletion();
+		bool mWaitCompletionResult;
 		void notifyCommandResult(GTPCommand com, EGTPComExecuteResult result);
 
 		void bindCallback();
 
-		template< class T >
+		template< class T , class ...Args >
 		std::enable_if_t< std::is_base_of_v< IGameOutputThread , T > , bool>
-		buildProcessT(char const* appPath, char const* command)
+		buildProcessT(char const* appPath, char const* command, Args&& ...args)
 		{
 			if (!process.create(appPath, command))
 				return false;
 
-			auto myThread = new T;
+			auto myThread = new T( std::forward<Args>(args)... );
 			myThread->process = &process;
 			myThread->start();
 			myThread->setDisplayName("Output Thread");
@@ -184,9 +188,9 @@ namespace Go
 		{
 			return mAI.setupGame(setting);
 		}
-		bool restart() override
+		bool restart(GameSetting const& setting) override
 		{
-			return mAI.restart();
+			return mAI.restart(setting);
 		}
 
 		EBotExecResult playStone(int x, int y, int color) override
@@ -220,8 +224,7 @@ namespace Go
 		}
 		bool isThinking() override
 		{
-			//TODO
-			return false;
+			return mAI.isThinking();
 		}
 		void update(IGameCommandListener& listener) override
 		{

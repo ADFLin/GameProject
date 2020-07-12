@@ -114,7 +114,7 @@ public:
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 			{
 				glEnable(GL_TEXTURE_2D);
-				GL_BIND_LOCK_OBJECT(mCharDataSet->getTexture());
+				GL_SCOPED_BIND_OBJECT(mCharDataSet->getTexture());
 				TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, &mBuffer[0], mBuffer.size());
 				glDisable(GL_TEXTURE_2D);
 			}

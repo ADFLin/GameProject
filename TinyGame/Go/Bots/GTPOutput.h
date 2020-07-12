@@ -28,9 +28,16 @@ namespace Go
 	class CGameOutputThread : public IGameOutputThread
 	{
 	public:
+		CGameOutputThread(int bufferSize = 20480)
+			:mBuffer( bufferSize )
+		{
+
+		}
+
 		int32 mNumNewRead = 0;
 		int   mNumUsed = 0;
-		char  mBuffer[20480];
+
+		std::vector< char > mBuffer;
 
 		bool  bNeedRead = true;
 		bool  bLogMsg = true;
@@ -63,6 +70,11 @@ namespace Go
 	{
 		using BaseClass = CGameOutputThread;
 	public:
+		GTPOutputThread(int bufferSize = 20480)
+			:CGameOutputThread(bufferSize)
+		{
+
+		}
 		int  mColor;
 		bool bThinking;
 		bool bShowDiagnosticOutput = true;
@@ -70,7 +82,7 @@ namespace Go
 		std::vector< GTPCommand > mProcQueue;
 
 		int* mOutReadBoard = nullptr;
-
+		bool mbShowParseLine;
 		void restart() override
 		{
 			BaseClass::restart();
@@ -99,7 +111,41 @@ namespace Go
 
 		bool parseLine(char* buffer, int num);
 
+		static PlayVertex ReadVertex(char const* buffer, int& outRead)
+		{
+			PlayVertex vertex = PlayVertex::Undefiend();
 
+			if (FCString::CompareIgnoreCase(buffer, "Pass") == 0)
+			{
+				outRead = 4;
+				return PlayVertex::Pass();
+			}
+			else if (FCString::CompareIgnoreCase(buffer, "Resign") == 0)
+			{
+				outRead = 6;
+				return PlayVertex::Resign();
+			}
+			else
+			{
+				uint8 pos[2];
+				outRead = Go::ReadCoord(buffer, pos);
+				if (outRead)
+				{
+					PlayVertex vertex;
+					vertex.x = pos[0];
+					vertex.y = pos[1];
+					return vertex;
+				}
+			}
+			return PlayVertex::Undefiend();
+		}
+
+		template< int N >
+		static PlayVertex GetVertex(FixString<N> const& coord)
+		{
+			int numRead;
+			return ReadVertex(coord.c_str(), numRead);
+		}
 	};
 }//namespace Go
 

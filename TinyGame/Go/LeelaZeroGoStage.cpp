@@ -613,8 +613,23 @@ namespace Go
 						switch( com.paramId )
 						{
 						case LeelaGameParam::eThinkResult:
-							if ( !static_cast< LeelaThinkInfoVec* >(com.ptrParam )->empty() )
-								analysisResult = *static_cast< LeelaThinkInfoVec* >(com.ptrParam);
+							if (!static_cast<LeelaThinkInfoVec*>(com.ptrParam)->empty())
+							{
+								mAnalysisResult.dataType = ControllerType::eLeelaZero;
+								mAnalysisResult.candidatePosList.clear();
+
+								for (auto const& thinkInfo : *static_cast<LeelaThinkInfoVec*>(com.ptrParam))
+								{
+									AnalysisData::PosInfo info;
+									info.v = thinkInfo.v;
+									info.vSeq = thinkInfo.vSeq;
+									info.nodeVisited = thinkInfo.nodeVisited;
+									info.winRate = info.winRate;
+									info.evalValue = info.evalValue;
+									mAnalysisResult.candidatePosList.push_back(info);
+								}
+
+							}
 							break;
 						}
 					}
@@ -670,7 +685,16 @@ namespace Go
 
 		if( bAnalysisEnabled && bShowAnalysis && analysisPonderColor == getAnalysisGame().getInstance().getNextPlayColor() )
 		{
-			drawAnalysis( g , renderState, context );
+			drawAnalysis( g , renderState, context , getAnalysisGame(), mAnalysisResult);
+		}
+
+		if (mMatchData.getCurTurnPlayer().type == ControllerType::eKata)
+		{
+			IBot* playingBot = mMatchData.getCurTurnBot();
+			if (playingBot->isThinking())
+			{
+				drawAnalysis(g, renderState, context, mGame, mAnalysisResult);
+			}
 		}
 
 		if( bestMoveVertex.isOnBoard() )
@@ -821,26 +845,27 @@ namespace Go
 		g.endRender();
 	}
 
-	void LeelaZeroGoStage::drawAnalysis(RHIGraphics2D& g, SimpleRenderState& renderState , RenderContext &context)
+	void LeelaZeroGoStage::drawAnalysis(RHIGraphics2D& g, SimpleRenderState& renderState , RenderContext &context , GameProxy& game , AnalysisData const& data)
 	{
+		if (data.candidatePosList.empty())
+			return;
+
 		GPU_PROFILE("Draw Analysis");
 
-		GameProxy& game = getAnalysisGame();
-
-		auto iter = analysisResult.end();
+		auto iter = data.candidatePosList.end();
 		if( showBranchVertex != PlayVertex::Undefiend() )
 		{
-			iter = std::find_if(analysisResult.begin(), analysisResult.end(),
+			iter = std::find_if(data.candidatePosList.begin(), data.candidatePosList.end(),
 								[this](auto const& info) { return info.v == showBranchVertex; });
 		}
-		if( iter != analysisResult.end() )
+		if( iter != data.candidatePosList.end() )
 		{
 			mBoardRenderer.drawStoneSequence(renderState, context, iter->vSeq, game.getInstance().getNextPlayColor(), 0.7);
 		}
 		else
 		{
 			int maxVisited = 0;
-			for( auto const& info : analysisResult )
+			for( auto const& info : data.candidatePosList )
 			{
 				if( info.nodeVisited > maxVisited )
 					maxVisited = info.nodeVisited;
@@ -854,7 +879,7 @@ namespace Go
 
 
 			RenderUtility::SetFont(g, FONT_S8);
-			for( auto const& info : analysisResult )
+			for( auto const& info : data.candidatePosList )
 			{
 				if( info.nodeVisited == 0 )
 					continue;
@@ -882,7 +907,7 @@ namespace Go
 				if( alpha > MIN_ALPHA_TO_DISPLAY_TEXT )
 				{
 					FixString<128> str;
-					str.format("%g", info.winRate);
+					str.format("%.2f", info.winRate);
 					float len = context.cellLength;
 					g.drawText(pos - 0.5 * Vector2(len, len), Vector2(len, 0.5 * len), str);
 
@@ -914,13 +939,13 @@ namespace Go
 
 	void LeelaZeroGoStage::drawWinRateDiagram(Vec2i const& renderPos, Vec2i const& renderSize)
 	{
+		::Global::GetDrawEngine().getRHIGraphics().flush();
+
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		if( mWinRateHistory[0].size() > 1 || mWinRateHistory[1].size() > 1 )
 		{
 			GPU_PROFILE("Draw WinRate Diagram");
-
-			ViewportSaveScope viewportSave(commandList);
 
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 
@@ -1010,6 +1035,8 @@ namespace Go
 
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		}
+
+		::Global::GetDrawEngine().getRHIGraphics().restoreRenderState();
 	}
 
 	void LeelaZeroGoStage::updateViewGameTerritory()
@@ -1480,11 +1507,6 @@ namespace Go
 			}
 		}
 
-		if (mMatchData.bAutoRun && setting.numHandicap > 0)
-		{
-			bSwapEachMatch = false;
-		}
-
 		if( bHavePlayerController )
 		{
 			createPlayWidget();
@@ -1804,6 +1826,37 @@ namespace Go
 						//LogMsg("Win rate = %.2f", com.floatParam);
 					}
 					break;
+				case KATA_PARAM_REMAP(eThinkResult):
+					{
+						std::vector< KataThinkInfo >& thinkInfos = *static_cast<std::vector< KataThinkInfo >*>(com.ptrParam);
+
+						mAnalysisResult.candidatePosList.clear();
+						mAnalysisResult.dataType = ControllerType::eKata;
+
+						if ( !thinkInfos.empty() )
+						{
+							for (auto& thinkInfo : thinkInfos)
+							{
+								AnalysisData::PosInfo info;
+								info.v = thinkInfo.v;
+								info.vSeq = thinkInfo.vSeq;
+								info.nodeVisited = thinkInfo.nodeVisited;
+								info.winRate = thinkInfo.winRate;
+
+								mAnalysisResult.candidatePosList.push_back(info);
+							}
+
+							auto topThinkInfo = thinkInfos.front();
+
+							bestMoveVertex = topThinkInfo.v;
+							bestThinkInfo.v = topThinkInfo.v;
+							bestThinkInfo.nodeVisited = topThinkInfo.nodeVisited;
+							bestThinkInfo.vSeq = topThinkInfo.vSeq;
+							bestThinkInfo.winRate = topThinkInfo.winRate;
+							bestThinkInfo.evalValue = 0;
+						}
+					}
+					break;
 				}
 			}
 			break;
@@ -1999,11 +2052,10 @@ namespace Go
 	void LeelaZeroGoStage::restartAutoMatch()
 	{
 		LogMsg("==Restart Auto Match==");
-		if( bSwapEachMatch )
+		if( mMatchData.bSwapEachMatch )
 		{
 			mMatchData.bSwapColor = !mMatchData.bSwapColor;
 		}
-
 
 		mMatchData.idxPlayerTurn = (mGame.getSetting().bBlackFirst) ? 0 : 1;
 		if( mMatchData.bSwapColor )
@@ -2011,12 +2063,11 @@ namespace Go
 
 		resetGameParam();
 
-
 		for(auto & player : mMatchData.players)
 		{
 			if( player.bot )
 			{
-				player.bot->restart();
+				player.bot->restart(mGame.getSetting());
 			}
 		}
 
@@ -2298,6 +2349,9 @@ namespace Go
 		textCtrl = addTextCtrl(id + UPARAM_VISITS, "Max Visits", BIT(idxPlayer), idxPlayer);
 		textCtrl->setValue(std::to_string(setting.maxVisits).c_str());
 
+		auto checkBox = addCheckBox(id + UPARAM_USE_CUDA, "UseCUDA", BIT(idxPlayer), idxPlayer);
+		checkBox->bChecked = setting.bUseCuda;
+
 		auto*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Model Name", BIT(idxPlayer), idxPlayer);
 		filePicker->filePath.format("%s/%s/%s", KataAppRun::InstallDir, KATA_MODEL_DIR_NAME, KataAppRun::GetLastModeltName().c_str());
 		filePicker->filePath.replace('/', '\\');
@@ -2365,11 +2419,21 @@ namespace Go
 		outSetting.numHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
 		if (outSetting.numHandicap)
 		{
-			outSetting.bBlackFirst = false;
+			matchData.bSwapEachMatch = false;
+			if (outSetting.numHandicap == 1)
+			{
+				outSetting.bBlackFirst = true;
+				outSetting.numHandicap = 0;
+			}
+			else
+			{
+				outSetting.bBlackFirst = false;
+			}
 			outSetting.komi = 0.5;
 		}
 		else
 		{
+			matchData.bSwapEachMatch = true;
 			outSetting.bBlackFirst = true;
 			outSetting.komi = 7.5;
 		}
@@ -2392,6 +2456,13 @@ namespace Go
 					{
 						setting.resignpct = 0;
 					}
+					if (outSetting.numHandicap)
+					{
+						if (i == matchData.bSwapColor ? 1 : 0)
+						{
+							setting.resignpct = 20;
+						}
+					}
 					else
 					{
 						setting.randomcnt = 5;
@@ -2405,8 +2476,8 @@ namespace Go
 					KataAISetting setting;
 					//setting.rootNoiseEnabled = true;
 					setting.maxVisits = getParamValue< int , GTextCtrl >(id + UPARAM_VISITS);
-					setting.bUseDefaultConfig = true;
-
+					//setting.bUseDefaultConfig = true;
+					setting.bUseCuda = getParamValue< bool, GCheckBox >(id + UPARAM_USE_CUDA);
 					std::string modelName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
 					setting.modelName = FileUtility::GetFileName( modelName.c_str() );
 

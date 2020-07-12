@@ -133,11 +133,28 @@ namespace Render
 	{
 		auto* node = mHelper.getNode(id);
 		assert(node);
-		auto rect = node->rect;
+		auto const& rect = node->rect;
 		outMin.x = float(rect.x + mBorder) / mTexture->getSizeX();
 		outMin.y = float(rect.y + mBorder) / mTexture->getSizeY();
 		outMax.x = float(rect.x + rect.w - mBorder) / mTexture->getSizeX();
 		outMax.y = float(rect.y + rect.h - mBorder) / mTexture->getSizeY();
+	}
+
+	bool TextureAtlas::getRectSize(int id, IntVector2& outSize) const
+	{
+		auto* node = mHelper.getNode(id);
+		if (node == nullptr)
+			return false;
+		auto const& rect = node->rect;
+		return IntVector2(rect.w, rect.h);
+	}
+
+	IntVector2 TextureAtlas::getRectSizeChecked(int id) const
+	{
+		auto* node = mHelper.getNode(id);
+		assert(node);
+		auto const& rect = node->rect;
+		return IntVector2(rect.w, rect.h);
 	}
 
 	float TextureAtlas::calcUsageAreaRatio()

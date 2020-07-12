@@ -523,7 +523,7 @@ namespace Go
 		}
 
 
-		bool restart() override
+		bool restart(GameSetting const& setting) override
 		{
 			return false;
 		}

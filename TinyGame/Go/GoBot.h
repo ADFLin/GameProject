@@ -104,8 +104,8 @@ namespace Go
 	public:
 		virtual bool initialize(void* settingData) = 0;
 		virtual void destroy() = 0;
-		virtual bool setupGame(GameSetting const& setting ) = 0;
-		virtual bool restart() = 0;
+		virtual bool setupGame(GameSetting const& setting) = 0;
+		virtual bool restart(GameSetting const& setting) = 0;
 		virtual EBotExecResult playStone(int x , int y , int color) = 0;
 		virtual EBotExecResult playPass(int color) = 0;
 		virtual EBotExecResult undo() = 0;
@@ -139,7 +139,7 @@ namespace Go
 		bool initialize(void* settingData) override { return true; }
 		void destroy() override {}
 		bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
-		bool restart() override { if( bUsedInMatch ) return true; return mBot->restart(); }
+		bool restart(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->restart(setting); }
 		EBotExecResult playStone(int x, int y, int color) override { if( bUsedInMatch ) return BOT_OK; return mBot->playStone(x, y, color); }
 		EBotExecResult playPass(int color) override { if( bUsedInMatch ) return BOT_OK; return mBot->playPass(color); }
 		EBotExecResult undo() override { if( bUsedInMatch ) return BOT_OK; return mBot->undo(); }

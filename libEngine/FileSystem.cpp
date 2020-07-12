@@ -81,6 +81,15 @@ struct FWindow
 		return ::MoveFileW(lpExistingFileName, lpNewFileName);
 	}
 
+	static BOOL CopyFile(char const* lpExistingFileName, char const* lpNewFileName, BOOL bFailIfExists)
+	{
+		return ::CopyFileA(lpExistingFileName, lpNewFileName, bFailIfExists);
+	}
+	static BOOL CopyFile(wchar_t const* lpExistingFileName, wchar_t const* lpNewFileName, BOOL bFailIfExists)
+	{
+		return ::CopyFileW(lpExistingFileName, lpNewFileName, bFailIfExists);
+	}
+
 	static DWORD GetFullPathName(char const* lpFileName, DWORD nBufferLength, char* lpBuffer, char** lpFilePart)
 	{
 		return GetFullPathNameA(lpFileName, nBufferLength, lpBuffer, lpFilePart);
@@ -159,6 +168,11 @@ struct FWindowsFileSystem
 		return full_path;
 	}
 
+	template< class CharT >
+	static bool CopyFile(CharT const* path, CharT const* newFilePath, bool bFailIfExists)
+	{
+		return !!FWindow::CopyFile(path, newFilePath, bFailIfExists);
+	}
 };
 
 
@@ -360,6 +374,22 @@ bool FileSystem::RenameFile(wchar_t const* path, wchar_t const* newFileName)
 	return false;
 }
 
+
+bool FileSystem::CopyFile(char const* path, char const* newFilePath, bool bFailIfExists)
+{
+#if SYS_PLATFORM_WIN
+	return FWindowsFileSystem::CopyFile(path, newFilePath, bFailIfExists);
+#endif
+	return false;
+}
+
+bool FileSystem::CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool bFailIfExists)
+{
+#if SYS_PLATFORM_WIN
+	return FWindowsFileSystem::CopyFile(path, newFilePath, bFailIfExists);
+#endif
+	return false;
+}
 
 bool FileSystem::GetFileAttributes(char const* path, FileAttributes& outAttributes)
 {

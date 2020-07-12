@@ -8,6 +8,7 @@
 #include "RHI/Font.h"
 #include "RHI/SimpleRenderState.h"
 #include "Renderer/RenderTransform2D.h"
+#include "Renderer/BatchedRender2D.h"
 
 #include "Math/Vector2.h"
 #include "Math/Matrix2.h"
@@ -19,19 +20,12 @@
 
 enum class ESimpleBlendMode
 {
+	None,
 	Translucent,
 	Add,
 	Multiply,
 };
 
-struct ShapePaintArgs
-{
-	Color4f penColor;
-	Color4f brushColor;
-	bool bUsePen;
-	bool bUseBrush;
-	int  penWidth;
-};
 
 class RHIGraphics2D
 {
@@ -76,6 +70,8 @@ public:
 	void  beginBlend(Vector2 const& pos, Vector2 const& size, float alpha);
 	void  beginBlend(float alpha, ESimpleBlendMode mode = ESimpleBlendMode::Translucent);
 	void  endBlend();
+	void  setBlendState(ESimpleBlendMode mode);
+	void  setBlendAlapha(float value) { mAlpha = value; }
 
 	void  drawPixel(Vector2 const& p, Color3ub const& color);
 	void  drawLine(Vector2 const& p1, Vector2 const& p2);
@@ -92,10 +88,20 @@ public:
 		Vector2 const& posRB, Color3ub const& colorRB, bool bHGrad);
 
 
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos);
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size);
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
-	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize);
+	void  setTexture(RHITexture2D& texture);
+	void  drawTexture(Vector2 const& pos);
+	void  drawTexture(Vector2 const& pos, Vector2 const& size);
+	void  drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
+	void  drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize);
+	void  drawTexture(Vector2 const& pos, Color4f const& color);
+	void  drawTexture(Vector2 const& pos, Vector2 const& size, Color4f const& color);
+	void  drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color);
+	void  drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color);
+
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos) { setTexture(texture); drawTexture(pos); }
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size) { setTexture(texture); drawTexture(pos); }
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize) { setTexture(texture); drawTexture(pos , texPos , texSize); }
+	void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize) { setTexture(texture); drawTexture(pos, size , texPos , texSize); }
 
 	void  setFont(Render::FontDrawer& font)
 	{
@@ -106,6 +112,14 @@ public:
 	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip = false);
 	void  drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
+	void comitRenderState();
+	void restoreRenderState();
+	void flush()
+	{
+		comitRenderState();
+		flushBatchedElements();
+	}
+
 private:
 	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
 	void emitVertex(Vector2 const& v);
@@ -114,17 +128,21 @@ private:
 	void drawPolygonBuffer();
 	void drawLineBuffer();
 
-
-
 	Render::RHICommandList& GetCommandList();
 
 	void flushBatchedElements();
-	void checkRenderStateNeedModify(RHITexture2D* texture = nullptr);
 	void preModifyRenderState();
+	void setTextureState(RHITexture2D* texture = nullptr);
 
-	ShapePaintArgs getPaintArgs()
+
+	void setupElement(Render::RenderBachedElement& element)
 	{
-		ShapePaintArgs result;
+		element.transform = mXFormStack.get();
+	}
+
+	Render::ShapePaintArgs getPaintArgs()
+	{
+		Render::ShapePaintArgs result;
 		result.bUseBrush = mDrawBrush;
 		result.bUsePen = mDrawPen;
 		result.brushColor = Color4f(mColorBrush, mAlpha);
@@ -132,7 +150,21 @@ private:
 		result.penWidth = mPenWidth;
 		return result;
 	}
-	RHITexture2D* mCurTexture = nullptr;
+
+	struct RenderState
+	{
+		RHITexture2D*    texture;
+		ESimpleBlendMode blendMode;
+	};
+
+
+	RenderState   mComitedRenderState;
+	RenderState   mPendingRenderState;
+	bool          mbPipelineStateChanged;
+	bool          mbBlendStateChanged;
+
+	Vector2       mCurTextureSize;
+
 	int       mWidth;
 	int       mHeight;
 
@@ -146,11 +178,12 @@ private:
 	bool      mDrawPen;
 	Render::FontDrawer*   mFont;
 	std::vector< Vector2 >  mBuffer;
-	void comitPipelineState();
-	bool     mbResetPipelineState;
+
 	Math::Matrix4   mBaseTransform;
 
 	Render::TransformStack2D mXFormStack;
+	Render::RenderBachedElementList mBachedElementList;
+	Render::BatchedRender mBatchedRender;
 };
 
 

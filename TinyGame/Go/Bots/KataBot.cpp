@@ -3,6 +3,7 @@
 
 #include "FileSystem.h"
 #include "Core/StringConv.h"
+#include "StringParse.h"
 
 namespace Go
 {
@@ -11,73 +12,213 @@ namespace Go
 	class KataOutputThread : public GTPOutputThread
 	{
 	public:
+		KataOutputThread():GTPOutputThread(204800){}
 
 		void procDumpCommandMsg(GTPCommand com, char* buffer, int num) override 
 		{
 			if ( com.id == GTPCommand::eGenmove )
 			{
-				if (*buffer == ':')
+				if ( mAppRun->mGenMoveMethod == KataAppRun::Debug )
 				{
-					float temp;
-					float winRate;
-					if (sscanf(buffer, ": T %fc W %fc", &temp, &winRate) == 2)
-					{			
-						//-100~100 => 0 100
-						winRate = ( 0.5f * winRate + 50.f );
+					if (*buffer == ':')
+					{
+						float temp;
+						float winRate;
+						if (sscanf(buffer, ": T %fc W %fc", &temp, &winRate) == 2)
+						{
+							//-100~100 => 0 100
+							winRate = (0.5f * winRate + 50.f);
+							GameCommand paramCom;
+							paramCom.setParam(KataGameParam::eWinRate, winRate);
+							addOutputCommand(paramCom);
+						}
+					}
+				}
+				else if (mAppRun->mGenMoveMethod == KataAppRun::Analyze)
+				{
+					if (StartWith(buffer, "play"))
+					{
+						GameCommand gameCom;
+						char const* coord = buffer + StrLen("play") + 1;
+						if (parsePlayResult(coord, com.meta, gameCom))
+						{
+							if (onCommandResult && com.id != GTPCommand::eNone)
+							{
+								onCommandResult(com, EGTPComExecuteResult::Success);
+							}
+
+							addOutputCommand(gameCom);
+							onOutputCommand(com, gameCom);
+							popHeadComandMsg();
+
+							int numRead;
+							PlayVertex v = ReadVertex(coord, numRead);
+							if (numRead)
+							{
+								if (!thinkResults[1 - indexResultWrite].empty())
+								{
+									for (auto const& info : thinkResults[1 - indexResultWrite])
+									{
+										if (info.v == v)
+										{
+											GameCommand paramCom;
+											paramCom.setParam(KataGameParam::eWinRate, info.winRate);
+											addOutputCommand(paramCom);
+											break;
+										}
+
+									}
+								}
+
+							}
+			
+						}
+						else
+						{
+
+
+						}
+
+					}
+#define INFO_MOVE_STR "info move"
+					else if (StartWith(buffer, INFO_MOVE_STR))
+					{
+						mbShowParseLine = false;
+						thinkResults[indexResultWrite].clear();
+
+						char* cur = buffer;
+						FixString<128>  coord;
+						int   nodeVisited;
+						float utility;
+						float winRate;
+						float scoreMean;
+						float scoreStdev;
+						float scoreLead;
+						float scoreSelfplay;
+						float prior;
+						float LCB;
+						float utilityLCB;
+						int   order;
+
+						int   numRead;
+
+						while (sscanf(cur, "info move %s visits %d utility %f winrate %f scoreMean %f scoreStdev %f "
+							"scoreLead %f scoreSelfplay %f prior %f lcb %f utilityLcb %f order %d pv%n",
+							coord.data(), &nodeVisited, &utility, &winRate, &scoreMean, &scoreStdev,
+							&scoreLead, &scoreSelfplay, &prior, &LCB, &utilityLCB, &order, &numRead) == 12)
+						{
+							PlayVertex vertex = GetVertex(coord);
+							if (vertex == PlayVertex::Undefiend())
+							{
+								//LogWarning(0, "Error Think Str = %s", buffer);
+								//return;
+							}
+							KataThinkInfo info;
+							info.v = vertex;
+							info.nodeVisited = nodeVisited;
+							info.utility = utility;
+							info.winRate = winRate * 100;
+							info.scoreMean = scoreMean;
+							info.scoreStdev = scoreStdev;
+							info.scoreLead = scoreLead;
+							info.scoreSelfplay = scoreSelfplay;
+							info.prior = prior;
+							info.LCB = LCB;
+							info.utilityLCB = utilityLCB;
+							info.order = order;
+
+							cur = const_cast<char*>(FStringParse::SkipSpace(cur + numRead));
+
+							while (*cur != 0 || !StartWith(cur, INFO_MOVE_STR))
+							{
+								PlayVertex v = ReadVertex(cur, numRead);
+								if (numRead == 0)
+									break;
+
+								info.vSeq.push_back(v);
+								cur = const_cast<char*>(FStringParse::SkipSpace(cur + numRead));
+							}
+							thinkResults[indexResultWrite].push_back(info);
+						}
+
 						GameCommand paramCom;
-						paramCom.setParam(KataGameParam::eWinRate, winRate);
+						paramCom.setParam(KataGameParam::eThinkResult, &thinkResults[indexResultWrite]);
 						addOutputCommand(paramCom);
+						indexResultWrite = 1 - indexResultWrite;
 					}
 				}
 			}
-
 		}
 
+		std::vector< KataThinkInfo > thinkResults[2];
+		int  indexResultWrite = 0;
+		KataAppRun* mAppRun;
 	};
 
 	bool KataAppRun::thinkNextMove(int color)
 	{
-		if (bShowInfo)
+		switch (mGenMoveMethod)
 		{
-			FixString<128> com;
-			com.format("genmove_debug %c\n",ToColorChar(color));
-			return inputCommand(com, { GTPCommand::eGenmove , color });
-		}
-		else
-		{
+		case KataAppRun::Normal:
 			return GTPLikeAppRun::thinkNextMove(color);
+		case KataAppRun::Debug:
+			{
+				FixString<128> com;
+				com.format("genmove_debug %c\n", ToColorChar(color));
+				return inputCommand(com, { GTPCommand::eGenmove , color });
+			}
+			break;
+		case KataAppRun::Analyze:
+			{
+				FixString<128> com;
+				com.format("kata-genmove_analyze %c 20\n", ToColorChar(color));
+				return inputCommand(com, { GTPCommand::eGenmove , color });
+			}
+			break;
+		default:
+			break;
 		}
+		return false;
 	}
 
 	std::string KataAppRun::GetLastModeltName()
 	{
-		return "g104.txt.gz";
+		return "g170-b40c256x2-s5095420928-d1229425124.bin.gz";
+	}
+
+	class KataOutputThread* KataAppRun::getOutputThred()
+	{
+		return static_cast<KataOutputThread*>(outputThread);
 	}
 
 	bool KataAppRun::buildPlayGame(KataAISetting const& setting)
 	{
-		char const* configName = "gtp_example.cfg";
+		char const* configName = "default_gtp.cfg";
 		if (!setting.bUseDefaultConfig)
 		{
+			configName = "temp.cfg";
 			FixString<256> configPath;
 			configPath.format("%s/%s", InstallDir, configName);
 			if (!setting.writeToConifg(configPath))
 				return false;
-
-			configName = "temp.cfg";
 		}
 
 		std::string modelName = setting.modelName ? setting.modelName : GetLastModeltName().c_str();
 
 		FixString<256> path;
-		path.format("%s/%s", InstallDir, "KataGo.exe");
+		path.format("%s/%s", InstallDir, setting.bUseCuda ? "KataGoCuda.exe" : "KataGo.exe");
 		FixString<512> command;
 		command.format(" gtp -model %s/%s -config %s", KATA_MODEL_DIR_NAME, modelName.c_str(), configName);
-		return buildProcessT< KataOutputThread >(path, command);
+		bool result = buildProcessT< KataOutputThread >(path, command);
+		if (result)
+		{
+			getOutputThred()->mAppRun = this;
+		}
+		return result;
 	}
 
 	char const* FixedConfigText = R"CODE_STRING_(
-# Example config for C++ (non-python) gtp bot
+# Config for C++ (non-python) gtp bot
 
 # RUNNING ON AN ONLINE SERVER OR IN A REAL TOURNAMENT OR MATCH:
 # If you plan to do so, you may want to read through the "Rules" section
@@ -114,12 +255,19 @@ namespace Go
 #
 # You may also want to adjust "maxVisits", "ponderingEnabled", "resignThreshold", and possibly
 # other parameters depending on your intended usage.
+#
+# ----------------------------------------------------------------------------------------
 
+# For the `katago gtp` command, ALL of THE BELOW VALUES MAY BE SET OR OVERRIDDEN if desired via
+# the command line arguments:
+# -override-config KEY=VALUE,KEY=VALUE,...
 
-# Logs------------------------------------------------------------------------------------
+# Logs and files--------------------------------------------------------------------------
 
 # Where to output log?
-logFile = gtp.log
+logDir = gtp_logs    # Each run of KataGo will log to a separate file in this dir
+# logFile = gtp.log  # Use this instead of logDir to just specify a single file directly
+
 # Logging options
 logAllGTPCommunication = true
 logSearchInfo = true
@@ -132,91 +280,24 @@ logToStderr = false
 # Chat some stuff to stderr, for use in things like malkovich chat to OGS.
 # ogsChatToStderr = true
 
+# Optionally override where KataGo will attempt to save things like openCLTuner files and other cached data.
+# homeDataDir = DIRECTORY
+
+# Analysis------------------------------------------------------------------------------------
+
 # Configure the maximum length of analysis printed out by lz-analyze and other places.
 # Controls the number of moves after the first move in a variation.
-# analysisPVLen = 9
+# analysisPVLen = 15
 
 # Report winrates for chat and analysis as (BLACK|WHITE|SIDETOMOVE).
 # Default is SIDETOMOVE, which is what tools that use LZ probably also expect
 # reportAnalysisWinratesAs = SIDETOMOVE
 
-# Default rules------------------------------------------------------------------------------------
-# See https://lightvector.github.io/KataGo/rules.html for a description of the rules.
-# These rules are defaults and can be changed mid-run by several custom GTP commands.
-# See https://github.com/lightvector/KataGo/blob/master/docs/GTP_Extensions.md for those commands.
-
-# Some other legal values are: "chinese", "japanese", "korean", "aga", "chinese-ogs", "new-zealand".
-# KataGo does not claim to exactly match any particular human ruleset, but KataGo will try to behave
-# as closely as possible given the rules it has implemented.
-rules = tromp-taylor
-
-# Use the below instead to specify an arbitrary combination of individual rules.
-
-# koRule = SIMPLE       # Simple ko rules (triple ko = no result)
-# koRule = POSITIONAL     # Positional superko
-# koRule = SITUATIONAL  # Situational superko
-
-# scoringRule = AREA         # Area scoring
-# scoringRule = TERRITORY  # Territory scoring (uses a sort of special computer-friendly territory ruleset)
-
-# taxRule = NONE    # All surrounded empty points are scored
-# taxRule = SEKI  # Eyes in seki do NOT count as points
-# taxRule = ALL   # All groups are taxed up to 2 points for the two eyes needed to live
-
-# multiStoneSuicideLegal = true  #Is multiple-stone suicide legal? (Single-stone suicide is always illegal).
-
-# hasButton = false # Set to true when area scoring to award 0.5 points to the first pass.
-
-# whiteHandicapBonus = 0      # In handicap games, give white no compensation for black's handicap stones (Tromp-taylor, NZ, JP)
-# whiteHandicapBonus = N-1  # In handicap games, give white N-1 points for black's handicap stones (AGA)
-# whiteHandicapBonus = N    # In handicap games, give white N points for black's handicap stones (Chinese)
-
-# Bot behavior---------------------------------------------------------------------------------------
-
-# Resignation -------------
-
-# Resignation occurs if for at least resignConsecTurns in a row,
-# the winLossUtility (which is on a [-1,1] scale) is below resignThreshold.
-allowResignation = true
-resignThreshold = -0.98
-resignConsecTurns = 3
-
-# Handicap -------------
-
-# Assume that if black makes many moves in a row right at the start of the game, then the game is a handicap game.
-# This is necessary on some servers and for some GUIs and also when initializing from many SGF files, which may
-# set up a handicap games using repeated GTP "play" commands for black rather than GTP "place_free_handicap" commands.
-# However, it may also lead to incorrect understanding of komi if whiteHandicapBonus is used and a server does NOT
-# have such a practice.
-# Defaults to true! Uncomment and set to false to disable this behavior.
-# assumeMultipleStartingBlackMovesAreHandicap = true
-
-# Makes katago dynamically adjust to play more aggressively in handicap games based on the handicap and the current state of the game.
-# Comment to disable this and make KataGo play the same always.
-dynamicPlayoutDoublingAdvantageCapPerOppLead = 0.04
-# Instead of setting dynamicPlayoutDoublingAdvantageCapPerOppLead, you can uncomment these and set this to a value from -3.0 to 3.0
-# to set KataGo's aggression to a FIXED level.
-# Negative makes KataGo behave as if it is much weaker than the opponent, preferring to play defensively
-# Positive makes KataGo behave as if it is much stronger than the opponent, prefering to play aggressively or even overplay slightly.
-# playoutDoublingAdvantage = 0.0
-
-# Controls which side dynamicPlayoutDoublingAdvantageCapPerOppLead or playoutDoublingAdvantage applies to.
-playoutDoublingAdvantagePla = WHITE
-
-# Passing and cleanup -------------
-
-# Make the bot never assume that its pass will end the game, even if passing would end and "win" under Tromp-Taylor rules.
-# Usually this is a good idea when using it for analysis or playing on servers where scoring may be implemented non-tromp-taylorly.
-# Defaults to true! Uncomment and set to false to disable this.
-# conservativePass = true
-
-# When using territory scoring, self-play games continue beyond two passes with special cleanup
-# rules that may be confusing for human players. This option prevents the special cleanup phases from being
-# reachable when using the bot for GTP play.
-# Defaults to true! Uncomment and set to false if you want KataGo to be able to enter special cleanup.
-# For example, if you are testing it against itself, or against another bot that has precisely implemented the rules
-# documented at https://lightvector.github.io/KataGo/rules.html
-# preventCleanupPhase = true
+# Uncomment and and set to a positive value to make KataGo explore the top move(s) less deeply and accurately,
+# but explore and give evaluations to a greater variety of moves, for analysis (does NOT affect play).
+# A value like 0.03 or 0.06 will give various mildly but still noticeably wider searches.
+# An extreme value like 1 will distribute many playouts across every move on the board, even very bad moves.
+# analysisWideRootNoise = 0.0
 
 # GPU Settings-------------------------------------------------------------------------------
 
@@ -266,6 +347,7 @@ playoutDoublingAdvantagePla = WHITE
 # FP16 but you think it should.
 # cudaUseFP16 = auto
 # cudaUseNHWC = auto
+
 
 # OpenCL GPU settings--------------------------------------
 # These only apply when using the OpenCL version of KataGo.
@@ -374,6 +456,16 @@ playoutDoublingAdvantagePla = WHITE
 			text += "\n";
 		}
 
+
+		template< class T >
+		static void Write(std::string& text, char const* paramName, KataAISetting::TVar<T> const& value)
+		{
+			if (!value.isSet())
+				return;
+
+			Write(text, paramName, static_cast<T const&>(value));
+		}
+
 		static void Write(std::string& text, char const* paramName, std::string const& value)
 		{
 			text += paramName;
@@ -389,30 +481,72 @@ playoutDoublingAdvantagePla = WHITE
 			text += value ? "true" : "false";
 			text += "\n";
 		}
-#if 0
-#define ENUM_CASE_OP( V ) case KataAISetting::V : text += #V; break;
-		static void Write(std::string& text, char const* paramName, KataAISetting::KoRule value)
+
+		static void Write(std::string& text, char const* paramName, KataAISetting::ERules value)
 		{
 			text += paramName;
 			text += " = ";
-#define KO_RULE_LIST(op) op(SIMPLE) op(POSITIONAL) op(SITUATIONAL) op(SPIGHT)
+			switch (value)
+			{
+			case KataAISetting::TrompTaylor:
+				text += "tromp-taylor";
+				break;
+			case KataAISetting::Chinese:
+				text += "chinese";
+				break;
+			case KataAISetting::Japanse:
+				text += "japanese";
+				break;
+			case KataAISetting::Korean:
+				text += "korean";
+				break;
+			case KataAISetting::Aga:
+				text += "aga";
+				break;
+			case KataAISetting::ChineseOgs:
+				text += "chinese-ogs";
+				break;
+			case KataAISetting::NewZealand:
+				text += "new-zealand";
+				break;
+			default:
+				text += "tromp-taylor";
+				break;
+			}
+			text += "\n";
+		}
+
+#define ENUM_CASE_OP( V ) case KataAISetting::V : text += #V; break;
+		static void Write(std::string& text, char const* paramName, KataAISetting::EKoRule value)
+		{
+			text += paramName;
+			text += " = ";
+#define KO_RULE_LIST(op) op(SIMPLE) op(POSITIONAL) op(SITUATIONAL)
 			switch (value) { KO_RULE_LIST(ENUM_CASE_OP) }
 #undef KO_RULE_LIST
 			text += "\n";
 
 		}
-
-		static void Write(std::string& text, char const* paramName, KataAISetting::ScoringRule value)
+		static void Write(std::string& text, char const* paramName, KataAISetting::EScoringRule value)
 		{
 			text += paramName;
 			text += " = ";
 #define SCORING_RULE_LIST(op) op(AREA) op(TERRITORY)
 			switch (value) { SCORING_RULE_LIST(ENUM_CASE_OP) }
-#undef KO_RULE_LIST
+#undef SCORING_RULE_LIST
+			text += "\n";
+		}
+
+		static void Write(std::string& text, char const* paramName, KataAISetting::ETexRule value)
+		{
+			text += paramName;
+			text += " = ";
+#define TEX_RULE_LIST(op) op(NONE) op(SEKI) op(ALL)
+			switch (value) { TEX_RULE_LIST(ENUM_CASE_OP) }
+#undef TEX_RULE_LIST
 			text += "\n";
 		}
 #undef ENUM_CASE_OP
-#endif
 	};
 
 
@@ -422,17 +556,32 @@ playoutDoublingAdvantagePla = WHITE
 
 #define CONFIG_VALUE(VAR) FConfigHelper::Write(configText, #VAR , VAR );
 
-		if (maxVisits) CONFIG_VALUE(maxVisits);
-		if (maxPlayouts) CONFIG_VALUE(maxPlayouts);
-		if (maxTime != 0.0) CONFIG_VALUE(maxTime);
+		CONFIG_VALUE(rules);
+		CONFIG_VALUE(koRule);
+		CONFIG_VALUE(scoringRule);
+		CONFIG_VALUE(texRule);
+		CONFIG_VALUE(multiStoneSuicideLegal);
+		CONFIG_VALUE(allowResignation);
+		CONFIG_VALUE(resignThreshold);
+		CONFIG_VALUE(resignConsecTurns);
+		CONFIG_VALUE(resignMinScoreDifference);
+		CONFIG_VALUE(assumeMultipleStartingBlackMovesAreHandicap);
+		CONFIG_VALUE(dynamicPlayoutDoublingAdvantageCapPerOppLead);
+		CONFIG_VALUE(playoutDoublingAdvantage);
+		CONFIG_VALUE(playoutDoublingAdvantagePla);
+		CONFIG_VALUE(conservativePass);
+		CONFIG_VALUE(preventCleanupPhase);
+		CONFIG_VALUE(avoidMYTDaggerHack);
+		CONFIG_VALUE(maxVisits);
+		CONFIG_VALUE(maxPlayouts);
+		CONFIG_VALUE(maxTime);
 		CONFIG_VALUE(ponderingEnabled);
-
-		if (maxVisitsPondering) CONFIG_VALUE(maxVisitsPondering);
-		if (maxPlayoutsPondering) CONFIG_VALUE(maxPlayoutsPondering);
-		if (maxTimePondering != 0.0) CONFIG_VALUE(maxTimePondering);
-
+		CONFIG_VALUE(maxVisitsPondering);
+		CONFIG_VALUE(maxPlayoutsPondering);
+		CONFIG_VALUE(maxTimePondering);
 		CONFIG_VALUE(lagBuffer);
 		CONFIG_VALUE(numSearchThreads);
+
 		CONFIG_VALUE(searchFactorAfterOnePass);
 		CONFIG_VALUE(searchFactorAfterTwoPass);
 		CONFIG_VALUE(searchFactorWhenWinning);

@@ -421,9 +421,6 @@ namespace Go
 		std::map< MatchKey, MatchResultData > mDataMap;
 	};
 
-
-
-
 	struct MatchGameData
 	{
 		MatchPlayer players[2];
@@ -431,6 +428,7 @@ namespace Go
 		bool        bSwapColor = false;
 		bool        bAutoRun = false;
 		bool        bSaveSGF = false;
+		bool        bSwapEachMatch = true;
 		uint32      historyWinCounts[2];
 		DateTime    startTime;
 

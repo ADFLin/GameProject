@@ -12,6 +12,9 @@
 
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
+#include "Image/ImageData.h"
+
+#define USE_TEXTURE_ATLAS 0
 
 namespace FlappyBird
 {
@@ -372,18 +375,41 @@ namespace FlappyBird
 			"Ground.png",
 			"BigNum.png"
 		};
+#if USE_TEXTURE_ATLAS
+		mTextureAtlas.initialize(Texture::eRGBA8, 1024, 1024, 2);
+		{
+			GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		}
+#endif
+
 		for( int i = 0; i < TextureID::Count; ++i )
 		{
 			FixString<128> path;
 			path.format("FlappyBird/%s", fileName[i]);
-			mTextures[i] = RHIUtility::LoadTexture2DFromFile(path);
-			if( !mTextures[i].isValid() )
+
+			ImageInfo& image = mImages[i];
+
+#if USE_TEXTURE_ATLAS
+			int id = mTextureAtlas.addImageFile(path);
+			if (id == -1)
 				return false;
 
-			Render::OpenGLCast::To(mTextures[i])->bind();
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			Render::OpenGLCast::To(mTextures[i])->unbind();
+			mTextureAtlas.getRectUVChecked(id, image.uvPos, image.uvSize);
+			image.uvSize -= image.uvPos;
+			image.size = mTextureAtlas.getRectSizeChecked(id);
+#else
+			mImages[i].texture = RHIUtility::LoadTexture2DFromFile(path);
+			if( !mImages[i].texture )
+				return false;
+
+			{
+				GL_SCOPED_BIND_OBJECT(mImages[i].texture);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			}
+#endif
 		}
 
 		return true;
@@ -554,8 +580,14 @@ namespace FlappyBird
 		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE0);
 		{
-			GL_BIND_LOCK_OBJECT(mTextures[id]);
+#if USE_TEXTURE_ATLAS
+			GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
+			ImageInfo const& image = mImages[id];
+			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, image.uvPos , image.uvSize,  framePos, frameDim);
+#else
+			GL_SCOPED_BIND_OBJECT(mImages[id].texture);
 			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, framePos, frameDim);
+#endif
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -565,8 +597,16 @@ namespace FlappyBird
 		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE0);
 		{
-			GL_BIND_LOCK_OBJECT(mTextures[id]);
+#if USE_TEXTURE_ATLAS
+			GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
+			ImageInfo const& image = mImages[id];
+			Vector2 uvPos = image.uvPos + texPos.mul(image.uvSize);
+			Vector2 uvSize = image.uvSize.mul( texSize );
+			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, uvPos, uvSize);
+#else
+			GL_SCOPED_BIND_OBJECT(mImages[id].texture);
 			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, texPos, texSize);
+#endif
 		}
 		glDisable(GL_TEXTURE_2D);
 		
@@ -609,7 +649,7 @@ namespace FlappyBird
 		{
 			int BGTextureId[] = { TextureID::Background_A  , TextureID::Background_B };
 			Vector2 rPos = convertToScreen( Vector2(0.5 *WorldWidth, 0.5 *WorldHeight - 1.6));
-			float texFactor = getTextureSizeRatio(BGTextureId[backgroundType]);
+			float texFactor = getImageSizeRatio(BGTextureId[backgroundType]);
 
 			Vector2 rSize;
 			rSize.x = WorldWidth * GScale;
@@ -637,7 +677,7 @@ namespace FlappyBird
 		{
 			int texId = TextureID::Ground;
 			Vector2 rPos = convertToScreen( Vector2( 0 , 0));
-			float texFactor = getTextureSizeRatio(texId);
+			float texFactor = getImageSizeRatio(texId);
 
 			Vector2 rSize;
 			rSize.x = WorldWidth * GScale;
@@ -789,7 +829,7 @@ namespace FlappyBird
 			angle = Math::Rad2Deg(theta);
 #endif
 
-			float sizeFactor = getTextureSizeRatio(TextureID::Bird);
+			float sizeFactor = getImageSizeRatio(TextureID::Bird);
 			size *= 2;
 
 			int const frameNum = 3;
@@ -859,7 +899,7 @@ namespace FlappyBird
 
 		float offset = 0.5 * width * (numDigial - 1);
 
-		Vector2 size = Vector2(width, 10 * width / getTextureSizeRatio(TextureID::Number));
+		Vector2 size = Vector2(width, 10 * width / getImageSizeRatio(TextureID::Number));
 
 		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
 		for( int i = 0; i < numDigial; ++i )
@@ -870,5 +910,14 @@ namespace FlappyBird
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	}
 
+
+	float LevelStage::getImageSizeRatio(int id)
+	{
+#if USE_TEXTURE_ATLAS
+		return float(mImages[id].size.x / mImages[id].size.y);
+#else
+		return float(mImages[id].texture->getSizeX()) / mImages[id].texture->getSizeY();
+#endif
+	}
 
 }//namespace FlappyBird

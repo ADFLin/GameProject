@@ -276,6 +276,7 @@
     <ClCompile Include="Phy2D\World.cpp" />
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
+    <ClCompile Include="Renderer\BatchedRender2D.cpp" />
     <ClCompile Include="Renderer\RenderTransform2D.cpp" />
     <ClCompile Include="RHI\D3D11Command.cpp" />
     <ClCompile Include="RHI\D3D11Common.cpp" />
@@ -472,6 +473,7 @@
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="ReflectionCollect.h" />
     <ClInclude Include="Reflection\ReflectClass.h" />
+    <ClInclude Include="Renderer\BatchedRender2D.h" />
     <ClInclude Include="Renderer\RenderTransform2D.h" />
     <ClInclude Include="RHI\D3D12Command.h" />
     <ClInclude Include="RHI\D3D12Common.h" />
@@ -531,6 +533,7 @@
     <ClInclude Include="SystemPlatform.h" />
     <ClInclude Include="TemplateMisc.h" />
     <ClInclude Include="Template\ArrayView.h" />
+    <ClInclude Include="Template\Optional.h" />
     <ClInclude Include="Template\StaticString.h" />
     <ClInclude Include="Template\StringView.h" />
     <ClInclude Include="Template\TypeFormatTraits.h" />

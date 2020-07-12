@@ -6,14 +6,12 @@
 
 #include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
+#include "RHI/TextureAtlas.h"
 
 
 namespace FlappyBird
 {
-	using Render::RHITexture2D;
-	using Render::RHITexture2DRef;
-	using Render::DrawUtility;
-	using Render::TBindLockScope;
+	using namespace Render;
 
 	class TrainManager;
 	class TrainData;
@@ -93,16 +91,19 @@ namespace FlappyBird
 		void drawPipe(IGraphics2D& g, ColObject const& obj);
 		void drawNumber(IGraphics2D& g, int number, float width );
 
-		float getTextureSizeRatio( int id )
-		{
-			return float( mTextures[id]->getSizeX() ) / mTextures[id]->getSizeY();
-		}
+		float getImageSizeRatio( int id );
 
 
 
 		bool loadResource();
-
-		RHITexture2DRef mTextures[ TextureID::Count ];
+		struct ImageInfo
+		{
+			Vector2 size;
+			Vector2 uvPos;
+			Vector2 uvSize;
+			RHITexture2DRef texture;
+		};
+		ImageInfo mImages[ TextureID::Count ];
 		bool mbDebugDraw = false;
 
 		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
@@ -122,7 +123,10 @@ namespace FlappyBird
 		std::unique_ptr< TrainData >    mTrainData;
 		std::unique_ptr< TrainManager > mTrainManager;
 
-		GameLevel mLevel;
+
+		TextureAtlas mTextureAtlas;
+
+		GameLevel  mLevel;
 		BirdEntity mBird;
 	};
 

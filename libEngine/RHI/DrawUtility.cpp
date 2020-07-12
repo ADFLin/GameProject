@@ -178,6 +178,14 @@ namespace Render
 		Sprite(commandList, pos, size, pivot, texLT, dtex);
 	}
 
+	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize, IntVector2 const& framePos, IntVector2 const& frameDim)
+	{
+		Vector2 dtex = texSize.div(frameDim);
+		Vector2 texLT = texPos + Vector2(framePos).mul(dtex);
+
+		Sprite(commandList, pos, size, pivot, texLT, dtex);
+	}
+
 	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
 	{
 		Vector2 posLT = pos - size.mul(pivot);
@@ -233,7 +241,7 @@ namespace Render
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
-			GL_BIND_LOCK_OBJECT(texture);
+			GL_SCOPED_BIND_OBJECT(texture);
 			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y, color);
 		}
 		glDisable(GL_TEXTURE_2D);
@@ -243,7 +251,7 @@ namespace Render
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
-			GL_BIND_LOCK_OBJECT(texture);
+			GL_SCOPED_BIND_OBJECT(texture);
 			glBindSampler( 0 , OpenGLCast::GetHandle(sampler) );
 			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y, color);
 		}
@@ -319,7 +327,7 @@ namespace Render
 
 		glEnable(GL_TEXTURE_CUBE_MAP);
 		{
-			GL_BIND_LOCK_OBJECT(texCube);
+			GL_SCOPED_BIND_OBJECT(texCube);
 			glColor3f(1, 1, 1);
 			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
 		}

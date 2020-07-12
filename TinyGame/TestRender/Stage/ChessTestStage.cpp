@@ -11,15 +11,16 @@ namespace Chess
 	using namespace Render;
 
 
-	struct BlendScope
+	struct ScopedBlendState
 	{
-		BlendScope(RHIGraphics2D& g, float alpha)
+		ScopedBlendState(RHIGraphics2D& g, float alpha)
 			:g(g)
 		{
-			g.beginBlend(alpha);
+			g.setBlendState(ESimpleBlendMode::Translucent);
+			g.setBlendAlapha(alpha);
 		}
 
-		~BlendScope()
+		~ScopedBlendState()
 		{
 			g.endBlend();
 		}
@@ -130,7 +131,7 @@ namespace Chess
 			Vector2 size;
 			size.x = sizeScale * tileInfo.size.x * TileLength / w;
 			size.y = size.x * tileInfo.size.y / tileInfo.size.x;
-			g.drawTexture(*mChessTex, centerPos - pivot * size , size , tileInfo.pos + (( color == EChessColor::Black ) ? Vec2i(0,0) : Vec2i(0,h)), tileInfo.size );
+			g.drawTexture(centerPos - pivot * size , size , tileInfo.pos + (( color == EChessColor::Black ) ? Vec2i(0,0) : Vec2i(0,h)), tileInfo.size );
 
 		}
 		void onRender(float dFrame) override
@@ -227,8 +228,10 @@ namespace Chess
 
 
 			{
-				BlendScope scope(g, 1.0f);
+				ScopedBlendState scope(g, 1.0f);
 				RenderUtility::SetBrush(g, EColor::White);
+
+				g.setTexture(*mChessTex);
 				for (int j = 0; j < BOARD_SIZE; ++j)
 				{
 					for (int i = 0; i < BOARD_SIZE; ++i)
@@ -247,7 +250,7 @@ namespace Chess
 			bool bShowAttackList = true;
 			if (bShowAttackList)
 			{
-				BlendScope scope(g, 0.8f);
+				ScopedBlendState scope(g, 0.8f);
 				if (mGame.isValidPos(mMouseTilePos))
 				{
 					auto& tileData = mGame.mBoard.getData(mMouseTilePos.x, mMouseTilePos.y);
@@ -263,7 +266,7 @@ namespace Chess
 
 
 			{
-				BlendScope scope(g, 0.8f);
+				ScopedBlendState scope(g, 0.8f);
 				if (!mMovePosList.empty())
 				{
 					RenderUtility::SetBrush(g, EColor::Green);

@@ -126,6 +126,7 @@ namespace Zen
 		virtual void     getThinkResult(ThinkResult& result) = 0;
 		virtual bool     getBestThinkMove(ThinkInfo info[], int num) = 0;
 		virtual void     getTerritoryStatictics( TerritoryInfo& info ) = 0;
+		virtual int      getHistorySize() const = 0;
 
 	};
 
@@ -156,22 +157,19 @@ namespace Zen
 
 		enum { IsSingleton = 0, };
 
-		bool initialize(int version);
-		void release()
-		{
-			if( mhModule )
-			{
-				FreeLibrary(mhModule);
-				mhModule = NULL;
-			}
-		}
+		bool initialize(int version, bool bCreateNewInstance);
+		void release();
 
 		bool isInitialized() const
 		{
 			return mhModule != nullptr;
 		}
 
+		static int InstanceCount;
+
 		HMODULE mhModule;
+		std::string mDllName;
+
 		bool(__cdecl *ZenAddStone)(int, int, int);
 		void(__cdecl *ZenClearBoard)(void);
 		void(__cdecl *ZenFixedHandicap)(int);
@@ -245,7 +243,6 @@ namespace Zen
 		bool isCaptured() { return mbCaputured; }
 		bool mbCaputured;
 
-
 		template< class T = TBotCore<Version, Lib > >
 		static typename std::enable_if< !Lib::IsSingleton , T* >::type
 		Create()
@@ -261,9 +258,9 @@ namespace Zen
 
 		bool isInitialized() const { return ZenLibrary::isInitialized(); }
 
-		bool initialize()
+		bool initialize(bool bCreateNewInstance = true)
 		{
-			if( !ZenLibrary::initialize(Version) )
+			if( !ZenLibrary::initialize(Version, bCreateNewInstance) )
 				return false;
 
 			ZenInitialize(nullptr);
@@ -522,7 +519,11 @@ namespace Zen
 		int getWhitePrisonerNum() override { return ZenGetNumWhitePrisoners(); }
 		Color getNextColor() override { return Color(ZenGetNextColor()); }
 
-
+		virtual int getHistorySize() const override
+		{
+			return ZenGetHistorySize();
+		
+		}
 	protected:
 		int mBoardSize;
 		TBotCore()
@@ -600,7 +601,7 @@ namespace Go
 		bool initialize(void* settingData) override;
 		void destroy() override;
 		bool setupGame(GameSetting const& setting) override;
-		bool restart() override;
+		bool restart(GameSetting const& setting) override;
 		EBotExecResult playStone(int x, int y, int color) override;
 		EBotExecResult playPass(int color) override;
 		EBotExecResult undo() override;

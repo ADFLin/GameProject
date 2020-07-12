@@ -728,15 +728,15 @@ namespace Render
 	};
 
 	template< class T >
-	struct TBindLockScope
+	struct TOpenGLScopedBind
 	{
-		TBindLockScope(T& obj)
+		TOpenGLScopedBind(T& obj)
 			:mObj(obj)
 		{
 			OpenGLCast::To(&mObj)->bind();
 		}
 
-		~TBindLockScope()
+		~TOpenGLScopedBind()
 		{
 			OpenGLCast::To(&mObj)->unbind();
 		}
@@ -747,16 +747,16 @@ namespace Render
 
 
 	template< class T >
-	struct TBindLockScope< T* >
+	struct TOpenGLScopedBind< T* >
 	{
-		TBindLockScope(T* obj)
+		TOpenGLScopedBind(T* obj)
 			:mObj(obj)
 		{
 			assert(mObj);
 			OpenGLCast::To(mObj)->bind();
 		}
 
-		~TBindLockScope()
+		~TOpenGLScopedBind()
 		{
 			OpenGLCast::To(mObj)->unbind();
 		}
@@ -765,16 +765,16 @@ namespace Render
 	};
 
 	template< class T >
-	struct TBindLockScope< TRefCountPtr< T > >
+	struct TOpenGLScopedBind< TRefCountPtr< T > >
 	{
-		TBindLockScope(TRefCountPtr< T >& obj)
+		TOpenGLScopedBind(TRefCountPtr< T >& obj)
 			:mObj(obj)
 		{
 			assert(mObj);
 			OpenGLCast::To(mObj.get())->bind();
 		}
 
-		~TBindLockScope()
+		~TOpenGLScopedBind()
 		{
 			OpenGLCast::To(mObj.get())->unbind();
 		}
@@ -782,8 +782,8 @@ namespace Render
 		TRefCountPtr< T >& mObj;
 	};
 
-#define GL_BIND_LOCK_OBJECT( obj )\
-	Render::TBindLockScope< std::remove_reference< decltype(obj) >::type >  ANONYMOUS_VARIABLE( BindLockObj )( obj );
+#define GL_SCOPED_BIND_OBJECT( obj )\
+	Render::TOpenGLScopedBind< std::remove_reference< decltype(obj) >::type >  ANONYMOUS_VARIABLE( BoundObject )( obj );
 
 
 

@@ -2,6 +2,7 @@
 #include "GTPOutput.h"
 
 #include "SystemPlatform.h"
+#include <functional>
 
 namespace Go
 {
@@ -27,25 +28,30 @@ namespace Go
 		process.terminate();
 	}
 
-	bool GTPLikeAppRun::restart()
+	bool GTPLikeAppRun::restart(GameSetting const& setting)
 	{
 		if (outputThread)
 			outputThread->restart();
-		return inputCommand("clear_board\n", { GTPCommand::eRestart , 0 });
+
+		return setupGame(setting);
 	}
 
 	bool GTPLikeAppRun::playStone(int x, int y, int color)
 	{
 		FixString<128> com;
 		com.format("play %c %c%d\n", ToColorChar(color) , ToCoordChar(x), y + 1);
-		return inputCommand(com, { GTPCommand::ePlay , color });
+		if (!inputCommand(com, { GTPCommand::ePlay , color }))
+			return false;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::addStone(int x, int y, int color)
 	{
 		FixString<128> com;
 		com.format("play %c %c%d\n", ToColorChar(color), ToCoordChar(x), y + 1);
-		return inputCommand(com, { GTPCommand::eAdd , color });
+		if (!inputCommand(com, { GTPCommand::eAdd , color }))
+			return false;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::playPass(int color)
@@ -55,41 +61,50 @@ namespace Go
 			com.format("play %c pass\n", ToColorChar(color));
 		else
 			com.format("play pass\n");
-		return inputCommand(com, { GTPCommand::ePass , color });
+		if (!inputCommand(com, { GTPCommand::ePass , color }))
+			return false;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::thinkNextMove(int color)
 	{
 		FixString<128> com;
 		com.format("genmove %c\n", ToColorChar(color));
-		return inputCommand(com, { GTPCommand::eGenmove , color });
+		if (!inputCommand(com, { GTPCommand::eGenmove , color }))
+			return false;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::undo()
 	{
-		return inputCommand("undo\n", { GTPCommand::eUndo , 0 });
+		if (!inputCommand("undo\n", { GTPCommand::eUndo , 0 }))
+			return false;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::requestUndo()
 	{
-		return inputCommand("undo\n", { GTPCommand::eRequestUndo , 1 });
+		if (!inputCommand("undo\n", { GTPCommand::eRequestUndo , 1 }))
+			return false;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::setupGame(GameSetting const& setting)
 	{
 		FixString<128> com;
 		com.format("komi %.1f\n", setting.komi);
-		inputCommand(com, { GTPCommand::eKomi , 0 });
+		if (!inputCommand(com, { GTPCommand::eKomi , 0 }))
+			return false;
+		if (!inputCommand("clear_board\n", { GTPCommand::eRestart , 0 }))
+			return false;
 		if (setting.numHandicap && setting.bFixedHandicap )
 		{
 			com.format("fixed_handicap %d\n", setting.numHandicap);
-			inputCommand(com, { GTPCommand::eHandicap , setting.numHandicap });
+			if (!inputCommand(com, { GTPCommand::eHandicap , setting.numHandicap }))
+				return false;
 		}
-
-		inputCommand("clear_board\n", { GTPCommand::eRestart , 0 });
 		//com.format()
-
-		return true;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::showResult()
@@ -97,7 +112,7 @@ namespace Go
 		if (!inputCommand("final_score\n", { GTPCommand::eFinalScore , 0 }))
 			return false;
 
-		return true;
+		return (bWaitCommandCompletion) ? waitCommandCompletion() : true;
 	}
 
 	bool GTPLikeAppRun::readBoard(int* outData)
@@ -106,6 +121,11 @@ namespace Go
 			return false;
 		static_cast<GTPOutputThread*>(outputThread)->mOutReadBoard = outData;
 		return true;
+	}
+
+	bool GTPLikeAppRun::isThinking()
+	{
+		return static_cast<GTPOutputThread*>(outputThread)->mProcQueue.back().id == GTPCommand::eGenmove;
 	}
 
 	bool GTPLikeAppRun::inputCommand(char const* command, GTPCommand com)
@@ -122,9 +142,44 @@ namespace Go
 		return process.writeInputStream(command, length ? length : strlen(command), numWrite);
 	}
 
+	template< class TR , class ...TArgs >
+	struct TFuncWapper
+	{
+		template< class TFunc >
+		TFuncWapper(TFunc&& func)
+			:mFuncObject(func)
+		{
+
+		}
+
+		TR execute(TArgs ...args)
+		{
+			return mFuncObject(args...);
+		}
+
+		std::function< TR (TArgs...) > mFuncObject;
+	};
+
+	bool GTPLikeAppRun::waitCommandCompletion()
+	{
+		mWaitCompletionResult = true;
+		GTPOutputThread* myThread = static_cast<GTPOutputThread*>(outputThread);
+		while (!myThread->mProcQueue.empty())
+		{
+			myThread->update();
+		}
+		return mWaitCompletionResult;
+	}
+
 	void GTPLikeAppRun::notifyCommandResult(GTPCommand com, EGTPComExecuteResult result)
 	{
 		LogMsg("== %s %s", GTPCommand::ToString( com.id ) , result == EGTPComExecuteResult::Success ? "true" : "false" );
+
+		if (bWaitCommandCompletion)
+		{
+			if (result != EGTPComExecuteResult::Success)
+				mWaitCompletionResult = false;
+		}
 		switch (com.id)
 		{
 		case GTPCommand::ePlay:

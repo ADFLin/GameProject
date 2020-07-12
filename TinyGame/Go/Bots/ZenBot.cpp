@@ -7,6 +7,8 @@
 
 #include "GameGlobal.h"
 #include "PropertySet.h"
+#include "FileSystem.h"
+#include "Template/StringView.h"
 
 namespace Zen
 {
@@ -23,22 +25,47 @@ namespace Zen
 		return func != nullptr;
 	}
 
-	bool DynamicLibrary::initialize(int version)
+	int DynamicLibrary::InstanceCount = 0;
+
+	bool DynamicLibrary::initialize(int version, bool bCreateNewInstance)
 	{
-		TCHAR const* name;
+		TCHAR const* path;
 		switch( version )
 		{
-		case 4: name = TEXT("Go/Zen4/Zen.dll"); break;
-		case 6: name = TEXT("Go/Zen6/Zen.dll"); break;
-		case 7: name = TEXT("Go/Zen7/Zen.dll"); break;
+		case 4: path = TEXT("Go/Zen4/Zen.dll"); break;
+		case 6: path = TEXT("Go/Zen6/Zen.dll"); break;
+		case 7: path = TEXT("Go/Zen7/Zen.dll"); break;
 		default:
 			LogError("Zen Version No Dll");
 			return false;
 		}
 
-		mhModule = LoadLibrary(name);
+		if (bCreateNewInstance && InstanceCount > 0)
+		{
+			StringView filePath = FileUtility::GetDirectory(path);
+			FixString< 256 > tempDllPath;
+			for(;;)
+			{
+				DateTime time = SystemPlatform::GetLocalTime();
+				tempDllPath.format("%s/Zen%d-%d-%d.dll", filePath.toCString(), time.getHour(), time.getMinute(), time.getSecond());
+				if (FileSystem::CopyFile(path, tempDllPath.c_str(), true))
+				{
+					mDllName = tempDllPath;
+					break;
+				}
+			}
+			mhModule = LoadLibrary(mDllName.c_str());
+		}
+		else
+		{
+			mhModule = LoadLibrary(path);
+		}
+
 		if( mhModule == NULL )
 			return false;
+
+
+		++InstanceCount;
 
 #define LoadZenFunc( FUNC , NAME )\
 		if ( !readProcAddress(mhModule,  FUNC, NAME ) )\
@@ -100,6 +127,23 @@ namespace Zen
 
 #undef LoadZenFunc
 		return true;
+	}
+
+
+	void DynamicLibrary::release()
+	{
+		if (mhModule)
+		{
+			FreeLibrary(mhModule);
+			mhModule = NULL;
+			--InstanceCount;
+		}
+
+		if (!mDllName.empty())
+		{
+			FileSystem::DeleteFile(mDllName.c_str());
+
+		}
 	}
 
 	Bot::Bot() :mCore(nullptr)
@@ -449,9 +493,10 @@ namespace Go
 		return true;
 	}
 
-	bool ZenBot::restart()
-	{
+	bool ZenBot::restart(GameSetting const& setting)
+{
 		mCore->restart();
+		mCore->startGame(setting);
 		bWaitResult = false;
 		bRequestUndoDone = false;
 		return true;

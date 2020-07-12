@@ -6,6 +6,7 @@
 #include "WindowsHeader.h"
 #include "BitmapDC.h"
 #endif //SYS_PLATFORM_WIN
+#include <cuchar>
 
 namespace Render
 {
@@ -126,10 +127,7 @@ namespace Render
 			int count = data.imageData.size() / 4;
 			for (int i = count; i ; --i )
 			{
-				if (pData[0])
-				{
-					pData[3] = pData[0];
-				}
+				pData[3] = pData[0];
 				pData += 4;
 			}
 		}
@@ -170,7 +168,7 @@ namespace Render
 
 			if ( GRHISystem->getName() == RHISytemName::OpenGL )
 			{
-				GL_BIND_LOCK_OBJECT(mTextAtlas.getTexture());
+				GL_SCOPED_BIND_OBJECT(mTextAtlas.getTexture());
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
@@ -426,6 +424,74 @@ namespace Render
 	{
 		mCharDataSet = nullptr;
 		mSize = 0;
+	}
+
+#if 0
+
+	template< class FormCharT , class ToCharT >
+	struct FCharConv
+	{};
+
+	template< class CharT >
+	struct FCharConv< CharT , CharT >
+	{
+		static int Do(CharT const* c, CharT const* end , CharT*& outConv) { *outConv = c; return 1; }
+	};
+	template<>
+	struct FCharConv< char ,  wchar_t >
+	{
+		static int Do(char const* c, char const* end, wchar_t*& outConv) 
+		{ 
+			size_t rc = std::mbsrtowcs(outConv , c , end - c + 1 ,   ; return 1; 
+		}
+	};
+#endif
+
+	void FontDrawer::generateVertices( Vector2 const& pos , wchar_t const* str, std::vector< FontVertex >& outVertices)
+	{
+		Vector2 curPos = pos;
+		bool bPrevSpace = false;
+		bool bStartChar = true;
+
+		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
+		{
+			Vector2 posMax = pos + size;
+			outVertices.push_back({ pos , uvMin });
+			outVertices.push_back({ Vector2(posMax.x , pos.y) , Vector2(uvMax.x , uvMin.y) });
+			outVertices.push_back({ posMax , uvMax });
+			outVertices.push_back({ Vector2(pos.x , posMax.y) , Vector2(uvMin.x , uvMax.y) });
+		};
+
+		while (*str != 0)
+		{
+			wchar_t c = *(str++);
+			if (false && c == L'\n')
+			{
+				curPos.x = pos.x;
+				curPos.y += mCharDataSet->getFontHeight() + 2;
+				bStartChar = true;
+				continue;
+			}
+
+			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
+
+			if (!(bPrevSpace || bStartChar))
+				curPos.x += data.kerning;
+
+			AddQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
+			curPos.x += data.advance;
+			bStartChar = false;
+			if (c == FCString::IsSpace(c))
+			{
+				bPrevSpace = true;
+			}
+		}
+	}
+
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, std::vector< FontVertex >& outVertices)
+	{
+		std::wstring text = FCString::CharToWChar(str);
+		generateVertices(pos, text.c_str(), outVertices);
 	}
 
 }//namespace Render

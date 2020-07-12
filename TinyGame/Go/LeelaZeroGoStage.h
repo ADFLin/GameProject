@@ -110,6 +110,7 @@ namespace Go
 			UPARAM_WEIGHT_NAME,
 			UPARAM_MAX_TIME , 
 			UPARAM_SIMULATIONS_NUM ,
+			UPARAM_USE_CUDA ,
 		};
 
 
@@ -295,6 +296,35 @@ namespace Go
 		bool bAnalysisEnabled = false;
 		bool bAnalysisPondering;
 		bool bShowAnalysis = true;
+
+		struct AnalysisData
+		{
+			ControllerType dataType;
+			struct PosInfo
+			{
+				PlayVertex v;
+				int   nodeVisited;
+				float winRate;
+				union 
+				{
+					struct //LeelaParam
+					{
+						float evalValue;
+					};
+
+					struct //KataParam
+					{
+
+
+					};
+				};
+				
+				std::vector< PlayVertex > vSeq;
+			};
+			std::vector< PosInfo > candidatePosList;
+		};
+
+		AnalysisData  mAnalysisResult;
 		LeelaThinkInfoVec analysisResult;
 		LeelaThinkInfo bestThinkInfo;
 
@@ -322,7 +352,7 @@ namespace Go
 
 		std::function< void(EBotExecResult) > mWaitBotCommandDelegate;
 
-		bool bSwapEachMatch = true;
+
 		int  unknownWinerCount = 0;
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
@@ -452,8 +482,8 @@ namespace Go
 
 		void updateViewGameTerritory();
 
-		void drawAnalysis(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext& context);
-		static void DrawTerritoryStatus( BoardRenderer& renderer , SimpleRenderState& renderState, RenderContext const& context ,  Zen::TerritoryInfo const& info);
+		void drawAnalysis(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext &context, GameProxy& game, AnalysisData const& data);
+		static void DrawTerritoryStatus(BoardRenderer& renderer, SimpleRenderState& renderState, RenderContext const& context, Zen::TerritoryInfo const& info);
 
 
 		std::vector< Vector2 > mWinRateHistory[2];

@@ -31,10 +31,10 @@ namespace Go
 		{
 			if( mNumUsed )
 			{
-				int numSaved = parseOutput(mBuffer, mNumUsed);
+				int numSaved = parseOutput(mBuffer.data(), mNumUsed);
 				if( numSaved && numSaved != mNumUsed )
 				{
-					::memmove(mBuffer, mBuffer + mNumUsed - numSaved, numSaved);
+					::memmove(mBuffer.data(), mBuffer.data() + mNumUsed - numSaved, numSaved);
 				}
 				mNumUsed = numSaved;
 			}
@@ -293,40 +293,6 @@ namespace Go
 			}
 		}
 
-		static PlayVertex ReadVertex(char const* buffer , int& outRead)
-		{
-			PlayVertex vertex = PlayVertex::Undefiend();
-
-			if( FCString::CompareIgnoreCase( buffer , "Pass" ) ==  0 )
-			{
-				outRead = 4;
-				return PlayVertex::Pass();
-			}
-			else if( FCString::CompareIgnoreCase( buffer , "Resign") == 0 )
-			{
-				outRead = 6;
-				return PlayVertex::Resign();
-			}			
-			else
-			{
-				uint8 pos[2];
-				outRead = Go::ReadCoord(buffer, pos);
-				if( outRead )
-				{
-					PlayVertex vertex;
-					vertex.x = pos[0];
-					vertex.y = pos[1];
-					return vertex;
-				}
-			}
-			return PlayVertex::Undefiend();
-		}
-
-		static PlayVertex GetVertex(FixString<128> const& coord)
-		{
-			int numRead;
-			return ReadVertex(coord.c_str(), numRead);
-		}
 
 		bool readThinkInfo(char* buffer, int num)
 		{
@@ -394,7 +360,7 @@ namespace Go
 				if ( bPondering )
 				{
 #define INFO_MOVE_STR "info move"
-					while( StartWith(buffer, "info move") )
+					while( StartWith(buffer, INFO_MOVE_STR) )
 					{
 						buffer += StrLen(INFO_MOVE_STR);
 

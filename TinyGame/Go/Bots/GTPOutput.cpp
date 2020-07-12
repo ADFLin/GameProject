@@ -18,10 +18,18 @@ namespace Go
 			mNumNewRead = 0;
 
 			int numRead;
-			char* pData = mBuffer + mNumUsed;
+			char* pData = mBuffer.data() + mNumUsed;
 
-			bool bSuccess = process->readOutputStream(pData, ARRAY_SIZE(mBuffer) - 1 - mNumUsed, numRead);
-			if (!bSuccess || (numRead == 0 && mNumUsed != (ARRAY_SIZE(mBuffer) - 1)))
+			int numCanRead = mBuffer.size() - 1 - mNumUsed;
+			if (numCanRead <= 0)
+			{
+				LogWarning(0,"=== buffer too samll , can't Read Output ===");
+				mBuffer.resize(mBuffer.size() * 2);
+			}
+
+			bool bSuccess = process->readOutputStream(pData, mBuffer.size() - 1 - mNumUsed, numRead);
+
+			if (!bSuccess || (numRead == 0 && mNumUsed != (mBuffer.size() - 1)))
 			{
 				LogMsg("OutputThread can't read");
 				break;
@@ -143,9 +151,9 @@ namespace Go
 	{
 		assert(mNumUsed >= mNumNewRead);
 
-		char* pData = mBuffer;
+		char* pData = mBuffer.data();
 
-		char* pDataEnd = mBuffer + mNumUsed;
+		char* pDataEnd = mBuffer.data() + mNumUsed;
 		char* pLineEnd = pDataEnd - mNumNewRead;
 
 		for (;; )
@@ -161,11 +169,13 @@ namespace Go
 			*pLineEnd = 0;
 			if (pData != pLineEnd)
 			{
-				if (bLogMsg)
+				mbShowParseLine = true;
+				parseLine(pData, pLineEnd - pData);
+
+				if (bLogMsg && mbShowParseLine)
 				{
 					LogMsg("GTP: %s ", pData);
 				}
-				parseLine(pData, pLineEnd - pData);
 			}
 
 			++pLineEnd;
@@ -175,9 +185,9 @@ namespace Go
 		if (pData != pDataEnd)
 		{
 			mNumUsed = pDataEnd - pData;
-			if (pData != mBuffer)
+			if (pData != mBuffer.data())
 			{
-				::memmove(mBuffer, pData, mNumUsed);
+				::memmove(mBuffer.data(), pData, mNumUsed);
 			}
 			mBuffer[mNumUsed] = 0;
 		}

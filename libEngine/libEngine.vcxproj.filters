@@ -493,6 +493,9 @@
     <ClCompile Include="Renderer\RenderTransform2D.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\BatchedRender2D.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -1199,6 +1202,12 @@
     </ClInclude>
     <ClInclude Include="Renderer\RenderTransform2D.h">
       <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\BatchedRender2D.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Template\Optional.h">
+      <Filter>Template</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

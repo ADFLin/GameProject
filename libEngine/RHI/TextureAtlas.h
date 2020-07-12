@@ -28,6 +28,10 @@ namespace Render
 		bool addImageInteranl(int id, int w, int h, Texture::Format format, void* data, int dataImageWidth);
 		void getRectUV(int id, Vector2& outMin, Vector2& outMax) const;
 		void getRectUVChecked(int id, Vector2& outMin, Vector2& outMax) const;
+		bool getRectSize(int id, IntVector2& outSize ) const;
+		IntVector2 getRectSizeChecked(int id) const;
+
+
 
 		RHITexture2D& getTexture() { return *mTexture; }
 		int  getTextureNum() const { return mNextImageId; }

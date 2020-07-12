@@ -132,6 +132,9 @@ public:
 	static bool RenameFile(char const* path, char const* newFileName);
 	static bool RenameFile(wchar_t const* path, wchar_t const* newFileName);
 
+	static bool CopyFile(char const* path, char const* newFilePath, bool bFailIfExists = false);
+	static bool CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool bFailIfExists = false);
+
 	static bool GetFileAttributes(char const* path, FileAttributes& outAttributes);
 };
 

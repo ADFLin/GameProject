@@ -10,6 +10,7 @@
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #endif
+#include "TemplateMisc.h"
 
 class DataCacheInterface;
 struct ImageData;
@@ -159,7 +160,7 @@ namespace Render
 	RHI_API RHIShaderProgram* RHI_TRACE_FUNC(RHICreateShaderProgram);
 
 
-	class RHICommandList
+	class RHICommandList : public Noncopyable
 	{
 	public:
 		virtual ~RHICommandList() {}

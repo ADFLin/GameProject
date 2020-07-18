@@ -4,7 +4,7 @@
 
 namespace Render
 {
-	VkPrimitiveTopology VulkanTranslate::To(EPrimitive type)
+	VkPrimitiveTopology VulkanTranslate::To(EPrimitive type, int& outPatchPointCount )
 	{
 		switch (type)
 		{
@@ -15,15 +15,17 @@ namespace Render
 		case EPrimitive::LineStrip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 		case EPrimitive::TriangleAdjacency: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
 		case EPrimitive::TriangleFan: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-		case EPrimitive::Patchs: return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
-
 		case EPrimitive::LineLoop:
 		case EPrimitive::Quad:
 		case EPrimitive::Polygon:
 			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-
 		}
 
+		if (type >= EPrimitive::PatchPoint1)
+		{
+			outPatchPointCount = 1 + int(type) - int(EPrimitive::PatchPoint1);
+			return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+		}
 		return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 	}
 

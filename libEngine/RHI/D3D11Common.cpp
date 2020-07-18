@@ -5,6 +5,10 @@ namespace Render
 {
 	D3D_PRIMITIVE_TOPOLOGY D3D11Translate::To(EPrimitive type)
 	{
+		if (type >= EPrimitive::PatchPoint1)
+		{
+			return D3D_PRIMITIVE_TOPOLOGY( D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + ((int)type - (int)EPrimitive::PatchPoint1) );
+		}
 		switch( type )
 		{
 		case EPrimitive::Points: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
@@ -13,7 +17,7 @@ namespace Render
 		case EPrimitive::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 		case EPrimitive::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
 		case EPrimitive::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-		case EPrimitive::Patchs: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+		case EPrimitive::PatchPoint1: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
 		case EPrimitive::Polygon:
 		case EPrimitive::TriangleFan:
 		case EPrimitive::LineLoop:

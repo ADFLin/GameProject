@@ -48,25 +48,30 @@ namespace Go
 		class TVar : public TOptional< T >
 		{
 		public:
-			TVar() = default;
+			TVar() 
+				:TOptional<T>()
+				, mDefault()
+			{
+
+			}
 
 			TVar(T const& value)
 				:TOptional<T>(value)
 			{
-				mDefalut = value;
+				mDefault = value;
 			}
 
 			TVar(T const& value , ENoInit)
 				:TOptional<T>()
 			{
-				mDefalut = value;
+				mDefault = value;
 			}
 
 			void setDefault()
 			{
-				*this = mDefalut;
+				*this = mDefault;
 			}
-			T mDefalut;
+			T mDefault;
 		};
 
 

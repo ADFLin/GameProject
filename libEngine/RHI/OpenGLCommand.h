@@ -26,29 +26,32 @@ namespace Render
 		{
 			Initialize();
 		}
-		RHIRasterizerState* rasterizerStateUsage;
-		RHIRasterizerState* rasterizerStateCommit;
+		RHIRasterizerState* rasterizerStateCommitted;
+		RHIRasterizerState* rasterizerStatePending;
 		GLRasterizerStateValue rasterizerStateValue;
-		RHIDepthStencilState* depthStencilStateUsage;
-		RHIDepthStencilState* depthStencilStateCommit;
-		uint32 stencilRefCommit;
+
+		RHIDepthStencilState* depthStencilStateCommitted;
+		RHIDepthStencilState* depthStencilStatePending;
+		uint32 stencilRefPending;
 		GLDepthStencilStateValue depthStencilStateValue;
-		RHIBlendState* blendStateUsage;
-		RHIBlendState* blendStateCommit;
+
+		RHIBlendState* blendStateCommitted;
+		RHIBlendState* blendStatePending;
 		GLBlendStateValue blendStateValue;
 
 		bool bScissorRectEnabled;
 
 		void Initialize()
 		{
-			rasterizerStateUsage = nullptr;
-			rasterizerStateCommit = nullptr;
+			rasterizerStateCommitted = nullptr;
+			rasterizerStatePending = nullptr;
 			rasterizerStateValue = GLRasterizerStateValue(ForceInit);
-			depthStencilStateUsage = nullptr;
-			depthStencilStateCommit = nullptr;
+			stencilRefPending = 0xff;
+			depthStencilStateCommitted = nullptr;
+			depthStencilStatePending = nullptr;
 			depthStencilStateValue = GLDepthStencilStateValue(ForceInit);
-			blendStateUsage = nullptr;
-			blendStateCommit = nullptr;
+			blendStateCommitted = nullptr;
+			blendStatePending = nullptr;
 			blendStateValue = GLBlendStateValue(ForceInit);
 			bScissorRectEnabled = false;
 		}
@@ -263,6 +266,16 @@ namespace Render
 
 		static int const IdxTextureAutoBindStart = 2;
 
+		GLenum commitPrimitiveState(EPrimitive type)
+		{
+			int patchPointCount = 1;
+			GLenum primitiveGL = OpenGLTranslate::To(type, patchPointCount);
+			if (patchPointCount)
+			{
+				glPatchParameteri(GL_PATCH_VERTICES, patchPointCount);
+			}
+			return primitiveGL;
+		}
 		void commitRenderStates();
 		void commitSamplerStates();
 		void commitRasterizerState();
@@ -275,7 +288,7 @@ namespace Render
 
 		bool commitInputStreamUP()
 		{
-			if( !mLastInputLayout.isValid() )
+			if( !mInputLayoutPending.isValid() )
 				return false;
 			return true;
 		}
@@ -310,12 +323,32 @@ namespace Render
 
 		void clearShader(bool bUseShaderPipeline);
 
+		void unbindInputLayout()
+		{
+			if (!mInputLayoutCommitted.isValid())
+				return;
+			if (mInputLayoutPending != mInputLayoutCommitted ||
+				mbUseFixedPipeline == mWasBindAttrib )
+			{
+				if (mWasBindAttrib)
+				{
+					OpenGLCast::To(mInputLayoutCommitted)->unbindAttrib(mNumInputStreamToUnbind);
+				}
+				else
+				{
+					OpenGLCast::To(mInputLayoutCommitted)->unbindPointer();
+				}
+			}
+		}
+
 		RHIFrameBufferRef   mLastFrameBuffer;
 		OpenGLDeviceState   mDeviceState;
 
 		bool mbUseFixedPipeline = true;
 		bool mWasBindAttrib = false;
-		RHIInputLayoutRef   mLastInputLayout;
+		int  mNumInputStreamToUnbind;
+		RHIInputLayoutRef   mInputLayoutPending;
+		RHIInputLayoutRef   mInputLayoutCommitted;
 	
 		static int const MaxSimulationInputStreamSlots = 8;
 		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];

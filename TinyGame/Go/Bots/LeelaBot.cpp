@@ -237,7 +237,7 @@ namespace Go
 	class LeelaOutputThread : public GTPOutputThread
 	{
 	public:
-
+		LeelaAppRun* mAppRun;
 
 		LeelaThinkInfoVec thinkResults[2];
 		int  indexResultWrite = 0;

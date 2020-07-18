@@ -827,7 +827,7 @@ namespace Render
 		return GL_READ_WRITE;
 	}
 
-	GLenum OpenGLTranslate::To(EPrimitive type)
+	GLenum OpenGLTranslate::To(EPrimitive type, int& outPatchPointCount)
 	{
 		switch( type )
 		{
@@ -841,7 +841,13 @@ namespace Render
 		case EPrimitive::Quad:          return GL_QUADS;
 		case EPrimitive::Polygon:       return GL_POLYGON;
 		case EPrimitive::Points:        return GL_POINTS;
-		case EPrimitive::Patchs:        return GL_PATCHES;
+		}
+
+		if (type >= EPrimitive::PatchPoint1)
+		{
+			outPatchPointCount = 1 + int(type) - int(EPrimitive::PatchPoint1);
+			return GL_PATCHES;
+
 		}
 		return GL_POINTS;
 	}
@@ -1223,6 +1229,7 @@ namespace Render
 	{
 		mStateValue.bEnableCull = initializer.cullMode != ECullMode::None;
 		mStateValue.bEnableScissor = initializer.bEnableScissor;
+		mStateValue.bEnableMultisample = initializer.bEnableMultisample;
 		mStateValue.cullFace = OpenGLTranslate::To(initializer.cullMode);
 		mStateValue.fillMode = OpenGLTranslate::To(initializer.fillMode);
 	}

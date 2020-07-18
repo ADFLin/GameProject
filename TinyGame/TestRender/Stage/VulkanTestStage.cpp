@@ -262,7 +262,6 @@ namespace RenderVulkan
 
 
 				EPrimitive          PrimitiveType;
-				int                 patchPointCount = 0;
 				RHIInputLayout*     inputLayout;
 			};
 
@@ -331,11 +330,7 @@ namespace RenderVulkan
 				VulkanCast::To(renderState.rasterizerState)->getMultiSampleState(multisampleState);
 				VulkanCast::To(renderState.blendState)->getMultiSampleState(multisampleState);
 
-				VkPipelineTessellationStateCreateInfo tesselationState = {};
-				tesselationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-				tesselationState.patchControlPoints = renderState.patchPointCount;
 
-				pipelineInfo.pTessellationState = &tesselationState;
 				pipelineInfo.pMultisampleState = &multisampleState;
 
 				if (renderState.shaderProgram)
@@ -354,8 +349,14 @@ namespace RenderVulkan
 				VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
 				inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 				inputAssemblyState.primitiveRestartEnable = VK_FALSE;
-				inputAssemblyState.topology = VulkanTranslate::To(renderState.PrimitiveType);
+				int patchPointCount = 0;
+				inputAssemblyState.topology = VulkanTranslate::To(renderState.PrimitiveType, patchPointCount);
 				pipelineInfo.pInputAssemblyState = &inputAssemblyState;
+
+				VkPipelineTessellationStateCreateInfo tesselationState = {};
+				tesselationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+				tesselationState.patchControlPoints = patchPointCount;
+				pipelineInfo.pTessellationState = &tesselationState;
 
 				VkPipelineVertexInputStateCreateInfo const& vertexInputState = VulkanCast::To(mInputLayout)->createInfo;
 				if (renderState.inputLayout)

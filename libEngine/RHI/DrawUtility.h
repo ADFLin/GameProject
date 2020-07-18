@@ -65,6 +65,7 @@ namespace Render
 
 		RTVF_XYZW_T2     = RTVF_XYZW | RTVF_TEX_UV,
 
+		RTVF_XY_C        = RTVF_XY | RTVF_C,
 		RTVF_XY_CA       = RTVF_XY | RTVF_CA ,
 		RTVF_XY_T2       = RTVF_XY | RTVF_TEX_UV,
 		RTVF_XY_CA_T2    = RTVF_XY | RTVF_CA | RTVF_TEX_UV,

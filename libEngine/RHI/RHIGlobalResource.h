@@ -175,10 +175,11 @@ namespace Render
 		ECullMode CullMode = ECullMode::Back,
 		EFillMode FillMode = EFillMode::Solid,
 		EFrontFace FrontFace = EFrontFace::Default,
-		bool bEnableScissor = false 
+		bool bEnableScissor = false ,
+		bool bEnableMultisample = false
 	>
 	class TStaticRasterizerState : public StaticRHIResourceT<
-		TStaticRasterizerState< CullMode, FillMode, FrontFace, bEnableScissor >,
+		TStaticRasterizerState< CullMode, FillMode, FrontFace, bEnableScissor , bEnableMultisample >,
 		RHIRasterizerState >
 	{
 	public:
@@ -189,6 +190,7 @@ namespace Render
 			initializer.cullMode = CullMode;
 			initializer.frontFace = FrontFace;
 			initializer.bEnableScissor = bEnableScissor;
+			initializer.bEnableMultisample = bEnableMultisample;
 			return RHICreateRasterizerState(initializer);
 		}
 	};
@@ -213,10 +215,12 @@ namespace Render
 		uint32 StencilWriteMask = -1 
 	>
 	class TStaticDepthStencilSeparateState : public StaticRHIResourceT<
-		TStaticDepthStencilSeparateState<
+		TStaticDepthStencilSeparateState
+		<
 			bWriteDepth, DepthFun, bEnableStencilTest, StencilFun, StencilFailOp,
 			ZFailOp, ZPassOp, BackStencilFun, BackStencilFailOp, BackZFailOp, BackZPassOp,
-			StencilReadMask, StencilWriteMask >,
+			StencilReadMask, StencilWriteMask 
+		>,
 		RHIDepthStencilState >
 	{
 	public:

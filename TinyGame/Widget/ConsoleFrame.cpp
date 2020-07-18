@@ -41,6 +41,9 @@ void ConsoleFrame::onRender()
 
 bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 {
+	if (!msg.isDown())
+		return false;
+
 	if( msg.getCode() == EKeyCode::Tab )
 	{
 		if( mIndexFoundComUsed == -1 )
@@ -72,7 +75,7 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 
 	}
 
-	return true;
+	return false;
 }
 
 bool ConsoleFrame::onCharMsg(unsigned code)

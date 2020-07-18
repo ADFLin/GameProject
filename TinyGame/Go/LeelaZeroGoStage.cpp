@@ -94,23 +94,12 @@ namespace Go
 
 	class UnderCurveAreaProgram : public Render::GlobalShaderProgram
 	{
-		DECLARE_SHADER_PROGRAM(UnderCurveAreaProgram, Global);
-
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+	public:
 		static char const* GetShaderFileName()
 		{
 			return "Shader/Game/UnderCurveArea";
 		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const enties[] =
-			{
-				{ EShader::Vertex ,  SHADER_ENTRY(MainVS) },
-				{ EShader::Pixel ,  SHADER_ENTRY(MainPS) },
-				{ EShader::Geometry ,  SHADER_ENTRY(MainGS) },
-			};
-			return enties;
-		}
+
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamAxisValue.bind(parameterMap, SHADER_PARAM(AxisValue));
@@ -125,13 +114,119 @@ namespace Go
 			setParam(commandList, mParamUpperColor, upperColor);
 			setParam(commandList, mParamLowerColor, lowerColor);
 		}
+
 		ShaderParameter mParamAxisValue;
 		ShaderParameter mParamProjMatrix;
 		ShaderParameter mParamUpperColor;
 		ShaderParameter mParamLowerColor;
 	};
 
-	IMPLEMENT_SHADER_PROGRAM( UnderCurveAreaProgram )
+
+	template< bool bUseTessellation >
+	class TUnderCurveAreaProgram : public UnderCurveAreaProgram
+	{
+		DECLARE_SHADER_PROGRAM(TUnderCurveAreaProgram, Global);
+
+		typedef UnderCurveAreaProgram BaseClass;
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(USE_TESSELLATION), bUseTessellation);
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			if (bUseTessellation)
+			{
+				static ShaderEntryInfo const entiesWithTessellation[] =
+				{
+					{ EShader::Vertex ,  SHADER_ENTRY(MainVS) },
+					{ EShader::Hull ,  SHADER_ENTRY(MainHS) },
+					{ EShader::Domain ,  SHADER_ENTRY(MainDS) },
+					{ EShader::Geometry ,  SHADER_ENTRY(MainGS) },
+					{ EShader::Pixel ,  SHADER_ENTRY(MainPS) },
+				};	
+				return entiesWithTessellation;
+			}
+
+			static ShaderEntryInfo const enties[] =
+			{
+				{ EShader::Vertex ,  SHADER_ENTRY(MainVS) },
+				{ EShader::Geometry ,  SHADER_ENTRY(MainGS) },
+				{ EShader::Pixel ,  SHADER_ENTRY(MainPS) },
+			};
+							
+			return enties;
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TUnderCurveAreaProgram<false>);
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TUnderCurveAreaProgram<true>);
+
+	class SplineProgram : public GlobalShaderProgram
+	{
+	public:
+		using BaseClass = GlobalShaderProgram;
+
+		static bool constexpr UseTessellation = true;
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+
+		}
+
+		void setParameters()
+		{
+
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/Spline";
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			if (UseTessellation)
+			{
+				static ShaderEntryInfo entriesWithTessellation[] =
+				{
+					{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+					{ EShader::Hull   , SHADER_ENTRY(MainHS) },
+					{ EShader::Domain , SHADER_ENTRY(MainDS) },
+					{ EShader::Pixel , SHADER_ENTRY(MainPS) },
+				};
+				return entriesWithTessellation;
+			}
+
+			static ShaderEntryInfo entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	};
+
+	template< int SplineType >
+	class TSplineProgram : public SplineProgram
+	{
+	public:
+		DECLARE_SHADER_PROGRAM(TSplineProgram, Global);
+		using BaseClass = SplineProgram;
+
+		static bool constexpr UseTessellation = true;
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(USE_TESSELLATION), UseTessellation);
+			option.addDefine(SHADER_PARAM(SPLINE_TYPE), SplineType);
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<0>);
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<1>);
 
 	bool DumpFunSymbol( char const* path , char const* outPath )
 	{
@@ -193,6 +288,28 @@ namespace Go
 
 	}
 
+	float GWinRateFrameSizeScale = 1.0f;
+	LeelaZeroGoStage::LeelaZeroGoStage()
+		:CVarWinRateFrameSizeScale(
+			[]() -> float 
+			{ 
+				return GWinRateFrameSizeScale; 
+			} ,
+			[this](float value) 
+			{ 
+				if (mWinRateWidget)
+				{
+					Vector2 size = Vector2(mWinRateWidget->getSize() ) * (value / GWinRateFrameSizeScale);
+					mWinRateWidget->setSize(size);
+					GWinRateFrameSizeScale = value;
+				}
+			},
+			"go.WinRateFrameSizeScale"
+		)
+	{
+
+	}
+
 	bool LeelaZeroGoStage::onInit()
 	{
 		GHook.initialize();
@@ -222,7 +339,6 @@ namespace Go
 			return false;
 #endif
 
-		VERIFY_RETURN_FALSE( mProgUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaProgram >( true ) );
 
 		LeelaAppRun::InstallDir = ::Global::GameConfig().getStringValue("Leela.InstallDir", "Go" , "E:/Desktop/LeelaZero");
 		KataAppRun::InstallDir = ::Global::GameConfig().getStringValue("Kata.InstallDir", "Go", "E:/Desktop/KataGo");
@@ -937,13 +1053,85 @@ namespace Go
 		}
 	}
 
+	TConsoleVariable< bool > CVarUseSpline(true, "go.UseSpline");
+
+
+	void UpdateCRSplineIndices(std::vector< int >& inoutIndices, int newPointsCount)
+	{
+		int oldPointsCount = inoutIndices.size() / 4;
+		if (oldPointsCount)
+		{
+			oldPointsCount += 1;
+		}
+		if (oldPointsCount == newPointsCount)
+			return;
+
+		int lineCount = Math::Max(0, newPointsCount - 1);
+		inoutIndices.resize(4 * lineCount);
+		if (lineCount == 0)
+			return;
+
+		int* pIndices = inoutIndices.data();
+		if (lineCount == 1)
+		{
+			pIndices[0] = 0;
+			pIndices[1] = 0;
+			pIndices[2] = 1;
+			pIndices[3] = 1;
+			return;
+		}
+
+		if (newPointsCount < oldPointsCount)
+		{
+			pIndices += 4 * (lineCount - 1);
+			int index = lineCount;
+
+			pIndices[0] = index - 1;
+			pIndices[1] = index;
+			pIndices[2] = index + 1;
+			pIndices[3] = index + 1;
+		}
+		else
+		{
+			int index;
+			if (oldPointsCount == 2)
+			{
+				pIndices[0] = 0;
+				pIndices[1] = 0;
+				pIndices[2] = 1;
+				pIndices[3] = 2;
+				index = 1;
+				pIndices += 4;
+			}
+			else
+			{
+				index = Math::Max(1, oldPointsCount - 2);
+				pIndices += 4 * index;
+			}
+
+			for (; index < lineCount - 1; ++index)
+			{
+				pIndices[0] = index - 1;
+				pIndices[1] = index;
+				pIndices[2] = index + 1;
+				pIndices[3] = index + 2;
+				pIndices += 4;
+			}
+
+			pIndices[0] = index - 1;
+			pIndices[1] = index;
+			pIndices[2] = index + 1;
+			pIndices[3] = index + 1;
+		}
+	}
+
 	void LeelaZeroGoStage::drawWinRateDiagram(Vec2i const& renderPos, Vec2i const& renderSize)
 	{
 		::Global::GetDrawEngine().getRHIGraphics().flush();
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-		if( mWinRateHistory[0].size() > 1 || mWinRateHistory[1].size() > 1 )
+		if(mWinRateDataList[0].history.size() > 1 || mWinRateDataList[1].history.size() > 1 )
 		{
 			GPU_PROFILE("Draw WinRate Diagram");
 
@@ -963,10 +1151,48 @@ namespace Go
 
 			for( int i = 0; i < 2; ++i )
 			{
-				auto& winRateHistory = mWinRateHistory[i];
+				auto& winRateData = mWinRateDataList[i];
+				auto& winRateHistory = winRateData.history;
 				if( winRateHistory.empty() )
 					continue;
-				if( mProgUnderCurveArea )
+
+				auto DrawCommand = [&](bool bUseColor)
+				{
+					if (CVarUseSpline)
+					{
+						if (winRateHistory.size() >= 2)
+						{
+							std::vector<int>& indices = winRateData.splineIndeics;
+							UpdateCRSplineIndices(indices, winRateHistory.size());
+
+							if (bUseColor)
+							{
+								TRenderRT< RTVF_XY > ::DrawIndexed(commandList, EPrimitive::PatchPoint4,
+									winRateHistory.data(), winRateHistory.size(), indices.data(), indices.size(), colors[i]);
+							}
+							else
+							{
+
+								TRenderRT< RTVF_XY > ::DrawIndexed(commandList, EPrimitive::PatchPoint4,
+									winRateHistory.data(), winRateHistory.size(), indices.data(), indices.size());
+							}
+						}
+					}
+					else
+					{
+						if (bUseColor)
+						{
+							TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, winRateHistory.data(), winRateHistory.size(), colors[i]);
+						}
+						else
+						{
+							TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, winRateHistory.data(), winRateHistory.size());
+						}
+					}
+
+				};
+
+
 				{
 					if( i == 0 )
 					{
@@ -977,18 +1203,42 @@ namespace Go
 						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
 					}
 
-					RHISetShaderProgram(commandList, mProgUnderCurveArea->getRHIResource());
-					mProgUnderCurveArea->setParameters(commandList,
+					UnderCurveAreaProgram* prog = CVarUseSpline ?
+						(UnderCurveAreaProgram*)ShaderManager::Get().getGlobalShaderT < TUnderCurveAreaProgram<true> >() : 
+						(UnderCurveAreaProgram*)ShaderManager::Get().getGlobalShaderT < TUnderCurveAreaProgram<false> >();
+
+					RHISetShaderProgram(commandList, prog->getRHIResource());
+					prog->setParameters(commandList,
 						float(50), matProj,
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
 
-					TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, &winRateHistory[0], winRateHistory.size());
+					if (CVarUseSpline)
+					{
+						prog->setParam(commandList, SHADER_PARAM(TessFactor), 32);
+					}
+
+					DrawCommand(false);
 				}
 
-				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				RHISetFixedShaderPipelineState(commandList, matProj );
-				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineStrip, &winRateHistory[0], winRateHistory.size() , colors[i] );
+				{
+					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+					if (CVarUseSpline)
+					{
+						SplineProgram* progSpline = ShaderManager::Get().getGlobalShaderT< TSplineProgram<true> >();
+						RHISetShaderProgram(commandList, progSpline->getRHIResource());
+						progSpline->setParam(commandList, SHADER_PARAM(XForm), matProj);
+						progSpline->setParam(commandList, SHADER_PARAM(TessFactor), 32);
+					}
+					else
+					{
+						RHISetFixedShaderPipelineState(commandList, matProj);
+					}
+
+					DrawCommand(true);
+				}
+
 			}
 
 			static std::vector<Vector2> buffer;
@@ -1034,7 +1284,9 @@ namespace Go
 			}
 
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
 		}
+
 
 		::Global::GetDrawEngine().getRHIGraphics().restoreRenderState();
 	}
@@ -1250,7 +1502,6 @@ namespace Go
 		case EKeyCode::F2: bDrawDebugMsg = !bDrawDebugMsg; break;
 		case EKeyCode::F5: saveMatchGameSGF(); break;
 		case EKeyCode::F6: restartAutoMatch(); break;
-		case EKeyCode::F9: ShaderManager::Get().reloadShader( *mProgUnderCurveArea ); break;
 		case EKeyCode::X:
 			if( !bAnalysisEnabled && mGameMode == GameMode::Match )
 			{
@@ -1721,9 +1972,9 @@ namespace Go
 			{
 				mGame.undo();
 
-				if( !mWinRateHistory[indexPlayer].empty() )
+				if( !mWinRateDataList[indexPlayer].history.empty() )
 				{
-					mWinRateHistory[indexPlayer].pop_back();
+					mWinRateDataList[indexPlayer].history.pop_back();
 				}
 				mMatchData.advanceStep();
 
@@ -1803,7 +2054,7 @@ namespace Go
 							v.x = (mGame.getInstance().getCurrentStep() + 1) / 2;
 						}
 						v.y = com.floatParam;
-						mWinRateHistory[indexPlayer].push_back(v);
+						mWinRateDataList[indexPlayer].history.push_back(v);
 
 						if (mWinRateWidget == nullptr)
 						{
@@ -2032,10 +2283,10 @@ namespace Go
 		bTerritoryInfoValid = false;
 
 		resetTurnParam();
-		for(auto& v : mWinRateHistory)
+		for(auto& data : mWinRateDataList)
 		{
-			v.clear();
-			v.emplace_back(0, 50);
+			data.history.clear();
+			data.history.emplace_back(0, 50);
 		}
 		if( mWinRateWidget )
 		{

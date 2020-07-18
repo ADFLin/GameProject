@@ -571,7 +571,7 @@ namespace Render
 	};
 
 
-	IMPLEMENT_SHADER_PROGRAM(LightingShowBoundProgram)
+	IMPLEMENT_SHADER_PROGRAM(LightingShowBoundProgram);
 
 	bool DeferredShadingTech::init( FrameRenderTargets& sceneRenderTargets )
 	{
@@ -967,7 +967,7 @@ namespace Render
 		ShaderParameter mParamTextureSamplerSSAO;
 	};
 
-	IMPLEMENT_SHADER_PROGRAM(SSAOAmbientProgram)
+	IMPLEMENT_SHADER_PROGRAM(SSAOAmbientProgram);
 
 	bool PostProcessSSAO::init(IntVector2 const& size)
 	{
@@ -2032,8 +2032,8 @@ namespace Render
 		ShaderParameter mParamTiledLightNum;
 	};
 
-	IMPLEMENT_SHADER_PROGRAM(ClearBufferProgram)
-	IMPLEMENT_SHADER_PROGRAM(LightScatteringProgram)
+	IMPLEMENT_SHADER_PROGRAM(ClearBufferProgram);
+	IMPLEMENT_SHADER_PROGRAM(LightScatteringProgram);
 
 	bool VolumetricLightingTech::init(IntVector2 const& screenSize)
 	{

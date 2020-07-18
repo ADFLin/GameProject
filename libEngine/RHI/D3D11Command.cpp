@@ -486,7 +486,7 @@ namespace Render
 		desc.SlopeScaledDepthBias = 0;
 		desc.DepthClipEnable = FALSE;
 		desc.ScissorEnable = initializer.bEnableScissor;
-		desc.MultisampleEnable = FALSE;
+		desc.MultisampleEnable = initializer.bEnableMultisample;
 		desc.AntialiasedLineEnable = FALSE;
 
 		TComPtr<ID3D11RasterizerState> stateResource;

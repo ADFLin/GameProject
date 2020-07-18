@@ -1,44 +1,27 @@
 #include "Common.sgc"
 
-#ifndef USE_TESSELLATION
-#define USE_TESSELLATION 0
-#endif
-
-struct PassInterpolantsParam
+struct VertexOutputParamVSToPS
 {
-	float3 data;
-};
-
-struct VertexInterpolantsParam
-{
-	float3 pos;
 	float3 color;
 };
 
-struct VertexOutputParamVSToPS
-{
-	VertexInterpolantsParam vertexInterpolants;
-	PassInterpolantsParam  passInterpolants;
-};
-
-
-#if USE_TESSELLATION
-//#define OutputVS InputHS  
-//#define OutputDS InputPS  
-#define OutputHS InputDS
-#else
-#define OutputVS OutputVS 
-//#define OutputVS InputPS  
-#endif
-
-#if USE_TESSELLATION
-struct VertexOutputParamDS
-{
-	float3 pos;
-};
 #define VertexOutputParameters VertexOutputParamVSToPS
-#else
-#define VertexOutputParameters VertexOutputParamVSToPS
+
+#include "SplineCommon.sgc"
+
+#if DOMAIN_SHADER
+VertexOutputParamVSToPS InterpolantParameter(
+	in float4 factor,
+	in VertexOutputParamVSToPS a,
+	in VertexOutputParamVSToPS b,
+	in VertexOutputParamVSToPS c,
+	in VertexOutputParamVSToPS d)
+{
+	VertexOutputParamVSToPS result;
+	INTERPOLANT_PARAMETER_MEMBER(result, color);
+
+	return result;
+}
 #endif
 
 uniform mat4 XForm;
@@ -49,121 +32,23 @@ layout( location = ATTRIBUTE_POSITION ) in float2 VertexInput_pos;
 layout( location = ATTRIBUTE_COLOR ) in float3 VertexInput_color;
 
 layout(location = 0) out VertexOutputParameters OutputVS;
-#if USE_TESSELLATION
-out VertexOutputParamDS VertexOuputDS;
-#endif
+
 void MainVS()
 {
-	OutputVS.passInterpolants.data = VertexInput_color;
-	OutputVS.vertexInterpolants.pos = float3(VertexInput_pos, 0);
-	OutputVS.vertexInterpolants.color = VertexInput_color;
-#if USE_TESSELLATION
-	VertexOuputDS.pos = float3( VertexInput_pos , 0 );
-#endif
-
+	OutputVS.color = VertexInput_color;
 	gl_Position = XForm * float4( VertexInput_pos.xy , 0 , 1 );
 }
 
 #endif //VERTEX_SHADER
 
-#if USE_TESSELLATION
-struct VertexOutputParamHSToDS
-{
-	VertexOutputParamVSToPS vetexParam;
-	float3 pos;
-};
-
-#if HULL_SHADER
-
-uniform int TessOuter0 , TessOuter1;
-layout(vertices = 4) out;
-
-
-layout(location = 0) in  VertexOutputParamVSToPS InputHS[];
-in  VertexOutputParamDS     VertexOuputDS[];
-out VertexOutputParamHSToDS OutputHS[];
-void MainHS()
-{
-	OutputHS[gl_InvocationID].vetexParam.passInterpolants = InputHS[gl_InvocationID].passInterpolants;
-	OutputHS[gl_InvocationID].vetexParam.vertexInterpolants = InputHS[gl_InvocationID].vertexInterpolants;
-	OutputHS[gl_InvocationID].pos = VertexOuputDS[gl_InvocationID].pos;
-	//OutputHS[gl_InvocationID].pos = InputHS[gl_InvocationID].vertexInterpolants.pos;
-	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
-	gl_TessLevelOuter[0] = float(TessOuter0);
-	gl_TessLevelOuter[1] = float(TessOuter1);
-	
-}
-#endif //HULL_SHADER
-
-#if DOMAIN_SHADER
-
-
-float4 BezierParam(float u)
-{
-	float2 v = float2(1 - u, u);
-	float2 v2 = v * v;
-	float b0 = v.x * v2.x;
-	float b1 = 3 * v2.x * v.y;
-	float b2 = 3 * v2.y * v.x;
-	float b3 = v.y * v2.y;
-	return float4(b0, b1, b2, b3);
-}
-
-#define ComponentMulT( TYPE )\
-	TYPE ComponentMul(float2 b ,TYPE v0 ,TYPE v1 ){ return b.x * v0 + b.y * v1; }\
-	TYPE ComponentMul(float3 b, TYPE v0, TYPE v1, TYPE v2) { return b.x * v0 + b.y * v1 + b.z * v2; }\
-	TYPE ComponentMul(float4 b, TYPE v0, TYPE v1, TYPE v2, TYPE v3) { return b.x * v0 + b.y * v1 + b.z * v2 + b.w * v3; }
-
-VECTOR_TYPE_LIST(ComponentMulT)
-#undef  ComponentMulT
-
-#define BazierInterpolateT( TYPE )\
-	TYPE BazierInterpolate( TYPE v0 , TYPE v1 , TYPE v2 , TYPE v3 , float t )\
-	{ float4 b = BezierParam(t); return ComponentMul( b , v0 , v1 , v2 , v3 ); }
-
-VECTOR_TYPE_LIST(BazierInterpolateT)
-#undef BazierInterpolateT
-
-layout(isolines, equal_spacing) in;
-
-in VertexOutputParamHSToDS  InputDS[];
-layout(location = 0) out VertexOutputParamVSToPS OutputDS;
-void MainDS()
-{
-	float u = gl_TessCoord.x;
-	float v = gl_TessCoord.y;
-	// the basis functions:
-	float4 b = BezierParam(u);
-
-	float3 p0 = InputDS[0].pos;
-	float3 p1 = InputDS[1].pos;
-	float3 p2 = InputDS[2].pos;
-	float3 p3 = InputDS[3].pos;
-
-	float3 pos = ComponentMul( b , p0 , p1 , p2 , p3 ) + (v * gl_TessLevelOuter[0]) * float3(10, 0, 0);
-	gl_Position = XForm * float4(pos, 1);
-
-	OutputDS.vertexInterpolants.color = 
-		ComponentMul( b ,
-			InputDS[0].vetexParam.vertexInterpolants.color ,
-			InputDS[1].vetexParam.vertexInterpolants.color ,
-			InputDS[2].vetexParam.vertexInterpolants.color ,
-			InputDS[3].vetexParam.vertexInterpolants.color );
-}
-
-#endif //DOMAIN_SHADER
-
-#endif //USE_TESSELLATION
-
 #if PIXEL_SHADER
-
 
 layout(location = 0) in VertexOutputParamVSToPS InputPS;
 
 out float4 OutColor;
 void MainPS()
 {
-	OutColor = float4(InputPS.vertexInterpolants.color, 0);
+	OutColor = float4(InputPS.color, 0);
 
 }
 #endif

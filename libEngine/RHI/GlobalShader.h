@@ -128,7 +128,7 @@ namespace Render
 		CLASS::SetupShaderCompileOption,\
 		CLASS::GetShaderFileName, \
 		CLASS::GetShaderEntries \
-	);
+	)
 #define IMPLEMENT_SHADER_PROGRAM_T( TEMPLATE_ARGS , CLASS )\
 	TEMPLATE_ARGS \
 	IMPLEMENT_SHADER_PROGRAM( CLASS )
@@ -141,7 +141,7 @@ namespace Render
 		CLASS::SetupShaderCompileOption,\
 		CLASS::GetShaderFileName, \
 		{ SHADER_TYPE , ENTRY_NAME } \
-	);
+	)
 
 #define IMPLEMENT_SHADER_T( TEMPLATE_ARGS , CLASS , SHADER_TYPE , ENTRY_NAME )\
 	TEMPLATE_ARGS \

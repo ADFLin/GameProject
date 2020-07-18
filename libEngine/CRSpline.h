@@ -41,15 +41,15 @@ public:
 		VertexType t2 =  0.5f*( P2 - P0 );
 		VertexType t3 = -0.5f*( P3 - P0 );
 
-		m_a0 = P1;
-		m_a1 = t2 ;
-		m_a2 = t3 - 2.5f * t1 - t2;
-		m_a3 = 1.5f * t1 - t3;
+		mArgs[0] = P1;
+		mArgs[1] = t2 ;
+		mArgs[2] = t3 - 2.5f * t1 - t2;
+		mArgs[3] = 1.5f * t1 - t3;
 	}
 
-	VertexType  getPoint(float t) const { return  m_a0+t*(m_a1+t*(m_a2 + t*m_a3 ));}
+	VertexType  getPoint(float t) const { return  mArgs[0]+t*(mArgs[1]+t*(mArgs[2] + t*mArgs[3] ));}
 protected:
-	VertexType m_a0,m_a1,m_a2,m_a3;
+	VertexType mArgs[4];
 };
 
 

@@ -91,8 +91,7 @@ namespace Render
 
 		void drawAdj(RHICommandList& commandList);
 		void drawAdj(RHICommandList& commandList, LinearColor const& color);
-		void drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer = false);
-
+		void drawTessellation(RHICommandList& commandList, int patchPointCount, bool bUseAdjBuffer = false);
 		void drawSection(RHICommandList& commandList, int idx);
 
 

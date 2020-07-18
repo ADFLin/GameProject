@@ -10,8 +10,6 @@ namespace Render
 	{
 		RHICommandList& commandList = context.getCommnadList();
 
-		GLenum primitivTypeGL = OpenGLTranslate::To(primitiveType);
-
 		context.setMaterial(material);
 		if( context.bBindAttrib )
 		{
@@ -109,7 +107,11 @@ namespace Render
 		glBindVertexArray(mVAO);
 		context.setShader(mShader);
 		mShader.setParam(commandList, SHADER_PARAM(VertexTransform), context.getView().worldToClip);
-		glDrawArrays(OpenGLTranslate::To(EPrimitive::TriangleList), 0, numVertices);
+
+		int patchPointCount = 0;
+		GLenum primitiveGL = OpenGLTranslate::To(EPrimitive::TriangleList, patchPointCount);
+
+		glDrawArrays(primitiveGL, 0, numVertices);
 		glBindVertexArray(0);
 	}
 

@@ -1,0 +1,126 @@
+#include "Common.sgc"
+
+#ifndef HAVE_VERTEX_OUTPUT_PARAMETERS
+#define HAVE_VERTEX_OUTPUT_PARAMETERS 1
+#endif
+
+#ifndef SPLINE_TYPE
+#define SPLINE_TYPE 0
+#endif
+
+#ifndef USE_TESSELLATION
+#define USE_TESSELLATION 1
+#endif
+
+#if USE_TESSELLATION && HAVE_VERTEX_OUTPUT_PARAMETERS
+//#define OutputVS InputHS  
+//#define OutputDS InputPS  
+#define OutputHS InputDS
+#else
+#define OutputVS OutputVS 
+//#define OutputVS InputPS  
+#endif
+
+#if USE_TESSELLATION
+
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+struct VertexOutputParamHSToDS
+{
+	VertexOutputParamVSToPS vetexParams;
+};
+#endif
+
+#if HULL_SHADER
+
+uniform int TessFactor;
+layout(vertices = 4) out;
+
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+layout(location = 0) in  VertexOutputParamVSToPS InputHS[];
+out VertexOutputParamHSToDS OutputHS[];
+#endif
+void MainHS()
+{
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+	OutputHS[gl_InvocationID].vetexParams = InputHS[gl_InvocationID];
+#endif
+	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	gl_TessLevelOuter[0] = float(1.0f);
+	gl_TessLevelOuter[1] = float(TessFactor);
+}
+#endif //HULL_SHADER
+
+#if DOMAIN_SHADER
+
+
+float4 SplineParams(float t)
+{
+#if SPLINE_TYPE == 0
+	float2 v = float2(1 - t, t);
+	float2 v2 = v * v;
+	float b0 = v.x * v2.x;
+	float b1 = 3 * v2.x * v.y;
+	float b2 = 3 * v2.y * v.x;
+	float b3 = v.y * v2.y;
+	return float4(b0, b1, b2, b3);
+#else
+	float t2 = t * t;
+	float4x4 m =
+	{
+		{ 0.0,  2,  0.0,  0.0},
+		{-1,  0.0,  1,  0.0},
+		{ 2, -5,  4, -1},
+		{-1,  3, -3,  1},
+	};
+
+	return 0.5 * (  m * float4(1.0, t, t2, t * t2) );
+#endif
+}
+
+
+#define InterpolantParametersT( TYPE )\
+	TYPE InterpolantParameter(float2 factor ,TYPE v0 ,TYPE v1 ){ return factor.x * v0 + factor.y * v1; }\
+	TYPE InterpolantParameter(float3 factor, TYPE v0, TYPE v1, TYPE v2) { return factor.x * v0 + factor.y * v1 + factor.z * v2; }\
+	TYPE InterpolantParameter(float4 factor, TYPE v0, TYPE v1, TYPE v2, TYPE v3) { return factor.x * v0 + factor.y * v1 + factor.z * v2 + factor.w * v3; }
+
+VECTOR_TYPE_LIST(InterpolantParametersT)
+#undef  InterpolantParametersT
+
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+VertexOutputParameters InterpolantParameter(
+	in float4 factor,
+	in VertexOutputParameters a,
+	in VertexOutputParameters b,
+	in VertexOutputParameters c,
+	in VertexOutputParameters d);
+#define INTERPOLANT_PARAMETER_MEMBER( RESULT , NAME ) RESULT.NAME = InterpolantParameter(factor, a.NAME, b.NAME, c.NAME, d.NAME);
+#endif
+
+layout(isolines, equal_spacing) in;
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+in VertexOutputParamHSToDS  InputDS[];
+layout(location = 0) out VertexOutputParamVSToPS OutputDS;
+#endif
+void MainDS()
+{
+	float u = gl_TessCoord.x;
+	float v = gl_TessCoord.y;
+	// the basis functions:
+	float4 b = SplineParams(u);
+	float4 p0 = gl_in[0].gl_Position;
+	float4 p1 = gl_in[1].gl_Position;
+	float4 p2 = gl_in[2].gl_Position;
+	float4 p3 = gl_in[3].gl_Position;
+
+	gl_Position = InterpolantParameter(b, p0, p1, p2, p3);
+#if HAVE_VERTEX_OUTPUT_PARAMETERS
+	OutputDS = InterpolantParameter(b, InputDS[0].vetexParams, InputDS[1].vetexParams, InputDS[2].vetexParams, InputDS[3].vetexParams);
+#endif
+}
+
+#endif //DOMAIN_SHADER
+
+
+
+
+#endif //USE_TESSELLATION

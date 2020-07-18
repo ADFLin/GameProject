@@ -188,7 +188,6 @@ namespace Render
 	class SplineProgram : public GlobalShaderProgram
 	{
 	public:
-		DECLARE_SHADER_PROGRAM(SplineProgram, Global);
 		using BaseClass = GlobalShaderProgram;
 
 		static bool constexpr UseTesselation = true;
@@ -203,12 +202,6 @@ namespace Render
 
 		}
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			BaseClass::SetupShaderCompileOption(option);
-			option.addDefine(SHADER_PARAM(USE_TESSELLATION), UseTesselation);
-		}
-
 		static char const* GetShaderFileName()
 		{
 			return "Shader/Game/Spline";
@@ -216,7 +209,7 @@ namespace Render
 
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
-			if ( UseTesselation )
+			if (UseTesselation)
 			{
 				static ShaderEntryInfo entriesWithTesselation[] =
 				{
@@ -237,7 +230,25 @@ namespace Render
 		}
 	};
 
-	IMPLEMENT_SHADER_PROGRAM(SplineProgram);
+	template< int SplineType >
+	class TSplineProgram : public SplineProgram
+	{
+	public:
+		DECLARE_SHADER_PROGRAM(TSplineProgram, Global);
+		using BaseClass = SplineProgram;
+
+		static bool constexpr UseTesselation = true;
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(USE_TESSELLATION), UseTesselation);
+			option.addDefine(SHADER_PARAM(SPLINE_TYPE), SplineType);
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<0>);
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<1>);
 
 	template< bool bEnable >
 	class TTessellationProgram : public GlobalShaderProgram
@@ -568,7 +579,9 @@ namespace Render
 		int TessFactor3 = 1;
 		float mDispFactor = 1.0;
 
-		SplineProgram* mProgSpline;
+		SplineProgram* mProgSplines[2];
+		int mSplineType = 0;
+
 		bool bUseTessellation = true;
 		bool bWireframe = false;
 		bool onInit() override
@@ -579,7 +592,8 @@ namespace Render
 			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 			VERIFY_RETURN_FALSE(GPUParticleData::initialize());
 			
-			VERIFY_RETURN_FALSE(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
+			VERIFY_RETURN_FALSE(mProgSplines[0] = ShaderManager::Get().getGlobalShaderT< TSplineProgram<0> >(true));
+			VERIFY_RETURN_FALSE(mProgSplines[1] = ShaderManager::Get().getGlobalShaderT< TSplineProgram<1> >(true));
 
 			VERIFY_RETURN_FALSE(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/star.png"));
 			VERIFY_RETURN_FALSE(mBaseTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones.bmp"));
@@ -637,6 +651,8 @@ namespace Render
 			devFrame->addText("Water Speed");
 			auto slider = devFrame->addSlider(UI_ANY);
 			FWidgetPropery::Bind(slider, mWaterSpeed, 0, 10);
+			devFrame->addText("Spline Type");
+			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSplineType, 0 , 1);
 			devFrame->addText("TessFactor");
 			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 0, 70);
 			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 0, 70);
@@ -767,17 +783,29 @@ namespace Render
 				{
 					Vector2(100, 100), Vector3(1, 0, 0),
 					Vector2(400, 100), Vector3(0, 1, 0),
-					Vector2(100, 400),	Vector3(0, 0, 1),
+					Vector2(100, 400), Vector3(0, 0, 1),
 					Vector2(400, 400), Vector3(1, 1, 1),
 				};
 
-				RHISetShaderProgram(commandList, mProgSpline->getRHIResource());
-				mProgSpline->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI(OrthoMatrix(0, width, 0, height, -100, 100) ));
-				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter0), TessFactor2);
-				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter1), TessFactor1);
-				glPatchParameteri(GL_PATCH_VERTICES, 4);
-				TRenderRT< RTVF_XY | RTVF_C > ::Draw(commandList, SplineProgram::UseTesselation ? EPrimitive::Patchs : EPrimitive::LineStrip , vertices, 4);
-	
+				int indices[] =
+				{
+					0,0,1,2, 0,1,2,3, 1,2,3,3
+				};
+
+				SplineProgram* progSpline = mProgSplines[mSplineType];
+				RHISetShaderProgram(commandList, progSpline->getRHIResource());
+				progSpline->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI(OrthoMatrix(0, width, 0, height, -100, 100) ));
+				progSpline->setParam(commandList, SHADER_PARAM(TessFactor), TessFactor1);
+
+				if (mSplineType == 0)
+				{
+					TRenderRT< RTVF_XY_C > ::Draw(commandList, SplineProgram::UseTesselation ? EPrimitive::PatchPoint4 : EPrimitive::LineStrip, vertices, 4);
+				}
+				else
+				{
+
+					TRenderRT< RTVF_XY_C > ::DrawIndexed(commandList, SplineProgram::UseTesselation ? EPrimitive::PatchPoint4 : EPrimitive::LineStrip, vertices, 4, indices, ARRAY_SIZE(indices));
+				}
 			}
 
 			{
@@ -818,7 +846,7 @@ namespace Render
 					program->setParam(commandList, SHADER_PARAM(TessInner), TessFactor2);
 					program->setTexture(commandList, SHADER_PARAM(DispTexture), *mNormalTexture);
 					program->setParam(commandList, SHADER_PARAM(DispFactor), mDispFactor);
-					glPatchParameteri(GL_PATCH_VERTICES, 3);
+
 				}
 
 #if 1
@@ -842,11 +870,11 @@ namespace Render
 				int indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
 
 				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexed(commandList,
-					bUseTessellation ? EPrimitive::Patchs : EPrimitive::TriangleList, 
+					bUseTessellation ? EPrimitive::PatchPoint3 : EPrimitive::TriangleList, 
 					vertices, ARRAY_SIZE(vertices) , indices , ARRAY_SIZE(indices) );
 #else
 				//mTilePlane.drawTessellation(commandList);
-				mCube.drawTessellation(commandList);
+				mCube.drawTessellation(commandList,3);
 #endif
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 

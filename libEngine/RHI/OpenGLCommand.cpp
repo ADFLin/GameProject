@@ -25,8 +25,20 @@ namespace Render
 		LogMsg(message);
 	}
 
-#define GL_STATE_VAR_TEST( NAME )  ( gForceInitState || ( deviceValue.##NAME != setupValue.##NAME ) )
-#define GL_STATE_VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
+	template< class T >
+	bool IsStateDirty(T& committedValue, T const& pandingValue)
+	{
+		if (gForceInitState || committedValue != pandingValue)
+		{
+			committedValue = pandingValue;
+			return true;
+		}
+		return false;
+	}
+
+#define GL_CHECK_STATE_DIRTY( NAME )  IsStateDirty( committedValue.##NAME , pendingValue.##NAME )
+#define GL_TEST_STATE_DIRTY( NAME )  ( gForceInitState || ( committedValue.##NAME != pendingValue.##NAME ) )
+#define GL_STATE_VAR_ASSIGN( NAME ) committedValue.##NAME = pendingValue.##NAME 
 
 	static void EnableGLState(GLenum param, bool bEnable)
 	{
@@ -395,15 +407,19 @@ namespace Render
 		{
 			mLastIndexBuffer.release();
 		}
-		if (mLastInputLayout)
+		if (mInputLayoutPending)
 		{
-			mLastInputLayout.release();
+			mInputLayoutPending.release();
+		}
+		if (mInputLayoutCommitted)
+		{
+			mInputLayoutCommitted.release();
 		}
 	}
 
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 	{
-		mDeviceState.rasterizerStateCommit = &rasterizerState;
+		mDeviceState.rasterizerStatePending = &rasterizerState;
 #if COMMIT_STATE_IMMEDIATELY
 		commitRasterizerState();
 #endif
@@ -411,7 +427,7 @@ namespace Render
 
 	void OpenGLContext::RHISetBlendState(RHIBlendState& blendState)
 	{
-		mDeviceState.blendStateCommit = &blendState;
+		mDeviceState.blendStatePending = &blendState;
 #if COMMIT_STATE_IMMEDIATELY
 		commitBlendState();
 #endif
@@ -419,8 +435,8 @@ namespace Render
 
 	void OpenGLContext::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
-		mDeviceState.depthStencilStateCommit = &depthStencilState;
-		mDeviceState.stencilRefCommit = stencilRef;
+		mDeviceState.depthStencilStatePending = &depthStencilState;
+		mDeviceState.stencilRefPending = stencilRef;
 #if COMMIT_STATE_IMMEDIATELY
 		commitDepthStencilState();
 #endif
@@ -462,21 +478,7 @@ namespace Render
 
 	void OpenGLContext::RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
-		if ( inputLayout != mLastInputLayout )
-		{
-			if( mLastInputLayout.isValid() )
-			{
-				if( mWasBindAttrib )
-				{
-					OpenGLCast::To(mLastInputLayout)->unbindAttrib(mNumInputStream);
-				}
-				else
-				{
-					OpenGLCast::To(mLastInputLayout)->unbindPointer();
-				}
-			}
-			mLastInputLayout = inputLayout;
-		}
+		mInputLayoutPending = inputLayout;
 		mNumInputStream = numInputStream;
 		if( numInputStream )
 		{
@@ -496,8 +498,13 @@ namespace Render
 			return;
 
 		commitRenderStates();
-
-		glDrawArrays(OpenGLTranslate::To(type), start, nv);
+		int patchPointCount = 0;
+		GLenum primitiveGL = OpenGLTranslate::To(type, patchPointCount);
+		if (patchPointCount)
+		{
+			glPatchParameteri(GL_PATCH_VERTICES, patchPointCount);
+		}
+		glDrawArrays(primitiveGL, start, nv);
 	}
 
 	void OpenGLContext::RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex , uint32 baseVertex )
@@ -514,13 +521,15 @@ namespace Render
 
 		OpenGLCast::To(mLastIndexBuffer)->bind();
 		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+		GLenum primitiveGL = commitPrimitiveState(type);
+
 		if( baseVertex )
 		{
-			glDrawElementsBaseVertex(OpenGLTranslate::To(type), nIndex, indexType, (void*)indexStart, baseVertex);
+			glDrawElementsBaseVertex(primitiveGL, nIndex, indexType, (void*)indexStart, baseVertex);
 		}
 		else
 		{
-			glDrawElements(OpenGLTranslate::To(type), nIndex, indexType, (void*)indexStart);
+			glDrawElements(primitiveGL, nIndex, indexType, (void*)indexStart);
 		}
 		OpenGLCast::To(mLastIndexBuffer)->unbind();
 	}
@@ -533,16 +542,17 @@ namespace Render
 		commitRenderStates();
 
 		assert(commandBuffer);
-		GLenum priType = OpenGLTranslate::To(type);
+		GLenum primitiveGL = commitPrimitiveState(type);
 
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
+
 		if( numCommand > 1 )
 		{
-			glMultiDrawArraysIndirect(priType, (void*)offset, numCommand, commandStride);
+			glMultiDrawArraysIndirect(primitiveGL, (void*)offset, numCommand, commandStride);
 		}
 		else
 		{
-			glDrawArraysIndirect(priType , (void*)offset);
+			glDrawArraysIndirect(primitiveGL, (void*)offset);
 		}
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
@@ -566,16 +576,16 @@ namespace Render
 
 		OpenGLCast::To(mLastIndexBuffer)->bind();
 		assert(commandBuffer);
-		GLenum priType = OpenGLTranslate::To(type);
+		GLenum primitiveGL = commitPrimitiveState(type);
 		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
 		if( numCommand > 1 )
 		{
-			glMultiDrawElementsIndirect(priType, indexType, (void*)offset, numCommand, commandStride);
+			glMultiDrawElementsIndirect(primitiveGL, indexType, (void*)offset, numCommand, commandStride);
 		}
 		else
 		{
-			glDrawElementsIndirect(priType, indexType, (void*)offset);
+			glDrawElementsIndirect(primitiveGL, indexType, (void*)offset);
 		}
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 		OpenGLCast::To(mLastIndexBuffer)->unbind();
@@ -588,14 +598,14 @@ namespace Render
 
 		commitRenderStates();
 
-		GLenum priType = OpenGLTranslate::To(type);
+		GLenum primitiveGL = commitPrimitiveState(type);
 		if( baseInstance )
 		{
-			glDrawArraysInstancedBaseInstance(priType, vStart, nv, numInstance, baseInstance);
+			glDrawArraysInstancedBaseInstance(primitiveGL, vStart, nv, numInstance, baseInstance);
 		}
 		else
 		{
-			glDrawArraysInstanced(priType, vStart, nv, numInstance);
+			glDrawArraysInstanced(primitiveGL, vStart, nv, numInstance);
 		}
 		
 	}
@@ -611,30 +621,29 @@ namespace Render
 
 		commitRenderStates();
 		
-		GLenum priType = OpenGLTranslate::To(type);
-	
+		GLenum primitiveGL = commitPrimitiveState(type);
 		OpenGLCast::To(mLastIndexBuffer)->bind();
 		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 		if( baseVertex )
 		{
 			if( baseInstance )
 			{
-				glDrawElementsInstancedBaseVertexBaseInstance(priType, nIndex, indexType, (void*)indexStart, numInstance, baseVertex, baseInstance);
+				glDrawElementsInstancedBaseVertexBaseInstance(primitiveGL, nIndex, indexType, (void*)indexStart, numInstance, baseVertex, baseInstance);
 			}
 			else
 			{
-				glDrawElementsInstancedBaseVertex(priType, nIndex, indexType, (void*)indexStart, numInstance, baseVertex);
+				glDrawElementsInstancedBaseVertex(primitiveGL, nIndex, indexType, (void*)indexStart, numInstance, baseVertex);
 			}		
 		}
 		else
 		{
 			if( baseInstance )
 			{
-				glDrawElementsInstancedBaseInstance(priType, nIndex, indexType, (void*)indexStart, numInstance, baseInstance);
+				glDrawElementsInstancedBaseInstance(primitiveGL, nIndex, indexType, (void*)indexStart, numInstance, baseInstance);
 			}
 			else
 			{
-				glDrawElementsInstanced(priType, nIndex, indexType, (void*)indexStart, numInstance);
+				glDrawElementsInstanced(primitiveGL, nIndex, indexType, (void*)indexStart, numInstance);
 			}
 			
 		}
@@ -647,8 +656,8 @@ namespace Render
 			return;
 
 		commitRenderStates();
-
-		glDrawArrays(OpenGLTranslate::To(type), 0, numVertex);
+		GLenum primitiveGL = commitPrimitiveState(type);
+		glDrawArrays(primitiveGL, 0, numVertex);
 	}
 
 	void OpenGLContext::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , int const* pIndices, int numIndex)
@@ -661,7 +670,8 @@ namespace Render
 
 		commitRenderStates();
 
-		glDrawElements(OpenGLTranslate::To(type), numIndex, GL_UNSIGNED_INT, (void*)pIndices);
+		GLenum primitiveGL = commitPrimitiveState(type);
+		glDrawElements(primitiveGL, numIndex, GL_UNSIGNED_INT, (void*)pIndices);
 	}
 
 	void OpenGLContext::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
@@ -1024,60 +1034,60 @@ namespace Render
 
 	void OpenGLContext::commitRasterizerState()
 	{
-		if (!gForceInitState && mDeviceState.rasterizerStateCommit == mDeviceState.rasterizerStateUsage)
-		{
+		if (!IsStateDirty(mDeviceState.rasterizerStateCommitted, mDeviceState.rasterizerStatePending))
 			return;
-		}
-		mDeviceState.rasterizerStateUsage = mDeviceState.rasterizerStateCommit;
 
-		OpenGLRasterizerState& rasterizerStateGL = static_cast<OpenGLRasterizerState&>(*mDeviceState.rasterizerStateCommit);
-		auto& deviceValue = mDeviceState.rasterizerStateValue;
-		auto const& setupValue = rasterizerStateGL.mStateValue;
+		OpenGLRasterizerState& rasterizerStateGL = static_cast<OpenGLRasterizerState&>(*mDeviceState.rasterizerStatePending);
+		auto& committedValue = mDeviceState.rasterizerStateValue;
+		auto const& pendingValue = rasterizerStateGL.mStateValue;
 
-		if (GL_STATE_VAR_TEST(fillMode))
+		if (GL_CHECK_STATE_DIRTY(fillMode))
 		{
-			GL_STATE_VAR_ASSIGN(fillMode);
-			glPolygonMode(GL_FRONT_AND_BACK, setupValue.fillMode);
+			glPolygonMode(GL_FRONT_AND_BACK, pendingValue.fillMode);
 		}
 
-		if (GL_STATE_VAR_TEST(bEnableScissor))
+		if (GL_CHECK_STATE_DIRTY(bEnableScissor))
 		{
-			GL_STATE_VAR_ASSIGN(bEnableScissor);
-			EnableGLState(GL_SCISSOR_TEST, setupValue.bEnableScissor);
+			EnableGLState(GL_SCISSOR_TEST, pendingValue.bEnableScissor);
 		}
 
-		if (GL_STATE_VAR_TEST(bEnableCull))
+		if (GL_CHECK_STATE_DIRTY(bEnableMultisample))
 		{
-			GL_STATE_VAR_ASSIGN(bEnableCull);
-			EnableGLState(GL_CULL_FACE, setupValue.bEnableCull);
+			EnableGLState(GL_MULTISAMPLE, pendingValue.bEnableMultisample);
+		}
 
-			if (GL_STATE_VAR_TEST(cullFace))
+		if (GL_CHECK_STATE_DIRTY(bEnableCull))
+		{
+			EnableGLState(GL_CULL_FACE, pendingValue.bEnableCull);
+
+			if (GL_CHECK_STATE_DIRTY(cullFace))
 			{
-				GL_STATE_VAR_ASSIGN(cullFace);
-				glCullFace(setupValue.cullFace);
+				glCullFace(pendingValue.cullFace);
 			}
+		}
+
+		if (GL_CHECK_STATE_DIRTY(bEnableCull))
+		{
+			EnableGLState(GL_CULL_FACE, pendingValue.bEnableCull);
 		}
 	}
 
 	void OpenGLContext::commitBlendState()
 	{
-		if (!gForceInitState && mDeviceState.blendStateCommit == mDeviceState.blendStateUsage)
+		if (!IsStateDirty(mDeviceState.blendStateCommitted, mDeviceState.blendStatePending))
 			return;
 
-		mDeviceState.blendStateUsage = mDeviceState.blendStateCommit;
-		OpenGLBlendState& BlendStateGL = static_cast<OpenGLBlendState&>(*mDeviceState.blendStateCommit);
+		OpenGLBlendState& BlendStateGL = static_cast<OpenGLBlendState&>(*mDeviceState.blendStatePending);
 		bool bForceAllReset = false;
 		{
-			auto& deviceValue = mDeviceState.blendStateValue;
-			auto const& setupValue = BlendStateGL.mStateValue;
-			if (GL_STATE_VAR_TEST(bEnableAlphaToCoverage))
+			auto& committedValue = mDeviceState.blendStateValue;
+			auto const& pendingValue = BlendStateGL.mStateValue;
+			if (GL_CHECK_STATE_DIRTY(bEnableAlphaToCoverage))
 			{
-				GL_STATE_VAR_ASSIGN(bEnableAlphaToCoverage);
-				EnableGLState(GL_SAMPLE_ALPHA_TO_COVERAGE, setupValue.bEnableAlphaToCoverage);
+				EnableGLState(GL_SAMPLE_ALPHA_TO_COVERAGE, pendingValue.bEnableAlphaToCoverage);
 			}
-			if (GL_STATE_VAR_TEST(bEnableIndependent))
+			if (GL_CHECK_STATE_DIRTY(bEnableIndependent))
 			{
-				GL_STATE_VAR_ASSIGN(bEnableAlphaToCoverage);
 				bForceAllReset = true;
 			}
 		}
@@ -1086,33 +1096,33 @@ namespace Render
 		{
 			for (int i = 0; i < MaxBlendStateTargetCount; ++i)
 			{
-				auto& deviceValue = mDeviceState.blendStateValue.targetValues[i];
-				auto const& setupValue = BlendStateGL.mStateValue.targetValues[i];
+				auto& committedValue = mDeviceState.blendStateValue.targetValues[i];
+				auto const& pendingValue = BlendStateGL.mStateValue.targetValues[i];
 
 				bool bForceReset = false;
 
-				if (bForceAllReset || GL_STATE_VAR_TEST(writeMask))
+				if (bForceAllReset || GL_TEST_STATE_DIRTY(writeMask))
 				{
 					bForceReset = true;
 					GL_STATE_VAR_ASSIGN(writeMask);
-					glColorMaski(i, setupValue.writeMask & CWM_R,
-						setupValue.writeMask & CWM_G,
-						setupValue.writeMask & CWM_B,
-						setupValue.writeMask & CWM_A);
+					glColorMaski(i, pendingValue.writeMask & CWM_R,
+						pendingValue.writeMask & CWM_G,
+						pendingValue.writeMask & CWM_B,
+						pendingValue.writeMask & CWM_A);
 				}
 
-				if (bForceAllReset || setupValue.writeMask)
+				if (bForceAllReset || pendingValue.writeMask)
 				{
 
-					if (bForceAllReset || GL_STATE_VAR_TEST(bEnable))
+					if (bForceAllReset || GL_TEST_STATE_DIRTY(bEnable))
 					{
 						GL_STATE_VAR_ASSIGN(bEnable);
-						EnableGLStateIndex(GL_BLEND, i, setupValue.bEnable);
+						EnableGLStateIndex(GL_BLEND, i, pendingValue.bEnable);
 					}
 
-					if (setupValue.bEnable)
+					if (pendingValue.bEnable)
 					{
-						if (bForceReset || GL_STATE_VAR_TEST(bSeparateBlend) || GL_STATE_VAR_TEST(srcColor) || GL_STATE_VAR_TEST(destColor) || GL_STATE_VAR_TEST(srcAlpha) || GL_STATE_VAR_TEST(destAlpha))
+						if (bForceReset || GL_TEST_STATE_DIRTY(bSeparateBlend) || GL_TEST_STATE_DIRTY(srcColor) || GL_TEST_STATE_DIRTY(destColor) || GL_TEST_STATE_DIRTY(srcAlpha) || GL_TEST_STATE_DIRTY(destAlpha))
 						{
 							GL_STATE_VAR_ASSIGN(bSeparateBlend);
 							GL_STATE_VAR_ASSIGN(srcColor);
@@ -1120,15 +1130,15 @@ namespace Render
 							GL_STATE_VAR_ASSIGN(srcAlpha);
 							GL_STATE_VAR_ASSIGN(destAlpha);
 
-							if (setupValue.bSeparateBlend)
+							if (pendingValue.bSeparateBlend)
 							{
 
-								glBlendFuncSeparatei(i, setupValue.srcColor, setupValue.destColor,
-									setupValue.srcAlpha, setupValue.destAlpha);
+								glBlendFuncSeparatei(i, pendingValue.srcColor, pendingValue.destColor,
+									pendingValue.srcAlpha, pendingValue.destAlpha);
 							}
 							else
 							{
-								glBlendFunci(i, setupValue.srcColor, setupValue.destColor);
+								glBlendFunci(i, pendingValue.srcColor, pendingValue.destColor);
 							}
 						}
 					}
@@ -1137,33 +1147,34 @@ namespace Render
 		}
 		else
 		{
-			auto& deviceValue = mDeviceState.blendStateValue.targetValues[0];
-			auto const& setupValue = BlendStateGL.mStateValue.targetValues[0];
+			auto& committedValue = mDeviceState.blendStateValue.targetValues[0];
+			auto const& pendingValue = BlendStateGL.mStateValue.targetValues[0];
 
 			bool bForceReset = false;
 
-			if (bForceAllReset || GL_STATE_VAR_TEST(writeMask))
+			if (bForceAllReset || GL_TEST_STATE_DIRTY(writeMask))
 			{
 				bForceReset = true;
 				GL_STATE_VAR_ASSIGN(writeMask);
-				glColorMask(setupValue.writeMask & CWM_R,
-					setupValue.writeMask & CWM_G,
-					setupValue.writeMask & CWM_B,
-					setupValue.writeMask & CWM_A);
+				glColorMask(
+					pendingValue.writeMask & CWM_R,
+					pendingValue.writeMask & CWM_G,
+					pendingValue.writeMask & CWM_B,
+					pendingValue.writeMask & CWM_A);
 			}
 
-			if (bForceAllReset || setupValue.writeMask)
+			if (bForceAllReset || pendingValue.writeMask)
 			{
 
-				if (bForceAllReset || GL_STATE_VAR_TEST(bEnable))
+				if (bForceAllReset || GL_TEST_STATE_DIRTY(bEnable))
 				{
 					GL_STATE_VAR_ASSIGN(bEnable);
-					EnableGLState(GL_BLEND, setupValue.bEnable);
+					EnableGLState(GL_BLEND, pendingValue.bEnable);
 				}
 
-				if (setupValue.bEnable)
+				if (pendingValue.bEnable)
 				{
-					if (bForceReset || GL_STATE_VAR_TEST(bSeparateBlend) || GL_STATE_VAR_TEST(srcColor) || GL_STATE_VAR_TEST(destColor) || GL_STATE_VAR_TEST(srcAlpha) || GL_STATE_VAR_TEST(destAlpha))
+					if (bForceReset || GL_TEST_STATE_DIRTY(bSeparateBlend) || GL_TEST_STATE_DIRTY(srcColor) || GL_TEST_STATE_DIRTY(destColor) || GL_TEST_STATE_DIRTY(srcAlpha) || GL_TEST_STATE_DIRTY(destAlpha))
 					{
 						GL_STATE_VAR_ASSIGN(bSeparateBlend);
 						GL_STATE_VAR_ASSIGN(srcColor);
@@ -1171,15 +1182,14 @@ namespace Render
 						GL_STATE_VAR_ASSIGN(srcAlpha);
 						GL_STATE_VAR_ASSIGN(destAlpha);
 
-						if (setupValue.bSeparateBlend)
+						if (pendingValue.bSeparateBlend)
 						{
-
-							glBlendFuncSeparate(setupValue.srcColor, setupValue.destColor,
-								setupValue.srcAlpha, setupValue.destAlpha);
+							glBlendFuncSeparate(pendingValue.srcColor, pendingValue.destColor,
+								pendingValue.srcAlpha, pendingValue.destAlpha);
 						}
 						else
 						{
-							glBlendFunc(setupValue.srcColor, setupValue.destColor);
+							glBlendFunc(pendingValue.srcColor, pendingValue.destColor);
 						}
 					}
 				}
@@ -1189,39 +1199,34 @@ namespace Render
 
 	void OpenGLContext::commitDepthStencilState()
 	{
-		auto& deviceValue = mDeviceState.depthStencilStateValue;
-		if (!gForceInitState && mDeviceState.depthStencilStateCommit == mDeviceState.depthStencilStateUsage)
+		auto& committedValue = mDeviceState.depthStencilStateValue;
+		if ( !IsStateDirty(mDeviceState.depthStencilStateCommitted , mDeviceState.depthStencilStatePending) )
 		{
-			if (deviceValue.stencilRef != mDeviceState.stencilRefCommit )
+			if ( IsStateDirty( committedValue.stencilRef , mDeviceState.stencilRefPending ) )
 			{
-				deviceValue.stencilRef = mDeviceState.stencilRefCommit;
-				glStencilFunc(deviceValue.stencilFun, mDeviceState.stencilRefCommit, deviceValue.stencilReadMask);
+				glStencilFunc(committedValue.stencilFun, mDeviceState.stencilRefPending, committedValue.stencilReadMask);
 			}
 			return;
 		}
-		mDeviceState.depthStencilStateUsage = mDeviceState.depthStencilStateCommit;
 
-		OpenGLDepthStencilState& depthStencilStateGL = static_cast<OpenGLDepthStencilState&>(*mDeviceState.depthStencilStateCommit);
+		OpenGLDepthStencilState& depthStencilStateGL = static_cast<OpenGLDepthStencilState&>(*mDeviceState.depthStencilStatePending);
 
-		auto const& setupValue = depthStencilStateGL.mStateValue;
+		auto const& pendingValue = depthStencilStateGL.mStateValue;
 
-		if (GL_STATE_VAR_TEST(bEnableDepthTest))
+		if (GL_CHECK_STATE_DIRTY(bEnableDepthTest))
 		{
-			GL_STATE_VAR_ASSIGN(bEnableDepthTest);
-			EnableGLState(GL_DEPTH_TEST, setupValue.bEnableDepthTest);
+			EnableGLState(GL_DEPTH_TEST, pendingValue.bEnableDepthTest);
 		}
 
-		if (setupValue.bEnableDepthTest)
+		if (pendingValue.bEnableDepthTest)
 		{
-			if (GL_STATE_VAR_TEST(bWriteDepth))
+			if (GL_CHECK_STATE_DIRTY(bWriteDepth))
 			{
-				GL_STATE_VAR_ASSIGN(bWriteDepth);
-				glDepthMask(setupValue.bWriteDepth);
+				glDepthMask(pendingValue.bWriteDepth);
 			}
-			if (GL_STATE_VAR_TEST(depthFun))
+			if (GL_CHECK_STATE_DIRTY(depthFun))
 			{
-				GL_STATE_VAR_ASSIGN(depthFun);
-				glDepthFunc(setupValue.depthFun);
+				glDepthFunc(pendingValue.depthFun);
 			}
 		}
 		else
@@ -1229,38 +1234,34 @@ namespace Render
 			//#TODO : Check State Value
 		}
 
-		if (GL_STATE_VAR_TEST(bEnableStencilTest))
+		if (GL_CHECK_STATE_DIRTY(bEnableStencilTest))
 		{
-			GL_STATE_VAR_ASSIGN(bEnableStencilTest);
-			EnableGLState(GL_STENCIL_TEST, setupValue.bEnableStencilTest);
+			EnableGLState(GL_STENCIL_TEST, pendingValue.bEnableStencilTest);
 		}
 
-		if (GL_STATE_VAR_TEST(stencilWriteMask))
+		if (GL_CHECK_STATE_DIRTY(stencilWriteMask))
 		{
-			GL_STATE_VAR_ASSIGN(stencilWriteMask);
-			glStencilMask(setupValue.stencilWriteMask);
+			glStencilMask(pendingValue.stencilWriteMask);
 		}
 
-		if (setupValue.bEnableStencilTest)
+		if (pendingValue.bEnableStencilTest)
 		{
 
 			bool bForceRestOp = false;
-			if (GL_STATE_VAR_TEST(bUseSeparateStencilOp))
+			if (GL_CHECK_STATE_DIRTY(bUseSeparateStencilOp))
 			{
-				GL_STATE_VAR_ASSIGN(bUseSeparateStencilOp);
 				bForceRestOp = true;
 			}
 
 			bool bForceRestFun = false;
-			if (GL_STATE_VAR_TEST(bUseSeparateStencilFun))
+			if (GL_CHECK_STATE_DIRTY(bUseSeparateStencilFun))
 			{
-				GL_STATE_VAR_ASSIGN(bUseSeparateStencilFun);
 				bForceRestFun = true;
 			}
 
-			if (setupValue.bUseSeparateStencilOp)
+			if (pendingValue.bUseSeparateStencilOp)
 			{
-				if (bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp) || GL_STATE_VAR_TEST(stencilFailOpBack) || GL_STATE_VAR_TEST(stencilZFailOpBack) || GL_STATE_VAR_TEST(stencilZPassOpBack))
+				if (bForceRestOp || GL_TEST_STATE_DIRTY(stencilFailOp) || GL_TEST_STATE_DIRTY(stencilZFailOp) || GL_TEST_STATE_DIRTY(stencilZPassOp) || GL_TEST_STATE_DIRTY(stencilFailOpBack) || GL_TEST_STATE_DIRTY(stencilZFailOpBack) || GL_TEST_STATE_DIRTY(stencilZPassOpBack))
 				{
 					GL_STATE_VAR_ASSIGN(stencilFailOp);
 					GL_STATE_VAR_ASSIGN(stencilZFailOp);
@@ -1268,40 +1269,40 @@ namespace Render
 					GL_STATE_VAR_ASSIGN(stencilFailOpBack);
 					GL_STATE_VAR_ASSIGN(stencilZFailOpBack);
 					GL_STATE_VAR_ASSIGN(stencilZPassOpBack);
-					glStencilOpSeparate(GL_FRONT, setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
-					glStencilOpSeparate(GL_BACK, setupValue.stencilFailOpBack, setupValue.stencilZFailOpBack, setupValue.stencilZPassOpBack);
+					glStencilOpSeparate(GL_FRONT, pendingValue.stencilFailOp, pendingValue.stencilZFailOp, pendingValue.stencilZPassOp);
+					glStencilOpSeparate(GL_BACK, pendingValue.stencilFailOpBack, pendingValue.stencilZFailOpBack, pendingValue.stencilZPassOpBack);
 				}
 			}
 			else
 			{
-				if (bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp))
+				if (bForceRestOp || GL_TEST_STATE_DIRTY(stencilFailOp) || GL_TEST_STATE_DIRTY(stencilZFailOp) || GL_TEST_STATE_DIRTY(stencilZPassOp))
 				{
 					GL_STATE_VAR_ASSIGN(stencilFailOp);
 					GL_STATE_VAR_ASSIGN(stencilZFailOp);
 					GL_STATE_VAR_ASSIGN(stencilZPassOp);
-					glStencilOp(setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
+					glStencilOp(pendingValue.stencilFailOp, pendingValue.stencilZFailOp, pendingValue.stencilZPassOp);
 				}
 			}
-			if (setupValue.bUseSeparateStencilFun)
+			if (pendingValue.bUseSeparateStencilFun)
 			{
-				if (bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || GL_STATE_VAR_TEST(stencilFunBack) || deviceValue.stencilRef != mDeviceState.stencilRefCommit || GL_STATE_VAR_TEST(stencilReadMask))
+				if (bForceRestFun || GL_TEST_STATE_DIRTY(stencilFun) || GL_TEST_STATE_DIRTY(stencilFunBack) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_TEST_STATE_DIRTY(stencilReadMask))
 				{
 					GL_STATE_VAR_ASSIGN(stencilFun);
 					GL_STATE_VAR_ASSIGN(stencilFunBack);
 					GL_STATE_VAR_ASSIGN(stencilReadMask);
-					deviceValue.stencilRef = mDeviceState.stencilRefCommit;
-					glStencilFuncSeparate(GL_FRONT, setupValue.stencilFun, mDeviceState.stencilRefCommit, setupValue.stencilReadMask);
-					glStencilFuncSeparate(GL_BACK, setupValue.stencilFunBack, mDeviceState.stencilRefCommit, setupValue.stencilReadMask);
+					committedValue.stencilRef = mDeviceState.stencilRefPending;
+					glStencilFuncSeparate(GL_FRONT, pendingValue.stencilFun, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
+					glStencilFuncSeparate(GL_BACK, pendingValue.stencilFunBack, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 				}
 			}
 			else
 			{
-				if (bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || deviceValue.stencilRef != mDeviceState.stencilRefCommit || GL_STATE_VAR_TEST(stencilReadMask))
+				if (bForceRestFun || GL_TEST_STATE_DIRTY(stencilFun) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_TEST_STATE_DIRTY(stencilReadMask))
 				{
 					GL_STATE_VAR_ASSIGN(stencilFun);
 					GL_STATE_VAR_ASSIGN(stencilReadMask);
-					deviceValue.stencilRef = mDeviceState.stencilRefCommit;
-					glStencilFunc(setupValue.stencilFun, mDeviceState.stencilRefCommit, setupValue.stencilReadMask);
+					committedValue.stencilRef = mDeviceState.stencilRefPending;
+					glStencilFunc(pendingValue.stencilFun, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 				}
 			}
 		}
@@ -1314,26 +1315,31 @@ namespace Render
 
 	bool OpenGLContext::commitInputStream()
 	{
-		if (mLastInputLayout.isValid())
+		unbindInputLayout();
+		if (mInputLayoutPending.isValid())
 		{
 			mWasBindAttrib = false;
 			if (mbUseFixedPipeline)
 			{
-				OpenGLCast::To(mLastInputLayout)->bindPointer(mUsedInputStreams, mNumInputStream);
+				OpenGLCast::To(mInputLayoutPending)->bindPointer(mUsedInputStreams, mNumInputStream);
 			}
 			else
 			{
-				OpenGLCast::To(mLastInputLayout)->bindAttrib(mUsedInputStreams, mNumInputStream);
+				OpenGLCast::To(mInputLayoutPending)->bindAttrib(mUsedInputStreams, mNumInputStream);
 				mWasBindAttrib = true;
 			}
+			mNumInputStreamToUnbind = mNumInputStream;
 		}
+		mInputLayoutCommitted = mInputLayoutPending;
 		return true;
 	}
 
 	bool OpenGLContext::commitInputStreamUP(VertexDataInfo dataInfos[], int numData)
 	{
-		if (!mLastInputLayout.isValid())
+		if (!mInputLayoutPending.isValid())
 			return false;
+
+		unbindInputLayout();
 
 		for (int i = 0; i < numData; ++i)
 		{
@@ -1342,15 +1348,19 @@ namespace Render
 		}
 		mNumInputStream = numData;
 		mWasBindAttrib = false;
+
+		
 		if (mbUseFixedPipeline)
 		{
-			OpenGLCast::To(mLastInputLayout)->bindPointerUP(mUsedInputStreams, mNumInputStream);
+			OpenGLCast::To(mInputLayoutPending)->bindPointerUP(mUsedInputStreams, mNumInputStream);
 		}
 		else
 		{
-			OpenGLCast::To(mLastInputLayout)->bindAttribUP(mUsedInputStreams, mNumInputStream);
+			OpenGLCast::To(mInputLayoutPending)->bindAttribUP(mUsedInputStreams, mNumInputStream);
 			mWasBindAttrib = true;
 		}
+		mNumInputStreamToUnbind = mNumInputStream;
+		mInputLayoutCommitted = mInputLayoutPending;
 		return true;
 	}
 

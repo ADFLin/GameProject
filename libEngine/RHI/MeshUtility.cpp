@@ -99,7 +99,7 @@ namespace Render
 		drawWithColorInternal(commandList, EPrimitive::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer);
 	}
 
-	void Mesh::drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer)
+	void Mesh::drawTessellation(RHICommandList& commandList, int patchPointCount , bool bUseAdjBuffer)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
@@ -108,7 +108,7 @@ namespace Render
 		if ( indexBuffer == nullptr  )
 			return;
 
-		drawInternal(commandList, EPrimitive::Patchs, 0, indexBuffer->getNumElements(), indexBuffer);
+		drawInternal(commandList, EPrimitive( (int)EPrimitive::PatchPoint1 + patchPointCount ), 0, indexBuffer->getNumElements(), indexBuffer);
 	}
 
 

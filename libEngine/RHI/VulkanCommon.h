@@ -776,7 +776,7 @@ namespace Render
 
 	struct VulkanTranslate
 	{
-		static VkPrimitiveTopology To(EPrimitive type);
+		static VkPrimitiveTopology To(EPrimitive type, int& outPatchPointCount);
 		static VkFormat To(Vertex::Format format, bool bNormalized);
 		static VkFormat To(Texture::Format format);
 		static VkFormat To(Texture::DepthFormat format);
@@ -807,13 +807,16 @@ namespace Render
 			createInfo.depthBiasEnable = VK_FALSE;
 			createInfo.depthClampEnable = VK_FALSE;
 			createInfo.lineWidth = 1.0f;
+
+			bEnableMultisample = initializer.bEnableMultisample;
 		}
 
 		void getMultiSampleState(VkPipelineMultisampleStateCreateInfo& outState)
 		{
-
+			outState.sampleShadingEnable = bEnableMultisample;
 		}
 
+		bool bEnableMultisample;
 		VkPipelineRasterizationStateCreateInfo createInfo = {};
 	};
 

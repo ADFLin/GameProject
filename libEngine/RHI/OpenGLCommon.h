@@ -267,9 +267,9 @@ namespace Render
 	class OpenGLTranslate
 	{
 	public:
+		static GLenum To(EPrimitive type, int& outPatchPointCount);
 		static GLenum To(EAccessOperator op);
 		static GLenum To(Texture::Format format);
-		static GLenum To(EPrimitive type);
 		static GLenum To(EShader::Type type);
 		static GLbitfield ToStageBit(EShader::Type type);
 		static GLenum To(ELockAccess access);
@@ -486,16 +486,19 @@ namespace Render
 
 	struct GLRasterizerStateValue
 	{
-		bool   bEnableCull;
-		bool   bEnableScissor;
 		GLenum fillMode;
 		GLenum cullFace;
+
+		bool   bEnableCull;
+		bool   bEnableScissor;
+		bool   bEnableMultisample;
 
 		GLRasterizerStateValue() {}
 		GLRasterizerStateValue(EForceInit)
 		{
 			bEnableCull = false;
 			bEnableScissor = false;
+			bEnableMultisample = false;
 			fillMode = GL_FILL;
 			cullFace = GL_BACK;
 		}
@@ -628,8 +631,8 @@ namespace Render
 		void unbindAttrib(int numInputStream);
 	
 		void bindPointer();
-		void bindPointerUP(InputStreamInfo inputStreams[], int numInputStream);
 		void bindPointer(InputStreamInfo inputStreams[], int numInputStream);
+		void bindPointerUP(InputStreamInfo inputStreams[], int numInputStream);
 		void unbindPointer();
 
 		struct Element

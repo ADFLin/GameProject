@@ -17,6 +17,7 @@
 #include "Delegate.h"
 
 #include "GameSettingPanel.h"
+#include "ConsoleSystem.h"
 
 
 
@@ -234,7 +235,8 @@ namespace Go
 	{
 		using BaseClass = StageBase;
 	public:
-		LeelaZeroGoStage() {}
+
+		LeelaZeroGoStage();
 
 		enum
 		{
@@ -274,7 +276,6 @@ namespace Go
 		Vector2 BoardPos = Vector2(100, 55);
 
 		GameMode mGameMode = GameMode::None;
-		class UnderCurveAreaProgram* mProgUnderCurveArea = nullptr;
 
 		bool toggleAnalysisPonder();
 
@@ -485,8 +486,16 @@ namespace Go
 		void drawAnalysis(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext &context, GameProxy& game, AnalysisData const& data);
 		static void DrawTerritoryStatus(BoardRenderer& renderer, SimpleRenderState& renderState, RenderContext const& context, Zen::TerritoryInfo const& info);
 
+		TConsoleVariableDelegate< float > CVarWinRateFrameSizeScale;
 
-		std::vector< Vector2 > mWinRateHistory[2];
+
+		struct WinRateData
+		{
+			std::vector< Vector2 > history;
+			std::vector< int32 >   splineIndeics;
+		};
+		WinRateData mWinRateDataList[2];
+
 		
 		PlayVertex  bestMoveVertex;
 		

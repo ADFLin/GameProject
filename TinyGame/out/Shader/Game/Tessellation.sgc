@@ -94,7 +94,7 @@ void MainVS()
 #if USE_TESSELLATION
 struct VertexOutputParamHSToDS
 {
-	VertexOutputParamVSToPS vetexParam;
+	VertexOutputParamVSToPS vetexParams;
 #if USE_PN_TRIANGLE
 	float3 pos[3];
 #else
@@ -131,8 +131,8 @@ patch out HullConstParam OutputConstHS;
 void MainHS()
 {
 #define curIndex gl_InvocationID
-	OutputHS[curIndex].vetexParam.factoryInterpolants = InputHS[curIndex].factoryInterpolants;
-	OutputHS[curIndex].vetexParam.passInterpolants = InputHS[curIndex].passInterpolants;
+	OutputHS[curIndex].vetexParams.factoryInterpolants = InputHS[curIndex].factoryInterpolants;
+	OutputHS[curIndex].vetexParams.passInterpolants = InputHS[curIndex].passInterpolants;
 
 
 #if USE_PN_TRIANGLE
@@ -220,7 +220,7 @@ patch in HullConstParam InputConstDS;
 void MainDS()
 {
 #define INTERPOLATE_MEMBER( NAME ) ComponentMul(gl_TessCoord , InputDS[0].NAME,InputDS[1].NAME,InputDS[2].NAME)
-#define INTERPOLATE_VERTEX_PARAM_MEMBER( NAME ) OutputDS.NAME = INTERPOLATE_MEMBER( vetexParam.NAME );
+#define INTERPOLATE_VERTEX_PARAM_MEMBER( NAME ) OutputDS.NAME = INTERPOLATE_MEMBER( vetexParams.NAME );
 
 	
 	INTERPOLATE_VERTEX_PARAM_MEMBER(factoryInterpolants.color);

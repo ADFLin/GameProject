@@ -756,6 +756,7 @@ namespace Render
 		ECullMode  cullMode;
 		EFrontFace frontFace;
 		bool       bEnableScissor;
+		bool       bEnableMultisample;
 	};
 
 	class RHIRasterizerState : public RHIResource

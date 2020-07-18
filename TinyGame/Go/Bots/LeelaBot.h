@@ -77,6 +77,13 @@ namespace Go
 	{
 		static char const* InstallDir;
 
+		enum EGenMoveMethod
+		{
+			Normal,
+			Analyze,
+		};
+		EGenMoveMethod mGenMoveMethod = EGenMoveMethod::Analyze;
+
 		static std::string GetLastWeightName();
 		static std::string GetBestWeightName();
 

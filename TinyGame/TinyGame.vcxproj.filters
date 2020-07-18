@@ -10,14 +10,8 @@
     <Filter Include="GameSudoku">
       <UniqueIdentifier>{715ca2a3-4bbc-4a9b-8ece-9f8a71a3ce90}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader">
-      <UniqueIdentifier>{a10dcf6c-ad8b-4d0a-b767-dc7af1a851c9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="StageMode">
       <UniqueIdentifier>{a7bcd586-f00e-4b97-80fa-078643775276}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader\Game">
-      <UniqueIdentifier>{ee644861-e77a-4284-98fc-54cb6cbc000b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
@@ -33,9 +27,6 @@
     <Filter Include="Stage\Test\Shader">
       <UniqueIdentifier>{4235a2ac-a5fb-48d9-9dc1-55905821b318}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader\Material">
-      <UniqueIdentifier>{7e8f7199-a2ee-4cf1-8c46-f1338cf76533}</UniqueIdentifier>
-    </Filter>
     <Filter Include="GameAngryBird">
       <UniqueIdentifier>{368f9ef3-070f-4736-8cf5-3465227754a2}</UniqueIdentifier>
     </Filter>
@@ -50,9 +41,6 @@
     </Filter>
     <Filter Include="GameFlowFree">
       <UniqueIdentifier>{6480a186-d6f6-454c-8904-bd09edc6a9bf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader\Test">
-      <UniqueIdentifier>{99a7e7b8-91ed-4dd5-b3e5-14ea187646cd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -460,315 +448,12 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="out\Shader\BigNumberCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\BufferUtility.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Common.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ComplexCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\CopyTexture.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\DeferredLighting.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\DeferredShadingCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\DOF.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\GPUSkinCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\GPUSkinVertexFactory.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\LightingCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\LightParam.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\LocalVertexFactory.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\MaterialCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\MaterialProcess.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\OITCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\OITRender.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\OITResolve.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ParallaxOcclusionCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\PrimitiveParam.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Reflection.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ScreenSpaceReflection.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ScreenVertexShader.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Shader.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShaderDefine.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShadowDepthRender.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShadowLighting.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShadowMap.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SimpleBasePass.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SimpleElement.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SSAO.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Terrain.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Tonemap.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ViewParam.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\VolumetricLighting.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\Mandelbrot.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\MVPiece.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Parallax.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\PlanetSurface.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\PongShader.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Simple.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Sphere.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\UnderCurveArea.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\BumpPS.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\BumpVS.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\FS.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Lighting2D.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Lighting2DShadow.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\NoiseCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShadowCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\GeometryTestCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ParticleCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\SimpleSpriteParticle.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\ParticleSimulation.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\Spline.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\WaterSimulation.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Water.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\ShadowVolume.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\DistanceField.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\MeshCulling.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\Tessellation.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\VertexFactoryProcess.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\SimpleSprite.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
     <None Include="out\TestShader\Pixel.sgc">
       <Filter>Stage\Test\Shader</Filter>
     </None>
     <None Include="out\TestShader\Vertex.sgc">
       <Filter>Stage\Test\Shader</Filter>
     </None>
-    <None Include="out\Shader\TiledLightCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\TiledLightInjection.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\BasePass.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Material\EmptyMaterial.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Havoc.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Lightning.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Mario.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\MaterialTemplate.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\MetelA.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\POMTitle.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Simple1.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Simple2.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Simple3.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Sphere.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\Elephant.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\SimpleTest.mat">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\SimpleTest.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Material\SimpleTest2.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Game\NoiseTest.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\ScatteringCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\LightProbeVisualize.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\PostProcessCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SkyBox.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\EnvLightTextureGen.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\IBLCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Bloom.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\EnvLightingTest.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\GLSLDefine.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\Grass.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\DFFTCommon.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ResolveRenderTarget.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\HLSLTest.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\HLSLDefine.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SimplePipelineShader.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\TexcoordVisualize.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\PointToRectOutline.sgc">
-      <Filter>Shader\Game</Filter>
-    </None>
     <None Include="out\Game.ini" />
-    <None Include="out\Shader\DecalRender.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Test\VulkanTest.sgc">
-      <Filter>Shader\Test</Filter>
-    </None>
   </ItemGroup>
 </Project>

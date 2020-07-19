@@ -122,12 +122,25 @@ void QueueThreadPool::waitAllWorkComplete()
 {
 	while( 1 )
 	{
+#if 1
 		{
 			Mutex::Locker locker(mQueueMutex);
 			if( mAllThreads.size() == mQueuedThreads.size() && mQueuedWorks.empty() )
 				break;
 		}
 		SystemPlatform::Sleep(0);
+#else
+		if (mQueueMutex.tryLock())
+		{
+			if (mAllThreads.size() == mQueuedThreads.size() && mQueuedWorks.empty())
+			{
+				mQueueMutex.unlock();
+				break;
+			}
+
+			mQueueMutex.unlock();
+		}
+#endif
 	}
 }
 

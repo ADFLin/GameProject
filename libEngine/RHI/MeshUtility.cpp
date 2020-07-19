@@ -146,11 +146,15 @@ namespace Render
 			desc.setElementUnusable(Vertex::ATTRIBUTE_COLOR);
 			desc.addElement(1, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
 			mInputLayoutOverwriteColor = RHICreateInputLayout(desc);
-			mColorBuffer = RHICreateVertexBuffer(sizeof(LinearColor), 1, BCF_DefalutValue | BCF_UsageDynamic);
+			mColorBuffer = RHICreateVertexBuffer(sizeof(LinearColor), mVertexBuffer->getNumElements(), BCF_DefalutValue | BCF_UsageDynamic);
 		}
 
 		LinearColor* pColor = (LinearColor*)RHILockBuffer(mColorBuffer, ELockAccess::WriteDiscard);
-		*pColor = color;
+		for (int i = 0; i < mVertexBuffer->getNumElements(); ++i)
+		{
+			*pColor = color;
+			++pColor;
+		}
 		RHIUnlockBuffer(mColorBuffer);
 	}
 
@@ -160,7 +164,6 @@ namespace Render
 		InputStreamInfo inputStreams[2];
 		inputStreams[0].buffer = mVertexBuffer;
 		inputStreams[1].buffer = mColorBuffer;
-		inputStreams[1].stride = 0;
 		RHISetInputStream(commandList, mInputLayoutOverwriteColor, inputStreams, 2);
 
 		if (indexBuffer)
@@ -317,13 +320,13 @@ namespace Render
 		binormal = Math::GetNormal( factor * ( s[0] * d2 - s[1] * d1 ) );
 	}
 
-	void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = Vertex::ATTRIBUTE_NORMAL)
 	{
 		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_POSITION) == Vertex::eFloat3);
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_NORMAL) == Vertex::eFloat3);
+		assert(desc.getAttributeFormat(normalAttrib) == Vertex::eFloat3);
 
 		int posOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
-		int normalOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_NORMAL) - posOffset;
+		int normalOffset = desc.getAttributeOffset(normalAttrib) - posOffset;
 		uint8* pV = (uint8*)(pVertex)+posOffset;
 
 		int numEle = nIdx / 3;
@@ -2327,9 +2330,9 @@ namespace Render
 		FillTangent_TriangleList(desc, pVertex, nV, idx, nIdx);
 	}
 
-	void MeshUtility::FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void MeshUtility::FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib)
 	{
-		FillNormal_TriangleList(desc, pVertex, nV, idx, nIdx);
+		FillNormal_TriangleList(desc, pVertex, nV, idx, nIdx, normalAttrib);
 	}
 
 

@@ -3,7 +3,7 @@
 
 #include "Math\GeometryAlgo2D.h"
 #include "DataStructure\Grid2D.h"
-
+#include "PerlinNoise.h"
 
 namespace Geom2D
 {
@@ -516,8 +516,7 @@ namespace Render
 				mFrameBuffer->setDepth(*mDepthBuffer);
 
 				RHISetFrameBuffer(commandList, mFrameBuffer);
-				glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2,0.2,0.2,1), 1, mViewFrustum.bUseReverse ? 0 : 1);
 
 #if 1
 				RHISetFixedShaderPipelineState(commandList, mView.worldToClip);

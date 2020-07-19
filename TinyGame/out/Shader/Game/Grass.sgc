@@ -63,7 +63,7 @@ void MainPS()
 
 	if( color.a < 0.3 )
 	{
-		//discard;
+		discard;
 	}
 	
 #if 1

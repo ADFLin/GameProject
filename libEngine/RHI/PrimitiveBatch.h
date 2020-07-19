@@ -2,7 +2,7 @@
 #ifndef PrimitiveBatch_H_F2A726E4_2D4A_4BC8_B509_6B46823689A1
 #define PrimitiveBatch_H_F2A726E4_2D4A_4BC8_B509_6B46823689A1
 
-#include "OpenGLCommon.h"
+#include "RHICommon.h"
 #include "ShaderProgram.h"
 #include <vector>
 
@@ -40,8 +40,6 @@ namespace Render
 		Material*        material;
 		RHIVertexBuffer* vertexBuffer;
 		std::vector< MeshBatchElement > elements;
-		//#TODO
-		GLuint VAOHandle;
 
 		void draw( RenderContext& context);
 
@@ -50,7 +48,6 @@ namespace Render
 			material = nullptr;
 			vertexBuffer = nullptr;
 			inputLayout = nullptr;
-			VAOHandle;
 		}
 	};
 
@@ -83,7 +80,6 @@ namespace Render
 		RHIInputLayoutRef  mInputLayout;
 
 		RHIVertexBufferRef mVertexBuffer;
-		GLuint        mVAO;
 	};
 
 	class PrimitivesCollection

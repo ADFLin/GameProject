@@ -45,6 +45,9 @@ namespace Render
 			other.mHandle = GL_NULL_HANDLE;
 		}
 
+		TOpenGLObject(TOpenGLObject const& other) { assert(0); }
+		TOpenGLObject& operator = (TOpenGLObject const& rhs) = delete;
+
 		bool isValid() { return mHandle != GL_NULL_HANDLE; }
 
 #if CPP_VARIADIC_TEMPLATE_SUPPORT
@@ -279,7 +282,7 @@ namespace Render
 		static GLenum To(Stencil::Operation op);
 		static GLenum To(ECullMode mode);
 		static GLenum To(EFillMode mode);
-		static GLenum To(ECompValueType type );
+		static GLenum To(EComponentType type );
 		static GLenum To(Sampler::Filter filter);
 		static GLenum To(Sampler::AddressMode mode);
 		static GLenum To(Texture::DepthFormat format);
@@ -293,7 +296,7 @@ namespace Render
 
 		static GLenum VertexComponentType(uint8 format)
 		{
-			return OpenGLTranslate::To(Vertex::GetCompValueType(Vertex::Format(format)));
+			return OpenGLTranslate::To(Vertex::GetComponentType(Vertex::Format(format)));
 		}
 	};
 
@@ -621,19 +624,28 @@ namespace Render
 		GLBlendStateValue mStateValue;
 	};
 
+
+	struct RMPVertexArrayObject
+	{
+		static void Create(GLuint& handle) { glGenVertexArrays(1, &handle); }
+		static void Destroy(GLuint& handle) { glDeleteVertexArrays(1, &handle); }
+	};
+
 	class OpenGLInputLayout : public TRefcountResource< RHIInputLayout >
 	{
 	public:
 		OpenGLInputLayout( InputLayoutDesc const& desc );
 
-		void bindAttrib( InputStreamInfo inputStreams[], int numInputStream);
-		void bindAttribUP(InputStreamInfo inputStreams[], int numInputStream);
+		void bindAttrib(InputStreamState const& state);
+		void bindAttribUP(InputStreamState const& state);
 		void unbindAttrib(int numInputStream);
 	
 		void bindPointer();
-		void bindPointer(InputStreamInfo inputStreams[], int numInputStream);
-		void bindPointerUP(InputStreamInfo inputStreams[], int numInputStream);
+		void bindPointer(InputStreamState const& state);
+		void bindPointerUP(InputStreamState const& state);
 		void unbindPointer();
+
+		GLuint bindVertexArray(InputStreamState const& state, bool bBindPointer = false);
 
 		struct Element
 		{
@@ -648,8 +660,12 @@ namespace Render
 			bool   bInstanceData;	
 		};
 
-		std::vector< uint32 >  mDefaultStreamSizes;
+		typedef TOpenGLObject< RMPVertexArrayObject > VertexArrayObject;
+		std::unordered_map< InputStreamState, VertexArrayObject, MemberFuncHasher > mVAOMap;
 		std::vector< Element > mElements;
+
+		virtual void releaseResource() override;
+
 	};
 
 	struct PrimitiveDebugInfo

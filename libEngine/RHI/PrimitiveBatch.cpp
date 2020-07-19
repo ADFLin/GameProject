@@ -11,61 +11,25 @@ namespace Render
 		RHICommandList& commandList = context.getCommnadList();
 
 		context.setMaterial(material);
-		if( context.bBindAttrib )
+
+		InputStreamInfo inputSteam;
+		inputSteam.buffer = vertexBuffer;
+		inputSteam.offset = 0;
+		RHISetInputStream(commandList, inputLayout, &inputSteam, 1);
+
+		for( int i = 0; i < elements.size(); ++i )
 		{
-			if( VAOHandle == 0 )
+			MeshBatchElement& meshElement = elements[i];
+			context.setWorld(meshElement.world);
+			if( meshElement.indexBuffer )
 			{
-				glGenVertexArrays(1, &VAOHandle);
-				glBindVertexArray(VAOHandle);
-				InputStreamInfo inputStream;
-				inputStream.buffer = vertexBuffer;
-				OpenGLCast::To(inputLayout)->bindAttrib(&inputStream, 1 );
-				glBindVertexArray(0);
-				OpenGLCast::To(inputLayout)->unbindAttrib(1);
+				RHISetIndexBuffer(commandList, meshElement.indexBuffer);
+				RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
 			}
-
-			glBindVertexArray(VAOHandle);
-
-			for( int i = 0; i < elements.size(); ++i )
+			else
 			{
-				MeshBatchElement& meshElement = elements[i];
-				context.setWorld(meshElement.world);
-				if( meshElement.indexBuffer )
-				{
-					RHISetIndexBuffer(commandList, meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
-				}
-				else
-				{
-					RHIDrawPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
-				}
+				RHIDrawPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
 			}
-			//checkGLError();
-			glBindVertexArray(0);
-		}
-		else
-		{
-			OpenGLCast::To(vertexBuffer)->bind();
-			OpenGLCast::To(inputLayout)->bindPointer();
-
-			for( int i = 0; i < elements.size(); ++i )
-			{
-				MeshBatchElement& meshElement = elements[i];
-				context.setWorld(meshElement.world);
-				if( meshElement.indexBuffer )
-				{
-					RHISetIndexBuffer(commandList, meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.idxStart , meshElement.numElement );
-				}
-				else
-				{
-					RHIDrawPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
-				}
-			}
-			//checkGLError();
-			
-			OpenGLCast::To(inputLayout)->unbindPointer();
-			OpenGLCast::To(vertexBuffer)->unbind();
 		}
 	}
 
@@ -78,16 +42,6 @@ namespace Render
 		mInputLayout = RHICreateInputLayout(desc);
 		mVertexBuffer = RHICreateVertexBuffer(sizeof(SimpleVertex), MaxVertexSize, BCF_UsageDynamic);
 
-
-		RHIVertexBuffer* vertexBuffer = mVertexBuffer;
-
-		glGenVertexArrays(1, &mVAO);
-		glBindVertexArray(mVAO);
-		InputStreamInfo inputStream;
-		inputStream.buffer = vertexBuffer;
-		OpenGLCast::To(mInputLayout)->bindAttrib(&inputStream, 1 );
-		glBindVertexArray(0);
-		OpenGLCast::To(mInputLayout)->unbindAttrib(1);
 		if( !ShaderManager::Get().loadFile(
 			mShader, "Shader/SimpleElement",
 			SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS) ) )
@@ -104,15 +58,14 @@ namespace Render
 		memcpy(pData, vertices, numVertices * mVertexBuffer->getElementSize());
 		RHIUnlockBuffer(mVertexBuffer);
 
-		glBindVertexArray(mVAO);
 		context.setShader(mShader);
 		mShader.setParam(commandList, SHADER_PARAM(VertexTransform), context.getView().worldToClip);
 
-		int patchPointCount = 0;
-		GLenum primitiveGL = OpenGLTranslate::To(EPrimitive::TriangleList, patchPointCount);
-
-		glDrawArrays(primitiveGL, 0, numVertices);
-		glBindVertexArray(0);
+		InputStreamInfo inputStream;
+		inputStream.buffer = mVertexBuffer;
+		inputStream.offset = 0;
+		RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
+		RHIDrawPrimitive(commandList, EPrimitive::TriangleList, 0, numVertices);
 	}
 
 

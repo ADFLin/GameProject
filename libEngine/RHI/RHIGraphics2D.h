@@ -158,8 +158,8 @@ private:
 	};
 
 
-	RenderState   mComitedRenderState;
-	RenderState   mPendingRenderState;
+	RenderState   mRenderStateCommitted;
+	RenderState   mRenderStatePending;
 	bool          mbPipelineStateChanged;
 	bool          mbBlendStateChanged;
 

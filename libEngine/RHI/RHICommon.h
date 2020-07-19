@@ -11,6 +11,7 @@
 #include "Serialize/SerializeFwd.h"
 #include "Core/StringConv.h"
 #include "CoreShare.h"
+#include "TemplateMisc.h"
 
 #include <vector>
 
@@ -44,7 +45,7 @@ namespace Render
 	class RHIShader;
 	class RHIShaderProgram;
 
-	enum ECompValueType
+	enum EComponentType
 	{
 		CVT_Float,
 		CVT_Half,
@@ -59,6 +60,22 @@ namespace Render
 		CVT_NInt8,
 		CVT_NInt16,
 	};
+
+	FORCEINLINE uint32 GetComponentTypeSize(EComponentType type)
+	{
+		switch (type)
+		{
+		case CVT_Float:  return sizeof(float);
+		case CVT_Half:   return sizeof(uint16);
+		case CVT_UInt:   return sizeof(uint32);
+		case CVT_Int:    return sizeof(int32);
+		case CVT_UShort: return sizeof(uint16);
+		case CVT_Short:  return sizeof(int16);
+		case CVT_UByte:  return sizeof(uint8);
+		case CVT_Byte:   return sizeof(int8);
+		}
+		return 0;
+	}
 
 	struct Texture
 	{
@@ -137,7 +154,7 @@ namespace Render
 
 		static Vector3 GetFaceUpDir(Face face);
 		static uint32  GetFormatSize(Format format);
-		static uint32  GetComponentNum(Format format);
+		static uint32  GetComponentCount(Format format);
 
 		enum DepthFormat
 		{
@@ -203,7 +220,7 @@ namespace Render
 		int  mLineNumber;
 	};
 
-	class RHIResource
+	class RHIResource : public Noncopyable
 	{
 	public:
 #if USE_RHI_RESOURCE_TRACE
@@ -464,9 +481,9 @@ namespace Render
 		{
 			return (format & 0x3) + 1;
 		}
-		static ECompValueType GetCompValueType(uint8 format)
+		static EComponentType GetComponentType(uint8 format)
 		{
-			return ECompValueType(format >> 2);
+			return EComponentType(format >> 2);
 		}
 
 		enum Format
@@ -509,7 +526,7 @@ namespace Render
 			eUnknowFormat,
 		};
 
-		static Format GetFormat(ECompValueType InType, uint8 numElement)
+		static Format GetFormat(EComponentType InType, uint8 numElement)
 		{
 			assert(numElement <= 4);
 			return Format(ENCODE_VECTOR_FORAMT(InType, numElement));
@@ -724,8 +741,8 @@ namespace Render
 	struct InputStreamInfo
 	{
 		RHIVertexBuffer* buffer;
-		uint32 offset;
-		int32  stride;
+		intptr_t offset;
+		int32    stride;
 
 		InputStreamInfo()
 		{
@@ -733,6 +750,93 @@ namespace Render
 			offset = 0;
 			stride = -1;
 		}
+
+		bool operator == (InputStreamInfo const& rhs) const
+		{
+			return buffer == rhs.buffer &&
+				   offset == rhs.offset &&
+			       stride == rhs.stride;
+		}
+	};
+
+	static int const MaxSimulationInputStreamSlots = 8;
+	struct InputStreamState
+	{
+		InputStreamState()
+		{
+			inputStreamCount = 0;
+		}
+
+		InputStreamState(InputStreamInfo inInputSteams[], int inNumInputStream)
+			:inputStreamCount(inNumInputStream)
+		{
+			std::copy(inInputSteams, inInputSteams + inNumInputStream, inputStreams);
+			updateHash();
+		}
+
+		InputStreamState(InputStreamState const& rhs)
+			:inputStreamCount( rhs.inputStreamCount )
+			,hashValue( rhs.hashValue )
+		{
+			std::copy(rhs.inputStreams, rhs.inputStreams + rhs.inputStreamCount, inputStreams);
+		}
+
+		bool update(InputStreamInfo inInputSteams[], int inNumInputStream)
+		{
+			bool result = false;
+			if (inputStreamCount != inNumInputStream )
+			{
+				inputStreamCount = inNumInputStream;
+				result = true;
+			}
+			for (int i = 0; i < inNumInputStream; ++i)
+			{
+				if ( !(inputStreams[i] == inInputSteams[i]) )
+				{
+					inputStreams[i] = inInputSteams[i];
+					result = true;
+				}
+			}
+
+			if (result)
+			{
+				updateHash();
+			}
+			return result;
+		}
+
+
+		InputStreamInfo  inputStreams[MaxSimulationInputStreamSlots];
+		int inputStreamCount;
+
+		uint32 hashValue;
+		void updateHash()
+		{
+			hashValue = HashValue(inputStreamCount);
+			for (int i = 0; i < inputStreamCount; ++i)
+			{
+				HashCombine(hashValue, inputStreams[i].buffer);
+				HashCombine(hashValue, inputStreams[i].offset);
+				HashCombine(hashValue, inputStreams[i].stride);
+			}
+		}
+
+		uint32 getTypeHash() const { return hashValue; }
+
+		bool operator == (InputStreamState const& rhs) const
+		{
+			if (inputStreamCount != rhs.inputStreamCount)
+				return false;
+
+			for (int i = 0; i < inputStreamCount; ++i)
+			{
+				if (!(inputStreams[i] == rhs.inputStreams[i]))
+					return false;
+			}
+
+			return true;
+		}
+
 	};
 
 	struct SamplerStateInitializer

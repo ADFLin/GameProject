@@ -218,6 +218,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Game", "Game", "{3F0CA1E0-2
 		TinyGame\out\Shader\Game\Lighting2D.sgc = TinyGame\out\Shader\Game\Lighting2D.sgc
 		TinyGame\out\Shader\Game\Lighting2DShadow.sgc = TinyGame\out\Shader\Game\Lighting2DShadow.sgc
 		TinyGame\out\Shader\Game\Mandelbrot.sgc = TinyGame\out\Shader\Game\Mandelbrot.sgc
+		TinyGame\out\Shader\Game\MarchingCube.sgc = TinyGame\out\Shader\Game\MarchingCube.sgc
 		TinyGame\out\Shader\Game\MVPiece.sgc = TinyGame\out\Shader\Game\MVPiece.sgc
 		TinyGame\out\Shader\Game\NoiseTest.sgc = TinyGame\out\Shader\Game\NoiseTest.sgc
 		TinyGame\out\Shader\Game\Parallax.sgc = TinyGame\out\Shader\Game\Parallax.sgc

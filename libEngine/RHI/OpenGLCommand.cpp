@@ -205,6 +205,8 @@ namespace Render
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		}
 
+		glEnable(GL_PROGRAM_POINT_SIZE);
+
 		GRHIClipZMin = -1;
 		GRHIProjectYSign = 1;
 
@@ -248,7 +250,7 @@ namespace Render
 			RHISetDepthStencilState(*mImmediateCommandList, TStaticDepthStencilState<>::GetRHI(), 0xff);
 			RHISetBlendState(*mImmediateCommandList, TStaticBlendState<>::GetRHI());
 			RHISetRasterizerState(*mImmediateCommandList, TStaticRasterizerState<>::GetRHI());
-			gForceInitState = true;
+			//gForceInitState = true;
 		}
 
 		return true;
@@ -479,12 +481,12 @@ namespace Render
 	void OpenGLContext::RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
 		mInputLayoutPending = inputLayout;
-		mNumInputStream = numInputStream;
+		mInputStreamCountPending = numInputStream;
 		if( numInputStream )
 		{
-			std::copy(inputStreams, inputStreams + numInputStream, mUsedInputStreams);
+			std::copy(inputStreams, inputStreams + numInputStream, mInputStreamsPending);
 		}
-
+		mbHasInputStreamPendingSetted = true;
 	}
 
 	void OpenGLContext::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
@@ -559,11 +561,6 @@ namespace Render
 
 	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
 	{
-		if( !mLastIndexBuffer.isValid() )
-		{
-			return;
-		}
-
 		if( !mLastIndexBuffer.isValid() )
 		{
 			return;
@@ -694,11 +691,11 @@ namespace Render
 			static_cast<OpenGLShaderProgram&>(*shaderProgram).bind();
 			resetBindIndex();
 			mLastShaderProgram = shaderProgram;
-			mbUseFixedPipeline = false;
+			mbUseShaderPath = true;
 		}
 		else
 		{
-			mbUseFixedPipeline = true;
+			mbUseShaderPath = false;
 		}
 	}
 
@@ -711,18 +708,18 @@ namespace Render
 			shaderpipeline->bind();
 			resetBindIndex();
 			mLastShaderPipeline = shaderpipeline;
-			mbUseFixedPipeline = false;
+			mbUseShaderPath = true;
 		}
 		else
 		{
-			mbUseFixedPipeline = true;
+			mbUseShaderPath = false;
 		}
 	}
 
 
 	void OpenGLContext::clearShader(bool bUseShaderPipeline)
 	{
-		if (mbUseFixedPipeline)
+		if (!mbUseShaderPath)
 			return;
 
 		if (mLastShaderPipeline)
@@ -1313,24 +1310,33 @@ namespace Render
 		}
 	}
 
+#define USE_VAO 1
 	bool OpenGLContext::commitInputStream()
 	{
-		unbindInputLayout();
-		if (mInputLayoutPending.isValid())
+		if (checkInputStreamStateDirty())
 		{
-			mWasBindAttrib = false;
-			if (mbUseFixedPipeline)
+			if (mInputLayoutCommitted.isValid())
 			{
-				OpenGLCast::To(mInputLayoutPending)->bindPointer(mUsedInputStreams, mNumInputStream);
+				mWasBindAttrib = mbUseShaderPath;
+				auto& inputLayoutImpl = OpenGLCast::To(*mInputLayoutCommitted);
+				if (mbUseShaderPath)
+				{
+#if USE_VAO
+					mVAOCommitted = inputLayoutImpl.bindVertexArray(mInputStreamStateCommttied);
+#else
+					inputLayoutImpl.bindAttrib(mInputStreamStateCommttied);
+#endif
+				}
+				else
+				{
+#if USE_VAO
+					mVAOCommitted = inputLayoutImpl.bindVertexArray(mInputStreamStateCommttied, true);
+#else
+					inputLayoutImpl.bindPointer(mInputStreamStateCommttied);
+#endif
+				}
 			}
-			else
-			{
-				OpenGLCast::To(mInputLayoutPending)->bindAttrib(mUsedInputStreams, mNumInputStream);
-				mWasBindAttrib = true;
-			}
-			mNumInputStreamToUnbind = mNumInputStream;
 		}
-		mInputLayoutCommitted = mInputLayoutPending;
 		return true;
 	}
 
@@ -1339,29 +1345,74 @@ namespace Render
 		if (!mInputLayoutPending.isValid())
 			return false;
 
-		unbindInputLayout();
+		mInputStreamCountPending = numData;
 
+		bool bForceDirty = false;
 		for (int i = 0; i < numData; ++i)
 		{
-			mUsedInputStreams[i].offset = (uint32)dataInfos[i].ptr;
-			mUsedInputStreams[i].stride = dataInfos[i].stride;
+			mInputStreamsPending[i].buffer = nullptr;
+			mInputStreamsPending[i].offset = (intptr_t)dataInfos[i].ptr;
+			mInputStreamsPending[i].stride = dataInfos[i].stride;
+			if (dataInfos[i].stride == 0)
+			{
+				//we need reset pointer data. e.g. glVertex4fv ..
+				bForceDirty = true;
+			}
 		}
-		mNumInputStream = numData;
-		mWasBindAttrib = false;
+		mbHasInputStreamPendingSetted = true;
 
-		
-		if (mbUseFixedPipeline)
+		if ( checkInputStreamStateDirty(bForceDirty) )
 		{
-			OpenGLCast::To(mInputLayoutPending)->bindPointerUP(mUsedInputStreams, mNumInputStream);
+			auto& inputLayoutImpl = OpenGLCast::To(*mInputLayoutCommitted);
+			mWasBindAttrib = mbUseShaderPath;
+			if (mbUseShaderPath)
+			{
+				inputLayoutImpl.bindAttribUP(mInputStreamStateCommttied);
+			}
+			else
+			{
+				inputLayoutImpl.bindPointerUP(mInputStreamStateCommttied);
+			}
 		}
-		else
-		{
-			OpenGLCast::To(mInputLayoutPending)->bindAttribUP(mUsedInputStreams, mNumInputStream);
-			mWasBindAttrib = true;
-		}
-		mNumInputStreamToUnbind = mNumInputStream;
-		mInputLayoutCommitted = mInputLayoutPending;
 		return true;
+	}
+
+	bool OpenGLContext::checkInputStreamStateDirty(bool bForceDirty)
+	{
+		bool bDirty = bForceDirty || mInputLayoutPending != mInputLayoutCommitted || mbUseShaderPath != mWasBindAttrib;
+
+		int inputStreamCountCommitted = mInputStreamStateCommttied.inputStreamCount;
+		if (mbHasInputStreamPendingSetted)
+		{
+			bDirty |= mInputStreamStateCommttied.update(mInputStreamsPending, mInputStreamCountPending);
+		}
+
+		if (bDirty)
+		{
+			if (mInputLayoutCommitted.isValid())
+			{
+				if (mVAOCommitted)
+				{
+					glBindVertexArray(0);
+					mVAOCommitted = 0;
+				}
+				else
+				{
+					if (mWasBindAttrib)
+					{
+						OpenGLCast::To(mInputLayoutCommitted)->unbindAttrib(inputStreamCountCommitted);
+					}
+					else
+					{
+						OpenGLCast::To(mInputLayoutCommitted)->unbindPointer();
+					}
+				}
+			}
+
+			mInputLayoutCommitted = mInputLayoutPending;
+		}
+
+		return bDirty;
 	}
 
 	void OpenGLContext::setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView)

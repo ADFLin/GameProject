@@ -167,6 +167,12 @@ namespace Render
 		program.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
 	}
 
+	void ViewInfo::setupShader(RHICommandList& commandList, Shader& shader)
+	{
+		updateBuffer();
+		shader.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
+	}
+
 	void ViewInfo::updateFrustumPlanes()
 	{
 		//#NOTE: Dependent RHI

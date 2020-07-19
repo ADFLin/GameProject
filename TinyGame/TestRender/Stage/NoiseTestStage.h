@@ -69,7 +69,7 @@ namespace Render
 			a = p[xi];
 			b = p[inc(xi)];
 			return 	Lerp(u, Grad<T>(a, x),
-						 Grad<T>(b, x - 1));
+						    Grad<T>(b, x - 1));
 		}
 
 		template< class T >
@@ -101,9 +101,9 @@ namespace Render
 			return Lerp(
 				v,
 				Lerp(u, Grad<T>(aa, x, y),
-					 Grad<T>(ba, x - 1, y)),
+					    Grad<T>(ba, x - 1, y)),
 				Lerp(u, Grad<T>(ab, x, y - 1),
-					 Grad<T>(bb, x - 1, y - 1))
+					    Grad<T>(bb, x - 1, y - 1))
 			);
 		}
 
@@ -143,14 +143,14 @@ namespace Render
 
 			return Lerp(
 				w,
-				Lerp(v, Lerp(u, Grad(aaa, x, y, z),
-							 Grad(baa, x - 1, y, z)),
-					 Lerp(u, Grad(aba, x, y - 1, z),
-						  Grad(bba, x - 1, y - 1, z))),
-				Lerp(v, Lerp(u, Grad(aab, x, y, z - 1),
-							 Grad(bab, x - 1, y, z - 1)),
-					 Lerp(u, Grad(abb, x, y - 1, z - 1),
-						  Grad(bbb, x - 1, y - 1, z - 1)))
+				Lerp(v, Lerp(u, Grad<T>(aaa, x, y, z),
+							    Grad<T>(baa, x - 1, y, z)),
+					    Lerp(u, Grad<T>(aba, x, y - 1, z),
+						        Grad<T>(bba, x - 1, y - 1, z))),
+				Lerp(v, Lerp(u, Grad<T>(aab, x, y, z - 1),
+							    Grad<T>(bab, x - 1, y, z - 1)),
+					    Lerp(u, Grad<T>(abb, x, y - 1, z - 1),
+						        Grad<T>(bbb, x - 1, y - 1, z - 1)))
 			);
 		}
 

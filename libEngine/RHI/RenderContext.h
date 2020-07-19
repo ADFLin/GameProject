@@ -89,6 +89,7 @@ namespace Render
 
 		IntVector2 getViewportSize() const;
 		void  setupShader(RHICommandList& commandList, ShaderProgram& program);
+		void  setupShader(RHICommandList& commandList, Shader& shader);
 
 
 		void updateFrustumPlanes();
@@ -102,7 +103,6 @@ namespace Render
 		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory ) { return nullptr; }
 		virtual void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) {}
 		virtual void setupWorld(RenderContext& context, Matrix4 const& mat );
-		virtual bool isShaderPipline() { return true; }
 	};
 
 	class RenderContext
@@ -113,10 +113,9 @@ namespace Render
 			,mTechique(&techique)
 			,mCurView( &view )
 		{
-			bBindAttrib  = techique.isShaderPipline();
 			mUsageProgram = nullptr;
-			bBindAttrib  = false;
 		}
+
 		RHICommandList& getCommnadList() { return *mCommandList; }
 		ViewInfo& getView() { return *mCurView; }
 
@@ -148,7 +147,6 @@ namespace Render
 		VertexFactory*   mUsageVertexFactory;
 		ShaderProgram*   mUsageProgram;
 		bool             mbUseMaterialShader;
-		bool             bBindAttrib;
 	};
 
 }//namespace Render

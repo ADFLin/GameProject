@@ -350,8 +350,6 @@ namespace Render
 
 		std::unordered_map< HashString, RHITexture2DRef > mTextureMap;
 
-
-
 	};
 
 }//namespace Render

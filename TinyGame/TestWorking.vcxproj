@@ -214,6 +214,7 @@
     <ClCompile Include="Chess\ChessCore.cpp" />
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\MarchingCubeStage.cpp" />
     <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
@@ -224,6 +225,7 @@
     <ClInclude Include="Chess\ChessCore.h" />
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
+    <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

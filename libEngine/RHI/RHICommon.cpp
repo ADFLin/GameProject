@@ -183,8 +183,13 @@ namespace Render
 
 	int Vertex::GetFormatSize(uint8 format)
 	{
+#if 1
 		int num = Vertex::GetComponentNum(format);
-		switch( Vertex::GetCompValueType(Vertex::Format(format)) )
+		int compTypeSize = GetComponentTypeSize(Vertex::GetComponentType(Vertex::Format(format)));
+		return compTypeSize * num;
+#else
+		int num = Vertex::GetComponentNum(format);
+		switch (Vertex::GetComponentType(Vertex::Format(format)))
 		{
 		case CVT_Float:  return sizeof(float) * num;
 		case CVT_Half:   return sizeof(uint16) * num;
@@ -196,7 +201,95 @@ namespace Render
 		case CVT_Byte:   return sizeof(int8) * num;
 		}
 		return 0;
+#endif
 	}
 
+	struct TextureConvInfo
+	{
+#if _DEBUG
+		Texture::Format formatCheck;
+#endif
+		int             compCount;
+		EComponentType  compType;
+	};
+
+	constexpr TextureConvInfo gTexConvMap[] =
+	{
+#if _DEBUG
+#define TEXTURE_INFO( FORMAT_CHECK , COMP_COUNT , COMP_TYPE )\
+	{ FORMAT_CHECK , COMP_COUNT , COMP_TYPE},
+#else
+#define TEXTURE_INFO( FORMAT_CHECK , COMP_COUNT ,COMP_TYPE )\
+	{ COMP_COUNT , COMP_TYPE },
+#endif
+		TEXTURE_INFO(Texture::eRGBA8   ,4,CVT_UByte)
+		TEXTURE_INFO(Texture::eRGB8    ,3,CVT_UByte)
+		TEXTURE_INFO(Texture::eBGRA8   ,4,CVT_UByte)
+
+		TEXTURE_INFO(Texture::eR16     ,1,CVT_UShort)
+		TEXTURE_INFO(Texture::eR8      ,1,CVT_UByte)
+
+		TEXTURE_INFO(Texture::eR32F    ,1,CVT_Float)
+		TEXTURE_INFO(Texture::eRGB32F  ,3,CVT_Float)
+		TEXTURE_INFO(Texture::eRGBA32F ,4,CVT_Float)
+		TEXTURE_INFO(Texture::eRGB16F  ,3,CVT_Float)
+		TEXTURE_INFO(Texture::eRGBA16F ,4,CVT_Float)
+
+		TEXTURE_INFO(Texture::eR32I    ,1,CVT_Int)
+		TEXTURE_INFO(Texture::eR16I    ,1,CVT_Short)
+		TEXTURE_INFO(Texture::eR8I     ,1,CVT_Byte)
+		TEXTURE_INFO(Texture::eR32U    ,1,CVT_UInt)
+		TEXTURE_INFO(Texture::eR16U    ,1,CVT_UShort)
+		TEXTURE_INFO(Texture::eR8U     ,1,CVT_UByte)
+
+		TEXTURE_INFO(Texture::eRG32I   ,2,CVT_Int)
+		TEXTURE_INFO(Texture::eRG16I   ,2,CVT_Short)
+		TEXTURE_INFO(Texture::eRG8I    ,2,CVT_Byte)
+		TEXTURE_INFO(Texture::eRG32U   ,2,CVT_UInt)
+		TEXTURE_INFO(Texture::eRG16U   ,2,CVT_UShort)
+		TEXTURE_INFO(Texture::eRG8U    ,2,CVT_UByte)
+
+		TEXTURE_INFO(Texture::eRGB32I  ,3,CVT_Int)
+		TEXTURE_INFO(Texture::eRGB16I  ,3,CVT_Short)
+		TEXTURE_INFO(Texture::eRGB8I   ,3,CVT_Byte)
+		TEXTURE_INFO(Texture::eRGB32U  ,3,CVT_UInt)
+		TEXTURE_INFO(Texture::eRGB16U  ,3,CVT_UShort)
+		TEXTURE_INFO(Texture::eRGB8U   ,3,CVT_UByte)
+
+		TEXTURE_INFO(Texture::eRGBA32I ,4,CVT_Int)
+		TEXTURE_INFO(Texture::eRGBA16I ,4,CVT_Short)
+		TEXTURE_INFO(Texture::eRGBA8I  ,4,CVT_Byte)
+		TEXTURE_INFO(Texture::eRGBA32U ,4,CVT_UInt)
+		TEXTURE_INFO(Texture::eRGBA16U ,4,CVT_UShort)
+		TEXTURE_INFO(Texture::eRGBA8U  ,4,CVT_UByte)
+
+		TEXTURE_INFO(Texture::eSRGB   ,3,CVT_UByte)
+		TEXTURE_INFO(Texture::eSRGBA  ,4,CVT_UByte)
+
+#undef TEXTURE_INFO
+	};
+#if _DEBUG
+	constexpr bool CheckTexConvMapValid_R(int i, int size)
+	{
+		return (i == size) ? true : ((i == (int)gTexConvMap[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
+	}
+	constexpr bool CheckTexConvMapValid()
+	{
+		return CheckTexConvMapValid_R(0, sizeof(gTexConvMap) / sizeof(gTexConvMap[0]));
+	}
+	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
+#endif
+
+	uint32 Texture::GetFormatSize(Format format)
+	{
+		uint32 result = GetComponentTypeSize(gTexConvMap[format].compType);
+		result *= gTexConvMap[format].compCount;
+		return result;
+	}
+
+	uint32 Texture::GetComponentCount(Format format)
+	{
+		return gTexConvMap[format].compCount;
+	}
 
 }//namespace Render

@@ -695,71 +695,69 @@ namespace Render
 
 #endif
 
-
-	struct TextureConvInfo
+	struct OpenGLTextureConvInfo
 	{
 #if _DEBUG
 		Texture::Format formatCheck;
 #endif
 		GLenum foramt;
-		int    compNum;
 		GLenum compType;
-		
-		//GLenum GLBaseFormat;
+		GLenum pixelFormat;
+		GLenum baseFormat;
 	};
 
-	constexpr TextureConvInfo gTexConvMap[] =
+	constexpr OpenGLTextureConvInfo gTexConvMapGL[] =
 	{
 #if _DEBUG
-#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_NUM , COMP_TYPE )\
-	{ FORMAT_CHECK , FORMAT , COMP_NUM , COMP_TYPE},
+#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_TYPE , PIXEL_FORMAT , BASE_FORMAT )\
+	{ FORMAT_CHECK , FORMAT , COMP_TYPE, PIXEL_FORMAT , BASE_FORMAT },
 #else
-#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_NUM ,COMP_TYPE )\
-	{ FORMAT , COMP_NUM , COMP_TYPE },
+#define TEXTURE_INFO( FORMAT_CHECK , FORMAT ,COMP_TYPE, PIXEL_FORMAT , BASE_FORMAT )\
+	{ FORMAT , COMP_TYPE , PIXEL_FORMAT , BASE_FORMAT },
 #endif
-		TEXTURE_INFO(Texture::eRGBA8   ,GL_RGBA8   ,4,GL_UNSIGNED_BYTE)
-		TEXTURE_INFO(Texture::eRGB8    ,GL_RGB8    ,3,GL_UNSIGNED_BYTE)
-		TEXTURE_INFO(Texture::eBGRA8   ,GL_RGBA8   ,4,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eRGBA8   ,GL_RGBA8   ,GL_UNSIGNED_BYTE ,GL_RGBA,GL_RGBA)
+		TEXTURE_INFO(Texture::eRGB8    ,GL_RGB8    ,GL_UNSIGNED_BYTE ,GL_RGB ,GL_RGB)
+		TEXTURE_INFO(Texture::eBGRA8   ,GL_RGBA8   ,GL_UNSIGNED_BYTE ,GL_RGBA,GL_BGRA)
 
-		TEXTURE_INFO(Texture::eR16     ,GL_R16     ,1,GL_UNSIGNED_SHORT)
-		TEXTURE_INFO(Texture::eR8      ,GL_R8      ,1,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eR16     ,GL_R16     ,GL_UNSIGNED_SHORT ,GL_RED,GL_RED)
+		TEXTURE_INFO(Texture::eR8      ,GL_R8      ,GL_UNSIGNED_BYTE  ,GL_RED,GL_RED)
 		
-		TEXTURE_INFO(Texture::eR32F    ,GL_R32F    ,1,GL_FLOAT)
-		TEXTURE_INFO(Texture::eRGB32F  ,GL_RGB32F  ,3,GL_FLOAT)
-		TEXTURE_INFO(Texture::eRGBA32F ,GL_RGBA32F ,4,GL_FLOAT)
-		TEXTURE_INFO(Texture::eRGB16F  ,GL_RGB16F  ,3,GL_FLOAT)
-		TEXTURE_INFO(Texture::eRGBA16F ,GL_RGBA16F ,4,GL_FLOAT)
+		TEXTURE_INFO(Texture::eR32F    ,GL_R32F    ,GL_FLOAT ,GL_RED ,GL_RED)
+		TEXTURE_INFO(Texture::eRGB32F  ,GL_RGB32F  ,GL_FLOAT ,GL_RGB ,GL_RGB)
+		TEXTURE_INFO(Texture::eRGBA32F ,GL_RGBA32F ,GL_FLOAT ,GL_RGBA,GL_RGBA)
+		TEXTURE_INFO(Texture::eRGB16F  ,GL_RGB16F  ,GL_FLOAT ,GL_RGB ,GL_RGB)
+		TEXTURE_INFO(Texture::eRGBA16F ,GL_RGBA16F ,GL_FLOAT ,GL_RGBA,GL_RGBA)
 
-		TEXTURE_INFO(Texture::eR32I    ,GL_R32I    ,1,GL_INT)
-		TEXTURE_INFO(Texture::eR16I    ,GL_R16I    ,1,GL_SHORT)
-		TEXTURE_INFO(Texture::eR8I     ,GL_R8I     ,1,GL_BYTE)
-		TEXTURE_INFO(Texture::eR32U    ,GL_R32UI   ,1,GL_UNSIGNED_INT)
-		TEXTURE_INFO(Texture::eR16U    ,GL_R16UI   ,1,GL_UNSIGNED_SHORT)
-		TEXTURE_INFO(Texture::eR8U     ,GL_R8UI    ,1,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eR32I    ,GL_R32I    ,GL_INT           ,GL_RED ,GL_RED_INTEGER)
+		TEXTURE_INFO(Texture::eR16I    ,GL_R16I    ,GL_SHORT         ,GL_RED ,GL_RED_INTEGER)
+		TEXTURE_INFO(Texture::eR8I     ,GL_R8I     ,GL_BYTE          ,GL_RED ,GL_RED_INTEGER)
+		TEXTURE_INFO(Texture::eR32U    ,GL_R32UI   ,GL_UNSIGNED_INT  ,GL_RED ,GL_RED_INTEGER)
+		TEXTURE_INFO(Texture::eR16U    ,GL_R16UI   ,GL_UNSIGNED_SHORT,GL_RED ,GL_RED_INTEGER)
+		TEXTURE_INFO(Texture::eR8U     ,GL_R8UI    ,GL_UNSIGNED_BYTE ,GL_RED ,GL_RED_INTEGER)
 		
-		TEXTURE_INFO(Texture::eRG32I   ,GL_RG32I   ,2,GL_INT)
-		TEXTURE_INFO(Texture::eRG16I   ,GL_RG16I   ,2,GL_SHORT)
-		TEXTURE_INFO(Texture::eRG8I    ,GL_RG8I    ,2,GL_BYTE)
-		TEXTURE_INFO(Texture::eRG32U   ,GL_RG32UI  ,2,GL_UNSIGNED_INT)
-		TEXTURE_INFO(Texture::eRG16U   ,GL_RG16UI  ,2,GL_UNSIGNED_SHORT)
-		TEXTURE_INFO(Texture::eRG8U    ,GL_RG8UI   ,2,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eRG32I   ,GL_RG32I   ,GL_INT           ,GL_RG ,GL_RG_INTEGER)
+		TEXTURE_INFO(Texture::eRG16I   ,GL_RG16I   ,GL_SHORT         ,GL_RG ,GL_RG_INTEGER)
+		TEXTURE_INFO(Texture::eRG8I    ,GL_RG8I    ,GL_BYTE          ,GL_RG ,GL_RG_INTEGER)
+		TEXTURE_INFO(Texture::eRG32U   ,GL_RG32UI  ,GL_UNSIGNED_INT  ,GL_RG ,GL_RG_INTEGER)
+		TEXTURE_INFO(Texture::eRG16U   ,GL_RG16UI  ,GL_UNSIGNED_SHORT,GL_RG ,GL_RG_INTEGER)
+		TEXTURE_INFO(Texture::eRG8U    ,GL_RG8UI   ,GL_UNSIGNED_BYTE ,GL_RG ,GL_RG_INTEGER)
 		
-		TEXTURE_INFO(Texture::eRGB32I  ,GL_RGB32I  ,3,GL_INT)
-		TEXTURE_INFO(Texture::eRGB16I  ,GL_RGB16I  ,3,GL_SHORT)
-		TEXTURE_INFO(Texture::eRGB8I   ,GL_RGB8I   ,3,GL_BYTE)
-		TEXTURE_INFO(Texture::eRGB32U  ,GL_RGB32UI ,3,GL_UNSIGNED_INT)
-		TEXTURE_INFO(Texture::eRGB16U  ,GL_RGB16UI ,3,GL_UNSIGNED_SHORT)
-		TEXTURE_INFO(Texture::eRGB8U   ,GL_RGB8UI  ,3,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eRGB32I  ,GL_RGB32I  ,GL_INT            ,GL_RGB ,GL_RGB_INTEGER)
+		TEXTURE_INFO(Texture::eRGB16I  ,GL_RGB16I  ,GL_SHORT          ,GL_RGB ,GL_RGB_INTEGER)
+		TEXTURE_INFO(Texture::eRGB8I   ,GL_RGB8I   ,GL_BYTE           ,GL_RGB ,GL_RGB_INTEGER)
+		TEXTURE_INFO(Texture::eRGB32U  ,GL_RGB32UI ,GL_UNSIGNED_INT   ,GL_RGB ,GL_RGB_INTEGER)
+		TEXTURE_INFO(Texture::eRGB16U  ,GL_RGB16UI ,GL_UNSIGNED_SHORT ,GL_RGB ,GL_RGB_INTEGER)
+		TEXTURE_INFO(Texture::eRGB8U   ,GL_RGB8UI  ,GL_UNSIGNED_BYTE  ,GL_RGB ,GL_RGB_INTEGER)
 		
-		TEXTURE_INFO(Texture::eRGBA32I ,GL_RGBA32I ,4,GL_INT)
-		TEXTURE_INFO(Texture::eRGBA16I ,GL_RGBA16I ,4,GL_SHORT)
-		TEXTURE_INFO(Texture::eRGBA8I  ,GL_RGBA8I  ,4,GL_BYTE)
-		TEXTURE_INFO(Texture::eRGBA32U ,GL_RGBA32UI,4,GL_UNSIGNED_INT)
-		TEXTURE_INFO(Texture::eRGBA16U ,GL_RGBA16UI,4,GL_UNSIGNED_SHORT)
-		TEXTURE_INFO(Texture::eRGBA8U  ,GL_RGBA8UI ,4,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eRGBA32I ,GL_RGBA32I ,GL_INT            ,GL_RGBA ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(Texture::eRGBA16I ,GL_RGBA16I ,GL_SHORT          ,GL_RGBA ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(Texture::eRGBA8I  ,GL_RGBA8I  ,GL_BYTE           ,GL_RGBA ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(Texture::eRGBA32U ,GL_RGBA32UI,GL_UNSIGNED_INT   ,GL_RGBA ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(Texture::eRGBA16U ,GL_RGBA16UI,GL_UNSIGNED_SHORT ,GL_RGBA ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(Texture::eRGBA8U  ,GL_RGBA8UI ,GL_UNSIGNED_BYTE  ,GL_RGBA ,GL_RGBA_INTEGER)
 
-		TEXTURE_INFO(Texture::eSRGB   ,GL_SRGB8 ,3,GL_UNSIGNED_BYTE)
-		TEXTURE_INFO(Texture::eSRGBA  ,GL_SRGB8_ALPHA8 ,4,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eSRGB   ,GL_SRGB8        ,GL_UNSIGNED_BYTE ,GL_RGB  ,GL_RGB)
+		TEXTURE_INFO(Texture::eSRGBA  ,GL_SRGB8_ALPHA8 ,GL_UNSIGNED_BYTE ,GL_RGBA ,GL_RGBA)
 			
 		
 #undef TEXTURE_INFO
@@ -767,52 +765,59 @@ namespace Render
 #if _DEBUG
 	constexpr bool CheckTexConvMapValid_R(int i, int size)
 	{
-		return (i == size) ? true : ((i == (int)gTexConvMap[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
+		return (i == size) ? true : ((i == (int)gTexConvMapGL[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
 	}
 	constexpr bool CheckTexConvMapValid()
 	{
-		return CheckTexConvMapValid_R(0, sizeof(gTexConvMap) / sizeof(gTexConvMap[0]));
+		return CheckTexConvMapValid_R(0, sizeof(gTexConvMapGL) / sizeof(gTexConvMapGL[0]));
 	}
 	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
 #endif
 
-
-
 	GLenum OpenGLTranslate::To(Texture::Format format)
 	{
-		return gTexConvMap[(int)format].foramt;
+		return gTexConvMapGL[(int)format].foramt;
 	}
 
-	uint32 Texture::GetFormatSize(Format format)
+	GLenum OpenGLTranslate::TextureComponentType(Texture::Format format)
 	{
-		uint32 result = 0;
-		switch( gTexConvMap[format].compType )
+		return gTexConvMapGL[format].compType;
+	}
+
+	GLenum OpenGLTranslate::BaseFormat(Texture::Format format)
+	{
+		return gTexConvMapGL[format].baseFormat;
+	}
+
+	GLenum OpenGLTranslate::PixelFormat(Texture::Format format)
+	{
+		return gTexConvMapGL[format].pixelFormat;
+	}
+
+	GLenum OpenGLTranslate::Image2DType(Texture::Format format)
+	{
+		switch (format)
 		{
-		case GL_FLOAT:
-		case GL_INT:
-		case GL_UNSIGNED_INT:
-			result = 4;
-			break;
-		case GL_HALF_FLOAT:
-		case GL_SHORT:
-		case GL_UNSIGNED_SHORT:
-			result = 2;
-			break;
-		case GL_BYTE:
-		case GL_UNSIGNED_BYTE:
-			result = 1;
-			break;
+		case Texture::eRGBA8:case Texture::eBGRA8:
+		case Texture::eRGB8:
+		case Texture::eR32F:case Texture::eR16:case Texture::eR8:
+		case Texture::eRGB32F:
+		case Texture::eRGBA32F:
+		case Texture::eRGB16F:
+		case Texture::eRGBA16F:
+			return GL_IMAGE_2D;
+		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
+		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
+		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
+		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
+			return GL_INT_IMAGE_2D;
+		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
+		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
+		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
+		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
+			return GL_UNSIGNED_INT_IMAGE_2D;
 		}
-
-		result *= gTexConvMap[format].compNum;
-		return result;
-	}
-
-
-
-	uint32 Texture::GetComponentNum(Format format)
-	{
-		return gTexConvMap[format].compNum;
+		return 0;
 	}
 
 	GLenum OpenGLTranslate::To(EAccessOperator op)
@@ -979,7 +984,7 @@ namespace Render
 		return GL_FILL;
 	}
 
-	GLenum OpenGLTranslate::To(ECompValueType type)
+	GLenum OpenGLTranslate::To(EComponentType type)
 	{
 		switch( type )
 		{
@@ -1036,90 +1041,6 @@ namespace Render
 		case Texture::eStencil4: return GL_STENCIL_INDEX4;
 		case Texture::eStencil8: return GL_STENCIL_INDEX8;
 		case Texture::eStencil16: return GL_STENCIL_INDEX16;
-		}
-		return 0;
-	}
-
-	GLenum OpenGLTranslate::BaseFormat(Texture::Format format)
-	{
-		switch( format )
-		{
-		case Texture::eRGB8: case Texture::eRGB32F:case Texture::eRGB16F: case Texture::eSRGB:
-			return GL_RGB;
-		case Texture::eRGBA8: case Texture::eRGBA32F:case Texture::eRGBA16F: case  Texture::eSRGBA:
-			return GL_RGBA;
-		case Texture::eBGRA8:
-			return GL_BGRA;
-		case Texture::eR32F: case Texture::eR16: case Texture::eR8:
-			return GL_RED;
-		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
-		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
-			return GL_RED_INTEGER;
-		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
-		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
-			return GL_RG_INTEGER;
-		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
-		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
-			return GL_RGB_INTEGER;
-		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
-		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
-			return GL_RGBA_INTEGER;
-		}
-		return 0;
-	}
-
-	GLenum OpenGLTranslate::PixelFormat(Texture::Format format)
-	{
-		switch( format )
-		{
-		case Texture::eR32F: case Texture::eR16: case Texture::eR8:
-		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
-		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
-			return GL_RED;
-		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
-		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
-			return GL_RG;
-		case Texture::eRGB8: case Texture::eSRGB:
-		case Texture::eRGB32F:case Texture::eRGB16F:
-		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
-		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
-			return GL_RGB;
-		case Texture::eRGBA8: case Texture::eBGRA8: case Texture::eSRGBA:
-		case Texture::eRGBA32F:case Texture::eRGBA16F:
-		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
-		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
-			return GL_RGBA;
-		}
-		return 0;
-	}
-
-	GLenum OpenGLTranslate::TextureComponentType(Texture::Format format)
-	{
-		return gTexConvMap[format].compType;
-	}
-
-	GLenum OpenGLTranslate::Image2DType(Texture::Format format)
-	{
-		switch( format )
-		{
-		case Texture::eRGBA8:case Texture::eBGRA8:
-		case Texture::eRGB8:
-		case Texture::eR32F:case Texture::eR16:case Texture::eR8:
-		case Texture::eRGB32F:
-		case Texture::eRGBA32F:
-		case Texture::eRGB16F:
-		case Texture::eRGBA16F:
-			return GL_IMAGE_2D;
-		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
-		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
-		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
-		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
-			return GL_INT_IMAGE_2D;
-		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
-		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
-		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
-		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
-			return GL_UNSIGNED_INT_IMAGE_2D;
 		}
 		return 0;
 	}
@@ -1261,9 +1182,12 @@ namespace Render
 		});
 	}
 
-	void OpenGLInputLayout::bindAttrib(InputStreamInfo inputStreams[], int numInputStream)
+	void OpenGLInputLayout::bindAttrib(InputStreamState const& state)
 	{
+		InputStreamInfo const* inputStreams = state.inputStreams;
+		int numInputStream = state.inputStreamCount;
 		assert(numInputStream > 0);
+#if 0
 		int index = 0;
 		for( int indexStream = 0; indexStream < numInputStream; ++indexStream )
 		{
@@ -1293,41 +1217,60 @@ namespace Render
 					glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, stride, (void*)(inputStream.offset + e.offset));
 				}	
 			}
+
+			OpenGLCast::To(inputStream.buffer)->unbind();
 		}
 
-		OpenGLCast::To(inputStreams[0].buffer)->unbind();
+#else
+		for (int idxStream = 0 ; idxStream < numInputStream; ++idxStream)
+		{
+			auto& inputStream = inputStreams[idxStream];
+			int stride = (inputStream.stride >= 0) ? inputStream.stride : inputStream.buffer->getElementSize();
+			glBindVertexBuffer(idxStream, OpenGLCast::GetHandle(*inputStream.buffer), inputStream.offset, stride);
+		}
+		for (int index = 0; index < mElements.size(); ++index)
+		{
+			auto const& e = mElements[index];
+			glEnableVertexAttribArray(e.attribute);
+			glVertexAttribFormat(e.attribute, e.componentNum, e.componentType, e.bNormalized, e.offset);
+			glVertexAttribBinding(e.attribute, e.idxStream);
+			if (e.bInstanceData)
+			{
+				glVertexBindingDivisor(e.idxStream, e.instanceStepRate);
+			}
+		}
+#endif
 	}
 
-	void OpenGLInputLayout::bindAttribUP(InputStreamInfo inputStreams[], int numInputStream)
+	void OpenGLInputLayout::bindAttribUP(InputStreamState const& state)
 	{
+		InputStreamInfo const* inputStreams = state.inputStreams;
+		int numInputStream = state.inputStreamCount;
 		assert(numInputStream > 0);
-		int index = 0;
-		for( int indexStream = 0; indexStream < numInputStream; ++indexStream )
+		
+		for (int index = 0; index < mElements.size(); ++index)
 		{
-			auto& inputStream = inputStreams[indexStream];
+			auto const& e = mElements[index];
+			if (e.idxStream >= numInputStream)
+				continue;
+
+			auto& inputStream = inputStreams[e.idxStream];
 			assert(inputStream.stride >= 0);
+			uintptr_t offset = inputStream.offset + e.offset;
 
-			for( ; index < mElements.size(); ++index )
+			glEnableVertexAttribArray(e.attribute);
+			if (inputStream.stride > 0)
 			{
-				auto const& e = mElements[index];
-				if( e.idxStream > indexStream )
-					break;
-
-				uintptr_t offset = inputStream.offset + e.offset;
-				if( inputStream.stride > 0 )
+				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, inputStream.stride, (void*)offset);
+			}
+			else
+			{
+				switch (e.componentNum)
 				{
-					glEnableVertexAttribArray(e.attribute);
-					glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, inputStream.stride, (void*)offset);
-				}
-				else
-				{
-					switch( e.componentNum )
-					{
-					case 1: glVertexAttrib1fv(e.attribute, (float*)offset); break;
-					case 2: glVertexAttrib2fv(e.attribute, (float*)offset); break;
-					case 3: glVertexAttrib3fv(e.attribute, (float*)offset); break;
-					case 4: glVertexAttrib4fv(e.attribute, (float*)offset); break;
-					}
+				case 1: glVertexAttrib1fv(e.attribute, (float*)offset); break;
+				case 2: glVertexAttrib2fv(e.attribute, (float*)offset); break;
+				case 3: glVertexAttrib3fv(e.attribute, (float*)offset); break;
+				case 4: glVertexAttrib4fv(e.attribute, (float*)offset); break;
 				}
 			}
 		}
@@ -1407,7 +1350,7 @@ namespace Render
 		}
 	}
 
-	void BindElementData(OpenGLInputLayout::Element const& e, uint32 offset, uint32 stride)
+	void BindElementData(OpenGLInputLayout::Element const& e, uint32 offset)
 	{
 		offset += e.offset;
 		switch( e.attribute )
@@ -1494,8 +1437,11 @@ namespace Render
 		}
 	}
 
-	void OpenGLInputLayout::bindPointer(InputStreamInfo inputStreams[], int numInputStream)
+	void OpenGLInputLayout::bindPointer(InputStreamState const& state)
 	{
+		InputStreamInfo const* inputStreams = state.inputStreams;
+		int numInputStream = state.inputStreamCount;
+
 		if( numInputStream == 1 )
 		{
 			OpenGLCast::To(inputStreams[0].buffer)->bind();
@@ -1512,66 +1458,51 @@ namespace Render
 		{
 			bool haveTex = false;
 
-			for( int idxSteam = 0; idxSteam < numInputStream; ++idxSteam )
+			int index = 0;
+			for( int indexStream = 0; indexStream < numInputStream; ++indexStream )
 			{
-				auto& inputStream = inputStreams[idxSteam];
+				auto& inputStream = inputStreams[indexStream];
 
 				OpenGLCast::To(inputStream.buffer)->bind();
-				int index = 0;
+
 				for( ; index < mElements.size(); ++index )
 				{
 					auto const& e = mElements[index];
-					if( e.idxStream > idxSteam )
+					if( e.idxStream > indexStream )
 						break;
 
 					uint32 offset = inputStreams[e.idxStream].offset;
 					uint32 stride = inputStreams[e.idxStream].stride > 0 ? inputStreams[e.idxStream].stride : e.stride;
 					BindElementPointer(e, offset, stride, haveTex);
 
-				}
+				}	
 				OpenGLCast::To(inputStream.buffer)->unbind();
 			}
 		}
 	}
 
-	void OpenGLInputLayout::bindPointerUP(InputStreamInfo inputStreams[], int numInputStream)
+	void OpenGLInputLayout::bindPointerUP(InputStreamState const& state)
 	{
+		InputStreamInfo const* inputStreams = state.inputStreams;
+		int numInputStream = state.inputStreamCount;
+
 		bool haveTex = false;
-		if( numInputStream == 1 )
+		for (auto const& e : mElements)
 		{
+			if ( e.idxStream >= numInputStream )
+				continue;
 
-			for( auto const& e : mElements )
+			uint32 offset = inputStreams[e.idxStream].offset;
+			uint32 stride = inputStreams[e.idxStream].stride;
+			if (stride > 0)
 			{
-				uint32 offset = inputStreams[e.idxStream].offset;
-				uint32 stride = inputStreams[e.idxStream].stride;
-				if( stride > 0 )
-					BindElementPointer(e, offset, stride, haveTex);
-				else
-					BindElementData(e, offset, stride);
+				BindElementPointer(e, offset, stride, haveTex);
+			}
+			else
+			{
+				BindElementData(e, offset);
 			}
 		}
-		else
-		{
-			for( int idxStream = 0; idxStream < numInputStream; ++idxStream )
-			{
-				auto& inputStream = inputStreams[idxStream];
-				int index = 0;
-				for( ; index < mElements.size(); ++index )
-				{
-					auto const& e = mElements[index];
-					if( e.idxStream > index )
-						break;
-
-					uint32 offset = inputStreams[e.idxStream].offset;
-					uint32 stride = inputStreams[e.idxStream].stride;
-					if( stride > 0 )
-						BindElementPointer(e, offset, stride, haveTex);
-					else
-						BindElementData(e, offset, stride);
-				}
-			}
-		}
-
 	}
 
 	void OpenGLInputLayout::bindPointer()
@@ -1593,13 +1524,39 @@ namespace Render
 			UnbindElementPointer(e, haveTex);
 		}
 
-
 		if( haveTex )
 		{
 			glClientActiveTexture(GL_TEXTURE0);
 		}
 	}
 
+	GLuint OpenGLInputLayout::bindVertexArray(InputStreamState const& state, bool bBindPointer)
+	{
+		auto iter = mVAOMap.find(state);
+		if (iter != mVAOMap.end())
+		{
+			glBindVertexArray(iter->second.mHandle);
+			return iter->second.mHandle;
+		}
+		GLuint result = 0;
+		VertexArrayObject vao;
+		if (vao.fetchHandle())
+		{
+			result = vao.mHandle;
+			mVAOMap.emplace(state, std::move(vao));
+			glBindVertexArray(result);
+		}
 
+		if (bBindPointer)
+			bindPointer(state);
+		else
+			bindAttrib(state);
+		return result;
+	}
+
+	void OpenGLInputLayout::releaseResource()
+	{
+		mVAOMap.clear();
+	}
 
 }//namespace Render

@@ -252,7 +252,7 @@ namespace CB
 			RHISetFixedShaderPipelineState(commandList, mViewInfo.worldToClip, color);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-			drawMeshLine(surface, color);
+			//drawMeshLine(surface, color);
 
 			glDisable(GL_POLYGON_OFFSET_FILL);
 		}

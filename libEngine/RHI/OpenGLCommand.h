@@ -266,6 +266,8 @@ namespace Render
 
 		static int const IdxTextureAutoBindStart = 2;
 
+
+	
 		GLenum commitPrimitiveState(EPrimitive type)
 		{
 			int patchPointCount = 1;
@@ -283,15 +285,7 @@ namespace Render
 		void commitDepthStencilState();
 
 		bool commitInputStream();
-
 		bool commitInputStreamUP(VertexDataInfo dataInfos[], int numData);
-
-		bool commitInputStreamUP()
-		{
-			if( !mInputLayoutPending.isValid() )
-				return false;
-			return true;
-		}
 		void resetBindIndex()
 		{
 			mNextAutoBindSamplerSlotIndex = 0;
@@ -323,36 +317,25 @@ namespace Render
 
 		void clearShader(bool bUseShaderPipeline);
 
-		void unbindInputLayout()
-		{
-			if (!mInputLayoutCommitted.isValid())
-				return;
-			if (mInputLayoutPending != mInputLayoutCommitted ||
-				mbUseFixedPipeline == mWasBindAttrib )
-			{
-				if (mWasBindAttrib)
-				{
-					OpenGLCast::To(mInputLayoutCommitted)->unbindAttrib(mNumInputStreamToUnbind);
-				}
-				else
-				{
-					OpenGLCast::To(mInputLayoutCommitted)->unbindPointer();
-				}
-			}
-		}
+		bool checkInputStreamStateDirty(bool bForceDirty = false);
 
 		RHIFrameBufferRef   mLastFrameBuffer;
 		OpenGLDeviceState   mDeviceState;
 
-		bool mbUseFixedPipeline = true;
+
+
+		bool mbUseShaderPath = true;
 		bool mWasBindAttrib = false;
-		int  mNumInputStreamToUnbind;
 		RHIInputLayoutRef   mInputLayoutPending;
 		RHIInputLayoutRef   mInputLayoutCommitted;
-	
-		static int const MaxSimulationInputStreamSlots = 8;
-		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];
-		int mNumInputStream;
+		GLuint              mVAOCommitted = 0;
+
+
+		InputStreamState mInputStreamStateCommttied;
+		InputStreamInfo  mInputStreamsPending[MaxSimulationInputStreamSlots];
+		int              mInputStreamCountPending = 0;
+		bool             mbHasInputStreamPendingSetted = false;
+
 		uint32 mSimplerSlotDirtyMask = 0;
 		class OpenGLSystem* mSystem;
 

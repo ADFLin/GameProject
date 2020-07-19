@@ -98,9 +98,9 @@ void RHIGraphics2D::beginRender()
 
 	RHISetFixedShaderPipelineState(commandList, mBaseTransform);
 	mbPipelineStateChanged = false;
-	mComitedRenderState.texture = nullptr;
-	mComitedRenderState.blendMode = ESimpleBlendMode::None;
-	mPendingRenderState = mComitedRenderState;
+	mRenderStateCommitted.texture = nullptr;
+	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
+	mRenderStatePending = mRenderStateCommitted;
 	mCurTextureSize = Vector2(0, 0);
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI(), nullptr, 0);
 
@@ -360,7 +360,7 @@ void RHIGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 		mFont->generateVertices(Vector2(int(ox), int(oy)), str, vertices);
 		if (!vertices.empty())
 		{
-			ESimpleBlendMode prevMode = mComitedRenderState.blendMode;
+			ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
 			setBlendState(ESimpleBlendMode::Translucent);
 			setTextureState(&mFont->getTexture());
 			comitRenderState();
@@ -371,14 +371,14 @@ void RHIGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 	}
 	else
 	{
-		ESimpleBlendMode prevMode = mComitedRenderState.blendMode;
+		ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
 		setBlendState(ESimpleBlendMode::Translucent);
 		comitRenderState();
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
 		mFont->draw(GetCommandList(), Vector2(int(ox), int(oy)), transform, LinearColor(mColorFont, mAlpha), str);
-		mComitedRenderState.blendMode = ESimpleBlendMode::None;
+		mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
 		mbPipelineStateChanged = true;
-		mPendingRenderState.texture = nullptr;
+		mRenderStatePending.texture = nullptr;
 		setBlendState(prevMode);
 	}
 	
@@ -422,10 +422,10 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Color4f
 	else
 	{
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		RHISetFixedShaderPipelineState(GetCommandList(), transform, LinearColor(mColorBrush, mAlpha), mComitedRenderState.texture);
+		RHISetFixedShaderPipelineState(GetCommandList(), transform, LinearColor(mColorBrush, mAlpha), mRenderStateCommitted.texture);
 		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
 		mbPipelineStateChanged = true;
-		mPendingRenderState.texture = nullptr;
+		mRenderStatePending.texture = nullptr;
 	}
 }
 
@@ -448,10 +448,10 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2
 	else
 	{
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		RHISetFixedShaderPipelineState(GetCommandList(), transform, color, mComitedRenderState.texture);
+		RHISetFixedShaderPipelineState(GetCommandList(), transform, color, mRenderStateCommitted.texture);
 		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(texPos.div(mCurTextureSize)), Vector2(texSize.div(mCurTextureSize)));
 		mbPipelineStateChanged = true;
-		mPendingRenderState.texture = nullptr;
+		mRenderStatePending.texture = nullptr;
 	}
 }
 
@@ -506,7 +506,7 @@ RHICommandList& RHIGraphics2D::GetCommandList()
 
 void RHIGraphics2D::setTextureState(RHITexture2D* texture /*= nullptr*/)
 {
-	mPendingRenderState.texture = texture;
+	mRenderStatePending.texture = texture;
 }
 
 void RHIGraphics2D::setTexture(RHITexture2D& texture)
@@ -517,9 +517,9 @@ void RHIGraphics2D::setTexture(RHITexture2D& texture)
 	}
 	else
 	{
-		mPendingRenderState.texture = &texture;
+		mRenderStatePending.texture = &texture;
 	}
-	mCurTextureSize = Vector2(mComitedRenderState.texture->getSizeX(), mComitedRenderState.texture->getSizeY());
+	mCurTextureSize = Vector2(mRenderStateCommitted.texture->getSizeX(), mRenderStateCommitted.texture->getSizeY());
 }
 
 void RHIGraphics2D::preModifyRenderState()
@@ -532,28 +532,28 @@ void RHIGraphics2D::preModifyRenderState()
 
 void RHIGraphics2D::setBlendState(ESimpleBlendMode mode)
 {
-	mPendingRenderState.blendMode = mode;
+	mRenderStatePending.blendMode = mode;
 }
 
 void RHIGraphics2D::comitRenderState()
 {
-	bool bRenderPipleStateNeedCommit = mbPipelineStateChanged || (mComitedRenderState.texture != mPendingRenderState.texture);
-	if (bRenderPipleStateNeedCommit || mComitedRenderState.blendMode != mPendingRenderState.blendMode)
+	bool bRenderPipleStateNeedCommit = mbPipelineStateChanged || (mRenderStateCommitted.texture != mRenderStatePending.texture);
+	if (bRenderPipleStateNeedCommit || mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
 	{
 		preModifyRenderState();
 
 		if (bRenderPipleStateNeedCommit)
 		{
 			mbPipelineStateChanged = false;
-			mComitedRenderState.texture = mPendingRenderState.texture;
-			RHISetFixedShaderPipelineState(GetCommandList(), mBaseTransform, LinearColor(1, 1, 1, 1), mComitedRenderState.texture);
+			mRenderStateCommitted.texture = mRenderStatePending.texture;
+			RHISetFixedShaderPipelineState(GetCommandList(), mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture);
 		}
 
-		if (mComitedRenderState.blendMode != mPendingRenderState.blendMode)
+		if (mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
 		{
-			mComitedRenderState.blendMode = mPendingRenderState.blendMode;
+			mRenderStateCommitted.blendMode = mRenderStatePending.blendMode;
 
-			switch (mComitedRenderState.blendMode)
+			switch (mRenderStateCommitted.blendMode)
 			{
 			case ESimpleBlendMode::Translucent:
 				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
@@ -580,8 +580,8 @@ void RHIGraphics2D::restoreRenderState()
 	preModifyRenderState();
 
 	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mComitedRenderState.texture);
-	switch (mComitedRenderState.blendMode)
+	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture);
+	switch (mRenderStateCommitted.blendMode)
 	{
 	case ESimpleBlendMode::Translucent:
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());

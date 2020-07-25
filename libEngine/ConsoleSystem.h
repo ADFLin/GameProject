@@ -262,7 +262,7 @@ struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
 		mSetValue(value);
 	}
 
-	bool formStringImpl(StringView const& str, Meta::TrueType )
+	bool formStringImpl(StringView const& str, Meta::TureType )
 	{
 		mSetValue(str.toCString());
 		return true;

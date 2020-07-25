@@ -112,11 +112,11 @@ namespace Render
 	{
 	public:
 		bool create(GraphicShaderBoundState const& state);
-		void bind()
+		void bind() const
 		{
 			glBindProgramPipeline(mGLObject.mHandle);
 		}
-		void unbind()
+		void unbind() const
 		{
 			glBindProgramPipeline(0);
 		}
@@ -160,19 +160,7 @@ namespace Render
 
 		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler);
 
-		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer )
-		{
-			if( mLastFrameBuffer.isValid() )
-			{
-				OpenGLCast::To(mLastFrameBuffer)->unbind();
-			}
-
-			mLastFrameBuffer = frameBuffer;
-			if( mLastFrameBuffer.isValid() )
-			{
-				OpenGLCast::To(mLastFrameBuffer)->bind();
-			}
-		}
+		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer );
 
 		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil)
 		{
@@ -375,7 +363,7 @@ namespace Render
 		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 		RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
-			int numMipLevel , uint32 createFlags, void* data);
+			int numMipLevel, uint32 createFlags, void* data);
 
 		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,

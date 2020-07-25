@@ -5,8 +5,6 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
 
-#include "RHI/OpenGLCommon.h"
-
 #include "FixString.h"
 
 #include <fstream>
@@ -25,7 +23,7 @@ namespace MV
 		char const* name;
 	};
 
-	MeshInfo gMeshInfo[] = 
+	MeshInfo GMeshInfo[] = 
 	{
 		{ MESH_STAIR  , "stair" } ,
 		{ MESH_TRIANGLE , "tri" } ,
@@ -35,7 +33,7 @@ namespace MV
 		{ MESH_LADDER , "ladder" }  ,
 	};
 
-	float groupColor[][3] = 
+	Vec3f const GGroupColor[] =
 	{
 		{ 1 , 1 , 1 },
 		{ 1 , 0.5 , 0.5 },
@@ -71,15 +69,49 @@ namespace MV
 		gRE = this;
 	}
 
+
+	class BaseRenderProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(BaseRenderProgram, Global)
+	public:
+		static void SetupShaderCompileOption(ShaderCompileOption& option) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/MVRender";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(BaseRenderVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(BaseRenderPS) },
+			};
+			return entries;
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, Rotation);
+			BIND_SHADER_PARAM(parameterMap, BaseColor);
+			BIND_SHADER_PARAM(parameterMap, LocalScale);
+			BIND_SHADER_PARAM(parameterMap, LocalToWorld);
+
+		}
+
+		DEFINE_SHADER_PARAM(Rotation);
+		DEFINE_SHADER_PARAM(BaseColor);
+		DEFINE_SHADER_PARAM(LocalScale);
+		DEFINE_SHADER_PARAM(LocalToWorld);
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(BaseRenderProgram);
+
 	bool RenderEngine::init()
 	{
-		if ( !ShaderManager::Get().loadFileSimple(mEffect , "Shader/Game/MVPiece") )
-			return false;
+
+		VERIFY_RETURN_FALSE( mProgBaseRender = ShaderManager::Get().getGlobalShaderT< BaseRenderProgram >() );
 
 		mCommandList = &RHICommandList::GetImmediateList();
-
-		mEffect.getParameter(SHADER_PARAM(Rotation) , paramRotation );
-		mEffect.getParameter(SHADER_PARAM(LocalScale), paramLocalScale );
 
 		{
 			if ( !MeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
@@ -87,9 +119,9 @@ namespace MV
 				 !MeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , Vector2( 0.5 , 0.5) , 1 ) )
 				return false;
 
-			for( int i = 0 ; i < ARRAY_SIZE( gMeshInfo ) ; ++i )
+			for( int i = 0 ; i < ARRAY_SIZE( GMeshInfo ) ; ++i )
 			{
-				MeshInfo const& info = gMeshInfo[i];
+				MeshInfo const& info = GMeshInfo[i];
 				FixString< 256 > path = "Mesh/";
 				path += info.name; 
 				path += ".obj";
@@ -98,45 +130,47 @@ namespace MV
 			}
 		}
 
-
-		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-		glEnable( GL_CULL_FACE );
-		glEnable( GL_DEPTH_TEST );
-
-
 		return true;
 	}
-
-
 
 	void RenderEngine::renderScene(RenderContext& context)
 	{
 		RHICommandList& commandList = *mCommandList;
 		beginRender();
-
 		renderGroup(context, mParam.world->mRootGroup );
-
 		endRender();
 	}
 
-	void RenderEngine::renderBlock(RenderContext& context, Block& block , Vec3i const& pos)
+	void RenderEngine::beginRender()
+	{
+		RHISetShaderProgram(*mCommandList, mProgBaseRender->getRHIResource());
+		RHISetRasterizerState(*mCommandList, TStaticRasterizerState<>::GetRHI());
+		RHISetDepthStencilState(*mCommandList, TStaticDepthStencilState<>::GetRHI());
+	}
+
+	void RenderEngine::endRender()
+	{
+		RHISetShaderProgram(*mCommandList, nullptr);
+	}
+
+	void RenderEngine::renderBlock(RenderContext& context, Block& block, Vec3i const& pos)
 	{
 		RHICommandList& commandList = *mCommandList;
-		if ( mParam.bShowGroupColor )
+
+		context.stack.push();
+		context.stack.translate( Vector3( pos.x , pos.y , pos.z ) );
+		if (mParam.bShowGroupColor)
 		{
-			int idx = ( block.group == &mParam.world->mRootGroup ) ? 0 : ( block.group->idx );
-			glColor3fv( groupColor[idx % 7 ] );
+			int idx = (block.group == &mParam.world->mRootGroup) ? 0 : (block.group->idx);
+			SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, GGroupColor[idx % ARRAY_SIZE(GGroupColor)]);
 		}
 		else
 		{
-			glColor3f( 1 , 1 , 1 );
+			SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1,1,1));
 		}
-		context.stack.push();
-		context.stack.translate( Vector3( pos.x , pos.y , pos.z ) );
-
-		mEffect.setParam(commandList, paramRotation , Vec2i( (int)block.rotation[0] , (int)block.rotation[2] ));
-		context.setupShader(commandList, mEffect);
-		context.setupPrimitiveParams(commandList, mEffect);
+		
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)block.rotation[0], (int)block.rotation[2]));
+		context.setupShader(commandList, *mProgBaseRender);
 		mMesh[ block.idMesh ].draw(commandList);
 
 		for( int i = 0 ; i < 6 ; ++i )
@@ -146,7 +180,7 @@ namespace MV
 			{
 				Vec3f offset = 0.5 * FDir::OffsetF( block.rotation.toWorld( Dir(i) ) );
 				context.stack.translate(offset);
-				context.setupPrimitiveParams(commandList, mEffect);
+				context.setupPrimitiveParams(commandList, *mProgBaseRender);
 				mMesh[ MESH_LADDER ].draw(commandList);
 			}
 		}
@@ -166,9 +200,9 @@ namespace MV
 		context.stack.push();
 		context.stack.translate(pos);
 
-		mEffect.setParam(commandList, paramRotation , Vec2i( (int)Dir::X , (int)Dir::Z ) );
-		context.setupShader(commandList, mEffect);
-		context.setupPrimitiveParams(commandList, mEffect);
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1, 1, 1));
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)Dir::X, (int)Dir::Z));
+		context.setupShader(commandList, *mProgBaseRender);
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
 
 		context.stack.rotate(q);
@@ -185,9 +219,9 @@ namespace MV
 		context.stack.push();
 		context.stack.translate(pos);
 	
-		mEffect.setParam(commandList, paramRotation , Vec2i((int)rotation[0], (int)rotation[2]) );
-		context.setupShader(commandList, mEffect);
-		context.setupPrimitiveParams(commandList, mEffect);
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(1, 1, 1));
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, Rotation, Vec2i((int)rotation[0], (int)rotation[2]));
+		context.setupShader(commandList, *mProgBaseRender);
 		mMesh[ idMesh ].draw(commandList);
 
 		context.stack.pop();
@@ -275,19 +309,16 @@ namespace MV
 		context.stack.push();
 		context.stack.translate(pos);
 
-		mEffect.setParam(commandList, paramRotation , Vec2i((int)actor.rotation[0], (int)actor.rotation[2]));
-		context.setupShader(commandList, mEffect);
-		context.setupPrimitiveParams(commandList, mEffect);
-		glColor3f(0.5, 0.5, 0.5);
-
-
-		mEffect.setParam(commandList, paramLocalScale , Vec3f( 0.4 , 0.6 , 1.0 ) );
+		SET_SHADER_PARAM( commandList , *mProgBaseRender, Rotation , Vec2i((int)actor.rotation[0], (int)actor.rotation[2]));
+		context.setupShader(commandList, *mProgBaseRender);
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, BaseColor, Vec3f(0.5, 0.5, 0.5));
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(0.4, 0.6, 1.0));
 		mMesh[ MESH_BOX ].draw(commandList);
-		mEffect.setParam(commandList, paramLocalScale , Vec3f( 1.0 , 1.0 , 1.0 ) );
+		SET_SHADER_PARAM(commandList, *mProgBaseRender, LocalScale, Vec3f(1.0, 1.0, 1.0));
 
 		//Vector3 offset = actor.moveOffset * cast( frontOffset ) - 0.2 * cast( upOffset );
 		context.stack.translate(0.9 * upOffset);
-		context.setupPrimitiveParams(commandList, mEffect);
+		context.setupPrimitiveParams(commandList, *mProgBaseRender);
 		mMesh[ MESH_SPHERE ].draw(*mCommandList);
 
 
@@ -299,9 +330,9 @@ namespace MV
 		};
 
 		RHISetShaderProgram(commandList, nullptr);
-		context.setupPipeline(commandList);
+		context.setupSimplePipeline(commandList);
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices));
-		RHISetShaderProgram(commandList, mEffect.getRHIResource());
+		RHISetShaderProgram(commandList, mProgBaseRender->getRHIResource());
 
 		context.stack.pop();
 		
@@ -363,9 +394,9 @@ namespace MV
 			}
 		}
 
-		context.setupPipeline(commandList);
+		context.setupSimplePipeline(commandList);
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, buffer , nV  );
-		RHISetShaderProgram(commandList, mEffect.getRHIResource());
+		RHISetShaderProgram(commandList, mProgBaseRender->getRHIResource());
 	}
 
 }//namespace MV

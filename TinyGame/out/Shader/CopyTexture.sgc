@@ -6,29 +6,39 @@
 in VSOutputParameters VSOutput;
 
 uniform sampler2D CopyTexture;
-void CopyTexturePS()
+
+PS_ENTRY_START(CopyTexturePS)
+	PS_INPUT(VSOutput, 0)
+	PS_OUTPUT_LAST( float4 OutColor , 0 )
+PS_ENTRY_END(CopyTexturePS)
 {
 	float2 UVs = VSOutput.UVs;
-	gl_FragColor = texture(CopyTexture, UVs);
+	OutColor = texture(CopyTexture, UVs);
 }
 
 
 uniform float4 ColorMask;
-void CopyTextureMaskPS()
+PS_ENTRY_START(CopyTextureMaskPS)
+	PS_INPUT(VSOutput, 0)
+	PS_OUTPUT_LAST(float4 OutColor, 0)
+PS_ENTRY_END(CopyTextureMaskPS)
 {
 	float2 UVs = VSOutput.UVs;
 	float c = dot(texture(CopyTexture, UVs), ColorMask);
-	gl_FragColor = float4( c , c , c , 1 );
+	OutColor = float4( c , c , c , 1 );
 }
 
 
 uniform float2 ColorBais;
-void CopyTextureBiasPS()
+PS_ENTRY_START(CopyTextureBiasPS)
+	PS_INPUT(VSOutput, 0)
+	PS_OUTPUT_LAST(float4 OutColor, 0)
+PS_ENTRY_END(CopyTextureBiasPS)
 {
 	float2 UVs = VSOutput.UVs;
 	float3 color = ColorBais.x * texture(CopyTexture, UVs).rgb + ColorBais.y;
-	//color = texture(CopyTexture, UVs).rgb;
-	gl_FragColor = float4(color, 1);
+	//OutColor = texture(CopyTexture, UVs).rgb;
+	OutColor = float4(color, 1);
 }
 
 uniform float2 ValueFactor;
@@ -47,15 +57,18 @@ const float3 Color[] =
 	float3(0.5,0.5,1),
 };
 
-void MappingTextureColorPS()
+PS_ENTRY_START(MappingTextureColorPS)
+	PS_INPUT(VSOutput, 0)
+	PS_OUTPUT_LAST(float4 OutColor, 0)
+PS_ENTRY_END(MappingTextureColorPS)
 {
 	vec2 UVs = VSOutput.UVs;
 	float c = dot(texture(CopyTexture, UVs), ColorMask);
 	int idx = int( round(ValueFactor.x * c + ValueFactor.y) );
 	if ( idx < 0 || idx > 9 )
-		gl_FragColor = float4(1, 1, 1, 1);
-	gl_FragColor = float4( Color[idx] , 1 );
-	//gl_FragColor = float4(c, c, c, 1);
+		OutColor = float4(1, 1, 1, 1);
+	OutColor = float4( Color[idx] , 1 );
+	//OutColor = float4(c, c, c, 1);
 }
 
 #endif //PIXEL_SHADER

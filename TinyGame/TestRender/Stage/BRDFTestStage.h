@@ -328,6 +328,17 @@ namespace Render
 			};
 			return entries;
 		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, Texture);
+			BIND_SHADER_PARAM(parameterMap, CubeTexture);
+			BIND_SHADER_PARAM(parameterMap, CubeLevel);
+		}
+
+		DEFINE_SHADER_PARAM(Texture);
+		DEFINE_SHADER_PARAM(CubeTexture);
+		DEFINE_SHADER_PARAM(CubeLevel);
 	};
 
 

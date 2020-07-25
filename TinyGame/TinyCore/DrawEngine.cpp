@@ -177,7 +177,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 
 	if( bHasUseRHI )
 	{
-		TGuardValue<bool> value(bConstructWindow, true);
+		TGuardValue<bool> value(bBlockRender, true);
 		if( !mWindowProvider->reconstructWindow(*mGameWindow) )
 		{
 			return false;
@@ -250,8 +250,11 @@ void DrawEngine::shutdownRHI(bool bDeferred)
 
 bool DrawEngine::beginRender()
 {
-	if (bConstructWindow)
+	if (bBlockRender)
+	{
+		LogMsg("====== render blacked !! =====");
 		return false;
+	}
 
 	if ( isRHIEnabled() )
 	{

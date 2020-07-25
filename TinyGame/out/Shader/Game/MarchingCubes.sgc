@@ -1,0 +1,112 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "LightingCommon.sgc"
+
+#ifndef MESH_RENDER
+#define MESH_RENDER 0
+#endif
+
+#if MESH_RENDER
+
+struct VSOutputParam
+{
+	MEMBER_OUTPUT(float3 worldPos, TEXCOORD0);
+	MEMBER_OUTPUT(float3 normal, TEXCOORD1);
+	MEMBER_OUTPUT(float3 color, TEXCOORD2);
+};
+
+#if VERTEX_SHADER
+VS_ENTRY_START(MeshRenderVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
+	VS_OUTPUT_STRUCT_LAST(VSOutputParam VSOutput, 0)
+VS_ENTRY_END(MeshRenderVS)
+{
+	VSOutput.worldPos = InPos;
+	VSOutput.normal = InNormal;
+	VSOutput.color = 0.5 * InNormal + 0.5;
+
+	SvPosition = mul( View.worldToClip , float4(InPos, 1.0) );
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MeshRenderPS)
+	PS_INPUT_STRUCT(VSOutputParam InputVS, 0)
+	PS_OUTPUT_LAST(float4 OutColor, 0)
+PS_ENTRY_END(MeshRenderPS)
+{
+	//OutColor = float4(InputVS.color, 1);
+
+	float3 N = normalize(InputVS.normal);
+	float3 V = normalize(View.worldPos - InputVS.worldPos);
+	float3 L = normalize(float3(1,0,1));
+
+	float3 color = PhongShading(0.3 * float3(1.0,1.0,1.0), 0.8 * float3(1, 1, 1), N, L, V, 10);
+
+	OutColor = /*float4( 0.5 + 0.5 * N , 1.0f ) **/ float4(color, 1);
+
+
+}
+
+#endif
+
+#else //MESH_RENDER
+
+#if VERTEX_SHADER
+
+
+uniform float3 CubeSize;
+uniform float3 CubeOffset;
+uniform int3   DataDim;
+uniform float4x4 XForm;
+
+VS_ENTRY_START(ShowValueVS)
+	VS_INPUT_INSTANCEID
+	//VS_OUTPUT_POINTSIZE
+	VS_OUTPUT_LAST( flat int3 DataCoord , 0 )
+VS_ENTRY_END(ShowValueVS)
+{
+	int dataIndex = SvInstanceID;
+
+	int temp = dataIndex % (DataDim.x * DataDim.y);
+	DataCoord.x = temp % DataDim.x;
+	DataCoord.y = temp / DataDim.x;
+	DataCoord.z = dataIndex / (DataDim.x * DataDim.y);
+	float3 worldPos = float3(DataCoord) * CubeSize + CubeOffset;
+
+	float dist = length(worldPos - View.worldPos);
+#if COMPILER_GLSL
+	SvPointSize = lerp(10, 0, saturate((dist + 1 ) / 5) );
+#endif
+	SvPosition = mul( View.worldToClip , float4( worldPos , 1.0 ));
+}
+#endif //VERTEX_SHADER
+
+
+#if PIXEL_SHADER
+
+
+DEFINE_TEXTURE( Texture3D, DataTexture );
+uniform float Isolevel;
+
+PS_ENTRY_START(ShowValuePS)
+	PS_INPUT(flat int3 DataCoord , 0)
+	PS_OUTPUT_LAST(float4 OutColor , 0)
+PS_ENTRY_END(ShowValuePS)
+{
+	float value = TEXTURE_FETCH(DataTexture, DataCoord, 0).r;
+#if 0
+	OutColor = float4(value, value, value, 1.0);
+#else
+	OutColor = (value > Isolevel) ? float4(1, 0, 0, 1) : float4(0, 1, 1, 0);
+#endif
+	//OutColor = float4(1, 0, 0, 1);
+}
+
+#endif
+
+
+#endif //MESH_RENDER

@@ -216,7 +216,7 @@ public:
 	}
 
 	template< class T >
-	void takeArray(TArrayData< T >& data, Meta::TrueType)
+	void takeArray(TArrayData< T >& data, Meta::TureType)
 	{
 		take((void*)data.ptr, sizeof(T) * data.length);
 	}
@@ -238,7 +238,7 @@ public:
 	}
 
 	template< class T >
-	void fillArray(TArrayData< T > const& data, Meta::TrueType )
+	void fillArray(TArrayData< T > const& data, Meta::TureType )
 	{
 		fill((void*)data.ptr, sizeof(T) * data.length);
 	}

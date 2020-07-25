@@ -68,7 +68,7 @@ namespace Meta
 		{
 			typedef typename TSelect< 
 				IsSameType< typename TList::TypeValue  , T >::Result ,
-				TrueType , ListFindImpl< typename TList::Next, T , N + 1 >
+				TureType , ListFindImpl< typename TList::Next, T , N + 1 >
 			>::ResultType ResultType;
 
 			enum { Result = ResultType::Result };

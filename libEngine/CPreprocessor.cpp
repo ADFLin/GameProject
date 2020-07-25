@@ -7,15 +7,17 @@
 #include "Core/StringConv.h"
 #include "Core/FNV1a.h"
 
+
+static FixString<512> GMsg;
 #define PARSE_ERROR( MSG , ... ) \
 	{\
-		FixString<512> msg; msg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , msg.c_str() , ##__VA_ARGS__ );\
-		throw SyntaxError( msg );\
+		GMsg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
+		throw SyntaxError( GMsg );\
 	}
 #define PARSE_WARNING( MSG , ... )\
 	{\
-		FixString<512> msg; msg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , msg.c_str() , ##__VA_ARGS__ );\
-		emitWarning( msg );\
+		GMsg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
+		emitWarning( GMsg );\
 	}
 
 #define FUNCTION_CHECK( func ) func

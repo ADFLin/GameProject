@@ -413,17 +413,17 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
-			mParamColorMask.bind(parameterMap, SHADER_PARAM(ColorMask));
+			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BIND_SHADER_PARAM(parameterMap, ColorMask);
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 		{
-			setTexture(commandList, mParamCopyTexture, copyTexture);
-			setParam(commandList, mParamColorMask, colorMask);
+			SET_SHADER_TEXTURE(commandList, *this, CopyTexture, copyTexture);
+			SET_SHADER_PARAM(commandList, *this, ColorMask, colorMask);
 		}
 
-		ShaderParameter mParamColorMask;
-		ShaderParameter mParamCopyTexture;
+		DEFINE_SHADER_PARAM( ColorMask );
+		DEFINE_SHADER_PARAM( CopyTexture );
 	};
 
 	class CopyTextureMaskPS : public GlobalShader
@@ -437,8 +437,8 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
-			mParamColorMask.bind(parameterMap, SHADER_PARAM(ColorMask));
+			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BIND_SHADER_PARAM(parameterMap, ColorMask);
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 		{
@@ -446,8 +446,8 @@ namespace Render
 			setParam(commandList, mParamColorMask, colorMask);
 		}
 
-		ShaderParameter mParamColorMask;
-		ShaderParameter mParamCopyTexture;
+		DEFINE_SHADER_PARAM(ColorMask);
+		DEFINE_SHADER_PARAM(CopyTexture);
 	};
 
 	IMPLEMENT_SHADER(CopyTextureMaskPS, EShader::Pixel, SHADER_ENTRY(CopyTextureMaskPS));
@@ -475,8 +475,8 @@ namespace Render
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
-			mParamColorBais.bind(parameterMap, SHADER_PARAM(ColorBais));
+			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BIND_SHADER_PARAM(parameterMap, ColorBais);
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 		{
@@ -504,18 +504,17 @@ namespace Render
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
-			mParamColorBais.bind(parameterMap, SHADER_PARAM(ColorBais));
+			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BIND_SHADER_PARAM(parameterMap, ColorBais);
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 		{
-			setTexture(commandList, mParamCopyTexture, copyTexture);
-			setParam(commandList, mParamColorBais, Vector2(colorBais[0], colorBais[1]));
+			SET_SHADER_TEXTURE(commandList, *this , CopyTexture, copyTexture);
+			SET_SHADER_PARAM(commandList, *this, ColorBais, Vector2(colorBais[0], colorBais[1]));
 		}
 
-		ShaderParameter mParamColorBais;
-		ShaderParameter mParamCopyTexture;
-
+		DEFINE_SHADER_PARAM(ColorBais);
+		DEFINE_SHADER_PARAM(CopyTexture);
 	};
 
 	IMPLEMENT_SHADER(CopyTextureBiasPS, EShader::Pixel, SHADER_ENTRY(CopyTextureBiasPS));
@@ -541,9 +540,9 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
-			mParamColorMask.bind(parameterMap, SHADER_PARAM(ColorMask));
-			mParamValueFactor.bind(parameterMap, SHADER_PARAM(ValueFactor));
+			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BIND_SHADER_PARAM(parameterMap, ColorMask);
+			BIND_SHADER_PARAM(parameterMap, ValueFactor);
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
@@ -553,9 +552,9 @@ namespace Render
 			setParam(commandList, mParamValueFactor, Vector2(valueFactor[0], valueFactor[1]));
 		}
 
-		ShaderParameter mParamCopyTexture;
-		ShaderParameter mParamColorMask;
-		ShaderParameter mParamValueFactor;
+		DEFINE_SHADER_PARAM(CopyTexture);
+		DEFINE_SHADER_PARAM(ColorMask);
+		DEFINE_SHADER_PARAM(ValueFactor);
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(CopyTextureProgram);

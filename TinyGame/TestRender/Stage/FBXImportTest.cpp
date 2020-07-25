@@ -101,21 +101,21 @@ namespace Render
 					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 					RHISetShaderProgram(commandList, mProgSkyBox->getRHIResource());
-					mProgSkyBox->setTexture(commandList, SHADER_PARAM(Texture), *mHDRImage);
+					SET_SHADER_TEXTURE( commandList, *mProgSkyBox, Texture, *mHDRImage);
 					switch( SkyboxShowIndex )
 					{
 					case ESkyboxShow::Normal:
-						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.texture);
-						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
+						SET_SHADER_TEXTURE(commandList, *mProgSkyBox, CubeTexture, *mIBLResource.texture);
+						SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(0));
 						break;
 					case ESkyboxShow::Irradiance:
 						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.irradianceTexture);
-						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
+						SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(0));
 						break;
 					default:
 						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture, SHADER_PARAM(CubeTextureSampler),
 												TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
-						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
+						SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
 					}
 
 					mView.setupShader(commandList, *mProgSkyBox);

@@ -248,6 +248,16 @@ namespace Render
 		return swapChain;
 	}
 
+	Render::RHITexture1D* D3D11System::RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
+	{
+		Texture1DCreationResult creationResult;
+		if (createTexture1DInternal(D3D11Translate::To(format), length, numMipLevel, createFlags, data, Texture::GetFormatSize(format), creationResult))
+		{
+			return new D3D11Texture1D(format, creationResult);
+		}
+		return nullptr;
+	}
+
 	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
 		Texture2DCreationResult creationResult;
@@ -257,7 +267,18 @@ namespace Render
 		}
 		return nullptr;
 	}
-
+	RHITexture3D* D3D11System::RHICreateTexture3D(
+		Texture::Format format, int sizeX, int sizeY, int sizeZ,
+		int numMipLevel, int numSamples, uint32 createFlags,
+		void* data)
+	{
+		Texture3DCreationResult creationResult;
+		if (createTexture3DInternal(D3D11Translate::To(format), sizeX , sizeY, sizeZ, numMipLevel, numSamples, createFlags, data, Texture::GetFormatSize(format), creationResult))
+		{
+			return new D3D11Texture3D(format, creationResult);
+		}
+		return nullptr;
+	}
 	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
 	{
 		uint32 creationFlags = 0;
@@ -576,7 +597,49 @@ namespace Render
 		return new D3D11ShaderProgram;
 	}
 
-	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth , Texture2DCreationResult& outResult)
+	bool D3D11System::createTexture1DInternal(DXGI_FORMAT format, int width, int numMipLevel, uint32 creationFlags, void* data, uint32 pixelSize, Texture1DCreationResult& outResult)
+	{
+		D3D11_TEXTURE1D_DESC desc = {};
+		desc.Format = format;
+		desc.Width = width;
+		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
+		desc.ArraySize = 1;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = 0;
+		if (creationFlags & TCF_RenderTarget)
+			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		if (creationFlags & TCF_CreateSRV)
+			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+		if (creationFlags & TCF_CreateUAV)
+			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+
+		desc.CPUAccessFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA initData = {};
+		if (data)
+		{
+			initData.pSysMem = (void *)data;
+			initData.SysMemPitch = width * pixelSize;
+			initData.SysMemSlicePitch = width * pixelSize;
+		}
+
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture1D(&desc, data ? &initData : nullptr, &outResult.resource));
+		if (creationFlags & TCF_RenderTarget)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
+		}
+		if (creationFlags & TCF_CreateSRV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
+		}
+		if (creationFlags & TCF_CreateUAV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
+		}
+		return true;
+	}
+
+	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
 		desc.Format = format;
@@ -623,6 +686,50 @@ namespace Render
 		return true;
 	}
 
+
+	bool D3D11System::createTexture3DInternal(DXGI_FORMAT format, int width, int height, int depth, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, Texture3DCreationResult& outResult)
+	{
+		D3D11_TEXTURE3D_DESC desc = {};
+		desc.Format = format;
+		desc.Width = width;
+		desc.Height = height;
+		desc.Depth = depth;
+		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
+
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = 0;
+		if (creationFlags & TCF_RenderTarget)
+			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		if (creationFlags & TCF_CreateSRV)
+			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+		if (creationFlags & TCF_CreateUAV)
+			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+
+		desc.CPUAccessFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA initData = {};
+		if (data)
+		{
+			initData.pSysMem = (void *)data;
+			initData.SysMemPitch = width * pixelSize;
+			initData.SysMemSlicePitch = width * height * pixelSize;
+		}
+
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&desc, data ? &initData : nullptr, &outResult.resource));
+		if (creationFlags & TCF_RenderTarget)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
+		}
+		if (creationFlags & TCF_CreateSRV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
+		}
+		if (creationFlags & TCF_CreateUAV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
+		}
+		return true;
+	}
 
 	bool D3D11ShaderBoundState::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
 	{

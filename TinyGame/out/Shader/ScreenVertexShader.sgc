@@ -2,23 +2,18 @@
 
 struct VSOutputParameters
 {
-	float2 UVs;
+	MEMBER_OUTPUT( float2 UVs , TEXCOORD0 );
 };
 
 #if VERTEX_SHADER
 
-layout(location = ATTRIBUTE_POSITION) in float4 InPosition;
-layout(location = ATTRIBUTE_TEXCOORD) in float2 InUV;
-
-out VSOutputParameters VSOutput;
-
-out gl_PerVertex
+VS_ENTRY_START(ScreenVS)
+	VS_INPUT(float4 InPosition , ATTRIBUTE_POSITION)
+	VS_INPUT(float2 InUV , ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT_LAST(VSOutputParameters VSOutput , 0)
+VS_ENTRY_END(ScreenVS)
 {
-	float4 gl_Position;
-};
-void ScreenVS()
-{
-	gl_Position = InPosition;
+	SvPosition = InPosition;
 	VSOutput.UVs = InUV;
 }
 

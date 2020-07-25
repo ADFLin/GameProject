@@ -11,7 +11,8 @@
     <ClCompile Include="Chess\ChessCore.cpp">
       <Filter>GameChess</Filter>
     </ClCompile>
-    <ClCompile Include="TestRender\Stage\MarchingCubeStage.cpp" />
+    <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
+    <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />

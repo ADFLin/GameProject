@@ -14,7 +14,7 @@ VS_ENTRY_START(MainVS)
 	VS_INPUT(float3 InPos , ATTRIBUTE_POSITION)
 	VS_INPUT(float3 InColor, ATTRIBUTE_COLOR)
 	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
-	VS_OUTPUT_LAST( VSOutputParam VSOutput, 0)
+	VS_OUTPUT_STRUCT_LAST( VSOutputParam VSOutput, 0)
 VS_ENTRY_END(MainVS)
 {
 	//output.svPosition = mul(XForm, float4(inputVS.pos.xy, 0.5, 1));

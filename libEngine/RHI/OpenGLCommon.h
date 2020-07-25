@@ -209,12 +209,12 @@ namespace Render
 		{
 			return (mNumSamples > 1) ? TypeEnumGLMultisample : TypeEnumGL;
 		}
-		void bind()
+		void bind() const
 		{
 			glBindTexture(getGLTypeEnum(), getHandle());
 		}
 
-		void unbind()
+		void unbind() const
 		{
 			glBindTexture(getGLTypeEnum(), 0);
 		}
@@ -399,8 +399,8 @@ namespace Render
 	public:
 		static GLenum constexpr GLBufferType = OpenGLBufferTraits< RHIBufferType >::EnumValue;
 
-		void  bind() { glBindBuffer(GLBufferType, getHandle()); }
-		void  unbind() { glBindBuffer(GLBufferType, 0); }
+		void  bind() const { glBindBuffer(GLBufferType, getHandle()); }
+		void  unbind() const { glBindBuffer(GLBufferType, 0); }
 
 		void* lock(ELockAccess access)
 		{
@@ -716,6 +716,7 @@ namespace Render
 		{
 			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType&>(resource);
 		}
+
 		template< class TRHIResource >
 		static auto& To(TRHIResource const& resource)
 		{
@@ -725,6 +726,8 @@ namespace Render
 		template < class TRHIResource >
 		static auto To(TRefCountPtr<TRHIResource>& ptr) { return To(ptr.get()); }
 
+		template < class TRHIResource >
+		static auto To(TRefCountPtr<TRHIResource> const& ptr) { return To(ptr.get()); }
 
 		static auto To(OpenGLFrameBuffer* buffer) { return buffer; }
 

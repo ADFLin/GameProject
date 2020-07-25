@@ -19,7 +19,7 @@ namespace Meta
 	};
 	struct EmptyType {};
 
-	typedef ConstIntegral< bool, true > TrueType;
+	typedef ConstIntegral< bool, true > TureType;
 	typedef ConstIntegral< bool, false > FalseType;
 
 	template < bool V > 

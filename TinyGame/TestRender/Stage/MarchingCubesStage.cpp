@@ -4,8 +4,10 @@
 #include "PerlinNoise.h"
 #include "ProfileSystem.h"
 #include "AsyncWork.h"
+#include "RHI/RHIGraphics2D.h"
+#include "RHI/D3D11Command.h"
 
-namespace MarchingCube
+namespace MarchingCubes
 {
 	const int EdgeTable[256] =
 	{
@@ -321,30 +323,29 @@ namespace MarchingCube
 
 namespace Render
 {
-
-
-	struct MarchingCubeConfig
+	struct VoxelChunkConfig
 	{
 		struct GridCoord
 		{
 			int     index;
 			Vector3 pos;
 		};
-		Vector3    cubeSize;
+		Vector3    voxelSize;
+		IntVector3 voxelDim;
 		IntVector3 dataDim;
-		IntVector3 cubeDim;
+
 		std::vector< GridCoord > coords;
 
-		int toDataIndex(IntVector3 const& cubePos, int indexVertex) const
+		int toDataIndex(IntVector3 const& voxelPos, int indexVertex) const
 		{
-			assert(cubePos.x < cubeDim.x &&  cubePos.y < cubeDim.y &&  cubePos.z < cubeDim.z);
-			IntVector3 vertexPos = cubePos + GetVertexOffset(indexVertex);
+			assert(voxelPos.x < voxelDim.x &&  voxelPos.y < voxelDim.y &&  voxelPos.z < voxelDim.z);
+			IntVector3 vertexPos = voxelPos + GetVertexOffset(indexVertex);
 			return vertexPos.x + dataDim.x * (vertexPos.y + dataDim.y * vertexPos.z);
 		}
-		int toDataIndex(IntVector3 const& VertexCoord) const
+		int toDataIndex(IntVector3 const& dataCoord) const
 		{
-			assert(VertexCoord.x < dataDim.x &&  VertexCoord.y < dataDim.y &&  VertexCoord.z < dataDim.z);
-			return VertexCoord.x + dataDim.x * (VertexCoord.y + dataDim.y * VertexCoord.z);
+			assert(dataCoord.x < dataDim.x &&  dataCoord.y < dataDim.y &&  dataCoord.z < dataDim.z);
+			return dataCoord.x + dataDim.x * (dataCoord.y + dataDim.y * dataCoord.z);
 		}
 
 		static IntVector3 const& GetVertexOffset(int indexVertex)
@@ -358,12 +359,12 @@ namespace Render
 			return offsetMap[indexVertex];
 		}
 
-		void initialize(IntVector3 const& dim, Vector3 const& inCubeSize)
+		void initialize(IntVector3 const& dim, Vector3 const& inVoxelSize)
 		{
 			assert(dim.x > 1 && dim.y > 1 && dim.z > 1);
 			dataDim = dim;
-			cubeDim = dataDim - IntVector3(1, 1, 1);
-			cubeSize = inCubeSize;
+			voxelDim = dataDim - IntVector3(1, 1, 1);
+			voxelSize = inVoxelSize;
 			int numData = dim.x * dim.y * dim.z;
 
 			coords.resize(numData);
@@ -376,38 +377,72 @@ namespace Render
 					{
 						int index = toDataIndex(IntVector3(i, j, k));
 						coords[index].index = index;
-						coords[index].pos = cubeSize.mul(Vector3(i, j, k));
+						coords[index].pos = voxelSize.mul(Vector3(i, j, k));
 					}
 				}
 			}
 		}
 	};
-	struct MachingCubeData
+
+
+	struct VoxelChunkData
 	{
-	public:
-
-		void initialize( Vector3 const& offset , MarchingCubeConfig const& config )
+		void initialize(VoxelChunkConfig const& inConfig)
 		{
-			mOffset = offset;
-			mConfig = &config;
-			data.resize(config.coords.size());
-
-			mWorkPool.init(20);
+			config = &inConfig;
+			data.resize(inConfig.coords.size());
 		}
 
+		float getInterpDataX(int indexData , float alpha) const
+		{
+			int nextIndex = indexData + 1;
+			if (nextIndex >= data.size())
+				nextIndex = indexData;
+			return Math::Lerp(data[indexData], data[nextIndex], alpha);
+		}
+		float getInterpDataY(int indexData, float alpha) const
+		{
+			int nextIndex = indexData + config->dataDim.x;
+			if (nextIndex >= data.size())
+				nextIndex = indexData;
+			return Math::Lerp(data[indexData], data[nextIndex], alpha);
+		}
+
+		float getInterpDataZ(int indexData, float alpha) const
+		{
+			int nextIndex = indexData + config->dataDim.x * config->dataDim.y;
+			if (nextIndex >= data.size())
+				nextIndex = indexData;
+			return Math::Lerp(data[indexData], data[nextIndex], alpha);
+		}
+
+		std::vector< float > data;
+		Vector3 offset;
+		VoxelChunkConfig const* config;
+	};
+
+	struct VoxelMeshData
+	{
 		struct Vertex
 		{
 			Vector3 pos;
 			Vector3 normal;
 		};
+		std::vector< Vertex > vertices;
+		std::vector< int32 >  indices;
+	};
 
-		struct MeshData
+	struct VoxelMeshBuilder
+	{
+	public:
+
+		void initialize()
 		{
-			std::vector< Vertex > vertices;
-			std::vector< int32 >  indices;
-		};
+			mWorkPool.init(8);
+		}
 
-		typedef MarchingCubeConfig::GridCoord GridCoord;
+
+		typedef VoxelChunkConfig::GridCoord GridCoord;
 		struct GirdData
 		{
 			GridCoord const* coord;
@@ -421,35 +456,47 @@ namespace Render
 
 		std::unordered_map< uint64, int > mEdgeToVertexMap;
 
-		void generateMesh(float isolevel, MeshData& outMeshData)
+		void generateMesh(float isolevel, VoxelChunkData const& chunkData , VoxelMeshData& outMeshData)
 		{
-			TimeScope scope("generateMesh");
+			//TimeScope scope("generateMesh");
 
 			outMeshData.vertices.clear();
 			outMeshData.indices.clear();
 			mEdgeToVertexMap.clear();
 
-#if 1
+#if 0
 			std::vector< TriVertexInfo > triVertices;
-			generateCubeTriangle(isolevel, IntVector3(0, 0, 0), mConfig->cubeDim, triVertices);
+			generateVoxelTriangle(isolevel, IntVector3(0, 0, 0), chunkData.config->cubeDim, triVertices);
 			mergeMeshData(isolevel, outMeshData, triVertices);
 #else
 			int numWorker = mWorkPool.getAllThreadNum();
-			int cubeSubZLen = ( mConfig->cubeDim.z + numWorker - 1 ) / numWorker;
+			int voxelSubZLen = (chunkData.config->voxelDim.z + numWorker - 1 ) / numWorker;
+
+			int completeCount = 0;
 			for (int i = 0; i < numWorker; ++i)
 			{
 				MyWork* work = new MyWork;
 				work->generator = this;
+				work->chunkData = &chunkData;
 				work->meshData = &outMeshData;
 				work->isolevel = isolevel;
-				work->startCubePos = IntVector3(0,0,cubeSubZLen * i);
-				work->genDim = mConfig->cubeDim;
-				work->genDim.z = Math::Min(cubeSubZLen, mConfig->cubeDim.z - work->startCubePos.z);
+				work->startVoxelPos = IntVector3(0,0,voxelSubZLen * i);
+				work->genVoxelDim = chunkData.config->voxelDim;
+				work->genVoxelDim.z = Math::Min(voxelSubZLen, chunkData.config->voxelDim.z - work->startVoxelPos.z);
+				work->completeCount = &completeCount;
 				mWorkPool.addWork(work);
 			}
 			{
 				TimeScope scope("waitAllWorkComplete");
+#if 0
 				mWorkPool.waitAllWorkComplete();
+#else
+
+				while (SystemPlatform::AtomicRead(&completeCount) != numWorker)
+				{
+					SystemPlatform::Sleep(0);
+				}
+#endif
 			}
 #endif
 
@@ -462,15 +509,17 @@ namespace Render
 			virtual void executeWork() override
 			{
 				{
-					TimeScope scope("generateCubeTriangle");
-					generator->generateCubeTriangle(isolevel, startCubePos, genDim, triVertices);
+					//TimeScope scope("generateCubeTriangle");
+					generator->generateVoxelTriangle(isolevel, *chunkData, startVoxelPos, genVoxelDim, triVertices);
 				}
 				
 				{
-					TimeScope scope("mergeMeshData");
+					//TimeScope scope("mergeMeshData");
 					Mutex::Locker locker(generator->meshLock);
 					generator->mergeMeshData(isolevel, *meshData, triVertices);
 				}
+
+				SystemPlatform::AtomIncrement(completeCount);
 			}
 			virtual void release() override
 			{
@@ -478,19 +527,21 @@ namespace Render
 			}
 
 			int index;
-			MachingCubeData* generator;
-			MeshData* meshData;
+			VoxelMeshBuilder* generator;
+			VoxelChunkData const* chunkData;
+			VoxelMeshData* meshData;
 			std::vector< TriVertexInfo > triVertices;
 			float isolevel;
-			IntVector3 startCubePos;
-			IntVector3 genDim;
+			IntVector3 startVoxelPos;
+			IntVector3 genVoxelDim;
+			volatile int32* completeCount;
 
 		};
 
 		QueueThreadPool mWorkPool;
 		Mutex meshLock;
 
-		void mergeMeshData(float isolevel, MeshData& meshData, std::vector< TriVertexInfo > const& triVertices)
+		void mergeMeshData(float isolevel, VoxelMeshData& meshData, std::vector< TriVertexInfo > const& triVertices)
 		{
 			assert(triVertices.size() % 3 == 0);
 
@@ -498,6 +549,7 @@ namespace Render
 			meshData.vertices.reserve(meshData.vertices.size() + triVertices.size());
 			for (auto const& info : triVertices)
 			{
+#if 1
 				int idx1 = info.v[0].coord->index;
 				int idx2 = info.v[1].coord->index;
 				if (idx1 > idx2)
@@ -511,7 +563,7 @@ namespace Render
 				if (iter == mEdgeToVertexMap.end())
 				{
 					idxVertex = meshData.vertices.size();
-					Vertex v;
+					VoxelMeshData::Vertex v;
 					v.pos = VertexInterp(isolevel, info.v[0], info.v[1]);
 					v.normal = Vector3::Zero();
 					meshData.vertices.push_back(v);
@@ -522,13 +574,20 @@ namespace Render
 				{
 					idxVertex = iter->second;
 				}
+#else
+				int idxVertex = meshData.vertices.size();
+				VoxelMeshData::Vertex  v;
+				v.pos = VertexInterp(isolevel, info.v[0], info.v[1]);
+				v.normal = Vector3::Zero();
+				meshData.vertices.push_back(v);
+#endif
 
 				meshData.indices.push_back(idxVertex);
 			}
 		}
 
 
-		void generateCubeTriangle(float isolevel , IntVector3 const& cubeStartPos , IntVector3 const& size , std::vector< TriVertexInfo >& outTriVertices)
+		void generateVoxelTriangle(float isolevel , VoxelChunkData const& chunkData, IntVector3 const& voxelStartPos , IntVector3 const& size , std::vector< TriVertexInfo >& outTriVertices)
 		{
 			for (int k = 0; k < size.z; ++k)
 			{
@@ -536,16 +595,16 @@ namespace Render
 				{
 					for (int i = 0; i < size.x; ++i)
 					{
-						IntVector3 cubePos = cubeStartPos + IntVector3(i, j, k);
+						IntVector3 voxelPos = voxelStartPos + IntVector3(i, j, k);
 						GirdData gridValues[8];
 						for (int idx = 0; idx < 8; ++idx)
 						{
-							int indexData = mConfig->toDataIndex(cubePos, idx);
+							int indexData = chunkData.config->toDataIndex(voxelPos, idx);
 
-							gridValues[idx].value = data[indexData];
-							gridValues[idx].coord = &mConfig->coords[indexData];
+							gridValues[idx].value = chunkData.data[indexData];
+							gridValues[idx].coord = &chunkData.config->coords[indexData];
 						}
-						GenerateCubeTriangle(isolevel, gridValues, cubePos, outTriVertices);
+						GenerateVoxelTriangle(isolevel, gridValues, outTriVertices);
 					}
 				}
 			}
@@ -554,10 +613,12 @@ namespace Render
 
 		static Vector3 VertexInterp(float isolevel, GirdData const& v1, GirdData const& v2)
 		{
+#if 0
 			if (Math::Abs(isolevel - v1.value) < 0.00001)
 				return v1.coord->pos;
 			if (Math::Abs(isolevel - v2.value) < 0.00001)
 				return v2.coord->pos;
+#endif
 
 			if (Math::Abs(v1.value - v2.value) < 0.00001)
 				return 0.5 * (v1.coord->pos + v2.coord->pos);
@@ -567,7 +628,7 @@ namespace Render
 		}
 
 
-		static void GenerateCubeTriangle(float isolevel, GirdData grids[] , IntVector3 const& cubeStartPos, std::vector< TriVertexInfo >& outTriVertices)
+		static void GenerateVoxelTriangle(float isolevel, GirdData grids[] , std::vector< TriVertexInfo >& outTriVertices)
 		{
 			uint32 cubeindex = 0;
 			for (int i = 0; i < 8; ++i)
@@ -576,43 +637,67 @@ namespace Render
 					cubeindex |= BIT(i);
 			}
 
-			int const* triangleTable = MarchingCube::TriTable[cubeindex];
+			int const* triangleTable = MarchingCubes::TriTable[cubeindex];
 			for (int i = 0; triangleTable[i] != -1; ++i)
 			{
 				int edgeIndex = triangleTable[i];
 				TriVertexInfo info;
-				info.v[0] = grids[ MarchingCube::EdgeToVertexMap[edgeIndex][0] ];
-				info.v[1] = grids[ MarchingCube::EdgeToVertexMap[edgeIndex][1] ];
+				info.v[0] = grids[ MarchingCubes::EdgeToVertexMap[edgeIndex][0] ];
+				info.v[1] = grids[ MarchingCubes::EdgeToVertexMap[edgeIndex][1] ];
 				outTriVertices.push_back(info);
 			}
 		}
 
-
-		float getValue(IntVector3 const& cubePos, int indexVertex)
+		static void GenerateMeshNormal(VoxelChunkData const& chunkData, VoxelMeshData& meshData)
 		{
-			int index = mConfig->toDataIndex(cubePos, indexVertex);
-			return data[index];
-		}
+			for (int i = 0; i < meshData.vertices.size(); ++i)
+			{
+				auto& v = meshData.vertices[i];
+				//N = div(v) = Dv/Dx i + Dv/Dy j + Dv/Dz k;
+				// Dv / Dx = v(x + 1) + V(x - 1 ) / 2 * dx ;
 
-		void setValue(IntVector3 const& pos, float value)
-		{
-			int index = mConfig->toDataIndex(pos);
-			data[index] = value;
-		}
+				Vector3 voxelPosF = v.pos.div(chunkData.config->voxelSize);
+				IntVector3 voxelPos;
+				voxelPos.x = Math::FloorToInt(voxelPosF.x);
+				voxelPos.y = Math::FloorToInt(voxelPosF.y);
+				voxelPos.z = Math::FloorToInt(voxelPosF.z);
+				Vector3 diff = voxelPosF - Vector3(voxelPos.x, voxelPos.y, voxelPos.z);
 
-		MarchingCubeConfig const* mConfig;
-		std::vector< float > data;
-		Vector3 mOffset;
-	
+				int indexData = chunkData.config->toDataIndex(voxelPos);
+
+				int indexX = indexData + 1;
+				if (indexX > chunkData.data.size())
+					indexX = indexData;
+				float dx = chunkData.getInterpDataX(indexX, diff.x) - chunkData.getInterpDataX(indexData, diff.x);
+				int indexY = indexData + chunkData.config->dataDim.x;
+				if (indexY > chunkData.data.size())
+					indexY = indexData;
+				float dy = chunkData.getInterpDataY(indexY, diff.y) - chunkData.getInterpDataY(indexData, diff.y);
+				int indexZ = indexData + +chunkData.config->dataDim.x*chunkData.config->dataDim.y;
+				if (indexZ > chunkData.data.size())
+					indexZ = indexData;
+				float dz = chunkData.getInterpDataZ(indexZ, diff.z) - chunkData.getInterpDataZ(indexData, diff.z);
+				v.normal = -Vector3(dx, dy, dz) / chunkData.config->voxelSize;
+				v.normal.normalize();
+			}
+		}
 	};
 
 	class ShowValueProgram : public GlobalShaderProgram
 	{
 		DECLARE_SHADER_PROGRAM(ShowValueProgram, Global)
 
+		virtual void bindParameters(ShaderParameterMap const& parameterMap)
+		{		
+			BIND_SHADER_PARAM(parameterMap, CubeSize);
+			BIND_SHADER_PARAM(parameterMap, CubeOffset);
+			BIND_SHADER_PARAM(parameterMap, DataTexture);
+			BIND_SHADER_PARAM(parameterMap, DataDim);
+			BIND_SHADER_PARAM(parameterMap, Isolevel);
+		}
 		static char const* GetShaderFileName()
 		{
-			return "Shader/Game/MarchingCube";
+			return "Shader/Game/MarchingCubes";
 		}
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
@@ -624,28 +709,69 @@ namespace Render
 			return entries;
 		}
 
-	};
+		DEFINE_SHADER_PARAM(CubeSize);
+		DEFINE_SHADER_PARAM(CubeOffset);
+		DEFINE_SHADER_PARAM(DataTexture);
+		DEFINE_SHADER_PARAM(DataDim);
+		DEFINE_SHADER_PARAM(Isolevel);
 
+	};
 	IMPLEMENT_SHADER_PROGRAM(ShowValueProgram);
 
 
-	class MarchingCubeTestStage : public TestRenderStageBase
 
+	class MeshRenderProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(MeshRenderProgram, Global)
+		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		{
+			option.addDefine(SHADER_PARAM(MESH_RENDER), true);
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/MarchingCubes";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MeshRenderVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MeshRenderPS) },
+			};
+			return entries;
+		}
+
+
+
+	};
+	IMPLEMENT_SHADER_PROGRAM(MeshRenderProgram);
+
+
+	class MarchingCubesTestStage : public TestRenderStageBase
 	{
 		using BaseClass = TestRenderStageBase;
 	public:
-		MarchingCubeTestStage() {}
+		MarchingCubesTestStage() {}
 
-		MachingCubeData mMCData;
-		MarchingCubeConfig mConfig;
+		VoxelMeshBuilder    mMeshBuilder;
+		VoxelMeshData       mMeshData;
+		VoxelChunkConfig    mConfig;
+		VoxelChunkData      mChunkData;
 
-		MachingCubeData::MeshData mMeshData;
-
-		ShowValueProgram*  mProgShowValue;
-		RHITexture3DRef    mDataTexture;
+		ShowValueProgram*   mProgShowValue;
+		MeshRenderProgram*  mProgMeshRender;
+		RHITexture3DRef     mDataTexture;
 		float mIsolevel = 0.5;
 		bool  mbWireframeMode = false;
+		bool  mbDrawData = true;
 		Mesh mMesh;
+
+		virtual RHITargetName getRHITargetName() override
+		{
+			return RHITargetName::D3D11;
+		}
+
+
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
@@ -654,35 +780,49 @@ namespace Render
 			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 
-			int size = 64;
+			VERIFY_RETURN_FALSE(mProgShowValue = ShaderManager::Get().getGlobalShaderT< ShowValueProgram >());
+			VERIFY_RETURN_FALSE(mProgMeshRender = ShaderManager::Get().getGlobalShaderT< MeshRenderProgram >());
+
+
+			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+
+			int chunkDataDim = 32;
+			Vector3 chunkSize = Vector3(10, 10, 10);
+			Vector3 voxelSize = chunkSize / float(chunkDataDim - 1);
+			
 			int noiseSize = 3.3;
-			mConfig.initialize(IntVector3(size, size, size), Vector3(0.2, 0.2, 0.2));
-			mMCData.initialize(Vector3(0, 0, 0), mConfig);
+			mConfig.initialize(IntVector3(chunkDataDim, chunkDataDim, chunkDataDim), voxelSize);
+			mChunkData.initialize(mConfig);
+			mChunkData.offset = Vector3::Zero();
+
+			mMeshBuilder.initialize();
 
 			{
 				TPerlinNoise<true> noise;
 				noise.repeat = noiseSize;
-				float factor = noiseSize / float(size - 1);
-				for (int k = 0; k < size; ++k)
+				float factor = noiseSize / float(chunkDataDim - 1);
+				for (int k = 0; k < chunkDataDim; ++k)
 				{
-					for (int j = 0; j < size; ++j)
+					for (int j = 0; j < chunkDataDim; ++j)
 					{
-						for (int i = 0; i < size; ++i)
+						for (int i = 0; i < chunkDataDim; ++i)
 						{
-							float nv = noise.getValue( i * factor,  j * factor, k * factor);
+							Vector3 p = Vector3(i * factor, j * factor, k * factor);
+							float nv = noise.getValue(p.x, p.y, p.z);
+							p *= 2;
+							float nv1 = noise.getValue(p.x, p.y, p.z);
+							p *= 2;
+							float nv2 = noise.getValue(p.x, p.y, p.z);
 							int indexData = mConfig.toDataIndex(IntVector3(i, j, k));
-							mMCData.data[indexData] = 0.5 * nv + 0.5;
+							mChunkData.data[indexData] = 0.5 * ( nv + 0.5 * nv1 + 0.25 * nv2 ) / ( 1.75 )  + 0.5;
 						}
 					}
 				}
 			}
 			
-			mDataTexture = RHICreateTexture3D(Texture::eR32F, mConfig.dataDim.x, mConfig.dataDim.y, mConfig.dataDim.z, 1 , 1 , TCF_DefalutValue, mMCData.data.data());
-			mProgShowValue = ShaderManager::Get().getGlobalShaderT< ShowValueProgram >();
-			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
-			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat3);
+			mDataTexture = RHICreateTexture3D(Texture::eR32F, mConfig.dataDim.x, mConfig.dataDim.y, mConfig.dataDim.z, 1 , 1 , TCF_DefalutValue, mChunkData.data.data());
 			updateMesh();
-
 
 			::Global::GUI().cleanupWidget();
 			auto devFrame = WidgetUtility::CreateDevFrame();
@@ -694,6 +834,7 @@ namespace Render
 				updateMesh();
 			});
 			FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Wireframe"), mbWireframeMode);
+			FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Draw Data"), mbDrawData);
 			return true;
 		}
 
@@ -701,16 +842,11 @@ namespace Render
 
 		void updateMesh()
 		{
-			if (bUpdateingMesh)
-			{
-				LogMsg("input!!!!!!");
-				return;
-			}
-			
 			TimeScope Time("Update Mesh");
-			TGuardValue< bool > scopedValue(bUpdateingMesh, true);
-			mMCData.generateMesh(mIsolevel, mMeshData);
-			MeshUtility::FillTriangleListNormal(mMesh.mInputLayoutDesc, mMeshData.vertices.data(), mMeshData.vertices.size(), mMeshData.indices.data(), mMeshData.indices.size(), Vertex::ATTRIBUTE_COLOR);
+			TGuardValue< bool > scopedValue(::Global::GetDrawEngine().bBlockRender, true);
+			mMeshBuilder.generateMesh(mIsolevel, mChunkData, mMeshData);
+			MeshUtility::FillTriangleListNormal(mMesh.mInputLayoutDesc, mMeshData.vertices.data(), mMeshData.vertices.size(), mMeshData.indices.data(), mMeshData.indices.size());
+			//VoxelMeshBuilder::GenerateMeshNormal(mChunkData, mMeshData);
 			mMesh.createRHIResource(mMeshData.vertices.data(), mMeshData.vertices.size(), mMeshData.indices.data(), mMeshData.indices.size(), true);
 		}
 		void onEnd() override
@@ -734,35 +870,69 @@ namespace Render
 
 		void onRender(float dFrame) override
 		{
-			initializeRenderState();
+			//initializeRenderState();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
+
+			GameWindow& window = Global::GetDrawEngine().getWindow();
+
+			mView.rectOffset = IntVector2(0, 0);
+			mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
+
+			Matrix4 matView = mCamera.getViewMatrix();
+			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+			mView.updateBuffer();
 			
+
+			RHISetFrameBuffer(commandList, nullptr);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
+
+
 			RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 			DrawUtility::AixsLine(commandList);
 
-			if (mbWireframeMode)
-				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None, EFillMode::Wireframe >::GetRHI());
-			else
+			{
+				if (mbWireframeMode)
+					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None, EFillMode::Wireframe >::GetRHI());
+				else
+					RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+				RHISetShaderProgram(commandList, mProgMeshRender->getRHIResource());
+				mView.setupShader(commandList, *mProgMeshRender);
+
+				mMesh.draw(commandList);
+			}
+
+			if ( mbDrawData )
+			{
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				//RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
-			mMesh.draw(commandList);
+				RHISetShaderProgram(commandList, mProgShowValue->getRHIResource());
+				SET_SHADER_PARAM(commandList, *mProgShowValue, CubeSize, mConfig.voxelSize);
+				SET_SHADER_PARAM(commandList, *mProgShowValue, CubeOffset, mChunkData.offset);
+				SET_SHADER_PARAM(commandList, *mProgShowValue, DataDim, mConfig.dataDim);
+				SET_SHADER_TEXTURE(commandList, *mProgShowValue, DataTexture, *mDataTexture);
+				SET_SHADER_PARAM(commandList, *mProgShowValue, Isolevel, mIsolevel);
+				mView.setupShader(commandList, *mProgShowValue);
+				RHISetInputStream(commandList, nullptr, nullptr, 0);
+				RHISetIndexBuffer(commandList, nullptr);
+				int num = mConfig.dataDim.x * mConfig.dataDim.y * mConfig.dataDim.z;
+				RHIDrawPrimitiveInstanced(commandList, EPrimitive::Points, 0, 1, num);
+			}
 
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-			//RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
-			RHISetShaderProgram(commandList, mProgShowValue->getRHIResource());
-			mProgShowValue->setParam(commandList, SHADER_PARAM(CubeSize), mConfig.cubeSize);
-			mProgShowValue->setParam(commandList, SHADER_PARAM(CubeOffset), mMCData.mOffset);
-			mProgShowValue->setParam(commandList, SHADER_PARAM(DataDim), mConfig.dataDim);
-			mProgShowValue->setTexture(commandList, SHADER_PARAM(DataTexture), *mDataTexture);
-			mView.setupShader(commandList, *mProgShowValue);
-			RHISetInputStream(commandList, nullptr, nullptr, 0);
-			RHISetIndexBuffer(commandList, nullptr);
-			int num = mConfig.dataDim.x * mConfig.dataDim.y * mConfig.dataDim.z;
-			RHIDrawPrimitiveInstanced(commandList, EPrimitive::Points, 0, 1, num);
-
-
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+			g.beginRender();
+			g.setTextColor(Color3f(1, 1, 0));
+			SimpleTextLayout textLayout;
+			textLayout.posX = 10;
+			textLayout.posY = 10;
+			textLayout.offset = 15;
+			textLayout.show(g, "Mesh Triangle = %d", mMeshData.indices.size() / 3);
+			textLayout.show(g, "Mesh Vertices = %d", mMeshData.vertices.size() );
+			g.endRender();
 
 		}
 
@@ -799,5 +969,5 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE2("Maching Cube", MarchingCubeTestStage, EStageGroup::FeatureDev, 1);
+	REGISTER_STAGE2("Maching Cubes", MarchingCubesTestStage, EStageGroup::FeatureDev, 1);
 }

@@ -6,9 +6,6 @@
 #include "MVPathFinder.h"
 #include "MVSpaceControl.h"
 
-#include "GL/glew.h"
-#include "GLConfig.h"
-
 #include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/ShaderProgram.h"
@@ -21,24 +18,25 @@ namespace MV
 	using Render::SimpleRenderState;
 	using Render::ViewInfo;
 	using Render::RHICommandList;
-	using Render::ShaderProgram;
 
 #define USE_RENDER_CONTEXT 1
 
 	struct RenderContext : public SimpleRenderState
 	{
-		void setupShader(RHICommandList& commandList, ShaderProgram& shader)
-		{
+		template< class TShader>
+		void setupShader(RHICommandList& commandList, TShader& shader)
+		{		
 			mView->setupShader(commandList, shader);
-			
+			SET_SHADER_PARAM(commandList, shader, LocalToWorld, stack.get());
 		}
 
-		void setupPrimitiveParams(RHICommandList& commandList, ShaderProgram& shader)
+		template< class TShader>
+		void setupPrimitiveParams(RHICommandList& commandList, TShader& shader)
 		{
-			shader.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), stack.get());
+			SET_SHADER_PARAM(commandList, shader, LocalToWorld, stack.get());
 		}
 
-		void setupPipeline(RHICommandList& commandList)
+		void setupSimplePipeline(RHICommandList& commandList)
 		{
 			RHISetFixedShaderPipelineState(commandList, stack.get() * mView->worldToClip, mColor);
 		}
@@ -93,11 +91,12 @@ namespace MV
 			if ( !isUse )
 				return;
 
-			//Vec3i const& axis = getOffset( mDir );
-			//glPushMatrix();
-			//glTranslatef( mPos.x , mPos.y , mPos.z );
-			//glRotatef( rotateAngle , axis.x , axis.y , axis.z );
-			//glTranslatef( -mPos.x , -mPos.y , -mPos.z );
+			//Vec3f const& axis = FDir::OffsetF(mDir);
+
+			//context.stack.push();
+			//context.stack.translate(pos);
+			//context.stack.rotate(Quat::Rotate(axis, Math::Deg2Rad(rotateAngle)));
+			//context.stack.translate(-pos);
 		}
 		void postRender(RenderContext& context) override
 		{
@@ -171,15 +170,9 @@ namespace MV
 
 		void renderScene(RenderContext& context);
 
-		void beginRender()
-		{
-			RHISetShaderProgram(*mCommandList, mEffect.getRHIResource());
-		}
+		void beginRender();
 
-		void endRender()
-		{
-			RHISetShaderProgram(*mCommandList, nullptr);
-		}
+		void endRender();
 
 		void renderBlock(RenderContext& context, Block& block , Vec3i const& pos );
 		void renderPath(RenderContext& context, Path& path , PointVec& points );
@@ -193,10 +186,8 @@ namespace MV
 
 		Mat4 mViewToWorld;
 		Render::RHICommandList* mCommandList;
-		Render::ShaderProgram   mEffect;
-		Render::ShaderParameter paramRotation;
-		Render::ShaderParameter paramLocalScale;
 
+		class BaseRenderProgram* mProgBaseRender;
 
 		Render::Mesh mMesh[ NUM_MESH ];
 

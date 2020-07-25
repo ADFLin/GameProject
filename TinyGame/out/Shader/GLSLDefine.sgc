@@ -58,6 +58,8 @@ typedef float4x4 mat4;
 #define vs_out in
 #endif
 
+#define GLOBAL_CONST const
+
 #define UNROLL
 #define LOOP
 
@@ -76,6 +78,8 @@ float rcp(float x)
 {
 	return 1.0 / x;
 }
+
+float atan2(float y, float x) { return atan(y, x); }
 
 DEFINE_VECTOR_FUNCTION(rcp, { return 1.0 / x; })
 float saturate(float x)
@@ -158,28 +162,52 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define MEMBER_OUTPUT( DECL , NAME ) DECL
 
 #define SvPosition gl_Position
+#define SvInstanceID gl_InstanceID
+#define SvPointSize gl_PointSize
 #define SHADER_ENTRY_START(NAME)
 #define SHADER_INPUT(TYPE_DECL , LOC) layout(location = LOC) in TYPE_DECL;
 #define SHADER_OUTPUT(TYPE_DECL , LOC) layout(location = LOC ) out TYPE_DECL;
 #define SHADER_OUTPUT_LAST(TYPE_DECL , LOC)  layout(location = LOC ) out TYPE_DECL;
 #define SHADER_ENTRY_END(NAME) void NAME()
 
-#define VS_ENTRY_START(NAME) SHADER_ENTRY_START(NAME)
+#if VERTEX_SHADER
+#define VS_ENTRY_START(NAME)
+	out gl_PerVertex\
+	{\
+		float4 gl_Position;\
+	};\
+	SHADER_ENTRY_START(NAME)
+#define VS_INPUT_INSTANCEID
+#define VS_OUTPUT_POINTSIZE
 #define VS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
 #define VS_OUTPUT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
-#define VS_OUTPUT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT_LAST(TYPE_DECL , LOC) 
+#define VS_OUTPUT_STRUCT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
+#define VS_OUTPUT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT_LAST(TYPE_DECL , LOC)
+#define VS_OUTPUT_STRUCT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT_LAST(TYPE_DECL , LOC) 
 #define VS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
+#endif
 
 #define PS_ENTRY_START(NAME) SHADER_ENTRY_START(NAME)
 #define PS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
+#define PS_INPUT_STRUCT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
 #define PS_OUTPUT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
 #define PS_OUTPUT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
 #define PS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
 
+#define Texture1D sampler1D
 #define Texture2D sampler2D
+#define Texture3D sampler3D
 
 #define DEFINE_TEXTURE( TYPE , NAME ) uniform TYPE NAME
 #define TEXTURE_SAMPE( NAME , UV ) texture(NAME, UV)
+
+#define TEXTURE_FETCH( NAME , UV , LOD ) texelFetch(NAME, UV, LOD)
+
+
+#define ARRAY_DATA_BEGIN( TYPE ) TYPE[](
+#define ARRAY_DATA_END );
+
+
 
 float4 mul(float4x4 a, float4 b) { return a * b; }
 

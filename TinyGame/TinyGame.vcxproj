@@ -124,6 +124,7 @@
       </IgnoreAllDefaultLibraries>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <Profile>false</Profile>
+      <StackReserveSize>0x00400000 </StackReserveSize>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
@@ -215,6 +216,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
       </IgnoreSpecificDefaultLibraries>
       <StackCommitSize>
       </StackCommitSize>
+      <StackReserveSize>0x00400000 </StackReserveSize>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\

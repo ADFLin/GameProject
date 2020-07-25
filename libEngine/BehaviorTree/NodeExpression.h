@@ -86,7 +86,7 @@ namespace BT
 
 
 	struct FalseType{};
-	struct TrueType{};
+	struct TureType{};
 
 	template< class Node >
 	class NodeBuilder : public NodeExpr< NodeBuilder< Node > >

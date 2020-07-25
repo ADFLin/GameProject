@@ -15,6 +15,7 @@
 #include "RHI/ShaderManager.h"
 
 #include <limits>
+#include "RHI/D3D11Command.h"
 
 namespace MV
 {
@@ -39,9 +40,12 @@ namespace MV
 	{
 		::Global::GUI().cleanupWidget();
 
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11));
+
+		Global::GetDrawEngine().bUsePlatformBuffer = true;
 
 		GameWindow& window = Global::GetDrawEngine().getWindow();
+
 		//testRotation();
 
 
@@ -368,9 +372,6 @@ namespace MV
 		RenderParam& param = mRenderEngine.mParam;
 		switch(msg.getCode())
 		{
-		case EKeyCode::F2:
-			ShaderManager::Get().reloadShader(mRenderEngine.mEffect);
-			break;
 		case EKeyCode::F3:
 			isEditMode = !isEditMode;
 			break;
@@ -592,7 +593,8 @@ namespace MV
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -645,7 +647,7 @@ namespace MV
 				Matrix4 matView;
 				int width = window.getWidth();
 				int height = window.getHeight();
-				glViewport( 0 , 0 , width , height );
+				RHISetViewport(commandList, 0, 0, width, height);
 				if ( bCameraView )
 				{
 					//glOrtho(0, window.getWidth() , 0 , window.getHeight() , -10000 , 100000 );
@@ -696,7 +698,7 @@ namespace MV
 		RenderUtility::SetFont( g , FONT_S8 );
 		FixString< 256 > str;
 		Vec2i pos = Vec2i( 10 , 10 );
-		glColor3f(1,0,0.0f);
+		g.setTextColor(Color3f(1, 0, 0));
 		if ( isEditMode )
 		{
 			char const* editType = "unknown";
@@ -725,6 +727,15 @@ namespace MV
 
 		renderDbgText( pos );
 		g.endRender();
+
+		if (GRHISystem->getName() == RHISytemName::D3D11)
+		{
+			if (::Global::GetDrawEngine().bUsePlatformBuffer)
+			{
+				Graphics2D& g = Global::GetGraphics2D();
+				static_cast< D3D11System*>(GRHISystem)->mSwapChain->BitbltToDevice(g.getRenderDC());
+			}
+		}
 	}
 
 	void TestStage::tick()
@@ -757,7 +768,12 @@ namespace MV
 		RenderParam& param = mRenderEngine.mParam;
 		param.world = &mWorld;
 
-		mRenderEngine.renderScene(context);
+		//mRenderEngine.renderScene(context);
+		mRenderEngine.beginRender();
+
+		mRenderEngine.renderMesh(context, MeshId::MESH_STAIR , editMeshPos, Vec3f(0, 0, 0));
+		mRenderEngine.endRender();
+
 
 		if ( param.bShowNavPath )
 		{
@@ -767,7 +783,7 @@ namespace MV
 
 		if ( isEditMode )
 		{
-			glDisable( GL_DEPTH_TEST );
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			//glEnable( GL_POLYGON_OFFSET_LINE );
 			//glPolygonOffset( -0.4f, 0.2f );
 			context.stack.push();
@@ -777,13 +793,13 @@ namespace MV
 				context.stack.translate( Vec3f(editPos) - Vec3f(0.5));
 
 			context.setColor(LinearColor(1, 1, 1));
-			context.setupPipeline(commandList);
+			context.setupSimplePipeline(commandList);
 			DrawUtility::CubeLine(commandList);
 
 			context.stack.pop();
 
 			//glDisable( GL_POLYGON_OFFSET_LINE );
-			glEnable( GL_DEPTH_TEST );
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 			float len = 50;
 
@@ -802,14 +818,14 @@ namespace MV
 					v[0] = -len; v[1] = p; v[2] = z; v += 3;
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
-				context.setupPipeline(commandList);
+				context.setupSimplePipeline(commandList);
 				TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::LineList , buffer , size / 3 );
 			}
 
 			{
 				context.stack.push();
 				context.stack.scale(Vec3f(len));
-				context.setupPipeline(commandList);
+				context.setupSimplePipeline(commandList);
 				DrawUtility::AixsLine(commandList);
 				context.stack.pop();
 			}

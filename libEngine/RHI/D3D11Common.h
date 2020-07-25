@@ -34,7 +34,9 @@ namespace Render
 	template< class RHITextureType >
 	struct TD3D11TypeTraits { typedef void ImplType; };
 
+	class D3D11Texture1D;
 	class D3D11Texture2D;
+	class D3D11Texture3D;
 	class D3D11TextureDepth;
 	class D3D11VertexBuffer;
 	class D3D11IndexBuffer;
@@ -51,6 +53,7 @@ namespace Render
 	struct TD3D11TypeTraits< RHITexture1D > 
 	{ 
 		typedef ID3D11Texture1D ResourceType; 
+		typedef D3D11Texture1D ImplType;
 	};
 	template<>
 	struct TD3D11TypeTraits< RHITexture2D >
@@ -62,7 +65,7 @@ namespace Render
 	struct TD3D11TypeTraits< RHITexture3D > 
 	{ 
 		typedef ID3D11Texture3D ResourceType; 
-		//typedef D3D11Texture3D ImplType;
+		typedef D3D11Texture3D ImplType;
 	};
 	//template<>
 	//struct TD3D11TypeTraits< RHITextureCube > { typedef ID3D11TextureArray ResourceType; };
@@ -281,6 +284,51 @@ namespace Render
 		ID3D11UnorderedAccessView* mUAV;
 	};
 
+
+
+	struct Texture1DCreationResult
+	{
+		TComPtr< ID3D11Texture1D > resource;
+		TComPtr< ID3D11RenderTargetView >    RTV;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+	};
+
+	class D3D11Texture1D : public TD3D11Texture< RHITexture1D >
+	{
+	public:
+		D3D11Texture1D(Texture::Format format, Texture1DCreationResult& creationResult)
+			:TD3D11Texture< RHITexture1D >(creationResult.RTV.release(), creationResult.SRV.release(), creationResult.UAV.release())
+		{
+			mFormat = format;
+			mResource = creationResult.resource.release();
+			D3D11_TEXTURE1D_DESC desc;
+			mResource->GetDesc(&desc);
+			mSize = desc.Width;
+			mNumSamples = 1;
+			mNumMipLevel = desc.MipLevels;
+		}
+
+		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0)
+		{
+
+			TComPtr<ID3D11Device> device;
+			mResource->GetDevice(&device);
+			TComPtr<ID3D11DeviceContext> deviceContext;
+			device->GetImmediateContext(&deviceContext);
+			D3D11_BOX box;
+			box.front = 0;
+			box.back = 1;
+			box.left = offset;
+			box.right = offset + length;
+			box.top = 0;
+			box.bottom = 1;
+			deviceContext->UpdateSubresource(mResource, level, &box, data, length * Texture::GetFormatSize(format), length * Texture::GetFormatSize(format));
+			return true;
+
+		}
+	};
+
 	struct Texture2DCreationResult
 	{
 		TComPtr< ID3D11Texture2D > resource;
@@ -348,10 +396,31 @@ namespace Render
 			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * Texture::GetFormatSize(format), h * dataImageWidth * Texture::GetFormatSize(format));
 			return true;
 		}
-
-
 	};
-
+	struct Texture3DCreationResult
+	{
+		TComPtr< ID3D11Texture3D > resource;
+		TComPtr< ID3D11RenderTargetView >    RTV;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+	};
+	class D3D11Texture3D : public TD3D11Texture< RHITexture3D >
+	{
+	public:
+		D3D11Texture3D(Texture::Format format, Texture3DCreationResult& creationResult)
+			:TD3D11Texture< RHITexture3D >(creationResult.RTV.release(), creationResult.SRV.release(), creationResult.UAV.release())
+		{
+			mFormat = format;
+			mResource = creationResult.resource.release();
+			D3D11_TEXTURE3D_DESC desc;
+			mResource->GetDesc(&desc);
+			mSizeX = desc.Width;
+			mSizeY = desc.Height;
+			mSizeZ = desc.Depth;
+			mNumSamples = 1;
+			mNumMipLevel = desc.MipLevels;
+		}
+	};
 
 	class D3D11TextureDepth : public TD3D11Resource< RHITextureDepth >
 	{

@@ -152,11 +152,15 @@ namespace Render
 
 	RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer, uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
+		if (numVertices == 0 || vertexSize == 0)
+			return nullptr;
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data) ) );
 	}
 
 	RHIIndexBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer, uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
+		if (nIndices == 0)
+			return nullptr;
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data)) );
 	}
 

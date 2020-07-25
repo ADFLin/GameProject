@@ -300,7 +300,7 @@ public:
 		{
 			colorMap.getColor(float(i) / 1024 , colors[i] );
 		}
-		mColorMap = RHICreateTexture1D(Texture::eRGB32F, 1024 , 0 , 0 , colors );
+		mColorMap = RHICreateTexture1D(Texture::eRGB32F, 1024 , 0 , TCF_DefalutValue , colors );
 		if( !mColorMap.isValid() )
 			return false;
 		mTexture = RHICreateTexture2D(Texture::eRGBA32F, screenSize.x, screenSize.y);

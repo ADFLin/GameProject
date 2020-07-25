@@ -202,7 +202,28 @@ namespace Render
 		virtual EShaderObjectType getType() const override { return EShaderObjectType::Shader; }
 	};
 
-	
+
+#define SHADER_MEMBER_PARAM( NAME ) mParam##NAME
+#define DEFINE_SHADER_PARAM( NAME ) ShaderParameter SHADER_MEMBER_PARAM( NAME )
+
+	template < class T >
+	constexpr T GetType(T&);
+
+	template< class TShader, ShaderParameter TShader::*MemberParam, class T >
+	FORCEINLINE void SetShaderParamT(RHICommandList& commandList, TShader& shader, T const& value )
+	{
+		shader.setParam(commandList, shader.*MemberParam, value);
+	}
+
+	template< class TShader, ShaderParameter TShader::*MemberParam >
+	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, RHITextureBase& value)
+	{
+		shader.setTexture(commandList, shader.*MemberParam, value);
+	}
+
+#define BIND_SHADER_PARAM( MAP , NAME ) SHADER_MEMBER_PARAM( NAME ).bind( MAP , SHADER_PARAM(NAME) )
+#define SET_SHADER_PARAM( COMMANDLIST, SHADER , NAME , VALUE ) SetShaderParamT< decltype(GetType(SHADER)) , &decltype(GetType(SHADER))::SHADER_MEMBER_PARAM(NAME) >( COMMANDLIST , SHADER , VALUE ) 
+#define SET_SHADER_TEXTURE( COMMANDLIST, SHADER , NAME , VALUE ) SetShaderTextureT< decltype(GetType(SHADER)) , &decltype(GetType(SHADER))::SHADER_MEMBER_PARAM(NAME) >( COMMANDLIST , SHADER , VALUE ) 
 }//namespace Render
 
 

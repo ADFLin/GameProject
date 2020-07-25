@@ -1,0 +1,75 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+#if COMPILER_GLSL
+const float3 DirOffset[6] = float3[](
+	float3(1, 0, 0), float3(-1, 0, 0),
+	float3(0, 1, 0), float3(0, -1, 0),
+	float3(0, 0, 1), float3(0, 0, -1) );
+#else
+static const float3 DirOffset[6] = {
+   float3(1 , 0 , 0) , float3(-1 , 0 , 0) ,
+   float3(0 , 1 , 0) , float3(0 , -1 , 0) ,
+   float3(0 , 0 , 1) , float3(0 , 0 , -1) };
+
+#endif
+
+uniform float3 LightDir = float3( 0.4 , 0.5 , 0.8 );
+uniform float3 LocalScale = float3( 1 , 1 , 1 );
+uniform float4x4 LocalToWorld;
+uniform float4x4 WorldToLocal;
+
+uniform int2 Rotation = int2(0,4);
+
+struct OutputVSParam
+{
+	MEMBER_OUTPUT( float3 normal , TEXTURE0 );
+};
+
+
+#if VERTEX_SHADER
+
+
+VS_ENTRY_START(BaseRenderVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
+	VS_OUTPUT_LAST(OutputVSParam OutputVS , 0)
+VS_ENTRY_END(BaseRenderVS)
+{
+	
+	float3 axisX = DirOffset[Rotation.x];
+	float3 axisZ = DirOffset[Rotation.y];
+	float3 axisY = cross( axisZ , axisX );
+
+	float4x4 localScale = float4x4(
+		float4( LocalScale.x * axisX , 0 ) , 
+		float4( LocalScale.y * axisY , 0 ) , 
+		float4( LocalScale.z * axisZ , 0 ) , 
+		float4( 0,0,0,1) );
+
+	float4x4 localToWorld = LocalToWorld * localScale;
+	// NormalMatrix = ( inverse( LocalToWorld ) )^t
+#if COMPILER_GLSL
+	OutputVS.normal = InNormal * inverse(float3x3(localToWorld));
+#else
+	OutputVS.normal = InNormal /** float3x3((float3x3)WorldToLocal)*/;
+#endif
+	SvPosition = mul( View.worldToClip , mul( localToWorld , float4(InPos, 1.0 ) ) );
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+uniform float3 BaseColor;
+PS_ENTRY_START(BaseRenderPS)
+	PS_INPUT(OutputVSParam OutputVS, 0)
+	PS_OUTPUT_LAST(float4 OutColor, 0)
+PS_ENTRY_END(BaseRenderPS)
+{
+	float3 N = normalize(OutputVS.normal);
+	OutColor.rgb = abs(dot(N, normalize(LightDir))) * BaseColor;
+	OutColor.a = 1;
+}
+
+#endif //PIXEL_SHADER

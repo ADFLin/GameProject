@@ -1,0 +1,80 @@
+#pragma once
+#include "Common.sgc"
+
+float3 RGBToHSV(float3 rgb)
+{
+	float3  result;
+	float min = rgb.r < rgb.g ? rgb.r : rgb.g;
+	min = min < rgb.b ? min : rgb.b;
+
+	float max = rgb.r > rgb.g ? rgb.r : rgb.g;
+	max = max > rgb.b ? max : rgb.b;
+
+	result.z = max;                                // v
+	float delta = max - min;
+	if (delta < 0.00001)
+	{
+		result.y = 0;
+		result.x = 0; // undefined, maybe nan?
+		return result;
+	}
+	if (max > 0.0)
+	{ // NOTE: if Max is == 0, this divide would cause a crash
+		result.y = (delta / max);                  // s
+	}
+	else
+	{
+		// if max is 0, then r = g = b = 0              
+		// s = 0, h is undefined
+		result.y = 0.0;
+		result.x = 0.0;// NAN;                            // its now undefined
+		return result;
+	}
+	if (rgb.r >= max)  // > is bogus, just keeps compilor happy
+	{
+		result.x = (rgb.g - rgb.b) / delta;        // between yellow & magenta
+	}
+	else if (rgb.g >= max)
+	{
+		result.x = 2.0 + (rgb.b - rgb.r) / delta;  // between cyan & yellow
+	}
+	else
+	{
+		result.x = 4.0 + (rgb.r - rgb.g) / delta;  // between magenta & cyan
+	}
+
+	result.x *= 60.0;                              // degrees
+
+	if (result.x < 0.0)
+		result.x += 360.0;
+
+	return result;
+}
+
+GLOBAL_CONST int3 rgbSwizzle[6] =
+ARRAY_DATA_BEGIN(int3)
+	int3(0, 1, 2),
+	int3(3, 0, 2),
+	int3(2, 0, 1),
+	int3(2, 3, 0),
+	int3(1, 2, 0),
+	int3(0, 2, 3)
+ARRAY_DATA_END;
+
+float3 HSVToRGB(float3 hsv)
+{
+	float h = hsv[0];
+	float s = hsv[1];
+	float v = hsv[2];
+	float hDiv60 = h / 60.0;
+	float hi = floor(hDiv60);
+	float f = hDiv60 - hi;
+	float p = v * (1 - s);
+	float q = v * (1 - f * s);
+	float t = v * (1 - (1 - f) * s);
+
+	float4 rgb = float4( v , t , p , q );
+	int index = int(hi) % 6;
+
+	return float3(rgb[rgbSwizzle[index][0]], rgb[rgbSwizzle[index][1]], rgb[rgbSwizzle[index][2]]);
+}

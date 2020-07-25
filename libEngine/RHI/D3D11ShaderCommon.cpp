@@ -103,7 +103,7 @@ namespace Render
 				{
 					OutputError((LPCSTR)errorCode->GetBufferPointer());
 				}
-
+				continue;
 			}
 
 			auto* shaderImpl = static_cast<D3D11Shader*>(RHICreateShader(input.type));

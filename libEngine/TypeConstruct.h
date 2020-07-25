@@ -84,7 +84,7 @@ public:
 
 private:
 	template< class T >
-	static void ConstructInternal(T* ptr, T const& val, Meta::TrueType)
+	static void ConstructInternal(T* ptr, T const& val, Meta::TureType)
 	{
 		*ptr = val;
 	}
@@ -94,7 +94,7 @@ private:
 		::new (ptr) T(val);
 	}
 	template< class T >
-	static void ConstructInternal(T* ptr, size_t num, T const& val, Meta::TrueType)
+	static void ConstructInternal(T* ptr, size_t num, T const& val, Meta::TureType)
 	{
 		std::fill_n(ptr, num, val);
 	}
@@ -107,7 +107,7 @@ private:
 		}
 	}
 	template< class T >
-	static void ConstructInternal(T* ptr, size_t num, T* ptrValue, Meta::TrueType)
+	static void ConstructInternal(T* ptr, size_t num, T* ptrValue, Meta::TureType)
 	{
 		::memcpy(ptr, ptrValue, sizeof(T) * num);
 	}
@@ -121,7 +121,7 @@ private:
 		}
 	}
 	template< class T >
-	static void DestructInternal(T* ptr, size_t num, Meta::TrueType)
+	static void DestructInternal(T* ptr, size_t num, Meta::TureType)
 	{
 		(void*)ptr;
 	}
@@ -134,7 +134,7 @@ private:
 		}
 	}
 	template< class T >
-	static void MoveInternal(T* ptr, T* from, Meta::TrueType)
+	static void MoveInternal(T* ptr, T* from, Meta::TureType)
 	{
 		*ptr = *from;
 
@@ -146,7 +146,7 @@ private:
 		from->~T();
 	}
 	template< class T >
-	static void MoveInternal(T* ptr, size_t num, T* from, Meta::TrueType)
+	static void MoveInternal(T* ptr, size_t num, T* from, Meta::TureType)
 	{
 		memcpy(ptr, from, sizeof(T)*num);
 	}

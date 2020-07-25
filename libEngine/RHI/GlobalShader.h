@@ -27,8 +27,8 @@ namespace Render
 #if 0
 			static ShaderEntryInfo const entries[] =
 			{
-				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
 			};
 			return entries;
 #else
@@ -106,6 +106,7 @@ namespace Render
 
 #define DECLARE_EXPORTED_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , API , ...)\
 	public: \
+		using ThisClass = CLASS;\
 		using ShaderClassType = CALSS_TYPE_NAME##ShaderProgramClass; \
 		static API ShaderClassType ShaderClass; \
 		static ShaderClassType const& GetShaderClass(){ return ShaderClass; }\
@@ -113,6 +114,7 @@ namespace Render
 
 #define DECLARE_EXPORTED_SHADER( CLASS , CALSS_TYPE_NAME , API , ...)\
 	public: \
+		using ThisClass = CLASS;\
 		using ShaderClassType = CALSS_TYPE_NAME##ShaderClass; \
 		static API ShaderClassType ShaderClass; \
 		static ShaderClassType const& GetShaderClass(){ return ShaderClass; }\

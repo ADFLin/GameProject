@@ -662,7 +662,7 @@ bool TinyGameApp::handleCharEvent( unsigned code )
 
 bool TinyGameApp::handleWindowDestroy(HWND hWnd )
 {
-	if (::Global::GetDrawEngine().bConstructWindow)
+	if (::Global::GetDrawEngine().bBlockRender)
 		return false;
 
 	if( mGameWindow.getHWnd() == hWnd )

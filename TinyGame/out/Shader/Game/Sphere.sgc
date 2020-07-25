@@ -3,21 +3,21 @@
 
 struct SphereData
 {
-	vec3   worldPos;
+	float3 worldPos;
 	float  radius;
 	float3 baseColor;
 };
 
-uniform SphereData Sphere = SphereData( vec3(0,0,0) , 1.0 , float3(1,1,1) );
-uniform vec2   DepthParam;
+uniform SphereData Sphere;
+uniform float2   DepthParam;
 
-uniform vec3   LightPos[] = vec3[]( vec3( 0 , 10 , 10 ) , vec3( 0 , -10 , 10 ) , vec3( 0 , 0 , -30 ) , vec3( -30 , 0 , 10 ) );
-uniform vec3   LightColor[] = vec3[]( vec3( 0.3 , 0 , 0 ) , vec3( 0 , 0.4 , 0 ) , vec3( 0 , 0 , 0.5 ) , vec3( 0.1 , 0 , 0.2 ) );
+uniform float3 LightPos[] = ARRAY_DATA_BEGIN(float3) float3( 0 , 10 , 10 ) , float3( 0 , -10 , 10 ) , float3( 0 , 0 , -30 ) , float3( -30 , 0 , 10 ) ARRAY_DATA_END;
+uniform float3 LightColor[] = ARRAY_DATA_BEGIN(float3) float3( 0.3 , 0 , 0 ) , float3( 0 , 0.4 , 0 ) , float3( 0 , 0 , 0.5 ) , float3( 0.1 , 0 , 0.2 ) ARRAY_DATA_END;
 
 
 struct VSOutputParameters
 {
-	vec3 cameraOffset;
+	MEMBER_OUTPUT(float3 cameraOffset , TEXCOORD0);
 };
 
 #if VERTEX_SHADER
@@ -61,19 +61,20 @@ float CalcVertexOffset(float2 p , float r , float factor )
 	return 3 * rf;
 }
 
-layout(location = ATTRIBUTE_POSITION) in float4 InPosition;
 
-out VSOutputParameters VSOutput;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float4 InPosition, ATTRIBUTE_POSITION)
+	VS_OUTPUT_STRUCT_LAST(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
 {
-	float3 spherePosInView = float3(View.worldToView * vec4(Sphere.worldPos, 1.0));
+	float3 spherePosInView = mul( View.worldToView , float4(Sphere.worldPos, 1.0) ).xyz;
 	float3 offsetInView = float3(
 		CalcVertexOffset(float2(spherePosInView.x, -spherePosInView.z), Sphere.radius, InPosition.x),
 		CalcVertexOffset(float2(spherePosInView.y, -spherePosInView.z), Sphere.radius, InPosition.y),
 		-Sphere.radius);
 
-	VSOutput.cameraOffset = Sphere.worldPos + float3(View.viewToWorld * float4(offsetInView, 0)) - View.worldPos;
-	gl_Position = View.viewToClip * float4(spherePosInView + offsetInView, 1.0);
+	VSOutput.cameraOffset = Sphere.worldPos + mul( View.viewToWorld , float4(offsetInView, 0) ).xyz - View.worldPos;
+	SvPosition = mul( View.viewToClip , float4(spherePosInView + offsetInView, 1.0) );
 }
 
 #endif //VERTEX_SHADER
@@ -88,8 +89,6 @@ struct FSInput
 	float3 worldPos;
 };
 
-in VSOutputParameters VSOutput;
-out float4 OutColor;
 
 float Remap(float v, float is, float ie, float os, float oe)
 {
@@ -107,16 +106,16 @@ float3 CalcLighting( in FSInput inFS )
 	float3 N = inFS.normal;
 	float3 E = inFS.viewDir;
 
-	vec3 color = vec3(0,0,0);
+	float3 color = float3(0,0,0);
 	for( int i = 0 ; i < 4 ; ++i )
 	{
-		vec3 L = normalize( LightPos[i] - P );
+		float3 L = normalize( LightPos[i] - P );
 		float diff = clamp( dot( L , N ) , 0.0 , 1.0 );
 		float spec = 0;
 
 		if ( diff > 0 )
 		{
-			vec3 R = normalize(-reflect(L,N)); 
+			float3 R = normalize(-reflect(L,N));
 			spec = clamp( pow( max( dot(R,E), 0.0 ) , 20.0 ) , 0.0 , 1.0 );
 			//vec3 H = normalize( L + E );  
 			//spec = clamp( pow( max( dot(H,N), 0.0 ) , 100.0 ) , 0.0 , 1.0 );
@@ -127,8 +126,10 @@ float3 CalcLighting( in FSInput inFS )
 }
 
 
-
-void MainPS() 
+PS_ENTRY_START(MainPS)
+	PS_INPUT( VSOutputParameters VSOutput , 0 )
+	PS_OUTPUT_LAST( float4 OutColor , 0 )
+PS_ENTRY_END(MainPS)
 {
 	float3  cameraDir = normalize(VSOutput.cameraOffset);
 	float t;
@@ -145,7 +146,7 @@ void MainPS()
 #if USE_DEBUG_SHOW
 		discard;
 #else
-		float4 NDC = View.worldToClip * vec4(View.worldPos + VSOutput.cameraOffset, 1.0);
+		float4 NDC = View.worldToClip * float4(View.worldPos + VSOutput.cameraOffset, 1.0);
 		WritePixelDepth(NDC.z / NDC.w);
 		//gl_FragColor = vec4( 0.5 * vd + 0.5 , 1.0 );
 		OutColor = float4(1.0, 1.0, 0, 1.0);
@@ -160,14 +161,12 @@ void MainPS()
 	inFS.normal = normalize(vL - Sphere.worldPos);
 	inFS.viewDir = normalize(View.worldPos - vL);
 
-	float4 NDC = View.worldToClip * vec4(inFS.worldPos, 1.0);
+	float4 NDC = mul( View.worldToClip , float4(inFS.worldPos, 1.0) );
 	WritePixelDepth(NDC.z / NDC.w);
 
 	float3 color = CalcLighting( inFS );
-	OutColor = vec4( color , 1 );
-
-
-	//OutColor = vec4( 1,1,1, 1);
+	OutColor = float4( color , 1 );
+	//OutColor = float4( 1,1,1, 1);
 }
 
 #endif //PIXEL_SHADER

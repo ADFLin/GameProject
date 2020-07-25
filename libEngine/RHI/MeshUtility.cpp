@@ -42,14 +42,24 @@ namespace Render
 
 	bool Mesh::createRHIResource(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
 	{
-		mInputLayout = RHICreateInputLayout(mInputLayoutDesc);
-		if( !mInputLayout.isValid() )
-			return false;
 
+		{
+			mInputLayout = RHICreateInputLayout(mInputLayoutDesc);
+			if (!mInputLayout.isValid())
+				return false;
+		}
 
-		mVertexBuffer = RHICreateVertexBuffer(mInputLayoutDesc.getVertexSize(), nV, 0 , pVertex);
-		if( !mVertexBuffer.isValid() )
-			return false;
+		if (nV)
+		{
+			mVertexBuffer = RHICreateVertexBuffer(mInputLayoutDesc.getVertexSize(), nV, BCF_DefalutValue, pVertex);
+			if (!mVertexBuffer.isValid())
+				return false;
+		}
+		else
+		{
+			mVertexBuffer = nullptr;
+		}
+
 
 		if( nIndices )
 		{
@@ -58,10 +68,15 @@ namespace Render
 				MeshUtility::OptimizeVertexCache(pIdx, nIndices, bIntIndex);		
 			}
 
-			mIndexBuffer = RHICreateIndexBuffer(nIndices, bIntIndex, 0, pIdx);
+			mIndexBuffer = RHICreateIndexBuffer(nIndices, bIntIndex, BCF_DefalutValue, pIdx);
 			if( !mIndexBuffer.isValid() )
 				return false;
 		}
+		else
+		{
+			mIndexBuffer = nullptr;
+		}
+
 		return true;
 	}
 
@@ -295,7 +310,7 @@ namespace Render
 
 	}
 
-	void calcTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal)
+	void ComputeTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal)
 	{
 		Vector3& p0 = *reinterpret_cast< Vector3* >( v0 );
 		Vector3& p1 = *reinterpret_cast< Vector3* >( v1 );
@@ -397,7 +412,7 @@ namespace Render
 			Vector3 normal = ( p2 - p1 ).cross( p3 - p1 );
 			normal.normalize();
 			Vector3 tangent , binormal;
-			calcTangent( v1 , v2 , v3 , texOffset , tangent , binormal );
+			ComputeTangent( v1 , v2 , v3 , texOffset , tangent , binormal );
 
 			*reinterpret_cast< Vector3* >( v1 + tangentOffset ) += tangent;
 			*reinterpret_cast< Vector3* >( v1 + normalOffset ) += normal;
@@ -462,7 +477,7 @@ namespace Render
 			uint8* v3 = pV + i3 * vertexSize;
 
 			Vector3 tangent , binormal;
-			calcTangent( v1 , v2 , v3 , texOffset , tangent , binormal );
+			ComputeTangent( v1 , v2 , v3 , texOffset , tangent , binormal );
 
 			*reinterpret_cast< Vector3* >( v1 + tangentOffset ) += tangent;
 			binormals[i1] += binormal;

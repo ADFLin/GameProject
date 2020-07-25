@@ -377,8 +377,6 @@ namespace Render
 
 	};
 
-#define SHADER_BIND_PARAM( NAME ) mParam##NAME.bind(parameterMap, SHADER_PARAM(NAME))
-
 	class SmokeRenderProgram : public NoiseShaderProgramBase
 	{
 		using BaseClass = NoiseShaderProgramBase;
@@ -402,32 +400,32 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
-			SHADER_BIND_PARAM(VolumeMin);
-			SHADER_BIND_PARAM(VolumeSize);
-			SHADER_BIND_PARAM(ScatterFactor);
-			SHADER_BIND_PARAM(StepSize);
+			BIND_SHADER_PARAM(parameterMap, VolumeMin);
+			BIND_SHADER_PARAM(parameterMap, VolumeSize);
+			BIND_SHADER_PARAM(parameterMap, ScatterFactor);
+			BIND_SHADER_PARAM(parameterMap, StepSize);
 		}
 
 		void setParameters(RHICommandList& commandList, ViewInfo& view, NoiseShaderParamsData& data, Vector3 volumeCenter, Vector3 volumeSize, SmokeParams const& smokeParams)
 		{
 			BaseClass::setParameters(commandList, data);
 			view.setupShader(commandList, *this);
-			setParam(commandList, mParamVolumeMin, volumeCenter - 0.5 * volumeSize);
-			setParam(commandList, mParamVolumeSize, volumeSize);
+			SET_SHADER_PARAM(commandList, *this , VolumeMin, volumeCenter - 0.5 * volumeSize);
+			SET_SHADER_PARAM(commandList, *this, VolumeSize, volumeSize);
 
 			Vector4 scatterFactor;
 			scatterFactor.x = smokeParams.densityFactor;
 			scatterFactor.y = smokeParams.phaseG;
 			scatterFactor.z = smokeParams.scatterCoefficient;
 			scatterFactor.w = smokeParams.scatterCoefficient / smokeParams.albedo;
-			setParam(commandList, mParamScatterFactor, scatterFactor);
-			setParam(commandList, mParamStepSize, smokeParams.stepSize);
+			SET_SHADER_PARAM(commandList, *this, ScatterFactor, scatterFactor);
+			SET_SHADER_PARAM(commandList, *this, StepSize, smokeParams.stepSize);
 		}
 
-		ShaderParameter mParamVolumeMin;
-		ShaderParameter mParamVolumeSize;
-		ShaderParameter mParamScatterFactor;
-		ShaderParameter mParamStepSize;
+		DEFINE_SHADER_PARAM( VolumeMin );
+		DEFINE_SHADER_PARAM( VolumeSize );
+		DEFINE_SHADER_PARAM( ScatterFactor );
+		DEFINE_SHADER_PARAM( StepSize );
 
 	};
 
@@ -455,8 +453,8 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
-			SHADER_BIND_PARAM(FrameTexture);
-			SHADER_BIND_PARAM(HistroyTexture);
+			BIND_SHADER_PARAM(parameterMap, FrameTexture);
+			BIND_SHADER_PARAM(parameterMap, HistroyTexture);
 		}
 
 		void setParameters(RHICommandList& commandList, ViewInfo& view, RHITexture2D& frameTexture, RHITexture2D& historyTexture)
@@ -469,10 +467,10 @@ namespace Render
 			}
 		}
 
-		ShaderParameter mParamFrameTexture;
-		ShaderParameter mParamHistroyTexture;
-		ShaderParameter mParamFrameTextureSampler;
-		ShaderParameter mParamHistroyTextureSampler;
+		DEFINE_SHADER_PARAM(FrameTexture);
+		DEFINE_SHADER_PARAM(HistroyTexture);
+		DEFINE_SHADER_PARAM(FrameTextureSampler);
+		DEFINE_SHADER_PARAM(HistroyTextureSampler);
 	};
 
 

@@ -73,8 +73,6 @@ namespace CB
 		OITCommonParameter mParamOITCommon;
 	};
 
-#define SHADER_BIND_PARAM( NAME ) mParam##NAME.bind(parameterMap, SHADER_PARAM(NAME))
-
 	class CurveContourProgram : public GlobalShaderProgram
 	{
 
@@ -102,25 +100,24 @@ namespace CB
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
-			SHADER_BIND_PARAM(BaseColor);
-			SHADER_BIND_PARAM(RefLocation);
-			SHADER_BIND_PARAM(RefDirection);
-			SHADER_BIND_PARAM(LineParams);
+			BIND_SHADER_PARAM(parameterMap, BaseColor);
+			BIND_SHADER_PARAM(parameterMap, RefLocation);
+			BIND_SHADER_PARAM(parameterMap, RefDirection);
+			BIND_SHADER_PARAM(parameterMap, LineParams);
 		}
 
 		void setParameters(RHICommandList& commandList, LinearColor const& color , Vector4 const& lineParams , Vector3 const& refLocation , Vector3 const& refDirection )
 		{
-			setParam(commandList, mParamBaseColor, color);
-			setParam(commandList, mParamLineParams, lineParams);
-			setParam(commandList, mParamRefDirection, refDirection);
-			setParam(commandList, mParamRefLocation, refLocation);
+			SET_SHADER_PARAM(commandList, *this, BaseColor, color);
+			SET_SHADER_PARAM(commandList, *this, LineParams, lineParams);
+			SET_SHADER_PARAM(commandList, *this, RefDirection, refDirection);
+			SET_SHADER_PARAM(commandList, *this, RefLocation, refLocation);
 		}
 
-		ShaderParameter mParamBaseColor;
-		ShaderParameter mParamRefLocation;
-		ShaderParameter mParamRefDirection;
-		ShaderParameter mParamLineParams;
-
+		DEFINE_SHADER_PARAM( BaseColor );
+		DEFINE_SHADER_PARAM( RefLocation );
+		DEFINE_SHADER_PARAM( RefDirection );
+		DEFINE_SHADER_PARAM( LineParams );
 	};
 
 	class MeshNormalVisualizeProgram : public CurveMeshBaseProgram

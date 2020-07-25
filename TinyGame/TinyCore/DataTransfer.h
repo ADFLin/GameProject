@@ -2,21 +2,11 @@
 #define DataTransfer_h__
 
 #include "FastDelegate/FastDelegate.h"
+#include "Meta/FunctionCall.h"
 
 #define SLOT_SERVER -1
 
-
-template< class T >
-struct THaveGetSendSizeFuncImpl
-{
-	template< class U , int (U::*)() const> struct SFINAE {};
-	template< class U >
-	static Meta::TrueType  Tester( SFINAE< U , &U::getSendSize >* );
-	template< class U >
-	static Meta::FalseType Tester( ...);
-	enum { Value = Meta::IsSameType< Meta::TrueType, decltype( Tester<T>(0) ) >::Value };
-};
-
+DEFINE_HAVE_MEMBER_FUNC_IMPL(THaveGetSendSizeFuncImpl, getSendSize);
 
 template< class T >
 struct DataTransferTypeToId {};
@@ -53,7 +43,7 @@ public:
 	}
 
 	template< class T >
-	void sendData(int recvId, int dataId, T& data , Meta::TrueType)
+	void sendData(int recvId, int dataId, T& data , Meta::TureType)
 	{
 		sendData(recvId, dataId, &data, data.getSendSize() );
 	}

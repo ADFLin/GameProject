@@ -83,10 +83,10 @@ REGISTER_MISC_TEST("HashString Test", HashStringTest);
 //	template< class U1, class U2, decltype(std::declval<U1>() + std::declval<U2>()) (*)(U1, U2) >
 //	struct SFINAE {};
 //	template< class U1, class U2  >
-//	static Meta::TrueType Test(SFINAE<U1, U2, (&operator+)  >*);
+//	static Meta::TureType Test(SFINAE<U1, U2, (&operator+)  >*);
 //	template< class U1, class U2  >
 //	static Meta::FalseType Test(...);
-//	static bool const Result = Meta::IsSameType< Meta::TrueType, decltype(Test<T1, T2>(0)) >::Result;
+//	static bool const Result = Meta::IsSameType< Meta::TureType, decltype(Test<T1, T2>(0)) >::Result;
 //};
 //template< class T1, class T2 >
 //struct HaveBinaryOperator : Meta::HaveResult< HaveBinaryOperatorImpl< T1, T2 >::Result >

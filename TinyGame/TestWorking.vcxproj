@@ -214,7 +214,8 @@
     <ClCompile Include="Chess\ChessCore.cpp" />
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
-    <ClCompile Include="TestRender\Stage\MarchingCubeStage.cpp" />
+    <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
+    <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
     <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />

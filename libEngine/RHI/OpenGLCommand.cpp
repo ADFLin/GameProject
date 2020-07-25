@@ -206,6 +206,7 @@ namespace Render
 		}
 
 		glEnable(GL_PROGRAM_POINT_SIZE);
+		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 		GRHIClipZMin = -1;
 		GRHIProjectYSign = 1;
@@ -269,11 +270,10 @@ namespace Render
 		return nullptr;
 	}
 
-	RHITexture1D* OpenGLSystem::RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
+	RHITexture1D* OpenGLSystem::RHICreateTexture1D(Texture::Format format, int length,  int numMipLevel, uint32 createFlags, void* data)
 	{
 		return CreateOpenGLResourceT< OpenGLTexture1D >(format, length, numMipLevel, createFlags, data);
 	}
-
 
 	RHITexture2D* OpenGLSystem::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
@@ -478,6 +478,20 @@ namespace Render
 		}
 	}
 
+	void OpenGLContext::RHISetFrameBuffer(RHIFrameBuffer* frameBuffer)
+	{
+		if (mLastFrameBuffer.isValid())
+		{
+			OpenGLCast::To(mLastFrameBuffer.get())->unbind();
+		}
+
+		mLastFrameBuffer = frameBuffer;
+		if (mLastFrameBuffer.isValid())
+		{
+			OpenGLCast::To(mLastFrameBuffer.get())->bind();
+		}
+	}
+
 	void OpenGLContext::RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
 		mInputLayoutPending = inputLayout;
@@ -533,7 +547,8 @@ namespace Render
 		{
 			glDrawElements(primitiveGL, nIndex, indexType, (void*)indexStart);
 		}
-		OpenGLCast::To(mLastIndexBuffer)->unbind();
+		//OpenGLCast::To(mLastIndexBuffer)->unbind();
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
 	void OpenGLContext::RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
@@ -585,7 +600,9 @@ namespace Render
 			glDrawElementsIndirect(primitiveGL, indexType, (void*)offset);
 		}
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-		OpenGLCast::To(mLastIndexBuffer)->unbind();
+
+		//OpenGLCast::To(mLastIndexBuffer)->unbind();
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
 	void OpenGLContext::RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
@@ -644,7 +661,8 @@ namespace Render
 			}
 			
 		}
-		OpenGLCast::To(mLastIndexBuffer)->unbind();
+		//OpenGLCast::To(mLastIndexBuffer)->unbind();
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
 	void OpenGLContext::RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData)

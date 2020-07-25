@@ -738,107 +738,6 @@ namespace Render
 		virtual void Present() = 0;
 	};
 
-	struct InputStreamInfo
-	{
-		RHIVertexBuffer* buffer;
-		intptr_t offset;
-		int32    stride;
-
-		InputStreamInfo()
-		{
-			buffer = nullptr;
-			offset = 0;
-			stride = -1;
-		}
-
-		bool operator == (InputStreamInfo const& rhs) const
-		{
-			return buffer == rhs.buffer &&
-				   offset == rhs.offset &&
-			       stride == rhs.stride;
-		}
-	};
-
-	static int const MaxSimulationInputStreamSlots = 8;
-	struct InputStreamState
-	{
-		InputStreamState()
-		{
-			inputStreamCount = 0;
-		}
-
-		InputStreamState(InputStreamInfo inInputSteams[], int inNumInputStream)
-			:inputStreamCount(inNumInputStream)
-		{
-			std::copy(inInputSteams, inInputSteams + inNumInputStream, inputStreams);
-			updateHash();
-		}
-
-		InputStreamState(InputStreamState const& rhs)
-			:inputStreamCount( rhs.inputStreamCount )
-			,hashValue( rhs.hashValue )
-		{
-			std::copy(rhs.inputStreams, rhs.inputStreams + rhs.inputStreamCount, inputStreams);
-		}
-
-		bool update(InputStreamInfo inInputSteams[], int inNumInputStream)
-		{
-			bool result = false;
-			if (inputStreamCount != inNumInputStream )
-			{
-				inputStreamCount = inNumInputStream;
-				result = true;
-			}
-			for (int i = 0; i < inNumInputStream; ++i)
-			{
-				if ( !(inputStreams[i] == inInputSteams[i]) )
-				{
-					inputStreams[i] = inInputSteams[i];
-					result = true;
-				}
-			}
-
-			if (result)
-			{
-				updateHash();
-			}
-			return result;
-		}
-
-
-		InputStreamInfo  inputStreams[MaxSimulationInputStreamSlots];
-		int inputStreamCount;
-
-		uint32 hashValue;
-		void updateHash()
-		{
-			hashValue = HashValue(inputStreamCount);
-			for (int i = 0; i < inputStreamCount; ++i)
-			{
-				HashCombine(hashValue, inputStreams[i].buffer);
-				HashCombine(hashValue, inputStreams[i].offset);
-				HashCombine(hashValue, inputStreams[i].stride);
-			}
-		}
-
-		uint32 getTypeHash() const { return hashValue; }
-
-		bool operator == (InputStreamState const& rhs) const
-		{
-			if (inputStreamCount != rhs.inputStreamCount)
-				return false;
-
-			for (int i = 0; i < inputStreamCount; ++i)
-			{
-				if (!(inputStreams[i] == rhs.inputStreams[i]))
-					return false;
-			}
-
-			return true;
-		}
-
-	};
-
 	struct SamplerStateInitializer
 	{
 		Sampler::Filter filter;
@@ -940,6 +839,107 @@ namespace Render
 	using RHIBlendStateRef        = TRefCountPtr< RHIBlendState >;
 	using RHIInputLayoutRef       = TRefCountPtr< RHIInputLayout >;
 	using RHISwapChainRef         = TRefCountPtr< RHISwapChain >;
+
+	struct InputStreamInfo
+	{
+		RHIVertexBufferRef buffer;
+		intptr_t offset;
+		int32    stride;
+
+		InputStreamInfo()
+		{
+			offset = 0;
+			stride = -1;
+		}
+
+		bool operator == (InputStreamInfo const& rhs) const
+		{
+			return buffer == rhs.buffer &&
+				offset == rhs.offset &&
+				stride == rhs.stride;
+		}
+	};
+
+	static int const MaxSimulationInputStreamSlots = 8;
+	struct InputStreamState
+	{
+		InputStreamState()
+		{
+			inputStreamCount = 0;
+		}
+
+		InputStreamState(InputStreamInfo inInputSteams[], int inNumInputStream)
+			:inputStreamCount(inNumInputStream)
+		{
+			std::copy(inInputSteams, inInputSteams + inNumInputStream, inputStreams);
+			updateHash();
+		}
+
+		InputStreamState(InputStreamState const& rhs)
+			:inputStreamCount(rhs.inputStreamCount)
+			, hashValue(rhs.hashValue)
+		{
+			std::copy(rhs.inputStreams, rhs.inputStreams + rhs.inputStreamCount, inputStreams);
+		}
+
+		bool update(InputStreamInfo inInputSteams[], int inNumInputStream)
+		{
+			bool result = false;
+			if (inputStreamCount != inNumInputStream)
+			{
+				inputStreamCount = inNumInputStream;
+				result = true;
+			}
+			for (int i = 0; i < inNumInputStream; ++i)
+			{
+				if (!(inputStreams[i] == inInputSteams[i]))
+				{
+					inputStreams[i] = inInputSteams[i];
+					result = true;
+				}
+			}
+
+			if (result)
+			{
+				updateHash();
+			}
+			return result;
+		}
+
+
+		InputStreamInfo  inputStreams[MaxSimulationInputStreamSlots];
+		int inputStreamCount;
+
+		uint32 hashValue;
+		void updateHash()
+		{
+			hashValue = HashValue(inputStreamCount);
+			for (int i = 0; i < inputStreamCount; ++i)
+			{
+				HashCombine(hashValue, inputStreams[i].buffer.get());
+				HashCombine(hashValue, inputStreams[i].offset);
+				HashCombine(hashValue, inputStreams[i].stride);
+			}
+		}
+
+		uint32 getTypeHash() const { return hashValue; }
+
+		bool operator == (InputStreamState const& rhs) const
+		{
+			if (inputStreamCount != rhs.inputStreamCount)
+				return false;
+
+			for (int i = 0; i < inputStreamCount; ++i)
+			{
+				if (!(inputStreams[i] == rhs.inputStreams[i]))
+					return false;
+			}
+
+			return true;
+		}
+
+	};
+
 
 	template< class RHIResourceType >
 	class TRefcountResource : public RHIResourceType

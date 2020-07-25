@@ -60,7 +60,7 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture1D::create(Texture::Format format, int length, int numMipLevel , uint32 creationFlags, void* data )
+	bool OpenGLTexture1D::create(Texture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;

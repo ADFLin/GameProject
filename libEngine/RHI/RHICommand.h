@@ -109,8 +109,10 @@ namespace Render
 
 	RHI_API RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info);
 
-	RHI_API RHITexture1D* RHICreateTexture1D(Texture::Format format, int length ,
-										int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,void* data = nullptr);
+	RHI_API RHITexture1D* RHICreateTexture1D(
+		Texture::Format format, int length ,
+		int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,
+		void* data = nullptr);
 
 	RHI_API RHITexture2D*   RHI_TRACE_FUNC(RHICreateTexture2D,
 		Texture::Format format, int w, int h,

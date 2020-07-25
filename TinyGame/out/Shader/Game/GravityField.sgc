@@ -1,0 +1,49 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+#if PIXEL_SHADER
+#include "ColorCommon.sgc"
+
+uniform float4x4 UvToWorldPos;
+uniform int   NumPlants;
+uniform float  GravityScale;
+
+DEFINE_TEXTURE(Texture1D, PlantDataTexture);
+
+PS_ENTRY_START(FieldRenderPS)
+	PS_INPUT(VSOutputParameters VSOutput , 0)
+	PS_OUTPUT_LAST( float4 OutColor, 0 )
+PS_ENTRY_END(FieldRenderPS)
+{
+	float2 worldPos = mul(UvToWorldPos, float4(VSOutput.UVs, 0 , 1 ) ).xy;
+	float2 gravity = float2(0,0);
+
+	LOOP
+	for (int i = 0; i < NumPlants; ++i)
+	{
+		float3 plantData = TEXTURE_FETCH(PlantDataTexture, i, 0).rgb;
+		float2 offset = worldPos - plantData.xy;
+		float dist = length(offset);
+		
+		clip(dist - 1e-5);
+
+		float2 dir = offset / dist;
+		gravity += -(GravityScale * plantData.z / (dist * dist) ) * dir;
+	}
+
+	float gScalar = length(gravity);
+	float2 dir = gravity / gScalar;
+
+	float3 hsv;
+	hsv.x = 180 * (atan2(dir.y, dir.x) / PI );
+	if (hsv.x < 0)
+		hsv.x += 360;
+	hsv.y = saturate(gScalar / 2.5);
+	hsv.z = saturate(gScalar / 2.5);
+	float3 rgb = HSVToRGB(hsv);
+
+	OutColor = float4(rgb, 1.0f);
+	//OutColor = float4(0.5 + 0.5 *dir, saturate(gScalar / 2.5), 1.0f);
+}
+
+#endif //PIXEL_SHADER

@@ -234,11 +234,15 @@ namespace Render
 		Matrix4 matView = mCamera.getViewMatrix();
 		mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
 
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(mView.viewToClip);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf(mView.worldToView);
+		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		{
+			glMatrixMode(GL_PROJECTION);
+			glLoadMatrixf(mView.viewToClip);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadMatrixf(mView.worldToView);
+		}
 
+		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1 , mViewFrustum.bUseReverse ? 0 : 1, 0);
 
 		RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);

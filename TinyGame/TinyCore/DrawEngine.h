@@ -178,7 +178,7 @@ public:
 	TINY_API void  endRender();
 
 	bool        bUsePlatformBuffer = true;
-	bool        bConstructWindow = false;
+	bool        bBlockRender = false;
 private:
 	void        setupBuffer( int w , int h );
 

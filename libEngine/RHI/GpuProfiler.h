@@ -55,6 +55,9 @@ namespace Render
 		CORE_API GpuProfileSample* startSample(char const* name);
 		CORE_API void endSample(GpuProfileSample& sample);
 
+
+		CORE_API void releaseRHIResource();
+
 		int  getSampleNum() { return mNumSampleUsed; }
 		void setCore(RHIProfileCore* core);
 

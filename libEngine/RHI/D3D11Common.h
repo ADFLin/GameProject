@@ -37,6 +37,7 @@ namespace Render
 	class D3D11Texture1D;
 	class D3D11Texture2D;
 	class D3D11Texture3D;
+	class D3D11TextureCube;
 	class D3D11TextureDepth;
 	class D3D11VertexBuffer;
 	class D3D11IndexBuffer;
@@ -67,8 +68,12 @@ namespace Render
 		typedef ID3D11Texture3D ResourceType; 
 		typedef D3D11Texture3D ImplType;
 	};
-	//template<>
-	//struct TD3D11TypeTraits< RHITextureCube > { typedef ID3D11TextureArray ResourceType; };
+	template<>
+	struct TD3D11TypeTraits< RHITextureCube >
+	{ 
+		typedef ID3D11Texture2D ResourceType;
+		typedef D3D11TextureCube ImplType;
+	};
 	template<>
 	struct TD3D11TypeTraits< RHITextureDepth > 
 	{ 
@@ -422,6 +427,64 @@ namespace Render
 		}
 	};
 
+	class D3D11TextureCube : public TD3D11Texture< RHITextureCube >
+	{
+	public:
+		D3D11TextureCube(Texture::Format format, Texture2DCreationResult& creationResult)
+			:TD3D11Texture< RHITextureCube >(creationResult.RTV.release(), creationResult.SRV.release(), creationResult.UAV.release())
+		{
+			mFormat = format;
+			mResource = creationResult.resource.release();
+			D3D11_TEXTURE2D_DESC desc;
+			mResource->GetDesc(&desc);
+			mSize = desc.Width;
+			mNumSamples = desc.SampleDesc.Count;
+			mNumMipLevel = desc.MipLevels;
+		}
+
+		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level )
+		{
+			if (format != mFormat)
+			{
+				int i = 1;
+			}
+			TComPtr<ID3D11Device> device;
+			mResource->GetDevice(&device);
+			TComPtr<ID3D11DeviceContext> deviceContext;
+			device->GetImmediateContext(&deviceContext);
+			D3D11_BOX box;
+			box.front = (int)face;
+			box.back = (int)face + 1;
+			box.left = ox;
+			box.right = ox + w;
+			box.top = oy;
+			box.bottom = oy + h;
+			deviceContext->UpdateSubresource(mResource, level, &box, data, w * Texture::GetFormatSize(format), w * h * Texture::GetFormatSize(format));
+			return true;
+		}
+		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
+		{
+			if (format != mFormat)
+			{
+				int i = 1;
+			}
+			TComPtr<ID3D11Device> device;
+			mResource->GetDevice(&device);
+			TComPtr<ID3D11DeviceContext> deviceContext;
+			device->GetImmediateContext(&deviceContext);
+			D3D11_BOX box;
+			box.front = (int)face;
+			box.back = (int)face + 1;
+			box.left = ox;
+			box.right = ox + w;
+			box.top = oy;
+			box.bottom = oy + h;
+			//@FIXME : error
+			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * Texture::GetFormatSize(format), h * dataImageWidth * Texture::GetFormatSize(format));
+			return true;
+		}
+	};
+
 	class D3D11TextureDepth : public TD3D11Resource< RHITextureDepth >
 	{
 	public:
@@ -580,49 +643,27 @@ namespace Render
 		}
 	};
 
-	class D3D11InputLayout : public RHIInputLayout
+	class D3D11InputLayout : public TRefcountResource< RHIInputLayout >
 	{
 	public:
 		D3D11InputLayout()
 		{
-			mRefcount = 0;
-		}
-
-		void incRef() override
-		{
-			++mRefcount;
 
 		}
-		bool decRef() override
-		{
-			--mRefcount;
-			return mRefcount <= 0;
-		}
 
-		void releaseResource() override
-		{
-			for (auto& pair : mResourceMap)
-			{
-				pair.second->Release();
-			}
-			mResourceMap.clear();
-			mUniversalResource->Release();
-			mUniversalResource = nullptr;
-		}
+		void initialize(InputLayoutDesc const& desc);
+
+		void releaseResource() override;
 
 		bool haveAttribute(uint8 attribute) const
 		{
-			for (auto const& desc : mDescList)
-			{
-				if (desc.SemanticIndex == attribute)
-					return true;
-			}
-			return false;
+			return !!(mAttriableMasks & BIT(attribute));
 		}
+
 		ID3D11InputLayout* GetShaderLayout( ID3D11Device* device , RHIShader* shader);
 
-		int mRefcount;
 		std::vector< D3D11_INPUT_ELEMENT_DESC > mDescList;
+		uint32 mAttriableMasks;
 		ID3D11InputLayout* mUniversalResource;
 		std::unordered_map< RHIShader*, ID3D11InputLayout* > mResourceMap;
 	};
@@ -639,6 +680,55 @@ namespace Render
 		{
 			memset(this, 0, sizeof(*this));
 		}
+	};
+	class D3D11FrameBuffer : public TRefcountResource< RHIFrameBuffer >
+	{
+	public:
+		virtual void setupTextureLayer(RHITextureCube& target, int level)
+		{
+
+		}
+		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level)
+		{
+
+			return INDEX_NONE;
+		}
+		virtual int  addTexture(RHITexture2D& target, int level)
+		{
+			return INDEX_NONE;
+		}
+		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level)
+		{
+			return INDEX_NONE;
+
+		}
+		virtual void setTexture(int idx, RHITexture2D& target, int level)
+		{
+
+		}
+		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level)
+		{
+
+		}
+		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level)
+		{
+
+
+		}
+		virtual void setDepth(RHITextureDepth& target)
+		{
+			mDepthTexture = &target;
+			mRenderTargetsState.depthBuffer = static_cast< D3D11TextureDepth& >( target ).mDSV;
+		}
+		virtual void removeDepth()
+		{
+			mDepthTexture = nullptr;
+			mRenderTargetsState.depthBuffer = nullptr;
+		}
+	
+		RHITextureRef mColorTextures[D3D11RenderTargetsState::MaxSimulationBufferCount];
+		RHITextureDepthRef mDepthTexture;
+		D3D11RenderTargetsState mRenderTargetsState;
 	};
 
 	class D3D11SwapChain : public TD3D11Resource< RHISwapChain >
@@ -662,9 +752,10 @@ namespace Render
 		{ 
 			return mColorTexture; 
 		}
-		virtual void Present() override
+
+		virtual void Present(bool bVSync) override
 		{
-			mResource->Present(1, 0);
+			mResource->Present(bVSync ? 1 : 0, 0);
 		}
 
 

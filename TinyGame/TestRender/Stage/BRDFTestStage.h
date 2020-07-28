@@ -54,39 +54,11 @@ namespace Render
 		bool initializeRHI(IBLBuildSetting const& setting);
 		void fillData(ImageBaseLightingData& outData);
 
-		static void GetCubeMapData(std::vector< uint8 >& data , Texture::Format format, int size , int level, void* outData[])
-		{
-			int formatSize = Texture::GetFormatSize(format);
-			int textureSize = Math::Max(size >> level, 1);
-			int faceDataSize = textureSize * textureSize * formatSize;
+		static void GetCubeMapData(std::vector< uint8 >& data , Texture::Format format, int size , int level, void* outData[]);
 
-			for( int i = 0; i < Texture::FaceCount; ++i )
-				outData[i] = &data[i * faceDataSize];
-		}
+		static void ReadTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData);
 
-		static void ReadTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
-		{
-			int formatSize = Texture::GetFormatSize(format);
-			int textureSize = Math::Max(texture.getSize() >> level, 1);
-			int faceDataSize = textureSize * textureSize * formatSize;
-			outData.resize(Texture::FaceCount * faceDataSize);
-			OpenGLCast::To(&texture)->bind();
-			for( int i = 0; i < Texture::FaceCount; ++i )
-			{
-				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*i]);
-			}
-			OpenGLCast::To(&texture)->unbind();
-		}
-
-		static void ReadTextureData(RHITexture2D& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
-		{
-			int formatSize = Texture::GetFormatSize(format);
-			int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
-			outData.resize(dataSize);
-			OpenGLCast::To(&texture)->bind();
-			glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[0]);
-			OpenGLCast::To(&texture)->unbind();
-		}
+		static void ReadTextureData(RHITexture2D& texture, Texture::Format format, int level, std::vector< uint8 >& outData);
 	};
 
 	struct ImageBaseLightingData

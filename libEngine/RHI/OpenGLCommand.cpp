@@ -10,6 +10,7 @@
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+#include "GL/wglew.h"
 
 #define COMMIT_STATE_IMMEDIATELY 1
 
@@ -173,6 +174,7 @@ namespace Render
 
 	bool OpenGLSystem::initialize(RHISystemInitParams const& initParam)
 	{
+
 		WGLPixelFormat format;
 		format.numSamples = initParam.numSamples;
 		if( !mGLContext.init(initParam.hDC, format) )
@@ -194,6 +196,11 @@ namespace Render
 		else if( strstr(vendorStr, "Intel") != nullptr )
 		{
 			GRHIDeviceVendorName = DeviceVendorName::Intel;
+		}
+
+		if (!initParam.bVSyncEnable)
+		{
+			wglSwapIntervalEXT(0);
 		}
 
 		bool bEnableDebugOutput = true;
@@ -226,6 +233,8 @@ namespace Render
 
 	void OpenGLSystem::shutdown()
 	{
+		GpuProfiler::Get().releaseRHIResource();
+
 		delete mImmediateCommandList;
 
 		mDrawContext.shutdown();

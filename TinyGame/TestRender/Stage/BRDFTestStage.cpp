@@ -6,6 +6,7 @@
 #include "DataStreamBuffer.h"
 #include "ProfileSystem.h"
 
+#include "RHI/D3D11Command.h"
 
 
 namespace Render
@@ -24,6 +25,68 @@ namespace Render
 		for( int level = 0; level < IBLResource::NumPerFilteredLevel; ++level )
 		{
 			ReadTextureData(*perfilteredTexture, Texture::eFloatRGBA, level, outData.perFiltered[level]);
+		}
+	}
+
+	void IBLResource::GetCubeMapData(std::vector< uint8 >& data, Texture::Format format, int size, int level, void* outData[])
+	{
+		int formatSize = Texture::GetFormatSize(format);
+		int textureSize = Math::Max(size >> level, 1);
+		int faceDataSize = textureSize * textureSize * formatSize;
+
+		for (int i = 0; i < Texture::FaceCount; ++i)
+			outData[i] = &data[i * faceDataSize];
+	}
+
+	void IBLResource::ReadTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		int formatSize = Texture::GetFormatSize(format);
+		int textureSize = Math::Max(texture.getSize() >> level, 1);
+		int faceDataSize = textureSize * textureSize * formatSize;
+		outData.resize(Texture::FaceCount * faceDataSize);
+		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		{
+			OpenGLCast::To(&texture)->bind();
+			for (int i = 0; i < Texture::FaceCount; ++i)
+			{
+				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*i]);
+			}
+			OpenGLCast::To(&texture)->unbind();
+		}
+		else
+		{
+			TComPtr<ID3D11Texture2D> stagingTexture;
+			static_cast<D3D11System*>(GRHISystem)->createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
+			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ,  0, &mappedResource);
+			memcpy(outData.data(), mappedResource.pData, outData.size());
+			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Unmap(stagingTexture, level);
+		}
+	}
+
+	void IBLResource::ReadTextureData(RHITexture2D& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		int formatSize = Texture::GetFormatSize(format);
+		int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
+		outData.resize(dataSize);
+		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		{
+			OpenGLCast::To(&texture)->bind();
+			glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[0]);
+			OpenGLCast::To(&texture)->unbind();
+		}
+		else
+		{
+			TComPtr<ID3D11Texture2D> stagingTexture;
+			static_cast<D3D11System*>(GRHISystem)->createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
+			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ, 0, &mappedResource);
+			memcpy(outData.data(), mappedResource.pData, outData.size());
+			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Unmap(stagingTexture, level);
 		}
 	}
 
@@ -59,9 +122,9 @@ namespace Render
 
 	bool IBLResource::initializeRHI(IBLBuildSetting const& setting)
 	{
-		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, setting.envSize));
-		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.irradianceSize));
-		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.perfilteredSize , NumPerFilteredLevel));
+		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, setting.envSize, 0 , TCF_DefalutValue  ));
+		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.irradianceSize, 0, TCF_DefalutValue ));
+		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.perfilteredSize , NumPerFilteredLevel, TCF_DefalutValue ));
 		return true;
 	}
 
@@ -249,7 +312,10 @@ namespace Render
 		if( !BaseClass::onInit() )
 			return false;
 
-		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		{
+			glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		}
 
 		ShaderHelper::Get().init();
 

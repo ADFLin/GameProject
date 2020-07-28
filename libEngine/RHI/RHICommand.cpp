@@ -24,6 +24,20 @@
 
 namespace Render
 {
+
+	char const* ToString(RHISytemName name)
+	{
+		switch (name)
+		{
+		case RHISytemName::D3D11: return "D3D11";
+		case RHISytemName::D3D12: return "D3D12";
+		case RHISytemName::OpenGL: return "OpenGL";
+		case RHISytemName::Vulkan: return "Vulkan";
+		}
+		return "Unknown";
+	}
+
+
 #if CORE_SHARE_CODE
 	RHISystem* GRHISystem = nullptr;
 	float GRHIClipZMin = 0;
@@ -41,6 +55,8 @@ namespace Render
 			case RHISytemName::OpenGL:GRHISystem = new OpenGLSystem; break;
 			case RHISytemName::Vulkan:GRHISystem = new VulkanSystem; break;
 			}
+
+			LogMsg("===== Init RHI System : %s ====" , ToString(name) );
 
 			if( GRHISystem && !GRHISystem->initialize(initParam) )
 			{

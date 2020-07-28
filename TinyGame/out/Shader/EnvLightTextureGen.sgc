@@ -6,19 +6,16 @@
 
 #if PIXEL_SHADER
 
-in VSOutputParameters VSOutput;
-layout(location = 0) out float4 OutColor;
-
 uniform float3 FaceDir;
 uniform float3 FaceUpDir;
 
-uniform sampler2D Texture;
-uniform samplerCube CubeTexture;
+DEFINE_TEXTURE( Texture2D , Texture );
+DEFINE_TEXTURE( TextureCube, CubeTexture );
 
-const float2 invAtan = float2(0.1591, 0.3183);
+GLOBAL_CONST float2 invAtan = float2(0.1591, 0.3183);
 float2 EquirectangularCoord(float3 v)
 {
-	float2 uv = float2(atan(v.x, v.y), asin(v.z));
+	float2 uv = float2(atan2(v.x, v.y), asin(v.z));
 	uv *= invAtan;
 	uv += 0.5;
 	return uv;
@@ -37,9 +34,9 @@ float3x3 TangentToWorldTransform(float3 N)
 float3 GetEnvRadiance(float3 dir)
 {
 #if USE_CUBE_TEXTURE
-	return texture(CubeTexture, dir).rgb;
+	return TEXTURE_SAMPE(CubeTexture, dir).rgb;
 #else
-	return texture(Texture, EquirectangularCoord(dir)).rgb;
+	return TEXTURE_SAMPE(Texture, EquirectangularCoord(dir)).rgb;
 #endif
 }
 
@@ -50,16 +47,25 @@ float3 GetFaceCameraDir(float2 faceUV)
 	return normalize(FaceDir + NDC.x * faceRightDir + NDC.y * FaceUpDir);
 }
 
-void EquirectangularToCubePS()
+#if SHADER_ENTRY_EquirectangularToCubePS
+PS_ENTRY_START(EquirectangularToCubePS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(EquirectangularToCubePS)
 {
 	float3 dir = GetFaceCameraDir(VSOutput.UVs);
-	float3 color = texture(Texture, EquirectangularCoord(dir)).rgb;
+	float3 color = TEXTURE_SAMPE(Texture, EquirectangularCoord(dir)).rgb;
 	OutColor = float4(color, 1);
 }
+#endif
 
 uniform int2 IrrianceSampleCount = int2( 256 * 2 , 200 * 2 );
 
-void IrradianceGenPS()
+#if  SHADER_ENTRY_IrradianceGenPS
+PS_ENTRY_START(IrradianceGenPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(IrradianceGenPS)
 {
 	float3 N = GetFaceCameraDir(VSOutput.UVs);
 	float3x3 tangentToWorld = TangentToWorldTransform(N);
@@ -91,7 +97,7 @@ void IrradianceGenPS()
 		{
 			float2 csTheta;
 			sincos(theta, csTheta.y, csTheta.x);
-			float3 L = normalize(tangentToWorld * float3(csTheta.y * csPhi, csTheta.x));
+			float3 L = normalize( mul(tangentToWorld , float3(csTheta.y * csPhi, csTheta.x)));
 			irradiance += csTheta.x * csTheta.y * GetEnvRadiance(L);
 		}
 	}
@@ -101,6 +107,7 @@ void IrradianceGenPS()
 	OutColor = float4(irradiance, 1);
 
 }
+#endif
 
 
 float RadicalInverse_VdC(uint bits)
@@ -137,7 +144,12 @@ float3 ImportanceSampleGGX(float2 Xi,float roughness)
 }
 uniform float Roughness;
 uniform int PrefilterSampleCount = 2048 * 2;
-void PrefilteredGenPS()
+
+#if SHADER_ENTRY_PrefilteredGenPS
+PS_ENTRY_START(PrefilteredGenPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(PrefilteredGenPS)
 {
 
 	float3 N = GetFaceCameraDir(VSOutput.UVs);
@@ -147,11 +159,11 @@ void PrefilteredGenPS()
 	float3x3 tangentToWorld = TangentToWorldTransform(N);
 
 	float totalWeight = 0.0;
-	float3 prefilteredColor = float3(0.0);
+	float3 prefilteredColor = float3(0.0,0.0,0.0);
 	for( uint i = 0u; i < PrefilterSampleCount; ++i )
 	{
 		float2 Xi = Hammersley(i, PrefilterSampleCount);
-		float3 H = normalize( tangentToWorld * ImportanceSampleGGX(Xi, Roughness) );
+		float3 H = normalize( mul(tangentToWorld , ImportanceSampleGGX(Xi, Roughness)) );
 		float3 L = normalize(2.0 * dot(V, H) * H - V);
 
 		float NoL = saturate(dot(N, L));
@@ -163,9 +175,9 @@ void PrefilteredGenPS()
 	}
 	prefilteredColor = prefilteredColor / totalWeight;
 
-	OutColor = vec4(prefilteredColor, 1.0);
+	OutColor = float4(prefilteredColor, 1.0);
 }
-
+#endif
 
 uniform int BRDFSampleCount = 1024 * 2;
 float2 IntegrateBRDF(float NoV, float roughness)
@@ -183,7 +195,7 @@ float2 IntegrateBRDF(float NoV, float roughness)
 	for( uint i = 0u; i < BRDFSampleCount; ++i )
 	{
 		float2 Xi = Hammersley(i, BRDFSampleCount);
-		float3 H = normalize(tangentToWorld * ImportanceSampleGGX(Xi, Roughness));
+		float3 H = normalize( mul(tangentToWorld , ImportanceSampleGGX(Xi, Roughness)) );
 		float3 L = normalize(2.0 * dot(V, H) * H - V);
 
 		float NoL = saturate(L.z);
@@ -205,10 +217,16 @@ float2 IntegrateBRDF(float NoV, float roughness)
 	return float2(A, B);
 }
 
-
-void PreIntegrateBRDFGenPS()
+#if SHADER_ENTRY_PreIntegrateBRDFGenPS
+PS_ENTRY_START(PreIntegrateBRDFGenPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(PreIntegrateBRDFGenPS)
 {
 	float2 integratedBRDF = IntegrateBRDF( VSOutput.UVs.x , VSOutput.UVs.y );
 	OutColor = float4( integratedBRDF , 0 , 1 );
 }
 #endif
+
+
+#endif //PIXEL_SHADER

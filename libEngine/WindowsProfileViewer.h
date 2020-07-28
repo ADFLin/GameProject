@@ -1,5 +1,6 @@
-#ifndef Win32ProfileViewer_h__
-#define Win32ProfileViewer_h__
+#pragma once
+#ifndef WindowsProfileViewer_H_00146D2F_D5AF_4709_A904_7157B77CC4E4
+#define WindowsProfileViewer_H_00146D2F_D5AF_4709_A904_7157B77CC4E4
 
 #include "ProfileSystem.h"
 #include "WindowsHeader.h"
@@ -24,7 +25,7 @@ public:
 	
 private:
 
-	static HFONT createFont( HDC hDC , int size , char const* faceName , bool beBold , bool beItalic );
+	static HFONT CreateFont( HDC hDC , int size , char const* faceName , bool beBold , bool beItalic );
 	HDC      mhDC;
 	HFONT    hFont;
 	char     string[512];
@@ -34,10 +35,10 @@ private:
 	int      startX , startY;
 };
 
-class Win32ProfileViewer : public ProfileNodeVisitorT< Win32ProfileViewer >
+class WindowsProfileViewer : public ProfileNodeVisitorT< WindowsProfileViewer >
 {
 public:
-	Win32ProfileViewer( HDC hDC );
+	WindowsProfileViewer( HDC hDC );
 
 	void showText( int x , int y );
 	void setTextColor( BYTE r, BYTE g , BYTE b , BYTE a = 255  );
@@ -50,4 +51,5 @@ private:
 	int          mIdxChild;
 	TMessageShow msgShow;
 };
-#endif // Win32ProfileViewer_h__
+
+#endif // WindowsProfileViewer_H_00146D2F_D5AF_4709_A904_7157B77CC4E4

@@ -16,11 +16,14 @@ struct TiledLightInfo
 
 
 #if SHADER_COMPILING
+#if COMPILER_GLSL
 layout(std140) buffer TiledLightBlock
 {
 	TiledLightInfo TiledLightList[];
 };
-
+#else
+StructuredBuffer<TiledLightInfo> TiledLightList;
+#endif
 #else
 TiledLightInfo TiledLightList[];
 #endif

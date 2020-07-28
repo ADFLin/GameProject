@@ -30,7 +30,7 @@ VS_ENTRY_START(MainVS)
 #if HAVE_VERTEX_COLOR
 	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
 #endif
-	VS_OUTPUT_STRUCT_LAST(OutputVSParam OutputVS, 0)
+	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
 VS_ENTRY_END(MainVS)
 {
 	SvPosition = mul( XForm , InPos);
@@ -52,7 +52,7 @@ DEFINE_TEXTURE( Texture2D , Texture );
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
-	PS_OUTPUT_LAST(float4 OutColor, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
 #if HAVE_TEXTCOORD

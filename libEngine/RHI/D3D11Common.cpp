@@ -67,7 +67,9 @@ namespace Render
 		case Texture::eRGB16U:
 		case Texture::eRGBA16U: return DXGI_FORMAT_R16G16B16A16_UINT;
 		case Texture::eRGB8U:
-		case Texture::eRGBA8U:  return DXGI_FORMAT_R8G8B8A8_UINT;
+		case Texture::eRGBA8U:  return DXGI_FORMAT_R8G8B8A8_UINT;	
+		case Texture::eSRGB:
+		case Texture::eSRGBA:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		default:
 			LogWarning(0, "D3D11 No Support Texture Format %d", (int)format);
 			break;
@@ -98,50 +100,106 @@ namespace Render
 
 	}
 
+#define STATIC_CHECK_DATA_MAP( NAME , DATA_MAP , MEMBER )\
+	constexpr bool Check##NAME##Valid_R(int i, int size)\
+	{\
+		return (i == size) ? true : ((i == (int)DATA_MAP[i].MEMBER) && Check##NAME##Valid_R(i + 1, size));\
+	}\
+	constexpr bool Check##NAME##Valid()\
+	{\
+		return Check##NAME##Valid_R(0, ARRAY_SIZE(DATA_MAP));\
+	}\
+	static_assert(Check##NAME##Valid(), "Check "#NAME" Failed")
+
+#if _DEBUG
+#define DATA_OP( S , D ) { S , D },
+#else
+#define DATA_OP( S , D ) { D },
+#endif
+
+#define DEFINE_DATA_MAP( TYPE , NAME , LIST )\
+	static constexpr TYPE NAME[]\
+	{\
+		LIST(DATA_OP)\
+	}
+
+
+
+	struct BlendFactorMapInfoD3D11
+	{
+#if _DEBUG
+		Blend::Factor src;
+#endif
+		D3D11_BLEND   dest;
+	};
+
+#define BLEND_FACTOR_LIST_D3D11( op )\
+	op(Blend::eOne, D3D11_BLEND_ONE)\
+	op(Blend::eZero, D3D11_BLEND_ZERO)\
+	op(Blend::eSrcAlpha, D3D11_BLEND_SRC_ALPHA)\
+	op(Blend::eOneMinusSrcAlpha, D3D11_BLEND_INV_SRC_ALPHA)\
+	op(Blend::eDestAlpha, D3D11_BLEND_DEST_ALPHA)\
+	op(Blend::eOneMinusDestAlpha, D3D11_BLEND_INV_DEST_ALPHA)\
+	op(Blend::eSrcColor, D3D11_BLEND_SRC_COLOR)\
+	op(Blend::eOneMinusSrcColor, D3D11_BLEND_INV_SRC_COLOR)\
+	op(Blend::eDestColor, D3D11_BLEND_DEST_COLOR)\
+	op(Blend::eOneMinusDestColor, D3D11_BLEND_INV_DEST_COLOR)
+
+	DEFINE_DATA_MAP(BlendFactorMapInfoD3D11, GBlendFactorMapD3D11, BLEND_FACTOR_LIST_D3D11);
+#if _DEBUG
+	STATIC_CHECK_DATA_MAP(BlendFactorMapValid, GBlendFactorMapD3D11, src);
+#endif
 	D3D11_BLEND D3D11Translate::To(Blend::Factor factor)
 	{
-		switch( factor )
-		{
-		case Blend::eOne: return D3D11_BLEND_ONE;
-		case Blend::eZero: return D3D11_BLEND_ZERO;
-		case Blend::eSrcAlpha: return D3D11_BLEND_SRC_ALPHA;
-		case Blend::eOneMinusSrcAlpha: return D3D11_BLEND_INV_SRC_ALPHA;
-		case Blend::eDestAlpha: return D3D11_BLEND_DEST_ALPHA;
-		case Blend::eOneMinusDestAlpha: return D3D11_BLEND_INV_DEST_ALPHA;
-		case Blend::eSrcColor: return  D3D11_BLEND_SRC_COLOR;
-		case Blend::eOneMinusSrcColor: return D3D11_BLEND_INV_SRC_COLOR;
-		case Blend::eDestColor: return D3D11_BLEND_DEST_COLOR;
-		case Blend::eOneMinusDestColor: return D3D11_BLEND_INV_DEST_COLOR;
-		default:
-			break;
-		}
-		return D3D11_BLEND_ONE;
+		return GBlendFactorMapD3D11[factor].dest;
 	}
 
+
+	struct BlendOpMapInfoD3D11
+	{
+#if _DEBUG
+		Blend::Operation src;
+#endif
+		D3D11_BLEND_OP   dest;
+	};
+
+#define BLEND_OP_LIST_D3D11( op )\
+	op(Blend::eAdd, D3D11_BLEND_OP_ADD)\
+	op(Blend::eSub, D3D11_BLEND_OP_SUBTRACT)\
+	op(Blend::eReverseSub, D3D11_BLEND_OP_REV_SUBTRACT)\
+	op(Blend::eMax, D3D11_BLEND_OP_MAX)\
+	op(Blend::eMin, D3D11_BLEND_OP_MIN)
+
+	DEFINE_DATA_MAP(BlendOpMapInfoD3D11, GBlendOpMapD3D11, BLEND_OP_LIST_D3D11);
+#if _DEBUG
+	STATIC_CHECK_DATA_MAP(BlendOpMapValid, GBlendOpMapD3D11, src);
+#endif
 	D3D11_BLEND_OP D3D11Translate::To(Blend::Operation op)
 	{
-		switch( op )
-		{
-		case Blend::eAdd: return D3D11_BLEND_OP_ADD;
-		case Blend::eSub: return D3D11_BLEND_OP_SUBTRACT;
-		case Blend::eReverseSub: return D3D11_BLEND_OP_REV_SUBTRACT;
-		case Blend::eMax: return D3D11_BLEND_OP_MAX;
-		case Blend::eMin: return D3D11_BLEND_OP_MIN;
-		}
-		return D3D11_BLEND_OP_ADD;
+		return GBlendOpMapD3D11[op].dest;
 	}
 
 
+	struct CullModeMapInfoD3D11
+	{
+#if _DEBUG
+		ECullMode src;
+#endif
+		D3D11_CULL_MODE   dest;
+	};
 
+#define CULL_MODE_LIST_D3D11( op )\
+	op(ECullMode::None, D3D11_CULL_NONE)\
+	op(ECullMode::Front, D3D11_CULL_FRONT)\
+	op(ECullMode::Back, D3D11_CULL_BACK)
+	
+	DEFINE_DATA_MAP(CullModeMapInfoD3D11, GCullModeMapD3D11, CULL_MODE_LIST_D3D11);
+#if _DEBUG
+	STATIC_CHECK_DATA_MAP(CullModeMapValid, GCullModeMapD3D11, src);
+#endif
 	D3D11_CULL_MODE D3D11Translate::To(ECullMode mode)
 	{
-		switch( mode )
-		{
-		case ECullMode::Front: return D3D11_CULL_FRONT;
-		case ECullMode::Back:  return D3D11_CULL_BACK;
-		case ECullMode::None:  return D3D11_CULL_NONE;
-		}
-		return D3D11_CULL_NONE;
+		return GCullModeMapD3D11[int(mode)].dest;
 	}
 
 	D3D11_FILL_MODE D3D11Translate::To(EFillMode mode)
@@ -198,17 +256,27 @@ namespace Render
 		return DXGI_FORMAT_UNKNOWN;
 	}
 
+	struct LockAccessMapInfoD3D11
+	{
+#if _DEBUG
+		ELockAccess src;
+#endif
+		D3D11_MAP   dest;
+	};
 
+#define LOCK_ACCESS_LIST_D3D11( op )\
+	op(ELockAccess::ReadOnly, D3D11_MAP_READ)\
+	op(ELockAccess::ReadWrite, D3D11_MAP_READ_WRITE)\
+	op(ELockAccess::WriteOnly, D3D11_MAP_WRITE)\
+	op(ELockAccess::WriteDiscard, D3D11_MAP_WRITE_DISCARD)
+
+	DEFINE_DATA_MAP(LockAccessMapInfoD3D11, GLockAccessMapD3D11, LOCK_ACCESS_LIST_D3D11);
+#if _DEBUG
+	STATIC_CHECK_DATA_MAP(LockAccessMapValid, GLockAccessMapD3D11, src);
+#endif
 	D3D11_MAP D3D11Translate::To(ELockAccess access)
 	{
-		switch( access )
-		{
-		case ELockAccess::ReadOnly:  return D3D11_MAP_READ;
-		case ELockAccess::ReadWrite: return D3D11_MAP_READ_WRITE;
-		case ELockAccess::WriteOnly: return D3D11_MAP_WRITE;
-		case ELockAccess::WriteDiscard: return D3D11_MAP_WRITE_DISCARD;
-		}
-		return D3D11_MAP_READ_WRITE;
+		return GLockAccessMapD3D11[int(access)].dest;
 	}
 
 	D3D11_FILTER D3D11Translate::To(Sampler::Filter filter)
@@ -256,22 +324,32 @@ namespace Render
 		return D3D11_COMPARISON_NEVER;
 	}
 
+	struct StencilOpMapInfoD3D11
+	{
+#if _DEBUG
+		Stencil::Operation src;
+#endif
+		D3D11_STENCIL_OP   dest;
+	};
+
+#define STENCIL_OP_LIST_D3D11( op )\
+	op(Stencil::eKeep, D3D11_STENCIL_OP_KEEP)\
+	op(Stencil::eZero, D3D11_STENCIL_OP_ZERO)\
+	op(Stencil::eReplace, D3D11_STENCIL_OP_REPLACE)\
+	op(Stencil::eIncr, D3D11_STENCIL_OP_INCR_SAT)\
+	op(Stencil::eIncrWarp, D3D11_STENCIL_OP_INCR)\
+	op(Stencil::eDecr, D3D11_STENCIL_OP_DECR_SAT)\
+	op(Stencil::eDecrWarp, D3D11_STENCIL_OP_DECR)\
+	op(Stencil::eInvert, D3D11_STENCIL_OP_INVERT)
+
+	DEFINE_DATA_MAP(StencilOpMapInfoD3D11, GStencilOpMapD3D11, STENCIL_OP_LIST_D3D11);
+#if _DEBUG
+	STATIC_CHECK_DATA_MAP(StencilOpMapValid, GStencilOpMapD3D11, src);
+#endif
 	D3D11_STENCIL_OP D3D11Translate::To(Stencil::Operation op)
 	{
-		switch( op )
-		{
-		case Stencil::eKeep:    return D3D11_STENCIL_OP_KEEP;
-		case Stencil::eZero:    return D3D11_STENCIL_OP_ZERO;
-		case Stencil::eReplace: return D3D11_STENCIL_OP_REPLACE;
-		case Stencil::eIncr:    return D3D11_STENCIL_OP_INCR_SAT;
-		case Stencil::eIncrWarp:return D3D11_STENCIL_OP_INCR;
-		case Stencil::eDecr:    return D3D11_STENCIL_OP_DECR_SAT;
-		case Stencil::eDecrWarp:return D3D11_STENCIL_OP_DECR;
-		case Stencil::eInvert:  return D3D11_STENCIL_OP_INVERT;
-		}
-		return D3D11_STENCIL_OP_KEEP;
+		return GStencilOpMapD3D11[op].dest;
 	}
-
 
 
 	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, EShader::Type type)
@@ -299,6 +377,39 @@ namespace Render
 		result += "_";
 		result += featureName;
 		return result;
+	}
+
+	void D3D11InputLayout::initialize(InputLayoutDesc const& desc)
+	{
+		mAttriableMasks = 0;
+		for (auto const& e : desc.mElements)
+		{
+			if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+				continue;
+
+			D3D11_INPUT_ELEMENT_DESC element;
+			element.SemanticName = "ATTRIBUTE";
+			element.SemanticIndex = e.attribute;
+			element.Format = D3D11Translate::To(Vertex::Format(e.format), e.bNormalized);
+			element.InputSlot = e.idxStream;
+			element.AlignedByteOffset = e.offset;
+			element.InputSlotClass = e.bIntanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
+			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
+
+			mDescList.push_back(element);
+			mAttriableMasks |= BIT(e.attribute);
+		}
+	}
+
+	void D3D11InputLayout::releaseResource()
+	{
+		for (auto& pair : mResourceMap)
+		{
+			pair.second->Release();
+		}
+		mResourceMap.clear();
+		mUniversalResource->Release();
+		mUniversalResource = nullptr;
 	}
 
 	ID3D11InputLayout* D3D11InputLayout::GetShaderLayout(ID3D11Device* device, RHIShader* shader)

@@ -5,27 +5,25 @@
 #include "RenderUtility.h"
 
 #include "RHI/RHIGraphics2D.h"
-
 #include "RHI/ShaderManager.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/RHICommand.h"
 
-
-#include "GL/wglew.h"
-
 namespace Lighting2D
 {
+
 	bool TestStage::onInit()
 	{
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
-		wglSwapIntervalEXT(0);
+		RHIInitializeParams initParams;
+		initParams.bVSyncEnable = true;
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11, initParams));
 
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
 		{
 			ShaderEntryInfo entries[] =
 			{
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) } ,
 				{ EShader::Pixel , SHADER_ENTRY(LightingPS) } ,
 			};
 			if( !ShaderManager::Get().loadFile(
@@ -39,8 +37,8 @@ namespace Lighting2D
 			ShaderEntryInfo entries[] =
 			{ 
 				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
-				{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
 				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
 			};
 			if( !ShaderManager::Get().loadFile(
 				mProgShadow, "Shader/Game/Lighting2DShadow", entries, option ) )
@@ -51,6 +49,7 @@ namespace Lighting2D
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
 
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bShowShadowRender"), bShowShadowRender);
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY , "bUseGeometryShader"), bUseGeometryShader);
 
 		restart();
@@ -134,13 +133,14 @@ namespace Lighting2D
 
 
 		Matrix4 projectMatrix = OrthoMatrix(0, window.getWidth(), 0, window.getHeight(), 1, -1);
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(AdjProjectionMatrixForRHI(projectMatrix));
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
 
+
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
+
+		
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
 
 		int w = window.getWidth();
 		int h = window.getHeight();
@@ -156,71 +156,84 @@ namespace Lighting2D
 
 		for ( Light const& light : lights )
 		{
+			if (bShowShadowRender)
+			{
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne , Blend::eOne , Blend::eAdd >::GetRHI());
+			}
+			else
+			{
+				RHISetDepthStencilState(commandList,
+					TStaticDepthStencilState<
+					true, ECompareFunc::Always,
+					true, ECompareFunc::Always,
+					Stencil::eKeep, Stencil::eKeep, Stencil::eReplace, 0x1
+					>::GetRHI(), 0x1);
 
-			RHISetDepthStencilState(commandList,
-				TStaticDepthStencilState<
-					true , ECompareFunc::Always ,
-					true , ECompareFunc::Always , 
-					Stencil::eKeep , Stencil::eKeep , Stencil::eReplace ,0x1 
-				>::GetRHI(), 0x1 );
-			
-			RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
+
+			}
 
 			{
 
 				if (bUseGeometryShader)
 				{
 					RHISetShaderProgram(commandList, mProgShadow.getRHIResource());
-					mProgShadow.setParameters(commandList, light.pos);
+					mProgShadow.setParameters(commandList, light.pos, Global::GetDrawEngine().getScreenSize());
+
+					if (!mBuffers.empty())
+					{
+						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &mBuffers[0], mBuffers.size());
+					}
 				}
 				else
 				{
+					
 					mBuffers.clear();
 					for (Block& block : blocks)
 					{
 						renderPolyShadow(light, block.pos, block.getVertices(), block.getVertexNum());
 					}
-				}
 
-				if (!mBuffers.empty())
-				{
-
-					if (bUseGeometryShader)
-					{
-						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &mBuffers[0], mBuffers.size());
-					}
-					else
+					RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
+					if (!mBuffers.empty())
 					{
 						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, &mBuffers[0], mBuffers.size());
 					}
-					
 				}
 			}
 			
-			RHISetDepthStencilState(commandList,
-				TStaticDepthStencilState<
-					true, ECompareFunc::Always,
-					true, ECompareFunc::Equal, 
-					Stencil::eKeep, Stencil::eKeep, Stencil::eKeep,0x1 
-				>::GetRHI(), 0x0);
-
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+			if ( !bShowShadowRender )
 			{
-				RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
-				mProgLighting.setParameters(commandList, light.pos, light.color);
-				DrawUtility::Rect(commandList, w, h);
-			}
-			
-			
+#if 1
+				RHISetDepthStencilState(commandList,
+					TStaticDepthStencilState<
+					true, ECompareFunc::Always,
+					true, ECompareFunc::Equal,
+					Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
+					>::GetRHI(), 0x0);
+#else
 
-			glClear(GL_STENCIL_BUFFER_BIT);
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+#endif
+				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				{
+					RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
+					mProgLighting.setParameters(commandList, light.pos, light.color);
+					DrawUtility::ScreenRect(commandList, w, h);
+				}
+
+
+				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 1.0, 0);
+			}
 		}
 
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-#if 0
-		glColor3f(1, 0, 0);
+#if 1
+		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
 		Vector2 vertices[] =
 		{
 			Vector2(100 , 100),
@@ -232,7 +245,7 @@ namespace Lighting2D
 		{
 			0,1,2,0,2,3,
 		};
-		TRenderRT<RTVF_XY>::DrawIndexed(EPrimitive::eTriangleList, vertices, 4, indices, 6);
+		TRenderRT<RTVF_XY>::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, indices, 6 , LinearColor(1,0,0,1));
 #endif
 
 		RHIGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();

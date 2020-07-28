@@ -121,13 +121,13 @@ enum class RHITargetName
 struct RHIInitializeParams
 {
 	int32 numSamples;
-
+	bool  bVSyncEnable;
 
 	RHIInitializeParams()
 	{
 		numSamples = 1;
+		bVSyncEnable = false;
 	}
-
 };
 
 class IGameWindowProvider

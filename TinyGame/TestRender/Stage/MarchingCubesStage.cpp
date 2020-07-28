@@ -768,7 +768,7 @@ namespace Render
 
 		virtual RHITargetName getRHITargetName() override
 		{
-			return RHITargetName::D3D11;
+			return RHITargetName::OpenGL;
 		}
 
 
@@ -777,15 +777,6 @@ namespace Render
 			if (!BaseClass::onInit())
 				return false;
 
-			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
-			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
-
-			VERIFY_RETURN_FALSE(mProgShowValue = ShaderManager::Get().getGlobalShaderT< ShowValueProgram >());
-			VERIFY_RETURN_FALSE(mProgMeshRender = ShaderManager::Get().getGlobalShaderT< MeshRenderProgram >());
-
-
-			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
-			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 
 			int chunkDataDim = 32;
 			Vector3 chunkSize = Vector3(10, 10, 10);
@@ -821,8 +812,7 @@ namespace Render
 				}
 			}
 			
-			mDataTexture = RHICreateTexture3D(Texture::eR32F, mConfig.dataDim.x, mConfig.dataDim.y, mConfig.dataDim.z, 1 , 1 , TCF_DefalutValue, mChunkData.data.data());
-			updateMesh();
+			initializeRHIResource();
 
 			::Global::GUI().cleanupWidget();
 			auto devFrame = WidgetUtility::CreateDevFrame();
@@ -849,6 +839,37 @@ namespace Render
 			//VoxelMeshBuilder::GenerateMeshNormal(mChunkData, mMeshData);
 			mMesh.createRHIResource(mMeshData.vertices.data(), mMeshData.vertices.size(), mMeshData.indices.data(), mMeshData.indices.size(), true);
 		}
+
+
+
+		virtual bool initializeRHIResource() override
+		{
+			VERIFY_RETURN_FALSE(BaseClass::initializeRHIResource());
+
+			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
+			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
+
+			VERIFY_RETURN_FALSE(mProgShowValue = ShaderManager::Get().getGlobalShaderT< ShowValueProgram >());
+			VERIFY_RETURN_FALSE(mProgMeshRender = ShaderManager::Get().getGlobalShaderT< MeshRenderProgram >());
+
+			mDataTexture = RHICreateTexture3D(Texture::eR32F, mConfig.dataDim.x, mConfig.dataDim.y, mConfig.dataDim.z, 1, 1, TCF_DefalutValue, mChunkData.data.data());
+			
+			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+			updateMesh();
+			return true;
+		}
+
+		virtual void releaseRHIResource(bool bReInit) override
+		{
+			mProgShowValue = nullptr;
+			mProgMeshRender = nullptr;
+			mDataTexture.release();
+			mMesh.releaseRHIResource(bReInit);
+
+			BaseClass::releaseRHIResource(bReInit);
+		}
+
 		void onEnd() override
 		{
 
@@ -870,24 +891,9 @@ namespace Render
 
 		void onRender(float dFrame) override
 		{
-			//initializeRenderState();
+			initializeRenderState();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
-
-
-			GameWindow& window = Global::GetDrawEngine().getWindow();
-
-			mView.rectOffset = IntVector2(0, 0);
-			mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
-
-			Matrix4 matView = mCamera.getViewMatrix();
-			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
-			mView.updateBuffer();
-			
-
-			RHISetFrameBuffer(commandList, nullptr);
-			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
-
 
 			RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 			DrawUtility::AixsLine(commandList);

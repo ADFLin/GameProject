@@ -3,6 +3,9 @@
 
 #include "WindowsHeader.h"
 
+#include "Math/Vector2.h"
+#include "Platform/Windows/WindowsWindowBase.h"
+
 class WindowsPlatform
 {
 public:
@@ -29,7 +32,7 @@ public:
 
 
 template< class T >
-class WinFrameT
+class WinFrameT : public WindowsWindowBase
 {
 	T* _this(){ return static_cast< T* >( this ); }
 public:
@@ -43,8 +46,8 @@ public:
 				       bool fullscreen = false , 
 					   unsigned colorBits = 32 );
 	void      destroy();
-	HDC       getHDC() const { return m_hDC; }
-	HWND      getHWnd() const { return m_hWnd; }
+	HDC       getHDC() const { return mhDC; }
+	HWND      getHWnd() const { return mhWnd; }
 
 	int       getWidth(){ return mWidth; }
 	int       getHeight(){ return mHeight; }
@@ -53,28 +56,86 @@ public:
 	{
 		mWidth  = w;
 		mHeight = h;
-		RECT rect;
-		SetRect (&rect , 0, 0, mWidth , mHeight );
-		AdjustWindowRectEx( &rect, _this()->getWinStyle() , FALSE , _this()->getWinExtStyle() );
+		RECT rect = calcAdjustWindowRect();
 
 		// move the window back to its old position
-		BOOL result = SetWindowPos( m_hWnd, 0, 0 , 0 , 		
+		BOOL result = SetWindowPos( mhWnd, 0, 0 , 0 , 		
 			rect.right -rect.left ,rect.bottom - rect.top , SWP_NOMOVE | SWP_NOZORDER );
-
-		if( result == FALSE )
-		{
-			int i = 1;
-
-		}
-
 	}
 
-	unsigned  getColorBits() const { return mColorBits; }
 
-	bool      toggleFullscreen();
-	bool      isFullscreen() const
+	unsigned  getColorBits() const { return mColorBits; }
+	bool      toggleFullscreen()
 	{
-		return mbFullscreen;
+#if 0
+		//http://blogs.msdn.com/b/oldnewthing/archive/2010/04/12/9994016.aspx
+		static WINDOWPLACEMENT g_wpPrev = { sizeof(g_wpPrev) };
+
+		DWORD dwStyle = GetWindowLong(m_hWnd, GWL_STYLE);
+		if (dwStyle & WS_OVERLAPPEDWINDOW)
+		{
+			MONITORINFO mi = { sizeof(mi) };
+			if (GetWindowPlacement(m_hWnd, &g_wpPrev) &&
+				GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTOPRIMARY), &mi))
+			{
+				SetWindowLong(m_hWnd, GWL_STYLE,
+					dwStyle & ~WS_OVERLAPPEDWINDOW);
+				SetWindowPos(m_hWnd, HWND_TOP,
+					mi.rcMonitor.left, mi.rcMonitor.top,
+					mi.rcMonitor.right - mi.rcMonitor.left,
+					mi.rcMonitor.bottom - mi.rcMonitor.top,
+					SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			}
+		}
+		else
+		{
+			SetWindowLong(m_hWnd, GWL_STYLE,
+				dwStyle | WS_OVERLAPPEDWINDOW);
+			SetWindowPlacement(m_hWnd, &g_wpPrev);
+			SetWindowPos(m_hWnd, NULL, 0, 0, 0, 0,
+				SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		}
+#else
+		if (!mbFullscreen)
+		{
+			if (!setFullScreen(mColorBits))
+				return false;
+
+			SetWindowRgn(mhWnd, 0, false);
+			// switch off the title bar
+			RECT rect;
+			::GetWindowRect(mhWnd, &rect);
+
+			mPositionBeforeFullscreen.x = rect.left;
+			mPositionBeforeFullscreen.y = rect.top;
+			SetWindowLong(mhWnd, GWL_STYLE, _this()->getWinStyle() & ~WS_CAPTION);
+
+			// move the window to (0,0)
+			SetWindowPos(mhWnd, 0, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+			InvalidateRect(mhWnd, 0, true);
+		}
+
+		else
+		{
+			::ChangeDisplaySettings(NULL, 0);
+
+			// replace the title bar
+			SetWindowLong(mhWnd, GWL_STYLE, _this()->getWinStyle());
+
+			RECT rect;
+			SetRect(&rect, 0, 0, mWidth, mHeight);
+			AdjustWindowRectEx(&rect, _this()->getWinStyle(), FALSE, _this()->getWinExtStyle());
+
+			// move the window back to its old position
+			SetWindowPos(mhWnd, 0, mPositionBeforeFullscreen.x, mPositionBeforeFullscreen.y,
+				rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
+			InvalidateRect(mhWnd, 0, true);
+		}
+#endif
+
+		mbFullscreen = !mbFullscreen;
+		return true;
 	}
 	//////
 public:
@@ -85,25 +146,22 @@ public:
 	LPTSTR getWinClassName(){ return TEXT("GameWindow"); }
 protected:
 	bool   setupWindow( bool fullscreen , unsigned colorBits ){ return true; }
-	void   destoryWindow();
+	void   destoryWindow(){}
 	/////
 
-protected:
-	static LRESULT CALLBACK DefaultProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam );
-	bool      setFullScreen( unsigned bits );
 
 private:
+	RECT   calcAdjustWindowRect()
+	{
+		RECT rect;
+		SetRect(&rect, 0, 0, mWidth, mHeight);
+		AdjustWindowRectEx(&rect, _this()->getWinStyle(), FALSE, _this()->getWinExtStyle());
+		return rect;
+	}
 	bool      createWindow( TCHAR const* szTitle , bool fullscreen );
 	bool      registerWindow( WNDPROC wndProc , DWORD wIcon ,WORD wSIcon );
 
-	int       mWidth;
-	int       mHeight;
-	HWND      m_hWnd;
-	HDC       m_hDC;
-	unsigned  mColorBits;
-	bool      mbFullscreen;
 
-	bool      mbHasRegisterClass = false;
 };
 
 
@@ -112,8 +170,8 @@ WinFrameT<T>::WinFrameT()
 {
 	mWidth     = 0;
 	mHeight    = 0;
-	m_hWnd       = NULL;
-	m_hDC        = NULL;
+	mhWnd       = NULL;
+	mhDC        = NULL;
 	mbFullscreen = false;
 }
 
@@ -154,7 +212,7 @@ bool WinFrameT<T>::create( TCHAR const* szTitle, int iWidth , int iHeight, WNDPR
 		return false;
 
 	ShowWindow ( getHWnd() , SW_SHOWDEFAULT );
-	UpdateWindow ( getHWnd());
+	UpdateWindow ( getHWnd() );
 
 	return true;
 
@@ -163,27 +221,8 @@ bool WinFrameT<T>::create( TCHAR const* szTitle, int iWidth , int iHeight, WNDPR
 template< class T >
 void WinFrameT<T>::destroy()
 {
-
 	_this()->destoryWindow();
-
-	if( mbFullscreen )
-	{
-		::ChangeDisplaySettings(NULL, 0);
-		mbFullscreen = false;
-	}
-
-	if( m_hDC )
-	{
-		::ReleaseDC(m_hWnd, m_hDC);
-		m_hDC = NULL;
-	}
-
-	if( m_hWnd )
-	{
-		HWND hWndToDestroy = m_hWnd;
-		m_hWnd = NULL;
-		::DestroyWindow(hWndToDestroy);
-	}
+	destroyInternal();
 
 }
 
@@ -214,47 +253,6 @@ bool WinFrameT<T>::registerWindow( WNDPROC wndProc, DWORD wIcon ,WORD wSIcon )
 	return true;
 }
 
-
-template< class T >
-bool WinFrameT<T>::setFullScreen( unsigned bits )
-{
-	DEVMODE dmScreenSettings;
-
-	memset( &dmScreenSettings , 0 , sizeof( dmScreenSettings) );
-
-	dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-	dmScreenSettings.dmPelsWidth	= mWidth;
-	dmScreenSettings.dmPelsHeight	= mHeight;
-	dmScreenSettings.dmBitsPerPel	= bits;
-	dmScreenSettings.dmFields       = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
-
-	if ( ChangeDisplaySettings(&dmScreenSettings,CDS_FULLSCREEN)!=DISP_CHANGE_SUCCESSFUL )
-	{
-		return false;
-	}
-
-	return true;
-}
-
-template< class T >
-LRESULT CALLBACK WinFrameT<T>::DefaultProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
-{
-	switch (message)                  /* handle the messages */
-	{
-	case WM_DESTROY:
-		::PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
-		break;
-	}
-	return ::DefWindowProc (hWnd, message, wParam, lParam);
-}
-
-template< class T >
-void WinFrameT<T>::destoryWindow()
-{
-
-}
-
-
 template< class T >
 bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )
 {
@@ -280,7 +278,7 @@ bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )
 	SetRect (&rect , 0, 0, mWidth , mHeight );
 	AdjustWindowRectEx(&rect,style, FALSE ,exStyle);
 
-	m_hWnd = CreateWindowEx(
+	mhWnd = CreateWindowEx(
 		exStyle,
 		_this()->getWinClassName() ,
 		szTitle,
@@ -294,86 +292,12 @@ bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )
 		NULL
 	);
 
-	if ( !m_hWnd )
+	if ( !mhWnd )
 		return false;
 
-	m_hDC = GetDC( m_hWnd );
+	mhDC = GetDC( mhWnd );
 
 	return true;
 }
 
-template< class T >
-bool WinFrameT<T>::toggleFullscreen()
-{
-#if 0
-	//http://blogs.msdn.com/b/oldnewthing/archive/2010/04/12/9994016.aspx
-	static WINDOWPLACEMENT g_wpPrev = { sizeof(g_wpPrev) };
-
-	DWORD dwStyle = GetWindowLong( m_hWnd , GWL_STYLE);
-	if (dwStyle & WS_OVERLAPPEDWINDOW) 
-	{
-		MONITORINFO mi = { sizeof(mi) };
-		if ( GetWindowPlacement(m_hWnd , &g_wpPrev) &&
-			 GetMonitorInfo(MonitorFromWindow(m_hWnd ,MONITOR_DEFAULTTOPRIMARY), &mi) ) 
-		{
-				SetWindowLong(m_hWnd , GWL_STYLE,
-					dwStyle & ~WS_OVERLAPPEDWINDOW);
-				SetWindowPos(m_hWnd , HWND_TOP,
-					mi.rcMonitor.left, mi.rcMonitor.top,
-					mi.rcMonitor.right - mi.rcMonitor.left,
-					mi.rcMonitor.bottom - mi.rcMonitor.top,
-					SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-		}
-	} 
-	else 
-	{
-		SetWindowLong(m_hWnd , GWL_STYLE,
-			dwStyle | WS_OVERLAPPEDWINDOW);
-		SetWindowPlacement(m_hWnd , &g_wpPrev);
-		SetWindowPos(m_hWnd , NULL, 0, 0, 0, 0,
-			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
-			SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-	}
-#else
-	static POINT pos;
-	if ( !mbFullscreen )
-	{
-		if ( !setFullScreen( mColorBits ) )
-			return false;
-
-		SetWindowRgn(m_hWnd, 0, false);
-		// switch off the title bar
-		RECT rect;
-		::GetWindowRect( m_hWnd , &rect );
-
-		pos.x = rect.left;
-		pos.y = rect.top;
-		SetWindowLong( m_hWnd , GWL_STYLE , _this()->getWinStyle() & ~WS_CAPTION );
-
-		// move the window to (0,0)
-		SetWindowPos(m_hWnd, 0, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-		InvalidateRect(m_hWnd , 0, true);	
-	}
-
-	else
-	{
-		::ChangeDisplaySettings( NULL , 0);
-
-		// replace the title bar
-		SetWindowLong( m_hWnd , GWL_STYLE , _this()->getWinStyle());
-
-		RECT rect;
-		SetRect (&rect , 0, 0, mWidth , mHeight );
-		AdjustWindowRectEx( &rect, _this()->getWinStyle() , FALSE , _this()->getWinExtStyle() );
-
-		// move the window back to its old position
-		SetWindowPos( m_hWnd, 0, pos.x , pos.y , 		
-			rect.right -rect.left ,rect.bottom - rect.top ,  SWP_NOZORDER );
-		InvalidateRect( m_hWnd, 0, true );
-	}
-#endif
-
-	mbFullscreen = !mbFullscreen;
-	return true;
-}
 #endif // Win32Platform_h__

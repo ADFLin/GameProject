@@ -50,170 +50,6 @@ typedef float2x2 mat2;
 typedef float3x3 mat3;
 typedef float4x4 mat4;
 
-#endif
-
-#if VERTEX_SHADER
-#define vs_out out
-#else
-#define vs_out in
-#endif
-
-#define GLOBAL_CONST const
-
-#define UNROLL
-#define LOOP
-
-#define BRANCH
-#define FLATTEN
-
-#define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) layout(location = ATTRIBUTE) in TYPE VertexInput_##NAME;
-#define VERTEX_INPUT( NAME ) VertexInput_##NAME
-
-#define gl_Tangent gl_MultiTexCoord7
-
-#define lerp mix
-#define frac fract
-
-float rcp(float x)
-{
-	return 1.0 / x;
-}
-
-float atan2(float y, float x) { return atan(y, x); }
-
-DEFINE_VECTOR_FUNCTION(rcp, { return 1.0 / x; })
-float saturate(float x)
-{
-	return clamp(x, 0.0, 1.0);
-}
-DEFINE_VECTOR_FUNCTION(saturate, { return clamp(x, 0.0, 1.0); })
-
-#define SincosT( TYPE )\
-	void sincos(TYPE x, out TYPE s, out TYPE c)\
-	{\
-		s = sin(x);\
-		c = cos(x);\
-	}
-VECTOR_TYPE_LIST(SincosT)
-#undef SincosT
-
-float BufferDepthToClipZ(float bufferDepth)
-{
-#if SYSTEM_VULKAN
-	return bufferDepth;
-#else
-	return 2 * bufferDepth / gl_DepthRange.diff - 1;
-#endif
-}
-
-
-#if PIXEL_SHADER
-
-void clip(float x)
-{
-	if (x < 0.0)
-		discard;
-}
-
-#define ClipT( TYPE )\
-	void clip(TYPE x)\
-	{\
-		if ( any( lessThan(x , TYPE(0.0)) ) )\
-			discard;\
-	}
-VECTOR_TYPE_NO_FLOAT_LIST(ClipT)
-#undef ClipT
-
-void WritePixelDepth(float NDCz)
-{
-#if SYSTEM_VULKAN
-	gl_FragDepth = NDCz;
-#else
-	gl_FragDepth = (gl_DepthRange.diff * NDCz + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
-#endif
-}
-
-void WritePixelRawDepth(float value)
-{
-	gl_FragDepth = value;
-}
-#endif
-
-float4x4 Transform(float4x4 m1, float4x4 m2)
-{
-	return m2 * m1;
-}
-
-float4 TransformPosition(float4 v, float4x4 m)
-{
-	return m * v;
-}
-
-float3 TransformVector(float3 v, float3x3 m)
-{
-	return m * v;
-}
-
-float3 InvTransformVector(float3 v, float3x3 m)
-{
-	return v * m;
-}
-
-#define MEMBER_OUTPUT( DECL , NAME ) DECL
-
-#define SvPosition gl_Position
-#define SvInstanceID gl_InstanceID
-#define SvPointSize gl_PointSize
-#define SHADER_ENTRY_START(NAME)
-#define SHADER_INPUT(TYPE_DECL , LOC) layout(location = LOC) in TYPE_DECL;
-#define SHADER_OUTPUT(TYPE_DECL , LOC) layout(location = LOC ) out TYPE_DECL;
-#define SHADER_OUTPUT_LAST(TYPE_DECL , LOC)  layout(location = LOC ) out TYPE_DECL;
-#define SHADER_ENTRY_END(NAME) void NAME()
-
-#if VERTEX_SHADER
-#define VS_ENTRY_START(NAME)
-	out gl_PerVertex\
-	{\
-		float4 gl_Position;\
-	};\
-	SHADER_ENTRY_START(NAME)
-#define VS_INPUT_INSTANCEID
-#define VS_OUTPUT_POINTSIZE
-#define VS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
-#define VS_OUTPUT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
-#define VS_OUTPUT_STRUCT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
-#define VS_OUTPUT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT_LAST(TYPE_DECL , LOC)
-#define VS_OUTPUT_STRUCT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT_LAST(TYPE_DECL , LOC) 
-#define VS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
-#endif
-
-#define PS_ENTRY_START(NAME) SHADER_ENTRY_START(NAME)
-#define PS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
-#define PS_INPUT_STRUCT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
-#define PS_OUTPUT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
-#define PS_OUTPUT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
-#define PS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
-
-#define Texture1D sampler1D
-#define Texture2D sampler2D
-#define Texture3D sampler3D
-
-#define DEFINE_TEXTURE( TYPE , NAME ) uniform TYPE NAME
-#define TEXTURE_SAMPE( NAME , UV ) texture(NAME, UV)
-
-#define TEXTURE_FETCH( NAME , UV , LOD ) texelFetch(NAME, UV, LOD)
-
-
-#define ARRAY_DATA_BEGIN( TYPE ) TYPE[](
-#define ARRAY_DATA_END );
-
-
-
-float4 mul(float4x4 a, float4 b) { return a * b; }
-
-
-
-#if !SHADER_COMPILING
 
 class sampler1D {};
 class sampler2D {};
@@ -265,6 +101,186 @@ T notEqual(T, T);
 
 template< class T >
 bool not(T);
+
+#endif
+
+#if VERTEX_SHADER
+#define vs_out out
+#else
+#define vs_out in
+#endif
+
+#define GLOBAL_CONST const
+
+#define UNROLL
+#define LOOP
+
+#define BRANCH
+#define FLATTEN
+
+#define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) layout(location = ATTRIBUTE) in TYPE VertexInput_##NAME;
+#define VERTEX_INPUT( NAME ) VertexInput_##NAME
+
+#define gl_Tangent gl_MultiTexCoord7
+
+#define lerp mix
+#define frac fract
+#define fmod mod
+
+float rcp(float x)
+{
+	return 1.0 / x;
+}
+
+float atan2(float y, float x) { return atan(y, x); }
+
+DEFINE_VECTOR_FUNCTION(rcp, { return 1.0 / x; })
+float saturate(float x)
+{
+	return clamp(x, 0.0, 1.0);
+}
+DEFINE_VECTOR_FUNCTION(saturate, { return clamp(x, 0.0, 1.0); })
+
+#define SincosT( TYPE )\
+	void sincos(TYPE x, out TYPE s, out TYPE c)\
+	{\
+		s = sin(x);\
+		c = cos(x);\
+	}
+VECTOR_TYPE_LIST(SincosT)
+#undef SincosT
+
+float BufferDepthToClipZ(float bufferDepth)
+{
+#if SYSTEM_VULKAN
+	return bufferDepth;
+#else
+	return 2 * bufferDepth / gl_DepthRange.diff - 1;
+#endif
+}
+
+
+#if PIXEL_SHADER
+
+void clip(float x)
+{
+	if (x < 0.0)
+		discard;
+}
+
+#define ClipT( TYPE )\
+	void clip(TYPE x)\
+	{\
+		if ( any( lessThan(x , TYPE(0.0)) ) )\
+			discard;\
+	}
+VECTOR_TYPE_NO_FLOAT_LIST(ClipT)
+#undef ClipT
+
+#define DdxT( TYPE )\
+	TYPE ddx(TYPE x){ return dFdx(x); }
+VECTOR_TYPE_LIST(DdxT)
+#undef DdxT
+#define DdyT( TYPE )\
+	TYPE ddy(TYPE x){ return dFdy(x); }
+VECTOR_TYPE_LIST(DdyT)
+#undef DdyT
+
+void WritePixelDepth(float NDCz)
+{
+#if SYSTEM_VULKAN
+	gl_FragDepth = NDCz;
+#else
+	gl_FragDepth = (gl_DepthRange.diff * NDCz + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
+#endif
+}
+
+void WritePixelRawDepth(float value)
+{
+	gl_FragDepth = value;
+}
+#endif
+
+float4x4 Transform(float4x4 m1, float4x4 m2)
+{
+	return m2 * m1;
+}
+
+float4 TransformPosition(float4 v, float4x4 m)
+{
+	return m * v;
+}
+
+float3 TransformVector(float3 v, float3x3 m)
+{
+	return m * v;
+}
+
+float3 InvTransformVector(float3 v, float3x3 m)
+{
+	return v * m;
+}
+
+#define MEMBER_OUTPUT( DECL , NAME ) DECL
+
+#if PIXEL_SHADER
+#define SvPosition gl_FragCoord
+#else
+#define SvPosition gl_Position
+#endif
+#define SvInstanceID gl_InstanceID
+#define SvPointSize gl_PointSize
+#define SHADER_ENTRY_START(NAME)
+#define SHADER_INPUT(TYPE_DECL , LOC) layout(location = LOC) in TYPE_DECL;
+#define SHADER_OUTPUT(TYPE_DECL , LOC) layout(location = LOC ) out TYPE_DECL;
+#define SHADER_OUTPUT_LAST(TYPE_DECL , LOC)  layout(location = LOC ) out TYPE_DECL;
+#define SHADER_ENTRY_END(NAME) void NAME()
+
+#if VERTEX_SHADER
+#define VS_ENTRY_START(NAME)
+	out gl_PerVertex\
+	{\
+		float4 gl_Position;\
+	};\
+	SHADER_ENTRY_START(NAME)
+#define VS_INPUT_INSTANCEID
+#define VS_OUTPUT_POINTSIZE
+#define VS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
+#define VS_OUTPUT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
+#define VS_OUTPUT_STRUCT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
+#define VS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
+#endif
+
+#define PS_ENTRY_START(NAME) SHADER_ENTRY_START(NAME)
+#define PS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
+#define PS_INPUT_STRUCT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
+#define PS_OUTPUT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
+#define PS_OUTPUT(TYPE_DECL , LOC) SHADER_OUTPUT(TYPE_DECL , LOC)
+#define PS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
+
+#define Texture1D sampler1D
+#define Texture2D sampler2D
+#define Texture3D sampler3D
+#define TextureCube samplerCube
+
+#define DEFINE_TEXTURE( TYPE , NAME ) uniform TYPE NAME
+#define TEXTURE_SAMPE( NAME , UV ) texture(NAME, UV)
+
+#define TEXTURE_FETCH( NAME , UV , LOD ) texelFetch(NAME, UV, LOD)
+
+uint2 TextureSize(sampler2D inTexture)
+{
+	return textureSize(inTexture, 0);
+}
+
+float4x4 mul(float4x4 a, float4x4 b) { return a * b; }
+float3x3 mul(float3x3 a, float3x3 b) { return a * b; }
+float2x2 mul(float2x2 a, float2x2 b) { return a * b; }
+float4 mul(float4x4 a, float4 b) { return a * b; }
+float3 mul(float3x3 a, float3 b) { return a * b; }
+float2 mul(float2x2 a, float2 b) { return a * b; }
+
+#if !SHADER_COMPILING
 
 //BUILT-IN CONSTANTS (7.4 p44) 
 

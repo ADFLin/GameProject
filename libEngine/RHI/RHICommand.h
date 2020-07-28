@@ -63,15 +63,17 @@ namespace Render
 	struct RHISystemInitParams
 	{
 		int  numSamples;
+		bool bVSyncEnable;
 #if SYS_PLATFORM_WIN
 		HWND hWnd;
 		HDC  hDC;
-
+#endif
 		RHISystemInitParams()
 		{
 			numSamples = 1;
+			bVSyncEnable = true;
 		}
-#endif
+
 	};
 
 
@@ -83,7 +85,9 @@ namespace Render
 
 	struct SwapChainCreationInfo
 	{
+#if SYS_PLATFORM_WIN
 		HWND  windowHandle;
+#endif
 		bool  bWindowed;
 		IntVector2 extent;
 		Texture::Format colorForamt;
@@ -92,7 +96,6 @@ namespace Render
 
 		int numSamples;
 		int bufferCount;
-
 
 		SwapChainCreationInfo()
 		{

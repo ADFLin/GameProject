@@ -284,7 +284,7 @@ namespace Render
 
 			}
 
-			mGrassTexture = RHIUtility::CreateTexture2D(imageData, TextureLoadOption().SRGB().MipLevel(10).ReverseH());
+			VERIFY_RETURN_FALSE( mGrassTexture = RHIUtility::CreateTexture2D(imageData, TextureLoadOption().SRGB().MipLevel(1).ReverseH()) );
 		}
 
 		MeshBuild::Plane(mGrassMesh, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);

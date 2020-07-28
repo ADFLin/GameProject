@@ -84,7 +84,8 @@ namespace Render
 			return TransformVector(Vector3(0, 1, 0), viewToWorld);
 		}
 
-		void updateBuffer();
+		void updateRHIResource();
+		void releaseRHIRelease();
 		void setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix);
 
 		IntVector2 getViewportSize() const;

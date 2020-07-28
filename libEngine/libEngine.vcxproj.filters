@@ -181,9 +181,6 @@
     <ClCompile Include="WGLContext.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
-    <ClCompile Include="Win32ProfileViewer.cpp">
-      <Filter>Platform</Filter>
-    </ClCompile>
     <ClCompile Include="WinGDIRenderSystem.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
@@ -496,6 +493,12 @@
     <ClCompile Include="Renderer\BatchedRender2D.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Platform\Windows\WindowsWindowBase.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsProfileViewer.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -574,9 +577,6 @@
       <Filter>Platform</Filter>
     </ClInclude>
     <ClInclude Include="WGLContext.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="Win32ProfileViewer.h">
       <Filter>Platform</Filter>
     </ClInclude>
     <ClInclude Include="WinGDIRenderSystem.h">
@@ -1208,6 +1208,12 @@
     </ClInclude>
     <ClInclude Include="Template\Optional.h">
       <Filter>Template</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\WindowsWindowBase.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsProfileViewer.h">
+      <Filter>Platform</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

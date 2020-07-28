@@ -275,6 +275,7 @@
     <ClCompile Include="Phy2D\Shape.cpp" />
     <ClCompile Include="Phy2D\World.cpp" />
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp" />
+    <ClCompile Include="Platform\Windows\WindowsWindowBase.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
     <ClCompile Include="Renderer\BatchedRender2D.cpp" />
     <ClCompile Include="Renderer\RenderTransform2D.cpp" />
@@ -325,7 +326,7 @@
     <ClCompile Include="NetSocket.cpp" />
     <ClCompile Include="UnitTest\TestClass.cpp" />
     <ClCompile Include="WGLContext.cpp" />
-    <ClCompile Include="Win32ProfileViewer.cpp" />
+    <ClCompile Include="WindowsProfileViewer.cpp" />
     <ClCompile Include="WinGDIRenderSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -466,6 +467,7 @@
     <ClInclude Include="Platform\Windows\ComUtility.h" />
     <ClInclude Include="Platform\Windows\MediaFoundationHeader.h" />
     <ClInclude Include="Platform\Windows\WindowsProcess.h" />
+    <ClInclude Include="Platform\Windows\WindowsWindowBase.h" />
     <ClInclude Include="ProfileSystem.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Reflection.h" />
@@ -563,7 +565,7 @@
     <ClInclude Include="WindowsFileSystem.h" />
     <ClInclude Include="WindowsHeader.h" />
     <ClInclude Include="WindowsPlatform.h" />
-    <ClInclude Include="Win32ProfileViewer.h" />
+    <ClInclude Include="WindowsProfileViewer.h" />
     <ClInclude Include="WinGDIRenderSystem.h" />
     <ClInclude Include="WinGLPlatform.h" />
   </ItemGroup>

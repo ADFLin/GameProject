@@ -8,8 +8,13 @@ struct PrimitiveParameters
 	float4x4 worldToLocal;
 };
 
-uniform PrimitiveParameters Primitive = PrimitiveParameters
+#if COMPILER_GLSL
+uniform PrimitiveParameters Primitive 
+= PrimitiveParameters
 (
 	float4x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
 	float4x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 );
+#else
+uniform PrimitiveParameters Primitive;
+#endif

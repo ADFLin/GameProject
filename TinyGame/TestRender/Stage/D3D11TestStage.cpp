@@ -172,8 +172,6 @@ namespace Render
 		{
 			GPU_PROFILE("Render");
 
-		
-
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			GameWindow& window = Global::GetDrawEngine().getWindow();
@@ -183,7 +181,7 @@ namespace Render
 
 			Matrix4 matView = mCamera.getViewMatrix();
 			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
-			mView.updateBuffer();
+			mView.updateRHIResource();
 
 			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);

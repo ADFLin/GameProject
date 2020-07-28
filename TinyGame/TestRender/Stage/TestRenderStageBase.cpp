@@ -161,6 +161,15 @@ namespace Render
 		return true;
 	}
 
+	void SharedAssetData::releaseRHIResource(bool bReInit /*= false*/)
+	{
+		for (auto& mesh : mSimpleMeshs)
+		{
+			mesh.releaseRHIResource(bReInit);
+		}
+		mProgSphere = nullptr;
+	}
+
 	bool TestRenderStageBase::onInit()
 	{
 		if( !BaseClass::onInit() )
@@ -290,6 +299,15 @@ namespace Render
 			{
 				ShaderManager::Get().reloadAll();
 				//initParticleData();
+			}
+			break;
+		case EKeyCode::F11:
+			{
+				releaseRHIResource(true);
+				RHITargetName Name = GRHISystem->getName() == RHISytemName::OpenGL ? RHITargetName::D3D11 : RHITargetName::OpenGL;
+				Global::GetDrawEngine().shutdownRHI(false);
+				Global::GetDrawEngine().initializeRHI(Name);
+				initializeRHIResource();
 			}
 			break;
 		}

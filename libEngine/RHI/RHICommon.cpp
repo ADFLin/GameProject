@@ -93,6 +93,12 @@ namespace Render
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 	}
 
+	void InputLayoutDesc::clear()
+	{
+		mElements.clear();
+		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
+	}
+
 	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format format, bool bNormailzed, bool bInstanceData, int instanceStepRate)
 	{
 		InputElementDesc element;

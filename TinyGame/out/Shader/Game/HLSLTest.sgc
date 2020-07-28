@@ -14,7 +14,7 @@ VS_ENTRY_START(MainVS)
 	VS_INPUT(float3 InPos , ATTRIBUTE_POSITION)
 	VS_INPUT(float3 InColor, ATTRIBUTE_COLOR)
 	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
-	VS_OUTPUT_STRUCT_LAST( VSOutputParam VSOutput, 0)
+	VS_OUTPUT_STRUCT( VSOutputParam VSOutput, 0)
 VS_ENTRY_END(MainVS)
 {
 	//output.svPosition = mul(XForm, float4(inputVS.pos.xy, 0.5, 1));
@@ -47,7 +47,7 @@ uniform float3 Color;
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT(VSOutputParam InputVS, 0)
-	PS_OUTPUT_LAST(float4 OutColor, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);

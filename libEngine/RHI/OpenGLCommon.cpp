@@ -706,7 +706,7 @@ namespace Render
 		GLenum baseFormat;
 	};
 
-	constexpr OpenGLTextureConvInfo gTexConvMapGL[] =
+	constexpr OpenGLTextureConvInfo GTexConvMapGL[] =
 	{
 #if _DEBUG
 #define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_TYPE , PIXEL_FORMAT , BASE_FORMAT )\
@@ -765,33 +765,33 @@ namespace Render
 #if _DEBUG
 	constexpr bool CheckTexConvMapValid_R(int i, int size)
 	{
-		return (i == size) ? true : ((i == (int)gTexConvMapGL[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
+		return (i == size) ? true : ((i == (int)GTexConvMapGL[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
 	}
 	constexpr bool CheckTexConvMapValid()
 	{
-		return CheckTexConvMapValid_R(0, sizeof(gTexConvMapGL) / sizeof(gTexConvMapGL[0]));
+		return CheckTexConvMapValid_R(0, sizeof(GTexConvMapGL) / sizeof(GTexConvMapGL[0]));
 	}
 	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
 #endif
 
 	GLenum OpenGLTranslate::To(Texture::Format format)
 	{
-		return gTexConvMapGL[(int)format].foramt;
+		return GTexConvMapGL[(int)format].foramt;
 	}
 
 	GLenum OpenGLTranslate::TextureComponentType(Texture::Format format)
 	{
-		return gTexConvMapGL[format].compType;
+		return GTexConvMapGL[format].compType;
 	}
 
 	GLenum OpenGLTranslate::BaseFormat(Texture::Format format)
 	{
-		return gTexConvMapGL[format].baseFormat;
+		return GTexConvMapGL[format].baseFormat;
 	}
 
 	GLenum OpenGLTranslate::PixelFormat(Texture::Format format)
 	{
-		return gTexConvMapGL[format].pixelFormat;
+		return GTexConvMapGL[format].pixelFormat;
 	}
 
 	GLenum OpenGLTranslate::Image2DType(Texture::Format format)
@@ -852,7 +852,6 @@ namespace Render
 		{
 			outPatchPointCount = 1 + int(type) - int(EPrimitive::PatchPoint1);
 			return GL_PATCHES;
-
 		}
 		return GL_POINTS;
 	}
@@ -961,7 +960,6 @@ namespace Render
 		}
 		return GL_KEEP;
 	}
-
 
 	GLenum OpenGLTranslate::To(ECullMode mode)
 	{

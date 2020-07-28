@@ -3,47 +3,51 @@
 
 #if PIXEL_SHADER
 
-in VSOutputParameters VSOutput;
+DEFINE_TEXTURE( Texture2D , CopyTexture);
 
-uniform sampler2D CopyTexture;
-
+#if SHADER_ENTRY_CopyTexturePS
 PS_ENTRY_START(CopyTexturePS)
-	PS_INPUT(VSOutput, 0)
-	PS_OUTPUT_LAST( float4 OutColor , 0 )
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT( float4 OutColor , 0 )
 PS_ENTRY_END(CopyTexturePS)
 {
 	float2 UVs = VSOutput.UVs;
-	OutColor = texture(CopyTexture, UVs);
+	OutColor = TEXTURE_SAMPE(CopyTexture, UVs);
 }
-
+#endif
 
 uniform float4 ColorMask;
+
+#if SHADER_ENTRY_CopyTextureMaskPS
 PS_ENTRY_START(CopyTextureMaskPS)
-	PS_INPUT(VSOutput, 0)
-	PS_OUTPUT_LAST(float4 OutColor, 0)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(CopyTextureMaskPS)
 {
 	float2 UVs = VSOutput.UVs;
-	float c = dot(texture(CopyTexture, UVs), ColorMask);
+	float c = dot(TEXTURE_SAMPE(CopyTexture, UVs), ColorMask);
 	OutColor = float4( c , c , c , 1 );
 }
-
+#endif
 
 uniform float2 ColorBais;
+
+#if SHADER_ENTRY_CopyTextureBiasPS
 PS_ENTRY_START(CopyTextureBiasPS)
-	PS_INPUT(VSOutput, 0)
-	PS_OUTPUT_LAST(float4 OutColor, 0)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(CopyTextureBiasPS)
 {
 	float2 UVs = VSOutput.UVs;
-	float3 color = ColorBais.x * texture(CopyTexture, UVs).rgb + ColorBais.y;
-	//OutColor = texture(CopyTexture, UVs).rgb;
+	float3 color = ColorBais.x * TEXTURE_SAMPE(CopyTexture, UVs).rgb + ColorBais.y;
+	//OutColor = TEXTURE_SAMPE(CopyTexture, UVs).rgb;
 	OutColor = float4(color, 1);
 }
+#endif
 
 uniform float2 ValueFactor;
 
-const float3 Color[] =
+GLOBAL_CONST float3 Color[] =
 {
 	float3(0,0,0),
 	float3(1,0,0),
@@ -57,18 +61,20 @@ const float3 Color[] =
 	float3(0.5,0.5,1),
 };
 
+#if SHADER_ENTRY_MappingTextureColorPS
 PS_ENTRY_START(MappingTextureColorPS)
-	PS_INPUT(VSOutput, 0)
-	PS_OUTPUT_LAST(float4 OutColor, 0)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MappingTextureColorPS)
 {
-	vec2 UVs = VSOutput.UVs;
-	float c = dot(texture(CopyTexture, UVs), ColorMask);
+	float2 UVs = VSOutput.UVs;
+	float c = dot(TEXTURE_SAMPE(CopyTexture, UVs), ColorMask);
 	int idx = int( round(ValueFactor.x * c + ValueFactor.y) );
 	if ( idx < 0 || idx > 9 )
 		OutColor = float4(1, 1, 1, 1);
 	OutColor = float4( Color[idx] , 1 );
 	//OutColor = float4(c, c, c, 1);
 }
+#endif
 
 #endif //PIXEL_SHADER

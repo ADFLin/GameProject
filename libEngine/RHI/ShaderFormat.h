@@ -124,9 +124,11 @@ namespace Render
 			return false;
 		}
 
-		static bool PreprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes );
+		bool preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes );
 		static void OutputError(char const* text);
 		
+
+		bool bOuputPreprocessedCode = true;
 		bool bRecompile = true;
 		bool bUsePreprocess = true;
 	};

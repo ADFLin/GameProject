@@ -37,7 +37,7 @@ namespace Render
 
 	Mesh::~Mesh()
 	{
-
+		releaseRHIResource();
 	}
 
 	bool Mesh::createRHIResource(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
@@ -78,6 +78,22 @@ namespace Render
 		}
 
 		return true;
+	}
+
+	void Mesh::releaseRHIResource(bool bReInit)
+	{
+		if (bReInit)
+		{
+			mInputLayoutDesc.clear();
+		}
+
+		mInputLayout.release();
+		mInputLayoutOverwriteColor.release();
+		mVertexBuffer.release();
+		mColorBuffer.release();
+		mIndexBuffer.release();
+		mVertexAdjIndexBuffer.release();
+		mTessAdjIndexBuffer.release();
 	}
 
 	void Mesh::draw(RHICommandList& commandList)

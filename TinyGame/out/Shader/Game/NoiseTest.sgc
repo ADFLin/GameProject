@@ -9,10 +9,10 @@
 #include "ScatteringCommon.sgc"
 
 uniform float Time;
-uniform sampler2D RandTexture;
-uniform sampler2D NoiseTexture;
-uniform sampler3D VolumeTexture;
-uniform sampler3D NoiseVolumeTexture;
+DEFINE_TEXTURE(Texture2D, RandTexture);
+DEFINE_TEXTURE(Texture2D, NoiseTexture);
+DEFINE_TEXTURE(Texture3D, VolumeTexture);
+DEFINE_TEXTURE(Texture3D, NoiseVolumeTexture);
 
 #ifndef USE_RAND_TEXTURE
 #define USE_RAND_TEXTURE 1
@@ -26,7 +26,7 @@ uniform sampler3D NoiseVolumeTexture;
 float MyRandom(float2 uv)
 {
 #if USE_RAND_TEXTURE
-	return texture(RandTexture, uv / TEX_SIZE).x;
+	return TEXTURE_SAMPE(RandTexture, uv / TEX_SIZE).x;
 #else
 
 	return PseudoRandom(uv);
@@ -37,7 +37,7 @@ float MyRandom(float2 uv)
 
 float SimpleNoise(float2 uv)
 {
-	float2 i = floor(uv) + float2(0.5);
+	float2 i = floor(uv) + float2(0.5,0.5);
 	float2 f = frac(uv);
 
 	// Four corners in 2D of a tile
@@ -70,7 +70,7 @@ float FBM(float2 uv, int numOctaves)
 	float2x2 rot = FBMFactor.y * float2x2(cos(FBMFactor.z), sin(FBMFactor.z),
 					                     -sin(FBMFactor.z), cos(FBMFactor.z));
 #else
-	float2 shift = float2(100.0);
+	float2 shift = float2(100.0, 100.0);
 	// Rotate to reduce axial bias
 	float2x2 rot = float2x2(cos(0.5), sin(0.5),
 							-sin(0.5), cos(0.50));
@@ -78,7 +78,7 @@ float FBM(float2 uv, int numOctaves)
 	for( int i = 0; i < numOctaves; ++i )
 	{
 		v += a * SimpleNoise(uv);
-		uv = rot * uv * 2.0 + shift;
+		uv = mul( rot , uv ) * 2.0 + shift;
 		a *= 0.5;
 	}
 	return v;

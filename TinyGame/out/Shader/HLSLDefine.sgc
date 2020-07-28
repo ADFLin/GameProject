@@ -37,29 +37,24 @@
 
 #define MEMBER_OUTPUT( DECL , NAME ) DECL : NAME
 
-#define SHADER_ENTRY_START(NAME) void NAME(
 #define SHADER_INPUT(TYPE_DECL , LOC) in TYPE_DECL : LOC,
 #define SHADER_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL,
 #define SHADER_OUTPUT_LAST(TYPE_DECL , LOC)  out TYPE_DECL
-#define SHADER_ENTRY_END(NAME) ) 
 
 
-#define VS_ENTRY_START(NAME) void NAME( out float4 SvPosition : SV_POSITION,
+#define VS_ENTRY_START(NAME) void NAME(
 #define VS_INPUT_INSTANCEID in uint SvInstanceID : SV_InstanceID,
 #define VS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
 #define VS_OUTPUT_POINTSIZE out float SvPointSize : PSIZE,
 #define VS_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL : TEXCOORD##LOC,
 #define VS_OUTPUT_STRUCT( TYPE_DECL , LOC ) SHADER_OUTPUT( TYPE_DECL , LOC)
-#define VS_OUTPUT_LAST(TYPE_DECL , LOC) out TYPE_DECL : TEXCOORD##LOC
-#define VS_OUTPUT_STRUCT_LAST(TYPE_DECL , LOC) SHADER_OUTPUT_LAST(TYPE_DECL , LOC) 
-#define VS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
+#define VS_ENTRY_END(NAME)  out float4 SvPosition : SV_POSITION )
 
-#define PS_ENTRY_START(NAME) void NAME( in float4 SvPosition : SV_POSITION,
+#define PS_ENTRY_START(NAME) void NAME(
 #define PS_INPUT(TYPE_DECL , LOC) in TYPE_DECL : TEXCOORD##LOC,
 #define PS_INPUT_STRUCT(TYPE_DECL , LOC) in TYPE_DECL,
 #define PS_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL : SV_Target##LOC,
-#define PS_OUTPUT_LAST(TYPE_DECL , LOC) out TYPE_DECL : SV_Target##LOC
-#define PS_ENTRY_END(NAME) SHADER_ENTRY_END(NAME)
+#define PS_ENTRY_END(NAME)  in float4 SvPosition : SV_POSITION )
 
 #define DEFINE_TEXTURE( TYPE , NAME )\
 	 uniform TYPE NAME;\
@@ -81,10 +76,14 @@ float4 TextureLoad(Texture3D inTexture, int3 UV, int LOD)
 	return inTexture.Load(int4(UV, LOD));
 }
 
-#define TEXTURE_FETCH( NAME , UV , LOD ) TextureLoad( NAME , UV , LOD )
+uint2 TextureSize(Texture2D inTexture)
+{
+	uint2 result;
+	inTexture.GetDimensions(result.x, result.y);
+	return result;
+}
 
-#define ARRAY_DATA_BEGIN( TYPE ) {
-#define ARRAY_DATA_END };
+#define TEXTURE_FETCH( NAME , UV , LOD ) TextureLoad( NAME , UV , LOD )
 
 float4x4 inverse(float4x4 input)
 {

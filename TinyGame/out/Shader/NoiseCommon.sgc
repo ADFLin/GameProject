@@ -6,14 +6,14 @@
 
 float PseudoRandom(float s)
 {
-	return frac(sin(mod(s, 6.2831853)) * 43758.5453123);
+	return frac(sin(fmod(s, 6.2831853)) * 43758.5453123);
 }
 
 float PseudoRandom(float2 s)
 {
 #if 0
 	float d = dot(s + 0.1234567, float2(1111112.9819837, 78.237173));
-	float m = mod(d, 6.2831853);
+	float m = fmod(d, 6.2831853);
 	return frac(sin(m) * 43758.5453123);
 #else
 	return frac(sin(dot(s.xy,
@@ -25,7 +25,7 @@ float PseudoRandom(float2 s)
 float PseudoRandom(float3 s)
 {
 	float d = dot(s + 0.1234567, float3(11112.9819837, 378.237173, 3971977.9173179));
-	float m = mod(d, 6.2831853);
+	float m = fmod(d, 6.2831853);
 	return frac(sin(m) * 43758.5453123);
 }
 

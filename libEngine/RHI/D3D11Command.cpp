@@ -187,6 +187,8 @@ namespace Render
 
 	void D3D11System::shutdown()
 	{
+		GpuProfiler::Get().releaseRHIResource();
+
 		mInputLayoutMap.clear();
 		mRenderContext.release();
 		mSwapChain.release();
@@ -279,6 +281,18 @@ namespace Render
 		}
 		return nullptr;
 	}
+
+	RHITextureCube* D3D11System::RHICreateTextureCube(
+		Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	{
+		Texture2DCreationResult creationResult;
+		if (createTextureCubeInternal(D3D11Translate::To(format), size, numMipLevel, 1, creationFlags, data, Texture::GetFormatSize(format), creationResult))
+		{
+			return new D3D11TextureCube(format, creationResult);
+		}
+		return nullptr;
+	}
+
 	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
 	{
 		uint32 creationFlags = 0;
@@ -379,6 +393,11 @@ namespace Render
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
+	RHIFrameBuffer* D3D11System::RHICreateFrameBuffer()
+	{
+		return new D3D11FrameBuffer;
+	}
+
 	void* D3D11System::RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
 		return lockBufferInternal(D3D11Cast::GetResource(*buffer), access, offset, size);
@@ -452,22 +471,7 @@ namespace Render
 		);
 
 		D3D11InputLayout* inputLayout = new D3D11InputLayout;
-		for (auto const& e : desc.mElements)
-		{
-			if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
-				continue;
-
-			D3D11_INPUT_ELEMENT_DESC element;
-			element.SemanticName = "ATTRIBUTE";
-			element.SemanticIndex = e.attribute;
-			element.Format = D3D11Translate::To(Vertex::Format(e.format), e.bNormalized);
-			element.InputSlot = e.idxStream;
-			element.AlignedByteOffset = e.offset;
-			element.InputSlotClass = e.bIntanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
-			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
-
-			inputLayout->mDescList.push_back(element);
-		}
+		inputLayout->initialize(desc);
 
 		TComPtr< ID3D11InputLayout > inputLayoutResource;
 		VERIFY_D3D11RESULT(
@@ -597,15 +601,11 @@ namespace Render
 		return new D3D11ShaderProgram;
 	}
 
-	bool D3D11System::createTexture1DInternal(DXGI_FORMAT format, int width, int numMipLevel, uint32 creationFlags, void* data, uint32 pixelSize, Texture1DCreationResult& outResult)
+
+	template< class TD3D11_TEXTURE1D_DESC >
+	void SetupTextureDesc(TD3D11_TEXTURE1D_DESC& desc, uint32 creationFlags)
 	{
-		D3D11_TEXTURE1D_DESC desc = {};
-		desc.Format = format;
-		desc.Width = width;
-		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-		desc.ArraySize = 1;
-		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.BindFlags = 0;
+		desc.Usage = (creationFlags & TCF_AllowCPUAccess) ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
 		if (creationFlags & TCF_RenderTarget)
 			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		if (creationFlags & TCF_CreateSRV)
@@ -613,7 +613,36 @@ namespace Render
 		if (creationFlags & TCF_CreateUAV)
 			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
 
-		desc.CPUAccessFlags = 0;
+		desc.CPUAccessFlags = (creationFlags & TCF_AllowCPUAccess) ? D3D11_CPU_ACCESS_READ : 0;
+	}
+
+	template< class TTextureCreationResult >
+	bool CreateResourceView(ID3D11Device* device, uint32 creationFlags, TTextureCreationResult& outResult)
+	{
+		if (creationFlags & TCF_RenderTarget)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
+		}
+		if (creationFlags & TCF_CreateSRV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
+		}
+		if (creationFlags & TCF_CreateUAV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
+		}
+		return true;
+	}
+
+	bool D3D11System::createTexture1DInternal(DXGI_FORMAT format, int width, int numMipLevel, uint32 creationFlags, void* data, uint32 pixelSize, Texture1DCreationResult& outResult)
+	{
+		D3D11_TEXTURE1D_DESC desc = {};
+		desc.Format = format;
+		desc.Width = width;
+		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
+		desc.ArraySize = 1;
+		desc.BindFlags = 0;
+		SetupTextureDesc(desc, creationFlags);
 
 		D3D11_SUBRESOURCE_DATA initData = {};
 		if (data)
@@ -624,18 +653,7 @@ namespace Render
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture1D(&desc, data ? &initData : nullptr, &outResult.resource));
-		if (creationFlags & TCF_RenderTarget)
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
-		}
-		if (creationFlags & TCF_CreateSRV)
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
-		}
-		if (creationFlags & TCF_CreateUAV)
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
-		}
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
 		return true;
 	}
 
@@ -647,20 +665,11 @@ namespace Render
 		desc.Height = height;
 		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
 		desc.ArraySize = 1;
-
-		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
-		if( creationFlags & TCF_RenderTarget )
-			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-		if( creationFlags & TCF_CreateSRV )
-			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-		if( creationFlags & TCF_CreateUAV )
-			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-
+		SetupTextureDesc(desc, creationFlags);
 
 		desc.SampleDesc.Count = numSamples;
 		desc.SampleDesc.Quality = 0;
-		desc.CPUAccessFlags = 0;
 
 		D3D11_SUBRESOURCE_DATA initData = {};
 		if( data )
@@ -671,18 +680,7 @@ namespace Render
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? &initData : nullptr , &outResult.resource));
-		if( creationFlags & TCF_RenderTarget )
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
-		}
-		if( creationFlags & TCF_CreateSRV )
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
-		}
-		if( creationFlags & TCF_CreateUAV )
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
-		}
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
 		return true;
 	}
 
@@ -695,17 +693,8 @@ namespace Render
 		desc.Height = height;
 		desc.Depth = depth;
 		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-
-		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = 0;
-		if (creationFlags & TCF_RenderTarget)
-			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-		if (creationFlags & TCF_CreateSRV)
-			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-		if (creationFlags & TCF_CreateUAV)
-			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-
-		desc.CPUAccessFlags = 0;
+		SetupTextureDesc(desc, creationFlags);
 
 		D3D11_SUBRESOURCE_DATA initData = {};
 		if (data)
@@ -716,18 +705,48 @@ namespace Render
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&desc, data ? &initData : nullptr, &outResult.resource));
-		if (creationFlags & TCF_RenderTarget)
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
+		return true;
+	}
+
+	bool D3D11System::createTextureCubeInternal(DXGI_FORMAT format, int size, int numMipLevel, int numSamples, uint32 creationFlags, void* data[], uint32 pixelSize, Texture2DCreationResult& outResult)
+	{
+		D3D11_TEXTURE2D_DESC desc = {};
+		desc.Format = format;
+		desc.Width = size;
+		desc.Height = size;
+		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
+		desc.ArraySize = 6;
+		desc.BindFlags = 0;
+		SetupTextureDesc(desc, creationFlags);
+
+		desc.SampleDesc.Count = numSamples;
+		desc.SampleDesc.Quality = 0;
+
+		D3D11_SUBRESOURCE_DATA initDataList[6];
+		if (data)
 		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
+			for (int i = 0; i < 6; ++i)
+			{
+				initDataList[i].pSysMem = (void *)data[i];
+				initDataList[i].SysMemPitch = size * pixelSize;
+				initDataList[i].SysMemSlicePitch = 0;
+			}
 		}
-		if (creationFlags & TCF_CreateSRV)
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
-		}
-		if (creationFlags & TCF_CreateUAV)
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
-		}
+
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? &initDataList[0] : nullptr, &outResult.resource));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
+		return true;
+	}
+
+	bool D3D11System::createStagingTexture(ID3D11Texture2D* texture, TComPtr< ID3D11Texture2D >& outTexture)
+	{
+		D3D11_TEXTURE2D_DESC desc;
+		texture->GetDesc(&desc);
+		desc.Usage = D3D11_USAGE_STAGING;
+		desc.BindFlags = 0;
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ ;
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, nullptr, &outTexture));
 		return true;
 	}
 
@@ -941,12 +960,7 @@ namespace Render
 
 	void D3D11Context::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
-		D3D11Cast::GetResource(depthStencilState)->AddRef();
-		int Count = D3D11Cast::GetResource(depthStencilState)->Release();
 		mDeviceContext->OMSetDepthStencilState(D3D11Cast::GetResource(depthStencilState), stencilRef);
-		D3D11Cast::GetResource(depthStencilState)->AddRef();
-		int Count2 = D3D11Cast::GetResource(depthStencilState)->Release();
-		int i = 1;
 	}
 
 	void D3D11Context::RHISetViewport(int x, int y, int w, int h, float zNear, float zFar)
@@ -1196,7 +1210,7 @@ namespace Render
 			vertexBufferSize += (D3D11BUFFER_ALIGN * dataInfos[i].size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
 		}
 
-		void* pVBufferData = mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
+		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
 		if( pVBufferData )
 		{
 			commitRenderShaderState();
@@ -1213,7 +1227,7 @@ namespace Render
 				offsets[i] = dataOffset;
 				vertexBuffers[i] = vertexBuffer;
 
-				memcpy(pVBufferData, info.ptr, info.size);
+				memcpy(pVBufferData + dataOffset, info.ptr, info.size);
 				dataOffset += info.size;
 			}
 
@@ -1293,7 +1307,7 @@ namespace Render
 			{
 				clearFlag |= D3D11_CLEAR_STENCIL;
 			}
-			mDeviceContext->ClearDepthStencilView(mRenderTargetsState->depthBuffer, D3D11_CLEAR_DEPTH, depth, stenceil);
+			mDeviceContext->ClearDepthStencilView(mRenderTargetsState->depthBuffer, clearFlag, depth, stenceil);
 		}
 	}
 
@@ -1429,6 +1443,8 @@ namespace Render
 			mVertexShader = nullptr;
 			for( int i = 0; i < EShader::Count; ++i )
 			{
+				if ( i == EShader::Compute )
+					continue;
 				if( mBoundedShaders[i].resource )
 				{
 					mBoundedShaderDirtyMask |= BIT(i);
@@ -1440,24 +1456,39 @@ namespace Render
 		{
 			mBoundedShaderMask = 0;
 			auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram);
+
+			uint32 setupMask = 0;
 			for( int i = 0; i < EShader::Count; ++i )
 			{
 				if( !shaderProgramImpl.mShaders[i].isValid() )
 					break;
 
 				auto& shader = *shaderProgramImpl.mShaders[i];
-				auto  type = shader.mResource.type;
+				EShader::Type type = shader.mResource.type;
 
 				if (type == EShader::Vertex)
 				{
 					mVertexShader = &shader;
 				}
 
+				setupMask |= BIT(type);
 				mBoundedShaderMask |= BIT(type);
 				if( mBoundedShaders[type].resource != shader.mResource.ptr )
 				{
 					mBoundedShaders[type].resource = shader.mResource.ptr;
 					mBoundedShaderDirtyMask |= BIT(type);
+				}
+			}
+
+			for (int i = 0; i < EShader::Count; ++i)
+			{
+				if (i == EShader::Compute || ( setupMask & BIT(i) ) )
+					continue;
+
+				if (mBoundedShaders[i].resource )
+				{
+					mBoundedShaders[i].resource = nullptr;
+					mBoundedShaderDirtyMask |= BIT(i);
 				}
 			}
 		}

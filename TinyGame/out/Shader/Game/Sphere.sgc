@@ -11,8 +11,8 @@ struct SphereData
 uniform SphereData Sphere;
 uniform float2   DepthParam;
 
-uniform float3 LightPos[] = ARRAY_DATA_BEGIN(float3) float3( 0 , 10 , 10 ) , float3( 0 , -10 , 10 ) , float3( 0 , 0 , -30 ) , float3( -30 , 0 , 10 ) ARRAY_DATA_END;
-uniform float3 LightColor[] = ARRAY_DATA_BEGIN(float3) float3( 0.3 , 0 , 0 ) , float3( 0 , 0.4 , 0 ) , float3( 0 , 0 , 0.5 ) , float3( 0.1 , 0 , 0.2 ) ARRAY_DATA_END;
+uniform float3 LightPos[] = { float3(0 , 10 , 10) , float3(0 , -10 , 10) , float3(0 , 0 , -30) , float3(-30 , 0 , 10) };
+uniform float3 LightColor[] = { float3(0.3 , 0 , 0) , float3(0 , 0.4 , 0) , float3(0 , 0 , 0.5) , float3(0.1 , 0 , 0.2) };
 
 
 struct VSOutputParameters
@@ -64,7 +64,7 @@ float CalcVertexOffset(float2 p , float r , float factor )
 
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float4 InPosition, ATTRIBUTE_POSITION)
-	VS_OUTPUT_STRUCT_LAST(VSOutputParameters VSOutput, 0)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
 VS_ENTRY_END(MainVS)
 {
 	float3 spherePosInView = mul( View.worldToView , float4(Sphere.worldPos, 1.0) ).xyz;
@@ -128,7 +128,7 @@ float3 CalcLighting( in FSInput inFS )
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT( VSOutputParameters VSOutput , 0 )
-	PS_OUTPUT_LAST( float4 OutColor , 0 )
+	PS_OUTPUT( float4 OutColor , 0 )
 PS_ENTRY_END(MainPS)
 {
 	float3  cameraDir = normalize(VSOutput.cameraOffset);

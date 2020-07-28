@@ -295,6 +295,8 @@ namespace Render
 		SphereProgram* mProgSphere;
 
 		Mesh   mSimpleMeshs[SimpleMeshId::NumSimpleMesh];
+
+		void releaseRHIResource(bool bReInit = false);
 	};
 
 	class TINY_API TestRenderStageBase : public StageBase
@@ -320,6 +322,15 @@ namespace Render
 
 		virtual RHITargetName getRHITargetName() { return RHITargetName::OpenGL; }
 
+		virtual bool initializeRHIResource()
+		{
+			return true;
+		}
+		virtual void releaseRHIResource(bool bReInit = false)
+		{
+			SharedAssetData::releaseRHIResource(bReInit);
+			mView.releaseRHIRelease();
+		}
 		void initializeRenderState();
 
 		bool onMouse(MouseMsg const& msg) override;

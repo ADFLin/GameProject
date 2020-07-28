@@ -1,20 +1,30 @@
 #include "Common.sgc"
 
+#ifndef USE_SCREEN_TEXCOORD
+#define USE_SCREEN_TEXCOORD 1 
+#endif
+
+#if USE_SCREEN_TEXCOORD
 struct VSOutputParameters
 {
 	MEMBER_OUTPUT( float2 UVs , TEXCOORD0 );
 };
+#endif
 
 #if VERTEX_SHADER
 
 VS_ENTRY_START(ScreenVS)
 	VS_INPUT(float4 InPosition , ATTRIBUTE_POSITION)
+#if USE_SCREEN_TEXCOORD
 	VS_INPUT(float2 InUV , ATTRIBUTE_TEXCOORD)
-	VS_OUTPUT_STRUCT_LAST(VSOutputParameters VSOutput , 0)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput , 0)
+#endif
 VS_ENTRY_END(ScreenVS)
 {
 	SvPosition = InPosition;
+#if USE_SCREEN_TEXCOORD
 	VSOutput.UVs = InUV;
+#endif
 }
 
 #endif

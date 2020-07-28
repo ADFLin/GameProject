@@ -19,7 +19,7 @@ struct VSOutputParam
 VS_ENTRY_START(MeshRenderVS)
 	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
 	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
-	VS_OUTPUT_STRUCT_LAST(VSOutputParam VSOutput, 0)
+	VS_OUTPUT_STRUCT(VSOutputParam VSOutput, 0)
 VS_ENTRY_END(MeshRenderVS)
 {
 	VSOutput.worldPos = InPos;
@@ -35,7 +35,7 @@ VS_ENTRY_END(MeshRenderVS)
 
 PS_ENTRY_START(MeshRenderPS)
 	PS_INPUT_STRUCT(VSOutputParam InputVS, 0)
-	PS_OUTPUT_LAST(float4 OutColor, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MeshRenderPS)
 {
 	//OutColor = float4(InputVS.color, 1);
@@ -66,7 +66,7 @@ uniform float4x4 XForm;
 VS_ENTRY_START(ShowValueVS)
 	VS_INPUT_INSTANCEID
 	//VS_OUTPUT_POINTSIZE
-	VS_OUTPUT_LAST( flat int3 DataCoord , 0 )
+	VS_OUTPUT( flat int3 DataCoord , 0 )
 VS_ENTRY_END(ShowValueVS)
 {
 	int dataIndex = SvInstanceID;
@@ -79,7 +79,7 @@ VS_ENTRY_END(ShowValueVS)
 
 	float dist = length(worldPos - View.worldPos);
 #if COMPILER_GLSL
-	SvPointSize = lerp(10, 0, saturate((dist + 1 ) / 5) );
+	//SvPointSize = lerp(10, 0, saturate((dist + 1 ) / 5) );
 #endif
 	SvPosition = mul( View.worldToClip , float4( worldPos , 1.0 ));
 }
@@ -94,7 +94,7 @@ uniform float Isolevel;
 
 PS_ENTRY_START(ShowValuePS)
 	PS_INPUT(flat int3 DataCoord , 0)
-	PS_OUTPUT_LAST(float4 OutColor , 0)
+	PS_OUTPUT(float4 OutColor , 0)
 PS_ENTRY_END(ShowValuePS)
 {
 	float value = TEXTURE_FETCH(DataTexture, DataCoord, 0).r;

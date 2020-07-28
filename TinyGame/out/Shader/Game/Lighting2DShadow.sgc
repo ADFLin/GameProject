@@ -2,25 +2,25 @@
 
 #if VERTEX_SHADER
 
-layout(location = ATTRIBUTE_POSITION) in float2 InPos;
-
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+VS_ENTRY_END(MainVS)
 {
-	gl_Position = float4(InPos, 0, 1.0);
+	SvPosition = float4(InPos, 0, 1.0);
 }
 #endif //VERTEX_SHADER
 
 #if GEOMETRY_SHADER
 
 uniform float2 LightLocation;
-uniform float2 ObjectLocation;
-uniform float2 ScreenSize = float2(800, 600);
+uniform float2 ScreenSize;
+
+#if COMPILER_GLSL
 
 float4 TransformToNDC(float2 pos)
 {
 	return float4(2 * (pos / ScreenSize) - 1, 0, 1);
 }
-
 layout(lines, invocations = 1) in;
 layout(triangle_strip, max_vertices = 4) out;
 void MainGS()
@@ -47,15 +47,58 @@ void MainGS()
 		EndPrimitive();
 	}
 }
+#else
+float4 TransformToNDC(float2 pos)
+{
+	return float4(2 * (pos / ScreenSize) - 1, 0, 1);
+}
+
+struct GSInputParams
+{
+	float4 SvPosition : SV_POSITION;
+};
+struct GSOutputParams
+{
+	float4 SvPosition : SV_POSITION;
+};
+[maxvertexcount(4)]
+void MainGS(line GSInputParams Inputs[2] , inout TriangleStream< GSOutputParams > OutputStream )
+{
+	float2 cur = Inputs[1].SvPosition.xy;
+	float2 prev = Inputs[0].SvPosition.xy;
+	float2 edge = cur - prev;
+
+	float2 dirCur = cur - LightLocation;
+	float2 dirPrev = prev - LightLocation;
+
+	if (dirCur.x * edge.y - dirCur.y * edge.x < 0)
+	{
+		GSOutputParams params;
+		params.SvPosition = TransformToNDC(prev);
+		OutputStream.Append(params);
+		params.SvPosition = TransformToNDC(cur);
+		OutputStream.Append(params);
+		params.SvPosition = TransformToNDC(prev + 1000 * dirPrev);
+		OutputStream.Append(params);
+		params.SvPosition = TransformToNDC(cur + 1000 * dirCur);
+		OutputStream.Append(params);
+
+		OutputStream.RestartStrip();
+	}
+}
+
+#endif
 
 #endif //GEOMETRY_SHADER
 
 
 #if PIXEL_SHADER
 
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_OUTPUT(float4 OutColor , 0)
+PS_ENTRY_END(MainPS)
 {
-
+	OutColor = float4(0.1, 0, 0, 1);
 }
 
 #endif //PIXEL_SHADER

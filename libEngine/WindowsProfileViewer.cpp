@@ -1,22 +1,22 @@
-#include "Win32ProfileViewer.h"
+#include "WindowsProfileViewer.h"
 
 #include <math.h>
 #include <stdio.h>
 
-Win32ProfileViewer::Win32ProfileViewer( HDC hDC ) 
+WindowsProfileViewer::WindowsProfileViewer( HDC hDC )
 	:msgShow( hDC )
 {
 
 }
 
-void Win32ProfileViewer::onRoot( SampleNode* node )
+void WindowsProfileViewer::onRoot( SampleNode* node )
 {
 	double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
 	msgShow.push( "--- Profiling: %s (total running time: %.3f ms) ---" , 
 		node->getName() , time_since_reset );
 }
 
-void Win32ProfileViewer::onNode( SampleNode* node , double parentTime )
+void WindowsProfileViewer::onNode( SampleNode* node , double parentTime )
 {
 	msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame (%d calls)",
 		++mIdxChild , node->getName() ,
@@ -25,7 +25,7 @@ void Win32ProfileViewer::onNode( SampleNode* node , double parentTime )
 		node->getTotalCalls() );
 }
 
-bool Win32ProfileViewer::onEnterChild( SampleNode* node )
+bool WindowsProfileViewer::onEnterChild( SampleNode* node )
 {
 	mIdxChild = 0;
 
@@ -34,7 +34,7 @@ bool Win32ProfileViewer::onEnterChild( SampleNode* node )
 	return true;
 }
 
-void Win32ProfileViewer::onEnterParent( SampleNode* node , int numChildren , double accTime )
+void WindowsProfileViewer::onEnterParent( SampleNode* node , int numChildren , double accTime )
 {
 	if ( numChildren )
 	{
@@ -55,7 +55,7 @@ void Win32ProfileViewer::onEnterParent( SampleNode* node , int numChildren , dou
 	msgShow.shiftPos( -20 , 0 );
 }
 
-void Win32ProfileViewer::showText( int x , int y )
+void WindowsProfileViewer::showText( int x , int y )
 {
 	msgShow.setPos( x , y );
 	msgShow.start();
@@ -63,7 +63,7 @@ void Win32ProfileViewer::showText( int x , int y )
 	msgShow.finish();
 }
 
-void Win32ProfileViewer::setTextColor( BYTE r, BYTE g , BYTE b , BYTE a /*= 255 */ )
+void WindowsProfileViewer::setTextColor( BYTE r, BYTE g , BYTE b , BYTE a /*= 255 */ )
 {
 	msgShow.setColor( r , g , b , a );
 }
@@ -71,7 +71,7 @@ void Win32ProfileViewer::setTextColor( BYTE r, BYTE g , BYTE b , BYTE a /*= 255 
 TMessageShow::TMessageShow( HDC hDC )
 {
 	mhDC  = hDC;
-	hFont = createFont( hDC , 8 , TEXT("新細明體") , false , false );
+	hFont = CreateFont( hDC , 8 , TEXT("新細明體") , false , false );
 
 	height = 15;
 	setPos( 20 , 20 );
@@ -83,7 +83,7 @@ TMessageShow::~TMessageShow()
 	::DeleteObject( hFont );
 }
 
-HFONT TMessageShow::createFont( HDC hDC , int size , char const* faceName , bool beBold , bool beItalic )
+HFONT TMessageShow::CreateFont( HDC hDC , int size , char const* faceName , bool beBold , bool beItalic )
 {
 	LOGFONT lf;
 

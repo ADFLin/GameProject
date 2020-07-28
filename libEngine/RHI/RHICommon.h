@@ -390,7 +390,7 @@ namespace Render
 		}
 
 		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
-		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0) = 0;
+		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
 		int getSize() const { return mSize; }
 
 		virtual RHITextureCube* getTextureCube() override { return this; }
@@ -604,6 +604,7 @@ namespace Render
 		TCF_CreateUAV = BIT(1),
 		TCF_RenderTarget = BIT(2),
 		TCF_RenderOnly  = BIT(3),
+		TCF_AllowCPUAccess = BIT(4),
 
 		TCF_DefalutValue = TCF_CreateSRV,
 	};
@@ -650,6 +651,7 @@ namespace Render
 	public:
 		InputLayoutDesc();
 
+		void   clear();
 		uint16 getElementOffset(int idx) const { return mElements[idx].offset; }
 		uint8  getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }
 		void   setVertexSize(int idxStream, uint8 size){  mVertexSizes[idxStream] = size;  }
@@ -735,7 +737,7 @@ namespace Render
 		RHISwapChain() :RHIResource(TRACE_TYPE_NAME("SwapChain")) {}
 
 		virtual RHITexture2D* getBackBufferTexture() = 0;
-		virtual void Present() = 0;
+		virtual void Present(bool bVSync) = 0;
 	};
 
 	struct SamplerStateInitializer

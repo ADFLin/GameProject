@@ -204,7 +204,7 @@ namespace Render
 				LogWarning(0, "Can't load shader file %s", input.path);
 				return false;
 			}
-			if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+			if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
 			{
 				return false;
 			}
@@ -292,7 +292,7 @@ namespace Render
 				LogWarning(0, "Can't load shader file %s", input.path);
 				return false;
 			}
-			if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+			if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
 			{
 
 

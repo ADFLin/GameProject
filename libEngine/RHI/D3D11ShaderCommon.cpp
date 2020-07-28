@@ -44,7 +44,7 @@ namespace Render
 					return false;
 				}
 
-				if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+				if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
 					return false;
 #if 0
 				if (bGLSLCodeConv)
@@ -186,6 +186,31 @@ namespace Render
 		return true;
 	}
 
+	bool ShaderFormatHLSL::getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	{
+		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
+		outBinaryCode = shaderImpl.byteCode;
+		return true;
+	}
+
+	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
+	{
+		shader.mRHIResource = setupData.shaderResource.resource;
+		return true;
+	}
+
+	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode)
+	{
+		shader.mRHIResource = RHICreateShader(shaderCompile.type);
+
+		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
+		std::vector<uint8> temp = binaryCode;
+		if (!shaderImpl.initialize(shaderCompile.type, mDevice, std::move(temp)))
+			return false;
+
+		return true;
+	}
+
 	void ShaderFormatHLSL::postShaderLoaded(ShaderProgram& shaderProgram)
 	{
 		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
@@ -196,6 +221,15 @@ namespace Render
 			{
 				shader.byteCode.clear();
 			}
+		}
+	}
+
+	void ShaderFormatHLSL::postShaderLoaded(Shader& shader)
+	{
+		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
+		if (shaderImpl.mResource.type != EShader::Vertex)
+		{
+			shaderImpl.byteCode.clear();
 		}
 	}
 

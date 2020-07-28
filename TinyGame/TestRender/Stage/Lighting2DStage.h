@@ -76,15 +76,18 @@ namespace Lighting2D
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamLightLocation.bind(parameterMap, SHADER_PARAM(LightLocation));
+			BIND_SHADER_PARAM(parameterMap, LightLocation);
+			BIND_SHADER_PARAM(parameterMap, ScreenSize);
 		}
 
-		void setParameters(RHICommandList& commandList, Vector2 const& lightPos)
+		void setParameters(RHICommandList& commandList, Vector2 const& lightPos, Vector2 const& screenSize)
 		{
-			setParam(commandList, mParamLightLocation, lightPos);
+			SET_SHADER_PARAM(commandList, *this, LightLocation, lightPos);
+			SET_SHADER_PARAM(commandList, *this, ScreenSize, screenSize);
 		}
 
-		ShaderParameter mParamLightLocation;
+		DEFINE_SHADER_PARAM(LightLocation);
+		DEFINE_SHADER_PARAM(ScreenSize);
 	};
 
 
@@ -111,6 +114,7 @@ namespace Lighting2D
 
 		std::vector< Vector2 > mBuffers;
 
+		bool bShowShadowRender = true;
 		bool bUseGeometryShader = true;
 
 		bool onInit() override;

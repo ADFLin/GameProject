@@ -465,7 +465,7 @@ namespace Render
 		{
 			if ( bPresent && mSwapChain)
 			{
-				mSwapChain->Present();
+				mSwapChain->Present(mbVSyncEnable);
 			}
 		}
 
@@ -491,11 +491,7 @@ namespace Render
 			int numMipLevel, int numSamples, uint32 createFlags,
 			void* data);
 
-		RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
-		{
-
-			return nullptr;
-		}
+		RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 
 		RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 		{
@@ -514,10 +510,7 @@ namespace Render
 		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
-		RHIFrameBuffer*   RHICreateFrameBuffer()
-		{
-			return nullptr;
-		}
+		RHIFrameBuffer*   RHICreateFrameBuffer();
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
 		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
@@ -532,6 +525,12 @@ namespace Render
 		bool createTexture1DInternal(DXGI_FORMAT format, int width, int numMipLevel, uint32 creationFlags, void* data, uint32 pixelSize, Texture1DCreationResult& outResult);
 		bool createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult);
 		bool createTexture3DInternal(DXGI_FORMAT format, int width, int height, int depth, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, Texture3DCreationResult& outResult);
+		bool createTextureCubeInternal(DXGI_FORMAT format, int size, int numMipLevel, int numSamples, uint32 creationFlags, void* data[], uint32 pixelSize, Texture2DCreationResult& outResult);
+		
+
+		bool createStagingTexture(ID3D11Texture2D* texture, TComPtr< ID3D11Texture2D >& outTexture);
+
+
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size);
 
 		struct InputLayoutKey
@@ -560,6 +559,8 @@ namespace Render
 		};
 
 		TRefCountPtr< D3D11SwapChain > mSwapChain;
+		bool mbVSyncEnable;
+
 		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFuncHasher > mInputLayoutMap;
 		D3D11Context   mRenderContext;
 		TComPtr< ID3D11Device > mDevice;

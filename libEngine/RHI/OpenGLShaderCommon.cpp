@@ -226,30 +226,11 @@ namespace Render
 
 			if( bUsePreprocess )
 			{
-				if (!PreprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+				if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
 					return false;
 
 				sourceCodes[numSourceCodes] = &codeBuffer[0];
 				++numSourceCodes;
-				bool bOutputCode = true;
-				if (bOutputCode)
-				{
-
-					FileSystem::CreateDirectory("ShaderOutput");
-					std::string outputPath = "ShaderOutput/";
-					outputPath += FileUtility::GetBaseFileName(input.path).toCString();
-					char const* const ShaderPosfixNames[] =
-					{
-						"VS" SHADER_FILE_SUBNAME ,
-						"PS" SHADER_FILE_SUBNAME ,
-						"GS" SHADER_FILE_SUBNAME ,
-						"CS" SHADER_FILE_SUBNAME ,
-						"HS" SHADER_FILE_SUBNAME ,
-						"DS" SHADER_FILE_SUBNAME ,
-					};
-					outputPath += ShaderPosfixNames[input.type];
-					FileUtility::SaveFromBuffer(outputPath.c_str(), &codeBuffer[0], codeBuffer.size() - 1);
-				}
 			}
 			else
 			{
@@ -305,7 +286,6 @@ namespace Render
 		return bSuccess;
 	}
 
-
 	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
 		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
@@ -348,6 +328,7 @@ namespace Render
 
 	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
 	{
+		shader.mRHIResource = RHICreateShader(setupData.shaderResource.type);
 		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
 		if (!shaderImpl.attach(*static_cast<OpenGLShaderObject*>(setupData.shaderResource.formatData)))
 			return false;
@@ -361,6 +342,7 @@ namespace Render
 
 	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode)
 	{
+		shader.mRHIResource = RHICreateShader(shaderCompile.type);
 		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
 
 		GLenum format = *(GLenum*)binaryCode.data();

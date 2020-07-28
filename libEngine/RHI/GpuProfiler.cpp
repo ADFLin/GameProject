@@ -19,6 +19,17 @@ namespace Render
 		return sInstance;
 	}
 
+	void GpuProfiler::releaseRHIResource()
+	{
+		mSamples.clear();
+
+		if (mCore)
+		{
+			delete mCore;
+			mCore = nullptr;
+		}
+	}
+
 	void GpuProfiler::beginFrame()
 	{
 		mNumSampleUsed = 0;
@@ -99,6 +110,7 @@ namespace Render
 			mCore->endTiming(sample.timingHandle);
 		--mCurLevel;
 	}
+
 
 #endif
 

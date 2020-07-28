@@ -8,37 +8,38 @@
 
 struct VSOutputParameters
 {
-	float2 UVs;
-	float4 color;
+	MEMBER_OUTPUT(float2 UVs , TEXCOORD0);
+	MEMBER_OUTPUT(float4 color, TEXCOORD1);
 };
 #if VERTEX_SHADER
 
-DECLARE_VERTEX_INPUT(float3, Pos, ATTRIBUTE_POSITION)
-DECLARE_VERTEX_INPUT(float2, UVs, ATTRIBUTE_TEXCOORD)
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 Pos, ATTRIBUTE_POSITION)
+	VS_INPUT(float2 UVs, ATTRIBUTE_TEXCOORD)
 #if USE_INSTANCED
-DECLARE_VERTEX_INPUT(float4, InstanceParam0, ATTRIBUTE4)
-DECLARE_VERTEX_INPUT(float4, InstanceParam1, ATTRIBUTE5)
-DECLARE_VERTEX_INPUT(float4, InstanceParam2, ATTRIBUTE6)
-DECLARE_VERTEX_INPUT(float4, InstanceParam3, ATTRIBUTE7)
+	VS_INPUT(float4 InstanceParam0, ATTRIBUTE4)
+	VS_INPUT(float4 InstanceParam1, ATTRIBUTE5)
+	VS_INPUT(float4 InstanceParam2, ATTRIBUTE6)
+	VS_INPUT(float4 InstanceParam3, ATTRIBUTE7)
 #endif
-out VSOutputParameters VSOutput;
-void MainVS()
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
 {
-	VSOutput.UVs = VERTEX_INPUT(UVs);
+	VSOutput.UVs = UVs;
 	
 #if USE_INSTANCED
 	VSOutput.color = float4(1, 1, 1, 1);
 	float4x4 instanceTransform;
-	instanceTransform[0] = float4(VERTEX_INPUT(InstanceParam0).xyz, 0);
-	instanceTransform[1] = float4(VERTEX_INPUT(InstanceParam1).xyz, 0);
-	instanceTransform[2] = float4(VERTEX_INPUT(InstanceParam2).xyz, 0);
-	instanceTransform[3] = float4(VERTEX_INPUT(InstanceParam3).xyz, 1);
-	float4 worldPos = Primitive.localToWorld * ( instanceTransform * float4(VERTEX_INPUT(Pos), 1) );
+	instanceTransform[0] = float4(InstanceParam0.xyz, 0);
+	instanceTransform[1] = float4(InstanceParam1.xyz, 0);
+	instanceTransform[2] = float4(InstanceParam2.xyz, 0);
+	instanceTransform[3] = float4(InstanceParam3.xyz, 1);
+	float4 worldPos = mul(Primitive.localToWorld , mul( instanceTransform , float4(Pos, 1) ) );
 #else
 	VSOutput.color = float4(1,1,1,1);
-	float4 worldPos = Primitive.localToWorld * (float4(VERTEX_INPUT(Pos), 1));
+	float4 worldPos = mul( Primitive.localToWorld , float4(Pos, 1));
 #endif
-	gl_Position = View.worldToClip * worldPos;
+	SvPosition = mul( View.worldToClip , worldPos);
 }
 
 #endif
@@ -47,27 +48,26 @@ void MainVS()
 
 float MipmapLevel(float2 texture_coordinate)
 {
-	float2  dx_vtc = dFdx(texture_coordinate);
-	float2  dy_vtc = dFdy(texture_coordinate);
+	float2  dx_vtc = ddx(texture_coordinate);
+	float2  dy_vtc = ddy(texture_coordinate);
 	float delta_max_sqr = max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc));
 	return 0.5 * log2(delta_max_sqr);
 }
 
-uniform sampler2D Texture;
-in VSOutputParameters VSOutput;
-layout(location = 0) out float4 OutColor;
-void MainPS()
+DEFINE_TEXTURE( Texture2D , Texture );
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor , 0)
+PS_ENTRY_END(MainPS)
 {
 	float mipScale = 0.01;
-	float4 color = VSOutput.color * texture(Texture, VSOutput.UVs);
+	float4 color = VSOutput.color * TEXTURE_SAMPE(Texture, VSOutput.UVs);
 
-	if( color.a < 0.3 )
-	{
-		discard;
-	}
-	
+	clip(color.a - 0.3);
+
 #if 1
-	float2 texSize = textureSize(Texture, 0);
+	float2 texSize = TextureSize(Texture);
 	color.a *= 1 + max(0, MipmapLevel(VSOutput.UVs * texSize)) * mipScale;
 	color.a = (color.a - 0.85) / max(fwidth(color.a), 0.0001) + 0.5;
 #endif

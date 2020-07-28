@@ -102,7 +102,7 @@ namespace Render
 		int    dummy[3];
 	};
 
-	void ViewInfo::updateBuffer()
+	void ViewInfo::updateRHIResource()
 	{
 		if( !mUniformBuffer.isValid() )
 		{
@@ -135,6 +135,11 @@ namespace Render
 		}
 	}
 
+	void ViewInfo::releaseRHIRelease()
+	{
+		mUniformBuffer.release();
+	}
+
 	void ViewInfo::setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix)
 	{
 		worldToClipPrev = worldToClip;
@@ -163,13 +168,13 @@ namespace Render
 
 	void ViewInfo::setupShader(RHICommandList& commandList, ShaderProgram& program)
 	{
-		updateBuffer();
+		updateRHIResource();
 		program.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
 	}
 
 	void ViewInfo::setupShader(RHICommandList& commandList, Shader& shader)
 	{
-		updateBuffer();
+		updateRHIResource();
 		shader.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
 	}
 

@@ -52,14 +52,14 @@ float3 RGBToHSV(float3 rgb)
 }
 
 GLOBAL_CONST int3 rgbSwizzle[6] =
-ARRAY_DATA_BEGIN(int3)
+{
 	int3(0, 1, 2),
 	int3(3, 0, 2),
 	int3(2, 0, 1),
 	int3(2, 3, 0),
 	int3(1, 2, 0),
 	int3(0, 2, 3)
-ARRAY_DATA_END;
+};
 
 float3 HSVToRGB(float3 hsv)
 {

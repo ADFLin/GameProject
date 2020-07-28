@@ -9,7 +9,7 @@
 
 namespace Render
 {
-	bool ShaderFormat::PreprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes)
+	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes)
 	{
 		TimeScope scope("PreprocessCode");
 
@@ -64,6 +64,19 @@ namespace Render
 		inoutCodes.assign(code.begin(), code.end());
 #endif
 		inoutCodes.push_back('\0');
+
+		if (bOuputPreprocessedCode)
+		{
+			FileSystem::CreateDirectory("ShaderOutput");
+			std::string outputPath = "ShaderOutput/";
+			outputPath += FileUtility::GetBaseFileName(path).toCString();
+			outputPath += "_";
+			outputPath += compileInfo->entryName.c_str();
+			outputPath += "_";
+			outputPath += getName();
+			outputPath += SHADER_FILE_SUBNAME;
+			FileUtility::SaveFromBuffer(outputPath.c_str(), &inoutCodes[0], inoutCodes.size() - 1);
+		}
 		return true;
 	}
 

@@ -86,6 +86,7 @@ namespace Render
 		~Mesh();
 
 		bool createRHIResource(void* pVertex, int nV, void* pIdx = nullptr, int nIndices = 0, bool bIntIndex = false);
+		void releaseRHIResource(bool bReInit = false);
 		void draw(RHICommandList& commandList);
 		void draw(RHICommandList& commandList, LinearColor const& color);
 

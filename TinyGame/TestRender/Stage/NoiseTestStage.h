@@ -554,6 +554,13 @@ namespace Render
 		bool onInit() override;
 		void onEnd() override;
 
+#if 0
+		RHITargetName getRHITargetName()
+		{
+			return RHITargetName::D3D11;
+		}
+#endif
+
 		void updateLightToBuffer()
 		{
 			TiledLightInfo* pLightInfo = mLightsBuffer.lock();

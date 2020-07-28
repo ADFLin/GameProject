@@ -33,7 +33,7 @@ struct OutputVSParam
 VS_ENTRY_START(BaseRenderVS)
 	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
 	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
-	VS_OUTPUT_LAST(OutputVSParam OutputVS , 0)
+	VS_OUTPUT(OutputVSParam OutputVS , 0)
 VS_ENTRY_END(BaseRenderVS)
 {
 	
@@ -64,7 +64,7 @@ VS_ENTRY_END(BaseRenderVS)
 uniform float3 BaseColor;
 PS_ENTRY_START(BaseRenderPS)
 	PS_INPUT(OutputVSParam OutputVS, 0)
-	PS_OUTPUT_LAST(float4 OutColor, 0)
+	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(BaseRenderPS)
 {
 	float3 N = normalize(OutputVS.normal);

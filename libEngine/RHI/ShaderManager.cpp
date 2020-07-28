@@ -1019,13 +1019,6 @@ namespace Render
 				LogDevMsg(0, "Recompile shader : %s ", managedData.compileInfo.filePath.c_str());
 			}
 
-			//if (!shaderProgram.mRHIResource.isValid())
-			{
-				shader.mRHIResource = RHICreateShader(managedData.compileInfo.type);
-				if (!shader.mRHIResource.isValid())
-					return false;
-			}
-
 			ShaderSetupData setupData;
 			setupData.managedData = &managedData;
 
@@ -1209,6 +1202,11 @@ namespace Render
 		}
 
 		result += "#define SHADER_COMPILING 1\n";
+		
+		result += "#define SHADER_ENTRY_";
+		result += entry.name;
+		result += " 1\n";
+
 		result += gShaderDefines[entry.type];
 
 		for( auto const& var : mConfigVars )

@@ -188,6 +188,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 
 	RHISystemInitParams initParam;
 	initParam.numSamples = initParams.numSamples;
+	initParam.bVSyncEnable = initParams.bVSyncEnable;
 	initParam.hWnd = getWindow().getHWnd();
 	initParam.hDC = getWindow().getHDC();
 
@@ -200,6 +201,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 		case RHITargetName::D3D12: return RHISytemName::D3D12;
 		case RHITargetName::Vulkan: return RHISytemName::Vulkan;
 		}
+		return RHISytemName::OpenGL;
 	}();
 	if( !RHISystemInitialize(name, initParam) )
 		return false;

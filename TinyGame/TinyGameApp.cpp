@@ -1095,6 +1095,8 @@ bool TinyGameApp::reconstructWindow( GameWindow& window )
 {
 	int width = window.getWidth();
 	int height = window.getHeight();
+
+	Vec2i pos = window.getPosition();
 	TCHAR const* title = TEXT("Tiny Game");
 	window.destroy();
 	if( !createWindowInternal(window , width, height , title) )
@@ -1102,6 +1104,7 @@ bool TinyGameApp::reconstructWindow( GameWindow& window )
 		return false;
 	}
 
+	window.setPosition(pos);
 	return true;
 }
 

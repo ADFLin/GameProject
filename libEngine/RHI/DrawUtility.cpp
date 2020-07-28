@@ -339,7 +339,9 @@ namespace Render
 	class CopyTexturePS : public GlobalShader
 	{
 		DECLARE_SHADER(CopyTexturePS, Global)
-
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";
@@ -363,7 +365,9 @@ namespace Render
 	{
 		DECLARE_SHADER_PROGRAM(CopyTextureProgram, Global)
 
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		{
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";
@@ -396,7 +400,9 @@ namespace Render
 	class CopyTextureMaskProgram : public GlobalShaderProgram
 	{
 		DECLARE_SHADER_PROGRAM(CopyTextureMaskProgram, Global)
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";
@@ -429,7 +435,9 @@ namespace Render
 	class CopyTextureMaskPS : public GlobalShader
 	{
 		DECLARE_SHADER(CopyTextureMaskPS, Global)
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";
@@ -456,7 +464,9 @@ namespace Render
 	{
 		DECLARE_SHADER_PROGRAM(CopyTextureBiasProgram, Global)
 
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";
@@ -494,7 +504,9 @@ namespace Render
 	{
 		DECLARE_SHADER(CopyTextureBiasPS, Global)
 
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";
@@ -523,7 +535,9 @@ namespace Render
 	{
 		DECLARE_SHADER_PROGRAM(MappingTextureColorProgram, Global)
 
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";

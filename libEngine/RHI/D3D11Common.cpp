@@ -34,15 +34,18 @@ namespace Render
 	{
 		switch( format )
 		{
-		case Texture::eRGB8:
+		//case Texture::eRGB8:
 		case Texture::eRGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
 		case Texture::eBGRA8: return DXGI_FORMAT_B8G8R8A8_UNORM;
 		case Texture::eR16:   return DXGI_FORMAT_R16_UNORM;
 		case Texture::eR8:    return DXGI_FORMAT_R8_UNORM;
 		case Texture::eR32F:  return DXGI_FORMAT_R32_FLOAT;
+		case Texture::eRG32F: return DXGI_FORMAT_R32G32_FLOAT;
 		case Texture::eRGB32F: return DXGI_FORMAT_R32G32B32_FLOAT;
 		case Texture::eRGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		case Texture::eRGB16F:
+		case Texture::eR16F:  return DXGI_FORMAT_R16_FLOAT;
+		case Texture::eRG16F: return DXGI_FORMAT_R16G16_FLOAT;
+		//case Texture::eRGB16F:
 		case Texture::eRGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
 		case Texture::eR32I: return DXGI_FORMAT_R32_SINT;
 		case Texture::eR16I: return DXGI_FORMAT_R16_SINT;
@@ -56,20 +59,21 @@ namespace Render
 		case Texture::eRG32U: return DXGI_FORMAT_R32G32_UINT;
 		case Texture::eRG16U: return DXGI_FORMAT_R16G16_UINT;
 		case Texture::eRG8U:  return DXGI_FORMAT_R8G8_UINT;
-		case Texture::eRGB32I:
+		//case Texture::eRGB32I:
 		case Texture::eRGBA32I: return DXGI_FORMAT_R32G32B32A32_SINT;
-		case Texture::eRGB16I:
+		//case Texture::eRGB16I:
 		case Texture::eRGBA16I: return DXGI_FORMAT_R16G16B16A16_SINT;
-		case Texture::eRGB8I:
+		//case Texture::eRGB8I:
 		case Texture::eRGBA8I:  return DXGI_FORMAT_R8G8B8A8_SINT;
-		case Texture::eRGB32U:
+		//case Texture::eRGB32U:
 		case Texture::eRGBA32U: return DXGI_FORMAT_R32G32B32A32_UINT;
-		case Texture::eRGB16U:
+		//case Texture::eRGB16U:
 		case Texture::eRGBA16U: return DXGI_FORMAT_R16G16B16A16_UINT;
-		case Texture::eRGB8U:
+		//case Texture::eRGB8U:
 		case Texture::eRGBA8U:  return DXGI_FORMAT_R8G8B8A8_UINT;	
-		case Texture::eSRGB:
+		//case Texture::eSRGB:
 		case Texture::eSRGBA:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
 		default:
 			LogWarning(0, "D3D11 No Support Texture Format %d", (int)format);
 			break;
@@ -434,5 +438,64 @@ namespace Render
 		return inputLayoutResource;
 	}
 
+
+	int D3D11FrameBuffer::addTexture(RHITexture2D& target, int level)
+	{
+		assert(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
+		int indexSlot = mRenderTargetsState.numColorBuffers;
+		mColorTextures[indexSlot] = &target;
+		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11Texture2D&>(target).getRenderTargetView(level);
+		mRenderTargetsState.numColorBuffers += 1;
+		bStateDirty = true;
+		return indexSlot;
+	}
+
+	int D3D11FrameBuffer::addTexture(RHITextureCube& target, Texture::Face face, int level)
+	{
+		assert(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
+		int indexSlot = mRenderTargetsState.numColorBuffers;
+
+		mColorTextures[indexSlot] = &target;
+		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
+		mRenderTargetsState.numColorBuffers += 1;
+		bStateDirty = true;
+		return indexSlot;
+	}
+
+	void D3D11FrameBuffer::setTexture(int idx, RHITexture2D& target, int level)
+	{
+		assert(idx <= mRenderTargetsState.numColorBuffers);
+		if (idx == mRenderTargetsState.numColorBuffers)
+			mRenderTargetsState.numColorBuffers += 1;
+
+		mColorTextures[idx] = &target;
+		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11Texture2D&>(target).getRenderTargetView(level);
+		bStateDirty = true;
+	}
+
+	void D3D11FrameBuffer::setTexture(int idx, RHITextureCube& target, Texture::Face face, int level)
+	{
+		assert(idx <= mRenderTargetsState.numColorBuffers);
+		if (idx == mRenderTargetsState.numColorBuffers)
+			mRenderTargetsState.numColorBuffers += 1;
+
+		mColorTextures[idx] = &target;
+		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
+		bStateDirty = true;
+	}
+
+	void D3D11FrameBuffer::setDepth(RHITextureDepth& target)
+	{
+		mDepthTexture = &target;
+		mRenderTargetsState.depthBuffer = static_cast<D3D11TextureDepth&>(target).mDSV;
+		bStateDirty = true;
+	}
+
+	void D3D11FrameBuffer::removeDepth()
+	{
+		mDepthTexture = nullptr;
+		mRenderTargetsState.depthBuffer = nullptr;
+		bStateDirty = true;
+	}
 
 }//namespace Render

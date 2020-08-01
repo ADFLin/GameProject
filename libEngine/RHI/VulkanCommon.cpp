@@ -167,8 +167,11 @@ namespace Render
 		case Texture::eR16:     return VK_FORMAT_R16_UNORM;
 		case Texture::eR8:      return VK_FORMAT_R8_UNORM;
 		case Texture::eR32F:    return VK_FORMAT_R32_SFLOAT;
+		case Texture::eRG32F:   return VK_FORMAT_R32G32_SFLOAT;
 		case Texture::eRGB32F:  return VK_FORMAT_R32G32B32_SFLOAT;
 		case Texture::eRGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case Texture::eR16F:    return VK_FORMAT_R16_SFLOAT;
+		case Texture::eRG16F:   return VK_FORMAT_R16G16_SFLOAT;
 		case Texture::eRGB16F:  return VK_FORMAT_R16G16B16_SFLOAT;
 		case Texture::eRGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
 		case Texture::eR32I:    return VK_FORMAT_R32_SINT;

@@ -12,6 +12,8 @@ namespace Render
 	void TextureShowFrame::onRender()
 	{
 		RHIGraphics2D& g = Global::GetDrawEngine().getRHIGraphics();
+
+		g.setBrush(Color3f::White());
 		g.drawTexture(*texture, getWorldPos(), getSize());
 
 		if( isFocus() )
@@ -165,7 +167,7 @@ namespace Render
 	{
 		for (auto& mesh : mSimpleMeshs)
 		{
-			mesh.releaseRHIResource(bReInit);
+			mesh.releaseRHIResource();
 		}
 		mProgSphere = nullptr;
 	}

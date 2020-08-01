@@ -53,8 +53,7 @@ float Vis_SmithJointApprox(float roughness, float NoV, float NoL)
 	float a = Square(roughness);
 	float Vis_SmithV = NoL * (NoV * (1.0 - a) + a);
 	float Vis_SmithL = NoV * (NoL * (1.0 - a) + a);
-	// Note: will generate NaNs with Roughness = 0.  MinRoughness is used to prevent this
-	return 0.5 * rcp( Vis_SmithV + Vis_SmithL + 0.1 );
+	return 0.5 * rcp( Vis_SmithV + Vis_SmithL);
 }
 
 float Vis_SchlickGGX(float NoV, float roughness, float k)

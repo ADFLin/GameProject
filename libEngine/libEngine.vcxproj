@@ -278,6 +278,7 @@
     <ClCompile Include="Platform\Windows\WindowsWindowBase.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
     <ClCompile Include="Renderer\BatchedRender2D.cpp" />
+    <ClCompile Include="Renderer\IBLResource.cpp" />
     <ClCompile Include="Renderer\RenderTransform2D.cpp" />
     <ClCompile Include="RHI\D3D11Command.cpp" />
     <ClCompile Include="RHI\D3D11Common.cpp" />
@@ -363,6 +364,7 @@
     <ClInclude Include="Core\CRC.h" />
     <ClInclude Include="Core\CRTPCheck.h" />
     <ClInclude Include="Core\FNV1a.h" />
+    <ClInclude Include="Core\HalfFlot.h" />
     <ClInclude Include="Core\LockFreeList.h" />
     <ClInclude Include="Core\MD5.h" />
     <ClInclude Include="Core\ScopeExit.h" />
@@ -476,6 +478,7 @@
     <ClInclude Include="ReflectionCollect.h" />
     <ClInclude Include="Reflection\ReflectClass.h" />
     <ClInclude Include="Renderer\BatchedRender2D.h" />
+    <ClInclude Include="Renderer\IBLResource.h" />
     <ClInclude Include="Renderer\RenderTransform2D.h" />
     <ClInclude Include="RHI\D3D12Command.h" />
     <ClInclude Include="RHI\D3D12Common.h" />

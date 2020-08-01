@@ -55,26 +55,32 @@ namespace Render
 	CORE_API extern class MaterialShaderProgram GSimpleBasePass;
 	
 
-	CORE_API bool InitGlobalRHIResource();
-	CORE_API void ReleaseGlobalRHIResource();
+	CORE_API bool InitGlobalRenderResource();
+	CORE_API void ReleaseGlobalRenderResource();
 
-	
-	class GlobalRHIResourceBase
+	class RenderResourceBase
 	{
 	public:
-		CORE_API GlobalRHIResourceBase();
-		virtual ~GlobalRHIResourceBase() {}
+		virtual void restoreRHI() = 0;
+		virtual void releaseRHI() = 0;
+	};
+	
+	class GlobalRenderResourceBase : public RenderResourceBase
+	{
+	public:
+		CORE_API GlobalRenderResourceBase();
+		virtual ~GlobalRenderResourceBase() {}
 		virtual void restoreRHI() = 0;
 		virtual void releaseRHI() = 0;
 
-		GlobalRHIResourceBase* mNext;
+		GlobalRenderResourceBase* mNext;
 
 		CORE_API static void ReleaseAllResource();
 		CORE_API static void RestoreAllResource();
 	};
 	
 	template< class RHIResourceType >
-	class TGlobalRHIResource : public GlobalRHIResourceBase
+	class TGlobalRenderResource : public GlobalRenderResourceBase
 	{
 	public:
 		bool isValid() const { return mResource.isValid(); }
@@ -104,11 +110,11 @@ namespace Render
 	public:
 		static RHIResource& GetRHI()
 		{
-			static TStaticRHIResourceObject< RHIResource >* sObject;
+			static TStaticRenderResource< RHIResource >* sObject;
 			if( sObject == nullptr )
 			{
 				TRACE_RESOURCE_TAG_SCOPE("StaticRHI")
-				sObject = new TStaticRHIResourceObject<RHIResource>();
+				sObject = new TStaticRenderResource<RHIResource>();
 				sObject->restoreRHI();
 			}
 			return sObject->getRHI();
@@ -116,7 +122,7 @@ namespace Render
 	
 	private:
 		template< class RHIResource >
-		class TStaticRHIResourceObject : public GlobalRHIResourceBase
+		class TStaticRenderResource : public GlobalRenderResourceBase
 		{
 	
 		public:
@@ -137,15 +143,15 @@ namespace Render
 	
 	};
 
-	CORE_API extern TGlobalRHIResource<RHITexture2D>    GDefaultMaterialTexture2D;
-	CORE_API extern TGlobalRHIResource<RHITexture1D>    GWhiteTexture1D;
-	CORE_API extern TGlobalRHIResource<RHITexture1D>    GBlackTexture1D;
-	CORE_API extern TGlobalRHIResource<RHITexture2D>    GWhiteTexture2D;
-	CORE_API extern TGlobalRHIResource<RHITexture2D>    GBlackTexture2D;
-	CORE_API extern TGlobalRHIResource<RHITexture3D>    GWhiteTexture3D;
-	CORE_API extern TGlobalRHIResource<RHITexture3D>    GBlackTexture3D;
-	CORE_API extern TGlobalRHIResource<RHITextureCube>  GWhiteTextureCube;
-	CORE_API extern TGlobalRHIResource<RHITextureCube>  GBlackTextureCube;
+	CORE_API extern TGlobalRenderResource<RHITexture2D>    GDefaultMaterialTexture2D;
+	CORE_API extern TGlobalRenderResource<RHITexture1D>    GWhiteTexture1D;
+	CORE_API extern TGlobalRenderResource<RHITexture1D>    GBlackTexture1D;
+	CORE_API extern TGlobalRenderResource<RHITexture2D>    GWhiteTexture2D;
+	CORE_API extern TGlobalRenderResource<RHITexture2D>    GBlackTexture2D;
+	CORE_API extern TGlobalRenderResource<RHITexture3D>    GWhiteTexture3D;
+	CORE_API extern TGlobalRenderResource<RHITexture3D>    GBlackTexture3D;
+	CORE_API extern TGlobalRenderResource<RHITextureCube>  GWhiteTextureCube;
+	CORE_API extern TGlobalRenderResource<RHITextureCube>  GBlackTextureCube;
 
 	template
 	<

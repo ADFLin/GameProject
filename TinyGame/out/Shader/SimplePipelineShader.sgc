@@ -10,9 +10,9 @@
 
 struct OutputVSParam
 {
-	MEMBER_OUTPUT(float4 color , TEXCOORD0);
+	float4 color MEMBER_OUTPUT(TEXCOORD0);
 #if HAVE_TEXTCOORD
-	MEMBER_OUTPUT(float2 UV    , TEXCOORD1);
+	float2 UV    MEMBER_OUTPUT(TEXCOORD1);
 #endif
 };
 
@@ -56,7 +56,7 @@ PS_ENTRY_START(MainPS)
 PS_ENTRY_END(MainPS)
 {
 #if HAVE_TEXTCOORD
-	float4 texColor = TEXTURE_SAMPE(Texture, OutputVS.UV);
+	float4 texColor = TEXTURE_SAMPLE(Texture, OutputVS.UV);
 	OutColor = texColor * OutputVS.color;
 #else
 	OutColor = OutputVS.color;

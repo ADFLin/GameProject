@@ -8,8 +8,8 @@
 
 struct VSOutputParameters
 {
-	MEMBER_OUTPUT(float2 UVs , TEXCOORD0);
-	MEMBER_OUTPUT(float4 color, TEXCOORD1);
+	float2 UVs   MEMBER_OUTPUT(TEXCOORD0);
+	float4 color MEMBER_OUTPUT(TEXCOORD1);
 };
 #if VERTEX_SHADER
 
@@ -62,7 +62,7 @@ PS_ENTRY_START(MainPS)
 PS_ENTRY_END(MainPS)
 {
 	float mipScale = 0.01;
-	float4 color = VSOutput.color * TEXTURE_SAMPE(Texture, VSOutput.UVs);
+	float4 color = VSOutput.color * TEXTURE_SAMPLE(Texture, VSOutput.UVs);
 
 	clip(color.a - 0.3);
 

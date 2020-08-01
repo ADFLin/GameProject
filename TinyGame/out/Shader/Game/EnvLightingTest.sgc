@@ -6,44 +6,45 @@
 
 struct VSOutputParameters
 {
-	float3 worldPos;
-	float3 normal;
-	float4 tangent;
-	float2 UVs;
+	float3 worldPos MEMBER_OUTPUT(TEXCOORD0);
+	float3 normal   MEMBER_OUTPUT(TEXCOORD1);
+	float4 tangent  MEMBER_OUTPUT(TEXCOORD2);
+	float2 UVs      MEMBER_OUTPUT(TEXCOORD3);
 };
 
 
 #if VERTEX_SHADER
 
-out VSOutputParameters VSOutput;
-
-DECLARE_VERTEX_INPUT(float4, position, ATTRIBUTE_POSITION)
-DECLARE_VERTEX_INPUT(float3, normal, ATTRIBUTE_NORMAL)
-DECLARE_VERTEX_INPUT(float4, color, ATTRIBUTE_COLOR)
-DECLARE_VERTEX_INPUT(float4, tangent, ATTRIBUTE_TANGENT)
-DECLARE_VERTEX_INPUT(float2, texCoord0, ATTRIBUTE_TEXCOORD)
-
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float4 Position, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 Normal, ATTRIBUTE_NORMAL)
+	//VS_INPUT(float4 Color, ATTRIBUTE_COLOR)
+	VS_INPUT(float4 Tangent, ATTRIBUTE_TANGENT)
+	VS_INPUT(float2 TexCoord0, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
 {
-	VSOutput.worldPos = ( /*Primitive.localToWorld * */float4( VERTEX_INPUT(position).xyz , 1 ) ).xyz;
-	VSOutput.normal   = /*float3x3(Primitive.localToWorld) **/ VERTEX_INPUT(normal);
-	VSOutput.tangent = VERTEX_INPUT(tangent);
-	VSOutput.UVs = VERTEX_INPUT(texCoord0);
-	gl_Position = View.worldToClip * float4(VSOutput.worldPos, 1);
+	VSOutput.worldPos = ( /*Primitive.localToWorld * */float4(Position.xyz , 1 ) ).xyz;
+	VSOutput.normal   = /*float3x3(Primitive.localToWorld) **/ Normal;
+	VSOutput.tangent = Tangent;
+	VSOutput.UVs = TexCoord0;
+	SvPosition = mul( View.worldToClip , float4(VSOutput.worldPos, 1) );
 }
 
 #endif
 
 #if PIXEL_SHADER
 
-uniform sampler2D DiffuseTexture;
-uniform sampler2D NormalTexture;
-uniform sampler2D MetalTexture;
-uniform sampler2D RoughnessTexture;
+DEFINE_TEXTURE(Texture2D, DiffuseTexture );
+DEFINE_TEXTURE(Texture2D, NormalTexture );
+DEFINE_TEXTURE(Texture2D, MetalTexture );
+DEFINE_TEXTURE(Texture2D, RoughnessTexture );
 uniform float SkyLightInstensity = 1.0;
-in VSOutputParameters VSOutput;
-layout(location = 0) out float4 OutColor;
-void MainPS()
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT( VSOutputParameters VSOutput , 0 )
+    PS_OUTPUT( float4 OutColor , 0 )
+PS_ENTRY_END(MainPS)
 {
 	float2 uv = VSOutput.UVs;
 
@@ -54,16 +55,20 @@ void MainPS()
 	float3 tangentZ = VSOutput.normal;
 	float normalYSign = sign(VSOutput.tangent.w);
 	float3 tangentY = normalYSign * cross(tangentZ, tangentX);
-	float3x3 tangentToWorld = mat3(tangentX, tangentY, tangentZ);
-
-	float3 baseColor = texture(DiffuseTexture, uv).xyz;
+	float3x3 tangentToWorld = float3x3(tangentX, tangentY, tangentZ);
+#if COMPILER_HLSL
+	tangentToWorld = transpose(tangentToWorld);
+#endif
+	float3 baseColor = TEXTURE_SAMPLE(DiffuseTexture, uv).xyz;
 	
-	float  metallic =  texture(MetalTexture, uv).r;
+	float  metallic = TEXTURE_SAMPLE(MetalTexture, uv).r;
 
-	float  roughnessF = texture(RoughnessTexture, uv).r;
+	float  roughnessF = TEXTURE_SAMPLE(RoughnessTexture, uv).r;
 	//metallic = pow(metallic, float(1 / 2.2));
 	//roughnessF = 0.01;
-	float3 N = tangentToWorld * (2 * texture(NormalTexture, uv).xyz - 1);
+	float3 normal = TEXTURE_SAMPLE(NormalTexture, uv).xyz;
+
+	float3 N = mul( tangentToWorld , (2 * TEXTURE_SAMPLE(NormalTexture, uv).xyz - 1));
 	//N = tangentZ;
 	float3 V = normalize(View.worldPos - VSOutput.worldPos);
 	float3 L = normalize(float3(1, 1, 2));
@@ -73,12 +78,12 @@ void MainPS()
 	float NoL = saturate(dot(N, L));
 
 	float3 diffuseColor = baseColor * (1 - metallic);
-	float3 specularColor = lerp(float3(0.08 * specular), baseColor, metallic);
+	float3 specularColor = lerp(float(0.08 * specular).xxx, baseColor, metallic);
 
 	float3 roughness = float3(roughnessF, roughnessF, 1);
 	roughness = max(roughness, 0.04);
 
-	float3 shading = StandardShading(diffuseColor, specularColor, roughness, float3(1), L, V, N);
+	float3 shading = StandardShading(diffuseColor, specularColor, roughness, float3(1,1,1), L, V, N);
 
 	float3 radiance = 0.0 * float3(5, 2, 1);
 
@@ -89,10 +94,10 @@ void MainPS()
 	//color = pow(color, float3(1. / 2.2));
 	
 	OutColor = float4(NoV.xxx, 1);
-	OutColor = float4(baseColor, 1);
+	OutColor = float4(uv, 0, 1);
 	OutColor = float4(color, 1);
 	//OutColor = float4(N*float3(1,-1,1), 1);
-	//OutColor = float4(pow(metallic.xxx ,float3(1/2.2)), 1);
+	//OutColor = float4(normal, 1);
 }
 
 #endif

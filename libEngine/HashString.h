@@ -29,12 +29,12 @@ public:
 		mNumber = 0;
 	}
 
-	HashString(char const* str, bool bCaseSensitive = true)
+	HashString(char const* str, bool bCaseSensitive = false)
 	{
 		init(str, bCaseSensitive);
 	}
 
-	HashString(StringView const& str, bool bCaseSensitive = true)
+	HashString(StringView const& str, bool bCaseSensitive = false)
 	{
 		init(str.data(), str.size(), bCaseSensitive);
 	}
@@ -66,8 +66,8 @@ public:
 	CORE_API uint32 getTypeHash() const;
 	friend uint32 HashValue(HashString const & string) { return string.getTypeHash(); }
 private:
-	CORE_API void init(char const* str, bool bCaseSensitive = true);
-	CORE_API void init(char const* str, int len , bool bCaseSensitive = true);
+	CORE_API void init(char const* str, bool bCaseSensitive = false);
+	CORE_API void init(char const* str, int len , bool bCaseSensitive = false);
 	uint32 getSlotIndex() const { return mIndex >> 1;  }
 	bool   isCastSensitive() const { return !(mIndex & 0x1);  }
 	CORE_API HashString(EName name, char const* str);

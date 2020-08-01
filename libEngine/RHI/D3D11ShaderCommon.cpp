@@ -83,7 +83,7 @@ namespace Render
 			TComPtr< ID3D10Blob > byteCode;
 			FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice , input.type);
 
-			uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
+			uint32 compileFlag = D3DCOMPILE_IEEE_STRICTNESS /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 			VERIFY_D3D11RESULT(
 				D3DCompile(codeBuffer.data(), codeBuffer.size(), "ShaderCode", NULL, NULL, output.compileInfo->entryName.c_str(),
 										profileName, compileFlag, 0, &byteCode, &errorCode),
@@ -196,6 +196,10 @@ namespace Render
 	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
 	{
 		shader.mRHIResource = setupData.shaderResource.resource;
+		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
+		ShaderParameterMap parameterMap;
+		D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
+		shader.bindParameters(parameterMap);
 		return true;
 	}
 
@@ -208,6 +212,9 @@ namespace Render
 		if (!shaderImpl.initialize(shaderCompile.type, mDevice, std::move(temp)))
 			return false;
 
+		ShaderParameterMap parameterMap;
+		D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
+		shader.bindParameters(parameterMap);
 		return true;
 	}
 
@@ -336,6 +343,10 @@ namespace Render
 
 	bool D3D11ShaderProgram::setupShaders(ShaderResourceInfo shaders[], int numShaders)
 	{
+		mParameterMap.clear();
+		mParamEntryMap.clear();
+		mParamEntries.clear();
+
 		assert(ARRAY_SIZE(mShaders) >= numShaders);
 		mNumShaders = numShaders;
 		for (int i = 0; i < numShaders; ++i)

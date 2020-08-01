@@ -2,8 +2,8 @@
 
 struct VSOutputParam
 {
-	MEMBER_OUTPUT(float3 color, TEXCOORD0);
-	MEMBER_OUTPUT(float2 uv, TEXCOORD1);
+	float3 color MEMBER_OUTPUT(TEXCOORD0);
+	float2 uv    MEMBER_OUTPUT(TEXCOORD1);
 };
 
 #if VERTEX_SHADER
@@ -51,7 +51,7 @@ PS_ENTRY_START(MainPS)
 PS_ENTRY_END(MainPS)
 {
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
-	float4 color = TEXTURE_SAMPE(Texture, InputVS.uv);
+	float4 color = TEXTURE_SAMPLE(Texture, InputVS.uv);
 	//OutColor = float4(c * Color * inputVS.color * color.rgb, 1);
 	OutColor = float4(InputVS.color, 1);
 	//OutColor = float4(Color* inputVS.color, 1 );

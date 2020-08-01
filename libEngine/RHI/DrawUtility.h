@@ -15,7 +15,7 @@
 #define BIT( n ) ( 1 << ( n ) )
 #endif
 
-#define USE_SEPARATE_SHADER 1
+#define USE_SEPARATE_SHADER 0
 
 namespace Render
 {
@@ -383,6 +383,7 @@ namespace Render
 	{
 	public:
 		bool init();
+		void releaseRHI();
 
 		void copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture);
 		void copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask);

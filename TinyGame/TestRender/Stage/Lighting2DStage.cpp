@@ -9,41 +9,18 @@
 #include "RHI/DrawUtility.h"
 #include "RHI/RHICommand.h"
 
-namespace Lighting2D
+namespace Render
 {
+	REGISTER_STAGE("2D Lighting Test", Lighting2DTestStage, EStageGroup::GraphicsTest);
 
-	bool TestStage::onInit()
+
+
+	bool Lighting2DTestStage::onInit()
 	{
-		RHIInitializeParams initParams;
-		initParams.bVSyncEnable = true;
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11, initParams));
+		if (!BaseClass::onInit())
+			return false;
 
-		GameWindow& window = Global::GetDrawEngine().getWindow();
-
-		{
-			ShaderEntryInfo entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) } ,
-				{ EShader::Pixel , SHADER_ENTRY(LightingPS) } ,
-			};
-			if( !ShaderManager::Get().loadFile(
-				mProgLighting, "Shader/Game/lighting2D", entries ) )
-				return false;
-		}
-
-		{
-			FixString< 128 > defineStr;
-			ShaderCompileOption option;
-			ShaderEntryInfo entries[] =
-			{ 
-				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
-				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
-				{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
-			};
-			if( !ShaderManager::Get().loadFile(
-				mProgShadow, "Shader/Game/Lighting2DShadow", entries, option ) )
-				return false;
-		}
+		initializeRHIResource();
 
 		::Global::GUI().cleanupWidget();
 		auto frame = WidgetUtility::CreateDevFrame();
@@ -57,23 +34,50 @@ namespace Lighting2D
 		return true;
 	}
 
-	void TestStage::onInitFail()
+	bool Lighting2DTestStage::initializeRHIResource()
 	{
-		::Global::GetDrawEngine().shutdownRHI();
+		VERIFY_RETURN_FALSE(BaseClass::initializeRHIResource());
+		{
+			ShaderEntryInfo entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) } ,
+				{ EShader::Pixel , SHADER_ENTRY(LightingPS) } ,
+			};
+			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(
+				mProgLighting, "Shader/Game/lighting2D", entries));
+		}
+
+		{
+			FixString< 128 > defineStr;
+			ShaderCompileOption option;
+			ShaderEntryInfo entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+				{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
+			};
+			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(
+				mProgShadow, "Shader/Game/Lighting2DShadow", entries, option))
+		}
+
+		return true;
 	}
 
-	void TestStage::onEnd()
+	void Lighting2DTestStage::releaseRHIResource(bool bReInit /*= false*/)
 	{
-		::Global::GetDrawEngine().shutdownRHI();
+		mProgLighting.releaseRHI();
+		mProgShadow.releaseRHI();
+		BaseClass::releaseRHIResource(bReInit);
 	}
 
-	void TestStage::restart()
+
+	void Lighting2DTestStage::restart()
 	{
 		lights.clear();
 		blocks.clear();
 	}
 
-	void TestStage::onUpdate( long time )
+	void Lighting2DTestStage::onUpdate( long time )
 	{
 		BaseClass::onUpdate( time );
 
@@ -84,7 +88,7 @@ namespace Lighting2D
 		updateFrame( frame );
 	}
 
-	bool TestStage::onWidgetEvent(int event, int id, GWidget* ui)
+	bool Lighting2DTestStage::onWidgetEvent(int event, int id, GWidget* ui)
 	{
 		switch( id )
 		{
@@ -125,7 +129,7 @@ namespace Lighting2D
 		return BaseClass::onWidgetEvent(event, id, ui);
 	}
 
-	void TestStage::onRender(float dFrame)
+	void Lighting2DTestStage::onRender(float dFrame)
 	{
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
@@ -134,11 +138,9 @@ namespace Lighting2D
 
 		Matrix4 projectMatrix = OrthoMatrix(0, window.getWidth(), 0, window.getHeight(), 1, -1);
 
-
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
-
-		
+	
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
 		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
 
@@ -187,8 +189,7 @@ namespace Lighting2D
 					}
 				}
 				else
-				{
-					
+				{				
 					mBuffers.clear();
 					for (Block& block : blocks)
 					{
@@ -223,7 +224,6 @@ namespace Lighting2D
 					mProgLighting.setParameters(commandList, light.pos, light.color);
 					DrawUtility::ScreenRect(commandList, w, h);
 				}
-
 
 				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 1.0, 0);
 			}
@@ -261,7 +261,7 @@ namespace Lighting2D
 		g.endRender();
 	}
 
-	void TestStage::renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex  )
+	void Lighting2DTestStage::renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex  )
 	{
 
 		if (bUseGeometryShader)
@@ -302,7 +302,7 @@ namespace Lighting2D
 
 	}
 
-	bool TestStage::onMouse( MouseMsg const& msg )
+	bool Lighting2DTestStage::onMouse( MouseMsg const& msg )
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
@@ -340,4 +340,3 @@ namespace Lighting2D
 }//namespace Lighting
 
 
-REGISTER_STAGE("2D Lighting Test", Lighting2D::TestStage, EStageGroup::GraphicsTest);

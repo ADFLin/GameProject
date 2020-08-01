@@ -4,9 +4,6 @@
 
 #if PIXEL_SHADER
 
-in VSOutputParameters VSOutput;
-layout(location = 0) out float4 OutColor;
-
 float LinearToSRGB(float value)
 {
 	const float a = 0.055;
@@ -15,27 +12,30 @@ float LinearToSRGB(float value)
 
 	return (1 + a) * pow(value, 1.0 / 2.4) - a;
 }
-const float Gamma = 2.2;
-vec3 simpleReinhardToneMapping(vec3 color)
+
+GLOBAL_CONST float Gamma = 2.2;
+float3 simpleReinhardToneMapping(float3 color)
 {
 	float exposure = 1.;
 	color *= exposure / (1. + color / exposure);
-	color = pow(color, vec3(1. / Gamma));
+	color = pow(color, (1. / Gamma).xxx);
 	return color;
 }
 
-vec3 lumaBasedReinhardToneMapping(vec3 color)
+float3 lumaBasedReinhardToneMapping(float3 color)
 {
-	float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+	float luma = dot(color, float3(0.2126, 0.7152, 0.0722));
 	float toneMappedLuma = luma / (1. + luma);
 	color *= toneMappedLuma / luma;
-	color = pow(color, vec3(1. / Gamma));
+	color = pow(color, (1. / Gamma).xxx);
 	return color;
 }
-
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT( VSOutputParameters VSOutput, 0 )
+	PS_OUTPUT( float4 OutColor, 0 )
+PS_ENTRY_END(MainPS)
 {
-	float4 color = texture(TextureInput0, VSOutput.UVs);
+	float4 color = TEXTURE_SAMPLE(TextureInput0, VSOutput.UVs);
 
 	//color.rgb = lumaBasedReinhardToneMapping(color.rgb);
 

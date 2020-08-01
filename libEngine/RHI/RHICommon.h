@@ -98,8 +98,12 @@ namespace Render
 			eR8,
 
 			eR32F,
+			eRG32F,
 			eRGB32F,
 			eRGBA32F,
+			
+			eR16F,
+			eRG16F,
 			eRGB16F,
 			eRGBA16F,
 
@@ -155,6 +159,7 @@ namespace Render
 		static Vector3 GetFaceUpDir(Face face);
 		static uint32  GetFormatSize(Format format);
 		static uint32  GetComponentCount(Format format);
+		static EComponentType GetComponentType(Format format);
 
 		enum DepthFormat
 		{
@@ -605,6 +610,9 @@ namespace Render
 		TCF_RenderTarget = BIT(2),
 		TCF_RenderOnly  = BIT(3),
 		TCF_AllowCPUAccess = BIT(4),
+
+		TCF_GenerateMips = BIT(5),
+		TCF_HalfData       = BIT(6),
 
 		TCF_DefalutValue = TCF_CreateSRV,
 	};

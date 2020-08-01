@@ -23,7 +23,7 @@ uniform int2 Rotation = int2(0,4);
 
 struct OutputVSParam
 {
-	MEMBER_OUTPUT( float3 normal , TEXTURE0 );
+	float3 normal MEMBER_OUTPUT(TEXCOORD0);
 };
 
 

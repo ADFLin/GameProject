@@ -56,7 +56,7 @@ void BasePassPS()
 
 
 	GBufferData GBuffer;
-	GBuffer.worldPos = GetMaterialWorldPositionAndCheckDepthOffset(materialInput, materialParameters);
+	GBuffer.worldPos = GetMaterialWorldPositionAndCheckDepthOffset(materialInput, materialParameters, gl_FragDepth);
 	//GBuffer.normal = normalize(vsOutput.normal.xyz);
 	GBuffer.normal = GetMaterialWorldNormal(materialInput , materialParameters);
 	//GBuffer.normal = materialParameters.worldNormal;

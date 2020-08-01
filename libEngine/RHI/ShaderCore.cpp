@@ -8,16 +8,17 @@ namespace Render
 {
 	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
 	{
-#if _DEBUG
-		mName = name;
-#endif
+
 		auto iter = paramMap.mMap.find(name);
 		if( iter == paramMap.mMap.end() )
 		{
 			return false;
 		}
 
-		mLoc = iter->second.mLoc;
+		*this = iter->second;
+#if _DEBUG
+		mName = name;
+#endif
 		return true;
 	}
 

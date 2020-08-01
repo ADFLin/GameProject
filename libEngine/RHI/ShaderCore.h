@@ -190,7 +190,10 @@ namespace Render
 			ShaderParameter entry = { bindIndex, offset, size };
 			mMap.emplace(name, entry);
 		}
-
+		void clear()
+		{
+			mMap.clear();
+		}
 		std::unordered_map< HashString, ShaderParameter > mMap;
 	};
 

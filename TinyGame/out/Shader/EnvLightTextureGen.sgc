@@ -2,7 +2,7 @@
 #include "ScreenVertexShader.sgc"
 #include "LightingCommon.sgc"
 
-#define  USE_CUBE_TEXTURE 1
+#define  USE_CUBE_TEXTURE 0
 
 #if PIXEL_SHADER
 
@@ -22,21 +22,34 @@ float2 EquirectangularCoord(float3 v)
 }
 
 
-float3x3 TangentToWorldTransform(float3 N)
+float3x3 TangentToWorldTransform(float3 tangentZ)
 {
-	float3 up = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
-	float3 tangent = normalize(cross(up, N));
-	float3 bitangent = cross(N, tangent);
+#if 1
+	float3 up = abs(tangentZ.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+	float3 tangentX = normalize(cross(up, tangentZ));
+	float3 tangentY = cross(tangentZ, tangentX);
+#else
+	const float Sign = tangentZ.z >= 0 ? 1 : -1;
+	const float a = -rcp(Sign + tangentZ.z);
+	const float b = tangentZ.x * tangentZ.y * a;
 
-	return float3x3(tangent, bitangent, N);
+	float3 tangentX = { 1 + Sign * a * Square(tangentZ.x), Sign * b, -Sign * tangentZ.x };
+	float3 tangentY = { b,  Sign + a * Square(tangentZ.y), -tangentZ.y };	
+#endif
+
+#if COMPILER_HLSL
+	return transpose( float3x3(tangentX, tangentY, tangentZ) );
+#else
+	return float3x3(tangentX, tangentY, tangentZ);
+#endif
 }
 
 float3 GetEnvRadiance(float3 dir)
 {
 #if USE_CUBE_TEXTURE
-	return TEXTURE_SAMPE(CubeTexture, dir).rgb;
+	return TEXTURE_SAMPLE(CubeTexture, dir).rgb;
 #else
-	return TEXTURE_SAMPE(Texture, EquirectangularCoord(dir)).rgb;
+	return TEXTURE_SAMPLE(Texture, EquirectangularCoord(dir)).rgb;
 #endif
 }
 
@@ -54,27 +67,28 @@ PS_ENTRY_START(EquirectangularToCubePS)
 PS_ENTRY_END(EquirectangularToCubePS)
 {
 	float3 dir = GetFaceCameraDir(VSOutput.UVs);
-	float3 color = TEXTURE_SAMPE(Texture, EquirectangularCoord(dir)).rgb;
+	float3 color = TEXTURE_SAMPLE(Texture, EquirectangularCoord(dir)).rgb;
 	OutColor = float4(color, 1);
 }
 #endif
 
-uniform int2 IrrianceSampleCount = int2( 256 * 2 , 200 * 2 );
-
 #if  SHADER_ENTRY_IrradianceGenPS
+
+uniform int2 IrrianceSampleCount = int2(256 * 2, 200 * 2);
+
 PS_ENTRY_START(IrradianceGenPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(IrradianceGenPS)
 {
 	float3 N = GetFaceCameraDir(VSOutput.UVs);
+
 	float3x3 tangentToWorld = TangentToWorldTransform(N);
 
-	float dPhi = 2.0 * PI / IrrianceSampleCount.x;
-	float dTheta = 0.5 * PI / IrrianceSampleCount.y;
+	float dPhi = (2.0 * PI) / float(IrrianceSampleCount.x);
+	float dTheta = (0.5 * PI) / float(IrrianceSampleCount.y);
 	float3 irradiance = float3(0, 0, 0);
-#if 0
-	
+#if 1
 	for( int m = 0; m < IrrianceSampleCount.x; ++m )
 	{
 		float2 csPhi;
@@ -83,7 +97,8 @@ PS_ENTRY_END(IrradianceGenPS)
 		{
 			float2 csTheta;
 			sincos(float(n) * dTheta, csTheta.y, csTheta.x);
-			float3 L = normalize(tangentToWorld * float3(csTheta.y * csPhi, csTheta.x));
+
+			float3 L = normalize(mul(float3(csTheta.y * csPhi, csTheta.x), tangentToWorld));
 			irradiance += csTheta.x * csTheta.y * GetEnvRadiance(L);
 		}
 	}
@@ -103,21 +118,26 @@ PS_ENTRY_END(IrradianceGenPS)
 	}
 #endif
 
-	irradiance *= PI / (IrrianceSampleCount.x * IrrianceSampleCount.y);
+	irradiance *= PI / float(IrrianceSampleCount.x * IrrianceSampleCount.y);
 	OutColor = float4(irradiance, 1);
 
 }
 #endif
 
 
-float RadicalInverse_VdC(uint bits)
+uint ReverseBits32(uint bits)
 {
 	bits = (bits << 16u) | (bits >> 16u);
 	bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
 	bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
 	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
 	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+	return bits;
+}
+
+float RadicalInverse_VdC(uint bits)
+{
+	return float( ReverseBits32(bits) ) * 2.3283064365386963e-10; // / 0x100000000
 }
 // ----------------------------------------------------------------------------
 float2 Hammersley(uint i, uint N)
@@ -126,13 +146,16 @@ float2 Hammersley(uint i, uint N)
 }
 
 
-float3 ImportanceSampleGGX(float2 Xi,float roughness)
+float4 ImportanceSampleGGX(float2 E,float a2)
 {
-	float a = roughness*roughness;
-
-	float phi = 2.0 * PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
-	float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
+	float phi = 2.0 * PI * E.x;
+#if 0
+	float cosTheta = sqrt( (1.0 - E.y) / (1.0 + (a2 - 1.0) * E.y) );
+	float sinTheta = sqrt( 1.0 - cosTheta*cosTheta );
+#else
+	float cosTheta = sqrt((1.0 - E.y) / (1.0 + (a2 - 1.0) * E.y));
+	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+#endif
 
 	// from spherical coordinates to cartesian coordinates
 	float3 H;
@@ -140,12 +163,18 @@ float3 ImportanceSampleGGX(float2 Xi,float roughness)
 	H.y = sin(phi) * sinTheta;
 	H.z = cosTheta;
 
-	return H;
+	float d = (cosTheta * a2 - cosTheta) * cosTheta + 1;
+	float D = a2 / (PI*d*d);
+	float PDF = D * cosTheta;
+	return float4(H , PDF);
 }
+
+
+#if SHADER_ENTRY_PrefilteredGenPS
+
 uniform float Roughness;
 uniform int PrefilterSampleCount = 2048 * 2;
 
-#if SHADER_ENTRY_PrefilteredGenPS
 PS_ENTRY_START(PrefilteredGenPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)
@@ -162,8 +191,9 @@ PS_ENTRY_END(PrefilteredGenPS)
 	float3 prefilteredColor = float3(0.0,0.0,0.0);
 	for( uint i = 0u; i < PrefilterSampleCount; ++i )
 	{
-		float2 Xi = Hammersley(i, PrefilterSampleCount);
-		float3 H = normalize( mul(tangentToWorld , ImportanceSampleGGX(Xi, Roughness)) );
+		float2 E = Hammersley(i, PrefilterSampleCount);
+		float3 H = ImportanceSampleGGX(E, Pow4(Roughness)).xyz;
+		H = normalize( mul(tangentToWorld , H ) );
 		float3 L = normalize(2.0 * dot(V, H) * H - V);
 
 		float NoL = saturate(dot(N, L));
@@ -179,7 +209,7 @@ PS_ENTRY_END(PrefilteredGenPS)
 }
 #endif
 
-uniform int BRDFSampleCount = 1024 * 2;
+uniform int BRDFSampleCount;
 float2 IntegrateBRDF(float NoV, float roughness)
 {
 	float3 V;
@@ -189,32 +219,47 @@ float2 IntegrateBRDF(float NoV, float roughness)
 
 	float A = 0.0;
 	float B = 0.0;
-
-	float3 N = float3(0.0, 0.0, 1.0);
-	float3x3 tangentToWorld = TangentToWorldTransform(N);
-	for( uint i = 0u; i < BRDFSampleCount; ++i )
+	LOOP
+	for (uint i = 0u; i < BRDFSampleCount; ++i)
 	{
-		float2 Xi = Hammersley(i, BRDFSampleCount);
-		float3 H = normalize( mul(tangentToWorld , ImportanceSampleGGX(Xi, Roughness)) );
-		float3 L = normalize(2.0 * dot(V, H) * H - V);
+		float2 E = Hammersley(i, BRDFSampleCount);
+		float3 H = ImportanceSampleGGX(E, Pow4(roughness)).xyz;
+		float3 L = (2.0 * dot(V, H) * H) - V;
 
 		float NoL = saturate(L.z);
 		float NoH = saturate(H.z);
 		float VoH = saturate(dot(V, H));
 
-		if( NoL > 0.0 )
+		if (NoL > 0.0)
 		{
+#if 1
 			float G = Vis_SmithIBL(roughness, NoV, NoL);
 			float G_Vis = (G * VoH) / (NoH * NoV);
 			float Fc = pow(1.0 - VoH, 5.0);
 
 			A += (1.0 - Fc) * G_Vis;
 			B += Fc * G_Vis;
+#else
+			float a = Square(roughness);
+			float a2 = a * a;
+			float Vis = Vis_SmithJointApprox(a2, NoV, NoL);
+			float Vis_SmithV = NoL * sqrt(NoV * (NoV - NoV * a2) + a2);
+			float Vis_SmithL = NoV * sqrt(NoL * (NoL - NoL * a2) + a2);
+			//float Vis = 0.5 * rcp( Vis_SmithV + Vis_SmithL );
+
+			// Incident light = NoL
+			// pdf = D * NoH / (4 * VoH)
+			// NoL * Vis / pdf
+			float NoL_Vis_PDF = NoL * Vis * (4 * VoH / NoH);
+
+			float Fc = pow(1 - VoH, 5);
+			A += (1 - Fc) * NoL_Vis_PDF;
+			B += Fc * NoL_Vis_PDF;
+#endif
 		}
 	}
-	A /= float(BRDFSampleCount);
-	B /= float(BRDFSampleCount);
-	return float2(A, B);
+
+	return float2(A, B) / BRDFSampleCount;
 }
 
 #if SHADER_ENTRY_PreIntegrateBRDFGenPS

@@ -118,6 +118,8 @@ namespace Render
 		template< class TFunc >
 		void setupShader(ShaderParameter const& parameter, TFunc&& func)
 		{
+			if (parameter.mLoc < 0 || parameter.mLoc >= mParamEntryMap.size())
+				return;
 			assert(0 <= parameter.mLoc && parameter.mLoc < mParamEntryMap.size());
 			auto const& entry = mParamEntryMap[parameter.mLoc];
 

@@ -6,6 +6,7 @@
 
 #define SHADER_ENTRY( NAME ) #NAME
 #define SHADER_PARAM( NAME ) #NAME
+#define SHADER_SAMPLER(NAME) #NAME"Sampler"
 
 #define GPU_BUFFER_ALIGN alignas(16)
 

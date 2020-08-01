@@ -3,23 +3,22 @@
 
 struct VSOutputParameters
 {
-	float3 UVs;
+	float3 UVs MEMBER_OUTPUT(TEXCOORD0);
 };
-
 
 
 #if VERTEX_SHADER && !CUBE_RENDER
 
-out VSOutputParameters VSOutput;
 
-layout(location = ATTRIBUTE_POSITION) in float3 InPosition;
-layout(location = ATTRIBUTE_TEXCOORD) in float3 InUV;
-
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPosition , ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InUV, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
 {
 	VSOutput.UVs = InUV;
-	float4 viewPos = View.worldToView * float4(InPosition, 0);
-	gl_Position = View.viewToClip * float4(viewPos.xyz, 1);
+	float4 viewPos = mul( View.worldToView , float4(InPosition, 0));
+	SvPosition = mul( View.viewToClip , float4(viewPos.xyz, 1));
 }
 
 #endif
@@ -28,15 +27,15 @@ void MainVS()
 
 #define  USE_CUBE_TEXTURE 1
 
-uniform sampler2D Texture;
-uniform samplerCube CubeTexture;
+DEFINE_TEXTURE(Texture2D, Texture);
+DEFINE_TEXTURE(TextureCube, CubeTexture);
 uniform float CubeLevel;
-in VSOutputParameters VSOutput;
 
-const float2 invAtan = float2(0.1591, 0.3183);
+
+GLOBAL_CONST float2 invAtan = float2(0.1591, 0.3183);
 float2 EquirectangularCoord(float3 v)
 {
-	float2 uv = float2(atan(v.x, v.y), asin(v.z));
+	float2 uv = float2(atan2(v.x, v.y), asin(v.z));
 	uv *= invAtan;
 	uv += 0.5;
 	return uv;
@@ -47,14 +46,16 @@ float2 EquirectangularCoord(float3 v)
 float3 GetEnvRadiance(float3 dir)
 {
 #if USE_CUBE_TEXTURE
-	return textureLod(CubeTexture, dir , CubeLevel).rgb;
+	return TEXTURE_SAMPLE_LEVEL(CubeTexture, dir , 2).rgb;
 #else
-	return texture(Texture, EquirectangularCoord(dir)).rgb;
+	return TEXTURE_SAMPLE(Texture, EquirectangularCoord(dir)).rgb;
 #endif
 }
 
-layout(location = 0) out float4 OutColor;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput , 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
 	float3 color = GetEnvRadiance(VSOutput.UVs);
 	OutColor = float4(color, 1);

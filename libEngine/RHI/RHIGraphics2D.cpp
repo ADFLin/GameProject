@@ -82,9 +82,6 @@ void RHIGraphics2D::scaleXForm(float sx, float sy)
 
 void RHIGraphics2D::beginRender()
 {
-	//glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
-
-	using namespace Render;
 	RHICommandList& commandList = GetCommandList();
 
 	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
@@ -105,7 +102,6 @@ void RHIGraphics2D::beginRender()
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI(), nullptr, 0);
 
 	mXFormStack.clear();
-	//glDisable(GL_TEXTURE_2D);
 }
 
 void RHIGraphics2D::endRender()
@@ -140,6 +136,7 @@ void RHIGraphics2D::drawPixel(Vector2 const& p, Color3ub const& color)
 		flushBatchedElements();
 	}
 
+	setTextureState();
 	comitRenderState();
 	struct Vertex_XY_CA
 	{
@@ -151,12 +148,13 @@ void RHIGraphics2D::drawPixel(Vector2 const& p, Color3ub const& color)
 
 void RHIGraphics2D::drawRect(int left, int top, int right, int bottom)
 {
+	setTextureState();
+	comitRenderState();
+
 	if (CVarUseBachedRender2D)
 	{
-		setTextureState();
 		Vector2 p1(left, top);
 		Vector2 p2(right, bottom);
-		comitRenderState();
 		auto& element = mBachedElementList.addRect(getPaintArgs(), p1, p2);
 		setupElement(element);
 	}
@@ -173,10 +171,11 @@ void RHIGraphics2D::drawRect(int left, int top, int right, int bottom)
 
 void RHIGraphics2D::drawRect(Vector2 const& pos, Vector2 const& size)
 {
+	setTextureState();
+	comitRenderState();
+
 	if (CVarUseBachedRender2D)
-	{	
-		setTextureState();
-		comitRenderState();
+	{
 		auto& element = mBachedElementList.addRect(getPaintArgs(), pos, pos + size);
 		setupElement(element);
 	}
@@ -192,10 +191,11 @@ void RHIGraphics2D::drawRect(Vector2 const& pos, Vector2 const& size)
 
 void RHIGraphics2D::drawCircle(Vector2 const& center, float r)
 {
+	setTextureState();
+	comitRenderState();
+
 	if (CVarUseBachedRender2D)
 	{
-		setTextureState();
-		comitRenderState();
 		auto& element = mBachedElementList.addCircle(getPaintArgs(), center, r);
 		setupElement(element);
 	}
@@ -211,11 +211,11 @@ void RHIGraphics2D::drawCircle(Vector2 const& center, float r)
 
 void RHIGraphics2D::drawEllipse(Vector2 const& center, Vector2 const& size)
 {
+	setTextureState();
+	comitRenderState();
 
 	if (CVarUseBachedRender2D)
 	{
-		setTextureState();
-		comitRenderState();
 		auto& element = mBachedElementList.addEllipse(getPaintArgs(), center, size );
 		setupElement(element);
 	}
@@ -231,10 +231,11 @@ void RHIGraphics2D::drawEllipse(Vector2 const& center, Vector2 const& size)
 
 void RHIGraphics2D::drawPolygon(Vector2 pos[], int num)
 {
+	setTextureState();
+	comitRenderState();
+
 	if (CVarUseBachedRender2D)
 	{
-		setTextureState();
-		comitRenderState();
 		auto& element = mBachedElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
 		setupElement(element);
 	}
@@ -249,10 +250,11 @@ void RHIGraphics2D::drawPolygon(Vector2 pos[], int num)
 
 void RHIGraphics2D::drawPolygon(Vec2i pos[], int num)
 {
+	setTextureState();
+	comitRenderState();
+
 	if (CVarUseBachedRender2D)
 	{
-		setTextureState();
-		comitRenderState();
 		auto& element = mBachedElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
 		setupElement(element);
 	}
@@ -267,10 +269,11 @@ void RHIGraphics2D::drawPolygon(Vec2i pos[], int num)
 
 void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 {
+	setTextureState();
+	comitRenderState();
+
 	if (CVarUseBachedRender2D)
 	{
-		setTextureState();
-		comitRenderState();
 		auto& element = mBachedElementList.addLine(LinearColor(mColorPen, mAlpha), p1, p2, mPenWidth);
 		setupElement(element);
 	}
@@ -284,10 +287,11 @@ void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 
 void RHIGraphics2D::drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize)
 {
+	setTextureState();
+	comitRenderState();
+
 	if (CVarUseBachedRender2D)
 	{
-		setTextureState();
-		comitRenderState();
 		auto& element = mBachedElementList.addRoundRect( getPaintArgs(),  pos, rectSize, circleSize / 2);
 		setupElement(element);
 	}
@@ -302,7 +306,7 @@ void RHIGraphics2D::drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, V
 
 void RHIGraphics2D::fillGradientRect(Vector2 const& posLT, Color3ub const& colorLT, Vector2 const& posRB, Color3ub const& colorRB, bool bHGrad)
 {
-
+	setTextureState();
 }
 
 void RHIGraphics2D::setTextColor(Color3ub const& color)
@@ -378,7 +382,6 @@ void RHIGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 		mFont->draw(GetCommandList(), Vector2(int(ox), int(oy)), transform, LinearColor(mColorFont, mAlpha), str);
 		mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
 		mbPipelineStateChanged = true;
-		mRenderStatePending.texture = nullptr;
 		setBlendState(prevMode);
 	}
 	
@@ -425,7 +428,6 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Color4f
 		RHISetFixedShaderPipelineState(GetCommandList(), transform, LinearColor(mColorBrush, mAlpha), mRenderStateCommitted.texture);
 		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
 		mbPipelineStateChanged = true;
-		mRenderStatePending.texture = nullptr;
 	}
 }
 
@@ -451,7 +453,6 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2
 		RHISetFixedShaderPipelineState(GetCommandList(), transform, color, mRenderStateCommitted.texture);
 		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(texPos.div(mCurTextureSize)), Vector2(texSize.div(mCurTextureSize)));
 		mbPipelineStateChanged = true;
-		mRenderStatePending.texture = nullptr;
 	}
 }
 
@@ -462,8 +463,6 @@ void RHIGraphics2D::drawPolygonBuffer()
 #endif
 
 	assert(!mBuffer.empty());
-	comitRenderState();
-
 	if (mDrawBrush)
 	{
 		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::Polygon, mBuffer.data(), mBuffer.size() , LinearColor(mColorBrush, mAlpha));
@@ -472,7 +471,6 @@ void RHIGraphics2D::drawPolygonBuffer()
 	{
 		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , LinearColor(mColorPen, mAlpha));
 	}
-
 }
 
 void RHIGraphics2D::drawLineBuffer()
@@ -481,14 +479,11 @@ void RHIGraphics2D::drawLineBuffer()
 	return;
 #endif
 	assert(!mBuffer.empty());
-	comitRenderState();
-
 	if (mDrawPen)
 	{
 		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , LinearColor(mColorPen, mAlpha));
 	}
 }
-
 
 void RHIGraphics2D::flushBatchedElements()
 {
@@ -519,7 +514,7 @@ void RHIGraphics2D::setTexture(RHITexture2D& texture)
 	{
 		mRenderStatePending.texture = &texture;
 	}
-	mCurTextureSize = Vector2(mRenderStateCommitted.texture->getSizeX(), mRenderStateCommitted.texture->getSizeY());
+	mCurTextureSize = Vector2(mRenderStatePending.texture->getSizeX(), mRenderStatePending.texture->getSizeY());
 }
 
 void RHIGraphics2D::preModifyRenderState()

@@ -12,7 +12,7 @@ PS_ENTRY_START(CopyTexturePS)
 PS_ENTRY_END(CopyTexturePS)
 {
 	float2 UVs = VSOutput.UVs;
-	OutColor = TEXTURE_SAMPE(CopyTexture, UVs);
+	OutColor = TEXTURE_SAMPLE(CopyTexture, UVs);
 }
 #endif
 
@@ -25,7 +25,7 @@ PS_ENTRY_START(CopyTextureMaskPS)
 PS_ENTRY_END(CopyTextureMaskPS)
 {
 	float2 UVs = VSOutput.UVs;
-	float c = dot(TEXTURE_SAMPE(CopyTexture, UVs), ColorMask);
+	float c = dot(TEXTURE_SAMPLE(CopyTexture, UVs), ColorMask);
 	OutColor = float4( c , c , c , 1 );
 }
 #endif
@@ -39,7 +39,7 @@ PS_ENTRY_START(CopyTextureBiasPS)
 PS_ENTRY_END(CopyTextureBiasPS)
 {
 	float2 UVs = VSOutput.UVs;
-	float3 color = ColorBais.x * TEXTURE_SAMPE(CopyTexture, UVs).rgb + ColorBais.y;
+	float3 color = ColorBais.x * TEXTURE_SAMPLE(CopyTexture, UVs).rgb + ColorBais.y;
 	//OutColor = TEXTURE_SAMPE(CopyTexture, UVs).rgb;
 	OutColor = float4(color, 1);
 }
@@ -68,7 +68,7 @@ PS_ENTRY_START(MappingTextureColorPS)
 PS_ENTRY_END(MappingTextureColorPS)
 {
 	float2 UVs = VSOutput.UVs;
-	float c = dot(TEXTURE_SAMPE(CopyTexture, UVs), ColorMask);
+	float c = dot(TEXTURE_SAMPLE(CopyTexture, UVs), ColorMask);
 	int idx = int( round(ValueFactor.x * c + ValueFactor.y) );
 	if ( idx < 0 || idx > 9 )
 		OutColor = float4(1, 1, 1, 1);

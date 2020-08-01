@@ -349,7 +349,7 @@ namespace Render
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
+			BIND_SHADER_PARAM(parameterMap, CopyTexture);
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture)
@@ -357,7 +357,7 @@ namespace Render
 			setTexture(commandList, mParamCopyTexture, copyTexture);
 		}
 
-		ShaderParameter mParamCopyTexture;
+		DEFINE_SHADER_PARAM(CopyTexture);
 	};
 	IMPLEMENT_SHADER(CopyTexturePS, EShader::Pixel, SHADER_ENTRY(CopyTexturePS));
 
@@ -384,7 +384,7 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
+			BIND_SHADER_PARAM(parameterMap, CopyTexture);
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture)
@@ -392,8 +392,7 @@ namespace Render
 			setTexture(commandList, mParamCopyTexture, copyTexture);
 		}
 
-		ShaderParameter mParamCopyTexture;
-
+		DEFINE_SHADER_PARAM(CopyTexture);
 	};
 
 
@@ -594,6 +593,11 @@ namespace Render
 		VERIFY_RETURN_FALSE(mProgMappingTextureColor = ShaderManager::Get().getGlobalShaderT<MappingTextureColorProgram>(true));
 		mFrameBuffer = RHICreateFrameBuffer();
 		return true;
+	}
+
+	void ShaderHelper::releaseRHI()
+	{
+		mFrameBuffer.release();
 	}
 
 	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, float clearValue[])

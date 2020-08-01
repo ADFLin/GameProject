@@ -26,7 +26,7 @@ DEFINE_TEXTURE(Texture3D, NoiseVolumeTexture);
 float MyRandom(float2 uv)
 {
 #if USE_RAND_TEXTURE
-	return TEXTURE_SAMPE(RandTexture, uv / TEX_SIZE).x;
+	return TEXTURE_SAMPLE(RandTexture, uv / TEX_SIZE).x;
 #else
 
 	return PseudoRandom(uv);

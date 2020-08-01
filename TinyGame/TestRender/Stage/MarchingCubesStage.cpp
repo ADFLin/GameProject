@@ -865,7 +865,7 @@ namespace Render
 			mProgShowValue = nullptr;
 			mProgMeshRender = nullptr;
 			mDataTexture.release();
-			mMesh.releaseRHIResource(bReInit);
+			mMesh.releaseRHIResource();
 
 			BaseClass::releaseRHIResource(bReInit);
 		}

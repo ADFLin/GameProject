@@ -236,10 +236,14 @@ namespace Render
 		TEXTURE_INFO(Texture::eR8      ,1,CVT_UByte)
 
 		TEXTURE_INFO(Texture::eR32F    ,1,CVT_Float)
+		TEXTURE_INFO(Texture::eRG32F   ,2,CVT_Float)
 		TEXTURE_INFO(Texture::eRGB32F  ,3,CVT_Float)
 		TEXTURE_INFO(Texture::eRGBA32F ,4,CVT_Float)
-		TEXTURE_INFO(Texture::eRGB16F  ,3,CVT_Float)
-		TEXTURE_INFO(Texture::eRGBA16F ,4,CVT_Float)
+
+		TEXTURE_INFO(Texture::eR16F    ,1,CVT_Half)
+		TEXTURE_INFO(Texture::eRG16F   ,2,CVT_Half)
+		TEXTURE_INFO(Texture::eRGB16F  ,3,CVT_Half)
+		TEXTURE_INFO(Texture::eRGBA16F ,4,CVT_Half)
 
 		TEXTURE_INFO(Texture::eR32I    ,1,CVT_Int)
 		TEXTURE_INFO(Texture::eR16I    ,1,CVT_Short)
@@ -296,6 +300,11 @@ namespace Render
 	uint32 Texture::GetComponentCount(Format format)
 	{
 		return gTexConvMap[format].compCount;
+	}
+
+	EComponentType Texture::GetComponentType(Format format)
+	{
+		return gTexConvMap[format].compType;
 	}
 
 }//namespace Render

@@ -17,7 +17,7 @@ uniform float3 LightColor[] = { float3(0.3 , 0 , 0) , float3(0 , 0.4 , 0) , floa
 
 struct VSOutputParameters
 {
-	MEMBER_OUTPUT(float3 cameraOffset , TEXCOORD0);
+	float3 cameraOffset MEMBER_OUTPUT(TEXCOORD0);
 };
 
 #if VERTEX_SHADER

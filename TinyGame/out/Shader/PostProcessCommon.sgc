@@ -1,6 +1,6 @@
 #pragma once
 #include "Common.sgc"
 
-uniform sampler2D TextureInput0;
-uniform sampler2D TextureInput1;
-uniform sampler2D TextureInput2;
+DEFINE_TEXTURE(Texture2D, TextureInput0);
+DEFINE_TEXTURE(Texture2D, TextureInput1);
+DEFINE_TEXTURE(Texture2D, TextureInput2);

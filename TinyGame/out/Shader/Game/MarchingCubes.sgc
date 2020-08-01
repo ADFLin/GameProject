@@ -10,9 +10,9 @@
 
 struct VSOutputParam
 {
-	MEMBER_OUTPUT(float3 worldPos, TEXCOORD0);
-	MEMBER_OUTPUT(float3 normal, TEXCOORD1);
-	MEMBER_OUTPUT(float3 color, TEXCOORD2);
+	float3 worldPos MEMBER_OUTPUT(TEXCOORD0);
+	float3 normal   MEMBER_OUTPUT(TEXCOORD1);
+	float3 color    MEMBER_OUTPUT(TEXCOORD2);
 };
 
 #if VERTEX_SHADER

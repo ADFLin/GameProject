@@ -30,6 +30,9 @@ namespace Render
 	bool VerifyOpenGLStatus();
 	bool gbOptimizeVertexCache = false;
 
+	template< class IndexType >
+	int* ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle);
+
 	Mesh::Mesh()
 	{
 		mType = EPrimitive::TriangleList;
@@ -80,13 +83,9 @@ namespace Render
 		return true;
 	}
 
-	void Mesh::releaseRHIResource(bool bReInit)
+	void Mesh::releaseRHIResource()
 	{
-		if (bReInit)
-		{
-			mInputLayoutDesc.clear();
-		}
-
+		mInputLayoutDesc.clear();
 		mInputLayout.release();
 		mInputLayoutOverwriteColor.release();
 		mVertexBuffer.release();
@@ -836,10 +835,25 @@ namespace Render
 			0 , 2 , 3 , 1 ,
 			4 , 5 , 7 , 6 ,
 		};
-		if ( !mesh.createRHIResource( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
-			return false;
 
-		mesh.mType = EPrimitive::Quad;
+		if (0)
+		{
+			if (!mesh.createRHIResource(&v[0], 8, &idx[0], 4 * 6, true))
+				return false;
+
+			mesh.mType = EPrimitive::Quad;
+		}
+		else
+		{
+			std::vector< int > indices;
+			int numTriangles;
+			ConvertToTriangleListIndices(EPrimitive::Quad, idx, 4 * 6, indices, numTriangles);
+			if (!mesh.createRHIResource(&v[0], 8, indices.data(), indices.size(), true))
+				return false;
+
+			mesh.mType = EPrimitive::TriangleList;
+		}
+
 		return true;
 	}
 	bool MeshBuild::CubeShare(Mesh& mesh, float halfLen)

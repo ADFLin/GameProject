@@ -76,6 +76,7 @@ namespace Render
 		void releaseBufferRHIResource();
 
 		bool initializeRHI(IntVector2 const& size, int numSamples = 1);
+		void releaseRHI();
 
 		RHITexture2D&  getFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
 		RHITexture2D&  getPrevFrameTexture() { return *mFrameTextures[1 - mIdxRenderFrameTexture]; }

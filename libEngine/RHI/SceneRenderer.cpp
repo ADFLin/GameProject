@@ -619,7 +619,7 @@ namespace Render
 		float const depthValue = 1.0;
 		{
 			GPU_PROFILE("Clear Buffer");
-			OpenGLCast::To( mBassPassBuffer )->clearBuffer(&Vector4(0, 0, 0, 0), &depthValue);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 0), 1, depthValue);
 		}
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RenderContext context(commandList, view, *this);
@@ -1130,15 +1130,19 @@ namespace Render
 		{
 			mResolvedDepthTexture = mDepthTexture;
 		}
-		OpenGLCast::To(mResolvedDepthTexture)->bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-		OpenGLCast::To(mResolvedDepthTexture)->unbind();
+
+		if ( GRHISystem->getName() == RHISytemName::OpenGL )
+		{
+			OpenGLCast::To(mResolvedDepthTexture)->bind();
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+			OpenGLCast::To(mResolvedDepthTexture)->unbind();
+		}
 
 		return true;
 	}
@@ -1150,6 +1154,7 @@ namespace Render
 			frameTexture.release();
 		}
 		mGBuffer.releaseRHI();
+		mSize = IntVector2::Zero();
 	}
 
 	bool FrameRenderTargets::initializeRHI(IntVector2 const& size, int numSamples)
@@ -1161,6 +1166,14 @@ namespace Render
 			return false;
 
 		return true;
+	}
+
+	void FrameRenderTargets::releaseRHI()
+	{
+		releaseBufferRHIResource();
+		mFrameBuffer.release();
+		mDepthTexture.release();
+		mResolvedDepthTexture.release();
 	}
 
 	void FrameRenderTargets::drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height)

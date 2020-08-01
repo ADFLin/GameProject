@@ -1,12 +1,19 @@
 #include "Common.sgc"
 
+struct VSOutputParams
+{
+	float4 data MEMBER_OUTPUT(TEXCOORD0);
+};
+
 #if VERTEX_SHADER
 
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+	VS_OUTPUT_STRUCT(VSOutputParams VSOutput , 0)
 VS_ENTRY_END(MainVS)
 {
 	SvPosition = float4(InPos, 0, 1.0);
+	VSOutput.data = float4(1, 1, 1, 1);
 }
 #endif //VERTEX_SHADER
 
@@ -14,80 +21,47 @@ VS_ENTRY_END(MainVS)
 
 uniform float2 LightLocation;
 uniform float2 ScreenSize;
-
-#if COMPILER_GLSL
-
-float4 TransformToNDC(float2 pos)
-{
-	return float4(2 * (pos / ScreenSize) - 1, 0, 1);
-}
-layout(lines, invocations = 1) in;
-layout(triangle_strip, max_vertices = 4) out;
-void MainGS()
-{
-
-	float2 cur = gl_in[1].gl_Position.xy;
-	float2 prev = gl_in[0].gl_Position.xy;
-	float2 edge = cur - prev;
-
-	float2 dirCur = cur - LightLocation;
-	float2 dirPrev = prev - LightLocation;
-
-	if( dirCur.x * edge.y - dirCur.y * edge.x < 0 )
-	{
-		gl_Position = TransformToNDC(prev);
-		EmitVertex();
-		gl_Position = TransformToNDC(cur);
-		EmitVertex();
-		gl_Position = TransformToNDC(prev + 1000 * dirPrev);
-		EmitVertex();
-		gl_Position = TransformToNDC(cur + 1000 * dirCur);
-		EmitVertex();
-
-		EndPrimitive();
-	}
-}
-#else
 float4 TransformToNDC(float2 pos)
 {
 	return float4(2 * (pos / ScreenSize) - 1, 0, 1);
 }
 
-struct GSInputParams
-{
-	float4 SvPosition : SV_POSITION;
-};
 struct GSOutputParams
 {
-	float4 SvPosition : SV_POSITION;
+	GS_NO_MEMBER_PARAM
+	GS_SV_POSTITION_OUT
 };
-[maxvertexcount(4)]
-void MainGS(line GSInputParams Inputs[2] , inout TriangleStream< GSOutputParams > OutputStream )
-{
-	float2 cur = Inputs[1].SvPosition.xy;
-	float2 prev = Inputs[0].SvPosition.xy;
-	float2 edge = cur - prev;
 
+
+#if COMPILER_GLSL
+layout(location = 0) in VSOutputParams VSOutputs[2];
+layout(lines, invocations = 1) in;
+layout(triangle_strip, max_vertices = 4) out;
+layout(location = 0) out GSOutputParams GSOutput;
+void MainGS()
+{
+#else
+[instance(1)]
+[maxvertexcount(4)]
+void MainGS(line float4 SvPositions[2] : SV_POSITION, line VSOutputParams VSOutputs[2], inout TriangleStream< GSOutputParams > OutputStream)
+{
+#endif
+
+	float2 cur = GS_SVPOSITION(1).xy;
+	float2 prev = GS_SVPOSITION(0).xy;
+	float2 edge = cur - prev;
 	float2 dirCur = cur - LightLocation;
 	float2 dirPrev = prev - LightLocation;
-
-	if (dirCur.x * edge.y - dirCur.y * edge.x < 0)
+	if( dirCur.x * edge.y - dirCur.y * edge.x < 0 )
 	{
 		GSOutputParams params;
-		params.SvPosition = TransformToNDC(prev);
-		OutputStream.Append(params);
-		params.SvPosition = TransformToNDC(cur);
-		OutputStream.Append(params);
-		params.SvPosition = TransformToNDC(prev + 1000 * dirPrev);
-		OutputStream.Append(params);
-		params.SvPosition = TransformToNDC(cur + 1000 * dirCur);
-		OutputStream.Append(params);
-
-		OutputStream.RestartStrip();
+		GS_EMIT_VERTEX(TransformToNDC(prev), params);
+		GS_EMIT_VERTEX(TransformToNDC(cur), params);
+		GS_EMIT_VERTEX(TransformToNDC(prev + 1000 * dirPrev), params);
+		GS_EMIT_VERTEX(TransformToNDC(cur + 1000 * dirCur), params);
+		GS_END_PRIMITIVE;
 	}
 }
-
-#endif
 
 #endif //GEOMETRY_SHADER
 

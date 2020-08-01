@@ -269,8 +269,8 @@ namespace Render
 	class TD3D11Texture : public TD3D11Resource< RHITextureType >
 	{
 	protected:
-		TD3D11Texture(ID3D11RenderTargetView* RTV, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
-			:mSRV(SRV), mRTV(RTV), mUAV(UAV)
+		TD3D11Texture(ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
+			:mSRV(SRV),mUAV(UAV)
 		{
 
 		}
@@ -278,14 +278,14 @@ namespace Render
 		virtual void releaseResource()
 		{
 			mSRV.release();
-			SAFE_RELEASE(mRTV);
 			SAFE_RELEASE(mUAV);
 			TD3D11Resource< RHITextureType >::releaseResource();
 		}
 		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
+
+		virtual ID3D11RenderTargetView* getRenderTargetView(int Level, int ArrayIndex) { return nullptr; }
 	public:
 		D3D11ShaderResourceView  mSRV;
-		ID3D11RenderTargetView*  mRTV;
 		ID3D11UnorderedAccessView* mUAV;
 	};
 
@@ -294,7 +294,6 @@ namespace Render
 	struct Texture1DCreationResult
 	{
 		TComPtr< ID3D11Texture1D > resource;
-		TComPtr< ID3D11RenderTargetView >    RTV;
 		TComPtr< ID3D11ShaderResourceView >  SRV;
 		TComPtr< ID3D11UnorderedAccessView > UAV;
 	};
@@ -303,7 +302,7 @@ namespace Render
 	{
 	public:
 		D3D11Texture1D(Texture::Format format, Texture1DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture1D >(creationResult.RTV.release(), creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITexture1D >(creationResult.SRV.release(), creationResult.UAV.release())
 		{
 			mFormat = format;
 			mResource = creationResult.resource.release();
@@ -337,16 +336,148 @@ namespace Render
 	struct Texture2DCreationResult
 	{
 		TComPtr< ID3D11Texture2D > resource;
-		TComPtr< ID3D11RenderTargetView >    RTV;
 		TComPtr< ID3D11ShaderResourceView >  SRV;
 		TComPtr< ID3D11UnorderedAccessView > UAV;
 	};
 
+	struct TextureCubeCreationResult
+	{
+		TComPtr< ID3D11Texture2D > resource;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+	};
+
+	struct D3D11ResourceViewStorage
+	{
+		void releaseResource()
+		{
+			for (auto& pair : mRTViewMap)
+			{
+				pair.second->Release();
+			}
+			mRTViewMap.clear();
+		}
+
+		struct RenderTargetKey
+		{
+			int level;
+			int arrayIndex;
+
+			uint32 getTypeHash() const
+			{
+				uint32 result = HashValue(level);
+				HashCombine(result, arrayIndex);
+				return result;
+			}
+
+			bool operator == (RenderTargetKey const& rhs) const
+			{
+				return level == rhs.level && arrayIndex == rhs.arrayIndex;
+			}
+		};
+
+
+		ID3D11RenderTargetView* getRednerTarget_Texture2D(ID3D11Resource* texture, Texture::Format format, int level)
+		{
+			RenderTargetKey key;
+			key.level = level;
+			key.arrayIndex = 0;
+			return getRednerTargetInternal(key, texture, [=](D3D11_RENDER_TARGET_VIEW_DESC& desc)
+			{
+				desc.Format = D3D11Translate::To(format);
+				desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+				desc.Texture2D.MipSlice = level;
+			});
+		}
+
+		ID3D11RenderTargetView* getRednerTarget_TextureCube(ID3D11Resource* texture, Texture::Format format, Texture::Face face, int level)
+		{
+			RenderTargetKey key;
+			key.level = level;
+			key.arrayIndex = face;
+			return getRednerTargetInternal(key, texture, [=](D3D11_RENDER_TARGET_VIEW_DESC& desc)
+			{
+				desc.Format = D3D11Translate::To(format);
+				desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+				desc.Texture2DArray.ArraySize = 1;
+				desc.Texture2DArray.FirstArraySlice = (int)face;
+				desc.Texture2DArray.MipSlice = level;
+			});
+		}
+
+
+		template< class TFunc >
+		ID3D11RenderTargetView* getRednerTargetInternal(RenderTargetKey const& key ,ID3D11Resource* texture, TFunc&& SetupDescFunc)
+		{
+			auto iter = mRTViewMap.find(key);
+			if (iter != mRTViewMap.end())
+			{
+				return iter->second;
+			}
+
+			TComPtr<ID3D11Device> device;
+			texture->GetDevice(&device);
+
+			TComPtr< ID3D11RenderTargetView > RTView;
+			D3D11_RENDER_TARGET_VIEW_DESC desc;
+			SetupDescFunc(desc);
+			VERIFY_D3D11RESULT(device->CreateRenderTargetView(texture, &desc, &RTView), return nullptr;);
+
+			ID3D11RenderTargetView* result = RTView.release();
+			mRTViewMap.emplace(key, result);
+			return result;
+		}
+
+
+#if 0
+
+		ID3D11ShaderResourceView* getShaderResource_TextureCube(ID3D11Resource* texture, Texture::Format format, Texture::Face face, int level)
+		{
+			RenderTargetKey key;
+			key.level = level;
+			key.arrayIndex = face;
+			return getShaderResourceInternal(key, texture, [=](D3D11_SHADER_RESOURCE_VIEW_DESC& desc)
+			{
+				desc.Format = D3D11Translate::To(format);
+				desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+				desc.Texture2DArray.ArraySize = 1;
+				desc.Texture2DArray.FirstArraySlice = (int)face;
+				desc.Texture2DArray.MipSlice = level;
+			});
+		}
+
+		template< class TFunc >
+		ID3D11ShaderResourceView* getShaderResourceInternal(RenderTargetKey const& key, ID3D11Resource* texture, TFunc&& SetupDescFunc)
+		{
+			auto iter = mRTViewMap.find(key);
+			if (iter != mRTViewMap.end())
+			{
+				return iter->second;
+			}
+
+			TComPtr<ID3D11Device> device;
+			texture->GetDevice(&device);
+
+			TComPtr< ID3D11ShaderResourceView > SRView;
+			D3D11_SHADER_RESOURCE_VIEW_DESC desc;
+			SetupDescFunc(desc);
+			VERIFY_D3D11RESULT(device->CreateShaderResourceView(texture, &desc, &SRView), return nullptr;);
+
+			ID3D11ShaderResourceView* result = SRView.release();
+			mRTViewMap.emplace(key, result);
+			return result;
+		}
+		std::unordered_map< RenderTargetKey, ID3D11ShaderResourceView*, MemberFuncHasher > mSRViewMap;
+#endif
+		std::unordered_map< RenderTargetKey, ID3D11RenderTargetView*, MemberFuncHasher > mRTViewMap;
+	};
+
 	class D3D11Texture2D : public TD3D11Texture< RHITexture2D >
 	{
+		using BaseClass = TD3D11Texture< RHITexture2D >;
 	public:
 		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture2D >(creationResult.RTV.release(), creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITexture2D >(creationResult.SRV.release(), creationResult.UAV.release())
 		{
 			mFormat = format;
 			mResource = creationResult.resource.release();
@@ -401,19 +532,35 @@ namespace Render
 			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * Texture::GetFormatSize(format), h * dataImageWidth * Texture::GetFormatSize(format));
 			return true;
 		}
+
+
+		void releaseResource()
+		{
+			mViewStorage.releaseResource();
+			BaseClass::releaseResource();
+		}
+
+		ID3D11RenderTargetView* getRenderTargetView(int level)
+		{
+			return mViewStorage.getRednerTarget_Texture2D(mResource, mFormat, level);
+		}
+		D3D11ResourceViewStorage mViewStorage;
 	};
+
+
 	struct Texture3DCreationResult
 	{
 		TComPtr< ID3D11Texture3D > resource;
-		TComPtr< ID3D11RenderTargetView >    RTV;
 		TComPtr< ID3D11ShaderResourceView >  SRV;
 		TComPtr< ID3D11UnorderedAccessView > UAV;
 	};
+
+
 	class D3D11Texture3D : public TD3D11Texture< RHITexture3D >
 	{
 	public:
 		D3D11Texture3D(Texture::Format format, Texture3DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture3D >(creationResult.RTV.release(), creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITexture3D >(creationResult.SRV.release(), creationResult.UAV.release())
 		{
 			mFormat = format;
 			mResource = creationResult.resource.release();
@@ -429,9 +576,10 @@ namespace Render
 
 	class D3D11TextureCube : public TD3D11Texture< RHITextureCube >
 	{
+		using BaseClass = TD3D11Texture< RHITextureCube >;
 	public:
-		D3D11TextureCube(Texture::Format format, Texture2DCreationResult& creationResult)
-			:TD3D11Texture< RHITextureCube >(creationResult.RTV.release(), creationResult.SRV.release(), creationResult.UAV.release())
+		D3D11TextureCube(Texture::Format format, TextureCubeCreationResult& creationResult)
+			:TD3D11Texture< RHITextureCube >(creationResult.SRV.release(), creationResult.UAV.release())
 		{
 			mFormat = format;
 			mResource = creationResult.resource.release();
@@ -483,6 +631,19 @@ namespace Render
 			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * Texture::GetFormatSize(format), h * dataImageWidth * Texture::GetFormatSize(format));
 			return true;
 		}
+
+		void releaseResource()
+		{
+			mViewStorage.releaseResource();
+			BaseClass::releaseResource();
+		}
+
+
+		ID3D11RenderTargetView* getRenderTargetView(Texture::Face face, int level)
+		{
+			return mViewStorage.getRednerTarget_TextureCube(mResource, mFormat, face, level);
+		}
+		D3D11ResourceViewStorage mViewStorage;
 	};
 
 	class D3D11TextureDepth : public TD3D11Resource< RHITextureDepth >
@@ -688,44 +849,24 @@ namespace Render
 		{
 
 		}
-		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level)
-		{
-
-			return INDEX_NONE;
-		}
-		virtual int  addTexture(RHITexture2D& target, int level)
-		{
-			return INDEX_NONE;
-		}
+		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level);
+		virtual int  addTexture(RHITexture2D& target, int level);
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level)
 		{
 			return INDEX_NONE;
 
 		}
-		virtual void setTexture(int idx, RHITexture2D& target, int level)
-		{
-
-		}
-		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level)
-		{
-
-		}
+		virtual void setTexture(int idx, RHITexture2D& target, int level);
+		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level);
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level)
 		{
 
 
 		}
-		virtual void setDepth(RHITextureDepth& target)
-		{
-			mDepthTexture = &target;
-			mRenderTargetsState.depthBuffer = static_cast< D3D11TextureDepth& >( target ).mDSV;
-		}
-		virtual void removeDepth()
-		{
-			mDepthTexture = nullptr;
-			mRenderTargetsState.depthBuffer = nullptr;
-		}
+		virtual void setDepth(RHITextureDepth& target);
+		virtual void removeDepth();
 	
+		bool bStateDirty = false;
 		RHITextureRef mColorTextures[D3D11RenderTargetsState::MaxSimulationBufferCount];
 		RHITextureDepthRef mDepthTexture;
 		D3D11RenderTargetsState mRenderTargetsState;
@@ -741,7 +882,7 @@ namespace Render
 		{
 			mResource = resource.release();
 			mRenderTargetsState.numColorBuffers = 1;
-			mRenderTargetsState.colorBuffers[0] = mColorTexture->mRTV;
+			mRenderTargetsState.colorBuffers[0] = mColorTexture->getRenderTargetView(0);
 			if (mDepthTexture)
 			{
 				mRenderTargetsState.depthBuffer = mDepthTexture->mDSV;

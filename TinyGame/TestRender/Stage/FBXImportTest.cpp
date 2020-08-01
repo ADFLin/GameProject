@@ -39,23 +39,42 @@ namespace Render
 
 		float mSkyLightInstensity = 1.0;
 
-
+		virtual RHITargetName getRHITargetName() override
+		{
+			return RHITargetName::D3D11;
+		}
 		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
 
-			HighResClock mClock;
+			auto frame = ::Global::GUI().findTopWidget< DevFrame >();
+			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
+			FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
+			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
+ 			return true;
+		}
+
+
+		virtual bool initializeRHIResource() override
+		{
+			BaseClass::initializeRHIResource();
+
 			{
 				TIME_SCOPE("EnvLightingTest Shader");
 				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mTestShader, "Shader/Game/EnvLightingTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), nullptr));
 			}
 			{
 				TIME_SCOPE("Mesh Texture");
-				VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_A.tga" , TextureLoadOption().SRGB().MipLevel(10).ReverseH()));
+				VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_A.tga", TextureLoadOption().SRGB().MipLevel(10).ReverseH()));
 				VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_N.tga", TextureLoadOption().MipLevel(10).ReverseH()));
 				VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().MipLevel(10).ReverseH()));
 				VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().MipLevel(10).ReverseH()));
+
+				registerTexture("CD", *mDiffuseTexture);
+				registerTexture("CN", *mNormalTexture);
+				registerTexture("CM", *mMetalTexture);
+				registerTexture("CR", *mRoughnessTexture);
 			}
 			{
 				TIME_SCOPE("FBX Mesh");
@@ -68,11 +87,21 @@ namespace Render
 				});
 			}
 
-			auto frame = ::Global::GUI().findTopWidget< DevFrame >();
-			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
-			FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
-			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
- 			return true;
+			return true;
+		}
+
+
+		virtual void releaseRHIResource(bool bReInit = false) override
+		{
+			mTestShader.releaseRHI();
+
+			mDiffuseTexture.release();
+			mNormalTexture.release();
+			mMetalTexture.release();
+			mRoughnessTexture.release();
+			mMesh.releaseRHIResource();
+
+			BaseClass::releaseRHIResource();
 		}
 
 		void onEnd() override
@@ -133,10 +162,10 @@ namespace Render
 					mView.setupShader(commandList, mTestShader);
 
 					auto& samplerState = (mbUseMipMap) ? TStaticSamplerState<Sampler::eTrilinear>::GetRHI() : TStaticSamplerState<Sampler::eBilinear>::GetRHI();
-					mTestShader.setTexture(commandList, SHADER_PARAM(DiffuseTexture), mDiffuseTexture , SHADER_PARAM(DiffuseTextureSampler), samplerState);
-					mTestShader.setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture, SHADER_PARAM(NormalTextureSampler), samplerState);
-					mTestShader.setTexture(commandList, SHADER_PARAM(MetalTexture), mMetalTexture, SHADER_PARAM(MetalTextureSampler), samplerState);
-					mTestShader.setTexture(commandList, SHADER_PARAM(RoughnessTexture), mRoughnessTexture, SHADER_PARAM(RoughnessTextureSampler), samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(DiffuseTexture), mDiffuseTexture , SHADER_SAMPLER(DiffuseTexture), samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture, SHADER_SAMPLER(NormalTexture), samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(MetalTexture), mMetalTexture, SHADER_SAMPLER(MetalTexture), samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(RoughnessTexture), mRoughnessTexture, SHADER_SAMPLER(RoughnessTexture), samplerState);
 					mTestShader.setParam(commandList, SHADER_PARAM(SkyLightInstensity), mSkyLightInstensity);
 					mTestShader.mParamIBL.setParameters(commandList, mTestShader, mIBLResource);
 					mMesh.draw(commandList);
@@ -157,12 +186,6 @@ namespace Render
 			}
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-			{
-				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-				OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
-				MatrixSaveScope matScope(matProj);
-				DrawUtility::DrawTexture(commandList, *mHDRImage, IntVector2(10, 10), IntVector2(512, 512));
-			}
 
 			if( bEnableTonemap )
 			{
@@ -196,6 +219,8 @@ namespace Render
 				}
 			}
 		}
+
+
 
 	};
 

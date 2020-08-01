@@ -3,23 +3,23 @@
 #include "LightingCommon.sgc"
 
 
-uniform samplerCube IrradianceTexture;
-uniform samplerCube PrefilteredTexture;
-uniform sampler2D   PreIntegratedBRDFTexture;
+DEFINE_TEXTURE(TextureCube, IrradianceTexture);
+DEFINE_TEXTURE(TextureCube, PrefilteredTexture);
+DEFINE_TEXTURE(Texture2D, PreIntegratedBRDFTexture);
 
 
 float3 GetIrradianceColor(float3 N)
 {
-	return texture(IrradianceTexture, N).rgb;
+	return TEXTURE_SAMPLE(IrradianceTexture, N).rgb;
 }
 
 float3 GetIBLSpecularColor( float3 specularColor , float3 R ,  float NoV  , float roughness )
 {
 	const float MAX_REFLECTION_LOD = 4.0;
-	float3 prefilteredColor = textureLod(PrefilteredTexture, R, roughness * MAX_REFLECTION_LOD).rgb;
+	float3 prefilteredColor = TEXTURE_SAMPLE_LEVEL(PrefilteredTexture, R, roughness * MAX_REFLECTION_LOD).rgb;
 
-	float2 envBRDF = texture(PreIntegratedBRDFTexture, float2(NoV, roughness)).rg;
-	vec3 specular = prefilteredColor * (specularColor * envBRDF.x + envBRDF.y);
+	float2 envBRDF = TEXTURE_SAMPLE(PreIntegratedBRDFTexture, float2(NoV, roughness)).rg;
+	float3 specular = prefilteredColor * (specularColor * envBRDF.x + envBRDF.y);
 
 	return specular;
 }

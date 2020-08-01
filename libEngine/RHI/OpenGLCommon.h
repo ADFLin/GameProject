@@ -349,7 +349,6 @@ namespace Render
 		void setDepth( RHITextureDepth& target );
 		void removeDepth();
 
-		void clearBuffer( Vector4 const* colorValue, float const* depthValue = nullptr, uint8 stencilValue = 0);
 		void blitToBackBuffer(int index = 0);
 
 		

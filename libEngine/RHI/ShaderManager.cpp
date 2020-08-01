@@ -390,10 +390,7 @@ namespace Render
 
 	ShaderManager::~ShaderManager()
 	{
-		for( auto& pair : mShaderDataMap )
-		{
-			delete pair.second;
-		}
+
 	}
 
 	void ShaderManager::clearnupRHIResouse()
@@ -405,6 +402,16 @@ namespace Render
 		}
 
 		cleanupGlobalShader();
+
+		if (mAssetViewerReigster)
+		{
+			unregisterShaderAssets();
+		}
+		for (auto& pair : mShaderDataMap)
+		{	
+			delete pair.second;
+		}
+		mShaderDataMap.clear();
 	}
 
 
@@ -980,7 +987,7 @@ namespace Render
 
 			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shaderProgram, setupData))
 			{
-
+				LogWarning(0, "Can't Save ShaderProgram Cache");
 			}
 		}
 
@@ -1046,16 +1053,16 @@ namespace Render
 
 			}
 
+			if (bFailed)
+			{
+				return false;
+			}
+
 			ShaderResourceInfo& shaderResource = setupData.shaderResource;
 			shaderResource.type = shaderInfo.type;
 			shaderResource.entry = shaderInfo.entryName.c_str();
 			shaderResource.resource = compileOutput.resource;
 			shaderResource.formatData = compileOutput.formatData;
-
-			if (bFailed)
-			{
-				return false;
-			}
 
 			if (!mShaderFormat->initializeShader(shader, setupData))
 			{
@@ -1064,7 +1071,7 @@ namespace Render
 
 			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shader, setupData))
 			{
-
+				LogWarning(0, "Can't Save Shader Cache");
 			}
 		}
 
@@ -1168,8 +1175,10 @@ namespace Render
 
 	void ShaderProgramManagedData::postFileModify(EFileAction action)
 	{
-		if ( action == EFileAction::Modify )
+		if (action == EFileAction::Modify)
+		{
 			ShaderManager::Get().updateShaderInternal(*shaderProgram, *this, true);
+		}
 	}
 
 
@@ -1189,7 +1198,9 @@ namespace Render
 	void ShaderManagedData::postFileModify(EFileAction action)
 	{
 		if (action == EFileAction::Modify)
+		{
 			ShaderManager::Get().updateShaderInternal(*shader, *this, true);
+		}
 	}
 
 

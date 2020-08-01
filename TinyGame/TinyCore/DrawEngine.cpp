@@ -254,7 +254,7 @@ bool DrawEngine::beginRender()
 {
 	if (bBlockRender)
 	{
-		LogMsg("====== render blacked !! =====");
+		LogMsg("====== Render blocked !! =====");
 		return false;
 	}
 

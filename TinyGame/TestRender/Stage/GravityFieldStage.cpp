@@ -60,7 +60,7 @@ namespace Render
 
 		virtual RHITargetName getRHITargetName() override
 		{
-			return RHITargetName::OpenGL;
+			return RHITargetName::None;
 		}
 
 		bool onInit() override
@@ -68,34 +68,43 @@ namespace Render
 			if (!BaseClass::onInit())
 				return false;
 
-			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
-			//VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 
-
-			mProgFieldRender = ShaderManager::Get().getGlobalShaderT< GravityFieldProgram >();
-
-			mPlantList.push_back(Vector3(20,10 ,100));
+			mPlantList.push_back(Vector3(20, 10, 100));
 			mPlantList.push_back(Vector3(300, 430, 400));
 			mPlantList.push_back(Vector3(600, 100, 700));
 			mPlantList.push_back(Vector3(100, 100, 500));
 
-			mPlantDataTexture = RHICreateTexture1D(Texture::eRGB32F, mPlantList.size(), 0, TCF_DefalutValue, mPlantList.data());
+			initializeRHIResource();
 
 			::Global::GUI().cleanupWidget();
 			auto devFrame = WidgetUtility::CreateDevFrame();
-
-			//devFrame->addText("Isolevel");
-			//FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mIsolevel, 0, 1, 1, [&](float value)
-			//{
-			//	mIsolevel = value;
-			//	updateMesh();
-			//});
-			//FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Wireframe"), mbWireframeMode);
-			//FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Draw Data"), mbDrawData);
 			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mGravityScale, 10, 1000, 2);
 			return true;
 		}
 
+		virtual bool initializeRHIResource() override
+		{
+			BaseClass::initializeRHIResource();
+
+			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
+			//VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
+			VERIFY_RETURN_FALSE(mProgFieldRender = ShaderManager::Get().getGlobalShaderT< GravityFieldProgram >());
+			VERIFY_RETURN_FALSE(mPlantDataTexture = RHICreateTexture1D(Texture::eRGB32F, mPlantList.size(), 0, TCF_DefalutValue, mPlantList.data()));
+
+			return true;
+
+		}
+
+
+		virtual void releaseRHIResource(bool bReInit = false) override
+		{
+			SharedAssetData::releaseRHIResource(bReInit);
+
+			mProgFieldRender = nullptr;
+			mPlantDataTexture.release();
+
+			BaseClass::releaseRHIResource(bReInit);
+		}
 
 		void onEnd() override
 		{
@@ -125,17 +134,15 @@ namespace Render
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 			Matrix4 uvToWorldPos = Matrix4::Translate(Vector3(0, -1, 0)) * Matrix4::Scale(Vector3(screenSize.x ,-screenSize.y , 1));
 
-			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-			g.beginRender();
-
 			RHISetShaderProgram(commandList, mProgFieldRender->getRHIResource());
-			SET_SHADER_PARAM(commandList, *mProgFieldRender, UvToWorldPos, uvToWorldPos);
+			SET_SHADER_PARAM(commandList, *mProgFieldRender, UvToWorldPos, AdjProjectionMatrixForRHI( uvToWorldPos ));
 			SET_SHADER_PARAM(commandList, *mProgFieldRender, NumPlants, (int)mPlantList.size());
 			SET_SHADER_PARAM(commandList, *mProgFieldRender, GravityScale, mGravityScale);
 			SET_SHADER_TEXTURE(commandList, *mProgFieldRender, PlantDataTexture, *mPlantDataTexture);
 			DrawUtility::ScreenRect(commandList);
 
-			
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+			g.beginRender();
 			g.setTextColor(Color3f(1, 1, 0));
 			SimpleTextLayout textLayout;
 			textLayout.posX = 10;
@@ -182,6 +189,9 @@ namespace Render
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
+
+
 
 
 	protected:

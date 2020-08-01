@@ -333,7 +333,7 @@ namespace Render
 
 		void releaseResources()
 		{
-			mResource->release();
+			mResource.release();
 		}
 
 		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
@@ -356,12 +356,20 @@ namespace Render
 	{
 		bool   bHDR = false;
 		bool   bSRGB = false;
+		bool   bUseHalf = true;
 		bool   bReverseH = false;
 		int    numMipLevel = 0;
 		uint32 creationFlags = TCF_DefalutValue;
 
 
 		Texture::Format getFormat( int numComponent ) const;
+
+		bool isConvertFloatToHalf() const
+		{
+			return bHDR && (bUseHalf && isNeedConvertFloatToHalf());
+		}
+		bool isSupportRGBTexture() const;
+		bool isNeedConvertFloatToHalf() const;
 
 		TextureLoadOption& ReverseH(bool value = true) { bReverseH = value; return *this; }
 		TextureLoadOption& HDR(bool value = true) { bHDR = value; return *this; }

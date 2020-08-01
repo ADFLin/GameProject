@@ -237,7 +237,6 @@ namespace Render
 
 		Texture2DCreationResult textureCreationResult;
 		VERIFY_D3D11RESULT(swapChainResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), return nullptr;);
-		VERIFY_D3D11RESULT(mDevice->CreateRenderTargetView(textureCreationResult.resource, nullptr, &textureCreationResult.RTV), return nullptr;);
 		TRefCountPtr< D3D11Texture2D > colorTexture = new D3D11Texture2D(info.colorForamt, textureCreationResult);
 		TRefCountPtr< D3D11TextureDepth > depthTexture;
 		if (info.bCreateDepth)
@@ -285,7 +284,7 @@ namespace Render
 	RHITextureCube* D3D11System::RHICreateTextureCube(
 		Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
-		Texture2DCreationResult creationResult;
+		TextureCubeCreationResult creationResult;
 		if (createTextureCubeInternal(D3D11Translate::To(format), size, numMipLevel, 1, creationFlags, data, Texture::GetFormatSize(format), creationResult))
 		{
 			return new D3D11TextureCube(format, creationResult);
@@ -490,6 +489,8 @@ namespace Render
 		desc.AddressU = D3D11Translate::To(initializer.addressU);
 		desc.AddressV = D3D11Translate::To(initializer.addressV);
 		desc.AddressW = D3D11Translate::To(initializer.addressW);
+		desc.MaxLOD = D3D11_FLOAT32_MAX;
+		desc.MaxAnisotropy = 16;
 
 		TComPtr<ID3D11SamplerState> samplerResource;
 		VERIFY_D3D11RESULT( mDevice->CreateSamplerState(&desc , &samplerResource) , );
@@ -613,16 +614,18 @@ namespace Render
 		if (creationFlags & TCF_CreateUAV)
 			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
 
+		if (creationFlags & TCF_GenerateMips)
+		{
+			desc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		}
+
 		desc.CPUAccessFlags = (creationFlags & TCF_AllowCPUAccess) ? D3D11_CPU_ACCESS_READ : 0;
 	}
 
 	template< class TTextureCreationResult >
-	bool CreateResourceView(ID3D11Device* device, uint32 creationFlags, TTextureCreationResult& outResult)
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, uint32 creationFlags, TTextureCreationResult& outResult)
 	{
-		if (creationFlags & TCF_RenderTarget)
-		{
-			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
-		}
 		if (creationFlags & TCF_CreateSRV)
 		{
 			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
@@ -633,6 +636,25 @@ namespace Render
 		}
 		return true;
 	}
+
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, uint32 creationFlags, Texture2DCreationResult& outResult)
+	{
+		if (creationFlags & TCF_CreateSRV)
+		{
+			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
+			desc.Format = format;
+			desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipLevels = -1;
+			desc.Texture2D.MostDetailedMip = 0;
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateShaderResourceView(outResult.resource, &desc, &outResult.SRV));
+		}
+		if (creationFlags & TCF_CreateUAV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
+		}
+		return true;
+	}
+
 
 	bool D3D11System::createTexture1DInternal(DXGI_FORMAT format, int width, int numMipLevel, uint32 creationFlags, void* data, uint32 pixelSize, Texture1DCreationResult& outResult)
 	{
@@ -653,7 +675,7 @@ namespace Render
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture1D(&desc, data ? &initData : nullptr, &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format,  creationFlags, outResult));
 		return true;
 	}
 
@@ -663,7 +685,12 @@ namespace Render
 		desc.Format = format;
 		desc.Width = width;
 		desc.Height = height;
-		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
+
+		if (creationFlags & TCF_GenerateMips)
+			desc.MipLevels = numMipLevel;
+		else
+			desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
+		
 		desc.ArraySize = 1;
 		desc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
 		SetupTextureDesc(desc, creationFlags);
@@ -671,16 +698,42 @@ namespace Render
 		desc.SampleDesc.Count = numSamples;
 		desc.SampleDesc.Quality = 0;
 
-		D3D11_SUBRESOURCE_DATA initData = {};
+		std::vector< D3D11_SUBRESOURCE_DATA > initDataList;
 		if( data )
 		{
-			initData.pSysMem = (void *)data;
-			initData.SysMemPitch = width * pixelSize;
-			initData.SysMemSlicePitch = width * height * pixelSize;
+#if 0
+			if (creationFlags & TCF_GenerateMips)
+			{
+				initDataList.resize(1);
+				auto& initData = initDataList[0];
+				initData.pSysMem = (void *)data;
+				initData.SysMemPitch = width * pixelSize;
+				initData.SysMemSlicePitch = initData.SysMemPitch * height;
+			}
+			else
+#endif
+			{
+				initDataList.resize(desc.MipLevels);
+
+				int level = 0;
+				for (auto& initData : initDataList)
+				{
+					initData.pSysMem = (void *)data;
+					initData.SysMemPitch = (width >> level) * pixelSize;
+					initData.SysMemSlicePitch = initData.SysMemPitch * (height >> level);
+					++level;
+				}
+			}
 		}
 
-		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? &initData : nullptr , &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? initDataList.data() : nullptr , &outResult.resource));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, creationFlags, outResult));
+
+		if (creationFlags & TCF_GenerateMips)
+		{
+			mDeviceContext->GenerateMips( outResult.SRV );
+		}
+
 		return true;
 	}
 
@@ -705,11 +758,29 @@ namespace Render
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&desc, data ? &initData : nullptr, &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, creationFlags, outResult));
 		return true;
 	}
 
-	bool D3D11System::createTextureCubeInternal(DXGI_FORMAT format, int size, int numMipLevel, int numSamples, uint32 creationFlags, void* data[], uint32 pixelSize, Texture2DCreationResult& outResult)
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numMipLevel, uint32 creationFlags, TextureCubeCreationResult& outResult)
+	{
+		if (creationFlags & TCF_CreateSRV)
+		{
+			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
+			desc.Format = format;
+			desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURECUBE;
+			desc.TextureCube.MipLevels = numMipLevel;
+			desc.TextureCube.MostDetailedMip = 0;
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateShaderResourceView(outResult.resource, &desc, &outResult.SRV));
+		}
+		if (creationFlags & TCF_CreateUAV)
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
+		}
+		return true;
+	}
+
+	bool D3D11System::createTextureCubeInternal(DXGI_FORMAT format, int size, int numMipLevel, int numSamples, uint32 creationFlags, void* data[], uint32 pixelSize, TextureCubeCreationResult& outResult)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
 		desc.Format = format;
@@ -719,6 +790,7 @@ namespace Render
 		desc.ArraySize = 6;
 		desc.BindFlags = 0;
 		SetupTextureDesc(desc, creationFlags);
+		desc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
 
 		desc.SampleDesc.Count = numSamples;
 		desc.SampleDesc.Quality = 0;
@@ -735,7 +807,7 @@ namespace Render
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? &initDataList[0] : nullptr, &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, creationFlags, outResult));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.MipLevels, creationFlags, outResult));
 		return true;
 	}
 
@@ -1171,12 +1243,12 @@ namespace Render
 				{
 					memcpy(pVBufferData + dataOffset, info.ptr, info.size );
 					memcpy(pVBufferData + dataOffset + info.size , info.ptr, info.stride);
-					dataOffset += info.size + info.stride;
+					dataOffset += (D3D11BUFFER_ALIGN * ( info.size + info.stride ) + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
 				}
 				else
 				{
 					memcpy(pVBufferData + dataOffset, info.ptr, info.size);
-					dataOffset += info.size;
+					dataOffset += (D3D11BUFFER_ALIGN * info.size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
 				}
 			}
 
@@ -1228,7 +1300,7 @@ namespace Render
 				vertexBuffers[i] = vertexBuffer;
 
 				memcpy(pVBufferData + dataOffset, info.ptr, info.size);
-				dataOffset += info.size;
+				dataOffset += (D3D11BUFFER_ALIGN * info.size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
 			}
 
 			mDynamicVBuffer.unlock(mDeviceContext);
@@ -1253,6 +1325,7 @@ namespace Render
 	void D3D11Context::RHISetFrameBuffer(RHIFrameBuffer* frameBuffer)
 	{
 		D3D11RenderTargetsState* newState;
+		bool bForceReset = false;
 		if (frameBuffer == nullptr)
 		{
 			D3D11SwapChain* swapChain = static_cast<D3D11System*>(GRHISystem)->mSwapChain.get();
@@ -1267,13 +1340,14 @@ namespace Render
 		}
 		else
 		{
-
-
-
+			D3D11FrameBuffer* frameBufferImpl = static_cast<D3D11FrameBuffer*>(frameBuffer);
+			newState = &frameBufferImpl->mRenderTargetsState;
+			bForceReset = frameBufferImpl->bStateDirty;
+			frameBufferImpl->bStateDirty = false;
 		}
 
 		CHECK(newState);
-		if (mRenderTargetsState != newState)
+		if (bForceReset || mRenderTargetsState != newState )
 		{
 			mRenderTargetsState = newState;
 			mDeviceContext->OMSetRenderTargets(mRenderTargetsState->numColorBuffers, mRenderTargetsState->colorBuffers, mRenderTargetsState->depthBuffer);
@@ -1494,6 +1568,52 @@ namespace Render
 		}
 	}
 
+
+	void D3D11Context::RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state)
+	{
+		bUseFixedShaderPipeline = false;
+
+		for (int type = 0; type < EShader::Count; ++type)
+		{
+			if (type == EShader::Compute)
+				continue;
+
+			RHIShader* shader = nullptr;
+			switch (type)
+			{
+			case EShader::Vertex: shader = state.vertexShader; break;
+			case EShader::Pixel:  shader = state.pixelShader; break;
+			case EShader::Geometry:shader = state.geometryShader; break;
+			case EShader::Domain: shader = state.domainShader; break;
+			case EShader::Hull:   shader = state.hullShader; break;
+			}
+
+			if (type == EShader::Vertex)
+			{
+				mVertexShader = shader;
+			}
+
+			if (shader == nullptr)
+			{
+				if (mBoundedShaders[type].resource)
+				{
+					mBoundedShaderDirtyMask |= BIT(type);
+					mBoundedShaders[type].resource = nullptr;
+				}
+			}
+			else
+			{
+				D3D11Shader* shaderImpl = static_cast<D3D11Shader*>(shader);
+				mBoundedShaderMask |= BIT(type);
+				if (mBoundedShaders[type].resource != shaderImpl->mResource.ptr)
+				{
+					mBoundedShaders[type].resource = shaderImpl->mResource.ptr;
+					mBoundedShaderDirtyMask |= BIT(type);
+				}
+			}
+		}
+	}
+
 	template< EShader::Type TypeValue >
 	void D3D11Context::setShader(D3D11ShaderVariant  const& shaderVariant)
 	{
@@ -1507,6 +1627,7 @@ namespace Render
 		case EShader::Compute:  mDeviceContext->CSSetShader(shaderVariant.compute, nullptr, 0); break;
 		}
 	}
+
 
 	template < class ValueType >
 	void D3D11Context::setShaderValueT(RHIShaderProgram& shaderProgram, ShaderParameter const& param, ValueType const val[], int dim)

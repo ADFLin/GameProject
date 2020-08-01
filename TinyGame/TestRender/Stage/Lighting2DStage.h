@@ -1,10 +1,9 @@
 #ifndef LightGLStage_h__
 #define LightGLStage_h__
 
-
+#include "Stage/TestRenderStageBase.h"
 #include "StageBase.h"
-#include "GL/glew.h"
-#include "WinGLPlatform.h"
+
 #include "DataStructure/Grid2D.h"
 #include "CppVersion.h"
 #include "Math/Vector2.h"
@@ -16,10 +15,8 @@
 #define SHADOW_USE_GEOMETRY_SHADER 1
 
 
-namespace Lighting2D
+namespace Render
 {
-	using namespace Render;
-
 	typedef Math::Vector2 Vector2;
 	typedef Math::Vector3 Color;
 
@@ -54,20 +51,21 @@ namespace Lighting2D
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamLightLocation.bind(parameterMap, SHADER_PARAM(LightLocation));
-			mParamLightColor.bind(parameterMap, SHADER_PARAM(LightColor));
-			mParamLightAttenuation.bind(parameterMap, SHADER_PARAM(LightAttenuation));
+			BIND_SHADER_PARAM(parameterMap, LightLocation);
+			BIND_SHADER_PARAM(parameterMap, LightColor);
+			BIND_SHADER_PARAM(parameterMap, LightAttenuation);
 		}
 
 		void setParameters(RHICommandList& commandList, Vector2 const& lightPos , Color const& lightColor )
 		{
-			setParam(commandList, mParamLightLocation, lightPos);
-			setParam(commandList, mParamLightColor, lightColor);
-			setParam(commandList, mParamLightAttenuation, Vector3( 0.0, 1 / 5.0, 0.0 ));
+			SET_SHADER_PARAM(commandList, *this, LightLocation, lightPos);
+			SET_SHADER_PARAM(commandList, *this, LightColor, lightColor);
+			SET_SHADER_PARAM(commandList, *this, LightAttenuation, Vector3(0.0, 1 / 5.0, 0.0));
 		}
-		ShaderParameter mParamLightLocation;
-		ShaderParameter mParamLightColor;
-		ShaderParameter mParamLightAttenuation;
+
+		DEFINE_SHADER_PARAM(LightLocation);
+		DEFINE_SHADER_PARAM(LightColor);
+		DEFINE_SHADER_PARAM(LightAttenuation);
 	};
 
 
@@ -91,9 +89,9 @@ namespace Lighting2D
 	};
 
 
-	class TestStage : public StageBase
+	class Lighting2DTestStage : public TestRenderStageBase
 	{
-		using BaseClass = StageBase;
+		using BaseClass = TestRenderStageBase;
 
 		using LightList = std::vector< Light >;
 		using BlockList = std::vector< Block >;
@@ -110,16 +108,20 @@ namespace Lighting2D
 
 		LightingProgram mProgLighting;
 		LightingShadowProgram mProgShadow;
-		TestStage(){}
+		Lighting2DTestStage(){}
 
 		std::vector< Vector2 > mBuffers;
 
-		bool bShowShadowRender = true;
+		bool bShowShadowRender = false;
 		bool bUseGeometryShader = true;
 
+		virtual RHITargetName getRHITargetName() { return RHITargetName::OpenGL; }
+
+
 		bool onInit() override;
-		void onInitFail() override;
-		void onEnd() override;
+		bool initializeRHIResource() override;
+		void releaseRHIResource(bool bReInit = false) override;
+
 		void onUpdate( long time ) override;
 		bool onWidgetEvent(int event, int id, GWidget* ui) override;
 		void onRender( float dFrame ) override;
@@ -144,14 +146,15 @@ namespace Lighting2D
 
 		bool onKey(KeyMsg const& msg) override
 		{
-			if ( !msg.isDown() )
-				return false;
-
-			switch(msg.getCode())
+			if ( msg.isDown() )
 			{
-			case EKeyCode::R: restart(); break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				}
 			}
-			return false;
+
+			return BaseClass::onKey(msg);
 		}
 
 

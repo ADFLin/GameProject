@@ -330,6 +330,7 @@ namespace Render
 		{
 			SharedAssetData::releaseRHIResource(bReInit);
 			mView.releaseRHIRelease();
+			mTextureMap.clear();
 		}
 		void initializeRenderState();
 

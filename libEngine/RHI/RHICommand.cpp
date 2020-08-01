@@ -19,6 +19,7 @@
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+#include "Core/HalfFlot.h"
 
 
 
@@ -83,9 +84,9 @@ namespace Render
 					}
 				}
 
-				GlobalRHIResourceBase::RestoreAllResource();
+				GlobalRenderResourceBase::RestoreAllResource();
 
-				InitGlobalRHIResource();
+				InitGlobalRenderResource();
 			}		
 		}
 		
@@ -107,10 +108,10 @@ namespace Render
 		//#FIXME
 		if( GRHISystem->getName() != RHISytemName::D3D11 ||
 			GRHISystem->getName() != RHISytemName::D3D12 )
-			ReleaseGlobalRHIResource();
+			ReleaseGlobalRenderResource();
 
 		ShaderManager::Get().clearnupRHIResouse();
-		GlobalRHIResourceBase::ReleaseAllResource();
+		GlobalRenderResourceBase::ReleaseAllResource();
 
 		GRHISystem->shutdown();
 		delete GRHISystem;
@@ -305,18 +306,16 @@ namespace Render
 #include "RHITraceScope.h"
 #endif
 
-	bool IsSupportRGB8ComponentTexture()
-	{
-		return GRHISystem->getName() != RHISytemName::Vulkan;
-	}
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)
 	{
+		bool bConvToHalf = option.isConvertFloatToHalf();
+
 		DataCacheKey cacheKey;
 		cacheKey.typeName = "TEXTURE";
-		cacheKey.version = "8AE15F61-E1DC-4639-B7D8-409CF17933F0";
-		cacheKey.keySuffix.add(path, option.bHDR, option.bReverseH, option.bSRGB, option.creationFlags, option.numMipLevel);
-
+		cacheKey.version = "8AE15F61-E1CF-4639-B7D8-409CF17933F0";
+		cacheKey.keySuffix.add(path, option.bHDR, option.bReverseH, option.bSRGB, option.creationFlags, option.numMipLevel, 
+			option.isSupportRGBTexture(), bConvToHalf);
 
 		void* pData;
 		ImageData imageData;
@@ -326,54 +325,89 @@ namespace Render
 			serializer >> imageData.width;
 			serializer >> imageData.height;
 			serializer >> imageData.numComponent;
-			serializer >> imageData.dataSize;
 
-			cachedImageData.resize(imageData.dataSize);
-			serializer.read(cachedImageData.data(), imageData.dataSize);
+			int dataSize;
+			serializer >> dataSize;
+
+			cachedImageData.resize(dataSize);
+			serializer.read(cachedImageData.data(), dataSize);
 			return true;
 		};
+
 		if( !dataCache.loadDelegate(cacheKey, LoadCache) )
 		{
-			if( !imageData.load(path, option.bHDR, option.bReverseH , option.bHDR ? false : !IsSupportRGB8ComponentTexture()) )
+			if( !imageData.load(path, option.bHDR, option.bReverseH , !option.isSupportRGBTexture()) )
 				return false;
 
 			pData = imageData.data;
-			dataCache.saveDelegate(cacheKey, [&imageData](IStreamSerializer& serializer)-> bool
+
+			int dataSize = imageData.dataSize;
+			
+			if (bConvToHalf)
+			{
+				int num = imageData.width * imageData.height * imageData.numComponent;
+				cachedImageData.resize(sizeof(HalfFloat) * num);
+				
+				HalfFloat* pHalf = (HalfFloat*)cachedImageData.data();
+				float* pFloat = (float*)pData;
+				for (int i = 0; i < num; ++i)
+				{
+					*pHalf = *pFloat;
+					++pHalf;
+					++pFloat;
+				}
+				pData = cachedImageData.data();
+				dataSize /= 2;
+			}
+
+			dataCache.saveDelegate(cacheKey, [&imageData, pData , dataSize](IStreamSerializer& serializer)-> bool
 			{
 				serializer << imageData.width;
 				serializer << imageData.height;
 				serializer << imageData.numComponent;
-				serializer << imageData.dataSize;
-				serializer.write(imageData.data, imageData.dataSize);
+				serializer << dataSize;
+				serializer.write(pData, dataSize);
 				return true;
 			});
 		}
 		else
 		{
-
 			pData = cachedImageData.data();
 		}
 
-		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1, option.creationFlags, pData, 1);
+		uint32 flags = option.creationFlags;
+		if (bConvToHalf)
+		{
+			flags |= TCF_HalfData;
+		}
+
+		if (option.numMipLevel > 1)
+		{
+			flags |= TCF_GenerateMips;
+		}
+
+		auto format = option.getFormat(imageData.numComponent);
+		return RHICreateTexture2D(format, imageData.width, imageData.height, option.numMipLevel, 1, flags, pData, 1);
 	}
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{
 		ImageData imageData;
-		if( !imageData.load(path, option.bHDR , option.bReverseH, option.bHDR ? false : !IsSupportRGB8ComponentTexture()) )
+		if( !imageData.load(path, option.bHDR , option.bReverseH, !option.isSupportRGBTexture()) )
 			return false;
 
-		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1 , option.creationFlags, imageData.data, 1);
+		return CreateTexture2D(imageData, option);
 	}
 
 	RHITextureCube* RHIUtility::LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option)
 	{
+		bool bConvToHalf = option.isConvertFloatToHalf();
 		ImageData imageDatas[Texture::FaceCount];
 
 		void* data[Texture::FaceCount];
 		for( int i = 0; i < Texture::FaceCount; ++i )
 		{
-			if( !imageDatas[i].load(paths[i], option.bHDR, option.bReverseH, option.bHDR ? false : !IsSupportRGB8ComponentTexture()) )
+			if( !imageDatas[i].load(paths[i], option.bHDR, option.bReverseH, !option.isSupportRGBTexture()) )
 				return false;
 
 			data[i] = imageDatas[i].data;
@@ -384,25 +418,70 @@ namespace Render
 
 	RHITexture2D* RHIUtility::CreateTexture2D(ImageData const& imageData, TextureLoadOption const& option)
 	{
-		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1, option.creationFlags, imageData.data, 1);
+		auto format = option.getFormat(imageData.numComponent);
+
+		bool bConvToHalf = option.isConvertFloatToHalf();
+
+
+		uint32 flags = option.creationFlags;
+		if (option.numMipLevel > 1)
+		{
+			flags |= TCF_GenerateMips;
+		}
+
+
+		if (bConvToHalf)
+		{
+			std::vector< HalfFloat > halfData(imageData.width * imageData.height * imageData.numComponent);
+			float* pFloat = (float*)imageData.data;
+			for (int i = 0; i < halfData.size(); ++i)
+			{
+				halfData[i] = *pFloat;
+				++pFloat;
+			}
+			return RHICreateTexture2D(format, imageData.width, imageData.height, option.numMipLevel, 1, flags |TCF_HalfData, halfData.data(), 1);
+
+		}
+		else
+		{
+			return RHICreateTexture2D(format, imageData.width, imageData.height, option.numMipLevel, 1, flags, imageData.data, 1);
+		}
 	}
 
 	Texture::Format TextureLoadOption::getFormat(int numComponent) const
 	{
+#define FORCE_USE_FLOAT_TYPE 0
+
 		if( bHDR )
 		{
-			switch( numComponent )
+			if ( bUseHalf )
 			{
-			case 1: return Texture::eR32F;
-			case 3: return Texture::eRGB16F;
-			case 4: return Texture::eRGBA16F;
+				switch (numComponent)
+				{
+				case 1: return Texture::eR16F;
+				case 2: return Texture::eRG16F;
+				case 3: return Texture::eRGB16F;
+				case 4: return Texture::eRGBA16F;
+				}
 			}
+			else
+			{
+				switch (numComponent)
+				{
+				case 1: return Texture::eR32F;
+				case 2: return Texture::eRG32F;
+				case 3: return Texture::eRGB32F;
+				case 4: return Texture::eRGBA32F;
+				}
+			}
+
 		}
 		else
 		{
 			//#TODO
 			switch( numComponent )
 			{
+			case 1: return Texture::eR8;
 			case 3: return bSRGB ? Texture::eSRGB : Texture::eRGB8;
 			case 4: return bSRGB ? Texture::eSRGBA : Texture::eRGBA8;
 			}
@@ -410,6 +489,40 @@ namespace Render
 		return Texture::eR8;
 	}
 
+
+	bool TextureLoadOption::isSupportRGBTexture() const
+	{
+		if (GRHISystem->getName() == RHISytemName::OpenGL ||
+			GRHISystem->getName() == RHISytemName::Vulkan)
+			return true;
+
+		if ( GRHISystem->getName() == RHISytemName::D3D11 ||
+			 GRHISystem->getName() == RHISytemName::D3D12 )
+		{
+			if (bHDR)
+			{
+				//no rgb16f format and rgb32f only can use of point sampler in pixel shader
+				return false;
+			}
+			if (bSRGB)
+			{
+				return false;
+			}
+
+			return false;
+		}
+		return true;
+	}
+
+	bool TextureLoadOption::isNeedConvertFloatToHalf() const
+	{
+		if (GRHISystem->getName() == RHISytemName::D3D11 ||
+			GRHISystem->getName() == RHISytemName::D3D12 ||
+			GRHISystem->getName() == RHISytemName::Vulkan)
+			return true;
+
+		return false;
+	}
 
 }
 

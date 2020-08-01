@@ -31,8 +31,8 @@ LightProbeVisualizeParameters LPV;
 
 struct VSOutputParameters
 {
-	float3 cameraOffset;
-	float3 probePos;
+	float3 cameraOffset MEMBER_OUTPUT(TEXCOORD1);
+	float3 probePos     MEMBER_OUTPUT(TEXCOORD2);
 };
 
 
@@ -77,33 +77,38 @@ float CalcVertexOffset(float2 p, float r, float factor)
 	return 3 * rf;
 }
 
-const float2 VertexMap[] =
+GLOBAL_CONST float2 VertexMap[] =
 {
 	float2(1,  1),
 	float2(-1,  1),
 	float2(-1, -1),
+	float2(1,  1),
+	float2(-1, -1),
 	float2(1, -1),
 };
 
-out VSOutputParameters VSOutput;
-out flat int GridId;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT_VERTEXID
+	VS_INPUT_INSTANCEID
+	VS_OUTPUT(flat int GridId, 0)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 1)
+VS_ENTRY_END(MainVS)
 {
-	int gridId = gl_InstanceID;
+	int gridId = SvInstanceID;
 
-	float2 vertexPos = VertexMap[ gl_VertexID ];
+	float2 vertexPos = VertexMap[ SvVertexID ];
 	float3 probePos = LPV.startPos + LPV.gridSize * (float(gridId % LPV.gridNum.x ) * LPV.xAxis + float(gridId / LPV.gridNum.x) * LPV.yAxis);
 
-	float3 spherePosInView = float3(View.worldToView * float4(probePos, 1.0));
+	float3 spherePosInView = mul( View.worldToView , float4(probePos, 1.0) ).xyz;
 	float3 offsetInView = float3(
 		CalcVertexOffset(float2(spherePosInView.x, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.x),
 		CalcVertexOffset(float2(spherePosInView.y, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.y),
 		-LPV.probeRadius);
 
 	GridId = gridId;
-	VSOutput.cameraOffset = probePos + float3(View.viewToWorld * float4(offsetInView, 0)) - View.worldPos;
+	VSOutput.cameraOffset = probePos + mul( View.viewToWorld , float4(offsetInView, 0)).xyz - View.worldPos;
 	VSOutput.probePos = probePos;
-	gl_Position = View.viewToClip * float4(spherePosInView + offsetInView, 1.0);
+	SvPosition = mul( View.viewToClip , float4(spherePosInView.xyz + offsetInView, 1.0));
 
 }
 
@@ -112,11 +117,7 @@ void MainVS()
 
 #if PIXEL_SHADER
 
-in VSOutputParameters VSOutput;
-in flat int GridId;
-out float4 OutColor;
-
-uniform sampler2D NormalTexture;
+DEFINE_TEXTURE( Texture2D , NormalTexture );
 
 struct MaterialInfo
 {
@@ -127,7 +128,12 @@ struct MaterialInfo
 	float   ao;
 };
 
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT(flat int GridId, 0)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 1)
+	PS_OUTPUT(float4 OutColor, 0)
+	PS_OUTPUT_DEPTH
+PS_ENTRY_END(MainPS)
 {
 	float3  cameraDir = normalize(VSOutput.cameraOffset);
 	float t;
@@ -138,10 +144,13 @@ void MainPS()
 
 	float3 worldPos = View.worldPos + cameraDir * t;
 
-	float4 clipPos = View.worldToClip * float4(worldPos, 1.0);
+	float4 clipPos = mul( View.worldToClip , float4(worldPos, 1.0) );
 	float4 NDC = clipPos / clipPos.w;
 	
-	WritePixelDepth(NDC.z);
+	SvDepth = NDC.z;
+#if COMPILER_HLSL
+	SvDepth = NDC.z;
+#endif
 
 	float2 gridPos;
 	gridPos.x = GridId % LPV.gridNum.x;
@@ -155,11 +164,14 @@ void MainPS()
 	yAxis = normalize(cross(zAxis, yAxis));
 
 	float3x3 TBN = float3x3(xAxis, yAxis, zAxis);
+#if COMPILER_HLSL
+	TBN = transpose(TBN);
+#endif
 	float2 xy = normalize(zAxis.xy);
-	float2 uv = float2( 4 , 2 ) * float2(atan(xy.y, xy.x) / ( 2 * PI ) , 2*(acos(zAxis.z) / PI - 0.5) );
+	float2 uv = float2( 4 , 2 ) * float2(atan2(xy.y, xy.x) / ( 2 * PI ) , 2*(acos(zAxis.z) / PI - 0.5) );
 	
-	float3  N = normalize( TBN * ( 2 * texture(NormalTexture , uv).xyz -1 ) );
-	N = TBN * float3(0,0,1);
+	float3  N = normalize( mul( TBN , 2 * TEXTURE_SAMPLE(NormalTexture , uv).xyz - float3(1,1,1) ) );
+	N = mul( TBN , float3(0,0,1) );
 	float3  V = normalize(View.worldPos - worldPos);
 	float3  L = normalize(float3(1, 1, 2));
 
@@ -200,12 +212,13 @@ void MainPS()
 	float NoV = saturate(dot(N, V));
 
 	float3 diffuseColor = material.baseColor * ( 1 - material.metallic);
-	float3 specularColor = lerp(float3(0.08 * material.specular), material.baseColor, material.metallic);
+	float temp = 0.08 * material.specular;
+	float3 specularColor = lerp(temp.xxx, material.baseColor, material.metallic);
 
 	float3 roughness = float3(material.roughness, material.roughness, 1);
 	roughness = max(roughness, 0.04);
 
-	float3 shading =  StandardShading(diffuseColor, specularColor, roughness, float3(1), L, V, N);
+	float3 shading =  StandardShading(diffuseColor, specularColor, roughness, float3(1,1,1), L, V, N);
 
 	float3 radiance = 1 * float3(5, 5, 5);
 
@@ -217,6 +230,7 @@ void MainPS()
 	float3 color = ambient + Lo;
 
 	OutColor = float4(color, 1);
+	//OutColor = float4(zAxis, 1);
 
 }
 

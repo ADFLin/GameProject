@@ -213,6 +213,7 @@ namespace Render
 		}
 
 		glEnable(GL_PROGRAM_POINT_SIZE);
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 		GRHIClipZMin = -1;

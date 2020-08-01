@@ -44,15 +44,15 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, true>));
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, false>));
 
-	TGlobalRHIResource<RHITexture2D>   GDefaultMaterialTexture2D;
-	TGlobalRHIResource<RHITexture1D>   GWhiteTexture1D;
-	TGlobalRHIResource<RHITexture1D>   GBlackTexture1D;
-	TGlobalRHIResource<RHITexture2D>   GWhiteTexture2D;
-	TGlobalRHIResource<RHITexture2D>   GBlackTexture2D;
-	TGlobalRHIResource<RHITexture3D>   GWhiteTexture3D;
-	TGlobalRHIResource<RHITexture3D>   GBlackTexture3D;
-	TGlobalRHIResource<RHITextureCube> GWhiteTextureCube;
-	TGlobalRHIResource<RHITextureCube> GBlackTextureCube;
+	TGlobalRenderResource<RHITexture2D>   GDefaultMaterialTexture2D;
+	TGlobalRenderResource<RHITexture1D>   GWhiteTexture1D;
+	TGlobalRenderResource<RHITexture1D>   GBlackTexture1D;
+	TGlobalRenderResource<RHITexture2D>   GWhiteTexture2D;
+	TGlobalRenderResource<RHITexture2D>   GBlackTexture2D;
+	TGlobalRenderResource<RHITexture3D>   GWhiteTexture3D;
+	TGlobalRenderResource<RHITexture3D>   GBlackTexture3D;
+	TGlobalRenderResource<RHITextureCube> GWhiteTextureCube;
+	TGlobalRenderResource<RHITextureCube> GBlackTextureCube;
 
 	MaterialMaster* GDefalutMaterial = nullptr;
 	SimplePipelineProgram* GSimpleShaderPipline = nullptr;
@@ -61,7 +61,7 @@ namespace Render
 	SimplePipelineProgram* GSimpleShaderPiplineC = nullptr;
 	MaterialShaderProgram GSimpleBasePass;
 
-	bool InitGlobalRHIResource()
+	bool InitGlobalRenderResource()
 	{
 		if (GRHISystem->getName() == RHISytemName::D3D12 ||
 			GRHISystem->getName() == RHISytemName::Vulkan)
@@ -78,19 +78,18 @@ namespace Render
 			VERIFY_RETURN_FALSE(GWhiteTexture2D.initialize(RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
 			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
 
+			VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorB)));
+
+			VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
+			void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };
+			VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeWData)));
+			void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
+			VERIFY_RETURN_FALSE(GBlackTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeBData)));
 
 			if( GRHISystem->getName() == RHISytemName::OpenGL )
 			{
-				VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorW)));
-				VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorB)));
-
-				VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
-				VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
-				void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };
-				VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeWData)));
-				void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
-				VERIFY_RETURN_FALSE(GBlackTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeBData)));
-
 				OpenGLCast::To(GWhiteTextureCube.getResource())->bind();
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -143,7 +142,7 @@ namespace Render
 		return true;
 	}
 
-	void ReleaseGlobalRHIResource()
+	void ReleaseGlobalRenderResource()
 	{
 		if ( GDefalutMaterial )
 		{
@@ -156,18 +155,18 @@ namespace Render
 	}
 
 
-	GlobalRHIResourceBase* GStaticResourceHead = nullptr;
+	GlobalRenderResourceBase* GStaticResourceHead = nullptr;
 
-	GlobalRHIResourceBase::GlobalRHIResourceBase()
+	GlobalRenderResourceBase::GlobalRenderResourceBase()
 	{
 		mNext = GStaticResourceHead;
 		GStaticResourceHead = this;
 	}
 
 
-	void GlobalRHIResourceBase::ReleaseAllResource()
+	void GlobalRenderResourceBase::ReleaseAllResource()
 	{
-		GlobalRHIResourceBase* cur = GStaticResourceHead;
+		GlobalRenderResourceBase* cur = GStaticResourceHead;
 
 		while( cur )
 		{
@@ -176,9 +175,9 @@ namespace Render
 		}
 	}
 
-	void GlobalRHIResourceBase::RestoreAllResource()
+	void GlobalRenderResourceBase::RestoreAllResource()
 	{
-		GlobalRHIResourceBase* cur = GStaticResourceHead;
+		GlobalRenderResourceBase* cur = GStaticResourceHead;
 
 		while( cur )
 		{

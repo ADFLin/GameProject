@@ -5,14 +5,18 @@
 
 #include "StageBase.h"
 #include "GameGUISystem.h"
+#include "GameRenderSetup.h"
+
 #include "Widget/WidgetUtility.h"
 
 #include "RHI/ShaderManager.h"
+
 
 EXPORT_GAME_MODULE( QuadAssaultModule )
 
 
 class ProxyStage : public StageBase
+	             , public IGameRenderSetup
 {
 	typedef StageBase BaseClass;
 public:
@@ -23,12 +27,11 @@ public:
 	{
 		if( !BaseClass::onInit() )
 			return false;
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 		Render::ShaderManager::Get().setBaseDir("QuadAssault/shader/");
 		::Global::GUI().cleanupWidget();
 
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i screenSize = ::Global::GetScreenSize();
 		mGame = new Game();
 		if( !mGame->init("config.txt" , screenSize , false ) )
 			return false;

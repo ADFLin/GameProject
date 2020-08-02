@@ -1,0 +1,205 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="..\TinyGame\out\Shader\VolumetricLighting.sgc" />
+    <None Include="..\TinyGame\out\Shader\BasePass.sgc" />
+    <None Include="..\TinyGame\out\Shader\BigNumberCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\Bloom.sgc" />
+    <None Include="..\TinyGame\out\Shader\BufferUtility.sgc" />
+    <None Include="..\TinyGame\out\Shader\ColorCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\Common.sgc" />
+    <None Include="..\TinyGame\out\Shader\ComplexCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\CopyTexture.sgc" />
+    <None Include="..\TinyGame\out\Shader\DecalRender.sgc" />
+    <None Include="..\TinyGame\out\Shader\DeferredLighting.sgc" />
+    <None Include="..\TinyGame\out\Shader\DeferredShadingCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\DFFTCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\DistanceField.sgc" />
+    <None Include="..\TinyGame\out\Shader\DOF.sgc" />
+    <None Include="..\TinyGame\out\Shader\EnvLightTextureGen.sgc" />
+    <None Include="..\TinyGame\out\Shader\GeometryTestCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\GLSLDefine.sgc" />
+    <None Include="..\TinyGame\out\Shader\GPUSkinCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\GPUSkinVertexFactory.sgc" />
+    <None Include="..\TinyGame\out\Shader\HLSLDefine.sgc" />
+    <None Include="..\TinyGame\out\Shader\IBLCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\LightingCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\LightParam.sgc" />
+    <None Include="..\TinyGame\out\Shader\LightProbeVisualize.sgc" />
+    <None Include="..\TinyGame\out\Shader\LocalVertexFactory.sgc" />
+    <None Include="..\TinyGame\out\Shader\MaterialCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\MaterialProcess.sgc" />
+    <None Include="..\TinyGame\out\Shader\MeshCulling.sgc" />
+    <None Include="..\TinyGame\out\Shader\NoiseCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\OITCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\OITRender.sgc" />
+    <None Include="..\TinyGame\out\Shader\OITResolve.sgc" />
+    <None Include="..\TinyGame\out\Shader\ParallaxOcclusionCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\ParticleCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\ParticleSimulation.sgc" />
+    <None Include="..\TinyGame\out\Shader\PostProcessCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\PrimitiveParam.sgc" />
+    <None Include="..\TinyGame\out\Shader\Reflection.sgc" />
+    <None Include="..\TinyGame\out\Shader\ResolveRenderTarget.sgc" />
+    <None Include="..\TinyGame\out\Shader\ScatteringCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\ScreenSpaceReflection.sgc" />
+    <None Include="..\TinyGame\out\Shader\ScreenVertexShader.sgc" />
+    <None Include="..\TinyGame\out\Shader\Shader.sgc" />
+    <None Include="..\TinyGame\out\Shader\ShaderDefine.sgc" />
+    <None Include="..\TinyGame\out\Shader\ShadowCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\ShadowDepthRender.sgc" />
+    <None Include="..\TinyGame\out\Shader\ShadowLighting.sgc" />
+    <None Include="..\TinyGame\out\Shader\ShadowMap.sgc" />
+    <None Include="..\TinyGame\out\Shader\ShadowVolume.sgc" />
+    <None Include="..\TinyGame\out\Shader\SimpleBasePass.sgc" />
+    <None Include="..\TinyGame\out\Shader\SimpleElement.sgc" />
+    <None Include="..\TinyGame\out\Shader\SimplePipelineShader.sgc" />
+    <None Include="..\TinyGame\out\Shader\SkyBox.sgc" />
+    <None Include="..\TinyGame\out\Shader\SplineCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\SSAO.sgc" />
+    <None Include="..\TinyGame\out\Shader\Terrain.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\TexcoordVisualize.sgc" />
+    <None Include="..\TinyGame\out\Shader\TiledLightCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\TiledLightInjection.sgc" />
+    <None Include="..\TinyGame\out\Shader\Tonemap.sgc" />
+    <None Include="..\TinyGame\out\Shader\VertexFactoryProcess.sgc" />
+    <None Include="..\TinyGame\out\Shader\ViewParam.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\BumpPS.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\BumpVS.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\EnvLightingTest.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\FS.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Grass.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\GravityField.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Lighting2D.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Lighting2DShadow.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Mandelbrot.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\MarchingCubes.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\MVRender.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\NoiseTest.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Parallax.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\PlanetSurface.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\PointToRectOutline.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\PongShader.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Simple.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\SimpleSprite.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\SimpleSpriteParticle.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Sphere.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Spline.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Tessellation.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\UnderCurveArea.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\Water.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\WaterSimulation.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Test\VulkanTest.sgc">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\HLSLTest.sgc">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Elephant.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\EmptyMaterial.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Havoc.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Lightning.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Mario.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\MaterialTemplate.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\MetelA.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\POMTitle.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Simple1.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Simple2.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Simple3.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\SimpleTest.mat">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\SimpleTest.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\SimpleTest2.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Material\Sphere.sgc">
+      <Filter>Material</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Game">
+      <UniqueIdentifier>{9a727c01-1e37-47a8-9c86-4325f0cec1d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{294f92c3-f4c5-488c-afcd-da8ca5897e7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Material">
+      <UniqueIdentifier>{c4c50d1f-b14c-4305-9e82-9ab02b76ef0d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

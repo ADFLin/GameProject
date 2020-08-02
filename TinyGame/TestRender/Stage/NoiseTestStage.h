@@ -551,6 +551,12 @@ namespace Render
 		float mAlbedo = 1;
 		std::vector< LightInfo > mLights;
 
+		void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+		{
+			systemConfigs.screenWidth = 1024;
+			systemConfigs.screenHeight = 768;
+		}
+
 		bool onInit() override;
 		void onEnd() override;
 

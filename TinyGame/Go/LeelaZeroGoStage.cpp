@@ -317,11 +317,6 @@ namespace Go
 		if( !BaseClass::onInit() )
 			return false;
 
-		::Global::GetDrawEngine().changeScreenSize(1080, 720);
-
-		RHIInitializeParams initParamsRHI;
-		initParamsRHI.numSamples = 8;
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL , initParamsRHI));
 
 		mDeviceQuery = GPUDeviceQuery::Create();
 		if( mDeviceQuery == nullptr )
@@ -418,7 +413,7 @@ namespace Go
 				buildAnalysisMode(false);
 
 				mReviewGame.copy(mGame);
-				Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+				Vec2i screenSize = ::Global::GetScreenSize();
 				Vec2i widgetSize = Vec2i(150, 10);
 				auto frame = new DevFrame(UI_ANY, Vec2i(screenSize.x - widgetSize.x - 5, 300), widgetSize, nullptr);
 				auto GetPonderingButtonString = [&]()
@@ -535,7 +530,7 @@ namespace Go
 			{
 				mReviewGame.copy(mGame);
 				widget->cast<GCheckBox>()->setTitle("Close Review");
-				Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+				Vec2i screenSize = ::Global::GetScreenSize();
 				Vec2i widgetSize = Vec2i(100, 300);
 				auto frame = new DevFrame(UI_REPLAY_FRAME, Vec2i(screenSize.x - widgetSize.x - 5, 300) , widgetSize , nullptr);
 				frame->addButton("[<]", [&](int eventId, GWidget* widget) ->bool
@@ -657,11 +652,8 @@ namespace Go
 	{
 		cleanupModeData( true );
 		mBoardRenderer.releaseRHI();
-		::Global::GetDrawEngine().shutdownRHI();
 		BaseClass::onEnd();
 	}
-
-
 
 	void LeelaZeroGoStage::onUpdate(long time)
 	{
@@ -842,7 +834,7 @@ namespace Go
 
 				float const width = 15;
 
-				Vector2 renderPos = ::Global::GetDrawEngine().getScreenSize() - Vector2(5, 5);
+				Vector2 renderPos = ::Global::GetScreenSize() - Vector2(5, 5);
 				Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100 );
 				RenderUtility::SetPen(g, EColor::Red);
 				RenderUtility::SetBrush(g, EColor::Red);
@@ -955,7 +947,8 @@ namespace Go
 
 		if( bDrawFontCacheTexture )
 		{
-			DrawUtility::DrawTexture(commandList, FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
+			g.setBrush(Color3f(1, 1, 1));
+			g.drawTexture(FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
 		}
 
 		g.endRender();
@@ -1127,7 +1120,7 @@ namespace Go
 
 	void LeelaZeroGoStage::drawWinRateDiagram(Vec2i const& renderPos, Vec2i const& renderSize)
 	{
-		::Global::GetDrawEngine().getRHIGraphics().flush();
+		::Global::GetRHIGraphics2D().flush();
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -1135,7 +1128,7 @@ namespace Go
 		{
 			GPU_PROFILE("Draw WinRate Diagram");
 
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 
 			RHISetViewport(commandList, renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
 			MatrixSaveScope matrixSaveScope;
@@ -1288,7 +1281,7 @@ namespace Go
 		}
 
 
-		::Global::GetDrawEngine().getRHIGraphics().restoreRenderState();
+		::Global::GetRHIGraphics2D().restoreRenderState();
 	}
 
 	void LeelaZeroGoStage::updateViewGameTerritory()
@@ -2058,7 +2051,7 @@ namespace Go
 
 						if (mWinRateWidget == nullptr)
 						{
-							Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+							Vec2i screenSize = ::Global::GetScreenSize();
 							Vec2i widgetSize = { 260 , 310 };
 							Vec2i widgetPos = { screenSize.x - (widgetSize.x + 20), screenSize.y - (widgetSize.y + 20) };
 							mWinRateWidget = new GFrame(UI_ANY, widgetPos, widgetSize, nullptr);
@@ -2066,7 +2059,7 @@ namespace Go
 							mWinRateWidget->setRenderCallback(
 								RenderCallBack::Create([this](GWidget* widget)
 								{
-									Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+									Vec2i screenSize = ::Global::GetScreenSize();
 									Vec2i diagramPos = widget->getWorldPos() + Vec2i(5, 5);
 									Vec2i diagramSize = widget->getSize() - 2 * Vec2i(5, 5);
 									drawWinRateDiagram(diagramPos, diagramSize);
@@ -2486,7 +2479,7 @@ namespace Go
 	{
 		if( mGamePlayWidget == nullptr )
 		{
-			Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 
 			Vec2i size = Vec2i(150,200);
 			auto devFrame = new DevFrame(UI_ANY, Vec2i(screenSize.x - size.x - 5, 300), size , nullptr);

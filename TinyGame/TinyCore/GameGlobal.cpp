@@ -83,6 +83,11 @@ void Global::RandSeed(unsigned seed )
 }
 
 
+Vec2i Global::GetScreenSize()
+{
+	return GetDrawEngine().getScreenSize();
+}
+
 PropertySet& Global::GameConfig()
 {
 	static PropertySet settingKey;

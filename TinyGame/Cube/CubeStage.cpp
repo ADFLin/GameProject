@@ -9,10 +9,6 @@ namespace Cube
 
 	bool TestStage::onInit()
 	{
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
-		GameWindow& window = Global::GetDrawEngine().getWindow();
-
 		::Global::GUI().cleanupWidget();
 
 		mCamera.setPos( Vec3f( -10 , 0 , 0 ) );
@@ -22,8 +18,8 @@ namespace Cube
 
 		mLevel = new Level;
 		mLevel->setupWorld();
-
-		mScene = new Scene( window.getWidth() , window.getHeight() );
+		Vec2i screenSize = ::Global::GetScreenSize();
+		mScene = new Scene(screenSize.x, screenSize.y);
 		mScene->changeWorld( mLevel->getWorld() );
 
 		restart();

@@ -1,6 +1,7 @@
 #include "Stage/TestStageHeader.h"
 #include "FileSystem.h"
 
+#include "DrawEngine.h"
 
 class FileNameConvStage : public StageBase
 {

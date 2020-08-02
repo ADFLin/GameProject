@@ -11,7 +11,7 @@ namespace Render
 
 	void TextureShowFrame::onRender()
 	{
-		RHIGraphics2D& g = Global::GetDrawEngine().getRHIGraphics();
+		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
 		g.setBrush(Color3f::White());
 		g.drawTexture(*texture, getWorldPos(), getSize());
@@ -177,19 +177,13 @@ namespace Render
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::GetDrawEngine().initializeRHI(getRHITargetName()) )
-		{
-			LogWarning(0, "Can't Initialize RHI System! ");
-			return false;
-		}
-
 		mView.gameTime = 0;
 		mView.realTime = 0;
 		mView.frameCount = 0;
 
 		mbGamePased = false;
 
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i screenSize = ::Global::GetScreenSize();
 		mViewFrustum.mNear = 0.01;
 		mViewFrustum.mFar = 800.0;
 		mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
@@ -205,8 +199,6 @@ namespace Render
 	void TestRenderStageBase::onEnd()
 	{
 		ConsoleSystem::Get().unregisterCommandByName("ShowTexture");
-
-		::Global::GetDrawEngine().shutdownRHI(true);
 		BaseClass::onEnd();
 	}
 
@@ -237,10 +229,10 @@ namespace Render
 
 		mView.frameCount += 1;
 
-		GameWindow& window = Global::GetDrawEngine().getWindow();
+		Vec2i screenSize = ::Global::GetScreenSize();
 
 		mView.rectOffset = IntVector2(0, 0);
-		mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
+		mView.rectSize = screenSize;
 
 		Matrix4 matView = mCamera.getViewMatrix();
 		mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
@@ -301,15 +293,6 @@ namespace Render
 			{
 				ShaderManager::Get().reloadAll();
 				//initParticleData();
-			}
-			break;
-		case EKeyCode::F11:
-			{
-				releaseRHIResource(true);
-				RHITargetName Name = GRHISystem->getName() == RHISytemName::OpenGL ? RHITargetName::D3D11 : RHITargetName::OpenGL;
-				Global::GetDrawEngine().shutdownRHI(false);
-				Global::GetDrawEngine().initializeRHI(Name);
-				initializeRHIResource();
 			}
 			break;
 		}

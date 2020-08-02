@@ -11,6 +11,7 @@
 
 
 #include "DataStructure/VertorSet.h"
+#include "GameRenderSetup.h"
 
 #define DEV_MAP_NAME "test.map"
 #define DEV_SAVE_NAME "save.map"
@@ -42,6 +43,7 @@ namespace MV
 
 	class TestStage : public StageBase
 		            , public Level
+		            , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:

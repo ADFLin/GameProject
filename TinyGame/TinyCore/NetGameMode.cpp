@@ -220,7 +220,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		if ( bFullSetting )
 		{
 			mSettingPanel->show(true);
-			Vec2i from = Vec2i(Global::GetDrawEngine().getScreenWidth(), pos.y);
+			Vec2i from = Vec2i(Global::GetScreenSize().x, pos.y);
 			::Global::GUI().addMotion< EasingFunc >(mSettingPanel, from, pos, timeUIAnim);
 		}
 		else
@@ -269,7 +269,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		}
 
 		{
-			Vec2i from = Vec2i(Global::GetDrawEngine().getScreenWidth(), btnPos.y);
+			Vec2i from = Vec2i(Global::GetScreenSize().x, btnPos.y);
 			::Global::GUI().addMotion< EasingFunc >(button, from, btnPos, timeUIAnim);
 		}
 
@@ -284,7 +284,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 		::Global::GUI().addWidget(button);
 		mExitButton = button;
 		{
-			Vec2i from = Vec2i(Global::GetDrawEngine().getScreenWidth(), btnPos.y);
+			Vec2i from = Vec2i(Global::GetScreenSize().x, btnPos.y);
 			::Global::GUI().addMotion< EasingFunc >(button, from, btnPos, timeUIAnim);
 		}
 	}

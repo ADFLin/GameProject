@@ -125,7 +125,7 @@ namespace Render
 			VERIFY_RETURN_FALSE( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , 1 , 1, TCF_DefalutValue , &mSDFData.volumeData[0] ) );
 
 			VERIFY_RETURN_FALSE(mProgRayMarching = ShaderManager::Get().getGlobalShaderT<RayMarchingProgram>());
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 
 			::Global::GUI().cleanupWidget();
 
@@ -165,7 +165,7 @@ namespace Render
 			Graphics2D& g = Global::GetGraphics2D();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-			GameWindow& window = Global::GetDrawEngine().getWindow();
+			Vec2i screenSize = ::Global::GetScreenSize();
 
 			initializeRenderState();
 

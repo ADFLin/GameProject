@@ -252,7 +252,7 @@ namespace FlappyBird
 
 	bool LevelStage::onInit()
 	{
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
+		VERIFY_RETURN_FALSE(Global::GetDrawEngine().startupSystem(ERenderSystem::OpenGL));
 		::Global::GUI().cleanupWidget();
 
 		if( !loadResource() )
@@ -627,7 +627,7 @@ namespace FlappyBird
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i screenSize = ::Global::GetScreenSize();
 		glViewport(0, 0, screenSize.x, screenSize.y);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -639,7 +639,7 @@ namespace FlappyBird
 		{
 
 			RenderUtility::SetBrush(g, EColor::Gray);
-			g.drawRect(Vec2i(0, 0), ::Global::GetDrawEngine().getScreenSize());
+			g.drawRect(Vec2i(0, 0), ::Global::GetScreenSize());
 
 			RenderUtility::SetBrush(g, EColor::Gray, COLOR_LIGHT);
 			g.drawRect(convertToScreen(Vector2(0, WorldHeight)), GScale * Vector2(WorldWidth, WorldHeight));
@@ -765,7 +765,7 @@ namespace FlappyBird
 
 	void LevelStage::drawScreenHole(IGraphics2D& g, Vec2i const& pos, Vec2i const& size)
 	{
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i screenSize = ::Global::GetScreenSize();
 
 		if( pos.y > 0 )
 		{

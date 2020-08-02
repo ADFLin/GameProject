@@ -9,6 +9,7 @@
 
 #include "RenderUtility.h"
 #include "GameGlobal.h"
+#include "GameGraphics2D.h"
 
 namespace Chromatron
 {

@@ -2,7 +2,7 @@
 #define BubbleScene_h__
 
 #include "BubbleLevel.h"
-#include "DrawEngine.h"
+#include "RenderLayer.h"
 
 class Graphics2D;
 class ActionTrigger;
@@ -18,7 +18,7 @@ namespace Bubble
 		ACT_BB_MOUSE_ROTATE ,
 	};
 
-	class Scene : public RenderSurface
+	class Scene : public RenderLayer
 	{
 	public:
 		Scene( LevelListener* listener );

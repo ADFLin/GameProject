@@ -2,10 +2,12 @@
 #include "RenderUtility.h"
 
 #include "GameGlobal.h"
+#include "GameGraphics2D.h"
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/Font.h"
 
 #include <algorithm>
+#include "DrawEngine.h"
 
 using namespace Render;
 

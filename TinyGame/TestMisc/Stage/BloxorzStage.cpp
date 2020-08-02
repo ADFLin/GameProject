@@ -2,7 +2,6 @@
 #include "StageRegister.h"
 
 #include "EasingFunction.h"
-#include "DrawEngine.h"
 #include "GameGUISystem.h"
 #include "InputManager.h"
 
@@ -159,17 +158,13 @@ namespace Bloxorz
 	bool TestStage::onInit()
 	{
 		::Global::GUI().cleanupWidget();
-
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
-		GameWindow& window = ::Global::GetDrawEngine().getWindow();
-
+		
+		Vec2i screenSize = ::Global::GetScreenSize();
 		glClearColor( 0 , 0 , 0 , 0 );
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		//glOrtho(0, window.getWidth() , 0 , window.getHeight() , -10000 , 100000 );
-		gluPerspective( 65.0f , float( window.getWidth() ) / window.getHeight() , 0.01 , 10000 );
+		gluPerspective( 65.0f , float(screenSize.x) / screenSize.y, 0.01 , 10000 );
 		glMatrixMode(GL_MODELVIEW);
 
 		glEnable( GL_DEPTH_TEST );
@@ -208,7 +203,6 @@ namespace Bloxorz
 	void TestStage::onEnd()
 	{
 		glDeleteLists( mCubeList , 1 );
-		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void TestStage::restart()
@@ -249,7 +243,6 @@ namespace Bloxorz
 
 	void TestStage::onRender(float dFrame)
 	{
-		GameWindow& window = Global::GetDrawEngine().getWindow();
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 		glLoadIdentity();

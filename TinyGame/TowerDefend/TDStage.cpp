@@ -37,7 +37,7 @@ namespace TowerDefend
 
 	CControlUI::CControlUI( Controller& controller , GUISystem& guiSystem )
 	{
-		Vec2i panelPos = Global::GetDrawEngine().getScreenSize() - ActComPanel::PanelSize;
+		Vec2i panelPos = ::Global::GetScreenSize() - ActComPanel::PanelSize;
 		mActComPanel = new ActComPanel( UI_ANY , controller , panelPos , NULL );
 		mActComPanel->setAlpha( 1.0f );
 		guiSystem.addWidget( mActComPanel );

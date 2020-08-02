@@ -15,6 +15,9 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RHIGlobalResource.h"
 
+#include "DrawEngine.h"
+#include "GameRenderSetup.h"
+
 
 namespace RenderVulkan
 {
@@ -528,10 +531,13 @@ namespace RenderVulkan
 
 	class TestStage : public StageBase
 		            , public SampleData
+		            , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:
 		TestStage() {}
+
+		ERenderSystem getDefaultRenderSystem() { return ERenderSystem::Vulkan; }
 
 		virtual bool onInit()
 		{
@@ -539,9 +545,6 @@ namespace RenderVulkan
 				return false;
 
 			::Global::GetDrawEngine().bUsePlatformBuffer = false;
-
-			if (!::Global::GetDrawEngine().initializeRHI(RHITargetName::Vulkan))
-				return false;
 
 			//VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
 			//VERIFY_RETURN_FALSE( createWindowSwapchain() );

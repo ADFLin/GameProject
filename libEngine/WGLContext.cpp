@@ -1,6 +1,6 @@
 #include "WGLContext.h"
 
-
+#include "WindowsHeader.h"
 
 #if 1
 #define WGL_NUMBER_PIXEL_FORMATS_ARB 0x2000
@@ -190,8 +190,6 @@ WindowsGLContext::~WindowsGLContext()
 {
 	cleanup();
 }
-
-
 
 int ChooseFullscreenPixelFormat(HDC hDC, WGLPixelFormat const& setting, PIXELFORMATDESCRIPTOR& pfd)
 {

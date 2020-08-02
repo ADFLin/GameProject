@@ -304,6 +304,29 @@ namespace Render
 		return nullptr;
 	}
 
+
+	bool CreateResourceView(ID3D11Device* device, uint32 creationFlags, D3D11BufferCreationResult& outResult)
+	{
+		if (creationFlags & BCF_CreateSRV)
+		{
+			HRESULT hr = device->CreateShaderResourceView(outResult.resource, NULL, &outResult.SRV);
+			if (hr != S_OK)
+			{
+				LogWarning(0, "Can't Create buffer's SRV ! error code : %d", hr);
+			}
+		}
+		if (creationFlags & BCF_CreateUAV)
+		{
+#if 0
+			D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
+			desc.Buffer.FirstElement = 0;
+			desc.Buffer.NumElements =
+#endif
+			device->CreateUnorderedAccessView(outResult.resource, NULL, &outResult.UAV);
+		}
+		return true;
+	}
+
 	RHIVertexBuffer* D3D11System::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
 		D3D11_SUBRESOURCE_DATA initData = { 0 };
@@ -329,15 +352,17 @@ namespace Render
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
 
+		D3D11BufferCreationResult creationResult;
+		creationResult.flags = creationFlags;
 		TComPtr<ID3D11Buffer> BufferResource;
 		VERIFY_D3D11RESULT(
-			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &BufferResource),
+			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &creationResult.resource),
 			{
 				return nullptr;
 			}
 		);
-
-		D3D11VertexBuffer* buffer = new D3D11VertexBuffer(mDevice, BufferResource.release(), numVertices, vertexSize, creationFlags);
+		CreateResourceView(mDevice, creationFlags, creationResult);
+		D3D11VertexBuffer* buffer = new D3D11VertexBuffer(numVertices, vertexSize, creationResult);
 
 		return buffer;
 	}
@@ -360,14 +385,17 @@ namespace Render
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
 
-		TComPtr<ID3D11Buffer> BufferResource;
+
+		D3D11BufferCreationResult creationResult;
+		creationResult.flags = creationFlags;
 		VERIFY_D3D11RESULT(
-			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &BufferResource),
+			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &creationResult.resource),
 			{
 				return nullptr;
-			});
-
-		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(mDevice, BufferResource.release(), nIndices, bIntIndex, creationFlags);
+			}
+		);
+		CreateResourceView(mDevice, creationFlags, creationResult);
+		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(nIndices, bIntIndex, creationResult);
 		return buffer;
 	}
 
@@ -754,7 +782,7 @@ namespace Render
 		{
 			initData.pSysMem = (void *)data;
 			initData.SysMemPitch = width * pixelSize;
-			initData.SysMemSlicePitch = width * height * pixelSize;
+			initData.SysMemSlicePitch = initData.SysMemPitch * height;
 		}
 
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&desc, data ? &initData : nullptr, &outResult.resource));
@@ -847,6 +875,54 @@ namespace Render
 				mSRVDirtyMask |= BIT(parameter.mLoc);
 			}
 		}
+		else
+		{
+			LogWarning(0, "Texture don't have SRV");
+		}
+	}
+
+	void D3D11ShaderBoundState::setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture)
+	{
+		ID3D11UnorderedAccessView* UAV = nullptr;
+		if (texture)
+		{
+			switch (texture->getType())
+			{
+			case Texture::e1D:
+				{
+					auto& textureImpl = static_cast<D3D11Texture1D&>(*texture);
+					UAV = textureImpl.mUAV;
+				}
+				break;
+			case Texture::e2D:
+				{
+					auto& textureImpl = static_cast<D3D11Texture2D&>(*texture);
+					UAV = textureImpl.mUAV;
+				}
+				break;
+			case Texture::e3D:
+				{
+					auto& textureImpl = static_cast<D3D11Texture3D&>(*texture);
+					UAV = textureImpl.mUAV;
+				}
+				break;
+			}
+		}
+
+		if (mBoundedUAVs[parameter.mLoc] != UAV)
+		{
+			if (UAV == nullptr)
+			{
+				mUAVUsageCount -= 1;
+			}
+			else if (mBoundedUAVs[parameter.mLoc] == nullptr)
+			{
+				mUAVUsageCount += 1;
+			}
+			CHECK(mUAVUsageCount >= 0);
+			mBoundedUAVs[parameter.mLoc] = UAV;
+			mUAVDirtyMask |= BIT(parameter.mLoc);
+		}
 	}
 
 	void D3D11ShaderBoundState::setSampler(ShaderParameter const& parameter, RHISamplerState& sampler)
@@ -867,8 +943,8 @@ namespace Render
 			mBoundedConstBuffers[parameter.mLoc] = bufferImpl.mResource;
 			mConstBufferDirtyMask |= BIT(parameter.mLoc);
 		}
-
 	}
+
 
 	void D3D11ShaderBoundState::setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize)
 	{
@@ -949,6 +1025,12 @@ namespace Render
 			}
 		}
 
+		if (TypeValue == EShader::Compute)
+		{
+			commitUAVState(context);
+		}
+
+
 		if( mSamplerDirtyMask )
 		{
 			uint32 mask = mSamplerDirtyMask;
@@ -990,6 +1072,42 @@ namespace Render
 		}
 	}
 
+	template< EShader::Type TypeValue >
+	void D3D11ShaderBoundState::clearSRVResource(ID3D11DeviceContext* context)
+	{
+		mSRVDirtyMask = 0;
+		for (int index = 0; index < MaxSimulatedBoundedSRVNum; ++index)
+		{
+			mBoundedSRVs[index] = nullptr;
+		}
+
+		switch (TypeValue)
+		{
+		case EShader::Vertex:   context->VSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
+		case EShader::Pixel:    context->PSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
+		case EShader::Geometry: context->GSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
+		case EShader::Hull:     context->HSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
+		case EShader::Domain:   context->DSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
+		case EShader::Compute:  context->CSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
+		}
+	}
+
+	void D3D11ShaderBoundState::commitUAVState(ID3D11DeviceContext* context)
+	{
+		if (mUAVDirtyMask)
+		{
+			uint32 mask = mUAVDirtyMask;
+			mUAVDirtyMask = 0;
+			for (int index = 0; index < MaxSimulatedBoundedUAVNum && mask; ++index)
+			{
+				if (mask & BIT(index))
+				{
+					mask &= ~BIT(index);
+					context->CSSetUnorderedAccessViews(index, 1, mBoundedUAVs + index, nullptr);
+				}
+			}
+		}
+	}
 
 	bool D3D11Context::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
 	{
@@ -1411,6 +1529,13 @@ namespace Render
 		}
 	}
 
+#define GRAPHIC_SHADER_LIST(op)\
+	op(EShader::Vertex)\
+	op(EShader::Pixel)\
+	op(EShader::Geometry)\
+	op(EShader::Hull)\
+	op(EShader::Domain)
+
 	void D3D11Context::commitRenderShaderState()
 	{
 		if (bUseFixedShaderPipeline)
@@ -1449,56 +1574,73 @@ namespace Render
 		}
 
 
-#define CLEAR_SHADER_STATE( SHADER_TYPE )\
+#define CLEAR_SHADER_STATE_OP( SHADER_TYPE )\
 		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
 
-		CLEAR_SHADER_STATE(EShader::Vertex);
-		CLEAR_SHADER_STATE(EShader::Pixel);
-		CLEAR_SHADER_STATE(EShader::Geometry);
-		CLEAR_SHADER_STATE(EShader::Hull);
-		CLEAR_SHADER_STATE(EShader::Domain);
+		GRAPHIC_SHADER_LIST(CLEAR_SHADER_STATE_OP);
 
-#undef CLEAR_SHADER_STATE
+#undef CLEAR_SHADER_STATE_OP
 
-#define SET_SHADER( SHADER_TYPE )\
+
+
+		if( mBoundedShaderDirtyMask )
+		{
+#define SET_SHADER_OP( SHADER_TYPE )\
 			if( mBoundedShaderDirtyMask & BIT(SHADER_TYPE) )\
 			{\
 				setShader< SHADER_TYPE >( mBoundedShaders[SHADER_TYPE] );\
 			}
 
-
-		if (mInputLayout && mVertexShader)
-		{
-			mDeviceContext->IASetInputLayout(static_cast<D3D11InputLayout*>(mInputLayout)->GetShaderLayout(mDevice, mVertexShader));
-		}
-
-		if( mBoundedShaderDirtyMask )
-		{
-			SET_SHADER(EShader::Vertex);
-			SET_SHADER(EShader::Pixel);
-			SET_SHADER(EShader::Geometry);
-			SET_SHADER(EShader::Hull);
-			SET_SHADER(EShader::Domain);
+			GRAPHIC_SHADER_LIST(SET_SHADER_OP)
 			mBoundedShaderDirtyMask = (mBoundedShaderDirtyMask & BIT(EShader::Compute));
+
+#undef SET_SHADER_OP
 		}
-#define COMMIT_SHADER_STATE( SHADER_TYPE )\
+
+
+
+#if 0
+		if ( mShaderBoundState[EShader::Pixel].mUAVUsageCount )
+		{
+			if (mRenderTargetsState)
+			{
+				mDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
+					mRenderTargetsState->numColorBuffers , mRenderTargetsState->colorBuffers , mRenderTargetsState->depthBuffer);
+			}
+			else
+			{
+				mDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
+					0, nullptr, nullptr);
+			}
+		}
+#endif
+
+#define COMMIT_SHADER_STATE_OP( SHADER_TYPE )\
 		if( mBoundedShaderMask & BIT(SHADER_TYPE) )\
 		{\
 			mShaderBoundState[SHADER_TYPE].commitState<SHADER_TYPE>(mDeviceContext.get());\
 		}
 
-		COMMIT_SHADER_STATE(EShader::Vertex);
-		COMMIT_SHADER_STATE(EShader::Pixel);
-		COMMIT_SHADER_STATE(EShader::Geometry);
-		COMMIT_SHADER_STATE(EShader::Hull);
-		COMMIT_SHADER_STATE(EShader::Domain);
+		GRAPHIC_SHADER_LIST(COMMIT_SHADER_STATE_OP)
 
-#undef SET_SHADER
-#undef COMMIT_SHADER_STATE
+#undef COMMIT_SHADER_STATE_OP
+
+		if (mInputLayout && mVertexShader)
+		{
+			mDeviceContext->IASetInputLayout(static_cast<D3D11InputLayout*>(mInputLayout)->GetShaderLayout(mDevice, mVertexShader));
+		}
 	}
 
 	void D3D11Context::commitComputeState()
 	{
+#if 0
+		mShaderBoundState[EShader::Vertex].clearSRVResource<EShader::Vertex>(mDeviceContext);
+		mShaderBoundState[EShader::Pixel].clearSRVResource<EShader::Pixel>(mDeviceContext);
+		mShaderBoundState[EShader::Hull].clearSRVResource<EShader::Hull>(mDeviceContext);
+		mShaderBoundState[EShader::Domain].clearSRVResource<EShader::Domain>(mDeviceContext);
+		mShaderBoundState[EShader::Geometry].clearSRVResource<EShader::Geometry>(mDeviceContext);
+#endif
+
 		if( mBoundedShaderDirtyMask & BIT(EShader::Compute) )
 		{
 			setShader<EShader::Compute>(mBoundedShaders[EShader::Compute]);
@@ -1530,6 +1672,20 @@ namespace Render
 		{
 			mBoundedShaderMask = 0;
 			auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram);
+
+			if (shaderProgramImpl.mNumShaders == 1 )
+			{
+				auto& shader = *shaderProgramImpl.mShaders[0];
+				if (shader.mResource.type == EShader::Compute)
+				{
+					if (mBoundedShaders[EShader::Compute].resource != shader.mResource.ptr)
+					{
+						mBoundedShaders[EShader::Compute].resource = shader.mResource.ptr;
+						mBoundedShaderDirtyMask |= BIT(EShader::Compute);
+					}
+					return;
+				}
+			}
 
 			uint32 setupMask = 0;
 			for( int i = 0; i < EShader::Count; ++i )
@@ -1567,7 +1723,6 @@ namespace Render
 			}
 		}
 	}
-
 
 	void D3D11Context::RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state)
 	{
@@ -1627,7 +1782,6 @@ namespace Render
 		case EShader::Compute:  mDeviceContext->CSSetShader(shaderVariant.compute, nullptr, 0); break;
 		}
 	}
-
 
 	template < class ValueType >
 	void D3D11Context::setShaderValueT(RHIShaderProgram& shaderProgram, ShaderParameter const& param, ValueType const val[], int dim)
@@ -1697,6 +1851,21 @@ namespace Render
 		});
 	}
 
+	void D3D11Context::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mShaderBoundState[type].setTexture(param, texture);
+	}
+
+	void D3D11Context::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mShaderBoundState[type].setTexture(param, texture);
+		mShaderBoundState[type].setSampler(paramSampler, sampler);
+	}
+
 	void D3D11Context::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
@@ -1704,6 +1873,66 @@ namespace Render
 		{
 			mShaderBoundState[type].setSampler(shaderParam, sampler);
 		});
+	}
+
+	void D3D11Context::setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mShaderBoundState[type].setSampler(param, sampler);
+	}
+
+	void D3D11Context::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		switch (op)
+		{
+		case Render::AO_READ_ONLY:
+#if 0
+			setShaderTexture(shaderProgram, param, texture);
+			break;
+#endif
+		case Render::AO_WRITE_ONLY:
+		case Render::AO_READ_AND_WRITE:
+			shaderProgramImpl.setupShader(param, [this, &texture](EShader::Type type, ShaderParameter const& shaderParam)
+			{
+				mShaderBoundState[type].setRWTexture(shaderParam, &texture);
+			});
+			break;
+		}
+	}
+
+	void D3D11Context::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mShaderBoundState[type].setRWTexture(param, &texture);
+	}
+
+	void D3D11Context::clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this](EShader::Type type, ShaderParameter const& shaderParam)
+		{
+			mShaderBoundState[type].setRWTexture(shaderParam, nullptr);
+
+			if (type == EShader::Compute)
+			{
+				mShaderBoundState[type].commitUAVState(mDeviceContext);
+			}
+		});
+
+	}
+
+	void D3D11Context::clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mShaderBoundState[type].setRWTexture(param, nullptr);
+		if (type == EShader::Compute)
+		{
+			mShaderBoundState[type].commitUAVState(mDeviceContext);
+		}
 	}
 
 	void D3D11Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
@@ -1715,11 +1944,19 @@ namespace Render
 		});
 	}
 
+	void D3D11Context::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mShaderBoundState[type].setUniformBuffer(param, buffer);
+	}
+
 	template < class ValueType >
 	void D3D11Context::setShaderValueT(RHIShader& shader, ShaderParameter const& param, ValueType const val[], int dim)
 	{
 		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
-		mShaderBoundState[shaderImpl.mResource.type].setShaderValue(param, val, sizeof(ValueType) * dim);
+		auto type = shaderImpl.mResource.type;
+		mShaderBoundState[type].setShaderValue(param, val, sizeof(ValueType) * dim);
 	}
 
 	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim)

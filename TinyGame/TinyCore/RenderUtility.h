@@ -1,12 +1,19 @@
-#ifndef RenderUtility_h__
-#define RenderUtility_h__
+#pragma once
+#ifndef RenderUtility_H_7526E438_527C_4167_BD98_6F3E8A83A367
+#define RenderUtility_H_7526E438_527C_4167_BD98_6F3E8A83A367
 
-#include "DrawEngine.h"
 #include "ColorName.h"
+#include "GameConfig.h"
+#include "Core/Color.h"
+#include "Math/TVector2.h"
 
 int const BlockSize = 18;
 
+class Graphics2D;
 class RHIGraphics2D;
+class IGraphics2D;
+
+typedef TVector2< int >  Vec2i;
 
 enum
 {
@@ -56,16 +63,16 @@ public:
 	static TINY_API void SetFontColor( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 
 	template< class TGraphics2D >
-	static void DrawBlock(TGraphics2D& g , Vec2i const& pos , Vec2i const& size , int color )
+	static void DrawBlock(TGraphics2D& g, Vec2i const& pos, Vec2i const& size, int color)
 	{
-		SetPen( g , EColor::Black );
-		SetBrush( g , color , COLOR_DEEP );
-		g.drawRoundRect( pos , size , Vec2i( 8 , 8 ) ); 
+		SetPen(g, EColor::Black);
+		SetBrush(g, color, COLOR_DEEP);
+		g.drawRoundRect(pos, size, Vec2i(8, 8));
 
-		SetPen( g , EColor::Null );
-		SetBrush( g , color );
-		g.drawRoundRect( 
-			pos + Vec2i( 3 , 3 ) , Vec2i( size.x - 6 , size.y - 6 ) , Vec2i( 4 , 4 ) );
+		SetPen(g, EColor::Null);
+		SetBrush(g, color);
+		g.drawRoundRect(
+			pos + Vec2i(3, 3), Vec2i(size.x - 6, size.y - 6), Vec2i(4, 4));
 	}
 	template< class TGraphics2D >
 	static void DrawBlock(TGraphics2D& g ,Vec2i const& pos ,  int color )
@@ -89,16 +96,16 @@ public:
 
 struct SimpleTextLayout
 {
-	template< class Graphics2D, class ...Args>
-	FORCEINLINE void show(Graphics2D& g, char const* format, Args&& ...args)
+	template< class TGraphics2D, class ...Args>
+	FORCEINLINE void show(TGraphics2D& g, char const* format, Args&& ...args)
 	{
 		FixString< 512 > str;
 		str.format(format, args...);
 		g.drawText(Vector2( posX, posY ), str);
 		posY += offset;
 	}
-	template< class Graphics2D, class ...Args>
-	FORCEINLINE void show(Graphics2D& g, char const* str)
+	template< class TGraphics2D, class ...Args>
+	FORCEINLINE void show(TGraphics2D& g, char const* str)
 	{
 		g.drawText(Vector2(posX, posY), str);
 		posY += offset;
@@ -109,5 +116,4 @@ struct SimpleTextLayout
 };
 
 
-
-#endif // RenderUtility_h__
+#endif // RenderUtility_H_7526E438_527C_4167_BD98_6F3E8A83A367

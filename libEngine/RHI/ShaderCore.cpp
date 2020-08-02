@@ -12,6 +12,9 @@ namespace Render
 		auto iter = paramMap.mMap.find(name);
 		if( iter == paramMap.mMap.end() )
 		{
+#if _DEBUG
+			mName = name;
+#endif
 			return false;
 		}
 

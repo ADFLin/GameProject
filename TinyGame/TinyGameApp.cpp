@@ -2,7 +2,6 @@
 #include "TinyGameApp.h"
 
 #include "DrawEngine.h"
-#include "RHI/RHIGraphics2D.h"
 #include "RenderUtility.h"
 
 #include "PropertySet.h"
@@ -20,6 +19,7 @@
 
 #include "GameServer.h"
 #include "GameClient.h"
+
 
 #include "GameWidget.h"
 #include "GameWidgetID.h"
@@ -41,8 +41,13 @@
 #include "RHI/MeshUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderManager.h"
+#include "RHI/RHICommand.h"
+#include "RHI/RHIGraphics2D.h"
+
 
 #include <iostream>
+
+
 
 
 #define GAME_SETTING_PATH "Game.ini"
@@ -640,6 +645,20 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 		case EKeyCode::X:
 			loadModules();
 			break;
+		case EKeyCode::F11:
+			{
+				using namespace Render;
+				IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(getCurStage());
+				if (renderSetup)
+				{
+					renderSetup->releaseRHIResource(true);
+					ERenderSystem Name = GRHISystem->getName() == RHISytemName::OpenGL ? ERenderSystem::D3D11 : ERenderSystem::OpenGL;
+					Global::GetDrawEngine().shutdownSystem(false);
+					Global::GetDrawEngine().startupSystem(Name);
+					renderSetup->initializeRHIResource();
+				}
+			}
+			break;
 		}
 	}
 	bool result = ::Global::GUI().procKeyMsg(msg);
@@ -922,7 +941,7 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	case FailReason::InitFail:
 		if( ::Global::GetDrawEngine().isRHIEnabled() )
 		{
-			::Global::GetDrawEngine().shutdownRHI(false);
+			::Global::GetDrawEngine().shutdownSystem(false);
 		}
 		break;
 	case FailReason::NoStage:
@@ -936,25 +955,49 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 bool TinyGameApp::initializeStage(StageBase* stage)
 {
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
+	GameStageBase* gameStage = stage->getGameStage();
 
-	if( auto gameStage = stage->getGameStage() )
+	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
+
+	if(gameStage)
 	{
 		mStageMode = gameStage->getStageMode();
 		if( !mStageMode->prevStageInit() )
 			return false;
-
-		if( !stage->onInit() )
-			return false;
-
-		if( !mStageMode->postStageInit() )
-			return false;
 	}
-	else
+
+	if ( renderSetup )
 	{
-		if( !stage->onInit() )
+		ERenderSystem SystemName = renderSetup->getDefaultRenderSystem();
+		if (SystemName == ERenderSystem::None)
+		{
+			SystemName = ERenderSystem::OpenGL;
+		}
+
+		RenderSystemConfigs configs;
+		renderSetup->configRenderSystem(SystemName, configs);
+
+		if (!::Global::GetDrawEngine().startupSystem(SystemName, configs))
+		{
+			return false;
+		}
+	}
+
+	if( !stage->onInit() )
+		return false;
+
+	if (renderSetup)
+	{
+		renderSetup->initializeRHIResource();
+	}
+
+	if (gameStage)
+	{
+		if (!mStageMode->postStageInit())
 			return false;
 	}
 
+	stage->postInit();
 	return true;
 }
 
@@ -966,14 +1009,18 @@ void TinyGameApp::prevStageChange()
 	{
 		RenderUtility::SetBrush( g , EColor::Black );
 		RenderUtility::SetPen( g , EColor::Black );
-		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine().getScreenSize() );
+		g.drawRect( Vec2i(0,0) , ::Global::GetScreenSize() );
 		de.endRender();
 	}
 }
 
-void TinyGameApp::postStageEnd()
+void TinyGameApp::postStageEnd(StageBase* stage)
 {
-
+	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
+	if (renderSetup)
+	{
+		Global::GetDrawEngine().shutdownSystem(true);
+	}
 }
 
 void TinyGameApp::postStageChange( StageBase* stage )

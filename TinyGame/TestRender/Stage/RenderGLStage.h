@@ -504,12 +504,19 @@ namespace Render
 		              , public IAssetProvider
 		              , public SceneListener
 		              , public SharedAssetData
+		              , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 		
 	public:
 		SampleStage();
 		~SampleStage();
+
+		void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+		{
+			systemConfigs.screenWidth = 1280;
+			systemConfigs.screenHeight = 720;
+		}
 
 		virtual bool onInit();
 		virtual void onInitFail();

@@ -111,13 +111,13 @@ namespace Tetris
 		Vec2i offset( -( UI_ButtonSize.x + 4 ) , 0 );
 
 		GPanel* panel = new GPanel( UI_ANY , Vec2i(0,0) , 
-			Vec2i( Global::GetDrawEngine().getScreenWidth() , UI_ButtonSize.y + 10 ) , NULL );
+			Vec2i( Global::GetScreenSize().x , UI_ButtonSize.y + 10 ) , NULL );
 
 		GButton* button;
 		panel->setRenderType( GPanel::eRectType );
 		::Global::GUI().addWidget( panel );
 
-		Vec2i pos( Global::GetDrawEngine().getScreenWidth() - ( UI_ButtonSize.x + 10 ) , 5 );
+		Vec2i pos( Global::GetScreenSize().x - ( UI_ButtonSize.x + 10 ) , 5 );
 
 		button = new GButton( ( flag & LevelMode::eNetGame ) ? UI_MAIN_MENU : UI_GAME_MENU , pos , UI_ButtonSize  , panel );
 		button->setTitle( LOCTEXT("Exit Game") );
@@ -614,7 +614,7 @@ namespace Tetris
 	void MenuStage::doChangeWidgetGroup( StageGroupID group )
 	{
 		Vec2i btnSize( 120 , 25 );
-		int xUi = ( Global::GetDrawEngine().getScreenWidth() - btnSize.x ) / 2 ;
+		int xUi = ( Global::GetScreenSize().x - btnSize.x ) / 2 ;
 		int yUi = 250;
 		int offset = 30;
 
@@ -721,10 +721,10 @@ namespace Tetris
 			sprite[i].update( dt );
 
 		//if ( ( pos.x < 0  && vel.x < 0 ) || 
-		//	 ( pos.x > Global::GetDrawEngine().getScreenWidth() && vel.x > 0 ) )
+		//	 ( pos.x > Global::GetScreenSize().x && vel.x > 0 ) )
 		//	 vel.x = -vel.x;
 		//if ( ( pos.y < 0  && vel.y < 0 ) || 
-		//	 ( pos.y > Global::GetDrawEngine().getScreenHeight() && vel.y > 0 ) )
+		//	 ( pos.y > Global::GetScreenSize().y && vel.y > 0 ) )
 		//	 vel.y = -vel.y;
 	}
 
@@ -952,7 +952,7 @@ namespace Tetris
 				RenderUtility::SetBrush( g, EColor::Red );
 			}
 
-			g.beginBlend( Vec2i(0,y) , Vec2i( Global::GetDrawEngine().getScreenWidth() , 22 ), 0.5f );
+			g.beginBlend( Vec2i(0,y) , Vec2i( Global::GetScreenSize().x , 22 ), 0.5f );
 			g.drawRoundRect( Vec2i( x - 8 , y ) , Vec2i( size.x - 6 , 22) , Vec2i( 10 , 10 ) );
 			g.endBlend();
 		}

@@ -157,6 +157,11 @@ namespace Render
 				return false;
 		}
 
+		if (shaderCompiles[0].type == EShader::Compute)
+		{
+			int i = 1;
+		}
+
 		if (!shaderProgramImpl.setupShaders(shaders, numShaders))
 			return false;
 
@@ -298,8 +303,8 @@ namespace Render
 
 			switch( bindDesc.Type )
 			{
-			case D3D11_CT_CBUFFER:
-			case D3D11_CT_TBUFFER:
+			case D3D_SIT_CBUFFER:
+			case D3D_SIT_TBUFFER:
 				{
 					ID3D11ShaderReflectionConstantBuffer* buffer = reflection->GetConstantBufferByName(bindDesc.Name);
 					assert(buffer);
@@ -325,12 +330,11 @@ namespace Render
 					}
 				}
 				break;
-			case D3D11_CT_RESOURCE_BIND_INFO:
-				{
-					parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
-				}
-				break;
+			case D3D_SIT_STRUCTURED:
+			case D3D_SIT_SAMPLER:
 			case D3D_SIT_TEXTURE:
+			case D3D_SIT_UAV_RWTYPED:
+			case D3D_SIT_UAV_APPEND_STRUCTURED:
 				{
 					parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
 				}

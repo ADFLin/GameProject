@@ -3,11 +3,8 @@
 
 #include "ZBase.h"
 #include "IRenderSystem.h"
-
 #include "PlatformThread.h"
-
-#include <gl\gl.h>
-#include <gl\glu.h>
+#include "OpenGLHeader.h"
 
 namespace Zuma
 {

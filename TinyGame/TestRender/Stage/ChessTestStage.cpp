@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include "RHI/RHIGraphics2D.h"
+#include "GameRenderSetup.h"
 
 namespace Chess
 {
@@ -28,6 +29,7 @@ namespace Chess
 	};
 
 	class TestStage : public StageBase
+		            , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -42,9 +44,6 @@ namespace Chess
 			if (!BaseClass::onInit())
 				return false;
 
-			if (!::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL))
-				return false;
-
 			VERIFY_RETURN_FALSE( mChessTex = RHIUtility::LoadTexture2DFromFile("texture/chess.png") );
 
 			::Global::GUI().cleanupWidget();
@@ -56,7 +55,6 @@ namespace Chess
 
 		void onEnd() override
 		{
-			::Global::GetDrawEngine().shutdownRHI(true);
 			BaseClass::onEnd();
 		}
 
@@ -138,7 +136,7 @@ namespace Chess
 		{
 			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
-			Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 			RHISetFrameBuffer(commandList, nullptr);

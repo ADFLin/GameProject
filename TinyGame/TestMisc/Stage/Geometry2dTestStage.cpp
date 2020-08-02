@@ -113,7 +113,7 @@ namespace G2D
 
 			RenderUtility::SetPen(g, EColor::Gray);
 			RenderUtility::SetBrush(g, EColor::Gray);
-			g.drawRect(Vec2i(0, 0), Global::GetDrawEngine().getScreenSize());
+			g.drawRect(Vec2i(0, 0), Global::GetScreenSize());
 
 
 			RenderUtility::SetPen(g, EColor::Yellow);
@@ -350,7 +350,7 @@ namespace G2D
 
 			RenderUtility::SetBrush(g, EColor::Gray);
 			RenderUtility::SetPen(g, EColor::Gray);
-			g.drawRect(Vec2i(0, 0), ::Global::GetDrawEngine().getScreenSize());
+			g.drawRect(Vec2i(0, 0), ::Global::GetScreenSize());
 
 			if( mSAT.haveSA )
 			{

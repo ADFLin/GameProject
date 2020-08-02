@@ -1,9 +1,7 @@
 #include "TinyGamePCH.h"
 #include "TTScene.h"
 
-#include "DrawEngine.h"
 #include "RenderUtility.h"
-
 
 #include "EasingFunction.h"
 
@@ -303,10 +301,6 @@ namespace TripleTown
 		mItemScale = 0.8f;
 		mMouseAnim = nullptr;
 		mTweener.tweenValue< Easing::CIOQuad >(mItemScale, 0.65f, 0.8f, 1).cycle();
-
-		if ( !loadResource() )
-			return false;
-
 		return true;
 	}
 
@@ -596,10 +590,8 @@ namespace TripleTown
 
 		float scaleItem = 0.8f;
 
-		int wScreen = ::Global::GetDrawEngine().getScreenWidth();
-		int hScreen = ::Global::GetDrawEngine().getScreenHeight();
-
-		mRenderState.baseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, wScreen, hScreen, 0, -100, 100));
+		Vec2i screenSize = ::Global::GetScreenSize();
+		mRenderState.baseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -100, 100));
 		mRenderState.sampler = &TStaticSamplerState< Sampler::eBilinear >::GetRHI();
 		float scaleMap = float( TileLength ) / TileImageLength;
 	
@@ -930,7 +922,7 @@ namespace TripleTown
 	{
 		mMap.resize(mLevel->getMap().getSizeX(), mLevel->getMap().getSizeY());
 
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i screenSize = ::Global::GetScreenSize();
 		Vec2i mapSize = TileLength * Vec2i(mLevel->getMap().getSizeX(), mLevel->getMap().getSizeY());
 		mMapOffset = (screenSize - mapSize) / 2;
 

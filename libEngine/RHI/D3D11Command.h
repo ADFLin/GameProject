@@ -80,7 +80,6 @@ namespace Render
 		}
 	};
 
-
 	struct D3D11ShaderBoundState
 	{
 
@@ -102,12 +101,17 @@ namespace Render
 		{
 			mConstBufferValueDirtyMask = 0;
 			mConstBufferDirtyMask = 0;
-			mSRVDirtyMask = 0;
-			mUAVDirtyMask = 0;
+			mSRVDirtyMask = 0;		
 			mSamplerDirtyMask = 0;
+
+
+			std::fill_n(mBoundedUAVs, MaxSimulatedBoundedUAVNum, nullptr);
+			mUAVUsageCount = 0;
+			mUAVDirtyMask = 0;
 		}
 
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
+		void setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture);
 		void setSampler(ShaderParameter const& parameter, RHISamplerState& sampler);
 		void setUniformBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer);
 
@@ -118,6 +122,10 @@ namespace Render
 		void commitState( ID3D11DeviceContext* context);
 		template< EShader::Type TypeValue >
 		void clearState(ID3D11DeviceContext* context);
+
+		template< EShader::Type TypeValue >
+		void clearSRVResource(ID3D11DeviceContext* context);
+		void commitUAVState(ID3D11DeviceContext* context);
 
 		static int constexpr MaxConstBufferNum = 1;
 		uint32 mConstBufferDirtyMask;
@@ -133,8 +141,9 @@ namespace Render
 		uint32 mSRVDirtyMask;
 
 		static int constexpr MaxSimulatedBoundedUAVNum = 16;
-		ID3D11ShaderResourceView* mBoundedUAVs[MaxSimulatedBoundedUAVNum];
+		ID3D11UnorderedAccessView* mBoundedUAVs[MaxSimulatedBoundedUAVNum];
 		uint32 mUAVDirtyMask;
+		uint32 mUAVUsageCount = 0;
 
 		static int constexpr MaxSimulatedBoundedSamplerNum = 16;
 		ID3D11SamplerState* mBoundedSamplers[MaxSimulatedBoundedSamplerNum];
@@ -383,7 +392,8 @@ namespace Render
 			setShaderSampler(shaderProgram, paramSampler, sampler);
 		}
 		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler);
-		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
+		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
 
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
@@ -407,12 +417,12 @@ namespace Render
 
 		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
 
-		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture) {}
-		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler) {}
-		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler) {}
-		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
-
-		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture);
+		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
+		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
+		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
+		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 

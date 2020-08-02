@@ -41,7 +41,7 @@ namespace Render
 
 		RHIInputLayoutRef  mAxisInputLayout;
 		RHIVertexBufferRef mAxisVertexBuffer;
-		RHITargetName getRHITargetName() override { return RHITargetName::D3D11; }
+		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
 
 		struct MyVertex
 		{
@@ -62,13 +62,6 @@ namespace Render
 				return false;
 
 			VERIFY_RETURN_FALSE( createSimpleMesh() );
-			GameWindow& window = ::Global::GetDrawEngine().getWindow();
-
-			if (GRHISystem->getName() == RHISytemName::D3D11)
-			{
-				mD3D11System = static_cast<D3D11System*>(GRHISystem);
-				::Global::GetDrawEngine().bUsePlatformBuffer = true;
-			}
 
 			ShaderManager::Get().loadFile(mProgTest, "Shader/Game/HLSLTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS));
 
@@ -174,10 +167,10 @@ namespace Render
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-			GameWindow& window = Global::GetDrawEngine().getWindow();
+			Vec2i screenSize = ::Global::GetScreenSize();
 
 			mView.rectOffset = IntVector2(0, 0);
-			mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
+			mView.rectSize = IntVector2(screenSize.x, screenSize.y);
 
 			Matrix4 matView = mCamera.getViewMatrix();
 			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
@@ -187,7 +180,7 @@ namespace Render
 			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
 
 		
-			RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
+			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
@@ -307,22 +300,9 @@ namespace Render
 
 			{
 				GPU_PROFILE("Context Flush");
-
 				RHIFlushCommand(commandList);
 			}
-			{
-				GPU_PROFILE("Present");
 
-				if (GRHISystem->getName() == RHISytemName::D3D11)
-				{
-					if (::Global::GetDrawEngine().bUsePlatformBuffer)
-					{
-						Graphics2D& g = Global::GetGraphics2D();
-						mD3D11System->mSwapChain->BitbltToDevice(g.getRenderDC());
-					}
-				}
-
-			}
 		}
 
 

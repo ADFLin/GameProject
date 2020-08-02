@@ -8,6 +8,7 @@
 #include "cube/CubeWorld.h"
 
 #include "WinGLPlatform.h"
+#include "GameRenderSetup.h"
 
 namespace Cube
 {
@@ -82,6 +83,7 @@ namespace Cube
 	};
 
 	class TestStage : public StageBase
+		            , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:
@@ -104,9 +106,6 @@ namespace Cube
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 			mScene->render( mCamera );
-
-
-			GameWindow& window = Global::GetDrawEngine().getWindow();
 		}
 
 

@@ -188,7 +188,10 @@
     <ClInclude Include="CurveBuilder\Surface.h" />
     <ClInclude Include="GameMenuStage.h" />
     <ClInclude Include="SuperFractial\SelectRectBase.h" />
+    <ClInclude Include="TinyCore\GameGraphics2D.h" />
     <ClInclude Include="TinyCore\GameStageMode.h" />
+    <ClInclude Include="TinyCore\GameRenderSetup.h" />
+    <ClInclude Include="TinyCore\RenderLayer.h" />
     <ClInclude Include="Widget\ConsoleFrame.h" />
     <ClInclude Include="Widget\WidgetLayout.h" />
     <ClInclude Include="Widget\WidgetUtility.h" />

@@ -21,11 +21,8 @@ namespace Render
 
 	bool BRDFTestStage::onInit()
 	{
-		::Global::GetDrawEngine().changeScreenSize(1024, 768);
 		if( !BaseClass::onInit() )
 			return false;
-
-		VERIFY_RETURN_FALSE( initializeRHIResource() );
 
 		::Global::GUI().cleanupWidget();
 
@@ -80,7 +77,7 @@ namespace Render
 			*pParams = mParams;
 			mParamBuffer.unlock();
 		}
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i screenSize = ::Global::GetScreenSize();
 
 		VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI(screenSize));
 
@@ -106,7 +103,7 @@ namespace Render
 
 	void BRDFTestStage::onRender(float dFrame)
 	{
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i screenSize = ::Global::GetScreenSize();
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 

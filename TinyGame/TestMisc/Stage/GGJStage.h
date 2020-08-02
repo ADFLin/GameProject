@@ -1,7 +1,6 @@
 #include "StageBase.h"
 
 #include "GameGlobal.h"
-#include "DrawEngine.h"
 #include "GameGUISystem.h"
 
 #include "Holder.h"

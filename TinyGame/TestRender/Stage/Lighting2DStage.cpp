@@ -20,8 +20,6 @@ namespace Render
 		if (!BaseClass::onInit())
 			return false;
 
-		initializeRHIResource();
-
 		::Global::GUI().cleanupWidget();
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
@@ -96,10 +94,10 @@ namespace Render
 			{
 				int lightNum = 100;
 				int blockNum = 5000;
-				GameWindow& window = Global::GetDrawEngine().getWindow();
 
-				int w = window.getWidth();
-				int h = window.getHeight();
+				Vec2i screenSize = ::Global::GetScreenSize();
+				int w = screenSize.x;
+				int h = screenSize.y;
 
 				for( int i = 0; i < lightNum; ++i )
 				{
@@ -131,12 +129,12 @@ namespace Render
 
 	void Lighting2DTestStage::onRender(float dFrame)
 	{
-		GameWindow& window = Global::GetDrawEngine().getWindow();
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
+		Vec2i screenSize = ::Global::GetScreenSize();
 
-		Matrix4 projectMatrix = OrthoMatrix(0, window.getWidth(), 0, window.getHeight(), 1, -1);
+		Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, 1, -1);
 
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
@@ -144,8 +142,8 @@ namespace Render
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
 		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
 
-		int w = window.getWidth();
-		int h = window.getHeight();
+		int w = screenSize.x;
+		int h = screenSize.y;
 
 		if (bUseGeometryShader)
 		{
@@ -181,7 +179,7 @@ namespace Render
 				if (bUseGeometryShader)
 				{
 					RHISetShaderProgram(commandList, mProgShadow.getRHIResource());
-					mProgShadow.setParameters(commandList, light.pos, Global::GetDrawEngine().getScreenSize());
+					mProgShadow.setParameters(commandList, light.pos, ::Global::GetScreenSize());
 
 					if (!mBuffers.empty())
 					{
@@ -248,7 +246,7 @@ namespace Render
 		TRenderRT<RTVF_XY>::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, indices, 6 , LinearColor(1,0,0,1));
 #endif
 
-		RHIGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 		g.beginRender();
 
@@ -307,9 +305,8 @@ namespace Render
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 
-		GameWindow& window = Global::GetDrawEngine().getWindow();
-
-		Vector2 worldPos = Vector2(msg.getPos().x, window.getHeight() - msg.getPos().y);
+		Vec2i screenSize = ::Global::GetScreenSize();
+		Vector2 worldPos = Vector2(msg.getPos().x, screenSize.y - msg.getPos().y);
 		if ( msg.onLeftDown() )
 		{
 			Light light;

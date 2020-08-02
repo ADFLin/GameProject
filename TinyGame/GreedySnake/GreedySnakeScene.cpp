@@ -2,6 +2,7 @@
 #include "GreedySnakeScene.h"	
 
 #include "RenderUtility.h"
+#include "GameGraphics2D.h"
 
 namespace GreedySnake
 {
@@ -188,7 +189,7 @@ namespace GreedySnake
 	{
 		Vec2i mapSize = mLevel.getMapSize();
 		Vec2i rectSize = mLevel.getMapSize() * BlockSize;
-		Vec2i offset = ( Global::GetDrawEngine().getScreenSize() - rectSize ) / 2 ;
+		Vec2i offset = ( ::Global::GetScreenSize() - rectSize ) / 2 ;
 
 		g.beginXForm();
 		g.pushXForm();

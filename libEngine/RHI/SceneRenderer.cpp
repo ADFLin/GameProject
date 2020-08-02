@@ -104,24 +104,19 @@ namespace Render
 		return true;
 	}
 
-	void ShadowDepthTech::drawShadowTexture(RHICommandList& commandList, LightType type , IntVector2 const& pos , int length )
+	void ShadowDepthTech::drawShadowTexture(RHICommandList& commandList, LightType type , Matrix4 const& porjectMatrix , IntVector2 const& pos , int length )
 	{
-		ViewportSaveScope vpScope(commandList);
-
-		Matrix4 porjectMatrix = OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1);
-
-		MatrixSaveScope matrixScopt(porjectMatrix);
 
 		switch( type )
 		{
 		case LightType::Spot:
-			DrawUtility::DrawTexture(commandList, *mShadowMap2, pos, IntVector2(length, length));
+			DrawUtility::DrawTexture(commandList, porjectMatrix, *mShadowMap2, pos, IntVector2(length, length));
 			break;
 		case LightType::Directional:
-			DrawUtility::DrawTexture(commandList, *mCascadeTexture, pos, IntVector2(length * CascadedShadowNum, length));
+			DrawUtility::DrawTexture(commandList, porjectMatrix, *mCascadeTexture, pos, IntVector2(length * CascadedShadowNum, length));
 			break;
 		case LightType::Point:
-			DrawUtility::DrawCubeTexture(commandList, *mShadowMap, pos, length / 2);
+			DrawUtility::DrawCubeTexture(commandList, porjectMatrix, *mShadowMap, pos, length / 2);
 			//ShaderHelper::drawCubeTexture(commandList, GWhiteTextureCube, Vec2i(0, 0), length / 2);
 		default:
 			break;
@@ -839,7 +834,7 @@ namespace Render
 
 	}
 
-	void GBufferResource::drawTextures(RHICommandList& commandList, IntVector2 const& size , IntVector2 const& gapSize )
+	void GBufferResource::drawTextures(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& size , IntVector2 const& gapSize )
 	{
 
 		int width = size.x;
@@ -849,7 +844,7 @@ namespace Render
 		int drawWidth = width - 2 * gapX;
 		int drawHeight = height - 2 * gapY;
 
-		drawTexture(commandList, 0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::A, Vector4(0, 0, 0, 1));
+		drawTexture(commandList, XForm, 0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::A, Vector4(0, 0, 0, 1));
 		{
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
@@ -858,10 +853,10 @@ namespace Render
 
 		}
 		//drawTexture(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferB);
-		drawTexture(commandList, 2 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::C);
-		drawTexture(commandList, 3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(1, 0, 0, 0));
-		drawTexture(commandList, 3 * width + gapX, 2 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 1, 0, 0));
-		drawTexture(commandList, 3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 0, 1, 0));
+		drawTexture(commandList, XForm, 2 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::C);
+		drawTexture(commandList, XForm, 3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(1, 0, 0, 0));
+		drawTexture(commandList, XForm, 3 * width + gapX, 2 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 1, 0, 0));
+		drawTexture(commandList, XForm, 3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 0, 1, 0));
 		{
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
@@ -871,12 +866,12 @@ namespace Render
 		//renderDepthTexture(width , 3 * height, width, height);
 	}
 
-	void GBufferResource::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer)
+	void GBufferResource::drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer)
 	{
-		DrawUtility::DrawTexture(commandList, *textures[idxBuffer], IntVector2(x, y), IntVector2(width, height));
+		DrawUtility::DrawTexture(commandList, XForm, *textures[idxBuffer], Vector2(x, y), Vector2(width, height));
 	}
 
-	void GBufferResource::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
+	void GBufferResource::drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
 	{
 		ViewportSaveScope vpScope(commandList);
 		RHISetViewport(commandList, x, y, width, height);
@@ -1025,9 +1020,9 @@ namespace Render
 		return;
 	}
 
-	void PostProcessSSAO::drawSSAOTexture(RHICommandList& commandList, IntVector2 const& pos, IntVector2 const& size)
+	void PostProcessSSAO::drawSSAOTexture(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& pos, IntVector2 const& size)
 	{
-		DrawUtility::DrawTexture(commandList, *mSSAOTextureBlur, pos, size);
+		DrawUtility::DrawTexture(commandList, XForm, *mSSAOTextureBlur, pos, size);
 	}
 
 	void PostProcessSSAO::reload()
@@ -1309,13 +1304,14 @@ namespace Render
 		if( 1 )
 		{
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//#TODO : Remove ViewportSaveScope, MatrixSaveScope
 			ViewportSaveScope vpScope(commandList);
-			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
-			MatrixSaveScope matScope(matProj);
+			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
+			MatrixSaveScope matrixScopt(porjectMatrix);
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-			DrawUtility::DrawTexture(commandList, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
+			DrawUtility::DrawTexture(commandList, porjectMatrix, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1369,12 +1365,13 @@ namespace Render
 		if (1)
 		{
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			//#TODO : Remove ViewportSaveScope, MatrixSaveScope
 			ViewportSaveScope vpScope(commandList);
-			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
-			MatrixSaveScope matScope(matProj);
+			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1));
+			MatrixSaveScope matrixScopt(porjectMatrix);
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-			DrawUtility::DrawTexture(commandList, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
+			DrawUtility::DrawTexture(commandList, porjectMatrix, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}

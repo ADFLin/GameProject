@@ -92,6 +92,9 @@ public:
 	static TINY_API int  Random();
 	static TINY_API void RandSeed(unsigned seed );
 
+
+	static TINY_API Vec2i GetScreenSize();
+
 	static TINY_API GameModuleManager& ModuleManager();
 	static TINY_API AssetManager&      GetAssetManager();
 

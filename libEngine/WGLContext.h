@@ -1,7 +1,8 @@
 #ifndef WGLContext_h__
 #define WGLContext_h__
 
-#include "GLConfig.h"
+#include "OpenGLHeader.h"
+#include "WindowsHeader.h"
 #include "Core/IntegerType.h"
 
 struct WGLPixelFormat

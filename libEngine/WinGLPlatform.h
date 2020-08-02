@@ -2,13 +2,7 @@
 #define WinGLPlatform_h__
 
 #include "WindowsPlatform.h"
-
-#include <gl\gl.h>		// Header File For The OpenGL32 Library
-#include <gl\glu.h>		// Header File For The GLu32 Library
-
-#pragma comment (lib,"OpenGL32.lib")
-#pragma comment (lib,"GLu32.lib")
-
+#include "OpenGLHeader.h"
 
 template< class T >
 class OpenGLSupportT

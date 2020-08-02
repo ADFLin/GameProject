@@ -18,6 +18,7 @@
 
 #include "GameSettingPanel.h"
 #include "ConsoleSystem.h"
+#include "DrawEngine.h"
 
 
 
@@ -232,6 +233,7 @@ namespace Go
 
 
 	class LeelaZeroGoStage : public StageBase
+		                   , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -535,6 +537,12 @@ namespace Go
 
 		bool saveMatchGameSGF(char const* matchResult = nullptr);
 	
+		void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+		{
+			systemConfigs.screenWidth = 1080;
+			systemConfigs.screenHeight = 720;
+			systemConfigs.numSamples = 8;
+		}
 
 		bool onInit() override;
 		void onEnd() override;

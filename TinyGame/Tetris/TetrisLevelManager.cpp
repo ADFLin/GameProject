@@ -10,7 +10,6 @@
 #include "GameControl.h"
 
 #include "GamePlayer.h"
-#include "DrawEngine.h"
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
 

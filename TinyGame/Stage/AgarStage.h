@@ -1,12 +1,13 @@
 #include "StageBase.h"
 
 #include "GameGlobal.h"
-#include "DrawEngine.h"
+#include "GameRenderSetup.h"
 
 namespace Agar
 {
 
 	class TestStage : public StageBase
+		            , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:
@@ -14,8 +15,6 @@ namespace Agar
 
 		virtual bool onInit()
 		{
-			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
 			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
@@ -23,7 +22,6 @@ namespace Agar
 
 		virtual void onEnd()
 		{
-			::Global::GetDrawEngine().shutdownRHI();
 		}
 
 		virtual void onUpdate( long time )

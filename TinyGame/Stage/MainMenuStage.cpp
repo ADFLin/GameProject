@@ -158,7 +158,7 @@ int const MenuYOffset = 30;
 
 void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 {
-	int xUI = ( Global::GetDrawEngine().getScreenWidth() - MenuBtnSize.x ) / 2 ;
+	int xUI = ( Global::GetScreenSize().x - MenuBtnSize.x ) / 2 ;
 	int yUI = 100;
 	int offset = 30;
 	int delay = 0;

@@ -10,6 +10,7 @@
 #include "BMRender.h"
 
 #include <algorithm>
+#include "DrawEngine.h"
 
 //#TODO : fix animation of dangerous bomb
 

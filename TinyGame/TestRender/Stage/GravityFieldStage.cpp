@@ -58,9 +58,9 @@ namespace Render
 		float mGravityScale = 1.0f;
 
 
-		virtual RHITargetName getRHITargetName() override
+		virtual ERenderSystem getDefaultRenderSystem() override
 		{
-			return RHITargetName::None;
+			return ERenderSystem::None;
 		}
 
 		bool onInit() override
@@ -73,8 +73,6 @@ namespace Render
 			mPlantList.push_back(Vector3(300, 430, 400));
 			mPlantList.push_back(Vector3(600, 100, 700));
 			mPlantList.push_back(Vector3(100, 100, 500));
-
-			initializeRHIResource();
 
 			::Global::GUI().cleanupWidget();
 			auto devFrame = WidgetUtility::CreateDevFrame();
@@ -131,7 +129,7 @@ namespace Render
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 			Matrix4 uvToWorldPos = Matrix4::Translate(Vector3(0, -1, 0)) * Matrix4::Scale(Vector3(screenSize.x ,-screenSize.y , 1));
 
 			RHISetShaderProgram(commandList, mProgFieldRender->getRHIResource());

@@ -1,6 +1,6 @@
 #include "TinyGamePCH.h"
 #include "MiscTestStage.h"
-
+#include "DrawEngine.h"
 #include "Stage/TestStageHeader.h"
 
 #include <cmath>
@@ -571,7 +571,7 @@ namespace Bsp2D
 
 		RenderUtility::SetBrush( g , EColor::Gray );
 		RenderUtility::SetPen( g , EColor::Gray );
-		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine().getScreenSize() );
+		g.drawRect( Vec2i(0,0) , ::Global::GetScreenSize() );
 
 		RenderUtility::SetPen( g , EColor::Black );
 		RenderUtility::SetBrush( g , EColor::Yellow );
@@ -751,7 +751,7 @@ namespace Bsp2D
 		case UI_BUILD_TREE:
 			if ( !mPolyAreaMap.empty() )
 			{
-				Vec2i size = ::Global::GetDrawEngine().getScreenSize();
+				Vec2i size = ::Global::GetScreenSize();
 				mTree.build( &mPolyAreaMap[0] , (int)mPolyAreaMap.size() , 
 					Vector2( 1 , 1 ) , Vector2( size.x / 10 - 1, size.y / 10 - 1 ));
 			}
@@ -850,7 +850,7 @@ void GLGraphics2DTestStage::onRender(float dFrame)
 {
 	GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
-	RHIGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
+	RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	g.beginRender();
 

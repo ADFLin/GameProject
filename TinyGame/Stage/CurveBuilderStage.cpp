@@ -1,5 +1,7 @@
 #include "TestStageHeader.h"
 
+#include "GameRenderSetup.h"
+
 #include "CurveBuilder/ShapeCommon.h"
 #include "CurveBuilder/ShapeFunction.h"
 #include "CurveBuilder/ShapeMeshBuilder.h"
@@ -21,11 +23,14 @@
 #include <memory>
 
 
+
+
 namespace CB
 {
 	using namespace Render;
 
 	class TestStage : public StageBase
+		            , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -43,16 +48,19 @@ namespace CB
 
 		}
 
+
+		virtual void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs) override
+		{
+			systemConfigs.screenWidth = 1200;
+			systemConfigs.screenHeight = 800;
+			systemConfigs.numSamples = 4;
+		}
+
 		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
 
-			::Global::GetDrawEngine().changeScreenSize(1200, 800);
-
-			RHIInitializeParams initParamsRHI;
-			initParamsRHI.numSamples = 4;
-			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, initParamsRHI));
 
 			if( !ShaderHelper::Get().init() )
 				return false;
@@ -63,7 +71,7 @@ namespace CB
 			mUpdateThreadPool->init(numThread);
 #endif
 
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 			mRenderer = std::make_unique<CurveRenderer>();
 			if( !mRenderer->initialize(screenSize) )
 				return false;
@@ -134,8 +142,6 @@ namespace CB
 
 		void onEnd() override
 		{
-			::Global::GetDrawEngine().shutdownRHI();
-
 			BaseClass::onEnd();
 		}
 
@@ -187,18 +193,17 @@ namespace CB
 			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-			int width = ::Global::GetDrawEngine().getScreenWidth();
-			int height = ::Global::GetDrawEngine().getScreenHeight();
+			Vec2i screenSize = ::Global::GetScreenSize();
 
 			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, 
 				&LinearColor(0.7f, 0.7f, 0.7f, 1), 1, 1);
 
-			RHISetViewport(commandList, 0, 0, width, height);
+			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
-			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::Deg2Rad(45.0f) , float(width) / height, 0.1f, 1000.0f) );
+			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::Deg2Rad(45.0f) , float(screenSize.x) / screenSize.y, 0.1f, 1000.0f) );
 			Matrix4 matView = mCamera.getViewMatrix();
 			mRenderer->getViewInfo().setupTransform(matView, matProj);
 			mRenderer->beginRender(commandList);

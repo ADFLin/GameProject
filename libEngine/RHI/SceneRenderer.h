@@ -55,9 +55,9 @@ namespace Render
 		}
 		void setupShader(RHICommandList& commandList, ShaderProgram& program);
 
-		void drawTextures(RHICommandList& commandList, IntVector2 const& size, IntVector2 const& gapSize);
-		void drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer);
-		void drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
+		void drawTextures(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& size, IntVector2 const& gapSize);
+		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer);
+		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
 	};
 
 	struct RenderTargetResource
@@ -181,7 +181,7 @@ namespace Render
 
 		static void determineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[]);
 
-		void drawShadowTexture(RHICommandList& commandList, LightType type, IntVector2 const& pos, int length);
+		void drawShadowTexture(RHICommandList& commandList, LightType type, Matrix4 const& porjectMatrix, IntVector2 const& pos, int length);
 		void reload();
 
 		//RenderTechnique
@@ -248,7 +248,7 @@ namespace Render
 		bool init(IntVector2 const& size);
 
 		void render(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets);
-		void drawSSAOTexture(RHICommandList& commandList, IntVector2 const& pos , IntVector2 const& size );
+		void drawSSAOTexture(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& pos, IntVector2 const& size);
 
 		void reload();
 	private:

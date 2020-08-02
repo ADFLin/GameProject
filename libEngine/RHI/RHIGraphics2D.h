@@ -120,6 +120,15 @@ public:
 		flushBatchedElements();
 	}
 
+	Math::Matrix4 const& getBaseTransform() const
+	{
+		return mBaseTransform;
+	}
+
+	Render::RenderTransform2D const& getCurrentTransform() const
+	{
+		return mXFormStack.get();
+	}
 private:
 	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
 	void emitVertex(Vector2 const& v);

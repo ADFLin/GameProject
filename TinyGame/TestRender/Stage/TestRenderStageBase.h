@@ -20,6 +20,7 @@
 #include "DataCacheInterface.h"
 
 #include "Clock.h"
+#include "GameRenderSetup.h"
 
 
 namespace Render
@@ -301,6 +302,7 @@ namespace Render
 
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
+		                               , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -320,17 +322,16 @@ namespace Render
 		virtual void updateFrame(int frame) {}
 		void onUpdate(long time) override;
 
-		virtual RHITargetName getRHITargetName() { return RHITargetName::OpenGL; }
-
+		//
 		virtual bool initializeRHIResource()
 		{
 			return true;
 		}
+
 		virtual void releaseRHIResource(bool bReInit = false)
 		{
 			SharedAssetData::releaseRHIResource(bReInit);
 			mView.releaseRHIRelease();
-			mTextureMap.clear();
 		}
 		void initializeRenderState();
 
@@ -354,13 +355,15 @@ namespace Render
 		void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
 
 		void handleShowTexture(char const* name);
-
 		void registerTexture(char const* name, RHITexture2D& texture)
 		{
 			mTextureMap.emplace(name, &texture);
 		}
 
 		std::unordered_map< HashString, RHITexture2DRef > mTextureMap;
+
+
+
 
 	};
 

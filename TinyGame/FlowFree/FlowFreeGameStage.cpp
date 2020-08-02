@@ -1,6 +1,9 @@
 #include "FlowFreeGameStage.h"
 #include "RHI/RHIGraphics2D.h"
 
+
+#include "DrawEngine.h"
+
 REGISTER_STAGE("Flow Free Game", FlowFree::TestStage , EStageGroup::Test);
 
 
@@ -215,8 +218,6 @@ namespace FlowFree
 		if (!BaseClass::onInit())
 			return false;
 
-		if (!::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL))
-			return false;
 		::Global::GUI().cleanupWidget();
 
 		for (int i = 0; i < ARRAY_SIZE(mColorMap); ++i)
@@ -516,7 +517,7 @@ namespace FlowFree
 					scale = 1;
 				}
 				Vector2 size = Vector2(300, 300 * scale);
-				Vector2 pos = ::Global::GetDrawEngine().getScreenSize() - size - Vector2(10, 10);
+				Vector2 pos = ::Global::GetScreenSize() - size - Vector2(10, 10);
 				g.drawTexture(*tex, pos, size);
 
 				if (IndexReaderTextureShow == ImageReader::eOrigin || 

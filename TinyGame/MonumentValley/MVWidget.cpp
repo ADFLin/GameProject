@@ -3,11 +3,14 @@
 #include "MVRenderEngine.h"
 
 #include "RHI/DrawUtility.h"
+#include "RHI/RHIGraphics2D.h"
+#include "RHI/RHIGlobalResource.h"
 
 namespace MV
 {
 	using namespace Render;
 
+	static ViewInfo WidgetView;
 	MeshViewPanel::MeshViewPanel(int id , Vec2i const& pos , Vec2i const& size , GWidget* parent) 
 		:BaseClass( id , pos , size , parent )
 	{
@@ -22,13 +25,16 @@ namespace MV
 		if ( idMesh == -1 )
 			return;
 
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		Vec2i wPos = getWorldPos();
 		Vec2i size = getSize();
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
-		glPushAttrib( GL_VIEWPORT_BIT );
+		Vec2i screenSize = ::Global::GetScreenSize();
 
-		glEnable( GL_DEPTH_TEST );
-		glViewport( wPos.x , screenSize.y - size.y , size.x , size.y );
+#if 1
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+		RHISetViewport(commandList, wPos.x, screenSize.y - size.y, size.x, size.y);
 
 		RenderEngine& re = getRenderEngine();
 		{
@@ -38,13 +44,17 @@ namespace MV
 			Mat4 matView = LookAtMatrix( Vec3f(0,0,0) , -Vec3f( FDir::ParallaxOffset(0) ) , Vector3(0,0,1) );
 			Render::MatrixSaveScope Scope( matProj , matView );
 			
+			RenderContext context;
+			context.mView = &WidgetView;
+			context.mView->setupTransform(matView, matProj);
+			context.setColor(LinearColor(1, 1, 1, 1));
 			re.beginRender();
-			glColor3f(1,1,1);
-			//re.renderMesh( idMesh , Vec3f(0,0,0) , AxisRoataion::Identity() );
+			re.renderMesh(context ,idMesh , Vec3f(0,0,0) , AxisRoataion::Identity() );
 			re.endRender();
 		}
-		glDisable( GL_DEPTH_TEST );
-		glPopAttrib();
+
+		g.restoreRenderState();
+#endif
 	}
 
 }//namespace MV

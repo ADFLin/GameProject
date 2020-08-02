@@ -439,7 +439,7 @@
     <ClInclude Include="FunctionTraits.h" />
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameLoop.h" />
-    <ClInclude Include="GLConfig.h" />
+    <ClInclude Include="OpenGLHeader.h" />
     <ClInclude Include="Graphics2DBase.h" />
     <ClInclude Include="CompressAlgo.h" />
     <ClInclude Include="Core\IntegerType.h" />

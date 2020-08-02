@@ -283,7 +283,6 @@ namespace Render
 		}
 		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
 
-		virtual ID3D11RenderTargetView* getRenderTargetView(int Level, int ArrayIndex) { return nullptr; }
 	public:
 		D3D11ShaderResourceView  mSRV;
 		ID3D11UnorderedAccessView* mUAV;
@@ -681,26 +680,24 @@ namespace Render
 		ID3D11DepthStencilView*  mDSV;
 	};
 
+	struct D3D11BufferCreationResult
+	{
+		TComPtr<ID3D11Buffer> resource;
+		TComPtr<ID3D11ShaderResourceView> SRV;
+		TComPtr<ID3D11UnorderedAccessView> UAV;
+		uint32 flags;
+	};
+
 	template< class RHIBufferType >
 	class TD3D11Buffer : public TD3D11Resource< RHIBufferType >
 	{
 	public:
-		TD3D11Buffer(ID3D11Device* device, ID3D11Buffer* resource, uint32 creationFlags)
+		TD3D11Buffer(D3D11BufferCreationResult& creationResult)
 		{
-			mResource = resource;
-			mCreationFlags = creationFlags;
-			if( creationFlags & BCF_CreateSRV )
-			{
-				HRESULT hr = device->CreateShaderResourceView(resource, NULL, &mSRVResource);
-				if( hr != S_OK )
-				{
-					LogWarning(0, "Can't Create buffer's SRV ! error code : %d", hr);
-				}
-			}
-			if( creationFlags & BCF_CreateUAV )
-			{
-				device->CreateUnorderedAccessView(resource, NULL, &mUAVResource);
-			}
+			mResource = creationResult.resource.release();
+			mSRV = creationResult.SRV.release();
+			mUAV = creationResult.UAV.release();
+			mCreationFlags = creationResult.flags;
 		}
 
 #if USE_RHI_RESOURCE_TRACE
@@ -715,13 +712,13 @@ namespace Render
 #endif
 		void releaseResource()
 		{
-			mSRVResource.reset();
-			mUAVResource.reset();
+			SAFE_RELEASE(mSRV);
+			SAFE_RELEASE(mUAV);
 			TD3D11Resource< RHIBufferType >::releaseResource();
 		}
 
-		TComPtr< ID3D11ShaderResourceView > mSRVResource;
-		TComPtr< ID3D11UnorderedAccessView > mUAVResource;
+		ID3D11ShaderResourceView* mSRV;
+		ID3D11UnorderedAccessView* mUAV;
 	};
 
 
@@ -729,8 +726,8 @@ namespace Render
 	{
 	public:
 		using TD3D11Buffer< RHIVertexBuffer >::TD3D11Buffer;
-		D3D11VertexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numVertices , int vertexSize , uint32 creationFlags)
-			:TD3D11Buffer< RHIVertexBuffer >(device, resource, creationFlags)
+		D3D11VertexBuffer(int numVertices , int vertexSize , D3D11BufferCreationResult& creationResult)
+			:TD3D11Buffer< RHIVertexBuffer >(creationResult)
 		{
 			mNumElements = numVertices;
 			mElementSize = vertexSize;
@@ -758,8 +755,8 @@ namespace Render
 	class D3D11IndexBuffer : public TD3D11Buffer< RHIIndexBuffer >
 	{
 	public:
-		D3D11IndexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numIndices, bool bIntType , uint32 creationFlags)
-			:TD3D11Buffer< RHIIndexBuffer >(device, resource, creationFlags)
+		D3D11IndexBuffer( int numIndices, bool bIntType ,D3D11BufferCreationResult& creationResult)
+			:TD3D11Buffer< RHIIndexBuffer >(creationResult)
 		{
 			mNumElements = numIndices;
 			mElementSize = bIntType ? 4 : 2;

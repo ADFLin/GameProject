@@ -7,7 +7,6 @@
 
 #include "DataStructure/Grid2D.h"
 #include "DataStructure/TTable.h"
-#include "DrawEngine.h"
 #include "RHI/RHICommon.h"
 #include "RHI/RHICommand.h"
 #include "RHI/TextureAtlas.h"

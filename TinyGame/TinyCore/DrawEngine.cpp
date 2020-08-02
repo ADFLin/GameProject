@@ -19,7 +19,7 @@
 
 using namespace Render;
 
-RHITargetName GDefaultRHIName = RHITargetName::D3D11;
+ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
 
 namespace FLocal
 {
@@ -27,10 +27,10 @@ namespace FLocal
 	{
 		switch (GDefaultRHIName)
 		{
-		case RHITargetName::OpenGL: return "OpenGL";
-		case RHITargetName::D3D11:  return "D3D11";
-		case RHITargetName::D3D12: return "D3D12";
-		case RHITargetName::Vulkan: return "Vulkan";
+		case ERenderSystem::OpenGL: return "OpenGL";
+		case ERenderSystem::D3D11:  return "D3D11";
+		case ERenderSystem::D3D12: return "D3D12";
+		case ERenderSystem::Vulkan: return "Vulkan";
 		}
 		return "Unknown";
 	}
@@ -38,19 +38,19 @@ namespace FLocal
 	{
 		if (FCString::CompareIgnoreCase(str, "OpenGL") == 0)
 		{
-			GDefaultRHIName = RHITargetName::OpenGL;
+			GDefaultRHIName = ERenderSystem::OpenGL;
 		}
 		else if (FCString::CompareIgnoreCase(str, "D3D11") == 0)
 		{
-			GDefaultRHIName = RHITargetName::D3D11;
+			GDefaultRHIName = ERenderSystem::D3D11;
 		}
 		else if (FCString::CompareIgnoreCase(str, "D3D12") == 0)
 		{
-			GDefaultRHIName = RHITargetName::D3D12;
+			GDefaultRHIName = ERenderSystem::D3D12;
 		}
 		else if (FCString::CompareIgnoreCase(str, "Vulkan") == 0)
 		{
-			GDefaultRHIName = RHITargetName::Vulkan;
+			GDefaultRHIName = ERenderSystem::Vulkan;
 		}
 	}
 };
@@ -161,19 +161,28 @@ void DrawEngine::update(long deltaTime)
 
 bool DrawEngine::isUsageRHIGraphic2D() const
 {
-	if (mRHIName == RHITargetName::OpenGL || mRHIName == RHITargetName::D3D11 )
+	if (mSystemName == ERenderSystem::OpenGL || mSystemName == ERenderSystem::D3D11 )
 		return true;
 
 	return false;
 }
 
-bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams initParams)
+bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs const& configs)
 {
 	if( isRHIEnabled() )
 		return true;
 
-	if (targetName == RHITargetName::None)
-		targetName = GDefaultRHIName;
+	if (configs.screenWidth > 0 && configs.screenHeight > 0)
+	{
+		if (configs.screenWidth != getScreenWidth() &&
+			configs.screenHeight != getScreenHeight())
+		{
+			changeScreenSize(configs.screenWidth, configs.screenHeight);
+		}
+	}
+
+	if (systemName == ERenderSystem::None)
+		systemName = GDefaultRHIName;
 
 	if( bHasUseRHI )
 	{
@@ -187,40 +196,40 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 	setupBuffer(getScreenWidth(), getScreenHeight());
 
 	RHISystemInitParams initParam;
-	initParam.numSamples = initParams.numSamples;
-	initParam.bVSyncEnable = initParams.bVSyncEnable;
+	initParam.numSamples = configs.numSamples;
+	initParam.bVSyncEnable = configs.bVSyncEnable;
 	initParam.hWnd = getWindow().getHWnd();
 	initParam.hDC = getWindow().getHDC();
 
-	RHISytemName name = [targetName]
+	RHISytemName targetName = [systemName]
 	{
-		switch( targetName )
+		switch(systemName)
 		{
-		case RHITargetName::OpenGL: return RHISytemName::OpenGL;
-		case RHITargetName::D3D11: return RHISytemName::D3D11;
-		case RHITargetName::D3D12: return RHISytemName::D3D12;
-		case RHITargetName::Vulkan: return RHISytemName::Vulkan;
+		case ERenderSystem::OpenGL: return RHISytemName::OpenGL;
+		case ERenderSystem::D3D11: return RHISytemName::D3D11;
+		case ERenderSystem::D3D12: return RHISytemName::D3D12;
+		case ERenderSystem::Vulkan: return RHISytemName::Vulkan;
 		}
 		return RHISytemName::OpenGL;
 	}();
-	if( !RHISystemInitialize(name, initParam) )
+	if( !RHISystemInitialize(targetName, initParam) )
 		return false;
 
-	mRHIName = targetName;
+	mSystemName = systemName;
 
 	RenderUtility::InitializeRHI();
-	if( mRHIName == RHITargetName::OpenGL )
+	if( mSystemName == ERenderSystem::OpenGL )
 	{
 		mGLContext = &static_cast<OpenGLSystem*>(GRHISystem)->mGLContext;
 	}
-	else if (mRHIName == RHITargetName::D3D11)
+	else if (mSystemName == ERenderSystem::D3D11)
 	{
 		SwapChainCreationInfo info;
 		info.windowHandle = mGameWindow->getHWnd();
 		info.bWindowed = !mGameWindow->isFullscreen();
 		info.extent.x = mGameWindow->getWidth();
 		info.extent.y = mGameWindow->getHeight();
-		info.numSamples = initParams.numSamples;
+		info.numSamples = configs.numSamples;
 		info.bCreateDepth = true;
 		RHICreateSwapChain(info);
 	}
@@ -229,13 +238,13 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams ini
 	return true;
 }
 
-void DrawEngine::shutdownRHI(bool bDeferred)
+void DrawEngine::shutdownSystem(bool bDeferred)
 {
 	if( !isRHIEnabled() )
 		return;
 
 	RenderUtility::ReleaseRHI();
-	mRHIName = RHITargetName::None;
+	mSystemName = ERenderSystem::None;
 
 	if( bDeferred == false )
 	{

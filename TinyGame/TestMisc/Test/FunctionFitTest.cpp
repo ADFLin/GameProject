@@ -1,8 +1,8 @@
 
 #include "Stage/TestStageHeader.h"
+#include "GameRenderSetup.h"
 
 #include "AI/NeuralNetwork.h"
-
 
 
 float TestFunc(float x)
@@ -10,6 +10,7 @@ float TestFunc(float x)
 	return sin(Math::PI * x);
 }
 class FuncFitTestStage : public StageBase
+	                   , public IGameRenderSetup
 {
 	typedef StageBase BaseClass;
 public:
@@ -27,9 +28,6 @@ public:
 	virtual bool onInit()
 	{
 		if( !BaseClass::onInit() )
-			return false;
-
-		if( !::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL) )
 			return false;
 
 		::Global::GUI().cleanupWidget();

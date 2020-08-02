@@ -5,8 +5,7 @@
 #include "RHIDefine.h"
 #include "RHICommon.h"
 
-#include "glew/GL/glew.h"
-#include "GLConfig.h"
+#include "OpenGLHeader.h"
 
 #include "CppVersion.h"
 

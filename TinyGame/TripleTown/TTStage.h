@@ -7,19 +7,39 @@
 #include "TTScene.h"
 
 #include "StageRegister.h"
-
 #include "Widget/WidgetUtility.h"
-
 #include "FileSystem.h"
+#include "GameRenderSetup.h"
 
 namespace TripleTown
 {
 
 	class LevelStage : public StageBase
 		             , public PlayerData
+		             , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:
+
+		//IGameRenderSetup
+		ERenderSystem getDefaultRenderSystem() { return ERenderSystem::D3D11; }
+		bool initializeRHIResource() override
+		{
+			VERIFY_RETURN_FALSE( mScene.loadResource() );
+
+
+			FileSystem::FindFiles("TripleTown", ".tex", mFileIterator);
+			mScene.loadPreviewTexture(mFileIterator.getFileName());
+
+			return true;
+		}
+
+		void releaseRHIResource(bool bReInit) override
+		{
+			mScene.releaseResource();
+		}
+		//~IGameRenderSetup
+
 		bool onInit() override;
 		void onEnd() override;
 		virtual void onRestart( bool beInit );
@@ -57,10 +77,6 @@ namespace TripleTown
 		{
 			mScene.updateFrame( frame );
 		}
-
-
-		void cleanupRHI();
-		void initializeRHI();
 
 		FileIterator mFileIterator;
 

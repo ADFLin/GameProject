@@ -13,6 +13,7 @@
 
 #include "GameWidget.h"
 #include "GameGUISystem.h"
+#include "WGLContext.h"
 
 namespace Zuma
 {
@@ -88,7 +89,7 @@ namespace Zuma
 
 			//HDC hDC = ::Global::getGraphics2D().getTargetDC();
 			HDC hDC = window.getHDC();
-			drawEngine.initializeRHI( RHITargetName::OpenGL );
+			drawEngine.startupSystem( ERenderSystem::OpenGL );
 
 			GLRenderSystem* renderSys = new GLRenderSystem;
 			renderSys->mNeedSweepBuffer = false;
@@ -120,7 +121,7 @@ namespace Zuma
 		{
 			mGameCore->cleanup();
 
-			::Global::GetDrawEngine().shutdownRHI();
+			::Global::GetDrawEngine().shutdownSystem();
 			::Global::GetDrawEngine().changeScreenSize( mOldSize.x , mOldSize.y );
 
 			BaseClass::onEnd();

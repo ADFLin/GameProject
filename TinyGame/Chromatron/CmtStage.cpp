@@ -52,7 +52,7 @@ namespace Chromatron
 
 		Vec2i buttonSize( 60 , 25 );
 
-		int screenWidth = Global::GetDrawEngine().getScreenWidth();
+		int screenWidth = Global::GetScreenSize().x;
 		GPanel* panel = new GPanel( UI_ANY , Vec2i(0,0) , Vec2i( screenWidth , 30 ) , nullptr );
 		panel->setRenderType( GPanel::eRectType );
 		::Global::GUI().addWidget( panel );

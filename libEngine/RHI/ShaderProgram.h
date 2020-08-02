@@ -75,6 +75,7 @@ namespace Render
 
 
 		void setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE);
+		void clearRWTexture(RHICommandList& commandList, char const* name);
 		void setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, char const* samplerName, RHISamplerState& sampler);
 
 		template< class RHITextureType >
@@ -110,6 +111,8 @@ namespace Render
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const v[], int num);
 
 		void setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1);
+		void clearRWTexture(RHICommandList& commandList, ShaderParameter const& param);
+
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture);
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
 
@@ -186,6 +189,7 @@ namespace Render
 	public:
 		TRefCountPtr< RHIResourceType > mRHIResource;
 	};
+
 
 	extern template class TShaderFuncHelper< RHIShaderProgram >;
 	extern template class TShaderFuncHelper< RHIShader >;

@@ -6,10 +6,10 @@
 #include "StageRegister.h"
 
 #include "GameGUISystem.h"
-#include "DrawEngine.h"
 #include "RenderUtility.h"
 #include "GameModule.h"
 #include "GameGlobal.h"
+#include "GameGraphics2D.h"
 
 #include "Widget/WidgetUtility.h"
 

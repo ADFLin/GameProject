@@ -7,7 +7,11 @@
 namespace Render
 {
 #if _DEBUG
-#define CHECK_PARAMETER( PARAM ) { if ( !PARAM.isBound() ){  if (!PARAM.bHasLogWarning){ const_cast<ShaderParameter&>( PARAM ).bHasLogWarning = true; LogWarning( 0 ,"Shader Param is not bounded : %s" , PARAM.mName.c_str() ); } return; } }
+	void LogOuptput(char const* text, ShaderParameter const& param)
+	{
+		LogWarning(0, text, param.mName.c_str());
+	}
+#define CHECK_PARAMETER( PARAM ) { if ( !PARAM.isBound() ){  if (!PARAM.bHasLogWarning){ const_cast<ShaderParameter&>( PARAM ).bHasLogWarning = true; LogOuptput( "Shader Param is not bounded : %s" , PARAM ); } return; } }
 #else
 #define CHECK_PARAMETER( PARAM ) { if ( !PARAM.isBound() ){ return; } }
 #endif
@@ -64,6 +68,21 @@ namespace Render
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderRWTexture(*mRHIResource, param, texture, op);
+	}
+
+	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::clearRWTexture(RHICommandList& commandList, char const* name)
+	{
+		ShaderParameter param;
+		if (!getParameter(name, param))
+			return;
+		GetContext(commandList).clearShaderRWTexture(*mRHIResource, param);
+	}
+
+	template< class RHIResourceType >
+	void Render::TShaderFuncHelper<RHIResourceType>::clearRWTexture(RHICommandList& commandList, ShaderParameter const& param)
+	{
+		GetContext(commandList).clearShaderRWTexture(*mRHIResource, param);
 	}
 
 	template< class RHIResourceType >

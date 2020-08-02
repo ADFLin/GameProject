@@ -5,11 +5,13 @@
 #include "RHI/RHIGraphics2D.h"
 
 #include "RHI/Font.h"
+#include "GameRenderSetup.h"
 
 
 using namespace Render;
 
 class FontDrawTestStage : public StageBase
+	                    , public IGameRenderSetup
 {
 	using BaseClass = StageBase;
 public:
@@ -18,14 +20,16 @@ public:
 
 	RHITexture2DRef mTexture;
 
+
+	virtual void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs) override
+	{
+		systemConfigs.numSamples = 4;
+	}
+
 	bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
-
-		RHIInitializeParams initParamsRHI;
-		initParamsRHI.numSamples = 4;
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, initParamsRHI));
 
 		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());
 
@@ -155,7 +159,8 @@ public:
 
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(1, 1, 0.2, 1), 1);
 
-		DrawUtility::DrawTexture(commandList, mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
+		DrawUtility::DrawTexture(commandList, g.getBaseTransform(), mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
+		g.restoreRenderState();
 
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"
@@ -197,7 +202,7 @@ public:
 
 		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
 		g.setBrush(Color3f(1, 0, 0));
-		g.drawRect(Vec2i(0, 0), Global::GetDrawEngine().getScreenSize());
+		g.drawRect(Vec2i(0, 0), ::Global::GetScreenSize());
 		g.endClip();
 
 		glColor3f(1, 1, 1);
@@ -248,6 +253,8 @@ public:
 
 		return BaseClass::onWidgetEvent(event, id, ui);
 	}
+
+
 protected:
 };
 

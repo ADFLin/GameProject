@@ -3,9 +3,9 @@
 
 #include "BMLevel.h"
 #include "BMRender.h"
-#include "DrawEngine.h"
 
 class ActionTrigger;
+class Graphics2D;
 
 namespace BomberMan
 {

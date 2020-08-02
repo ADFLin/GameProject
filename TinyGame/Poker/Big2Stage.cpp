@@ -167,7 +167,7 @@ namespace Poker { namespace Big2 {
 		if ( mServerLevel && haveBot )
 		{
 			Vec2i frameSize( 360 , mScene->getCardSize().y + 60 );
-			Vec2i sSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i sSize = ::Global::GetScreenSize();
 			mServerLevel->setEventListener( this );
 
 			GFrame* frame = new GFrame( UI_ANY , Vec2i( ( sSize.x - frameSize.x ) / 2 , 350 ) , frameSize , NULL );

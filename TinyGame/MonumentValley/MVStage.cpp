@@ -40,14 +40,7 @@ namespace MV
 	{
 		::Global::GUI().cleanupWidget();
 
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11));
-
-		Global::GetDrawEngine().bUsePlatformBuffer = true;
-
-		GameWindow& window = Global::GetDrawEngine().getWindow();
-
 		//testRotation();
-
 
 		//mCamera.setPos( Vector3( 20 , 20 , 20 ) );
 		mCamera.setPos(Vec3f(0, 0, 0));
@@ -112,7 +105,6 @@ namespace MV
 	void TestStage::onEnd()
 	{
 		cleanup( true );
-		::Global::GetDrawEngine().shutdownRHI();
 	}
 
 	void TestStage::cleanup( bool beDestroy )
@@ -151,7 +143,7 @@ namespace MV
 	bool TestStage::onMouse(MouseMsg const& msg)
 	{
 		Vec3f viewPos = getViewPos();
-
+		Vec2i screenSize = ::Global::GetScreenSize();
 		if ( isEditMode )
 		{
 			switch( mViewMode )
@@ -161,23 +153,23 @@ namespace MV
 				{
 					int idxX = 1;
 					int idxY = 2;
-					GameWindow& window = Global::GetDrawEngine().getWindow();
+
 					float x = msg.getPos().x;
-					float y = window.getHeight() - msg.getPos().y;
-					if ( x > window.getWidth() / 2 )
+					float y = screenSize.y - msg.getPos().y;
+					if ( x > screenSize.x / 2 )
 					{
-						x -= window.getWidth() / 2;
+						x -= screenSize.x / 2;
 						idxX = 0;
 					}
-					if ( y > window.getHeight() / 2 )
+					if ( y > screenSize.y / 2 )
 					{
-						y -= window.getHeight() / 2;
+						y -= screenSize.y / 2;
 						idxY = 1;
 					}
 					if ( idxX == 1 && idxY == 1 ) //3d view
 					{
-						float dx = mViewWidth * ( 2 * x / window.getWidth() - 0.5 );
-						float dy = -mViewWidth * float( window.getHeight() ) / window.getWidth() * (  2 * y / window.getHeight() - 0.5 ); 
+						float dx = mViewWidth * ( 2 * x / screenSize.x - 0.5 );
+						float dy = -mViewWidth * float( screenSize.y ) / screenSize.x * (  2 * y / screenSize.y - 0.5 ); 
 						Dir dir;
 						int id = getBlockFormScreen( dx , dy , viewPos , dir );
 
@@ -194,8 +186,8 @@ namespace MV
 					}
 					else
 					{
-						float dx = mViewWidth * ( 2.0 * x / window.getWidth() - 0.5 );
-						float dy = mViewWidth * ( 2.0 * y / window.getHeight() - 0.5 ) * ( float( window.getHeight() ) / window.getWidth() );
+						float dx = mViewWidth * ( 2.0 * x / screenSize.x - 0.5 );
+						float dy = mViewWidth * ( 2.0 * y / screenSize.y - 0.5 ) * ( float( screenSize.y ) / screenSize.x );
 
 						editPos[idxX] = ceil( viewPos[idxX] + dx - 0.5 );
 						editPos[idxY] = ceil( viewPos[idxY] + dy - 0.5 );
@@ -589,31 +581,26 @@ namespace MV
 
 	void TestStage::onRender(float dFrame)
 	{
-		GameWindow& window = Global::GetDrawEngine().getWindow();
-
+		Vec2i screenSize = ::Global::GetScreenSize();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
 
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
 		float width = mViewWidth;
-		float height = width * window.getHeight() / window.getWidth();
-
+		float height = width * screenSize.y / screenSize.x;
 		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(width, height, -100, 100)));
 		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
-
-
 		Matrix4  projectMatrix = OrthoMatrix(width, height, -100, 100);
-		Vec3f viewPos = getViewPos();
 
+		Vec3f viewPos = getViewPos();
+		
 		switch ( mViewMode )
 		{
 		case eViewSplit4:
 			{
-				int width = window.getWidth() / 2;
-				int height = window.getHeight() / 2;
+				int width = screenSize.x / 2;
+				int height = screenSize.y / 2;
 				Matrix4 matView;
 				RHISetViewport(commandList, 0 , height , width , height );
 				matView = LookAtMatrix( viewPos , -Vec3f( mWorld.mParallaxOffset ) , Vector3(0,0,1) );
@@ -631,9 +618,9 @@ namespace MV
 				matView = LookAtMatrix( viewPos , Vec3f( 0 , 1 , 0 ) , Vector3(0,0,1) );
 				renderScene( matView, projectMatrix);
 
-				RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
+				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 			
-				projectMatrix = OrthoMatrix(0 , window.getWidth() , 0 , window.getHeight() , -1 , 1 );
+				projectMatrix = OrthoMatrix(0 , screenSize.x , 0 , screenSize.y , -1 , 1 );
 
 				RHISetFixedShaderPipelineState(commandList, projectMatrix);
 				glBegin( GL_LINES );
@@ -645,13 +632,14 @@ namespace MV
 		case eView3D:
 			{
 				Matrix4 matView;
-				int width = window.getWidth();
-				int height = window.getHeight();
+
+				int width = screenSize.x;
+				int height = screenSize.y;
 				RHISetViewport(commandList, 0, 0, width, height);
 				if ( bCameraView )
 				{
-					//glOrtho(0, window.getWidth() , 0 , window.getHeight() , -10000 , 100000 );
-					float aspect = float( window.getWidth() ) / window.getHeight();
+					//glOrtho(0, screenSize.x , 0 , screenSize.y , -10000 , 100000 );
+					float aspect = float( screenSize.x ) / screenSize.y;
 
 					projectMatrix = PerspectiveMatrix(100.0f / aspect, aspect, 0.01, 1000);
 					Vector3 camPos  = mCamera.getPos();
@@ -691,7 +679,7 @@ namespace MV
 		}
 
 
-		RHIGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
+		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 		g.beginRender();
 
@@ -727,15 +715,6 @@ namespace MV
 
 		renderDbgText( pos );
 		g.endRender();
-
-		if (GRHISystem->getName() == RHISytemName::D3D11)
-		{
-			if (::Global::GetDrawEngine().bUsePlatformBuffer)
-			{
-				Graphics2D& g = Global::GetGraphics2D();
-				static_cast< D3D11System*>(GRHISystem)->mSwapChain->BitbltToDevice(g.getRenderDC());
-			}
-		}
 	}
 
 	void TestStage::tick()
@@ -768,10 +747,9 @@ namespace MV
 		RenderParam& param = mRenderEngine.mParam;
 		param.world = &mWorld;
 
-		//mRenderEngine.renderScene(context);
 		mRenderEngine.beginRender();
-
-		mRenderEngine.renderMesh(context, MeshId::MESH_STAIR , editMeshPos, Vec3f(0, 0, 0));
+		mRenderEngine.renderScene(context);
+		//mRenderEngine.renderMesh(context, MeshId::MESH_STAIR , editMeshPos, Vec3f(0, 0, 0));
 		mRenderEngine.endRender();
 
 
@@ -921,7 +899,7 @@ namespace MV
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 		FixString< 256 > str;
-		glColor3f(1,1,0);
+		g.setTextColor(Color3f(1, 1, 0));
 		str.format("( %d %d %d ) dir = %d", pos2Dbg.x, pos2Dbg.y, pos2Dbg.z, (int)dirDBG);
 		g.drawText( pos.x , pos.y , str );
 		str.format("( %f %f %f )", posDbg.x, posDbg.y, posDbg.z);
@@ -932,11 +910,11 @@ namespace MV
 
 	int TestStage::findBlockFromScreenPos( Vec2i const& pos ,Vec3f const& viewPos , Dir& outDir )
 	{
-		GameWindow& window = Global::GetDrawEngine().getWindow();
+		Vec2i screenSize = ::Global::GetScreenSize();
 		float x = pos.x;
-		float y = window.getHeight() - pos.y;
-		float dx = mViewWidth * (  x / window.getWidth() - 0.5 );
-		float dy = -mViewWidth * float( window.getHeight() ) / window.getWidth() * (  y / window.getHeight() - 0.5 ); 
+		float y = screenSize.y - pos.y;
+		float dx = mViewWidth * (  x / screenSize.x - 0.5 );
+		float dy = -mViewWidth * float( screenSize.y ) / screenSize.x * (  y / screenSize.y - 0.5 ); 
 		return getBlockFormScreen( dx , dy , viewPos , outDir );
 	}
 

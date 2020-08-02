@@ -10,7 +10,7 @@ namespace Bejeweled
 	bool TestStage::onInit()
 	{
 		int len = Scene::CellLength * Scene::BoardSize;
-		Vec2i pos = ( Global::GetDrawEngine().getScreenSize() - Vec2i( len , len ) ) / 2;
+		Vec2i pos = ( ::Global::GetScreenSize() - Vec2i( len , len ) ) / 2;
 		mScene.setBoardPos( pos );
 
 		::Global::GUI().cleanupWidget();

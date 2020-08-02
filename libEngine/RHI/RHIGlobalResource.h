@@ -110,7 +110,7 @@ namespace Render
 	public:
 		static RHIResource& GetRHI()
 		{
-			static TStaticRenderResource< RHIResource >* sObject;
+			static TStaticRenderResource< RHIResource >* sObject = nullptr;
 			if( sObject == nullptr )
 			{
 				TRACE_RESOURCE_TAG_SCOPE("StaticRHI")
@@ -306,9 +306,9 @@ namespace Render
 		Blend::Factor DestAlphaFactor3 = Blend::eZero,
 		Blend::Operation AlphaOp3 = Blend::eAdd
 	>
-	class TStaticBlendSeparateState : public StaticRHIResourceT
+	class TStaticBlendState : public StaticRHIResourceT
 		<
-			TStaticBlendSeparateState
+			TStaticBlendState
 			< 
 				WriteColorMask0, SrcColorFactor0, DestColorFactor0, ColorOp0, SrcAlphaFactor0, DestAlphaFactor0, AlphaOp0,
 				bEnableAlphaToCoverage, bEnableIndependent,
@@ -348,41 +348,9 @@ namespace Render
 	};
 
 
-	template
-	<
-		ColorWriteMask WriteColorMask0 = CWM_RGBA,
-		Blend::Factor SrcFactor0 = Blend::eOne,
-		Blend::Factor DestFactor0 = Blend::eZero,
-		Blend::Operation Op0 = Blend::eAdd,
-		bool bEnableAlphaToCoverage = false,
-	    bool bEnableIndependent = false,
-		ColorWriteMask WriteColorMask1 = CWM_RGBA,
-		Blend::Factor SrcFactor1 = Blend::eOne,
-		Blend::Factor DestFactor1 = Blend::eZero,
-		Blend::Operation Op1 = Blend::eAdd,
-		ColorWriteMask WriteColorMask2 = CWM_RGBA,
-		Blend::Factor SrcFactor2 = Blend::eOne,
-		Blend::Factor DestFactor2 = Blend::eZero,
-		Blend::Operation Op2 = Blend::eAdd,
-		ColorWriteMask WriteColorMask3 = CWM_RGBA,
-		Blend::Factor SrcFactor3 = Blend::eOne,
-		Blend::Factor DestFactor3 = Blend::eZero,
-		Blend::Operation Op3 = Blend::eAdd
-	>
-	class TStaticBlendState : public TStaticBlendSeparateState<
-			WriteColorMask0, SrcFactor0, DestFactor0, Op0, SrcFactor0, DestFactor0, Op0,
-			bEnableAlphaToCoverage ,bEnableIndependent,
-			WriteColorMask1, SrcFactor1, DestFactor1, Op1, SrcFactor1, DestFactor1, Op1,
-			WriteColorMask2, SrcFactor2, DestFactor2, Op2, SrcFactor2, DestFactor2, Op2,
-			WriteColorMask3, SrcFactor3, DestFactor3, Op3, SrcFactor3, DestFactor3, Op3
-		>
-	{
-
-	};
-
 	template< ColorWriteMask WriteColorMask0 = CWM_RGBA >
 	class TStaticAlphaToCoverageBlendState : public TStaticBlendState<
-		WriteColorMask0, Blend::eOne, Blend::eZero, Blend::eAdd, true >
+		WriteColorMask0, Blend::eOne, Blend::eZero, Blend::eAdd, Blend::eOne, Blend::eZero, Blend::eAdd, true >
 	{
 
 	};

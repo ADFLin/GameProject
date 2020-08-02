@@ -98,7 +98,7 @@ namespace Render
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
-	void DrawUtility::Rect(RHICommandList& commandList, int x, int y, int width, int height , LinearColor const& color )
+	void DrawUtility::Rect(RHICommandList& commandList, float x, float y, float width, float height , LinearColor const& color )
 	{
 		float x2 = x + width;
 		float y2 = y + height;
@@ -113,7 +113,7 @@ namespace Render
 		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
-	void DrawUtility::Rect(RHICommandList& commandList, int x, int y, int width, int height)
+	void DrawUtility::Rect(RHICommandList& commandList, float x, float y, float width, float height)
 	{
 		float x2 = x + width;
 		float y2 = y + height;
@@ -128,7 +128,7 @@ namespace Render
 		TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
-	void DrawUtility::Rect(RHICommandList& commandList, int width, int height)
+	void DrawUtility::Rect(RHICommandList& commandList, float width, float height)
 	{
 		VertexXY_T1 vertices[] =
 		{
@@ -153,14 +153,14 @@ namespace Render
 		}
 	}
 
-	void DrawUtility::ScreenRect(RHICommandList& commandList, int with, int height)
+	void DrawUtility::ScreenRect(RHICommandList& commandList, float uSize, float vSize)
 	{
 		VertexXYZW_T1 screenVertices[] =
 		{
 			{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
-			{ Vector4(1 , -1 , 0 , 1) , Vector2(with,0) },
-			{ Vector4(1, 1 , 0 , 1) , Vector2(with,height) },
-			{ Vector4(-1, 1, 0 , 1) , Vector2(0,height) },
+			{ Vector4(1 , -1 , 0 , 1) , Vector2(uSize,0) },
+			{ Vector4(1, 1 , 0 , 1) , Vector2(uSize,vSize) },
+			{ Vector4(-1, 1, 0 , 1) , Vector2(0,vSize) },
 		};
 		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::Quad, screenVertices, 4);
 	}
@@ -237,28 +237,19 @@ namespace Render
 		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
-	void DrawUtility::DrawTexture(RHICommandList& commandList, RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
-		glEnable(GL_TEXTURE_2D);
-		{
-			GL_SCOPED_BIND_OBJECT(texture);
-			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y, color);
-		}
-		glDisable(GL_TEXTURE_2D);
+		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture);
+		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}
 
-	void DrawUtility::DrawTexture(RHICommandList& commandList, RHITexture2D& texture, RHISamplerState& sampler, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
-		glEnable(GL_TEXTURE_2D);
-		{
-			GL_SCOPED_BIND_OBJECT(texture);
-			glBindSampler( 0 , OpenGLCast::GetHandle(sampler) );
-			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y, color);
-		}
-		glDisable(GL_TEXTURE_2D);
+		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture, &sampler);
+		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}
 
-	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, RHITextureCube& texCube, IntVector2 const& pos, int length)
+	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, float length)
 	{
 		int offset = 10;
 
@@ -324,6 +315,9 @@ namespace Render
 				v[j].pos = curPos + length * v[j].pos;
 			}
 		}
+
+		//RHISetFixedShaderPipelineState(commandList, XForm, color, &texture, &sampler);
+		//DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 
 		glEnable(GL_TEXTURE_CUBE_MAP);
 		{

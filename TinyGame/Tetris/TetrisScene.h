@@ -3,9 +3,8 @@
 
 #include "TetrisLevel.h"
 #include "GameWidget.h"
-// FIXME RenderSurface
-#include "DrawEngine.h"
 #include "GameControl.h"
+#include "RenderLayer.h"
 
 class  ActionTrigger;
 class  Graphics2D;
@@ -15,7 +14,7 @@ namespace Tetris
 	class  LevelMode;
 	class  LevelData;
 
-	class Scene : public RenderSurface
+	class Scene : public RenderLayer
 	{
 	public:
 		Scene( Level* level );

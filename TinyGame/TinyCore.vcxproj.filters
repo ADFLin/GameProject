@@ -134,6 +134,15 @@
     <ClInclude Include="TinyCore\PropertySet.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\GameRenderSetup.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\RenderLayer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameGraphics2D.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">

@@ -9,9 +9,10 @@
 #include "CurveBuilder/ColorMap.h"
 
 #include "SuperFractial/SelectRectBase.h"
+#include "RHI/GpuProfiler.h"
+#include "GameRenderSetup.h"
 
 using namespace Render;
-
 
 struct MandelbrotParam
 {
@@ -69,36 +70,45 @@ class MandelbrotProgram : public GlobalShaderProgram
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
-		mParamCoordParam.bind(parameterMap, SHADER_PARAM(CoordParam));
-		mParamCoordParam2.bind(parameterMap, SHADER_PARAM(CoordParam2));
-		mParamTextureSize.bind(parameterMap, SHADER_PARAM(ViewSize));
-		mParamMaxIteration.bind(parameterMap, SHADER_PARAM(MaxIteration));
-		mParamColorMapParam.bind(parameterMap, SHADER_PARAM(ColorMapParam));
-		mParamColorRWTexture.bind(parameterMap, SHADER_PARAM(ColorRWTexture));
-		mParamColorMapTexture.bind(parameterMap, SHADER_PARAM(ColorMapTexture));
+		BIND_SHADER_PARAM(parameterMap, CoordParam);
+		BIND_SHADER_PARAM(parameterMap, CoordParam2);
+		BIND_SHADER_PARAM(parameterMap, ViewSize);
+		BIND_SHADER_PARAM(parameterMap, MaxIteration);
+		BIND_SHADER_PARAM(parameterMap, ColorMapParam);
+		BIND_SHADER_PARAM(parameterMap, ColorRWTexture);
+		BIND_SHADER_PARAM(parameterMap, ColorMapTexture);
+		BIND_SHADER_PARAM(parameterMap, ColorMapTextureSampler);
 	}
 
 	void setParameters(RHICommandList& commandList, MandelbrotParam const& param , RHITexture2D& colorTexture , RHITexture1D& colorMapTexture )
 	{
-
 		Vector4 rectParam;
 		rectParam.x = param.center.x;
 		rectParam.y = param.center.y;
 		rectParam.z = param.center.x - 0.5 * param.viewSize.x * param.getRatioX();
 		rectParam.w = param.center.y - 0.5 * param.viewSize.y * param.getRatioY();
-		setParam(commandList, mParamCoordParam, rectParam);
+		SET_SHADER_PARAM(commandList, *this, CoordParam, rectParam);
+
 		Vector4 rectParam2;
 		rectParam2.x = param.getRatioX();
 		rectParam2.y = param.getRatioY();
 		Math::SinCos( param.rotationAngle , rectParam2.w, rectParam2.z);
-		setParam(commandList, mParamCoordParam2, rectParam2);
-		setParam(commandList, mParamTextureSize, param.viewSize);
-		setParam(commandList, mParamMaxIteration, param.maxIteration);
-		setParam(commandList, mParamColorMapParam, Vector4(1,0,param.bailoutValue * param.bailoutValue,0));
+
+		SET_SHADER_PARAM(commandList, *this, CoordParam2, rectParam2);
+		SET_SHADER_PARAM(commandList, *this, ViewSize, param.viewSize);
+		SET_SHADER_PARAM(commandList, *this, MaxIteration, param.maxIteration);
+		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
+
 		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
 		setTexture(commandList, mParamColorMapTexture, colorMapTexture , mParamColorMapTextureSampler ,TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI());
 
 	}
+
+	void clearParameters(RHICommandList& commandList)
+	{
+		clearRWTexture(commandList, mParamColorRWTexture);
+	}
+
 	static void SetupShaderCompileOption(ShaderCompileOption& option)
 	{
 		option.addDefine(SHADER_PARAM(SIZE_X), SizeX);
@@ -117,22 +127,151 @@ class MandelbrotProgram : public GlobalShaderProgram
 		return entries;
 	}
 
-	ShaderParameter mParamCoordParam;
-	ShaderParameter mParamCoordParam2;
-	ShaderParameter mParamTextureSize;
-	ShaderParameter mParamMaxIteration;
-	ShaderParameter mParamColorMapParam;
-	ShaderParameter mParamColorRWTexture;
-	ShaderParameter mParamColorMapTexture;
-	ShaderParameter mParamColorMapTextureSampler;
+	DEFINE_SHADER_PARAM(CoordParam);
+	DEFINE_SHADER_PARAM(CoordParam2);
+	DEFINE_SHADER_PARAM(ViewSize);
+	DEFINE_SHADER_PARAM(MaxIteration);
+	DEFINE_SHADER_PARAM(ColorMapParam);
+	DEFINE_SHADER_PARAM(ColorRWTexture);
+	DEFINE_SHADER_PARAM(ColorMapTexture);
+	DEFINE_SHADER_PARAM(ColorMapTextureSampler);
 
 };
 
 IMPLEMENT_SHADER_PROGRAM(MandelbrotProgram);
 
-class FractialTestStage : public StageBase
+
+class SelectRect : public SelectRectOperationT< SelectRect >
 {
-	typedef StageBase BaseClass;
+public:
+	SelectRect()
+	{
+		enable(false);
+	}
+
+
+	int    clickArea;
+	Vec2i  clickPos;
+
+	bool procMouseMsg(MouseMsg const& msg)
+	{
+		Vec2i pos = msg.getPos();
+		mHitArea = hitAreaTest(pos.x, pos.y);
+		changeCursor(mHitArea);
+
+		if (msg.onLeftDown() && !isEnable())
+		{
+			clickArea = CORNER_RT;
+			mHitArea = CORNER_RT;
+			reset(pos.x, pos.y);
+		}
+		else if (msg.onLeftDown())
+		{
+			if (isEnable() && mHitArea == OUTSIDE)
+			{
+				enable(false);
+				repaint();
+			}
+
+			if (isEnable())
+			{
+				clickArea = mHitArea;
+				clickPos = getCenterPos();
+				clickPos -= pos;
+			}
+			else
+			{
+				clickPos = pos;
+				return false;
+			}
+		}
+		else if (msg.onLeftUp())
+		{
+			clickArea = 0;
+			clickPos = Vec2i(0, 0);
+		}
+		else if (msg.isLeftDown() && msg.isDraging())
+		{
+			if (clickArea & SIDE)
+				resize(clickArea, pos.x, pos.y);
+			else if (clickArea == INSIDE)
+				moveTo(pos.x + clickPos.x, pos.y + clickPos.y);
+			else if (clickArea == ROTEZONE)
+				rotate(pos.x, pos.y);
+		}
+
+		return true;
+	}
+
+	void draw(RHIGraphics2D& g)
+	{
+		if (!mbEnable) return;
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+		Vector2 sizeHalf = 0.5 * Vector2(getSize());
+
+		Vector2 points[6] =
+		{
+			sizeHalf,
+			sizeHalf.mul(Vector2(1,-1)),
+			sizeHalf.mul(Vector2(-1,-1)) ,
+			sizeHalf.mul(Vector2(-1,1)) ,
+			{0,-(sizeHalf.y + RoteLineLength) },
+			{0,-sizeHalf.y },
+		};
+
+		for (int i = 0; i < 6; ++i)
+		{
+			points[i] = localToWorldPos(points[i]);
+		}
+
+
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOneMinusDestColor, Blend::eZero >::GetRHI());
+		g.setBrush(Color3f(1, 1, 1));
+		g.enablePen(false);
+		auto DrawLine = [&](Vector2 const& p1, Vector2 const& p2)
+		{
+			Vector2 d = p1 - p2;
+			d.normalize();
+			Vector2 offset = 0.5 * Vector2(d.y, -d.x);
+			Vector2 v[4] = { p1 + offset , p1 - offset , p2 - offset, p2 + offset };
+			g.drawPolygon(v, 4);
+		};
+
+		for (int i = 0; i < 4; i++)
+		{
+			int j = (i + 1) % 4;
+			DrawLine(points[i], points[j]);
+		}
+		DrawLine(points[4], points[5]);
+
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		g.enablePen(true);
+		g.setPen(Color3f(0, 0, 0));
+		g.setBrush(Color3f(1, 1, 1));
+
+		for (int i = 0; i < 5; i++)
+		{
+			g.drawRect(points[i] - Vector2(2, 2), Vector2(5, 5));
+		}
+
+	}
+	void repaint()
+	{
+
+	}
+	void changeCursor(int location)
+	{
+
+	}
+};
+
+
+class FractialTestStage : public StageBase
+	                    , public IGameRenderSetup
+{
+	using BaseClass = StageBase;
 public:
 	FractialTestStage() {}
 
@@ -142,151 +281,28 @@ public:
 	RHITexture1DRef mColorMap;
 	MandelbrotParam mParam;
 
-
-
-	class SelectRect : public SelectRectOperationT< SelectRect >
-	{
-	public:
-		SelectRect()
-		{
-			enable(false);
-		}
-
-
-		int    clickArea;
-		Vec2i  clickPos;
-
-		bool procMouseMsg(MouseMsg const& msg)
-		{
-			Vec2i pos = msg.getPos();
-			mHitArea = hitAreaTest(pos.x, pos.y);
-			changeCursor(mHitArea);
-
-			if( msg.onLeftDown() && !isEnable() )
-			{
-				clickArea = CORNER_RT;
-				mHitArea = CORNER_RT;
-				reset(pos.x, pos.y);
-			}
-			else if( msg.onLeftDown() )
-			{
-				if( isEnable() && mHitArea == OUTSIDE )
-				{
-					enable(false);
-					repaint();
-				}
-
-				if( isEnable() )
-				{
-					clickArea = mHitArea;
-					clickPos = getCenterPos();
-					clickPos -= pos;
-				}
-				else
-				{
-					clickPos = pos;
-					return false;
-				}
-			}
-			else if( msg.onLeftUp() )
-			{
-				clickArea = 0;
-				clickPos = Vec2i(0, 0);
-			}
-			else if( msg.isLeftDown() && msg.isDraging() )
-			{
-				if( clickArea & SIDE )
-					resize(clickArea, pos.x, pos.y);
-				else if( clickArea == INSIDE )
-					moveTo(pos.x + clickPos.x, pos.y + clickPos.y);
-				else if( clickArea == ROTEZONE )
-					rotate(pos.x, pos.y);
-			}
-
-			return true;
-		}
-
-		void draw(RHIGraphics2D& g)
-		{
-			if( !mbEnable ) return;
-
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
-
-			Vector2 sizeHalf = 0.5 * Vector2(getSize());
-
-			Vector2 points[6] =
-			{
-				sizeHalf,
-				sizeHalf.mul( Vector2(1,-1) ),
-				sizeHalf.mul(Vector2(-1,-1)) ,
-				sizeHalf.mul(Vector2(-1,1)) ,
-				{0,-(sizeHalf.y + RoteLineLength) },
-				{0,-sizeHalf.y },
-			};
-
-			for( int i = 0; i < 6; ++i )
-			{
-				points[i] = localToWorldPos(points[i]);
-			}
-
-
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOneMinusDestColor , Blend::eZero >::GetRHI());
-			g.setBrush(Color3f(1, 1, 1));
-			g.enablePen(false);
-			auto DrawLine = [&](Vector2 const& p1, Vector2 const& p2)
-			{
-				Vector2 d = p1 - p2;
-				d.normalize();
-				Vector2 offset = 0.5 * Vector2(d.y, -d.x);
-				Vector2 v[4] = { p1 + offset , p1 - offset , p2 - offset, p2 + offset };
-				g.drawPolygon(v, 4);
-			};
-
-			for( int i = 0; i < 4; i++ )
-			{
-				int j = (i + 1) % 4;
-				DrawLine( points[i] , points[j] );
-			}
-			DrawLine( points[4], points[5] );
-
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-			g.enablePen(true);
-			g.setPen(Color3f(0, 0, 0));
-			g.setBrush(Color3f(1, 1, 1));
-
-			for( int i = 0; i < 5; i++ )
-			{
-				g.drawRect( points[i] - Vector2( 2 , 2 ) , Vector2(5,5) );
-			}
-			
-		}
-		void repaint()
-		{
-
-		}
-		void changeCursor(int location)
-		{
-
-		}
-
-
-	};
 	SelectRect mSelectRect;
+
 	virtual bool onInit()
 	{
 		if( !BaseClass::onInit() )
 			return false;
 
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 		::Global::GUI().cleanupWidget();
 
-		mProgMandelbrot = ::ShaderManager::Get().getGlobalShaderT< MandelbrotProgram >(true);
-		if( mProgMandelbrot == nullptr )
-			return false;
+		return true;
+	}
 
-		Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
-		
-		ColorMap colorMap( 1024 );
+	virtual void postInit()
+	{
+		restart();
+	}
+
+	virtual bool initializeRHIResource()
+	{
+		VERIFY_RETURN_FALSE(mProgMandelbrot = ShaderManager::Get().getGlobalShaderT< MandelbrotProgram >(true));
+
+		ColorMap colorMap(1024);
 		colorMap.addPoint(0, Color3ub(0, 7, 100));
 		colorMap.addPoint(640 / 4, Color3ub(32, 107, 203));
 		colorMap.addPoint(1680 / 4, Color3ub(237, 255, 255));
@@ -295,22 +311,26 @@ public:
 		colorMap.setSmoothLine(true);
 		colorMap.calcColorMap(true);
 
-		Color3f colors[1024];
-		for( int i = 0; i < ARRAY_SIZE(colors); ++i )
+		Color4f colors[1024];
+		for (int i = 0; i < ARRAY_SIZE(colors); ++i)
 		{
-			colorMap.getColor(float(i) / 1024 , colors[i] );
+			Color3f color;
+			colorMap.getColor(float(i) / 1024, color);
+			colors[i] = color;
 		}
-		mColorMap = RHICreateTexture1D(Texture::eRGB32F, 1024 , 0 , TCF_DefalutValue , colors );
-		if( !mColorMap.isValid() )
-			return false;
-		mTexture = RHICreateTexture2D(Texture::eRGBA32F, screenSize.x, screenSize.y);
-		if( !mTexture.isValid() )
-			return false;
+		VERIFY_RETURN_FALSE(mColorMap = RHICreateTexture1D(Texture::eRGBA32F, 1024, 0, TCF_DefalutValue, colors));
 
+		Vec2i screenSize = ::Global::GetScreenSize();
 		mParam.viewSize = screenSize;
+		VERIFY_RETURN_FALSE(mTexture = RHICreateTexture2D(Texture::eRGBA32F, screenSize.x, screenSize.y, 0, 1, TCF_CreateUAV | TCF_CreateSRV));
 
-		restart();
 		return true;
+	}
+	virtual void releaseRHIResource(bool bReInit = false)
+	{
+		mProgMandelbrot = nullptr;
+		mColorMap.release();
+		mTexture.release();
 	}
 
 	void updateTexture()
@@ -321,6 +341,8 @@ public:
 		int nx = (mTexture->getSizeX() + MandelbrotProgram::SizeX - 1) / MandelbrotProgram::SizeX;
 		int ny = (mTexture->getSizeY() + MandelbrotProgram::SizeY - 1) / MandelbrotProgram::SizeY;
 		RHIDispatchCompute(commandList, nx, ny, 1);
+
+		mProgMandelbrot->clearParameters(commandList);
 	}
 
 	virtual void onEnd()
@@ -352,30 +374,32 @@ public:
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
-		GameWindow& window = Global::GetDrawEngine().getWindow();
+		Vec2i screenSize = ::Global::GetScreenSize();
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		//glLoadMatrixf(AdjProjectionMatrixForRHI(OrthoMatrix(window.getWidth(), window.getHeight(), 1, -1)));
-		glOrtho(0, window.getWidth(), window.getHeight(), 0 ,  1, -1);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
 
-		glClearColor(0.2, 0.2, 0.2, 1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+		{
+			GPU_PROFILE("Update Texture");
+			updateTexture();
+		}
+
+		Matrix4 projectionMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, 1, -1));
+
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
+		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI() );
 		
-		DrawUtility::DrawTexture(commandList, *mTexture, Vec2i(0, 0), screenSize);
+		DrawUtility::DrawTexture(commandList, projectionMatrix, *mTexture, Vec2i(0, 0), screenSize);
+
 		g.beginRender();
-
 		mSelectRect.draw(g);
-
-
 		FixString<246> str;
 		str.format("%f %f", mPosOnMouse.x, mPosOnMouse.y);
+		g.setTextColor(Color3f(1, 0, 0));
+		RenderUtility::SetFont(g, FONT_S10);
 		g.drawText(200, 10, str);
 		if( mSelectRect.isEnable() )
 		{
@@ -451,7 +475,6 @@ public:
 		switch(msg.getCode())
 		{
 		case EKeyCode::R: restart(); break;
-		case EKeyCode::F5: ShaderManager::Get().reloadShader(*mProgMandelbrot); updateTexture(); break;
 		}
 		return false;
 	}

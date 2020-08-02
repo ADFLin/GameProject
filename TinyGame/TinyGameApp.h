@@ -137,7 +137,8 @@ protected:
 	bool           initializeStage(StageBase* stage);
 	void           postStageChange( StageBase* stage );
 	void           prevStageChange();
-	void           postStageEnd();
+	void           postStageEnd(StageBase* stage);
+	//~StageManager
 
 	void  exportUserProfile();
 	void  importUserProfile();

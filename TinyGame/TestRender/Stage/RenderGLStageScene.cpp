@@ -6,6 +6,10 @@
 #include "RHI/RHICommand.h"
 #include "SceneScript.h"
 
+//#TODO Remove
+#include "DrawEngine.h"
+#include "WGLContext.h"
+
 namespace Render
 {
 	struct LoadDatalInfo

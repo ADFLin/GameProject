@@ -8,7 +8,6 @@
 #include "ZFont.h"
 #include "Image/GIFLoader.h"
 
-#include "glexten.h"
 #include <olectl.h>
 
 
@@ -47,8 +46,6 @@ namespace Zuma
 		glEnable( GL_TEXTURE_2D );
 		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 		resize();
-
-		SetupGL_ARB_MultiTexture();
 
 		unsigned char const* version = glGetString( GL_VERSION );
 		return true;

@@ -4,8 +4,10 @@
 #include "resource.h"
 #include "libcards.h"
 
-#include "DrawEngine.h"
 #include "RenderUtility.h"
+#include "GameGraphics2D.h"
+
+#include "DrawEngine.h"
 
 static CardLib gCardLib;
 

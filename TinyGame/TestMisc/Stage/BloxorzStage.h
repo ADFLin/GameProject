@@ -10,6 +10,7 @@
 #include "WinGLPlatform.h"
 #include "DataStructure/Grid2D.h"
 #include "Tween.h"
+#include "GameRenderSetup.h"
 
 namespace Bloxorz
 {
@@ -100,6 +101,7 @@ namespace Bloxorz
 	};
 
 	class TestStage : public StageBase
+		            , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:

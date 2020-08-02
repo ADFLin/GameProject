@@ -1,7 +1,7 @@
 #include "StageRegister.h"
 
+#include "DrawEngine.h"
 #include "TestStageHeader.h"
-
 
 #include "Go/GoStage.h"
 

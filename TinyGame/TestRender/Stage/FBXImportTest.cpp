@@ -39,9 +39,9 @@ namespace Render
 
 		float mSkyLightInstensity = 1.0;
 
-		virtual RHITargetName getRHITargetName() override
+		virtual ERenderSystem getDefaultRenderSystem() override
 		{
-			return RHITargetName::D3D11;
+			return ERenderSystem::D3D11;
 		}
 		bool onInit() override
 		{
@@ -113,7 +113,7 @@ namespace Render
 		void onRender(float dFrame) override
 		{
 
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			initializeRenderState();
 

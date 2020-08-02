@@ -2,14 +2,17 @@
 #define Phy2DStage_h__
 
 #include "GameConfig.h"
+#include "GameRenderSetup.h"
 #include "StageBase.h"
 #include "Phy2D/Phy2D.h"
+
 
 namespace Phy2D
 {
 	void jumpDebug();
 
 	class TINY_API Phy2DStageBase : public StageBase
+		                          , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:

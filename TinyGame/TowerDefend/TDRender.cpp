@@ -6,7 +6,7 @@
 
 #include "RenderUtility.h"
 #include "GameGlobal.h"
-#include "DrawEngine.h"
+#include "GameGraphics2D.h"
 
 namespace TowerDefend
 {
@@ -29,8 +29,8 @@ namespace TowerDefend
 
 	void Renderer::drawGrid()
 	{
-		DrawEngine& de = Global::GetDrawEngine();
-		Vec2i nSize = de.getScreenSize() / gMapCellLength;
+		Vec2i screenSize = ::Global::GetScreenSize();
+		Vec2i nSize = screenSize / gMapCellLength;
 
 		Graphics2D& g = getGraphics();
 
@@ -44,12 +44,12 @@ namespace TowerDefend
 		for( int n = 0 ; n <= nSize.x ; ++n )
 		{
 			int x = int ( n * gMapCellLength );
-			g.drawLine( offset + Vec2i( x , 0  ) ,  offset + Vec2i( x , de.getScreenHeight() ) );
+			g.drawLine( offset + Vec2i( x , 0  ) ,  offset + Vec2i( x , screenSize.y) );
 		}
 		for( int n = 0 ; n <= nSize.x ; ++n )
 		{
 			int y = int ( n * gMapCellLength );
-			g.drawLine( offset + Vec2i( 0 , y  ) ,  offset + Vec2i( de.getScreenWidth() , y ) );
+			g.drawLine( offset + Vec2i( 0 , y  ) ,  offset + Vec2i(screenSize.x, y ) );
 		}
 	}
 
@@ -150,7 +150,7 @@ namespace TowerDefend
 
 
 		int offset = 15;
-		int px = ::Global::GetDrawEngine().getScreenWidth() - 200;
+		int px = ::Global::GetScreenSize().x - 200;
 		int py = 5 - offset;
 		FixString< 256 > str;
 		str.format( "Gold = %4d  Wood = %4d" , mPlayerInfo.gold , mPlayerInfo.wood );

@@ -210,11 +210,12 @@ namespace Render
 
 		static void AixsLine(RHICommandList& commandList);
 
-		static void Rect(RHICommandList& commandList, int x , int y , int width, int height);
-		static void Rect(RHICommandList& commandList, int x, int y, int width, int height, LinearColor const& color);
-		static void Rect(RHICommandList& commandList, int width, int height);
+		static void Rect(RHICommandList& commandList, float width, float height);
+		static void Rect(RHICommandList& commandList, float x, float y, float width, float height);
+		static void Rect(RHICommandList& commandList, float x, float y, float width, float height, LinearColor const& color);
+		
 		static void ScreenRect(RHICommandList& commandList, EScreenRenderMethod method = EScreenRenderMethod::Rect );
-		static void ScreenRect(RHICommandList& commandList, int with, int height);
+		static void ScreenRect(RHICommandList& commandList, float uSize, float vSize);
 
 		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
 		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize, IntVector2 const& framePos, IntVector2 const& frameDim);
@@ -225,9 +226,9 @@ namespace Render
 		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color, IntVector2 const& framePos, IntVector2 const& frameDim);
 		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color, Vector2 const& texPos, Vector2 const& texSize);
 
-		static void DrawTexture(RHICommandList& commandList, RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color = LinearColor(1, 1, 1, 1));
-		static void DrawTexture(RHICommandList& commandList, RHITexture2D& texture, RHISamplerState& sampler , IntVector2 const& pos, IntVector2 const& size , LinearColor const& color = LinearColor(1,1,1,1));
-		static void DrawCubeTexture(RHICommandList& commandList, RHITextureCube& texCube, IntVector2 const& pos, int length);
+		static void DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color = LinearColor(1, 1, 1, 1));
+		static void DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler , Vector2 const& pos, Vector2 const& size , LinearColor const& color = LinearColor(1,1,1,1));
+		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, float length);
 
 	};
 

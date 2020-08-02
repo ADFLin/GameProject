@@ -5,12 +5,15 @@
 #include "WidgetCommon.h"
 
 #include "GameConfig.h"
-#include "DrawEngine.h"
+#include "GameWidgetID.h"
+#include "GameGraphics2D.h"
+
 #include "Singleton.h"
 #include "TaskBase.h"
 #include "GameControl.h"
 #include "RenderUtility.h"
 #include "Tween.h"
+
 
 #include <functional>
 
@@ -45,23 +48,6 @@ enum
 	EVT_FRAME_FOCUS ,
 
 	EVT_EXTERN_EVENT_ID ,
-};
-
-enum
-{
-	UI_ANY = -1,
-	UI_NO  = 0,
-	UI_YES ,
-	UI_OK  ,
-	UI_NEXT_GLOBAL_ID ,
-
-	UI_STAGE_ID           =  400 ,
-	UI_GAME_STAGE_MODE_ID =  800 ,
-	UI_SUB_STAGE_ID       = 1200 ,
-	UI_GAME_ID            = 1600 ,
-	UI_LEVEL_MODE_ID      = 2000 ,
-	UI_WIDGET_ID          = 2400 ,
-	UI_EDITOR_ID          = 2800 ,
 };
 
 

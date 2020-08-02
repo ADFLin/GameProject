@@ -13,7 +13,6 @@
 
 #include "Widget/WidgetUtility.h"
 
-#include "DrawEngine.h"
 #include "INetEngine.h"
 #include "RenderUtility.h"
 #include "GameModule.h"
@@ -29,6 +28,7 @@
 #include "InputManager.h"
 
 #include <functional>
+#include "GameRenderSetup.h"
 
 class DrawEngine;
 class GPanel;
@@ -837,6 +837,7 @@ namespace MRT
 #include "RHI/RHIGraphics2D.h"
 
 class GLGraphics2DTestStage : public StageBase
+	                        , public IGameRenderSetup
 {
 	using BaseClass = StageBase;
 public:
@@ -844,23 +845,25 @@ public:
 	{
 	}
 
+	void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+	{
+		systemConfigs.screenWidth = 800;
+		systemConfigs.screenHeight = 600;
+	}
+
 	bool onInit() override
 	{
-		::Global::GetDrawEngine().changeScreenSize(800, 600);
-		::Global::GUI().cleanupWidget();
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
-		GameWindow& window = ::Global::GetDrawEngine().getWindow();
+		VERIFY_RETURN_FALSE(BaseClass::onInit());
 
 		restart();
-
+		::Global::GUI().cleanupWidget();
 		WidgetUtility::CreateDevFrame();
 		return true;
 	}
 
 	void onEnd() override
 	{
-		::Global::GetDrawEngine().shutdownRHI();
+		BaseClass::onEnd();
 	}
 
 	void onUpdate( long time ) override
@@ -1146,6 +1149,7 @@ namespace TankGame
 
 
 	class TestStage : public StageBase
+		            , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -1155,16 +1159,13 @@ namespace TankGame
 		{
 			::Global::GUI().cleanupWidget();
 
-			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-			GameWindow& window = Global::GetDrawEngine().getWindow();
-
 			restart();
 			return true;
 		}
 
 		void onEnd() override
 		{
-			::Global::GetDrawEngine().shutdownRHI();
+
 		}
 
 		void onUpdate( long time ) override

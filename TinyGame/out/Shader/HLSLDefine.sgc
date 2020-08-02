@@ -14,6 +14,8 @@
 #else
 
 #define SV_POSITION
+#define SV_DispatchThreadID
+
 #define TEXCOORD0
 #define TEXCOORD1
 #define TEXCOORD2
@@ -23,6 +25,13 @@
 #define TEXCOORD6
 #define TEXCOORD7
 #define TEXCOORD8
+
+template< class T >
+struct RWTexture1D {};
+template< class T >
+struct RWTexture2D {};
+template< class T >
+struct RWTexture3D {};
 
 #endif
 
@@ -76,9 +85,14 @@
 	 uniform TYPE NAME;\
 	 uniform SamplerState NAME##Sampler;
 
+
+#if COMPUTE_SHADER
+#define TEXTURE_SAMPLE( NAME , UV )\
+	NAME.SampleLevel(NAME##Sampler, UV, 0)
+#else
 #define TEXTURE_SAMPLE( NAME , UV )\
 	NAME.Sample(NAME##Sampler, UV)
-
+#endif
 #define TEXTURE_SAMPLE_LEVEL( NAME , UV , LOD )\
 	NAME.SampleLevel(NAME##Sampler, UV , LOD )
 

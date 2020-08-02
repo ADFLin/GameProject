@@ -11,6 +11,7 @@
 
 #define  int8 b2Int8
 #include "Box2D/Box2D.h"
+#include "GameRenderSetup.h"
 #undef   int8
 
 #if _DEBUG
@@ -520,6 +521,7 @@ namespace CarTrain
 	};
 
 	class TestStage : public StageBase
+		            , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -533,7 +535,6 @@ namespace CarTrain
 				return false;
 
 			VERIFY_RETURN_FALSE(mWorld.initialize());
-			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
 
 			mWorld.getPhysicsScene()->setupDebugView(Global::GetRHIGraphics2D());
 

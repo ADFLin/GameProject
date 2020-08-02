@@ -1,7 +1,23 @@
 #ifndef GameWidgetID_h__
 #define GameWidgetID_h__
 
-#include "GameWidget.h"
+enum
+{
+	UI_ANY = -1,
+	UI_NO = 0,
+	UI_YES,
+	UI_OK,
+	UI_NEXT_GLOBAL_ID,
+
+	UI_STAGE_ID = 400,
+	UI_GAME_STAGE_MODE_ID = 800,
+	UI_SUB_STAGE_ID = 1200,
+	UI_GAME_ID = 1600,
+	UI_LEVEL_MODE_ID = 2000,
+	UI_WIDGET_ID = 2400,
+	UI_EDITOR_ID = 2800,
+};
+
 
 enum
 {

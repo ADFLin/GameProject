@@ -3,8 +3,6 @@
 
 #include "CmtLevel.h"
 
-#include "DrawEngine.h"
-
 class Graphics2D;
 class MouseMsg;
 

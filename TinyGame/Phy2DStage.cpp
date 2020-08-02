@@ -27,15 +27,12 @@ namespace Phy2D
 		if( !BaseClass::onInit() )
 			return false;
 
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
 		::Global::GUI().cleanupWidget();
 		return true;
 	}
 
 	void Phy2DStageBase::onEnd()
 	{
-		::Global::GetDrawEngine().shutdownRHI();
 		BaseClass::onEnd();
 	}
 

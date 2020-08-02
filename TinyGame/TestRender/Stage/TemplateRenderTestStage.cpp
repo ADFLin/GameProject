@@ -19,7 +19,7 @@ namespace Render
 			if (!ShaderHelper::Get().init())
 				return false;
 
-			IntVector2 screenSize = ::Global::GetDrawEngine().getScreenSize();
+			IntVector2 screenSize = ::Global::GetScreenSize();
 
 			::Global::GUI().cleanupWidget();
 			return true;

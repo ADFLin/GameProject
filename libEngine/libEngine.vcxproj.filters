@@ -645,9 +645,6 @@
     <ClInclude Include="Any.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="GLConfig.h">
-      <Filter>Opengl</Filter>
-    </ClInclude>
     <ClInclude Include="Asset.h">
       <Filter>DataManage</Filter>
     </ClInclude>
@@ -1223,6 +1220,9 @@
     </ClInclude>
     <ClInclude Include="Renderer\IBLResource.h">
       <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenGLHeader.h">
+      <Filter>Opengl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -236,15 +236,22 @@ namespace Render
 
 		IBLResource mIBLResource;
 
-		RHITargetName getRHITargetName() override
+		ERenderSystem getDefaultRenderSystem() override
 		{
-			return RHITargetName::D3D11;
+			return ERenderSystem::D3D11;
 		}
+		void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+		{
+			BaseClass::configRenderSystem(systemName, systemConfigs);
+			systemConfigs.screenWidth = 1024;
+			systemConfigs.screenHeight = 768;
+		}
+		virtual bool initializeRHIResource() override;
+		virtual void releaseRHIResource(bool bReInit = false) override;
 
 		bool onInit() override;
 
-		virtual bool initializeRHIResource() override;
-		virtual void releaseRHIResource(bool bReInit = false) override;
+
 
 		void onEnd() override
 		{

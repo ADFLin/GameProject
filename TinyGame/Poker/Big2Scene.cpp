@@ -3,7 +3,6 @@
 
 #include "Big2Level.h"
 
-#include "DrawEngine.h"
 #include "RenderUtility.h"
 
 #include "GameGUISystem.h"
@@ -167,7 +166,7 @@ namespace Poker { namespace Big2 {
 	void Scene::setupUI()
 	{
 
-		Vec2i sSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i sSize = ::Global::GetScreenSize();
 
 		CardListUI::setScene( *this );
 		mOwnCardsUI = new CardListUI( getLevel().getOwnCards() , Vec2i( sSize.x / 2 , sSize.y - mCardSize.y - 75 ) , NULL );
@@ -230,7 +229,7 @@ namespace Poker { namespace Big2 {
 	void Scene::render( Graphics2D& g )
 	{
 
-		Vec2i sSize = ::Global::GetDrawEngine().getScreenSize();
+		Vec2i sSize = ::Global::GetScreenSize();
 
 		int yOffset = 50;
 		Vec2i gap( 8 , 8 );

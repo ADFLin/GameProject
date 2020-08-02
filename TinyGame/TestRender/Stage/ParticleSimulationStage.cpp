@@ -644,7 +644,7 @@ namespace Render
 			}
 
 
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 			::Global::GUI().cleanupWidget();
 
 			auto devFrame = WidgetUtility::CreateDevFrame();
@@ -726,7 +726,6 @@ namespace Render
 			Graphics2D& g = Global::GetGraphics2D();
 
 
-			GameWindow& window = Global::GetDrawEngine().getWindow();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 
@@ -767,8 +766,8 @@ namespace Render
 
 
 			{
-				int width = ::Global::GetDrawEngine().getScreenWidth();
-				int height = ::Global::GetDrawEngine().getScreenHeight();
+				int width = ::Global::GetScreenSize().x;
+				int height = ::Global::GetScreenSize().y;
 
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -809,8 +808,8 @@ namespace Render
 			}
 
 			{
-				int width = ::Global::GetDrawEngine().getScreenWidth();
-				int height = ::Global::GetDrawEngine().getScreenHeight();
+				int width = ::Global::GetScreenSize().x;
+				int height = ::Global::GetScreenSize().y;
 
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());

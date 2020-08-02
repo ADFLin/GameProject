@@ -262,8 +262,8 @@ namespace CAR
 			HRESULT hr = d3dDevice->GetRenderTargetData( pBackBufferSurface ,mSurfaceBufferTake );
 			pBackBufferSurface->Release();
 
-			int w = ::Global::GetDrawEngine().getScreenWidth();
-			int h = ::Global::GetDrawEngine().getScreenHeight();
+			int w = ::Global::GetScreenSize().x;
+			int h = ::Global::GetScreenSize().y;
 
 			HDC hDC;
 			mSurfaceBufferTake->GetDC(&hDC);
@@ -905,8 +905,8 @@ namespace CAR
 		mRenderScale = scale;
 		mRenderTileSize = mRenderScale * Vector2(1,1);
 
-		int w = ::Global::GetDrawEngine().getScreenWidth();
-		int h = ::Global::GetDrawEngine().getScreenHeight();
+		int w = ::Global::GetScreenSize().x;
+		int h = ::Global::GetScreenSize().y;
 		float factor = float( w ) / h;
 		float len = w / ( 2 * mRenderScale );
 		mCamera->setScreenRange( -len , len , -len / factor , len / factor );
@@ -956,8 +956,8 @@ namespace CAR
 	{
 		using namespace CFly;
 
-		int h = ::Global::GetDrawEngine().getScreenHeight();
-		int w = ::Global::GetDrawEngine().getScreenWidth();
+		int h = ::Global::GetScreenSize().y;
+		int w = ::Global::GetScreenSize().x;
 
 		if ( mb2DView )
 		{
@@ -990,8 +990,8 @@ namespace CAR
 	{
 		using namespace CFly;
 		assert(mb2DView);
-		int h = ::Global::GetDrawEngine().getScreenHeight();
-		int w = ::Global::GetDrawEngine().getScreenWidth();
+		int h = ::Global::GetScreenSize().y;
+		int w = ::Global::GetScreenSize().x;
 		Vector2 pos = mRenderScale * (mRenderOffset + posMap);
 		return Vector2(w / 2 + pos.x, h / 2 - pos.y);
 	}
@@ -1000,8 +1000,8 @@ namespace CAR
 	{
 		using namespace CFly;
 		assert(!mb2DView);
-		int h = ::Global::GetDrawEngine().getScreenHeight();
-		int w = ::Global::GetDrawEngine().getScreenWidth();
+		int h = ::Global::GetScreenSize().y;
+		int w = ::Global::GetScreenSize().x;
 		Vector3 pos;
 		pos.x = posMap.x;
 		pos.y = posMap.y;

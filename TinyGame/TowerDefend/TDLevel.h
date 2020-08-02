@@ -13,8 +13,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include "DrawEngine.h"
-
 namespace TowerDefend
 {
 	class Level;
@@ -183,9 +181,7 @@ namespace TowerDefend
 			filter.bitOwner = BIT( mPlayerInfo.id );
 			getEntityMgr().listenEvent( EntityEventFunc( this , &Level::onPlayerEvent ) , filter );
 
-
-			DrawEngine& de = ::Global::GetDrawEngine();
-			getCtrlViewport().setScreenRange( de.getScreenSize() );
+			getCtrlViewport().setScreenRange(Global::GetScreenSize());
 
 			testPos.setValue( 100 , 100 );
 

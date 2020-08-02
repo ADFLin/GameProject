@@ -61,12 +61,15 @@ namespace Render
 		RHI_FUNC(void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler));
 		RHI_FUNC(void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler));
 		RHI_FUNC(void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op));
+		RHI_FUNC(void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param));
 
 		RHI_FUNC(void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 		RHI_FUNC(void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 
 		RHI_FUNC(void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state));
+		//#TODO impl RHISetComputeShader
+		//RHI_FUNC(void RHISetComputeShader(RHIShader& shader));
 
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim));
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim));
@@ -84,6 +87,7 @@ namespace Render
 		RHI_FUNC(void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler));
 		RHI_FUNC(void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler));
 		RHI_FUNC(void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op));
+		RHI_FUNC(void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param));
 
 		RHI_FUNC(void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer));
 		RHI_FUNC(void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer));

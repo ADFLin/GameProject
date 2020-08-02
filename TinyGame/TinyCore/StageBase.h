@@ -46,6 +46,7 @@ public:
 	void  render( float dFrame );
 
 	virtual bool onInit(){ return true; }
+	virtual void postInit(){}
 	virtual void onInitFail(){}
 	virtual void onEnd(){}
 	virtual void onUpdate( long time ){}
@@ -99,7 +100,7 @@ protected:
 	virtual void       postStageChange(StageBase* stage) {}
 	virtual bool       initializeStage(StageBase* stage) { return stage->onInit(); }
 	virtual void       prevStageChange(){}
-	virtual void       postStageEnd(){}
+	virtual void       postStageEnd(StageBase* stage){}
 protected:
 	void             checkNewStage();
 	void             setupStage();

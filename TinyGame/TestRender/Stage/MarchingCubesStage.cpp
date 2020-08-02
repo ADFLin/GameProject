@@ -7,6 +7,8 @@
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/D3D11Command.h"
 
+#include "DrawEngine.h"
+
 namespace MarchingCubes
 {
 	const int EdgeTable[256] =
@@ -766,9 +768,9 @@ namespace Render
 		bool  mbDrawData = true;
 		Mesh mMesh;
 
-		virtual RHITargetName getRHITargetName() override
+		virtual ERenderSystem getDefaultRenderSystem() override
 		{
-			return RHITargetName::OpenGL;
+			return ERenderSystem::OpenGL;
 		}
 
 
@@ -812,8 +814,6 @@ namespace Render
 				}
 			}
 			
-			initializeRHIResource();
-
 			::Global::GUI().cleanupWidget();
 			auto devFrame = WidgetUtility::CreateDevFrame();
 

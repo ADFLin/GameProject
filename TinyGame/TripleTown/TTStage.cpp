@@ -2,28 +2,17 @@
 
 #include "RHI/RHIGraphics2D.h"
 #include "InputManager.h"
-#include "RHI/D3D11Command.h"
+
 
 namespace TripleTown
 {
 	using namespace Render;
 
-	D3D11System* mD3D11System;
-
 	bool LevelStage::onInit()
 	{
 		::Global::GUI().cleanupWidget();
 
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11));
-
 		srand(generateRandSeed());
-
-		GameWindow& window = ::Global::GetDrawEngine().getWindow();
-		if (GRHISystem->getName() == RHISytemName::D3D11)
-		{
-			mD3D11System = static_cast<D3D11System*>(GRHISystem);
-			//::Global::GetDrawEngine().bUsePlatformBuffer = true;
-		}
 
 		if( !mScene.init() )
 			return false;
@@ -31,10 +20,6 @@ namespace TripleTown
 		mScene.setupLevel(mLevel);
 		mLevel.setPlayerData(*this);
 		onRestart(true);
-
-
-		FileSystem::FindFiles("TripleTown", ".tex", mFileIterator);
-		mScene.loadPreviewTexture(mFileIterator.getFileName());
 
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart");
@@ -45,10 +30,10 @@ namespace TripleTown
 
 	void LevelStage::onRender(float dFrame)
 	{
-		GameWindow& window = ::Global::GetDrawEngine().getWindow();
+		Vec2i screenSize = ::Global::GetScreenSize();
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
+		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 		RHISetShaderProgram(commandList, nullptr);
 		RHISetFrameBuffer(commandList, nullptr);
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
@@ -99,19 +84,11 @@ namespace TripleTown
 
 		g.endRender();
 
-		if (GRHISystem->getName() == RHISytemName::D3D11)
-		{
-			if (::Global::GetDrawEngine().bUsePlatformBuffer)
-			{
-				Graphics2D& g = Global::GetGraphics2D();
-				mD3D11System->mSwapChain->BitbltToDevice(g.getRenderDC());
-			}
-		}
 	}
 
 	void LevelStage::onEnd()
 	{
-		::Global::GetDrawEngine().shutdownRHI();
+		BaseClass::onEnd();
 	}
 
 	void LevelStage::onRestart(bool beInit)
@@ -173,29 +150,8 @@ namespace TripleTown
 				mScene.loadPreviewTexture(mFileIterator.getFileName());
 			}
 			break;
-		case EKeyCode::Z:
-			{
-				auto nextTarget = ::Global::GetDrawEngine().isOpenGLEnabled() ? RHITargetName::D3D11 : RHITargetName::OpenGL;
-				cleanupRHI();
-				
-				::Global::GetDrawEngine().shutdownRHI(false);
-				::Global::GetDrawEngine().initializeRHI(nextTarget);
-
-				initializeRHI();
-			}
-			break;
 		}
 		return true;
-	}
-
-	void LevelStage::cleanupRHI()
-	{
-		mScene.releaseResource();
-	}
-
-	void LevelStage::initializeRHI()
-	{
-		mScene.loadResource();
 	}
 
 }

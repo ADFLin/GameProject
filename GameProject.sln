@@ -123,126 +123,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{9DBF1436
 		Tools\GameProject.natvis = Tools\GameProject.natvis
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shader", "Shader", "{3DD112DF-B195-406E-A6A5-F9CE32B02A82}"
-	ProjectSection(SolutionItems) = preProject
-		TinyGame\out\Shader\BasePass.sgc = TinyGame\out\Shader\BasePass.sgc
-		TinyGame\out\Shader\BigNumberCommon.sgc = TinyGame\out\Shader\BigNumberCommon.sgc
-		TinyGame\out\Shader\Bloom.sgc = TinyGame\out\Shader\Bloom.sgc
-		TinyGame\out\Shader\BufferUtility.sgc = TinyGame\out\Shader\BufferUtility.sgc
-		TinyGame\out\Shader\ColorCommon.sgc = TinyGame\out\Shader\ColorCommon.sgc
-		TinyGame\out\Shader\Common.sgc = TinyGame\out\Shader\Common.sgc
-		TinyGame\out\Shader\ComplexCommon.sgc = TinyGame\out\Shader\ComplexCommon.sgc
-		TinyGame\out\Shader\CopyTexture.sgc = TinyGame\out\Shader\CopyTexture.sgc
-		TinyGame\out\Shader\DecalRender.sgc = TinyGame\out\Shader\DecalRender.sgc
-		TinyGame\out\Shader\DeferredLighting.sgc = TinyGame\out\Shader\DeferredLighting.sgc
-		TinyGame\out\Shader\DeferredShadingCommon.sgc = TinyGame\out\Shader\DeferredShadingCommon.sgc
-		TinyGame\out\Shader\DFFTCommon.sgc = TinyGame\out\Shader\DFFTCommon.sgc
-		TinyGame\out\Shader\DistanceField.sgc = TinyGame\out\Shader\DistanceField.sgc
-		TinyGame\out\Shader\DOF.sgc = TinyGame\out\Shader\DOF.sgc
-		TinyGame\out\Shader\EnvLightTextureGen.sgc = TinyGame\out\Shader\EnvLightTextureGen.sgc
-		TinyGame\out\Shader\GeometryTestCommon.sgc = TinyGame\out\Shader\GeometryTestCommon.sgc
-		TinyGame\out\Shader\GLSLDefine.sgc = TinyGame\out\Shader\GLSLDefine.sgc
-		TinyGame\out\Shader\GPUSkinCommon.sgc = TinyGame\out\Shader\GPUSkinCommon.sgc
-		TinyGame\out\Shader\GPUSkinVertexFactory.sgc = TinyGame\out\Shader\GPUSkinVertexFactory.sgc
-		TinyGame\out\Shader\HLSLDefine.sgc = TinyGame\out\Shader\HLSLDefine.sgc
-		TinyGame\out\Shader\IBLCommon.sgc = TinyGame\out\Shader\IBLCommon.sgc
-		TinyGame\out\Shader\LightingCommon.sgc = TinyGame\out\Shader\LightingCommon.sgc
-		TinyGame\out\Shader\LightParam.sgc = TinyGame\out\Shader\LightParam.sgc
-		TinyGame\out\Shader\LightProbeVisualize.sgc = TinyGame\out\Shader\LightProbeVisualize.sgc
-		TinyGame\out\Shader\LocalVertexFactory.sgc = TinyGame\out\Shader\LocalVertexFactory.sgc
-		TinyGame\out\Shader\MaterialCommon.sgc = TinyGame\out\Shader\MaterialCommon.sgc
-		TinyGame\out\Shader\MaterialProcess.sgc = TinyGame\out\Shader\MaterialProcess.sgc
-		TinyGame\out\Shader\MeshCulling.sgc = TinyGame\out\Shader\MeshCulling.sgc
-		TinyGame\out\Shader\NoiseCommon.sgc = TinyGame\out\Shader\NoiseCommon.sgc
-		TinyGame\out\Shader\OITCommon.sgc = TinyGame\out\Shader\OITCommon.sgc
-		TinyGame\out\Shader\OITRender.sgc = TinyGame\out\Shader\OITRender.sgc
-		TinyGame\out\Shader\OITResolve.sgc = TinyGame\out\Shader\OITResolve.sgc
-		TinyGame\out\Shader\ParallaxOcclusionCommon.sgc = TinyGame\out\Shader\ParallaxOcclusionCommon.sgc
-		TinyGame\out\Shader\ParticleCommon.sgc = TinyGame\out\Shader\ParticleCommon.sgc
-		TinyGame\out\Shader\ParticleSimulation.sgc = TinyGame\out\Shader\ParticleSimulation.sgc
-		TinyGame\out\Shader\PostProcessCommon.sgc = TinyGame\out\Shader\PostProcessCommon.sgc
-		TinyGame\out\Shader\PrimitiveParam.sgc = TinyGame\out\Shader\PrimitiveParam.sgc
-		TinyGame\out\Shader\Reflection.sgc = TinyGame\out\Shader\Reflection.sgc
-		TinyGame\out\Shader\ResolveRenderTarget.sgc = TinyGame\out\Shader\ResolveRenderTarget.sgc
-		TinyGame\out\Shader\ScatteringCommon.sgc = TinyGame\out\Shader\ScatteringCommon.sgc
-		TinyGame\out\Shader\ScreenSpaceReflection.sgc = TinyGame\out\Shader\ScreenSpaceReflection.sgc
-		TinyGame\out\Shader\ScreenVertexShader.sgc = TinyGame\out\Shader\ScreenVertexShader.sgc
-		TinyGame\out\Shader\Shader.sgc = TinyGame\out\Shader\Shader.sgc
-		TinyGame\out\Shader\ShaderDefine.sgc = TinyGame\out\Shader\ShaderDefine.sgc
-		TinyGame\out\Shader\ShadowCommon.sgc = TinyGame\out\Shader\ShadowCommon.sgc
-		TinyGame\out\Shader\ShadowDepthRender.sgc = TinyGame\out\Shader\ShadowDepthRender.sgc
-		TinyGame\out\Shader\ShadowLighting.sgc = TinyGame\out\Shader\ShadowLighting.sgc
-		TinyGame\out\Shader\ShadowMap.sgc = TinyGame\out\Shader\ShadowMap.sgc
-		TinyGame\out\Shader\ShadowVolume.sgc = TinyGame\out\Shader\ShadowVolume.sgc
-		TinyGame\out\Shader\SimpleBasePass.sgc = TinyGame\out\Shader\SimpleBasePass.sgc
-		TinyGame\out\Shader\SimpleElement.sgc = TinyGame\out\Shader\SimpleElement.sgc
-		TinyGame\out\Shader\SimplePipelineShader.sgc = TinyGame\out\Shader\SimplePipelineShader.sgc
-		TinyGame\out\Shader\SkyBox.sgc = TinyGame\out\Shader\SkyBox.sgc
-		TinyGame\out\Shader\SplineCommon.sgc = TinyGame\out\Shader\SplineCommon.sgc
-		TinyGame\out\Shader\SSAO.sgc = TinyGame\out\Shader\SSAO.sgc
-		TinyGame\out\Shader\Terrain.sgc = TinyGame\out\Shader\Terrain.sgc
-		TinyGame\out\Shader\Game\TexcoordVisualize.sgc = TinyGame\out\Shader\Game\TexcoordVisualize.sgc
-		TinyGame\out\Shader\TiledLightCommon.sgc = TinyGame\out\Shader\TiledLightCommon.sgc
-		TinyGame\out\Shader\TiledLightInjection.sgc = TinyGame\out\Shader\TiledLightInjection.sgc
-		TinyGame\out\Shader\Tonemap.sgc = TinyGame\out\Shader\Tonemap.sgc
-		TinyGame\out\Shader\VertexFactoryProcess.sgc = TinyGame\out\Shader\VertexFactoryProcess.sgc
-		TinyGame\out\Shader\ViewParam.sgc = TinyGame\out\Shader\ViewParam.sgc
-		TinyGame\out\Shader\VolumetricLighting.sgc = TinyGame\out\Shader\VolumetricLighting.sgc
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Material", "Material", "{5D4E01A7-4CEC-4EAE-8F99-5FEBF677C3FB}"
-	ProjectSection(SolutionItems) = preProject
-		TinyGame\out\Material\Elephant.sgc = TinyGame\out\Material\Elephant.sgc
-		TinyGame\out\Material\EmptyMaterial.sgc = TinyGame\out\Material\EmptyMaterial.sgc
-		TinyGame\out\Material\Havoc.sgc = TinyGame\out\Material\Havoc.sgc
-		TinyGame\out\Material\Lightning.sgc = TinyGame\out\Material\Lightning.sgc
-		TinyGame\out\Material\Mario.sgc = TinyGame\out\Material\Mario.sgc
-		TinyGame\out\Material\MaterialTemplate.sgc = TinyGame\out\Material\MaterialTemplate.sgc
-		TinyGame\out\Material\MetelA.sgc = TinyGame\out\Material\MetelA.sgc
-		TinyGame\out\Material\POMTitle.sgc = TinyGame\out\Material\POMTitle.sgc
-		TinyGame\out\Material\Simple1.sgc = TinyGame\out\Material\Simple1.sgc
-		TinyGame\out\Material\Simple2.sgc = TinyGame\out\Material\Simple2.sgc
-		TinyGame\out\Material\Simple3.sgc = TinyGame\out\Material\Simple3.sgc
-		TinyGame\out\Material\SimpleTest.mat = TinyGame\out\Material\SimpleTest.mat
-		TinyGame\out\Material\SimpleTest.sgc = TinyGame\out\Material\SimpleTest.sgc
-		TinyGame\out\Material\SimpleTest2.sgc = TinyGame\out\Material\SimpleTest2.sgc
-		TinyGame\out\Material\Sphere.sgc = TinyGame\out\Material\Sphere.sgc
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Game", "Game", "{3F0CA1E0-2BCB-4029-955F-33200088327E}"
-	ProjectSection(SolutionItems) = preProject
-		TinyGame\out\Shader\Game\BumpPS.sgc = TinyGame\out\Shader\Game\BumpPS.sgc
-		TinyGame\out\Shader\Game\BumpVS.sgc = TinyGame\out\Shader\Game\BumpVS.sgc
-		TinyGame\out\Shader\Game\EnvLightingTest.sgc = TinyGame\out\Shader\Game\EnvLightingTest.sgc
-		TinyGame\out\Shader\Game\FS.sgc = TinyGame\out\Shader\Game\FS.sgc
-		TinyGame\out\Shader\Game\Grass.sgc = TinyGame\out\Shader\Game\Grass.sgc
-		TinyGame\out\Shader\Game\GravityField.sgc = TinyGame\out\Shader\Game\GravityField.sgc
-		TinyGame\out\Shader\Game\Lighting2D.sgc = TinyGame\out\Shader\Game\Lighting2D.sgc
-		TinyGame\out\Shader\Game\Lighting2DShadow.sgc = TinyGame\out\Shader\Game\Lighting2DShadow.sgc
-		TinyGame\out\Shader\Game\Mandelbrot.sgc = TinyGame\out\Shader\Game\Mandelbrot.sgc
-		TinyGame\out\Shader\Game\MarchingCubes.sgc = TinyGame\out\Shader\Game\MarchingCubes.sgc
-		TinyGame\out\Shader\Game\MVRender.sgc = TinyGame\out\Shader\Game\MVRender.sgc
-		TinyGame\out\Shader\Game\NoiseTest.sgc = TinyGame\out\Shader\Game\NoiseTest.sgc
-		TinyGame\out\Shader\Game\Parallax.sgc = TinyGame\out\Shader\Game\Parallax.sgc
-		TinyGame\out\Shader\Game\PlanetSurface.sgc = TinyGame\out\Shader\Game\PlanetSurface.sgc
-		TinyGame\out\Shader\Game\PointToRectOutline.sgc = TinyGame\out\Shader\Game\PointToRectOutline.sgc
-		TinyGame\out\Shader\Game\PongShader.sgc = TinyGame\out\Shader\Game\PongShader.sgc
-		TinyGame\out\Shader\Game\Simple.sgc = TinyGame\out\Shader\Game\Simple.sgc
-		TinyGame\out\Shader\Game\SimpleSprite.sgc = TinyGame\out\Shader\Game\SimpleSprite.sgc
-		TinyGame\out\Shader\Game\SimpleSpriteParticle.sgc = TinyGame\out\Shader\Game\SimpleSpriteParticle.sgc
-		TinyGame\out\Shader\Game\Sphere.sgc = TinyGame\out\Shader\Game\Sphere.sgc
-		TinyGame\out\Shader\Game\Spline.sgc = TinyGame\out\Shader\Game\Spline.sgc
-		TinyGame\out\Shader\Game\Tessellation.sgc = TinyGame\out\Shader\Game\Tessellation.sgc
-		TinyGame\out\Shader\Game\UnderCurveArea.sgc = TinyGame\out\Shader\Game\UnderCurveArea.sgc
-		TinyGame\out\Shader\Game\Water.sgc = TinyGame\out\Shader\Game\Water.sgc
-		TinyGame\out\Shader\Game\WaterSimulation.sgc = TinyGame\out\Shader\Game\WaterSimulation.sgc
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{EC8DD0D9-ABAF-44CF-BB35-0E1BBE1CADC0}"
-	ProjectSection(SolutionItems) = preProject
-		TinyGame\out\Shader\Game\HLSLTest.sgc = TinyGame\out\Shader\Game\HLSLTest.sgc
-		TinyGame\out\Shader\Test\VulkanTest.sgc = TinyGame\out\Shader\Test\VulkanTest.sgc
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shader", "Shader\Shader.vcxproj", "{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -514,6 +395,14 @@ Global
 		{08264290-5951-496C-87F1-17681A758D17}.Release|Win32.Build.0 = Release|Win32
 		{08264290-5951-496C-87F1-17681A758D17}.Release|x64.ActiveCfg = Release|x64
 		{08264290-5951-496C-87F1-17681A758D17}.Release|x64.Build.0 = Release|x64
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Debug|Win32.Build.0 = Debug|Win32
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Debug|x64.ActiveCfg = Debug|x64
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Debug|x64.Build.0 = Debug|x64
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Release|Win32.ActiveCfg = Release|Win32
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Release|Win32.Build.0 = Release|Win32
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Release|x64.ActiveCfg = Release|x64
+		{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -554,9 +443,6 @@ Global
 		{C1CA0F43-5C21-4B67-B516-CEE82A329333} = {E94BEF5F-7600-4BC1-A63F-CE8E4C7B59D0}
 		{3AB44AFB-E463-4506-B2A1-62AC45B58A17} = {E94BEF5F-7600-4BC1-A63F-CE8E4C7B59D0}
 		{08264290-5951-496C-87F1-17681A758D17} = {E94BEF5F-7600-4BC1-A63F-CE8E4C7B59D0}
-		{5D4E01A7-4CEC-4EAE-8F99-5FEBF677C3FB} = {3DD112DF-B195-406E-A6A5-F9CE32B02A82}
-		{3F0CA1E0-2BCB-4029-955F-33200088327E} = {3DD112DF-B195-406E-A6A5-F9CE32B02A82}
-		{EC8DD0D9-ABAF-44CF-BB35-0E1BBE1CADC0} = {3DD112DF-B195-406E-A6A5-F9CE32B02A82}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {80E8A9F7-41C0-4005-BC00-D77449379214}

@@ -231,6 +231,7 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define SvInstanceID gl_InstanceID
 #define SvPointSize gl_PointSize
 #define SvDepth     gl_FragDepth
+#define SvDispatchThreadID gl_GlobalInvocationID
 
 #define VFLIP(UV) UV
 

@@ -11,6 +11,7 @@
 
 #include "Template/ArrayView.h"
 #include "PlatformThread.h"
+#include "GameRenderSetup.h"
 
 
 namespace FlowFree
@@ -35,7 +36,7 @@ namespace FlowFree
 	};
 
 
-	class TestStage : public StageBase
+	class TestStage : public StageBase , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:

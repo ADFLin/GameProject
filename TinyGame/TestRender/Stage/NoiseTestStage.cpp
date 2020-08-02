@@ -188,8 +188,6 @@ namespace Render
 	int const gGrassNum = 5000;
 	bool NoiseTestStage::onInit()
 	{
-		::Global::GetDrawEngine().changeScreenSize(1024, 768);
-
 		if( !BaseClass::onInit() )
 			return false;
 
@@ -198,7 +196,7 @@ namespace Render
 
 		mViewFrustum.bUseReverse = false;
 
-		IntVector2 screenSize = ::Global::GetDrawEngine().getScreenSize();
+		IntVector2 screenSize = ::Global::GetScreenSize();
 		VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 		VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 
@@ -632,17 +630,14 @@ namespace Render
 			}
 		}
 
-
-
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
-		auto gameWindow = ::Global::GetDrawEngine().getWindow();
 
+		Vec2i screenSize = ::Global::GetScreenSize();
 
 		TArrayView< NoiseShaderProgramBase* const > noiseShaders = { mProgNoise , mProgNoiseUseTexture , mProgNoiseTest };
-		int imageSize = Math::Min<int>(150, (gameWindow.getWidth() - 5 * (noiseShaders.size() + 1)) / noiseShaders.size());
+		int imageSize = Math::Min<int>(150, (screenSize.x - 5 * (noiseShaders.size() + 1)) / noiseShaders.size());
 		for( int i = 0; i < noiseShaders.size(); ++i )
 		{
 			drawNoiseImage(commandList, IntVector2(5 + (imageSize + 5) * i, 5), IntVector2(imageSize, imageSize), *noiseShaders[i]);
@@ -667,9 +662,12 @@ namespace Render
 		if( 0 )
 		{
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-			OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
-			MatrixSaveScope matScope(matProj);
-			DrawUtility::DrawTexture(commandList, *mSmokeDepthTexture, IntVector2(10, 10), IntVector2(512, 512));
+
+			//#TODO : Remove MatrixSaveScope
+			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
+			MatrixSaveScope matrixScopt(porjectMatrix);
+
+			DrawUtility::DrawTexture(commandList, porjectMatrix, *mSmokeDepthTexture, IntVector2(10, 10), IntVector2(512, 512));
 		}
 	}
 

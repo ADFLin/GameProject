@@ -115,7 +115,7 @@ namespace Render
 		bool bShowShadowRender = false;
 		bool bUseGeometryShader = true;
 
-		virtual RHITargetName getRHITargetName() { return RHITargetName::OpenGL; }
+		virtual ERenderSystem getDefaultRenderSystem() { return ERenderSystem::OpenGL; }
 
 
 		bool onInit() override;

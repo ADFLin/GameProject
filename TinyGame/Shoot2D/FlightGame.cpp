@@ -13,6 +13,7 @@
 #include "GameGUISystem.h"
 
 #include "SystemPlatform.h"
+#include "DrawEngine.h"
 
 namespace Shoot2D
 {

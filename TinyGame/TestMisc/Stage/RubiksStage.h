@@ -5,7 +5,6 @@
 
 #include "StageBase.h"
 #include "GameGlobal.h"
-#include "DrawEngine.h"
 #include "RenderUtility.h"
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"

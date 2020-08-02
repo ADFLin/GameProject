@@ -15,6 +15,7 @@
 #include "RandomUtility.h"
 #include <memory>
 #include "GL/wglew.h"
+#include "GameRenderSetup.h"
 
 namespace Render
 {
@@ -468,6 +469,7 @@ namespace Render
 
 	class DrawCallOptimizationStage : public StageBase
 		                            , public MaterialAssetProvider
+		                            , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
@@ -586,11 +588,6 @@ namespace Render
 			if( !BaseClass::onInit() )
 				return false;
 
-			VERIFY_RETURN_FALSE(Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL));
-
-			wglSwapIntervalEXT(0);
-
-
 			if( !ShaderHelper::Get().init() )
 				return false;
 
@@ -654,7 +651,7 @@ namespace Render
 			});
 #endif
 
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+			Vec2i screenSize = ::Global::GetScreenSize();
 			mViewFrustum.mNear = 0.01;
 			mViewFrustum.mFar = 800.0;
 			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
@@ -689,16 +686,16 @@ namespace Render
 
 		void onRender(float dFrame) override
 		{
+			Vec2i screenSize = ::Global::GetScreenSize();
 
 			{
 				GPU_PROFILE("Frame");
-				GameWindow& window = Global::GetDrawEngine().getWindow();
 				RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 				mView.gameTime = 0;
 				mView.realTime = 0;
 				mView.rectOffset = IntVector2(0, 0);
-				mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
+				mView.rectSize = screenSize;
 
 				Matrix4 matView = mCamera.getViewMatrix();
 				mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());

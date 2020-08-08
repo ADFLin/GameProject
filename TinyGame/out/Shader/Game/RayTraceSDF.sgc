@@ -1,0 +1,419 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+#include "ViewParam.sgc"
+#include "LightingCommon.sgc"
+#include "SignedDistanceFieldCommon.sgc"
+
+#ifndef USE_BUILTIN_SCENE
+#define USE_BUILTIN_SCENE 0
+#endif
+
+#ifndef USE_DEFERRED_RENDERING
+#define USE_DEFERRED_RENDERING 0
+#endif
+
+#ifndef SAMPE_COUNT
+#define SAMPE_COUNT 0
+#endif
+
+struct  ObjectData
+{
+	float4x4 worldToLocal;
+	float4  typeParams;
+	int4    objectParams;
+};
+
+struct MaterialData
+{
+	float3 baseColor;
+	float  shininess;
+};
+
+struct MapTileData
+{
+	float4 posAndSize;
+};
+
+#if COMPILER_HLSL
+StructuredBuffer< ObjectData > Objects;
+StructuredBuffer< MaterialData > Materials;
+StructuredBuffer< MapTileData > MapTiles;
+#else
+
+layout(std430) buffer ObjectDataBlock
+{
+	restrict readonly ObjectData Objects[];
+};
+
+layout(std430) buffer MaterialDataBlock
+{
+	restrict readonly MaterialData Materials[];
+};
+
+layout(std430) buffer MapTileDataBlock
+{
+	restrict readonly MapTileData MapTiles[];
+};
+#endif
+
+uniform int ObjectNum;
+uniform int MapTileNum;
+
+#if USE_BUILTIN_SCENE
+#include "SDFSceneBuiltin.sgc"
+#endif
+
+SDFSceneOut SDFScene(float3 pos)
+{
+	SDFSceneOut data;
+	data.dist = 1e10;
+	data.id = 0;
+#if 0
+
+	data = SDF_Union(data, 2, SDF_Sphere(pos - float3(0, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(2, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(3, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(4, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(5, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(6, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Box(pos - float3(7, 0, 0), float3(0.5,0.5,0.5)));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(8, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(9, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(10, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(11, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(12, 0, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Box(pos - float3(7, 1, 0), float3(0.5, 0.5, 0.5)));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(2, 2, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(3, 3, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(4, 4, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(5, 5, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Sphere(pos - float3(6, 6, 0), 0.5));
+	data = SDF_Union(data, 0, SDF_Box(pos - float3(7, 7, 0), float3(0.5, 0.5, 0.5)));
+	data = SDF_Union(data, 2, SDF_Plane(pos, float3(0, 0, 1), 0.5));
+#else
+
+#if USE_BUILTIN_SCENE
+	data = SDFSceneBuiltin(pos);
+#else
+	LOOP
+	for (int i = 0; i < MapTileNum; ++i )
+	{
+		float4 posAndSize = MapTiles[i].posAndSize;
+		float3 localPos = pos - float3( posAndSize.xy , -0.25);
+		data = SDF_Union(data, (i % 2) , SDF_Box(localPos, float3(posAndSize.zw, 0.25)));
+	}
+
+#endif
+
+#if 1
+	LOOP
+	for (int i = 0; i < ObjectNum; ++i)
+	{
+		ObjectData objectData = Objects[i];
+		float3 localPos;
+
+		localPos = mul(objectData.worldToLocal, float4(pos, 1)).xyz;
+		float objectdist = SDF_RoundBox(localPos.xyz, 0.4 * float3(1, 1, 1), 0.1);
+		data = SDF_Union(data, objectData.objectParams.y, objectdist);
+	}
+#endif
+	data = SDF_Union(data, 2, SDF_Plane(pos, float3(0, 0, 1), 10.0));
+#endif
+
+	return data;
+}
+
+struct RayCastResult
+{
+	float3 hitPos;
+	float  totalDist;
+	int    id;
+	bool   bHit;
+};
+
+RayCastResult RayCast(float3 start , float3 dir)
+{
+	float3 pos = start;
+	float totalDist = 0;
+	RayCastResult result;
+	result.hitPos = float3(0, 0, 0);
+	result.bHit = false;
+	LOOP
+	for( int count = 0 ; count < 200 ; ++count )
+	{
+		SDFSceneOut dataOut = SDFScene(start + totalDist * dir);
+		float dist = dataOut.dist;
+		totalDist += dist;
+		if (dist < 0.01)
+		{
+			result.id = dataOut.id;
+			result.bHit = true;
+			result.hitPos = start + totalDist * dir;
+			break;
+		}
+	}
+	result.totalDist = totalDist;
+	return result;
+}
+
+
+float CalcShadow( float3 pos , float3 lightDir)
+{
+	int step = 0;
+	float totalDist = 0.05;
+	float shadow = 1.0;
+	float ph = 1e20;
+	float k = 8;
+	float skipDist = totalDist;
+	for (; step < 50; ++step)
+	{
+		float dist = SDFScene(pos + totalDist * lightDir).dist;
+		if (dist < 0.001)
+			return 0.0;
+#if 1
+		float dist2 = dist * dist;
+		float y = dist2 / (2.0 * ph);
+		float d = sqrt(dist2 - y * y);
+		float s = saturate(k * d / max(0, totalDist - y)); 
+#if 0
+		shadow = min(shadow,  s * s * ( 3 - 2 * s ));
+#else
+		shadow = min(shadow, s);
+#endif
+
+#else
+		shadow = min(shadow, saturate(k * dist / totalDist));
+#endif
+		totalDist += dist;
+	}
+
+#if 0
+	return (step >= 100) ? 1 : shadow;
+#else
+	return shadow;
+#endif
+}
+
+float CalcAO(float3 pos, float3 N)
+{
+	float occ = 0.0;
+	float sca = 1.0;
+	for (int i = 0; i < 5; ++i)
+	{
+		float h = 0.01 + 0.12*float(i) / 4.0;
+		float d = SDFScene(pos + h * N).dist;
+		occ += (h - d)*sca;
+		sca *= 0.95;
+		if (occ > 0.35) break;
+	}
+	return clamp(1.0 - 3.0*occ, 0.0, 1.0) * (0.5 + 0.5*N.z);
+}
+
+float3 CalcSceneNormal(float3 pos)
+{
+#if 0
+	float2 e = float2(1.0, -1.0)*0.5773*0.0005;
+	return normalize(e.xyy*SDF_Scene(pos + e.xyy).dist +
+		e.yyx*SDF_Scene(pos + e.yyx).dist +
+		e.yxy*SDF_Scene(pos + e.yxy).dist +
+		e.xxx*SDF_Scene(pos + e.xxx).dist);
+#else
+	// inspired by tdhooper and klems - a way to prevent the compiler from inlining map() 4 times
+	float3 n = float3(0,0,0);
+	for (int i = 0; i < 4; ++i)
+	{
+		float3 e = 0.5773*(2.0*float3((((i + 3) >> 1) & 1), ((i >> 1) & 1), (i & 1)) - 1.0);
+		n += e * SDFScene(pos + 0.0005*e).dist;
+		//if( n.x+n.y+n.z>100.0 ) break;
+	}
+	return normalize(n);
+#endif    
+}
+
+
+float3 CalcLighting(float3 pos, int matId , float3 rayDir, float rayDist , float3 N )
+{
+
+	float3 V = -rayDir;
+	float3 R = reflect(rayDir, N);
+
+	// material        
+	float3 baseColor = Materials[matId].baseColor;
+	//float3 baseColor = float3(1,0,0);
+
+#if 1
+	if (matId == 0)
+	{
+		int2 tilePos = int2(floor(pos.xy));
+		baseColor *= ((tilePos.x + tilePos.y) % 2 == 0) ? 1 : 0.2;
+	}
+#endif
+	float ks = 1.0;
+
+
+	//float occ = 1;
+	float3 lighting = float3(0,0,0);
+
+	float3 diffuse = float3(0,0,0);
+
+	float NoV = dot(N, V);
+	// sun
+	{
+		float3  L = normalize(float3(-0.5, -0.6, 0.2));
+
+		float3  H = normalize(L + V);
+		float NoH = saturate(dot(N, H));
+		float NoL = saturate(dot(N, L));
+
+		float dif = NoL * CalcShadow(pos, L);
+		//float dif = NoL;
+		float spe = pow(NoH, 16.0);
+		spe *= dif;
+		spe *= 0.04 + 0.96*pow(saturate(1.0 - dot(H, L)), 5.0);
+		//spe *= 0.04 + 0.96*pow(NoH, 5.0);
+		diffuse += baseColor * 2.20 * dif*float3(1.30, 1.00, 0.70);
+		lighting += 5.00*spe*float3(1.30, 1.00, 0.70)*ks;
+	}
+
+
+	// sky
+	{
+		float dif = sqrt(clamp(0.5 + 0.5*N.z, 0.0, 1.0));
+		float spe = smoothstep(-0.2, 0.2, R.z);
+		spe *= dif;
+		spe *= CalcShadow(pos, R);
+		spe *= 0.04 + 0.96*pow(saturate(1.0 - NoV), 5.0);
+		diffuse += baseColor * 0.60*dif*float3(0.40, 0.60, 1.15);
+		lighting += 2.00*spe*float3(0.40, 0.60, 1.30)*ks;
+	}
+#if 1
+	// back
+	{
+		float dif = saturate(dot(N, normalize(float3(0.5, 0.0, 0.6))))*saturate(1.0 - pos.z);
+		diffuse += baseColor * 0.55*dif*float3(0.25, 0.25, 0.25);
+	}
+	// sss Sub-surface Scatter
+	{
+		float dif = pow(saturate(1.0 - NoV), 2.0);
+		diffuse += baseColor * 0.25*dif*float3(1.00, 1.00, 1.00);
+	}
+#endif
+	// lighting
+	float ao = CalcAO(pos, N);
+	//Fog
+	lighting = lerp(lighting + diffuse * ao , float3(0.7, 0.7, 0.9), 1.0 - exp(-0.00005*rayDist*rayDist*rayDist));
+	return lighting;
+}
+
+#if !SHADER_COMPILING
+#define SHADER_ENTRY_BasePassPS 1
+#define SHADER_ENTRY_LightingPS 1
+#endif
+
+#if PIXEL_SHADER
+
+#if SHADER_ENTRY_BasePassPS
+PS_ENTRY_START(BasePassPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+#if USE_DEFERRED_RENDERING
+	PS_OUTPUT(float4 OutTargetA, 0)
+	PS_OUTPUT(float4 OutTargetB, 1)
+#else
+	PS_OUTPUT(float4 OutColor, 0)
+#endif
+PS_ENTRY_END(BasePassPS)
+{
+
+#if USE_DEFERRED_RENDERING
+
+	float4 rayDest = mul(View.clipToWorld, float4(2 * VFLIP(VSOutput.UVs) - 1, 1, 1));
+	float3 rayDir = normalize(rayDest.xyz / rayDest.w - View.worldPos);
+	RayCastResult traceResult = RayCast(View.worldPos, rayDir);
+
+	clip(traceResult.bHit ? 1 : -1);
+
+	OutTargetA = float4( traceResult.hitPos , float( traceResult.id + 1 ));
+	OutTargetB = float4(CalcSceneNormal(traceResult.hitPos) , 0);
+
+#else
+
+	float3 colorAcc = float3(0, 0, 0);
+#if SAMPE_COUNT
+	
+	for (int i = 0; i < SAMPE_COUNT; ++i)
+	{
+		for (int j = 0; j < SAMPE_COUNT; ++j)
+		{
+			float2 OffsetUV = ( float2(i, j) / SAMPE_COUNT - 0.5 ) * View.rectPosAndSizeInv.zw ;
+			float4 rayDest = mul(View.clipToWorld, float4(2 * VFLIP(VSOutput.UVs + OffsetUV) - 1, 1, 1));
+#else
+			float4 rayDest = mul(View.clipToWorld, float4(2 * VFLIP(VSOutput.UVs) - 1, 1, 1));
+#endif
+			
+			float3 rayDir = normalize(rayDest.xyz / rayDest.w - View.worldPos);
+			RayCastResult traceResult = RayCast(View.worldPos, rayDir);
+			float rayDist = traceResult.totalDist;
+
+			// background
+			float3 color = float3(0.7, 0.7, 0.9) - max(rayDir.z, 0.0)*0.3;
+			// raycast scene
+			
+			
+			if (traceResult.bHit)
+			{
+				color = CalcLighting(traceResult.hitPos, traceResult.id, rayDir, rayDist, CalcSceneNormal(traceResult.hitPos));
+			}
+			colorAcc += saturate(color);
+			//colorAcc += CalcSceneNormal(traceResult.hitPos);
+
+#if SAMPE_COUNT
+		}
+	}
+	colorAcc /= float(SAMPE_COUNT*SAMPE_COUNT);
+#endif
+	colorAcc = pow(colorAcc, float3(0.4545.xxx));
+	OutColor = float4(colorAcc, 1);
+
+#endif
+
+}
+
+#endif //SHADER_ENTRY_BasePassPS
+
+#if SHADER_ENTRY_LightingPS
+
+DEFINE_TEXTURE(Texture2D, RenderTargetA);
+DEFINE_TEXTURE(Texture2D, RenderTargetB);
+
+PS_ENTRY_START(LightingPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(LightingPS)
+{
+	float4 targetA = TEXTURE_SAMPLE(RenderTargetA, VSOutput.UVs);
+	float4 targetB = TEXTURE_SAMPLE(RenderTargetB, VSOutput.UVs);
+
+	int matId = int(targetA.a) - 1;
+
+	clip(matId >= 0 ? 1 : -1);
+
+	float3 pos = targetA.xyz;
+	float3 rayOffset = pos - View.worldPos;
+	float rayDist = length(rayOffset);
+	float3 rayDir = rayOffset / rayDist;
+	float3 N = targetB.xyz;
+
+	float3 color = float3(0.7, 0.7, 0.9) - max(rayDir.z, 0.0)*0.3;
+	if (matId >= 0)
+	{
+		color = CalcLighting(pos, matId, rayDir, rayDist, N);
+	}
+	color = pow(saturate(color), float3(0.4545.xxx));
+	OutColor = float4(color, 1);
+	
+	//OutColor = float4(pos, 1);
+}
+
+#endif //SHADER_ENTRY_LightingPS
+
+#endif

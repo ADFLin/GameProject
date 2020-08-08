@@ -55,6 +55,13 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::clearTexture(RHICommandList& commandList, ShaderParameter const& param)
+	{
+		CHECK_PARAMETER(param);
+		GetContext(commandList).clearShaderTexture(*mRHIResource, param);
+	}
+
+	template< class RHIResourceType >
 	void TShaderFuncHelper< RHIResourceType>::setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op /*= AO_READ_AND_WRITE*/)
 	{
 		ShaderParameter param;
@@ -227,10 +234,10 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper< RHIResourceType>::setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void TShaderFuncHelper< RHIResourceType>::setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setShaderStorageBuffer(*mRHIResource, param, buffer);
+		GetContext(commandList).setShaderStorageBuffer(*mRHIResource, param, buffer, op);
 	}
 
 	template< class RHIResourceType >

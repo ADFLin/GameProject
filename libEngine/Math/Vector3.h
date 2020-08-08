@@ -2,6 +2,7 @@
 #define Vector3_h__
 
 #include "Math/Base.h"
+#include "TVector3.h"
 
 namespace Math
 {
@@ -9,9 +10,27 @@ namespace Math
 	{
 	public:
 		Vector3() = default;
-		constexpr explicit Vector3( float const v[] ): x(v[0]),y(v[1]),z(v[2]){}
-		constexpr Vector3(float sx, float sy, float sz) :x(sx), y(sy), z(sz){}
-		constexpr explicit Vector3(float value):x(value),y(value),z(value){}
+		constexpr explicit Vector3( float const v[] )
+			:x(v[0]),y(v[1]),z(v[2])
+		{
+
+		}
+		constexpr Vector3(float sx, float sy, float sz)
+			:x(sx), y(sy), z(sz)
+		{
+
+		}
+		constexpr explicit Vector3(float value)
+			:x(value),y(value),z(value)
+		{
+
+		}
+		template< class T >
+		constexpr explicit Vector3( TVector3<T> const& rhs)
+			:x(rhs.x),y(rhs.y),z(rhs.z)
+		{
+
+		}
 
 		Vector3 getNormal() const;
 

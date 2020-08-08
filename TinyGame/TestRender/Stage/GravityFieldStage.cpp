@@ -57,12 +57,6 @@ namespace Render
 		RHITexture1DRef mPlantDataTexture;
 		float mGravityScale = 1.0f;
 
-
-		virtual ERenderSystem getDefaultRenderSystem() override
-		{
-			return ERenderSystem::None;
-		}
-
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
@@ -80,9 +74,9 @@ namespace Render
 			return true;
 		}
 
-		virtual bool initializeRHIResource() override
+		virtual bool setupRenderSystem(ERenderSystem systemName) override
 		{
-			BaseClass::initializeRHIResource();
+			BaseClass::setupRenderSystem(systemName);
 
 			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 			//VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
@@ -94,14 +88,14 @@ namespace Render
 		}
 
 
-		virtual void releaseRHIResource(bool bReInit = false) override
+		virtual void preShutdownRenderSystem(bool bReInit = false) override
 		{
 			SharedAssetData::releaseRHIResource(bReInit);
 
 			mProgFieldRender = nullptr;
 			mPlantDataTexture.release();
 
-			BaseClass::releaseRHIResource(bReInit);
+			BaseClass::preShutdownRenderSystem(bReInit);
 		}
 
 		void onEnd() override

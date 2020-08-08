@@ -46,6 +46,7 @@
 
 
 #include <iostream>
+#include "Hardware/GPUDeviceQuery.h"
 
 
 
@@ -54,7 +55,9 @@
 #define CONFIG_SECTION "SystemSetting"
 
 int  GDevMsgLevel = -1;
-bool GbProfileGPU = false;
+
+TConsoleVariable<bool> GbProfileGPU( false , "ProfileGPU", CVF_TOGGLEABLE);
+TConsoleVariable<bool> GbDrawGPUUsage(false, "r.GPUUsage", CVF_TOGGLEABLE);
 
 TINY_API IGameNetInterface* GGameNetInterfaceImpl;
 TINY_API IDebugInterface*   GDebugInterfaceImpl;
@@ -398,7 +401,6 @@ bool TinyGameApp::initializeGame()
 	
 	mFPSCalc.init( getMillionSecond() );
 
-	ConsoleSystem::Get().registerCommand("ProfileGPU", &TinyGameApp::handleToggleProflieGPU, this);
 	return true;
 }
 
@@ -651,11 +653,24 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 				IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(getCurStage());
 				if (renderSetup)
 				{
-					renderSetup->releaseRHIResource(true);
-					ERenderSystem Name = GRHISystem->getName() == RHISytemName::OpenGL ? ERenderSystem::D3D11 : ERenderSystem::OpenGL;
+					renderSetup->preShutdownRenderSystem(true);
+					ERenderSystem systemName = GRHISystem->getName() == RHISytemName::OpenGL ? ERenderSystem::D3D11 : ERenderSystem::OpenGL;
 					Global::GetDrawEngine().shutdownSystem(false);
-					Global::GetDrawEngine().startupSystem(Name);
-					renderSetup->initializeRHIResource();
+					RenderSystemConfigs configs;
+
+					renderSetup->configRenderSystem(systemName, configs);
+					
+					if (!Global::GetDrawEngine().startupSystem(systemName, configs))
+					{
+
+
+					}
+
+					if (!renderSetup->setupRenderSystem(systemName))
+					{
+
+
+					}
 				}
 			}
 			break;
@@ -703,6 +718,9 @@ void TinyGameApp::handleWindowPaint(HDC hDC)
 
 bool TinyGameApp::handleWindowActivation( bool beA )
 {
+	LogMsg("Window %s", beA ? "Active" : "Deactive");
+	InputManager::Get().bActive = beA;
+
 	return true;
 }
 
@@ -721,11 +739,6 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 		if ( mRenderEffect == task )
 			mRenderEffect = nullptr;
 	}
-}
-
-void TinyGameApp::handleToggleProflieGPU()
-{
-	GbProfileGPU = !GbProfileGPU;
 }
 
 void TinyGameApp::render( float dframe )
@@ -789,10 +802,64 @@ void TinyGameApp::render( float dframe )
 		//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
 	}
 
+	if (GbDrawGPUUsage)
+	{
+		struct LocalInit
+		{
+			GPUDeviceQuery* deviceQuery = nullptr;
+			LocalInit()
+			{
+				deviceQuery = GPUDeviceQuery::Create();
+				if (deviceQuery == nullptr)
+				{
+					LogWarning(0, "GPU device query can't create");
+				}
+			}
+			~LocalInit()
+			{
+				if (deviceQuery)
+				{
+					deviceQuery->release();
+				}
+			}
+		};
+
+		static LocalInit sLocalInit;
+
+		GPUDeviceQuery* deviceQuery = sLocalInit.deviceQuery;
+		if (deviceQuery)
+		{
+			GPUStatus status;
+			if (deviceQuery->getGPUStatus(0, status))
+			{
+				RenderUtility::SetFont(g, FONT_S8);
+
+				float const width = 15;
+
+				Vector2 renderPos = ::Global::GetScreenSize() - Vector2(5, 5);
+				Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100);
+				RenderUtility::SetPen(g, EColor::Red);
+				RenderUtility::SetBrush(g, EColor::Red);
+				g.drawRect(renderPos - renderSize, renderSize);
+
+				Vector2 textSize = Vector2(width, 20);
+				g.setTextColor(Color3ub(0, 255, 255));
+				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.usage));
+
+				renderPos.x -= width + 5;
+				renderSize = Vector2(width, 100 * float(status.temperature) / 100);
+				RenderUtility::SetPen(g, EColor::Yellow);
+				RenderUtility::SetBrush(g, EColor::Yellow);
+				g.drawRect(renderPos - renderSize, renderSize);
+
+				g.setTextColor(Color3ub(0, 0, 255));
+				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.temperature));
+			}
+		}
+	}
 
 	if( GbProfileGPU )
 	{
-
 		g.setTextColor(Color3ub(255, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
 
@@ -966,18 +1033,20 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 			return false;
 	}
 
+	ERenderSystem systemName = ERenderSystem::None;
 	if ( renderSetup )
 	{
-		ERenderSystem SystemName = renderSetup->getDefaultRenderSystem();
-		if (SystemName == ERenderSystem::None)
+		systemName = renderSetup->getDefaultRenderSystem();
+		if (systemName == ERenderSystem::None)
 		{
-			SystemName = ERenderSystem::OpenGL;
+			if (renderSetup->isRenderSystemSupported(ERenderSystem::OpenGL))
+				systemName = ERenderSystem::OpenGL;
 		}
 
 		RenderSystemConfigs configs;
-		renderSetup->configRenderSystem(SystemName, configs);
+		renderSetup->configRenderSystem(systemName, configs);
 
-		if (!::Global::GetDrawEngine().startupSystem(SystemName, configs))
+		if (!::Global::GetDrawEngine().startupSystem(systemName, configs))
 		{
 			return false;
 		}
@@ -988,7 +1057,11 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 	if (renderSetup)
 	{
-		renderSetup->initializeRHIResource();
+		if (!renderSetup->setupRenderSystem(systemName))
+		{
+			LogWarning(0, "Can't Initialize Stage Render Resource");
+			return false;
+		}
 	}
 
 	if (gameStage)

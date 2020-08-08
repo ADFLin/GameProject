@@ -474,6 +474,7 @@ namespace Poker { namespace Big2 {
 
 		mDealCardNum = 0;
 		changeState( eDEAL_CARD );
+		g.releaseReources();
 	}
 
 	void Scene::onGameInit()

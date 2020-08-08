@@ -33,6 +33,12 @@ struct RWTexture2D {};
 template< class T >
 struct RWTexture3D {};
 
+template< class T >
+struct StructuredBuffer
+{
+	T operator[](int index);
+};
+
 #endif
 
 #define GLOBAL_CONST static const
@@ -46,7 +52,7 @@ struct RWTexture3D {};
 
 #define VFLIP(UV) float2( (UV).x , 1 - (UV).y )
 
-#define MEMBER_OUTPUT( NAME ) :NAME
+#define MEMBER_OUT( NAME ) :NAME
 
 #define SHADER_INPUT(TYPE_DECL , LOC) in TYPE_DECL : LOC,
 #define SHADER_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL,

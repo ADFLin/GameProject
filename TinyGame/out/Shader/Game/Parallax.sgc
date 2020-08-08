@@ -16,17 +16,17 @@ uniform float parallaxBias = 1.0;
 uniform float ShadowBias = 0.01;
 
 #if PARALLAX_DEPTH_CORRECT
-varying vec3 tangentX;
-varying vec3 tangentZ;
+varying float3 tangentX;
+varying float3 tangentZ;
 #endif
-varying vec3 lightOffset;
-varying vec3 viewOffset;
+varying float3 lightOffset;
+varying float3 viewOffset;
 
 struct VSOutputParameters
 {
-	vec3 cameraOffset;
+	float3 cameraOffset;
 #ifdef USE_SHADOW_MAP
-	vec3 cameraOffsetInView;
+	float3 cameraOffsetInView;
 #endif
 };
 
@@ -35,22 +35,22 @@ struct VSOutputParameters
 void MainVS()
 {
 #if PARALLAX_USE_VIEW_TSPACE
-	vec3 tangent  = normalize( gl_NormalMatrix * gl_Tangent.xyz );
-	vec3 normal   = normalize( gl_NormalMatrix * gl_Normal );
+	float3 tangent  = normalize( gl_NormalMatrix * gl_Tangent.xyz );
+	float3 normal   = normalize( gl_NormalMatrix * gl_Normal );
 
-	vec3 cPos  = vec3( gl_ModelViewMatrix * gl_Vertex );	
-	vec3 cCamPos = vec3( gl_ModelViewMatrix * vec4( View.worldPos , 1.0 ) );
-	vec3 cLightPos =  vec3( gl_ModelViewMatrix * vec4(GLight.worldPosAndRadius.xyz , 1.0 ) );
+	float3 cPos  = float3( gl_ModelViewMatrix * gl_Vertex );	
+	float3 cCamPos = float3( gl_ModelViewMatrix * float4( View.worldPos , 1.0 ) );
+	float3 cLightPos =  float3( gl_ModelViewMatrix * float4(GLight.worldPosAndRadius.xyz , 1.0 ) );
 #else
-	vec3 tangent  = normalize( gl_Tangent.xyz );
-	vec3 normal   = normalize( gl_Normal );
+	float3 tangent  = normalize( gl_Tangent.xyz );
+	float3 normal   = normalize( gl_Normal );
 
-	vec3 cPos  = vec3( gl_Vertex );
-	vec3 cCamPos = View.worldPos;
-	vec3 cLightPos = GLight.worldPosAndRadius.xyz;
+	float3 cPos  = float3( gl_Vertex );
+	float3 cCamPos = View.worldPos;
+	float3 cLightPos = GLight.worldPosAndRadius.xyz;
 #endif
 
-	vec3 binormal = cross( normal , tangent );
+	float3 binormal = cross( normal , tangent );
 	mat3 tbn  = mat3( tangent , binormal , normal );
 
 #if PARALLAX_DEPTH_CORRECT
@@ -71,27 +71,27 @@ void MainVS()
 
 #if PIXEL_SHADER
 
-float getDepth( in vec2 T )
+float getDepth( in float2 T )
 {
 	return texture( texNormal , T ).a;
 }
 
-vec2 calcParallaxPos( in vec3 V , in vec2 T , out float parallaxDepth )
+float2 calcParallaxPos( in float3 V , in float2 T , out float parallaxDepth )
 {
 	float h = getDepth( T );
 	return T - V.xy / V.z * ( h * parallaxScale );
 }
 
-vec2 calcParallaxPos2( in vec3 V , in vec2 T , out float parallaxDepth )
+float2 calcParallaxPos2( in float3 V , in float2 T , out float parallaxDepth )
 {
 	const float minLayer = 20;
 	const float maxLayer = 35;
-	float numLayer = mix( maxLayer , minLayer , abs( dot( V , vec3( 0 , 0 , 1 ) ) ) );
+	float numLayer = mix( maxLayer , minLayer , abs( dot( V , float3( 0 , 0 , 1 ) ) ) );
 	float stepDepth = 1.0 / numLayer;
 
-	vec2  dt = V.xy * ( parallaxScale / V.z ) / numLayer;
+	float2  dt = V.xy * ( parallaxScale / V.z ) / numLayer;
 	float curDepth = 0.0;
-	vec2  texCur   = T;
+	float2  texCur   = T;
 	float texDepth = getDepth( texCur );
 	while( curDepth < texDepth )
 	{
@@ -104,16 +104,16 @@ vec2 calcParallaxPos2( in vec3 V , in vec2 T , out float parallaxDepth )
 	return texCur + dt;
 }
 
-vec2 calcParallaxPos3( in vec3 V , in vec2 T , out float parallaxDepth )
+float2 calcParallaxPos3( in float3 V , in float2 T , out float parallaxDepth )
 {
 	const float minLayer = 30;
 	const float maxLayer = 105;
-	float numLayer = mix( maxLayer , minLayer , abs( dot( V , vec3( 0 , 0 , 1 ) ) ) );
+	float numLayer = mix( maxLayer , minLayer , abs( dot( V , float3( 0 , 0 , 1 ) ) ) );
 	float stepDepth = 1.0 / numLayer;
 
-	vec2  dt = V.xy * ( parallaxScale / V.z ) / numLayer;
+	float2  dt = V.xy * ( parallaxScale / V.z ) / numLayer;
 	float curDepth = 0.0;
-	vec2  texCur   = T;
+	float2  texCur   = T;
 	float texDepth = getDepth( texCur );
 	while( curDepth < texDepth )
 	{
@@ -122,7 +122,7 @@ vec2 calcParallaxPos3( in vec3 V , in vec2 T , out float parallaxDepth )
 		texDepth = getDepth( texCur );
 	}
 
-	vec2 texPrev = texCur + dt;
+	float2 texPrev = texCur + dt;
 	float texDepthPrev = getDepth( texPrev );
 
 	float w = ( curDepth - texDepth ) / ( stepDepth + texDepthPrev - texDepth );
@@ -131,7 +131,7 @@ vec2 calcParallaxPos3( in vec3 V , in vec2 T , out float parallaxDepth )
 	return texCur + w * dt;
 }
 
-float parallaxSoftShadowMultiplier(in vec3 L, in vec2 initialTexCoord,
+float parallaxSoftShadowMultiplier(in float3 L, in float2 initialTexCoord,
 								   in float initialHeight)
 {
 	float shadowMultiplier = 1;
@@ -140,18 +140,18 @@ float parallaxSoftShadowMultiplier(in vec3 L, in vec2 initialTexCoord,
 	const float maxLayers = 40;
 
 	// calculate lighting only for surface oriented to the light source
-	if(dot(vec3(0, 0, 1), L) > 0)
+	if(dot(float3(0, 0, 1), L) > 0)
 	{
 		// calculate initial parameters
 		float numSamplesUnderSurface	= 0;
 		shadowMultiplier	= 0;
-		float numLayers	= mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), L)));
+		float numLayers	= mix(maxLayers, minLayers, abs(dot(float3(0, 0, 1), L)));
 		float layerHeight	= initialHeight / numLayers;
-		vec2 texStep	= parallaxScale * L.xy / L.z / numLayers;
+		float2 texStep	= parallaxScale * L.xy / L.z / numLayers;
 
 		// current parameters
 		float currentLayerHeight	= initialHeight - layerHeight;
-		vec2 currentTextureCoords	= initialTexCoord + texStep;
+		float2 currentTextureCoords	= initialTexCoord + texStep;
 		float heightFromTexture	= getDepth( currentTextureCoords );
 		int stepIndex	= 1;
 
@@ -212,7 +212,7 @@ void MainPS()
 	float3 N = texture( texNormal , T ).xyz * 2.0 - 1.0;
 	float3 baseColor = texture( texBase , T ).rgb;
 
-	float3 color = vec3(0,0,0);
+	float3 color = float3(0,0,0);
 
 	float diff = max(0.0, dot(N, L));
 	float spec = 0.0;
@@ -225,9 +225,9 @@ void MainPS()
 
 #if PARALLAX_DRAW_SHADOW
 	float shadowMultiplier = CalcPOMSoftShadowMultiplier(texNormal, pomParams , L , T , parallaxDepth - ShadowBias );
-	color += pow( shadowMultiplier , 10.0 ) * ( diff + spec ) * vec3( 0.6 , 0.6 , 0.6 );
+	color += pow( shadowMultiplier , 10.0 ) * ( diff + spec ) * float3( 0.6 , 0.6 , 0.6 );
 #else
-	color += ( diff + spec ) * vec3( 0.6 , 0.6 , 0.6 );
+	color += ( diff + spec ) * float3( 0.6 , 0.6 , 0.6 );
 #endif
 
 

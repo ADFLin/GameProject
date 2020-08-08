@@ -1,4 +1,5 @@
 #include "EntityManager.h"
+#include "Math/Base.h"
 
 namespace ECS
 {
@@ -9,7 +10,7 @@ namespace ECS
 		if( mFreeSlotIndices.empty() )
 		{
 			uint32 startIndex = mEntityLists.size();
-			uint32 numNewNum = mEntityLists.size();
+			uint32 numNewNum = Math::Max<uint32>( 3 * mEntityLists.size() / 2 , 10 );
 			mEntityLists.resize(mEntityLists.size() + numNewNum);
 
 			indexSlot = startIndex;

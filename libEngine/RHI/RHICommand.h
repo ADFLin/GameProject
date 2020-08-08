@@ -319,12 +319,32 @@ namespace Render
 #include "RHITraceScope.h"
 #endif
 
+	enum class EStructuredBufferType : uint8
+	{
+		Const ,
+		Buffer ,
+		RWBuffer ,
+	};
+
 	template< class T >
 	class TStructuredBuffer
 	{
 	public:
-		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue| BCF_UsageConst | BCF_UsageDynamic )
+		bool initializeResource(uint32 numElement, EStructuredBufferType type = EStructuredBufferType::Const )
 		{
+			uint32 creationFlags = 0;
+			switch (type)
+			{
+			case EStructuredBufferType::Const:
+				creationFlags = BCF_UsageConst | BCF_UsageDynamic;
+				break;
+			case EStructuredBufferType::Buffer:
+				creationFlags = BCF_UsageDynamic | BCF_Structured | BCF_CreateSRV;
+				break;
+			case EStructuredBufferType::RWBuffer:
+				creationFlags = BCF_Structured | BCF_CreateUAV | BCF_CreateSRV;
+				break;
+			} 
 			mResource = RHICreateVertexBuffer(sizeof(T), numElement, creationFlags);
 			if( !mResource.isValid() )
 				return false;

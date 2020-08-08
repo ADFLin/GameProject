@@ -29,8 +29,6 @@
 #include "RenderUtility.h"
 
 
-#include "Hardware/GPUDeviceQuery.h"
-
 #define MATCH_RESULT_PATH "Go/MatchResult.data"
 
 REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
@@ -316,13 +314,6 @@ namespace Go
 
 		if( !BaseClass::onInit() )
 			return false;
-
-
-		mDeviceQuery = GPUDeviceQuery::Create();
-		if( mDeviceQuery == nullptr )
-		{
-			LogWarning(0, "GPU device query can't create");
-		}
 
 		//ILocalization::Get().changeLanguage(LAN_ENGLISH);
 
@@ -825,36 +816,6 @@ namespace Go
 			g.drawTexture(*GHook.mDebugTextures[debugId], Vector2(100, 100), Vector2(600, 600));
 		}
 		
-		if( mDeviceQuery )
-		{
-			GPUStatus status;
-			if ( mDeviceQuery->getGPUStatus(0, status) )
-			{
-				RenderUtility::SetFont(g, FONT_S8);
-
-				float const width = 15;
-
-				Vector2 renderPos = ::Global::GetScreenSize() - Vector2(5, 5);
-				Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100 );
-				RenderUtility::SetPen(g, EColor::Red);
-				RenderUtility::SetBrush(g, EColor::Red);
-				g.drawRect(renderPos - renderSize, renderSize);
-
-				Vector2 textSize = Vector2(width, 20);
-				g.setTextColor(Color3ub(0, 255, 255));
-				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.usage));
-
-				renderPos.x -= width + 5;
-				renderSize = Vector2(width, 100 * float(status.temperature) / 100);
-				RenderUtility::SetPen(g, EColor::Yellow);
-				RenderUtility::SetBrush(g, EColor::Yellow);
-				g.drawRect(renderPos - renderSize, renderSize);
-
-				g.setTextColor(Color3ub(0, 0, 255));
-				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.temperature));
-			}
-		}
-
 		FixString< 512 > str;
 		g.setTextColor(Color3ub(255, 0, 0));
 

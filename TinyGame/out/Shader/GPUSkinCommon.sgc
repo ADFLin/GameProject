@@ -17,43 +17,43 @@ uniform PrimitiveParameters Primitive = PrimitiveParameters(
 
 struct VSOutputParameters
 {
-	vec3 vertex;
-	vec3 worldNormal;
+	float3 vertex;
+	float3 worldNormal;
 };
 
 #if VERTEX_SHADER
 
-vec4 VSOutputMain( out VSOutputParameters outVS )
+float4 VSOutputMain( out VSOutputParameters outVS )
 {
-	vec3 v = vec3(0,0,0);
+	float3 v = float3(0,0,0);
 #if USE_NORMAL
-	vec3 normal = vec3(0,0,0);
+	float3 normal = float3(0,0,0);
 #endif
 
 	int   idx = int(gl_MultiTexCoord3.x);
 	float factor = gl_MultiTexCoord2.x;
-	v += factor * vec3( matBone[ idx ] * gl_Vertex );
+	v += factor * float3( matBone[ idx ] * gl_Vertex );
 #if USE_NORMAL
 	normal += factor * ( mat3( matBone[ idx ] ) * gl_Normal );
 #endif
 #if   SKIN_BLEND_BONE_NUM > 1
 	idx = int(gl_MultiTexCoord3.y);
 	factor = gl_MultiTexCoord2.y;
-	v += factor * vec3( matBone[ idx ] * gl_Vertex );
+	v += factor * float3( matBone[ idx ] * gl_Vertex );
 #	if USE_NORMAL
 	normal += factor * ( mat3( matBone[ idx ] ) * gl_Normal );
 #	endif
 #elif SKIN_BLEND_BONE_NUM > 2
 	idx = int(gl_MultiTexCoord3.z);
 	factor = gl_MultiTexCoord2.z;
-	v += factor * vec3( matBone[ idx ] * gl_Vertex );
+	v += factor * float3( matBone[ idx ] * gl_Vertex );
 #	if USE_NORMAL
 	normal += factor * ( mat3( matBone[ idx ] ) * gl_Normal );
 #	endif
 #elif SKIN_BLEND_BONE_NUM > 3
 	idx = int(gl_MultiTexCoord3.w);
 	factor = gl_MultiTexCoord2.w;
-	v += factor * vec3( matBone[ idx ] * gl_Vertex );
+	v += factor * float3( matBone[ idx ] * gl_Vertex );
 #	if	USE_NORMAL
 	normal += factor * ( mat3( matBone[ idx ] ) * gl_Normal );
 #	endif
@@ -77,9 +77,9 @@ void MainVS()
 #define FSINPUT_LOCAL_SPACE
 struct FSInput 
 {
-	vec3 viewDir;
-	vec3 normal;
-	vec3 vertex;
+	float3 viewDir;
+	float3 normal;
+	float3 vertex;
 };
 
 in VSOutputParameters VSOutput;
@@ -94,16 +94,16 @@ void FSDepthCorrect( in FSInput inFS )
 }
 
 
-vec3 FSLightOffset( vec3 lightPos , vec3 V )
+float3 FSLightOffset( float3 lightPos , float3 V )
 {
 #ifdef FSINPUT_LIGHT_POS_TRANSFORMED
 	return lightPos  - V;
 #elif defined( FSINPUT_LOCAL_SPACE )
-	return vec3( Primitive.worldToLocal * vec4( lightPos , 1 ) ) - V;
+	return float3( Primitive.worldToLocal * float4( lightPos , 1 ) ) - V;
 #elif defined( FSINPUT_WORLD_SPACE )
 	return lightPos  - V;
 #elif defined(FSINPUT_VIEW_SPACE )
-	return vec3( View.worldToView * vec4( lightPos , 1 ) ) - V;
+	return float3( View.worldToView * float4( lightPos , 1 ) ) - V;
 #elif defined(FSINPUT_VIEW_TSPACE )
 	return lightPos  - V;
 #elif defined( FSINPUT_LOCAL_TSPACE )
@@ -111,23 +111,23 @@ vec3 FSLightOffset( vec3 lightPos , vec3 V )
 #endif
 }
 
-vec3 FSLighting( in FSInput inFS )
+float3 FSLighting( in FSInput inFS )
 {
-	vec3 V = inFS.vertex;
-	vec3 N = inFS.normal;
-	vec3 E = inFS.viewDir;
+	float3 V = inFS.vertex;
+	float3 N = inFS.normal;
+	float3 E = inFS.viewDir;
 
-	vec3 color = vec3(0,0,0);
+	float3 color = float3(0,0,0);
 	for( int i = 0 ; i < 4 ; ++i )
 	{
-		vec3 L = FSLightOffset( LightPos[i] , V );
+		float3 L = FSLightOffset( LightPos[i] , V );
 		L = normalize( L );
 		float diff = clamp( dot( L , N ) , 0 , 1 );
 		float spec = 0;
 
 		if ( diff > 0 )
 		{
-			vec3 R = normalize(-reflect(L,N)); 
+			float3 R = normalize(-reflect(L,N)); 
 			spec = clamp( pow( max( dot(R,E), 0.0 ) , 20.0 ) , 0.0 , 1.0 );
 			//vec3 H = normalize( L + E );  
 			//spec = clamp( pow( max( dot(H,N), 0.0 ) , 100.0 ) , 0.0 , 1.0 );
@@ -147,8 +147,8 @@ void MainPS()
 	FSDepthCorrect( inFS );
 
 	//gl_FragColor = vec4( 0.5 * N + 0.5 , 1.0 );
-	vec3 color = FSLighting( inFS );
-	gl_FragColor = vec4( color , 1.0 );
+	float3 color = FSLighting( inFS );
+	gl_FragColor = float4( color , 1.0 );
 }
 
 

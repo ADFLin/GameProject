@@ -453,7 +453,7 @@ namespace Render
 		}
 
 
-		VERIFY_RETURN_FALSE(mLightsBuffer.initializeResource(mLights.size(), BCF_DefalutValue | BCF_UsageDynamic));
+		VERIFY_RETURN_FALSE(mLightsBuffer.initializeResource(mLights.size(), EStructuredBufferType::Buffer));
 		updateLightToBuffer();
 
 		::Global::GUI().cleanupWidget();

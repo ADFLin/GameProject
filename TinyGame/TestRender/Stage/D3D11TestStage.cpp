@@ -13,9 +13,9 @@
 namespace Render
 {
 
-	struct GPU_BUFFER_ALIGN ColourBuffer
+	struct GPU_ALIGN ColourBuffer
 	{
-		DECLARE_BUFFER_STRUCT(ColourBufferBlock)
+		DECLARE_UNIFORM_BUFFER_STRUCT(ColourBufferBlock)
 		float red;
 		float green;
 		float blue;
@@ -41,7 +41,11 @@ namespace Render
 
 		RHIInputLayoutRef  mAxisInputLayout;
 		RHIVertexBufferRef mAxisVertexBuffer;
-		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::D3D11;
+		}
 
 		struct MyVertex
 		{

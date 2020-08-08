@@ -32,9 +32,9 @@ namespace Render
 		return true;
 	}
 
-	bool Lighting2DTestStage::initializeRHIResource()
+	bool Lighting2DTestStage::setupRenderSystem(ERenderSystem systemName)
 	{
-		VERIFY_RETURN_FALSE(BaseClass::initializeRHIResource());
+		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
 		{
 			ShaderEntryInfo entries[] =
 			{
@@ -61,11 +61,11 @@ namespace Render
 		return true;
 	}
 
-	void Lighting2DTestStage::releaseRHIResource(bool bReInit /*= false*/)
+	void Lighting2DTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
 		mProgLighting.releaseRHI();
 		mProgShadow.releaseRHI();
-		BaseClass::releaseRHIResource(bReInit);
+		BaseClass::preShutdownRenderSystem(bReInit);
 	}
 
 

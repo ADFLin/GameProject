@@ -27,10 +27,14 @@ namespace Render
 			ID3D11HullShader*     hull;
 			ID3D11DomainShader*   domain;
 		};
+
+		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, size_t codeSize);
+
+		void release();
 	};
 
 
-	class D3D11Shader : public RHIShader
+	class D3D11Shader : public TRefcountResource< RHIShader >
 	{
 	public:
 		D3D11Shader()
@@ -41,67 +45,32 @@ namespace Render
 		bool initialize( EShader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode );
 		bool initialize( EShader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode );
 
-		bool createResource(EShader::Type type, TComPtr<ID3D11Device>& device, uint8 const* pCode, size_t codeSize);
-		virtual void incRef()
-		{
-			if( mResource.ptr )
-			{
-				mResource.ptr->AddRef();
-			}
-		}
-		
-		virtual bool decRef()
-		{
-			if( mResource.ptr )
-			{
-				return mResource.ptr->Release() == 1;
-			}
-			return false;
-		}
-		
 		virtual void releaseResource()
 		{
-			if( mResource.ptr )
-			{
-				mResource.ptr->Release();
-				mResource.ptr = nullptr;
-			}
+			mResource.release();
 		}
 
-		virtual bool getParameter(char const* name, ShaderParameter& outParam) { return false; }
-		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) { return false; }
-
+		virtual bool getParameter(char const* name, ShaderParameter& outParam) 
+		{ 
+			return outParam.bind(mParameterMap, name);
+		}
+		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam)
+		{
+			return outParam.bind(mParameterMap , name);
+		}
+		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		{
+			if (resourceType == EShaderResourceType::Storage)
+			{
+				return structInfo.variableName;
+			}
+			return structInfo.blockName;
+		}
 		static bool GenerateParameterMap(std::vector< uint8 > const& byteCode , ShaderParameterMap& parameterMap);
+
 		std::vector< uint8 > byteCode;
 		D3D11ShaderResource  mResource;
-	};
-
-	class D3D11VertexShader : public D3D11Shader
-	{
-	public:
-		std::vector<D3D11_INPUT_ELEMENT_DESC> mDescList;
-#if 0
-		bool generateInputDesc()
-		{
-			TComPtr< ID3D11ShaderReflection > reflection;
-			VERIFY_D3D11RESULT_RETURN_FALSE(D3DReflect(byteCode.data(), byteCode.size(), IID_ID3D11ShaderReflection, (void**)&reflection.mPtr));
-
-			D3D11_SHADER_DESC shaderDesc;
-			reflection->GetDesc(&shaderDesc);
-			for (int i = 0; i < shaderDesc.InputParameters; ++i)
-			{
-				D3D11_SIGNATURE_PARAMETER_DESC inputDesc;
-				reflection->GetInputParameterDesc(i, &inputDesc);
-
-				D3D11_INPUT_ELEMENT_DESC desc;
-				desc.SemanticIndex = inputDesc.SemanticIndex;
-				inputDesc.SemanticIndex;
-				inputDesc.SemanticName;
-				inputDesc.ComponentType;
-			}
-
-		}
-#endif
+		ShaderParameterMap   mParameterMap;
 	};
 
 	class D3D11ShaderProgram : public TRefcountResource< RHIShaderProgram >
@@ -112,7 +81,14 @@ namespace Render
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam);
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam);
-
+		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo)
+		{
+			if (resourceType == EShaderResourceType::Storage)
+			{
+				return structInfo.variableName;
+			}
+			return structInfo.blockName; 
+		}
 		virtual void releaseResource();
 
 		template< class TFunc >
@@ -149,6 +125,7 @@ namespace Render
 			ShaderParameter param;
 		};
 
+		std::vector< uint8 > vertexByteCode;
 		std::vector< ParameterEntry >   mParamEntryMap;
 		std::vector< ShaderParamEntry > mParamEntries;
 		TRefCountPtr< D3D11Shader >     mShaders[EShader::Count - 1];

@@ -6,10 +6,10 @@
 
 struct VSOutputParameters
 {
-	float3 worldPos MEMBER_OUTPUT(TEXCOORD0);
-	float3 normal   MEMBER_OUTPUT(TEXCOORD1);
-	float4 tangent  MEMBER_OUTPUT(TEXCOORD2);
-	float2 UVs      MEMBER_OUTPUT(TEXCOORD3);
+	float3 worldPos MEMBER_OUT(TEXCOORD0);
+	float3 normal   MEMBER_OUT(TEXCOORD1);
+	float4 tangent  MEMBER_OUT(TEXCOORD2);
+	float2 UVs      MEMBER_OUT(TEXCOORD3);
 };
 
 

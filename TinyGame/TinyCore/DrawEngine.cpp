@@ -57,7 +57,7 @@ namespace FLocal
 
 TConsoleVariableDelegate< char const* > CVarDefalultRHISystem
 (
-	&FLocal::GetDefaultRHI , &FLocal::SetDefaultRHI,
+	&FLocal::GetDefaultRHI, &FLocal::SetDefaultRHI,
 	"g.DefaultRHI",
 	0
 );

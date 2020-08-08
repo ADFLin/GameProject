@@ -2,8 +2,8 @@
 
 struct VSOutputParam
 {
-	float3 color MEMBER_OUTPUT(TEXCOORD0);
-	float2 uv    MEMBER_OUTPUT(TEXCOORD1);
+	float3 color MEMBER_OUT(TEXCOORD0);
+	float2 uv    MEMBER_OUT(TEXCOORD1);
 };
 
 #if VERTEX_SHADER

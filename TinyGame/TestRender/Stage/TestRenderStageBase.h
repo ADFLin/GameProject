@@ -323,15 +323,15 @@ namespace Render
 		void onUpdate(long time) override;
 
 		//
-		virtual bool initializeRHIResource()
+		virtual bool setupRenderSystem(ERenderSystem systemName)
 		{
 			return true;
 		}
 
-		virtual void releaseRHIResource(bool bReInit = false)
+		virtual void preShutdownRenderSystem(bool bReInit = false)
 		{
 			SharedAssetData::releaseRHIResource(bReInit);
-			mView.releaseRHIRelease();
+			mView.releaseRHIResource();
 		}
 		void initializeRenderState();
 

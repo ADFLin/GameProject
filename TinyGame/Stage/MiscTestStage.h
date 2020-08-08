@@ -845,7 +845,7 @@ public:
 	{
 	}
 
-	void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 	{
 		systemConfigs.screenWidth = 800;
 		systemConfigs.screenHeight = 600;

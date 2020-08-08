@@ -34,9 +34,9 @@ namespace Render
 		return true;
 	}
 
-	bool BRDFTestStage::initializeRHIResource()
+	bool BRDFTestStage::setupRenderSystem(ERenderSystem systemName)
 	{
-		VERIFY_RETURN_FALSE(BaseClass::initializeRHIResource());
+		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
 		
 		VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
 
@@ -84,7 +84,7 @@ namespace Render
 		return true;
 	}
 
-	void BRDFTestStage::releaseRHIResource(bool bReInit /*= false*/)
+	void BRDFTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
 		mSceneRenderTargets.releaseRHI();
 		mProgVisualize = nullptr;
@@ -98,7 +98,7 @@ namespace Render
 		mSkyBox.releaseRHIResource();
 		mParamBuffer.releaseResources();
 		ShaderHelper::Get().releaseRHI();
-		BaseClass::releaseRHIResource(bReInit);
+		BaseClass::preShutdownRenderSystem(bReInit);
 	}
 
 	void BRDFTestStage::onRender(float dFrame)

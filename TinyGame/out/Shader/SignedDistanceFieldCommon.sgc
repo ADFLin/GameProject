@@ -1,0 +1,45 @@
+#pragma once
+#include "Common.sgc"
+
+
+float SDF_Sphere(float3 pos, float radius)
+{
+	return length(pos) - radius;
+}
+
+float SDF_Plane(float3 pos, float3 nomral, float d)
+{
+	return dot(nomral, pos) + d;
+}
+
+float SDF_Box(float3 pos, float3 extend)
+{
+	float3 q = abs(pos) - extend;
+	return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+
+float SDF_RoundBox(float3 p, float3 b, float r)
+{
+	float3 q = abs(p) - b;
+	return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - r;
+}
+
+struct SDFSceneOut
+{
+	float dist;
+	int   id;
+};
+
+SDFSceneOut SDF_Union(in SDFSceneOut a, int id, float dist)
+{
+	SDFSceneOut b;
+	b.dist = dist;
+	b.id = id;
+	//return (a.dist < dist) ? a : b;
+	if (a.dist < dist)
+		return a;
+
+	return b;
+}
+

@@ -85,7 +85,7 @@ namespace Render
 		}
 
 		void updateRHIResource();
-		void releaseRHIRelease();
+		void releaseRHIResource();
 		void setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix);
 
 		IntVector2 getViewportSize() const;

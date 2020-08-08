@@ -1,20 +1,20 @@
 #include "Common.sgc"
 
-uniform vec3 LightPos = vec3( 0 , -10 , 5 );
+uniform float3 LightPos = float3( 0 , -10 , 5 );
 
-varying vec3 lightOffset;
-varying vec3 viewOffset;
+varying float3 lightOffset;
+varying float3 viewOffset;
 
 void main()
 {
-	vec3 tang   = normalize( gl_NormalMatrix * gl_MultiTexCoord5.xyz );
-	vec3 normal = normalize( gl_NormalMatrix * gl_Normal );
-	vec3 binormal = cross( normal , tang );
+	float3 tang   = normalize( gl_NormalMatrix * gl_MultiTexCoord5.xyz );
+	float3 normal = normalize( gl_NormalMatrix * gl_Normal );
+	float3 binormal = cross( normal , tang );
 
 	mat3 tbn  = mat3( tang , binormal , normal );
-	vec3 pos = vec3( gl_ModelViewMatrix * gl_Vertex );
+	float3 pos = float3( gl_ModelViewMatrix * gl_Vertex );
 
-	vec3 dir = vec3( gl_ModelViewMatrix * vec4( LightPos , 1.0 ) ) -  pos;
+	float3 dir = float3( gl_ModelViewMatrix * float4( LightPos , 1.0 ) ) -  pos;
 	lightOffset = dir * tbn;
 	viewOffset   = ( -pos ) * tbn ;
 

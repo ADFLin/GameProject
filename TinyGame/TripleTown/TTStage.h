@@ -22,8 +22,12 @@ namespace TripleTown
 	public:
 
 		//IGameRenderSetup
-		ERenderSystem getDefaultRenderSystem() { return ERenderSystem::D3D11; }
-		bool initializeRHIResource() override
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::D3D11;
+		}
+
+		bool setupRenderSystem(ERenderSystem systemName) override
 		{
 			VERIFY_RETURN_FALSE( mScene.loadResource() );
 
@@ -34,7 +38,7 @@ namespace TripleTown
 			return true;
 		}
 
-		void releaseRHIResource(bool bReInit) override
+		void preShutdownRenderSystem(bool bReInit) override
 		{
 			mScene.releaseResource();
 		}

@@ -59,12 +59,13 @@ namespace Render
 
 		RHI_FUNC(void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture));
 		RHI_FUNC(void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler));
+		RHI_FUNC(void clearShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param));
 		RHI_FUNC(void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler));
 		RHI_FUNC(void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op));
 		RHI_FUNC(void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param));
 
 		RHI_FUNC(void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
-		RHI_FUNC(void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
+		RHI_FUNC(void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 
 		RHI_FUNC(void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state));
@@ -85,12 +86,13 @@ namespace Render
 
 		RHI_FUNC(void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture));
 		RHI_FUNC(void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler));
+		RHI_FUNC(void clearShaderTexture(RHIShader& shader, ShaderParameter const& param));
 		RHI_FUNC(void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler));
 		RHI_FUNC(void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op));
 		RHI_FUNC(void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param));
 
 		RHI_FUNC(void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer));
-		RHI_FUNC(void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer));
+		RHI_FUNC(void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer));
 
 	};

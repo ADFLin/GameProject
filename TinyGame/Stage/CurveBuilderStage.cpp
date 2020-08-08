@@ -49,7 +49,7 @@ namespace CB
 		}
 
 
-		virtual void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs) override
+		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
 			systemConfigs.screenWidth = 1200;
 			systemConfigs.screenHeight = 800;

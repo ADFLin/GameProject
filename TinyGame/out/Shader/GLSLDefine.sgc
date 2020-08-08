@@ -220,7 +220,7 @@ float3 InvTransformVector(float3 v, float3x3 m)
 	return v * m;
 }
 
-#define MEMBER_OUTPUT( NAME )
+#define MEMBER_OUT( NAME )
 
 #if PIXEL_SHADER
 #define SvPosition gl_FragCoord

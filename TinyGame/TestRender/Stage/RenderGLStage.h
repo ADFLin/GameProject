@@ -512,7 +512,7 @@ namespace Render
 		SampleStage();
 		~SampleStage();
 
-		void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{
 			systemConfigs.screenWidth = 1280;
 			systemConfigs.screenHeight = 720;

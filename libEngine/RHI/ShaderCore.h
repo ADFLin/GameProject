@@ -138,6 +138,17 @@ namespace Render
 		ETessellationMode tessellationMode;
 	};
 
+	enum class EShaderParamBindType
+	{
+		Uniform ,
+		Texture ,
+		Sampler ,
+		UniformBuffer,
+		StorageBuffer ,
+
+		Unknown,
+	};
+
 	class ShaderParameter
 	{
 	public:
@@ -169,6 +180,7 @@ namespace Render
 #if _DEBUG
 		HashString mName;
 		bool bHasLogWarning = false;
+		EShaderParamBindType mbindType = EShaderParamBindType::Unknown;
 #endif
 		union
 		{
@@ -185,10 +197,13 @@ namespace Render
 	class ShaderParameterMap
 	{
 	public:
-		void addParameter(char const* name, uint32 bindIndex, uint16 offset = 0, uint16 size = 0)
+		ShaderParameter& addParameter(char const* name, uint32 bindIndex, uint16 offset = 0, uint16 size = 0)
 		{
 			ShaderParameter entry = { bindIndex, offset, size };
-			mMap.emplace(name, entry);
+
+			auto& result = mMap[name];
+			result = entry;
+			return result;
 		}
 		void clear()
 		{
@@ -200,17 +215,26 @@ namespace Render
 	struct StructuredBufferInfo
 	{
 		char const* blockName;
+		char const* variableName;
 
-		StructuredBufferInfo(char const* name)
-			:blockName(name)
+		StructuredBufferInfo(char const* bloackName , char const* varName)
+			:blockName(bloackName)
+			,variableName(varName)
 		{
 		}
 	};
 
-#define DECLARE_BUFFER_STRUCT( NAME )\
+#define DECLARE_UNIFORM_BUFFER_STRUCT( NAME)\
 	static StructuredBufferInfo& GetStructInfo()\
 	{\
-		static StructuredBufferInfo sMyStruct( #NAME );\
+		static StructuredBufferInfo sMyStruct( #NAME , nullptr );\
+		return sMyStruct;\
+	}
+
+#define DECLARE_BUFFER_STRUCT( NAME , VAR )\
+	static StructuredBufferInfo& GetStructInfo()\
+	{\
+		static StructuredBufferInfo sMyStruct( #NAME , #VAR );\
 		return sMyStruct;\
 	}
 
@@ -228,6 +252,7 @@ namespace Render
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
+		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
 	};
 
 	using RHIShaderRef = TRefCountPtr< RHIShader >;
@@ -241,6 +266,7 @@ namespace Render
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
+		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
 	};
 
 	using RHIShaderProgramRef = TRefCountPtr< RHIShaderProgram >;

@@ -5,9 +5,9 @@
 namespace Render
 {
 
-	struct GPU_BUFFER_ALIGN ParticleData
+	struct GPU_ALIGN ParticleData
 	{
-		DECLARE_BUFFER_STRUCT(ParticleDataBlock);
+		DECLARE_BUFFER_STRUCT(ParticleDataBlock, Particles);
 
 		Vector3 pos;
 		float   lifeTime;
@@ -18,24 +18,24 @@ namespace Render
 		float   lifeTimeScale;	
 	};
 
-	struct GPU_BUFFER_ALIGN ParticleParameters
+	struct GPU_ALIGN ParticleParameters
 	{
-		DECLARE_BUFFER_STRUCT(ParticleParamBlock);
+		DECLARE_UNIFORM_BUFFER_STRUCT(ParticleParamBlock);
 		Vector3  gravity;
 		uint32   numParticle;
 		Vector4  dynamic;
 	};
 
-	struct GPU_BUFFER_ALIGN ParticleInitParameters
+	struct GPU_ALIGN ParticleInitParameters
 	{
-		DECLARE_BUFFER_STRUCT(ParticleInitParamBlock);
+		DECLARE_UNIFORM_BUFFER_STRUCT(ParticleInitParamBlock);
 		Vector3 posMin;
 		Vector3 posMax;
 	};
 
-	struct GPU_BUFFER_ALIGN CollisionPrimitive
+	struct GPU_ALIGN CollisionPrimitive
 	{
-		DECLARE_BUFFER_STRUCT(CollisionPrimitiveBlock);
+		DECLARE_UNIFORM_BUFFER_STRUCT(CollisionPrimitiveBlock);
 		Vector3 velocity;
 		int32   type;
 		Vector4 param;

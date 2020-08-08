@@ -107,21 +107,21 @@ namespace ECS
 		}
 
 		template< class T >
-		class TDefaultComponentType
+		class TDefaultComponentType : public ComponentType
 		{
 		public:
 			virtual IComponentPool* getPool()
 			{
-				return poolInstance;
+				return &poolInstance;
 			}
 			TSimpleComponentPool< T > poolInstance;
 		};
 
 		template< class T >
-		void registerDefaultComponentType()
+		void registerDefaultComponentTypeT()
 		{
 			static TDefaultComponentType< T > sComponentTypeInstance;
-			mComponentTypeMap.emplace(type_index(T), sComponentTypeInstance);
+			mComponentTypeMap.emplace(std::type_index( typeid(T) ), &sComponentTypeInstance);
 		}
 		template< class T >
 		void registerComponentTypeT()

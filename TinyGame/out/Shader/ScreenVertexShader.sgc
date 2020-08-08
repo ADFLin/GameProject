@@ -7,7 +7,7 @@
 #if USE_SCREEN_TEXCOORD
 struct VSOutputParameters
 {
-	float2 UVs MEMBER_OUTPUT(TEXCOORD0);
+	float2 UVs MEMBER_OUT(TEXCOORD0);
 };
 #endif
 

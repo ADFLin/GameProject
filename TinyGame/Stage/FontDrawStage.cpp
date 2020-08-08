@@ -21,7 +21,7 @@ public:
 	RHITexture2DRef mTexture;
 
 
-	virtual void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs) override
+	virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 	{
 		systemConfigs.numSamples = 4;
 	}

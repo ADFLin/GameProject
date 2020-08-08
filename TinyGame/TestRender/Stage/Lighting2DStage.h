@@ -115,12 +115,15 @@ namespace Render
 		bool bShowShadowRender = false;
 		bool bUseGeometryShader = true;
 
-		virtual ERenderSystem getDefaultRenderSystem() { return ERenderSystem::OpenGL; }
-
 
 		bool onInit() override;
-		bool initializeRHIResource() override;
-		void releaseRHIResource(bool bReInit = false) override;
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::OpenGL;
+		}
+		bool setupRenderSystem(ERenderSystem systemName) override;
+		void preShutdownRenderSystem(bool bReInit = false) override;
 
 		void onUpdate( long time ) override;
 		bool onWidgetEvent(int event, int id, GWidget* ui) override;

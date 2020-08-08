@@ -93,6 +93,7 @@ namespace Render
 		}
 
 
+
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, int v1);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector2 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector3 const& v);
@@ -128,8 +129,11 @@ namespace Render
 			setTexture(commandList, param, *texturePtr, paramSampler, sampler);
 		}
 
+		void clearTexture(RHICommandList& commandList, ShaderParameter const& param);
+
+
 		void setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
 		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer);
 
@@ -154,7 +158,8 @@ namespace Render
 
 			StructuredBlockInfo block;
 			block.structInfo = &bufferStruct;
-			if (mRHIResource->getResourceParameter(EShaderResourceType::Uniform, bufferStruct.blockName, block.param))
+			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Uniform, bufferStruct);
+			if (name && mRHIResource->getResourceParameter(EShaderResourceType::Uniform, name, block.param))
 			{
 				mBoundedBlocks.push_back(block);
 				setUniformBuffer(commandList, block.param, buffer);
@@ -162,24 +167,25 @@ namespace Render
 		}
 
 		template< class TStruct >
-		void setStructuredStorageBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer)
+		void setStructuredStorageBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
 		{
 			auto& bufferStruct = TStruct::GetStructInfo();
 			for (auto const& block : mBoundedBlocks)
 			{
 				if (block.structInfo == &bufferStruct)
 				{
-					setStorageBuffer(commandList, block.param, buffer);
+					setStorageBuffer(commandList, block.param, buffer, op);
 					return;
 				}
 			}
 
 			StructuredBlockInfo block;
 			block.structInfo = &bufferStruct;
-			if (mRHIResource->getResourceParameter(EShaderResourceType::Storage, bufferStruct.blockName, block.param))
+			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Storage, bufferStruct);
+			if (name && mRHIResource->getResourceParameter(EShaderResourceType::Storage, name, block.param))
 			{
 				mBoundedBlocks.push_back(block);
-				setStorageBuffer(commandList, block.param, buffer);
+				setStorageBuffer(commandList, block.param, buffer, op);
 			}
 		}
 		bool getParameter(char const* name, ShaderParameter& outParam);

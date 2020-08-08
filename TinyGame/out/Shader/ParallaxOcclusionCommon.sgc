@@ -50,7 +50,7 @@ POMOutput POMapping(in sampler2D dispTexture, in POMParameters parameters, float
 	POMOutput pomOutput;
 	if ( curDepth > 0 )
 	{
-		vec2 texPrev = texCur + dt;
+		float2 texPrev = texCur + dt;
 		float texDepthPrev = GetDispDepth(dispTexture, parameters, texPrev);
 		float w = (curDepth - texDepth) / (stepDepth + texDepthPrev - texDepth);
 		pomOutput.UVs = texCur + w * dt;
@@ -69,12 +69,12 @@ float CalcPOMSoftShadowMultiplier(in sampler2D dispTexture, in POMParameters par
 	float shadowMultiplier = 1;
 
 	// calculate lighting only for surface oriented to the light source
-	if( dot(vec3(0, 0, 1), LightVector) > 0 )
+	if( dot(float3(0, 0, 1), LightVector) > 0 )
 	{
 		// calculate initial parameters
 		float numSamplesUnderSurface = 0;
 		shadowMultiplier = 0;
-		float numLayers = mix(parameters.shadowIteratorParams.x, parameters.shadowIteratorParams.y, abs(dot(vec3(0, 0, 1), LightVector)));
+		float numLayers = mix(parameters.shadowIteratorParams.x, parameters.shadowIteratorParams.y, abs(dot(float3(0, 0, 1), LightVector)));
 		float layerHeight = inPosDepth / numLayers;
 		float2 texStep = parameters.parallaxScale * LightVector.xy / LightVector.z / numLayers;
 

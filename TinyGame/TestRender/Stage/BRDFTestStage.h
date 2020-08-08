@@ -9,9 +9,9 @@
 
 namespace Render
 {
-	struct GPU_BUFFER_ALIGN LightProbeVisualizeParams
+	struct GPU_ALIGN LightProbeVisualizeParams
 	{
-		DECLARE_BUFFER_STRUCT(LightProbeVisualizeParamsBlock);
+		DECLARE_UNIFORM_BUFFER_STRUCT(LightProbeVisualizeParamsBlock);
 		Vector3 xAxis;
 		float gridSize;
 		Vector3 yAxis;
@@ -240,14 +240,15 @@ namespace Render
 		{
 			return ERenderSystem::D3D11;
 		}
-		void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{
-			BaseClass::configRenderSystem(systemName, systemConfigs);
+			BaseClass::configRenderSystem(systenName, systemConfigs);
+			systemConfigs.defaultName = ERenderSystem::D3D11;
 			systemConfigs.screenWidth = 1024;
 			systemConfigs.screenHeight = 768;
 		}
-		virtual bool initializeRHIResource() override;
-		virtual void releaseRHIResource(bool bReInit = false) override;
+		virtual bool setupRenderSystem(ERenderSystem systemName) override;
+		virtual void preShutdownRenderSystem(bool bReInit = false) override;
 
 		bool onInit() override;
 

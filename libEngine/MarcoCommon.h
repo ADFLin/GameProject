@@ -17,6 +17,8 @@ constexpr size_t array_size(T(&ar)[N]) { return N; }
 #define MAKE_STRING_INNER(A) #A
 #define MAKE_STRING(A) MAKE_STRING_INNER(A)
 
+#define COMMA_SEPARATED(first, second, ...) first, second, ##__VA_ARGS__
+
 #define MARCO_NAME_COMBINE_2_INNER(s1, s2) s1##s2
 #define MARCO_NAME_COMBINE_2(s1, s2) MARCO_NAME_COMBINE_2_INNER(s1, s2)
 

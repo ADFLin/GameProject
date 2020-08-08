@@ -172,6 +172,8 @@
     <None Include="..\TinyGame\out\Shader\Game\PlanetSurface.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PointToRectOutline.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PongShader.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\RayTraceSDF.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\SDFSceneBuiltin.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Simple.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SimpleSprite.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SimpleSpriteParticle.sgc" />
@@ -216,6 +218,7 @@
     <None Include="..\TinyGame\out\Shader\ShadowLighting.sgc" />
     <None Include="..\TinyGame\out\Shader\ShadowMap.sgc" />
     <None Include="..\TinyGame\out\Shader\ShadowVolume.sgc" />
+    <None Include="..\TinyGame\out\Shader\SignedDistanceFieldCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\SimpleBasePass.sgc" />
     <None Include="..\TinyGame\out\Shader\SimpleElement.sgc" />
     <None Include="..\TinyGame\out\Shader\SimplePipelineShader.sgc" />

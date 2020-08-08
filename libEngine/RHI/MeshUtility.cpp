@@ -902,7 +902,7 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::Cube( Mesh& mesh , float halfLen )
+	bool MeshBuild::CubeOffset( Mesh& mesh , float halfLen , Vector3 const& offset )
 	{
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3 );
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3 );
@@ -915,7 +915,7 @@ namespace Render
 			Vector2 uv;
 			Vector4 tangent;
 		};
-		MyVertex v[] = 
+		MyVertex vertices[] = 
 		{
 			//x
 			{ halfLen * Vector3(1,1,1),Vector3(1,0,0),{0,0} },
@@ -948,6 +948,10 @@ namespace Render
 			{ halfLen * Vector3(-1,-1,-1),Vector3(0,0,-1),{0,0} },
 			{ halfLen * Vector3(-1,1,-1),Vector3(0,0,-1),{0,1} },
 		};
+		for (auto& v : vertices)
+		{
+			v.pos += offset;
+		}
 #if 1
 		int indices[] =
 		{
@@ -959,9 +963,9 @@ namespace Render
 			20 , 21 , 22 , 20 , 22 , 23 ,
 		};
 
-		FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 6);
+		FillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 6);
 		mesh.mType = EPrimitive::TriangleList;
-		if( !mesh.createRHIResource(&v[0], 6 * 4, &indices[0], 6 * 6, true) )
+		if( !mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 6, true) )
 			return false;
 #else
 		int indices[] =
@@ -974,15 +978,19 @@ namespace Render
 			20 , 21 , 22 , 23 ,
 		};
 
-		fillTangent_QuadList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 4);
+		fillTangent_QuadList(mesh.mInputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 4);
 		mesh.mType = EPrimitive::Quad;
-		if( !mesh.createRHIResource(&v[0], 6 * 4, &indices[0], 6 * 4, true) )
+		if( !mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 4, true) )
 			return false;
 #endif
 
 		return true;
 	}
 
+	bool MeshBuild::Cube(Mesh& mesh, float halfLen /*= 1.0f*/)
+	{
+		return CubeOffset(mesh, halfLen, Vector3::Zero());
+	}
 
 	bool MeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{

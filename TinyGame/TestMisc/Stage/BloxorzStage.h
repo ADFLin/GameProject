@@ -11,14 +11,17 @@
 #include "DataStructure/Grid2D.h"
 #include "Tween.h"
 #include "GameRenderSetup.h"
+#include "RHI/MeshUtility.h"
+#include "RHI/SimpleRenderState.h"
+#include "RHI/RenderContext.h"
+#include "RHI/DrawUtility.h"
 
 namespace Bloxorz
 {
+	using namespace Render;
 
-	typedef TVector2< int > Vec2i;
-	typedef TVector2< float > Vector2;
-	typedef TVector3< int > Vec3i;
-	typedef TVector3< float > Vec3f;
+	typedef Render::IntVector2 Vec2i;
+	typedef Render::IntVector3 Vec3i;
 
 	enum Dir
 	{
@@ -39,9 +42,9 @@ namespace Bloxorz
 		struct MatInfo
 		{
 			std::string texName;
-			Vec3f ka;
-			Vec3f kd;
-			Vec3f ks;
+			Vector3 ka;
+			Vector3 kd;
+			Vector3 ks;
 
 			float d;
 			float s;
@@ -63,8 +66,8 @@ namespace Bloxorz
 			VertexFormat format;
 		};
 		
-		std::vector< Vec3f > vertices;
-		std::vector< Vec3f > normals;
+		std::vector< Vector3 > vertices;
+		std::vector< Vector3 > normals;
 		std::vector< Vector2 > UVs;
 		std::vector< int >   indices;
 		std::vector< GroupInfo* > groups;
@@ -100,6 +103,30 @@ namespace Bloxorz
 
 	};
 
+	struct GPU_ALIGN ObjectData
+	{
+		DECLARE_BUFFER_STRUCT(ObjectDataBlock, Objects);
+
+		Matrix4 worldToLocal;
+		Vector4 typeParams;
+		int     Type;
+		int     MatID;
+		int     dummy[2];
+	};
+	struct GPU_ALIGN MaterialData
+	{
+		DECLARE_BUFFER_STRUCT(MaterialDataBlock, Materials);
+
+		Color3f color;
+		float   shininess;
+	};
+
+	struct GPU_ALIGN MapTileData
+	{
+		DECLARE_BUFFER_STRUCT(MapTileDataBlock, MapTiles);
+
+		Vector4 posAndSize;
+	};
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
 	{
@@ -124,10 +151,16 @@ namespace Bloxorz
 
 		bool onKey(KeyMsg const& msg);
 
+		void drawObjectBody( Vector3 const& color );
 
-		void drawObjectBody( Vec3f const& color );
-		void drawCube();
-		void drawCubeImpl();
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::D3D11;
+		}
+		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
+		virtual bool setupRenderSystem(ERenderSystem systemName) override;
+		virtual void preShutdownRenderSystem(bool bReInit = false) override;
+		
 	protected:
 		enum State
 		{
@@ -141,23 +174,55 @@ namespace Bloxorz
 		Dir    mMoveCur;
 		Dir    mMoveStack;
 		
-		Object mObject;
-		Vec3f  mLookPos;
-		Vec3f  mCamRefPos;
+		Object   mObject;
+		Vector3  mLookPos;
+		Vector3  mCamRefPos;
 		TGrid2D< int > mMap;
 		bool   mIsGoal;
 		bool   mbEditMode;
 
-		float  mRotateAngle;
-		Vec3f  mRotateAxis;
-		Vec3f  mRotatePos;
-		GLuint mCubeList;
-		float  mSpot;
+		bool bUseRayTrace = true;
+		bool bUseSceneBuitin = true;
+		bool bUseDeferredRending = false;
+		bool bFreeView = true;
+		bool bMoveCamera = true;
+
+		bool canInput()
+		{
+			if (bFreeView)
+			{
+				return !bMoveCamera;
+			}
+			return true;
+		}
+		SimpleCamera mCamera;
+		TransformStack mStack;
+		
+		int mNumMapTile;
+		std::vector< ObjectData > mObjectList;
+
+		class RayTraceProgram* mProgRayTrace;
+		class RayTraceProgram* mProgRayTraceBuiltin;
+		class RayTraceProgram* mProgRayTraceDeferred;
+		class RayTraceLightingProgram* mProgRayTraceLighting;
+		TStructuredBuffer< ObjectData >   mObjectBuffer;
+		TStructuredBuffer< MaterialData > mMaterialBuffer;
+		TStructuredBuffer< MapTileData >  mMapTileBuffer;
+		
+		RHITexture2DRef   mRenderBuffers[2];
+		RHIFrameBufferRef mFrameBuffer;
+		ViewInfo mView;
+		Mesh     mCube;
+
+		float    mRotateAngle;
+		Vector3  mRotateAxis;
+		Vector3  mRotatePos;
+		float    mSpot;
 
 		typedef std::vector< Object* > ObjectVec;
 		ObjectVec mObjects;
 		typedef Tween::GroupTweener< float > Tweener;
-		Tweener mTweener;
+		Tweener   mTweener;
 
 	};
 

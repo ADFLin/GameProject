@@ -34,7 +34,17 @@ void InputManager::stopKeyEvent( KeyCallback const& callback )
 
 bool InputManager::isKeyDown( unsigned key )
 {
-	return( ::GetAsyncKeyState( key ) &0x8000 ) != 0;
+	if (bActive)
+	{
+		return(::GetAsyncKeyState(key) & 0x8000) != 0;
+	}
+	return false;
+}
+
+InputManager& InputManager::Get()
+{
+	static InputManager sInstance;
+	return sInstance;
 }
 
 void InputManager::procMouseEvent( MouseMsg const& msg )

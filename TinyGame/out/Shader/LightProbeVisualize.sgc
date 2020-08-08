@@ -31,8 +31,8 @@ LightProbeVisualizeParameters LPV;
 
 struct VSOutputParameters
 {
-	float3 cameraOffset MEMBER_OUTPUT(TEXCOORD1);
-	float3 probePos     MEMBER_OUTPUT(TEXCOORD2);
+	float3 cameraOffset MEMBER_OUT(TEXCOORD1);
+	float3 probePos     MEMBER_OUT(TEXCOORD2);
 };
 
 

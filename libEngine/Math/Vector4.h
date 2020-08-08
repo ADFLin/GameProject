@@ -2,6 +2,8 @@
 #define Vector4_h__
 
 #include "Base.h"
+#include "Vector3.h"
+#include "Vector2.h"
 
 namespace Math
 {
@@ -18,7 +20,8 @@ namespace Math
 			:x(v[0]),y(v[1]), z(v[2]), w(v[3]){ }
 		explicit Vector4( Vector3 const& v , float w  = 1.0 )
 			:x(v.x),y(v.y),z(v.z),w(w){}
-
+		explicit Vector4(Vector2 const& u, Vector2 const& v)
+			:x(u.x), y(u.y), z(v.x), w(v.y){}
 
 		static Vector4 Zero() { return Vector4(0,0,0,0); }
 		void    setValue( float inX , float inY , float inZ , float inW ){  x = inX; y = inY ; z = inZ ; w = inW;  }

@@ -2,11 +2,14 @@
 #define FBirdStage_h__
 
 #include "StageBase.h"
+#include "GameRenderSetup.h"
+
 #include "FBLevel.h"
 
 #include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/TextureAtlas.h"
+
 
 
 namespace FlappyBird
@@ -31,7 +34,7 @@ namespace FlappyBird
 		};
 	};
 
-	class LevelStage : public StageBase
+	class LevelStage : public StageBase , public IGameRenderSetup
 	{
 		typedef StageBase BaseClass;
 	public:

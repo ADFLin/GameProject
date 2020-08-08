@@ -624,6 +624,7 @@ namespace Render
 		BCF_UsageDynamic = BIT(2),
 		BCF_UsageStage = BIT(3),
 		BCF_UsageConst = BIT(4),
+		BCF_Structured = BIT(5),
 
 
 		BCF_DefalutValue = 0,

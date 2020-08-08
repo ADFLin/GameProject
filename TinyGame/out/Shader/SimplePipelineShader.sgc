@@ -10,9 +10,9 @@
 
 struct OutputVSParam
 {
-	float4 color MEMBER_OUTPUT(TEXCOORD0);
+	float4 color MEMBER_OUT(TEXCOORD0);
 #if HAVE_TEXTCOORD
-	float2 UV    MEMBER_OUTPUT(TEXCOORD1);
+	float2 UV    MEMBER_OUT(TEXCOORD1);
 #endif
 };
 
@@ -61,6 +61,7 @@ PS_ENTRY_END(MainPS)
 #else
 	OutColor = OutputVS.color;
 #endif
+	//OutColor = float4(1, 0, 0, 1);
 }
 
 #endif //PIXEL_SHADER

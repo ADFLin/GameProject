@@ -252,7 +252,6 @@ namespace FlappyBird
 
 	bool LevelStage::onInit()
 	{
-		VERIFY_RETURN_FALSE(Global::GetDrawEngine().startupSystem(ERenderSystem::OpenGL));
 		::Global::GUI().cleanupWidget();
 
 		if( !loadResource() )

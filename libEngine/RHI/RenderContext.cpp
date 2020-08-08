@@ -82,9 +82,9 @@ namespace Render
 	}
 
 	//ref ViewParam.sgc
-	struct GPU_BUFFER_ALIGN ViewBufferData
+	struct GPU_ALIGN ViewBufferData
 	{
-		DECLARE_BUFFER_STRUCT(ViewBlock);
+		DECLARE_UNIFORM_BUFFER_STRUCT(ViewBlock);
 
 		Matrix4  worldToView;
 		Matrix4  worldToClip;
@@ -135,7 +135,7 @@ namespace Render
 		}
 	}
 
-	void ViewInfo::releaseRHIRelease()
+	void ViewInfo::releaseRHIResource()
 	{
 		mUniformBuffer.release();
 	}

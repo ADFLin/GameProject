@@ -915,7 +915,7 @@ namespace Render
 		++mNextUniformSlot;
 	}
 
-	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		glShaderStorageBlockBinding(OpenGLCast::GetHandle(shaderProgram), param.mLoc, mNextStorageSlot);
@@ -923,7 +923,7 @@ namespace Render
 		++mNextStorageSlot;
 	}
 
-	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		glShaderStorageBlockBinding(OpenGLCast::GetHandle(shader), param.mLoc, mNextStorageSlot);

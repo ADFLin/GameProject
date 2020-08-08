@@ -247,7 +247,7 @@ namespace Render
 
 	bool D3D11Shader::initialize(EShader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
 	{
-		if (!createResource(type, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
+		if (!mResource.initialize(type, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
 			return false;
 
 		byteCode.assign((uint8*)inByteCode->GetBufferPointer() , (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
@@ -257,35 +257,10 @@ namespace Render
 
 	bool D3D11Shader::initialize(EShader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode)
 	{
-		if (!createResource(type, device, inByteCode.data(), inByteCode.size()))
+		if (!mResource.initialize(type, device, inByteCode.data(), inByteCode.size()))
 			return false;
 
 		byteCode = std::move(inByteCode);
-		return true;
-	}
-
-	bool D3D11Shader::createResource(EShader::Type type, TComPtr<ID3D11Device>& device , uint8 const* pCode , size_t codeSize)
-	{
-		switch (type)
-		{
-#define CASE_SHADER(  TYPE , FUNC ,VAR )\
-		case TYPE:\
-			VERIFY_D3D11RESULT_RETURN_FALSE( device->FUNC(pCode, codeSize, NULL, &VAR) );\
-			break;
-
-		CASE_SHADER(EShader::Vertex, CreateVertexShader, mResource.vertex);
-		CASE_SHADER(EShader::Pixel, CreatePixelShader, mResource.pixel);
-		CASE_SHADER(EShader::Geometry, CreateGeometryShader, mResource.geometry);
-		CASE_SHADER(EShader::Compute, CreateComputeShader, mResource.compute);
-		CASE_SHADER(EShader::Hull, CreateHullShader, mResource.hull);
-		CASE_SHADER(EShader::Domain, CreateDomainShader, mResource.domain);
-
-#undef CASE_SHADER
-		default:
-			NEVER_REACH("D3D11Shader::createResource unknown shader Type");
-		}
-		mResource.type = type;
-		mResource.ptr->AddRef();
 		return true;
 	}
 
@@ -319,24 +294,53 @@ namespace Render
 							{
 								D3D11_SHADER_VARIABLE_DESC varDesc;
 								var->GetDesc(&varDesc);
-								parameterMap.addParameter(varDesc.Name, bindDesc.BindPoint, varDesc.StartOffset, varDesc.Size);
+								auto& param = parameterMap.addParameter(varDesc.Name, bindDesc.BindPoint, varDesc.StartOffset, varDesc.Size);
+#if _DEBUG
+								param.mbindType = EShaderParamBindType::Uniform;
+								param.mName = varDesc.Name;
+#endif
 							}
 						}
 					}
 					else
 					{
 						//CBuffer TBuffer
-						parameterMap.addParameter(bufferDesc.Name, bindDesc.BindPoint, 0, 0);
+						auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
+#if _DEBUG
+						param.mbindType = EShaderParamBindType::UniformBuffer;
+						param.mName = bindDesc.Name;
+#endif
 					}
 				}
 				break;
-			case D3D_SIT_STRUCTURED:
+
 			case D3D_SIT_SAMPLER:
+				{
+					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
+#if _DEBUG
+					param.mbindType = EShaderParamBindType::Sampler;
+					param.mName = bindDesc.Name;
+#endif
+				}
+				break;
 			case D3D_SIT_TEXTURE:
+				{
+					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
+#if _DEBUG
+					param.mbindType = EShaderParamBindType::Texture;
+					param.mName = bindDesc.Name;
+#endif
+				}
+				break;
 			case D3D_SIT_UAV_RWTYPED:
 			case D3D_SIT_UAV_APPEND_STRUCTURED:
+			case D3D_SIT_STRUCTURED:
 				{
-					parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
+					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
+#if _DEBUG
+					param.mbindType = EShaderParamBindType::StorageBuffer;
+					param.mName = bindDesc.Name;
+#endif
 				}
 				break;
 			}
@@ -392,6 +396,9 @@ namespace Render
 			if (param.mLoc == -1)
 			{
 				param.mLoc = mParamEntryMap.size();
+#if _DEBUG
+				param.mbindType = pair.second.mbindType;
+#endif
 				ParameterEntry entry;
 				entry.numParam = 0;
 				mParamEntryMap.push_back(entry);
@@ -428,6 +435,39 @@ namespace Render
 				mParamEntryMap[paramEntry.loc].paramIndex = index;
 				curLoc = paramEntry.loc;
 			}
+		}
+	}
+
+	bool D3D11ShaderResource::initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, size_t codeSize)
+	{
+		switch (inType)
+		{
+#define CASE_SHADER(  TYPE , FUNC ,VAR )\
+			case TYPE:\
+				VERIFY_D3D11RESULT_RETURN_FALSE( device->FUNC(pCode, codeSize, NULL, &VAR) );\
+				break;
+
+			CASE_SHADER(EShader::Vertex, CreateVertexShader, vertex);
+			CASE_SHADER(EShader::Pixel, CreatePixelShader, pixel);
+			CASE_SHADER(EShader::Geometry, CreateGeometryShader, geometry);
+			CASE_SHADER(EShader::Compute, CreateComputeShader, compute);
+			CASE_SHADER(EShader::Hull, CreateHullShader, hull);
+			CASE_SHADER(EShader::Domain, CreateDomainShader, domain);
+
+#undef CASE_SHADER
+		default:
+			NEVER_REACH("D3D11Shader::createResource unknown shader Type");
+		}
+		type = inType;
+		return true;
+	}
+
+	void D3D11ShaderResource::release()
+	{
+		if (ptr)
+		{
+			ptr->Release();
+			ptr = nullptr;
 		}
 	}
 

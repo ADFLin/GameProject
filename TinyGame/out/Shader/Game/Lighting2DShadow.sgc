@@ -2,7 +2,7 @@
 
 struct VSOutputParams
 {
-	float4 data MEMBER_OUTPUT(TEXCOORD0);
+	float4 data MEMBER_OUT(TEXCOORD0);
 };
 
 #if VERTEX_SHADER

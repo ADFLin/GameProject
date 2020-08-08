@@ -190,6 +190,13 @@
     <None Include="..\TinyGame\out\Material\Sphere.sgc">
       <Filter>Material</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\RayTraceSDF.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Game\SDFSceneBuiltin.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\SignedDistanceFieldCommon.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

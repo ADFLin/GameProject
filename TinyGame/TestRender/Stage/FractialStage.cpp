@@ -298,7 +298,7 @@ public:
 		restart();
 	}
 
-	virtual bool initializeRHIResource()
+	virtual bool setupRenderSystem()
 	{
 		VERIFY_RETURN_FALSE(mProgMandelbrot = ShaderManager::Get().getGlobalShaderT< MandelbrotProgram >(true));
 
@@ -326,7 +326,7 @@ public:
 
 		return true;
 	}
-	virtual void releaseRHIResource(bool bReInit = false)
+	virtual void preShutdownRenderSystem(bool bReInit = false)
 	{
 		mProgMandelbrot = nullptr;
 		mColorMap.release();

@@ -537,8 +537,10 @@ namespace RenderVulkan
 	public:
 		TestStage() {}
 
-		ERenderSystem getDefaultRenderSystem() { return ERenderSystem::Vulkan; }
-
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::Vulkan;
+		}
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )

@@ -3,7 +3,7 @@
 
 struct VSOutputParameters
 {
-	float3 UVs MEMBER_OUTPUT(TEXCOORD0);
+	float3 UVs MEMBER_OUT(TEXCOORD0);
 };
 
 

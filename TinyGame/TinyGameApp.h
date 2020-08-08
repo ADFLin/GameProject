@@ -163,7 +163,6 @@ public:
 	void  onTaskMessage( TaskBase* task , TaskMsg const& msg );
 
 
-	void handleToggleProflieGPU();
 private:
 	void               loadModules();
 	void               render( float dframe );

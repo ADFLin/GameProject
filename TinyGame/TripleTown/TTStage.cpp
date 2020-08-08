@@ -63,13 +63,7 @@ namespace TripleTown
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 		g.beginRender();
 
-		TRenderRT<RTVF_XY_CA>::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, indices , 6);
-
 		RenderUtility::SetBrush(g, EColor::White);
-		g.setPen(Color3ub(255, 0,0));
-		g.drawRect(Vec2i(200, 200), Vec2i(100, 100));
-		g.drawCircle(Vector2(400, 400), 20);
-
 
 		SimpleTextLayout layout;
 		RenderUtility::SetFont(g, FONT_S10);

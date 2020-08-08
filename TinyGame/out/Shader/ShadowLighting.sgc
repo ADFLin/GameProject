@@ -24,19 +24,19 @@ uniform PrimitiveParameters Primitive = PrimitiveParameters(
 uniform sampler2D ShadowTextureCube;
 #endif
 
-varying vec3 viewOffset;
-varying vec3 lightViewOffset;
-varying vec3 lightOffset;
-varying vec3 normal;
-varying vec3 color;
+varying float3 viewOffset;
+varying float3 lightViewOffset;
+varying float3 lightOffset;
+varying float3 normal;
+varying float3 color;
 
 #if VERTEX_SHADER
 
 void MainVS() 
 {
-	vec3 pos = vec3( Primitive.localToWorld * gl_Vertex );
+	float3 pos = float3( Primitive.localToWorld * gl_Vertex );
 	normal = mat3( Primitive.localToWorld ) * gl_Normal;
-	lightViewOffset = vec3( matLightView * vec4( pos , 1 ) );
+	lightViewOffset = float3( matLightView * float4( pos , 1 ) );
 	lightOffset = GLight.worldPosAndRadius.xyz - pos;
 	viewOffset = View.worldPos - pos;
 	color = gl_Color.rgb;
@@ -50,26 +50,26 @@ void MainVS()
 //layout(depth_unchanged) 
 out float gl_FragDepth;
 
-float calcShadowFactor( in vec3 viewOffset )
+float calcShadowFactor( in float3 viewOffset )
 {
 	const float factor = 0.01;
 #if USE_POINT_LIGHT
 	return CalcPointLightShadow(viewOffset);
 #else
-	vec3 lightViewDir = normalize( viewOffset );
+	float3 lightViewDir = normalize( viewOffset );
 	float testOffset = ShadowFactor * -viewOffset.z - ShadowBias;
 
 	float depth = ShadowFactor * ( testOffset - DepthParam.x ) / ( DepthParam.y - DepthParam.x ) - ShadowBias;
 	if ( depth > 1.0 )
 		return factor;
 
-	vec2 t = 0.5 - 0.5 * ( lightViewDir.xy ) / lightViewDir.z;
+	float2 t = 0.5 - 0.5 * ( lightViewDir.xy ) / lightViewDir.z;
 
 	float c = 1;
-	if ( dot( lightViewDir , vec3(0,0,-1) ) > 0.707 )
+	if ( dot( lightViewDir , float3(0,0,-1) ) > 0.707 )
 	{
-		vec2 dx = vec2( 1.0 / SMSize , 0 );
-		vec2 dy = vec2( 0 , 1.0 / SMSize );
+		float2 dx = float2( 1.0 / SMSize , 0 );
+		float2 dy = float2( 0 , 1.0 / SMSize );
 		float count;
 		count += ( texture( ShadowTextureCube , t ).r < depth ) ? 1.0 : 0.0;
 		count += ( texture( ShadowTextureCube , t + dx ).r < depth ) ? 1.0 : 0.0;
@@ -97,10 +97,10 @@ void MainPS()
 
 	float s = calcShadowFactor( lightViewOffset );
 	//s = 1;
-	vec3 N = normalize( normal );
+	float3 N = normalize( normal );
 	float dist = length( lightOffset );
-	vec3 L = lightOffset / dist;
-	vec3 V = normalize( viewOffset );
+	float3 L = lightOffset / dist;
+	float3 V = normalize( viewOffset );
 
 	float3 shading = PhongShading(GLight.color, GLight.color, N, L, V, 20.0);
 	gl_FragColor = float4( (s) * ( 1 / ( dist * dist + 1 ) ) * shading * color , 1 );

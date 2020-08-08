@@ -111,7 +111,7 @@ void MainPS()
 
 #endif
 	//depth = 0.5;
-	gl_FragColor = vec4(outDepth, outDepth, outDepth, 1.0);
+	gl_FragColor = float4(outDepth, outDepth, outDepth, 1.0);
 	//gl_FragColor = float4(shadowPos.xy / shadowPos.w, shadowPos.z / shadowPos.w, 0);
 	//gl_FragColor *= float4(materialParameters.worldNormal, 1);
 	//gl_FragColor = depth;

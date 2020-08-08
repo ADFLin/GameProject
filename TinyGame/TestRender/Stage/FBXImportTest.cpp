@@ -39,10 +39,7 @@ namespace Render
 
 		float mSkyLightInstensity = 1.0;
 
-		virtual ERenderSystem getDefaultRenderSystem() override
-		{
-			return ERenderSystem::D3D11;
-		}
+
 		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
@@ -55,10 +52,13 @@ namespace Render
  			return true;
 		}
 
-
-		virtual bool initializeRHIResource() override
+		ERenderSystem getDefaultRenderSystem() override
 		{
-			BaseClass::initializeRHIResource();
+			return ERenderSystem::D3D11;
+		}
+		virtual bool setupRenderSystem(ERenderSystem systemName) override
+		{
+			BaseClass::setupRenderSystem(systemName);
 
 			{
 				TIME_SCOPE("EnvLightingTest Shader");
@@ -91,7 +91,7 @@ namespace Render
 		}
 
 
-		virtual void releaseRHIResource(bool bReInit = false) override
+		virtual void preShutdownRenderSystem(bool bReInit = false) override
 		{
 			mTestShader.releaseRHI();
 
@@ -101,7 +101,7 @@ namespace Render
 			mRoughnessTexture.release();
 			mMesh.releaseRHIResource();
 
-			BaseClass::releaseRHIResource();
+			BaseClass::preShutdownRenderSystem();
 		}
 
 		void onEnd() override

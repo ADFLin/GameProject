@@ -26,8 +26,6 @@ using namespace Render;
 
 #define DETECT_LEELA_PROCESS 0
 
-class GPUDeviceQuery;
-
 namespace Go
 {
 
@@ -360,8 +358,6 @@ namespace Go
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
 
-		GPUDeviceQuery* mDeviceQuery = nullptr;
-
 		void drawWinRateDiagram( Vec2i const& renderPos ,  Vec2i const& renderSize );
 
 		class GameStatusQuery : public IGameCopier
@@ -537,7 +533,7 @@ namespace Go
 
 		bool saveMatchGameSGF(char const* matchResult = nullptr);
 	
-		void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{
 			systemConfigs.screenWidth = 1080;
 			systemConfigs.screenHeight = 720;

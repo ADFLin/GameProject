@@ -768,11 +768,10 @@ namespace Render
 		bool  mbDrawData = true;
 		Mesh mMesh;
 
-		virtual ERenderSystem getDefaultRenderSystem() override
+		ERenderSystem getDefaultRenderSystem() override
 		{
 			return ERenderSystem::OpenGL;
 		}
-
 
 		bool onInit() override
 		{
@@ -842,9 +841,9 @@ namespace Render
 
 
 
-		virtual bool initializeRHIResource() override
+		virtual bool setupRenderSystem(ERenderSystem systemName) override
 		{
-			VERIFY_RETURN_FALSE(BaseClass::initializeRHIResource());
+			VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
 
 			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
@@ -860,14 +859,14 @@ namespace Render
 			return true;
 		}
 
-		virtual void releaseRHIResource(bool bReInit) override
+		virtual void preShutdownRenderSystem(bool bReInit) override
 		{
 			mProgShowValue = nullptr;
 			mProgMeshRender = nullptr;
 			mDataTexture.release();
 			mMesh.releaseRHIResource();
 
-			BaseClass::releaseRHIResource(bReInit);
+			BaseClass::preShutdownRenderSystem(bReInit);
 		}
 
 		void onEnd() override

@@ -89,6 +89,7 @@ namespace Render
 		}
 
 		bool initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext);
+
 		void releaseResource()
 		{
 			for (auto& buffer : mConstBuffers)
@@ -111,10 +112,11 @@ namespace Render
 		}
 
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
+		void clearTexture(ShaderParameter const& parameter);
 		void setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture);
 		void setSampler(ShaderParameter const& parameter, RHISamplerState& sampler);
 		void setUniformBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer);
-
+		void setStructuredBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer, EAccessOperator op);
 		void setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize);
 
 
@@ -125,6 +127,9 @@ namespace Render
 
 		template< EShader::Type TypeValue >
 		void clearSRVResource(ID3D11DeviceContext* context);
+		template< EShader::Type TypeValue >
+		void commitSAVState(ID3D11DeviceContext* context);
+
 		void commitUAVState(ID3D11DeviceContext* context);
 
 		static int constexpr MaxConstBufferNum = 1;
@@ -386,17 +391,14 @@ namespace Render
 		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
 
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
-		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler) 
-		{
-			setShaderTexture(shaderProgram, param, texture);
-			setShaderSampler(shaderProgram, paramSampler, sampler);
-		}
+		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
+		void clearShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
 		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
 
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 
 		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
@@ -419,31 +421,44 @@ namespace Render
 
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
+		void clearShaderTexture(RHIShader& shader, ShaderParameter const& param)
+		{
+
+
+		}
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) {}
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 
 
 		uint32                mBoundedShaderMask = 0;
 		uint32                mBoundedShaderDirtyMask = 0;
 		D3D11ShaderVariant    mBoundedShaders[EShader::Count];
-		D3D11ShaderBoundState mShaderBoundState[EShader::Count];
+		D3D11ShaderBoundState mShaderBoundStates[EShader::Count];
 
 		D3D11DynamicBuffer    mDynamicVBuffer;
 		D3D11DynamicBuffer    mDynamicIBuffer;
 
 		D3D11_VIEWPORT mViewportState[8];
 
-		bool bUseFixedShaderPipeline = false;
+		bool bUseFixedShaderPipeline = true;
 		struct FixedShaderParams
 		{
 			Matrix4 transform;
 			LinearColor color;
 			RHITexture2D* texture;
 			RHISamplerState* sampler;
+
+			FixedShaderParams()
+			{
+				texture = nullptr;
+				sampler = nullptr;
+				transform == Matrix4::Identity();
+				color = LinearColor(1, 1, 1, 1);
+			}
 		};
 		FixedShaderParams mFixedShaderParams;
 

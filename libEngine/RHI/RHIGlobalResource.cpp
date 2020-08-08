@@ -37,8 +37,6 @@ namespace Render
 
 #if CORE_SHARE_CODE
 
-#define COMMA_SEPARATED(first, second, ...) first, second, ##__VA_ARGS__
-
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<false, true>));
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<false, false>));
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, true>));

@@ -8,7 +8,7 @@
 #define SHADER_PARAM( NAME ) #NAME
 #define SHADER_SAMPLER(NAME) #NAME"Sampler"
 
-#define GPU_BUFFER_ALIGN alignas(16)
+#define GPU_ALIGN alignas(16)
 
 #define RHI_API CORE_API
 

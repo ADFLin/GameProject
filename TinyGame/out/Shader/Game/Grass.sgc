@@ -8,8 +8,8 @@
 
 struct VSOutputParameters
 {
-	float2 UVs   MEMBER_OUTPUT(TEXCOORD0);
-	float4 color MEMBER_OUTPUT(TEXCOORD1);
+	float2 UVs   MEMBER_OUT(TEXCOORD0);
+	float4 color MEMBER_OUT(TEXCOORD1);
 };
 #if VERTEX_SHADER
 

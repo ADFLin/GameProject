@@ -13,6 +13,7 @@ enum class ERenderSystem
 
 struct RenderSystemConfigs
 {
+	ERenderSystem defaultName;
 	int32 screenWidth;
 	int32 screenHeight;
 	int32 numSamples;
@@ -33,27 +34,26 @@ class IGameRenderSetup
 public:
 	virtual ~IGameRenderSetup(){}
 
-
 	virtual ERenderSystem getDefaultRenderSystem()
 	{
 		return ERenderSystem::None;
 	}
 
-	virtual void configRenderSystem(ERenderSystem systemName, RenderSystemConfigs& systemConfigs)
+	virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 	{
 
 
 	}
 
-	virtual bool isRHISystemSupported(ERenderSystem name)
-	{
-		return false;
-	}
-	virtual bool initializeRHIResource()
+	virtual bool isRenderSystemSupported(ERenderSystem systemName)
 	{
 		return true;
 	}
-	virtual void releaseRHIResource(bool bReInit = false)
+	virtual bool setupRenderSystem(ERenderSystem systemName)
+	{
+		return true;
+	}
+	virtual void preShutdownRenderSystem(bool bReInit = false)
 	{
 
 	}

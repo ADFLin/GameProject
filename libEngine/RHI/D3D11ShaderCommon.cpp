@@ -299,6 +299,27 @@ namespace Render
 								param.mbindType = EShaderParamBindType::Uniform;
 								param.mName = varDesc.Name;
 #endif
+								ID3D11ShaderReflectionType* varType = var->GetType();
+								if (varType)
+								{
+									D3D11_SHADER_TYPE_DESC typeDesc;
+									varType->GetDesc(&typeDesc);
+
+									int lastOffset = varDesc.Size;
+									for (int indexMember = typeDesc.Members - 1; indexMember >= 0; --indexMember)
+									{
+										ID3D11ShaderReflectionType* memberType = varType->GetMemberTypeByIndex(indexMember);
+										D3D11_SHADER_TYPE_DESC memberTypeDesc;
+										memberType->GetDesc(&memberTypeDesc);
+										char const* memberName = varType->GetMemberTypeName(indexMember);
+
+										FixString<256> paramName;
+										paramName.format("%s.%s", varDesc.Name, memberName);
+										auto& param = parameterMap.addParameter(paramName, bindDesc.BindPoint, varDesc.StartOffset + memberTypeDesc.Offset, lastOffset - memberTypeDesc.Offset);
+
+										lastOffset = memberTypeDesc.Offset;
+									}
+								}
 							}
 						}
 					}

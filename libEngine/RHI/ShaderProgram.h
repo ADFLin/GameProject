@@ -36,6 +36,8 @@ namespace Render
 		void releaseRHI() { mRHIResource.release(); }
 
 		void setParam(RHICommandList& commandList, char const* name, int v1) { setParamT(commandList, name, v1); }
+
+
 		void setParam(RHICommandList& commandList, char const* name, int v1, int v2) { setParamT(commandList, name, IntVector2(v1, v2)); }
 		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3) { setParamT(commandList, name, IntVector3(v1, v2, v3)); }
 		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3, int v4) { setParamT(commandList, name, IntVector4(v1, v2, v3, v4)); }
@@ -48,6 +50,7 @@ namespace Render
 		void setMatrix33(RHICommandList& commandList, char const* name, float const* value, int num = 1);
 		void setMatrix44(RHICommandList& commandList, char const* name, float const* value, int num = 1);
 		void setParam(RHICommandList& commandList, char const* name, float const v[], int num);
+		void setVector2(RHICommandList& commandList, char const* name, float const v[], int num);
 		void setVector3(RHICommandList& commandList, char const* name, float const v[], int num);
 		void setVector4(RHICommandList& commandList, char const* name, float const v[], int num);
 
@@ -61,6 +64,8 @@ namespace Render
 		void setParam(RHICommandList& commandList, char const* name, Matrix4 const& m) { setMatrix44(commandList, name, m, 1); }
 		void setParam(RHICommandList& commandList, char const* name, Matrix3 const& m) { setMatrix33(commandList, name, m, 1); }
 		void setParam(RHICommandList& commandList, char const* name, Matrix4 const v[], int num) { setMatrix44(commandList, name, v[0], num); }
+
+		void setParam(RHICommandList& commandList, char const* name, Vector2 const v[], int num) { setVector2(commandList, name, (float*)&v[0], num); }
 		void setParam(RHICommandList& commandList, char const* name, Vector3 const v[], int num) { setVector3(commandList, name, (float*)&v[0], num); }
 		void setParam(RHICommandList& commandList, char const* name, Vector4 const v[], int num) { setVector4(commandList, name, (float*)&v[0], num); }
 
@@ -108,6 +113,7 @@ namespace Render
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const& m);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix3 const& m);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const v[], int num);
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector2 const v[], int num);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const v[], int num);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const v[], int num);
 
@@ -215,25 +221,48 @@ namespace Render
 
 #define SHADER_MEMBER_PARAM( NAME ) mParam##NAME
 #define DEFINE_SHADER_PARAM( NAME ) ShaderParameter SHADER_MEMBER_PARAM( NAME )
+#define DEFINE_TEXTURE_PARAM( NAME )\
+	DEFINE_SHADER_PARAM(NAME);\
+	DEFINE_SHADER_PARAM(NAME##Sampler)
 
 	template < class T >
 	constexpr T GetType(T&);
 
-	template< class TShader, ShaderParameter TShader::*MemberParam, class T >
-	FORCEINLINE void SetShaderParamT(RHICommandList& commandList, TShader& shader, T const& value )
+	template< class TShader, class T >
+	FORCEINLINE void SetShaderParamT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, T const& value)
 	{
-		shader.setParam(commandList, shader.*MemberParam, value);
+		shader.setParam(commandList, param, value);
 	}
 
-	template< class TShader, ShaderParameter TShader::*MemberParam >
-	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, RHITextureBase& value)
+	template< class TShader>
+	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, RHITextureBase& value)
 	{
-		shader.setTexture(commandList, shader.*MemberParam, value);
+		shader.setTexture(commandList, param, value);
+	}
+
+	template< class TShader >
+	FORCEINLINE void SetShaderTextureT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param, RHITextureBase& value, ShaderParameter const& paramSampler, RHISamplerState& sampler)
+	{
+		shader.setTexture(commandList, param, value, paramSampler, sampler);
+	}
+
+	template< class TShader >
+	FORCEINLINE void ClearShaderTextureT(RHICommandList& commandList, TShader& shader, ShaderParameter const& param)
+	{
+		shader.clearTexture(commandList, param);
 	}
 
 #define BIND_SHADER_PARAM( MAP , NAME ) SHADER_MEMBER_PARAM( NAME ).bind( MAP , SHADER_PARAM(NAME) )
-#define SET_SHADER_PARAM( COMMANDLIST, SHADER , NAME , VALUE ) SetShaderParamT< decltype(GetType(SHADER)) , &decltype(GetType(SHADER))::SHADER_MEMBER_PARAM(NAME) >( COMMANDLIST , SHADER , VALUE ) 
-#define SET_SHADER_TEXTURE( COMMANDLIST, SHADER , NAME , VALUE ) SetShaderTextureT< decltype(GetType(SHADER)) , &decltype(GetType(SHADER))::SHADER_MEMBER_PARAM(NAME) >( COMMANDLIST , SHADER , VALUE ) 
+#define BIND_TEXTURE_PARAM( MAP , NAME ) BIND_SHADER_PARAM( MAP, NAME ); BIND_SHADER_PARAM( MAP, NAME##Sampler)
+
+#define SET_SHADER_PARAM( COMMANDLIST, SHADER , NAME , VALUE )\
+	 SetShaderParamT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME), VALUE ) 
+#define SET_SHADER_TEXTURE( COMMANDLIST, SHADER , NAME , VALUE )\
+	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME),VALUE )
+#define SET_SHADER_TEXTURE_AND_SAMPLER( COMMANDLIST, SHADER , NAME , TEXTURE, SAMPLER )\
+	 SetShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME), TEXTURE, (SHADER).SHADER_MEMBER_PARAM(NAME##Sampler), SAMPLER )
+#define CLEAR_SHADER_TEXTURE(COMMANDLIST, SHADER, NAME)\
+	 ClearShaderTextureT( COMMANDLIST, SHADER, (SHADER).SHADER_MEMBER_PARAM(NAME) )
 }//namespace Render
 
 

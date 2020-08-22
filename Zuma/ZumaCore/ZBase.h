@@ -1,10 +1,12 @@
 #ifndef ZBase_h__
 #define ZBase_h__
 
+#include "MarcoCommon.h"
 #include "Math/TVector2.h"
 #include "Math/Vector2.h"
 #include "LogSystem.h"
 #include "FixString.h"
+
 
 #include <memory>
 
@@ -34,9 +36,6 @@ namespace Zuma
 
 	extern int DBG_X;
 	extern int DBG_Y;
-
-#define ARRAY_SIZE( AR ) ( sizeof(AR) / sizeof( AR[0]) )
-#define BIT( n ) ( 1 << (n) )
 
 	enum ZColor
 	{

@@ -71,7 +71,7 @@ namespace Poker { namespace Holdem {
 		case UI_RISE_MONEY_TEXT:
 			switch( event )
 			{
-			case EVT_TEXTCTRL_CHANGE:
+			case EVT_TEXTCTRL_VALUE_CHANGED:
 				char const* str = GUI::CastFast< GTextCtrl >( ui )->getValue();
 				if ( str )
 				{

@@ -9,19 +9,52 @@ namespace Render
 {
 	IMPLEMENT_SHADER_PROGRAM(SphereProgram);
 
+	void TextureShowFrame::updateSize()
+	{
+		//if (handle && handle->texture.isValid())
+		{
+			int width = 400;
+			RHITexture2D* texture = handle->texture;
+			setSize(Vec2i(width, width * texture->getSizeY() / float(texture->getSizeX())));
+		}
+	}
+
 	void TextureShowFrame::onRender()
 	{
+		
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
+		if (handle && handle->texture.isValid())
+		{
+			updateSize();
 
-		g.setBrush(Color3f::White());
-		g.drawTexture(*texture, getWorldPos(), getSize());
+			RHITexture2D* texture = handle->texture;
+			g.setBrush(Color3f::White());
+			g.setSampler(TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI());
 
-		if( isFocus() )
+			if (GRHIVericalFlip < 0)
+			{
+				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0,0), Vec2i(texture->getSizeX(), texture->getSizeY()));
+			}
+			else
+			{
+				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, texture->getSizeY()), Vec2i(texture->getSizeX(), -texture->getSizeY()));
+			}
+		
+
+			if (isFocus())
+			{
+				g.enableBrush(false);
+				g.setPen(Color3f(1, 1, 0));
+				g.drawRect(getWorldPos(), getSize());
+			}
+		}
+		else
 		{
 			g.enableBrush(false);
-			g.setPen(Color3f(1, 1, 0));
+			g.setPen(Color3f(1, 0, 0));
 			g.drawRect(getWorldPos(), getSize());
 		}
+
 	}
 
 	bool TextureShowFrame::onMouseMsg(MouseMsg const& msg)
@@ -58,6 +91,25 @@ namespace Render
 			getManager()->releaseMouse();
 			sbScaling = false;
 			sbMoving = false;
+		}
+		else if (msg.onRightDown())
+		{
+			GChoice* choice = new GChoice(UI_ANY, Vec2i(0, 0), Vec2i(100, 20), this);
+			for (auto const& pair : mManager->mTextureMap)
+			{
+				choice->addItem(pair.first);
+			}
+			choice->onEvent = [this, choice](int event, GWidget*) -> bool
+			{
+				auto iter = mManager->mTextureMap.find( choice->getSelectValue() );
+				if (iter != mManager->mTextureMap.end())
+				{
+					handle = iter->second;
+				}
+				choice->destroy();
+				return false;
+			};
+
 		}
 		else if( msg.onRightDClick() )
 		{
@@ -191,7 +243,7 @@ namespace Render
 
 		mCamera.lookAt(Vector3(20, 20, 20) , Vector3(0, 0, 0), Vector3(0, 0, 1));
 
-		ConsoleSystem::Get().registerCommand("ShowTexture", &TestRenderStageBase::handleShowTexture, this);
+		ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, this);
 
 		return true;
 	}
@@ -318,14 +370,35 @@ namespace Render
 	}
 
 
-	void TestRenderStageBase::handleShowTexture(char const* name)
+	void TextureShowManager::registerTexture(HashString const& name, RHITexture2D* texture)
 	{
 		auto iter = mTextureMap.find(name);
 		if (iter != mTextureMap.end())
 		{
-			TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
-			textureFrame->texture = iter->second;
-			::Global::GUI().addWidget(textureFrame);
+			iter->second->texture = texture;
+		}
+		else
+		{
+			TextureHandle* textureHandle = new TextureHandle;
+			textureHandle->texture = texture;
+			mTextureMap.emplace(name, textureHandle);
+		}
+	}
+
+	void TextureShowManager::handleShowTexture()
+	{
+		TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
+		textureFrame->handle;
+		textureFrame->mManager = this;
+		::Global::GUI().addWidget(textureFrame);
+	
+	}
+
+	void TextureShowManager::releaseRHI()
+	{
+		for (auto& pair : mTextureMap)
+		{
+			pair.second->texture.release();
 		}
 	}
 

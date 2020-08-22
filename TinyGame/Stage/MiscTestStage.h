@@ -1634,7 +1634,7 @@ public:
 		case UI_NUMBER_TEXT:
 			switch( event )
 			{
-			case EVT_TEXTCTRL_ENTER:
+			case EVT_TEXTCTRL_COMMITTED:
 				{
 					char const* str = GUI::CastFast< GTextCtrl >( ui )->getValue();
 					int input = atoi( str );

@@ -8,12 +8,12 @@ struct WaterVertexData
 	float v;
 };
 
-layout(std140) buffer WaterDataInBlock
+layout(std430) buffer WaterDataInBlock
 {
 	readonly WaterVertexData WaterVertices[];
 };
 
-layout(std140) buffer WaterDataOutBlock
+layout(std430) buffer WaterDataOutBlock
 {
 	WaterVertexData OutWaterVertices[];
 };

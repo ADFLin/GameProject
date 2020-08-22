@@ -22,8 +22,8 @@ enum
 enum
 {
 	EVT_BUTTON_CLICK    ,
-	EVT_TEXTCTRL_CHANGE   ,
-	EVT_TEXTCTRL_ENTER  ,
+	EVT_TEXTCTRL_VALUE_CHANGED   ,
+	EVT_TEXTCTRL_COMMITTED  ,
 	EVT_CHOICE_SELECT   ,
 	EVT_LISTCTRL_DCLICK ,
 	EVT_LISTCTRL_SELECT ,
@@ -177,7 +177,7 @@ public:
 
 	void onEditText();
 	void onModifyValue();
-	void onPressEnter(){ sendEvent( EVT_TEXTCTRL_ENTER ); }
+	void onPressEnter(){ sendEvent( EVT_TEXTCTRL_COMMITTED ); }
 	virtual void onFocus( bool beF );
 	void onRender();
 

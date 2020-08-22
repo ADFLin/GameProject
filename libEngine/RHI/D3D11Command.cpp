@@ -163,6 +163,8 @@ namespace Render
 
 		GRHIClipZMin = 0;
 		GRHIProjectYSign = 1;
+		GRHIVericalFlip = -1;
+
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 #if 1
@@ -227,7 +229,7 @@ namespace Render
 		swapChainDesc.BufferDesc.Height = info.extent.y;
 		swapChainDesc.BufferCount = info.bufferCount;
 		swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		//swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
 
 		TComPtr<IDXGISwapChain> swapChainResource;
@@ -241,7 +243,7 @@ namespace Render
 		TRefCountPtr< D3D11TextureDepth > depthTexture;
 		if (info.bCreateDepth)
 		{
-			depthTexture = (D3D11TextureDepth*)RHICreateTextureDepth(info.depthFormat, info.extent.x, info.extent.y, 1, info.numSamples);
+			depthTexture = (D3D11TextureDepth*)RHICreateTextureDepth(info.depthFormat, info.extent.x, info.extent.y, 1, info.numSamples, 0);
 		}
 		D3D11SwapChain* swapChain = new D3D11SwapChain(swapChainResource, *colorTexture, depthTexture);
 
@@ -292,11 +294,15 @@ namespace Render
 		return nullptr;
 	}
 
-	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
+	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
-		uint32 creationFlags = 0;
 		Texture2DCreationResult creationResult;
-		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, creationFlags, nullptr, 0, true, creationResult) )
+		auto formatD3D = D3D11Translate::To(format);
+		if (formatD3D == DXGI_FORMAT_D32_FLOAT && (creationFlags & TCF_CreateSRV))
+		{
+			formatD3D = DXGI_FORMAT_R32_TYPELESS;
+		}
+		if( createTexture2DInternal(formatD3D, w, h, numMipLevel, numSamples, creationFlags, nullptr, 0, true, creationResult) )
 		{
 			return new D3D11TextureDepth(format, creationResult);
 		}
@@ -688,6 +694,10 @@ namespace Render
 		if (creationFlags & TCF_CreateSRV)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
+			if (format == DXGI_FORMAT_R32_TYPELESS)
+			{
+				format = DXGI_FORMAT_R32_FLOAT;
+			}
 			desc.Format = format;
 			desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
 			desc.Texture2D.MipLevels = -1;
@@ -1882,6 +1892,12 @@ namespace Render
 		setShaderValueT(shaderProgram, param, val, dim);
 	}
 
+	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector2 const val[], int dim)
+	{
+		//valid layout ?
+		setShaderValueT(shaderProgram, param, val, dim);
+	}
+
 	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim)
 	{
 		//valid layout ?
@@ -2088,6 +2104,11 @@ namespace Render
 	}
 
 	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix3 const val[], int dim)
+	{
+		setShaderValueT(shader, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector2 const val[], int dim)
 	{
 		setShaderValueT(shader, param, val, dim);
 	}

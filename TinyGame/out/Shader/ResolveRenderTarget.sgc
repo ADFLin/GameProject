@@ -3,10 +3,20 @@
 #include "ViewParam.sgc"
 
 #if PIXEL_SHADER
-in VSOutputParameters VSOutput;
+
+#if COMPILER_HLSL
+
+#else
 uniform sampler2DMS UnsolvedDepthTexture;
-void ResolveDepthPS()
+#endif
+
+PS_ENTRY_START(ResolveDepthPS)
+	PS_INPUT_STRUCT( VSOutputParameters VSOutput, 0 )
+PS_ENTRY_END(ResolveDepthPS)
 {
+#if COMPILER_HLSL
+
+#else
 	int2 IntUV = int2( trunc( VSOutput.UVs ) );
 	float ResolvedDepth = texelFetch(UnsolvedDepthTexture, IntUV , 0 ).r;
 
@@ -19,6 +29,7 @@ void ResolveDepthPS()
 
 #endif
 	WritePixelRawDepth(ResolvedDepth);
+#endif
 }
 
 #endif

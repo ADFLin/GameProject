@@ -440,6 +440,7 @@
     <ClCompile Include="TestMisc\Test\AsyncWokTest.cpp" />
     <ClCompile Include="TestMisc\Test\BehaviorTreeTest.cpp" />
     <ClCompile Include="TestMisc\Test\BoneIKTest.cpp" />
+    <ClCompile Include="TestMisc\Test\CriminalTest.cpp" />
     <ClCompile Include="TestMisc\Test\DelegateTest.cpp" />
     <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp" />
     <ClCompile Include="TestMisc\Test\FunctionFitTest.cpp" />

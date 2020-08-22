@@ -103,8 +103,6 @@ namespace Render
 		static int const MaxInputNum = 4;
 
 		ShaderParameter mParamTextureInput[MaxInputNum];
-
-
 	};
 
 	class BloomDownsample : public GlobalShaderProgram
@@ -243,7 +241,7 @@ namespace Render
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{
 			BaseClass::configRenderSystem(systenName, systemConfigs);
-			systemConfigs.defaultName = ERenderSystem::D3D11;
+			systemConfigs.defaultName = ERenderSystem::OpenGL;
 			systemConfigs.screenWidth = 1024;
 			systemConfigs.screenHeight = 768;
 		}

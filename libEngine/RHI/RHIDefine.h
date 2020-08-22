@@ -16,6 +16,7 @@ namespace Render
 {
 	extern RHI_API float GRHIClipZMin;
 	extern RHI_API float GRHIProjectYSign;
+	extern RHI_API float GRHIVericalFlip;
 
 	enum class DeviceVendorName
 	{

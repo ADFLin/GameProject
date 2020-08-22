@@ -57,10 +57,10 @@ namespace Render
 			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/N.png", TextureLoadOption()));
 		}
 
-		registerTexture("HDR", *mHDRImage);
-		registerTexture("Rock", *mRockTexture);
-		registerTexture("Normal", *mNormalTexture);
-		registerTexture("BRDF", *IBLResource::SharedBRDFTexture);
+		registerTexture("HDR", mHDRImage);
+		registerTexture("Rock", mRockTexture);
+		registerTexture("Normal", mNormalTexture);
+		registerTexture("BRDF", IBLResource::SharedBRDFTexture);
 
 		VERIFY_RETURN_FALSE(MeshBuild::SkyBox(mSkyBox));
 

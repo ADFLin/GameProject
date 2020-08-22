@@ -770,7 +770,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 
 		bool onInit() override
@@ -893,7 +893,7 @@ namespace Render
 			initializeRenderState();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
-
+			RHISetFrameBuffer(commandList, nullptr);
 			RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 			DrawUtility::AixsLine(commandList);
 

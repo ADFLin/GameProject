@@ -491,7 +491,7 @@
     <ClInclude Include="RHI\D3D11ShaderCommon.h" />
     <ClInclude Include="RHI\DrawUtility.h" />
     <ClInclude Include="RHI\Font.h" />
-    <ClInclude Include="RHI\FrameGraph.h" />
+    <ClInclude Include="RHI\FrameRenderGraph.h" />
     <ClInclude Include="RHI\OpenGLCommon.h" />
     <ClInclude Include="RHI\GlobalShader.h" />
     <ClInclude Include="RHI\GpuProfiler.h" />

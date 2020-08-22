@@ -154,6 +154,12 @@ float4x4 inverse(float4x4 input)
 	return transpose(cofactors) / determinant(input);
 }
 
+float BufferDepthToClipZ(float bufferDepth)
+{
+	return bufferDepth;
+}
+
+
 #if PIXEL_SHADER
 
 void WritePixelDepth(float NDCz)

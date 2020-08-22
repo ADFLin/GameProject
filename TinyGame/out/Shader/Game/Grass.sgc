@@ -1,6 +1,5 @@
 #include "Common.sgc"
 #include "ViewParam.sgc"
-#include "PrimitiveParam.sgc"
 
 #ifndef USE_INSTANCED
 #define USE_INSTANCED 0
@@ -12,6 +11,8 @@ struct VSOutputParameters
 	float4 color MEMBER_OUT(TEXCOORD1);
 };
 #if VERTEX_SHADER
+
+uniform float4x4 LocalToWorld;
 
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float3 Pos, ATTRIBUTE_POSITION)
@@ -34,10 +35,13 @@ VS_ENTRY_END(MainVS)
 	instanceTransform[1] = float4(InstanceParam1.xyz, 0);
 	instanceTransform[2] = float4(InstanceParam2.xyz, 0);
 	instanceTransform[3] = float4(InstanceParam3.xyz, 1);
-	float4 worldPos = mul(Primitive.localToWorld , mul( instanceTransform , float4(Pos, 1) ) );
+#if COMPILER_HLSL
+	instanceTransform = transpose(instanceTransform);
+#endif
+	float4 worldPos = mul(LocalToWorld, mul( instanceTransform , float4(Pos, 1) ) );
 #else
 	VSOutput.color = float4(1,1,1,1);
-	float4 worldPos = mul( Primitive.localToWorld , float4(Pos, 1));
+	float4 worldPos = mul(LocalToWorld, float4(Pos, 1));
 #endif
 	SvPosition = mul( View.worldToClip , worldPos);
 }

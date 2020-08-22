@@ -2,6 +2,10 @@
 #include "ScreenVertexShader.sgc"
 #include "PostProcessCommon.sgc"
 
+#ifndef USE_BLOOM
+#define USE_BLOOM 0
+#endif
+
 #if PIXEL_SHADER
 
 float LinearToSRGB(float value)
@@ -30,6 +34,11 @@ float3 lumaBasedReinhardToneMapping(float3 color)
 	color = pow(color, (1. / Gamma).xxx);
 	return color;
 }
+
+#if USE_BLOOM
+DEFINE_TEXTURE(Texture2D, BloomTexture);
+#endif
+
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT( VSOutputParameters VSOutput, 0 )
 	PS_OUTPUT( float4 OutColor, 0 )
@@ -38,6 +47,9 @@ PS_ENTRY_END(MainPS)
 	float4 color = TEXTURE_SAMPLE(TextureInput0, VSOutput.UVs);
 
 	//color.rgb = lumaBasedReinhardToneMapping(color.rgb);
+#if USE_BLOOM
+	color.rgb += TEXTURE_SAMPLE(BloomTexture, VSOutput.UVs).rgb;
+#endif
 
 	OutColor.rgb = color.rgb;
 	OutColor.r = LinearToSRGB(color.r);

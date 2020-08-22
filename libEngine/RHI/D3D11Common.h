@@ -662,12 +662,30 @@ namespace Render
 
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
-			HRESULT hr = device->CreateDepthStencilView(mResource, nullptr, &mDSV);
+			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+			depthStencilDesc.Format = desc.Format;
+			if (depthStencilDesc.Format == DXGI_FORMAT_R32_TYPELESS)
+			{
+				depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+			}
+			if (mNumSamples > 1)
+			{
+			
+			}
+			else
+			{
+				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+				depthStencilDesc.Texture2D.MipSlice = 0;
+			}
+			
+			HRESULT hr = device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV);
 			if( hr != S_OK )
 			{
 				int i = 1;
 			}
 		}
+
+		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
 
 		virtual void releaseResource()
 		{

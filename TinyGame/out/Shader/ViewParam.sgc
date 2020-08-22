@@ -33,6 +33,21 @@ uniform ViewParameters View;
 #endif
 
 
+float BufferDepthToSceneDepth(float depth)
+{
+
+#if COMPILER_HLSL
+	float4 viewPos = mul(View.clipToView, float4(0, 0, BufferDepthToClipZ(depth), 1));
+	return -viewPos.z / viewPos.w;
+	//return -View.viewToClip[3][2] / (BufferDepthToClipZ(depth) - View.viewToClip[2][2]);
+#else
+#if USE_RIGHT_HAND_COORD
+	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
+#else
+	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
+#endif
+#endif
+}
 
 //#FIXME
 #if !COMPILER_HLSL
@@ -49,14 +64,7 @@ float2 BufferUVToScreenUV(float2 bufferUVs)
 	return bufferUVs - View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
 }
 
-float BufferDepthToSceneDepth(float depth)
-{
-#if USE_RIGHT_HAND_COORD
-	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
-#else
-	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) - View.viewToClip[2][2]);
-#endif
-}
+
 
 float ScreenUVToSceneDepth(float2 screenUVs)
 {

@@ -4,22 +4,98 @@
 
 #if PIXEL_SHADER
 
+#if SHADER_ENTRY_DownsamplePS
 
-sampler2D TargetTexture;
-void DownsamplePS()
+uniform float2 ExtentInverse;
+
+DEFINE_TEXTURE(Texture2D, Texture);
+
+
+float4 SampleValue(float2 UV)
 {
-	float3 color;
-	for( int j = 0 ; j < 2 ; ++j )
-	{
-		for( int i = 0; i < 2; ++i )
-		{
-			//texelFetch(TargetTexture , )
-		}
-	}
-
-
+	return TEXTURE_SAMPLE(Texture, UV);
 
 }
+PS_ENTRY_START(DownsamplePS)
+	PS_INPUT_STRUCT(VSOutputParameters OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(DownsamplePS)
+{
+#if 0
+	float2 UV = saturate(SvPosition.xy * ExtentInverse);
+	OutColor = SampleValue( UV );
+#else
+	float2 UVs[4];
+	UVs[0] = ((SvPosition.xy + float2(-1,-1)) * ExtentInverse);
+	UVs[1] = ((SvPosition.xy + float2(1, 1)) * ExtentInverse);
+	UVs[2] = ((SvPosition.xy + float2(-1, 1)) * ExtentInverse);
+	UVs[3] = ((SvPosition.xy + float2(1, -1)) * ExtentInverse);
+
+	OutColor = (SampleValue(UVs[0]) + SampleValue(UVs[1]) + SampleValue(UVs[2]) + SampleValue(UVs[3])) * 0.25;
+#endif
+
+}
+#endif
+
+#if SHADER_ENTRY_BloomSetupPS
+
+DEFINE_TEXTURE(Texture2D, Texture);
+uniform float BloomThreshold;
+PS_ENTRY_START(BloomSetupPS)
+	PS_INPUT_STRUCT(VSOutputParameters OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(BloomSetupPS)
+{
+	float4 color = TEXTURE_SAMPLE(Texture, OutputVS.UVs);
+	color.rgb = min((256 * 256).xxx, color.rgb);
+	float totalLuminance = dot(color.rgb, float3(0.3, 0.59, 0.11));
+	float bloomLuminance = totalLuminance - BloomThreshold;
+	OutColor = float4(0.5 * bloomLuminance * color.rgb, 0);
+}
+
+#endif
+
+#if SHADER_ENTRY_FliterPS
+
+#ifndef APPLY_ADD_TEXTURE
+#define APPLY_ADD_TEXTURE 0
+#endif
+
+#ifndef MAX_WEIGHT_NUM
+#define MAX_WEIGHT_NUM 128
+#endif
+
+uniform int WeightNum;
+uniform float4 Weights[MAX_WEIGHT_NUM];
+uniform float2 UVOffsets[MAX_WEIGHT_NUM];
+
+DEFINE_TEXTURE(Texture2D, FliterTexture);
+
+#if APPLY_ADD_TEXTURE
+DEFINE_TEXTURE(Texture2D, AddTexture);
+#endif
+
+
+PS_ENTRY_START(FliterPS)
+	PS_INPUT_STRUCT(VSOutputParameters OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(FliterPS)
+{
+	float4 color = float4(0, 0, 0, 0);
+	for (int i = 0; i < WeightNum; ++i)
+	{
+		color += Weights[i] * TEXTURE_SAMPLE(FliterTexture, OutputVS.UVs + UVOffsets[i]);
+	}
+
+#if APPLY_ADD_TEXTURE
+	color += TEXTURE_SAMPLE(AddTexture, OutputVS.UVs);
+#endif
+
+	OutColor = color;
+
+}
+#endif
+
 
 #endif
 

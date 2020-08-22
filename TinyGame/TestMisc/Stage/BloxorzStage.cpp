@@ -15,30 +15,31 @@
 #include "RHI/GpuProfiler.h"
 #include "FileSystem.h"
 #include "RHI/OpenGLCommon.h"
+#include "ConsoleSystem.h"
 
 namespace Bloxorz
 {
 	using namespace Render;
 
-	Object::Object() 
-		:mPos(0,0,0)
+	Object::Object()
+		:mPos(0, 0, 0)
 	{
 		mNumBodies = 1;
-		mBodiesPos[0] = Vec3i(0,0,0);
+		mBodiesPos[0] = Vec3i(0, 0, 0);
 	}
 
-	Object::Object(Object const& rhs) 
-		:mPos( rhs.mPos )
-		,mNumBodies( rhs.mNumBodies )
+	Object::Object(Object const& rhs)
+		:mPos(rhs.mPos)
+		, mNumBodies(rhs.mNumBodies)
 	{
-		std::copy( rhs.mBodiesPos , rhs.mBodiesPos + mNumBodies , mBodiesPos );
+		std::copy(rhs.mBodiesPos, rhs.mBodiesPos + mNumBodies, mBodiesPos);
 	}
 
 	void Object::addBody(Vec3i const& pos)
 	{
-		assert( mNumBodies < MaxBodyNum );
-		assert( pos.x >= 0 && pos.y >=0 && pos.z >= 0 );
-		mBodiesPos[ mNumBodies ] = pos;
+		assert(mNumBodies < MaxBodyNum);
+		assert(pos.x >= 0 && pos.y >= 0 && pos.z >= 0);
+		mBodiesPos[mNumBodies] = pos;
 		++mNumBodies;
 	}
 
@@ -46,63 +47,63 @@ namespace Bloxorz
 	{
 		uint32 idxAxis = dir & 1;
 
-		if ( isNegative( dir ) )
+		if (isNegative(dir))
 		{
 			int maxOffset = 0;
-			for( int i = 0 ; i < mNumBodies ; ++i )
+			for (int i = 0; i < mNumBodies; ++i)
 			{
 				Vec3i& bodyPos = mBodiesPos[i];
-				assert( bodyPos.x >= 0 && bodyPos.y >=0 && bodyPos.z >= 0 );
+				assert(bodyPos.x >= 0 && bodyPos.y >= 0 && bodyPos.z >= 0);
 				int offset = bodyPos.z;
 
-				bodyPos.z        = bodyPos[ idxAxis ];
+				bodyPos.z = bodyPos[idxAxis];
 				bodyPos[idxAxis] = -offset;
 
-				if ( maxOffset < offset )
+				if (maxOffset < offset)
 					maxOffset = offset;
 			}
 
-			for( int i = 0 ; i < mNumBodies ; ++i )
+			for (int i = 0; i < mNumBodies; ++i)
 			{
 				Vec3i& bodyPos = mBodiesPos[i];
 				bodyPos[idxAxis] += maxOffset;
 			}
 
-			mPos[idxAxis] -=  maxOffset + 1;
+			mPos[idxAxis] -= maxOffset + 1;
 		}
 		else
 		{
 			int maxOffset = 0;
-			for( int i = 0 ; i < mNumBodies ; ++i )
+			for (int i = 0; i < mNumBodies; ++i)
 			{
 				Vec3i& bodyPos = mBodiesPos[i];
-				assert( bodyPos.x >= 0 && bodyPos.y >=0 && bodyPos.z >= 0 );
-				int offset = bodyPos[ idxAxis ];
+				assert(bodyPos.x >= 0 && bodyPos.y >= 0 && bodyPos.z >= 0);
+				int offset = bodyPos[idxAxis];
 
 				bodyPos[idxAxis] = bodyPos.z;
-				bodyPos.z        = -offset;
+				bodyPos.z = -offset;
 
-				if ( maxOffset < offset )
+				if (maxOffset < offset)
 					maxOffset = offset;
 			}
 
-			for( int i = 0 ; i < mNumBodies ; ++i )
+			for (int i = 0; i < mNumBodies; ++i)
 			{
 				Vec3i& bodyPos = mBodiesPos[i];
 				bodyPos.z += maxOffset;
 			}
 
-			mPos[idxAxis] +=  maxOffset + 1;
+			mPos[idxAxis] += maxOffset + 1;
 		}
 	}
 
 	int Object::getMaxLocalPosX() const
 	{
 		int result = 0;
-		for( int i = 0 ; i < mNumBodies ; ++i )
+		for (int i = 0; i < mNumBodies; ++i)
 		{
 			Vec3i const& bodyPos = mBodiesPos[i];
-			if ( result < bodyPos.x )
+			if (result < bodyPos.x)
 				result = bodyPos.x;
 		}
 		return result;
@@ -111,10 +112,10 @@ namespace Bloxorz
 	int Object::getMaxLocalPosY() const
 	{
 		int result = 0;
-		for( int i = 0 ; i < mNumBodies ; ++i )
+		for (int i = 0; i < mNumBodies; ++i)
 		{
 			Vec3i const& bodyPos = mBodiesPos[i];
-			if ( result < bodyPos.y )
+			if (result < bodyPos.y)
 				result = bodyPos.y;
 		}
 		return result;
@@ -123,10 +124,10 @@ namespace Bloxorz
 	int Object::getMaxLocalPosZ() const
 	{
 		int result = 0;
-		for( int i = 0 ; i < mNumBodies ; ++i )
+		for (int i = 0; i < mNumBodies; ++i)
 		{
 			Vec3i const& bodyPos = mBodiesPos[i];
-			if ( result < bodyPos.z )
+			if (result < bodyPos.z)
 				result = bodyPos.z;
 		}
 		return result;
@@ -134,14 +135,14 @@ namespace Bloxorz
 
 	enum TileID
 	{
-		TILE_GOAL ,
+		TILE_GOAL,
 	};
 
 #define G 2
 
-	int map[] = 
+	int map[] =
 	{
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
 		1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
@@ -194,7 +195,7 @@ namespace Bloxorz
 		DEFINE_SHADER_PARAM(MapTileNum);
 	};
 
-	template< bool bUseBuiltinScene , bool bDeferredRendering >
+	template< bool bUseBuiltinScene, bool bDeferredRendering >
 	class TRayTraceProgram : public RayTraceProgram
 	{
 		DECLARE_SHADER_PROGRAM(TRayTraceProgram, Global);
@@ -217,6 +218,12 @@ namespace Bloxorz
 		using BassClass = RayTraceProgram;
 	public:
 
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(USE_BUILTIN_SCENE), true);
+			option.addDefine(SHADER_PARAM(USE_DEFERRED_RENDERING), true);
+		}
+
 		static char const* GetShaderFileName()
 		{
 			return "Shader/Game/RayTraceSDF";
@@ -235,48 +242,57 @@ namespace Bloxorz
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BassClass::bindParameters(parameterMap);
-			BIND_SHADER_PARAM(parameterMap, RenderTargetA);
-			BIND_SHADER_PARAM(parameterMap, RenderTargetASampler);
-			BIND_SHADER_PARAM(parameterMap, RenderTargetB);
-			BIND_SHADER_PARAM(parameterMap, RenderTargetBSampler);
+			BIND_TEXTURE_PARAM(parameterMap, RenderTargetA);
+			BIND_TEXTURE_PARAM(parameterMap, RenderTargetB);
 		}
 
 		void setRenderTargets(RHICommandList& commandList, RHITexture2DRef textures[])
 		{
-			setTexture(commandList, mParamRenderTargetA, *textures[0],
-				mParamRenderTargetASampler, TStaticSamplerState<>::GetRHI());
-			setTexture(commandList, mParamRenderTargetB, *textures[1],
-				mParamRenderTargetBSampler, TStaticSamplerState<>::GetRHI());
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, RenderTargetA, *textures[0], TStaticSamplerState<>::GetRHI());
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, RenderTargetB, *textures[1], TStaticSamplerState<>::GetRHI());
 		}
+
 		void clearRenderTargets(RHICommandList& commandList)
 		{
 			clearTexture(commandList, mParamRenderTargetA);
 			clearTexture(commandList, mParamRenderTargetB);
 		}
 
-		DEFINE_SHADER_PARAM(RenderTargetA);
-		DEFINE_SHADER_PARAM(RenderTargetASampler);
-		DEFINE_SHADER_PARAM(RenderTargetB);
-		DEFINE_SHADER_PARAM(RenderTargetBSampler);
+		DEFINE_TEXTURE_PARAM(RenderTargetA);
+		DEFINE_TEXTURE_PARAM(RenderTargetB);
 	};
 	IMPLEMENT_SHADER_PROGRAM(RayTraceLightingProgram);
+
+	IMPLEMENT_SHADER_PROGRAM(DownsampleProgram);
+	IMPLEMENT_SHADER_PROGRAM(BloomSetupProgram);
+	IMPLEMENT_SHADER_PROGRAM(FliterProgram);
+	IMPLEMENT_SHADER_PROGRAM(FliterAddProgram);
+	IMPLEMENT_SHADER_PROGRAM(TonemapProgram);
 
 	bool TestStage::onInit()
 	{
 		::Global::GUI().cleanupWidget();
-		
+
 		Vec2i screenSize = ::Global::GetScreenSize();
 
-		mTweener.tweenValue< Easing::CLinear >( mSpot , 0.0f , 0.5f , 1.0f ).cycle();
+		mTweener.tweenValue< Easing::CLinear >(mSpot, 0.0f, 0.5f, 1.0f).cycle();
 
-		mObject.addBody( Vec3i(0,0,1) );
-		mObject.addBody( Vec3i(0,0,2) );
-		mObject.addBody( Vec3i(0,1,0) );
-		mObject.addBody( Vec3i(0,1,1) );
-		mObject.addBody( Vec3i(0,1,2) );
+		mObject.addBody(Vec3i(0, 0, 1));
+		mObject.addBody(Vec3i(0, 0, 2));
+		mObject.addBody(Vec3i(0, 1, 0));
+		mObject.addBody(Vec3i(0, 1, 1));
+		mObject.addBody(Vec3i(0, 1, 2));
+#if 0
+		mObject.addBody(Vec3i(0, 2, 0));
+		mObject.addBody(Vec3i(0, 2, 1));
+		mObject.addBody(Vec3i(0, 2, 2));
+		mObject.addBody(Vec3i(0, 3, 0));
+		mObject.addBody(Vec3i(0, 3, 1));
+		mObject.addBody(Vec3i(0, 3, 2));
+#endif
 
-		mMap.resize( 12 , 20 );
-		for( int i = 0 ; i < 12 * 20 ; ++i )
+		mMap.resize(12, 20);
+		for (int i = 0; i < 12 * 20; ++i)
 			mMap[i] = map[i];
 
 		mLookPos.x = mObject.getPos().x + 1;
@@ -290,24 +306,44 @@ namespace Bloxorz
 		mCamera.lookAt(Vector3(10, 10, 10), Vector3(0, 0, 0), Vector3(0, 0, 1));
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseRayTrace") , bUseRayTrace);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseRayTrace"), bUseRayTrace);
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseSceneButin"), bUseSceneBuitin);
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseDeferredRending"), bUseDeferredRending);
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bFreeView"), bFreeView);
 		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bMoveCamera"), bMoveCamera);
+		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseBloom"), bUseBloom);
+
+		auto UpdateSceneEnvBufferFunc = [this](float) { UpdateSceneEnvBuffer(); };
+
+		frame->addText("Sun Intensity");
+		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSceneEnv.sunIntensity, 0, 10, 1, UpdateSceneEnvBufferFunc);
+		frame->addText("Fog Distance");
+		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSceneEnv.fogDistance, 0, 150, 1.3, UpdateSceneEnvBufferFunc);
+		frame->addText("Blur Radius Scale");
+		FWidgetPropery::Bind(frame->addSlider(UI_ANY), blurRadiusScale, 0, 30, 1);
+		frame->addText("Bloom Intensity");
+		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mBloomIntensity, 0, 5, 1);
+		frame->addText("Bloom Threshold");
+		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mBloomThreshold, -0.5, 2, 1);
+
+
+		ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, &mTextureShowManager);
+
 		restart();
 		return true;
 	}
 
 	void TestStage::onEnd()
 	{
+		ConsoleSystem::Get().unregisterCommandByName("ShowTexture");
 
+		BaseClass::onEnd();
 	}
 
 	void TestStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 	{
 #if 1
-		systemConfigs.screenWidth = 1080;
+		systemConfigs.screenWidth = 1280;
 		systemConfigs.screenHeight = 720;
 #else
 		systemConfigs.screenWidth = 800;
@@ -317,43 +353,45 @@ namespace Bloxorz
 
 
 	bool TestStage::setupRenderSystem(ERenderSystem systemName)
-{
+	{
 		if (GRHISystem->getName() == RHISytemName::OpenGL)
 		{
 			glEnable(GL_POLYGON_OFFSET_LINE);
 			glPolygonOffset(-0.4f, 0.2f);
 		}
 
+		ShaderHelper::Get().init();
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 
 		VERIFY_RETURN_FALSE(MeshBuild::CubeOffset(mCube, 0.5, Vector3(0.5, 0.5, 0.5)));
-		VERIFY_RETURN_FALSE(mObjectBuffer.initializeResource(256, EStructuredBufferType::Buffer ));
-		VERIFY_RETURN_FALSE(mMaterialBuffer.initializeResource(32, EStructuredBufferType::Buffer ));
+		VERIFY_RETURN_FALSE(mObjectBuffer.initializeResource(256, EStructuredBufferType::Buffer));
+		VERIFY_RETURN_FALSE(mMaterialBuffer.initializeResource(32, EStructuredBufferType::Buffer));
+		VERIFY_RETURN_FALSE(mSceneEnvBuffer.initializeResource(1));
+		UpdateSceneEnvBuffer();
 
 		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
-		for (int i = 0; i < ARRAY_SIZE(mRenderBuffers); ++i)
-		{
-			VERIFY_RETURN_FALSE(mRenderBuffers[i] = RHICreateTexture2D(
-				(i == 0 ) ? Texture::eRGBA32F : Texture::eFloatRGBA, screenSize.x, screenSize.y, 0, 1, 
-				TCF_CreateSRV | TCF_RenderTarget));
 
-			mFrameBuffer->addTexture(*mRenderBuffers[i]);
-		}
 
 		{
 			MaterialData* pMaterial = mMaterialBuffer.lock();
-			pMaterial[0].color = Color3f(1, 0, 0);
+			pMaterial[0].baseColor = Color3f(1, 0, 0);
+			pMaterial[0].emissiveColor = Color3f(0, 0, 0);
 			pMaterial[0].shininess = 5;
-			pMaterial[1].color = Color3f(0.5, 0.2, 0);
+			pMaterial[1].baseColor = Color3f(0.5, 0.2, 0);
+			pMaterial[1].emissiveColor = Color3f(0, 0, 0);
 			pMaterial[1].shininess = 5;
-			pMaterial[2].color = Color3f(1, 0.7, 0.3);
+			pMaterial[2].baseColor = Color3f(1, 0.7, 0.3);
+			pMaterial[2].emissiveColor = Color3f(0, 0, 0);
 			pMaterial[2].shininess = 5;
+			pMaterial[3].baseColor = Color3f(0, 0, 0.1);
+			pMaterial[3].emissiveColor = Color3f(10, 10, 0.1);
+			pMaterial[3].shininess = 5;
 			mMaterialBuffer.unlock();
 		}
 		{
 			VERIFY_RETURN_FALSE(mMapTileBuffer.initializeResource(mMap.getRawDataSize(), EStructuredBufferType::Buffer));
-			RegionManager manager( Vec2i( mMap.getSizeX() , mMap.getSizeY() ) );
+			RegionManager manager(Vec2i(mMap.getSizeX(), mMap.getSizeY()));
 			for (int j = 0; j < mMap.getSizeY(); ++j)
 			{
 				for (int i = 0; i < mMap.getSizeX(); ++i)
@@ -375,7 +413,7 @@ namespace Bloxorz
 			for (Region* region : manager.mRegionList)
 			{
 				Vector2 halfSize = 0.5 * Vector2(region->rect.getSize());
-				Vector2 pos = Vector2( region->rect.getMin() ) + halfSize;
+				Vector2 pos = Vector2(region->rect.getMin()) + halfSize;
 				pData->posAndSize = Vector4(pos.x, pos.y, halfSize.x, halfSize.y);
 				++mNumMapTile;
 				++pData;
@@ -391,12 +429,12 @@ namespace Bloxorz
 			for (int i = 0; i < mObject.mNumBodies; ++i)
 			{
 				char const* objectCode =
-				"{\n"
+					"{\n"
 					"ObjectData objectData = Objects[%d];\n"
 					"float3 localPos = mul(objectData.worldToLocal, float4(pos, 1)).xyz;\n"
 					"float objectdist = SDF_RoundBox(localPos.xyz, 0.4 * float3(1, 1, 1), 0.1);\n"
 					"data = SDF_Union(data, objectData.objectParams.y, objectdist);\n"
-				"}\n";
+					"}\n";
 
 				FixString<512> str;
 				str.format(objectCode, i);
@@ -408,11 +446,34 @@ namespace Bloxorz
 			code += "}\n";
 
 			FileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", code.data(), code.length());
+
+
+
 			VERIFY_RETURN_FALSE(mProgRayTrace = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TRayTraceProgram<false, false>) >());
-			VERIFY_RETURN_FALSE(mProgRayTraceBuiltin = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TRayTraceProgram<true,false>)>());
+			VERIFY_RETURN_FALSE(mProgRayTraceBuiltin = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TRayTraceProgram<true, false>)>());
 			VERIFY_RETURN_FALSE(mProgRayTraceDeferred = ShaderManager::Get().getGlobalShaderT<COMMA_SEPARATED(TRayTraceProgram<true, true>)>());
 			VERIFY_RETURN_FALSE(mProgRayTraceLighting = ShaderManager::Get().getGlobalShaderT< RayTraceLightingProgram >());
 
+
+
+
+		}
+
+
+		{
+
+			mSceneRenderTargets.initializeRHI(screenSize);
+
+			Color4ub colors[] = { Color4ub::Black() , Color4ub::White() , Color4ub::White() , Color4ub::Black() };
+			VERIFY_RETURN_FALSE(mGirdTexture = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, 1, TCF_DefalutValue, colors));
+
+			VERIFY_RETURN_FALSE(mProgFliter = ShaderManager::Get().getGlobalShaderT< FliterProgram >());
+			VERIFY_RETURN_FALSE(mProgFliterAdd = ShaderManager::Get().getGlobalShaderT< FliterAddProgram >());
+			VERIFY_RETURN_FALSE(mProgDownsample = ShaderManager::Get().getGlobalShaderT< DownsampleProgram >());
+			VERIFY_RETURN_FALSE(mProgBloomSetup = ShaderManager::Get().getGlobalShaderT< BloomSetupProgram >());
+			VERIFY_RETURN_FALSE(mProgTonemap = ShaderManager::Get().getGlobalShaderT< TonemapProgram >());
+
+			mBloomFrameBuffer = RHICreateFrameBuffer();
 		}
 
 
@@ -426,18 +487,36 @@ namespace Bloxorz
 		mProgRayTraceDeferred = nullptr;
 
 		mFrameBuffer.release();
-		for (int i = 0; i < ARRAY_SIZE(mRenderBuffers); ++i)
-		{
-			mRenderBuffers[i].release();
-		}
-		
+
 		mCube.releaseRHIResource();
 		mView.releaseRHIResource();
 		mMapTileBuffer.releaseResources();
 		mMaterialBuffer.releaseResources();
 		mObjectBuffer.releaseResources();
+		mSceneEnvBuffer.releaseResources();
+
+		mSceneRenderTargets.releaseRHI();
+
+		mGirdTexture.release();
+		mBloomFrameBuffer.release();
+
+		mRenderTargetPool.releaseRHI();
+
+		mTextureShowManager.releaseRHI();
+
+		ShaderHelper::Get().releaseRHI();
 	}
 
+
+	void TestStage::UpdateSceneEnvBuffer()
+	{
+		SceneEnvData* pData = mSceneEnvBuffer.lock();
+		if (pData)
+		{
+			*pData = mSceneEnv;
+			mSceneEnvBuffer.unlock();
+		}
+	}
 
 	void TestStage::restart()
 	{
@@ -446,44 +525,47 @@ namespace Bloxorz
 
 	void TestStage::onUpdate(long time)
 	{
-		BaseClass::onUpdate( time );
+		BaseClass::onUpdate(time);
 
 		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
+		for (int i = 0; i < frame; ++i)
 			tick();
 
-		updateFrame( frame );
+		updateFrame(frame);
 	}
 
 	void TestStage::updateFrame(int frame)
 	{
-		mTweener.update( float( frame * gDefaultTickTime ) / 1000.0f );
+		mTweener.update(float(frame * gDefaultTickTime) / 1000.0f);
 	}
 
 	void TestStage::tick()
 	{
-		if ( mMoveCur == DIR_NONE && canInput() )
+		if (mMoveCur == DIR_NONE && canInput())
 		{
-			if ( InputManager::Get().isKeyDown( EKeyCode::A ) )
-				requestMove( DIR_NX );
-			else if ( InputManager::Get().isKeyDown( EKeyCode::D ) )
-				requestMove( DIR_X ); 
-			else if ( InputManager::Get().isKeyDown( EKeyCode::S ) )
-				requestMove( DIR_NY );
-			else if ( InputManager::Get().isKeyDown( EKeyCode::W ) )
-				requestMove( DIR_Y );
+			if (InputManager::Get().isKeyDown(EKeyCode::A))
+				requestMove(DIR_NX);
+			else if (InputManager::Get().isKeyDown(EKeyCode::D))
+				requestMove(DIR_X);
+			else if (InputManager::Get().isKeyDown(EKeyCode::S))
+				requestMove(DIR_NY);
+			else if (InputManager::Get().isKeyDown(EKeyCode::W))
+				requestMove(DIR_Y);
 		}
 	}
 
 	void TestStage::onRender(float dFrame)
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+		mRenderTargetPool.freeAllUsedElements();
+
 		RHISetFrameBuffer(commandList, nullptr);
-		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0,0,0,1), 1);	
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 1), 1);
 		Vec2i screenSize = ::Global::GetScreenSize();
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 		float aspect = float(screenSize.x) / screenSize.y;
-		Matrix4 projectionMatrix = PerspectiveMatrix(Math::Deg2Rad(45) , aspect, 0.01, 1000);
+		Matrix4 projectionMatrix = PerspectiveMatrix(Math::Deg2Rad(45), aspect, 0.01, 1000);
 
 		mCamRefPos = Vector3(-3, -7, 12);
 		Vector3 posCam = mLookPos + mCamRefPos;
@@ -548,18 +630,18 @@ namespace Bloxorz
 			mStack.translate(Vector3(pos));
 			mStack.push();
 			{
-				Vector3 color = Vector3( 1, 1 , 0 );
-				if ( mMoveCur != DIR_NONE )
+				Vector3 color = Vector3(1, 1, 0);
+				if (mMoveCur != DIR_NONE)
 				{
 					mStack.translate(mRotatePos);
 					mStack.rotate(Quaternion::Rotate(mRotateAxis, Math::Deg2Rad(mRotateAngle)));
 					mStack.translate(-mRotatePos);
 				}
-				else if ( mIsGoal )
+				else if (mIsGoal)
 				{
-					color = Vector3( 0.9 , mSpot , mSpot );
+					color = Vector3(0.9, mSpot, mSpot);
 				}
-				drawObjectBody( color );
+				drawObjectBody(color);
 			}
 			mStack.pop();
 		}
@@ -575,17 +657,30 @@ namespace Bloxorz
 				mObjectBuffer.unlock();
 			}
 
+			RHITexture2DRef   renderBuffers[2];
+
+			RenderTargetDesc desc;
+			desc.size = screenSize;
+			desc.format = Texture::eFloatRGBA;
+			desc.creationFlags = TCF_CreateSRV;
+
+			renderBuffers[0] = mRenderTargetPool.fetchElement(desc)->texture;
+			renderBuffers[1] = mRenderTargetPool.fetchElement(desc)->texture;
+
 			RayTraceProgram* progRayTrace;
 			if (bUseDeferredRending)
 			{
+				mFrameBuffer->setTexture(0, *renderBuffers[0]);
+				mFrameBuffer->setTexture(1, *renderBuffers[1]);
 				RHISetFrameBuffer(commandList, mFrameBuffer);
 				LinearColor clearColors[2] = { LinearColor(0, 0, 0, 0) , LinearColor(0, 0, 0, 0) };
-				RHIClearRenderTargets(commandList, EClearBits::Color , clearColors , 2 );
+				RHIClearRenderTargets(commandList, EClearBits::Color, clearColors, 2);
 
 				progRayTrace = mProgRayTraceDeferred;
 			}
 			else
 			{
+				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 				progRayTrace = (bUseSceneBuitin) ? mProgRayTraceBuiltin : mProgRayTrace;
 			}
 
@@ -603,35 +698,241 @@ namespace Bloxorz
 				SET_SHADER_PARAM(commandList, *progRayTrace, MapTileNum, int(mNumMapTile));
 				progRayTrace->setStructuredStorageBufferT< MapTileData >(commandList, *mMapTileBuffer.getRHI());
 			}
+			if (!bUseDeferredRending)
+			{
+				progRayTrace->setStructuredUniformBufferT< SceneEnvData >(commandList, *mSceneEnvBuffer.getRHI());
+			}
 			DrawUtility::ScreenRect(commandList);
 
 			if (bUseDeferredRending)
 			{
-				RHISetFrameBuffer(commandList, nullptr);
+				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 				RHISetShaderProgram(commandList, mProgRayTraceLighting->getRHIResource());
-				mProgRayTraceLighting->setRenderTargets(commandList, mRenderBuffers);
+				mView.setupShader(commandList, *mProgRayTraceLighting);
+				mProgRayTraceLighting->setRenderTargets(commandList, renderBuffers);
 				//SET_SHADER_PARAM(commandList, *mProgRayTraceLighting, ObjectNum, (int)mObjectList.size());
 				mProgRayTraceLighting->setParam(commandList, SHADER_PARAM(ObjectNum), (int)mObjectList.size());
 				mProgRayTraceLighting->setStructuredStorageBufferT< ObjectData >(commandList, *mObjectBuffer.getRHI());
 				mProgRayTraceLighting->setStructuredStorageBufferT< MaterialData >(commandList, *mMaterialBuffer.getRHI());
+				mProgRayTraceLighting->setStructuredUniformBufferT< SceneEnvData >(commandList, *mSceneEnvBuffer.getRHI());
 				DrawUtility::ScreenRect(commandList);
 
 				mProgRayTraceLighting->clearRenderTargets(commandList);
 			}
 		}
 
-		RHISetFrameBuffer(commandList, nullptr);
+		RHITexture2DRef postProcessRT;
+		if (bUseBloom)
+		{
+			GPU_PROFILE("Bloom");
+
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+
+			RHITexture2DRef downsampleTextures[6];
+
+			{
+				GPU_PROFILE("Downsample");
+
+				auto DownsamplePass = [this](RHICommandList& commandList, int index, RHITexture2D& sourceTexture) -> RHITexture2DRef
+				{
+					RenderTargetDesc desc;
+					FixString<128> str;
+					str.format("Downsample(%d)", index);
+
+					Vec2i size;
+					size.x = (sourceTexture.getSizeX() + 1) / 2;
+					size.y = (sourceTexture.getSizeY() + 1) / 2;
+					desc.debugName = str;
+					desc.size = size;
+					desc.format = Texture::eFloatRGBA;
+					desc.creationFlags = TCF_CreateSRV;
+					RHITexture2DRef downsampleTexture = mRenderTargetPool.fetchElement(desc)->texture;
+					mBloomFrameBuffer->setTexture(0, *downsampleTexture);
+					RHISetViewport(commandList, 0, 0, size.x, size.y);
+					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
+					RHISetShaderProgram(commandList, mProgDownsample->getRHIResource());
+					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgDownsample, Texture, sourceTexture, sampler);
+					SET_SHADER_PARAM(commandList, *mProgDownsample, ExtentInverse, Vector2(1 / float(size.x), 1 / float(size.y)));
+
+					DrawUtility::ScreenRect(commandList);
+					return downsampleTexture;
+				};
+
+				RHITexture2DRef halfSceneTexture;
+				{
+					GPU_PROFILE("Downsample(0)");
+					halfSceneTexture = DownsamplePass(commandList, 0, mSceneRenderTargets.getFrameTexture());
+				}
+
+				{
+					GPU_PROFILE("BloomSetup");
+
+					RenderTargetDesc desc;
+					Vec2i size = Vec2i(halfSceneTexture->getSizeX(), halfSceneTexture->getSizeY());
+					desc.debugName = "BloomSetup";
+					desc.size = size;
+					desc.format = Texture::eFloatRGBA;
+					desc.creationFlags = TCF_CreateSRV;
+
+					PooledRenderTargetRef bloomSetupRT = mRenderTargetPool.fetchElement(desc);
+
+					mBloomFrameBuffer->setTexture(0, *bloomSetupRT->texture);
+					RHISetViewport(commandList, 0, 0, size.x, size.y);
+					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
+					RHISetShaderProgram(commandList, mProgBloomSetup->getRHIResource());
+
+					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBloomSetup, Texture, *halfSceneTexture, sampler);
+					SET_SHADER_PARAM(commandList, *mProgBloomSetup, BloomThreshold, mBloomThreshold);
+
+					DrawUtility::ScreenRect(commandList);
+
+					downsampleTextures[0] = bloomSetupRT->texture;
+				}
+
+				{
+
+					for (int i = 1; i < ARRAY_SIZE(downsampleTextures); ++i)
+					{
+						GPU_PROFILE("Downsample(%d)", i);
+						downsampleTextures[i] = DownsamplePass(commandList, i, *downsampleTextures[i - 1]);
+					}
+				}
+			}
+
+			{
+				auto BlurPass = [this](RHICommandList& commandList, int index, RHITexture2D& fliterTexture, RHITexture2D& bloomTexture, LinearColor const& tint, float blurSize)
+				{
+					int numSamples = 0;
+					float bloomRadius = blurSize * 0.01 * 0.5 * fliterTexture.getSizeX() * blurRadiusScale;
+
+					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+
+					IntVector2 sizeH = IntVector2(fliterTexture.getSizeX(), fliterTexture.getSizeY()); ;
+
+					FixString<128> str;
+					RenderTargetDesc desc;
+					str.format("BlurH(%d)", index);
+					desc.debugName = str;
+					desc.size = sizeH;
+					desc.format = Texture::eFloatRGBA;
+					desc.creationFlags = TCF_CreateSRV;
+					PooledRenderTargetRef blurXRT = mRenderTargetPool.fetchElement(desc);
+					mBloomFrameBuffer->setTexture(0, *blurXRT->texture);
+					{
+						GPU_PROFILE(str);
+						RHISetFrameBuffer(commandList, mBloomFrameBuffer);
+						RHISetViewport(commandList, 0, 0, sizeH.x , sizeH.y);
+						RHISetShaderProgram(commandList, mProgFliter->getRHIResource());
+						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliter, FliterTexture, fliterTexture, sampler);
+						numSamples = generateFliterData(fliterTexture.getSizeX(), Vector2(1, 0), LinearColor(1,1,1,1), bloomRadius);
+						mProgFliter->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), 128);
+						mProgFliter->setParam(commandList, SHADER_PARAM(UVOffsets), mUVOffsetData.data(), 128);
+						mProgFliter->setParam(commandList, SHADER_PARAM(WeightNum), numSamples);
+						DrawUtility::ScreenRect(commandList);
+
+					}
+
+					IntVector2 sizeV = IntVector2(fliterTexture.getSizeX(), fliterTexture.getSizeY()); ;
+
+					str.format("BlurV(%d)", index);
+					desc.debugName = str;
+					PooledRenderTargetRef blurYRT = mRenderTargetPool.fetchElement(desc);
+					mBloomFrameBuffer->setTexture(0, *blurYRT->texture);
+					{
+						GPU_PROFILE(str);
+						RHISetFrameBuffer(commandList, mBloomFrameBuffer);
+						RHISetViewport(commandList, 0, 0, sizeV.x, sizeV.y);
+						RHISetShaderProgram(commandList, mProgFliterAdd->getRHIResource());
+
+						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, FliterTexture, *blurXRT->texture, sampler);
+						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, AddTexture, bloomTexture, sampler);
+						numSamples = generateFliterData(fliterTexture.getSizeY(), Vector2(0, 1), tint, bloomRadius);
+						mProgFliterAdd->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), 128);
+						mProgFliterAdd->setParam(commandList, SHADER_PARAM(UVOffsets), mUVOffsetData.data(), 128);
+						mProgFliterAdd->setParam(commandList, SHADER_PARAM(WeightNum), numSamples);
+						DrawUtility::ScreenRect(commandList);
+					}
+
+					return blurYRT->texture;
+				};
+
+				struct BlurInfo
+				{
+					LinearColor tint;
+					float size;
+				};
+
+				BlurInfo blurInfos[] =
+				{
+					{ LinearColor(0.3465f, 0.3465f, 0.3465f), 0.3f },
+					{ LinearColor(0.138f, 0.138f, 0.138f), 1.0f },
+					{ LinearColor(0.1176f, 0.1176f, 0.1176f), 2.0f },
+					{ LinearColor(0.066f, 0.066f, 0.066f), 10.0f },
+					{ LinearColor(0.066f, 0.066f, 0.066f), 30.0f },
+					{ LinearColor(0.061f, 0.061f, 0.061f), 64.0f },
+				};
+				RHITexture2DRef bloomTexture = GBlackTexture2D;
+				{
+					GPU_PROFILE("Blur");
+					float tintScale = mBloomIntensity / float(ARRAY_SIZE(downsampleTextures));
+
+					
+					for (int i = 0; i < ARRAY_SIZE(downsampleTextures); ++i)
+					{
+						int index = ARRAY_SIZE(downsampleTextures) - 1 - i;
+						RHITexture2DRef fliterTexture = downsampleTextures[index];
+						bloomTexture = BlurPass(commandList, i, *fliterTexture, *bloomTexture, Vector4(blurInfos[index].tint) * tintScale, blurInfos[index].size);
+					}
+				}
+
+				{
+					GPU_PROFILE("Tonemap");
+					mSceneRenderTargets.swapFrameTexture();
+
+					RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
+					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+					RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
+
+					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgTonemap, BloomTexture, *bloomTexture, sampler);
+					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgTonemap, TextureInput0, mSceneRenderTargets.getPrevFrameTexture(), sampler);
+					DrawUtility::ScreenRect(commandList);
+
+				}
+
+				postProcessRT = &mSceneRenderTargets.getFrameTexture();
+			}
+
+		}
+		else
+		{
+			postProcessRT = &mSceneRenderTargets.getFrameTexture();
+		}
+
+		{
+			GPU_PROFILE("CopyToBackBuffer");
+			RHISetFrameBuffer(commandList, nullptr);
+			RHISetViewport(commandList, 0, 0, screenSize.x , screenSize.y);
+			ShaderHelper::Get().copyTextureToBuffer(commandList, *postProcessRT);
+			//ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
+		}
+
+		updateRenderTargetShow();
+
 		RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
-		DrawUtility::AixsLine(commandList);
+		//DrawUtility::AixsLine(commandList);
 
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-
 	}
 
-	void TestStage::drawObjectBody( Vector3 const& color )
+	void TestStage::drawObjectBody(Vector3 const& color)
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		for( int i = 0 ; i < mObject.mNumBodies ; ++i )
+		for (int i = 0; i < mObject.mNumBodies; ++i)
 		{
 			Vec3i const& posBody = mObject.mBodiesPos[i];
 			mStack.push();
@@ -647,7 +948,7 @@ namespace Bloxorz
 				object.worldToLocal.translate(Vector3(-0.5));
 				object.Type = 0;
 				object.MatID = 3;
-				object.typeParams = Vector4(1,1,1,0);
+				object.typeParams = Vector4(1, 1, 1, 0);
 				mObjectList.push_back(object);
 			}
 			else
@@ -658,92 +959,93 @@ namespace Bloxorz
 
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe >::GetRHI());
 				RHISetFixedShaderPipelineState(commandList, mStack.get(), LinearColor(0, 0, 0, 1));
+				mCube.draw(commandList);
 			}
-			mCube.draw(commandList);
+
 			mStack.pop();
 		}
 	}
 
 	void TestStage::requestMove(Dir dir)
 	{
-		if ( mMoveCur != DIR_NONE )
+		if (mMoveCur != DIR_NONE)
 			return;
 
-		Object testObj = Object( mObject );
-		testObj.move( dir );
+		Object testObj = Object(mObject);
+		testObj.move(dir);
 		uint8 holeDirMask;
-		State state = checkObjectState( testObj , holeDirMask );
-		switch( state )
+		State state = checkObjectState(testObj, holeDirMask);
+		switch (state)
 		{
 		case eFall: return;
 		case eGoal: mIsGoal = true; break;
 		case eMove: mIsGoal = false; break;
 		}
-	
+
 		mMoveCur = dir;
-		switch( dir )
+		switch (dir)
 		{
 		case DIR_X:
-			mRotateAxis  = Vector3(0,1,0);
-			mRotatePos   = Vector3(1+mObject.getMaxLocalPosX(),0,0);
+			mRotateAxis = Vector3(0, 1, 0);
+			mRotatePos = Vector3(1 + mObject.getMaxLocalPosX(), 0, 0);
 			break;
 		case DIR_NX:
-			mRotateAxis  = Vector3(0,-1,0);
-			mRotatePos   = Vector3(0,0,0);
+			mRotateAxis = Vector3(0, -1, 0);
+			mRotatePos = Vector3(0, 0, 0);
 			break;
 		case DIR_Y:
-			mRotateAxis  = Vector3(-1,0,0);
-			mRotatePos   = Vector3(0,1+mObject.getMaxLocalPosY(),0);
+			mRotateAxis = Vector3(-1, 0, 0);
+			mRotatePos = Vector3(0, 1 + mObject.getMaxLocalPosY(), 0);
 			break;
 		case DIR_NY:
-			mRotateAxis  = Vector3(1,0,0);
-			mRotatePos   = Vector3(0,0,0);
+			mRotateAxis = Vector3(1, 0, 0);
+			mRotatePos = Vector3(0, 0, 0);
 			break;
 		}
 		float time = 0.4f;
 		mRotateAngle = 0;
-		mTweener.tweenValue< Easing::OQuad >( mRotateAngle , 0.0f , 90.0f , time ).finishCallback( std::bind( &TestStage::moveObject , this ) );
+		mTweener.tweenValue< Easing::OQuad >(mRotateAngle, 0.0f, 90.0f, time).finishCallback(std::bind(&TestStage::moveObject, this));
 		Vector3 to;
 		to.x = testObj.getPos().x + 1;
 		to.y = testObj.getPos().y + 1;
 		to.z = 0;
-		mTweener.tweenValue< Easing::OQuad >( mLookPos , mLookPos  , to , time );
+		mTweener.tweenValue< Easing::OQuad >(mLookPos, mLookPos, to, time);
 	}
 
 	void TestStage::moveObject()
 	{
-		mObject.move( mMoveCur );
+		mObject.move(mMoveCur);
 		mMoveCur = DIR_NONE;
 	}
 
-	TestStage::State TestStage::checkObjectState( Object const& object , uint8& holeDirMask )
+	TestStage::State TestStage::checkObjectState(Object const& object, uint8& holeDirMask)
 	{
 		Vec2i posAcc = Vec2i::Zero();
-		Vec2i holdPos[ Object::MaxBodyNum ];
+		Vec2i holdPos[Object::MaxBodyNum];
 		int numHold = 0;
 		Vec3i const& posObj = object.getPos();
 
 		bool isGoal = true;
-		for( int i = 0 ; i < object.getBodyNum() ; ++i )
+		for (int i = 0; i < object.getBodyNum(); ++i)
 		{
-			Vec3i const& posBody = object.getBodyLocalPos( i );
+			Vec3i const& posBody = object.getBodyLocalPos(i);
 
-			posAcc += 2 * Vec2i( posBody.x , posBody.y );
+			posAcc += 2 * Vec2i(posBody.x, posBody.y);
 
 			Vec2i pos;
 			pos.x = posObj.x + posBody.x;
 			pos.y = posObj.y + posBody.y;
 
-			if ( mMap.checkRange( pos.x , pos.y ) )
+			if (mMap.checkRange(pos.x, pos.y))
 			{
-				int data =  mMap.getData( pos.x , pos.y );
-				if ( data )
+				int data = mMap.getData(pos.x, pos.y);
+				if (data)
 				{
-					holdPos[ numHold ].x = 2 * posBody.x;
-					holdPos[ numHold ].y = 2 * posBody.y;
+					holdPos[numHold].x = 2 * posBody.x;
+					holdPos[numHold].y = 2 * posBody.y;
 					++numHold;
 
-					if ( data != 2 )
+					if (data != 2)
 					{
 						isGoal = false;
 					}
@@ -752,41 +1054,41 @@ namespace Bloxorz
 		}
 
 		Vec2i centerPos;
-		centerPos.x = floor( float( posAcc.x ) / object.getBodyNum() );
-		if ( ( posAcc.x % object.getBodyNum() ) != 0 && ( centerPos.x % 2 ) == 1 )
+		centerPos.x = floor(float(posAcc.x) / object.getBodyNum());
+		if ((posAcc.x % object.getBodyNum()) != 0 && (centerPos.x % 2) == 1)
 			centerPos.x += 1;
-		centerPos.y = floor( float( posAcc.y ) / object.getBodyNum() );
-		if ( ( posAcc.y % object.getBodyNum() ) != 0 && ( centerPos.y % 2 ) == 1 )
+		centerPos.y = floor(float(posAcc.y) / object.getBodyNum());
+		if ((posAcc.y % object.getBodyNum()) != 0 && (centerPos.y % 2) == 1)
 			centerPos.y += 1;
 
-		holeDirMask = ( BIT( DIR_X ) | BIT( DIR_Y ) | BIT( DIR_NX ) | BIT( DIR_NY ) );
-		for( int i = 0 ; i < numHold ; ++i )
+		holeDirMask = (BIT(DIR_X) | BIT(DIR_Y) | BIT(DIR_NX) | BIT(DIR_NY));
+		for (int i = 0; i < numHold; ++i)
 		{
 			Vec2i const& pos = holdPos[i];
 
-			if ( centerPos.x < pos.x )
-				holeDirMask &= ~( BIT(DIR_X) );
-			else if ( centerPos.x > pos.x )
-				holeDirMask &= ~( BIT(DIR_NX) );
+			if (centerPos.x < pos.x)
+				holeDirMask &= ~(BIT(DIR_X));
+			else if (centerPos.x > pos.x)
+				holeDirMask &= ~(BIT(DIR_NX));
 			else
 			{
-				holeDirMask &= ~( BIT(DIR_X) | BIT(DIR_NX) );
+				holeDirMask &= ~(BIT(DIR_X) | BIT(DIR_NX));
 			}
 
-			if ( centerPos.y < pos.y )
-				holeDirMask &= ~( BIT(DIR_Y) );
-			else if ( centerPos.y > pos.y )
-				holeDirMask &= ~( BIT(DIR_NY) );
+			if (centerPos.y < pos.y)
+				holeDirMask &= ~(BIT(DIR_Y));
+			else if (centerPos.y > pos.y)
+				holeDirMask &= ~(BIT(DIR_NY));
 			else
 			{
-				holeDirMask &= ~( BIT(DIR_Y) | BIT(DIR_NY) );
+				holeDirMask &= ~(BIT(DIR_Y) | BIT(DIR_NY));
 			}
 		}
-		
-		if ( holeDirMask != 0 )
+
+		if (holeDirMask != 0)
 			return eFall;
 
-		if ( !isGoal )
+		if (!isGoal)
 			return eMove;
 
 		return eGoal;
@@ -794,14 +1096,14 @@ namespace Bloxorz
 
 	bool TestStage::onKey(KeyMsg const& msg)
 	{
-		if ( msg.isDown())
+		if (msg.isDown())
 		{
 			switch (msg.getCode())
 			{
 			case EKeyCode::R: restart(); break;
 			}
 
-			if ( !canInput() )
+			if (!canInput())
 			{
 				switch (msg.getCode())
 				{
@@ -820,7 +1122,7 @@ namespace Bloxorz
 
 	bool TestStage::onMouse(MouseMsg const& msg)
 	{
-		if ( !BaseClass::onMouse( msg ) )
+		if (!BaseClass::onMouse(msg))
 			return false;
 
 		if (bFreeView)
@@ -840,91 +1142,6 @@ namespace Bloxorz
 		}
 
 		return false;
-	}
-
-	std::istream& operator >> ( std::istream& is , Vector3& vec )
-	{
-		is >> vec.x >> vec.y >> vec.z;
-		return is;
-	}
-
-	std::istream& operator >> ( std::istream& is , Vector2& vec )
-	{
-		is >> vec.x >> vec.y;
-		return is;
-	}
-
-	bool OBJFile::load(char const* path)
-	{
-#if 0
-		std::ifstream fs( path );
-
-		char buf[256];
-
-		Vec3f      vec;
-		GroupInfo* groupCur = NULL;
-
-		int index = 0;
-
-		while ( fs )
-		{
-			fs.getline( buf , sizeof(buf)/sizeof(char) );
-
-			std::string decr;
-			std::stringstream ss( buf );
-
-			StringTokenizer
-
-			ss >> decr;
-
-			if ( decr == "v" )
-			{
-				Vec3f v;
-				ss >> v;
-				vertices.push_back( v );
-			}
-			else if ( decr == "vt" )
-			{
-				Vector2 v;
-				ss >> v;
-				UVs.push_back( v );
-			}
-			else if ( decr == "vn" )
-			{
-				Vec3f v;
-				ss >> v;
-				normals.push_back( v );
-			}
-			else if ( decr == "g" )
-			{
-				groupCur = new GroupInfo;
-				groups.push_back( groupCur );
-				groupCur->format;
-				ss >> groupCur->name;
-			}
-			else if ( decr == "f" )
-			{
-				char sbuf[256];
-				int v[3];
-				for ( int i = 0 ; i < 3 ; ++ i )
-				{
-					ss >> sbuf;
-					sscanf(  sbuf , "%d/%d/%d" , &v[0] , &v[1] , &v[2]);
-					tri.v[i] = v[0];
-				}
-			}
-			else if ( decr == "usemtl")
-			{
-				ss >> groupCur->matName;
-			}
-			else if ( decr == "mtllib" )
-			{
-				loadMatFile( buf + strlen("mtllib") + 1 );
-			}
-		}
-#endif
-
-		return true;
 	}
 
 }//namespace Bloxorz

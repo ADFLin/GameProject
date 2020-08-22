@@ -19,7 +19,7 @@
 #include "DeferredShadingCommon.sgc"
 #endif
 
-layout(std140) buffer ParticleDataBlock
+layout(std430) buffer ParticleDataBlock
 {
 	ParticleData Particles[];
 };

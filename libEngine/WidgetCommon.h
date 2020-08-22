@@ -373,6 +373,7 @@ public:
 		mLightSelect = INDEX_NONE;
 	}
 
+
 	class Menu : public CoreImpl
 	{
 	public:
@@ -383,17 +384,23 @@ public:
 
 		}
 
+		~Menu()
+		{
+
+		}
+
 		virtual void focus( bool beF )
 		{
 			CoreImpl::focus( beF ); 
-			if (!beF) 
+			if (!beF && getOwner())
+			{
 				getOwner()->destroyMenu();
+			}
 		}
 		WChoiceT* getOwner(){ return mOwner; }
 		virtual void render(){  getOwner()->notifyRenderMenu( this );  }
 		virtual bool onMouseMsg( MouseMsg const& msg ){  return getOwner()->notifyMenuMouseMsg( this , msg ); }
 
-	private:
 		WChoiceT* mOwner;
 	};
 

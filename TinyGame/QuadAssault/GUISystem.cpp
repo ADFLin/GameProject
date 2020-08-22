@@ -446,7 +446,7 @@ void QTextCtrl::onModifyValue()
 void QTextCtrl::onEditText()
 {
 	text->setString( getValue() );
-	sendEvent( EVT_TEXTCTRL_CHANGE );
+	sendEvent( EVT_TEXTCTRL_VALUE_CHANGED );
 }
 
 void QTextCtrl::onFocus( bool beF )

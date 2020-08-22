@@ -27,6 +27,8 @@ struct MaterialData
 {
 	float3 baseColor;
 	float  shininess;
+	float3 emissiveeColor;
+	float  dummy;
 };
 
 struct MapTileData
@@ -56,12 +58,30 @@ layout(std430) buffer MapTileDataBlock
 };
 #endif
 
+struct SceneEnvData
+{
+	float3 sunDirection;
+	float  sunIntensity;
+	float3 fogColor;
+	float  fogDistance;
+};
+
+#if SHADER_COMPILING
+layout(std140) cbuffer SceneEnvDataBlock
+{
+	SceneEnvData SceneEnv;
+};
+#else
+uniform SceneEnvData SceneEnv;
+#endif
+
 uniform int ObjectNum;
 uniform int MapTileNum;
 
 #if USE_BUILTIN_SCENE
 #include "SDFSceneBuiltin.sgc"
 #endif
+
 
 SDFSceneOut SDFScene(float3 pos)
 {
@@ -117,7 +137,7 @@ SDFSceneOut SDFScene(float3 pos)
 		data = SDF_Union(data, objectData.objectParams.y, objectdist);
 	}
 #endif
-	data = SDF_Union(data, 2, SDF_Plane(pos, float3(0, 0, 1), 10.0));
+	//data = SDF_Union(data, 2, SDF_Plane(pos, float3(0, 0, 1), 10.0));
 #endif
 
 	return data;
@@ -160,7 +180,7 @@ RayCastResult RayCast(float3 start , float3 dir)
 float CalcShadow( float3 pos , float3 lightDir)
 {
 	int step = 0;
-	float totalDist = 0.05;
+	float totalDist = 0.10;
 	float shadow = 1.0;
 	float ph = 1e20;
 	float k = 8;
@@ -259,13 +279,13 @@ float3 CalcLighting(float3 pos, int matId , float3 rayDir, float rayDist , float
 	float NoV = dot(N, V);
 	// sun
 	{
-		float3  L = normalize(float3(-0.5, -0.6, 0.2));
+		float3  L = SceneEnv.sunDirection;
 
 		float3  H = normalize(L + V);
 		float NoH = saturate(dot(N, H));
 		float NoL = saturate(dot(N, L));
 
-		float dif = NoL * CalcShadow(pos, L);
+		float dif = SceneEnv.sunIntensity * NoL * CalcShadow(pos, L);
 		//float dif = NoL;
 		float spe = pow(NoH, 16.0);
 		spe *= dif;
@@ -300,8 +320,10 @@ float3 CalcLighting(float3 pos, int matId , float3 rayDir, float rayDist , float
 #endif
 	// lighting
 	float ao = CalcAO(pos, N);
+	//float ao = 1;
 	//Fog
-	lighting = lerp(lighting + diffuse * ao , float3(0.7, 0.7, 0.9), 1.0 - exp(-0.00005*rayDist*rayDist*rayDist));
+	float fogFactor = rayDist / SceneEnv.fogDistance;
+	lighting = lerp(lighting + diffuse * ao + Materials[matId].emissiveeColor, SceneEnv.fogColor, 1.0 - exp(-Pow3(fogFactor)));
 	return lighting;
 }
 
@@ -363,7 +385,7 @@ PS_ENTRY_END(BasePassPS)
 			{
 				color = CalcLighting(traceResult.hitPos, traceResult.id, rayDir, rayDist, CalcSceneNormal(traceResult.hitPos));
 			}
-			colorAcc += saturate(color);
+			colorAcc += color;
 			//colorAcc += CalcSceneNormal(traceResult.hitPos);
 
 #if SAMPE_COUNT
@@ -371,7 +393,7 @@ PS_ENTRY_END(BasePassPS)
 	}
 	colorAcc /= float(SAMPE_COUNT*SAMPE_COUNT);
 #endif
-	colorAcc = pow(colorAcc, float3(0.4545.xxx));
+	//colorAcc = pow(colorAcc, float3(0.4545.xxx));
 	OutColor = float4(colorAcc, 1);
 
 #endif
@@ -395,20 +417,22 @@ PS_ENTRY_END(LightingPS)
 
 	int matId = int(targetA.a) - 1;
 
-	clip(matId >= 0 ? 1 : -1);
+	//clip(matId >= 0 ? 1 : -1);
 
 	float3 pos = targetA.xyz;
 	float3 rayOffset = pos - View.worldPos;
 	float rayDist = length(rayOffset);
 	float3 rayDir = rayOffset / rayDist;
-	float3 N = targetB.xyz;
+
+	float3 N = normalize( targetB.xyz );
 
 	float3 color = float3(0.7, 0.7, 0.9) - max(rayDir.z, 0.0)*0.3;
+	color = float3(0, 0, 0);
 	if (matId >= 0)
 	{
 		color = CalcLighting(pos, matId, rayDir, rayDist, N);
 	}
-	color = pow(saturate(color), float3(0.4545.xxx));
+	//color = pow(saturate(color), float3(0.4545.xxx));
 	OutColor = float4(color, 1);
 	
 	//OutColor = float4(pos, 1);

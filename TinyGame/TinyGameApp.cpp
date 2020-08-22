@@ -56,7 +56,7 @@
 
 int  GDevMsgLevel = -1;
 
-TConsoleVariable<bool> GbProfileGPU( false , "ProfileGPU", CVF_TOGGLEABLE);
+TConsoleVariable<bool> GbProfileGPU(true , "ProfileGPU", CVF_TOGGLEABLE);
 TConsoleVariable<bool> GbDrawGPUUsage(false, "r.GPUUsage", CVF_TOGGLEABLE);
 
 TINY_API IGameNetInterface* GGameNetInterfaceImpl;
@@ -858,7 +858,7 @@ void TinyGameApp::render( float dframe )
 		}
 	}
 
-	if( GbProfileGPU )
+	if( GbProfileGPU && GRHISystem )
 	{
 		g.setTextColor(Color3ub(255, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
@@ -870,6 +870,18 @@ void TinyGameApp::render( float dframe )
 		FixString< 512 > str;
 		FixString< 512 > temp;
 		int curLevel = 0;
+		auto GetSystemNameString = [](RHISytemName name)
+		{
+			switch (name)
+			{
+			case RHISytemName::OpenGL: return "OpenGL";
+			case RHISytemName::D3D11:  return "D3D11";
+			case RHISytemName::D3D12: return "D3D12";
+			case RHISytemName::Vulkan: return "Vulkan";
+			}
+			return "Unknown";
+		};
+		textlayout.show(g, "system = %s", GetSystemNameString(GRHISystem->getName()) );
 		for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
 		{
 			GpuProfileSample* sample = GpuProfiler::Get().getSample(i);

@@ -192,6 +192,7 @@ void WChoiceT<Impl, CoreImpl>::destroyMenu()
 	if ( mMenu )
 	{
 		mMenu->destroy();
+		mMenu->mOwner = nullptr;
 		mMenu = nullptr;
 		unmarkDeferredDestroy();
 	}

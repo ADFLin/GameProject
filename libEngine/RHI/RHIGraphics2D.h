@@ -34,6 +34,7 @@ public:
 
 	using Vector2 = Math::Vector2;
 	using RHITexture2D = Render::RHITexture2D;
+	using RHISamplerState = Render::RHISamplerState;
 
 	void  init(int w, int h);
 	void  beginXForm();
@@ -89,6 +90,7 @@ public:
 
 
 	void  setTexture(RHITexture2D& texture);
+	void  setSampler(RHISamplerState& sampler);
 	void  drawTexture(Vector2 const& pos);
 	void  drawTexture(Vector2 const& pos, Vector2 const& size);
 	void  drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
@@ -163,6 +165,7 @@ private:
 	struct RenderState
 	{
 		RHITexture2D*    texture;
+		RHISamplerState* sampler;
 		ESimpleBlendMode blendMode;
 	};
 

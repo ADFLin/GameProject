@@ -194,7 +194,7 @@ namespace Render
 #undef USE_SEMANTIC
 
 
-	enum EScreenRenderMethod : uint8
+	enum class EScreenRenderMethod : uint8
 	{
 		Rect ,
 		OptimisedTriangle ,

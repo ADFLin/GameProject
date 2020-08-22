@@ -83,14 +83,14 @@ namespace Meta
 		return (pObject->*func)();
 	}
 
-	template< class RT, class T, class ...Args , size_t ...Is>
-	FORCEINLINE RT InvokeInternal(RT(T::*func)(Args...), T* pObject, void* argsData[] , TIndexList<Is...>)
+	template< class RT, class T, class TObj, class ...Args , size_t ...Is>
+	FORCEINLINE RT InvokeInternal(RT(T::*func)(Args...), TObj* pObject, void* argsData[] , TIndexList<Is...>)
 	{
 		return (pObject->*func)(*TypeTraits<Args>::PtrType(argsData[Is])...);
 	}
 
-	template< class RT, class T, class ...Args >
-	FORCEINLINE RT Invoke(RT(T::*func)(Args...), T* pObject, void* argsData[])
+	template< class RT, class T , class TObj , class ...Args >
+	FORCEINLINE RT Invoke(RT(T::*func)(Args...), TObj* pObject, void* argsData[])
 	{
 		return InvokeInternal(func, pObject, argsData, TIndexRange<0, sizeof...(Args)>());
 	}

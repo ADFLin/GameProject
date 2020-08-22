@@ -211,6 +211,7 @@ namespace Render
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim);
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector2 const val[], int dim);
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim);
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim);
 		void setShaderMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
@@ -245,6 +246,7 @@ namespace Render
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix3 const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix4 const val[], int dim);
+		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector2 const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector3 const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim);
 		void setShaderMatrix22(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
@@ -391,7 +393,7 @@ namespace Render
 		RHITexture3D*      RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data);
 		RHITextureCube*    RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 		RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
-		RHITextureDepth*   RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples);
+		RHITextureDepth*   RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);

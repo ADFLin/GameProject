@@ -191,6 +191,96 @@ namespace Render
 		if( !BaseClass::onInit() )
 			return false;
 
+
+		mLights.resize(4);
+		{
+			auto& light = mLights[0];
+			light.type = LightType::Point;
+			light.pos = Vector3(5, 5, 5);
+			light.color = Vector3(1, 0, 0);
+			light.radius = 50;
+			light.intensity = 20;
+		}
+
+		{
+			auto& light = mLights[1];
+			light.type = LightType::Point;
+			light.pos = Vector3(5, -5, 5);
+			light.color = Vector3(0, 1, 0);
+			light.radius = 50;
+			light.intensity = 20;
+		}
+
+		{
+			auto& light = mLights[2];
+			light.type = LightType::Point;
+			light.pos = Vector3(-5, 5, 5);
+			light.color = Vector3(0, 0, 1);
+			light.radius = 50;
+			light.intensity = 20;
+		}
+		{
+			auto& light = mLights[3];
+			light.type = LightType::Point;
+			light.pos = Vector3(0, 0, -5);
+			light.color = Vector3(1, 1, 1);
+			light.radius = 50;
+			light.intensity = 2;
+		}
+
+		for (int n = 0; n < gGrassNum; ++n)
+		{
+			for (int i = 0; i < 10; ++i)
+			{
+				mInstancedMesh.addInstance(Vector3(n / 100, n % 100, 12), Vector3(1, 1, 1), Quaternion::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10), Vector4(0, 0, 0, 0));
+			}
+		}
+
+		::Global::GUI().cleanupWidget();
+
+		auto devFrame = WidgetUtility::CreateDevFrame();
+		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
+		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use OptMesh"), mbUseOptMesh);
+
+		devFrame->addText("FBM Shift");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
+		devFrame->addText("FBM Scale");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.y, 0, 3);
+		devFrame->addText("FBM Rotate Angle");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
+		devFrame->addText("FBM Octaves");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
+
+		devFrame->addText("StepSize");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.stepSize, 0.001, 10, 2);
+
+		devFrame->addText("DensityFactor");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.densityFactor, 0, 40, 2);
+		devFrame->addText("PhaseG");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.phaseG, -1, 1);
+		devFrame->addText("ScatterCoefficient");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.scatterCoefficient, 0, 10);
+		devFrame->addText("Albedo");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.albedo, 0, 1);
+
+		devFrame->addText("LightInstensity");
+		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mLights[0].intensity, 0, 200, 2, [&](float value)
+		{
+			for (int i = 1; i < mLights.size(); ++i)
+			{
+				mLights[i].intensity = value;
+			}
+			updateLightToBuffer();
+		});
+		restart();
+
+		return true;
+	}
+
+	bool NoiseTestStage::setupRenderSystem(ERenderSystem systemName)
+	{
+		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
+
 		if( !ShaderHelper::Get().init() )
 			return false;
 
@@ -200,17 +290,17 @@ namespace Render
 		VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 		VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 
-		int numSamples = 8;
+		int numSamples = 1;
 
-		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, numSamples));
-		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV));
+		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
 		mFrameBuffer->addTexture(*mScreenBuffer);
 		mFrameBuffer->setDepth(*mDepthBuffer);
 
 		if( numSamples != 1 )
 		{
-			VERIFY_RETURN_FALSE(mResolvedDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, 1));
+			VERIFY_RETURN_FALSE(mResolvedDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, 1, TCF_CreateSRV));
 		}
 		else
 		{
@@ -287,13 +377,7 @@ namespace Render
 
 		MeshBuild::Plane(mGrassMesh, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);
 		mInstancedMesh.setupMesh(mGrassMesh);
-		for( int n = 0; n < gGrassNum; ++n )
-		{
-			for( int i = 0; i < 10; ++i )
-			{
-				mInstancedMesh.addInstance(Vector3(n / 100, n % 100, 12), Vector3(1, 1, 1), Quaternion::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10), Vector4(0, 0, 0, 0));
-			}
-		}
+
 		ShaderManager::Get().loadFileSimple(mProgGrass, "Shader/Game/Grass");
 		ShaderManager::Get().loadFileSimple(mProgGrassInstanced, "Shader/Game/Grass", "#define USE_INSTANCED 1\n");
 		mProgNoise = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true, false> >(true);
@@ -302,8 +386,9 @@ namespace Render
 		mProgSmokeRender = ShaderManager::Get().getGlobalShaderT< SmokeRenderProgram >(true);
 		mProgSmokeBlend = ShaderManager::Get().getGlobalShaderT< SmokeBlendProgram >(true);
 		mProgResolveDepth = ShaderManager::Get().getGlobalShaderT< ResovleDepthProgram >(true);
-
+#if 0
 		mProgPointToRectOutline = ShaderManager::Get().getGlobalShaderT< PointToRectOutlineProgram >(true);
+#endif
 
 		{
 			Random::Well512 rand;
@@ -416,105 +501,58 @@ namespace Render
 		}
 
 
-		mLights.resize(4);
-		{
-			auto& light = mLights[0];
-			light.type = LightType::Point;
-			light.pos = Vector3(5, 5, 5);
-			light.color = Vector3(1, 0, 0);
-			light.radius = 50;
-			light.intensity = 20;
-		}
-
-		{
-			auto& light = mLights[1];
-			light.type = LightType::Point;
-			light.pos = Vector3(5, -5, 5);
-			light.color = Vector3(0, 1, 0);
-			light.radius = 50;
-			light.intensity = 20;
-		}
-
-		{
-			auto& light = mLights[2];
-			light.type = LightType::Point;
-			light.pos = Vector3(-5, 5, 5);
-			light.color = Vector3(0, 0, 1);
-			light.radius = 50;
-			light.intensity = 20;
-		}
-		{
-			auto& light = mLights[3];
-			light.type = LightType::Point;
-			light.pos = Vector3(0, 0, -5);
-			light.color = Vector3(1, 1, 1);
-			light.radius = 50;
-			light.intensity = 2;
-		}
-
 
 		VERIFY_RETURN_FALSE(mLightsBuffer.initializeResource(mLights.size(), EStructuredBufferType::Buffer));
 		updateLightToBuffer();
 
-		::Global::GUI().cleanupWidget();
-
-		auto devFrame = WidgetUtility::CreateDevFrame();
-		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
-		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use OptMesh"), mbUseOptMesh);
-
-		devFrame->addText("FBM Shift");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
-		devFrame->addText("FBM Scale");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.y, 0, 3);
-		devFrame->addText("FBM Rotate Angle");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
-		devFrame->addText("FBM Octaves");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
-
-		devFrame->addText("StepSize");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.stepSize, 0.001, 10, 2);
-
-		devFrame->addText("DensityFactor");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.densityFactor, 0, 40, 2);
-		devFrame->addText("PhaseG");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.phaseG, -1, 1);
-		devFrame->addText("ScatterCoefficient");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.scatterCoefficient, 0, 10);
-		devFrame->addText("Albedo");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.albedo, 0, 1);
-
-		devFrame->addText("LightInstensity");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mLights[0].intensity, 0, 200 , 2 , [&]( float value )
-		{
-			for( int i = 1; i < mLights.size(); ++i )
-			{
-				mLights[i].intensity = value;
-			}
-			updateLightToBuffer();
-		});
-		restart();
-
 		return true;
 	}
 
+	void NoiseTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
+	{
+		ShaderHelper::Get().releaseRHI();
 
+		mData.releaseRHI();
+		mLightsBuffer.releaseResources();
+		mSmokeFrameTextures[0].release();
+		mSmokeFrameTextures[1].release();
+		mSmokeDepthTexture.release();
+		mSmokeFrameBuffer.release();
+		mResolveFrameBuffer.release();
+		mFrameBuffer.release();
+		mDepthBuffer.release();
+		mResolvedDepthBuffer.release();
+		mScreenBuffer.release();
+		mGrassTexture.release();
+		mGrassMesh.releaseRHIResource();
+		mGrassMeshOpt.releaseRHIResource();
+		mProgGrass.releaseRHI();
+		mProgGrassInstanced.releaseRHI();
+		mInstancedMesh.releaseRHI();
+
+		BaseClass::preShutdownRenderSystem(bReInit);
+	}
 
 	void NoiseTestStage::onRender(float dFrame)
 	{
 		initializeRenderState();
-
+		Vec2i screenSize = ::Global::GetScreenSize();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		indexFrameTexture = 1 - indexFrameTexture;
 
+		TextureShowManager::registerTexture("SomkeTexture", mSmokeFrameTextures[indexFrameTexture]);
 		{
 
 			GPU_PROFILE("Scene");
 
 			{
-				mFrameBuffer->setDepth(*mDepthBuffer);
+				//RHISetFrameBuffer(commandList, nullptr);
 
+				mFrameBuffer->setDepth(*mDepthBuffer);
 				RHISetFrameBuffer(commandList, mFrameBuffer);
-				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2,0.2,0.2,1), 1, mViewFrustum.bUseReverse ? 0 : 1);
+				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1);
+
+				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 #if 1
 				RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
@@ -528,7 +566,6 @@ namespace Render
 #endif
 
 
-
 				{
 					GPU_PROFILE("DrawGrass");
 					RHISetBlendState(commandList, TStaticAlphaToCoverageBlendState<>::GetRHI());
@@ -540,7 +577,7 @@ namespace Render
 					Mesh& meshUsed = (mbUseOptMesh) ? mGrassMeshOpt : mGrassMesh;
 					if( mbDrawInstaced )
 					{
-						progGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Identity());
+						progGrass.setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Identity());
 
 						mInstancedMesh.changeMesh(meshUsed);
 						mInstancedMesh.draw(commandList);
@@ -553,7 +590,7 @@ namespace Render
 							Vector3 pos = Vector3(n / 100, n % 100, 12);
 							for( int i = 0; i < 10; ++i )
 							{
-								progGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate(pos));
+								progGrass.setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate(pos));
 								meshUsed.draw(commandList);
 							}
 						}
@@ -569,11 +606,18 @@ namespace Render
 				}
 			}
 
-
+			//if (0)
 			{
 				GPU_PROFILE("CopyToScreen");
-				OpenGLCast::To( mFrameBuffer )->blitToBackBuffer();
-				//ShaderHelper::Get().copyTextureToBuffer(*mScreenBuffer);
+				RHISetFrameBuffer(commandList, nullptr);
+				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+				//OpenGLCast::To( mFrameBuffer )->blitToBackBuffer();
+				ShaderHelper::Get().copyTextureToBuffer(commandList , *mScreenBuffer);
 				//return;
 			}
 
@@ -591,6 +635,7 @@ namespace Render
 				DrawUtility::ScreenRect(commandList, mDepthBuffer->getSizeX() , mDepthBuffer->getSizeY());
 			}
 
+			//if (0)
 			{
 				mSmokeFrameBuffer->setTexture(0, *mSmokeFrameTextures[indexFrameTexture]);		
 				//mFrameBuffer.removeDepthBuffer();
@@ -608,8 +653,11 @@ namespace Render
 				mProgSmokeRender->setParameters(commandList, mView, mData, Vector3(0, 0, 0), Vector3(20, 20, 20), mSmokeParams);
 				mProgSmokeRender->setStructuredStorageBufferT< TiledLightInfo >(commandList, *mLightsBuffer.getRHI());
 				mProgSmokeRender->setParam(commandList, SHADER_PARAM(TiledLightNum), (int)mLights.size());
-				mProgSmokeRender->setTexture(commandList, SHADER_PARAM(SceneDepthTexture), *mResolvedDepthBuffer);
+				auto& sampler = TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp>::GetRHI();
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgSmokeRender, SceneDepthTexture, *mResolvedDepthBuffer, sampler);
 				DrawUtility::ScreenRect(commandList);
+
+				CLEAR_SHADER_TEXTURE(commandList, *mProgSmokeRender, SceneDepthTexture);
 
 				RHISetFrameBuffer(commandList, nullptr);
 			}
@@ -625,8 +673,13 @@ namespace Render
 
 				RHISetShaderProgram(commandList, mProgSmokeBlend->getRHIResource());
 				mProgSmokeBlend->setParameters(commandList, mView, *mSmokeFrameTextures[indexFrameTexture], *mSmokeFrameTextures[1 - indexFrameTexture]);
-				mProgSmokeBlend->setTexture(commandList, SHADER_PARAM(DepthTexture), *mSmokeDepthTexture);
+				auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp>::GetRHI();
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgSmokeBlend, SceneDepthTexture, *mSmokeDepthTexture, sampler);
 				DrawUtility::ScreenRect(commandList);
+
+				CLEAR_SHADER_TEXTURE(commandList, *mProgSmokeBlend, SceneDepthTexture);
+				CLEAR_SHADER_TEXTURE(commandList, *mProgSmokeBlend, FrameTexture);
+				CLEAR_SHADER_TEXTURE(commandList, *mProgSmokeBlend, HistroyTexture);
 			}
 		}
 
@@ -634,7 +687,7 @@ namespace Render
 		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-		Vec2i screenSize = ::Global::GetScreenSize();
+
 
 		TArrayView< NoiseShaderProgramBase* const > noiseShaders = { mProgNoise , mProgNoiseUseTexture , mProgNoiseTest };
 		int imageSize = Math::Min<int>(150, (screenSize.x - 5 * (noiseShaders.size() + 1)) / noiseShaders.size());
@@ -645,6 +698,7 @@ namespace Render
 		}
 
 
+#if 0
 		if( 1 )
 		{
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
@@ -654,6 +708,7 @@ namespace Render
 			mProgPointToRectOutline->setParameters(commandList, 0.5, AdjProjectionMatrixForRHI( matProj ), LinearColor(1, 1, 0, 1));
 			TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Points, mImagePixels.data(), mImagePixels.size());
 		}
+#endif
 
 		RHISetShaderProgram(commandList, nullptr);
 
@@ -665,7 +720,7 @@ namespace Render
 
 			//#TODO : Remove MatrixSaveScope
 			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
-			MatrixSaveScope matrixScopt(porjectMatrix);
+			MatrixSaveScope matrixScope(porjectMatrix);
 
 			DrawUtility::DrawTexture(commandList, porjectMatrix, *mSmokeDepthTexture, IntVector2(10, 10), IntVector2(512, 512));
 		}

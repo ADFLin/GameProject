@@ -97,7 +97,7 @@ namespace CB
 				textCtrl->setValue( static_cast<SurfaceXYFunc*>( surface->getFunction() )->getExprString().c_str());
 				textCtrl->onEvent = [surface,this](int event, GWidget* widget)
 				{
-					if ( event == EVT_TEXTCTRL_ENTER )
+					if ( event == EVT_TEXTCTRL_COMMITTED )
 					{
 						SurfaceXYFunc* func = (SurfaceXYFunc*)surface->getFunction();
 						func->setExpr(widget->cast<GTextCtrl>()->getValue());

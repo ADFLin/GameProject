@@ -186,6 +186,13 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::setParam(RHICommandList& commandList, ShaderParameter const& param, Vector2 const v[], int num)
+	{
+		CHECK_PARAMETER(param);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, v, num);
+	}
+
+	template< class RHIResourceType >
 	void TShaderFuncHelper< RHIResourceType>::setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const v[], int num)
 	{
 		CHECK_PARAMETER(param);
@@ -197,6 +204,15 @@ namespace Render
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderValue(*mRHIResource, param, v, num);
+	}
+
+	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::setVector2(RHICommandList& commandList, char const* name, float const v[], int num)
+	{
+		ShaderParameter param;
+		if (!getParameter(name, param))
+			return;
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (Vector2 const*)v, num);
 	}
 
 	template< class RHIResourceType >

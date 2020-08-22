@@ -1,12 +1,23 @@
 #include "DrawUtility.h"
 
+#include "RHI/RHICommand.h"
+#include "RHI/RHIGlobalResource.h"
+
 #include "ShaderManager.h"
 #include "ProfileSystem.h"
+#include "ConsoleSystem.h"
 
-#include "RHI/RHICommand.h"
+#include "CoreShare.h"
 
 namespace Render
 {
+	extern CORE_API TConsoleVariable< bool > CVarDrawScreenUseDynamicVertexData;
+	extern CORE_API TConsoleVariable< bool > CVarDrawScreenUseOptimisedTriangle;
+#if CORE_SHARE_CODE
+	CORE_API TConsoleVariable< bool > CVarDrawScreenUseDynamicVertexData(false, "r.DrawScreenUseDynamicVertexData", CVF_TOGGLEABLE);
+	CORE_API TConsoleVariable< bool > CVarDrawScreenUseOptimisedTriangle(false, "r.DrawScreenUseOptimisedTriangle", CVF_TOGGLEABLE);
+#endif
+
 	struct VertexXYZ_T1
 	{
 		Vector3 pos;
@@ -32,20 +43,71 @@ namespace Render
 		Vector2 tex;
 	};
 
-	static const VertexXYZW_T1 GScreenVertices_Rect[] =
+
+	static const VertexXYZW_T1 GScreenVertices[] =
 	{
+		//Rect
 		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
 		{ Vector4(1 , -1 , 0 , 1) , Vector2(1,0) },
 		{ Vector4(1, 1 , 0 , 1) , Vector2(1,1) },
 		{ Vector4(-1, 1, 0 , 1) , Vector2(0,1) },
-	};
 
-	static const VertexXYZW_T1 GScreenVertices_OptimisedTriangle[] =
-	{
+		//OptimisedTriangle
 		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
 		{ Vector4(3 , -1 , 0 , 1) , Vector2(2,0) },
 		{ Vector4(-1, 3 , 0 , 1) , Vector2(0,2) },
 	};
+
+	class ScreenRenderResoure : public GlobalRenderResourceBase
+	{
+	public:
+		virtual void restoreRHI() override
+		{ 
+			mRectVertexBuffer = RHICreateVertexBuffer(sizeof(VertexXYZW_T1), 7, BCF_DefalutValue, const_cast<VertexXYZW_T1*>( &GScreenVertices[0] ));
+			uint16 indices[] = { 0, 1 , 2 , 0 , 2 , 3 };
+			mQuadIndexBuffer = RHICreateIndexBuffer(6, false, BCF_DefalutValue, indices);
+
+			InputLayoutDesc desc;
+			desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
+			desc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+			mRectVertexInputLayout = RHICreateInputLayout(desc);
+		}
+
+
+		virtual void releaseRHI() override
+		{
+			mRectVertexBuffer.release();
+			mQuadIndexBuffer.release();
+			mRectVertexInputLayout.release();
+		}
+
+		void drawRect(RHICommandList& commandList)
+		{
+			InputStreamInfo inputStream;
+			inputStream.buffer = mRectVertexBuffer;
+			RHISetInputStream(commandList, mRectVertexInputLayout, &inputStream, 1);
+
+			RHISetIndexBuffer(commandList, mQuadIndexBuffer);
+			RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, 6);
+		}
+
+		void drawOptimisedTriangle(RHICommandList& commandList)
+		{
+			InputStreamInfo inputStream;
+			inputStream.buffer = mRectVertexBuffer;
+			RHISetInputStream(commandList, mRectVertexInputLayout, &inputStream, 1);
+
+			RHISetIndexBuffer(commandList, mQuadIndexBuffer);
+			RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, 3, 4);
+		}
+
+
+		RHIInputLayoutRef  mRectVertexInputLayout;
+		RHIVertexBufferRef mRectVertexBuffer;
+		RHIIndexBufferRef  mQuadIndexBuffer;
+
+	};
+	ScreenRenderResoure GScreenRenderResoure;
 
 	void DrawUtility::CubeLine(RHICommandList& commandList)
 	{
@@ -142,13 +204,29 @@ namespace Render
 
 	void DrawUtility::ScreenRect(RHICommandList& commandList, EScreenRenderMethod method)
 	{
+		if ( CVarDrawScreenUseOptimisedTriangle )
+			method = EScreenRenderMethod::OptimisedTriangle;
 		switch (method)
 		{
-		case Render::Rect:
-			TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::Quad, GScreenVertices_Rect, 4);
+		case EScreenRenderMethod::Rect:
+			if (CVarDrawScreenUseDynamicVertexData)
+			{
+				TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::Quad, GScreenVertices, 4);
+			}
+			else
+			{
+				GScreenRenderResoure.drawRect(commandList);
+			}
 			break;
-		case Render::OptimisedTriangle:
-			TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::TriangleList, GScreenVertices_OptimisedTriangle, 3);
+		case EScreenRenderMethod::OptimisedTriangle:
+			if (CVarDrawScreenUseDynamicVertexData)
+			{
+				TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::TriangleList, GScreenVertices + 4, 3);
+			}
+			else
+			{
+				GScreenRenderResoure.drawOptimisedTriangle(commandList);
+			}
 			break;
 		}
 	}
@@ -330,42 +408,39 @@ namespace Render
 
 	IMPLEMENT_SHADER(ScreenVS, EShader::Vertex, SHADER_ENTRY(ScreenVS));
 
-	class CopyTexturePS : public GlobalShader
+
+	template< class TShaderType >
+	class TCopyTextureBase : public TShaderType
 	{
-		DECLARE_SHADER(CopyTexturePS, Global)
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-		}
+	public:
 		static char const* GetShaderFileName()
 		{
 			return "Shader/CopyTexture";
 		}
-
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BIND_TEXTURE_PARAM(parameterMap, CopyTexture);
 		}
-
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture)
 		{
-			setTexture(commandList, mParamCopyTexture, copyTexture);
+			RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this , CopyTexture, copyTexture, sampler);
 		}
+		DEFINE_TEXTURE_PARAM(CopyTexture);
+	};
 
-		DEFINE_SHADER_PARAM(CopyTexture);
+	class CopyTexturePS : public TCopyTextureBase< GlobalShader >
+	{
+		using BaseClass = TCopyTextureBase< GlobalShader >;
+		DECLARE_SHADER(CopyTexturePS, Global)
 	};
 	IMPLEMENT_SHADER(CopyTexturePS, EShader::Pixel, SHADER_ENTRY(CopyTexturePS));
 
-	class CopyTextureProgram : public GlobalShaderProgram
+	class CopyTextureProgram : public TCopyTextureBase< GlobalShaderProgram >
 	{
+		using BaseClass = TCopyTextureBase< GlobalShaderProgram >;
 		DECLARE_SHADER_PROGRAM(CopyTextureProgram, Global)
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option) 
-		{
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/CopyTexture";
-		}
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -375,31 +450,15 @@ namespace Render
 			};
 			return entries;
 		}
-	public:
-		void bindParameters(ShaderParameterMap const& parameterMap)
-		{
-			BIND_SHADER_PARAM(parameterMap, CopyTexture);
-		}
-
-		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture)
-		{
-			setTexture(commandList, mParamCopyTexture, copyTexture);
-		}
-
-		DEFINE_SHADER_PARAM(CopyTexture);
 	};
 
 
-	class CopyTextureMaskProgram : public GlobalShaderProgram
+	class CopyTextureMaskProgram : public TCopyTextureBase< GlobalShaderProgram >
 	{
+		using BaseClass = TCopyTextureBase< GlobalShaderProgram >;
+
 		DECLARE_SHADER_PROGRAM(CopyTextureMaskProgram, Global)
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/CopyTexture";
-		}
+
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -412,58 +471,44 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorMask);
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 		{
-			SET_SHADER_TEXTURE(commandList, *this, CopyTexture, copyTexture);
+			BaseClass::setParameters(commandList, copyTexture);
 			SET_SHADER_PARAM(commandList, *this, ColorMask, colorMask);
 		}
-
-		DEFINE_SHADER_PARAM( ColorMask );
-		DEFINE_SHADER_PARAM( CopyTexture );
+		DEFINE_SHADER_PARAM(ColorMask);
 	};
 
-	class CopyTextureMaskPS : public GlobalShader
+	class CopyTextureMaskPS : public TCopyTextureBase< GlobalShader >
 	{
-		DECLARE_SHADER(CopyTextureMaskPS, Global)
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/CopyTexture";
-		}
+		using BaseClass = TCopyTextureBase< GlobalShader >;
+		DECLARE_SHADER(CopyTextureMaskPS, Global);
+
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorMask);
 		}
-		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI())
 		{
-			setTexture(commandList, mParamCopyTexture, copyTexture);
+			BaseClass::setParameters(commandList, copyTexture);
 			setParam(commandList, mParamColorMask, colorMask);
 		}
 
 		DEFINE_SHADER_PARAM(ColorMask);
-		DEFINE_SHADER_PARAM(CopyTexture);
 	};
 
 	IMPLEMENT_SHADER(CopyTextureMaskPS, EShader::Pixel, SHADER_ENTRY(CopyTextureMaskPS));
 
-	class CopyTextureBiasProgram : public GlobalShaderProgram
+	class CopyTextureBiasProgram : public TCopyTextureBase< GlobalShaderProgram >
 	{
-		DECLARE_SHADER_PROGRAM(CopyTextureBiasProgram, Global)
+		using BaseClass = TCopyTextureBase< GlobalShaderProgram >;
+		DECLARE_SHADER_PROGRAM(CopyTextureBiasProgram, Global);
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/CopyTexture";
-		}
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -478,12 +523,12 @@ namespace Render
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorBais);
 		}
-		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2], RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI())
 		{
-			setTexture(commandList, mParamCopyTexture, copyTexture);
+			BaseClass::setParameters(commandList, copyTexture);
 			setParam(commandList, mParamColorBais, Vector2(colorBais[0], colorBais[1]));
 		}
 
@@ -493,48 +538,33 @@ namespace Render
 	};
 
 
-	class CopyTextureBiasPS : public GlobalShader
+	class CopyTextureBiasPS : public TCopyTextureBase< GlobalShader >
 	{
+		using BaseClass = TCopyTextureBase< GlobalShader >;
 		DECLARE_SHADER(CopyTextureBiasPS, Global)
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/CopyTexture";
-		}
 
 	public:
 
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorBais);
 		}
-		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2], RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI())
 		{
-			SET_SHADER_TEXTURE(commandList, *this , CopyTexture, copyTexture);
+			BaseClass::setParameters(commandList, copyTexture);
 			SET_SHADER_PARAM(commandList, *this, ColorBais, Vector2(colorBais[0], colorBais[1]));
 		}
 
 		DEFINE_SHADER_PARAM(ColorBais);
-		DEFINE_SHADER_PARAM(CopyTexture);
 	};
 
 	IMPLEMENT_SHADER(CopyTextureBiasPS, EShader::Pixel, SHADER_ENTRY(CopyTextureBiasPS));
 
-	class MappingTextureColorProgram : public GlobalShaderProgram
+	class MappingTextureColorProgram : public TCopyTextureBase< GlobalShaderProgram >
 	{
+		using BaseClass = TCopyTextureBase< GlobalShaderProgram >;
 		DECLARE_SHADER_PROGRAM(MappingTextureColorProgram, Global)
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/CopyTexture";
-		}
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
@@ -547,19 +577,18 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			BIND_SHADER_PARAM(parameterMap, CopyTexture);
+			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorMask);
 			BIND_SHADER_PARAM(parameterMap, ValueFactor);
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 		{
-			setTexture(commandList, mParamCopyTexture, copyTexture);
-			setParam(commandList, mParamColorMask, colorMask);
-			setParam(commandList, mParamValueFactor, Vector2(valueFactor[0], valueFactor[1]));
+			BaseClass::setParameters(commandList, copyTexture);
+			SET_SHADER_PARAM(commandList, *this, ColorMask, colorMask);
+			SET_SHADER_PARAM(commandList, *this, ValueFactor, Vector2(valueFactor[0], valueFactor[1]));
 		}
 
-		DEFINE_SHADER_PARAM(CopyTexture);
 		DEFINE_SHADER_PARAM(ColorMask);
 		DEFINE_SHADER_PARAM(ValueFactor);
 	};

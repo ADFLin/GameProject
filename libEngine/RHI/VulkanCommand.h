@@ -160,7 +160,7 @@ namespace Render
 
 		RHITextureDepth* RHICreateTextureDepth(
 			Texture::DepthFormat format, int w, int h,
-			int numMipLevel, int numSamples)
+			int numMipLevel, int numSamples, uint32 creationFlags)
 		{
 			return nullptr;
 		}

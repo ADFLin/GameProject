@@ -42,4 +42,3 @@ SDFSceneOut SDF_Union(in SDFSceneOut a, int id, float dist)
 
 	return b;
 }
-

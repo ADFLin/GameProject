@@ -71,10 +71,10 @@ namespace Render
 				VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().MipLevel(10).ReverseH()));
 				VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().MipLevel(10).ReverseH()));
 
-				registerTexture("CD", *mDiffuseTexture);
-				registerTexture("CN", *mNormalTexture);
-				registerTexture("CM", *mMetalTexture);
-				registerTexture("CR", *mRoughnessTexture);
+				registerTexture("CD", mDiffuseTexture);
+				registerTexture("CN", mNormalTexture);
+				registerTexture("CM", mMetalTexture);
+				registerTexture("CR", mRoughnessTexture);
 			}
 			{
 				TIME_SCOPE("FBX Mesh");

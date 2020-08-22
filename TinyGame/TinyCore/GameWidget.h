@@ -29,8 +29,8 @@ typedef std::string String;
 enum
 {
 	EVT_BUTTON_CLICK    ,
-	EVT_TEXTCTRL_CHANGE   ,
-	EVT_TEXTCTRL_ENTER  ,
+	EVT_TEXTCTRL_VALUE_CHANGED   ,
+	EVT_TEXTCTRL_COMMITTED  ,
 	EVT_CHOICE_SELECT   ,
 	EVT_LISTCTRL_DCLICK ,
 	EVT_LISTCTRL_SELECT ,
@@ -390,8 +390,8 @@ public:
 	static const int UI_Height = 20;
 	TINY_API GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent );
 
-	void onEditText(){ sendEvent( EVT_TEXTCTRL_CHANGE ); }
-	void onPressEnter(){ sendEvent( EVT_TEXTCTRL_ENTER ); }
+	void onEditText(){ sendEvent( EVT_TEXTCTRL_VALUE_CHANGED ); }
+	void onPressEnter(){ sendEvent( EVT_TEXTCTRL_COMMITTED ); }
 	TINY_API void onRender();
 };
 

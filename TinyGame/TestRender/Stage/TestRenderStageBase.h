@@ -29,22 +29,6 @@ namespace Render
 
 	class StaticMesh;
 
-	class TINY_API TextureShowFrame : public GWidget
-	{
-		using BaseClass = GWidget;
-	public:
-		TextureShowFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
-			:BaseClass(pos, size, parent)
-		{
-			mID = id;
-		}
-
-		RHITexture2DRef texture;
-	
-		void onRender() override;
-		bool onMouseMsg(MouseMsg const& msg) override;
-
-	};
 
 	bool LoadObjectMesh(StaticMesh& mesh , char const* path );
 	template< class TFunc, class ...Args >
@@ -131,6 +115,13 @@ namespace Render
 			return result;
 		}
 
+		void clearInstance()
+		{
+			mInstanceParams.clear();
+			mInstanceTransforms.clear();
+			bBufferValid = true;
+		}
+
 		bool UpdateInstanceBuffer()
 		{
 			if( !mInstancedBuffer.isValid() )
@@ -150,7 +141,7 @@ namespace Render
 				}
 			}
 
-			Vector4* ptr = (Vector4*)RHILockBuffer(mInstancedBuffer, ELockAccess::WriteOnly);
+			Vector4* ptr = (Vector4*)RHILockBuffer(mInstancedBuffer, ELockAccess::WriteDiscard);
 			if( ptr == nullptr )
 			{
 				return false;
@@ -202,6 +193,13 @@ namespace Render
 					RHIDrawPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mVertexBuffer->getNumElements(), mInstanceParams.size());
 				}
 			}
+		}
+
+		void releaseRHI()
+		{
+			mInputLayout.release();
+			mInstancedBuffer.release();
+			bBufferValid = false;
 		}
 
 		Mesh* mMesh;
@@ -300,9 +298,45 @@ namespace Render
 		void releaseRHIResource(bool bReInit = false);
 	};
 
+	class TINY_API TextureShowManager
+	{
+	public:
+		void registerTexture(HashString const& name, RHITexture2D* texture);
+
+		void handleShowTexture();
+
+		struct TextureHandle : RefCountedObjectT< TextureHandle >
+		{
+			RHITexture2DRef texture;
+		};
+		using TextureHandleRef = TRefCountPtr< TextureHandle >;
+		std::unordered_map< HashString, TextureHandleRef > mTextureMap;
+
+		void releaseRHI();
+	};
+
+	class TINY_API TextureShowFrame : public GWidget
+	{
+		using BaseClass = GWidget;
+	public:
+		TextureShowFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:BaseClass(pos, size, parent)
+		{
+			mID = id;
+		}
+
+		TextureShowManager::TextureHandleRef handle;
+		TextureShowManager* mManager;
+
+		void updateSize();
+		void onRender() override;
+		bool onMouseMsg(MouseMsg const& msg) override;
+
+	};
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
 		                               , public IGameRenderSetup
+		                               , public TextureShowManager
 	{
 		using BaseClass = StageBase;
 	public:
@@ -330,6 +364,7 @@ namespace Render
 
 		virtual void preShutdownRenderSystem(bool bReInit = false)
 		{
+			TextureShowManager::releaseRHI();
 			SharedAssetData::releaseRHIResource(bReInit);
 			mView.releaseRHIResource();
 		}
@@ -353,17 +388,6 @@ namespace Render
 
 
 		void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
-
-		void handleShowTexture(char const* name);
-		void registerTexture(char const* name, RHITexture2D& texture)
-		{
-			mTextureMap.emplace(name, &texture);
-		}
-
-		std::unordered_map< HashString, RHITexture2DRef > mTextureMap;
-
-
-
 
 	};
 

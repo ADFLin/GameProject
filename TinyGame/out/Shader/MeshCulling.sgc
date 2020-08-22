@@ -13,13 +13,13 @@ struct DrawElementsIndirectCommand
 	uint  baseInstance;
 };
 
-layout(std140) buffer DrawElementsIndirectCommandBlock
+layout(std430) buffer DrawElementsIndirectCommandBlock
 {
 	DrawElementsIndirectCommand DrawCommand;
 };
 
 uniform int4 CommandParam;
-layout(std140) buffer IndicesBufferBlack;
+layout(std430) buffer IndicesBufferBlack;
 {
 	uint OutIndices[];
 };

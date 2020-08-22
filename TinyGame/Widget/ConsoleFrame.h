@@ -116,6 +116,8 @@ public:
 	const_iterator cbegin() const { return ConstIterator(this, 0); }
 	const_iterator cend() const { return ConstIterator(this, mNum); }
 
+	T const& operator [](int index) const { return *(T*)mStorage[(index + mIndexStart) % mNum]; }
+
 	int mNum;
 	int mIndexStart;
 	TCompatibleStorage< T, N > mStorage;
@@ -154,6 +156,8 @@ public:
 	GTextCtrl* mComText;
 
 	std::vector< std::string > mFoundComs;
+	std::vector< std::string > mHistoryComs;
+	int mIndexHistoryUsed = -1;
 	int mIndexFoundComUsed = -1;
 public:
 	//LogOutput

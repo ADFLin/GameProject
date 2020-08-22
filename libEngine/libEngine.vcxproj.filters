@@ -939,9 +939,6 @@
     <ClInclude Include="RHI\DrawUtility.h">
       <Filter>RHI</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\FrameGraph.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\GpuProfiler.h">
       <Filter>RHI</Filter>
     </ClInclude>
@@ -1223,6 +1220,9 @@
     </ClInclude>
     <ClInclude Include="OpenGLHeader.h">
       <Filter>Opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\FrameRenderGraph.h">
+      <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

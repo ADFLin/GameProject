@@ -194,6 +194,7 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 						var->getValue(&val);
 						val = !val;
 						var->setValue(&val);
+						LogMsg("Toggle %s to \"%d\"", var->mName.c_str() , (int)val);
 						return true;
 					}
 					else if (var->getTypeIndex() == typeid(int))
@@ -202,6 +203,7 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 						var->getValue(&val);
 						val = !val;
 						var->setValue(&val);
+						LogMsg("Toggle %s to \"%d\"", var->mName.c_str(), val);
 						return true;
 					}
 				}

@@ -218,7 +218,7 @@ namespace Render
 
 		GRHIClipZMin = -1;
 		GRHIProjectYSign = 1;
-
+		GRHIVericalFlip = 1;
 
 		if( 1 )
 		{
@@ -305,7 +305,7 @@ namespace Render
 		return CreateOpenGLResourceT< OpenGLTexture2DArray >(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data);
 	}
 
-	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
+	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		return CreateOpenGLResourceT< OpenGLTextureDepth >(format, w , h , numMipLevel, numSamples);
 	}
@@ -801,6 +801,12 @@ namespace Render
 		glUniformMatrix4fv(param.mLoc, dim, false, (float const *)val);
 	}
 
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector2 const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniform2fv(param.mLoc, dim, (float const *)val);
+	}
+
 	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
@@ -981,6 +987,13 @@ namespace Render
 		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
 		CHECK_PARAMETER(param);
 		glProgramUniformMatrix4fv(shaderImpl.getHandle(), param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector2 const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+		CHECK_PARAMETER(param);
+		glProgramUniform2fv(shaderImpl.getHandle(), param.mLoc, dim, (float const *)val);
 	}
 
 	void OpenGLContext::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector3 const val[], int dim)

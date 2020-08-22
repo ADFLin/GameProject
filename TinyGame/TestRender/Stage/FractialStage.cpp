@@ -76,8 +76,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 		BIND_SHADER_PARAM(parameterMap, MaxIteration);
 		BIND_SHADER_PARAM(parameterMap, ColorMapParam);
 		BIND_SHADER_PARAM(parameterMap, ColorRWTexture);
-		BIND_SHADER_PARAM(parameterMap, ColorMapTexture);
-		BIND_SHADER_PARAM(parameterMap, ColorMapTextureSampler);
+		BIND_TEXTURE_PARAM(parameterMap, ColorMapTexture);
 	}
 
 	void setParameters(RHICommandList& commandList, MandelbrotParam const& param , RHITexture2D& colorTexture , RHITexture1D& colorMapTexture )
@@ -100,8 +99,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
 
 		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
-		setTexture(commandList, mParamColorMapTexture, colorMapTexture , mParamColorMapTextureSampler ,TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI());
-
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture ,COMMA_SEPARATED(TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI()));
 	}
 
 	void clearParameters(RHICommandList& commandList)
@@ -133,8 +131,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 	DEFINE_SHADER_PARAM(MaxIteration);
 	DEFINE_SHADER_PARAM(ColorMapParam);
 	DEFINE_SHADER_PARAM(ColorRWTexture);
-	DEFINE_SHADER_PARAM(ColorMapTexture);
-	DEFINE_SHADER_PARAM(ColorMapTextureSampler);
+	DEFINE_TEXTURE_PARAM(ColorMapTexture);
 
 };
 

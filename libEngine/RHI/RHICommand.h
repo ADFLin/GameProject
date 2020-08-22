@@ -106,7 +106,7 @@ namespace Render
 			colorForamt = Texture::eBGRA8;
 			depthFormat = Texture::eD24S8;
 			numSamples = 1;
-			bufferCount = 1;
+			bufferCount = 2;
 		}
 	};
 
@@ -137,7 +137,7 @@ namespace Render
 		void* data = nullptr);
 
 	RHI_API RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth,
-		Texture::DepthFormat format, int w, int h , int numMipLevel = 1 , int numSamples = 1);
+		Texture::DepthFormat format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
 
 	RHI_API RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -291,7 +291,7 @@ namespace Render
 
 		RHI_FUNC(RHITextureDepth* RHICreateTextureDepth(
 			Texture::DepthFormat format, int w, int h , 
-			int numMipLevel, int numSamples ) );
+			int numMipLevel, int numSamples, uint32 creationFlags) );
 		
 		RHI_FUNC(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data));
 		RHI_FUNC(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data));

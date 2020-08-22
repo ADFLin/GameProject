@@ -237,11 +237,13 @@ public:
 	using TColor4<float>::TColor4;
 
 	Color4f() = default;
-	Color4f(float cr, float cg, float cb, float ca = 1.0f)
-		:TColor4< float >(cr, cg, cb, ca) {}
 
 	Color4f(Vector3 const& v) :TColor4<float>(v.x, v.y, v.z, CET::Max()) {}
 	Color4f(Vector4 const& v) :TColor4<float>(v.x, v.y, v.z, v.w) {}
+
+	operator Vector4() const { return Vector4(r, g, b, a); }
+
+	friend Color4f operator * (float f, Color4f const& c) { return Color4f(f * c.r, f * c.g, f * c.b, f * c.a); }
 
 };
 

@@ -17,7 +17,7 @@ VS_ENTRY_START(ScreenVS)
 	VS_INPUT(float4 InPosition , ATTRIBUTE_POSITION)
 #if USE_SCREEN_TEXCOORD
 	VS_INPUT(float2 InUV , ATTRIBUTE_TEXCOORD)
-	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput , 0)
+	VS_OUTPUT_STRUCT(noperspective VSOutputParameters VSOutput , 0)
 #endif
 VS_ENTRY_END(ScreenVS)
 {

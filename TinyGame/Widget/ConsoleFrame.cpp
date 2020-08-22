@@ -23,19 +23,19 @@ void ConsoleFrame::onRender()
 	IGraphics2D& g = ::Global::GetIGraphics2D();
 
 	int const yOffset = 14;
-	int numLines = getSize().y / yOffset;
+	int numLines = ( getSize().y - 30 ) / yOffset;
 	RenderUtility::SetFont(g, FONT_S10);
 
 	int lineCount = 0;
-	for( auto const& line : mLines )
+	int startLineIndex = Math::Max(0, mLines.size() - numLines);
+	for( int index = startLineIndex; index < mLines.size() ; ++index )
 	{
+		auto const& line = mLines[index];
+
 		g.setTextColor(line.color);
 		g.drawText(pos, line.content.c_str());
 		pos.y += yOffset;
 
-		++lineCount;
-		if( lineCount >= numLines )
-			break;
 	}
 }
 
@@ -68,6 +68,30 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 		}
 		return false;
 	}
+	else if (msg.getCode() == EKeyCode::Up)
+	{
+		++mIndexHistoryUsed;
+		if (mIndexHistoryUsed < mHistoryComs.size())
+		{
+			mComText->setValue(mHistoryComs[mIndexHistoryUsed].c_str());
+		}
+		else
+		{
+			mIndexHistoryUsed = mHistoryComs.size() - 1;
+		}
+	}
+	else if (msg.getCode() == EKeyCode::Down)
+	{
+		--mIndexHistoryUsed;
+		if (mIndexHistoryUsed >= 0)
+		{
+			mComText->setValue(mHistoryComs[mIndexHistoryUsed].c_str());
+		}
+		else
+		{
+			mIndexHistoryUsed = 0;
+		}
+	}
 	bool result = mComText->onKeyMsg(msg);
 
 	if( msg.getCode() == EKeyCode::Return )
@@ -94,17 +118,20 @@ bool ConsoleFrame::onChildEvent(int event, int id, GWidget* ui)
 	switch( id )
 	{
 	case UI_COM_TEXT:
-		if( event == EVT_TEXTCTRL_ENTER )
+		if( event == EVT_TEXTCTRL_COMMITTED )
 		{
 			char const* comStr = ui->cast<GTextCtrl>()->getValue();
 			if( comStr && comStr != 0 )
 			{
 				bool result = ConsoleSystem::Get().executeCommand(comStr);
+
+				mHistoryComs.push_back(comStr);
+				mIndexHistoryUsed = -1;
 				ui->cast<GTextCtrl>()->clearValue();
 				makeFocus();
 			}
 		}
-		else if( event == EVT_TEXTCTRL_CHANGE )
+		else if( event == EVT_TEXTCTRL_VALUE_CHANGED )
 		{
 
 

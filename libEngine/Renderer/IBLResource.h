@@ -46,6 +46,8 @@ namespace Render
 			texture.release();
 			irradianceTexture.release();
 			perfilteredTexture.release();
+			
+			SharedBRDFTexture.releaseRHI();
 		}
 
 		static bool InitializeBRDFTexture(void* data);

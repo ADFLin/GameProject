@@ -43,6 +43,7 @@ namespace Render
 	RHISystem* GRHISystem = nullptr;
 	float GRHIClipZMin = 0;
 	float GRHIProjectYSign = 1;
+	float GRHIVericalFlip = 1;
 
 #define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
@@ -162,9 +163,9 @@ namespace Render
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture2DArray(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data)) );
 	}
 
-	RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth, Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
+	RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth, Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(format, w, h, numMipLevel, numSamples)) );
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(format, w, h, numMipLevel, numSamples, creationFlags)) );
 	}
 
 	RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer, uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)

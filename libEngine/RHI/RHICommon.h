@@ -251,6 +251,7 @@ namespace Render
 
 		void destroyThis()
 		{
+			//LogMsg("RHI Resource destroy : %s", mTypeName.c_str());
 			releaseResource();
 			delete this;
 		}

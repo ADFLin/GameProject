@@ -96,6 +96,7 @@ void RHIGraphics2D::beginRender()
 	RHISetFixedShaderPipelineState(commandList, mBaseTransform);
 	mbPipelineStateChanged = false;
 	mRenderStateCommitted.texture = nullptr;
+	mRenderStateCommitted.sampler = nullptr;
 	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
 	mRenderStatePending = mRenderStateCommitted;
 	mCurTextureSize = Vector2(0, 0);
@@ -425,7 +426,7 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Color4f
 	else
 	{
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		RHISetFixedShaderPipelineState(GetCommandList(), transform, LinearColor(mColorBrush, mAlpha), mRenderStateCommitted.texture);
+		RHISetFixedShaderPipelineState(GetCommandList(), transform, LinearColor(mColorBrush, mAlpha), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
 		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
 		mbPipelineStateChanged = true;
 	}
@@ -450,7 +451,7 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2
 	else
 	{
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		RHISetFixedShaderPipelineState(GetCommandList(), transform, color, mRenderStateCommitted.texture);
+		RHISetFixedShaderPipelineState(GetCommandList(), transform, color, mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
 		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(texPos.div(mCurTextureSize)), Vector2(texSize.div(mCurTextureSize)));
 		mbPipelineStateChanged = true;
 	}
@@ -517,6 +518,11 @@ void RHIGraphics2D::setTexture(RHITexture2D& texture)
 	mCurTextureSize = Vector2(mRenderStatePending.texture->getSizeX(), mRenderStatePending.texture->getSizeY());
 }
 
+void RHIGraphics2D::setSampler(RHISamplerState& sampler)
+{
+	mRenderStateCommitted.sampler = &sampler;
+}
+
 void RHIGraphics2D::preModifyRenderState()
 {
 	if (CVarUseBachedRender2D)
@@ -541,7 +547,7 @@ void RHIGraphics2D::comitRenderState()
 		{
 			mbPipelineStateChanged = false;
 			mRenderStateCommitted.texture = mRenderStatePending.texture;
-			RHISetFixedShaderPipelineState(GetCommandList(), mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture);
+			RHISetFixedShaderPipelineState(GetCommandList(), mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
 		}
 
 		if (mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
@@ -575,7 +581,7 @@ void RHIGraphics2D::restoreRenderState()
 	preModifyRenderState();
 
 	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture);
+	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
 	switch (mRenderStateCommitted.blendMode)
 	{
 	case ESimpleBlendMode::Translucent:

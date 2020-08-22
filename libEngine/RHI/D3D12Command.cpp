@@ -195,7 +195,7 @@ namespace Render
 		return nullptr;
 	}
 
-	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
+	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		uint32 creationFlags = 0;
 		Texture2DCreationResult creationResult;

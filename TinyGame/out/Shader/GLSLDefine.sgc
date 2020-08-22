@@ -30,6 +30,8 @@
 #define varying
 #define discard
 #define layout(...)
+
+#define noperspective
 #define flat
 
 typedef float2 vec2;
@@ -152,7 +154,7 @@ VECTOR_TYPE_LIST(SincosT)
 float BufferDepthToClipZ(float bufferDepth)
 {
 #if SYSTEM_VULKAN
-	return bufferDepth;
+	return 2 * bufferDepth - 1;
 #else
 	return 2 * bufferDepth / gl_DepthRange.diff - 1;
 #endif
@@ -221,6 +223,9 @@ float3 InvTransformVector(float3 v, float3x3 m)
 }
 
 #define MEMBER_OUT( NAME )
+
+#define nointerpolation flat
+
 
 #if PIXEL_SHADER
 #define SvPosition gl_FragCoord

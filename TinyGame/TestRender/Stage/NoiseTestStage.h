@@ -240,7 +240,14 @@ namespace Render
 		NoiseShaderParamsData()
 		{
 			FBMFactor = Vector4(100, 1.0, 0.5, 5);
+		}
 
+		void releaseRHI()
+		{
+			randTexture.release();
+			noiseTexture.release();
+			volumeTexture.release();
+			noiseVolumeTexture.release();
 		}
 	};
 
@@ -285,13 +292,12 @@ namespace Render
 
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
-			mParamTime.bind(parameterMap, SHADER_PARAM(Time));
-			mParamFBMFactor.bind(parameterMap, SHADER_PARAM(FBMFactor));
-			mParamRandTexture.bind(parameterMap, SHADER_PARAM(RandTexture));
-			mParamNoiseTexture.bind(parameterMap, SHADER_PARAM(NoiseTexture));
-			mParamVolumeTexture.bind(parameterMap, SHADER_PARAM(VolumeTexture));
-			mParamNoiseVolumeTexture.bind(parameterMap, SHADER_PARAM(NoiseVolumeTexture));
-
+			BIND_SHADER_PARAM(parameterMap, Time);
+			BIND_SHADER_PARAM(parameterMap, FBMFactor);
+			BIND_TEXTURE_PARAM(parameterMap, RandTexture);
+			BIND_TEXTURE_PARAM(parameterMap, NoiseTexture);
+			BIND_TEXTURE_PARAM(parameterMap, VolumeTexture);
+			BIND_TEXTURE_PARAM(parameterMap, NoiseVolumeTexture);
 		}
 
 		void setParameters(RHICommandList& commandList, NoiseShaderParamsData& data)
@@ -306,30 +312,30 @@ namespace Render
 			}
 			if( mParamRandTexture.isBound() )
 			{
-				setTexture(commandList, mParamRandTexture, *data.randTexture, mParamRandTexture, TStaticSamplerState<Sampler::ePoint>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this , RandTexture, *data.randTexture, TStaticSamplerState<Sampler::ePoint>::GetRHI());
 			}
 			if( mParamNoiseTexture.isBound() )
 			{
-				setTexture(commandList, mParamNoiseTexture, *data.noiseTexture, mParamNoiseTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, NoiseTexture, *data.noiseTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 			if( mParamVolumeTexture.isBound() )
 			{
-				setTexture(commandList, mParamVolumeTexture, *data.volumeTexture, mParamVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, VolumeTexture, *data.volumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 			if( mParamNoiseVolumeTexture.isBound() )
 			{
-				setTexture(commandList, mParamNoiseVolumeTexture, *data.noiseVolumeTexture, mParamNoiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, NoiseVolumeTexture, *data.noiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
-
 		}
 
+		DEFINE_SHADER_PARAM(Time);
+		DEFINE_SHADER_PARAM(FBMFactor);
 
-		ShaderParameter mParamTime;
-		ShaderParameter mParamRandTexture;
-		ShaderParameter mParamNoiseTexture;
-		ShaderParameter mParamVolumeTexture;
-		ShaderParameter mParamNoiseVolumeTexture;
-		ShaderParameter mParamFBMFactor;
+		DEFINE_TEXTURE_PARAM(RandTexture);
+		DEFINE_TEXTURE_PARAM(NoiseTexture);
+		DEFINE_TEXTURE_PARAM(VolumeTexture);
+		DEFINE_TEXTURE_PARAM(NoiseVolumeTexture);
+
 	};
 
 	class NoiseShaderTestProgram : public NoiseShaderProgramBase
@@ -404,6 +410,7 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, VolumeSize);
 			BIND_SHADER_PARAM(parameterMap, ScatterFactor);
 			BIND_SHADER_PARAM(parameterMap, StepSize);
+			BIND_TEXTURE_PARAM(parameterMap, SceneDepthTexture);
 		}
 
 		void setParameters(RHICommandList& commandList, ViewInfo& view, NoiseShaderParamsData& data, Vector3 volumeCenter, Vector3 volumeSize, SmokeParams const& smokeParams)
@@ -426,7 +433,7 @@ namespace Render
 		DEFINE_SHADER_PARAM( VolumeSize );
 		DEFINE_SHADER_PARAM( ScatterFactor );
 		DEFINE_SHADER_PARAM( StepSize );
-
+		DEFINE_TEXTURE_PARAM(SceneDepthTexture);
 	};
 
 
@@ -453,24 +460,24 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
-			BIND_SHADER_PARAM(parameterMap, FrameTexture);
-			BIND_SHADER_PARAM(parameterMap, HistroyTexture);
+			BIND_TEXTURE_PARAM(parameterMap, FrameTexture);
+			BIND_TEXTURE_PARAM(parameterMap, HistroyTexture);
+			BIND_TEXTURE_PARAM(parameterMap, SceneDepthTexture);
 		}
 
 		void setParameters(RHICommandList& commandList, ViewInfo& view, RHITexture2D& frameTexture, RHITexture2D& historyTexture)
 		{
 			view.setupShader(commandList, *this);
-			setTexture(commandList, mParamFrameTexture, frameTexture, mParamFrameTextureSampler, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, FrameTexture, frameTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			if( mParamHistroyTexture.isBound() )
 			{
-				setTexture(commandList, mParamHistroyTexture, historyTexture, mParamHistroyTextureSampler, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, HistroyTexture, historyTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 		}
 
-		DEFINE_SHADER_PARAM(FrameTexture);
-		DEFINE_SHADER_PARAM(HistroyTexture);
-		DEFINE_SHADER_PARAM(FrameTextureSampler);
-		DEFINE_SHADER_PARAM(HistroyTextureSampler);
+		DEFINE_TEXTURE_PARAM(FrameTexture);
+		DEFINE_TEXTURE_PARAM(HistroyTexture);
+		DEFINE_TEXTURE_PARAM(SceneDepthTexture);
 	};
 
 
@@ -551,21 +558,22 @@ namespace Render
 		float mAlbedo = 1;
 		std::vector< LightInfo > mLights;
 
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::D3D11;
+		}
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{
 			systemConfigs.screenWidth = 1024;
 			systemConfigs.screenHeight = 768;
 		}
 
+		virtual bool setupRenderSystem(ERenderSystem systemName) override;
+		virtual void preShutdownRenderSystem(bool bReInit = false) override;
+
 		bool onInit() override;
 		void onEnd() override;
 
-#if 0
-		RHITargetName getRHITargetName()
-		{
-			return RHITargetName::D3D11;
-		}
-#endif
 
 		void updateLightToBuffer()
 		{
@@ -579,8 +587,18 @@ namespace Render
 
 		void drawNoiseImage(RHICommandList& commandList, IntVector2 const& pos, IntVector2 const& size, NoiseShaderProgramBase& shader)
 		{
+			Vec2i screenSize = ::Global::GetScreenSize();
 			GPU_PROFILE("drawNoiseImage");
-			RHISetViewport(commandList, pos.x, pos.y, size.x, size.y);
+			if (GRHIVericalFlip < 0)
+			{
+				
+				RHISetViewport(commandList, pos.x, screenSize.y - pos.y - size.y , size.x, size.y);
+			}
+			else
+			{
+				RHISetViewport(commandList, pos.x, pos.y, size.x, size.y);
+				
+			}		
 			RHISetShaderProgram(commandList, shader.getRHIResource());
 			shader.setParameters(commandList, mData);
 			DrawUtility::ScreenRect(commandList);
@@ -632,6 +650,8 @@ namespace Render
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
+
 	protected:
 	};
 

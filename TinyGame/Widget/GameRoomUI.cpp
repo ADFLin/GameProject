@@ -389,7 +389,7 @@ bool ComMsgPanel::onChildEvent( int event , int id , GWidget* ui )
 		switch( event )
 		{
 		case EVT_BUTTON_CLICK:
-		case EVT_TEXTCTRL_ENTER:
+		case EVT_TEXTCTRL_COMMITTED:
 			if ( *mMsgTextCtrl->getValue() != '\0' )
 			{
 				char const* str = mMsgTextCtrl->getValue();

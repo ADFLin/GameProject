@@ -117,7 +117,7 @@ bool PropFrame::onChildEvent( int event , int id , QWidget* ui )
 		}
 		break;
 	case UI_PROP_TEXTCTRL:
-		if ( event == EVT_TEXTCTRL_ENTER )
+		if ( event == EVT_TEXTCTRL_COMMITTED )
 		{
 			ui->outputData();
 			if ( mEditObj )

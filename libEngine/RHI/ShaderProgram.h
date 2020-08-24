@@ -33,7 +33,11 @@ namespace Render
 	public:
 
 		RHIResourceType* getRHIResource() { return mRHIResource; }
-		void releaseRHI() { mRHIResource.release(); }
+		void releaseRHI()
+		{
+			mBoundedBlocks.clear();
+			mRHIResource.release(); 
+		}
 
 		void setParam(RHICommandList& commandList, char const* name, int v1) { setParamT(commandList, name, v1); }
 

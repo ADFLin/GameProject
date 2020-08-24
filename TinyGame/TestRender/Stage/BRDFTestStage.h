@@ -269,11 +269,6 @@ namespace Render
 		{
 		}
 
-		void onUpdate(long time) override
-		{
-
-		}
-
 		bool bEnableTonemap = true;
 		bool bShowIrradiance = false;
 

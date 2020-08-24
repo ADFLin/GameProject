@@ -41,7 +41,7 @@ struct MaterialParametersVS
 MaterialInputVS InitMaterialInputVS()
 {
 	MaterialInputVS inputVS;
-	inputVS.worldOffset = float3(0.0);
+	inputVS.worldOffset = float3(0,0,0);
 	return inputVS;
 }
 
@@ -87,9 +87,9 @@ struct MaterialInputDS
 MaterialInputPS InitMaterialInputPS()
 {
 	MaterialInputPS inputPS;
-	inputPS.baseColor = float3(0.0);
+	inputPS.baseColor = float3(0,0,0);
 	inputPS.normal = float3(0.0, 0.0, 1);
-	inputPS.emissiveColor = float3(0.0);
+	inputPS.emissiveColor = float3(0,0,0);
 	inputPS.metallic = 0.0;
 	inputPS.specular = 0.0;
 	inputPS.roughness = 0.0;
@@ -100,9 +100,9 @@ MaterialInputPS InitMaterialInputPS()
 	return inputPS;
 }
 
-float3 GetTextureNormal(sampler2D inTexture, float2 UVs)
+float3 GetTextureNormal(float4 value)
 {
-	return 2 * texture(inTexture, UVs).xyz - 1;
+	return 2 * value.xyz - 1;
 }
 #endif //PIXEL_SHADER
 

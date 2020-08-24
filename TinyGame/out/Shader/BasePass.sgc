@@ -11,7 +11,7 @@
 
 struct PassInterpolantsParam
 {
-	float dump;
+	float dump MEMBER_OUT(TEXCOORD10);
 };
 
 struct VertexOutputParamVSToPS
@@ -22,41 +22,59 @@ struct VertexOutputParamVSToPS
 
 #if VERTEX_SHADER
 
-layout(location = 0) out VertexOutputParameters OutputVS;
-void BassPassVS()
+VS_ENTRY_START(BassPassVS)
+	VS_INPUT_PARAMETERS(VertexFactoryInputParameters VertexInput)
+	VS_OUTPUT_STRUCT(VertexOutputParameters OutputVS, 0)
+VS_ENTRY_END(BassPassVS)
 {
-	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS();
+	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS(VERTEX_INPUT_PARAM(VertexInput));
 
 	MaterialInputVS materialInput = InitMaterialInputVS();
-	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS( intermediates );
+
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS( 
+#if COMPILER_HLSL
+		VertexInput,
+#endif
+		intermediates );
 
 	CalcMaterialInputVS( materialInput , materialParameters );
 
-	gl_Position = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants , intermediates , materialInput , materialParameters );
-	//gl_Position = ftransform();
+	SvPosition = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants , intermediates , materialInput , materialParameters );
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-layout(location = 0) in VertexOutputParamVSToPS InputPS;
-void BasePassPS()
+PS_ENTRY_START(BasePassPS)
+	PS_INPUT_STRUCT(VertexOutputParamVSToPS InputPS , 0)
+	PS_OUTPUT(float4 OutColor,  0)
+#if FORWARD_SHADING == 0
+	PS_OUTPUT(float4 OutColorA, 1)
+	PS_OUTPUT(float4 OutColorB, 2)
+	PS_OUTPUT(float4 OutColorC, 3)
+	PS_OUTPUT(float4 OutColorD, 4)
+#endif
+#if MATERIAL_USE_DEPTH_OFFSET
+	PS_OUTPUT_DEPTH
+#endif
+PS_ENTRY_END(BasePassPS)
 {
-
 	MaterialInputPS materialInput = InitMaterialInputPS();
 	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
 
 	CalcMaterialParameters(materialInput , materialParameters);
 
 	//float4 color = float4( materialParameters.vectexColor * 0.1 , 1 );
-	float4 color = float4(0.0);
+	float4 color = float4(0,0,0,1);
 	color.rgb += materialInput.emissiveColor;
-	color.a = 1.0;
-
 
 	GBufferData GBuffer;
-	GBuffer.worldPos = GetMaterialWorldPositionAndCheckDepthOffset(materialInput, materialParameters, gl_FragDepth);
+	float depth;
+	GBuffer.worldPos = GetMaterialWorldPositionAndCheckDepthOffset(materialInput, materialParameters, depth);
+#if MATERIAL_USE_DEPTH_OFFSET
+	SvDepth = depth;
+#endif
 	//GBuffer.normal = normalize(vsOutput.normal.xyz);
 	GBuffer.normal = GetMaterialWorldNormal(materialInput , materialParameters);
 	//GBuffer.normal = materialParameters.worldNormal;
@@ -66,20 +84,20 @@ void BasePassPS()
 	GBuffer.roughness = materialInput.roughness;
 	GBuffer.specular = materialInput.specular;
 	GBuffer.shadingModel = materialInput.shadingModel;
-	float4 clipPos = View.worldToClip * float4(materialParameters.worldPos, 1);
+	float4 clipPos = mul( View.worldToClip , float4(materialParameters.worldPos, 1) );
 	clipPos = materialParameters.clipPos;
 	GBuffer.sceneDepth = materialParameters.NDC.z;
 
 #if FORWARD_SHADING
-	gl_FragData[0] = float4( GBuffer.baseColor , 1 );
+	OutColor = float4( GBuffer.baseColor , 1 );
 #else
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 	EncodeGBuffer(GBuffer, GBufferA, GBufferB, GBufferC, GBufferD);
-	gl_FragData[0] = color;
-	gl_FragData[1] = GBufferA;
-	gl_FragData[2] = GBufferB;
-	gl_FragData[3] = GBufferC;
-	gl_FragData[4] = GBufferD;
+	OutColor  = color;
+	OutColorA = GBufferA;
+	OutColorB = GBufferB;
+	OutColorC = GBufferC;
+	OutColorD = GBufferD;
 #endif
 }
 

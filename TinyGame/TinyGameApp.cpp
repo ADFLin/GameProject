@@ -866,7 +866,7 @@ void TinyGameApp::render( float dframe )
 		SimpleTextLayout textlayout;
 		textlayout.offset = 15;
 		textlayout.posX = 500;
-		textlayout.posY = 25;
+		textlayout.posY = 10;
 		FixString< 512 > str;
 		FixString< 512 > temp;
 		int curLevel = 0;
@@ -881,7 +881,6 @@ void TinyGameApp::render( float dframe )
 			}
 			return "Unknown";
 		};
-		textlayout.show(g, "system = %s", GetSystemNameString(GRHISystem->getName()) );
 		for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
 		{
 			GpuProfileSample* sample = GpuProfiler::Get().getSample(i);

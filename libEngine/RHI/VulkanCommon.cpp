@@ -164,6 +164,7 @@ namespace Render
 		case Texture::eRGBA8:   return VK_FORMAT_R8G8B8A8_UNORM;
 		case Texture::eRGB8:    return VK_FORMAT_R8G8B8_UNORM;
 		case Texture::eBGRA8:   return VK_FORMAT_B8G8R8A8_UNORM;
+		case Texture::eRGB10A2: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
 		case Texture::eR16:     return VK_FORMAT_R16_UNORM;
 		case Texture::eR8:      return VK_FORMAT_R8_UNORM;
 		case Texture::eR32F:    return VK_FORMAT_R32_SFLOAT;
@@ -211,7 +212,6 @@ namespace Render
 		{
 		case Texture::eDepth16:   return VK_FORMAT_D16_UNORM;
 		case Texture::eDepth24:   return VK_FORMAT_X8_D24_UNORM_PACK32;
-		case Texture::eDepth32:   return VK_FORMAT_R32_UINT;
 		case Texture::eDepth32F:  return VK_FORMAT_D32_SFLOAT;
 		case Texture::eD24S8:     return VK_FORMAT_D24_UNORM_S8_UINT;
 		case Texture::eD32FS8:    return VK_FORMAT_D32_SFLOAT_S8_UINT;
@@ -219,6 +219,9 @@ namespace Render
 		case Texture::eStencil4:  return VK_FORMAT_S8_UINT;
 		case Texture::eStencil8:  return VK_FORMAT_S8_UINT;
 		case Texture::eStencil16: return VK_FORMAT_R16_UINT;
+		case Texture::eDepth32:   //return VK_FORMAT_R32_UINT;
+		default:
+			LogWarning(0, "Vulkam No Support Texture DepthFormat %d", (int)format);
 		}
 		return VK_FORMAT_UNDEFINED;
 	}

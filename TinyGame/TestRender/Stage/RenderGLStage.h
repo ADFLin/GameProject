@@ -26,12 +26,15 @@
 #include "RHI/SceneRenderer.h"
 #include "RHI/LazyObject.h"
 
+#include "Renderer/SimpleCamera.h"
+
 #include "SceneScript.h"
 
 #include <limits>
 #include <memory>
 #include <typeindex>
 #include "PlatformThread.h"
+
 
 class Thread;
 
@@ -672,7 +675,7 @@ namespace Render
 		CycleTrack mTracks[4];
 
 		Vector3 mPos;
-		Render::SimpleCamera  mCamStorage[2];
+		SimpleCamera  mCamStorage[2];
 		CameraMove  mCameraMove;
 		ViewFrustum mViewFrustum;
 		ViewInfo mCameraView;

@@ -91,6 +91,13 @@ float FR3(float2 uv, int numOctaves)
 
 #if PIXEL_SHADER
 
+#if !SHADER_COMPILING
+#define SHADER_ENTRY_MainPS 1
+#define SHADER_ENTRY_TestPS 1
+#define SHADER_ENTRY_SmokeRenderPS 1
+#define SHADER_ENTRY_SmokeBlendPS 1
+#endif
+
 #if SHADER_ENTRY_MainPS
 
 PS_ENTRY_START(MainPS)
@@ -198,8 +205,11 @@ float GetFBM(float3 pos, const float maxOctaves, const float frequency, bool tur
 	const float normalizationFactorNoise3DTex = 1.66f;
 
 	const float3x3 rot = float3x3(0.0f, 0.8f, 0.6f, -0.8f, 0.36f, -0.48f, -0.6f, -0.48f, 0.64f);
-	pos.xyz = mul( pos.xyz , rot );
-
+#if COMPILER_HLSL
+	pos.xyz = mul(rot, pos.xyz);
+#else
+	pos.xyz = mul(pos.xyz, rot);
+#endif
 	float f = 0.0f;
 	float amplitude = 1.0f;
 	float sum = 0.0f;
@@ -292,6 +302,7 @@ float GetJitter(float2 pixelCoord, float2 temporalJitter)
 	float jitter = frac(magic.z * frac(dot(n.xy, magic.xy)));
 	return jitter;
 }
+
 
 
 #if SHADER_ENTRY_SmokeRenderPS

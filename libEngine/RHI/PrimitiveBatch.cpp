@@ -40,7 +40,7 @@ namespace Render
 		desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
 
 		mInputLayout = RHICreateInputLayout(desc);
-		mVertexBuffer = RHICreateVertexBuffer(sizeof(SimpleVertex), MaxVertexSize, BCF_UsageDynamic);
+		mVertexBuffer = RHICreateVertexBuffer(sizeof(SimpleVertex), MaxVertexSize, BCF_CpuAccessWrite);
 
 		if( !ShaderManager::Get().loadFile(
 			mShader, "Shader/SimpleElement",

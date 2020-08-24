@@ -1,5 +1,5 @@
 #define MATERIAL_TEXCOORD_NUM 0
-#define MATERIAL_BLENDING_MASKED 1
+#define MATERIAL_BLENDING_MASKED 0
 #include "MaterialCommon.sgc"
 #include "ViewParam.sgc"
 

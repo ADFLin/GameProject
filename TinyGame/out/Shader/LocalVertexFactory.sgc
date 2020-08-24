@@ -11,7 +11,9 @@
 #ifndef VERTEX_FACTORY_USE_GEOMETRY_SHADER
 #define VERTEX_FACTORY_USE_GEOMETRY_SHADER 0
 #endif
-
+#ifndef VERTEX_FACTORY_HAVE_TANGENT
+#define VERTEX_FACTORY_HAVE_TANGENT 1
+#endif
 #define VETEX_FACTORY_USE_VERTEX_ATTRIBUTE 1
 
 #if VERTEX_FACTORY_USE_GEOMETRY_SHADER
@@ -20,7 +22,9 @@ struct FactoryInterpolantsParam
 {
 	float3 worldPos;
 	float3 worldNormal;
+#if VERTEX_FACTORY_HAVE_TANGENT
 	float4 tangent;
+#endif
 	float4 vertexColor;
 
 	float4 debug;
@@ -50,15 +54,16 @@ struct FactoryInterpolantsParam
 #else //VERTEX_FACTORY_USE_GEOMETRY_SHADER
 struct FactoryInterpolantsParam
 {
-	float3 worldPos;
-	float3 worldNormal;
-	float4 tangent;
-	float4 vertexColor;
-	float4 clipPos;
+	float3 worldPos    MEMBER_OUT(TEXCOORD0);
+	float3 worldNormal MEMBER_OUT(TEXCOORD1);
+#if VERTEX_FACTORY_HAVE_TANGENT
+	float4 tangent     MEMBER_OUT(TEXCOORD2);
+#endif
+	float4 vertexColor MEMBER_OUT(TEXCOORD3);
+	float4 clipPos     MEMBER_OUT(TEXCOORD4);
 
-	float4 debug;
 #if MATERIAL_TEXCOORD_NUM
-	float2 texCoords[MATERIAL_TEXCOORD_NUM];
+	float2 texCoords[MATERIAL_TEXCOORD_NUM] MEMBER_OUT(TEXCOORD6);
 #endif
 };
 
@@ -73,10 +78,9 @@ float3 VertexFactory_GetWorldPos(in FactoryInterpolantsParam Param)
 
 #if VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
 
-#if 0
-in VertexFactoryInputParameters
-{
-#endif
+
+DECLARE_VERTEX_INPUT_START( VertexFactoryInputParameters )
+
 	DECLARE_VERTEX_INPUT(float4, position ,ATTRIBUTE_POSITION)
 	DECLARE_VERTEX_INPUT(float3, normal, ATTRIBUTE_NORMAL)
 	DECLARE_VERTEX_INPUT(float4, color , ATTRIBUTE_COLOR)
@@ -88,7 +92,9 @@ in VertexFactoryInputParameters
 	DECLARE_VERTEX_INPUT(float4, InstanceParam3, ATTRIBUTE7)
 #endif
 
+#if VERTEX_FACTORY_HAVE_TANGENT
 	DECLARE_VERTEX_INPUT(float4, tangent, ATTRIBUTE_TANGENT)
+#endif
 
 #if MATERIAL_TEXCOORD_NUM
 	#if MATERIAL_TEXCOORD_NUM > 0
@@ -105,9 +111,7 @@ in VertexFactoryInputParameters
 	#endif
 #endif//MATERIAL_TEXCOORD_NUM
 
-#if 0
-} VertexInput;
-#endif
+DECLARE_VERTEX_INPUT_END( VertexFactoryInputParameters )
 
 #endif //VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
 
@@ -143,7 +147,7 @@ float4x4 GetWorldToLocalTransform()
 #endif
 }
 
-VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
+VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS( VERTEX_INPUT_PARAM(VertexFactoryInputParameters VertexInput) )
 {
 	VertexFactoryIntermediatesVS intermediates;
 	float noramlFactor = 1;// gl_FrontFacing ? 1 : -1;
@@ -154,15 +158,21 @@ VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
 
 #if VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
 	// NormalMatrix = ( inverse( localToWorld ) )^t
-	intermediates.normal = noramlFactor * float4(VERTEX_INPUT(normal), 0) * worldToLocal;
-	intermediates.tangent = noramlFactor * float4(VERTEX_INPUT(tangent).xyz, 0) * worldToLocal;
+	intermediates.normal = noramlFactor * mul( float4(VERTEX_INPUT(normal), 0) , worldToLocal );
+
+#if VERTEX_FACTORY_HAVE_TANGENT
+	intermediates.tangent = noramlFactor * mul( float4(VERTEX_INPUT(tangent).xyz, 0) , worldToLocal );
 	intermediates.tangent.w = VERTEX_INPUT(tangent).w;
-	intermediates.worldPos = worldToLocal * VERTEX_INPUT( position );
+#endif
+	intermediates.worldPos = mul( localToWorld , VERTEX_INPUT( position ) );
 	intermediates.vertexColor = VERTEX_INPUT(color);
 #else //USE_VERTEX_ATTRIBUTE_INDEX
 	intermediates.normal = noramlFactor * float4(gl_Normal, 0) * Primitive.worldToLocal;
+
+#if VERTEX_FACTORY_HAVE_TANGENT
 	intermediates.tangent = noramlFactor * float4(gl_Tangent.xyz, 0) * Primitive.worldToLocal;
 	intermediates.tangent.w = gl_Tangent.w;
+#endif
 	intermediates.worldPos = worldToLocal * gl_Vertex;
 	intermediates.vertexColor = gl_Color;
 #endif //USE_VERTEX_ATTRIBUTE_INDEX
@@ -170,7 +180,11 @@ VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
 	return intermediates;
 }
 
-MaterialParametersVS VertexFactory_GetMaterialParameterVS(in VertexFactoryIntermediatesVS intermediates)
+MaterialParametersVS VertexFactory_GetMaterialParameterVS(
+#if COMPILER_HLSL
+	VertexFactoryInputParameters VertexInput,
+#endif
+	in VertexFactoryIntermediatesVS intermediates)
 {
 	MaterialParametersVS parameters;
 
@@ -223,11 +237,14 @@ float4 VertexFactory_GetInterpolants(out FactoryInterpolantsParam vertexFactoryO
 	vertexFactoryOutput.worldNormal = intermediates.normal.xyz;
 	vertexFactoryOutput.worldPos = intermediates.worldPos.xyz + materialInput.worldOffset;
 	vertexFactoryOutput.vertexColor = intermediates.vertexColor;
+#if VERTEX_FACTORY_HAVE_TANGENT
 	vertexFactoryOutput.tangent = intermediates.tangent;
+#endif
+
 #if VERTEX_FACTORY_USE_GEOMETRY_SHADER
 
 #else
-	vertexFactoryOutput.clipPos = View.worldToClip * float4(vertexFactoryOutput.worldPos, 1);
+	vertexFactoryOutput.clipPos = mul( View.worldToClip , float4(vertexFactoryOutput.worldPos, 1) );
 #endif //VERTEX_FACTORY_USE_GEOMETRY_SHADER
 
 #if MATERIAL_TEXCOORD_NUM
@@ -247,9 +264,11 @@ MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolants
 	MaterialParametersPS parameters;
 
 	float3x3  tangentToWorld;
+	float normalYSign;
 	float3 worldNormal = normalize(vertexFactoryInput.worldNormal.xyz);
-	float normalYSign = sign(vertexFactoryInput.tangent.w);
 
+#if VERTEX_FACTORY_HAVE_TANGENT
+	normalYSign = sign(vertexFactoryInput.tangent.w);
 	FLATTEN
 	if( true )
 	{
@@ -259,12 +278,16 @@ MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolants
 		float3 tangentZ = normalFactor * worldNormal;
 		float3 tangentY = normalYSign * cross(tangentZ, tangentX);
 		tangentToWorld = float3x3(tangentX, tangentY, tangentZ);
+#if COMPILER_HLSL
+		tangentToWorld = transpose(tangentToWorld);
+#endif
 	}
-	else
+#else
 	{
 		tangentToWorld = float3x3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 		normalYSign = 0;
 	}
+#endif
 
 	parameters.vectexColor = vertexFactoryInput.vertexColor;
 	parameters.worldPos = vertexFactoryInput.worldPos;

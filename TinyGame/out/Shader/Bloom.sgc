@@ -62,12 +62,14 @@ PS_ENTRY_END(BloomSetupPS)
 #endif
 
 #ifndef MAX_WEIGHT_NUM
-#define MAX_WEIGHT_NUM 128
+#define MAX_WEIGHT_NUM 64
 #endif
 
 uniform int WeightNum;
+
 uniform float4 Weights[MAX_WEIGHT_NUM];
-uniform float2 UVOffsets[MAX_WEIGHT_NUM];
+uniform float4 UVOffsets[MAX_WEIGHT_NUM / 2];
+
 
 DEFINE_TEXTURE(Texture2D, FliterTexture);
 
@@ -82,9 +84,16 @@ PS_ENTRY_START(FliterPS)
 PS_ENTRY_END(FliterPS)
 {
 	float4 color = float4(0, 0, 0, 0);
-	for (int i = 0; i < WeightNum; ++i)
+
+	int num = WeightNum / 2;
+	for (int i = 0; i < num; ++i)
 	{
-		color += Weights[i] * TEXTURE_SAMPLE(FliterTexture, OutputVS.UVs + UVOffsets[i]);
+		color += Weights[2 * i + 0] * TEXTURE_SAMPLE(FliterTexture, OutputVS.UVs + UVOffsets[i].xy);
+		color += Weights[2 * i + 1] * TEXTURE_SAMPLE(FliterTexture, OutputVS.UVs + UVOffsets[i].zw);
+	}
+	if ((WeightNum % 2) == 1)
+	{
+		color += Weights[2 * num] * TEXTURE_SAMPLE(FliterTexture, OutputVS.UVs + UVOffsets[num].xy);
 	}
 
 #if APPLY_ADD_TEXTURE

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "Common.sgc"
+#include "ViewParam.sgc"
 
-uniform sampler2D GBufferTextureA;
-uniform sampler2D GBufferTextureB;
-uniform sampler2D GBufferTextureC;
-uniform sampler2D GBufferTextureD;
+DEFINE_TEXTURE(Texture2D, GBufferTextureA);
+DEFINE_TEXTURE(Texture2D, GBufferTextureB);
+DEFINE_TEXTURE(Texture2D, GBufferTextureC);
+DEFINE_TEXTURE(Texture2D, GBufferTextureD);
 
 struct GBufferData
 {
@@ -26,17 +27,18 @@ struct GBufferData
 
 float3 GetGBufferNormal(float2 UVs)
 {
-	return texture(GBufferTextureB, UVs).xyz;
+	return TEXTURE_SAMPLE(GBufferTextureB, UVs).xyz;
 }
 
 float3 EncodeNormal(float3 value)
 {
-	return value;
+	// [-1 1] -> [0 , 1]
+	return 0.5 * value + 0.5;
 }
 
 float3 DecodeNormal(float3 value)
 {
-	return value;
+	return 2 * value - 1;
 }
 
 uint DecodeShadingModel(float value)
@@ -55,42 +57,51 @@ void EncodeGBuffer(in GBufferData GBuffer ,
 				   out float4 GBufferC,
 				   out float4 GBufferD)
 {
-	GBufferA = float4(GBuffer.worldPos, GBuffer.sceneDepth);
-	GBufferB = float4(EncodeNormal(GBuffer.normal), GBuffer.sceneDepth);
-	GBufferC = float4(GBuffer.baseColor, GBuffer.sceneDepth);
 
-	GBufferD.r = GBuffer.metallic;
-	GBufferD.g = GBuffer.roughness;
-	GBufferD.b = GBuffer.specular;
-	GBufferD.a = EncodeShadingModel(GBuffer.shadingModel);
+	GBufferA = float4(EncodeNormal(GBuffer.normal), GBuffer.sceneDepth);
+	GBufferB = float4(GBuffer.baseColor, 1);
+
+	GBufferC.r = GBuffer.metallic;
+	GBufferC.g = GBuffer.roughness;
+	GBufferC.b = GBuffer.specular;
+	GBufferC.a = EncodeShadingModel(GBuffer.shadingModel);
+
+	GBufferD = float4(GBuffer.worldPos, 1);
 }
 
-GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBufferC , in float4 GBufferD )
+GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBufferC , in float4 GBufferD , float2 ScreenUV )
 {
-	GBufferData GBuffer;
-	GBuffer.worldPos = GBufferA.rgb;
-	GBuffer.normal = DecodeNormal( GBufferB.rgb );
-	GBuffer.sceneDepth = GBufferC.a;
-	
-	GBuffer.baseColor = GBufferC.rgb;
+	float bufferDepth = TEXTURE_SAMPLE(FrameDepthTexture, ScreenUVToBufferUV(ScreenUV)).r;
 
-	GBuffer.metallic = GBufferD.r;
-	GBuffer.roughness = GBufferD.g;
-	GBuffer.specular = GBufferD.b;
-	GBuffer.shadingModel = DecodeShadingModel(GBufferD.a);
-	GBuffer.specularColor = lerp( float3(0.08 *GBuffer.specular) , GBuffer.baseColor, GBuffer.metallic);
+	GBufferData GBuffer;
+#if 1
+	GBuffer.worldPos = StoreWorldPos(ScreenUV, bufferDepth);
+#else
+	GBuffer.worldPos = GBufferD.xyz;
+#endif
+	GBuffer.normal = DecodeNormal( GBufferA.rgb );
+	GBuffer.sceneDepth = BufferDepthToSceneDepth(bufferDepth);
+	
+	GBuffer.baseColor = GBufferB.rgb;
+
+	GBuffer.metallic = GBufferC.r;
+	GBuffer.roughness = GBufferC.g;
+	GBuffer.specular = GBufferC.b;
+	GBuffer.shadingModel = DecodeShadingModel(GBufferC.a);
+	GBuffer.specularColor = lerp( float(0.08 *GBuffer.specular).xxx , GBuffer.baseColor, GBuffer.metallic);
 	GBuffer.diffuseColor = GBuffer.baseColor - GBuffer.baseColor * GBuffer.metallic;
 
 	return GBuffer;
 }
 
-GBufferData GetGBufferData( in float2 UVs )
+GBufferData GetGBufferData( in float2 ScreenUV)
 {
 	GBufferData data = DecodeGBuffer(
-		texture(GBufferTextureA, UVs),
-		texture(GBufferTextureB, UVs),
-		texture(GBufferTextureC, UVs),
-		texture(GBufferTextureD, UVs));
+		TEXTURE_SAMPLE(GBufferTextureA, ScreenUV),
+		TEXTURE_SAMPLE(GBufferTextureB, ScreenUV),
+		TEXTURE_SAMPLE(GBufferTextureC, ScreenUV),
+		TEXTURE_SAMPLE(GBufferTextureD, ScreenUV),
+		ScreenUV );
 
 	return data;
 }

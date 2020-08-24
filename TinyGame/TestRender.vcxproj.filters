@@ -69,5 +69,8 @@
     <ClCompile Include="TestRender\TestRender.cpp" />
     <ClCompile Include="TestRender\TestRenderPCH.cpp" />
     <ClCompile Include="TestRender\MeshImporterFBX.cpp" />
+    <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

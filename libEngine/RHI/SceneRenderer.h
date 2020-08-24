@@ -8,8 +8,13 @@
 #include "MeshUtility.h"
 #include "RenderContext.h"
 
+#include "Renderer/BasePassRendering.h"
+#include "Renderer/SceneLighting.h"
+
 //#REMOVE ME
 #include "OpenGLCommon.h"
+
+
 
 namespace Render
 {
@@ -27,108 +32,6 @@ namespace Render
 	struct LightInfo;
 
 
-	namespace EGBufferId
-	{
-		enum Type
-		{
-			A, //xyz : WorldPos
-			B, //xyz : Noraml
-			C, //xyz : BaseColor
-			D,
-
-			Count,
-		};
-	};
-	struct GBufferResource
-	{
-		RHITexture2DRef textures[EGBufferId::Count];
-		RHITextureDepthRef depthTexture;
-
-		bool initializeRHI(IntVector2 const& size , int numSamples );
-		void releaseRHI()
-		{
-			for (auto& texture : textures)
-			{
-				texture.release();
-			}
-			depthTexture.release();
-		}
-		void setupShader(RHICommandList& commandList, ShaderProgram& program);
-
-		void drawTextures(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& size, IntVector2 const& gapSize);
-		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer);
-		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
-	};
-
-	struct RenderTargetResource
-	{
-		RHITexture2DRef renderTargetTexture;
-		RHITexture2DRef resolvedTexture;
-	};
-
-	class FrameRenderTargets
-	{
-	public:
-
-		bool prepare(IntVector2 const& size, int numSamples = 1);
-
-		bool createBufferRHIResource(IntVector2 const& size, int numSamples = 1);
-		void releaseBufferRHIResource();
-
-		bool initializeRHI(IntVector2 const& size, int numSamples = 1);
-		void releaseRHI();
-
-		RHITexture2D&  getFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
-		RHITexture2D&  getPrevFrameTexture() { return *mFrameTextures[1 - mIdxRenderFrameTexture]; }
-		void swapFrameTexture()
-		{
-			mIdxRenderFrameTexture = 1 - mIdxRenderFrameTexture;
-			mFrameBuffer->setTexture(0, getFrameTexture());
-		}
-
-		GBufferResource& getGBuffer() { return mGBuffer; }
-		RHITextureDepth&  getDepthTexture() { return *mDepthTexture; }
-
-
-
-		RHIFrameBufferRef& getFrameBuffer() { return mFrameBuffer; }
-
-		void attachDepthTexture() { mFrameBuffer->setDepth(*mDepthTexture); }
-		void detachDepthTexture() { mFrameBuffer->removeDepth(); }
-
-
-		void drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height);
-
-
-		IntVector2         mSize = IntVector2(0,0);
-		int                mNumSamples = 0;
-
-		GBufferResource    mGBuffer;
-		RHITexture2DRef    mFrameTextures[2];
-		int                mIdxRenderFrameTexture;
-
-
-		RHIFrameBufferRef  mFrameBuffer;
-		RHITextureDepthRef mDepthTexture;
-		RHITextureDepthRef mResolvedDepthTexture;
-	};
-
-
-	class GBufferShaderParameters
-	{
-	public:
-		void bindParameters(ShaderParameterMap const& parameterMap, bool bUseDepth = false);
-
-		void setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferResource& GBufferData);
-		void setParameters(RHICommandList& commandList, ShaderProgram& program, FrameRenderTargets& sceneRenderTargets);
-
-		ShaderParameter mParamGBufferTextureA;
-		ShaderParameter mParamGBufferTextureB;
-		ShaderParameter mParamGBufferTextureC;
-		ShaderParameter mParamGBufferTextureD;
-
-		ShaderParameter mParamFrameDepthTexture;
-	};
 
 	struct ShadowProjectParam
 	{

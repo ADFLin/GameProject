@@ -281,9 +281,6 @@ namespace Render
 	{
 		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
 
-		if( !ShaderHelper::Get().init() )
-			return false;
-
 		mViewFrustum.bUseReverse = false;
 
 		IntVector2 screenSize = ::Global::GetScreenSize();
@@ -510,8 +507,6 @@ namespace Render
 
 	void NoiseTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
-		ShaderHelper::Get().releaseRHI();
-
 		mData.releaseRHI();
 		mLightsBuffer.releaseResources();
 		mSmokeFrameTextures[0].release();
@@ -606,7 +601,6 @@ namespace Render
 				}
 			}
 
-			//if (0)
 			{
 				GPU_PROFILE("CopyToScreen");
 				RHISetFrameBuffer(commandList, nullptr);
@@ -618,7 +612,6 @@ namespace Render
 
 				//OpenGLCast::To( mFrameBuffer )->blitToBackBuffer();
 				ShaderHelper::Get().copyTextureToBuffer(commandList , *mScreenBuffer);
-				//return;
 			}
 
 			if( mDepthBuffer->getNumSamples() != 1 )
@@ -635,7 +628,6 @@ namespace Render
 				DrawUtility::ScreenRect(commandList, mDepthBuffer->getSizeX() , mDepthBuffer->getSizeY());
 			}
 
-			//if (0)
 			{
 				mSmokeFrameBuffer->setTexture(0, *mSmokeFrameTextures[indexFrameTexture]);		
 				//mFrameBuffer.removeDepthBuffer();

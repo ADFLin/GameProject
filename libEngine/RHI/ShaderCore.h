@@ -163,7 +163,7 @@ namespace Render
 
 		}
 
-		ShaderParameter(uint32 inBindIndex, uint16 inOffset, uint16 inSize)
+		ShaderParameter(uint32 inBindIndex, uint32 inOffset, uint32 inSize)
 			:bindIndex(inBindIndex), offset(inOffset), size(inSize)
 		{
 
@@ -188,8 +188,8 @@ namespace Render
 			struct
 			{
 				uint32 bindIndex;
-				uint16 offset;
-				uint16 size;
+				uint32 offset;
+				uint32 size;
 			};
 		};
 	};

@@ -35,11 +35,26 @@ namespace Render
 		mNumSampleUsed = 0;
 		mCurLevel = 0;
 
+
+		auto GetSystemNameString = [](RHISytemName name)
+		{
+			switch (name)
+			{
+			case RHISytemName::OpenGL: return "OpenGL";
+			case RHISytemName::D3D11:  return "D3D11";
+			case RHISytemName::D3D12: return "D3D12";
+			case RHISytemName::Vulkan: return "Vulkan";
+			}
+			return "Unknown";
+		};
+
 		if( mCore )
 		{
 			mCore->beginFrame();
 			mbStartSampling = true;
-			mRootSample = startSample("Frame");
+			FixString< 512 > str;
+			str.format("Frame : %s System", GetSystemNameString(GRHISystem->getName()));
+			mRootSample = startSample(str);
 		}
 	}
 

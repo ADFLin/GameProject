@@ -701,7 +701,7 @@ namespace Render
 		TEXTURE_INFO(Texture::eRGBA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_RGBA)
 		TEXTURE_INFO(Texture::eRGB8    ,GL_RGB8    ,GL_RGB ,GL_UNSIGNED_BYTE ,GL_RGB)
 		TEXTURE_INFO(Texture::eBGRA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
-
+		TEXTURE_INFO(Texture::eRGB10A2 ,GL_RGB10_A2,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
 		TEXTURE_INFO(Texture::eR16     ,GL_R16     ,GL_RED,GL_UNSIGNED_SHORT ,GL_RED)
 		TEXTURE_INFO(Texture::eR8      ,GL_R8      ,GL_RED,GL_UNSIGNED_BYTE  ,GL_RED)
 		
@@ -785,7 +785,7 @@ namespace Render
 		switch (format)
 		{
 		case Texture::eRGBA8:case Texture::eBGRA8:
-		case Texture::eRGB8:
+		case Texture::eRGB8: case Texture::eRGB10A2:
 		case Texture::eR32F:case Texture::eR16:case Texture::eR8:
 		case Texture::eRGB32F:
 		case Texture::eRGBA32F:
@@ -1031,7 +1031,7 @@ namespace Render
 
 	GLenum OpenGLTranslate::BufferUsageEnum(uint32 creationFlags)
 	{
-		if( creationFlags & BCF_UsageDynamic )
+		if( creationFlags & BCF_CpuAccessWrite )
 			return GL_DYNAMIC_DRAW;
 		else if( creationFlags & BCF_UsageStage )
 			return GL_STREAM_DRAW;

@@ -38,9 +38,6 @@ namespace Render
 	{
 		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
 		
-		VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
-
-
 		char const* HDRImagePath = "Texture/HDR/A.hdr";
 		{
 			TIME_SCOPE("HDR Texture");
@@ -97,7 +94,7 @@ namespace Render
 		mBuilder.releaseRHI();
 		mSkyBox.releaseRHIResource();
 		mParamBuffer.releaseResources();
-		ShaderHelper::Get().releaseRHI();
+
 		BaseClass::preShutdownRenderSystem(bReInit);
 	}
 

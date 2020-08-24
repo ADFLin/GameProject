@@ -7,8 +7,9 @@
 #include "RHI/MaterialShader.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/GpuProfiler.h"
-
 #include "RHI/RHIGraphics2D.h"
+
+#include "Renderer/SimpleCamera.h"
 
 #include "StringParse.h"
 #include "FileSystem.h"
@@ -16,6 +17,7 @@
 #include <memory>
 #include "GL/wglew.h"
 #include "GameRenderSetup.h"
+
 
 namespace Render
 {

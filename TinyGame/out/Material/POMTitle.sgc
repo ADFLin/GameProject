@@ -42,7 +42,7 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 	inputPS.metallic = 0.9;
 	inputPS.roughness = 0.5;
 	inputPS.specular = 0.1;
-	inputPS.normal = GetTextureNormal(NoramlTexture, pomOutput.UVs);
+	inputPS.normal = GetTextureNormal( TEXTURE_SAMPLE( NoramlTexture, pomOutput.UVs ) );
 #if 1
 	if( pomOutput.depth > 0 )
 		inputPS.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.NDC.z;

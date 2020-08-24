@@ -18,6 +18,7 @@ struct RenderSystemConfigs
 	int32 screenHeight;
 	int32 numSamples;
 	bool  bVSyncEnable;
+	bool  bDebugMode;
 
 	RenderSystemConfigs()
 	{
@@ -25,6 +26,7 @@ struct RenderSystemConfigs
 		screenHeight = 0;
 		numSamples = 1;
 		bVSyncEnable = false;
+		bDebugMode = true;
 	}
 };
 

@@ -35,54 +35,40 @@ uniform ViewParameters View;
 
 float BufferDepthToSceneDepth(float depth)
 {
-
 #if COMPILER_HLSL
-	float4 viewPos = mul(View.clipToView, float4(0, 0, BufferDepthToClipZ(depth), 1));
-	return -viewPos.z / viewPos.w;
-	//return -View.viewToClip[3][2] / (BufferDepthToClipZ(depth) - View.viewToClip[2][2]);
-#else
-#if USE_RIGHT_HAND_COORD
-	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
+	return View.viewToClip[2][3] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
 #else
 	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
 #endif
-#endif
 }
 
-//#FIXME
-#if !COMPILER_HLSL
-
-uniform sampler2D FrameDepthTexture;
+DEFINE_TEXTURE( Texture2D , FrameDepthTexture );
 
 
-float2 ScreenUVToBufferUV(float2 screenUVs)
+float2 ScreenUVToBufferUV(float2 screenUV)
 {
-	return screenUVs + View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
+	return screenUV + View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
 }
-float2 BufferUVToScreenUV(float2 bufferUVs)
+float2 BufferUVToScreenUV(float2 bufferUV)
 {
-	return bufferUVs - View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
+	return bufferUV - View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
 }
 
-
-
-float ScreenUVToSceneDepth(float2 screenUVs)
+float ScreenUVToSceneDepth(float2 screenUV)
 {
-	float depth = texture(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r;
+	float depth = TEXTURE_SAMPLE(FrameDepthTexture, ScreenUVToBufferUV(screenUV)).r;
 	return BufferDepthToSceneDepth(depth);
 }
 
-float3 StoreWorldPos(float2 screenUVs, float bufferDepth)
+float3 StoreWorldPos(float2 screenUV, float bufferDepth)
 {
-	float2 screenPos = (2.0 * screenUVs - 1.0);
+	float2 screenPos = (2.0 * screenUV - 1.0);
 	float4 clipPos = float4(screenPos, BufferDepthToClipZ( bufferDepth ), 1);
-	float4 pos = View.clipToWorld * clipPos;
+	float4 pos = mul( View.clipToWorld , clipPos );
 	return pos.xyz / pos.w;
 }
 
-float3 ScreenUVToWorldPos(float2 screenUVs)
+float3 ScreenUVToWorldPos(float2 screenUV)
 {
-	return StoreWorldPos(screenUVs, texture(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r);
+	return StoreWorldPos(screenUV, TEXTURE_SAMPLE(FrameDepthTexture, ScreenUVToBufferUV(screenUV)).r);
 }
-
-#endif

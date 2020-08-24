@@ -223,6 +223,7 @@
     <ClCompile Include="TestRender\MeshImporterFBX.cpp" />
     <ClCompile Include="TestRender\SceneScript.cpp" />
     <ClCompile Include="TestRender\Stage\D3D11TestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp" />
     <ClCompile Include="TestRender\Stage\FluidSimStage.cpp" />

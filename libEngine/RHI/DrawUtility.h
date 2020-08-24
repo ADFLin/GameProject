@@ -7,15 +7,13 @@
 #include "RHI/RHICommand.h"
 //#REMOVE_ME
 #include "OpenGLCommon.h"
-
-#include "Singleton.h"
 #include "GlobalShader.h"
 
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif
 
-#define USE_SEPARATE_SHADER 0
+#define USE_SEPARATE_SHADER 1
 
 namespace Render
 {
@@ -232,86 +230,6 @@ namespace Render
 
 	};
 
-
-	class SimpleCamera
-	{
-	public:
-		SimpleCamera()
-			:mPos(0, 0, 0)
-			, mYaw(0)
-			, mPitch(0)
-			, mRoll(0)
-		{
-			updateInternal();
-		}
-		void setPos(Vector3 const& pos) { mPos = pos; }
-		void lookAt(Vector3 const& pos, Vector3 const& posTarget, Vector3 const& upDir)
-		{
-			mPos = pos;
-			setViewDir(posTarget - pos, upDir);
-		}
-		void setViewDir(Vector3 const& forwardDir, Vector3 const& upDir)
-		{
-			LookAtMatrix mat(forwardDir, upDir);
-			mRotation.setMatrix(mat);
-			mRotation = mRotation.inverse();
-			Vector3 angle = mRotation.getEulerZYX();
-			mYaw = angle.z;
-			mRoll = angle.y;
-			mPitch = angle.x;
-		}
-		void setRotation(float yaw, float pitch, float roll)
-		{
-			mYaw = yaw;
-			mPitch = pitch;
-			mRoll = roll;
-			updateInternal();
-		}
-
-		Matrix4 getViewMatrix() const { return LookAtMatrix(mPos, getViewDir(), getUpDir()); }
-		Matrix4 getTransform() const { return Matrix4(mPos, mRotation); }
-		Vector3 const& getPos() const { return mPos; }
-
-		static Vector3 LocalViewDir() { return Vector3(0, 0, -1); }
-		static Vector3 LocalUpDir() { return Vector3(0, 1, 0); }
-
-		Vector3 getViewDir() const { return mRotation.rotate(LocalViewDir()); }
-		Vector3 getUpDir() const { return mRotation.rotate(LocalUpDir()); }
-		Vector3 getRightDir() const { return mRotation.rotate(Vector3(1, 0, 0)); }
-
-		void    moveRight(float dist) { mPos += mRotation.rotate(Vector3(dist, 0, 0)); }
-		void    moveFront(float dist) { mPos += dist * getViewDir(); }
-		void    moveUp(float dist) { mPos += dist * getUpDir(); }
-
-
-		Vector3 toWorld(Vector3 const& p) const { return mPos + mRotation.rotate(p); }
-		Vector3 toLocal(Vector3 const& p) const { return mRotation.rotateInverse(p - mPos); }
-
-		void    rotateByMouse(float dx, float dy)
-		{
-			mYaw -= dx;
-			mPitch -= dy;
-			//float const f = 0.00001;
-			//if ( mPitch < f )
-			//	mPitch = f;
-			//else if ( mPitch > Deg2Rad(180) - f )
-			//	mPitch = Deg2Rad(180) - f;
-			updateInternal();
-		}
-
-	private:
-		void updateInternal()
-		{
-			mRotation.setEulerZYX(mYaw, mRoll, mPitch);
-		}
-
-		Quaternion mRotation;
-		Vector3 mPos;
-		float   mYaw;
-		float   mPitch;
-		float   mRoll;
-	};
-
 	struct MatrixSaveScope
 	{
 		MatrixSaveScope(Matrix4 const& projMat, Matrix4 const& viewMat)
@@ -372,7 +290,7 @@ namespace Render
 
 	class ScreenVS : public GlobalShader
 	{
-		DECLARE_SHADER(ScreenVS, Global);
+		DECLARE_EXPORTED_SHADER(ScreenVS, Global , CORE_API);
 
 		static char const* GetShaderFileName()
 		{
@@ -380,9 +298,12 @@ namespace Render
 		}
 	};
 
-	class ShaderHelper : public SingletonT< ShaderHelper >
+	class ShaderHelper
 	{
 	public:
+
+		CORE_API static ShaderHelper& Get();
+
 		bool init();
 		void releaseRHI();
 

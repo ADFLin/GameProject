@@ -203,9 +203,8 @@ namespace Render
 			wglSwapIntervalEXT(0);
 		}
 
-		bool bEnableDebugOutput = true;
 
-		if(bEnableDebugOutput)
+		if(initParam.bDebugMode)
 		{
 			glDebugMessageCallback(GLDebugCallback, nullptr);
 			glEnable(GL_DEBUG_OUTPUT);

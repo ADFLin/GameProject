@@ -179,6 +179,10 @@ namespace Render
 
 		for( auto pVertexFactoryType : VertexFactoryType::TypeList )
 		{
+			if (pVertexFactoryType != &LocalVertexFactory::StaticType)
+			{
+				continue;
+			}
 			MaterialShaderPairVec shaderPairs;
 			int numShaders = ShaderManager::Get().loadMaterialShaders(info , *pVertexFactoryType, shaderPairs);
 

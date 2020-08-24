@@ -1,9 +1,11 @@
 #include "TestRenderStageBase.h"
 
 #include "RHI/RHIGraphics2D.h"
+#include "Renderer/RenderTargetPool.h"
 #include "ConsoleSystem.h"
 
 #include "Asset.h"
+
 
 namespace Render
 {
@@ -272,6 +274,7 @@ namespace Render
 		}
 
 		float dt = float(time) / 1000;
+		mCamera.updatePosition(dt);
 		updateFrame(frame);
 	}
 
@@ -307,6 +310,21 @@ namespace Render
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	}
 
+	void TestRenderStageBase::bitBltToBackBuffer(RHICommandList& commandList , RHITexture2D& texture)
+	{
+		GPU_PROFILE("Blit To Screen");
+		if (true)
+		{
+			RHISetFrameBuffer(commandList, nullptr);
+			ShaderHelper::Get().copyTextureToBuffer(commandList, texture);
+		}
+		else if (GRHISystem->getName() == RHISytemName::OpenGL)
+		{
+			mBitbltFrameBuffer->setTexture(0, texture);
+			OpenGLCast::To(mBitbltFrameBuffer)->blitToBackBuffer();
+		}
+	}
+
 	bool TestRenderStageBase::onMouse(MouseMsg const& msg)
 	{
 		static Vec2i oldPos = msg.getPos();
@@ -330,16 +348,22 @@ namespace Render
 
 	bool TestRenderStageBase::onKey(KeyMsg const& msg)
 	{
-		if (!msg.isDown())
-			return false;
+		float baseImpulse = 500;
 		switch (msg.getCode())
 		{
-		case EKeyCode::W: mCamera.moveFront(1); break;
-		case EKeyCode::S: mCamera.moveFront(-1); break;
-		case EKeyCode::D: mCamera.moveRight(1); break;
-		case EKeyCode::A: mCamera.moveRight(-1); break;
+		case EKeyCode::W: mCamera.moveForwardImpulse = msg.isDown() ? baseImpulse : 0 ; break;
+		case EKeyCode::S: mCamera.moveForwardImpulse = msg.isDown() ? -baseImpulse : 0; break;
+		case EKeyCode::D: mCamera.moveRightImpulse = msg.isDown() ? baseImpulse : 0; break;
+		case EKeyCode::A: mCamera.moveRightImpulse = msg.isDown() ? -baseImpulse : 0; break;
 		case EKeyCode::Z: mCamera.moveUp(0.5); break;
 		case EKeyCode::X: mCamera.moveUp(-0.5); break;
+		}
+
+		if (!msg.isDown())
+			return false;
+
+		switch (msg.getCode())
+		{
 		case EKeyCode::R: restart(); break;
 		case EKeyCode::F2:
 			{
@@ -392,6 +416,17 @@ namespace Render
 		textureFrame->mManager = this;
 		::Global::GUI().addWidget(textureFrame);
 	
+	}
+
+	void TextureShowManager::registerRenderTarget(RenderTargetPool& renderTargetPool)
+	{
+		for (auto& RT : renderTargetPool.mUsedRTs)
+		{
+			if (RT->desc.debugName != EName::None)
+			{
+				registerTexture(RT->desc.debugName, RT->texture);
+			}
+		}
 	}
 
 	void TextureShowManager::releaseRHI()

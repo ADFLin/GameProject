@@ -25,6 +25,13 @@
 #define TEXCOORD6
 #define TEXCOORD7
 #define TEXCOORD8
+#define TEXCOORD9
+#define TEXCOORD10
+#define TEXCOORD11
+#define TEXCOORD12
+#define TEXCOORD13
+#define TEXCOORD14
+#define TEXCOORD15
 
 template< class T >
 struct RWTexture1D {};
@@ -60,14 +67,25 @@ struct StructuredBuffer
 
 
 #if VERTEX_SHADER
+
 #define VS_ENTRY_START(NAME) void NAME(
 #define VS_INPUT_VERTEXID in uint SvVertexID : SV_VertexID,
 #define VS_INPUT_INSTANCEID in uint SvInstanceID : SV_InstanceID,
+#define VS_INPUT_PARAMETERS( TYPE_DECL ) in TYPE_DECL ,
 #define VS_INPUT(TYPE_DECL , LOC) SHADER_INPUT(TYPE_DECL , LOC)
 #define VS_OUTPUT_POINTSIZE out float SvPointSize : PSIZE,
 #define VS_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL : TEXCOORD##LOC,
 #define VS_OUTPUT_STRUCT( TYPE_DECL , LOC ) SHADER_OUTPUT( TYPE_DECL , LOC)
 #define VS_ENTRY_END(NAME)  out float4 SvPosition : SV_POSITION )
+
+
+#define DECLARE_VERTEX_INPUT_START( NAME ) struct NAME {
+#define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) TYPE NAME : ATTRIBUTE;
+#define DECLARE_VERTEX_INPUT_END( NAME )  };
+
+#define VERTEX_INPUT( NAME ) VertexInput.##NAME
+#define VERTEX_INPUT_PARAM( CODE ) CODE
+
 #elif PIXEL_SHADER
 #define PS_ENTRY_START(NAME) void NAME(
 #define PS_INPUT(TYPE_DECL , LOC) in TYPE_DECL : TEXCOORD##LOC,

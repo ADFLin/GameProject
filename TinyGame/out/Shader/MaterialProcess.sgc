@@ -23,9 +23,10 @@ float3 GetMaterialWorldNormal(in MaterialInputPS inputPS, inout MaterialParamete
 {
 #if MATERIAL_USE_WORLD_NORMAL
 	return inputPS.normal;
+#elif VERTEX_FACTORY_HAVE_TANGENT
+	return normalize( mul( parameters.tangentToWorld , inputPS.normal ) );
 #else
-
-	return normalize(parameters.tangentToWorld * inputPS.normal);
+	return parameters.worldNormal;
 #endif
 }
 
@@ -37,10 +38,12 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS inputPS, i
 	if( inputPS.depthOffset != 0 )
 	{
 		NDC.z += inputPS.depthOffset;
-		float4 worldPosH = View.clipToWorld * NDC;
+		float4 worldPosH = mul( View.clipToWorld , NDC );
 		worldPos = worldPosH.xyz / worldPosH.w;
 	}
 	outDepth = NDC.z;
+#else
+	outDepth = 0;
 #endif
 	return worldPos;
 }
@@ -51,8 +54,7 @@ void CalcMaterialParameters(inout MaterialInputPS inputPS, inout MaterialParamet
 	CalcMaterialInputPS(inputPS, parameters);
 
 #if MATERIAL_BLENDING_MASKED
-	if(inputPS.mask < 0.01 )
-		discard;
+	clip(inputPS.mask - 0.01);
 #endif
 }
 

@@ -16,14 +16,38 @@ namespace Render
 			if (!BaseClass::onInit())
 				return false;
 
-			if (!ShaderHelper::Get().init())
-				return false;
-
 			IntVector2 screenSize = ::Global::GetScreenSize();
-
 			::Global::GUI().cleanupWidget();
+
 			return true;
 		}
+
+
+		virtual ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::OpenGL;
+		}
+
+		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
+		{
+
+		}
+
+
+		virtual bool setupRenderSystem(ERenderSystem systemName) override
+		{
+			VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
+
+			return true;
+		}
+
+
+		virtual void preShutdownRenderSystem(bool bReInit = false) override
+		{
+			ShaderHelper::Get().releaseRHI();
+			BaseClass::preShutdownRenderSystem(bReInit);
+		}
+
 
 		void onEnd() override
 		{

@@ -143,8 +143,10 @@ namespace Render
 
 	bool D3D11System::initialize(RHISystemInitParams const& initParam)
 	{
-		uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
-		VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
+		uint32 deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+		if ( initParam.bDebugMode )
+			deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+		VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, deviceFlags, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
 
 		TComPtr< IDXGIDevice > pDXGIDevice;
 		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice));
@@ -160,6 +162,8 @@ namespace Render
 		case 0x8086: GRHIDeviceVendorName = DeviceVendorName::Intel; break;
 		case 0x1002: GRHIDeviceVendorName = DeviceVendorName::ATI; break;
 		}
+
+		mbVSyncEnable = initParam.bVSyncEnable;
 
 		GRHIClipZMin = 0;
 		GRHIProjectYSign = 1;
@@ -297,12 +301,8 @@ namespace Render
 	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		Texture2DCreationResult creationResult;
-		auto formatD3D = D3D11Translate::To(format);
-		if (formatD3D == DXGI_FORMAT_D32_FLOAT && (creationFlags & TCF_CreateSRV))
-		{
-			formatD3D = DXGI_FORMAT_R32_TYPELESS;
-		}
-		if( createTexture2DInternal(formatD3D, w, h, numMipLevel, numSamples, creationFlags, nullptr, 0, true, creationResult) )
+
+		if( createTexture2DInternal(D3D11Translate::To(format) , w, h, numMipLevel, numSamples, creationFlags, nullptr, 0, true, creationResult) )
 		{
 			return new D3D11TextureDepth(format, creationResult);
 		}
@@ -347,7 +347,11 @@ namespace Render
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.ByteWidth = vertexSize * numVertices;
-		bufferDesc.Usage = (creationFlags & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		if (creationFlags & BCF_CpuAccessWrite)
+			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		//if (creationFlags & BCF_CPUAccessRead)
+		//	bufferDesc.Usage = D3D11_USAGE_STAGING;
 		bufferDesc.MiscFlags = 0;
 
 		if (creationFlags & BCF_UsageConst)
@@ -372,9 +376,10 @@ namespace Render
 			bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
 		}
 
-		bufferDesc.CPUAccessFlags = (creationFlags & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
-
-
+		if (creationFlags & BCF_CpuAccessWrite)
+			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
+		if (creationFlags & BCF_CPUAccessRead)
+			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
 
 		D3D11BufferCreationResult creationResult;
 		creationResult.flags = creationFlags;
@@ -400,15 +405,23 @@ namespace Render
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.ByteWidth = nIndices * (bIntIndex ? 4 : 2);
-		bufferDesc.Usage = (creationFlags & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		if (creationFlags & BCF_CpuAccessWrite)
+			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		//if (creationFlags & BCF_CPUAccessRead )
+		//	bufferDesc.Usage = D3D11_USAGE_STAGING;
 		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		if( creationFlags & BCF_CreateSRV )
 			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 
-		bufferDesc.CPUAccessFlags = (creationFlags & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
+		bufferDesc.CPUAccessFlags = (creationFlags & BCF_CpuAccessWrite) ? D3D11_CPU_ACCESS_WRITE : 0;
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
 
+		if (creationFlags & BCF_CpuAccessWrite)
+			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
+		if (creationFlags & BCF_CPUAccessRead)
+			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
 
 		D3D11BufferCreationResult creationResult;
 		creationResult.flags = creationFlags;
@@ -694,9 +707,21 @@ namespace Render
 		if (creationFlags & TCF_CreateSRV)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
-			if (format == DXGI_FORMAT_R32_TYPELESS)
+
+			switch (format)
 			{
+			case DXGI_FORMAT_D16_UNORM:
+				format = DXGI_FORMAT_R16_UNORM;
+				break;
+			case DXGI_FORMAT_D32_FLOAT:
 				format = DXGI_FORMAT_R32_FLOAT;
+				break;
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+				format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+				break;
+			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+				format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+				break;
 			}
 			desc.Format = format;
 			desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
@@ -738,6 +763,8 @@ namespace Render
 	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
+
+
 		desc.Format = format;
 		desc.Width = width;
 		desc.Height = height;
@@ -753,6 +780,25 @@ namespace Render
 
 		desc.SampleDesc.Count = numSamples;
 		desc.SampleDesc.Quality = 0;
+
+		if (creationFlags & TCF_CreateSRV)
+		{
+			switch (desc.Format)
+			{
+			case DXGI_FORMAT_D16_UNORM:
+				desc.Format = DXGI_FORMAT_R16_TYPELESS;
+				break;
+			case DXGI_FORMAT_D32_FLOAT:
+				desc.Format = DXGI_FORMAT_R32_TYPELESS;
+				break;
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+				desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+				break;
+			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+				desc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+				break;
+			}
+		}
 
 		std::vector< D3D11_SUBRESOURCE_DATA > initDataList;
 		if( data )
@@ -1621,9 +1667,10 @@ namespace Render
 			if (mInputLayout)
 			{
 				SimplePipelineProgram* program = nullptr;
-				if (D3D11Cast::To(mInputLayout)->haveAttribute(Vertex::ATTRIBUTE_COLOR))
+				D3D11InputLayout* inputLayoutImpl = D3D11Cast::To(mInputLayout);
+				if (inputLayoutImpl->haveAttribute(Vertex::ATTRIBUTE_COLOR))
 				{
-					if (D3D11Cast::To(mInputLayout)->haveAttribute(Vertex::ATTRIBUTE_TEXCOORD))
+					if (inputLayoutImpl->haveAttribute(Vertex::ATTRIBUTE_TEXCOORD))
 					{
 						program = GSimpleShaderPiplineCT;
 					}
@@ -1634,7 +1681,7 @@ namespace Render
 				}
 				else
 				{
-					if (D3D11Cast::To(mInputLayout)->haveAttribute(Vertex::ATTRIBUTE_TEXCOORD) && mFixedShaderParams.texture)
+					if (inputLayoutImpl->haveAttribute(Vertex::ATTRIBUTE_TEXCOORD) && mFixedShaderParams.texture)
 					{
 						program = GSimpleShaderPiplineT;
 					}
@@ -1679,18 +1726,10 @@ namespace Render
 		if ( mShaderBoundStates[EShader::Pixel].mUAVUsageCount )
 		{
 			auto& shaderBoundState = mShaderBoundStates[EShader::Pixel];
-			if (mRenderTargetsState)
-			{
-				mDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
-					mRenderTargetsState->numColorBuffers , mRenderTargetsState->colorBuffers , mRenderTargetsState->depthBuffer, 
-					0 , shaderBoundState.mUAVUsageCount , shaderBoundState.mBoundedUAVs , nullptr);
-			}
-			else
-			{
-				mDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
-					0, nullptr, nullptr,
-					0, shaderBoundState.mUAVUsageCount, shaderBoundState.mBoundedUAVs, nullptr);
-			}
+			mDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(
+				D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL, nullptr, nullptr,
+				0, shaderBoundState.mUAVUsageCount, shaderBoundState.mBoundedUAVs, nullptr);
+
 		}
 
 #define COMMIT_SHADER_STATE_OP( SHADER_TYPE )\
@@ -2121,6 +2160,48 @@ namespace Render
 	void D3D11Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim)
 	{
 		setShaderValueT(shader, param, val, dim);
+	}
+
+	bool ShaderConstDataBuffer::initializeResource(ID3D11Device* device)
+	{
+		D3D11_BUFFER_DESC bufferDesc = { 0 };
+		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
+		bufferDesc.ByteWidth = ( 4096 + 15 ) / 16 * 16;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.MiscFlags = 0;
+		VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, nullptr, &resource));
+		return true;
+	}
+
+	void ShaderConstDataBuffer::releaseResource()
+	{
+		resource.reset();
+	}
+
+	void ShaderConstDataBuffer::setUpdateValue(ShaderParameter const parameter, void const* value, int valueSize)
+	{
+		int idxDataEnd = parameter.offset + parameter.size;
+		if (updateData.size() <= idxDataEnd)
+		{
+			updateData.resize(idxDataEnd);
+		}
+
+		::memcpy(&updateData[parameter.offset], value, parameter.size);
+		if (idxDataEnd > updateDataSize)
+		{
+			updateDataSize = idxDataEnd;
+		}
+	}
+
+	void ShaderConstDataBuffer::updateResource(ID3D11DeviceContext* context)
+	{
+		if (updateDataSize)
+		{
+			context->UpdateSubresource(resource, 0, nullptr, &updateData[0], updateDataSize, updateDataSize);
+			updateDataSize = 0;
+		}
 	}
 
 }//namespace Render

@@ -36,48 +36,10 @@ namespace Render
 		std::vector< uint8 >    updateData;
 		uint32 updateDataSize = 0;
 
-		bool initializeResource(ID3D11Device* device)
-		{
-			D3D11_BUFFER_DESC bufferDesc = { 0 };
-			ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-			bufferDesc.ByteWidth = 512;
-			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			bufferDesc.CPUAccessFlags = 0;
-			bufferDesc.MiscFlags = 0;
-			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, nullptr, &resource));
-			return true;
-		}
-
-
-		void releaseResource()
-		{
-			resource.reset();
-		}
-
-		void setUpdateValue(ShaderParameter const parameter, void const* value, int valueSize)
-		{
-			int idxDataEnd = parameter.offset + parameter.size;
-			if( updateData.size() <= idxDataEnd )
-			{
-				updateData.resize(idxDataEnd);
-			}
-
-			::memcpy(&updateData[parameter.offset], value, parameter.size);
-			if( idxDataEnd > updateDataSize )
-			{
-				updateDataSize = idxDataEnd;
-			}
-		}
-
-		void updateResource(ID3D11DeviceContext* context)
-		{
-			if( updateDataSize )
-			{
-				context->UpdateSubresource(resource, 0, nullptr, &updateData[0], updateDataSize, updateDataSize);
-				updateDataSize = 0;
-			}
-		}
+		bool initializeResource(ID3D11Device* device);
+		void releaseResource();
+		void setUpdateValue(ShaderParameter const parameter, void const* value, int valueSize);
+		void updateResource(ID3D11DeviceContext* context);
 	};
 
 	struct D3D11ShaderBoundState
@@ -585,7 +547,7 @@ namespace Render
 		};
 
 		TRefCountPtr< D3D11SwapChain > mSwapChain;
-		bool mbVSyncEnable;
+		bool mbVSyncEnable = false;
 
 		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFuncHasher > mInputLayoutMap;
 		D3D11Context   mRenderContext;

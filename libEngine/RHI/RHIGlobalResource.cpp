@@ -120,7 +120,8 @@ namespace Render
 				return false;
 		}
 
-		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISytemName::OpenGL ||
+			GRHISystem->getName() == RHISytemName::D3D11 )
 		{
 			TIME_SCOPE("SimpleBasePass");
 			ShaderCompileOption option;

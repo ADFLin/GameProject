@@ -13,6 +13,8 @@
 #include "DataStructure/VertorSet.h"
 #include "GameRenderSetup.h"
 
+#include "Renderer/SimpleCamera.h"
+
 #define DEV_MAP_NAME "test.map"
 #define DEV_SAVE_NAME "save.map"
 

@@ -94,6 +94,8 @@ namespace Render
 			eRGB8,
 			eBGRA8 ,
 
+			eRGB10A2,
+
 			eR16,
 			eR8,
 
@@ -622,11 +624,11 @@ namespace Render
 	{
 		BCF_CreateSRV = BIT(0),
 		BCF_CreateUAV = BIT(1),
-		BCF_UsageDynamic = BIT(2),
+		BCF_CpuAccessWrite = BIT(2),
 		BCF_UsageStage = BIT(3),
 		BCF_UsageConst = BIT(4),
 		BCF_Structured = BIT(5),
-
+		BCF_CPUAccessRead = BIT(6),
 
 		BCF_DefalutValue = 0,
 	};

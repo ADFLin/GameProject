@@ -15,6 +15,9 @@
 
 #include <algorithm>
 
+#include "Renderer/BasePassRendering.h"
+#include "Renderer/SceneLighting.h"
+
 namespace Render
 {
 	int const OIT_StorageSize = 4096;
@@ -462,111 +465,7 @@ namespace Render
 		shadowProject = OrthoMatrix(Vmin.x, Vmax.x, Vmin.y, Vmax.y, -mCascadeMaxDist / 2, Vmax.z);
 	}
 
-	class DeferredLightingProgram : public GlobalShaderProgram
-	{
-	public:
-		void bindParameters(ShaderParameterMap const& parameterMap) override
-		{
-			mParamGBuffer.bindParameters(parameterMap, true);
-		}
-		void setParamters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets)
-		{
-			mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets);
-		}
 
-		GBufferShaderParameters mParamGBuffer;
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option) 
-		{
-
-		}
-		static char const* GetShaderFileName()
-		{
-			return "Shader/DeferredLighting";
-		}
-
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(LightingPassPS) },
-			};
-			return entries;
-		}
-
-	};
-
-	template< LightType LIGHT_TYPE , bool bUseBoundShape = false >
-	class TDeferredLightingProgram : public DeferredLightingProgram
-	{
-		DECLARE_SHADER_PROGRAM( TDeferredLightingProgram, Global)
-		using BaseClass = DeferredLightingProgram;
-
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			if( bUseBoundShape )
-			{
-				static ShaderEntryInfo const entriesUseBoundShape[] =
-				{
-					{ EShader::Vertex , SHADER_ENTRY(LightingPassVS) },
-					{ EShader::Pixel  , SHADER_ENTRY(LightingPassPS) },
-				};
-				return entriesUseBoundShape;
-			}
-
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(ScreenVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(LightingPassPS) },
-			};
-			return entries;
-		}
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			BaseClass::SetupShaderCompileOption(option);
-			option.addDefine( SHADER_PARAM(DEFERRED_LIGHT_TYPE), (int)LIGHT_TYPE);
-			option.addDefine( SHADER_PARAM(DEFERRED_SHADING_USE_BOUND_SHAPE), bUseBoundShape );
-		}
-	};
-
-
-#define IMPLEMENT_DEFERRED_SHADER( NAME )\
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, TDeferredLightingProgram< LightType::NAME >);\
-	typedef TDeferredLightingProgram< LightType::NAME , true > DeferredLightingProgram##NAME;\
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, DeferredLightingProgram##NAME);
-
-	IMPLEMENT_DEFERRED_SHADER(Spot);
-	IMPLEMENT_DEFERRED_SHADER(Point);
-	IMPLEMENT_DEFERRED_SHADER(Directional);
-
-#undef IMPLEMENT_DEFERRED_SHADER
-
-	class LightingShowBoundProgram : public DeferredLightingProgram
-	{
-		DECLARE_SHADER_PROGRAM(LightingShowBoundProgram, Global)
-		using BaseClass = DeferredLightingProgram;
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			BaseClass::SetupShaderCompileOption(option);
-			option.addDefine(SHADER_PARAM(DEFERRED_SHADING_USE_BOUND_SHAPE), true);
-		}
-
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(LightingPassVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(ShowBoundPS) },
-			};
-			return entries;
-		}
-	};
-
-
-	IMPLEMENT_SHADER_PROGRAM(LightingShowBoundProgram);
 
 	bool DeferredShadingTech::init( FrameRenderTargets& sceneRenderTargets )
 	{
@@ -764,31 +663,6 @@ namespace Render
 
 	}
 
-	class DeferredBasePassProgram : public MaterialShaderProgram
-	{
-		using BaseClass = MaterialShaderProgram;
-		DECLARE_EXPORTED_SHADER_PROGRAM(DeferredBasePassProgram, Material, CORE_API);
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			BaseClass::SetupShaderCompileOption(option);
-		}
-
-		static char const* GetShaderFileName()
-		{
-			return "Shader/BasePass";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(BassPassVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(BasePassPS) },
-			};
-			return entries;
-		}
-	};
-
 	MaterialShaderProgram* DeferredShadingTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
 	{
 		//return &GSimpleBasePass;
@@ -814,6 +688,8 @@ namespace Render
 			if( !texture.isValid() )
 				return false;
 
+
+
 			OpenGLCast::To(texture)->bind();
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -823,15 +699,6 @@ namespace Render
 		}
 
 		return true;
-	}
-
-	void GBufferResource::setupShader(RHICommandList& commandList, ShaderProgram& program)
-	{
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureA), *textures[EGBufferId::A]);
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureB), *textures[EGBufferId::B]);
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureC), *textures[EGBufferId::C]);
-		program.setTexture(commandList, SHADER_PARAM(GBufferTextureD), *textures[EGBufferId::D]);
-
 	}
 
 	void GBufferResource::drawTextures(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& size , IntVector2 const& gapSize )
@@ -1194,7 +1061,7 @@ namespace Render
 		nodeHeadTexture = RHICreateTexture2D(Texture::eR32U, screenSize.x, screenSize.y);
 		VERIFY_RETURN_FALSE(nodeHeadTexture.isValid());
 
-		storageUsageCounter = RHICreateVertexBuffer(sizeof(uint32) , 1 , BCF_DefalutValue | BCF_UsageDynamic );
+		storageUsageCounter = RHICreateVertexBuffer(sizeof(uint32) , 1 , BCF_DefalutValue | BCF_CpuAccessWrite );
 		VERIFY_RETURN_FALSE(storageUsageCounter.isValid());
 
 		return true;
@@ -1624,38 +1491,48 @@ namespace Render
 
 	void SSAOAmbientProgram::setParameters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
 	{
-		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets.getGBuffer());
+		auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets.getGBuffer(), sampler);
 		setTexture(commandList, mParamTextureSSAO, SSAOTexture , mParamTextureSamplerSSAO ,
 				   TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 	}
 
 	void GBufferShaderParameters::bindParameters(ShaderParameterMap const& parameterMap, bool bUseDepth /*= false */)
 	{
-		mParamGBufferTextureA.bind(parameterMap, SHADER_PARAM(GBufferTextureA));
-		mParamGBufferTextureB.bind(parameterMap, SHADER_PARAM(GBufferTextureB));
-		mParamGBufferTextureC.bind(parameterMap, SHADER_PARAM(GBufferTextureC));
-		mParamGBufferTextureD.bind(parameterMap, SHADER_PARAM(GBufferTextureD));
+		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureA);
+		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureB);
+		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureC);
+		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureD);
 		if( bUseDepth )
 		{
 			mParamFrameDepthTexture.bind(parameterMap, SHADER_PARAM(FrameDepthTexture));
 		}
 	}
 
-	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferResource& GBufferData)
+	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferResource& GBufferData, RHISamplerState& sampler )
 	{
-		if( mParamGBufferTextureA.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureA, *GBufferData.textures[EGBufferId::A]);
-		if( mParamGBufferTextureB.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureB, *GBufferData.textures[EGBufferId::B]);
-		if( mParamGBufferTextureC.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureC, *GBufferData.textures[EGBufferId::C]);
-		if( mParamGBufferTextureD.isBound() )
-			program.setTexture(commandList, mParamGBufferTextureD, *GBufferData.textures[EGBufferId::D]);
+		if (mParamGBufferTextureA.isBound())
+		{
+			SetShaderTextureT(commandList, program, mParamGBufferTextureA, *GBufferData.textures[EGBufferId::A], mParamGBufferTextureASampler, sampler);
+		}
+		if (mParamGBufferTextureB.isBound())
+		{
+			SetShaderTextureT(commandList, program, mParamGBufferTextureB, *GBufferData.textures[EGBufferId::B], mParamGBufferTextureBSampler, sampler);
+		}
+		if (mParamGBufferTextureC.isBound())
+		{
+			SetShaderTextureT(commandList, program, mParamGBufferTextureC, *GBufferData.textures[EGBufferId::C], mParamGBufferTextureCSampler, sampler);
+		}
+		if (mParamGBufferTextureD.isBound())
+		{
+			SetShaderTextureT(commandList, program, mParamGBufferTextureD, *GBufferData.textures[EGBufferId::D], mParamGBufferTextureDSampler, sampler);
+		}
 	}
 
 	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, FrameRenderTargets& sceneRenderTargets)
 	{
-		setParameters(commandList, program, sceneRenderTargets.getGBuffer());
+		auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+		setParameters(commandList, program, sceneRenderTargets.getGBuffer(), sampler);
 		if( mParamFrameDepthTexture.isBound() )
 		{
 			program.setTexture(commandList, mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture());
@@ -2119,7 +1996,6 @@ namespace Render
 	
 #if CORE_SHARE_CODE
 	IMPLEMENT_SHADER_PROGRAM(ShadowDepthProgram);
-	IMPLEMENT_SHADER_PROGRAM(DeferredBasePassProgram);
 	IMPLEMENT_SHADER_PROGRAM(OITBBasePassProgram);
 #endif
 

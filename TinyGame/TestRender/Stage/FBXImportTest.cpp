@@ -48,7 +48,6 @@ namespace Render
 			auto frame = ::Global::GUI().findTopWidget< DevFrame >();
 			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
 			FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
-			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
  			return true;
 		}
 
@@ -207,17 +206,8 @@ namespace Render
 				RHISetFrameBuffer(commandList, nullptr);
 			}
 
-			{
-				GPU_PROFILE("Blit To Screen");
-				if( mbUseShaderBlit || GRHISystem->getName() != RHISytemName::OpenGL )
-				{
-					ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
-				}
-				else
-				{
-					OpenGLCast::To( mSceneRenderTargets.getFrameBuffer() )->blitToBackBuffer();
-				}
-			}
+
+			bitBltToBackBuffer(commandList, mSceneRenderTargets.getFrameTexture());
 		}
 
 

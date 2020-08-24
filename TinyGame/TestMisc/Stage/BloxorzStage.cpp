@@ -263,11 +263,6 @@ namespace Bloxorz
 	};
 	IMPLEMENT_SHADER_PROGRAM(RayTraceLightingProgram);
 
-	IMPLEMENT_SHADER_PROGRAM(DownsampleProgram);
-	IMPLEMENT_SHADER_PROGRAM(BloomSetupProgram);
-	IMPLEMENT_SHADER_PROGRAM(FliterProgram);
-	IMPLEMENT_SHADER_PROGRAM(FliterAddProgram);
-	IMPLEMENT_SHADER_PROGRAM(TonemapProgram);
 
 	bool TestStage::onInit()
 	{
@@ -342,6 +337,7 @@ namespace Bloxorz
 
 	void TestStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 	{
+		systemConfigs.bVSyncEnable = false;
 #if 1
 		systemConfigs.screenWidth = 1280;
 		systemConfigs.screenHeight = 720;
@@ -829,8 +825,8 @@ namespace Bloxorz
 						RHISetShaderProgram(commandList, mProgFliter->getRHIResource());
 						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliter, FliterTexture, fliterTexture, sampler);
 						numSamples = generateFliterData(fliterTexture.getSizeX(), Vector2(1, 0), LinearColor(1,1,1,1), bloomRadius);
-						mProgFliter->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), 128);
-						mProgFliter->setParam(commandList, SHADER_PARAM(UVOffsets), mUVOffsetData.data(), 128);
+						mProgFliter->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), MaxWeightNum);
+						mProgFliter->setParam(commandList, SHADER_PARAM(UVOffsets), (Vector4*)mUVOffsetData.data(), MaxWeightNum / 2);
 						mProgFliter->setParam(commandList, SHADER_PARAM(WeightNum), numSamples);
 						DrawUtility::ScreenRect(commandList);
 
@@ -851,8 +847,8 @@ namespace Bloxorz
 						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, FliterTexture, *blurXRT->texture, sampler);
 						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, AddTexture, bloomTexture, sampler);
 						numSamples = generateFliterData(fliterTexture.getSizeY(), Vector2(0, 1), tint, bloomRadius);
-						mProgFliterAdd->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), 128);
-						mProgFliterAdd->setParam(commandList, SHADER_PARAM(UVOffsets), mUVOffsetData.data(), 128);
+						mProgFliterAdd->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), MaxWeightNum);
+						mProgFliterAdd->setParam(commandList, SHADER_PARAM(UVOffsets), (Vector4*)mUVOffsetData.data(), MaxWeightNum / 2);
 						mProgFliterAdd->setParam(commandList, SHADER_PARAM(WeightNum), numSamples);
 						DrawUtility::ScreenRect(commandList);
 					}

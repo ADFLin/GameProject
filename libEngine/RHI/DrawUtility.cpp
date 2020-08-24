@@ -16,6 +16,16 @@ namespace Render
 #if CORE_SHARE_CODE
 	CORE_API TConsoleVariable< bool > CVarDrawScreenUseDynamicVertexData(false, "r.DrawScreenUseDynamicVertexData", CVF_TOGGLEABLE);
 	CORE_API TConsoleVariable< bool > CVarDrawScreenUseOptimisedTriangle(false, "r.DrawScreenUseOptimisedTriangle", CVF_TOGGLEABLE);
+
+
+	IMPLEMENT_SHADER(ScreenVS, EShader::Vertex, SHADER_ENTRY(ScreenVS));
+
+
+	ShaderHelper& ShaderHelper::Get()
+	{
+		static ShaderHelper sInstance;
+		return sInstance;
+	}
 #endif
 
 	struct VertexXYZ_T1
@@ -406,8 +416,6 @@ namespace Render
 		glDisable(GL_TEXTURE_CUBE_MAP);
 	}
 
-	IMPLEMENT_SHADER(ScreenVS, EShader::Vertex, SHADER_ENTRY(ScreenVS));
-
 
 	template< class TShaderType >
 	class TCopyTextureBase : public TShaderType
@@ -651,6 +659,8 @@ namespace Render
 	void ShaderHelper::copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture)
 	{
 #if USE_SEPARATE_SHADER
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 		GraphicShaderBoundState state;
 		state.vertexShader = mScreenVS->getRHIResource();
 		state.pixelShader = mCopyTexturePS->getRHIResource();

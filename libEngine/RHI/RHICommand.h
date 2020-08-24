@@ -64,6 +64,8 @@ namespace Render
 	{
 		int  numSamples;
 		bool bVSyncEnable;
+		bool bDebugMode;
+
 #if SYS_PLATFORM_WIN
 		HWND hWnd;
 		HDC  hDC;
@@ -72,6 +74,7 @@ namespace Render
 		{
 			numSamples = 1;
 			bVSyncEnable = true;
+			bDebugMode = false;
 		}
 
 	};
@@ -336,10 +339,10 @@ namespace Render
 			switch (type)
 			{
 			case EStructuredBufferType::Const:
-				creationFlags = BCF_UsageConst | BCF_UsageDynamic;
+				creationFlags = BCF_UsageConst | BCF_CpuAccessWrite;
 				break;
 			case EStructuredBufferType::Buffer:
-				creationFlags = BCF_UsageDynamic | BCF_Structured | BCF_CreateSRV;
+				creationFlags = BCF_CpuAccessWrite | BCF_Structured | BCF_CreateSRV;
 				break;
 			case EStructuredBufferType::RWBuffer:
 				creationFlags = BCF_Structured | BCF_CreateUAV | BCF_CreateSRV;

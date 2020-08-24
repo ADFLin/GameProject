@@ -176,11 +176,11 @@ namespace Render
 			desc.setElementUnusable(Vertex::ATTRIBUTE_COLOR);
 			desc.addElement(1, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
 			mInputLayoutOverwriteColor = RHICreateInputLayout(desc);
-			mColorBuffer = RHICreateVertexBuffer(sizeof(LinearColor), mVertexBuffer->getNumElements(), BCF_DefalutValue | BCF_UsageDynamic);
+			mColorBuffer = RHICreateVertexBuffer(sizeof(LinearColor), 1/* mVertexBuffer->getNumElements()*/, BCF_DefalutValue | BCF_CpuAccessWrite);
 		}
 
 		LinearColor* pColor = (LinearColor*)RHILockBuffer(mColorBuffer, ELockAccess::WriteDiscard);
-		for (int i = 0; i < mVertexBuffer->getNumElements(); ++i)
+		for (int i = 0; i < 1/*mVertexBuffer->getNumElements()*/; ++i)
 		{
 			*pColor = color;
 			++pColor;
@@ -194,6 +194,7 @@ namespace Render
 		InputStreamInfo inputStreams[2];
 		inputStreams[0].buffer = mVertexBuffer;
 		inputStreams[1].buffer = mColorBuffer;
+		inputStreams[1].stride = 0;
 		RHISetInputStream(commandList, mInputLayoutOverwriteColor, inputStreams, 2);
 
 		if (indexBuffer)
@@ -996,19 +997,21 @@ namespace Render
 	{
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3 );
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
 		//mesh.mInputLayoutDesc.addElement( 0, Vertex::ATTRIBUTE_TEXCOORD , Vertex::eFloat2 );
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof( float );
 
-		float sf = 2 * Math::PI / sectors;
-		float rf = 2 * Math::PI / rings;
 
 		int nV = rings * sectors;
 		std::vector< float > vertex( nV * size );
-		float* v = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(0) / sizeof( float );
-		float* n = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(1) / sizeof( float );
+		float* pos      = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(0) / sizeof(float);
+		float* tangentZ = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(1) / sizeof(float);
+		float* tangentX = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(2) / sizeof(float);
 		//float* t = &vertex[0] + mesh.mDecl.getOffset(2) / sizeof( float );
 
 		int r , s;
+		float sf = 2 * Math::PI / sectors;
+		float rf = 2 * Math::PI / rings;
 		for( s = 0 ; s < sectors ; ++s )
 		{
 			float sx , sy;
@@ -1018,19 +1021,25 @@ namespace Render
 			{
 				float rs , rc;
 				Math::SinCos( r * rf , rs , rc );
-				v[0] = radius * sx * ( 1 + factor * rc ) ;
-				v[1] = radius * sy * ( 1 + factor * rc ) ;
-				v[2] = ringRadius * rs;
+				pos[0] = radius * sx * ( 1 + factor * rc ) ;
+				pos[1] = radius * sy * ( 1 + factor * rc ) ;
+				pos[2] = ringRadius * rs;
 
-				n[0] = rc * sx;
-				n[1] = rc * sy;
-				n[2] = rs;
+				tangentZ[0] = rc * sx;
+				tangentZ[1] = rc * sy;
+				tangentZ[2] = rs;
 
+
+				tangentX[0] = -sy;
+				tangentX[1] =  sx;
+				tangentX[2] =  0;
+				tangentX[3] = 1.0f;
 				//t[0] = s*sf;
 				//t[1] = r*rf;
 
-				v += size;
-				n += size;
+				pos += size;
+				tangentZ += size;
+				tangentX += size;
 				//t += size;
 			}
 		}
@@ -1146,7 +1155,7 @@ namespace Render
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
-		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_BONEINDEX, Vertex::eUInt4);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_BONEINDEX, Vertex::eUByte4);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_BLENDWEIGHT, Vertex::eFloat4);
 
 		float du = 1.0 / (nx - 1);

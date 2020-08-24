@@ -14,6 +14,9 @@
 #include <iterator>
 #include "ProfileSystem.h"
 
+//#TODO remove
+#include "Renderer/BasePassRendering.h"
+
 extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
 extern CORE_API TConsoleVariable< bool > CVarShaderDectectFileMoidfy;
 
@@ -462,6 +465,12 @@ namespace Render
 
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
 		{
+			if (GRHISystem->getName() == RHISytemName::D3D11)
+			{
+				if ( pShaderClass != &DeferredBasePassProgram::GetShaderClass() )
+					continue;
+			}
+
 			ShaderCompileOption option;
 			mShaderFormat->setupShaderCompileOption(option);
 			option.addInclude(path.c_str());

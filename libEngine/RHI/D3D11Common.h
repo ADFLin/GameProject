@@ -663,14 +663,18 @@ namespace Render
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-			depthStencilDesc.Format = desc.Format;
-			if (depthStencilDesc.Format == DXGI_FORMAT_R32_TYPELESS)
+			depthStencilDesc.Format = D3D11Translate::To(format);
+			switch (depthStencilDesc.Format)
 			{
-				depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+			case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+			case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+				depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+				break;
 			}
+
 			if (mNumSamples > 1)
 			{
-			
+				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 			}
 			else
 			{
@@ -678,11 +682,8 @@ namespace Render
 				depthStencilDesc.Texture2D.MipSlice = 0;
 			}
 			
-			HRESULT hr = device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV);
-			if( hr != S_OK )
-			{
-				int i = 1;
-			}
+			VERIFY_D3D11RESULT( device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV) , );
+
 		}
 
 		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }

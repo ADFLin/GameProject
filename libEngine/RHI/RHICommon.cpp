@@ -231,6 +231,7 @@ namespace Render
 		TEXTURE_INFO(Texture::eRGBA8   ,4,CVT_UByte)
 		TEXTURE_INFO(Texture::eRGB8    ,3,CVT_UByte)
 		TEXTURE_INFO(Texture::eBGRA8   ,4,CVT_UByte)
+		TEXTURE_INFO(Texture::eRGB10A2 ,4,CVT_UByte)
 
 		TEXTURE_INFO(Texture::eR16     ,1,CVT_UShort)
 		TEXTURE_INFO(Texture::eR8      ,1,CVT_UByte)

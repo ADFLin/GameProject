@@ -18,6 +18,7 @@
 #include "RHI/RenderContext.h"
 #include "RHI/RHICommand.h"
 #include "RHI/ShaderManager.h"
+#include "Renderer/SimpleCamera.h"
 
 #include "GL/wglew.h"
 #include <memory>

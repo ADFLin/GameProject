@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include "Renderer/SceneLighting.h"
+
 namespace Render
 {
 
@@ -15,34 +17,7 @@ namespace Render
 	struct ViewInfo;
 	class RenderContext;
 
-	struct LightInfo
-	{
-		LightType type;
-		Vector3   pos;
-		Vector3   color;
-		Vector3   dir;
-		Vector3   spotAngle;
-		float     intensity;
-		float     radius;
 
-		Vector3   upDir;
-		bool      bCastShadow;
-
-		void setupShaderGlobalParam(RHICommandList& commandList, ShaderProgram& shader) const;
-
-		bool testVisible(ViewInfo const& view) const;
-
-		REFLECT_OBJECT_BEGIN(LightInfo)
-			REF_PROPERTY(type)
-			REF_PROPERTY(pos)
-			REF_PROPERTY(color)
-			REF_PROPERTY(dir)
-			REF_PROPERTY(spotAngle)
-			REF_PROPERTY(intensity)
-			REF_PROPERTY(radius)
-			REF_PROPERTY(bCastShadow)
-		REFLECT_OBJECT_END()
-	};
 
 	class SceneLight
 	{

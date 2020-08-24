@@ -6,61 +6,63 @@
 
 struct VSOutputParameters
 {
-	float4 color;
-	float4 worldPos;
-	float4 normal;
+	float4 worldPos MEMBER_OUT(TEXCOORD0);
+	float4 color    MEMBER_OUT(TEXCOORD1);
+	float4 normal   MEMBER_OUT(TEXCOORD2);
 };
 
 #if VERTEX_SHADER
 
-out VSOutputParameters VSOutput;
-void BassPassVS()
+VS_ENTRY_START(BassPassVS)
+	VS_INPUT( float3 InPos, ATTRIBUTE_POSITION )
+	VS_INPUT( float4 InColor , ATTRIBUTE_COLOR )
+	VS_INPUT( float3 InNormal, ATTRIBUTE_NORMAL )
+	VS_OUTPUT_STRUCT(VSOutputParameters OutputVS, 0)
+VS_ENTRY_END(BassPassVS)
 {
-	VSOutput.color = gl_Color;
-	VSOutput.worldPos = Primitive.localToWorld * gl_Vertex;
-	VSOutput.normal = float4(gl_Normal, 0) * Primitive.worldToLocal;
-	gl_Position = View.worldToClip * VSOutput.worldPos;
+	OutputVS.color = InColor;
+	OutputVS.worldPos = mul( Primitive.localToWorld , float4(InPos , 1 ) );
+	OutputVS.normal = mul( float4(InNormal, 0) , Primitive.worldToLocal );
+	SvPosition = mul( View.worldToClip , OutputVS.worldPos);
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-in VSOutputParameters VSOutput;
-void BasePassPS()
+
+PS_ENTRY_START(BasePassPS)
+	PS_INPUT_STRUCT(VSOutputParameters InputPS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+	PS_OUTPUT(float4 OutColorA, 1)
+
+	PS_OUTPUT(float4 OutColorB, 2)
+	PS_OUTPUT(float4 OutColorC, 3)
+	PS_OUTPUT(float4 OutColorD, 4)
+
+PS_ENTRY_END(BasePassPS)
 {
 	GBufferData GBuffer;
-	GBuffer.worldPos = VSOutput.worldPos.xyz;
-	GBuffer.normal = normalize( VSOutput.normal.xyz );
-	GBuffer.baseColor = VSOutput.color.rgb;
+	GBuffer.worldPos = InputPS.worldPos.xyz;
+	GBuffer.normal = normalize( InputPS.normal.xyz );
+	GBuffer.baseColor = InputPS.color.rgb;
 	GBuffer.metallic = 0.3;
 	GBuffer.roughness = 0.5;
 	GBuffer.specular = 0.5;
 	GBuffer.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	float4 clipPos = View.worldToClip * float4(GBuffer.worldPos, 1);
+	float4 clipPos = mul( View.worldToClip , float4(GBuffer.worldPos, 1) );
 	GBuffer.sceneDepth = -clipPos.z;
 
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 
-	GBufferA = float4(0);
-	GBufferB = float4(0);
-	GBufferC = float4(0);
-	GBufferD = float4(0);
+	EncodeGBuffer(GBuffer, GBufferA, GBufferB, GBufferC, GBufferD);
 
-	GBufferA = float4(GBuffer.worldPos, GBuffer.sceneDepth);
-	GBufferB = float4(GBuffer.normal, GBuffer.sceneDepth);
-	GBufferC = float4(GBuffer.baseColor, GBuffer.sceneDepth);
+	OutColor = float4(0,0,1.0,1.0);
+	OutColorA = GBufferA;
 
-	GBufferD.r = GBuffer.metallic;
-	GBufferD.g = GBuffer.roughness;
-	GBufferD.b = GBuffer.specular;
-	GBufferD.a = EncodeShadingModel(GBuffer.shadingModel);
-
-	gl_FragData[0] = float4(0,0,1.0,1.0);
-	gl_FragData[1] = GBufferA;
-	gl_FragData[2] = GBufferB;
-	gl_FragData[3] = GBufferC;
-	gl_FragData[4] = GBufferD;
+	OutColorB = GBufferB;
+	OutColorC = GBufferC;
+	OutColorD = GBufferD;
 }
 
 #endif //PIXEL_SHADER

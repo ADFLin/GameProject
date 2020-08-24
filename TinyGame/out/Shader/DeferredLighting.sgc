@@ -44,7 +44,7 @@ in VSOutputParameters VSOutput;
 
 void ShowBoundPS()
 {
-	float2 ScreenUVs = (gl_FragCoord.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
+	float2 ScreenUVs = (SvPosition.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 	gl_FragColor = ( 1.0 / 100.0 ) * float4(0,1,1,0);
 }
 

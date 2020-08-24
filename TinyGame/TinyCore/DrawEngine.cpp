@@ -198,6 +198,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	RHISystemInitParams initParam;
 	initParam.numSamples = configs.numSamples;
 	initParam.bVSyncEnable = configs.bVSyncEnable;
+	initParam.bDebugMode = configs.bDebugMode;
 	initParam.hWnd = getWindow().getHWnd();
 	initParam.hDC = getWindow().getHDC();
 

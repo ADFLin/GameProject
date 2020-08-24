@@ -13,6 +13,8 @@
 #include "RHI/ShaderCore.h"
 #include "RHI/Scene.h"
 
+#include "Renderer/SimpleCamera.h"
+
 #include "Core/ScopeExit.h"
 #include "Math/PrimitiveTest.h"
 #include "Serialize/SerializeFwd.h"
@@ -49,7 +51,7 @@ namespace Render
 			return mesh.save(serializer);
 		};
 
-		if( !::Global::DataCache().loadDelegate(key, MeshLoad) )
+		if( 1 || !::Global::DataCache().loadDelegate(key, MeshLoad) )
 		{
 			if( !FuncMeshCreate(mesh, std::forward<Args>(args)...) )
 			{
@@ -126,7 +128,7 @@ namespace Render
 		{
 			if( !mInstancedBuffer.isValid() )
 			{
-				mInstancedBuffer = RHICreateVertexBuffer(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_UsageDynamic, nullptr);
+				mInstancedBuffer = RHICreateVertexBuffer(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_CpuAccessWrite, nullptr);
 				if( !mInstancedBuffer.isValid() )
 				{
 					LogMsg("Can't create vertex buffer!!");
@@ -137,7 +139,7 @@ namespace Render
 			{
 				if( mInstancedBuffer->getNumElements() < mInstanceTransforms.size() )
 				{
-					mInstancedBuffer->resetData(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_UsageDynamic, nullptr);
+					mInstancedBuffer->resetData(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_CpuAccessWrite, nullptr);
 				}
 			}
 
@@ -298,12 +300,15 @@ namespace Render
 		void releaseRHIResource(bool bReInit = false);
 	};
 
+	class RenderTargetPool;
 	class TINY_API TextureShowManager
 	{
 	public:
 		void registerTexture(HashString const& name, RHITexture2D* texture);
 
 		void handleShowTexture();
+
+		void registerRenderTarget(RenderTargetPool& renderTargetPool );
 
 		struct TextureHandle : RefCountedObjectT< TextureHandle >
 		{
@@ -359,16 +364,24 @@ namespace Render
 		//
 		virtual bool setupRenderSystem(ERenderSystem systemName)
 		{
+			VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
+			VERIFY_RETURN_FALSE(mBitbltFrameBuffer = RHICreateFrameBuffer());
+			
 			return true;
 		}
 
 		virtual void preShutdownRenderSystem(bool bReInit = false)
 		{
+			ShaderHelper::Get().releaseRHI();
 			TextureShowManager::releaseRHI();
 			SharedAssetData::releaseRHIResource(bReInit);
 			mView.releaseRHIResource();
+			mBitbltFrameBuffer.release();
 		}
 		void initializeRenderState();
+		void bitBltToBackBuffer(RHICommandList& commandList, RHITexture2D& texture);
+
+		RHIFrameBufferRef mBitbltFrameBuffer;
 
 		bool onMouse(MouseMsg const& msg) override;
 

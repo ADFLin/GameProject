@@ -37,7 +37,7 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 	//float2 value = 2 * frac(10 * (parameters.worldPos.x + parameters.worldPos.y + parameters.worldPos.z )) - 1;
 	//float2 value = 2 * frac(10 * (parameters.worldPos.xy)) - 1;
 	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
-	inputPS.normal = GetTextureNormal( TextureB , UV );
+	inputPS.normal = GetTextureNormal( TEXTURE_SAMPLE(TextureB , UV) );
 }
 
 #endif //PIXEL_SHADER

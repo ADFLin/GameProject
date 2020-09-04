@@ -29,7 +29,7 @@ void MainVS()
 	OutputVS.pos = InPos;
 	OutputVS.normal = InNormal;
 	OutputVS.color = InColor;
-	gl_Position = View.worldToClip * float4(InPos, 1.0);
+	SvPosition = mul( View.worldToClip , float4(InPos, 1.0) );
 }
 
 #endif //VERTEX_SHADER

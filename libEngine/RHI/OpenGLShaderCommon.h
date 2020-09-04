@@ -52,6 +52,9 @@ namespace Render
 		bool create(EShader::Type type);
 		bool attach(OpenGLShaderObject& shaderObject);
 
+		void bind();
+		void unbind();
+
 		EShader::Type mType = EShader::Empty;
 		EShader::Type getType() const { return mType; }
 		virtual bool  getParameter(char const* name, ShaderParameter& outParameter)
@@ -107,6 +110,7 @@ namespace Render
 		{
 			FOpenGLShader::GenerateParameterMap(getHandle(), parameterMap);
 		}
+		uint32 mShaderMask;
 	};
 
 	class ShaderFormatGLSL : public ShaderFormat

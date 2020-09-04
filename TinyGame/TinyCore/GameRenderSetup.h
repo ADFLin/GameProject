@@ -13,7 +13,6 @@ enum class ERenderSystem
 
 struct RenderSystemConfigs
 {
-	ERenderSystem defaultName;
 	int32 screenWidth;
 	int32 screenHeight;
 	int32 numSamples;

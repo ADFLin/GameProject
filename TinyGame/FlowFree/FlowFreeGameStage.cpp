@@ -186,11 +186,11 @@ namespace FlowFree
 			:BaseClass(id, pos, size, parent)
 		{
 			addText("fliterThreshold");
-			FWidgetPropery::Bind(addSlider(UI_ANY), mParams.fliterThreshold, 0.0f, 1.0f);
+			FWidgetProperty::Bind(addSlider(UI_ANY), mParams.fliterThreshold, 0.0f, 1.0f);
 			addText("houghThreshold");
-			FWidgetPropery::Bind(addSlider(UI_ANY), mParams.houghThreshold, 0.0f, 1.0f);
+			FWidgetProperty::Bind(addSlider(UI_ANY), mParams.houghThreshold, 0.0f, 1.0f);
 			addText("removeHeadHLineCount");
-			FWidgetPropery::Bind(addTextCtrl(UI_ANY), mParams.removeHeadHLineCount, 0 , 5);
+			FWidgetProperty::Bind(addTextCtrl(UI_ANY), mParams.removeHeadHLineCount, 0 , 5);
 
 			addButton("BuildAndSolve", [this](int event, GWidget *)
 			{

@@ -12,16 +12,16 @@ uniform float3    DispFactor;
 uniform float3    TileUVScale = float3(1,1,1);
 #if VERTEX_SHADER
 
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutnputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	inputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0.0);
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
 	float3 viewVector = View.worldPos - parameters.worldPos;
 	float3 viewVectorTangent = viewVector * parameters.tangentToWorld;
@@ -35,23 +35,23 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 
 	POMOutput pomOutput = POMapping(NoramlTexture , pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy * TileUVScale.xy );
 
-	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	inputPS.baseColor = texture(BaseTexture, pomOutput.UVs).rgb;
-	//inputPS.emissiveColor = texture(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
-	//inputPS.emissiveColor = normalize(parameters.tangentToWorld[0]);
-	inputPS.metallic = 0.9;
-	inputPS.roughness = 0.5;
-	inputPS.specular = 0.1;
-	inputPS.normal = GetTextureNormal( TEXTURE_SAMPLE( NoramlTexture, pomOutput.UVs ) );
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	outputPS.baseColor = texture(BaseTexture, pomOutput.UVs).rgb;
+	//outputPS.emissiveColor = texture(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
+	//outputPS.emissiveColor = normalize(parameters.tangentToWorld[0]);
+	outputPS.metallic = 0.9;
+	outputPS.roughness = 0.5;
+	outputPS.specular = 0.1;
+	outputPS.normal = GetTextureNormal( TEXTURE_SAMPLE( NoramlTexture, pomOutput.UVs ) );
 #if 1
 	if( pomOutput.depth > 0 )
-		inputPS.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.NDC.z;
+		outputPS.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.screenPos.z;
 	else
-		inputPS.depthOffset = 0;
+		outputPS.depthOffset = 0;
 #endif
 	float2 value = 2 * frac(5 * (parameters.texCoords[0].xy)) - 1;
-	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
-	//inputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
+	//outputPS.mask = value.x * value.y > 0 ? 1 : 0;
+	//outputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
 }
 
 #endif //PIXEL_SHADER

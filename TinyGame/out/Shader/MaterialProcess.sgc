@@ -3,23 +3,72 @@
 #include "ViewParam.sgc"
 
 //Material Template
-#if 0
+#if !SHADER_COMPILING
 #if VERTEX_SHADER
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, in MaterialParametersVS parameters)
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, in MaterialParametersVS parameters)
 {
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, in MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, in MaterialParametersPS parameters)
 {
 }
 #endif //PIXEL_SHADER
 #endif
+
+
+#if VERTEX_SHADER
+
+MaterialOutputVS InitMaterialOutputVS()
+{
+	MaterialOutputVS outputVS;
+	outputVS.worldOffset = float3(0, 0, 0);
+	return outputVS;
+}
+
+MaterialOutputVS Material_GetOutputVS(MaterialParametersVS parameters)
+{
+	MaterialOutputVS outputVS = InitMaterialOutputVS();
+	CalcMaterialOutputVS(outputVS, parameters);
+	return outputVS;
+}
+
+#endif
+
 #if PIXEL_SHADER
 
-float3 GetMaterialWorldNormal(in MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+MaterialOutputPS InitMaterialOutputPS()
+{
+	MaterialOutputPS outputPS;
+	outputPS.baseColor = float3(0, 0, 0);
+	outputPS.normal = float3(0.0, 0.0, 1);
+	outputPS.emissiveColor = float3(0, 0, 0);
+	outputPS.metallic = 0.0;
+	outputPS.specular = 0.0;
+	outputPS.roughness = 0.0;
+	outputPS.mask = 1.0;
+	outputPS.opacity = 0.5;
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	outputPS.depthOffset = 0.0;
+	return outputPS;
+}
+
+MaterialOutputPS Material_GetOutputPS(MaterialParametersPS parameters)
+{
+	MaterialOutputPS outputPS = InitMaterialOutputPS();
+
+	CalcMaterialOutputPS(outputPS, parameters);
+
+#if MATERIAL_BLENDING_MASKED
+	clip(outputPS.mask - 0.01);
+#endif
+
+	return outputPS;
+}
+
+float3 Material_GetWorldNormal(in MaterialOutputPS inputPS, inout MaterialParametersPS parameters)
 {
 #if MATERIAL_USE_WORLD_NORMAL
 	return inputPS.normal;
@@ -30,14 +79,15 @@ float3 GetMaterialWorldNormal(in MaterialInputPS inputPS, inout MaterialParamete
 #endif
 }
 
-float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS inputPS, inout MaterialParametersPS parameters, out float outDepth)
+float3 Material_CorrectWorldPosByDepthOffset(in MaterialOutputPS inputPS, inout MaterialParametersPS parameters, out float outDepth)
 {
 	float3 worldPos = parameters.worldPos;
 #if MATERIAL_USE_DEPTH_OFFSET
-	float4 NDC = parameters.NDC;
+	float4 svPosition = parameters.svPosition;
 	if( inputPS.depthOffset != 0 )
 	{
-		NDC.z += inputPS.depthOffset;
+		svPosition.z += inputPS.depthOffset;
+		float4 NDC = SvPositionToNDC(svPosition);
 		float4 worldPosH = mul( View.clipToWorld , NDC );
 		worldPos = worldPosH.xyz / worldPosH.w;
 	}
@@ -48,14 +98,10 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS inputPS, i
 	return worldPos;
 }
 
-void CalcMaterialParameters(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void Material_CalcParametersPS(inout MaterialParametersPS parameters, float4 svPosition, float3 worldPos )
 {
-
-	CalcMaterialInputPS(inputPS, parameters);
-
-#if MATERIAL_BLENDING_MASKED
-	clip(inputPS.mask - 0.01);
-#endif
+	parameters.svPosition = svPosition;
+	parameters.worldPos = worldPos;
 }
 
 #endif //PIXEL_SHADER

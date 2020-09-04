@@ -19,11 +19,16 @@
 #include "RHI/GpuProfiler.cpp"
 #include "RHI/RHIGlobalResource.cpp"
 #include "RHI/SceneRenderer.cpp"
-#include "RHI/MeshImportor.cpp"
+
 #include "RHI/RHIGraphics2D.cpp"
 #include "RHI/DrawUtility.cpp"
 
+#include "RHI/GLExtensions.cpp"
+
+#include "Renderer/MeshImportor.cpp"
 #include "Renderer/BasePassRendering.cpp"
+#include "Renderer/ShadowDepthRendering.cpp"
+#include "Renderer/RenderTargetPool.cpp"
 #endif
 
 #define EXPORT_FUN(funcc) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &func;

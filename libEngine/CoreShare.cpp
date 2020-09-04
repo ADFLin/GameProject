@@ -6,7 +6,7 @@
 #include "ConsoleSystem.h"
 
 
-#include "RHI/MeshImportor.h"
+#include "Renderer/MeshImportor.h"
 
 void EngineInitialize()
 {

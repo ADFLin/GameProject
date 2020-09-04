@@ -22,10 +22,7 @@
 
 #if VERTEX_SHADER
 
-struct MaterialInputVS
-{
-	float3 worldOffset;
-};
+
 
 struct MaterialParametersVS
 {
@@ -38,18 +35,30 @@ struct MaterialParametersVS
 #endif
 };
 
-MaterialInputVS InitMaterialInputVS()
+struct MaterialOutputVS
 {
-	MaterialInputVS inputVS;
-	inputVS.worldOffset = float3(0,0,0);
-	return inputVS;
-}
+	float3 worldOffset;
+};
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-struct MaterialInputPS
+
+struct MaterialParametersPS
+{
+	float4 vectexColor;
+	float3 worldPos;
+	float4 svPosition;
+	float3 worldNormal;
+	mat3   tangentToWorld;
+#if MATERIAL_TEXCOORD_NUM
+	float2 texCoords[MATERIAL_TEXCOORD_NUM];
+#endif
+};
+
+
+struct MaterialOutputPS
 {
 	float3 baseColor;
 	float3 normal;
@@ -63,19 +72,6 @@ struct MaterialInputPS
 	uint   shadingModel;
 };
 
-struct MaterialParametersPS
-{
-	float4 vectexColor;
-	float3 worldPos;
-	float4 clipPos;
-	float4 NDC;
-	float3 worldNormal;
-	mat3   tangentToWorld;
-#if MATERIAL_TEXCOORD_NUM
-	float2 texCoords[MATERIAL_TEXCOORD_NUM];
-#endif
-};
-
 #if USE_TESSELLATION
 struct MaterialInputDS
 {
@@ -84,26 +80,11 @@ struct MaterialInputDS
 
 #endif
 
-MaterialInputPS InitMaterialInputPS()
-{
-	MaterialInputPS inputPS;
-	inputPS.baseColor = float3(0,0,0);
-	inputPS.normal = float3(0.0, 0.0, 1);
-	inputPS.emissiveColor = float3(0,0,0);
-	inputPS.metallic = 0.0;
-	inputPS.specular = 0.0;
-	inputPS.roughness = 0.0;
-	inputPS.mask = 1.0;
-	inputPS.opacity = 0.5;
-	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	inputPS.depthOffset = 0.0;
-	return inputPS;
-}
-
 float3 GetTextureNormal(float4 value)
 {
 	return 2 * value.xyz - 1;
 }
+
 #endif //PIXEL_SHADER
 
 

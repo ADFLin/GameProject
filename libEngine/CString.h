@@ -89,6 +89,9 @@ struct FCString
 	FORCEINLINE static  char const* Strrchr(char const* str, char c) { return ::strrchr(str, c); }
 	FORCEINLINE static  wchar_t const* Strrchr(wchar_t const* str, wchar_t c) { return ::wcsrchr(str, c); }
 
+	FORCEINLINE static char const* StrStr(char const* s, char const* subStr) { return ::strstr(s, subStr); }
+	FORCEINLINE static wchar_t const* StrStr(wchar_t const* s, wchar_t const* subStr) { return ::wcsstr(s, subStr); }
+
 	FORCEINLINE static size_t  Strlen(char const* s) { return ::strlen(s); }
 	FORCEINLINE static size_t  Strlen(wchar_t const* s) { return ::wcslen(s); }
 

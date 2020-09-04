@@ -2,6 +2,8 @@
 #ifndef MeshImportor_H_6755FFD3_B5D1_4293_9F6A_53348D1F4211
 #define MeshImportor_H_6755FFD3_B5D1_4293_9F6A_53348D1F4211
 
+#include "Renderer/Mesh.h"
+
 #include "HashString.h"
 #include "CoreShare.h"
 #include "Meta/IsBaseOf.h"
@@ -9,7 +11,6 @@
 
 #include <memory>
 #include <unordered_map>
-
 
 namespace Render
 {

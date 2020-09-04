@@ -10,13 +10,22 @@
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+#include "GLExtensions.h"
 #include "GL/wglew.h"
 
-#define COMMIT_STATE_IMMEDIATELY 1
+#define COMMIT_STATE_IMMEDIATELY 0
 
 namespace Render
 {
 	bool gForceInitState = false;
+
+
+	template < class TFunc >
+	bool GetGLExtenionFunc(TFunc& func, char const* funcName)
+	{
+		func = (TFunc) wglGetProcAddress(funcName);
+		return func != nullptr;
+	}
 
 	void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
 	{
@@ -219,6 +228,27 @@ namespace Render
 		GRHIProjectYSign = 1;
 		GRHIVericalFlip = 1;
 
+		GRHISupportMeshShader = false;
+		GRHISupportRayTraceShader = false;
+
+		if (GRHIDeviceVendorName == DeviceVendorName::NVIDIA)
+		{
+			auto const* extensions = (char const*)glGetString(GL_EXTENSIONS);
+
+#define GET_GLFUNC( NAME ) GetGLExtenionFunc(NAME, #NAME) 
+			if ( FCString::StrStr(extensions, "mesh_shader") )
+			{
+				if (GET_GLFUNC(glDrawMeshTasksNV)&&
+					GET_GLFUNC(glDrawMeshTasksIndirectNV) &&
+					GET_GLFUNC(glMultiDrawMeshTasksIndirectNV) &&
+					GET_GLFUNC(glMultiDrawMeshTasksIndirectCountNV))
+				{
+					GRHISupportMeshShader = true;
+				}
+			}
+#undef GET_GLFUNC
+		}
+
 		if( 1 )
 		{
 			mProfileCore = new OpenglProfileCore;
@@ -304,9 +334,15 @@ namespace Render
 		return CreateOpenGLResourceT< OpenGLTexture2DArray >(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data);
 	}
 
-	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* OpenGLSystem::RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
-		return CreateOpenGLResourceT< OpenGLTextureDepth >(format, w , h , numMipLevel, numSamples);
+		OpenGLTexture2D* result = new OpenGLTexture2D;
+		if (result && !result->createDepth(format, w, h, numMipLevel, numSamples))
+		{
+			delete result;
+			return nullptr;
+		}
+		return result;
 	}
 
 	RHIVertexBuffer* OpenGLSystem::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
@@ -404,28 +440,24 @@ namespace Render
 		return &pair.first->second;
 	}
 
+	void OpenGLContext::initialize()
+	{
+		if (GRHISupportMeshShader)
+		{
+			glGetIntegerv(GL_MAX_DRAW_MESH_TASKS_COUNT_NV, &mMaxDrawMeshTasksCount);
+			LogMsg("MaxDrawMeshTasksCount = %d", mMaxDrawMeshTasksCount);
+		}
+
+	}
+
 	void OpenGLContext::shutdown()
 	{
-		if (mLastFrameBuffer)
-		{
-			mLastFrameBuffer.release();
-		}
-		if (mLastShaderProgram)
-		{
-			mLastShaderProgram.release();
-		}
-		if (mLastIndexBuffer)
-		{
-			mLastIndexBuffer.release();
-		}
-		if (mInputLayoutPending)
-		{
-			mInputLayoutPending.release();
-		}
-		if (mInputLayoutCommitted)
-		{
-			mInputLayoutCommitted.release();
-		}
+		mLastFrameBuffer.release();
+		mLastComputeShader.release();
+		mLastShaderProgram.release();
+		mLastIndexBuffer.release();
+		mInputLayoutPending.release();
+		mInputLayoutCommitted.release();	
 	}
 
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
@@ -498,6 +530,41 @@ namespace Render
 		if (mLastFrameBuffer.isValid())
 		{
 			OpenGLCast::To(mLastFrameBuffer.get())->bind();
+		}
+	}
+
+	void OpenGLContext::RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil)
+	{
+		GLbitfield clearBitsGL = 0;
+		if (HaveBits(clearBits, EClearBits::Color))
+		{
+			if (numColor == 1)
+			{
+				glClearColor(colors[0].r, colors[0].b, colors[0].g, colors[0].a);
+				clearBitsGL |= GL_COLOR_BUFFER_BIT;
+			}
+			else
+			{
+				for (int i = 0; i < numColor; ++i)
+				{
+					glClearBufferfv(GL_COLOR, i, colors[i]);
+				}
+			}
+
+		}
+		if (HaveBits(clearBits, EClearBits::Depth))
+		{
+			glClearDepth(depth);
+			clearBitsGL |= GL_DEPTH_BUFFER_BIT;
+		}
+		if (HaveBits(clearBits, EClearBits::Stencil))
+		{
+			glClearStencil(stenceil);
+			clearBitsGL |= GL_STENCIL_BUFFER_BIT;
+		}
+		if (clearBitsGL)
+		{
+			glClear(clearBitsGL);
 		}
 	}
 
@@ -698,6 +765,38 @@ namespace Render
 		glDrawElements(primitiveGL, numIndex, GL_UNSIGNED_INT, (void*)pIndices);
 	}
 
+	void OpenGLContext::RHIDrawMeshTasks(int start, int count)
+	{
+		commitRenderStates();
+
+		while (count > mMaxDrawMeshTasksCount)
+		{
+			glDrawMeshTasksNV(start, mMaxDrawMeshTasksCount);
+			start += mMaxDrawMeshTasksCount;
+			count -= mMaxDrawMeshTasksCount;
+		}
+		if (count)
+		{
+			glDrawMeshTasksNV(start, count);
+		}	
+	}
+
+	void OpenGLContext::RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	{
+		commitRenderStates();
+
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
+		if (numCommand > 1)
+		{
+			glMultiDrawMeshTasksIndirectNV((GLint*)offset, numCommand, commandStride);
+		}
+		else
+		{
+			glDrawMeshTasksIndirectNV((GLint*)offset);
+		}
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+	}
+
 	void OpenGLContext::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 	{
 		commitSamplerStates();
@@ -715,7 +814,9 @@ namespace Render
 
 		if( shaderProgram )
 		{
-			static_cast<OpenGLShaderProgram&>(*shaderProgram).bind();
+			OpenGLShaderProgram& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram);
+
+			shaderProgramImpl.bind();
 			resetBindIndex();
 			mLastShaderProgram = shaderProgram;
 			mbUseShaderPath = true;
@@ -744,6 +845,19 @@ namespace Render
 	}
 
 
+	void OpenGLContext::RHISetComputeShader(RHIShader* shader)
+	{
+		clearShader(false);
+
+		if (shader)
+		{
+			static_cast<OpenGLShader&>(*shader).bind();
+			resetBindIndex();
+			mLastComputeShader = shader;
+			mbUseShaderPath = true;
+		}
+	}
+
 	void OpenGLContext::clearShader(bool bUseShaderPipeline)
 	{
 		if (!mbUseShaderPath)
@@ -753,6 +867,11 @@ namespace Render
 		{
 			mLastShaderPipeline->unbind();
 			mLastShaderPipeline = nullptr;
+		}
+		else if (mLastComputeShader)
+		{
+			static_cast<OpenGLShader&>(*mLastComputeShader).unbind();
+			mLastComputeShader.release();
 		}
 		else
 		{
@@ -1036,8 +1155,8 @@ namespace Render
 		commitRasterizerState();
 		commitDepthStencilState();
 		commitBlendState();
-#endif
 		commitSamplerStates();
+#endif
 	}
 
 	void OpenGLContext::commitSamplerStates()
@@ -1468,6 +1587,10 @@ namespace Render
 		state.samplerHandle = 0;
 		state.program = handle;
 		state.bWrite = false;
+
+#if COMMIT_STATE_IMMEDIATELY 
+		commitSamplerStates();
+#endif
 	}
 
 	void OpenGLContext::setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler)
@@ -1484,6 +1607,10 @@ namespace Render
 		state.samplerHandle = samplerImpl.getHandle();
 		state.program = handle;
 		state.bWrite = false;
+
+#if COMMIT_STATE_IMMEDIATELY 
+		commitSamplerStates();
+#endif
 	}
 
 	void OpenGLContext::setShaderSamplerInternal(GLuint handle, ShaderParameter const& param, RHISamplerState& sampler)
@@ -1499,6 +1626,10 @@ namespace Render
 				break;
 			}
 		}
+
+#if COMMIT_STATE_IMMEDIATELY 
+		commitSamplerStates();
+#endif
 	}
 
 	bool OpenglShaderPipelineState::create(GraphicShaderBoundState const& state)
@@ -1518,6 +1649,8 @@ namespace Render
 		CheckShader(state.geometryShader, GL_GEOMETRY_SHADER_BIT);
 		CheckShader(state.hullShader, GL_TESS_CONTROL_SHADER_BIT);
 		CheckShader(state.domainShader, GL_TESS_EVALUATION_SHADER_BIT);
+		CheckShader(state.taskShader, GL_TASK_SHADER_BIT_NV);
+		CheckShader(state.meshShader, GL_MESH_SHADER_BIT_NV);
 
 		if (!VerifyOpenGLStatus())
 			return false;

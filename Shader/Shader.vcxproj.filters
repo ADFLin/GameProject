@@ -142,9 +142,6 @@
     <None Include="..\TinyGame\out\Shader\Test\VulkanTest.sgc">
       <Filter>Test</Filter>
     </None>
-    <None Include="..\TinyGame\out\Shader\Game\HLSLTest.sgc">
-      <Filter>Test</Filter>
-    </None>
     <None Include="..\TinyGame\out\Material\Elephant.sgc">
       <Filter>Material</Filter>
     </None>
@@ -197,6 +194,12 @@
       <Filter>Game</Filter>
     </None>
     <None Include="..\TinyGame\out\Shader\SignedDistanceFieldCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\Test\HLSLTest.sgc">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc">
+      <Filter>Test</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

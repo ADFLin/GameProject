@@ -10,13 +10,19 @@
 #include "DrawUtility.h"
 #include "Scene.h"
 
+#include "Renderer/BasePassRendering.h"
+#include "Renderer/ShadowDepthRendering.h"
+#include "Renderer/SceneLighting.h"
+#include "Renderer/MeshBuild.h"
+
 #include "FixString.h"
 #include "CoreShare.h"
 
+
+
+
 #include <algorithm>
 
-#include "Renderer/BasePassRendering.h"
-#include "Renderer/SceneLighting.h"
 
 namespace Render
 {
@@ -135,34 +141,6 @@ namespace Render
 		ShaderManager::Get().reloadShader(mProgLighting);
 	}
 
-
-	class ShadowDepthProgram : public MaterialShaderProgram
-	{
-	public:
-		using BaseClass = MaterialShaderProgram;
-		DECLARE_EXPORTED_SHADER_PROGRAM(ShadowDepthProgram , Material , CORE_API );
-
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			BaseClass::SetupShaderCompileOption(option);
-		}
-
-		static char const* GetShaderFileName()
-		{
-			return "Shader/ShadowDepthRender";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
-			};
-			return entries;
-		}
-
-	};
 
 	MaterialShaderProgram* ShadowDepthTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
 	{
@@ -476,11 +454,9 @@ namespace Render
 		VERIFY_RETURN_FALSE(mBassPassBuffer = RHICreateFrameBuffer());
 		VERIFY_RETURN_FALSE(mLightingBuffer = RHICreateFrameBuffer());
 		VERIFY_RETURN_FALSE(mLightingDepthBuffer = RHICreateFrameBuffer());
-		mBassPassBuffer->addTexture(*GBuffer.textures[0]);
-		for( int i = 0; i < EGBufferId::Count; ++i )
-		{
-			mBassPassBuffer->addTexture(*GBuffer.textures[i]);
-		}
+
+		mBassPassBuffer->setTexture(0,sceneRenderTargets.getFrameTexture());
+		GBuffer.attachToBuffer(*mBassPassBuffer);
 
 		mBassPassBuffer->setDepth( sceneRenderTargets.getDepthTexture());
 
@@ -679,71 +655,8 @@ namespace Render
 		ShaderManager::Get().reloadShader(*mProgLightingShowBound);
 	}
 
-	bool GBufferResource::initializeRHI(IntVector2 const& size, int numSamples)
-	{
-		for(auto& texture : textures)
-		{
-			texture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
-
-			if( !texture.isValid() )
-				return false;
 
 
-
-			OpenGLCast::To(texture)->bind();
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			OpenGLCast::To(texture)->unbind();
-		}
-
-		return true;
-	}
-
-	void GBufferResource::drawTextures(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& size , IntVector2 const& gapSize )
-	{
-
-		int width = size.x;
-		int height = size.y;
-		int gapX = gapSize.x;
-		int gapY = gapSize.y;
-		int drawWidth = width - 2 * gapX;
-		int drawHeight = height - 2 * gapY;
-
-		drawTexture(commandList, XForm, 0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::A, Vector4(0, 0, 0, 1));
-		{
-			ViewportSaveScope vpScope(commandList);
-			RHISetViewport(commandList, 1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
-			float colorBias[2] = { 0.5 , 0.5 };
-			ShaderHelper::Get().copyTextureBiasToBuffer(commandList, *textures[EGBufferId::B], colorBias);
-
-		}
-		//drawTexture(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferB);
-		drawTexture(commandList, XForm, 2 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBufferId::C);
-		drawTexture(commandList, XForm, 3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(1, 0, 0, 0));
-		drawTexture(commandList, XForm, 3 * width + gapX, 2 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 1, 0, 0));
-		drawTexture(commandList, XForm, 3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, EGBufferId::D, Vector4(0, 0, 1, 0));
-		{
-			ViewportSaveScope vpScope(commandList);
-			RHISetViewport(commandList, 3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
-			float valueFactor[2] = { 255 , 0 };
-			ShaderHelper::Get().mapTextureColorToBuffer(commandList, *textures[EGBufferId::D], Vector4(0, 0, 0, 1), valueFactor);
-		}
-		//renderDepthTexture(width , 3 * height, width, height);
-	}
-
-	void GBufferResource::drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer)
-	{
-		DrawUtility::DrawTexture(commandList, XForm, *textures[idxBuffer], Vector2(x, y), Vector2(width, height));
-	}
-
-	void GBufferResource::drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
-	{
-		ViewportSaveScope vpScope(commandList);
-		RHISetViewport(commandList, x, y, width, height);
-		ShaderHelper::Get().copyTextureMaskToBuffer(commandList, *textures[idxBuffer], colorMask);
-	}
 
 	class SSAOGenerateProgram : public GlobalShaderProgram
 	{
@@ -944,110 +857,6 @@ namespace Render
 			program.setParam(commandList, SHADER_PARAM(CacadeDepth), cacadeDepth, numCascade);
 			break;
 		}
-	}
-
-	bool FrameRenderTargets::prepare(IntVector2 const& size, int numSamples /*= 1*/)
-	{
-		if (mSize != size || mNumSamples != numSamples)
-		{
-			releaseBufferRHIResource();
-
-			if (!createBufferRHIResource(size, numSamples))
-			{
-				return false;
-
-			}
-
-			mFrameBuffer->addTexture(getFrameTexture());
-			mSize = size;
-			mNumSamples = numSamples;
-		}
-		return true;
-	}
-
-	bool FrameRenderTargets::createBufferRHIResource(IntVector2 const& size, int numSamples /*= 1*/)
-	{
-		mIdxRenderFrameTexture = 0;
-		for (auto& frameTexture : mFrameTextures)
-		{
-			frameTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget);
-			if (!frameTexture.isValid())
-				return false;
-		}
-
-		if (!mGBuffer.initializeRHI(size, numSamples))
-			return false;
-
-		mDepthTexture = RHICreateTextureDepth(Texture::eD32FS8, size.x, size.y, 1, numSamples);
-		if (!mDepthTexture.isValid())
-			return false;
-
-		if (numSamples > 1)
-		{
-
-
-
-		}
-		else
-		{
-			mResolvedDepthTexture = mDepthTexture;
-		}
-
-		if ( GRHISystem->getName() == RHISytemName::OpenGL )
-		{
-			OpenGLCast::To(mResolvedDepthTexture)->bind();
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-			OpenGLCast::To(mResolvedDepthTexture)->unbind();
-		}
-
-		return true;
-	}
-
-	void FrameRenderTargets::releaseBufferRHIResource()
-	{
-		for (auto& frameTexture : mFrameTextures)
-		{
-			frameTexture.release();
-		}
-		mGBuffer.releaseRHI();
-		mSize = IntVector2::Zero();
-	}
-
-	bool FrameRenderTargets::initializeRHI(IntVector2 const& size, int numSamples)
-	{
-		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
-
-		//TODO: remove
-		if (!prepare(size, numSamples))
-			return false;
-
-		return true;
-	}
-
-	void FrameRenderTargets::releaseRHI()
-	{
-		releaseBufferRHIResource();
-		mFrameBuffer.release();
-		mDepthTexture.release();
-		mResolvedDepthTexture.release();
-	}
-
-	void FrameRenderTargets::drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height)
-	{
-		//PROB
-		glLoadIdentity();
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, OpenGLCast::GetHandle(mDepthTexture));
-		glColor3f(1, 1, 1);
-		DrawUtility::Rect(commandList, x, y, width, height);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glDisable(GL_TEXTURE_2D);
 	}
 
 	bool OITShaderData::init(int storageSize, IntVector2 const& screenSize)
@@ -1503,9 +1312,10 @@ namespace Render
 		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureB);
 		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureC);
 		BIND_TEXTURE_PARAM(parameterMap, GBufferTextureD);
+		
 		if( bUseDepth )
 		{
-			mParamFrameDepthTexture.bind(parameterMap, SHADER_PARAM(FrameDepthTexture));
+			BIND_TEXTURE_PARAM(parameterMap, FrameDepthTexture);
 		}
 	}
 
@@ -1513,19 +1323,19 @@ namespace Render
 	{
 		if (mParamGBufferTextureA.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureA, *GBufferData.textures[EGBufferId::A], mParamGBufferTextureASampler, sampler);
+			SetShaderTextureT(commandList, program, mParamGBufferTextureA, GBufferData.getResolvedTexture(EGBuffer::A), mParamGBufferTextureASampler, sampler);
 		}
 		if (mParamGBufferTextureB.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureB, *GBufferData.textures[EGBufferId::B], mParamGBufferTextureBSampler, sampler);
+			SetShaderTextureT(commandList, program, mParamGBufferTextureB, GBufferData.getResolvedTexture(EGBuffer::B), mParamGBufferTextureBSampler, sampler);
 		}
 		if (mParamGBufferTextureC.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureC, *GBufferData.textures[EGBufferId::C], mParamGBufferTextureCSampler, sampler);
+			SetShaderTextureT(commandList, program, mParamGBufferTextureC, GBufferData.getResolvedTexture(EGBuffer::C), mParamGBufferTextureCSampler, sampler);
 		}
 		if (mParamGBufferTextureD.isBound())
 		{
-			SetShaderTextureT(commandList, program, mParamGBufferTextureD, *GBufferData.textures[EGBufferId::D], mParamGBufferTextureDSampler, sampler);
+			SetShaderTextureT(commandList, program, mParamGBufferTextureD, GBufferData.getResolvedTexture(EGBuffer::D), mParamGBufferTextureDSampler, sampler);
 		}
 	}
 
@@ -1535,7 +1345,7 @@ namespace Render
 		setParameters(commandList, program, sceneRenderTargets.getGBuffer(), sampler);
 		if( mParamFrameDepthTexture.isBound() )
 		{
-			program.setTexture(commandList, mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture());
+			program.setTexture(commandList, mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture(), mParamFrameDepthTextureSampler , sampler);
 		}
 	}
 
@@ -1995,7 +1805,6 @@ namespace Render
 
 	
 #if CORE_SHARE_CODE
-	IMPLEMENT_SHADER_PROGRAM(ShadowDepthProgram);
 	IMPLEMENT_SHADER_PROGRAM(OITBBasePassProgram);
 #endif
 

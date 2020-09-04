@@ -153,7 +153,7 @@ namespace Go
 		template< class T , class Widget >
 		T getParamValue(int id)
 		{
-			return FWidgetPropery::Get<T>(findChildT<Widget>(id));
+			return FWidgetProperty::Get<T>(findChildT<Widget>(id));
 		}
 	};
 
@@ -537,7 +537,7 @@ namespace Go
 		{
 			systemConfigs.screenWidth = 1080;
 			systemConfigs.screenHeight = 720;
-			systemConfigs.numSamples = 8;
+			systemConfigs.numSamples = 1;
 		}
 
 		bool onInit() override;

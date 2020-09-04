@@ -236,12 +236,11 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::D3D11;
+			return ERenderSystem::OpenGL;
 		}
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{
 			BaseClass::configRenderSystem(systenName, systemConfigs);
-			systemConfigs.defaultName = ERenderSystem::OpenGL;
 			systemConfigs.screenWidth = 1024;
 			systemConfigs.screenHeight = 768;
 		}

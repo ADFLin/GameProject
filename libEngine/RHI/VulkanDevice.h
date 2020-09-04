@@ -76,7 +76,7 @@ namespace Render
 		*
 		* @return Index of the requested memory type
 		*/
-		int32 getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties);
+		int32 getMemoryTypeIndex(uint32 typeBits, VkMemoryPropertyFlags properties);
 
 		/**
 		* Get the index of a queue family that supports the requested queue flags
@@ -86,7 +86,7 @@ namespace Render
 		* @return Index of the queue family index that matches the flags
 		*
 		*/
-		bool getQueueFamilyIndex(VkQueueFlagBits queueFlags, uint32_t& outIndex);
+		bool getQueueFamilyIndex(VkQueueFlagBits queueFlags, uint32& outIndex);
 
 		/**
 		* Create the logical device based on the assigned physical device, also gets default queue family indices
@@ -149,7 +149,7 @@ namespace Render
 		*
 		* @return A handle to the created command buffer
 		*/
-		VkCommandPool createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+		VkCommandPool createCommandPool(uint32 queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 		/**
 		* Allocate a command buffer from the command pool

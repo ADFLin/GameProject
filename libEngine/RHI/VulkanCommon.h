@@ -48,7 +48,7 @@ namespace Render
 		using namespace ::Meta;
 		typedef typename GetArgsType< sizeof...(FuncArgs) - 1, FuncArgs... >::Type ArgType;
 		typedef typename std::remove_pointer< ArgType >::type PropertyType;
-		uint32_t count = 0;
+		uint32 count = 0;
 		VK_CHECK_RESULT(Func(std::forward<Args>(args)..., &count, nullptr));
 		std::vector< PropertyType > result{ count };
 		VK_VERIFY_FAILCDOE(Func(std::forward<Args>(args)..., &count, result.data()), );
@@ -62,7 +62,7 @@ namespace Render
 		typedef typename GetArgsType< sizeof...(FuncArgs) - 1, FuncArgs... >::Type ArgType;
 		typedef typename std::remove_pointer< ArgType >::type PropertyType;
 
-		uint32_t count = 0;
+		uint32 count = 0;
 		Func(std::forward<Args>(args)..., &count, nullptr);
 		std::vector< PropertyType > result{ count };
 		Func(std::forward<Args>(args)..., &count, result.data());
@@ -220,7 +220,7 @@ namespace Render
 		FORCEINLINE VkCommandBufferAllocateInfo commandBufferAllocateInfo(
 			VkCommandPool commandPool,
 			VkCommandBufferLevel level,
-			uint32_t bufferCount)
+			uint32 bufferCount)
 		{
 			VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
 			commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -397,9 +397,9 @@ namespace Render
 		}
 
 		FORCEINLINE VkDescriptorPoolCreateInfo descriptorPoolCreateInfo(
-			uint32_t poolSizeCount,
+			uint32 poolSizeCount,
 			VkDescriptorPoolSize* pPoolSizes,
-			uint32_t maxSets)
+			uint32 maxSets)
 		{
 			VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 			descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -411,11 +411,11 @@ namespace Render
 
 		FORCEINLINE VkDescriptorPoolCreateInfo descriptorPoolCreateInfo(
 			const std::vector<VkDescriptorPoolSize>& poolSizes,
-			uint32_t maxSets)
+			uint32 maxSets)
 		{
 			VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 			descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-			descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+			descriptorPoolInfo.poolSizeCount = static_cast<uint32>(poolSizes.size());
 			descriptorPoolInfo.pPoolSizes = poolSizes.data();
 			descriptorPoolInfo.maxSets = maxSets;
 			return descriptorPoolInfo;
@@ -423,7 +423,7 @@ namespace Render
 
 		FORCEINLINE VkDescriptorPoolSize descriptorPoolSize(
 			VkDescriptorType type,
-			uint32_t descriptorCount)
+			uint32 descriptorCount)
 		{
 			VkDescriptorPoolSize descriptorPoolSize{};
 			descriptorPoolSize.type = type;
@@ -434,8 +434,8 @@ namespace Render
 		inline VkDescriptorSetLayoutBinding descriptorSetLayoutBinding(
 			VkDescriptorType type,
 			VkShaderStageFlags stageFlags,
-			uint32_t binding,
-			uint32_t descriptorCount = 1)
+			uint32 binding,
+			uint32 descriptorCount = 1)
 		{
 			VkDescriptorSetLayoutBinding setLayoutBinding{};
 			setLayoutBinding.descriptorType = type;
@@ -447,7 +447,7 @@ namespace Render
 
 		FORCEINLINE VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
 			const VkDescriptorSetLayoutBinding* pBindings,
-			uint32_t bindingCount)
+			uint32 bindingCount)
 		{
 			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
 			descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -462,13 +462,13 @@ namespace Render
 			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
 			descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			descriptorSetLayoutCreateInfo.pBindings = bindings.data();
-			descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+			descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32>(bindings.size());
 			return descriptorSetLayoutCreateInfo;
 		}
 
 		FORCEINLINE VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
 			const VkDescriptorSetLayout* pSetLayouts,
-			uint32_t setLayoutCount = 1)
+			uint32 setLayoutCount = 1)
 		{
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 			pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -478,7 +478,7 @@ namespace Render
 		}
 
 		FORCEINLINE VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
-			uint32_t setLayoutCount = 1)
+			uint32 setLayoutCount = 1)
 		{
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 			pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -489,7 +489,7 @@ namespace Render
 		FORCEINLINE VkDescriptorSetAllocateInfo descriptorSetAllocateInfo(
 			VkDescriptorPool descriptorPool,
 			const VkDescriptorSetLayout* pSetLayouts,
-			uint32_t descriptorSetCount)
+			uint32 descriptorSetCount)
 		{
 			VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
 			descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -511,9 +511,9 @@ namespace Render
 		FORCEINLINE VkWriteDescriptorSet writeDescriptorSet(
 			VkDescriptorSet dstSet,
 			VkDescriptorType type,
-			uint32_t binding,
+			uint32 binding,
 			VkDescriptorBufferInfo* bufferInfo,
-			uint32_t descriptorCount = 1)
+			uint32 descriptorCount = 1)
 		{
 			VkWriteDescriptorSet writeDescriptorSet{};
 			writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -528,9 +528,9 @@ namespace Render
 		FORCEINLINE VkWriteDescriptorSet writeDescriptorSet(
 			VkDescriptorSet dstSet,
 			VkDescriptorType type,
-			uint32_t binding,
+			uint32 binding,
 			VkDescriptorImageInfo *imageInfo,
-			uint32_t descriptorCount = 1)
+			uint32 descriptorCount = 1)
 		{
 			VkWriteDescriptorSet writeDescriptorSet{};
 			writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -543,8 +543,8 @@ namespace Render
 		}
 
 		FORCEINLINE VkVertexInputBindingDescription vertexInputBindingDescription(
-			uint32_t binding,
-			uint32_t stride,
+			uint32 binding,
+			uint32 stride,
 			VkVertexInputRate inputRate)
 		{
 			VkVertexInputBindingDescription vInputBindDescription{};
@@ -555,10 +555,10 @@ namespace Render
 		}
 
 		FORCEINLINE VkVertexInputAttributeDescription vertexInputAttributeDescription(
-			uint32_t binding,
-			uint32_t location,
+			uint32 binding,
+			uint32 location,
 			VkFormat format,
-			uint32_t offset)
+			uint32 offset)
 		{
 			VkVertexInputAttributeDescription vInputAttribDescription{};
 			vInputAttribDescription.location = location;
@@ -616,7 +616,7 @@ namespace Render
 		}
 
 		FORCEINLINE VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo(
-			uint32_t attachmentCount,
+			uint32 attachmentCount,
 			const VkPipelineColorBlendAttachmentState * pAttachments)
 		{
 			VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo{};
@@ -641,8 +641,8 @@ namespace Render
 		}
 
 		FORCEINLINE VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo(
-			uint32_t viewportCount,
-			uint32_t scissorCount,
+			uint32 viewportCount,
+			uint32 scissorCount,
 			VkPipelineViewportStateCreateFlags flags = 0)
 		{
 			VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo{};
@@ -666,7 +666,7 @@ namespace Render
 
 		FORCEINLINE VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo(
 			const VkDynamicState * pDynamicStates,
-			uint32_t dynamicStateCount,
+			uint32 dynamicStateCount,
 			VkPipelineDynamicStateCreateFlags flags = 0)
 		{
 			VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
@@ -684,12 +684,12 @@ namespace Render
 			VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
 			pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 			pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates.data();
-			pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(pDynamicStates.size());
+			pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32>(pDynamicStates.size());
 			pipelineDynamicStateCreateInfo.flags = flags;
 			return pipelineDynamicStateCreateInfo;
 		}
 
-		FORCEINLINE VkPipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo(uint32_t patchControlPoints)
+		FORCEINLINE VkPipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo(uint32 patchControlPoints)
 		{
 			VkPipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo{};
 			pipelineTessellationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
@@ -734,8 +734,8 @@ namespace Render
 
 		FORCEINLINE VkPushConstantRange pushConstantRange(
 			VkShaderStageFlags stageFlags,
-			uint32_t size,
-			uint32_t offset)
+			uint32 size,
+			uint32 offset)
 		{
 			VkPushConstantRange pushConstantRange{};
 			pushConstantRange.stageFlags = stageFlags;
@@ -752,7 +752,7 @@ namespace Render
 		}
 
 		/** @brief Initialize a map entry for a shader specialization constant */
-		FORCEINLINE VkSpecializationMapEntry specializationMapEntry(uint32_t constantID, uint32_t offset, size_t size)
+		FORCEINLINE VkSpecializationMapEntry specializationMapEntry(uint32 constantID, uint32 offset, size_t size)
 		{
 			VkSpecializationMapEntry specializationMapEntry{};
 			specializationMapEntry.constantID = constantID;
@@ -762,7 +762,7 @@ namespace Render
 		}
 
 		/** @brief Initialize a specialization constant info structure to pass to a shader stage */
-		FORCEINLINE VkSpecializationInfo specializationInfo(uint32_t mapEntryCount, const VkSpecializationMapEntry* mapEntries, size_t dataSize, const void* data)
+		FORCEINLINE VkSpecializationInfo specializationInfo(uint32 mapEntryCount, const VkSpecializationMapEntry* mapEntries, size_t dataSize, const void* data)
 		{
 			VkSpecializationInfo specializationInfo{};
 			specializationInfo.mapEntryCount = mapEntryCount;
@@ -779,7 +779,6 @@ namespace Render
 		static VkPrimitiveTopology To(EPrimitive type, int& outPatchPointCount);
 		static VkFormat To(Vertex::Format format, bool bNormalized);
 		static VkFormat To(Texture::Format format);
-		static VkFormat To(Texture::DepthFormat format);
 		static VkBlendFactor  To(Blend::Factor factor);
 		static VkBlendOp To(Blend::Operation op);
 		static VkCullModeFlagBits To(ECullMode mode);
@@ -1426,7 +1425,7 @@ namespace Render
 		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
-		virtual void setDepth(RHITextureDepth& target)
+		virtual void setDepth(RHITexture2D& target)
 		{
 
 

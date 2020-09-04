@@ -16,49 +16,50 @@
 #ifndef SHADOW_LIGHT_TYPE
 #define SHADOW_LIGHT_TYPE LIGHTTYPE_POINT
 #endif
+
+#define VERTEX_FACTORY_NEED_INTERPOLANTS 1
+
+
 uniform mat4 DepthShadowMatrix;
 
 
 struct PassInterpolantsParam
 {
-	float depth;
+	float4 worldPos;
 };
 
 struct VertexOutputParamVSToPS
 {
+#if VERTEX_FACTORY_NEED_INTERPOLANTS
 	FactoryInterpolantsParam   factoryInterpolants;
+#endif
 	PassInterpolantsParam      passInterpolants;
 };
 
 #if VERTEX_SHADER
 
-layout(location = 0) out VertexOutputParameters OutputVS;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT_PARAMETERS(VertexFactoryInputParameters VertexInput)
+	VS_OUTPUT_STRUCT(VertexOutputParameters OutputVS, 0)
+VS_ENTRY_END(MainVS)
 {
-	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS();
+	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS(VERTEX_INPUT_PARAM(VertexInput));
 
-	MaterialInputVS materialInput = InitMaterialInputVS();
-	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(intermediates);
+	float4 worldPosExcludingWPO = VertexFactory_GetWorldPosition(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates);
 
-	CalcMaterialInputVS(materialInput, materialParameters);
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(VERTEX_INPUT_PARAM_COMMA( VertexInput ) intermediates);
+	float4 worldPos = worldPosExcludingWPO;
 
-	gl_Position = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants, intermediates, materialInput, materialParameters);
-	float4 outPosition = DepthShadowMatrix * float4( VertexFactory_GetWorldPos(OutputVS.factoryInterpolants) , 1 );
+	MaterialOutputVS materialOutput = Material_GetOutputVS(materialParameters);
 
-#if 0
-	float4 viewOffset = View.worldToView * float4(VFOutputVS.worldPos, 1);
-#	if SHADOW_LIGHT_TYPE == LIGHTTYPE_POINT
-	OutputVS.passInterpolants.depth = (length(viewOffset.xyz) - DepthParam.x) / (DepthParam.y - DepthParam.x);
-#	else
-	OutputVS.passInterpolants.depth = (-viewOffset.z - DepthParam.x) / (DepthParam.y - DepthParam.x);
-#	endif
-#else
-#	if USE_PERSPECTIVE_DEPTH
-	OutputVS.passInterpolants.depth = outPosition.z / outPosition.w;
-#	else
-	OutputVS.passInterpolants.depth = outPosition.z * ShadowParam.y;
-#	endif
-#endif
+	worldPos.xyz += materialOutput.worldOffset;
+
+	OutputVS.factoryInterpolants = VertexFactory_GetInterpolants(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates, materialParameters);
+	float4 outPosition = mul( DepthShadowMatrix , float4( VertexFactory_GetWorldPos(OutputVS.factoryInterpolants) , 1 ) );
+
+	OutputVS.passInterpolants.worldPos = worldPos;
+	SvPosition = outPosition;
+
 }
 #endif //VERTEX_SHADER
 
@@ -82,38 +83,22 @@ void MainGS()
 
 #if PIXEL_SHADER
 
-layout(location = 0) in VertexOutputParamVSToPS InputPS;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VertexOutputParamVSToPS InputPS, 0)
+#if MATERIAL_USE_DEPTH_OFFSET
+	PS_OUTPUT_DEPTH
+#endif
+PS_ENTRY_END(MainPS)
 {
-
-	MaterialInputPS materialInput = InitMaterialInputPS();
 	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
-
-	CalcMaterialParameters(materialInput, materialParameters);
-
-	float outDepth = InputPS.passInterpolants.depth;
+	float4 NDC = SvPositionToNDC(SvPosition);
+	float3 worldPos = InputPS.passInterpolants.worldPos;
+	Material_CalcParametersPS(materialParameters, SvPosition, worldPos);
+	MaterialOutputPS materialOutput = Material_GetOutputPS(materialParameters);
 
 #if MATERIAL_USE_DEPTH_OFFSET
-	float4 NDC = materialParameters.NDC;
-	if( materialInput.depthOffset != 0 )
-	{
-		NDC.z += materialInput.depthOffset;
-
-		float4 worldPos = View.clipToWorld * NDC;
-		float4 outPosition = DepthShadowMatrix * float4( worldPos.xyz / worldPos.w , 1);
-#if USE_PERSPECTIVE_DEPTH
-		outDepth = outPosition.z / outPosition.w;
-#else
-		outDepth = (outPosition.z / outPosition.w) * ShadowParam.y;
+	worldPos = Material_CorrectWorldPosByDepthOffset(materialOutput, materialParameters, SvDepth);
 #endif
-	}
-	WritePixelDepth(NDC.z);
-
-#endif
-	//depth = 0.5;
-	gl_FragColor = float4(outDepth, outDepth, outDepth, 1.0);
-	//gl_FragColor = float4(shadowPos.xy / shadowPos.w, shadowPos.z / shadowPos.w, 0);
-	//gl_FragColor *= float4(materialParameters.worldNormal, 1);
-	//gl_FragColor = depth;
 }
+
 #endif //PIXEL_SHADER

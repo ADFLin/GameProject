@@ -1,6 +1,9 @@
 #include "DeferredShadingCommon.sgc"
 #include "LightingCommon.sgc"
+
+#if COMPILER_HLSL == 0
 #include "ShadowCommon.sgc"
+#endif
 #include "MaterialCommon.sgc"
 
 #include "ViewParam.sgc"
@@ -34,21 +37,37 @@ uniform mat4 ProjectShadowMatrix[8];
 #define DEFERRED_LIGHT_TYPE LIGHTTYPE_POINT
 #endif
 
+#if !SHADER_COMPILING
+#define SHADER_ENTRY_ShowBoundPS 1
+#define SHADER_ENTRY_LightingPassPS 1
+#endif
 #if PIXEL_SHADER
 
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 //layout(early_fragment_tests) in;
-#else
-in VSOutputParameters VSOutput;
 #endif
-
+#if SHADER_ENTRY_ShowBoundPS
+PS_ENTRY_START(ShowBoundPS)
+#if DEFERRED_SHADING_USE_BOUND_SHAPE == 0
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput ,  0)
+#endif
+	PS_OUTPUT( float4 OutColor , 0)
+PS_ENTRY_END(ShowBoundPS)
 void ShowBoundPS()
 {
 	float2 ScreenUVs = (SvPosition.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
-	gl_FragColor = ( 1.0 / 100.0 ) * float4(0,1,1,0);
+	OutColor = (1.0 / 100.0) * float4(0, 1, 1, 0);
 }
 
-void LightingPassPS()
+#endif //SHADER_ENTRY_ShowBoundPS
+
+
+PS_ENTRY_START(LightingPassPS)
+#if DEFERRED_SHADING_USE_BOUND_SHAPE == 0
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+#endif
+	PS_OUTPUT(float4 OutColor, 0)
+	PS_ENTRY_END(LightingPassPS)
 {
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 	float2 ScreenUVs = (gl_FragCoord.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
@@ -58,32 +77,32 @@ void LightingPassPS()
 
 	GBufferData GBuffer = GetGBufferData(ScreenUVs);
 
-	if( GBuffer.shadingModel == SHADINGMODEL_UNLIT || GBuffer.shadingModel == 0)
+	//if (Buffer.shadingModel == SHADINGMODEL_UNLIT || GBuffer.shadingModel == 0)
 	{
-		//discard;
-		gl_FragColor = float4( 0 , 0 , 0 , 1 );
-		return;
+		clip(GBuffer.shadingModel - (SHADINGMODEL_UNLIT + 1));
+		//OutColor = float4(0, 0, 0, 1);
+		//return;
 	}
 
 	float3 worldPos = GBuffer.worldPos;
 	//worldPos = StoreWorldPos(ScreenUVs , GBuffer.depth);
-	//gl_FragColor = float4(worldPos, 1);
-	//gl_FragColor = float4(ScreenUVs, 0, 0);
+	//OutColor = float4(worldPos, 1);
+	//OutColor = float4(ScreenUVs, 0, 0);
 	//float depth = BufferDepthToSceneDepth(GBuffer.depth) / 800;
-	//gl_FragColor = depth;
+	//OutColor = depth;
 
 	float attenuation = 1.0;
 
-	float3 shadow = float3(1.0,1.0,1.0);
+	float3 shadow = float3(1.0, 1.0, 1.0);
 	float3 L = float3(0, 0, 1);
-	float3 outColor = float3(0.0);
+	float3 lighting = float3(0, 0, 0);
 
 	//if( GLight.type == LIGHTTYPE_DIRECTIONAL )
 #if DEFERRED_LIGHT_TYPE == LIGHTTYPE_DIRECTIONAL
 	{
 		L = -GLight.dir;
 		float4 shadowPos = ProjectShadowMatrix[0] * float4(worldPos, 1);
-		if( GLight.bCastShadow == 1 )
+		if (GLight.bCastShadow == 1)
 			shadow = CalcDirectionalLightShadow(worldPos, ProjectShadowMatrix);
 	}
 #else
@@ -98,19 +117,21 @@ void LightingPassPS()
 
 		//if( GLight.type == LIGHTTYPE_POINT )
 #if DEFERRED_LIGHT_TYPE == LIGHTTYPE_POINT
+#if COMPILER_HLSL == 0
 		{
-			if( GLight.bCastShadow == 1 )
+			if (GLight.bCastShadow == 1)
 				shadow = CalcPointLightShadow(GBuffer.worldPos, ProjectShadowMatrix, -lightVector);
 		}
+#endif
 #else
 		//else
 		{
 
 			float cosTheta = dot(-L, GLight.dir);
 			//cosTheta = -0.5;
-			if( cosTheta > GLight.spotParam.y )
+			if (cosTheta > GLight.spotParam.y)
 			{
-				if( GLight.bCastShadow == 1 )
+				if (GLight.bCastShadow == 1)
 					shadow = CalcSpotLightShadow(worldPos, ProjectShadowMatrix[0]);
 			}
 
@@ -119,13 +140,13 @@ void LightingPassPS()
 		}
 #endif
 		//attenuation = 1;
-		
+
 	}
 #endif //DEFERRED_LIGHT_TYPE == LIGHTTYPE_DIRECTIONAL
 	float3 viewOffset = View.worldPos - worldPos;
-		//float  s = 1;
-		//GBuffer.shadingModel = 1;
-	if( GBuffer.shadingModel == SHADINGMODEL_DEFAULT_LIT )
+	//float  s = 1;
+	//GBuffer.shadingModel = 1;
+	if (GBuffer.shadingModel == SHADINGMODEL_DEFAULT_LIT)
 	{
 		float c = 1;
 		float3 N = GBuffer.normal;
@@ -136,24 +157,25 @@ void LightingPassPS()
 
 		roughness = max(roughness, 0.04);
 		//float3 shading = phongShading(data.baseColor.rgb, data.baseColor.rgb, N, L, V, 20);
-		float3 shading = NoL * StandardShading(GBuffer.diffuseColor, GBuffer.specularColor, roughness, float3(1), L, V, N);
+		float3 shading = NoL * StandardShading(GBuffer.diffuseColor, GBuffer.specularColor, roughness, float3(1, 1, 1), L, V, N);
 
-		outColor = attenuation  * shading * GLight.color;
-		//outColor = shading * attenuation * GLight.color;
-		outColor *= shadow;
-		//outColor = float3(1, 0, 0);
-		//outColor = GLight.color;
-		//outColor = shadow;
-		//outColor = 2 * shadow * shading;
+		lighting = attenuation * shading * GLight.color;
+		//lighting = shading * attenuation * GLight.color;
+		lighting *= shadow;
+		//lighting = GBuffer.worldPos;
+
+
+		//lighting = float3(ScreenUVToSceneDepth(ScreenUVs).xxx / 100);
 	}
 
-	//outColor *= shadow;
-	//gl_FragColor = float4( float2( ProjectShadowMatrix[0] * float4(GBuffer.worldPos, 1) ) , 0 , 1 );
-	//gl_FragColor = float4(outColor, 1);
-	//gl_FragColor = float4(GLight.spotParam.x);
-	//gl_FragColor = float4(shadow, 1);
 
-	gl_FragColor = float4( outColor , 1 );
+
+	//lighting *= shadow;
+	//OutColor = float4( float2( ProjectShadowMatrix[0] * float4(GBuffer.worldPos, 1) ) , 0 , 1 );
+	//OutColor = float4(lighting, 1);
+	//OutColor = float4(GLight.spotParam.x);
+	//OutColor = float4(shadow, 1);
+
+	OutColor = float4(lighting, 1);
 }
-
 #endif //PIXEL_SHADER

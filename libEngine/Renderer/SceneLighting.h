@@ -62,6 +62,11 @@ namespace Render
 			mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets);
 		}
 
+		void clearTextures(RHICommandList& commandList)
+		{
+			mParamGBuffer.clearTextures(commandList, *this);
+		}
+
 		GBufferShaderParameters mParamGBuffer;
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)

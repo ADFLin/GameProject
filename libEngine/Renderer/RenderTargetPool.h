@@ -67,7 +67,7 @@ namespace Render
 	};
 
 
-
+	extern CORE_API RenderTargetPool GRenderTargetPool;
 
 }//namespace Render
 

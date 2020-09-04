@@ -161,7 +161,6 @@
     <None Include="..\TinyGame\out\Shader\Game\FS.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Grass.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\GravityField.sgc" />
-    <None Include="..\TinyGame\out\Shader\Game\HLSLTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Lighting2D.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Lighting2DShadow.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Mandelbrot.sgc" />
@@ -226,6 +225,8 @@
     <None Include="..\TinyGame\out\Shader\SplineCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\SSAO.sgc" />
     <None Include="..\TinyGame\out\Shader\Terrain.sgc" />
+    <None Include="..\TinyGame\out\Shader\Test\HLSLTest.sgc" />
+    <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\VulkanTest.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightInjection.sgc" />

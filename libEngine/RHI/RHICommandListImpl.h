@@ -31,6 +31,9 @@ namespace Render
 		RHI_FUNC(void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData));
 		RHI_FUNC(void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex));
 
+		RHI_FUNC(void RHIDrawMeshTasks(int start, int count));
+		RHI_FUNC(void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
+
 		RHI_FUNC(void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer));
 		RHI_FUNC(void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil));
 
@@ -70,8 +73,7 @@ namespace Render
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 
 		RHI_FUNC(void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state));
-		//#TODO impl RHISetComputeShader
-		//RHI_FUNC(void RHISetComputeShader(RHIShader& shader));
+		RHI_FUNC(void RHISetComputeShader(RHIShader* shader));
 
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim));
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim));

@@ -2,7 +2,7 @@
 
 #include "TestRenderStageBase.h"
 #include "ProfileSystem.h"
-#include "RHI/MeshImportor.h"
+#include "Renderer/MeshImportor.h"
 
 namespace Render
 {
@@ -46,8 +46,8 @@ namespace Render
 				return false;
 
 			auto frame = ::Global::GUI().findTopWidget< DevFrame >();
-			FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
-			FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
+			FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
+			FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSkyLightInstensity , 0 , 10 );
  			return true;
 		}
 

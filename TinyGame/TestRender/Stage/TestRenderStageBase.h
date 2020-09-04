@@ -8,11 +8,11 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"
-#include "RHI/MeshUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderCore.h"
 #include "RHI/Scene.h"
 
+#include "Renderer/Mesh.h"
 #include "Renderer/SimpleCamera.h"
 
 #include "Core/ScopeExit.h"
@@ -51,7 +51,7 @@ namespace Render
 			return mesh.save(serializer);
 		};
 
-		if( 1 || !::Global::DataCache().loadDelegate(key, MeshLoad) )
+		if( !::Global::DataCache().loadDelegate(key, MeshLoad) )
 		{
 			if( !FuncMeshCreate(mesh, std::forward<Args>(args)...) )
 			{
@@ -336,8 +336,8 @@ namespace Render
 		void updateSize();
 		void onRender() override;
 		bool onMouseMsg(MouseMsg const& msg) override;
-
 	};
+
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
 		                               , public IGameRenderSetup

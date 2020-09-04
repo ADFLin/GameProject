@@ -8,23 +8,23 @@ uniform float3    BaseColor = float3(1,1,1);
 
 #if VERTEX_SHADER
 
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	inputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0.0);
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
-	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
 	float4 texColor = texture(BaseTexture, parameters.texCoords[0].xy);
-	inputPS.baseColor = texColor.rgb *  BaseColor.rgb;
-	inputPS.metallic = 0.9;
-	inputPS.roughness = 0;
-	inputPS.specular = 0.1;
+	outputPS.baseColor = texColor.rgb *  BaseColor.rgb;
+	outputPS.metallic = 0.9;
+	outputPS.roughness = 0;
+	outputPS.specular = 0.1;
 }
 
 #endif //PIXEL_SHADER

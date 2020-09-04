@@ -142,7 +142,9 @@ namespace Render
 		void clearTexture(RHICommandList& commandList, ShaderParameter const& param);
 
 
+		void setUniformBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer);
 		void setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setStorageBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
 		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
 		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer);
@@ -205,7 +207,6 @@ namespace Render
 	public:
 		TRefCountPtr< RHIResourceType > mRHIResource;
 	};
-
 
 	extern template class TShaderFuncHelper< RHIShaderProgram >;
 	extern template class TShaderFuncHelper< RHIShader >;

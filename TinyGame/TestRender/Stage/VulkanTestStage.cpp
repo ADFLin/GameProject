@@ -430,7 +430,7 @@ namespace RenderVulkan
 
 			VkDescriptorPoolCreateInfo descriptorPoolInfo =
 				FVulkanInit::descriptorPoolCreateInfo(
-					static_cast<uint32_t>(poolSizes.size()),
+					static_cast<uint32>(poolSizes.size()),
 					poolSizes.data(),
 					2);
 
@@ -474,7 +474,7 @@ namespace RenderVulkan
 #endif
 			};
 
-			vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+			vkUpdateDescriptorSets(mDevice, static_cast<uint32>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 		}
 
 		bool generateRenderCommand(VkCommandBuffer commandBuffer , VkFramebuffer frameBuffer )

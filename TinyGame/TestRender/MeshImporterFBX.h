@@ -3,7 +3,7 @@
 #define FBXImporter_H_DC2F076B_F3B4_478B_BB14_836A29F8F52D
 
 #include "RHI/RHICommon.h"
-#include "RHI/MeshImportor.h"
+#include "Renderer/MeshImportor.h"
 
 #include "fbxsdk.h"
 

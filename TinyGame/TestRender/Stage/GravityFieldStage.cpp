@@ -70,7 +70,7 @@ namespace Render
 
 			::Global::GUI().cleanupWidget();
 			auto devFrame = WidgetUtility::CreateDevFrame();
-			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mGravityScale, 10, 1000, 2);
+			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mGravityScale, 10, 1000, 2);
 			return true;
 		}
 

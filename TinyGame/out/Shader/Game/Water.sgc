@@ -19,7 +19,7 @@ void MainVS()
 	normal = normalize(normal);
 	float3 worldPos = VertexPos + float3(0, 0, data.h);
 	OutputVS.normal = normal;
-	gl_Position = View.worldToClip * float4(worldPos , 1);
+	SvPosition = View.worldToClip * float4(worldPos , 1);
 }
 
 #endif

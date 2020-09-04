@@ -168,6 +168,8 @@ namespace Render
 		GRHIClipZMin = 0;
 		GRHIProjectYSign = 1;
 		GRHIVericalFlip = -1;
+		GRHISupportMeshShader = false;
+		GRHISupportRayTraceShader = false;
 
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
@@ -244,10 +246,10 @@ namespace Render
 		Texture2DCreationResult textureCreationResult;
 		VERIFY_D3D11RESULT(swapChainResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), return nullptr;);
 		TRefCountPtr< D3D11Texture2D > colorTexture = new D3D11Texture2D(info.colorForamt, textureCreationResult);
-		TRefCountPtr< D3D11TextureDepth > depthTexture;
+		TRefCountPtr< D3D11Texture2D > depthTexture;
 		if (info.bCreateDepth)
 		{
-			depthTexture = (D3D11TextureDepth*)RHICreateTextureDepth(info.depthFormat, info.extent.x, info.extent.y, 1, info.numSamples, 0);
+			depthTexture = (D3D11Texture2D*)RHICreateTextureDepth(info.depthFormat, info.extent.x, info.extent.y, 1, info.numSamples, 0);
 		}
 		D3D11SwapChain* swapChain = new D3D11SwapChain(swapChainResource, *colorTexture, depthTexture);
 
@@ -298,13 +300,13 @@ namespace Render
 		return nullptr;
 	}
 
-	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* D3D11System::RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		Texture2DCreationResult creationResult;
 
 		if( createTexture2DInternal(D3D11Translate::To(format) , w, h, numMipLevel, numSamples, creationFlags, nullptr, 0, true, creationResult) )
 		{
-			return new D3D11TextureDepth(format, creationResult);
+			return new D3D11Texture2D(format, creationResult, D3D11Texture2D::DepthFormat);
 		}
 
 		return nullptr;
@@ -941,13 +943,15 @@ namespace Render
 
 	void D3D11ShaderBoundState::clearTexture(ShaderParameter const& parameter)
 	{
-
 		if (mBoundedSRVs[parameter.mLoc] != nullptr)
 		{
 			mBoundedSRVs[parameter.mLoc] = nullptr;
 			mSRVDirtyMask |= BIT(parameter.mLoc);
+			if (mMaxSRVBoundIndex == parameter.mLoc)
+			{
+				--mMaxSRVBoundIndex;
+			}
 		}
-
 	}
 
 	void D3D11ShaderBoundState::setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
@@ -958,7 +962,10 @@ namespace Render
 			if( mBoundedSRVs[parameter.mLoc] != resViewImpl->getResource() )
 			{
 				mBoundedSRVs[parameter.mLoc] = resViewImpl->getResource();
+				mBoundedSRVResources[parameter.mLoc] = &texture;
 				mSRVDirtyMask |= BIT(parameter.mLoc);
+				if (mMaxSRVBoundIndex < parameter.mLoc)
+					mMaxSRVBoundIndex = parameter.mLoc;
 			}
 		}
 		else
@@ -1040,7 +1047,10 @@ namespace Render
 			if (mBoundedSRVs[parameter.mLoc] != SRV)
 			{
 				mBoundedSRVs[parameter.mLoc] = SRV;
+				mBoundedSRVResources[parameter.mLoc] = &buffer;
 				mSRVDirtyMask |= BIT(parameter.mLoc);
+				if (mMaxSRVBoundIndex < parameter.mLoc)
+					mMaxSRVBoundIndex = parameter.mLoc;
 			}
 		}
 		else
@@ -1169,16 +1179,42 @@ namespace Render
 			}
 		}
 	}
+	template< Render::EShader::Type TypeValue >
+	void D3D11ShaderBoundState::clearSRVResource(ID3D11DeviceContext* context, RHIResource& resource)
+	{
+		for (int index = mMaxSRVBoundIndex; index >= 0; --index)
+		{
+			if (mBoundedSRVResources[index] == &resource)
+			{
+				mBoundedSRVResources[index] == nullptr;
+				mBoundedSRVs[index] = nullptr;
+				mSRVDirtyMask &= ~BIT(index);
+				ID3D11ShaderResourceView* emptySRV = nullptr;
 
+				if (mMaxSRVBoundIndex == index)
+					--mMaxSRVBoundIndex;
+
+				switch (TypeValue)
+				{
+				case EShader::Vertex:   context->VSSetShaderResources(index, 1, &emptySRV); break;
+				case EShader::Pixel:    context->PSSetShaderResources(index, 1, &emptySRV); break;
+				case EShader::Geometry: context->GSSetShaderResources(index, 1, &emptySRV); break;
+				case EShader::Hull:     context->HSSetShaderResources(index, 1, &emptySRV); break;
+				case EShader::Domain:   context->DSSetShaderResources(index, 1, &emptySRV); break;
+				case EShader::Compute:  context->CSSetShaderResources(index, 1, &emptySRV); break;
+				}
+			}
+		}
+	}
 	template< EShader::Type TypeValue >
 	void D3D11ShaderBoundState::clearSRVResource(ID3D11DeviceContext* context)
 	{
-		mSRVDirtyMask = 0;
-		for (int index = 0; index < MaxSimulatedBoundedSRVNum; ++index)
+		for (int index = 0; index <= mMaxSRVBoundIndex; ++index)
 		{
 			mBoundedSRVs[index] = nullptr;
 		}
-
+		mSRVDirtyMask = 0;
+		mMaxSRVBoundIndex = INDEX_NONE;
 		switch (TypeValue)
 		{
 		case EShader::Vertex:   context->VSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
@@ -1197,7 +1233,7 @@ namespace Render
 		{
 			uint32 mask = mSRVDirtyMask;
 			mSRVDirtyMask = 0;
-			for (int index = 0; index < MaxSimulatedBoundedSRVNum && mask; ++index)
+			for (int index = 0; index <= mMaxSRVBoundIndex && mask; ++index)
 			{
 				if (mask & BIT(index))
 				{
@@ -1592,6 +1628,15 @@ namespace Render
 		if (bForceReset || mRenderTargetsState != newState )
 		{
 			mRenderTargetsState = newState;
+			for (int i = 0; i < mRenderTargetsState->numColorBuffers; ++i)
+			{
+				clearSRVResource(*mRenderTargetsState->colorResources[i]);
+			}
+
+			if (mRenderTargetsState->depthBuffer)
+			{
+				clearSRVResource(*mRenderTargetsState->depthResource);
+			}
 			mDeviceContext->OMSetRenderTargets(mRenderTargetsState->numColorBuffers, mRenderTargetsState->colorBuffers, mRenderTargetsState->depthBuffer);
 		}
 	}
@@ -1858,6 +1903,8 @@ namespace Render
 			case EShader::Geometry:shader = state.geometryShader; break;
 			case EShader::Domain: shader = state.domainShader; break;
 			case EShader::Hull:   shader = state.hullShader; break;
+			case EShader::Task:   shader = state.taskShader; break;
+			case EShader::Mesh:   shader = state.meshShader; break;
 			}
 
 			if (type == EShader::Vertex)
@@ -1883,6 +1930,25 @@ namespace Render
 					mBoundedShaderDirtyMask |= BIT(type);
 				}
 			}
+		}
+	}
+
+	void D3D11Context::RHISetComputeShader(RHIShader* shader)
+	{
+		ID3D11DeviceChild* resource = nullptr;
+		if (shader)
+		{
+			D3D11Shader* shaderImpl = static_cast<D3D11Shader*>(shader);
+			if (shaderImpl->mResource.type != EShader::Compute)
+				return;
+
+			resource = shaderImpl->mResource.ptr;
+		}
+		
+		if (mBoundedShaders[EShader::Compute].resource != resource)
+		{
+			mBoundedShaders[EShader::Compute].resource = resource;
+			mBoundedShaderDirtyMask |= BIT(EShader::Compute);
 		}
 	}
 
@@ -2119,6 +2185,16 @@ namespace Render
 		});
 	}
 
+	void D3D11Context::clearSRVResource(RHIResource& resource)
+	{
+		mShaderBoundStates[EShader::Vertex].clearSRVResource<EShader::Vertex>(mDeviceContext, resource);
+		mShaderBoundStates[EShader::Pixel].clearSRVResource<EShader::Pixel>(mDeviceContext, resource);
+		mShaderBoundStates[EShader::Geometry].clearSRVResource<EShader::Geometry>(mDeviceContext, resource);
+		mShaderBoundStates[EShader::Compute].clearSRVResource<EShader::Compute>(mDeviceContext, resource);
+		mShaderBoundStates[EShader::Hull].clearSRVResource<EShader::Hull>(mDeviceContext, resource);
+		mShaderBoundStates[EShader::Domain].clearSRVResource<EShader::Domain>(mDeviceContext, resource);
+	}
+
 	template < class ValueType >
 	void D3D11Context::setShaderValueT(RHIShader& shader, ShaderParameter const& param, ValueType const val[], int dim)
 	{
@@ -2166,7 +2242,7 @@ namespace Render
 	{
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-		bufferDesc.ByteWidth = ( 4096 + 15 ) / 16 * 16;
+		bufferDesc.ByteWidth = ( 2048 + 15 ) / 16 * 16;
 		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		bufferDesc.CPUAccessFlags = 0;

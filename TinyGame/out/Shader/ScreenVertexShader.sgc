@@ -1,5 +1,4 @@
 #include "Common.sgc"
-
 #ifndef USE_SCREEN_TEXCOORD
 #define USE_SCREEN_TEXCOORD 1 
 #endif

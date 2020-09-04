@@ -44,6 +44,8 @@ namespace Render
 	float GRHIClipZMin = 0;
 	float GRHIProjectYSign = 1;
 	float GRHIVericalFlip = 1;
+	bool GRHISupportMeshShader = false;
+	bool GRHISupportRayTraceShader = false;
 
 #define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
@@ -163,7 +165,7 @@ namespace Render
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture2DArray(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data)) );
 	}
 
-	RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth, Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(format, w, h, numMipLevel, numSamples, creationFlags)) );
 	}

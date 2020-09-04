@@ -9,31 +9,31 @@ uniform float4    BaseColor = float4(1,1,1,1);
 
 #if VERTEX_SHADER
 
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	inputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0.0);
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
 	float s = 5 * (sin( 10 * View.gameTime) + 1);
-	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	//inputPS.baseColor = ( 0.5 * sin(View.gameTime) + 0.5 )* parameters.vectexColor;
-	//inputPS.baseColor = BaseColor.rgb * parameters.vectexColor.rgb;
-	inputPS.baseColor = float3(1, 0, 0);
-	//inputPS.baseColor = float3( parameters.texCoords[0].xy , 0 );
-	//inputPS.baseColor = float3(parameters.texCoords[0].xy, 0);
-	inputPS.metallic = 0.9;
-	inputPS.roughness = 0;
-	//inputPS.roughness = texture(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
-	inputPS.specular = 0.1;
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	//outputPS.baseColor = ( 0.5 * sin(View.gameTime) + 0.5 )* parameters.vectexColor;
+	//outputPS.baseColor = BaseColor.rgb * parameters.vectexColor.rgb;
+	outputPS.baseColor = float3(1, 0, 0);
+	//outputPS.baseColor = float3( parameters.texCoords[0].xy , 0 );
+	//outputPS.baseColor = float3(parameters.texCoords[0].xy, 0);
+	outputPS.metallic = 0.9;
+	outputPS.roughness = 0;
+	//outputPS.roughness = texture(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
+	outputPS.specular = 0.1;
 	float2 value = 2 * frac( 8 * ( parameters.texCoords[0].xy ) ) - 1;
-	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
-	//inputPS.emissiveColor = float3(parameters.texCoords[0].xy, 0);
+	//outputPS.mask = value.x * value.y > 0 ? 1 : 0;
+	//outputPS.emissiveColor = float3(parameters.texCoords[0].xy, 0);
 }
 
 #endif //PIXEL_SHADER

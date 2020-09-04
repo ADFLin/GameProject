@@ -149,6 +149,9 @@
     <Filter Include="Renderer">
       <UniqueIdentifier>{5dd8e390-7e50-4213-b623-e5d756e4d64e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib\DirectXSamples">
+      <UniqueIdentifier>{06fd6662-097c-4f15-af0b-2fb97288277f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -316,9 +319,6 @@
     <ClCompile Include="RHI\Material.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\MeshUtility.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
     <ClCompile Include="RHI\PrimitiveBatch.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
@@ -484,9 +484,6 @@
     <ClCompile Include="RHI\ShaderFormat.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\MeshImportor.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
     <ClCompile Include="Renderer\RenderTransform2D.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
@@ -515,6 +512,33 @@
       <Filter>Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Renderer\SceneView.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\ShadowDepthRendering.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\GLExtensions.cpp">
+      <Filter>Opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\DirectXSamples\Generation.cpp">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\DirectXSamples\Utilities.cpp">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.cpp">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Mesh.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\MeshBuild.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\MeshImportor.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\MeshUtility.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
   </ItemGroup>
@@ -963,9 +987,6 @@
     <ClInclude Include="RHI\Material.h">
       <Filter>RHI</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\MeshUtility.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\PrimitiveBatch.h">
       <Filter>RHI</Filter>
     </ClInclude>
@@ -1209,9 +1230,6 @@
     <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h">
       <Filter>OtherLib\SpirvReflect</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\MeshImportor.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="Renderer\RenderTransform2D.h">
       <Filter>Renderer</Filter>
     </ClInclude>
@@ -1255,6 +1273,36 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\SceneView.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\ShadowDepthRendering.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\GLExtensions.h">
+      <Filter>Opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\DirectXSamples\Generation.h">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\DirectXSamples\Utilities.h">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.h">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\Mesh.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshBuild.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshImportor.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshUtility.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshCommon.h">
       <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>

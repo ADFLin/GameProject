@@ -2,9 +2,13 @@
 
 #include "RHI/RHICommand.h"
 
+#include "CoreShare.h"
+
 namespace Render
 {
-
+#if CORE_SHARE_CODE
+	CORE_API RenderTargetPool GRenderTargetPool;
+#endif
 	PooledRenderTargetRef RenderTargetPool::fetchElement(RenderTargetDesc const& desc)
 	{
 		for (auto iter = mFreeRTs.begin(); iter != mFreeRTs.end(); ++iter)
@@ -31,7 +35,7 @@ namespace Render
 		result->desc = desc;
 		result->desc.creationFlags |= TCF_RenderTarget;
 		result->texture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, desc.numSamples, desc.creationFlags | TCF_RenderTarget);
-		if (desc.numSamples >= 1 )
+		if (desc.numSamples > 1 )
 		{
 			result->resolvedTexture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, 1, desc.creationFlags | TCF_RenderTarget);
 		}

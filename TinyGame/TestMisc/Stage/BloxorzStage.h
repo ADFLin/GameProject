@@ -12,7 +12,6 @@
 #include "HashString.h"
 
 #include "GameRenderSetup.h"
-#include "RHI/MeshUtility.h"
 #include "RHI/SimpleRenderState.h"
 #include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"

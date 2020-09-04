@@ -445,7 +445,7 @@ namespace Render
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			FVulkanInit::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
+				static_cast<uint32>(setLayoutBindings.size()));
 		VERIFY_RETURN_FALSE(mDescriptorSetLayout.initialize(device, descriptorLayout));
 
 		return true;
@@ -474,7 +474,7 @@ namespace Render
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			FVulkanInit::descriptorSetLayoutCreateInfo(
 				setLayoutBindings.data(),
-				static_cast<uint32_t>(setLayoutBindings.size()));
+				static_cast<uint32>(setLayoutBindings.size()));
 		VERIFY_RETURN_FALSE(mDescriptorSetLayout.initialize(device, descriptorLayout));
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo =

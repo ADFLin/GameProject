@@ -4,7 +4,9 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"
-#include "RHI/MeshUtility.h"
+
+#include "Renderer/MeshBuild.h"
+#include "Renderer/MeshUtility.h"
 
 #include "Core/ScopeExit.h"
 #include "Math/PrimitiveTest.h"

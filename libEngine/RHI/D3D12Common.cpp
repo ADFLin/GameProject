@@ -71,6 +71,19 @@ namespace Render
 
 		case Texture::eSRGB:    return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		case Texture::eSRGBA:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
+		case Texture::eDepth16: return DXGI_FORMAT_D16_UNORM;
+		case Texture::eDepth24: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		case Texture::eDepth32F: return DXGI_FORMAT_D32_FLOAT;
+		case Texture::eD24S8:    return DXGI_FORMAT_D24_UNORM_S8_UINT;
+		case Texture::eD32FS8:   return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		case Texture::eStencil1:
+		case Texture::eStencil4:
+		case Texture::eStencil8:
+			return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+
+		case Texture::eStencil16:
+		case Texture::eDepth32:
 		default:
 			LogWarning(0, "D3D12 No Support Texture Format %d", (int)format);
 			break;
@@ -78,28 +91,6 @@ namespace Render
 		return DXGI_FORMAT_UNKNOWN;
 	}
 
-	DXGI_FORMAT D3D12Translate::To(Texture::DepthFormat format)
-	{
-		switch( format )
-		{
-		case Texture::eDepth16: return DXGI_FORMAT_D16_UNORM;
-		case Texture::eDepth24: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;	
-		case Texture::eDepth32F: return DXGI_FORMAT_D32_FLOAT;
-		case Texture::eD24S8:    return DXGI_FORMAT_D24_UNORM_S8_UINT;
-		case Texture::eD32FS8:   return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-		case Texture::eStencil1:
-		case Texture::eStencil4:
-		case Texture::eStencil8:  
-			return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
-		case Texture::eStencil16:
-		case Texture::eDepth32:
-		default:
-			LogWarning(0, "D3D12 No Support Texture DepthFormat %d", (int)format);
-			break;
-		}
-
-		return DXGI_FORMAT_UNKNOWN;
-	}
 
 	D3D12_BLEND D3D12Translate::To(Blend::Factor factor)
 	{

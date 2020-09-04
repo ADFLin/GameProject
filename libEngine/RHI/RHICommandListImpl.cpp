@@ -86,6 +86,16 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVerex, dataInfos, numVertexData, pIndices, numIndex));
 	}
 
+	void RHIDrawMeshTasks(RHICommandList& commandList, int start, int count)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIDrawMeshTasks(start, count));
+	}
+
+	void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIDrawMeshTasksIndirect(commandBuffer, offset, numCommand, commandStride));
+	}
+
 	void RHISetFixedShaderPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetFixedShaderPipelineState(transform, color, texture, sampler));
@@ -124,6 +134,11 @@ namespace Render
 	void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicShaderBoundState const& state)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetGraphicsShaderBoundState(state));
+	}
+
+	void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetComputeShader(shader));
 	}
 
 	void RHIFlushCommand(RHICommandList& commandList)

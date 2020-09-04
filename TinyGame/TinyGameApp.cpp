@@ -37,8 +37,6 @@
 #include "PlatformThread.h"
 #include "SystemPlatform.h"
 
-
-#include "RHI/MeshUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"

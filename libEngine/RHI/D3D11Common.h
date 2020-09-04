@@ -38,7 +38,6 @@ namespace Render
 	class D3D11Texture2D;
 	class D3D11Texture3D;
 	class D3D11TextureCube;
-	class D3D11TextureDepth;
 	class D3D11VertexBuffer;
 	class D3D11IndexBuffer;
 	class D3D11UniformBuffer;
@@ -74,12 +73,7 @@ namespace Render
 		typedef ID3D11Texture2D ResourceType;
 		typedef D3D11TextureCube ImplType;
 	};
-	template<>
-	struct TD3D11TypeTraits< RHITextureDepth > 
-	{ 
-		typedef ID3D11Texture2D ResourceType; 
-		typedef D3D11TextureDepth ImplType;
-	};
+
 	template<>
 	struct TD3D11TypeTraits< RHIVertexBuffer > 
 	{ 
@@ -141,7 +135,6 @@ namespace Render
 		static D3D_PRIMITIVE_TOPOLOGY To(EPrimitive type);
 		static DXGI_FORMAT To(Vertex::Format format, bool bNormalized);
 		static DXGI_FORMAT To(Texture::Format format);
-		static DXGI_FORMAT To(Texture::DepthFormat format);
 		static D3D11_BLEND To(Blend::Factor factor);
 		static D3D11_BLEND_OP To(Blend::Operation op);
 		static D3D11_CULL_MODE To(ECullMode mode);
@@ -284,7 +277,7 @@ namespace Render
 		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
 
 	public:
-		D3D11ShaderResourceView  mSRV;
+		D3D11ShaderResourceView    mSRV;
 		ID3D11UnorderedAccessView* mUAV;
 	};
 
@@ -475,6 +468,10 @@ namespace Render
 	{
 		using BaseClass = TD3D11Texture< RHITexture2D >;
 	public:
+		enum EDepthFormat
+		{
+			DepthFormat ,
+		};
 		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult)
 			:TD3D11Texture< RHITexture2D >(creationResult.SRV.release(), creationResult.UAV.release())
 		{
@@ -488,6 +485,43 @@ namespace Render
 			mNumMipLevel = desc.MipLevels;
 		}
 
+		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult , EDepthFormat )
+			:TD3D11Texture< RHITexture2D >(creationResult.SRV.release(), creationResult.UAV.release())
+		{
+			mFormat = format;
+			mResource = creationResult.resource.release();
+			D3D11_TEXTURE2D_DESC desc;
+			mResource->GetDesc(&desc);
+			mSizeX = desc.Width;
+			mSizeY = desc.Height;
+			mNumSamples = desc.SampleDesc.Count;
+			mNumMipLevel = desc.MipLevels;
+
+			TComPtr<ID3D11Device> device;
+			mResource->GetDevice(&device);
+			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+			depthStencilDesc.Format = D3D11Translate::To(format);
+			switch (depthStencilDesc.Format)
+			{
+			case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+			case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+				depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+				break;
+			}
+
+			if (mNumSamples > 1)
+			{
+				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+			}
+			else
+			{
+				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+				depthStencilDesc.Texture2D.MipSlice = 0;
+			}
+
+			VERIFY_D3D11RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
+
+		}
 
 		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 		{
@@ -536,6 +570,7 @@ namespace Render
 		void releaseResource()
 		{
 			mViewStorage.releaseResource();
+			SAFE_RELEASE(mDSV);
 			BaseClass::releaseResource();
 		}
 
@@ -543,7 +578,9 @@ namespace Render
 		{
 			return mViewStorage.getRednerTarget_Texture2D(mResource, mFormat, level);
 		}
+
 		D3D11ResourceViewStorage mViewStorage;
+		ID3D11DepthStencilView*  mDSV = nullptr;
 	};
 
 
@@ -643,60 +680,6 @@ namespace Render
 			return mViewStorage.getRednerTarget_TextureCube(mResource, mFormat, face, level);
 		}
 		D3D11ResourceViewStorage mViewStorage;
-	};
-
-	class D3D11TextureDepth : public TD3D11Resource< RHITextureDepth >
-	{
-	public:
-		D3D11TextureDepth(Texture::DepthFormat format, Texture2DCreationResult& creationResult)
-			:mSRV( creationResult.SRV.release())
-		{
-			mFormat = format;
-			mResource = creationResult.resource.release();
-			D3D11_TEXTURE2D_DESC desc;
-			mResource->GetDesc(&desc);
-			mSizeX = desc.Width;
-			mSizeY = desc.Height;
-			mNumSamples = desc.SampleDesc.Count;
-			mNumMipLevel = desc.MipLevels;
-
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-			depthStencilDesc.Format = D3D11Translate::To(format);
-			switch (depthStencilDesc.Format)
-			{
-			case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
-			case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
-				depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-				break;
-			}
-
-			if (mNumSamples > 1)
-			{
-				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-			}
-			else
-			{
-				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-				depthStencilDesc.Texture2D.MipSlice = 0;
-			}
-			
-			VERIFY_D3D11RESULT( device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV) , );
-
-		}
-
-		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
-
-		virtual void releaseResource()
-		{
-			mSRV.release();
-			SAFE_RELEASE(mDSV);
-			TD3D11Resource< RHITextureDepth >::releaseResource();
-		}
-
-		D3D11ShaderResourceView  mSRV;
-		ID3D11DepthStencilView*  mDSV;
 	};
 
 	struct D3D11BufferCreationResult
@@ -849,13 +832,18 @@ namespace Render
 	struct D3D11RenderTargetsState
 	{
 		static constexpr int MaxSimulationBufferCount = 8;
+		
 		ID3D11RenderTargetView* colorBuffers[MaxSimulationBufferCount];
 		int numColorBuffers;
 		ID3D11DepthStencilView* depthBuffer;
 
+		RHITextureRef   colorResources[MaxSimulationBufferCount];
+		RHITexture2DRef depthResource;
 		D3D11RenderTargetsState()
 		{
-			memset(this, 0, sizeof(*this));
+			std::fill_n(colorBuffers, MaxSimulationBufferCount, nullptr);
+			depthBuffer = nullptr;
+			numColorBuffers = 0;
 		}
 	};
 	class D3D11FrameBuffer : public TRefcountResource< RHIFrameBuffer >
@@ -879,12 +867,10 @@ namespace Render
 
 
 		}
-		virtual void setDepth(RHITextureDepth& target);
+		virtual void setDepth(RHITexture2D& target);
 		virtual void removeDepth();
 	
 		bool bStateDirty = false;
-		RHITextureRef mColorTextures[D3D11RenderTargetsState::MaxSimulationBufferCount];
-		RHITextureDepthRef mDepthTexture;
 		D3D11RenderTargetsState mRenderTargetsState;
 	};
 
@@ -892,7 +878,7 @@ namespace Render
 	{
 	public:
 
-		D3D11SwapChain(TComPtr<IDXGISwapChain>& resource , D3D11Texture2D& colorTexture , D3D11TextureDepth* depthTexture)
+		D3D11SwapChain(TComPtr<IDXGISwapChain>& resource , D3D11Texture2D& colorTexture , D3D11Texture2D* depthTexture)
 			:mColorTexture(&colorTexture)
 			,mDepthTexture(depthTexture)
 		{
@@ -936,8 +922,8 @@ namespace Render
 			TD3D11Resource< RHISwapChain >::releaseResource();
 		}
 
-		TRefCountPtr< D3D11Texture2D >    mColorTexture;
-		TRefCountPtr< D3D11TextureDepth > mDepthTexture;
+		TRefCountPtr< D3D11Texture2D >  mColorTexture;
+		TRefCountPtr< D3D11Texture2D >  mDepthTexture;
 		D3D11RenderTargetsState mRenderTargetsState;
 
 	};

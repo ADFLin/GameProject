@@ -34,7 +34,6 @@ namespace Render
 	class RHITexture3D; 
 	class RHITextureCube;
 	class RHITexture2DArray;
-	class RHITextureDepth;
 
 	class RHIShaderResourceView;
 	class RHIUnorderedAccessView;
@@ -140,6 +139,20 @@ namespace Render
 			eSRGB ,
 			eSRGBA ,
 
+
+			eDepth16,
+			eDepth24,
+			eDepth32,
+			eDepth32F,
+
+			eD24S8,
+			eD32FS8,
+
+			eStencil1,
+			eStencil4,
+			eStencil8,
+			eStencil16,
+
 			eFloatRGBA = eRGBA16F,
 		};
 
@@ -156,6 +169,7 @@ namespace Render
 			FaceCount ,
 		};
 
+
 		static Vector3 GetFaceDir(Face face);
 
 		static Vector3 GetFaceUpDir(Face face);
@@ -163,32 +177,19 @@ namespace Render
 		static uint32  GetComponentCount(Format format);
 		static EComponentType GetComponentType(Format format);
 
-		enum DepthFormat
+		static bool ContainDepth(Format format)
 		{
-			eDepth16,
-			eDepth24,
-			eDepth32,
-			eDepth32F,
+			return format == eDepth16 ||
+				   format == eDepth24 ||
+				   format == eDepth32 ||
+				   format == eDepth32F ||
+				   format == eD24S8    ||
+				   format == eD32FS8;
 
-			eD24S8,
-			eD32FS8,
-
-			eStencil1,
-			eStencil4,
-			eStencil8,
-			eStencil16,
-		};
-
-		static bool ContainDepth(DepthFormat format)
-		{
-			return format != eStencil1 &&
-				format != eStencil4 &&
-				format != eStencil8 &&
-				format != eStencil16;
 		}
-		static bool ContainStencil(DepthFormat format)
+		static bool ContainStencil(Format format)
 		{
-			return format == eD24S8 || format == eD32FS8;
+			return format == eD24S8 || format == eD32FS8 || format == eD32FS8 || format == eStencil1 || format == eStencil8 || format == eStencil4 || format == eStencil16;
 		}
 	};
 
@@ -305,8 +306,6 @@ namespace Render
 		virtual RHITexture3D* getTexture3D() { return nullptr; }
 		virtual RHITextureCube* getTextureCube() { return nullptr; }
 		virtual RHITexture2DArray* getTexture2DArray() { return nullptr; }
-		virtual RHITextureDepth* getTextureDepth() { return nullptr; }
-
 		virtual RHIShaderResourceView* getBaseResourceView() { return nullptr; }
 
 		Texture::Type   getType() const { return mType; }
@@ -430,29 +429,6 @@ namespace Render
 		int mLayerNum;
 	};
 
-
-
-	class RHITextureDepth : public RHITextureBase
-	{
-	public:
-		RHITextureDepth() :RHITextureBase(TRACE_TYPE_NAME("TextureDepth")) 
-		{
-			mType = mType = Texture::eDepth;
-			mSizeX = 0;
-			mSizeY = 0;
-		}
-
-		Texture::DepthFormat getFormat() { return mFormat; }
-		int  getSizeX() const { return mSizeX; }
-		int  getSizeY() const { return mSizeY; }
-		
-		RHITextureDepth* getTextureDepth() override { return this; }
-		
-		Texture::DepthFormat mFormat;
-		int mSizeX;
-		int mSizeY;
-	};
-
 	struct BufferInfo
 	{
 		RHITextureBase* texture;
@@ -478,7 +454,7 @@ namespace Render
 		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
-		virtual void setDepth(RHITextureDepth& target) = 0; 
+		virtual void setDepth(RHITexture2D& target) = 0; 
 		virtual void removeDepth() = 0;
 	};
 
@@ -843,7 +819,6 @@ namespace Render
 	using RHITexture3DRef         = TRefCountPtr< RHITexture3D >;
 	using RHITextureCubeRef       = TRefCountPtr< RHITextureCube >;
 	using RHITexture2DArrayRef    = TRefCountPtr< RHITexture2DArray >;
-	using RHITextureDepthRef      = TRefCountPtr< RHITextureDepth >;
 	using RHIFrameBufferRef       = TRefCountPtr< RHIFrameBuffer >;
 	using RHIVertexBufferRef      = TRefCountPtr< RHIVertexBuffer >;
 	using RHIIndexBufferRef       = TRefCountPtr< RHIIndexBuffer >;

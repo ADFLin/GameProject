@@ -3,13 +3,13 @@
 
 struct ViewParameters
 {
-	mat4   worldToView;
-	mat4   worldToClip;
-	mat4   viewToWorld;  
-	mat4   viewToClip;
-	mat4   clipToView;
-	mat4   clipToWorld;
-	mat4   worldToClipPrev;
+	float4x4  worldToView;
+	float4x4  worldToClip;
+	float4x4  viewToWorld;
+	float4x4  viewToClip;
+	float4x4  clipToView;
+	float4x4  clipToWorld;
+	float4x4  worldToClipPrev;
 
 	float4 rectPosAndSizeInv;
 	float3 worldPos;
@@ -36,6 +36,7 @@ uniform ViewParameters View;
 float BufferDepthToSceneDepth(float depth)
 {
 #if COMPILER_HLSL
+
 	return View.viewToClip[2][3] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
 #else
 	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
@@ -47,11 +48,11 @@ DEFINE_TEXTURE( Texture2D , FrameDepthTexture );
 
 float2 ScreenUVToBufferUV(float2 screenUV)
 {
-	return screenUV + View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
+	return screenUV/* + View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw*/;
 }
 float2 BufferUVToScreenUV(float2 bufferUV)
 {
-	return bufferUV - View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
+	return bufferUV/* - View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw*/;
 }
 
 float ScreenUVToSceneDepth(float2 screenUV)
@@ -60,15 +61,28 @@ float ScreenUVToSceneDepth(float2 screenUV)
 	return BufferDepthToSceneDepth(depth);
 }
 
-float3 StoreWorldPos(float2 screenUV, float bufferDepth)
+float3 NDCToWorldPos(float4 NDC)
 {
-	float2 screenPos = (2.0 * screenUV - 1.0);
-	float4 clipPos = float4(screenPos, BufferDepthToClipZ( bufferDepth ), 1);
-	float4 pos = mul( View.clipToWorld , clipPos );
+	float4 pos = mul(View.clipToWorld, NDC);
 	return pos.xyz / pos.w;
 }
+
+float3 StoreWorldPos(float2 screenUV, float bufferDepth)
+{
+	float2 screenPos = (2.0 * VFLIP(screenUV) - 1.0);
+	float4 NDC = float4(screenPos, BufferDepthToClipZ( bufferDepth ), 1);
+	return NDCToWorldPos(NDC);
+}
+
 
 float3 ScreenUVToWorldPos(float2 screenUV)
 {
 	return StoreWorldPos(screenUV, TEXTURE_SAMPLE(FrameDepthTexture, ScreenUVToBufferUV(screenUV)).r);
+}
+
+
+float4 SvPositionToNDC(float4 svPosition)
+{
+	float2 screenUV = (svPosition.xy - View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
+	return float4(screenUV, svPosition.z, 1);
 }

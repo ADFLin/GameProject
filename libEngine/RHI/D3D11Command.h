@@ -64,7 +64,8 @@ namespace Render
 		{
 			mConstBufferValueDirtyMask = 0;
 			mConstBufferDirtyMask = 0;
-			mSRVDirtyMask = 0;		
+			mSRVDirtyMask = 0;
+			mMaxSRVBoundIndex = INDEX_NONE;
 			mSamplerDirtyMask = 0;
 
 
@@ -82,13 +83,17 @@ namespace Render
 		void setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize);
 
 
+
 		template< EShader::Type TypeValue >
 		void commitState( ID3D11DeviceContext* context);
 		template< EShader::Type TypeValue >
 		void clearState(ID3D11DeviceContext* context);
+		template< EShader::Type TypeValue >
 
+		void clearSRVResource(ID3D11DeviceContext* context,RHIResource& resource);
 		template< EShader::Type TypeValue >
 		void clearSRVResource(ID3D11DeviceContext* context);
+
 		template< EShader::Type TypeValue >
 		void commitSAVState(ID3D11DeviceContext* context);
 
@@ -105,6 +110,8 @@ namespace Render
 
 		static int constexpr MaxSimulatedBoundedSRVNum = 16;
 		ID3D11ShaderResourceView* mBoundedSRVs[MaxSimulatedBoundedSRVNum];
+		RHIResource*              mBoundedSRVResources[MaxSimulatedBoundedSRVNum];
+		int32  mMaxSRVBoundIndex = INDEX_NONE;
 		uint32 mSRVDirtyMask;
 
 		static int constexpr MaxSimulatedBoundedUAVNum = 16;
@@ -117,6 +124,9 @@ namespace Render
 		uint32 mSamplerDirtyMask;
 
 	};
+
+
+
 	static constexpr uint32  D3D11BUFFER_ALIGN = 4;
 	class D3D11DynamicBuffer
 	{
@@ -287,8 +297,17 @@ namespace Render
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
 
-		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* texture, RHISamplerState* sampler);
+		void RHIDrawMeshTasks(int start, int count)
+		{
 
+
+		}
+		void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		{
+
+		}
+
+		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* texture, RHISamplerState* sampler);
 
 
 		D3D11RenderTargetsState* mRenderTargetsState = nullptr;
@@ -364,6 +383,8 @@ namespace Render
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 
 		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
+		void RHISetComputeShader(RHIShader* shader);
+
 
 		template < class ValueType >
 		void setShaderValueT(RHIShader& shader, ShaderParameter const& param, ValueType const val[], int dim);
@@ -396,6 +417,7 @@ namespace Render
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) {}
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 
+		void clearSRVResource(RHIResource& resource);
 
 		uint32                mBoundedShaderMask = 0;
 		uint32                mBoundedShaderDirtyMask = 0;
@@ -486,7 +508,7 @@ namespace Render
 			return nullptr;
 		}
 
-		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
+		RHITexture2D*     RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 

@@ -63,7 +63,8 @@ out OutputVSParam OutputVS;
 void MainVS()
 {
 	float height = GetTerrainHeight(InPos.xy);
-	gl_Position = View.worldToClip * LocalToWorld * float4( GetTerrainLocalPos(InPos.xy) , 1 );
+	float4 worldPos = LocalToWorld * float4(GetTerrainLocalPos(InPos.xy), 1);
+	SvPosition = mul( View.worldToClip , worldPos );
 	OutputVS.UV = float2(InPos.x, InPos.y);
 	OutputVS.normal = CalcTerrainNormal(InPos.xy);
 	OutputVS.data = float3(InPos.x, InPos.y, texture(TextureHeight, InPos.xy).r);

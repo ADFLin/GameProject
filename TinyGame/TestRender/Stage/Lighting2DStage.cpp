@@ -24,8 +24,8 @@ namespace Render
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
 
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bShowShadowRender"), bShowShadowRender);
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY , "bUseGeometryShader"), bUseGeometryShader);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bShowShadowRender"), bShowShadowRender);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY , "bUseGeometryShader"), bUseGeometryShader);
 
 		restart();
 

@@ -6,23 +6,23 @@
 
 #if VERTEX_SHADER
 
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	inputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0.0);
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
-	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	inputPS.baseColor = 0;
-	inputPS.metallic = 0.2;
-	inputPS.roughness = 1;
-	inputPS.specular = 0.2;
-	//inputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	outputPS.baseColor = 0;
+	outputPS.metallic = 0.2;
+	outputPS.roughness = 1;
+	outputPS.specular = 0.2;
+	//outputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
 }
 
 #endif //PIXEL_SHADER

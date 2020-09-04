@@ -5,11 +5,12 @@
 #include "RHICommon.h"
 #include "ShaderCore.h"
 #include "Material.h"
-#include "MeshUtility.h"
 #include "RenderContext.h"
 
+#include "Renderer/Mesh.h"
 #include "Renderer/BasePassRendering.h"
 #include "Renderer/SceneLighting.h"
+
 
 //#REMOVE ME
 #include "OpenGLCommon.h"

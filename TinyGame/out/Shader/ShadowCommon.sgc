@@ -9,8 +9,9 @@
 #ifndef USE_CASCADE_TEXTURE_ARRAY
 #define USE_CASCADE_TEXTURE_ARRAY 0
 #endif
-uniform samplerCube ShadowTextureCube;
-uniform sampler2D ShadowTexture2D;
+
+DEFINE_TEXTURE(TextureCube,  ShadowTextureCube);
+DEFINE_TEXTURE(Texture2D, ShadowTexture2D);
 
 uniform float2 DepthParam;
 uniform float2 ShadowParam;
@@ -47,14 +48,14 @@ int GetCubeFace(float3 lightVector)
 	return result;
 }
 
-float3 sampleOffsetDirections[20] = float3[]
-(
+GLOBAL_CONST float3 sampleOffsetDirections[20] =
+{
 	float3(1.0, 1.0, 1.0), float3(1.0, -1.0, 1.0), float3(-1.0, -1.0, 1.0), float3(-1.0, 1.0, 1.0),
 	float3(1.0, 1.0,-1.0), float3(1.0, -1.0, -1.0), float3(-1.0, -1.0, -1.0), float3(-1.0, 1.0, -1.0),
 	float3(1.0, 1.0, 0.0), float3(1.0, -1.0, 0.0), float3(-1.0, -1.0, 0.0), float3(-1.0, 1.0, 0.0),
 	float3(1.0, 0.0, 1.0), float3(-1.0, 0.0, 1.0), float3(1.0, 0.0, -1.0), float3(-1.0, 0.0, -1.0),
 	float3(0.0, 1.0, 1.0), float3(0.0, -1.0, 1.0), float3(0.0, -1.0, -1.0), float3(0.0, 1.0, -1.0)
-);
+};
 
 float3 CalcPointLightShadow( float3 worldPos , mat4 shadowMatrix[8] , float3 lightVector )
 {
@@ -71,13 +72,13 @@ float3 CalcPointLightShadow( float3 worldPos , mat4 shadowMatrix[8] , float3 lig
 		return factor;
 	return 1.0;
 #else
-	float viewDist = length(View.worldToView * float4(worldPos,1));
+	float viewDist = length( mul( View.worldToView , float4(worldPos,1) ) );
 	//viewDist = length(lightVector);
 	float zfar = 1000;
 	float diskRadius = (1.0 + (viewDist / zfar)) / 50.0;
 	uint idxFace = GetCubeFace(lightVector);
 
-	float4 shadowPos = shadowMatrix[idxFace] * float4(worldPos, 1);
+	float4 shadowPos = mul( shadowMatrix[idxFace] , float4(worldPos, 1) );
 #if USE_PERSPECTIVE_DEPTH
 	float depth = shadowPos.z / shadowPos.w - 0.0002;/*+ 0.01 / shadowPos.w*/;
 #else
@@ -93,61 +94,77 @@ float3 CalcPointLightShadow( float3 worldPos , mat4 shadowMatrix[8] , float3 lig
 	}
 	shadow /= float(numSample);
 #else
-	shadow += (texture(ShadowTextureCube, lightVector).r >= depth) ? 1 : factor;
+	shadow += (TEXTURE_SAMPLE(ShadowTextureCube, lightVector).r >= depth) ? 1 : factor;
 #endif
 	//shadow = 0.5 * (shadowPos.z + 1);
 #endif
-	return float3(shadow);
+	return shadow.xxx;
 }
 
-float3 SimplePCF(sampler2D shadowTexture , float2 shadowUV, float depth)
+#if COMPILER_HLSL
+float3 SimplePCF(Texture2D shadowTexture , SamplerState shadowTextureSampler , float2 shadowUV, float depth)
+#else
+float3 SimplePCF(Texture2D shadowTexture, float2 shadowUV, float depth)
+#endif
 {
 	const float factor = 0;
 	float count = 0;
-	float2 dUV = 1.0 / float2(textureSize(shadowTexture, 0));
+
+	float2 texSize;
+#if COMPILER_HLSL
+	shadowTexture.GetDimensions(texSize.x, texSize.y);
+#else
+	texSize = float2(textureSize(shadowTexture, 0));
+#endif
+	float2 dUV = 1.0 / texSize;
 	dUV.x /= NumCascade;
-	count += (texture(shadowTexture, shadowUV).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV).r >= depth) ? 1.0 : factor;
 #if 0
-	count += (texture(shadowTexture, shadowUV + float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
-	count += (texture(shadowTexture, shadowUV - float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
-	count += (texture(shadowTexture, shadowUV + float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (texture(shadowTexture, shadowUV - float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (texture(shadowTexture, shadowUV + dUV).r >= depth) ? 1.0 : factor;
-	count += (texture(shadowTexture, shadowUV - dUV).r >= depth) ? 1.0 : factor;
-	count += (texture(shadowTexture, shadowUV + float2(-dUV.x, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (texture(shadowTexture, shadowUV + float2(dUV.x, -dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV - float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV - float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + dUV).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV - dUV).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(-dUV.x, dUV.y)).r >= depth) ? 1.0 : factor;
+	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(dUV.x, -dUV.y)).r >= depth) ? 1.0 : factor;
 	float shadow = count / 9.0;
 #else
 	float shadow = count;
 #endif
-	return float3(shadow);
+	return shadow.xxx;
 }
 
-float3 CalcSpotLightShadow(float3 worldPos, mat4 shadowMatrix)
+float3 CalcSpotLightShadow(float3 worldPos, float4x4 shadowMatrix)
 {
 	//return 1;
 	const float factor = 0.0;
-	float4 shadowPos = shadowMatrix * float4(worldPos, 1.0);
+	float4 shadowPos = mul( shadowMatrix , float4(worldPos, 1.0) );
 #if USE_PERSPECTIVE_DEPTH
 	float depth = shadowPos.z / shadowPos.w - 0.003;
 #else
 	float depth = shadowPos.z * ShadowParam.y - 0.005;
 #endif
 	float2 shadowUV = shadowPos.xy / shadowPos.w;
-	float3 shadow = SimplePCF( ShadowTexture2D , shadowUV , depth );
+
+#if COMPILER_HLSL
+	float3 shadow = SimplePCF( ShadowTexture2D, ShadowTexture2DSampler , shadowUV , depth );
+#else
+	float3 shadow = SimplePCF(ShadowTexture2D, shadowUV, depth);
+#endif
 	//return float3(shadowUV, shadowPos.z);
 	return shadow;
 }
 
 #if USE_CASCADE_TEXTURE_ARRAY 
-float3 CalcDirectionalLightShadowInternal(float3 worldPos, mat4 shadowMatrix)
+float3 CalcDirectionalLightShadowInternal(float3 worldPos, float4x4 shadowMatrix)
 #else
-float3 CalcDirectionalLightShadowInternal(float3 worldPos, mat4 shadowMatrix)
+float3 CalcDirectionalLightShadowInternal(float3 worldPos, float4x4 shadowMatrix)
 #endif
 {
 	//return 1;
 	const float factor = 0.0;
-	float4 shadowPos = shadowMatrix * float4(worldPos, 1.0);
+	float4 shadowPos = mul( shadowMatrix , float4(worldPos, 1.0) );
 #if USE_PERSPECTIVE_DEPTH
 	float depth = shadowPos.z / shadowPos.w - 0.004;
 #else
@@ -159,21 +176,25 @@ float3 CalcDirectionalLightShadowInternal(float3 worldPos, mat4 shadowMatrix)
 
 #if 1
 	if( shadowUV.x <= 0.0 )
-		return float3(1.0);
+		return float3(1.0, 1.0, 1.0);
 	if( shadowUV.y <= 0.0 )
-		return float3(1.0);
+		return float3(1.0, 1.0, 1.0);
 	if( shadowUV.x >= 1.0 )
-		return float3(1.0);
+		return float3(1.0, 1.0, 1.0);
 	if( shadowUV.y >= 1.0 )
-		return float3(1.0);
+		return float3(1.0, 1.0, 1.0);
 #endif
 
-	float3 shadow = SimplePCF(ShadowTexture2D , shadowUV, depth);
+#if COMPILER_HLSL
+	float3 shadow = SimplePCF(ShadowTexture2D , ShadowTexture2DSampler , shadowUV, depth);
+#else
+	float3 shadow = SimplePCF(ShadowTexture2D, shadowUV, depth);
+#endif
 	return shadow;
 }
 
-const float3 debugColor[8] = float3[]
-(
+GLOBAL_CONST float3 debugColor[8] = 
+{
 	float3(1.0,0.0,0.0),
 	float3(0.0,1.0,0.0),
 	float3(0.0,0.0,1.0),
@@ -182,13 +203,13 @@ const float3 debugColor[8] = float3[]
 	float3(0.0,1.0,1.0),
 	float3(0.5,0.5,1.0),
 	float3(0.5,1.0,0.5)
-);
+};
 
-float3 CalcDirectionalLightShadow(float3 worldPos, mat4 shadowMatrix[8])
+float3 CalcDirectionalLightShadow(float3 worldPos, float4x4 shadowMatrix[8])
 {
-	float4 viewPos = View.worldToView * float4(worldPos, 1.0);
+	float4 viewPos = mul( View.worldToView , float4(worldPos, 1.0) );
 
-	float3 result = float3(1.0);
+	float3 result = float3(1,1,1);
 	//return -viewPos.z / 100;
 	for( int i = 0; i < NumCascade; ++i )
 	{

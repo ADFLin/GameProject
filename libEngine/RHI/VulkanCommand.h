@@ -117,7 +117,7 @@ namespace Render
 			return result;
 		}
 
-		uint32_t mRenderImageIndex;
+		uint32 mRenderImageIndex;
 		bool RHIBeginRender();
 		void RHIEndRender(bool bPresent);
 
@@ -158,8 +158,8 @@ namespace Render
 			return nullptr;
 		}
 
-		RHITextureDepth* RHICreateTextureDepth(
-			Texture::DepthFormat format, int w, int h,
+		RHITexture2D* RHICreateTextureDepth(
+			Texture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 creationFlags)
 		{
 			return nullptr;

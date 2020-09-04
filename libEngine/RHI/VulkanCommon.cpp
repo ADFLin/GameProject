@@ -201,15 +201,8 @@ namespace Render
 		case Texture::eRGBA8U:  return VK_FORMAT_R8G8B8A8_UINT;
 		case Texture::eSRGB:    return VK_FORMAT_R8G8B8_SRGB;
 		case Texture::eSRGBA:   return VK_FORMAT_R8G8B8A8_SRGB;
-		}
 
-		return VK_FORMAT_UNDEFINED;
-	}
 
-	VkFormat VulkanTranslate::To(Texture::DepthFormat format)
-	{
-		switch (format)
-		{
 		case Texture::eDepth16:   return VK_FORMAT_D16_UNORM;
 		case Texture::eDepth24:   return VK_FORMAT_X8_D24_UNORM_PACK32;
 		case Texture::eDepth32F:  return VK_FORMAT_D32_SFLOAT;
@@ -221,10 +214,14 @@ namespace Render
 		case Texture::eStencil16: return VK_FORMAT_R16_UINT;
 		case Texture::eDepth32:   //return VK_FORMAT_R32_UINT;
 		default:
-			LogWarning(0, "Vulkam No Support Texture DepthFormat %d", (int)format);
+
+
+			LogWarning(0, "Vulkam No Support Texture Format %d", (int)format);
 		}
+
 		return VK_FORMAT_UNDEFINED;
 	}
+
 
 	VkShaderStageFlagBits VulkanTranslate::To(EShader::Type type)
 	{

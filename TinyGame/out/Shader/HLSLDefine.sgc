@@ -46,6 +46,11 @@ struct StructuredBuffer
 	T operator[](int index);
 };
 
+struct Texture2D
+{
+	void GetDimensions(in uint MipLevel, out uint Width, out uint Height, out uint NumberOfLevels);
+};
+
 #endif
 
 #define GLOBAL_CONST static const
@@ -85,15 +90,19 @@ struct StructuredBuffer
 
 #define VERTEX_INPUT( NAME ) VertexInput.##NAME
 #define VERTEX_INPUT_PARAM( CODE ) CODE
+#define VERTEX_INPUT_PARAM_COMMA( CODE ) CODE,
 
 #elif PIXEL_SHADER
+
 #define PS_ENTRY_START(NAME) void NAME(
 #define PS_INPUT(TYPE_DECL , LOC) in TYPE_DECL : TEXCOORD##LOC,
 #define PS_INPUT_STRUCT(TYPE_DECL , LOC) in TYPE_DECL,
 #define PS_OUTPUT(TYPE_DECL , LOC) out TYPE_DECL : SV_Target##LOC,
 #define PS_OUTPUT_DEPTH out float SvDepth : SV_Depth,
 #define PS_ENTRY_END(NAME)  in float4 SvPosition : SV_POSITION )
+
 #elif GEOMETRY_SHADER
+
 #define GS_SVPOSITION( INDEX ) SvPositions[ INDEX ]
 #define GS_NO_MEMBER_PARAM
 #define GS_SV_POSTITION_OUT float4 SvPosition : SV_POSITION;
@@ -104,11 +113,9 @@ struct StructuredBuffer
 	
 #endif
 
-
 #define DEFINE_TEXTURE( TYPE , NAME )\
 	 uniform TYPE NAME;\
 	 uniform SamplerState NAME##Sampler;
-
 
 #if COMPUTE_SHADER
 #define TEXTURE_SAMPLE( NAME , UV )\

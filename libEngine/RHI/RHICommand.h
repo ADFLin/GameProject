@@ -95,7 +95,7 @@ namespace Render
 		IntVector2 extent;
 		Texture::Format colorForamt;
 		bool bCreateDepth;
-		Texture::DepthFormat depthFormat;
+		Texture::Format depthFormat;
 
 		int numSamples;
 		int bufferCount;
@@ -139,8 +139,8 @@ namespace Render
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue, 
 		void* data = nullptr);
 
-	RHI_API RHITextureDepth* RHI_TRACE_FUNC(RHICreateTextureDepth,
-		Texture::DepthFormat format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
+	RHI_API RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth,
+		Texture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
 
 	RHI_API RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -212,6 +212,11 @@ namespace Render
 	};
 	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[] , int numData );
 	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+	
+	RHI_API void RHIDrawMeshTasks(RHICommandList& commandList, int start, int count);
+	RHI_API void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	
+	
 	RHI_API void RHISetFixedShaderPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* texture = nullptr, RHISamplerState* sampler = nullptr);
 	RHI_API void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer);
 
@@ -243,12 +248,16 @@ namespace Render
 		RHIShader* hullShader;
 		RHIShader* domainShader;
 
+		RHIShader* taskShader;
+		RHIShader* meshShader;
+
 		GraphicShaderBoundState()
 		{
 			::memset(this, 0, sizeof(*this));
 		}
 	};
 	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicShaderBoundState const& state);
+	RHI_API void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader);
 
 	RHI_API void RHIFlushCommand(RHICommandList& commandList);
 
@@ -292,8 +301,8 @@ namespace Render
 			int numMipLevel, int numSamples, uint32 creationFlags,
 			void* data));
 
-		RHI_FUNC(RHITextureDepth* RHICreateTextureDepth(
-			Texture::DepthFormat format, int w, int h , 
+		RHI_FUNC(RHITexture2D* RHICreateTextureDepth(
+			Texture::Format format, int w, int h , 
 			int numMipLevel, int numSamples, uint32 creationFlags) );
 		
 		RHI_FUNC(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data));
@@ -362,6 +371,13 @@ namespace Render
 		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
 
 		RHIVertexBuffer* getRHI() { return mResource; }
+
+		void updateBuffer(TArrayView<T> const& updatedData)
+		{
+			T* pData = lock();
+			std::copy(updatedData.data(), updatedData.data() + updatedData.size(), pData);
+			unlock();
+		}
 
 		T*   lock()
 		{

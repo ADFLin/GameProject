@@ -16,6 +16,7 @@
 
 //#TODO remove
 #include "Renderer/BasePassRendering.h"
+#include "Renderer/ShadowDepthRendering.h"
 
 extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
 extern CORE_API TConsoleVariable< bool > CVarShaderDectectFileMoidfy;
@@ -343,6 +344,8 @@ namespace Render
 		"CS" SHADER_FILE_SUBNAME ,
 		"HS" SHADER_FILE_SUBNAME ,
 		"DS" SHADER_FILE_SUBNAME ,
+		"TS" SHADER_FILE_SUBNAME ,
+		"MS" SHADER_FILE_SUBNAME ,
 	};
 
 	 char const* const gShaderDefines[] =
@@ -353,6 +356,8 @@ namespace Render
 		"#define COMPUTE_SHADER 1\n" ,
 		"#define HULL_SHADER 1\n" ,
 		"#define DOMAIN_SHADER 1\n" ,
+		"#define TASK_SHADER 1\n" ,
+		"#define MESH_SHADER 1\n" ,
 	};
 #if CORE_SHARE_CODE
 
@@ -465,9 +470,11 @@ namespace Render
 
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
 		{
-			if (GRHISystem->getName() == RHISytemName::D3D11)
+			//if (GRHISystem->getName() == RHISytemName::D3D11)
 			{
-				if ( pShaderClass != &DeferredBasePassProgram::GetShaderClass() )
+				if ( pShaderClass != &DeferredBasePassProgram::GetShaderClass() 
+					//&& pShaderClass != &ShadowDepthProgram::GetShaderClass() 
+					)
 					continue;
 			}
 
@@ -743,25 +750,6 @@ namespace Render
 			filePaths[i] = paths[i];
 		}	
 		return loadInternal(shaderProgram, filePaths, entriesView , def, additionalCode, classType);
-	}
-
-	static void AddCommonHeadCode(std::string& inoutHeadCode , uint32 version , ShaderEntryInfo const& entry )
-	{
-		inoutHeadCode += "#version ";
-		FixString<128> str;
-		inoutHeadCode += str.format("%u", version);
-		inoutHeadCode += " compatibility\n";
-
-		inoutHeadCode += "#define COMPILER_GLSL 1\n";
-		inoutHeadCode += "#define SHADER_COMPILING 1\n";
-
-		
-		if( entry.name )
-		{
-			inoutHeadCode += "#define ";
-			inoutHeadCode += entry.name;
-			inoutHeadCode += " main\n";
-		}
 	}
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType)

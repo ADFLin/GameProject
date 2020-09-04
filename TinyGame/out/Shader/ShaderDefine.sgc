@@ -30,6 +30,12 @@
 #ifndef DOMAIN_SHADER
 #define DOMAIN_SHADER 0
 #endif
+#ifndef TASK_SHADER
+#define TASK_SHADER 0
+#endif
+#ifndef MESH_SHADER
+#define MESH_SHADER 0
+#endif
 #ifndef COMPUTE_SHADER
 #define COMPUTE_SHADER 0
 #endif
@@ -44,6 +50,8 @@
 #define GEOMETRY_SHADER 1
 #define HULL_SHADER 1
 #define DOMAIN_SHADER 1
+#define TASK_SHADER 1
+#define MESH_SHADER 1
 #define COMPUTE_SHADER 1
 
 #endif

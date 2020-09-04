@@ -29,13 +29,14 @@ void MainPS()
 	float2 DecalUV = localPos.xy;
 #if USE_MATERIAL
 
-	MaterialInputPS materialInput = InitMaterialInputPS();
 	MaterialParametersPS materialParameters;
 	materialParameters.worldPos = worldPos;
 	materialParameters.worldNormal = DecodeNormal(texture(NormalTexture, VSOutput.UVs).rgb) );
 	materialParameters.texCoords[0] = DecalUV;
-	CalcMaterialParameters(materialInput, materialParameters);
-	OutColor = float4( materialInput.emissiveColor , materialInput.opacity );
+
+	MaterialOutputPS materialOutput = InitMaterialOutputPS();
+	Material_CalcParametersPS(materialOutput, materialParameters);
+	OutColor = float4( materialOutput.emissiveColor , materialOutput.opacity );
 
 #else
 	OutColor = float4(DecalUV, 0 , 1);

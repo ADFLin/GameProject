@@ -44,7 +44,6 @@ namespace Render
 
 		virtual void preShutdownRenderSystem(bool bReInit = false) override
 		{
-			ShaderHelper::Get().releaseRHI();
 			BaseClass::preShutdownRenderSystem(bReInit);
 		}
 

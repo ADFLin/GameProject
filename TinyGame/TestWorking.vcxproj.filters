@@ -13,6 +13,7 @@
     </ClCompile>
     <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
+    <ClCompile Include="TestRender\Stage\MeshShaderTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />

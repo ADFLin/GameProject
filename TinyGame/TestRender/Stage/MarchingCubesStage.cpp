@@ -1,5 +1,7 @@
 #include "TestRenderStageBase.h"
+
 #include "RHI/DrawUtility.h"
+#include "Renderer/MeshUtility.h"
 
 #include "PerlinNoise.h"
 #include "ProfileSystem.h"
@@ -817,13 +819,13 @@ namespace Render
 			auto devFrame = WidgetUtility::CreateDevFrame();
 
 			devFrame->addText("Isolevel");
-			FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mIsolevel, 0, 1, 1, [&](float value)
+			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mIsolevel, 0, 1, 1, [&](float value)
 			{
 				mIsolevel = value;
 				updateMesh();
 			});
-			FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Wireframe"), mbWireframeMode);
-			FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Draw Data"), mbDrawData);
+			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Wireframe"), mbWireframeMode);
+			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Draw Data"), mbDrawData);
 			return true;
 		}
 

@@ -3,6 +3,8 @@
 #include "RHI/Scene.h"
 #include "RHI/RHIGraphics2D.h"
 
+#include "Renderer/MeshBuild.h"
+
 #include "DataCacheInterface.h"
 #include "DataStreamBuffer.h"
 #include "ProfileSystem.h"
@@ -27,9 +29,9 @@ namespace Render
 		::Global::GUI().cleanupWidget();
 
 		auto frame = WidgetUtility::CreateDevFrame();
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Tonemap"), bEnableTonemap);
-		FWidgetPropery::Bind(frame->addSlider(UI_ANY), SkyboxShowIndex , 0 , (int)ESkyboxShow::Count - 1);
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use Tonemap"), bEnableTonemap);
+		FWidgetProperty::Bind(frame->addSlider(UI_ANY), SkyboxShowIndex , 0 , (int)ESkyboxShow::Count - 1);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Use Shader Blit"), mbUseShaderBlit);
 
 		return true;
 	}
@@ -76,7 +78,7 @@ namespace Render
 		}
 		Vec2i screenSize = ::Global::GetScreenSize();
 
-		VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI(screenSize));
+		VERIFY_RETURN_FALSE(mSceneRenderTargets.initializeRHI());
 
 		return true;
 	}
@@ -105,6 +107,8 @@ namespace Render
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		initializeRenderState();
+
+		mSceneRenderTargets.prepare(screenSize);
 
 		{
 			GPU_PROFILE("Scene");
@@ -231,6 +235,7 @@ namespace Render
 		}
 #endif
 
+		GRenderTargetPool.freeAllUsedElements();
 	}
 
 }

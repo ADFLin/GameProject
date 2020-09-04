@@ -11,6 +11,9 @@
 #include "RHI/ShaderProgram.h"
 #include "RHI/SimpleRenderState.h"
 #include "RHI/RHICommand.h"
+
+#include "Renderer/Mesh.h"
+
 #include "FrameAllocator.h"
 
 namespace MV

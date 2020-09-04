@@ -4,6 +4,9 @@
 #include "MarcoCommon.h"
 #include "Core/IntegerType.h"
 
+
+#include "GLExtensions.h"
+
 namespace Render
 {
 	int const GLDefalutUnpackAlignment = 4;
@@ -165,6 +168,38 @@ namespace Render
 		return true;
 	}
 
+
+	bool OpenGLTexture2D::createDepth(Texture::Format format, int width, int height, int numMipLevel, int numSamples)
+	{
+		if (!mGLObject.fetchHandle())
+			return false;
+
+		if (numMipLevel < 1)
+			numMipLevel = 1;
+		if (numSamples < 1)
+			numSamples = 1;
+
+		mFormat = format;
+		mNumMipLevel = numMipLevel;
+		mNumSamples = numSamples;
+		mSizeX = width;
+		mSizeY = height;
+
+		bind();
+		if (numSamples > 1)
+		{
+			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::DepthFormat(format), width, height, true);
+		}
+		else
+		{
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::DepthFormat(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		}
+		VerifyOpenGLStatus();
+		unbind();
+		return true;
+	}
 
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
 	{
@@ -348,38 +383,6 @@ namespace Render
 		VerifyOpenGLStatus();
 		unbind();
 		return true;
-	}
-
-	bool OpenGLTextureDepth::create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples)
-	{
-		if( !mGLObject.fetchHandle() )
-			return false;
-		
-		if( numMipLevel < 1 )
-			numMipLevel = 1;
-		if( numSamples < 1 )
-			numSamples = 1;
-
-		mFormat = format;
-		mNumMipLevel = numMipLevel;
-		mNumSamples = numSamples;
-		mSizeX = width;
-		mSizeY = height;
-
-		bind();
-		if( numSamples > 1 )
-		{
-			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), width, height, true);
-		}
-		else
-		{
-			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-		}
-		VerifyOpenGLStatus();
-		unbind();
-		return true;	
 	}
 
 	OpenGLFrameBuffer::OpenGLFrameBuffer()
@@ -592,7 +595,7 @@ namespace Render
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, GLenum typeEnumGL)
+	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, Texture::Format format, GLenum typeEnumGL)
 	{
 		removeDepth();
 
@@ -637,7 +640,7 @@ namespace Render
 	}
 #endif
 
-	void OpenGLFrameBuffer::setDepth(RHITextureDepth& target)
+	void OpenGLFrameBuffer::setDepth(RHITexture2D& target)
 	{
 		setDepthInternal(target, OpenGLCast::GetHandle(target), target.getFormat(), OpenGLCast::To(&target)->getGLTypeEnum());
 	}
@@ -663,13 +666,13 @@ namespace Render
 
 #if USE_DepthRenderBuffer
 
-	bool RHIDepthRenderBuffer::create(int w, int h, Texture::DepthFormat format)
+	bool RHIDepthRenderBuffer::create(int w, int h, Texture::Format format)
 	{
 		assert( mHandle == 0 );
 		mFormat = format;
 		glGenRenderbuffers(1, &mHandle );
 		glBindRenderbuffer( GL_RENDERBUFFER , mHandle );
-		glRenderbufferStorage( GL_RENDERBUFFER , Texture::Convert( format ), w , h );
+		glRenderbufferStorage( GL_RENDERBUFFER , OpenGLTranslate::DepthFormat( format ), w , h );
 		//glRenderbufferStorage( GL_RENDERBUFFER , GL_DEPTH_COMPONENT , w , h );
 		glBindRenderbuffer( GL_RENDERBUFFER , 0 );
 
@@ -834,6 +837,7 @@ namespace Render
 		case EPrimitive::Points:        return GL_POINTS;
 		}
 
+
 		if (type >= EPrimitive::PatchPoint1)
 		{
 			outPatchPointCount = 1 + int(type) - int(EPrimitive::PatchPoint1);
@@ -852,6 +856,8 @@ namespace Render
 		case EShader::Compute:  return GL_COMPUTE_SHADER;
 		case EShader::Hull:     return GL_TESS_CONTROL_SHADER;
 		case EShader::Domain:   return GL_TESS_EVALUATION_SHADER;
+		case EShader::Task:     return GL_TASK_SHADER_NV;
+		case EShader::Mesh:     return GL_MESH_SHADER_NV;
 		}
 		return 0;
 	}
@@ -865,6 +871,8 @@ namespace Render
 		case EShader::Compute:  return GL_COMPUTE_SHADER_BIT;
 		case EShader::Hull:     return GL_TESS_CONTROL_SHADER_BIT;
 		case EShader::Domain:   return GL_TESS_EVALUATION_SHADER_BIT;
+		case EShader::Task:     return GL_TASK_SHADER_BIT_NV;
+		case EShader::Mesh:     return GL_MESH_SHADER_BIT_NV;
 		}
 		return 0;
 	}
@@ -1011,7 +1019,7 @@ namespace Render
 		return GL_REPEAT;
 	}
 
-	GLenum OpenGLTranslate::To(Texture::DepthFormat format)
+	GLenum OpenGLTranslate::DepthFormat(Texture::Format format)
 	{
 		switch( format )
 		{

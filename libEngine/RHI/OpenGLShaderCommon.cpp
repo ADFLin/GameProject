@@ -92,6 +92,7 @@ namespace Render
 
 	bool OpenGLShaderProgram::setupShaders(ShaderResourceInfo shaders[], int numShaders)
 	{
+		mShaderMask = 0;
 		auto DetachAllShader =  [this]()
 		{
 			GLuint shaders[EShader::Count];
@@ -106,6 +107,7 @@ namespace Render
 		for( int i = 0; i < numShaders; ++i )
 		{
 			assert(shaders[i].formatData);
+			mShaderMask |= BIT(shaders[i].type);
 			glAttachShader(getHandle(), static_cast<OpenGLShaderObject*>(shaders[i].formatData)->mHandle );
 		}
 
@@ -139,7 +141,10 @@ namespace Render
 		if (!mGLObject.fetchHandle())
 			return false;
 
-		glProgramParameteri(getHandle(), GL_PROGRAM_SEPARABLE, TRUE);
+		if (type != EShader::Compute)
+		{
+			glProgramParameteri(getHandle(), GL_PROGRAM_SEPARABLE, TRUE);
+		}
 		mType = type;
 		return true;
 	}
@@ -156,6 +161,19 @@ namespace Render
 		return true;
 	}
 
+	void OpenGLShader::bind()
+	{
+		if (getHandle())
+		{
+			glUseProgram(getHandle());
+		}
+	}
+
+	void OpenGLShader::unbind()
+	{
+		glUseProgram(0);
+	}
+
 	void ShaderFormatGLSL::setupShaderCompileOption(ShaderCompileOption& option)
 	{
 		option.addMeta("ShaderFormat", getName());
@@ -163,6 +181,12 @@ namespace Render
 
 	void ShaderFormatGLSL::getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry)
 	{
+		uint32 usageVersion = mDefaultVersion;
+		if (entry.type == EShader::Task || entry.type == EShader::Mesh)
+		{
+			usageVersion = 450;
+		}
+
 		inoutCode += "#version ";
 		char const* versionString = option.getMeta("GLSLVersion");
 		if( versionString )
@@ -171,9 +195,14 @@ namespace Render
 		}
 		else
 		{
-			inoutCode += FStringConv::From(mDefaultVersion);
+			inoutCode += FStringConv::From(usageVersion);
 		}
 		inoutCode += " compatibility\n";
+
+		if (entry.type == EShader::Task || entry.type == EShader::Mesh)
+		{
+			inoutCode += "#extension GL_NV_mesh_shader : enable\n";
+		}
 
 		inoutCode += "#define COMPILER_GLSL 1\n";
 
@@ -456,7 +485,10 @@ namespace Render
 				char name[1024];
 				assert(values[0] < ARRAY_SIZE(name));
 				glGetProgramResourceName(handle, BlockTypeInterface, idxBlock, ARRAY_SIZE(name), NULL, &name[0]);
-				parameterMap.addParameter(name, idxBlock);
+				auto& param = parameterMap.addParameter(name, idxBlock);
+#if _DEBUG
+				param.mName = name;
+#endif
 			}
 		};
 
@@ -507,12 +539,18 @@ namespace Render
 			{
 				if (values[2] != -1)
 				{
-					parameterMap.addParameter(name, values[2]);
+					auto& param = parameterMap.addParameter(name, values[2]);
+#if _DEBUG
+					param.mName = name;
+#endif
 				}
 			}
 			else
 			{
-				parameterMap.addParameter(name, values[1]);
+				auto& param = parameterMap.addParameter(name, values[1]);
+#if _DEBUG
+				param.mName = name;
+#endif
 			}
 		}
 #endif

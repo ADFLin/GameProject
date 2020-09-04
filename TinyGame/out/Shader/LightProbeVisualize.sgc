@@ -148,9 +148,6 @@ PS_ENTRY_END(MainPS)
 	float4 NDC = clipPos / clipPos.w;
 	
 	SvDepth = NDC.z;
-#if COMPILER_HLSL
-	SvDepth = NDC.z;
-#endif
 
 	float2 gridPos;
 	gridPos.x = GridId % LPV.gridNum.x;
@@ -178,25 +175,31 @@ PS_ENTRY_END(MainPS)
 	float3 R = reflect(-V, N);
 	//float3  L = normalize(float3(10, 10, 10)- worldPos);
 
-#if USE_MATERIAL	
-	MaterialInputPS materialInput = InitMaterialInputPS();
+#if USE_MATERIAL
 	MaterialParametersPS materialParameters;
 	materialParameters.vectexColor = float3(1, 1, 1, 1);
 	materialParameters.worldPos = worldPos;
-	materialParameters.clipPos = clipPos;
-	materialParameters.NDC = NDC;
 	materialParameters.worldNormal = N;
 	materialParameters.tangentToWorld = TBN;
 	materialParameters.texCoords[0] = uv;
-	CalcMaterialParameters(materialInput, materialParameters);
+	
+
+	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
+	float4 NDC = SvPositionToNDC(SvPosition);
+	float3 worldPos = InputPS.passInterpolants.worldPos;
+	Material_CalcParametersPS(materialParameters, SvPosition, worldPos);
+	MaterialOutputPS materialOutput = Material_GetOutputPS(materialParameters);
+
+	MaterialOutputPS materialOutput = InitMaterialOutputPS();
+	Material_CalcParametersPS(materialOutput, materialParameters);
 #endif
 
 	MaterialInfo material;
 #if USE_MATERIAL	
-	material.baseColor = materialInput.baseColor;
-	material.specular =  materialInput.specular;
-	material.roughness = materialInput.roughness * lerp(1.0, 0.0, posFactor.x);
-	material.metallic = materialInput.metallic * lerp(0.0, 1.0, posFactor.y);
+	material.baseColor = materialOutput.baseColor;
+	material.specular =  materialOutput.specular;
+	material.roughness = materialOutput.roughness * lerp(1.0, 0.0, posFactor.x);
+	material.metallic = materialOutput.metallic * lerp(0.0, 1.0, posFactor.y);
 	material.ao = 1;
 
 #else

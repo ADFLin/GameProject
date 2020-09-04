@@ -8,29 +8,29 @@ uniform sampler2D BaseTexture;
 
 #if VERTEX_SHADER
 
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutnputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	inputVS.worldOffset = float3(0.0);//3 * sin( 10 * View.gameTime ) * parameters.noraml;
+	outputVS.worldOffset = float3(0.0);//3 * sin( 10 * View.gameTime ) * parameters.noraml;
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
 	float s = 1;// 0.5 * (sin(10 * View.gameTime) + 1);
-	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	//inputPS.baseColor = ( 0.5 * sin(View.gameTime) + 0.5 )* parameters.vectexColor;
-	inputPS.baseColor = s *texture( BaseTexture , parameters.texCoords[0].xy ).rgb * parameters.vectexColor.rgb /** frac( dot(parameters.worldPos, parameters.worldPos) / 100 )*/;
-	//inputPS.baseColor = parameters.worldNormal;
-	//inputPS.baseColor = float3(parameters.texCoords[0].xy, 0);
-	inputPS.metallic = 0.9;
-	inputPS.roughness = texture(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
-	inputPS.specular = 0.1;
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	//outputPS.baseColor = ( 0.5 * sin(View.gameTime) + 0.5 )* parameters.vectexColor;
+	outputPS.baseColor = s *texture( BaseTexture , parameters.texCoords[0].xy ).rgb * parameters.vectexColor.rgb /** frac( dot(parameters.worldPos, parameters.worldPos) / 100 )*/;
+	//outputPS.baseColor = parameters.worldNormal;
+	//outputPS.baseColor = float3(parameters.texCoords[0].xy, 0);
+	outputPS.metallic = 0.9;
+	outputPS.roughness = texture(BaseTexture, parameters.texCoords[0].xy).r * 0.9;
+	outputPS.specular = 0.1;
 	float2 value = 2 * frac( 5 * ( parameters.texCoords[0].xy ) ) - 1;
-	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
-	//inputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
+	//outputPS.mask = value.x * value.y > 0 ? 1 : 0;
+	//outputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
 }
 
 #endif //PIXEL_SHADER

@@ -48,10 +48,10 @@ void BassPassVS()
 #if USE_MATERIAL
 	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS();
 
-	MaterialInputVS materialInput = InitMaterialInputVS();
+	MaterialOutputVS materialInput = InitMaterialOutputVS();
 	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(intermediates);
 
-	CalcMaterialInputVS(materialInput, materialParameters);
+	CalcMaterialOutputVS(materialInput, materialParameters);
 
 	gl_Position = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants, intermediates, materialInput, materialParameters);
 
@@ -88,13 +88,14 @@ layout(early_fragment_tests) in;
 void BassPassPS()
 {
 #if USE_MATERIAL
-	MaterialInputPS materialInput = InitMaterialInputPS();
 	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
 
-	CalcMaterialParameters(materialInput, materialParameters);
 
-	float3 pixelColor = materialInput.baseColor;
-	float  pixelAlpha = materialInput.opacity;
+	MaterialOutputPS materialOutput = InitMaterialOutputPS();
+	Material_CalcParametersPS(materialOutput, materialParameters);
+
+	float3 pixelColor = materialOutput.baseColor;
+	float  pixelAlpha = materialOutput.opacity;
 	pixelAlpha = 0.4;
 	//float  pixelDepth = materialParameters.screenPos.z;
 	float  pixelDepth = -(View.worldToView * float4(materialParameters.worldPos, 1)).z;

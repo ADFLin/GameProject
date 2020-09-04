@@ -1,7 +1,7 @@
 #include "MeshImporterFBX.h"
 
 #include "Core/ScopeExit.h"
-#include "RHI/MeshUtility.h"
+#include "Renderer/MeshUtility.h"
 
 
 namespace Render

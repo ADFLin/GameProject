@@ -167,6 +167,9 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.cpp" />
+    <ClCompile Include="..\OtherLib\DirectXSamples\Generation.cpp" />
+    <ClCompile Include="..\OtherLib\DirectXSamples\Utilities.cpp" />
     <ClCompile Include="..\OtherLib\minisat\core\Main.cc" />
     <ClCompile Include="..\OtherLib\minisat\core\Solver.cc" />
     <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc" />
@@ -281,10 +284,15 @@
     <ClCompile Include="Renderer\BatchedRender2D.cpp" />
     <ClCompile Include="Renderer\Bloom.cpp" />
     <ClCompile Include="Renderer\IBLResource.cpp" />
+    <ClCompile Include="Renderer\Mesh.cpp" />
+    <ClCompile Include="Renderer\MeshBuild.cpp" />
+    <ClCompile Include="Renderer\MeshImportor.cpp" />
+    <ClCompile Include="Renderer\MeshUtility.cpp" />
     <ClCompile Include="Renderer\RenderTargetPool.cpp" />
     <ClCompile Include="Renderer\RenderTransform2D.cpp" />
     <ClCompile Include="Renderer\SceneLighting.cpp" />
     <ClCompile Include="Renderer\SceneView.cpp" />
+    <ClCompile Include="Renderer\ShadowDepthRendering.cpp" />
     <ClCompile Include="RHI\D3D11Command.cpp" />
     <ClCompile Include="RHI\D3D11Common.cpp" />
     <ClCompile Include="RHI\D3D11ShaderCommon.cpp" />
@@ -293,13 +301,12 @@
     <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
-    <ClCompile Include="RHI\MeshImportor.cpp" />
+    <ClCompile Include="RHI\GLExtensions.cpp" />
     <ClCompile Include="RHI\OpenGLCommon.cpp" />
     <ClCompile Include="RHI\GpuProfiler.cpp" />
     <ClCompile Include="RHI\LazyObject.cpp" />
     <ClCompile Include="RHI\Material.cpp" />
     <ClCompile Include="RHI\MaterialShader.cpp" />
-    <ClCompile Include="RHI\MeshUtility.cpp" />
     <ClCompile Include="RHI\OpenGLCommand.cpp" />
     <ClCompile Include="RHI\OpenGLShaderCommon.cpp" />
     <ClCompile Include="RHI\PrimitiveBatch.cpp" />
@@ -336,6 +343,9 @@
     <ClCompile Include="WinGDIRenderSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.h" />
+    <ClInclude Include="..\OtherLib\DirectXSamples\Generation.h" />
+    <ClInclude Include="..\OtherLib\DirectXSamples\Utilities.h" />
     <ClInclude Include="..\OtherLib\NvTess\nvtess.h" />
     <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h" />
     <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h" />
@@ -486,15 +496,21 @@
     <ClInclude Include="Renderer\BatchedRender2D.h" />
     <ClInclude Include="Renderer\Bloom.h" />
     <ClInclude Include="Renderer\IBLResource.h" />
+    <ClInclude Include="Renderer\Mesh.h" />
+    <ClInclude Include="Renderer\MeshBuild.h" />
+    <ClInclude Include="Renderer\MeshCommon.h" />
+    <ClInclude Include="Renderer\MeshImportor.h" />
+    <ClInclude Include="Renderer\MeshUtility.h" />
     <ClInclude Include="Renderer\RenderTargetPool.h" />
     <ClInclude Include="Renderer\RenderTransform2D.h" />
     <ClInclude Include="Renderer\SceneLighting.h" />
     <ClInclude Include="Renderer\SceneView.h" />
+    <ClInclude Include="Renderer\ShadowDepthRendering.h" />
     <ClInclude Include="Renderer\SimpleCamera.h" />
     <ClInclude Include="RHI\D3D12Command.h" />
     <ClInclude Include="RHI\D3D12Common.h" />
     <ClInclude Include="RHI\D3D12ShaderCommon.h" />
-    <ClInclude Include="RHI\MeshImportor.h" />
+    <ClInclude Include="RHI\GLExtensions.h" />
     <ClInclude Include="RHI\RHITraceScope.h" />
     <ClInclude Include="RHI\RHIType.h" />
     <ClInclude Include="RHI\D3D11Command.h" />
@@ -509,7 +525,6 @@
     <ClInclude Include="RHI\LazyObject.h" />
     <ClInclude Include="RHI\Material.h" />
     <ClInclude Include="RHI\MaterialShader.h" />
-    <ClInclude Include="RHI\MeshUtility.h" />
     <ClInclude Include="RHI\OpenGLCommand.h" />
     <ClInclude Include="RHI\OpenGLShaderCommon.h" />
     <ClInclude Include="RHI\PrimitiveBatch.h" />

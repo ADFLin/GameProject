@@ -5,12 +5,10 @@
 #include "ViewParam.sgc"
 uniform sampler2D BaseTexture;
 
-
-
 #if VERTEX_SHADER
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	inputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0.0);
 
 }
 
@@ -18,16 +16,16 @@ void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParameter
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
-	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	inputPS.baseColor = texture(BaseTexture, parameters.texCoords[0].xy).rgb * parameters.vectexColor.rgb;
-	inputPS.metallic  = 0.1;
-	inputPS.roughness = 0.9;
-	inputPS.specular  = 0.1;
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	outputPS.baseColor = texture(BaseTexture, parameters.texCoords[0].xy).rgb * parameters.vectexColor.rgb;
+	outputPS.metallic  = 0.1;
+	outputPS.roughness = 0.9;
+	outputPS.specular  = 0.1;
 	float2 value = 2 * frac(5 * (parameters.texCoords[0].xy)) - 1;
-	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
-	//inputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
+	//outputPS.mask = value.x * value.y > 0 ? 1 : 0;
+	//outputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
 }
 
 #endif //PIXEL_SHADER

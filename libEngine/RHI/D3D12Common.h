@@ -52,7 +52,6 @@ namespace Render
 		static D3D12_PRIMITIVE_TOPOLOGY To(EPrimitive type);
 		static DXGI_FORMAT To(Vertex::Format format, bool bNormalized);
 		static DXGI_FORMAT To(Texture::Format format);
-		static DXGI_FORMAT To(Texture::DepthFormat format);
 		static D3D12_BLEND To(Blend::Factor factor);
 		static D3D12_BLEND_OP To(Blend::Operation op);
 		static D3D12_CULL_MODE To(ECullMode mode);

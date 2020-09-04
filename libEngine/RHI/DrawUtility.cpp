@@ -328,13 +328,28 @@ namespace Render
 	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
 		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture);
-		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+		if (GRHIVericalFlip > 0)
+		{
+			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+		}
+		else
+		{
+			DrawUtility::Rect(commandList, pos.x, pos.y + size.y, size.x, -size.y);
+		}
 	}
 
 	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
 		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture, &sampler);
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+		if (GRHIVericalFlip > 0)
+		{
+			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+		}
+		else
+		{
+			DrawUtility::Rect(commandList, pos.x, pos.y + size.y, size.x, -size.y);
+		}
 	}
 
 	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, float length)
@@ -659,8 +674,6 @@ namespace Render
 	void ShaderHelper::copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture)
 	{
 #if USE_SEPARATE_SHADER
-		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 		GraphicShaderBoundState state;
 		state.vertexShader = mScreenVS->getRHIResource();
 		state.pixelShader = mCopyTexturePS->getRHIResource();
@@ -669,10 +682,16 @@ namespace Render
 #else
 		RHISetShaderProgram(commandList, mProgCopyTexture->getRHIResource());
 		mProgCopyTexture->setParameters(commandList, copyTexture);
+		
 #endif
 
 		DrawUtility::ScreenRect(commandList);
 		RHISetShaderProgram(commandList, nullptr);
+#if USE_SEPARATE_SHADER
+		mCopyTexturePS->clearTexture(commandList, mCopyTexturePS->mParamCopyTexture);
+#else
+		mProgCopyTexture->clearTexture(commandList, mProgCopyTexture->mParamCopyTexture);
+#endif
 	}
 
 	void ShaderHelper::copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)

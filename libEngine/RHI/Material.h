@@ -52,7 +52,6 @@ namespace Render
 		void setParameter(char const* name, RHITexture2D& texture) { setParameterRHITexture(name, ParamType::eTexture2DRHI, &texture); }
 		void setParameter(char const* name, RHITexture3D& texture) { setParameterRHITexture(name, ParamType::eTexture3DRHI, &texture); }
 		void setParameter(char const* name, RHITextureCube& texture) { setParameterRHITexture(name, ParamType::eTextureCubeRHI, &texture); }
-		void setParameter(char const* name, RHITextureDepth& texture) { setParameterRHITexture(name, ParamType::eTextureDepthRHI, &texture); }
 
 		void setParameter(char const* name, Texture2D& texture) { setParameterT(name, ParamType::eTexture2D, &texture); }
 

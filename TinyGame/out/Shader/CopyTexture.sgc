@@ -1,6 +1,13 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
 
+#if !SHADER_COMPILING
+#define SHADER_ENTRY_CopyTexturePS 1
+#define SHADER_ENTRY_CopyTextureMaskPS 1
+#define SHADER_ENTRY_CopyTextureBiasPS 1
+#define SHADER_ENTRY_MappingTextureColorPS 1
+#endif
+
 #if PIXEL_SHADER
 
 DEFINE_TEXTURE( Texture2D , CopyTexture);
@@ -19,6 +26,7 @@ PS_ENTRY_END(CopyTexturePS)
 uniform float4 ColorMask;
 
 #if SHADER_ENTRY_CopyTextureMaskPS
+
 PS_ENTRY_START(CopyTextureMaskPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)

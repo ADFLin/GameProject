@@ -1,6 +1,7 @@
 #include "TestRenderStageBase.h"
 
 #include "RHI/RHIGraphics2D.h"
+#include "Renderer/MeshBuild.h"
 #include "Renderer/RenderTargetPool.h"
 #include "ConsoleSystem.h"
 
@@ -198,7 +199,7 @@ namespace Render
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere2], "IcoSphere", MeshBuild::IcoSphere, 2.5, 4));
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Box], "Cube", MeshBuild::Cube, 1));
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SkyBox], "SkyBox", MeshBuild::SkyBox));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut], "Doughnut", MeshBuild::Doughnut, 2, 1, 60, 60));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut], "Doughnut", MeshBuild::Doughnut, 2, 1, 60 * 2, 60 * 2));
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SimpleSkin], "SimpleSkin", MeshBuild::SimpleSkin, 5, 2.5, 20, 20));
 		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Terrain], "Terrain", MeshBuild::Tile, 1024, 1.0, false));
 
@@ -308,6 +309,7 @@ namespace Render
 			TStaticDepthStencilState< true, ECompareFunc::Greater >::GetRHI() :
 			TStaticDepthStencilState<>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 	}
 
 	void TestRenderStageBase::bitBltToBackBuffer(RHICommandList& commandList , RHITexture2D& texture)

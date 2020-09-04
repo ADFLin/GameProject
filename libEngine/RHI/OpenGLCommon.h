@@ -173,12 +173,6 @@ namespace Render
 		static GLenum constexpr EnumValue = GL_TEXTURE_2D_ARRAY;
 		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
 	};
-	template<>
-	struct OpenGLTextureTraits< RHITextureDepth >
-	{
-		static GLenum constexpr EnumValue = GL_TEXTURE_2D; 
-		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE;
-	};
 
 	class OpenGLShaderResourceView : public TPersistentResource< RHIShaderResourceView >
 	{
@@ -234,7 +228,7 @@ namespace Render
 	{
 	public:
 		bool create(Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
-
+		bool createDepth(Texture::Format format, int width, int height, int numMipLevel, int numSamples);
 		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level);
 		bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level);
 	};
@@ -260,12 +254,6 @@ namespace Render
 		bool create(Texture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 createFlags, void* data);
 	};
 
-	class OpenGLTextureDepth : public TOpengGLTexture< RHITextureDepth >
-	{
-	public:
-		bool create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples);
-	};
-
 	class OpenGLTranslate
 	{
 	public:
@@ -284,7 +272,8 @@ namespace Render
 		static GLenum To(EComponentType type );
 		static GLenum To(Sampler::Filter filter);
 		static GLenum To(Sampler::AddressMode mode);
-		static GLenum To(Texture::DepthFormat format);
+
+		static GLenum DepthFormat(Texture::Format format);
 
 		static GLenum BaseFormat(Texture::Format format);
 		static GLenum PixelFormat(Texture::Format format);
@@ -305,10 +294,9 @@ namespace Render
 	class RHIDepthRenderBuffer : public TRHIResource< RMPRenderBuffer >
 	{
 	public:
-		bool create( int w , int h , Texture::DepthFormat format );
-		Texture::DepthFormat getFormat() { return mFormat;  }
-		Texture::DepthFormat mFormat;
-
+		bool create( int w , int h , Texture::Format format );
+		Texture::Format getFormat() { return mFormat;  }
+		Texture::Format mFormat;
 	};
 
 
@@ -345,7 +333,7 @@ namespace Render
 #if USE_DepthRenderBuffer
 		void setDepth( RHIDepthRenderBuffer& buffer );
 #endif
-		void setDepth( RHITextureDepth& target );
+		void setDepth( RHITexture2D& target );
 		void removeDepth();
 
 		void blitToBackBuffer(int index = 0);
@@ -366,7 +354,7 @@ namespace Render
 		void setTexture2DInternal(int idx, GLuint handle, GLenum texType, int level);
 		void setTexture3DInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
 		void setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
-		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, GLenum typeEnumGL);
+		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::Format format, GLenum typeEnumGL);
 
 		void checkStates()
 		{
@@ -685,7 +673,6 @@ namespace Render
 	template<> struct TOpengGLCastTraits< RHITexture3D > { typedef OpenGLTexture3D CastType; };
 	template<> struct TOpengGLCastTraits< RHITextureCube > { typedef OpenGLTextureCube CastType; };
 	template<> struct TOpengGLCastTraits< RHITexture2DArray > { typedef OpenGLTexture2DArray CastType; };
-	template<> struct TOpengGLCastTraits< RHITextureDepth > { typedef OpenGLTextureDepth CastType; };
 	template<> struct TOpengGLCastTraits< RHIVertexBuffer > { typedef OpenGLVertexBuffer CastType; };
 	template<> struct TOpengGLCastTraits< RHIIndexBuffer > { typedef OpenGLIndexBuffer CastType; };
 	template<> struct TOpengGLCastTraits< RHIInputLayout > { typedef OpenGLInputLayout CastType; };

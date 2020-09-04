@@ -7,6 +7,8 @@
 
 #include "ShaderCore.h"
 #include "glew/GL/glew.h"
+#include "GLExtensions.h"
+
 #include "OpenGLCommon.h"
 
 #include "WGLContext.h"
@@ -14,6 +16,7 @@
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+
 
 
 namespace Render
@@ -79,6 +82,8 @@ namespace Render
 			CheckShader(state.geometryShader, GL_GEOMETRY_SHADER_BIT);
 			CheckShader(state.hullShader, GL_TESS_CONTROL_SHADER_BIT);
 			CheckShader(state.domainShader, GL_TESS_EVALUATION_SHADER_BIT);
+			CheckShader(state.taskShader, GL_TASK_SHADER_BIT_NV);
+			CheckShader(state.meshShader, GL_MESH_SHADER_BIT_NV);
 		}
 		uint32     hash;
 		GLbitfield stageMask;
@@ -132,11 +137,7 @@ namespace Render
 	class OpenGLContext : public RHIContext
 	{
 	public:
-		void initialize()
-		{
-
-
-		}
+		void initialize();
 
 		void shutdown();
 
@@ -158,45 +159,14 @@ namespace Render
 		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData);
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
+		void RHIDrawMeshTasks(int start, int count);
+		void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+
 		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler);
 
 		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer);
 
-		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil)
-		{
-			GLbitfield clearBitsGL = 0;
-			if (HaveBits(clearBits, EClearBits::Color))
-			{
-				if (numColor == 1)
-				{
-					glClearColor(colors[0].r, colors[0].b, colors[0].g, colors[0].a);
-					clearBitsGL |= GL_COLOR_BUFFER_BIT;
-				}
-				else
-				{
-					for (int i = 0; i < numColor; ++i)
-					{
-						glClearBufferfv(GL_COLOR, i, colors[i]);
-					}
-				}
-
-			}
-			if (HaveBits(clearBits, EClearBits::Depth))
-			{
-				glClearDepth(depth);
-				clearBitsGL |= GL_DEPTH_BUFFER_BIT;
-			}
-			if (HaveBits(clearBits, EClearBits::Stencil))
-			{
-				glClearStencil(stenceil);
-				clearBitsGL |= GL_STENCIL_BUFFER_BIT;
-			}
-			if (clearBitsGL)
-			{
-				glClear(clearBitsGL);
-			}
-
-		}
+		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil);
 
 		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
@@ -241,6 +211,7 @@ namespace Render
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
+		void RHISetComputeShader(RHIShader* shader);
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim);
@@ -320,12 +291,12 @@ namespace Render
 				mLastActiveShader = &shader;
 			}
 		}
-
+		RHIShaderRef        mLastComputeShader;
 		RHIShaderProgramRef mLastShaderProgram;
 		int                 mUsageShaderCount = 0;
 
 		void clearShader(bool bUseShaderPipeline);
-
+		void clearComputeShader();
 		bool checkInputStreamStateDirty(bool bForceDirty = false);
 
 		RHIFrameBufferRef   mLastFrameBuffer;
@@ -362,6 +333,8 @@ namespace Render
 		int  mNextAutoBindSamplerSlotIndex;
 		SamplerState mSamplerStates[MaxSimulationSamplerSlots];
 
+		GLint mMaxDrawMeshTasksCount = 0;
+
 		void setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 		void setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler);
 		void setShaderSamplerInternal(GLuint handle, ShaderParameter const& param, RHISamplerState& sampler);
@@ -393,7 +366,7 @@ namespace Render
 		RHITexture3D*      RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data);
 		RHITextureCube*    RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 		RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
-		RHITextureDepth*   RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
+		RHITexture2D*      RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);

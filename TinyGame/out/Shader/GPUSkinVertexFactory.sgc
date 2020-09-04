@@ -64,10 +64,7 @@ struct FactoryInterpolantsParam
 #endif //VERTEX_FACTORY_USE_GEOMETRY_SHADER
 
 
-float3 VertexFactory_GetWorldPos(in FactoryInterpolantsParam Param)
-{
-	return Param.worldPos;
-}
+
 
 #if VERTEX_SHADER
 
@@ -147,7 +144,9 @@ VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS()
 	return intermediates;
 }
 
-MaterialParametersVS VertexFactory_GetMaterialParameterVS(in VertexFactoryIntermediatesVS intermediates)
+MaterialParametersVS VertexFactory_GetMaterialParameterVS(
+	in VertexFactoryIntermediatesVS intermediates
+)
 {
 	MaterialParametersVS parameters;
 
@@ -192,9 +191,14 @@ MaterialParametersVS VertexFactory_GetMaterialParameterVS(in VertexFactoryInterm
 	return parameters;
 }
 
+float3 VertexFactory_GetWorldPos(in FactoryInterpolantsParam Param, in VertexFactoryIntermediatesVS intermediates)
+{
+	return Param.worldPos;
+}
+
 float4 VertexFactory_GetInterpolants(out FactoryInterpolantsParam vertexFactoryOutput,
 								 in VertexFactoryIntermediatesVS intermediates,
-								 in MaterialInputVS materialInput,
+								 in MaterialOutputVS materialInput,
 								 in MaterialParametersVS materialParameters)
 {
 	vertexFactoryOutput.worldNormal = intermediates.normal.xyz;
@@ -245,7 +249,6 @@ MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolants
 	parameters.worldPos = vertexFactoryInput.worldPos;
 	parameters.worldNormal = worldNormal;
 	parameters.clipPos = vertexFactoryInput.clipPos;
-	parameters.NDC     = parameters.clipPos / parameters.clipPos.w;
 	parameters.tangentToWorld = tangentToWorld;
 #if MATERIAL_TEXCOORD_NUM
 	for( int i = 0; i < MATERIAL_TEXCOORD_NUM; ++i )

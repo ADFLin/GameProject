@@ -60,6 +60,7 @@ struct MandelbrotParam
 };
 
 
+#if 0
 class MandelbrotProgram : public GlobalShaderProgram
 {
 	DECLARE_SHADER_PROGRAM(MandelbrotProgram, Global);
@@ -136,6 +137,79 @@ class MandelbrotProgram : public GlobalShaderProgram
 };
 
 IMPLEMENT_SHADER_PROGRAM(MandelbrotProgram);
+
+#else
+
+class MandelbrotProgram : public GlobalShader
+{
+	DECLARE_SHADER(MandelbrotProgram, Global);
+
+	static int constexpr SizeX = 16;
+	static int constexpr SizeY = 16;
+
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, CoordParam);
+		BIND_SHADER_PARAM(parameterMap, CoordParam2);
+		BIND_SHADER_PARAM(parameterMap, ViewSize);
+		BIND_SHADER_PARAM(parameterMap, MaxIteration);
+		BIND_SHADER_PARAM(parameterMap, ColorMapParam);
+		BIND_SHADER_PARAM(parameterMap, ColorRWTexture);
+		BIND_TEXTURE_PARAM(parameterMap, ColorMapTexture);
+	}
+
+	void setParameters(RHICommandList& commandList, MandelbrotParam const& param, RHITexture2D& colorTexture, RHITexture1D& colorMapTexture)
+	{
+		Vector4 rectParam;
+		rectParam.x = param.center.x;
+		rectParam.y = param.center.y;
+		rectParam.z = param.center.x - 0.5 * param.viewSize.x * param.getRatioX();
+		rectParam.w = param.center.y - 0.5 * param.viewSize.y * param.getRatioY();
+		SET_SHADER_PARAM(commandList, *this, CoordParam, rectParam);
+
+		Vector4 rectParam2;
+		rectParam2.x = param.getRatioX();
+		rectParam2.y = param.getRatioY();
+		Math::SinCos(param.rotationAngle, rectParam2.w, rectParam2.z);
+
+		SET_SHADER_PARAM(commandList, *this, CoordParam2, rectParam2);
+		SET_SHADER_PARAM(commandList, *this, ViewSize, param.viewSize);
+		SET_SHADER_PARAM(commandList, *this, MaxIteration, param.maxIteration);
+		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
+
+		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, COMMA_SEPARATED(TStaticSamplerState< Sampler::eBilinear, Sampler::eWarp >::GetRHI()));
+	}
+
+	void clearParameters(RHICommandList& commandList)
+	{
+		clearRWTexture(commandList, mParamColorRWTexture);
+	}
+
+	static void SetupShaderCompileOption(ShaderCompileOption& option)
+	{
+		option.addDefine(SHADER_PARAM(SIZE_X), SizeX);
+		option.addDefine(SHADER_PARAM(SIZE_Y), SizeY);
+	}
+	static char const* GetShaderFileName()
+	{
+		return "Shader/Game/Mandelbrot";
+	}
+
+	DEFINE_SHADER_PARAM(CoordParam);
+	DEFINE_SHADER_PARAM(CoordParam2);
+	DEFINE_SHADER_PARAM(ViewSize);
+	DEFINE_SHADER_PARAM(MaxIteration);
+	DEFINE_SHADER_PARAM(ColorMapParam);
+	DEFINE_SHADER_PARAM(ColorRWTexture);
+	DEFINE_TEXTURE_PARAM(ColorMapTexture);
+
+};
+
+IMPLEMENT_SHADER(MandelbrotProgram , EShader::Compute , SHADER_ENTRY(MainCS));
+
+#endif
 
 
 class SelectRect : public SelectRectOperationT< SelectRect >
@@ -295,7 +369,7 @@ public:
 		restart();
 	}
 
-	virtual bool setupRenderSystem()
+	virtual bool setupRenderSystem(ERenderSystem systemName) override
 	{
 		VERIFY_RETURN_FALSE(mProgMandelbrot = ShaderManager::Get().getGlobalShaderT< MandelbrotProgram >(true));
 
@@ -323,7 +397,7 @@ public:
 
 		return true;
 	}
-	virtual void preShutdownRenderSystem(bool bReInit = false)
+	virtual void preShutdownRenderSystem(bool bReInit) override
 	{
 		mProgMandelbrot = nullptr;
 		mColorMap.release();
@@ -333,7 +407,8 @@ public:
 	void updateTexture()
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		RHISetShaderProgram(commandList, mProgMandelbrot->getRHIResource());
+		//RHISetShaderProgram(commandList, mProgMandelbrot->getRHIResource());
+		RHISetComputeShader(commandList, mProgMandelbrot->getRHIResource());
 		mProgMandelbrot->setParameters(commandList, mParam, *mTexture, *mColorMap );
 		int nx = (mTexture->getSizeX() + MandelbrotProgram::SizeX - 1) / MandelbrotProgram::SizeX;
 		int ny = (mTexture->getSizeY() + MandelbrotProgram::SizeY - 1) / MandelbrotProgram::SizeY;

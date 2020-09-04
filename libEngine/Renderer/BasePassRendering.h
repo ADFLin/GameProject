@@ -3,11 +3,12 @@
 #ifndef BasePassRendering_H_2CFE6D0C_5DFA_446A_B560_66C63B1ADBBF
 #define BasePassRendering_H_2CFE6D0C_5DFA_446A_B560_66C63B1ADBBF
 #include "RHI/MaterialShader.h"
+#include "Renderer/RenderTargetPool.h"
 
 namespace Render
 {
 
-	namespace EGBufferId
+	namespace EGBuffer
 	{
 		enum Type
 		{
@@ -21,40 +22,46 @@ namespace Render
 	};
 	struct GBufferResource
 	{
-		RHITexture2DRef textures[EGBufferId::Count];
-		RHITextureDepthRef depthTexture;
+		GBufferResource();
 
-		bool initializeRHI(IntVector2 const& size, int numSamples);
-		void releaseRHI()
+		PooledRenderTargetRef mTargets[EGBuffer::Count];
+		Texture::Format       mTargetFomats[EGBuffer::Count];
+
+		RHITexture2D& getRenderTexture(EGBuffer::Type bufferName)
 		{
-			for (auto& texture : textures)
-			{
-				texture.release();
-			}
-			depthTexture.release();
+			return *mTargets[bufferName]->texture;
 		}
 
-		void drawTextures(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& size, IntVector2 const& gapSize);
-		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer);
-		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
-	};
+		RHITexture2D& getResolvedTexture(EGBuffer::Type bufferName)
+		{
+			return *mTargets[bufferName]->resolvedTexture;
+		}
 
-	struct RenderTargetResource
-	{
-		RHITexture2DRef renderTargetTexture;
-		RHITexture2DRef resolvedTexture;
+		bool prepare(IntVector2 const& size, int numSamples);
+
+		void releaseRHI();
+
+		void attachToBuffer(RHIFrameBuffer& frameBuffer);
+
+		void drawTextures(RHICommandList& commandList, Matrix4 const& XForm, IntVector2 const& size, IntVector2 const& gapSize);
+		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, EGBuffer::Type bufferName, Vector4 const& colorMask);
+		void drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, EGBuffer::Type bufferName);
 	};
 
 	class FrameRenderTargets
 	{
 	public:
+		FrameRenderTargets()
+		{
+			mDepthFormat = Texture::eD24S8;
+		}
 
 		bool prepare(IntVector2 const& size, int numSamples = 1);
 
 		bool createBufferRHIResource(IntVector2 const& size, int numSamples = 1);
 		void releaseBufferRHIResource();
 
-		bool initializeRHI(IntVector2 const& size, int numSamples = 1);
+		bool initializeRHI();
 		void releaseRHI();
 
 		RHITexture2D&  getFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
@@ -66,17 +73,13 @@ namespace Render
 		}
 
 		GBufferResource&  getGBuffer() { return mGBuffer; }
-		RHITextureDepth&  getDepthTexture() { return *mDepthTexture; }
-
+		RHITexture2D&     getDepthTexture() { return *mDepthTexture; }
 
 
 		RHIFrameBufferRef& getFrameBuffer() { return mFrameBuffer; }
 
 		void attachDepthTexture() { mFrameBuffer->setDepth(*mDepthTexture); }
 		void detachDepthTexture() { mFrameBuffer->removeDepth(); }
-
-
-		void drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height);
 
 
 		IntVector2         mSize = IntVector2(0, 0);
@@ -88,8 +91,10 @@ namespace Render
 
 
 		RHIFrameBufferRef  mFrameBuffer;
-		RHITextureDepthRef mDepthTexture;
-		RHITextureDepthRef mResolvedDepthTexture;
+		RHITexture2DRef mDepthTexture;
+		RHITexture2DRef mResolvedDepthTexture;
+
+		Texture::Format  mDepthFormat;
 	};
 
 
@@ -101,13 +106,13 @@ namespace Render
 		void setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferResource& GBufferData, RHISamplerState& sampler);
 		void setParameters(RHICommandList& commandList, ShaderProgram& program, FrameRenderTargets& sceneRenderTargets);
 
-
+		void clearTextures(RHICommandList& commandList, ShaderProgram& program);
 		DEFINE_TEXTURE_PARAM(GBufferTextureA);
 		DEFINE_TEXTURE_PARAM(GBufferTextureB);
 		DEFINE_TEXTURE_PARAM(GBufferTextureC);
 		DEFINE_TEXTURE_PARAM(GBufferTextureD);
 
-		ShaderParameter mParamFrameDepthTexture;
+		DEFINE_TEXTURE_PARAM(FrameDepthTexture);
 	};
 
 	class DeferredBasePassProgram : public MaterialShaderProgram

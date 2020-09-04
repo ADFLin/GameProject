@@ -54,7 +54,7 @@ namespace Render
 		queueFamilyProperties = GetEnumValues(vkGetPhysicalDeviceQueueFamilyProperties, physicalDevice);
 
 		// Get list of supported extensions
-		uint32_t extCount = 0;
+		uint32 extCount = 0;
 		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
 		if (extCount > 0)
 		{
@@ -71,7 +71,7 @@ namespace Render
 		return true;
 	}
 
-	int32 VulkanDevice::getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties)
+	int32 VulkanDevice::getMemoryTypeIndex(uint32 typeBits, VkMemoryPropertyFlags properties)
 	{
 		for (int32 index = 0; index < memoryProperties.memoryTypeCount; ++index)
 		{
@@ -87,13 +87,13 @@ namespace Render
 		return INDEX_NONE;
 	}
 
-	bool VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags, uint32_t& outIndex )
+	bool VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags, uint32& outIndex )
 	{
 		// Dedicated queue for compute
 		// Try to find a queue family index that supports compute but not graphics
 		if (queueFlags & VK_QUEUE_COMPUTE_BIT)
 		{
-			for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+			for (uint32 i = 0; i < static_cast<uint32>(queueFamilyProperties.size()); i++)
 			{
 				if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
 				{
@@ -107,7 +107,7 @@ namespace Render
 		// Try to find a queue family index that supports transfer but not graphics and compute
 		if (queueFlags & VK_QUEUE_TRANSFER_BIT)
 		{
-			for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+			for (uint32 i = 0; i < static_cast<uint32>(queueFamilyProperties.size()); i++)
 			{
 				if ((queueFamilyProperties[i].queueFlags & queueFlags) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
 				{
@@ -118,7 +118,7 @@ namespace Render
 		}
 
 		// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
-		for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+		for (uint32 i = 0; i < static_cast<uint32>(queueFamilyProperties.size()); i++)
 		{
 			if (queueFamilyProperties[i].queueFlags & queueFlags)
 			{
@@ -163,7 +163,7 @@ namespace Render
 
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
+		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32>(queueCreateInfos.size());;
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 		deviceCreateInfo.pEnabledFeatures = &inEnabledFeatures;
 
@@ -187,7 +187,7 @@ namespace Render
 
 		if (deviceExtensions.size() > 0)
 		{
-			deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
+			deviceCreateInfo.enabledExtensionCount = (uint32)deviceExtensions.size();
 			deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		}
 
@@ -304,7 +304,7 @@ namespace Render
 		flushCommandBuffer(copyCmd, queue, pool);
 	}
 
-	VkCommandPool VulkanDevice::createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags /*= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT*/)
+	VkCommandPool VulkanDevice::createCommandPool(uint32 queueFamilyIndex, VkCommandPoolCreateFlags createFlags /*= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT*/)
 	{
 		VkCommandPoolCreateInfo cmdPoolInfo = {};
 		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -590,7 +590,7 @@ namespace Render
 			{
 				instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			}
-			instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
+			instanceCreateInfo.enabledExtensionCount = (uint32)instanceExtensions.size();
 			instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 		}
 		if (enableValidation)
@@ -896,7 +896,7 @@ namespace Render
 				stagingBuffer,
 				texture->image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				static_cast<uint32_t>(bufferCopyRegions.size()),
+				static_cast<uint32>(bufferCopyRegions.size()),
 				bufferCopyRegions.data()
 			);
 
@@ -1134,7 +1134,7 @@ namespace Render
 		mImageSize = ChooseSwapExtent(capabilities);
 		VkSwapchainCreateInfoKHR swapChainInfo = {};
 
-		uint32_t imageCount = capabilities.minImageCount + 1;
+		uint32 imageCount = capabilities.minImageCount + 1;
 		if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount)
 		{
 			imageCount = capabilities.maxImageCount;

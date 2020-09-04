@@ -9,16 +9,16 @@ uniform sampler2D TextureS;
 
 #if VERTEX_SHADER
 
-void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	inputVS.worldOffset = float3(0, 0, 0);
+	outputVS.worldOffset = float3(0, 0, 0);
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
 {
 	float c = cos( 0.001 * parameters.worldPos.x );
 	float3 n = normalize( float3(-c, 0, 1) );
@@ -26,16 +26,16 @@ void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParameters
 
 	float3 baseColor = texture(TextureD, float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y)).rgb;
 
-	inputPS.baseColor = baseColor;
-	//inputPS.emissiveColor = 0.2 * baseColor;
-	//inputPS.baseColor = float3(parameters.texCoords[0].x, parameters.texCoords[0].y, 1);
-	inputPS.metallic = 0.9;
-	inputPS.roughness = 0.7;
-	inputPS.specular = 0.2;
+	outputPS.baseColor = baseColor;
+	//outputPS.emissiveColor = 0.2 * baseColor;
+	//outputPS.baseColor = float3(parameters.texCoords[0].x, parameters.texCoords[0].y, 1);
+	outputPS.metallic = 0.9;
+	outputPS.roughness = 0.7;
+	outputPS.specular = 0.2;
 	//float2 value = 2 * frac(10 * (parameters.worldPos.x + parameters.worldPos.y + parameters.worldPos.z )) - 1;
 	float2 value = 2 * frac(10 * (parameters.worldPos.xy)) - 1;
-	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
-	//inputPS.normal = float3(0,0,1);
+	//outputPS.mask = value.x * value.y > 0 ? 1 : 0;
+	//outputPS.normal = float3(0,0,1);
 }
 
 #endif //PIXEL_SHADER

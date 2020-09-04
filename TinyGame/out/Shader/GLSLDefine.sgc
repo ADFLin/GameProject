@@ -267,7 +267,7 @@ float3 InvTransformVector(float3 v, float3x3 m)
 
 #define VERTEX_INPUT( NAME ) VertexInput_##NAME
 #define VERTEX_INPUT_PARAM( CODE )
-
+#define VERTEX_INPUT_PARAM_COMMA( CODE )
 
 #elif PIXEL_SHADER
 #define PS_ENTRY_START(NAME) SHADER_ENTRY_START(NAME)

@@ -13,6 +13,8 @@
 #include "RHI/RHIType.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/GpuProfiler.h"
+#include "Renderer/MeshBuild.h"
+
 #include "FileSystem.h"
 #include "RHI/OpenGLCommon.h"
 #include "ConsoleSystem.h"
@@ -301,25 +303,25 @@ namespace Bloxorz
 		mCamera.lookAt(Vector3(10, 10, 10), Vector3(0, 0, 0), Vector3(0, 0, 1));
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseRayTrace"), bUseRayTrace);
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseSceneButin"), bUseSceneBuitin);
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseDeferredRending"), bUseDeferredRending);
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bFreeView"), bFreeView);
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bMoveCamera"), bMoveCamera);
-		FWidgetPropery::Bind(frame->addCheckBox(UI_ANY, "bUseBloom"), bUseBloom);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseRayTrace"), bUseRayTrace);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseSceneButin"), bUseSceneBuitin);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseDeferredRending"), bUseDeferredRending);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bFreeView"), bFreeView);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bMoveCamera"), bMoveCamera);
+		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseBloom"), bUseBloom);
 
 		auto UpdateSceneEnvBufferFunc = [this](float) { UpdateSceneEnvBuffer(); };
 
 		frame->addText("Sun Intensity");
-		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSceneEnv.sunIntensity, 0, 10, 1, UpdateSceneEnvBufferFunc);
+		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSceneEnv.sunIntensity, 0, 10, 1, UpdateSceneEnvBufferFunc);
 		frame->addText("Fog Distance");
-		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mSceneEnv.fogDistance, 0, 150, 1.3, UpdateSceneEnvBufferFunc);
+		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSceneEnv.fogDistance, 0, 150, 1.3, UpdateSceneEnvBufferFunc);
 		frame->addText("Blur Radius Scale");
-		FWidgetPropery::Bind(frame->addSlider(UI_ANY), blurRadiusScale, 0, 30, 1);
+		FWidgetProperty::Bind(frame->addSlider(UI_ANY), blurRadiusScale, 0, 30, 1);
 		frame->addText("Bloom Intensity");
-		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mBloomIntensity, 0, 5, 1);
+		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mBloomIntensity, 0, 5, 1);
 		frame->addText("Bloom Threshold");
-		FWidgetPropery::Bind(frame->addSlider(UI_ANY), mBloomThreshold, -0.5, 2, 1);
+		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mBloomThreshold, -0.5, 2, 1);
 
 
 		ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, &mTextureShowManager);
@@ -458,7 +460,7 @@ namespace Bloxorz
 
 		{
 
-			mSceneRenderTargets.initializeRHI(screenSize);
+			mSceneRenderTargets.initializeRHI();
 
 			Color4ub colors[] = { Color4ub::Black() , Color4ub::White() , Color4ub::White() , Color4ub::Black() };
 			VERIFY_RETURN_FALSE(mGirdTexture = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, 1, TCF_DefalutValue, colors));
@@ -643,8 +645,10 @@ namespace Bloxorz
 		}
 		mStack.pop();
 
+		mSceneRenderTargets.prepare(screenSize);
 		if (bUseRayTrace)
 		{
+
 			GPU_PROFILE("Ray Trace");
 			if (mObjectList.size())
 			{

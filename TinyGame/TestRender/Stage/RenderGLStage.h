@@ -17,7 +17,6 @@
 
 #include "RHI/OpenGLCommon.h"
 #include "RHI/ShaderCore.h"
-#include "RHI/MeshUtility.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/Material.h"

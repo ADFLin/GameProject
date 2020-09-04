@@ -18,6 +18,9 @@ namespace Render
 	extern RHI_API float GRHIProjectYSign;
 	extern RHI_API float GRHIVericalFlip;
 
+	extern RHI_API bool GRHISupportMeshShader;
+	extern RHI_API bool GRHISupportRayTraceShader;
+
 	enum class DeviceVendorName
 	{
 		Unknown,
@@ -195,6 +198,9 @@ namespace Render
 			Compute = 3,
 			Hull = 4,
 			Domain = 5,
+
+			Task = 6,
+			Mesh = 7,
 
 			Count,
 			MaxStorageSize = 4,

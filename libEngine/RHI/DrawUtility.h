@@ -2,7 +2,6 @@
 #ifndef DrawUtility_H_AB9DF39A_A67B_496E_A2F9_E6C58BD2572C
 #define DrawUtility_H_AB9DF39A_A67B_496E_A2F9_E6C58BD2572C
 
-#include "RHI/MeshUtility.h"
 #include "RHI/RHIGlobalResource.h"
 #include "RHI/RHICommand.h"
 //#REMOVE_ME
@@ -13,7 +12,7 @@
 #define BIT( n ) ( 1 << ( n ) )
 #endif
 
-#define USE_SEPARATE_SHADER 1
+#define USE_SEPARATE_SHADER 0
 
 namespace Render
 {

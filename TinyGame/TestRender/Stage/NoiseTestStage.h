@@ -535,8 +535,8 @@ namespace Render
 		RHIFrameBufferRef  mResolveFrameBuffer;
 
 		RHIFrameBufferRef  mFrameBuffer;
-		RHITextureDepthRef mDepthBuffer;
-		RHITextureDepthRef mResolvedDepthBuffer;
+		RHITexture2DRef    mDepthBuffer;
+		RHITexture2DRef    mResolvedDepthBuffer;
 		RHITexture2DRef    mScreenBuffer;
 
 		RHITexture2DRef    mGrassTexture;
@@ -590,14 +590,12 @@ namespace Render
 			Vec2i screenSize = ::Global::GetScreenSize();
 			GPU_PROFILE("drawNoiseImage");
 			if (GRHIVericalFlip < 0)
-			{
-				
+			{	
 				RHISetViewport(commandList, pos.x, screenSize.y - pos.y - size.y , size.x, size.y);
 			}
 			else
 			{
-				RHISetViewport(commandList, pos.x, pos.y, size.x, size.y);
-				
+				RHISetViewport(commandList, pos.x, pos.y, size.x, size.y);	
 			}		
 			RHISetShaderProgram(commandList, shader.getRHIResource());
 			shader.setParameters(commandList, mData);

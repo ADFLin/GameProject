@@ -1,0 +1,206 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+uniform float4x4 LocalToWorld;
+#if MESH_SHADER
+
+struct MeshletData
+{
+	uint vertexCount;
+	uint vertexOffset;
+	uint primitiveCount;
+	uint primitveOffset;
+};
+
+layout(std430) buffer MeshletDataBlock
+{
+	restrict readonly MeshletData Meshlets[];
+};
+
+layout(std430) buffer PrimitiveIndicesBlock
+{
+	restrict readonly uint PrimitiveIndices[];
+};
+
+layout(std430) buffer VertexIndicesBlock
+{
+	restrict readonly uint VertexIndices[];
+};
+
+struct VertexData
+{
+	float3 pos;
+	float3 normal;
+	float4 tangent;
+};
+
+
+
+layout(std430) buffer VertexDataBlock
+{
+	restrict readonly float Vertices[];
+};
+
+
+VertexData GetVerexData(uint index)
+{
+	uint offset = index * 10;
+	VertexData data;
+	data.pos = float3(Vertices[offset + 0], Vertices[offset + 1], Vertices[offset + 2]);
+	data.normal = float3(Vertices[offset + 3], Vertices[offset + 4], Vertices[offset + 5]);
+	data.tangent = float4(Vertices[offset + 6], Vertices[offset + 7], Vertices[offset + 8], Vertices[offset + 9]);
+	//data.tangent = float4(0, 0, 0, 0);
+	return data;
+}
+
+out gl_MeshPerVertexNV{
+	vec4 gl_Position;
+} gl_MeshVerticesNV[];
+
+out uint gl_PrimitiveCountNV;
+out uint gl_PrimitiveIndicesNV[];
+
+// If we don't redeclare gl_PerVertex, compilation fails with the following error:
+// error C7592: ARB_separate_shader_objects requires built-in block gl_PerVertex to be redeclared before accessing its members
+out gl_PerVertex
+{
+	vec4 gl_Position;
+} gl_Why;
+
+#define  MAX_VERTEX_COUNT 64
+#define  MAX_PRIMITIVE_COUNT 126
+#define  NUM_THREAD 32
+
+layout(local_size_x = NUM_THREAD) in;
+layout(max_vertices = 256, max_primitives = 256) out;
+layout(triangles) out;
+layout(location = 0) out MSOutputParameters
+{
+	float3 color;
+	float2 UV;
+} MSOutput[];
+#define MAX_COLORS 10
+vec3 meshletcolors[MAX_COLORS] = {
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  vec3(1,1,1)
+};
+
+uint hash(uint a)
+{
+	a = (a + 0x7ed55d16) + (a << 12);
+	a = (a ^ 0xc761c23c) ^ (a >> 19);
+	a = (a + 0x165667b1) + (a << 5);
+	a = (a + 0xd3a2646c) ^ (a << 9);
+	a = (a + 0xfd7046c5) + (a << 3);
+	a = (a ^ 0xb55a4f09) ^ (a >> 16);
+	return a;
+}
+void MainMS()
+{
+	uint mi = gl_WorkGroupID.x;
+
+	uint tID = gl_LocalInvocationID.x;
+
+	MeshletData meshlet = Meshlets[mi];
+	uint mhash = hash(mi);
+	vec3 mcolor = vec3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+#if NUM_THREAD == 1
+	for (uint i = 0; i < meshlet.vertexCount; ++i)
+	{
+		uint index = VertexIndices[meshlet.vertexOffset + i];
+
+		VertexData vertex = GetVerexData(index);
+		float4 worldPos = LocalToWorld * float4(vertex.pos, 1);
+		gl_MeshVerticesNV[i].gl_Position = View.worldToClip * worldPos;
+		MSOutput[i].color = mcolor;
+		MSOutput[i].UV = vertex.pos.xy;
+	}
+
+	for (uint i = 0; i < meshlet.primitiveCount; ++i)
+	{
+		uint index = PrimitiveIndices[meshlet.primitveOffset + i];
+
+		gl_PrimitiveIndicesNV[3 * i + 0] = (index & 0x3ff);
+		gl_PrimitiveIndicesNV[3 * i + 1] = ((index >> 10) & 0x3ff);
+		gl_PrimitiveIndicesNV[3 * i + 2] = ((index >> 20) & 0x3ff);
+	}
+
+	gl_PrimitiveCountNV = meshlet.primitiveCount;
+
+#else
+
+	const uint vertexCountThread = (MAX_VERTEX_COUNT + ( NUM_THREAD - 1 ) )/ NUM_THREAD;
+	for( int i = 0 ; i < vertexCountThread; ++i )
+	{
+		uint index =  min( vertexCountThread * tID + i, meshlet.vertexCount - 1);
+		uint vertexIndex = VertexIndices[meshlet.vertexOffset + index];
+		VertexData vertex = GetVerexData(vertexIndex);
+		float4 worldPos = LocalToWorld * float4(vertex.pos, 1);
+		gl_MeshVerticesNV[index].gl_Position = View.worldToClip * worldPos;
+		MSOutput[index].color = mcolor;
+		MSOutput[index].UV = vertex.pos.xy;
+	}
+
+	const uint primitiveCountThread = (MAX_PRIMITIVE_COUNT + (NUM_THREAD - 1)) / NUM_THREAD;
+	for (int i = 0; i < primitiveCountThread; ++i)
+	{
+		uint index =  min(primitiveCountThread * tID + i, meshlet.primitiveCount - 1);
+		uint packedIndex = PrimitiveIndices[meshlet.primitveOffset + index];
+
+		gl_PrimitiveIndicesNV[3 * index + 0] = (packedIndex & 0x3ff);
+		gl_PrimitiveIndicesNV[3 * index + 1] = ((packedIndex >> 10) & 0x3ff);
+		gl_PrimitiveIndicesNV[3 * index + 2] = ((packedIndex >> 20) & 0x3ff);
+	}
+
+
+	if (tID == 0)
+	{
+		gl_PrimitiveCountNV = meshlet.primitiveCount;
+	}
+#endif
+
+
+}
+
+#endif
+
+#if VERTEX_SHADER
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InNormal, ATTRIBUTE_NORMAL)
+	VS_INPUT(float4 InTangent, ATTRIBUTE_TANGENT)
+	VS_OUTPUT(float3 OutColor, 0)
+	VS_OUTPUT(float2 OutUV, 1)
+VS_ENTRY_END(MainVS)
+{
+	float4 worldPos = mul( LocalToWorld , float4(InPos, 1));
+	SvPosition = mul( View.worldToClip , worldPos );
+	OutColor = 0.5 * InNormal + 0.5;
+	OutUV = InPos.xy;
+}
+#endif
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, Texture);
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT(float3 InColor, 0)
+	PS_INPUT(float2 InUV, 1)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float3 tex = TEXTURE_SAMPLE(Texture, InUV).rgb;
+	OutColor = float4(tex * InColor, 1.0);
+}
+
+#endif

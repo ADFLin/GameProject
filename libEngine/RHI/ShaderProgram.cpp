@@ -243,10 +243,28 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::setUniformBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer)
+	{
+		ShaderParameter param;
+		if (!mRHIResource->getResourceParameter(EShaderResourceType::Uniform, name, param))
+			return;
+		setUniformBuffer(commandList, param, buffer);
+	}
+
+	template< class RHIResourceType >
 	void TShaderFuncHelper< RHIResourceType>::setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderUniformBuffer(*mRHIResource, param, buffer);
+	}
+
+	template< class RHIResourceType >
+	void TShaderFuncHelper<RHIResourceType>::setStorageBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer, EAccessOperator op /*= AO_READ_ONLY*/)
+	{
+		ShaderParameter param;
+		if (!mRHIResource->getResourceParameter(EShaderResourceType::Storage, name, param))
+			return;
+		setStorageBuffer(commandList, param, buffer);
 	}
 
 	template< class RHIResourceType >

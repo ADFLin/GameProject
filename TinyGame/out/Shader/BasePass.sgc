@@ -8,16 +8,11 @@
 #define FORWARD_SHADING 0
 #endif //FORWARD_SHADING
 
-
-struct PassInterpolantsParam
-{
-	float dump MEMBER_OUT(TEXCOORD10);
-};
+#define PASS_HAVE_INTERPOLANTS 0
 
 struct VertexOutputParamVSToPS
 {
 	FactoryInterpolantsParam   factoryInterpolants;
-	PassInterpolantsParam      passInterpolants;
 };
 
 #if VERTEX_SHADER
@@ -29,17 +24,18 @@ VS_ENTRY_END(BassPassVS)
 {
 	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS(VERTEX_INPUT_PARAM(VertexInput));
 
-	MaterialInputVS materialInput = InitMaterialInputVS();
+	float4 worldPosExcludingWPO = VertexFactory_GetWorldPosition(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates);
 
-	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS( 
-#if COMPILER_HLSL
-		VertexInput,
-#endif
-		intermediates );
+	float4 worldPos = worldPosExcludingWPO;
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates, worldPos);
 
-	CalcMaterialInputVS( materialInput , materialParameters );
+	MaterialOutputVS materialOutput = Material_GetOutputVS( materialParameters );
 
-	SvPosition = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants , intermediates , materialInput , materialParameters );
+	worldPos.xyz += materialOutput.worldOffset;
+
+	float4 clipPos = mul(View.worldToClip, worldPos);
+	SvPosition = clipPos;
+	OutputVS.factoryInterpolants = VertexFactory_GetInterpolants(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates, materialParameters);
 }
 
 #endif //VERTEX_SHADER
@@ -60,33 +56,32 @@ PS_ENTRY_START(BasePassPS)
 #endif
 PS_ENTRY_END(BasePassPS)
 {
-	MaterialInputPS materialInput = InitMaterialInputPS();
-	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
-
-	CalcMaterialParameters(materialInput , materialParameters);
+	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants, SvPosition);
+	float4 NDC = SvPositionToNDC(SvPosition);
+	float3 worldPos = NDCToWorldPos(NDC);
+	Material_CalcParametersPS(materialParameters, SvPosition , worldPos);
+	MaterialOutputPS materialOutput = Material_GetOutputPS(materialParameters);
 
 	//float4 color = float4( materialParameters.vectexColor * 0.1 , 1 );
 	float4 color = float4(0,0,0,1);
-	color.rgb += materialInput.emissiveColor;
+	color.rgb += materialOutput.emissiveColor;
 
 	GBufferData GBuffer;
-	float depth;
-	GBuffer.worldPos = GetMaterialWorldPositionAndCheckDepthOffset(materialInput, materialParameters, depth);
+
 #if MATERIAL_USE_DEPTH_OFFSET
-	SvDepth = depth;
+	GBuffer.worldPos = Material_CorrectWorldPosByDepthOffset(materialOutput, materialParameters, SvDepth);
+#else
+	GBuffer.worldPos = worldPos;
 #endif
 	//GBuffer.normal = normalize(vsOutput.normal.xyz);
-	GBuffer.normal = GetMaterialWorldNormal(materialInput , materialParameters);
+	GBuffer.normal = Material_GetWorldNormal(materialOutput , materialParameters);
 	//GBuffer.normal = materialParameters.worldNormal;
 
-	GBuffer.baseColor = materialInput.baseColor;
-	GBuffer.metallic = materialInput.metallic;
-	GBuffer.roughness = materialInput.roughness;
-	GBuffer.specular = materialInput.specular;
-	GBuffer.shadingModel = materialInput.shadingModel;
-	float4 clipPos = mul( View.worldToClip , float4(materialParameters.worldPos, 1) );
-	clipPos = materialParameters.clipPos;
-	GBuffer.sceneDepth = materialParameters.NDC.z;
+	GBuffer.baseColor = materialOutput.baseColor;
+	GBuffer.metallic = materialOutput.metallic;
+	GBuffer.roughness = materialOutput.roughness;
+	GBuffer.specular = materialOutput.specular;
+	GBuffer.shadingModel = materialOutput.shadingModel;
 
 #if FORWARD_SHADING
 	OutColor = float4( GBuffer.baseColor , 1 );

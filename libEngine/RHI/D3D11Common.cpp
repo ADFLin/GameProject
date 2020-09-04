@@ -75,17 +75,6 @@ namespace Render
 		//case Texture::eSRGB:
 		case Texture::eSRGBA:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
-		default:
-			LogWarning(0, "D3D11 No Support Texture Format %d", (int)format);
-			break;
-		}
-		return DXGI_FORMAT_UNKNOWN;
-	}
-
-	DXGI_FORMAT D3D11Translate::To(Texture::DepthFormat format)
-	{
-		switch( format )
-		{
 		case Texture::eDepth16:  return DXGI_FORMAT_D16_UNORM;
 		case Texture::eDepth32F: return DXGI_FORMAT_D32_FLOAT;
 		case Texture::eD24S8:    return DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -95,15 +84,15 @@ namespace Render
 		case Texture::eStencil4:
 		case Texture::eStencil8:
 		case Texture::eDepth32:
-		case Texture::eStencil16: 
+		case Texture::eStencil16:
 			//return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
 		default:
-			LogWarning(0, "D3D11 No Support Texture DepthFormat %d", (int)format);
+			LogWarning(0, "D3D11 No Support Texture Format %d", (int)format);
 			break;
 		}
-
 		return DXGI_FORMAT_UNKNOWN;
 	}
+
 
 #define STATIC_CHECK_DATA_MAP( NAME , DATA_MAP , MEMBER )\
 	constexpr bool Check##NAME##Valid_R(int i, int size)\
@@ -359,7 +348,7 @@ namespace Render
 
 	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, EShader::Type type)
 	{
-		char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" };
+		char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" ,"as" , "ms" };
 		char const* featureName = nullptr;
 		switch( device->GetFeatureLevel() )
 		{
@@ -444,7 +433,7 @@ namespace Render
 	{
 		assert(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
 		int indexSlot = mRenderTargetsState.numColorBuffers;
-		mColorTextures[indexSlot] = &target;
+		mRenderTargetsState.colorResources[indexSlot] = &target;
 		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11Texture2D&>(target).getRenderTargetView(level);
 		mRenderTargetsState.numColorBuffers += 1;
 		bStateDirty = true;
@@ -456,7 +445,7 @@ namespace Render
 		assert(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
 		int indexSlot = mRenderTargetsState.numColorBuffers;
 
-		mColorTextures[indexSlot] = &target;
+		mRenderTargetsState.colorResources[indexSlot] = &target;
 		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
 		mRenderTargetsState.numColorBuffers += 1;
 		bStateDirty = true;
@@ -469,7 +458,7 @@ namespace Render
 		if (idx == mRenderTargetsState.numColorBuffers)
 			mRenderTargetsState.numColorBuffers += 1;
 
-		mColorTextures[idx] = &target;
+		mRenderTargetsState.colorResources[idx] = &target;
 		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11Texture2D&>(target).getRenderTargetView(level);
 		bStateDirty = true;
 	}
@@ -480,21 +469,21 @@ namespace Render
 		if (idx == mRenderTargetsState.numColorBuffers)
 			mRenderTargetsState.numColorBuffers += 1;
 
-		mColorTextures[idx] = &target;
+		mRenderTargetsState.colorResources[idx] = &target;
 		mRenderTargetsState.colorBuffers[idx] = static_cast<D3D11TextureCube&>(target).getRenderTargetView(face, level);
 		bStateDirty = true;
 	}
 
-	void D3D11FrameBuffer::setDepth(RHITextureDepth& target)
+	void D3D11FrameBuffer::setDepth(RHITexture2D& target)
 	{
-		mDepthTexture = &target;
-		mRenderTargetsState.depthBuffer = static_cast<D3D11TextureDepth&>(target).mDSV;
+		mRenderTargetsState.depthResource = &target;
+		mRenderTargetsState.depthBuffer = static_cast<D3D11Texture2D&>(target).mDSV;
 		bStateDirty = true;
 	}
 
 	void D3D11FrameBuffer::removeDepth()
 	{
-		mDepthTexture = nullptr;
+		mRenderTargetsState.depthResource = nullptr;
 		mRenderTargetsState.depthBuffer = nullptr;
 		bStateDirty = true;
 	}

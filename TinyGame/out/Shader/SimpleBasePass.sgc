@@ -50,8 +50,6 @@ PS_ENTRY_END(BasePassPS)
 	GBuffer.roughness = 0.5;
 	GBuffer.specular = 0.5;
 	GBuffer.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	float4 clipPos = mul( View.worldToClip , float4(GBuffer.worldPos, 1) );
-	GBuffer.sceneDepth = -clipPos.z;
 
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 

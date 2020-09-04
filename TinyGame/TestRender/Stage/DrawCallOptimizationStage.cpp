@@ -1,14 +1,13 @@
 #include "Stage/TestStageHeader.h"
 
-#include "RHI/MeshUtility.h"
 #include "RHI/Material.h"
-#include "RHI/DrawUtility.h"
 #include "RHI/RenderContext.h"
 #include "RHI/MaterialShader.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/RHIGraphics2D.h"
 
+#include "Renderer/MeshBuild.h"
 #include "Renderer/SimpleCamera.h"
 
 #include "StringParse.h"

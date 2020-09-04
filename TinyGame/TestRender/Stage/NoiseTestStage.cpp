@@ -1,8 +1,11 @@
 #include "NoiseTestStage.h"
-#include "Image\ImageData.h"
 
-#include "Math\GeometryAlgo2D.h"
-#include "DataStructure\Grid2D.h"
+
+#include "Renderer/MeshBuild.h"
+
+#include "Image/ImageData.h"
+#include "Math/GeometryAlgo2D.h"
+#include "DataStructure/Grid2D.h"
 #include "PerlinNoise.h"
 
 namespace Geom2D
@@ -239,32 +242,32 @@ namespace Render
 		::Global::GUI().cleanupWidget();
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
-		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
-		FWidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use OptMesh"), mbUseOptMesh);
+		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
+		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Use OptMesh"), mbUseOptMesh);
 
 		devFrame->addText("FBM Shift");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
 		devFrame->addText("FBM Scale");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.y, 0, 3);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.y, 0, 3);
 		devFrame->addText("FBM Rotate Angle");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
 		devFrame->addText("FBM Octaves");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
 
 		devFrame->addText("StepSize");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.stepSize, 0.001, 10, 2);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.stepSize, 0.001, 10, 2);
 
 		devFrame->addText("DensityFactor");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.densityFactor, 0, 40, 2);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.densityFactor, 0, 40, 2);
 		devFrame->addText("PhaseG");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.phaseG, -1, 1);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.phaseG, -1, 1);
 		devFrame->addText("ScatterCoefficient");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.scatterCoefficient, 0, 10);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.scatterCoefficient, 0, 10);
 		devFrame->addText("Albedo");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.albedo, 0, 1);
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mSmokeParams.albedo, 0, 1);
 
 		devFrame->addText("LightInstensity");
-		FWidgetPropery::Bind(devFrame->addSlider(UI_ANY), mLights[0].intensity, 0, 200, 2, [&](float value)
+		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mLights[0].intensity, 0, 200, 2, [&](float value)
 		{
 			for (int i = 1; i < mLights.size(); ++i)
 			{
@@ -710,10 +713,7 @@ namespace Render
 		{
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
-			//#TODO : Remove MatrixSaveScope
 			Matrix4 porjectMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1));
-			MatrixSaveScope matrixScope(porjectMatrix);
-
 			DrawUtility::DrawTexture(commandList, porjectMatrix, *mSmokeDepthTexture, IntVector2(10, 10), IntVector2(512, 512));
 		}
 	}

@@ -4,6 +4,8 @@
 #include "PlatformThread.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
+#include "Renderer/MeshBuild.h"
+
 #include "SceneScript.h"
 
 //#TODO Remove

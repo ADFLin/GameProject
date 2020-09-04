@@ -45,13 +45,6 @@ namespace Render
 						shader.setTexture(commandList, param.name, *(RHITextureCube*)texture);
 				}
 				break;
-			case ParamType::eTextureDepthRHI:
-				{
-					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
-					if( texture )
-						shader.setTexture(commandList, param.name, *(RHITextureDepth*)texture);
-				}
-				break;
 			case ParamType::eTexture2D:
 				{
 					Texture2D* texture = *reinterpret_cast<Texture2D**>(&mParamDataStorage[param.offset]);
@@ -99,7 +92,6 @@ namespace Render
 		case ParamType::eTexture2DRHI:
 		case ParamType::eTexture3DRHI:
 		case ParamType::eTextureCubeRHI:
-		case ParamType::eTextureDepthRHI:
 			typeSize = sizeof(RHITextureBase*);
 			break;
 		case ParamType::eTexture2D:

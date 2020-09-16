@@ -4,6 +4,8 @@
 
 #include "RHI/RHIType.h"
 
+#define MESH_USE_PACKED_CONE 0
+
 namespace Render
 {
 	struct VertexElementReader
@@ -13,6 +15,9 @@ namespace Render
 		{
 			return *(T const*)(pVertexData + idx * vertexDataStride);
 		}
+
+		Vector3 const& operator[](int idx) const { return get(idx); }
+
 		int32  getNum() const { return numVertex; }
 		uint8 const* pVertexData;
 		uint32 vertexDataStride;
@@ -28,8 +33,8 @@ namespace Render
 
 	struct MeshSection
 	{
-		int start;
-		int num;
+		int indexStart;
+		int count;
 	};
 
 
@@ -53,6 +58,17 @@ namespace Render
 		uint32 value;
 	};
 
+
+	struct GPU_ALIGN MeshletCullData
+	{
+		Vector4  boundingSphere; // xyz = center, w = radius
+#if MESH_USE_PACKED_CONE
+		uint8    normalCone[4];  // xyz = axis, w = sin(a + 90)
+#else
+		Vector4  normalCone;
+#endif
+		float    ApexOffset;     // apex = center - axis * offset
+	};
 
 
 }//namespace Render

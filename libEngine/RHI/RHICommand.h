@@ -183,14 +183,22 @@ namespace Render
 
 	struct ViewportInfo
 	{
-		int x;
-		int y;
-		int w;
-		int h;
+		float x;
+		float y;
+		float w;
+		float h;
 		float zNear;
 		float zFar;
+
+		ViewportInfo() = default;
+		ViewportInfo(float inX, float inY, float inW, float inH, float inZNear = GRHIClipZMin, float inZFar = 1.0)
+			:x(inX),y(inY),w(inW),h(inH),zNear(inZNear),zFar(inZFar)
+		{
+		}
 	};
-	RHI_API void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h, float zNear = 0, float zFar = 1);
+	RHI_API void RHISetViewport(RHICommandList& commandList, float x, float y, float w, float h, float zNear = GRHIClipZMin, float zFar = 1);
+	RHI_API void RHISetViewports(RHICommandList& commandList, ViewportInfo const viewports[] , int numViewports );
+
 	RHI_API void RHISetScissorRect(RHICommandList& commandList , int x = 0, int y = 0, int w = 0, int h = 0);
 
 	
@@ -242,21 +250,55 @@ namespace Render
 
 	struct GraphicShaderBoundState
 	{
-		RHIShader* vertexShader;
-		RHIShader* pixelShader;
-		RHIShader* geometryShader;
-		RHIShader* hullShader;
-		RHIShader* domainShader;
-
-		RHIShader* taskShader;
-		RHIShader* meshShader;
+		RHIShader* vertex;
+		RHIShader* pixel;
+		RHIShader* geometry;
+		RHIShader* hull;
+		RHIShader* domain;
 
 		GraphicShaderBoundState()
 		{
 			::memset(this, 0, sizeof(*this));
 		}
 	};
+
 	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicShaderBoundState const& state);
+
+
+	struct MeshShaderBoundState
+	{
+		RHIShader* task;
+		RHIShader* mesh;
+		RHIShader* pixel;
+
+		MeshShaderBoundState()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+	};
+	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderBoundState const& state);
+
+
+	struct GraphicsPipelineState
+	{
+		RHIRasterizerState*   rasterizerState;
+		RHIDepthStencilState* depthStencilState;
+		RHIBlendState*        blendState;
+
+		GraphicShaderBoundState shaderBoundState;
+		RHIShaderProgram*   shaderProgram;
+
+		EPrimitive          primitiveType;
+		RHIInputLayout*     inputLayout;
+
+		GraphicsPipelineState()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+	};
+
+
+
 	RHI_API void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader);
 
 	RHI_API void RHIFlushCommand(RHICommandList& commandList);
@@ -342,7 +384,7 @@ namespace Render
 	class TStructuredBuffer
 	{
 	public:
-		bool initializeResource(uint32 numElement, EStructuredBufferType type = EStructuredBufferType::Const )
+		bool initializeResource(uint32 numElement, EStructuredBufferType type = EStructuredBufferType::Const, bool bCPUAccessRead = false )
 		{
 			uint32 creationFlags = 0;
 			switch (type)
@@ -357,6 +399,8 @@ namespace Render
 				creationFlags = BCF_Structured | BCF_CreateUAV | BCF_CreateSRV;
 				break;
 			} 
+			if (bCPUAccessRead)
+				creationFlags |= BCF_CPUAccessRead;
 			mResource = RHICreateVertexBuffer(sizeof(T), numElement, creationFlags);
 			if( !mResource.isValid() )
 				return false;

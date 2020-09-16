@@ -5,8 +5,9 @@
 #include "Renderer/MeshCommon.h"
 #include "RHI/RHICommon.h"
 
-#include <vector>
+#include "Template/ArrayView.h"
 
+#include <vector>
 
 class QueueThreadPool;
 class IStreamSerializer;
@@ -22,16 +23,16 @@ namespace Render
 		bool  bTwoSign;
 		float boundSizeScale;
 		float gridLength;
-		float ResolutionScale;
-		QueueThreadPool* WorkTaskPool;
+		float resolutionScale;
+		QueueThreadPool* workTaskPool;
 
 		DistanceFieldBuildSetting()
 		{
 			boundSizeScale = 1.1;
 			bTwoSign = false;
 			gridLength = 0.1;
-			ResolutionScale = 1.0f;
-			WorkTaskPool = nullptr;
+			resolutionScale = 1.0f;
+			workTaskPool = nullptr;
 		}
 	};
 
@@ -66,8 +67,18 @@ namespace Render
 		static void FillTriangleListTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
 		static void FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = Vertex::ATTRIBUTE_NORMAL);
 
-		static bool Meshletize(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices);
+		static bool Meshletize(
+			int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, 
+			std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices);
 
+		static bool Meshletize(
+			int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, TArrayView< MeshSection const > sections ,
+			std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices , 
+			std::vector< MeshSection >& outSections );
+
+		static void GenerateCullData(
+			VertexElementReader const& positionReader, const MeshletData* meshlets, int meshletCount, 
+			const uint32* uniqueVertexIndices, const PackagedTriangleIndices* primitiveIndices, MeshletCullData* cullData);
 
 		static void ComputeTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal);
 

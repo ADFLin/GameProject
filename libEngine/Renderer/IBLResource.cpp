@@ -488,8 +488,8 @@ namespace Render
 			RHISetFrameBuffer(commandList, frameBuffer);
 
 			GraphicShaderBoundState boundState;
-			boundState.vertexShader = mScreenVS->getRHIResource();
-			boundState.pixelShader = shaderPS.getRHIResource();
+			boundState.vertex = mScreenVS->getRHIResource();
+			boundState.pixel = shaderPS.getRHIResource();
 			RHISetGraphicsShaderBoundState(commandList, boundState);
 
 			shaderPS.setParam(commandList, SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
@@ -579,8 +579,8 @@ namespace Render
 
 #if USE_SEPARATE_SHADER  && 0
 			GraphicShaderBoundState boundState;
-			boundState.vertexShader = mScreenVS->getRHIResource();
-			boundState.pixelShader = mPreIntegrateBRDFGenPS->getRHIResource();
+			boundState.vertex = mScreenVS->getRHIResource();
+			boundState.pixel = mPreIntegrateBRDFGenPS->getRHIResource();
 			RHISetGraphicsShaderBoundState(commandList, boundState);
 			mPreIntegrateBRDFGenPS->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
 #else

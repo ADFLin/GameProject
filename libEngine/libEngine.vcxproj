@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}</ProjectGuid>
     <RootNamespace>LibEngine</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <ProjectName>EngineCore</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -67,13 +67,20 @@
     <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -106,7 +113,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../OtherLib/DirectX/Include;../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -118,7 +125,9 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -126,6 +135,9 @@
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
     </Bscmake>
+    <Lib>
+      <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -152,7 +164,7 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../OtherLib/DirectX/Include;../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -161,6 +173,7 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -209,6 +222,7 @@
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">None</DebugInformationFormat>
       <FavorSizeOrSpeed Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Speed</FavorSizeOrSpeed>
     </ClCompile>
+    <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp" />
     <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c" />
     <ClCompile Include="..\OtherLib\stb\stb_compile.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
@@ -299,6 +313,7 @@
     <ClCompile Include="RHI\D3D12Command.cpp" />
     <ClCompile Include="RHI\D3D12Common.cpp" />
     <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
+    <ClCompile Include="RHI\D3DSharedCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
     <ClCompile Include="RHI\GLExtensions.cpp" />
@@ -350,6 +365,8 @@
     <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h" />
     <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h" />
     <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h" />
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDK.h" />
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDKLoader.h" />
     <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h" />
     <ClInclude Include="..\OtherLib\stb\stb_image.h" />
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
@@ -510,6 +527,8 @@
     <ClInclude Include="RHI\D3D12Command.h" />
     <ClInclude Include="RHI\D3D12Common.h" />
     <ClInclude Include="RHI\D3D12ShaderCommon.h" />
+    <ClInclude Include="RHI\D3D12Utility.h" />
+    <ClInclude Include="RHI\D3DSharedCommon.h" />
     <ClInclude Include="RHI\GLExtensions.h" />
     <ClInclude Include="RHI\RHITraceScope.h" />
     <ClInclude Include="RHI\RHIType.h" />

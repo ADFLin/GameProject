@@ -266,12 +266,23 @@ namespace Render
 			return result;
 		}
 
-		bool loadCacheData(ShaderFormat& format, ShaderProgramManagedData& managedData)
+		bool canUseCacheData(ShaderFormat& format)
 		{
+			if (GRHIPrefEnabled)
+				return false;
+
 			if (!CVarShaderUseCache.getValue())
 				return false;
 
-			if( !format.isSupportBinaryCode() )
+			if (!format.isSupportBinaryCode())
+				return false;
+
+			return true;
+		}
+
+		bool loadCacheData(ShaderFormat& format, ShaderProgramManagedData& managedData)
+		{
+			if (!canUseCacheData(format))
 				return false;
 
 			DataCacheKey key;
@@ -301,10 +312,7 @@ namespace Render
 
 		bool loadCacheData(ShaderFormat& format, ShaderManagedData& managedData)
 		{
-			if (!CVarShaderUseCache.getValue())
-				return false;
-
-			if (!format.isSupportBinaryCode())
+			if (!canUseCacheData(format))
 				return false;
 
 			DataCacheKey key;
@@ -579,7 +587,7 @@ namespace Render
 					if (!loadInternal(*shader,
 						shaderClass.GetShaderFileName(),
 						shaderClass.entry,
-						option, nullptr, true, classType))
+						option, nullptr, classType))
 					{
 						LogWarning(0, "Can't Load Shader %s", shaderClass.GetShaderFileName());
 						delete result;
@@ -674,6 +682,7 @@ namespace Render
 		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
 	}
 
+
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
 	{
 		ShaderEntryInfo entries[EShader::Count];
@@ -703,7 +712,17 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderManager::loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
+	bool ShaderManager::loadFile(Shader& shader, char const* fileName, EShader::Type type, char const* entryName, char const* additionalCode /*= nullptr*/)
+	{
+		ShaderCompileOption option;
+		ShaderEntryInfo entry;
+		entry.name = entryName;
+		entry.type = type;
+		return loadInternal(shader, fileName, entry , option, additionalCode);
+	}
+
+
+	bool ShaderManager::loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, ShaderClassType classType)
 	{
 		removeFromShaderCompileMap(shader);
 
@@ -715,7 +734,7 @@ namespace Render
 		if (sourceFile)
 			managedData->sourceFile = sourceFile;
 
-		generateCompileSetup(*managedData, entry, option, additionalCode, fileName, bSingleFile);
+		generateCompileSetup(*managedData, entry, option, additionalCode, fileName, true);
 
 		if (!updateShaderInternal(shader, *managedData))
 		{

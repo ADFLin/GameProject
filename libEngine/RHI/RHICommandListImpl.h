@@ -18,7 +18,8 @@ namespace Render
 		RHI_FUNC(void RHISetBlendState(RHIBlendState& blendState));
 		RHI_FUNC(void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1));
 
-		RHI_FUNC(void RHISetViewport(int x, int y, int w, int h, float zNear, float zFar));
+		RHI_FUNC(void RHISetViewport(float x, float y, float w, float h, float zNear, float zFar));
+		RHI_FUNC(void RHISetViewports(ViewportInfo const viewports[], int numViewports));
 		RHI_FUNC(void RHISetScissorRect(int x, int y, int w, int h));
 
 		RHI_FUNC(void RHIDrawPrimitive(EPrimitive type, int vStart, int nv));
@@ -73,6 +74,7 @@ namespace Render
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
 
 		RHI_FUNC(void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state));
+		RHI_FUNC(void RHISetMeshShaderBoundState(MeshShaderBoundState const& state));
 		RHI_FUNC(void RHISetComputeShader(RHIShader* shader));
 
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim));

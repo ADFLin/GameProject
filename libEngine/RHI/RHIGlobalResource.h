@@ -27,6 +27,9 @@ namespace Render
 			};
 			return entries;
 		}
+
+
+		CORE_API static SimplePipelineProgram* Get(uint32 attributeMask, bool bUseTexture);
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
@@ -240,7 +243,7 @@ namespace Render
 			initializer.stencilFailOp = StencilFailOp;
 			initializer.zFailOp = ZFailOp;
 			initializer.zPassOp = ZPassOp;
-			initializer.stencilFunBack = BackStencilFun;
+			initializer.stencilFuncBack = BackStencilFun;
 			initializer.stencilFailOpBack = BackStencilFailOp;
 			initializer.zFailOpBack = BackZFailOp;
 			initializer.zPassOpBack = BackZPassOp;

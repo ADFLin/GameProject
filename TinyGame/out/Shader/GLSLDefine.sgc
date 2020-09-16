@@ -675,6 +675,10 @@ float4 texelFetch(gimage image, int32 data);
 uint atomicCounter(atomic_uint c​);
 uint atomicCounterIncrement(atomic_uint c​);
 uint atomicCounterDecrement(atomic_uint c​);
+uint atomicCounterAdd(atomic_uint c​, uint data​);
+
+//
+int atomicAdd(inout int mem,int data);
 
 
 #endif

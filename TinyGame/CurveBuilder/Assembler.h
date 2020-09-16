@@ -154,11 +154,12 @@ namespace Asmeta
 
 #if TARGET_PLATFORM_64BITS
 #	define SYSTEM_PTR qword_ptr
+	ASMETA_INLINE Disp< 8 > disp64(void* val) { return Disp< 8 >(val); }
 #else
 #	define SYSTEM_PTR dword_ptr
+	ASMETA_INLINE Disp< 4 > disp32(void* val) { return Disp< 4 >(val); }
 #endif
 
-	ASMETA_INLINE Disp< 4 > disp32( void* val ){ return Disp< 4 >( val ); }
 	ASMETA_INLINE Disp< 4 > disp32( uint32 val ){ return Disp< 4 >( val ); }
 	ASMETA_INLINE Disp< 2 > disp16( uint16 val ){ return Disp< 2 >( val ); }
 	ASMETA_INLINE Disp< 1 > disp8( uint8 val ) { return Disp< 1 >( val ); }
@@ -219,6 +220,9 @@ namespace Asmeta
 		ASMETA_INLINE void mov( RefMem< Ref , Size > const& dst , RegX86< Size > const& src ){  encodeIntInist< Size >( igMOV , dst , src.code() ); }
 		template< class Ref , int Size >
 		ASMETA_INLINE void mov( RegX86< Size > const& dst , RefMem< Ref , Size > const& src ){  encodeIntInistR< Size >( igMOV , src , dst.code() ); }
+		
+		template< class Ref, int Size , int Size2 >
+		ASMETA_INLINE void mov(RegX86< Size > const& dst, RefMem< Ref, Size2 > const& src) { encodeIntInistR< Size >(igMOV, src, dst.code()); }
 
 		ASMETA_INLINE void mov( RegX86< 2 > const& dst ,  RegSeg const& src ){  encodeIntInistRM< 2 >( 0x8c , dst , src.code()  ); }
 		ASMETA_INLINE void mov( RegSeg const& dst , RegX86< 2 > const& src ) {  encodeIntInistRM< 2 >( 0x8e , src  , dst.code()  ); }

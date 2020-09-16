@@ -675,8 +675,8 @@ namespace Render
 	{
 #if USE_SEPARATE_SHADER
 		GraphicShaderBoundState state;
-		state.vertexShader = mScreenVS->getRHIResource();
-		state.pixelShader = mCopyTexturePS->getRHIResource();
+		state.vertex = mScreenVS->getRHIResource();
+		state.pixel = mCopyTexturePS->getRHIResource();
 		RHISetGraphicsShaderBoundState(commandList, state);
 		mCopyTexturePS->setParameters(commandList, copyTexture);
 #else
@@ -698,8 +698,8 @@ namespace Render
 	{
 #if USE_SEPARATE_SHADER
 		GraphicShaderBoundState state;
-		state.vertexShader = mScreenVS->getRHIResource();
-		state.pixelShader = mCopyTextureMaskPS->getRHIResource();
+		state.vertex = mScreenVS->getRHIResource();
+		state.pixel = mCopyTextureMaskPS->getRHIResource();
 		RHISetGraphicsShaderBoundState(commandList, state);
 		mCopyTextureMaskPS->setParameters(commandList, copyTexture, colorMask);
 #else
@@ -715,8 +715,8 @@ namespace Render
 	{
 #if USE_SEPARATE_SHADER
 		GraphicShaderBoundState state;
-		state.vertexShader = mScreenVS->getRHIResource();
-		state.pixelShader = mCopyTextureBiasPS->getRHIResource();
+		state.vertex = mScreenVS->getRHIResource();
+		state.pixel = mCopyTextureBiasPS->getRHIResource();
 		RHISetGraphicsShaderBoundState(commandList, state);
 		mCopyTextureBiasPS->setParameters(commandList, copyTexture, colorBais);
 #else

@@ -649,6 +649,7 @@ namespace Render
 		typedef TOpenGLObject< RMPVertexArrayObject > VertexArrayObject;
 		std::unordered_map< InputStreamState, VertexArrayObject, MemberFuncHasher > mVAOMap;
 		std::vector< Element > mElements;
+		uint32 mAttributeMask;
 
 		virtual void releaseResource() override;
 

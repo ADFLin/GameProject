@@ -2,6 +2,8 @@
 
 #include "VulkanCommand.h"
 
+#pragma comment(lib , "vulkan-1.lib")
+
 namespace Render
 {
 	VkPrimitiveTopology VulkanTranslate::To(EPrimitive type, int& outPatchPointCount )

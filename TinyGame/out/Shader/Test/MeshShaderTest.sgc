@@ -2,7 +2,210 @@
 #include "ViewParam.sgc"
 
 uniform float4x4 LocalToWorld;
+
+#define  NUM_THREAD 32
+
+#ifndef MESH_USE_PACKED_CONE
+#define MESH_USE_PACKED_CONE 1
+#endif
+
+#ifndef USE_TASK
+#define USE_TASK 1
+#endif
+
+#ifndef USE_STATS
+#define USE_STATS 0
+#endif
+
+#ifndef USE_CULL_VIEW
+#define USE_CULL_VIEW 1
+#endif
+
+#if USE_CULL_VIEW
+#if SHADER_COMPILING
+layout(std140) cbuffer CullViewBlock
+{
+	ViewParameters CullView;
+};
+#else
+uniform ViewParameters CullView;
+#endif
+#else
+#define CullView View;
+#endif
+
+struct CullData
+{
+	float4 boundingSphere;
+#if MESH_USE_PACKED_CONE
+	uint   normalCone;
+#else
+	float4 normalCone;
+#endif
+
+	float  apexOffset;
+};
+
+
+float4 UnpackCone(uint packedValue)
+{
+	float4 v;
+	v.x = float((packedValue >> 0) & 0xFF);
+	v.y = float((packedValue >> 8) & 0xFF);
+	v.z = float((packedValue >> 16) & 0xFF);
+	v.w = float((packedValue >> 24) & 0xFF);
+
+	v = v / 255.0;
+	v.xyz = v.xyz * 2.0 - 1.0;
+
+	return v;
+}
+
+
+
+#if COMPILER_GLSL
+
+layout(std430) buffer CullDataBlock
+{
+	restrict readonly CullData CullDatas[];
+};
+
+#if USE_STATS
+
+
+layout(binding = 0, offset = 0) uniform atomic_uint RenderMeshletCount;
+layout(binding = 0, offset = 4) uniform atomic_uint RenderPrimitiveCount;
+layout(binding = 0, offset = 8) uniform atomic_uint OutputVertexCount;
+
+
+#endif
+
+
+#endif
+
+#if TASK_SHADER
+
+uniform int4 TaskParams;
+
+bool IsConeDegenerate(CullData c)
+{
+#if MESH_USE_PACKED_CONE
+	return (c.normalCone >> 24) == 0xff;
+#else
+	return c.normalCone.w >= 1;
+#endif
+}
+
+bool IsVisible2(CullData c, float4x4 localToWorld, float scale)
+{
+	//if ((Instance.Flags & CULL_FLAG) == 0)
+	//	return true;
+
+	// Do a cull test of the bounding sphere against the view frustum planes.
+	float4 center = mul(localToWorld, float4(c.boundingSphere.xyz, 1));
+	float radius = c.boundingSphere.w * scale;
+
+	for (int i = 0; i < 6; ++i)
+	{
+		if (dot(center, CullView.frustumPlanes[i]) > radius)
+		{
+			return false;
+		}
+	}
+
+	// Do normal cone culling
+	if (IsConeDegenerate(c))
+		return true; // Cone is degenerate - spread is wider than a hemisphere.
+
+	// Unpack the normal cone from its 8-bit uint compression
+#if MESH_USE_PACKED_CONE
+	float4 normalCone = UnpackCone(c.normalCone);
+#else
+	float4 normalCone = c.normalCone;
+#endif
+
+	// Transform axis to world space
+	float3 axis = normalize( mul(localToWorld, float4(normalCone.xyz, 0)).xyz );
+
+	// Offset the normal cone axis from the meshlet center-point - make sure to account for world scaling
+	float3 apex = center.xyz - axis * c.apexOffset * scale;
+	float3 view = normalize(CullView.worldPos - apex);
+
+	// The normal cone w-component stores -cos(angle + 90 deg)
+	// This is the min dot product along the inverted axis from which all the meshlet's triangles are backface
+	if (dot(view, -axis) > normalCone.w)
+	{
+		return false;
+	}
+
+	// All tests passed - it will merit pixels
+	return true;
+}
+
+bool IsVisible(uint mi)
+{
+	//return true;
+	CullData cull = CullDatas[mi];
+	return IsVisible2(cull, LocalToWorld , 0.15);
+}
+
+uint gl_TaskCountNV;
+taskNV out TaskParameters
+{
+	uint   baseID;
+	uint8_t   subIDs[NUM_THREAD];
+}TaskOutput;
+layout(local_size_x = NUM_THREAD) in;
+void MainTS()
+{
+	uint tID = gl_LocalInvocationID.x;
+	uint baseID = NUM_THREAD * gl_WorkGroupID.x;
+	uint mi = min( baseID + tID, TaskParams.x );
+
+	bool bVisible = (baseID + tID <= TaskParams.x) && IsVisible(mi);
+
+	//bVisible = false;
+	uint vote = ballotThreadNV(bVisible);
+	uint tasks = bitCount(vote);
+	uint voteGroup = vote;
+	if (tID == 0)
+	{
+		gl_TaskCountNV = tasks;
+		TaskOutput.baseID = baseID;
+#if USE_STATS
+		atomicCounterAdd(RenderMeshletCount, tasks);
+#endif
+	}
+	
+
+	uint idxOffset = bitCount(vote & gl_ThreadLtMaskNV);
+	if (bVisible) 
+	{
+		TaskOutput.subIDs[idxOffset] = uint8_t(tID);
+
+	}
+}
+#endif
+
+
+
 #if MESH_SHADER
+
+#ifndef MAX_VERTEX_COUNT
+#define  MAX_VERTEX_COUNT 64
+#endif
+#ifndef MAX_PRIMITIVE_COUNT
+#define  MAX_PRIMITIVE_COUNT 126
+#endif
+
+#if USE_TASK
+taskNV in TaskParameters
+{
+	uint     baseID;
+	uint8_t  subIDs[NUM_THREAD];
+}TaskOutput;
+#endif
+
 
 struct MeshletData
 {
@@ -33,8 +236,6 @@ struct VertexData
 	float3 normal;
 	float4 tangent;
 };
-
-
 
 layout(std430) buffer VertexDataBlock
 {
@@ -67,31 +268,15 @@ out gl_PerVertex
 	vec4 gl_Position;
 } gl_Why;
 
-#define  MAX_VERTEX_COUNT 64
-#define  MAX_PRIMITIVE_COUNT 126
-#define  NUM_THREAD 32
 
 layout(local_size_x = NUM_THREAD) in;
-layout(max_vertices = 256, max_primitives = 256) out;
+layout(max_vertices = MAX_VERTEX_COUNT, max_primitives = MAX_PRIMITIVE_COUNT) out;
 layout(triangles) out;
 layout(location = 0) out MSOutputParameters
 {
 	float3 color;
 	float2 UV;
 } MSOutput[];
-#define MAX_COLORS 10
-vec3 meshletcolors[MAX_COLORS] = {
-  vec3(1,0,0),
-  vec3(0,1,0),
-  vec3(0,0,1),
-  vec3(1,1,0),
-  vec3(1,0,1),
-  vec3(0,1,1),
-  vec3(1,0.5,0),
-  vec3(0.5,1,0),
-  vec3(0,0.5,1),
-  vec3(1,1,1)
-};
 
 uint hash(uint a)
 {
@@ -105,8 +290,11 @@ uint hash(uint a)
 }
 void MainMS()
 {
+#if USE_TASK
+	uint mi = TaskOutput.baseID + TaskOutput.subIDs[gl_WorkGroupID.x];
+#else
 	uint mi = gl_WorkGroupID.x;
-
+#endif
 	uint tID = gl_LocalInvocationID.x;
 
 	MeshletData meshlet = Meshlets[mi];
@@ -136,6 +324,12 @@ void MainMS()
 	gl_PrimitiveCountNV = meshlet.primitiveCount;
 
 #else
+	CullData cull = CullDatas[mi];
+#if MESH_USE_PACKED_CONE
+	float4 normalCone = UnpackCone(cull.normalCone);
+#else
+	float4 normalCone = cull.normalCone;
+#endif
 
 	const uint vertexCountThread = (MAX_VERTEX_COUNT + ( NUM_THREAD - 1 ) )/ NUM_THREAD;
 	for( int i = 0 ; i < vertexCountThread; ++i )
@@ -145,7 +339,8 @@ void MainMS()
 		VertexData vertex = GetVerexData(vertexIndex);
 		float4 worldPos = LocalToWorld * float4(vertex.pos, 1);
 		gl_MeshVerticesNV[index].gl_Position = View.worldToClip * worldPos;
-		MSOutput[index].color = mcolor;
+
+		MSOutput[index].color = 0.5 * vertex.normal + 0.5;//normalCone.xyz;
 		MSOutput[index].UV = vertex.pos.xy;
 	}
 
@@ -164,6 +359,10 @@ void MainMS()
 	if (tID == 0)
 	{
 		gl_PrimitiveCountNV = meshlet.primitiveCount;
+#if USE_STATS
+		atomicCounterAdd(RenderPrimitiveCount, meshlet.primitiveCount);
+		atomicCounterAdd(OutputVertexCount, meshlet.vertexCount);
+#endif
 	}
 #endif
 

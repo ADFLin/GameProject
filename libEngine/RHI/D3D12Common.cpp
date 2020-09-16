@@ -2,96 +2,12 @@
 #include "D3D12Common.h"
 #include "D3D12ShaderCommon.h"
 
+#pragma comment(lib , "D3D12.lib")
+#pragma comment(lib , "DXGI.lib")
+#pragma comment(lib , "dxguid.lib")
+
 namespace Render
 {
-	D3D_PRIMITIVE_TOPOLOGY D3D12Translate::To(EPrimitive type)
-	{
-		if (type >= EPrimitive::PatchPoint1)
-		{
-			return D3D_PRIMITIVE_TOPOLOGY(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + ((int)type - (int)EPrimitive::PatchPoint1));
-		}
-		switch (type)
-		{
-		case EPrimitive::Points: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-		case EPrimitive::TriangleList: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		case EPrimitive::TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-		case EPrimitive::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-		case EPrimitive::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-		case EPrimitive::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-		case EPrimitive::TriangleFan:
-		case EPrimitive::LineLoop:
-		case EPrimitive::Quad:
-
-		default:
-			LogWarning(0, "D3D12 No Support Primitive %d", (int)type);
-			break;
-		}
-		return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-	}
-
-	DXGI_FORMAT D3D12Translate::To(Texture::Format format)
-	{
-		switch( format )
-		{
-		case Texture::eRGB8:
-		case Texture::eRGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
-		case Texture::eBGRA8: return DXGI_FORMAT_B8G8R8A8_UNORM;
-		case Texture::eRGB10A2: return DXGI_FORMAT_R10G10B10A2_UNORM;
-		case Texture::eR16:   return DXGI_FORMAT_R16_UNORM;
-		case Texture::eR8:    return DXGI_FORMAT_R8_UNORM;
-		case Texture::eR32F:  return DXGI_FORMAT_R32_FLOAT;
-		case Texture::eRGB32F: return DXGI_FORMAT_R32G32B32_FLOAT;
-		case Texture::eRGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		case Texture::eRGB16F:
-		case Texture::eRGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-		case Texture::eR32I: return DXGI_FORMAT_R32_SINT;
-		case Texture::eR16I: return DXGI_FORMAT_R16_SINT;
-		case Texture::eR8I: return DXGI_FORMAT_R8_SINT;
-		case Texture::eR32U: return DXGI_FORMAT_R32_UINT;
-		case Texture::eR16U: return DXGI_FORMAT_R16_UINT;
-		case Texture::eR8U:  return DXGI_FORMAT_R8_UINT;
-		case Texture::eRG32I: return DXGI_FORMAT_R32G32_SINT;
-		case Texture::eRG16I: return DXGI_FORMAT_R16G16_SINT;
-		case Texture::eRG8I: return DXGI_FORMAT_R8G8_SINT;
-		case Texture::eRG32U: return DXGI_FORMAT_R32G32_UINT;
-		case Texture::eRG16U: return DXGI_FORMAT_R16G16_UINT;
-		case Texture::eRG8U:  return DXGI_FORMAT_R8G8_UINT;
-		case Texture::eRGB32I:
-		case Texture::eRGBA32I: return DXGI_FORMAT_R32G32B32A32_SINT;
-		case Texture::eRGB16I:
-		case Texture::eRGBA16I: return DXGI_FORMAT_R16G16B16A16_SINT;
-		case Texture::eRGB8I:
-		case Texture::eRGBA8I:  return DXGI_FORMAT_R8G8B8A8_SINT;
-		case Texture::eRGB32U:
-		case Texture::eRGBA32U: return DXGI_FORMAT_R32G32B32A32_UINT;
-		case Texture::eRGB16U:
-		case Texture::eRGBA16U: return DXGI_FORMAT_R16G16B16A16_UINT;
-		case Texture::eRGB8U:
-		case Texture::eRGBA8U:  return DXGI_FORMAT_R8G8B8A8_UINT;
-
-		case Texture::eSRGB:    return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		case Texture::eSRGBA:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-
-		case Texture::eDepth16: return DXGI_FORMAT_D16_UNORM;
-		case Texture::eDepth24: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-		case Texture::eDepth32F: return DXGI_FORMAT_D32_FLOAT;
-		case Texture::eD24S8:    return DXGI_FORMAT_D24_UNORM_S8_UINT;
-		case Texture::eD32FS8:   return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-		case Texture::eStencil1:
-		case Texture::eStencil4:
-		case Texture::eStencil8:
-			return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
-
-		case Texture::eStencil16:
-		case Texture::eDepth32:
-		default:
-			LogWarning(0, "D3D12 No Support Texture Format %d", (int)format);
-			break;
-		}
-		return DXGI_FORMAT_UNKNOWN;
-	}
-
-
 	D3D12_BLEND D3D12Translate::To(Blend::Factor factor)
 	{
 		switch( factor )
@@ -149,48 +65,6 @@ namespace Render
 		}
 		return D3D12_FILL_MODE_SOLID;
 	}
-
-	DXGI_FORMAT D3D12Translate::To(Vertex::Format format , bool bNormalized)
-	{
-		switch( format )
-		{
-		case Vertex::eFloat1: return DXGI_FORMAT_R32_FLOAT;
-		case Vertex::eFloat2: return DXGI_FORMAT_R32G32_FLOAT;
-		case Vertex::eFloat3: return DXGI_FORMAT_R32G32B32_FLOAT;
-		case Vertex::eFloat4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		case Vertex::eHalf1:  return DXGI_FORMAT_R16_FLOAT;
-		case Vertex::eHalf2:  return DXGI_FORMAT_R16G16_FLOAT;
-		//case Vertex::eHalf3:  return DXGI_FORMAT_R16G16B16_FLOAT;
-		case Vertex::eHalf4: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-		case Vertex::eUInt1: return DXGI_FORMAT_R32_UINT;
-		case Vertex::eUInt2: return DXGI_FORMAT_R32G32_UINT;
-		case Vertex::eUInt3: return DXGI_FORMAT_R32G32B32_UINT;
-		case Vertex::eUInt4: return DXGI_FORMAT_R32G32B32A32_UINT;
-		case Vertex::eInt1: return DXGI_FORMAT_R32_SINT;
-		case Vertex::eInt2: return DXGI_FORMAT_R32G32_SINT;
-		case Vertex::eInt3: return DXGI_FORMAT_R32G32B32_UINT;
-		case Vertex::eInt4: return DXGI_FORMAT_R32G32B32A32_UINT;
-
-		case Vertex::eUShort1: return (bNormalized) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
-		case Vertex::eUShort2: return (bNormalized) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
-		//case Vertex::eUShort3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_UNORM : DXGI_FORMAT_R16G16B16_UINT;
-		case Vertex::eUShort4: return (bNormalized) ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
-		case Vertex::eShort1: return (bNormalized) ? DXGI_FORMAT_R16_SNORM : DXGI_FORMAT_R16_SINT;
-		case Vertex::eShort2: return (bNormalized) ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
-		//case Vertex::eShort3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_SNORM : DXGI_FORMAT_R16G16B16_SINT;
-		case Vertex::eShort4: return (bNormalized) ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-		case Vertex::eUByte1: return (bNormalized) ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
-		case Vertex::eUByte2: return (bNormalized) ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
-		//case Vertex::eUByte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_UNORM : DXGI_FORMAT_R8G8B8_UINT;
-		case Vertex::eUByte4: return (bNormalized) ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
-		case Vertex::eByte1: return (bNormalized) ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
-		case Vertex::eByte2: return (bNormalized) ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
-		//case Vertex::eByte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_SNORM : DXGI_FORMAT_R8G8B8_SINT;
-		case Vertex::eByte4: return (bNormalized) ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
-		}
-		return DXGI_FORMAT_UNKNOWN;
-	}
-
 
 
 #if 0
@@ -270,58 +144,176 @@ namespace Render
 		return D3D12_STENCIL_OP_KEEP;
 	}
 
-
-#if 0
-
-
-	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, Shader::Type type)
+	D3D12_SHADER_VISIBILITY D3D12Translate::ToVisibiltiy(EShader::Type type)
 	{
-		char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" };
-		char const* featureName = nullptr;
-		switch( device->GetFeatureLevel() )
+		switch (type)
 		{
-		case D3D_FEATURE_LEVEL_9_1:
-		case D3D_FEATURE_LEVEL_9_2:
-		case D3D_FEATURE_LEVEL_9_3:
-			featureName = "2_0";
-			break;
-		case D3D_FEATURE_LEVEL_10_0:
-			featureName = "4_0";
-			break;
-		case D3D_FEATURE_LEVEL_10_1:
-			featureName = "5_0";
-			break;
-		case D3D_FEATURE_LEVEL_11_0:
-			featureName = "5_0";
-			break;
+		case EShader::Vertex: return D3D12_SHADER_VISIBILITY_VERTEX;
+		case EShader::Pixel:  return D3D12_SHADER_VISIBILITY_PIXEL;
+		case EShader::Geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
+		case EShader::Hull: return D3D12_SHADER_VISIBILITY_HULL;
+		case EShader::Domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
+		case EShader::Task: return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+		case EShader::Mesh: return D3D12_SHADER_VISIBILITY_MESH;
 		}
-		FixString<32> result = ShaderNames[type];
-		result += "_";
-		result += featureName;
-		return result;
+
+		return D3D12_SHADER_VISIBILITY_ALL;
 	}
 
-	ID3D11InputLayout* D3D11InputLayout::GetShaderLayout(ID3D11Device* device, RHIShader* shader)
+	D3D12_PRIMITIVE_TOPOLOGY_TYPE D3D12Translate::ToTopologyType(EPrimitive type)
 	{
-		auto iter = mResourceMap.find(shader);
-		if (iter != mResourceMap.end())
+		if (type >= EPrimitive::PatchPoint1)
 		{
-			return iter->second;
+			return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+		}
+		switch (type)
+		{
+		case EPrimitive::Points: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+		case EPrimitive::TriangleList: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		case EPrimitive::TriangleStrip: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		case EPrimitive::LineList: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		case EPrimitive::LineStrip: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		case EPrimitive::TriangleAdjacency: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		case EPrimitive::PatchPoint1: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+		case EPrimitive::Polygon:
+		case EPrimitive::TriangleFan:
+		case EPrimitive::LineLoop:
+		case EPrimitive::Quad:
+
+		default:
+			LogWarning(0, "D3D No Support Primitive %d", (int)type);
+			break;
+		}
+		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+	}
+
+	bool D3D12SwapChain::initialize(TComPtr<IDXGISwapChainRHI>& resource, TComPtr<ID3D12DeviceRHI>& device, int bufferCount)
+	{
+		mResource = resource.detach();
+
+		UINT rtvDescriptorSize;
+		// Create descriptor heaps.
+		{
+			// Describe and create a render target view (RTV) descriptor heap.
+			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+			rtvHeapDesc.NumDescriptors = bufferCount;
+			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&mRTVHeap)));
+
+			rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		}
 
-		ID3D11InputLayout* inputLayoutResource = nullptr;
-		std::vector< uint8 > const& byteCode = static_cast<D3D11Shader*>(shader)->byteCode;
-		HRESULT hr = device->CreateInputLayout(elements.data(), elements.size(), byteCode.data(), byteCode.size(), &inputLayoutResource);
-		if (hr != S_OK)
+		mRTViews.resize(bufferCount);
+		// Create frame resources.
 		{
-			LogWarning(0 , "Can't create D3D11InputLayout , code = %d" , hr );
-			mResource->AddRef();
-			mResourceMap.insert(std::make_pair(shader, mResource));
-			return mResource;
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = { mRTVHeap->GetCPUDescriptorHandleForHeapStart() };
+
+			// Create a RTV for each frame.
+			for (UINT n = 0; n < bufferCount; n++)
+			{
+				VERIFY_D3D_RESULT_RETURN_FALSE(mResource->GetBuffer(n, IID_PPV_ARGS(&mRTViews[n])));
+				device->CreateRenderTargetView(mRTViews[n], nullptr, rtvHandle);
+				rtvHandle.ptr += rtvDescriptorSize;
+			}
 		}
-		mResourceMap.insert(std::make_pair(shader, inputLayoutResource));
-		return inputLayoutResource;
+
+		return true;
 	}
-#endif
+
+	D3D12InputLayout::D3D12InputLayout(InputLayoutDesc const& desc)
+	{
+		for (auto const& e : desc.mElements)
+		{
+			if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+				continue;
+
+			D3D12_INPUT_ELEMENT_DESC element;
+			element.SemanticName = "ATTRIBUTE";
+			element.SemanticIndex = e.attribute;
+			element.Format = D3D12Translate::To(Vertex::Format(e.format), e.bNormalized);
+			element.InputSlot = e.idxStream;
+			element.AlignedByteOffset = e.offset;
+			element.InputSlotClass = e.bIntanceData ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
+
+			mDescList.push_back(element);
+		}
+	}
+
+
+	D3D12RasterizerState::D3D12RasterizerState(RasterizerStateInitializer const& initializer)
+	{
+		mDesc.FillMode = D3D12Translate::To(initializer.fillMode);
+		mDesc.CullMode = D3D12Translate::To(initializer.cullMode);
+		mDesc.FrontCounterClockwise = FALSE; //initializer.frontFace;
+
+		mDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+		mDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+		mDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+		mDesc.DepthClipEnable = TRUE;
+
+		mDesc.MultisampleEnable = initializer.bEnableScissor;
+		mDesc.AntialiasedLineEnable = FALSE;
+		mDesc.ForcedSampleCount = 0;
+		mDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+	}
+
+	D3D12BlendState::D3D12BlendState(BlendStateInitializer const& initializer)
+	{
+		mDesc.AlphaToCoverageEnable = initializer.bEnableAlphaToCoverage;
+		mDesc.IndependentBlendEnable = initializer.bEnableIndependent;
+
+		static_assert(
+			(D3D12_COLOR_WRITE_ENABLE_RED == CWM_R) && 
+			(D3D12_COLOR_WRITE_ENABLE_GREEN == CWM_G) && 
+			(D3D12_COLOR_WRITE_ENABLE_BLUE == CWM_B) && 
+			(D3D12_COLOR_WRITE_ENABLE_ALPHA == CWM_A) );
+
+		for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+		{
+			auto& renderTarget = mDesc.RenderTarget[i];
+
+			auto const& targetValue = initializer.targetValues[i];
+			renderTarget.BlendEnable = targetValue.isEnabled();
+			renderTarget.LogicOpEnable = FALSE;
+			renderTarget.LogicOp = D3D12_LOGIC_OP_NOOP;
+
+			renderTarget.SrcBlend = D3D12Translate::To(targetValue.srcColor);
+			renderTarget.DestBlend = D3D12Translate::To(targetValue.destColor);
+			renderTarget.BlendOp = D3D12Translate::To(targetValue.op);
+			renderTarget.SrcBlendAlpha = D3D12Translate::To(targetValue.srcAlpha);
+			renderTarget.DestBlendAlpha = D3D12Translate::To(targetValue.destAlpha);
+			renderTarget.BlendOpAlpha = D3D12Translate::To(targetValue.opAlpha);
+			renderTarget.RenderTargetWriteMask = targetValue.writeMask;
+		}
+	}
+
+	D3D12DepthStencilState::D3D12DepthStencilState(DepthStencilStateInitializer const& initializer)
+	{
+		mDesc.DepthEnable = initializer.isDepthEnable();
+		mDesc.StencilEnable = initializer.bEnableStencilTest;
+
+		mDesc.DepthFunc = D3D12Translate::To(initializer.depthFunc);
+
+		mDesc.FrontFace.StencilFunc = D3D12Translate::To(initializer.stencilFunc);
+		mDesc.FrontFace.StencilPassOp = D3D12Translate::To(initializer.zPassOp);
+		mDesc.FrontFace.StencilDepthFailOp = D3D12Translate::To(initializer.zFailOp);
+		mDesc.FrontFace.StencilFailOp = D3D12Translate::To(initializer.stencilFailOp);
+
+		mDesc.BackFace.StencilFunc = D3D12Translate::To(initializer.stencilFuncBack);
+		mDesc.BackFace.StencilPassOp = D3D12Translate::To(initializer.zPassOpBack);
+		mDesc.BackFace.StencilDepthFailOp = D3D12Translate::To(initializer.zFailOpBack);
+		mDesc.BackFace.StencilFailOp = D3D12Translate::To(initializer.stencilFailOpBack);
+
+		mDesc.DepthWriteMask = initializer.bWriteDepth ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+		mDesc.StencilReadMask = initializer.stencilReadMask;
+		mDesc.StencilWriteMask = initializer.stencilWriteMask;
+
+		mDesc.DepthBoundsTestEnable = FALSE;
+
+	}
+
+
 
 }//namespace Render

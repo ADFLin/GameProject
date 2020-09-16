@@ -254,33 +254,19 @@ namespace RenderVulkan
 			VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true , BCF_DefalutValue , indices));
 
 
-			struct RenderPipelineState
-			{
-				RHIRasterizerState*   rasterizerState;
-				RHIDepthStencilState* depthStencilState;
-				RHIBlendState*        blendState;
-
-				GraphicShaderBoundState shaderPipelineState;
-				RHIShaderProgram*   shaderProgram;
-
-
-				EPrimitive          PrimitiveType;
-				RHIInputLayout*     inputLayout;
-			};
-
-			RenderPipelineState renderState;
-			renderState.PrimitiveType = EPrimitive::TriangleList;
-			renderState.rasterizerState = &TStaticRasterizerState<>::GetRHI();
-			renderState.depthStencilState = &TStaticDepthStencilState<>::GetRHI();
-			renderState.blendState = &TStaticBlendState<>::GetRHI();
+			GraphicsPipelineState graphicsState;
+			graphicsState.primitiveType = EPrimitive::TriangleList;
+			graphicsState.rasterizerState = &TStaticRasterizerState<>::GetRHI();
+			graphicsState.depthStencilState = &TStaticDepthStencilState<>::GetRHI();
+			graphicsState.blendState = &TStaticBlendState<>::GetRHI();
 
 			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mShaderProgram, "Shader/Test/VulkanTest", "MainVS", "MainPS"));
-			renderState.shaderProgram = mShaderProgram.getRHIResource();
+			graphicsState.shaderProgram = mShaderProgram.getRHIResource();
 
 			setupDescriptorPool();
 
-			pipelineLayout = VulkanCast::To(renderState.shaderProgram)->mPipelineLayout;
-			descriptorSetLayout = VulkanCast::To(renderState.shaderProgram)->mDescriptorSetLayout;
+			pipelineLayout = VulkanCast::To(graphicsState.shaderProgram)->mPipelineLayout;
+			descriptorSetLayout = VulkanCast::To(graphicsState.shaderProgram)->mDescriptorSetLayout;
 
 			setupDescriptorSet();
 
@@ -289,7 +275,7 @@ namespace RenderVulkan
 			desc.addElement(0, 1, Vertex::eFloat2);
 			desc.addElement(0, 2, Vertex::eFloat3);
 			VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
-			renderState.inputLayout = mInputLayout;
+			graphicsState.inputLayout = mInputLayout;
 
 
 
@@ -318,9 +304,9 @@ namespace RenderVulkan
 				viewportState.scissorCount = 1;
 				pipelineInfo.pViewportState = &viewportState;
 
-				pipelineInfo.pRasterizationState = &VulkanCast::To(renderState.rasterizerState)->createInfo;
-				pipelineInfo.pDepthStencilState = &VulkanCast::To(renderState.depthStencilState)->createInfo;
-				pipelineInfo.pColorBlendState = &VulkanCast::To(renderState.blendState)->createInfo;
+				pipelineInfo.pRasterizationState = &VulkanCast::To(graphicsState.rasterizerState)->createInfo;
+				pipelineInfo.pDepthStencilState = &VulkanCast::To(graphicsState.depthStencilState)->createInfo;
+				pipelineInfo.pColorBlendState = &VulkanCast::To(graphicsState.blendState)->createInfo;
 
 				VkPipelineMultisampleStateCreateInfo multisampleState = {};
 				multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -330,18 +316,18 @@ namespace RenderVulkan
 				multisampleState.pSampleMask = nullptr;
 				multisampleState.alphaToCoverageEnable = VK_FALSE;
 				multisampleState.alphaToOneEnable = VK_FALSE;
-				VulkanCast::To(renderState.rasterizerState)->getMultiSampleState(multisampleState);
-				VulkanCast::To(renderState.blendState)->getMultiSampleState(multisampleState);
+				VulkanCast::To(graphicsState.rasterizerState)->getMultiSampleState(multisampleState);
+				VulkanCast::To(graphicsState.blendState)->getMultiSampleState(multisampleState);
 
 
 				pipelineInfo.pMultisampleState = &multisampleState;
 
-				if (renderState.shaderProgram)
+				if (graphicsState.shaderProgram)
 				{
-					std::vector < VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(renderState.shaderProgram)->mStages;
+					std::vector < VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(graphicsState.shaderProgram)->mStages;
 					pipelineInfo.pStages = shaderStages.data();
 					pipelineInfo.stageCount = shaderStages.size();
-					pipelineInfo.layout = VulkanCast::To(renderState.shaderProgram)->mPipelineLayout;
+					pipelineInfo.layout = VulkanCast::To(graphicsState.shaderProgram)->mPipelineLayout;
 				}
 				else
 				{
@@ -353,7 +339,7 @@ namespace RenderVulkan
 				inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 				inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 				int patchPointCount = 0;
-				inputAssemblyState.topology = VulkanTranslate::To(renderState.PrimitiveType, patchPointCount);
+				inputAssemblyState.topology = VulkanTranslate::To(graphicsState.primitiveType, patchPointCount);
 				pipelineInfo.pInputAssemblyState = &inputAssemblyState;
 
 				VkPipelineTessellationStateCreateInfo tesselationState = {};
@@ -362,9 +348,9 @@ namespace RenderVulkan
 				pipelineInfo.pTessellationState = &tesselationState;
 
 				VkPipelineVertexInputStateCreateInfo const& vertexInputState = VulkanCast::To(mInputLayout)->createInfo;
-				if (renderState.inputLayout)
+				if (graphicsState.inputLayout)
 				{
-					pipelineInfo.pVertexInputState = &VulkanCast::To(renderState.inputLayout)->createInfo;
+					pipelineInfo.pVertexInputState = &VulkanCast::To(graphicsState.inputLayout)->createInfo;
 				}
 
 

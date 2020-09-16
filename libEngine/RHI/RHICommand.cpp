@@ -3,8 +3,11 @@
 #include "RHICommon.h"
 #include "RHIGlobalResource.h"
 
+
+//TODO: Remove
 #include "OpenGLCommand.h"
 #include "D3D11Command.h"
+#include "D3D12Command.h"
 #include "VulkanCommand.h"
 
 #include "ShaderManager.h"
@@ -45,7 +48,8 @@ namespace Render
 	float GRHIProjectYSign = 1;
 	float GRHIVericalFlip = 1;
 	bool GRHISupportMeshShader = false;
-	bool GRHISupportRayTraceShader = false;
+	bool GRHISupportRayTracing = false;
+	bool GRHIPrefEnabled = false;
 
 #define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
@@ -56,11 +60,19 @@ namespace Render
 			switch( name )
 			{
 			case RHISytemName::D3D11: GRHISystem = new D3D11System; break;
+			case RHISytemName::D3D12: GRHISystem = new D3D12System; break;
 			case RHISytemName::OpenGL:GRHISystem = new OpenGLSystem; break;
 			case RHISytemName::Vulkan:GRHISystem = new VulkanSystem; break;
 			}
 
 			LogMsg("===== Init RHI System : %s ====" , ToString(name) );
+
+			GRHIDeviceVendorName = DeviceVendorName::Unknown;
+			GRHISupportRayTracing = false;
+			GRHISupportMeshShader = false;
+
+			char const* cmdLine = GetCommandLineA();
+			GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
 
 			if( GRHISystem && !GRHISystem->initialize(initParam) )
 			{
@@ -70,22 +82,19 @@ namespace Render
 
 			if( GRHISystem )
 			{
-				//#FIXME
-				if (GRHISystem->getName() != RHISytemName::D3D12 )
+				ShaderFormat* shaderFormat = GRHISystem->createShaderFormat();
+				if (shaderFormat == nullptr)
 				{
-					ShaderFormat* shaderFormat = GRHISystem->createShaderFormat();
-					if (shaderFormat == nullptr)
-					{
-						LogError("Can't create shader format for %d system", (int)GRHISystem->getName());
-						return false;
-					}
-
-					if (!ShaderManager::Get().initialize(*shaderFormat))
-					{
-						LogError("ShaderManager can't initialize");
-						return false;
-					}
+					LogError("Can't create shader format for %d system", (int)GRHISystem->getName());
+					return false;
 				}
+
+				if (!ShaderManager::Get().initialize(*shaderFormat))
+				{
+					LogError("ShaderManager can't initialize");
+					return false;
+				}
+
 
 				GlobalRenderResourceBase::RestoreAllResource();
 
@@ -109,7 +118,7 @@ namespace Render
 		}
 
 		//#FIXME
-		if( GRHISystem->getName() != RHISytemName::D3D11 ||
+		if( GRHISystem->getName() != RHISytemName::Vulkan ||
 			GRHISystem->getName() != RHISytemName::D3D12 )
 			ReleaseGlobalRenderResource();
 

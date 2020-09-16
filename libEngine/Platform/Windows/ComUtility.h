@@ -55,7 +55,17 @@ public:
 	}
 
 	TComPtr* address() { return this; }
-	T*   release() { T* ptr = mPtr; mPtr = nullptr; return ptr; }
+	T*   detach() { T* ptr = mPtr; mPtr = nullptr; return ptr; }
+
+	template<typename U>
+	bool castTo( TComPtr<U>& p) const throw()
+	{
+		if (mPtr == nullptr)
+			return false;
+
+		p.reset();
+		return mPtr->QueryInterface(__uuidof(U), reinterpret_cast<void**>(&p)) == S_OK;
+	}
 
 	void initialize(T* ptr)
 	{

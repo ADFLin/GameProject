@@ -18,9 +18,14 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetDepthStencilState(depthStencilState, stencilRef));
 	}
 
-	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h, float zNear, float zFar)
+	void RHISetViewport(RHICommandList& commandList, float x, float y, float w, float h, float zNear, float zFar)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetViewport(x, y, w, h, zNear, zFar));
+	}
+
+	void RHISetViewports(RHICommandList& commandList, ViewportInfo const viewports[], int numViewports)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetViewports(viewports, numViewports));
 	}
 
 	void RHISetScissorRect(RHICommandList& commandList, int x, int y, int w, int h)
@@ -134,6 +139,11 @@ namespace Render
 	void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicShaderBoundState const& state)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetGraphicsShaderBoundState(state));
+	}
+
+	void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderBoundState const& state)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetMeshShaderBoundState(state));
 	}
 
 	void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader)

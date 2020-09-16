@@ -133,6 +133,18 @@ struct FWidgetProperty
 			return false;
 		};
 	}
+
+	template< class T , class TFunc >
+	static void Bind(GCheckBox* widget, T& valueRef, TFunc inDelegate )
+	{
+		FWidgetProperty::Set(widget, valueRef);
+		widget->onEvent = [&valueRef, inDelegate](int event, GWidget* widget)
+		{
+			valueRef = FWidgetProperty::Get<T>(widget->cast<GCheckBox>());
+			inDelegate(valueRef);
+			return false;
+		};
+	}
 };
 
 class  WidgetUtility

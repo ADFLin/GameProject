@@ -200,6 +200,16 @@ namespace Render
 				setStorageBuffer(commandList, block.param, buffer, op);
 			}
 		}
+
+		void setStructuredStorageBuffer(RHICommandList& commandList, StructuredBufferInfo const& info, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
+		{
+			ShaderParameter param;
+			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Storage, info);
+			if (name && mRHIResource->getResourceParameter(EShaderResourceType::Storage, name, param))
+			{
+				setStorageBuffer(commandList, param, buffer, op);
+			}
+		}
 		bool getParameter(char const* name, ShaderParameter& outParam);
 
 		std::vector< StructuredBlockInfo > mBoundedBlocks;

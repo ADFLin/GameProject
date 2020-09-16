@@ -223,7 +223,8 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	{
 		mGLContext = &static_cast<OpenGLSystem*>(GRHISystem)->mGLContext;
 	}
-	else if (mSystemName == ERenderSystem::D3D11)
+	else if (mSystemName == ERenderSystem::D3D11 ||
+		     mSystemName == ERenderSystem::D3D12 )
 	{
 		SwapChainCreationInfo info;
 		info.windowHandle = mGameWindow->getHWnd();

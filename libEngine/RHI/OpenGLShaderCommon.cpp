@@ -184,7 +184,7 @@ namespace Render
 		uint32 usageVersion = mDefaultVersion;
 		if (entry.type == EShader::Task || entry.type == EShader::Mesh)
 		{
-			usageVersion = 450;
+			usageVersion = 460;
 		}
 
 		inoutCode += "#version ";
@@ -199,9 +199,20 @@ namespace Render
 		}
 		inoutCode += " compatibility\n";
 
+		char const* extensionString = option.getMeta("GLSLExtensions");
+
+		if (extensionString)
+		{
+			//extensionString = FStringParse::SkipSpace(extensionString);
+
+		}
+
 		if (entry.type == EShader::Task || entry.type == EShader::Mesh)
 		{
 			inoutCode += "#extension GL_NV_mesh_shader : enable\n";
+			inoutCode += "#extension GL_NV_gpu_shader5 : enable\n";
+			inoutCode += "#extension GL_NV_shader_thread_group : enable\n";
+			inoutCode += "#extension GL_NV_shader_thread_shuffle : enable\n";
 		}
 
 		inoutCode += "#define COMPILER_GLSL 1\n";

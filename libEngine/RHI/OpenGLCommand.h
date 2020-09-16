@@ -77,13 +77,31 @@ namespace Render
 					++numShaders;
 				}
 			};
-			CheckShader(state.vertexShader, GL_VERTEX_SHADER_BIT);
-			CheckShader(state.pixelShader, GL_FRAGMENT_SHADER_BIT);
-			CheckShader(state.geometryShader, GL_GEOMETRY_SHADER_BIT);
-			CheckShader(state.hullShader, GL_TESS_CONTROL_SHADER_BIT);
-			CheckShader(state.domainShader, GL_TESS_EVALUATION_SHADER_BIT);
-			CheckShader(state.taskShader, GL_TASK_SHADER_BIT_NV);
-			CheckShader(state.meshShader, GL_MESH_SHADER_BIT_NV);
+			CheckShader(state.vertex, GL_VERTEX_SHADER_BIT);
+			CheckShader(state.pixel, GL_FRAGMENT_SHADER_BIT);
+			CheckShader(state.geometry, GL_GEOMETRY_SHADER_BIT);
+			CheckShader(state.hull, GL_TESS_CONTROL_SHADER_BIT);
+			CheckShader(state.domain, GL_TESS_EVALUATION_SHADER_BIT);
+		}
+
+		OpenGLShaderPipelineStateKey(MeshShaderBoundState const& state)
+		{
+			hash = 0x123621;
+			numShaders = 0;
+			auto CheckShader = [&](void* shader, GLbitfield stageBit)
+			{
+				if (shader)
+				{
+					HashCombine(hash, shader);
+					stageMask |= stageBit;
+					shaders[numShaders] = shader;
+					++numShaders;
+				}
+			};
+
+			CheckShader(state.task, GL_TASK_SHADER_BIT_NV);
+			CheckShader(state.mesh, GL_MESH_SHADER_BIT_NV);
+			CheckShader(state.pixel, GL_FRAGMENT_SHADER_BIT);
 		}
 		uint32     hash;
 		GLbitfield stageMask;
@@ -117,6 +135,8 @@ namespace Render
 	{
 	public:
 		bool create(GraphicShaderBoundState const& state);
+		bool create(MeshShaderBoundState const& state);
+
 		void bind() const
 		{
 			glBindProgramPipeline(mGLObject.mHandle);
@@ -145,7 +165,8 @@ namespace Render
 		void RHISetBlendState(RHIBlendState& blendState);
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
 
-		void RHISetViewport(int x, int y, int w, int h, float zNear, float zFar);
+		void RHISetViewport(float x, float y, float w, float h, float zNear, float zFar);
+		void RHISetViewports(ViewportInfo const viewports[], int numViewports);
 		void RHISetScissorRect(int x, int y, int w, int h);
 
 
@@ -200,6 +221,8 @@ namespace Render
 
 		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+
+		void clearShaderUAV(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param)
 		{
 
@@ -211,6 +234,7 @@ namespace Render
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
+		void RHISetMeshShaderBoundState(MeshShaderBoundState const& state);
 		void RHISetComputeShader(RHIShader* shader);
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
@@ -232,6 +256,7 @@ namespace Render
 		{
 
 		}
+
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param)
@@ -239,6 +264,7 @@ namespace Render
 
 
 		}
+
 
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
@@ -258,7 +284,7 @@ namespace Render
 			}
 			return primitiveGL;
 		}
-		void commitRenderStates();
+		void commitGraphicStates();
 		void commitSamplerStates();
 		void commitRasterizerState();
 		void commitBlendState();
@@ -268,16 +294,40 @@ namespace Render
 		bool commitInputStreamUP(VertexDataInfo dataInfos[], int numData);
 		void resetBindIndex()
 		{
-			mNextAutoBindSamplerSlotIndex = 0;
+			mNextSamplerSlotIndex = 0;
 			mSimplerSlotDirtyMask = 0;
-
-			mNextUniformSlot = 0;
-			mNextStorageSlot = 0;
+			for (int i = 0; i < BufferResoureTypeCount; ++i)
+			{
+				mBufferBinds[i].nextSlot = 0;
+			}
 		}
 
+
+
+		enum BufferBindType
+		{
+			BBT_Uniform ,
+			BBT_Storage ,
+
+			BufferResoureTypeCount ,
+		};
+
+		struct BufferBindSlot
+		{
+			uint32 key;
+			GLuint handle;
+		};
+
+		struct BufferBindInfo
+		{
+			int nextSlot;
+			BufferBindSlot slots[128];
+		};
+
+		int fetchBufferBindSlot( BufferBindType type,  GLuint shaderHandle, int loc , GLuint handle );
 		
-		int  mNextUniformSlot;
-		int  mNextStorageSlot;
+
+		BufferBindInfo mBufferBinds[BufferResoureTypeCount];
 
 		RHIIndexBufferRef   mLastIndexBuffer;
 		OpenglShaderPipelineState* mLastShaderPipeline = nullptr;
@@ -296,7 +346,6 @@ namespace Render
 		int                 mUsageShaderCount = 0;
 
 		void clearShader(bool bUseShaderPipeline);
-		void clearComputeShader();
 		bool checkInputStreamStateDirty(bool bForceDirty = false);
 
 		RHIFrameBufferRef   mLastFrameBuffer;
@@ -316,28 +365,50 @@ namespace Render
 		int              mInputStreamCountPending = 0;
 		bool             mbHasInputStreamPendingSetted = false;
 
-		uint32 mSimplerSlotDirtyMask = 0;
+
+		struct FixedShaderParams
+		{
+			Matrix4 transform;
+			LinearColor color;
+			RHITexture2D* texture;
+			RHISamplerState* sampler;
+
+			FixedShaderParams()
+			{
+				texture = nullptr;
+				sampler = nullptr;
+				transform == Matrix4::Identity();
+				color = LinearColor(1, 1, 1, 1);
+			}
+		};
+		FixedShaderParams mFixedShaderParams;
+
+		void commitFixedShaderState();
+		
 		class OpenGLSystem* mSystem;
 
 		struct SamplerState 
 		{
-			uint32 loc;
+			int32  loc;
 			GLuint typeEnum;
 			GLuint textureHandle;
 			GLuint samplerHandle;
-			GLuint program;
+			GLuint shaderHandle;
 
 			bool   bWrite;
 		};
-		static int constexpr MaxSimulationSamplerSlots = 8;
-		int  mNextAutoBindSamplerSlotIndex;
+		static int constexpr MaxSimulationSamplerSlots = 16;
+		int  mNextSamplerSlotIndex;
+
+		int fetchSamplerStateSlot(GLuint shaderHandle, int loc);
+		uint32 mSimplerSlotDirtyMask = 0;
 		SamplerState mSamplerStates[MaxSimulationSamplerSlots];
 
 		GLint mMaxDrawMeshTasksCount = 0;
 
-		void setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
-		void setShaderResourceViewInternal(GLuint handle, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler);
-		void setShaderSamplerInternal(GLuint handle, ShaderParameter const& param, RHISamplerState& sampler);
+		void setShaderResourceViewInternal(GLuint shaderHandle, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+		void setShaderResourceViewInternal(GLuint shaderHandle, ShaderParameter const& param, RHIShaderResourceView const& resourceView, RHISamplerState const& sampler);
+		void setShaderSamplerInternal(GLuint shaderHandle, ShaderParameter const& param, RHISamplerState& sampler);
 
 	};
 
@@ -378,7 +449,7 @@ namespace Render
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
-		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
+		RHISamplerState*  RHICreateSamplerState(SamplerStateInitializer const& initializer);
 
 		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
@@ -393,13 +464,18 @@ namespace Render
 		std::unordered_map< OpenGLShaderPipelineStateKey, OpenglShaderPipelineState , MemberFuncHasher > mGfxBoundStateMap;
 
 		OpenglShaderPipelineState* getShaderPipeline(GraphicShaderBoundState const& state);
+		OpenglShaderPipelineState* getShaderPipeline(MeshShaderBoundState const& state);
 
+		template< class TShaderBoundState >
+		OpenglShaderPipelineState* getShaderPipelineT(TShaderBoundState const& state);
 
 		OpenGLContext     mDrawContext;
 #if SYS_PLATFORM_WIN
 		WindowsGLContext  mGLContext;
 #endif
 	};
+
+
 }
 
 #if USE_RHI_RESOURCE_TRACE

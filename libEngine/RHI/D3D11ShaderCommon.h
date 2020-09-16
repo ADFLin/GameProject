@@ -4,11 +4,13 @@
 
 #include "ShaderCore.h"
 #include "ShaderFormat.h"
+#include "RHICommon.h"
 
 #include "Platform/Windows/ComUtility.h"
 
 #include <D3D11.h>
 #include <D3Dcompiler.h>
+
 //#include <D3DX11async.h>
 #pragma comment(lib , "D3dcompiler.lib")
 
@@ -94,41 +96,13 @@ namespace Render
 		template< class TFunc >
 		void setupShader(ShaderParameter const& parameter, TFunc&& func)
 		{
-			if (parameter.mLoc < 0 || parameter.mLoc >= mParamEntryMap.size())
-				return;
-			assert(0 <= parameter.mLoc && parameter.mLoc < mParamEntryMap.size());
-			auto const& entry = mParamEntryMap[parameter.mLoc];
-
-			ShaderParamEntry* pParamEntry = &mParamEntries[entry.paramIndex];
-			for( int i = entry.numParam; i ; --i )
-			{
-				func( pParamEntry->type , pParamEntry->param );
-				++pParamEntry;
-			}
+			mParameterMap.setupShader(parameter, std::forward<TFunc>(func));
 		}
 
-		void addShaderParameterMap(EShader::Type shaderType, ShaderParameterMap const& parameterMap);
-		void finalizeParameterMap();
-
-		ShaderParameterMap mParameterMap;
-
-		struct ParameterEntry
-		{
-			uint16  numParam;
-			uint16  paramIndex;
-		};
-
-		struct ShaderParamEntry
-		{
-			int loc;
-			EShader::Type    type;
-			ShaderParameter param;
-		};
+		ShaderPorgramParameterMap mParameterMap;
 
 		std::vector< uint8 > vertexByteCode;
-		std::vector< ParameterEntry >   mParamEntryMap;
-		std::vector< ShaderParamEntry > mParamEntries;
-		TRefCountPtr< D3D11Shader >     mShaders[EShader::Count - 1];
+		TRefCountPtr< D3D11Shader >     mShaders[EShader::MaxStorageSize];
 		int mNumShaders;
 	};
 

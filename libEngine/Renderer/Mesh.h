@@ -32,15 +32,20 @@ namespace Render
 		void drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
 		void drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
 
-		bool buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices);
+		bool buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector<MeshletCullData>* outCullDataList = nullptr);
 
-		VertexElementReader makePositionReader(uint8 const* pData)
+
+		VertexElementReader makeAttributeReader(uint8 const* pData, Vertex::Attribute attribute)
 		{
 			VertexElementReader result;
 			result.numVertex = mVertexBuffer->getNumElements();
 			result.vertexDataStride = mVertexBuffer->getElementSize();
-			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
+			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(attribute);
 			return result;
+		}
+		VertexElementReader makePositionReader(uint8 const* pData)
+		{
+			return makeAttributeReader(pData, Vertex::ATTRIBUTE_POSITION);
 		}
 
 		VertexElementReader makeUVReader(uint8 const* pData, int index = 0)

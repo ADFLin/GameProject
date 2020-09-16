@@ -108,7 +108,7 @@ namespace Math
 
 
 	//#MOVE
-	// N.dot( V ) = d
+	// N.dot( V ) + d = 0
 	class  Plane
 	{
 	public:
@@ -121,19 +121,19 @@ namespace Math
 			mNormal = d1.cross(d2);
 			mNormal.normalize();
 
-			mDistance = mNormal.dot(v0);
+			mArgD = -mNormal.dot(v0);
 		}
 
 		Plane(Vector3 const& normal, Vector3 const& pos)
 			:mNormal(normal)
 		{
 			mNormal.normalize();
-			mDistance = mNormal.dot(pos);
+			mArgD = -mNormal.dot(pos);
 		}
 
 		Plane(Vector3 const& n, float d)
 			:mNormal(n)
-			, mDistance(d)
+			,mArgD(d)
 		{
 			mNormal.normalize();
 		}
@@ -142,26 +142,28 @@ namespace Math
 		{
 			Vector3 n = v.xyz();
 			float mag = n.normalize();
-			return Plane(n, -v.w / mag);
+			return Plane(n, v.w / mag);
 		}
 
+
+		operator Vector4() const { return Vector4(mNormal, mArgD); }
 #if 0
 		void swap(Plane& p)
 		{
 			using std::swap;
 
 			swap(mNormal, p.mNormal);
-			swap(mDistance, p.mDistance);
+			swap(mArgD, p.mArgD);
 		}
 #endif
 
 		float calcDistance(Vector3 const& p) const
 		{
-			return p.dot(mNormal) - mDistance;
+			return p.dot(mNormal) + mArgD;
 		}
 	private:
 		Vector3 mNormal;
-		float   mDistance;
+		float   mArgD;
 	};
 
 

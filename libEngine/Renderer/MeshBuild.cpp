@@ -833,8 +833,8 @@ namespace Render
 #else
 
 			MeshSection section;
-			section.num = objMesh.indices.size();
-			section.start = sizeof(int32) * startIndex;
+			section.count = objMesh.indices.size();
+			section.indexStart = startIndex;
 			mesh.mSections.push_back(section);
 
 			int startIndex = indices.size();
@@ -910,8 +910,8 @@ namespace Render
 		for (auto meshSection : sortedMeshSctions)
 		{
 			MeshSection section;
-			section.num = meshSection->indices.size();
-			section.start = sizeof(int32) * indices.size();
+			section.count = meshSection->indices.size();
+			section.indexStart = indices.size();
 			mesh.mSections.push_back(section);
 			indices.insert(indices.end(), meshSection->indices.begin(), meshSection->indices.end());
 		}

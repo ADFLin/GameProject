@@ -11,6 +11,8 @@ struct ViewParameters
 	float4x4  clipToWorld;
 	float4x4  worldToClipPrev;
 
+	float4    frustumPlanes[6];
+
 	float4 rectPosAndSizeInv;
 	float3 worldPos;
 	float  realTime;

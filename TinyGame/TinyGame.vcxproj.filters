@@ -209,6 +209,9 @@
     <ClCompile Include="FlowFree\FlowFreeLevelReader.cpp">
       <Filter>GameFlowFree</Filter>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">

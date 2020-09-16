@@ -18,8 +18,11 @@ namespace Render
 		Matrix4  clipToView;
 		Matrix4  clipToWorld;
 		Matrix4  worldToClipPrev;
+
+		Vector4  frustumPlanes[6];
+
 		Vector4  rectPosAndSizeInv;
-		Vector3 worldPos;
+		Vector3  worldPos;
 		float  realTime;
 		Vector3 direction;
 		float  gameTime;
@@ -51,6 +54,10 @@ namespace Render
 			data.worldToClipPrev = worldToClipPrev;
 			data.gameTime = gameTime;
 			data.realTime = realTime;
+			for (int i = 0; i < 6; ++i)
+			{
+				data.frustumPlanes[i] = frustumPlanes[i];
+			}
 			data.rectPosAndSizeInv.x = rectOffset.x;
 			data.rectPosAndSizeInv.y = rectOffset.y;
 			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
@@ -91,23 +98,38 @@ namespace Render
 		return rectSize;
 	}
 
-	void ViewInfo::setupShader(RHICommandList& commandList, ShaderProgram& program)
+	void ViewInfo::setupShader(RHICommandList& commandList, ShaderProgram& program, StructuredBufferInfo const* pInfo )
 	{
 		updateRHIResource();
-		program.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
+		if (pInfo)
+		{
+			program.setUniformBuffer(commandList, pInfo->blockName, *mUniformBuffer);
+		}
+		else
+		{
+			program.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
+		}
+		
 	}
 
-	void ViewInfo::setupShader(RHICommandList& commandList, Shader& shader)
+	void ViewInfo::setupShader(RHICommandList& commandList, Shader& shader, StructuredBufferInfo const* pInfo)
 	{
 		updateRHIResource();
-		shader.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
+		if (pInfo)
+		{
+			shader.setUniformBuffer(commandList, pInfo->blockName, *mUniformBuffer);
+		}
+		else
+		{
+			shader.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
+		}
+		
 	}
 
 	void ViewInfo::updateFrustumPlanes()
 	{
-		//#NOTE: Dependent RHI
-#if 0
-		Vector3 centerNearPos = (Vector4(0, 0, -1, 1) * clipToWorld).dividedVector();
+#if 1
+		Vector3 centerNearPos = (Vector4(0, 0, GRHIClipZMin, 1) * clipToWorld).dividedVector();
 		Vector3 centerFarPos = (Vector4(0, 0, 1, 1) * clipToWorld).dividedVector();
 
 		Vector3 posRT = (Vector4(1, 1, 1, 1) * clipToWorld).dividedVector();
@@ -138,7 +160,7 @@ namespace Render
 		frustumPlanes[2] = Plane::FromVector4(col3 - col0);  //top
 		frustumPlanes[3] = Plane::FromVector4(col3 + col0);  //bottom
 		frustumPlanes[4] = Plane::FromVector4(col3 - col0);  //right
-		frustumPlanes[4] = Plane::FromVector4(col3 + col0);  //left
+		frustumPlanes[5] = Plane::FromVector4(col3 + col0);  //left
 
 #endif
 	}

@@ -227,6 +227,7 @@
     <None Include="..\TinyGame\out\Shader\Terrain.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\HLSLTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc" />
+    <None Include="..\TinyGame\out\Shader\Test\TriangleTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\VulkanTest.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightInjection.sgc" />

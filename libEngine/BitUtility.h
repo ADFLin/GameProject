@@ -35,14 +35,7 @@ public:
 	template< unsigned NumBits >
 	static int ToIndex(unsigned bit)
 	{
-#if TARGET_PLATFORM_64BITS
-		if (NumBits > 32)
-			return ToIndex64(bit);
-		else
-			return ToIndex32(bit);
-#else
 		return ToIndex32(bit);
-#endif
 	}
 	template<>
 	static int ToIndex<4>(unsigned bit) { return ToIndex4(bit); }

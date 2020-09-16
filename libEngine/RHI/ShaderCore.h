@@ -80,6 +80,20 @@ namespace Render
 		{
 			mMetaMap[key] = value;
 		}
+
+		void appendMeta(HashString key, char const* value)
+		{
+			std::string metaValue = mMetaMap[key];
+			if (metaValue.size())
+			{
+				metaValue += ' ';
+				metaValue += value;
+			}
+			else
+			{
+				metaValue = value;
+			}
+		}
 		char const* getMeta(HashString key) const
 		{
 			auto iter = mMetaMap.find(key);
@@ -212,12 +226,57 @@ namespace Render
 		std::unordered_map< HashString, ShaderParameter > mMap;
 	};
 
+	class ShaderPorgramParameterMap : public ShaderParameterMap
+	{
+	public:
+
+		void clear();
+
+		void addShaderParameterMap(EShader::Type shaderType, ShaderParameterMap const& parameterMap);
+
+		void finalizeParameterMap();
+
+		template< class TFunc >
+		void setupShader(ShaderParameter const& parameter, TFunc&& func)
+		{
+			if (parameter.mLoc < 0 || parameter.mLoc >= mParamEntryMap.size())
+				return;
+			assert(0 <= parameter.mLoc && parameter.mLoc < mParamEntryMap.size());
+			auto const& entry = mParamEntryMap[parameter.mLoc];
+
+			ShaderParamEntry* pParamEntry = &mParamEntries[entry.paramIndex];
+			for (int i = entry.numParam; i; --i)
+			{
+				func(pParamEntry->type, pParamEntry->param);
+				++pParamEntry;
+			}
+		}
+
+		struct ParameterEntry
+		{
+			uint16  numParam;
+			uint16  paramIndex;
+		};
+
+		struct ShaderParamEntry
+		{
+			int loc;
+			EShader::Type    type;
+			ShaderParameter param;
+		};
+
+		std::vector< ParameterEntry >   mParamEntryMap;
+		std::vector< ShaderParamEntry > mParamEntries;
+
+	};
+
+
 	struct StructuredBufferInfo
 	{
 		char const* blockName;
 		char const* variableName;
 
-		StructuredBufferInfo(char const* bloackName , char const* varName)
+		StructuredBufferInfo(char const* bloackName , char const* varName = nullptr)
 			:blockName(bloackName)
 			,variableName(varName)
 		{

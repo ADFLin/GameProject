@@ -5,14 +5,14 @@
 #include "WindowsHeader.h"
 #include "MemorySecurity.h"
 #include <cstring>
+#include "FixString.h"
 
 extern int main( int argc , char* argv[] );
 
-int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR lpCmdLine , int nCmdShow )
+int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR , int nCmdShow )
 {
-	lpCmdLine = GetCommandLineA();
-
-
+	FixString< 1024 > Copy = GetCommandLineA();
+	char* lpCmdLine = Copy.data();
 	char* argv[ 128 ];
 	int   argc = 0;
 

@@ -19,7 +19,9 @@ namespace Render
 	extern RHI_API float GRHIVericalFlip;
 
 	extern RHI_API bool GRHISupportMeshShader;
-	extern RHI_API bool GRHISupportRayTraceShader;
+	extern RHI_API bool GRHISupportRayTracing;
+
+	extern RHI_API bool GRHIPrefEnabled;
 
 	enum class DeviceVendorName
 	{
@@ -203,7 +205,7 @@ namespace Render
 			Mesh = 7,
 
 			Count,
-			MaxStorageSize = 4,
+			MaxStorageSize = 5,
 			Empty = -1,
 		};
 	};

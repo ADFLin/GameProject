@@ -16,7 +16,6 @@
 
 #include "VulkanDevice.h"
 
-#pragma comment(lib , "vulkan-1.lib")
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
 	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, Render::FVulkanUtilies::GetResultErrorString(CODE))
@@ -845,7 +844,7 @@ namespace Render
 			createInfo.back.failOp = VulkanTranslate::To(initializer.stencilFailOpBack);
 			createInfo.back.passOp = VulkanTranslate::To(initializer.zPassOpBack);
 			createInfo.back.depthFailOp = VulkanTranslate::To(initializer.zFailOpBack);
-			createInfo.back.compareOp = VulkanTranslate::To(initializer.stencilFunBack);
+			createInfo.back.compareOp = VulkanTranslate::To(initializer.stencilFuncBack);
 			createInfo.back.compareMask = initializer.stencilReadMask;
 			createInfo.back.writeMask = initializer.stencilWriteMask;
 			createInfo.back.reference = 0xff;
@@ -1085,7 +1084,7 @@ namespace Render
 	class VulkanTexture
 	{
 	public:
-		VkBuffer getHandle() { return image; }
+		VkImage getHandle() { return image; }
 
 		VkImageView getView(int level, int indexLayer = 0)
 		{
@@ -1364,16 +1363,7 @@ namespace Render
 	class VulkanVertexBuffer : public TVulkanBuffer< RHIVertexBuffer >
 	{
 	public:
-		virtual void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
-		{
-			assert(0);
-		}
-		virtual void  updateData(uint32 vStart, uint32 numVertices, void* data)
-		{
-			assert(0);
-		}
-
-
+		
 	};
 
 	class VulkanIndexBuffer : public TVulkanBuffer< RHIIndexBuffer >

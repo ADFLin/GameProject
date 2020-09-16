@@ -114,7 +114,7 @@ namespace Render
 				QueueThreadPool pool;
 				pool.init(SystemPlatform::GetProcessorNumber() - 1);
 				DistanceFieldBuildSetting setting;
-				setting.WorkTaskPool = &pool;
+				setting.workTaskPool = &pool;
 #if _DEBUG
 				setting.gridLength = 0.2;
 #else

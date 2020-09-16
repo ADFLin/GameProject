@@ -6,12 +6,16 @@
 #include "FileSystem.h"
 #include "CPreprocessor.h"
 
-#include <streambuf>
-#include <fstream>
-#include <sstream>
 #include "Serialize/StreamBuffer.h"
 #include "RHICommand.h"
 #include "Platform/Windows/WindowsProcess.h"
+
+
+#include <streambuf>
+#include <fstream>
+#include <sstream>
+
+#include <D3D11.h>
 
 
 namespace Render
@@ -81,10 +85,13 @@ namespace Render
 
 			TComPtr< ID3D10Blob > errorCode;
 			TComPtr< ID3D10Blob > byteCode;
-			FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice , input.type);
+			FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice->GetFeatureLevel() , input.type);
 
 			uint32 compileFlag = D3DCOMPILE_IEEE_STRICTNESS /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
-			VERIFY_D3D11RESULT(
+			if (GRHIPrefEnabled)
+				compileFlag |= D3DCOMPILE_DEBUG;
+
+			VERIFY_D3D_RESULT(
 				D3DCompile(codeBuffer.data(), codeBuffer.size(), "ShaderCode", NULL, NULL, output.compileInfo->entryName.c_str(),
 										profileName, compileFlag, 0, &byteCode, &errorCode),
 				{
@@ -202,9 +209,8 @@ namespace Render
 	{
 		shader.mRHIResource = setupData.shaderResource.resource;
 		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
-		ShaderParameterMap parameterMap;
-		D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
-		shader.bindParameters(parameterMap);
+		D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, shaderImpl.mParameterMap);
+		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
 	}
 
@@ -217,9 +223,8 @@ namespace Render
 		if (!shaderImpl.initialize(shaderCompile.type, mDevice, std::move(temp)))
 			return false;
 
-		ShaderParameterMap parameterMap;
-		D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
-		shader.bindParameters(parameterMap);
+		D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, shaderImpl.mParameterMap);
+		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
 	}
 
@@ -267,7 +272,7 @@ namespace Render
 	bool D3D11Shader::GenerateParameterMap(std::vector< uint8 > const& byteCode, ShaderParameterMap& parameterMap)
 	{
 		TComPtr< ID3D11ShaderReflection > reflection;
-		VERIFY_D3D11RESULT_RETURN_FALSE(D3DReflect(byteCode.data(), byteCode.size(), IID_ID3D11ShaderReflection, (void**)&reflection.mPtr));
+		VERIFY_D3D_RESULT_RETURN_FALSE(D3DReflect(byteCode.data(), byteCode.size(), IID_PPV_ARGS(&reflection)));
 
 		D3D11_SHADER_DESC shaderDesc;
 		reflection->GetDesc(&shaderDesc);
@@ -373,8 +378,6 @@ namespace Render
 	bool D3D11ShaderProgram::setupShaders(ShaderResourceInfo shaders[], int numShaders)
 	{
 		mParameterMap.clear();
-		mParamEntryMap.clear();
-		mParamEntries.clear();
 
 		assert(ARRAY_SIZE(mShaders) >= numShaders);
 		mNumShaders = numShaders;
@@ -384,9 +387,10 @@ namespace Render
 			auto& shaderImpl = *mShaders[i];
 			ShaderParameterMap parameterMap;
 			D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
-			addShaderParameterMap(shaderImpl.mResource.type, parameterMap);
+			mParameterMap.addShaderParameterMap(shaderImpl.mResource.type, parameterMap);
 		}
-		finalizeParameterMap();
+
+		mParameterMap.finalizeParameterMap();
 		return true;
 	}
 
@@ -408,64 +412,13 @@ namespace Render
 		}
 	}
 
-	void D3D11ShaderProgram::addShaderParameterMap(EShader::Type shaderType, ShaderParameterMap const& parameterMap)
-	{
-		for (auto const& pair : parameterMap.mMap)
-		{
-			auto& param = mParameterMap.mMap[pair.first];
-
-			if (param.mLoc == -1)
-			{
-				param.mLoc = mParamEntryMap.size();
-#if _DEBUG
-				param.mbindType = pair.second.mbindType;
-#endif
-				ParameterEntry entry;
-				entry.numParam = 0;
-				mParamEntryMap.push_back(entry);
-			}
-
-			ParameterEntry& entry = mParamEntryMap[param.mLoc];
-
-			entry.numParam += 1;
-			ShaderParamEntry paramEntry;
-			paramEntry.type = shaderType;
-			paramEntry.param = pair.second;
-			paramEntry.loc = param.mLoc;
-			mParamEntries.push_back(paramEntry);
-		}
-	}
-
-	void D3D11ShaderProgram::finalizeParameterMap()
-	{
-		std::sort(mParamEntries.begin(), mParamEntries.end(), [](ShaderParamEntry const& lhs, ShaderParamEntry const& rhs)
-		{
-			if (lhs.loc < rhs.loc)
-				return true;
-			else if (lhs.loc > rhs.loc)
-				return false;
-			return lhs.type < rhs.type;
-		});
-
-		int curLoc = -1;
-		for (int index = 0; index < mParamEntries.size(); ++index)
-		{
-			auto& paramEntry = mParamEntries[index];
-			if (paramEntry.loc != curLoc)
-			{
-				mParamEntryMap[paramEntry.loc].paramIndex = index;
-				curLoc = paramEntry.loc;
-			}
-		}
-	}
-
 	bool D3D11ShaderResource::initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, size_t codeSize)
 	{
 		switch (inType)
 		{
 #define CASE_SHADER(  TYPE , FUNC ,VAR )\
 			case TYPE:\
-				VERIFY_D3D11RESULT_RETURN_FALSE( device->FUNC(pCode, codeSize, NULL, &VAR) );\
+				VERIFY_D3D_RESULT_RETURN_FALSE( device->FUNC(pCode, codeSize, NULL, &VAR) );\
 				break;
 
 			CASE_SHADER(EShader::Vertex, CreateVertexShader, vertex);

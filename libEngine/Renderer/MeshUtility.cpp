@@ -148,7 +148,7 @@ namespace Render
 
 		float boundMaxDistanceSqr = boundSize.length2();
 
-		Vector3 gridSizeFloat = setting.ResolutionScale * boundSize / setting.gridLength;
+		Vector3 gridSizeFloat = setting.resolutionScale * boundSize / setting.gridLength;
 		IntVector3 gridSize = IntVector3(Math::CeilToInt(gridSizeFloat.x), Math::CeilToInt(gridSizeFloat.y), Math::CeilToInt(gridSizeFloat.z));
 		gridSize = Math::Clamp(gridSize, IntVector3(2, 2, 2), IntVector3(128, 128, 128));
 		Vector3 gridLength = (boundSize).div(Vector3(gridSize.x, gridSize.y, gridSize.z));
@@ -249,7 +249,7 @@ namespace Render
 		};
 
 		float maxDistanceSqr = boundMaxDistanceSqr;
-		if( setting.WorkTaskPool == nullptr )
+		if( setting.workTaskPool == nullptr )
 		{	
 			for( int nz = 0; nz < gridSize.z; ++nz )
 			{
@@ -274,11 +274,11 @@ namespace Render
 			for( int nz = 0; nz < gridSize.z; ++nz )
 			{
 				auto task = std::make_unique<MyTask>( TaskFunc , boundMaxDistanceSqr , nz );
-				setting.WorkTaskPool->addWork(task.get());
+				setting.workTaskPool->addWork(task.get());
 				allTasks.push_back(std::move(task));
 			}
 
-			setting.WorkTaskPool->waitAllWorkComplete();
+			setting.workTaskPool->waitAllWorkComplete();
 			for( auto& ptr : allTasks )
 			{
 				if( maxDistanceSqr > ptr->maxDistanceSqr )
@@ -982,8 +982,9 @@ namespace Render
 		}
 	}
 
-	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
+	bool MeshletizeInternal(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, std::vector< InlineMeshlet >& outMeshletList)
 	{
+
 		using IndexType = uint32;
 
 		std::vector<int> adjacency;
@@ -991,18 +992,8 @@ namespace Render
 		adjacency.resize(3 * numTriangles);
 		BuildAdjacencyList((uint32 const*)triIndices, 3 * numTriangles, positionReader, (uint32*)adjacency.data());
 
-		std::vector<int> adjacencyTemp;
-		BuildVertexAdjacency(positionReader, triIndices, numTriangles, adjacencyTemp);
-		std::vector<int> adjacencyOld;
-		adjacencyOld.resize(3 * numTriangles);
-		for (int i = 0; i < adjacency.size(); ++i)
-		{
-			adjacencyOld[i] = adjacencyTemp[2 * i + 1];
-		}
-
-		std::vector< InlineMeshlet > meshletList;
-		meshletList.emplace_back();
-		auto* curr = &meshletList.back();
+		outMeshletList.emplace_back();
+		auto* curr = &outMeshletList.back();
 
 		// Bitmask of all triangles in mesh to determine whether a specific one has been added.
 		std::vector<bool> checklist;
@@ -1135,16 +1126,16 @@ namespace Render
 						candidateCheck.insert(candidates[0].first);
 					}
 
-					meshletList.emplace_back();
-					curr = &meshletList.back();
+					outMeshletList.emplace_back();
+					curr = &outMeshletList.back();
 				}
 				else
 				{
 					std::sort(candidates.begin(), candidates.end(),
 						[](const std::pair<uint32, float>& a, const std::pair<uint32, float>& b) -> bool
-						{
-							return a.second > b.second;
-						}
+					{
+						return a.second > b.second;
+					}
 					);
 				}
 			}
@@ -1156,8 +1147,8 @@ namespace Render
 					normals.clear();
 					candidateCheck.clear();
 
-					meshletList.emplace_back();
-					curr = &meshletList.back();
+					outMeshletList.emplace_back();
+					curr = &outMeshletList.back();
 				}
 			}
 
@@ -1176,10 +1167,17 @@ namespace Render
 		}
 
 		// The last meshlet may have never had any primitives added to it - in which case we want to remove it.
-		if (meshletList.back().primitiveIndices.empty())
+		if (outMeshletList.back().primitiveIndices.empty())
 		{
-			meshletList.pop_back();
+			outMeshletList.pop_back();
 		}
+
+		return true;
+	}
+
+	void ApplyMeshletData(std::vector< InlineMeshlet > const& meshletList, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
+	{
+		using IndexType = uint32;
 
 		uint32 startVertCount = static_cast<uint32>(outUniqueVertexIndices.size()) / sizeof(IndexType);
 		uint32 startPrimCount = static_cast<uint32>(outPrimitiveIndices.size());
@@ -1219,7 +1217,201 @@ namespace Render
 			primDest += meshLit.primitiveIndices.size();
 		}
 
+
+	}
+
+	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
+	{
+		using IndexType = uint32;
+
+		std::vector< InlineMeshlet > meshletList;
+		MeshletizeInternal(maxVertices, maxPrims, triIndices, numTriangles, positionReader, meshletList);
+		ApplyMeshletData(meshletList, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
+
 		return true;
+	}
+
+
+	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, TArrayView< MeshSection const > sections, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector< MeshSection >& outSections)
+	{
+		for (int indexSection = 0; indexSection < sections.size(); ++indexSection)
+		{
+			MeshSection const& section = sections[indexSection];
+
+			std::vector< InlineMeshlet > meshletList;
+			MeshletizeInternal(maxVertices, maxPrims, triIndices + section.indexStart, section.count / 3, positionReader, meshletList);
+			ApplyMeshletData(meshletList, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
+
+			MeshSection outSection;
+			outSection.count = meshletList.size();
+			outSection.indexStart = outMeshlets.size();
+			outSections.push_back(outSection);
+		}
+
+		return true;
+	}
+
+	Vector3 Clamp01(Vector3 v)
+	{
+		return Vector3(
+			Math::Clamp<float>(v.x, 0, 1),
+			Math::Clamp<float>(v.y, 0, 1),
+			Math::Clamp<float>(v.z, 0, 1));
+	}
+
+	inline Vector3 QuantizeSNorm(Vector3 value)
+	{
+		return (Clamp01(value) * 0.5f + Vector3(0.5f)) * 255.0f;
+	}
+
+	inline Vector3 QuantizeUNorm(Vector3 value)
+	{
+		return Clamp01(value) * 255.0f;
+	}
+
+
+	void MeshUtility::GenerateCullData(VertexElementReader const& positionReader, MeshletData const* meshlets, int meshletCount, uint32 const* uniqueVertexIndices, const PackagedTriangleIndices* primitiveIndices, MeshletCullData* cullData)
+	{
+#define CNORM_WIND_CW 0x4
+
+		DWORD flags = 0;
+
+		Vector3 vertices[256];
+		Vector3 normals[256];
+
+		for (uint32_t mi = 0; mi < meshletCount; ++mi)
+		{
+			auto& m = meshlets[mi];
+			auto& c = cullData[mi];
+
+			// Cache vertices
+			for (uint32_t i = 0; i < m.vertexCount; ++i)
+			{
+				uint32_t vIndex = uniqueVertexIndices[m.vertexOffset + i];
+
+				CHECK(vIndex < positionReader.numVertex);
+				vertices[i] = positionReader[vIndex];
+			}
+
+			// Generate primitive normals & cache
+			for (uint32_t i = 0; i < m.primitiveCount; ++i)
+			{
+				auto primitive = primitiveIndices[m.primitveOffset + i];
+
+				Vector3 triangle[3]
+				{
+					vertices[primitive.i0],
+					vertices[primitive.i1],
+					vertices[primitive.i2],
+				};
+
+				Vector3 p10 = triangle[1] - triangle[0];
+				Vector3 p20 = triangle[2] - triangle[0];
+				Vector3 n = GetNormal(Math::Cross(p10, p20));
+
+				normals[i] = (flags & CNORM_WIND_CW) ? -n : n;
+			}
+
+			// Calculate spatial bounds
+			Vector4 positionBounds = MinimumBoundingSphere(vertices, m.vertexCount);
+			c.boundingSphere = positionBounds;
+
+			// Calculate the normal cone
+			// 1. Normalized center point of minimum bounding sphere of unit normals == conic axis
+			Vector4 normalBounds = MinimumBoundingSphere(normals, m.primitiveCount);
+
+			// 2. Calculate dot product of all normals to conic axis, selecting minimum
+			Vector3 axis = GetNormal(normalBounds.xyz());
+
+			float minDot = 1;
+			for (uint32_t i = 0; i < m.primitiveCount; ++i)
+			{
+				float dot = Math::Dot(axis, normals[i]);
+				minDot = Math::Min(minDot, dot);
+			}
+
+			if (minDot < 0.1f)
+			{
+				// Degenerate cone
+#if MESH_USE_PACKED_CONE
+				c.normalCone[0] = 127;
+				c.normalCone[1] = 127;
+				c.normalCone[2] = 127;
+				c.normalCone[3] = 255;
+#else
+				c.normalCone[0] = 0;
+				c.normalCone[1] = 0;
+				c.normalCone[2] = 0;
+				c.normalCone[3] = 1;
+
+#endif
+				continue;
+			}
+
+			// Find the point on center-t*axis ray that lies in negative half-space of all triangles
+			float maxt = 0;
+
+			for (uint32 i = 0; i < m.primitiveCount; ++i)
+			{
+				auto primitive = primitiveIndices[m.primitveOffset + i];
+
+				uint32 indices[3]
+				{
+					primitive.i0,
+					primitive.i1,
+					primitive.i2,
+				};
+
+				Vector3 triangle[3]
+				{
+					vertices[indices[0]],
+					vertices[indices[1]],
+					vertices[indices[2]],
+				};
+
+				Vector3 c = positionBounds.xyz() - triangle[0];
+
+				Vector3 n = normals[i];
+				float dc = Math::Dot(c, n);
+				float dn = Math::Dot(axis, n);
+
+				// dn should be larger than mindp cutoff above
+				CHECK(dn > 0.0f);
+				float t = dc / dn;
+
+				maxt = (t > maxt) ? t : maxt;
+			}
+
+			// cone apex should be in the negative half-space of all cluster triangles by construction
+			c.ApexOffset = maxt;
+
+			// cos(a) for normal cone is minDot; we need to add 90 degrees on both sides and invert the cone
+			// which gives us -cos(a+90) = -(-sin(a)) = sin(a) = sqrt(1 - cos^2(a))
+			float coneCutoff = Math::Sqrt(1 - minDot * minDot);
+
+#if MESH_USE_PACKED_CONE
+
+			// 3. Quantize to uint8
+			Vector3 quantized = QuantizeSNorm(axis);
+			c.normalCone[0] = (uint8)quantized.x;
+			c.normalCone[1] = (uint8)quantized.y;
+			c.normalCone[2] = (uint8)quantized.z;
+
+			Vector3 error = ((quantized / 255.0f) * 2.0f - Vector3(1)) - axis;
+			float totalError = Math::Abs(error.x) + Math::Abs(error.y) + Math::Abs(error.z);
+
+			quantized = QuantizeUNorm(Vector3( coneCutoff + totalError ));
+			quantized.x = Math::Min(quantized.x + 1, 255.0f);
+			c.normalCone[3] = (uint8_t)quantized.x;
+
+#else
+			c.normalCone[0] = axis.x;
+			c.normalCone[1] = axis.y;
+			c.normalCone[2] = axis.z;
+			c.normalCone[3] = coneCutoff;
+#endif
+		}
+
 	}
 
 	void MeshUtility::ComputeTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal)

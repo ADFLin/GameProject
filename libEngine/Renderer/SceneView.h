@@ -12,6 +12,7 @@ namespace Render
 	class ShaderProgram;
 	class Shader;
 	class RHICommandList;
+	struct StructuredBufferInfo;
 
 	struct ViewInfo
 	{
@@ -67,8 +68,11 @@ namespace Render
 		void setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix);
 
 		IntVector2 getViewportSize() const;
-		void  setupShader(RHICommandList& commandList, ShaderProgram& program);
-		void  setupShader(RHICommandList& commandList, Shader& shader);
+
+		
+		void  setupShader(RHICommandList& commandList, ShaderProgram& program, StructuredBufferInfo const* info = nullptr );
+
+		void  setupShader(RHICommandList& commandList, Shader& shader, StructuredBufferInfo const* info = nullptr);
 
 
 		void updateFrustumPlanes();

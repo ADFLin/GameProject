@@ -152,6 +152,9 @@
     <Filter Include="OtherLib\DirectXSamples">
       <UniqueIdentifier>{06fd6662-097c-4f15-af0b-2fb97288277f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib\Simplygon">
+      <UniqueIdentifier>{b6d18cb1-ad7c-40f3-b22e-0cd9aae02a98}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -540,6 +543,12 @@
     </ClCompile>
     <ClCompile Include="Renderer\MeshUtility.cpp">
       <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp">
+      <Filter>OtherLib\Simplygon</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3DSharedCommon.cpp">
+      <Filter>RHI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1304,6 +1313,18 @@
     </ClInclude>
     <ClInclude Include="Renderer\MeshCommon.h">
       <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDKLoader.h">
+      <Filter>OtherLib\Simplygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDK.h">
+      <Filter>OtherLib\Simplygon</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3DSharedCommon.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12Utility.h">
+      <Filter>RHI\D3D12</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

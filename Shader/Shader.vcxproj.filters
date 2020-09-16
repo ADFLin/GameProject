@@ -200,6 +200,9 @@
     <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc">
       <Filter>Test</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Test\TriangleTest.sgc">
+      <Filter>Test</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

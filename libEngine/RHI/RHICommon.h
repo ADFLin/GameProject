@@ -458,7 +458,6 @@ namespace Render
 		virtual void removeDepth() = 0;
 	};
 
-
 	struct Vertex
 	{
 		static int GetComponentNum(uint8 format)
@@ -707,9 +706,6 @@ namespace Render
 	{
 	public:
 		RHIVertexBuffer() :RHIBufferBase(TRACE_TYPE_NAME("VertexBuffer")) {}
-
-		virtual void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data) = 0;
-		virtual void  updateData(uint32 vStart, uint32 numVertices, void* data) = 0;
 	};
 
 	class RHIIndexBuffer : public RHIBufferBase
@@ -767,7 +763,7 @@ namespace Render
 		Stencil::Operation stencilFailOp;
 		Stencil::Operation zFailOp;
 		Stencil::Operation zPassOp;
-		ECompareFunc stencilFunBack;
+		ECompareFunc stencilFuncBack;
 		Stencil::Operation stencilFailOpBack;
 		Stencil::Operation zFailOpBack;
 		Stencil::Operation zPassOpBack;
@@ -775,6 +771,12 @@ namespace Render
 		uint32 stencilReadMask;
 		uint32 stencilWriteMask;
 		bool   bWriteDepth;
+
+
+		bool isDepthEnable() const
+		{
+			return depthFunc != ECompareFunc::Always || bWriteDepth;
+		}
 	};
 
 

@@ -1,95 +1,65 @@
 #pragma once
+
 #ifndef D3D12ShaderCommon_H_D3F31F2B_0ADA_4339_AEEC_B308A897E7AA
 #define D3D12ShaderCommon_H_D3F31F2B_0ADA_4339_AEEC_B308A897E7AA
 
-#if 0
 #include "ShaderCore.h"
 #include "ShaderFormat.h"
+#include "RHICommon.h"
 
 #include "Platform/Windows/ComUtility.h"
+#include <d3d12.h>
 
-#include <D3Dcompiler.h>
-#include <D3DX11async.h>
-#pragma comment(lib , "D3dcompiler.lib")
+class IDxcLibrary;
+class IDxcCompiler;
+class IDxcBlob;
 
 namespace Render
 {
-	struct D3D12ShaderResource
+
+	class D3D12ShaderProgram : public TRefcountResource< RHIShaderProgram >
 	{
-		Shader::Type type;
-		union
+	public:
+		D3D12_SHADER_BYTECODE getByteCode(int index) { return { mShaders[index].code.data() , mShaders[index].code.size() }; }
+		struct ShaderInfo
 		{
-			ID3D12DeviceChild*    ptr;
-			ID3D12VertexShader*   vertex;
-			ID3D12PixelShader*    pixel;
-			ID3D12GeometryShader* geometry;
-			ID3D12ComputeShader*  compute;
-			ID3D12HullShader*     hull;
-			ID3D12DomainShader*   domain;
+			EShader::Type type;
+			std::vector< uint8 > code;
 		};
+		ShaderPorgramParameterMap mParameterMap;
+		ShaderInfo mShaders[EShader::MaxStorageSize];
+		int mNumShaders;
 	};
 
-
-	class D3D12Shader : public RHIShader
+	struct ShaderRootSignature 
 	{
-	public:
-		D3D12Shader()
-		{
-			mResource.ptr = nullptr;
-		}
-
-		bool initialize( Shader::Type type , TComPtr<ID3D12Device>& device , TComPtr<ID3D10Blob>& inByteCode );
-		
-		virtual void incRef()
-		{
-			if( mResource.ptr )
-			{
-				mResource.ptr->AddRef();
-			}
-		}
-		
-		virtual bool decRef()
-		{
-			if( mResource.ptr )
-			{
-				return mResource.ptr->Release() == 1;
-			}
-			return false;
-		}
-		
-		virtual void releaseResource()
-		{
-			if( mResource.ptr )
-			{
-				mResource.ptr->Release();
-				mResource.ptr = nullptr;
-			}
-		}
-
-		static bool GenerateParameterMap(std::vector< uint8 > const& byteCode , ShaderParameterMap& parameterMap);
-		std::vector< uint8 > byteCode;
-		D3D12ShaderResource  mResource;
+		D3D12_SHADER_VISIBILITY visibility;
+		std::vector< D3D12_DESCRIPTOR_RANGE1 >   descRanges;
+		std::vector< D3D12_ROOT_PARAMETER1 >     parameters;
+		std::vector< D3D12_STATIC_SAMPLER_DESC > samplers;
 	};
 
-
-	class D3D12ShaderProgram : public RHIShaderProgram
+	class D3D12Shader : public TRefcountResource< RHIShader >
 	{
 	public:
 
-		virtual bool setupShaders(ShaderResourceInfo shaders[], int numShaders)
+		bool initialize(EShader::Type type, TComPtr<IDxcBlob>& shaderCode);
+		bool initialize(EShader::Type type, std::vector<uint8>&& binaryCode);
+
+		D3D12_SHADER_BYTECODE getByteCode() { return { code.data() , code.size() }; }
+		D3D12_ROOT_PARAMETER1 getRootParameter()
 		{
-			assert(ARRAY_SIZE(mShaders) >= numShaders);
-			for( int i = 0; i < numShaders; ++i )
-			{
-				mShaders[i] =  shaders[i].resource;
-				auto& shaderImpl = static_cast<D3D11Shader&>(*shaders[i].resource);
-				ShaderParameterMap parameterMap;
-				D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, parameterMap);
-				addShaderParameterMap(shaderImpl.mResource.type, parameterMap);
-			}
-			finalizeParameterMap();
-			return true;
+			D3D12_ROOT_PARAMETER1 result;
+			result.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			result.DescriptorTable.pDescriptorRanges = mRootSignature.descRanges.data();
+			result.DescriptorTable.NumDescriptorRanges = mRootSignature.descRanges.size();
+			result.ShaderVisibility = mRootSignature.visibility;
+			return result;
 		}
+		
+		static bool GenerateParameterMap(std::vector< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap , ShaderRootSignature& inOutSignature);
+		static void SetupShader(ShaderRootSignature& inOutSignature, EShader::Type type);
+		
 		virtual bool getParameter(char const* name, ShaderParameter& outParam)
 		{
 			return outParam.bind(mParameterMap, name);
@@ -98,149 +68,78 @@ namespace Render
 		{
 			return outParam.bind(mParameterMap, name);
 		}
+		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.variableName; }
 
 
-		virtual void incRef()
-		{
-			++mRefcount;
-		}
 
-		virtual bool decRef()
-		{
-			--mRefcount;
-			return mRefcount <= 0;
-		}
+		EShader::Type mType;
 
-		virtual void releaseResource()
-		{
-			for( int i = 0; i < ARRAY_SIZE(mShaders); ++i )
-			{
-				mShaders[i].release();
-			}
-		}
 
-		template< class TFunc >
-		void setupShader(ShaderParameter const& parameter, TFunc&& func)
-		{
-			assert(0 <= parameter.mLoc && parameter.mLoc < mParamEntryMap.size());
-			auto const& entry = mParamEntryMap[parameter.mLoc];
-
-			ShaderParamEntry* pParamEntry = &mParamEntries[entry.paramIndex];
-			for( int i = entry.numParam; i ; --i )
-			{
-				func( pParamEntry->type , pParamEntry->param );
-				++pParamEntry;
-			}
-		}
-
-		void addShaderParameterMap(Shader::Type shaderType, ShaderParameterMap const& parameterMap)
-		{
-			for( auto const& pair : parameterMap.mMap )
-			{
-				auto& param = mParameterMap.mMap[pair.first];
-
-				if( param.mLoc == -1 )
-				{
-					param.mLoc = mParamEntryMap.size();
-					ParameterEntry entry;
-					entry.numParam = 0;
-					mParamEntryMap.push_back(entry);
-				}
-
-				ParameterEntry& entry = mParamEntryMap[param.mLoc];
-
-				entry.numParam += 1;
-				ShaderParamEntry paramEntry;
-				paramEntry.type  = shaderType;
-				paramEntry.param = pair.second;
-				paramEntry.loc   = param.mLoc;
-				mParamEntries.push_back(paramEntry);
-			}
-		}
-
-		void finalizeParameterMap()
-		{
-			std::sort(mParamEntries.begin(), mParamEntries.end(), [](ShaderParamEntry const& lhs, ShaderParamEntry const& rhs)
-			{
-				if( lhs.loc < rhs.loc )
-					return true;
-				else if( lhs.loc > rhs.loc )
-					return false;
-				return lhs.type < rhs.type;
-			});
-
-			int curLoc = -1;
-			for( int index = 0 ; index < mParamEntries.size() ; ++index )
-			{
-				auto& paramEntry = mParamEntries[index];
-				if( paramEntry.loc != curLoc )
-				{
-					mParamEntryMap[paramEntry.loc].paramIndex = index;
-					curLoc = paramEntry.loc;
-				}
-			}
-		}
-
-		ShaderParameterMap mParameterMap;
-
-		struct ParameterEntry
-		{
-			uint16  numParam;
-			uint16  paramIndex;
-		};
-
-		struct ShaderParamEntry
-		{
-			int loc;
-			Shader::Type    type;
-			ShaderParameter param;
-		};
-
-		int mRefcount = 0;
-		std::vector< ParameterEntry >   mParamEntryMap;
-		std::vector< ShaderParamEntry > mParamEntries;
-		RHIShaderRef mShaders[Shader::Count - 1];
+		ShaderParameterMap   mParameterMap;
+		ShaderRootSignature  mRootSignature;
+		std::vector<uint8> code;
 	};
 
 	class ShaderFormatHLSL_D3D12 : public ShaderFormat
 	{
 	public:
-		ShaderFormatHLSL(TComPtr< ID3D11Device > inDevice )
-			:mDevice( inDevice ){}
-
+		ShaderFormatHLSL_D3D12(TComPtr< ID3D12Device8 >& inDevice);
+		~ShaderFormatHLSL_D3D12();
 		virtual char const* getName() final { return "hlsl"; }
-		virtual void setupShaderCompileOption(ShaderCompileOption& option)  final
+		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
+		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
+		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) final;
+
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final
 		{
-			option.addMeta("ShaderFormat", getName());
+			return false;
 		}
-		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) final
 		{
-			inoutCode += "#define COMPILER_HLSL 1\n";
+			return false;
+		}
+
+		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final
+		{
+
 		}
 
 		virtual bool isSupportBinaryCode() const final { return true; }
-		virtual bool getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode) final
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) final
 		{
 			return false;
 		}
-		virtual bool setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode) final
+
+
+		TComPtr<ID3D12Device8> mDevice;
+		TComPtr<IDxcLibrary>  mLibrary;
+		TComPtr<IDxcCompiler> mCompiler;
+
+
+		bool ensureDxcObjectCreation();
+
+
+		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
+		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) override;
+
+
+		virtual void postShaderLoaded(Shader& shader) override
 		{
 
-			return false;
 		}
 
-		virtual void setupParameters(ShaderProgram& shaderProgram) final;
-
-		virtual bool compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def) final;
-
-		TComPtr< ID3D12Device > mDevice;
+		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode) override;
 
 
+		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
+
+
+		virtual void precompileCode(ShaderSetupData& setupData) override;
 
 	};
 
 }//namespace Render
-#endif
+
 
 
 #endif // D3D12ShaderCommon_H_D3F31F2B_0ADA_4339_AEEC_B308A897E7AA

@@ -21,7 +21,7 @@ namespace Render
 			context.setWorld(worldTrans);
 			{
 				char const* matName = material ? material->getMaster()->mName.c_str() : "DefalutMaterial";
-				//GPU_PROFILE( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[idxSection].num);
+				//GPU_PROFILE( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[idxSection].count);
 				drawSection( context.getCommnadList(), idxSection );
 			}
 		}
@@ -70,8 +70,8 @@ namespace Render
 
 				MeshBatchElement meshElement;
 				meshElement.indexBuffer = mesh->mIndexBuffer;
-				meshElement.idxStart = mesh->mSections[i].start;
-				meshElement.numElement = mesh->mSections[i].num;
+				meshElement.idxStart = mesh->mSections[i].indexStart;
+				meshElement.numElement = mesh->mSections[i].count;
 				meshElement.world = worldTransform;
 
 				meshBatch.elements.push_back(meshElement);

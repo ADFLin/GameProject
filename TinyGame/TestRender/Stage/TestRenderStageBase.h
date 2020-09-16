@@ -126,20 +126,13 @@ namespace Render
 
 		bool UpdateInstanceBuffer()
 		{
-			if( !mInstancedBuffer.isValid() )
+			if( !mInstancedBuffer.isValid() || mInstancedBuffer->getNumElements() < mInstanceTransforms.size() )
 			{
 				mInstancedBuffer = RHICreateVertexBuffer(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_CpuAccessWrite, nullptr);
 				if( !mInstancedBuffer.isValid() )
 				{
 					LogMsg("Can't create vertex buffer!!");
 					return false;
-				}
-			}
-			else
-			{
-				if( mInstancedBuffer->getNumElements() < mInstanceTransforms.size() )
-				{
-					mInstancedBuffer->resetData(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_CpuAccessWrite, nullptr);
 				}
 			}
 
@@ -364,9 +357,11 @@ namespace Render
 		//
 		virtual bool setupRenderSystem(ERenderSystem systemName)
 		{
-			VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
-			VERIFY_RETURN_FALSE(mBitbltFrameBuffer = RHICreateFrameBuffer());
-			
+			if ( systemName != ERenderSystem::D3D12 )
+			{
+				VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
+				VERIFY_RETURN_FALSE(mBitbltFrameBuffer = RHICreateFrameBuffer());
+			}
 			return true;
 		}
 

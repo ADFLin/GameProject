@@ -1,28 +1,17 @@
 #include "RHICommon.h"
 
+#include "D3DSharedCommon.h"
+
 #include "LogSystem.h"
 #include "Platform/Windows/ComUtility.h"
 
 #include "FixString.h"
 
 #include <D3D11.h>
-#pragma comment(lib , "D3D11.lib")
-#pragma comment(lib , "DXGI.lib")
-#pragma comment(lib , "dxguid.lib")
 
 #include <unordered_map>
 
-#define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
-	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
 
-#define VERIFY_D3D11RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
-	{ HRESULT hr = CODE; if( hr != S_OK ){ ERROR_MSG_GENERATE( hr , CODE, FILE, LINE ); ERRORCODE } }
-
-#define VERIFY_D3D11RESULT( CODE , ERRORCODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
-#define VERIFY_D3D11RESULT_RETURN_FALSE( CODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
-
-
-#define SAFE_RELEASE( PTR ) if ( PTR ){ PTR->Release(); PTR = nullptr; }
 
 namespace Render
 {
@@ -40,7 +29,6 @@ namespace Render
 	class D3D11TextureCube;
 	class D3D11VertexBuffer;
 	class D3D11IndexBuffer;
-	class D3D11UniformBuffer;
 	class D3D11RasterizerState;
 	class D3D11BlendState;
 	class D3D11InputLayout;
@@ -130,11 +118,10 @@ namespace Render
 		typedef D3D11SwapChain ImplType;
 	};
 
-	struct D3D11Translate
+	struct D3D11Translate : D3DTranslate
 	{
-		static D3D_PRIMITIVE_TOPOLOGY To(EPrimitive type);
-		static DXGI_FORMAT To(Vertex::Format format, bool bNormalized);
-		static DXGI_FORMAT To(Texture::Format format);
+		using D3DTranslate::To;
+
 		static D3D11_BLEND To(Blend::Factor factor);
 		static D3D11_BLEND_OP To(Blend::Operation op);
 		static D3D11_CULL_MODE To(ECullMode mode);
@@ -294,10 +281,10 @@ namespace Render
 	{
 	public:
 		D3D11Texture1D(Texture::Format format, Texture1DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture1D >(creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITexture1D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
-			mResource = creationResult.resource.release();
+			mResource = creationResult.resource.detach();
 			D3D11_TEXTURE1D_DESC desc;
 			mResource->GetDesc(&desc);
 			mSize = desc.Width;
@@ -413,9 +400,9 @@ namespace Render
 			TComPtr< ID3D11RenderTargetView > RTView;
 			D3D11_RENDER_TARGET_VIEW_DESC desc;
 			SetupDescFunc(desc);
-			VERIFY_D3D11RESULT(device->CreateRenderTargetView(texture, &desc, &RTView), return nullptr;);
+			VERIFY_D3D_RESULT(device->CreateRenderTargetView(texture, &desc, &RTView), return nullptr;);
 
-			ID3D11RenderTargetView* result = RTView.release();
+			ID3D11RenderTargetView* result = RTView.detach();
 			mRTViewMap.emplace(key, result);
 			return result;
 		}
@@ -473,10 +460,10 @@ namespace Render
 			DepthFormat ,
 		};
 		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture2D >(creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITexture2D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
-			mResource = creationResult.resource.release();
+			mResource = creationResult.resource.detach();
 			D3D11_TEXTURE2D_DESC desc;
 			mResource->GetDesc(&desc);
 			mSizeX = desc.Width;
@@ -486,10 +473,10 @@ namespace Render
 		}
 
 		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult , EDepthFormat )
-			:TD3D11Texture< RHITexture2D >(creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITexture2D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
-			mResource = creationResult.resource.release();
+			mResource = creationResult.resource.detach();
 			D3D11_TEXTURE2D_DESC desc;
 			mResource->GetDesc(&desc);
 			mSizeX = desc.Width;
@@ -519,7 +506,7 @@ namespace Render
 				depthStencilDesc.Texture2D.MipSlice = 0;
 			}
 
-			VERIFY_D3D11RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
+			VERIFY_D3D_RESULT(device->CreateDepthStencilView(mResource, &depthStencilDesc, &mDSV), );
 
 		}
 
@@ -596,10 +583,10 @@ namespace Render
 	{
 	public:
 		D3D11Texture3D(Texture::Format format, Texture3DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture3D >(creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITexture3D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
-			mResource = creationResult.resource.release();
+			mResource = creationResult.resource.detach();
 			D3D11_TEXTURE3D_DESC desc;
 			mResource->GetDesc(&desc);
 			mSizeX = desc.Width;
@@ -615,10 +602,10 @@ namespace Render
 		using BaseClass = TD3D11Texture< RHITextureCube >;
 	public:
 		D3D11TextureCube(Texture::Format format, TextureCubeCreationResult& creationResult)
-			:TD3D11Texture< RHITextureCube >(creationResult.SRV.release(), creationResult.UAV.release())
+			:TD3D11Texture< RHITextureCube >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
-			mResource = creationResult.resource.release();
+			mResource = creationResult.resource.detach();
 			D3D11_TEXTURE2D_DESC desc;
 			mResource->GetDesc(&desc);
 			mSize = desc.Width;
@@ -696,9 +683,9 @@ namespace Render
 	public:
 		TD3D11Buffer(D3D11BufferCreationResult& creationResult)
 		{
-			mResource = creationResult.resource.release();
-			mSRV = creationResult.SRV.release();
-			mUAV = creationResult.UAV.release();
+			mResource = creationResult.resource.detach();
+			mSRV = creationResult.SRV.detach();
+			mUAV = creationResult.UAV.detach();
 			mCreationFlags = creationResult.flags;
 		}
 
@@ -734,12 +721,8 @@ namespace Render
 			mNumElements = numVertices;
 			mElementSize = vertexSize;
 		}
-		virtual void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
-		{
 
-
-		}
-		virtual void  updateData(uint32 vStart, uint32 numVertices, void* data)
+		void  updateData(uint32 vStart, uint32 numVertices, void* data)
 		{
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
@@ -817,13 +800,13 @@ namespace Render
 
 		bool haveAttribute(uint8 attribute) const
 		{
-			return !!(mAttriableMasks & BIT(attribute));
+			return !!(mAttriableMask & BIT(attribute));
 		}
 
 		ID3D11InputLayout* GetShaderLayout( ID3D11Device* device , RHIShader* shader);
 
 		std::vector< D3D11_INPUT_ELEMENT_DESC > mDescList;
-		uint32 mAttriableMasks;
+		uint32 mAttriableMask;
 		ID3D11InputLayout* mUniversalResource;
 		std::unordered_map< RHIShader*, ID3D11InputLayout* > mResourceMap;
 	};
@@ -882,7 +865,7 @@ namespace Render
 			:mColorTexture(&colorTexture)
 			,mDepthTexture(depthTexture)
 		{
-			mResource = resource.release();
+			mResource = resource.detach();
 			mRenderTargetsState.numColorBuffers = 1;
 			mRenderTargetsState.colorBuffers[0] = mColorTexture->getRenderTargetView(0);
 			if (mDepthTexture)
@@ -902,16 +885,16 @@ namespace Render
 		}
 
 
-		void BitbltToDevice(HDC hTargetDC)
+		void bitbltToDevice(HDC hTargetDC)
 		{
 			TComPtr<IDXGISurface1> surface;
-			VERIFY_D3D11RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&surface)), );
+			VERIFY_D3D_RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&surface)), );
 			HDC hDC;
-			VERIFY_D3D11RESULT(surface->GetDC(FALSE, &hDC), );
+			VERIFY_D3D_RESULT(surface->GetDC(FALSE, &hDC), );
 			int w = mColorTexture->getSizeX();
 			int h = mColorTexture->getSizeY();
 			::BitBlt(hTargetDC, 0, 0, w, h, hDC, 0, 0, SRCCOPY);
-			VERIFY_D3D11RESULT(surface->ReleaseDC(nullptr), );
+			VERIFY_D3D_RESULT(surface->ReleaseDC(nullptr), );
 		}
 
 		virtual void releaseResource()
@@ -953,7 +936,7 @@ namespace Render
 	class FD3D11Utility
 	{
 	public:
-		static FixString<32> GetShaderProfile( ID3D11Device* device , EShader::Type type);
+		static FixString<32> GetShaderProfile( D3D_FEATURE_LEVEL featureLevel, EShader::Type type);
 	};
 
 

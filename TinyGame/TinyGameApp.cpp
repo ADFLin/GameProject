@@ -499,10 +499,19 @@ void TinyGameApp::handleGameRender()
 void TinyGameApp::loadModules()
 {
 	FileIterator fileIter;
+
 	FixString<MAX_PATH + 1> dir;
-	::GetModuleFileName(NULL, dir.data(), dir.max_size());
+#if _DEBUG
+	GetCurrentDirectory(
+		dir.max_size(),
+		dir.data()
+	);
+	if (FileSystem::FindFiles(dir, ".dll", fileIter))
+#else
 	
-	if ( FileSystem::FindFiles( FileUtility::GetDirectory(dir).toCString() , ".dll" , fileIter ) )
+	::GetModuleFileName(NULL, dir.data(), dir.max_size());
+	if (FileSystem::FindFiles(FileUtility::GetDirectory(dir).toCString(), ".dll", fileIter))
+#endif
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{

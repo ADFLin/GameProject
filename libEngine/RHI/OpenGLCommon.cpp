@@ -1041,8 +1041,10 @@ namespace Render
 	{
 		if( creationFlags & BCF_CpuAccessWrite )
 			return GL_DYNAMIC_DRAW;
+		if (creationFlags & BCF_CPUAccessRead)
+			return GL_DYNAMIC_READ;
 		else if( creationFlags & BCF_UsageStage )
-			return GL_STREAM_DRAW;
+			return GL_STREAM_COPY;
 		return GL_STATIC_DRAW;
 	}
 
@@ -1112,7 +1114,7 @@ namespace Render
 	OpenGLDepthStencilState::OpenGLDepthStencilState(DepthStencilStateInitializer const& initializer)
 	{
 		//When depth testing is disabled, writes to the depth buffer are also disabled
-		mStateValue.bEnableDepthTest = (initializer.depthFunc != ECompareFunc::Always) || (initializer.bWriteDepth);
+		mStateValue.bEnableDepthTest = initializer.isDepthEnable();
 		mStateValue.depthFun = OpenGLTranslate::To(initializer.depthFunc);
 		mStateValue.bWriteDepth = initializer.bWriteDepth;
 
@@ -1123,7 +1125,7 @@ namespace Render
 		mStateValue.stencilZFailOp = OpenGLTranslate::To(initializer.zFailOp);
 		mStateValue.stencilZPassOp = OpenGLTranslate::To(initializer.zPassOp);
 
-		mStateValue.stencilFunBack = OpenGLTranslate::To(initializer.stencilFunBack);
+		mStateValue.stencilFunBack = OpenGLTranslate::To(initializer.stencilFuncBack);
 		mStateValue.stencilFailOpBack = OpenGLTranslate::To(initializer.stencilFailOpBack);
 		mStateValue.stencilZFailOpBack = OpenGLTranslate::To(initializer.zFailOpBack);
 		mStateValue.stencilZPassOpBack = OpenGLTranslate::To(initializer.zPassOpBack);
@@ -1149,6 +1151,7 @@ namespace Render
 
 	OpenGLInputLayout::OpenGLInputLayout(InputLayoutDesc const& desc)
 	{
+		mAttributeMask = 0;
 		for( auto const& e : desc.mElements )
 		{
 			if (e.attribute == Vertex::ATTRIBUTE_UNUSED )
@@ -1164,6 +1167,8 @@ namespace Render
 			element.componentType = OpenGLTranslate::VertexComponentType(e.format);
 			element.stride = desc.getVertexSize(e.idxStream);
 			element.offset = e.offset;
+
+			mAttributeMask |= BIT(e.attribute);
 
 			mElements.push_back(element);
 		}
@@ -1234,6 +1239,19 @@ namespace Render
 #endif
 	}
 
+	template< class T >
+	void SetVertexAttrib(uint8 attribute, uint8 componentNum , void* offset)
+	{
+		T* pData = (T*)offset;
+		switch (e.componentNum)
+		{
+		case 1: glVertexAttrib1f(e.attribute, float(pData[0])); break;
+		case 2: glVertexAttrib2f(e.attribute, float(pData[0]), float(pData[1])); break;
+		case 3: glVertexAttrib3f(e.attribute, float(pData[0]), float(pData[1]), float(pData[2])); break;
+		case 4: glVertexAttrib4f(e.attribute, float(pData[0]), float(pData[1]), float(pData[2]), float(pData[3])); break;
+		}
+	}
+
 	void OpenGLInputLayout::bindAttribUP(InputStreamState const& state)
 	{
 		InputStreamInfo const* inputStreams = state.inputStreams;
@@ -1248,21 +1266,32 @@ namespace Render
 
 			auto& inputStream = inputStreams[e.idxStream];
 			assert(inputStream.stride >= 0);
-			uintptr_t offset = inputStream.offset + e.offset;
+			intptr_t offset = inputStream.offset + e.offset;
 
-			glEnableVertexAttribArray(e.attribute);
 			if (inputStream.stride > 0)
 			{
+				glEnableVertexAttribArray(e.attribute);
 				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, inputStream.stride, (void*)offset);
 			}
 			else
 			{
-				switch (e.componentNum)
+				if (e.componentType == GL_FLOAT)
 				{
-				case 1: glVertexAttrib1fv(e.attribute, (float*)offset); break;
-				case 2: glVertexAttrib2fv(e.attribute, (float*)offset); break;
-				case 3: glVertexAttrib3fv(e.attribute, (float*)offset); break;
-				case 4: glVertexAttrib4fv(e.attribute, (float*)offset); break;
+					switch (e.componentNum)
+					{
+					case 1: glVertexAttrib1fv(e.attribute, (float*)offset); break;
+					case 2: glVertexAttrib2fv(e.attribute, (float*)offset); break;
+					case 3: glVertexAttrib3fv(e.attribute, (float*)offset); break;
+					case 4: glVertexAttrib4fv(e.attribute, (float*)offset); break;
+					}
+					break;
+				}
+				else
+				{
+
+
+
+
 				}
 			}
 		}
@@ -1277,12 +1306,12 @@ namespace Render
 
 			if ( e.bInstanceData )
 				glVertexAttribDivisor(e.attribute, 0);
-			glDisableVertexAttribArray(e.attribute);
-			
+
+			glDisableVertexAttribArray(e.attribute);		
 		}
 	}
 
-	void BindElementPointer(OpenGLInputLayout::Element const& e, uint32 offset, uint32 stride, bool& haveTex)
+	void BindElementPointer(OpenGLInputLayout::Element const& e, intptr_t offset, uint32 stride, bool& haveTex)
 	{
 		offset += e.offset;
 		switch( e.attribute )
@@ -1342,7 +1371,7 @@ namespace Render
 		}
 	}
 
-	void BindElementData(OpenGLInputLayout::Element const& e, uint32 offset)
+	void BindElementData(OpenGLInputLayout::Element const& e, intptr_t offset)
 	{
 		offset += e.offset;
 		switch( e.attribute )
@@ -1484,7 +1513,7 @@ namespace Render
 			if ( e.idxStream >= numInputStream )
 				continue;
 
-			uint32 offset = inputStreams[e.idxStream].offset;
+			intptr_t offset = inputStreams[e.idxStream].offset;
 			uint32 stride = inputStreams[e.idxStream].stride;
 			if (stride > 0)
 			{
@@ -1502,7 +1531,7 @@ namespace Render
 		bool haveTex = false;
 		for( auto const& e : mElements )
 		{
-			uint32 offset = 0;
+			intptr_t offset = 0;
 			uint32 stride = e.stride;
 			BindElementPointer(e, offset, stride, haveTex);
 		}

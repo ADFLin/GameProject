@@ -11,6 +11,9 @@
 
 namespace Render
 {
+
+
+
 	void SimplePipelineProgram::setParameters(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
 	{
 		if (mParamTexture.isBound())
@@ -41,6 +44,32 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<false, false>));
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, true>));
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, false>));
+
+	SimplePipelineProgram* SimplePipelineProgram::Get(uint32 attributeMask , bool bHaveTexture)
+	{
+		SimplePipelineProgram* program = GSimpleShaderPipline;
+
+		if (attributeMask & BIT(Vertex::ATTRIBUTE_COLOR))
+		{
+			if (attributeMask & BIT(Vertex::ATTRIBUTE_TEXCOORD))
+			{
+				program = GSimpleShaderPiplineCT;
+			}
+			else
+			{
+				program = GSimpleShaderPiplineC;
+			}
+		}
+		else
+		{
+			if ((attributeMask & BIT(Vertex::ATTRIBUTE_TEXCOORD)) && bHaveTexture)
+			{
+				program = GSimpleShaderPiplineT;
+			}
+		}
+
+		return program;
+	}
 
 	TGlobalRenderResource<RHITexture2D>   GDefaultMaterialTexture2D;
 	TGlobalRenderResource<RHITexture1D>   GWhiteTexture1D;

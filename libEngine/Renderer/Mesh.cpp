@@ -121,7 +121,7 @@ namespace Render
 		if (mVertexBuffer == nullptr)
 			return;
 		MeshSection& section = mSections[idx];
-		drawInternal(commandList, mType, section.start, section.num, mIndexBuffer);
+		drawInternal(commandList, mType, section.indexStart, section.count, mIndexBuffer);
 	}
 
 	void Mesh::drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer)
@@ -142,7 +142,7 @@ namespace Render
 		}
 	}
 
-	bool Mesh::buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
+	bool Mesh::buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector<MeshletCullData>* outCullDataList)
 	{
 
 		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer, ELockAccess::ReadOnly);
@@ -163,8 +163,16 @@ namespace Render
 		if (pIndexData == nullptr)
 			return false;
 
-		return MeshUtility::Meshletize(maxVertices, maxPrims, pIndexData, numTriangles, makePositionReader(pVertex), outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
+		auto positionReader = makePositionReader(pVertex);
+		bool result = MeshUtility::Meshletize(maxVertices, maxPrims, pIndexData, numTriangles, positionReader, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
 
+		if (result && outCullDataList)
+		{
+			outCullDataList->resize(outMeshlets.size());
+			MeshUtility::GenerateCullData(positionReader, outMeshlets.data(), outMeshlets.size(), (uint32 const*)outUniqueVertexIndices.data(), outPrimitiveIndices.data(), outCullDataList->data());
+		}
+
+		return result;
 	}
 
 	void Mesh::setupColorOverride(LinearColor const& color)

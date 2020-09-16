@@ -76,6 +76,7 @@ namespace Render
 
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
 		void clearTexture(ShaderParameter const& parameter);
+		void clearUAV(ShaderParameter const& parameter);
 		void setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture);
 		void setSampler(ShaderParameter const& parameter, RHISamplerState& sampler);
 		void setUniformBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer);
@@ -87,9 +88,11 @@ namespace Render
 		template< EShader::Type TypeValue >
 		void commitState( ID3D11DeviceContext* context);
 		template< EShader::Type TypeValue >
-		void clearState(ID3D11DeviceContext* context);
+		void clearConstantBuffers(ID3D11DeviceContext* context);
 		template< EShader::Type TypeValue >
+		void postDrawPrimitive(ID3D11DeviceContext* context);
 
+		template< EShader::Type TypeValue >
 		void clearSRVResource(ID3D11DeviceContext* context,RHIResource& resource);
 		template< EShader::Type TypeValue >
 		void clearSRVResource(ID3D11DeviceContext* context);
@@ -174,7 +177,7 @@ namespace Render
 			{
 				return false;
 			}
-			mBuffers.push_back(BufferResource.release());
+			mBuffers.push_back(BufferResource.detach());
 			mBufferSizes.push_back(bufferSize);
 			return true;
 		}
@@ -236,61 +239,20 @@ namespace Render
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
-		void RHISetViewport(int x, int y, int w, int h, float zNear, float zFar);
+		void RHISetViewport(float x, float y, float w, float h, float zNear, float zFar);
+		void RHISetViewports(ViewportInfo const viewports[], int numViewports);
 		void RHISetScissorRect(int x, int y, int w, int h);
 
-		void PostDrawPrimitive();
-		void RHIDrawPrimitive(EPrimitive type, int start, int nv)
-		{
-			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
-			mDeviceContext->Draw(nv, start);
-			PostDrawPrimitive();
-		}
+		void postDrawPrimitive();
+		void RHIDrawPrimitive(EPrimitive type, int start, int nv);
 
-		void RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex, uint32 baseVertex)
-		{
-			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
-			mDeviceContext->DrawIndexed(nIndex , indexStart , baseVertex);
-			PostDrawPrimitive();
-		}
+		void RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex, uint32 baseVertex);
 
-		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
-		{
-			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
-			PostDrawPrimitive();
-		}
-		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
-		{
-			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
-			if( numCommand )
-			{
-				mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), offset);
-			}
-			else
-			{
-				//
-			}
-			PostDrawPrimitive();
-		}
-		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
-		{
-			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
-			mDeviceContext->DrawInstanced(nv, numInstance, vStart, baseInstance);
-			PostDrawPrimitive();
-		}
+		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
 
-		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
-		{
-			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
-			mDeviceContext->DrawIndexedInstanced( nIndex , numInstance , indexStart , baseVertex , baseInstance);
-			PostDrawPrimitive();
-		}
+		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
 
 		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
 
@@ -346,7 +308,7 @@ namespace Render
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
 
-		void commitRenderShaderState();
+		void commitGraphicShaderState();
 
 		void commitComputeState();
 		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
@@ -380,9 +342,16 @@ namespace Render
 
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
-		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) 
+		{
+
+		}
 
 		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
+		void RHISetMeshShaderBoundState(MeshShaderBoundState const& state)
+		{
+
+		}
 		void RHISetComputeShader(RHIShader* shader);
 
 
@@ -408,14 +377,19 @@ namespace Render
 		void clearShaderTexture(RHIShader& shader, ShaderParameter const& param)
 		{
 
-
 		}
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) {}
-		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) 
+		{
+
+		}
+		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) 
+		{
+		
+		}
 
 		void clearSRVResource(RHIResource& resource);
 
@@ -429,7 +403,7 @@ namespace Render
 
 		D3D11_VIEWPORT mViewportState[8];
 
-		bool bUseFixedShaderPipeline = true;
+		
 		struct FixedShaderParams
 		{
 			Matrix4 transform;
@@ -446,6 +420,7 @@ namespace Render
 			}
 		};
 		FixedShaderParams mFixedShaderParams;
+		bool bUseFixedShaderPipeline = true;
 
 		RHIShader* mVertexShader = nullptr;
 		TComPtr< ID3D11DeviceContext >  mDeviceContext;

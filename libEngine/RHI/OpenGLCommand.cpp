@@ -442,12 +442,12 @@ namespace Render
 		return &pair.first->second;
 	}
 
-	OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(GraphicsShaderBoundState const& state)
+	OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(GraphicsShaderStateDesc const& state)
 	{
 		return getShaderBoundStateT(state);
 	}
 
-	Render::OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(MeshShaderBoundState const& state)
+	Render::OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(MeshShaderStateDesc const& state)
 	{
 		return getShaderBoundStateT(state);
 	}
@@ -868,7 +868,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state)
+	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state)
 	{
 		clearShader(true);
 		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(state);
@@ -885,7 +885,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::RHISetMeshShaderBoundState(MeshShaderBoundState const& state)
+	void OpenGLContext::RHISetMeshShaderBoundState(MeshShaderStateDesc const& state)
 	{
 		clearShader(true);
 		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(state);
@@ -1800,7 +1800,7 @@ namespace Render
 		}
 	}
 
-	bool OpenGLShaderBoundState::create(GraphicsShaderBoundState const& state)
+	bool OpenGLShaderBoundState::create(GraphicsShaderStateDesc const& state)
 	{
 		if (!mGLObject.fetchHandle())
 			return false;
@@ -1825,7 +1825,7 @@ namespace Render
 
 		return true;
 	}
-	bool OpenGLShaderBoundState::create(MeshShaderBoundState const& state)
+	bool OpenGLShaderBoundState::create(MeshShaderStateDesc const& state)
 	{
 		if (!mGLObject.fetchHandle())
 			return false;

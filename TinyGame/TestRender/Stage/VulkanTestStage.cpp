@@ -254,7 +254,7 @@ namespace RenderVulkan
 			VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true , BCF_DefalutValue , indices));
 
 
-			GraphicsPipelineState graphicsState;
+			GraphicsPipelineStateDesc graphicsState;
 			graphicsState.primitiveType = EPrimitive::TriangleList;
 			graphicsState.rasterizerState = &TStaticRasterizerState<>::GetRHI();
 			graphicsState.depthStencilState = &TStaticDepthStencilState<>::GetRHI();

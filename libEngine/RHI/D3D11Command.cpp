@@ -1933,7 +1933,7 @@ namespace Render
 		}
 	}
 
-	void D3D11Context::RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state)
+	void D3D11Context::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state)
 	{
 		bUseFixedShaderPipeline = false;
 

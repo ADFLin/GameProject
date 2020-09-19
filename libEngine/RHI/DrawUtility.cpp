@@ -674,7 +674,7 @@ namespace Render
 	void ShaderHelper::copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture)
 	{
 #if USE_SEPARATE_SHADER
-		GraphicsShaderBoundState state;
+		GraphicsShaderStateDesc state;
 		state.vertex = mScreenVS->getRHIResource();
 		state.pixel = mCopyTexturePS->getRHIResource();
 		RHISetGraphicsShaderBoundState(commandList, state);
@@ -697,7 +697,7 @@ namespace Render
 	void ShaderHelper::copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
 #if USE_SEPARATE_SHADER
-		GraphicsShaderBoundState state;
+		GraphicsShaderStateDesc state;
 		state.vertex = mScreenVS->getRHIResource();
 		state.pixel = mCopyTextureMaskPS->getRHIResource();
 		RHISetGraphicsShaderBoundState(commandList, state);
@@ -714,7 +714,7 @@ namespace Render
 	void ShaderHelper::copyTextureBiasToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 	{
 #if USE_SEPARATE_SHADER
-		GraphicsShaderBoundState state;
+		GraphicsShaderStateDesc state;
 		state.vertex = mScreenVS->getRHIResource();
 		state.pixel = mCopyTextureBiasPS->getRHIResource();
 		RHISetGraphicsShaderBoundState(commandList, state);

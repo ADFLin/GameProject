@@ -82,26 +82,7 @@ namespace Render
 			}
 		}
 	}
-#if CORE_SHARE_CODE
 
-	uint32 GShaderSerials[EShader::Count];
-	void RHIShader::RegisterTable(RHIShader& shader)
-	{
-		++GShaderSerials[shader.mType];
-		shader.mGUID = GShaderSerials[shader.mType];
-	}
-
-	void RHIShader::InitTable()
-	{
-		std::fill_n(GShaderSerials, EShader::Count, 0);
-	}
-
-	void RHIShader::ReleaseTable()
-	{
-
-	}
-
-#endif
 
 
 }//namespace Render

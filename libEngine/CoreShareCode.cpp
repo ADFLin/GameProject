@@ -12,7 +12,6 @@
 #include "RHI/D3D12Utility.cpp"
 
 #include "RHI/RHICommon.cpp"
-#include "RHI/ShaderCore.cpp"
 #include "RHI/ShaderManager.cpp"
 #include "RHI/MaterialShader.cpp"
 #include "RHI/VertexFactory.cpp"

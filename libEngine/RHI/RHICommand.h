@@ -248,7 +248,7 @@ namespace Render
 	RHI_API void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
 	RHI_API void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
 
-	struct GraphicsShaderBoundState
+	struct GraphicsShaderStateDesc
 	{
 		RHIShader* vertex;
 		RHIShader* pixel;
@@ -256,42 +256,42 @@ namespace Render
 		RHIShader* hull;
 		RHIShader* domain;
 
-		GraphicsShaderBoundState()
+		GraphicsShaderStateDesc()
 		{
 			::memset(this, 0, sizeof(*this));
 		}
 	};
 
-	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderBoundState const& state);
+	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderStateDesc const& state);
 
 
-	struct MeshShaderBoundState
+	struct MeshShaderStateDesc
 	{
 		RHIShader* task;
 		RHIShader* mesh;
 		RHIShader* pixel;
 
-		MeshShaderBoundState()
+		MeshShaderStateDesc()
 		{
 			::memset(this, 0, sizeof(*this));
 		}
 	};
-	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderBoundState const& state);
+	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& state);
 
 
-	struct GraphicsPipelineState
+	struct GraphicsPipelineStateDesc
 	{
 		RHIRasterizerState*   rasterizerState;
 		RHIDepthStencilState* depthStencilState;
 		RHIBlendState*        blendState;
 
-		GraphicsShaderBoundState shaderBoundState;
+		GraphicsShaderStateDesc shaderBoundState;
 		RHIShaderProgram*   shaderProgram;
 
 		EPrimitive          primitiveType;
 		RHIInputLayout*     inputLayout;
 
-		GraphicsPipelineState()
+		GraphicsPipelineStateDesc()
 		{
 			::memset(this, 0, sizeof(*this));
 		}

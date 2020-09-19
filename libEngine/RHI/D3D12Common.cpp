@@ -190,18 +190,16 @@ namespace Render
 	bool D3D12SwapChain::initialize(TComPtr<IDXGISwapChainRHI>& resource, TComPtr<ID3D12DeviceRHI>& device, int bufferCount)
 	{
 		mResource = resource.detach();
+		mRenderTargetsStates.resize(bufferCount);
 
-		mRTVHandles.resize(bufferCount);
-		mTextures.resize(bufferCount);
-		// Create frame resources.
+		for (int i = 0; i < bufferCount; ++i)
 		{
-			// Create a RTV for each frame.
-			for (UINT n = 0; n < bufferCount; n++)
-			{
-				VERIFY_D3D_RESULT_RETURN_FALSE(mResource->GetBuffer(n, IID_PPV_ARGS(&mTextures[n])));
-
-				mRTVHandles[n] =  D3D12DescriptorHeapPool::Get().allocRTV(mTextures[n], nullptr);
-			}
+			auto& state = mRenderTargetsStates[i];
+			state.numColorBuffers = 1;
+			VERIFY_D3D_RESULT_RETURN_FALSE(mResource->GetBuffer(i, IID_PPV_ARGS(&state.colorBuffers[0].resource)));
+			state.colorBuffers[0].RTVHandle = D3D12DescriptorHeapPool::Get().allocRTV(state.colorBuffers[0].resource, nullptr);
+			D3D12_RESOURCE_DESC desc = state.colorBuffers[0].resource->GetDesc();
+			state.colorBuffers[0].format = desc.Format;
 		}
 
 		return true;

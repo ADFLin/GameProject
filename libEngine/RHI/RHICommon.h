@@ -41,8 +41,15 @@ namespace Render
 	class RHIVertexBuffer;
 	class RHIIndexBuffer;
 
+	class RHIInputLayout;
+	class RHIRasterizerState;
+	class RHIDepthStencilState;
+	class RHIBlendState;
+
 	class RHIShader;
 	class RHIShaderProgram;
+
+	class RHIPipelineState;
 
 	enum EComponentType
 	{
@@ -226,6 +233,19 @@ namespace Render
 		char const* mFuncName;
 
 		int  mLineNumber;
+	};
+
+	struct CORE_API FRHIResourceTable
+	{
+		static void Initialize();
+		static void Release();
+
+		static void Register(RHIShader& shader);
+		static void Register(RHIShaderProgram& shaderProgram);
+		static void Register(RHIInputLayout& inputLayout);
+		static void Register(RHIRasterizerState& state);
+		static void Register(RHIDepthStencilState& state);
+		static void Register(RHIBlendState& state);
 	};
 
 	class RHIResource : public Noncopyable
@@ -674,7 +694,12 @@ namespace Render
 	class RHIInputLayout : public RHIResource
 	{
 	public:
-		RHIInputLayout() :RHIResource(TRACE_TYPE_NAME("InputLayout")) {}
+		RHIInputLayout() :RHIResource(TRACE_TYPE_NAME("InputLayout")) 
+		{
+			FRHIResourceTable::Register(*this);
+		}
+
+		uint32 mGUID;
 	};
 
 
@@ -736,6 +761,7 @@ namespace Render
 	{
 	public:
 		RHISamplerState() :RHIResource(TRACE_TYPE_NAME("SamplerState")) {}
+		uint32 mGUID = 0;
 	};
 
 
@@ -751,7 +777,11 @@ namespace Render
 	class RHIRasterizerState : public RHIResource
 	{
 	public:
-		RHIRasterizerState():RHIResource(TRACE_TYPE_NAME("RasterizerState")) {}
+		RHIRasterizerState() :RHIResource(TRACE_TYPE_NAME("RasterizerState"))
+		{
+			FRHIResourceTable::Register(*this);
+		}
+		uint32 mGUID = 0;
 	};
 
 
@@ -783,7 +813,11 @@ namespace Render
 	class RHIDepthStencilState : public RHIResource
 	{
 	public:
-		RHIDepthStencilState():RHIResource(TRACE_TYPE_NAME("DepthStencilState")) {}
+		RHIDepthStencilState():RHIResource(TRACE_TYPE_NAME("DepthStencilState")) 
+		{
+			FRHIResourceTable::Register(*this);
+		}
+		uint32 mGUID = 0;
 	};
 
 	constexpr int MaxBlendStateTargetCount = 4;
@@ -812,7 +846,20 @@ namespace Render
 	class RHIBlendState : public RHIResource
 	{
 	public:
-		RHIBlendState():RHIResource(TRACE_TYPE_NAME("BlendState")) {}
+		RHIBlendState() :RHIResource(TRACE_TYPE_NAME("BlendState"))
+		{
+			FRHIResourceTable::Register(*this);
+		}
+		uint32 mGUID;
+	};
+
+	class RHIPipelineState : public RHIResource
+	{
+	public:
+		RHIPipelineState() :RHIResource(TRACE_TYPE_NAME("PipelineState"))
+		{
+
+		}
 	};
 
 	using RHITextureRef           = TRefCountPtr< RHITextureBase >;
@@ -828,6 +875,7 @@ namespace Render
 	using RHIRasterizerStateRef   = TRefCountPtr< RHIRasterizerState >;
 	using RHIDepthStencilStateRef = TRefCountPtr< RHIDepthStencilState >;
 	using RHIBlendStateRef        = TRefCountPtr< RHIBlendState >;
+	using RHIPipelineStateRef     = TRefCountPtr< RHIPipelineState >;
 	using RHIInputLayoutRef       = TRefCountPtr< RHIInputLayout >;
 	using RHISwapChainRef         = TRefCountPtr< RHISwapChain >;
 

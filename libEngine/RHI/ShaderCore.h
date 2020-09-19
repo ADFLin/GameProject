@@ -309,10 +309,6 @@ namespace Render
 	public:
 		RHIShader():RHIResource(TRACE_TYPE_NAME("Shader")){}
 
-		static CORE_API void RegisterTable(RHIShader& shader);
-		static CORE_API void InitTable();
-		static CORE_API void ReleaseTable();
-
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
@@ -320,7 +316,7 @@ namespace Render
 		void initType(EShader::Type type)
 		{
 			mType = type;
-			RegisterTable(*this);
+			FRHIResourceTable::Register(*this);
 		}
 
 		EShader::Type getType() const { return mType; }
@@ -336,11 +332,16 @@ namespace Render
 	class RHIShaderProgram : public RHIResource
 	{
 	public:
-		RHIShaderProgram() :RHIResource(TRACE_TYPE_NAME("ShaderProgram")) {}
+		RHIShaderProgram() :RHIResource(TRACE_TYPE_NAME("ShaderProgram")) 
+		{
+			FRHIResourceTable::Register(*this);
+		}
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
+
+		uint32 mGUID = 0;
 	};
 
 	using RHIShaderProgramRef = TRefCountPtr< RHIShaderProgram >;

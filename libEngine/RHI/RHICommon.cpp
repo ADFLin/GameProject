@@ -1,11 +1,13 @@
 #include "RHICommon.h"
 
 #include "CoreShare.h"
+#include "ShaderCore.h"
 
 #include <unordered_map>
 #include <unordered_set>
 
 #include "ConsoleSystem.h"
+
 
 namespace Render
 {
@@ -84,6 +86,66 @@ namespace Render
 #else
 		LogDevMsg(0, "RHI Resource Trace is disabled!!");
 #endif
+	}
+
+	namespace ETableID
+	{
+		enum Type
+		{
+			Program,
+			InputLayout ,
+			RasterizerState ,
+			DepthStencilState,
+			BlendState,
+			Count ,
+		};
+	};
+
+	uint32 GShaderSerials[EShader::Count];
+	uint32 GTableResourceSerials[ETableID::Count];
+	void FRHIResourceTable::Initialize()
+	{
+		std::fill_n(GShaderSerials, EShader::Count, 0);
+		std::fill_n(GTableResourceSerials, ETableID::Count, 0);
+	}
+
+	void FRHIResourceTable::Release()
+	{
+
+	}
+
+	void FRHIResourceTable::Register(RHIShader& shader)
+	{
+		++GShaderSerials[shader.mType];
+		shader.mGUID = GShaderSerials[shader.mType];
+	}
+
+	template< class TResource >
+	void RegisterInternal( TResource& resource , int id )
+	{
+		++GTableResourceSerials[id];
+		resource.mGUID = GTableResourceSerials[id];
+	}
+
+	void FRHIResourceTable::Register(RHIShaderProgram& shaderProgram)
+	{
+		RegisterInternal(shaderProgram, ETableID::Program);
+	}
+	void FRHIResourceTable::Register(RHIInputLayout& inputLayout)
+	{
+		RegisterInternal(inputLayout, ETableID::InputLayout);
+	}
+	void FRHIResourceTable::Register(RHIRasterizerState& state)
+	{
+		RegisterInternal(state, ETableID::RasterizerState);
+	}
+	void FRHIResourceTable::Register(RHIDepthStencilState& state)
+	{
+		RegisterInternal(state, ETableID::DepthStencilState);
+	}
+	void FRHIResourceTable::Register(RHIBlendState& state)
+	{
+		RegisterInternal(state, ETableID::BlendState);
 	}
 
 #endif

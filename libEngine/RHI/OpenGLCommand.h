@@ -63,7 +63,7 @@ namespace Render
 	class OpenGLShaderBoundStateKey
 	{
 	public:
-		OpenGLShaderBoundStateKey(GraphicsShaderBoundState const& state)
+		OpenGLShaderBoundStateKey(GraphicsShaderStateDesc const& state)
 		{
 			hash = 0x123621;
 			numShaders = 0;
@@ -84,7 +84,7 @@ namespace Render
 			CheckShader(state.domain, GL_TESS_EVALUATION_SHADER_BIT);
 		}
 
-		OpenGLShaderBoundStateKey(MeshShaderBoundState const& state)
+		OpenGLShaderBoundStateKey(MeshShaderStateDesc const& state)
 		{
 			hash = 0x123621;
 			numShaders = 0;
@@ -134,8 +134,8 @@ namespace Render
 	class OpenGLShaderBoundState
 	{
 	public:
-		bool create(GraphicsShaderBoundState const& state);
-		bool create(MeshShaderBoundState const& state);
+		bool create(GraphicsShaderStateDesc const& state);
+		bool create(MeshShaderStateDesc const& state);
 
 		void bind() const
 		{
@@ -233,8 +233,8 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
-		void RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state);
-		void RHISetMeshShaderBoundState(MeshShaderBoundState const& state);
+		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state);
+		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& state);
 		void RHISetComputeShader(RHIShader* shader);
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
@@ -463,8 +463,8 @@ namespace Render
 
 		std::unordered_map< OpenGLShaderBoundStateKey, OpenGLShaderBoundState , MemberFuncHasher > mGfxBoundStateMap;
 
-		OpenGLShaderBoundState* getShaderBoundState(GraphicsShaderBoundState const& state);
-		OpenGLShaderBoundState* getShaderBoundState(MeshShaderBoundState const& state);
+		OpenGLShaderBoundState* getShaderBoundState(GraphicsShaderStateDesc const& state);
+		OpenGLShaderBoundState* getShaderBoundState(MeshShaderStateDesc const& state);
 
 		template< class TShaderBoundState >
 		OpenGLShaderBoundState* getShaderBoundStateT(TShaderBoundState const& state);

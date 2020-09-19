@@ -347,8 +347,8 @@ namespace Render
 
 		}
 
-		void RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state);
-		void RHISetMeshShaderBoundState(MeshShaderBoundState const& state)
+		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state);
+		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& state)
 		{
 
 		}

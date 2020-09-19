@@ -74,6 +74,13 @@ namespace Render
 		typedef D3D12Texture2D ImplType;
 	};
 
+	template<>
+	struct TD3D12TypeTraits< RHIPipelineState >
+	{
+		typedef ID3D12PipelineState ResourceType;
+		typedef RHIPipelineState ImplType;
+	};
+
 	struct D3D12Translate : D3DTranslate
 	{
 		using D3DTranslate::To;
@@ -338,6 +345,63 @@ namespace Render
 	};
 
 
+	struct D3D12RenderTargetsState
+	{
+		static constexpr int MaxSimulationBufferCount = 8;
+		struct BufferState
+		{
+			DXGI_FORMAT format;
+			TComPtr< ID3D12Resource > resource;
+			D3D12PooledHeapHandle RTVHandle;
+		};
+
+
+		BufferState colorBuffers[MaxSimulationBufferCount];
+		int numColorBuffers = 0;
+		BufferState depthBuffer;
+
+		uint32 formatGUID = 0;
+
+		void updateFormatGUID()
+		{
+			//#TODO : Impl
+
+
+
+
+		}
+
+		void releasePoolHandle()
+		{
+			for (int i = 0; i < MaxSimulationBufferCount; ++i)
+			{
+				D3D12DescriptorHeapPool::Get().freeHandle(colorBuffers[i].RTVHandle);
+			}
+
+			D3D12DescriptorHeapPool::Get().freeHandle(depthBuffer.RTVHandle);
+		}
+	};
+
+	class D3D12FrameBuffer : public TRefcountResource< RHIFrameBuffer >
+	{
+	public:
+		virtual void setupTextureLayer(RHITextureCube& target, int level = 0){}
+
+		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) { return INDEX_NONE; }
+		virtual int  addTexture(RHITexture2D& target, int level = 0) { return INDEX_NONE; }
+		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) { return INDEX_NONE; }
+		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) {}
+		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) {  }
+		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) {  }
+
+		virtual void setDepth(RHITexture2D& target){}
+		virtual void removeDepth() {}
+
+		bool bStateDirty = false;
+		D3D12RenderTargetsState mRenderTargetsState;
+	};
+
+
 	class D3D12SwapChain : public TD3D12Resource< RHISwapChain >
 	{
 	public:
@@ -356,16 +420,14 @@ namespace Render
 
 		virtual void releaseResource()
 		{
-			mTextures.clear();
-			for (auto handle : mRTVHandles)
+			for (auto& state : mRenderTargetsStates)
 			{
-				D3D12DescriptorHeapPool::Get().freeHandle(handle);
+				state.releasePoolHandle();
 			}
-			mRTVHandles.empty();
+			mRenderTargetsStates.empty();
 		}
 
-		std::vector< TComPtr<ID3D12Resource> > mTextures;
-		std::vector< D3D12PooledHeapHandle > mRTVHandles;
+		std::vector< D3D12RenderTargetsState > mRenderTargetsStates;
 	};
 
 	class D3D12InputLayout : public TRefcountResource< RHIInputLayout >
@@ -376,6 +438,14 @@ namespace Render
 		D3D12_INPUT_LAYOUT_DESC getDesc() const { return { mDescList.data(), (uint32)mDescList.size() }; }
 
 		std::vector< D3D12_INPUT_ELEMENT_DESC > mDescList;
+	};
+
+
+	class D3D12PipelineState : public TD3D12Resource< RHIPipelineState >
+	{
+
+
+
 	};
 
 	template< class TRHIResource >

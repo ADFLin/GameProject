@@ -309,9 +309,24 @@ namespace Render
 	public:
 		RHIShader():RHIResource(TRACE_TYPE_NAME("Shader")){}
 
+		static CORE_API void RegisterTable(RHIShader& shader);
+		static CORE_API void InitTable();
+		static CORE_API void ReleaseTable();
+
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
+
+		void initType(EShader::Type type)
+		{
+			mType = type;
+			RegisterTable(*this);
+		}
+
+		EShader::Type getType() const { return mType; }
+
+		EShader::Type mType = EShader::Empty;
+		uint32 mGUID = 0;
 	};
 
 	using RHIShaderRef = TRefCountPtr< RHIShader >;

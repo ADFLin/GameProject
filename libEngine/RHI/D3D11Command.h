@@ -42,10 +42,10 @@ namespace Render
 		void updateResource(ID3D11DeviceContext* context);
 	};
 
-	struct D3D11ShaderBoundState
+	struct D3D11ResourceBoundState
 	{
 
-		D3D11ShaderBoundState()
+		D3D11ResourceBoundState()
 		{
 			
 		}
@@ -347,7 +347,7 @@ namespace Render
 
 		}
 
-		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
+		void RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state);
 		void RHISetMeshShaderBoundState(MeshShaderBoundState const& state)
 		{
 
@@ -393,10 +393,10 @@ namespace Render
 
 		void clearSRVResource(RHIResource& resource);
 
-		uint32                mBoundedShaderMask = 0;
-		uint32                mBoundedShaderDirtyMask = 0;
-		D3D11ShaderVariant    mBoundedShaders[EShader::Count];
-		D3D11ShaderBoundState mShaderBoundStates[EShader::Count];
+		uint32                  mBoundedShaderMask = 0;
+		uint32                  mBoundedShaderDirtyMask = 0;
+		D3D11ShaderVariant      mBoundedShaders[EShader::Count];
+		D3D11ResourceBoundState mResourceBoundStates[EShader::Count];
 
 		D3D11DynamicBuffer    mDynamicVBuffer;
 		D3D11DynamicBuffer    mDynamicIBuffer;

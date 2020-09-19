@@ -138,6 +138,8 @@ namespace Render
 
 	bool OpenGLShader::create(EShader::Type type)
 	{
+		initType(type);
+
 		if (!mGLObject.fetchHandle())
 			return false;
 
@@ -145,7 +147,6 @@ namespace Render
 		{
 			glProgramParameteri(getHandle(), GL_PROGRAM_SEPARABLE, TRUE);
 		}
-		mType = type;
 		return true;
 	}
 

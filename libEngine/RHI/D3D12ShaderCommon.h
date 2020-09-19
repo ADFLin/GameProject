@@ -31,28 +31,50 @@ namespace Render
 		int mNumShaders;
 	};
 
+	struct ShaderParameterSlotInfo
+	{
+		enum EType : uint8
+		{
+			eGlobalValue ,
+			eCVB ,
+			eSRV ,
+			eUAV ,
+			eSampler ,
+		};
+
+		EType  type;
+		uint8  slotOffset;
+		uint16 dataOffset;
+		uint32 dataSize;
+
+	};
+
 	struct ShaderRootSignature 
 	{
 		D3D12_SHADER_VISIBILITY visibility;
 		std::vector< D3D12_DESCRIPTOR_RANGE1 >   descRanges;
-		std::vector< D3D12_ROOT_PARAMETER1 >     parameters;
 		std::vector< D3D12_STATIC_SAMPLER_DESC > samplers;
+		std::vector< ShaderParameterSlotInfo >   Slots;
 	};
 
 	class D3D12Shader : public TRefcountResource< RHIShader >
 	{
 	public:
+		D3D12Shader(EShader::Type type)
+		{
+			initType(type);
+		}
 
-		bool initialize(EShader::Type type, TComPtr<IDxcBlob>& shaderCode);
-		bool initialize(EShader::Type type, std::vector<uint8>&& binaryCode);
+		bool initialize(TComPtr<IDxcBlob>& shaderCode);
+		bool initialize(std::vector<uint8>&& binaryCode);
 
 		D3D12_SHADER_BYTECODE getByteCode() { return { code.data() , code.size() }; }
-		D3D12_ROOT_PARAMETER1 getRootParameter()
+		D3D12_ROOT_PARAMETER1 getRootParameter(int index , int num = 1) const
 		{
 			D3D12_ROOT_PARAMETER1 result;
 			result.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			result.DescriptorTable.pDescriptorRanges = mRootSignature.descRanges.data();
-			result.DescriptorTable.NumDescriptorRanges = mRootSignature.descRanges.size();
+			result.DescriptorTable.pDescriptorRanges = mRootSignature.descRanges.data() + index;
+			result.DescriptorTable.NumDescriptorRanges = num;
 			result.ShaderVisibility = mRootSignature.visibility;
 			return result;
 		}
@@ -70,14 +92,9 @@ namespace Render
 		}
 		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.variableName; }
 
-
-
-		EShader::Type mType;
-
-
 		ShaderParameterMap   mParameterMap;
 		ShaderRootSignature  mRootSignature;
-		std::vector<uint8> code;
+		std::vector<uint8>   code;
 	};
 
 	class ShaderFormatHLSL_D3D12 : public ShaderFormat

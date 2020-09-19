@@ -547,8 +547,11 @@
     <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp">
       <Filter>OtherLib\Simplygon</Filter>
     </ClCompile>
+    <ClCompile Include="RHI\D3D12Utility.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
     <ClCompile Include="RHI\D3DSharedCommon.cpp">
-      <Filter>RHI</Filter>
+      <Filter>RHI\D3D12</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1320,10 +1323,10 @@
     <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDK.h">
       <Filter>OtherLib\Simplygon</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\D3DSharedCommon.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\D3D12Utility.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3DSharedCommon.h">
       <Filter>RHI\D3D12</Filter>
     </ClInclude>
   </ItemGroup>

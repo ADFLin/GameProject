@@ -39,8 +39,9 @@ namespace Render
 	class D3D11Shader : public TRefcountResource< RHIShader >
 	{
 	public:
-		D3D11Shader()
+		D3D11Shader(EShader::Type type)
 		{
+			initType(type);
 			mResource.ptr = nullptr;
 		}
 

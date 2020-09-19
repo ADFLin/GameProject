@@ -109,13 +109,33 @@ namespace Render
 			GRHISupportMeshShader = featureOption7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
 		}
 
+		D3D12DescriptorHeapPool::Get().initialize(mDevice);
+
+
 		if (!mRenderContext.initialize(this))
 		{
 			return false;
 		}
+
+		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCopyCmdQueue)));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&mCopyCmdAllocator)));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, mCopyCmdAllocator, nullptr, IID_PPV_ARGS(&mCopyCmdList)));
+		mCopyCmdList->Close();
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 
 		return true;
+	}
+
+	void D3D12System::shutdown()
+	{
+		mSwapChain->release();
+
+		releaseShaderBoundState();
+
+		D3D12DescriptorHeapPool::Get().releaseRHI();
 	}
 
 	ShaderFormat* D3D12System::createShaderFormat()
@@ -168,9 +188,100 @@ namespace Render
 		return result;
 	}
 
+	Render::RHITexture2D* D3D12System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
+	{
+
+		// Describe and create a Texture2D.
+		D3D12_RESOURCE_DESC textureDesc = {};
+		textureDesc.MipLevels = (numMipLevel) ? numMipLevel : 1;
+		textureDesc.Format = D3D12Translate::To(format);
+		textureDesc.Width = w;
+		textureDesc.Height = h;
+		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		textureDesc.DepthOrArraySize = 1;
+		textureDesc.SampleDesc.Count = numSamples ? numSamples : 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+		TComPtr<ID3D12Resource> textureResource;
+		VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&textureDesc,
+			D3D12_RESOURCE_STATE_COMMON,
+			nullptr,
+			IID_PPV_ARGS(&textureResource)), return nullptr;);
+
+
+		if (data)
+		{
+			const UINT64 uploadBufferSize = GetRequiredIntermediateSize(textureResource, 0, 1) + D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+
+
+			TComPtr<ID3D12Resource> textureCopy;
+
+			// Create the GPU upload buffer.
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommittedResource(
+				&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD),
+				D3D12_HEAP_FLAG_NONE,
+				&FD3D12Init::BufferDesc(uploadBufferSize),
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&textureCopy)), return nullptr);
+
+			// Copy data to the intermediate upload heap and then schedule a copy 
+			// from the upload heap to the Texture2D.
+			D3D12_SUBRESOURCE_DATA textureData = {};
+			textureData.pData = data;
+			textureData.RowPitch = w * Texture::GetFormatSize(format);
+			textureData.SlicePitch = textureData.RowPitch * h;
+
+			mCopyCmdAllocator->Reset();
+			mCopyCmdList->Reset(mCopyCmdAllocator, nullptr);
+
+			UpdateSubresources(mCopyCmdList, textureResource, textureCopy, 0, 0, 1, &textureData);
+
+			mCopyResources.push_back(std::move(textureCopy));
+
+			mCopyCmdList->Close();
+			ID3D12CommandList* ppCommandLists[] = { mCopyCmdList };
+			mCopyCmdQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+			waitCopyCommand();
+		}
+
+
+		D3D12Texture2D* texture = new D3D12Texture2D;
+		if (!texture->initialize(textureResource, w, h ))
+		{
+			delete texture;
+			return nullptr;
+		}
+
+		if (createFlags & TCF_CreateSRV)
+		{
+			// Describe and create a SRV for the texture.
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = textureDesc.Format;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MipLevels = 1;
+
+			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
+		}
+
+		return texture;
+	}
+
 	RHIVertexBuffer* D3D12System::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
 		int bufferSize = vertexSize * numVertices;
+
+		if (creationFlags & BCF_UsageConst)
+		{
+			
+			bufferSize = ConstBufferMultipleSize * ( (bufferSize + ConstBufferMultipleSize - 1) / ConstBufferMultipleSize);
+		}
 
 		TComPtr< ID3D12Resource > resource;
 		VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
@@ -198,12 +309,42 @@ namespace Render
 			return nullptr;
 		}
 
+		if (creationFlags & BCF_CreateSRV)
+		{
+			if (creationFlags & BCF_UsageConst)
+			{
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+				cbvDesc.BufferLocation = result->mResource->GetGPUVirtualAddress();
+				cbvDesc.SizeInBytes = bufferSize;
+				result->mViewHandle = D3D12DescriptorHeapPool::Get().allocCBV(resource, &cbvDesc);
+			}
+		}
+
 		return result;
+	}
+
+	void* D3D12System::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	{
+		D3D12_RANGE range = {};
+		void* result = nullptr;
+		static_cast<D3D12VertexBuffer*>(buffer)->mResource->Map(0, &range, &result);
+		return result;
+	}
+
+	void D3D12System::RHIUnlockBuffer(RHIVertexBuffer* buffer)
+	{
+		D3D12_RANGE range = {};
+		static_cast<D3D12VertexBuffer*>(buffer)->mResource->Unmap(0, nullptr);
 	}
 
 	RHIInputLayout* D3D12System::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
 		return new D3D12InputLayout(desc);
+	}
+
+	RHISamplerState* D3D12System::RHICreateSamplerState(SamplerStateInitializer const& initializer)
+	{
+		return new D3D12SamplerState(initializer);
 	}
 
 	RHIRasterizerState* D3D12System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
@@ -223,7 +364,7 @@ namespace Render
 
 	RHIShader* D3D12System::RHICreateShader(EShader::Type type)
 	{
-		return new D3D12Shader;
+		return new D3D12Shader(type);
 	}
 
 	_Use_decl_annotations_
@@ -290,6 +431,169 @@ namespace Render
 		return *ppAdapter != nullptr;
 	}
 
+	UINT64 D3D12System::UpdateSubresources(ID3D12GraphicsCommandList* pCmdList, ID3D12Resource* pDestinationResource, ID3D12Resource* pIntermediate, UINT FirstSubresource, UINT NumSubresources, UINT64 RequiredSize, const D3D12_PLACED_SUBRESOURCE_FOOTPRINT* pLayouts, const UINT* pNumRows, const UINT64* pRowSizesInBytes, const D3D12_SUBRESOURCE_DATA* pSrcData) noexcept
+	{
+		// Minor validation
+		auto IntermediateDesc = pIntermediate->GetDesc();
+		auto DestinationDesc = pDestinationResource->GetDesc();
+		if (IntermediateDesc.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER ||
+			IntermediateDesc.Width < RequiredSize + pLayouts[0].Offset ||
+			RequiredSize > SIZE_T(-1) ||
+			(DestinationDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER &&
+			(FirstSubresource != 0 || NumSubresources != 1)))
+		{
+			return 0;
+		}
+
+		BYTE* pData;
+		HRESULT hr = pIntermediate->Map(0, nullptr, reinterpret_cast<void**>(&pData));
+		if (FAILED(hr))
+		{
+			return 0;
+		}
+
+		for (UINT i = 0; i < NumSubresources; ++i)
+		{
+			if (pRowSizesInBytes[i] > SIZE_T(-1)) return 0;
+			D3D12_MEMCPY_DEST DestData = { pData + pLayouts[i].Offset, pLayouts[i].Footprint.RowPitch, SIZE_T(pLayouts[i].Footprint.RowPitch) * SIZE_T(pNumRows[i]) };
+			MemcpySubresource(&DestData, &pSrcData[i], static_cast<SIZE_T>(pRowSizesInBytes[i]), pNumRows[i], pLayouts[i].Footprint.Depth);
+		}
+		pIntermediate->Unmap(0, nullptr);
+
+		if (DestinationDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+		{
+			pCmdList->CopyBufferRegion(
+				pDestinationResource, 0, pIntermediate, pLayouts[0].Offset, pLayouts[0].Footprint.Width);
+		}
+		else
+		{
+			for (UINT i = 0; i < NumSubresources; ++i)
+			{
+				D3D12_TEXTURE_COPY_LOCATION Dst;
+				Dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				Dst.pResource = pDestinationResource;
+				Dst.PlacedFootprint = {};
+				Dst.SubresourceIndex = i + FirstSubresource;
+				D3D12_TEXTURE_COPY_LOCATION Src;
+				Src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+				Src.pResource = pIntermediate;
+				Src.PlacedFootprint = pLayouts[i];
+				pCmdList->CopyTextureRegion(&Dst, 0, 0, 0, &Src, nullptr);
+			}
+		}
+		return RequiredSize;
+	}
+
+	UINT64 D3D12System::UpdateSubresources(ID3D12GraphicsCommandList* pCmdList, ID3D12Resource* pDestinationResource, ID3D12Resource* pIntermediate, UINT64 IntermediateOffset, UINT FirstSubresource, UINT NumSubresources, const D3D12_SUBRESOURCE_DATA* pSrcData)
+	{
+		UINT64 RequiredSize = 0;
+		UINT64 MemToAlloc = static_cast<UINT64>(sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(UINT) + sizeof(UINT64)) * NumSubresources;
+		if (MemToAlloc > SIZE_MAX)
+		{
+			return 0;
+		}
+		void* pMem = HeapAlloc(GetProcessHeap(), 0, static_cast<SIZE_T>(MemToAlloc));
+		if (pMem == nullptr)
+		{
+			return 0;
+		}
+		auto pLayouts = static_cast<D3D12_PLACED_SUBRESOURCE_FOOTPRINT*>(pMem);
+		UINT64* pRowSizesInBytes = reinterpret_cast<UINT64*>(pLayouts + NumSubresources);
+		UINT* pNumRows = reinterpret_cast<UINT*>(pRowSizesInBytes + NumSubresources);
+
+		auto Desc = pDestinationResource->GetDesc();
+		ID3D12Device* pDevice = nullptr;
+		pDestinationResource->GetDevice(IID_ID3D12Device, reinterpret_cast<void**>(&pDevice));
+		pDevice->GetCopyableFootprints(&Desc, FirstSubresource, NumSubresources, IntermediateOffset, pLayouts, pNumRows, pRowSizesInBytes, &RequiredSize);
+		pDevice->Release();
+
+		UINT64 Result = UpdateSubresources(pCmdList, pDestinationResource, pIntermediate, FirstSubresource, NumSubresources, RequiredSize, pLayouts, pNumRows, pRowSizesInBytes, pSrcData);
+		HeapFree(GetProcessHeap(), 0, pMem);
+		return Result;
+	}
+
+	D3D12ShaderBoundState* D3D12System::getShaderBoundState(GraphicsShaderBoundState const& state)
+	{
+		D3D12ShaderBoundStateKey key;
+		key.setState(state);
+		auto iter = mShaderBoundStateMap.find(key);
+		if (iter != mShaderBoundStateMap.end())
+		{
+			return iter->second;
+		}
+
+		std::unique_ptr< D3D12ShaderBoundState > boundState = std::make_unique< D3D12ShaderBoundState>();
+
+		std::vector< D3D12_STATIC_SAMPLER_DESC > rootSamplers;
+		std::vector< D3D12_ROOT_PARAMETER1 > rootParameters;
+
+		D3D12_ROOT_SIGNATURE_FLAGS denyShaderRootAccessFlags =
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+
+		auto AddShader = [&](RHIShader* shader) -> bool
+		{
+			if (shader == nullptr)
+				return false;
+			D3D12ShaderBoundState::ShaderInfo info;
+			info.resource = shader;
+			info.rootSlotStart = rootParameters.size();
+			boundState->mShaders.push_back(info);
+
+			auto shaderImpl = static_cast<D3D12Shader*>(shader);
+			bool result = false;
+			for (int i = 0; i < shaderImpl->mRootSignature.descRanges.size(); ++i)
+			{
+				D3D12_ROOT_PARAMETER1 parameter = shaderImpl->getRootParameter(i);
+				rootParameters.push_back(parameter);
+				result = true;
+			}
+			rootSamplers.insert(rootSamplers.end(), shaderImpl->mRootSignature.samplers.begin(), shaderImpl->mRootSignature.samplers.end());
+			return result;
+		};
+
+		if (AddShader(state.vertex))
+			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
+
+		if (AddShader(state.pixel))
+			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
+		if (AddShader(state.geometry))
+			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
+		if (AddShader(state.hull))
+			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+
+		if (AddShader(state.domain))
+			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+
+		{
+			D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+			rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+			rootSignatureDesc.Desc_1_1.NumParameters = rootParameters.size();
+			rootSignatureDesc.Desc_1_1.pParameters = rootParameters.data();
+			rootSignatureDesc.Desc_1_1.NumStaticSamplers = rootSamplers.size();
+			rootSignatureDesc.Desc_1_1.pStaticSamplers = rootSamplers.data();
+			rootSignatureDesc.Desc_1_1.Flags = denyShaderRootAccessFlags | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+			TComPtr<ID3DBlob> signature;
+			TComPtr<ID3DBlob> error;
+			if (FAILED(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error)))
+			{
+				LogWarning(0, (char const*)error->GetBufferPointer());
+				return nullptr;
+			}
+			VERIFY_D3D_RESULT(mDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&boundState->mRootSignature)), return nullptr;);
+
+			D3D12ShaderBoundState* result = boundState.release();
+			mShaderBoundStateMap.emplace(key, result);
+			return result;
+		}
+	}
+
 	bool D3D12Context::initialize(D3D12System* system)
 	{
 		mDevice = system->mDevice;
@@ -298,6 +602,11 @@ namespace Render
 		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&mCommandQueue)));
+
+		for (int i = 0; i < EShader::Count; ++i)
+		{
+			VERIFY_RETURN_FALSE( mResourceBoundStates[i].initialize(mDevice) );
+		}
 
 		return true;
 	}
@@ -397,16 +706,112 @@ namespace Render
 		mCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
+	void D3D12Context::RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state)
+	{
+		mBoundState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(state);
+
+		if (mBoundState)
+		{
+			mGraphicsCmdList->SetGraphicsRootSignature(mBoundState->mRootSignature);
+			mCSUHeapUsageMask = 0;
+			mSamplerHeapUsageMAsk = 0;
+			mUsedHeaps.clear();
+
+			for (auto& shaderInfo : mBoundState->mShaders)
+			{
+				mRootSlotStart[shaderInfo.resource->getType()] = shaderInfo.rootSlotStart;
+			}
+
+		}
+	}
+
+	void D3D12Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
+
+		auto const& slotInfo = shaderImpl.mRootSignature.Slots[param.bindIndex];
+		uint32 rootSlot = mRootSlotStart[shader.mType] + slotInfo.slotOffset;
+
+		auto& resourceBoundState = mResourceBoundStates[shader.mType];
+
+		resourceBoundState.UpdateConstantData(val, slotInfo.dataOffset, slotInfo.dataSize);
+
+		auto handle = resourceBoundState.mConstBufferHandle;
+		if (!(mCSUHeapUsageMask & BIT(handle.chunk->id)))
+		{
+			mCSUHeapUsageMask |= BIT(handle.chunk->id);
+			mUsedHeaps.push_back(handle.chunk->resource);
+			mGraphicsCmdList->SetDescriptorHeaps(mUsedHeaps.size(), mUsedHeaps.data());
+		}
+		mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle.getGPUHandle());
+	}
+
+	void D3D12Context::setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim)
+	{
+		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
+
+		auto const& slotInfo = shaderImpl.mRootSignature.Slots[param.bindIndex];
+		uint32 rootSlot = mRootSlotStart[shader.mType] + slotInfo.slotOffset;
+
+		auto& resourceBoundState = mResourceBoundStates[shader.mType];
+
+		resourceBoundState.UpdateConstantData(val, slotInfo.dataOffset, slotInfo.dataSize);
+
+		auto handle = resourceBoundState.mConstBufferHandle;
+		if (!(mCSUHeapUsageMask & BIT(handle.chunk->id)))
+		{
+			mCSUHeapUsageMask |= BIT(handle.chunk->id);
+			mUsedHeaps.push_back(handle.chunk->resource);
+			mGraphicsCmdList->SetDescriptorHeaps(mUsedHeaps.size(), mUsedHeaps.data());
+		}
+		mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle.getGPUHandle());
+	}
+
+	void D3D12Context::setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture)
+	{
+		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
+
+		auto const& slotInfo = shaderImpl.mRootSignature.Slots[param.bindIndex];
+		uint32 rootSlot = mRootSlotStart[shader.mType] + slotInfo.slotOffset;
+		auto handle = static_cast<D3D12Texture2D&>(texture).mSRV;
+
+		if (!(mCSUHeapUsageMask & BIT(handle.chunk->id)))
+		{
+			mCSUHeapUsageMask |= BIT(handle.chunk->id);
+			mUsedHeaps.push_back(handle.chunk->resource);
+			mGraphicsCmdList->SetDescriptorHeaps(mUsedHeaps.size(), mUsedHeaps.data());
+		}
+
+		mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle.getGPUHandle());
+	}
+
+	void D3D12Context::setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler)
+	{
+		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
+
+		auto const& slotInfo = shaderImpl.mRootSignature.Slots[param.bindIndex];
+		uint32 rootSlot = mRootSlotStart[shader.mType] + slotInfo.slotOffset;
+		auto handle = static_cast<D3D12SamplerState&>(sampler).mHandle;
+
+		if (!(mSamplerHeapUsageMAsk & BIT(handle.chunk->id)))
+		{
+			mSamplerHeapUsageMAsk |= BIT(handle.chunk->id);
+			mUsedHeaps.push_back(handle.chunk->resource);
+			mGraphicsCmdList->SetDescriptorHeaps(mUsedHeaps.size(), mUsedHeaps.data());
+		}
+		mGraphicsCmdList->SetGraphicsRootDescriptorTable(rootSlot, handle.getGPUHandle());
+	}
+
 	bool D3D12Context::configFromSwapChain(D3D12SwapChain* swapChain)
 	{
-		int numFrames = swapChain->mRTViews.size();
+		int numFrames = swapChain->mTextures.size();
 
 		mFrameDataList.resize(numFrames);
 		mFrameIndex = swapChain->mResource->GetCurrentBackBufferIndex();
 		for (int i = 0; i < numFrames; ++i)
 		{
 			VERIFY_RETURN_FALSE(mFrameDataList[i].init(mDevice));
-			if (i != mFrameIndex)
+			//if (i != mFrameIndex)
 			{
 				mFrameDataList[i].graphicsCmdList->Close();
 			}
@@ -435,12 +840,19 @@ namespace Render
 
 	void D3D12Context::waitForGpu()
 	{
+		waitForGpu(mCommandQueue);
+	}
+
+
+	void D3D12Context::waitForGpu(ID3D12CommandQueue* cmdQueue)
+	{
+		HRESULT hr;
 		// Schedule a Signal command in the queue.
-		mCommandQueue->Signal(mFence, mFrameDataList[mFrameIndex].fenceValue);
+		hr = cmdQueue->Signal(mFence, mFrameDataList[mFrameIndex].fenceValue);
 
 		// Wait until the fence has been processed.
-		mFence->SetEventOnCompletion(mFrameDataList[mFrameIndex].fenceValue, mFenceEvent);
-		WaitForSingleObjectEx(mFenceEvent, INFINITE, FALSE);
+		hr = mFence->SetEventOnCompletion(mFrameDataList[mFrameIndex].fenceValue, mFenceEvent);
+		hr = WaitForSingleObjectEx(mFenceEvent, INFINITE, FALSE);
 
 		// Increment the fence value for the current frame.
 		mFrameDataList[mFrameIndex].fenceValue++;
@@ -464,6 +876,27 @@ namespace Render
 
 		// Set the fence value for the next frame.
 		mFrameDataList[mFrameIndex].fenceValue = currentFenceValue + 1;
+	}
+
+	bool D3D12ResourceBoundState::initialize(ID3D12DeviceRHI* device)
+	{
+		uint bufferSize = ConstBufferMultipleSize * (  (2048 + ConstBufferMultipleSize - 1) / ConstBufferMultipleSize );
+		VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateCommittedResource(
+			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&FD3D12Init::BufferDesc(bufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&mConstBuffer)));
+
+		D3D12_RANGE readRange = {};        // We do not intend to read from this resource on the CPU.
+		VERIFY_D3D_RESULT(mConstBuffer->Map(0, &readRange, reinterpret_cast<void**>(&mConstDataPtr)), return nullptr; );
+
+		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+		cbvDesc.BufferLocation = mConstBuffer->GetGPUVirtualAddress();
+		cbvDesc.SizeInBytes = bufferSize;
+		mConstBufferHandle = D3D12DescriptorHeapPool::Get().allocCBV(mConstBuffer, &cbvDesc);
+		return true;
 	}
 
 }//namespace Render

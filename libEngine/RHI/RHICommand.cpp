@@ -74,6 +74,8 @@ namespace Render
 			char const* cmdLine = GetCommandLineA();
 			GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
 
+			RHIShader::InitTable();
+
 			if( GRHISystem && !GRHISystem->initialize(initParam) )
 			{
 				delete GRHISystem;
@@ -129,6 +131,7 @@ namespace Render
 		delete GRHISystem;
 		GRHISystem = nullptr;
 
+		RHIShader::ReleaseTable();
 		RHIResource::DumpResource();
 	}
 

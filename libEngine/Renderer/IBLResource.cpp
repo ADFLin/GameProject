@@ -487,7 +487,7 @@ namespace Render
 
 			RHISetFrameBuffer(commandList, frameBuffer);
 
-			GraphicShaderBoundState boundState;
+			GraphicsShaderBoundState boundState;
 			boundState.vertex = mScreenVS->getRHIResource();
 			boundState.pixel = shaderPS.getRHIResource();
 			RHISetGraphicsShaderBoundState(commandList, boundState);
@@ -578,7 +578,7 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
 
 #if USE_SEPARATE_SHADER  && 0
-			GraphicShaderBoundState boundState;
+			GraphicsShaderBoundState boundState;
 			boundState.vertex = mScreenVS->getRHIResource();
 			boundState.pixel = mPreIntegrateBRDFGenPS->getRHIResource();
 			RHISetGraphicsShaderBoundState(commandList, boundState);

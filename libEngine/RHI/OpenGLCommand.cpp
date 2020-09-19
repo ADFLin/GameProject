@@ -421,9 +421,9 @@ namespace Render
 	}
 
 	template< class TShaderBoundState >
-	OpenglShaderPipelineState* Render::OpenGLSystem::getShaderPipelineT(TShaderBoundState const& state)
+	OpenGLShaderBoundState* OpenGLSystem::getShaderBoundStateT(TShaderBoundState const& state)
 	{
-		OpenGLShaderPipelineStateKey key(state);
+		OpenGLShaderBoundStateKey key(state);
 		if (key.numShaders == 0)
 			return nullptr;
 
@@ -433,23 +433,23 @@ namespace Render
 			return &iter->second;
 		}
 
-		OpenglShaderPipelineState shaderPipeline;
-		if (!shaderPipeline.create(state))
+		OpenGLShaderBoundState boundState;
+		if (!boundState.create(state))
 			return nullptr;
 
-		auto pair = mGfxBoundStateMap.emplace(key, std::move(shaderPipeline));
+		auto pair = mGfxBoundStateMap.emplace(key, std::move(boundState));
 		CHECK(pair.second);
 		return &pair.first->second;
 	}
 
-	OpenglShaderPipelineState* OpenGLSystem::getShaderPipeline(GraphicShaderBoundState const& state)
+	OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(GraphicsShaderBoundState const& state)
 	{
-		return getShaderPipelineT(state);
+		return getShaderBoundStateT(state);
 	}
 
-	Render::OpenglShaderPipelineState* OpenGLSystem::getShaderPipeline(MeshShaderBoundState const& state)
+	Render::OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(MeshShaderBoundState const& state)
 	{
-		return getShaderPipelineT(state);
+		return getShaderBoundStateT(state);
 	}
 
 	void OpenGLContext::initialize()
@@ -868,10 +868,10 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state)
+	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state)
 	{
 		clearShader(true);
-		OpenglShaderPipelineState* shaderpipeline = mSystem->getShaderPipeline(state);
+		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(state);
 		if (shaderpipeline)
 		{	
 			shaderpipeline->bind();
@@ -888,7 +888,7 @@ namespace Render
 	void OpenGLContext::RHISetMeshShaderBoundState(MeshShaderBoundState const& state)
 	{
 		clearShader(true);
-		OpenglShaderPipelineState* shaderpipeline = mSystem->getShaderPipeline(state);
+		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(state);
 		if (shaderpipeline)
 		{
 			shaderpipeline->bind();
@@ -1800,7 +1800,7 @@ namespace Render
 		}
 	}
 
-	bool OpenglShaderPipelineState::create(GraphicShaderBoundState const& state)
+	bool OpenGLShaderBoundState::create(GraphicsShaderBoundState const& state)
 	{
 		if (!mGLObject.fetchHandle())
 			return false;
@@ -1825,7 +1825,7 @@ namespace Render
 
 		return true;
 	}
-	bool OpenglShaderPipelineState::create(MeshShaderBoundState const& state)
+	bool OpenGLShaderBoundState::create(MeshShaderBoundState const& state)
 	{
 		if (!mGLObject.fetchHandle())
 			return false;

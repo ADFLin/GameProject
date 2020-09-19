@@ -60,10 +60,10 @@ namespace Render
 		}
 	};
 
-	class OpenGLShaderPipelineStateKey
+	class OpenGLShaderBoundStateKey
 	{
 	public:
-		OpenGLShaderPipelineStateKey(GraphicShaderBoundState const& state)
+		OpenGLShaderBoundStateKey(GraphicsShaderBoundState const& state)
 		{
 			hash = 0x123621;
 			numShaders = 0;
@@ -84,7 +84,7 @@ namespace Render
 			CheckShader(state.domain, GL_TESS_EVALUATION_SHADER_BIT);
 		}
 
-		OpenGLShaderPipelineStateKey(MeshShaderBoundState const& state)
+		OpenGLShaderBoundStateKey(MeshShaderBoundState const& state)
 		{
 			hash = 0x123621;
 			numShaders = 0;
@@ -108,7 +108,7 @@ namespace Render
 		void*      shaders[EShader::MaxStorageSize];
 		int        numShaders;
 
-		bool operator == (OpenGLShaderPipelineStateKey const& rhs) const
+		bool operator == (OpenGLShaderBoundStateKey const& rhs) const
 		{
 			if (numShaders != rhs.numShaders)
 				return false;
@@ -125,16 +125,16 @@ namespace Render
 		uint32 getTypeHash() const { return hash; }
 	};
 
-	struct RMPShaderPipeline
+	struct RMPProgramPipeline
 	{
 		static void Create(GLuint& handle) { glGenProgramPipelines(1, &handle); }
 		static void Destroy(GLuint& handle) { glDeleteProgramPipelines(1, &handle); }
 	};
 
-	class OpenglShaderPipelineState
+	class OpenGLShaderBoundState
 	{
 	public:
-		bool create(GraphicShaderBoundState const& state);
+		bool create(GraphicsShaderBoundState const& state);
 		bool create(MeshShaderBoundState const& state);
 
 		void bind() const
@@ -151,7 +151,7 @@ namespace Render
 			return mGLObject.mHandle;
 		}
 
-		TOpenGLObject< RMPShaderPipeline > mGLObject;
+		TOpenGLObject< RMPProgramPipeline > mGLObject;
 	};
 
 	class OpenGLContext : public RHIContext
@@ -233,7 +233,7 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
-		void RHISetGraphicsShaderBoundState(GraphicShaderBoundState const& state);
+		void RHISetGraphicsShaderBoundState(GraphicsShaderBoundState const& state);
 		void RHISetMeshShaderBoundState(MeshShaderBoundState const& state);
 		void RHISetComputeShader(RHIShader* shader);
 
@@ -330,7 +330,7 @@ namespace Render
 		BufferBindInfo mBufferBinds[BufferResoureTypeCount];
 
 		RHIIndexBufferRef   mLastIndexBuffer;
-		OpenglShaderPipelineState* mLastShaderPipeline = nullptr;
+		OpenGLShaderBoundState* mLastShaderPipeline = nullptr;
 		RHIShader*          mLastActiveShader = nullptr;
 
 		void checkActiveShader(RHIShader& shader)
@@ -461,13 +461,13 @@ namespace Render
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 		class OpenglProfileCore* mProfileCore = nullptr;
 
-		std::unordered_map< OpenGLShaderPipelineStateKey, OpenglShaderPipelineState , MemberFuncHasher > mGfxBoundStateMap;
+		std::unordered_map< OpenGLShaderBoundStateKey, OpenGLShaderBoundState , MemberFuncHasher > mGfxBoundStateMap;
 
-		OpenglShaderPipelineState* getShaderPipeline(GraphicShaderBoundState const& state);
-		OpenglShaderPipelineState* getShaderPipeline(MeshShaderBoundState const& state);
+		OpenGLShaderBoundState* getShaderBoundState(GraphicsShaderBoundState const& state);
+		OpenGLShaderBoundState* getShaderBoundState(MeshShaderBoundState const& state);
 
 		template< class TShaderBoundState >
-		OpenglShaderPipelineState* getShaderPipelineT(TShaderBoundState const& state);
+		OpenGLShaderBoundState* getShaderBoundStateT(TShaderBoundState const& state);
 
 		OpenGLContext     mDrawContext;
 #if SYS_PLATFORM_WIN

@@ -205,9 +205,11 @@ namespace Render
 			Mesh = 7,
 
 			Count,
-			MaxStorageSize = 5,
+			
 			Empty = -1,
 		};
+
+		constexpr int  MaxStorageSize = 5;
 	};
 
 

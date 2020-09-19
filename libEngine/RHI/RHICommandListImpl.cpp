@@ -136,7 +136,7 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetShaderProgram(shaderProgram));
 	}
 
-	void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicShaderBoundState const& state)
+	void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderBoundState const& state)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetGraphicsShaderBoundState(state));
 	}

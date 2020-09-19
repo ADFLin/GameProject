@@ -4,10 +4,30 @@
 #ifndef D3D12Utility_H_8286EFBB_EBBD_42EF_A628_A96A7810CF00
 #define D3D12Utility_H_8286EFBB_EBBD_42EF_A628_A96A7810CF00
 
-#include <d3d12.h>
+#include "MarcoCommon.h"
+#include "Core/IntegerType.h"
+
+#include "Platform/Windows/ComUtility.h"
+#include "CoreShare.h"
+
+#include <vector>
+
+#include <D3D12.h>
+#include <dxgi1_3.h>
+#include <dxgi1_4.h>
+#include <dxgi1_6.h>
+
+
+
+#undef max
+#undef min
 
 namespace Render
 {
+	using IDXGISwapChainRHI = IDXGISwapChain3;
+	using ID3D12DeviceRHI = ID3D12Device8;
+	using ID3D12GraphicsCommandListRHI = ID3D12GraphicsCommandList2;
+
 	struct FD3D12Init
 	{
 		static D3D12_VIEWPORT Viewport(
@@ -102,6 +122,94 @@ namespace Render
 		}
 	};
 
+	class D3D12HeapPoolChunk
+	{
+	public:
+		D3D12HeapPoolChunk()
+		{
+			numElements = 0;
+		}
+
+		bool initialize(ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, uint32 inNumElements, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
+
+
+		bool fetchFreeSlot(uint& outSlotIndex);
+
+		void freeSlot(uint slotIndex);
+
+
+		uint id;
+		TComPtr< ID3D12DescriptorHeap > resource;
+		D3D12_DESCRIPTOR_HEAP_TYPE type;
+		uint elementSize;
+		uint numElements;
+		uint numElementsUasge;
+		std::vector< uint32 > mUsageMask;
+
+
+		D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(uint chunkSlot)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE result = resource->GetCPUDescriptorHandleForHeapStart();
+			result.ptr += chunkSlot * elementSize;
+			return result;
+		}
+
+		D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(uint chunkSlot)
+		{
+			D3D12_GPU_DESCRIPTOR_HANDLE result = resource->GetGPUDescriptorHandleForHeapStart();
+			result.ptr += chunkSlot * elementSize;
+			return result;
+		}
+	};
+
+
+	struct D3D12PooledHeapHandle
+	{
+		D3D12PooledHeapHandle() { chunk = nullptr; }
+
+		D3D12HeapPoolChunk* chunk;
+		uint chunkSlot;
+		bool isValid() const { return !!chunk; }
+
+		D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle() const
+		{
+			CHECK(chunk);
+			return chunk->getCPUHandle(chunkSlot);
+		}
+		D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const
+		{
+			CHECK(chunk);
+			return chunk->getGPUHandle(chunkSlot);
+		}
+
+	};
+
+	class D3D12DescriptorHeapPool
+	{
+	public:
+		CORE_API static D3D12DescriptorHeapPool& Get();
+
+		void initialize(ID3D12DeviceRHI* device);
+
+		void releaseRHI();
+		D3D12PooledHeapHandle allocSRV(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocRTV(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocSampler(D3D12_SAMPLER_DESC const& desc);
+
+		bool findFreeHandle(std::vector< D3D12HeapPoolChunk* >& chunks , D3D12PooledHeapHandle& outHandle);
+
+		void freeHandle(D3D12PooledHeapHandle& handle);
+
+		static void ReleaseChunks(std::vector< D3D12HeapPoolChunk* >& chunks);
+		ID3D12DeviceRHI* mDevice;
+
+		bool bInitialized = false;
+
+		std::vector< D3D12HeapPoolChunk* > mCSUChunks;
+		std::vector< D3D12HeapPoolChunk* > mRTVChunks;
+		std::vector< D3D12HeapPoolChunk* > mSamplerChunks;
+	};
 
 
 }//namespace Render

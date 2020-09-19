@@ -9,7 +9,10 @@
 #include "UnitTest/TestClass.cpp"
 #include "DataStructure/ClassTree.cpp"
 
+#include "RHI/D3D12Utility.cpp"
+
 #include "RHI/RHICommon.cpp"
+#include "RHI/ShaderCore.cpp"
 #include "RHI/ShaderManager.cpp"
 #include "RHI/MaterialShader.cpp"
 #include "RHI/VertexFactory.cpp"
@@ -19,6 +22,7 @@
 #include "RHI/GpuProfiler.cpp"
 #include "RHI/RHIGlobalResource.cpp"
 #include "RHI/SceneRenderer.cpp"
+
 
 #include "RHI/RHIGraphics2D.cpp"
 #include "RHI/DrawUtility.cpp"

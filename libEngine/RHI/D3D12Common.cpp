@@ -191,30 +191,16 @@ namespace Render
 	{
 		mResource = resource.detach();
 
-		UINT rtvDescriptorSize;
-		// Create descriptor heaps.
-		{
-			// Describe and create a render target view (RTV) descriptor heap.
-			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-			rtvHeapDesc.NumDescriptors = bufferCount;
-			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&mRTVHeap)));
-
-			rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		}
-
-		mRTViews.resize(bufferCount);
+		mRTVHandles.resize(bufferCount);
+		mTextures.resize(bufferCount);
 		// Create frame resources.
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = { mRTVHeap->GetCPUDescriptorHandleForHeapStart() };
-
 			// Create a RTV for each frame.
 			for (UINT n = 0; n < bufferCount; n++)
 			{
-				VERIFY_D3D_RESULT_RETURN_FALSE(mResource->GetBuffer(n, IID_PPV_ARGS(&mRTViews[n])));
-				device->CreateRenderTargetView(mRTViews[n], nullptr, rtvHandle);
-				rtvHandle.ptr += rtvDescriptorSize;
+				VERIFY_D3D_RESULT_RETURN_FALSE(mResource->GetBuffer(n, IID_PPV_ARGS(&mTextures[n])));
+
+				mRTVHandles[n] =  D3D12DescriptorHeapPool::Get().allocRTV(mTextures[n], nullptr);
 			}
 		}
 
@@ -311,9 +297,31 @@ namespace Render
 		mDesc.StencilWriteMask = initializer.stencilWriteMask;
 
 		mDesc.DepthBoundsTestEnable = FALSE;
-
 	}
 
+	bool D3D12Texture2D::initialize(TComPtr< ID3D12Resource >& resource, int w, int h)
+	{
+		mResource = resource.detach();
+		mSizeX = w;
+		mSizeY = h;
+		return true;
+	}
 
+	D3D12SamplerState::D3D12SamplerState(SamplerStateInitializer const& initializer)
+	{
+		D3D12_SAMPLER_DESC desc;
+		desc.Filter = D3D12Translate::To(initializer.filter);
+		desc.AddressU = D3D12Translate::To(initializer.addressU);
+		desc.AddressV = D3D12Translate::To(initializer.addressV);
+		desc.AddressW = D3D12Translate::To(initializer.addressW);
+		desc.MipLODBias = 0;
+		desc.MaxAnisotropy = 0;
+		desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+		desc.MinLOD = 0.0f;
+		desc.MaxLOD = D3D12_FLOAT32_MAX;
+
+		mDesc = desc;
+		mHandle = D3D12DescriptorHeapPool::Get().allocSampler(desc);
+	}
 
 }//namespace Render

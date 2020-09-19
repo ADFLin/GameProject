@@ -28,8 +28,8 @@ public:
 
 	TVector2 mul( TVector2 const& v ) const { return TVector2( x * v.x , y * v.y );  }
 	TVector2 div( TVector2 const& v ) const { return TVector2( x / v.x , y / v.y );  }
-	TVector2 max( TVector2 const& v) const { return TVector2(std::max(x , v.x), std::max(y, v.y)); }
-	TVector2 min( TVector2 const& v) const { return TVector2(std::min(x, v.x), std::min(y, v.y)); }
+	TVector2 max( TVector2 const& v) const { return TVector2(Math::Max(x , v.x), Math::Max(y, v.y)); }
+	TVector2 min( TVector2 const& v) const { return TVector2(Math::Min(x, v.x), Math::Min(y, v.y)); }
 
 	TVector2& operator *= ( RefConstType s )  {  x *= s ; y *= s; return *this;  }
 	TVector2& operator /= ( RefConstType s )  {  x /= s ; y /= s; return *this;  }

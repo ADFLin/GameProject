@@ -957,7 +957,7 @@ namespace Render
 
 			mShaderFormat->precompileCode(setupData);
 
-			ShaderResourceInfo shaders[EShader::Count];
+			ShaderResourceInfo shaders[EShader::MaxStorageSize];
 			int numShaders = 0;
 			bool bFailed = false;
 			for (ShaderCompileInfo& shaderInfo : managedData.compileInfos)

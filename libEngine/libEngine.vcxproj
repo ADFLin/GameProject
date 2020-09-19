@@ -313,6 +313,7 @@
     <ClCompile Include="RHI\D3D12Command.cpp" />
     <ClCompile Include="RHI\D3D12Common.cpp" />
     <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
+    <ClCompile Include="RHI\D3D12Utility.cpp" />
     <ClCompile Include="RHI\D3DSharedCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />

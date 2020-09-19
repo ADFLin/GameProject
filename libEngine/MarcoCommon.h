@@ -4,6 +4,8 @@
 
 #include "Core/IntegerType.h"
 
+#include <cassert>
+
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif 

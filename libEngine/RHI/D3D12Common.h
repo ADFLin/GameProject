@@ -4,16 +4,12 @@
 
 #include "RHICommon.h"
 #include "D3DSharedCommon.h"
+#include "D3D12Utility.h"
 
 #include "LogSystem.h"
 #include "Platform/Windows/ComUtility.h"
 
 #include "FixString.h"
-
-#include <D3D12.h>
-#include <dxgi1_3.h>
-#include <dxgi1_4.h>
-#include <dxgi1_6.h>
 
 #include <unordered_map>
 
@@ -55,10 +51,6 @@ namespace Render
 	template< class RHITextureType >
 	struct TD3D12TypeTraits { typedef void ImplType; };
 
-	using IDXGISwapChainRHI = IDXGISwapChain3;
-	using ID3D12DeviceRHI = ID3D12Device8;
-	using ID3D12GraphicsCommandListRHI = ID3D12GraphicsCommandList2;
-
 #define D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_RHI D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1
 	using D3D12_DEPTH_STENCIL_DESC_RHI = D3D12_DEPTH_STENCIL_DESC1;
 
@@ -74,6 +66,12 @@ namespace Render
 	{
 		typedef ID3D12Resource ResourceType;
 		typedef D3D12VertexBuffer ImplType;
+	};
+	template<>
+	struct TD3D12TypeTraits< RHITexture2D >
+	{
+		typedef ID3D12Resource ResourceType;
+		typedef D3D12Texture2D ImplType;
 	};
 
 	struct D3D12Translate : D3DTranslate
@@ -358,12 +356,16 @@ namespace Render
 
 		virtual void releaseResource()
 		{
-			mRTViews.clear();
-			mRTVHeap.detach();
+			mTextures.clear();
+			for (auto handle : mRTVHandles)
+			{
+				D3D12DescriptorHeapPool::Get().freeHandle(handle);
+			}
+			mRTVHandles.empty();
 		}
 
-		TComPtr<ID3D12DescriptorHeap> mRTVHeap;
-		std::vector< TComPtr<ID3D12Resource> > mRTViews;
+		std::vector< TComPtr<ID3D12Resource> > mTextures;
+		std::vector< D3D12PooledHeapHandle > mRTVHandles;
 	};
 
 	class D3D12InputLayout : public TRefcountResource< RHIInputLayout >
@@ -374,6 +376,35 @@ namespace Render
 		D3D12_INPUT_LAYOUT_DESC getDesc() const { return { mDescList.data(), (uint32)mDescList.size() }; }
 
 		std::vector< D3D12_INPUT_ELEMENT_DESC > mDescList;
+	};
+
+	template< class TRHIResource >
+	class TD3D12Texture : public TD3D12Resource< TRHIResource >
+	{
+
+
+
+
+	};
+
+	class D3D12Texture2D : public TD3D12Texture< RHITexture2D >
+	{
+	public:
+
+		bool initialize(TComPtr< ID3D12Resource >& resource, int w, int h);
+
+		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level) 
+		{
+			return false;
+		}
+		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level) 
+		{
+			return false;
+		}
+
+		D3D12PooledHeapHandle mSRV;
+
+
 	};
 
 	class D3D12VertexBuffer : public TD3D12Resource< RHIVertexBuffer >
@@ -387,6 +418,14 @@ namespace Render
 
 			return true;
 		}
+
+
+		virtual void releaseResource()
+		{
+			D3D12DescriptorHeapPool::Get().freeHandle(mViewHandle);
+		}
+
+		D3D12PooledHeapHandle mViewHandle;
 	};
 
 	class D3D12RasterizerState : public TRefcountResource< RHIRasterizerState >
@@ -412,6 +451,15 @@ namespace Render
 		D3D12DepthStencilState(DepthStencilStateInitializer const& initializer);
 
 		D3D12_DEPTH_STENCIL_DESC_RHI mDesc;
+	};
+
+	class D3D12SamplerState : public TRefcountResource< RHISamplerState >
+	{
+	public:
+		D3D12SamplerState(SamplerStateInitializer const& initializer);
+
+		D3D12_SAMPLER_DESC    mDesc;
+		D3D12PooledHeapHandle mHandle;
 	};
 }
 

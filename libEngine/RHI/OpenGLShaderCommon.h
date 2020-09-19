@@ -55,8 +55,6 @@ namespace Render
 		void bind();
 		void unbind();
 
-		EShader::Type mType = EShader::Empty;
-		EShader::Type getType() const { return mType; }
 		virtual bool  getParameter(char const* name, ShaderParameter& outParameter)
 		{
 			return FOpenGLShader::GetParameter(getHandle(), name, outParameter);

@@ -151,7 +151,7 @@ namespace TowerDefend
 
 		ActionPort port = 0;
 		CIViewportMove vpMoveInfo;
-		if ( trigger.detect( port, ACT_TD_VIEWPORT_MOVE , & vpMoveInfo ) )
+		if ( trigger.detect( port, ACT_TD_VIEWPORT_MOVE , &vpMoveInfo ) )
 		{
 			if ( vpMoveInfo.mode == CIViewportMove::eREL_MOVE )
 				mVPCtrl.setCenterViewPos( mVPCtrl.getCenterViewPos() + vpMoveInfo.offset );

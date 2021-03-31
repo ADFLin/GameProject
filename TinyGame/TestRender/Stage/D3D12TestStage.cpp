@@ -38,6 +38,31 @@ namespace Render
 		Vector4 value;
 	};
 
+
+	class TriangleProgram : public GlobalShaderProgram
+	{
+		using BaseClass = GlobalShaderProgram;
+		DECLARE_SHADER_PROGRAM(TriangleProgram, Global);
+	public:
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Test/TriangleTest";
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(TriangleProgram);
+
 	class TestD3D12Stage : public TestRenderStageBase
 	{
 		using BaseClass = TestRenderStageBase;
@@ -59,6 +84,10 @@ namespace Render
 
 		RHIVertexBufferRef mVertexBuffer;
 		RHIInputLayoutRef  mInputLayout;
+
+		bool bUseProgram = true;
+
+		TriangleProgram* mProgTriangle;
 		Shader mVertexShader;
 		Shader mPixelShader;
 	
@@ -118,6 +147,9 @@ namespace Render
 				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mVertexShader, shaderPath, EShader::Vertex, SHADER_ENTRY(MainVS)));
 				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mPixelShader, shaderPath, EShader::Pixel, SHADER_ENTRY(MainPS)));
 
+
+				mProgTriangle = ShaderManager::Get().getGlobalShaderT< TriangleProgram >();
+
 				InputLayoutDesc desc;
 				desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 				desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
@@ -146,11 +178,11 @@ namespace Render
 
 			{
 				std::vector<uint8> texData = GenerateTextureData();
-				mTexture = RHICreateTexture2D(Texture::eRGBA8, TextureWidth, TextureHeight, 1, 1, TCF_DefalutValue, texData.data());
+				mTexture = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 1, 1, TCF_DefalutValue, texData.data());
 			}
 			{
 				std::vector<uint8> texData = GenerateTextureData(4);
-				mTexture1 = RHICreateTexture2D(Texture::eRGBA8, TextureWidth, TextureHeight, 1, 1, TCF_DefalutValue, texData.data());
+				mTexture1 = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 1, 1, TCF_DefalutValue, texData.data());
 			}
 			return true;
 		}
@@ -226,16 +258,24 @@ namespace Render
 
 			RHISetViewports(commandList, viewports, ARRAY_SIZE(viewports));
 
-			GraphicsShaderStateDesc stateDesc;
-			stateDesc.vertex = mVertexShader.getRHIResource();
-			stateDesc.pixel = mPixelShader.getRHIResource();
-			RHISetGraphicsShaderBoundState(commandList, stateDesc);
+			if (bUseProgram)
+			{
+				RHISetShaderProgram(commandList, mProgTriangle->getRHIResource());
+				mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
+				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), TStaticSamplerState<>::GetRHI());
+				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), TStaticSamplerState<>::GetRHI());
+			}
+			else
+			{
+				GraphicsShaderStateDesc stateDesc;
+				stateDesc.vertex = mVertexShader.getRHIResource();
+				stateDesc.pixel = mPixelShader.getRHIResource();
+				RHISetGraphicsShaderBoundState(commandList, stateDesc);
+				mVertexShader.setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
+				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), TStaticSamplerState<>::GetRHI());
+				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), TStaticSamplerState<>::GetRHI());
+			}
 
-			mVertexShader.setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
-	
-			mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), TStaticSamplerState<>::GetRHI());
-			mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), TStaticSamplerState<>::GetRHI());
-	
 			InputStreamInfo inputStream;
 			inputStream.buffer = mVertexBuffer;
 			RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
@@ -243,6 +283,21 @@ namespace Render
 			RHIDrawPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 3, 4, 0);
 
 
+			Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1);
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix), LinearColor(1, 0, 0, 1));
+			{
+
+				Vector2 v[] = { Vector2(1,1) , Vector2(100,100), Vector2(1,100), Vector2(100,1) };
+				uint32 indices[] = { 0, 2, 2, 1,1,3,3,0 };
+				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, v, ARRAY_SIZE(v), indices, ARRAY_SIZE(indices));
+			}
+			RHIFlushCommand(commandList);
+			{
+
+				Vector2 v[] = { Vector2(100,100) , Vector2(200,200), Vector2(100,200), Vector2(200,100) };
+				uint32 indices[] = { 0, 2, 2, 1,1,3,3,0 };
+				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, v, ARRAY_SIZE(v), indices, ARRAY_SIZE(indices));
+			}
 		}
 
 		bool onKey(KeyMsg const& msg) override

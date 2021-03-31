@@ -1,12 +1,23 @@
 #include "RenderSystem.h"
 
 #include "TextureManager.h"
-
+#include "GameInterface.h"
 #include "DataPath.h"
 #include "Dependence.h"
 
+#include "FileSystem.h"
+
+#include "RHI/RHICommand.h"
+#include "RHI/Font.h"
+#include "RHI/RHIGraphics2D.h"
+using namespace Render;
+
+
 #include <cassert>
 #include <iostream>
+#include <unordered_map>
+
+
 
 #define USE_FREETYPE 0
 
@@ -529,9 +540,43 @@ class CFont : public IFont
 public:
 	bool load(char const* path)
 	{
+		if (!FileSystem::IsExist(path))
+			return false;
+
+		mFontName = path;
 		return true;
 	}
-	virtual void release(){}
+	virtual void release()
+	{
+		delete this;
+	}
+
+	class Drawer : public FontDrawer
+	{
+	public:
+		CFont* owner;
+	};
+
+	Drawer* fetchDrawer(int size)
+	{
+		auto iter = mDrawerMap.find(size);
+		if (iter != mDrawerMap.end())
+		{
+			return iter->second.get();
+		}
+
+		auto drawer = std::make_unique< Drawer >();
+		drawer->owner = this;
+		drawer->initialize(FontFaceInfo(mFontName.c_str(), size, false));
+
+		Drawer* result = drawer.get();
+		mDrawerMap.emplace(size, std::move(drawer));
+		return result;
+	}
+
+	std::string mFontName;
+
+	std::unordered_map<int, std::unique_ptr< Drawer > > mDrawerMap;
 };
 
 class CText : public IText
@@ -543,14 +588,78 @@ public:
 	}
 	CText(IFont* font, int size, Color4ub const& color)
 	{
-
+		mDrawer = static_cast<CFont*>(font)->fetchDrawer(size);
+		mSize = size;
+		mColor = color;
 	}
+
 	virtual Vec2f getBoundSize() const { return Vec2f(0, 0); }
-	virtual void  setString(char const* str){}
-	virtual void  setColor(Color4ub const& color) {}
-	virtual void  setFont(IFont* font) {}
-	virtual void  setCharSize(int size){}
-	virtual void  release() {}
+	virtual void  setString(char const* str)
+	{
+		mString = str;
+		updateVertices();
+	}
+	virtual void  setColor(Color4ub const& color) { mColor = color; }
+	virtual void  setFont(IFont* font) 
+	{
+		if (font)
+		{
+			if (mDrawer == nullptr || mDrawer->owner != font)
+			{
+				mDrawer = mDrawer->owner->fetchDrawer(mSize);
+				updateVertices();
+			}
+		}
+	}
+
+	virtual void  setCharSize(int size)
+	{
+		if (mSize != size)
+		{
+			mSize = size;
+			if (mDrawer)
+			{
+				mDrawer = mDrawer->owner->fetchDrawer(mSize);
+				updateVertices();
+			}
+		}
+	}
+
+	virtual void  release() 
+	{
+		delete this;
+	}
+
+	void draw(RHICommandList& commandList, Vec2f const& pos)
+	{
+		if (mDrawer)
+		{
+			RHIGraphics2D& g = IGame::Get().getGraphics2D();
+			g.beginBlend(1, ESimpleBlendMode::Translucent);
+			mDrawer->draw(commandList, Matrix4::Translate(pos.x, pos.y, 0) * g.getBaseTransform(), mColor, mTextVertices);
+			g.endBlend();
+			g.restoreRenderState();
+			
+		}
+	}
+
+	void updateVertices()
+	{
+		if (mDrawer)
+		{
+			mTextVertices.clear();
+			mDrawer->generateVertices(Vec2f(0, 0), mString.c_str(), mTextVertices);
+		}
+	}
+
+
+
+	std::vector< FontVertex > mTextVertices;
+	
+	CFont::Drawer* mDrawer;
+	std::string mString;
+	LinearColor mColor;
+	int mSize = 12;
 };
 
 #endif
@@ -666,6 +775,9 @@ void RenderSystem::drawText( IText* text , Vec2f const& pos , unsigned sideFlag 
 	static_cast< CText* >( text )->print( pos.x , pos.y );
 #else
 
+
+	static_cast<CText*>(text)->draw(RHICommandList::GetImmediateList(),pos);
+
 #endif
 }
 
@@ -674,8 +786,14 @@ bool RenderSystem::prevRender()
 	if ( mContext && !mContext->setCurrent() )
 		return false;
 
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+	RHISetFrameBuffer(commandList, nullptr);
+	RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
+
+
+
+	//glDisable(GL_CULL_FACE);
+	//glDisable(GL_DEPTH_TEST);
 	return true;
 }
 
@@ -689,6 +807,6 @@ void RenderSystem::cleanup()
 {
 	mTextureMgr->cleanup();
 
-	if ( mContext )
+	if (mContext)
 		mContext->release();
 }

@@ -205,8 +205,8 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 
 static bool IsRHISupport()
 {
-	if (GRHISystem->getName() != RHISytemName::OpenGL &&
-		GRHISystem->getName() != RHISytemName::D3D11)
+	if (GRHISystem->getName() != RHISystemName::OpenGL &&
+		GRHISystem->getName() != RHISystemName::D3D11)
 		return false;
 	return true;
 }

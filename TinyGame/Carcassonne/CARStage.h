@@ -36,9 +36,9 @@ namespace CAR
 		void onRender() override;
 
 		ActorPosInfo* info;
-		ActorType type;
-		int       indexPos;
-		Vector2     mapPos;
+		EActor::Type  type;
+		int           indexPos;
+		Vector2       mapPos;
 	};
 
 	class SelectButton : public GButtonBase
@@ -248,7 +248,7 @@ namespace CAR
 		bool    mb2DView;
 
 
-		int    mFiledTypeMap[ FieldType::NUM ];
+		int    mFiledTypeMap[ EField::COUNT ];
 
 		Vec2i  mCurMapPos;
 		int    mRotation;

@@ -5,16 +5,16 @@
 #include "GameModule.h"
 #include "GameAction.h"
 
-GameStageMode::GameStageMode(StageModeType mode) 
+GameStageMode::GameStageMode(EGameStageMode mode) 
 	:mStageMode(mode)
 	, mCurStage(nullptr)
-	, mGameState(GameState::End)
+	, mGameState(EGameState::End)
 	, mReplayFrame(0)
 {
 
 }
 
-bool GameStageMode::changeState(GameState state)
+bool GameStageMode::changeState(EGameState state)
 {
 	if( mGameState == state )
 		return true;
@@ -22,8 +22,8 @@ bool GameStageMode::changeState(GameState state)
 	if( !tryChangeState(state) )
 		return false;
 
-	mCurStage->onChangeState(state);
 	mGameState = state;
+	mCurStage->onChangeState(state);
 	return true;
 }
 
@@ -40,20 +40,20 @@ void GameStageMode::doRestart(bool bInit)
 	::Global::RandSeedNet(seed);
 	mCurStage->onRestart(bInit);
 	mReplayFrame = 0;
-	changeState(GameState::Start);
+	changeState(EGameState::Start);
 }
 
 bool GameStageMode::togglePause()
 {
-	if( getGameState() == GameState::Run )
-		return changeState(GameState::Pause);
-	else if( getGameState() == GameState::Pause )
-		return changeState(GameState::Run);
+	if( getGameState() == EGameState::Run )
+		return changeState(EGameState::Pause);
+	else if( getGameState() == EGameState::Pause )
+		return changeState(EGameState::Run);
 	return false;
 }
 
 
-LevelStageMode::LevelStageMode(StageModeType mode)
+LevelStageMode::LevelStageMode(EGameStageMode mode)
 	:BaseClass(mode)
 {
 
@@ -61,7 +61,7 @@ LevelStageMode::LevelStageMode(StageModeType mode)
 
 bool LevelStageMode::saveReplay(char const* name)
 {
-	if( getGameState() == GameState::Start )
+	if( getGameState() == EGameState::Start )
 		return false;
 
 	if( !mReplayRecorder.get() )

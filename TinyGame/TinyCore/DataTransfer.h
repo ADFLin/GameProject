@@ -39,18 +39,14 @@ public:
 	template< class T >
 	void sendData( int recvId , int dataId , T& data )
 	{
-		sendData( recvId , dataId , data , THaveGetSendSizeFunc<T>::Type() );
-	}
-
-	template< class T >
-	void sendData(int recvId, int dataId, T& data , Meta::TureType)
-	{
-		sendData(recvId, dataId, &data, data.getSendSize() );
-	}
-	template< class T >
-	void sendData(int recvId, int dataId, T& data, Meta::FalseType)
-	{
-		sendData(recvId, dataId, &data, sizeof(data));
+		if constexpr (THaveGetSendSizeFunc<T>::Value)
+		{
+			sendData(recvId, dataId, &data, data.getSendSize());
+		}
+		else
+		{
+			sendData(recvId, dataId, &data, sizeof(data));
+		}
 	}
 };
 

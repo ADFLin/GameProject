@@ -35,7 +35,7 @@ class AbilityProp
 public:
 	AbilityProp( SAbilityPropData& restData );
 
-	void  updateFrame( PropModifyCallBack& removeCallback );
+	void  update( PropModifyCallBack& removeCallback );
 
 	void setHP(int val);
 	void setMP(int val);

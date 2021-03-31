@@ -104,6 +104,10 @@ namespace Math
 		{
 			Matrix4 m; m.setScale( Vector3( scale , scale , scale ) ); return m;
 		}
+		FORCEINLINE static Matrix4 Scale(float scaleX ,float scaleY ,float scaleZ)
+		{
+			Matrix4 m; m.setScale(Vector3(scaleX, scaleY, scaleZ)); return m;
+		}
 		FORCEINLINE static Matrix4 Scale( Vector3 const& scale )
 		{
 			Matrix4 m; m.setScale( scale ); return m;

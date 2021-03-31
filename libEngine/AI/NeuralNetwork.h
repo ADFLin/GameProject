@@ -7,7 +7,7 @@
 #include <cassert>
 #include <vector>
 
-typedef double NNScale;
+typedef float NNScale;
 typedef NNScale (*NNActivationFunc)(NNScale);
 typedef void    (*NNActivationTrasnformFunc)(NNScale* inoutValues, int numValues);
 template< class T , class Q , class TFunc >
@@ -93,7 +93,7 @@ struct FNNFuncHelper
 {
 	static void Trasnform(NNScale* inoutValues, int numValues)
 	{
-		for( int i = numValues; i ; --i )
+		for( int i = 0; i < numValues ; ++i )
 		{
 			*inoutValues = (*StaticFunc)(*inoutValues);
 			++inoutValues;

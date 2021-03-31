@@ -29,32 +29,32 @@ namespace CAR
 		unsigned getSupportActorMask()
 		{
 			unsigned result = 0;
-			for( int i = 0 ; i < NUM_PLAYER_ACTOR_TYPE ; ++i )
+			for( int i = 0 ; i < EActor::PLAYER_TYPE_COUNT ; ++i )
 			{
-				if ( getActorValue( ActorType(i) ) )
+				if ( getFieldValue( EActor::Type(i) ) )
 					result |= BIT(i);
 			}
 			return result;
 		}
 
-		bool haveActor( ActorType type ) const { return getActorValue( type ) != 0; }
-		int  getActorValue( ActorType type ) const
+		bool haveActor( EActor::Type type ) const { return getFieldValue( type ) != 0; }
+		int  getFieldValue( EActor::Type type ) const
 		{ 
-			return getFieldValue( FieldType::Enum( FieldType::eActorStart + type ) );
+			return getFieldValue( EField::Type( EField::ActorStart + type ) );
 		}
-		void setActorValue( ActorType type , int value )
+		void setFieldValue( EActor::Type type , int value )
 		{  
-			setFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value );  
+			setFieldValue( EField::Type( EField::ActorStart + type ) , value );  
 		}
-		int  modifyActorValue( ActorType type , int value = 1 )
+		int  modifyFieldValue( EActor::Type type , int value = 1 )
 		{  
-			return modifyFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value ); 
+			return modifyFieldValue( EField::Type( EField::ActorStart + type ) , value ); 
 		}
 
-		int  getFieldValue( FieldType::Enum type , int index = 0 ) const;
-		void setFieldArrayValues(FieldType::Enum type, int* values, int num);
-		void setFieldValue(FieldType::Enum type, int value , int index = 0 );
-		int  modifyFieldValue( FieldType::Enum type , int value = 1 );
+		int  getFieldValue( EField::Type type , int index = 0 ) const;
+		void setFieldArrayValues(EField::Type type, int* values, int num);
+		void setFieldValue(EField::Type type, int value , int index = 0 );
+		int  modifyFieldValue( EField::Type type , int value = 1 );
 
 		int mPlayOrder;
 		int mId;
@@ -76,7 +76,7 @@ namespace CAR
 		int         getPlayerNum() { return mNumPlayer; }
 		PlayerBase* getPlayer(PlayerId id) { assert(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id]; }
 		void        addPlayer(PlayerBase* player);
-		void        clearAllPlayer(bool bDelete);
+		void        clearAllPlayer(bool bNeedDelete);
 
 
 		PlayerBase* mPlayerMap[MaxPlayerNum];

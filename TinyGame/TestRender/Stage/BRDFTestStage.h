@@ -133,7 +133,7 @@ namespace Render
 		void setParameters(RHICommandList& commandList, PostProcessContext const& context, RHITexture2D& targetTexture)
 		{
 			setTexture(commandList, mParamTargetTexture, targetTexture, 
-					   mParamTargetTextureSampler, TStaticSamplerState< Sampler::ePoint, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+					   mParamTargetTextureSampler, TStaticSamplerState< ESampler::Point, ESampler::Clamp, ESampler::Clamp >::GetRHI());
 		}
 		ShaderParameter mParamTargetTextureSampler;
 		ShaderParameter mParamTargetTexture;

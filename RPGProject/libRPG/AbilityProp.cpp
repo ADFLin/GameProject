@@ -174,7 +174,7 @@ void AbilityProp::resetPropVal( PropType prop )
 	addProp.setPropVal( prop , 0 );
 }
 
-void AbilityProp::updateFrame( PropModifyCallBack& callback )
+void AbilityProp::update( PropModifyCallBack& callback )
 {
 	int ch = 0;
 

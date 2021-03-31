@@ -13,7 +13,7 @@ class FileVersionData
 };
 
 
-template< class FileSteamType >
+template< class TSrteamType >
 class TFileFileSerializer : public IStreamSerializer
 {
 public:
@@ -27,7 +27,7 @@ public:
 		mFS.flush();
 	}
 protected:
-	FileSteamType mFS;
+	TSrteamType mFS;
 
 };
 

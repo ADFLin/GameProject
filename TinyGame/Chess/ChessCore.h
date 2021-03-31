@@ -6,6 +6,8 @@
 #include "DataStructure/Grid2D.h"
 #include "RHI/RHICommand.h"
 
+#include "Delegate.h"
+
 namespace Chess
 {
 	typedef TVector2<int> Vec2i;
@@ -20,6 +22,8 @@ namespace Chess
 			Knight,
 			Rook,
 			Pawn,
+
+			COUNT ,
 		};
 	}
 
@@ -46,6 +50,7 @@ namespace Chess
 		EnPassant,
 		PawnTwoStepMove,
 		Castling,
+		RemoveChess,
 	};
 
 	struct MoveInfo
@@ -90,15 +95,55 @@ namespace Chess
 		}
 	};
 
+
 	class Game
 	{
 	public:
+		struct TileData;
+
+		struct ChessData
+		{
+			EChessColor  color;
+			EChess::Type type;
+			EMoveState   moveState;
+			int          lastMoveTurn;
+		};
+
+		struct AttackInfo
+		{
+			Vec2i     pos;
+			TileData* tile;
+			MoveInfo  move;
+		};
+
+		struct TileData
+		{
+			ChessData* chess;
+			union
+			{
+				struct
+				{
+					int whiteAttackCount;
+					int blackAttackCount;
+				};
+
+				int attackCounts[2];
+			};
+
+			std::vector<AttackInfo> attacks;
+		};
 
 		void restart();
 
 		bool isValidPos(Vec2i const& pos) const
 		{
 			return mBoard.checkRange(pos.x, pos.y);
+		}
+
+
+		TileData const& getTile(Vec2i const& pos) const
+		{
+			return mBoard.getData(pos.x, pos.y);
 		}
 
 		bool isValidMove(Vec2i const& from, MoveInfo const& move) const
@@ -127,6 +172,15 @@ namespace Chess
 
 		void moveChess(Vec2i const& from, MoveInfo const& move);
 
+		void promotePawn(Vec2i const& pos, EChess::Type promotionType)
+		{
+			TileData& tile = mBoard.getData(pos.x, pos.y);
+
+			assert(tile.chess->type == EChess::Pawn && promotionType != EChess::Pawn );
+
+			tile.chess->type = promotionType;
+		}
+
 
 		void updateAttackTerritory();
 
@@ -140,42 +194,16 @@ namespace Chess
 			return EChessColor(mCurTurn & 1);
 		}
 
-		struct ChessData
-		{
-			EChessColor  color;
-			EChess::Type type;
-			EMoveState   moveState;
-			int          lastMoveTurn;
-		};
+
 
 		struct TileData;
-		struct AttackInfo
-		{
-			Vec2i     pos;
-			TileData* tile;
-			MoveInfo  move;
-		};
-
-		struct TileData
-		{
-			ChessData* chess;
-			union
-			{
-				struct
-				{
-					int whiteAttackCount;
-					int blackAttackCount;
-				};
-
-				int attackCounts[2];
-			};
-
-			std::vector<AttackInfo> attacks;
-		};
 
 		int mCurTurn;
 		TGrid2D<TileData> mBoard;
 		std::vector< ChessData > mChessList;
+
+
+		
 	};
 
 }//namespace Chess

@@ -6,6 +6,11 @@
 
 #include "RenderSystem.h"
 #include "RenderUtility.h"
+#include "Texture.h"
+
+
+#include "RHI/RHIGraphics2D.h"
+#include "TinyCore/RenderUtility.h"
 
 class ScissorClipStack
 {
@@ -27,6 +32,20 @@ void ScissorClipStack::push( Vec2i const& pos , Vec2i const& size , bool bOverla
 	rect.min = pos;
 	rect.max = pos + size;
 
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	if (mStack.empty())
+	{
+		g.beginClip(pos, size);
+	}
+	else if (bOverlapPrev)
+	{
+		if (!rect.overlap(mStack.back()))
+			rect.max = rect.min;
+		Vec2i sizeRect = rect.getSize();
+		g.setClipRect(pos, sizeRect);
+	}
+#else
 	if ( mStack.empty() )
 	{
 		mPrevEnable = glIsEnabled( GL_SCISSOR_TEST );
@@ -40,13 +59,28 @@ void ScissorClipStack::push( Vec2i const& pos , Vec2i const& size , bool bOverla
 	}
 	Vec2i sizeRect = rect.getSize();
 	glScissor( rect.min.x , rect.min.y , sizeRect.x , sizeRect.y );
-	mStack.push_back( rect );
+	
+#endif
+
+	mStack.push_back(rect);
 }
 
 void ScissorClipStack::pop()
 {
 	mStack.pop_back();
-
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	if (mStack.empty())
+	{	
+		g.endClip();
+	}
+	else
+	{
+		SRect& rect = mStack.back();
+		Vec2i size = rect.getSize();
+		g.setClipRect(rect.min, rect.getSize());
+	}
+#else
 	if ( mStack.empty() )
 	{
 		if ( !mPrevEnable )
@@ -58,11 +92,12 @@ void ScissorClipStack::pop()
 		Vec2i size = rect.getSize();
 		glScissor( rect.min.x , rect.min.y , size.x , size.y );
 	}
+#endif
 }
 
 void GUISystem::sendMessage( int event , int id , QWidget* sender )
 {
-	getGame()->procWidgetEvent( event , id , sender );
+	IGame::Get().procWidgetEvent( event , id , sender );
 }
 
 QWidget* GUISystem::findTopWidget( int id , QWidget* start )
@@ -171,7 +206,33 @@ void QTextButton::onRender()
 {
 	Vec2i const& pos  = getWorldPos();
 	Vec2i const& size = getSize();
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	g.beginBlend(1, ESimpleBlendMode::Add);
 
+	if (isEnable())
+	{
+		if (getButtonState() == BS_HIGHLIGHT)
+		{
+			g.setBrush(Color3f(0.0, 0.5, 0.0));
+			g.setPen(Color3f(0.0, 1.0, 0.0));
+		}
+		else
+		{
+			g.setBrush(Color3f(0.0, 0.25, 0.0));
+			g.setPen(Color3f(0.0, 0.5, 0.0));
+		}
+	}
+	else
+	{
+		g.setBrush(Color3f(0.05, 0.05, 0.05));
+		g.setPen(Color3f(0.1, 0.1, 0.1));
+	}
+
+	g.drawRect(pos, size);
+	g.endBlend();
+
+#else
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);
 	if( isEnable() )
@@ -205,6 +266,7 @@ void QTextButton::onRender()
 	glColor3f(1.0, 1.0, 1.0);
 
 	glDisable(GL_BLEND);
+#endif
 
 	if( isEnable() )
 		text->setColor(Color4ub(50,255,50));
@@ -212,6 +274,8 @@ void QTextButton::onRender()
 		text->setColor(Color4ub(150,150,150));
 
 	getRenderSystem()->drawText( text , pos  + size / 2  );
+
+
 
 }
 
@@ -293,6 +357,19 @@ void QFrame::onRender()
 {
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
+
+#if 1
+	//TIJELO PROZORA
+	auto& g = IGame::Get().getGraphics2D();
+	g.beginBlend(0.4f);
+	g.enablePen(false);
+	g.setBrush(Color3f(0.0, 0.25, 0.0));
+	g.drawRect(pos, size);
+	g.enablePen(true);
+	g.endBlend();
+
+#else
+
 	//TIJELO PROZORA
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -308,6 +385,8 @@ void QFrame::onRender()
 	glColor3f(0.0, 0.0, 0.0); glVertex2f(pos.x, pos.y+TopSideHeight);
 	glEnd();
 	glColor3f(1.0, 1.0, 1.0);
+
+#endif
 
 	if ( mTile )
 	{
@@ -329,11 +408,21 @@ void QPanel::onRender()
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
 	//TIJELO PROZORA
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	g.beginBlend(0.8f);
+	g.enablePen(false);
+	g.setBrush(Color3f(0.0, 0.25, 0.0));
+	g.drawRect(pos, size);
+	g.enablePen(true);
+	g.endBlend();
+#else
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glColor4f( 0.0 , 0.25, 0.0 , 0.8 );
 	drawRect( pos , size );
 	glDisable(GL_BLEND);
+#endif
 }
 
 QPanel::QPanel( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
@@ -356,6 +445,23 @@ QImageButton::~QImageButton()
 
 void QImageButton::onRender()
 {
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+
+	g.enablePen(false);
+
+	Vec2f pos = getWorldPos();
+	Vec2f size = getSize();
+
+	if (getButtonState() == BS_HIGHLIGHT)
+		g.setBrush(Color3f(0.25, 0.25, 0.25));
+	else
+		g.setBrush(Color3f(1.0, 1.0, 1.0));
+
+	g.drawTexture(*texImag->resource, pos, size);
+	g.enablePen(true);
+#else
+
 	if( getButtonState() == BS_HIGHLIGHT )
 		glColor3f(0.25, 0.25, 0.25);
 	else
@@ -370,6 +476,7 @@ void QImageButton::onRender()
 
 	drawSprite( pos , size ,texImag );
 	glColor3f(1.0, 1.0, 1.0);
+#endif
 
 }
 
@@ -388,13 +495,25 @@ void QImageButton::onRenderSiblingsEnd()
 	{
 		Vec2f sizeHelp = mHelpText->getBoundSize() + 2 * Vec2f( 4 , 4 );
 		Vec2f posHelp = getGame()->getMousePos();
+#if 1
+		auto& g = IGame::Get().getGraphics2D();
+		g.beginBlend(0.4f);
+		g.enablePen(false);
+		g.setBrush(Color3f(0.0, 0.25, 0.0));
+		g.drawRect(posHelp, sizeHelp);
+		g.enablePen(true);
+		g.endBlend();
 
+#else
 		glEnable(GL_BLEND);
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glColor4f(0.0, 0.25, 0.0 , 0.4 );
 		drawRect( posHelp , sizeHelp );
 		glDisable(GL_BLEND);
-		getRenderSystem()->drawText( mHelpText , posHelp + sizeHelp / 2 );
+
+#endif
+
+		getRenderSystem()->drawText(mHelpText, posHelp + sizeHelp / 2);
 	}
 }
 
@@ -417,6 +536,17 @@ void QTextCtrl::onRender()
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
 
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	g.beginBlend(0.8f);
+	g.enablePen(false);
+	g.setBrush(Color3f(0.1, 0.1, 0.1));
+	g.drawRect(pos, size);
+	g.enablePen(true);
+	g.endBlend();
+
+#else
+
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glColor4f( 0.1, 0.1 , 0.1 , 0.8f );
@@ -424,13 +554,14 @@ void QTextCtrl::onRender()
 	glColor3f( 1,1,1);
 	glDisable(GL_BLEND);
 
-
+#endif
 	if( isFocus() )
 		text->setColor(Color4ub(50,255,50));
 	else
 		text->setColor(Color4ub(150,150,150));
 
 	getRenderSystem()->drawText( text , pos + size / 2 );
+
 }
 
 void QTextCtrl::setFontSize( unsigned size )
@@ -476,12 +607,22 @@ void QChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 	Vec2i size( getSize().x , getMenuItemHeight() );
 	if ( beLight )
 	{
+#if 1
+		auto& g = IGame::Get().getGraphics2D();
+		g.beginBlend(0.8f);
+		g.enablePen(false);
+		g.setBrush(Color3f(0.1, 0.1, 0.1));
+		g.drawRect(pos + Vec2i(2, 2), size - Vec2i(4, 4));
+		g.enablePen(true);
+		g.endBlend();
+#else
 		glEnable(GL_BLEND);
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glColor4f( 0.1, 0.1 , 0.1 , 0.8f );
 		drawRect( pos + Vec2i( 2 , 2 ) , size - Vec2i( 4 , 4 ) );
 		glColor3f( 1,1,1);
 		glDisable(GL_BLEND);
+#endif
 	}
 	getRenderSystem()->drawText( item.text , pos + size / 2 );
 }
@@ -491,31 +632,51 @@ void QChoice::onRender()
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
 
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	g.beginBlend(0.8f);
+	g.enablePen(false);
+	g.setBrush(Color3f(0.1, 0.1, 0.1));
+	g.drawRect(pos, size);
+	g.enablePen(true);
+	g.endBlend();
+#else
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glColor4f( 0.1, 0.1 , 0.1 , 0.8f );
 	drawRect( pos , size );
 	glColor3f( 1,1,1);
 	glDisable(GL_BLEND);
+#endif
 
 	if ( mCurSelect != -1 )
 	{
 		Item& item = mItemList[ mCurSelect ];
 		getRenderSystem()->drawText( item.text , pos + size / 2 );
 	}
+
 }
 
 void QChoice::doRenderMenuBG( Menu* menu )
 {
 	Vec2i pos =  menu->getWorldPos();
 	Vec2i size = menu->getSize();
-
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	g.beginBlend(0.8f);
+	g.enablePen(false);
+	g.setBrush(Color3f(0.5, 0.5, 0.5));
+	g.drawRect(pos, size);
+	g.enablePen(true);
+	g.endBlend();
+#else
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glColor4f( 0.5, 0.5 , 0.5 , 0.8f );
 	drawRect( pos , size );
 	glColor3f( 1,1,1);
 	glDisable(GL_BLEND);
+#endif
 }
 
 QListCtrl::QListCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
@@ -541,22 +702,42 @@ void QListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 	Vec2i size( getSize().x , getItemHeight() );
 	if ( beSelected )
 	{
+#if 1
+		auto& g = IGame::Get().getGraphics2D();
+		g.beginBlend(0.8f);
+		g.enablePen(false);
+		g.setBrush(Color3f(0.1, 0.1, 0.1));
+		g.drawRect(pos + Vec2i(2, 2), size - Vec2i(4, 4));
+		g.enablePen(true);
+		g.endBlend();
+#else
 		glEnable(GL_BLEND);
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		glColor4f( 0.1, 0.1 , 0.1 , 0.8f );
 		drawRect( pos + Vec2i( 2 , 2 ) , size - Vec2i( 4 , 4 ) );
 		glColor3f( 1,1,1);
 		glDisable(GL_BLEND);
+#endif
 	}
 	getRenderSystem()->drawText( item.text , pos + size / 2 );
 }
 
 void QListCtrl::doRenderBackground( Vec2i const& pos , Vec2i const& size )
 {
+#if 1
+	auto& g = IGame::Get().getGraphics2D();
+	g.beginBlend(0.8f);
+	g.enablePen(false);
+	g.setBrush(Color3f(0.5, 0.5, 0.5));
+	g.drawRect(pos, size);
+	g.enablePen(true);
+	g.endBlend();
+#else
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 	glColor4f( 0.5, 0.5 , 0.5 , 0.8f );
 	drawRect( pos , size );
 	glColor3f( 1,1,1);
 	glDisable(GL_BLEND);
+#endif
 }

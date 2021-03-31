@@ -191,7 +191,7 @@ namespace Render
 
 				RHISetShaderProgram(commandList, mProgLiginting->getRHIResource());
 
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 

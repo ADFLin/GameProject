@@ -46,7 +46,7 @@ namespace CAR
 
 		TBitMaskIterator(unsigned inMask)
 			:mask(inMask)
-			,index(-1)
+			,index(INDEX_NONE)
 		{
 
 		}

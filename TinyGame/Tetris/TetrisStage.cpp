@@ -85,16 +85,16 @@ namespace Tetris
 
 		switch( getModeType() )
 		{
-		case SMT_SINGLE_GAME:
+		case EGameStageMode::Single:
 			mGameMode->setupSingleGame( controller );
 			break;
-		case SMT_REPLAY:
-			if ( getModeType() == SMT_REPLAY )
+		case EGameStageMode::Replay:
+			if ( getModeType() == EGameStageMode::Replay )
 			{
 				flag |= LevelMode::eReplay;
 			}
 			break;
-		case SMT_NET_GAME: 
+		case EGameStageMode::Net: 
 			{
 				GamePlayer* player = playerMgr.getPlayer( playerMgr.getUserID() );
 				controller.setPortControl( player->getActionPort() , 0 );
@@ -193,21 +193,21 @@ namespace Tetris
 
 	void LevelStage::tick()
 	{
-		if ( getGameState() == GameState::Run )
+		if ( getGameState() == EGameState::Run )
 		{
 			mWorld->tick();
 			if ( mWorld->isGameEnd() )
-				changeState( GameState::End );
+				changeState( EGameState::End );
 		}
 
-		if ( getGameState() != GameState::Pause )
+		if ( getGameState() != EGameState::Pause )
 			mGameTime += gDefaultTickTime;
 
 		switch( getGameState() )
 		{
-		case GameState::Start:
-			if ( mGameTime > 2500 || getModeType() == SMT_REPLAY )
-				changeState( GameState::Run );
+		case EGameState::Start:
+			if ( mGameTime > 2500 || getModeType() == EGameStageMode::Replay )
+				changeState( EGameState::Run );
 			break;
 		}
 	}
@@ -218,14 +218,14 @@ namespace Tetris
 	}
 
 
-	void LevelStage::onChangeState( GameState state )
+	void LevelStage::onChangeState( EGameState state )
 	{
 		switch( state )
 		{
-		case GameState::End:
+		case EGameState::End:
 			switch( getModeType() )
 			{
-			case  SMT_SINGLE_GAME:
+			case  EGameStageMode::Single:
 				{
 					IPlayerManager* playerManager = getStageMode()->getPlayerManager();
 					mLastGameOrder = mGameMode->markRecord( 
@@ -253,7 +253,7 @@ namespace Tetris
 						UI_RESTART_GAME , "Do You Want To Play Game Again ?" );
 				}
 				break;
-			case SMT_NET_GAME:
+			case EGameStageMode::Net:
 				if ( ::Global::GameNet().getNetWorker()->isServer() )
 				{
 					::Global::GUI().showMessageBox( 
@@ -271,7 +271,7 @@ namespace Tetris
 
 		mWorld->render( g );
 
-		if ( getGameState() == GameState::Start )
+		if ( getGameState() == EGameState::Start )
 		{
 			RenderUtility::SetFont( g , FONT_S24 );
 			Vec2i pos( de.getScreenWidth() / 2 , de.getScreenHeight() / 2 );
@@ -301,7 +301,7 @@ namespace Tetris
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getModeType() == SMT_SINGLE_GAME )
+				if ( getModeType() == EGameStageMode::Single )
 				{
 					RecordStage* stage = (RecordStage*)getManager()->changeStage( STAGE_RECORD_GAME );
 					stage->setPlayerOrder( mLastGameOrder );
@@ -369,7 +369,7 @@ namespace Tetris
 
 	bool LevelStage::setupGame( GameInfo &gameInfo )
 	{
-		if ( getStageMode() && getModeType() != SMT_NET_GAME )
+		if ( getStageMode() && getModeType() != EGameStageMode::Net )
 		{
 			LocalPlayerManager* playerManager = static_cast< LocalPlayerManager* >(getStageMode()->getPlayerManager() );
 			for( int i = 0 ; i < gameInfo.numLevel ; ++i )

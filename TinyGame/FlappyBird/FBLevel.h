@@ -81,7 +81,7 @@ namespace FlappyBird
 		CT_SCORE,
 	};
 
-	enum class CollisionResponse
+	enum class EColResponse
 	{
 		Keep,
 		Stop,
@@ -89,17 +89,17 @@ namespace FlappyBird
 		RemoveAndStop,
 	};
 
-	inline CollisionResponse GetDefaultColTypeResponse(ColType type)
+	inline EColResponse GetDefaultColTypeResponse(ColType type)
 	{
 		switch( type )
 		{
 		case CT_PIPE_BOTTOM:
 		case CT_PIPE_TOP:
-			return CollisionResponse::Stop;
+			return EColResponse::Stop;
 		case CT_SCORE:
-			return CollisionResponse::Remove;
+			return EColResponse::Remove;
 		}
-		return CollisionResponse::Keep;
+		return EColResponse::Keep;
 	}
 
 	struct ColObject
@@ -134,7 +134,7 @@ namespace FlappyBird
 
 
 	class GameLevel;
-	class IController
+	class IBirdController
 	{
 	public:
 		virtual void updateInput(GameLevel& level, BirdEntity& bird) = 0;
@@ -142,7 +142,7 @@ namespace FlappyBird
 	};
 
 	DECLARE_DELEGATE( LevelOverDelegate , void (GameLevel& level) );
-	DECLARE_DELEGATE( CollisionDelegate , CollisionResponse (BirdEntity& bird, ColObject& obj ) );
+	DECLARE_DELEGATE( CollisionDelegate , EColResponse (BirdEntity& bird, ColObject& obj ) );
 
 
 	class GameLevel
@@ -165,7 +165,7 @@ namespace FlappyBird
 			return MakeIterator(mColObjects);
 		}
 		void addPipe(PipeInfo const& block);
-		void addBird(BirdEntity& bird , IController* controller = nullptr );
+		void addBird(BirdEntity& bird , IBirdController* controller = nullptr );
 		void removeAllBird();
 
 		void testCollision(BirdEntity& bird);
@@ -192,7 +192,7 @@ namespace FlappyBird
 		struct BirdControl
 		{
 			BirdEntity*  bird;
-			IController* controller;
+			IBirdController* controller;
 		};
 		std::vector< BirdControl > mBirdControls;
 	};

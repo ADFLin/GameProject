@@ -58,7 +58,11 @@ namespace Render
 				return false;
 			}
 
-			if( !::Global::DataCache().saveDelegate(key, MeshSave) )
+			if (GRHISystem->getName() == RHISystemName::D3D11)
+				return true;
+
+
+			if(!::Global::DataCache().saveDelegate(key, MeshSave) )
 			{
 
 			}

@@ -23,7 +23,7 @@ bool GBuffer::create(int w , int h)
 	glBindFramebuffer( GL_DRAW_FRAMEBUFFER , mFBO );
 	for( int i = 0 ; i < NUM_BUFFER_TYPE ; ++i )
 	{
-		mTexBuffers[i] = Render::RHICreateTexture2D(Render::Texture::eFloatRGBA, w, h);
+		mTexBuffers[i] = Render::RHICreateTexture2D(Render::ETexture::FloatRGBA, w, h);
 
 		Render::OpenGLCast::To(mTexBuffers[i])->bind();
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

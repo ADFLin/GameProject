@@ -155,7 +155,7 @@ public:
 	bool onKey(KeyMsg const& msg);
 
 	void   onRestart(uint64& seed);
-	bool   tryChangeState(GameState state);
+	bool   tryChangeState(EGameState state);
 	IPlayerManager* getPlayerManager();
 
 	//FrameUpdater

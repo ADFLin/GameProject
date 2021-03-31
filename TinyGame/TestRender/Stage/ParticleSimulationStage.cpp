@@ -756,7 +756,7 @@ namespace Render
 			{
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::One >::GetRHI());
 				RHISetShaderProgram(commandList, mProgParticleRender->getRHIResource());
 				mView.setupShader(commandList, *mProgParticleRender);
 				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
@@ -788,7 +788,7 @@ namespace Render
 					Vector2(400, 400), Vector3(1, 1, 1),
 				};
 
-				int indices[] =
+				uint32 indices[] =
 				{
 					0,0,1,2, 0,1,2,3, 1,2,3,3
 				};
@@ -868,7 +868,7 @@ namespace Render
 					Vector3(1, 1,0),	Vector3(1, 1, 1),   Vector3(1, 1,1).getNormal() ,Vector2(1,1),
 				};
 
-				int indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
+				uint32 indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
 
 				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexed(commandList,
 					bUseTessellation ? EPrimitive::PatchPoint3 : EPrimitive::TriangleList, 

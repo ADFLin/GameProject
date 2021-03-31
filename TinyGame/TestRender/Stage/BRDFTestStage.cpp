@@ -124,25 +124,25 @@ namespace Render
 				RHISetShaderProgram(commandList, mProgSkyBox->getRHIResource());
 				mProgSkyBox->setTexture(commandList, 
 					SHADER_PARAM(Texture), *mHDRImage, 
-					SHADER_SAMPLER(Texture), TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
+					SHADER_SAMPLER(Texture), TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
 
 				switch( SkyboxShowIndex )
 				{
 				case ESkyboxShow::Normal:
 					mProgSkyBox->setTexture(commandList, 
 						SHADER_PARAM(CubeTexture), mIBLResource.texture , 
-						SHADER_SAMPLER(CubeTexture) , TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
+						SHADER_SAMPLER(CubeTexture) , TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
 					mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
 					break;
 				case ESkyboxShow::Irradiance:
 					mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.irradianceTexture,
-						SHADER_SAMPLER(CubeTexture), TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
+						SHADER_SAMPLER(CubeTexture), TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
 					mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
 					break;
 				default:
 					mProgSkyBox->setTexture(commandList, 
 						SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture , 
-						SHADER_SAMPLER(CubeTexture),TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler ::eClamp > ::GetRHI());
+						SHADER_SAMPLER(CubeTexture),TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler ::Clamp > ::GetRHI());
 					mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
 				}
 				
@@ -203,7 +203,7 @@ namespace Render
 			{
 				ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
 			}
-			else if (GRHISystem->getName() == RHISytemName::OpenGL)
+			else if (GRHISystem->getName() == RHISystemName::OpenGL)
 			{
 				OpenGLCast::To(mSceneRenderTargets.getFrameBuffer())->blitToBackBuffer();
 			}

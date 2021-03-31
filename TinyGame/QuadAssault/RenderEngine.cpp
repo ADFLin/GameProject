@@ -10,11 +10,14 @@
 #include "RHI/RHICommand.h"
 
 #include "RHI/OpenGLCommon.h"
+using namespace Render;
 
 #include <algorithm>
 
 bool gUseGroupRender = true;
 bool gUseMRT = true;
+
+IMPLEMENT_SHADER_PROGRAM(QBasePassBaseProgram);
 
 RenderEngine::RenderEngine()
 	:mAllocator( 512 )
@@ -34,10 +37,12 @@ bool RenderEngine::init( int width , int height )
 	if ( !setupFBO( width , height ) )
 		return false;
 
-	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderLighting ,"LightVS", "LightFS" ));
-	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderScene[ RM_ALL ] , "SceneVS", "SceneFS" ));
-	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderScene[ RM_GEOMETRY  ] , "SceneVS", "SceneGeometryFS" ));
-	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderScene[ RM_LINGHTING ] , "SceneVS", "SceneLightingFS" ));
+
+	VERIFY_RETURN_FALSE( mProgBasePass = ShaderManager::Get().getGlobalShaderT< QBasePassBaseProgram >() );
+	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderLighting ,"LightVS", "LightFS" ));
+	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderScene[ RM_ALL ] , "SceneVS", "SceneFS" ));
+	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderScene[ RM_GEOMETRY  ] , "SceneVS", "SceneGeometryFS" ));
+	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderScene[ RM_LINGHTING ] , "SceneVS", "SceneLightingFS" ));
 
 	return true;
 }
@@ -51,45 +56,15 @@ void RenderEngine::cleanup()
 #include <iostream>
 bool RenderEngine::setupFBO( int width , int height )
 {
-	if ( !mGBuffer.create( width , height ) )
-		return false;
 
-	glGenFramebuffers(1,&mFBO);
+	mTexLightmap  = RHICreateTexture2D(ETexture::FloatRGBA, width, height);
+	mTexGeometry  = RHICreateTexture2D(ETexture::FloatRGBA, width, height);
+	mTexNormalMap = RHICreateTexture2D(ETexture::RGB10A2, width, height);
+	mDeferredFrameBuffer = RHICreateFrameBuffer();
+	mDeferredFrameBuffer->setTexture(0, *mTexLightmap);
+	mDeferredFrameBuffer->setTexture(1, *mTexGeometry);
+	mDeferredFrameBuffer->setTexture(2, *mTexNormalMap);
 
-
-	mTexLightmap = Render::RHICreateTexture2D(Render::Texture::eRGBA8, width, height);
-	Render::OpenGLCast::To(mTexLightmap)->bind();
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	Render::OpenGLCast::To(mTexLightmap)->unbind();
-
-
-	mTexNormalMap = Render::RHICreateTexture2D(Render::Texture::eRGBA8, width, height);
-	Render::OpenGLCast::To(mTexNormalMap)->bind();
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	Render::OpenGLCast::To(mTexNormalMap)->unbind();
-
-	mTexGeometry = Render::RHICreateTexture2D(Render::Texture::eRGBA8, width, height);
-	Render::OpenGLCast::To(mTexGeometry)->bind();
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	Render::OpenGLCast::To(mTexGeometry)->unbind();
-
-	glGenRenderbuffers(1, &mRBODepth );  
-	glBindRenderbuffer(GL_RENDERBUFFER, mRBODepth );  
-	//glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8 , width , height);  
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width , height );
 
 	return true;
 }
@@ -101,12 +76,15 @@ void RenderEngine::renderScene( RenderParam& param )
 	param.renderWidth  = mFrameWidth * param.scaleFactor;
 	param.renderHeight = mFrameHeight * param.scaleFactor;
 
+#if 1
+	mDrawer.mBaseTransform = OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1);
+#else
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
 	glOrtho(0 , param.renderWidth , param.renderHeight  ,0,0,1);
-
 	glMatrixMode( GL_MODELVIEW );
+#endif
 	
 
 	TileRange& renderRange = param.terrainRange;
@@ -127,6 +105,11 @@ void RenderEngine::renderScene( RenderParam& param )
 	if ( gUseGroupRender )
 		updateRenderGroup( param );
 
+#if 1
+
+
+
+#else
 	switch( param.mode )
 	{
 	case RM_ALL:
@@ -149,7 +132,7 @@ void RenderEngine::renderScene( RenderParam& param )
 		glEnable(GL_TEXTURE_2D);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexNormalMap) );
+		glBindTexture(GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexNormalMap) );
 
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 0.0);
@@ -168,12 +151,13 @@ void RenderEngine::renderScene( RenderParam& param )
 	glMatrixMode( GL_MODELVIEW );
 
 	renderSceneFinal( param );
+#endif
 }
 
 void RenderEngine::renderSceneFinal( RenderParam& param )
 {
-	Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
-	Render::ShaderProgram& shader = mShaderScene[ param.mode ];
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+	ShaderProgram& shader = mShaderScene[ param.mode ];
 
 	RHISetShaderProgram(commandList, shader.getRHIResource());
 
@@ -231,7 +215,7 @@ void RenderEngine::renderTerrainGlow( Level* level , TileRange const& range )
 
 void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Light* light )
 {
-	Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 	Vec2f posLight = lightPos - param.camera->getPos();
 
@@ -276,9 +260,9 @@ void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Lig
 	glActiveTexture(GL_TEXTURE0);
 }
 
-void RenderEngine::setupLightShaderParam(Render::ShaderProgram& shader , Light* light )
+void RenderEngine::setupLightShaderParam(ShaderProgram& shader , Light* light )
 {
-	Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
 	shader.setParam(commandList, SHADER_PARAM(colorLight) , light->color );
 	shader.setParam(commandList, SHADER_PARAM(dir) , light->dir );
 	shader.setParam(commandList, SHADER_PARAM(angle) , light->angle );
@@ -290,7 +274,7 @@ void RenderEngine::setupLightShaderParam(Render::ShaderProgram& shader , Light* 
 void RenderEngine::renderGeometryFBO( RenderParam& param )
 {
 	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexGeometry), 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexGeometry), 0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 	glClearColor(0.0, 0.0, 0.0, 1.0f);
@@ -311,7 +295,7 @@ void RenderEngine::renderGeometryFBO( RenderParam& param )
 void RenderEngine::renderNormalFBO( RenderParam& param )
 {
 	glBindFramebuffer( GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexNormalMap), 0 );
+	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexNormalMap), 0 );
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 	glClearColor(0.0, 0.0, 0.0, 1.0f);
@@ -337,7 +321,7 @@ void RenderEngine::renderLightingFBO( RenderParam& param )
 	renderNormalFBO( param );
 
 	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexLightmap), 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexLightmap), 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mRBODepth ); 
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -365,7 +349,7 @@ void RenderEngine::renderLightingFBO( RenderParam& param )
 	float w = param.renderWidth;
 	float h = param.renderHeight;
 
-	Render::ShaderProgram& shader = mShaderLighting;
+	ShaderProgram& shader = mShaderLighting;
 
 	RenderLightList& lights = param.level->getRenderLights();
 	TileMap& terrain = param.level->getTerrain();

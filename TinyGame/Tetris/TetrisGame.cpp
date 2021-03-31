@@ -175,10 +175,10 @@ namespace Tetris
 	}
 
 
-	void GameModule::beginPlay( StageManager& manger, StageModeType modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
 	{
 		LogMsg( "Run Tetris!!!" );
-		if( modeType == SMT_SINGLE_GAME )
+		if( modeType == EGameStageMode::Single )
 		{
 			manger.changeStage(STAGE_GAME_MENU);
 		}

@@ -122,15 +122,15 @@ namespace Render
 	{
 		using D3DTranslate::To;
 
-		static D3D11_BLEND To(Blend::Factor factor);
-		static D3D11_BLEND_OP To(Blend::Operation op);
+		static D3D11_BLEND To(EBlend::Factor factor);
+		static D3D11_BLEND_OP To(EBlend::Operation op);
 		static D3D11_CULL_MODE To(ECullMode mode);
 		static D3D11_FILL_MODE To(EFillMode mode);
 		static D3D11_MAP To(ELockAccess access);
-		static D3D11_FILTER To(Sampler::Filter filter);
-		static D3D11_TEXTURE_ADDRESS_MODE To(Sampler::AddressMode mode);
+		static D3D11_FILTER To(ESampler::Filter filter);
+		static D3D11_TEXTURE_ADDRESS_MODE To(ESampler::AddressMode mode);
 		static D3D11_COMPARISON_FUNC To(ECompareFunc func);
-		static D3D11_STENCIL_OP To(Stencil::Operation op);
+		static D3D11_STENCIL_OP To(EStencil op);
 	};
 
 #define USE_D3D11_RESOURCE_CUSTOM_COUNT 1
@@ -280,7 +280,7 @@ namespace Render
 	class D3D11Texture1D : public TD3D11Texture< RHITexture1D >
 	{
 	public:
-		D3D11Texture1D(Texture::Format format, Texture1DCreationResult& creationResult)
+		D3D11Texture1D(ETexture::Format format, Texture1DCreationResult& creationResult)
 			:TD3D11Texture< RHITexture1D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
@@ -292,7 +292,7 @@ namespace Render
 			mNumMipLevel = desc.MipLevels;
 		}
 
-		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0)
+		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0)
 		{
 
 			TComPtr<ID3D11Device> device;
@@ -306,7 +306,7 @@ namespace Render
 			box.right = offset + length;
 			box.top = 0;
 			box.bottom = 1;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, length * Texture::GetFormatSize(format), length * Texture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, length * ETexture::GetFormatSize(format), length * ETexture::GetFormatSize(format));
 			return true;
 
 		}
@@ -356,7 +356,7 @@ namespace Render
 		};
 
 
-		ID3D11RenderTargetView* getRednerTarget_Texture2D(ID3D11Resource* texture, Texture::Format format, int level)
+		ID3D11RenderTargetView* getRednerTarget_Texture2D(ID3D11Resource* texture, ETexture::Format format, int level)
 		{
 			RenderTargetKey key;
 			key.level = level;
@@ -369,7 +369,7 @@ namespace Render
 			});
 		}
 
-		ID3D11RenderTargetView* getRednerTarget_TextureCube(ID3D11Resource* texture, Texture::Format format, Texture::Face face, int level)
+		ID3D11RenderTargetView* getRednerTarget_TextureCube(ID3D11Resource* texture, ETexture::Format format, ETexture::Face face, int level)
 		{
 			RenderTargetKey key;
 			key.level = level;
@@ -459,7 +459,7 @@ namespace Render
 		{
 			DepthFormat ,
 		};
-		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult)
+		D3D11Texture2D(ETexture::Format format, Texture2DCreationResult& creationResult)
 			:TD3D11Texture< RHITexture2D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
@@ -472,7 +472,7 @@ namespace Render
 			mNumMipLevel = desc.MipLevels;
 		}
 
-		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult , EDepthFormat )
+		D3D11Texture2D(ETexture::Format format, Texture2DCreationResult& creationResult , EDepthFormat )
 			:TD3D11Texture< RHITexture2D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
@@ -510,7 +510,7 @@ namespace Render
 
 		}
 
-		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
+		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 		{
 			if (format != mFormat)
 			{
@@ -527,11 +527,11 @@ namespace Render
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * Texture::GetFormatSize(format), w * h * Texture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, w * ETexture::GetFormatSize(format), w * h * ETexture::GetFormatSize(format));
 			return true;
 		}
 
-		bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
+		bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 		{
 			if (format != mFormat)
 			{
@@ -549,7 +549,7 @@ namespace Render
 			box.top = oy;
 			box.bottom = oy + h;
 			//@FIXME : error
-			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * Texture::GetFormatSize(format), h * dataImageWidth * Texture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * ETexture::GetFormatSize(format), h * dataImageWidth * ETexture::GetFormatSize(format));
 			return true;
 		}
 
@@ -582,7 +582,7 @@ namespace Render
 	class D3D11Texture3D : public TD3D11Texture< RHITexture3D >
 	{
 	public:
-		D3D11Texture3D(Texture::Format format, Texture3DCreationResult& creationResult)
+		D3D11Texture3D(ETexture::Format format, Texture3DCreationResult& creationResult)
 			:TD3D11Texture< RHITexture3D >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
@@ -601,7 +601,7 @@ namespace Render
 	{
 		using BaseClass = TD3D11Texture< RHITextureCube >;
 	public:
-		D3D11TextureCube(Texture::Format format, TextureCubeCreationResult& creationResult)
+		D3D11TextureCube(ETexture::Format format, TextureCubeCreationResult& creationResult)
 			:TD3D11Texture< RHITextureCube >(creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
 			mFormat = format;
@@ -613,7 +613,7 @@ namespace Render
 			mNumMipLevel = desc.MipLevels;
 		}
 
-		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level )
+		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level )
 		{
 			if (format != mFormat)
 			{
@@ -630,10 +630,10 @@ namespace Render
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * Texture::GetFormatSize(format), w * h * Texture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, w * ETexture::GetFormatSize(format), w * h * ETexture::GetFormatSize(format));
 			return true;
 		}
-		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
+		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 		{
 			if (format != mFormat)
 			{
@@ -651,7 +651,7 @@ namespace Render
 			box.top = oy;
 			box.bottom = oy + h;
 			//@FIXME : error
-			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * Texture::GetFormatSize(format), h * dataImageWidth * Texture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * ETexture::GetFormatSize(format), h * dataImageWidth * ETexture::GetFormatSize(format));
 			return true;
 		}
 
@@ -662,7 +662,7 @@ namespace Render
 		}
 
 
-		ID3D11RenderTargetView* getRenderTargetView(Texture::Face face, int level)
+		ID3D11RenderTargetView* getRenderTargetView(ETexture::Face face, int level)
 		{
 			return mViewStorage.getRednerTarget_TextureCube(mResource, mFormat, face, level);
 		}
@@ -836,7 +836,7 @@ namespace Render
 		{
 
 		}
-		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level);
+		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level);
 		virtual int  addTexture(RHITexture2D& target, int level);
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level)
 		{
@@ -844,7 +844,7 @@ namespace Render
 
 		}
 		virtual void setTexture(int idx, RHITexture2D& target, int level);
-		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level);
+		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level);
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level)
 		{
 

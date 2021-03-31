@@ -17,7 +17,7 @@ namespace Render
 		HashString debugName;
 		IntVector2 size;
 		int numSamples;
-		Texture::Format format;
+		ETexture::Format format;
 		uint32 creationFlags;
 
 		RenderTargetDesc()

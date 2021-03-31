@@ -20,7 +20,7 @@ namespace Render
 		int const nI = (bHaveSkirt) ? (6 * tileSize * tileSize + 4 * 6 * tileSize) : (6 * tileSize * tileSize);
 
 		float d = len / tileSize;
-
+		mesh.mInputLayoutDesc.clear();
 		//need texcoord?
 #define TILE_NEED_TEXCOORD 1
 
@@ -156,7 +156,7 @@ namespace Render
 		assert(rings > 1);
 		assert(sectors > 0);
 		assert(radius > 0);
-
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
@@ -285,6 +285,7 @@ namespace Render
 
 	bool MeshBuild::SkyBox(Mesh& mesh)
 	{
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat3);
 		Vector3 v[] =
@@ -330,6 +331,7 @@ namespace Render
 	}
 	bool MeshBuild::CubeShare(Mesh& mesh, float halfLen)
 	{
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
@@ -376,6 +378,7 @@ namespace Render
 
 	bool MeshBuild::CubeOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
 	{
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
@@ -466,6 +469,7 @@ namespace Render
 
 	bool MeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
@@ -571,6 +575,7 @@ namespace Render
 
 	bool MeshBuild::Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
 	{
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
@@ -620,6 +625,7 @@ namespace Render
 			uint8   boneIndices[4];
 			Vector4 blendWeight;
 		};
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
@@ -712,7 +718,7 @@ namespace Render
 			}
 			indices[i] = idx;
 		}
-
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		if (!mesh.createRHIResource(&vertices[0], numVertex, &indices[0], data.numIndex, true))
@@ -777,6 +783,7 @@ namespace Render
 		if (numVertex == 0)
 			return false;
 
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 
@@ -1007,6 +1014,7 @@ namespace Render
 
 	bool MeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
 	{
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);

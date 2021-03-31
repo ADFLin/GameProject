@@ -119,13 +119,13 @@ namespace BomberMan
 		
 		switch( getModeType() )
 		{
-		case SMT_NET_GAME:
+		case EGameStageMode::Net:
 			{
 				GamePlayer* player = playerMgr.getUser();
 				controller.setPortControl( player->getActionPort() , 0 );
 			}
 			break;
-		case SMT_SINGLE_GAME:
+		case EGameStageMode::Single:
 			{
 				controller.setPortControl( 0 , 0 );
 				controller.setPortControl( 1 , 1 );
@@ -148,7 +148,7 @@ namespace BomberMan
 			switch( mStep )
 			{
 			case STEP_READY:
-				if ( changeState( GameState::Run ))
+				if ( changeState( EGameState::Run ))
 				{
 					setStep( STEP_RUN , -1 );
 				}
@@ -166,14 +166,16 @@ namespace BomberMan
 			case STEP_GAME_OVER:
 				switch( getModeType() )
 				{
-				case SMT_NET_GAME:
-					if ( ::Global::GameNet().getNetWorker()->isServer() )
-						::Global::GameNet().getNetWorker()->changeState( NAS_ROOM_ENTER );
+				case EGameStageMode::Net:
+					if (::Global::GameNet().getNetWorker()->isServer())
+					{
+						::Global::GameNet().getNetWorker()->changeState(NAS_ROOM_ENTER);
+					}
 					break;
-				case SMT_SINGLE_GAME:
+				case EGameStageMode::Single:
 					getManager()->changeStage( STAGE_GAME_MENU );
 					break;
-				case SMT_REPLAY:
+				case EGameStageMode::Replay:
 					getManager()->changeStage( STAGE_MAIN_MENU );
 					break;
 				}
@@ -182,15 +184,15 @@ namespace BomberMan
 		}
 		switch( getGameState() )
 		{
-		case GameState::Run:
+		case EGameState::Run:
 			mMode->tick();
 			if ( mMode->getState() != Mode::eRUN )
 			{
 				setStep( STEP_ROUND_RESULT , 3000 );
-				changeState( GameState::End );
+				changeState( EGameState::End );
 			}
 			break;
-		case GameState::End:
+		case EGameState::End:
 			break;
 		}
 	}

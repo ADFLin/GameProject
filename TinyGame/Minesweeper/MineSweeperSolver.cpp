@@ -3,7 +3,7 @@
 
 namespace Mine
 {
-	MineSweeperSolver::MineSweeperSolver(ISolveStrategy& strategy, IGameControler& controller)
+	MineSweeperSolver::MineSweeperSolver(ISolveStrategy& strategy, IGameController& controller)
 	{
 		mSettingFlag = 0;
 		mGameState = EGameState::Run;

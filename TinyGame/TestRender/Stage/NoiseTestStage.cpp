@@ -292,15 +292,15 @@ namespace Render
 
 		int numSamples = 1;
 
-		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV));
-		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(ETexture::Depth32F, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV));
+		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(ETexture::FloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_CreateSRV | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
 		mFrameBuffer->addTexture(*mScreenBuffer);
 		mFrameBuffer->setDepth(*mDepthBuffer);
 
 		if( numSamples != 1 )
 		{
-			VERIFY_RETURN_FALSE(mResolvedDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, 1, TCF_CreateSRV));
+			VERIFY_RETURN_FALSE(mResolvedDepthBuffer = RHICreateTextureDepth(ETexture::Depth32F, screenSize.x, screenSize.y, 1, 1, TCF_CreateSRV));
 		}
 		else
 		{
@@ -311,9 +311,9 @@ namespace Render
 
 		for( int i = 0; i < 2; ++i )
 		{
-			VERIFY_RETURN_FALSE(mSmokeFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
+			VERIFY_RETURN_FALSE(mSmokeFrameTextures[i] = RHICreateTexture2D(ETexture::FloatRGBA, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
 		}
-		VERIFY_RETURN_FALSE(mSmokeDepthTexture = RHICreateTexture2D(Texture::eR32F, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(mSmokeDepthTexture = RHICreateTexture2D(ETexture::R32F, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mSmokeFrameBuffer = RHICreateFrameBuffer() );
 		mSmokeFrameBuffer->addTexture(*mSmokeFrameTextures[0]);
 		mSmokeFrameBuffer->addTexture(*mSmokeDepthTexture);
@@ -372,7 +372,7 @@ namespace Render
 
 			}
 
-			VERIFY_RETURN_FALSE( mGrassTexture = RHIUtility::CreateTexture2D(imageData, TextureLoadOption().SRGB().MipLevel(1).ReverseH()) );
+			VERIFY_RETURN_FALSE( mGrassTexture = RHIUtility::CreateTexture2D(imageData, TextureLoadOption().SRGB().MipLevel(10).ReverseH()) );
 		}
 
 		MeshBuild::Plane(mGrassMesh, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);
@@ -398,7 +398,7 @@ namespace Render
 			{
 				v = double(rand.rand()) / double(std::numeric_limits<uint32>::max());
 			}
-			mData.randTexture = RHICreateTexture2D(Texture::eR32F, randSize, randSize, 1, 1, TCF_DefalutValue, randomData.data(), 1);
+			mData.randTexture = RHICreateTexture2D(ETexture::R32F, randSize, randSize, 1, 1, TCF_DefalutValue, randomData.data(), 1);
 		}
 
 		{
@@ -426,7 +426,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.noiseTexture = RHICreateTexture2D(Texture::eR32F, textureSize, textureSize, 1, 1, TCF_DefalutValue, data.data(), 1);
+			mData.noiseTexture = RHICreateTexture2D(ETexture::R32F, textureSize, textureSize, 1, 1, TCF_DefalutValue, data.data(), 1);
 		}
 
 
@@ -463,7 +463,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.volumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
+			mData.volumeTexture = RHICreateTexture3D(ETexture::R32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
 		}
 
 
@@ -497,7 +497,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.noiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
+			mData.noiseVolumeTexture = RHICreateTexture3D(ETexture::R32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
 		}
 
 
@@ -570,7 +570,7 @@ namespace Render
 					auto& progGrass = (mbDrawInstaced) ? mProgGrassInstanced : mProgGrass;
 					RHISetShaderProgram(commandList, progGrass.getRHIResource());
 					mView.setupShader(commandList, progGrass);
-					progGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
+					progGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< ESampler::Trilinear > ::GetRHI());
 
 					Mesh& meshUsed = (mbUseOptMesh) ? mGrassMeshOpt : mGrassMesh;
 					if( mbDrawInstaced )
@@ -648,7 +648,7 @@ namespace Render
 				mProgSmokeRender->setParameters(commandList, mView, mData, Vector3(0, 0, 0), Vector3(20, 20, 20), mSmokeParams);
 				mProgSmokeRender->setStructuredStorageBufferT< TiledLightInfo >(commandList, *mLightsBuffer.getRHI());
 				mProgSmokeRender->setParam(commandList, SHADER_PARAM(TiledLightNum), (int)mLights.size());
-				auto& sampler = TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp>::GetRHI();
+				auto& sampler = TStaticSamplerState<ESampler::Bilinear , ESampler::Clamp , ESampler::Clamp>::GetRHI();
 				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgSmokeRender, SceneDepthTexture, *mResolvedDepthBuffer, sampler);
 				DrawUtility::ScreenRect(commandList);
 
@@ -663,12 +663,12 @@ namespace Render
 				//GL_BIND_LOCK_OBJECT(mFrameBuffer);
 				GPU_PROFILE("SmokeBlend");
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState<CWM_RGB, Blend::eOne, Blend::eSrcAlpha >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<CWM_RGB, EBlend::One, EBlend::SrcAlpha >::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 				RHISetShaderProgram(commandList, mProgSmokeBlend->getRHIResource());
 				mProgSmokeBlend->setParameters(commandList, mView, *mSmokeFrameTextures[indexFrameTexture], *mSmokeFrameTextures[1 - indexFrameTexture]);
-				auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp>::GetRHI();
+				auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp>::GetRHI();
 				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgSmokeBlend, SceneDepthTexture, *mSmokeDepthTexture, sampler);
 				DrawUtility::ScreenRect(commandList);
 

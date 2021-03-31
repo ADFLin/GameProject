@@ -21,6 +21,7 @@
 #include <D3Dcompiler.h>
 
 #include "Dxc/dxcapi.h"
+#include "Serialize/StreamBuffer.h"
 
 #pragma comment(lib , "dxcompiler.lib")
 
@@ -176,6 +177,23 @@ namespace Render
 		return true;
 	}
 
+	bool ShaderFormatHLSL_D3D12::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	{
+		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
+		auto serializer = CreateBufferSerializer<VectorWriteBuffer>(outBinaryCode);
+		uint8 numShaders = shaderProgramImpl.mNumShaders;
+		serializer.write(numShaders);
+		for (int i = 0; i < numShaders; ++i)
+		{
+			D3D12Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
+			uint8 shaderType = shaderImpl.mType;
+			serializer.write(shaderType);
+			serializer.write(shaderImpl.code);
+		}
+
+		return true;
+	}
+
 	void ShaderFormatHLSL_D3D12::precompileCode(ShaderProgramSetupData& setupData)
 	{
 
@@ -230,6 +248,60 @@ namespace Render
 		return true;
 	}
 
+	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
+	{
+		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
+		shaderProgramImpl.mParameterMap.clear();
+
+		assert(ARRAY_SIZE(shaderProgramImpl.mShaders) >= setupData.shaderResources.size());
+		shaderProgramImpl.mNumShaders = setupData.shaderResources.size();
+		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
+		{
+			shaderProgramImpl.mShaders[i] = &static_cast<D3D12Shader&>(*setupData.shaderResources[i].resource);
+			auto& shaderImpl = *shaderProgramImpl.mShaders[i];
+			D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.mRootSignature);
+			D3D12Shader::SetupShader(shaderImpl.mRootSignature, shaderImpl.mType);
+			shaderProgramImpl.mParameterMap.addShaderParameterMap( i , shaderImpl.mParameterMap);
+		}
+
+		shaderProgramImpl.mParameterMap.finalizeParameterMap();
+		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
+
+		return true;
+	}
+
+	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode)
+	{
+		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
+
+		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeView(binaryCode));
+		uint8 numShaders = 0;
+		serializer.read(numShaders);
+
+		shaderProgramImpl.mNumShaders = numShaders;
+		for (int i = 0; i < numShaders; ++i)
+		{
+			uint8 shaderType;
+			serializer.read(shaderType);
+			std::vector< uint8 > byteCode;
+			serializer.read(byteCode);
+
+			TRefCountPtr< D3D12Shader > shader = (D3D12Shader*)RHICreateShader(EShader::Type(shaderType));
+			if (!shader->initialize(std::move(byteCode)))
+				return false;
+
+			shaderProgramImpl.mShaders[i] = shader;
+			ShaderParameterMap parameterMap;
+			D3D12Shader::GenerateParameterMap(shader->code, mLibrary, parameterMap, shader->mRootSignature);
+			D3D12Shader::SetupShader(shader->mRootSignature, shader->mType);
+			shaderProgramImpl.mParameterMap.addShaderParameterMap( i , parameterMap);
+		}
+
+		shaderProgramImpl.mParameterMap.finalizeParameterMap();
+		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
+		return true;
+	}
+
 	bool D3D12Shader::initialize(TComPtr<IDxcBlob>& shaderCode)
 	{
 		uint8 const* pCode = (uint8 const*)shaderCode->GetBufferPointer();
@@ -239,7 +311,7 @@ namespace Render
 
 	bool D3D12Shader::initialize(std::vector<uint8>&& binaryCode)
 	{
-		code = binaryCode;
+		code = std::move(binaryCode);
 		return true;
 	}
 
@@ -248,7 +320,6 @@ namespace Render
 		TComPtr<IDxcContainerReflection> containerReflection;
 		VERIFY_D3D_RESULT_RETURN_FALSE(DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&containerReflection)));
 
-		
 		TComPtr<IDxcBlobEncoding> byteCodeBlob;
 		VERIFY_D3D_RESULT_RETURN_FALSE(library->CreateBlobWithEncodingFromPinned(byteCode.data(), byteCode.size(), 0, &byteCodeBlob));
 
@@ -262,13 +333,13 @@ namespace Render
 
 		auto AddToParameterMap = [&](char const* name , ShaderParameterSlotInfo const& slot) -> ShaderParameter&
 		{
-			uint8 slotIndex = inOutSignature.Slots.size();
-			inOutSignature.Slots.push_back(slot);
+			uint8 slotIndex = inOutSignature.slots.size();
+			inOutSignature.slots.push_back(slot);
 			auto& param = parameterMap.addParameter(name, slotIndex, 0, 0);
 			return param;
 
 		};
-
+		inOutSignature.globalCBRegister = INDEX_NONE;
 		D3D12_SHADER_DESC shaderDesc;
 		reflection->GetDesc(&shaderDesc);
 		for (int i = 0; i < shaderDesc.BoundResources; ++i)
@@ -281,9 +352,6 @@ namespace Render
 			case D3D_SIT_CBUFFER:
 			case D3D_SIT_TBUFFER:
 				{
-					ShaderParameterSlotInfo slot;
-					slot.slotOffset = inOutSignature.descRanges.size();
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
 
 					ID3D12ShaderReflectionConstantBuffer* buffer = reflection->GetConstantBufferByName(bindDesc.Name);
 					assert(buffer);
@@ -291,6 +359,10 @@ namespace Render
 					buffer->GetDesc(&bufferDesc);
 					if (FCString::Compare(bufferDesc.Name, "$Globals") == 0)
 					{
+						ShaderParameterSlotInfo slot;
+						slot.slotOffset = 0;
+
+						inOutSignature.globalCBRegister = bindDesc.BindPoint;
 						for (int idxVar = 0; idxVar < bufferDesc.Variables; ++idxVar)
 						{
 							slot.type = ShaderParameterSlotInfo::eGlobalValue;
@@ -340,6 +412,9 @@ namespace Render
 					}
 					else
 					{
+						ShaderParameterSlotInfo slot;
+						slot.slotOffset = inOutSignature.descRanges.size();
+						inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
 						//CBuffer TBuffer
 						slot.type = ShaderParameterSlotInfo::eCVB;
 						auto param = AddToParameterMap(bindDesc.Name, slot);
@@ -433,6 +508,17 @@ namespace Render
 		for (auto& sampler : inOutSignature.samplers)
 		{
 			sampler.ShaderVisibility = visibility;
+		}
+
+		if (inOutSignature.globalCBRegister != INDEX_NONE)
+		{
+			for (auto& slot : inOutSignature.slots)
+			{
+				if (slot.type != ShaderParameterSlotInfo::eGlobalValue)
+				{
+					slot.slotOffset += 1;	
+				}
+			}
 		}
 	}
 

@@ -176,6 +176,7 @@ struct FCString
 	static uint32 StriHash(char const* str, int len);
 
 	static std::wstring CharToWChar(const char *c);
+	static std::string WCharToChar(const wchar_t* str);
 };
 
 

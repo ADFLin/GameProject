@@ -59,7 +59,7 @@ void ReplayHeader::clear( uint32 version )
 	dataOffset = 0;
 }
 
-bool ReplayBase::loadReplayInfo( char const* path , ReplayHeader& header , ReplayInfo& info )
+bool ReplayBase::LoadReplayInfo( char const* path , ReplayHeader& header , ReplayInfo& info )
 {
 	InputFileSerializer fs;
 	if( !fs.open(path) )

@@ -179,7 +179,7 @@ class MandelbrotProgram : public GlobalShader
 		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
 
 		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
-		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, COMMA_SEPARATED(TStaticSamplerState< Sampler::eBilinear, Sampler::eWarp >::GetRHI()));
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, COMMA_SEPARATED(TStaticSamplerState< ESampler::Bilinear, ESampler::Warp >::GetRHI()));
 	}
 
 	void clearParameters(RHICommandList& commandList)
@@ -298,7 +298,7 @@ public:
 		}
 
 
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOneMinusDestColor, Blend::eZero >::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::OneMinusDestColor, EBlend::Zero >::GetRHI());
 		g.setBrush(Color3f(1, 1, 1));
 		g.enablePen(false);
 		auto DrawLine = [&](Vector2 const& p1, Vector2 const& p2)
@@ -389,11 +389,11 @@ public:
 			colorMap.getColor(float(i) / 1024, color);
 			colors[i] = color;
 		}
-		VERIFY_RETURN_FALSE(mColorMap = RHICreateTexture1D(Texture::eRGBA32F, 1024, 0, TCF_DefalutValue, colors));
+		VERIFY_RETURN_FALSE(mColorMap = RHICreateTexture1D(ETexture::RGBA32F, 1024, 0, TCF_DefalutValue, colors));
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mParam.viewSize = screenSize;
-		VERIFY_RETURN_FALSE(mTexture = RHICreateTexture2D(Texture::eRGBA32F, screenSize.x, screenSize.y, 0, 1, TCF_CreateUAV | TCF_CreateSRV));
+		VERIFY_RETURN_FALSE(mTexture = RHICreateTexture2D(ETexture::RGBA32F, screenSize.x, screenSize.y, 0, 1, TCF_CreateUAV | TCF_CreateSRV));
 
 		return true;
 	}

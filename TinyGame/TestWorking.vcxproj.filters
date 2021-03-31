@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
-    <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
@@ -14,6 +13,9 @@
     <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\MeshShaderTest.cpp" />
+    <ClCompile Include="TestRender\Stage\ChessTestStage.cpp">
+      <Filter>GameChess</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />

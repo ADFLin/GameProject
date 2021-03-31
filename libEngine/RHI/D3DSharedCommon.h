@@ -26,7 +26,7 @@ namespace Render
 	{
 		static D3D_PRIMITIVE_TOPOLOGY To(EPrimitive type);
 		static DXGI_FORMAT To(Vertex::Format format, bool bNormalized);
-		static DXGI_FORMAT To(Texture::Format format);
+		static DXGI_FORMAT To(ETexture::Format format);
 	};
 
 

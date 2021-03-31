@@ -55,7 +55,7 @@ namespace CAR
 		};
 	}
 
-	class GameLogic : public ActorContainer
+	class GameLogic : public ActorCollection
 	{
 	public:
 		GameLogic();
@@ -69,7 +69,7 @@ namespace CAR
 
 		
 		bool   buildBridge( Vec2i const& pos , int dir );
-		bool   redeemPrisoner( int ownerId , ActorType type );
+		bool   redeemPrisoner( int ownerId , EActor::Type type );
 		bool   changePlaceTile( TileId id );
 
 		
@@ -207,7 +207,7 @@ namespace CAR
 
 		void   getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask, std::vector<FeatureBase*>& outFeatures);
 		void   getFeatureNeighborMapTile(FeatureBase& feature, MapTileSet& outMapTile);
-		int    getMaxFieldValuePlayer( FieldType::Enum type , PlayerBase* outPlayer[] , int& maxValue );
+		int    getMaxFieldValuePlayer( EField::Type type , PlayerBase* outPlayer[] , int& maxValue );
 		int    updatePosibleLinkPos( PlaceTileParam& param );
 		int    updatePosibleLinkPos();
 
@@ -216,7 +216,7 @@ namespace CAR
 		using SideNode = MapTile::SideNode;
 
 		FarmFeature*  updateFarm( MapTile& mapTile , unsigned idxLinkMask );
-		FeatureBase*  updateBasicSideFeature( MapTile& mapTile, unsigned dirLinkMask, SideType linkType , UpdateTileFeatureResult& updateResult);
+		FeatureBase*  updateBasicSideFeature( MapTile& mapTile, unsigned dirLinkMask, ESide::Type linkType , UpdateTileFeatureResult& updateResult);
 		SideFeature*  mergeHalfSeparateBasicSideFeature(MapTile& mapTile, int dir, FeatureBase* featureMerged[], int& numMerged);
 
 		FeatureBase*  getFeature( int group );
@@ -238,7 +238,7 @@ namespace CAR
 		}
 
 		int getFollowers( unsigned playerIdMask , ActorList& outActors , LevelActor* actorSkip  = nullptr );
-		LevelActor* createActor( ActorType type );
+		LevelActor* createActor( EActor::Type type );
 		void destroyActor( LevelActor* actor );
 
 

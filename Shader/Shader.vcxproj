@@ -157,6 +157,7 @@
     <None Include="..\TinyGame\out\Shader\EnvLightTextureGen.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\BumpPS.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\BumpVS.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\Chess.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\EnvLightingTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\FS.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Grass.sgc" />
@@ -196,6 +197,7 @@
     <None Include="..\TinyGame\out\Shader\MaterialCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\MaterialProcess.sgc" />
     <None Include="..\TinyGame\out\Shader\MeshCulling.sgc" />
+    <None Include="..\TinyGame\out\Shader\MeshUVCoord.sgc" />
     <None Include="..\TinyGame\out\Shader\NoiseCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\OITCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\OITRender.sgc" />

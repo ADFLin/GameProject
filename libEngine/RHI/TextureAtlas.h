@@ -14,18 +14,18 @@ namespace Render
 	public:
 		TextureAtlas();
 
-		bool initialize(Texture::Format format, int w, int h, int border = 0);
+		bool initialize(ETexture::Format format, int w, int h, int border = 0);
 		void finalize();
 
 		int  addImageFile(char const* path);
 		bool addImageFile(int id , char const* path);
-		int  addImage(int w, int h, Texture::Format format, void* data, int dataImageWidth = 0);
-		bool addImage(int id, int w, int h, Texture::Format format, void* data, int dataImageWidth = 0)
+		int  addImage(int w, int h, ETexture::Format format, void* data, int dataImageWidth = 0);
+		bool addImage(int id, int w, int h, ETexture::Format format, void* data, int dataImageWidth = 0)
 		{
 			return addImageInteranl(id, w, h, format, data, dataImageWidth);
 		}
 
-		bool addImageInteranl(int id, int w, int h, Texture::Format format, void* data, int dataImageWidth);
+		bool addImageInteranl(int id, int w, int h, ETexture::Format format, void* data, int dataImageWidth);
 		void getRectUV(int id, Vector2& outMin, Vector2& outMax) const;
 		void getRectUVChecked(int id, Vector2& outMin, Vector2& outMax) const;
 		bool getRectSize(int id, IntVector2& outSize ) const;

@@ -169,7 +169,7 @@ public:
 				nodeHeap.push(parent);
 			}
 
-			generateCode_R(mRoot, 0, 0);
+			GenerateCode_R(mRoot, 0, 0);
 		}
 		else
 		{
@@ -225,7 +225,7 @@ public:
 	}
 
 	
-	static void generateCode_R(Node* node, uint8 depth , CodeType code )
+	static void GenerateCode_R(Node* node, uint8 depth , CodeType code )
 	{
 		if( node->checkChild == nullptr )
 		{
@@ -234,8 +234,8 @@ public:
 		}
 		else
 		{
-			generateCode_R(node->children[0], depth + 1, code | BIT(depth) );
-			generateCode_R(node->children[1], depth + 1, code );
+			GenerateCode_R(node->children[0], depth + 1, code | BIT(depth) );
+			GenerateCode_R(node->children[1], depth + 1, code );
 		}
 	}
 	

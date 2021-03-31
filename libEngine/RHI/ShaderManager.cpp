@@ -460,7 +460,7 @@ namespace Render
 		return path;
 	}
 
-	int ShaderManager::loadMaterialShaders(
+	int ShaderManager::loadMeshMaterialShaders(
 		MaterialShaderCompileInfo const& info, 
 		VertexFactoryType& vertexFactoryType,
 		MaterialShaderPairVec& outShaders )
@@ -490,17 +490,7 @@ namespace Render
 			mShaderFormat->setupShaderCompileOption(option);
 			option.addInclude(path.c_str());
 			vertexFactoryType.getCompileOption(option);
-
-			switch( info.tessellationMode )
-			{
-			case ETessellationMode::Flat:
-				option.addDefine(SHADER_PARAM(USE_TESSELLATION), true);
-				break;
-			case ETessellationMode::PNTriangle:
-				option.addDefine(SHADER_PARAM(USE_TESSELLATION), true);
-				option.addDefine(SHADER_PARAM(USE_PN_TRIANGLE), true);
-				break;
-			}
+			info.setup(option);
 
 			option.addMeta("SourceFile", path.c_str());
 			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, ShaderClassType::Material, option );
@@ -515,7 +505,18 @@ namespace Render
 		return result;
 	}
 
+	MaterialShaderProgram* ShaderManager::loadMaterialShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& materialClass)
+	{
+		std::string materialPath = GetFilePath(info.name);
 
+		ShaderCompileOption option;
+		mShaderFormat->setupShaderCompileOption(option);
+		option.addInclude(info.name);
+		info.setup(option);
+
+		option.addMeta("SourceFile", materialPath.c_str());
+		return (MaterialShaderProgram*)constructShaderInternal(materialClass, ShaderClassType::Material, option);
+	}
 
 	bool ShaderManager::registerGlobalShader(GlobalShaderObjectClass& shaderClass)
 	{

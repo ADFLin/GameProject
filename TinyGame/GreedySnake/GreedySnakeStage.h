@@ -23,7 +23,7 @@ namespace GreedySnake
 
 		void tick();
 		void updateFrame( int frame );
-		void onChangeState( GameState state );
+		void onChangeState( EGameState state );
 	
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 		bool onKey(KeyMsg const& msg);

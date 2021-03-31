@@ -52,7 +52,7 @@ namespace Mine
 	};
 
 
-	class IGameControler
+	class IGameController
 	{
 	public:
 		virtual bool hookGame() = 0;

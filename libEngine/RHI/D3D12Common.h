@@ -85,14 +85,14 @@ namespace Render
 	{
 		using D3DTranslate::To;
 
-		static D3D12_BLEND To(Blend::Factor factor);
-		static D3D12_BLEND_OP To(Blend::Operation op);
+		static D3D12_BLEND To(EBlend::Factor factor);
+		static D3D12_BLEND_OP To(EBlend::Operation op);
 		static D3D12_CULL_MODE To(ECullMode mode);
 		static D3D12_FILL_MODE To(EFillMode mode);
-		static D3D12_FILTER To(Sampler::Filter filter);
-		static D3D12_TEXTURE_ADDRESS_MODE To(Sampler::AddressMode mode);
+		static D3D12_FILTER To(ESampler::Filter filter);
+		static D3D12_TEXTURE_ADDRESS_MODE To(ESampler::AddressMode mode);
 		static D3D12_COMPARISON_FUNC To(ECompareFunc func);
-		static D3D12_STENCIL_OP To(Stencil::Operation op);
+		static D3D12_STENCIL_OP To(EStencil op);
 
 		static D3D12_SHADER_VISIBILITY ToVisibiltiy(EShader::Type type);
 
@@ -387,11 +387,11 @@ namespace Render
 	public:
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0){}
 
-		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) { return INDEX_NONE; }
+		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) { return INDEX_NONE; }
 		virtual int  addTexture(RHITexture2D& target, int level = 0) { return INDEX_NONE; }
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) { return INDEX_NONE; }
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) {}
-		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) {  }
+		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) {  }
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) {  }
 
 		virtual void setDepth(RHITexture2D& target){}
@@ -438,6 +438,7 @@ namespace Render
 		D3D12_INPUT_LAYOUT_DESC getDesc() const { return { mDescList.data(), (uint32)mDescList.size() }; }
 
 		std::vector< D3D12_INPUT_ELEMENT_DESC > mDescList;
+		uint32 mAttriableMask;
 	};
 
 
@@ -463,11 +464,11 @@ namespace Render
 
 		bool initialize(TComPtr< ID3D12Resource >& resource, int w, int h);
 
-		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level) 
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level) 
 		{
 			return false;
 		}
-		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level) 
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level) 
 		{
 			return false;
 		}

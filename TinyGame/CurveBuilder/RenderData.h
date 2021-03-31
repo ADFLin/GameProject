@@ -27,7 +27,7 @@ namespace CB
 		int         getVertexSize() const {  return mVertexSize;  }
 
 		int         getIndexNum() const { return mIndexBuffer.size(); }
-		int*        getIndexData() { return mIndexBuffer.empty() ? nullptr : &mIndexBuffer[0]; }
+		uint32*     getIndexData() { return mIndexBuffer.empty() ? nullptr : &mIndexBuffer[0]; }
 
 	private:
 
@@ -37,7 +37,7 @@ namespace CB
 		bool        mbNormalOwned;
 
 		std::vector< uint8 > mVertexBuffer;
-		std::vector< int   > mIndexBuffer;
+		std::vector< uint32 > mIndexBuffer;
 	};
 
 

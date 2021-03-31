@@ -46,7 +46,7 @@ namespace BomberMan
 		return false;
 	}
 
-	void GameModule::beginPlay(StageManager& manger, StageModeType modeType)
+	void GameModule::beginPlay(StageManager& manger, EGameStageMode modeType)
 	{
 		changeDefaultStage(manger, modeType);
 	}

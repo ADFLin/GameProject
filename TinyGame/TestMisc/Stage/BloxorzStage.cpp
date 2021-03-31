@@ -352,7 +352,7 @@ namespace Bloxorz
 
 	bool TestStage::setupRenderSystem(ERenderSystem systemName)
 	{
-		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			glEnable(GL_POLYGON_OFFSET_LINE);
 			glPolygonOffset(-0.4f, 0.2f);
@@ -463,7 +463,7 @@ namespace Bloxorz
 			mSceneRenderTargets.initializeRHI();
 
 			Color4ub colors[] = { Color4ub::Black() , Color4ub::White() , Color4ub::White() , Color4ub::Black() };
-			VERIFY_RETURN_FALSE(mGirdTexture = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, 1, TCF_DefalutValue, colors));
+			VERIFY_RETURN_FALSE(mGirdTexture = RHICreateTexture2D(ETexture::RGBA8, 2, 2, 0, 1, TCF_DefalutValue, colors));
 
 			VERIFY_RETURN_FALSE(mProgFliter = ShaderManager::Get().getGlobalShaderT< FliterProgram >());
 			VERIFY_RETURN_FALSE(mProgFliterAdd = ShaderManager::Get().getGlobalShaderT< FliterAddProgram >());
@@ -524,6 +524,9 @@ namespace Bloxorz
 	void TestStage::onUpdate(long time)
 	{
 		BaseClass::onUpdate(time);
+
+		float dt = float(time) / 1000;
+		mCamera.updatePosition(dt);
 
 		int frame = time / gDefaultTickTime;
 		for (int i = 0; i < frame; ++i)
@@ -661,7 +664,7 @@ namespace Bloxorz
 
 			RenderTargetDesc desc;
 			desc.size = screenSize;
-			desc.format = Texture::eFloatRGBA;
+			desc.format = ETexture::FloatRGBA;
 			desc.creationFlags = TCF_CreateSRV;
 
 			renderBuffers[0] = mRenderTargetPool.fetchElement(desc)->texture;
@@ -746,14 +749,14 @@ namespace Bloxorz
 					size.y = (sourceTexture.getSizeY() + 1) / 2;
 					desc.debugName = str;
 					desc.size = size;
-					desc.format = Texture::eFloatRGBA;
+					desc.format = ETexture::FloatRGBA;
 					desc.creationFlags = TCF_CreateSRV;
 					RHITexture2DRef downsampleTexture = mRenderTargetPool.fetchElement(desc)->texture;
 					mBloomFrameBuffer->setTexture(0, *downsampleTexture);
 					RHISetViewport(commandList, 0, 0, size.x, size.y);
 					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
 					RHISetShaderProgram(commandList, mProgDownsample->getRHIResource());
-					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgDownsample, Texture, sourceTexture, sampler);
 					SET_SHADER_PARAM(commandList, *mProgDownsample, ExtentInverse, Vector2(1 / float(size.x), 1 / float(size.y)));
 
@@ -774,7 +777,7 @@ namespace Bloxorz
 					Vec2i size = Vec2i(halfSceneTexture->getSizeX(), halfSceneTexture->getSizeY());
 					desc.debugName = "BloomSetup";
 					desc.size = size;
-					desc.format = Texture::eFloatRGBA;
+					desc.format = ETexture::FloatRGBA;
 					desc.creationFlags = TCF_CreateSRV;
 
 					PooledRenderTargetRef bloomSetupRT = mRenderTargetPool.fetchElement(desc);
@@ -784,7 +787,7 @@ namespace Bloxorz
 					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
 					RHISetShaderProgram(commandList, mProgBloomSetup->getRHIResource());
 
-					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBloomSetup, Texture, *halfSceneTexture, sampler);
 					SET_SHADER_PARAM(commandList, *mProgBloomSetup, BloomThreshold, mBloomThreshold);
 
@@ -809,7 +812,7 @@ namespace Bloxorz
 					int numSamples = 0;
 					float bloomRadius = blurSize * 0.01 * 0.5 * fliterTexture.getSizeX() * blurRadiusScale;
 
-					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 
 					IntVector2 sizeH = IntVector2(fliterTexture.getSizeX(), fliterTexture.getSizeY()); ;
 
@@ -818,7 +821,7 @@ namespace Bloxorz
 					str.format("BlurH(%d)", index);
 					desc.debugName = str;
 					desc.size = sizeH;
-					desc.format = Texture::eFloatRGBA;
+					desc.format = ETexture::FloatRGBA;
 					desc.creationFlags = TCF_CreateSRV;
 					PooledRenderTargetRef blurXRT = mRenderTargetPool.fetchElement(desc);
 					mBloomFrameBuffer->setTexture(0, *blurXRT->texture);
@@ -897,7 +900,7 @@ namespace Bloxorz
 					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 					RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
 
-					auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgTonemap, BloomTexture, *bloomTexture, sampler);
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgTonemap, TextureInput0, mSceneRenderTargets.getPrevFrameTexture(), sampler);
 					DrawUtility::ScreenRect(commandList);
@@ -1096,24 +1099,25 @@ namespace Bloxorz
 
 	bool TestStage::onKey(KeyMsg const& msg)
 	{
+		if (!canInput())
+		{
+			float baseImpulse = 500;
+			switch (msg.getCode())
+			{
+			case EKeyCode::W: mCamera.moveForwardImpulse = msg.isDown() ? baseImpulse : 0; break;
+			case EKeyCode::S: mCamera.moveForwardImpulse = msg.isDown() ? -baseImpulse : 0; break;
+			case EKeyCode::D: mCamera.moveRightImpulse = msg.isDown() ? baseImpulse : 0; break;
+			case EKeyCode::A: mCamera.moveRightImpulse = msg.isDown() ? -baseImpulse : 0; break;
+			case EKeyCode::Z: mCamera.moveUp(0.5); break;
+			case EKeyCode::X: mCamera.moveUp(-0.5); break;
+			}
+		}
+
 		if (msg.isDown())
 		{
 			switch (msg.getCode())
 			{
 			case EKeyCode::R: restart(); break;
-			}
-
-			if (!canInput())
-			{
-				switch (msg.getCode())
-				{
-				case EKeyCode::W: mCamera.moveFront(1); break;
-				case EKeyCode::S: mCamera.moveFront(-1); break;
-				case EKeyCode::D: mCamera.moveRight(1); break;
-				case EKeyCode::A: mCamera.moveRight(-1); break;
-				case EKeyCode::Z: mCamera.moveUp(0.5); break;
-				case EKeyCode::X: mCamera.moveUp(-0.5); break;
-				}
 			}
 		}
 

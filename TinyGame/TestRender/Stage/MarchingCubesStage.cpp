@@ -853,7 +853,7 @@ namespace Render
 			VERIFY_RETURN_FALSE(mProgShowValue = ShaderManager::Get().getGlobalShaderT< ShowValueProgram >());
 			VERIFY_RETURN_FALSE(mProgMeshRender = ShaderManager::Get().getGlobalShaderT< MeshRenderProgram >());
 
-			mDataTexture = RHICreateTexture3D(Texture::eR32F, mConfig.dataDim.x, mConfig.dataDim.y, mConfig.dataDim.z, 1, 1, TCF_DefalutValue, mChunkData.data.data());
+			mDataTexture = RHICreateTexture3D(ETexture::R32F, mConfig.dataDim.x, mConfig.dataDim.y, mConfig.dataDim.z, 1, 1, TCF_DefalutValue, mChunkData.data.data());
 			
 			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);

@@ -60,14 +60,14 @@ namespace Render
 	{
 		VERIFY_RETURN_FALSE(mShadowBuffer = RHICreateFrameBuffer());
 
-		mShadowMap = RHICreateTextureCube(Texture::eFloatRGBA, ShadowTextureSize);
+		mShadowMap = RHICreateTextureCube(ETexture::FloatRGBA, ShadowTextureSize);
 		if( !mShadowMap.isValid())
 			return false;
-		mShadowMap2 = RHICreateTexture2D(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize);
+		mShadowMap2 = RHICreateTexture2D(ETexture::FloatRGBA, ShadowTextureSize, ShadowTextureSize);
 		if( !mShadowMap2.isValid() )
 			return false;
 
-		mCascadeTexture = RHICreateTexture2D(Texture::eFloatRGBA, CascadeTextureSize * CascadedShadowNum, CascadeTextureSize);
+		mCascadeTexture = RHICreateTexture2D(ETexture::FloatRGBA, CascadeTextureSize * CascadedShadowNum, CascadeTextureSize);
 		if( !mCascadeTexture.isValid() )
 			return false;
 
@@ -76,10 +76,10 @@ namespace Render
 
 #if USE_DepthRenderBuffer
 		depthBuffer1 = new RHIDepthRenderBuffer;
-		if( !depthBuffer1->create(sizeX, sizeY, Texture::eDepth32F) )
+		if( !depthBuffer1->create(sizeX, sizeY, ETexture::Depth32F) )
 			return false;
 		depthBuffer2 = new RHIDepthRenderBuffer;
-		if( !depthBuffer2->create(ShadowTextureSize, ShadowTextureSize, Texture::eDepth32F) )
+		if( !depthBuffer2->create(ShadowTextureSize, ShadowTextureSize, ETexture::Depth32F) )
 			return false;
 #endif
 
@@ -92,9 +92,9 @@ namespace Render
 #if USE_DepthRenderBuffer
 		mShadowBuffer->setDepth(*depthBuffer1);
 #endif
-		mShadowBuffer->addTexture(*mShadowMap, Texture::eFaceX);
+		mShadowBuffer->addTexture(*mShadowMap, ETexture::FaceX);
 		//mBuffer.addTexture( mShadowMap2 );
-		//mBuffer.addTexture( mShadowMap , Texture::eFaceX , false );
+		//mBuffer.addTexture( mShadowMap , ETexture::FaceX , false );
 
 #if 0
 		if( !ShaderManager::getInstance().loadFile(mProgShadowDepthList[0],"Shader/ShadowMap", "#define SHADOW_LIGHT_TYPE LIGHTTYPE_SPOT") )
@@ -168,7 +168,7 @@ namespace Render
 
 		//mProgLighting.setParam(SHADER_PARAM(worldToLightView) , worldToLightView );
 		mProgLighting.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *mShadowMap, SHADER_PARAM(ShadowTextureCubeSampler) ,
-								 TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp , Sampler::eClamp >::GetRHI() );
+								 TStaticSamplerState<ESampler::Bilinear , ESampler::Clamp , ESampler::Clamp , ESampler::Clamp >::GetRHI() );
 		mProgLighting.setParam(commandList, SHADER_PARAM(DepthParam), Vector2( depthParam[0], depthParam[1] ));
 
 		mEffectCur = &mProgLighting;
@@ -177,7 +177,7 @@ namespace Render
 		{
 			//glDepthFunc(GL_EQUAL);
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFunc::Equal >::GetRHI());
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::One, EBlend::One >::GetRHI());
 			RenderContext context(commandList, view, *this);
 			scene.render(context);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -358,7 +358,7 @@ namespace Render
 			for( int i = 0; i < 6; ++i )
 			{
 				//GPU_PROFILE("Face");
-				mShadowBuffer->setTexture(0, *mShadowMap, Texture::Face(i));
+				mShadowBuffer->setTexture(0, *mShadowMap, ETexture::Face(i));
 
 				RHISetFrameBuffer(commandList, mShadowBuffer);
 				{
@@ -366,7 +366,7 @@ namespace Render
 					RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, 1);
 				}
 
-				worldToLight = LookAtMatrix(light.pos, Texture::GetFaceDir(Texture::Face(i)), Texture::GetFaceUpDir(Texture::Face(i)));
+				worldToLight = LookAtMatrix(light.pos, ETexture::GetFaceDir(ETexture::Face(i)), ETexture::GetFaceUpDir(ETexture::Face(i)));
 				mShadowMatrix = worldToLight * shadowProject * biasMatrix;
 				shadowProjectParam.shadowMatrix[i] = mShadowMatrix;
 
@@ -564,7 +564,7 @@ namespace Render
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFunc::Greater,
 							bEnableStencilTest, ECompareFunc::Always,
-							Stencil::eKeep, Stencil::eKeep, Stencil::eDecr, 0x0 
+							EStencil::Keep, EStencil::Keep, EStencil::Decr, 0x0 
 						>::GetRHI(), 0x0);
 
 					RHISetFrameBuffer(commandList, mLightingDepthBuffer);
@@ -580,7 +580,7 @@ namespace Render
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFunc::Always,
 							bEnableStencilTest, ECompareFunc::Equal,
-							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
+							EStencil::Keep, EStencil::Keep, EStencil::Keep, 0x1
 						>::GetRHI(), 0x1);
 				}
 				else
@@ -589,7 +589,7 @@ namespace Render
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFunc::GeraterEqual,
 							bEnableStencilTest, ECompareFunc::Equal,
-							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
+							EStencil::Keep, EStencil::Keep, EStencil::Keep, 0x1
 						>::GetRHI(), 0x1);
 				}
 			}
@@ -606,7 +606,7 @@ namespace Render
 				}
 			}
 
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::One, EBlend::One >::GetRHI());
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Front >::GetRHI());
 			{
 				RHISetFrameBuffer(commandList, mLightingBuffer);
@@ -623,7 +623,7 @@ namespace Render
 		else
 		{
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 			{
 				RHISetFrameBuffer(commandList, mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
@@ -746,8 +746,8 @@ namespace Render
 
 	bool PostProcessSSAO::init(IntVector2 const& size)
 	{
-		VERIFY_RETURN_FALSE( mSSAOTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y) );
-		VERIFY_RETURN_FALSE( mSSAOTextureBlur = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y) );
+		VERIFY_RETURN_FALSE( mSSAOTexture = RHICreateTexture2D(ETexture::FloatRGBA, size.x, size.y) );
+		VERIFY_RETURN_FALSE( mSSAOTextureBlur = RHICreateTexture2D(ETexture::FloatRGBA, size.x, size.y) );
 		VERIFY_RETURN_FALSE( mFrameBuffer = RHICreateFrameBuffer());
 
 		mFrameBuffer->addTexture(*mSSAOTexture);
@@ -792,7 +792,7 @@ namespace Render
 			//sceneRenderTargets.swapFrameBufferTexture();
 			RHISetFrameBuffer(commandList, sceneRenderTargets.getFrameBuffer());
 
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());	
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::One, EBlend::One >::GetRHI());	
 			RHISetShaderProgram(commandList, mProgAmbient->getRHIResource());
 			mProgAmbient->setParameters(commandList, sceneRenderTargets, *mSSAOTextureBlur);
 			DrawUtility::ScreenRect(commandList);		
@@ -861,13 +861,13 @@ namespace Render
 
 	bool OITShaderData::init(int storageSize, IntVector2 const& screenSize)
 	{
-		colorStorageTexture = RHICreateTexture2D(Texture::eRGBA16F, storageSize, storageSize);
+		colorStorageTexture = RHICreateTexture2D(ETexture::RGBA16F, storageSize, storageSize);
 		VERIFY_RETURN_FALSE(colorStorageTexture.isValid());
 
-		nodeAndDepthStorageTexture = RHICreateTexture2D(Texture::eRGBA32I, storageSize, storageSize);
+		nodeAndDepthStorageTexture = RHICreateTexture2D(ETexture::RGBA32I, storageSize, storageSize);
 		VERIFY_RETURN_FALSE(nodeAndDepthStorageTexture.isValid());
 
-		nodeHeadTexture = RHICreateTexture2D(Texture::eR32U, screenSize.x, screenSize.y);
+		nodeHeadTexture = RHICreateTexture2D(ETexture::R32U, screenSize.x, screenSize.y);
 		VERIFY_RETURN_FALSE(nodeHeadTexture.isValid());
 
 		storageUsageCounter = RHICreateVertexBuffer(sizeof(uint32) , 1 , BCF_DefalutValue | BCF_CpuAccessWrite );
@@ -1114,7 +1114,7 @@ namespace Render
 			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState< 
 					bWriteDepth , ECompareFunc::Less , 
-					true , ECompareFunc::Always , Stencil::eKeep , Stencil::eKeep , Stencil::eIncr , 0xff
+					true , ECompareFunc::Always , EStencil::Keep , EStencil::Keep , EStencil::Incr , 0xff
 				>::GetRHI(), 0 );
 
 		}
@@ -1145,7 +1145,7 @@ namespace Render
 		{
 			GPU_PROFILE("Resolve");
 
-			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 			ViewportSaveScope vpScope(commandList);
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
@@ -1158,7 +1158,7 @@ namespace Render
 					GPU_PROFILE("BMA=%d", BMA_MaxPixelCounts[i]);
 					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState< bWriteDepth, ECompareFunc::Always ,
-							true , ECompareFunc::LessEqual , Stencil::eKeep , Stencil::eZero , Stencil::eZero , 0xff 
+							true , ECompareFunc::LessEqual , EStencil::Keep , EStencil::Zero , EStencil::Zero , 0xff 
 						>::GetRHI() , BMA_InternalValMin[i]);
 
 					BMAResolveProgram* shaderprogram = mShaderBMAResolves[i];
@@ -1288,7 +1288,7 @@ namespace Render
 	void SSAOBlurProgram::setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture)
 	{
 		setTexture( commandList, mParamTextureSSAO, SSAOTexture , mParamTextureSamplerSSAO,
-				   TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp , Sampler::eClamp >::GetRHI() );
+				   TStaticSamplerState<ESampler::Bilinear , ESampler::Clamp , ESampler::Clamp , ESampler::Clamp >::GetRHI() );
 	}
 
 	void SSAOAmbientProgram::bindParameters(ShaderParameterMap const& parameterMap)
@@ -1300,10 +1300,10 @@ namespace Render
 
 	void SSAOAmbientProgram::setParameters(RHICommandList& commandList, FrameRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
 	{
-		auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+		auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets.getGBuffer(), sampler);
 		setTexture(commandList, mParamTextureSSAO, SSAOTexture , mParamTextureSamplerSSAO ,
-				   TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+				   TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI());
 	}
 
 	void GBufferShaderParameters::bindParameters(ShaderParameterMap const& parameterMap, bool bUseDepth /*= false */)
@@ -1341,7 +1341,7 @@ namespace Render
 
 	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, FrameRenderTargets& sceneRenderTargets)
 	{
-		auto& sampler = TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+		auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 		setParameters(commandList, program, sceneRenderTargets.getGBuffer(), sampler);
 		if( mParamFrameDepthTexture.isBound() )
 		{
@@ -1528,7 +1528,7 @@ namespace Render
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& textureR, RHITexture2D& textureG, RHITexture2D& textureB)
 		{
-			auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+			auto& sampler = TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 			if ( mParamTextureR.isBound() )
 				setTexture(commandList, mParamTextureR, textureR, mParamTextureR, sampler);
 			if( mParamTextureG.isBound() )
@@ -1556,17 +1556,17 @@ namespace Render
 		VERIFY_RETURN_FALSE(mProgBlurV = ShaderManager::Get().getGlobalShaderT< DOFBlurVProgram >(true));
 		VERIFY_RETURN_FALSE(mProgBlurHAndCombine = ShaderManager::Get().getGlobalShaderT< DOFBlurHAndCombineProgram >(true));
 
-		VERIFY_RETURN_FALSE(mTextureNear = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
-		VERIFY_RETURN_FALSE(mTextureFar = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureNear = RHICreateTexture2D(ETexture::RGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureFar = RHICreateTexture2D(ETexture::RGBA32F, size.x, size.y));
 
 		VERIFY_RETURN_FALSE(mFrameBufferGen = RHICreateFrameBuffer());
 
 		mFrameBufferGen->addTexture(*mTextureNear);
 		mFrameBufferGen->addTexture(*mTextureFar);
 
-		VERIFY_RETURN_FALSE(mTextureBlurR = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
-		VERIFY_RETURN_FALSE(mTextureBlurG = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
-		VERIFY_RETURN_FALSE(mTextureBlurB = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureBlurR = RHICreateTexture2D(ETexture::RGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureBlurG = RHICreateTexture2D(ETexture::RGBA32F, size.x, size.y));
+		VERIFY_RETURN_FALSE(mTextureBlurB = RHICreateTexture2D(ETexture::RGBA32F, size.x, size.y));
 
 		VERIFY_RETURN_FALSE(mFrameBufferBlur = RHICreateFrameBuffer());
 		mFrameBufferBlur->addTexture(*mTextureBlurR);
@@ -1580,7 +1580,7 @@ namespace Render
 	void PostProcessDOF::render(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets)
 	{
 
-		auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp , Sampler::eClamp >::GetRHI();
+		auto& sampler = TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp , ESampler::Clamp >::GetRHI();
 		ViewportSaveScope vpScope(commandList);
 
 		{
@@ -1753,9 +1753,9 @@ namespace Render
 		int nx = (screenSize.x + sizeFactor - 1) / sizeFactor;
 		int ny = (screenSize.y + sizeFactor - 1) / sizeFactor;
 
-		mVolumeBufferA = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
-		mVolumeBufferB = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
-		mScatteringBuffer = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
+		mVolumeBufferA = RHICreateTexture3D(ETexture::RGBA16F, nx, ny, depthSlices);
+		mVolumeBufferB = RHICreateTexture3D(ETexture::RGBA16F, nx, ny, depthSlices);
+		mScatteringBuffer = RHICreateTexture3D(ETexture::RGBA16F, nx, ny, depthSlices);
 		mTiledLightBuffer = RHICreateVertexBuffer(sizeof(TiledLightInfo) , MaxTiledLightNum);
 
 		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();

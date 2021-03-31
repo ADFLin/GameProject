@@ -1,6 +1,7 @@
-#include "GControlerWin7.h"
+#include "GameController_Windows7.h"
 
 #include <cstdio>
+#include "SystemPlatform.h"
 
 namespace Mine
 {
@@ -131,12 +132,31 @@ namespace Mine
 		return true;
 	}
 
-	GControlerWin7::GControlerWin7()
+	TCHAR const* gTextZhTW[] =
+	{
+		TEXT("輸掉遊戲"),
+		TEXT("贏得遊戲"),
+		TEXT("選項") ,
+	};
+
+
+	GameController_Windows7::GameController_Windows7()
 	{
 		mInput.init();
+
+		std::string locName = SystemPlatform::GetUserLocaleName();
+		if ( FCString::CompareIgnoreCase( locName.c_str() ,  "zh-TW") == 0 )
+		{
+			mWinowTextMap = gTextZhTW;
+		}
+		else
+		{
+			LogWarning(0, "GameController construct fail !");
+			mWinowTextMap = gTextZhTW;
+		}
 	}
 
-	bool GControlerWin7::getCellSize(int& sx, int& sy)
+	bool GameController_Windows7::getCellSize(int& sx, int& sy)
 	{
 		RECT saveRect;
 		::GetWindowRect(hWndFrame, &saveRect);
@@ -157,7 +177,7 @@ namespace Mine
 		return true;
 	}
 
-	bool GControlerWin7::hookGame()
+	bool GameController_Windows7::hookGame()
 	{
 		hWndFrame = ::FindWindow(TEXT("Minesweeper"), NULL);
 		if( hWndFrame == NULL )
@@ -172,14 +192,14 @@ namespace Mine
 		return true;
 	}
 
-	void GControlerWin7::openNeighberCell(int cx, int cy)
+	void GameController_Windows7::openNeighberCell(int cx, int cy)
 	{
 		int x, y;
 		CellToWindowPos(calcCellScale(), cx, cy, x, y);
 		mInput.actionMouseLeftRightClick(hWndFrame, x, y);
 	}
 
-	int  GControlerWin7::openCell(int cx, int cy)
+	int  GameController_Windows7::openCell(int cx, int cy)
 	{
 		int x, y;
 		CellToWindowPos(calcCellScale(), cx, cy, x, y);
@@ -211,7 +231,7 @@ namespace Mine
 		throw ControlException("Mouse Input Error");
 	}
 
-	int GControlerWin7::lookCell(int cx, int cy, bool bWaitResult)
+	int GameController_Windows7::lookCell(int cx, int cy, bool bWaitResult)
 	{
 		int x, y;
 		CellToWindowPos(calcCellScale(), cx, cy, x, y);
@@ -224,7 +244,7 @@ namespace Mine
 		return result;
 	}
 
-	bool GControlerWin7::markCell(int cx, int cy)
+	bool GameController_Windows7::markCell(int cx, int cy)
 	{
 		int x, y;
 		CellToWindowPos(calcCellScale(), cx, cy, x, y);
@@ -242,7 +262,7 @@ namespace Mine
 	}
 
 
-	bool GControlerWin7::unmarkCell(int cx, int cy)
+	bool GameController_Windows7::unmarkCell(int cx, int cy)
 	{
 		int x, y;
 		CellToWindowPos(calcCellScale(), cx, cy, x, y);
@@ -264,27 +284,21 @@ namespace Mine
 		LT_SETTING,
 	};
 
-	TCHAR* gTextZhTW[] =
-	{
-		TEXT("輸掉遊戲"),
-		TEXT("贏得遊戲"),
-		TEXT("選項") ,
-	};
 
-	EGameState GControlerWin7::checkState()
+	EGameState GameController_Windows7::checkState()
 	{
-		hWndDlg = ::FindWindowEx(NULL, NULL, TEXT("#32770"), gTextZhTW[LT_LOSE_THE_GAME]);
+		hWndDlg = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_LOSE_THE_GAME]);
 		if( hWndDlg )
 			return EGameState::Fail;
 
-		hWndDlg = ::FindWindowEx(NULL, NULL, TEXT("#32770"), gTextZhTW[LT_WIN_THE_GAME]);
+		hWndDlg = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_WIN_THE_GAME]);
 		if( hWndDlg )
 			return EGameState::Complete;
 
 		return EGameState::Run;
 	}
 
-	void GControlerWin7::restart()
+	void GameController_Windows7::restart()
 	{
 		if( hWndDlg )
 		{
@@ -293,11 +307,11 @@ namespace Mine
 		else
 		{
 			mInput.actionKey(hWndFrame, 'F2');
-			HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), gTextZhTW[LT_WIN_THE_GAME]);
+			HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_WIN_THE_GAME]);
 		}
 	}
 
-	int GControlerWin7::readCellNumber(int x, int y)
+	int GameController_Windows7::readCellNumber(int x, int y)
 	{
 		static int const numberOffset[][2] =
 		{
@@ -358,13 +372,13 @@ namespace Mine
 		return CV_UNPROBLED;
 	}
 
-	bool GControlerWin7::setupMode(GameMode mode)
+	bool GameController_Windows7::setupMode(GameMode mode)
 	{
-		HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), gTextZhTW[LT_SETTING]);
+		HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_SETTING]);
 		if( !hWnd )
 		{
 			mInput.actionKey(hWndFrame, VK_F5);
-			hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), gTextZhTW[LT_SETTING]);
+			hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_SETTING]);
 			if( !hWnd )
 				return false;
 		}
@@ -388,14 +402,14 @@ namespace Mine
 		return true;
 	}
 
-	bool GControlerWin7::setupCustomMode(int sx, int sy, int numbomb)
+	bool GameController_Windows7::setupCustomMode(int sx, int sy, int numbomb)
 	{
-		HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), gTextZhTW[LT_SETTING]);
+		HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_SETTING]);
 		if( !hWnd )
 		{
 			mInput.actionKey(hWndFrame, VK_F5);
 
-			hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), gTextZhTW[LT_SETTING]);
+			hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_SETTING]);
 			if( !hWnd )
 				return false;
 		}

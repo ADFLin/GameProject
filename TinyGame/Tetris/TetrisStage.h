@@ -57,13 +57,13 @@ namespace Tetris
 		void setupLevel( GameLevelInfo const& info );
 		void setupScene( IPlayerManager& playerMgr );
 		bool onWidgetEvent( int event , int id , GWidget* ui );
-		void onChangeState( GameState state );
+		void onChangeState( EGameState state );
 		bool queryAttribute( GameAttribute& value );
 		bool setupAttribute( GameAttribute const& value );
 
 		bool setupGame( GameInfo &gameInfo );
 
-		LevelMode*                 createMode( GameInfo const& info );
+		LevelMode*            createMode( GameInfo const& info );
 		GameWorld*            getWorld(){ return mWorld.get(); }
 		CFrameActionTemplate* createActionTemplate( unsigned version );
 		bool                  setupNetwork( NetWorker* netWorker , INetEngine** engine );

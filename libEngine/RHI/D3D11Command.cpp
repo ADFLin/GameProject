@@ -255,32 +255,32 @@ namespace Render
 		return swapChain;
 	}
 
-	Render::RHITexture1D* D3D11System::RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
+	Render::RHITexture1D* D3D11System::RHICreateTexture1D(ETexture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
 	{
 		Texture1DCreationResult creationResult;
-		if (createTexture1DInternal(D3D11Translate::To(format), length, numMipLevel, createFlags, data, Texture::GetFormatSize(format), creationResult))
+		if (createTexture1DInternal(D3D11Translate::To(format), length, numMipLevel, createFlags, data, ETexture::GetFormatSize(format), creationResult))
 		{
 			return new D3D11Texture1D(format, creationResult);
 		}
 		return nullptr;
 	}
 
-	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
+	RHITexture2D* D3D11System::RHICreateTexture2D(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
 		Texture2DCreationResult creationResult;
-		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, createFlags, data, Texture::GetFormatSize(format), false, creationResult) )
+		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, createFlags, data, ETexture::GetFormatSize(format), false, creationResult) )
 		{
 			return new D3D11Texture2D(format, creationResult);
 		}
 		return nullptr;
 	}
 	RHITexture3D* D3D11System::RHICreateTexture3D(
-		Texture::Format format, int sizeX, int sizeY, int sizeZ,
+		ETexture::Format format, int sizeX, int sizeY, int sizeZ,
 		int numMipLevel, int numSamples, uint32 createFlags,
 		void* data)
 	{
 		Texture3DCreationResult creationResult;
-		if (createTexture3DInternal(D3D11Translate::To(format), sizeX , sizeY, sizeZ, numMipLevel, numSamples, createFlags, data, Texture::GetFormatSize(format), creationResult))
+		if (createTexture3DInternal(D3D11Translate::To(format), sizeX , sizeY, sizeZ, numMipLevel, numSamples, createFlags, data, ETexture::GetFormatSize(format), creationResult))
 		{
 			return new D3D11Texture3D(format, creationResult);
 		}
@@ -288,17 +288,17 @@ namespace Render
 	}
 
 	RHITextureCube* D3D11System::RHICreateTextureCube(
-		Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+		ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
 		TextureCubeCreationResult creationResult;
-		if (createTextureCubeInternal(D3D11Translate::To(format), size, numMipLevel, 1, creationFlags, data, Texture::GetFormatSize(format), creationResult))
+		if (createTextureCubeInternal(D3D11Translate::To(format), size, numMipLevel, 1, creationFlags, data, ETexture::GetFormatSize(format), creationResult))
 		{
 			return new D3D11TextureCube(format, creationResult);
 		}
 		return nullptr;
 	}
 
-	RHITexture2D* D3D11System::RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* D3D11System::RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		Texture2DCreationResult creationResult;
 
@@ -979,19 +979,19 @@ namespace Render
 		{
 			switch (texture->getType())
 			{
-			case Texture::e1D:
+			case ETexture::Type1D:
 				{
 					auto& textureImpl = static_cast<D3D11Texture1D&>(*texture);
 					UAV = textureImpl.mUAV;
 				}
 				break;
-			case Texture::e2D:
+			case ETexture::Type2D:
 				{
 					auto& textureImpl = static_cast<D3D11Texture2D&>(*texture);
 					UAV = textureImpl.mUAV;
 				}
 				break;
-			case Texture::e3D:
+			case ETexture::Type3D:
 				{
 					auto& textureImpl = static_cast<D3D11Texture3D&>(*texture);
 					UAV = textureImpl.mUAV;
@@ -1385,7 +1385,7 @@ namespace Render
 
 	void D3D11Context::RHIDrawPrimitive(EPrimitive type, int start, int nv)
 	{
-		commitGraphicShaderState();
+		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		mDeviceContext->Draw(nv, start);
 		postDrawPrimitive();
@@ -1393,7 +1393,7 @@ namespace Render
 
 	void D3D11Context::RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex, uint32 baseVertex)
 	{
-		commitGraphicShaderState();
+		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		mDeviceContext->DrawIndexed(nIndex, indexStart, baseVertex);
 		postDrawPrimitive();
@@ -1401,14 +1401,14 @@ namespace Render
 
 	void D3D11Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
-		commitGraphicShaderState();
+		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		postDrawPrimitive();
 	}
 
 	void D3D11Context::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
-		commitGraphicShaderState();
+		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		if (numCommand)
 		{
@@ -1423,7 +1423,7 @@ namespace Render
 
 	void D3D11Context::RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 	{
-		commitGraphicShaderState();
+		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		mDeviceContext->DrawInstanced(nv, numInstance, vStart, baseInstance);
 		postDrawPrimitive();
@@ -1431,13 +1431,13 @@ namespace Render
 
 	void D3D11Context::RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
 	{
-		commitGraphicShaderState();
+		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		mDeviceContext->DrawIndexedInstanced(nIndex, numInstance, indexStart, baseVertex, baseInstance);
 		postDrawPrimitive();
 	}
 
-	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
+	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
 	{
 		if(primitive == EPrimitive::Quad )
 		{
@@ -1582,7 +1582,7 @@ namespace Render
 		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
 		if( pVBufferData )
 		{
-			commitGraphicShaderState();
+			commitGraphicsShaderState();
 
 			ID3D11Buffer* vertexBuffer = mDynamicVBuffer.getLockedBuffer();
 			uint32 dataOffset = 0;
@@ -1625,7 +1625,7 @@ namespace Render
 		}
 	}
 
-	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
+	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
 	{
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
 		ID3D11Buffer* indexBuffer = nullptr;
@@ -1642,7 +1642,7 @@ namespace Render
 		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
 		if( pVBufferData )
 		{
-			commitGraphicShaderState();
+			commitGraphicsShaderState();
 
 			ID3D11Buffer* vertexBuffer = mDynamicVBuffer.getLockedBuffer();
 			uint32 dataOffset = 0;
@@ -1784,7 +1784,7 @@ namespace Render
 	op(EShader::Hull)\
 	op(EShader::Domain)
 
-	void D3D11Context::commitGraphicShaderState()
+	void D3D11Context::commitGraphicsShaderState()
 	{
 		if (bUseFixedShaderPipeline)
 		{
@@ -1933,7 +1933,7 @@ namespace Render
 		}
 	}
 
-	void D3D11Context::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state)
+	void D3D11Context::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
 	{
 		bUseFixedShaderPipeline = false;
 
@@ -1945,11 +1945,11 @@ namespace Render
 			RHIShader* shader = nullptr;
 			switch (type)
 			{
-			case EShader::Vertex: shader = state.vertex; break;
-			case EShader::Pixel:  shader = state.pixel; break;
-			case EShader::Geometry:shader = state.geometry; break;
-			case EShader::Domain: shader = state.domain; break;
-			case EShader::Hull:   shader = state.hull; break;
+			case EShader::Vertex:   shader = stateDesc.vertex; break;
+			case EShader::Pixel:    shader = stateDesc.pixel; break;
+			case EShader::Geometry: shader = stateDesc.geometry; break;
+			case EShader::Domain:   shader = stateDesc.domain; break;
+			case EShader::Hull:     shader = stateDesc.hull; break;
 			}
 
 			if (type == EShader::Vertex)

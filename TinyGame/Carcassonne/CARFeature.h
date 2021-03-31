@@ -70,7 +70,7 @@ namespace CAR
 	using MapTileSet = std::unordered_set< MapTile* >;
 	using GroupSet   = std::unordered_set< unsigned >;
 
-	class  FeatureBase : public ActorContainer
+	class  FeatureBase : public ActorCollection
 	{
 	public:
 
@@ -105,7 +105,7 @@ namespace CAR
 		virtual void onAddFollower(LevelActor& actor){}
 
 		int  generateController(std::vector< FeatureControllerScoreInfo >& controllerScores);
-		int  getMajorityValue( ActorType actorType);
+		int  getMajorityValue( EActor::Type actorType);
 		void generateMajority( std::vector< FeatureControllerScoreInfo >& controllerScores);
 		int  evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores);
 		void addMapTile( MapTile& mapTile ){ mapTiles.insert( &mapTile ); }
@@ -159,7 +159,8 @@ namespace CAR
 		bool getActorPos( MapTile const& mapTile , ActorPos& actorPos ) override;
 		int  getScoreTileNum() const override { return mapTiles.size(); }
 
-		int getSideContentNum(SideContentType contentMask);
+		int getSideContentNum(SideContentMask contentMask);
+		int getSideContentNum(SideContent::Enum type) { return getSideContentNum(BIT(type)); }
 		bool checkNodesConnected() const;
 
 		int calcOpenCount();
@@ -298,7 +299,7 @@ namespace CAR
 		void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
 		void onAddFollower(LevelActor& actor) override
 		{
-			assert(actor.type == ActorType::eAbbot);
+			assert(actor.type == EActor::Abbot);
 			actor.className = EFollowerClassName::Abbot;
 		}
 	};

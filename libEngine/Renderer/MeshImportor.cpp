@@ -4,7 +4,7 @@ namespace Render
 {
 
 #if CORE_SHARE_CODE
-	Render::MeshImporterRegistry& MeshImporterRegistry::Get()
+	MeshImporterRegistry& MeshImporterRegistry::Get()
 	{
 		static MeshImporterRegistry Instance;
 		return Instance;
@@ -20,7 +20,7 @@ namespace Render
 		mFactoryMap.erase(name);
 	}
 
-	IMeshImporterPtr MeshImporterRegistry::getMeshImprotor(HashString name)
+	IMeshImporterPtr MeshImporterRegistry::getMeshImproter(HashString name)
 	{
 		auto iter = mFactoryMap.find(name);
 		if (iter != mFactoryMap.end())

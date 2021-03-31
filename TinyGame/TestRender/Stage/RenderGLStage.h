@@ -437,14 +437,14 @@ namespace Render
 		{
 			VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
 
-			mTexEnv = RHICreateTextureCube(Texture::eFloatRGBA, MapSize);
+			mTexEnv = RHICreateTextureCube(ETexture::FloatRGBA, MapSize);
 #if USE_DepthRenderBuffer
 			RHIDepthRenderBufferRef depthBuffer = new RHIDepthRenderBuffer;
-			if( !depthBuffer->create(MapSize, MapSize, Texture::eDepth24) )
+			if( !depthBuffer->create(MapSize, MapSize, ETexture::Depth24) )
 				return false;
 #endif
 
-			mFrameBuffer->addTexture(*mTexEnv, Texture::eFaceX);
+			mFrameBuffer->addTexture(*mTexEnv, ETexture::FaceX);
 #if USE_DepthRenderBuffer
 			mFrameBuffer->setDepth(*depthBuffer);
 #endif

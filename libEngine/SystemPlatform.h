@@ -154,6 +154,7 @@ public:
 
 	static double  GetHighResolutionTime();
 
+	static std::string GetUserLocaleName();
 
 	static char const* GetEnvironmentVariable( char const* key );
 	static int32    AtomExchange(volatile int32* ptr, int32 value);

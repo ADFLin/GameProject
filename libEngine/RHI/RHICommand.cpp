@@ -29,14 +29,14 @@
 namespace Render
 {
 
-	char const* ToString(RHISytemName name)
+	char const* ToString(RHISystemName name)
 	{
 		switch (name)
 		{
-		case RHISytemName::D3D11: return "D3D11";
-		case RHISytemName::D3D12: return "D3D12";
-		case RHISytemName::OpenGL: return "OpenGL";
-		case RHISytemName::Vulkan: return "Vulkan";
+		case RHISystemName::D3D11: return "D3D11";
+		case RHISystemName::D3D12: return "D3D12";
+		case RHISystemName::OpenGL: return "OpenGL";
+		case RHISystemName::Vulkan: return "Vulkan";
 		}
 		return "Unknown";
 	}
@@ -53,16 +53,16 @@ namespace Render
 
 #define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
-	bool RHISystemInitialize(RHISytemName name, RHISystemInitParams const& initParam)
+	bool RHISystemInitialize(RHISystemName name, RHISystemInitParams const& initParam)
 	{
 		if( GRHISystem == nullptr )
 		{
 			switch( name )
 			{
-			case RHISytemName::D3D11: GRHISystem = new D3D11System; break;
-			case RHISytemName::D3D12: GRHISystem = new D3D12System; break;
-			case RHISytemName::OpenGL:GRHISystem = new OpenGLSystem; break;
-			case RHISytemName::Vulkan:GRHISystem = new VulkanSystem; break;
+			case RHISystemName::D3D11: GRHISystem = new D3D11System; break;
+			case RHISystemName::D3D12: GRHISystem = new D3D12System; break;
+			case RHISystemName::OpenGL:GRHISystem = new OpenGLSystem; break;
+			case RHISystemName::Vulkan:GRHISystem = new VulkanSystem; break;
 			}
 
 			LogMsg("===== Init RHI System : %s ====" , ToString(name) );
@@ -120,8 +120,8 @@ namespace Render
 		}
 
 		//#FIXME
-		if( GRHISystem->getName() != RHISytemName::Vulkan ||
-			GRHISystem->getName() != RHISytemName::D3D12 )
+		if( GRHISystem->getName() != RHISystemName::Vulkan ||
+			GRHISystem->getName() != RHISystemName::D3D12 )
 			ReleaseGlobalRenderResource();
 
 		ShaderManager::Get().clearnupRHIResouse();
@@ -152,32 +152,32 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateSwapChain(info) );
 	}
 
-	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data)
+	RHITexture1D* RHICreateTexture1D(ETexture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data)
 	{
 		return EXECUTE_RHI_FUNC( RHICreateTexture1D(format, length, numMipLevel, creationFlags , data) );
 	}
 
-	RHITexture2D* RHI_TRACE_FUNC(RHICreateTexture2D , Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
+	RHITexture2D* RHI_TRACE_FUNC(RHICreateTexture2D , ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
 	{
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags , data, dataAlign) ) );
 	}
 
-	RHITexture3D* RHI_TRACE_FUNC(RHICreateTexture3D ,Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	RHITexture3D* RHI_TRACE_FUNC(RHICreateTexture3D ,ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 	{
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel, numSamples, creationFlags, data)) );
 	}
 
-	RHITextureCube* RHI_TRACE_FUNC(RHICreateTextureCube, Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	RHITextureCube* RHI_TRACE_FUNC(RHICreateTextureCube, ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureCube(format, size, numMipLevel, creationFlags, data)) );
 	}
 
-	RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 	{
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture2DArray(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data)) );
 	}
 
-	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(format, w, h, numMipLevel, numSamples, creationFlags)) );
 	}
@@ -417,10 +417,10 @@ namespace Render
 	RHITextureCube* RHIUtility::LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option)
 	{
 		bool bConvToHalf = option.isConvertFloatToHalf();
-		ImageData imageDatas[Texture::FaceCount];
+		ImageData imageDatas[ETexture::FaceCount];
 
-		void* data[Texture::FaceCount];
-		for( int i = 0; i < Texture::FaceCount; ++i )
+		void* data[ETexture::FaceCount];
+		for( int i = 0; i < ETexture::FaceCount; ++i )
 		{
 			if( !imageDatas[i].load(paths[i], option.bHDR, option.bReverseH, !option.isSupportRGBTexture()) )
 				return false;
@@ -463,7 +463,7 @@ namespace Render
 		}
 	}
 
-	Texture::Format TextureLoadOption::getFormat(int numComponent) const
+	ETexture::Format TextureLoadOption::getFormat(int numComponent) const
 	{
 #define FORCE_USE_FLOAT_TYPE 0
 
@@ -473,20 +473,20 @@ namespace Render
 			{
 				switch (numComponent)
 				{
-				case 1: return Texture::eR16F;
-				case 2: return Texture::eRG16F;
-				case 3: return Texture::eRGB16F;
-				case 4: return Texture::eRGBA16F;
+				case 1: return ETexture::R16F;
+				case 2: return ETexture::RG16F;
+				case 3: return ETexture::RGB16F;
+				case 4: return ETexture::RGBA16F;
 				}
 			}
 			else
 			{
 				switch (numComponent)
 				{
-				case 1: return Texture::eR32F;
-				case 2: return Texture::eRG32F;
-				case 3: return Texture::eRGB32F;
-				case 4: return Texture::eRGBA32F;
+				case 1: return ETexture::R32F;
+				case 2: return ETexture::RG32F;
+				case 3: return ETexture::RGB32F;
+				case 4: return ETexture::RGBA32F;
 				}
 			}
 
@@ -496,23 +496,23 @@ namespace Render
 			//#TODO
 			switch( numComponent )
 			{
-			case 1: return Texture::eR8;
-			case 3: return bSRGB ? Texture::eSRGB : Texture::eRGB8;
-			case 4: return bSRGB ? Texture::eSRGBA : Texture::eRGBA8;
+			case 1: return ETexture::R8;
+			case 3: return bSRGB ? ETexture::SRGB : ETexture::RGB8;
+			case 4: return bSRGB ? ETexture::SRGBA : ETexture::RGBA8;
 			}
 		}
-		return Texture::eR8;
+		return ETexture::R8;
 	}
 
 
 	bool TextureLoadOption::isSupportRGBTexture() const
 	{
-		if (GRHISystem->getName() == RHISytemName::OpenGL ||
-			GRHISystem->getName() == RHISytemName::Vulkan)
+		if (GRHISystem->getName() == RHISystemName::OpenGL ||
+			GRHISystem->getName() == RHISystemName::Vulkan)
 			return true;
 
-		if ( GRHISystem->getName() == RHISytemName::D3D11 ||
-			 GRHISystem->getName() == RHISytemName::D3D12 )
+		if ( GRHISystem->getName() == RHISystemName::D3D11 ||
+			 GRHISystem->getName() == RHISystemName::D3D12 )
 		{
 			if (bHDR)
 			{
@@ -531,9 +531,9 @@ namespace Render
 
 	bool TextureLoadOption::isNeedConvertFloatToHalf() const
 	{
-		if (GRHISystem->getName() == RHISytemName::D3D11 ||
-			GRHISystem->getName() == RHISytemName::D3D12 ||
-			GRHISystem->getName() == RHISytemName::Vulkan)
+		if (GRHISystem->getName() == RHISystemName::D3D11 ||
+			GRHISystem->getName() == RHISystemName::D3D12 ||
+			GRHISystem->getName() == RHISystemName::Vulkan)
 			return true;
 
 		return false;

@@ -44,7 +44,7 @@ public:
 
 	TEventSystem();
  
-	void  updateFrame();
+	void  tick();
 	void  addEvent( TEvent& event );
 
 	int   connectEvent(  EventType type ,int id , EventCallBack const& callback , HandledObject* holder );

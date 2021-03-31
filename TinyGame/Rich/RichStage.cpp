@@ -110,8 +110,8 @@ namespace Rich
 	
 		switch( getStageMode()->getModeType() )
 		{
-		case SMT_SINGLE_GAME:
-		case SMT_NET_GAME:
+		case EGameStageMode::Single:
+		case EGameStageMode::Net:
 
 			break;
 		}

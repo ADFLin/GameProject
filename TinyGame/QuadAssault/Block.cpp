@@ -13,6 +13,7 @@ static Block* gBlockMap[ 256 ] = { 0 };
 struct BlockInfo;
 typedef Block* (*CreateBlockFun)(BlockId type);
 
+
 struct BlockInfo
 {
 	BlockId   type;
@@ -24,6 +25,33 @@ struct BlockInfo
 	char const* texGlow;
 };
 
+class BlockRenderer
+{
+public:
+	virtual bool BlockInfo(Block& block) = 0;
+	virtual void render(PrimitiveDrawer& drawer) = 0;
+};
+
+
+class DefaultBlockRenderer
+{
+public:
+
+	virtual bool init(BlockInfo& block)
+	{
+
+		return true;
+	}
+	virtual void render(PrimitiveDrawer& drawer)
+	{
+
+
+	}
+
+	Texture* baseTexture;
+	Texture* normalTexture;
+
+};
 
 static Vec3f gDoorColor[ NUM_DOOR_TYPE ] =
 {

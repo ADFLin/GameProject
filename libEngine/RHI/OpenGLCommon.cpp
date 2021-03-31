@@ -18,14 +18,14 @@ namespace Render
 			return true;
 		switch( error )
 		{
-#define CASE_CODE( ENUM ) case ENUM : LogMsg( "Error code = %u (%s)" , error , #ENUM ); break;
-			CASE_CODE(GL_INVALID_ENUM);
-			CASE_CODE(GL_INVALID_VALUE);
-			CASE_CODE(GL_INVALID_OPERATION);
-			CASE_CODE(GL_INVALID_FRAMEBUFFER_OPERATION);
-			CASE_CODE(GL_STACK_UNDERFLOW);
-			CASE_CODE(GL_STACK_OVERFLOW);
-#undef CASE_CODE
+#define CASE( ENUM ) case ENUM : LogMsg( "Error code = %u (%s)" , error , #ENUM ); break;
+			CASE(GL_INVALID_ENUM);
+			CASE(GL_INVALID_VALUE);
+			CASE(GL_INVALID_OPERATION);
+			CASE(GL_INVALID_FRAMEBUFFER_OPERATION);
+			CASE(GL_STACK_UNDERFLOW);
+			CASE(GL_STACK_OVERFLOW);
+#undef CASE
 		default:
 			LogMsg("Unknown error code = %u", error);
 		}
@@ -33,7 +33,28 @@ namespace Render
 	}
 
 
-	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
+	void VerifyFrameBufferStatus()
+	{
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
+		{
+			switch (status)
+			{
+#define CASE(ENUM)  case ENUM : LogWarning(0, "Texture Can't Attach to FrameBuffer : %s", status , #ENUM ); break
+			CASE(GL_FRAMEBUFFER_UNDEFINED);
+			CASE(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+			CASE(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
+			CASE(GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER);
+			CASE(GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER);
+			CASE(GL_FRAMEBUFFER_UNSUPPORTED);
+			CASE(GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE);
+			CASE(GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS);
+#undef CASE
+			}
+		}
+	}
+
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 	{
 		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 		bool result = VerifyOpenGLStatus();
@@ -41,7 +62,7 @@ namespace Render
 
 	}
 
-	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 	{
 #if 1
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
@@ -52,7 +73,7 @@ namespace Render
 		GLenum formatGL = OpenGLTranslate::PixelFormat(format);
 		GLenum typeGL = OpenGLTranslate::TextureComponentType(format);
 		uint8* pData = (uint8*)data;
-		int dataStride = dataImageWidth * Texture::GetFormatSize(format);
+		int dataStride = dataImageWidth * ETexture::GetFormatSize(format);
 		for( int dy = 0; dy < h; ++dy )
 		{
 			glTexSubImage2D(textureEnum, level, ox, oy + dy, w, 1, formatGL, typeGL, pData);
@@ -63,7 +84,7 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture1D::create(Texture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data )
+	bool OpenGLTexture1D::create(ETexture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -98,7 +119,7 @@ namespace Render
 		return true;
 	}
 
-	bool OpenGLTexture1D::update(int offset, int length, Texture::Format format, void* data, int level /*= 0*/)
+	bool OpenGLTexture1D::update(int offset, int length, ETexture::Format format, void* data, int level /*= 0*/)
 	{
 		bind();
 		glTexSubImage1D(TypeEnumGL, level, offset, length, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
@@ -108,7 +129,7 @@ namespace Render
 	}
 
 
-	bool OpenGLTexture2D::create(Texture::Format format, int width, int height, int numMipLevel,int numSamples, uint32 creationFlags, void* data , int alignment )
+	bool OpenGLTexture2D::create(ETexture::Format format, int width, int height, int numMipLevel,int numSamples, uint32 creationFlags, void* data , int alignment )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -169,7 +190,7 @@ namespace Render
 	}
 
 
-	bool OpenGLTexture2D::createDepth(Texture::Format format, int width, int height, int numMipLevel, int numSamples)
+	bool OpenGLTexture2D::createDepth(ETexture::Format format, int width, int height, int numMipLevel, int numSamples)
 	{
 		if (!mGLObject.fetchHandle())
 			return false;
@@ -201,7 +222,7 @@ namespace Render
 		return true;
 	}
 
-	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
+	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, ETexture::Format format , void* data , int level )
 	{
 		if( mNumSamples > 1 )
 		{
@@ -213,7 +234,7 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level /*= 0 */)
+	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level /*= 0 */)
 	{
 		if( mNumSamples > 1 )
 		{
@@ -226,7 +247,7 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	bool OpenGLTexture3D::create(ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -275,7 +296,7 @@ namespace Render
 		return true;
 	}
 
-	bool OpenGLTextureCube::create(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	bool OpenGLTextureCube::create(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -283,6 +304,7 @@ namespace Render
 		mSize = size;
 		mFormat = format;
 		mNumMipLevel = numMipLevel;
+		mNumSamples = 1;
 
 		if( numMipLevel < 1 )
 			numMipLevel = 1;
@@ -318,7 +340,7 @@ namespace Render
 	}
 
 
-	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
+	bool OpenGLTextureCube::update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 	{
 		bind();
 		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, data, level);
@@ -326,7 +348,7 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
+	bool OpenGLTextureCube::update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 	{
 		bind();
 		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, dataImageWidth, data, level);
@@ -334,7 +356,7 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture2DArray::create(Texture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 createFlags, void* data )
+	bool OpenGLTexture2DArray::create(ETexture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -395,7 +417,7 @@ namespace Render
 		mTextures.clear();
 	}
 
-	int OpenGLFrameBuffer::addTexture( RHITextureCube& target , Texture::Face face, int level)
+	int OpenGLFrameBuffer::addTexture( RHITextureCube& target , ETexture::Face face, int level)
 	{
 		int idx = mTextures.size();
 		setTexture(idx, target, face , level);
@@ -433,7 +455,7 @@ namespace Render
 		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , info.typeEnumGL, level );
 	}
 
-	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face, int level)
+	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , ETexture::Face face, int level)
 	{
 		assert( idx <= mTextures.size() );
 		if( idx == mTextures.size() )
@@ -471,7 +493,7 @@ namespace Render
 		assert(getHandle());
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 , GL_RENDERBUFFER, handle);
-		checkStates();
+		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -480,7 +502,7 @@ namespace Render
 		assert( getHandle() );
 		glBindFramebuffer( GL_FRAMEBUFFER , getHandle() );
 		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , handle , level );
-		checkStates();
+		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
 	}
 
@@ -489,7 +511,7 @@ namespace Render
 		assert(getHandle());
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
 		glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, texType, handle, level , idxLayer);
-		checkStates();
+		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -499,7 +521,7 @@ namespace Render
 		assert(getHandle());
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
 		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, handle, level, idxLayer);
-		checkStates();
+		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -551,7 +573,7 @@ namespace Render
 		mTextures.push_back(info);
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, OpenGLCast::GetHandle( target ), level);
-		checkStates();
+		VerifyFrameBufferStatus();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -595,7 +617,7 @@ namespace Render
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, Texture::Format format, GLenum typeEnumGL)
+	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL)
 	{
 		removeDepth();
 
@@ -607,9 +629,9 @@ namespace Render
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getHandle());
 
 			GLenum attachType = GL_DEPTH_ATTACHMENT;
-			if( Texture::ContainStencil(format) )
+			if( ETexture::ContainStencil(format) )
 			{
-				if( Texture::ContainDepth(format) )
+				if( ETexture::ContainDepth(format) )
 					attachType = GL_DEPTH_STENCIL_ATTACHMENT;
 				else
 					attachType = GL_STENCIL_ATTACHMENT;
@@ -632,6 +654,8 @@ namespace Render
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
 	}
+
+
 
 #if USE_DepthRenderBuffer
 	void OpenGLFrameBuffer::setDepth( RHIDepthRenderBuffer& buffer)
@@ -666,7 +690,7 @@ namespace Render
 
 #if USE_DepthRenderBuffer
 
-	bool RHIDepthRenderBuffer::create(int w, int h, Texture::Format format)
+	bool RHIDepthRenderBuffer::create(int w, int h, ETexture::Format format)
 	{
 		assert( mHandle == 0 );
 		mFormat = format;
@@ -684,7 +708,7 @@ namespace Render
 	struct OpenGLTextureConvInfo
 	{
 #if _DEBUG
-		Texture::Format formatCheck;
+		ETexture::Format formatCheck;
 #endif
 		GLenum foramt;
 		GLenum pixelFormat;
@@ -701,52 +725,52 @@ namespace Render
 #define TEXTURE_INFO( FORMAT_CHECK , FORMAT ,PIXEL_FORMAT ,COMP_TYPE,  BASE_FORMAT )\
 	{ FORMAT , PIXEL_FORMAT , COMP_TYPE ,BASE_FORMAT },
 #endif
-		TEXTURE_INFO(Texture::eRGBA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_RGBA)
-		TEXTURE_INFO(Texture::eRGB8    ,GL_RGB8    ,GL_RGB ,GL_UNSIGNED_BYTE ,GL_RGB)
-		TEXTURE_INFO(Texture::eBGRA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
-		TEXTURE_INFO(Texture::eRGB10A2 ,GL_RGB10_A2,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
-		TEXTURE_INFO(Texture::eR16     ,GL_R16     ,GL_RED,GL_UNSIGNED_SHORT ,GL_RED)
-		TEXTURE_INFO(Texture::eR8      ,GL_R8      ,GL_RED,GL_UNSIGNED_BYTE  ,GL_RED)
+		TEXTURE_INFO(ETexture::RGBA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_RGBA)
+		TEXTURE_INFO(ETexture::RGB8    ,GL_RGB8    ,GL_RGB ,GL_UNSIGNED_BYTE ,GL_RGB)
+		TEXTURE_INFO(ETexture::BGRA8   ,GL_RGBA8   ,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
+		TEXTURE_INFO(ETexture::RGB10A2 ,GL_RGB10_A2,GL_RGBA,GL_UNSIGNED_BYTE ,GL_BGRA)
+		TEXTURE_INFO(ETexture::R16     ,GL_R16     ,GL_RED,GL_UNSIGNED_SHORT ,GL_RED)
+		TEXTURE_INFO(ETexture::R8      ,GL_R8      ,GL_RED,GL_UNSIGNED_BYTE  ,GL_RED)
 		
-		TEXTURE_INFO(Texture::eR32F    ,GL_R32F    ,GL_RED ,GL_FLOAT ,GL_RED)
-		TEXTURE_INFO(Texture::eRG32F   ,GL_RG32F   ,GL_RG  ,GL_FLOAT ,GL_RG)
-		TEXTURE_INFO(Texture::eRGB32F  ,GL_RGB32F  ,GL_RGB ,GL_FLOAT ,GL_RGB)
-		TEXTURE_INFO(Texture::eRGBA32F ,GL_RGBA32F ,GL_RGBA,GL_FLOAT ,GL_RGBA)
-		TEXTURE_INFO(Texture::eR16F    ,GL_R16F    ,GL_RED ,GL_FLOAT ,GL_RED)
-		TEXTURE_INFO(Texture::eRG16F   ,GL_RG16F   ,GL_RG  ,GL_FLOAT ,GL_RG)
-		TEXTURE_INFO(Texture::eRGB16F  ,GL_RGB16F  ,GL_RGB ,GL_FLOAT ,GL_RGB)
-		TEXTURE_INFO(Texture::eRGBA16F ,GL_RGBA16F ,GL_RGBA,GL_FLOAT ,GL_RGBA)
+		TEXTURE_INFO(ETexture::R32F    ,GL_R32F    ,GL_RED ,GL_FLOAT ,GL_RED)
+		TEXTURE_INFO(ETexture::RG32F   ,GL_RG32F   ,GL_RG  ,GL_FLOAT ,GL_RG)
+		TEXTURE_INFO(ETexture::RGB32F  ,GL_RGB32F  ,GL_RGB ,GL_FLOAT ,GL_RGB)
+		TEXTURE_INFO(ETexture::RGBA32F ,GL_RGBA32F ,GL_RGBA,GL_FLOAT ,GL_RGBA)
+		TEXTURE_INFO(ETexture::R16F    ,GL_R16F    ,GL_RED ,GL_FLOAT ,GL_RED)
+		TEXTURE_INFO(ETexture::RG16F   ,GL_RG16F   ,GL_RG  ,GL_FLOAT ,GL_RG)
+		TEXTURE_INFO(ETexture::RGB16F  ,GL_RGB16F  ,GL_RGB ,GL_FLOAT ,GL_RGB)
+		TEXTURE_INFO(ETexture::RGBA16F ,GL_RGBA16F ,GL_RGBA,GL_FLOAT ,GL_RGBA)
 
-		TEXTURE_INFO(Texture::eR32I    ,GL_R32I    ,GL_RED ,GL_INT           ,GL_RED_INTEGER)
-		TEXTURE_INFO(Texture::eR16I    ,GL_R16I    ,GL_RED ,GL_SHORT         ,GL_RED_INTEGER)
-		TEXTURE_INFO(Texture::eR8I     ,GL_R8I     ,GL_RED ,GL_BYTE          ,GL_RED_INTEGER)
-		TEXTURE_INFO(Texture::eR32U    ,GL_R32UI   ,GL_RED ,GL_UNSIGNED_INT  ,GL_RED_INTEGER)
-		TEXTURE_INFO(Texture::eR16U    ,GL_R16UI   ,GL_RED ,GL_UNSIGNED_SHORT,GL_RED_INTEGER)
-		TEXTURE_INFO(Texture::eR8U     ,GL_R8UI    ,GL_RED ,GL_UNSIGNED_BYTE ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R32I    ,GL_R32I    ,GL_RED ,GL_INT           ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R16I    ,GL_R16I    ,GL_RED ,GL_SHORT         ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R8I     ,GL_R8I     ,GL_RED ,GL_BYTE          ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R32U    ,GL_R32UI   ,GL_RED ,GL_UNSIGNED_INT  ,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R16U    ,GL_R16UI   ,GL_RED ,GL_UNSIGNED_SHORT,GL_RED_INTEGER)
+		TEXTURE_INFO(ETexture::R8U     ,GL_R8UI    ,GL_RED ,GL_UNSIGNED_BYTE ,GL_RED_INTEGER)
 		
-		TEXTURE_INFO(Texture::eRG32I   ,GL_RG32I   ,GL_RG ,GL_INT           ,GL_RG_INTEGER)
-		TEXTURE_INFO(Texture::eRG16I   ,GL_RG16I   ,GL_RG ,GL_SHORT         ,GL_RG_INTEGER)
-		TEXTURE_INFO(Texture::eRG8I    ,GL_RG8I    ,GL_RG ,GL_BYTE          ,GL_RG_INTEGER)
-		TEXTURE_INFO(Texture::eRG32U   ,GL_RG32UI  ,GL_RG ,GL_UNSIGNED_INT  ,GL_RG_INTEGER)
-		TEXTURE_INFO(Texture::eRG16U   ,GL_RG16UI  ,GL_RG ,GL_UNSIGNED_SHORT,GL_RG_INTEGER)
-		TEXTURE_INFO(Texture::eRG8U    ,GL_RG8UI   ,GL_RG ,GL_UNSIGNED_BYTE ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG32I   ,GL_RG32I   ,GL_RG ,GL_INT           ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG16I   ,GL_RG16I   ,GL_RG ,GL_SHORT         ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG8I    ,GL_RG8I    ,GL_RG ,GL_BYTE          ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG32U   ,GL_RG32UI  ,GL_RG ,GL_UNSIGNED_INT  ,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG16U   ,GL_RG16UI  ,GL_RG ,GL_UNSIGNED_SHORT,GL_RG_INTEGER)
+		TEXTURE_INFO(ETexture::RG8U    ,GL_RG8UI   ,GL_RG ,GL_UNSIGNED_BYTE ,GL_RG_INTEGER)
 		
-		TEXTURE_INFO(Texture::eRGB32I  ,GL_RGB32I  ,GL_RGB ,GL_INT            ,GL_RGB_INTEGER)
-		TEXTURE_INFO(Texture::eRGB16I  ,GL_RGB16I  ,GL_RGB ,GL_SHORT          ,GL_RGB_INTEGER)
-		TEXTURE_INFO(Texture::eRGB8I   ,GL_RGB8I   ,GL_RGB ,GL_BYTE           ,GL_RGB_INTEGER)
-		TEXTURE_INFO(Texture::eRGB32U  ,GL_RGB32UI ,GL_RGB ,GL_UNSIGNED_INT   ,GL_RGB_INTEGER)
-		TEXTURE_INFO(Texture::eRGB16U  ,GL_RGB16UI ,GL_RGB ,GL_UNSIGNED_SHORT ,GL_RGB_INTEGER)
-		TEXTURE_INFO(Texture::eRGB8U   ,GL_RGB8UI  ,GL_RGB ,GL_UNSIGNED_BYTE  ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB32I  ,GL_RGB32I  ,GL_RGB ,GL_INT            ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB16I  ,GL_RGB16I  ,GL_RGB ,GL_SHORT          ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB8I   ,GL_RGB8I   ,GL_RGB ,GL_BYTE           ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB32U  ,GL_RGB32UI ,GL_RGB ,GL_UNSIGNED_INT   ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB16U  ,GL_RGB16UI ,GL_RGB ,GL_UNSIGNED_SHORT ,GL_RGB_INTEGER)
+		TEXTURE_INFO(ETexture::RGB8U   ,GL_RGB8UI  ,GL_RGB ,GL_UNSIGNED_BYTE  ,GL_RGB_INTEGER)
 		
-		TEXTURE_INFO(Texture::eRGBA32I ,GL_RGBA32I  ,GL_RGBA ,GL_INT            ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(Texture::eRGBA16I ,GL_RGBA16I  ,GL_RGBA ,GL_SHORT          ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(Texture::eRGBA8I  ,GL_RGBA8I   ,GL_RGBA ,GL_BYTE           ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(Texture::eRGBA32U ,GL_RGBA32UI ,GL_RGBA ,GL_UNSIGNED_INT   ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(Texture::eRGBA16U ,GL_RGBA16UI ,GL_RGBA ,GL_UNSIGNED_SHORT ,GL_RGBA_INTEGER)
-		TEXTURE_INFO(Texture::eRGBA8U  ,GL_RGBA8UI  ,GL_RGBA ,GL_UNSIGNED_BYTE  ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA32I ,GL_RGBA32I  ,GL_RGBA ,GL_INT            ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA16I ,GL_RGBA16I  ,GL_RGBA ,GL_SHORT          ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA8I  ,GL_RGBA8I   ,GL_RGBA ,GL_BYTE           ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA32U ,GL_RGBA32UI ,GL_RGBA ,GL_UNSIGNED_INT   ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA16U ,GL_RGBA16UI ,GL_RGBA ,GL_UNSIGNED_SHORT ,GL_RGBA_INTEGER)
+		TEXTURE_INFO(ETexture::RGBA8U  ,GL_RGBA8UI  ,GL_RGBA ,GL_UNSIGNED_BYTE  ,GL_RGBA_INTEGER)
 
-		TEXTURE_INFO(Texture::eSRGB   ,GL_SRGB8        ,GL_RGB  ,GL_UNSIGNED_BYTE ,GL_RGB  ,GL_RGB)
-		TEXTURE_INFO(Texture::eSRGBA  ,GL_SRGB8_ALPHA8 ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_RGBA ,GL_RGBA)
+		TEXTURE_INFO(ETexture::SRGB   ,GL_SRGB8        ,GL_RGB  ,GL_UNSIGNED_BYTE ,GL_RGB  ,GL_RGB)
+		TEXTURE_INFO(ETexture::SRGBA  ,GL_SRGB8_ALPHA8 ,GL_RGBA ,GL_UNSIGNED_BYTE ,GL_RGBA ,GL_RGBA)
 			
 		
 #undef TEXTURE_INFO
@@ -763,47 +787,47 @@ namespace Render
 	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
 #endif
 
-	GLenum OpenGLTranslate::To(Texture::Format format)
+	GLenum OpenGLTranslate::To(ETexture::Format format)
 	{
 		return GTexConvMapGL[(int)format].foramt;
 	}
 
-	GLenum OpenGLTranslate::TextureComponentType(Texture::Format format)
+	GLenum OpenGLTranslate::TextureComponentType(ETexture::Format format)
 	{
 		return GTexConvMapGL[format].compType;
 	}
 
-	GLenum OpenGLTranslate::BaseFormat(Texture::Format format)
+	GLenum OpenGLTranslate::BaseFormat(ETexture::Format format)
 	{
 		return GTexConvMapGL[format].baseFormat;
 	}
 
-	GLenum OpenGLTranslate::PixelFormat(Texture::Format format)
+	GLenum OpenGLTranslate::PixelFormat(ETexture::Format format)
 	{
 		return GTexConvMapGL[format].pixelFormat;
 	}
 
-	GLenum OpenGLTranslate::Image2DType(Texture::Format format)
+	GLenum OpenGLTranslate::Image2DType(ETexture::Format format)
 	{
 		switch (format)
 		{
-		case Texture::eRGBA8:case Texture::eBGRA8:
-		case Texture::eRGB8: case Texture::eRGB10A2:
-		case Texture::eR32F:case Texture::eR16:case Texture::eR8:
-		case Texture::eRGB32F:
-		case Texture::eRGBA32F:
-		case Texture::eRGB16F:
-		case Texture::eRGBA16F:
+		case ETexture::RGBA8:case ETexture::BGRA8:
+		case ETexture::RGB8: case ETexture::RGB10A2:
+		case ETexture::R32F:case ETexture::R16:case ETexture::R8:
+		case ETexture::RGB32F:
+		case ETexture::RGBA32F:
+		case ETexture::RGB16F:
+		case ETexture::RGBA16F:
 			return GL_IMAGE_2D;
-		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
-		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
-		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
-		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
+		case ETexture::R8I:case ETexture::R16I:case ETexture::R32I:
+		case ETexture::RG8I:case ETexture::RG16I:case ETexture::RG32I:
+		case ETexture::RGB8I:case ETexture::RGB16I:case ETexture::RGB32I:
+		case ETexture::RGBA8I:case ETexture::RGBA16I:case ETexture::RGBA32I:
 			return GL_INT_IMAGE_2D;
-		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
-		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
-		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
-		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
+		case ETexture::R8U:case ETexture::R16U:case ETexture::R32U:
+		case ETexture::RG8U:case ETexture::RG16U:case ETexture::RG32U:
+		case ETexture::RGB8U:case ETexture::RGB16U:case ETexture::RGB32U:
+		case ETexture::RGBA8U:case ETexture::RGBA16U:case ETexture::RGBA32U:
 			return GL_UNSIGNED_INT_IMAGE_2D;
 		}
 		return 0;
@@ -892,33 +916,33 @@ namespace Render
 		return GL_READ_ONLY;
 	}
 
-	GLenum OpenGLTranslate::To(Blend::Factor factor)
+	GLenum OpenGLTranslate::To(EBlend::Factor factor)
 	{
 		switch( factor )
 		{
-		case Blend::eSrcAlpha: return GL_SRC_ALPHA;
-		case Blend::eOneMinusSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
-		case Blend::eOne: return GL_ONE;
-		case Blend::eZero: return GL_ZERO;
-		case Blend::eDestAlpha: return GL_DST_ALPHA;
-		case Blend::eOneMinusDestAlpha: return GL_ONE_MINUS_DST_ALPHA;
-		case Blend::eSrcColor: return GL_SRC_COLOR;
-		case Blend::eOneMinusSrcColor: return GL_ONE_MINUS_SRC_COLOR;
-		case Blend::eDestColor: return GL_DST_COLOR;
-		case Blend::eOneMinusDestColor: return GL_ONE_MINUS_DST_COLOR;
+		case EBlend::SrcAlpha: return GL_SRC_ALPHA;
+		case EBlend::OneMinusSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
+		case EBlend::One: return GL_ONE;
+		case EBlend::Zero: return GL_ZERO;
+		case EBlend::DestAlpha: return GL_DST_ALPHA;
+		case EBlend::OneMinusDestAlpha: return GL_ONE_MINUS_DST_ALPHA;
+		case EBlend::SrcColor: return GL_SRC_COLOR;
+		case EBlend::OneMinusSrcColor: return GL_ONE_MINUS_SRC_COLOR;
+		case EBlend::DestColor: return GL_DST_COLOR;
+		case EBlend::OneMinusDestColor: return GL_ONE_MINUS_DST_COLOR;
 		}
 		return GL_ONE;
 	}
 
-	GLenum OpenGLTranslate::To(Blend::Operation op)
+	GLenum OpenGLTranslate::To(EBlend::Operation op)
 	{
 		switch( op )
 		{
-		case Blend::eAdd: return GL_FUNC_ADD;
-		case Blend::eSub: return GL_FUNC_SUBTRACT;
-		case Blend::eReverseSub: return GL_FUNC_REVERSE_SUBTRACT;
-		case Blend::eMax: return GL_MIN;
-		case Blend::eMin: return GL_MAX;
+		case EBlend::Add: return GL_FUNC_ADD;
+		case EBlend::Sub: return GL_FUNC_SUBTRACT;
+		case EBlend::ReverseSub: return GL_FUNC_REVERSE_SUBTRACT;
+		case EBlend::Max: return GL_MIN;
+		case EBlend::Min: return GL_MAX;
 		}
 		return GL_FUNC_ADD;
 	}
@@ -939,18 +963,18 @@ namespace Render
 		return GL_LESS;
 	}
 
-	GLenum OpenGLTranslate::To(Stencil::Operation op)
+	GLenum OpenGLTranslate::To(EStencil op)
 	{
 		switch( op )
 		{
-		case Stencil::eKeep:     return GL_KEEP;
-		case Stencil::eZero:     return GL_ZERO;
-		case Stencil::eReplace:  return GL_REPLACE;
-		case Stencil::eIncr:     return GL_INCR;
-		case Stencil::eIncrWarp: return GL_INCR_WRAP;
-		case Stencil::eDecr:     return GL_DECR;
-		case Stencil::eDecrWarp: return GL_DECR_WRAP;
-		case Stencil::eInvert:   return GL_INVERT;
+		case EStencil::Keep:     return GL_KEEP;
+		case EStencil::Zero:     return GL_ZERO;
+		case EStencil::Replace:  return GL_REPLACE;
+		case EStencil::Incr:     return GL_INCR;
+		case EStencil::IncrWarp: return GL_INCR_WRAP;
+		case EStencil::Decr:     return GL_DECR;
+		case EStencil::DecrWarp: return GL_DECR_WRAP;
+		case EStencil::Invert:   return GL_INVERT;
 		}
 		return GL_KEEP;
 	}
@@ -994,45 +1018,45 @@ namespace Render
 		return GL_FLOAT;
 	}
 
-	GLenum OpenGLTranslate::To(Sampler::Filter filter)
+	GLenum OpenGLTranslate::To(ESampler::Filter filter)
 	{
 		switch( filter )
 		{
-		case Sampler::ePoint:            return GL_NEAREST;
-		case Sampler::eBilinear:         return GL_LINEAR;
-		case Sampler::eTrilinear:        return GL_LINEAR_MIPMAP_LINEAR;
-		case Sampler::eAnisotroicPoint:  return GL_LINEAR;
-		case Sampler::eAnisotroicLinear: return GL_LINEAR_MIPMAP_LINEAR;
+		case ESampler::Point:            return GL_NEAREST;
+		case ESampler::Bilinear:         return GL_LINEAR;
+		case ESampler::Trilinear:        return GL_LINEAR_MIPMAP_LINEAR;
+		case ESampler::AnisotroicPoint:  return GL_LINEAR;
+		case ESampler::AnisotroicLinear: return GL_LINEAR_MIPMAP_LINEAR;
 		}
 		return GL_NEAREST;
 	}
 
-	GLenum OpenGLTranslate::To(Sampler::AddressMode mode)
+	GLenum OpenGLTranslate::To(ESampler::AddressMode mode)
 	{
 		switch( mode )
 		{
-		case Sampler::eWarp:   return GL_REPEAT;
-		case Sampler::eClamp:  return GL_CLAMP_TO_EDGE;
-		case Sampler::eMirror: return GL_MIRRORED_REPEAT;
-		case Sampler::eBorder: return GL_CLAMP_TO_BORDER;
+		case ESampler::Warp:   return GL_REPEAT;
+		case ESampler::Clamp:  return GL_CLAMP_TO_EDGE;
+		case ESampler::Mirror: return GL_MIRRORED_REPEAT;
+		case ESampler::Border: return GL_CLAMP_TO_BORDER;
 		}
 		return GL_REPEAT;
 	}
 
-	GLenum OpenGLTranslate::DepthFormat(Texture::Format format)
+	GLenum OpenGLTranslate::DepthFormat(ETexture::Format format)
 	{
 		switch( format )
 		{
-		case Texture::eDepth16: return GL_DEPTH_COMPONENT16;
-		case Texture::eDepth24: return GL_DEPTH_COMPONENT24;
-		case Texture::eDepth32: return GL_DEPTH_COMPONENT32;
-		case Texture::eDepth32F:return GL_DEPTH_COMPONENT32F;
-		case Texture::eD24S8:   return GL_DEPTH24_STENCIL8;
-		case Texture::eD32FS8:  return GL_DEPTH32F_STENCIL8;
-		case Texture::eStencil1: return GL_STENCIL_INDEX1;
-		case Texture::eStencil4: return GL_STENCIL_INDEX4;
-		case Texture::eStencil8: return GL_STENCIL_INDEX8;
-		case Texture::eStencil16: return GL_STENCIL_INDEX16;
+		case ETexture::Depth16: return GL_DEPTH_COMPONENT16;
+		case ETexture::Depth24: return GL_DEPTH_COMPONENT24;
+		case ETexture::Depth32: return GL_DEPTH_COMPONENT32;
+		case ETexture::Depth32F:return GL_DEPTH_COMPONENT32F;
+		case ETexture::D24S8:   return GL_DEPTH24_STENCIL8;
+		case ETexture::D32FS8:  return GL_DEPTH32F_STENCIL8;
+		case ETexture::Stencil1: return GL_STENCIL_INDEX1;
+		case ETexture::Stencil4: return GL_STENCIL_INDEX4;
+		case ETexture::Stencil8: return GL_STENCIL_INDEX8;
+		case ETexture::Stencil16: return GL_STENCIL_INDEX16;
 		}
 		return 0;
 	}
@@ -1081,7 +1105,7 @@ namespace Render
 		}
 
 		glSamplerParameteri(getHandle(), GL_TEXTURE_MIN_FILTER, OpenGLTranslate::To(initializer.filter));
-		glSamplerParameteri(getHandle(), GL_TEXTURE_MAG_FILTER, initializer.filter == Sampler::ePoint ? GL_NEAREST : GL_LINEAR);
+		glSamplerParameteri(getHandle(), GL_TEXTURE_MAG_FILTER, initializer.filter == ESampler::Point ? GL_NEAREST : GL_LINEAR);
 		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_S, OpenGLTranslate::To(initializer.addressU));
 		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_T, OpenGLTranslate::To(initializer.addressV));
 		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_R, OpenGLTranslate::To(initializer.addressW));
@@ -1097,8 +1121,8 @@ namespace Render
 			auto const& targetValue = initializer.targetValues[i];
 			auto& targetValueGL = mStateValue.targetValues[i];
 			targetValueGL.writeMask = targetValue.writeMask;
-			targetValueGL.bEnable = (targetValue.srcColor != Blend::eOne) || (targetValue.srcAlpha != Blend::eOne) ||
-				(targetValue.destColor != Blend::eZero) || (targetValue.destAlpha != Blend::eZero);
+			targetValueGL.bEnable = (targetValue.srcColor != EBlend::One) || (targetValue.srcAlpha != EBlend::One) ||
+				(targetValue.destColor != EBlend::Zero) || (targetValue.destAlpha != EBlend::Zero);
 
 			targetValueGL.bSeparateBlend = (targetValue.srcColor != targetValue.srcAlpha) || (targetValue.destColor != targetValue.destAlpha) || (targetValue.op != targetValue.opAlpha);
 
@@ -1158,14 +1182,14 @@ namespace Render
 				continue;
 
 			Element element;
-			element.idxStream = e.idxStream;
+			element.streamIndex = e.streamIndex;
 			element.attribute = e.attribute;
 			element.bNormalized = e.bNormalized;
 			element.bInstanceData = e.bIntanceData;
 			element.instanceStepRate = e.instanceStepRate;
 			element.componentNum = Vertex::GetComponentNum(e.format);
 			element.componentType = OpenGLTranslate::VertexComponentType(e.format);
-			element.stride = desc.getVertexSize(e.idxStream);
+			element.stride = desc.getVertexSize(e.streamIndex);
 			element.offset = e.offset;
 
 			mAttributeMask |= BIT(e.attribute);
@@ -1175,7 +1199,7 @@ namespace Render
 
 		std::sort(mElements.begin(), mElements.end(), [](auto const& lhs, auto const& rhs)
 		{
-			return lhs.idxStream < rhs.idxStream;
+			return lhs.streamIndex < rhs.streamIndex;
 		});
 	}
 
@@ -1230,10 +1254,10 @@ namespace Render
 			auto const& e = mElements[index];
 			glEnableVertexAttribArray(e.attribute);
 			glVertexAttribFormat(e.attribute, e.componentNum, e.componentType, e.bNormalized, e.offset);
-			glVertexAttribBinding(e.attribute, e.idxStream);
+			glVertexAttribBinding(e.attribute, e.streamIndex);
 			if (e.bInstanceData)
 			{
-				glVertexBindingDivisor(e.idxStream, e.instanceStepRate);
+				glVertexBindingDivisor(e.streamIndex, e.instanceStepRate);
 			}
 		}
 #endif
@@ -1261,10 +1285,10 @@ namespace Render
 		for (int index = 0; index < mElements.size(); ++index)
 		{
 			auto const& e = mElements[index];
-			if (e.idxStream >= numInputStream)
+			if (e.streamIndex >= numInputStream)
 				continue;
 
-			auto& inputStream = inputStreams[e.idxStream];
+			auto& inputStream = inputStreams[e.streamIndex];
 			assert(inputStream.stride >= 0);
 			intptr_t offset = inputStream.offset + e.offset;
 
@@ -1301,7 +1325,7 @@ namespace Render
 	{
 		for( auto const& e : mElements )
 		{
-			if ( e.idxStream >= numInputStream )
+			if ( e.streamIndex >= numInputStream )
 				break;
 
 			if ( e.bInstanceData )
@@ -1469,8 +1493,8 @@ namespace Render
 			bool haveTex = false;
 			for( auto const& e : mElements )
 			{
-				uint32 offset = inputStreams[e.idxStream].offset;
-				uint32 stride = inputStreams[e.idxStream].stride > 0 ? inputStreams[e.idxStream].stride : e.stride;
+				uint32 offset = inputStreams[e.streamIndex].offset;
+				uint32 stride = inputStreams[e.streamIndex].stride > 0 ? inputStreams[e.streamIndex].stride : e.stride;
 				BindElementPointer(e, offset, stride, haveTex);
 			}
 			OpenGLCast::To(inputStreams[0].buffer)->unbind();
@@ -1489,11 +1513,11 @@ namespace Render
 				for( ; index < mElements.size(); ++index )
 				{
 					auto const& e = mElements[index];
-					if( e.idxStream > indexStream )
+					if( e.streamIndex > indexStream )
 						break;
 
-					uint32 offset = inputStreams[e.idxStream].offset;
-					uint32 stride = inputStreams[e.idxStream].stride > 0 ? inputStreams[e.idxStream].stride : e.stride;
+					uint32 offset = inputStreams[e.streamIndex].offset;
+					uint32 stride = inputStreams[e.streamIndex].stride > 0 ? inputStreams[e.streamIndex].stride : e.stride;
 					BindElementPointer(e, offset, stride, haveTex);
 
 				}	
@@ -1510,11 +1534,11 @@ namespace Render
 		bool haveTex = false;
 		for (auto const& e : mElements)
 		{
-			if ( e.idxStream >= numInputStream )
+			if ( e.streamIndex >= numInputStream )
 				continue;
 
-			intptr_t offset = inputStreams[e.idxStream].offset;
-			uint32 stride = inputStreams[e.idxStream].stride;
+			intptr_t offset = inputStreams[e.streamIndex].offset;
+			uint32 stride = inputStreams[e.streamIndex].stride;
 			if (stride > 0)
 			{
 				BindElementPointer(e, offset, stride, haveTex);

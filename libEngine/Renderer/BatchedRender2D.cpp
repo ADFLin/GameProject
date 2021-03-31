@@ -324,7 +324,7 @@ namespace Render
 					pVertices[2] = { element->transform.transformPosition(payload.max), payload.color , payload.uvMax };
 					pVertices[3] = { element->transform.transformPosition(Vector2(payload.max.x, payload.min.y)), payload.color , Vector2(payload.uvMax.x , payload.uvMin.y) };
 
-					int* pIndices = fetchIndexBuffer(6);
+					uint32* pIndices = fetchIndexBuffer(6);
 					FillQuad(pIndices, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
 				}
 				break;
@@ -350,7 +350,7 @@ namespace Render
 						pVertices += 4;
 					}
 
-					int* pIndices = fetchIndexBuffer(4 * 6);
+					uint32* pIndices = fetchIndexBuffer(4 * 6);
 					EmitLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
 				}
 				break;
@@ -362,7 +362,7 @@ namespace Render
 					int baseIndex;
 					TexVertex* pVertices = fetchTexBuffer(4 * numChar, baseIndex);
 					FontVertex* pSrcVertices = payload.vertices.data();
-					int* pIndices = fetchIndexBuffer(numChar * 6);
+					uint32* pIndices = fetchIndexBuffer(numChar * 6);
 					for (int i = 0; i < numChar; ++i)
 					{
 						pVertices[0] = { element->transform.transformPosition(pSrcVertices[0].pos) , payload.color , pSrcVertices[0].uv };
@@ -416,7 +416,7 @@ namespace Render
 		}
 
 		int numTriangle = (numV - 2);
-		int* pIndices = fetchIndexBuffer(3 * numTriangle);
+		uint32* pIndices = fetchIndexBuffer(3 * numTriangle);
 		for (int i = 0; i < numTriangle; ++i)
 		{
 			pIndices[0] = baseIndex;
@@ -449,7 +449,7 @@ namespace Render
 			pVertices[2] = { v[2] , paintArgs.brushColor };
 			pVertices[3] = { v[3] , paintArgs.brushColor };
 
-			int* pIndices = fetchIndexBuffer(3 * 2);
+			uint32* pIndices = fetchIndexBuffer(3 * 2);
 			FillQuad(pIndices, baseIndex + 0 , baseIndex + 1 , baseIndex + 2 , baseIndex + 3);
 		}
 
@@ -468,7 +468,7 @@ namespace Render
 				pVertices += 2;
 			}
 
-			int* pIndices = fetchIndexBuffer(3 * 2 * 4);
+			uint32* pIndices = fetchIndexBuffer(3 * 2 * 4);
 			FillQuad(pIndices, baseIndex + 0, baseIndex + 1, baseIndex + 3, baseIndex + 2); 
 			pIndices += 6;
 			FillQuad(pIndices, baseIndex + 2, baseIndex + 3, baseIndex + 5, baseIndex + 4); 
@@ -518,7 +518,7 @@ namespace Render
 		}
 
 		int baseIndexStart = baseIndex;
-		int* pIndices = fetchIndexBuffer(3 * 2 * numV);
+		uint32* pIndices = fetchIndexBuffer(3 * 2 * numV);
 		for (int i = 0; i < numV - 1; ++i)
 		{
 			FillQuad(pIndices, baseIndex + 0, baseIndex + 1, baseIndex + 3, baseIndex + 2);

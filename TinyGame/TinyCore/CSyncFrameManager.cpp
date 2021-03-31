@@ -167,7 +167,7 @@ SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 
 	mCheckDataBits = 0;
 	mLocalDataBits = 0;
-	mUpdateDataBit = 0;
+	mUpdateDataBits = 0;
 
 	for( auto iter = worker->getPlayerManager()->createIterator(); iter ; ++iter )
 	{
@@ -182,7 +182,7 @@ SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 		player->lastSendFrame   = 0;
 	}
 
-	mUpdateDataBit = mCheckDataBits;
+	mUpdateDataBits = mCheckDataBits;
 	mCountDataDelay = 0;
 }
 
@@ -209,7 +209,7 @@ bool SVSyncFrameManager::sendFrameData()
 		{
 			if( mFrameMgr.getFrame() - data.recvFrame < 10 )
 			{
-				if( (BIT(data.id) & mUpdateDataBit) &&
+				if( (BIT(data.id) & mUpdateDataBits) &&
 				   data.recvFrame >= player->lastRecvFrame &&
 				   data.sendFrame > player->lastSendFrame )
 				{
@@ -233,7 +233,7 @@ bool SVSyncFrameManager::sendFrameData()
 
 			if( isOk )
 			{
-				mUpdateDataBit |= BIT(data.id);
+				mUpdateDataBits |= BIT(data.id);
 				player->lastRecvFrame = data.recvFrame;
 				player->lastSendFrame = data.sendFrame;
 			}
@@ -242,12 +242,12 @@ bool SVSyncFrameManager::sendFrameData()
 		iter = mFrameDataList.erase( iter );
 	}
 
-	mUpdateDataBit |= mLocalDataBits;
+	mUpdateDataBits |= mLocalDataBits;
 
 	mProcessor.beginAction( CTF_BLOCK_ACTION );
 
 	int const MaxWaitDiffFrame = 30;
-	if ( mCheckDataBits != mUpdateDataBit )
+	if ( mCheckDataBits != mUpdateDataBits )
 	{
 		bool bNeedFreezeFrame = false;
 
@@ -271,7 +271,7 @@ bool SVSyncFrameManager::sendFrameData()
 #if DEBUG_SHOW_FRAME_DATA_TRANSITION
 			LogDevMsg(0, "Freeze Frame !!!");
 #endif
-			mUpdateDataBit = 0;
+			mUpdateDataBits = 0;
 			++mCountDataDelay;
 			mProcessor.endAction();
 			return false;
@@ -298,7 +298,7 @@ bool SVSyncFrameManager::sendFrameData()
 	buffer.copy( mFrameStream->buffer );
 
 	mFrameMgr.addFrameData( mFrameStream->frame , buffer );
-	mUpdateDataBit = 0;
+	mUpdateDataBits = 0;
 
 	mProcessor.endAction();
 	return true;

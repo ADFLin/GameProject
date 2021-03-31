@@ -1,0 +1,43 @@
+#ifndef UV_COORD_SHOW
+#define UV_COORD_SHOW ATTRIBUTE_TEXCOORD
+#endif
+
+struct VSOutputParam
+{
+	float2 uv    MEMBER_OUT(TEXCOORD0);
+};
+
+#if VERTEX_SHADER
+
+uniform float4x4 XForm;
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float2 InUV, UV_COORD_SHOW)
+	VS_OUTPUT_STRUCT(VSOutputParam VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+	SvPosition = mul(XForm, float4(InUV, 0, 1));
+	VSOutput.uv = InUV;
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT(VSOutputParam OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	OutColor = float4(1,1,1, 1);
+
+	if (OutputVS.uv.x < 0 || OutputVS.uv.y < 0 ||
+		OutputVS.uv.x > 1 || OutputVS.uv.y > 1)
+	{
+		OutColor = float4(1, 0, 0, 1);
+	}
+}
+
+#endif //#if PIXEL_SHADER

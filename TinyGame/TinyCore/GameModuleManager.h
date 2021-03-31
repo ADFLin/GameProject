@@ -22,17 +22,18 @@ public:
 
 	IGameModule*  getRunningGame(){ return mGameRunning; }
 
-private:
 
-	IModuleInterface*  findModule( char const* name );
-
-	bool          registerModule(
-		IModuleInterface* game,
-		char const* loadedModuleName ,
+	TINY_API bool   registerModule(
+		IModuleInterface* module,
+		char const*       moduleName,
 #if SYS_PLATFORM_WIN
 		HMODULE hModule
 #endif
 	);
+
+private:
+
+	IModuleInterface*  findModule( char const* name );
 
 	template< class Visitor >
 	void  visitInternal( Visitor& visitor )

@@ -467,7 +467,7 @@ public:
 				if (!IsEmptyLeaf(nodeId))
 				{
 					Leaf const& leaf = tree.mLeaves[-(nodeId + 1)];
-					visitFun(leaf, bound);
+					func(leaf, bound);
 				}
 				return;
 			}
@@ -490,7 +490,7 @@ public:
 
 		}
 
-		TFunc&    func;
+		TFunc&   func;
 		TKDTree& tree;
 	};
 

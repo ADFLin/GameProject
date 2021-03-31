@@ -87,6 +87,27 @@ namespace Asmeta
 	Reg32 const esi = Reg32( Reg::eSI );
 	Reg32 const edi = Reg32( Reg::eDI );
 
+#if TARGET_PLATFORM_64BITS
+	Reg64 const rax = Reg64(Reg::eAX);
+	Reg64 const rcx = Reg64(Reg::eCX);
+	Reg64 const rdx = Reg64(Reg::eDX);
+	Reg64 const rbx = Reg64(Reg::eBX);
+	Reg64 const rsp = Reg64(Reg::eSP);
+	Reg64 const rbp = Reg64(Reg::eBP);
+	Reg64 const rsi = Reg64(Reg::eSI);
+	Reg64 const rdi = Reg64(Reg::eDI);
+
+	Reg64 const r8 = Reg64(Reg::eR8);
+	Reg64 const r9 = Reg64(Reg::eR9);
+	Reg64 const r10 = Reg64(Reg::eR10);
+	Reg64 const r11 = Reg64(Reg::eR11);
+	Reg64 const r12 = Reg64(Reg::eR12);
+	Reg64 const r13 = Reg64(Reg::eR13);
+	Reg64 const r14 = Reg64(Reg::eR14);
+	Reg64 const r15 = Reg64(Reg::eR15);
+
+#endif
+
 	RegSeg const es = RegSeg( Reg::eES );
 	RegSeg const cs = RegSeg( Reg::eCS );
 	RegSeg const ss = RegSeg( Reg::eSS );
@@ -109,12 +130,12 @@ namespace Asmeta
 	DEF_REF_MEM( Address , Address const& addr , addr  )
 	DEF_REF_MEM( RegPtr  , Reg32 const& base   , RegPtr( base ) )
 
-	ASMETA_INLINE RefMem< LabelPtr , 0 >  ptr      ( Label* label , SysInt offset ){ return RefMem< LabelPtr , 0 >( LabelPtr( label , offset ) );  }
-	ASMETA_INLINE RefMem< LabelPtr , 1 >  byte_ptr ( Label* label , SysInt offset ){ return RefMem< LabelPtr , 1 >( LabelPtr( label , offset ) );  }
-	ASMETA_INLINE RefMem< LabelPtr , 2 >  word_ptr ( Label* label , SysInt offset ){ return RefMem< LabelPtr , 2 >( LabelPtr( label , offset ) );  }
-	ASMETA_INLINE RefMem< LabelPtr , 4 >  dword_ptr( Label* label , SysInt offset ){ return RefMem< LabelPtr , 4 >( LabelPtr( label , offset ) );  }
-	ASMETA_INLINE RefMem< LabelPtr , 8 >  qword_ptr( Label* label , SysInt offset ){ return RefMem< LabelPtr , 8 >( LabelPtr( label , offset ) );  }
-	ASMETA_INLINE RefMem< LabelPtr , 10 > tword_ptr( Label* label , SysInt offset ){ return RefMem< LabelPtr , 10 >( LabelPtr( label , offset ) );  }
+	ASMETA_INLINE RefMem< LabelPtr , 0 >  ptr      ( Label* label , int32 offset ){ return RefMem< LabelPtr , 0 >( LabelPtr( label , offset ) );  }
+	ASMETA_INLINE RefMem< LabelPtr , 1 >  byte_ptr ( Label* label , int32 offset ){ return RefMem< LabelPtr , 1 >( LabelPtr( label , offset ) );  }
+	ASMETA_INLINE RefMem< LabelPtr , 2 >  word_ptr ( Label* label , int32 offset ){ return RefMem< LabelPtr , 2 >( LabelPtr( label , offset ) );  }
+	ASMETA_INLINE RefMem< LabelPtr , 4 >  dword_ptr( Label* label , int32 offset ){ return RefMem< LabelPtr , 4 >( LabelPtr( label , offset ) );  }
+	ASMETA_INLINE RefMem< LabelPtr , 8 >  qword_ptr( Label* label , int32 offset ){ return RefMem< LabelPtr , 8 >( LabelPtr( label , offset ) );  }
+	ASMETA_INLINE RefMem< LabelPtr , 10 > tword_ptr( Label* label , int32 offset ){ return RefMem< LabelPtr , 10 >( LabelPtr( label , offset ) );  }
 
 
 	ASMETA_INLINE RefMem< RegPtr , 0 >  ptr      ( Reg32 const& base , int8 disp ){ return RefMem< RegPtr , 0 >( RegPtr( base , disp ) );  }
@@ -124,19 +145,19 @@ namespace Asmeta
 	ASMETA_INLINE RefMem< RegPtr , 8 >  qword_ptr( Reg32 const& base , int8 disp ){ return RefMem< RegPtr , 8 >( RegPtr( base , disp ) );  }
 	ASMETA_INLINE RefMem< RegPtr , 10 > tword_ptr( Reg32 const& base , int8 disp ){ return RefMem< RegPtr , 10 >( RegPtr( base , disp ) );  }
 
-	ASMETA_INLINE RefMem< RegPtr , 0 >  ptr      ( Reg32 const& base , SysInt disp ){ return RefMem< RegPtr , 0 >( RegPtr( base , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 1 >  byte_ptr ( Reg32 const& base , SysInt disp ){ return RefMem< RegPtr , 1 >( RegPtr( base , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 2 >  word_ptr ( Reg32 const& base , SysInt disp ){ return RefMem< RegPtr , 2 >( RegPtr( base , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 4 >  dword_ptr( Reg32 const& base , SysInt disp ){ return RefMem< RegPtr , 4 >( RegPtr( base , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 8 >  qword_ptr( Reg32 const& base , SysInt disp ){ return RefMem< RegPtr , 8 >( RegPtr( base , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 10 > tword_ptr( Reg32 const& base , SysInt disp ){ return RefMem< RegPtr , 10 >( RegPtr( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 0 >  ptr      ( Reg32 const& base , int32 disp ){ return RefMem< RegPtr , 0 >( RegPtr( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 1 >  byte_ptr ( Reg32 const& base , int32 disp ){ return RefMem< RegPtr , 1 >( RegPtr( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 2 >  word_ptr ( Reg32 const& base , int32 disp ){ return RefMem< RegPtr , 2 >( RegPtr( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 4 >  dword_ptr( Reg32 const& base , int32 disp ){ return RefMem< RegPtr , 4 >( RegPtr( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 8 >  qword_ptr( Reg32 const& base , int32 disp ){ return RefMem< RegPtr , 8 >( RegPtr( base , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 10 > tword_ptr( Reg32 const& base , int32 disp ){ return RefMem< RegPtr , 10 >( RegPtr( base , disp ) );  }
 
-	ASMETA_INLINE RefMem< RegPtr , 0 >  ptr      ( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){ return RefMem< RegPtr , 0 >( RegPtr( base , index , shift , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 1 >  byte_ptr ( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){ return RefMem< RegPtr , 1 >( RegPtr( base , index , shift , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 2 >  word_ptr ( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){ return RefMem< RegPtr , 2 >( RegPtr( base , index , shift , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 4 >  dword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){ return RefMem< RegPtr , 4 >( RegPtr( base , index , shift , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 8 >  qword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){ return RefMem< RegPtr , 8 >( RegPtr( base , index , shift , disp ) );  }
-	ASMETA_INLINE RefMem< RegPtr , 10 > tword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){ return RefMem< RegPtr , 10 >( RegPtr( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 0 >  ptr      ( Reg32 const& base , Reg32 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr , 0 >( RegPtr( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 1 >  byte_ptr ( Reg32 const& base , Reg32 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr , 1 >( RegPtr( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 2 >  word_ptr ( Reg32 const& base , Reg32 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr , 2 >( RegPtr( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 4 >  dword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr , 4 >( RegPtr( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 8 >  qword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr , 8 >( RegPtr( base , index , shift , disp ) );  }
+	ASMETA_INLINE RefMem< RegPtr , 10 > tword_ptr( Reg32 const& base , Reg32 const& index , uint8 shift , int32 disp ){ return RefMem< RegPtr , 10 >( RegPtr( base , index , shift , disp ) );  }
 
 	ASMETA_INLINE RefMem< RegPtr , 0 >  ptr      ( Reg32 const& base , Reg32 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr , 0 >( RegPtr( base , index , shift , disp ) );  }
 	ASMETA_INLINE RefMem< RegPtr , 1 >  byte_ptr ( Reg32 const& base , Reg32 const& index , uint8 shift , int8 disp ){ return RefMem< RegPtr , 1 >( RegPtr( base , index , shift , disp ) );  }
@@ -154,7 +175,7 @@ namespace Asmeta
 
 #if TARGET_PLATFORM_64BITS
 #	define SYSTEM_PTR qword_ptr
-	ASMETA_INLINE Disp< 8 > disp64(void* val) { return Disp< 8 >(val); }
+	//ASMETA_INLINE Disp< 8 > disp64(void* val) { return Disp< 8 >(val); }
 #else
 #	define SYSTEM_PTR dword_ptr
 	ASMETA_INLINE Disp< 4 > disp32(void* val) { return Disp< 4 >(val); }
@@ -827,7 +848,13 @@ namespace Asmeta
 			encodeImmediateForce< Size >( imm );
 		}
 
-
+#if TARGET_PLATFORM_64BITS	
+		void encodeREXPrefix(uint8 w, uint8 r, uint8 x, uint8 b)
+		{
+			// 0100WRXB
+			_this()->emitByte( ( 0x4 << 4 ) | ( w << 3 ) | ( r << 2 ) | ( x << 1 ) | b );
+		}
+#endif
 	public:
 		template< class Ref , int Size >
 		ASMETA_INLINE void fld( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgFLD , SPFMap< Size >::RealFormat , mem.reference()  );  }
@@ -1065,10 +1092,17 @@ namespace Asmeta
 		}
 
 		template< int Size >
-		ASMETA_INLINE void encodeModRM( RegX86< Size > const& r , uint8 reg )
+		ASMETA_INLINE void encodeModRM(RegX86< Size > const& r, uint8 reg )
 		{
-			_this()->emitByte( MOD_RM_BYTE( MOD_R , reg  , r.code() ) );
+			_this()->emitByte( MOD_RM_BYTE(MOD_R, reg, r.code()) );
 		}
+#if TARGET_PLATFORM_64BITS
+		ASMETA_INLINE void encodeModRM(RegX86< 8 > const& r, uint8 reg)
+		{
+			assert((r.code() & 0x7) == r.code());
+			_this()->emitByte( MOD_RM_BYTE(MOD_R, reg & 0x7 , r.code()) );
+		}
+#endif
 
 		bool   bind( Label* label )
 		{

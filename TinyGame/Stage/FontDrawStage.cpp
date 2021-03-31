@@ -57,7 +57,7 @@ public:
 			Color4f(0,0,0) ,Color4f(1,0,0) ,
 			Color4f(0,1,0) ,Color4f(1,1,1) ,
 		};
-		VERIFY_RETURN_FALSE( mTexture = RHICreateTexture2D(Texture::eFloatRGBA, 2, 2, 1, 1, BCF_DefalutValue, colors) );
+		VERIFY_RETURN_FALSE( mTexture = RHICreateTexture2D(ETexture::FloatRGBA, 2, 2, 1, 1, BCF_DefalutValue, colors) );
 
 		charData = mCharDataSet->findOrAddChar(L'籖');
 		charData = mCharDataSet->findOrAddChar(L'H');
@@ -115,7 +115,7 @@ public:
 		}
 		if( !mBuffer.empty() )
 		{
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 			{
 				glEnable(GL_TEXTURE_2D);
 				GL_SCOPED_BIND_OBJECT(mCharDataSet->getTexture());

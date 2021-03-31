@@ -10,7 +10,9 @@
 #include "RHI/RHICommand.h"
 #include "RHI/SimpleRenderState.h"
 
-#define USE_OPENGL_NATIVE 1
+#include "ConsoleSystem.h"
+
+#define USE_OPENGL_NATIVE 0
 
 namespace Go
 {
@@ -18,7 +20,7 @@ namespace Go
 
 	bool BoardRenderer::initializeRHI()
 	{
-		VERIFY_RETURN_FALSE(mTextureAtlas.initialize(Texture::eRGBA8, 128, 128, 2));
+		VERIFY_RETURN_FALSE(mTextureAtlas.initialize(ETexture::RGBA8, 128, 128, 2));
 		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/blackStone.png") == 0);
 		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/WhiteStone.png") == 1);
 
@@ -32,6 +34,14 @@ namespace Go
 		TEXTURE(TextureId::eBoardA, "Go/badukpan4.png", false);
 #undef TEXTURE
 
+#if USE_OPENGL_NATIVE
+		//#TODO:Remove me
+		auto cmd = ConsoleSystem::Get().findCommand("r.OpenGLFixedPiplineUseShader");
+		if (cmd)
+		{
+			cmd->asVariable()->setFromInt(0);
+		}
+#endif
 		return true;
 	}
 
@@ -71,7 +81,7 @@ namespace Go
 
 
 #if USE_OPENGL_NATIVE
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #endif
@@ -151,7 +161,7 @@ namespace Go
 		}
 		glDisable(GL_TEXTURE_2D);
 #else
-
+		RenderUtility::SetBrush(g, EColor::White);
 		g.drawTexture(*mTextures[TextureId::eBoardA], context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0), 2 * Vector2(1, 1));
 
 
@@ -249,8 +259,11 @@ namespace Go
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #else
+			RenderUtility::SetBrush(g, EColor::White);
+			g.beginBlend(1.0f);
 #endif
 #endif
+
 			if (overrideStoneState)
 			{
 				for (int j = 0; j < boardSize; ++j)
@@ -297,6 +310,8 @@ namespace Go
 			glDisable(GL_TEXTURE_2D);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			g.setBlendState(ESimpleBlendMode::None);
+#else
+			g.endBlend();
 #endif
 #endif
 		}
@@ -386,12 +401,15 @@ namespace Go
 			}
 		}
 #else
+		int id = (color == StoneColor::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;
 		auto AddSprite = [&](int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color)
 		{
 			Vector2 posLT = pos - size.mul(pivot);
 			Vector2 posRB = posLT + size;
 			Vector2 const& min = mTexInfos[id].uvMin;
 			Vector2 const& max = mTexInfos[id].uvMax;
+			g.setBrush(LinearColor( color.xyz() ));
+			g.setBlendAlapha(color.w);
 			g.drawTexture(mTextureAtlas.getTexture(), posLT, size, min, max - min);
 		};
 		AddSprite(id, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));

@@ -202,7 +202,7 @@ public:
 			ptr += 4;
 		}
 
-		Render::RHITexture1DRef result = Render::RHICreateTexture1D(Render::Texture::eFloatRGBA, MaxRegMaterialNum, 0, Render::TCF_DefalutValue, &buf[0]);
+		Render::RHITexture1DRef result = Render::RHICreateTexture1D(Render::ETexture::FloatRGBA, MaxRegMaterialNum, 0, Render::TCF_DefalutValue, &buf[0]);
 		Render::OpenGLCast::To(result)->bind();
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );

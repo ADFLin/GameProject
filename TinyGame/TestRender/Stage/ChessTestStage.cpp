@@ -6,11 +6,86 @@
 #include <algorithm>
 #include "RHI/RHIGraphics2D.h"
 #include "GameRenderSetup.h"
+#include "Renderer/MeshImportor.h"
+#include "Renderer/SimpleCamera.h"
+#include "Renderer/SceneView.h"
+#include "Renderer/IBLResource.h"
+
+
+#include "TestRenderStageBase.h"
+
 
 namespace Chess
 {
 	using namespace Render;
 
+
+	class ChessShderProgram : public GlobalShaderProgram
+	{
+		using BaseClass = GlobalShaderProgram;
+		DECLARE_SHADER_PROGRAM(ChessShderProgram, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/Chess";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+
+
+		void bindParameters(ShaderParameterMap const& parameterMap) override
+		{
+			mParamIBL.bindParameters(parameterMap);
+		}
+
+		void setParameters(RHICommandList& commandList, IBLResource& IBL)
+		{
+			mParamIBL.setParameters(commandList, *this, IBL);
+		}
+		IBLShaderParameters mParamIBL;
+	};
+
+
+	class ChessBoardShderProgram : public ChessShderProgram
+	{
+		using BaseClass = ChessShderProgram;
+		DECLARE_SHADER_PROGRAM(ChessShderProgram, Global);
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(DRAW_BOARD), 1);
+		}
+	};
+
+	class MeshUVCoordProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(MeshUVCoordProgram, Global);
+	public:
+		static char const* GetShaderFileName()
+		{
+			return "Shader/MeshUVCoord";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(ChessShderProgram);
+	IMPLEMENT_SHADER_PROGRAM(ChessBoardShderProgram);
+	IMPLEMENT_SHADER_PROGRAM(MeshUVCoordProgram);
 
 	struct ScopedBlendState
 	{
@@ -28,6 +103,189 @@ namespace Chess
 		RHIGraphics2D& g;
 	};
 
+	class SceneRenderer
+	{
+	public:
+
+		void render(Game& game, ViewInfo& view)
+		{
+
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+
+			RHISetShaderProgram(commandList, mProgBoard->getRHIResource());
+
+			mProgBoard->setTexture(commandList, SHADER_PARAM(NormalTexture), mTextures[1]);
+			mProgBoard->setTexture(commandList, SHADER_PARAM(RoughnessTexture), mTextures[2]);
+
+			LinearColor difColor = LinearColor(Color3ub(0xff, 0xfd, 0xd1), 0xff);
+			LinearColor speColor = LinearColor::Black();
+			mProgBoard->setParam(commandList, SHADER_PARAM(DiffuseColor), Vector4(difColor));
+			mProgBoard->setParam(commandList, SHADER_PARAM(SpecularColor), Vector4(speColor));
+
+			mProgBoard->setParameters(commandList, mIBLResource);
+
+			mProgBoard->setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
+			mBoardMesh.draw(commandList);
+
+			RHISetShaderProgram(commandList, mProgChess->getRHIResource());
+
+			mProgChess->setTexture(commandList, SHADER_PARAM(NormalTexture), mTextures[1]);
+			mProgChess->setTexture(commandList, SHADER_PARAM(RoughnessTexture), mTextures[2]);
+
+			mProgChess->setParam(commandList, SHADER_PARAM(DiffuseColor), Vector4(difColor));
+			mProgChess->setParam(commandList, SHADER_PARAM(SpecularColor), Vector4(speColor));
+
+			mProgChess->setParameters(commandList, mIBLResource);
+			mProgChess->setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
+
+
+			for (int j = 0; j < BOARD_SIZE; ++j)
+			{
+				for (int i = 0; i < BOARD_SIZE; ++i)
+				{
+					Game::TileData const& tile = game.mBoard.getData(i, j);
+					Vector3 tilePos = getTilePos(Vec2i(i, j));
+
+					if (tile.chess)
+					{
+						Matrix4 rotation = Matrix4::Rotate(Quaternion::Rotate(Vector3(0,0,1), Math::Deg2Rad((tile.chess->color == EChessColor::White) ? -90 : 90)));
+						//RHISetFixedShaderPipelineState(commandList, rotation * Matrix4::Translate(tilePos) * view.worldToClip);
+
+						if (tile.chess->color == EChessColor::White)
+						{
+							LinearColor difColor = LinearColor( Color3ub(0xff, 0xfd, 0xd1) , 0xff );
+							LinearColor speColor = LinearColor::Black();
+
+							mProgChess->setTexture(commandList, SHADER_PARAM(BaseTexture), mTextures[0]);
+							mProgChess->setParam(commandList, SHADER_PARAM(DiffuseColor), Vector4(difColor));
+							mProgChess->setParam(commandList, SHADER_PARAM(SpecularColor), Vector4(speColor));
+						}
+						else
+						{
+							LinearColor difColor = LinearColor::Black();
+							LinearColor speColor = LinearColor::White();
+
+							mProgChess->setTexture(commandList, SHADER_PARAM(BaseTexture), mTextures[3]);
+							mProgChess->setParam(commandList, SHADER_PARAM(DiffuseColor), Vector4(difColor));
+							mProgChess->setParam(commandList, SHADER_PARAM(SpecularColor), Vector4(speColor));
+						}
+
+						mProgChess->setParam(commandList, SHADER_PARAM(XForm), rotation * Matrix4::Translate(tilePos));
+
+						view.setupShader(commandList, *mProgChess);
+						mChessMeshs[tile.chess->type].draw(commandList);
+					}
+				}
+			}
+
+			Vec2i screenSize = ::Global::GetScreenSize();
+
+			{
+				IntVector2 pos = { 120,120 };
+				IntVector2 size = { 300, 300 };
+				
+				Matrix4 transform = Matrix4::Scale( size.x, size.y, 1 ) * Matrix4::Translate(pos.x, pos.y, 0) * Matrix4::Scale(2.0 / screenSize.x, 2.0 / screenSize.y, 1) * Matrix4::Translate(-1, -1, 0);
+
+				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Wireframe>::GetRHI());
+
+				RHISetShaderProgram(commandList, mProgMeshUV->getRHIResource());
+				mProgMeshUV->setParam(commandList, SHADER_PARAM(XForm), transform);
+				mChessMeshs[0].draw(commandList);
+
+				Vector2 vertices[] =
+				{
+					Vector2( 0 , 0 ),
+					Vector2( 1 , 0 ),
+					Vector2( 1 , 1 ),
+					Vector2( 0 , 1 ),
+				};
+				uint32 indices[] = { 0,1,1,2,2,3,3,0 };
+				RHISetFixedShaderPipelineState(commandList, transform, LinearColor(1,1,0,1));
+				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
+			}
+		}
+
+		Vector3 getTilePos(Vec2i const& pos)
+		{
+			Vector2 pos2D = 30.0f * (Vector2(pos - Vec2i(BOARD_SIZE / 2, BOARD_SIZE / 2) ) + Vector2(0.5,0.5));
+			return Vector3(pos2D.x, pos2D.y, 0);
+		}
+
+		bool loadAsset()
+		{
+
+			char const* ChessNames[] =
+			{
+				"King",
+				"Queen",
+				"Bishop",
+				"Knight",
+				"Rook",
+				"Pawn",
+			};
+
+			IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
+			if (importer)
+			{
+				for (int i = 0; i < ARRAY_SIZE(ChessNames); ++i)
+				{
+					FixString<256> filePath;
+					filePath.format("Model/Chess/%s.fbx", ChessNames[i]);
+
+					VERIFY_RETURN_FALSE(importer->importFromFile(filePath, mChessMeshs[i], nullptr));
+				}
+			}
+			else
+			{
+				LogWarning(0, "Cant Get FBX Mesh Importer");
+				return false;
+			}
+
+			VERIFY_RETURN_FALSE(importer->importFromFile("Model/Chess/Board.fbx", mBoardMesh, nullptr));
+
+			VERIFY_RETURN_FALSE(mProgChess = ShaderManager::Get().getGlobalShaderT< ChessShderProgram >());
+			VERIFY_RETURN_FALSE(mProgBoard = ShaderManager::Get().getGlobalShaderT< ChessBoardShderProgram >());
+			VERIFY_RETURN_FALSE(mProgMeshUV = ShaderManager::Get().getGlobalShaderT< MeshUVCoordProgram >());
+
+			char const* textureNames[] = 
+			{
+				"Chess_Wood_Base.png",
+				"Chess_Wood_Normal.png" ,
+				"Chess_Wood_Roughtness.png",
+				"Chess_Wood_Dark_Base.png",
+			};
+			for (int i = 0; i < 4; ++i)
+			{
+				FixString<256> path;
+				path.format("Model/Chess/textures/%s", textureNames[i]);
+				VERIFY_RETURN_FALSE( mTextures[i] = RHIUtility::LoadTexture2DFromFile(path) );
+			}
+
+			{
+
+				char const* HDRImagePath = "Texture/HDR/A.hdr";
+				VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), HDRImagePath, TextureLoadOption().HDR().ReverseH()));
+				VERIFY_RETURN_FALSE(mBuilder.loadOrBuildResource(::Global::DataCache(), HDRImagePath, *mHDRImage, mIBLResource));
+			}
+			
+			return true;
+		}
+
+		Mesh mChessMeshs[EChess::COUNT];
+		Mesh mBoardMesh;
+		ChessShderProgram* mProgChess;
+		ChessBoardShderProgram* mProgBoard;
+		MeshUVCoordProgram* mProgMeshUV;
+
+		RHITexture2DRef mTextures[4];
+
+		IBLResourceBuilder mBuilder;
+		IBLResource mIBLResource;
+
+		RHITexture2DRef mHDRImage;
+	};
+
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
 	{
@@ -37,21 +295,56 @@ namespace Chess
 
 		Game mGame;
 
+		ViewInfo      mView;
+		ViewFrustum   mViewFrustum;
 		RHITexture2DRef mChessTex;
+		SimpleCamera    mCamera;
 
+
+		SceneRenderer mRenderer;
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
 				return false;
 
-			VERIFY_RETURN_FALSE( mChessTex = RHIUtility::LoadTexture2DFromFile("texture/chess.png") );
-
 			::Global::GUI().cleanupWidget();
 
 			auto frame = WidgetUtility::CreateDevFrame();
+
+			mView.gameTime = 0;
+			mView.realTime = 0;
+			mView.frameCount = 0;
+
+			Vec2i screenSize = ::Global::GetScreenSize();
+			mViewFrustum.mNear = 0.01;
+			mViewFrustum.mFar = 800.0;
+			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
+			mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
+
+			mCamera.lookAt(Vector3(200, 200, 200), Vector3(0, 0, 0), Vector3(0, 0, 1));
+
 			restart();
 			return true;
 		}
+
+
+		Mesh mChessMeshs[EChess::COUNT];
+
+		bool setupRenderSystem(ERenderSystem systemName) override
+		{
+			VERIFY_RETURN_FALSE(mChessTex = RHIUtility::LoadTexture2DFromFile("texture/chess.png"));
+
+			VERIFY_RETURN_FALSE(mRenderer.loadAsset());
+
+			return true;
+		}
+
+
+		void preShutdownRenderSystem(bool bReInit = false) override
+		{
+			mChessTex.release();
+		}
+
 
 		void onEnd() override
 		{
@@ -69,6 +362,8 @@ namespace Chess
 		{
 			BaseClass::onUpdate(time);
 
+			mCamera.updatePosition(float(time) / 1000);
+
 			int frame = time / gDefaultTickTime;
 			for (int i = 0; i < frame; ++i)
 				tick();
@@ -83,8 +378,6 @@ namespace Chess
 		{
 			int width;
 			int height;
-
-
 		};
 
 		void drawChess(RHIGraphics2D& g, Vector2 const& centerPos, EChess::Type type, EChessColor color)
@@ -129,9 +422,15 @@ namespace Chess
 			Vector2 size;
 			size.x = sizeScale * tileInfo.size.x * TileLength / w;
 			size.y = size.x * tileInfo.size.y / tileInfo.size.x;
-			g.drawTexture(centerPos - pivot * size , size , tileInfo.pos + (( color == EChessColor::Black ) ? Vec2i(0,0) : Vec2i(0,h)), tileInfo.size );
+			Vector2 texSize;
+			texSize.x = mChessTex->getSizeX();
+			texSize.y = mChessTex->getSizeY();
+			g.drawTexture(centerPos - pivot * size , size , Vector2( tileInfo.pos + (( color == EChessColor::Black ) ? Vec2i(0,0) : Vec2i(0,h)) ) / texSize , Vector2( tileInfo.size ) / texSize );
 
 		}
+
+		bool bShow2D = false;
+
 		void onRender(float dFrame) override
 		{
 			RHIGraphics2D& g = Global::GetRHIGraphics2D();
@@ -142,8 +441,40 @@ namespace Chess
 			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
 
-			g.beginRender();
 
+			mView.frameCount += 1;
+
+			mView.rectOffset = IntVector2(0, 0);
+			mView.rectSize = screenSize;
+
+			Matrix4 matView = mCamera.getViewMatrix();
+			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+
+			RHISetFrameBuffer(commandList, nullptr);
+			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1, 0);
+
+			RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
+			RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?
+				TStaticDepthStencilState< true, ECompareFunc::Greater >::GetRHI() :
+				TStaticDepthStencilState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+
+			RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+			DrawUtility::AixsLine(commandList);
+
+			mRenderer.render(mGame, mView);
+
+			if ( bShow2D )
+			{
+				g.beginRender();
+				render2D(g);
+				g.endRender();
+			}
+		}
+
+		void render2D(RHIGraphics2D& g)
+		{
 			RenderUtility::SetPen(g, EColor::Black);
 			for (int j = 0; j < BOARD_SIZE; ++j)
 			{
@@ -275,7 +606,6 @@ namespace Chess
 					}
 				}
 			}
-			g.endRender();
 		}
 
 		Vector2 toScreenPos(Vec2i const& tPos)
@@ -328,6 +658,14 @@ namespace Chess
 					}
 					if (moveUsed)
 					{
+						if (moveUsed->tag == EMoveTag::EnPassant)
+						{
+							Game::TileData const& removeChessTile = mGame.getTile(moveUsed->posEffect);
+						}
+						else if (moveUsed->tag == EMoveTag::RemoveChess)
+						{
+							Game::TileData const& removeChessTile = mGame.getTile(moveUsed->pos);
+						}
 						moveChess(mSelectedChessPos, *moveUsed);
 					}
 				}
@@ -344,6 +682,20 @@ namespace Chess
 			{
 				invalidateSelectedChess();
 			}
+
+			static Vec2i oldPos = msg.getPos();
+
+			if (msg.onLeftDown())
+			{
+				oldPos = msg.getPos();
+			}
+			if (msg.onMoving() && msg.isLeftDown())
+			{
+				float rotateSpeed = 0.01;
+				Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
+				mCamera.rotateByMouse(off.x, off.y);
+				oldPos = msg.getPos();
+			}
 			return true;
 		}
 		bool bShowAttackTerritory = false;
@@ -353,6 +705,18 @@ namespace Chess
 
 		bool onKey(KeyMsg const& msg) override
 		{
+			float baseImpulse = 500;
+			switch (msg.getCode())
+			{
+			case EKeyCode::W: mCamera.moveForwardImpulse = msg.isDown() ? baseImpulse : 0; break;
+			case EKeyCode::S: mCamera.moveForwardImpulse = msg.isDown() ? -baseImpulse : 0; break;
+			case EKeyCode::D: mCamera.moveRightImpulse = msg.isDown() ? baseImpulse : 0; break;
+			case EKeyCode::A: mCamera.moveRightImpulse = msg.isDown() ? -baseImpulse : 0; break;
+			case EKeyCode::Z: mCamera.moveUp(0.5); break;
+			case EKeyCode::X: mCamera.moveUp(-0.5); break;
+			}
+
+
 			if (!msg.isDown())
 				return false;
 
@@ -360,6 +724,7 @@ namespace Chess
 			{
 			case EKeyCode::R: restart(); break;
 			case EKeyCode::X: bShowAttackTerritory = !bShowAttackTerritory; break;
+			case EKeyCode::V: bShow2D = !bShow2D; break;
 			}
 			return BaseClass::onKey(msg);
 		}
@@ -374,6 +739,7 @@ namespace Chess
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
 	protected:
 	};
 

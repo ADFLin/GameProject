@@ -149,6 +149,7 @@ namespace Render
 		Vector2 pos;
 		Vector2 uv;
 	};
+
 	class FontDrawer
 	{
 	public:
@@ -163,6 +164,8 @@ namespace Render
 
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
+		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, std::vector< FontVertex > const& buffer);
+
 		int  getSize() const { return mSize; }
 		int  getFontHeight() const { return mCharDataSet->getFontHeight(); }
 		Vector2 calcTextExtent(wchar_t const* str);
@@ -172,18 +175,17 @@ namespace Render
 		{
 			return mCharDataSet->getTexture();
 		}
+
+
+
+
 	private:
 		void drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
+		
 		CharDataSet* mCharDataSet;
-		struct TextVertex
-		{
-			Vector2 pos;
-			Vector2 uv;
-		};
-		std::vector< TextVertex > mBuffer;
-		void addQuad(Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax);
 		int     mSize;
 	};
+
 
 }
 

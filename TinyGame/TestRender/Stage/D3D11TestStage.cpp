@@ -205,7 +205,7 @@ namespace Render
 				mCBuffer.unlock();
 			}
 
-			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < Sampler::eTrilinear >::GetRHI());
+			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < ESampler::Trilinear >::GetRHI());
 			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
 			mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
 			mView.setupShader(commandList, mProgTest);

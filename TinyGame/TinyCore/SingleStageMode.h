@@ -16,7 +16,7 @@ public:
 	bool   postStageInit();
 	void   onRestart(uint64& seed);
 	void   updateTime(long time);
-	bool   tryChangeState(GameState state);
+	bool   tryChangeState(EGameState state);
 	bool   onWidgetEvent(int event, int id, GWidget* ui);
 	
 	LocalPlayerManager* getPlayerManager();

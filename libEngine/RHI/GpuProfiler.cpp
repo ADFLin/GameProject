@@ -36,14 +36,14 @@ namespace Render
 		mCurLevel = 0;
 
 
-		auto GetSystemNameString = [](RHISytemName name)
+		auto GetSystemNameString = [](RHISystemName name)
 		{
 			switch (name)
 			{
-			case RHISytemName::OpenGL: return "OpenGL";
-			case RHISytemName::D3D11:  return "D3D11";
-			case RHISytemName::D3D12: return "D3D12";
-			case RHISytemName::Vulkan: return "Vulkan";
+			case RHISystemName::OpenGL: return "OpenGL";
+			case RHISystemName::D3D11:  return "D3D11";
+			case RHISystemName::D3D12: return "D3D12";
+			case RHISystemName::Vulkan: return "Vulkan";
 			}
 			return "Unknown";
 		};

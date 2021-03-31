@@ -202,16 +202,16 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	initParam.hWnd = getWindow().getHWnd();
 	initParam.hDC = getWindow().getHDC();
 
-	RHISytemName targetName = [systemName]
+	RHISystemName targetName = [systemName]
 	{
 		switch(systemName)
 		{
-		case ERenderSystem::OpenGL: return RHISytemName::OpenGL;
-		case ERenderSystem::D3D11: return RHISytemName::D3D11;
-		case ERenderSystem::D3D12: return RHISytemName::D3D12;
-		case ERenderSystem::Vulkan: return RHISytemName::Vulkan;
+		case ERenderSystem::OpenGL: return RHISystemName::OpenGL;
+		case ERenderSystem::D3D11: return RHISystemName::D3D11;
+		case ERenderSystem::D3D12: return RHISystemName::D3D12;
+		case ERenderSystem::Vulkan: return RHISystemName::Vulkan;
 		}
-		return RHISytemName::OpenGL;
+		return RHISystemName::OpenGL;
 	}();
 	if( !RHISystemInitialize(targetName, initParam) )
 		return false;

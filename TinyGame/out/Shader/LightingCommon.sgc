@@ -15,7 +15,7 @@ float CalcRaidalAttenuation( float lightDist , float lightRadiusInv )
 	return falloff * (1.0 / (lightDist * lightDist + 1.0));
 }
 
-float3 PhongShading(float3 diffuseColor , float3 SpecularColor , float3 N, float3 L, float3 V , float shininess )
+float3 PhongShading(float3 diffuseColor , float3 specularColor , float3 N, float3 L, float3 V , float shininess )
 {
 	float3 H = normalize(L + V);
 	float NoL = saturate(dot(N, L));
@@ -27,7 +27,7 @@ float3 PhongShading(float3 diffuseColor , float3 SpecularColor , float3 N, float
 	float RoV = saturate(dot(R, V));
 
 	float3 diff = diffuseColor * NoL;
-	float3 spec = SpecularColor * pow( max(NoH, 0.001 ) , shininess );
+	float3 spec = specularColor * pow( max(NoH, 0.001 ) , shininess );
 	return diff + spec;
 }
 
@@ -122,7 +122,7 @@ float3 StandardShading(float3 diffuseColor, float3 specularColor, float3 lobeRou
 	float NoH = saturate(dot(N, H));
 	float VoH = saturate(dot(V, H));
 
-#if 1
+#if 0
 	// Generalized microfacet specular
 	float D = D_GGX(lobeRoughness[1], NoH) * lobeEnergy[1];
 	float Vis = Vis_SmithJointApprox(lobeRoughness[1], NoV, NoL);
@@ -139,7 +139,7 @@ float3 StandardShading(float3 diffuseColor, float3 specularColor, float3 lobeRou
 	float3 F = F_Schlick2(specularColor, VoH);
 
 	float3 kS = F;
-	float3 kD = float3(1.0) - kS;
+	float3 kD = float3(1.0,1.0,1.0) - kS;
 
 	float3 diffuse = Diffuse_Lambert(diffuseColor);
 	//float3 Diffuse = Diffuse_Burley( DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );

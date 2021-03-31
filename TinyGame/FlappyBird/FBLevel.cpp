@@ -188,7 +188,7 @@ namespace FlappyBird
 		mPipes.push_back(pipe);
 	}
 
-	void GameLevel::addBird(BirdEntity& bird, IController* controller)
+	void GameLevel::addBird(BirdEntity& bird, IBirdController* controller)
 	{
 		mAllBirds.push_back(&bird);
 		if( bird.bActive )
@@ -225,13 +225,13 @@ namespace FlappyBird
 			{
 				switch( onBirdCollsion(bird, obj) )
 				{
-				case CollisionResponse::Remove:
+				case EColResponse::Remove:
 					needRemove = true;
 					break;
-				case CollisionResponse::Stop:
+				case EColResponse::Stop:
 					bStop = true;
 					break;
-				case CollisionResponse::RemoveAndStop:
+				case EColResponse::RemoveAndStop:
 					needRemove = true;
 					bStop = true;
 				default:

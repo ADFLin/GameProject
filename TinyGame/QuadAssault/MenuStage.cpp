@@ -8,6 +8,7 @@
 #include "GlobalVariable.h"
 #include "DataPath.h"
 #include "RenderUtility.h"
+#include "Texture.h"
 
 #include "LevelStage.h"
 #include "DevStage.h"
@@ -15,8 +16,17 @@
 #include "Dependence.h"
 #include "FixString.h"
 
+#include "RHI/RHIGraphics2D.h"
+#include "RHI/RHICommand.h"
+
+#include "TinyCore/RenderUtility.h"
+
+
+using namespace Render;
+
 #include <fstream>
 #include <sstream>
+
 
 MenuStage::MenuStage( State state )
 {
@@ -239,32 +249,68 @@ void MenuStage::showStateWidget( State state , bool beShow )
 
 void MenuStage::onRender()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glLoadIdentity();	
 
-	switch( mState )
+#if 1
+	RHIGraphics2D& g = getGame()->getGraphics2D();
+
+	g.beginRender();
+
+	g.setBrush(Color3f::White());
+	switch (mState)
 	{
 	case MS_SELECT_LEVEL:
-		drawSprite(Vec2f(0.0, 0.0), Vec2f( getGame()->getScreenSize() ), texBG2 );
+		g.drawTexture(*texBG2->resource, Vec2f(0, 0), getGame()->getScreenSize());
 		break;
 	case MS_SELECT_MENU:
-		drawSprite(Vec2f(0.0, 0.0), Vec2f( getGame()->getScreenSize() ), texBG );	
+		g.drawTexture(*texBG->resource, Vec2f(0, 0), getGame()->getScreenSize());
 		break;
 	case MS_ABOUT:
-		drawSprite(Vec2f(0.0, 0.0), Vec2f( getGame()->getScreenSize() ), texBG2);
-		getRenderSystem()->drawText( mTextAbout , Vec2i( 32 , 32 ) , TEXT_SIDE_LEFT | TEXT_SIDE_TOP );
+		g.drawTexture(*texBG2->resource, Vec2f(0, 0), getGame()->getScreenSize());
+		//getRenderSystem()->drawText(mTextAbout, Vec2i(32, 32), TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
 		break;
 	}
 
 	GUISystem::Get().render();
 
+	g.beginBlend(1, ESimpleBlendMode::Add);
+	g.drawTexture(*texCursor->resource, Vec2f(getGame()->getMousePos()) - Vec2f(16, 16), Vec2f(32, 32));
+	g.endBlend();
+
+
+	//mScreenFade.render();
+
+
+	g.endRender();
+#else
+
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glLoadIdentity();	
+
+	GUISystem::Get().render();
+
+	switch (mState)
+	{
+	case MS_SELECT_LEVEL:
+		drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize()), texBG2);
+		break;
+	case MS_SELECT_MENU:
+		drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize()), texBG);
+		break;
+	case MS_ABOUT:
+		drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize()), texBG2);
+		getRenderSystem()->drawText(mTextAbout, Vec2i(32, 32), TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
+		break;
+	}
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);
-	drawSprite( Vec2f( getGame()->getMousePos() )-Vec2f(16,16),Vec2f(32,32), texCursor );
+	drawSprite(Vec2f(getGame()->getMousePos()) - Vec2f(16, 16), Vec2f(32, 32), texCursor);
 	glDisable(GL_BLEND);
 
 	mScreenFade.render();
+#endif
 }
 
 bool MenuStage::onKey(KeyMsg const& msg)

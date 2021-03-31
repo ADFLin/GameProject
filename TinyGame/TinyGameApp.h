@@ -179,6 +179,8 @@ private:
 	bool               mShowErrorMsg;
 	FPSCalculator      mFPSCalc;
 
+	IGameRenderSetup*  mRenderSetup;
+
 	enum class ConsoleShowMode
 	{
 		Screen,

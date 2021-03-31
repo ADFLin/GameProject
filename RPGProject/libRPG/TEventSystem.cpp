@@ -14,7 +14,7 @@ TEventSystem::TEventSystem()
 }
 
 
-void TEventSystem::updateFrame()
+void TEventSystem::tick()
 {
 	//DevMsg( 1 , "NumEvnt %d in this frame" , m_frameEventVec.size() );
 

@@ -34,14 +34,14 @@ VS_ENTRY_END(MeshRenderVS)
 #if PIXEL_SHADER
 
 PS_ENTRY_START(MeshRenderPS)
-	PS_INPUT_STRUCT(VSOutputParam InputVS, 0)
+	PS_INPUT_STRUCT(VSOutputParam OutputVS, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MeshRenderPS)
 {
-	//OutColor = float4(InputVS.color, 1);
+	//OutColor = float4(OutputVS.color, 1);
 
-	float3 N = normalize(InputVS.normal);
-	float3 V = normalize(View.worldPos - InputVS.worldPos);
+	float3 N = normalize(OutputVS.normal);
+	float3 V = normalize(View.worldPos - OutputVS.worldPos);
 	float3 L = normalize(float3(1,0,1));
 
 	float3 color = PhongShading(0.3 * float3(1.0,1.0,1.0), 0.8 * float3(1, 1, 1), N, L, V, 10);

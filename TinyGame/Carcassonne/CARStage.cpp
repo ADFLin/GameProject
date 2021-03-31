@@ -61,6 +61,12 @@ namespace CAR
 	bool gDrawSideLink = true;
 	bool gDrawFeatureInfo = true;
 
+	struct FieldNameDesc
+	{
+		char const* name;
+		char const* shortName;
+	};
+
 	char const* gFieldNames[] = 
 	{
 		"Meeple" ,
@@ -95,7 +101,8 @@ namespace CAR
 
 	char const* gActorShortNames[] =
 	{
-		"M" , "BM" , "MY" , "WG" , "BN" , "SH" , "PH" , "AB" , "BR" , "PG" , "DG" , "FR" , "CO" , "MA" , "WI" , "BPP" , "TE" 
+		"M" , "BM" , "MY" , "WG" , "BN" , "SH" , "PH" , "AB" , "BR" , "PG" , 
+		"DG" , "FR" , "CO" , "MA" , "WI" , "BPP" , "TE" , "FA" ,
 	};
 
 	bool LevelStage::onInit()
@@ -183,6 +190,11 @@ namespace CAR
 		mIdxShowFeature = 0;
 
 		mGameLogic.mListener = this;
+
+		if (::Global::GameConfig().getIntValue("AutoSaveGame", "CAR", 1))
+		{
+			mInput.mAutoSavePath = ::Global::GameConfig().getStringValue("AutoSaveGameName", "CAR", "car_record_temp");
+		}
 		
 		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
 		mInput.onPrevAction = std::bind( &LevelStage::onGamePrevAction , this , std::placeholders::_1 , std::placeholders::_2 );
@@ -322,10 +334,10 @@ namespace CAR
 		{
 #if 0
 			Vec2i pos = Vec2i( 300 , 20 );
-			for(int i = 0 ; i < mMoudule.mFeatureMap.size() ; ++i )
+			for(int i = 0 ; i < mGameLogic.mFeatureMap.size() ; ++i )
 			{
-				FeatureBase* build = mMoudule.mFeatureMap[i];
-				if ( build->group == -1 )
+				FeatureBase* build = mGameLogic.mFeatureMap[i];
+				if ( build->group == INDEX_NONE )
 					continue;
 				pos = showBuildInfo( g , pos , build , 12 );
 				pos.y += 2;
@@ -339,7 +351,7 @@ namespace CAR
 				Vec2i pos = Vec2i( 300 , 20 );
 				showFeatureInfo( g , pos , feature , 12 );
 
-				if ( feature->group != -1 )
+				if ( feature->group != INDEX_NONE )
 				{
 					for(auto mapTile : feature->mapTiles)
 					{
@@ -410,14 +422,14 @@ namespace CAR
 			Vector2 screenPos = convertToScreenPos( mapPos );
 			switch( actor->type )
 			{
-			case ActorType::eMeeple:
+			case EActor::Meeple:
 				g.drawCircle( screenPos , 10 );
 				break;
-			case ActorType::eBigMeeple:
+			case EActor::BigMeeple:
 				g.drawCircle( screenPos , 15 );
 				break;
 
-			case ActorType::eDragon:
+			case EActor::Dragon:
 				{
 					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
@@ -425,7 +437,7 @@ namespace CAR
 					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "D" );
 				}
 				break;
-			case ActorType::eFariy:
+			case EActor::Fariy:
 				{
 					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
@@ -433,29 +445,29 @@ namespace CAR
 					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "F" );
 				}
 				break;
-			case ActorType::eBuilder:
+			case EActor::Builder:
 				{
 					Vector2 size( 10 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
 				}
 				break;
-			case ActorType::ePig:
+			case EActor::Pig:
 				{
 					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
 				}
 				break;
-			case ActorType::eBarn:
+			case EActor::Barn:
 				{
 					g.drawCircle( screenPos , 15 );
 				}
 				break;
-			case ActorType::eMayor:
+			case EActor::Mayor:
 				{
 					g.drawCircle( screenPos , 15 );
 				}
 				break;
-			case ActorType::eWagon:
+			case EActor::Wagon:
 				{
 					g.drawCircle( screenPos , 15 );
 				}
@@ -616,10 +628,10 @@ namespace CAR
 					int color = EColor::White;
 					switch( tile.getLinkType(i) )
 					{
-					case SideType::eCity:   color = EColor::Orange; break;
-					case SideType::eField:  color = EColor::Green; break;
-					case SideType::eRiver:  color = EColor::Blue; break;
-					case SideType::eRoad:   color = EColor::Yellow; break;
+					case ESide::Type::City:   color = EColor::Orange; break;
+					case ESide::Type::Field:  color = EColor::Green; break;
+					case ESide::Type::River:  color = EColor::Blue; break;
+					case ESide::Type::Road:   color = EColor::Yellow; break;
 					}
 
 					RenderUtility::SetBrush(g, color, COLOR_NORMAL);
@@ -1035,7 +1047,7 @@ namespace CAR
 		case UI_ACTOR_POS_BUTTON:
 			{
 				int indexPos = ui->cast< ActorPosButton >()->indexPos;
-				ActorType type = ui->cast< ActorPosButton >()->type;
+				EActor::Type type = ui->cast< ActorPosButton >()->type;
 				removeGameActionUI();
 				CAR_INPUT_COMMAND( { mInput.replyDeployActor(indexPos, type); } , indexPos , type );
 			}
@@ -1074,7 +1086,7 @@ namespace CAR
 		case UI_REPLAY_STOP:
 			{
 				ui->destroy();
-				CAR_INPUT_COMMAND({ mInput.returnGame(); });
+				CAR_INPUT_COMMAND({ mInput.executeGameLogic(); });
 			}
 			return false;
 		case UI_AUCTION_TILE_PANEL:
@@ -1154,7 +1166,7 @@ namespace CAR
 					{
 						auto* button = new ActorPosButton( UI_ACTOR_POS_BUTTON ,  convertToScreenPos( pos + offset * num  ) - size / 2 , size , nullptr );
 						button->indexPos = i;
-						button->type     = ActorType( iter.index );
+						button->type     = EActor::Type( iter.index );
 						button->info     = &info;
 						button->mapPos   = pos + offset * num;
 						addActionWidget( button );
@@ -1325,7 +1337,7 @@ namespace CAR
 		case ActorPos::eSideNode:
 			switch ( mapTile.getLinkType( pos.meta ) )
 			{
-			case SideType::eCity:
+			case ESide::Type::City:
 				{
 					Vector2 offset = Vector2(0,0);
 					unsigned mask = mapTile.getSideLinkMask( pos.meta );
@@ -1338,7 +1350,7 @@ namespace CAR
 					result += offset / count;
 				}
 				break;
-			case SideType::eRoad:
+			case ESide::Type::Road:
 				result += SidePos[pos.meta] / 2;
 				break;
 			}
@@ -1457,7 +1469,7 @@ namespace CAR
 			meshInfo.pIndex = indicesQuad;
 			meshInfo.numIndices = 6;
 			TileSet const& tileSet = mGameLogic.mTileSetManager.getTileSet(id);
-			meshInfo.pVertex = (tileSet.type == TileType::eDouble) ? (void*)vtxDouble : (void*)vtxSingle;
+			meshInfo.pVertex = (tileSet.type == ETileClass::Double) ? (void*)vtxDouble : (void*)vtxSingle;
 			meshInfo.numVertices = 4;
 
 			Material* mat = mWorld->createMaterial(Color4f(1, 1, 1));
@@ -1566,9 +1578,9 @@ namespace CAR
 
 		mGameLogic.setup( mSetting , mRandom , mPlayerManager );
 
-		for( int i = 0 ; i < FieldType::NUM ; ++i )
+		for( int i = 0 ; i < EField::COUNT ; ++i )
 		{
-			int idx = mSetting.getFieldIndex( FieldType::Enum(i) );
+			int idx = mSetting.getFieldIndex( EField::Type(i) );
 			if ( idx != -1 )
 			{
 				mFiledTypeMap[ idx ] = i;
@@ -1578,10 +1590,10 @@ namespace CAR
 		::Global::GUI().cleanupWidget();
 
 		int userSlotId = playerManager.getUser()->getActionPort();
-		if ( getModeType() == SMT_NET_GAME )
+		if ( getModeType() == EGameStageMode::Net )
 		{
 			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
-			mInput.setDataTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
+			mInput.setRemoteSender( new CWorkerDataTransfer( worker , userSlotId ) );
 			if ( ::Global::GameNet().getNetWorker()->isServer() )
 			{
 				mServerDataTranfser = new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), MaxPlayerNum );
@@ -1614,10 +1626,10 @@ namespace CAR
 	{
 		if ( mGameLogic.mIsStartGame )
 		{
-			if( getModeType() == SMT_SINGLE_GAME )
+			if( getModeType() == EGameStageMode::Single )
 				return true;
 
-			if( getModeType() == SMT_NET_GAME )
+			if( getModeType() == EGameStageMode::Net )
 			{
 				if( getActionPlayerId() == getStageMode()->getPlayerManager()->getUser()->getActionPort() )
 					return true;

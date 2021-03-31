@@ -83,94 +83,94 @@ namespace Render
 		return 0;
 	}
 
-	struct Texture
+	struct ETexture
 	{
 		enum Type
 		{
-			e1D,
-			e2D,
-			e3D,
-			eCube,
-			e2DArray,
-			eDepth,
+			Type1D,
+			Type2D,
+			Type3D,
+			TypeCube,
+			Type2DArray,
 		};
+
 		enum Format
 		{
-			eRGBA8,
-			eRGB8,
-			eBGRA8 ,
+			RGBA8,
+			RGB8,
+			BGRA8 ,
 
-			eRGB10A2,
+			RGB10A2,
 
-			eR16,
-			eR8,
+			R16,
+			R8,
 
-			eR32F,
-			eRG32F,
-			eRGB32F,
-			eRGBA32F,
+			R32F,
+			RG32F,
+			RGB32F,
+			RGBA32F,
 			
-			eR16F,
-			eRG16F,
-			eRGB16F,
-			eRGBA16F,
+			R16F,
+			RG16F,
+			RGB16F,
+			RGBA16F,
 
-			eR32I,
-			eR16I,
-			eR8I,
-			eR32U,
-			eR16U,
-			eR8U,
+			R32I,
+			R16I,
+			R8I,
+			R32U,
+			R16U,
+			R8U,
 
-			eRG32I,
-			eRG16I,
-			eRG8I,
-			eRG32U,
-			eRG16U,
-			eRG8U,
+			RG32I,
+			RG16I,
+			RG8I,
+			RG32U,
+			RG16U,
+			RG8U,
 
-			eRGB32I,
-			eRGB16I,
-			eRGB8I,
-			eRGB32U,
-			eRGB16U,
-			eRGB8U,
+			RGB32I,
+			RGB16I,
+			RGB8I,
+			RGB32U,
+			RGB16U,
+			RGB8U,
 
-			eRGBA32I,
-			eRGBA16I,
-			eRGBA8I,
-			eRGBA32U,
-			eRGBA16U,
-			eRGBA8U,
+			RGBA32I,
+			RGBA16I,
+			RGBA8I,
+			RGBA32U,
+			RGBA16U,
+			RGBA8U,
 
-			eSRGB ,
-			eSRGBA ,
+			SRGB ,
+			SRGBA ,
 
 
-			eDepth16,
-			eDepth24,
-			eDepth32,
-			eDepth32F,
+			Depth16,
+			Depth24,
+			Depth32,
+			Depth32F,
 
-			eD24S8,
-			eD32FS8,
+			D24S8,
+			D32FS8,
 
-			eStencil1,
-			eStencil4,
-			eStencil8,
-			eStencil16,
+			Stencil1,
+			Stencil4,
+			Stencil8,
+			Stencil16,
 
-			eFloatRGBA = eRGBA16F,
+			FloatRGBA = RGBA16F,
 		};
 
 		enum Face
 		{
-			eFaceX = 0,
-			eFaceInvX = 1,
-			eFaceY = 2,
-			eFaceInvY = 3,
-			eFaceZ = 4,
-			eFaceInvZ = 5,
+			FaceX = 0,
+			FaceInvX = 1,
+			FaceY = 2,
+			FaceInvY = 3,
+			FaceZ = 4,
+			FaceInvZ = 5,
 
 
 			FaceCount ,
@@ -186,17 +186,17 @@ namespace Render
 
 		static bool ContainDepth(Format format)
 		{
-			return format == eDepth16 ||
-				   format == eDepth24 ||
-				   format == eDepth32 ||
-				   format == eDepth32F ||
-				   format == eD24S8    ||
-				   format == eD32FS8;
+			return format == Depth16 ||
+				   format == Depth24 ||
+				   format == Depth32 ||
+				   format == Depth32F ||
+				   format == D24S8    ||
+				   format == D32FS8;
 
 		}
 		static bool ContainStencil(Format format)
 		{
-			return format == eD24S8 || format == eD32FS8 || format == eD32FS8 || format == eStencil1 || format == eStencil8 || format == eStencil4 || format == eStencil16;
+			return format == D24S8 || format == D32FS8 || format == D32FS8 || format == Stencil1 || format == Stencil8 || format == Stencil4 || format == Stencil16;
 		}
 	};
 
@@ -328,15 +328,15 @@ namespace Render
 		virtual RHITexture2DArray* getTexture2DArray() { return nullptr; }
 		virtual RHIShaderResourceView* getBaseResourceView() { return nullptr; }
 
-		Texture::Type   getType() const { return mType; }
-		Texture::Format getFormat() const { return mFormat; }
+		ETexture::Type   getType() const { return mType; }
+		ETexture::Format getFormat() const { return mFormat; }
 		int getNumSamples() const { return mNumSamples; }
 		int getNumMipLevel() const { return mNumMipLevel; }
 	protected:
 		int mNumSamples;
 		int mNumMipLevel;
-		Texture::Format mFormat;
-		Texture::Type   mType;
+		ETexture::Format mFormat;
+		ETexture::Type   mType;
 	};
 
 	using RHIResourceRef = TRefCountPtr< RHIResource >;
@@ -346,11 +346,11 @@ namespace Render
 	public:
 		RHITexture1D():RHITextureBase(TRACE_TYPE_NAME("Texture1D"))
 		{
-			mType = Texture::e1D;
+			mType = ETexture::Type1D;
 			mSize = 0;
 		}
 
-		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0) = 0;
+		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0) = 0;
 
 		int  getSize() const { return mSize; }
 
@@ -365,13 +365,13 @@ namespace Render
 	public:
 		RHITexture2D() :RHITextureBase(TRACE_TYPE_NAME("Texture2D")) 
 		{
-			mType = Texture::e2D;
+			mType = ETexture::Type2D;
 			mSizeX = 0;
 			mSizeY = 0;
 		}
 
-		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
-		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0) = 0;
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
 
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
@@ -388,7 +388,7 @@ namespace Render
 	public:
 		RHITexture3D() :RHITextureBase(TRACE_TYPE_NAME("Texture3D")) 
 		{
-			mType = Texture::e3D;
+			mType = ETexture::Type3D;
 			mSizeX = 0;
 			mSizeY = 0;
 			mSizeZ = 0;
@@ -412,12 +412,12 @@ namespace Render
 	public:
 		RHITextureCube() :RHITextureBase(TRACE_TYPE_NAME("TextureCube")) 
 		{
-			mType = Texture::eCube;
+			mType = ETexture::TypeCube;
 			mSize = 0;
 		}
 
-		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
-		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
+		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0) = 0;
+		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
 		int getSize() const { return mSize; }
 
 		virtual RHITextureCube* getTextureCube() override { return this; }
@@ -431,7 +431,7 @@ namespace Render
 	public:
 		RHITexture2DArray() :RHITextureBase(TRACE_TYPE_NAME("Texture2DArray")) 
 		{
-			mType = mType = Texture::e2DArray;
+			mType = mType = ETexture::Type2DArray;
 			mSizeX = 0;
 			mSizeY = 0;
 			mLayerNum = 0;
@@ -454,7 +454,7 @@ namespace Render
 		RHITextureBase* texture;
 		int level;
 		int layer;
-		Texture::Face  face;
+		ETexture::Face  face;
 		EBufferLoadOp  loadOp;
 		EBufferStoreOp storeOp;
 	};
@@ -467,11 +467,11 @@ namespace Render
 
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
 
-		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
+		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
-		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
 		virtual void setDepth(RHITexture2D& target) = 0; 
@@ -539,14 +539,6 @@ namespace Render
 
 		static int    GetFormatSize(uint8 format);
 
-		enum Semantic
-		{
-			eTangent,
-			eNormal,
-			eColor,
-			eTexcoord,
-		};
-
 		enum Attribute
 		{
 			ATTRIBUTE0,
@@ -605,12 +597,12 @@ namespace Render
 	{
 		TCF_CreateSRV = BIT(0),
 		TCF_CreateUAV = BIT(1),
-		TCF_RenderTarget = BIT(2),
-		TCF_RenderOnly  = BIT(3),
+		TCF_RenderTarget   = BIT(2),
+		TCF_RenderOnly     = BIT(3),
 		TCF_AllowCPUAccess = BIT(4),
 
 		TCF_GenerateMips = BIT(5),
-		TCF_HalfData       = BIT(6),
+		TCF_HalfData     = BIT(6),
 
 		TCF_DefalutValue = TCF_CreateSRV,
 	};
@@ -631,17 +623,17 @@ namespace Render
 
 	struct InputElementDesc
 	{
-		uint8  idxStream;
-		uint8  attribute;
-		uint16 format;
 		uint16 offset;
 		uint16 instanceStepRate;
+		uint8  streamIndex;
+		uint8  attribute;
+		uint8  format;
 		bool   bNormalized;
 		bool   bIntanceData;
 
 		bool operator == (InputElementDesc const& rhs) const
 		{
-			return idxStream == rhs.idxStream && 
+			return streamIndex == rhs.streamIndex && 
 				   attribute == rhs.attribute &&
 				   format == rhs.format &&
 				   offset == rhs.offset &&
@@ -649,6 +641,19 @@ namespace Render
 				   bNormalized == rhs.bNormalized &&
 				   bIntanceData == rhs.bIntanceData;
 		}
+
+		uint32 getTypeHash() const
+		{
+			uint32 result = HashValue(streamIndex);
+			HashCombine(result, attribute);
+			HashCombine(result, format);
+			HashCombine(result, offset);
+			HashCombine(result, instanceStepRate);
+			HashCombine(result, bNormalized);
+			HashCombine(result, bIntanceData);
+			return result;
+		}
+
 	};
 
 	int constexpr MAX_INPUT_STREAM_NUM = 8;
@@ -676,6 +681,47 @@ namespace Render
 		uint8   mVertexSizes[MAX_INPUT_STREAM_NUM];
 
 		void updateVertexSize();
+
+		bool checkSortedbyStreamIndex() const
+		{
+			if ( !mElements.empty() )
+			{
+				int streamIndex = mElements.front().streamIndex;
+				for (auto const& element : mElements)
+				{
+					if (streamIndex < element.streamIndex )
+					{
+						streamIndex = element.streamIndex;
+					}
+					else if (streamIndex > element.streamIndex)
+					{
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+
+		uint32 getTypeHash() const
+		{
+			assert(checkSortedbyStreamIndex());
+			uint32 result = HashValue(mElements.size());
+			for (auto const element : mElements)
+			{
+				HashCombine(result, element.getTypeHash());
+			}
+
+			for (uint size : mVertexSizes)
+			{
+				if (size)
+				{
+					HashCombine(result, size);
+				}
+			}
+
+			return result;
+		}
 
 
 		template< class Op >
@@ -751,10 +797,10 @@ namespace Render
 
 	struct SamplerStateInitializer
 	{
-		Sampler::Filter filter;
-		Sampler::AddressMode addressU;
-		Sampler::AddressMode addressV;
-		Sampler::AddressMode addressW;
+		ESampler::Filter filter;
+		ESampler::AddressMode addressU;
+		ESampler::AddressMode addressV;
+		ESampler::AddressMode addressW;
 	};
 
 	class RHISamplerState : public RHIResource
@@ -790,13 +836,13 @@ namespace Render
 		ECompareFunc depthFunc;
 		bool bEnableStencilTest;
 		ECompareFunc stencilFunc;
-		Stencil::Operation stencilFailOp;
-		Stencil::Operation zFailOp;
-		Stencil::Operation zPassOp;
+		EStencil stencilFailOp;
+		EStencil zFailOp;
+		EStencil zPassOp;
 		ECompareFunc stencilFuncBack;
-		Stencil::Operation stencilFailOpBack;
-		Stencil::Operation zFailOpBack;
-		Stencil::Operation zPassOpBack;
+		EStencil stencilFailOpBack;
+		EStencil zFailOpBack;
+		EStencil zPassOpBack;
 
 		uint32 stencilReadMask;
 		uint32 stencilWriteMask;
@@ -826,16 +872,16 @@ namespace Render
 		struct TargetValue
 		{
 			ColorWriteMask   writeMask;
-			Blend::Operation op;
-			Blend::Factor    srcColor;
-			Blend::Factor    destColor;
-			Blend::Operation opAlpha;
-			Blend::Factor    srcAlpha;
-			Blend::Factor    destAlpha;
+			EBlend::Operation op;
+			EBlend::Factor    srcColor;
+			EBlend::Factor    destColor;
+			EBlend::Operation opAlpha;
+			EBlend::Factor    srcAlpha;
+			EBlend::Factor    destAlpha;
 
 			bool isEnabled() const
 			{
-				return (srcColor != Blend::eOne) || (srcAlpha != Blend::eOne) || (destColor != Blend::eZero) || (destAlpha != Blend::eZero);
+				return (srcColor != EBlend::One) || (srcAlpha != EBlend::One) || (destColor != EBlend::Zero) || (destAlpha != EBlend::Zero);
 			}
 		};
 		bool bEnableAlphaToCoverage;

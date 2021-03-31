@@ -51,7 +51,7 @@ public:
 
 	 ReplayEditStage()
 	 {
-		 mIsReplay = false;
+		 mbReplayValid = false;
 	 }
 
 
@@ -66,7 +66,7 @@ protected:
 
 	void renderReplayInfo( GWidget* ui );
 
-	bool             mIsReplay;
+	bool             mbReplayValid;
 	ReplayHeader     mReplayHeader;
 	ReplayInfo       mGameInfo;
 	std::string      mReplayFilePath;
@@ -76,7 +76,7 @@ protected:
 };
 
 class  ReplayStageMode : public LevelStageMode
-	                   , public IReplayModeInterface
+	                   , public IGameReplayFeature
 {
 	typedef LevelStageMode BaseClass;
 public:

@@ -443,16 +443,14 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2
 
 	if (CVarUseBachedRender2D)
 	{
-		Vector2 uvPos = Vector2(texPos.div(mCurTextureSize));
-		Vector2 uvSize = Vector2(texSize.div(mCurTextureSize));
-		auto& element = mBachedElementList.addTextureRect(color, pos, pos + size, uvPos, uvPos + uvSize);
+		auto& element = mBachedElementList.addTextureRect(color, pos, pos + size, texPos, texSize);
 		setupElement(element);
 	}
 	else
 	{
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
 		RHISetFixedShaderPipelineState(GetCommandList(), transform, color, mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
-		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(texPos.div(mCurTextureSize)), Vector2(texSize.div(mCurTextureSize)));
+		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), texPos, texSize);
 		mbPipelineStateChanged = true;
 	}
 }
@@ -557,13 +555,13 @@ void RHIGraphics2D::comitRenderState()
 			switch (mRenderStateCommitted.blendMode)
 			{
 			case ESimpleBlendMode::Translucent:
-				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 				break;
 			case ESimpleBlendMode::Add:
-				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 				break;
 			case ESimpleBlendMode::Multiply:
-				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, Blend::eDestColor, Blend::eZero >::GetRHI());
+				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, EBlend::DestColor, EBlend::Zero >::GetRHI());
 				break;
 			case ESimpleBlendMode::None:
 				RHISetBlendState(GetCommandList(), TStaticBlendState<>::GetRHI());
@@ -585,13 +583,13 @@ void RHIGraphics2D::restoreRenderState()
 	switch (mRenderStateCommitted.blendMode)
 	{
 	case ESimpleBlendMode::Translucent:
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 		break;
 	case ESimpleBlendMode::Add:
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 		break;
 	case ESimpleBlendMode::Multiply:
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eDestColor, Blend::eZero >::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::DestColor, EBlend::Zero >::GetRHI());
 		break;
 	case ESimpleBlendMode::None:
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -606,7 +604,7 @@ void RHIGraphics2D::setPen(Color3ub const& color, int width)
 	mColorPen = color;
 	if (mPenWidth != width)
 	{
-		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			glLineWidth(width);
 		}
@@ -621,6 +619,11 @@ void RHIGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 	RHISetScissorRect(GetCommandList(), pos.x, mHeight - pos.y - size.y, size.x, size.y);
 }
 
+void RHIGraphics2D::setClipRect(Vec2i const& pos, Vec2i const& size)
+{
+	RHISetScissorRect(GetCommandList(), pos.x, mHeight - pos.y - size.y, size.x, size.y);
+}
+
 void RHIGraphics2D::endClip()
 {
 	preModifyRenderState();
@@ -630,6 +633,12 @@ void RHIGraphics2D::endClip()
 void RHIGraphics2D::beginBlend(Vector2 const& pos, Vector2 const& size, float alpha)
 {
 	setBlendState(ESimpleBlendMode::Translucent);
+	mAlpha = alpha;
+}
+
+void RHIGraphics2D::beginBlend(float alpha, ESimpleBlendMode mode)
+{
+	setBlendState(mode);
 	mAlpha = alpha;
 }
 

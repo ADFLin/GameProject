@@ -46,7 +46,7 @@ namespace Bubble
 		void onRender( float dFrame );
 		void setupLocalGame( LocalPlayerManager& playerManager );
 		void setupScene( IPlayerManager& playerManager );
-		virtual void onChangeState( GameState state )
+		virtual void onChangeState( EGameState state )
 		{
 
 		}

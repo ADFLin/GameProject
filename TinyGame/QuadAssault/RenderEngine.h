@@ -3,10 +3,15 @@
 
 #include "Base.h"
 #include "Dependence.h"
-#include "FrameAllocator.h"
+#include "RenderUtility.h"
 #include "GBuffer.h"
 
 #include "RHI/ShaderProgram.h"
+#include "RHI/GlobalShader.h"
+using namespace Render;
+
+#include "FrameAllocator.h"
+
 
 class ColBody;
 typedef std::vector< ColBody* > ColBodyVec;
@@ -47,12 +52,39 @@ struct RenderParam
 };
 
 
+
+class QBasePassBaseProgram : public GlobalShaderProgram
+{
+public:
+	using BaseClass = GlobalShaderProgram;
+	DECLARE_SHADER_PROGRAM(QBasePassBaseProgram, Global);
+
+	static char const* GetShaderFileName()
+	{
+		return "QBasePass";
+	}
+
+	static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+	{
+		static ShaderEntryInfo const entries[] =
+		{
+			{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+			{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+		};
+		return entries;
+	}
+
+};
+
+
+
+
 struct RenderGroup
 {
-	int          order;
+	int                order;
 	IObjectRenderer*   renderer;
-	int          numObject;
-	LevelObject* objectLists;
+	int                numObject;
+	LevelObject*       objectLists;
 };
 
 class RenderEngine
@@ -78,7 +110,7 @@ private:
 	void   renderTerrainShadow( Level* level , Vec2f const& lightPos , Light* light , TileRange const& range );
 	void   renderLight( RenderParam& param , Vec2f const& lightPos , Light* light );
 	bool   setupFBO( int width , int height );
-	void   setupLightShaderParam(Render::ShaderProgram& shader , Light* light );
+	void   setupLightShaderParam(ShaderProgram& shader , Light* light );
 
 	void   updateRenderGroup( RenderParam& param );
 
@@ -87,24 +119,30 @@ private:
 
 	
 	typedef std::vector< RenderGroup* > RenderGroupVec;
-	RenderGroupVec mRenderGroups;
-	FrameAllocator mAllocator;
-	ColBodyVec     mBodyList;
+
+	PrimitiveDrawer mDrawer;
+	RenderGroupVec  mRenderGroups;
+	FrameAllocator  mAllocator;
+	ColBodyVec      mBodyList;
 
 	GBuffer        mGBuffer;
 	float   mFrameWidth;
 	float   mFrameHeight;
 
-	Render::ShaderProgram mShaderLighting;
+	ShaderProgram mShaderLighting;
 	static int const NumMode = 3;
-	Render::ShaderProgram mShaderScene[NumMode];
+	ShaderProgram mShaderScene[NumMode];
 
 	GLuint mFBO;	
 	GLuint mRBODepth;
 
-	Render::RHITexture2DRef mTexLightmap;
-	Render::RHITexture2DRef mTexNormalMap;
-	Render::RHITexture2DRef mTexGeometry;
+	RHITexture2DRef mTexLightmap;
+	RHITexture2DRef mTexNormalMap;
+	RHITexture2DRef mTexGeometry;
+	RHIFrameBufferRef mDeferredFrameBuffer;
+
+
+	class QBasePassBaseProgram* mProgBasePass;
 
 	Vec3f  mAmbientLight;
 

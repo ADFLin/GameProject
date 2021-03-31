@@ -16,13 +16,28 @@ namespace CAR
 
 	}
 
+	WorldTileManager::~WorldTileManager()
+	{
+		cleanup();
+	}
+
 	void WorldTileManager::restart()
 	{
 		mMap.clear();
 		mEmptyLinkPosSet.clear();
+		cleanup();
 	}
 
-	int WorldTileManager::placeTile(TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] )
+	void WorldTileManager::cleanup()
+	{
+		for (auto tilePiece : mTempTilePieces)
+		{
+			delete tilePiece;
+		}
+		mTempTilePieces.clear();
+	}
+
+	int WorldTileManager::placeTile(TileId tileId, Vec2i const& pos, int rotation, PlaceTileParam& param, MapTile* outMapTile[])
 	{
 		if ( !canPlaceTile( tileId , pos , rotation , param ) )
 			return 0;
@@ -35,7 +50,7 @@ namespace CAR
 
 		switch( tileSet.type )
 		{
-		case TileType::eSimple:
+		case ETileClass::Simple:
 			{
 				PlaceResult result;
 				if ( canPlaceTileInternal( getTile( tileId ) , pos , rotation , param , result ) == false )
@@ -64,13 +79,13 @@ namespace CAR
 				}
 			}
 			return true;
-		case TileType::eDouble:
+		case ETileClass::Double:
 			{
 				//
 				param.checkRiverConnect = false;
 				return canPlaceTileList(tileId, 2, pos, rotation, param);
 			}
-		case TileType::eHalfling:
+		case ETileClass::Halfling:
 			{
 				param.checkRiverConnect = false;
 
@@ -91,8 +106,8 @@ namespace CAR
 		int deltaDir = 0;
 		if( tile.isHalflingType() )
 		{
-			assert(tile.sides[IndexHalflingSide].linkType != SideType::eAbbey &&
-				   tile.sides[IndexHalflingSide].linkType != SideType::eEmptySide);
+			assert(tile.sides[IndexHalflingSide].linkType != ESide::Type::Abbey &&
+				   tile.sides[IndexHalflingSide].linkType != ESide::Type::Empty);
 
 			MapTile* mapTile = findMapTile(pos);
 			if( mapTile )
@@ -127,7 +142,7 @@ namespace CAR
 
 			if ( param.checkRiverConnect )
 			{
-				if ( tile.getLinkType(lDir) == SideType::eRiver )
+				if ( tile.getLinkType(lDir) == ESide::Type::River )
 				{
 					checkRiverConnect = true;
 				}
@@ -146,8 +161,8 @@ namespace CAR
 						if ( !tileCheck.canLinkRoad( lDirCheck ) )
 							return false;
 
-						if ( tile.getLinkType(lDirCheck) != SideType::eField ||
-							tile.getLinkType(lDir) == SideType::eField  )
+						if ( tile.getLinkType(lDirCheck) != ESide::Type::Field ||
+							tile.getLinkType(lDir) == ESide::Type::Field  )
 							return false;
 
 						param.dirNeedUseBridge = dir;
@@ -251,10 +266,10 @@ namespace CAR
 		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
 		switch( tileSet.type )
 		{
-		case TileType::eSimple:
+		case ETileClass::Simple:
 			outMapTile[0] = placeTileInternal( getTile( tileId ) , pos , rotation , param );
 			return 1;
-		case TileType::eDouble:
+		case ETileClass::Double:
 			{
 				Vec2i curPos = pos;
 				for( int i = 0 ; i < 2 ; ++i )
@@ -264,7 +279,7 @@ namespace CAR
 				}
 			}
 			return 2;
-		case TileType::eHalfling:
+		case ETileClass::Halfling:
 			outMapTile[0] = placeTileInternal(getTile(tileId), pos, rotation, param);
 			return 1;
 		}
@@ -289,7 +304,12 @@ namespace CAR
 			{
 				mapTilePlace = &iter->second;
 				assert(mapTilePlace->isHalflingType());
-				mapTilePlace->margeHalflingTile(tile);
+
+				TilePiece* mergedTilePiece = new TilePiece;
+
+				mapTilePlace->margeHalflingTile(tile, *mergedTilePiece);
+
+				mTempTilePieces.push_back(mergedTilePiece);
 
 				deltaDir = FDir::TotalNum / 2;
 				mHalflingTiles.erase(std::find(mHalflingTiles.begin(), mHalflingTiles.end(), mapTilePlace));
@@ -337,7 +357,7 @@ namespace CAR
 				assert( TilePiece::CanLink( tile , lDir , *mapTileCheck->mTile , 
 					    FDir::ToLocal( FDir::Inverse(dir) , mapTileCheck->rotation ) ) );
 
-				if ( tile.getLinkType(lDir) != SideType::eEmptySide )
+				if ( tile.getLinkType(lDir) != ESide::Type::Empty )
 				{
 					mapTilePlace->connectSide(dir, *mapTileCheck);
 
@@ -373,7 +393,7 @@ namespace CAR
 		int idxStart = outPos.size();
 		switch ( tileSet.type )
 		{
-		case TileType::eSimple:
+		case ETileClass::Simple:
 			for( Vec2i const& pos : mEmptyLinkPosSet )
 			{
 				for(int i = 0 ; i < FDir::TotalNum ; ++i )
@@ -386,7 +406,7 @@ namespace CAR
 				}
 			}
 			break;
-		case TileType::eDouble:
+		case ETileClass::Double:
 			for( Vec2i const& pos : mEmptyLinkPosSet )
 			{
 				for( int n = 0 ; n < 2 ; ++n )
@@ -403,7 +423,7 @@ namespace CAR
 			}
 			MakeValueUnique( outPos ,idxStart );
 			break;
-		case TileType::eHalfling:
+		case ETileClass::Halfling:
 			for( Vec2i const& pos : mEmptyLinkPosSet )
 			{
 				for( int i = 0; i < FDir::TotalNum; ++i )
@@ -459,7 +479,7 @@ namespace CAR
 		TileSet const& tileSet = mTileSetManager->getTileSet( id );
 		switch( tileSet.type )
 		{
-		case TileType::eDouble:
+		case ETileClass::Double:
 			for( int i = 0 ; i < FDir::TotalNum ; ++i )
 			{
 				if ( isEmptyLinkPos( pos + FDir::LinkOffset(i) ) )
@@ -467,9 +487,9 @@ namespace CAR
 			}
 			return false;
 		
-		case TileType::eSimple:
+		case ETileClass::Simple:
 			return isEmptyLinkPos( pos );
-		case TileType::eHalfling:
+		case ETileClass::Halfling:
 			{
 				MapTile* mapTile = findMapTile(pos);
 				if( mapTile && mapTile->isHalflingType() )
@@ -524,11 +544,11 @@ namespace CAR
 		{
 			switch( tileSet.type )
 			{
-			case TileType::eHalfling:
-			case TileType::eSimple:
+			case ETileClass::Halfling:
+			case ETileClass::Simple:
 				delete tileSet.tiles;
 				break;
-			case TileType::eDouble: 
+			case ETileClass::Double: 
 				delete [] tileSet.tiles;
 				break;
 			default:
@@ -567,7 +587,8 @@ namespace CAR
 				tileSet = &createSingleTileSet( tileDef , (content.exp == EXP_TEST ) ? TileSet::eTest : TileSet::eCommon );
 			}
 			tileSet->expansion = content.exp;
-			tileSet->idxDefine = idxDefine++;
+			tileSet->idxDefine = idxDefine;
+			++idxDefine;
 		}
 	}
 
@@ -587,7 +608,7 @@ namespace CAR
 		tileSet.numPieces = tileDef[0].numPieces;
 		tileSet.tiles = tiles;
 		tileSet.tag = tileDef[0].tag;
-		tileSet.type = TileType::eDouble;
+		tileSet.type = ETileClass::Double;
 		mTileMap.push_back( tileSet );
 
 		tileSet.group = group;
@@ -596,7 +617,7 @@ namespace CAR
 		return mTileMap[ id ];
 	}
 
-	TileSet& TileSetManager::createSingleTileSet(TileDefine const& tileDef , TileSet::EGroup group )
+	TileSet& TileSetManager::createSingleTileSet( TileDefine const& tileDef , TileSet::EGroup group )
 	{
 		TilePiece* tile = new TilePiece;
 		
@@ -608,7 +629,7 @@ namespace CAR
 		tileSet.numPieces = tileDef.numPieces;
 		tileSet.tiles = tile;
 		tileSet.tag = tileDef.tag;
-		tileSet.type = TileType::eSimple;
+		tileSet.type = ETileClass::Simple;
 		if ( tile->haveRiver() )
 		{
 			group = TileSet::eRiver;
@@ -627,7 +648,7 @@ namespace CAR
 		bool isHalflingType = !!(tileDef.content & BIT(TileContent::eHalfling) );
 		for( int i = 0; i < TilePiece::NumSide; ++i )
 		{
-			tile.sides[i].linkType = (SideType)tileDef.linkType[i];
+			tile.sides[i].linkType = (ESide::Type)tileDef.linkType[i];
 			tile.sides[i].contentFlag = tileDef.sideContent[i];
 			tile.sides[i].linkDirMask = BIT(i);
 			tile.sides[i].roadLinkDirMask = 0;
@@ -648,7 +669,10 @@ namespace CAR
 			{
 				int idx = iter.index;
 #if _DEBUG
-				if( idxStart == -1 ) { idxStart = idx; }
+				if( idxStart == -1 ) 
+				{ 
+					idxStart = idx; 
+				}
 				assert(TilePiece::CanLink(tile.sides[idx].linkType, tile.sides[idxStart].linkType));
 #endif
 				tile.sides[idx].linkDirMask = tileDef.sideLink[i];

@@ -159,7 +159,7 @@ namespace Render
 			if (bShowShadowRender)
 			{
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne , Blend::eOne , Blend::eAdd >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::One , EBlend::One , EBlend::Add >::GetRHI());
 			}
 			else
 			{
@@ -167,7 +167,7 @@ namespace Render
 					TStaticDepthStencilState<
 					true, ECompareFunc::Always,
 					true, ECompareFunc::Always,
-					Stencil::eKeep, Stencil::eKeep, Stencil::eReplace, 0x1
+					EStencil::Keep, EStencil::Keep, EStencil::Replace, 0x1
 					>::GetRHI(), 0x1);
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
@@ -209,14 +209,14 @@ namespace Render
 					TStaticDepthStencilState<
 					true, ECompareFunc::Always,
 					true, ECompareFunc::Equal,
-					Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
+					EStencil::Keep, EStencil::Keep, EStencil::Keep, 0x1
 					>::GetRHI(), 0x0);
 #else
 
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 #endif
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 				{
 					RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
 					mProgLighting.setParameters(commandList, light.pos, light.color);
@@ -239,7 +239,7 @@ namespace Render
 			Vector2(200 , 200),
 			Vector2(100 , 200),
 		};
-		int indices[] =
+		uint32 indices[] =
 		{
 			0,1,2,0,2,3,
 		};

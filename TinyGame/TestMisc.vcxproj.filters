@@ -148,9 +148,6 @@
     <ClCompile Include="TestMisc\Test\PWTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
-    <ClCompile Include="Minesweeper\GControlerWin7.cpp">
-      <Filter>GameMinesweeper</Filter>
-    </ClCompile>
     <ClCompile Include="Minesweeper\ImageScanser.cpp">
       <Filter>GameMinesweeper</Filter>
     </ClCompile>
@@ -198,6 +195,18 @@
     </ClCompile>
     <ClCompile Include="TestMisc\Test\CriminalTest.cpp">
       <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\AoWStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\DrawCardTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Laser2D\LATestStage.cpp">
+      <Filter>GameLaser2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Minesweeper\GameController_Windows7.cpp">
+      <Filter>GameMinesweeper</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -353,9 +362,6 @@
     <ClInclude Include="Minesweeper\GameInterface.h">
       <Filter>GameMinesweeper</Filter>
     </ClInclude>
-    <ClInclude Include="Minesweeper\GControlerWin7.h">
-      <Filter>GameMinesweeper</Filter>
-    </ClInclude>
     <ClInclude Include="Minesweeper\ImageScanser.h">
       <Filter>GameMinesweeper</Filter>
     </ClInclude>
@@ -379,6 +385,9 @@
     </ClInclude>
     <ClInclude Include="TestMisc\Stage\TMechineStage.h">
       <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Minesweeper\GameController_Windows7.h">
+      <Filter>GameMinesweeper</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -418,14 +427,17 @@
     <Filter Include="GameLordMonarch">
       <UniqueIdentifier>{6c4ccd18-cafe-47d0-9cdc-26948a05eff4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GameMonumentValley">
-      <UniqueIdentifier>{54ec6160-7e12-4d39-9175-e5469d7962a3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="GameMinesweeper">
       <UniqueIdentifier>{d67b9cbe-7181-4e4c-b625-2bbbfe9ab5f7}</UniqueIdentifier>
     </Filter>
     <Filter Include="GameCarTrain">
       <UniqueIdentifier>{ce9e2ea3-d41d-4c07-8f9d-b581e1e540a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameLaser2D">
+      <UniqueIdentifier>{90fafffe-3443-4276-9880-549781ac15b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameMonumentValley">
+      <UniqueIdentifier>{54ec6160-7e12-4d39-9175-e5469d7962a3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -50,10 +50,7 @@ namespace Render
 
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
-	CORE_API extern class SimplePipelineProgram* GSimpleShaderPipline;
-	CORE_API extern class SimplePipelineProgram* GSimpleShaderPiplineCT;
-	CORE_API extern class SimplePipelineProgram* GSimpleShaderPiplineT;
-	CORE_API extern class SimplePipelineProgram* GSimpleShaderPiplineC;
+
 	CORE_API extern class MaterialMaster* GDefalutMaterial;
 	CORE_API extern class MaterialShaderProgram GSimpleBasePass;
 	
@@ -158,10 +155,10 @@ namespace Render
 
 	template
 	<
-		Sampler::Filter Filter = Sampler::ePoint,
-		Sampler::AddressMode AddressU = Sampler::eWarp,
-		Sampler::AddressMode AddressV = Sampler::eWarp,
-		Sampler::AddressMode AddressW = Sampler::eWarp 
+		ESampler::Filter Filter = ESampler::Point,
+		ESampler::AddressMode AddressU = ESampler::Warp,
+		ESampler::AddressMode AddressV = ESampler::Warp,
+		ESampler::AddressMode AddressW = ESampler::Warp 
 	>
 	class TStaticSamplerState : public StaticRHIResourceT< 
 		TStaticSamplerState< Filter, AddressU, AddressV, AddressW >, 
@@ -213,13 +210,13 @@ namespace Render
 		ECompareFunc DepthFun = ECompareFunc::Less,
 		bool bEnableStencilTest = false,
 		ECompareFunc StencilFun = ECompareFunc::Always,
-		Stencil::Operation StencilFailOp = Stencil::eKeep,
-		Stencil::Operation ZFailOp = Stencil::eKeep,
-		Stencil::Operation ZPassOp = Stencil::eKeep,
+		EStencil StencilFailOp = EStencil::eKeep,
+		EStencil ZFailOp = EStencil::Keep,
+		EStencil ZPassOp = EStencil::Keep,
 		ECompareFunc BackStencilFun = ECompareFunc::Always,
-		Stencil::Operation BackStencilFailOp = Stencil::eKeep,
-		Stencil::Operation BackZFailOp = Stencil::eKeep,
-		Stencil::Operation BackZPassOp = Stencil::eKeep,
+		EStencil BackStencilFailOp = EStencil::Keep,
+		EStencil BackZFailOp = EStencil::Keep,
+		EStencil BackZPassOp = EStencil::Keep,
 		uint32 StencilReadMask = -1,
 		uint32 StencilWriteMask = -1 
 	>
@@ -259,9 +256,9 @@ namespace Render
 		ECompareFunc DepthFun = ECompareFunc::Less,
 		bool bEnableStencilTest = false,
 		ECompareFunc StencilFun = ECompareFunc::Always,
-		Stencil::Operation StencilFailOp = Stencil::eKeep,
-		Stencil::Operation ZFailOp = Stencil::eKeep,
-		Stencil::Operation ZPassOp = Stencil::eKeep,
+		EStencil StencilFailOp = EStencil::Keep,
+		EStencil ZFailOp = EStencil::Keep,
+		EStencil ZPassOp = EStencil::Keep,
 		uint32 StencilReadMask = -1,
 		uint32 StencilWriteMask = -1 
 	>
@@ -279,35 +276,35 @@ namespace Render
 	template
 	<
 		ColorWriteMask WriteColorMask0 = CWM_RGBA,
-		Blend::Factor SrcColorFactor0 = Blend::eOne,
-		Blend::Factor DestColorFactor0 = Blend::eZero,
-		Blend::Operation ColorOp0 = Blend::eAdd,
-		Blend::Factor SrcAlphaFactor0 = Blend::eOne,
-		Blend::Factor DestAlphaFactor0 = Blend::eZero,
-		Blend::Operation AlphaOp0 = Blend::eAdd,
+		EBlend::Factor SrcColorFactor0 = EBlend::One,
+		EBlend::Factor DestColorFactor0 = EBlend::Zero,
+		EBlend::Operation ColorOp0 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor0 = EBlend::One,
+		EBlend::Factor DestAlphaFactor0 = EBlend::Zero,
+		EBlend::Operation AlphaOp0 = EBlend::Add,
 		bool bEnableAlphaToCoverage = false ,
 		bool bEnableIndependent = false ,
 		ColorWriteMask WriteColorMask1 = CWM_RGBA,
-		Blend::Factor SrcColorFactor1 = Blend::eOne,
-		Blend::Factor DestColorFactor1 = Blend::eZero,
-		Blend::Operation ColorOp1 = Blend::eAdd,
-		Blend::Factor SrcAlphaFactor1 = Blend::eOne,
-		Blend::Factor DestAlphaFactor1 = Blend::eZero,
-		Blend::Operation AlphaOp1 = Blend::eAdd ,
+		EBlend::Factor SrcColorFactor1 = EBlend::One,
+		EBlend::Factor DestColorFactor1 = EBlend::Zero,
+		EBlend::Operation ColorOp1 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor1 = EBlend::One,
+		EBlend::Factor DestAlphaFactor1 = EBlend::Zero,
+		EBlend::Operation AlphaOp1 = EBlend::Add ,
 		ColorWriteMask WriteColorMask2 = CWM_RGBA,
-		Blend::Factor SrcColorFactor2 = Blend::eOne,
-		Blend::Factor DestColorFactor2 = Blend::eZero,
-		Blend::Operation ColorOp2 = Blend::eAdd,
-		Blend::Factor SrcAlphaFactor2 = Blend::eOne,
-		Blend::Factor DestAlphaFactor2 = Blend::eZero,
-		Blend::Operation AlphaOp2 = Blend::eAdd,
+		EBlend::Factor SrcColorFactor2 = EBlend::One,
+		EBlend::Factor DestColorFactor2 = EBlend::Zero,
+		EBlend::Operation ColorOp2 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor2 = EBlend::One,
+		EBlend::Factor DestAlphaFactor2 = EBlend::Zero,
+		EBlend::Operation AlphaOp2 = EBlend::Add,
 		ColorWriteMask WriteColorMask3 = CWM_RGBA,
-		Blend::Factor SrcColorFactor3 = Blend::eOne,
-		Blend::Factor DestColorFactor3 = Blend::eZero,
-		Blend::Operation ColorOp3 = Blend::eAdd,
-		Blend::Factor SrcAlphaFactor3 = Blend::eOne,
-		Blend::Factor DestAlphaFactor3 = Blend::eZero,
-		Blend::Operation AlphaOp3 = Blend::eAdd
+		EBlend::Factor SrcColorFactor3 = EBlend::One,
+		EBlend::Factor DestColorFactor3 = EBlend::Zero,
+		EBlend::Operation ColorOp3 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor3 = EBlend::One,
+		EBlend::Factor DestAlphaFactor3 = EBlend::Zero,
+		EBlend::Operation AlphaOp3 = EBlend::Add
 	>
 	class TStaticBlendState : public StaticRHIResourceT
 		<
@@ -353,7 +350,7 @@ namespace Render
 
 	template< ColorWriteMask WriteColorMask0 = CWM_RGBA >
 	class TStaticAlphaToCoverageBlendState : public TStaticBlendState<
-		WriteColorMask0, Blend::eOne, Blend::eZero, Blend::eAdd, Blend::eOne, Blend::eZero, Blend::eAdd, true >
+		WriteColorMask0, EBlend::One, EBlend::Zero, EBlend::Add, EBlend::One, EBlend::Zero, EBlend::Add, true >
 	{
 
 	};

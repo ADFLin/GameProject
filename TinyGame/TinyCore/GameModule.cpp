@@ -30,11 +30,11 @@ GameController& IGameModule::getController()
 	return gEmptyController;
 }
 
-bool IGameModule::changeDefaultStage(StageManager& stageManager, StageModeType modeType)
+bool IGameModule::changeDefaultStage(StageManager& stageManager, EGameStageMode modeType)
 {
 	switch( modeType )
 	{
-	case SMT_SINGLE_GAME:
+	case EGameStageMode::Single:
 		{
 			GameAttribute value(ATTR_SINGLE_SUPPORT);
 			if( queryAttribute(value) && value.iVal )
@@ -49,7 +49,7 @@ bool IGameModule::changeDefaultStage(StageManager& stageManager, StageModeType m
 			}
 		}
 		break;
-	case SMT_REPLAY:
+	case EGameStageMode::Replay:
 		{
 			GameAttribute value(ATTR_REPLAY_SUPPORT);
 			if( queryAttribute(value) && value.iVal )
@@ -64,7 +64,7 @@ bool IGameModule::changeDefaultStage(StageManager& stageManager, StageModeType m
 			}
 		}
 		break;
-	case SMT_NET_GAME:
+	case EGameStageMode::Net:
 		{
 			GameAttribute value(ATTR_NET_SUPPORT);
 			if( queryAttribute(value) && value.iVal )

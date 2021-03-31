@@ -94,7 +94,7 @@ void CUISystem::clearUnusedCacheTexture()
 	}
 }
 
-void CUISystem::updateFrame()
+void CUISystem::tick()
 {
 	CEntity::update( (long)g_GlobalVal.frameTick );
 	mUIManager.update();

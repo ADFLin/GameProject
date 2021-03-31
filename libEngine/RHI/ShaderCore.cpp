@@ -32,7 +32,7 @@ namespace Render
 		mParamEntries.clear();
 	}
 
-	void ShaderPorgramParameterMap::addShaderParameterMap(EShader::Type shaderType, ShaderParameterMap const& parameterMap)
+	void ShaderPorgramParameterMap::addShaderParameterMap(int shaderIndex, ShaderParameterMap const& parameterMap)
 	{
 		for (auto const& pair : parameterMap.mMap)
 		{
@@ -53,7 +53,7 @@ namespace Render
 
 			entry.numParam += 1;
 			ShaderParamEntry paramEntry;
-			paramEntry.type = shaderType;
+			paramEntry.shaderIndex = shaderIndex;
 			paramEntry.param = pair.second;
 			paramEntry.loc = param.mLoc;
 			mParamEntries.push_back(paramEntry);
@@ -68,7 +68,7 @@ namespace Render
 				return true;
 			else if (lhs.loc > rhs.loc)
 				return false;
-			return lhs.type < rhs.type;
+			return lhs.shaderIndex < rhs.shaderIndex;
 		});
 
 		int curLoc = -1;
@@ -84,5 +84,19 @@ namespace Render
 	}
 
 
+	void MaterialShaderCompileInfo::setup(ShaderCompileOption& option) const
+	{
+		switch (tessellationMode)
+		{
+		case ETessellationMode::Flat:
+			option.addDefine(SHADER_PARAM(USE_TESSELLATION), true);
+			break;
+		case ETessellationMode::PNTriangle:
+			option.addDefine(SHADER_PARAM(USE_TESSELLATION), true);
+			option.addDefine(SHADER_PARAM(USE_PN_TRIANGLE), true);
+			break;
+		}
+
+	}
 
 }//namespace Render

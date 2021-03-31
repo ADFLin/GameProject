@@ -5,6 +5,10 @@
 
 #include <cassert>
 
+#include "RHI/RHICommand.h"
+#include "RHI/DrawUtility.h"
+
+using namespace Render;
 
 void drawRect( Vec2f const& poz, Vec2f const& size )
 {
@@ -19,6 +23,7 @@ void drawRect( Vec2f const& poz, Vec2f const& size )
 void drawSprite(Vec2f const& pos, Vec2f const& size, Texture* tex)
 {
 	assert( tex );
+
 	glEnable(GL_TEXTURE_2D);
 
 	tex->bind();
@@ -31,6 +36,7 @@ void drawSprite(Vec2f const& pos, Vec2f const& size, Texture* tex)
 	glEnd();
 	glBindTexture(GL_TEXTURE_2D,0);
 	glDisable(GL_TEXTURE_2D);
+
 }
 
 void drawSprite(Vec2f const& pos, Vec2f const& size, float rot, Texture* tex )
@@ -61,15 +67,15 @@ void drawSprite(Vec2f const& pos, Vec2f const& size, float rot, Texture* tex )
 
 void drawSprite(Vec2f const& pos, Vec2f const& size, float rot )
 {
-	Vec2f hotspot = size / 2;
+	Vec2f pivot = size / 2;
 
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_EQUAL,1.0f);
 
 	glPushMatrix();
-	glTranslatef( pos.x + hotspot.x , pos.y + hotspot.y , 0);
+	glTranslatef( pos.x + pivot.x , pos.y + pivot.y , 0);
 	glRotatef( Math::Rad2Deg( rot ),0,0,1);
-	glTranslatef( -hotspot.x , -hotspot.y , 0 );
+	glTranslatef( -pivot.x , -pivot.y , 0 );
 
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, 0.0); glVertex2f(0.0, 0.0);
@@ -93,3 +99,50 @@ void drawRectLine( Vec2f const& pos , Vec2f const size )
 	glEnd();	
 }
 
+void PrimitiveDrawer::drawRect(Vec2f const& pos, Vec2f const& size)
+{
+	Vec2f vertices[4] =
+	{
+		mStack.get().transformPosition(pos),
+		mStack.get().transformPosition(pos + Vec2f(size.x,0)),
+		mStack.get().transformPosition(pos + size),
+		mStack.get().transformPosition(pos + Vec2f(0, size.y)),
+	};
+
+	TRenderRT< RTVF_XY >::Draw(*mCommandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
+}
+
+void PrimitiveDrawer::drawSprite(Vec2f const& pos, Vec2f const& size, Texture* tex)
+{
+	RHISetFixedShaderPipelineState(*mCommandList, mBaseTransform, LinearColor(1, 1, 1, 1), tex->resource);
+	drawRect(pos, size);
+}
+
+void PrimitiveDrawer::drawSprite(Vec2f const& pos, Vec2f const& size, float rot, Texture* tex)
+{
+	RHISetFixedShaderPipelineState(*mCommandList, mBaseTransform, LinearColor(1, 1, 1, 1), tex->resource);
+	drawSprite(pos, size, rot);
+}
+
+void PrimitiveDrawer::drawSprite(Vec2f const& pos, Vec2f const& size, float rot, Vec2f const& pivot)
+{
+	Vec2f offset = size.mul(pivot);
+	mStack.push();
+	mStack.translate(offset);
+	mStack.rotate(rot);
+	mStack.translate(-offset);
+	drawRect(pos, size);
+	mStack.pop();
+}
+
+void PrimitiveDrawer::drawRectLine(Vec2f const& pos, Vec2f const size)
+{
+	Vec2f vertices[4] =
+	{
+		mStack.get().transformPosition(pos),
+		mStack.get().transformPosition(pos + Vec2f(size.x,0)),
+		mStack.get().transformPosition(pos + size),
+		mStack.get().transformPosition(pos + Vec2f(0, size.y)),
+	};
+	TRenderRT< RTVF_XY >::Draw(*mCommandList, EPrimitive::LineLoop, vertices, ARRAY_SIZE(vertices));
+}

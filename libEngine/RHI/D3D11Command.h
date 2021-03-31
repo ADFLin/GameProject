@@ -197,7 +197,7 @@ namespace Render
 				mBuffers[0]->GetDevice(&device);
 				if( device == nullptr )
 					return nullptr;
-				if( pushNewBuffer(device, size) )
+				if( !pushNewBuffer(device, size) )
 					return nullptr;
 			}
 
@@ -256,7 +256,7 @@ namespace Render
 
 		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
 
-		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 
 
 		void RHIDrawMeshTasks(int start, int count)
@@ -308,10 +308,10 @@ namespace Render
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
 
-		void commitGraphicShaderState();
+		void commitGraphicsShaderState();
 
 		void commitComputeState();
-		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
+		bool determitPrimitiveTopologyUP(EPrimitive primitiveType, int num, uint32 const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
 
 
 		//
@@ -347,8 +347,8 @@ namespace Render
 
 		}
 
-		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state);
-		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& state)
+		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
+		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
 		{
 
 		}
@@ -434,7 +434,7 @@ namespace Render
 	class D3D11System : public RHISystem
 	{
 	public:
-		RHISytemName getName() const { return RHISytemName::D3D11; }
+		RHISystemName getName() const { return RHISystemName::D3D11; }
 		bool initialize(RHISystemInitParams const& initParam);
 		void preShutdown();
 		void shutdown();
@@ -462,28 +462,28 @@ namespace Render
 		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 
 		RHITexture1D*    RHICreateTexture1D(
-			Texture::Format format, int length,
+			ETexture::Format format, int length,
 			int numMipLevel, uint32 createFlags,
 			void* data);
 
 		RHITexture2D*    RHICreateTexture2D(
-			Texture::Format format, int w, int h,
+			ETexture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 createFlags,
 			void* data, int dataAlign);
 
 		RHITexture3D*    RHICreateTexture3D(
-			Texture::Format format, int sizeX, int sizeY, int sizeZ,
+			ETexture::Format format, int sizeX, int sizeY, int sizeZ,
 			int numMipLevel, int numSamples, uint32 createFlags,
 			void* data);
 
-		RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
+		RHITextureCube*  RHICreateTextureCube(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 
-		RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+		RHITexture2DArray* RHICreateTexture2DArray(ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 		{
 			return nullptr;
 		}
 
-		RHITexture2D*     RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
+		RHITexture2D*     RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 

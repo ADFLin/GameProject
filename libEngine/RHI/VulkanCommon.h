@@ -777,16 +777,16 @@ namespace Render
 	{
 		static VkPrimitiveTopology To(EPrimitive type, int& outPatchPointCount);
 		static VkFormat To(Vertex::Format format, bool bNormalized);
-		static VkFormat To(Texture::Format format);
-		static VkBlendFactor  To(Blend::Factor factor);
-		static VkBlendOp To(Blend::Operation op);
+		static VkFormat To(ETexture::Format format);
+		static VkBlendFactor  To(EBlend::Factor factor);
+		static VkBlendOp To(EBlend::Operation op);
 		static VkCullModeFlagBits To(ECullMode mode);
 		static VkPolygonMode To(EFillMode mode);
-		static VkFilter To(Sampler::Filter filter);
-		static VkSamplerMipmapMode ToMipmapMode(Sampler::Filter filter);
-		static VkSamplerAddressMode To(Sampler::AddressMode mode);
+		static VkFilter To(ESampler::Filter filter);
+		static VkSamplerMipmapMode ToMipmapMode(ESampler::Filter filter);
+		static VkSamplerAddressMode To(ESampler::AddressMode mode);
 		static VkCompareOp To(ECompareFunc func);
-		static VkStencilOp To(Stencil::Operation op);
+		static VkStencilOp To(EStencil op);
 		static VkShaderStageFlagBits To(EShader::Type type);
 		static VkFrontFace To(EFrontFace face);
 	};
@@ -951,13 +951,13 @@ namespace Render
 					continue;
 
 				VkVertexInputAttributeDescription attrDesc;
-				attrDesc.binding = elemenet.idxStream;
+				attrDesc.binding = elemenet.streamIndex;
 				attrDesc.location = elemenet.attribute;
 				attrDesc.offset = elemenet.offset;
 				attrDesc.format = VulkanTranslate::To( Vertex::Format( elemenet.format ) , elemenet.bNormalized );
 				vertexInputAttrDescs.push_back(attrDesc);
 
-				if (idxStream != elemenet.idxStream)
+				if (idxStream != elemenet.streamIndex)
 				{
 					if (idxStream != -1)
 					{
@@ -968,7 +968,7 @@ namespace Render
 						vertexInputBindingDescs.push_back(bindingDesc);
 					}
 
-					idxStream = elemenet.idxStream;
+					idxStream = elemenet.streamIndex;
 					bStreamInstancedRate = elemenet.bIntanceData;
 				}
 				else
@@ -1145,12 +1145,12 @@ namespace Render
 	{
 	public:
 
-		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0)
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0)
 		{
 			assert(0);
 			return false;
 		}
-		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level = 0)
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0)
 		{
 			assert(0);
 			return false;
@@ -1401,7 +1401,7 @@ namespace Render
 
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0) = 0;
 
-		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0)
+		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0)
 		{
 
 
@@ -1412,7 +1412,7 @@ namespace Render
 		}
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
-		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
 		virtual void setDepth(RHITexture2D& target)

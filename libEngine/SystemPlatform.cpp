@@ -14,6 +14,7 @@
 #include "MemorySecurity.h"
 #endif
 #include "Core/ScopeExit.h"
+#include "CString.h"
 
 
 
@@ -58,6 +59,22 @@ double SystemPlatform::GetHighResolutionTime()
 #else
 #error no impl
 #endif
+}
+
+std::string SystemPlatform::GetUserLocaleName()
+{
+#if SYS_PLATFORM_WIN
+	static thread_local WCHAR buffer[256];
+	int len = ::GetUserDefaultLocaleName(buffer, ARRAY_SIZE(buffer));
+	if (len == 0)
+		return nullptr;
+
+	return FCString::WCharToChar(buffer);
+#else
+
+
+#endif
+	return "";
 }
 
 char const* SystemPlatform::GetEnvironmentVariable(char const* key)

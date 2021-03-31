@@ -22,7 +22,9 @@ class Game : public IGame
 {
 public:
 	Game();
-	bool init( char const* pathConfig , Vec2i const& screenSize = Vec2i(0,0), bool bCreateWindow = true );
+	bool init(char const* pathConfig, Vec2i const& screenSize = Vec2i(0, 0), bool bCreateWindow = true);
+
+	bool initRenderSystem();
 	void tick( float deltaT );
 	void render();
 	void run();

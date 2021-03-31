@@ -31,44 +31,44 @@ namespace Render
 		return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 	}
 
-	VkBlendFactor VulkanTranslate::To(Blend::Factor factor)
+	VkBlendFactor VulkanTranslate::To(EBlend::Factor factor)
 	{
 		switch (factor)
 		{
-		case Blend::eOne:
+		case EBlend::One:
 			return VK_BLEND_FACTOR_ONE;
-		case Blend::eZero:
+		case EBlend::Zero:
 			return VK_BLEND_FACTOR_ZERO;
-		case Blend::eSrcAlpha:
+		case EBlend::SrcAlpha:
 			return VK_BLEND_FACTOR_SRC_ALPHA;
-		case Blend::eOneMinusSrcAlpha:
+		case EBlend::OneMinusSrcAlpha:
 			return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		case Blend::eDestAlpha:
+		case EBlend::DestAlpha:
 			return VK_BLEND_FACTOR_DST_ALPHA;
-		case Blend::eOneMinusDestAlpha:
+		case EBlend::OneMinusDestAlpha:
 			return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-		case Blend::eSrcColor:
+		case EBlend::SrcColor:
 			return VK_BLEND_FACTOR_SRC_COLOR;
-		case Blend::eOneMinusSrcColor:
+		case EBlend::OneMinusSrcColor:
 			return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-		case Blend::eDestColor:
+		case EBlend::DestColor:
 			return VK_BLEND_FACTOR_DST_COLOR;
-		case Blend::eOneMinusDestColor:
+		case EBlend::OneMinusDestColor:
 			return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
 		}
 
 		return VK_BLEND_FACTOR_ONE;
 	}
 
-	VkBlendOp VulkanTranslate::To(Blend::Operation op)
+	VkBlendOp VulkanTranslate::To(EBlend::Operation op)
 	{
 		switch (op)
 		{
-		case Blend::eAdd: return VK_BLEND_OP_ADD;
-		case Blend::eSub: return VK_BLEND_OP_SUBTRACT;
-		case Blend::eReverseSub: return VK_BLEND_OP_REVERSE_SUBTRACT;
-		case Blend::eMax: return VK_BLEND_OP_MAX;
-		case Blend::eMin: return VK_BLEND_OP_MIN;
+		case EBlend::Add: return VK_BLEND_OP_ADD;
+		case EBlend::Sub: return VK_BLEND_OP_SUBTRACT;
+		case EBlend::ReverseSub: return VK_BLEND_OP_REVERSE_SUBTRACT;
+		case EBlend::Max: return VK_BLEND_OP_MAX;
+		case EBlend::Min: return VK_BLEND_OP_MIN;
 		}
 
 		return VK_BLEND_OP_ADD;
@@ -100,17 +100,17 @@ namespace Render
 	}
 
 
-	VkFilter VulkanTranslate::To(Sampler::Filter filter)
+	VkFilter VulkanTranslate::To(ESampler::Filter filter)
 	{
 		switch (filter)
 		{
-		case Sampler::ePoint: 
+		case ESampler::Point: 
 			return VK_FILTER_NEAREST;
 
-		case Sampler::eTrilinear:
-		case Sampler::eBilinear: 		
-		case Sampler::eAnisotroicPoint:
-		case Sampler::eAnisotroicLinear:
+		case ESampler::Trilinear:
+		case ESampler::Bilinear: 		
+		case ESampler::AnisotroicPoint:
+		case ESampler::AnisotroicLinear:
 			return VK_FILTER_LINEAR;
 		}
 
@@ -159,62 +159,62 @@ namespace Render
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	VkFormat VulkanTranslate::To(Texture::Format format)
+	VkFormat VulkanTranslate::To(ETexture::Format format)
 	{
 		switch (format)
 		{
-		case Texture::eRGBA8:   return VK_FORMAT_R8G8B8A8_UNORM;
-		case Texture::eRGB8:    return VK_FORMAT_R8G8B8_UNORM;
-		case Texture::eBGRA8:   return VK_FORMAT_B8G8R8A8_UNORM;
-		case Texture::eRGB10A2: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-		case Texture::eR16:     return VK_FORMAT_R16_UNORM;
-		case Texture::eR8:      return VK_FORMAT_R8_UNORM;
-		case Texture::eR32F:    return VK_FORMAT_R32_SFLOAT;
-		case Texture::eRG32F:   return VK_FORMAT_R32G32_SFLOAT;
-		case Texture::eRGB32F:  return VK_FORMAT_R32G32B32_SFLOAT;
-		case Texture::eRGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case Texture::eR16F:    return VK_FORMAT_R16_SFLOAT;
-		case Texture::eRG16F:   return VK_FORMAT_R16G16_SFLOAT;
-		case Texture::eRGB16F:  return VK_FORMAT_R16G16B16_SFLOAT;
-		case Texture::eRGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
-		case Texture::eR32I:    return VK_FORMAT_R32_SINT;
-		case Texture::eR16I:    return VK_FORMAT_R16_SINT;
-		case Texture::eR8I:     return VK_FORMAT_R8_SINT;
-		case Texture::eR32U:    return VK_FORMAT_R32_UINT;
-		case Texture::eR16U:    return VK_FORMAT_R16_UINT;
-		case Texture::eR8U:     return VK_FORMAT_R8_UINT;
-		case Texture::eRG32I:   return VK_FORMAT_R32G32_SINT;
-		case Texture::eRG16I:   return VK_FORMAT_R16G16_SINT;
-		case Texture::eRG8I:    return VK_FORMAT_R8G8_SINT;
-		case Texture::eRG32U:   return VK_FORMAT_R32G32_UINT;
-		case Texture::eRG16U:   return VK_FORMAT_R16G16_UINT;
-		case Texture::eRG8U:    return VK_FORMAT_R8G8_UINT;
-		case Texture::eRGB32I:  return VK_FORMAT_R32G32B32_SINT;
-		case Texture::eRGBA32I: return VK_FORMAT_R32G32B32A32_SINT;
-		case Texture::eRGB16I:  return VK_FORMAT_R16G16B16_SINT;
-		case Texture::eRGBA16I: return VK_FORMAT_R16G16B16A16_SINT;
-		case Texture::eRGB8I:   return VK_FORMAT_R8G8B8_SINT;
-		case Texture::eRGBA8I:  return VK_FORMAT_R8G8B8A8_SINT;
-		case Texture::eRGB32U:  return VK_FORMAT_R32G32B32_UINT;
-		case Texture::eRGBA32U: return VK_FORMAT_R32G32B32A32_UINT;
-		case Texture::eRGB16U:  return VK_FORMAT_R16G16B16_UINT;
-		case Texture::eRGBA16U: return VK_FORMAT_R16G16B16A16_UINT;
-		case Texture::eRGB8U:   return VK_FORMAT_R8G8B8_UINT;
-		case Texture::eRGBA8U:  return VK_FORMAT_R8G8B8A8_UINT;
-		case Texture::eSRGB:    return VK_FORMAT_R8G8B8_SRGB;
-		case Texture::eSRGBA:   return VK_FORMAT_R8G8B8A8_SRGB;
+		case ETexture::RGBA8:   return VK_FORMAT_R8G8B8A8_UNORM;
+		case ETexture::RGB8:    return VK_FORMAT_R8G8B8_UNORM;
+		case ETexture::BGRA8:   return VK_FORMAT_B8G8R8A8_UNORM;
+		case ETexture::RGB10A2: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+		case ETexture::R16:     return VK_FORMAT_R16_UNORM;
+		case ETexture::R8:      return VK_FORMAT_R8_UNORM;
+		case ETexture::R32F:    return VK_FORMAT_R32_SFLOAT;
+		case ETexture::RG32F:   return VK_FORMAT_R32G32_SFLOAT;
+		case ETexture::RGB32F:  return VK_FORMAT_R32G32B32_SFLOAT;
+		case ETexture::RGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case ETexture::R16F:    return VK_FORMAT_R16_SFLOAT;
+		case ETexture::RG16F:   return VK_FORMAT_R16G16_SFLOAT;
+		case ETexture::RGB16F:  return VK_FORMAT_R16G16B16_SFLOAT;
+		case ETexture::RGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
+		case ETexture::R32I:    return VK_FORMAT_R32_SINT;
+		case ETexture::R16I:    return VK_FORMAT_R16_SINT;
+		case ETexture::R8I:     return VK_FORMAT_R8_SINT;
+		case ETexture::R32U:    return VK_FORMAT_R32_UINT;
+		case ETexture::R16U:    return VK_FORMAT_R16_UINT;
+		case ETexture::R8U:     return VK_FORMAT_R8_UINT;
+		case ETexture::RG32I:   return VK_FORMAT_R32G32_SINT;
+		case ETexture::RG16I:   return VK_FORMAT_R16G16_SINT;
+		case ETexture::RG8I:    return VK_FORMAT_R8G8_SINT;
+		case ETexture::RG32U:   return VK_FORMAT_R32G32_UINT;
+		case ETexture::RG16U:   return VK_FORMAT_R16G16_UINT;
+		case ETexture::RG8U:    return VK_FORMAT_R8G8_UINT;
+		case ETexture::RGB32I:  return VK_FORMAT_R32G32B32_SINT;
+		case ETexture::RGBA32I: return VK_FORMAT_R32G32B32A32_SINT;
+		case ETexture::RGB16I:  return VK_FORMAT_R16G16B16_SINT;
+		case ETexture::RGBA16I: return VK_FORMAT_R16G16B16A16_SINT;
+		case ETexture::RGB8I:   return VK_FORMAT_R8G8B8_SINT;
+		case ETexture::RGBA8I:  return VK_FORMAT_R8G8B8A8_SINT;
+		case ETexture::RGB32U:  return VK_FORMAT_R32G32B32_UINT;
+		case ETexture::RGBA32U: return VK_FORMAT_R32G32B32A32_UINT;
+		case ETexture::RGB16U:  return VK_FORMAT_R16G16B16_UINT;
+		case ETexture::RGBA16U: return VK_FORMAT_R16G16B16A16_UINT;
+		case ETexture::RGB8U:   return VK_FORMAT_R8G8B8_UINT;
+		case ETexture::RGBA8U:  return VK_FORMAT_R8G8B8A8_UINT;
+		case ETexture::SRGB:    return VK_FORMAT_R8G8B8_SRGB;
+		case ETexture::SRGBA:   return VK_FORMAT_R8G8B8A8_SRGB;
 
 
-		case Texture::eDepth16:   return VK_FORMAT_D16_UNORM;
-		case Texture::eDepth24:   return VK_FORMAT_X8_D24_UNORM_PACK32;
-		case Texture::eDepth32F:  return VK_FORMAT_D32_SFLOAT;
-		case Texture::eD24S8:     return VK_FORMAT_D24_UNORM_S8_UINT;
-		case Texture::eD32FS8:    return VK_FORMAT_D32_SFLOAT_S8_UINT;
-		case Texture::eStencil1:  return VK_FORMAT_S8_UINT;
-		case Texture::eStencil4:  return VK_FORMAT_S8_UINT;
-		case Texture::eStencil8:  return VK_FORMAT_S8_UINT;
-		case Texture::eStencil16: return VK_FORMAT_R16_UINT;
-		case Texture::eDepth32:   //return VK_FORMAT_R32_UINT;
+		case ETexture::Depth16:   return VK_FORMAT_D16_UNORM;
+		case ETexture::Depth24:   return VK_FORMAT_X8_D24_UNORM_PACK32;
+		case ETexture::Depth32F:  return VK_FORMAT_D32_SFLOAT;
+		case ETexture::D24S8:     return VK_FORMAT_D24_UNORM_S8_UINT;
+		case ETexture::D32FS8:    return VK_FORMAT_D32_SFLOAT_S8_UINT;
+		case ETexture::Stencil1:  return VK_FORMAT_S8_UINT;
+		case ETexture::Stencil4:  return VK_FORMAT_S8_UINT;
+		case ETexture::Stencil8:  return VK_FORMAT_S8_UINT;
+		case ETexture::Stencil16: return VK_FORMAT_R16_UINT;
+		case ETexture::Depth32:   //return VK_FORMAT_R32_UINT;
 		default:
 
 
@@ -250,31 +250,31 @@ namespace Render
 		return VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	}
 
-	VkSamplerMipmapMode VulkanTranslate::ToMipmapMode(Sampler::Filter filter)
+	VkSamplerMipmapMode VulkanTranslate::ToMipmapMode(ESampler::Filter filter)
 	{
 		switch (filter)
 		{
-		case Sampler::ePoint:
+		case ESampler::Point:
 			return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
-		case Sampler::eTrilinear:
-		case Sampler::eBilinear:
-		case Sampler::eAnisotroicPoint:
-		case Sampler::eAnisotroicLinear:
+		case ESampler::Trilinear:
+		case ESampler::Bilinear:
+		case ESampler::AnisotroicPoint:
+		case ESampler::AnisotroicLinear:
 			return VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		}
 
 		return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 	}
 
-	VkSamplerAddressMode VulkanTranslate::To(Sampler::AddressMode mode)
+	VkSamplerAddressMode VulkanTranslate::To(ESampler::AddressMode mode)
 	{
 		switch (mode)
 		{
-		case Sampler::eWarp: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		case Sampler::eClamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		case Sampler::eMirror: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		case Sampler::eBorder: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		case ESampler::Warp: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case ESampler::Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case ESampler::Mirror: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case ESampler::Border: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
 		}
 
 		return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -297,18 +297,18 @@ namespace Render
 		return VK_COMPARE_OP_ALWAYS;
 	}
 
-	VkStencilOp VulkanTranslate::To(Stencil::Operation op)
+	VkStencilOp VulkanTranslate::To(EStencil op)
 	{
 		switch (op)
 		{
-		case Stencil::eKeep: return VK_STENCIL_OP_KEEP;
-		case Stencil::eZero: return VK_STENCIL_OP_ZERO;
-		case Stencil::eReplace: return VK_STENCIL_OP_REPLACE;
-		case Stencil::eIncr: return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
-		case Stencil::eIncrWarp: return VK_STENCIL_OP_INCREMENT_AND_WRAP;
-		case Stencil::eDecr: return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
-		case Stencil::eDecrWarp: return VK_STENCIL_OP_DECREMENT_AND_WRAP;
-		case Stencil::eInvert: return VK_STENCIL_OP_INVERT;
+		case EStencil::Keep: return VK_STENCIL_OP_KEEP;
+		case EStencil::Zero: return VK_STENCIL_OP_ZERO;
+		case EStencil::Replace: return VK_STENCIL_OP_REPLACE;
+		case EStencil::Incr: return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+		case EStencil::IncrWarp: return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+		case EStencil::Decr: return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+		case EStencil::DecrWarp: return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+		case EStencil::Invert: return VK_STENCIL_OP_INVERT;
 		}
 		return VK_STENCIL_OP_KEEP;
 	}

@@ -813,7 +813,7 @@ namespace MV
 			case eEditBlock:
 				{
 					BlockModel& model = gModels[editModelId];
-					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 
 					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
 
@@ -838,7 +838,7 @@ namespace MV
 				break;
 			case eEditMesh:
 				{
-					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
+					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha >::GetRHI());
 
 					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
 

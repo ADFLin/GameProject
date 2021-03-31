@@ -568,6 +568,7 @@
     <ClInclude Include="RHI\VulkanCommand.h" />
     <ClInclude Include="RHI\VulkanCommon.h" />
     <ClInclude Include="RHI\VulkanShaderCommon.h" />
+    <ClInclude Include="ScriptGraphs\SGNode.h" />
     <ClInclude Include="Serialize\DataBitSerialize.h" />
     <ClInclude Include="Serialize\DataStream.h" />
     <ClInclude Include="Serialize\FileStream.h" />

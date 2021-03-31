@@ -53,7 +53,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::D3D11;
+			return ERenderSystem::OpenGL;
 		}
 		virtual bool setupRenderSystem(ERenderSystem systemName) override
 		{
@@ -80,7 +80,7 @@ namespace Render
 				char const* filePath = "Mesh/Cerberus/Cerberus_LP.FBX";
 				BuildMesh(mMesh, filePath, [filePath](Mesh& mesh) ->bool
 				{
-					IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImprotor("FBX");
+					IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
 					VERIFY_RETURN_FALSE(importer->importFromFile(filePath, mesh, nullptr));
 					return true;
 				});
@@ -116,6 +116,9 @@ namespace Render
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			initializeRenderState();
 
+			GRenderTargetPool.freeAllUsedElements();
+			mSceneRenderTargets.prepare(screenSize);
+
 			{
 				GPU_PROFILE("Scene");
 				mSceneRenderTargets.attachDepthTexture();
@@ -142,7 +145,7 @@ namespace Render
 						break;
 					default:
 						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture, SHADER_PARAM(CubeTextureSampler),
-												TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
+												TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
 						SET_SHADER_PARAM(commandList, *mProgSkyBox, CubeLevel, float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
 					}
 
@@ -160,7 +163,7 @@ namespace Render
 					RHISetShaderProgram(commandList, mTestShader.getRHIResource());
 					mView.setupShader(commandList, mTestShader);
 
-					auto& samplerState = (mbUseMipMap) ? TStaticSamplerState<Sampler::eTrilinear>::GetRHI() : TStaticSamplerState<Sampler::eBilinear>::GetRHI();
+					auto& samplerState = (mbUseMipMap) ? TStaticSamplerState<ESampler::Trilinear>::GetRHI() : TStaticSamplerState<ESampler::Bilinear>::GetRHI();
 					mTestShader.setTexture(commandList, SHADER_PARAM(DiffuseTexture), mDiffuseTexture , SHADER_SAMPLER(DiffuseTexture), samplerState);
 					mTestShader.setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture, SHADER_SAMPLER(NormalTexture), samplerState);
 					mTestShader.setTexture(commandList, SHADER_PARAM(MetalTexture), mMetalTexture, SHADER_SAMPLER(MetalTexture), samplerState);
@@ -209,7 +212,6 @@ namespace Render
 
 			bitBltToBackBuffer(commandList, mSceneRenderTargets.getFrameTexture());
 		}
-
 
 
 	};

@@ -10,29 +10,32 @@
 #include "Platform.h"
 
 #include "FixString.h"
+#include "MarcoCommon.h"
+#include "ColorName.h"
 
 #include <cassert>
 #include <ctime>
 #include <iostream>
 
 
-static Game* gGame = NULL;
-IGame* getGame(){ return gGame; }
+static IGame* GGameInstance = nullptr;
+IGame* getGame(){ return GGameInstance; }
+IGame& IGame::Get() { return *GGameInstance; }
+
+Game::Game()
+{
+	assert( GGameInstance == nullptr);
+	GGameInstance = this;
+
+	mFPS = 0;
+	mStageAdd = nullptr;
+
+	mMouseState = 0;
+}
 
 IGame::~IGame()
 {
 
-}
-
-Game::Game()
-{
-	assert( gGame == NULL );
-	gGame = this;
-
-	mFPS = 0;
-	mStageAdd = NULL;
-
-	mMouseState = 0;
 }
 
 bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreateWindow )
@@ -72,12 +75,6 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 		mWindow->showCursor(false);
 	}
 
-	QA_LOG("Build Render System...");
-	mRenderSystem.reset( new RenderSystem );
-	if ( !mRenderSystem->init( mWindow ) )
-	{
-		return false;
-	}
 
 	IFont* font = IFont::loadFont( DATA_DIR"DialogueFont.TTF" );
 	//IFont* font = NULL;
@@ -85,14 +82,12 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 		mFonts.push_back( font );
 
 	mSoundMgr.reset( new SoundManager );
-	mRenderEngine.reset( new RenderEngine );
 
-	QA_LOG("Initialize Render Engine...");
-	VERIFY_RETURN_FALSE(mRenderEngine->init(width, height));
 		
 	mNeedEnd=false;
 	srand(time(NULL));
 		
+#if 0
 	QA_LOG("Setting OpenGL...");
 	glViewport(0,0,(GLsizei)width,(GLsizei)height);
 	glMatrixMode(GL_PROJECTION);
@@ -104,12 +99,27 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 	glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_LIGHTING_BIT );
 	glDisable( GL_DEPTH_TEST );
 	//glDisable( GL_LIGHTING );	
+#endif
 	
 
 	QA_LOG("Game Init!");
 	return true;
 }
 
+bool Game::initRenderSystem()
+{
+	QA_LOG("Build Render System...");
+	mRenderSystem.reset(new RenderSystem);
+	if (!mRenderSystem->init(mWindow))
+	{
+		return false;
+	}
+	QA_LOG("Initialize Render Engine...");
+	mRenderEngine.reset(new RenderEngine);
+	VERIFY_RETURN_FALSE(mRenderEngine->init(mScreenSize.x, mScreenSize.y));
+
+	return true;
+}
 
 void Game::exit()
 {

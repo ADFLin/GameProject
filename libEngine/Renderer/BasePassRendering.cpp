@@ -17,9 +17,9 @@ namespace Render
 	{
 		for (int i = 0; i < EGBuffer::Count; ++i)
 		{
-			mTargetFomats[i] = Texture::eRGBA8;
+			mTargetFomats[i] = ETexture::RGBA8;
 		}
-		mTargetFomats[0] = Texture::eRGB10A2;
+		mTargetFomats[0] = ETexture::RGB10A2;
 	}
 
 	bool GBufferResource::prepare(IntVector2 const& size, int numSamples)
@@ -165,12 +165,12 @@ namespace Render
 		mIdxRenderFrameTexture = 0;
 		for (auto& frameTexture : mFrameTextures)
 		{
-			frameTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget);
+			frameTexture = RHICreateTexture2D(ETexture::FloatRGBA, size.x, size.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget);
 			if (!frameTexture.isValid())
 				return false;
 		}
 
-		mDepthTexture = RHICreateTextureDepth(Texture::eD24S8, size.x, size.y, 1, numSamples, TCF_CreateSRV);
+		mDepthTexture = RHICreateTextureDepth(ETexture::D24S8, size.x, size.y, 1, numSamples, TCF_CreateSRV);
 		if (!mDepthTexture.isValid())
 			return false;
 

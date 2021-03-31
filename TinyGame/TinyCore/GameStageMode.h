@@ -28,7 +28,7 @@ public:
 	{
 		NEXT_UI_ID = UI_GAME_STAGE_MODE_ID,
 	};
-	GameStageMode(StageModeType mode);
+	GameStageMode(EGameStageMode mode);
 	virtual ~GameStageMode() {}
 	virtual bool prevStageInit() { return true; }
 	virtual bool postStageInit() {  return true; }
@@ -43,22 +43,22 @@ public:
 	virtual bool   canRender() { return true; }
 	virtual bool   saveReplay(char const* name) { return false; }
 	virtual IPlayerManager* getPlayerManager() = 0;
-	virtual bool   tryChangeState(GameState state) { return true; }
+	virtual bool   tryChangeState(EGameState state) { return true; }
 
 	virtual ReplayStageMode* getReplayMode() { return nullptr; }
 	virtual NetLevelStageMode* getNetLevelMode() { return nullptr; }
 	
-	StageModeType getModeType() const { return mStageMode;  }
-	bool  changeState(GameState state);
+	EGameStageMode getModeType() const { return mStageMode;  }
+	bool  changeState(EGameState state);
 	bool  togglePause();
 
 	GameStageBase* getStage() { return mCurStage; }
 	IGameModule*   getGame() { return mCurStage->getGame(); }
-	GameState      getGameState() { return mGameState; }
+	EGameState     getGameState() { return mGameState; }
 	StageManager*  getManager() { return mCurStage->getManager();  }
 
-	GameState      mGameState;
-	StageModeType const mStageMode;
+	EGameState      mGameState;
+	EGameStageMode const mStageMode;
 	GameStageBase* mCurStage;
 	long           mReplayFrame;
 
@@ -72,7 +72,7 @@ class LevelStageMode : public GameStageMode
 {
 	using BaseClass = GameStageMode;
 public:
-	LevelStageMode(StageModeType mode);
+	LevelStageMode(EGameStageMode mode);
 
 	void   onRestart(uint64& seed) override;
 	bool   saveReplay(char const* name) override;
@@ -82,22 +82,15 @@ protected:
 	TPtrHolder< IReplayRecorder > mReplayRecorder;
 };
 
-class IReplayModeInterface
+class IGameReplayFeature
 {
 
 };
 
-class INetModeInterface
+class IGameNetFeature
 {
 
 };
-
-class ILocalModeInterface
-{
-
-
-};
-
 
 
 #endif // GameStageMode_h__

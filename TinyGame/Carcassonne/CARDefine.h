@@ -39,20 +39,23 @@ namespace CAR
 	enum Expansion : uint8;
 
 
-	enum SideType : uint8
+	namespace ESide
 	{
-		eField  = 0,
-		eRoad  ,
-		eRiver ,
-		eCity  ,
-		eAbbey , //EXP_ABBEY_AND_MAYOR
-		eInsideLink ,
+		enum Type : uint8
+		{
+			Field = 0,
+			Road,
+			River,
+			City,
+			Abbey, //EXP_ABBEY_AND_MAYOR
+			InsideLink,
 
-		eEmptySide ,
+			Empty,
+		};
 	};
 
 
-	using SideContentType = uint16;
+	using SideContentMask = uint16;
 	using TileContentMask = uint32;
 
 	struct TileContent
@@ -104,29 +107,28 @@ namespace CAR
 	{
 		enum Enum
 		{
-			ePennant             = BIT(0) ,
-			eInn                 = BIT(1) , //EXP_INNS_AND_CATHEDRALS
-			eWineHouse           = BIT(2) , //EXP_TRADEERS_AND_BUILDERS
-			eGrainHouse          = BIT(3) , //EXP_TRADEERS_AND_BUILDERS
-			eClothHouse          = BIT(4) , //EXP_TRADEERS_AND_BUILDERS
-			ePrincess            = BIT(5) , //EXP_THE_PRINCESS_AND_THE_DRAGON
-			eNotSemiCircularCity = BIT(6) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
-			eSheep               = BIT(7) , //EXP_HILLS_AND_SHEEP
-			eHalfSeparate        = BIT(8) , //EXP_HILLS_AND_SHEEP
-			eSchool              = BIT(9) , //EXP_THE_SCHOOL
-			eGermanCastle        = BIT(10),
-			eCityOfCarcassonne   = BIT(11),
-			eAircraftDirMark     = BIT(12),
+			ePennant             ,
+			eInn                 , //EXP_INNS_AND_CATHEDRALS
+			eWineHouse           , //EXP_TRADEERS_AND_BUILDERS
+			eGrainHouse          , //EXP_TRADEERS_AND_BUILDERS
+			eClothHouse          , //EXP_TRADEERS_AND_BUILDERS
+			ePrincess            , //EXP_THE_PRINCESS_AND_THE_DRAGON
+			eNotSemiCircularCity , //EXP_BRIDGES_CASTLES_AND_BAZAARS
+			eSheep               , //EXP_HILLS_AND_SHEEP
+			eHalfSeparate        , //EXP_HILLS_AND_SHEEP
+			eSchool              , //EXP_THE_SCHOOL
+			eGermanCastle        ,
+			eCityOfCarcassonne   ,
+			eAircraftDirMark     ,
 
-			LastMaskPlusOne ,
-			MaxMaskIndex = BitMaskToIndex<SideContentType>( LastMaskPlusOne - 1 ),
+			Count ,
 		};
 
-		static SideContentType const InternalLinkTypeMask = eSchool | eGermanCastle;
+		static SideContentMask const InternalLinkTypeMask = BIT(eSchool) | BIT(eGermanCastle);
 	};
 
 
-	static_assert(SideContent::MaxMaskIndex < 8 * sizeof(SideContentType), "SideContentType can't set all SideContent enum");
+	static_assert(SideContent::Count < 8 * sizeof(SideContentMask), "SideContentMask can't set all SideContent enum");
 	static_assert(TileContent::Count < 8 * sizeof(TileContentMask), "TileContentType can't set all TileContent enum");
 
 
@@ -143,7 +145,7 @@ namespace CAR
 
 	struct ActorPos
 	{
-		enum Enum
+		enum Type
 		{
 			eSideNode ,
 			eFarmNode ,
@@ -155,14 +157,17 @@ namespace CAR
 			eScoreBoard ,
 			eNone ,
 		};
-		ActorPos( Enum aType , int aMeta )
+		ActorPos( Type aType , int aMeta )
 			:type( aType ),meta( aMeta ){}
 		ActorPos()= default;
 
 		static ActorPos None() { return ActorPos(eNone, 0); }
 		static ActorPos Tile() { return ActorPos(eTile, 0); }
 		static ActorPos Player(PlayerId id) { return ActorPos(ePlayer, id); }
-		Enum type;
+		static ActorPos SideNode(int index) { return ActorPos(eSideNode, index); }
+		static ActorPos FarmNode(int index) { return ActorPos(eFarmNode, index); }
+
+		Type type;
 		int  meta;
 
 		bool operator == (ActorPos const& rhs) const
@@ -188,76 +193,83 @@ namespace CAR
 		Lord,
 	};
 
-	enum ActorType
+
+	namespace EActor
 	{
-		//follower
-		eMeeple ,
-		eBigMeeple , //EXP_INNS_AND_CATHEDRALS 
-		eMayor , //EXP_ABBEY_AND_MAYOR
-		eWagon , //EXP_ABBEY_AND_MAYOR
-		eBarn  , //EXP_ABBEY_AND_MAYOR
-		eShepherd , //EXP_HILLS_AND_SHEEP
-		ePhantom , //EXP_PHANTOM
-		eAbbot , //CII
-
-
-		eBuilder ,  //EXP_TRADEERS_AND_BUILDERS
-		ePig ,     //EXP_TRADEERS_AND_BUILDERS
-
-		//neutral
-		eDragon , //EXP_THE_PRINCESS_AND_THE_DRAGON
-		eFariy  , //EXP_THE_PRINCESS_AND_THE_DRAGON
-		eCount ,
-		eMage,  //EXP_MAGE_AND_WITCH
-		eWitch, //EXP_MAGE_AND_WITCH
-		eBigPinkPig ,
-		eTecher , //EXP_THE_SCHOOL
-
-		eFair , //EXP_THE_CATAPULT
-
-		NUM_ACTOR_TYPE  ,
-		NUM_PLAYER_ACTOR_TYPE = eDragon ,
-		eNone = -1,
-	};
-
-	struct FieldType
-	{
-		enum Enum
+		enum Type
 		{
-			eActorStart = 0 ,
-			eActorEnd   = eActorStart + NUM_PLAYER_ACTOR_TYPE - 1 ,
+			//follower
+
+			Meeple,
+			BigMeeple, //EXP_INNS_AND_CATHEDRALS 
+			Mayor, //EXP_ABBEY_AND_MAYOR
+			Wagon, //EXP_ABBEY_AND_MAYOR
+			Barn, //EXP_ABBEY_AND_MAYOR
+			Shepherd, //EXP_HILLS_AND_SHEEP
+			Phantom, //EXP_PHANTOM
+			Abbot, //CII
+
+
+			Builder,  //EXP_TRADEERS_AND_BUILDERS
+			Pig,     //EXP_TRADEERS_AND_BUILDERS
+
+			PLAYER_TYPE_COUNT,
+			//neutral
+			Dragon = PLAYER_TYPE_COUNT, //EXP_THE_PRINCESS_AND_THE_DRAGON
+			Fariy, //EXP_THE_PRINCESS_AND_THE_DRAGON
+			Count,
+			Mage,  //EXP_MAGE_AND_WITCH
+			Witch, //EXP_MAGE_AND_WITCH
+
+			BigPinkPig,
+			Techer, //EXP_THE_SCHOOL
+
+			Fair, //EXP_THE_CATAPULT
+
+			COUNT,
+
+			None = -1,
+		};
+	}
+
+	struct EField
+	{
+		enum Type
+		{
+			ActorStart = 0 ,
+			ActorEnd   = ActorStart + EActor::PLAYER_TYPE_COUNT - 1 ,
 
 			//EXP_TRADEERS_AND_BUILDERS
-			eGain , 
-			eWine ,
-			eCloth ,
+			Gain , 
+			Wine ,
+			Cloth ,
 			//EXP_THE_TOWER
-			eTowerPices ,
+			TowerPices ,
 			//EXP_ABBEY_AND_MAYOR
-			eAbbeyPices ,
+			AbbeyPices ,
 			//EXP_BRIDGES_CASTLES_AND_BAZAARS
-			eBridgePices ,
-			eCastleTokens ,
-			eTileIdAuctioned ,
+			BridgePices ,
+			CastleTokens ,
+			TileIdAuctioned ,
 			//EXP_CASTLES
-			eGermanCastleTiles ,
+			GermanCastleTiles ,
 			//EXP_GOLDMINES
-			eGoldPieces ,
+			GoldPieces ,
 			//EXP_HALFLINGS_I && EXP_HALFLINGS_II
-			eHalflingTiles ,
+			HalflingTiles ,
 			//EXP_LA_PORXADA
-			eLaPorxadaFinishScoring ,
+			LaPorxadaFinishScoring ,
 			//EXP_THE_MESSSAGES
-			eWomenScore ,
+			WomenScore ,
 			//EXP_THE_ROBBERS
-			eRobberScorePos,
+			RobberScorePos,
 
 			//EXP_LITTLE_BUILDINGS
-			eTowerBuildingTokens,
-			eHouseBuildingTokens,
-			eShedBuildingTokens,
+			TowerBuildingTokens,
+			HouseBuildingTokens,
+			ShedBuildingTokens,
 
-			NUM,
+			COUNT,
 		};
 	};
 
@@ -303,8 +315,8 @@ namespace CAR
 
 	struct ActorInfo
 	{
-		int       playerId;
-		ActorType type;
+		int          playerId;
+		EActor::Type type;
 
 		bool operator == ( ActorInfo const& rhs ) const
 		{

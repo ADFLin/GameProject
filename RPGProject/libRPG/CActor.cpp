@@ -141,7 +141,7 @@ void CActor::update( long time )
 		CActor* actor;
 	} callback( this );
 
-	mAbilityProp->updateFrame( callback );
+	mAbilityProp->update( callback );
 
 	mMovement->update( time );
 

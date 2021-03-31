@@ -105,7 +105,7 @@ public:
 	struct StackValue
 	{
 		ValueLayout layout;
-		SysInt      offset;
+		int32       offset;
 	};
 	std::vector< StackValue >  mInputStack;
 	std::vector< StackValue >  mConstStack;
@@ -488,8 +488,8 @@ public:
 				for( int num = 0; num < numCpuParam; ++num )
 				{
 					paramOffset -= sizeof(ValueType);
-					Asm::fstp(VALUE_PTR(esp, SysInt(paramOffset)));
-					Asm::fld(VALUE_PTR(ebp, SysInt(-(numCpuStack - num) * sizeof(ValueType))));
+					Asm::fstp(VALUE_PTR(esp, int32(paramOffset)));
+					Asm::fld(VALUE_PTR(ebp, int32(-(numCpuStack - num) * sizeof(ValueType))));
 
 					mRegStack.back().type = TOKEN_NONE;
 				}
@@ -503,7 +503,7 @@ public:
 			for( int num = 0; num < numSPUParam; ++num )
 			{
 				paramOffset -= sizeof(ValueType);
-				Asm::fstp(VALUE_PTR(esp, SysInt(paramOffset)));
+				Asm::fstp(VALUE_PTR(esp, int32(paramOffset)));
 				mRegStack.pop_back();
 			}
 			mNumInstruction += 1 * numSPUParam;
@@ -588,7 +588,7 @@ public:
 				if( mNumVarStack > FpuRegNum )
 				{
 					int32 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
-					mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(ebp, SysInt(offset)));
+					mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(ebp, int32(offset)));
 
 					mRegStack.back().type = TOKEN_NONE;
 				}

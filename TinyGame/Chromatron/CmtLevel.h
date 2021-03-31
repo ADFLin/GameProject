@@ -60,7 +60,7 @@ namespace Chromatron
 		void    destoryAllDevice();
 		void    clearData();
 
-		unsigned getUserDCNum(){ return mUserDC.size(); }
+		unsigned getUserDCNum(){ return mUserDCs.size(); }
 
 		void     setMapType( Vec2i const& pos , MapType type );
 		bool     tryModifyDeviceType( Device& dc , DeviceId id );
@@ -88,7 +88,7 @@ namespace Chromatron
 					func(dc);
 			}
 
-			for (Device * dc : mUserDC)
+			for (Device * dc : mUserDCs)
 			{
 				func(dc);
 			}
@@ -130,7 +130,7 @@ namespace Chromatron
 		using DeviceVec = std::vector< Device* >;
 		static void removeDevice( DeviceVec& dcVec , Device& dc );
 
-		DeviceVec   mUserDC;
+		DeviceVec   mUserDCs;
 	};
 
 }//namespace Chromatron

@@ -91,21 +91,21 @@ namespace Render
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BIND_SHADER_PARAM(parameterMap, Roughness);
-			BIND_SHADER_PARAM(parameterMap, CubeTexture);
-			BIND_SHADER_PARAM(parameterMap, CubeTextureSampler);
+			BIND_TEXTURE_PARAM(parameterMap, CubeTexture);
 			BIND_SHADER_PARAM(parameterMap, PrefilterSampleCount);
 		}
 
 		void setParameters(RHICommandList& commandList, int level, RHITextureCube& texture, int sampleCount)
 		{
 			SET_SHADER_PARAM(commandList, *this, Roughness, float(level) / (IBLResource::NumPerFilteredLevel - 1));
-			setTexture(commandList, mParamCubeTexture, texture, mParamCubeTextureSampler, TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+
+			auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, CubeTexture, texture, sampler);
 			SET_SHADER_PARAM(commandList, *this, PrefilterSampleCount, sampleCount);
 		}
 
 		DEFINE_SHADER_PARAM(Roughness);
-		DEFINE_SHADER_PARAM(CubeTexture);
-		DEFINE_SHADER_PARAM(CubeTextureSampler);
+		DEFINE_TEXTURE_PARAM(CubeTexture);
 		DEFINE_SHADER_PARAM(PrefilterSampleCount);
 
 	};
@@ -189,10 +189,10 @@ namespace Render
 
 	TGlobalRenderResource< RHITexture2D > IBLResource::SharedBRDFTexture;
 
-	int GetFormatClientSize(Texture::Format format)
+	int GetFormatClientSize(ETexture::Format format)
 	{
-		int formatSize = Texture::GetFormatSize(format);
-		if (GRHISystem->getName() == RHISytemName::OpenGL && Texture::GetComponentType(format) == CVT_Half)
+		int formatSize = ETexture::GetFormatSize(format);
+		if (GRHISystem->getName() == RHISystemName::OpenGL && ETexture::GetComponentType(format) == CVT_Half)
 		{
 			formatSize *= 2;
 		}
@@ -204,40 +204,40 @@ namespace Render
 		outData.envMapSize = texture->getSize();
 		outData.irradianceSize = irradianceTexture->getSize();
 		outData.perFilteredSize = perfilteredTexture->getSize();
-		ReadTextureData(*texture, Texture::eFloatRGBA, 0, outData.envMap);
-		ReadTextureData(*irradianceTexture, Texture::eFloatRGBA, 0, outData.irradiance);
+		ReadTextureData(*texture, ETexture::FloatRGBA, 0, outData.envMap);
+		ReadTextureData(*irradianceTexture, ETexture::FloatRGBA, 0, outData.irradiance);
 		for (int level = 0; level < IBLResource::NumPerFilteredLevel; ++level)
 		{
-			ReadTextureData(*perfilteredTexture, Texture::eFloatRGBA, level, outData.perFiltered[level]);
+			ReadTextureData(*perfilteredTexture, ETexture::FloatRGBA, level, outData.perFiltered[level]);
 		}
 	}
 
-	void IBLResource::GetCubeMapData(std::vector< uint8 >& data, Texture::Format format, int size, int level, void* outData[])
+	void IBLResource::GetCubeMapData(std::vector< uint8 >& data, ETexture::Format format, int size, int level, void* outData[])
 	{
 		int formatSize = GetFormatClientSize(format);
 		int textureSize = Math::Max(size >> level, 1);
 		int faceDataSize = textureSize * textureSize * formatSize;
 
-		for (int i = 0; i < Texture::FaceCount; ++i)
+		for (int i = 0; i < ETexture::FaceCount; ++i)
 			outData[i] = &data[i * faceDataSize];
 	}
 
-	void IBLResource::ReadTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+	void IBLResource::ReadTextureData(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
 	{
 		int formatSize = GetFormatClientSize(format);
 		int textureSize = Math::Max(texture.getSize() >> level, 1);
 		int faceDataSize = textureSize * textureSize * formatSize;
-		outData.resize(Texture::FaceCount * faceDataSize);
-		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		outData.resize(ETexture::FaceCount * faceDataSize);
+		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			OpenGLCast::To(&texture)->bind();
-			for (int i = 0; i < Texture::FaceCount; ++i)
+			for (int i = 0; i < ETexture::FaceCount; ++i)
 			{
 				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*i]);
 			}
 			OpenGLCast::To(&texture)->unbind();
 		}
-		else
+		else if ( GRHISystem->getName() == RHISystemName::D3D11 )
 		{
 			TComPtr<ID3D11Texture2D> stagingTexture;
 			static_cast<D3D11System*>(GRHISystem)->createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
@@ -250,18 +250,18 @@ namespace Render
 		}
 	}
 
-	void IBLResource::ReadTextureData(RHITexture2D& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+	void IBLResource::ReadTextureData(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
 	{
 		int formatSize = GetFormatClientSize(format);
 		int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
 		outData.resize(dataSize);
-		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			OpenGLCast::To(&texture)->bind();
 			glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[0]);
 			OpenGLCast::To(&texture)->unbind();
 		}
-		else
+		else if (GRHISystem->getName() == RHISystemName::D3D11)
 		{
 			TComPtr<ID3D11Texture2D> stagingTexture;
 			static_cast<D3D11System*>(GRHISystem)->createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
@@ -279,25 +279,25 @@ namespace Render
 		void* data[6];
 		{
 			TIME_SCOPE("Create EnvMap Texture");
-			GetCubeMapData(IBLData.envMap, Texture::eFloatRGBA, IBLData.envMapSize, 0, data);
-			VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, IBLData.envMapSize, 1, TCF_DefalutValue, data));
+			GetCubeMapData(IBLData.envMap, ETexture::FloatRGBA, IBLData.envMapSize, 0, data);
+			VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(ETexture::FloatRGBA, IBLData.envMapSize, 1, TCF_DefalutValue, data));
 		}
 		{
 			TIME_SCOPE("Create Irradiance Texture");
-			GetCubeMapData(IBLData.irradiance, Texture::eFloatRGBA, IBLData.irradianceSize, 0, data);
-			VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, IBLData.irradianceSize, 1, TCF_DefalutValue, data));
+			GetCubeMapData(IBLData.irradiance, ETexture::FloatRGBA, IBLData.irradianceSize, 0, data);
+			VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(ETexture::FloatRGBA, IBLData.irradianceSize, 1, TCF_DefalutValue, data));
 		}
 
 		{
 			TIME_SCOPE("Create Perfiltered Texture");
-			VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, IBLData.perFilteredSize, NumPerFilteredLevel));
+			VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(ETexture::FloatRGBA, IBLData.perFilteredSize, NumPerFilteredLevel));
 			for (int level = 0; level < IBLResource::NumPerFilteredLevel; ++level)
 			{
-				GetCubeMapData(IBLData.perFiltered[level], Texture::eFloatRGBA, IBLData.perFilteredSize, level, data);
-				for (int face = 0; face < Texture::FaceCount; ++face)
+				GetCubeMapData(IBLData.perFiltered[level], ETexture::FloatRGBA, IBLData.perFilteredSize, level, data);
+				for (int face = 0; face < ETexture::FaceCount; ++face)
 				{
 					int size = Math::Max(1, IBLData.perFilteredSize >> level);
-					perfilteredTexture->update(Texture::Face(face), 0, 0, size, size, Texture::eFloatRGBA, data[face], level);
+					perfilteredTexture->update(ETexture::Face(face), 0, 0, size, size, ETexture::FloatRGBA, data[face], level);
 				}
 			}
 		}
@@ -306,9 +306,9 @@ namespace Render
 
 	bool IBLResource::initializeRHI(IBLBuildSetting const& setting)
 	{
-		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, setting.envSize, 0, TCF_DefalutValue | TCF_RenderTarget));
-		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.irradianceSize, 0, TCF_DefalutValue | TCF_RenderTarget));
-		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, setting.perfilteredSize, NumPerFilteredLevel, TCF_DefalutValue | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(ETexture::FloatRGBA, setting.envSize, 0, TCF_DefalutValue | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.irradianceSize, 0, TCF_DefalutValue | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.perfilteredSize, NumPerFilteredLevel, TCF_DefalutValue | TCF_RenderTarget));
 		return true;
 	}
 
@@ -319,7 +319,7 @@ namespace Render
 		{
 			flags |= TCF_RenderTarget;
 		}
-		SharedBRDFTexture.initialize(RHICreateTexture2D(Texture::eFloatRGBA, 512, 512, 0, 1, flags, data));
+		SharedBRDFTexture.initialize(RHICreateTexture2D(ETexture::FloatRGBA, 512, 512, 0, 1, flags, data));
 		return SharedBRDFTexture.isValid();
 	}
 
@@ -458,13 +458,13 @@ namespace Render
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
-		for (int i = 0; i < Texture::FaceCount; ++i)
+		for (int i = 0; i < ETexture::FaceCount; ++i)
 		{
-			frameBuffer->setTexture(0, cubeTexture, Texture::Face(i), level);
+			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(i), level);
 			RHISetFrameBuffer(commandList, frameBuffer);
 			RHISetShaderProgram(commandList, updateShader.getRHIResource());
-			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
-			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
+			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(i)));
+			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(i)));
 			shaderSetup(commandList);
 			DrawUtility::ScreenRect(commandList);
 			RHISetFrameBuffer(commandList, nullptr);
@@ -481,9 +481,9 @@ namespace Render
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
 
-		for (int i = 0; i < Texture::FaceCount; ++i)
+		for (int i = 0; i < ETexture::FaceCount; ++i)
 		{
-			frameBuffer->setTexture(0, cubeTexture, Texture::Face(i), level);
+			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(i), level);
 
 			RHISetFrameBuffer(commandList, frameBuffer);
 
@@ -492,8 +492,8 @@ namespace Render
 			boundState.pixel = shaderPS.getRHIResource();
 			RHISetGraphicsShaderBoundState(commandList, boundState);
 
-			shaderPS.setParam(commandList, SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
-			shaderPS.setParam(commandList, SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
+			shaderPS.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(i)));
+			shaderPS.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(i)));
 
 			shaderSetup(commandList);
 			DrawUtility::ScreenRect(commandList);
@@ -520,14 +520,14 @@ namespace Render
 		{
 			mEquirectangularToCubePS->setTexture(commandList,
 				SHADER_PARAM(Texture), envTexture,
-				SHADER_PARAM(TextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+				SHADER_PARAM(TextureSampler), TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
 		});
 #else
 		RenderCubeTexture(commandList, frameBuffer, *resource.texture, *mProgEquirectangularToCube, 0, [&](RHICommandList& commandList)
 		{
 			mProgEquirectangularToCube->setTexture(commandList,
 				SHADER_PARAM(Texture), envTexture,
-				SHADER_PARAM(TextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+				SHADER_PARAM(TextureSampler), TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
 		});
 #endif
 
@@ -537,13 +537,13 @@ namespace Render
 		//IrradianceTexture
 		renderCubeTexture(commandList, frameBuffer, *resource.irradianceTexture, *mIrradianceGenPS, 0, [&](RHICommandList& commandList)
 		{
-			mIrradianceGenPS->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_SAMPLER(CubeTexture), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			mIrradianceGenPS->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_SAMPLER(CubeTexture), TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
 			mIrradianceGenPS->setParam(commandList, SHADER_PARAM(IrrianceSampleCount), setting.irradianceSampleCount[0], setting.irradianceSampleCount[1]);
 		});
 #else
 		RenderCubeTexture(commandList, frameBuffer, *resource.irradianceTexture, *mProgIrradianceGen, 0, [&](RHICommandList& commandList)
 		{
-			mProgIrradianceGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_SAMPLER(CubeTexture), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			mProgIrradianceGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_SAMPLER(CubeTexture), TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
 			mProgIrradianceGen->setParam(commandList, SHADER_PARAM(IrrianceSampleCount), setting.irradianceSampleCount[0], setting.irradianceSampleCount[1]);
 		});
 

@@ -25,7 +25,7 @@ namespace Render
 		GBufferResource();
 
 		PooledRenderTargetRef mTargets[EGBuffer::Count];
-		Texture::Format       mTargetFomats[EGBuffer::Count];
+		ETexture::Format       mTargetFomats[EGBuffer::Count];
 
 		RHITexture2D& getRenderTexture(EGBuffer::Type bufferName)
 		{
@@ -53,7 +53,7 @@ namespace Render
 	public:
 		FrameRenderTargets()
 		{
-			mDepthFormat = Texture::eD24S8;
+			mDepthFormat = ETexture::D24S8;
 		}
 
 		bool prepare(IntVector2 const& size, int numSamples = 1);
@@ -94,7 +94,7 @@ namespace Render
 		RHITexture2DRef mDepthTexture;
 		RHITexture2DRef mResolvedDepthTexture;
 
-		Texture::Format  mDepthFormat;
+		ETexture::Format  mDepthFormat;
 	};
 
 

@@ -12,7 +12,7 @@ extern CAppModule _Module;
 #include <atlctrls.h>
 
 #include "MineSweeperSolver.h"
-#include "GControlerWin7.h"
+#include "GameController_Windows7.h"
 #include "ExpSolveStrategy.h"
 
 #include "resource.h"

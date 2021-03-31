@@ -367,6 +367,7 @@
     <Text Include="QuadAssault\Readme.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="out\QuadAssault\shader\QBasePass.sgc" />
     <None Include="out\QuadAssault\shader\GeomDefaultFS.sgc" />
     <None Include="out\QuadAssault\shader\GeomDefaultVS.sgc" />
     <None Include="out\QuadAssault\shader\LightFS.sgc" />

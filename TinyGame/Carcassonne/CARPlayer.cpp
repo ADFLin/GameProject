@@ -16,19 +16,19 @@ namespace CAR
 		mFieldValues.resize( setting.getTotalFieldValueNum() , 0 );
 	}
 
-	int PlayerBase::getFieldValue(FieldType::Enum type , int index ) const
+	int PlayerBase::getFieldValue(EField::Type type , int index ) const
 	{
 		int idx = mSetting->getFieldIndex( type );
-		if ( idx == -1 )
+		if ( idx == INDEX_NONE )
 			return 0;
 		assert(index < mSetting->getFieldValueNum(type));
 		return mFieldValues[idx+index];
 	}
 
-	void PlayerBase::setFieldArrayValues(FieldType::Enum type, int* values , int num )
+	void PlayerBase::setFieldArrayValues(EField::Type type, int* values , int num )
 	{
 		int idx = mSetting->getFieldIndex(type);
-		if( idx == -1 )
+		if( idx == INDEX_NONE )
 			return;
 
 		assert(num < mSetting->getFieldValueNum(type));
@@ -36,19 +36,19 @@ namespace CAR
 		std::copy_n(values, num, fillValues);
 	}
 
-	void PlayerBase::setFieldValue(FieldType::Enum type , int value , int index )
+	void PlayerBase::setFieldValue(EField::Type type , int value , int index )
 	{
 		int idx = mSetting->getFieldIndex( type );
-		if ( idx == -1 )
+		if ( idx == INDEX_NONE )
 			return;
 		assert(index < mSetting->getFieldValueNum(type));
 		mFieldValues[idx+index] = value;
 	}
 
-	int PlayerBase::modifyFieldValue(FieldType::Enum type , int value /*= 1 */)
+	int PlayerBase::modifyFieldValue(EField::Type type , int value /*= 1 */)
 	{
 		int idx = mSetting->getFieldIndex( type );
-		if ( idx == -1 )
+		if ( idx == INDEX_NONE )
 			return 0;
 		return mFieldValues[ idx ] += value;
 	}

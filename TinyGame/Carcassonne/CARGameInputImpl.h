@@ -120,7 +120,7 @@ namespace CAR
 		CGameInput();
 
 		void runLogic( GameLogic& gameLogic );
-		void setDataTransfer( IDataTransfer* transfer );
+		void setRemoteSender( IDataTransfer* transfer );
 
 		void reset();
 		
@@ -136,10 +136,10 @@ namespace CAR
 		void waitReply();
 
 		void replyPlaceTile( Vec2i const& pos , int rotation );
-		void replyDeployActor( int index , ActorType type );
+		void replyDeployActor( int index , EActor::Type type );
 		void replySelection( int index );
-		void replyAuctionTile( int riseScore , int index = -1 );
-		void replyActorType(ActorType type);
+		void replyAuctionTile( int riseScore , int index = INDEX_NONE );
+		void replyActorType(EActor::Type type);
 
 		void replyDoIt();
 		void replySkip();
@@ -147,19 +147,19 @@ namespace CAR
 		void buildBridge( Vec2i const& pos , int dir );
 		void changePlaceTile( TileId id );
 		void exitGame();
-		void returnGame();
+		void executeGameLogic();
 
 	private:
 
-		void replyAction( ActionCom& com );
-		void applyAction( ActionCom& com );
-		void onRecvCommon( int slot , int dataId , void* data , int dataSize );
+		void commitActionCom( ActionCom& com, bool bReply = true );
+		void handleRecvCommond(int slot, int dataId, void* data, int dataSize);
 		bool executeActionCom( ActionCom const& com );
-		void doSkip();
+		void executeSkipAction();
 	public:
 
-	private:
 
+	private:
+		void requestActionImpl(PlayerAction action, GameActionData& data);
 #define REQUEST_ACTION( FUNC , DATA , DATA_ID )\
 	virtual void FUNC( DATA& data ) override {  requestActionImpl( DATA_ID , data ); }
 
@@ -176,24 +176,22 @@ namespace CAR
 		REQUEST_ACTION( requestSelectActionOption , GameSelectActionOptionData , ACTION_SELECT_ACTION_OPTION );
 		REQUEST_ACTION( requestExchangeActorPos, GameExchangeActorPosData, ACTION_EXCHANGE_ACTOR_POS );
 
-
 #undef REQUEST_ACTION
 
 
-
-		void requestActionImpl( PlayerAction action , GameActionData& data );
-
-		void postActionCom( ActionCom const* com );
-		void execEntry( YeildType& yeild );
+		void executeAction( ActionCom const* com );
+		void LogicExecutionEntry( YeildType& yeild );
 	public:
 
 		bool loadReplay( char const* file );
 		bool saveReplay( char const* file );
 
+
+		std::string      mAutoSavePath;
 		//Networking
-		IDataTransfer*   mDataTransfer;
+		IDataTransfer*   mRemoteSender;
 		//Replay
-		DataStreamBuffer  mRecordAction;
+		DataStreamBuffer mRecordAction;
 		bool             mbReplayMode;
 
 		bool             mbWaitReply;
@@ -201,8 +199,8 @@ namespace CAR
 		GameLogic*       mGameLogic;
 		PlayerAction     mAction;
 		GameActionData*  mActionData;
-		ExecType         mExec;
-		YeildType*       mYeild;
+		ExecType         mGameLogicExecution;
+		YeildType*       mInputExecution;
 	};
 
 

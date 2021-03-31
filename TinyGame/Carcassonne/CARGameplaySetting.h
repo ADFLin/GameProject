@@ -16,8 +16,8 @@ namespace CAR
 	public:
 		GameplaySetting();
 
-		bool have( Rule ruleFunc ) const;
-		void addRule( Rule ruleFunc );
+		bool have( ERule ruleFunc ) const;
+		void addRule( ERule ruleFunc );
 		void addExpansion(Expansion exp)
 		{
 			mUseExpansionMask.add(exp);
@@ -27,7 +27,7 @@ namespace CAR
 		void calcUsageOfField( int numPlayer );
 
 		unsigned getFollowerMask()  const;
-		inline bool isFollower( ActorType type ) const
+		inline bool isFollower( EActor::Type type ) const
 		{
 			return ( getFollowerMask() & BIT( type ) ) != 0;
 		}
@@ -45,12 +45,12 @@ namespace CAR
 		{
 			return mNumField;
 		}
-		int getFieldIndex( FieldType::Enum type ) const
+		int getFieldIndex( EField::Type type ) const
 		{
 			return mFieldInfos[type].index;
 		}
 
-		int getFieldValueNum(FieldType::Enum type) const
+		int getFieldValueNum(EField::Type type) const
 		{
 			return mFieldInfos[type].num;
 		}
@@ -64,21 +64,19 @@ namespace CAR
 		};
 		int        mFarmScoreVersion;
 		int        mNumField;
-		FieldInfo  mFieldInfos[FieldType::NUM];
+		FieldInfo  mFieldInfos[EField::COUNT];
 
-		FlagBits< (int)Rule::TotalNum > mRuleFlags;
+		FlagBits< (int)ERule::COUNT > mRuleFlags;
 		FlagBits< (int)NUM_EXPANSIONS > mUseExpansionMask;
 	};
 
 	template< class FieldProc >
 	void ProcessFields(GameplaySetting& setting, int numPlayer, FieldProc& proc)
 	{
-#define FIELD_ACTOR( TYPE , VALUE )\
-	proc.exec( FieldType::Enum( FieldType::eActorStart + TYPE ) , VALUE )
 #define FIELD_VALUE( TYPE , VALUE )\
 	proc.exec( TYPE , VALUE )
-#define FIELD_ARRAY_VALUES( TYPE , VALUES , NUM )\
-	proc.exec( TYPE , VALUES , NUM )
+#define FIELD_ARRAY_VALUES( TYPE , VALUES , COUNT )\
+	proc.exec( TYPE , VALUES , COUNT )
 
 #if CAR_USE_CONST_PARAMVALUE
 #define VALUE(NAME) CAR_PARAM_VALUE(NAME)
@@ -86,95 +84,95 @@ namespace CAR
 #define VALUE(NAME) setting.NAME
 #endif
 
-		FIELD_ACTOR(ActorType::eMeeple, VALUE(MeeplePlayerOwnNum));
+		FIELD_VALUE(EActor::Meeple, VALUE(MeeplePlayerOwnNum));
 
-		if (setting.have(Rule::eBigMeeple))
+		if (setting.have(ERule::BigMeeple))
 		{
-			FIELD_ACTOR(ActorType::eBigMeeple, VALUE(BigMeeplePlayerOwnNum));
+			FIELD_VALUE(EActor::BigMeeple, VALUE(BigMeeplePlayerOwnNum));
 		}
-		if (setting.have(Rule::eBuilder))
+		if (setting.have(ERule::Builder))
 		{
-			FIELD_ACTOR(ActorType::eBuilder, VALUE(BuilderPlayerOwnNum));
+			FIELD_VALUE(EActor::Builder, VALUE(BuilderPlayerOwnNum));
 		}
-		if (setting.have(Rule::ePig))
+		if (setting.have(ERule::Pig))
 		{
-			FIELD_ACTOR(ActorType::ePig, VALUE(PigPlayerOwnNum));
+			FIELD_VALUE(EActor::Pig, VALUE(PigPlayerOwnNum));
 		}
-		if (setting.have(Rule::eTraders))
+		if (setting.have(ERule::Traders))
 		{
-			FIELD_VALUE(FieldType::eWine, 0);
-			FIELD_VALUE(FieldType::eGain, 0);
-			FIELD_VALUE(FieldType::eCloth, 0);
+			FIELD_VALUE(EField::Wine, 0);
+			FIELD_VALUE(EField::Gain, 0);
+			FIELD_VALUE(EField::Cloth, 0);
 		}
-		if (setting.have(Rule::eBarn))
+		if (setting.have(ERule::Barn))
 		{
-			FIELD_ACTOR(ActorType::eBarn, VALUE(BarnPlayerOwnNum));
+			FIELD_VALUE(EActor::Barn, VALUE(BarnPlayerOwnNum));
 		}
-		if (setting.have(Rule::eWagon))
+		if (setting.have(ERule::Wagon))
 		{
-			FIELD_ACTOR(ActorType::eWagon, VALUE(WagonPlayerOwnNum));
+			FIELD_VALUE(EActor::Wagon, VALUE(WagonPlayerOwnNum));
 		}
-		if (setting.have(Rule::eMayor))
+		if (setting.have(ERule::Mayor))
 		{
-			FIELD_ACTOR(ActorType::eMayor, VALUE(MayorPlayerOwnNum));
+			FIELD_VALUE(EActor::Mayor, VALUE(MayorPlayerOwnNum));
 		}
-		if (setting.have(Rule::eHaveAbbeyTile))
+		if (setting.have(ERule::HaveAbbeyTile))
 		{
-			FIELD_VALUE(FieldType::eAbbeyPices, VALUE(AbbeyTilePlayerOwnNum));
+			FIELD_VALUE(EField::AbbeyPices, VALUE(AbbeyTilePlayerOwnNum));
 		}
-		if (setting.have(Rule::eTower))
+		if (setting.have(ERule::Tower))
 		{
-			FIELD_VALUE(FieldType::eTowerPices, VALUE(TowerPicesPlayerOwnNum[numPlayer - 1]));
+			FIELD_VALUE(EField::TowerPices, VALUE(TowerPicesPlayerOwnNum[numPlayer - 1]));
 		}
-		if (setting.have(Rule::eBridge))
+		if (setting.have(ERule::Bridge))
 		{
-			FIELD_VALUE(FieldType::eBridgePices, VALUE(BridgePicesPlayerOwnNum[numPlayer - 1]));
+			FIELD_VALUE(EField::BridgePices, VALUE(BridgePicesPlayerOwnNum[numPlayer - 1]));
 		}
-		if (setting.have(Rule::eCastleToken))
+		if (setting.have(ERule::CastleToken))
 		{
-			FIELD_VALUE(FieldType::eCastleTokens, VALUE(CastleTokensPlayerOwnNum[numPlayer - 1]));
+			FIELD_VALUE(EField::CastleTokens, VALUE(CastleTokensPlayerOwnNum[numPlayer - 1]));
 		}
-		if (setting.have(Rule::eBazaar))
+		if (setting.have(ERule::Bazaar))
 		{
-			FIELD_VALUE(FieldType::eTileIdAuctioned, FAIL_TILE_ID);
+			FIELD_VALUE(EField::TileIdAuctioned, FAIL_TILE_ID);
 		}
-		if (setting.have(Rule::eShepherdAndSheep))
+		if (setting.have(ERule::ShepherdAndSheep))
 		{
-			FIELD_ACTOR(ActorType::eShepherd, VALUE(ShepherdPlayerOwnNum));
+			FIELD_VALUE(EActor::Shepherd, VALUE(ShepherdPlayerOwnNum));
 		}
-		if (setting.have(Rule::ePhantom))
+		if (setting.have(ERule::Phantom))
 		{
-			FIELD_ACTOR(ActorType::ePhantom, VALUE(PhantomPlayerOwnNum));
+			FIELD_VALUE(EActor::Phantom, VALUE(PhantomPlayerOwnNum));
 		}
-		if (setting.have(Rule::eHaveGermanCastleTile))
-		{
-
-		}
-		if (setting.have(Rule::eGold))
-		{
-			FIELD_VALUE(FieldType::eGoldPieces, 0);
-		}
-		if (setting.have(Rule::eHaveHalflingTile))
+		if (setting.have(ERule::HaveGermanCastleTile))
 		{
 
 		}
-		if (setting.have(Rule::eLaPorxada))
+		if (setting.have(ERule::Gold))
 		{
-			FIELD_VALUE(FieldType::eLaPorxadaFinishScoring, 0);
+			FIELD_VALUE(EField::GoldPieces, 0);
 		}
-		if (setting.have(Rule::eMessage))
+		if (setting.have(ERule::HaveHalflingTile))
 		{
-			FIELD_VALUE(FieldType::eWomenScore, 0);
+
 		}
-		if (setting.have(Rule::eLittleBuilding))
+		if (setting.have(ERule::LaPorxada))
 		{
-			FIELD_VALUE(FieldType::eTowerBuildingTokens, VALUE(TowerBuildingTokensPlayerOwnNum));
-			FIELD_VALUE(FieldType::eHouseBuildingTokens, VALUE(HouseBuildingTokensPlayerOwnNum));
-			FIELD_VALUE(FieldType::eShedBuildingTokens, VALUE(ShedBuildingTokensPlayerOwnNum));
+			FIELD_VALUE(EField::LaPorxadaFinishScoring, 0);
 		}
-		if (setting.have(Rule::eRobber))
+		if (setting.have(ERule::Message))
 		{
-			FIELD_VALUE(FieldType::eRobberScorePos, -1);
+			FIELD_VALUE(EField::WomenScore, 0);
+		}
+		if (setting.have(ERule::LittleBuilding))
+		{
+			FIELD_VALUE(EField::TowerBuildingTokens, VALUE(TowerBuildingTokensPlayerOwnNum));
+			FIELD_VALUE(EField::HouseBuildingTokens, VALUE(HouseBuildingTokensPlayerOwnNum));
+			FIELD_VALUE(EField::ShedBuildingTokens, VALUE(ShedBuildingTokensPlayerOwnNum));
+		}
+		if (setting.have(ERule::Robber))
+		{
+			FIELD_VALUE(EField::RobberScorePos, -1);
 		}
 
 #undef FIELD_ACTOR
@@ -184,14 +182,14 @@ namespace CAR
 	}
 
 	template< class T, class ...TRule >
-	void ProcSequenceRule(T& ProcFunc, Rule rule, TRule... rules)
+	void ProcSequenceRule(T& ProcFunc, ERule rule, TRule... rules)
 	{
 		ProcFunc(rule);
 		ProcSequenceRule(ProcFunc, rules...);
 	}
 
 	template< class T >
-	void ProcSequenceRule(T& ProcFunc, Rule rule)
+	void ProcSequenceRule(T& ProcFunc, ERule rule)
 	{
 		ProcFunc(rule);
 	}
@@ -204,26 +202,26 @@ namespace CAR
 
 		switch (exp)
 		{
-		CASE(EXP_INNS_AND_CATHEDRALS, Rule::eInn, Rule::eCathedral);
-		CASE(EXP_TRADERS_AND_BUILDERS, Rule::eBuilder, Rule::eTraders);
-		CASE(EXP_THE_PRINCESS_AND_THE_DRAGON, Rule::eFariy, Rule::eDragon, Rule::ePrinecess);
-		CASE(EXP_THE_TOWER, Rule::eTower);
-		CASE(EXP_ABBEY_AND_MAYOR, Rule::eHaveAbbeyTile, Rule::eMayor, Rule::eBarn, Rule::eWagon);
-		CASE(EXP_KING_AND_ROBBER, Rule::eKingAndRobber);
-		CASE(EXP_BRIDGES_CASTLES_AND_BAZAARS, Rule::eBridge, Rule::eCastleToken, Rule::eBazaar);
-		CASE(EXP_HILLS_AND_SHEEP, Rule::eShepherdAndSheep, Rule::eUseHill, Rule::eUseVineyard);
-		CASE(EXP_CASTLES_IN_GERMANY, Rule::eHaveGermanCastleTile);
-		CASE(EXP_THE_PHANTOM, Rule::ePhantom);
-		CASE(EXP_CROP_CIRCLE_I, Rule::eCropCircle);
-		CASE(EXP_CROP_CIRCLE_II, Rule::eCropCircle);
-		CASE(EXP_THE_FLIER, Rule::eFlyMahine);
-		CASE(EXP_THE_GOLDMINES, Rule::eGold);
-		CASE(EXP_LA_PORXADA, Rule::eLaPorxada);
-		CASE(EXP_MAGE_AND_WITCH, Rule::eMageAndWitch);
-		CASE(EXP_THE_MESSSAGES, Rule::eMessage);
-		CASE(EXP_THE_ROBBERS, Rule::eRobber);
-		CASE(EXP_THE_SCHOOL, Rule::eTeacher);
-		CASE(EXP_THE_FESTIVAL, Rule::eFestival);
+		CASE(EXP_INNS_AND_CATHEDRALS, ERule::Inn, ERule::Cathedral);
+		CASE(EXP_TRADERS_AND_BUILDERS, ERule::Builder, ERule::Traders);
+		CASE(EXP_THE_PRINCESS_AND_THE_DRAGON, ERule::Fariy, ERule::Dragon, ERule::Prinecess);
+		CASE(EXP_THE_TOWER, ERule::Tower);
+		CASE(EXP_ABBEY_AND_MAYOR, ERule::HaveAbbeyTile, ERule::Mayor, ERule::Barn, ERule::Wagon);
+		CASE(EXP_KING_AND_ROBBER, ERule::KingAndRobber);
+		CASE(EXP_BRIDGES_CASTLES_AND_BAZAARS, ERule::Bridge, ERule::CastleToken, ERule::Bazaar);
+		CASE(EXP_HILLS_AND_SHEEP, ERule::ShepherdAndSheep, ERule::UseHill, ERule::UseVineyard);
+		CASE(EXP_CASTLES_IN_GERMANY, ERule::HaveGermanCastleTile);
+		CASE(EXP_THE_PHANTOM, ERule::Phantom);
+		CASE(EXP_CROP_CIRCLE_I, ERule::CropCircle);
+		CASE(EXP_CROP_CIRCLE_II, ERule::CropCircle);
+		CASE(EXP_THE_FLIER, ERule::FlyMahine);
+		CASE(EXP_THE_GOLDMINES, ERule::Gold);
+		CASE(EXP_LA_PORXADA, ERule::LaPorxada);
+		CASE(EXP_MAGE_AND_WITCH, ERule::MageAndWitch);
+		CASE(EXP_THE_MESSSAGES, ERule::Message);
+		CASE(EXP_THE_ROBBERS, ERule::Robber);
+		CASE(EXP_THE_SCHOOL, ERule::Teacher);
+		CASE(EXP_THE_FESTIVAL, ERule::Festival);
 		}
 #undef CASE
 	}

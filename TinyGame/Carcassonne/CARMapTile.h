@@ -22,8 +22,8 @@ namespace CAR
 
 		struct SideData
 		{
-			SideType linkType;
-			SideContentType   contentFlag;
+			ESide::Type linkType;
+			SideContentMask   contentFlag;
 			uint32   linkDirMask;
 			uint32   roadLinkDirMask;
 		};
@@ -39,7 +39,7 @@ namespace CAR
 		FarmData  farms[ NumFarm ];
 		TileContentMask    contentFlag;
 
-		SideType getLinkType( int lDir ) const{  return sides[lDir].linkType;  }
+		ESide::Type getLinkType( int lDir ) const{  return sides[lDir].linkType;  }
 
 		unsigned getSideLinkMask( int lDir ) const {  return sides[lDir].linkDirMask;;  }
 		unsigned getRoadLinkMask( int lDir ) const {  return sides[lDir].roadLinkDirMask;  }
@@ -53,43 +53,43 @@ namespace CAR
 		bool     canLinkFarm( int lDir ) const {  return CanLinkFarm( sides[lDir].linkType );  }
 		bool     isSemiCircularCity( int lDir ) const;
 		bool     isHalflingType() const {  return !!(contentFlag & BIT(TileContent::eHalfling));  }
-		bool     haveSideType( SideType type ) const;
-		bool     haveRiver() const { return haveSideType( SideType::eRiver ); }
+		bool     haveSideType( ESide::Type type ) const;
+		bool     haveRiver() const { return haveSideType( ESide::Type::River ); }
 
 
-		static bool CanLink( SideType typeA , SideType typeB );
+		static bool CanLink( ESide::Type typeA , ESide::Type typeB );
 
 		static bool CanLink( TilePiece const& tileA , int lDirA , TilePiece const& tileB , int lDirB )
 		{
 			return CanLink( tileA.sides[lDirA].linkType , tileB.sides[lDirB].linkType );
 		}
 
-		static bool CanLinkCity(SideType type)
+		static bool CanLinkCity(ESide::Type type)
 		{
-			return type == SideType::eCity;
+			return type == ESide::Type::City;
 		}
-		static bool CanLinkRiver(SideType type)
+		static bool CanLinkRiver(ESide::Type type)
 		{
-			return type == SideType::eRiver;
+			return type == ESide::Type::River;
 		}
-		static bool CanLinkRoad(SideType type)
+		static bool CanLinkRoad(ESide::Type type)
 		{
-			return type == SideType::eRoad;
+			return type == ESide::Type::Road;
 		}
-		static bool CanLinkFarm( SideType type )
+		static bool CanLinkFarm( ESide::Type type )
 		{
-			unsigned const FarmLinkMask = BIT( SideType::eField ) | BIT( SideType::eRoad ) | BIT( SideType::eRiver ) | BIT( SideType::eInsideLink );
+			unsigned const FarmLinkMask = BIT( ESide::Type::Field ) | BIT( ESide::Type::Road ) | BIT( ESide::Type::River ) | BIT( ESide::Type::InsideLink );
 			return !!( FarmLinkMask & BIT( type ) );
 		}
 
-		static bool CanRemoveFarm(SideType type)
+		static bool CanRemoveFarm(ESide::Type type)
 		{
-			return !!(BIT(type) & (BIT(SideType::eCity) | BIT(SideType::eInsideLink)));
+			return !!(BIT(type) & (BIT(ESide::Type::City) | BIT(ESide::Type::InsideLink)));
 		}
 
-		static bool CanLinkBridge( SideType type )
+		static bool CanLinkBridge( ESide::Type type )
 		{
-			return !!(BIT(type) & (BIT(SideType::eField) | BIT(SideType::eRoad)));
+			return !!(BIT(type) & (BIT(ESide::Type::Field) | BIT(ESide::Type::Road)));
 		}
 
 		static int FarmSideDir( int idx ){ return idx / 2; }
@@ -108,7 +108,7 @@ namespace CAR
 	};
 
 
-	class MapTile : public ActorContainer
+	class MapTile : public ActorCollection
 	{
 	public:
 		MapTile( TilePiece const& tile , int rotation );
@@ -131,7 +131,7 @@ namespace CAR
 		void connectSide( int dir , MapTile& data );
 		void connectFarm( int idx , MapTile& data );
 
-		SideType getLinkType( int dir ) const;
+		ESide::Type getLinkType( int dir ) const;
 
 		unsigned getSideLinkMask( int dir ) const;
 		unsigned getRoadLinkMask( int dir ) const;
@@ -146,7 +146,7 @@ namespace CAR
 		{
 			return !!(mTile->contentFlag & BIT(context));
 		}
-		SideContentType getSideContnet( int dir ) const;
+		SideContentMask getSideContnet( int dir ) const;
 		TileContentMask getTileContent() const;
 
 		unsigned calcSideRoadLinkMeskToCenter() const;
@@ -159,7 +159,7 @@ namespace CAR
 		static unsigned LocalToWorldFarmLinkMask( unsigned mask , int rotation );
 
 		void     addBridge( int dir );
-		void     margeHalflingTile(TilePiece const& tile);
+		void     margeHalflingTile(TilePiece const& tile, TilePiece& mergedTile);
 		void     updateSideLink( unsigned linkMask );
 		bool     isSemiCircularCity( int dir );
 
@@ -174,11 +174,11 @@ namespace CAR
 
 		struct SideNode
 		{
-			int       index;
-			int       group;
-			SideNode* outConnect;
-			SideType  type;
-			unsigned  linkMask;
+			int          index;
+			int          group;
+			SideNode*    outConnect;
+			ESide::Type  type;
+			unsigned     linkMask;
 
 			int      getLocalDir() const;
 

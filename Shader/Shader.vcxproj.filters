@@ -203,6 +203,10 @@
     <None Include="..\TinyGame\out\Shader\Test\TriangleTest.sgc">
       <Filter>Test</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\Chess.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\MeshUVCoord.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

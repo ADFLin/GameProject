@@ -25,7 +25,7 @@ namespace Chromatron
 {
 	int const IdxCreateMode = -1;
 
-	unsigned char const* GameDataPackage[] = 
+	unsigned char const* GameDataPackages[] = 
 	{
 		GameData1 ,
 		GameData2 ,
@@ -88,7 +88,7 @@ namespace Chromatron
 
 		pos.x = 5;
 		GChoice* choice = new GChoice( UI_GAME_PACKAGE_CHOICE , pos , Vec2i( 100 , 25 ) , panel );
-		for( int i = 0; i < ARRAY_SIZE( GameDataPackage ) ; ++i )
+		for( int i = 0; i < ARRAY_SIZE( GameDataPackages ) ; ++i )
 		{
 			FixString< 32 > str;
 			str.format( "Chromatron %d" , i + 1 );
@@ -275,7 +275,7 @@ namespace Chromatron
 		}
 		else
 		{
-			unsigned char const* data = GameDataPackage[ idxPackage ];
+			unsigned char const* data = GameDataPackages[ idxPackage ];
 
 			GameInfoHeader* header = (GameInfoHeader*) data;
 			std::string  str( (char*) data , header->totalSize );

@@ -20,7 +20,7 @@ public:
 class CLPlayerManager : public SimplePlayerManagerT< CLocalPlayer >
 {
 public:
-	void   updatePlayer( PlayerInfo* info[] , int num );
+	void   rebuildPlayerList( PlayerInfo* info[] , int num );
 };
 
 class  ClientWorker : public NetWorker, public INetConnectListener

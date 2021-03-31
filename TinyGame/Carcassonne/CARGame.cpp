@@ -49,28 +49,23 @@ namespace CAR
 		return false;
 	}
 
-	void GameModule::beginPlay( StageManager& manger, StageModeType modeType )
+	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
 	{
 		changeDefaultStage(manger, modeType);
 	}
 
-	struct ExpInfo
-	{
-		int exp;
-		char const* name;
-	};
 
-	ExpInfo UsageExp[] = 
+	Expansion const GUsageExp[] =
 	{
-		{ EXP_INNS_AND_CATHEDRALS , "Inns And Cathedrals" } ,
-		{ EXP_TRADERS_AND_BUILDERS , "Traders And Builders" } ,
-		{ EXP_THE_PRINCESS_AND_THE_DRAGON , "The Princess And The Dragon" } ,
-		{ EXP_THE_TOWER , "The Tower" } ,
-		{ EXP_ABBEY_AND_MAYOR , "Abbey And Mayor" } ,
-		{ EXP_KING_AND_ROBBER , "King And Robber" } ,
-		{ EXP_THE_RIVER_I , "The River" } ,
-		{ EXP_THE_RIVER_II , "The River II" } ,
-		{ EXP_BRIDGES_CASTLES_AND_BAZAARS , "Bridges , Castles And Bazaars" } , 
+		EXP_INNS_AND_CATHEDRALS ,
+		EXP_TRADERS_AND_BUILDERS ,
+		EXP_THE_PRINCESS_AND_THE_DRAGON ,
+		EXP_THE_TOWER ,
+		EXP_ABBEY_AND_MAYOR ,
+		EXP_KING_AND_ROBBER ,
+		EXP_THE_RIVER_I ,
+		EXP_THE_RIVER_II ,
+		EXP_BRIDGES_CASTLES_AND_BAZAARS , 
 	};
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
@@ -133,10 +128,10 @@ namespace CAR
 		{
 			GCheckBox* checkBox;
 			int id = UI_EXP;
-			for( int i = 0 ; i < ARRAY_SIZE( UsageExp ) ; ++i )
+			for( int i = 0 ; i < ARRAY_SIZE( GUsageExp ) ; ++i )
 			{
-				checkBox = mSettingPanel->addCheckBox( UI_EXP + UsageExp[i].exp , UsageExp[i].name , MASK_BASE );
-				checkBox->bChecked = mExpMask.check( UsageExp[i].exp );
+				checkBox = mSettingPanel->addCheckBox( UI_EXP + GUsageExp[i] , GetExpansionString( GUsageExp[i] ) , MASK_BASE );
+				checkBox->bChecked = mExpMask.check( GUsageExp[i] );
 			}
 		}
 

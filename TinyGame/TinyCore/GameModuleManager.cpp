@@ -6,7 +6,7 @@
 #include "FileSystem.h"
 
 
-bool GameModuleManager::registerModule( IModuleInterface* module , char const* loadedModuleName 
+bool GameModuleManager::registerModule( IModuleInterface* module , char const* moduleName 
 #if SYS_PLATFORM_WIN
 									   , HMODULE hModule 
 #endif
@@ -20,7 +20,7 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* l
 		gameModule = static_cast<IGameModule*>(module);
 	}
 
-	char const* registerName = ( gameModule ) ? gameModule->getName() : loadedModuleName;
+	char const* registerName = ( gameModule ) ? gameModule->getName() : moduleName;
 	if( findModule(registerName) )
 		return false;
 
@@ -35,6 +35,8 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* l
           , hModule
 #endif
 		});
+
+	LogMsg("Module Registered : %s", registerName);
 
 	if( gameModule )
 	{
@@ -185,9 +187,26 @@ public:
 bool GameModuleManager::loadModule( char const* path )
 {
 #if SYS_PLATFORM_WIN
-	HMODULE hModule = ::LoadLibrary( path );
-	if ( hModule == NULL )
+	HMODULE hModule = ::LoadLibraryA( path );
+	if (hModule == NULL)
+	{
+		char* lpMsgBuf;
+		DWORD dw = ::GetLastError();
+		::FormatMessageA(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			dw,
+			MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT),
+			(LPTSTR)&lpMsgBuf,
+			0, NULL);
+
+		LogWarning(0, "Load Module %s Fail : %s", path , lpMsgBuf);
+
+		::LocalFree(lpMsgBuf);
 		return false;
+	}
 	struct ModouleReleasePolicy
 	{
 		static void Release(HMODULE handle) { ::FreeLibrary(handle); }

@@ -718,14 +718,14 @@ namespace Render
 	}
 
 	RHITexture2D*  VulkanSystem::RHICreateTexture2D(
-		Texture::Format format, int w, int h,
+		ETexture::Format format, int w, int h,
 		int numMipLevel, int numSamples, uint32 creationFlags,
 		void* data, int dataAlign)
 	{
 		VulkanTexture2D* texture = new VulkanTexture2D;
 
 		//TODO:
-		if (format == Texture::eRGB8)
+		if (format == ETexture::RGB8)
 		{
 			std::vector< uint8 > tempData;
 			tempData.resize(w * h * 4);
@@ -742,7 +742,7 @@ namespace Render
 				dest += 4;
 				src += 3;
 			}
-			if (!initalizeTexture2DInternal(texture, Texture::eRGBA8, w, h, numMipLevel, numSamples, creationFlags, tempData.data(), dataAlign))
+			if (!initalizeTexture2DInternal(texture, ETexture::RGBA8, w, h, numMipLevel, numSamples, creationFlags, tempData.data(), dataAlign))
 			{
 				delete texture;
 				return nullptr;
@@ -760,7 +760,7 @@ namespace Render
 	}
 
 
-	bool VulkanSystem::initalizeTexture2DInternal(VulkanTexture2D* texture, Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment)
+	bool VulkanSystem::initalizeTexture2DInternal(VulkanTexture2D* texture, ETexture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment)
 	{
 		VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		VkCommandPool commandPool = mGraphicsCommandPool;
@@ -793,7 +793,7 @@ namespace Render
 		// Use a separate command buffer for texture loading
 		VkCommandBuffer copyCmd = mDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, commandPool, true);
 
-		uint32 textureDataSize = width * height * Texture::GetFormatSize(format);
+		uint32 textureDataSize = width * height * ETexture::GetFormatSize(format);
 
 		if (useStaging)
 		{

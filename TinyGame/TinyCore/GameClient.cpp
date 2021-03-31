@@ -258,7 +258,7 @@ void ClientWorker::procClockSynd( IComPacket* cp)
 void ClientWorker::procPlayerStatus( IComPacket* cp)
 {
 	SPPlayerStatus* com = cp->cast< SPPlayerStatus >();
-	mPlayerManager->updatePlayer( com->info , com->numPlayer );
+	mPlayerManager->rebuildPlayerList( com->info , com->numPlayer );
 }
 
 void ClientWorker::procPlayerState( IComPacket* cp)
@@ -363,13 +363,13 @@ void ClientWorker::connect( char const* hostName , char const* loginName )
 	});
 }
 
-void CLPlayerManager::updatePlayer( PlayerInfo* info[] , int num )
+void CLPlayerManager::rebuildPlayerList( PlayerInfo* info[] , int num )
 {
-	unsigned bit = 0;
+	unsigned playerMask = 0;
 
 	for ( int i = 0 ; i < num ; ++i )
 	{
-		bit |= BIT( info[i]->playerId );
+		playerMask |= BIT( info[i]->playerId );
 
 		CLocalPlayer* player = getPlayer( info[i]->playerId );
 
@@ -379,12 +379,14 @@ void CLPlayerManager::updatePlayer( PlayerInfo* info[] , int num )
 		player->setInfo( *info[i] );
 	}
 
+
+	//remove player
 	for( PlayerTable::iterator iter = mPlayerTable.begin() ;
 		iter != mPlayerTable.end() ; )
 	{
 		CLocalPlayer* player = iter->second;
 
-		if ( bit & BIT(player->getId()) )
+		if ( playerMask & BIT(player->getId()) )
 		{
 			++iter;
 		}

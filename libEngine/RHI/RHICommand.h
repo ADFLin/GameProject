@@ -16,7 +16,7 @@ class DataCacheInterface;
 struct ImageData;
 
 
-enum class RHISytemName
+enum class RHISystemName
 {
 	D3D11,
 	D3D12,
@@ -80,7 +80,7 @@ namespace Render
 	};
 
 
-	RHI_API bool RHISystemInitialize(RHISytemName name , RHISystemInitParams const& initParam );
+	RHI_API bool RHISystemInitialize(RHISystemName name , RHISystemInitParams const& initParam );
 	RHI_API void RHISystemShutdown();
 	RHI_API bool RHIBeginRender();
 	RHI_API void RHIEndRender(bool bPresent);
@@ -93,9 +93,9 @@ namespace Render
 #endif
 		bool  bWindowed;
 		IntVector2 extent;
-		Texture::Format colorForamt;
+		ETexture::Format colorForamt;
 		bool bCreateDepth;
-		Texture::Format depthFormat;
+		ETexture::Format depthFormat;
 
 		int numSamples;
 		int bufferCount;
@@ -106,8 +106,8 @@ namespace Render
 			extent = IntVector2(1, 1);
 			bWindowed = false;
 			bCreateDepth = false;
-			colorForamt = Texture::eBGRA8;
-			depthFormat = Texture::eD24S8;
+			colorForamt = ETexture::BGRA8;
+			depthFormat = ETexture::D24S8;
 			numSamples = 1;
 			bufferCount = 2;
 		}
@@ -116,31 +116,31 @@ namespace Render
 	RHI_API RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info);
 
 	RHI_API RHITexture1D* RHICreateTexture1D(
-		Texture::Format format, int length ,
+		ETexture::Format format, int length ,
 		int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,
 		void* data = nullptr);
 
 	RHI_API RHITexture2D*   RHI_TRACE_FUNC(RHICreateTexture2D,
-		Texture::Format format, int w, int h,
+		ETexture::Format format, int w, int h,
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue,
 		void* data = nullptr, int dataAlign = 0);
 
 	RHI_API RHITexture3D*    RHI_TRACE_FUNC(RHICreateTexture3D,
-		Texture::Format format, int sizeX, int sizeY, int sizeZ , 
+		ETexture::Format format, int sizeX, int sizeY, int sizeZ , 
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue , 
 		void* data = nullptr);
 
 	RHI_API RHITextureCube*  RHI_TRACE_FUNC(RHICreateTextureCube,
-		Texture::Format format, int size, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue, 
+		ETexture::Format format, int size, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue, 
 		void* data[] = nullptr);
 
 	RHI_API RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray,
-		Texture::Format format, int w, int h, int layerSize,
+		ETexture::Format format, int w, int h, int layerSize,
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue, 
 		void* data = nullptr);
 
 	RHI_API RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth,
-		Texture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
+		ETexture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
 
 	RHI_API RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -211,7 +211,7 @@ namespace Render
 	RHI_API void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex = 0, uint32 baseInstance = 0);
 
 	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride);
-	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, int const* pIndices, int numIndex);
+	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, uint32 const* pIndices, int numIndex);
 	struct VertexDataInfo
 	{
 		void const* ptr;
@@ -219,7 +219,7 @@ namespace Render
 		int   stride;
 	};
 	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[] , int numData );
-	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 	
 	RHI_API void RHIDrawMeshTasks(RHICommandList& commandList, int start, int count);
 	RHI_API void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
@@ -262,7 +262,7 @@ namespace Render
 		}
 	};
 
-	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderStateDesc const& state);
+	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderStateDesc const& stateDesc);
 
 
 	struct MeshShaderStateDesc
@@ -276,7 +276,7 @@ namespace Render
 			::memset(this, 0, sizeof(*this));
 		}
 	};
-	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& state);
+	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& stateDesc);
 
 
 	struct GraphicsPipelineStateDesc
@@ -309,7 +309,7 @@ namespace Render
 	{
 	public:
 		virtual ~RHISystem(){}
-		virtual RHISytemName getName() const = 0;
+		virtual RHISystemName getName() const = 0;
 		virtual bool initialize(RHISystemInitParams const& initParam) { return true; }
 		virtual void preShutdown(){}
 		virtual void shutdown(){}
@@ -321,30 +321,30 @@ namespace Render
 		RHI_FUNC(void RHIEndRender(bool bPresent));
 
 		RHI_FUNC(RHITexture1D*    RHICreateTexture1D(
-			Texture::Format format, int length,
+			ETexture::Format format, int length,
 			int numMipLevel, uint32 creationFlags, void* data));
 
 		RHI_FUNC(RHITexture2D*    RHICreateTexture2D(
-			Texture::Format format, int w, int h,
+			ETexture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 creationFlags,
 			void* data, int dataAlign));
 
 		RHI_FUNC(RHITexture3D*    RHICreateTexture3D(
-			Texture::Format format, int sizeX, int sizeY, int sizeZ,
+			ETexture::Format format, int sizeX, int sizeY, int sizeZ,
 			int numMipLevel, int numSamples , uint32 creationFlags , 
 			void* data));
 		RHI_FUNC(RHITextureCube*  RHICreateTextureCube(
-			Texture::Format format, int size, 
+			ETexture::Format format, int size, 
 			int numMipLevel, uint32 creationFlags, 
 			void* data[]));
 
 		RHI_FUNC(RHITexture2DArray* RHICreateTexture2DArray(
-			Texture::Format format, int w, int h, int layerSize,
+			ETexture::Format format, int w, int h, int layerSize,
 			int numMipLevel, int numSamples, uint32 creationFlags,
 			void* data));
 
 		RHI_FUNC(RHITexture2D* RHICreateTextureDepth(
-			Texture::Format format, int w, int h , 
+			ETexture::Format format, int w, int h , 
 			int numMipLevel, int numSamples, uint32 creationFlags) );
 		
 		RHI_FUNC(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data));
@@ -445,7 +445,7 @@ namespace Render
 		uint32 creationFlags = TCF_DefalutValue;
 
 
-		Texture::Format getFormat( int numComponent ) const;
+		ETexture::Format getFormat( int numComponent ) const;
 
 		bool isConvertFloatToHalf() const
 		{

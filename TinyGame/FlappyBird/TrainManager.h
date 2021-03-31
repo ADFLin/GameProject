@@ -97,9 +97,12 @@ namespace FlappyBird
 		void randomizeData();
 		void clearData();
 
+		float getMaxFitness() const;
+
 		TrainDataSetting const* setting;
 		int    generation;
-		Agent* curBestAgent = nullptr;
+		Agent* bestAgent = nullptr;
+
 		std::vector< NNScale > bestInputsAndSignals;
 		std::vector< std::unique_ptr< Agent > > mAgents;
 		GeneticAlgorithm GA;

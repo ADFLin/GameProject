@@ -493,7 +493,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 			assert( Global::ModuleManager().getRunningGame() );
 
-			Global::ModuleManager().getRunningGame()->beginPlay(  *getManager() , SMT_NET_GAME );
+			Global::ModuleManager().getRunningGame()->beginPlay(  *getManager() , EGameStageMode::Net );
 
 			StageBase* nextStage = getManager()->getNextStage();
 			if( nextStage )
@@ -887,7 +887,7 @@ void NetStageData::registerNetEvent()
 
 
 NetLevelStageMode::NetLevelStageMode() 
-	:LevelStageMode(SMT_NET_GAME)
+	:LevelStageMode(EGameStageMode::Net)
 {
 	mNetEngine = &gEmptyNetEngine;
 	mbReconnectMode = false;
@@ -990,7 +990,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		}
 		else if( event == EVT_BOX_NO )
 		{
-			if( haveServer() && getGameState() == GameState::End )
+			if( haveServer() && getGameState() == EGameState::End )
 			{
 				mServer->changeState(NAS_ROOM_ENTER);
 			}
@@ -1000,7 +1000,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		{
 			if( haveServer() )
 			{
-				if( getGameState() == GameState::End )
+				if( getGameState() == EGameState::End )
 				{
 					mServer->changeState(NAS_LEVEL_RESTART);
 				}
@@ -1066,11 +1066,11 @@ void NetLevelStageMode::onRestart(uint64& seed)
 	BaseClass::onRestart(seed);
 }
 
-bool NetLevelStageMode::tryChangeState(GameState state)
+bool NetLevelStageMode::tryChangeState(EGameState state)
 {
 	switch( getGameState() )
 	{
-	case GameState::Start:
+	case EGameState::Start:
 		if( mWorker->getActionState() != NAS_LEVEL_RUN )
 			return false;
 	}
@@ -1094,7 +1094,7 @@ void NetLevelStageMode::tick()
 	unsigned flag = 0;
 	switch( getGameState() )
 	{
-	case GameState::Run:
+	case EGameState::Run:
 		++mReplayFrame;
 		break;
 	default:
@@ -1300,8 +1300,10 @@ void NetLevelStageMode::updateTime(long time)
 {
 	BaseClass::updateTime(time);
 	mNetEngine->update(*this, time);
-	if( getGame() )
+	if (getGame())
+	{
 		::Global::GUI().scanHotkey(getGame()->getController());
+	}
 }
 
 bool NetLevelStageMode::canRender()

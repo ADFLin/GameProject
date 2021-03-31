@@ -46,7 +46,7 @@ protected:
 
 
 template< class T >
-class FrameActionHelper : public IFrameActionTemplate
+class TFrameActionHelper : public IFrameActionTemplate
 {
 	T* _this(){ return static_cast<T*>( this ); }
 protected:
@@ -78,7 +78,7 @@ struct KeyFrameData
 
 
 template< class FrameData >
-class TKeyFrameActionTemplate : public FrameActionHelper< TKeyFrameActionTemplate< FrameData > >
+class TKeyFrameActionTemplate : public TFrameActionHelper< TKeyFrameActionTemplate< FrameData > >
 {
 public:
 	TKeyFrameActionTemplate( size_t dataMaxNum )
@@ -262,9 +262,10 @@ public:
 template< class FrameData >
 class TServerKeyFrameCollector : public TServerFrameCollector< TKeyFrameActionTemplate<FrameData > >
 {
+	using BaseClass = TServerFrameCollector< TKeyFrameActionTemplate<FrameData > >;
 public:
 	TServerKeyFrameCollector( size_t dataMaxNum )
-		:TServerFrameCollector< TKeyFrameActionTemplate<FrameData > >( dataMaxNum )
+		:BaseClass( dataMaxNum )
 	{
 
 	}
@@ -287,7 +288,7 @@ public:
 
 	void  reflashPlayer( IPlayerManager& playerManager )
 	{
-		TServerFrameCollector< TKeyFrameActionTemplate<FrameData > >::setupPlayer( playerManager );
+		BaseClass::setupPlayer( playerManager );
 	}
 };
 

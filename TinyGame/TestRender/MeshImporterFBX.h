@@ -86,6 +86,7 @@ namespace Render
 					for (auto const& texInfo : texcoords)
 					{
 						inputLayout.addElement(0, Vertex::ATTRIBUTE_TEXCOORD + idxTex, Vertex::eFloat2);
+						++idxTex;
 					}
 				}
 			}

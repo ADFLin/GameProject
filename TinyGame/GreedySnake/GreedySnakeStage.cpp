@@ -31,7 +31,7 @@ namespace GreedySnake
 
 		if ( mGameMode == NULL )
 		{
-			if( getModeType() == SMT_NET_GAME )
+			if( getModeType() == EGameStageMode::Net )
 			{
 				mGameMode = new BattleMode;
 			}
@@ -74,8 +74,8 @@ namespace GreedySnake
 
 		switch( getModeType() )
 		{
-		case SMT_SINGLE_GAME:
-		case SMT_NET_GAME:
+		case EGameStageMode::Single:
+		case EGameStageMode::Net:
 			{
 				GamePlayer* player = playerManager.getUser();
 				getGame()->getController().setPortControl( player->getActionPort() , 0 );
@@ -89,13 +89,13 @@ namespace GreedySnake
 	{
 		switch( getGameState() )
 		{
-		case GameState::Start:
-			changeState( GameState::Run );
+		case EGameState::Start:
+			changeState( EGameState::Run );
 			break;
-		case GameState::Run:
+		case EGameState::Run:
 			mScene->tick();
 			if ( mScene->isOver() )
-				changeState( GameState::End );
+				changeState( EGameState::End );
 			break;
 		}
 	}
@@ -130,14 +130,14 @@ namespace GreedySnake
 		return NULL;
 	}
 
-	void LevelStage::onChangeState( GameState state )
+	void LevelStage::onChangeState( EGameState state )
 	{
 		switch ( state )
 		{
-		case GameState::End:
+		case EGameState::End:
 			switch( getModeType() )
 			{
-			case SMT_SINGLE_GAME:
+			case EGameStageMode::Single:
 				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , LOCTEXT("Do You Want To Play Game Again ?") );
 				break;
@@ -153,7 +153,7 @@ namespace GreedySnake
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getModeType() == SMT_SINGLE_GAME )
+				if ( getModeType() == EGameStageMode::Single )
 					getManager()->changeStage( STAGE_MAIN_MENU );
 			}
 			break;

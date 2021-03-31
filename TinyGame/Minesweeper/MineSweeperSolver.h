@@ -49,14 +49,14 @@ namespace Mine
 
 
 
-		IGameControler& mController;
+		IGameController& mController;
 	};
 
 
 	class MineSweeperSolver : public IMineMap
 	{
 	public:
-		MineSweeperSolver(ISolveStrategy& strategy, IGameControler& controller);
+		MineSweeperSolver(ISolveStrategy& strategy, IGameController& controller);
 
 		void       restart();
 		void       scanMap()
@@ -131,7 +131,7 @@ namespace Mine
 		int  mNumTotalBomb;
 		EGameState      mGameState;
 		ISolveStrategy* mStrategy;
-		IGameControler* mControler;
+		IGameController* mControler;
 
 	private:
 

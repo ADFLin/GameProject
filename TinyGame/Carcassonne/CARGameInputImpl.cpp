@@ -3,9 +3,6 @@
 #include "CARDebug.h"
 #include "CARGameLogic.h"
 
-#include "GameGlobal.h"
-#include "PropertySet.h"
-
 #include "CppVersion.h"
 
 #include <fstream>
@@ -50,17 +47,17 @@ namespace CAR
 
 	CGameInput::CGameInput()
 	{
-		mYeild = nullptr;
+		mInputExecution = nullptr;
 		reset();
 	}
 
 	void CGameInput::reset()
 	{
-		assert(mYeild == nullptr);
+		assert(mInputExecution == nullptr);
 		mbReplayMode = false;
 		mAction = ACTION_NONE;
 		mActionData = nullptr;
-		mDataTransfer = nullptr;
+		mRemoteSender = nullptr;
 		mGameLogic = nullptr;
 		mNumActionInput = 0;
 		mRecordAction.clear();
@@ -75,16 +72,16 @@ namespace CAR
 	void CGameInput::runLogic(GameLogic& gameLogic)
 	{
 		mGameLogic = &gameLogic;
-		mExec = ExecType( std::bind( &CGameInput::execEntry , this , std::placeholders::_1 ) );
+		mGameLogicExecution = ExecType( std::bind( &CGameInput::LogicExecutionEntry, this , std::placeholders::_1 ) );
 	}
 
-	void CGameInput::execEntry(YeildType& yeild )
+	void CGameInput::LogicExecutionEntry(YeildType& yeild )
 	{
 		try 
 		{
-			mYeild = &yeild;
+			mInputExecution = &yeild;
 			mGameLogic->run( *this );
-			mYeild = nullptr;
+			mInputExecution = nullptr;
 			mGameLogic = nullptr;
 		} 
 		catch(const boost::coroutines::detail::forced_unwind&) 
@@ -136,7 +133,7 @@ namespace CAR
 					}
 					if ( header.skip )
 					{
-						doSkip();
+						executeSkipAction();
 						break;
 					}
 
@@ -184,12 +181,125 @@ namespace CAR
 
 	void CGameInput::waitReply()
 	{
-		assert( mYeild );
+		assert( mInputExecution );
 		mbWaitReply = true;
-		(*mYeild)();
+		(*mInputExecution)();
 	}
 
-	void CGameInput::postActionCom( ActionCom const* com )
+	bool CGameInput::executeActionCom( ActionCom const& com  )
+	{
+		if ( com.bReply && com.action != getReplyAction() )
+		{
+			return false;
+		}
+
+		switch( com.action )
+		{
+		case ACTION_PLACE_TILE:
+			{
+				if ( com.numParam != 3 )
+					return false;
+
+				auto* myData = static_cast< GamePlaceTileData* >( mActionData );
+				myData->resultPos.x = com.getInt(0);
+				myData->resultPos.y = com.getInt(1);
+				myData->resultRotation = com.getInt(2);
+			}
+			break;
+		case ACTION_DEPLOY_ACTOR:
+			{
+				if ( com.numParam != 2 )
+					return false;
+
+				auto* myData = static_cast< GameDeployActorData* >( mActionData );
+				myData->resultIndex = com.getInt(0);
+				myData->resultType  = (EActor::Type) com.getInt(1);
+			}
+			break;
+		case ACTION_SELECT_ACTOR:
+		case ACTION_SELECT_MAPTILE:
+		case ACTION_SELECT_ACTOR_INFO:
+			{
+				if ( com.numParam != 1 )
+					return false;
+
+				auto* myData = static_cast< GameSelectActionData* >( mActionData );
+				myData->resultIndex = com.getInt(0);
+			}
+			break;
+		case ACTION_AUCTION_TILE:
+			{
+				auto* myData = static_cast< GameAuctionTileData* >( mActionData );
+
+				if ( com.numParam != ( myData->playerId == myData->pIdRound ? 2 : 1 ) )
+					return false;
+
+				myData->resultRiseScore = com.getInt(0);
+				if ( myData->playerId == myData->pIdRound )
+				{
+					myData->resultIndexTileSelect = com.getInt(1);
+				}
+			}
+			break;
+		case ACTION_EXCHANGE_ACTOR_POS:
+			{
+				if( com.numParam != 1 )
+					return false;
+
+				auto* myData = static_cast<GameExchangeActorPosData*>(mActionData);
+				myData->resultActorType = (EActor::Type)com.getInt(0);
+			}
+			break;
+		case ACTION_BUILD_CASTLE:
+		case ACTION_BUY_AUCTIONED_TILE:
+		case ACTION_TRUN_OVER:
+			{
+				if ( com.numParam != 0 )
+					return false;
+			}
+			break;
+		case ACTION_BUILD_BRIDGE:
+			{
+				if ( com.numParam != 3 )
+					return false;
+				Vec2i pos;
+				pos.x = com.getInt(0);
+				pos.y = com.getInt(1);
+				int dir = com.getInt(2);
+
+				if ( mGameLogic->buildBridge( pos , dir ) == false )
+					return false;
+			}
+			break;
+		case ACTION_CHANGE_TILE:
+			{
+				if ( com.numParam != 1 )
+					return false;
+
+				auto id = (TileId)com.getInt(0);
+				if ( mGameLogic->changePlaceTile( id ) == false )
+					return false;
+			}
+			break;
+
+		default:
+			return false;
+		}
+
+		executeAction( &com );
+		return true;
+	}
+
+	void CGameInput::executeSkipAction()
+	{
+		if ( mActionData )
+		{
+			mActionData->bSkipActionForResult = true;
+			executeAction( nullptr );
+		}
+	}
+
+	void CGameInput::executeAction( ActionCom const* com )
 	{
 
 		++mNumActionInput;
@@ -218,9 +328,10 @@ namespace CAR
 			}
 		}
 
-		if ( ::Global::GameConfig().getIntValue( "AutoSaveGame" , "CAR" , 1 ) )
+		if (!mAutoSavePath.empty())
 		{
-			saveReplay( ::Global::GameConfig().getStringValue( "AutoSaveGameName" , "CAR" , "car_record_temp" ) );
+			saveReplay(mAutoSavePath.c_str());
+
 		}
 
 		if ( com == nullptr || com->bReply == true )
@@ -228,7 +339,7 @@ namespace CAR
 			clearReplyAction();
 			if ( mbReplayMode == false )
 			{
-				returnGame();
+				executeGameLogic();
 			}
 		}
 	}
@@ -286,18 +397,18 @@ namespace CAR
 		com.addParam( pos.x );
 		com.addParam( pos.y );
 		com.addParam( rotation );
-		replyAction( com );
+		commitActionCom( com );
 	}
 
 
-	void CGameInput::replyDeployActor(int index , ActorType type)
+	void CGameInput::replyDeployActor(int index , EActor::Type type)
 	{
 		assert( mAction == ACTION_DEPLOY_ACTOR );
 
 		ActionCom com;
 		com.addParam( index );
 		com.addParam( (int)type );
-		replyAction( com );
+		commitActionCom( com );
 	}
 
 	void CGameInput::replySelection(int index)
@@ -308,7 +419,7 @@ namespace CAR
 
 		ActionCom com;
 		com.addParam( index );
-		replyAction( com );
+		commitActionCom( com );
 	}
 
 	void CGameInput::replyAuctionTile( int riseScore , int index /*= -1 */)
@@ -316,17 +427,17 @@ namespace CAR
 		assert( mAction == ACTION_AUCTION_TILE );
 		ActionCom com;
 		com.addParam( riseScore );
-		if ( index != -1 )
+		if ( index != INDEX_NONE )
 			com.addParam( index );
-		replyAction( com );
+		commitActionCom( com );
 	}
 
-	void CGameInput::replyActorType(ActorType type)
+	void CGameInput::replyActorType(EActor::Type type)
 	{
 		assert(mAction == ACTION_EXCHANGE_ACTOR_POS);
 		ActionCom com;
 		com.addParam((int)type);
-		replyAction(com);
+		commitActionCom(com);
 	}
 
 	void CGameInput::replyDoIt()
@@ -335,143 +446,33 @@ namespace CAR
 			    mAction == ACTION_TRUN_OVER ||
 				mAction == ACTION_BUY_AUCTIONED_TILE );
 		ActionCom com;
-		replyAction( com );
-	}
-
-	bool CGameInput::executeActionCom( ActionCom const& com  )
-	{
-		if ( com.bReply && com.action != getReplyAction() )
-		{
-			return false;
-		}
-
-		switch( com.action )
-		{
-		case ACTION_PLACE_TILE:
-			{
-				if ( com.numParam != 3 )
-					return false;
-
-				auto* myData = static_cast< GamePlaceTileData* >( mActionData );
-				myData->resultPos.x = com.getInt(0);
-				myData->resultPos.y = com.getInt(1);
-				myData->resultRotation = com.getInt(2);
-			}
-			break;
-		case ACTION_DEPLOY_ACTOR:
-			{
-				if ( com.numParam != 2 )
-					return false;
-
-				auto* myData = static_cast< GameDeployActorData* >( mActionData );
-				myData->resultIndex = com.getInt(0);
-				myData->resultType  = (ActorType) com.getInt(1);
-			}
-			break;
-		case ACTION_SELECT_ACTOR:
-		case ACTION_SELECT_MAPTILE:
-		case ACTION_SELECT_ACTOR_INFO:
-			{
-				if ( com.numParam != 1 )
-					return false;
-
-				auto* myData = static_cast< GameSelectActionData* >( mActionData );
-				myData->resultIndex = com.getInt(0);
-			}
-			break;
-		case ACTION_AUCTION_TILE:
-			{
-				auto* myData = static_cast< GameAuctionTileData* >( mActionData );
-
-				if ( com.numParam != ( myData->playerId == myData->pIdRound ? 2 : 1 ) )
-					return false;
-
-				myData->resultRiseScore = com.getInt(0);
-				if ( myData->playerId == myData->pIdRound )
-				{
-					myData->resultIndexTileSelect = com.getInt(1);
-				}
-			}
-			break;
-		case ACTION_EXCHANGE_ACTOR_POS:
-			{
-				if( com.numParam != 1 )
-					return false;
-
-				auto* myData = static_cast<GameExchangeActorPosData*>(mActionData);
-				myData->resultActorType = (ActorType)com.getInt(0);
-			}
-			break;
-		case ACTION_BUILD_CASTLE:
-		case ACTION_BUY_AUCTIONED_TILE:
-		case ACTION_TRUN_OVER:
-			{
-				if ( com.numParam != 0 )
-					return false;
-			}
-			break;
-		case ACTION_BUILD_BRIDGE:
-			{
-				if ( com.numParam != 3 )
-					return false;
-				Vec2i pos;
-				pos.x = com.getInt(0);
-				pos.y = com.getInt(1);
-				int dir = com.getInt(2);
-
-				if ( mGameLogic->buildBridge( pos , dir ) == false )
-					return false;
-			}
-			break;
-		case ACTION_CHANGE_TILE:
-			{
-				if ( com.numParam != 1 )
-					return false;
-
-				auto id = (TileId)com.getInt(0);
-				if ( mGameLogic->changePlaceTile( id ) == false )
-					return false;
-			}
-			break;
-
-		default:
-			return false;
-		}
-
-		postActionCom( &com );
-		return true;
+		commitActionCom( com );
 	}
 
 	void CGameInput::replySkip()
 	{
-		if ( mDataTransfer )
+		if ( mRemoteSender )
 		{
 			SkipCom com;
 			com.action = getReplyAction();
-			mDataTransfer->sendData( SLOT_SERVER , com );
+			mRemoteSender->sendData( SLOT_SERVER , com );
 		}
 		else
 		{
-			doSkip();
+			executeSkipAction();
 		}
 	}
 
-	void CGameInput::doSkip()
+	void CGameInput::setRemoteSender(IDataTransfer* transfer)
 	{
-		if ( mActionData )
+		mRemoteSender = transfer;
+		if (mRemoteSender)
 		{
-			mActionData->bSkipActionForResult = true;
-			postActionCom( nullptr );
+			mRemoteSender->setRecvFunc(RecvFunc(this, &CGameInput::handleRecvCommond));
 		}
 	}
 
-	void CGameInput::setDataTransfer(IDataTransfer* transfer)
-	{
-		mDataTransfer = transfer;
-		mDataTransfer->setRecvFunc( RecvFunc( this , &CGameInput::onRecvCommon ) );
-	}
-
-	void CGameInput::onRecvCommon(int slot , int dataId , void* data , int dataSize)
+	void CGameInput::handleRecvCommond(int slot , int dataId , void* data , int dataSize)
 	{
 		switch( dataId )
 		{
@@ -486,35 +487,24 @@ namespace CAR
 				auto myData = static_cast< SkipCom* >( data );
 				if ( myData->action == getReplyAction() )
 				{
-					doSkip();
+					executeSkipAction();
 				}
 			}
 			break;
 		}
 	}
 
-	void CGameInput::applyAction( ActionCom& com )
-	{
-		com.bReply = false;
-		if ( mDataTransfer )
+	void CGameInput::commitActionCom( ActionCom& com , bool bReply )
+	{	
+		com.bReply = bReply;
+		if (bReply)
 		{
-			mDataTransfer->sendData( SLOT_SERVER , com );
+			com.action = getReplyAction();
 		}
-		else
+
+		if ( mRemoteSender )
 		{
-			executeActionCom( com );
-		}
-	}
-
-
-	void CGameInput::replyAction( ActionCom& com )
-	{
-		com.action = getReplyAction();
-		com.bReply = true;
-
-		if ( mDataTransfer )
-		{
-			mDataTransfer->sendData(SLOT_SERVER , com );
+			mRemoteSender->sendData( SLOT_SERVER , com );
 		}
 		else
 		{
@@ -529,13 +519,15 @@ namespace CAR
 		com.addParam( pos.x );
 		com.addParam( pos.y );
 		com.addParam( dir );
-		applyAction( com );
+		commitActionCom(com, false);
 	}
 
-	void CGameInput::returnGame()
+	void CGameInput::executeGameLogic()
 	{
-		if ( mYeild )
-			mExec();
+		if (mInputExecution)
+		{
+			mGameLogicExecution();
+		}
 	}
 
 	void CGameInput::exitGame()
@@ -543,7 +535,7 @@ namespace CAR
 		if ( mActionData )
 		{
 			mGameLogic->mbNeedShutdown = true;
-			returnGame();
+			executeGameLogic();
 		}
 	}
 
@@ -552,7 +544,7 @@ namespace CAR
 		ActionCom com;
 		com.action = ACTION_CHANGE_TILE;
 		com.addParam( (int)id );
-		applyAction( com );
+		commitActionCom( com , false );
 	}
 
 }//namespace CAR

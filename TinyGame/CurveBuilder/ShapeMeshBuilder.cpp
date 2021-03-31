@@ -289,7 +289,7 @@ namespace CB
 				}
 			}
 
-			int*     pIndexData = data->getIndexData();
+			uint32*  pIndexData = data->getIndexData();
 			int nu = paramU.numData;
 			int nv = paramV.numData;
 

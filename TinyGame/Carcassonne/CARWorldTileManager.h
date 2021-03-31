@@ -20,13 +20,13 @@ namespace CAR
 	struct TileDefine;
 	struct ExpansionContent;
 
-	struct TileType
+	struct ETileClass
 	{
-		enum Enum
+		enum Type
 		{
-			eSimple ,
-			eDouble ,
-			eHalfling ,
+			Simple ,
+			Double ,
+			Halfling ,
 		};
 	};
 
@@ -41,7 +41,7 @@ namespace CAR
 			NumGroup ,
 		};
 		Expansion      expansion;
-		TileType::Enum type;
+		ETileClass::Type type;
 		int            idxDefine;
 		TilePiece*     tiles;
 		EGroup         group;
@@ -121,7 +121,11 @@ namespace CAR
 	{
 	public:
 		WorldTileManager( TileSetManager& manager );
+
+		~WorldTileManager();
 		void       restart();
+
+
 
 		TilePiece const& getTile( TileId id , int idx = 0 ) const;
 		int         placeTile( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] );
@@ -144,7 +148,7 @@ namespace CAR
 		
 		MapTile*    placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PlaceTileParam& param );
 
-
+		void       cleanup();
 		//
 		struct PlaceResult
 		{
@@ -194,6 +198,8 @@ namespace CAR
 
 		TileSetManager* mTileSetManager;
 		uint32          mCheckCount;
+
+		std::vector< TilePiece* > mTempTilePieces;
 	};
 
 

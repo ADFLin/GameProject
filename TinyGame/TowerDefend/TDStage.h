@@ -34,11 +34,11 @@ namespace TowerDefend
 
 			switch( getGameState() )
 			{
-			case GameState::Run:
+			case EGameState::Run:
 				mLevel->tick();
 				break;
-			case GameState::Start:
-				changeState( GameState::Run );
+			case EGameState::Start:
+				changeState( EGameState::Run );
 				break;
 			}
 		}
@@ -80,7 +80,7 @@ namespace TowerDefend
 
 		}
 		virtual void setupScene( IPlayerManager& playerManager );
-		virtual void onChangeState( GameState state )
+		virtual void onChangeState( EGameState state )
 		{
 
 		}

@@ -9,23 +9,23 @@ namespace CAR
 {
 
 
-#define LF SideType::eField
-#define LC SideType::eCity
-#define LR SideType::eRoad
-#define LS SideType::eRiver
-#define LA SideType::eAbbey
-#define LI SideType::eInsideLink
-#define LE SideType::eEmptySide
+#define LF ESide::Type::Field
+#define LC ESide::Type::City
+#define LR ESide::Type::Road
+#define LS ESide::Type::River
+#define LA ESide::Type::Abbey
+#define LI ESide::Type::InsideLink
+#define LE ESide::Type::Empty
 
-#define SPE SideContent::ePennant
-#define SIN SideContent::eInn
-#define SWH SideContent::eWineHouse
-#define SGH SideContent::eGrainHouse
-#define SCH SideContent::eClothHouse
-#define SPR SideContent::ePrincess
-#define SNC SideContent::eNotSemiCircularCity
-#define SHS	SideContent::eHalfSeparate
-#define SSC	SideContent::eSchool
+#define SPE BIT(SideContent::ePennant)
+#define SIN BIT(SideContent::eInn)
+#define SWH BIT(SideContent::eWineHouse)
+#define SGH BIT(SideContent::eGrainHouse)
+#define SCH BIT(SideContent::eClothHouse)
+#define SPR BIT(SideContent::ePrincess)
+#define SNC BIT(SideContent::eNotSemiCircularCity)
+#define SHS	BIT(SideContent::eHalfSeparate)
+#define SSC	BIT(SideContent::eSchool)
 
 #define TCL BIT(TileContent::eCloister)
 #define TCA BIT(TileContent::eCathedral)
@@ -321,30 +321,34 @@ namespace CAR
 /*04*/ 	{ 1, { LC,LC,LF,LR }, SL2(0,1)     , SL3(0,1,3)   , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*00*/ 	{ 1, { LC,LC,LR,LC }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 	};
-#define EXPDATA( ORDER, NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) , ORDER } ,
+
+
+#define EXPANSION_LIST(op)\
+		op(0, EXP_BASIC, DataBasic, "Basic")\
+		op(0, EXP_INNS_AND_CATHEDRALS, DataInnCathedral, "Inns And Cathedrals")\
+		op(0, EXP_TRADERS_AND_BUILDERS, DataTraderBuilder, "Traders And Builders")\
+		op(0, EXP_KING_AND_ROBBER, DataKingRobber, "King And Robber")\
+		op(0, EXP_THE_RIVER_I, DataRiver1, "The River")\
+		op(0, EXP_THE_PRINCESS_AND_THE_DRAGON, DataPrincessDragon, "The Princess And The Dragon")\
+		op(0, EXP_THE_TOWER, DataTower, "The Tower")\
+		op(0, EXP_ABBEY_AND_MAYOR, DataAbbeyMayor, "Abby And Mayor")\
+		op(0, EXP_THE_RIVER_II, DataRiver2, "The River II")\
+		op(0, EXP_BRIDGES_CASTLES_AND_BAZAARS, DataBrigeCastleBazaar, "Bridges , Castles And Bazaars")\
+		op(0, EXP_HILLS_AND_SHEEP, DataHillsSheep, "Hills And Sheep")\
+		op(0, EXP_CASTLES_IN_GERMANY, DataCastle, "Castles In Germany")\
+		op(0, EXP_THE_SCHOOL, DataSchool, "The School")\
+		op(0, EXP_HALFLINGS_I, DataHalflings1, "HalfLings I")\
+		op(0, EXP_THE_WIND_ROSES, DataWindRose, "The Wind Roses")\
+		op(0, EXP_TEST, DataTest, "Test")
+
+
+#define DATA_OP( ORDER , EXP , DATA , STR ) { EXP , DATA , ARRAY_SIZE( DATA ) , ORDER } ,
+
 	TArrayView< ExpansionContent const > gAllExpansionTileContents =
 	ARRAY_VIEW_REAONLY_DATA(ExpansionContent ,
-
-		EXPDATA(0, EXP_BASIC , DataBasic)
-		EXPDATA(0, EXP_INNS_AND_CATHEDRALS , DataInnCathedral)
-		EXPDATA(0, EXP_TRADERS_AND_BUILDERS , DataTraderBuilder)
-		EXPDATA(0, EXP_KING_AND_ROBBER , DataKingRobber)
-		EXPDATA(0, EXP_THE_RIVER_I , DataRiver1)
-		EXPDATA(0, EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon)
-		EXPDATA(0, EXP_THE_TOWER , DataTower)
-		EXPDATA(0, EXP_ABBEY_AND_MAYOR , DataAbbeyMayor)
-		EXPDATA(0, EXP_THE_RIVER_II , DataRiver2)
-		EXPDATA(0, EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar)
-		EXPDATA(0, EXP_HILLS_AND_SHEEP , DataHillsSheep)
-
-		EXPDATA(0, EXP_CASTLES_IN_GERMANY , DataCastle)
-		EXPDATA(0, EXP_THE_SCHOOL, DataSchool)
-		EXPDATA(0, EXP_HALFLINGS_I , DataHalflings1 )
-
-		EXPDATA(0, EXP_THE_WIND_ROSES , DataWindRose)
-		EXPDATA(0, EXP_TEST , DataTest)
+		EXPANSION_LIST(DATA_OP)
 	);
-#undef EXPDATA
+#undef DATA_OP
 
 #undef LF 
 #undef LC
@@ -381,5 +385,21 @@ namespace CAR
 #undef TWW
 #undef TWS
 #undef TBW
+
+
+
+
+	char const* GetExpansionString(Expansion exp)
+	{
+#define CASE_OP( ORDER , EXP , DATA , STR ) case EXP: return STR;
+
+		switch (exp)
+		{
+			EXPANSION_LIST(CASE_OP)
+		}
+
+#undef CASE_OP
+		return "Unknown Expansion";
+	}
 
 }//namespace CAR

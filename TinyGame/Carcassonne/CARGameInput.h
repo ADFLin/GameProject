@@ -37,7 +37,7 @@ namespace CAR
 
 	struct GameDeployActorData : public GameActionData
 	{
-		ActorType resultType;
+		EActor::Type resultType;
 		int       resultIndex;
 	};
 
@@ -138,6 +138,7 @@ namespace CAR
 		SAR_MOVE_DRAGON ,
 		SAR_MAGIC_PORTAL ,
 		SAR_PLACE_GOLD_PIECES ,
+		SAR_MOVE_MEAGE_OR_WITCH ,
 		//
 		SAR_WAGON_MOVE_TO_FEATURE ,
 
@@ -200,7 +201,7 @@ namespace CAR
 
 	struct GameSelectFeatureData : public GameSelectActionData
 	{
-		LevelActor** features;
+		FeatureBase** features;
 	};
 
 	struct GameSelectActorInfoData : public GameSelectActionData
@@ -250,7 +251,7 @@ namespace CAR
 	{
 		LevelActor* selfActor;
 		LevelActor* targetActor;
-		ActorType   resultActorType;
+		EActor::Type   resultActorType;
 	};
 
 	class GameLogic;

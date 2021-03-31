@@ -46,14 +46,14 @@ DEFINE_TEXTURE(Texture2D, Texture);
 uniform float3 Color;
 
 PS_ENTRY_START(MainPS)
-	PS_INPUT(VSOutputParam InputVS, 0)
+	PS_INPUT(VSOutputParam OutputVS, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
-	float4 color = TEXTURE_SAMPLE(Texture, InputVS.uv);
+	float4 color = TEXTURE_SAMPLE(Texture, OutputVS.uv);
 	//OutColor = float4(c * Color * inputVS.color * color.rgb, 1);
-	OutColor = float4(InputVS.color, 1);
+	OutColor = float4(OutputVS.color, 1);
 	//OutColor = float4(Color* inputVS.color, 1 );
 }
 

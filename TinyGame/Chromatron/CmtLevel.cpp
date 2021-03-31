@@ -80,13 +80,13 @@ namespace Chromatron
 
 	void Level::restart()
 	{
-		for(Device* dc : mUserDC)
+		for(Device* dc : mUserDCs)
 		{
 			uninstallDevice( *dc );
 		}
 
 		int index = 0;
-		for(Device * dc : mUserDC)
+		for(Device * dc : mUserDCs)
 		{
 			dc->changeDir( Dir::ValueChecked( 0 ) );
 			installDevice( *dc , Vec2i( index , 0 ) , false );
@@ -197,10 +197,7 @@ namespace Chromatron
 
 		} while (bRecalc);
 
-
 		bool goal = true;
-
-
 		for( auto& deviceTile : mMapDCList )
 		{
 			Device* dc = deviceTile.dc;
@@ -226,7 +223,7 @@ namespace Chromatron
 			DeviceFactory::Destroy(dc);
 		});
 
-		mUserDC.clear();
+		mUserDCs.clear();
 		mWorld.clearDevice();
 		mMapDCList.clear();
 		std::fill_n( mStorgeMap , MaxNumUserDC , nullptr );
@@ -265,7 +262,7 @@ namespace Chromatron
 		installDevice( *dc , pos , inWorld );
 
 		if ( beUserDC )
-			mUserDC.push_back( dc );
+			mUserDCs.push_back( dc );
 
 		return dc;
 	}
@@ -435,7 +432,7 @@ namespace Chromatron
 
 	unsigned Level::saveUserDC( LevelInfoHeader& header ,std::ostream& stream , unsigned version)
 	{
-		header.numUserDC = mUserDC.size();
+		header.numUserDC = mUserDCs.size();
 
 		unsigned len = 0;
 
@@ -446,11 +443,11 @@ namespace Chromatron
 				return dc1->getId() < dc2->getId();
 			}
 		};
-		std::sort( mUserDC.begin() ,mUserDC.end() , DCCmp() );
+		std::sort( mUserDCs.begin() ,mUserDCs.end() , DCCmp() );
 
-		DeviceVec::iterator iter  = mUserDC.begin();
+		DeviceVec::iterator iter  = mUserDCs.begin();
 
-		if ( iter == mUserDC.end() )
+		if ( iter == mUserDCs.end() )
 			return len;
 
 		int numDC  = 1;
@@ -461,7 +458,7 @@ namespace Chromatron
 			++iter;
 
 			bool needSave = true;
-			if ( iter != mUserDC.end() )
+			if ( iter != mUserDCs.end() )
 			{
 				Device* dc = *iter;
 				if ( dc->getId() == prevDC->getId() &&
@@ -494,7 +491,7 @@ namespace Chromatron
 				numDC = 1;
 			}
 
-			if ( iter == mUserDC.end() )
+			if ( iter == mUserDCs.end() )
 				break;
 		}
 
@@ -556,11 +553,8 @@ namespace Chromatron
 		loadWorld( header , stream , version );
 	}
 
-
 	struct DcStateCoder
 	{
-
-
 		static int const offsetPos = 30;
 
 		void decode( char const* buf , Vec2i& pos , Dir& dir , bool& inWorld )
@@ -628,7 +622,7 @@ namespace Chromatron
 	int Level::generateDCStateCode( char* buf , int maxLen )
 	{
 		int len = 0;
-		for( Device* dc : mUserDC )
+		for( Device* dc : mUserDCs )
 		{
 			if ( len > maxLen - 2 )
 				break;
@@ -650,7 +644,7 @@ namespace Chromatron
 		bool  inWorld;
 
 		int len = 0;
-		for(Device* dc : mUserDC)
+		for(Device* dc : mUserDCs)
 		{
 			if ( len > maxLen - 2 )
 				break;
@@ -687,11 +681,11 @@ namespace Chromatron
 
 		if ( dc.isStatic() )
 		{
-			mUserDC.push_back( &dc );
+			mUserDCs.push_back( &dc );
 		}
 		else
 		{
-			removeDevice( mUserDC , dc );
+			removeDevice( mUserDCs , dc );
 		}
 
 		dc.setStatic( !dc.isStatic() );
@@ -726,7 +720,7 @@ namespace Chromatron
 	{
 		if ( !dc.isStatic() )
 		{
-			removeDevice( mUserDC , dc );
+			removeDevice( mUserDCs , dc );
 		}
 
 		uninstallDevice( dc );
@@ -788,7 +782,7 @@ namespace Chromatron
 
 		//stream.write( (char*)&gameHeaderSize , sizeof( gameHeaderSize) );
 
-		GameInfoHeaderV2* gameHeader = (GameInfoHeaderV2*) malloc( gameHeaderSize );
+		GameInfoHeaderV2* gameHeader = (GameInfoHeaderV2*) alloca( gameHeaderSize );
 
 		if ( gameHeader == nullptr )
 			return false;
@@ -842,14 +836,16 @@ namespace Chromatron
 
 		stream.read( (char*) &tempHeader , sizeof(tempHeader) );
 
-		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*) malloc( tempHeader.headerSize );
+		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*) alloca( tempHeader.headerSize );
 		if ( gameHeader == nullptr )
 			return 0;
 
+#if 0
 		ON_SCOPE_EXIT
 		{
 			free(gameHeader);
 		};
+#endif
 
 		stream.seekg( pos );
 		stream.read( (char*)gameHeader , tempHeader.headerSize );
@@ -885,14 +881,16 @@ namespace Chromatron
 
 		stream.read((char*)&tempHeader, sizeof(tempHeader));
 
-		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*)malloc(tempHeader.headerSize);
+		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*) alloca(tempHeader.headerSize);
 		if (gameHeader == nullptr)
 			return false;
 
+#if 0
 		ON_SCOPE_EXIT
 		{
 			free(gameHeader);
 		};
+#endif
 		stream.seekg(pos);
 		stream.read((char*)gameHeader, tempHeader.headerSize);
 

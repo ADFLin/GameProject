@@ -170,8 +170,15 @@ public:
 	virtual std::type_index getTypeIndex() const = 0;
 	virtual VariableConsoleCommadBase* asVariable() { return this; }
 	virtual std::string toString() const = 0;
-	virtual bool fromString(StringView const& str) = 0;
+	virtual bool setFromString(StringView const& str) = 0;
 	virtual void setValue(void* pDest) {}
+
+	virtual bool setFromInt(int inValue) { return false; }
+	virtual int  getAsInt() const { return 0; }
+
+	virtual bool  setFromFloat(float inValue) { return false; }
+	virtual float getAsFloat() const { return 0; }
+
 	uint32 getFlags() { return mFlags; }
 	uint32 mFlags;
 };
@@ -197,7 +204,7 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 		return FStringConv::From(*mPtr);
 	}
 
-	virtual bool fromString(StringView const& str) override
+	virtual bool setFromString(StringView const& str) override
 	{
 		return FStringConv::ToCheck(str.data(), str.length(), *mPtr);
 	}
@@ -221,7 +228,14 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 	{
 		TypeDataHelper::Assign(mPtr, *(Type*)pDest);
 	}
+
+	virtual bool setFromInt(int inValue) { *mPtr = inValue; return true; }
+	virtual int  getAsInt() const { return *mPtr; }
+
+	virtual bool  setFromFloat(float inValue) { *mPtr = inValue;  return true; }
+	virtual float getAsFloat() const { return *mPtr; }
 };
+
 
 template < class Type >
 struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
@@ -249,7 +263,7 @@ struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
 		return FStringConv::From(mGetValue());
 	}
 
-	virtual bool fromString(StringView const& str) override
+	virtual bool setFromString(StringView const& str) override
 	{
 		return formStringImpl(str, typename Meta::IsSameType< Type, char const* >::Type() );
 	}

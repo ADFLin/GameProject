@@ -15,7 +15,7 @@
 
 #include "ConsoleSystem.h"
 
-#define COMMIT_STATE_IMMEDIATELY 0
+#define COMMIT_STATE_IMMEDIATELY 1
 
 namespace Render
 {
@@ -198,15 +198,15 @@ namespace Render
 
 		char const* vendorStr = (char const*) glGetString(GL_VENDOR);
 
-		if( strstr(vendorStr, "NVIDIA") != nullptr )
+		if( FCString::StrStr(vendorStr, "NVIDIA") != nullptr )
 		{
 			GRHIDeviceVendorName = DeviceVendorName::NVIDIA;
 		}
-		else if( strstr(vendorStr, "ATI") != nullptr )
+		else if(FCString::StrStr(vendorStr, "ATI") != nullptr )
 		{
 			GRHIDeviceVendorName = DeviceVendorName::ATI;
 		}
-		else if( strstr(vendorStr, "Intel") != nullptr )
+		else if(FCString::StrStr(vendorStr, "Intel") != nullptr )
 		{
 			GRHIDeviceVendorName = DeviceVendorName::Intel;
 		}
@@ -310,32 +310,32 @@ namespace Render
 		return nullptr;
 	}
 
-	RHITexture1D* OpenGLSystem::RHICreateTexture1D(Texture::Format format, int length,  int numMipLevel, uint32 createFlags, void* data)
+	RHITexture1D* OpenGLSystem::RHICreateTexture1D(ETexture::Format format, int length,  int numMipLevel, uint32 createFlags, void* data)
 	{
 		return CreateOpenGLResourceT< OpenGLTexture1D >(format, length, numMipLevel, createFlags, data);
 	}
 
-	RHITexture2D* OpenGLSystem::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
+	RHITexture2D* OpenGLSystem::RHICreateTexture2D(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
 		return CreateOpenGLResourceT< OpenGLTexture2D >(format, w, h, numMipLevel, numSamples, createFlags, data, dataAlign);
 	}
 
-	RHITexture3D* OpenGLSystem::RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data)
+	RHITexture3D* OpenGLSystem::RHICreateTexture3D(ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data)
 	{
 		return CreateOpenGLResourceT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ, numMipLevel, numSamples, createFlags , data);
 	}
 
-	RHITextureCube* OpenGLSystem::RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	RHITextureCube* OpenGLSystem::RHICreateTextureCube(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
 		return CreateOpenGLResourceT< OpenGLTextureCube >( format , size , numMipLevel , creationFlags , data );
 	}
 
-	RHITexture2DArray* OpenGLSystem::RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	RHITexture2DArray* OpenGLSystem::RHICreateTexture2DArray(ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 	{
 		return CreateOpenGLResourceT< OpenGLTexture2DArray >(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data);
 	}
 
-	RHITexture2D* OpenGLSystem::RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* OpenGLSystem::RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
 		OpenGLTexture2D* result = new OpenGLTexture2D;
 		if (result && !result->createDepth(format, w, h, numMipLevel, numSamples))
@@ -442,14 +442,14 @@ namespace Render
 		return &pair.first->second;
 	}
 
-	OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(GraphicsShaderStateDesc const& state)
+	OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
 	{
-		return getShaderBoundStateT(state);
+		return getShaderBoundStateT(stateDesc);
 	}
 
-	Render::OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(MeshShaderStateDesc const& state)
+	Render::OpenGLShaderBoundState* OpenGLSystem::getShaderBoundState(MeshShaderStateDesc const& stateDesc)
 	{
-		return getShaderBoundStateT(state);
+		return getShaderBoundStateT(stateDesc);
 	}
 
 	void OpenGLContext::initialize()
@@ -792,7 +792,7 @@ namespace Render
 		glDrawArrays(primitiveGL, 0, numVertex);
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , int const* pIndices, int numIndex)
+	void OpenGLContext::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , uint32 const* pIndices, int numIndex)
 	{
 		if( pIndices == nullptr )
 			return;
@@ -868,10 +868,10 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state)
+	void OpenGLContext::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
 	{
 		clearShader(true);
-		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(state);
+		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(stateDesc);
 		if (shaderpipeline)
 		{	
 			shaderpipeline->bind();
@@ -885,10 +885,10 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::RHISetMeshShaderBoundState(MeshShaderStateDesc const& state)
+	void OpenGLContext::RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
 	{
 		clearShader(true);
-		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(state);
+		OpenGLShaderBoundState* shaderpipeline = mSystem->getShaderBoundState(stateDesc);
 		if (shaderpipeline)
 		{
 			shaderpipeline->bind();
@@ -1558,16 +1558,13 @@ namespace Render
 #define USE_VAO 1
 	bool OpenGLContext::commitInputStream()
 	{
-
-		commitFixedShaderState();
-
 		if (checkInputStreamStateDirty())
 		{
 			if (mInputLayoutCommitted.isValid())
 			{
-				mWasBindAttrib = mbUseShaderPath;
+				mWasBindAttrib = mbUseShaderPath || CVarOpenGLFixedPiplineUseShader;
 				auto& inputLayoutImpl = OpenGLCast::To(*mInputLayoutCommitted);
-				if (mbUseShaderPath)
+				if (mWasBindAttrib)
 				{
 #if USE_VAO
 					mVAOCommitted = inputLayoutImpl.bindVertexArray(mInputStreamStateCommttied);
@@ -1586,46 +1583,46 @@ namespace Render
 			}
 		}
 
-
+		commitFixedShaderState();
 		return true;
 	}
 
 	bool OpenGLContext::commitInputStreamUP(VertexDataInfo dataInfos[], int numData)
 	{
-		if (!mInputLayoutPending.isValid())
-			return false;
+		if (mInputLayoutPending.isValid())
+		{
+			mInputStreamCountPending = numData;
+
+			bool bForceDirty = false;
+			for (int i = 0; i < numData; ++i)
+			{
+				mInputStreamsPending[i].buffer = nullptr;
+				mInputStreamsPending[i].offset = (intptr_t)dataInfos[i].ptr;
+				mInputStreamsPending[i].stride = dataInfos[i].stride;
+				if (dataInfos[i].stride == 0)
+				{
+					//we need reset pointer data. e.g. glVertex4fv ..
+					bForceDirty = true;
+				}
+			}
+			mbHasInputStreamPendingSetted = true;
+
+			if (checkInputStreamStateDirty(bForceDirty))
+			{
+				auto& inputLayoutImpl = OpenGLCast::To(*mInputLayoutCommitted);
+				mWasBindAttrib = mbUseShaderPath || CVarOpenGLFixedPiplineUseShader;
+				if (mWasBindAttrib)
+				{
+					inputLayoutImpl.bindAttribUP(mInputStreamStateCommttied);
+				}
+				else
+				{
+					inputLayoutImpl.bindPointerUP(mInputStreamStateCommttied);
+				}
+			}
+		}
 
 		commitFixedShaderState();
-
-		mInputStreamCountPending = numData;
-
-		bool bForceDirty = false;
-		for (int i = 0; i < numData; ++i)
-		{
-			mInputStreamsPending[i].buffer = nullptr;
-			mInputStreamsPending[i].offset = (intptr_t)dataInfos[i].ptr;
-			mInputStreamsPending[i].stride = dataInfos[i].stride;
-			if (dataInfos[i].stride == 0)
-			{
-				//we need reset pointer data. e.g. glVertex4fv ..
-				bForceDirty = true;
-			}
-		}
-		mbHasInputStreamPendingSetted = true;
-
-		if ( checkInputStreamStateDirty(bForceDirty) )
-		{
-			auto& inputLayoutImpl = OpenGLCast::To(*mInputLayoutCommitted);
-			mWasBindAttrib = mbUseShaderPath;
-			if (mbUseShaderPath)
-			{
-				inputLayoutImpl.bindAttribUP(mInputStreamStateCommttied);
-			}
-			else
-			{
-				inputLayoutImpl.bindPointerUP(mInputStreamStateCommttied);
-			}
-		}
 		return true;
 	}
 
@@ -1705,7 +1702,7 @@ namespace Render
 			{
 				if (mInputLayoutCommitted)
 				{
-					OpenGLInputLayout* inputLayoutImpl = OpenGLCast::To(mInputLayoutPending);
+					OpenGLInputLayout* inputLayoutImpl = OpenGLCast::To(mInputLayoutCommitted);
 					SimplePipelineProgram* program = SimplePipelineProgram::Get(inputLayoutImpl->mAttributeMask, mFixedShaderParams.texture);
 
 					RHISetShaderProgram(program->getRHIResource());
@@ -1800,7 +1797,7 @@ namespace Render
 		}
 	}
 
-	bool OpenGLShaderBoundState::create(GraphicsShaderStateDesc const& state)
+	bool OpenGLShaderBoundState::create(GraphicsShaderStateDesc const& stateDesc)
 	{
 		if (!mGLObject.fetchHandle())
 			return false;
@@ -1812,11 +1809,11 @@ namespace Render
 				glUseProgramStages(getHandle(), stageBit, static_cast<OpenGLShader*>(shader)->getHandle());
 			}
 		};
-		CheckShader(state.vertex, GL_VERTEX_SHADER_BIT);
-		CheckShader(state.pixel, GL_FRAGMENT_SHADER_BIT);
-		CheckShader(state.geometry, GL_GEOMETRY_SHADER_BIT);
-		CheckShader(state.hull, GL_TESS_CONTROL_SHADER_BIT);
-		CheckShader(state.domain, GL_TESS_EVALUATION_SHADER_BIT);
+		CheckShader(stateDesc.vertex, GL_VERTEX_SHADER_BIT);
+		CheckShader(stateDesc.pixel, GL_FRAGMENT_SHADER_BIT);
+		CheckShader(stateDesc.geometry, GL_GEOMETRY_SHADER_BIT);
+		CheckShader(stateDesc.hull, GL_TESS_CONTROL_SHADER_BIT);
+		CheckShader(stateDesc.domain, GL_TESS_EVALUATION_SHADER_BIT);
 
 		if (!VerifyOpenGLStatus())
 			return false;
@@ -1825,7 +1822,7 @@ namespace Render
 
 		return true;
 	}
-	bool OpenGLShaderBoundState::create(MeshShaderStateDesc const& state)
+	bool OpenGLShaderBoundState::create(MeshShaderStateDesc const& stateDesc)
 	{
 		if (!mGLObject.fetchHandle())
 			return false;
@@ -1838,9 +1835,9 @@ namespace Render
 			}
 		};
 
-		CheckShader(state.task, GL_TASK_SHADER_BIT_NV);
-		CheckShader(state.mesh, GL_MESH_SHADER_BIT_NV);
-		CheckShader(state.pixel, GL_FRAGMENT_SHADER_BIT);
+		CheckShader(stateDesc.task, GL_TASK_SHADER_BIT_NV);
+		CheckShader(stateDesc.mesh, GL_MESH_SHADER_BIT_NV);
+		CheckShader(stateDesc.pixel, GL_FRAGMENT_SHADER_BIT);
 		if (!VerifyOpenGLStatus())
 			return false;
 

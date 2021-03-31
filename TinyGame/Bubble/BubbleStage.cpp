@@ -124,7 +124,7 @@ namespace Bubble
 		switch ( id )
 		{
 		case UI_RESTART_GAME:
-			if ( getGameState() != GameState::End )
+			if ( getGameState() != EGameState::End )
 			{
 				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , LOCTEXT("Do you Want to Stop Current Game?") );
@@ -159,10 +159,10 @@ namespace Bubble
 	{
 		switch( getGameState() )
 		{
-		case GameState::Start:
-			changeState( GameState::Run );
+		case EGameState::Start:
+			changeState( EGameState::Run );
 			break;
-		case GameState::Run:
+		case EGameState::Run:
 			mDataManager.tick();
 			break;
 		}

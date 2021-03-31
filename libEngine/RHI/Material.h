@@ -135,25 +135,25 @@ namespace Render
 
 	struct MaterialShaderKey
 	{
-		VertexFactoryType*          vertexFactoryType;
+		uint64         uniqueHash;
 		MaterialShaderProgramClass const* shaderClass;
 
 		MaterialShaderKey() {}
-		MaterialShaderKey(VertexFactoryType* inVertexFactoryType, MaterialShaderProgramClass const* inShaderClass)
-			:vertexFactoryType(inVertexFactoryType)
-			, shaderClass(inShaderClass)
+		MaterialShaderKey( MaterialShaderProgramClass const* inShaderClass, uint64 inUniqueHash)
+			:shaderClass(inShaderClass)
+			,uniqueHash(inUniqueHash)
 		{
 		}
 
 		bool operator == (MaterialShaderKey const& rhs) const
 		{
-			return vertexFactoryType == rhs.vertexFactoryType &&
-				shaderClass == rhs.shaderClass;
+			return shaderClass == rhs.shaderClass && uniqueHash == rhs.uniqueHash;
 		}
+
 		uint32 getTypeHash() const
 		{
-			uint32 result = HashValue(vertexFactoryType);
-			HashCombine(result, shaderClass);
+			uint32 result = HashValue(shaderClass);
+			HashCombine(result, uniqueHash);
 			return result;
 		}
 	};
@@ -169,13 +169,14 @@ namespace Render {
 	public:
 		~MaterialShaderMap();
 
+		MaterialShaderProgram* getShader(MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey);
+		MaterialShaderProgram* loadShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey);
 
-		MaterialShaderProgram* getShader(VertexFactory* vertexFactory, MaterialShaderProgramClass const& shaderClass);
 
 		template< class ShaderType >
-		ShaderType* getShaderT(VertexFactory* vertexFactory)
+		ShaderType* getShaderT(uint64 uniqueHashKey = 0)
 		{
-			return (ShaderType*)getShader( vertexFactory , ShaderType::GetShaderClass() );
+			return (ShaderType*)getShader(ShaderType::GetShaderClass(), uniqueHashKey);
 		}
 
 		void cleanup();
@@ -216,7 +217,14 @@ namespace Render {
 		template< class ShaderType >
 		ShaderType* getShaderT(VertexFactory* vertexFactory)
 		{
-			return mShaderMap.getShaderT< ShaderType >(vertexFactory);
+			VertexFactoryType* factoryType = (vertexFactory) ? &vertexFactory->getType() : VertexFactoryType::DefaultType;
+			return mShaderMap.getShaderT< ShaderType >(uint64(factoryType));
+		}
+
+		template< class ShaderType >
+		ShaderType* getShaderT()
+		{
+			return mShaderMap.getShaderT< ShaderType >(0);
 		}
 
 		bool loadInternal()

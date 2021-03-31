@@ -167,7 +167,7 @@ namespace Render
 		};
 
 		FBXImportSetting importSetting;
-		importSetting.positionScale = 0.1;
+		importSetting.positionScale = 1;
 		vertexFormat.getMeshInputLayout(outMesh.mInputLayoutDesc, importSetting.bAddTangleAndNormal);
 		int vertexSize = outMesh.mInputLayoutDesc.getVertexSize(0);
 		std::vector< uint8 > vertexBufferData;
@@ -254,7 +254,8 @@ namespace Render
 				{
 					for (int i = 0; i < vertexFormat.texcoords.size(); ++i)
 					{
-						*((Vector2*)(pTexcoord)+i) = GetTexcoordData(vertexFormat.texcoords[i], vertexId, controlId);
+						Vector2* pV = (Vector2*)(pTexcoord);
+						pV[i] = GetTexcoordData(vertexFormat.texcoords[i], vertexId, controlId);
 					}
 					pTexcoord += vertexSize;
 				}
@@ -271,6 +272,7 @@ namespace Render
 		for (int idxPolygon = 0; idxPolygon < polygonCount; idxPolygon++)
 		{
 			int lPolygonSize = pFBXMesh->GetPolygonSize(idxPolygon);
+
 			if (lPolygonSize < 3)
 			{
 				vertexId += lPolygonSize;

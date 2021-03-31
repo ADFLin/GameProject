@@ -45,13 +45,18 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, true>));
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, false>));
 
+	SimplePipelineProgram* GSimpleShaderPipline = nullptr;
+	SimplePipelineProgram* GSimpleShaderPiplineCT = nullptr;
+	SimplePipelineProgram* GSimpleShaderPiplineT = nullptr;
+	SimplePipelineProgram* GSimpleShaderPiplineC = nullptr;
+
 	SimplePipelineProgram* SimplePipelineProgram::Get(uint32 attributeMask , bool bHaveTexture)
 	{
 		SimplePipelineProgram* program = GSimpleShaderPipline;
 
 		if (attributeMask & BIT(Vertex::ATTRIBUTE_COLOR))
 		{
-			if (attributeMask & BIT(Vertex::ATTRIBUTE_TEXCOORD))
+			if (attributeMask & BIT(Vertex::ATTRIBUTE_TEXCOORD) && bHaveTexture )
 			{
 				program = GSimpleShaderPiplineCT;
 			}
@@ -82,19 +87,19 @@ namespace Render
 	TGlobalRenderResource<RHITextureCube> GBlackTextureCube;
 
 	MaterialMaster* GDefalutMaterial = nullptr;
-	SimplePipelineProgram* GSimpleShaderPipline = nullptr;
-	SimplePipelineProgram* GSimpleShaderPiplineCT = nullptr;
-	SimplePipelineProgram* GSimpleShaderPiplineT = nullptr;
-	SimplePipelineProgram* GSimpleShaderPiplineC = nullptr;
+
 	MaterialShaderProgram GSimpleBasePass;
 
 	bool InitGlobalRenderResource()
 	{
-		if (GRHISystem->getName() == RHISytemName::D3D12 ||
-			GRHISystem->getName() == RHISytemName::Vulkan)
+		if (GRHISystem->getName() == RHISystemName::Vulkan)
 			return true;
 
 		TRACE_RESOURCE_TAG_SCOPE("GlobalRHIResource");
+
+		if (GRHISystem->getName() == RHISystemName::OpenGL ||
+			GRHISystem->getName() == RHISystemName::D3D11)
+		{
 
 		uint32 colorW[] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[] = { 0, 0 , 0 , 0 , 0 , 0 , 0 , 0 };
@@ -102,20 +107,20 @@ namespace Render
 		{
 			TIME_SCOPE("GlobalTexture");
 
-			VERIFY_RETURN_FALSE(GWhiteTexture2D.initialize(RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
-			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
+			VERIFY_RETURN_FALSE(GWhiteTexture2D.initialize(RHICreateTexture2D(ETexture::RGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(ETexture::RGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
 
-			VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorW)));
-			VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorB)));
+			VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, BCF_DefalutValue, colorB)));
 
-			VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
-			VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
+			VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
 			void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };
-			VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeWData)));
+			VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize(RHICreateTextureCube(ETexture::RGBA8, 2, 0, BCF_DefalutValue, cubeWData)));
 			void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
-			VERIFY_RETURN_FALSE(GBlackTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeBData)));
+			VERIFY_RETURN_FALSE(GBlackTextureCube.initialize(RHICreateTextureCube(ETexture::RGBA8, 2, 0, BCF_DefalutValue, cubeBData)));
 
-			if( GRHISystem->getName() == RHISytemName::OpenGL )
+			if( GRHISystem->getName() == RHISystemName::OpenGL )
 			{
 				OpenGLCast::To(GWhiteTextureCube.getResource())->bind();
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -134,7 +139,7 @@ namespace Render
 			}
 		}
 
-		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			TIME_SCOPE("EmptyMaterial");
 			GDefalutMaterial = new MaterialMaster;
@@ -149,9 +154,6 @@ namespace Render
 				return false;
 		}
 
-		if (GRHISystem->getName() == RHISytemName::OpenGL ||
-			GRHISystem->getName() == RHISytemName::D3D11 )
-		{
 			TIME_SCOPE("SimpleBasePass");
 			ShaderCompileOption option;
 			VertexFactoryType::DefaultType->getCompileOption(option);

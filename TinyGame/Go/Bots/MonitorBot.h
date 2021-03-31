@@ -268,7 +268,7 @@ namespace Go
 				if (mBoardImage.getBitmap() != NULL)
 				{
 					mBoardImage.bitBltFrom(hDC, 0, 0);
-					mDebugTextures[eOrigin] = RHICreateTexture2D(Texture::eBGRA8, mBoardImage.getWidth(), mBoardImage.getHeight(), 0, 1, TCF_DefalutValue, (void*)mBitmapData);
+					mDebugTextures[eOrigin] = RHICreateTexture2D(ETexture::BGRA8, mBoardImage.getWidth(), mBoardImage.getHeight(), 0, 1, TCF_DefalutValue, (void*)mBitmapData);
 					buildGird();
 
 					time = GetTickCount();
@@ -334,7 +334,7 @@ namespace Go
 				TIME_SCOPE("GrayScale");
 				GrayScale(imageView, grayView);
 			}
-			mDebugTextures[eGrayScale] = RHICreateTexture2D(Texture::eR32F, grayView.getWidth(), grayView.getHeight(), 0, 1, TCF_DefalutValue, (void*)grayView.getData());
+			mDebugTextures[eGrayScale] = RHICreateTexture2D(ETexture::R32F, grayView.getWidth(), grayView.getHeight(), 0, 1, TCF_DefalutValue, (void*)grayView.getData());
 
 			std::vector< float > downSampleData;
 			TImageView< float > downSampleView;
@@ -357,7 +357,7 @@ namespace Go
 				Downsample(edgeView, downSampleData, downSampleView);
 			}
 #endif
-			mDebugTextures[eEdgeDetect] = RHICreateTexture2D(Texture::eR32F, edgeView.getWidth(), edgeView.getHeight(), 0, 1, TCF_DefalutValue, (void*)edgeView.getData());
+			mDebugTextures[eEdgeDetect] = RHICreateTexture2D(ETexture::R32F, edgeView.getWidth(), edgeView.getHeight(), 0, 1, TCF_DefalutValue, (void*)edgeView.getData());
 
 			std::vector< float > houghData;
 			TImageView< float > houghView;
@@ -405,7 +405,7 @@ namespace Go
 			}
 
 
-			mDebugTextures[eLineHough] = RHICreateTexture2D(Texture::eR32F, houghView.getWidth(), houghView.getHeight(), 0, 1, TCF_DefalutValue, (void*)houghView.getData());
+			mDebugTextures[eLineHough] = RHICreateTexture2D(ETexture::R32F, houghView.getWidth(), houghView.getHeight(), 0, 1, TCF_DefalutValue, (void*)houghView.getData());
 		}
 
 		HWND      mhWindow;

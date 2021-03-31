@@ -13,6 +13,7 @@
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
 #include "Image/ImageData.h"
+#include "ConsoleSystem.h"
 
 #define USE_TEXTURE_ATLAS 0
 
@@ -24,7 +25,7 @@ namespace FlappyBird
 
 
 	class AgentBird : public AgentEntity
-		            , public IController
+		            , public IBirdController
 	{
 	public:
 		AgentBird(Agent& agent)
@@ -32,7 +33,7 @@ namespace FlappyBird
 			mAgent = &agent;
 			agent.entity = this;
 		}
-		//IController
+		//IBirdController
 		void updateInput(GameLevel& world, BirdEntity& bird) override
 		{
 			assert(&hostBird == &bird);
@@ -181,7 +182,7 @@ namespace FlappyBird
 			onTrainCompleted();
 		}
 
-		CollisionResponse handleCollision(BirdEntity& bird, ColObject& obj)
+		EColResponse handleCollision(BirdEntity& bird, ColObject& obj)
 		{
 			switch (obj.type)
 			{
@@ -195,6 +196,11 @@ namespace FlappyBird
 			return GetDefaultColTypeResponse(obj.type);
 		}
 
+		static AgentBird* GetEntity(std::unique_ptr<Agent> const& agentPtr)
+		{
+			return static_cast<AgentBird*>(agentPtr->entity);
+		}
+
 		static void SpawnAgents(GameLevel& level , TrainData& trainData)
 		{
 			for (auto& agentPtr : trainData.mAgents)
@@ -206,7 +212,7 @@ namespace FlappyBird
 				}
 				else
 				{
-					auto* entity = static_cast<AgentBird*>(agentPtr->entity);
+					auto* entity = GetEntity(agentPtr);
 					level.addBird(entity->hostBird, entity);
 				}
 			}
@@ -216,7 +222,7 @@ namespace FlappyBird
 		{
 			for (auto& agentPtr : trainData.mAgents)
 			{
-				auto* entity = static_cast<AgentBird*>(agentPtr->entity);
+				auto* entity = GetEntity(agentPtr);
 				entity->tick();
 			}
 		}
@@ -225,7 +231,7 @@ namespace FlappyBird
 		{
 			for (auto& agentPtr : trainData.mAgents)
 			{
-				auto* entity = static_cast<AgentBird*>(agentPtr->entity);
+				auto* entity = GetEntity(agentPtr);
 				entity->restart();
 			}
 		}
@@ -254,22 +260,22 @@ namespace FlappyBird
 	{
 		::Global::GUI().cleanupWidget();
 
-		if( !loadResource() )
-			return false;
-
-		::srand( SystemPlatform::GetTickCount() );
+		::srand(SystemPlatform::GetTickCount());
 		getLevel().onBirdCollsion = CollisionDelegate(this, &LevelStage::notifyBridCollsion);
 		getLevel().onGameOver = LevelOverDelegate(this, &LevelStage::notifyGameOver);
 
 #define INPUT_MODE 0
-
+		int gDefaultTopology[] =
+		{
 #if INPUT_MODE == 0
-		int gDefaultTopology[] = { 3 , 5 , 7 , 5 , 3 , 1 };
+			3 , 5 , 7 , 5 , 3 , 1 
 #elif INPUT_MODE == 1
-		int gDefaultTopology[] = { 5 , 7 , 4 , 1 };
+			5, 7, 4, 1 
 #else
-		int gDefaultTopology[] = { 2 , 4 , 1 };
+			2, 4, 1 
 #endif
+		};
+
 		//mbTrainMode = false;
 		if( mbTrainMode )
 		{
@@ -300,6 +306,7 @@ namespace FlappyBird
 		}
 
 		mMaxScore = 0;
+
 		restart();
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
@@ -375,12 +382,7 @@ namespace FlappyBird
 			"BigNum.png"
 		};
 #if USE_TEXTURE_ATLAS
-		mTextureAtlas.initialize(Texture::eRGBA8, 1024, 1024, 2);
-		{
-			GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		}
+		mTextureAtlas.initialize(ETexture::RGBA8, 1024, 1024, 2);
 #endif
 
 		for( int i = 0; i < TextureID::Count; ++i )
@@ -402,12 +404,6 @@ namespace FlappyBird
 			mImages[i].texture = RHIUtility::LoadTexture2DFromFile(path);
 			if( !mImages[i].texture )
 				return false;
-
-			{
-				GL_SCOPED_BIND_OBJECT(mImages[i].texture);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			}
 #endif
 		}
 
@@ -469,6 +465,30 @@ namespace FlappyBird
 			return false;
 		}
 		return true;
+	}
+
+	ERenderSystem LevelStage::getDefaultRenderSystem()
+	{
+		return ERenderSystem::D3D11;
+	}
+
+	bool LevelStage::setupRenderSystem(ERenderSystem systemName)
+	{
+		VERIFY_RETURN_FALSE(loadResource());
+		return true;
+	}
+
+	void LevelStage::preShutdownRenderSystem(bool bReInit /*= false*/)
+	{
+#if USE_TEXTURE_ATLAS
+		mTextureAtlas.finalize();
+#else
+		for (int i = 0; i < TextureID::Count; ++i)
+		{
+			ImageInfo& image = mImages[i];
+			image.texture.release();
+		}
+#endif
 	}
 
 	bool LevelStage::onMouse(MouseMsg const& msg)
@@ -537,7 +557,7 @@ namespace FlappyBird
 		}
 	}
 
-	FlappyBird::CollisionResponse LevelStage::notifyBridCollsion(BirdEntity& bird, ColObject& obj)
+	EColResponse LevelStage::notifyBridCollsion(BirdEntity& bird, ColObject& obj)
 	{
 		switch( obj.type )
 		{
@@ -576,38 +596,34 @@ namespace FlappyBird
 
 	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
 	{
-		glEnable(GL_TEXTURE_2D);
-		glActiveTexture(GL_TEXTURE0);
-		{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 #if USE_TEXTURE_ATLAS
-			GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
-			ImageInfo const& image = mImages[id];
-			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, image.uvPos , image.uvSize,  framePos, frameDim);
+		ImageInfo const& image = mImages[id];
+		RHISetFixedShaderPipelineState(commandList, mXFormStack.get().toMatrix4() * mBaseTransform, LinearColor(1, 1, 1, 1), &mTextureAtlas.getTexture(), &TStaticSamplerState< ESampler::Point >::GetRHI());
+		DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, image.uvPos , image.uvSize,  framePos, frameDim);
 #else
-			GL_SCOPED_BIND_OBJECT(mImages[id].texture);
-			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, framePos, frameDim);
+		RHISetFixedShaderPipelineState(commandList, mXFormStack.get().toMatrix4() * mBaseTransform, LinearColor(1, 1, 1, 1), mImages[id].texture, &TStaticSamplerState< ESampler::Point >::GetRHI());
+		DrawUtility::Sprite(commandList, pos, size, pivot, framePos, frameDim);
 #endif
-		}
-		glDisable(GL_TEXTURE_2D);
+
 	}
 
 	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
 	{
-		glEnable(GL_TEXTURE_2D);
-		glActiveTexture(GL_TEXTURE0);
-		{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 #if USE_TEXTURE_ATLAS
-			GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
-			ImageInfo const& image = mImages[id];
-			Vector2 uvPos = image.uvPos + texPos.mul(image.uvSize);
-			Vector2 uvSize = image.uvSize.mul( texSize );
-			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, uvPos, uvSize);
+		ImageInfo const& image = mImages[id];
+		Vector2 uvPos = image.uvPos + texPos.mul(image.uvSize);
+		Vector2 uvSize = image.uvSize.mul( texSize );
+		RHISetFixedShaderPipelineState(commandList, mXFormStack.get().toMatrix4() * mBaseTransform, LinearColor(1, 1, 1, 1), &mTextureAtlas.getTexture(), &TStaticSamplerState< ESampler::Point >::GetRHI());
+		DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, uvPos, uvSize);
 #else
-			GL_SCOPED_BIND_OBJECT(mImages[id].texture);
-			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, texPos, texSize);
+		RHISetFixedShaderPipelineState(commandList, mXFormStack.get().toMatrix4() * mBaseTransform, LinearColor(1, 1, 1, 1), mImages[id].texture, &TStaticSamplerState< ESampler::Point >::GetRHI());
+		DrawUtility::Sprite(commandList, pos, size, pivot, texPos, texSize);
 #endif
-		}
-		glDisable(GL_TEXTURE_2D);
+
 		
 	}
 
@@ -620,19 +636,17 @@ namespace FlappyBird
 	{
 		IGraphics2D& g = Global::GetIGraphics2D();
 
-		glClearColor(0.2, 0.2, 0.2, 0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2), 1);
+
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 		Vec2i screenSize = ::Global::GetScreenSize();
-		glViewport(0, 0, screenSize.x, screenSize.y);
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, screenSize.x, screenSize.y, 0, -1, 1);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
+		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
+
+		mBaseTransform = OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1);
 
 		if ( mbDebugDraw )
 		{
@@ -644,7 +658,6 @@ namespace FlappyBird
 			g.drawRect(convertToScreen(Vector2(0, WorldHeight)), GScale * Vector2(WorldWidth, WorldHeight));
 		}
 
-		glColor3f(1, 1, 1);
 		{
 			int BGTextureId[] = { TextureID::Background_A  , TextureID::Background_B };
 			Vector2 rPos = convertToScreen( Vector2(0.5 *WorldWidth, 0.5 *WorldHeight - 1.6));
@@ -670,8 +683,6 @@ namespace FlappyBird
 				break;
 			}
 		}
-
-
 
 		{
 			int texId = TextureID::Ground;
@@ -699,11 +710,11 @@ namespace FlappyBird
 
 		{
 			Vector2 rPos = convertToScreen(Vector2(0.5 * WorldWidth, 10));
-			glPushMatrix();
-			
-			glTranslatef(rPos.x, rPos.y, 0);
+			mXFormStack.push();
+			mXFormStack.translate(rPos);
 			drawNumber(g, mScore, 20 );
-			glPopMatrix();
+			mXFormStack.pop();
+
 		}
 
 
@@ -715,13 +726,14 @@ namespace FlappyBird
 			drawScreenHole(g, holePos, holeSize);
 		}
 
+		g.beginRender();
 
 		if( mbTrainMode )
 		{
 
-			if( mTrainData->curBestAgent )
+			if( mTrainData->bestAgent )
 			{
-				FCNeuralNetwork& FNN = mTrainData->curBestAgent->FNN;
+				FCNeuralNetwork& FNN = mTrainData->bestAgent->FNN;
 				NeuralNetworkRenderer renderer(FNN);
 				renderer.basePos = Vector2(400, 300);
 				renderer.inputsAndSignals = &mTrainData->bestInputsAndSignals[0];
@@ -733,12 +745,12 @@ namespace FlappyBird
 
 			}
 
-			Vec2i startPos(600 - 50, 20);
+			Vec2i startPos(20, 20);
 			FixString< 128 > str;
 			str.format("Generation = %d", mTrainData->generation);
 			g.drawText(startPos, str);
 
-			float curBestFitness = (mTrainData->curBestAgent) ? mTrainData->curBestAgent->genotype->fitness : 0;
+			float curBestFitness = (mTrainData->bestAgent) ? mTrainData->bestAgent->genotype->fitness : 0;
 			str.format("TopFitness = %.3f , Fitness = %.3f  ", mTrainManager->topFitness , curBestFitness );
 			g.drawText(startPos + Vec2i(0, 15), str);
 
@@ -751,6 +763,8 @@ namespace FlappyBird
 			str.format("Count = %d", mScore);
 			g.drawText(Vec2i(10, 10), str);
 		}
+
+		g.endRender();
 
 	}
 
@@ -837,14 +851,14 @@ namespace FlappyBird
 			if( frame >= frameNum )
 				frame = frameNum - frame + 1;
 			
-			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
-			glPushMatrix();
+			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+			mXFormStack.push();
 			{
-				glTranslatef(rPos.x, rPos.y, 0);
-				glRotatef(-angle, 0, 0, 1);
+				mXFormStack.translate(rPos);
+				mXFormStack.rotate(Math::Deg2Rad(-angle));
 				drawTexture(TextureID::Bird, Vector2(0,0), Vector2(size * sizeFactor , size ), Vector2(0.5, 0.5), Vec2i( frame , birdType), Vec2i(3, 3));
 			}
-			glPopMatrix();
+			mXFormStack.pop();
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		}
 	}
@@ -877,7 +891,7 @@ namespace FlappyBird
 				texPos.y += texSize.y;
 				texSize.y = -texSize.y;
 			}
-			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha>::GetRHI());
 			drawTexture(TextureID::Pipe, rPos , rSize, Vector2(0, 0), texPos, texSize);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
@@ -900,7 +914,7 @@ namespace FlappyBird
 
 		Vector2 size = Vector2(width, 10 * width / getImageSizeRatio(TextureID::Number));
 
-		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
 		for( int i = 0; i < numDigial; ++i )
 		{
 			drawTexture(TextureID::Number, Vector2(offset - i * width , 0 ),  size, 

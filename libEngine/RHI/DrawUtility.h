@@ -147,7 +147,7 @@ namespace Render
 		}
 
 
-		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, int const* indices, int nIndex, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, uint32 const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
 			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
 			RHIDrawIndexedPrimitiveUP(commandList, type, vetrices, numVertex, vertexStride , indices , nIndex );
@@ -166,7 +166,7 @@ namespace Render
 			RHIDrawPrimitiveUP(commandList, type, numVertex, infos , 2 );
 		}
 
-		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, int const* indices, int nIndex, LinearColor const& color, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertex, uint32 const* indices, int nIndex, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
 			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat, RTVF_CA >::GetRHI(), nullptr, 0);
 			VertexDataInfo infos[2];

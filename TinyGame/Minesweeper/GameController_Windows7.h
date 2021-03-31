@@ -41,12 +41,12 @@ namespace Mine
 		int mScreenHeight;
 	};
 
-	class GControlerWin7 : public IGameControler
+	class GameController_Windows7 : public IGameController
 	{
 	public:
 		static LRESULT __stdcall CALLBACK MouseHookProc(int code, WPARAM wParam, LPARAM lParam);
 
-		GControlerWin7();
+		GameController_Windows7();
 
 		virtual bool getCellSize(int& cx, int& cy);
 		virtual bool hookGame();
@@ -68,8 +68,6 @@ namespace Mine
 		static int const MinStaticSizeX = 601;
 
 		void OnMouseHook(WPARAM wParam, MOUSEHOOKSTRUCT* mhs);
-
-
 
 		bool isIncludedColor(int x, int y, int len, COLORREF color)
 		{
@@ -122,7 +120,7 @@ namespace Mine
 			//	return false;
 			return true;
 		}
-
+		TCHAR const** mWinowTextMap;
 		InputSimulator mInput;
 		HWND hWndDlg;
 		HDC  hDC;

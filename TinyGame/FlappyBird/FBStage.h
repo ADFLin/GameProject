@@ -9,6 +9,7 @@
 #include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/TextureAtlas.h"
+#include "Renderer/RenderTransform2D.h"
 
 
 
@@ -61,7 +62,7 @@ namespace FlappyBird
 
 		void restart();
 		void notifyGameOver( GameLevel& level);
-		CollisionResponse notifyBridCollsion(BirdEntity& bird, ColObject& obj);
+		EColResponse notifyBridCollsion(BirdEntity& bird, ColObject& obj);
 
 		void tick();
 
@@ -74,9 +75,10 @@ namespace FlappyBird
 		bool onKey(KeyMsg const& msg);
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 
+		ERenderSystem getDefaultRenderSystem() override;
+		bool setupRenderSystem(ERenderSystem systemName) override;
+		void preShutdownRenderSystem(bool bReInit = false) override;
 
-
-		
 	protected:
 
 		void removeTrainData();
@@ -127,7 +129,9 @@ namespace FlappyBird
 		std::unique_ptr< TrainManager > mTrainManager;
 
 
-		TextureAtlas mTextureAtlas;
+		TextureAtlas     mTextureAtlas;
+		TransformStack2D mXFormStack;
+		Matrix4 mBaseTransform;
 
 		GameLevel  mLevel;
 		BirdEntity mBird;

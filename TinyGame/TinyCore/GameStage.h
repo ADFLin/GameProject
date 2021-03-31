@@ -15,7 +15,7 @@ struct GameAttribute;
 #define  LAST_REPLAY_NAME     "LastReplay.rpf"
 #define  REPLAY_DIR           "Replay"
 
-enum class GameState
+enum class EGameState
 {
 	Start,
 	Run,
@@ -78,7 +78,7 @@ public:
 
 	GameStageBase* getGameStage() override { return this; }
 
-	virtual void onChangeState(GameState state) {}
+	virtual void onChangeState(EGameState state) {}
 	virtual IFrameActionTemplate* createActionTemplate(unsigned version) { return nullptr; }           
 
 	void             setupStageMode(GameStageMode* mode);
@@ -88,9 +88,9 @@ public:
 	IGameModule*     getGame() { return mGame; }
 	long             getTickTime() { return mTickTime; }
 
-	bool             changeState(GameState state);
-	GameState        getGameState() const;
-	StageModeType    getModeType() const;
+	bool             changeState(EGameState state);
+	EGameState        getGameState() const;
+	EGameStageMode   getModeType() const;
 
 	GameStageMode*   mStageMode;
 	ActionProcessor  mProcessor;

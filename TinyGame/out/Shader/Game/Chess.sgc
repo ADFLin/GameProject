@@ -1,0 +1,112 @@
+#include "ViewParam.sgc"
+#include "LightingCommon.sgc"
+#include "IBLCommon.sgc"
+
+
+#ifndef DRAW_BOARD
+#define DRAW_BOARD 1
+#endif //DRAW_BOARD
+
+struct VSOutputParam
+{
+	float3 normal    MEMBER_OUT(TEXCOORD0);
+	float3 worldPos  MEMBER_OUT(TEXCOORD1);
+	float2 uv        MEMBER_OUT(TEXCOORD2);
+#if DRAW_BOARD
+	float2 uv2       MEMBER_OUT(TEXCOORD3);
+#endif
+};
+
+#if VERTEX_SHADER
+
+uniform float4x4 XForm;
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InNoraml, ATTRIBUTE_NORMAL)
+#if DRAW_BOARD
+	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD2)
+	VS_INPUT(float2 InUV2, ATTRIBUTE_TEXCOORD)
+#else
+	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
+#endif
+	VS_OUTPUT_STRUCT(VSOutputParam VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+	//output.svPosition = mul(XForm, float4(inputVS.pos.xy, 0.5, 1));
+	float4 worldPos = mul(XForm, float4(InPos.xyz, 1));
+	SvPosition = mul(View.worldToClip, worldPos);
+	VSOutput.normal = mul( float3x3( XForm ) , InNoraml );
+	VSOutput.worldPos = worldPos.xyz;
+	VSOutput.uv = InUV;
+#if DRAW_BOARD
+	VSOutput.uv2 = InUV2;
+#endif
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, BaseTexture);
+DEFINE_TEXTURE(Texture2D, NormalTexture);
+DEFINE_TEXTURE(Texture2D, RoughnessTexture);
+
+uniform float4 DiffuseColor;
+uniform float4 SpecularColor;
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT(VSOutputParam OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	//OutColor = float4(c * Color * inputVS.color * color.rgb, 1);
+
+	float2 uv = 4 * OutputVS.uv;
+	float3 baseColor = TEXTURE_SAMPLE(BaseTexture, uv).rgb;
+
+	float3 N = normalize(OutputVS.normal);
+	float3 L = normalize(float3(0.2, 0.3, 1));
+	float3 V = normalize(View.worldPos - OutputVS.worldPos);
+	//float3 shading = float3(0.8) * DiffuseColor.rgb + PhongShading(DiffuseColor.rgb, SpecularColor.rgb, N, L, V, 8);
+
+
+	float  metallic = 0.02;
+
+	float  roughnessF = TEXTURE_SAMPLE(RoughnessTexture, uv).r;
+	//metallic = pow(metallic, float(1 / 2.2));
+	//roughnessF = 0.01;
+	float3 normal = TEXTURE_SAMPLE(NormalTexture, uv).xyz;
+
+	//float3 N = mul(tangentToWorld, (2 * TEXTURE_SAMPLE(NormalTexture, uv).xyz - 1));
+	//N = tangentZ;
+	float3 R = reflect(-V, N);
+	float specular = 0.01;
+	float NoV = saturate(dot(N, V));
+	float NoL = saturate(dot(N, L));
+
+	float3 diffuseColor = baseColor * (1 - metallic);
+	float3 specularColor = lerp(float(0.08 * specular).xxx, baseColor, metallic);
+
+	float3 roughness = float3(roughnessF, roughnessF, 1);
+	roughness = max(roughness, 0.04);
+
+	float3 shading = StandardShading(diffuseColor, specularColor, roughness, float3(1, 1, 1), L, V, N);
+
+	float3 radiance = 1.0 * float3(1, 1, 1);
+
+	float3 envSpecular = GetIBLSpecularColor(specularColor, R, NoV, roughnessF);
+
+	float SkyLightInstensity = 1.5;
+	float3 ambient = SkyLightInstensity * (GetIrradianceColor(N) * baseColor + envSpecular);
+
+	float3 color = radiance * NoL * shading + ambient;
+	OutColor = float4(color, 1);
+#if DRAW_BOARD || 1
+	OutColor = float4( VFLIP( OutputVS.uv2 ), 0 , 1 );
+#endif
+}
+
+
+
+#endif //#if PIXEL_SHADER

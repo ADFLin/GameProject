@@ -45,8 +45,8 @@ namespace Render
 			mResource.ptr = nullptr;
 		}
 
-		bool initialize( EShader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode );
-		bool initialize( EShader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode );
+		bool initialize( TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode );
+		bool initialize( TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode );
 
 		virtual void releaseResource()
 		{
@@ -97,7 +97,12 @@ namespace Render
 		template< class TFunc >
 		void setupShader(ShaderParameter const& parameter, TFunc&& func)
 		{
-			mParameterMap.setupShader(parameter, std::forward<TFunc>(func));
+			mParameterMap.setupShader(parameter,
+				[&func](int shaderIndex, ShaderParameter const& shaderParam)
+				{
+					func( EShader::Type(shaderIndex), shaderParam);
+				}
+			);
 		}
 
 		ShaderPorgramParameterMap mParameterMap;

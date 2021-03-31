@@ -244,7 +244,7 @@ namespace Render
 			mTexVerteices.resize(baseIndex + size);
 			return &mTexVerteices[baseIndex];
 		}
-		int* fetchIndexBuffer(int size)
+		uint32* fetchIndexBuffer(int size)
 		{
 			int index = mBaseIndices.size();
 			mBaseIndices.resize(index + size);
@@ -254,12 +254,12 @@ namespace Render
 		void emitPolygon(Vector2 v[], int numV, Color4f const& color);
 		void emitPolygonLine(Vector2 v[], int numV, Color4ub const& color, int lineWidth);
 
-		static void FillQuad(int* pIndices, int i0, int i1, int i2, int i3)
+		static void FillQuad(uint32* pIndices, int i0, int i1, int i2, int i3)
 		{
 			pIndices[0] = i0; pIndices[1] = i1; pIndices[2] = i2;
 			pIndices[3] = i0; pIndices[4] = i2; pIndices[5] = i3;
 		}
-		static void EmitLineShapeIndices(int*& pIndices, int baseIndexA, int baseIndexB)
+		static void EmitLineShapeIndices(uint32*& pIndices, int baseIndexA, int baseIndexB)
 		{
 			FillQuad(pIndices, baseIndexA, baseIndexA + 1, baseIndexB, baseIndexB + 1); 
 			pIndices += 6;
@@ -273,7 +273,7 @@ namespace Render
 
 		std::vector< Vector2 >    mCachedPositionList;
 		std::vector< BaseVertex > mBaseVertices;
-		std::vector< int32 >      mBaseIndices;
+		std::vector< uint32 >     mBaseIndices;
 
 		std::vector< TexVertex > mTexVerteices;
 	};

@@ -11,7 +11,7 @@
 class EmptyStageMode : public GameStageMode
 {
 public:
-	EmptyStageMode():GameStageMode( SMT_UNKNOW ){}
+	EmptyStageMode():GameStageMode( EGameStageMode::Unknow ){}
 	IPlayerManager* getPlayerManager() override
 	{
 		return &mPlayerManager;
@@ -27,7 +27,7 @@ public:
 			unsigned flag = 0;
 			switch( getGameState() )
 			{
-			case GameState::Run:
+			case EGameState::Run:
 				break;
 			default:
 				flag |= CTF_FREEZE_FRAME;
@@ -120,17 +120,17 @@ void GameStageBase::setupStageMode(GameStageMode* mode)
 		mode->mCurStage = this;
 }
 
-bool GameStageBase::changeState(GameState state)
+bool GameStageBase::changeState(EGameState state)
 {
 	return mStageMode->changeState(state);
 }
 
-GameState GameStageBase::getGameState() const
+EGameState GameStageBase::getGameState() const
 {
 	return mStageMode->getGameState();
 }
 
-StageModeType GameStageBase::getModeType() const
+EGameStageMode GameStageBase::getModeType() const
 {
 	return mStageMode->getModeType();
 }

@@ -219,39 +219,39 @@ namespace Render
 	class OpenGLTexture1D : public TOpengGLTexture< RHITexture1D >
 	{
 	public:
-		bool create(Texture::Format format, int length, int numMipLevel , uint32 createFlags, void* data );
-		bool update(int offset, int length, Texture::Format format, void* data, int level );
+		bool create(ETexture::Format format, int length, int numMipLevel , uint32 creationFlags, void* data );
+		bool update(int offset, int length, ETexture::Format format, void* data, int level );
 	};
 
 
 	class OpenGLTexture2D : public TOpengGLTexture< RHITexture2D >
 	{
 	public:
-		bool create(Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
-		bool createDepth(Texture::Format format, int width, int height, int numMipLevel, int numSamples);
-		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level);
-		bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level);
+		bool create(ETexture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, int alignment);
+		bool createDepth(ETexture::Format format, int width, int height, int numMipLevel, int numSamples);
+		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
+		bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
 	};
 
 
 	class OpenGLTexture3D : public TOpengGLTexture< RHITexture3D >
 	{
 	public:
-		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ , int numMipLevel, int numSamples, uint32 createFlags, void* data);
+		bool create(ETexture::Format format, int sizeX, int sizeY, int sizeZ , int numMipLevel, int numSamples, uint32 creationFlags, void* data);
 	};
 
 	class OpenGLTextureCube : public TOpengGLTexture< RHITextureCube >
 	{
 	public:
-		bool create(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
-		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level );
-		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level );
+		bool create(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
+		bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level );
+		bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level );
 	};
 
 	class OpenGLTexture2DArray : public TOpengGLTexture< RHITexture2DArray >
 	{
 	public:
-		bool create(Texture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 createFlags, void* data);
+		bool create(ETexture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
 	};
 
 	class OpenGLTranslate
@@ -259,26 +259,26 @@ namespace Render
 	public:
 		static GLenum To(EPrimitive type, int& outPatchPointCount);
 		static GLenum To(EAccessOperator op);
-		static GLenum To(Texture::Format format);
+		static GLenum To(ETexture::Format format);
 		static GLenum To(EShader::Type type);
 		static GLbitfield ToStageBit(EShader::Type type);
 		static GLenum To(ELockAccess access);
-		static GLenum To(Blend::Factor factor);
-		static GLenum To(Blend::Operation op);
+		static GLenum To(EBlend::Factor factor);
+		static GLenum To(EBlend::Operation op);
 		static GLenum To(ECompareFunc func);
-		static GLenum To(Stencil::Operation op);
+		static GLenum To(EStencil op);
 		static GLenum To(ECullMode mode);
 		static GLenum To(EFillMode mode);
 		static GLenum To(EComponentType type );
-		static GLenum To(Sampler::Filter filter);
-		static GLenum To(Sampler::AddressMode mode);
+		static GLenum To(ESampler::Filter filter);
+		static GLenum To(ESampler::AddressMode mode);
 
-		static GLenum DepthFormat(Texture::Format format);
+		static GLenum DepthFormat(ETexture::Format format);
 
-		static GLenum BaseFormat(Texture::Format format);
-		static GLenum PixelFormat(Texture::Format format);
-		static GLenum TextureComponentType(Texture::Format format);
-		static GLenum Image2DType(Texture::Format format);
+		static GLenum BaseFormat(ETexture::Format format);
+		static GLenum PixelFormat(ETexture::Format format);
+		static GLenum TextureComponentType(ETexture::Format format);
+		static GLenum Image2DType(ETexture::Format format);
 
 		static GLenum BufferUsageEnum(uint32 creationFlags);
 
@@ -294,9 +294,9 @@ namespace Render
 	class RHIDepthRenderBuffer : public TRHIResource< RMPRenderBuffer >
 	{
 	public:
-		bool create( int w , int h , Texture::Format format );
-		Texture::Format getFormat() { return mFormat;  }
-		Texture::Format mFormat;
+		bool create( int w , int h , ETexture::Format format );
+		ETexture::Format getFormat() { return mFormat;  }
+		ETexture::Format mFormat;
 	};
 
 
@@ -320,10 +320,10 @@ namespace Render
 		void setupTextureLayer(RHITextureCube& target, int level = 0);
 
 		int  addTexture(RHITexture2D& target, int level = 0);
-		int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0);
+		int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0);
 		int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0);
 		void setTexture(int idx, RHITexture2D& target, int level = 0);
-		void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0);
+		void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0);
 		void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0);
 
 		
@@ -354,16 +354,7 @@ namespace Render
 		void setTexture2DInternal(int idx, GLuint handle, GLenum texType, int level);
 		void setTexture3DInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
 		void setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
-		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::Format format, GLenum typeEnumGL);
-
-		void checkStates()
-		{
-			GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			if( Status != GL_FRAMEBUFFER_COMPLETE )
-			{
-				LogWarning(0, "Texture Can't Attach to FrameBuffer");
-			}
-		}
+		void setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL);
 
 		std::vector< BufferInfo > mTextures;
 		BufferInfo  mDepth;
@@ -639,7 +630,7 @@ namespace Render
 			uint32 stride;
 			uint16 instanceStepRate;
 			uint8  offset;
-			uint8  idxStream;
+			uint8  streamIndex;
 			uint8  attribute;
 			uint8  componentNum;
 			bool   bNormalized;

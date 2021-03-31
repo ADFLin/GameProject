@@ -249,7 +249,7 @@ namespace Render
 				//return false;
 			}
 
-			if (GRHISupportMeshShader && GRHISystem->getName() == RHISytemName::OpenGL)
+			if (GRHISupportMeshShader && GRHISystem->getName() == RHISystemName::OpenGL)
 			{
 				GLint MaxDrawMeshTasksCount = 0;
 				glGetIntegerv(GL_MAX_DRAW_MESH_TASKS_COUNT_NV, &MaxDrawMeshTasksCount);
@@ -504,11 +504,6 @@ namespace Render
 
 		}
 
-		void updateFrame(int frame) override
-		{
-
-		}
-
 		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
@@ -585,7 +580,7 @@ namespace Render
 					if (bUseTask)
 					{
 #if USE_SHADER_STATS
-						if (GRHISystem->getName() == RHISytemName::OpenGL)
+						if (GRHISystem->getName() == RHISystemName::OpenGL)
 						{
 							ShaderParameter param;
 							progSimpleMesh->getRHIResource()->getResourceParameter(EShaderResourceType::AtomicCounter, SHADER_PARAM(RenderMeshletCount), param);
@@ -604,11 +599,11 @@ namespace Render
 							vertices[i] = worldPosH.dividedVector();
 						}
 
-						RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA , Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+						RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA , EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 						RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 						RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 						RHISetFixedShaderPipelineState(commandList, mView.worldToClip, LinearColor(1, 0, 0, 0.15));
-						static const int32 FaceIndices[] =
+						static const uint32 FaceIndices[] =
 						{
 							0,1,5, 0,5,4,
 							1,3,7, 1,7,5,
@@ -616,7 +611,7 @@ namespace Render
 							2,0,4, 2,4,6,
 						};
 						TRenderRT< RTVF_XYZ >::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, ARRAY_SIZE(vertices), FaceIndices, ARRAY_SIZE(FaceIndices));
-						static const int32 LineIndices[] =
+						static const uint32 LineIndices[] =
 						{
 							0, 1, 1, 3, 3, 2, 2, 0,
 							4, 5, 5, 7, 7, 6, 6, 4,
@@ -668,7 +663,7 @@ namespace Render
 				RHIGraphics2D& g = Global::GetRHIGraphics2D();
 				RenderStats renderStats = { 0 };
 
-				if (GRHISystem->getName() == RHISytemName::OpenGL)
+				if (GRHISystem->getName() == RHISystemName::OpenGL)
 				{
 					GLuint handle = OpenGLCast::GetHandle(*mRenderStatsBuffer.getRHI());
 					glGetNamedBufferSubData(handle, 0, sizeof(RenderStats), &renderStats);

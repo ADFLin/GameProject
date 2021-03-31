@@ -77,7 +77,7 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertex, dataInfos, numData));
 	}
 
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, int const* pIndices, int numIndex)
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, uint32 const* pIndices, int numIndex)
 	{
 		VertexDataInfo info;
 		info.ptr = pVertices;
@@ -86,7 +86,7 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVertex, &info, 1, pIndices, numIndex));
 	}
 
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVerex, dataInfos, numVertexData, pIndices, numIndex));
 	}
@@ -136,14 +136,14 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetShaderProgram(shaderProgram));
 	}
 
-	void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderStateDesc const& state)
+	void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderStateDesc const& stateDesc)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetGraphicsShaderBoundState(state));
+		RHI_COMMAND_FUNC(commandList, RHISetGraphicsShaderBoundState(stateDesc));
 	}
 
-	void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& state)
+	void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& stateDesc)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetMeshShaderBoundState(state));
+		RHI_COMMAND_FUNC(commandList, RHISetMeshShaderBoundState(stateDesc));
 	}
 
 	void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader)

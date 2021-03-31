@@ -74,56 +74,43 @@ namespace Render
 	};
 
 
-	struct Blend
+	struct EBlend
 	{
 		enum Factor
 		{
-			eOne,
-			eZero,
-			eSrcAlpha,
-			eOneMinusSrcAlpha,
-			eDestAlpha,
-			eOneMinusDestAlpha,
-			eSrcColor,
-			eOneMinusSrcColor,
-			eDestColor,
-			eOneMinusDestColor,
+			One,
+			Zero,
+			SrcAlpha,
+			OneMinusSrcAlpha,
+			DestAlpha,
+			OneMinusDestAlpha,
+			SrcColor,
+			OneMinusSrcColor,
+			DestColor,
+			OneMinusDestColor,
 		};
 
 		enum Operation
 		{
-			eAdd,
-			eSub,
-			eReverseSub ,
-			eMax ,
-			eMin ,
+			Add,
+			Sub,
+			ReverseSub ,
+			Max ,
+			Min ,
 		};
 	};
 
-	struct Stencil
+
+	enum class EStencil
 	{
-		enum Operation
-		{
-			eKeep,
-			eZero,
-			eReplace,
-			eIncr,
-			eIncrWarp,
-			eDecr,
-			eDecrWarp,
-			eInvert,
-		};
-		enum Function
-		{
-			eNever,
-			eLess,
-			eLessEqual,
-			eGreater,
-			eGreaterEqual,
-			eEqual,
-			eNotEqual,
-			eAlways,
-		};
+		Keep,
+		Zero,
+		Replace,
+		Incr,
+		IncrWarp,
+		Decr,
+		DecrWarp,
+		Invert,
 	};
 
 	enum EAccessOperator
@@ -219,23 +206,23 @@ namespace Render
 		Inverse,
 	};
 
-	struct Sampler
+	struct ESampler
 	{
 		enum AddressMode
 		{
-			eWarp,
-			eClamp,
-			eMirror,
-			eBorder,
+			Warp,
+			Clamp,
+			Mirror,
+			Border,
 		};
 
 		enum Filter
 		{
-			ePoint,
-			eBilinear,
-			eTrilinear,
-			eAnisotroicPoint,
-			eAnisotroicLinear,
+			Point,
+			Bilinear,
+			Trilinear,
+			AnisotroicPoint,
+			AnisotroicLinear,
 		};
 
 	};

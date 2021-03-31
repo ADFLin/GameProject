@@ -490,7 +490,7 @@ namespace Go
 		struct WinRateData
 		{
 			std::vector< Vector2 > history;
-			std::vector< int32 >   splineIndeics;
+			std::vector< uint32 >  splineIndeics;
 		};
 		WinRateData mWinRateDataList[2];
 

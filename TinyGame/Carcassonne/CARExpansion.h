@@ -64,6 +64,9 @@ namespace CAR
 		EXP_TEST,
 	};
 
+	char const* GetExpansionString(Expansion exp);
+
+
 	enum GameRule
 	{
 		eHardcore,
@@ -76,65 +79,65 @@ namespace CAR
 		eTowerCaptureEverything,
 	};
 
-	enum class Rule
+	enum class ERule
 	{
-		eInn,
-		eCathedral,
-		eBigMeeple,
-		eBuilder,
-		eTraders,
-		ePig,
-		eKingAndRobber,
-		ePrinecess,
-		eDragon,
-		eFariy,
-		eTower,
-		eTeacher ,
+		Inn,
+		Cathedral,
+		BigMeeple,
+		Builder,
+		Traders,
+		Pig,
+		KingAndRobber,
+		Prinecess,
+		Dragon,
+		Fariy,
+		Tower,
+		Teacher ,
 
-		eWagon,
-		eMayor,
-		eBarn,
-		ePhantom,
-		eAbbot,
-		eRobber ,
+		Wagon,
+		Mayor,
+		Barn,
+		Phantom,
+		Abbot,
+		Robber ,
 
-		eUseHill,
-		eShepherdAndSheep,
-		eBazaar,
-		eBridge,
-		eLaPorxada,
-		eCastleToken,
-		eUseVineyard,
-		eLittleBuilding,
-		eMageAndWitch,
-		eMessage ,
-		eGold ,
-		eFlyMahine ,
-		eCropCircle ,
-		eShrine ,
-		eFair ,
+		UseHill,
+		ShepherdAndSheep,
+		Bazaar,
+		Bridge,
+		LaPorxada,
+		CastleToken,
+		UseVineyard,
+		LittleBuilding,
+		MageAndWitch,
+		Message ,
+		Gold ,
+		FlyMahine ,
+		CropCircle ,
+		Shrine ,
+		Fair ,
 
-		eFestival ,
-		eWindRose ,
+		Festival ,
+		WindRose ,
 
-		eHaveGermanCastleTile,
-		eHaveAbbeyTile,
-		eHaveRiverTile,
-		eHaveHalflingTile,
+		HaveGermanCastleTile,
+		HaveAbbeyTile,
+		HaveRiverTile,
+		HaveHalflingTile,
 		
 		eHaveMonaster,
 		eRemoveOriginalCloister ,
 
 		//////////////
-		eHardcore,
-		eSmallCity,
-		eDoubleTurnDrawImmediately,
-		eCantMoveFairy,
-		ePrincessTileMustRemoveKnightOrBuilder,
-		eMoveDragonBeforeScoring,
-		eTowerCaptureEverything,
+		Hardcore,
+		SmallCity,
+		DoubleTurnDrawImmediately,
+		CantMoveFairy,
+		PrincessTileMustRemoveKnightOrBuilder,
+		MoveDragonBeforeScoring,
+		TowerCaptureEverything,
 
-		TotalNum,
+		COUNT,
 	};
 
 	struct TileDefine
@@ -144,7 +147,7 @@ namespace CAR
 		uint8  sideLink[2];
 		uint16 roadLink[2];
 		TileContentMask content;
-		SideContentType sideContent[4];
+		SideContentMask sideContent[4];
 		uint8  centerFarmMask;
 		uint8  farmLink[6];
 		uint8  tag;

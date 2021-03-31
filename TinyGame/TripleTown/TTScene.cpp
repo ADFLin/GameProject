@@ -311,7 +311,7 @@ namespace TripleTown
 		unsigned w, h;
 
 		TRACE_RESOURCE_TAG("TTScene.TexAtlas");
-		VERIFY_RETURN_FALSE(mTexAtlas.initialize(Texture::eRGBA8, 2048, 2048 , 1 ));
+		VERIFY_RETURN_FALSE(mTexAtlas.initialize(ETexture::RGBA8, 2048, 2048 , 1 ));
 
 		for( int i = 0; i < TEX_ID_NUM; ++i )
 		{
@@ -336,7 +336,7 @@ namespace TripleTown
 		if( !imageData.load(path) )
 			return nullptr;
 
-		return RHICreateTexture2D(Texture::eRGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
+		return RHICreateTexture2D(ETexture::RGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
 	}
 
 	bool Scene::loadTextureImageResource( char const* path , int textureId )
@@ -345,9 +345,9 @@ namespace TripleTown
 		if( !imageData.load(path) )
 			return false;
 
-		mTexMap[textureId] = RHICreateTexture2D(Texture::eRGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
+		mTexMap[textureId] = RHICreateTexture2D(ETexture::RGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
 
-		if( !mTexAtlas.addImage(textureId , imageData.width, imageData.height, Texture::eRGBA8, imageData.data.data()) )
+		if( !mTexAtlas.addImage(textureId , imageData.width, imageData.height, ETexture::RGBA8, imageData.data.data()) )
 			return false;
 
 		return true;
@@ -383,21 +383,21 @@ namespace TripleTown
 		TRACE_RESOURCE_TAG_SCOPE("TTScene");
 		auto& imageInfo = mItemImageMap[itemId][imageType];
 #if !USE_TEXTURE_ATLAS
-		imageInfo.texture = RHICreateTexture2D(Texture::eRGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
+		imageInfo.texture = RHICreateTexture2D(ETexture::RGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
 #endif
 
 #if USE_COMPACT_IMAGE
 		Vec2i compactMin, compactMax;
 		imageData.calcCompactSize(compactMin, compactMax);
 		Vec2i compactSize = compactMax - compactMin;
-		if( !mTexAtlas.addImage(GetItemImageId(itemId, imageType), compactSize.x, compactSize.y, Texture::eRGBA8, imageData.data.data() + compactMin.x + compactMin.y * imageData.width, imageData.width) )
+		if( !mTexAtlas.addImage(GetItemImageId(itemId, imageType), compactSize.x, compactSize.y, ETexture::RGBA8, imageData.data.data() + compactMin.x + compactMin.y * imageData.width, imageData.width) )
 			return false;
 
 		imageInfo.rect.offset = Vector2(compactMin) / Vector2(imageData.width, imageData.height);
 		imageInfo.rect.size = Vector2(compactSize) / Vector2(imageData.width, imageData.height);
 #else
 
-		if( !mTexAtlas.addImage(GetItemImageId(itemId, imageType), imageData.width, imageData.height, Texture::eRGBA8, imageData.data.data()) )
+		if( !mTexAtlas.addImage(GetItemImageId(itemId, imageType), imageData.width, imageData.height, ETexture::RGBA8, imageData.data.data()) )
 			return false;
 #endif
 
@@ -592,7 +592,7 @@ namespace TripleTown
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mRenderState.baseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -100, 100));
-		mRenderState.sampler = &TStaticSamplerState< Sampler::eBilinear >::GetRHI();
+		mRenderState.sampler = &TStaticSamplerState< ESampler::Bilinear >::GetRHI();
 		float scaleMap = float( TileLength ) / TileImageLength;
 	
 		TRANSFORM_STACK_SCOPE(xformStack, RenderTransform2D( Vector2(scaleMap , scaleMap ) , mMapOffset) );
@@ -652,7 +652,7 @@ namespace TripleTown
 
 		submitRenderCommand(commandList);
 
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha >::GetRHI());
 
 		TilePos posTileMouse = calcTilePos( mLastMousePos );
 		bool renderQueue = true;

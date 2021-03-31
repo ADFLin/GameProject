@@ -312,19 +312,19 @@ namespace Render
 			}
 			if( mParamRandTexture.isBound() )
 			{
-				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this , RandTexture, *data.randTexture, TStaticSamplerState<Sampler::ePoint>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this , RandTexture, *data.randTexture, TStaticSamplerState<ESampler::Point>::GetRHI());
 			}
 			if( mParamNoiseTexture.isBound() )
 			{
-				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, NoiseTexture, *data.noiseTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, NoiseTexture, *data.noiseTexture, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 			}
 			if( mParamVolumeTexture.isBound() )
 			{
-				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, VolumeTexture, *data.volumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, VolumeTexture, *data.volumeTexture, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 			}
 			if( mParamNoiseVolumeTexture.isBound() )
 			{
-				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, NoiseVolumeTexture, *data.noiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, NoiseVolumeTexture, *data.noiseVolumeTexture, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 			}
 		}
 
@@ -468,10 +468,10 @@ namespace Render
 		void setParameters(RHICommandList& commandList, ViewInfo& view, RHITexture2D& frameTexture, RHITexture2D& historyTexture)
 		{
 			view.setupShader(commandList, *this);
-			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, FrameTexture, frameTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, FrameTexture, frameTexture, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 			if( mParamHistroyTexture.isBound() )
 			{
-				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, HistroyTexture, historyTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, HistroyTexture, historyTexture, TStaticSamplerState<ESampler::Bilinear>::GetRHI());
 			}
 		}
 

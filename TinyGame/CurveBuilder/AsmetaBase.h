@@ -73,6 +73,7 @@ namespace Asmeta
 		RM_DR_EBP  = 0x05,
 		RM_EDI     = 0x06,
 		RM_ESI     = 0x07,
+		//
 	};
 
 	enum FlagSIB
@@ -93,6 +94,11 @@ namespace Asmeta
 		{
 			eAX = 0x0, eCX = 0x1, eDX = 0x2, eBX = 0x3,
 			eSP = 0x4, eBP = 0x5, eSI = 0x6, eDI = 0x7,
+
+#if TARGET_PLATFORM_64BITS
+			eR8 = 0x8, eR9 = 0x9, eR10 = 0xa, eR11 = 0xb,
+			eR12 = 0xc, eR13 = 0xd, eR14 = 0xe, eR15 = 0xf,
+#endif
 
 			eAL = 0x0, eCL = 0x1, eDL = 0x2, eBL = 0x3,
 			eAH = 0x0, eCH = 0x5, eDH = 0x6, eBH = 0x7,
@@ -197,18 +203,18 @@ namespace Asmeta
 		typedef RegPtr RefType;
 		RegPtr( Reg32 const& base )                                                 {  init( base );  }
 		RegPtr( Reg32 const& base , int8 disp )                                     {  init( base , MOD_DISP8 , disp );  }
-		RegPtr( Reg32 const& base , SysInt disp )                                   {  init( base , GetDispMode(disp), disp );  }
+		RegPtr( Reg32 const& base , int32 disp )                                    {  init( base , GetDispMode(disp), disp );  }
 		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift )              {  init( base , MOD_M , index , shift , 0 );  }
-		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift , SysInt disp ){  init( base , GetDispMode(disp), index , shift , disp );  }
+		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift , int32 disp ) {  init( base , GetDispMode(disp), index , shift , disp );  }
 		RegPtr( Reg32 const& base , Reg32 const& index , uint8 shift , int8 disp )  {  init( base , MOD_DISP8 , index , shift , disp );  }
 	private:
 
-		static FlagModRM GetDispMode(SysInt disp)
+		static FlagModRM GetDispMode(int32 disp)
 		{
 			return (int8(disp) == disp) ? MOD_DISP8: MOD_DISP32 ;
 		}
-
-		void init( Reg32 const& base )
+		template< int Size >
+		void init( RegX86<Size> const& base )
 		{
 			switch( base.code() )
 			{
@@ -221,13 +227,21 @@ namespace Asmeta
 				mSIBByte = 0;
 				break;
 			default:
-				mModByte = MOD_RM_BYTE( MOD_M , 0 , base.code() );
+				mModByte = MOD_RM_BYTE(MOD_M, 0, base.code());
 				mSIBByte = 0;
+#if TARGET_PLATFORM_64BITS
+				mREX.value = 0;
+				if (Size == 8)
+				{
+					assert((base.code() & 0x7) == base.code());				
+				}			
+#endif
 				break;
 			}
 			mDisp = 0;
+
 		}
-		void init( Reg32 const& base , uint8 mod , SysInt disp )
+		void init( Reg32 const& base , uint8 mod , int32 disp )
 		{
 			assert( mod == MOD_DISP8 || mod == MOD_DISP32 );
 
@@ -244,7 +258,7 @@ namespace Asmeta
 			mDisp = disp;
 		}
 
-		void init( Reg32 const& base , uint8 mod , Reg32 const& index , uint8 shift , SysInt disp )
+		void init( Reg32 const& base , uint8 mod , Reg32 const& index , uint8 shift , int32 disp )
 		{
 			assert( base.code() != SIB_NOBASE );
 			assert( index.code() != SIB_NOINDEX );
@@ -253,8 +267,25 @@ namespace Asmeta
 			mSIBByte = SIB_BYTE( shift , index.code() , base.code() );
 			mDisp    = disp;
 		}
+
+
 		uint8   mModByte;
 		uint8   mSIBByte;
+#if TARGET_PLATFORM_64BITS
+		struct REX
+		{
+			union 
+			{
+				struct
+				{
+					uint8  X;
+					uint8  B;
+				};
+				uint16 value;
+			};
+		};
+		REX   mREX;
+#endif
 		SysInt  mDisp;
 		template< class T >
 		friend  class AssemblerT;

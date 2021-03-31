@@ -45,7 +45,7 @@ public:
 		mUIManager.addWidget( w );
 	}
 
-	void updateFrame();
+	void tick();
 
 	//CFly::ISceneRenderListener
 	virtual void onRenderNodeEnd();

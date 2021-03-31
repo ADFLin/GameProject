@@ -85,7 +85,7 @@ public:
 	virtual void enter(){}
 	virtual void exit(){} 
 	//
-	virtual void beginPlay(StageManager& manger, StageModeType modeType) = 0;
+	virtual void beginPlay(StageManager& manger, EGameStageMode modeType) = 0;
 	virtual void endPlay(){}
 
 	virtual IGameInstance*        createInstance() { return nullptr; }
@@ -102,7 +102,7 @@ public:
 	virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return nullptr; }
 
 
-	bool changeDefaultStage(StageManager& stageManager, StageModeType modeType);
+	bool changeDefaultStage(StageManager& stageManager, EGameStageMode modeType);
 };
 
 using CreateModuleFun = IModuleInterface* (*)();

@@ -136,16 +136,30 @@ namespace Render
 		cleanup();
 	}
 
-	MaterialShaderProgram* MaterialShaderMap::getShader(VertexFactory* vertexFactory , MaterialShaderProgramClass const& shaderClass )
+	MaterialShaderProgram* MaterialShaderMap::getShader(MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey )
 	{
-		MaterialShaderKey key{ (vertexFactory) ? &vertexFactory->getType() : VertexFactoryType::DefaultType , &shaderClass };
+		MaterialShaderKey key{ &shaderClass , uniqueHashKey };
 		auto iter = mShaderMap.find(key);
-		if( iter == mShaderMap.end() )
+		if (iter == mShaderMap.end())
+		{
 			return nullptr;
+		}
 
 		return iter->second;
 	}
 
+	MaterialShaderProgram* MaterialShaderMap::loadShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey)
+	{
+		MaterialShaderProgram* shaderProgram = ShaderManager::Get().loadMaterialShader(info, shaderClass);
+
+		if (shaderProgram)
+		{
+			MaterialShaderKey key{ &shaderClass , uniqueHashKey };
+			mShaderMap.emplace(key, shaderProgram);
+		}
+
+		return shaderProgram;
+	}
 
 	void MaterialShaderMap::cleanup()
 	{
@@ -176,14 +190,14 @@ namespace Render
 				continue;
 			}
 			MaterialShaderPairVec shaderPairs;
-			int numShaders = ShaderManager::Get().loadMaterialShaders(info , *pVertexFactoryType, shaderPairs);
+			int numShaders = ShaderManager::Get().loadMeshMaterialShaders(info , *pVertexFactoryType, shaderPairs);
 
 			if( numShaders == 0 )
 				return false;
 
 			for( auto pair : shaderPairs )
 			{
-				mShaderMap.emplace( MaterialShaderKey( pVertexFactoryType , pair.first ) , pair.second);
+				mShaderMap.emplace( MaterialShaderKey( pair.first , uint32(pVertexFactoryType) ) , pair.second);
 			}
 		}
 

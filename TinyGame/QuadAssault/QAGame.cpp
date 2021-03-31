@@ -11,7 +11,6 @@
 
 #include "RHI/ShaderManager.h"
 
-
 EXPORT_GAME_MODULE( QuadAssaultModule )
 
 
@@ -33,6 +32,7 @@ public:
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mGame = new Game();
+		mGame->mGraphics2D = &::Global::GetRHIGraphics2D();
 		if( !mGame->init("config.txt" , screenSize , false ) )
 			return false;
 
@@ -40,6 +40,21 @@ public:
 
 		return true;
 	}
+
+	ERenderSystem getDefaultRenderSystem() override
+	{
+		return ERenderSystem::OpenGL;
+	}
+
+
+	bool setupRenderSystem(ERenderSystem systemName) override
+	{
+		if (!mGame->initRenderSystem())
+			return false;
+
+		return true;
+	}
+
 
 	virtual void onEnd() override
 	{
@@ -71,7 +86,6 @@ public:
 	{
 		return mGame->onKey(msg);
 	}
-
 };
 
 
@@ -101,7 +115,7 @@ bool QuadAssaultModule::queryAttribute(GameAttribute& value)
 	return false;
 }
 
-void QuadAssaultModule::beginPlay(StageManager& manger, StageModeType modeType)
+void QuadAssaultModule::beginPlay(StageManager& manger, EGameStageMode modeType)
 {
 	ProxyStage* stage = new ProxyStage;
 	manger.setNextStage(stage);

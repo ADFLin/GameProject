@@ -164,10 +164,10 @@ namespace Render
 	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format format, bool bNormailzed, bool bInstanceData, int instanceStepRate)
 	{
 		InputElementDesc element;
-		element.idxStream = idxStream;
+		element.streamIndex = idxStream;
 		element.attribute = attribute;
 		element.format = format;
-		element.offset = mVertexSizes[element.idxStream];
+		element.offset = mVertexSizes[element.streamIndex];
 		element.bNormalized = bNormailzed;
 		element.bIntanceData = bInstanceData;
 		element.instanceStepRate = instanceStepRate;
@@ -214,7 +214,7 @@ namespace Render
 	int InputLayoutDesc::getAttributeStreamIndex(uint8 attribute) const
 	{
 		InputElementDesc const* info = findElementByAttribute(attribute);
-		return (info) ? info->idxStream : -1;
+		return (info) ? info->streamIndex : -1;
 	}
 
 	void InputLayoutDesc::updateVertexSize()
@@ -222,11 +222,11 @@ namespace Render
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 		for( auto const& e : mElements )
 		{
-			mVertexSizes[e.idxStream] += Vertex::GetFormatSize(e.format);
+			mVertexSizes[e.streamIndex] += Vertex::GetFormatSize(e.format);
 		}
 	}
 
-	Vector3 Texture::GetFaceDir(Face face)
+	Vector3 ETexture::GetFaceDir(Face face)
 	{
 		static Vector3 const CubeFaceDir[] =
 		{
@@ -237,7 +237,7 @@ namespace Render
 		return CubeFaceDir[face];
 	}
 
-	Vector3 Texture::GetFaceUpDir(Face face)
+	Vector3 ETexture::GetFaceUpDir(Face face)
 	{
 		static Vector3 const CubeUpDir[] =
 		{
@@ -275,7 +275,7 @@ namespace Render
 	struct TextureConvInfo
 	{
 #if _DEBUG
-		Texture::Format formatCheck;
+		ETexture::Format formatCheck;
 #endif
 		int             compCount;
 		EComponentType  compType;
@@ -290,54 +290,54 @@ namespace Render
 #define TEXTURE_INFO( FORMAT_CHECK , COMP_COUNT ,COMP_TYPE )\
 	{ COMP_COUNT , COMP_TYPE },
 #endif
-		TEXTURE_INFO(Texture::eRGBA8   ,4,CVT_UByte)
-		TEXTURE_INFO(Texture::eRGB8    ,3,CVT_UByte)
-		TEXTURE_INFO(Texture::eBGRA8   ,4,CVT_UByte)
-		TEXTURE_INFO(Texture::eRGB10A2 ,4,CVT_UByte)
+		TEXTURE_INFO(ETexture::RGBA8   ,4,CVT_UByte)
+		TEXTURE_INFO(ETexture::RGB8    ,3,CVT_UByte)
+		TEXTURE_INFO(ETexture::BGRA8   ,4,CVT_UByte)
+		TEXTURE_INFO(ETexture::RGB10A2 ,4,CVT_UByte)
 
-		TEXTURE_INFO(Texture::eR16     ,1,CVT_UShort)
-		TEXTURE_INFO(Texture::eR8      ,1,CVT_UByte)
+		TEXTURE_INFO(ETexture::R16     ,1,CVT_UShort)
+		TEXTURE_INFO(ETexture::R8      ,1,CVT_UByte)
 
-		TEXTURE_INFO(Texture::eR32F    ,1,CVT_Float)
-		TEXTURE_INFO(Texture::eRG32F   ,2,CVT_Float)
-		TEXTURE_INFO(Texture::eRGB32F  ,3,CVT_Float)
-		TEXTURE_INFO(Texture::eRGBA32F ,4,CVT_Float)
+		TEXTURE_INFO(ETexture::R32F    ,1,CVT_Float)
+		TEXTURE_INFO(ETexture::RG32F   ,2,CVT_Float)
+		TEXTURE_INFO(ETexture::RGB32F  ,3,CVT_Float)
+		TEXTURE_INFO(ETexture::RGBA32F ,4,CVT_Float)
 
-		TEXTURE_INFO(Texture::eR16F    ,1,CVT_Half)
-		TEXTURE_INFO(Texture::eRG16F   ,2,CVT_Half)
-		TEXTURE_INFO(Texture::eRGB16F  ,3,CVT_Half)
-		TEXTURE_INFO(Texture::eRGBA16F ,4,CVT_Half)
+		TEXTURE_INFO(ETexture::R16F    ,1,CVT_Half)
+		TEXTURE_INFO(ETexture::RG16F   ,2,CVT_Half)
+		TEXTURE_INFO(ETexture::RGB16F  ,3,CVT_Half)
+		TEXTURE_INFO(ETexture::RGBA16F ,4,CVT_Half)
 
-		TEXTURE_INFO(Texture::eR32I    ,1,CVT_Int)
-		TEXTURE_INFO(Texture::eR16I    ,1,CVT_Short)
-		TEXTURE_INFO(Texture::eR8I     ,1,CVT_Byte)
-		TEXTURE_INFO(Texture::eR32U    ,1,CVT_UInt)
-		TEXTURE_INFO(Texture::eR16U    ,1,CVT_UShort)
-		TEXTURE_INFO(Texture::eR8U     ,1,CVT_UByte)
+		TEXTURE_INFO(ETexture::R32I    ,1,CVT_Int)
+		TEXTURE_INFO(ETexture::R16I    ,1,CVT_Short)
+		TEXTURE_INFO(ETexture::R8I     ,1,CVT_Byte)
+		TEXTURE_INFO(ETexture::R32U    ,1,CVT_UInt)
+		TEXTURE_INFO(ETexture::R16U    ,1,CVT_UShort)
+		TEXTURE_INFO(ETexture::R8U     ,1,CVT_UByte)
 
-		TEXTURE_INFO(Texture::eRG32I   ,2,CVT_Int)
-		TEXTURE_INFO(Texture::eRG16I   ,2,CVT_Short)
-		TEXTURE_INFO(Texture::eRG8I    ,2,CVT_Byte)
-		TEXTURE_INFO(Texture::eRG32U   ,2,CVT_UInt)
-		TEXTURE_INFO(Texture::eRG16U   ,2,CVT_UShort)
-		TEXTURE_INFO(Texture::eRG8U    ,2,CVT_UByte)
+		TEXTURE_INFO(ETexture::RG32I   ,2,CVT_Int)
+		TEXTURE_INFO(ETexture::RG16I   ,2,CVT_Short)
+		TEXTURE_INFO(ETexture::RG8I    ,2,CVT_Byte)
+		TEXTURE_INFO(ETexture::RG32U   ,2,CVT_UInt)
+		TEXTURE_INFO(ETexture::RG16U   ,2,CVT_UShort)
+		TEXTURE_INFO(ETexture::RG8U    ,2,CVT_UByte)
 
-		TEXTURE_INFO(Texture::eRGB32I  ,3,CVT_Int)
-		TEXTURE_INFO(Texture::eRGB16I  ,3,CVT_Short)
-		TEXTURE_INFO(Texture::eRGB8I   ,3,CVT_Byte)
-		TEXTURE_INFO(Texture::eRGB32U  ,3,CVT_UInt)
-		TEXTURE_INFO(Texture::eRGB16U  ,3,CVT_UShort)
-		TEXTURE_INFO(Texture::eRGB8U   ,3,CVT_UByte)
+		TEXTURE_INFO(ETexture::RGB32I  ,3,CVT_Int)
+		TEXTURE_INFO(ETexture::RGB16I  ,3,CVT_Short)
+		TEXTURE_INFO(ETexture::RGB8I   ,3,CVT_Byte)
+		TEXTURE_INFO(ETexture::RGB32U  ,3,CVT_UInt)
+		TEXTURE_INFO(ETexture::RGB16U  ,3,CVT_UShort)
+		TEXTURE_INFO(ETexture::RGB8U   ,3,CVT_UByte)
 
-		TEXTURE_INFO(Texture::eRGBA32I ,4,CVT_Int)
-		TEXTURE_INFO(Texture::eRGBA16I ,4,CVT_Short)
-		TEXTURE_INFO(Texture::eRGBA8I  ,4,CVT_Byte)
-		TEXTURE_INFO(Texture::eRGBA32U ,4,CVT_UInt)
-		TEXTURE_INFO(Texture::eRGBA16U ,4,CVT_UShort)
-		TEXTURE_INFO(Texture::eRGBA8U  ,4,CVT_UByte)
+		TEXTURE_INFO(ETexture::RGBA32I ,4,CVT_Int)
+		TEXTURE_INFO(ETexture::RGBA16I ,4,CVT_Short)
+		TEXTURE_INFO(ETexture::RGBA8I  ,4,CVT_Byte)
+		TEXTURE_INFO(ETexture::RGBA32U ,4,CVT_UInt)
+		TEXTURE_INFO(ETexture::RGBA16U ,4,CVT_UShort)
+		TEXTURE_INFO(ETexture::RGBA8U  ,4,CVT_UByte)
 
-		TEXTURE_INFO(Texture::eSRGB   ,3,CVT_UByte)
-		TEXTURE_INFO(Texture::eSRGBA  ,4,CVT_UByte)
+		TEXTURE_INFO(ETexture::SRGB   ,3,CVT_UByte)
+		TEXTURE_INFO(ETexture::SRGBA  ,4,CVT_UByte)
 
 #undef TEXTURE_INFO
 	};
@@ -353,19 +353,19 @@ namespace Render
 	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
 #endif
 
-	uint32 Texture::GetFormatSize(Format format)
+	uint32 ETexture::GetFormatSize(Format format)
 	{
 		uint32 result = GetComponentTypeSize(gTexConvMap[format].compType);
 		result *= gTexConvMap[format].compCount;
 		return result;
 	}
 
-	uint32 Texture::GetComponentCount(Format format)
+	uint32 ETexture::GetComponentCount(Format format)
 	{
 		return gTexConvMap[format].compCount;
 	}
 
-	EComponentType Texture::GetComponentType(Format format)
+	EComponentType ETexture::GetComponentType(Format format)
 	{
 		return gTexConvMap[format].compType;
 	}

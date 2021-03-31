@@ -81,7 +81,7 @@ public:
 	ReplayHeader&       getHeader()       { return mHeader;  }
 	ReplayInfo&         getInfo()         { return mInfo;    }
 
-	static TINY_API bool loadReplayInfo( char const* path , ReplayHeader& header , ReplayInfo& info  );
+	static TINY_API bool LoadReplayInfo( char const* path , ReplayHeader& header , ReplayInfo& info  );
 protected:
 
 	union

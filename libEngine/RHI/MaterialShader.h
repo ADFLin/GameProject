@@ -35,6 +35,7 @@ namespace Render
 	};
 
 
+
 	class MaterialShaderProgramClass : public GlobalShaderProgramClass
 	{
 	public:
@@ -43,7 +44,7 @@ namespace Render
 			SetupShaderCompileOptionFunc inSetupShaderCompileOption,
 			GetShaderFileNameFunc inGetShaderFileName,
 			GetShaderEntriesFunc inGetShaderEntries);
-
+		using GlobalShaderProgramClass::GlobalShaderProgramClass;
 		CORE_API static std::vector< MaterialShaderProgramClass* > ClassList;
 	};
 

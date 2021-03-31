@@ -8,35 +8,35 @@
 
 namespace Render
 {
-	D3D12_BLEND D3D12Translate::To(Blend::Factor factor)
+	D3D12_BLEND D3D12Translate::To(EBlend::Factor factor)
 	{
 		switch( factor )
 		{
-		case Blend::eOne: return D3D12_BLEND_ONE;
-		case Blend::eZero: return D3D12_BLEND_ZERO;
-		case Blend::eSrcAlpha: return D3D12_BLEND_SRC_ALPHA;
-		case Blend::eOneMinusSrcAlpha: return D3D12_BLEND_INV_SRC_ALPHA;
-		case Blend::eDestAlpha: return D3D12_BLEND_DEST_ALPHA;
-		case Blend::eOneMinusDestAlpha: return D3D12_BLEND_INV_DEST_ALPHA;
-		case Blend::eSrcColor: return  D3D12_BLEND_SRC_COLOR;
-		case Blend::eOneMinusSrcColor: return D3D12_BLEND_INV_SRC_COLOR;
-		case Blend::eDestColor: return D3D12_BLEND_DEST_COLOR;
-		case Blend::eOneMinusDestColor: return D3D12_BLEND_INV_DEST_COLOR;
+		case EBlend::One: return D3D12_BLEND_ONE;
+		case EBlend::Zero: return D3D12_BLEND_ZERO;
+		case EBlend::SrcAlpha: return D3D12_BLEND_SRC_ALPHA;
+		case EBlend::OneMinusSrcAlpha: return D3D12_BLEND_INV_SRC_ALPHA;
+		case EBlend::DestAlpha: return D3D12_BLEND_DEST_ALPHA;
+		case EBlend::OneMinusDestAlpha: return D3D12_BLEND_INV_DEST_ALPHA;
+		case EBlend::SrcColor: return  D3D12_BLEND_SRC_COLOR;
+		case EBlend::OneMinusSrcColor: return D3D12_BLEND_INV_SRC_COLOR;
+		case EBlend::DestColor: return D3D12_BLEND_DEST_COLOR;
+		case EBlend::OneMinusDestColor: return D3D12_BLEND_INV_DEST_COLOR;
 		default:
 			break;
 		}
 		return D3D12_BLEND_ONE;
 	}
 
-	D3D12_BLEND_OP D3D12Translate::To(Blend::Operation op)
+	D3D12_BLEND_OP D3D12Translate::To(EBlend::Operation op)
 	{
 		switch( op )
 		{
-		case Blend::eAdd: return D3D12_BLEND_OP_ADD;
-		case Blend::eSub: return D3D12_BLEND_OP_SUBTRACT;
-		case Blend::eReverseSub: return D3D12_BLEND_OP_REV_SUBTRACT;
-		case Blend::eMax: return D3D12_BLEND_OP_MAX;
-		case Blend::eMin: return D3D12_BLEND_OP_MIN;
+		case EBlend::Add: return D3D12_BLEND_OP_ADD;
+		case EBlend::Sub: return D3D12_BLEND_OP_SUBTRACT;
+		case EBlend::ReverseSub: return D3D12_BLEND_OP_REV_SUBTRACT;
+		case EBlend::Max: return D3D12_BLEND_OP_MAX;
+		case EBlend::Min: return D3D12_BLEND_OP_MIN;
 		}
 		return D3D12_BLEND_OP_ADD;
 	}
@@ -82,32 +82,32 @@ namespace Render
 #endif
 
 
-	D3D12_FILTER D3D12Translate::To(Sampler::Filter filter)
+	D3D12_FILTER D3D12Translate::To(ESampler::Filter filter)
 	{
 		switch( filter )
 		{
-		case Sampler::ePoint:
+		case ESampler::Point:
 			return D3D12_FILTER_MIN_MAG_MIP_POINT;
-		case Sampler::eBilinear:
+		case ESampler::Bilinear:
 			return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-		case Sampler::eTrilinear:
+		case ESampler::Trilinear:
 			return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-		case Sampler::eAnisotroicPoint:
-		case Sampler::eAnisotroicLinear:
+		case ESampler::AnisotroicPoint:
+		case ESampler::AnisotroicLinear:
 			return D3D12_FILTER_ANISOTROPIC;
 		}
 		return D3D12_FILTER_MIN_MAG_MIP_POINT;
 	}
 
 
-	D3D12_TEXTURE_ADDRESS_MODE D3D12Translate::To(Sampler::AddressMode mode)
+	D3D12_TEXTURE_ADDRESS_MODE D3D12Translate::To(ESampler::AddressMode mode)
 	{
 		switch( mode )
 		{
-		case Sampler::eWarp:   return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		case Sampler::eClamp:  return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		case Sampler::eMirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-		case Sampler::eBorder: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		case ESampler::Warp:   return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		case ESampler::Clamp:  return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		case ESampler::Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+		case ESampler::Border: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
 		}
 		return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 	}
@@ -128,18 +128,18 @@ namespace Render
 		return D3D12_COMPARISON_FUNC_NEVER;
 	}
 
-	D3D12_STENCIL_OP D3D12Translate::To(Stencil::Operation op)
+	D3D12_STENCIL_OP D3D12Translate::To(EStencil op)
 	{
 		switch( op )
 		{
-		case Stencil::eKeep:    return D3D12_STENCIL_OP_KEEP;
-		case Stencil::eZero:    return D3D12_STENCIL_OP_ZERO;
-		case Stencil::eReplace: return D3D12_STENCIL_OP_REPLACE;
-		case Stencil::eIncr:    return D3D12_STENCIL_OP_INCR_SAT;
-		case Stencil::eIncrWarp:return D3D12_STENCIL_OP_INCR;
-		case Stencil::eDecr:    return D3D12_STENCIL_OP_DECR_SAT;
-		case Stencil::eDecrWarp:return D3D12_STENCIL_OP_DECR;
-		case Stencil::eInvert:  return D3D12_STENCIL_OP_INVERT;
+		case EStencil::Keep:    return D3D12_STENCIL_OP_KEEP;
+		case EStencil::Zero:    return D3D12_STENCIL_OP_ZERO;
+		case EStencil::Replace: return D3D12_STENCIL_OP_REPLACE;
+		case EStencil::Incr:    return D3D12_STENCIL_OP_INCR_SAT;
+		case EStencil::IncrWarp:return D3D12_STENCIL_OP_INCR;
+		case EStencil::Decr:    return D3D12_STENCIL_OP_DECR_SAT;
+		case EStencil::DecrWarp:return D3D12_STENCIL_OP_DECR;
+		case EStencil::Invert:  return D3D12_STENCIL_OP_INVERT;
 		}
 		return D3D12_STENCIL_OP_KEEP;
 	}
@@ -207,6 +207,7 @@ namespace Render
 
 	D3D12InputLayout::D3D12InputLayout(InputLayoutDesc const& desc)
 	{
+		mAttriableMask = 0;
 		for (auto const& e : desc.mElements)
 		{
 			if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
@@ -216,12 +217,13 @@ namespace Render
 			element.SemanticName = "ATTRIBUTE";
 			element.SemanticIndex = e.attribute;
 			element.Format = D3D12Translate::To(Vertex::Format(e.format), e.bNormalized);
-			element.InputSlot = e.idxStream;
+			element.InputSlot = e.streamIndex;
 			element.AlignedByteOffset = e.offset;
 			element.InputSlotClass = e.bIntanceData ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
-
 			mDescList.push_back(element);
+
+			mAttriableMask |= BIT(e.attribute);		
 		}
 	}
 

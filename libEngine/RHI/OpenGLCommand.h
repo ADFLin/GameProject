@@ -63,7 +63,7 @@ namespace Render
 	class OpenGLShaderBoundStateKey
 	{
 	public:
-		OpenGLShaderBoundStateKey(GraphicsShaderStateDesc const& state)
+		OpenGLShaderBoundStateKey(GraphicsShaderStateDesc const& stateDesc)
 		{
 			hash = 0x123621;
 			numShaders = 0;
@@ -77,14 +77,14 @@ namespace Render
 					++numShaders;
 				}
 			};
-			CheckShader(state.vertex, GL_VERTEX_SHADER_BIT);
-			CheckShader(state.pixel, GL_FRAGMENT_SHADER_BIT);
-			CheckShader(state.geometry, GL_GEOMETRY_SHADER_BIT);
-			CheckShader(state.hull, GL_TESS_CONTROL_SHADER_BIT);
-			CheckShader(state.domain, GL_TESS_EVALUATION_SHADER_BIT);
+			CheckShader(stateDesc.vertex, GL_VERTEX_SHADER_BIT);
+			CheckShader(stateDesc.pixel, GL_FRAGMENT_SHADER_BIT);
+			CheckShader(stateDesc.geometry, GL_GEOMETRY_SHADER_BIT);
+			CheckShader(stateDesc.hull, GL_TESS_CONTROL_SHADER_BIT);
+			CheckShader(stateDesc.domain, GL_TESS_EVALUATION_SHADER_BIT);
 		}
 
-		OpenGLShaderBoundStateKey(MeshShaderStateDesc const& state)
+		OpenGLShaderBoundStateKey(MeshShaderStateDesc const& stateDesc)
 		{
 			hash = 0x123621;
 			numShaders = 0;
@@ -99,9 +99,9 @@ namespace Render
 				}
 			};
 
-			CheckShader(state.task, GL_TASK_SHADER_BIT_NV);
-			CheckShader(state.mesh, GL_MESH_SHADER_BIT_NV);
-			CheckShader(state.pixel, GL_FRAGMENT_SHADER_BIT);
+			CheckShader(stateDesc.task, GL_TASK_SHADER_BIT_NV);
+			CheckShader(stateDesc.mesh, GL_MESH_SHADER_BIT_NV);
+			CheckShader(stateDesc.pixel, GL_FRAGMENT_SHADER_BIT);
 		}
 		uint32     hash;
 		GLbitfield stageMask;
@@ -134,8 +134,8 @@ namespace Render
 	class OpenGLShaderBoundState
 	{
 	public:
-		bool create(GraphicsShaderStateDesc const& state);
-		bool create(MeshShaderStateDesc const& state);
+		bool create(GraphicsShaderStateDesc const& stateDesc);
+		bool create(MeshShaderStateDesc const& stateDesc);
 
 		void bind() const
 		{
@@ -178,7 +178,7 @@ namespace Render
 		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
 
 		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData);
-		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 
 		void RHIDrawMeshTasks(int start, int count);
 		void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
@@ -233,8 +233,8 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
-		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& state);
-		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& state);
+		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
+		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc);
 		void RHISetComputeShader(RHIShader* shader);
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim);
@@ -415,7 +415,7 @@ namespace Render
 	class OpenGLSystem : public RHISystem
 	{
 	public:
-		RHISytemName getName() const  { return RHISytemName::OpenGL; }
+		RHISystemName getName() const  { return RHISystemName::OpenGL; }
 		bool initialize(RHISystemInitParams const& initParam);
 		void shutdown();
 		class ShaderFormat* createShaderFormat();
@@ -427,17 +427,17 @@ namespace Render
 		}
 		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 		RHITexture1D*    RHICreateTexture1D(
-			Texture::Format format, int length,
+			ETexture::Format format, int length,
 			int numMipLevel, uint32 createFlags, void* data);
 
 		RHITexture2D*    RHICreateTexture2D(
-			Texture::Format format, int w, int h,
+			ETexture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign);
 
-		RHITexture3D*      RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data);
-		RHITextureCube*    RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
-		RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
-		RHITexture2D*      RHICreateTextureDepth(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
+		RHITexture3D*      RHICreateTexture3D(ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data);
+		RHITextureCube*    RHICreateTextureCube(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
+		RHITexture2DArray* RHICreateTexture2DArray(ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
+		RHITexture2D*      RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
@@ -463,8 +463,8 @@ namespace Render
 
 		std::unordered_map< OpenGLShaderBoundStateKey, OpenGLShaderBoundState , MemberFuncHasher > mGfxBoundStateMap;
 
-		OpenGLShaderBoundState* getShaderBoundState(GraphicsShaderStateDesc const& state);
-		OpenGLShaderBoundState* getShaderBoundState(MeshShaderStateDesc const& state);
+		OpenGLShaderBoundState* getShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
+		OpenGLShaderBoundState* getShaderBoundState(MeshShaderStateDesc const& stateDesc);
 
 		template< class TShaderBoundState >
 		OpenGLShaderBoundState* getShaderBoundStateT(TShaderBoundState const& state);

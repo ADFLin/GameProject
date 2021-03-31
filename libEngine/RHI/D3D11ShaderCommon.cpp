@@ -116,7 +116,7 @@ namespace Render
 			auto* shaderImpl = static_cast<D3D11Shader*>(RHICreateShader(input.type));
 			output.resource = shaderImpl;
 
-			if( !shaderImpl->initialize(input.type, mDevice, byteCode) )
+			if( !shaderImpl->initialize(mDevice, byteCode) )
 			{
 				LogWarning(0, "Can't create shader resource");
 				return false;
@@ -160,13 +160,8 @@ namespace Render
 			shaders[i].type = EShader::Type(shaderType);
 			shaders[i].entry = shaderCompiles[i].entryName.c_str();
 
-			if (!shader->initialize(EShader::Type(shaderType), mDevice, std::move(byteCode)))
+			if (!shader->initialize(mDevice, std::move(byteCode)))
 				return false;
-		}
-
-		if (shaderCompiles[0].type == EShader::Compute)
-		{
-			int i = 1;
 		}
 
 		if (!shaderProgramImpl.setupShaders(shaders, numShaders))
@@ -220,7 +215,7 @@ namespace Render
 
 		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
 		std::vector<uint8> temp = binaryCode;
-		if (!shaderImpl.initialize(shaderCompile.type, mDevice, std::move(temp)))
+		if (!shaderImpl.initialize(mDevice, std::move(temp)))
 			return false;
 
 		D3D11Shader::GenerateParameterMap(shaderImpl.byteCode, shaderImpl.mParameterMap);
@@ -250,9 +245,9 @@ namespace Render
 		}
 	}
 
-	bool D3D11Shader::initialize(EShader::Type type, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
+	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
 	{
-		if (!mResource.initialize(type, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
+		if (!mResource.initialize(mType, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
 			return false;
 
 		byteCode.assign((uint8*)inByteCode->GetBufferPointer() , (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
@@ -260,9 +255,9 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11Shader::initialize(EShader::Type type, TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode)
+	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode)
 	{
-		if (!mResource.initialize(type, device, inByteCode.data(), inByteCode.size()))
+		if (!mResource.initialize(mType, device, inByteCode.data(), inByteCode.size()))
 			return false;
 
 		byteCode = std::move(inByteCode);

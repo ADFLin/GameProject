@@ -121,7 +121,7 @@ namespace Render
 		data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelSize);
 		CopyImage(&data.imageData[0], data.imageWidth, data.imageHeight, data.pixelSize, pDataTexture, textureDC.getWidth());
 
-		if (GRHISystem->getName() == RHISytemName::D3D11)
+		if (GRHISystem->getName() == RHISystemName::D3D11)
 		{
 			uint8* pData = data.imageData.data();
 			int count = data.imageData.size() / 4;
@@ -163,10 +163,10 @@ namespace Render
 		if( !bInitialized )
 		{
 			TRACE_RESOURCE_TAG("FontCharCache");
-			if( !mTextAtlas.initialize(Texture::eRGBA8, 1024, 1024, 1) )
+			if( !mTextAtlas.initialize(ETexture::RGBA8, 1024, 1024, 1) )
 				return false;
 
-			if ( GRHISystem->getName() == RHISytemName::OpenGL )
+			if ( GRHISystem->getName() == RHISystemName::OpenGL )
 			{
 				GL_SCOPED_BIND_OBJECT(mTextAtlas.getTexture());
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
@@ -224,6 +224,7 @@ namespace Render
 		return iter->second;
 	}
 
+	
 #endif //CORE_SHARE_CODE
 
 	bool CharDataSet::initialize(FontFaceInfo const& font)
@@ -256,11 +257,11 @@ namespace Render
 		charData.height = imageData.height;
 		if( imageData.width != imageData.imageWidth )
 		{
-			charData.atlasId = mUsedTextAtlas->addImage(imageData.width, imageData.height, Texture::eRGBA8, &imageData.imageData[0], imageData.imageWidth);
+			charData.atlasId = mUsedTextAtlas->addImage(imageData.width, imageData.height, ETexture::RGBA8, &imageData.imageData[0], imageData.imageWidth);
 		}
 		else
 		{
-			charData.atlasId = mUsedTextAtlas->addImage(imageData.width, imageData.height, Texture::eRGBA8, &imageData.imageData[0]);
+			charData.atlasId = mUsedTextAtlas->addImage(imageData.width, imageData.height, ETexture::RGBA8, &imageData.imageData[0]);
 		}
 
 		charData.advance = imageData.advance;
@@ -299,6 +300,7 @@ namespace Render
 			return;
 		drawImpl(commandList, pos, transform, color, str);
 	}
+
 
 	Vector2 FontDrawer::calcTextExtent(wchar_t const* str)
 	{
@@ -343,6 +345,8 @@ namespace Render
 		result.x = std::max(result.x, curPosX);
 		result.y += curPosY;
 		return result;
+
+
 	}
 
 	Vector2 FontDrawer::calcTextExtent(char const* str)
@@ -356,55 +360,20 @@ namespace Render
 
 	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform , LinearColor const& color , wchar_t const* str)
 	{
-		mBuffer.clear();
-		Vector2 curPos = pos;
-		bool bPrevSpace = false;
-		bool bStartChar = true;
-
-		while ( *str != 0 )
-		{
-			wchar_t c = *(str++);
-			if( false && c == L'\n' )
-			{
-				curPos.x = pos.x;
-				curPos.y += mCharDataSet->getFontHeight() + 2;
-				bStartChar = true;
-				continue;
-			}
-
-			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
-
-			if( !(bPrevSpace || bStartChar) )
-				curPos.x += data.kerning;
-
-			addQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
-			curPos.x += data.advance;
-			bStartChar = false;
-			if( c == FCString::IsSpace(c) )
-			{
-				bPrevSpace = true;
-			}
-		}
-
-		if( !mBuffer.empty() )
-		{
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
-			{
-				RHISetFixedShaderPipelineState(commandList, transform, color, &mCharDataSet->getTexture());
-				TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, &mBuffer[0], mBuffer.size());
-			}
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-		}
+		static thread_local std::vector< FontVertex > GTextBuffer;
+		GTextBuffer.clear();
+		generateVertices(pos, str, GTextBuffer);
+		draw(commandList, transform, color, GTextBuffer);
 	}
 
-	void FontDrawer::addQuad(Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
+
+	void FontDrawer::draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, std::vector< FontVertex > const& buffer )
 	{
-		Vector2 posMax = pos + size;
-		mBuffer.push_back({ pos , uvMin });
-		mBuffer.push_back({ Vector2(posMax.x , pos.y) , Vector2(uvMax.x , uvMin.y) });
-		mBuffer.push_back({ posMax , uvMax });
-		mBuffer.push_back({ Vector2(pos.x , posMax.y) , Vector2(uvMin.x , uvMax.y) });
+		if (!buffer.empty())
+		{
+			RHISetFixedShaderPipelineState(commandList, transform, color, &mCharDataSet->getTexture());
+			TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, buffer.data(), buffer.size());
+		}
 	}
 
 	bool FontDrawer::initialize(FontFaceInfo const& fontFace)

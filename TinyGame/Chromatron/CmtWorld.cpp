@@ -3,6 +3,7 @@
 
 #include "CmtLightTrace.h"
 #include "CmtDevice.h"
+#include "TemplateMisc.h"
 
 namespace Chromatron
 {
@@ -330,13 +331,11 @@ namespace Chromatron
 				return ETransmitStatus::OK;
 		}
 
-		mStatus = ETransmitStatus::OK;
-		int prevAge = mLightAge;
-		mLightAge = light.getAge();
-
-		dc.effect(*this, light);
-
-		mLightAge = prevAge;
+		{
+			mStatus = ETransmitStatus::OK;
+			TGuardValue<int> scopedLightAge(mLightAge, light.getAge());
+			dc.effect(*this, light);
+		}
 		return mStatus;
 	}
 

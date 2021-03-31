@@ -366,7 +366,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				IGameModule* game = reinterpret_cast< IGameModule* >( ui->getUserData() );
 				Global::ModuleManager().changeGame( game->getName() );
-				game->beginPlay( *getManager(), SMT_SINGLE_GAME );
+				game->beginPlay( *getManager(), EGameStageMode::Single );
 			}
 			return false;
 		case UI_GAME_OPTION:
@@ -385,7 +385,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		IGameModule* game = Global::ModuleManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
 		if ( !game )
 			return false;
-		game->beginPlay( *getManager() , SMT_SINGLE_GAME );
+		game->beginPlay( *getManager() , EGameStageMode::Single );
 		return false;
 	}
 	else

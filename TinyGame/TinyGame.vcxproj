@@ -431,6 +431,9 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ProjectReference Include="..\libEngine\libEngine.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>
+    <ProjectReference Include="GameCarcassonne.vcxproj">
+      <Project>{3e831092-4348-48af-821a-9caf0eea86e1}</Project>
+    </ProjectReference>
     <ProjectReference Include="TinyCore.vcxproj">
       <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
     </ProjectReference>

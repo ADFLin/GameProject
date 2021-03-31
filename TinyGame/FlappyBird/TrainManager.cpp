@@ -60,14 +60,14 @@ namespace FlappyBird
 	{
 		for( auto& agentPtr : mAgents )
 		{
-			if( curBestAgent == nullptr || curBestAgent->genotype->fitness < agentPtr->genotype->fitness)
+			if( bestAgent == nullptr || bestAgent->genotype->fitness < agentPtr->genotype->fitness)
 			{
-				if (curBestAgent)
+				if (bestAgent)
 				{
-					curBestAgent->inputsAndSignals = nullptr;
+					bestAgent->inputsAndSignals = nullptr;
 				}
-				curBestAgent = agentPtr.get();
-				curBestAgent->inputsAndSignals = &bestInputsAndSignals[0];
+				bestAgent = agentPtr.get();
+				bestAgent->inputsAndSignals = &bestInputsAndSignals[0];
 			}
 		}
 	}
@@ -102,11 +102,10 @@ namespace FlappyBird
 			mAgents[i]->setGenotype(pool[i]);
 		}
 
-		curBestAgent = nullptr;
+		bestAgent = nullptr;
 	}
 
 	void TrainData::runEvolution(GenePool* genePool)
-
 	{
 		++generation;
 		int numGen = mAgents.size();
@@ -226,15 +225,33 @@ namespace FlappyBird
 
 	void TrainData::clearData()
 	{
-		if( curBestAgent )
-			curBestAgent->inputsAndSignals = nullptr;
+		if( bestAgent )
+			bestAgent->inputsAndSignals = nullptr;
 
-		curBestAgent = nullptr;
+		bestAgent = nullptr;
 		mAgents.clear();
+	}
+
+	float TrainData::getMaxFitness() const
+	{
+		float result = 0;
+		for (auto const& agentPtr : mAgents)
+		{
+			float fitness = agentPtr->genotype->fitness;
+			if (result < fitness)
+			{
+				result = fitness;
+			}
+		}
+		return result;
 	}
 
 	void TrainWork::handleTrainCompleted()
 	{
+		float maxFitness = trainData.getMaxFitness();
+
+
+
 		trainData.runEvolution(&genePool);
 
 		bool const bRestData = ( maxGeneration && ( trainData.generation > maxGeneration ) );
@@ -243,6 +260,8 @@ namespace FlappyBird
 		if( bSendDataToMaster )
 		{
 			sendDataToMaster();
+			LogMsg("%d TrainCompleted ,genteration = %d , MaxFitness = %f",
+				index, trainData.generation, maxFitness);
 		}
 
 		if( bRestData || bClearPool )
@@ -309,11 +328,8 @@ namespace FlappyBird
 		mGenePool.maxPoolNum = setting.masterPoolNum;
 		mNNLayout.init(topology, numTopology);
 		mWorkRunPool.init(setting.numWorker);
-	}
 
-	void TrainManager::startTrain()
-	{
-		for( int i = 0; i < setting.numWorker; ++i )
+		for (int i = 0; i < setting.numWorker; ++i)
 		{
 			auto work = std::make_unique< TrainWork >();
 			work->index = i;
@@ -322,9 +338,15 @@ namespace FlappyBird
 			work->genePool.maxPoolNum = setting.workerPoolNum;
 			work->world = setting.worldFactory();
 			work->trainData.init(setting.dataSetting);
-
-			mWorkRunPool.addWork(work.get());
 			mWorks.push_back(std::move(work));
+		}
+	}
+
+	void TrainManager::startTrain()
+	{
+		for(auto const& work : mWorks)
+		{
+			mWorkRunPool.addWork(work.get());
 		}
 	}
 

@@ -29,9 +29,9 @@
 #	define WIN32_LEAN_AND_MEAN
 #	define NOMINMAX
 #	include <Windows.h>
-#	include <d3d9.h>
-#	include <d3dx9.h>
-#	include <d3dx9effect.h>
+#	include <D3d9.h>
+#	include <D3dx9core.h>
+//#	include <d3dx9effect.h>
 typedef IDirect3DDevice9            D3DDevice;
 typedef IDirect3DVertexBuffer9      D3DVertexBuffer;
 typedef IDirect3DIndexBuffer9       D3DIndexBuffer;

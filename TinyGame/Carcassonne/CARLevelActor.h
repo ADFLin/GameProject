@@ -13,14 +13,14 @@ namespace CAR
 
 	using ActorList = std::vector< class LevelActor* >;
 
-	class ActorContainer
+	class ActorCollection
 	{
 	public:
 		LevelActor* popActor();
 		bool        haveActor(){ return !mActors.empty(); }
 		bool        haveOtherActor( int playerId );
 
-		bool        havePlayerActor(int playerId, ActorType type)
+		bool        havePlayerActor(int playerId, EActor::Type type)
 		{
 			return haveActor(BIT(playerId), BIT(type));
 		}
@@ -35,6 +35,9 @@ namespace CAR
 		bool        haveActor(unsigned playerMask, unsigned actorTypeMask) const { return findActor(playerMask, actorTypeMask) != nullptr; }
 		bool        haveActorFromType(unsigned actorTypeMask) const { return findActorFromType(actorTypeMask) != nullptr; }
 		bool        haveActorFromPlayer(unsigned playerMask) const { return findActorFromPlayer(playerMask) != nullptr; }
+
+		int         countActor(unsigned playerMask, unsigned actorTypeMask) const;
+
 		
 		ActorList mActors;
 	};
@@ -50,7 +53,7 @@ namespace CAR
 			userData = nullptr;
 			binder = nullptr;
 		}
-		ActorType   type;
+		EActor::Type   type;
 		
 		PlayerId     ownerId;
 		ActorPos     pos;

@@ -48,7 +48,6 @@
 
 
 
-
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
 
@@ -133,7 +132,7 @@ public:
 				   auto var = com->asVariable();
 				   if ( var && (var->getFlags() & CVF_CONFIG) )
 				   {
-					   if (var->fromString(value.getStringView()))
+					   if (var->setFromString(value.getStringView()))
 					   {
 						   ++result;
 					   }				   
@@ -324,6 +323,9 @@ void RedirectStdIO()
 }
 
 
+#include "Carcassonne/CARGame.h"
+
+
 bool TinyGameApp::initializeGame()
 {
 	EngineInitialize();
@@ -334,6 +336,8 @@ bool TinyGameApp::initializeGame()
 	gLogPrinter.addChannel(LOG_MSG);
 	gLogPrinter.addChannel(LOG_WARNING);
 	gLogPrinter.addChannel(LOG_ERROR);
+
+	LogMsg("OS Loc = %s", SystemPlatform::GetUserLocaleName().c_str());
 
 	if (!Global::GameConfig().loadFile(GAME_SETTING_PATH))
 	{
@@ -387,7 +391,7 @@ bool TinyGameApp::initializeGame()
 		IGameModule* game = ::Global::ModuleManager().changeGame( gameName );
 		if ( game )
 		{
-			game->beginPlay( *this, SMT_SINGLE_GAME );
+			game->beginPlay( *this, EGameStageMode::Single );
 			havePlayGame = true;
 		}
 	}
@@ -565,7 +569,7 @@ ClientWorker* TinyGameApp::createClinet()
 	closeNetwork();
 
 	ClientWorker* worker;
-	if ( ::Global::GameConfig().getIntValue("SimNetLog", nullptr, 0) )
+	if ( ::Global::GameConfig().getIntValue("SimNetLag", nullptr, 0) )
 	{
 		DelayClientWorker* delayWorker = new DelayClientWorker();
 		delayWorker->setDelay(
@@ -657,15 +661,14 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 		case EKeyCode::F11:
 			{
 				using namespace Render;
-				IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(getCurStage());
-				if (renderSetup)
+				if (mRenderSetup)
 				{
-					renderSetup->preShutdownRenderSystem(true);
-					ERenderSystem systemName = GRHISystem->getName() == RHISytemName::OpenGL ? ERenderSystem::D3D11 : ERenderSystem::OpenGL;
+					mRenderSetup->preShutdownRenderSystem(true);
+					ERenderSystem systemName = GRHISystem->getName() == RHISystemName::OpenGL ? ERenderSystem::D3D11 : ERenderSystem::OpenGL;
 					Global::GetDrawEngine().shutdownSystem(false);
 					RenderSystemConfigs configs;
 
-					renderSetup->configRenderSystem(systemName, configs);
+					mRenderSetup->configRenderSystem(systemName, configs);
 					
 					if (!Global::GetDrawEngine().startupSystem(systemName, configs))
 					{
@@ -673,7 +676,7 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 
 					}
 
-					if (!renderSetup->setupRenderSystem(systemName))
+					if (!mRenderSetup->setupRenderSystem(systemName))
 					{
 
 
@@ -865,7 +868,7 @@ void TinyGameApp::render( float dframe )
 		}
 	}
 
-	if( GbProfileGPU && GRHISystem )
+	if( GbProfileGPU && RHIIsInitialized() )
 	{
 		g.setTextColor(Color3ub(255, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
@@ -877,14 +880,14 @@ void TinyGameApp::render( float dframe )
 		FixString< 512 > str;
 		FixString< 512 > temp;
 		int curLevel = 0;
-		auto GetSystemNameString = [](RHISytemName name)
+		auto GetSystemNameString = [](RHISystemName name)
 		{
 			switch (name)
 			{
-			case RHISytemName::OpenGL: return "OpenGL";
-			case RHISytemName::D3D11:  return "D3D11";
-			case RHISytemName::D3D12: return "D3D12";
-			case RHISytemName::Vulkan: return "Vulkan";
+			case RHISystemName::OpenGL: return "OpenGL";
+			case RHISystemName::D3D11:  return "D3D11";
+			case RHISystemName::D3D12: return "D3D12";
+			case RHISystemName::Vulkan: return "Vulkan";
 			}
 			return "Unknown";
 		};
@@ -1042,8 +1045,6 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
 	GameStageBase* gameStage = stage->getGameStage();
 
-	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
-
 	if(gameStage)
 	{
 		mStageMode = gameStage->getStageMode();
@@ -1052,8 +1053,11 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	}
 
 	ERenderSystem systemName = ERenderSystem::None;
+
+	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if ( renderSetup )
 	{
+		mRenderSetup = renderSetup;
 		systemName = renderSetup->getDefaultRenderSystem();
 		if (systemName == ERenderSystem::None)
 		{
@@ -1068,6 +1072,11 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 		{
 			return false;
 		}
+	}
+	else
+	{
+
+
 	}
 
 	if( !stage->onInit() )

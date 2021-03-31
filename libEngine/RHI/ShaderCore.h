@@ -150,6 +150,9 @@ namespace Render
 		char const* name;
 		BlendMode blendMode;
 		ETessellationMode tessellationMode;
+
+
+		void setup(ShaderCompileOption& option) const;
 	};
 
 	enum class EShaderParamBindType
@@ -232,7 +235,7 @@ namespace Render
 
 		void clear();
 
-		void addShaderParameterMap(EShader::Type shaderType, ShaderParameterMap const& parameterMap);
+		void addShaderParameterMap(int shaderIndex, ShaderParameterMap const& parameterMap);
 
 		void finalizeParameterMap();
 
@@ -247,7 +250,7 @@ namespace Render
 			ShaderParamEntry* pParamEntry = &mParamEntries[entry.paramIndex];
 			for (int i = entry.numParam; i; --i)
 			{
-				func(pParamEntry->type, pParamEntry->param);
+				func(pParamEntry->shaderIndex, pParamEntry->param);
 				++pParamEntry;
 			}
 		}
@@ -261,7 +264,7 @@ namespace Render
 		struct ShaderParamEntry
 		{
 			int loc;
-			EShader::Type    type;
+			int shaderIndex;
 			ShaderParameter param;
 		};
 

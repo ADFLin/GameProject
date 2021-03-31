@@ -91,6 +91,7 @@ void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScale* RESTR
 		*pOutput = value;
 		++pOutput;
 	}
+
 	if( layer.transformFunc )
 	{
 		(*layer.transformFunc)(outputs, layer.numNode);

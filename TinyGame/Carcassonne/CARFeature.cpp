@@ -62,7 +62,7 @@ namespace CAR
 
 	int FeatureBase::getDefaultActorPutInfo(int playerId, ActorPos const& actorPos, MapTile& mapTile, unsigned actorMasks[], std::vector< ActorPosInfo >& outInfo)
 	{
-		actorMasks[0] |= BIT(ActorType::eMeeple) | BIT( ActorType::ePhantom ) | BIT( ActorType::eBigMeeple );
+		actorMasks[0] |= BIT(EActor::Meeple) | BIT( EActor::Phantom ) | BIT( EActor::BigMeeple );
 		return getActorPutInfoInternal( playerId , actorPos , mapTile , actorMasks , DefaultActorMaskNum , outInfo );
 	}
 
@@ -205,15 +205,15 @@ namespace CAR
 		return evalMajorityControl(controllerScores);
 	}
 
-	int FeatureBase::getMajorityValue(ActorType actorType)
+	int FeatureBase::getMajorityValue(EActor::Type actorType)
 	{
 		switch( actorType )
 		{
-		case ActorType::eMeeple:    return 1; 
-		case ActorType::eBigMeeple: return 2; 
-		case ActorType::eWagon:     return 1; 
-		case ActorType::ePhantom:   return 1;
-		case ActorType::eMayor:
+		case EActor::Meeple:    return 1; 
+		case EActor::BigMeeple: return 2; 
+		case EActor::Wagon:     return 1; 
+		case EActor::Phantom:   return 1;
+		case EActor::Mayor:
 			{
 				assert( type == FeatureType::eCity );
 				CityFeature* city = static_cast< CityFeature* >( this );
@@ -230,7 +230,7 @@ namespace CAR
 		{
 			for( auto& info : controllerScores )
 			{
-				if( info.playerId = id )
+				if( info.playerId == id )
 					return &info;
 			}
 			return nullptr;
@@ -360,13 +360,13 @@ namespace CAR
 		return result;
 	}
 
-	int SideFeature::getSideContentNum(SideContentType contentMask)
+	int SideFeature::getSideContentNum(SideContentMask contentMask)
 	{
 		int result = 0;
 		for(SideNode* node : nodes)
 		{
 			MapTile const* mapTile = node->getMapTile();
-			SideContentType content = mapTile->getSideContnet( node->index ) & contentMask;
+			SideContentMask content = mapTile->getSideContnet( node->index ) & contentMask;
 			while ( content )
 			{
 				content &= ~FBitUtility::ExtractTrailingBit( content );
@@ -404,11 +404,11 @@ namespace CAR
 
 			if( linkNode.group == -1 )
 			{
-				if( linkNode.type == eInsideLink )
+				if( linkNode.type == ESide::InsideLink )
 				{
 					switch( mapTile->getSideContnet(dir1) & SideContent::InternalLinkTypeMask )
 					{
-					case SideContent::eSchool:
+					case BIT(SideContent::eSchool):
 						{
 							Vec2i linkPos = FDir::LinkPos(mapTile->pos, dir1);
 							MapTile* mapTileLink = worldTileManager.findMapTile(linkPos);
@@ -416,8 +416,8 @@ namespace CAR
 							if( mapTileLink )
 							{
 								int invDir = FDir::Inverse(dir1);
-								assert(mapTileLink->sideNodes[invDir].type == SideType::eInsideLink);
-								assert((mapTileLink->getSideContnet(invDir) & SideContent::InternalLinkTypeMask) == SideContent::eSchool);
+								assert(mapTileLink->sideNodes[invDir].type == ESide::InsideLink);
+								assert((mapTileLink->getSideContnet(invDir) & SideContent::InternalLinkTypeMask) == BIT(SideContent::eSchool));
 
 								unsigned roadMaskLink = mapTileLink->getRoadLinkMask(invDir);
 								int dir2;
@@ -460,8 +460,7 @@ namespace CAR
 			SideNode const& node = mapTile.sideNodes[i];
 			if ( node.group == group )
 			{
-				actorPos.type = ActorPos::eSideNode;
-				actorPos.meta = i;
+				actorPos = ActorPos::SideNode(i);
 				return true;
 			}
 		}
@@ -476,8 +475,8 @@ namespace CAR
 
 	int RoadFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
 	{
-		unsigned actorMasks[DefaultActorMaskNum] = { BIT( ActorType::eWagon ) , BIT( ActorType::eBuilder ) , 0 };
-		return getDefaultActorPutInfo( playerId , ActorPos( ActorPos::eSideNode , posMeta ) , mapTile , actorMasks , outInfo );
+		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) , BIT( EActor::Builder ) , 0 };
+		return getDefaultActorPutInfo( playerId , ActorPos::SideNode( posMeta ) , mapTile , actorMasks , outInfo );
 	}
 
 	void RoadFeature::mergeData(FeatureBase& other , MapTile const& putData , int meta)
@@ -491,11 +490,11 @@ namespace CAR
 	{
 		BaseClass::addNode( mapData , dirMask , linkNode );
 
-		if ( mSetting->have( Rule::eInn ) )
+		if ( mSetting->have( ERule::Inn ) )
 		{
 			for( auto iter = TBitMaskIterator< FDir::TotalNum >( dirMask ) ; iter ; ++iter )
 			{
-				if ( mapData.getSideContnet( iter.index ) & SideContent::eInn )
+				if ( mapData.getSideContnet( iter.index ) & BIT(SideContent::eInn) )
 				{
 					haveInn = true;
 					break;
@@ -514,7 +513,7 @@ namespace CAR
 		int numTile = mapTiles.size();
 
 		int factor = CAR_PARAM_VALUE(NonCompleteFactor);
-		if ( getSetting().have( Rule::eInn ) && haveInn )
+		if ( getSetting().have( ERule::Inn ) && haveInn )
 		{
 			if ( checkComplete() )
 				factor += CAR_PARAM_VALUE(InnAddtitionFactor);
@@ -538,8 +537,8 @@ namespace CAR
 
 	int CityFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
 	{
-		unsigned actorMasks[DefaultActorMaskNum] = { BIT( ActorType::eWagon ) | BIT( ActorType::eMayor ) , BIT( ActorType::eBuilder ) , 0 };
-		return getDefaultActorPutInfo( playerId , ActorPos( ActorPos::eSideNode , posMeta ) , mapTile , actorMasks ,outInfo );
+		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) | BIT( EActor::Mayor ) , BIT( EActor::Builder ) , 0 };
+		return getDefaultActorPutInfo( playerId , ActorPos::SideNode( posMeta ) , mapTile , actorMasks ,outInfo );
 	}
 
 	void CityFeature::mergeData( FeatureBase& other , MapTile const& putData , int meta)
@@ -562,7 +561,7 @@ namespace CAR
 	{
 		BaseClass::addNode( mapData , dirMask , linkNode );
 
-		if ( mSetting->have( Rule::eCathedral ) )
+		if ( mSetting->have( ERule::Cathedral ) )
 		{
 			if ( mapData.have( TileContent::eCathedral ) )
 			{
@@ -570,7 +569,7 @@ namespace CAR
 			}
 		}
 
-		if( mSetting->have(Rule::eLaPorxada) )
+		if( mSetting->have(ERule::LaPorxada) )
 		{
 			if( mapData.have(TileContent::eLaPorxada) )
 			{
@@ -589,7 +588,7 @@ namespace CAR
 		int numTile = mapTiles.size();
 		int factor = CAR_PARAM_VALUE(NonCompleteFactor);
 		int pennatFactor = CAR_PARAM_VALUE(PennatNonCompletFactor);
-		if ( getSetting().have(Rule::eCathedral) && haveCathedral )
+		if ( getSetting().have(ERule::Cathedral) && haveCathedral )
 		{
 			if ( checkComplete() )
 			{
@@ -602,7 +601,7 @@ namespace CAR
 				pennatFactor = 0;
 			}
 		}
-		else if ( checkComplete() || (getSetting().have(Rule::eLaPorxada) && player && player->getFieldValue(FieldType::eLaPorxadaFinishScoring)) )
+		else if ( checkComplete() || (getSetting().have(ERule::LaPorxada) && player && player->getFieldValue(EField::LaPorxadaFinishScoring)) )
 		{
 			factor = CAR_PARAM_VALUE(CityFactor);
 			pennatFactor = CAR_PARAM_VALUE(PennatFactor);
@@ -664,10 +663,10 @@ namespace CAR
 
 	int FarmFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
 	{
-		if ( haveActorFromType( BIT( ActorType::eBarn ) ) )
+		if ( haveActorFromType( BIT( EActor::Barn ) ) )
 			return 0;
-		unsigned actorMasks[DefaultActorMaskNum] = { 0 , BIT( ActorType::ePig ) , 0};
-		return getDefaultActorPutInfo( playerId , ActorPos( ActorPos::eFarmNode , posMeta ) , mapTile , actorMasks , outInfo );
+		unsigned actorMasks[DefaultActorMaskNum] = { 0 , BIT( EActor::Pig ) , 0};
+		return getDefaultActorPutInfo( playerId , ActorPos::FarmNode( posMeta ) , mapTile , actorMasks , outInfo );
 	}
 
 	void FarmFeature::mergeData( FeatureBase& other , MapTile const& putData , int meta)
@@ -757,9 +756,9 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->have(Rule::ePig) )
+		if ( mSetting->have(ERule::Pig) )
 		{
-			if ( player && havePlayerActor(player->getId(), ActorType::ePig ) )
+			if ( player && havePlayerActor(player->getId(), EActor::Pig ) )
 				factor += CAR_PARAM_VALUE(PigAdditionFactor);
 		}
 
@@ -800,8 +799,7 @@ namespace CAR
 	{
 		if (mapTile.group == group)
 		{
-			actorPos.type = ActorPos::eTile;
-			actorPos.meta = 0;
+			actorPos = ActorPos::Tile();
 			return true;
 		}
 		return false;
@@ -814,8 +812,8 @@ namespace CAR
 
 	int CloisterFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
 	{
-		unsigned actorMasks[DefaultActorMaskNum] = { BIT( ActorType::eWagon ) | BIT( ActorType::eAbbot ), 0 , 0 };
-		return getDefaultActorPutInfo( playerId , ActorPos( ActorPos::eTile , posMeta ) , mapTile, actorMasks , outInfo );
+		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) | BIT( EActor::Abbot ), 0 , 0 };
+		return getDefaultActorPutInfo( playerId , ActorPos::Tile() , mapTile, actorMasks , outInfo );
 	}
 
 
@@ -824,9 +822,9 @@ namespace CAR
 		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE( CloisterFactor );
 		if ( checkComplete() )
 		{
-			if ( mSetting->have( Rule::eUseVineyard) )
+			if ( mSetting->have(ERule::UseVineyard) )
 			{
-				for(MapTile * mapTile : neighborTiles)
+				for(MapTile* mapTile : neighborTiles)
 				{
 					if( mapTile->have( TileContent::eVineyard ) )
 					{
@@ -869,8 +867,8 @@ namespace CAR
 
 	int GardenFeature::getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
 	{
-		unsigned actorMasks[DefaultActorMaskNum] = { BIT(ActorType::eAbbot) , 0 , 0 };
-		return getActorPutInfoInternal(playerId, ActorPos(ActorPos::eTile, posMeta), mapTile, actorMasks, DefaultActorMaskNum, outInfo);
+		unsigned actorMasks[DefaultActorMaskNum] = { BIT(EActor::Abbot) , 0 , 0 };
+		return getActorPutInfoInternal(playerId, ActorPos::Tile(), mapTile, actorMasks, DefaultActorMaskNum, outInfo);
 	}
 
 	int GardenFeature::calcPlayerScore(PlayerBase* player)
@@ -892,8 +890,8 @@ namespace CAR
 
 	int GermanCastleFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
 	{
-		unsigned actorMasks[DefaultActorMaskNum] = { BIT( ActorType::eWagon ) , 0 , 0 };
-		return getActorPutInfoInternal( playerId , ActorPos( ActorPos::eSideNode , posMeta ) , mapTile, actorMasks , ARRAY_SIZE( actorMasks ) , outInfo );
+		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) , 0 , 0 };
+		return getActorPutInfoInternal( playerId , ActorPos::SideNode( posMeta ) , mapTile, actorMasks , ARRAY_SIZE( actorMasks ) , outInfo );
 	}
 
 	void GermanCastleFeature::mergeData(FeatureBase& other , MapTile const& putData , int meta)
@@ -906,9 +904,9 @@ namespace CAR
 		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE(CloisterFactor);
 		if ( checkComplete() )
 		{
-			if( mSetting->have(Rule::eUseVineyard) )
+			if ( mSetting->have(ERule::UseVineyard) )
 			{
-				for(MapTile * mapTile : neighborTiles)
+				for(MapTile* mapTile : neighborTiles)
 				{
 					if( mapTile->have( TileContent::eVineyard ) )
 					{
@@ -975,8 +973,7 @@ namespace CAR
 		{
 			if ( mapTile.getSideGroup( i ) == group )
 			{
-				actorPos.type = ActorPos::eSideNode;
-				actorPos.meta = i;
+				actorPos = ActorPos::SideNode(i);
 				return true;
 			}
 		}

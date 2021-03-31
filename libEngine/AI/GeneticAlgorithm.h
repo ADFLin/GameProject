@@ -8,7 +8,7 @@
 #include <memory>
 #include <intrin.h>
 
-using NNScale = double;
+using NNScale = float;
 
 class NNRand
 {
@@ -30,7 +30,7 @@ public:
 	}
 	NNScale nextScale()
 	{
-		return double(nextInt()) / 0xffffffff;
+		return NNScale(nextInt()) / 0xffffffff;
 	}
 	float   nextFloat()
 	{

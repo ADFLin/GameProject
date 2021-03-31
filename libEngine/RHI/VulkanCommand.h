@@ -56,7 +56,7 @@ namespace Render
 	{
 
 	public:
-		RHISytemName getName() const { return RHISytemName::Vulkan; }
+		RHISystemName getName() const { return RHISystemName::Vulkan; }
 
 		virtual bool initialize(RHISystemInitParams const& initParam) override;
 		virtual void shutdown() override;
@@ -122,28 +122,28 @@ namespace Render
 		void RHIEndRender(bool bPresent);
 
 		RHITexture1D*    RHICreateTexture1D(
-			Texture::Format format, int length,
+			ETexture::Format format, int length,
 			int numMipLevel, uint32 creationFlags, void* data)
 		{
 			return nullptr;
 		}
 
 		RHITexture2D*    RHICreateTexture2D(
-			Texture::Format format, int w, int h,
+			ETexture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 creationFlags,
 			void* data, int dataAlign);
 
-		bool initalizeTexture2DInternal(VulkanTexture2D* texture, Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
+		bool initalizeTexture2DInternal(VulkanTexture2D* texture, ETexture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
 
 		RHITexture3D*    RHICreateTexture3D(
-			Texture::Format format, int sizeX, int sizeY, int sizeZ,
+			ETexture::Format format, int sizeX, int sizeY, int sizeZ,
 			int numMipLevel, int numSamples, uint32 creationFlags,
 			void* data)
 		{
 			return nullptr;
 		}
 		RHITextureCube*  RHICreateTextureCube(
-			Texture::Format format, int size,
+			ETexture::Format format, int size,
 			int numMipLevel, uint32 creationFlags,
 			void* data[])
 		{
@@ -151,7 +151,7 @@ namespace Render
 		}
 
 		RHITexture2DArray* RHICreateTexture2DArray(
-			Texture::Format format, int w, int h, int layerSize,
+			ETexture::Format format, int w, int h, int layerSize,
 			int numMipLevel, int numSamples, uint32 creationFlags,
 			void* data)
 		{
@@ -159,7 +159,7 @@ namespace Render
 		}
 
 		RHITexture2D* RHICreateTextureDepth(
-			Texture::Format format, int w, int h,
+			ETexture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 creationFlags)
 		{
 			return nullptr;

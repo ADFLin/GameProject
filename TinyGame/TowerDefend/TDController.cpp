@@ -2,7 +2,7 @@
 #include "TDController.h"
 #include "TDLevel.h"
 
-#define KEY_OP_APPEND  VK_SHIFT
+#define KEY_OP_APPEND   EKeyCode::Shift
 
 namespace TowerDefend
 {

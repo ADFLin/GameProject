@@ -66,6 +66,7 @@ public:
 	}
 
 	void  beginClip(Vec2i const& pos, Vec2i const& size);
+	void  setClipRect(Vec2i const& pos, Vec2i const& size);
 	void  endClip();
 
 	void  beginBlend(Vector2 const& pos, Vector2 const& size, float alpha);

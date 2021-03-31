@@ -252,7 +252,7 @@
     <ClInclude Include="Minesweeper\CSPSolveStrategy.h" />
     <ClInclude Include="Minesweeper\ExpSolveStrategy.h" />
     <ClInclude Include="Minesweeper\GameInterface.h" />
-    <ClInclude Include="Minesweeper\GControlerWin7.h" />
+    <ClInclude Include="Minesweeper\GameController_Windows7.h" />
     <ClInclude Include="Minesweeper\ImageScanser.h" />
     <ClInclude Include="Minesweeper\InputHook.h" />
     <ClInclude Include="Minesweeper\MineDefines.h" />
@@ -305,12 +305,13 @@
     <ClCompile Include="FlappyBird\FBLevel.cpp" />
     <ClCompile Include="FlappyBird\FBStage.cpp" />
     <ClCompile Include="FlappyBird\TrainManager.cpp" />
+    <ClCompile Include="Laser2D\LATestStage.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
     <ClCompile Include="Mario\MBStage.cpp" />
     <ClCompile Include="Minesweeper\CSolverFrame.cpp" />
     <ClCompile Include="Minesweeper\CSPSolveStrategy.cpp" />
     <ClCompile Include="Minesweeper\ExpSolveStrategy.cpp" />
-    <ClCompile Include="Minesweeper\GControlerWin7.cpp" />
+    <ClCompile Include="Minesweeper\GameController_Windows7.cpp" />
     <ClCompile Include="Minesweeper\ImageScanser.cpp" />
     <ClCompile Include="Minesweeper\InputHook.cpp" />
     <ClCompile Include="Minesweeper\MinesweeperHook.cpp" />
@@ -436,6 +437,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\AoWStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AudioTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\BloxorzStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CompressionTestStage.cpp" />
@@ -457,6 +459,7 @@
     <ClCompile Include="TestMisc\Test\BoneIKTest.cpp" />
     <ClCompile Include="TestMisc\Test\CriminalTest.cpp" />
     <ClCompile Include="TestMisc\Test\DelegateTest.cpp" />
+    <ClCompile Include="TestMisc\Test\DrawCardTest.cpp" />
     <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp" />
     <ClCompile Include="TestMisc\Test\FunctionFitTest.cpp" />
     <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />

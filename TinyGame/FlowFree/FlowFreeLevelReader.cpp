@@ -81,7 +81,7 @@ namespace FlowFree
 		{		
 			TIME_SCOPE("Image Process");
 
-			mDebugTextures[eOrigin] = RHICreateTexture2D(Texture::eRGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
+			mDebugTextures[eOrigin] = RHICreateTexture2D(ETexture::RGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
 		
 			{
 				TIME_SCOPE("Fill");
@@ -109,14 +109,14 @@ namespace FlowFree
 			std::vector< float > grayScaleData(imageView.getWidth() * imageView.getHeight());
 			TImageView< float > grayView(grayScaleData.data(), imageView.getWidth() , imageView.getHeight());
 
-			mDebugTextures[eFliter] = RHICreateTexture2D(Texture::eRGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
+			mDebugTextures[eFliter] = RHICreateTexture2D(ETexture::RGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
 
 			{
 				TIME_SCOPE("GrayScale");
 				GrayScale(imageView, grayView);
 			}
 
-			mDebugTextures[eGrayScale] = RHICreateTexture2D(Texture::eR32F, grayView.getWidth(), grayView.getHeight(), 0, 1, TCF_DefalutValue, (void*)grayView.getData());
+			mDebugTextures[eGrayScale] = RHICreateTexture2D(ETexture::R32F, grayView.getWidth(), grayView.getHeight(), 0, 1, TCF_DefalutValue, (void*)grayView.getData());
 
 			std::vector< float > downSampleData;
 			TImageView< float > downSampleView;
@@ -134,7 +134,7 @@ namespace FlowFree
 				Sobel(usedView, edgeView);
 			}
 			
-			mDebugTextures[eEdgeDetect] = RHICreateTexture2D(Texture::eR32F, edgeView.getWidth(), edgeView.getHeight(), 0, 1, TCF_DefalutValue, (void*)edgeView.getData());
+			mDebugTextures[eEdgeDetect] = RHICreateTexture2D(ETexture::R32F, edgeView.getWidth(), edgeView.getHeight(), 0, 1, TCF_DefalutValue, (void*)edgeView.getData());
 
 
 			widthProc = edgeView.getWidth();
@@ -143,7 +143,7 @@ namespace FlowFree
 				TIME_SCOPE("Downsample");
 				Downsample(edgeView, downSampleData, downSampleView);
 			}
-			mDebugTextures[eDownsample] = RHICreateTexture2D(Texture::eR32F, downSampleView.getWidth(), downSampleView.getHeight(), 0, 1, TCF_DefalutValue, (void*)downSampleView.getData());
+			mDebugTextures[eDownsample] = RHICreateTexture2D(ETexture::R32F, downSampleView.getWidth(), downSampleView.getHeight(), 0, 1, TCF_DefalutValue, (void*)downSampleView.getData());
 
 #if 1
 			std::vector< float > downSampleData2;
@@ -152,7 +152,7 @@ namespace FlowFree
 				TIME_SCOPE("Downsample");
 				Downsample(downSampleView, downSampleData2, downSampleView2);
 			}
-			mDebugTextures[eDownsample2] = RHICreateTexture2D(Texture::eR32F, downSampleView2.getWidth(), downSampleView2.getHeight(), 0, 1, TCF_DefalutValue, (void*)downSampleView2.getData());
+			mDebugTextures[eDownsample2] = RHICreateTexture2D(ETexture::R32F, downSampleView2.getWidth(), downSampleView2.getHeight(), 0, 1, TCF_DefalutValue, (void*)downSampleView2.getData());
 #endif
 
 			std::vector< float > houghData;
@@ -168,7 +168,7 @@ namespace FlowFree
 				heightProc = usageImageView.getHeight();
 			}
 
-			mDebugTextures[eLineHough] = RHICreateTexture2D(Texture::eR32F, houghView.getWidth(), houghView.getHeight(), 0, 1, TCF_DefalutValue, (void*)houghDebugData.data() );
+			mDebugTextures[eLineHough] = RHICreateTexture2D(ETexture::R32F, houghView.getWidth(), houghView.getHeight(), 0, 1, TCF_DefalutValue, (void*)houghDebugData.data() );
 
 		}
 

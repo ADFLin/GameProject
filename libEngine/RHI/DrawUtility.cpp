@@ -446,7 +446,7 @@ namespace Render
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture)
 		{
-			RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+			RHISamplerState& sampler = TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 			SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this , CopyTexture, copyTexture, sampler);
 		}
 		DEFINE_TEXTURE_PARAM(CopyTexture);
@@ -516,7 +516,7 @@ namespace Render
 			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorMask);
 		}
-		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI())
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, RHISamplerState& sampler = TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI())
 		{
 			BaseClass::setParameters(commandList, copyTexture);
 			setParam(commandList, mParamColorMask, colorMask);
@@ -549,7 +549,7 @@ namespace Render
 			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorBais);
 		}
-		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2], RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI())
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2], RHISamplerState& sampler = TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI())
 		{
 			BaseClass::setParameters(commandList, copyTexture);
 			setParam(commandList, mParamColorBais, Vector2(colorBais[0], colorBais[1]));
@@ -573,7 +573,7 @@ namespace Render
 			BaseClass::bindParameters(parameterMap);
 			BIND_SHADER_PARAM(parameterMap, ColorBais);
 		}
-		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2], RHISamplerState& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI())
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2], RHISamplerState& sampler = TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI())
 		{
 			BaseClass::setParameters(commandList, copyTexture);
 			SET_SHADER_PARAM(commandList, *this, ColorBais, Vector2(colorBais[0], colorBais[1]));

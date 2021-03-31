@@ -41,19 +41,30 @@ uint32 FCString::StriHash(char const* str, int len)
 	return result;
 }
 
-wchar_t buff[1024 * 256];
-std::wstring FCString::CharToWChar(const char *c)
+thread_local wchar_t GWCharBuff[1024 * 256];
+std::wstring FCString::CharToWChar(const char *str)
 {
-	const size_t cSize = FCString::Strlen(c) + 1;
+	const size_t cSize = FCString::Strlen(str) + 1;
 #if SYS_PLATFORM_WIN
-	::MultiByteToWideChar(0,0, c, cSize + 1 , buff , ARRAY_SIZE(buff));
+	::MultiByteToWideChar(0,0, str, cSize + 1 , GWCharBuff, ARRAY_SIZE(GWCharBuff));
 #else
 	//setlocale(LC_ALL, "cht");
-	mbstowcs(buff, c, cSize);
+	mbstowcs(GWCharBuff, str, cSize);
 #endif
-	return buff;
+	return GWCharBuff;
 }
 
+thread_local char GCharBuff[1024 * 256];
+std::string FCString::WCharToChar(const wchar_t* str)
+{
+#if SYS_PLATFORM_WIN
+	const size_t cSize = FCString::Strlen(str) + 1;
+	::WideCharToMultiByte(CP_ACP, 0, str, cSize, GCharBuff, ARRAY_SIZE(GCharBuff), NULL, NULL);
+#else
+	wcstombs(GCharBuff, str, cSize);
+#endif
+	return GCharBuff;
+}
 
 template< class CharT >
 CharT const* FCString::FindChar(CharT const* str, CharT c)

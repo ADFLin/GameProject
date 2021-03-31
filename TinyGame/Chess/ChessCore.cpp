@@ -9,14 +9,14 @@ namespace Chess
 #define CEmpty 0
 	int StandardInitState[]
 	{
-		C(W , Rook),C(W, Knight),C(W, Bishop),C(W, Queen),C(W, King),C(W, Bishop),C(W, Knight),C(W, Rook),
-		C(W , Pawn),C(W, Pawn)  ,C(W, Pawn)  ,C(W, Pawn) ,C(W, Pawn),C(W, Pawn)  ,C(W, Pawn)  ,C(W, Pawn),
+		C(W , Rook),C(W, Knight),C(W, Bishop),C(W, King),C(W, Queen),C(W, Bishop),C(W, Knight),C(W, Rook),
+		C(W , Pawn),C(W, Pawn)  ,C(W, Pawn)  ,C(W, Pawn),C(W, Pawn),C(W, Pawn)  ,C(W, Pawn)  ,C(W, Pawn),
 		CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,
 		CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,
 		CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,
 		CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,CEmpty,
-		C(B, Pawn),C(B, Pawn)  ,C(B, Pawn)  ,C(B, Pawn), C(B, Pawn),C(B, Pawn)  ,C(B, Pawn)  ,C(B, Pawn),
-		C(B, Rook),C(B, Knight),C(B, Bishop),C(B, Queen),C(B ,King),C(B, Bishop),C(B, Knight),C(B, Rook),
+		C(B, Pawn),C(B, Pawn)  ,C(B, Pawn)  ,C(B, Pawn),C(B, Pawn),C(B, Pawn)  ,C(B, Pawn)  ,C(B, Pawn),
+		C(B, Rook),C(B, Knight),C(B, Bishop),C(B ,King),C(B, Queen),C(B, Bishop),C(B, Knight),C(B, Rook),
 
 	};
 #undef C
@@ -85,12 +85,16 @@ namespace Chess
 			{
 				if (data.chess->color == color)
 				{
-					if (!bCheckAttack)
+					if (bCheckAttack)
 					{
-						return false;
+						outPosList.push_back(posCheck);
 					}
 				}
-				outPosList.push_back(posCheck);
+				else
+				{
+					outPosList.push_back(MoveInfo(posCheck, EMoveTag::RemoveChess));
+				}
+
 				return false;
 			}
 
@@ -325,7 +329,7 @@ namespace Chess
 				UpdateMovedChessState(*tileRookMoveTo.chess);
 			}
 			break;
-		case EMoveTag::Normal:
+		case EMoveTag::RemoveChess:
 			{
 				RemoveChess(toTile);
 			}

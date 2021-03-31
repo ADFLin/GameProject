@@ -32,15 +32,15 @@ namespace Render
 
 			RHITexture2D* texture = handle->texture;
 			g.setBrush(Color3f::White());
-			g.setSampler(TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI());
+			g.setSampler(TStaticSamplerState<ESampler::Bilinear , ESampler::Clamp , ESampler::Clamp >::GetRHI());
 
 			if (GRHIVericalFlip < 0)
 			{
-				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0,0), Vec2i(texture->getSizeX(), texture->getSizeY()));
+				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0,0), Vec2i(1, 1));
 			}
 			else
 			{
-				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, texture->getSizeY()), Vec2i(texture->getSizeX(), -texture->getSizeY()));
+				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, texture->getSizeY()), Vec2i(1, -1));
 			}
 		
 
@@ -293,7 +293,7 @@ namespace Render
 		Matrix4 matView = mCamera.getViewMatrix();
 		mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
 
-		if (GRHISystem->getName() == RHISytemName::OpenGL)
+		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			glMatrixMode(GL_PROJECTION);
 			glLoadMatrixf(mView.viewToClip);
@@ -320,7 +320,7 @@ namespace Render
 			RHISetFrameBuffer(commandList, nullptr);
 			ShaderHelper::Get().copyTextureToBuffer(commandList, texture);
 		}
-		else if (GRHISystem->getName() == RHISytemName::OpenGL)
+		else if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			mBitbltFrameBuffer->setTexture(0, texture);
 			OpenGLCast::To(mBitbltFrameBuffer)->blitToBackBuffer();

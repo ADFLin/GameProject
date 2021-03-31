@@ -126,7 +126,7 @@ private:
 	unsigned         mCountDataDelay;
 	unsigned         mLocalDataBits;
 	unsigned         mCheckDataBits;
-	unsigned         mUpdateDataBit;
+	unsigned         mUpdateDataBits;
 
 	struct ClientFrameData
 	{

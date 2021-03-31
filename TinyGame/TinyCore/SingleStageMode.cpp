@@ -7,7 +7,7 @@
 #include "GameStage.h"
 
 SingleStageMode::SingleStageMode() 
-	:BaseClass(SMT_SINGLE_GAME)
+	:BaseClass(EGameStageMode::Single)
 	,mPlayerManager(new LocalPlayerManager)
 {
 
@@ -66,7 +66,7 @@ void SingleStageMode::updateTime(long time)
 		unsigned flag = 0;
 		switch( getGameState() )
 		{
-		case GameState::Run:
+		case EGameState::Run:
 			++mReplayFrame;
 			break;
 		default:
@@ -121,7 +121,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		}
 		else
 		{
-			if( getGameState() != GameState::End )
+			if( getGameState() != EGameState::End )
 			{
 				::Global::GUI().showMessageBox(
 					UI_RESTART_GAME, LOCTEXT("Do you Want to Stop Current Game?"));
@@ -139,11 +139,11 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	return BaseClass::onWidgetEvent(event, id, ui);
 }
 
-bool SingleStageMode::tryChangeState(GameState state)
+bool SingleStageMode::tryChangeState(EGameState state)
 {
 	switch( state )
 	{
-	case GameState::End:
+	case EGameState::End:
 		saveReplay(LAST_REPLAY_NAME);
 		break;
 	}

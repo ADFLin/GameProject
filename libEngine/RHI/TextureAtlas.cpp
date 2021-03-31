@@ -14,7 +14,7 @@ namespace Render
 		mNextImageId = 0;
 	}
 
-	bool TextureAtlas::initialize(Texture::Format format, int w, int h, int border /*= 0*/)
+	bool TextureAtlas::initialize(ETexture::Format format, int w, int h, int border /*= 0*/)
 	{
 		mBorder = border;
 		mTexture = RHICreateTexture2D( format , w , h );
@@ -42,10 +42,10 @@ namespace Render
 		switch(imageData.numComponent)
 		{
 		case 3:
-			result = addImage(imageData.width, imageData.height, Texture::eRGB8, imageData.data);
+			result = addImage(imageData.width, imageData.height, ETexture::RGB8, imageData.data);
 			break;
 		case 4:
-			result = addImage(imageData.width, imageData.height, Texture::eRGBA8, imageData.data);
+			result = addImage(imageData.width, imageData.height, ETexture::RGBA8, imageData.data);
 			break;
 		}
 		//glGenerateMipmap( texType);
@@ -64,15 +64,15 @@ namespace Render
 
 		int result = -1;
 
-		Texture::Format format = Texture::eRGBA8;
+		ETexture::Format format = ETexture::RGBA8;
 		//#TODO
 		switch( comp )
 		{
 		case 3:
-			format = Texture::eRGB8;
+			format = ETexture::RGB8;
 			break;
 		case 4:
-			format = Texture::eRGBA8;
+			format = ETexture::RGBA8;
 			break;
 		default:
 			return false;
@@ -87,7 +87,7 @@ namespace Render
 		return true;
 	}
 
-	int TextureAtlas::addImage(int w, int h, Texture::Format format, void* data, int dataImageWidth)
+	int TextureAtlas::addImage(int w, int h, ETexture::Format format, void* data, int dataImageWidth)
 	{
 		if( !addImageInteranl(mNextImageId, w, h, format, data, dataImageWidth) )
 			return -1;
@@ -97,7 +97,7 @@ namespace Render
 		return result;
 	}
 
-	bool TextureAtlas::addImageInteranl(int id , int w, int h, Texture::Format format, void* data, int dataImageWidth)
+	bool TextureAtlas::addImageInteranl(int id , int w, int h, ETexture::Format format, void* data, int dataImageWidth)
 	{
 		if( !mHelper.addImage(id, w + 2 * mBorder, h + 2 * mBorder) )
 			return false;

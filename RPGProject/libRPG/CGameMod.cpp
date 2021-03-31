@@ -73,8 +73,8 @@ void CGameMod::registerFactory()
 
 int CGameMod::update( long time )
 {
-	TEventSystem::Get().updateFrame();
-	CUISystem::Get().updateFrame();
+	TEventSystem::Get().tick();
+	CUISystem::Get().tick();
 	mFramework->update( time );
 	return 1;
 }

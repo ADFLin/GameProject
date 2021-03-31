@@ -155,6 +155,9 @@
     <Filter Include="OtherLib\Simplygon">
       <UniqueIdentifier>{b6d18cb1-ad7c-40f3-b22e-0cd9aae02a98}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ScriptGraphs">
+      <UniqueIdentifier>{cb2a5983-c77b-4fb2-8c7d-24018f01f34b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -1328,6 +1331,9 @@
     </ClInclude>
     <ClInclude Include="RHI\D3DSharedCommon.h">
       <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="ScriptGraphs\SGNode.h">
+      <Filter>ScriptGraphs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

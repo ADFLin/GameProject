@@ -6,7 +6,7 @@ namespace CAR
 {
 
 
-	bool ActorContainer::haveOtherActor(int playerId)
+	bool ActorCollection::haveOtherActor(int playerId)
 	{
 		for(LevelActor* actor : mActors)
 		{
@@ -16,7 +16,7 @@ namespace CAR
 		return false;
 	}
 
-	unsigned ActorContainer::getPlayerActorTypeMask( unsigned playerMask ) const
+	unsigned ActorCollection::getPlayerActorTypeMask( unsigned playerMask ) const
 	{
 		unsigned result = 0;
 		int idx = 0;
@@ -27,7 +27,7 @@ namespace CAR
 		return result;
 	}
 
-	LevelActor* ActorContainer::iteratorActorFromPlayer(unsigned playerMask , int& iter) const
+	LevelActor* ActorCollection::iteratorActorFromPlayer(unsigned playerMask , int& iter) const
 	{
 		for( ; iter < mActors.size() ; ++iter )
 		{
@@ -43,7 +43,7 @@ namespace CAR
 		return nullptr;
 	}
 
-	LevelActor* ActorContainer::iteratorActorFromType( unsigned actorTypeMask, int& iter) const
+	LevelActor* ActorCollection::iteratorActorFromType( unsigned actorTypeMask, int& iter) const
 	{
 		for( ; iter < mActors.size(); ++iter )
 		{
@@ -56,7 +56,7 @@ namespace CAR
 		return nullptr;
 	}
 
-	LevelActor* ActorContainer::iteratorActor(unsigned playerMask , unsigned actorTypeMask , int& iter)  const
+	LevelActor* ActorCollection::iteratorActor(unsigned playerMask , unsigned actorTypeMask , int& iter)  const
 	{
 		for( ; iter < mActors.size() ; ++iter )
 		{
@@ -75,25 +75,36 @@ namespace CAR
 	}
 
 
-	LevelActor* ActorContainer::findActor(unsigned playerMask, unsigned actorTypeMask) const
+	LevelActor* ActorCollection::findActor(unsigned playerMask, unsigned actorTypeMask) const
 	{
 		int iter = 0;
 		return iteratorActor(playerMask, actorTypeMask, iter);
 	}
 
-	LevelActor* ActorContainer::findActorFromType(unsigned actorTypeMask) const
+	LevelActor* ActorCollection::findActorFromType(unsigned actorTypeMask) const
 	{
 		int iter = 0;
 		return iteratorActorFromType(actorTypeMask, iter);
 	}
 
-	LevelActor* ActorContainer::findActorFromPlayer(unsigned playerMask) const
+	LevelActor* ActorCollection::findActorFromPlayer(unsigned playerMask) const
 	{
 		int iter = 0;
 		return iteratorActorFromPlayer(playerMask, iter);
 	}
 
-	LevelActor* ActorContainer::popActor()
+	int ActorCollection::countActor(unsigned playerMask, unsigned actorTypeMask) const
+	{
+		int result = 0;
+		int iter = 0;
+		while (auto actor = iteratorActor(playerMask, actorTypeMask, iter))
+		{
+			++result;
+		}
+		return result;
+	}
+
+	LevelActor* ActorCollection::popActor()
 	{
 		if ( mActors.empty() )
 			return nullptr;

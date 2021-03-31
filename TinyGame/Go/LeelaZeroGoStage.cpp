@@ -1010,7 +1010,7 @@ namespace Go
 	TConsoleVariable< bool > CVarUseSpline(true, "go.UseSpline");
 
 
-	void UpdateCRSplineIndices(std::vector< int >& inoutIndices, int newPointsCount)
+	void UpdateCRSplineIndices(std::vector< uint32 >& inoutIndices, int newPointsCount)
 	{
 		int oldPointsCount = inoutIndices.size() / 4;
 		if (oldPointsCount)
@@ -1025,7 +1025,7 @@ namespace Go
 		if (lineCount == 0)
 			return;
 
-		int* pIndices = inoutIndices.data();
+		uint32* pIndices = inoutIndices.data();
 		if (lineCount == 1)
 		{
 			pIndices[0] = 0;
@@ -1116,7 +1116,7 @@ namespace Go
 					{
 						if (winRateHistory.size() >= 2)
 						{
-							std::vector<int>& indices = winRateData.splineIndeics;
+							std::vector<uint32>& indices = winRateData.splineIndeics;
 							UpdateCRSplineIndices(indices, winRateHistory.size());
 
 							if (bUseColor)
@@ -1150,11 +1150,11 @@ namespace Go
 				{
 					if( i == 0 )
 					{
-						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
 					}
 					else
 					{
-						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
+						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::One >::GetRHI());
 					}
 
 					UnderCurveAreaProgram* prog = CVarUseSpline ?
@@ -1212,7 +1212,7 @@ namespace Go
 			RHISetFixedShaderPipelineState(commandList, matProj);
 			if( !buffer.empty() )
 			{			
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());		
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One , EBlend::One >::GetRHI());		
 				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &buffer[0], buffer.size(), LinearColor(0, 0, 1));
 			}
 
@@ -1233,7 +1233,7 @@ namespace Go
 				int posX = ( mReviewGame.getInstance().getCurrentStep() + 1 ) / 2;
 				Vector2 const lines[] = { Vector2(posX , yMin) , Vector2(posX , yMax) };
 
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 1, 0));
 			}
 

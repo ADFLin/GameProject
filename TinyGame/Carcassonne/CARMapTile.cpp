@@ -12,7 +12,7 @@ namespace CAR
 		,towerHeight(0)
 		,bridgeMask(0)
 		,goldPices(0)
-		,group(-1)
+		,group(INDEX_NONE)
 		,haveHill( false )
 		,mergedTileId { FAIL_TILE_ID , FAIL_TILE_ID }
 	{
@@ -23,7 +23,7 @@ namespace CAR
 				SideNode& node = sideNodes[i];
 				node.index = i;
 				node.outConnect = nullptr;
-				node.group = -1;
+				node.group = INDEX_NONE;
 				int lDir = FDir::ToLocal(i, rotation);
 				if( i < TilePiece::NumSide / 2 )
 				{
@@ -32,7 +32,7 @@ namespace CAR
 				}
 				else
 				{
-					node.type = SideType::eEmptySide;
+					node.type = ESide::Type::Empty;
 					node.linkMask = 0;
 				}
 			}
@@ -41,7 +41,7 @@ namespace CAR
 				FarmNode& node = farmNodes[i];
 				node.index = i;
 				node.outConnect = nullptr;
-				node.group = -1;
+				node.group = INDEX_NONE;
 			}
 		}
 		else
@@ -51,7 +51,7 @@ namespace CAR
 				SideNode& node = sideNodes[i];
 				node.index = i;
 				node.outConnect = nullptr;
-				node.group = -1;
+				node.group = INDEX_NONE;
 				int lDir = FDir::ToLocal(i, rotation);
 				node.type = mTile->getLinkType(lDir);
 				node.linkMask = LocalToWorldSideLinkMask( mTile->getSideLinkMask(lDir) , rotation);
@@ -61,7 +61,7 @@ namespace CAR
 				FarmNode& node = farmNodes[i];
 				node.index = i;
 				node.outConnect = nullptr;
-				node.group = -1;
+				node.group = INDEX_NONE;
 			}
 		}
 	}
@@ -76,7 +76,7 @@ namespace CAR
 		farmNodes[idx].connectNode( data.farmNodes[ TilePiece::FarmIndexConnect( idx ) ] );
 	}
 
-	CAR::SideType MapTile::getLinkType(int dir) const
+	ESide::Type MapTile::getLinkType(int dir) const
 	{
 		return sideNodes[ dir ].type;
 	}
@@ -156,7 +156,7 @@ namespace CAR
 		Vec2i localOffset = Vec2i(0,0);
 		for( int i = 0; i < TilePiece::NumSide; ++i )
 		{
-			if( mTile->sides[i].contentFlag & SideContent::eAircraftDirMark )
+			if( mTile->sides[i].contentFlag & BIT(SideContent::eAircraftDirMark) )
 				localOffset += FDir::LinkOffset(i);
 		}
 		return FDir::ToWorld(localOffset , rotation);
@@ -212,7 +212,7 @@ namespace CAR
 		mActors.erase( std::find( mActors.begin() , mActors.end() , &actor ) );
 	}
 
-	SideContentType MapTile::getSideContnet(int dir) const
+	SideContentMask MapTile::getSideContnet(int dir) const
 	{
 		int dirLocal = FDir::ToLocal(dir, rotation);
 		if( mTile->isHalflingType() && dirLocal >= TilePiece::NumSide / 2 )
@@ -229,21 +229,21 @@ namespace CAR
 	void MapTile::addBridge(int dir)
 	{
 		int invDir = FDir::Inverse( dir );
-		assert( getLinkType( dir ) == eField && getLinkType( FDir::Inverse( invDir ) ) == eField );
+		assert( getLinkType( dir ) == ESide::Field && getLinkType( FDir::Inverse( invDir ) ) == ESide::Field);
 
 		unsigned linkMask = BIT( dir ) | BIT( invDir );
-		sideNodes[dir].type = SideType::eRoad;
+		sideNodes[dir].type = ESide::Road;
 		removeLinkMask( dir );
 		sideNodes[dir].linkMask = linkMask;
 
-		sideNodes[invDir].type = SideType::eRoad;
+		sideNodes[invDir].type = ESide::Road;
 		removeLinkMask( invDir );
 		sideNodes[invDir].linkMask = linkMask;
 
 		bridgeMask |= linkMask;
 	}
 
-	void MapTile::margeHalflingTile(TilePiece const& tile)
+	void MapTile::margeHalflingTile(TilePiece const& tile, TilePiece& mergedTile)
 	{
 		assert(mTile->isHalflingType() && tile.isHalflingType());
 
@@ -253,22 +253,21 @@ namespace CAR
 		int const Rotation = TilePiece::NumSide / 2;
 
 		//build temp TilePiece
-		TilePiece* tileMerge = new TilePiece;
 		for( int i = 0; i < TilePiece::NumSide / 2; ++i )
 		{
-			tileMerge->sides[i] = mTile->sides[i];
+			mergedTile.sides[i] = mTile->sides[i];
 			int idx = i + TilePiece::NumSide / 2;
-			tileMerge->sides[idx] = tile.sides[i];
-			tileMerge->sides[idx].linkDirMask = LocalToWorldSideLinkMask(tile.sides[i].linkDirMask, Rotation);
-			tileMerge->sides[idx].roadLinkDirMask = LocalToWorldSideLinkMask(tile.sides[i].roadLinkDirMask, Rotation);
+			mergedTile.sides[idx] = tile.sides[i];
+			mergedTile.sides[idx].linkDirMask = LocalToWorldSideLinkMask(tile.sides[i].linkDirMask, Rotation);
+			mergedTile.sides[idx].roadLinkDirMask = LocalToWorldSideLinkMask(tile.sides[i].roadLinkDirMask, Rotation);
 		}
 		for( int i = 0; i < TilePiece::NumFarm / 2; ++i )
 		{
-			tileMerge->farms[i] = mTile->farms[i];
+			mergedTile.farms[i] = mTile->farms[i];
 			int idx = i + TilePiece::NumFarm / 2;
-			tileMerge->farms[idx] = tile.farms[i];
-			tileMerge->farms[idx].sideLinkMask = LocalToWorldSideLinkMask(tile.farms[i].sideLinkMask, Rotation);
-			tileMerge->farms[idx].farmLinkMask = LocalToWorldFarmLinkMask(tile.farms[i].farmLinkMask, Rotation);
+			mergedTile.farms[idx] = tile.farms[i];
+			mergedTile.farms[idx].sideLinkMask = LocalToWorldSideLinkMask(tile.farms[i].sideLinkMask, Rotation);
+			mergedTile.farms[idx].farmLinkMask = LocalToWorldFarmLinkMask(tile.farms[i].farmLinkMask, Rotation);
 		}
 
 		{
@@ -277,7 +276,7 @@ namespace CAR
 
 			for(auto iter = TBitMaskIterator<FDir::TotalNum>(sideMask); iter; ++iter )
 			{
-				tileMerge->sides[iter.index].linkDirMask |= sideMask;
+				mergedTile.sides[iter.index].linkDirMask |= sideMask;
 			}
 		}
 
@@ -290,15 +289,15 @@ namespace CAR
 
 			for( auto iter = TBitMaskIterator<TilePiece::NumFarm>(farmMask); iter; ++iter )
 			{
-				tileMerge->farms[iter.index].farmLinkMask |= farmMask;
-				tileMerge->farms[iter.index].sideLinkMask |= sideMask;
+				mergedTile.farms[iter.index].farmLinkMask |= farmMask;
+				mergedTile.farms[iter.index].sideLinkMask |= sideMask;
 			}
 		}
-		tileMerge->contentFlag = ( BIT(TileContent::eTemp) | ( mTile->contentFlag | tile.contentFlag ) ) & ~BIT(TileContent::eHalfling);
-		tileMerge->id = TEMP_TILE_ID;
+		mergedTile.contentFlag = ( BIT(TileContent::eTemp) | ( mTile->contentFlag | tile.contentFlag ) ) & ~BIT(TileContent::eHalfling);
+		mergedTile.id = TEMP_TILE_ID;
 
 		//update
-		mTile = tileMerge;
+		mTile = &mergedTile;
 		for( int i = 0; i < TilePiece::NumSide; ++i )
 		{
 			SideNode& node = sideNodes[i];
@@ -353,12 +352,12 @@ namespace CAR
 	bool TilePiece::isSemiCircularCity(int lDir) const
 	{
 		SideData const& sideData = sides[lDir];
-		assert(sideData.linkType == SideType::eCity);
+		assert(sideData.linkType == ESide::Type::City);
 		return (sideData.linkDirMask == FBitUtility::ExtractTrailingBit(sideData.linkDirMask)) &&
-			((sideData.contentFlag & SideContent::eNotSemiCircularCity) == 0);
+			((sideData.contentFlag & BIT(SideContent::eNotSemiCircularCity)) == 0);
 	}
 
-	bool TilePiece::haveSideType(SideType type) const
+	bool TilePiece::haveSideType(ESide::Type type) const
 	{
 		for(auto const& side : sides)
 		{
@@ -368,14 +367,14 @@ namespace CAR
 		return false;
 	}
 
-	bool TilePiece::CanLink(SideType typeA, SideType typeB)
+	bool TilePiece::CanLink(ESide::Type typeA, ESide::Type typeB)
 	{
 		if( typeA == typeB )
 			return true;
-		unsigned const AbbeyLinkMask = BIT(SideType::eAbbey) | BIT(SideType::eCity) | BIT(SideType::eRoad) | BIT(SideType::eField);
-		if( typeA == SideType::eAbbey && (AbbeyLinkMask & BIT(typeB)) )
+		unsigned const AbbeyLinkMask = BIT(ESide::Type::Abbey) | BIT(ESide::Type::City) | BIT(ESide::Type::Road) | BIT(ESide::Type::Field);
+		if( typeA == ESide::Type::Abbey && (AbbeyLinkMask & BIT(typeB)) )
 			return true;
-		if( typeB == SideType::eAbbey && (AbbeyLinkMask & BIT(typeA)) )
+		if( typeB == ESide::Type::Abbey && (AbbeyLinkMask & BIT(typeA)) )
 			return true;
 		return false;
 	}

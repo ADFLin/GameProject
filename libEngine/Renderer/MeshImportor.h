@@ -48,7 +48,7 @@ namespace Render
 		void unregisterMeshImporter(HashString name);
 
 		template< class T >
-		class TMeshImportorFactory : public IMeshImporterFactory
+		class TMeshImporterFactory : public IMeshImporterFactory
 		{
 		public:
 			virtual IMeshImporterPtr create(HashString name)
@@ -60,14 +60,14 @@ namespace Render
 		template< class T >
 		auto registerMeshImporterT(HashString name) -> typename TEnableIf< TIsBaseOf< T, IMeshImporter >::Value >::Type
 		{
-			registerMeshImporter( name , std::make_shared< TMeshImportorFactory<T> >() );
+			registerMeshImporter( name , std::make_shared< TMeshImporterFactory<T> >() );
 		}
 
 		void cleanup()
 		{
 			mFactoryMap.clear();
 		}
-		IMeshImporterPtr getMeshImprotor(HashString name);
+		IMeshImporterPtr getMeshImproter(HashString name);
 
 		std::unordered_map< HashString, IMeshImporterFactoryPtr > mFactoryMap;
 	};

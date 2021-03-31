@@ -64,7 +64,7 @@ public:
 			return false;
 
 		p.reset();
-		return mPtr->QueryInterface(__uuidof(U), reinterpret_cast<void**>(&p)) == S_OK;
+		return mPtr->QueryInterface(__uuidof(U), reinterpret_cast<void**>(&p)) == 0;
 	}
 
 	void initialize(T* ptr)

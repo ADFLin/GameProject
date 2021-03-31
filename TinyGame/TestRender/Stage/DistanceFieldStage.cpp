@@ -124,7 +124,7 @@ namespace Render
 				saveDistanceFieldData(testDataPath , mSDFData );
 			}
 
-			VERIFY_RETURN_FALSE( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , 1 , 1, TCF_DefalutValue , &mSDFData.volumeData[0] ) );
+			VERIFY_RETURN_FALSE( mTextureSDF = RHICreateTexture3D( ETexture::R32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , 1 , 1, TCF_DefalutValue , &mSDFData.volumeData[0] ) );
 
 			VERIFY_RETURN_FALSE(mProgRayMarching = ShaderManager::Get().getGlobalShaderT<RayMarchingProgram>());
 			Vec2i screenSize = ::Global::GetScreenSize();
@@ -177,13 +177,13 @@ namespace Render
 
 
 			{
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 				RHISetShaderProgram(commandList, mProgRayMarching->getRHIResource());
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(WorldToLocal), Matrix4::Identity());
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMax), mSDFData.boundMax);
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMin), mSDFData.boundMin);
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(DistanceFactor), mSDFData.maxDistance);
-				auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+				auto& sampler = TStaticSamplerState< ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 				mProgRayMarching->setTexture(commandList, SHADER_PARAM(DistanceFieldTexture), *mTextureSDF, SHADER_PARAM(DistanceFieldTextureSampler), sampler);
 				mView.setupShader(commandList, *mProgRayMarching);
 				DrawUtility::ScreenRect(commandList);

@@ -65,10 +65,10 @@ namespace Render
 			}
 			{
 				TIME_SCOPE("Mesh Texture");
-				VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_A.tga", TextureLoadOption().SRGB().MipLevel(10).ReverseH()));
-				VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_N.tga", TextureLoadOption().MipLevel(10).ReverseH()));
-				VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().MipLevel(10).ReverseH()));
-				VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().MipLevel(10).ReverseH()));
+				VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_A.tga", TextureLoadOption().SRGB().AutoMipMap().ReverseH()));
+				VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_N.tga", TextureLoadOption().AutoMipMap().ReverseH()));
+				VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().AutoMipMap().ReverseH()));
+				VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().AutoMipMap().ReverseH()));
 
 				registerTexture("CD", mDiffuseTexture);
 				registerTexture("CN", mNormalTexture);
@@ -78,7 +78,7 @@ namespace Render
 			{
 				TIME_SCOPE("FBX Mesh");
 				char const* filePath = "Mesh/Cerberus/Cerberus_LP.FBX";
-				BuildMesh(mMesh, filePath, [filePath](Mesh& mesh) ->bool
+				BuildMeshFromFile(mMesh, filePath, [](Mesh& mesh , char const* filePath) ->bool
 				{
 					IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
 					VERIFY_RETURN_FALSE(importer->importFromFile(filePath, mesh, nullptr));

@@ -23,7 +23,7 @@ static FixString<512> GMsg;
 #define FUNCTION_CHECK( func ) func
 
 #define PARSE_DEFINE_IF 1
-#define USE_TEMPLATE_PARSE_OP 0
+#define USE_TEMPLATE_PARSE_OP 1
 #define USE_OPERATION_CACHE 0 && (!USE_TEMPLATE_PARSE_OP)
 
 namespace CPP
@@ -681,7 +681,7 @@ namespace CPP
 
 			switch (op)
 			{
-#define CASE_OP( NAME , OP , P ) case EOperator::NAME: if ( P == Precedence ) ret = ret OP rhs; break;
+#define CASE_OP( NAME , OP , P ) case EOperator::NAME: if constexpr ( P == Precedence ) ret = ret OP rhs; break;
 				BINARY_OPERATOR_LIST(CASE_OP)
 #undef  CASE_OP
 			default:

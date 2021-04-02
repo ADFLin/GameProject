@@ -68,7 +68,7 @@ namespace Render
 			return true;
 		}
 
-		bool checkAssetNoModified()
+		bool checkAssetNotModified()
 		{
 			for( auto const& asset : assetDependences )
 			{
@@ -293,7 +293,7 @@ namespace Render
 				ShaderCacheBinaryData binaryData;
 				serializer >> binaryData;
 
-				if( !binaryData.checkAssetNoModified() )
+				if( !binaryData.checkAssetNotModified() )
 					return false;
 
 				if( !binaryData.setupProgram(format, *managedData.shaderProgram, managedData.compileInfos ) )
@@ -323,7 +323,7 @@ namespace Render
 				ShaderCacheBinaryData binaryData;
 				serializer >> binaryData;
 
-				if (!binaryData.checkAssetNoModified())
+				if (!binaryData.checkAssetNotModified())
 					return false;
 
 				if (!binaryData.setupShader(format, *managedData.shader, managedData.compileInfo))

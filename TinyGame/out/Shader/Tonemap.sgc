@@ -17,6 +17,7 @@ float LinearToSRGB(float value)
 	return (1 + a) * pow(value, 1.0 / 2.4) - a;
 }
 
+
 GLOBAL_CONST float Gamma = 2.2;
 float3 simpleReinhardToneMapping(float3 color)
 {

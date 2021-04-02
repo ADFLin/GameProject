@@ -321,6 +321,13 @@ namespace Render
 #include "RHITraceScope.h"
 #endif
 
+	int CalcMipmapLevel(int size)
+	{
+		int result = 0;
+		int value = 1;
+		while (value <= size) { value *= 2; ++result; }
+		return result;
+	}
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)
 	{
@@ -329,7 +336,7 @@ namespace Render
 		DataCacheKey cacheKey;
 		cacheKey.typeName = "TEXTURE";
 		cacheKey.version = "8AE15F61-E1CF-4639-B7D8-409CF17933F0";
-		cacheKey.keySuffix.add(path, option.bHDR, option.bReverseH, option.bSRGB, option.creationFlags, option.numMipLevel, 
+		cacheKey.keySuffix.add(path, option.bHDR, option.bReverseH, option.bSRGB, option.creationFlags, option.numMipLevel, option.bAutoMipMap,
 			option.isSupportRGBTexture(), bConvToHalf);
 
 		void* pData;
@@ -396,13 +403,22 @@ namespace Render
 			flags |= TCF_HalfData;
 		}
 
-		if (option.numMipLevel > 1)
+
+		auto format = option.getFormat(imageData.numComponent);
+
+		int numMipLevel = option.numMipLevel;
+		if (option.bAutoMipMap)
+		{
+			numMipLevel = CalcMipmapLevel( Math::Max(imageData.width , imageData.height) );
+		}
+
+		if (numMipLevel > 1)
 		{
 			flags |= TCF_GenerateMips;
 		}
 
-		auto format = option.getFormat(imageData.numComponent);
-		return RHICreateTexture2D(format, imageData.width, imageData.height, option.numMipLevel, 1, flags, pData, 1);
+
+		return RHICreateTexture2D(format, imageData.width, imageData.height, numMipLevel, 1, flags, pData, 1);
 	}
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
@@ -428,7 +444,23 @@ namespace Render
 			data[i] = imageDatas[i].data;
 		}
 
-		return RHICreateTextureCube(option.getFormat(imageDatas[0].numComponent), imageDatas[0].width, option.numMipLevel, option.creationFlags, data);
+		uint32 flags = option.creationFlags;
+		if (option.bAutoMipMap)
+		{
+			option.numMipLevel;
+		}
+
+		int numMipLevel = option.numMipLevel;
+		if (option.bAutoMipMap)
+		{
+			numMipLevel = CalcMipmapLevel(imageDatas[0].width);
+		}
+		if (numMipLevel > 1)
+		{
+			flags |= TCF_GenerateMips;
+		}
+
+		return RHICreateTextureCube(option.getFormat(imageDatas[0].numComponent), imageDatas[0].width, numMipLevel, flags, data);
 	}
 
 	RHITexture2D* RHIUtility::CreateTexture2D(ImageData const& imageData, TextureLoadOption const& option)
@@ -439,11 +471,17 @@ namespace Render
 
 
 		uint32 flags = option.creationFlags;
+
+		int numMipLevel = option.numMipLevel;
+		if (option.bAutoMipMap)
+		{
+			numMipLevel = CalcMipmapLevel(Math::Max(imageData.width, imageData.height));
+		}
+
 		if (option.numMipLevel > 1)
 		{
 			flags |= TCF_GenerateMips;
 		}
-
 
 		if (bConvToHalf)
 		{
@@ -454,12 +492,12 @@ namespace Render
 				halfData[i] = *pFloat;
 				++pFloat;
 			}
-			return RHICreateTexture2D(format, imageData.width, imageData.height, option.numMipLevel, 1, flags |TCF_HalfData, halfData.data(), 1);
+			return RHICreateTexture2D(format, imageData.width, imageData.height, numMipLevel, 1, flags |TCF_HalfData, halfData.data(), 1);
 
 		}
 		else
 		{
-			return RHICreateTexture2D(format, imageData.width, imageData.height, option.numMipLevel, 1, flags, imageData.data, 1);
+			return RHICreateTexture2D(format, imageData.width, imageData.height, numMipLevel, 1, flags, imageData.data, 1);
 		}
 	}
 

@@ -17,6 +17,17 @@ void DataCacheArg::addString(char const* str)
 	value = FNV1a::MakeStringHash(str, value);
 }
 
+void DataCacheArg::addFileAttribute(char const* filePath)
+{
+	FileAttributes attributes;
+	if (FileSystem::GetFileAttributes(filePath, attributes))
+	{
+		auto& lastWrite = attributes.lastWrite;
+		add( lastWrite.getYear(), lastWrite.getMonth(), lastWrite.getDay(), lastWrite.getHour(), lastWrite.getMinute(), lastWrite.getSecond(), lastWrite.getMillisecond());
+		add( attributes.size );
+	}
+}
+
 class DataCacheImpl : public DataCacheInterface
 {
 public:
@@ -34,6 +45,7 @@ public:
 		uint32 nameHash = HashValue(fileName.data(), length);
 		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 100) % 10, fileName.c_str());
 	}
+
 	bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override
 	{
 		FixString<512> filePath;

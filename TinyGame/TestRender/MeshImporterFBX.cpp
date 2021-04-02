@@ -170,16 +170,16 @@ namespace Render
 		importSetting.positionScale = 1;
 		vertexFormat.getMeshInputLayout(outMesh.mInputLayoutDesc, importSetting.bAddTangleAndNormal);
 		int vertexSize = outMesh.mInputLayoutDesc.getVertexSize(0);
-		std::vector< uint8 > vertexBufferData;
+		std::vector< uint8 > vertexData;
 		int numVertices = pFBXMesh->GetPolygonVertexCount();
-		vertexBufferData.resize(numVertices * vertexSize);
+		vertexData.resize(numVertices * vertexSize);
 
-		auto GetBufferData = [&outMesh, &vertexBufferData](Vertex::Attribute attribute) -> uint8*
+		auto GetBufferData = [&outMesh, &vertexData](Vertex::Attribute attribute) -> uint8*
 		{
 			int offset = outMesh.mInputLayoutDesc.getAttributeOffset(attribute);
 			if (offset < 0)
 				return nullptr;
-			return &vertexBufferData[offset];
+			return &vertexData[offset];
 		};
 
 
@@ -188,6 +188,18 @@ namespace Render
 		uint8* pNormal = vertexFormat.normals.empty() ? nullptr : GetBufferData(Vertex::ATTRIBUTE_NORMAL);
 		uint8* pTangent = vertexFormat.tangents.empty() ? nullptr : GetBufferData(Vertex::ATTRIBUTE_TANGENT);
 		uint8* pTexcoord = GetBufferData(Vertex::ATTRIBUTE_TEXCOORD);
+
+		auto baseLayer = pFBXMesh->GetLayer(0);
+		FbxLayerElementMaterial* layerElementMaterial = baseLayer->GetMaterials();
+		FbxLayerElement::EMappingMode materialMappingMode = layerElementMaterial ?
+			layerElementMaterial->GetMappingMode() : FbxLayerElement::eByPolygon;
+
+
+		struct IndexSectionInfo
+		{
+			uint32 index;
+			int    section;
+		};
 
 		int numTriangles = 0;
 		int vertexId = 0;
@@ -214,6 +226,7 @@ namespace Render
 					break;
 				}
 			}
+
 
 			if (lPolygonSize >= 3)
 			{
@@ -264,14 +277,34 @@ namespace Render
 
 		} // for polygonCount
 
-		std::vector< int > indexBufferData;
-		indexBufferData.resize(numTriangles * 3);
-		int* pIndex = &indexBufferData[0];
+		std::vector< int > indexData;
+		indexData.resize(numTriangles * 3);
+		int* pIndex = &indexData[0];
 		vertexId = 0;
 
 		for (int idxPolygon = 0; idxPolygon < polygonCount; idxPolygon++)
 		{
 			int lPolygonSize = pFBXMesh->GetPolygonSize(idxPolygon);
+
+			int32 materialIndex = 0;
+
+			if (layerElementMaterial)
+			{
+				switch (materialMappingMode)
+				{
+					// material index is stored in the IndexArray, not the DirectArray (which is irrelevant with 2009.1)
+				case FbxLayerElement::eAllSame:
+					{
+						materialIndex = layerElementMaterial->GetIndexArray().GetAt(0);
+					}
+					break;
+				case FbxLayerElement::eByPolygon:
+					{
+						materialIndex = layerElementMaterial->GetIndexArray().GetAt(idxPolygon);
+					}
+					break;
+				}
+			}
 
 			if (lPolygonSize < 3)
 			{
@@ -299,17 +332,17 @@ namespace Render
 			{
 				if (pNormal)
 				{
-					MeshUtility::FillTriangleListTangent(outMesh.mInputLayoutDesc, vertexBufferData.data(), numVertices, indexBufferData.data(), indexBufferData.size());
+					MeshUtility::FillTriangleListTangent(outMesh.mInputLayoutDesc, vertexData.data(), numVertices, indexData.data(), indexData.size());
 				}
 				else
 				{
-					MeshUtility::FillTriangleListNormalAndTangent(outMesh.mInputLayoutDesc, vertexBufferData.data(), numVertices, indexBufferData.data(), indexBufferData.size());
+					MeshUtility::FillTriangleListNormalAndTangent(outMesh.mInputLayoutDesc, vertexData.data(), numVertices, indexData.data(), indexData.size());
 				}
 			}
 		}
 
 		outMesh.mType = EPrimitive::TriangleList;
-		bool result = outMesh.createRHIResource(vertexBufferData.data(), numVertices, indexBufferData.data(), indexBufferData.size(), true);
+		bool result = outMesh.createRHIResource(vertexData.data(), numVertices, indexData.data(), indexData.size(), true);
 
 		return result;
 	}

@@ -441,6 +441,7 @@ namespace Render
 		bool   bSRGB = false;
 		bool   bUseHalf = true;
 		bool   bReverseH = false;
+		bool   bAutoMipMap = false;
 		int    numMipLevel = 0;
 		uint32 creationFlags = TCF_DefalutValue;
 
@@ -457,6 +458,7 @@ namespace Render
 		TextureLoadOption& ReverseH(bool value = true) { bReverseH = value; return *this; }
 		TextureLoadOption& HDR(bool value = true) { bHDR = value; return *this; }
 		TextureLoadOption& SRGB(bool value = true) { bSRGB = value; return *this; }
+		TextureLoadOption& AutoMipMap(bool value = true){ bAutoMipMap = value;  return *this;  }
 		TextureLoadOption& MipLevel(int value = 0){  numMipLevel = value;  return *this;  }
 	};
 

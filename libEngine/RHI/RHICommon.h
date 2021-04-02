@@ -229,8 +229,8 @@ namespace Render
 			return result;
 		}
 
-		char const* mFileName;
-		char const* mFuncName;
+		std::string mFileName;
+		std::string mFuncName;
 
 		int  mLineNumber;
 	};

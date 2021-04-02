@@ -191,7 +191,7 @@ namespace Chess
 
 				RHISetShaderProgram(commandList, mProgMeshUV->getRHIResource());
 				mProgMeshUV->setParam(commandList, SHADER_PARAM(XForm), transform);
-				mChessMeshs[0].draw(commandList);
+				mChessMeshs[1].draw(commandList);
 
 				Vector2 vertices[] =
 				{
@@ -200,9 +200,8 @@ namespace Chess
 					Vector2( 1 , 1 ),
 					Vector2( 0 , 1 ),
 				};
-				uint32 indices[] = { 0,1,1,2,2,3,3,0 };
 				RHISetFixedShaderPipelineState(commandList, transform, LinearColor(1,1,0,1));
-				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
+				TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineLoop, vertices, ARRAY_SIZE(vertices));
 			}
 		}
 

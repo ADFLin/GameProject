@@ -16,6 +16,13 @@ using SerializeDelegate = std::function< bool (IStreamSerializer&) >;
 struct DataCacheArg
 {
 	DataCacheArg();
+
+	template< class ...Args >
+	DataCacheArg(Args&& ...args)
+	{
+		add(std::forward<Args>(args)...);
+	}
+
 	void add(char const* str) { addString(str); }
 
 	template< class T >
@@ -41,6 +48,8 @@ struct DataCacheArg
 		addString(str);
 	}
 	void addString(char const* str);
+
+	void addFileAttribute(char const* filePath);
 	uint64 value;
 };
 

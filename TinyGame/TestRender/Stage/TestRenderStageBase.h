@@ -82,6 +82,55 @@ namespace Render
 		return true;
 	}
 
+	template< class TFunc >
+	bool BuildMeshFromFile(Mesh& mesh, char const* meshPath, TFunc&& FuncMeshCreate)
+	{
+		DataCacheKey key;
+		key.typeName = "MESH";
+		key.version = "155CABB4-4F63-4B6C-9249-5BB7861F67E6";
+		key.keySuffix.addFileAttribute(meshPath);
+
+		auto MeshLoad = [&mesh](IStreamSerializer& serializer) -> bool
+		{
+			return mesh.load(serializer);
+		};
+
+		auto MeshSave = [&mesh](IStreamSerializer& serializer) -> bool
+		{
+			return mesh.save(serializer);
+		};
+
+		if (!::Global::DataCache().loadDelegate(key, MeshLoad))
+		{
+			if (!FuncMeshCreate(mesh, meshPath) )
+			{
+				return false;
+			}
+
+			if (GRHISystem->getName() == RHISystemName::D3D11)
+				return true;
+
+
+			if (!::Global::DataCache().saveDelegate(key, MeshSave))
+			{
+
+			}
+#if 0
+			else
+			{
+				Mesh temp;
+				::Global::DataCache().loadDelegate(key, [&temp](IStreamSerializer& serializer) -> bool
+				{
+					return temp.load(serializer);
+				});
+
+			}
+#endif
+		}
+
+		return true;
+	}
+
 	class InstancedMesh
 	{
 	public:

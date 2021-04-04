@@ -368,7 +368,12 @@ namespace CPP
 		bool bCanRedefineMarco = false;
 		bool bCommentIncludeFileName = true;
 		bool bAddLineMarco = true;
-
+		enum LineFormat
+		{
+			LF_LineNumber,
+			LF_LineNumberAndFilePath,
+		};
+		LineFormat lineFormat;
 	private:
 
 

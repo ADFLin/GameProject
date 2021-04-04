@@ -184,7 +184,7 @@ namespace Render
 
 		}
 
-		virtual bool isSupportBinaryCode() const { return false; }
+		virtual bool isBinaryCodeSupported() const { return false; }
 		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode);
 
 

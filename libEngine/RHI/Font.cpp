@@ -434,7 +434,7 @@ namespace Render
 		while (*str != 0)
 		{
 			wchar_t c = *(str++);
-			if (false && c == L'\n')
+			if (c == L'\n')
 			{
 				curPos.x = pos.x;
 				curPos.y += mCharDataSet->getFontHeight() + 2;

@@ -1008,8 +1008,20 @@ namespace CPP
 	void Preprocessor::emitSourceLine(int lineOffset)
 	{
 		FixString< 512 > lineMarco;
-		int len = lineMarco.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, (mInput.source) ? mInput.source->filePath.c_str() : "");
-		mOutput->push(StringView(lineMarco.c_str(), len));
+		int len = 0;
+		switch (lineFormat)
+		{
+		case LF_LineNumber:
+			len = lineMarco.format("#line %d\n", mInput.getLine() + lineOffset);
+			break;
+		case LF_LineNumberAndFilePath:
+			len = lineMarco.format("#line %d \"%s\"\n", mInput.getLine() + lineOffset, (mInput.source) ? mInput.source->filePath.c_str() : "");
+			break;
+		}
+		if (len)
+		{
+			mOutput->push(StringView(lineMarco.c_str(), len));
+		}
 	}
 
 	void Preprocessor::emitCode(StringView const& code)

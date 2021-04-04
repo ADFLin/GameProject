@@ -97,6 +97,16 @@ namespace Render
 		ShaderResourceInfo   shaderResource;
 	};
 
+	struct ShaderPreprocessSettings
+	{
+		bool bSupportLineFilePath;
+
+
+		ShaderPreprocessSettings()
+		{
+			bSupportLineFilePath = true;
+		}
+	};
 	class ShaderFormat
 	{
 	public:
@@ -117,7 +127,7 @@ namespace Render
 		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) { return false; }
 		virtual void postShaderLoaded(Shader& shader) {}
 
-		virtual bool isSupportBinaryCode() const { return false; }
+		virtual bool isBinaryCodeSupported() const { return false; }
 		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) = 0;
 		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
 		{
@@ -125,6 +135,11 @@ namespace Render
 		}
 
 		bool preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes );
+
+		virtual ShaderPreprocessSettings getPreprocessSettings()
+		{
+			return ShaderPreprocessSettings();
+		}
 		static void OutputError(char const* text);
 		
 

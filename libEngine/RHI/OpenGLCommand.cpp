@@ -31,7 +31,7 @@ namespace Render
 		return func != nullptr;
 	}
 
-	void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const GLvoid* userParam)
+	void APIENTRY GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,  GLvoid const* userParam)
 	{
 		if( type == GL_DEBUG_TYPE_OTHER )
 			return;

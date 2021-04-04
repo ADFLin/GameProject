@@ -171,7 +171,7 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatHLSL::isSupportBinaryCode() const
+	bool ShaderFormatHLSL::isBinaryCodeSupported() const
 	{
 		return true;
 	}

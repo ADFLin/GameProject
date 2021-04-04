@@ -203,7 +203,7 @@ namespace Render
 
 		bool saveCacheData( ShaderFormat& format, ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 		{
-			if( !format.isSupportBinaryCode() )
+			if( !format.isBinaryCodeSupported() )
 				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
@@ -236,7 +236,7 @@ namespace Render
 
 		bool saveCacheData(ShaderFormat& format, Shader& shader, ShaderSetupData& setupData)
 		{
-			if (!format.isSupportBinaryCode())
+			if (!format.isBinaryCodeSupported())
 				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
@@ -274,7 +274,7 @@ namespace Render
 			if (!CVarShaderUseCache.getValue())
 				return false;
 
-			if (!format.isSupportBinaryCode())
+			if (!format.isBinaryCodeSupported())
 				return false;
 
 			return true;

@@ -17,7 +17,31 @@ extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
 
 namespace Render
 {
+	bool IsLineFilePathSupported()
+	{
 
+		struct TestHelper
+		{
+			TestHelper()
+			{
+				char const* code = CODE_STRING
+				(
+#line 2 "test"
+vec4 OutColor;
+void main()
+{
+	OutColor = vec4(1, 1, 1, 1);
+}
+				);
+
+				OpenGLShaderObject object;
+				result = object.compile(EShader::Pixel, &code, 1);
+			}
+			bool result;
+		};
+		static TestHelper helper;
+		return helper.result;
+	}
 	bool OpenGLShaderObject::compile(EShader::Type type, char const* src[], int num)
 	{
 		if (!fetchHandle(OpenGLTranslate::To(type)))
@@ -409,7 +433,7 @@ namespace Render
 
 	}
 
-	bool ShaderFormatGLSL::isSupportBinaryCode() const
+	bool ShaderFormatGLSL::isBinaryCodeSupported() const
 	{
 		int numFormat = 0;
 		glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
@@ -426,6 +450,13 @@ namespace Render
 	{
 		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
 		return FOpenGLShader::GetProgramBinary(shaderImpl.getHandle(), outBinaryCode);
+	}
+
+	Render::ShaderPreprocessSettings ShaderFormatGLSL::getPreprocessSettings()
+	{
+		ShaderPreprocessSettings result;
+		result.bSupportLineFilePath = IsLineFilePathSupported();
+		return result;
 	}
 
 	bool FOpenGLShader::CheckProgramStatus(GLuint handle, GLenum statusName, char const* errorTitle)

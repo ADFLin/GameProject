@@ -24,8 +24,10 @@ namespace Render
 		source.appendString( StringView(&inoutCodes[0] , inoutCodes.size() ));
 		source.filePath = path;
 
-		CPP::Preprocessor preprocessor;
+		auto settings = getPreprocessSettings();
 
+		CPP::Preprocessor preprocessor;
+		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_LineNumber;
 		std::stringstream oss;
 		CPP::CodeOutput codeOutput(oss);
 

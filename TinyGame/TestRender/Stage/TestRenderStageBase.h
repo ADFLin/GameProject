@@ -38,7 +38,7 @@ namespace Render
 	{
 		DataCacheKey key;
 		key.typeName = "MESH";
-		key.version = "155CABB4-4F63-4B6C-9249-5BB7861F67E6";
+		key.version = "155CABB4-4F63-4B6C-9249-5BB7861F67E1";
 		key.keySuffix.add(meshName, std::forward<Args>(args)...);
 
 		auto MeshLoad = [&mesh](IStreamSerializer& serializer) -> bool

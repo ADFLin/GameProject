@@ -6,6 +6,7 @@
 
 #include "RHI/Font.h"
 #include "GameRenderSetup.h"
+#include "FileSystem.h"
 
 
 using namespace Render;
@@ -23,13 +24,18 @@ public:
 
 	virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 	{
-		systemConfigs.numSamples = 4;
+		systemConfigs.numSamples = 1;
 	}
+
+
+	std::vector<char> textBuffer;
 
 	bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
+
+		VERIFY_RETURN_FALSE(FileUtility::LoadToBuffer("Subtitle.txt", textBuffer));
 
 		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());
 
@@ -165,8 +171,6 @@ public:
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"
 			"你對愛並不了解　誤會愛的分類\n"
-			"TATaTA\n" 
-			"What have you done? What have you done?\n"
 			"把最珍貴的玫瑰　當作荒野薔薇\n"
 			"相信了你的承諾　讓愛蒙蔽我的眼\n"
 			"塞納河的光線　照不亮心的那邊　背叛的終點\n"
@@ -196,9 +200,13 @@ public:
 			"遍地野生的薔薇　不如玫瑰珍貴\n"
 			"承諾要灰飛煙滅　誰還能被愛紀念\n"
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
-
-		glColor3f(1, 0.5, 0);
+#if 1
+		glColor4f(1, 0.5, 0, 1);
 		drawText(commandList, Vec2i(100, 50), str);
+
+#else
+		g.drawText(Vec2i(0, 0), str);
+#endif
 
 		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
 		g.setBrush(Color3f(1, 0, 0));

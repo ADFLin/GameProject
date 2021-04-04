@@ -413,7 +413,7 @@ namespace Render
 
 	}
 
-	bool ShaderFormatSpirv::isSupportBinaryCode() const
+	bool ShaderFormatSpirv::isBinaryCodeSupported() const
 	{
 
 		return true;

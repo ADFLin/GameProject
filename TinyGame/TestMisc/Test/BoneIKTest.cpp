@@ -388,7 +388,7 @@ namespace BoneIK
 
 
 
-	REGISTER_STAGE("Bone IK", TestStage, EStageGroup::PhyDev);
+	REGISTER_STAGE("Bone IK", TestStage, EStageGroup::PhyDev, "Animation");
 
 }
 

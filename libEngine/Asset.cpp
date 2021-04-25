@@ -6,9 +6,100 @@
 #if SYS_PLATFORM_WIN
 
 #include "Shlwapi.h"
+#include "Core/ScopeExit.h"
 #pragma comment(lib,"Shlwapi.lib")
 
-bool Win32FileModifyMonitor::init()
+class WinodwsFileMonitor : public IPlatformFileMonitor
+{
+public:
+
+	WinodwsFileMonitor()
+	{
+		mhIOCP = NULL;
+		mLastError = NO_ERROR;
+	}
+
+	bool init();
+	void cleanup();
+
+	static int const MAX_WATCH_BUF_SIZE = 10;
+	struct DirMonitorInfo
+	{
+		static int const ReserveStringLength = 32;
+		static int const BufSize = (sizeof(FILE_NOTIFY_INFORMATION) + ReserveStringLength * sizeof(WCHAR))* MAX_WATCH_BUF_SIZE;
+
+		uint8        buf[BufSize];
+		std::wstring dirPath;
+		HANDLE       handle;
+		bool         bIncludeChildDir;
+		DWORD        notifyFilters;
+		OVERLAPPED   overlap;
+		int          refcount;
+
+		void release()
+		{
+			::CloseHandle(handle);
+		}
+	};
+
+
+	void destroyInfo(DirMonitorInfo* dmInfo)
+	{
+		dmInfo->release();
+		delete dmInfo;
+	}
+
+
+	FileNotifyCallback onNotify;
+
+	EFileMonitorStatus::Type addDirectoryPath(wchar_t const* pPath, bool bIncludeChildDir);
+	bool   removeDirectoryPath(wchar_t const* pPath, bool bCheckReference);
+	EFileMonitorStatus::Type  checkDirectoryStatus(uint32 timeout);
+
+	static int EnablePrivilegeValue(TCHAR const* valueNames[], int numValue);
+
+	struct DirCmp
+	{
+		bool operator()(DirMonitorInfo const* lhs, DirMonitorInfo* const rhs) const
+		{
+			return lhs->dirPath < rhs->dirPath;
+		}
+	};
+
+	struct StrCmp
+	{
+		bool operator ()(wchar_t const* s1, wchar_t const* s2) const
+		{
+			return ::wcscmp(s1, s2) < 0;
+		}
+	};
+	typedef std::map< wchar_t const*, DirMonitorInfo*, StrCmp > WatchDirMap;
+
+	DWORD       mLastError;
+	WatchDirMap mDirMap;
+	HANDLE      mhIOCP;
+
+	void tick(long time) override
+	{
+		checkDirectoryStatus(0);
+	}
+
+
+	void setFileNotifyCallback(FileNotifyCallback callback) override
+	{
+		onNotify = callback;
+	}
+
+	void release() override
+	{
+		cleanup();
+		delete this;
+	}
+
+};
+
+
+bool WinodwsFileMonitor::init()
 {
 	TCHAR const* value[] =
 	{
@@ -27,7 +118,7 @@ bool Win32FileModifyMonitor::init()
 	return true;
 }
 
-void Win32FileModifyMonitor::cleanup()
+void WinodwsFileMonitor::cleanup()
 {
 	for( auto& pair : mDirMap )
 	{
@@ -38,61 +129,66 @@ void Win32FileModifyMonitor::cleanup()
 	mhIOCP = NULL;
 }
 
-Win32FileModifyMonitor::Status Win32FileModifyMonitor::addDirectoryPath(wchar_t const* pPath, bool bSubTree)
+EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPath, bool bIncludeChildDir)
 {
 	{
 		auto iter = mDirMap.find(pPath);
 		if(  iter != mDirMap.end() )
 		{
-			iter->second->refCount += 1;
-			return eOK;
+			auto info = iter->second;
+			info->refcount += 1;
+			return EFileMonitorStatus::OK;
 		}
 	}
 
 	if( !mhIOCP )
-		return eIOCPError;
+		return EFileMonitorStatus::IOCPError;
 
-	DWORD notifyFilters =
+
+	std::unique_ptr< DirMonitorInfo > info = std::make_unique<DirMonitorInfo>();
+	const DWORD notifyFilters =
 		FILE_NOTIFY_CHANGE_FILE_NAME |
 		FILE_NOTIFY_CHANGE_LAST_WRITE |
 		FILE_NOTIFY_CHANGE_CREATION;
-
-	DirMonitorInfo* pDir = new DirMonitorInfo;
-	pDir->refCount = 1;
-	pDir->notifyFilters = notifyFilters;
-	pDir->bSubTree = bSubTree;
+	info->refcount = 1;
+	info->notifyFilters = notifyFilters;
+	info->bIncludeChildDir = bIncludeChildDir;
 
 	///////////////////////////////////////////////////////////////////////
 	// Open handle to the directory to be monitored, note the FILE_FLAG_OVERLAPPED
 
-	pDir->handle = CreateFileW(pPath,
+	info->handle = CreateFileW(pPath,
 							   FILE_LIST_DIRECTORY,
 							   FILE_SHARE_READ | FILE_SHARE_DELETE | FILE_SHARE_WRITE,
 							   NULL,
 							   OPEN_EXISTING,
 							   FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
 							   NULL);
-	if( pDir->handle == INVALID_HANDLE_VALUE )
+	if(info->handle == INVALID_HANDLE_VALUE )
 	{
-		delete pDir;
-		return eOpenDirFail;
+		return EFileMonitorStatus::OpenDirFail;
 	}
+
+	ON_SCOPE_EXIT
+	{
+		if (info)
+		{
+			info->release();
+		}
+	};
 
 	///////////////////////////////////////////////////////////////////////
 
 	// Allocate notification buffers (will be filled by the system when a
 	// notification occurs
-
-	memset(&pDir->overlap, 0, sizeof(pDir->overlap));
+	memset(&info->overlap, 0, sizeof(info->overlap));
 	///////////////////////////////////////////////////////////////////////
 
 	// Associate directory handle with the IO completion port
 
-	if( ::CreateIoCompletionPort(pDir->handle, mhIOCP, (ULONG_PTR)pDir->handle, 0) == NULL )
+	if( ::CreateIoCompletionPort(info->handle, mhIOCP, (ULONG_PTR)info->handle, 0) == NULL )
 	{
-		CloseHandle(pDir->handle);
-		delete pDir;
-		return eIOCPError;
+		return EFileMonitorStatus::IOCPError;
 	}
 
 
@@ -101,37 +197,37 @@ Win32FileModifyMonitor::Status Win32FileModifyMonitor::addDirectoryPath(wchar_t 
 	// Start monitoring for changes
 
 	DWORD dwBytesReturned = 0;
-	pDir->dirPath = pPath;
+	info->dirPath = pPath;
 
 	if( !ReadDirectoryChangesW(
-		pDir->handle,
-		pDir->buf,
-		sizeof(pDir->buf),
-		pDir->bSubTree, //Sub Tree
+		info->handle,
+		info->buf,
+		sizeof(info->buf),
+		bIncludeChildDir, //Sub Tree
 		notifyFilters,
 		&dwBytesReturned,
-		&pDir->overlap,
+		&info->overlap,
 		NULL) )
 	{
-		CloseHandle(pDir->handle);
-		delete pDir;
-		return eReadDirError;
+		return EFileMonitorStatus::ReadDirError;
 	}
 
+	auto pDirPath = info->dirPath.c_str();
 	///////////////////////////////////////////////////
-
-	mDirMap.insert(std::make_pair(pDir->dirPath.c_str(), pDir));
-	return eOK;
+	mDirMap.insert(std::make_pair(pDirPath, info.release()));
+	return EFileMonitorStatus::OK;
 }
 
-bool Win32FileModifyMonitor::removeDirectoryPathRef(wchar_t const* pPath)
+bool WinodwsFileMonitor::removeDirectoryPath(wchar_t const* pPath, bool bCheckReference)
 {
 	auto iter = mDirMap.find(pPath);
 	if( iter == mDirMap.end() )
 		return false;
+
 	DirMonitorInfo* dmInfo = iter->second;
-	dmInfo->refCount -= 1;
-	if ( dmInfo->refCount <= 0 )
+	dmInfo->refcount -= 1;
+	
+	if ( !bCheckReference || dmInfo->refcount <= 0 )
 	{
 		destroyInfo(dmInfo);
 		mDirMap.erase(iter);
@@ -140,7 +236,7 @@ bool Win32FileModifyMonitor::removeDirectoryPathRef(wchar_t const* pPath)
 	return false;
 }
 
-Win32FileModifyMonitor::Status Win32FileModifyMonitor::checkDirectoryStatus(uint32 timeout)
+EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeout)
 {
 
 	DWORD		dwBytesXFered = 0;
@@ -150,8 +246,8 @@ Win32FileModifyMonitor::Status Win32FileModifyMonitor::checkDirectoryStatus(uint
 	if( !GetQueuedCompletionStatus(mhIOCP, &dwBytesXFered, &ulKey, &pOl, 0) )
 	{
 		if( GetLastError() == WAIT_TIMEOUT )
-			return eDirNoChange;
-		return eIOCPError;
+			return EFileMonitorStatus::DirNoChange;
+		return EFileMonitorStatus::IOCPError;
 	}
 
 	DirMonitorInfo* pDirFind = nullptr;
@@ -166,7 +262,7 @@ Win32FileModifyMonitor::Status Win32FileModifyMonitor::checkDirectoryStatus(uint
 	}
 	if( pDirFind == nullptr )
 	{
-		return eUnknownError;
+		return EFileMonitorStatus::UnknownError;
 	}
 
 	FILE_NOTIFY_INFORMATION* pIter = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(pDirFind->buf);
@@ -223,7 +319,7 @@ Win32FileModifyMonitor::Status Win32FileModifyMonitor::checkDirectoryStatus(uint
 		pDirFind->handle,
 		pDirFind->buf,
 		sizeof(pDirFind->buf),
-		pDirFind->bSubTree,
+		pDirFind->bIncludeChildDir,
 		pDirFind->notifyFilters,
 		&dwBytesReturned,
 		&pDirFind->overlap,
@@ -232,13 +328,14 @@ Win32FileModifyMonitor::Status Win32FileModifyMonitor::checkDirectoryStatus(uint
 		mDirMap.erase(mDirMap.find(pDirFind->dirPath.c_str()));
 		CloseHandle(pDirFind->handle);
 		delete pDirFind;
-		return eReadDirError;
+		return EFileMonitorStatus::ReadDirError;
 	}
 
-	return eOK;
+	return EFileMonitorStatus::OK;
 }
 
-int Win32FileModifyMonitor::EnablePrivilegeValue(TCHAR const* valueNames[], int numValue)
+
+int WinodwsFileMonitor::EnablePrivilegeValue(TCHAR const* valueNames[], int numValue)
 {
 	int result = 0;
 
@@ -267,25 +364,23 @@ int Win32FileModifyMonitor::EnablePrivilegeValue(TCHAR const* valueNames[], int 
 
 bool AssetManager::init()
 {
-#if SYS_PLATFORM_WIN
-	mFileModifyMonitor.onNotify = Win32FileModifyMonitor::NotifyCallback(this, &AssetManager::procDirModify);
-	if( !mFileModifyMonitor.init() )
+	mFileModifyMonitor = IPlatformFileMonitor::Create();
+	if (mFileModifyMonitor == nullptr)
 		return false;
-#endif
+
+	mFileModifyMonitor->setFileNotifyCallback(FileNotifyCallback(this, &AssetManager::handleDirectoryModify));
 	return true;
 }
 
 void AssetManager::cleanup()
 {
 	mAssetMap.clear();
-	mFileModifyMonitor.cleanup();
+	mFileModifyMonitor->release();
 }
 
 void AssetManager::tick(long time)
 {
-#if SYS_PLATFORM_WIN
-	mFileModifyMonitor.checkDirectoryStatus(0);
-#endif
+	mFileModifyMonitor->tick(time);
 }
 
 
@@ -298,14 +393,14 @@ bool AssetManager::registerViewer(IAssetViewer* asset)
 
 	for ( auto const& path : paths )
 	{
-		AssetList& assetList = mAssetMap[path];
+		std::wstring fullPath = FileSystem::ConvertToFullPath(path.c_str());
+		AssetList& assetList = mAssetMap[fullPath];
 		assert(std::find(assetList.begin(), assetList.end(), asset) == assetList.end());
 		assetList.push_back(asset);
-#if SYS_PLATFORM_WIN
-		wchar_t const* pathPos = FileUtility::GetFileName(path.c_str());
-		std::wstring dir = pathPos ? std::wstring(path.c_str(),pathPos - path.c_str()) : std::wstring();
-		mFileModifyMonitor.addDirectoryPath(dir.c_str(), false);
-#endif
+
+		wchar_t const* pathPos = FileUtility::GetFileName(fullPath.c_str());
+		std::wstring dir = pathPos ? std::wstring(fullPath.c_str(),pathPos - fullPath.c_str()) : std::wstring();
+		mFileModifyMonitor->addDirectoryPath(dir.c_str(), false);
 	}
 	return true;
 }
@@ -317,7 +412,8 @@ void AssetManager::unregisterViewer(IAssetViewer* asset)
 
 	for( auto& path : paths )
 	{
-		auto iter = mAssetMap.find(path);
+		std::wstring fullPath = FileSystem::ConvertToFullPath(path.c_str());
+		auto iter = mAssetMap.find(fullPath);
 		if( iter == mAssetMap.end() )
 			continue;
 
@@ -325,22 +421,44 @@ void AssetManager::unregisterViewer(IAssetViewer* asset)
 		if( assetIter != iter->second.end() )
 		{
 			iter->second.erase(assetIter);
-#if SYS_PLATFORM_WIN
-			mFileModifyMonitor.removeDirectoryPathRef(path.c_str());
-#endif
+			wchar_t const* pathPos = FileUtility::GetFileName(fullPath.c_str());
+			std::wstring dir = pathPos ? std::wstring(fullPath.c_str(), pathPos - fullPath.c_str()) : std::wstring();
+			mFileModifyMonitor->removeDirectoryPath(dir.c_str(), true);
 		}
 	}
 }
 
-void AssetManager::procDirModify(wchar_t const* path, EFileAction action)
+void AssetManager::handleDirectoryModify(wchar_t const* path, EFileAction action)
 {
 	auto iter = mAssetMap.find(path);
 
 	if( iter != mAssetMap.end() )
 	{
+		if (action == EFileAction::Modify)
+		{
+			LogMsg("Asset File Changed : %s", FCString::WCharToChar(path).c_str());
+		}
+
 		for( IAssetViewer* asset : iter->second )
 		{
 			asset->postFileModify(action);
 		}
 	}
+}
+
+IPlatformFileMonitor* IPlatformFileMonitor::Create()
+{
+#if SYS_PLATFORM_WIN
+	WinodwsFileMonitor* monitor = new WinodwsFileMonitor;
+	if (!monitor->init())
+	{
+		delete monitor;
+		return nullptr;
+	}
+	else
+	{
+		return monitor;
+	}
+#endif
+	return nullptr;
 }

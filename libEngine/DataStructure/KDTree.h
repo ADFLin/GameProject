@@ -89,7 +89,7 @@ public:
 	{
 		float distanceRange[2];
 
-		if( !Math::LineBoxTest(ray.pos, ray.dir, mBound.min, mBound.max, distanceRange) )
+		if( !Math::LineAABBTest(ray.pos, ray.dir, mBound.min, mBound.max, distanceRange) )
 			return false;
 
 		if( distanceRange[0] < 0 )

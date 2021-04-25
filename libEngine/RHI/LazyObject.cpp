@@ -4,13 +4,13 @@
 
 LazyObjectPtrBase::LazyObjectPtrBase()
 {
-	mId = -1;
+	mResolveSlot = INDEX_NONE;
 	mPtr = nullptr;
 }
 
 LazyObjectPtrBase::~LazyObjectPtrBase()
 {
-	if( mId != -1 )
+	if( mResolveSlot != INDEX_NONE )
 	{
 		LazyObjectManager::Get().unregisterObject(*this);
 	}
@@ -33,10 +33,10 @@ void LazyObjectManager::unregisterObject(LazyObjectPtrBase& object)
 {
 	Mutex::Locker locker(mMutex);
 
-	assert(object.mId != -1);
+	assert(object.mResolveSlot != INDEX_NONE);
 	auto iterNode = mObjectNodeMap.find(&object);
 	assert(iterNode != mObjectNodeMap.end());
-	mResolveMap[object.mId].erase(iterNode->second);
+	mResolveMap[object.mResolveSlot].erase(iterNode->second);
 	mObjectNodeMap.erase(iterNode);
 }
 
@@ -49,17 +49,17 @@ void LazyObjectManager::registerObject(uint64& id, LazyObjectPtrBase& object)
 		id = mCurId;
 		++mCurId;
 	}
-	if( object.mId != -1 )
+	if( object.mResolveSlot != INDEX_NONE)
 	{
 		auto iterNode = mObjectNodeMap.find(&object);
-		mResolveMap[object.mId].erase(iterNode->second);
+		mResolveMap[object.mResolveSlot].erase(iterNode->second);
 	}
 	auto& resolveList = mResolveMap[id];
 	ObjectResolveInfo info;
 	info.object = &object;
 	resolveList.push_front(info);
 	mObjectNodeMap[&object] = resolveList.begin();
-	object.mId = id;
+	object.mResolveSlot = id;
 }
 
 void LazyObjectManager::resolveObject(uint64 id, void* object)
@@ -74,7 +74,7 @@ void LazyObjectManager::resolveObject(uint64 id, void* object)
 	{
 		LazyObjectPtrBase* objectPtr = info.object;
 		(*objectPtr).mPtr = object;
-		(*objectPtr).mId = -1;
+		(*objectPtr).mResolveSlot = INDEX_NONE;
 		if( info.callback )
 			info.callback(*objectPtr);
 

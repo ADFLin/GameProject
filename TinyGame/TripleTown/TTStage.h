@@ -107,6 +107,6 @@ namespace TripleTown
 }
 
 
-REGISTER_STAGE("Triple Town Test", TripleTown::LevelStage, EStageGroup::Dev);
+REGISTER_STAGE("Triple Town Test", TripleTown::LevelStage, EStageGroup::Dev, "Game");
 
 #endif // TTStage_h__

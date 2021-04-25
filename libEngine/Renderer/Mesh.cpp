@@ -180,8 +180,8 @@ namespace Render
 		if (!mInputLayoutOverwriteColor.isValid())
 		{
 			InputLayoutDesc desc = mInputLayoutDesc;
-			desc.setElementUnusable(Vertex::ATTRIBUTE_COLOR);
-			desc.addElement(1, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
+			desc.setElementUnusable(EVertex::ATTRIBUTE_COLOR);
+			desc.addElement(1, EVertex::ATTRIBUTE_COLOR, EVertex::Float4);
 			mInputLayoutOverwriteColor = RHICreateInputLayout(desc);
 			mColorBuffer = RHICreateVertexBuffer(sizeof(LinearColor), 1/* mVertexBuffer->getNumElements()*/, BCF_DefalutValue | BCF_CpuAccessWrite);
 		}

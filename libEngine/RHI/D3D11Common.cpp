@@ -251,13 +251,13 @@ namespace Render
 		mAttriableMask = 0;
 		for (auto const& e : desc.mElements)
 		{
-			if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+			if (e.attribute == EVertex::ATTRIBUTE_UNUSED)
 				continue;
 
 			D3D11_INPUT_ELEMENT_DESC element;
 			element.SemanticName = "ATTRIBUTE";
 			element.SemanticIndex = e.attribute;
-			element.Format = D3D11Translate::To(Vertex::Format(e.format), e.bNormalized);
+			element.Format = D3D11Translate::To(EVertex::Format(e.format), e.bNormalized);
 			element.InputSlot = e.streamIndex;
 			element.AlignedByteOffset = e.offset;
 			element.InputSlotClass = e.bIntanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;

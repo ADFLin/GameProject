@@ -73,7 +73,6 @@ namespace Render
 		ShaderManager();
 		~ShaderManager();
 
-
 		static CORE_API ShaderManager& Get();
 
 		bool initialize(ShaderFormat& shaderFormat);
@@ -121,25 +120,15 @@ namespace Render
 					  char const* def = nullptr, char const* additionalCode = nullptr );
 
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
-					  uint8 shaderMask, char const* entryNames[], 
-					  char const* def = nullptr, char const* additionalCode = nullptr);
-
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
 					  char const* vertexEntryName, char const* pixelEntryName, 
 					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
 
-
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries,
-					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
-
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName,
-					  uint8 shaderMask, char const* entryNames[],
-					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
+					  TArrayView< ShaderEntryInfo const > entries,
+			          ShaderCompileOption const& option, char const* additionalCode = nullptr);
 
 
 		bool loadFile(Shader& shader, char const* fileName, EShader::Type type, char const* entryName, char const* additionalCode = nullptr);
-
-		bool loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
 
 		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, 
 			            char const* entryVS = nullptr, char const* entryPS = nullptr, char const* def = nullptr, char const* additionalCode = nullptr);
@@ -152,11 +141,16 @@ namespace Render
 		void registerShaderAssets();
 		void unregisterShaderAssets();
 
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+		struct LoadParam
+		{
+			TArrayView< ShaderEntryInfo const > entries;
+			char const* define;
+			char const* additionalCode;
+		};
+
 		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
 
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
 		bool loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
 		
 		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])

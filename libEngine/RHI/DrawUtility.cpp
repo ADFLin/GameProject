@@ -78,8 +78,8 @@ namespace Render
 			mQuadIndexBuffer = RHICreateIndexBuffer(6, false, BCF_DefalutValue, indices);
 
 			InputLayoutDesc desc;
-			desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
-			desc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+			desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float4);
+			desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 			mRectVertexInputLayout = RHICreateInputLayout(desc);
 		}
 

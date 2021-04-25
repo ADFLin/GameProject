@@ -91,7 +91,7 @@ namespace Math
 		VectorType getPosition(float dist) const { return pos + dist * dir; }
 		int     testIntersect(TBoundBox<VectorType> const& bound, float outDists[2]) const
 		{
-			if( !Math::LineBoxTest(pos, dir, bound.min, bound.max, outDists) )
+			if( !Math::LineAABBTest(pos, dir, bound.min, bound.max, outDists) )
 				return 0;
 
 			if( outDists[0] < 0 )

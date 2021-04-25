@@ -286,7 +286,7 @@ namespace Go
 					Ray ray = ToRay(line);
 					ray.pos = 2 * ray.pos + Vector2(width, height) / 2;
 					float distances[2];
-					if (Math::LineBoxTest(ray.pos, ray.dir, rectMin, rectMax, distances))
+					if (Math::LineAABBTest(ray.pos, ray.dir, rectMin, rectMax, distances))
 					{
 						Vector2 p1 = ray.getPosition(distances[0]);
 						Vector2 p2 = ray.getPosition(distances[1]);

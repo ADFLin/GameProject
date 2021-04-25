@@ -23,21 +23,50 @@
 
 extern void RegisterStageGlobal();
 
-GameStageInfo gSingleDev[] = 
+StageInfo gSingleDev[] = 
 {
-	{ "Carcassonne Pototype" , "Carcassonne" } ,
-	{ "TD Test" , "TowerDefend" } ,
-	{ "Rich Test" , "Rich" } ,
-	{ "BomberMan Test" , "BomberMan" } ,
-	{ "Bubble Test" , "Bubble" } ,
-	{ "CubeWorld Test" , "CubeWorld" } ,
-};
+#define STAGE_INFO( DECL , GAME_NAME , ... ) { DECL , new ChangeSingleGameOperation(GAME_NAME) , __VA_ARGS__ } 
 
+	STAGE_INFO( "Carcassonne" , "Carcassonne", EStageGroup::SingleDev ),
+	STAGE_INFO( "TD Test" , "TowerDefend", EStageGroup::SingleDev) ,
+	STAGE_INFO( "Rich Test" , "Rich", EStageGroup::SingleDev) ,
+	STAGE_INFO( "BomberMan Test" , "BomberMan", EStageGroup::SingleDev) ,
+	STAGE_INFO( "Bubble Test" , "Bubble", EStageGroup::SingleDev) ,
+	STAGE_INFO( "CubeWorld Test" , "CubeWorld", EStageGroup::SingleDev) ,
+
+#undef STAGE_INFO
+};
 
 bool MainMenuStage::onInit()
 {
 	if ( !BaseClass::onInit() )
 		return false;
+
+	GameModuleVec games;
+	Global::ModuleManager().classifyGame(ATTR_SINGLE_SUPPORT, games);
+
+	auto IsIncludeDev = [](char const* name) -> bool
+	{
+		for (auto const& info : gSingleDev)
+		{
+			if (FCString::Compare(static_cast<ChangeSingleGameOperation*>(info.operation)->gameName, name) == 0)
+				return true;
+		}
+		return false;
+	};
+
+	for (IGameModule* game : games)
+	{
+		if (IsIncludeDev(game->getName()))
+			continue;
+
+		StageRegisterCollection::Get().registerStage({ game->getName(), new ChangeSingleGameOperation(game->getName()), EStageGroup::SingleGame });
+	}
+
+	for (auto const& info : gSingleDev)
+	{
+		StageRegisterCollection::Get().registerStage(info);
+	}
 
 	RegisterStageGlobal();
 
@@ -48,14 +77,51 @@ bool MainMenuStage::onInit()
 #if 0
 	GButton* button = new GButton( UI_ANY , Vec2i(100 ,20 ) , Vec2i(100 ,20 )  , NULL );
 
-	::Global::getGUI().getTweens()
+	::Global::GUI().getTweens()
 		.tween< Easing::CLinear , WidgetSize >( *button , Vec2i(100 ,20 )  , Vec2i(200 , 40 )  , 2000 , 0 )
 		.repeat( 10 ).repeatDelay( 10 );
 
 	button->setTitle( "Test" );
 
-	::Global::getGUI().getManager().addUI( button );
+	::Global::GUI().addWidget( button );
 #endif
+
+	std::vector< HashString > categories = StageRegisterCollection::Get().getCategories();
+	GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(100, 20), NULL);
+	for (auto const& category : categories)
+	{
+		choice->addItem(category);
+	}
+	choice->onEvent = [this](int event, GWidget* widget) -> bool
+	{
+		for (auto widget :mCategoryWidgets )
+		{
+			widget->destroy();
+		}
+		mCategoryWidgets.clear();
+
+		std::vector< StageInfo const*> stageInfoList = StageRegisterCollection::Get().getAllStages( static_cast<GChoice*>(widget)->getSelectValue() );
+
+		int index = 0;
+		for (auto& info : stageInfoList)
+		{
+			Vec2i pos = Vec2i(20, 45) + Vec2i(0, index * 25 );
+			GButton* button = new GButton(UI_ANY, pos , Vec2i(200, 20), nullptr );
+			button->setTitle(info->title);
+			button->onEvent = [this,info](int event, GWidget* widget) -> bool
+			{
+				info->operation->process(getManager());
+				return false;
+			};
+			mCategoryWidgets.push_back(button);
+			::Global::GUI().addWidget(button);
+			++index;
+		}
+
+		return false;
+	};
+
+	::Global::GUI().addWidget(choice);
 
 	changeWidgetGroup( UI_MAIN_GROUP );
 	return true;
@@ -227,14 +293,10 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 		CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
 		break;
 	case UI_GAME_DEV2_GROUP:
-		for( int i = 0 ; i < ARRAY_SIZE( gSingleDev ) ; ++i )
-		{
-			CREATE_BUTTON( UI_SINGLE_DEV_INDEX + i , LOCTEXT( gSingleDev[i].title ) );
-		}
+		changeStageGroup(EStageGroup::SingleDev);
+		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
-
-
 	case UI_CARD_GAME_DEV_GROUP:
 		CREATE_BUTTON( UI_BIG2_TEST      , "Big2 Test" );
 		CREATE_BUTTON( UI_HOLDEM_TEST    , "Holdem Test" );
@@ -242,17 +304,9 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 		CREATE_BUTTON( UI_BACK_GROUP  , LOCTEXT("Back")          );
 		break;
 	case UI_SINGLEPLAYER:
-		{
-			GameModuleVec games;
-			Global::ModuleManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
-
-			for( IGameModule* game : games )
-			{
-				GWidget* widget = CREATE_BUTTON( UI_GAME_BUTTON , game->getName() );
-				widget->setUserData( intptr_t(game) );
-			}
-			CREATE_BUTTON( UI_BACK_GROUP    , LOCTEXT("Back")          );
-		}
+		changeStageGroup(EStageGroup::SingleGame);
+		createStageGroupButton(delay, xUI, yUI);
+		CREATE_BUTTON( UI_BACK_GROUP    , LOCTEXT("Back")          );
 		break;
 	}
 
@@ -261,13 +315,13 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 {
 	int idx = 0;
-	int numStage = StageRegisterCollection::Get().getGroupStage(mCurGroup).size();
+	int numStage = StageRegisterCollection::Get().getGroupStages(mCurGroup).size();
 
 	if( numStage > 10 )
 	{
 		int PosLX = xUI - (MenuBtnSize.x + 6) / 2;
 		int PosRX = xUI + (MenuBtnSize.x + 6) / 2;
-		for( auto info : StageRegisterCollection::Get().getGroupStage(mCurGroup) )
+		for( auto info : StageRegisterCollection::Get().getGroupStages(mCurGroup) )
 		{
 			CREATE_BUTTON_POS_DELAY(UI_GROUP_STAGE_INDEX + idx, info.title, (idx % 2 ) ?PosRX : PosLX , yUI , delay );
 			++idx;
@@ -280,7 +334,7 @@ void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 	}
 	else
 	{
-		for( auto info : StageRegisterCollection::Get().getGroupStage(mCurGroup) )
+		for( auto info : StageRegisterCollection::Get().getGroupStages(mCurGroup) )
 		{
 			CREATE_BUTTON(UI_GROUP_STAGE_INDEX + idx, info.title);
 			++idx;
@@ -293,8 +347,6 @@ void MainMenuStage::changeStageGroup(EStageGroup group)
 {
 	mCurGroup = group;
 }
-
-
 
 bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
@@ -342,8 +394,6 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			}
 			return false;
 		case UI_MISC_TEST_GROUP:
-
-			return false;
 		case UI_CARD_GAME_DEV_GROUP:
 		case UI_SINGLEPLAYER:
 		case UI_MULTIPLAYER:
@@ -362,13 +412,6 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_VIEW_REPLAY:
 			getManager()->changeStage( STAGE_REPLAY_EDIT );
 			return false;
-		case UI_GAME_BUTTON:
-			{
-				IGameModule* game = reinterpret_cast< IGameModule* >( ui->getUserData() );
-				Global::ModuleManager().changeGame( game->getName() );
-				game->beginPlay( *getManager(), EGameStageMode::Single );
-			}
-			return false;
 		case UI_GAME_OPTION:
 			{
 				Vec2i pos = ::Global::GUI().calcScreenCenterPos( MainOptionBook::UISize );
@@ -380,26 +423,18 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			return false;
 		}
 	}
-	else if ( id < UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP )
-	{
-		IGameModule* game = Global::ModuleManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
-		if ( !game )
-			return false;
-		game->beginPlay( *getManager() , EGameStageMode::Single );
-		return false;
-	}
 	else
 	{
 		StageInfo const* info = nullptr;
 
 		if( id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP )
 		{
-			info = &StageRegisterCollection::Get().getGroupStage(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
+			info = &StageRegisterCollection::Get().getGroupStages(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
 		}
 
 		if ( info )
 		{
-			getManager()->setNextStage( static_cast< StageBase* >( info->factory->create() ) );
+			info->operation->process(getManager());
 			return false;
 		}
 	}

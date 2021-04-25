@@ -139,10 +139,10 @@ namespace Render
 		{
 			mMesh = &InMesh;
 			InputLayoutDesc desc = InMesh.mInputLayoutDesc;
-			desc.addElement(1, Vertex::ATTRIBUTE4, Vertex::eFloat4, false, true, 1);
-			desc.addElement(1, Vertex::ATTRIBUTE5, Vertex::eFloat4, false, true, 1);
-			desc.addElement(1, Vertex::ATTRIBUTE6, Vertex::eFloat4, false, true, 1);
-			desc.addElement(1, Vertex::ATTRIBUTE7, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, EVertex::ATTRIBUTE4, EVertex::Float4, false, true, 1);
+			desc.addElement(1, EVertex::ATTRIBUTE5, EVertex::Float4, false, true, 1);
+			desc.addElement(1, EVertex::ATTRIBUTE6, EVertex::Float4, false, true, 1);
+			desc.addElement(1, EVertex::ATTRIBUTE7, EVertex::Float4, false, true, 1);
 			mInputLayout = RHICreateInputLayout(desc);
 		}
 

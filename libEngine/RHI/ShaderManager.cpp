@@ -410,7 +410,12 @@ namespace Render
 	}
 
 	void ShaderManager::clearnupRHIResouse()
-	{
+	{	
+		if (mAssetViewerReigster)
+		{
+			unregisterShaderAssets();
+		}
+
 		if( mShaderFormat )
 		{
 			delete mShaderFormat;
@@ -419,10 +424,6 @@ namespace Render
 
 		cleanupGlobalShader();
 
-		if (mAssetViewerReigster)
-		{
-			unregisterShaderAssets();
-		}
 		for (auto& pair : mShaderDataMap)
 		{	
 			delete pair.second;
@@ -647,26 +648,6 @@ namespace Render
 		return loadFile(shaderProgram, fileName, entries, def, additionalCode);
 	}
 
-	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode)
-	{
-		return loadInternal(shaderProgram, fileName, shaderMask, entryNames, def, additionalCode, true);
-	}
-
-	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
-	{
-		return loadInternal(shaderProgram, fileName, shaderMask, entryNames, option, additionalCode, true);
-	}
-
-	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
-	{
-		ShaderEntryInfo entries[] =
-		{
-			{ EShader::Vertex , vertexEntryName } ,
-			{ EShader::Pixel , pixelEntryName } ,
-		};
-		return loadFile(shaderProgram, fileName, entries, option, additionalCode);
-	}
-
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
 	{
 		char const* filePaths[EShader::Count];
@@ -678,19 +659,23 @@ namespace Render
 		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
+
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
+	{
+		ShaderEntryInfo entries[] =
+		{
+			{ EShader::Vertex , vertexEntryName } ,
+			{ EShader::Pixel , pixelEntryName } ,
+		};
+		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
+	}
+
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
 	{
 		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
 	}
 
-
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
-	{
-		ShaderEntryInfo entries[EShader::Count];
-		return loadInternal(shaderProgram, fileName, MakeEntryInfos(entries, shaderMask, entryNames) , option, additionalCode, bSingleFile);
-	}
-
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries , ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile , ShaderClassType classType )
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
@@ -747,31 +732,6 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingleFile, ShaderClassType classType)
-	{
-
-		ShaderEntryInfo entries[EShader::Count];
-		auto entriesView = MakeEntryInfos(entries, shaderMask, entryNames);
-
-		char const* filePaths[EShader::Count];
-		FixString< 256 > paths[EShader::Count];
-
-		for( int i = 0; i < entriesView.size() ; ++i )
-		{
-			if( bSingleFile )
-			{
-				paths[i].format("%s%s", filePaths[i], SHADER_FILE_SUBNAME);
-			}
-			else
-			{
-				paths[i].format("%s%s", fileName, ShaderPosfixNames[entries[i].type]);
-			}
-
-			filePaths[i] = paths[i];
-		}	
-		return loadInternal(shaderProgram, filePaths, entriesView , def, additionalCode, classType);
-	}
-
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType)
 	{
 		removeFromShaderCompileMap(shaderProgram);
@@ -806,11 +766,6 @@ namespace Render
 
 		postShaderLoaded(shaderProgram, *info);
 		return true;
-	}
-
-	bool ShaderManager::loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def, char const* additionalCode)
-	{
-		return loadInternal(shaderProgram, fileName, BIT(EShader::Vertex) | BIT(EShader::Pixel), nullptr, def, additionalCode, false);
 	}
 
 	bool ShaderManager::loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* entryVS , char const* entryPS , char const* def, char const* additionalCode)

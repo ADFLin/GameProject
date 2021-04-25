@@ -42,6 +42,7 @@ public:
 	{
 		return mIndex == rhs.mIndex && mNumber == rhs.mNumber;
 	}
+
 	CORE_API bool operator == (char const* str ) const;
 	bool operator != (char const* str) { return !operator == (str); }
 

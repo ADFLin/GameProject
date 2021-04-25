@@ -135,17 +135,17 @@ namespace Render
 
 	enum class EVulkanResourceType
 	{
-		eVkDevice,
-		eVkShaderModule,
-		eVkImage,
-		eVkImageView,
-		eVkDeviceMemory,
-		eVkBuffer,
-		eVkBufferView,
-		eVkSampler,
-		eVkDescriptorSetLayout,
-		eVkPipelineLayout,
-		eVkRenderPass,
+		VkDevice,
+		VkShaderModule,
+		VkImage,
+		VkImageView,
+		VkDeviceMemory,
+		VkBuffer,
+		VkBufferView,
+		VkSampler,
+		VkDescriptorSetLayout,
+		VkPipelineLayout,
+		VkRenderPass,
 	};
 
 	template< EVulkanResourceType Type >
@@ -198,7 +198,7 @@ namespace Render
 		operator HandleType() const { return mHandle; }
 		HandleType  mHandle;
 	};
-#define VK_RESOURCE_TYPE(Type) TVulkanResource< EVulkanResourceType::e##Type >
+#define VK_RESOURCE_TYPE(TYPE) TVulkanResource< EVulkanResourceType::TYPE >
 
 	namespace FVulkanInit
 	{
@@ -776,7 +776,7 @@ namespace Render
 	struct VulkanTranslate
 	{
 		static VkPrimitiveTopology To(EPrimitive type, int& outPatchPointCount);
-		static VkFormat To(Vertex::Format format, bool bNormalized);
+		static VkFormat To(EVertex::Format format, bool bNormalized);
 		static VkFormat To(ETexture::Format format);
 		static VkBlendFactor  To(EBlend::Factor factor);
 		static VkBlendOp To(EBlend::Operation op);
@@ -914,7 +914,7 @@ namespace Render
 
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkSampler>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkSampler>
 	{
 		typedef VkSampler HandleType;
 		static bool Create(VkDevice device, HandleType& handle, VkSamplerCreateInfo const& info)
@@ -947,14 +947,14 @@ namespace Render
 			bool bStreamInstancedRate = false;
 			for (auto const& elemenet : desc.mElements)
 			{
-				if (elemenet.attribute == Vertex::ATTRIBUTE_UNUSED )
+				if (elemenet.attribute == EVertex::ATTRIBUTE_UNUSED )
 					continue;
 
 				VkVertexInputAttributeDescription attrDesc;
 				attrDesc.binding = elemenet.streamIndex;
 				attrDesc.location = elemenet.attribute;
 				attrDesc.offset = elemenet.offset;
-				attrDesc.format = VulkanTranslate::To( Vertex::Format( elemenet.format ) , elemenet.bNormalized );
+				attrDesc.format = VulkanTranslate::To( EVertex::Format( elemenet.format ) , elemenet.bNormalized );
 				vertexInputAttrDescs.push_back(attrDesc);
 
 				if (idxStream != elemenet.streamIndex)
@@ -1004,7 +1004,7 @@ namespace Render
 
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkImage>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkImage>
 	{
 		typedef VkImage HandleType;
 		static bool Create(VkDevice device, HandleType& handle, VkImageCreateInfo const& info)
@@ -1019,7 +1019,7 @@ namespace Render
 	};
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkImageView>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkImageView>
 	{
 		typedef VkImageView HandleType;
 		static bool Create(VkDevice device, HandleType& handle, VkImageViewCreateInfo const& info)
@@ -1035,7 +1035,7 @@ namespace Render
 
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkDeviceMemory>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkDeviceMemory>
 	{
 		typedef VkDeviceMemory HandleType;
 		static bool Create(VkDevice device, HandleType& handle, VkMemoryAllocateInfo const& info)
@@ -1167,7 +1167,7 @@ namespace Render
 
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkBuffer>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkBuffer>
 	{
 		typedef VkBuffer HandleType;
 		static bool Create(VkDevice device, HandleType& handle, VkBufferCreateInfo const& info)
@@ -1181,7 +1181,7 @@ namespace Render
 		}
 	};
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkBufferView>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkBufferView>
 	{
 		typedef VkBufferView HandleType;
 		static bool Create(VkDevice device, HandleType& handle, VkBufferViewCreateInfo const& info)
@@ -1372,7 +1372,7 @@ namespace Render
 	};
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkRenderPass>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkRenderPass>
 	{
 		typedef VkRenderPass HandleType;
 		static bool Create(VkDevice device, HandleType& handle, VkRenderPassCreateInfo const& info)
@@ -1387,7 +1387,7 @@ namespace Render
 	};
 
 
-	class VulkanRenderPassState : TVulkanResource< EVulkanResourceType::eVkRenderPass >
+	class VulkanRenderPassState : TVulkanResource< EVulkanResourceType::VkRenderPass >
 	{
 
 

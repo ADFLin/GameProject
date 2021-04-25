@@ -57,6 +57,27 @@ public:
 	size_t   size() const { return mNum; }
 	size_t   length() const { return mNum; }
 
+	void removeHeadSpace()
+	{
+		if (mData)
+		{
+			while (mNum && FCString::IsSpace(*mData))
+			{
+				++mData;
+				--mNum;
+			}
+		}
+	}
+	void removeTailSpace()
+	{
+		if (mData)
+		{
+			while (mNum && FCString::IsSpace(mData[mNum - 1]))
+			{
+				--mNum;
+			}
+		}
+	}
 
 	int compare(TStringView const& other) const
 	{

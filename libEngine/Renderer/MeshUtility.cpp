@@ -116,7 +116,7 @@ namespace Render
 		if( !mesh.mIndexBuffer.isValid() || !mesh.mVertexBuffer.isValid() )
 			return false;
 
-		uint8* pData = (uint8*)( RHILockBuffer( mesh.mVertexBuffer , ELockAccess::ReadOnly)) + mesh.mInputLayoutDesc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
+		uint8* pData = (uint8*)( RHILockBuffer( mesh.mVertexBuffer , ELockAccess::ReadOnly)) + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION);
 		void* pIndexBufferData = RHILockBuffer( mesh.mIndexBuffer , ELockAccess::ReadOnly);
 		ON_SCOPE_EXIT
 		{
@@ -1439,12 +1439,12 @@ namespace Render
 		binormal = Math::GetNormal(factor * (s[0] * d2 - s[1] * d1));
 	}
 
-	void MeshUtility::FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib /*= Vertex::ATTRIBUTE_NORMAL*/)
+	void MeshUtility::FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib /*= EVertex::ATTRIBUTE_NORMAL*/)
 	{
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_POSITION) == Vertex::eFloat3);
-		assert(desc.getAttributeFormat(normalAttrib) == Vertex::eFloat3);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) == EVertex::Float3);
+		assert(desc.getAttributeFormat(normalAttrib) == EVertex::Float3);
 
-		int posOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
+		int posOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION);
 		int normalOffset = desc.getAttributeOffset(normalAttrib) - posOffset;
 		uint8* pV = (uint8*)(pVertex)+posOffset;
 
@@ -1483,15 +1483,15 @@ namespace Render
 
 	void MeshUtility::FillNormalTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
 	{
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_POSITION) == Vertex::eFloat3);
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_NORMAL) == Vertex::eFloat3);
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_TEXCOORD) == Vertex::eFloat2);
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_TANGENT) == Vertex::eFloat4);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) == EVertex::Float3);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_NORMAL) == EVertex::Float3);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_TEXCOORD) == EVertex::Float2);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_TANGENT) == EVertex::Float4);
 
-		int posOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
-		int texOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_TEXCOORD) - posOffset;
-		int tangentOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_TANGENT) - posOffset;
-		int normalOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_NORMAL) - posOffset;
+		int posOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION);
+		int texOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD) - posOffset;
+		int tangentOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_TANGENT) - posOffset;
+		int normalOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_NORMAL) - posOffset;
 		uint8* pV = (uint8*)(pVertex)+posOffset;
 
 		int numEle = nIdx / 3;
@@ -1553,15 +1553,15 @@ namespace Render
 
 	void MeshUtility::FillTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
 	{
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_POSITION) == Vertex::eFloat3);
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_NORMAL) == Vertex::eFloat3);
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_TEXCOORD) == Vertex::eFloat2);
-		assert(desc.getAttributeFormat(Vertex::ATTRIBUTE_TANGENT) == Vertex::eFloat4);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) == EVertex::Float3);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_NORMAL) == EVertex::Float3);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_TEXCOORD) == EVertex::Float2);
+		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_TANGENT) == EVertex::Float4);
 
-		int posOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
-		int texOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_TEXCOORD) - posOffset;
-		int tangentOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_TANGENT) - posOffset;
-		int normalOffset = desc.getAttributeOffset(Vertex::ATTRIBUTE_NORMAL) - posOffset;
+		int posOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION);
+		int texOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD) - posOffset;
+		int tangentOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_TANGENT) - posOffset;
+		int normalOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_NORMAL) - posOffset;
 		uint8* pV = (uint8*)(pVertex)+posOffset;
 
 		int numEle = nIdx / 3;

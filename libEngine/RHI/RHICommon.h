@@ -478,7 +478,7 @@ namespace Render
 		virtual void removeDepth() = 0;
 	};
 
-	struct Vertex
+	struct EVertex
 	{
 		static int GetComponentNum(uint8 format)
 		{
@@ -493,40 +493,40 @@ namespace Render
 		{
 #define  ENCODE_VECTOR_FORAMT( TYPE , NUM ) (( TYPE << 2 ) | ( NUM - 1 ) )
 
-			eFloat1 = ENCODE_VECTOR_FORAMT(CVT_Float, 1),
-			eFloat2 = ENCODE_VECTOR_FORAMT(CVT_Float, 2),
-			eFloat3 = ENCODE_VECTOR_FORAMT(CVT_Float, 3),
-			eFloat4 = ENCODE_VECTOR_FORAMT(CVT_Float, 4),
-			eHalf1 = ENCODE_VECTOR_FORAMT(CVT_Half, 1),
-			eHalf2 = ENCODE_VECTOR_FORAMT(CVT_Half, 2),
-			eHalf3 = ENCODE_VECTOR_FORAMT(CVT_Half, 3),
-			eHalf4 = ENCODE_VECTOR_FORAMT(CVT_Half, 4),
-			eUInt1 = ENCODE_VECTOR_FORAMT(CVT_UInt, 1),
-			eUInt2 = ENCODE_VECTOR_FORAMT(CVT_UInt, 2),
-			eUInt3 = ENCODE_VECTOR_FORAMT(CVT_UInt, 3),
-			eUInt4 = ENCODE_VECTOR_FORAMT(CVT_UInt, 4),
-			eInt1 = ENCODE_VECTOR_FORAMT(CVT_Int, 1),
-			eInt2 = ENCODE_VECTOR_FORAMT(CVT_Int, 2),
-			eInt3 = ENCODE_VECTOR_FORAMT(CVT_Int, 3),
-			eInt4 = ENCODE_VECTOR_FORAMT(CVT_Int, 4),
-			eUShort1 = ENCODE_VECTOR_FORAMT(CVT_UShort, 1),
-			eUShort2 = ENCODE_VECTOR_FORAMT(CVT_UShort, 2),
-			eUShort3 = ENCODE_VECTOR_FORAMT(CVT_UShort, 3),
-			eUShort4 = ENCODE_VECTOR_FORAMT(CVT_UShort, 4),
-			eShort1 = ENCODE_VECTOR_FORAMT(CVT_Short, 1),
-			eShort2 = ENCODE_VECTOR_FORAMT(CVT_Short, 2),
-			eShort3 = ENCODE_VECTOR_FORAMT(CVT_Short, 3),
-			eShort4 = ENCODE_VECTOR_FORAMT(CVT_Short, 4),
-			eUByte1 = ENCODE_VECTOR_FORAMT(CVT_UByte, 1),
-			eUByte2 = ENCODE_VECTOR_FORAMT(CVT_UByte, 2),
-			eUByte3 = ENCODE_VECTOR_FORAMT(CVT_UByte, 3),
-			eUByte4 = ENCODE_VECTOR_FORAMT(CVT_UByte, 4),
-			eByte1 = ENCODE_VECTOR_FORAMT(CVT_Byte, 1),
-			eByte2 = ENCODE_VECTOR_FORAMT(CVT_Byte, 2),
-			eByte3 = ENCODE_VECTOR_FORAMT(CVT_Byte, 3),
-			eByte4 = ENCODE_VECTOR_FORAMT(CVT_Byte, 4),
+			Float1 = ENCODE_VECTOR_FORAMT(CVT_Float, 1),
+			Float2 = ENCODE_VECTOR_FORAMT(CVT_Float, 2),
+			Float3 = ENCODE_VECTOR_FORAMT(CVT_Float, 3),
+			Float4 = ENCODE_VECTOR_FORAMT(CVT_Float, 4),
+			Half1 = ENCODE_VECTOR_FORAMT(CVT_Half, 1),
+			Half2 = ENCODE_VECTOR_FORAMT(CVT_Half, 2),
+			Half3 = ENCODE_VECTOR_FORAMT(CVT_Half, 3),
+			Half4 = ENCODE_VECTOR_FORAMT(CVT_Half, 4),
+			UInt1 = ENCODE_VECTOR_FORAMT(CVT_UInt, 1),
+			UInt2 = ENCODE_VECTOR_FORAMT(CVT_UInt, 2),
+			UInt3 = ENCODE_VECTOR_FORAMT(CVT_UInt, 3),
+			UInt4 = ENCODE_VECTOR_FORAMT(CVT_UInt, 4),
+			Int1 = ENCODE_VECTOR_FORAMT(CVT_Int, 1),
+			Int2 = ENCODE_VECTOR_FORAMT(CVT_Int, 2),
+			Int3 = ENCODE_VECTOR_FORAMT(CVT_Int, 3),
+			Int4 = ENCODE_VECTOR_FORAMT(CVT_Int, 4),
+			UShort1 = ENCODE_VECTOR_FORAMT(CVT_UShort, 1),
+			UShort2 = ENCODE_VECTOR_FORAMT(CVT_UShort, 2),
+			UShort3 = ENCODE_VECTOR_FORAMT(CVT_UShort, 3),
+			UShort4 = ENCODE_VECTOR_FORAMT(CVT_UShort, 4),
+			Short1 = ENCODE_VECTOR_FORAMT(CVT_Short, 1),
+			Short2 = ENCODE_VECTOR_FORAMT(CVT_Short, 2),
+			Short3 = ENCODE_VECTOR_FORAMT(CVT_Short, 3),
+			Short4 = ENCODE_VECTOR_FORAMT(CVT_Short, 4),
+			UByte1 = ENCODE_VECTOR_FORAMT(CVT_UByte, 1),
+			UByte2 = ENCODE_VECTOR_FORAMT(CVT_UByte, 2),
+			UByte3 = ENCODE_VECTOR_FORAMT(CVT_UByte, 3),
+			UByte4 = ENCODE_VECTOR_FORAMT(CVT_UByte, 4),
+			Byte1 = ENCODE_VECTOR_FORAMT(CVT_Byte, 1),
+			Byte2 = ENCODE_VECTOR_FORAMT(CVT_Byte, 2),
+			Byte3 = ENCODE_VECTOR_FORAMT(CVT_Byte, 3),
+			Byte4 = ENCODE_VECTOR_FORAMT(CVT_Byte, 4),
 
-			eUnknowFormat,
+			UnknowFormat,
 		};
 
 		static Format GetFormat(EComponentType InType, uint8 numElement)
@@ -668,14 +668,14 @@ namespace Render
 		uint8  getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }
 		void   setVertexSize(int idxStream, uint8 size){  mVertexSizes[idxStream] = size;  }
 
-		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailzed = false, bool bInstanceData = false, int instanceStepRate = 0);
+		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, EVertex::Format f, bool bNormailzed = false, bool bInstanceData = false, int instanceStepRate = 0);
 
 		void setElementUnusable(uint8 attribute);
 
 		InputElementDesc const* findElementByAttribute(uint8 attribute) const;
-		int                getAttributeOffset(uint8 attribute) const;
-		Vertex::Format     getAttributeFormat(uint8 attribute) const;
-		int                getAttributeStreamIndex(uint8 attribute) const;
+		int              getAttributeOffset(uint8 attribute) const;
+		EVertex::Format  getAttributeFormat(uint8 attribute) const;
+		int              getAttributeStreamIndex(uint8 attribute) const;
 		
 		std::vector< InputElementDesc > mElements;
 		uint8   mVertexSizes[MAX_INPUT_STREAM_NUM];

@@ -14,8 +14,7 @@ public:
 
 	enum
 	{
-		UI_GAME_BUTTON = BaseClass::NEXT_UI_ID ,
-		UI_VIEW_REPLAY ,
+		UI_VIEW_REPLAY = BaseClass::NEXT_UI_ID,
 		UI_GAME_OPTION ,
 
 		UI_MAIN_GROUP ,
@@ -38,8 +37,7 @@ public:
 
 		UI_GROUP_INDEX ,
 
-		UI_SINGLE_DEV_INDEX    = UI_GROUP_INDEX,
-		UI_GROUP_STAGE_INDEX   = UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP,
+		UI_GROUP_STAGE_INDEX   = UI_GROUP_INDEX + MAX_NUM_GROUP,
 		NEXT_UI_ID             = UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP ,
 	};
 	
@@ -50,6 +48,8 @@ public:
 	void changeStageGroup(EStageGroup group);
 	void createStageGroupButton(int& delay, int& xUI, int& yUI);
 
+
+	std::vector< GWidget* > mCategoryWidgets;
 	EStageGroup mCurGroup;
 };
 

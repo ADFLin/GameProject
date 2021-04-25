@@ -228,6 +228,14 @@ namespace Math
 		return ( 1 / len ) * v;
 	}
 
+	FORCEINLINE Vector3 Clamp(Vector3 const& v, Vector3 const& min, Vector3 const& max)
+	{
+		return Vector3(
+			Clamp(v.x, min.x, max.x),
+			Clamp(v.y, min.y, max.y),
+			Clamp(v.z, min.z, max.z));
+	}
+
 
 }//namespace Math
 #endif // Vector3_h__

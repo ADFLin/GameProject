@@ -98,9 +98,9 @@ namespace Render
 				VERIFY_RETURN_FALSE( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
 
 				InputLayoutDesc desc;
-				desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat2);
-				desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat3);
-				desc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+				desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float2);
+				desc.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::Float3);
+				desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 				VERIFY_RETURN_FALSE( mInputLayout = RHICreateInputLayout(desc) );
 
 				int32 indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
@@ -121,8 +121,8 @@ namespace Render
 				VERIFY_RETURN_FALSE(mAxisVertexBuffer = RHICreateVertexBuffer(sizeof(AxisVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices));
 
 				InputLayoutDesc desc;
-				desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
-				desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat3);
+				desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+				desc.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::Float3);
 				VERIFY_RETURN_FALSE(mAxisInputLayout = RHICreateInputLayout(desc));
 			}
 
@@ -344,6 +344,6 @@ namespace Render
 	};
 
 
-	REGISTER_STAGE("D3D11 Test", TestD3D11Stage, EStageGroup::FeatureDev);
+	REGISTER_STAGE("D3D11 Test", TestD3D11Stage, EStageGroup::FeatureDev, "Render|RHI");
 
 }

@@ -13,8 +13,6 @@ namespace Render
 {
 	REGISTER_STAGE("2D Lighting Test", Lighting2DTestStage, EStageGroup::GraphicsTest);
 
-
-
 	bool Lighting2DTestStage::onInit()
 	{
 		if (!BaseClass::onInit())
@@ -167,11 +165,9 @@ namespace Render
 					TStaticDepthStencilState<
 					true, ECompareFunc::Always,
 					true, ECompareFunc::Always,
-					EStencil::Keep, EStencil::Keep, EStencil::Replace, 0x1
-					>::GetRHI(), 0x1);
+					EStencil::Keep, EStencil::Keep, EStencil::Replace, 0x1 >::GetRHI(), 0x1);
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
-
 			}
 
 			{

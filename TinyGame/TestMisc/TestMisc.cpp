@@ -7,18 +7,15 @@
 #include "Mario/MBStage.h"
 
 #define STAGE_INFO( DECL , CLASS , ... )\
-	{ DECL , makeStageFactory< CLASS >() , __VA_ARGS__ } 
+	{ DECL , MakeChangeStageOperation< CLASS >() , __VA_ARGS__ } 
 
 
 StageInfo gPreRegisterStageGroup[] =
 {
-
-	STAGE_INFO("Monument Valley"   , MV::TestStage , EStageGroup::Dev) ,
-	STAGE_INFO("Bejeweled Test"    , Bejeweled::TestStage , EStageGroup::Dev) ,
-
-	STAGE_INFO("Mario Test"        , Mario::TestStage , EStageGroup::Dev4) ,
-	STAGE_INFO("Shoot2D Test"      , Shoot2D::TestStage , EStageGroup::Dev4) ,
-
+	STAGE_INFO("Monument Valley"   , MV::TestStage , EStageGroup::Dev, "Game") ,
+	STAGE_INFO("Bejeweled Test"    , Bejeweled::TestStage , EStageGroup::Dev, "Game") ,
+	STAGE_INFO("Mario Test"        , Mario::TestStage , EStageGroup::Dev4, "Game") ,
+	STAGE_INFO("Shoot2D Test"      , Shoot2D::TestStage , EStageGroup::Dev4, "Game") ,
 };
 
 class TestMiscModule : public IModuleInterface

@@ -90,14 +90,14 @@ namespace Render
 	template < uint32 VertexFormat , uint32 SkipVertexFormat = 0 >
 	inline void SetupRenderRTInputLayoutDesc(int indexStream , InputLayoutDesc& desc )
 	{
-		if( USE_SEMANTIC(VertexFormat, RTS_Position) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Position) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_POSITION, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Position)), false);
-		if( USE_SEMANTIC(VertexFormat, RTS_Color) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Color) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_COLOR, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Color)), false);
-		if( USE_SEMANTIC(VertexFormat, RTS_Normal) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Normal) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_NORMAL, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Normal)), false);
-		if( USE_SEMANTIC(VertexFormat, RTS_Texcoord) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Texcoord) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_TEXCOORD, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Texcoord)), false);
+		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Position) )
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Position) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_POSITION, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Position)), false);
+		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Color) )
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Color) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_COLOR, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Color)), false);
+		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Normal) )
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Normal) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_NORMAL, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Normal)), false);
+		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Texcoord) )
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Texcoord) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_TEXCOORD, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Texcoord)), false);
 	}
 
 
@@ -109,19 +109,10 @@ namespace Render
 		{
 			InputLayoutDesc desc;
 			SetupRenderRTInputLayoutDesc< VertexFormat0 , VertexFormat1 >(0, desc);
-			SetupRenderRTInputLayoutDesc< VertexFormat1 >(1, desc);
-			return RHICreateInputLayout(desc);
-		}
-	};
-
-	template < uint32 VertexFormat0 >
-	class TStaticRenderRTInputLayout< VertexFormat0 , 0 > : public StaticRHIResourceT< TStaticRenderRTInputLayout< VertexFormat0, 0 >, RHIInputLayout >
-	{
-	public:
-		static RHIInputLayoutRef CreateRHI()
-		{
-			InputLayoutDesc desc;
-			SetupRenderRTInputLayoutDesc< VertexFormat0 >(0, desc);
+			if constexpr (VertexFormat1)
+			{
+				SetupRenderRTInputLayoutDesc< VertexFormat1 >(1, desc);
+			}
 			return RHICreateInputLayout(desc);
 		}
 	};

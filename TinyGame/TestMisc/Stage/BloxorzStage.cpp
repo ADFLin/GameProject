@@ -1151,4 +1151,4 @@ namespace Bloxorz
 }//namespace Bloxorz
 
 
-REGISTER_STAGE2("Bloxorz Test", Bloxorz::TestStage, EStageGroup::Dev, 2);
+REGISTER_STAGE("Bloxorz Test", Bloxorz::TestStage, EStageGroup::Dev, 2);

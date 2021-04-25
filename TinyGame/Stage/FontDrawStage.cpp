@@ -266,4 +266,4 @@ public:
 protected:
 };
 
-REGISTER_STAGE("Font Draw", FontDrawTestStage, EStageGroup::FeatureDev);
+REGISTER_STAGE("Font Draw", FontDrawTestStage, EStageGroup::FeatureDev, "Render");

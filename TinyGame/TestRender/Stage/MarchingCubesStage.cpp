@@ -855,8 +855,8 @@ namespace Render
 
 			mDataTexture = RHICreateTexture3D(ETexture::R32F, mConfig.dataDim.x, mConfig.dataDim.y, mConfig.dataDim.z, 1, 1, TCF_DefalutValue, mChunkData.data.data());
 			
-			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
-			mMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+			mMesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+			mMesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 			updateMesh();
 			return true;
 		}
@@ -976,5 +976,5 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE2("Maching Cubes", MarchingCubesTestStage, EStageGroup::FeatureDev, 1);
+	REGISTER_STAGE("Maching Cubes", MarchingCubesTestStage, EStageGroup::FeatureDev, 1);
 }

@@ -15,7 +15,7 @@
 namespace Render
 {
 
-	REGISTER_STAGE2("BRDF Test", BRDFTestStage, EStageGroup::FeatureDev, 1);
+	REGISTER_STAGE("BRDF Test", BRDFTestStage, EStageGroup::FeatureDev, 1, "Render|Test" );
 
 	IMPLEMENT_SHADER_PROGRAM(LightProbeVisualizeProgram);
 	IMPLEMENT_SHADER_PROGRAM(TonemapProgram);

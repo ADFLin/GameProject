@@ -1178,7 +1178,7 @@ namespace Render
 		mAttributeMask = 0;
 		for( auto const& e : desc.mElements )
 		{
-			if (e.attribute == Vertex::ATTRIBUTE_UNUSED )
+			if (e.attribute == EVertex::ATTRIBUTE_UNUSED )
 				continue;
 
 			Element element;
@@ -1187,7 +1187,7 @@ namespace Render
 			element.bNormalized = e.bNormalized;
 			element.bInstanceData = e.bIntanceData;
 			element.instanceStepRate = e.instanceStepRate;
-			element.componentNum = Vertex::GetComponentNum(e.format);
+			element.componentNum = EVertex::GetComponentNum(e.format);
 			element.componentType = OpenGLTranslate::VertexComponentType(e.format);
 			element.stride = desc.getVertexSize(e.streamIndex);
 			element.offset = e.offset;
@@ -1340,16 +1340,16 @@ namespace Render
 		offset += e.offset;
 		switch( e.attribute )
 		{
-		case Vertex::ATTRIBUTE_POSITION:
+		case EVertex::ATTRIBUTE_POSITION:
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glVertexPointer(e.componentNum, e.componentType, stride, (void*)(offset));
 			break;
-		case Vertex::ATTRIBUTE_NORMAL:
+		case EVertex::ATTRIBUTE_NORMAL:
 			assert(e.componentNum == 3);
 			glEnableClientState(GL_NORMAL_ARRAY);
 			glNormalPointer(e.componentType, stride, (void*)(offset));
 			break;
-		case Vertex::ATTRIBUTE_COLOR:
+		case EVertex::ATTRIBUTE_COLOR:
 			if (stride > 0)
 			{
 				glEnableClientState(GL_COLOR_ARRAY);
@@ -1361,7 +1361,7 @@ namespace Render
 				glColor4fv((GLfloat const*)offset);
 			}
 			break;
-		case Vertex::ATTRIBUTE_COLOR2:
+		case EVertex::ATTRIBUTE_COLOR2:
 			if (stride > 0 )
 			{
 				glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
@@ -1372,21 +1372,21 @@ namespace Render
 				//#TODO: LOG
 			}
 			break;
-		case Vertex::ATTRIBUTE_TANGENT:
-			glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
+		case EVertex::ATTRIBUTE_TANGENT:
+			glClientActiveTexture(GL_TEXTURE0 + (EVertex::ATTRIBUTE_TANGENT - EVertex::ATTRIBUTE_TEXCOORD));
 			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 			glTexCoordPointer(e.componentNum, e.componentType, stride, (void*)(offset));
 			haveTex = true;
 			break;
-		case Vertex::ATTRIBUTE_TEXCOORD:
-		case Vertex::ATTRIBUTE_TEXCOORD1:
-		case Vertex::ATTRIBUTE_TEXCOORD2:
-		case Vertex::ATTRIBUTE_TEXCOORD3:
-		case Vertex::ATTRIBUTE_TEXCOORD4:
-		case Vertex::ATTRIBUTE_TEXCOORD5:
-		case Vertex::ATTRIBUTE_TEXCOORD6:
+		case EVertex::ATTRIBUTE_TEXCOORD:
+		case EVertex::ATTRIBUTE_TEXCOORD1:
+		case EVertex::ATTRIBUTE_TEXCOORD2:
+		case EVertex::ATTRIBUTE_TEXCOORD3:
+		case EVertex::ATTRIBUTE_TEXCOORD4:
+		case EVertex::ATTRIBUTE_TEXCOORD5:
+		case EVertex::ATTRIBUTE_TEXCOORD6:
 			{
-				glClientActiveTexture(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD);
+				glClientActiveTexture(GL_TEXTURE0 + e.attribute - EVertex::ATTRIBUTE_TEXCOORD);
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 				glTexCoordPointer(e.componentNum, e.componentType, stride, (void*)(offset));
 				haveTex = true;
@@ -1400,7 +1400,7 @@ namespace Render
 		offset += e.offset;
 		switch( e.attribute )
 		{
-		case Vertex::ATTRIBUTE_POSITION:
+		case EVertex::ATTRIBUTE_POSITION:
 			switch( e.componentNum )
 			{
 			case 1: glVertex2f(*(float*)(offset), 0); break;
@@ -1409,39 +1409,39 @@ namespace Render
 			case 4: glVertex4fv((float*)(offset)); break;
 			}
 			break;
-		case Vertex::ATTRIBUTE_NORMAL:
+		case EVertex::ATTRIBUTE_NORMAL:
 			assert(e.componentNum == 3);
 			glNormal3fv((float*)e.offset); break;
 			break;
-		case Vertex::ATTRIBUTE_COLOR:
+		case EVertex::ATTRIBUTE_COLOR:
 			switch( e.componentNum )
 			{
 			case 3: glColor3fv((float*)(offset)); break;
 			case 4: glColor4fv((float*)(offset)); break;
 			}
 			break;
-		case Vertex::ATTRIBUTE_TANGENT:
+		case EVertex::ATTRIBUTE_TANGENT:
 			switch( e.componentNum )
 			{
-			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
-			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
-			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
-			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + (EVertex::ATTRIBUTE_TANGENT - EVertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + (EVertex::ATTRIBUTE_TANGENT - EVertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + (EVertex::ATTRIBUTE_TANGENT - EVertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + (EVertex::ATTRIBUTE_TANGENT - EVertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
 			}
 			break;
-		case Vertex::ATTRIBUTE_TEXCOORD:
-		case Vertex::ATTRIBUTE_TEXCOORD1:
-		case Vertex::ATTRIBUTE_TEXCOORD2:
-		case Vertex::ATTRIBUTE_TEXCOORD3:
-		case Vertex::ATTRIBUTE_TEXCOORD4:
-		case Vertex::ATTRIBUTE_TEXCOORD5:
-		case Vertex::ATTRIBUTE_TEXCOORD6:
+		case EVertex::ATTRIBUTE_TEXCOORD:
+		case EVertex::ATTRIBUTE_TEXCOORD1:
+		case EVertex::ATTRIBUTE_TEXCOORD2:
+		case EVertex::ATTRIBUTE_TEXCOORD3:
+		case EVertex::ATTRIBUTE_TEXCOORD4:
+		case EVertex::ATTRIBUTE_TEXCOORD5:
+		case EVertex::ATTRIBUTE_TEXCOORD6:
 			switch( e.componentNum )
 			{
-			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
-			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
-			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
-			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
+			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + e.attribute - EVertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
+			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + e.attribute - EVertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
+			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + e.attribute - EVertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
+			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + e.attribute - EVertex::ATTRIBUTE_TEXCOORD, (float*)(offset));
 			}
 			break;
 		}
@@ -1451,32 +1451,32 @@ namespace Render
 	{
 		switch( e.attribute )
 		{
-		case Vertex::ATTRIBUTE_POSITION:
+		case EVertex::ATTRIBUTE_POSITION:
 			glDisableClientState(GL_VERTEX_ARRAY);
 			break;
-		case Vertex::ATTRIBUTE_NORMAL:
+		case EVertex::ATTRIBUTE_NORMAL:
 			glDisableClientState(GL_NORMAL_ARRAY);
 			break;
-		case Vertex::ATTRIBUTE_COLOR:
+		case EVertex::ATTRIBUTE_COLOR:
 			glDisableClientState(GL_COLOR_ARRAY);
 			break;
-		case Vertex::ATTRIBUTE_COLOR2:
+		case EVertex::ATTRIBUTE_COLOR2:
 			glDisableClientState(GL_SECONDARY_COLOR_ARRAY);
 			break;
-		case Vertex::ATTRIBUTE_TANGENT:
+		case EVertex::ATTRIBUTE_TANGENT:
 			haveTex = true;
-			glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
+			glClientActiveTexture(GL_TEXTURE0 + (EVertex::ATTRIBUTE_TANGENT - EVertex::ATTRIBUTE_TEXCOORD));
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			break;
-		case Vertex::ATTRIBUTE_TEXCOORD:
-		case Vertex::ATTRIBUTE_TEXCOORD1:
-		case Vertex::ATTRIBUTE_TEXCOORD2:
-		case Vertex::ATTRIBUTE_TEXCOORD3:
-		case Vertex::ATTRIBUTE_TEXCOORD4:
-		case Vertex::ATTRIBUTE_TEXCOORD5:
-		case Vertex::ATTRIBUTE_TEXCOORD6:
+		case EVertex::ATTRIBUTE_TEXCOORD:
+		case EVertex::ATTRIBUTE_TEXCOORD1:
+		case EVertex::ATTRIBUTE_TEXCOORD2:
+		case EVertex::ATTRIBUTE_TEXCOORD3:
+		case EVertex::ATTRIBUTE_TEXCOORD4:
+		case EVertex::ATTRIBUTE_TEXCOORD5:
+		case EVertex::ATTRIBUTE_TEXCOORD6:
 			haveTex = true;
-			glClientActiveTexture(GL_TEXTURE0 + e.attribute - Vertex::ATTRIBUTE_TEXCOORD);
+			glClientActiveTexture(GL_TEXTURE0 + e.attribute - EVertex::ATTRIBUTE_TEXCOORD);
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			break;
 		}

@@ -41,7 +41,7 @@ namespace Render
 	};
 #define SCRIPT_NAME( NAME ) #NAME
 
-	class Common
+	class FScriptCommon
 	{
 	public:
 		template< class ModuleType >
@@ -54,8 +54,6 @@ namespace Render
 			script.add(Chai::fun(static_cast<Vector3 (*)(Vector3 const&, Vector3 const&)>(&Math::operator-)), SCRIPT_NAME(-));
 			script.add(Chai::fun(static_cast<Vector3 (*)(float, Vector3 const&)>(&Math::operator*)), SCRIPT_NAME(*));
 		}
-
-
 	};
 
 	float Deg2RadFactor = Math::PI / 180.0;
@@ -75,7 +73,7 @@ namespace Render
 			if( !bInitModule )
 			{
 				CommonModule.reset(new Chai::Module);
-				Common::RegisterMath(*CommonModule);
+				FScriptCommon::RegisterMath(*CommonModule);
 				registerAssetId(*CommonModule);
 				registerSceneObject(*CommonModule);
 

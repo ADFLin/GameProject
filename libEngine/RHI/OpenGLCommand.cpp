@@ -40,7 +40,7 @@ namespace Render
 	}
 
 	template< class T >
-	bool IsStateDirty(T& committedValue, T const& pandingValue)
+	bool CheckStateDirty(T& committedValue, T const& pandingValue)
 	{
 		if (gForceInitState || committedValue != pandingValue)
 		{
@@ -50,9 +50,15 @@ namespace Render
 		return false;
 	}
 
-#define GL_CHECK_STATE_DIRTY( NAME )  IsStateDirty( committedValue.##NAME , pendingValue.##NAME )
-#define GL_TEST_STATE_DIRTY( NAME )  ( gForceInitState || ( committedValue.##NAME != pendingValue.##NAME ) )
-#define GL_STATE_VAR_ASSIGN( NAME ) committedValue.##NAME = pendingValue.##NAME 
+	template< class T >
+	bool IsStateDirty(T const& committedValue, T const& pandingValue)
+	{
+		return gForceInitState || committedValue != pandingValue;
+	}
+
+#define GL_CHECK_STATE_DIRTY( NAME )  CheckStateDirty( committedValue.##NAME , pendingValue.##NAME )
+#define GL_IS_STATE_DIRTY( NAME )     IsStateDirty( committedValue.##NAME , pendingValue.##NAME )
+#define GL_COMMIT_STATE_VALUE( NAME )   committedValue.##NAME = pendingValue.##NAME 
 
 	static void EnableGLState(GLenum param, bool bEnable)
 	{
@@ -1060,24 +1066,25 @@ namespace Render
 		setShaderSamplerInternal(OpenGLCast::GetHandle(shader), param, sampler);
 	}
 
-	void OpenGLContext::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	template< class TShaderObject >
+	void OpenGLContext::setShaderRWTextureT(TShaderObject& shaderObject, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
-		GLuint shaderHandle = OpenGLCast::GetHandle(shaderProgram);
+		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
 		int indexSlot = fetchSamplerStateSlot(shaderHandle, param.mLoc);
 		glBindImageTexture(indexSlot, resourceViewImpl.handle, 0, GL_FALSE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
 		glUniform1i(param.mLoc, indexSlot);
 	}
 
+	void OpenGLContext::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	{
+		setShaderRWTextureT(shaderProgram, param, texture, op);
+	}
+
 	void OpenGLContext::setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
 	{
-		CHECK_PARAMETER(param);
-		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
-		GLuint shaderHandle = OpenGLCast::GetHandle(shader);
-		int indexSlot = fetchSamplerStateSlot(shaderHandle, param.mLoc);
-		glBindImageTexture(indexSlot, resourceViewImpl.handle, 0, GL_FALSE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
-		glProgramUniform1i(OpenGLCast::GetHandle(shader), param.mLoc, indexSlot);
+		setShaderRWTextureT(shader, param, texture, op);
 	}
 
 	void OpenGLContext::clearShaderUAV(RHIShaderProgram& shaderProgram, ShaderParameter const& param)
@@ -1088,10 +1095,11 @@ namespace Render
 		glUniform1i(param.mLoc, indexSlot);
 	}
 
-	void OpenGLContext::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	template< class TShaderObject >
+	void OpenGLContext::setShaderUniformBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
-		GLuint shaderHandle = OpenGLCast::GetHandle(shaderProgram);
+		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
 		GLuint bufferHandle = OpenGLCast::GetHandle(buffer);
 		int slotIndex = fetchBufferBindSlot(BBT_Uniform, shaderHandle, param.mLoc, bufferHandle);
 		if (slotIndex != INDEX_NONE)
@@ -1101,44 +1109,38 @@ namespace Render
 		}
 	}
 
+	void OpenGLContext::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		setShaderUniformBufferT(shaderProgram, param, buffer);
+	}
+
 	void OpenGLContext::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
+		setShaderUniformBufferT(shader, param, buffer);
+	}	
+	
+	template< class TShaderObject >
+	void OpenGLContext::setShaderStorageBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
+	{
 		CHECK_PARAMETER(param);
-		GLuint shaderHandle = OpenGLCast::GetHandle(shader);
+		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
 		GLuint bufferHandle = OpenGLCast::GetHandle(buffer);
-		int slotIndex = fetchBufferBindSlot(BBT_Uniform, shaderHandle, param.mLoc, bufferHandle);
+		int slotIndex = fetchBufferBindSlot(BBT_Storage, shaderHandle, param.mLoc, bufferHandle);
 		if (slotIndex != INDEX_NONE)
 		{
-			glUniformBlockBinding(shaderHandle, param.mLoc, slotIndex);
-			glBindBufferBase(GL_UNIFORM_BUFFER, slotIndex, bufferHandle);
-
+			glShaderStorageBlockBinding(shaderHandle, param.mLoc, slotIndex);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slotIndex, bufferHandle);
 		}
 	}
 
 	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
 	{
-		CHECK_PARAMETER(param);
-		GLuint shaderHandle = OpenGLCast::GetHandle(shaderProgram);
-		GLuint bufferHandle = OpenGLCast::GetHandle(buffer);
-		int slotIndex = fetchBufferBindSlot(BBT_Storage, shaderHandle, param.mLoc, bufferHandle);
-		if (slotIndex != INDEX_NONE)
-		{
-			glShaderStorageBlockBinding(shaderHandle, param.mLoc, slotIndex);
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slotIndex, bufferHandle);
-		}
+		setShaderStorageBufferT(shaderProgram, param, buffer, op);
 	}
 
 	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
 	{
-		CHECK_PARAMETER(param);
-		GLuint shaderHandle = OpenGLCast::GetHandle(shader);
-		GLuint bufferHandle = OpenGLCast::GetHandle(buffer);
-		int slotIndex = fetchBufferBindSlot(BBT_Storage, shaderHandle, param.mLoc, bufferHandle);
-		if (slotIndex != INDEX_NONE)
-		{
-			glShaderStorageBlockBinding(shaderHandle, param.mLoc, slotIndex);
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slotIndex, bufferHandle);
-		}
+		setShaderStorageBufferT(shader, param, buffer, op);
 	}
 
 	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
@@ -1276,7 +1278,7 @@ namespace Render
 
 	void OpenGLContext::commitRasterizerState()
 	{
-		if (!IsStateDirty(mDeviceState.rasterizerStateCommitted, mDeviceState.rasterizerStatePending))
+		if (!CheckStateDirty(mDeviceState.rasterizerStateCommitted, mDeviceState.rasterizerStatePending))
 			return;
 
 		OpenGLRasterizerState& rasterizerStateGL = static_cast<OpenGLRasterizerState&>(*mDeviceState.rasterizerStatePending);
@@ -1307,16 +1309,11 @@ namespace Render
 				glCullFace(pendingValue.cullFace);
 			}
 		}
-
-		if (GL_CHECK_STATE_DIRTY(bEnableCull))
-		{
-			EnableGLState(GL_CULL_FACE, pendingValue.bEnableCull);
-		}
 	}
 
 	void OpenGLContext::commitBlendState()
 	{
-		if (!IsStateDirty(mDeviceState.blendStateCommitted, mDeviceState.blendStatePending))
+		if (!CheckStateDirty(mDeviceState.blendStateCommitted, mDeviceState.blendStatePending))
 			return;
 
 		OpenGLBlendState& BlendStateGL = static_cast<OpenGLBlendState&>(*mDeviceState.blendStatePending);
@@ -1343,10 +1340,10 @@ namespace Render
 
 				bool bForceReset = false;
 
-				if (bForceAllReset || GL_TEST_STATE_DIRTY(writeMask))
+				if (bForceAllReset || GL_IS_STATE_DIRTY(writeMask))
 				{
 					bForceReset = true;
-					GL_STATE_VAR_ASSIGN(writeMask);
+					GL_COMMIT_STATE_VALUE(writeMask);
 					glColorMaski(i, pendingValue.writeMask & CWM_R,
 						pendingValue.writeMask & CWM_G,
 						pendingValue.writeMask & CWM_B,
@@ -1356,25 +1353,24 @@ namespace Render
 				if (bForceAllReset || pendingValue.writeMask)
 				{
 
-					if (bForceAllReset || GL_TEST_STATE_DIRTY(bEnable))
+					if (bForceAllReset || GL_IS_STATE_DIRTY(bEnable))
 					{
-						GL_STATE_VAR_ASSIGN(bEnable);
+						GL_COMMIT_STATE_VALUE(bEnable);
 						EnableGLStateIndex(GL_BLEND, i, pendingValue.bEnable);
 					}
 
 					if (pendingValue.bEnable)
 					{
-						if (bForceReset || GL_TEST_STATE_DIRTY(bSeparateBlend) || GL_TEST_STATE_DIRTY(srcColor) || GL_TEST_STATE_DIRTY(destColor) || GL_TEST_STATE_DIRTY(srcAlpha) || GL_TEST_STATE_DIRTY(destAlpha))
+						if (bForceReset || GL_IS_STATE_DIRTY(bSeparateBlend) || GL_IS_STATE_DIRTY(srcColor) || GL_IS_STATE_DIRTY(destColor) || GL_IS_STATE_DIRTY(srcAlpha) || GL_IS_STATE_DIRTY(destAlpha))
 						{
-							GL_STATE_VAR_ASSIGN(bSeparateBlend);
-							GL_STATE_VAR_ASSIGN(srcColor);
-							GL_STATE_VAR_ASSIGN(destColor);
-							GL_STATE_VAR_ASSIGN(srcAlpha);
-							GL_STATE_VAR_ASSIGN(destAlpha);
+							GL_COMMIT_STATE_VALUE(bSeparateBlend);
+							GL_COMMIT_STATE_VALUE(srcColor);
+							GL_COMMIT_STATE_VALUE(destColor);
+							GL_COMMIT_STATE_VALUE(srcAlpha);
+							GL_COMMIT_STATE_VALUE(destAlpha);
 
 							if (pendingValue.bSeparateBlend)
 							{
-
 								glBlendFuncSeparatei(i, pendingValue.srcColor, pendingValue.destColor,
 									pendingValue.srcAlpha, pendingValue.destAlpha);
 							}
@@ -1394,10 +1390,10 @@ namespace Render
 
 			bool bForceReset = false;
 
-			if (bForceAllReset || GL_TEST_STATE_DIRTY(writeMask))
+			if (bForceAllReset || GL_IS_STATE_DIRTY(writeMask))
 			{
 				bForceReset = true;
-				GL_STATE_VAR_ASSIGN(writeMask);
+				GL_COMMIT_STATE_VALUE(writeMask);
 				glColorMask(
 					pendingValue.writeMask & CWM_R,
 					pendingValue.writeMask & CWM_G,
@@ -1408,21 +1404,21 @@ namespace Render
 			if (bForceAllReset || pendingValue.writeMask)
 			{
 
-				if (bForceAllReset || GL_TEST_STATE_DIRTY(bEnable))
+				if (bForceAllReset || GL_IS_STATE_DIRTY(bEnable))
 				{
-					GL_STATE_VAR_ASSIGN(bEnable);
+					GL_COMMIT_STATE_VALUE(bEnable);
 					EnableGLState(GL_BLEND, pendingValue.bEnable);
 				}
 
 				if (pendingValue.bEnable)
 				{
-					if (bForceReset || GL_TEST_STATE_DIRTY(bSeparateBlend) || GL_TEST_STATE_DIRTY(srcColor) || GL_TEST_STATE_DIRTY(destColor) || GL_TEST_STATE_DIRTY(srcAlpha) || GL_TEST_STATE_DIRTY(destAlpha))
+					if (bForceReset || GL_IS_STATE_DIRTY(bSeparateBlend) || GL_IS_STATE_DIRTY(srcColor) || GL_IS_STATE_DIRTY(destColor) || GL_IS_STATE_DIRTY(srcAlpha) || GL_IS_STATE_DIRTY(destAlpha))
 					{
-						GL_STATE_VAR_ASSIGN(bSeparateBlend);
-						GL_STATE_VAR_ASSIGN(srcColor);
-						GL_STATE_VAR_ASSIGN(destColor);
-						GL_STATE_VAR_ASSIGN(srcAlpha);
-						GL_STATE_VAR_ASSIGN(destAlpha);
+						GL_COMMIT_STATE_VALUE(bSeparateBlend);
+						GL_COMMIT_STATE_VALUE(srcColor);
+						GL_COMMIT_STATE_VALUE(destColor);
+						GL_COMMIT_STATE_VALUE(srcAlpha);
+						GL_COMMIT_STATE_VALUE(destAlpha);
 
 						if (pendingValue.bSeparateBlend)
 						{
@@ -1442,9 +1438,9 @@ namespace Render
 	void OpenGLContext::commitDepthStencilState()
 	{
 		auto& committedValue = mDeviceState.depthStencilStateValue;
-		if ( !IsStateDirty(mDeviceState.depthStencilStateCommitted , mDeviceState.depthStencilStatePending) )
+		if ( !CheckStateDirty(mDeviceState.depthStencilStateCommitted , mDeviceState.depthStencilStatePending) )
 		{
-			if ( IsStateDirty( committedValue.stencilRef , mDeviceState.stencilRefPending ) )
+			if ( CheckStateDirty( committedValue.stencilRef , mDeviceState.stencilRefPending ) )
 			{
 				glStencilFunc(committedValue.stencilFun, mDeviceState.stencilRefPending, committedValue.stencilReadMask);
 			}
@@ -1495,43 +1491,43 @@ namespace Render
 				bForceRestOp = true;
 			}
 
-			bool bForceRestFun = false;
+			bool bForceRestFunc = false;
 			if (GL_CHECK_STATE_DIRTY(bUseSeparateStencilFun))
 			{
-				bForceRestFun = true;
+				bForceRestFunc = true;
 			}
 
 			if (pendingValue.bUseSeparateStencilOp)
 			{
-				if (bForceRestOp || GL_TEST_STATE_DIRTY(stencilFailOp) || GL_TEST_STATE_DIRTY(stencilZFailOp) || GL_TEST_STATE_DIRTY(stencilZPassOp) || GL_TEST_STATE_DIRTY(stencilFailOpBack) || GL_TEST_STATE_DIRTY(stencilZFailOpBack) || GL_TEST_STATE_DIRTY(stencilZPassOpBack))
+				if (bForceRestOp || GL_IS_STATE_DIRTY(stencilFailOp) || GL_IS_STATE_DIRTY(stencilZFailOp) || GL_IS_STATE_DIRTY(stencilZPassOp) || GL_IS_STATE_DIRTY(stencilFailOpBack) || GL_IS_STATE_DIRTY(stencilZFailOpBack) || GL_IS_STATE_DIRTY(stencilZPassOpBack))
 				{
-					GL_STATE_VAR_ASSIGN(stencilFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZPassOp);
-					GL_STATE_VAR_ASSIGN(stencilFailOpBack);
-					GL_STATE_VAR_ASSIGN(stencilZFailOpBack);
-					GL_STATE_VAR_ASSIGN(stencilZPassOpBack);
+					GL_COMMIT_STATE_VALUE(stencilFailOp);
+					GL_COMMIT_STATE_VALUE(stencilZFailOp);
+					GL_COMMIT_STATE_VALUE(stencilZPassOp);
+					GL_COMMIT_STATE_VALUE(stencilFailOpBack);
+					GL_COMMIT_STATE_VALUE(stencilZFailOpBack);
+					GL_COMMIT_STATE_VALUE(stencilZPassOpBack);
 					glStencilOpSeparate(GL_FRONT, pendingValue.stencilFailOp, pendingValue.stencilZFailOp, pendingValue.stencilZPassOp);
 					glStencilOpSeparate(GL_BACK, pendingValue.stencilFailOpBack, pendingValue.stencilZFailOpBack, pendingValue.stencilZPassOpBack);
 				}
 			}
 			else
 			{
-				if (bForceRestOp || GL_TEST_STATE_DIRTY(stencilFailOp) || GL_TEST_STATE_DIRTY(stencilZFailOp) || GL_TEST_STATE_DIRTY(stencilZPassOp))
+				if (bForceRestOp || GL_IS_STATE_DIRTY(stencilFailOp) || GL_IS_STATE_DIRTY(stencilZFailOp) || GL_IS_STATE_DIRTY(stencilZPassOp))
 				{
-					GL_STATE_VAR_ASSIGN(stencilFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZFailOp);
-					GL_STATE_VAR_ASSIGN(stencilZPassOp);
+					GL_COMMIT_STATE_VALUE(stencilFailOp);
+					GL_COMMIT_STATE_VALUE(stencilZFailOp);
+					GL_COMMIT_STATE_VALUE(stencilZPassOp);
 					glStencilOp(pendingValue.stencilFailOp, pendingValue.stencilZFailOp, pendingValue.stencilZPassOp);
 				}
 			}
 			if (pendingValue.bUseSeparateStencilFun)
 			{
-				if (bForceRestFun || GL_TEST_STATE_DIRTY(stencilFun) || GL_TEST_STATE_DIRTY(stencilFunBack) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_TEST_STATE_DIRTY(stencilReadMask))
+				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFun) || GL_IS_STATE_DIRTY(stencilFunBack) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
 				{
-					GL_STATE_VAR_ASSIGN(stencilFun);
-					GL_STATE_VAR_ASSIGN(stencilFunBack);
-					GL_STATE_VAR_ASSIGN(stencilReadMask);
+					GL_COMMIT_STATE_VALUE(stencilFun);
+					GL_COMMIT_STATE_VALUE(stencilFunBack);
+					GL_COMMIT_STATE_VALUE(stencilReadMask);
 					committedValue.stencilRef = mDeviceState.stencilRefPending;
 					glStencilFuncSeparate(GL_FRONT, pendingValue.stencilFun, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 					glStencilFuncSeparate(GL_BACK, pendingValue.stencilFunBack, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
@@ -1539,10 +1535,10 @@ namespace Render
 			}
 			else
 			{
-				if (bForceRestFun || GL_TEST_STATE_DIRTY(stencilFun) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_TEST_STATE_DIRTY(stencilReadMask))
+				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFun) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
 				{
-					GL_STATE_VAR_ASSIGN(stencilFun);
-					GL_STATE_VAR_ASSIGN(stencilReadMask);
+					GL_COMMIT_STATE_VALUE(stencilFun);
+					GL_COMMIT_STATE_VALUE(stencilReadMask);
 					committedValue.stencilRef = mDeviceState.stencilRefPending;
 					glStencilFunc(pendingValue.stencilFun, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 				}
@@ -1732,8 +1728,8 @@ namespace Render
 
 		newSamplerState.loc = loc;
 		newSamplerState.shaderHandle = shaderHandle;
-		newSamplerState.samplerHandle = GL_NONE;
-		newSamplerState.textureHandle = GL_NONE;
+		newSamplerState.samplerHandle = GL_NULL_HANDLE;
+		newSamplerState.textureHandle = GL_NULL_HANDLE;
 		return newSlotIndex;
 	}
 

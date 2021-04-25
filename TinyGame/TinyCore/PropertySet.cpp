@@ -251,7 +251,7 @@ static char* SkipTo( char* str , char* s )
 	return strpbrk( str , s );
 }
 
-static void CutBackSpace( char* str )
+static void RemoveTailSpace( char* str )
 {
 	char* p = str;
 	do { --p; } while( FCString::IsSpace( *p ) );
@@ -290,7 +290,7 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 		if ( token == nullptr )
 			return PARSE_SECTION_ERROR;
 
-		CutBackSpace( token );
+		RemoveTailSpace( token );
 
 		token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ) );
 		if ( *token != '\0' )
@@ -310,12 +310,12 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 				char* keyName = token;
 				token = test;
 
-				CutBackSpace( token );
+				RemoveTailSpace( token );
 
 				token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ));
 				char* keyValueString = token;
 
-				CutBackSpace( token + strlen( token ) );
+				RemoveTailSpace( token + strlen( token ) );
 
 				auto pKeyValue = (*curSection)->addKeyValue( keyName , keyValueString );
 

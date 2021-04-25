@@ -244,6 +244,7 @@ public:
 	operator Vector4() const { return Vector4(r, g, b, a); }
 
 	friend Color4f operator * (float f, Color4f const& c) { return Color4f(f * c.r, f * c.g, f * c.b, f * c.a); }
+	friend Color4f operator - (Color4f const& lhs, Color4f const& rhs) { return Color4f(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a); }
 
 };
 

@@ -72,6 +72,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(SolutionDir)TinyGame\out\Shader;$(IncludePath)</IncludePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(SolutionDir)TinyGame\out\Shader;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(SolutionDir)TinyGame\out\Shader;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(SolutionDir)TinyGame\out\Shader;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -155,8 +164,7 @@
     <None Include="..\TinyGame\out\Shader\DistanceField.sgc" />
     <None Include="..\TinyGame\out\Shader\DOF.sgc" />
     <None Include="..\TinyGame\out\Shader\EnvLightTextureGen.sgc" />
-    <None Include="..\TinyGame\out\Shader\Game\BumpPS.sgc" />
-    <None Include="..\TinyGame\out\Shader\Game\BumpVS.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\BumpMapTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Chess.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\EnvLightingTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\FS.sgc" />

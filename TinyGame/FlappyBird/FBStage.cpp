@@ -21,7 +21,7 @@ namespace FlappyBird
 {
 	using namespace Render;
 
-	REGISTER_STAGE2("FlappyBird Test", LevelStage, EStageGroup::Dev, 2);
+	REGISTER_STAGE("FlappyBird Test", LevelStage, EStageGroup::Dev, 2);
 
 
 	class AgentBird : public AgentEntity

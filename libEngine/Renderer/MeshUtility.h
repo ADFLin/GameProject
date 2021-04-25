@@ -65,7 +65,7 @@ namespace Render
 
 		static void FillTriangleListNormalAndTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
 		static void FillTriangleListTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
-		static void FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = Vertex::ATTRIBUTE_NORMAL);
+		static void FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = EVertex::ATTRIBUTE_NORMAL);
 
 		static bool Meshletize(
 			int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, 
@@ -82,7 +82,7 @@ namespace Render
 
 		static void ComputeTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal);
 
-		static void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = Vertex::ATTRIBUTE_NORMAL);
+		static void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = EVertex::ATTRIBUTE_NORMAL);
 
 
 		template< class IndexType >

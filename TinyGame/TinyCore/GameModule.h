@@ -101,7 +101,6 @@ public:
 	//old replay version
 	virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return nullptr; }
 
-
 	bool changeDefaultStage(StageManager& stageManager, EGameStageMode modeType);
 };
 

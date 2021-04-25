@@ -954,7 +954,7 @@ namespace Render
 				Vector4(1,1,0,1) , Vector4(-1,1,0,1) , Vector4(-1,-1,0,1) , Vector4(1,-1,0,1)
 			};
 			int indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
-			mScreenMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
+			mScreenMesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float4);
 			if( !mScreenMesh.createRHIResource(v, 4, indices, 6, true) )
 				return false;
 		}
@@ -969,13 +969,13 @@ namespace Render
 	void OITTechnique::render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender, FrameRenderTargets* sceneRenderTargets)
 	{
 
-		auto DrawFun = [this, &view, &scnenRender](RHICommandList& commandList)
+		auto DrawFunc = [this, &view, &scnenRender](RHICommandList& commandList)
 		{
 			RenderContext context(commandList, view, *this);
 			scnenRender.renderTranslucent(context);
 		};
 
-		renderInternal(commandList, view, DrawFun , sceneRenderTargets );
+		renderInternal(commandList, view, DrawFunc , sceneRenderTargets );
 
 		if( 1 )
 		{
@@ -995,7 +995,7 @@ namespace Render
 
 	void OITTechnique::renderTest(RHICommandList& commandList, ViewInfo& view, FrameRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
 	{
-		auto DrawFun = [this , &view , &mesh , material ](RHICommandList& commandList)
+		auto DrawFunc = [this , &view , &mesh , material ](RHICommandList& commandList)
 		{
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 
@@ -1035,7 +1035,7 @@ namespace Render
 			
 		};
 
-		renderInternal(commandList, view, DrawFun);
+		renderInternal(commandList, view, DrawFunc);
 
 
 		if (1)

@@ -67,25 +67,25 @@ namespace Render
 
 			void getMeshInputLayout(InputLayoutDesc& inputLayout, bool bAddNormalTangent)
 			{
-				inputLayout.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+				inputLayout.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 				if (!colors.empty())
 				{
-					inputLayout.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
+					inputLayout.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::Float4);
 				}
 				if (!normals.empty() || bAddNormalTangent)
 				{
-					inputLayout.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+					inputLayout.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 				}
 				if (!tangents.empty() || bAddNormalTangent)
 				{
-					inputLayout.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
+					inputLayout.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
 				}
 				if (!texcoords.empty())
 				{
 					int idxTex = 0;
 					for (auto const& texInfo : texcoords)
 					{
-						inputLayout.addElement(0, Vertex::ATTRIBUTE_TEXCOORD + idxTex, Vertex::eFloat2);
+						inputLayout.addElement(0, EVertex::ATTRIBUTE_TEXCOORD + idxTex, EVertex::Float2);
 						++idxTex;
 					}
 				}

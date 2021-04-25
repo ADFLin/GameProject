@@ -499,7 +499,7 @@ namespace Render
 			std::vector< InputElementDesc const* > sortedElements;
 			for (auto const& e : key.elements)
 			{
-				if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+				if (e.attribute == EVertex::ATTRIBUTE_UNUSED)
 					continue;
 
 				sortedElements.push_back(&e);
@@ -514,7 +514,7 @@ namespace Render
 			for (auto e : sortedElements)
 			{
 				FixString< 128 > str;
-				str.format("float%d v%d : ATTRIBUTE%d;", Vertex::GetComponentNum(e->format), e->attribute, e->attribute);
+				str.format("float%d v%d : ATTRIBUTE%d;", EVertex::GetComponentNum(e->format), e->attribute, e->attribute);
 				vertexCode += str.c_str();
 			}
 
@@ -934,12 +934,10 @@ namespace Render
 				return false;
 			}
 		}
-
 		return true;
 	}
 
-
-	void D3D11ResourceBoundState::clearTexture(ShaderParameter const& parameter)
+	bool D3D11ResourceBoundState::clearTexture(ShaderParameter const& parameter)
 	{
 		if (mBoundedSRVs[parameter.mLoc] != nullptr)
 		{
@@ -949,7 +947,10 @@ namespace Render
 			{
 				--mMaxSRVBoundIndex;
 			}
+
+			return true;
 		}
+		return false;
 	}
 
 	void D3D11ResourceBoundState::setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
@@ -1924,7 +1925,7 @@ namespace Render
 				if (i == EShader::Compute || ( setupMask & BIT(i) ) )
 					continue;
 
-				if (mBoundedShaders[i].resource )
+				if ( mBoundedShaders[i].resource )
 				{
 					mBoundedShaders[i].resource = nullptr;
 					mBoundedShaderDirtyMask |= BIT(i);
@@ -1937,26 +1938,8 @@ namespace Render
 	{
 		bUseFixedShaderPipeline = false;
 
-		for (int type = 0; type < EShader::Count; ++type)
+		auto SetupShader = [this](EShader::Type type, RHIShader* shader)
 		{
-			if (type == EShader::Compute)
-				continue;
-
-			RHIShader* shader = nullptr;
-			switch (type)
-			{
-			case EShader::Vertex:   shader = stateDesc.vertex; break;
-			case EShader::Pixel:    shader = stateDesc.pixel; break;
-			case EShader::Geometry: shader = stateDesc.geometry; break;
-			case EShader::Domain:   shader = stateDesc.domain; break;
-			case EShader::Hull:     shader = stateDesc.hull; break;
-			}
-
-			if (type == EShader::Vertex)
-			{
-				mVertexShader = shader;
-			}
-
 			if (shader == nullptr)
 			{
 				if (mBoundedShaders[type].resource)
@@ -1975,7 +1958,15 @@ namespace Render
 					mBoundedShaderDirtyMask |= BIT(type);
 				}
 			}
-		}
+		};
+
+		mVertexShader = stateDesc.vertex;
+
+		SetupShader(EShader::Vertex, stateDesc.vertex);
+		SetupShader(EShader::Pixel, stateDesc.pixel);
+		SetupShader(EShader::Geometry, stateDesc.geometry);
+		SetupShader(EShader::Domain, stateDesc.domain);
+		SetupShader(EShader::Hull, stateDesc.hull);
 	}
 
 	void D3D11Context::RHISetComputeShader(RHIShader* shader)
@@ -2111,27 +2102,18 @@ namespace Render
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this](EShader::Type type, ShaderParameter const& shaderParam)
 		{
-			mResourceBoundStates[type].clearTexture(shaderParam);
-			switch (type)
+			D3D11ResourceBoundState& boundState = mResourceBoundStates[type];
+			if (boundState.clearTexture(shaderParam) )
 			{
-			case EShader::Vertex:
-				mResourceBoundStates[type].commitSAVState< EShader::Vertex >(mDeviceContext);
-				break;
-			case EShader::Pixel:
-				mResourceBoundStates[type].commitSAVState< EShader::Pixel >(mDeviceContext);
-				break;
-			case EShader::Geometry:
-				mResourceBoundStates[type].commitSAVState< EShader::Geometry >(mDeviceContext);
-				break;
-			case EShader::Compute:
-				mResourceBoundStates[type].commitSAVState< EShader::Compute >(mDeviceContext);
-				break;
-			case EShader::Hull:
-				mResourceBoundStates[type].commitSAVState< EShader::Hull >(mDeviceContext);
-				break;
-			case EShader::Domain:
-				mResourceBoundStates[type].commitSAVState< EShader::Domain >(mDeviceContext);
-				break;
+				switch (type)
+				{
+				case EShader::Vertex:   boundState.commitSAVState< EShader::Vertex >(mDeviceContext); break;
+				case EShader::Pixel:    boundState.commitSAVState< EShader::Pixel >(mDeviceContext); break;
+				case EShader::Geometry: boundState.commitSAVState< EShader::Geometry >(mDeviceContext); break;
+				case EShader::Compute:  boundState.commitSAVState< EShader::Compute >(mDeviceContext); break;
+				case EShader::Hull:     boundState.commitSAVState< EShader::Hull >(mDeviceContext); break;
+				case EShader::Domain:   boundState.commitSAVState< EShader::Domain >(mDeviceContext); break;
+				}
 			}
 		});
 	}
@@ -2185,7 +2167,6 @@ namespace Render
 		shaderProgramImpl.setupShader(param, [this](EShader::Type type, ShaderParameter const& shaderParam)
 		{
 			mResourceBoundStates[type].setRWTexture(shaderParam, nullptr);
-
 			if (type == EShader::Compute)
 			{
 				mResourceBoundStates[type].commitUAVState(mDeviceContext);

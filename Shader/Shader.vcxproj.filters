@@ -64,12 +64,6 @@
     <None Include="..\TinyGame\out\Shader\Tonemap.sgc" />
     <None Include="..\TinyGame\out\Shader\VertexFactoryProcess.sgc" />
     <None Include="..\TinyGame\out\Shader\ViewParam.sgc" />
-    <None Include="..\TinyGame\out\Shader\Game\BumpPS.sgc">
-      <Filter>Game</Filter>
-    </None>
-    <None Include="..\TinyGame\out\Shader\Game\BumpVS.sgc">
-      <Filter>Game</Filter>
-    </None>
     <None Include="..\TinyGame\out\Shader\Game\EnvLightingTest.sgc">
       <Filter>Game</Filter>
     </None>
@@ -207,6 +201,9 @@
       <Filter>Game</Filter>
     </None>
     <None Include="..\TinyGame\out\Shader\MeshUVCoord.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\BumpMapTest.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

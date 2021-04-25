@@ -54,9 +54,9 @@ namespace Render
 	{
 		SimplePipelineProgram* program = GSimpleShaderPipline;
 
-		if (attributeMask & BIT(Vertex::ATTRIBUTE_COLOR))
+		if (attributeMask & BIT(EVertex::ATTRIBUTE_COLOR))
 		{
-			if (attributeMask & BIT(Vertex::ATTRIBUTE_TEXCOORD) && bHaveTexture )
+			if (attributeMask & BIT(EVertex::ATTRIBUTE_TEXCOORD) && bHaveTexture )
 			{
 				program = GSimpleShaderPiplineCT;
 			}
@@ -67,7 +67,7 @@ namespace Render
 		}
 		else
 		{
-			if ((attributeMask & BIT(Vertex::ATTRIBUTE_TEXCOORD)) && bHaveTexture)
+			if ((attributeMask & BIT(EVertex::ATTRIBUTE_TEXCOORD)) && bHaveTexture)
 			{
 				program = GSimpleShaderPiplineT;
 			}

@@ -742,7 +742,7 @@ namespace Chess
 	protected:
 	};
 
-	REGISTER_STAGE("Chess", TestStage, EStageGroup::Dev4);
+	REGISTER_STAGE("Chess", TestStage, EStageGroup::Dev4, "Game");
 
 
 }//namespace Chess

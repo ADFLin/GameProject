@@ -305,8 +305,8 @@ namespace Render
 				int numTriangles = 0;
 				int* pTriangleIndex = MeshUtility::ConvertToTriangleList(mesh.mType, pIndices, mesh.mIndexBuffer->getNumElements(), mesh.mIndexBuffer->isIntType(), tempBuffer, numTriangles);
 				auto posReader = mesh.makePositionReader(pVertex);
-				auto normalReader = mesh.makeAttributeReader(pVertex, Vertex::ATTRIBUTE_NORMAL);
-				auto tangentReader = mesh.makeAttributeReader(pVertex, Vertex::ATTRIBUTE_TANGENT);
+				auto normalReader = mesh.makeAttributeReader(pVertex, EVertex::ATTRIBUTE_NORMAL);
+				auto tangentReader = mesh.makeAttributeReader(pVertex, EVertex::ATTRIBUTE_TANGENT);
 				geom->SetVertexCount(posReader.getNum());
 				geom->SetTriangleCount(numTriangles);
 
@@ -388,7 +388,7 @@ namespace Render
 			LogMsg("MeshLod : v = %u t = %u", geomLod->GetVertexCount(), geomLod->GetTriangleCount());
 
 
-			mMeshLOD.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+			mMeshLOD.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 
 			{
 				spRealData posData = mSimplygonSDK->CreateRealData();
@@ -731,6 +731,6 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("Mesh Shader", MeshShaderTestStage, EStageGroup::FeatureDev);
+	REGISTER_STAGE("Mesh Shader", MeshShaderTestStage, EStageGroup::FeatureDev, "Render|Test");
 
 }

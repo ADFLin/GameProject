@@ -36,8 +36,8 @@ namespace Render
 	bool SimpleElementRenderer::init()
 	{
 		InputLayoutDesc desc;
-		desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
-		desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
+		desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float4);
+		desc.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::Float4);
 
 		mInputLayout = RHICreateInputLayout(desc);
 		mVertexBuffer = RHICreateVertexBuffer(sizeof(SimpleVertex), MaxVertexSize, BCF_CpuAccessWrite);

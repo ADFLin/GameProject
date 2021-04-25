@@ -288,4 +288,4 @@ protected:
 };
 
 
-REGISTER_STAGE("Sudoku Test Stage", SudokuStage, EStageGroup::Test);
+REGISTER_STAGE("Sudoku Test Stage", SudokuStage, EStageGroup::Test, "Test|Game");

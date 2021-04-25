@@ -35,7 +35,7 @@ namespace Render
 		bool buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector<MeshletCullData>* outCullDataList = nullptr);
 
 
-		VertexElementReader makeAttributeReader(uint8 const* pData, Vertex::Attribute attribute)
+		VertexElementReader makeAttributeReader(uint8 const* pData, EVertex::Attribute attribute)
 		{
 			VertexElementReader result;
 			result.numVertex = mVertexBuffer->getNumElements();
@@ -45,7 +45,7 @@ namespace Render
 		}
 		VertexElementReader makePositionReader(uint8 const* pData)
 		{
-			return makeAttributeReader(pData, Vertex::ATTRIBUTE_POSITION);
+			return makeAttributeReader(pData, EVertex::ATTRIBUTE_POSITION);
 		}
 
 		VertexElementReader makeUVReader(uint8 const* pData, int index = 0)
@@ -53,7 +53,7 @@ namespace Render
 			VertexElementReader result;
 			result.numVertex = mVertexBuffer->getNumElements();
 			result.vertexDataStride = mVertexBuffer->getElementSize();
-			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(Vertex::ATTRIBUTE_TEXCOORD + index);
+			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD + index);
 			return result;
 		}
 

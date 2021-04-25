@@ -56,7 +56,7 @@ class UIMotionTask;
 class WidgetRenderer;
 class GWidget;
 
-using WidgetEventDelegate = std::function< bool (int event  , GWidget* ) >;
+using WidgetEventDelegate = std::function< bool (int event, GWidget*) >;
 
 struct WidgetColor
 {

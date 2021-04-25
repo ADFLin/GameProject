@@ -13,7 +13,7 @@ namespace Render
 	struct SpirvShaderCode;
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkShaderModule>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkShaderModule>
 	{
 		typedef VkShaderModule HandleType;
 
@@ -29,7 +29,7 @@ namespace Render
 	};
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkDescriptorSetLayout>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkDescriptorSetLayout>
 	{
 		typedef VkDescriptorSetLayout HandleType;
 
@@ -45,7 +45,7 @@ namespace Render
 	};
 
 	template<>
-	struct TVulkanResourceTraits<EVulkanResourceType::eVkPipelineLayout>
+	struct TVulkanResourceTraits<EVulkanResourceType::VkPipelineLayout>
 	{
 		typedef VkPipelineLayout HandleType;
 

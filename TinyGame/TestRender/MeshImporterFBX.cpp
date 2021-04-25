@@ -174,7 +174,7 @@ namespace Render
 		int numVertices = pFBXMesh->GetPolygonVertexCount();
 		vertexData.resize(numVertices * vertexSize);
 
-		auto GetBufferData = [&outMesh, &vertexData](Vertex::Attribute attribute) -> uint8*
+		auto GetBufferData = [&outMesh, &vertexData](EVertex::Attribute attribute) -> uint8*
 		{
 			int offset = outMesh.mInputLayoutDesc.getAttributeOffset(attribute);
 			if (offset < 0)
@@ -183,11 +183,11 @@ namespace Render
 		};
 
 
-		uint8* pPosition = GetBufferData(Vertex::ATTRIBUTE_POSITION);
-		uint8* pColor = GetBufferData(Vertex::ATTRIBUTE_COLOR);
-		uint8* pNormal = vertexFormat.normals.empty() ? nullptr : GetBufferData(Vertex::ATTRIBUTE_NORMAL);
-		uint8* pTangent = vertexFormat.tangents.empty() ? nullptr : GetBufferData(Vertex::ATTRIBUTE_TANGENT);
-		uint8* pTexcoord = GetBufferData(Vertex::ATTRIBUTE_TEXCOORD);
+		uint8* pPosition = GetBufferData(EVertex::ATTRIBUTE_POSITION);
+		uint8* pColor = GetBufferData(EVertex::ATTRIBUTE_COLOR);
+		uint8* pNormal = vertexFormat.normals.empty() ? nullptr : GetBufferData(EVertex::ATTRIBUTE_NORMAL);
+		uint8* pTangent = vertexFormat.tangents.empty() ? nullptr : GetBufferData(EVertex::ATTRIBUTE_TANGENT);
+		uint8* pTexcoord = GetBufferData(EVertex::ATTRIBUTE_TEXCOORD);
 
 		auto baseLayer = pFBXMesh->GetLayer(0);
 		FbxLayerElementMaterial* layerElementMaterial = baseLayer->GetMaterials();

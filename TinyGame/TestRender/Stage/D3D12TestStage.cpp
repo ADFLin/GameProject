@@ -151,9 +151,9 @@ namespace Render
 				mProgTriangle = ShaderManager::Get().getGlobalShaderT< TriangleProgram >();
 
 				InputLayoutDesc desc;
-				desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
-				desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
-				desc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+				desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+				desc.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::Float4);
+				desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 				mInputLayout = RHICreateInputLayout(desc);
 			}
 

@@ -44,12 +44,12 @@ namespace Math
 	}
 
 
-	bool LineBoxTest(Vector2 const& rayPos, Vector2 const& rayDir, Vector2 const& boxMin, Vector2 const& boxMax, float outDistances[])
+	bool LineAABBTest(Vector2 const& rayPos, Vector2 const& rayDir, Vector2 const& boxMin, Vector2 const& boxMax, float outDistances[])
 	{
 		return LineBoxTestT(rayPos, rayDir, boxMin, boxMax, outDistances);
 	}
 
-	bool LineBoxTest(Vector3 const& rayPos, Vector3 const& rayDir, Vector3 const& boxMin, Vector3 const& boxMax, float outDistances[])
+	bool LineAABBTest(Vector3 const& rayPos, Vector3 const& rayDir, Vector3 const& boxMin, Vector3 const& boxMax, float outDistances[])
 	{
 		return LineBoxTestT(rayPos, rayDir, boxMin, boxMax, outDistances);
 	}
@@ -116,6 +116,41 @@ namespace Math
 		return IsIntersect(aMin.x, aMax.x, bMin.x, bMax.x) && IsIntersect(aMin.y, aMax.y, bMin.y, bMax.y) && IsIntersect(aMin.z, aMax.z, bMin.z, bMax.z);;
 	}
 
+	bool RaySphereTest(Vector3 const& pos, Vector3 const& dirNormalized, Vector3 const& center, float radius, float& outT)
+	{
+		// ( ld + vd * t ) ^ 2 = r^2 ; ld = pos - center
+		// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
+		Vector3 offset = pos - center;
+
+		float b = offset.dot(dirNormalized);
+		float c = offset.length2() - radius * radius;
+		float d = b * b - c;
+
+		if (d < 0)
+		{
+			outT = (offset - b * dirNormalized).length();
+			return false;
+		}
+		outT = -b - sqrt(d);
+		return true;
+	}
+
+	bool LineSphereTest(Vector3 const& pos, Vector3 const& dirNormalized, Vector3 const& center, float radius, float outDistance[2])
+	{
+		Vector3 offset = center - pos;
+
+		float b = offset.dot(dirNormalized);
+		float c = offset.length2() - radius * radius;
+
+		float d = b * b - c;
+		if (d < 0)
+			return false;
+
+		d = Math::Sqrt(d);
+		outDistance[0] = b - d;
+		outDistance[1] = b + d;
+		return true;
+	}
 
 	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, Vector2& outPos)
 	{

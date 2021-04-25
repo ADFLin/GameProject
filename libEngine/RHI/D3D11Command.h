@@ -75,8 +75,8 @@ namespace Render
 		}
 
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
-		void clearTexture(ShaderParameter const& parameter);
-		void clearUAV(ShaderParameter const& parameter);
+		bool clearTexture(ShaderParameter const& parameter);
+		bool clearUAV(ShaderParameter const& parameter);
 		void setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture);
 		void setSampler(ShaderParameter const& parameter, RHISamplerState& sampler);
 		void setUniformBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer);
@@ -526,7 +526,7 @@ namespace Render
 				hash = 0x1a21df14;
 				for( auto const& e : elements )
 				{
-					if (e.attribute == Vertex::ATTRIBUTE_UNUSED)
+					if (e.attribute == EVertex::ATTRIBUTE_UNUSED)
 						continue;
 
 					HashCombine(hash, HashValue(&e , sizeof(e)) );

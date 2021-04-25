@@ -13,6 +13,9 @@
 
 #include "RefCount.h"
 
+#include "Renderer/SimpleCamera.h"
+#include "Math/PrimitiveTest.h"
+
 namespace SR
 {
 	using namespace Render;
@@ -98,10 +101,12 @@ namespace SR
 			:r(v.x), g(v.y), b(v.z), a(1.0)
 		{
 		}
+
+		
 	};
 
 	LinearColor operator * (float s, LinearColor const& rhs) { return LinearColor(s * rhs.r, s * rhs.g, s * rhs.b, s * rhs.a); }
-
+	LinearColor operator - (LinearColor const& lhs, LinearColor& rhs) { return LinearColor(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a); }
 
 
 	class ColorBuffer
@@ -330,24 +335,6 @@ namespace SR
 		}
 	};
 
-	bool LineSphereTest(Vector3 const& linePos, Vector3 const& dir, Vector3 const& spherePos, float radius,  float outDistance[2])
-	{
-		Vector3 offset = spherePos - linePos;
-
-		float b = offset.dot( dir );
-		float c = offset.length2() - radius * radius;
-
-		float d = b * b - c;
-		if( d < 0 )
-			return false;
-
-		d = Math::Sqrt(d);
-		outDistance[0] = b - d;
-		outDistance[1] = b + d;
-		return true;
-	}
-
-
 	class PrimitiveShape : public RefCountedObjectT< PrimitiveShape >
 	{
 	public:
@@ -565,7 +552,7 @@ namespace SR
 		using BaseClass = StageBase;
 	public:
 
-		bool bRayTracerUsed = true;
+		bool bRayTracerUsed = false;
 		RayTraceRenderer mRTRenderer;
 		RasterizedRenderer mRenderer;
 
@@ -573,6 +560,8 @@ namespace SR
 
 		Scene  mScene;
 		Camera mCamera;
+
+		SimpleCamera mCameraControl;
 
 
 		void setupScene();
@@ -600,22 +589,10 @@ namespace SR
 			updateFrame(frame);
 		}
 
-		void renderTest2()
-		{
-			Graphics2D& g = Global::GetGraphics2D();
-
-			RenderTarget renderTarget;
-			renderTarget.colorBuffer = &mColorBuffer;
-			mRTRenderer.setRenderTarget(renderTarget);
-			mRTRenderer.clearBuffer(LinearColor(0.2, 0.2, 0.2, 0));
-
-			mRTRenderer.render(mScene, mCamera);
-
-			mColorBuffer.draw(g);
-		}
-
 		void renderTest1();
+		void renderTest2();
 
+	
 		void onRender(float dFrame) override
 		{
 			if( bRayTracerUsed )
@@ -639,8 +616,10 @@ namespace SR
 
 		void tick()
 		{
+			float deltaTime = float(gDefaultTickTime) / 1000.0;
+			angle += deltaTime;
 
-			angle += float(gDefaultTickTime) / 1000.0;
+			mCameraControl.updatePosition(deltaTime);
 		}
 
 		void updateFrame(int frame)
@@ -650,24 +629,26 @@ namespace SR
 
 		bool onMouse(MouseMsg const& msg) override
 		{
+			static Vec2i oldPos = msg.getPos();
+
+			if (msg.onLeftDown())
+			{
+				oldPos = msg.getPos();
+			}
+			if (msg.onMoving() && msg.isLeftDown())
+			{
+				float rotateSpeed = 0.01;
+				Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
+				mCameraControl.rotateByMouse(off.x, off.y);
+				oldPos = msg.getPos();
+			}
+
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
 		}
 
-		bool onKey(KeyMsg const& msg) override
-		{
-			if( !msg.isDown() )
-				return false;
-
-			switch(msg.getCode())
-			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::P: bPause = !bPause; break;
-			case EKeyCode::F2: bRayTracerUsed = !bRayTracerUsed; break;
-			}
-			return false;
-		}
+		bool onKey(KeyMsg const& msg) override;
 
 
 	};

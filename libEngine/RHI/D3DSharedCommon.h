@@ -25,7 +25,7 @@ namespace Render
 	struct D3DTranslate
 	{
 		static D3D_PRIMITIVE_TOPOLOGY To(EPrimitive type);
-		static DXGI_FORMAT To(Vertex::Format format, bool bNormalized);
+		static DXGI_FORMAT To(EVertex::Format format, bool bNormalized);
 		static DXGI_FORMAT To(ETexture::Format format);
 	};
 

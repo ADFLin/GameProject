@@ -220,9 +220,11 @@ namespace Render
 		}
 
 		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler);
+
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 
 		void clearShaderUAV(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
+
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param)
 		{
 
@@ -269,6 +271,13 @@ namespace Render
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
+
+		template< class TShaderObject >
+		void setShaderUniformBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		template< class TShaderObject >
+		void setShaderStorageBufferT(TShaderObject& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
+		template< class TShaderObject > 
+		void setShaderRWTextureT(TShaderObject& shaderObject, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 
 		static int const IdxTextureAutoBindStart = 2;
 
@@ -411,6 +420,7 @@ namespace Render
 		void setShaderSamplerInternal(GLuint shaderHandle, ShaderParameter const& param, RHISamplerState& sampler);
 
 	};
+
 
 	class OpenGLSystem : public RHISystem
 	{

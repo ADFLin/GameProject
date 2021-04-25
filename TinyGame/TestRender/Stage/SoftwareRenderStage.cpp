@@ -1,5 +1,7 @@
 #include "SoftwareRenderStage.h"
 
+#include "ProfileSystem.h"
+
 #define USE_OMP 1
 
 #if USE_OMP
@@ -12,7 +14,7 @@ REGISTER_STAGE("Software Renderer", SR::TestStage, EStageGroup::GraphicsTest);
 namespace SR
 {
 
-	Texture SimpleTexture;
+	Texture simpleTexture;
 
 
 	bool ColorBuffer::create(Vec2i const& size)
@@ -98,7 +100,7 @@ namespace SR
 		assert(0 <= x1 && x1 < mSize.x);
 		assert(0 <= y1 && y1 < mSize.y);
 
-#if 0
+#if 1
 		LinearColor c00 = mData[x0 + y0* mSize.x];
 		LinearColor c10 = mData[x1 + y0* mSize.x];
 		LinearColor c01 = mData[x0 + y1* mSize.x];
@@ -131,13 +133,6 @@ namespace SR
 		}
 	};
 
-	struct VertexData
-	{
-		float  w;
-		Vector2  uv;
-		LinearColor color;
-	};
-
 
 
 	int PixelCut(float value)
@@ -149,13 +144,75 @@ namespace SR
 	// 1/z = 1/z0 * ( 1- a ) + 1 / z1 * a
 	// v = v0 * ( z / z0 ) * ( 1 - a ) + v1 * ( z / z1 ) * a
 
-	// w = w0 * ( 1- a ) + w1 * a => Dw = ( w1 - w0 ) / D
+	// w = w0 * ( 1- a ) + w1 * a = w0 + ( w1 - w0 ) * a
+	//=> dw = ( w1 - w0 ) * da
 	// v = v0 * ( w0 / w ) * ( 1 - a ) + v1 * ( w1 / w ) * a
+	//   = ( v0 * w0 + ( v1 * w1 - v0 * w0 ) * a ) / w
+	//=> dv = ( v1 * w1 - v0 * w0 ) * d( a / w )
 	template< class T >
 	T PerspectiveLerp(T const& v0, T const& v1, float w0, float w1, float w, float alpha)
 	{
+#if 1
 		return  (w0 / w) * (1 - alpha) * v0 + (w1 / w) * alpha * v1;
+#else
+		float invW = 1.0 / w;
+		return  ( invW * w0 ) * v0  + (alpha * invW) * (w1 * v1 - w0 * v0);
+#endif
 	}
+
+	template< class T , class TVertexData, T TVertexData::*Member >
+	struct TDataLerpParams
+	{
+		T wv0;
+		T dwv;
+
+		TDataLerpParams(TVertexData const& v0, TVertexData const& v1)
+		{
+			wv0 =   v0.w * (v0.*Member);
+			T temp = v1.w * (v1.*Member);
+			dwv = temp - wv0;
+		}
+
+		void lerpTo(TVertexData& to, float wInv , float alpha_w)
+		{
+			(to.*Member) = wInv * wv0 + (alpha_w) * dwv;
+		}
+	};
+
+	struct VertexData
+	{
+		float    w;
+		Vector2  uv;
+		LinearColor color;
+	};
+
+	struct VertexLerpParams
+	{
+		TDataLerpParams<Vector2, VertexData, &VertexData::uv > uv;
+		TDataLerpParams<LinearColor, VertexData, &VertexData::color > color;
+
+		float w0;
+		float dw;
+
+		VertexLerpParams(VertexData const& v0, VertexData const& v1)
+			:uv(v0, v1)
+			,color(v0, v1)
+		{
+			w0 = v0.w;
+			dw = v1.w - v0.w;
+		}
+
+		void perspectiveLerp(VertexData& outData, float alpha)
+		{
+			outData.w = w0 + alpha * dw;
+			float wInv = 1.0 / outData.w;
+			float alpha_w = alpha * wInv;
+			uv.lerpTo(outData, wInv, alpha_w);
+			color.lerpTo(outData, wInv, alpha_w);
+		}
+	};
+
+
 
 	VertexData PerspectiveLerp(VertexData const& v0, VertexData const& v1, float alpha)
 	{
@@ -166,51 +223,66 @@ namespace SR
 		return result;
 	}
 
+
+#if 1
 	void ClipAndInterpolantColor(ColorBuffer& buffer, ScanLineIterator& lineIter, VertexData const& vL, VertexData const& vR, VertexData const& vS, bool bInverse)
 	{
 		Vec2i size = buffer.getSize();
 
-		if( lineIter.yStart < 0 )
+		if (lineIter.yStart < 0)
 			lineIter.yStart = 0;
-		if( lineIter.yEnd > size.y )
+		if (lineIter.yEnd > size.y)
 			lineIter.yEnd = size.y;
 
-		if( lineIter.yStart < lineIter.yEnd )
+		if (lineIter.yStart < lineIter.yEnd)
 		{
 			float day = 1 / (lineIter.yMax - lineIter.yMin);
 			float ay = 0;
 
-			for( int y = lineIter.yStart; y < lineIter.yEnd; ++y )
+			if (bInverse)
 			{
-				float temp = ay;
+				day = -day;
+				ay = 1;
+			}
 
+			VertexLerpParams lerpParamsMin(vL, vS);
+			VertexLerpParams lerpParamsMax(vR, vS);
+
+			for (int y = lineIter.yStart; y < lineIter.yEnd; ++y)
+			{
 				int xStart = PixelCut(lineIter.xMin);
-				if( xStart < 0 )
+				if (xStart < 0)
 					xStart = 0;
 				int xEnd = PixelCut(lineIter.xMax) + 1;
-				if( xEnd > size.x )
+				if (xEnd > size.x)
 					xEnd = size.x;
 
-				if( xStart < xEnd )
+				if (xStart < xEnd)
 				{
-					if( bInverse )
-						temp = 1 - temp;
-					VertexData vMin = PerspectiveLerp(vL, vS, temp);
-					VertexData vMax = PerspectiveLerp(vR, vS, temp);
+					VertexData vMin;
+					lerpParamsMin.perspectiveLerp(vMin, ay);
+					VertexData vMax;
+					lerpParamsMax.perspectiveLerp(vMax, ay);
 
 					float dax = 1 / (lineIter.xMax - lineIter.xMin);
 					float ax = 0;
-					for( int x = xStart; x < xEnd; ++x )
+
+					VertexLerpParams lerpParamsX( vMin , vMax );
+
+					for (int x = xStart; x < xEnd; ++x)
 					{
-						VertexData v = PerspectiveLerp(vMin, vMax, ax);
+						VertexData v;
+						lerpParamsX.perspectiveLerp(v, ax);
 #if 0
 
-						if( Math::Fmod(10 * v.uv.x, 1.0) > 0.5 &&
-						   Math::Fmod(10 * v.uv.y, 1.0) > 0.5 )
+						if (Math::Fmod(10 * v.uv.x, 1.0) > 0.5 &&
+							Math::Fmod(10 * v.uv.y, 1.0) > 0.5)
 							buffer.setPixel(x, y, LinearColor(1, 1, 1, 1));
 #else
 						LinearColor destC = buffer.getPixel(x, y);
-						buffer.setPixel(x, y, Math::LinearLerp(destC, v.color * SimpleTexture.sample(v.uv), 0.8));
+						buffer.setPixel(x, y, Math::LinearLerp(destC, v.color /** simpleTexture.sample(v.uv)*/, 1.0));
+
+						buffer.setPixel(x, y, LinearColor(1 , 1, 1 , 1));
 
 #endif
 						ax += dax;
@@ -222,6 +294,67 @@ namespace SR
 		}
 	}
 
+#else
+
+	void ClipAndInterpolantColor(ColorBuffer& buffer, ScanLineIterator& lineIter, VertexData const& vL, VertexData const& vR, VertexData const& vS, bool bInverse)
+	{
+
+		Vec2i size = buffer.getSize();
+
+		if( lineIter.yStart < 0 )
+			lineIter.yStart = 0;
+		if( lineIter.yEnd > size.y )
+			lineIter.yEnd = size.y;
+
+		if( lineIter.yStart < lineIter.yEnd )
+		{
+			float day = 1 / (lineIter.yMax - lineIter.yMin);
+			float ay = 0;
+			if (bInverse)
+			{
+				day = -day;
+				ay = 1;
+			}
+
+			for( int y = lineIter.yStart; y < lineIter.yEnd; ++y )
+			{
+
+				int xStart = PixelCut(lineIter.xMin);
+				if( xStart < 0 )
+					xStart = 0;
+				int xEnd = PixelCut(lineIter.xMax) + 1;
+				if( xEnd > size.x )
+					xEnd = size.x;
+
+				if( xStart < xEnd )
+				{
+					VertexData vMin = PerspectiveLerp(vL, vS, ay);
+					VertexData vMax = PerspectiveLerp(vR, vS, ay);
+
+					float dax = 1 / (lineIter.xMax - lineIter.xMin);
+					float ax = 0;
+					for( int x = xStart; x < xEnd; ++x )
+					{
+						VertexData v = PerspectiveLerp(vMin, vMax, ax);
+#if 0
+
+						if( Math::Fmod(10 * v.uv.x, 1.0) > 0.5 &&
+						    Math::Fmod(10 * v.uv.y, 1.0) > 0.5 )
+							buffer.setPixel(x, y, LinearColor(1, 1, 1, 1));
+#else
+						LinearColor destC = buffer.getPixel(x, y);
+						buffer.setPixel(x, y, Math::LinearLerp(destC, v.color * simpleTexture.sample(v.uv), 0.8));
+
+#endif
+						ax += dax;
+					}
+				}
+				lineIter.advance();
+				ay += day;
+			}
+		}
+	}
+#endif
 
 
 
@@ -537,23 +670,20 @@ namespace SR
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !mColorBuffer.create(::Global::GetScreenSize()) )
-			return false;
+		VERIFY_RETURN_FALSE( mColorBuffer.create(::Global::GetScreenSize()) );
 
-		if( !mRenderer.init() )
-			return false;
+		VERIFY_RETURN_FALSE(mRenderer.init());
 
-		if( !mRTRenderer.init() )
-			return false;
+		VERIFY_RETURN_FALSE(mRTRenderer.init());
 
-		if( !SimpleTexture.load(
+
+		char const* texPath =
 #if 0
-			"Texture/tile1.tga"
+			"Texture/tile1.tga";
 #else
-			"Texture/Gird.png"
+			"Texture/rocks.png";
 #endif
-		) )
-			return false;
+		VERIFY_RETURN_FALSE(simpleTexture.load(texPath));
 
 		setupScene();
 
@@ -576,37 +706,55 @@ namespace SR
 		mRenderer.setRenderTarget(renderTarget);
 		mRenderer.clearBuffer(LinearColor(0.2, 0.2, 0.2, 0));
 
-		DrawLine(mColorBuffer, Vector2(0, 0), Vector2(100, 200), LinearColor(1, 0, 0));
-		DrawTriangle(mColorBuffer, Vector2(123, 100), Vector2(400, 200), Vector2(200, 300), LinearColor(1, 1, 0));
-		DrawTriangle(mColorBuffer, Vector2(400, 200), Vector2(200, 300), Vector2(400, 300), LinearColor(0, 1, 1));
+		//DrawLine(mColorBuffer, Vector2(0, 0), Vector2(100, 200), LinearColor(1, 0, 0));
+		//DrawTriangle(mColorBuffer, Vector2(123, 100), Vector2(400, 200), Vector2(200, 300), LinearColor(1, 1, 0));
+		//DrawTriangle(mColorBuffer, Vector2(400, 200), Vector2(200, 300), Vector2(400, 300), LinearColor(0, 1, 1));
 
 		{
 			VertexData vd0 = { 1 , Vector2(0,0) , LinearColor(1,0,0) };
 			VertexData vd1 = { 1 , Vector2(1,0) ,LinearColor(0,1,0) };
 			VertexData vd2 = { 1 , Vector2(1,1) ,LinearColor(0,0,1) };
-			DrawTriangle(mColorBuffer, Vector2(100, 400), Vector2(200, 500), Vector2(400, 300), vd0, vd1, vd2);
+			//DrawTriangle(mColorBuffer, Vector2(100, 400), Vector2(200, 500), Vector2(400, 300), vd0, vd1, vd2);
 		}
 
 		{
 			VertexData vd0 = { 1 , Vector2(0,0) ,LinearColor(1,0,0) };
 			VertexData vd1 = { 0.5 , Vector2(1,0) ,LinearColor(0,1,0) };
 			VertexData vd2 = { 0.4 , Vector2(1,1) ,LinearColor(0,0,1) };
-			DrawTriangle(mColorBuffer, Vector2(300, 400), Vector2(400, 500), Vector2(600, 300), vd0, vd1, vd2);
+			//DrawTriangle(mColorBuffer, Vector2(300, 400), Vector2(400, 500), Vector2(600, 300), vd0, vd1, vd2);
 		}
 		using namespace Render;
 		Vec2i screenSize = ::Global::GetScreenSize();
 		float aspect = float(screenSize.x) / screenSize.y;
-		mRenderer.worldToClip = Matrix4::Rotate(Vector3(0, 1, 0), angle) * LookAtMatrix(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0)) * PerspectiveMatrix(Math::Deg2Rad(90), aspect, 0.01, 500);
+		mRenderer.worldToClip = Matrix4::Rotate(Vector3(0, 1, 0), angle) * mCameraControl.getViewMatrix() * PerspectiveMatrix(Math::Deg2Rad(90), aspect, 0.01, 500);
 		mRenderer.viewportOrg = Vector2(0, 0);
 		mRenderer.viewportSize = Vector2(::Global::GetScreenSize());
 
-		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(1, 0, 0), Vector2(0, 0),
-							   Vector3(10, -10, 0), LinearColor(1, 0, 0), Vector2(1, 0),
-							   Vector3(10, 10, 0), LinearColor(1, 0, 0), Vector2(1, 1));
-		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(0, 1, 0), Vector2(0, 0),
-							   Vector3(10, 10, 0), LinearColor(0, 1, 0), Vector2(1, 1),
-							   Vector3(-10, 10, 0), LinearColor(0, 1, 0), Vector2(0, 1));
+#if 1
+		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(1, 1, 1), Vector2(0, 0),
+							   Vector3(10, -10, 0), LinearColor(1, 1, 1), Vector2(1, 0),
+							   Vector3(10, 10, 0), LinearColor(1, 1, 1), Vector2(1, 1));
 
+
+		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(1, 1, 1), Vector2(0, 0),
+							   Vector3(10, 10, 0), LinearColor(1, 1, 1), Vector2(1, 1),
+							   Vector3(-10, 10, 0), LinearColor(1, 1, 1), Vector2(0, 1));
+
+#endif
+
+		mColorBuffer.draw(g);
+	}
+
+	void TestStage::renderTest2()
+	{
+		Graphics2D& g = Global::GetGraphics2D();
+
+		RenderTarget renderTarget;
+		renderTarget.colorBuffer = &mColorBuffer;
+		mRTRenderer.setRenderTarget(renderTarget);
+		mRTRenderer.clearBuffer(LinearColor(0.2, 0.2, 0.2, 0));
+
+		mRTRenderer.render(mScene, mCamera);
 
 		mColorBuffer.draw(g);
 	}
@@ -617,6 +765,7 @@ namespace SR
 		mCamera.fov = Math::Deg2Rad(70);
 		mCamera.aspect = float(mColorBuffer.getSize().x) / mColorBuffer.getSize().y;
 
+		mCameraControl.lookAt(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0));
 
 		TRefCountPtr< PlaneShape > plane = new PlaneShape;
 
@@ -657,6 +806,32 @@ namespace SR
 			obj->material = mat[i % 3];
 			mScene.addPrimitive(obj);
 		}
+	}
+
+	bool TestStage::onKey(KeyMsg const& msg)
+	{
+		float baseImpulse = 500;
+		switch (msg.getCode())
+		{
+		case EKeyCode::W: mCameraControl.moveForwardImpulse = msg.isDown() ? baseImpulse : 0; break;
+		case EKeyCode::S: mCameraControl.moveForwardImpulse = msg.isDown() ? -baseImpulse : 0; break;
+		case EKeyCode::D: mCameraControl.moveRightImpulse = msg.isDown() ? baseImpulse : 0; break;
+		case EKeyCode::A: mCameraControl.moveRightImpulse = msg.isDown() ? -baseImpulse : 0; break;
+		case EKeyCode::Z: mCameraControl.moveUp(0.5); break;
+		case EKeyCode::X: mCameraControl.moveUp(-0.5); break;
+		}
+
+
+		if (!msg.isDown())
+			return false;
+
+		switch (msg.getCode())
+		{
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::P: bPause = !bPause; break;
+		case EKeyCode::F2: bRayTracerUsed = !bRayTracerUsed; break;
+		}
+		return false;
 	}
 
 	bool RayTraceRenderer::init()

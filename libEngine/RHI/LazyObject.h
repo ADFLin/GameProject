@@ -15,7 +15,7 @@ class LazyObjectPtrBase
 public:
 	LazyObjectPtrBase();
 	~LazyObjectPtrBase();
-	uint64 mId;
+	uint64 mResolveSlot;
 	void*  mPtr;
 
 	friend class LazyObjectManager;
@@ -130,7 +130,7 @@ public:
 	TLazyObjectPtr(T* obj)
 	{
 		mPtr = obj;
-		mId = -1;
+		mResolveSlot = -1;
 	}
 	TLazyObjectPtr(TLazyObjectGuid< T > const& objGuid)
 	{

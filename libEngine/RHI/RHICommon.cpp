@@ -161,7 +161,7 @@ namespace Render
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 	}
 
-	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format format, bool bNormailzed, bool bInstanceData, int instanceStepRate)
+	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, EVertex::Format format, bool bNormailzed, bool bInstanceData, int instanceStepRate)
 	{
 		InputElementDesc element;
 		element.streamIndex = idxStream;
@@ -173,7 +173,7 @@ namespace Render
 		element.instanceStepRate = instanceStepRate;
 		mElements.push_back(element);
 
-		mVertexSizes[idxStream] += Vertex::GetFormatSize(format);
+		mVertexSizes[idxStream] += EVertex::GetFormatSize(format);
 		return *this;
 	}
 
@@ -183,7 +183,7 @@ namespace Render
 		{
 			if (element.attribute == attribute)
 			{
-				element.attribute == Vertex::ATTRIBUTE_UNUSED;
+				element.attribute == EVertex::ATTRIBUTE_UNUSED;
 				break;
 			}
 		}
@@ -205,10 +205,10 @@ namespace Render
 		return info ? info->offset : -1;
 	}
 
-	Vertex::Format InputLayoutDesc::getAttributeFormat(uint8 attribute) const
+	EVertex::Format InputLayoutDesc::getAttributeFormat(uint8 attribute) const
 	{
 		InputElementDesc const* info = findElementByAttribute(attribute);
-		return (info) ? Vertex::Format(info->format) : Vertex::eUnknowFormat;
+		return (info) ? EVertex::Format(info->format) : EVertex::UnknowFormat;
 	}
 
 	int InputLayoutDesc::getAttributeStreamIndex(uint8 attribute) const
@@ -222,7 +222,7 @@ namespace Render
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 		for( auto const& e : mElements )
 		{
-			mVertexSizes[e.streamIndex] += Vertex::GetFormatSize(e.format);
+			mVertexSizes[e.streamIndex] += EVertex::GetFormatSize(e.format);
 		}
 	}
 
@@ -249,15 +249,15 @@ namespace Render
 	}
 
 
-	int Vertex::GetFormatSize(uint8 format)
+	int EVertex::GetFormatSize(uint8 format)
 	{
 #if 1
-		int num = Vertex::GetComponentNum(format);
-		int compTypeSize = GetComponentTypeSize(Vertex::GetComponentType(Vertex::Format(format)));
+		int num = EVertex::GetComponentNum(format);
+		int compTypeSize = GetComponentTypeSize(EVertex::GetComponentType(EVertex::Format(format)));
 		return compTypeSize * num;
 #else
-		int num = Vertex::GetComponentNum(format);
-		switch (Vertex::GetComponentType(Vertex::Format(format)))
+		int num = EVertex::GetComponentNum(format);
+		switch (EVertex::GetComponentType(EVertex::Format(format)))
 		{
 		case CVT_Float:  return sizeof(float) * num;
 		case CVT_Half:   return sizeof(uint16) * num;

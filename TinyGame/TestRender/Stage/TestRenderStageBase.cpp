@@ -211,7 +211,7 @@ namespace Render
 			Vector3(1,-1,0),
 		};
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-		mSimpleMeshs[SimpleMeshId::SpherePlane].mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mSimpleMeshs[SimpleMeshId::SpherePlane].mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		if( !mSimpleMeshs[SimpleMeshId::SpherePlane].createRHIResource(&v[0], 4, &idx[0], 6, true) )
 			return false;
 

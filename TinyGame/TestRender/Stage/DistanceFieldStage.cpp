@@ -240,6 +240,6 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE2("Distance Field Test", DistanceFieldTestStage, EStageGroup::FeatureDev, 1);
+	REGISTER_STAGE("Distance Field Test", DistanceFieldTestStage, EStageGroup::FeatureDev, 1);
 
 }//namespace Render

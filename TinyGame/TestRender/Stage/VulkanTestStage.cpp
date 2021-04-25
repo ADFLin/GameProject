@@ -271,9 +271,9 @@ namespace RenderVulkan
 			setupDescriptorSet();
 
 			InputLayoutDesc desc;
-			desc.addElement(0, 0, Vertex::eFloat2);
-			desc.addElement(0, 1, Vertex::eFloat2);
-			desc.addElement(0, 2, Vertex::eFloat3);
+			desc.addElement(0, 0, EVertex::Float2);
+			desc.addElement(0, 1, EVertex::Float2);
+			desc.addElement(0, 2, EVertex::Float3);
 			VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
 			graphicsState.inputLayout = mInputLayout;
 
@@ -627,7 +627,7 @@ namespace RenderVulkan
 	};
 
 
-	REGISTER_STAGE("Vulkan Test", TestStage, EStageGroup::FeatureDev);
+	REGISTER_STAGE("Vulkan Test", TestStage, EStageGroup::FeatureDev, "Render|RHI");
 }
 
 char const* VSCode = CODE_STRING(

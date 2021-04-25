@@ -118,42 +118,42 @@ namespace Render
 	}
 
 
-	VkFormat VulkanTranslate::To(Vertex::Format format, bool bNormalized)
+	VkFormat VulkanTranslate::To(EVertex::Format format, bool bNormalized)
 	{
 		switch (format)
 		{
-		case Vertex::eFloat1: return VK_FORMAT_R32_SFLOAT;
-		case Vertex::eFloat2: return VK_FORMAT_R32G32_SFLOAT;
-		case Vertex::eFloat3: return VK_FORMAT_R32G32B32_SFLOAT;
-		case Vertex::eFloat4: return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case Vertex::eHalf1:  return VK_FORMAT_R16_SFLOAT;
-		case Vertex::eHalf2:  return VK_FORMAT_R16G16_SFLOAT;
-		case Vertex::eHalf3:  return VK_FORMAT_R16G16B16_SFLOAT;
-		case Vertex::eHalf4:  return VK_FORMAT_R16G16B16A16_SFLOAT;
-		case Vertex::eUInt1:  return VK_FORMAT_R32_UINT;
-		case Vertex::eUInt2:  return VK_FORMAT_R32G32_UINT;
-		case Vertex::eUInt3:  return VK_FORMAT_R32G32B32_UINT;
-		case Vertex::eUInt4:  return VK_FORMAT_R32G32B32A32_UINT;
-		case Vertex::eInt1:   return VK_FORMAT_R32_SINT;
-		case Vertex::eInt2:   return VK_FORMAT_R32G32_SINT;
-		case Vertex::eInt3:   return VK_FORMAT_R32G32B32_SINT;
-		case Vertex::eInt4:   return VK_FORMAT_R32G32B32A32_SINT;
-		case Vertex::eUShort1:return (bNormalized) ? VK_FORMAT_R16_UNORM : VK_FORMAT_R16_UINT;
-		case Vertex::eUShort2:return (bNormalized) ? VK_FORMAT_R16G16_UNORM : VK_FORMAT_R16G16_UINT;
-		case Vertex::eUShort3:return (bNormalized) ? VK_FORMAT_R16G16B16_UNORM : VK_FORMAT_R16G16B16_UINT;
-		case Vertex::eUShort4:return (bNormalized) ? VK_FORMAT_R16G16B16A16_UNORM : VK_FORMAT_R16G16B16A16_UINT;
-		case Vertex::eShort1: return (bNormalized) ? VK_FORMAT_R16_SNORM : VK_FORMAT_R16_SINT;
-		case Vertex::eShort2: return (bNormalized) ? VK_FORMAT_R16G16_SNORM : VK_FORMAT_R16G16_SINT;
-		case Vertex::eShort3: return (bNormalized) ? VK_FORMAT_R16G16B16_SNORM : VK_FORMAT_R16G16B16_SINT;
-		case Vertex::eShort4: return (bNormalized) ? VK_FORMAT_R16G16B16A16_SNORM : VK_FORMAT_R16G16B16A16_SINT;
-		case Vertex::eUByte1: return (bNormalized) ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8_UINT;
-		case Vertex::eUByte2: return (bNormalized) ? VK_FORMAT_R8G8_UNORM : VK_FORMAT_R8G8_UINT;
-		case Vertex::eUByte3: return (bNormalized) ? VK_FORMAT_R8G8B8_UNORM : VK_FORMAT_R8G8B8_UINT;
-		case Vertex::eUByte4: return (bNormalized) ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8A8_UINT;
-		case Vertex::eByte1:  return (bNormalized) ? VK_FORMAT_R8_SNORM : VK_FORMAT_R8_SINT;
-		case Vertex::eByte2:  return (bNormalized) ? VK_FORMAT_R8G8_SNORM : VK_FORMAT_R8G8_SINT;
-		case Vertex::eByte3:  return (bNormalized) ? VK_FORMAT_R8G8B8_SNORM : VK_FORMAT_R8G8B8_SINT;
-		case Vertex::eByte4:  return (bNormalized) ? VK_FORMAT_R8G8B8A8_SNORM : VK_FORMAT_R8G8B8A8_SINT;
+		case EVertex::Float1: return VK_FORMAT_R32_SFLOAT;
+		case EVertex::Float2: return VK_FORMAT_R32G32_SFLOAT;
+		case EVertex::Float3: return VK_FORMAT_R32G32B32_SFLOAT;
+		case EVertex::Float4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case EVertex::Half1:  return VK_FORMAT_R16_SFLOAT;
+		case EVertex::Half2:  return VK_FORMAT_R16G16_SFLOAT;
+		case EVertex::Half3:  return VK_FORMAT_R16G16B16_SFLOAT;
+		case EVertex::Half4:  return VK_FORMAT_R16G16B16A16_SFLOAT;
+		case EVertex::UInt1:  return VK_FORMAT_R32_UINT;
+		case EVertex::UInt2:  return VK_FORMAT_R32G32_UINT;
+		case EVertex::UInt3:  return VK_FORMAT_R32G32B32_UINT;
+		case EVertex::UInt4:  return VK_FORMAT_R32G32B32A32_UINT;
+		case EVertex::Int1:   return VK_FORMAT_R32_SINT;
+		case EVertex::Int2:   return VK_FORMAT_R32G32_SINT;
+		case EVertex::Int3:   return VK_FORMAT_R32G32B32_SINT;
+		case EVertex::Int4:   return VK_FORMAT_R32G32B32A32_SINT;
+		case EVertex::UShort1:return (bNormalized) ? VK_FORMAT_R16_UNORM : VK_FORMAT_R16_UINT;
+		case EVertex::UShort2:return (bNormalized) ? VK_FORMAT_R16G16_UNORM : VK_FORMAT_R16G16_UINT;
+		case EVertex::UShort3:return (bNormalized) ? VK_FORMAT_R16G16B16_UNORM : VK_FORMAT_R16G16B16_UINT;
+		case EVertex::UShort4:return (bNormalized) ? VK_FORMAT_R16G16B16A16_UNORM : VK_FORMAT_R16G16B16A16_UINT;
+		case EVertex::Short1: return (bNormalized) ? VK_FORMAT_R16_SNORM : VK_FORMAT_R16_SINT;
+		case EVertex::Short2: return (bNormalized) ? VK_FORMAT_R16G16_SNORM : VK_FORMAT_R16G16_SINT;
+		case EVertex::Short3: return (bNormalized) ? VK_FORMAT_R16G16B16_SNORM : VK_FORMAT_R16G16B16_SINT;
+		case EVertex::Short4: return (bNormalized) ? VK_FORMAT_R16G16B16A16_SNORM : VK_FORMAT_R16G16B16A16_SINT;
+		case EVertex::UByte1: return (bNormalized) ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8_UINT;
+		case EVertex::UByte2: return (bNormalized) ? VK_FORMAT_R8G8_UNORM : VK_FORMAT_R8G8_UINT;
+		case EVertex::UByte3: return (bNormalized) ? VK_FORMAT_R8G8B8_UNORM : VK_FORMAT_R8G8B8_UINT;
+		case EVertex::UByte4: return (bNormalized) ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8A8_UINT;
+		case EVertex::Byte1:  return (bNormalized) ? VK_FORMAT_R8_SNORM : VK_FORMAT_R8_SINT;
+		case EVertex::Byte2:  return (bNormalized) ? VK_FORMAT_R8G8_SNORM : VK_FORMAT_R8G8_SINT;
+		case EVertex::Byte3:  return (bNormalized) ? VK_FORMAT_R8G8B8_SNORM : VK_FORMAT_R8G8B8_SINT;
+		case EVertex::Byte4:  return (bNormalized) ? VK_FORMAT_R8G8B8A8_SNORM : VK_FORMAT_R8G8B8A8_SINT;
 		}
 
 		return VK_FORMAT_UNDEFINED;

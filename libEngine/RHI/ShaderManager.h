@@ -8,7 +8,7 @@
 #include "Singleton.h"
 #include "AssetViewer.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <unordered_map>
 #include <map>

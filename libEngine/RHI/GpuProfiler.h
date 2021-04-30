@@ -4,7 +4,7 @@
 
 #include "Singleton.h"
 #include "Core/IntegerType.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <vector>
 #include <memory>
@@ -91,7 +91,7 @@ namespace Render
 		template< class ...Args>
 		GpuProfileScope(char const* format, Args&& ...args)
 		{
-			FixString< 256 > name;
+			InlineString< 256 > name;
 			name.format(format, std::forward< Args >(args)...);
 			sample = GpuProfiler::Get().startSample(name);
 		}

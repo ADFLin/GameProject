@@ -507,7 +507,7 @@ namespace Chromatron
 				g.drawRect( - size / 2 , size );
 
 				g.finishXForm();
-				FixString< 32 > str;
+				InlineString< 32 > str;
 				RenderUtility::SetFont( g , FONT_S12 );
 				g.setTextColor( Color3ub(255 , 255 , 255) );
 				str.format( "%d" , id );

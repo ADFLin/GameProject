@@ -231,7 +231,7 @@ namespace MRT
 
 			Vec2i posMid = ( posA + posB ) / 2;
 			g.drawLine(posA + sizeA / 2, posB + sizeB / 2);
-			FixString< 128 > str; str.format("%.2f", link->distance);
+			InlineString< 128 > str; str.format("%.2f", link->distance);
 			g.drawText(posMid, str);
 		}
 	}
@@ -296,7 +296,7 @@ namespace MRT
 			{
 				Graphics2D& g = ::Global::GetGraphics2D();
 				Station* station = (Station*)widget->getUserData();
-				FixString<256> str;
+				InlineString<256> str;
 				str.format("%s %.2f", station->name.c_str(), station->totalDistance);
 
 				g.drawText(widget->getWorldPos(), widget->getSize(), str);
@@ -314,7 +314,7 @@ namespace MRT
 
 }
 
-REGISTER_STAGE("MRT Test", MRT::TestStage, EStageGroup::Dev);
+REGISTER_STAGE("MRT Test", MRT::TestStage, EStageGroup::Dev, "Test|Algorithm");
 
 struct MoneyInfo
 {
@@ -360,7 +360,7 @@ struct FooFunc
 		int process = 0;
 		while ( true )
 		{
-			FixString< 32 > str;
+			InlineString< 32 > str;
 			process = num;
 			GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON , Vec2i( 100 , 100 + 30 * process ) , Vec2i( 100 , 20 ) , nullptr );
 			str.format("%d", num);
@@ -536,7 +536,7 @@ namespace Bsp2D
 #endif
 		Tree::Edge& edge = tree.mEdges[ node.idxEdge ];
 		Vector2 mid = renderer.convertToScreen( ( edge.v[0] + edge.v[1] ) / 2 );
-		FixString< 32 > str;
+		InlineString< 32 > str;
 		str.format( "%u" , node.tag );
 		g.setTextColor(Color3ub(0 , 255 , 125) );
 		g.drawText( mid , str );
@@ -640,7 +640,7 @@ namespace Bsp2D
 			{
 				drawRect( g , mActor.pos - mActor.size / 2 , mActor.size );
 
-				FixString< 256 > str;
+				InlineString< 256 > str;
 				str.format( "frac = %f offset = ( %f %f )"  , 
 					gMoveDBG.frac , gMoveDBG.outOffset.x , gMoveDBG.outOffset.y );
 
@@ -972,7 +972,7 @@ void MyMethod()
 	for( int i = 0 ; i < numSample ; ++i )
 		heap.push( rand() % 1000 );
 
-	FixString< 1024 > str;
+	InlineString< 1024 > str;
 	int count = 0;
 	while( !heap.empty() )
 	{

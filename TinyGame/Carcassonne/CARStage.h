@@ -207,7 +207,7 @@ namespace CAR
 		void createTileMesh( CFly::Object* obj , TileId id );
 		void updateTileMesh( CFly::Object* obj , TileId newId , TileId oldId );
 		void updateShowTileObject( TileId id );
-		void getTileTexturePath( TileId id, FixString< 512 > &texName );
+		void getTileTexturePath( TileId id, InlineString< 512 > &texName );
 
 		void addActionWidget( GWidget* widget );
 

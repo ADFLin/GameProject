@@ -130,7 +130,7 @@ bool KeyButton::onKeyMsg(KeyMsg const& msg)
 
 void KeyButton::setCurKey( unsigned key )
 {
-	FixString< 256 > title;
+	InlineString< 256 > title;
 	sController->setKey( 0 , mAction , key );
 	title.format( "%c" , key );
 	setTitle( title );

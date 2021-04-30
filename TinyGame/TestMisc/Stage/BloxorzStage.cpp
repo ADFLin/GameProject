@@ -416,7 +416,7 @@ namespace Bloxorz
 				++mNumMapTile;
 				++pData;
 
-				FixString<512> str;
+				InlineString<512> str;
 				str.format("\tdata = SDF_Union(data, 0 , SDF_Box(pos - float3( %g , %g , -0.25), float3( %g ,  %g , 0.25)));\n", pos.x, pos.y, halfSize.x, halfSize.y);
 				code += str;
 			}
@@ -434,7 +434,7 @@ namespace Bloxorz
 					"data = SDF_Union(data, objectData.objectParams.y, objectdist);\n"
 					"}\n";
 
-				FixString<512> str;
+				InlineString<512> str;
 				str.format(objectCode, i);
 				code += str;
 			}
@@ -741,7 +741,7 @@ namespace Bloxorz
 				auto DownsamplePass = [this](RHICommandList& commandList, int index, RHITexture2D& sourceTexture) -> RHITexture2DRef
 				{
 					RenderTargetDesc desc;
-					FixString<128> str;
+					InlineString<128> str;
 					str.format("Downsample(%d)", index);
 
 					Vec2i size;
@@ -816,7 +816,7 @@ namespace Bloxorz
 
 					IntVector2 sizeH = IntVector2(fliterTexture.getSizeX(), fliterTexture.getSizeY()); ;
 
-					FixString<128> str;
+					InlineString<128> str;
 					RenderTargetDesc desc;
 					str.format("BlurH(%d)", index);
 					desc.debugName = str;

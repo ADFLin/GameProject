@@ -778,7 +778,7 @@ namespace GGJ
 
 	String CondExprElement::toString(int value)
 	{
-		FixString<128> temp;
+		InlineString<128> temp;
 		temp.format("%d" , value);
 		return temp.c_str();
 	}
@@ -854,7 +854,7 @@ namespace GGJ
 		for(int i = 0 ; i < condTable.numSelection ; ++i )
 		{
 			Condition& cond = condTable.getCondition(i);
-			FixString<128> str;
+			InlineString<128> str;
 			str.format("Cond %d %s" , i , ( cond.bValid ) ? "True" : "False" );
 			g.drawText( pos , str.c_str() );
 			pos.y += 15;

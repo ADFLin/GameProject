@@ -465,7 +465,7 @@
     <ClInclude Include="LogSystem.h" />
     <ClInclude Include="EasingFunction.h" />
     <ClInclude Include="FileSystem.h" />
-    <ClInclude Include="FixString.h" />
+    <ClInclude Include="InlineString.h" />
     <ClInclude Include="Flag.h" />
     <ClInclude Include="FlowSystem.h" />
     <ClInclude Include="FrameAllocator.h" />

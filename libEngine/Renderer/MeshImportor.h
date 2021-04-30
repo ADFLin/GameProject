@@ -57,8 +57,8 @@ namespace Render
 			}
 		};
 
-		template< class T >
-		auto registerMeshImporterT(HashString name) -> typename TEnableIf< TIsBaseOf< T, IMeshImporter >::Value >::Type
+		template< class T , TEnableIf_Type< TIsBaseOf< T, IMeshImporter >::Value  , bool > = true >
+		void registerMeshImporterT(HashString name)
 		{
 			registerMeshImporter( name , std::make_shared< TMeshImporterFactory<T> >() );
 		}

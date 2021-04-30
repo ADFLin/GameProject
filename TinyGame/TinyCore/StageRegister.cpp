@@ -65,13 +65,11 @@ void StageInfo::ParseCategories(std::unordered_set< HashString >& inoutCategorie
 	if (categoryStr)
 	{
 		StringView token;
-		categoryStr = FStringParse::SkipSpace(categoryStr);
 		while (FStringParse::StringToken(categoryStr, "|", token))
 		{
 			token.removeHeadSpace();
 			token.removeTailSpace();
 			inoutCategories.emplace(token);
-			categoryStr = FStringParse::SkipSpace(categoryStr);
 		}
 	}
 }
@@ -91,16 +89,16 @@ void StageInfo::AddCategories(std::unordered_set< HashString >& inoutCategories,
 		inoutCategories.emplace("Physics");
 		break;
 	case EStageGroup::Dev:
-		inoutCategories.emplace("develop");
+		inoutCategories.emplace("Develop");
 		break;
 	case EStageGroup::Dev4:
-		inoutCategories.emplace("develop");
+		inoutCategories.emplace("Develop");
 		break;
 	case EStageGroup::FeatureDev:
-		inoutCategories.emplace("develop");
+		inoutCategories.emplace("Develop");
 		break;
 	case EStageGroup::SingleDev:
-		inoutCategories.emplace("develop");
+		inoutCategories.emplace("Develop");
 		inoutCategories.emplace("Game");
 		break;
 	case EStageGroup::SingleGame:

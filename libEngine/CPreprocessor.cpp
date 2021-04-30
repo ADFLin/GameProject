@@ -2,13 +2,13 @@
 
 #include "MarcoCommon.h"
 #include "FileSystem.h"
-#include "FixString.h"
+#include "InlineString.h"
 #include "Holder.h"
 #include "Core/StringConv.h"
 #include "Core/FNV1a.h"
 
 
-static FixString<512> GMsg;
+static InlineString<512> GMsg;
 #define PARSE_ERROR( MSG , ... ) \
 	{\
 		GMsg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
@@ -1007,7 +1007,7 @@ namespace CPP
 
 	void Preprocessor::emitSourceLine(int lineOffset)
 	{
-		FixString< 512 > lineMarco;
+		InlineString< 512 > lineMarco;
 		int len = 0;
 		switch (lineFormat)
 		{

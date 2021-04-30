@@ -368,7 +368,7 @@ namespace AStar
 
 				g.drawRect( renderPos , Vec2i( TileLen , TileLen ) );
 
-				FixString< 32 > str;
+				InlineString< 32 > str;
 				str.format( "%d" , tile.clearance );
 				g.drawText( renderPos , Vec2i( TileLen , TileLen ) , str );
 			}

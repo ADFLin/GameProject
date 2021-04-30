@@ -2,7 +2,7 @@
 
 #include "Core/FNV1a.h"
 #include "Core/TypeHash.h"
-#include "FixString.h"
+#include "InlineString.h"
 #include "Serialize/FileStream.h"
 #include "FileSystem.h"
 
@@ -38,9 +38,9 @@ public:
 
 	}
 
-	void getFilePath(DataCacheKey const& key, FixString<512>& outPath)
+	void getFilePath(DataCacheKey const& key, InlineString<512>& outPath)
 	{
-		FixString<512> fileName;
+		InlineString<512> fileName;
 		int length = fileName.format("%s_%s_%0llX", key.typeName, key.version, key.keySuffix.value);
 		uint32 nameHash = HashValue(fileName.data(), length);
 		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 100) % 10, fileName.c_str());
@@ -48,7 +48,7 @@ public:
 
 	bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override
 	{
-		FixString<512> filePath;
+		InlineString<512> filePath;
 		getFilePath(key, filePath);
 
 		IOFileSerializer fs;
@@ -75,7 +75,7 @@ public:
 
 	bool saveDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
 	{
-		FixString<512> filePath;
+		InlineString<512> filePath;
 		getFilePath(key, filePath);
 
 		IOFileSerializer fs;
@@ -102,7 +102,7 @@ public:
 
 	bool loadDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
 	{
-		FixString<512> filePath;
+		InlineString<512> filePath;
 		getFilePath(key, filePath);
 		if( !FileSystem::IsExist(filePath) )
 			return false;
@@ -128,7 +128,7 @@ public:
 
 	bool load(DataCacheKey const& key, std::vector<uint8>& outBuffer) override
 	{
-		FixString<512> filePath;
+		InlineString<512> filePath;
 		getFilePath(key, filePath);
 		if( !FileSystem::IsExist(filePath) )
 			return false;

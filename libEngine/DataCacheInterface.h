@@ -43,7 +43,7 @@ struct DataCacheArg
 	template< class ...Args >
 	void addFormat(char const* format, Args&& ...args)
 	{
-		FixString< 512 > str;
+		InlineString< 512 > str;
 		str.format(format, std::forward<Args>(args)...);
 		addString(str);
 	}

@@ -546,7 +546,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerId );
-			FixString< 64 > str;
+			InlineString< 64 > str;
 			str.format( LOCTEXT("== %s Inter Room =="), player->getName() );
 			mMsgPanel->addMessage( str , Color3ub( 255 , 125 , 0 ) );
 		}
@@ -573,7 +573,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 				slot.choice->setColorName(EColor::Blue);
 
 				{
-					FixString< 64 > str;
+					InlineString< 64 > str;
 					str.format(LOCTEXT("== %s Leave Room =="), player->getName());
 					mMsgPanel->addMessage(str, Color3ub(255, 125, 0));
 				}
@@ -615,7 +615,7 @@ void NetRoomStage::procMsg( IComPacket* cp)
 {
 	CSPMsg* com = cp->cast< CSPMsg >();
 
-	FixString< 128 > str;
+	InlineString< 128 > str;
 
 	switch( com->type )
 	{
@@ -1182,7 +1182,7 @@ void NetLevelStageMode::procNetControlRequest(IComPacket* cp)
 			{
 #if 0
 				GamePlayer* player = mWorker->getPlayerManager()->getPlayer(com->playerId);
-				FixString< 256 > str;
+				InlineString< 256 > str;
 				str.format(LOCTEXT("%s Puase Game"), player->getName());
 				::Global::GUI().showMessageBox(
 					UI_UNPAUSE_GAME, str, GMB_NONE);
@@ -1240,7 +1240,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 			else
 			{
 				GamePlayer* player = mWorker->getPlayerManager()->getPlayer(com->playerId);
-				FixString< 256 > str;
+				InlineString< 256 > str;
 				str.format(LOCTEXT("%s Puase Game"), player->getName());
 				::Global::GUI().showMessageBox(
 					UI_UNPAUSE_GAME, str, GMB_NONE);
@@ -1327,7 +1327,7 @@ void NetLevelStageMode::procMsg(IComPacket* cp)
 {
 	CSPMsg* com = cp->cast< CSPMsg >();
 
-	FixString< 128 > str;
+	InlineString< 128 > str;
 
 	switch( com->type )
 	{
@@ -1352,7 +1352,7 @@ void NetLevelStageMode::procMsg(IComPacket* cp)
 
 void NetLevelStageMode::onServerEvent(EventID event, unsigned msg)
 {
-	FixString< 256 > str;
+	InlineString< 256 > str;
 
 	switch( event )
 	{

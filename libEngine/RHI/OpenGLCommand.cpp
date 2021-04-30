@@ -464,6 +464,14 @@ namespace Render
 		{
 			glGetIntegerv(GL_MAX_DRAW_MESH_TASKS_COUNT_NV, &mMaxDrawMeshTasksCount);
 			LogMsg("MaxDrawMeshTasksCount = %d", mMaxDrawMeshTasksCount);
+
+			GLint MaxMeshOutVertexCount = 0;
+			glGetIntegerv(GL_MAX_MESH_OUTPUT_VERTICES_NV, &MaxMeshOutVertexCount);
+			LogMsg("MaxMeshOutVertexCount = %d", MaxMeshOutVertexCount);
+
+			GLint MaxMeshOutPrimitiveCount = 0;
+			glGetIntegerv(GL_MAX_MESH_OUTPUT_PRIMITIVES_NV, &MaxMeshOutPrimitiveCount);
+			LogMsg("MaxMeshOutPrimitiveCount = %d", MaxMeshOutPrimitiveCount);
 		}
 
 	}

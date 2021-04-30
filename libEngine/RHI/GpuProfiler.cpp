@@ -52,7 +52,7 @@ namespace Render
 		{
 			mCore->beginFrame();
 			mbStartSampling = true;
-			FixString< 512 > str;
+			InlineString< 512 > str;
 			str.format("Frame : %s System", GetSystemNameString(GRHISystem->getName()));
 			mRootSample = startSample(str);
 		}

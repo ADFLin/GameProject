@@ -600,9 +600,6 @@
     <ClInclude Include="Clock.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="FixString.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
     <ClInclude Include="Flag.h">
       <Filter>Utility</Filter>
     </ClInclude>
@@ -1334,6 +1331,9 @@
     </ClInclude>
     <ClInclude Include="ScriptGraphs\SGNode.h">
       <Filter>ScriptGraphs</Filter>
+    </ClInclude>
+    <ClInclude Include="InlineString.h">
+      <Filter>Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

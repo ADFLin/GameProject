@@ -57,7 +57,7 @@ namespace Go
 			};
 		}
 
-		FixString<512> filePath;
+		InlineString<512> filePath;
 		bool bShowFileNameOnly = true;
 
 		void onRender() override
@@ -258,7 +258,7 @@ namespace Go
 		bool bPauseGame = false;
 		int  numGameCompleted = 0;
 		bool bMatchJob = false;
-		FixString<32> mUsedWeight;
+		InlineString<32> mUsedWeight;
 		int  matchChallenger = StoneColor::eEmpty;
 #if DETECT_LEELA_PROCESS
 		DWORD  mPIDLeela = -1;
@@ -356,7 +356,7 @@ namespace Go
 
 		int  unknownWinerCount = 0;
 		MatchGameData mMatchData;
-		FixString<32> mLastGameResult;
+		InlineString<32> mLastGameResult;
 
 		void drawWinRateDiagram( Vec2i const& renderPos ,  Vec2i const& renderSize );
 

@@ -216,7 +216,7 @@ namespace Mine
 
 			Vec2i textOrg = drawOrigin + Vec2i(5, 3);
 
-			FixString<512> str;
+			InlineString<512> str;
 
 			int sizeX = mineMap.getSizeX();
 			int sizeY = mineMap.getSizeY();
@@ -313,5 +313,5 @@ namespace Mine
 	protected:
 	};
 
-	REGISTER_STAGE("MineSweeper", TestStage, EStageGroup::Test);
+	REGISTER_STAGE("MineSweeper", TestStage, EStageGroup::Test, "Game|AI");
 }

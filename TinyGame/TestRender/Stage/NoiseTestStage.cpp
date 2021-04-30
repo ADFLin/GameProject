@@ -23,7 +23,7 @@ namespace Geom2D
 
 namespace Render
 {
-	REGISTER_STAGE("Noise Test", NoiseTestStage, EStageGroup::FeatureDev, 1);
+	REGISTER_STAGE("Noise Test", NoiseTestStage, EStageGroup::FeatureDev, 1, "Render|Shader");
 
 
 #define IMPLEMENT_NOISE_SHADER( T1 , T2 )\

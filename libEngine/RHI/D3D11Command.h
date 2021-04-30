@@ -7,7 +7,7 @@
 #include "ShaderCore.h"
 
 #include "D3D11Common.h"
-#include "FixString.h"
+#include "InlineString.h"
 #include "Core/ScopeExit.h"
 #include "Core/TypeHash.h"
 

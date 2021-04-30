@@ -18,7 +18,7 @@
 #include "DataPath.h"
 #include "RenderUtility.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 #include "HashString.h"
 
 
@@ -193,7 +193,7 @@ void LevelEditStage::onRender()
 	Vec2f posCursor = convertToWorldPos( getGame()->getMousePos() );
 	
 
-	FixString< 256 > str;
+	InlineString< 256 > str;
 	str.format( "x = %f , y = %f " , posCursor.x , posCursor.y );
 	mDevMsg->setString( str );
 	getRenderSystem()->drawText( mDevMsg , Vec2i( 10 , 10 ) , TEXT_SIDE_LEFT | TEXT_SIDE_RIGHT );

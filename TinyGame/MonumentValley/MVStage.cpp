@@ -684,7 +684,7 @@ namespace MV
 		g.beginRender();
 
 		RenderUtility::SetFont( g , FONT_S8 );
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		Vec2i pos = Vec2i( 10 , 10 );
 		g.setTextColor(Color3f(1, 0, 0));
 		if ( isEditMode )
@@ -898,7 +898,7 @@ namespace MV
 	void TestStage::renderDbgText( Vec2i const& pos )
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		g.setTextColor(Color3f(1, 1, 0));
 		str.format("( %d %d %d ) dir = %d", pos2Dbg.x, pos2Dbg.y, pos2Dbg.z, (int)dirDBG);
 		g.drawText( pos.x , pos.y , str );

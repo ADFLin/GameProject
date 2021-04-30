@@ -5,7 +5,7 @@
 #include "GameControl.h"
 
 #include "Serialize/DataStream.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 #include "Flag.h"
 
@@ -30,7 +30,7 @@ struct ReplayInfo
 		delete [] gameInfoData;
 	}
 
-	FixString< 8 > name;
+	InlineString< 8 > name;
 	//char      name[8];
 	unsigned  gameVersion;
 	unsigned  templateVersion;

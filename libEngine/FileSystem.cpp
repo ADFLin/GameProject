@@ -2,7 +2,7 @@
 #include "PlatformConfig.h"
 
 #include "CString.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <tchar.h>
 #include <stdio.h>
@@ -154,7 +154,7 @@ struct FWindowsFileSystem
 	template< class CharT >
 	static bool RenameFile(CharT const* path, CharT const* newFileName)
 	{
-		FixString< MAX_PATH , CharT > newPath;
+		TInlineString< MAX_PATH , CharT > newPath;
 		newPath.assign(path, FileUtility::GetFileName(path) - path);
 		newPath += newFileName;
 		return !!FWindow::MoveFile(path, newPath);
@@ -219,7 +219,7 @@ bool FileSystem::CreateDirectorySequence(char const* pathDir)
 	if( IsExist(pathDir) )
 		return true;
 
-	FixString<MAX_PATH> path = pathDir;
+	InlineString<MAX_PATH> path = pathDir;
 	char* cur = path.data();
 	while( *cur != 0 )
 	{

@@ -71,7 +71,7 @@ protected:
 
 	TPtrHolder< CLPlayerManager > mPlayerManager;
 
-	FixString< MAX_PLAYER_NAME_LENGTH > mLoginName;
+	InlineString< MAX_PLAYER_NAME_LENGTH > mLoginName;
 	SessionId           mSessoionId;
 	TcpClient           mTcpClient;
 	UdpClient           mUdpClient;

@@ -191,7 +191,7 @@ public:
 
 	virtual void debugMessage(long frame)
 	{
-		FixString< 512 > msg;
+		InlineString< 512 > msg;
 
 		msg.format("%ld =", frame);
 		int count = 0;
@@ -200,7 +200,7 @@ public:
 			FrameData& data = mFrameData[i];
 			if( data.keyActBit )
 			{
-				FixString< 512 > temp;
+				InlineString< 512 > temp;
 				temp.format("(%u %u)" , data.port , data.keyActBit );
 				msg += temp;
 				++count;

@@ -1,7 +1,7 @@
 #include "WindowsProcess.h"
 
 #include "CString.h"
-#include "FixString.h"
+#include "InlineString.h"
 #include "FileSystem.h"
 
 #include  <TlHelp32.h>
@@ -64,10 +64,10 @@ bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 	PROCESS_INFORMATION procInfo;
 	STARTUPINFO startInfo;
 	BOOL bSuccess = FALSE;
-	FixString<  MAX_PATH, TCHAR > workDir;
+	TInlineString< MAX_PATH, TCHAR > workDir;
 	workDir.assign(path, FileUtility::GetFileName(path) - path);
 
-	FixString< MAX_PATH, TCHAR > commandLine;
+	TInlineString< MAX_PATH, TCHAR > commandLine;
 	if( command )
 	{
 		commandLine = command;

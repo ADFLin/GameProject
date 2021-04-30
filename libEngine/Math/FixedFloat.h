@@ -69,7 +69,7 @@ namespace Math
 			{
 				double value = mValue;
 				value /= double( 1 << Offset );
-				FixString< 512 > str;
+				InlineString< 512 > str;
 				str.format( "%lf" , value );
 				return std::string( str.c_str() );
 			}

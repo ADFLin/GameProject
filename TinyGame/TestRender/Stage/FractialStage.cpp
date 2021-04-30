@@ -468,7 +468,7 @@ public:
 
 		g.beginRender();
 		mSelectRect.draw(g);
-		FixString<246> str;
+		InlineString<246> str;
 		str.format("%f %f", mPosOnMouse.x, mPosOnMouse.y);
 		g.setTextColor(Color3f(1, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
@@ -565,4 +565,4 @@ protected:
 };
 
 
-REGISTER_STAGE("Fractial Test", FractialTestStage, EStageGroup::FeatureDev, "Render");
+REGISTER_STAGE("Fractial Test", FractialTestStage, EStageGroup::FeatureDev, "Render|Math");

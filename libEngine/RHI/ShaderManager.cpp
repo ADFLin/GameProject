@@ -651,7 +651,7 @@ namespace Render
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
 	{
 		char const* filePaths[EShader::Count];
-		FixString< 256 > path;
+		InlineString< 256 > path;
 		path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
 		for( int i = 0; i < entries.size(); ++i )
 			filePaths[i] = path;
@@ -775,7 +775,7 @@ namespace Render
 			{ EShader::Vertex , entryVS ? entryVS : "main" },
 			{ EShader::Pixel ,  entryPS ? entryPS : "main" },
 		};
-		FixString< 256 > paths[2];
+		InlineString< 256 > paths[2];
 		paths[0].format("%s%s%s", mBaseDir.c_str(), fileNameVS, SHADER_FILE_SUBNAME);
 		paths[1].format("%s%s%s", mBaseDir.c_str(), fileNamePS, SHADER_FILE_SUBNAME);
 		char const* filePaths[2] = { paths[0] , paths[1] };
@@ -1078,7 +1078,7 @@ namespace Render
 
 			std::string headCode = option.getCode( entry , defCode.c_str(), additionalCode);
 
-			FixString< 256 > path;
+			InlineString< 256 > path;
 			if( bSingleFile )
 			{
 				path.format("%s%s%s", mBaseDir.c_str() , fileName, SHADER_FILE_SUBNAME);
@@ -1100,7 +1100,7 @@ namespace Render
 
 		std::string headCode = option.getCode(entry, defCode.c_str(), additionalCode);
 
-		FixString< 256 > path;
+		InlineString< 256 > path;
 		if (bSingleFile)
 		{
 			path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);

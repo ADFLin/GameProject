@@ -52,54 +52,52 @@ public:
 	};
 
 	template< class T >
-	typename TEnableIf< THaveBitDataOutput< BitWriter, T >::Value >::Type
-	write(TArrayBitData<T> const& data)
+ 	void write(TArrayBitData<T> const& data)
 	{
-		if( data.length )
+		if constexpr (THaveBitDataOutput< BitWriter, T >::Value )
 		{
-			BitWriter writer(*this);
-			for( size_t i = 0; i < data.length; ++i )
+			if (data.length)
 			{
-				writer << data.ptr[i];
+				BitWriter writer(*this);
+				for (size_t i = 0; i < data.length; ++i)
+				{
+					writer << data.ptr[i];
+				}
+				writer.finalize();
 			}
-			writer.finalize();
+		}
+		else
+		{
+			if (data.length)
+			{
+				BitWriter writer(*this);
+				writer.fillArray(data.ptr, data.num, data.length, data.numBit);
+				writer.finalize();
+			}
 		}
 	}
 
 	template< class T >
-	typename TEnableIf< !THaveBitDataOutput< BitWriter, T >::Value >::Type
-	write(TArrayBitData<T> const& data)
+	void read(TArrayBitData<T> const& data)
 	{
-		if( data.length )
+		if constexpr (THaveBitDataOutput< BitWriter, T >::Value)
 		{
-			BitWriter writer(*this);
-			writer.fillArray(data.ptr, data.num, data.length, data.numBit);
-			writer.finalize();
-		}
-	}
-
-	template< class T>
-	typename TEnableIf< THaveBitDataInput< BitReader, T >::Value >::Type
-	read(TArrayBitData<T> const& data)
-	{
-		if( data.length )
-		{
-			BitReader reader(*this);
-			for( size_t i = 0; i < data.length; ++i )
+			if (data.length)
 			{
-				reader >> data.ptr[i];
+				BitReader reader(*this);
+				for (size_t i = 0; i < data.length; ++i)
+				{
+					reader >> data.ptr[i];
+				}
 			}
 		}
-	}
-
-	template< class T>
-	typename TEnableIf< !THaveBitDataInput< BitReader, T >::Value >::Type
-	read(TArrayBitData<T> const& data)
-	{
-		if( data.length )
+		else
 		{
-			BitReader reader(*this);
-			reader.takeArray(data.ptr, data.num, data.length, data.numBit);
+			if (data.length)
+			{
+				BitReader reader(*this);
+				reader.takeArray(data.ptr, data.num, data.length, data.numBit);
+			}
 		}
 	}
 
@@ -121,36 +119,33 @@ public:
 			return{ &data[0] , sizeof(T) , data.size() , numBit };
 		}
 	}
+
 	template < class T >
-	typename TEnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
-	write(T const& value)
+	void write(T const& value)
 	{
-		const_cast<T&>(value).serialize(WriteOp(*this));
+		if constexpr (TTypeSupportSerializeOPFunc<T>::Value)
+		{
+			const_cast<T&>(value).serialize(WriteOp(*this));
+		}
+		else
+		{
+			static_assert(std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
+			write(&value, sizeof(value));
+		}
 	}
 
 	template < class T >
-	typename TEnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
-	read(T& value)
+	void read(T& value)
 	{
-		value.serialize(ReadOp(*this));
-	}
-
-
-	template < class T >
-	typename TEnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
-	write(T const& value)
-	{
-		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
-		write(&value, sizeof(value));
-	}
-
-
-	template < class T >
-	typename TEnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
-	read(T& value)
-	{
-		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
-		read(&value, sizeof(value));
+		if constexpr (TTypeSupportSerializeOPFunc<T>::Value)
+		{
+			value.serialize(ReadOp(*this));
+		}
+		else
+		{
+			static_assert(std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
+			read(&value, sizeof(value));
+		}	
 	}
 
 	template< class T >
@@ -166,36 +161,35 @@ public:
 	};
 
 	template < class T >
-	typename TEnableIf< CanUseInputSequence<T>::Value >::Type
-	readSequence(T* ptr, size_t num)
+	void readSequence(T* ptr, size_t num)
 	{
-		read((void*)ptr, num * sizeof(T));
-	}
-
-	template < class T >
-	typename TEnableIf< !CanUseInputSequence<T>::Value >::Type
-	readSequence(T* ptr, size_t num)
-	{
-		for( size_t i = 0; i < num; ++i )
+		if constexpr (CanUseInputSequence<T>::Value)
 		{
-			(*this) >> ptr[i];
+			read((void*)ptr, num * sizeof(T));
+		}
+		else
+		{
+			for (size_t i = 0; i < num; ++i)
+			{
+				(*this) >> ptr[i];
+			}
 		}
 	}
 
-	template< class T >
-	typename TEnableIf< CanUseOutputSequence<T>::Value >::Type
-	writeSequence(T const* ptr, size_t num)
-	{
-		write((void const*)ptr, num * sizeof(T));
-	}
 
-	template< class T >
-	typename TEnableIf< !CanUseOutputSequence<T>::Value >::Type
-	writeSequence(T const* ptr, size_t num)
+	template < class T >
+	void writeSequence(T const* ptr, size_t num)
 	{
-		for( size_t i = 0; i < num; ++i )
+		if constexpr (CanUseInputSequence<T>::Value)
 		{
-			(*this) << ptr[i];
+			write((void const*)ptr, num * sizeof(T));
+		}
+		else
+		{
+			for (size_t i = 0; i < num; ++i)
+			{
+				(*this) << ptr[i];
+			}
 		}
 	}
 

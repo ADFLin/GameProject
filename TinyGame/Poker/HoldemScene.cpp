@@ -193,7 +193,7 @@ namespace Poker { namespace Holdem {
 			}
 		}
 		
-		FixString< 64 > str;
+		InlineString< 64 > str;
 		char const* suit[] = { "C" ,"D" , "H" ,"S" };
 		int const ComunityCardGap = 5;
 		int const CommunityCardOffset = ComunityCardGap + mCardSize.x;
@@ -235,7 +235,7 @@ namespace Poker { namespace Holdem {
 		GWidget* ui = ::Global::GUI().getManager().getMouseWidget();
 		if ( ui )
 		{
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			str.format( "( %d , %d )" , ui->getPos().x , ui->getPos().y );
 			g.drawText( Vec2i( ::Global::GetScreenSize().x , 10 ) , str );
 		}
@@ -243,7 +243,7 @@ namespace Poker { namespace Holdem {
 
 	void Scene::drawPlayerState( Graphics2D& g , Vec2i const& pos , int posSlot , SlotInfo const& info )
 	{
-		FixString<64> str;
+		InlineString<64> str;
 
 		g.setTextColor(Color3ub(255 , 0 , 0) );
 		switch( info.status )
@@ -322,7 +322,7 @@ namespace Poker { namespace Holdem {
 				g.drawText( worldPos , Vec2i( SlotPanel::Size.x , 20 ) , player->getName() );
 			}
 
-			FixString< 64 > str;
+			InlineString< 64 > str;
 			str.format( "%d" , info.ownMoney );
 			g.drawText( worldPos + Vec2i( 0 , 13 ) , Vec2i( SlotPanel::Size.x , 20 ) , str );
 		}

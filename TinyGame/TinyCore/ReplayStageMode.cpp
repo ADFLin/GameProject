@@ -174,7 +174,7 @@ void ReplayEditStage::renderReplayInfo( GWidget* ui )
 
 	g.setTextColor(Color3ub(255 , 255 , 255) );
 
-	FixString< 256 > str;
+	InlineString< 256 > str;
 	str.format( "Game Name : %s" , mGameInfo.name.c_str() );
 	g.drawText( Vec2i( px , py ) , str );
 	str.format( "Frame Number : %u" , mReplayHeader.totalFrame );

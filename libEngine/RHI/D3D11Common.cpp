@@ -175,20 +175,31 @@ namespace Render
 		return D3D11_TEXTURE_ADDRESS_WRAP;
 	}
 
+	struct CompareFuncMapInfoD3D11
+	{
+#if _DEBUG
+		ECompareFunc src;
+#endif
+		D3D11_COMPARISON_FUNC dest;
+	};
+
+#define COMPAREFUNC_OP_LIST_D3D11( op )\
+	op(ECompareFunc::Never, D3D11_COMPARISON_NEVER)\
+	op(ECompareFunc::Less, D3D11_COMPARISON_LESS)\
+	op(ECompareFunc::Equal, D3D11_COMPARISON_EQUAL)\
+	op(ECompareFunc::NotEqual, D3D11_COMPARISON_NOT_EQUAL)\
+	op(ECompareFunc::LessEqual, D3D11_COMPARISON_LESS_EQUAL)\
+	op(ECompareFunc::Greater, D3D11_COMPARISON_GREATER)\
+	op(ECompareFunc::GeraterEqual, D3D11_COMPARISON_GREATER_EQUAL)\
+	op(ECompareFunc::Always, D3D11_COMPARISON_ALWAYS)
+	
+	DEFINE_DATA_MAP(CompareFuncMapInfoD3D11, GCompareFuncMapD3D11, COMPAREFUNC_OP_LIST_D3D11);
+#if _DEBUG
+	STATIC_CHECK_DATA_MAP(CompareFuncMapVaild, GCompareFuncMapD3D11, src);
+#endif
 	D3D11_COMPARISON_FUNC D3D11Translate::To(ECompareFunc func)
 	{
-		switch( func )
-		{
-		case ECompareFunc::Never:        return D3D11_COMPARISON_NEVER;
-		case ECompareFunc::Less:         return D3D11_COMPARISON_LESS;
-		case ECompareFunc::Equal:        return D3D11_COMPARISON_EQUAL;
-		case ECompareFunc::NotEqual:     return D3D11_COMPARISON_NOT_EQUAL;
-		case ECompareFunc::LessEqual:    return D3D11_COMPARISON_LESS_EQUAL;
-		case ECompareFunc::Greater:      return D3D11_COMPARISON_GREATER;
-		case ECompareFunc::GeraterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
-		case ECompareFunc::Always:       return D3D11_COMPARISON_ALWAYS;
-		}
-		return D3D11_COMPARISON_NEVER;
+		return GCompareFuncMapD3D11[uint(func)].dest;
 	}
 
 	struct StencilOpMapInfoD3D11
@@ -219,7 +230,7 @@ namespace Render
 	}
 
 
-	FixString<32> FD3D11Utility::GetShaderProfile(D3D_FEATURE_LEVEL featureLevel, EShader::Type type)
+	InlineString<32> FD3D11Utility::GetShaderProfile(D3D_FEATURE_LEVEL featureLevel, EShader::Type type)
 	{
 		char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" ,"as" , "ms" };
 		char const* featureName = nullptr;
@@ -240,7 +251,7 @@ namespace Render
 			featureName = "5_0";
 			break;
 		}
-		FixString<32> result = ShaderNames[type];
+		InlineString<32> result = ShaderNames[type];
 		result += "_";
 		result += featureName;
 		return result;

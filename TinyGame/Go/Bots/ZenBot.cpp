@@ -43,7 +43,7 @@ namespace Zen
 		if (bCreateNewInstance && InstanceCount > 0)
 		{
 			StringView filePath = FileUtility::GetDirectory(path);
-			FixString< 256 > tempDllPath;
+			InlineString< 256 > tempDllPath;
 			for(;;)
 			{
 				DateTime time = SystemPlatform::GetLocalTime();

@@ -83,7 +83,7 @@ namespace Render
 		{
 			for( int i = 0; i < MaxInputNum; ++i )
 			{
-				FixString<128> name;
+				InlineString<128> name;
 				name.format("TextureInput%d", i);
 				mParamTextureInput[i].bind(parameterMap, name);
 			}

@@ -6,11 +6,11 @@
 #include "IRenderSystem.h"
 
 #include "FileSystem.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 bool IsFileExist( char const* path , char const* subFileName )
 {
-	FixString<512> filePath;
+	InlineString<512> filePath;
 	filePath.format("%s%s", path, subFileName);
 	return FileSystem::IsExist(filePath);
 }

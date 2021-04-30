@@ -9,7 +9,7 @@
 #include "DataPath.h"
 #include "Platform.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 #include "MarcoCommon.h"
 #include "ColorName.h"
 
@@ -223,7 +223,7 @@ void Game::render()
 
 	if ( text )
 	{
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		str.format("FPS = %f", mFPS);
 		text->setString(str.c_str());
 

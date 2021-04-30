@@ -15,7 +15,7 @@
 #include "Renderer/SceneLighting.h"
 #include "Renderer/MeshBuild.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 #include "CoreShare.h"
 
 
@@ -1447,7 +1447,7 @@ namespace Render
 					code += SHADER_PARAM(FliterWidgets);
 					code += "[]= {";
 
-					FixString<256> str;
+					InlineString<256> str;
 					for( int i = 0; i < 2 * SampleRaidusNum + 1; ++i )
 					{
 						if( i != 0 )

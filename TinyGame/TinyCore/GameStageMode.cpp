@@ -74,7 +74,7 @@ bool LevelStageMode::saveReplay(char const* name)
 		return false;
 	}
 
-	FixString< 512 > path;
+	InlineString< 512 > path;
 	path.format("%s/%s", REPLAY_DIR, name);
 	//std::string path = std::string(REPLAY_DIR) + "/" + name;
 	return mReplayRecorder->save(path);

@@ -297,7 +297,7 @@ namespace CAR
 
 		if ( mGameLogic.mIsStartGame )
 		{
-			FixString< 512 > str;
+			InlineString< 512 > str;
 			str.format("pID = %d tileId = %d , rotation = %d , pos = %d , %d ", mGameLogic.getTurnPlayer()->getId(),
 				mGameLogic.mUseTileId, mRotation, mCurMapPos.x, mCurMapPos.y);
 			g.drawText( 10 , 200 , str );
@@ -306,7 +306,7 @@ namespace CAR
 		{
 
 			Vec2i pos = Vec2i( 10 , 500 );
-			FixString< 512 > str;
+			InlineString< 512 > str;
 			for( int i = 0 ; i < mSetting.getFieldNum() ; i += 2 )
 			{
 				str += gFieldNames[ mFiledTypeMap[i] ];
@@ -418,7 +418,7 @@ namespace CAR
 			RenderUtility::SetBrush( g , EColor::White );
 			RenderUtility::SetPen( g , EColor::White );
 
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			Vector2 screenPos = convertToScreenPos( mapPos );
 			switch( actor->type )
 			{
@@ -681,13 +681,13 @@ namespace CAR
 
 	Vec2i LevelStage::showPlayerInfo( Graphics2D& g, Vec2i const& pos , PlayerBase* player , int offsetY )
 	{
-		FixString< 512 > str;
+		InlineString< 512 > str;
 		Vec2i tempPos = pos;
-		FixString< 512 > fieldStr;
+		InlineString< 512 > fieldStr;
 
 		for( int i = 0 ; i < player->mFieldValues.size() ; ++i )
 		{
-			FixString< 32 > temp;
+			InlineString< 32 > temp;
 			temp.format((i == 0) ? "%d" : " %d", player->mFieldValues[i]);
 			fieldStr += temp;
 		}
@@ -700,7 +700,7 @@ namespace CAR
 
 	Vec2i LevelStage::showFeatureInfo( Graphics2D& g, Vec2i const& pos , FeatureBase* build , int offsetY )
 	{
-		FixString< 512 > str;
+		InlineString< 512 > str;
 		Vec2i tempPos = pos;
 		str.format("Group=%2d Type=%d TileNum=%d ActorNum=%d IsComplete=%d",
 			build->group, build->type, build->mapTiles.size(), build->mActors.size(), build->checkComplete() ? 1 : 0);
@@ -1288,7 +1288,7 @@ namespace CAR
 		case ACTION_BUY_AUCTIONED_TILE:
 			{
 				auto* myData = data->cast< GameAuctionTileData >();
-				FixString< 512 > str;
+				InlineString< 512 > str;
 				str.format("Can You Buy Tile : Score = %d , Id = %d", myData->maxScore, myData->pIdCallMaxScore);
 				::Global::GUI().showMessageBox( UI_BUY_AUCTION_TILE , str );
 			}
@@ -1483,7 +1483,7 @@ namespace CAR
 		CFly::Material* mat = obj->getElement(0)->getMaterial();
 		if ( mat )
 		{
-			FixString< 512 > texName;
+			InlineString< 512 > texName;
 			getTileTexturePath(id, texName);
 			mat->addTexture(0, 0, texName);
 			mat->getTextureLayer(0).setFilterMode(CFly::CF_FILTER_POINT);
@@ -1648,7 +1648,7 @@ namespace CAR
 		mGameActionUI.clear();
 	}
 
-	void LevelStage::getTileTexturePath(TileId id, FixString< 512 > &texName)
+	void LevelStage::getTileTexturePath(TileId id, InlineString< 512 > &texName)
 	{
 		TileSet const& tileSet = mGameLogic.mTileSetManager.getTileSet( id );
 		char const* dir = nullptr;
@@ -1713,7 +1713,7 @@ namespace CAR
 		g.drawRect( pos , size );
 
 		g.setTextColor(Color3ub(0 , 0 , 0) );
-		FixString< 128 > str;
+		InlineString< 128 > str;
 		str.format("%s", gActorShortNames[type]);
 		g.drawText( pos , size , str , true );
 	}
@@ -1736,7 +1736,7 @@ namespace CAR
 		g.drawRect( pos , size );
 
 		//g.setTextColor( 0 , 0 , 0 );
-		//FixString< 128 > str;
+		//InlineString< 128 > str;
 		//g.drawText( pos , size , str.format( "%d %d" , (int)info->pos.type , info->pos.meta ) , true );
 	}
 
@@ -1745,7 +1745,7 @@ namespace CAR
 	{
 		mData = data;
 
-		FixString< 512 > str;
+		InlineString< 512 > str;
 		int const tileSize = 48;
 		Vec2i pos = getWorldPos();
 		pos.y -= ( tileSize + 2 );
@@ -1809,7 +1809,7 @@ namespace CAR
 		Vec2i pos  = getWorldPos();
 		Vec2i size = getSize();
 
-		FixString< 512 > str;
+		InlineString< 512 > str;
 		g.setTextColor(Color3ub(255 , 255 , 0) );
 		RenderUtility::SetFont( g , FONT_S12 );
 		str.format("Round = %d , PlayerId = %d", mData->pIdRound, mData->playerId);

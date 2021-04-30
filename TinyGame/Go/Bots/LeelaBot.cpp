@@ -129,7 +129,7 @@ namespace Go
 						int num = next - cur;
 						if( num )
 						{
-							FixString< 512 > str{ cur , num };
+							InlineString< 512 > str{ cur , num };
 							if( bLogMsg )
 							{
 								LogMsg("%s", str.c_str());
@@ -164,7 +164,7 @@ namespace Go
 								break;
 							--num;
 						}
-						FixString< 512 > str{ cur , num };
+						InlineString< 512 > str{ cur , num };
 						if( bLogMsg )
 						{
 							LogMsg(str.c_str());
@@ -300,7 +300,7 @@ namespace Go
 			{
 				return false;
 			}
-			FixString<128>  coord;
+			InlineString<128>  coord;
 			int   nodeVisited;
 			float LCB;
 			float winRate;
@@ -364,7 +364,7 @@ namespace Go
 					{
 						buffer += StrLen(INFO_MOVE_STR);
 
-						FixString<128>  coord;
+						InlineString<128>  coord;
 						int   visits = 0;
 						int   winrate = 0;
 						int   prior = 0;
@@ -416,7 +416,7 @@ namespace Go
 					if( StartWith( buffer , PLAYOUTS_STR) )
 					{
 						buffer += StrLen(PLAYOUTS_STR);
-						FixString<128>  coord;
+						InlineString<128>  coord;
 						//int   nodeVisited;
 						float winRate;
 						float evalValue = 0;
@@ -549,7 +549,7 @@ namespace Go
 	std::string LeelaAppRun::GetLastWeightName()
 	{
 		FileIterator fileIter;
-		FixString<256> path;
+		InlineString<256> path;
 		path.format("%s/%s" , InstallDir , LEELA_NET_DIR_NAME );
 		if( !FileSystem::FindFiles(path, nullptr, fileIter) )
 		{
@@ -680,7 +680,7 @@ namespace Go
 	bool LeelaAppRun::buildLearningGame()
 	{
 
-		FixString<256> path;
+		InlineString<256> path;
 		path.format("%s/%s", InstallDir, "autogtp.exe");
 		bool result = buildProcessT< AutoGTPOutputThread >( path , nullptr );
 		if (result)
@@ -697,7 +697,7 @@ namespace Go
 
 		mUseWeightName = setting.weightName;
 
-		FixString<256> path;
+		InlineString<256> path;
 		path.format("%s/%s", InstallDir, "leelaz.exe");
 
 		LogMsg("Play weight = %s", setting.weightName);
@@ -746,7 +746,7 @@ namespace Go
 
 	void LeelaAppRun::startPonder( int color )
 	{
-		FixString<128> com;
+		InlineString<128> com;
 		com.format("lz-analyze %c 10\n", ToColorChar(color));
 		inputCommand(com, { GTPCommand::eStartPonder , 0 });
 	}

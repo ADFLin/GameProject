@@ -77,7 +77,7 @@ public:
 	StageBase* createStage() { return new T; }
 };
 
-template< class T , typename = TEnableIf_Type< TIsBaseOf< T, StageBase >::Value > >
+template< class T , TEnableIf_Type< TIsBaseOf< T, StageBase >::Value , bool > = true >
 IStageOperation* MakeChangeStageOperation()
 {
 	static TChangeStageOperation< T > operation;

@@ -152,7 +152,7 @@ namespace TowerDefend
 		int offset = 15;
 		int px = ::Global::GetScreenSize().x - 200;
 		int py = 5 - offset;
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		str.format( "Gold = %4d  Wood = %4d" , mPlayerInfo.gold , mPlayerInfo.wood );
 		g.drawText( px , py += offset , str );
 		str.format( "Com Mode = %d" , mComID );

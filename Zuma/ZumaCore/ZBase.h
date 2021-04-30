@@ -5,7 +5,7 @@
 #include "Math/TVector2.h"
 #include "Math/Vector2.h"
 #include "LogSystem.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 
 #include <memory>

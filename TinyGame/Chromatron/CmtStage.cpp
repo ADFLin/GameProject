@@ -90,7 +90,7 @@ namespace Chromatron
 		GChoice* choice = new GChoice( UI_GAME_PACKAGE_CHOICE , pos , Vec2i( 100 , 25 ) , panel );
 		for( int i = 0; i < ARRAY_SIZE( GameDataPackages ) ; ++i )
 		{
-			FixString< 32 > str;
+			InlineString< 32 > str;
 			str.format( "Chromatron %d" , i + 1 );
 			unsigned id = choice->addItem( str );
 		}
@@ -360,7 +360,7 @@ namespace Chromatron
 
 		for( int i = 0 ; i < num ; ++i )
 		{
-			FixString< 32 > str;
+			InlineString< 32 > str;
 			int idx = mMinChoiceLevel + i;
 			str.format( "Level %d %s" , idx + 1 , 
 				idx != mIndexLevel && ( mLevels[idx].state == eSOLVED ) ? "(O)" : "" );
@@ -392,7 +392,7 @@ namespace Chromatron
 				code += buffer;
 			}
 
-			FixString< 32 > str;
+			InlineString< 32 > str;
 			str.format( "SaveData%d", mIndexGamePackage );
 			Global::GameConfig().setKeyValue( str , CHROMATRON_NAME , code.c_str() );
 		}
@@ -403,7 +403,7 @@ namespace Chromatron
 	{
 		if ( mIndexGamePackage != IdxCreateMode )
 		{
-			FixString< 32 > str;
+			InlineString< 32 > str;
 			str.format( "SaveData%d", mIndexGamePackage );
 			char const* code;
 			if ( !Global::GameConfig().tryGetStringValue( str ,  CHROMATRON_NAME ,  code ) )
@@ -436,7 +436,7 @@ namespace Chromatron
 		Vec2i offset( 0 , 30 );
 
 		g.setTextColor(Color3ub(255 , 255 , 0) );
-		FixString< 128 > str;
+		InlineString< 128 > str;
 		g.drawText( pos , size , "-Total Level-" );
 		pos += offset;
 		str.format( "%d" , mNumLevel );

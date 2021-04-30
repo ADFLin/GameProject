@@ -133,7 +133,7 @@ namespace Phy2D
 			renderObject(g, obj);
 
 		}
-		FixString< 256 > str;
+		InlineString< 256 > str;
 
 		//if ( mIsCollided )
 		{
@@ -352,7 +352,7 @@ namespace Phy2D
 
 		}
 
-		FixString< 256 > str;
+		InlineString< 256 > str;
 
 		glPopMatrix();
 

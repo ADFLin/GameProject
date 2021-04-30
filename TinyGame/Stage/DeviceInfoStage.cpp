@@ -55,7 +55,7 @@ public:
 
 		GPUStatus status;
 		query->getGPUStatus(0, status);
-		FixString<256> str;
+		InlineString<256> str;
 		str.format("GPU %s Usage = %u , temp = %d , memory : free = %u , usage = %u",
 			gpuInfo.name.c_str(), status.usage, status.temperature, 
 			status.freeMemory, status.totalMemory - status.freeMemory);
@@ -93,4 +93,4 @@ public:
 protected:
 };
 
-REGISTER_STAGE("Device Info", DeviceInfoStage, EStageGroup::FeatureDev);
+REGISTER_STAGE("Device Info", DeviceInfoStage, EStageGroup::FeatureDev, "RHI");

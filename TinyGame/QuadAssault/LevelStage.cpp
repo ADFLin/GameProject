@@ -36,7 +36,7 @@
 #include "Minigun.h"
 
 #include "EasingFunction.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 
 #include "GameInterface.h"
@@ -415,7 +415,7 @@ void LevelStage::onRender()
 	glDisable(GL_BLEND);
 
 
-	FixString< 256 > str;
+	InlineString< 256 > str;
 	str.format( "x = %f , y = %f " , player->getPos().x , player->getPos().y );
 	mDevMsg->setString( str );
 	getRenderSystem()->drawText( mDevMsg , Vec2i( 10 , 10 ) , TEXT_SIDE_LEFT | TEXT_SIDE_RIGHT );

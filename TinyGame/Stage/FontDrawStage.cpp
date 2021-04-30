@@ -36,7 +36,8 @@ public:
 			return false;
 
 		VERIFY_RETURN_FALSE(FileUtility::LoadToBuffer("Subtitle.txt", textBuffer));
-
+		textBuffer.push_back(0);
+		textBuffer.push_back(0);
 		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());
 
 		{
@@ -166,7 +167,7 @@ public:
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(1, 1, 0.2, 1), 1);
 
 		DrawUtility::DrawTexture(commandList, g.getBaseTransform(), mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
-		g.restoreRenderState();
+
 
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"
@@ -202,10 +203,12 @@ public:
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
 #if 1
 		glColor4f(1, 0.5, 0, 1);
-		drawText(commandList, Vec2i(100, 50), str);
+		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha >::GetRHI());
+		drawText(commandList, Vec2i(100, 50), (const wchar_t*)( textBuffer.data()));
 
 #else
-		g.drawText(Vec2i(0, 0), str);
+		g.restoreRenderState();
+		g.drawText(Vec2i(0, 0), (const wchar_t*)(textBuffer.data()));
 #endif
 
 		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));

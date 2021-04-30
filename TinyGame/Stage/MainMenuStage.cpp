@@ -20,6 +20,7 @@
 #include "EasingFunction.h"
 
 #include <cmath>
+#include "StringParse.h"
 
 extern void RegisterStageGlobal();
 
@@ -90,8 +91,12 @@ bool MainMenuStage::onInit()
 	GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(100, 20), NULL);
 	for (auto const& category : categories)
 	{
-		choice->addItem(category);
+		InlineString< 128 > title;
+		int count = StageRegisterCollection::Get().getAllStages(category).size();
+		title.format("%s (%d)", category.c_str(), count);
+		uint slot = choice->addItem(title);
 	}
+
 	choice->onEvent = [this](int event, GWidget* widget) -> bool
 	{
 		for (auto widget :mCategoryWidgets )
@@ -100,7 +105,11 @@ bool MainMenuStage::onInit()
 		}
 		mCategoryWidgets.clear();
 
-		std::vector< StageInfo const*> stageInfoList = StageRegisterCollection::Get().getAllStages( static_cast<GChoice*>(widget)->getSelectValue() );
+		char const* selectValue = static_cast<GChoice*>(widget)->getSelectValue();
+		char const* last = FStringParse::FindChar(selectValue, '(');
+		StringView category = StringView{ selectValue , size_t( last - selectValue) };
+		category.removeTailSpace();
+		std::vector< StageInfo const*> stageInfoList = StageRegisterCollection::Get().getAllStages(category);
 
 		int index = 0;
 		for (auto& info : stageInfoList)

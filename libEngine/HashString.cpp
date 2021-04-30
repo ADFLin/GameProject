@@ -1,7 +1,7 @@
 #include "HashString.h"
 
 #include "CString.h"
-#include "FixString.h"
+#include "InlineString.h"
 #include "Core/TypeHash.h"
 #include "TypeConstruct.h"
 #include "Meta/MetaBase.h"
@@ -102,7 +102,7 @@ int const NameSlotChunkNum = 256;
 
 struct NameSlot
 {
-	FixString< MaxHashStringLength > str;
+	InlineString< MaxHashStringLength > str;
 	uint32    hashValue;
 	uint32    index;
 	NameSlot* next;
@@ -161,7 +161,7 @@ void HashString::init(char const* str, bool bCaseSensitive)
 	}
 
 #if 0
-	FixString< MaxHashStringLength > temp;
+	InlineString< MaxHashStringLength > temp;
 	if( !bCaseSensitive )
 	{
 		FString::Stricpy(temp, str);
@@ -215,7 +215,7 @@ void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
 	}
 
 #if 0
-	FixString< MaxHashStringLength > temp;
+	InlineString< MaxHashStringLength > temp;
 	if( !bCaseSensitive )
 	{
 		FString::Stricpy(temp, str);

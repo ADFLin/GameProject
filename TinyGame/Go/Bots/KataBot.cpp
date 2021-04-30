@@ -87,7 +87,7 @@ namespace Go
 						thinkResults[indexResultWrite].clear();
 
 						char* cur = buffer;
-						FixString<128>  coord;
+						InlineString<128>  coord;
 						int   nodeVisited;
 						float utility;
 						float winRate;
@@ -163,14 +163,14 @@ namespace Go
 			return GTPLikeAppRun::thinkNextMove(color);
 		case KataAppRun::Debug:
 			{
-				FixString<128> com;
+				InlineString<128> com;
 				com.format("genmove_debug %c\n", ToColorChar(color));
 				return inputCommand(com, { GTPCommand::eGenmove , color });
 			}
 			break;
 		case KataAppRun::Analyze:
 			{
-				FixString<128> com;
+				InlineString<128> com;
 				com.format("kata-genmove_analyze %c 20\n", ToColorChar(color));
 				return inputCommand(com, { GTPCommand::eGenmove , color });
 			}
@@ -197,7 +197,7 @@ namespace Go
 		if (!setting.bUseDefaultConfig)
 		{
 			configName = "temp.cfg";
-			FixString<256> configPath;
+			InlineString<256> configPath;
 			configPath.format("%s/%s", InstallDir, configName);
 			if (!setting.writeToConifg(configPath))
 				return false;
@@ -205,9 +205,9 @@ namespace Go
 
 		std::string modelName = setting.modelName ? setting.modelName : GetLastModeltName().c_str();
 
-		FixString<256> path;
+		InlineString<256> path;
 		path.format("%s/%s", InstallDir, setting.bUseCuda ? "KataGoCuda.exe" : "KataGo.exe");
-		FixString<512> command;
+		InlineString<512> command;
 		command.format(" gtp -model %s/%s -config %s", KATA_MODEL_DIR_NAME, modelName.c_str(), configName);
 		bool result = buildProcessT< KataOutputThread >(path, command);
 		if (result)

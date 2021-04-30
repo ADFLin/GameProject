@@ -90,14 +90,14 @@ inline SocketBuffer& operator << ( SocketBuffer& buffer , DataStreamBuffer& data
 }
 
 template< int N >
-inline SocketBuffer& operator >> ( SocketBuffer& buffer , FixString< N >& val )
+inline SocketBuffer& operator >> ( SocketBuffer& buffer , InlineString< N >& val )
 {
 	buffer.take( val , N );
 	return buffer;
 }
 
 template< int N >
-inline SocketBuffer& operator << ( SocketBuffer& buffer , FixString< N > const& val )
+inline SocketBuffer& operator << ( SocketBuffer& buffer , InlineString< N > const& val )
 {
 	buffer.fill( val , N );
 	return buffer;
@@ -225,7 +225,7 @@ class CPLogin : public GamePacketT< CPLogin , CP_LOGIN >
 {
 public:
 	SessionId       id;
-	FixString< MAX_PLAYER_NAME_LENGTH > name;
+	InlineString< MAX_PLAYER_NAME_LENGTH > name;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
@@ -253,7 +253,7 @@ public:
 class CPEcho : public GamePacketT< CPEcho , CP_ECHO >
 {
 public:
-	FixString< 256 > content;
+	InlineString< 256 > content;
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
@@ -275,7 +275,7 @@ public:
 	static int const MaxMsgLength = 128;
 	uint8  type;
 	unsigned  playerID;
-	FixString< MaxMsgLength > content;
+	InlineString< MaxMsgLength > content;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
@@ -304,7 +304,7 @@ class CSPComMsg : public GamePacketT< CSPComMsg , CSP_COM_MSG >
 {
 public:
 	static int const MaxMsgLength = 128;
-	FixString< MaxMsgLength > str;
+	InlineString< MaxMsgLength > str;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
@@ -369,8 +369,8 @@ class SPServerInfo : public GamePacketT< SPServerInfo , SP_SERVER_INFO >
 {
 public:
 	static int const MAX_NAME_LENGTH = 32;
-	FixString< MAX_NAME_LENGTH > name;
-	FixString< 32 > ip;
+	InlineString< MAX_NAME_LENGTH > name;
+	InlineString< 32 > ip;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )

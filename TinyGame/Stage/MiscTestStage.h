@@ -260,7 +260,7 @@ public:
 
 	void printBits( uint32 num )
 	{
-		FixString< 128 > str;
+		InlineString< 128 > str;
 		for( uint32 i = 0 ; i < 32 ; ++i )
 		{
 			if ( num & ( 1 << ( 31 - i ) ) )
@@ -481,7 +481,7 @@ public:
 		return;
 		for( int i = 0 ; i < mOut.size() ; ++i )
 		{
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			str.format("%d", mOut[i]);
 			g.drawText( Vec2i( 40 + 20 * i , 40 ) , str );
 		}
@@ -1567,7 +1567,7 @@ public:
 			RenderUtility::SetPen( g , EColor::White );
 			g.drawRect( pos , rectSize );
 
-			FixString< 64 > str;
+			InlineString< 64 > str;
 			g.setTextColor(Color3ub(255 , 255 , 255) );
 			str.format( "%d" , node.key );
 			g.drawText( pos , rectSize , str );

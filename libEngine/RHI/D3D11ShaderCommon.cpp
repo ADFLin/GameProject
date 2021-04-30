@@ -85,7 +85,7 @@ namespace Render
 
 			TComPtr< ID3D10Blob > errorCode;
 			TComPtr< ID3D10Blob > byteCode;
-			FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice->GetFeatureLevel() , input.type);
+			InlineString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice->GetFeatureLevel() , input.type);
 
 			uint32 compileFlag = D3DCOMPILE_IEEE_STRICTNESS /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 			if (GRHIPrefEnabled)
@@ -313,7 +313,7 @@ namespace Render
 										memberType->GetDesc(&memberTypeDesc);
 										char const* memberName = varType->GetMemberTypeName(indexMember);
 
-										FixString<256> paramName;
+										InlineString<256> paramName;
 										paramName.format("%s.%s", varDesc.Name, memberName);
 										auto& param = parameterMap.addParameter(paramName, bindDesc.BindPoint, varDesc.StartOffset + memberTypeDesc.Offset, lastOffset - memberTypeDesc.Offset);
 

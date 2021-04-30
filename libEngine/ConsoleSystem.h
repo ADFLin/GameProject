@@ -7,7 +7,7 @@
 #include "FunctionTraits.h"
 #include <cstring>
 #include "Singleton.h"
-#include "FixString.h"
+#include "InlineString.h"
 #include "HashString.h"
 #include "TypeConstruct.h"
 #include "Math/Vector2.h"
@@ -373,7 +373,7 @@ protected:
 	static int const NumMaxParams = 16;
 	struct ExecuteContext
 	{
-		FixString<512> buffer;
+		InlineString<512> buffer;
 		ConsoleCommandBase*    command;
 		char const* commandString;
 		char const* paramStrings[NumMaxParams];

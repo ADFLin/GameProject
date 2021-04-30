@@ -5,7 +5,7 @@
 #include "RenderUtility.h"
 #include "PlatformThread.h"
 #include "SystemPlatform.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 namespace Go
 {
@@ -65,7 +65,7 @@ namespace Go
 			g.drawLine( posV , posV + Vec2i( 0 , length ) );
 			g.drawLine( posH , posH + Vec2i( length , 0 ) );
 
-			FixString< 64 > str;
+			InlineString< 64 > str;
 			str.format( "%2d" , i + 1 );
 			g.drawText( posH - Vec2i( 30 , 8 ) , str );
 			g.drawText( posH + Vec2i( 12 + length , -8 ) , str );
@@ -131,7 +131,7 @@ namespace Go
 
 		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor(Color3ub(255 , 255 , 0) );
-		FixString< 64 > str;
+		InlineString< 64 > str;
 		str.format( "life = %d" , mCaptureCount );
 		g.drawText( Vec2i( 5 , 5 ) , str );
 		str.format( "B = %d | W = %d" , mGame.getWhiteCapturedNum() , mGame.getBlackCapturedNum() );
@@ -330,7 +330,7 @@ namespace Go
 #if 1
 			RenderUtility::SetFontColor(g, EColor::Purple);
 			RenderUtility::SetFont(g, FONT_S8);
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			str.format("%d", value);
 			g.drawText(pos, str);
 #endif

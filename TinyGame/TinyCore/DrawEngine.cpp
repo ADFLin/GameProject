@@ -337,7 +337,7 @@ public:
 	static int const OffsetY = 15;
 	void onRoot(SampleNode* node) 
 	{
-		FixString<512> str;
+		InlineString<512> str;
 		double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
 		str.format("--- Profiling: %s (total running time: %.3f ms) ---",
 					 node->getName(), time_since_reset);
@@ -346,7 +346,7 @@ public:
 	}
 	void onNode(SampleNode* node, double parentTime) 
 	{
-		FixString<512> str;
+		InlineString<512> str;
 		str.format("|-> %s (%.2f %%) :: %.3f ms / frame (%d calls)",
 					 node->getName(),
 					 parentTime > CLOCK_EPSILON ? (node->getTotalTime() / parentTime) * 100 : 0.f,
@@ -364,7 +364,7 @@ public:
 	{
 		if( numChildren )
 		{
-			FixString<512> str;
+			InlineString<512> str;
 			double time;
 			if( node->getParent() != NULL )
 				time = node->getTotalTime();

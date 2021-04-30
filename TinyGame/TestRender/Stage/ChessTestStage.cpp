@@ -229,7 +229,7 @@ namespace Chess
 			{
 				for (int i = 0; i < ARRAY_SIZE(ChessNames); ++i)
 				{
-					FixString<256> filePath;
+					InlineString<256> filePath;
 					filePath.format("Model/Chess/%s.fbx", ChessNames[i]);
 
 					VERIFY_RETURN_FALSE(importer->importFromFile(filePath, mChessMeshs[i], nullptr));
@@ -256,7 +256,7 @@ namespace Chess
 			};
 			for (int i = 0; i < 4; ++i)
 			{
-				FixString<256> path;
+				InlineString<256> path;
 				path.format("Model/Chess/textures/%s", textureNames[i]);
 				VERIFY_RETURN_FALSE( mTextures[i] = RHIUtility::LoadTexture2DFromFile(path) );
 			}
@@ -501,7 +501,7 @@ namespace Chess
 						Vector2 tileCenterPos = tilePos + 0.5 * Vector2(TileLength, TileLength);
 
 #if 0
-						FixString<256> str;
+						InlineString<256> str;
 						str.format("%d %d", tile.whiteAttackCount, tile.blackAttackCount);
 						g.drawText(tileCenterPos, str);
 #endif

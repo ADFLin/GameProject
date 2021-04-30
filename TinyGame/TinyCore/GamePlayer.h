@@ -30,7 +30,7 @@ public:
 
 struct PlayerInfo
 { 
-	FixString< MAX_PLAYER_NAME_LENGTH > name;
+	InlineString< MAX_PLAYER_NAME_LENGTH > name;
 	PlayerType type;
 	PlayerId   playerId;
 	SlotId     slot;

@@ -5,7 +5,7 @@
 
 #include "Math/TVector2.h"
 #include "Math/Vector2.h"
-#include "FixString.h"
+#include "InlineString.h"
 #include "Core/IntegerType.h"
 #include "MarcoCommon.h"
 #include "TemplateMisc.h"

@@ -21,8 +21,7 @@ namespace FlappyBird
 {
 	using namespace Render;
 
-	REGISTER_STAGE("FlappyBird Test", LevelStage, EStageGroup::Dev, 2);
-
+	REGISTER_STAGE("FlappyBird Test", LevelStage, EStageGroup::Dev, 2, "Game|AI");
 
 	class AgentBird : public AgentEntity
 		            , public IBirdController
@@ -387,7 +386,7 @@ namespace FlappyBird
 
 		for( int i = 0; i < TextureID::Count; ++i )
 		{
-			FixString<128> path;
+			InlineString<128> path;
 			path.format("FlappyBird/%s", fileName[i]);
 
 			ImageInfo& image = mImages[i];
@@ -746,7 +745,7 @@ namespace FlappyBird
 			}
 
 			Vec2i startPos(20, 20);
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			str.format("Generation = %d", mTrainData->generation);
 			g.drawText(startPos, str);
 
@@ -759,7 +758,7 @@ namespace FlappyBird
 		}
 		else
 		{
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			str.format("Count = %d", mScore);
 			g.drawText(Vec2i(10, 10), str);
 		}

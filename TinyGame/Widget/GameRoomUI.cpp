@@ -55,7 +55,7 @@ void SlotFrame::onRender()
 	Vec2i pos = getWorldPos();
 
 	Graphics2D& g = Global::GetGraphics2D();
-	FixString< 512 > str;
+	InlineString< 512 > str;
 	if ( getSlot().info )
 	{
 		str.format( "%d %d" , getSlot().id , getSlot().info->slot );

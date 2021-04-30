@@ -213,7 +213,7 @@ namespace Go
 		uint32 winCount;
 		uint32 botParamBase;
 
-		FixString< 128 > getName() const;
+		InlineString< 128 > getName() const;
 		bool   isBot() const { return type != ControllerType::ePlayer; }
 		bool   initialize(ControllerType inType, void* botSetting = nullptr, MatchPlayer const* otherPlayer = nullptr);
 
@@ -234,7 +234,7 @@ namespace Go
 		int games;
 		int training;
 
-		void getFormattedName(FixString< 128 >& outName)
+		void getFormattedName(InlineString< 128 >& outName)
 		{
 			outName.format("#%03d-%s-%s", version, format.c_str(), name.c_str());
 		}
@@ -392,7 +392,7 @@ namespace Go
 
 		static std::string ToString(GameSetting const& gameSetting)
 		{
-			FixString<128> result;
+			InlineString<128> result;
 			result.format("size=%d handicap=%d komi=%f start=%c",
 						  gameSetting.boardSize, gameSetting.numHandicap,
 						  gameSetting.komi, gameSetting.bBlackFirst ? 'b' : 'w');

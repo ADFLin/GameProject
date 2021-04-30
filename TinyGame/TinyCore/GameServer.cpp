@@ -596,7 +596,7 @@ void ServerWorker::procComMsg_NetThread( IComPacket* cp)
 
 	if ( com->str == "server_info" )
 	{
-		FixString< 256 > hostname;
+		InlineString< 256 > hostname;
 		
 		NetAddress sendAddr = *(NetAddress*)com->getUserData();
 		if( cp->getGroup() == CLIENT_GROUP )
@@ -611,7 +611,7 @@ void ServerWorker::procComMsg_NetThread( IComPacket* cp)
 		if( gethostname(hostname, hostname.max_size()) == 0 )
 		{
 			hostent* hn = gethostbyname(hostname);
-			FixString<32> ip = inet_ntoa(*(struct in_addr *)hn->h_addr_list[0]);
+			InlineString<32> ip = inet_ntoa(*(struct in_addr *)hn->h_addr_list[0]);
 
 			addGameThreadCommnad([this, ip, sendAddr]
 			{
@@ -779,7 +779,7 @@ SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const*
 
 	SNetPlayer* player = new SNetPlayer( server , client );
 
-	FixString< 64 > nameUsed = name;
+	InlineString< 64 > nameUsed = name;
 
 	int idx = 1;
 	while( 1 )

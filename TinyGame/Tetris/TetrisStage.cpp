@@ -234,7 +234,7 @@ namespace Tetris
 
 					if ( /*mLastGameOrder < 10 &&*/ mGameMode->getModeID() == MODE_TS_CHALLENGE )
 					{
-						FixString< 256 > str;
+						InlineString< 256 > str;
 
 						time_t rawtime;
 						struct tm timeinfo;
@@ -875,7 +875,7 @@ namespace Tetris
 
 			void drawText( Graphics2D& g , int x , int y , ... ) const
 			{
-				FixString< 128 > str;
+				InlineString< 128 > str;
 				va_list vl;
 				va_start( vl ,y );
 				str.formatVA(fmt, vl);

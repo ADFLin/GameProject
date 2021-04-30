@@ -5,7 +5,7 @@
 #include "LogSystem.h"
 #include "Platform/Windows/ComUtility.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <D3D11.h>
 
@@ -936,7 +936,7 @@ namespace Render
 	class FD3D11Utility
 	{
 	public:
-		static FixString<32> GetShaderProfile( D3D_FEATURE_LEVEL featureLevel, EShader::Type type);
+		static InlineString<32> GetShaderProfile( D3D_FEATURE_LEVEL featureLevel, EShader::Type type);
 	};
 
 

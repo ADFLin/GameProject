@@ -307,7 +307,7 @@ namespace TripleTown
 	bool Scene::loadResource()
 	{
 		TRACE_RESOURCE_TAG_SCOPE("TTScene");
-		FixString< 256 > path;
+		InlineString< 256 > path;
 		unsigned w, h;
 
 		TRACE_RESOURCE_TAG("TTScene.TexAtlas");
@@ -355,7 +355,7 @@ namespace TripleTown
 
 	bool Scene::loadItemImageResource(ItemImageLoadInfo& info)
 	{
-		FixString< 256 > path;
+		InlineString< 256 > path;
 		path.format("%s/item_%s.tex", gResourceDir, info.fileName);
 
 		VERIFY_RETURN_FALSE(loadImageTexFile(path, info.id, EItemImage::eNormal));
@@ -443,7 +443,7 @@ namespace TripleTown
 				}
 				else if ( Level::GetInfo( tile.id ).typeClass->getType() == OT_BASIC )
 				{
-					FixString< 32 > str;
+					InlineString< 32 > str;
 					str.format( "%d" , mLevel->getLinkNum( TilePos( i , j ) ) );
 					g.setTextColor(Color3ub(100 , 0 , 255) );
 					g.drawText( pos , str );
@@ -514,7 +514,7 @@ namespace TripleTown
 				Vec2i bSize( TileLength - 16  , TileLength - 16 );
 				RenderUtility::SetBrush( g , EColor::Red );
 				g.drawRect( pos + TileSize / 2 - bSize / 2 , bSize );
-				FixString< 32 > str;
+				InlineString< 32 > str;
 				str.format( "%d" , id );
 				g.drawText( pos , TileSize , str );
 			}
@@ -1126,7 +1126,7 @@ namespace TripleTown
 
 	void Scene::loadPreviewTexture(char const* name)
 	{
-		FixString< 1024 > path;
+		InlineString< 1024 > path;
 		path.format("TripleTown/%s", name);
 		mPreviewTexture = LoadTexture(path);
 	}

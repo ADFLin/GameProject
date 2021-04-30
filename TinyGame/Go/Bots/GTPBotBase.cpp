@@ -38,7 +38,7 @@ namespace Go
 
 	bool GTPLikeAppRun::playStone(int x, int y, int color)
 	{
-		FixString<128> com;
+		InlineString<128> com;
 		com.format("play %c %c%d\n", ToColorChar(color) , ToCoordChar(x), y + 1);
 		if (!inputCommand(com, { GTPCommand::ePlay , color }))
 			return false;
@@ -47,7 +47,7 @@ namespace Go
 
 	bool GTPLikeAppRun::addStone(int x, int y, int color)
 	{
-		FixString<128> com;
+		InlineString<128> com;
 		com.format("play %c %c%d\n", ToColorChar(color), ToCoordChar(x), y + 1);
 		if (!inputCommand(com, { GTPCommand::eAdd , color }))
 			return false;
@@ -56,7 +56,7 @@ namespace Go
 
 	bool GTPLikeAppRun::playPass(int color)
 	{
-		FixString<128> com;
+		InlineString<128> com;
 		if (color != StoneColor::eEmpty)
 			com.format("play %c pass\n", ToColorChar(color));
 		else
@@ -68,7 +68,7 @@ namespace Go
 
 	bool GTPLikeAppRun::thinkNextMove(int color)
 	{
-		FixString<128> com;
+		InlineString<128> com;
 		com.format("genmove %c\n", ToColorChar(color));
 		if (!inputCommand(com, { GTPCommand::eGenmove , color }))
 			return false;
@@ -91,7 +91,7 @@ namespace Go
 
 	bool GTPLikeAppRun::setupGame(GameSetting const& setting)
 	{
-		FixString<128> com;
+		InlineString<128> com;
 		com.format("komi %.1f\n", setting.komi);
 		if (!inputCommand(com, { GTPCommand::eKomi , 0 }))
 			return false;

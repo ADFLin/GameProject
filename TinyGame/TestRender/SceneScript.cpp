@@ -82,7 +82,7 @@ namespace Render
 			mAssetProvider = &assetProvider;
 			mScriptScene = &scene;
 
-			FixString< 512 > path;
+			InlineString< 512 > path;
 			path.format("Script/%s.chai", fileName);
 			Chai::ChaiScript script;
 			script.add(CommonModule);
@@ -248,7 +248,7 @@ namespace Render
 
 	std::string ISceneScript::GetFilePath(char const* fileName)
 	{
-		FixString< 512 > path;
+		InlineString< 512 > path;
 		path.format("Script/%s.chai", fileName);
 		return path;
 	}

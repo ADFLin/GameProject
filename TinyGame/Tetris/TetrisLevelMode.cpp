@@ -159,7 +159,7 @@ namespace Tetris
 		NormalModeData* modeData = static_cast< NormalModeData* >( lvData->getModeData() );
 
 
-		FixString< 256 > str;
+		InlineString< 256 > str;
 
 		int d = 19;
 		int x = x0;
@@ -430,7 +430,7 @@ namespace Tetris
 
 		Level* level = getWorld()->getLevelData(0)->getLevel();
 
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		RenderUtility::SetFont( g , FONT_S10 );
 		g.setTextColor(Color3ub(255 , 255 , 0) );
 
@@ -469,7 +469,7 @@ namespace Tetris
 		Level* level  = lvData->getLevel();
 		PracticeModeData* modeData = static_cast< PracticeModeData* >( lvData->getModeData() );
 
-		FixString< 256 > str;
+		InlineString< 256 > str;
 
 		int d = 19;
 		int x = x0;

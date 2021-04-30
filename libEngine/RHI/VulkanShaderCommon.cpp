@@ -1,6 +1,6 @@
 #include "VulkanShaderCommon.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 #include "SystemPlatform.h"
 #include "Platform/Windows/WindowsProcess.h"
 #include "FileSystem.h"
@@ -322,7 +322,7 @@ namespace Render
 			"vert","frag","geom","comp","tesc","tese"
 		};
 
-		FixString<1024> command;
+		InlineString<1024> command;
 		command.format(" -V -S %s -o %s %s", ShaderNames[input.type], pathSpv.c_str(), pathCompile.c_str());
 
 		ChildProcess process;

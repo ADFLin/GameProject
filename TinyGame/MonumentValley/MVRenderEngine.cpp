@@ -6,7 +6,7 @@
 
 #include "Renderer/MeshBuild.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <fstream>
 
@@ -123,7 +123,7 @@ namespace MV
 			for( int i = 0 ; i < ARRAY_SIZE( GMeshInfo ) ; ++i )
 			{
 				MeshInfo const& info = GMeshInfo[i];
-				FixString< 256 > path = "Mesh/";
+				InlineString< 256 > path = "Mesh/";
 				path += info.name; 
 				path += ".obj";
 				if ( !MeshBuild::LoadObjectFile( mMesh[ info.id ] , path ) )

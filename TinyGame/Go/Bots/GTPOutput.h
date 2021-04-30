@@ -141,7 +141,7 @@ namespace Go
 		}
 
 		template< int N >
-		static PlayVertex GetVertex(FixString<N> const& coord)
+		static PlayVertex GetVertex(InlineString<N> const& coord)
 		{
 			int numRead;
 			return ReadVertex(coord.c_str(), numRead);

@@ -9,7 +9,7 @@
 #include "LogSystem.h"
 #include "Platform/Windows/ComUtility.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <unordered_map>
 

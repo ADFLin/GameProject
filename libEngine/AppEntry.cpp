@@ -5,13 +5,13 @@
 #include "WindowsHeader.h"
 #include "MemorySecurity.h"
 #include <cstring>
-#include "FixString.h"
+#include "InlineString.h"
 
 extern int main( int argc , char* argv[] );
 
 int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR , int nCmdShow )
 {
-	FixString< 1024 > Copy = GetCommandLineA();
+	InlineString< 1024 > Copy = GetCommandLineA();
 	char* lpCmdLine = Copy.data();
 	char* argv[ 128 ];
 	int   argc = 0;

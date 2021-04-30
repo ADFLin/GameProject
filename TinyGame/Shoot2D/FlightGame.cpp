@@ -123,7 +123,7 @@ namespace Shoot2D
 		objManger->visit( DrawFun(*de) );
 
 
-		FixString< 32 > buf;
+		InlineString< 32 > buf;
 		buf.format( "ObjNum = %d   fps = %.1f" , objManger->getObjNum() , mFPS );
 
 		de->drawText( 10 , 10 , buf );

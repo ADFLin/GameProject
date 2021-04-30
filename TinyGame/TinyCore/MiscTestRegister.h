@@ -4,7 +4,7 @@
 
 #include "GameConfig.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <functional>
 #include <vector>
@@ -12,7 +12,7 @@
 
 struct MiscTestEntry
 {
-	FixString< 128 > name;
+	InlineString< 128 > name;
 	std::function< void() > func;
 };
 

@@ -80,7 +80,7 @@ namespace Render
 				if( noramlTexture )
 				{
 					mat = new MaterialInstance(getMaterial(MaterialId::Lightning));
-					FixString< 256 > path = textureDir;
+					InlineString< 256 > path = textureDir;
 					path += noramlTexture;
 					RHITexture2DRef tex = RHIUtility::LoadTexture2DFromFile(path);
 					addGameCommand
@@ -98,7 +98,7 @@ namespace Render
 				
 				if( matInfo->diffuseTextureName && id != MeshId::Lightning )
 				{
-					FixString< 256 > path = textureDir;
+					InlineString< 256 > path = textureDir;
 					path += matInfo->diffuseTextureName;
 					RHITexture2DRef tex = RHIUtility::LoadTexture2DFromFile(path);
 					addGameCommand(

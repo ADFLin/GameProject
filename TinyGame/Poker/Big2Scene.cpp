@@ -623,7 +623,7 @@ namespace Poker { namespace Big2 {
 
 		if ( player )
 		{
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			RenderUtility::SetFont(g, FONT_S10);
 			g.drawText(renderPos, player->getName());
 			renderPos.y += 12;

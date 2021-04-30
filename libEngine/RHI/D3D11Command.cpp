@@ -482,7 +482,7 @@ namespace Render
 			return iter->second;
 		}
 
-		FixString<512> fakeCode;
+		InlineString<512> fakeCode;
 		{
 			char const* FakeCodeTemplate = CODE_STRING(
 				struct VSInput
@@ -513,7 +513,7 @@ namespace Render
 			);
 			for (auto e : sortedElements)
 			{
-				FixString< 128 > str;
+				InlineString< 128 > str;
 				str.format("float%d v%d : ATTRIBUTE%d;", EVertex::GetComponentNum(e->format), e->attribute, e->attribute);
 				vertexCode += str.c_str();
 			}
@@ -523,7 +523,7 @@ namespace Render
 
 		TComPtr< ID3D10Blob > errorCode;
 		TComPtr< ID3D10Blob > byteCode;
-		FixString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice->GetFeatureLevel(), EShader::Vertex);
+		InlineString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice->GetFeatureLevel(), EShader::Vertex);
 
 		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 		VERIFY_D3D_RESULT(

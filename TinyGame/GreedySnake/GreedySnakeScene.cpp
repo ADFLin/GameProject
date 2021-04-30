@@ -218,7 +218,7 @@ namespace GreedySnake
 			{
 				MapTileData const& tile = mLevel.mMap.getData( i , j );
 
-				FixString< 32 > str;
+				InlineString< 32 > str;
 				str.format( "%u" , tile.snakeMask );
 				//g.drawText( BlockSize * Vec2i(i,j) + offset , Vec2i( BlockSize , BlockSize) , str );
 				g.drawText(BlockSize * Vec2i(i, j) + offset + Vec2i( 5 , 5 ) , str);

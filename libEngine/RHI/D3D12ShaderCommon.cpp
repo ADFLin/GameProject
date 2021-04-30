@@ -8,7 +8,7 @@
 #include "ShaderProgram.h"
 #include "RHICommand.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 #include "FileSystem.h"
 #include "CPreprocessor.h"
 
@@ -394,7 +394,7 @@ namespace Render
 										memberType->GetDesc(&memberTypeDesc);
 										char const* memberName = varType->GetMemberTypeName(indexMember);
 
-										FixString<256> paramName;
+										InlineString<256> paramName;
 										paramName.format("%s.%s", varDesc.Name, memberName);
 
 										slot.dataOffset = varDesc.StartOffset + memberTypeDesc.Offset;

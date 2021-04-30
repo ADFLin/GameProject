@@ -1,7 +1,7 @@
 #include "AsyncWork.h"
 
 #include "SystemPlatform.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 #include <cassert>
 
@@ -41,7 +41,7 @@ void QueueThreadPool::init(int numThread, uint32 stackSize)
 		PoolRunableThread* runThread = new PoolRunableThread;
 		runThread->mOwningPool = this;
 
-		FixString< 128 > name;
+		InlineString< 128 > name;
 		runThread->start(stackSize);
 		name.format("QueuedWorker%d", i + 1);
 		runThread->setDisplayName(name);

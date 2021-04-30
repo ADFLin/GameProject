@@ -44,7 +44,7 @@ namespace Render
 		}
 
 		{
-			FixString< 128 > defineStr;
+			InlineString< 128 > defineStr;
 			ShaderCompileOption option;
 			ShaderEntryInfo entries[] =
 			{
@@ -247,7 +247,7 @@ namespace Render
 		g.beginRender();
 
 		RenderUtility::SetFont( g , FONT_S8 );
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		Vec2i pos = Vec2i( 10 , 10 );
 		str.format("Lights Num = %u", lights.size());
 		g.drawText( pos , str );

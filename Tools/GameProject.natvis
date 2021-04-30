@@ -29,7 +29,7 @@
     <DisplayString>{{{r}, {g}, {b}, {a}}}</DisplayString>
   </Type>
 
-  <Type Name="FixString&lt;*&gt;" >
+  <Type Name="InlineString&lt;*&gt;" >
     <DisplayString>{mData}</DisplayString>
   </Type>
 

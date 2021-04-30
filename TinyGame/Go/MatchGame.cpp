@@ -11,9 +11,9 @@
 
 namespace Go
 {
-	FixString< 128 > MatchPlayer::getName() const
+	InlineString< 128 > MatchPlayer::getName() const
 	{
-		FixString< 128 > result = GetControllerName(type);
+		InlineString< 128 > result = GetControllerName(type);
 		if( type == ControllerType::eLeelaZero )
 		{
 			std::string weightName;
@@ -201,7 +201,7 @@ namespace Go
 						if( weightInfo )
 						{
 							data.playerSetting[i].erase(offset, weightName.length());
-							FixString<128> newWeightName;
+							InlineString<128> newWeightName;
 							weightInfo->getFormattedName(newWeightName);
 							data.playerSetting[i].insert(offset, newWeightName);
 							bModified = true;

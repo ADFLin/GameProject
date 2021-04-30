@@ -177,11 +177,11 @@ LevelData const gLevels[] =
 			if( data == NullValue )
 				return "N";
 
-			static FixString< 128 > str;
+			static InlineString< 128 > str;
 			str.format("%d", data);
 			return str;
 		};
-		FixString< 128 > str;
+		InlineString< 128 > str;
 		switch( op.code )
 		{
 		case OP_NOP:
@@ -244,8 +244,7 @@ LevelData const gLevels[] =
 			DataType const& data = *(mechine.mCurMem + i);
 			if( data == NullValue )
 				continue;
-			FixString< 128 > str;
-			g.drawText(Vec2i(100 + 10 * i, 80), MakeString("%d", data) );
+			g.drawText(Vec2i(100 + 10 * i, 80), InlineString<128>::Make("%d", data) );
 		}
 	}
 

@@ -232,7 +232,7 @@ namespace FlowFree
 
 		frame->addButton("Load/Solve Image Level", [this](int event, GWidget* widget)
 		{
-			FixString< 512 > imagePath;
+			InlineString< 512 > imagePath;
 			if (SystemPlatform::OpenFileName(imagePath, imagePath.max_size(), {}, nullptr , nullptr , ::Global::GetDrawEngine().getWindowHandle() ) )
 			{
 				ImageReader::LoadParams params;

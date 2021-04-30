@@ -157,7 +157,7 @@ public:
 			g.drawLine(p2, p2 + Vec2i(TotalSize, 0));
 		}
 
-		FixString< 128 > str;
+		InlineString< 128 > str;
 		int const* prob = mSolver.getProblem();
 
 		for( int i = 0; i < SudokuSolver::MaxIndex; ++i )

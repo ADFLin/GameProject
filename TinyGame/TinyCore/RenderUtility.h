@@ -99,7 +99,7 @@ struct SimpleTextLayout
 	template< class TGraphics2D, class ...Args>
 	FORCEINLINE void show(TGraphics2D& g, char const* format, Args&& ...args)
 	{
-		FixString< 512 > str;
+		InlineString< 512 > str;
 		str.format(format, args...);
 		g.drawText(Vector2( posX, posY ), str);
 		posY += offset;

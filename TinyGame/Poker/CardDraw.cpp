@@ -158,7 +158,7 @@ namespace Poker {
 			else
 				g.setTextColor(Color3ub(255, 0, 0));
 			char const* suitStr[] = { "C" , "D" , "H" , "S" };
-			FixString< 128 > str;
+			InlineString< 128 > str;
 			str.format("%s%s", suitStr[card.getSuit()], Card::ToString(card.getFace()) );
 			g.drawText( pos, Vec2i(25,20), str.c_str());
 			g.drawText( pos + CardSize - Vec2i(25, 20), Vec2i(25, 20), str.c_str());

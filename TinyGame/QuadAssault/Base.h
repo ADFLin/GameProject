@@ -18,8 +18,8 @@
 #include <string>
 typedef std::string String;
 
-#include "FixString.h"
-typedef FixString< 512 > FString;
+#include "InlineString.h"
+typedef InlineString< 512 > FString;
 
 #include "Holder.h"
 

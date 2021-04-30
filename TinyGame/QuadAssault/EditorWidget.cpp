@@ -4,7 +4,7 @@
 #include "RenderSystem.h"
 #include "Block.h"
 
-#include "FixString.h"
+#include "InlineString.h"
 #include "BlockId.h"
 
 PorpTextCtrl::PorpTextCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
@@ -204,7 +204,7 @@ void PropFrame::addPropData(char const* name , PropData const& data , unsigned f
 		}
 		else
 		{
-			FixString< 128 > fullName;
+			InlineString< 128 > fullName;
 			fullName = name;
 			fullName += ".X";
 			addProp( fullName , data.cast< Vec3f >().x , flag );
@@ -218,7 +218,7 @@ void PropFrame::addPropData(char const* name , PropData const& data , unsigned f
 		break;
 	case PROP_VEC2F:
 		{
-			FixString< 128 > fullName;
+			InlineString< 128 > fullName;
 			fullName = name;
 			fullName += ".X";
 			addProp( fullName , data.cast< Vec2f >().x , flag );

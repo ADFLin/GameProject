@@ -158,7 +158,7 @@ namespace G2D
 			RenderUtility::SetBrush(g, mbInside ? EColor::Red : EColor::Yellow);
 			mRenderer.drawCircle(g, mTestPos, 0.5);
 
-			FixString<256> str;
+			InlineString<256> str;
 			g.setTextColor( Color3ub(255, 255, 0) );
 			str.format("Is Convex = %s", mbConvex ? "Yes" : "No");
 			g.drawText(Vector2(200, 50), str);
@@ -298,7 +298,7 @@ namespace G2D
 
 		void drawTest(Graphics2D& g)
 		{
-			FixString< 256 > str;
+			InlineString< 256 > str;
 			Vec2i pos = Vector2(200, 200);
 			for( int i = 0; i < mPoly.size(); ++i )
 			{
@@ -377,7 +377,7 @@ namespace G2D
 
 			drawPolygon(g, Vector2(30, 30), &mPoly[0], mPoly.size());
 			//drawTest( g );
-			FixString< 64 > str;
+			InlineString< 64 > str;
 			if( mSAT.haveSA )
 			{
 				str.format("No Collision ( dist = %f )", mSAT.fResult);
@@ -454,5 +454,5 @@ namespace G2D
 }
 
 
-REGISTER_STAGE("SAT Col Test", G2D::TestStage, EStageGroup::Test);
-REGISTER_STAGE("QHull Test", G2D::QHullTestStage, EStageGroup::Test);
+REGISTER_STAGE("SAT Col Test", G2D::TestStage, EStageGroup::Test, "Algorithm|Collection");
+REGISTER_STAGE("QHull Test", G2D::QHullTestStage, EStageGroup::Test, "Algorithm");

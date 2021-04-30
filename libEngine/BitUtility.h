@@ -1,8 +1,10 @@
 #ifndef BitUtility_h__
 #define BitUtility_h__
 
-#include <cassert>
+#include "PlatformConfig.h"
 #include "Core/IntegerType.h"
+
+#include <cassert>
 
 class FBitUtility
 {

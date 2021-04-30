@@ -78,7 +78,7 @@ namespace TowerDefend
 			RenderUtility::DrawBlock( g , wPos, getSize() , EColor::Blue );
 		if ( getComKey() && getComKey()->comID != CID_NULL )
 		{
-			FixString< 32 > str;
+			InlineString< 32 > str;
 			str.format( "%d(%c)" , getComKey()->comID , getComKey()->key );
 			g.drawText( wPos.x , wPos.y , str );
 		}

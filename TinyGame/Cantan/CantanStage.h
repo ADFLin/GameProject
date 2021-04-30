@@ -42,7 +42,7 @@ namespace Cantan
 
 			bool drawCoord = false;
 			g.setTextColor(Color3ub(0,0,255));
-			FixString< 256 > str;
+			InlineString< 256 > str;
 			RenderUtility::SetBrush( g , EColor::Yellow );
 			for( MapCellManager::CellVec::iterator iter = mCellManager.mCells.begin() , itEnd = mCellManager.mCells.end();
 				 iter != itEnd ; ++iter )

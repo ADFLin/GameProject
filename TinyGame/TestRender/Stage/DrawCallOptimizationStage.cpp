@@ -754,7 +754,7 @@ namespace Render
 
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 
-			FixString< 512 > str;
+			InlineString< 512 > str;
 
 			g.beginRender();
 			
@@ -848,6 +848,6 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("Draw Call", DrawCallOptimizationStage, EStageGroup::FeatureDev);
+	REGISTER_STAGE("Draw Call", DrawCallOptimizationStage, EStageGroup::FeatureDev, "Render");
 
 }

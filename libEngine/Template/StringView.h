@@ -16,8 +16,8 @@ public:
 	TStringView() = default;
 	TStringView( EForceInit ):mData(nullptr),mNum(0){}
 
-	template< typename Q >
-	TStringView(Q str, typename TEnableIf< Meta::IsSameType< T const* , Q >::Value >::Type* = 0)
+	template< typename Q, TEnableIf_Type< Meta::IsSameType< T const*, Q >::Value , bool > = true >
+	TStringView(Q str)
 		:mData(str), mNum(FCString::Strlen(str)){}
 
 	template< size_t N >

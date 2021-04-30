@@ -106,7 +106,7 @@ namespace Zuma
 		IXmlNodePtr nodeLevels = mDoc->getRoot()->getChild("Levels");
 		IXmlNodePtr nodeAttr   = nodeLevels->getChild("StageProgression")->getAttriute();
 
-		FixString< 32 > stageStr;
+		InlineString< 32 > stageStr;
 		stageStr.format( "stage%u" ,  stage );
 		std::string mapStr = nodeAttr->getStringProperty( stageStr );
 		stageStr.format( "diffi%u" ,  stage );

@@ -234,7 +234,7 @@ namespace Go
 			Vector2 posH = context.renderPos;
 			for (int i = 0; i < boardSize; ++i)
 			{
-				FixString< 64 > str;
+				InlineString< 64 > str;
 				str.format("%2d", boardSize - i);
 				g.drawText(posH - Vector2(30, 8), str);
 				g.drawText(posH + Vector2(12 + length, -8), str);
@@ -331,7 +331,7 @@ namespace Go
 					{
 						Vector2 pos = context.getIntersectionPos(i, j);
 						//Vector2 pos = getStonePos(renderPos, board, i, j);
-						FixString<128> str;
+						InlineString<128> str;
 
 						Board::Pos posBoard = context.board.getPos(i, j);
 						

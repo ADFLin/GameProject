@@ -4,7 +4,7 @@
 #include "RHI/DrawUtility.h"
 
 #include "CoreShare.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 
 namespace Render
@@ -26,7 +26,7 @@ namespace Render
 	{
 		for (int i = 0; i < EGBuffer::Count; ++i)
 		{
-			FixString<512> str;
+			InlineString<512> str;
 			RenderTargetDesc desc;
 			str.format("GBuffer%c", 'A' + i);
 			desc.debugName = str;

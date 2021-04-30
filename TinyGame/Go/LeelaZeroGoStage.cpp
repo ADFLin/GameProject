@@ -31,7 +31,7 @@
 
 #define MATCH_RESULT_PATH "Go/MatchResult.data"
 
-REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
+REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test, "Game|AI");
 
 #define DERAULT_LEELA_WEIGHT_NAME "6615567eaa3adc8ea695682fcfbd7eaa3bb557d3720d2b61610b66006104050e"
 
@@ -46,7 +46,7 @@ namespace Go
 	{
 
 		FileIterator fileIter;
-		FixString<256> dir;
+		InlineString<256> dir;
 		dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME);
 
 		std::string bestWeightName = LeelaAppRun::GetBestWeightName();
@@ -67,20 +67,20 @@ namespace Go
 					continue;
 
 
-				FixString< 32 > weightName;
+				InlineString< 32 > weightName;
 				weightName.assign(fileIter.getFileName(), LeelaWeightInfo::DefaultNameLength);
 
 				auto info = table.find(weightName.c_str());
 				if( info )
 				{
-					FixString<128> newName;
+					InlineString<128> newName;
 					info->getFormattedName(newName);
 					if( subName )
 					{
 						newName += subName;
 					}
 
-					FixString<256> filePath;
+					InlineString<256> filePath;
 					filePath.format("%s/%s", dir.c_str(), fileIter.getFileName());
 
 					FileSystem::RenameFile(filePath, newName);
@@ -451,7 +451,7 @@ namespace Go
 		{
 			LeelaWeightTable table;
 
-			FixString<256> path;
+			InlineString<256> path;
 			path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME, "table.txt");
 			if( !table.load(path) )
 				return false;
@@ -626,7 +626,7 @@ namespace Go
 
 		devFrame->addButton("Load Game", [&](int eventId, GWidget* widget) ->bool
 		{
-			FixString<512> path = "";
+			InlineString<512> path = "";
 			if (SystemPlatform::OpenFileName(path, path.max_size(), { {"SGF files" , "*.sgf"} , { "All files" , "*.*"} }, 
 				nullptr , nullptr , ::Global::GetDrawEngine().getWindowHandle()))
 			{
@@ -816,7 +816,7 @@ namespace Go
 			g.drawTexture(*GHook.mDebugTextures[debugId], Vector2(100, 100), Vector2(600, 600));
 		}
 		
-		FixString< 512 > str;
+		InlineString< 512 > str;
 		g.setTextColor(Color3ub(255, 0, 0));
 
 		SimpleTextLayout textLayout;
@@ -976,7 +976,7 @@ namespace Go
 
 				if( alpha > MIN_ALPHA_TO_DISPLAY_TEXT )
 				{
-					FixString<128> str;
+					InlineString<128> str;
 					str.format("%.2f", info.winRate);
 					float len = context.cellLength;
 					g.drawText(pos - 0.5 * Vector2(len, len), Vector2(len, 0.5 * len), str);
@@ -1308,7 +1308,7 @@ namespace Go
 					g.drawCircle(pos, 0.5 * size.x);
 				}
 #if 0
-				FixString<128> str;
+				InlineString<128> str;
 				str.format("%d", value);
 				g.drawText( pos - 0.5 * cellSize, cellSize, str);
 #endif
@@ -1557,7 +1557,7 @@ namespace Go
 	{
 		char const* weightNameA = ::Global::GameConfig().getStringValue( "Leela.LastOpenWeight" , "Go" , DERAULT_LEELA_WEIGHT_NAME );
 
-		FixString<256> path;
+		InlineString<256> path;
 		path.format("%s/%s/%s" , LeelaAppRun::InstallDir , LEELA_NET_DIR_NAME ,  weightNameA );
 		path.replace('/', '\\');
 		if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr, nullptr , ::Global::GetDrawEngine().getWindowHandle()))
@@ -1617,7 +1617,7 @@ namespace Go
 		{
 			LeelaAISetting setting = LeelaAISetting::GetDefalut();
 			std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
-			FixString<256> path;
+			InlineString<256> path;
 			path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME , bestWeigetName.c_str());
 			path.replace('/', '\\');
 
@@ -1882,13 +1882,13 @@ namespace Go
 				else
 				{
 					char const* name = (com.winner == StoneColor::eBlack) ? "Black" : "White";
-					FixString< 128 > str;
+					InlineString< 128 > str;
 
 					str.format("%s Win", name);
 					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
 				}
 
-				FixString<128> matchResult;
+				InlineString<128> matchResult;
 				matchResult.format("%s+%g", com.winner == StoneColor::eBlack ? "B" : "W", com.winNum);
 				postMatchGameEnd(matchResult);
 
@@ -1912,12 +1912,12 @@ namespace Go
 				else
 				{
 					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
-					FixString< 128 > str;
+					InlineString< 128 > str;
 
 					str.format("%s Resigned", name);
 					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
 				}
-				FixString<128> matchResult;
+				InlineString<128> matchResult;
 				matchResult.format("%s+R", StoneColor::Opposite(color) == StoneColor::eBlack ? "B" : "W");
 				postMatchGameEnd(matchResult);
 			}
@@ -2405,10 +2405,10 @@ namespace Go
 	{
 		DateTime& date = mMatchData.startTime;
 
-		FixString< 512 > path;
+		InlineString< 512 > path;
 		path.format("Go/Save/%04d-%02d-%02d-%02d-%02d-%02d.sgf", date.getYear(), date.getMonth(), date.getDay(), date.getHour(), date.getMinute(), date.getSecond());
 
-		FixString< 512 > dateString;
+		InlineString< 512 > dateString;
 		dateString.format("%d-%d-%d", date.getYear(), date.getMonth(), date.getDay());
 		GameDescription description;
 		description.blackPlayer = mMatchData.getPlayer(StoneColor::eBlack).getName();
@@ -2569,7 +2569,7 @@ namespace Go
 		textCtrl = addTextCtrl(id + UPARAM_SIMULATIONS_NUM, "Num Simulations", BIT(idxPlayer), idxPlayer);
 		textCtrl->setValue(std::to_string(setting.numSimulations).c_str());
 		textCtrl = addTextCtrl(id + UPARAM_MAX_TIME, "Max Time", BIT(idxPlayer), idxPlayer);
-		FixString<512> valueStr;
+		InlineString<512> valueStr;
 		valueStr.format("%g", setting.maxTime);
 		textCtrl->setValue(valueStr);
 	}

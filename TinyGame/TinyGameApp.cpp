@@ -504,7 +504,7 @@ void TinyGameApp::loadModules()
 {
 	FileIterator fileIter;
 
-	FixString<MAX_PATH + 1> dir;
+	InlineString<MAX_PATH + 1> dir;
 #if _DEBUG
 	GetCurrentDirectory(
 		dir.max_size(),
@@ -804,7 +804,7 @@ void TinyGameApp::render( float dframe )
 	IGraphics2D& g = ::Global::GetIGraphics2D();
 	if ( CVarShowFPS )
 	{
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		RenderUtility::SetFont(g, FONT_S8);
 		g.setTextColor(Color3ub(255, 255, 0));
 		str.format("FPS = %3.1f", mFPSCalc.getFPS());
@@ -877,8 +877,8 @@ void TinyGameApp::render( float dframe )
 		textlayout.offset = 15;
 		textlayout.posX = 500;
 		textlayout.posY = 10;
-		FixString< 512 > str;
-		FixString< 512 > temp;
+		InlineString< 512 > str;
+		InlineString< 512 > temp;
 		int curLevel = 0;
 		auto GetSystemNameString = [](RHISystemName name)
 		{

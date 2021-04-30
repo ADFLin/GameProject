@@ -354,8 +354,8 @@ void ClientWorker::connect( char const* hostName , char const* loginName )
 	else
 		mLoginName = "Player";
 
-	FixString<512> temploginName = loginName;
-	FixString<512> tempHostName = hostName;
+	InlineString<512> temploginName = loginName;
+	InlineString<512> tempHostName = hostName;
 	addNetThreadCommnad([tempHostName,this]()
 	{
 		mTcpClient.connect(tempHostName, TG_TCP_PORT);

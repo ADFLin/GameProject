@@ -553,7 +553,7 @@ namespace Zuma
 		RDSystem.drawBitmap( *tex , TBF_OFFSET_CENTER );
 
 		ZFont* font = RDSystem.getFontRes( FONT_PLAIN );
-		FixString< 32 > str;
+		InlineString< 32 > str;
 		str.format(" Loading Time = %d " );
 		font->print( Vec2i(20,20) , str );
 	}

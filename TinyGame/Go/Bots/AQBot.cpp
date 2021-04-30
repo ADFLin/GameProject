@@ -7,9 +7,9 @@ namespace Go
 
 	bool AQAppRun::buildPlayGame()
 	{
-		FixString<256> path;
+		InlineString<256> path;
 		path.format("%s/%s", InstallDir, "AQ.exe");
-		FixString<512> command;
+		InlineString<512> command;
 		return buildProcessT< GTPOutputThread >(path, command);
 	}
 

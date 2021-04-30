@@ -14,7 +14,7 @@
 #include "DevStage.h"
 
 #include "Dependence.h"
-#include "FixString.h"
+#include "InlineString.h"
 
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/RHICommand.h"
@@ -142,7 +142,7 @@ bool MenuStage::onInit()
 	for(int i=0; i<mLevels.size(); i++)
 	{		
 
-		FixString< 256 > str;
+		InlineString< 256 > str;
 		str.format( "Level %d" , i + 1 );
 
 		button = new QTextButton( UI_LEVEL , Vec2i( getGame()->getScreenSize().x/2-64, 64+i*96 ) , Vec2i(128, 64) , NULL );

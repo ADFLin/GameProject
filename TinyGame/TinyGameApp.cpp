@@ -349,6 +349,8 @@ bool TinyGameApp::initializeGame()
 
 	ConsoleSystem::Get().initialize();
 
+	ExecutionRegisterHelper::Manager = this;
+
 	FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION);
 
 	::Global::Initialize();
@@ -413,6 +415,8 @@ void TinyGameApp::finalizeGame()
 
 void TinyGameApp::cleanup()
 {
+	ExecutionRegisterCollection::Get().cleanup();
+
 	FConsoleConfigUtilities::Export(Global::GameConfig(), CONFIG_SECTION);
 
 	StageManager::cleanup();
@@ -421,8 +425,6 @@ void TinyGameApp::cleanup()
 
 	//cleanup widget before delete game instance
 	Global::GUI().cleanupWidget(true , true);
-
-	MiscTestRegister::GetList().clear();
 
 	Global::ModuleManager().cleanupModuleInstances();
 
@@ -510,11 +512,11 @@ void TinyGameApp::loadModules()
 		dir.max_size(),
 		dir.data()
 	);
-	if (FileSystem::FindFiles(dir, ".dll", fileIter))
+	if (FFileSystem::FindFiles(dir, ".dll", fileIter))
 #else
 	
 	::GetModuleFileName(NULL, dir.data(), dir.max_size());
-	if (FileSystem::FindFiles(FileUtility::GetDirectory(dir).toCString(), ".dll", fileIter))
+	if (FFileSystem::FindFiles(FFileUtility::GetDirectory(dir).toCString(), ".dll", fileIter))
 #endif
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )

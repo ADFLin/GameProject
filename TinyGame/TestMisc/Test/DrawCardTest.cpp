@@ -43,4 +43,4 @@ void TestDrawCard()
 }
 
 
-REGISTER_MISC_TEST("Draw Card Test", TestDrawCard);
+REGISTER_MISC_TEST_ENTRY("Draw Card Test", TestDrawCard);

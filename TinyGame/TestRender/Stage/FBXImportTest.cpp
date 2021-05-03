@@ -216,6 +216,6 @@ namespace Render
 
 	};
 
-	REGISTER_STAGE("FBX Import Test", FBXImportTestStage, EStageGroup::FeatureDev, 1, "Render|Test");
+	REGISTER_STAGE_ENTRY("FBX Import Test", FBXImportTestStage, EExecGroup::FeatureDev, 1, "Render|Test");
 
 }

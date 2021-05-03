@@ -208,6 +208,9 @@
     <ClCompile Include="Minesweeper\GameController_Windows7.cpp">
       <Filter>GameMinesweeper</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />

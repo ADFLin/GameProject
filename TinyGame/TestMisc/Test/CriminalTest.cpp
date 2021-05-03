@@ -47,4 +47,4 @@ void TestCirminal()
 	}
 }
 
-REGISTER_MISC_TEST("Criminal Test", TestCirminal);
+REGISTER_MISC_TEST_ENTRY("Criminal Test", TestCirminal);

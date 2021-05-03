@@ -93,4 +93,4 @@ public:
 protected:
 };
 
-REGISTER_STAGE("Device Info", DeviceInfoStage, EStageGroup::FeatureDev, "RHI");
+REGISTER_STAGE_ENTRY("Device Info", DeviceInfoStage, EExecGroup::FeatureDev, "RHI");

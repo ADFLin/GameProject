@@ -9,7 +9,7 @@
 #endif
 #include "Image/ImageData.h"
 
-REGISTER_STAGE("Software Renderer", SR::TestStage, EStageGroup::GraphicsTest, "Render");
+REGISTER_STAGE_ENTRY("Software Renderer", SR::TestStage, EExecGroup::GraphicsTest, "Render");
 
 namespace SR
 {

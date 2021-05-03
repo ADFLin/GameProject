@@ -447,6 +447,7 @@
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TMechineStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp" />
     <ClCompile Include="TestMisc\TestMisc.cpp" />
     <ClCompile Include="TestMisc\TestMiscPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

@@ -776,7 +776,7 @@ namespace CFly
 				return false;
 		}
 
-		if ( FileSystem::IsExist( ( baseDir + "Skins").c_str() ) )
+		if ( FFileSystem::IsExist( ( baseDir + "Skins").c_str() ) )
 		{
 			isNewSkinPath = true;
 			baseDir += String( "Skins/" ) + gSkinDirs[ indexModelSkin ] + "/";
@@ -830,7 +830,7 @@ namespace CFly
 			ANMMap anms;
 			String dir  = baseDir + "Animations/";
 			FileIterator fileIter;
-			if ( FileSystem::FindFiles( dir.c_str() , ".anm" , fileIter ) )
+			if ( FFileSystem::FindFiles( dir.c_str() , ".anm" , fileIter ) )
 			{
 				for( ;fileIter.haveMore();fileIter.goNext() )
 				{

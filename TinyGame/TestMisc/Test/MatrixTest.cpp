@@ -552,6 +552,6 @@ namespace Homework
 	}
 
 
-	REGISTER_MISC_TEST("MatrixTest", Test);
+	REGISTER_MISC_TEST_ENTRY("MatrixTest", Test);
 }
 

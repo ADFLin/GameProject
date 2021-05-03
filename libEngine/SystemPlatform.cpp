@@ -284,7 +284,7 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, TArrayView< Op
 	ofn.lpstrTitle = title;
 	ofn.lpstrInitialDir = initDir;
 	if( inoutPath && *inoutPath )
-		ofn.nFileOffset = FileUtility::GetFileName(inoutPath) - inoutPath;
+		ofn.nFileOffset = FFileUtility::GetFileName(inoutPath) - inoutPath;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 	
 	if( !GetOpenFileNameA(&ofn) )

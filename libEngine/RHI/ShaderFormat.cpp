@@ -34,7 +34,7 @@ namespace Render
 		char const* DefaultDir = "Shader";
 		preprocessor.setOutput(codeOutput);
 		preprocessor.addSreachDir(DefaultDir);
-		char const* dirPathEnd = FileUtility::GetFileName(path);
+		char const* dirPathEnd = FFileUtility::GetFileName(path);
 		if (dirPathEnd != path)
 		{
 			--dirPathEnd;
@@ -69,15 +69,15 @@ namespace Render
 
 		if (bOuputPreprocessedCode)
 		{
-			FileSystem::CreateDirectory("ShaderOutput");
+			FFileSystem::CreateDirectory("ShaderOutput");
 			std::string outputPath = "ShaderOutput/";
-			outputPath += FileUtility::GetBaseFileName(path).toCString();
+			outputPath += FFileUtility::GetBaseFileName(path).toCString();
 			outputPath += "_";
 			outputPath += compileInfo->entryName.c_str();
 			outputPath += "_";
 			outputPath += getName();
 			outputPath += SHADER_FILE_SUBNAME;
-			FileUtility::SaveFromBuffer(outputPath.c_str(), &inoutCodes[0], inoutCodes.size() - 1);
+			FFileUtility::SaveFromBuffer(outputPath.c_str(), &inoutCodes[0], inoutCodes.size() - 1);
 		}
 		return true;
 	}

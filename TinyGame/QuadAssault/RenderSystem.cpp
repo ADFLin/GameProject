@@ -540,7 +540,7 @@ class CFont : public IFont
 public:
 	bool load(char const* path)
 	{
-		if (!FileSystem::IsExist(path))
+		if (!FFileSystem::IsExist(path))
 			return false;
 
 		mFontName = path;

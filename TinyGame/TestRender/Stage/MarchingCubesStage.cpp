@@ -976,5 +976,5 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("Maching Cubes", MarchingCubesTestStage, EStageGroup::FeatureDev, 1, "Render|Shader");
+	REGISTER_STAGE_ENTRY("Maching Cubes", MarchingCubesTestStage, EExecGroup::FeatureDev, 1, "Render|Shader");
 }

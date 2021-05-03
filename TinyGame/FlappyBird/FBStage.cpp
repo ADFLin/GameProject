@@ -21,7 +21,7 @@ namespace FlappyBird
 {
 	using namespace Render;
 
-	REGISTER_STAGE("FlappyBird Test", LevelStage, EStageGroup::Dev, 2, "Game|AI");
+	REGISTER_STAGE_ENTRY("FlappyBird Test", LevelStage, EExecGroup::Dev, 2, "Game|AI");
 
 	class AgentBird : public AgentEntity
 		            , public IBirdController

@@ -264,6 +264,6 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("Deferred Rendering", DeferredRenderingStage, EStageGroup::FeatureDev, "Render");
+	REGISTER_STAGE_ENTRY("Deferred Rendering", DeferredRenderingStage, EExecGroup::FeatureDev, "Render");
 
 }

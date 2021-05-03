@@ -443,7 +443,7 @@ namespace Bloxorz
 			code += "\treturn data;\n";
 			code += "}\n";
 
-			FileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", code.data(), code.length());
+			FFileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", code.data(), code.length());
 
 
 
@@ -1151,4 +1151,4 @@ namespace Bloxorz
 }//namespace Bloxorz
 
 
-REGISTER_STAGE("Bloxorz Test", Bloxorz::TestStage, EStageGroup::Dev, 2);
+REGISTER_STAGE_ENTRY("Bloxorz Test", Bloxorz::TestStage, EExecGroup::Dev, 2);

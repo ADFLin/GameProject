@@ -454,5 +454,5 @@ namespace G2D
 }
 
 
-REGISTER_STAGE("SAT Col Test", G2D::TestStage, EStageGroup::Test, "Algorithm|Collection");
-REGISTER_STAGE("QHull Test", G2D::QHullTestStage, EStageGroup::Test, "Algorithm");
+REGISTER_STAGE_ENTRY("SAT Col Test", G2D::TestStage, EExecGroup::Test, "Algorithm|Collection");
+REGISTER_STAGE_ENTRY("QHull Test", G2D::QHullTestStage, EExecGroup::Test, "Algorithm");

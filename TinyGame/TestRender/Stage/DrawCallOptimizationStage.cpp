@@ -559,7 +559,7 @@ namespace Render
 		bool loadMaterial(char const* path)
 		{
 			std::vector< char > buffer;
-			if( !FileUtility::LoadToBuffer(path, buffer, true) )
+			if( !FFileUtility::LoadToBuffer(path, buffer, true) )
 				return false;
 			buffer.push_back(0);
 			MaterialFileParser parser(*this);
@@ -848,6 +848,6 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("Draw Call", DrawCallOptimizationStage, EStageGroup::FeatureDev, "Render");
+	REGISTER_STAGE_ENTRY("Draw Call", DrawCallOptimizationStage, EExecGroup::FeatureDev, "Render");
 
 }

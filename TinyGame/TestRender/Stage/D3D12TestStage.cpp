@@ -330,6 +330,6 @@ namespace Render
 	};
 
 
-	REGISTER_STAGE("D3D12 Test", TestD3D12Stage, EStageGroup::FeatureDev, "Render|RHI");
+	REGISTER_STAGE_ENTRY("D3D12 Test", TestD3D12Stage, EExecGroup::FeatureDev, "Render|RHI");
 
 }

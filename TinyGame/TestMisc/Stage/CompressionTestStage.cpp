@@ -53,7 +53,7 @@ void TemplateArgsTest()
 	dBgB += Max(x[0], Max(x[1], Max(x[2], Max(x[3], Max(x[4], Max(x[5], Max(x[6], Max(x[7], Max(x[8], x[9])))))))));
 }
 
-REGISTER_MISC_TEST("TemplateArgs Test", TemplateArgsTest);
+REGISTER_MISC_TEST_ENTRY("TemplateArgs Test", TemplateArgsTest);
 void HashStringTest()
 {
 	dBgA = 1;
@@ -72,7 +72,7 @@ void HashStringTest()
 
 }
 
-REGISTER_MISC_TEST("HashString Test", HashStringTest);
+REGISTER_MISC_TEST_ENTRY("HashString Test", HashStringTest);
 
 
 
@@ -452,7 +452,7 @@ namespace Compression
 
 	};
 
-	REGISTER_STAGE("HuffmanTest", TestStage, EStageGroup::PhyDev);
+	REGISTER_STAGE_ENTRY("HuffmanTest", TestStage, EExecGroup::PhyDev);
 
 
 

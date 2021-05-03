@@ -118,5 +118,5 @@ namespace PW
 
 
 
-	REGISTER_STAGE("PW Test", TestStage, EStageGroup::Test);
+	REGISTER_STAGE_ENTRY("PW Test", TestStage, EExecGroup::Test);
 }

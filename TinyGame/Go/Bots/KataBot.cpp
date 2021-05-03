@@ -591,7 +591,7 @@ logToStderr = false
 
 		configText += FixedConfigText;
 
-		return FileUtility::SaveFromBuffer(path, configText.c_str(), configText.length());
+		return FFileUtility::SaveFromBuffer(path, configText.c_str(), configText.length());
 	}
 
 	bool KataBot::initialize(void* settingData)

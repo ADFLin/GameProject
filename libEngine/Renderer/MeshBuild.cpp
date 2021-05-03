@@ -749,7 +749,7 @@ namespace Render
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
 
-		char const* dirPos = FileUtility::GetFileName(path);
+		char const* dirPos = FFileUtility::GetFileName(path);
 
 		std::string dir = std::string(path, dirPos - path);
 

@@ -199,7 +199,7 @@ namespace Render
 
 		if (bUsePreprocess)
 		{
-			if (!FileUtility::LoadToBuffer(input.path, codeBuffer))
+			if (!FFileUtility::LoadToBuffer(input.path, codeBuffer))
 			{
 				LogWarning(0, "Can't load shader file %s", input.path);
 				return false;
@@ -217,7 +217,7 @@ namespace Render
 				int len = FCString::Strlen(input.definition);
 				codeBuffer.assign(input.definition, input.definition + len);
 			}
-			if (!FileUtility::LoadToBuffer(input.path, codeBuffer, false , true))
+			if (!FFileUtility::LoadToBuffer(input.path, codeBuffer, false , true))
 			{
 				LogWarning(0, "Can't load shader file %s", input.path);
 				return false;
@@ -278,8 +278,8 @@ namespace Render
 
 		return true;
 #else
-		std::string pathFull = FileSystem::ConvertToFullPath(input.path);
-		char const* posExtension = FileUtility::GetExtension(pathFull.c_str());
+		std::string pathFull = FFileSystem::ConvertToFullPath(input.path);
+		char const* posExtension = FFileUtility::GetExtension(pathFull.c_str());
 
 		std::string pathCompile;
 		if (bUsePreprocess)
@@ -287,7 +287,7 @@ namespace Render
 			std::string pathPrep = pathFull.substr(0, posExtension - &pathFull[0]) + "prep" + SHADER_FILE_SUBNAME;
 
 			std::vector<char> codeBuffer;
-			if (!FileUtility::LoadToBuffer(input.path, codeBuffer, true))
+			if (!FFileUtility::LoadToBuffer(input.path, codeBuffer, true))
 			{
 				LogWarning(0, "Can't load shader file %s", input.path);
 				return false;
@@ -299,7 +299,7 @@ namespace Render
 
 			}
 
-			FileUtility::SaveFromBuffer(pathPrep.c_str(), codeBuffer.data(), codeBuffer.size());
+			FFileUtility::SaveFromBuffer(pathPrep.c_str(), codeBuffer.data(), codeBuffer.size());
 
 			pathCompile = std::move(pathPrep);
 		}
@@ -343,21 +343,21 @@ namespace Render
 
 		ON_SCOPE_EXIT
 		{
-			FileSystem::DeleteFile(pathSpv.c_str());
+			FFileSystem::DeleteFile(pathSpv.c_str());
 		};
 
 		if (input.programSetupData)
 		{
 			VulkanShaderCompileIntermediates* myIntermediates = static_cast<VulkanShaderCompileIntermediates*>(input.programSetupData->intermediateData.get());
 			SpirvShaderCode& code = myIntermediates->shaderCodes[ myIntermediates->numShaders ];
-			VERIFY_RETURN_FALSE(FileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
+			VERIFY_RETURN_FALSE(FFileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
 			++myIntermediates->numShaders;
 			output.formatData = &code;
 		}
 		else
 		{
 			SpirvShaderCode code;
-			VERIFY_RETURN_FALSE(FileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
+			VERIFY_RETURN_FALSE(FFileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
 			auto* shaderImpl = static_cast<VulkanShader*>(RHICreateShader(input.type));
 			output.resource = shaderImpl;
 			VERIFY_RETURN_FALSE(shaderImpl->initialize(mDevice, input.type, code));

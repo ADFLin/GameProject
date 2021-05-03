@@ -112,6 +112,6 @@ namespace Render
 	protected:
 	};
 
-	//REGISTER_STAGE("Template Render", TemplateRenderTestStage, EStageGroup::FeatureDev);
+	//REGISTER_STAGE("Template Render", TemplateRenderTestStage, EExecGroup::FeatureDev);
 
 }

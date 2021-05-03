@@ -226,7 +226,7 @@ bool GameModuleManager::loadModule( char const* path )
 	if( !module )
 		return false;
 
-	StringView loadName = FileUtility::GetBaseFileName(path);
+	StringView loadName = FFileUtility::GetBaseFileName(path);
 	if( !registerModule( module , loadName.toCString() 
 #if SYS_PLATFORM_WIN
 						, hModule 

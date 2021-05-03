@@ -10,12 +10,12 @@
 	{ DECL , MakeChangeStageOperation< CLASS >() , __VA_ARGS__ } 
 
 
-StageInfo gPreRegisterStageGroup[] =
+ExecutionEntryInfo gPreRegisterStageGroup[] =
 {
-	STAGE_INFO("Monument Valley"   , MV::TestStage , EStageGroup::Dev, "Game") ,
-	STAGE_INFO("Bejeweled Test"    , Bejeweled::TestStage , EStageGroup::Dev, "Game") ,
-	STAGE_INFO("Mario Test"        , Mario::TestStage , EStageGroup::Dev4, "Game") ,
-	STAGE_INFO("Shoot2D Test"      , Shoot2D::TestStage , EStageGroup::Dev4, "Game") ,
+	STAGE_INFO("Monument Valley"   , MV::TestStage , EExecGroup::Dev, "Game") ,
+	STAGE_INFO("Bejeweled Test"    , Bejeweled::TestStage , EExecGroup::Dev, "Game") ,
+	STAGE_INFO("Mario Test"        , Mario::TestStage , EExecGroup::Dev4, "Game") ,
+	STAGE_INFO("Shoot2D Test"      , Shoot2D::TestStage , EExecGroup::Dev4, "Game") ,
 };
 
 class TestMiscModule : public IModuleInterface
@@ -28,7 +28,7 @@ public:
 		{
 			for( auto& info : gPreRegisterStageGroup )
 			{
-				StageRegisterCollection::Get().registerStage(info);
+				ExecutionRegisterCollection::Get().registerExecution(info);
 			}
 			gbNeedRegisterStage = false;
 		}

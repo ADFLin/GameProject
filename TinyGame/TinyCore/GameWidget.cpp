@@ -852,7 +852,7 @@ void GFileListCtrl::deleteSelectdFile()
 	if( getSelection() == INDEX_NONE )
 		return;
 	String path = getSelectedFilePath();
-	FileSystem::DeleteFile(path.c_str());
+	FFileSystem::DeleteFile(path.c_str());
 	removeItem(getSelection());
 }
 
@@ -867,7 +867,7 @@ void GFileListCtrl::refreshFiles()
 	removeAllItem();
 
 	FileIterator fileIter;
-	if( !FileSystem::FindFiles(mCurDir.c_str(), mSubFileName.c_str(), fileIter) )
+	if( !FFileSystem::FindFiles(mCurDir.c_str(), mSubFileName.c_str(), fileIter) )
 		return;
 
 	for( ; fileIter.haveMore(); fileIter.goNext() )

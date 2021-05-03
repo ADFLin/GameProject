@@ -59,4 +59,4 @@ static void AsyncWorkTest()
 #endif
 }
 
-REGISTER_MISC_TEST("Async Work Test", AsyncWorkTest);
+REGISTER_MISC_TEST_ENTRY("Async Work Test", AsyncWorkTest);

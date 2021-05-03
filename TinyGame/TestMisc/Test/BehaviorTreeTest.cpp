@@ -152,4 +152,4 @@ void TestBTMain()
 }
 
 
-REGISTER_MISC_TEST("BT Test" , TestBTMain);
+REGISTER_MISC_TEST_ENTRY("BT Test" , TestBTMain);

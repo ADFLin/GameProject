@@ -393,12 +393,12 @@ bool AssetManager::registerViewer(IAssetViewer* asset)
 
 	for ( auto const& path : paths )
 	{
-		std::wstring fullPath = FileSystem::ConvertToFullPath(path.c_str());
+		std::wstring fullPath = FFileSystem::ConvertToFullPath(path.c_str());
 		AssetList& assetList = mAssetMap[fullPath];
 		assert(std::find(assetList.begin(), assetList.end(), asset) == assetList.end());
 		assetList.push_back(asset);
 
-		wchar_t const* pathPos = FileUtility::GetFileName(fullPath.c_str());
+		wchar_t const* pathPos = FFileUtility::GetFileName(fullPath.c_str());
 		std::wstring dir = pathPos ? std::wstring(fullPath.c_str(),pathPos - fullPath.c_str()) : std::wstring();
 		mFileModifyMonitor->addDirectoryPath(dir.c_str(), false);
 	}
@@ -412,7 +412,7 @@ void AssetManager::unregisterViewer(IAssetViewer* asset)
 
 	for( auto& path : paths )
 	{
-		std::wstring fullPath = FileSystem::ConvertToFullPath(path.c_str());
+		std::wstring fullPath = FFileSystem::ConvertToFullPath(path.c_str());
 		auto iter = mAssetMap.find(fullPath);
 		if( iter == mAssetMap.end() )
 			continue;
@@ -421,7 +421,7 @@ void AssetManager::unregisterViewer(IAssetViewer* asset)
 		if( assetIter != iter->second.end() )
 		{
 			iter->second.erase(assetIter);
-			wchar_t const* pathPos = FileUtility::GetFileName(fullPath.c_str());
+			wchar_t const* pathPos = FFileUtility::GetFileName(fullPath.c_str());
 			std::wstring dir = pathPos ? std::wstring(fullPath.c_str(), pathPos - fullPath.c_str()) : std::wstring();
 			mFileModifyMonitor->removeDirectoryPath(dir.c_str(), true);
 		}

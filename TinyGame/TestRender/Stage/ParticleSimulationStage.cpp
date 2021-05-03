@@ -928,5 +928,5 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("GPU Particle Test", GPUParticleTestStage, EStageGroup::FeatureDev, 1, "Render|Shader");
+	REGISTER_STAGE_ENTRY("GPU Particle Test", GPUParticleTestStage, EExecGroup::FeatureDev, 1, "Render|Shader");
 }

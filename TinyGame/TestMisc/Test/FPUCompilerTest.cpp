@@ -97,4 +97,4 @@ void TestFPUCompile()
 	LogMsg("%lf %lf", value , z);
 }
 
-REGISTER_MISC_TEST("FPU Compile Test", TestFPUCompile);
+REGISTER_MISC_TEST_ENTRY("FPU Compile Test", TestFPUCompile);

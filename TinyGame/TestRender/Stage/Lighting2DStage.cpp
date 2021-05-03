@@ -11,7 +11,7 @@
 
 namespace Render
 {
-	REGISTER_STAGE("2D Lighting Test", Lighting2DTestStage, EStageGroup::GraphicsTest);
+	REGISTER_STAGE_ENTRY("2D Lighting Test", Lighting2DTestStage, EExecGroup::GraphicsTest);
 
 	bool Lighting2DTestStage::onInit()
 	{

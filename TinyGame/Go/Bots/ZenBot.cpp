@@ -42,13 +42,13 @@ namespace Zen
 
 		if (bCreateNewInstance && InstanceCount > 0)
 		{
-			StringView filePath = FileUtility::GetDirectory(path);
+			StringView filePath = FFileUtility::GetDirectory(path);
 			InlineString< 256 > tempDllPath;
 			for(;;)
 			{
 				DateTime time = SystemPlatform::GetLocalTime();
 				tempDllPath.format("%s/Zen%d-%d-%d.dll", filePath.toCString(), time.getHour(), time.getMinute(), time.getSecond());
-				if (FileSystem::CopyFile(path, tempDllPath.c_str(), true))
+				if (FFileSystem::CopyFile(path, tempDllPath.c_str(), true))
 				{
 					mDllName = tempDllPath;
 					break;
@@ -141,7 +141,7 @@ namespace Zen
 
 		if (!mDllName.empty())
 		{
-			FileSystem::DeleteFile(mDllName.c_str());
+			FFileSystem::DeleteFile(mDllName.c_str());
 
 		}
 	}

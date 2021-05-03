@@ -438,4 +438,4 @@ namespace StickMove
 
 
 
-REGISTER_STAGE("Stick Move", StickMove::TestStage, EStageGroup::Test );
+REGISTER_STAGE_ENTRY("Stick Move", StickMove::TestStage, EExecGroup::Test );

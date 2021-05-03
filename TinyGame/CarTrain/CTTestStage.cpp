@@ -688,5 +688,5 @@ namespace CarTrain
 	};
 
 
-	REGISTER_STAGE("Car Train", TestStage, EStageGroup::Dev);
+	REGISTER_STAGE_ENTRY("Car Train", TestStage, EExecGroup::Dev);
 }

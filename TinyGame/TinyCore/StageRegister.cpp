@@ -10,39 +10,39 @@
 #include <algorithm>
 
 
-StageRegisterCollection::StageRegisterCollection()
+ExecutionRegisterCollection::ExecutionRegisterCollection()
 {
 
 }
 
-StageRegisterCollection::~StageRegisterCollection()
+ExecutionRegisterCollection::~ExecutionRegisterCollection()
 {
 
 }
 
-void StageRegisterCollection::registerStage(StageInfo const& info)
+void ExecutionRegisterCollection::registerExecution(ExecutionEntryInfo const& info)
 {
-	auto& stageInfoList = mStageGroupMap[info.group];
+	auto& stageInfoList = mGroupMap[info.group];
 
 	auto iter = std::upper_bound(stageInfoList.begin(), stageInfoList.end(), info, 
-		[](StageInfo const& lhs, StageInfo const& rhs) -> bool
+		[](ExecutionEntryInfo const& lhs, ExecutionEntryInfo const& rhs) -> bool
 		{
 			return lhs.priority > rhs.priority;
 		});
-	mStageGroupMap[info.group].insert(iter, info);
+	mGroupMap[info.group].insert(iter, info);
 	mCategories.insert(info.categories.begin(), info.categories.end());
 }
 
-StageRegisterCollection& StageRegisterCollection::Get()
+ExecutionRegisterCollection& ExecutionRegisterCollection::Get()
 {
-	static StageRegisterCollection instance;
+	static ExecutionRegisterCollection instance;
 	return instance;
 }
 
-std::vector< StageInfo const* > StageRegisterCollection::getAllStages(HashString category)
+std::vector< ExecutionEntryInfo const* > ExecutionRegisterCollection::getExecutionsByCategory(HashString category)
 {
-	std::vector< StageInfo const* > result;
-	for (auto const& pair : mStageGroupMap)
+	std::vector< ExecutionEntryInfo const* > result;
+	for (auto const& pair : mGroupMap)
 	{
 		for (auto const& info : pair.second)
 		{
@@ -55,12 +55,34 @@ std::vector< StageInfo const* > StageRegisterCollection::getAllStages(HashString
 	return result;
 }
 
-StageRegisterHelper::StageRegisterHelper(StageInfo const& info)
+ExecutionRegisterHelper::ExecutionRegisterHelper(ExecutionEntryInfo const& info)
 {
-	StageRegisterCollection::Get().registerStage(info);
+	ExecutionRegisterCollection::Get().registerExecution(info);
 }
 
-void StageInfo::ParseCategories(std::unordered_set< HashString >& inoutCategories, char const* categoryStr)
+void ExecutionRegisterHelper::ChangeStage(StageBase* stage)
+{
+	if (Manager)
+	{
+		Manager->setNextStage(stage);
+	}
+}
+
+void ExecutionRegisterHelper::ChangeSingleGame(char const* name)
+{
+	if (Manager)
+	{
+		IGameModule* game = Global::ModuleManager().changeGame(name);
+		if (game)
+		{
+			game->beginPlay(*Manager, EGameStageMode::Single);
+		}
+	}
+}
+
+StageManager* ExecutionRegisterHelper::Manager = nullptr;
+
+void ExecutionEntryInfo::ParseCategories(std::unordered_set< HashString >& inoutCategories, char const* categoryStr)
 {
 	if (categoryStr)
 	{
@@ -74,54 +96,36 @@ void StageInfo::ParseCategories(std::unordered_set< HashString >& inoutCategorie
 	}
 }
 
-void StageInfo::AddCategories(std::unordered_set< HashString >& inoutCategories, EStageGroup group)
+void ExecutionEntryInfo::AddCategories(std::unordered_set< HashString >& inoutCategories, EExecGroup group)
 {
 	switch (group)
 	{
-	case EStageGroup::GraphicsTest:
+	case EExecGroup::GraphicsTest:
 		inoutCategories.emplace("Render");
 		inoutCategories.emplace("Test");
 		break;
-	case EStageGroup::Test:
+	case EExecGroup::Test:
 		inoutCategories.emplace("Test");
 		break;
-	case EStageGroup::PhyDev:
+	case EExecGroup::PhyDev:
 		inoutCategories.emplace("Physics");
 		break;
-	case EStageGroup::Dev:
+	case EExecGroup::Dev:
 		inoutCategories.emplace("Develop");
 		break;
-	case EStageGroup::Dev4:
+	case EExecGroup::Dev4:
 		inoutCategories.emplace("Develop");
 		break;
-	case EStageGroup::FeatureDev:
+	case EExecGroup::FeatureDev:
 		inoutCategories.emplace("Develop");
 		break;
-	case EStageGroup::SingleDev:
+	case EExecGroup::SingleDev:
 		inoutCategories.emplace("Develop");
 		inoutCategories.emplace("Game");
 		break;
-	case EStageGroup::SingleGame:
+	case EExecGroup::SingleGame:
 		inoutCategories.emplace("Game");
 		break;
 	}
 
-}
-
-void ChangeStageOperation::process(StageManager* manager)
-{
-	StageBase* stage = createStage();
-	if (stage)
-	{
-		manager->setNextStage(stage);
-	}
-}
-
-void ChangeSingleGameOperation::process(StageManager* manager)
-{
-	IGameModule* game = Global::ModuleManager().changeGame(gameName);
-	if (game)
-	{
-		game->beginPlay(*manager, EGameStageMode::Single);
-	}
 }

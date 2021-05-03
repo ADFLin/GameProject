@@ -155,7 +155,7 @@ struct FWindowsFileSystem
 	static bool RenameFile(CharT const* path, CharT const* newFileName)
 	{
 		TInlineString< MAX_PATH , CharT > newPath;
-		newPath.assign(path, FileUtility::GetFileName(path) - path);
+		newPath.assign(path, FFileUtility::GetFileName(path) - path);
 		newPath += newFileName;
 		return !!FWindow::MoveFile(path, newPath);
 	}
@@ -178,7 +178,7 @@ struct FWindowsFileSystem
 
 #endif
 
-bool FileSystem::IsExist( char const* path )
+bool FFileSystem::IsExist( char const* path )
 {
 #ifdef SYS_PLATFORM_WIN
 	return FWindowsFileSystem::IsExist(path);
@@ -187,7 +187,7 @@ bool FileSystem::IsExist( char const* path )
 #endif
 }
 
-bool FileSystem::IsExist(wchar_t const* path)
+bool FFileSystem::IsExist(wchar_t const* path)
 {
 #ifdef SYS_PLATFORM_WIN
 	return FWindowsFileSystem::IsExist(path);
@@ -196,7 +196,7 @@ bool FileSystem::IsExist(wchar_t const* path)
 #endif
 }
 
-bool FileSystem::CreateDirectory(char const* pathDir)
+bool FFileSystem::CreateDirectory(char const* pathDir)
 {
 #ifdef SYS_PLATFORM_WIN
 	return FWindowsFileSystem::CreateDirectory(pathDir);
@@ -205,7 +205,7 @@ bool FileSystem::CreateDirectory(char const* pathDir)
 #endif
 }
 
-bool FileSystem::CreateDirectory(wchar_t const* pathDir)
+bool FFileSystem::CreateDirectory(wchar_t const* pathDir)
 {
 #ifdef SYS_PLATFORM_WIN
 	return FWindowsFileSystem::CreateDirectory(pathDir);
@@ -214,7 +214,7 @@ bool FileSystem::CreateDirectory(wchar_t const* pathDir)
 #endif
 }
 
-bool FileSystem::CreateDirectorySequence(char const* pathDir)
+bool FFileSystem::CreateDirectorySequence(char const* pathDir)
 {
 	if( IsExist(pathDir) )
 		return true;
@@ -249,7 +249,7 @@ bool FileSystem::CreateDirectorySequence(char const* pathDir)
 	return true;
 }
 
-bool FileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )
+bool FFileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )
 {
 	char szDir[MAX_PATH];
 
@@ -283,7 +283,7 @@ bool FileSystem::FindFiles( char const* dir , char const* subName , FileIterator
 	return true;
 }
 
-std::string FileSystem::ConvertToFullPath(char const* path)
+std::string FFileSystem::ConvertToFullPath(char const* path)
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::ConvertToFullPath(path);
@@ -292,7 +292,7 @@ std::string FileSystem::ConvertToFullPath(char const* path)
 #endif
 }
 
-std::wstring FileSystem::ConvertToFullPath(wchar_t const* path)
+std::wstring FFileSystem::ConvertToFullPath(wchar_t const* path)
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::ConvertToFullPath(path);
@@ -301,7 +301,7 @@ std::wstring FileSystem::ConvertToFullPath(wchar_t const* path)
 #endif
 }
 
-bool FileSystem::GetFileSize( char const* path , int64& size )
+bool FFileSystem::GetFileSize( char const* path , int64& size )
 {
 #ifdef SYS_PLATFORM_WIN
 	return FWindowsFileSystem::GetFileSize(path, size);
@@ -320,7 +320,7 @@ bool FileSystem::GetFileSize( char const* path , int64& size )
 #endif
 }
 
-bool FileSystem::GetFileSize(wchar_t const* path, int64& size)
+bool FFileSystem::GetFileSize(wchar_t const* path, int64& size)
 {
 #ifdef SYS_PLATFORM_WIN
 	return FWindowsFileSystem::GetFileSize(path, size);
@@ -339,7 +339,7 @@ bool FileSystem::GetFileSize(wchar_t const* path, int64& size)
 #endif
 }
 
-bool FileSystem::DeleteFile(char const* path)
+bool FFileSystem::DeleteFile(char const* path)
 {
 #if SYS_PLATFORM_WIN
 	return !!FWindowsFileSystem::DeleteFile(path);
@@ -348,7 +348,7 @@ bool FileSystem::DeleteFile(char const* path)
 #endif
 }
 
-bool FileSystem::DeleteFile(wchar_t const* path)
+bool FFileSystem::DeleteFile(wchar_t const* path)
 {
 #if SYS_PLATFORM_WIN
 	return !!FWindowsFileSystem::DeleteFile(path);
@@ -358,7 +358,7 @@ bool FileSystem::DeleteFile(wchar_t const* path)
 }
 
 
-bool FileSystem::RenameFile(char const* path , char const* newFileName)
+bool FFileSystem::RenameFile(char const* path , char const* newFileName)
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::RenameFile(path, newFileName);
@@ -366,7 +366,7 @@ bool FileSystem::RenameFile(char const* path , char const* newFileName)
 	return false;
 }
 
-bool FileSystem::RenameFile(wchar_t const* path, wchar_t const* newFileName)
+bool FFileSystem::RenameFile(wchar_t const* path, wchar_t const* newFileName)
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::RenameFile(path, newFileName);
@@ -375,7 +375,7 @@ bool FileSystem::RenameFile(wchar_t const* path, wchar_t const* newFileName)
 }
 
 
-bool FileSystem::CopyFile(char const* path, char const* newFilePath, bool bFailIfExists)
+bool FFileSystem::CopyFile(char const* path, char const* newFilePath, bool bFailIfExists)
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::CopyFile(path, newFilePath, bFailIfExists);
@@ -383,7 +383,7 @@ bool FileSystem::CopyFile(char const* path, char const* newFilePath, bool bFailI
 	return false;
 }
 
-bool FileSystem::CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool bFailIfExists)
+bool FFileSystem::CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool bFailIfExists)
 {
 #if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::CopyFile(path, newFilePath, bFailIfExists);
@@ -391,7 +391,7 @@ bool FileSystem::CopyFile(wchar_t const* path, wchar_t const* newFilePath, bool 
 	return false;
 }
 
-bool FileSystem::GetFileAttributes(char const* path, FileAttributes& outAttributes)
+bool FFileSystem::GetFileAttributes(char const* path, FileAttributes& outAttributes)
 {
 #if SYS_PLATFORM_WIN
 	WIN32_FILE_ATTRIBUTE_DATA fad;
@@ -472,7 +472,7 @@ TStringView<CharT> TFileUtility<CharT>::GetDirectory(CharT const* filePath)
 	if (fileName != filePath)
 	{
 		--fileName;
-		char c = *(fileName - 1);
+		CharT c = *(fileName - 1);
 		if (c == STRING_LITERAL(CharT, '/') || c == STRING_LITERAL(CharT, '\\'))
 			--fileName;
 	}

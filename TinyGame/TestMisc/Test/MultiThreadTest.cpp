@@ -86,4 +86,4 @@ void LockFreeListTest()
 
 }
 
-REGISTER_MISC_TEST("LockFreeList Test", LockFreeListTest);
+REGISTER_MISC_TEST_ENTRY("LockFreeList Test", LockFreeListTest);

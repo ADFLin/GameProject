@@ -19,7 +19,7 @@ namespace Go
 			std::string weightName;
 			bot->getMetaDataT(LeelaBot::eWeightName, weightName);
 			result += " ";
-			char const* extension = FileUtility::GetExtension(weightName.c_str());
+			char const* extension = FFileUtility::GetExtension(weightName.c_str());
 			if( extension )
 			{
 				weightName.resize(extension - weightName.data() - 1);

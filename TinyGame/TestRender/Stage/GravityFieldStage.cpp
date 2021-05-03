@@ -189,5 +189,5 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("Gravity Field", GravityFieldTestStage, EStageGroup::FeatureDev, 1);
+	REGISTER_STAGE_ENTRY("Gravity Field", GravityFieldTestStage, EExecGroup::FeatureDev, 1);
 }

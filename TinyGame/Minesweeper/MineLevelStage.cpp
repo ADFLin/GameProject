@@ -313,5 +313,5 @@ namespace Mine
 	protected:
 	};
 
-	REGISTER_STAGE("MineSweeper", TestStage, EStageGroup::Test, "Game|AI");
+	REGISTER_STAGE_ENTRY("MineSweeper", TestStage, EExecGroup::Test, "Game|AI");
 }

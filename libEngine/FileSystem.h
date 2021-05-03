@@ -29,8 +29,8 @@ public:
 };
 
 
-class FileUtility : public TFileUtility<char> 
-	              , public TFileUtility< wchar_t >
+class FFileUtility : public TFileUtility<char> 
+	               , public TFileUtility< wchar_t >
 {
 public:
 #define FUNC_LIST(op)\
@@ -87,7 +87,7 @@ public:
 	void   goNext();
 
 private:
-	friend class FileSystem;
+	friend class FFileSystem;
 
 	bool   mHaveMore;
 	HANDLE mhFind;
@@ -104,7 +104,7 @@ struct FileAttributes
 	DateTime lastWrite;
 };
 
-class FileSystem
+class FFileSystem
 {
 public:
 	static bool FindFiles( char const* dir , char const* subName , FileIterator& iterator );

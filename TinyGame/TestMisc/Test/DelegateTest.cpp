@@ -323,4 +323,4 @@ static void DelegateTest()
 
 }
 
-REGISTER_MISC_TEST("Delegate Test", DelegateTest);
+REGISTER_MISC_TEST_ENTRY("Delegate Test", DelegateTest);

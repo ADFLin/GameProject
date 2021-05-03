@@ -45,12 +45,12 @@ public:
 	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void doChangeWidgetGroup( StageGroupID group );
 
-	void changeStageGroup(EStageGroup group);
+	void changeStageGroup(EExecGroup group);
 	void createStageGroupButton(int& delay, int& xUI, int& yUI);
 
 
 	std::vector< GWidget* > mCategoryWidgets;
-	EStageGroup mCurGroup;
+	EExecGroup mCurGroup;
 };
 
 

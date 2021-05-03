@@ -285,6 +285,11 @@ float3 InvTransformVector(float3 v, float3x3 m)
 	gl_Position = SV_POS;\
 	GSOutput = PARAMS;\
 	EmitVertex();
+
+#define GS_EMIT_VERTEX_NO_PARAMS( SV_POS )\
+	gl_Position = SV_POS;\
+	EmitVertex();
+
 #define GS_END_PRIMITIVE EndPrimitive()
 
 #endif

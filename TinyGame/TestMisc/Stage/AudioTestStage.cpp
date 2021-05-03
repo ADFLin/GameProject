@@ -744,7 +744,7 @@ public:
 protected:
 };
 
-REGISTER_STAGE("Audio Test", AudioTestStage, EStageGroup::FeatureDev);
+REGISTER_STAGE_ENTRY("Audio Test", AudioTestStage, EExecGroup::FeatureDev);
 
 bool AudioTestStage::onInit()
 {

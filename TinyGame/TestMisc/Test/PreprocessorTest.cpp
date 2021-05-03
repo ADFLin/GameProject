@@ -43,4 +43,4 @@ void PreprocessorTest()
 
 }
 
-REGISTER_MISC_TEST_INNER("PreprocessorTest", PreprocessorTest);
+REGISTER_MISC_TEST_ENTRY("PreprocessorTest", PreprocessorTest);

@@ -2,7 +2,7 @@
 
 namespace TMechine
 {
-	REGISTER_STAGE("TuningMechine", TestStage, EStageGroup::Dev4);
+	REGISTER_STAGE_ENTRY("TuningMechine", TestStage, EExecGroup::Dev4);
 
 #define RO_DATA( TYPE , ... ) ARRAY_VIEW_REAONLY_DATA( TYPE , __VA_ARGS__ )
 #define RO_OP( ... ) RO_DATA( Operator , __VA_ARGS__ )

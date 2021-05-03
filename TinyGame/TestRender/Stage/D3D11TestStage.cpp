@@ -344,6 +344,6 @@ namespace Render
 	};
 
 
-	REGISTER_STAGE("D3D11 Test", TestD3D11Stage, EStageGroup::FeatureDev, "Render|RHI");
+	REGISTER_STAGE_ENTRY("D3D11 Test", TestD3D11Stage, EExecGroup::FeatureDev, "Render|RHI");
 
 }

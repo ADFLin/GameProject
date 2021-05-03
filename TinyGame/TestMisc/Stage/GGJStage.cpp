@@ -874,4 +874,4 @@ namespace GGJ
 }//namespace GGJ
 
 
-REGISTER_STAGE("GGJ Test", GGJ::TestStage, EStageGroup::GraphicsTest);
+REGISTER_STAGE_ENTRY("GGJ Test", GGJ::TestStage, EExecGroup::GraphicsTest);

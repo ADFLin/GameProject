@@ -44,7 +44,7 @@ public:
 	void convFileName(char const* dirPath)
 	{
 		FileIterator fileIiter;
-		if (FileSystem::FindFiles(dirPath, nullptr, fileIiter))
+		if (FFileSystem::FindFiles(dirPath, nullptr, fileIiter))
 		{
 			for (; fileIiter.haveMore(); fileIiter.goNext())
 			{
@@ -104,4 +104,4 @@ protected:
 };
 
 
-REGISTER_STAGE("File Name Conv", FileNameConvStage, EStageGroup::Test);
+REGISTER_STAGE_ENTRY("File Name Conv", FileNameConvStage, EExecGroup::Test);

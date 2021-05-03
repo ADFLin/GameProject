@@ -565,4 +565,4 @@ protected:
 };
 
 
-REGISTER_STAGE("Fractial Test", FractialTestStage, EStageGroup::FeatureDev, "Render|Math");
+REGISTER_STAGE_ENTRY("Fractial Test", FractialTestStage, EExecGroup::FeatureDev, "Render|Math");

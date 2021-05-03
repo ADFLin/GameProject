@@ -13,29 +13,29 @@
 #define STAGE_INFO( DECL , CLASS , ... )\
 	{ DECL , MakeChangeStageOperation< CLASS >() , __VA_ARGS__ } 
 
-StageInfo gPreRegisterStageGroup[] =
+ExecutionEntryInfo gPreRegisterStageGroup[] =
 {
-	STAGE_INFO("Misc Test" , MiscTestStage , EStageGroup::Main) ,
-	//STAGE_INFO("Cantan Test" , Cantan::LevelStage , EStageGroup::GraphicsTest) ,
-	STAGE_INFO("GLGraphics2D Test"   , GLGraphics2DTestStage , EStageGroup::GraphicsTest) ,
-	STAGE_INFO("B-Spline Test"   , BSplineTestStage , EStageGroup::GraphicsTest) ,
+	STAGE_INFO("Misc Test" , MiscTestStage , EExecGroup::Main) ,
+	//STAGE_INFO("Cantan Test" , Cantan::LevelStage , EExecGroup::GraphicsTest) ,
+	STAGE_INFO("GLGraphics2D Test"   , GLGraphics2DTestStage , EExecGroup::GraphicsTest) ,
+	STAGE_INFO("B-Spline Test"   , BSplineTestStage , EExecGroup::GraphicsTest) ,
 
-	STAGE_INFO("Bsp Test"       , Bsp2D::TestStage , EStageGroup::Test, "Algorithm") ,
-	STAGE_INFO("A-Star Test"    , AStar::TestStage , EStageGroup::Test, "AI") ,
+	STAGE_INFO("Bsp Test"       , Bsp2D::TestStage , EExecGroup::Test, "Algorithm") ,
+	STAGE_INFO("A-Star Test"    , AStar::TestStage , EExecGroup::Test, "AI") ,
 
-	STAGE_INFO("RB Tree Test"   , TreeTestStage , EStageGroup::Test)  ,
-	STAGE_INFO("Tween Test"     , TweenTestStage , EStageGroup::Test) ,
+	STAGE_INFO("RB Tree Test"   , TreeTestStage , EExecGroup::Test)  ,
+	STAGE_INFO("Tween Test"     , TweenTestStage , EExecGroup::Test) ,
 
 #if 1
-	STAGE_INFO("TileMap Test"   , TileMapTestStage , EStageGroup::Test),
-	STAGE_INFO("Corontine Test" , CoroutineTestStage , EStageGroup::Test) ,
-	STAGE_INFO("XML Prase Test" , XMLPraseTestStage , EStageGroup::Test) ,
+	STAGE_INFO("TileMap Test"   , TileMapTestStage , EExecGroup::Test),
+	STAGE_INFO("Corontine Test" , CoroutineTestStage , EExecGroup::Test) ,
+	STAGE_INFO("XML Prase Test" , XMLPraseTestStage , EExecGroup::Test) ,
 #endif
 
-	STAGE_INFO("GJK Col Test"   , Phy2D::CollideTestStage , EStageGroup::PhyDev) ,
-	STAGE_INFO("RigidBody Test" , Phy2D::WorldTestStage , EStageGroup::PhyDev) ,
+	STAGE_INFO("GJK Col Test"   , Phy2D::CollideTestStage , EExecGroup::PhyDev) ,
+	STAGE_INFO("RigidBody Test" , Phy2D::WorldTestStage , EExecGroup::PhyDev) ,
 
-	STAGE_INFO("Go Test"        , Go::Stage , EStageGroup::Dev4) ,
+	STAGE_INFO("Go Test"        , Go::Stage , EExecGroup::Dev4) ,
 
 };
 
@@ -49,7 +49,7 @@ void RegisterStageGlobal()
 	{
 		for( auto& info : gPreRegisterStageGroup )
 		{
-			StageRegisterCollection::Get().registerStage(info);
+			ExecutionRegisterCollection::Get().registerExecution(info);
 		}
 		gbNeedRegisterStage = false;
 	}

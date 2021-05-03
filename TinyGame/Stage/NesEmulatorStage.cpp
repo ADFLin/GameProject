@@ -335,6 +335,6 @@ public:
 
 };
 
-REGISTER_STAGE("Nes Emulator Test", NesEmulatorTestStage, EStageGroup::GraphicsTest);
+REGISTER_STAGE_ENTRY("Nes Emulator Test", NesEmulatorTestStage, EExecGroup::GraphicsTest);
 
 

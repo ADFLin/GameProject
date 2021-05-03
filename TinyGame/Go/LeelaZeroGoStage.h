@@ -69,7 +69,7 @@ namespace Go
 			g.beginClip(pos, getSize() - Vec2i(20, 0));
 			if( bShowFileNameOnly )
 			{
-				char const* fileName = FileUtility::GetFileName(filePath);
+				char const* fileName = FFileUtility::GetFileName(filePath);
 				g.drawText(pos + Vec2i(2,3), fileName);
 			}
 			else

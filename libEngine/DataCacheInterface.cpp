@@ -20,7 +20,7 @@ void DataCacheArg::addString(char const* str)
 void DataCacheArg::addFileAttribute(char const* filePath)
 {
 	FileAttributes attributes;
-	if (FileSystem::GetFileAttributes(filePath, attributes))
+	if (FFileSystem::GetFileAttributes(filePath, attributes))
 	{
 		auto& lastWrite = attributes.lastWrite;
 		add( lastWrite.getYear(), lastWrite.getMonth(), lastWrite.getDay(), lastWrite.getHour(), lastWrite.getMinute(), lastWrite.getSecond(), lastWrite.getMillisecond());
@@ -54,8 +54,8 @@ public:
 		IOFileSerializer fs;
 		if( !fs.open(filePath, true) )
 		{
-			auto dirView = FileUtility::GetDirectory(filePath);
-			if( !FileSystem::CreateDirectorySequence(dirView.toCString()) )
+			auto dirView = FFileUtility::GetDirectory(filePath);
+			if( !FFileSystem::CreateDirectorySequence(dirView.toCString()) )
 			{
 				return false;
 			}
@@ -81,8 +81,8 @@ public:
 		IOFileSerializer fs;
 		if( !fs.open(filePath, true) )
 		{
-			auto dirView = FileUtility::GetDirectory(filePath);
-			if( !FileSystem::CreateDirectorySequence(dirView.toCString()) )
+			auto dirView = FFileUtility::GetDirectory(filePath);
+			if( !FFileSystem::CreateDirectorySequence(dirView.toCString()) )
 			{
 				return false;
 			}
@@ -92,7 +92,7 @@ public:
 
 		if( !inDelegate(fs) || !fs.isValid() )
 		{
-			FileSystem::DeleteFile(filePath);
+			FFileSystem::DeleteFile(filePath);
 			return false;
 		}
 		fs.close();
@@ -104,7 +104,7 @@ public:
 	{
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
-		if( !FileSystem::IsExist(filePath) )
+		if( !FFileSystem::IsExist(filePath) )
 			return false;
 
 		IOFileSerializer fs;
@@ -130,7 +130,7 @@ public:
 	{
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
-		if( !FileSystem::IsExist(filePath) )
+		if( !FFileSystem::IsExist(filePath) )
 			return false;
 
 		IOFileSerializer fs;

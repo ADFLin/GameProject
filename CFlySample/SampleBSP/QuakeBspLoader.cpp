@@ -38,7 +38,7 @@ Wad3FileData::~Wad3FileData()
 
 bool Wad3FileData::load( char const* path )
 {
-	if( !FileUtility::LoadToBuffer(path, mData) )
+	if( !FFileUtility::LoadToBuffer(path, mData) )
 		return false;
 
 	WAD3::Header* header = getHeader();
@@ -190,7 +190,7 @@ bool HLBspFileDataV30::load( char const* path )
 {
 	assert( mScene );
 
-	if( !FileUtility::LoadToBuffer(path, mData) )
+	if( !FFileUtility::LoadToBuffer(path, mData) )
 		return false;
 
 	if ( getHeader()->version != 30 )

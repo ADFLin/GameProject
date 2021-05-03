@@ -57,7 +57,7 @@ namespace Render
 			for (auto const& path : assetFilePaths)
 			{
 				FileAttributes fileAttributes;
-				if (!FileSystem::GetFileAttributes(path.c_str(), fileAttributes))
+				if (!FFileSystem::GetFileAttributes(path.c_str(), fileAttributes))
 					return false;
 				ShaderFile file;
 				file.lastModifyTime = fileAttributes.lastWrite;
@@ -73,7 +73,7 @@ namespace Render
 			for( auto const& asset : assetDependences )
 			{
 				FileAttributes fileAttributes;
-				if( !FileSystem::GetFileAttributes(asset.path.c_str(), fileAttributes) )
+				if( !FFileSystem::GetFileAttributes(asset.path.c_str(), fileAttributes) )
 					return false;
 				if( fileAttributes.lastWrite > asset.lastModifyTime )
 					return false;

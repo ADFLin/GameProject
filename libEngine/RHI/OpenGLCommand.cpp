@@ -19,7 +19,8 @@
 
 namespace Render
 {
-	bool gForceInitState = false;
+	bool GForceInitState = false;
+	bool GbOpenglOutputDebugMessage = true;
 
 	TConsoleVariable<bool> CVarOpenGLFixedPiplineUseShader( true , "r.OpenGLFixedPiplineUseShader", CVF_TOGGLEABLE);
 
@@ -33,16 +34,20 @@ namespace Render
 
 	void APIENTRY GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,  GLvoid const* userParam)
 	{
+		if (!GbOpenglOutputDebugMessage)
+			return;
+#if 0
 		if( type == GL_DEBUG_TYPE_OTHER )
 			return;
+#endif
 
-		LogMsg(message);
+		LogWarning(0, "Opengl Debug : %s", message);
 	}
 
 	template< class T >
 	bool CheckStateDirty(T& committedValue, T const& pandingValue)
 	{
-		if (gForceInitState || committedValue != pandingValue)
+		if (GForceInitState || committedValue != pandingValue)
 		{
 			committedValue = pandingValue;
 			return true;
@@ -53,7 +58,7 @@ namespace Render
 	template< class T >
 	bool IsStateDirty(T const& committedValue, T const& pandingValue)
 	{
-		return gForceInitState || committedValue != pandingValue;
+		return GForceInitState || committedValue != pandingValue;
 	}
 
 #define GL_CHECK_STATE_DIRTY( NAME )  CheckStateDirty( committedValue.##NAME , pendingValue.##NAME )
@@ -293,7 +298,7 @@ namespace Render
 
 		if( 1 )
 		{
-			gForceInitState = true;
+			GForceInitState = true;
 			RHISetDepthStencilState(*mImmediateCommandList, TStaticDepthStencilState<>::GetRHI(), 0xff);
 			RHISetBlendState(*mImmediateCommandList, TStaticBlendState<>::GetRHI());
 			RHISetRasterizerState(*mImmediateCommandList, TStaticRasterizerState<>::GetRHI());

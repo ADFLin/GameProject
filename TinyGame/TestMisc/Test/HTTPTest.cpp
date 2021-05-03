@@ -35,4 +35,4 @@ void HttpTest()
 
 }
 
-REGISTER_MISC_TEST("Http Test", HttpTest);
+REGISTER_MISC_TEST_ENTRY("Http Test", HttpTest);

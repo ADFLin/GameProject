@@ -314,7 +314,7 @@ namespace MRT
 
 }
 
-REGISTER_STAGE("MRT Test", MRT::TestStage, EStageGroup::Dev, "Test|Algorithm");
+REGISTER_STAGE_ENTRY("MRT Test", MRT::TestStage, EExecGroup::Dev, "Test|Algorithm");
 
 struct MoneyInfo
 {
@@ -341,7 +341,7 @@ void CalcMoney()
 	LogMsg("Money = %d", money);
 }
 
-REGISTER_MISC_TEST("Calc Money", CalcMoney);
+REGISTER_MISC_TEST_ENTRY("Calc Money", CalcMoney);
 #if 1
 
 #include "Coroutine.h"
@@ -1013,7 +1013,7 @@ void TestHeap()
 #endif
 }
 
-REGISTER_MISC_TEST("Heap Test", TestHeap);
+REGISTER_MISC_TEST_ENTRY("Heap Test", TestHeap);
 
 #include "Math/BigInteger.h"
 #include "Math/BigFloat.h"
@@ -1285,9 +1285,9 @@ void TestCycleQueue()
 	}
 }
 
-REGISTER_MISC_TEST("Class Tree", TestClassTree);
-REGISTER_MISC_TEST("Big Number", TestBigNumber);
-REGISTER_MISC_TEST("Cycle Queue", TestCycleQueue);
+REGISTER_MISC_TEST_ENTRY("Class Tree", TestClassTree);
+REGISTER_MISC_TEST_ENTRY("Big Number", TestBigNumber);
+REGISTER_MISC_TEST_ENTRY("Cycle Queue", TestCycleQueue);
 
 bool MiscTestStage::onInit()
 {
@@ -1295,10 +1295,10 @@ bool MiscTestStage::onInit()
 
 	auto frame = WidgetUtility::CreateDevFrame();
 
-	auto& const entries = MiscTestRegister::GetList();
-	for( auto entry : entries )
+	auto const& entries = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTest);
+	for( auto const& entry : entries )
 	{
-		addTest(entry.name, entry.func);
+		addTest(entry.title, entry.execFunc);
 	}
 	restart();
 
@@ -1393,7 +1393,7 @@ namespace SIMD
 	}
 }
 
-REGISTER_MISC_TEST("SIMD Test", SIMD::TestFunc);
+REGISTER_MISC_TEST_ENTRY("SIMD Test", SIMD::TestFunc);
 
 #include "minisat/core/Solver.h"
 void SATTest()
@@ -1432,4 +1432,4 @@ void SATTest()
 		std::clog << "UNSAT\n";
 	}
 }
-REGISTER_MISC_TEST("SAT Test", SATTest);
+REGISTER_MISC_TEST_ENTRY("SAT Test", SATTest);

@@ -24,7 +24,7 @@ bool ImageData::load(char const* path, bool bHDR, bool bReverseH, bool bUpThreeC
 	if (bUpThreeCompToFour)
 	{
 		std::vector<char> buffer;
-		if (!FileUtility::LoadToBuffer(path, buffer))
+		if (!FFileUtility::LoadToBuffer(path, buffer))
 			return false;
 
 		int comp;

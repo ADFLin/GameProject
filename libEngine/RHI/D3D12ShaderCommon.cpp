@@ -62,7 +62,7 @@ namespace Render
 
 			if (bUsePreprocess)
 			{
-				if (!FileUtility::LoadToBuffer(input.path, codeBuffer, true))
+				if (!FFileUtility::LoadToBuffer(input.path, codeBuffer, true))
 				{
 					LogWarning(0, "Can't load shader file %s", input.path);
 					return false;
@@ -80,7 +80,7 @@ namespace Render
 					codeBuffer.assign(input.definition, input.definition + lenDef);
 				}
 
-				if (!FileUtility::LoadToBuffer(input.path, codeBuffer, true, true))
+				if (!FFileUtility::LoadToBuffer(input.path, codeBuffer, true, true))
 				{
 					LogWarning(0, "Can't load shader file %s", input.path);
 					return false;
@@ -112,7 +112,7 @@ namespace Render
 			{
 				args[numArgs++] = L"-Zi";
 			}
-			char const* fileName = FileUtility::GetFileName(input.path);
+			char const* fileName = FFileUtility::GetFileName(input.path);
 			TComPtr<IDxcOperationResult> compileResult;
 			HRESULT hr = mCompiler->Compile(
 				sourceBlob, // pSource
@@ -140,7 +140,7 @@ namespace Render
 			{
 				if (bUsePreprocess)
 				{
-					FileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
+					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
 				}
 
 				if (bRecompile)

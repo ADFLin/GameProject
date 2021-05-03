@@ -716,6 +716,6 @@ namespace Render
 	protected:
 	};
 
-	REGISTER_STAGE("Mesh Shader", MeshShaderTestStage, EStageGroup::FeatureDev, "Render|Test");
+	REGISTER_STAGE_ENTRY("Mesh Shader", MeshShaderTestStage, EExecGroup::FeatureDev, "Render|Test");
 
 }

@@ -551,7 +551,7 @@ namespace Go
 		FileIterator fileIter;
 		InlineString<256> path;
 		path.format("%s/%s" , InstallDir , LEELA_NET_DIR_NAME );
-		if( !FileSystem::FindFiles(path, nullptr, fileIter) )
+		if( !FFileSystem::FindFiles(path, nullptr, fileIter) )
 		{
 			return "";
 		}
@@ -561,7 +561,7 @@ namespace Go
 		std::string result;
 		for( ; fileIter.haveMore(); fileIter.goNext() )
 		{
-			if( FileUtility::GetExtension(fileIter.getFileName()) != nullptr )
+			if( FFileUtility::GetExtension(fileIter.getFileName()) != nullptr )
 				continue;
 
 			if( strlen(fileIter.getFileName()) != 64 )
@@ -636,7 +636,7 @@ namespace Go
 		if( weightName )
 		{
 			result += " -w ";
-			char const* subName = FileUtility::GetExtension(weightName);
+			char const* subName = FFileUtility::GetExtension(weightName);
 			if( subName )
 			{
 				result += weightName;

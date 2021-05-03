@@ -627,7 +627,7 @@ namespace RenderVulkan
 	};
 
 
-	REGISTER_STAGE("Vulkan Test", TestStage, EStageGroup::FeatureDev, "Render|RHI");
+	REGISTER_STAGE_ENTRY("Vulkan Test", TestStage, EExecGroup::FeatureDev, "Render|RHI");
 }
 
 char const* VSCode = CODE_STRING(

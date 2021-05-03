@@ -484,7 +484,7 @@ namespace CPP
 		}
 		while (haveMore())
 		{
-			bool bElseFind = false;
+			bool bElseFound = false;
 			StringView control;
 			if (!tokenControl(control))
 				return false;
@@ -493,9 +493,9 @@ namespace CPP
 			{
 			case HashValue("elif"):
 				{
-					if (bElseFind)
+					if (bElseFound)
 					{
-						PARSE_ERROR("if error");
+						PARSE_ERROR("if syntax error");
 					}
 
 					if (!exprRet && !isSkipText())
@@ -531,7 +531,7 @@ namespace CPP
 					{
 						return false;
 					}
-					bElseFind = true;
+					bElseFound = true;
 				}
 				break;
 			case HashValue("endif"):
@@ -962,7 +962,7 @@ namespace CPP
 
 	bool Preprocessor::findFile(std::string const& name, std::string& fullPath)
 	{
-		if( FileSystem::IsExist(name.c_str()) )
+		if( FFileSystem::IsExist(name.c_str()) )
 		{
 			fullPath = name;
 			return true;
@@ -970,7 +970,7 @@ namespace CPP
 		for( int i = 0; i < mFileSreachDirs.size(); ++i )
 		{
 			fullPath = mFileSreachDirs[i] + name;
-			if( FileSystem::IsExist(fullPath.c_str()) )
+			if( FFileSystem::IsExist(fullPath.c_str()) )
 				return true;
 		}
 		return false;
@@ -1123,7 +1123,7 @@ namespace CPP
 
 	bool CodeSource::loadFile(char const* path)
 	{
-		if (!FileUtility::LoadToBuffer(path, mBuffer, true))
+		if (!FFileUtility::LoadToBuffer(path, mBuffer, true))
 			return false;
 
 		return true;

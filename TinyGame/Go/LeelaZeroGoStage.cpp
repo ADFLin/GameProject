@@ -31,7 +31,7 @@
 
 #define MATCH_RESULT_PATH "Go/MatchResult.data"
 
-REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test, "Game|AI");
+REGISTER_STAGE_ENTRY("LeelaZero Learning", Go::LeelaZeroGoStage, EExecGroup::Test, "Game|AI");
 
 #define DERAULT_LEELA_WEIGHT_NAME "6615567eaa3adc8ea695682fcfbd7eaa3bb557d3720d2b61610b66006104050e"
 
@@ -50,14 +50,14 @@ namespace Go
 		dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME);
 
 		std::string bestWeightName = LeelaAppRun::GetBestWeightName();
-		if( FileSystem::FindFiles(dir, nullptr, fileIter) )
+		if( FFileSystem::FindFiles(dir, nullptr, fileIter) )
 		{
 			for( ; fileIter.haveMore(); fileIter.goNext() )
 			{
 				if ( FCString::Compare( fileIter.getFileName() , bestWeightName.c_str() ) == 0 )
 					continue;
 
-				char const* subName = FileUtility::GetExtension(fileIter.getFileName());
+				char const* subName = FFileUtility::GetExtension(fileIter.getFileName());
 				if( subName )
 				{
 					--subName;
@@ -83,7 +83,7 @@ namespace Go
 					InlineString<256> filePath;
 					filePath.format("%s/%s", dir.c_str(), fileIter.getFileName());
 
-					FileSystem::RenameFile(filePath, newName);
+					FFileSystem::RenameFile(filePath, newName);
 				}
 			}
 		}
@@ -1562,7 +1562,7 @@ namespace Go
 		path.replace('/', '\\');
 		if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr, nullptr , ::Global::GetDrawEngine().getWindowHandle()))
 		{
-			weightNameA = FileUtility::GetFileName(path);
+			weightNameA = FFileUtility::GetFileName(path);
 			::Global::GameConfig().setKeyValue("Leela.LastOpenWeight", "Go", weightNameA);
 		}
 
@@ -1624,7 +1624,7 @@ namespace Go
 
 			if (SystemPlatform::OpenFileName(path, path.max_size(), {} , nullptr))
 			{
-				setting.weightName = FileUtility::GetFileName(path);
+				setting.weightName = FFileUtility::GetFileName(path);
 			}
 			else
 			{
@@ -2653,7 +2653,7 @@ namespace Go
 				{
 					LeelaAISetting setting = LeelaAISetting::GetDefalut();
 					std::string weightName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
-					setting.weightName = FileUtility::GetFileName(weightName.c_str());
+					setting.weightName = FFileUtility::GetFileName(weightName.c_str());
 					setting.visits = getParamValue< int, GTextCtrl >(id + UPARAM_VISITS);
 					//setting.bUseModifyVersion = true;
 					setting.seed = generateRandSeed();
@@ -2684,7 +2684,7 @@ namespace Go
 					//setting.bUseDefaultConfig = true;
 					setting.bUseCuda = getParamValue< bool, GCheckBox >(id + UPARAM_USE_CUDA);
 					std::string modelName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
-					setting.modelName = FileUtility::GetFileName( modelName.c_str() );
+					setting.modelName = FFileUtility::GetFileName( modelName.c_str() );
 
 					if( !matchData.players[i].initialize(types[i], &setting, otherPlayer) )
 						return false;

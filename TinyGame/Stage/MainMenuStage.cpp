@@ -24,16 +24,23 @@
 
 extern void RegisterStageGlobal();
 
-StageInfo gSingleDev[] = 
-{
-#define STAGE_INFO( DECL , GAME_NAME , ... ) { DECL , new ChangeSingleGameOperation(GAME_NAME) , __VA_ARGS__ } 
 
-	STAGE_INFO( "Carcassonne" , "Carcassonne", EStageGroup::SingleDev ),
-	STAGE_INFO( "TD Test" , "TowerDefend", EStageGroup::SingleDev) ,
-	STAGE_INFO( "Rich Test" , "Rich", EStageGroup::SingleDev) ,
-	STAGE_INFO( "BomberMan Test" , "BomberMan", EStageGroup::SingleDev) ,
-	STAGE_INFO( "Bubble Test" , "Bubble", EStageGroup::SingleDev) ,
-	STAGE_INFO( "CubeWorld Test" , "CubeWorld", EStageGroup::SingleDev) ,
+struct SingleDevEntry
+{
+	char const* gameName;
+	ExecutionEntryInfo entry;
+};
+
+SingleDevEntry GSingleDev[] =
+{
+#define STAGE_INFO( DECL , GAME_NAME , ... ) { GAME_NAME , ExecutionEntryInfo( DECL , MakeChangeSingleGame(GAME_NAME) , __VA_ARGS__ ) } 
+
+	STAGE_INFO( "Carcassonne" , "Carcassonne", EExecGroup::SingleDev ),
+	STAGE_INFO( "TD Test" , "TowerDefend", EExecGroup::SingleDev) ,
+	STAGE_INFO( "Rich Test" , "Rich", EExecGroup::SingleDev) ,
+	STAGE_INFO( "BomberMan Test" , "BomberMan", EExecGroup::SingleDev) ,
+	STAGE_INFO( "Bubble Test" , "Bubble", EExecGroup::SingleDev) ,
+	STAGE_INFO( "CubeWorld Test" , "CubeWorld", EExecGroup::SingleDev) ,
 
 #undef STAGE_INFO
 };
@@ -48,9 +55,9 @@ bool MainMenuStage::onInit()
 
 	auto IsIncludeDev = [](char const* name) -> bool
 	{
-		for (auto const& info : gSingleDev)
+		for (auto const& info : GSingleDev)
 		{
-			if (FCString::Compare(static_cast<ChangeSingleGameOperation*>(info.operation)->gameName, name) == 0)
+			if (FCString::Compare(info.gameName, name) == 0)
 				return true;
 		}
 		return false;
@@ -61,12 +68,15 @@ bool MainMenuStage::onInit()
 		if (IsIncludeDev(game->getName()))
 			continue;
 
-		StageRegisterCollection::Get().registerStage({ game->getName(), new ChangeSingleGameOperation(game->getName()), EStageGroup::SingleGame });
+		ExecutionRegisterCollection::Get().registerExecution({ game->getName(), [game]()
+		{
+			ExecutionRegisterHelper::ChangeSingleGame(game->getName());
+		}, EExecGroup::SingleGame });
 	}
 
-	for (auto const& info : gSingleDev)
+	for (auto const& info : GSingleDev)
 	{
-		StageRegisterCollection::Get().registerStage(info);
+		ExecutionRegisterCollection::Get().registerExecution(info.entry);
 	}
 
 	RegisterStageGlobal();
@@ -87,12 +97,12 @@ bool MainMenuStage::onInit()
 	::Global::GUI().addWidget( button );
 #endif
 
-	std::vector< HashString > categories = StageRegisterCollection::Get().getCategories();
+	std::vector< HashString > categories = ExecutionRegisterCollection::Get().getRegisteredCategories();
 	GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(100, 20), NULL);
 	for (auto const& category : categories)
 	{
 		InlineString< 128 > title;
-		int count = StageRegisterCollection::Get().getAllStages(category).size();
+		int count = ExecutionRegisterCollection::Get().getExecutionsByCategory(category).size();
 		title.format("%s (%d)", category.c_str(), count);
 		uint slot = choice->addItem(title);
 	}
@@ -109,7 +119,7 @@ bool MainMenuStage::onInit()
 		char const* last = FStringParse::FindChar(selectValue, '(');
 		StringView category = StringView{ selectValue , size_t( last - selectValue) };
 		category.removeTailSpace();
-		std::vector< StageInfo const*> stageInfoList = StageRegisterCollection::Get().getAllStages(category);
+		std::vector< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
 
 		int index = 0;
 		for (auto& info : stageInfoList)
@@ -119,7 +129,7 @@ bool MainMenuStage::onInit()
 			button->setTitle(info->title);
 			button->onEvent = [this,info](int event, GWidget* widget) -> bool
 			{
-				info->operation->process(getManager());
+				info->execFunc();
 				return false;
 			};
 			mCategoryWidgets.push_back(button);
@@ -252,7 +262,7 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 		CREATE_BUTTON( UI_GRAPHIC_TEST_GROUP , "Graphic Test" );
 		CREATE_BUTTON( UI_TEST_GROUP      , "Test" );
 		CREATE_BUTTON( UI_FEATURE_DEV_GROUP, "Feature Dev");
-		changeStageGroup(EStageGroup::Main);
+		changeStageGroup(EExecGroup::Main);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_SINGLEPLAYER  , LOCTEXT("SinglePlayer")  );
 		CREATE_BUTTON( UI_MULTIPLAYER   , LOCTEXT("MultiPlayer")   );
@@ -267,17 +277,17 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 		CREATE_BUTTON( UI_BACK_GROUP    , LOCTEXT("Back")          );
 		break;
 	case UI_GRAPHIC_TEST_GROUP:
-		changeStageGroup(EStageGroup::GraphicsTest);
+		changeStageGroup(EExecGroup::GraphicsTest);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
 	case UI_TEST_GROUP:
-		changeStageGroup(EStageGroup::Test);
+		changeStageGroup(EExecGroup::Test);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_BACK_GROUP  , LOCTEXT("Back")          );
 		break;
 	case UI_GAME_DEV_GROUP:
-		changeStageGroup(EStageGroup::Dev);
+		changeStageGroup(EExecGroup::Dev);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_CARD_GAME_DEV_GROUP  , "Card Game.." );
 #if 1
@@ -287,22 +297,22 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
 	case UI_GAME_DEV3_GROUP:
-		changeStageGroup(EStageGroup::PhyDev);
+		changeStageGroup(EExecGroup::PhyDev);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
 		break;
 	case UI_GAME_DEV4_GROUP:
-		changeStageGroup(EStageGroup::Dev4);
+		changeStageGroup(EExecGroup::Dev4);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
 		break;
 	case UI_FEATURE_DEV_GROUP:
-		changeStageGroup(EStageGroup::FeatureDev);
+		changeStageGroup(EExecGroup::FeatureDev);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
 		break;
 	case UI_GAME_DEV2_GROUP:
-		changeStageGroup(EStageGroup::SingleDev);
+		changeStageGroup(EExecGroup::SingleDev);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
@@ -313,7 +323,7 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 		CREATE_BUTTON( UI_BACK_GROUP  , LOCTEXT("Back")          );
 		break;
 	case UI_SINGLEPLAYER:
-		changeStageGroup(EStageGroup::SingleGame);
+		changeStageGroup(EExecGroup::SingleGame);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_BACK_GROUP    , LOCTEXT("Back")          );
 		break;
@@ -324,13 +334,13 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 {
 	int idx = 0;
-	int numStage = StageRegisterCollection::Get().getGroupStages(mCurGroup).size();
+	int numStage = ExecutionRegisterCollection::Get().getGroupExecutions(mCurGroup).size();
 
 	if( numStage > 10 )
 	{
 		int PosLX = xUI - (MenuBtnSize.x + 6) / 2;
 		int PosRX = xUI + (MenuBtnSize.x + 6) / 2;
-		for( auto info : StageRegisterCollection::Get().getGroupStages(mCurGroup) )
+		for( auto info : ExecutionRegisterCollection::Get().getGroupExecutions(mCurGroup) )
 		{
 			CREATE_BUTTON_POS_DELAY(UI_GROUP_STAGE_INDEX + idx, info.title, (idx % 2 ) ?PosRX : PosLX , yUI , delay );
 			++idx;
@@ -343,7 +353,7 @@ void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 	}
 	else
 	{
-		for( auto info : StageRegisterCollection::Get().getGroupStages(mCurGroup) )
+		for( auto info : ExecutionRegisterCollection::Get().getGroupExecutions(mCurGroup) )
 		{
 			CREATE_BUTTON(UI_GROUP_STAGE_INDEX + idx, info.title);
 			++idx;
@@ -352,7 +362,7 @@ void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 }
 #undef  CREATE_BUTTON
 
-void MainMenuStage::changeStageGroup(EStageGroup group)
+void MainMenuStage::changeStageGroup(EExecGroup group)
 {
 	mCurGroup = group;
 }
@@ -434,16 +444,16 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	}
 	else
 	{
-		StageInfo const* info = nullptr;
+		ExecutionEntryInfo const* info = nullptr;
 
 		if( id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP )
 		{
-			info = &StageRegisterCollection::Get().getGroupStages(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
+			info = &ExecutionRegisterCollection::Get().getGroupExecutions(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
 		}
 
 		if ( info )
 		{
-			info->operation->process(getManager());
+			info->execFunc();
 			return false;
 		}
 	}

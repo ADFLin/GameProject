@@ -12,7 +12,7 @@ bool IsFileExist( char const* path , char const* subFileName )
 {
 	InlineString<512> filePath;
 	filePath.format("%s%s", path, subFileName);
-	return FileSystem::IsExist(filePath);
+	return FFileSystem::IsExist(filePath);
 }
 
 namespace Zuma

@@ -157,4 +157,4 @@ namespace Rubiks
 }//namespace Rubiks
 
 
-REGISTER_STAGE("Rubiks Test", Rubiks::TestStage, EStageGroup::Dev4);
+REGISTER_STAGE_ENTRY("Rubiks Test", Rubiks::TestStage, EExecGroup::Dev4);

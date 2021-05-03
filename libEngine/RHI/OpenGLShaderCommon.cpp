@@ -2,21 +2,22 @@
 
 #include "ShaderCore.h"
 #include "ShaderProgram.h"
+#include "ShaderManager.h"
+#include "RHICommand.h"
 
-#include <fstream>
-#include <sstream>
 #include "FileSystem.h"
 #include "Core\StringConv.h"
 #include "CString.h"
 
-#include "RHICommand.h"
-#include "ShaderManager.h"
 #include "ConsoleSystem.h"
+#include "TemplateMisc.h"
 
 extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
 
 namespace Render
 {
+	extern bool GbOpenglOutputDebugMessage;
+
 	bool IsLineFilePathSupported()
 	{
 
@@ -34,7 +35,9 @@ void main()
 }
 				);
 
+
 				OpenGLShaderObject object;
+				TGuardValue<bool> ScopedValue(GbOpenglOutputDebugMessage, false);
 				result = object.compile(EShader::Pixel, &code, 1);
 			}
 			bool result;
@@ -62,7 +65,7 @@ void main()
 	bool OpenGLShaderObject::loadFile(EShader::Type type, char const* path, char const* def)
 	{
 		std::vector< char > codeBuffer;
-		if (!FileUtility::LoadToBuffer(path, codeBuffer, true))
+		if (!FFileUtility::LoadToBuffer(path, codeBuffer, true))
 			return false;
 		int num = 0;
 		char const* src[2];
@@ -284,7 +287,7 @@ void main()
 		{
 			bSuccess = false;
 			std::vector< char > codeBuffer;
-			if( !FileUtility::LoadToBuffer(input.path, codeBuffer, true) )
+			if( !FFileUtility::LoadToBuffer(input.path, codeBuffer, true) )
 				return false;
 			int numSourceCodes = 0;
 			char const* sourceCodes[2];
@@ -311,7 +314,7 @@ void main()
 			auto ProcessCompileError = [&]( GLuint shaderHandle )
 			{
 				{
-					FileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, &codeBuffer[0], codeBuffer.size() - 1);
+					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, &codeBuffer[0], codeBuffer.size() - 1);
 				}
 
 				if (shaderHandle)

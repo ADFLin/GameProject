@@ -210,6 +210,6 @@ namespace AoW
 	};
 
 
-	REGISTER_STAGE("AoW", TestStage, EStageGroup::Main);
+	REGISTER_STAGE_ENTRY("AoW", TestStage, EExecGroup::Main);
 
 }

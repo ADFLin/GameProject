@@ -4,7 +4,7 @@
 
 #include "DrawEngine.h"
 
-REGISTER_STAGE("Flow Free Game", FlowFree::TestStage , EStageGroup::Test);
+REGISTER_STAGE_ENTRY("Flow Free Game", FlowFree::TestStage , EExecGroup::Test);
 
 
 namespace FlowFree

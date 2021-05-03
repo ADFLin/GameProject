@@ -131,18 +131,18 @@ namespace Go
 	class PorxyBot : public IBot
 	{
 	public:
-		PorxyBot(IBot& inBot, bool inbUseInMatch)
-			:mBot(&inBot), bUsedInMatch(inbUseInMatch)
+		PorxyBot(IBot& inBot, bool inbShared)
+			:mBot(&inBot), bShared(inbShared)
 		{
 		}
 
 		bool initialize(void* settingData) override { return true; }
 		void destroy() override {}
-		bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
-		bool restart(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->restart(setting); }
-		EBotExecResult playStone(int x, int y, int color) override { if( bUsedInMatch ) return BOT_OK; return mBot->playStone(x, y, color); }
-		EBotExecResult playPass(int color) override { if( bUsedInMatch ) return BOT_OK; return mBot->playPass(color); }
-		EBotExecResult undo() override { if( bUsedInMatch ) return BOT_OK; return mBot->undo(); }
+		bool setupGame(GameSetting const& setting) override { if( bShared ) return true; return mBot->setupGame(setting); }
+		bool restart(GameSetting const& setting) override { if( bShared ) return true; return mBot->restart(setting); }
+		EBotExecResult playStone(int x, int y, int color) override { if( bShared ) return BOT_OK; return mBot->playStone(x, y, color); }
+		EBotExecResult playPass(int color) override { if( bShared ) return BOT_OK; return mBot->playPass(color); }
+		EBotExecResult undo() override { if( bShared ) return BOT_OK; return mBot->undo(); }
 		
 		bool thinkNextMove(int color) override { return mBot->thinkNextMove(color);  }
 		bool isThinking() override { return mBot->isThinking(); }
@@ -150,13 +150,13 @@ namespace Go
 		bool getMetaData(int id, uint8* dataBuffer, int size) override { return mBot->getMetaData(id , dataBuffer , size); }
 		bool isGPUBased() const override { return mBot->isGPUBased(); }
 
-		bool requestUndo() override { if (bUsedInMatch) return true; return mBot->requestUndo(); }
+		bool requestUndo() override { if (bShared) return true; return mBot->requestUndo(); }
 
 		EBotExecResult readBoard(int* outState) override { return mBot->readBoard(outState); }
 	private:
 
 		IBot* mBot;
-		bool bUsedInMatch = false;
+		bool  bShared = false;
 
 	};
 

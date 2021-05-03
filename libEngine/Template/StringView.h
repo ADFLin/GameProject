@@ -7,31 +7,31 @@
 #include "Meta/EnableIf.h"
 #include "Meta/MetaBase.h"
 
-template < typename T >
+template < typename CharT >
 class TStringView
 {
 public:
-	using StdString = typename TStringTraits<T>::StdString;
+	using StdString = typename TStringTraits<CharT>::StdString;
 
 	TStringView() = default;
 	TStringView( EForceInit ):mData(nullptr),mNum(0){}
 
-	template< typename Q, TEnableIf_Type< Meta::IsSameType< T const*, Q >::Value , bool > = true >
+	template< typename Q, TEnableIf_Type< Meta::IsSameType< CharT const*, Q >::Value , bool > = true >
 	TStringView(Q str)
 		:mData(str), mNum(FCString::Strlen(str)){}
 
 	template< size_t N >
-	TStringView( T const (&str)[N])
+	TStringView(CharT const (&str)[N])
 		:mData(str), mNum(N - 1){}
 
-	TStringView( T const* str , size_t num )
+	TStringView(CharT const* str , size_t num )
 		:mData(str),mNum(num){}
 
-	bool operator == (T const* other) const
+	bool operator == (CharT const* other) const
 	{
 		return FCString::CompareN( mData , other , mNum ) == 0;
 	}
-	bool operator != (T const* other) const
+	bool operator != (CharT const* other) const
 	{
 		return !this->operator == (other);
 	}
@@ -43,17 +43,17 @@ public:
 
 	//operator T const* () const { return mData; }
 
-	using iterator = T const*;
+	using iterator = CharT const*;
 	iterator begin() { return mData; }
 	iterator end() { return mData + mNum; }
 
-	using const_iterator = T const*;
+	using const_iterator = CharT const*;
 	const_iterator begin() const { return mData; }
 	const_iterator end() const { return mData + mNum; }
 
-	T  operator[](size_t idx) const { assert(idx < mNum); return mData[idx]; }
+	CharT operator[](size_t idx) const { assert(idx < mNum); return mData[idx]; }
 
-	T const* data() const { return mData; }
+	CharT const* data() const { return mData; }
 	size_t   size() const { return mNum; }
 	size_t   length() const { return mNum; }
 
@@ -86,7 +86,7 @@ public:
 		return compareInternal(other.data(), other.size());
 	}
 
-	int compare(T const* other) const
+	int compare(CharT const* other) const
 	{
 		char const* p1 = data();
 		char const* p2 = other;
@@ -107,35 +107,39 @@ public:
 	StdString toStdString() const { return StdString(mData, mNum); }
 
 	template< size_t BufferSize >
-	struct TCStringConvable
+	struct TCStringConvertible
 	{
-		TCStringConvable(T const* data, size_t num)
+		TCStringConvertible(CharT const* data, size_t num)
 		{
-			if( data == nullptr || num == 0 )
+			if( num == 0 )
 			{
-				mPtr = STRING_LITERAL(T, "");
-			}
-			else if( data[num] == 0 )
-			{
-				mPtr = data;
+				mPtr = STRING_LITERAL(CharT, "");
 			}
 			else
 			{
-				assert(ARRAY_SIZE(mBuffer) > num + 1);
-				FCString::CopyN(mBuffer, data, num);
-				mBuffer[num] = 0;
-				mPtr = mBuffer;
+				assert(data);
+				if (data[num] == 0)
+				{
+					mPtr = data;
+				}
+				else
+				{
+					assert(ARRAY_SIZE(mBuffer) > num + 1);
+					FCString::CopyN(mBuffer, data, num);
+					mBuffer[num] = 0;
+					mPtr = mBuffer;
+				}
 			}
 		}
 
-		operator T const* () const { return mPtr; }
+		operator CharT const* () const { return mPtr; }
 
-		T const* mPtr;
-		T mBuffer[BufferSize];
+		CharT const* mPtr;
+		CharT mBuffer[BufferSize];
 	};
 
 	template< size_t BufferSize = 256 >
-	TCStringConvable< BufferSize > toCString() const { return TCStringConvable<BufferSize>(mData, mNum); }
+	TCStringConvertible< BufferSize > toCString() const { return TCStringConvertible<BufferSize>(mData, mNum); }
 
 	template<class Q>
 	Q toValue() const
@@ -150,11 +154,11 @@ public:
 
 protected:
 
-	int compareInternal(char const* other, int numOhter) const
+	int compareInternal(CharT const* other, int numOhter) const
 	{
 		assert(size() <= numOhter);
-		T const* p1 = data();
-		T const* p2 = other;
+		CharT const* p1 = data();
+		CharT const* p2 = other;
 		for( int i = 0; i < size(); ++i, ++p1, ++p2 )
 		{
 			assert(*p1 != 0 && *p2 != 0);
@@ -165,7 +169,7 @@ protected:
 	}
 
 
-	T const* mData;
+	CharT const* mData;
 	size_t   mNum;
 };
 

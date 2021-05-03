@@ -32,7 +32,7 @@ namespace TripleTown
 			VERIFY_RETURN_FALSE( mScene.loadResource() );
 
 
-			FileSystem::FindFiles("TripleTown", ".tex", mFileIterator);
+			FFileSystem::FindFiles("TripleTown", ".tex", mFileIterator);
 			mScene.loadPreviewTexture(mFileIterator.getFileName());
 
 			return true;
@@ -107,6 +107,6 @@ namespace TripleTown
 }
 
 
-REGISTER_STAGE("Triple Town Test", TripleTown::LevelStage, EStageGroup::Dev, "Game");
+REGISTER_STAGE_ENTRY("Triple Town Test", TripleTown::LevelStage, EExecGroup::Dev, "Game");
 
 #endif // TTStage_h__

@@ -294,4 +294,4 @@ namespace CB
 }//namespace CB
 
 
-REGISTER_STAGE("Curve Builder", CB::TestStage, EStageGroup::FeatureDev);
+REGISTER_STAGE_ENTRY("Curve Builder", CB::TestStage, EExecGroup::FeatureDev);

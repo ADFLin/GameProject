@@ -1,6 +1,6 @@
 #include "SpatialIndexTest.h"
 
-REGISTER_STAGE("Spatial Index Test", SpatialIndexTestStage, EStageGroup::Test);
+REGISTER_STAGE_ENTRY("Spatial Index Test", SpatialIndexTestStage, EExecGroup::Test);
 
 
 void SpatialIndexTestStage::onRender(float dFrame)

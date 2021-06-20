@@ -75,28 +75,6 @@ void HashStringTest()
 REGISTER_MISC_TEST_ENTRY("HashString Test", HashStringTest);
 
 
-
-
-//template< class T1, class T2 >
-//struct HaveBinaryOperatorImpl
-//{
-//	template< class U1, class U2, decltype(std::declval<U1>() + std::declval<U2>()) (*)(U1, U2) >
-//	struct SFINAE {};
-//	template< class U1, class U2  >
-//	static Meta::TureType Test(SFINAE<U1, U2, (&operator+)  >*);
-//	template< class U1, class U2  >
-//	static Meta::FalseType Test(...);
-//	static bool const Result = Meta::IsSameType< Meta::TureType, decltype(Test<T1, T2>(0)) >::Result;
-//};
-//template< class T1, class T2 >
-//struct HaveBinaryOperator : Meta::HaveResult< HaveBinaryOperatorImpl< T1, T2 >::Result >
-//{
-//
-//};
-
-DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveAdd , operator+ , const& , const&)
-
-
 struct MyDataFoo{};
 
 #if 0
@@ -203,9 +181,6 @@ namespace Compression
 	};
 
 
-	DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(THaveSerializeOutput, operator<< , & , const& );
-
-
 	typedef Foo& (*Func)(Foo& foo, MyTest const& v);
 	typedef Foo& (*Func2)(Foo& foo, int v);
 
@@ -220,23 +195,6 @@ namespace Compression
 
 		virtual bool onInit()
 		{
-
-
-			int a = THaveFuncionCallOperator< FooCall, int >::Value;
-			int a2 = THaveFuncionCallOperator< FooCall, uint32 >::Value;
-			int v = THaveBitDataOutput< IStreamSerializer::BitWriter, uint32 >::Value;
-
-			int i = THaveSerializeOutput< Foo , MyTest >::Value;
-			int i2 = THaveSerializeOutput< Foo , int >::Value;
-			int i3 = THaveSerializeOutput< Foo , MyTest2 >::Value;
-			int i4 = THaveSerializeOutput< Foo , MyTest3 >::Value;
-
-			Foo foo;
-			Func func = &operator <<;
-			(*func)(foo, MyTest());
-			
-			foo << MyTest();
-			foo << MyTest2();
 			::Global::GUI().cleanupWidget();
 			restart();
 			return true;

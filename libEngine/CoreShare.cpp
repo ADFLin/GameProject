@@ -10,11 +10,13 @@
 
 void EngineInitialize()
 {
-
+	ConsoleSystem::Get().initialize();
 }
 
 void EngineFinalize()
 {
+	ConsoleSystem::Get().finalize();
+
 	Render::MeshImporterRegistry::Get().cleanup();
 }
 
@@ -22,11 +24,11 @@ void CoreShareInitialize()
 {
 	HashString::Initialize();
 
-	ConsoleSystem::Get().initialize();
+
 }
 
 void CoreShareFinalize()
 {
-	ConsoleSystem::Get().finalize();
+
 }
 

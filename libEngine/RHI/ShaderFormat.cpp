@@ -5,11 +5,12 @@
 
 #include <sstream>
 #include "ProfileSystem.h"
+#include "InlineString.h"
 
 
 namespace Render
 {
-	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes)
+	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<char>& inoutCodes)
 	{
 		TimeScope scope("PreprocessCode");
 
@@ -27,6 +28,11 @@ namespace Render
 		auto settings = getPreprocessSettings();
 
 		CPP::Preprocessor preprocessor;
+		if (sourceLibrary)
+		{
+			preprocessor.setSourceLibrary(*sourceLibrary);
+		}
+		preprocessor.bReplaceMarcoText = true;
 		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_LineNumber;
 		std::stringstream oss;
 		CPP::CodeOutput codeOutput(oss);
@@ -57,7 +63,7 @@ namespace Render
 
 		if (compileInfo)
 		{
-			preprocessor.getIncludeFiles(compileInfo->includeFiles);
+			preprocessor.getUsedIncludeFiles(compileInfo->includeFiles);
 		}
 #if 1
 		inoutCodes.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
@@ -83,10 +89,23 @@ namespace Render
 	}
 
 
-	void ShaderFormat::OutputError(char const* text)
+	void ShaderFormat::emitCompileError(ShaderCompileInput const& input, char const* errorCode)
+	{
+		std::string title;
+		title += FFileUtility::GetBaseFileName(input.path).toCString();
+		title += "_";
+		title += input.entry;
+		title += "_";
+		title += getName();
+		title += SHADER_FILE_SUBNAME;
+
+		OutputError(title.c_str(), errorCode);
+	}
+
+	void ShaderFormat::OutputError(char const* title, char const* text)
 	{
 #if SYS_PLATFORM_WIN
-		::MessageBoxA(NULL, text, "Shader Compile Error", 0);
+		::MessageBoxA(NULL, text, (title) ? InlineString<256>::Make("Shader Compile Error : %s", title ).c_str() :"Shader Compile Error" , 0);
 #endif
 	}
 

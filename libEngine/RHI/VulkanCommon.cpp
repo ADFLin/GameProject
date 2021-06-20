@@ -235,6 +235,8 @@ namespace Render
 		case EShader::Compute:  return VK_SHADER_STAGE_COMPUTE_BIT;
 		case EShader::Hull:     return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 		case EShader::Domain:   return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		case EShader::Task:     return VK_SHADER_STAGE_TASK_BIT_NV;
+		case EShader::Mesh:     return VK_SHADER_STAGE_MESH_BIT_NV;
 		}
 
 		return VK_SHADER_STAGE_VERTEX_BIT;

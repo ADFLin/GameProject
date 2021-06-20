@@ -82,6 +82,22 @@ struct FWidgetProperty
 		};
 	}
 
+	static void Bind(GSlider* widget, float& valueRef, float min, float max, std::function< void(float) > inDelegate )
+	{
+		float constexpr scale = 0.001;
+		float len = max - min;
+		widget->setRange(0, len / scale);
+		FWidgetProperty::Set(widget, (valueRef - min) / scale);
+		widget->onEvent = [&valueRef, scale, min, inDelegate](int event, GWidget* widget)
+		{
+			valueRef = min + scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
+			if (inDelegate)
+			{
+				inDelegate(valueRef);
+			}
+			return false;
+		};
+	}
 
 	static void Bind(GSlider* widget, float& valueRef, float min, float max , float power , std::function< void (float) > inDelegate = std::function< void(float) >() )
 	{
@@ -108,6 +124,21 @@ struct FWidgetProperty
 		widget->onEvent = [&valueRef](int event, GWidget* widget)
 		{
 			valueRef = FWidgetProperty::Get<int>(widget->cast<GSlider>());
+			return false;
+		};
+	}
+
+	static void Bind(GSlider* widget, int& valueRef, int min, int max, std::function< void(int) > inDelegate)
+	{
+		widget->setRange(min, max);
+		FWidgetProperty::Set(widget, valueRef);
+		widget->onEvent = [&valueRef, inDelegate](int event, GWidget* widget)
+		{
+			valueRef = FWidgetProperty::Get<int>(widget->cast<GSlider>());
+			if (inDelegate)
+			{
+				inDelegate(valueRef);
+			}
 			return false;
 		};
 	}

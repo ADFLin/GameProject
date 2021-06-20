@@ -8,6 +8,7 @@
 
 #include "RHI/RHICommand.h"
 #include "RHI/OpenGLCommon.h"
+#include "ConsoleSystem.h"
 
 
 Texture gEmptyTexture;
@@ -39,7 +40,7 @@ Texture::~Texture()
 
 TextureManager::TextureManager()
 {
-
+	ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, this);
 }
 
 TextureManager::~TextureManager()
@@ -47,9 +48,10 @@ TextureManager::~TextureManager()
 	cleanup();
 }
 
-
 void TextureManager::cleanup()
 {
+	ConsoleSystem::Get().unregisterCommandByName("ShowTexture");
+
 	for(int i=0; i<mTextures.size(); i++)
 	{
 		delete mTextures[i];
@@ -104,6 +106,7 @@ Texture* TextureManager::loadTexture(char const* name)
 		Texture* tex = new Texture;
 		tex->fileName = name;
 		tex->resource = textureResource;
+		TextureShowManager::registerTexture(tex->fileName, textureResource);
 		mTextures.push_back(tex);
 		QA_LOG("Textura loaded : %s", name);
 		return tex;

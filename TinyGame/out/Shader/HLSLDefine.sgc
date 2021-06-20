@@ -83,7 +83,6 @@ struct Texture2D
 #define VS_OUTPUT_STRUCT( TYPE_DECL , LOC ) SHADER_OUTPUT( TYPE_DECL , LOC)
 #define VS_ENTRY_END(NAME)  out float4 SvPosition : SV_POSITION )
 
-
 #define DECLARE_VERTEX_INPUT_START( NAME ) struct NAME {
 #define DECLARE_VERTEX_INPUT(TYPE , NAME , ATTRIBUTE) TYPE NAME : ATTRIBUTE;
 #define DECLARE_VERTEX_INPUT_END( NAME )  };
@@ -92,7 +91,9 @@ struct Texture2D
 #define VERTEX_INPUT_PARAM( CODE ) CODE
 #define VERTEX_INPUT_PARAM_COMMA( CODE ) CODE,
 
-#elif PIXEL_SHADER
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
 
 #define PS_ENTRY_START(NAME) void NAME(
 #define PS_INPUT(TYPE_DECL , LOC) in TYPE_DECL : TEXCOORD##LOC,
@@ -101,7 +102,9 @@ struct Texture2D
 #define PS_OUTPUT_DEPTH out float SvDepth : SV_Depth,
 #define PS_ENTRY_END(NAME)  in float4 SvPosition : SV_POSITION )
 
-#elif GEOMETRY_SHADER
+#endif //PIXEL_SHADER
+
+#if GEOMETRY_SHADER
 
 #define GS_SVPOSITION( INDEX ) SvPositions[ INDEX ]
 #define GS_NO_MEMBER_PARAM
@@ -109,21 +112,31 @@ struct Texture2D
 #define GS_EMIT_VERTEX( SV_POS , PARAMS )\
 	PARAMS.SvPosition = SV_POS;\
 	OutputStream.Append(PARAMS);
+
+#define GS_EMIT_VERTEX_NO_PARAMS( SV_POS )\
+	{\
+		GSOutputParams Params; \
+		Params.SvPosition = SV_POS; \
+		OutputStream.Append(Params);\
+	}
+
 #define GS_END_PRIMITIVE OutputStream.RestartStrip()
 	
-#endif
+#endif //GEOMETRY_SHADER
 
 #define DEFINE_TEXTURE( TYPE , NAME )\
 	 uniform TYPE NAME;\
 	 uniform SamplerState NAME##Sampler;
 
 #if COMPUTE_SHADER
+
 #define TEXTURE_SAMPLE( NAME , UV )\
 	NAME.SampleLevel(NAME##Sampler, UV, 0)
 #else
 #define TEXTURE_SAMPLE( NAME , UV )\
 	NAME.Sample(NAME##Sampler, UV)
 #endif
+
 #define TEXTURE_SAMPLE_LEVEL( NAME , UV , LOD )\
 	NAME.SampleLevel(NAME##Sampler, UV , LOD )
 

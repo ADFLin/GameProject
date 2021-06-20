@@ -17,6 +17,7 @@ using namespace Render;
 bool gUseGroupRender = true;
 bool gUseMRT = true;
 
+
 IMPLEMENT_SHADER_PROGRAM(QBasePassBaseProgram);
 
 RenderEngine::RenderEngine()
@@ -53,10 +54,10 @@ void RenderEngine::cleanup()
 	glDeleteFramebuffers(1,&mRBODepth );
 }
 
-#include <iostream>
 bool RenderEngine::setupFBO( int width , int height )
 {
 
+#if QA_USE_RHI
 	mTexLightmap  = RHICreateTexture2D(ETexture::FloatRGBA, width, height);
 	mTexGeometry  = RHICreateTexture2D(ETexture::FloatRGBA, width, height);
 	mTexNormalMap = RHICreateTexture2D(ETexture::RGB10A2, width, height);
@@ -64,6 +65,46 @@ bool RenderEngine::setupFBO( int width , int height )
 	mDeferredFrameBuffer->setTexture(0, *mTexLightmap);
 	mDeferredFrameBuffer->setTexture(1, *mTexGeometry);
 	mDeferredFrameBuffer->setTexture(2, *mTexNormalMap);
+#else
+	glGenFramebuffers(1, &mFBO);
+
+
+	mTexLightmap = RHICreateTexture2D(ETexture::RGBA8, width, height);
+	Render::OpenGLCast::To(mTexLightmap)->bind();
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	Render::OpenGLCast::To(mTexLightmap)->unbind();
+
+
+	mTexNormalMap = RHICreateTexture2D(ETexture::RGBA8, width, height);
+	Render::OpenGLCast::To(mTexNormalMap)->bind();
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	Render::OpenGLCast::To(mTexNormalMap)->unbind();
+
+	mTexGeometry = RHICreateTexture2D(ETexture::RGBA8, width, height);
+	Render::OpenGLCast::To(mTexGeometry)->bind();
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	Render::OpenGLCast::To(mTexGeometry)->unbind();
+
+	glGenRenderbuffers(1, &mRBODepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, mRBODepth);
+	//glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8 , width , height);  
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+
+
+#endif
 
 
 	return true;
@@ -76,7 +117,7 @@ void RenderEngine::renderScene( RenderParam& param )
 	param.renderWidth  = mFrameWidth * param.scaleFactor;
 	param.renderHeight = mFrameHeight * param.scaleFactor;
 
-#if 1
+#if QA_USE_RHI
 	mDrawer.mBaseTransform = OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1);
 #else
 	glMatrixMode(GL_PROJECTION);
@@ -101,13 +142,10 @@ void RenderEngine::renderScene( RenderParam& param )
 	renderRange.yMin = Math::Clamp( renderRange.yMin , 0 , terrain.getSizeY() );
 	renderRange.yMax = Math::Clamp( renderRange.yMax , 0 , terrain.getSizeY() );
 
-
 	if ( gUseGroupRender )
 		updateRenderGroup( param );
 
-#if 1
-
-
+#if QA_USE_RHI
 
 #else
 	switch( param.mode )
@@ -162,8 +200,8 @@ void RenderEngine::renderSceneFinal( RenderParam& param )
 	RHISetShaderProgram(commandList, shader.getRHIResource());
 
 	glEnable(GL_TEXTURE_2D);
-	shader.setTexture(commandList, SHADER_PARAM( texGeometry ) , *mTexGeometry );
-	shader.setTexture(commandList, SHADER_PARAM( texLightmap) , *mTexLightmap );
+	shader.setTexture(commandList, SHADER_PARAM(texGeometry) , *mTexGeometry );
+	shader.setTexture(commandList, SHADER_PARAM(texLightmap) , *mTexLightmap );
 	shader.setParam(commandList, SHADER_PARAM(ambientLight) , mAmbientLight );
 
 	glBegin(GL_QUADS);
@@ -275,7 +313,12 @@ void RenderEngine::renderGeometryFBO( RenderParam& param )
 {
 	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
 	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexGeometry), 0);
-
+	GLenum DrawBuffers[] =
+	{
+		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
+		GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
+	};
+	glDrawBuffers(1, DrawBuffers);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 	glClearColor(0.0, 0.0, 0.0, 1.0f);
 	glLoadIdentity();	
@@ -296,7 +339,12 @@ void RenderEngine::renderNormalFBO( RenderParam& param )
 {
 	glBindFramebuffer( GL_FRAMEBUFFER ,mFBO);		
 	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexNormalMap), 0 );
-
+	GLenum DrawBuffers[] =
+	{
+		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
+		GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
+	};
+	glDrawBuffers(1, DrawBuffers);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 	glClearColor(0.0, 0.0, 0.0, 1.0f);
 	glLoadIdentity();
@@ -316,6 +364,11 @@ void RenderEngine::renderNormalFBO( RenderParam& param )
 
 
 
+void RenderEngine::renderBasePass(RenderParam& param)
+{
+
+}
+
 void RenderEngine::renderLightingFBO( RenderParam& param )
 {
 	renderNormalFBO( param );
@@ -323,7 +376,12 @@ void RenderEngine::renderLightingFBO( RenderParam& param )
 	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
 	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexLightmap), 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mRBODepth ); 
-
+	GLenum DrawBuffers[] =
+	{
+		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
+		GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
+	};
+	glDrawBuffers(1, DrawBuffers);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glClearColor( mAmbientLight.x , mAmbientLight.y , mAmbientLight.z , 1.0f);
@@ -560,8 +618,6 @@ void RenderEngine::updateRenderGroup( RenderParam& param )
 	Rect bBox;
 	bBox.min = param.camera->getPos();
 	bBox.max = param.camera->getPos() + Vec2f( param.renderWidth  , param.renderHeight );
-
-	
 	param.level->getColManager().findBody( bBox , COL_RENDER , mBodyList );
 
 	struct GroupCompFun

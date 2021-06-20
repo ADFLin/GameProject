@@ -66,12 +66,14 @@ void GameModuleManager::cleanupModuleInstances()
 
 void GameModuleManager::cleanupModuleMemory()
 {
+#if SYS_PLATFORM_WIN
 	visitInternal([](ModuleData& info) ->bool
 	{
 		assert(info.instance == nullptr);
 		::FreeLibrary(info.hModule);
 		return true;
 	});
+#endif
 
 	mModuleDataList.clear();
 	mNameToModuleMap.clear();

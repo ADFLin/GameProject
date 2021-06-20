@@ -14,6 +14,7 @@ class IField
 
 
 };
+
 REFL_AUTO(
 	type(Foo),
 	field(pa),

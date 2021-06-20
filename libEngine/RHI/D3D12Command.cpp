@@ -630,11 +630,9 @@ namespace Render
 		std::vector< D3D12_ROOT_PARAMETER1 > rootParameters;
 
 		D3D12_ROOT_SIGNATURE_FLAGS denyShaderRootAccessFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
 		auto AddShader = [&](RHIShader* shader) -> bool
 		{
@@ -666,9 +664,10 @@ namespace Render
 			return result;
 		};
 
-		AddShader(stateDesc.task);
-		AddShader(stateDesc.mesh);
-
+		if (AddShader(stateDesc.task))
+			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS;
+		if (AddShader(stateDesc.mesh))
+			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS;
 		if (AddShader(stateDesc.pixel))
 			denyShaderRootAccessFlags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
@@ -1035,18 +1034,18 @@ namespace Render
 		return true;
 	}
 
-	void D3D12Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData)
+	void D3D12Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData)
 	{
 
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
 		EPrimitive determitedPrimitive;
 		D3D12_INDEX_BUFFER_VIEW indexBufferView = {};
 		int numDrawIndex;
-		if (!determitPrimitiveTopologyUP(type, numVertex, nullptr, determitedPrimitive, indexBufferView, numDrawIndex))
+		if (!determitPrimitiveTopologyUP(type, numVertices, nullptr, determitedPrimitive, indexBufferView, numDrawIndex))
 			return;
 
 		if (type == EPrimitive::LineLoop)
-			++numVertex;
+			++numVertices;
 
 		uint32 vertexBufferSize = 0;
 		for (int i = 0; i < numVertexData; ++i)
@@ -1097,13 +1096,13 @@ namespace Render
 			}
 			else
 			{
-				mGraphicsCmdList->DrawInstanced(numVertex, 1, 0, 0);
+				mGraphicsCmdList->DrawInstanced(numVertices, 1, 0, 0);
 			}
 			postDrawPrimitive();
 		}
 	}
 
-	void D3D12Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
+	void D3D12Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
 	{
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
 		EPrimitive determitedPrimitive;
@@ -1315,7 +1314,7 @@ namespace Render
 					case EShader::Pixel:stateDesc.pixel = shader; break;
 					}
 				}
-
+				shaderProgramImpl->cacheState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(stateDesc);
 			}
 			else
 			{
@@ -1523,8 +1522,7 @@ namespace Render
 				SimplePipelineProgram* program = SimplePipelineProgram::Get(inputLayoutImpl->mAttriableMask, mFixedShaderParams.texture);
 
 				RHISetShaderProgram(program->getRHIResource());
-				program->setParameters(RHICommandListImpl(*this),
-					mFixedShaderParams.transform, mFixedShaderParams.color, mFixedShaderParams.texture, mFixedShaderParams.sampler);
+				program->setParameters(RHICommandListImpl(*this), mFixedShaderParams);
 			}
 		}
 

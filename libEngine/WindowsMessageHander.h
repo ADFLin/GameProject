@@ -194,6 +194,21 @@ bool WindowsMessageHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM
 {
 	unsigned button = 0;
 
+	auto EnableState = [this](MouseState state , bool bEnable)
+	{
+		if (bEnable)
+		{
+			mMouseState |= state;
+		}
+		else
+		{
+			mMouseState &= ~state;
+		}
+	};
+
+	EnableState(MBS_CONTROL, wParam & MK_CONTROL);
+	EnableState(MBS_SHIFT, wParam & MK_SHIFT);
+
 	switch ( msg )
 	{
 #define CASE_MOUSE_MSG( BUTTON , BUTTON_TYPE )\

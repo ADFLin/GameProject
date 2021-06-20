@@ -44,24 +44,24 @@ namespace
 
 	struct EdgeEntry
 	{
-		uint32_t   i0;
-		uint32_t   i1;
-		uint32_t   i2;
+		uint32   i0;
+		uint32   i1;
+		uint32   i2;
 
-		uint32_t   Face;
+		uint32   Face;
 		EdgeEntry* Next;
 	};
 
-	size_t CRCHash(const uint32_t* dwords, uint32_t dwordCount)
+	uint32 CRCHash(const uint32* dwords, uint32 dwordCount)
 	{
-		size_t h = 0;
+		uint32 h = 0;
 
-		for (uint32_t i = 0; i < dwordCount; ++i)
+		for (uint32 i = 0; i < dwordCount; ++i)
 		{
-			uint32_t highOrd = h & 0xf8000000;
+			uint32 highOrd = h & 0xf8000000;
 			h = h << 5;
 			h = h ^ (highOrd >> 27);
-			h = h ^ size_t(dwords[i]);
+			h = h ^ uint32(dwords[i]);
 		}
 
 		return h;
@@ -76,7 +76,7 @@ namespace
 
 namespace std
 {
-	template <> struct hash< Math::Vector3 > { size_t operator()(const Math::Vector3& v) const { return CRCHash(reinterpret_cast<const uint32_t*>(&v), sizeof(v) / 4); } };
+	template <> struct hash< Math::Vector3 > { size_t operator()(const Math::Vector3& v) const { return CRCHash(reinterpret_cast<const uint32*>(&v), sizeof(v) / 4); } };
 }
 
 namespace Render
@@ -85,25 +85,24 @@ namespace Render
 	bool gbOptimizeVertexCache = false;
 
 
-	int* MeshUtility::ConvertToTriangleList(EPrimitive type, void* pIndexData , int numIndices, bool bIntType , std::vector< int >& outConvertBuffer, int& outNumTriangles)
+	uint32* MeshUtility::ConvertToTriangleList(EPrimitive type, void* pIndexData , int numIndices, bool bIntType , std::vector< uint32 >& outConvertBuffer, int& outNumTriangles)
 	{
 		if( bIntType )
 		{
-			return ConvertToTriangleListIndices<int32>(type, (int32*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
+			return ConvertToTriangleListIndices<uint32>(type, (uint32*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
 		}
 		else
 		{
-			return ConvertToTriangleListIndices<int16>(type, (int16*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
+			return ConvertToTriangleListIndices<uint16>(type, (uint16*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
 		}
-
 	}
 
 
-	void MeshUtility::CalcAABB(VertexElementReader const& positionReader, Vector3& outMin, Vector3& outMax)
+	void MeshUtility::CalcAABB(VertexElementReader const& positionReader, int numVertices, Vector3& outMin, Vector3& outMax)
 	{
-		assert(positionReader.getNum() >= 1);
+		assert(numVertices >= 1);
 		outMax = outMin = positionReader.get(0);
-		for( int i = 1; i < positionReader.getNum(); ++i )
+		for( int i = 1; i < numVertices; ++i )
 		{
 			Vector3 const& pos = positionReader.get(i);
 			outMax.max(pos);
@@ -123,24 +122,24 @@ namespace Render
 			RHIUnlockBuffer(mesh.mVertexBuffer);
 			RHIUnlockBuffer(mesh.mIndexBuffer);
 		};
-		std::vector<int> tempBuffer;
+		std::vector<uint32> tempBuffer;
 		int numTriangles;
-		int* pIndexData = ConvertToTriangleList(mesh.mType, pIndexBufferData, mesh.mIndexBuffer->getNumElements() , mesh.mIndexBuffer->isIntType(), tempBuffer , numTriangles);
+		uint32* pIndexData = ConvertToTriangleList(mesh.mType, pIndexBufferData, mesh.mIndexBuffer->getNumElements() , mesh.mIndexBuffer->isIntType(), tempBuffer , numTriangles);
 		bool result = false;
 		if ( pIndexData )
 		{
-			result = BuildDistanceField(mesh.makePositionReader(pData), pIndexData, numTriangles, setting, outResult);
+			result = BuildDistanceField(mesh.makePositionReader(pData), mesh.getVertexCount(), pIndexData, numTriangles, setting, outResult);
 		}
 
 		return result;
 	}
 
-	bool MeshUtility::BuildDistanceField(VertexElementReader const& positionReader , int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
+	bool MeshUtility::BuildDistanceField(VertexElementReader const& positionReader, int numVertices, uint32* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
 	{
 #define USE_KDTREE 1
 		Vector3 boundMin;
 		Vector3 boundMax;
-		CalcAABB(positionReader, boundMin, boundMax);
+		CalcAABB(positionReader, numVertices, boundMin, boundMax);
 
 		boundMax *= setting.boundSizeScale;
 		boundMin *= setting.boundSizeScale;
@@ -158,12 +157,12 @@ namespace Render
 		using MyTree = TKDTree<3>;
 		MyTree tree;
 		{
-			int* pIndex = pIndexData;
+			uint32* pIndex = pIndexData;
 			for( int i = 0; i < numTriangles; ++i )
 			{
-				int idx0 = pIndex[0];
-				int idx1 = pIndex[1];
-				int idx2 = pIndex[2];
+				uint32 idx0 = pIndex[0];
+				uint32 idx1 = pIndex[1];
+				uint32 idx2 = pIndex[2];
 
 				Vector3 const& p0 = positionReader.get(idx0);
 				Vector3 const& p1 = positionReader.get(idx1);
@@ -199,10 +198,10 @@ namespace Render
 					auto DistFunc = [&](MyTree::PrimitiveData const& data, Vector3 const& pos, float minDistSqr)
 					{
 						++count;
-						int* pIndex = pIndexData + 3 * data.id;
-						int idx0 = pIndex[0];
-						int idx1 = pIndex[1];
-						int idx2 = pIndex[2];
+						uint32* pIndex = pIndexData + 3 * data.id;
+						uint32 idx0 = pIndex[0];
+						uint32 idx1 = pIndex[1];
+						uint32 idx2 = pIndex[2];
 
 						Vector3 const& p0 = positionReader.get(idx0);
 						Vector3 const& p1 = positionReader.get(idx1);
@@ -302,12 +301,12 @@ namespace Render
 		return true;
 	}
 
-	void MeshUtility::BuildTessellationAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult)
+	void MeshUtility::BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, std::vector<int>& outResult)
 	{
 		class MyRenderBuffer : public nv::RenderBuffer
 		{
 		public:
-			MyRenderBuffer(VertexElementReader const& positionReader, int* triIndices, int numTirangle , VertexElementReader const* texcoordReader = nullptr)
+			MyRenderBuffer(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle , VertexElementReader const* texcoordReader = nullptr)
 				:mPositionReader( positionReader )
 				,mTexcoordReader( texcoordReader )
 			{
@@ -350,7 +349,7 @@ namespace Render
 		}
 	}
 
-	void MeshUtility::BuildVertexAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult)
+	void MeshUtility::BuildVertexAdjacency(VertexElementReader const& positionReader, int numVertices, uint32* triIndices, int numTirangle, std::vector<int>& outResult)
 	{
 		std::vector< int > triangleIndexMap;
 		struct Vertex
@@ -359,8 +358,8 @@ namespace Render
 			float z;
 		};
 		std::vector< Vertex > sortedVertices;
-		sortedVertices.resize(positionReader.getNum());
-		for( int i = 0; i < positionReader.getNum(); ++i )
+		sortedVertices.resize(numVertices);
+		for( int i = 0; i < numVertices; ++i )
 		{
 			Vector3 const& pos = positionReader.get(i);
 			sortedVertices[i].index = i;
@@ -371,8 +370,8 @@ namespace Render
 		{
 			return a.z < b.z;
 		});
-		triangleIndexMap.resize(positionReader.getNum(), -1);
-		for( int i = 0; i < positionReader.getNum(); ++i )
+		triangleIndexMap.resize(numVertices, -1);
+		for( int i = 0; i < numVertices; ++i )
 		{
 			Vertex const& vi = sortedVertices[i];
 			if( triangleIndexMap[vi.index] != -1 )
@@ -380,7 +379,7 @@ namespace Render
 
 			triangleIndexMap[vi.index] = vi.index;
 			Vector3 const& pos0 = positionReader.get(vi.index);
-			for( int j = i + 1; j < positionReader.getNum(); ++j )
+			for( int j = i + 1; j < numVertices; ++j )
 			{
 				Vertex const& vj = sortedVertices[j];
 				Vector3 const& pos1 = positionReader.get(vj.index);
@@ -555,19 +554,19 @@ namespace Render
 		delete[] groups;
 	}
 
-	void MeshUtility::FillTriangleListNormalAndTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void MeshUtility::FillTriangleListNormalAndTangent(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx)
 	{
 		FillNormalTangent_TriangleList(desc, pVertex, nV, idx, nIdx);
 	}
 
-	void MeshUtility::FillTriangleListTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void MeshUtility::FillTriangleListTangent(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx)
 	{
 		FillTangent_TriangleList(desc, pVertex, nV, idx, nIdx);
 	}
 
-	void MeshUtility::FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib)
+	void MeshUtility::FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx, int normalAttrib, bool bNeedClear)
 	{
-		FillNormal_TriangleList(desc, pVertex, nV, idx, nIdx, normalAttrib);
+		FillNormal_TriangleList(desc, pVertex, nV, idx, nIdx, normalAttrib, bNeedClear);
 	}
 
 	bool CompareScores(const std::pair<uint32, float>& a, const std::pair<uint32, float>& b)
@@ -771,22 +770,18 @@ namespace Render
 
 
 	template <typename T>
-	void BuildAdjacencyList(
-		const T* indices, uint32_t indexCount, VertexElementReader const& positionReader,
-		uint32_t* adjacency )
+	void BuildAdjacencyList(const T* indices, uint32 indexCount, VertexElementReader const& positionReader, int numVertices, uint32* adjacency )
 	{
-		int vertexCount = positionReader.numVertex;
-
-		const uint32_t triCount = indexCount / 3;
+		const uint32 triCount = indexCount / 3;
 		// Find point reps (unique positions) in the position stream
 		// Create a mapping of non-unique vertex indices to point reps
 		std::vector<T> pointRep;
-		pointRep.resize(vertexCount);
+		pointRep.resize(numVertices);
 
 		std::unordered_map<size_t, T> uniquePositionMap;
-		uniquePositionMap.reserve(vertexCount);
+		uniquePositionMap.reserve(numVertices);
 
-		for (uint32_t i = 0; i < vertexCount; ++i)
+		for (uint32 i = 0; i < numVertices; ++i)
 		{
 			Vector3 const& position = positionReader.get(i);
 			size_t hash = Hash(position);
@@ -806,20 +801,20 @@ namespace Render
 		}
 
 		// Create a linked list of edges for each vertex to determine adjacency
-		const uint32_t hashSize = vertexCount / 3;
+		const uint32 hashSize = numVertices / 3;
 
 		std::unique_ptr<EdgeEntry*[]> hashTable(new EdgeEntry*[hashSize]);
 		std::unique_ptr<EdgeEntry[]> entries(new EdgeEntry[triCount * 3]);
 
 		std::memset(hashTable.get(), 0, sizeof(EdgeEntry*) * hashSize);
-		uint32_t entryIndex = 0;
+		uint32 entryIndex = 0;
 
-		for (uint32_t iFace = 0; iFace < triCount; ++iFace)
+		for (uint32 iFace = 0; iFace < triCount; ++iFace)
 		{
-			uint32_t index = iFace * 3;
+			uint32 index = iFace * 3;
 
 			// Create a hash entry in the hash table for each each.
-			for (uint32_t iEdge = 0; iEdge < 3; ++iEdge)
+			for (uint32 iEdge = 0; iEdge < 3; ++iEdge)
 			{
 				T i0 = pointRep[indices[index + (iEdge % 3)]];
 				T i1 = pointRep[indices[index + ((iEdge + 1) % 3)]];
@@ -830,7 +825,7 @@ namespace Render
 				entry.i1 = i1;
 				entry.i2 = i2;
 
-				uint32_t key = entry.i0 % hashSize;
+				uint32 key = entry.i0 % hashSize;
 
 				entry.Next = hashTable[key];
 				entry.Face = iFace;
@@ -841,15 +836,15 @@ namespace Render
 
 
 		// Initialize the adjacency list
-		std::memset(adjacency, uint32_t(-1), indexCount * sizeof(uint32_t));
+		std::memset(adjacency, uint32(-1), indexCount * sizeof(uint32));
 
-		for (uint32_t iFace = 0; iFace < triCount; ++iFace)
+		for (uint32 iFace = 0; iFace < triCount; ++iFace)
 		{
-			uint32_t index = iFace * 3;
+			uint32 index = iFace * 3;
 
-			for (uint32_t point = 0; point < 3; ++point)
+			for (uint32 point = 0; point < 3; ++point)
 			{
-				if (adjacency[iFace * 3 + point] != uint32_t(-1))
+				if (adjacency[iFace * 3 + point] != uint32(-1))
 					continue;
 
 				// Look for edges directed in the opposite direction.
@@ -858,7 +853,7 @@ namespace Render
 				T i2 = pointRep[indices[index + ((point + 2) % 3)]];
 
 				// Find a face sharing this edge
-				uint32_t key = i0 % hashSize;
+				uint32 key = i0 % hashSize;
 
 				EdgeEntry* found = nullptr;
 				EdgeEntry* foundPrev = nullptr;
@@ -913,7 +908,7 @@ namespace Render
 				}
 
 				// Update hash table and adjacency list
-				if (found && found->Face != uint32_t(-1))
+				if (found && found->Face != uint32(-1))
 				{
 					// Erase the found from the hash table linked list.
 					if (foundPrev != nullptr)
@@ -929,7 +924,7 @@ namespace Render
 					adjacency[iFace * 3 + point] = found->Face;
 
 					// Search & remove this face from the table linked list
-					uint32_t key2 = i1 % hashSize;
+					uint32 key2 = i1 % hashSize;
 
 					for (EdgeEntry* current = hashTable[key2], *prev = nullptr; current != nullptr; prev = current, current = current->Next)
 					{
@@ -949,23 +944,23 @@ namespace Render
 					}
 
 					bool linked = false;
-					for (uint32_t point2 = 0; point2 < point; ++point2)
+					for (uint32 point2 = 0; point2 < point; ++point2)
 					{
 						if (found->Face == adjacency[iFace * 3 + point2])
 						{
 							linked = true;
-							adjacency[iFace * 3 + point] = uint32_t(-1);
+							adjacency[iFace * 3 + point] = uint32(-1);
 							break;
 						}
 					}
 
 					if (!linked)
 					{
-						uint32_t edge2 = 0;
+						uint32 edge2 = 0;
 						for (; edge2 < 3; ++edge2)
 						{
 							T k = indices[found->Face * 3 + edge2];
-							if (k == uint32_t(-1))
+							if (k == uint32(-1))
 								continue;
 
 							if (pointRep[k] == i0)
@@ -982,15 +977,14 @@ namespace Render
 		}
 	}
 
-	bool MeshletizeInternal(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, std::vector< InlineMeshlet >& outMeshletList)
+	bool MeshletizeInternal(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, std::vector< InlineMeshlet >& outMeshletList)
 	{
 
 		using IndexType = uint32;
 
-		std::vector<int> adjacency;
-
+		std::vector<uint32> adjacency;
 		adjacency.resize(3 * numTriangles);
-		BuildAdjacencyList((uint32 const*)triIndices, 3 * numTriangles, positionReader, (uint32*)adjacency.data());
+		BuildAdjacencyList((uint32 const*)triIndices, 3 * numTriangles, positionReader, numVertices, adjacency.data());
 
 		outMeshletList.emplace_back();
 		auto* curr = &outMeshletList.back();
@@ -1025,9 +1019,9 @@ namespace Render
 				triIndices[index * 3 + 2],
 			};
 
-			assert(tri[0] < positionReader.numVertex);
-			assert(tri[1] < positionReader.numVertex);
-			assert(tri[2] < positionReader.numVertex);
+			CHECK(tri[0] < numVertices);
+			CHECK(tri[1] < numVertices);
+			CHECK(tri[2] < numVertices);
 
 			// Try to add triangle to meshlet
 			if (AddToMeshlet(maxVertices, maxPrims, *curr, tri))
@@ -1097,9 +1091,9 @@ namespace Render
 						triIndices[candidate * 3 + 2],
 					};
 
-					assert(tri2[0] < positionReader.numVertex);
-					assert(tri2[1] < positionReader.numVertex);
-					assert(tri2[2] < positionReader.numVertex);
+					CHECK(tri2[0] < numVertices);
+					CHECK(tri2[1] < numVertices);
+					CHECK(tri2[2] < numVertices);
 
 					Vector3 triVerts[3] =
 					{
@@ -1220,26 +1214,26 @@ namespace Render
 
 	}
 
-	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
+	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
 	{
 		using IndexType = uint32;
 
 		std::vector< InlineMeshlet > meshletList;
-		MeshletizeInternal(maxVertices, maxPrims, triIndices, numTriangles, positionReader, meshletList);
+		MeshletizeInternal(maxVertices, maxPrims, triIndices, numTriangles, positionReader, numVertices, meshletList);
 		ApplyMeshletData(meshletList, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
 
 		return true;
 	}
 
 
-	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, TArrayView< MeshSection const > sections, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector< MeshSection >& outSections)
+	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, TArrayView< MeshSection const > sections, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector< MeshSection >& outSections)
 	{
 		for (int indexSection = 0; indexSection < sections.size(); ++indexSection)
 		{
 			MeshSection const& section = sections[indexSection];
 
 			std::vector< InlineMeshlet > meshletList;
-			MeshletizeInternal(maxVertices, maxPrims, triIndices + section.indexStart, section.count / 3, positionReader, meshletList);
+			MeshletizeInternal(maxVertices, maxPrims, triIndices + section.indexStart, section.count / 3, positionReader, numVertices, meshletList);
 			ApplyMeshletData(meshletList, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
 
 			MeshSection outSection;
@@ -1270,7 +1264,7 @@ namespace Render
 	}
 
 
-	void MeshUtility::GenerateCullData(VertexElementReader const& positionReader, MeshletData const* meshlets, int meshletCount, uint32 const* uniqueVertexIndices, const PackagedTriangleIndices* primitiveIndices, MeshletCullData* cullData)
+	void MeshUtility::GenerateCullData(VertexElementReader const& positionReader, int numVertices, MeshletData const* meshlets, int meshletCount, uint32 const* uniqueVertexIndices, const PackagedTriangleIndices* primitiveIndices, MeshletCullData* cullData)
 	{
 #define CNORM_WIND_CW 0x4
 
@@ -1279,22 +1273,22 @@ namespace Render
 		Vector3 vertices[256];
 		Vector3 normals[256];
 
-		for (uint32_t mi = 0; mi < meshletCount; ++mi)
+		for (uint32 mi = 0; mi < meshletCount; ++mi)
 		{
 			auto& m = meshlets[mi];
 			auto& c = cullData[mi];
 
 			// Cache vertices
-			for (uint32_t i = 0; i < m.vertexCount; ++i)
+			for (uint32 i = 0; i < m.vertexCount; ++i)
 			{
-				uint32_t vIndex = uniqueVertexIndices[m.vertexOffset + i];
+				uint32 vIndex = uniqueVertexIndices[m.vertexOffset + i];
 
-				CHECK(vIndex < positionReader.numVertex);
+				CHECK(vIndex < numVertices);
 				vertices[i] = positionReader[vIndex];
 			}
 
 			// Generate primitive normals & cache
-			for (uint32_t i = 0; i < m.primitiveCount; ++i)
+			for (uint32 i = 0; i < m.primitiveCount; ++i)
 			{
 				auto primitive = primitiveIndices[m.primitveOffset + i];
 
@@ -1324,7 +1318,7 @@ namespace Render
 			Vector3 axis = GetNormal(normalBounds.xyz());
 
 			float minDot = 1;
-			for (uint32_t i = 0; i < m.primitiveCount; ++i)
+			for (uint32 i = 0; i < m.primitiveCount; ++i)
 			{
 				float dot = Math::Dot(axis, normals[i]);
 				minDot = Math::Min(minDot, dot);
@@ -1439,49 +1433,89 @@ namespace Render
 		binormal = Math::GetNormal(factor * (s[0] * d2 - s[1] * d1));
 	}
 
-	void MeshUtility::FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib /*= EVertex::ATTRIBUTE_NORMAL*/)
+	void MeshUtility::ComputeTangent(Vector3 const& v0, Vector2 const& uv0, Vector3 const& v1, Vector2 const& uv1, Vector3 const& v2, Vector2 const& uv2, Vector3& tangent, Vector3& binormal)
 	{
-		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) == EVertex::Float3);
-		assert(desc.getAttributeFormat(normalAttrib) == EVertex::Float3);
+		Vector3 d1 = v1 - v0;
+		Vector3 d2 = v2 - v0;
+		float s[2];
+		s[0] = uv1[0] - uv0[0];
+		s[1] = uv2[0] - uv0[0];
+		float t[2];
+		t[0] = uv1[1] - uv0[1];
+		t[1] = uv2[1] - uv0[1];
 
-		int posOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION);
-		int normalOffset = desc.getAttributeOffset(normalAttrib) - posOffset;
-		uint8* pV = (uint8*)(pVertex)+posOffset;
+		float factor = 1.0f / (s[0] * t[1] - s[1] * t[0]);
 
-		int numEle = nIdx / 3;
-		int vertexSize = desc.getVertexSize();
-		int* pCur = idx;
+		tangent = Math::GetNormal(factor * (t[1] * d1 - t[0] * d2));
+		binormal = Math::GetNormal(factor * (s[0] * d2 - s[1] * d1));
+	}
 
-		for (int i = 0; i < numEle; ++i)
+	VertexElementReader MakeReader(InputLayoutDesc const& desc, void const* pData, EVertex::Attribute attribute)
+	{
+		VertexElementReader result;
+		auto element = desc.findElementByAttribute(attribute);
+		CHECK(element);
+		result.pVertexData = static_cast<uint8 const*>(pData) + element->offset;
+		result.vertexDataStride = desc.getVertexSize(element->streamIndex);
+		return result;
+	}
+	VertexElementWriter MakeWriter(InputLayoutDesc const& desc, void* pData, EVertex::Attribute attribute)
+	{
+		VertexElementWriter result;
+		auto element = desc.findElementByAttribute(attribute);
+		CHECK(element);
+		result.pVertexData = static_cast<uint8*>(pData) + element->offset;
+		result.vertexDataStride = desc.getVertexSize(element->streamIndex);
+		return result;
+	}
+
+	void MeshUtility::FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int numVerteices, uint32* indices, int numIndices, int normalAttrib, bool bNeedClear)
+	{
+		CHECK(desc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) == EVertex::Float3);
+		CHECK(desc.getAttributeFormat(normalAttrib) == EVertex::Float3);
+
+		FillNormal_TriangleList(MakeReader(desc, pVertex, EVertex::ATTRIBUTE_POSITION), MakeWriter(desc, pVertex, EVertex::Attribute (normalAttrib)), numVerteices, indices, numIndices, bNeedClear);
+	}
+
+	void MeshUtility::FillNormal_TriangleList(VertexElementReader const& positionReader , VertexElementWriter& normalWriter, int numVerteices, uint32* indices, int numIndices , bool bNeedClear)
+	{
+		int numTriangles = numIndices / 3;
+
+		if ( bNeedClear )
 		{
-			int i1 = pCur[0];
-			int i2 = pCur[1];
-			int i3 = pCur[2];
-			pCur += 3;
-			uint8* v1 = pV + i1 * vertexSize;
-			uint8* v2 = pV + i2 * vertexSize;
-			uint8* v3 = pV + i3 * vertexSize;
-
-			Vector3& p1 = *reinterpret_cast<Vector3*>(v1);
-			Vector3& p2 = *reinterpret_cast<Vector3*>(v2);
-			Vector3& p3 = *reinterpret_cast<Vector3*>(v3);
-
-			Vector3 normal = (p2 - p1).cross(p3 - p1);
-			normal.normalize();
-			*reinterpret_cast<Vector3*>(v1 + normalOffset) += normal;
-			*reinterpret_cast<Vector3*>(v2 + normalOffset) += normal;
-			*reinterpret_cast<Vector3*>(v3 + normalOffset) += normal;
+			for (int i = 0; i < numVerteices; ++i)
+			{
+				normalWriter[i] = Vector3::Zero();
+			}
 		}
 
-		for (int i = 0; i < nV; ++i)
+		uint32* pCur = indices;
+		for (int i = 0; i < numTriangles; ++i)
 		{
-			uint8* v = pV + i * vertexSize;
-			Vector3& normal = *reinterpret_cast<Vector3*>(v + normalOffset);
+			uint32 i0 = pCur[0];
+			uint32 i1 = pCur[1];
+			uint32 i2 = pCur[2];
+			pCur += 3;
+
+			Vector3 const& p0 = positionReader[i0];
+			Vector3 const& p1 = positionReader[i1];
+			Vector3 const& p2 = positionReader[i2];
+
+			Vector3 normal = (p1 - p0).cross(p2 - p0);
 			normal.normalize();
+
+			normalWriter[i0] += normal;
+			normalWriter[i1] += normal;
+			normalWriter[i2] += normal;
+		}
+
+		for (int i = 0; i < numVerteices; ++i)
+		{
+			normalWriter[i].normalize();
 		}
 	}
 
-	void MeshUtility::FillNormalTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void MeshUtility::FillNormalTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx)
 	{
 		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) == EVertex::Float3);
 		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_NORMAL) == EVertex::Float3);
@@ -1496,7 +1530,7 @@ namespace Render
 
 		int numEle = nIdx / 3;
 		int vertexSize = desc.getVertexSize();
-		int* pCur = idx;
+		uint32* pCur = idx;
 		std::vector< Vector3 > binormals(nV, Vector3(0, 0, 0));
 
 		for (int i = 0; i < numEle; ++i)
@@ -1551,52 +1585,72 @@ namespace Render
 		}
 	}
 
-	void MeshUtility::FillTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void MeshUtility::FillTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int numVertices, uint32* indices, int numIndices, bool bNeedClear)
 	{
 		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_POSITION) == EVertex::Float3);
 		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_NORMAL) == EVertex::Float3);
 		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_TEXCOORD) == EVertex::Float2);
 		assert(desc.getAttributeFormat(EVertex::ATTRIBUTE_TANGENT) == EVertex::Float4);
 
-		int posOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION);
-		int texOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD) - posOffset;
-		int tangentOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_TANGENT) - posOffset;
-		int normalOffset = desc.getAttributeOffset(EVertex::ATTRIBUTE_NORMAL) - posOffset;
-		uint8* pV = (uint8*)(pVertex)+posOffset;
+		FillTangent_TriangleList(
+			MakeReader(desc, pVertex, EVertex::ATTRIBUTE_POSITION),
+			MakeReader(desc, pVertex, EVertex::ATTRIBUTE_NORMAL),
+			MakeReader(desc, pVertex, EVertex::ATTRIBUTE_TEXCOORD),
+			MakeWriter(desc, pVertex, EVertex::ATTRIBUTE_TANGENT),
+			numVertices , indices , numIndices, bNeedClear
+		);
+	}
 
-		int numEle = nIdx / 3;
-		int vertexSize = desc.getVertexSize();
-		int* pCur = idx;
-		std::vector< Vector3 > binormals(nV, Vector3(0, 0, 0));
+	void MeshUtility::FillTangent_TriangleList(
+		VertexElementReader const& positionReader, 
+		VertexElementReader const& normalReader, 
+		VertexElementReader const& uvReader, 
+		VertexElementWriter& tangentWriter, int numVertices, uint32* indices, int numIndices, bool bNeedClear)
+	{
 
-		for (int i = 0; i < numEle; ++i)
+		int numTriangles = numIndices / 3;
+
+		std::vector< Vector3 > binormals(numVertices, Vector3(0, 0, 0));
+		if (bNeedClear)
 		{
-			int i1 = pCur[0];
-			int i2 = pCur[1];
-			int i3 = pCur[2];
-			pCur += 3;
-			uint8* v1 = pV + i1 * vertexSize;
-			uint8* v2 = pV + i2 * vertexSize;
-			uint8* v3 = pV + i3 * vertexSize;
-
-			Vector3 tangent, binormal;
-			ComputeTangent(v1, v2, v3, texOffset, tangent, binormal);
-
-			*reinterpret_cast<Vector3*>(v1 + tangentOffset) += tangent;
-			binormals[i1] += binormal;
-
-			*reinterpret_cast<Vector3*>(v2 + tangentOffset) += tangent;
-			binormals[i2] += binormal;
-
-			*reinterpret_cast<Vector3*>(v3 + tangentOffset) += tangent;
-			binormals[i3] += binormal;
+			for (int i = 0; i < numVertices; ++i)
+			{
+				tangentWriter.get< Vector4 >(i) = Vector4::Zero();
+			}
 		}
 
-		for (int i = 0; i < nV; ++i)
+
+		uint32* pCur = indices;
+		for (int i = 0; i < numTriangles; ++i)
 		{
-			uint8* v = pV + i * vertexSize;
-			Vector3& tangent = *reinterpret_cast<Vector3*>(v + tangentOffset);
-			Vector3& normal = *reinterpret_cast<Vector3*>(v + normalOffset);
+			uint32 i0 = pCur[0];
+			uint32 i1 = pCur[1];
+			uint32 i2 = pCur[2];
+			pCur += 3;
+			Vector3 const& v0 = positionReader[i0];
+			Vector3 const& v1 = positionReader[i1];
+			Vector3 const& v2 = positionReader[i2];
+
+			Vector3 tangent, binormal;
+			ComputeTangent(
+				v0, uvReader.get<Vector2>(i0), 
+				v1, uvReader.get<Vector2>(i1),
+				v2, uvReader.get<Vector2>(i2), tangent, binormal);
+
+			tangentWriter.get< Vector3 >(i0) += tangent;
+			binormals[i0] += binormal;
+
+			tangentWriter.get< Vector3 >(i1) += tangent;
+			binormals[i1] += binormal;
+
+			tangentWriter.get< Vector3 >(i2) += tangent;
+			binormals[i2] += binormal;
+		}
+
+		for (int i = 0; i < numVertices; ++i)
+		{
+			Vector3& tangent = tangentWriter.get< Vector3 >(i);
+			Vector3 const& normal = normalReader[i];
 
 			tangent = tangent - normal * (normal.dot(tangent) / normal.length2());
 			tangent.normalize();
@@ -1611,24 +1665,24 @@ namespace Render
 		}
 	}
 
-	void MeshUtility::FillTangent_QuadList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void MeshUtility::FillTangent_QuadList(InputLayoutDesc const& desc, void* pVertex, int numVertices, uint32* indices, int numIndices, bool bNeedClear)
 	{
-		int numEle = nIdx / 4;
-		std::vector< int > indices(numEle * 6);
-		int* src = idx;
-		int* dest = &indices[0];
-		for (int i = 0; i < numEle; ++i)
+		int numElements = numIndices / 4;
+		std::vector< uint32 > tempIndices(numElements * 6);
+		uint32* src = indices;
+		uint32* dest = &tempIndices[0];
+		for (int i = 0; i < numElements; ++i)
 		{
 			dest[0] = src[0]; dest[1] = src[1]; dest[2] = src[2];
 			dest[3] = src[2]; dest[4] = src[3]; dest[5] = src[0];
 			dest += 6;
 			src += 4;
 		}
-		FillTangent_TriangleList(desc, pVertex, nV, &indices[0], indices.size());
+		FillTangent_TriangleList(desc, pVertex, numVertices, &tempIndices[0], tempIndices.size(), bNeedClear);
 	}
 
 	template< class IndexType >
-	static int* MeshUtility::ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle)
+	static uint32* MeshUtility::ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle)
 	{
 		outNumTriangle = 0;
 
@@ -1641,13 +1695,13 @@ namespace Render
 					return nullptr;
 
 				outNumTriangle = numElements;
-				if (sizeof(IndexType) != sizeof(int))
+				if (sizeof(IndexType) != sizeof(uint32))
 				{
 					outConvertBuffer.resize(numData);
 					std::copy(data, data + numData, &outConvertBuffer[0]);
 					return &outConvertBuffer[0];
 				}
-				return (int*)data;
+				return (uint32*)data;
 			}
 			break;
 		case EPrimitive::TriangleStrip:
@@ -1659,7 +1713,7 @@ namespace Render
 				outNumTriangle = numElements;
 				outConvertBuffer.resize(3 * outNumTriangle);
 				IndexType* src = data;
-				int* dest = &outConvertBuffer[0];
+				uint32* dest = &outConvertBuffer[0];
 				int idx0 = src[0];
 				int idx1 = src[1];
 				src += 2;
@@ -1690,7 +1744,7 @@ namespace Render
 				outNumTriangle = numElements;
 				outConvertBuffer.resize(3 * outNumTriangle);
 				IndexType* src = data;
-				int* dest = &outConvertBuffer[0];
+				uint32* dest = &outConvertBuffer[0];
 				for (int i = 0; i < numElements; ++i)
 				{
 					dest[0] = src[0]; dest[1] = src[2]; dest[2] = src[4];
@@ -1708,7 +1762,7 @@ namespace Render
 				outNumTriangle = numElements;
 				outConvertBuffer.resize(3 * outNumTriangle);
 				IndexType* src = data;
-				int* dest = &outConvertBuffer[0];
+				uint32* dest = &outConvertBuffer[0];
 				int idxStart = src[0];
 				int idx1 = src[0];
 				src += 2;
@@ -1731,7 +1785,7 @@ namespace Render
 				outNumTriangle = 2 * numElements;
 				outConvertBuffer.resize(3 * outNumTriangle);
 				IndexType* src = data;
-				int* dest = &outConvertBuffer[0];
+				uint32* dest = &outConvertBuffer[0];
 				for (int i = 0; i < numElements; ++i)
 				{
 					dest[0] = src[0]; dest[1] = src[1]; dest[2] = src[2];
@@ -1750,7 +1804,7 @@ namespace Render
 				outNumTriangle = numData - 2;
 				outConvertBuffer.resize(3 * outNumTriangle);
 				IndexType* src = data;
-				int* dest = &outConvertBuffer[0];
+				uint32* dest = &outConvertBuffer[0];
 				for (int i = 2; i < numData; ++i)
 				{
 					dest[0] = src[0];
@@ -1765,7 +1819,7 @@ namespace Render
 		return nullptr;
 	}
 
-	template int* MeshUtility::ConvertToTriangleListIndices<int32>(EPrimitive type, int32* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle);
-	template int* MeshUtility::ConvertToTriangleListIndices<int16>(EPrimitive type, int16* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle);
+	template uint32* MeshUtility::ConvertToTriangleListIndices<uint32>(EPrimitive type, uint32* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle);
+	template uint32* MeshUtility::ConvertToTriangleListIndices<uint16>(EPrimitive type, uint16* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle);
 
 }//namespace Render

@@ -67,9 +67,9 @@ void TriangleMeshData::add( CFly::Object* object )
 //		ObjTriInfo info;
 //		info.init( obj.Object() );
 //		int startIndex = m_vertexVec.size();
-//		m_vertexVec.reserve( startIndex + info.numVertex );
+//		m_vertexVec.reserve( startIndex + info.numVertices );
 //
-//		for( int i = 0 ; i < info.numVertex ; ++i )
+//		for( int i = 0 ; i < info.numVertices ; ++i )
 //		{
 //			m_vertexVec.push_back( FyVec3D() );
 //			FyVec3D& vtx = m_vertexVec.back();

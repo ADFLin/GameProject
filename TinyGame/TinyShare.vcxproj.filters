@@ -115,6 +115,7 @@
     <ClInclude Include="TestRender\Stage\TestRenderStageBase.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\RenderDebug.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -201,5 +202,6 @@
     <ClCompile Include="TestRender\Stage\TestRenderStageBase.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TinyCore\RenderDebug.cpp" />
   </ItemGroup>
 </Project>

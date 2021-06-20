@@ -586,7 +586,7 @@
     <ClInclude Include="TemplateMisc.h" />
     <ClInclude Include="Template\ArrayView.h" />
     <ClInclude Include="Template\Optional.h" />
-    <ClInclude Include="Template\StaticString.h" />
+    <ClInclude Include="Template\ConstString.h" />
     <ClInclude Include="Template\StringView.h" />
     <ClInclude Include="Template\TypeFormatTraits.h" />
     <ClInclude Include="WindowsMessageHander.h" />

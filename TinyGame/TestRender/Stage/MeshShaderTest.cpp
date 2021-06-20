@@ -267,10 +267,13 @@ namespace Render
 			return true;
 		}
 
-		SimplygonSDK::ISimplygonSDK* mSimplygonSDK;
+		SimplygonSDK::ISimplygonSDK* mSimplygonSDK = nullptr;
 
 		void GenerateLOD( Mesh& mesh )
 		{
+			if (mSimplygonSDK == nullptr)
+				return;
+
 			using namespace SimplygonSDK;
 			spGeometryData geom = mSimplygonSDK->CreateGeometryData();
 
@@ -285,14 +288,15 @@ namespace Render
 					RHIUnlockBuffer(mesh.mIndexBuffer);
 				};
 
+				int numVertices = mesh.mVertexBuffer->getNumElements();
 
-				std::vector< int32 > tempBuffer;
+				std::vector< uint32 > tempBuffer;
 				int numTriangles = 0;
-				int* pTriangleIndex = MeshUtility::ConvertToTriangleList(mesh.mType, pIndices, mesh.mIndexBuffer->getNumElements(), mesh.mIndexBuffer->isIntType(), tempBuffer, numTriangles);
+				uint32* pTriangleIndex = MeshUtility::ConvertToTriangleList(mesh.mType, pIndices, mesh.mIndexBuffer->getNumElements(), mesh.mIndexBuffer->isIntType(), tempBuffer, numTriangles);
 				auto posReader = mesh.makePositionReader(pVertex);
 				auto normalReader = mesh.makeAttributeReader(pVertex, EVertex::ATTRIBUTE_NORMAL);
 				auto tangentReader = mesh.makeAttributeReader(pVertex, EVertex::ATTRIBUTE_TANGENT);
-				geom->SetVertexCount(posReader.getNum());
+				geom->SetVertexCount(numVertices);
 				geom->SetTriangleCount(numTriangles);
 
 				spRealArray coords = geom->GetCoords();
@@ -301,7 +305,7 @@ namespace Render
 				//geom->AddTangents(0);
 				//spRealArray tangents = geom->GetTangents(0);
 				spRidArray vertex_ids = geom->GetVertexIds();
-				for (int i = 0; i < posReader.getNum(); ++i)
+				for (int i = 0; i < numVertices; ++i)
 				{
 					coords->SetTuple(i, &posReader.get<float>(i));
 					//normals->SetTuple(i, &normalReader.get<float>(i));

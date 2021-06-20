@@ -34,11 +34,11 @@ void GeneratePS()
 
 	GBufferData GBuffer = GetGBufferData(VSOutput.UVs);
 
-	float3 tangentZ = mat3( View.worldToView ) * GBuffer.normal;
+	float3 tangentZ = float3x3( View.worldToView ) * GBuffer.normal;
 	float3 tangentX = GetAnyVericalVector(tangentZ);
 	float3 tangentY = cross(tangentZ, tangentX);
 
-	mat3 tangentToView= mat3(tangentX, tangentY, tangentZ);
+	float3x3 tangentToView = float3x3(tangentX, tangentY, tangentZ);
 
 	float3 viewPos = float3( View.worldToView * float4( GBuffer.worldPos , 1 ) );
 	//OcclusionRadius = 1;

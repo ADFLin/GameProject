@@ -150,6 +150,36 @@ void HashString::Initialize()
 	}
 }
 
+bool HashString::Find(StringView const& str, bool bCaseSensitive, HashString& outValue)
+{
+	uint32 hashValue;
+	if (bCaseSensitive)
+	{
+		hashValue = FCString::StrHash(str.data(), str.length());
+	}
+	else
+	{
+		hashValue = FCString::StriHash(str.data(), str.length());
+	}
+	uint32 idxHash = hashValue % NameSlotHashBucketSize;
+	NameSlot* slot = NameSlot::sHashHead[idxHash];
+	for (; slot; slot = slot->next)
+	{
+		if (hashValue == slot->hashValue && slot->compareN(str.data(), str.length(), bCaseSensitive) == 0)
+			break;
+	}
+
+	if (slot == nullptr)
+	{
+		return false;
+	}
+
+	outValue.mIndex = slot->index << 1;
+	if (!bCaseSensitive)
+		outValue.mIndex |= 0x1;
+	outValue.mNumber = 0;
+	return true;
+}
 
 void HashString::init(char const* str, bool bCaseSensitive)
 {
@@ -160,16 +190,15 @@ void HashString::init(char const* str, bool bCaseSensitive)
 		return;
 	}
 
-#if 0
-	InlineString< MaxHashStringLength > temp;
-	if( !bCaseSensitive )
+	uint32 hashValue;
+	if (bCaseSensitive)
 	{
-		FString::Stricpy(temp, str);
-		str = temp;
+		hashValue = FCString::StrHash(str);
 	}
-#endif
-
-	uint32 hashValue = FCString::StriHash(str);
+	else
+	{
+		hashValue = FCString::StriHash(str);
+	}
 	uint32 idxHash = hashValue % NameSlotHashBucketSize;
 	NameSlot* slot = NameSlot::sHashHead[idxHash];
 	for( ; slot; slot = slot->next )
@@ -214,16 +243,15 @@ void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
 		return;
 	}
 
-#if 0
-	InlineString< MaxHashStringLength > temp;
-	if( !bCaseSensitive )
+	uint32 hashValue;
+	if (bCaseSensitive)
 	{
-		FString::Stricpy(temp, str);
-		str = temp;
+		hashValue = FCString::StrHash(str, len);
 	}
-#endif
-
-	uint32 hashValue = FCString::StriHash(str, len);
+	else
+	{
+		hashValue = FCString::StriHash(str, len);
+	}
 	uint32 idxHash = hashValue % NameSlotHashBucketSize;
 	NameSlot* slot = NameSlot::sHashHead[idxHash];
 	for( ; slot; slot = slot->next )

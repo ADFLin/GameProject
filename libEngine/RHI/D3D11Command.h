@@ -4,6 +4,7 @@
 
 #include "RHICommand.h"
 #include "RHICommandListImpl.h"
+#include "RHIGlobalResource.h"
 #include "ShaderCore.h"
 
 #include "D3D11Common.h"
@@ -254,9 +255,9 @@ namespace Render
 
 		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
 
-		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
+		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData);
 
-		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 
 
 		void RHIDrawMeshTasks(int start, int count)
@@ -403,23 +404,7 @@ namespace Render
 
 		D3D11_VIEWPORT mViewportState[8];
 
-		
-		struct FixedShaderParams
-		{
-			Matrix4 transform;
-			LinearColor color;
-			RHITexture2D* texture;
-			RHISamplerState* sampler;
-
-			FixedShaderParams()
-			{
-				texture = nullptr;
-				sampler = nullptr;
-				transform == Matrix4::Identity();
-				color = LinearColor(1, 1, 1, 1);
-			}
-		};
-		FixedShaderParams mFixedShaderParams;
+		SimplePipelineParamValues mFixedShaderParams;
 		bool bUseFixedShaderPipeline = true;
 
 		RHIShader* mVertexShader = nullptr;

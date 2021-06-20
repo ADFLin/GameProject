@@ -33,12 +33,14 @@ public:
 	template< size_t M >
 	explicit TInlineString(T const (&str)[M])
 	{
-		assign(str, CHAR_COUNT);
+		static_assert(M <= CHAR_COUNT);
+		assign(str, M);
 	}
 
 	template< int M >
 	FORCEINLINE TInlineString(TInlineString< M, CharT > const& other)
 	{ 
+		static_assert(M <= CHAR_COUNT);
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		assign(other.mData , other.mLength);
 #else
@@ -104,7 +106,7 @@ public:
 	{ 
 		FCString::CopyN(mData, str, num);
 #if INLINE_STRING_USE_LENGTH_MEMBER
-		mLength = len; 
+		mLength = num;
 #endif
 	}
 	FORCEINLINE void  clear()

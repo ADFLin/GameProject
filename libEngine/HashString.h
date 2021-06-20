@@ -17,6 +17,7 @@ class HashString
 {
 public:
 	static void Initialize();
+	static CORE_API bool Find(StringView const& str, bool bCaseSensitive, HashString& outValue);
 
 	HashString()
 	{

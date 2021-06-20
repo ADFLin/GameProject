@@ -375,7 +375,7 @@ namespace Render
 			VERIFY_RETURN_FALSE( mGrassTexture = RHIUtility::CreateTexture2D(imageData, TextureLoadOption().SRGB().AutoMipMap().ReverseH()) );
 		}
 
-		MeshBuild::Plane(mGrassMesh, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);
+		FMeshBuild::Plane(mGrassMesh, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);
 		mInstancedMesh.setupMesh(mGrassMesh);
 
 		ShaderManager::Get().loadFileSimple(mProgGrass, "Shader/Game/Grass");

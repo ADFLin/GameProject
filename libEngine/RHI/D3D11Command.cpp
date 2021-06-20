@@ -4,7 +4,6 @@
 
 #include "LogSystem.h"
 #include "GpuProfiler.h"
-#include "RHIGlobalResource.h"
 
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
@@ -45,7 +44,6 @@ namespace Render
 		virtual bool endFrame() override
 		{
 			mDeviceContext->End(mQueryDisjoint);
-
 			while( mDeviceContext->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE )
 			{
 				SystemPlatform::Sleep(0); 
@@ -1563,17 +1561,17 @@ namespace Render
 		return true;
 	}
 
-	void D3D11Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData)
+	void D3D11Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData)
 	{
 		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
 		ID3D11Buffer* indexBuffer = nullptr;
 		int numDrawIndex;
-		if( !determitPrimitiveTopologyUP(type, numVertex, nullptr, primitiveTopology, &indexBuffer, numDrawIndex) )
+		if( !determitPrimitiveTopologyUP(type, numVertices, nullptr, primitiveTopology, &indexBuffer, numDrawIndex) )
 			return;
 
 		if( type == EPrimitive::LineLoop )
-			++numVertex;
+			++numVertices;
 		uint32 vertexBufferSize = 0;
 		for( int i = 0; i < numVertexData; ++i )
 		{
@@ -1620,13 +1618,13 @@ namespace Render
 			}
 			else
 			{
-				mDeviceContext->Draw(numVertex, 0);
+				mDeviceContext->Draw(numVertices, 0);
 			}
 			postDrawPrimitive();
 		}
 	}
 
-	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
+	void D3D11Context::RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)
 	{
 		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
 		ID3D11Buffer* indexBuffer = nullptr;
@@ -1795,8 +1793,7 @@ namespace Render
 				SimplePipelineProgram* program = SimplePipelineProgram::Get( inputLayoutImpl->mAttriableMask , mFixedShaderParams.texture);
 
 				RHISetShaderProgram(program->getRHIResource());
-				program->setParameters(RHICommandListImpl(*this),
-					mFixedShaderParams.transform, mFixedShaderParams.color, mFixedShaderParams.texture, mFixedShaderParams.sampler);
+				program->setParameters(RHICommandListImpl(*this), mFixedShaderParams);
 			}
 
 		}

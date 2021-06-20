@@ -67,7 +67,7 @@ namespace CFly
 		int   numGroup;
 		int   groupIndex[ 16 ];
 		int   numMaterial;
-		int   numVertex;
+		int   numVertices;
 
 		int    mVertexSize;
 		float* mVertex;

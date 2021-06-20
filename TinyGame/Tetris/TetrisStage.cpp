@@ -837,10 +837,10 @@ namespace Tetris
 
 		switch (msg.getCode())
 		{
-		case VK_UP   : limitChar( ++highLightRecord->name[ idxChar ] ); break;
-		case VK_DOWN : limitChar( --highLightRecord->name[ idxChar ] ); break;
-		case VK_RIGHT: idxChar = std::min( idxChar + 1 , 2 ); break;
-		case VK_LEFT : idxChar = std::max( idxChar - 1 , 0 ); break;
+		case EKeyCode::Up:    limitChar( ++highLightRecord->name[ idxChar ] ); break;
+		case EKeyCode::Down:  limitChar( --highLightRecord->name[ idxChar ] ); break;
+		case EKeyCode::Right: idxChar = std::min( idxChar + 1 , 2 ); break;
+		case EKeyCode::Left:  idxChar = std::max( idxChar - 1 , 0 ); break;
 		}
 		return false;
 	}

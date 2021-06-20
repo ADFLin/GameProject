@@ -14,14 +14,14 @@
 //		vertexLen = * (int*) obj.GetTriangleData( TRIANGLE_VERTEX_LENGTH );
 //		numFace   =  * (int*) obj.GetTriangleData( TRIANGLE_FACE_NUMBER );
 //		face      = (int*) obj.GetTriangleData( TRIANGLE_FACE );
-//		numVertex = *(int*) obj.GetTriangleData( TRIANGLE_VERTEX_NUMBER );
+//		numVertices = *(int*) obj.GetTriangleData( TRIANGLE_VERTEX_NUMBER );
 //		vertex    = (float*) obj.GetTriangleData( TRIANGLE_VERTEX );
 //	}
 //
 //	int       vertexLen;
 //	int       numFace;
 //	int*      face;
-//	int       numVertex;
+//	int       numVertices;
 //	float*    vertex;
 //};
 

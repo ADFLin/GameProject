@@ -3,6 +3,9 @@
 #include "Game.h"
 #include "MenuStage.h"
 
+#include "GlobalVariable.h"
+#include "LevelStage.h"
+
 #include "StageBase.h"
 #include "GameGUISystem.h"
 #include "GameRenderSetup.h"
@@ -10,6 +13,8 @@
 #include "Widget/WidgetUtility.h"
 
 #include "RHI/ShaderManager.h"
+
+
 
 EXPORT_GAME_MODULE( QuadAssaultModule )
 
@@ -36,8 +41,14 @@ public:
 		if( !mGame->init("config.txt" , screenSize , false ) )
 			return false;
 
+#if 1
 		mGame->addStage(new MenuStage(), false);
-
+#else
+		gLevelFileName = "test.lv";
+		gMapFileName = "test.map";
+		gIdxCurLevel = 0;
+		mGame->addStage(new LevelStage(), false);
+#endif
 		return true;
 	}
 

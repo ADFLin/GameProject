@@ -60,7 +60,8 @@ float3 GetFaceCameraDir(float2 faceUV)
 	return normalize(FaceDir + NDC.x * faceRightDir + NDC.y * FaceUpDir);
 }
 
-#if SHADER_ENTRY_EquirectangularToCubePS
+#if SHADER_ENTRY(EquirectangularToCubePS)
+
 PS_ENTRY_START(EquirectangularToCubePS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)
@@ -72,7 +73,7 @@ PS_ENTRY_END(EquirectangularToCubePS)
 }
 #endif
 
-#if  SHADER_ENTRY_IrradianceGenPS
+#if  SHADER_ENTRY(IrradianceGenPS)
 
 uniform int2 IrrianceSampleCount = int2(256 * 2, 200 * 2);
 
@@ -170,7 +171,7 @@ float4 ImportanceSampleGGX(float2 E,float a2)
 }
 
 
-#if SHADER_ENTRY_PrefilteredGenPS
+#if SHADER_ENTRY(PrefilteredGenPS)
 
 uniform float Roughness;
 uniform int PrefilterSampleCount = 2048 * 2;
@@ -207,7 +208,8 @@ PS_ENTRY_END(PrefilteredGenPS)
 
 	OutColor = float4(prefilteredColor, 1.0);
 }
-#endif
+
+#endif //SHADER_ENTRY(PrefilteredGenPS)
 
 uniform int BRDFSampleCount;
 float2 IntegrateBRDF(float NoV, float roughness)
@@ -262,7 +264,8 @@ float2 IntegrateBRDF(float NoV, float roughness)
 	return float2(A, B) / BRDFSampleCount;
 }
 
-#if SHADER_ENTRY_PreIntegrateBRDFGenPS
+#if SHADER_ENTRY(PreIntegrateBRDFGenPS)
+
 PS_ENTRY_START(PreIntegrateBRDFGenPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)
@@ -271,7 +274,8 @@ PS_ENTRY_END(PreIntegrateBRDFGenPS)
 	float2 integratedBRDF = IntegrateBRDF( VSOutput.UVs.x , VSOutput.UVs.y );
 	OutColor = float4( integratedBRDF , 0 , 1 );
 }
-#endif
+
+#endif //SHADER_ENTRY(PreIntegrateBRDFGenPS)
 
 
 #endif //PIXEL_SHADER

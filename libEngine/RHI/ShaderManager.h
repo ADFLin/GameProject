@@ -13,7 +13,10 @@
 #include <unordered_map>
 #include <map>
 
-
+namespace CPP
+{
+	class CodeSourceLibrary;
+}
 
 class DataCacheInterface;
 
@@ -100,6 +103,7 @@ namespace Render
 		MaterialShaderProgram* loadMaterialShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& materialClass );
 
 		CORE_API ShaderObject* getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, bool bForceLoad );
+		CORE_API void cleanupLoadedSource();
 
 		bool registerGlobalShader(GlobalShaderObjectClass& shaderClass);
 
@@ -173,8 +177,8 @@ namespace Render
 			std::string filePath;
 			std::string define;
 		};
-		bool updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload = false );
-		bool updateShaderInternal(Shader& shader, ShaderManagedData& managedData, bool bForceReload = false);
+		bool buildShader(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload = false );
+		bool buildShader(Shader& shader, ShaderManagedData& managedData, bool bForceReload = false);
 
 		void removeFromShaderCompileMap(ShaderObject& shader);
 
@@ -197,6 +201,7 @@ namespace Render
 		IAssetViewerRegister* mAssetViewerReigster;
 		ShaderCache* getCache();
 
+		CPP::CodeSourceLibrary* mSourceLibrary = nullptr;
 #if 1
 		std::unordered_map< ShaderObject*, ShaderManagedDataBase* > mShaderDataMap;
 		std::unordered_map< GlobalShaderObjectClass const*, ShaderObject* > mGlobalShaderMap;

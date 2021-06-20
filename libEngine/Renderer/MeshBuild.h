@@ -42,13 +42,31 @@ namespace Render
 		virtual void build(int idxSection, OBJMaterialInfo const* mat) = 0;
 	};
 
+	struct MeshBuildData
+	{
+		std::vector< uint8 > vertexData;
+		std::vector< uint32 > indexData;
 
-	class MeshBuild
+		bool initializeRHI(Mesh& mesh)
+		{
+			uint32 vertexSize = mesh.mInputLayoutDesc.getVertexSize();
+			if (!mesh.createRHIResource(vertexData.data(), vertexData.size() / vertexSize, indexData.data(), indexData.size(), true))
+				return false;
+
+			return true;
+		}
+	};
+
+	class FMeshBuild
 	{
 	public:
 		static bool Tile(Mesh& mesh, int tileSize, float len, bool bHaveSkirt = true);
 		static bool UVSphere(Mesh& mesh, float radius, int rings, int sectors);
 		static bool IcoSphere(Mesh& mesh, float radius, int numDiv);
+
+		static bool OctSphere(Mesh& mesh, float radius, int level);
+		static bool OctSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int level);
+
 		static bool SkyBox(Mesh& mesh);
 		static bool CubeShare(Mesh& mesh, float halfLen = 1.0f);
 		static bool CubeOffset(Mesh& mesh, float halfLen, Vector3 const& offset);

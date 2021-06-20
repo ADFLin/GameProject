@@ -6,6 +6,8 @@
 
 #include "RHICommand.h"
 #include "RHICommandListImpl.h"
+#include "RHIGlobalResource.h"
+
 #include "ShaderCore.h"
 
 #include "D3D12Common.h"
@@ -16,6 +18,7 @@
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+
 
 
 
@@ -360,9 +363,9 @@ namespace Render
 		}
 
 	
-		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
+		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData);
 
-		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
+		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 
 
 		void RHIDrawMeshTasks(int start, int count)
@@ -384,22 +387,7 @@ namespace Render
 			mBoundState = nullptr;
 		}
 
-		struct FixedShaderParams
-		{
-			Matrix4 transform;
-			LinearColor color;
-			RHITexture2D* texture;
-			RHISamplerState* sampler;
-
-			FixedShaderParams()
-			{
-				texture = nullptr;
-				sampler = nullptr;
-				transform == Matrix4::Identity();
-				color = LinearColor(1, 1, 1, 1);
-			}
-		};
-		FixedShaderParams mFixedShaderParams;
+		SimplePipelineParamValues mFixedShaderParams;
 
 		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer);
 
@@ -475,8 +463,8 @@ namespace Render
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector2 const val[], int dim) { setShaderValueT(shader, param, val, dim, 2 * sizeof(float)); }
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector3 const val[], int dim) { setShaderValueT(shader, param, val, dim, 3 * sizeof(float)); }
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim) { setShaderValueT(shader, param, val, dim); }
-		void setShaderMatrix22(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim, 3 * sizeof(float)); }
-		void setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim, 2 * sizeof(float)); }
+		void setShaderMatrix22(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim, 2 * sizeof(float)); }
+		void setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim, 3 * sizeof(float)); }
 		void setShaderMatrix34(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim); }
 
 		template< class T >

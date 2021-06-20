@@ -231,7 +231,7 @@ namespace Render
 				materialBuilder.id = i;
 				materialBuilder.mesh = mesh;
 				LogDevMsg(0, "Load Mesh = %s" , gMeshLists[i].name);
-				if( MeshBuild::LoadObjectFile(*mesh, gMeshLists[i].name, &MeshTransform[i], &materialBuilder, MeshSkip[i]) )
+				if( FMeshBuild::LoadObjectFile(*mesh, gMeshLists[i].name, &MeshTransform[i], &materialBuilder, MeshSkip[i]) )
 				{
 					addGameCommand([this , mesh , i]
 					{

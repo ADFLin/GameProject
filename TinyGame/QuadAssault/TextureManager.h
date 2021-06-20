@@ -4,13 +4,13 @@
 #include "Singleton.h"
 
 #include "HashString.h"
-
+#include "RenderDebug.h"
 
 #include <map>
 
 class Texture;
 
-class TextureManager
+class TextureManager : public Render::TextureShowManager
 {
 private:
 	std::vector< Texture* > mTextures;

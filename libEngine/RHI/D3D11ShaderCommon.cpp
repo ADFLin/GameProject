@@ -48,7 +48,7 @@ namespace Render
 					return false;
 				}
 
-				if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+				if (!preprocessCode(input.path, output.compileInfo, input.definition, input.sourceLibrary, codeBuffer))
 					return false;
 #if 0
 				if (bGLSLCodeConv)
@@ -108,7 +108,7 @@ namespace Render
 
 				if( bRecompile )
 				{
-					OutputError((LPCSTR)errorCode->GetBufferPointer());
+					emitCompileError(input, (LPCSTR)errorCode->GetBufferPointer());
 				}
 				continue;
 			}

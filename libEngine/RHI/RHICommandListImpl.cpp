@@ -63,27 +63,27 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveInstanced(type, indexStart, nIndex, numInstance, baseVertex , baseInstance));
 	}
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride)
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertices, int vetexStride)
 	{
 		VertexDataInfo info;
 		info.ptr = pVertices;
-		info.size = vetexStride * numVertex;
+		info.size = vetexStride * numVertices;
 		info.stride = vetexStride;
-		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertex, &info , 1 ));
+		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertices, &info , 1 ));
 	}
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData)
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertex, dataInfos, numData));
+		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertices, dataInfos, numData));
 	}
 
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertex, int vetexStride, uint32 const* pIndices, int numIndex)
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, void const* pVertices, int numVertices, int vetexStride, uint32 const* pIndices, int numIndex)
 	{
 		VertexDataInfo info;
 		info.ptr = pVertices;
-		info.size = vetexStride * numVertex;
+		info.size = vetexStride * numVertices;
 		info.stride = vetexStride;
-		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVertex, &info, 1, pIndices, numIndex));
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVertices, &info, 1, pIndices, numIndex));
 	}
 
 	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex)

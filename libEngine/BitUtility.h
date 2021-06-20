@@ -45,7 +45,7 @@ public:
 	static int ToIndex<8>(unsigned bit) { return ToIndex8(bit); }
 
 	template< unsigned NumBits >
-	static bool MaskIterator(unsigned& mask, int& index)
+	static bool IterateMask(unsigned& mask, int& index)
 	{
 		if (mask == 0)
 			return false;

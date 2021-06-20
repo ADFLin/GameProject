@@ -272,6 +272,59 @@ CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT const* find
 }
 
 template< class CharT >
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num , CharT c)
+{
+	while (*str != 0 && num )
+	{
+		if (*str == c)
+			break;
+		++str;
+		--num;
+	}
+	return str;
+}
+
+template< class CharT >
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2)
+{
+	while (*str != 0 && num)
+	{
+		if (*str == c1 || *str == c2)
+			break;
+		++str;
+		--num;
+	}
+	return str;
+}
+
+template< class CharT >
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3)
+{
+	while (*str != 0 && num)
+	{
+		if (*str == c1 || *str == c2 || *str == c3)
+			break;
+		++str;
+		--num;
+	}
+	return str;
+}
+
+template< class CharT >
+CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3, CharT c4)
+{
+	while (*str != 0 && num)
+	{
+		if (*str == c1 || *str == c2 || *str == c3 || *str == c4)
+			break;
+		++str;
+		--num;
+	}
+	return str;
+}
+
+
+template< class CharT >
 CharT const* TStringParse< CharT >::TrySkipToSectionEnd(CharT const* str, CharT c)
 {
 	assert(str && *str == c);

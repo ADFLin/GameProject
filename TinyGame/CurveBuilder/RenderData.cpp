@@ -10,9 +10,9 @@ namespace CB
 
 	}
 
-	RenderData::RenderData(int numVertex, int numIndex, bool useNormal)
+	RenderData::RenderData(int numVertices, int numIndex, bool useNormal)
 	{
-		create(numVertex, numIndex, useNormal);
+		create(numVertices, numIndex, useNormal);
 	}
 
 	RenderData::~RenderData()
@@ -20,10 +20,10 @@ namespace CB
 		release();
 	}
 
-	void RenderData::create(int numVertex, int numIndex, bool bUseNormal)
+	void RenderData::create(int numVertices, int numIndex, bool bUseNormal)
 	{
 		mbNormalOwned = bUseNormal;
-		mVertexNum = numVertex;
+		mVertexNum = numVertices;
 		mVertexSize = sizeof(float) * (7 + (bUseNormal ? 3 : 0));
 		mVertexBuffer.resize(mVertexSize * mVertexNum);
 		mIndexBuffer.resize(numIndex);

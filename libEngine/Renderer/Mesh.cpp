@@ -157,19 +157,19 @@ namespace Render
 		if (pVertex == nullptr || pIndex == nullptr)
 			return false;
 
-		std::vector< int > tempBuffer;
+		std::vector< uint32 > tempBuffer;
 		int numTriangles = 0;
-		int* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
+		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
 		if (pIndexData == nullptr)
 			return false;
 
 		auto positionReader = makePositionReader(pVertex);
-		bool result = MeshUtility::Meshletize(maxVertices, maxPrims, pIndexData, numTriangles, positionReader, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
+		bool result = MeshUtility::Meshletize(maxVertices, maxPrims, pIndexData, numTriangles, positionReader, getVertexCount(), outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
 
 		if (result && outCullDataList)
 		{
 			outCullDataList->resize(outMeshlets.size());
-			MeshUtility::GenerateCullData(positionReader, outMeshlets.data(), outMeshlets.size(), (uint32 const*)outUniqueVertexIndices.data(), outPrimitiveIndices.data(), outCullDataList->data());
+			MeshUtility::GenerateCullData(positionReader, getVertexCount(), outMeshlets.data(), outMeshlets.size(), (uint32 const*)outUniqueVertexIndices.data(), outPrimitiveIndices.data(), outCullDataList->data());
 		}
 
 		return result;
@@ -245,9 +245,9 @@ namespace Render
 		if (pVertex == nullptr || pIndex == nullptr)
 			return false;
 
-		std::vector< int > tempBuffer;
+		std::vector< uint32 > tempBuffer;
 		int numTriangles = 0;
-		int* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
+		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
 
 		if (pIndexData == nullptr)
 			return false;
@@ -257,7 +257,7 @@ namespace Render
 		switch (type)
 		{
 		case EAdjacencyType::Vertex:
-			MeshUtility::BuildVertexAdjacency(makePositionReader(pVertex), pIndexData, numTriangles, adjIndices);
+			MeshUtility::BuildVertexAdjacency(makePositionReader(pVertex), getVertexCount(), pIndexData, numTriangles, adjIndices);
 			break;
 		case EAdjacencyType::Tessellation:
 			MeshUtility::BuildTessellationAdjacency(makePositionReader(pVertex), pIndexData, numTriangles, adjIndices);

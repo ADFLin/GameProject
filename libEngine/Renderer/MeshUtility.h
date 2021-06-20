@@ -48,10 +48,10 @@ namespace Render
 	class MeshUtility
 	{
 	public:
-		static void CalcAABB(VertexElementReader const& positionReader, Vector3& outMin, Vector3& outMax);
-		static int* ConvertToTriangleList(EPrimitive type, void* pIndexData, int numIndices, bool bIntType, std::vector< int >& outConvertBuffer, int& outNumTriangles);
+		static void CalcAABB(VertexElementReader const& positionReader, int numVertices, Vector3& outMin, Vector3& outMax);
+		static uint32* ConvertToTriangleList(EPrimitive type, void* pIndexData, int numIndices, bool bIntType, std::vector< uint32 >& outConvertBuffer, int& outNumTriangles);
 		static bool BuildDistanceField(Mesh& mesh, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
-		static bool BuildDistanceField(VertexElementReader const& positionReader, int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
+		static bool BuildDistanceField(VertexElementReader const& positionReader, int numVertices, uint32* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
 
 		static bool IsVertexEqual(Vector3 const& a, Vector3 const& b, float error = 1e-6)
 		{
@@ -59,40 +59,47 @@ namespace Render
 			return diff.x < error && diff.y < error && diff.z < error;
 		}
 
-		static void BuildTessellationAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult);
-		static void BuildVertexAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult);
+		static void BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, std::vector<int>& outResult);
+		static void BuildVertexAdjacency(VertexElementReader const& positionReader, int numVertices, uint32* triIndices, int numTirangle, std::vector<int>& outResult);
 		static void OptimizeVertexCache(void* pIndices, int numIndex, bool bIntType);
 
-		static void FillTriangleListNormalAndTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
-		static void FillTriangleListTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
-		static void FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = EVertex::ATTRIBUTE_NORMAL);
+		static void FillTriangleListNormalAndTangent(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx);
+		static void FillTriangleListTangent(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx);
+		static void FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx, int normalAttrib = EVertex::ATTRIBUTE_NORMAL, bool bNeedClear = false);
 
 		static bool Meshletize(
-			int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, 
+			int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices,
 			std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices);
 
 		static bool Meshletize(
-			int maxVertices, int maxPrims, int* triIndices, int numTriangles, VertexElementReader const& positionReader, TArrayView< MeshSection const > sections ,
+			int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, TArrayView< MeshSection const > sections ,
 			std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices , 
 			std::vector< MeshSection >& outSections );
 
 		static void GenerateCullData(
-			VertexElementReader const& positionReader, const MeshletData* meshlets, int meshletCount, 
+			VertexElementReader const& positionReader, int numVertices, const MeshletData* meshlets, int meshletCount,
 			const uint32* uniqueVertexIndices, const PackagedTriangleIndices* primitiveIndices, MeshletCullData* cullData);
 
 		static void ComputeTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal);
+		static void ComputeTangent(Vector3 const& v0, Vector2 const& uv0, Vector3 const& v1, Vector2 const& uv1, Vector3 const& v2, Vector2 const& uv2, Vector3& tangent, Vector3& binormal);
 
-		static void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx, int normalAttrib = EVertex::ATTRIBUTE_NORMAL);
-
+		static void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int numVerteices, uint32* indices, int numIndices, int normalAttrib = EVertex::ATTRIBUTE_NORMAL, bool bNeedClear = false);
+		static void FillNormal_TriangleList(VertexElementReader const& positionReader, VertexElementWriter& normalWriter, int numVerteices, uint32* idx, int numIndices, bool bNeedClear = false);
 
 		template< class IndexType >
-		static int* ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle);
+		static uint32* ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle);
 
-		static void FillNormalTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
+		static void FillNormalTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx);
 
-		static void FillTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
+		static void FillTangent_TriangleList(
+			VertexElementReader const& positionReader,
+			VertexElementReader const& normalReader, 
+			VertexElementReader const& uvReader, 
+			VertexElementWriter& tangentWriter, 
+			int numVertices, uint32* indices, int numIndices, bool bNeedClear = false);
 
-		static void FillTangent_QuadList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx);
+		static void FillTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int numVertices, uint32* indices, int numIndices, bool bNeedClear = false);
+		static void FillTangent_QuadList(InputLayoutDesc const& desc, void* pVertex, int numVertices, uint32* indices, int numIndices, bool bNeedClear = false);
 	};
 
 

@@ -162,6 +162,9 @@
     <ClCompile Include="QuadAssault\EditorWidget.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
+    <ClCompile Include="QuadAssault\BlockRender.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QuadAssault\Actor.h">

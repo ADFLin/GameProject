@@ -32,6 +32,10 @@ RHIGraphics2D::RHIGraphics2D()
 	mColorBrush = Color3f(0, 0, 0);
 	mColorPen = Color3f(0, 0, 0);
 	mColorFont = Color3f(0, 0, 0);
+
+	mRenderStateCommitted.texture = nullptr;
+	mRenderStateCommitted.sampler = nullptr;
+	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
 }
 
 void RHIGraphics2D::init(int w, int h)
@@ -326,14 +330,23 @@ void RHIGraphics2D::drawText(Vector2 const& pos, char const* str)
 	drawTextImpl(ox, oy, str);
 }
 
-void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip /*= false */)
+void RHIGraphics2D::drawText(Vector2 const& pos, wchar_t const* str)
 {
-#if	IGNORE_NSIGHT_UNSUPPORT_CODE
-	return;
-#endif
-
 	if (!mFont || !mFont->isValid())
 		return;
+
+	int fontSize = mFont->getSize();
+	float ox = pos.x;
+	float oy = pos.y;
+	drawTextImpl(ox, oy, str);
+}
+
+
+void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip /*= false */)
+{
+	if (!mFont || !mFont->isValid())
+		return;
+
 	if (beClip)
 	{
 		beginClip(pos, size);
@@ -351,13 +364,11 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 	}
 }
 
-void RHIGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
-{
-#if	IGNORE_NSIGHT_UNSUPPORT_CODE
-	return;
-#endif
-	assert(mFont);
 
+template< typename CharT >
+void RHIGraphics2D::drawTextImpl(float  ox, float  oy, CharT const* str)
+{
+	assert(mFont);
 
 	if (CVarUseBachedRender2D)
 	{
@@ -385,9 +396,7 @@ void RHIGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 		mbPipelineStateChanged = true;
 		setBlendState(prevMode);
 	}
-	
 }
-
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos)
 {
@@ -457,10 +466,6 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2
 
 void RHIGraphics2D::drawPolygonBuffer()
 {
-#if	IGNORE_NSIGHT_UNSUPPORT_CODE
-	return;
-#endif
-
 	assert(!mBuffer.empty());
 	if (mDrawBrush)
 	{
@@ -474,9 +479,6 @@ void RHIGraphics2D::drawPolygonBuffer()
 
 void RHIGraphics2D::drawLineBuffer()
 {
-#if	IGNORE_NSIGHT_UNSUPPORT_CODE
-	return;
-#endif
 	assert(!mBuffer.empty());
 	if (mDrawPen)
 	{

@@ -10,6 +10,22 @@
 namespace Render
 {
 
+	struct SimplePipelineParamValues
+	{
+		Matrix4 transform;
+		LinearColor color;
+		RHITexture2D* texture;
+		RHISamplerState* sampler;
+
+		SimplePipelineParamValues()
+		{
+			texture = nullptr;
+			sampler = nullptr;
+			transform == Matrix4::Identity();
+			color = LinearColor(1, 1, 1, 1);
+		}
+	};
+
 	class SimplePipelineProgram : public GlobalShaderProgram
 	{
 	public:
@@ -33,16 +49,18 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			mParamTexture.bind(parameterMap, SHADER_PARAM(Texture));
-			mParamTextureSampler.bind(parameterMap, SHADER_PARAM(TextureSampler));
+			BIND_TEXTURE_PARAM(parameterMap, Texture);
 			mParamColor.bind(parameterMap, SHADER_PARAM(Color));
 			mParamXForm.bind(parameterMap, SHADER_PARAM(XForm));
 		}
 
 		void setParameters(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler);
+		void setParameters(RHICommandList& commandList, SimplePipelineParamValues const& inValues)
+		{
+			setParameters(commandList, inValues.transform, inValues.color, inValues.texture, inValues.sampler);
+		}
 
-		ShaderParameter mParamTexture;
-		ShaderParameter mParamTextureSampler;
+		DEFINE_TEXTURE_PARAM(Texture);
 		ShaderParameter mParamColor;
 		ShaderParameter mParamXForm;
 	};

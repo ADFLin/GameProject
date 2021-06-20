@@ -38,8 +38,7 @@ namespace Render
 		VertexElementReader makeAttributeReader(uint8 const* pData, EVertex::Attribute attribute)
 		{
 			VertexElementReader result;
-			result.numVertex = mVertexBuffer->getNumElements();
-			result.vertexDataStride = mVertexBuffer->getElementSize();
+			result.vertexDataStride = mInputLayoutDesc.getVertexSize();
 			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(attribute);
 			return result;
 		}
@@ -48,15 +47,24 @@ namespace Render
 			return makeAttributeReader(pData, EVertex::ATTRIBUTE_POSITION);
 		}
 
+
 		VertexElementReader makeUVReader(uint8 const* pData, int index = 0)
 		{
-			VertexElementReader result;
-			result.numVertex = mVertexBuffer->getNumElements();
-			result.vertexDataStride = mVertexBuffer->getElementSize();
-			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_TEXCOORD + index);
+			return makeAttributeReader(pData, EVertex::Attribute(EVertex::ATTRIBUTE_TEXCOORD + index));
+		}
+
+		VertexElementWriter makeAttributeWriter(uint8* pData, EVertex::Attribute attribute)
+		{
+			VertexElementWriter result;
+			result.vertexDataStride = mInputLayoutDesc.getVertexSize();
+			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(attribute);
 			return result;
 		}
 
+		VertexElementWriter makePositionWriter(uint8* pData)
+		{
+			return makeAttributeWriter(pData, EVertex::ATTRIBUTE_POSITION);
+		}
 
 		bool generateVertexAdjacency();
 		bool generateTessellationAdjacency();
@@ -64,6 +72,8 @@ namespace Render
 
 		bool save(IStreamSerializer& serializer);
 		bool load(IStreamSerializer& serializer);
+
+		int getVertexCount() const { return mVertexBuffer->getNumElements(); }
 
 		EPrimitive          mType;
 		InputLayoutDesc     mInputLayoutDesc;

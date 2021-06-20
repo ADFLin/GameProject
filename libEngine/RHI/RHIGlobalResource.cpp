@@ -161,7 +161,7 @@ namespace Render
 			if( !ShaderManager::Get().loadFile(
 				GSimpleBasePass,
 				"Shader/SimpleBasePass",
-				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
+				SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
 				return false;
 		}
 

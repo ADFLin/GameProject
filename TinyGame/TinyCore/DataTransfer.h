@@ -3,10 +3,21 @@
 
 #include "FastDelegate/FastDelegate.h"
 #include "Meta/FunctionCall.h"
+#include "Meta/Concept.h"
 
 #define SLOT_SERVER -1
 
 DEFINE_HAVE_MEMBER_FUNC_IMPL(THaveGetSendSizeFuncImpl, getSendSize);
+
+
+struct CGetSendSizeCallable
+{
+	template< typename T , typename Ret = int >
+	static auto requires(T& t , Ret& ret) -> decltype 
+	(
+		ret = data.getSendSize()
+	);
+};
 
 template< class T >
 struct DataTransferTypeToId {};
@@ -39,7 +50,11 @@ public:
 	template< class T >
 	void sendData( int recvId , int dataId , T& data )
 	{
+#if 0
 		if constexpr (THaveGetSendSizeFunc<T>::Value)
+#else
+		if constexpr (TCheckConcept< CGetSendSizeCallable, T , int >::Value)
+#endif
 		{
 			sendData(recvId, dataId, &data, data.getSendSize());
 		}

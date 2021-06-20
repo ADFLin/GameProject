@@ -5,6 +5,9 @@
 #include "DataBitSerialize.h"
 #include "Meta/MetaBase.h"
 #include "Meta/EnableIf.h"
+#include "Meta/Concept.h"
+
+#include "HashString.h"
 
 #include <vector>
 #include <set>
@@ -12,8 +15,24 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
-#include "HashString.h"
 
+struct CInputSteamable
+{
+	template< typename Steam, typename T, typename ...Args >
+	static auto requires(Steam& stream, T& t ) -> decltype 
+	(
+		stream >> t
+	);
+};
+
+struct COutputSteamable
+{
+	template< typename Steam, typename T, typename ...Args >
+	static auto requires(Steam& stream, T& t) -> decltype
+	(
+		stream << t
+	);
+};
 
 class IStreamSerializer
 {
@@ -54,7 +73,7 @@ public:
 	template< class T >
  	void write(TArrayBitData<T> const& data)
 	{
-		if constexpr (THaveBitDataOutput< BitWriter, T >::Value )
+		if constexpr ( TCheckConcept< COutputSteamable , BitWriter , T >::Value )
 		{
 			if (data.length)
 			{
@@ -80,7 +99,7 @@ public:
 	template< class T >
 	void read(TArrayBitData<T> const& data)
 	{
-		if constexpr (THaveBitDataOutput< BitWriter, T >::Value)
+		if constexpr ( TCheckConcept< CInputSteamable, BitWriter, T >::Value )
 		{
 			if (data.length)
 			{
@@ -150,13 +169,13 @@ public:
 
 	template< class T >
 	struct CanUseInputSequence : Meta::HaveResult< Meta::IsPod<T>::Value &&
-		 !( THaveSerializerInput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
+		 !(TCheckConcept< CInputSteamable, IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 
 	template< class T >
 	struct CanUseOutputSequence : Meta::HaveResult < Meta::IsPod<T>::Value &&
-		! (THaveSerializerOutput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
+		! (TCheckConcept< COutputSteamable, IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 

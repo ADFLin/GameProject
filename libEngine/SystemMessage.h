@@ -137,6 +137,9 @@ enum MouseState
 	MBS_MOVING       = BIT(6),
 	MBS_WHEEL        = BIT(7),
 
+	MBS_CONTROL      = BIT(8),
+	MBS_SHIFT        = BIT(9),
+	
 	MBS_BUTTON_MASK  = MBS_LEFT | MBS_MIDDLE | MBS_RIGHT,
 	MBS_BUTTON_ACTION_MASK = MBS_DOWN | MBS_DOUBLE_CLICK ,
 	MBS_ACTION_MASK  = MBS_BUTTON_ACTION_MASK | MBS_WHEEL | MBS_MOVING ,
@@ -168,14 +171,14 @@ public:
 	Vec2i const& getPos() const { return pos; }
 	void   setPos( Vec2i const& p ){ pos = p; }
 
-	bool isLeftDown()   const { return ( state & MBS_LEFT ) != 0; }
-	bool isMiddleDown() const { return ( state & MBS_MIDDLE ) != 0; }
-	bool isRightDown()  const { return ( state & MBS_RIGHT ) != 0; }
+	bool isLeftDown()   const { return !!(state & MBS_LEFT); }
+	bool isMiddleDown() const { return !!( state & MBS_MIDDLE ); }
+	bool isRightDown()  const { return !!( state & MBS_RIGHT ); }
 	bool isDraging()    const { return ( msg & MBS_MOVING ) && ( state != 0 ); }
 
-	bool onMoving()     const { return ( msg & MBS_MOVING ) != 0; }
-	bool onWheelFront() const { return msg ==  MBS_WHEEL ;}
-	bool onWheelBack()  const { return msg ==  ( MBS_WHEEL | MBS_DOWN );}
+	bool onMoving()     const { return !!( msg & MBS_MOVING ); }
+	bool onWheelFront() const { return msg == MBS_WHEEL ;}
+	bool onWheelBack()  const { return msg == ( MBS_WHEEL | MBS_DOWN );}
 
 	bool onDown()       const { return ( msg & MBS_DOWN ) != 0; }
 	bool onLeftUp()     const { return msg == MBS_LEFT; }
@@ -187,10 +190,13 @@ public:
 	bool onRightDown()  const { return msg ==( MBS_RIGHT | MBS_DOWN ); }
 	bool onMiddleDown() const { return msg ==( MBS_MIDDLE | MBS_DOWN ); }
 
+	bool isControlDown() const { return !!(state & MBS_CONTROL); }
+	bool isShiftDown() const { return !!(state & MBS_SHIFT); }
+
 	uint16  getState() const { return state; }
 	uint16  getMsg()   const { return msg;  }
 private:
-	Vec2i  pos;
+	Vec2i   pos;
 	uint16  msg;
 	uint16  state;
 };

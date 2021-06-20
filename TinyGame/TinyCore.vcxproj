@@ -203,6 +203,7 @@
     <ClInclude Include="TinyCore\GameRenderSetup.h" />
     <ClInclude Include="TinyCore\RenderLayer.h" />
     <ClInclude Include="Widget\ConsoleFrame.h" />
+    <ClInclude Include="Widget\GameDetailPanel.h" />
     <ClInclude Include="Widget\WidgetLayout.h" />
     <ClInclude Include="Widget\WidgetUtility.h" />
     <None Include="out\Shader\Game\CurveContour.sgc" />

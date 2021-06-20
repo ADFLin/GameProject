@@ -1227,9 +1227,6 @@
     <ClInclude Include="Reflection\ReflectClass.h">
       <Filter>Reflection</Filter>
     </ClInclude>
-    <ClInclude Include="Template\StaticString.h">
-      <Filter>Template</Filter>
-    </ClInclude>
     <ClInclude Include="Meta\IndexList.h">
       <Filter>Meta</Filter>
     </ClInclude>
@@ -1334,6 +1331,9 @@
     </ClInclude>
     <ClInclude Include="InlineString.h">
       <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Template\ConstString.h">
+      <Filter>Template</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

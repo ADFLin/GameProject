@@ -448,7 +448,11 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 			ui = mNamedSlots[ESlotName::Modal]->hitTestChildren(mLastMouseMsg.getPos() - mNamedSlots[ESlotName::Modal]->getPos());
 		}		
 	}
-	else
+	else if (mLastMouseMsg.getMsg() & MBS_WHEEL)
+	{
+		ui = mNamedSlots[ESlotName::Focus];
+	}
+	else 
 	{
 		ui = hitTest( mLastMouseMsg.getPos() );
 	}

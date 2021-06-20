@@ -227,6 +227,7 @@ void main()
 		}
 		inoutCode += " compatibility\n";
 
+
 		char const* extensionString = option.getMeta("GLSLExtensions");
 
 		if (extensionString)
@@ -250,6 +251,9 @@ void main()
 			inoutCode += "#define ";
 			inoutCode += entry.name;
 			inoutCode += " main\n";
+
+			inoutCode += "#define SHADER_ENTRY_main 1\n";
+
 		}
 	}
 
@@ -294,7 +298,7 @@ void main()
 
 			if( bUsePreprocess )
 			{
-				if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+				if (!preprocessCode(input.path, output.compileInfo, input.definition, input.sourceLibrary, codeBuffer))
 					return false;
 
 				sourceCodes[numSourceCodes] = &codeBuffer[0];
@@ -324,7 +328,7 @@ void main()
 					std::vector< char > buf(maxLength);
 					int logLength = 0;
 					glGetShaderInfoLog(shaderHandle, maxLength, &logLength, &buf[0]);
-					OutputError(buf.data());
+					emitCompileError(input , buf.data());
 				}
 			};
 

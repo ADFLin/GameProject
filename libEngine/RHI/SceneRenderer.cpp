@@ -464,8 +464,8 @@ namespace Render
 		mLightingBuffer->setDepth( sceneRenderTargets.getDepthTexture() );
 		mLightingDepthBuffer->setDepth(sceneRenderTargets.getDepthTexture());
 
-		VERIFY_RETURN_FALSE(MeshBuild::LightSphere(mSphereMesh));
-		VERIFY_RETURN_FALSE(MeshBuild::LightCone(mConeMesh));
+		VERIFY_RETURN_FALSE(FMeshBuild::LightSphere(mSphereMesh));
+		VERIFY_RETURN_FALSE(FMeshBuild::LightCone(mConeMesh));
 
 #define GET_LIGHTING_SHADER( LIGHT_TYPE , NAME )\
 		VERIFY_RETURN_FALSE( mProgLightingScreenRect[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< TDeferredLightingProgram< LIGHT_TYPE > >(true) );\

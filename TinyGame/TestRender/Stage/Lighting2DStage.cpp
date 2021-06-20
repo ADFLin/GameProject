@@ -255,13 +255,13 @@ namespace Render
 		g.endRender();
 	}
 
-	void Lighting2DTestStage::renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex  )
+	void Lighting2DTestStage::renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertices  )
 	{
 
 		if (bUseGeometryShader)
 		{
-			int idxPrev = numVertex - 1;
-			for (int idxCur = 0; idxCur < numVertex; idxPrev = idxCur, ++idxCur)
+			int idxPrev = numVertices - 1;
+			for (int idxCur = 0; idxCur < numVertices; idxPrev = idxCur, ++idxCur)
 			{
 				Vector2 const& prev = pos + vertices[idxPrev];
 				Vector2 const& cur = pos + vertices[idxCur];
@@ -271,8 +271,8 @@ namespace Render
 		}
 		else
 		{
-			int idxPrev = numVertex - 1;
-			for (int idxCur = 0; idxCur < numVertex; idxPrev = idxCur, ++idxCur)
+			int idxPrev = numVertices - 1;
+			for (int idxCur = 0; idxCur < numVertices; idxPrev = idxCur, ++idxCur)
 			{
 				Vector2 const& prev = pos + vertices[idxPrev];
 				Vector2 const& cur = pos + vertices[idxCur];

@@ -221,23 +221,10 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateFrameBuffer() );
 	}
 
-#if USE_RHI_RESOURCE_TRACE
-	RHIInputLayout* RHICreateInputLayoutTrace(ResTraceInfo const& traceInfo, InputLayoutDesc const& desc)
+	RHIInputLayout* RHI_TRACE_FUNC(RHICreateInputLayout, InputLayoutDesc const& desc)
 	{
-		auto result = EXECUTE_RHI_FUNC(RHICreateInputLayout(desc));
-		if (result)
-		{
-			result->mTrace = traceInfo;
-		}
-		return result;
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateInputLayout(desc)));
 	}
-#else
-	RHIInputLayout* RHICreateInputLayout(InputLayoutDesc const& desc)
-	{
-		return EXECUTE_RHI_FUNC(RHICreateInputLayout(desc));
-	}
-#endif
-
 
 	RHIRasterizerState* RHI_TRACE_FUNC(RHICreateRasterizerState, RasterizerStateInitializer const& initializer)
 	{
@@ -264,23 +251,10 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateShader(type) );
 	}
 
-#if USE_RHI_RESOURCE_TRACE
-	RHIShaderProgram* RHICreateShaderProgramTrace(ResTraceInfo const& traceInfo)
+	RHIShaderProgram* RHI_TRACE_FUNC(RHICreateShaderProgram)
 	{
-		RHIShaderProgram* result = EXECUTE_RHI_FUNC(RHICreateShaderProgram());
-		if (result)
-		{
-			result->mTrace = traceInfo;
-		}
-		return result;
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateShaderProgram()));
 	}
-#else
-	RHIShaderProgram* RHICreateShaderProgram()
-	{
-		return EXECUTE_RHI_FUNC(RHICreateShaderProgram());
-	}
-#endif
-
 
 	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode)
 	{

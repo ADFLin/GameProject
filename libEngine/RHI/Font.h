@@ -33,8 +33,8 @@ namespace Render
 	struct FontFaceInfo
 	{
 		FontFaceInfo() {}
-		FontFaceInfo(char const* name, int size, bool bBold)
-			:name(name), size(size), bBold(bBold)
+		FontFaceInfo(HashString inName, int inSize, bool inbBold)
+			:name(inName), size(inSize), bBold(inbBold)
 		{
 		}
 

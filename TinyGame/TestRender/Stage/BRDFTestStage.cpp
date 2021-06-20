@@ -61,7 +61,7 @@ namespace Render
 		registerTexture("Normal", mNormalTexture);
 		registerTexture("BRDF", IBLResource::SharedBRDFTexture);
 
-		VERIFY_RETURN_FALSE(MeshBuild::SkyBox(mSkyBox));
+		VERIFY_RETURN_FALSE(FMeshBuild::SkyBox(mSkyBox));
 
 		{
 			TIME_SCOPE("BRDF Shader");

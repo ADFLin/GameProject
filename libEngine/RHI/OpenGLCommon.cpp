@@ -4,7 +4,6 @@
 #include "MarcoCommon.h"
 #include "Core/IntegerType.h"
 
-
 #include "GLExtensions.h"
 
 namespace Render
@@ -1299,23 +1298,32 @@ namespace Render
 			}
 			else
 			{
-				if (e.componentType == GL_FLOAT)
+				switch(e.componentType)
 				{
-					switch (e.componentNum)
+				case GL_FLOAT:
 					{
-					case 1: glVertexAttrib1fv(e.attribute, (float*)offset); break;
-					case 2: glVertexAttrib2fv(e.attribute, (float*)offset); break;
-					case 3: glVertexAttrib3fv(e.attribute, (float*)offset); break;
-					case 4: glVertexAttrib4fv(e.attribute, (float*)offset); break;
+						switch (e.componentNum)
+						{
+						case 1: glVertexAttrib1fv(e.attribute, (float*)offset); break;
+						case 2: glVertexAttrib2fv(e.attribute, (float*)offset); break;
+						case 3: glVertexAttrib3fv(e.attribute, (float*)offset); break;
+						case 4: glVertexAttrib4fv(e.attribute, (float*)offset); break;
+						}
 					}
 					break;
-				}
-				else
-				{
-
-
-
-
+				case GL_INT:
+					{
+						switch (e.componentNum)
+						{
+						case 1: glVertexAttribI1iv(e.attribute, (int*)offset); break;
+						case 2: glVertexAttribI2iv(e.attribute, (int*)offset); break;
+						case 3: glVertexAttribI3iv(e.attribute, (int*)offset); break;
+						case 4: glVertexAttribI4iv(e.attribute, (int*)offset); break;
+						}
+						break;
+					}
+				default:
+					LogWarning(0, "glVertexAttrib not impl");
 				}
 			}
 		}

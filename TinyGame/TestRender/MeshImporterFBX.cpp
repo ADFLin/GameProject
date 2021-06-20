@@ -277,9 +277,9 @@ namespace Render
 
 		} // for polygonCount
 
-		std::vector< int > indexData;
+		std::vector< uint32 > indexData;
 		indexData.resize(numTriangles * 3);
-		int* pIndex = &indexData[0];
+		uint32* pIndex = &indexData[0];
 		vertexId = 0;
 
 		for (int idxPolygon = 0; idxPolygon < polygonCount; idxPolygon++)

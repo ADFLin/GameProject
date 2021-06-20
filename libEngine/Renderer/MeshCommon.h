@@ -18,12 +18,34 @@ namespace Render
 
 		Vector3 const& operator[](int idx) const { return get(idx); }
 
-		int32  getNum() const { return numVertex; }
+
+		bool isValid() const
+		{
+			return vertexDataStride > 0;
+		}
+
 		uint8 const* pVertexData;
-		uint32 vertexDataStride;
-		int32  numVertex;
+		int32  vertexDataStride;
 	};
 
+	struct VertexElementWriter
+	{
+		template< class T = Vector3 >
+		T& get(int idx) const
+		{
+			return *(T*)(pVertexData + idx * vertexDataStride);
+		}
+
+		Vector3& operator[](int idx) const { return get(idx); }
+
+		bool isValid() const
+		{
+			return vertexDataStride > 0;
+		}
+
+		uint8* pVertexData;
+		int32  vertexDataStride;
+	};
 
 	enum class EAdjacencyType
 	{

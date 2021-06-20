@@ -76,10 +76,13 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 	}
 
 
-	IFont* font = IFont::loadFont( DATA_DIR"DialogueFont.TTF" );
+	IFont* font = IFont::loadFont( DATA_DIR"Fragile Bombers.TTF" );
+	//IFont* font = IFont::loadFont("Bitwise");
 	//IFont* font = NULL;
-	if ( font )
-		mFonts.push_back( font );
+	if (font)
+	{
+		mFonts.push_back(font);
+	}
 
 	mSoundMgr.reset( new SoundManager );
 

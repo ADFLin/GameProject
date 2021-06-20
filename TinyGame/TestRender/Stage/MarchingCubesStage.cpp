@@ -433,7 +433,7 @@ namespace Render
 			Vector3 normal;
 		};
 		std::vector< Vertex > vertices;
-		std::vector< int32 >  indices;
+		std::vector< uint32 > indices;
 	};
 
 	struct VoxelMeshBuilder

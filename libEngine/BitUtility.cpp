@@ -119,7 +119,11 @@ uint32 FBitUtility::Reverse(uint32 n)
 	return (n >> 16) | (n << 16);
 }
 
-static int const gBitIndexMap[9] = { 0 , 0 , 1 , 1 , 2 , 2 , 2 , 2 , 3 };
+static int const gBitIndexMap[9] = 
+{ 
+	0 , 
+	0, 1, 1, 2, 2, 2, 2, 3, 
+};
 
 int FBitUtility::ToIndex4(unsigned bit)
 {

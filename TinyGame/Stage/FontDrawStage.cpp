@@ -162,13 +162,13 @@ public:
 	{
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		g.beginRender();
 
-		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(1, 1, 0.2, 1), 1);
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 		DrawUtility::DrawTexture(commandList, g.getBaseTransform(), mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
 
-
+		g.beginRender();
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"
 			"你對愛並不了解　誤會愛的分類\n"
@@ -201,7 +201,7 @@ public:
 			"遍地野生的薔薇　不如玫瑰珍貴\n"
 			"承諾要灰飛煙滅　誰還能被愛紀念\n"
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
-#if 1
+#if 0
 		glColor4f(1, 0.5, 0, 1);
 		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha >::GetRHI());
 		drawText(commandList, Vec2i(100, 50), (const wchar_t*)( textBuffer.data()));

@@ -178,6 +178,7 @@
     <None Include="..\TinyGame\out\Shader\Game\NoiseTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Parallax.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PlanetSurface.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\Plant.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PointToRectOutline.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PongShader.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\RayTraceSDF.sgc" />
@@ -245,6 +246,7 @@
     <None Include="..\TinyGame\out\Shader\VertexFactoryProcess.sgc" />
     <None Include="..\TinyGame\out\Shader\ViewParam.sgc" />
     <None Include="..\TinyGame\out\Shader\VolumetricLighting.sgc" />
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

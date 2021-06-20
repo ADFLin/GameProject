@@ -13,7 +13,7 @@
 namespace Render
 {
 
-	bool MeshBuild::Tile(Mesh& mesh, int tileSize, float len, bool bHaveSkirt)
+	bool FMeshBuild::Tile(Mesh& mesh, int tileSize, float len, bool bHaveSkirt)
 	{
 		int const vLen = (tileSize + 1);
 		int const nV = (bHaveSkirt) ? (vLen * vLen + 4 * vLen) : (vLen * vLen);
@@ -151,7 +151,7 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::UVSphere(Mesh& mesh, float radius, int rings, int sectors)
+	bool FMeshBuild::UVSphere(Mesh& mesh, float radius, int rings, int sectors)
 	{
 		assert(rings > 1);
 		assert(sectors > 0);
@@ -161,7 +161,7 @@ namespace Render
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 		// #FIXME: Bug
-		//mesh.mDecl.addElement(EVertex::eTexcoord, EVertex::Float4, 1);
+		//mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TANGENT, EVertex::Float4);
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = (rings - 1) * (sectors + 1) + 2 * sectors;
@@ -283,12 +283,13 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::SkyBox(Mesh& mesh)
+	bool FMeshBuild::SkyBox(Mesh& mesh)
 	{
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float3);
-		Vector3 v[] =
+
+		Vector3 vertices[] =
 		{
 			Vector3(1,1,1),Vector3(1,1,1),
 			Vector3(-1,1,1),Vector3(-1,1,1),
@@ -299,7 +300,8 @@ namespace Render
 			Vector3(1,-1,-1),Vector3(1,-1,-1),
 			Vector3(-1,-1,-1),Vector3(-1,-1,-1),
 		};
-		int idx[] =
+
+		uint32 indices[] =
 		{
 			0 , 4 , 6 , 2 ,
 			1 , 3 , 7 , 5 ,
@@ -311,17 +313,17 @@ namespace Render
 
 		if (0)
 		{
-			if (!mesh.createRHIResource(&v[0], 8, &idx[0], 4 * 6, true))
+			if (!mesh.createRHIResource(&vertices[0], 8, &indices[0], 4 * 6, true))
 				return false;
 
 			mesh.mType = EPrimitive::Quad;
 		}
 		else
 		{
-			std::vector< int > indices;
+			std::vector< uint32 > tempIndices;
 			int numTriangles;
-			MeshUtility::ConvertToTriangleListIndices(EPrimitive::Quad, idx, 4 * 6, indices, numTriangles);
-			if (!mesh.createRHIResource(&v[0], 8, indices.data(), indices.size(), true))
+			MeshUtility::ConvertToTriangleListIndices(EPrimitive::Quad, indices, 4 * 6, tempIndices, numTriangles);
+			if (!mesh.createRHIResource(&vertices[0], 8, tempIndices.data(), tempIndices.size(), true))
 				return false;
 
 			mesh.mType = EPrimitive::TriangleList;
@@ -329,7 +331,7 @@ namespace Render
 
 		return true;
 	}
-	bool MeshBuild::CubeShare(Mesh& mesh, float halfLen)
+	bool FMeshBuild::CubeShare(Mesh& mesh, float halfLen)
 	{
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -357,7 +359,7 @@ namespace Render
 			{ halfLen * Vector3(-1,-1,1),Vector3(-1,0,0),{ 0,1 } },
 		};
 
-		int indices[] =
+		uint32 indices[] =
 		{
 			0 , 1 , 2 , 0 , 2 , 3 , //x
 			4 , 5 , 6 , 4 , 6 , 7 , //-x
@@ -376,7 +378,7 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::CubeOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
+	bool FMeshBuild::CubeOffset(Mesh& mesh, float halfLen, Vector3 const& offset)
 	{
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -428,7 +430,7 @@ namespace Render
 			v.pos += offset;
 		}
 #if 1
-		int indices[] =
+		uint32 indices[] =
 		{
 			0 , 1 , 2 , 0 , 2 , 3 ,
 			4 , 5 , 6 , 4 , 6 , 7 ,
@@ -443,7 +445,7 @@ namespace Render
 		if (!mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 6, true))
 			return false;
 #else
-		int indices[] =
+		uint32 indices[] =
 		{
 			0 , 1 , 2 , 3 ,
 			4 , 5 , 6 , 7 ,
@@ -462,12 +464,12 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::Cube(Mesh& mesh, float halfLen /*= 1.0f*/)
+	bool FMeshBuild::Cube(Mesh& mesh, float halfLen /*= 1.0f*/)
 	{
 		return CubeOffset(mesh, halfLen, Vector3::Zero());
 	}
 
-	bool MeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
+	bool FMeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -573,7 +575,7 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
+	bool FMeshBuild::Plane(Mesh& mesh, Vector3 const& offset, Vector3 const& normal, Vector3 const& dirY, Vector2 const& size, float texFactor)
 	{
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -604,7 +606,7 @@ namespace Render
 			{ offset - v2 , axisZ , { texFactor , 0 } , } ,
 		};
 
-		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
 		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 4, &idx[0], 6);
 		if (!mesh.createRHIResource(&v[0], 4, &idx[0], 6, true))
@@ -614,7 +616,7 @@ namespace Render
 	}
 
 
-	bool MeshBuild::SimpleSkin(Mesh& mesh, float width, float height, int nx, int ny)
+	bool FMeshBuild::SimpleSkin(Mesh& mesh, float width, float height, int nx, int ny)
 	{
 		struct FVertex
 		{
@@ -686,7 +688,7 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::ObjFileMesh(Mesh& mesh, MeshData& data)
+	bool FMeshBuild::ObjFileMesh(Mesh& mesh, MeshData& data)
 	{
 		int maxNumVertex = data.numPosition * data.numNormal;
 		std::vector< int > idxMap(maxNumVertex, -1);
@@ -694,7 +696,7 @@ namespace Render
 		std::vector< int > indices(data.numIndex);
 		vertices.reserve(maxNumVertex);
 
-		int numVertex = 0;
+		int numVertices = 0;
 		for (int i = 0; i < data.numIndex; ++i)
 		{
 			int idxPos = data.indices[2 * i] - 1;
@@ -703,8 +705,8 @@ namespace Render
 			int idx = idxMap[idxToVertex];
 			if (idx == -1)
 			{
-				idx = numVertex;
-				++numVertex;
+				idx = numVertices;
+				++numVertices;
 				idxMap[idxToVertex] = idx;
 
 				float* p = data.position + 3 * idxPos;
@@ -721,7 +723,7 @@ namespace Render
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		if (!mesh.createRHIResource(&vertices[0], numVertex, &indices[0], data.numIndex, true))
+		if (!mesh.createRHIResource(&vertices[0], numVertices, &indices[0], data.numIndex, true))
 			return false;
 		return true;
 	}
@@ -739,7 +741,7 @@ namespace Render
 		}
 	};
 
-	bool MeshBuild::LoadObjectFile(Mesh& mesh, char const* path, Matrix4* pTransform, OBJMaterialBuildListener* listener, int* skip)
+	bool FMeshBuild::LoadObjectFile(Mesh& mesh, char const* path, Matrix4* pTransform, OBJMaterialBuildListener* listener, int* skip)
 	{
 		//std::ifstream objStream(path);
 		//if( !objStream.is_open() )
@@ -758,7 +760,7 @@ namespace Render
 		if (shapes.empty())
 			return true;
 
-		int numVertex = 0;
+		int numVertices = 0;
 		int numIndices = 0;
 
 		int shapeIndex = 0;
@@ -776,11 +778,11 @@ namespace Render
 				continue;
 			}
 			tinyobj::mesh_t& objMesh = shapes[i].mesh;
-			numVertex += objMesh.positions.size() / 3;
+			numVertices += objMesh.positions.size() / 3;
 			numIndices += objMesh.indices.size();
 		}
 
-		if (numVertex == 0)
+		if (numVertices == 0)
 			return false;
 
 		mesh.mInputLayoutDesc.clear();
@@ -794,8 +796,8 @@ namespace Render
 		}
 
 		int vertexSize = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
-		std::vector< float > vertices(numVertex * vertexSize);
-		std::vector< int > indices;
+		std::vector< float > vertices(numVertices * vertexSize);
+		std::vector< uint32 > indices;
 		indices.reserve(numIndices);
 
 
@@ -929,7 +931,7 @@ namespace Render
 			if (pTransform)
 			{
 				float*v = &vertices[0];
-				for (int i = 0; i < numVertex; ++i)
+				for (int i = 0; i < numVertices; ++i)
 				{
 					Vector3& pos = *reinterpret_cast<Vector3*>(v);
 					pos = Math::TransformPosition(pos, *pTransform);
@@ -937,16 +939,16 @@ namespace Render
 				}
 			}
 			if (!shapes[0].mesh.texcoords.empty())
-				MeshUtility::FillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				MeshUtility::FillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertices, &indices[0], indices.size());
 			else
-				MeshUtility::FillNormal_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				MeshUtility::FillNormal_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertices, &indices[0], indices.size());
 		}
 		else
 		{
 			if (pTransform)
 			{
 				float* v = &vertices[0];
-				for (int i = 0; i < numVertex; ++i)
+				for (int i = 0; i < numVertices; ++i)
 				{
 					Vector3& pos = *reinterpret_cast<Vector3*>(v);
 					Vector3& noraml = *reinterpret_cast<Vector3*>(v + 3);
@@ -960,7 +962,7 @@ namespace Render
 			else
 			{
 				float* v = &vertices[0];
-				for (int i = 0; i < numVertex; ++i)
+				for (int i = 0; i < numVertices; ++i)
 				{
 					Vector3& noraml = *reinterpret_cast<Vector3*>(v + 3);
 					noraml.normalize();
@@ -968,9 +970,11 @@ namespace Render
 				}
 			}
 			if (!shapes[0].mesh.texcoords.empty())
-				MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+			{
+				MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertices, &indices[0], indices.size());
+			}
 		}
-		if (!mesh.createRHIResource(&vertices[0], numVertex, &indices[0], indices.size(), true))
+		if (!mesh.createRHIResource(&vertices[0], numVertices, &indices[0], indices.size(), true))
 			return false;
 
 		if (listener)
@@ -1012,7 +1016,7 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
+	bool FMeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
 	{
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -1034,10 +1038,10 @@ namespace Render
 			{ len * Vector3(1,-1,0) , Vector3(0,0,1) , { texFactor , 0 } , } ,
 		};
 
-		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+		uint32 indices[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 4, &idx[0], 6);
-		if (!mesh.createRHIResource(&v[0], 4, &idx[0], 6, true))
+		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 4, &indices[0], 6);
+		if (!mesh.createRHIResource(&v[0], 4, &indices[0], 6, true))
 			return false;
 
 		return true;
@@ -1148,30 +1152,188 @@ namespace Render
 		KeyMap  mKeyMap;
 	};
 
-	bool MeshBuild::IcoSphere(Mesh& mesh, float radius, int numDiv)
+
+	struct VertexTraits_PN
+	{
+		struct Type
+		{
+			Vector3 v;
+			Vector3 n;
+		};
+		static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
+		{
+			vtx.n = Math::GetNormal(pos);
+			vtx.v = radius * vtx.n;
+		}
+	};
+
+	bool FMeshBuild::IcoSphere(Mesh& mesh, float radius, int numDiv)
 	{
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 
-		struct VertexTraits
-		{
-			struct Type
-			{
-				Vector3 v;
-				Vector3 n;
-			};
-			static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
-			{
-				vtx.n = Math::GetNormal(pos);
-				vtx.v = radius * vtx.n;
-			}
-		};
-
-		TIcoSphereBuilder< VertexTraits > builder;
+		TIcoSphereBuilder< VertexTraits_PN > builder;
 		return builder.build(mesh, radius, numDiv);
 	}
 
-	bool MeshBuild::LightSphere(Mesh& mesh)
+
+	template< class VertexTraits >
+	class TOctSphereBuilder
+	{
+	public:
+		using VertexType = typename VertexTraits::Type;
+		TOctSphereBuilder(MeshBuildData& buildData)
+			:mBuidlData(buildData)
+		{
+
+		}
+
+		bool build(float radius, int level)
+		{
+			mVertexCount = 0;
+			mRadius = radius;
+
+			int const FaceCount = 4;
+			mBuidlData.vertexData.resize(( 2 + FaceCount * Math::Squre(level + 1)) * sizeof(VertexType) );
+			mBuidlData.indexData.resize( 3 * 2 * FaceCount * Math::Squre(level + 1));
+			uint32* pIndex = mBuidlData.indexData.data();
+			VertexType* pVertex = (VertexType*)mBuidlData.vertexData.data();
+
+			auto AddVertex = [&](Vector3 const& v)
+			{
+				VertexTraits::SetVertex(pVertex[mVertexCount], mRadius, v);
+				++mVertexCount;
+			};
+
+			auto AddTriangle = [&](uint32 i0, uint32 i1, uint32 i2)
+			{
+				pIndex[0] = i0;
+				pIndex[1] = i1;
+				pIndex[2] = i2;
+				pIndex += 3;
+			};
+			auto AddTrianglePair = [&](uint32 i0, uint32 i1, uint32 i2)
+			{
+				AddTriangle(i0, i1, i2);
+				AddTriangle(i0 + 1, i2 + 1, i1 + 1);
+			};
+
+			float const dPhi = 0.5 * Math::PI / float(level + 1);
+			uint32 indexLayerPrev = 0;
+			AddVertex(Vector3(0, 0, 1));
+			AddVertex(Vector3(0, 0, -1));
+			for (int layer = 0; layer < level; ++layer)
+			{
+				uint32 const indexLayer = mVertexCount;
+
+				float r, z;
+				Math::SinCos((layer + 1) * dPhi, r, z);
+
+				int const faceLen = layer + 1;
+				int const ringLen = FaceCount * faceLen;
+				float const dTheta = 2 * Math::PI / float(ringLen);
+				float const offsetTheta = 0.5 * dTheta * faceLen;
+
+				uint32 iRing = 0;
+				for (uint32 iFace = 0; iFace < FaceCount; ++iFace)
+				{
+					for (uint32 faceOffset = 0; faceOffset < faceLen; ++faceOffset)
+					{
+						float x, y;
+						Math::SinCos(iRing * dTheta - offsetTheta, y, x);
+						uint32 index0 = mVertexCount;
+						AddVertex(Vector3(r * x, r * y, z));
+						AddVertex(Vector3(r * x, r * y, -z));
+
+						uint32 index1 = (iRing == ringLen - 1) ? indexLayer : index0 + 2;
+						uint32 indexPrev = indexLayerPrev + 2 * (iFace * layer + faceOffset);
+						uint32 indexPrev0 = (iRing == ringLen - 1) ? indexLayerPrev : indexPrev;
+						AddTrianglePair(index0, index1, indexPrev0);
+
+						if (faceOffset != faceLen - 1)
+						{
+							uint32 indexPrev1 = (iRing == ringLen - 2) ? indexLayerPrev : indexPrev + 2;
+							AddTrianglePair(index1, indexPrev1, indexPrev);
+						}
+						++iRing;
+					}
+				}
+
+				indexLayerPrev = indexLayer;
+			}
+
+			{
+				//Mid Ring
+				uint32 const indexLayer = mVertexCount;
+
+				int const layer = level;
+				int const faceLen = layer + 1;
+				int const ringLen = FaceCount * faceLen;
+				float const dTheta = 2 * Math::PI / float(ringLen);
+				float const offsetTheta = 0.5 * dTheta * faceLen;
+
+				uint32 iRing = 0;
+				for (uint32 iFace = 0; iFace < FaceCount; ++iFace)
+				{	
+					for (uint32 faceOffset = 0; faceOffset < faceLen; ++faceOffset)
+					{
+						float x, y;
+						Math::SinCos(iRing * dTheta - offsetTheta, y, x);
+						uint32 index0 = mVertexCount;
+						AddVertex(Vector3(x, y, 0));
+
+						uint32 index1 = (iRing == ringLen - 1) ? indexLayer : index0 + 1;
+						uint32 indexPrev = indexLayerPrev + 2 * (iFace * layer + faceOffset);
+						uint32 indexPrev0 = (iRing == ringLen - 1) ? indexLayerPrev : indexPrev;
+						AddTriangle(index0, index1, indexPrev0);
+						AddTriangle(index0, indexPrev0 + 1, index1);
+
+						if (faceOffset != faceLen - 1)
+						{
+							uint32 indexPrev1 = (iRing == ringLen - 2) ? indexLayerPrev : indexPrev + 2;
+							AddTriangle(index1, indexPrev1, indexPrev);
+							AddTriangle(index1, indexPrev + 1, indexPrev1 + 1);
+						}
+
+						++iRing;
+					}
+				}
+			}
+			                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+
+			return true;
+		}
+
+		int    mVertexCount;
+		float  mRadius;
+
+		MeshBuildData& mBuidlData;
+	};
+
+
+	bool FMeshBuild::OctSphere(Mesh& mesh, float radius, int level)
+	{
+		MeshBuildData buildData;
+		if (!OctSphere(buildData, mesh.mInputLayoutDesc, radius, level))
+		{
+			return false;
+		}
+
+		mesh.mType = EPrimitive::TriangleList;
+		return buildData.initializeRHI(mesh);
+	}
+
+	bool FMeshBuild::OctSphere(MeshBuildData& data, InputLayoutDesc& inputLayoutDesc, float radius, int level)
+	{
+		inputLayoutDesc.clear();
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
+		inputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
+
+		TOctSphereBuilder< VertexTraits_PN > builder(data);
+		return builder.build(radius, level);
+	}
+
+	bool FMeshBuild::LightSphere(Mesh& mesh)
 	{
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		struct VertexTraits
@@ -1189,7 +1351,7 @@ namespace Render
 		return builder.build(mesh, 1.00, 4);
 	}
 
-	bool MeshBuild::LightCone(Mesh& mesh)
+	bool FMeshBuild::LightCone(Mesh& mesh)
 	{
 		int numSide = 96;
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);

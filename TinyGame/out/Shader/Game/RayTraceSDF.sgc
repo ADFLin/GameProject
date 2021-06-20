@@ -327,14 +327,10 @@ float3 CalcLighting(float3 pos, int matId , float3 rayDir, float rayDist , float
 	return lighting;
 }
 
-#if !SHADER_COMPILING
-#define SHADER_ENTRY_BasePassPS 1
-#define SHADER_ENTRY_LightingPS 1
-#endif
-
 #if PIXEL_SHADER
 
-#if SHADER_ENTRY_BasePassPS
+#if SHADER_ENTRY(BasePassPS)
+
 PS_ENTRY_START(BasePassPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 #if USE_DEFERRED_RENDERING
@@ -400,9 +396,9 @@ PS_ENTRY_END(BasePassPS)
 
 }
 
-#endif //SHADER_ENTRY_BasePassPS
+#endif //SHADER_ENTRY(BasePassPS)
 
-#if SHADER_ENTRY_LightingPS
+#if SHADER_ENTRY(LightingPS)
 
 DEFINE_TEXTURE(Texture2D, RenderTargetA);
 DEFINE_TEXTURE(Texture2D, RenderTargetB);
@@ -438,6 +434,6 @@ PS_ENTRY_END(LightingPS)
 	//OutColor = float4(pos, 1);
 }
 
-#endif //SHADER_ENTRY_LightingPS
+#endif //SHADER_ENTRY(LightingPS)
 
 #endif

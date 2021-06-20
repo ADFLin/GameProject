@@ -110,7 +110,7 @@ namespace CFly
 		void setupStream( int idx , VertexBuffer& buffer );
 		void setFillMode( RenderMode mode );
 		void setVertexBlend( VertexType vertexType );
-		void renderPrimitive( EPrimitive type , unsigned numEle , unsigned numVertex , IndexBuffer* indexBuffer );
+		void renderPrimitive( EPrimitive type , unsigned numEle , unsigned numVertices , IndexBuffer* indexBuffer );
 
 
 		void setupTexAdressMode( int idxSampler , TextureType texType , TexAddressMode mode[] );

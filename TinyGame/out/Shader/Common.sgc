@@ -2,6 +2,7 @@
 
 #include "ShaderDefine.sgc"
 
+
 #if COMPILER_GLSL
 #define USE_RIGHT_HAND_COORD 1
 #endif

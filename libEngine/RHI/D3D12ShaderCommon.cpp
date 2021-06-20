@@ -68,7 +68,7 @@ namespace Render
 					return false;
 				}
 
-				if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+				if (!preprocessCode(input.path, output.compileInfo, input.definition, input.sourceLibrary, codeBuffer))
 					return false;
 			}
 			else
@@ -148,7 +148,7 @@ namespace Render
 					TComPtr<IDxcBlobEncoding> errorsBlob;
 					hr = compileResult->GetErrorBuffer(&errorsBlob);
 
-					OutputError((LPCSTR)errorsBlob->GetBufferPointer());
+					emitCompileError(input, (LPCSTR)errorsBlob->GetBufferPointer());
 				}
 				continue;
 			}

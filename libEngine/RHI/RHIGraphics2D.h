@@ -112,6 +112,7 @@ public:
 	}
 	void  setTextColor(Color3ub const& color);
 	void  drawText(Vector2 const& pos, char const* str);
+	void  drawText(Vector2 const& pos, wchar_t const* str);
 	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip = false);
 	void  drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
@@ -135,7 +136,9 @@ public:
 private:
 	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
 	void emitVertex(Vector2 const& v);
-	void drawTextImpl(float ox, float oy, char const* str);
+
+	template< typename CharT >
+	void drawTextImpl(float ox, float oy, CharT const* str);
 
 	void drawPolygonBuffer();
 	void drawLineBuffer();

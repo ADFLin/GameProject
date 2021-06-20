@@ -615,10 +615,10 @@ namespace CFly
 		return vertexDecl;
 	}
 
-	VertexBuffer* MeshCreator::createVertexBuffer( unsigned vertexSize , int numVertex )
+	VertexBuffer* MeshCreator::createVertexBuffer( unsigned vertexSize , int numVertices )
 	{
 		VertexBuffer* vtxBuffer = new VertexBuffer;
-		if ( !vtxBuffer->create( getD3DDevice() , vertexSize , numVertex , mUsageSoftwareVertexProcess ) )
+		if ( !vtxBuffer->create( getD3DDevice() , vertexSize , numVertices , mUsageSoftwareVertexProcess ) )
 		{
 			delete vtxBuffer;
 			return nullptr;
@@ -626,9 +626,9 @@ namespace CFly
 		return vtxBuffer;
 	}
 
-	VertexBuffer* MeshCreator::createVertexBuffer( unsigned vertexSize , int numVertex , void* vertex , unsigned offset , unsigned stride )
+	VertexBuffer* MeshCreator::createVertexBuffer( unsigned vertexSize , int numVertices , void* vertex , unsigned offset , unsigned stride )
 	{
-		VertexBuffer* vtxBuffer = createVertexBuffer( vertexSize , numVertex );
+		VertexBuffer* vtxBuffer = createVertexBuffer( vertexSize , numVertices );
 		if ( !vtxBuffer )
 			return nullptr;
 
@@ -639,15 +639,15 @@ namespace CFly
 			return nullptr;
 		}
 
-		VertexUtility::fillData( dest , vertexSize , numVertex , static_cast< char*>( vertex ) + offset ,  stride );
+		VertexUtility::fillData( dest , vertexSize , numVertices , static_cast< char*>( vertex ) + offset ,  stride );
 		vtxBuffer->unlock();
 		return vtxBuffer;
 	}
 
-	VertexBuffer* MeshCreator::createVertexBufferFVF( DWORD FVF , unsigned vertexSize , unsigned numVertex )
+	VertexBuffer* MeshCreator::createVertexBufferFVF( DWORD FVF , unsigned vertexSize , unsigned numVertices )
 	{
 		VertexBuffer* vtxBuffer = new VertexBuffer;
-		if ( !vtxBuffer->createFVF( getD3DDevice() , FVF , vertexSize , numVertex , mUsageSoftwareVertexProcess ) )
+		if ( !vtxBuffer->createFVF( getD3DDevice() , FVF , vertexSize , numVertices , mUsageSoftwareVertexProcess ) )
 		{
 			delete vtxBuffer;
 			return nullptr;

@@ -91,14 +91,7 @@ float FR3(float2 uv, int numOctaves)
 
 #if PIXEL_SHADER
 
-#if !SHADER_COMPILING
-#define SHADER_ENTRY_MainPS 1
-#define SHADER_ENTRY_TestPS 1
-#define SHADER_ENTRY_SmokeRenderPS 1
-#define SHADER_ENTRY_SmokeBlendPS 1
-#endif
-
-#if SHADER_ENTRY_MainPS
+#if SHADER_ENTRY(MainPS)
 
 PS_ENTRY_START(MainPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
@@ -150,7 +143,7 @@ PS_ENTRY_END(MainPS)
 	//OutColor = float4(1, v, v, 1);
 }
 
-#endif //SHADER_ENTRY_MainPS
+#endif //SHADER_ENTRY(MainPS)
 
 
 float FBMTest(float2 uv , int octaves)
@@ -178,7 +171,7 @@ float FBMTest(float2 uv , int octaves)
 	return result / total;
 }
 
-#if SHADER_ENTRY_TestPS
+#if SHADER_ENTRY(TestPS)
 
 PS_ENTRY_START(TestPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
@@ -197,7 +190,7 @@ PS_ENTRY_END(TestPS)
 
 }
 
-#endif //SHADER_ENTRY_TestPS
+#endif //SHADER_ENTRY(TestPS)
 
 #if 1
 float GetFBM(float3 pos, const float maxOctaves, const float frequency, bool turbulence = false)
@@ -305,7 +298,7 @@ float GetJitter(float2 pixelCoord, float2 temporalJitter)
 
 
 
-#if SHADER_ENTRY_SmokeRenderPS
+#if SHADER_ENTRY(SmokeRenderPS)
 
 PS_ENTRY_START(SmokeRenderPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
@@ -457,7 +450,7 @@ PS_ENTRY_END(SmokeRenderPS)
 	//OutColor = float4(IndexStep.xxx / 300 , 0);
 }
 
-#endif //SHADER_ENTRY_SmokeRenderPS
+#endif //SHADER_ENTRY(SmokeRenderPS)
 
 DEFINE_TEXTURE(Texture2D, FrameTexture);
 DEFINE_TEXTURE(Texture2D, HistroyTexture);
@@ -465,7 +458,7 @@ DEFINE_TEXTURE(Texture2D, DepthTexture);
 
 #define USE_REPROJECTION 0
 
-#if SHADER_ENTRY_SmokeBlendPS
+#if SHADER_ENTRY(SmokeBlendPS)
 
 PS_ENTRY_START(SmokeBlendPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
@@ -504,7 +497,7 @@ PS_ENTRY_END(SmokeBlendPS)
 
 }
 
-#endif //SHADER_ENTRY_SmokeBlendPS
+#endif //SHADER_ENTRY(SmokeBlendPS)
 
 #endif
 

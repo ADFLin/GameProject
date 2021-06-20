@@ -12,6 +12,7 @@ using namespace Render;
 
 #include "FrameAllocator.h"
 
+#define QA_USE_RHI 1
 
 class ColBody;
 typedef std::vector< ColBody* > ColBodyVec;
@@ -98,6 +99,8 @@ public:
 	Vec3f const& getAmbientLight() const { return mAmbientLight; }
 	void         setAmbientLight( Vec3f const& color ) { mAmbientLight = color; }
 private:
+
+	void   renderBasePass(RenderParam& param);
 
 	void   renderLightingFBO( RenderParam& param );
 	void   renderNormalFBO( RenderParam& param );

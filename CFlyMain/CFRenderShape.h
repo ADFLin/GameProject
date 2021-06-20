@@ -161,11 +161,11 @@ namespace CFly
 		MeshBase*       createMesh( EPrimitive primitive , MeshBase* shapeVertexShared , int* idx , int numIdx );
 		MeshBase*       createLines( LineType type , VertexType vType , float* v , int nV );
 		
-		VertexBuffer*   createVertexBufferFVF( DWORD FVF , unsigned vertexSize , unsigned numVertex );
+		VertexBuffer*   createVertexBufferFVF( DWORD FVF , unsigned vertexSize , unsigned numVertices );
 		VertexBuffer*   createVertexBufferFVF( DWORD FVF , void* v , int nV , VertexInfo const& info , int nAddV = 0 );
 
-		VertexBuffer*   createVertexBuffer( unsigned vertexSize , int numVertex );
-		VertexBuffer*   createVertexBuffer( unsigned vertexSize , int numVertex , void* vertex , unsigned offset , unsigned stride  );
+		VertexBuffer*   createVertexBuffer( unsigned vertexSize , int numVertices );
+		VertexBuffer*   createVertexBuffer( unsigned vertexSize , int numVertices , void* vertex , unsigned offset , unsigned stride  );
 
 		IndexBuffer*    createIndexBuffer( void* idx , unsigned numIdx , unsigned  stride , bool useIntIndex );
 		IndexBuffer*    createIndexBuffer( short* idx , unsigned numIdx , bool useIntIndex );

@@ -7,6 +7,7 @@
 #include "BitmapDC.h"
 #endif //SYS_PLATFORM_WIN
 #include <cuchar>
+#include "FileSystem.h"
 
 namespace Render
 {
@@ -264,10 +265,13 @@ namespace Render
 			charData.atlasId = mUsedTextAtlas->addImage(imageData.width, imageData.height, ETexture::RGBA8, &imageData.imageData[0]);
 		}
 
+		if (charData.atlasId != -1)
+		{
+			mUsedTextAtlas->getRectUV(charData.atlasId, charData.uvMin, charData.uvMax);
+		}
+
 		charData.advance = imageData.advance;
 		charData.kerning = imageData.kerning;
-		mUsedTextAtlas->getRectUV(charData.atlasId, charData.uvMin, charData.uvMax);
-
 		return charData;
 	}
 

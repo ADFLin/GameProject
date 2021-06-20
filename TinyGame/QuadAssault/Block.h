@@ -6,6 +6,7 @@
 #include "BlockId.h"
 
 Vec2f const gSimpleBlockSize = Vec2f( BLOCK_SIZE , BLOCK_SIZE );
+class RenderContext;
 
 enum DoorType
 {
@@ -24,7 +25,7 @@ enum BlockFlag
 	BF_NONSIMPLE     = BIT( 1 ),
 };
 
-typedef unsigned char BlockId;
+using BlockId = uint8;
 struct Tile
 {
 	BlockId   id;
@@ -52,6 +53,7 @@ public:
 	virtual void  init( BlockId type );
 	virtual void  onCollision( Tile& tile , Bullet* bullet );
 
+	virtual void  renderBasePass(Tile const& tile, RenderContext& context);
 	virtual void  render( Tile const& tile );
 	virtual void  renderNormal( Tile const& tile );
 	virtual void  renderGlow( Tile const& tile );

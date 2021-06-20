@@ -10,9 +10,11 @@
 #include "StdUtility.h"
 #include "DataCacheInterface.h"
 #include "ConsoleSystem.h"
+#include "CPreprocessor.h"
+#include "ProfileSystem.h"
 
 #include <iterator>
-#include "ProfileSystem.h"
+
 
 //#TODO remove
 #include "Renderer/BasePassRendering.h"
@@ -390,6 +392,15 @@ namespace Render
 		return result;
 	}
 
+	void ShaderManager::cleanupLoadedSource()
+	{
+		if (mSourceLibrary)
+		{
+			delete mSourceLibrary;
+			mSourceLibrary = nullptr;
+		}
+	}
+
 #endif //CORE_SHARE_CODE
 
 
@@ -406,7 +417,7 @@ namespace Render
 
 	ShaderManager::~ShaderManager()
 	{
-
+		cleanupLoadedSource();
 	}
 
 	void ShaderManager::clearnupRHIResouse()
@@ -688,7 +699,7 @@ namespace Render
 			managedData->sourceFile = sourceFile;
 		generateCompileSetup(*managedData, entries, option, additionalCode , fileName , bSingleFile );
 
-		if( !updateShaderInternal(shaderProgram, *managedData) )
+		if( !buildShader(shaderProgram, *managedData) )
 		{
 			delete managedData;
 			return false;
@@ -722,7 +733,7 @@ namespace Render
 
 		generateCompileSetup(*managedData, entry, option, additionalCode, fileName, true);
 
-		if (!updateShaderInternal(shader, *managedData))
+		if (!buildShader(shader, *managedData))
 		{
 			delete managedData;
 			return false;
@@ -758,7 +769,7 @@ namespace Render
 			info->compileInfos.emplace_back(entry.type, filePaths[i]  , std::move(headCode) , entry.name);
 		}
 
-		if( !updateShaderInternal(shaderProgram, *info) )
+		if( !buildShader(shaderProgram, *info) )
 		{
 			delete info;
 			return false;
@@ -802,7 +813,7 @@ namespace Render
 			generateCompileSetup(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
 		}
 
-		return updateShaderInternal(shaderProgram, *managedData, true);
+		return buildShader(shaderProgram, *managedData, true);
 	}
 
 
@@ -824,7 +835,7 @@ namespace Render
 			generateCompileSetup(*info, myClass.entry , option, nullptr, myClass.GetShaderFileName(), true);
 		}
 
-		return updateShaderInternal(shader, *info, true);
+		return buildShader(shader, *info, true);
 
 	}
 
@@ -835,13 +846,13 @@ namespace Render
 			switch (pair.first->getType())
 			{
 			case EShaderObjectType::Shader:
-				updateShaderInternal(
+				buildShader(
 					*static_cast<Shader*>(pair.first),
 					*static_cast<ShaderManagedData*>(pair.second),
 					true);
 				break;
 			case EShaderObjectType::Program:
-				updateShaderInternal(
+				buildShader(
 					*static_cast<ShaderProgram*>(pair.first), 
 					*static_cast<ShaderProgramManagedData*>( pair.second ), 
 					true);
@@ -872,12 +883,12 @@ namespace Render
 		}
 	}
 
-	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload)
+	bool ShaderManager::buildShader(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload)
 	{
 		if ( !RHIIsInitialized() )
 			return false;
 
-		TIME_SCOPE("Update Shader");
+		TIME_SCOPE("Build Shader Program");
 
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData) )
 		{
@@ -892,6 +903,11 @@ namespace Render
 		}
 		else
 		{
+			if (mSourceLibrary == nullptr)
+			{
+				mSourceLibrary = new CPP::CodeSourceLibrary;
+			}
+
 			if (!managedData.sourceFile.empty())
 			{
 				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.compileInfos[0].filePath.c_str(), managedData.sourceFile.c_str());
@@ -919,6 +935,7 @@ namespace Render
 			for (ShaderCompileInfo& shaderInfo : managedData.compileInfos)
 			{
 				ShaderCompileInput  compileInput;
+				compileInput.sourceLibrary = mSourceLibrary;
 				compileInput.type = shaderInfo.type;
 				compileInput.entry = shaderInfo.entryName.c_str();
 				compileInput.path = shaderInfo.filePath.c_str();
@@ -968,13 +985,13 @@ namespace Render
 	}
 
 
-	bool ShaderManager::updateShaderInternal(Shader& shader, ShaderManagedData& managedData, bool bForceReload)
+	bool ShaderManager::buildShader(Shader& shader, ShaderManagedData& managedData, bool bForceReload)
 	{
 		if (!RHIIsInitialized())
 			return false;
 
 
-		TIME_SCOPE("Update Shader");
+		TIME_SCOPE("Build Shader");
 
 		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
 		{
@@ -989,6 +1006,11 @@ namespace Render
 		}
 		else
 		{
+			if (mSourceLibrary == nullptr)
+			{
+				mSourceLibrary = new CPP::CodeSourceLibrary;
+			}
+
 			if (!managedData.sourceFile.empty())
 			{
 				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.compileInfo.filePath.c_str(), managedData.sourceFile.c_str());
@@ -1007,6 +1029,7 @@ namespace Render
 			ShaderCompileInfo& shaderInfo = managedData.compileInfo;
 
 			ShaderCompileInput  compileInput;
+			compileInput.sourceLibrary = mSourceLibrary;
 			compileInput.type = shaderInfo.type;
 			compileInput.entry = shaderInfo.entryName.c_str();
 			compileInput.path = shaderInfo.filePath.c_str();
@@ -1149,7 +1172,8 @@ namespace Render
 	{
 		if (action == EFileAction::Modify)
 		{
-			ShaderManager::Get().updateShaderInternal(*shaderProgram, *this, true);
+			ShaderManager::Get().buildShader(*shaderProgram, *this, true);
+			ShaderManager::Get().cleanupLoadedSource();
 		}
 	}
 
@@ -1171,7 +1195,8 @@ namespace Render
 	{
 		if (action == EFileAction::Modify)
 		{
-			ShaderManager::Get().updateShaderInternal(*shader, *this, true);
+			ShaderManager::Get().buildShader(*shader, *this, true);
+			ShaderManager::Get().cleanupLoadedSource();
 		}
 	}
 

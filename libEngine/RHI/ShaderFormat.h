@@ -11,6 +11,11 @@
 
 #define SHADER_FILE_SUBNAME ".sgc"
 
+namespace CPP
+{
+	class CodeSourceLibrary;
+}
+
 namespace Render
 {
 	class Shader;
@@ -58,6 +63,8 @@ namespace Render
 		char const* entry;
 		char const* definition;
 
+		CPP::CodeSourceLibrary* sourceLibrary;
+
 		struct ShaderProgramSetupData* programSetupData;
 		struct ShaderSetupData* shaderSetupData;
 
@@ -65,6 +72,7 @@ namespace Render
 		{
 			programSetupData = nullptr;
 			shaderSetupData = nullptr;
+			sourceLibrary = nullptr;
 		}
 	};
 
@@ -134,13 +142,15 @@ namespace Render
 			return false;
 		}
 
-		bool preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, std::vector<char>& inoutCodes );
+		bool preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<char>& inoutCodes );
 
 		virtual ShaderPreprocessSettings getPreprocessSettings()
 		{
 			return ShaderPreprocessSettings();
 		}
-		static void OutputError(char const* text);
+
+		void emitCompileError(ShaderCompileInput const& input, char const* errorCode);
+		static void OutputError(char const* title, char const* text);
 		
 
 		bool bOuputPreprocessedCode = true;

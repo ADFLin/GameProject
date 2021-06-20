@@ -560,7 +560,6 @@ namespace Render
 
 			ATTRIBUTE_UNUSED = 0xff,
 
-
 			// for NVidia
 			//gl_Vertex	0
 			//gl_Normal	2
@@ -575,6 +574,7 @@ namespace Render
 			//gl_MultiTexCoord5	13
 			//gl_MultiTexCoord6	14
 			//gl_MultiTexCoord7	15
+
 			ATTRIBUTE_POSITION = ATTRIBUTE0,
 			ATTRIBUTE_TANGENT = ATTRIBUTE15,
 			ATTRIBUTE_NORMAL = ATTRIBUTE2,
@@ -662,6 +662,22 @@ namespace Render
 	{
 	public:
 		InputLayoutDesc();
+
+		InputLayoutDesc(InputLayoutDesc&& other)
+			:mElements(std::move(other.mElements))
+		{
+			std::copy(other.mVertexSizes, other.mVertexSizes + MAX_INPUT_STREAM_NUM, mVertexSizes);
+		}
+
+		InputLayoutDesc& operator = (InputLayoutDesc&& other)
+		{
+			mElements = std::move(other.mElements);
+			std::copy(other.mVertexSizes, other.mVertexSizes + MAX_INPUT_STREAM_NUM, mVertexSizes);
+			return *this;
+		}
+
+		InputLayoutDesc(InputLayoutDesc const& other) = default;
+		InputLayoutDesc& operator = (InputLayoutDesc const& other) = default;
 
 		void   clear();
 		uint16 getElementOffset(int idx) const { return mElements[idx].offset; }

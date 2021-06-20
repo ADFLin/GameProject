@@ -213,11 +213,11 @@ bool HLBspFileDataV30::load( char const* path )
 	mMipTex        = reinterpret_cast< BspV30::miptex_t* >( getLumpData( BspV30::LUMP_TEXTURES ) );
 
 	int numLeaf = getLumpDataLength( BspV30::LUMP_LEAVES ) / sizeof( BspV30::leaf_t );
-	int numVertex = getLumpDataLength( BspV30::LUMP_VERTICES ) / sizeof( BspV30::vertex_t );
+	int numVertices = getLumpDataLength( BspV30::LUMP_VERTICES ) / sizeof( BspV30::vertex_t );
 
 	//mVertexList.assign( 
 	//	reinterpret_cast< Vector3* >( mVertexs ) , 
-	//	reinterpret_cast< Vector3* >( mVertexs ) + numVertex );
+	//	reinterpret_cast< Vector3* >( mVertexs ) + numVertices );
 
 	loadEntity();
 

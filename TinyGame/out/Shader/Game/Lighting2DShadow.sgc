@@ -40,7 +40,7 @@ struct GSOutputParams
 
 [instance(1)]
 [maxvertexcount(4)]
-void MainGS(line float4 SvPositions[2] : SV_POSITION, line VSOutputParams VSOutputs[2], inout TriangleStream< GSOutputParams > OutputStream)
+void MainGS(line float4 SvPositions[2] : SV_POSITION, inout TriangleStream< GSOutputParams > OutputStream)
 {
 #endif
 

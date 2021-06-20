@@ -204,7 +204,7 @@ namespace Render
 				LogWarning(0, "Can't load shader file %s", input.path);
 				return false;
 			}
-			if (!preprocessCode(input.path, output.compileInfo, input.definition, codeBuffer))
+			if (!preprocessCode(input.path, output.compileInfo, input.definition, input.sourceLibrary, codeBuffer))
 			{
 				return false;
 			}
@@ -253,7 +253,7 @@ namespace Render
 
 		if (shaderc_result_get_compilation_status(resultHandle) != shaderc_compilation_status_success)
 		{
-			OutputError( shaderc_result_get_error_message(resultHandle) );
+			emitCompileError(input, shaderc_result_get_error_message(resultHandle) );
 			return false;
 		}
 
@@ -337,7 +337,7 @@ namespace Render
 			process.readOutputStream(outputBuffer, ARRAY_SIZE(outputBuffer), readSize);
 			outputBuffer[readSize] = 0;
 
-			OutputError(outputBuffer);
+			emitCompileError(input, outputBuffer);
 			return false;
 		}
 

@@ -624,11 +624,11 @@ namespace Render
 			int idx = 0;
 			for( LoadModelInfo const& info : ModelList )
 			{
-				VERIFY_RETURN_FALSE( MeshBuild::LoadObjectFile(mMeshs[info.id], info.name, &MeshTransform[idx], nullptr, nullptr) );
+				VERIFY_RETURN_FALSE( FMeshBuild::LoadObjectFile(mMeshs[info.id], info.name, &MeshTransform[idx], nullptr, nullptr) );
 				++idx;
 			}
-			VERIFY_RETURN_FALSE( MeshBuild::Cube(mMeshs[MeshId::Cube], 1) );
-			VERIFY_RETURN_FALSE( MeshBuild::UVSphere(mMeshs[MeshId::Sphere], 1 , 30 , 30 ) );
+			VERIFY_RETURN_FALSE( FMeshBuild::Cube(mMeshs[MeshId::Cube], 1) );
+			VERIFY_RETURN_FALSE( FMeshBuild::UVSphere(mMeshs[MeshId::Sphere], 1 , 30 , 30 ) );
 
 			int NumObjects = 1000;
 			float boundSize = 50;

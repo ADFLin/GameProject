@@ -74,7 +74,7 @@ namespace CFly
 		return D3DFMT_D24S8;
 	}
 
-	void RenderSystem::renderPrimitive( EPrimitive type , unsigned numEle , unsigned numVertex , IndexBuffer* indexBuffer )
+	void RenderSystem::renderPrimitive( EPrimitive type , unsigned numEle , unsigned numVertices , IndexBuffer* indexBuffer )
 	{
 		HRESULT hr;
 		CF_PROFILE("renderPrimitive");
@@ -83,7 +83,7 @@ namespace CFly
 		if ( indexBuffer )
 		{
 			mD3dDevice->SetIndices( indexBuffer->getSystemImpl() );
-			hr = mD3dDevice->DrawIndexedPrimitive( d3dPrimitiveType , 0 , 0 , numVertex, 0 , numEle  );
+			hr = mD3dDevice->DrawIndexedPrimitive( d3dPrimitiveType , 0 , 0 , numVertices, 0 , numEle  );
 		}
 		else
 		{

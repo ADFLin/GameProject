@@ -17,7 +17,7 @@
 #include <functional>
 #include <type_traits>
 
-#define IGNORE_NSIGHT_UNSUPPORT_CODE 0
+#define IGNORE_NSIGHT_UNSUPPORTED_CODE 0
 #define GL_NULL_HANDLE 0
 
 namespace Render
@@ -648,7 +648,7 @@ namespace Render
 
 	struct PrimitiveDebugInfo
 	{
-		int32 numVertex;
+		int32 numVertices;
 		int32 numIndex;
 		int32 numElement;
 	};

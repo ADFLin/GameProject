@@ -543,11 +543,20 @@ public:
 		if (!FFileSystem::IsExist(path))
 			return false;
 
-		mFontName = path;
+		int numFonts = AddFontResourceEx(path, FR_PRIVATE, NULL);
+		if (numFonts == 0)
+		{
+			return false;
+		}
+		mFontPath = path;
 		return true;
 	}
 	virtual void release()
 	{
+		if (mFontPath.length())
+		{
+			RemoveFontResourceExA(mFontPath.c_str(), FR_PRIVATE, NULL);
+		}
 		delete this;
 	}
 
@@ -567,14 +576,14 @@ public:
 
 		auto drawer = std::make_unique< Drawer >();
 		drawer->owner = this;
-		drawer->initialize(FontFaceInfo(mFontName.c_str(), size, false));
+		drawer->initialize(FontFaceInfo(FFileUtility::GetBaseFileName(mFontPath.c_str()), size, false));
 
 		Drawer* result = drawer.get();
 		mDrawerMap.emplace(size, std::move(drawer));
 		return result;
 	}
 
-	std::string mFontName;
+	std::string mFontPath;
 
 	std::unordered_map<int, std::unique_ptr< Drawer > > mDrawerMap;
 };

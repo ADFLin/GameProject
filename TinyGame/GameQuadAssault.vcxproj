@@ -228,6 +228,7 @@
   <ItemGroup>
     <ClCompile Include="QuadAssault\Actor.cpp" />
     <ClCompile Include="QuadAssault\Block.cpp" />
+    <ClCompile Include="QuadAssault\BlockRender.cpp" />
     <ClCompile Include="QuadAssault\Bullet.cpp" />
     <ClCompile Include="QuadAssault\Collision.cpp" />
     <ClCompile Include="QuadAssault\DebrisParticle.cpp" />

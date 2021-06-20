@@ -120,7 +120,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 		bool setupRenderSystem(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
@@ -130,7 +130,7 @@ namespace Render
 		void onRender( float dFrame ) override;
 
 
-		void renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex );
+		void renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertices );
 
 		void restart();
 

@@ -104,7 +104,7 @@ namespace Render
 				return false;
 
 			//VERIFY_RETURN_FALSE(MeshBuild::Cube(mMesh, 1));
-			VERIFY_RETURN_FALSE(MeshBuild::IcoSphere(mMesh, 1, 3));
+			VERIFY_RETURN_FALSE(FMeshBuild::IcoSphere(mMesh, 1, 3));
 			
 
 			char const* testDataPath = "DistField/test.data";

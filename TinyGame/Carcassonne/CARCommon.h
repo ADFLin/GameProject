@@ -52,7 +52,7 @@ namespace CAR
 		}
 		operator bool()
 		{ 
-			return FBitUtility::MaskIterator< NumBits >(mask, index);
+			return FBitUtility::IterateMask< NumBits >(mask, index);
 		}
 		void operator ++(int) {}
 		void operator ++(){}

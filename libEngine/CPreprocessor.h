@@ -5,7 +5,7 @@
 #include "StringParse.h"
 #include "HashString.h"
 
-#include "Template/StaticString.h"
+#include "Template/ConstString.h"
 
 #include <vector>
 #include <string>
@@ -80,7 +80,7 @@ namespace CPP
 	struct OperationInfo
 	{
 		EOperator::Type type;
-		StaticString    text;
+		ConstString text;
 		EOperatorPrecedence::Type precedence;
 	};
 
@@ -123,9 +123,183 @@ namespace CPP
 		static int FindOperator(char const* code, EOperator::Type& outType);
 	};
 
-	class CodeLoc
+	class FCodeParse
 	{
 	public:
+		static bool IsValidStartCharForIdentifier(char c)
+		{
+			if (c < 0)
+				return false;
+			return FCString::IsAlpha(c) || c == '_';
+		}
+
+		static bool IsValidCharForIdentifier(char c)
+		{
+			if (c < 0)
+				return false;
+
+			return ::isalnum(c) || c == '_';
+		}
+
+		static int SkipConcat(char const*& Code)
+		{
+			if (Code[0] == '\\')
+			{
+				if (Code[1] == '\n')
+				{
+					Code += 2;
+					return 2;
+				}
+				else if (Code[1] == '\r' && Code[2] == '\n')
+				{
+					Code += 3;
+					return 3;
+				}
+			}
+			return 0;
+		}
+
+		static int Advance(char const*& code)
+		{
+			++code;
+			return 1 + SkipConcat(code);
+		}
+
+		static int Backward(char const*& code)
+		{
+			--code;
+			if (code[0] == '\n')
+			{
+				if (code[-1] == '\\')
+				{
+					code -= 2;
+					return 2;
+				}
+				else if (code[-1] == '\r' && code[-2] == '\\')
+				{
+					code -= 3;
+					return 3;
+				}
+			}
+			return 0;
+		}
+
+		static bool SkipBOM(char const*& code)
+		{
+			if (code[0] == '\xef' &&
+				code[1] == '\xbb' &&
+				code[2] == '\xbF')
+			{
+				code += 3;
+				return true;
+			}
+
+			return false;
+		}
+	};
+
+	template< class T >
+	class CodeTokenUtiliyT : public FCodeParse
+	{
+	public:
+		T* _this() { return static_cast<T*>(this); }
+
+		void advance();
+		char const* getCur();
+		void skipToLineEnd();
+
+		char getChar() { return *_this()->getCur(); }
+
+		bool tokenChar(char c)
+		{
+			if (_this()->getChar() != c)
+				return false;
+
+			_this()->advance();
+			return true;
+		}
+
+		bool tokenIdentifier(StringView& outIdentifier)
+		{
+			char const* start = _this()->getCur();
+
+			if (!IsValidStartCharForIdentifier(_this()->getChar()))
+				return false;
+			
+			do
+			{
+				_this()->advance();
+			} 
+			while (IsValidCharForIdentifier(_this()->getChar()));
+
+			outIdentifier = StringView(start, _this()->getCur() - start);
+			return true;
+
+		}
+
+		bool tokenNumber(int& outValue)
+		{
+			char const* start = _this()->getCur();
+
+			if (!FCString::IsDigit(_this()->getChar()))
+				return false;
+
+			for (;;)
+			{
+				_this()->advance();
+				if (!FCString::IsDigit(_this()->getChar()))
+					break;
+			}
+
+			outValue = FStringConv::To<int>(start, _this()->getCur() - start);
+			return true;
+
+		}
+
+		bool tokenLineString(StringView& outString, bool bCutTailSpace = true)
+		{
+			char const* start = _this()->getCur();
+			_this()->skipToLineEnd();
+			char const* end = _this()->getCur();
+
+			if (end == start)
+				return false;
+
+			if ( bCutTailSpace )
+			{
+				while (end != start)
+				{
+					Backward(end);
+
+					if (!FCString::IsSpace(*end))
+						break;
+				}
+			}
+
+			outString = StringView(start, end - start + 1);
+			return true;
+		}
+
+		void skipSpaceInLine()
+		{
+			while (char c = _this()->getChar())
+			{
+				if (c != ' ' &&  c != '\t' && c != '\r')
+					break;
+
+				_this()->advance();
+			}
+		}
+	};
+
+
+	class CodeLoc : public CodeTokenUtiliyT< CodeLoc >
+	{
+	public:
+		bool isEoF() const { return *mCur == 0; }
+		bool isEoL() const { return *mCur == '\n' || (mCur[0] == '\r' && mCur[1] == '\n'); }
+
+		char const* getCur() { return mCur; }
 
 		void skipToNextLine()
 		{
@@ -176,31 +350,6 @@ namespace CPP
 			}
 		}
 
-		void skipSpaceInLine()
-		{
-			while (*mCur)
-			{
-				if (*mCur != ' ' && *mCur != '\t' && *mCur != '\r')
-					break;
-
-				advance();
-			}
-		}
-
-		void advanceNoConcat()
-		{
-			if (mCur[0] == '\n')
-			{
-				++mLineCount;
-			}
-
-			++mCur;
-
-			if (SkipConcat(mCur))
-			{
-				++mLineCount;
-			}
-		}
 
 		void advanceNoEoL(int offset)
 		{
@@ -228,61 +377,14 @@ namespace CPP
 			}
 		}
 
-		bool isEoF() const { return *mCur == 0; }
-		bool isEoL() const { return *mCur == '\n'; }
 
-		static bool SkipConcat(char const*& Code)
-		{
-			if (Code[0] == '\\')
-			{
-				if (Code[1] == '\n')
-				{
-					Code += 2;
-					return true;
-				}
-				else if (Code[1] == '\r' && Code[2] == '\n')
-				{
-					Code += 3;
-					return true;
-				}
-			}
-			return false;
-		}
 
-		static void Advance(char const*& code)
-		{
-			++code;
-			SkipConcat(code);
-		}
-		static bool Backward(char const*& code)
-		{
-			--code;
-			if (code[0] == '\n')
-			{
-				if (code[-1] == '\\')
-				{
-					code -= 2;
-					return true;
-				}
-				else if (code[-1] == '\r' && code[-2] == '\\')
-				{
-					code -= 3;
-					return true;
-				}
-			}
-			return false;
-		}
-		static bool SkipBOM(char const*& code)
-		{
-			if (code[0] == '\xef' &&
-				code[1] == '\xbb' &&
-				code[2] == '\xbF')
-			{
-				code += 3;
-				return true;
-			}
+		char operator [](int index) const { return mCur[index]; }
 
-			return false;
+
+		StringView getDifference(CodeLoc const& start)
+		{
+			return StringView(start.mCur, mCur - start.mCur);
 		}
 
 		char const* mCur;
@@ -350,6 +452,19 @@ namespace CPP
 		STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT(SyntaxError)
 	};
 
+	class CodeSourceLibrary
+	{
+	public:
+
+		~CodeSourceLibrary();
+
+		CodeSource* FindOrLoadSource(HashString const& path);
+
+		void cleanup();
+
+		std::unordered_map< HashString, CodeSource* > mSourceMap;
+	};
+
 	class Preprocessor
 	{
 	public:
@@ -358,14 +473,15 @@ namespace CPP
 
 		void translate(CodeSource& sorce);
 		void setOutput(CodeOutput& output);
+		void setSourceLibrary(CodeSourceLibrary& sourceLibrary);
 		void addSreachDir(char const* dir);
 		void addDefine(char const* name, int value);
 
-		void getIncludeFiles(std::vector< HashString >& outFiles);
+		void getUsedIncludeFiles(std::vector< HashString >& outFiles);
 
-		bool bSupportMarcoArg = false;
-		bool bReplaceMarcoText = false;
-		bool bCanRedefineMarco = false;
+		bool bSupportMarcoArg = true;
+		bool bReplaceMarcoText = true;
+		bool bAllowRedefineMarco = false;
 		bool bCommentIncludeFileName = true;
 		bool bAddLineMarco = true;
 		enum LineFormat
@@ -398,6 +514,8 @@ namespace CPP
 		bool parseUndef();
 		bool parseDefined(int& ret);
 
+		bool parseConditionExpression(int& ret);
+
 		bool parseExpression(int& ret);
 		bool parseExpression(CodeLoc const& loc, int& ret)
 		{
@@ -414,33 +532,37 @@ namespace CPP
 		bool parseExprOp(int& ret);
 
 
-
 		bool parseExprFactor(int& ret);
 		bool parseExprValue(int& ret);
 
-
 		bool ensureInputValid();
-		bool haveMore();
+		bool IsInputEnd();
 		bool skipToNextLine();
-		bool skipSpaceInLine();
-		bool tokenChar(char c);
 
-		void replaceMarco(StringView const& text , std::string& outText );
 
-		static bool IsValidStartCharForIdentifier(char c)
+		bool expandMarco(StringView const& lineText, std::string& outText );
+
+
+		struct ExpandMarcoResult
 		{
-			return FCString::IsAlpha(c) || c == '_';
-		}
+			int numRefMarco;
+			int numRefMarcoWithArgs;
 
-		static bool IsValidCharForIdentifier(char c)
-		{
-			return ::isalnum(c) || c == '_';
-		}
+			ExpandMarcoResult()
+			{
+				numRefMarco = 0;
+				numRefMarcoWithArgs = 0;
+			}
 
+			void add(ExpandMarcoResult const& other)
+			{
+				numRefMarco += other.numRefMarco;
+				numRefMarcoWithArgs += other.numRefMarcoWithArgs;
+			}
+		};
+		bool checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult);
+		bool expandMarcoInternal(class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult);
 
-		bool tokenIdentifier(StringView& outIdentifier);
-		bool tokenNumber(int& outValue);
-		bool tokenString(StringView& outString);
 		bool tokenControl(StringView& outName);
 
 
@@ -470,31 +592,47 @@ namespace CPP
 		{
 			return mBlockStateStack.back().bSkipText;
 		}
-		int numLine = 0;
-		bool emitWarning(char const*)
+
+		bool emitWarning(char const* msg)
 		{
-
-
-
+			LogWarning(0, msg);
 			return true;
 		}
-
 
 		struct MarcoSymbol
 		{
 			StringView  name;
 			std::string expr;
+			int numArgs;
+
+			uint32 flags;
+			enum EFlags
+			{
+				ConstEvalValue = BIT(0), 
+
+			};
 
 			struct ArgEntry
 			{
 				int indexArg;
-				int pos;
+				int offset;
 			};
 			std::vector< ArgEntry > argEntries;
 
-			int cacheEvalValue;
+			int cachedEvalValue;
 			int evalFrame;
 		};
+
+		MarcoSymbol* findMarco(StringView const& name);
+
+		MarcoSymbol* findMarcoInLineText(StringView& inoutText)
+		{
+
+
+
+
+		}
+
 
 		int mIfScopeDepth;
 		std::unordered_map< HashString, MarcoSymbol > mMarcoSymbolMap;
@@ -534,14 +672,6 @@ namespace CPP
 
 		CodeOutput* mOutput;
 
-		MarcoSymbol* findMarco(StringView token)
-		{
-			auto iter = mMarcoSymbolMap.find(token);
-			if( iter == mMarcoSymbolMap.end() )
-				return nullptr;
-			return &iter->second;
-		}
-
 		std::unordered_set< HashString >  mParamOnceSet;
 		std::vector< std::string > mFileSreachDirs;
 		std::unordered_set< HashString >  mUsedFiles;
@@ -550,8 +680,8 @@ namespace CPP
 		EOperator::Type mParsedCachedOP = EOperator::None;
 		EOperatorPrecedence::Type mParesedCacheOPPrecedence;
 
-		std::unordered_map< HashString, CodeSource* > mLoadedSourceMap;
-
+		CodeSourceLibrary* mSourceLibrary = nullptr;
+		bool mbSourceLibraryManaged = false;
 		friend class ExpressionEvaluator;
 	};
 

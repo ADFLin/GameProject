@@ -53,7 +53,7 @@ PS_ENTRY_END(MeshRenderPS)
 
 #endif
 
-#else //MESH_RENDER
+#else
 
 #if VERTEX_SHADER
 

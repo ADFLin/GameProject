@@ -44,6 +44,7 @@
 
 #include <fstream>
 #include <sstream>
+#include "RHI/RHICommand.h"
 
 
 void WorldData::build()
@@ -350,9 +351,17 @@ void LevelStage::onRender()
 {
 	RenderEngine* renderEngine = getGame()->getRenderEenine();
 
+#if QA_USE_RHI
+	using namespace Render;
+
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+	RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth , &LinearColor(0,0,0,1) , 1 );
+
+#else
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+#endif
 	//mWorldScaleFactor = 0.5f;
 
 	mRenderParam.camera      = mCamera;
@@ -362,6 +371,7 @@ void LevelStage::onRender()
 
 	renderEngine->renderScene( mRenderParam );
 
+#if 0
 	Message* msg = mLevel->getTopMessage();
 	if ( msg )
 		msg->render();
@@ -419,6 +429,7 @@ void LevelStage::onRender()
 	str.format( "x = %f , y = %f " , player->getPos().x , player->getPos().y );
 	mDevMsg->setString( str );
 	getRenderSystem()->drawText( mDevMsg , Vec2i( 10 , 10 ) , TEXT_SIDE_LEFT | TEXT_SIDE_RIGHT );
+#endif
 }
 
 bool LevelStage::onMouse( MouseMsg const& msg )
@@ -745,6 +756,7 @@ void LevelStage::loadLevel()
 
 void LevelStage::renderLoading()
 {
+	return;
 	Texture* texBG2 = getRenderSystem()->getTextureMgr()->getTexture("MenuLoading1.tga");		
 
 	getRenderSystem()->prevRender();

@@ -115,9 +115,9 @@ namespace MV
 		mCommandList = &RHICommandList::GetImmediateList();
 
 		{
-			if ( !MeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
-				 !MeshBuild::UVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
-				 !MeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , Vector2( 0.5 , 0.5) , 1 ) )
+			if ( !FMeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
+				 !FMeshBuild::UVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
+				 !FMeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , Vector2( 0.5 , 0.5) , 1 ) )
 				return false;
 
 			for( int i = 0 ; i < ARRAY_SIZE( GMeshInfo ) ; ++i )
@@ -126,7 +126,7 @@ namespace MV
 				InlineString< 256 > path = "Mesh/";
 				path += info.name; 
 				path += ".obj";
-				if ( !MeshBuild::LoadObjectFile( mMesh[ info.id ] , path ) )
+				if ( !FMeshBuild::LoadObjectFile( mMesh[ info.id ] , path ) )
 					return false;
 			}
 		}

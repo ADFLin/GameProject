@@ -27,6 +27,9 @@ public:
 	TStringView(CharT const* str , size_t num )
 		:mData(str),mNum(num){}
 
+	TStringView(StdString const& str)
+		:mData(str.data()),mNum(str.length()){ }
+
 	bool operator == (CharT const* other) const
 	{
 		return FCString::CompareN( mData , other , mNum ) == 0;
@@ -77,6 +80,15 @@ public:
 				--mNum;
 			}
 		}
+	}
+
+	bool operator == (TStringView const& rhs) const
+	{
+		return compare(rhs) == 0;
+	}
+	bool operator != (TStringView const& rhs) const
+	{
+		return compare(rhs) != 0;
 	}
 
 	int compare(TStringView const& other) const

@@ -41,7 +41,33 @@ uint32 FCString::StriHash(char const* str, int len)
 	return result;
 }
 
+uint32 FCString::StrHash(char const* str)
+{
+	uint32 result = 5381;
+	while (*str)
+	{
+		uint32 c = (uint32)*str;
+		result = ((result << 5) + result) + c; /* hash * 33 + c */
+		++str;
+	}
+	return result;
+}
+
+uint32 FCString::StrHash(char const* str, int len)
+{
+	uint32 result = 5381;
+	while (len)
+	{
+		uint32 c = (uint32)*str;
+		result = ((result << 5) + result) + c; /* hash * 33 + c */
+		++str;
+		--len;
+	}
+	return result;
+}
+
 thread_local wchar_t GWCharBuff[1024 * 256];
+
 std::wstring FCString::CharToWChar(const char *str)
 {
 	const size_t cSize = FCString::Strlen(str) + 1;

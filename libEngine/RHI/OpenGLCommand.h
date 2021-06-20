@@ -3,6 +3,7 @@
 #define OpenGLCommand_H_B1DE1168_106C_49AB_9275_1AA61D14E11D
 
 #include "RHICommand.h"
+#include "RHIGlobalResource.h"
 #include "RHICommandListImpl.h"
 
 #include "ShaderCore.h"
@@ -65,7 +66,7 @@ namespace Render
 	public:
 		OpenGLShaderBoundStateKey(GraphicsShaderStateDesc const& stateDesc)
 		{
-			hash = 0x123621;
+			hash = 0x12362dc1;
 			numShaders = 0;
 			auto CheckShader = [&](void* shader, GLbitfield stageBit)
 			{
@@ -86,7 +87,7 @@ namespace Render
 
 		OpenGLShaderBoundStateKey(MeshShaderStateDesc const& stateDesc)
 		{
-			hash = 0x123621;
+			hash = 0x12dc3621;
 			numShaders = 0;
 			auto CheckShader = [&](void* shader, GLbitfield stageBit)
 			{
@@ -177,7 +178,7 @@ namespace Render
 		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
 		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
 
-		void RHIDrawPrimitiveUP(EPrimitive type, int numVertex, VertexDataInfo dataInfos[], int numData);
+		void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData);
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 
 		void RHIDrawMeshTasks(int start, int count);
@@ -307,13 +308,13 @@ namespace Render
 			mSimplerSlotDirtyMask = 0;
 			for (int i = 0; i < BufferResoureTypeCount; ++i)
 			{
-				mBufferBinds[i].nextSlot = 0;
+				mBufferBindings[i].nextSlot = 0;
 			}
 		}
 
 
 
-		enum BufferBindType
+		enum EBufferBindingType
 		{
 			BBT_Uniform ,
 			BBT_Storage ,
@@ -321,22 +322,49 @@ namespace Render
 			BufferResoureTypeCount ,
 		};
 
-		struct BufferBindSlot
+		struct BufferBindingSlot
 		{
 			uint32 key;
 			GLuint handle;
 		};
 
-		struct BufferBindInfo
+		struct BufferBindingInfo
 		{
 			int nextSlot;
-			BufferBindSlot slots[128];
+			BufferBindingSlot slots[128];
+
+			int fetchSlot(GLuint shaderHandle, int loc, GLuint handle)
+			{
+				CHECK((shaderHandle & 0xffff0000) == 0);
+				CHECK((loc & 0xffff0000) == 0);
+
+				uint32 key = (shaderHandle << 16) | loc;
+				for (int indexSlot = 0; indexSlot != nextSlot; ++indexSlot)
+				{
+					BufferBindingSlot& slot = slots[indexSlot];
+					if (slot.key == key)
+					{
+						if (slot.handle != handle)
+						{
+							slot.handle = handle;
+							return indexSlot;
+						}
+						else
+						{
+							return INDEX_NONE;
+						}
+					}
+				}
+
+				int newSlotIndex = nextSlot;
+				++nextSlot;
+				BufferBindingSlot& newSlot = slots[newSlotIndex];
+				newSlot.key = key;
+				newSlot.handle = handle;
+				return newSlotIndex;
+			}
 		};
-
-		int fetchBufferBindSlot( BufferBindType type,  GLuint shaderHandle, int loc , GLuint handle );
-		
-
-		BufferBindInfo mBufferBinds[BufferResoureTypeCount];
+		BufferBindingInfo mBufferBindings[BufferResoureTypeCount];
 
 		RHIIndexBufferRef   mLastIndexBuffer;
 		OpenGLShaderBoundState* mLastShaderPipeline = nullptr;
@@ -374,23 +402,7 @@ namespace Render
 		int              mInputStreamCountPending = 0;
 		bool             mbHasInputStreamPendingSetted = false;
 
-
-		struct FixedShaderParams
-		{
-			Matrix4 transform;
-			LinearColor color;
-			RHITexture2D* texture;
-			RHISamplerState* sampler;
-
-			FixedShaderParams()
-			{
-				texture = nullptr;
-				sampler = nullptr;
-				transform == Matrix4::Identity();
-				color = LinearColor(1, 1, 1, 1);
-			}
-		};
-		FixedShaderParams mFixedShaderParams;
+		SimplePipelineParamValues mFixedShaderParams;
 
 		void commitFixedShaderState();
 		

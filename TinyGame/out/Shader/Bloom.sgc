@@ -1,10 +1,9 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
 
-
 #if PIXEL_SHADER
 
-#if SHADER_ENTRY_DownsamplePS
+#if SHADER_ENTRY(DownsamplePS)
 
 uniform float2 ExtentInverse;
 
@@ -35,9 +34,9 @@ PS_ENTRY_END(DownsamplePS)
 #endif
 
 }
-#endif
+#endif //SHADER_ENTRY(DownsamplePS)
 
-#if SHADER_ENTRY_BloomSetupPS
+#if SHADER_ENTRY(BloomSetupPS)
 
 DEFINE_TEXTURE(Texture2D, Texture);
 uniform float BloomThreshold;
@@ -53,9 +52,9 @@ PS_ENTRY_END(BloomSetupPS)
 	OutColor = float4(0.5 * bloomLuminance * color.rgb, 0);
 }
 
-#endif
+#endif //SHADER_ENTRY(BloomSetupPS)
 
-#if SHADER_ENTRY_FliterPS
+#if SHADER_ENTRY(FliterPS)
 
 #ifndef APPLY_ADD_TEXTURE
 #define APPLY_ADD_TEXTURE 0
@@ -103,8 +102,8 @@ PS_ENTRY_END(FliterPS)
 	OutColor = color;
 
 }
-#endif
+#endif //SHADER_ENTRY(FliterPS)
 
 
-#endif
+#endif //PIXEL_SHADER
 

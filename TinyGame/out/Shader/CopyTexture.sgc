@@ -1,18 +1,12 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
 
-#if !SHADER_COMPILING
-#define SHADER_ENTRY_CopyTexturePS 1
-#define SHADER_ENTRY_CopyTextureMaskPS 1
-#define SHADER_ENTRY_CopyTextureBiasPS 1
-#define SHADER_ENTRY_MappingTextureColorPS 1
-#endif
-
 #if PIXEL_SHADER
 
 DEFINE_TEXTURE( Texture2D , CopyTexture);
 
-#if SHADER_ENTRY_CopyTexturePS
+#if SHADER_ENTRY(CopyTexturePS)
+
 PS_ENTRY_START(CopyTexturePS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT( float4 OutColor , 0 )
@@ -21,11 +15,11 @@ PS_ENTRY_END(CopyTexturePS)
 	float2 UVs = VSOutput.UVs;
 	OutColor = TEXTURE_SAMPLE(CopyTexture, UVs);
 }
-#endif
+#endif //SHADER_ENTRY(CopyTexturePS)
 
 uniform float4 ColorMask;
 
-#if SHADER_ENTRY_CopyTextureMaskPS
+#if SHADER_ENTRY(CopyTextureMaskPS)
 
 PS_ENTRY_START(CopyTextureMaskPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
@@ -36,11 +30,12 @@ PS_ENTRY_END(CopyTextureMaskPS)
 	float c = dot(TEXTURE_SAMPLE(CopyTexture, UVs), ColorMask);
 	OutColor = float4( c , c , c , 1 );
 }
-#endif
+#endif //SHADER_ENTRY(CopyTextureMaskPS)
 
 uniform float2 ColorBais;
 
-#if SHADER_ENTRY_CopyTextureBiasPS
+#if SHADER_ENTRY(CopyTextureBiasPS)
+
 PS_ENTRY_START(CopyTextureBiasPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)
@@ -51,7 +46,7 @@ PS_ENTRY_END(CopyTextureBiasPS)
 	//OutColor = TEXTURE_SAMPE(CopyTexture, UVs).rgb;
 	OutColor = float4(color, 1);
 }
-#endif
+#endif //SHADER_ENTRY(CopyTextureBiasPS)
 
 uniform float2 ValueFactor;
 
@@ -69,7 +64,8 @@ GLOBAL_CONST float3 Color[] =
 	float3(0.5,0.5,1),
 };
 
-#if SHADER_ENTRY_MappingTextureColorPS
+#if SHADER_ENTRY(MappingTextureColorPS)
+
 PS_ENTRY_START(MappingTextureColorPS)
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
 	PS_OUTPUT(float4 OutColor, 0)
@@ -83,6 +79,6 @@ PS_ENTRY_END(MappingTextureColorPS)
 	OutColor = float4( Color[idx] , 1 );
 	//OutColor = float4(c, c, c, 1);
 }
-#endif
+#endif //SHADER_ENTRY(MappingTextureColorPS)
 
 #endif //PIXEL_SHADER

@@ -60,14 +60,13 @@ namespace Render
 			Vector3 color;
 		};
 
-		bool onInit() override
+
+
+		bool setupRenderSystem(ERenderSystem systemName) override
 		{
-			if( !BaseClass::onInit() )
-				return false;
+			VERIFY_RETURN_FALSE(createSimpleMesh());
 
-			VERIFY_RETURN_FALSE( createSimpleMesh() );
-
-			ShaderManager::Get().loadFile(mProgTest, "Shader/Game/HLSLTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS));
+			ShaderManager::Get().loadFile(mProgTest, "Shader/Test/HLSLTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS));
 
 			{
 				VERIFY_RETURN_FALSE(mCBuffer.initializeResource(1));
@@ -83,7 +82,7 @@ namespace Render
 			}
 
 			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.png");
-			if( !mTexture.isValid() )
+			if (!mTexture.isValid())
 				return false;
 
 			{
@@ -95,16 +94,16 @@ namespace Render
 					Vector2(0.5,-0.5),Vector3(0, 0, 1),Vector2(1, 0),
 				};
 
-				VERIFY_RETURN_FALSE( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
+				VERIFY_RETURN_FALSE(mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices));
 
 				InputLayoutDesc desc;
 				desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float2);
 				desc.addElement(0, EVertex::ATTRIBUTE_COLOR, EVertex::Float3);
 				desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
-				VERIFY_RETURN_FALSE( mInputLayout = RHICreateInputLayout(desc) );
+				VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
 
 				int32 indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
-				VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer( ARRAY_SIZE(indices) , true , BCF_DefalutValue , indices ) );
+				VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true, BCF_DefalutValue, indices));
 			}
 
 			{
@@ -126,9 +125,33 @@ namespace Render
 				VERIFY_RETURN_FALSE(mAxisInputLayout = RHICreateInputLayout(desc));
 			}
 
+		}
+
+
+		void preShutdownRenderSystem(bool bReInit) override
+		{
+			BaseClass::preShutdownRenderSystem(bReInit);
+
+			releaseRHIResource(bReInit);
+
+			mProgTest.releaseRHI();
+			mTexture.release();
+			mCBuffer.releaseResources();
+			mInputLayout.release();
+			mVertexBuffer.release();
+			mIndexBuffer.release();
+			mAxisInputLayout.release();
+			mAxisVertexBuffer.release();
+		}
+
+		bool onInit() override
+		{
+			if( !BaseClass::onInit() )
+				return false;
+
+
 			::Global::GUI().cleanupWidget();
 			
-
 			WidgetUtility::CreateDevFrame();
 			restart();
 			
@@ -197,12 +220,15 @@ namespace Render
 			{
 				GPU_PROFILE("Lock Buffer");
 				auto pData = mCBuffer.lock();
+				if ( pData )
+				{
+					pData->red = 1;
+					pData->green = c;
+					pData->blue = 0.5;
 
-				pData->red = 1;
-				pData->green = c;
-				pData->blue = 0.5;
+					mCBuffer.unlock();
+				}
 
-				mCBuffer.unlock();
 			}
 
 			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < ESampler::Trilinear >::GetRHI());
@@ -223,23 +249,23 @@ namespace Render
 					RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
 				}
 
-				xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0, 0, 1));
-				mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
-				{
-					InputStreamInfo inputStream;
-					inputStream.buffer = mVertexBuffer;
-					RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
-					RHISetIndexBuffer(commandList, mIndexBuffer);
-					RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
-				}
+				//xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0, 0, 1));
+				//mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
+				//{
+				//	InputStreamInfo inputStream;
+				//	inputStream.buffer = mVertexBuffer;
+				//	RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
+				//	RHISetIndexBuffer(commandList, mIndexBuffer);
+				//	RHIDrawIndexedPrimitive(commandList, EPrimitive::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
+				//}
 			}
-		
+
 
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
 			{
 				InputStreamInfo inputStream;
 				inputStream.buffer = mAxisVertexBuffer;
-				RHISetInputStream(commandList, mAxisInputLayout, &inputStream , 1 );
+				RHISetInputStream(commandList, mAxisInputLayout, &inputStream, 1);
 
 				RHIDrawPrimitive(commandList, EPrimitive::LineList, 0, 6);
 			}
@@ -339,6 +365,7 @@ namespace Render
 				return false;
 			return true;
 		}
+
 
 	protected:
 	};

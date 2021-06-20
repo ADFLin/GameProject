@@ -13,12 +13,12 @@ struct VSOutputParameters
 
 #if VERTEX_SHADER
 
-VS_ENTRY_START(BassPassVS)
+VS_ENTRY_START(BasePassVS)
 	VS_INPUT( float3 InPos, ATTRIBUTE_POSITION )
 	VS_INPUT( float4 InColor , ATTRIBUTE_COLOR )
 	VS_INPUT( float3 InNormal, ATTRIBUTE_NORMAL )
 	VS_OUTPUT_STRUCT(VSOutputParameters OutputVS, 0)
-VS_ENTRY_END(BassPassVS)
+VS_ENTRY_END(BasePassVS)
 {
 	OutputVS.color = InColor;
 	OutputVS.worldPos = mul( Primitive.localToWorld , float4(InPos , 1 ) );

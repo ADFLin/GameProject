@@ -24,6 +24,8 @@
 #include "Clock.h"
 #include "GameRenderSetup.h"
 
+#include "RenderDebug.h"
+
 
 namespace Render
 {
@@ -346,43 +348,6 @@ namespace Render
 		void releaseRHIResource(bool bReInit = false);
 	};
 
-	class RenderTargetPool;
-	class TINY_API TextureShowManager
-	{
-	public:
-		void registerTexture(HashString const& name, RHITexture2D* texture);
-
-		void handleShowTexture();
-
-		void registerRenderTarget(RenderTargetPool& renderTargetPool );
-
-		struct TextureHandle : RefCountedObjectT< TextureHandle >
-		{
-			RHITexture2DRef texture;
-		};
-		using TextureHandleRef = TRefCountPtr< TextureHandle >;
-		std::unordered_map< HashString, TextureHandleRef > mTextureMap;
-
-		void releaseRHI();
-	};
-
-	class TINY_API TextureShowFrame : public GWidget
-	{
-		using BaseClass = GWidget;
-	public:
-		TextureShowFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
-			:BaseClass(pos, size, parent)
-		{
-			mID = id;
-		}
-
-		TextureShowManager::TextureHandleRef handle;
-		TextureShowManager* mManager;
-
-		void updateSize();
-		void onRender() override;
-		bool onMouseMsg(MouseMsg const& msg) override;
-	};
 
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
@@ -418,7 +383,7 @@ namespace Render
 			return true;
 		}
 
-		virtual void preShutdownRenderSystem(bool bReInit = false)
+		virtual void preShutdownRenderSystem(bool bReInit)
 		{
 			ShaderHelper::Get().releaseRHI();
 			TextureShowManager::releaseRHI();
@@ -426,6 +391,7 @@ namespace Render
 			mView.releaseRHIResource();
 			mBitbltFrameBuffer.release();
 		}
+
 		void initializeRenderState();
 		void bitBltToBackBuffer(RHICommandList& commandList, RHITexture2D& texture);
 

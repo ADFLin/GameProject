@@ -362,7 +362,7 @@ namespace Bloxorz
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 
-		VERIFY_RETURN_FALSE(MeshBuild::CubeOffset(mCube, 0.5, Vector3(0.5, 0.5, 0.5)));
+		VERIFY_RETURN_FALSE(FMeshBuild::CubeOffset(mCube, 0.5, Vector3(0.5, 0.5, 0.5)));
 		VERIFY_RETURN_FALSE(mObjectBuffer.initializeResource(256, EStructuredBufferType::Buffer));
 		VERIFY_RETURN_FALSE(mMaterialBuffer.initializeResource(32, EStructuredBufferType::Buffer));
 		VERIFY_RETURN_FALSE(mSceneEnvBuffer.initializeResource(1));

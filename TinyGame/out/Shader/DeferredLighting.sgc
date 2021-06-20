@@ -37,16 +37,13 @@ uniform mat4 ProjectShadowMatrix[8];
 #define DEFERRED_LIGHT_TYPE LIGHTTYPE_POINT
 #endif
 
-#if !SHADER_COMPILING
-#define SHADER_ENTRY_ShowBoundPS 1
-#define SHADER_ENTRY_LightingPassPS 1
-#endif
 #if PIXEL_SHADER
 
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 //layout(early_fragment_tests) in;
 #endif
-#if SHADER_ENTRY_ShowBoundPS
+#if SHADER_ENTRY(ShowBoundPS)
+
 PS_ENTRY_START(ShowBoundPS)
 #if DEFERRED_SHADING_USE_BOUND_SHAPE == 0
 	PS_INPUT_STRUCT(VSOutputParameters VSOutput ,  0)
@@ -59,7 +56,7 @@ void ShowBoundPS()
 	OutColor = (1.0 / 100.0) * float4(0, 1, 1, 0);
 }
 
-#endif //SHADER_ENTRY_ShowBoundPS
+#endif //SHADER_ENTRY(ShowBoundPS)
 
 
 PS_ENTRY_START(LightingPassPS)

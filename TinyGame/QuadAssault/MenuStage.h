@@ -6,6 +6,7 @@
 #include "TextureManager.h"
 #include "SoundManager.h"
 #include "MathCore.h"
+#include "RenderSystem.h"
 
 class IText;
 class QTextButton;

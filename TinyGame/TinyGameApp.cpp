@@ -322,10 +322,6 @@ void RedirectStdIO()
 #endif
 }
 
-
-#include "Carcassonne/CARGame.h"
-
-
 bool TinyGameApp::initializeGame()
 {
 	EngineInitialize();
@@ -1091,6 +1087,8 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 			LogWarning(0, "Can't Initialize Stage Render Resource");
 			return false;
 		}
+		
+		Render::ShaderManager::Get().cleanupLoadedSource();
 	}
 
 	if (gameStage)

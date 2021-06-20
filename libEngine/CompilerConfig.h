@@ -23,6 +23,7 @@
 #define DLLEXPORT __declspec( dllexport )
 #define DLLIMPORT __declspec( dllimport )
 #define RESTRICT __restrict
+#define NOINLINE __declspec(noinline)
 
 #define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :std::exception(what) {}
@@ -32,6 +33,7 @@
 #define DLLEXPORT __attribute__((visibility("default")))
 #define DLLIMPORT
 #define RESTRICT __restrict__
+#define NOINLINE __attribute__((noinline))
 
 #define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :mWhat(what) {}\

@@ -65,6 +65,11 @@ Vec3f const& getDoorColor( int type )
 	return gDoorColor[ type ];
 }
 
+void Block::renderBasePass(Tile const& tile, RenderContext& context)
+{
+
+}
+
 void Block::render( Tile const& tile )
 {	
 	glColor3f(1,1,1);	
@@ -91,6 +96,8 @@ void Block::onCollision( Tile& tile , Bullet* bullet )
 {
 	bullet->destroy();
 }
+
+
 
 class RockBlock : public Block
 {

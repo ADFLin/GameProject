@@ -228,6 +228,7 @@
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
     <ClCompile Include="TestRender\Stage\MeshShaderTest.cpp" />
+    <ClCompile Include="TestRender\Stage\PlantRenderStage.cpp" />
     <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
@@ -239,6 +240,7 @@
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
+    <ClInclude Include="TestRender\Stage\PlantRenderStage.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

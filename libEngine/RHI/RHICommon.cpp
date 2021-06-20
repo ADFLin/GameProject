@@ -121,7 +121,7 @@ namespace Render
 	}
 
 	template< class TResource >
-	void RegisterInternal( TResource& resource , int id )
+	void RegisterInternal( TResource& resource , ETableID::Type id )
 	{
 		++GTableResourceSerials[id];
 		resource.mGUID = GTableResourceSerials[id];
@@ -214,7 +214,7 @@ namespace Render
 	int InputLayoutDesc::getAttributeStreamIndex(uint8 attribute) const
 	{
 		InputElementDesc const* info = findElementByAttribute(attribute);
-		return (info) ? info->streamIndex : -1;
+		return (info) ? info->streamIndex : INDEX_NONE;
 	}
 
 	void InputLayoutDesc::updateVertexSize()

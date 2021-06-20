@@ -65,6 +65,13 @@ public:
 	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2);
 	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2, CharT c3);
 	static CharT const* FindChar(CharT const* str, CharT c1, CharT c2, CharT c3, CharT c4);
+
+
+	static CharT const* FindCharN(CharT const* str, int num, CharT c);
+	static CharT const* FindCharN(CharT const* str, int num, CharT c1, CharT c2);
+	static CharT const* FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3);
+	static CharT const* FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3, CharT c4);
+
 	static CharT const* FindChar(CharT const* str, CharT const* findChars);
 
 
@@ -122,6 +129,7 @@ public:
 #define FUNCTION_LIST(op)\
 	op(FindLastChar)\
 	op(FindChar)\
+	op(FindCharN)\
 	op(SkipChar)\
 	op(SkipSpace)\
 	op(SkipToNextLine)\

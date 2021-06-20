@@ -12,10 +12,10 @@ namespace CB
 	{
 	public:
 		RenderData();
-		RenderData(int numVertex, int numIndex, bool useNormal);
+		RenderData(int numVertices, int numIndex, bool useNormal);
 		~RenderData();
 
-		void        create(int numVertex, int numIndex, bool bUseNormal);
+		void        create(int numVertices, int numIndex, bool bUseNormal);
 		void        release();
 
 		uint8*      getVertexData() { return (mVertexBuffer.empty()) ? nullptr : &mVertexBuffer[0]; }

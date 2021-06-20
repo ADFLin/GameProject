@@ -12,131 +12,6 @@ namespace Render
 {
 	IMPLEMENT_SHADER_PROGRAM(SphereProgram);
 
-	void TextureShowFrame::updateSize()
-	{
-		//if (handle && handle->texture.isValid())
-		{
-			int width = 400;
-			RHITexture2D* texture = handle->texture;
-			setSize(Vec2i(width, width * texture->getSizeY() / float(texture->getSizeX())));
-		}
-	}
-
-	void TextureShowFrame::onRender()
-	{
-		
-		RHIGraphics2D& g = Global::GetRHIGraphics2D();
-		if (handle && handle->texture.isValid())
-		{
-			updateSize();
-
-			RHITexture2D* texture = handle->texture;
-			g.setBrush(Color3f::White());
-			g.setSampler(TStaticSamplerState<ESampler::Bilinear , ESampler::Clamp , ESampler::Clamp >::GetRHI());
-
-			if (GRHIVericalFlip < 0)
-			{
-				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0,0), Vec2i(1, 1));
-			}
-			else
-			{
-				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, texture->getSizeY()), Vec2i(1, -1));
-			}
-		
-
-			if (isFocus())
-			{
-				g.enableBrush(false);
-				g.setPen(Color3f(1, 1, 0));
-				g.drawRect(getWorldPos(), getSize());
-			}
-		}
-		else
-		{
-			g.enableBrush(false);
-			g.setPen(Color3f(1, 0, 0));
-			g.drawRect(getWorldPos(), getSize());
-		}
-
-	}
-
-	bool TextureShowFrame::onMouseMsg(MouseMsg const& msg)
-	{
-
-		static bool sbScaling = false;
-		static bool sbMoving = false;
-		static Vec2i sRefPos = Vec2i(0, 0);
-		static Vec2i sPoivtPos = Vec2i(0,0);
-
-		if( msg.onLeftDown() )
-		{
-			int borderSize = 10;
-			
-			Vec2i offset = msg.getPos() - getWorldPos();
-			bool isInEdge = offset.x < borderSize || offset.x > getSize().x - borderSize ||
-				offset.y < borderSize || offset.y > getSize().y - borderSize;
-
-			if( isInEdge )
-			{
-				sbScaling = true;
-			}
-			else
-			{
-				sbMoving = true;
-				sRefPos = getWorldPos();
-				sPoivtPos = msg.getPos();
-			}
-
-			getManager()->captureMouse(this);
-		}
-		else if( msg.onLeftUp() )
-		{
-			getManager()->releaseMouse();
-			sbScaling = false;
-			sbMoving = false;
-		}
-		else if (msg.onRightDown())
-		{
-			GChoice* choice = new GChoice(UI_ANY, Vec2i(0, 0), Vec2i(100, 20), this);
-			for (auto const& pair : mManager->mTextureMap)
-			{
-				choice->addItem(pair.first);
-			}
-			choice->onEvent = [this, choice](int event, GWidget*) -> bool
-			{
-				auto iter = mManager->mTextureMap.find( choice->getSelectValue() );
-				if (iter != mManager->mTextureMap.end())
-				{
-					handle = iter->second;
-				}
-				choice->destroy();
-				return false;
-			};
-
-		}
-		else if( msg.onRightDClick() )
-		{
-			if ( isFocus() )
-				destroy();
-		}
-
-		if( msg.isDraging() && msg.isLeftDown() )
-		{
-			if( sbScaling )
-			{
-
-			}
-			else if( sbMoving )
-			{
-				Vec2i offset = msg.getPos() - sPoivtPos;
-				setPos(sRefPos + offset);
-			}
-		}
-
-
-		return false;
-	}
-
 	struct OBJMaterialSaveInfo
 	{
 		char const* name;
@@ -191,17 +66,17 @@ namespace Render
 
 	bool SharedAssetData::createSimpleMesh()
 	{
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Plane], "PlaneZ", MeshBuild::PlaneZ, 10, 1));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Plane], "PlaneZ", FMeshBuild::PlaneZ, 10, 1));
 		//VERIFY_RETURN_FALSE(MeshBuild::PlaneZ(mSimpleMeshs[SimpleMeshId::Plane], 10, 1));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Tile], "Tile", MeshBuild::Tile, 64, 1.0f, true));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere], "UVSphere", MeshBuild::UVSphere, 2.5, 60, 60));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Tile], "Tile", FMeshBuild::Tile, 64, 1.0f, true));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere], "UVSphere", FMeshBuild::UVSphere, 2.5, 60, 60));
 		//VERIFY_RETURN_FALSE(MeshBuild::UVSphere(mSimpleMeshs[ SimpleMeshId::Sphere ], 2.5, 4, 4) );
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere2], "IcoSphere", MeshBuild::IcoSphere, 2.5, 4));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Box], "Cube", MeshBuild::Cube, 1));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SkyBox], "SkyBox", MeshBuild::SkyBox));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut], "Doughnut", MeshBuild::Doughnut, 2, 1, 60 * 2, 60 * 2));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SimpleSkin], "SimpleSkin", MeshBuild::SimpleSkin, 5, 2.5, 20, 20));
-		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Terrain], "Terrain", MeshBuild::Tile, 1024, 1.0, false));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Sphere2], "IcoSphere", FMeshBuild::IcoSphere, 2.5, 4));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Box], "Cube", FMeshBuild::Cube, 1));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SkyBox], "SkyBox", FMeshBuild::SkyBox));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Doughnut], "Doughnut", FMeshBuild::Doughnut, 2, 1, 60 * 2, 60 * 2));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::SimpleSkin], "SimpleSkin", FMeshBuild::SimpleSkin, 5, 2.5, 20, 20));
+		VERIFY_RETURN_FALSE(BuildMesh(mSimpleMeshs[SimpleMeshId::Terrain], "Terrain", FMeshBuild::Tile, 1024, 1.0, false));
 
 		Vector3 v[] =
 		{
@@ -392,50 +267,6 @@ namespace Render
 
 			mProgSphere->setParameters(commandList, light.pos, radius, light.color);
 			mSimpleMeshs[SimpleMeshId::SpherePlane].draw(commandList);
-		}
-	}
-
-
-	void TextureShowManager::registerTexture(HashString const& name, RHITexture2D* texture)
-	{
-		auto iter = mTextureMap.find(name);
-		if (iter != mTextureMap.end())
-		{
-			iter->second->texture = texture;
-		}
-		else
-		{
-			TextureHandle* textureHandle = new TextureHandle;
-			textureHandle->texture = texture;
-			mTextureMap.emplace(name, textureHandle);
-		}
-	}
-
-	void TextureShowManager::handleShowTexture()
-	{
-		TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
-		textureFrame->handle;
-		textureFrame->mManager = this;
-		::Global::GUI().addWidget(textureFrame);
-	
-	}
-
-	void TextureShowManager::registerRenderTarget(RenderTargetPool& renderTargetPool)
-	{
-		for (auto& RT : renderTargetPool.mUsedRTs)
-		{
-			if (RT->desc.debugName != EName::None)
-			{
-				registerTexture(RT->desc.debugName, RT->texture);
-			}
-		}
-	}
-
-	void TextureShowManager::releaseRHI()
-	{
-		for (auto& pair : mTextureMap)
-		{
-			pair.second->texture.release();
 		}
 	}
 

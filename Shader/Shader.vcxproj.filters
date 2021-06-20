@@ -204,6 +204,10 @@
     <None Include="..\TinyGame\out\Shader\Game\BumpMapTest.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Game\Plant.sgc">
+      <Filter>Game</Filter>
+    </None>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

@@ -646,9 +646,9 @@ namespace CFly
 
 				assert( unknown == 1 );
 
-				numVertex = st.nextInt();
+				numVertices = st.nextInt();
 
-				mVertex = new float[ numVertex * mVertexSize ];
+				mVertex = new float[ numVertices * mVertexSize ];
 
 				int nV = 0;
 				float* v = mVertex;
@@ -694,7 +694,7 @@ namespace CFly
 						*fillIndices = blendIndices;
 
 						++nV;
-						if ( nV == numVertex )
+						if ( nV == numVertices )
 							break;
 					}
 				}
@@ -713,12 +713,12 @@ namespace CFly
 							*(v++) = st.nextFloat();
 						}
 						++nV;
-						if ( nV == numVertex )
+						if ( nV == numVertices )
 							break;
 					}
 				}
 
-				if ( nV != numVertex )
+				if ( nV != numVertices )
 					return false;
 			}
 			else if ( strcmp( token , "Polygon" ) == 0 )
@@ -799,7 +799,7 @@ namespace CFly
 		}
 
 		if ( reserveTexBit )
-			VertexUtility::reserveTexCoord( reserveTexBit , mVertex , numVertex , mVertexType , mVertexSize );
+			VertexUtility::reserveTexCoord( reserveTexBit , mVertex , numVertices , mVertexType , mVertexSize );
 
 		if ( ! createMesh( flag ) )
 			return false;
@@ -922,7 +922,7 @@ namespace CFly
 
 		numGroup = 0;
 		numMaterial = 0;
-		numVertex = 0;
+		numVertices = 0;
 		numTri = 0;
 		numTex = 0;
 		numSkinWeight = 0;
@@ -1058,7 +1058,7 @@ namespace CFly
 		info.primitiveType = CFPT_TRIANGLELIST;
 		info.vertexType    = mVertexType;
 		info.pVertex       = mVertex;
-		info.numVertices   = numVertex;
+		info.numVertices   = numVertices;
 		info.pIndex        = tri[0];
 		info.numIndices    = nextTri[0] - tri[0];
 		info.isIntIndexType = true;

@@ -1066,7 +1066,7 @@ void NetLevelStageMode::onRestart(uint64& seed)
 	BaseClass::onRestart(seed);
 }
 
-bool NetLevelStageMode::tryChangeState(EGameState state)
+bool NetLevelStageMode::doesAllowChangeState(EGameState state)
 {
 	switch( getGameState() )
 	{

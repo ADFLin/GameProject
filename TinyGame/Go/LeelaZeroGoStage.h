@@ -259,7 +259,7 @@ namespace Go
 		int  numGameCompleted = 0;
 		bool bMatchJob = false;
 		InlineString<32> mUsedWeight;
-		int  matchChallenger = StoneColor::eEmpty;
+		int  matchChallenger = EStoneColor::Empty;
 #if DETECT_LEELA_PROCESS
 		DWORD  mPIDLeela = -1;
 		static long const LeelaRebootTime = 40000;
@@ -539,7 +539,9 @@ namespace Go
 			systemConfigs.screenHeight = 720;
 			systemConfigs.numSamples = 1;
 		}
+		bool setupRenderSystem(ERenderSystem systemName);
 
+		void preShutdownRenderSystem(bool bReInit /*= false*/);
 		bool onInit() override;
 		void onEnd() override;
 		void onUpdate(long time) override;

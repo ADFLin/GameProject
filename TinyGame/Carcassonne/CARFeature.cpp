@@ -69,7 +69,7 @@ namespace CAR
 	void FeatureBase::mergeData(FeatureBase& other , MapTile const& putData , int meta)
 	{
 		assert( other.type == type );
-		assert( group != -1 && other.group != -1 );
+		assert( group != ERROR_GROUP_ID && other.group != ERROR_GROUP_ID);
 		while( LevelActor* actor = other.popActor() )
 		{
 			actor->feature = nullptr;
@@ -402,7 +402,7 @@ namespace CAR
 			if( linkNode.group == skipGroup )
 				continue;
 
-			if( linkNode.group == -1 )
+			if( linkNode.group == ERROR_GROUP_ID )
 			{
 				if( linkNode.type == ESide::InsideLink )
 				{
@@ -849,7 +849,7 @@ namespace CAR
 			if ( linkNode == nullptr )
 				continue;
 
-			if ( linkNode->group == -1 )
+			if ( linkNode->group == ERROR_GROUP_ID )
 			{
 				CAR_LOG("Warning: No Link Feature In Road Link");
 			}
@@ -950,7 +950,7 @@ namespace CAR
 			if ( linkNode == nullptr )
 				continue;
 
-			if ( linkNode->group == -1 )
+			if ( linkNode->group == ERROR_GROUP_ID )
 			{
 				CAR_LOG("Warning: No Link Feature In Road Link");
 			}

@@ -409,7 +409,7 @@ namespace Render
 		BaseVertex* pVertices = fetchBaseBuffer(numV, baseIndex);
 		for (int i = 0; i < numV; ++i)
 		{
-			BaseVertex& vtx = mBaseVertices[baseIndex + i];
+			BaseVertex& vtx = pVertices[i];
 			pVertices->pos = v[i];
 			pVertices->color = color;
 			++pVertices;

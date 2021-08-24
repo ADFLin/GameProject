@@ -7,7 +7,7 @@
 #include "RenderLayer.h"
 
 class  ActionTrigger;
-class  Graphics2D;
+class  IGraphics2D;
 
 namespace Tetris
 {
@@ -22,7 +22,7 @@ namespace Tetris
 		Level* getLevel(){ return mLevel; }
 		void   restart();
 		void   updateFrame( int frame );
-		void   render( Graphics2D& g , LevelMode* levelMode );
+		void   render( IGraphics2D& g , LevelMode* levelMode );
 
 		void   showFallPosition( bool beS ){  mShowFallPosition = beS;  }
 
@@ -35,7 +35,7 @@ namespace Tetris
 
 
 
-		static void renderPiece( Graphics2D& g ,Piece const& piece , Vec2i const& pos );
+		static void renderPiece( IGraphics2D& g ,Piece const& piece , Vec2i const& pos );
 
 		
 
@@ -48,14 +48,14 @@ namespace Tetris
 
 	protected:
 		Vec2i calcBlockPos( Vec2i const& org , int i , int j );
-		void renderPiece( Graphics2D& g , Piece const& piece , Vec2i const& pos , int nx , int ny );
-		void renderNextPieceInternal( Graphics2D& g , Vec2i const& pos );
-		void renderCurPiece( Graphics2D& g , Vec2i const& mapPos );
-		void renderLayer( Graphics2D& g , Vec2i const& pos , int j );
-		void renderConMapMask( Graphics2D& g , Vec2i const& pos );
-		void renderConnectBlock( Graphics2D& g , Vec2i const& pos , bool useRemoveLayer , float offset = 0.0f );
-		void renderBlockMap( Graphics2D& g , Vec2i const& pos );
-		void renderBackground( Graphics2D& g , Vec2i const& pos );
+		void renderPiece(IGraphics2D& g , Piece const& piece , Vec2i const& pos , int nx , int ny );
+		void renderNextPieceInternal(IGraphics2D& g , Vec2i const& pos );
+		void renderCurPiece(IGraphics2D& g , Vec2i const& mapPos );
+		void renderLayer(IGraphics2D& g , Vec2i const& pos , int j );
+		void renderConMapMask(IGraphics2D& g , Vec2i const& pos );
+		void renderConnectBlock(IGraphics2D& g , Vec2i const& pos , bool useRemoveLayer , float offset = 0.0f );
+		void renderBlockMap(IGraphics2D& g , Vec2i const& pos );
+		void renderBackground(IGraphics2D& g , Vec2i const& pos );
 		static void calcPieceRnageY( Piece const& piece , int& max , int& min );
 
 		void  calcNextPieceOffset();

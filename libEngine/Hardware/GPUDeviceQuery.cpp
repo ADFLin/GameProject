@@ -4,6 +4,7 @@
 #include "WindowsHeader.h"
 
 #include <vector>
+#include "PlatformConfig.h"
 
 #define NVAPI_MAX_CLOCKS_PER_GPU              0x120  
 
@@ -416,7 +417,13 @@ public:
 
 	bool initialize()
 	{
-		mDllHandle = LoadLibraryA("nvapi.dll");
+		mDllHandle = LoadLibraryA(
+#if TARGET_PLATFORM_64BITS
+			"nvapi64.dll"
+#else
+			"nvapi.dll"
+#endif
+		);
 		if( mDllHandle == nullptr )
 			return false;
 

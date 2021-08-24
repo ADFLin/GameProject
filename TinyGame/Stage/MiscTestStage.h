@@ -332,7 +332,7 @@ public:
 	{
 		mOut.clear();
 		int posTagEnd = findPos( str , ENG_TAG , 0 );
-		if ( posTagEnd != -1 )
+		if ( posTagEnd != INDEX_NONE)
 		{
 			prase_R( str , len , 0 , 0 , posTagEnd );
 		}
@@ -352,10 +352,10 @@ public:
 
 	int   prase_R( char const* str , int len , int defaultValue , int posStart , int posTagEnd )
 	{
-		assert( posTagEnd != - 1 );
+		assert( posTagEnd != INDEX_NONE);
 		int posTagStart = findPos( str , START_TAG , posStart );
 
-		if ( posTagStart == -1 || posTagStart > posTagEnd )
+		if ( posTagStart == INDEX_NONE || posTagStart > posTagEnd )
 		{
 			inputStr( str + posStart , posTagEnd - posStart , defaultValue );
 			return posTagEnd + TAG_SIZE( ENG_TAG );
@@ -373,7 +373,7 @@ public:
 			return posStart;
 
 		posTagEnd = findPos( str , ENG_TAG , posStart );
-		if ( posTagEnd == -1 )
+		if ( posTagEnd == INDEX_NONE)
 		{
 			inputStr( str + posStart , len - posStart , defaultValue );
 			return len;
@@ -440,7 +440,7 @@ public:
 	{
 		char const* p = strstr( str + posStart , tag );
 		if ( !p )
-			return -1;
+			return INDEX_NONE;
 		return p - str;
 	}
 
@@ -836,12 +836,12 @@ namespace MRT
 
 #include "RHI/RHIGraphics2D.h"
 
-class GLGraphics2DTestStage : public StageBase
+class RHIGraphics2DTestStage : public StageBase
 	                        , public IGameRenderSetup
 {
 	using BaseClass = StageBase;
 public:
-	GLGraphics2DTestStage()
+	RHIGraphics2DTestStage()
 	{
 	}
 
@@ -851,15 +851,7 @@ public:
 		systemConfigs.screenHeight = 600;
 	}
 
-	bool onInit() override
-	{
-		VERIFY_RETURN_FALSE(BaseClass::onInit());
-
-		restart();
-		::Global::GUI().cleanupWidget();
-		WidgetUtility::CreateDevFrame();
-		return true;
-	}
+	bool onInit() override;
 
 	void onEnd() override
 	{

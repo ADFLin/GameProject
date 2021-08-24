@@ -139,7 +139,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	return BaseClass::onWidgetEvent(event, id, ui);
 }
 
-bool SingleStageMode::tryChangeState(EGameState state)
+bool SingleStageMode::prevChangeState(EGameState state)
 {
 	switch( state )
 	{

@@ -120,7 +120,7 @@ namespace Bejeweled
 	{
 		for( int i = 0 ; i < BoardSize ; ++i )
 		{
-			if ( mIndexMax[i] == -1 )
+			if ( mIndexMax[i] == INDEX_NONE )
 				continue;
 			fillGem( i , mIndexMax[i] );
 		}
@@ -132,7 +132,7 @@ namespace Bejeweled
 
 		for( int i = 0 ; i < BoardSize ; ++ i )
 		{
-			if ( mIndexMax[i] == -1 )
+			if ( mIndexMax[i] == INDEX_NONE )
 				continue;
 
 			checkFillGem( i , mIndexMax[i] );
@@ -144,7 +144,7 @@ namespace Bejeweled
 
 	void Level::stepDestroy()
 	{
-		std::fill_n( mIndexMax , BoardSize , -1 );
+		std::fill_n( mIndexMax , BoardSize , INDEX_NONE );
 
 		for ( LineRangeVec::iterator iter = mDestroyRangeVec.begin();
 			iter != mDestroyRangeVec.end() ; ++iter )

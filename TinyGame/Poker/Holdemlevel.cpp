@@ -81,7 +81,7 @@ namespace Poker { namespace Holdem {
 
 		FaceGroup& maxNumGroup = faceGroup[ idxMaxNumGroup ];
 
-		int idxSubPair = -1;
+		int idxSubPair = INDEX_NONE;
 		if ( maxNumGroup.num == 4 )
 		{
 		   return makeFourOfAKind( idxCardTake );
@@ -104,7 +104,7 @@ namespace Poker { namespace Holdem {
 			}
 		}
 
-		int idxFlushSuit = -1;
+		int idxFlushSuit = INDEX_NONE;
 		for( int i = 0 ; i < 4 ; ++i )
 		{
 			if ( suitGroup[i].num >= CardTrickNum )
@@ -117,7 +117,7 @@ namespace Poker { namespace Holdem {
 		int idxStraight;
 		int countSeq = calcStraight( idxStraight );
 
-		if ( idxFlushSuit != -1 )
+		if ( idxFlushSuit != INDEX_NONE)
 		{
 			if ( countSeq == CardTrickNum )
 			{

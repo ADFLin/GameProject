@@ -250,7 +250,7 @@ namespace Poker
 			if ( isInRect( pos , mSprites[ card.getIndex() ].pos , mCardSize ) )
 				return idx;
 		}
-		return -1;
+		return INDEX_NONE;
 	}
 
 	int FreeCellStage::getGroupCellIndex( Vec2i const& pos , Vec2i const& sPos , int numCell , int gap , int height )
@@ -262,7 +262,7 @@ namespace Poker
 			if ( tx % ( mCardSize.x + gap ) < mCardSize.x )
 				return  tx / ( mCardSize.x + gap );
 		}
-		return -1;
+		return INDEX_NONE;
 	}
 
 	bool FreeCellStage::onMouse( MouseMsg const& msg )
@@ -424,7 +424,7 @@ namespace Poker
 		mMoveStep   = 0;
 		mMoveInfoVec.clear();
 		mbUndoMove  = false;
-		mIdxCardLook = -1;
+		mIdxCardLook = INDEX_NONE;
 		mCellLook = nullptr;
 		mState = STATE_PLAYING;
 

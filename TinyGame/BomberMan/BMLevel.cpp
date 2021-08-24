@@ -143,8 +143,8 @@ namespace BomberMan
 			addEntity( player , false );
 		}
 
-		mUsingIndex = -1;
-		mFreeIndex  = -1;
+		mUsingIndex = INDEX_NONE;
+		mFreeIndex  = INDEX_NONE;
 		mBombList.clear();
 
 	}

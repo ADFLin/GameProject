@@ -17,7 +17,7 @@ enum GameAttribName
 	ATTR_SINGLE_SUPPORT  ,
 	ATTR_REPLAY_SUPPORT  ,
 	ATTR_AI_SUPPORT      ,
-
+	ATTR_GRAPRHICS_SWAP_SUPPORT,
 	ATTR_CONTROLLER_DEFUAULT_SETTING ,
 
 	//GameStage
@@ -26,6 +26,7 @@ enum GameAttribName
 	ATTR_TICK_TIME       ,
 	ATTR_GAME_INFO       ,
 	ATTR_REPLAY_UI_POS   ,
+
 	
 	ATTR_NEXT_ID ,
 };

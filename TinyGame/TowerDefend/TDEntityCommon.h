@@ -108,7 +108,7 @@ namespace TowerDefend
 		void          setOwner( PlayerInfo* info ) { mOwner = info;  }
 		ActorId       getActorID() const { return  mActorID;  }
 
-		static  ComMap&   getComMap( ComMapID id );
+		static  ComMap&   GetComMap( ComMapID id );
 		virtual ComMapID  getComMapID( ComID id ){ return ComMapID(0); }
 
 		float         getLifeValue(){ return mLifeValue; }

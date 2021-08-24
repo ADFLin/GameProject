@@ -74,11 +74,11 @@ namespace Go
 	{
 		int color;
 		if (str[0] == 'B' || str[0] == 'b')
-			color = StoneColor::eBlack;
+			color = EStoneColor::Black;
 		else if (str[0] == 'W' || str[0] == 'w')
-			color = StoneColor::eWhite;
+			color = EStoneColor::White;
 		else
-			return StoneColor::eEmpty;
+			return EStoneColor::Empty;
 
 		assert(str[1] == '+');
 
@@ -258,7 +258,7 @@ namespace Go
 					if (*cur == 0)
 						break;
 					GameCommand gameCom;
-					int numRead = parsePlayResult(cur, StoneColor::eBlack, gameCom);
+					int numRead = parsePlayResult(cur, EStoneColor::Black, gameCom);
 					if (numRead == 0 || gameCom.id != GameCommand::ePlayStone)
 						return false;
 

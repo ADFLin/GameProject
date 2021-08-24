@@ -386,6 +386,12 @@ void main()
 			return false;
 		}
 
+		shaderProgramImpl.mShaderMask = 0;
+		for (auto const& info : shaderCompiles)
+		{
+			shaderProgramImpl.mShaderMask |= BIT(info.type);
+		}
+
 		ShaderParameterMap parameterMap;
 		shaderProgramImpl.generateParameterMap(parameterMap);
 		shaderProgram.bindParameters(parameterMap);
@@ -440,7 +446,7 @@ void main()
 
 	}
 
-	bool ShaderFormatGLSL::isBinaryCodeSupported() const
+	bool ShaderFormatGLSL::doesSuppurtBinaryCode() const
 	{
 		int numFormat = 0;
 		glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);

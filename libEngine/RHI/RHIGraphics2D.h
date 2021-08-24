@@ -48,21 +48,26 @@ public:
 	void  rotateXForm(float angle);
 	void  scaleXForm(float sx, float sy);
 
+	void  beginFrame();
+	void  endFrame();
 	void  beginRender();
+
+	void  initPiplineState();
+
 	void  endRender();
 
-	void  enablePen(bool beE) { mDrawPen = beE; }
-	void  enableBrush(bool beE) { mDrawBrush = beE; }
+	void  enablePen(bool beE) { mPaintArgs.bUsePen = beE; }
+	void  enableBrush(bool beE) { mPaintArgs.bUseBrush = beE; }
 
 	void  setPen(Color3f const& color)
 	{
-		mColorPen = color;
+		mPaintArgs.penColor = Color4f(color, mPaintArgs.penColor.a);
 	}
 	void  setPen(Color3ub const& color, int width);
 
 	void  setBrush(Color3f const& color)
 	{
-		mColorBrush = color;
+		mPaintArgs.brushColor = Color4f(color,mPaintArgs.brushColor.a);
 	}
 
 	void  beginClip(Vec2i const& pos, Vec2i const& size);
@@ -73,7 +78,12 @@ public:
 	void  beginBlend(float alpha, ESimpleBlendMode mode = ESimpleBlendMode::Translucent);
 	void  endBlend();
 	void  setBlendState(ESimpleBlendMode mode);
-	void  setBlendAlapha(float value) { mAlpha = value; }
+	void  setBlendAlapha(float value)
+	{ 
+		mPaintArgs.brushColor.a = value;
+		mPaintArgs.penColor.a = value;
+		mColorFont.a = value; 
+	}
 
 	void  drawPixel(Vector2 const& p, Color3ub const& color);
 	void  drawLine(Vector2 const& p1, Vector2 const& p2);
@@ -133,6 +143,9 @@ public:
 	{
 		return mXFormStack.get();
 	}
+
+	bool bUseGraphicOnly = false;
+
 private:
 	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
 	void emitVertex(Vector2 const& v);
@@ -155,16 +168,11 @@ private:
 		element.transform = mXFormStack.get();
 	}
 
-	Render::ShapePaintArgs getPaintArgs()
+	Render::ShapePaintArgs const& getPaintArgs()
 	{
-		Render::ShapePaintArgs result;
-		result.bUseBrush = mDrawBrush;
-		result.bUsePen = mDrawPen;
-		result.brushColor = Color4f(mColorBrush, mAlpha);
-		result.penColor = Color4f(mColorPen, mAlpha);
-		result.penWidth = mPenWidth;
-		return result;
+		return mPaintArgs;
 	}
+	Render::ShapePaintArgs mPaintArgs;
 
 	struct RenderState
 	{
@@ -173,25 +181,17 @@ private:
 		ESimpleBlendMode blendMode;
 	};
 
-
 	RenderState   mRenderStateCommitted;
 	RenderState   mRenderStatePending;
 	bool          mbPipelineStateChanged;
 	bool          mbBlendStateChanged;
-
 	Vector2       mCurTextureSize;
 
 	int       mWidth;
 	int       mHeight;
 
-	Color3f   mColorPen;
-	Color3f   mColorBrush;
-	Color3f   mColorFont;
-	float     mAlpha;
+	Color4f   mColorFont;
 
-	unsigned  mPenWidth;
-	bool      mDrawBrush;
-	bool      mDrawPen;
 	Render::FontDrawer*   mFont;
 	std::vector< Vector2 >  mBuffer;
 

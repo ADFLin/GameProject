@@ -28,7 +28,7 @@ namespace TowerDefend
 
 	void ActComPanel::setComMap( ComMapID id )
 	{
-		ComMap& comMap = Actor::getComMap( id );
+		ComMap& comMap = Actor::GetComMap( id );
 		for( int i = 0 ; i < COM_MAP_ELEMENT_NUN ; ++i )
 		{
 			ComMap* curMap = &comMap;
@@ -40,7 +40,7 @@ namespace TowerDefend
 					break;
 				if ( curMap->baseID == COM_MAP_NULL )
 					break;
-				curMap = &Actor::getComMap( curMap->baseID );
+				curMap = &Actor::GetComMap( curMap->baseID );
 			}
 
 			mButton[i]->show( mButton[i]->getComKey()->comID != CID_NULL );

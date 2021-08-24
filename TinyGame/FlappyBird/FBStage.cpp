@@ -393,7 +393,7 @@ namespace FlappyBird
 
 #if USE_TEXTURE_ATLAS
 			int id = mTextureAtlas.addImageFile(path);
-			if (id == -1)
+			if (id == INDEX_NONE)
 				return false;
 
 			mTextureAtlas.getRectUVChecked(id, image.uvPos, image.uvSize);

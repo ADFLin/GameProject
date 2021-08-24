@@ -42,6 +42,9 @@
     <Filter Include="GameFlowFree">
       <UniqueIdentifier>{6480a186-d6f6-454c-8904-bd09edc6a9bf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GameGobang">
+      <UniqueIdentifier>{1f0c76f6-b147-4be1-86d1-1c5082463114}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Voronoi.cpp">
@@ -211,6 +214,12 @@
     </ClCompile>
     <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Gobang\GomokuCore.cpp">
+      <Filter>GameGobang</Filter>
+    </ClCompile>
+    <ClCompile Include="Gobang\GomokuStage.cpp">
+      <Filter>GameGobang</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -435,6 +444,12 @@
     </ClInclude>
     <ClInclude Include="FlowFree\FlowFreeLevelReader.h">
       <Filter>GameFlowFree</Filter>
+    </ClInclude>
+    <ClInclude Include="Gobang\GomokuCore.h">
+      <Filter>GameGobang</Filter>
+    </ClInclude>
+    <ClInclude Include="Gobang\GomokuStage.h">
+      <Filter>GameGobang</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

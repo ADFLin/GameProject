@@ -40,7 +40,10 @@ public:
 	template< int M >
 	FORCEINLINE TInlineString(TInlineString< M, CharT > const& other)
 	{ 
-		static_assert(M <= CHAR_COUNT);
+		if constexpr (CHAR_COUNT < M)
+		{
+			CHECK(CHAR_COUNT <= other.length());
+		}
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		assign(other.mData , other.mLength);
 #else
@@ -85,6 +88,7 @@ public:
 	{ 
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		FCString::Cat(mData + mLength, str); 
+		mLength = FCString::Strlen(str);
 #else
 		FCString::Cat(mData, str);
 #endif
@@ -94,14 +98,24 @@ public:
 	{ 
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		FCString::Cat(mData + mLength, str.c_str());
+		mLength += str.length();
 #else
 		FCString::Cat(mData, str.c_str());
 #endif
 		return *this; 
 	}
 
-	FORCEINLINE bool  empty() const { return mData[0] == 0; }
-	FORCEINLINE void  assign(CharT const* str) { FCString::Copy(mData, str); }
+	FORCEINLINE bool  empty() const 
+	{ 
+		return mData[0] == 0; 
+	}
+	FORCEINLINE void  assign(CharT const* str) 
+	{ 
+		FCString::Copy(mData, str); 
+#if INLINE_STRING_USE_LENGTH_MEMBER
+		mLength = FCString::Strlen(mData);
+#endif
+	}
 	FORCEINLINE void  assign(CharT const* str, int num)
 	{ 
 		FCString::CopyN(mData, str, num);
@@ -179,13 +193,13 @@ private:
 	CharT  mData[CHAR_COUNT];
 };
 
-template< int CHAR_COUNT >
-using InlineString = TInlineString< CHAR_COUNT, char >;
+template< int CHAR_COUNT = 256 >
+using InlineStringA = TInlineString< CHAR_COUNT, char >;
 
-template< int CHAR_COUNT >
+template< int CHAR_COUNT = 256 >
 using InlineStringW = TInlineString< CHAR_COUNT, wchar_t >;
 
-template< int CHAR_COUNT >
-using InlineStringT = TInlineString< CHAR_COUNT, TChar >;
+template< int CHAR_COUNT = 256 >
+using InlineString = TInlineString< CHAR_COUNT, TChar >;
 
 #endif // InlineString_h__

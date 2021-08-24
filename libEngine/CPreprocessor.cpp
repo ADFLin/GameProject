@@ -892,7 +892,7 @@ namespace CPP
 				return false;
 			}
 
-			int len = FExpressionUitlity::FindOperatorToEnd(mInput.mCur, precedence, mParsedCachedOP);
+			int len = FExpressionUitlity::FindOperatorToEnd(mInput.getCur(), precedence, mParsedCachedOP);
 			if (len == 0)
 				return false;
 
@@ -1287,7 +1287,7 @@ namespace CPP
 		return false;
 	}
 
-	CPP::Preprocessor::MarcoSymbol* Preprocessor::findMarco(StringView const& name)
+	Preprocessor::MarcoSymbol* Preprocessor::findMarco(StringView const& name)
 	{
 		HashString nameKey;
 		if (!HashString::Find(name, true, nameKey))

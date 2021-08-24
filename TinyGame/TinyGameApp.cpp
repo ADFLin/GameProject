@@ -63,6 +63,28 @@ TConsoleVariable< bool > CVarShowFPS(false, "ShowFPS" , CVF_TOGGLEABLE);
 
 AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
 
+void ToggleGraphics()
+{
+	static ERenderSystem sSavedRenderSystem = ERenderSystem::OpenGL;
+
+	IGameModule* game = ::Global::ModuleManager().getRunningGame();
+	GameAttribute attribute(ATTR_GRAPRHICS_SWAP_SUPPORT);
+	if (game && game->queryAttribute(attribute) && attribute.iVal != 0)
+	{
+		DrawEngine& de = ::Global::GetDrawEngine();
+		if (de.isRHIEnabled())
+		{
+			sSavedRenderSystem = de.getSystemName();
+			de.shutdownSystem();
+		}
+		else
+		{
+			de.startupSystem(sSavedRenderSystem);
+			de.bWasUsedPlatformGrapthics = true;
+		}
+	}
+}
+AutoConsoleCommand CmdToggleRHISystem("r.ToggleGraphics", ToggleGraphics);
 
 void Foo(int a, int b)
 {
@@ -280,7 +302,6 @@ public:
 			Global::GameConfig().loadFile(GAME_SETTING_PATH);
 		}
 	}
-
 };
 
 static GameLogPrinter gLogPrinter;
@@ -770,14 +791,12 @@ void TinyGameApp::render( float dframe )
 	{
 		getCurStage()->render(dframe);
 
-		long dt = long(dframe * getUpdateTime());
-
-		if( mRenderEffect )
-			mRenderEffect->onRender(dt);
-
 		if( drawEngine.isUsageRHIGraphic2D() )
 			::Global::GetRHIGraphics2D().beginRender();
 
+		long dt = long(dframe * getUpdateTime());
+		if (mRenderEffect)
+			mRenderEffect->onRender(dt);
 		{
 			GPU_PROFILE("GUI");
 			::Global::GUI().render();
@@ -1280,7 +1299,7 @@ void FadeInEffect::onRender( long dt )
 	DrawEngine& de = Global::GetDrawEngine();
 
 	Vec2i size = de.getScreenSize() + Vec2i(5,5); 
-	Graphics2D& g = Global::GetGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	g.beginBlend( Vec2i(0,0) , size , float( getLifeTime() - dt ) / totalTime  ); 
 

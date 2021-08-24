@@ -21,6 +21,7 @@ namespace Go
 {
 	using namespace Render;
 
+	class BoardBase;
 	class Board;
 	class Game;
 	struct PlayVertex;
@@ -29,12 +30,12 @@ namespace Go
 	{
 		Vector2 renderPos;
 		float   scale;
-		Board const&  board;
+		BoardBase const&  board;
 		float   cellLength;
 		float   stoneRadius;
 		float   starRadius;
 
-		RenderContext( Board const& inBoard , Vector2 inRenderPos = Vector2(0,0) , float inScale = 1.0f )
+		RenderContext(BoardBase const& inBoard , Vector2 inRenderPos = Vector2(0,0) , float inScale = 1.0f )
 			:board(inBoard)
 			,renderPos( inRenderPos )
 			,scale(inScale)
@@ -72,45 +73,30 @@ namespace Go
 		}
 	};
 
-	class BoardRenderer
+	class BoardRendererBase
 	{
 	public:
+
 		bool bUseBatchedRender = true;
 		bool bDrawStar = true;
 		bool bDrawCoord = true;
 		bool bUseNoiseOffset = true;
-		bool bDrawLinkInfo = false;
+
 		bool bDrawStepNum = true;
-		BoardRenderer()
-		{
-			mNoiseOffsets.resize(1, Vector2::Zero());
-		}
+
 
 		bool initializeRHI();
-
 		void releaseRHI();
-
-		void generateNoiseOffset(int boradSize);
-
 
 		Vector2 getNoiseOffset(int i, int j, int boradSize)
 		{
 			return mNoiseOffsets[(i * boradSize + j) % mNoiseOffsets.size()];
 		}
 
-		void drawStoneSequence(SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices , int colorStart , float opacity);
-		void drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number);
-
-
-		Vector2 getStonePos(RenderContext const& context, int i, int j);
-
-		void drawBorad(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr );
-
-		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
-
-		void drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0 );
-
-
+		BoardRendererBase()
+		{
+			mNoiseOffsets.resize(1, Vector2::Zero());
+		}
 
 		TextureAtlas mTextureAtlas;
 
@@ -138,6 +124,30 @@ namespace Go
 		};
 
 		std::vector< Vertex > mSpriteVertices;
+
+
+		void generateNoiseOffset(int boradSize);
+
+		void drawStoneSequence(SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity);
+		void drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number);
+
+
+		Vector2 getStonePos(RenderContext const& context, int i, int j);
+
+		void drawBorad(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr);
+
+		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
+
+		void drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0);
+	};
+
+
+	class BoardRenderer : public BoardRendererBase
+	{
+	public:
+
+		bool bDrawLinkInfo = false;
+		void draw(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr);
 	};
 
 

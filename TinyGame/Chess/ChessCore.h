@@ -34,30 +34,29 @@ namespace Chess
 	};
 	constexpr int BOARD_SIZE = 8;
 
-
-
 	enum class EMoveState
 	{
 		NoMove,
-		FristMove,
+		FirstMove,
 		PawnTwoStepMove,
 		Unspecified,
 	};
 
-	enum class EMoveTag
+	enum class EMoveTag : uint8
 	{
 		Normal,
 		EnPassant,
 		PawnTwoStepMove,
 		Castling,
-		RemoveChess,
+		Promotion,
 	};
 
 	struct MoveInfo
 	{
 		Vec2i      pos;
-		EMoveTag   tag;
 		Vec2i      posEffect;
+		EMoveTag   tag;
+		bool       bCapture;
 
 		MoveInfo() = default;
 
@@ -67,14 +66,13 @@ namespace Chess
 
 		}
 
-		MoveInfo(Vec2i const& inPos, EMoveTag inTag)
-			:pos(inPos), tag(inTag)
+		MoveInfo(Vec2i const& inPos, EMoveTag inTag, bool inbCapture)
+			:pos(inPos), tag(inTag), bCapture(inbCapture)
 		{
 
 		}
-
-		MoveInfo(Vec2i const& inPos, EMoveTag inTag, Vec2i inPosEffect)
-			:pos(inPos), tag(inTag), posEffect(inPosEffect)
+		MoveInfo(Vec2i const& inPos, EMoveTag inTag, bool inbCapture, Vec2i inPosEffect)
+			:pos(inPos), tag(inTag), posEffect(inPosEffect), bCapture(inbCapture)
 		{
 
 		}
@@ -85,6 +83,8 @@ namespace Chess
 				return false;
 			if (tag != rhs.tag)
 				return false;
+			if (bCapture != rhs.bCapture)
+				return false;
 
 			if (tag == EMoveTag::Castling || tag == EMoveTag::EnPassant)
 			{
@@ -93,6 +93,13 @@ namespace Chess
 			}
 			return true;
 		}
+	};
+
+	struct GameStateData
+	{
+		uint32 trun;
+		std::vector<uint8> board;
+		std::vector<uint8> history;
 	};
 
 
@@ -161,7 +168,7 @@ namespace Chess
 		}
 
 
-		bool getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outPosList, bool bCheckAttack = false) const;
+		bool getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outMoveList, bool bCheckAttack = false) const;
 
 		static Vec2i GetForwardDir(EChessColor color)
 		{
@@ -176,7 +183,7 @@ namespace Chess
 		{
 			TileData& tile = mBoard.getData(pos.x, pos.y);
 
-			assert(tile.chess->type == EChess::Pawn && promotionType != EChess::Pawn );
+			CHECK(tile.chess->type == EChess::Pawn && promotionType != EChess::Pawn );
 
 			tile.chess->type = promotionType;
 		}
@@ -194,16 +201,14 @@ namespace Chess
 			return EChessColor(mCurTurn & 1);
 		}
 
-
+		void saveState(GameStateData& stateData);
+		bool loadState(GameStateData const& stateData);
 
 		struct TileData;
 
 		int mCurTurn;
 		TGrid2D<TileData> mBoard;
-		std::vector< ChessData > mChessList;
-
-
-		
+		std::vector< ChessData > mChessList;		
 	};
 
 }//namespace Chess

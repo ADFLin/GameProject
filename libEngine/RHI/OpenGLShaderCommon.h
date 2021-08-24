@@ -133,7 +133,7 @@ namespace Render
 		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) override;
 		virtual void postShaderLoaded(Shader& shader) final;
 
-		virtual bool isBinaryCodeSupported() const final;
+		virtual bool doesSuppurtBinaryCode() const final;
 		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) final;
 		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode) override;
 

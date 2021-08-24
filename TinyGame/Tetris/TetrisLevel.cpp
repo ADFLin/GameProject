@@ -69,7 +69,7 @@ namespace Tetris
 
 	void Piece::setTemplate( PieceTemplate& temp )
 	{
-		mTemp = &temp;
+		mTemplate = &temp;
 
 		assert( getRotationSize() == 3 || getRotationSize() == 4 );
 		int len = getRotationSize() * getRotationSize();
@@ -80,7 +80,6 @@ namespace Tetris
 			if ( getTemplate().blockData & ( 1 << i ) )
 			{
 				PieceBlock& block = getBlockInternal( mNumBlock );
-
 				block.setPos( i , getRotationSize() );
 				block.type = getTemplate().baseColor;
 

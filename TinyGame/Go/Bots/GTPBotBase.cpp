@@ -57,7 +57,7 @@ namespace Go
 	bool GTPLikeAppRun::playPass(int color)
 	{
 		InlineString<128> com;
-		if (color != StoneColor::eEmpty)
+		if (color != EStoneColor::Empty)
 			com.format("play %c pass\n", ToColorChar(color));
 		else
 			com.format("play pass\n");

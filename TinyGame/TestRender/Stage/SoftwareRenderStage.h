@@ -552,7 +552,7 @@ namespace SR
 		using BaseClass = StageBase;
 	public:
 
-		bool bRayTracerUsed = false;
+		bool bRayTracerUsed = true;
 		RayTraceRenderer mRTRenderer;
 		RasterizedRenderer mRenderer;
 

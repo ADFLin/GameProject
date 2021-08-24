@@ -154,7 +154,7 @@ namespace Go
 			}
 			else if ( msg.onMiddleDown() )
 			{
-				const_cast< Board& >( mGame.getBoard() ).fillLinkedStone(  bPos , StoneColor::eBlack );
+				const_cast< Board& >( mGame.getBoard() ).fillLinkedStone(  bPos , EStoneColor::Black );
 			}
 			else if ( msg.onRightDown() || msg.onRightDClick() )
 			{
@@ -175,9 +175,9 @@ namespace Go
 	void Stage::drawStone( Graphics2D& g , Vec2i const& pos , int color )
 	{
 		RenderUtility::SetPen( g , EColor::Black );
-		RenderUtility::SetBrush( g ,( color == StoneColor::eBlack ) ? EColor::Black : EColor::White );
+		RenderUtility::SetBrush( g ,( color == EStoneColor::Black ) ? EColor::Black : EColor::White );
 		g.drawCircle( pos ,  CellSize / 2  );
-		if ( color == StoneColor::eBlack )
+		if ( color == EStoneColor::Black )
 		{
 			RenderUtility::SetBrush( g ,EColor::White );
 			g.drawCircle( pos + Vec2i( 5 , -5 ) , 3 );
@@ -214,7 +214,7 @@ namespace Go
 
 		Zen::GameSetting gameSetting;
 		gameSetting.boardSize = game.getBoard().getSize();
-		gameSetting.bBlackFirst = game.getFirstPlayColor() == StoneColor::eBlack;
+		gameSetting.bBlackFirst = game.getFirstPlayColor() == EStoneColor::Black;
 
 		botA.startGame(gameSetting);
 		botB.startGame(gameSetting);
@@ -290,8 +290,8 @@ namespace Go
 			{
 				int color = value > 0 ? EColor::Red : EColor::Blue;
 
-				if( !( value > 0 && mGame->getBoard().getData(x, y) == StoneColor::eBlack ||
-				      value < 0 && mGame->getBoard().getData(x, y) == StoneColor::eWhite ) )
+				if( !( value > 0 && mGame->getBoard().getData(x, y) == EStoneColor::Black ||
+				      value < 0 && mGame->getBoard().getData(x, y) == EStoneColor::White ) )
 				{
 					int size = 18 * value / 1000;
 					RenderUtility::SetBrush(g, color);
@@ -305,7 +305,7 @@ namespace Go
 			int value = priorKnowledge[y][x] - territoryStatictics[y][x];
 
 			int threshold = 500;
-			if( mGame->getNextPlayColor() == StoneColor::eBlack )
+			if( mGame->getNextPlayColor() == EStoneColor::Black )
 			{
 				if( value > 0 )
 				{

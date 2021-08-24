@@ -143,7 +143,7 @@ namespace Tetris
 		~GameWorld();
 
 		void         restart( bool beInit );
-		void         render( Graphics2D& g );
+		void         render( IGraphics2D& g );
 		void         tick();
 		void         updateFrame( int frame );
 		bool         removePlayer( unsigned id );
@@ -167,7 +167,7 @@ namespace Tetris
 		LevelData* getLevelData( int lvID )
 		{
 			assert( 0 <= lvID && lvID < gTetrisMaxPlayerNum );
-			if ( mDataStorage[lvID].idxUse == -1 )
+			if ( mDataStorage[lvID].idxUse == INDEX_NONE)
 				return NULL;
 			return &mDataStorage[ lvID ];
 		}

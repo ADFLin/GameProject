@@ -122,7 +122,7 @@ namespace LordMonarch
 		IndexType fetchFree()
 		{
 			IndexType idx;
-			if ( mIdxFree == -1 )
+			if ( mIdxFree == INDEX_NONE )
 			{
 				idx = mNodeStorage.size();
 				mNodeStorage.push_back( Node() );
@@ -342,7 +342,7 @@ namespace LordMonarch
 		{
 			int  index = mIdxUnitUse;
 			int* prevIndex = &mIdxUnitUse;
-			while( index != -1 )
+			while( index != INDEX_NONE)
 			{
 				UnitData& bomb = mUnitData[ index ];
 				if ( !updateBomb( bomb ) )

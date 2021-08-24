@@ -59,7 +59,7 @@ namespace Go
 
 	FORCEINLINE char ToColorChar(int color)
 	{
-		return color == StoneColor::eBlack ? 'b' : 'w';
+		return color == EStoneColor::Black ? 'b' : 'w';
 	}
 
 	FORCEINLINE char ToCoordChar(int x)
@@ -136,7 +136,7 @@ namespace Go
 		bool restart(GameSetting const& setting);
 		bool playStone(int x, int y, int color);
 		bool addStone(int x, int y, int color);
-		bool playPass(int color = StoneColor::eEmpty);
+		bool playPass(int color = EStoneColor::Empty);
 		bool thinkNextMove(int color);
 		bool undo();
 		bool requestUndo();

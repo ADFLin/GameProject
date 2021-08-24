@@ -8,8 +8,13 @@
 #include <cmath>
 #include <algorithm>
 
+#include "ConsoleSystem.h"
+
+TConsoleVariable< bool > CVarTetrisUseRotateAnim( true , "Tetris.UseRotateAnim" , CVF_TOGGLEABLE );
+
 namespace Tetris
 {
+
 	Scene::Scene( Level* level )
 		:mLevel( level )
 	{
@@ -58,7 +63,7 @@ namespace Tetris
 
 	}
 
-	void Scene::renderConMapMask( Graphics2D& g , Vec2i const& pos )
+	void Scene::renderConMapMask(IGraphics2D& g , Vec2i const& pos )
 	{
 		g.setBrush( Color3ub(0,0,0) );
 
@@ -78,7 +83,7 @@ namespace Tetris
 		}
 	}
 
-	void Scene::renderConnectBlock( Graphics2D& g , Vec2i const& pos , bool useRemoveLayer , float offset )
+	void Scene::renderConnectBlock(IGraphics2D& g , Vec2i const& pos , bool useRemoveLayer , float offset )
 	{
 		int nR = 0;
 
@@ -181,7 +186,7 @@ namespace Tetris
 		}
 	}
 
-	void Scene::renderBlockMap( Graphics2D& g , Vec2i const& pos )
+	void Scene::renderBlockMap(IGraphics2D& g , Vec2i const& pos )
 	{
 		int extendMapSizeY = mLevel->getBlockStorage().getExtendSizeY();
 		for(int j=0;j < extendMapSizeY ;++j)
@@ -192,7 +197,7 @@ namespace Tetris
 		}
 	}
 
-	void Scene::renderLayer( Graphics2D& g , Vec2i const& pos  , int j )
+	void Scene::renderLayer(IGraphics2D& g , Vec2i const& pos  , int j )
 	{
 		BlockType const* layerData = getLevel()->getLayer(j);
 		for(int i = 0 ; i < mLevel->getBlockStorage().getSizeX() ; ++i )
@@ -211,7 +216,7 @@ namespace Tetris
 		return org + BlockSize * Vec2i( i , ( mLevel->getBlockStorage().getSizeY() - j ) - 2 );
 	}
 
-	void Scene::renderPiece( Graphics2D& g , Piece const& piece , Vec2i const& pos )
+	void Scene::renderPiece(IGraphics2D& g , Piece const& piece , Vec2i const& pos )
 	{
 		for( int i = 0 ; i < piece.getBlockNum(); ++i )
 		{
@@ -221,7 +226,7 @@ namespace Tetris
 		}
 	}
 
-	void Scene::renderPiece( Graphics2D& g , Piece const& piece , Vec2i const& pos , int nx , int ny )
+	void Scene::renderPiece(IGraphics2D& g , Piece const& piece , Vec2i const& pos , int nx , int ny )
 	{
 		for( int i = 0 ; i < piece.getBlockNum(); ++i )
 		{
@@ -234,11 +239,11 @@ namespace Tetris
 	void Scene::renderHoldPiece( GWidget* ui )
 	{
 		Vec2i pos = ui->getWorldPos();
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		RenderUtility::SetFont( g , FONT_S12 );
 		g.setTextColor( Color3ub(255 , 255 , 0) );
-		g.drawText( pos.x + 16 , pos.y + 10 , "Next:" );
+		g.drawText( Vector2( pos.x + 16 , pos.y + 10 ) , "Next:" );
 
 		renderPiece( g , getLevel()->getHoldPiece() , pos + Vec2i( 40 , 80 ) );
 	}
@@ -246,22 +251,23 @@ namespace Tetris
 
 	void Scene::renderPieceStorage( GWidget* ui )
 	{
+
 		Vec2i pos = ui->getWorldPos();
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		RenderUtility::SetFont( g , FONT_S10 );
 		g.setTextColor( Color3ub(255 , 255 , 0) );
 
-		g.drawText( pos.x + 16 , pos.y + 10 , "Next:" );
+		g.drawText( Vector2( pos.x + 16 , pos.y + 10) , "Next:" );
 		renderNextPieceInternal( g , pos + Vec2i( 40 , 70 ) );
 
 
-		g.drawText( pos.x + 16 , pos.y + 210 , "Hold:" );
+		g.drawText( Vector2(pos.x + 16 , pos.y + 210) , "Hold:" );
 		renderPiece( g , getLevel()->getHoldPiece() , pos + Vec2i( 40 , 265 ) );
 	}
 
 
-	void Scene::render( Graphics2D& g , LevelMode* levelMode )
+	void Scene::render(IGraphics2D& g , LevelMode* levelMode )
 	{
 		Vec2i mapPos = Vec2i( BlockSize , BlockSize );
 
@@ -363,7 +369,7 @@ namespace Tetris
 		g.finishXForm();
 	}
 
-	void Scene::renderBackground( Graphics2D& g , Vec2i const& pos )
+	void Scene::renderBackground(IGraphics2D& g , Vec2i const& pos )
 	{
 		RenderUtility::SetPen( g , EColor::Black );
 
@@ -375,7 +381,7 @@ namespace Tetris
 		RenderUtility::DrawBlock( g , pos + Vec2i( BlockSize * ( sizeX + 1 ) ,0 ) , 1 , sizeY + 1 , EColor::Gray );
 	}
 
-	void Scene::renderCurPiece( Graphics2D& g , Vec2i const& mapPos )
+	void Scene::renderCurPiece(IGraphics2D& g , Vec2i const& mapPos )
 	{
 		Vec2i pos = calcBlockPos( mapPos , getLevel()->mXPosMP , getLevel()->mYPosMP );
 
@@ -400,7 +406,7 @@ namespace Tetris
 
 
 
-	void Scene::renderNextPieceInternal( Graphics2D& g , Vec2i const& pos )
+	void Scene::renderNextPieceInternal(IGraphics2D& g , Vec2i const& pos )
 	{
 		Vec2i renderPos = Vec2i( 0 , (int)mNextPieceOffset );
 
@@ -421,16 +427,15 @@ namespace Tetris
 			++num;
 		else
 			g.scaleXForm( scale , scale );
+
 		renderPiece( g , getLevel()->getNextPiece() , renderPos );
 		g.popXForm();
 
 		renderPos += Vec2i( 0 , mNextPieceOffset2[0] + 5 );
 		g.scaleXForm( scale , scale );
-
 		for( int i = 1 ; i < num ; ++i )
 		{
-			if ( i != 0 )
-				renderPiece( g , getLevel()->getNextPiece( i ) , renderPos );
+			renderPiece( g , getLevel()->getNextPiece( i ) , renderPos );
 			renderPos += Vec2i( 0 , mNextPieceOffset2[i] );
 		}
 		g.finishXForm();
@@ -491,18 +496,20 @@ namespace Tetris
 
 	void Scene::notifyRotatePiece(int orgDir , bool beCW)
 	{
-		int dDir = getLevel()->getMovePiece().getDirection() - orgDir;
+		if ( CVarTetrisUseRotateAnim )
+		{
+			int dDir = getLevel()->getMovePiece().getDirection() - orgDir;
 
-		if ( dDir >= 3 )
-			dDir -= 4;
-		else if ( dDir <= -3 )
-			dDir += 4;
+			if (dDir >= 3)
+				dDir -= 4;
+			else if (dDir <= -3)
+				dDir += 4;
 
-		mAngle = 90.0f * dDir;
-
-		//FIXME
-		if ( getLevel()->getMovePiece().getRotationSize() == 4 )
-			mAngle = -mAngle;
+			mAngle = 90.0f * dDir;
+			//FIXME
+			if (getLevel()->getMovePiece().getRotationSize() == 4)
+				mAngle = -mAngle;
+		}
 
 		if ( mShowFallPosition )
 		{

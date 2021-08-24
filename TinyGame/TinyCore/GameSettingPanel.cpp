@@ -151,10 +151,10 @@ GameSettingPanel::GameSettingPanel(int id, Vec2i const& pos, Vec2i const& size, 
 
 void GameSettingPanel::setGame(char const* name)
 {
-	int idx = -1;
+	int idx = INDEX_NONE;
 	if( name )
 		idx = mGameChoice->findItem(name);
-	if( idx == -1 )
+	if( idx == INDEX_NONE )
 		idx = 0;
 	mGameChoice->modifySelection(idx);
 }

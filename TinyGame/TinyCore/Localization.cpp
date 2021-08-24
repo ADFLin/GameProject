@@ -21,7 +21,7 @@ public:
 	~LocalizationImpl();
 
 	
-	virtual char const* translateString(char const* str) override;
+	virtual char const* translateText(char const* str) override;
 	virtual void initialize(Language lan) override;
 	virtual void changeLanguage(Language lan) override;
 	virtual bool saveTranslateAsset(char const* path) override;
@@ -90,7 +90,7 @@ LocalizationImpl::~LocalizationImpl()
 }
 
 
-char const* LocalizationImpl::translateString(char const* str)
+char const* LocalizationImpl::translateText(char const* str)
 {
 	TranslatePtrMap::iterator iter = mPtrTransMap.find(str);
 	if( iter != mPtrTransMap.end() )

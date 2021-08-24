@@ -59,9 +59,9 @@ DEFINE_COM_ARG_TYPE_TRAITS(unsigned char, "%u", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(char, "%d", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(char*, "%s", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(char const*, "%s", 1)
-DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector2, "%f%f", 1)
-DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector3, "%f%f%f", 2)
-DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector4, "%f%f%f%f", 3)
+DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector2, "%f%f", 2)
+DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector3, "%f%f%f", 3)
+DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector4, "%f%f%f%f", 4)
 
 
 template< class FuncSig >
@@ -329,8 +329,6 @@ public:
 
 	bool isInitialized() const { return mbInitialized; }
 
-	char const* getErrorMsg() const { return mLastErrorMsg.c_str(); }
-
 	template < class T >
 	auto* registerVar( char const* name , T* obj )
 	{
@@ -375,28 +373,30 @@ protected:
 	{
 		InlineString<512> buffer;
 		ConsoleCommandBase*    command;
+
 		char const* commandString;
 		char const* paramStrings[NumMaxParams];
 		int  numArgs;
 		int  numUsedParam;
 		bool init(char const* inCommandString);
+
+		std::string errorMsg;
 	};
 
 	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData );
-	bool executeCommandImpl(char const* comStr);
+	bool executeCommandImpl(ExecuteContext& context);
 
 	struct StrCmp
 	{
 		bool operator()(const char* s1, const char* s2) const
 		{
-			return strcmp(s1, s2) < 0;
+			return FCString::CompareIgnoreCase(s1, s2) < 0;
 		}
 	};
 	typedef std::map< char const* , ConsoleCommandBase* , StrCmp > CommandMap;
 
 	CommandMap   mNameMap;
 	bool         mbInitialized = false;
-	std::string  mLastErrorMsg;
 
 	friend class ConsoleCommandBase;
 };

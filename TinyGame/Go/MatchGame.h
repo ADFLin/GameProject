@@ -434,7 +434,7 @@ namespace Go
 
 		MatchPlayer& getPlayer(int color)
 		{
-			int idx = (color == StoneColor::eBlack) ? 0 : 1;
+			int idx = (color == EStoneColor::Black) ? 0 : 1;
 			if( bSwapColor )
 				idx = 1 - idx;
 			return players[idx];
@@ -444,9 +444,9 @@ namespace Go
 		{
 			if( bSwapColor )
 			{
-				return (idx == 1) ? StoneColor::eBlack : StoneColor::eWhite;
+				return (idx == 1) ? EStoneColor::Black : EStoneColor::White;
 			}
-			return (idx == 0) ? StoneColor::eBlack : StoneColor::eWhite;
+			return (idx == 0) ? EStoneColor::Black : EStoneColor::White;
 		}
 
 		void advanceStep()

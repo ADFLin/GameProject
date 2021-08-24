@@ -24,12 +24,12 @@ namespace Render
 	class ShapeVertexBuilder
 	{
 	public:
+
 		ShapeVertexBuilder(std::vector< Vector2 >& buffer)
 			:mBuffer(buffer)
 		{
 
 		}
-
 
 		void buildRect(Vector2 const& p1, Vector2 const& p2);
 
@@ -41,7 +41,7 @@ namespace Render
 		{
 			mBuffer.resize(num);
 			Vector2* pVertices = mBuffer.data();
-			auto EmitVertex = [&](Vector2 const& p)
+			auto EmitVertex = [&](TVector2 const& p)
 			{
 				*pVertices = mTransform.transformPosition(p);
 				++pVertices;

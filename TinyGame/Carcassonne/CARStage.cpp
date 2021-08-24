@@ -35,8 +35,8 @@ namespace CAR
 	};
 #define CAR_INPUT_COMMAND( CODE , ...)\
 	{\
-		auto func = [__VA_ARGS__](CGameInput& mInput) CODE; \
-		addInputCommand( new TFuncInputCommand< decltype ( func ) >( func ) );\
+		auto ComFunc = [__VA_ARGS__](CGameInput& mInput) CODE; \
+		addInputCommand( new TFuncInputCommand< decltype ( ComFunc ) >( ComFunc ) );\
 	}
 #else
 #define CAR_INPUT_COMMAND( CODE , ...) CODE
@@ -196,8 +196,8 @@ namespace CAR
 			mInput.mAutoSavePath = ::Global::GameConfig().getStringValue("AutoSaveGameName", "CAR", "car_record_temp");
 		}
 		
-		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
-		mInput.onPrevAction = std::bind( &LevelStage::onGamePrevAction , this , std::placeholders::_1 , std::placeholders::_2 );
+		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1);
+		mInput.onPrevAction = std::bind( &LevelStage::onGamePrevAction , this , std::placeholders::_1);
 
 		return true;
 	}
@@ -295,7 +295,7 @@ namespace CAR
 			drawMapData( g , mapData.pos , mapData );
 		}
 
-		if ( mGameLogic.mIsStartGame )
+		if ( mGameLogic.mbGameStarted )
 		{
 			InlineString< 512 > str;
 			str.format("pID = %d tileId = %d , rotation = %d , pos = %d , %d ", mGameLogic.getTurnPlayer()->getId(),
@@ -544,7 +544,7 @@ namespace CAR
 						if ( widget->getID() == UI_ACTOR_POS_BUTTON )
 						{
 							auto button = widget->cast< ActorPosButton >();
-							ActorPosInfo& info = mGameLogic.mActorDeployPosList[ button->indexPos ];
+							ActorPosInfo& info = myData->options[ button->indexPos ];
 							Vector2 posNode = calcActorMapPos( info.pos , *info.mapTile );
 							//posBase + getActorPosMapOffset( info.pos );
 							g.drawLine( button->getPos() + button->getSize() / 2 , convertToScreenPos( posNode ) );
@@ -1100,7 +1100,7 @@ namespace CAR
 		return true;
 	}
 
-	void LevelStage::onGamePrevAction( GameLogic& gameLogic , CGameInput& input )
+	void LevelStage::onGamePrevAction( CGameInput& input )
 	{
 		if ( input.isReplayMode() && input.getReplyAction() == ACTION_TRUN_OVER )
 		{
@@ -1111,7 +1111,7 @@ namespace CAR
 		}
 	}
 
-	void LevelStage::onGameAction( GameLogic& gameLogic, CGameInput& input )
+	void LevelStage::onGameAction( CGameInput& input )
 	{
 		PlayerAction action = input.getReplyAction();
 		GameActionData* data = input.getReplyData();
@@ -1123,7 +1123,7 @@ namespace CAR
 			return;
 		}
 
-		PlayerBase* player = gameLogic.getTurnPlayer();
+		PlayerBase* player = mGameLogic.getTurnPlayer();
 
 		int offset = 30;
 		switch ( action )
@@ -1143,15 +1143,14 @@ namespace CAR
 				
 				int const offsetX = size.x + 5;
 				int const offsetY = size.y + 5;
-				std::vector< ActorPosInfo >& posList = gameLogic.mActorDeployPosList;
 				{
 					GButton* button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
 					button->setTitle( "Skip" );
 					addActionWidget( button );
 				}
-				for( int i = 0 ; i < posList.size() ; ++i )
+				for( int i = 0 ; i < myData->options.size() ; ++i )
 				{
-					ActorPosInfo& info = posList[i];
+					ActorPosInfo& info = myData->options[i];
 
 					Vector2 offset = getActorPosMapOffset( info.pos );
 					Vector2 basePos = info.mapTile->pos;
@@ -1186,9 +1185,9 @@ namespace CAR
 					addActionWidget( button );
 				}
 				
-				for( int i = 0 ; i < myData->numSelection ; ++i )
+				for( int i = 0 ; i < myData->options.size() ; ++i )
 				{
-					LevelActor* actor = myData->actors[i];
+					LevelActor* actor = myData->options[i];
 					Vector2 pos = getActorPosMapOffset( actor->pos );
 					if ( actor->mapTile )
 						pos += actor->mapTile->pos;
@@ -1211,12 +1210,12 @@ namespace CAR
 					addActionWidget( button );
 				}
 
-				for( int i = 0 ; i < myData->numSelection ; ++i )
+				for( int i = 0 ; i < myData->options.size() ; ++i )
 				{
 					Vec2i pos = Vec2i(300,200);
 					auto button = new SelectButton( UI_ACTOR_INFO_BUTTON , pos + Vec2i(30,0) , Vec2i(20,20) , nullptr );
 					button->index = i;
-					button->actorInfo = &myData->actorInfos[i];
+					button->actorInfo = &myData->options[i];
 					button->mapPos = pos;
 					addActionWidget( button );
 				}
@@ -1236,13 +1235,13 @@ namespace CAR
 				if ( myData->reason == SAR_WAGON_MOVE_TO_FEATURE )
 				{
 					auto selectData = data->cast< GameFeatureTileSelectData >();
-					for( int n = 0 ; n < selectData->infos.size() ; ++n )
+					for( int n = 0 ; n < selectData->options.size() ; ++n )
 					{
 						GameFeatureTileSelectData::Info& info = selectData->infos[n];
 						for( int i = 0 ; i < info.num ; ++i )
 						{
 							int idx = info.index + i;
-							MapTile* mapTile = selectData->mapTiles[ idx ];
+							MapTile* mapTile = selectData->options[ idx ];
 							ActorPos actorPos;
 							info.feature->getActorPos( *mapTile , actorPos );
 							Vector2 pos = calcActorMapPos( actorPos , *mapTile );
@@ -1256,9 +1255,9 @@ namespace CAR
 				}
 				else
 				{
-					for( int i = 0 ; i < myData->numSelection ; ++i )
+					for( int i = 0 ; i < myData->options.size(); ++i )
 					{
-						MapTile* mapTile = myData->mapTiles[i];
+						MapTile* mapTile = myData->options[i];
 						Vector2 pos = mapTile->pos;
 						auto button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
 						button->index = i;
@@ -1624,7 +1623,7 @@ namespace CAR
 
 	bool LevelStage::canInput()
 	{
-		if ( mGameLogic.mIsStartGame )
+		if ( mGameLogic.mbGameStarted )
 		{
 			if( getModeType() == EGameStageMode::Single )
 				return true;

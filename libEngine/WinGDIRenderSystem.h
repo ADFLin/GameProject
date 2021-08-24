@@ -88,6 +88,8 @@ public:
 
 	Vec2i calcTextExtentSize( char const* str , int num );
 
+	void  beginFrame();
+	void  endFrame();
 	void  beginRender();
 	void  endRender();
 

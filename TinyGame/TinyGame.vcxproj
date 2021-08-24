@@ -298,6 +298,8 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="FlowFree\FlowFreeLevel.cpp" />
     <ClCompile Include="FlowFree\FlowFreeLevelReader.cpp" />
     <ClCompile Include="FlowFree\FlowFreeSolver.cpp" />
+    <ClCompile Include="Gobang\GomokuCore.cpp" />
+    <ClCompile Include="Gobang\GomokuStage.cpp" />
     <ClCompile Include="Go\Bots\AQBot.cpp" />
     <ClCompile Include="Go\Bots\GTPBotBase.cpp" />
     <ClCompile Include="Go\Bots\GTPOutput.cpp" />
@@ -380,6 +382,8 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="FlowFree\FlowFreeLevel.h" />
     <ClInclude Include="FlowFree\FlowFreeLevelReader.h" />
     <ClInclude Include="FlowFree\FlowFreeSolver.h" />
+    <ClInclude Include="Gobang\GomokuCore.h" />
+    <ClInclude Include="Gobang\GomokuStage.h" />
     <ClInclude Include="Go\Bots\AQBot.h" />
     <ClInclude Include="Go\Bots\GTPBotBase.h" />
     <ClInclude Include="Go\Bots\GTPOutput.h" />

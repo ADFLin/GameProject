@@ -97,16 +97,16 @@ namespace Go
 							com.id = GameCommand::ePlayStone;
 							if( color[1] == 'B' || color[1] == 'b' )
 							{
-								com.playColor = StoneColor::eBlack;
+								com.playColor = EStoneColor::Black;
 							}
 							else if( color[1] == 'W' || color[1] == 'w' )
 							{
-								com.playColor = StoneColor::eWhite;
+								com.playColor = EStoneColor::White;
 							}
 							else
 							{
 								LogWarning(0 , "Unknown color : %s" , color);
-								com.playColor = StoneColor::eEmpty;
+								com.playColor = EStoneColor::Empty;
 							}
 							addOutputCommand(com);
 							
@@ -201,7 +201,7 @@ namespace Go
 							if( blackNetworkName == lastNetworkName )
 							{
 								GameCommand com;
-								com.setParam(LeelaGameParam::eMatchChallengerColor, StoneColor::eWhite);
+								com.setParam(LeelaGameParam::eMatchChallengerColor, EStoneColor::White);
 								addOutputCommand(com);
 							}
 
@@ -215,7 +215,7 @@ namespace Go
 							if( whiteNetworkName == lastNetworkName )
 							{
 								GameCommand com;
-								com.setParam(LeelaGameParam::eMatchChallengerColor, StoneColor::eBlack);
+								com.setParam(LeelaGameParam::eMatchChallengerColor, EStoneColor::Black);
 								addOutputCommand(com);
 							}
 						}
@@ -489,9 +489,9 @@ namespace Go
 								{
 								case '+':
 								case '.': 
-									*pData = StoneColor::eEmpty; ++pData; ++count; break;
-								case 'X': *pData = StoneColor::eBlack; ++pData; ++count; break;
-								case 'O': *pData = StoneColor::eBlack; ++pData; ++count; break;
+									*pData = EStoneColor::Empty; ++pData; ++count; break;
+								case 'X': *pData = EStoneColor::Black; ++pData; ++count; break;
+								case 'O': *pData = EStoneColor::Black; ++pData; ++count; break;
 								}
 
 								if (count == LeelaGoSize)

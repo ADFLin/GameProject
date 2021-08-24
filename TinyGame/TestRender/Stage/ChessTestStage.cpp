@@ -614,11 +614,14 @@ namespace Chess
 
 		Vec2i toTilePos(Vector2 const& pos)
 		{
-			Vector2 temp = (pos - Vector2(10, 10)) / TileLength;
-			Vec2i result;
-			result.x = Math::FloorToInt(temp.x);
-			result.y = BOARD_SIZE - Math::FloorToInt(temp.y) - 1;
-			return result;
+			if ( bShow2D )
+			{
+				Vector2 temp = (pos - Vector2(10, 10)) / TileLength;
+				Vec2i result;
+				result.x = Math::FloorToInt(temp.x);
+				result.y = BOARD_SIZE - Math::FloorToInt(temp.y) - 1;
+				return result;
+			}
 		}
 
 		void moveChess(Vec2i const& from, MoveInfo const& move)
@@ -657,14 +660,18 @@ namespace Chess
 					}
 					if (moveUsed)
 					{
-						if (moveUsed->tag == EMoveTag::EnPassant)
+						if (moveUsed->bCapture)
 						{
-							Game::TileData const& removeChessTile = mGame.getTile(moveUsed->posEffect);
+							if (moveUsed->tag == EMoveTag::EnPassant)
+							{
+								Game::TileData const& removeChessTile = mGame.getTile(moveUsed->posEffect);
+							}
+							else
+							{
+								Game::TileData const& removeChessTile = mGame.getTile(moveUsed->pos);
+							}
 						}
-						else if (moveUsed->tag == EMoveTag::RemoveChess)
-						{
-							Game::TileData const& removeChessTile = mGame.getTile(moveUsed->pos);
-						}
+
 						moveChess(mSelectedChessPos, *moveUsed);
 					}
 				}

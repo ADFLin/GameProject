@@ -315,7 +315,7 @@ int rcWorkShop::getFreeProductStorage( unsigned pTag )
 {
 	int index = getStuffIndex( pTag );
 
-	if ( index == -1 )
+	if ( index == INDEX_NONE )
 		return 0;
 	rcFactoryInfo& info = getFactoryInfo();
 	return info.stuff[index].storage - mNumStuff[index];
@@ -330,7 +330,7 @@ int rcWorkShop::getStuffIndex( unsigned pTag )
 		if ( info.stuff[i].productID == pTag )
 			return i;
 	}
-	return -1;
+	return INDEX_NONE;
 }
 
 bool rcWorkShop::tryCastSuff( unsigned& pTagLost )
@@ -356,7 +356,7 @@ bool rcWorkShop::recvGoods( unsigned pTag , int num )
 {
 	int index = getStuffIndex( pTag );
 
-	if ( index == -1 )
+	if ( index == INDEX_NONE )
 		return false;
 	rcFactoryInfo& info = getFactoryInfo();
 	if ( info.stuff[index].storage - mNumStuff[index] < num )

@@ -105,14 +105,11 @@ public:
 	virtual void onScanActionEnd(){}
 };
 
-#include <list>
-
 enum ControlFlag
 {
 	CTF_FREEZE_FRAME   = BIT(0),
 	CTF_BLOCK_ACTION   = BIT(1),
 };
-
 
 class  ActionProcessor
 {

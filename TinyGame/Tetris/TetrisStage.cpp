@@ -28,6 +28,7 @@
 #include <ctime>
 #include <cmath>
 #include <algorithm>
+#include "RHI/RHICommand.h"
 
 namespace Tetris
 {
@@ -267,8 +268,9 @@ namespace Tetris
 	void LevelStage::onRender( float dFrame )
 	{
 		DrawEngine& de = Global::GetDrawEngine();
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
+		g.beginRender();
 		mWorld->render( g );
 
 		if ( getGameState() == EGameState::Start )
@@ -289,6 +291,7 @@ namespace Tetris
 			}
 		}
 
+		g.endRender();
 	}
 
 	bool LevelStage::onWidgetEvent( int event , int id , GWidget* ui )
@@ -469,7 +472,9 @@ namespace Tetris
 	void MenuStage::onRender( float dFrame )
 	{
 		DrawEngine& de = Global::GetDrawEngine();
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
+
+		g.beginRender();
 
 		for ( int j = 0 ; j < 10 ; ++j )
 		{
@@ -483,7 +488,6 @@ namespace Tetris
 		}
 
 		int color[] = { EColor::Red , EColor::Purple , EColor::Blue , EColor::Orange , EColor::Cyan, EColor::Green };
-
 
 		Vec2i const titlePos( 230 , 150 );
 		g.beginBlend( Vec2i(0,0) , de.getScreenSize() , 0.7f + 0.3f * fabs(sin(t)) );
@@ -507,6 +511,8 @@ namespace Tetris
 		}
 
 		g.endBlend();
+
+		g.endRender();
 	}
 
 
@@ -662,7 +668,7 @@ namespace Tetris
 		Level* mLevel;
 	};
 
-	static void  renderVortex( Graphics2D& g , Vector2 const& center )
+	static void  renderVortex( IGraphics2D& g , Vector2 const& center )
 	{
 		static float angle = 0;
 		angle += 0.01f;
@@ -751,7 +757,7 @@ namespace Tetris
 
 	void AboutGameStage::PieceSprite::render()
 	{
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 		g.beginXForm();
 		g.translateXForm( pos.x , pos.y );
 		g.rotateXForm( angle );
@@ -856,7 +862,7 @@ namespace Tetris
 
 	void RecordStage::renderRecord( GWidget* ui )
 	{
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		Vec2i pos  = ui->getWorldPos();
 		Vec2i size = ui->getSize();
@@ -873,19 +879,19 @@ namespace Tetris
 			char const* fmt;
 			char const* empty;
 
-			void drawText( Graphics2D& g , int x , int y , ... ) const
+			void drawText( IGraphics2D& g , int x , int y , ... ) const
 			{
 				InlineString< 128 > str;
 				va_list vl;
 				va_start( vl ,y );
 				str.formatVA(fmt, vl);
-				g.drawText( x + valPos , y , str );
+				g.drawText( Vector2( x + valPos , y) , str );
 				va_end(vl);
 			}
 
-			void drawEmpty( Graphics2D& g , int x , int y  ) const
+			void drawEmpty( IGraphics2D& g , int x , int y  ) const
 			{
-				g.drawText( x + valPos , y , empty );
+				g.drawText(Vector2(x + valPos , y) , empty );
 			}
 		}; 
 
@@ -904,7 +910,7 @@ namespace Tetris
 
 		for( int i = 0 ; i < ARRAY_SIZE( propList ); ++i )
 		{
-			g.drawText( x +  propList[i].titlePos , y , propList[i].name );
+			g.drawText( Vector2( x +  propList[i].titlePos , y ) , propList[i].name );
 		}
 
 		g.setTextColor(Color3ub(255 , 255 , 255) );

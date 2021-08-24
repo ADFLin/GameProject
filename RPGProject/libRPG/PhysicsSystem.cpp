@@ -254,8 +254,8 @@ void PhysicsWorld::addComponent( PhyRigid* comp , unsigned group  , unsigned mas
 
 CollisionDetector::~CollisionDetector()
 {
-	m_hashPairCache->~btHashedOverlappingPairCache();
-	btAlignedFree( m_hashPairCache );
+	mHashPairCache->~btHashedOverlappingPairCache();
+	btAlignedFree( mHashPairCache );
 }
 
 void CollisionDetector::addOverlappingObject( btBroadphaseProxy* otherProxy, btBroadphaseProxy* thisProxy )
@@ -265,11 +265,11 @@ void CollisionDetector::addOverlappingObject( btBroadphaseProxy* otherProxy, btB
 
 	btCollisionObject* otherObject = (btCollisionObject*)otherProxy->m_clientObject;
 	btAssert(otherObject);
-	int index = m_overlappingObjects.findLinearSearch(otherObject);
-	if (index==m_overlappingObjects.size())
+	int index = mOverlappingObjects.findLinearSearch(otherObject);
+	if (index==mOverlappingObjects.size())
 	{
-		m_overlappingObjects.push_back(otherObject);
-		m_hashPairCache->addOverlappingPair(actualThisProxy,otherProxy);
+		mOverlappingObjects.push_back(otherObject);
+		mHashPairCache->addOverlappingPair(actualThisProxy,otherProxy);
 	}
 }
 
@@ -280,12 +280,12 @@ void CollisionDetector::removeOverlappingObject( btBroadphaseProxy* otherProxy,b
 	btAssert(actualThisProxy);
 
 	btAssert(otherObject);
-	int index = m_overlappingObjects.findLinearSearch(otherObject);
-	if (index<m_overlappingObjects.size())
+	int index = mOverlappingObjects.findLinearSearch(otherObject);
+	if (index<mOverlappingObjects.size())
 	{
-		m_overlappingObjects[index] = m_overlappingObjects[m_overlappingObjects.size()-1];
-		m_overlappingObjects.pop_back();
-		m_hashPairCache->removeOverlappingPair(actualThisProxy,otherProxy,dispatcher);
+		mOverlappingObjects[index] = mOverlappingObjects[mOverlappingObjects.size()-1];
+		mOverlappingObjects.pop_back();
+		mHashPairCache->removeOverlappingPair(actualThisProxy,otherProxy,dispatcher);
 	}
 }
 
@@ -381,7 +381,7 @@ void CollisionDetector::processCollision( btDynamicsWorld* world )
 CollisionDetector::CollisionDetector( btCollisionObject* obj )
 {
 	mObject = obj;
-	m_hashPairCache = new (btAlignedAlloc(sizeof(btHashedOverlappingPairCache),16)) btHashedOverlappingPairCache();
+	mHashPairCache = new (btAlignedAlloc(sizeof(btHashedOverlappingPairCache),16)) btHashedOverlappingPairCache();
 }
 
 void CollisionDetector::convexSweepTest( const btConvexShape* castShape, const btTransform& convexFromWorld, const btTransform& convexToWorld, btCollisionWorld::ConvexResultCallback& resultCallback, btScalar allowedCcdPenetration ) const
@@ -403,9 +403,9 @@ void CollisionDetector::convexSweepTest( const btConvexShape* castShape, const b
 	/// go over all objects, and if the ray intersects their aabb + cast shape aabb,
 	// do a ray-shape query using convexCaster (CCD)
 	int i;
-	for (i=0;i<m_overlappingObjects.size();i++)
+	for (i=0;i<mOverlappingObjects.size();i++)
 	{
-		btCollisionObject*	collisionObject= m_overlappingObjects[i];
+		btCollisionObject*	collisionObject= mOverlappingObjects[i];
 		//only perform raycast if filterMask matches
 		if(resultCallback.needsCollision(collisionObject->getBroadphaseHandle())) {
 			//RigidcollisionObject* collisionObject = ctrl->GetRigidcollisionObject();
@@ -439,9 +439,9 @@ void CollisionDetector::rayTest( const btVector3& rayFromWorld, const btVector3&
 
 
 	int i;
-	for (i=0;i<m_overlappingObjects.size();i++)
+	for (i=0;i<mOverlappingObjects.size();i++)
 	{
-		btCollisionObject*	collisionObject= m_overlappingObjects[i];
+		btCollisionObject*	collisionObject= mOverlappingObjects[i];
 		//only perform raycast if filterMask matches
 		if( resultCallback.needsCollision(collisionObject->getBroadphaseHandle()) ) 
 		{
@@ -592,7 +592,7 @@ void PhyCollision::setupCollisionFilter( unsigned group , unsigned mask )
 	proxy->m_collisionFilterMask  = mask;
 
 	if ( mCollisionDetector )
-		mCollisionDetector->clear();
+		mCollisionDetector->reset();
 
 	switch( mType )
 	{
@@ -704,7 +704,7 @@ void PhysicsSystem::getShapeParamInfo( PhyShapeHandle shape , PhyShapeParams& in
 		{
 			btBoxShape* box = static_cast< btBoxShape* >( btShape );
 			info.type = CSHAPE_BOX;
-			btVector3 len = box->getHalfExtentsWithMargin();
+			btVector3 len = box->getHalfExtentsWithoutMargin();
 			info.box.x = g_GraphicScale * 2 * len.x();
 			info.box.y = g_GraphicScale * 2 * len.y();
 			info.box.z = g_GraphicScale * 2 * len.z();

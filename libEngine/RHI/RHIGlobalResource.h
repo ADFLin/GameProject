@@ -228,7 +228,7 @@ namespace Render
 		ECompareFunc DepthFun = ECompareFunc::Less,
 		bool bEnableStencilTest = false,
 		ECompareFunc StencilFun = ECompareFunc::Always,
-		EStencil StencilFailOp = EStencil::eKeep,
+		EStencil StencilFailOp = EStencil::Keep,
 		EStencil ZFailOp = EStencil::Keep,
 		EStencil ZPassOp = EStencil::Keep,
 		ECompareFunc BackStencilFun = ECompareFunc::Always,

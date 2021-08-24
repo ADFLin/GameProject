@@ -1,19 +1,20 @@
 #ifndef MortonCode_h__
 #define MortonCode_h__
 
+#include "Core/IntegerType.h"
 
-class MortonCode
+class FMortonCode
 {
 public:
-	static uint32 encode(uint32 x, uint32 y){ return (Part1By1(y) << 1) + Part1By1(x); }
-	static uint32 encode(uint32 x, uint32 y, uint32 z){ return (Part1By2(z) << 2) + (Part1By2(y) << 1) + Part1By2(x); }
+	static uint32 Encode(uint32 x, uint32 y){ return (Part1By1(y) << 1) + Part1By1(x); }
+	static uint32 Encode(uint32 x, uint32 y, uint32 z){ return (Part1By2(z) << 2) + (Part1By2(y) << 1) + Part1By2(x); }
 
-	static uint32 decode2D_X(uint32 code){  return Compact1By1(code >> 0);  }
-	static uint32 decode2D_Y(uint32 code){  return Compact1By1(code >> 1);  }
+	static uint32 Decode2D_X(uint32 code){  return Compact1By1(code >> 0);  }
+	static uint32 Decode2D_Y(uint32 code){  return Compact1By1(code >> 1);  }
 
-	static uint32 decode3D_X(uint32 code){  return Compact1By2(code >> 0);  }
-	static uint32 decode3D_Y(uint32 code){  return Compact1By2(code >> 1);  }
-	static uint32 decode3D_Z(uint32 code){  return Compact1By2(code >> 2);  }
+	static uint32 Decode3D_X(uint32 code){  return Compact1By2(code >> 0);  }
+	static uint32 Decode3D_Y(uint32 code){  return Compact1By2(code >> 1);  }
+	static uint32 Decode3D_Z(uint32 code){  return Compact1By2(code >> 2);  }
 
 private:
 	//http://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/

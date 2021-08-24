@@ -316,9 +316,6 @@ namespace Go
 			return false;
 
 		//ILocalization::Get().changeLanguage(LAN_ENGLISH);
-
-		VERIFY_RETURN_FALSE(mBoardRenderer.initializeRHI());
-
 		using namespace Render;
 #if 0
 		if( !DumpFunSymbol("Zen7.dump", "aa.txt") )
@@ -766,7 +763,7 @@ namespace Go
 
 		RenderContext context( viewingGame.getBoard() , BoardPos , RenderBoardScale );
 
-		mBoardRenderer.drawBorad( g , renderState, context , mbBotBoardStateValid ? mBotBoardState : nullptr);
+		mBoardRenderer.draw( g , renderState, context , mbBotBoardStateValid ? mBotBoardState : nullptr);
 
 		if( bShowTerritory && bTerritoryInfoValid )
 		{
@@ -830,10 +827,10 @@ namespace Go
 				textLayout.show(g, "Num Game Completed = %d", numGameCompleted);
 				if( bMatchJob )
 				{
-					if( matchChallenger != StoneColor::eEmpty )
+					if( matchChallenger != EStoneColor::Empty )
 					{
 						textLayout.show(g, "Job Type = Match , Challenger = %s",
-										matchChallenger == StoneColor::eBlack ? "B" : "W");
+										matchChallenger == EStoneColor::Black ? "B" : "W");
 					}
 					else
 					{
@@ -862,7 +859,7 @@ namespace Go
 						float winRate = totalMatchNum ? (100.f * float(player.winCount) / totalMatchNum) : 0;
 						float winRateHistory = totalMatchNumHistory ? (100.f * float(player.winCount + mMatchData.historyWinCounts[i]) / totalMatchNumHistory) : 0;
 						textLayout.show(g, "%s (%s) = %d ( %.1f %% , History = %d , %.1f %% )", 
-										player.getName().c_str(), mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W", 
+										player.getName().c_str(), mMatchData.getPlayerColor(i) == EStoneColor::Black ? "B" : "W", 
 										player.winCount, winRate, mMatchData.historyWinCounts[i], winRateHistory);
 					}
 					if( unknownWinerCount )
@@ -1278,7 +1275,7 @@ namespace Go
 				int color = context.board.getData(i, j);
 				if( value > 0 )
 				{
-					if( color == StoneColor::eBlack )
+					if( color == EStoneColor::Black )
 						continue;
 					g.setTextColor(Color3ub(255, 0, 0));
 					g.setBrush(Color3ub(0, 0, 0));
@@ -1287,7 +1284,7 @@ namespace Go
 				}
 				else
 				{
-					if( color == StoneColor::eWhite )
+					if( color == EStoneColor::White )
 						continue;
 					g.setTextColor(Color3ub(0, 0, 255));
 					g.setBrush(Color3ub(255, 255, 255));
@@ -1881,7 +1878,7 @@ namespace Go
 				}
 				else
 				{
-					char const* name = (com.winner == StoneColor::eBlack) ? "Black" : "White";
+					char const* name = (com.winner == EStoneColor::Black) ? "Black" : "White";
 					InlineString< 128 > str;
 
 					str.format("%s Win", name);
@@ -1889,7 +1886,7 @@ namespace Go
 				}
 
 				InlineString<128> matchResult;
-				matchResult.format("%s+%g", com.winner == StoneColor::eBlack ? "B" : "W", com.winNum);
+				matchResult.format("%s+%g", com.winner == EStoneColor::Black ? "B" : "W", com.winNum);
 				postMatchGameEnd(matchResult);
 
 			}
@@ -1900,25 +1897,25 @@ namespace Go
 
 				if( mMatchData.bAutoRun )
 				{
-					if( color == StoneColor::eBlack )
+					if( color == EStoneColor::Black )
 					{
-						mMatchData.getPlayer(StoneColor::eWhite).winCount += 1;
+						mMatchData.getPlayer(EStoneColor::White).winCount += 1;
 					}
 					else
 					{
-						mMatchData.getPlayer(StoneColor::eBlack).winCount += 1;
+						mMatchData.getPlayer(EStoneColor::Black).winCount += 1;
 					}
 				}
 				else
 				{
-					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
+					char const* name = (color == EStoneColor::Black) ? "Black" : "White";
 					InlineString< 128 > str;
 
 					str.format("%s Resigned", name);
 					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
 				}
 				InlineString<128> matchResult;
-				matchResult.format("%s+R", StoneColor::Opposite(color) == StoneColor::eBlack ? "B" : "W");
+				matchResult.format("%s+R", EStoneColor::Opposite(color) == EStoneColor::Black ? "B" : "W");
 				postMatchGameEnd(matchResult);
 			}
 			break;
@@ -2155,7 +2152,7 @@ namespace Go
 				break;
 			case GameCommand::eResign:
 				{
-					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
+					char const* name = (color == EStoneColor::Black) ? "Black" : "White";
 					LogMsg("%s Resigned", name);
 				}
 				break;
@@ -2166,9 +2163,9 @@ namespace Go
 					bMatchJob = false;
 
 					if ( com.winNum == 0 )
-						mLastGameResult.format("%s+Resign" , com.winner == StoneColor::eBlack ? "B" : "W" );
+						mLastGameResult.format("%s+Resign" , com.winner == EStoneColor::Black ? "B" : "W" );
 					else
-						mLastGameResult.format("%s+%.1f", com.winner == StoneColor::eBlack ? "B" : "W" , com.winNum);
+						mLastGameResult.format("%s+%.1f", com.winner == EStoneColor::Black ? "B" : "W" , com.winNum);
 #if DETECT_LEELA_PROCESS
 					mPIDLeela = -1;
 					mLeelaRebootTimer = LeelaRebootStartTime;
@@ -2411,13 +2408,24 @@ namespace Go
 		InlineString< 512 > dateString;
 		dateString.format("%d-%d-%d", date.getYear(), date.getMonth(), date.getDay());
 		GameDescription description;
-		description.blackPlayer = mMatchData.getPlayer(StoneColor::eBlack).getName();
-		description.whitePlayer = mMatchData.getPlayer(StoneColor::eWhite).getName();
+		description.blackPlayer = mMatchData.getPlayer(EStoneColor::Black).getName();
+		description.whitePlayer = mMatchData.getPlayer(EStoneColor::White).getName();
 		description.date = dateString.c_str();
 		if( matchResult )
 			description.mathResult = matchResult;
 
 		return mGame.getInstance().saveSGF(path, &description);
+	}
+
+	bool LeelaZeroGoStage::setupRenderSystem(ERenderSystem systemName)
+	{
+		VERIFY_RETURN_FALSE(mBoardRenderer.initializeRHI());
+		return true;
+	}
+
+	void LeelaZeroGoStage::preShutdownRenderSystem(bool bReInit /*= false*/)
+	{
+		mBoardRenderer.releaseRHI();
 	}
 
 	void LeelaZeroGoStage::postMatchGameEnd(char const* matchResult)
@@ -2720,7 +2728,7 @@ namespace Go
 		{
 			TGuardValue<bool> gurdValue(renderer->bDrawCoord, false);
 			SimpleRenderState renderState;
-			renderer->drawBorad(g, renderState, renderContext);
+			renderer->draw(g, renderState, renderContext);
 		}
 	}
 

@@ -157,8 +157,8 @@ public:
 
 	std::vector< std::string > mFoundComs;
 	std::vector< std::string > mHistoryComs;
-	int mIndexHistoryUsed = -1;
-	int mIndexFoundComUsed = -1;
+	int mIndexHistoryUsed = INDEX_NONE;
+	int mIndexFoundComUsed = INDEX_NONE;
 public:
 	//LogOutput
 	virtual bool filterLog(LogChannel channel, int level) override

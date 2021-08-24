@@ -155,18 +155,18 @@ namespace Bubble
 		int index = calcCellIndex( pos , layer , nx );
 
 		if ( layer >= mNumLayer - 1 )
-			return -1;
+			return INDEX_NONE;
 
 
 		BubbleCell& cell = getCell( index );
 
 		if ( cell.isBlock() )
-			return -1;
+			return INDEX_NONE;
 
 		// In special condition , two bubbles are the same position and which one has locked early
 		//	assert( cell.isEmpty() );
 		if (  !cell.isEmpty() )
-			return -1;
+			return INDEX_NONE;
 
 
 		Vector2 cellPos = calcCellCenterPos( layer , nx );
@@ -183,7 +183,7 @@ namespace Bubble
 		bool isEven = ( layer % 2 ) == 0;
 
 		float dist2Test = g_MinCollisionDistance * g_MinCollisionDistance;
-		float idxTest   = -1;
+		float idxTest   = INDEX_NONE;
 		for( int i = 0 ; i < NUM_LINK_DIR ; ++i )
 		{
 			int linkIdx = getLinkCellIndex( index , LinkDir(i) , isEven );
@@ -456,7 +456,7 @@ namespace Bubble
 
 			int index = processCollision( bubble.pos , bubble.vel , bubble.color );
 
-			if ( index != -1 )
+			if ( index != INDEX_NONE)
 			{
 				result = lockBubble( index , bubble.color );
 			}

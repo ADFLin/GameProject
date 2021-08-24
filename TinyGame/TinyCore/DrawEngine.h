@@ -62,8 +62,8 @@ public:
 	TINY_API void  drawProfile(Vec2i const& pos);
 
 
-	bool isRHIEnabled() const { return mSystemName != ERenderSystem::None; }
-	bool isOpenGLEnabled() const { return mSystemName == ERenderSystem::OpenGL; }
+	bool          isRHIEnabled() const { return mSystemName != ERenderSystem::None; }
+	ERenderSystem getSystemName() const { return mSystemName; }
 	TINY_API bool isUsageRHIGraphic2D() const;
 	bool isInitialized() { return mbInitialized; }
 
@@ -75,6 +75,7 @@ public:
 
 	bool        bUsePlatformBuffer = true;
 	bool        bBlockRender = false;
+	bool        bWasUsedPlatformGrapthics = false;
 private:
 	void        setupBuffer( int w , int h );
 

@@ -152,7 +152,7 @@ namespace Tetris
 			int chIdx = mNumLevel - 1;
 			mUsingData[ data->idxUse ] =  mUsingData[ chIdx ];
 			mDataStorage[ chIdx ].idxUse = data->idxUse;
-			data->idxUse = -1;
+			data->idxUse = INDEX_NONE;
 		}
 		return true;
 	}
@@ -166,7 +166,7 @@ namespace Tetris
 		PlayerInfo& info = player->getInfo();
 		for ( int i = 0; i < gTetrisMaxPlayerNum ; ++ i )
 		{
-			if ( mDataStorage[i].idxUse == -1 )
+			if ( mDataStorage[i].idxUse == INDEX_NONE)
 			{
 				data = mDataStorage + i;
 
@@ -196,7 +196,7 @@ namespace Tetris
 		return NULL;
 	}
 
-	void GameWorld::render( Graphics2D& g )
+	void GameWorld::render( IGraphics2D& g )
 	{
 		if ( !mbNeedScene )
 			return;

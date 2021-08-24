@@ -36,7 +36,7 @@ namespace Render
 		if (!imageData.load(path , false , false))
 			return false;
 
-		int result = -1;
+		int result = INDEX_NONE;
 
 		//#TODO
 		switch(imageData.numComponent)
@@ -90,7 +90,7 @@ namespace Render
 	int TextureAtlas::addImage(int w, int h, ETexture::Format format, void* data, int dataImageWidth)
 	{
 		if( !addImageInteranl(mNextImageId, w, h, format, data, dataImageWidth) )
-			return -1;
+			return INDEX_NONE;
 
 		int result = mNextImageId;
 		++mNextImageId;

@@ -134,10 +134,10 @@ public:
 
 	TColor4() = default;
 	TColor4(T cr, T cg, T cb, T ca = CET::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
-	TColor4(TColor3<T> const& rh , float ca = CET::Max()) :TColor3<T>(rh), a(ca) {}
+	TColor4(TColor3<T> const& rh , T ca = CET::Max()) :TColor3<T>(rh), a(ca) {}
 
-	template< class Q >
-	TColor4(TColor3<Q> const& rh, Q ca = TColorElementTraits<Q>::Max()) :TColor3<T>(rh), a(ca) {}
+	//template< class Q >
+	//TColor4(TColor3<Q> const& rh, Q ca = TColorElementTraits<Q>::Max()) :TColor3<T>(rh), a(ca) {}
 
 	TColor4(T const* v) :TColor3<T>(v), a(v[3]) {}
 

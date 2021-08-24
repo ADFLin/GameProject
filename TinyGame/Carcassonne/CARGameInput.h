@@ -5,6 +5,8 @@
 #include "CARDebug.h"
 #include "CARFeature.h"
 
+#include "Template/ArrayView.h"
+
 #include <vector>
 
 namespace CAR
@@ -35,11 +37,6 @@ namespace CAR
 		int    resultRotation;
 	};
 
-	struct GameDeployActorData : public GameActionData
-	{
-		EActor::Type resultType;
-		int       resultIndex;
-	};
 
 	enum ActionOptionGroup
 	{
@@ -167,11 +164,17 @@ namespace CAR
 		}
 		SelectActionReason reason;
 		unsigned resultIndex;
-		unsigned numSelection;
+	};
 
-		void validateResult( char const* actionName )
+
+	template<typename T >
+	struct TGameSelectActionData : public GameSelectActionData
+	{
+		TArrayView<T> options;
+
+		void validateResult(char const* actionName)
 		{
-			if( !checkResult() )
+			if (!checkResult())
 			{
 				CAR_LOG("Warning!! %s have error resultIndex!!", actionName);
 				resultIndex = 0;
@@ -180,34 +183,24 @@ namespace CAR
 
 		bool checkResult() const
 		{
-			return resultIndex < numSelection;
+			return resultIndex < options.size();
 		}
+
+		T& getResult() { return options[resultIndex]; }
 	};
 
-	struct GameSelectMapPosData : public GameSelectActionData
+
+	using GameSelectMapPosData = TGameSelectActionData< Vec2i >;
+	using GameSelectMapTileData = TGameSelectActionData< MapTile* >;
+	using GameSelectActorData = TGameSelectActionData< LevelActor* >;
+	using GameSelectFeatureData = TGameSelectActionData< FeatureBase* >;
+	using GameSelectActorInfoData = TGameSelectActionData< ActorInfo >;
+
+	struct GameDeployActorData : public TGameSelectActionData< ActorPosInfo >
 	{
-		Vec2i* mapPositions;	
+		EActor::Type resultType;
 	};
 
-	struct GameSelectMapTileData : public GameSelectActionData
-	{
-		MapTile** mapTiles;	
-	};
-
-	struct GameSelectActorData : public GameSelectActionData
-	{
-		LevelActor** actors;
-	};
-
-	struct GameSelectFeatureData : public GameSelectActionData
-	{
-		FeatureBase** features;
-	};
-
-	struct GameSelectActorInfoData : public GameSelectActionData
-	{
-		ActorInfo* actorInfos;
-	};
 
 	struct GameDragonMoveData : public GameSelectMapTileData
 	{

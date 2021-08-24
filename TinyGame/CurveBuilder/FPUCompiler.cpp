@@ -149,7 +149,7 @@ public:
 		ValueInfo()
 		{
 			type == TOKEN_NONE;
-			idxStack = -1;
+			idxStack = INDEX_NONE;
 		}
 		TokenType type;
 		union
@@ -518,7 +518,7 @@ public:
 
 		mNumVarStack -= numParam - 1;
 		mPrevValue.type = TOKEN_FUN;
-		mPrevValue.idxStack = -1;
+		mPrevValue.idxStack = INDEX_NONE;
 	}
 
 	void codeBinaryOp(TokenType opType, bool isReverse)
@@ -545,7 +545,7 @@ public:
 		}
 		else
 		{
-			if( mPrevValue.idxStack != -1 )
+			if( mPrevValue.idxStack != INDEX_NONE)
 			{
 				int idxReg = mRegStack.size() - mPrevValue.idxStack - 1;
 				if( idxReg == 0 && opType == BOP_COMMA )
@@ -601,7 +601,7 @@ public:
 			}
 		}
 		mPrevValue.type = TOKEN_BINARY_OP;
-		mPrevValue.idxStack = -1;
+		mPrevValue.idxStack = INDEX_NONE;
 	}
 
 	void codeUnaryOp(TokenType type)
@@ -616,7 +616,7 @@ public:
 		}
 
 		mPrevValue.type = TOKEN_FUN;
-		mPrevValue.idxStack = -1;
+		mPrevValue.idxStack = INDEX_NONE;
 	}
 
 	void codeEnd()

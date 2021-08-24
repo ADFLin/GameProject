@@ -179,11 +179,12 @@ void WinGdiGraphics2D::endBlend()
 
 	::SetViewportOrgEx( mBlendDC.getHandle() , 0 , 0 , NULL );
 
-	::AlphaBlend( mhDCTarget,  mBlendPos.x , mBlendPos.y  , mBlendSize.x , mBlendSize.y ,
-		          mBlendDC.getHandle(), 0 , 0 , mBlendSize.x , mBlendSize.y , bfn );
+	::AlphaBlend(mhDCTarget, mBlendPos.x, mBlendPos.y, mBlendSize.x, mBlendSize.y,
+		mBlendDC.getHandle(), 0, 0, mBlendSize.x, mBlendSize.y, bfn);
 
 	--mBlendCount;
-
+	//FIX Some bug
+	::SelectObject(mhDCTarget, mCurPen);
 	setRenderDC( mhDCTarget );
 }
 
@@ -317,6 +318,16 @@ Vec2i WinGdiGraphics2D::calcTextExtentSize( char const* str , int num )
 	return Vec2i( rSize.cx , rSize.cy );
 }
 
+void WinGdiGraphics2D::beginFrame()
+{
+
+}
+
+void WinGdiGraphics2D::endFrame()
+{
+	releaseUsedResources();
+}
+
 void WinGdiGraphics2D::beginRender()
 {
 
@@ -326,7 +337,7 @@ void WinGdiGraphics2D::endRender()
 {
 	assert(mBlendCount == 0);
 	mhDCRender = mhDCTarget;
-	releaseUsedResources();
+
 }
 
 void WinGdiGraphics2D::setTargetDC( HDC hDC )

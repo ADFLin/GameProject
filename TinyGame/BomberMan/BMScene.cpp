@@ -159,7 +159,7 @@ namespace BomberMan
 
 		frame = (*desc.func)( desc.flag , desc.numFrame , frame );
 		//frame = evalFrame( desc.flag , desc.numFrame , frame );
-		if ( frame == -1 )
+		if ( frame == INDEX_NONE)
 			return;
 		
 		if ( desc.flag & AF_IMG_OFFET_Y )
@@ -211,7 +211,7 @@ namespace BomberMan
 			int cycle = frame / ( numFrame - 1 );
 			if ( (flag & AF_HIDE) && cycle > 1 )
 			{
-				return -1;
+				return INDEX_NONE;
 			}
 			else
 			{
@@ -406,18 +406,19 @@ namespace BomberMan
 
 				Vec2i const standPos[] =
 				{
-					Vec2i( 0 * frameSize.x ,0 * frameSize.y ) ,
-					Vec2i( 1 * frameSize.x ,0 * frameSize.y ) ,
-					Vec2i( 2 * frameSize.x ,0 * frameSize.y ) ,
-					Vec2i( 3 * frameSize.x ,0 * frameSize.y ) ,
-					Vec2i( 4 * frameSize.x ,0 * frameSize.y ) ,
-					Vec2i( 5 * frameSize.x ,0 * frameSize.y ) ,
-					Vec2i( 0 * frameSize.x ,1 * frameSize.y ) ,
-					Vec2i( 1 * frameSize.x ,1 * frameSize.y ) ,
-					Vec2i( 2 * frameSize.x ,1 * frameSize.y ) ,
-					Vec2i( 3 * frameSize.x ,1 * frameSize.y ) ,
-					Vec2i( 4 * frameSize.x ,1 * frameSize.y ) ,
-					Vec2i( 5 * frameSize.x ,1 * frameSize.y )  ,
+					frameSize * Vec2i(0 ,0) ,
+					frameSize * Vec2i(1 ,0) ,
+					frameSize * Vec2i(2 ,0) ,
+					frameSize * Vec2i(3 ,0) ,
+					frameSize * Vec2i(4 ,0) ,
+					frameSize * Vec2i(5 ,0) ,
+
+					frameSize * Vec2i(0 ,1) ,
+					frameSize * Vec2i(1 ,1) ,
+					frameSize * Vec2i(2 ,1) ,
+					frameSize * Vec2i(3 ,1) ,
+					frameSize * Vec2i(4 ,1) ,
+					frameSize * Vec2i(5 ,1) ,
 				};
 
 				itemSpr.setTexture( itemTex );

@@ -8,20 +8,22 @@ class SocketBuffer;
 
 namespace Go
 {
+	char const EDGE_MARK = 0x80;
+	char const VISITED_MARK = 0x40;
 
-	namespace StoneColor
+	namespace EStoneColor
 	{
 		enum Enum
 		{
-			eEmpty = 0,
-			eBlack = 1,
-			eWhite = 2,
+			Empty = 0,
+			Black = 1,
+			White = 2,
 		};
 
 		inline int Opposite( int color )
 		{
-			assert(color == eBlack || color == eWhite);
-			return (color == eBlack) ? eWhite : eBlack;
+			assert(color == Black || color == White);
+			return (color == Black) ? White : Black;
 		}
 	}
 
@@ -114,14 +116,16 @@ namespace Go
 		}
 	};
 
-	class Board
+	class BoardBase
 	{
 	public:
+		BoardBase():mSize(0){}
+
 		class Pos
 		{
 		public:
-			Pos(){}
-			explicit Pos( int idx ):index( idx ){}
+			Pos() {}
+			explicit Pos(int idx) :index(idx) {}
 			int toIndex() const { return index; }
 		private:
 			friend class Board;
@@ -131,13 +135,68 @@ namespace Go
 		using DataType = char;
 		enum Dir
 		{
-			eLeft  = 0,
-			eRight  ,
-			eTop    ,
-			eBottom ,
+			eLeft = 0,
+			eRight,
+			eTop,
+			eBottom,
 
-			NumDir ,
+			NumDir,
 		};
+
+
+		int      getSize() const { return mSize; }
+
+
+		DataType getData(int x, int y) const
+		{
+			int idx = getDataIndex(x, y);
+			assert(getData(idx) != EDGE_MARK);
+			return DataType(getData(idx));
+		}
+		DataType getData(Pos const& p) const { return DataType(getData(p.toIndex())); }
+
+		bool checkRange(int x, int y) const
+		{
+			return 0 <= x && x < mSize && 0 <= y && y < mSize;
+		}
+
+		Pos      getPos(int x, int y) const { assert(checkRange(x, y)); return Pos(getDataIndex(x, y)); }
+		Pos      getPos(int idx) const { return Pos(idx); }
+		void     getPosCoord(int idx, int outCoord[2]) const
+		{
+			idx -= 1;
+			outCoord[0] = idx % getDataSizeX();
+			outCoord[1] = idx / getDataSizeX() - 1;
+		}
+
+		int      getDataIndex(int x, int y) const { return x + getDataSizeX() * (y + 1) + 1; }
+		DataType getData(int idx)  const { return mData[idx]; }
+		int      getDataSize()  const { return getDataSizeX() * getDataSizeY() + 2; }
+		int      getDataSizeY() const { return mSize + 2; }
+		int      getDataSizeX() const { return mSize + 1; }
+
+
+		void initIndexOffset()
+		{
+			mIndexOffset[eLeft] = -1;
+			mIndexOffset[eRight] = 1;
+			mIndexOffset[eTop] = -getDataSizeX();
+			mIndexOffset[eBottom] = getDataSizeX();
+		}
+
+		int      calcLinkIndex(int idx, int dir) const { return idx + mIndexOffset[dir]; }
+		int      offsetIndex(int idx, int ox, int oy) const { return idx + ox + oy * getDataSizeX(); }
+
+		void     setupDataEdge(int dataSize);
+
+		int       mSize;
+		std::unique_ptr< char[] > mData;
+		int       mIndexOffset[NumDir];
+	};
+
+	class Board : public BoardBase
+	{
+	public:
 
 		Board();
 		~Board();
@@ -145,24 +204,12 @@ namespace Go
 
 		void     copy(Board const& other);
 		void     setup( int size , bool bClear = true);
+
 		void     clear();
 
 
-		bool     checkRange( int x , int y ) const;
-		int      getSize() const { return mSize; }
-
-		Pos      getPos( int x , int y ) const { assert( checkRange( x, y ) ); return Pos( getDataIndex( x , y ) );}
-		Pos      getPos( int idx ) const { return Pos( idx ); }
-		void     getPosCoord(int idx, int outCoord[2]) const
-		{
-			outCoord[0] = idx % getDataSizeX();
-			outCoord[1] = idx / getDataSizeX() - 1;
-		}
-
 		bool     getLinkPos( Pos const& pos , int dir , Pos& result ) const;
 
-		DataType getData( int x , int y ) const;
-		DataType getData( Pos const& p ) const { return DataType( getData( p.toIndex() ) ); }
 
 		int      getLiberty(Pos const& p) const
 		{
@@ -193,13 +240,13 @@ namespace Go
 					char data = getData(i, j);
 					switch( data )
 					{
-					case StoneColor::eBlack:
+					case EStoneColor::Black:
 						outScores[0] += 1;
 						break;
-					case StoneColor::eWhite:
+					case EStoneColor::White:
 						outScores[1] += 1;
 						break;
-					case StoneColor::eEmpty:
+					case EStoneColor::Empty:
 						break;
 					}
 				}
@@ -209,15 +256,6 @@ namespace Go
 		}
 	private:
 		using LinkType = short;
-
-		int      calcLinkIndex( int idx , int dir ) const { return idx + mIndexOffset[ dir ]; }
-		int      offsetIndex( int idx , int ox , int oy ){  return idx + ox + oy * getDataSizeX(); }
-
-		DataType getData( int idx )  const  { return mData[ idx ]; }
-		int      getDataSize()  const { return getDataSizeX() * getDataSizeY(); }
-		int      getDataSizeY() const { return mSize + 2; }
-		int      getDataSizeX() const { return mSize + 1; }
-		int      getDataIndex( int x , int y ) const {  return x + getDataSizeX() * ( y + 1 );  }
 
 		void     putStone( int idx, DataType color );
 
@@ -249,13 +287,13 @@ namespace Go
 
 		//IntersectionData* mData;
 
-		int       mIndexOffset[ NumDir ];
+
 		mutable DataType mCacheColorR;
 		int       mCacheIdxConRoot;
 
-		int       mSize;
+
 		mutable std::unique_ptr< LinkType[] > mLinkIndex;
-		std::unique_ptr< char[] > mData;
+
 	};
 
 	struct GameRule
@@ -435,7 +473,7 @@ namespace Go
 		std::vector< StepInfo > const& getStepHistory() const { return mStepHistory; }
 
 		DataType getNextPlayColor() const { return mNextPlayColor; }
-		DataType getFirstPlayColor() const { return mSetting.bBlackFirst ? StoneColor::eBlack : StoneColor::eWhite; }
+		DataType getFirstPlayColor() const { return mSetting.bBlackFirst ? EStoneColor::Black : EStoneColor::White; }
 		Board const& getBoard() const { return mBoard; }
 
 		int     getBlackCapturedNum() const { return mNumBlackCaptured; }

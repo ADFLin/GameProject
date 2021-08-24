@@ -846,12 +846,23 @@ namespace Bsp2D
 
 }
 
-void GLGraphics2DTestStage::onRender(float dFrame)
+bool RHIGraphics2DTestStage::onInit()
+{
+	VERIFY_RETURN_FALSE(BaseClass::onInit());
+
+	::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
+
+	restart();
+	::Global::GUI().cleanupWidget();
+	WidgetUtility::CreateDevFrame();
+	return true;
+}
+
+void RHIGraphics2DTestStage::onRender(float dFrame)
 {
 	GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
 	RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	g.beginRender();
 
 	g.setPen( Color3ub(255,0,0) );

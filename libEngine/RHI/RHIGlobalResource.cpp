@@ -86,9 +86,8 @@ namespace Render
 	TGlobalRenderResource<RHITextureCube> GWhiteTextureCube;
 	TGlobalRenderResource<RHITextureCube> GBlackTextureCube;
 
-	MaterialMaster* GDefalutMaterial = nullptr;
-
-	MaterialShaderProgram GSimpleBasePass;
+	CORE_API MaterialMaster* GDefalutMaterial = nullptr;
+	CORE_API MaterialShaderProgram GSimpleBasePass;
 
 	bool InitGlobalRenderResource()
 	{

@@ -79,27 +79,39 @@ class TGraphics2DProxy : public IGraphics2D
 public:
 	TGraphics2DProxy( T& g ):mImpl(g){}
 
-	virtual void beginRender() override { mImpl.beginRender(); }
-	virtual void endRender() override { mImpl.endRender(); }
-	virtual void beginClip(Vec2i const& pos, Vec2i const& size) { mImpl.beginClip(pos, size); }
-	virtual void endClip() { mImpl.endClip(); }
-	virtual void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha )  override { mImpl.beginBlend( pos , size , alpha ); }
-	virtual void endBlend() override { mImpl.endBlend(); }
-	virtual void setPen( Color3ub const& color ) override { mImpl.setPen( color ); }
-	virtual void setBrush( Color3ub const& color ) override { mImpl.setBrush( color ); }
-	virtual void drawPixel  ( Vector2 const& p , Color3ub const& color ) override { mImpl.drawPixel( p , color ); }
-	virtual void drawLine   (Vector2 const& p1 , Vector2 const& p2 ) override { mImpl.drawLine( p1 , p2 ); }
-	virtual void drawRect   (Vector2 const& pos , Vector2 const& size ) override { mImpl.drawRect( pos , size ); }
-	virtual void drawCircle (Vector2 const& center , float radius ) override { mImpl.drawCircle( center , radius); }
-	virtual void drawEllipse(Vector2 const& pos , Vector2 const& size ) override { mImpl.drawEllipse(  pos ,  size ); }
-	virtual void drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize ) override { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
-	virtual void drawPolygon(Vector2 pos[], int num) override { mImpl.drawPolygon(pos, num); }
+	void beginFrame() override { mImpl.beginFrame(); }
+	void endFrame() override { mImpl.endFrame(); }
+	void beginRender() override { mImpl.beginRender(); }
+	void endRender() override { mImpl.endRender(); }
 
-	virtual void setTextColor(Color3ub const& color) override { mImpl.setTextColor(color);  }
-	virtual void drawText(Vector2 const& pos , char const* str ) override { mImpl.drawText( pos , str ); }
-	virtual void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip ) override { mImpl.drawText( pos , size , str , beClip  ); }
+	void beginClip(Vec2i const& pos, Vec2i const& size) { mImpl.beginClip(pos, size); }
+	void endClip() { mImpl.endClip(); }
+	void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha )  override { mImpl.beginBlend( pos , size , alpha ); }
+	void endBlend() override { mImpl.endBlend(); }
+	void setPen( Color3ub const& color ) override { mImpl.setPen( color ); }
+	void setBrush( Color3ub const& color ) override { mImpl.setBrush( color ); }
+	void drawPixel  ( Vector2 const& p , Color3ub const& color ) override { mImpl.drawPixel( p , color ); }
+	void drawLine   (Vector2 const& p1 , Vector2 const& p2 ) override { mImpl.drawLine( p1 , p2 ); }
+	void drawRect   (Vector2 const& pos , Vector2 const& size ) override { mImpl.drawRect( pos , size ); }
+	void drawCircle (Vector2 const& center , float radius ) override { mImpl.drawCircle( center , radius); }
+	void drawEllipse(Vector2 const& pos , Vector2 const& size ) override { mImpl.drawEllipse(  pos ,  size ); }
+	void drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize ) override { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
+	void drawPolygon(Vector2 pos[], int num) override { mImpl.drawPolygon(pos, num); }
 
-	virtual void accept( Visitor& visitor ) { visitor.visit( mImpl ); }
+	void setTextColor(Color3ub const& color) override { mImpl.setTextColor(color);  }
+	void drawText(Vector2 const& pos , char const* str ) override { mImpl.drawText( pos , str ); }
+	void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip ) override { mImpl.drawText( pos , size , str , beClip  ); }
+
+	void  beginXForm() override { mImpl.beginXForm(); }
+	void  finishXForm() override { mImpl.finishXForm(); }
+	void  pushXForm() override {  mImpl.pushXForm();  }
+	void  popXForm() override { mImpl.popXForm(); }
+	void  identityXForm() override { mImpl.identityXForm(); }
+	void  translateXForm(float ox, float oy) override { mImpl.translateXForm(ox,oy); }
+	void  rotateXForm(float angle) override { mImpl.rotateXForm(angle); }
+	void  scaleXForm(float sx, float sy) override { mImpl.scaleXForm(sx,sy); }
+
+	void accept( Visitor& visitor ) { visitor.visit( mImpl ); }
 	T& mImpl;
 };
 
@@ -237,6 +249,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	}
 	bHasUseRHI = true;
 	bUsePlatformBuffer = false;
+	bWasUsedPlatformGrapthics = false;
 	return true;
 }
 
@@ -273,11 +286,17 @@ bool DrawEngine::beginRender()
 	{
 		if( !RHIBeginRender() )
 			return false;
+
+		if (bWasUsedPlatformGrapthics)
+		{
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+			RHISetFrameBuffer(commandList, nullptr);
+			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
+		}
 	}
 	else
 	{
-		mPlatformGraphics->beginRender();
-		
+		mPlatformGraphics->beginRender();	
 	}
 
 	if( bUsePlatformBuffer )

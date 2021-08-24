@@ -18,7 +18,7 @@ namespace Go
 {
 	using namespace Render;
 
-	bool BoardRenderer::initializeRHI()
+	bool BoardRendererBase::initializeRHI()
 	{
 		VERIFY_RETURN_FALSE(mTextureAtlas.initialize(ETexture::RGBA8, 128, 128, 2));
 		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/blackStone.png") == 0);
@@ -45,7 +45,7 @@ namespace Go
 		return true;
 	}
 
-	void BoardRenderer::releaseRHI()
+	void BoardRendererBase::releaseRHI()
 	{
 		mTextureAtlas.finalize();
 		for(auto & mTexture : mTextures)
@@ -54,7 +54,7 @@ namespace Go
 		}
 	}
 
-	void BoardRenderer::generateNoiseOffset(int boradSize)
+	void BoardRendererBase::generateNoiseOffset(int boradSize)
 	{
 		int size = boradSize * boradSize;
 		float maxOffset = 1.6;
@@ -67,7 +67,7 @@ namespace Go
 	}
 
 
-	void BoardRenderer::drawStoneSequence( SimpleRenderState& renderState , RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
+	void BoardRendererBase::drawStoneSequence( SimpleRenderState& renderState , RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
 	{
 		using namespace Render;
 		using namespace Go;
@@ -95,7 +95,7 @@ namespace Go
 					int y = v.y;
 					Vector2 pos = getStonePos(context, x, y);
 					drawStone(g, renderState, pos, color, context.stoneRadius, context.scale, opacity);
-					color = StoneColor::Opposite(color);
+					color = EStoneColor::Opposite(color);
 				}
 			}
 
@@ -120,12 +120,12 @@ namespace Go
 		}
 	}
 
-	void BoardRenderer::drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number)
+	void BoardRendererBase::drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number)
 	{
 
 	}
 
-	Vector2 BoardRenderer::getStonePos(RenderContext const& context, int i, int j)
+	Vector2 BoardRendererBase::getStonePos(RenderContext const& context, int i, int j)
 	{
 		Vector2 pos = context.getIntersectionPos(i, j);
 		if( bUseNoiseOffset )
@@ -133,13 +133,13 @@ namespace Go
 		return pos;
 	}
 
-	void BoardRenderer::drawBorad(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState)
+	void BoardRendererBase::drawBorad(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState)
 	{
 		using namespace Render;
 		using namespace Go;
 
 		static char const* CoordStr = "ABCDEFGHJKLMNOPQRSTQVWXYZ";
-		static int const StarMarkPos[3] = { 3 , 9 , 15 };
+		
 
 		int boardSize = context.board.getSize();
 		float length = (boardSize - 1) * context.cellLength;
@@ -190,37 +190,24 @@ namespace Go
 
 		if( bDrawStar )
 		{
+			auto DrawStar = [&](TArrayView<int const> starPosList )
+			{
+				Vector2 pos;
+				for (int i = 0; i < starPosList.size(); ++i)
+				{
+					pos.x = context.renderPos.x + starPosList[i] * context.cellLength;
+					for (int j = 0; j < starPosList.size(); ++j)
+					{
+						pos.y = context.renderPos.y + starPosList[j] * context.cellLength;
+						g.drawCircle(pos, context.starRadius);
+					}
+				}
+			};
 			switch( boardSize )
 			{
-			case 19:
-				{
-					Vector2 pos;
-					for( int i = 0; i < 3; ++i )
-					{
-						pos.x = context.renderPos.x + StarMarkPos[i] * context.cellLength;
-						for( int j = 0; j < 3; ++j )
-						{
-							pos.y = context.renderPos.y + StarMarkPos[j] * context.cellLength;
-							g.drawCircle(pos, context.starRadius);
-						}
-					}
-				}
-				break;
-			case 13:
-				{
-					Vector2 pos;
-					for( int i = 0; i < 2; ++i )
-					{
-						pos.x = context.renderPos.x + StarMarkPos[i] * context.cellLength;
-						for( int j = 0; j < 2; ++j )
-						{
-							pos.y = context.renderPos.y + StarMarkPos[j] * context.cellLength;
-							g.drawCircle(pos, context.starRadius);
-						}
-					}
-					g.drawCircle(context.renderPos + context.cellLength * Vec2i(6, 6), context.starRadius);
-				}
-				break;
+			case 19: DrawStar({ 3 , 9 , 15 }); break;
+			case 15: DrawStar({ 3 , 7 , 11 });  break;
+			case 13: DrawStar({ 3 , 9 });  break;
 			}
 		}
 
@@ -271,7 +258,7 @@ namespace Go
 					for (int i = 0; i < boardSize; ++i)
 					{
 						int data = overrideStoneState[j * boardSize + i];
-						if (data != StoneColor::eEmpty)
+						if (data != EStoneColor::Empty)
 						{
 							Vector2 pos = getStonePos(context, i, j);
 							drawStone(g, renderState, pos, data, context.stoneRadius, context.scale);
@@ -286,7 +273,7 @@ namespace Go
 					for (int i = 0; i < boardSize; ++i)
 					{
 						int data = context.board.getData(i, j);
-						if (data != StoneColor::eEmpty)
+						if (data != EStoneColor::Empty)
 						{
 							Vector2 pos = getStonePos(context, i, j);
 							drawStone(g, renderState, pos, data, context.stoneRadius, context.scale);
@@ -315,53 +302,9 @@ namespace Go
 #endif
 #endif
 		}
-
-
-		if (overrideStoneState == nullptr)
-		{
-
-			Vector2 halfCellSize = 0.5 * Vector2(context.cellLength, context.cellLength);
-
-			for( int i = 0; i < boardSize; ++i )
-			{
-				for( int j = 0; j < boardSize; ++j )
-				{
-					int data = context.board.getData(i, j);
-					if( data )
-					{
-						Vector2 pos = context.getIntersectionPos(i, j);
-						//Vector2 pos = getStonePos(renderPos, board, i, j);
-						InlineString<128> str;
-
-						Board::Pos posBoard = context.board.getPos(i, j);
-						
-						if( bDrawLinkInfo )
-						{
-							int dist = context.board.getLinkToRootDist(posBoard);
-							if( dist )
-							{
-								g.setTextColor(Color3ub(0, 255, 255));
-								str.format("%d", dist);
-							}
-							else
-							{
-								g.setTextColor(Color3ub(255, 125, 0));
-								str.format("%d", context.board.getCaptureCount(posBoard));
-							}
-							g.drawText(pos - halfCellSize, Vector2(context.cellLength, context.cellLength), str );
-						}
-
-						if( bDrawStepNum )
-						{
-
-						}
-					}
-				}
-			}
-		}
 	}
 
-	void BoardRenderer::addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color)
+	void BoardRendererBase::addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color)
 	{
 		Vector2 posLT = pos - size.mul(pivot);
 		Vector2 posRB = posLT + size;
@@ -373,7 +316,7 @@ namespace Go
 		mSpriteVertices.push_back({ Vector2(posRB.x , posLT.y) , color , Vector2(max.x , min.y) });
 	}
 
-	void BoardRenderer::drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
+	void BoardRendererBase::drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -381,13 +324,13 @@ namespace Go
 #if USE_OPENGL_NATIVE
 		if( bUseBatchedRender )
 		{
-			int id = (color == StoneColor::eBlack) ? 0 : 1;
+			int id = (color == EStoneColor::Black) ? 0 : 1;
 			addBatchedSprite(id, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
 			addBatchedSprite(id, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(1, 1, 1, opaticy));
 		}
 		else
 		{
-			int id = (color == StoneColor::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;	
+			int id = (color == EStoneColor::Black) ? TextureId::eBlockStone : TextureId::eWhiteStone;	
 			{
 				GL_SCOPED_BIND_OBJECT(mTextures[id]);
 
@@ -401,7 +344,7 @@ namespace Go
 			}
 		}
 #else
-		int id = (color == StoneColor::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;
+		int id = (color == EStoneColor::Black) ? TextureId::eBlockStone : TextureId::eWhiteStone;
 		auto AddSprite = [&](int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color)
 		{
 			Vector2 posLT = pos - size.mul(pivot);
@@ -418,14 +361,63 @@ namespace Go
 #endif
 #else
 		RenderUtility::SetPen(g, EColor::Black);
-		RenderUtility::SetBrush(g, (color == StoneColor::eBlack) ? EColor::Black : EColor::White);
+		RenderUtility::SetBrush(g, (color == EStoneColor::Black) ? EColor::Black : EColor::White);
 		g.drawCircle(pos, StoneRadius);
-		if( color == StoneColor::eBlack )
+		if( color == EStoneColor::Black )
 		{
 			RenderUtility::SetBrush(g, EColor::White);
 			g.drawCircle(pos + Vec2i(5, -5), 3);
 		}
 #endif
 	}
+
+	void BoardRenderer::draw(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState /*= nullptr*/)
+	{
+		drawBorad(g, renderState, context, overrideStoneState);
+
+		if (overrideStoneState == nullptr)
+		{
+			Board const& board = static_cast<Board const&>(context.board);
+			Vector2 halfCellSize = 0.5 * Vector2(context.cellLength, context.cellLength);
+			int boardSize = board.getSize();
+
+			for (int i = 0; i < boardSize; ++i)
+			{
+				for (int j = 0; j < boardSize; ++j)
+				{
+					int data = context.board.getData(i, j);
+					if (data)
+					{
+						Vector2 pos = context.getIntersectionPos(i, j);
+						//Vector2 pos = getStonePos(renderPos, board, i, j);
+						InlineString<128> str;
+
+						Board::Pos posBoard = board.getPos(i, j);
+
+						if (bDrawLinkInfo)
+						{
+							int dist = board.getLinkToRootDist(posBoard);
+							if (dist)
+							{
+								g.setTextColor(Color3ub(0, 255, 255));
+								str.format("%d", dist);
+							}
+							else
+							{
+								g.setTextColor(Color3ub(255, 125, 0));
+								str.format("%d", board.getCaptureCount(posBoard));
+							}
+							g.drawText(pos - halfCellSize, Vector2(context.cellLength, context.cellLength), str);
+						}
+
+						if (bDrawStepNum)
+						{
+
+						}
+						}
+					}
+				}
+			}
+		}
 
 }//namespace Go

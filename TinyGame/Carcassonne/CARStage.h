@@ -194,8 +194,8 @@ namespace CAR
 		Vector2 convertToScreenPos_2D(Vector2 const& posMap);
 		Vector2 convertToScreenPos_3D(Vector2 const& posMap);
 
-		void  onGamePrevAction( GameLogic& gameLogic, CGameInput& input );
-		void  onGameAction( GameLogic& gameLogic, CGameInput& input );
+		void  onGamePrevAction( CGameInput& input );
+		void  onGameAction( CGameInput& input );
 		void  removeGameActionUI();
 		Vector2 getActorPosMapOffset( ActorPos const& pos );
 

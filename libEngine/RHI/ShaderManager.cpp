@@ -205,7 +205,7 @@ namespace Render
 
 		bool saveCacheData( ShaderFormat& format, ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 		{
-			if( !format.isBinaryCodeSupported() )
+			if( !format.doesSuppurtBinaryCode() )
 				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
@@ -238,7 +238,7 @@ namespace Render
 
 		bool saveCacheData(ShaderFormat& format, Shader& shader, ShaderSetupData& setupData)
 		{
-			if (!format.isBinaryCodeSupported())
+			if (!format.doesSuppurtBinaryCode())
 				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
@@ -276,7 +276,7 @@ namespace Render
 			if (!CVarShaderUseCache.getValue())
 				return false;
 
-			if (!format.isBinaryCodeSupported())
+			if (!format.doesSuppurtBinaryCode())
 				return false;
 
 			return true;
@@ -358,16 +358,16 @@ namespace Render
 		"MS" SHADER_FILE_SUBNAME ,
 	};
 
-	 char const* const gShaderDefines[] =
+	 char const* const gShaderNames[] =
 	{
-		"#define VERTEX_SHADER 1\n" ,
-		"#define PIXEL_SHADER 1\n" ,
-		"#define GEOMETRY_SHADER 1\n" ,
-		"#define COMPUTE_SHADER 1\n" ,
-		"#define HULL_SHADER 1\n" ,
-		"#define DOMAIN_SHADER 1\n" ,
-		"#define TASK_SHADER 1\n" ,
-		"#define MESH_SHADER 1\n" ,
+		"VERTEX_SHADER" ,
+		"PIXEL_SHADER" ,
+		"GEOMETRY_SHADER" ,
+		"COMPUTE_SHADER" ,
+		"HULL_SHADER" ,
+		"DOMAIN_SHADER" ,
+		"TASK_SHADER" ,
+		"MESH_SHADER" ,
 	};
 #if CORE_SHARE_CODE
 
@@ -731,7 +731,7 @@ namespace Render
 		if (sourceFile)
 			managedData->sourceFile = sourceFile;
 
-		generateCompileSetup(*managedData, entry, option, additionalCode, fileName, true);
+		generateCompileSetup(*managedData, entry, option, additionalCode, fileName);
 
 		if (!buildShader(shader, *managedData))
 		{
@@ -823,8 +823,8 @@ namespace Render
 		if (iter == mShaderDataMap.end())
 			return false;
 
-		ShaderManagedData* info = static_cast<ShaderManagedData*>(iter->second);
-		if (info->classType == ShaderClassType::Global)
+		ShaderManagedData* managedData = static_cast<ShaderManagedData*>(iter->second);
+		if (managedData->classType == ShaderClassType::Global)
 		{
 			ShaderCompileOption option;
 			mShaderFormat->setupShaderCompileOption(option);
@@ -832,10 +832,10 @@ namespace Render
 			GlobalShaderClass const& myClass = *static_cast<GlobalShader&>(shader).myClass;
 			myClass.SetupShaderCompileOption(option);
 
-			generateCompileSetup(*info, myClass.entry , option, nullptr, myClass.GetShaderFileName(), true);
+			generateCompileSetup(*managedData, myClass.entry , option, nullptr, myClass.GetShaderFileName());
 		}
 
-		return buildShader(shader, *info, true);
+		return buildShader(shader, *managedData, true);
 
 	}
 
@@ -1114,7 +1114,7 @@ namespace Render
 		}
 	}
 
-	void ShaderManager::generateCompileSetup(ShaderManagedData& managedData, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
+	void ShaderManager::generateCompileSetup(ShaderManagedData& managedData, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, char const* fileName)
 	{
 		assert(fileName);
 
@@ -1124,14 +1124,7 @@ namespace Render
 		std::string headCode = option.getCode(entry, defCode.c_str(), additionalCode);
 
 		InlineString< 256 > path;
-		if (bSingleFile)
-		{
-			path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);
-		}
-		else
-		{
-			path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
-		}
+		path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);
 		managedData.compileInfo = { entry.type , path.c_str() , std::move(headCode) , entry.name };
 
 	}
@@ -1177,7 +1170,6 @@ namespace Render
 		}
 	}
 
-
 	void ShaderManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
@@ -1209,19 +1201,15 @@ namespace Render
 			result += defCode;
 		}
 
-		result += "#define SHADER_COMPILING 1\n";
-		
-		result += "#define SHADER_ENTRY_";
-		result += entry.name;
-		result += " 1\n";
-
-		result += gShaderDefines[entry.type];
+		result += "#define SHADER_COMPILING 1\n";		
+		result += InlineString<>::Make("#define SHADER_ENTRY_%s 1\n", entry.name);
+		result += InlineString<>::Make("#define %s 1\n", gShaderNames[entry.type]);
 
 		for( auto const& var : mConfigVars )
 		{
 			result += "#define ";
 			result += var.name;
-			if( var.name.length() )
+			if( var.value.length() )
 			{
 				result += " ";
 				result += var.value;

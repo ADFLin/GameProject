@@ -618,13 +618,13 @@ namespace Go
 		{
 			switch (color)
 			{
-			case Zen::Color::Empty: return StoneColor::eEmpty;
-			case Zen::Color::White: return StoneColor::eWhite;
-			case Zen::Color::Black: return StoneColor::eBlack;
+			case Zen::Color::Empty: return EStoneColor::Empty;
+			case Zen::Color::White: return EStoneColor::White;
+			case Zen::Color::Black: return EStoneColor::Black;
 			}
 
 			NEVER_REACH("Error Color Value");
-			return StoneColor::eEmpty;
+			return EStoneColor::Empty;
 
 		}
 
@@ -632,9 +632,9 @@ namespace Go
 		{
 			switch( color )
 			{
-			case StoneColor::eBlack: return Zen::Color::Black;
-			case StoneColor::eWhite: return Zen::Color::White;
-			case StoneColor::eEmpty: return Zen::Color::Empty;
+			case EStoneColor::Black: return Zen::Color::Black;
+			case EStoneColor::White: return Zen::Color::White;
+			case EStoneColor::Empty: return Zen::Color::Empty;
 			}
 
 			NEVER_REACH("Error Color Value");

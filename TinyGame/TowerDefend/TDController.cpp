@@ -94,7 +94,7 @@ namespace TowerDefend
 			if ( curMap->baseID == COM_MAP_NULL )
 				break;
 
-			curMap = &Actor::getComMap( curMap->baseID );
+			curMap = &Actor::GetComMap( curMap->baseID );
 		}
 		return 0;
 	}
@@ -165,7 +165,7 @@ namespace TowerDefend
 					return true;
 				}
 
-				ComMap& comMap = Actor::getComMap( cInfo.comMapID );
+				ComMap& comMap = Actor::GetComMap( cInfo.comMapID );
 				for( int i = 0 ; i < COM_MAP_ELEMENT_NUN ; ++i )
 				{
 					int id = scanCom( comMap , i );

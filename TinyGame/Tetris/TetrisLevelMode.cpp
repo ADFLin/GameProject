@@ -131,7 +131,7 @@ namespace Tetris
 	{
 		LevelData* lvData = getWorld()->getLevelData( player->getActionPort() );
 		if ( !lvData )
-			return -1;
+			return INDEX_NONE;
 
 		Record* record = new Record;
 

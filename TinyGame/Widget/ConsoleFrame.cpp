@@ -46,7 +46,7 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 
 	if( msg.getCode() == EKeyCode::Tab )
 	{
-		if( mIndexFoundComUsed == -1 )
+		if( mIndexFoundComUsed == INDEX_NONE )
 		{
 			char const* foundComs[256];
 			int numFound = ConsoleSystem::Get().findCommandName2(mComText->getValue(), foundComs, ARRAY_SIZE(foundComs));
@@ -61,7 +61,7 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 			mIndexFoundComUsed = (mIndexFoundComUsed + 1) % mFoundComs.size();
 		}
 
-		if( mIndexFoundComUsed != -1 )
+		if( mIndexFoundComUsed != INDEX_NONE)
 		{
 			mComText->setValue(mFoundComs[mIndexFoundComUsed].c_str());
 			mComText->appendValue(" ");
@@ -109,7 +109,7 @@ bool ConsoleFrame::onCharMsg(unsigned code)
 	{
 		return false;
 	}
-	mIndexFoundComUsed = -1;
+	mIndexFoundComUsed = INDEX_NONE;
 	return mComText->onCharMsg(code);
 }
 

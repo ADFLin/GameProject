@@ -15,8 +15,8 @@ DebrisParticle::DebrisParticle( Vec2f const& pos )
 void DebrisParticle::init()
 {
 	BaseClass::init();
-	maxLife=45;
-	life=maxLife;	
+	maxLife = 45;
+	life = maxLife;	
 }
 
 void DebrisParticle::onSpawn( unsigned flag )

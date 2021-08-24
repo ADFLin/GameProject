@@ -13,6 +13,8 @@
 #include "GameReplay.h"
 #include "TetrisRecord.h"
 
+#include "ConsoleSystem.h"
+
 namespace Tetris
 {
 	EXPORT_GAME_MODULE(GameModule)
@@ -57,6 +59,7 @@ namespace Tetris
 		case ATTR_NET_SUPPORT:
 		case ATTR_SINGLE_SUPPORT:
 		case ATTR_REPLAY_SUPPORT:
+		case ATTR_GRAPRHICS_SWAP_SUPPORT:
 			value.iVal = true;
 			return true;
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
@@ -72,9 +75,6 @@ namespace Tetris
 		}
 		return false;
 	}
-
-
-
 
 	struct ActionBitNode
 	{
@@ -196,12 +196,17 @@ namespace Tetris
 	void GameModule::enter()
 	{
 		GetRecordManager().init();
+
+		::Global::GetDrawEngine().startupSystem(ERenderSystem::OpenGL);
+		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
 	}
 
 	void GameModule::exit()
 	{
 		GetRecordManager().saveFile( "record.dat" );
 		GetRecordManager().clear();
+
+		::Global::GetDrawEngine().shutdownSystem();
 	}
 
 

@@ -56,7 +56,7 @@ namespace CAR
 		mNumTileNeedMix = 0;
 		mDragon = nullptr;
 		mFairy = nullptr;
-		mIsStartGame = false;
+		mbGameStarted = false;
 		mBaseWindRose = nullptr;
 		mWitch = nullptr;
 		mMage = nullptr;
@@ -88,10 +88,10 @@ namespace CAR
 		}
 	}
 
-	PlayerBase* GameLogic::getOwnedPlayer(LevelActor* actor)
+	PlayerBase* GameLogic::getOwnedPlayer(LevelActor& actor)
 	{
-		assert(actor && actor->ownerId != CAR_ERROR_PLAYER_ID);
-		return mPlayerManager->getPlayer(actor->ownerId);
+		assert(actor.ownerId != CAR_ERROR_PLAYER_ID);
+		return mPlayerManager->getPlayer(actor.ownerId);
 	}
 
 	template< class T >
@@ -216,7 +216,7 @@ namespace CAR
 
 	void GameLogic::run(IGameInput& input)
 	{
-		TGuardValue< bool > gurdValue(mIsStartGame, true);
+		TGuardValue< bool > gurdValue(mbGameStarted, true);
 
 		if ( mPlayerManager->getPlayerNum() == 0 )
 		{
@@ -795,7 +795,7 @@ namespace CAR
 						if( mDragon->mapTile == nullptr )
 							checkReservedTileToMix();
 
-						moveActor(mDragon, ActorPos::Tile(), mapTile);
+						moveActor(*mDragon, ActorPos::Tile(), mapTile);
 						haveVolcano = true;
 					}
 				}
@@ -1006,7 +1006,7 @@ namespace CAR
 							FeatureBase* feature = getFeature( abbot->mapTile->group );
 							int score = feature->calcPlayerScore(turnContext.getPlayer());
 							CHECK_RESOLVE_RESULT( resolveScorePlayer(turnContext, turnContext.getPlayer()->getId(), score) );
-							returnActorToPlayer(abbot);
+							returnActorToPlayer(*abbot);
 						}
 					}
 
@@ -1445,20 +1445,19 @@ namespace CAR
 		//		o You must perform an expand flock action and resolve the result
 		//		o MESSAGES ROBBERS
 		//c) Deploy the barn.The farm will be scored as a normal feature in Step 7.
-		calcPlayerDeployActorPos(*turnContext.getPlayer(), deployMapTiles , numDeployTile , actorMask , haveUsePortal, ignoreFeatureMask );
+
+		std::vector< ActorPosInfo > actorDeployPosList;
+		calcPlayerDeployActorPos(*turnContext.getPlayer(), deployMapTiles , numDeployTile , actorMask , haveUsePortal, ignoreFeatureMask , actorDeployPosList);
 
 		GameDeployActorData deployActorData;
+		deployActorData.options = MakeView(actorDeployPosList);
 		CHECK_INPUT_RESULT(turnContext.getInput().requestDeployActor( deployActorData ) );
 
 		if ( deployActorData.bSkipActionForResult == true )
 			return;
 
-		if ( deployActorData.resultIndex < 0 && deployActorData.resultIndex >= mActorDeployPosList.size() )
-		{
-			CAR_LOG("Warning: Error Deploy Actor Index !!" );
-			deployActorData.resultIndex = 0;
-		}
-		ActorPosInfo& info = mActorDeployPosList[ deployActorData.resultIndex ];
+		deployActorData.validateResult("Deploy Actor");
+		ActorPosInfo& info = deployActorData.getResult();
 
 		FeatureBase* feature = getFeature( info.group );
 		assert( feature );
@@ -1742,7 +1741,7 @@ namespace CAR
 					{
 						info.score += numTiles;
 					}
-					removeActor(mMage);
+					removeActor(*mMage);
 				}
 				else if( mWitch->feature == &completedFeature )
 				{
@@ -1750,7 +1749,7 @@ namespace CAR
 					{
 						info.score = ( info.score + 1 ) / 2;
 					}
-					removeActor(mWitch);
+					removeActor(*mWitch);
 				}
 			}
 
@@ -1842,7 +1841,6 @@ namespace CAR
 
 		MapTile* moveTiles[FDir::TotalNum];
 		GameDragonMoveData data;
-		data.mapTiles = moveTiles;
 		data.reason = SAR_MOVE_DRAGON;
 		data.bCanSkip = false;
 
@@ -1875,26 +1873,22 @@ namespace CAR
 					continue;
 
 
-				data.mapTiles[ numTile ] = mapTile;
+				moveTiles[ numTile ] = mapTile;
 				++numTile;
 			}
 
 			if ( numTile == 0 )
 				break;
 
-			data.numSelection = numTile;
+			data.options = TArrayView<MapTile*>(moveTiles, numTile);
 			data.playerId = mOrderedPlayers[ idxPlayer ]->getId();
 			
 			CHECK_INPUT_RESULT(turnContext.getInput().requestSelectMapTile(data) );
 
-			if ( data.checkResult() == false )
-			{
-				CAR_LOG("Warning: Error Dragon Move Index %d" , data.resultIndex );
-				data.resultIndex = 0;
-			}
+			data.validateResult("Dragon Move");
 
 			moveTilesBefore[ step ] = dragon.mapTile;
-			moveActor( &dragon , ActorPos::Tile() , data.mapTiles[ data.resultIndex ] );
+			moveActor( dragon , ActorPos::Tile() , data.getResult());
 				
 			for(LevelActor* actor : dragon.mapTile->mActors)
 			{
@@ -1918,7 +1912,7 @@ namespace CAR
 				{
 
 				}
-				returnActorToPlayer( actor );
+				returnActorToPlayer( *actor );
 			}
 
 			++idxPlayer;
@@ -1956,17 +1950,11 @@ namespace CAR
 			GameSelectMapTileData data;
 			data.reason = SAR_MAGIC_PORTAL;
 			data.bCanSkip = false;
-			data.mapTiles = &mapTiles[0];
-			data.numSelection = mapTiles.size();
+			data.options = MakeView(mapTiles);
 			CHECK_INPUT_RESULT( turnContext.getInput().requestSelectMapTile( data ) );
+			data.validateResult("Portal Tile Selection");
 
-			if( !data.checkResult() )
-			{
-				CAR_LOG("Warning! Error Portal Result Index Tile!");
-				data.resultIndex = 0;
-			}
-
-			outDeployMapTile = data.mapTiles[ data.resultIndex ];
+			outDeployMapTile = data.getResult();
 		}
 		else
 		{
@@ -2017,7 +2005,7 @@ namespace CAR
 				for(ShepherdActor* shepherd : shepherds)
 				{
 					PlayerId ownerId = shepherd->ownerId;
-					returnActorToPlayer(shepherd);
+					returnActorToPlayer(*shepherd);
 					CHECK_RESOLVE_RESULT( resolveScorePlayer(turnContext, ownerId, score) );
 				}
 			}
@@ -2033,20 +2021,15 @@ namespace CAR
 		GameSelectMapTileData data;
 		data.bCanSkip = true;
 		data.reason = SAR_CONSTRUCT_TOWER;
-		data.numSelection = mTowerTiles.size();
-		data.mapTiles   = &mTowerTiles[0];
+		data.options = MakeView(mTowerTiles);
 		CHECK_INPUT_RESULT(turnContext.getInput().requestSelectMapTile( data ) );
 
 		if ( data.bSkipActionForResult == true )
 			return;
 
-		if ( data.checkResult() == false )
-		{
-			CAR_LOG("Warning: Error ContructTower Index" );
-			data.resultIndex = 0;
-		}
+		data.validateResult("Construct Tower");
 
-		MapTile* mapTile = mTowerTiles[ data.resultIndex ];
+		MapTile* mapTile = data.getResult();
 		mapTile->towerHeight += 1;
 		turnContext.getPlayer()->modifyFieldValue( EField::TowerPices , -1 );
 
@@ -2086,20 +2069,15 @@ namespace CAR
 		{
 			GameSelectActorData selectActorData;
 			selectActorData.reason = SAR_TOWER_CAPTURE_FOLLOWER;
-			selectActorData.numSelection = actors.size();
-			selectActorData.actors = &actors[0];
+			selectActorData.options = MakeView(actors);
 			CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActor( selectActorData ) );
 
 			if ( selectActorData.bSkipActionForResult == true )
 				return;
 
-			if ( selectActorData.checkResult() == false )
-			{
-				CAR_LOG("Warning: Error Tower Capture follower Index" );
-				selectActorData.resultIndex = 0;
-			}
+			selectActorData.validateResult("Tower Capture follower");
 
-			LevelActor* actor = actors[selectActorData.resultIndex];
+			LevelActor* actor = selectActorData.getResult();
 			PrisonerInfo info;
 			info.playerId  = actor->ownerId;
 			info.type = actor->type;
@@ -2114,8 +2092,7 @@ namespace CAR
 					actorInfos.push_back( prisoner );
 				}
 			}
-
-			destroyActor( actor );
+			destroyActor( *actor );
 
 			if ( actorInfos.empty() )
 			{
@@ -2129,19 +2106,16 @@ namespace CAR
 					GameSelectActorInfoData data;
 					data.reason = SAR_EXCHANGE_PRISONERS;
 					data.bCanSkip = false;
-					data.actorInfos = &actorInfos[0];
-					data.numSelection = actorInfos.size();
+					data.options = MakeView(actorInfos); 
 					CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActorInfo( data ) );
-					if ( data.checkResult() == false )
-					{
-						CAR_LOG("Warning: Error Prisoner exchange Index" );
-						data.resultIndex = 0;
-					}
 
+					data.validateResult("Exchange Prisoners");
+
+					ActorInfo& selection = data.getResult();
 					for( int i = 0 ; i < mPrisoners.size() ; ++i )
 					{
-						if ( mPrisoners[i].playerId == data.actorInfos[data.resultIndex].playerId && 
-							 mPrisoners[i].type == data.actorInfos[data.resultIndex].type )
+						if ( mPrisoners[i].playerId == selection.playerId &&
+							 mPrisoners[i].type == selection.type )
 						{
 							idxExchange = i;
 							break;
@@ -2170,8 +2144,7 @@ namespace CAR
 		GameSelectActorData data;
 		data.bCanSkip = true;
 		data.reason = SAR_FAIRY_MOVE_NEXT_TO_FOLLOWER;
-		data.actors = &followers[0];
-		data.numSelection = numFollower;
+		data.options = MakeView(followers);
 		CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActor( data ) );
 		if ( data.bSkipActionForResult == true )
 			return;
@@ -2181,9 +2154,9 @@ namespace CAR
 			CAR_LOG( "Warning: Error Fairy Select Actor Index !" );
 			data.resultIndex = 0;
 		}
-		LevelActor* actor = data.actors[ data.resultIndex ];
+		LevelActor* actor = data.options[ data.resultIndex ];
 		actor->addFollower( *mFairy );
-		moveActor( mFairy , ActorPos::Tile() , actor->mapTile );
+		moveActor( *mFairy , ActorPos::Tile() , actor->mapTile );
 
 		haveDone = true;
 	}
@@ -2304,7 +2277,7 @@ namespace CAR
 		std::vector< LevelActor* > otherGroup;
 		for( LevelActor * actor : feature.mActors)
 		{
-			PlayerBase* player = getOwnedPlayer(actor);
+			PlayerBase* player = getOwnedPlayer(*actor);
 			if ( player  )
 			{
 				switch( actor->type )
@@ -2384,7 +2357,7 @@ namespace CAR
 
 					if ( data.bSkipActionForResult == true )
 					{
-						returnActorToPlayer(wagon);
+						returnActorToPlayer(*wagon);
 					}
 					else 
 					{
@@ -2392,9 +2365,9 @@ namespace CAR
 
 						FeatureBase* selectedFeature = data.getResultFeature();
 						ActorPos actorPos;
-						bool isOK = selectedFeature->getActorPos( *mapTiles[ data.resultIndex ] , actorPos );
+						bool isOK = selectedFeature->getActorPos( *data.getResult() , actorPos );
 						assert( isOK );
-						moveActor(wagon , actorPos , mapTiles[data.resultIndex] );
+						moveActor(*wagon , actorPos , data.getResult() );
 						selectedFeature->addActor( *wagon );
 						linkFeatures.erase( std::find( linkFeatures.begin() , linkFeatures.end() , selectedFeature ) );
 					}
@@ -2404,7 +2377,7 @@ namespace CAR
 			{
 				for(auto* actor : wagonGroup)
 				{
-					returnActorToPlayer(actor);
+					returnActorToPlayer(*actor);
 				}
 			}
 		}
@@ -2412,7 +2385,7 @@ namespace CAR
 		//m)
 		for(auto* actor : otherGroup)
 		{
-			returnActorToPlayer(actor);
+			returnActorToPlayer(*actor);
 		}
 	}
 
@@ -2452,24 +2425,22 @@ namespace CAR
 					{
 						GameSelectActorData data;
 						data.reason = SAR_LA_PORXADA_SELF_FOLLOWER;
-						data.numSelection = selfFollowers.size();
-						data.actors = selfFollowers.data();
+						data.options = MakeView(selfFollowers);
 						data.bCanSkip = false;
 						CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActor(data) );
 						data.validateResult("LaPorxadaCommand:SelectSelfFollower");
-						selfActor = data.actors[data.resultIndex];
+						selfActor = data.getResult();
 						assert(selfActor);
 					}
 					//select target follower
 					{
 						GameSelectActorData data;
 						data.reason = SAR_LA_PORXADA_OTHER_PLAYER_FOLLOWER;
-						data.numSelection = selfFollowers.size();
-						data.actors = selfFollowers.data();
+						data.options = MakeView(selfFollowers);
 						data.bCanSkip = false;
 						CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActor(data) );
 						data.validateResult("LaPorxadaCommand:SelectTargetFollower");
-						targetActor = data.actors[data.resultIndex];
+						targetActor = data.getResult();
 						assert(targetActor);
 					}
 					//request exchange
@@ -2502,7 +2473,6 @@ namespace CAR
 
 	void GameLogic::resolveMoveMageOrWitch(TurnContext& turnContext)
 	{
-
 		LevelActor* targetActor;
 		LevelActor* skipActor;
 		{
@@ -2548,7 +2518,7 @@ namespace CAR
 
 			if( targetActor->feature )
 			{
-				removeActor(targetActor);
+				removeActor(*targetActor);
 			}
 			return; 
 		}
@@ -2562,7 +2532,7 @@ namespace CAR
 			data.bCanSkip = false;
 			//CHECK_INPUT_RESULT(turnContext.getInput().requestSelectMapTile(data));
 			data.validateResult("MoveMageOrWitch:SelectTile");
-			moveActor(targetActor, ActorPos::Tile(), selectedTitles[data.resultIndex]);
+			moveActor(*targetActor, ActorPos::Tile(), selectedTitles[data.resultIndex]);
 		}
 	}
 
@@ -2587,8 +2557,7 @@ namespace CAR
 		{
 			GameSelectMapTileData data;
 			data.reason = SAR_PLACE_GOLD_PIECES;
-			data.mapTiles = &neighborTiles[0];
-			data.numSelection = neighborTiles.size();
+			data.options = MakeView(neighborTiles);
 			data.bCanSkip = false;
 			CHECK_INPUT_RESULT(turnContext.getInput().requestSelectMapTile(data));
 			data.validateResult("PlaceGoldPices");
@@ -2648,25 +2617,21 @@ namespace CAR
 				kinghts.push_back( actor );
 			}
 
-			if ( ! kinghts.empty() )
+			if ( !kinghts.empty() )
 			{
 				GameSelectActorData data;
 				data.bCanSkip = true;
 				data.reason   = SAR_PRINCESS_REMOVE_KINGHT;
-				data.numSelection = kinghts.size();
-				data.actors   = &kinghts[0];
+				data.options = MakeView(kinghts);
 
 				CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActor( data ) );
 
 				if ( data.bSkipActionForResult == false )
 				{
-					if ( data.checkResult() == false )
-					{
-						CAR_LOG("Warning: Error Select Kinght Index");
-						data.resultIndex = 0;
-					}
-					LevelActor* actor = kinghts[ data.resultIndex ];
-					returnActorToPlayer( actor );
+					data.validateResult("Princess Move kinght");
+
+					LevelActor* actor = data.getResult();
+					returnActorToPlayer( *actor );
 					haveDone = true;
 					break;
 				}
@@ -2907,25 +2872,23 @@ namespace CAR
 		return result;
 	}
 
-	void GameLogic::calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask )
+	void GameLogic::calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask, std::vector< ActorPosInfo >& outActorDeployPosList)
 	{
-
-		mActorDeployPosList.clear();
 		for( int i = 0 ; i < numDeployTile ; ++i )
 		{
-			getActorPutInfo(player.getId(), *deplyMapTiles[i], haveUsePortal, ignoreFeatureMask, mActorDeployPosList);
+			getActorPutInfo(player.getId(), *deplyMapTiles[i], haveUsePortal, ignoreFeatureMask, outActorDeployPosList);
 		}
 
-		int num = mActorDeployPosList.size();
+		int num = outActorDeployPosList.size();
 		for( int i = 0; i < num; )
 		{
-			mActorDeployPosList[i].actorTypeMask &= actorMask;
-			if( mActorDeployPosList[i].actorTypeMask == 0 )
+			outActorDeployPosList[i].actorTypeMask &= actorMask;
+			if(outActorDeployPosList[i].actorTypeMask == 0 )
 			{
 				--num;
 				if( i != num )
 				{
-					std::swap(mActorDeployPosList[i], mActorDeployPosList[num]);
+					std::swap(outActorDeployPosList[i], outActorDeployPosList[num]);
 				}
 
 			}
@@ -2935,7 +2898,7 @@ namespace CAR
 			}
 		}
 
-		mActorDeployPosList.resize( num );
+		outActorDeployPosList.resize( num );
 	}
 
 	SideFeature* GameLogic::mergeHalfSeparateBasicSideFeature( MapTile& mapTile , int dir , FeatureBase* featureMerged[] , int& numMerged )
@@ -3375,18 +3338,17 @@ namespace CAR
 		return actor;
 	}
 
-	void GameLogic::destroyActor(LevelActor* actor)
-	{
-		assert( actor );
-		if ( actor->feature )
+	void GameLogic::destroyActor(LevelActor& actor)
+	{;
+		if ( actor.feature )
 		{
-			actor->feature->removeActor( *actor );
+			actor.feature->removeActor( actor );
 		}
-		if ( actor->mapTile )
+		if ( actor.mapTile )
 		{
-			actor->mapTile->removeActor( *actor );
+			actor.mapTile->removeActor( actor );
 		}
-		while( LevelActor* follower = actor->popFollower() )
+		while( LevelActor* follower = actor.popFollower() )
 		{
 			switch( follower->type )
 			{
@@ -3394,8 +3356,8 @@ namespace CAR
 				break;
 			}
 		}
-		mActors.erase( std::find(mActors.begin() , mActors.end() , actor ));
-		deleteActor( actor );
+		mActors.erase( std::find(mActors.begin() , mActors.end() , &actor ));
+		deleteActor( &actor );
 	}
 
 	void GameLogic::deleteActor(LevelActor* actor)
@@ -3634,14 +3596,14 @@ namespace CAR
 		return result;
 	}
 
-	void GameLogic::returnActorToPlayer(LevelActor* actor)
+	void GameLogic::returnActorToPlayer(LevelActor& actor)
 	{
 		PlayerBase* player = getOwnedPlayer( actor );
 		assert(player);
-		CAR_LOG( "Actor type=%d Return To Player %d" , actor->type , player->getId() );
-		player->modifyFieldValue( actor->type , 1 );
+		CAR_LOG( "Actor type=%d Return To Player %d" , actor.type , player->getId() );
+		player->modifyFieldValue( actor.type , 1 );
 
-		while( LevelActor* follower = actor->popFollower() )
+		while( LevelActor* follower = actor.popFollower() )
 		{
 			//#TODO
 			switch( follower->type )
@@ -3653,12 +3615,12 @@ namespace CAR
 				{
 					int iter = 0;
 					LevelActor* newFollower = nullptr;
-					unsigned playerMask = BIT(actor->ownerId);
+					unsigned playerMask = BIT(actor.ownerId);
 					unsigned actorMask = mSetting->getFollowerMask();
 					do
 					{
-						newFollower = actor->feature->iteratorActor( playerMask , actorMask , iter );
-						if ( newFollower != actor )
+						newFollower = actor.feature->iteratorActor( playerMask , actorMask , iter );
+						if ( newFollower != &actor )
 							break;
 					}
 					while ( newFollower != nullptr );
@@ -3669,7 +3631,7 @@ namespace CAR
 					}
 					else
 					{
-						returnActorToPlayer( follower );
+						returnActorToPlayer( *follower );
 					}
 				}
 				break;
@@ -3679,29 +3641,28 @@ namespace CAR
 		destroyActor( actor );
 	}
 
-	void GameLogic::moveActor(LevelActor* actor , ActorPos const& pos , MapTile* mapTile)
+	void GameLogic::moveActor(LevelActor& actor , ActorPos const& pos , MapTile* mapTile)
 	{
-		assert( actor );
-		actor->pos = pos;
+		actor.pos = pos;
 		if( mapTile )
 		{
-			mapTile->addActor(*actor);
+			mapTile->addActor(actor);
 			int group = mapTile->getFeatureGroup(pos);
 			if( group != ERROR_GROUP_ID )
 			{
-				getFeature(group)->addActor(*actor);
+				getFeature(group)->addActor(actor);
 			}
 		}
-		else if( actor->mapTile )
+		else if( actor.mapTile )
 		{
-			if( actor->feature )
+			if( actor.feature )
 			{
-				actor->feature->removeActor(*actor);
+				actor.feature->removeActor(actor);
 			}
-			actor->mapTile->removeActor(*actor);
+			actor.mapTile->removeActor(actor);
 		}
 
-		for( LevelActor * followActor : actor->followers)
+		for( LevelActor * followActor : actor.followers)
 		{
 			switch( followActor->type )
 			{
@@ -3801,9 +3762,9 @@ namespace CAR
 		{
 			GameSelectMapPosData data;
 			data.reason = SAR_PLACE_ABBEY_TILE;
-			data.mapPositions = &mapTilePosVec[0];
-			data.numSelection = mapTilePosVec.size();
+			data.options = MakeView(mapTilePosVec);
 			CHECK_INPUT_RESULT(turnContext.getInput().requestSelectMapPos( data ) );
+			data.validateResult("Abbey");
 		}
 	}
 
@@ -3839,7 +3800,7 @@ namespace CAR
 			return;
 
 		LevelActor* kinght = city.findActorFromType( KINGHT_MASK );
-		if ( kinght == nullptr || getOwnedPlayer( kinght )->getFieldValue( EField::CastleTokens ) <= 0 )
+		if ( kinght == nullptr || getOwnedPlayer( *kinght )->getFieldValue( EField::CastleTokens ) <= 0 )
 			return;
 
 		GameBuildCastleData data;
@@ -3960,7 +3921,7 @@ namespace CAR
 				{
 					mSheepBags.push_back(token);
 				}
-				returnActorToPlayer( shepherd );
+				returnActorToPlayer( *shepherd );
 			}
 		}
 		else
@@ -3991,7 +3952,7 @@ namespace CAR
 			if ( FARMER_MASK & BIT( actor->type ) )
 			{
 				farm->removeActorByIndex( i );
-				returnActorToPlayer( actor );
+				returnActorToPlayer( *actor );
 			}
 			else
 			{

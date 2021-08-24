@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <vector>
 
-
 namespace Tetris
 {
 	int const gTetrisMaxPlayerNum = 5;
@@ -22,13 +21,16 @@ namespace Tetris
 		int       getX() const { return x; }
 		int       getY() const { return y; }
 	private:
+
 		void      transformPos( uint8 const* trans , int size );
 		void      setPos( int idx , int size );
+		uint8     index;
+
 		friend class Piece;
 		char      x;
 		char      y;
 		BlockType type;
-		uint8     index;
+
 	};
 
 	struct PieceTemplate
@@ -55,13 +57,12 @@ namespace Tetris
 			return data & Piece::COLOR_MASK;
 		}
 
-
 		void         rotate( int time );
 		int          getRotationSize() const {  return getTemplate().rotationSize;  }
 		int          getDirectionNum()  const {  return getTemplate().directionNum; }
 		int          getDirection()     const {  return mDirection; }
 		void         resetRotation() { mDirection = 0; }
-		void         setBlockType( int idx , BlockType type ){ mBlock[ idx ].type = type; }
+		void         setBlockType( int idx , BlockType type ){  mBlock[ idx ].type = type;  }
 		void         getBoundRect( int x[] , int y[] );
 		int          getBlockNum() const { return mNumBlock; }
 		PieceBlock const& getBlock( unsigned idx ) const
@@ -74,21 +75,21 @@ namespace Tetris
 		{
 			mNumBlock = piece.mNumBlock;
 			mDirection= piece.mDirection;
-			mTemp     = piece.mTemp;
+			mTemplate = piece.mTemplate;
 			std::copy( piece.mBlock , piece.mBlock + piece.mNumBlock , mBlock );
+
 			return *this;
 		}
 
 	private:
 		friend class PieceTemplateSet;
 		void         setTemplate( PieceTemplate& temp );
-		PieceBlock&  getBlockInternal( unsigned idx ){  return mBlock[idx];  }
-		PieceTemplate const&  getTemplate() const { assert( mTemp ); return *mTemp; }
-		PieceTemplate const* mTemp;
-		unsigned char  mNumBlock;
-		char           mDirection;
-		PieceBlock     mBlock[ 16 ];
-
+		PieceBlock&  getBlockInternal(unsigned idx) { return mBlock[idx]; }
+		PieceTemplate const&  getTemplate() const { assert( mTemplate ); return *mTemplate; }
+		PieceTemplate const* mTemplate;
+		uint8          mNumBlock;
+		int8           mDirection;
+		PieceBlock     mBlock[16];
 	};
 
 	class PieceTemplateSet
@@ -204,8 +205,7 @@ namespace Tetris
 	public:
 		LevelRule();
 
-		void          setDefault();
-
+		void           setDefault();
 
 		int            getClearLayerTime() const { return mTimeClearLayer;  }
 		int            getLockPieceTime()  const { return mTimeLockPiece;  }
@@ -329,8 +329,6 @@ namespace Tetris
 
 		int         mXPosMP;
 		int         mYPosMP;
-
-
 	};
 
 }// namespace Tetris

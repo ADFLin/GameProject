@@ -18,6 +18,19 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
+#if SYS_PLATFORM_WIN
+		DISPLAY_DEVICE devices[4];
+		for (int i = 0; i < ARRAY_SIZE(devices); ++i)
+		{
+			devices[i].cb = sizeof(DISPLAY_DEVICE);
+		}
+
+		if (EnumDisplayDevicesA(NULL, 0, devices, 0))
+		{
+			LogMsg("device name = %s", devices[0].DeviceString);
+		}
+#endif
+
 		query = GPUDeviceQuery::Create();
 		if( query == nullptr )
 			return false;

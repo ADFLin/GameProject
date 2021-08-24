@@ -19,7 +19,7 @@ bool GameStageMode::changeState(EGameState state)
 	if( mGameState == state )
 		return true;
 
-	if( !tryChangeState(state) )
+	if( !prevChangeState(state) )
 		return false;
 
 	mGameState = state;

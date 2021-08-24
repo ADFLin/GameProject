@@ -63,21 +63,20 @@ public:
 	static TINY_API void SetFontColor( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 
 	template< class TGraphics2D >
-	static void DrawBlock(TGraphics2D& g, Vec2i const& pos, Vec2i const& size, int color)
+	static void DrawBlock(TGraphics2D& g, Vec2i const& pos, Vec2i const& size, int color, int outlineColor = EColor::Black)
 	{
-		SetPen(g, EColor::Black);
+		SetPen(g, outlineColor);
 		SetBrush(g, color, COLOR_DEEP);
 		g.drawRoundRect(pos, size, Vec2i(8, 8));
 
 		SetPen(g, EColor::Null);
 		SetBrush(g, color);
-		g.drawRoundRect(
-			pos + Vec2i(3, 3), Vec2i(size.x - 6, size.y - 6), Vec2i(4, 4));
+		g.drawRoundRect(pos + Vec2i(3, 3), Vec2i(size.x - 6, size.y - 6), Vec2i(4, 4));
 	}
 	template< class TGraphics2D >
-	static void DrawBlock(TGraphics2D& g ,Vec2i const& pos ,  int color )
+	static void DrawBlock(TGraphics2D& g ,Vec2i const& pos , int color, int outlineColor = EColor::Black)
 	{
-		DrawBlock( g , pos ,  Vec2i( BlockSize  , BlockSize  ) , color );
+		DrawBlock( g , pos ,  Vec2i( BlockSize  , BlockSize  ) , color , outlineColor);
 	}
 
 	template< class TGraphics2D >

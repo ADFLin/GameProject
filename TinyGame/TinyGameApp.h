@@ -151,7 +151,7 @@ public:
 	void  handleGameRender() CRTP_OVERRIDE;
 	void  handleGameIdle( long time ) CRTP_OVERRIDE;
 
-	//SysMsgHandler
+	//WindowsMessageHandlerT
 	bool  handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
 	bool  handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE;
 	bool  handleCharEvent( unsigned code )  CRTP_OVERRIDE;

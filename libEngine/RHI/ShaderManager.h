@@ -189,7 +189,7 @@ namespace Render
 
 		void generateCompileSetup(ShaderManagedData& managedData, ShaderEntryInfo const& entry, 
 			ShaderCompileOption const& option, char const* additionalCode, 
-			char const* fileName, bool bSingleFile);
+			char const* fileName);
 
 		void postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData);
 

@@ -24,13 +24,14 @@ RHIGraphics2D::RHIGraphics2D()
 	: mWidth(1)
 	, mHeight(1)
 {
+
+	mPaintArgs.penWidth = 1;
+	mPaintArgs.bUseBrush = true;
+	mPaintArgs.bUsePen = true;
+	mPaintArgs.brushColor = Color4f(0, 0, 0, 1);
+	mPaintArgs.penColor = Color4f(0, 0, 0, 1);
+
 	mFont = nullptr;
-	mPenWidth = 1;
-	mDrawBrush = true;
-	mDrawPen = true;
-	mAlpha = 1.0;
-	mColorBrush = Color3f(0, 0, 0);
-	mColorPen = Color3f(0, 0, 0);
 	mColorFont = Color3f(0, 0, 0);
 
 	mRenderStateCommitted.texture = nullptr;
@@ -51,7 +52,11 @@ void RHIGraphics2D::beginXForm()
 
 void RHIGraphics2D::finishXForm()
 {
-
+	if (!mXFormStack.mStack.empty())
+	{
+		LogWarning(0, "push/pop transform is not match");
+	}
+	mXFormStack.clear();
 }
 
 void RHIGraphics2D::pushXForm()
@@ -84,7 +89,30 @@ void RHIGraphics2D::scaleXForm(float sx, float sy)
 	mXFormStack.scale(Vector2(sx, sy));
 }
 
+void RHIGraphics2D::beginFrame()
+{
+	if (bUseGraphicOnly)
+	{
+		initPiplineState();
+		mXFormStack.clear();
+	}
+}
+
+void RHIGraphics2D::endFrame()
+{
+
+}
+
 void RHIGraphics2D::beginRender()
+{
+	if (!bUseGraphicOnly)
+	{
+		initPiplineState();
+		mXFormStack.clear();
+	}
+}
+
+void RHIGraphics2D::initPiplineState()
 {
 	RHICommandList& commandList = GetCommandList();
 
@@ -105,8 +133,6 @@ void RHIGraphics2D::beginRender()
 	mRenderStatePending = mRenderStateCommitted;
 	mCurTextureSize = Vector2(0, 0);
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI(), nullptr, 0);
-
-	mXFormStack.clear();
 }
 
 void RHIGraphics2D::endRender()
@@ -147,7 +173,7 @@ void RHIGraphics2D::drawPixel(Vector2 const& p, Color3ub const& color)
 	{
 		Math::Vector2 pos;
 		Color4f c;
-	} v = { p , Color4f(color , mAlpha) };
+	} v = { p , Color4f(color , mPaintArgs.brushColor.a) };
 	TRenderRT<RTVF_XY_CA>::Draw(GetCommandList(), EPrimitive::Points, &v, 1);
 }
 
@@ -279,7 +305,7 @@ void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 
 	if (CVarUseBachedRender2D)
 	{
-		auto& element = mBachedElementList.addLine(LinearColor(mColorPen, mAlpha), p1, p2, mPenWidth);
+		auto& element = mBachedElementList.addLine(mPaintArgs.penColor, p1, p2, mPaintArgs.penWidth);
 		setupElement(element);
 	}
 	else
@@ -316,7 +342,7 @@ void RHIGraphics2D::fillGradientRect(Vector2 const& posLT, Color3ub const& color
 
 void RHIGraphics2D::setTextColor(Color3ub const& color)
 {
-	mColorFont = color;
+	mColorFont = Color4f( Color3f( color ) , mColorFont.a );
 }
 
 void RHIGraphics2D::drawText(Vector2 const& pos, char const* str)
@@ -380,7 +406,7 @@ void RHIGraphics2D::drawTextImpl(float  ox, float  oy, CharT const* str)
 			setBlendState(ESimpleBlendMode::Translucent);
 			setTextureState(&mFont->getTexture());
 			comitRenderState();
-			auto& element = mBachedElementList.addText(LinearColor(mColorFont, mAlpha), std::move(vertices));
+			auto& element = mBachedElementList.addText(mColorFont, std::move(vertices));
 			setupElement(element);
 			setBlendState(prevMode);
 		}
@@ -391,7 +417,7 @@ void RHIGraphics2D::drawTextImpl(float  ox, float  oy, CharT const* str)
 		setBlendState(ESimpleBlendMode::Translucent);
 		comitRenderState();
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		mFont->draw(GetCommandList(), Vector2(int(ox), int(oy)), transform, LinearColor(mColorFont, mAlpha), str);
+		mFont->draw(GetCommandList(), Vector2(int(ox), int(oy)), transform, mColorFont, str);
 		mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
 		mbPipelineStateChanged = true;
 		setBlendState(prevMode);
@@ -400,22 +426,22 @@ void RHIGraphics2D::drawTextImpl(float  ox, float  oy, CharT const* str)
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos)
 {
-	drawTexture(pos, mCurTextureSize, LinearColor(mColorBrush, mAlpha));
+	drawTexture(pos, mCurTextureSize, mPaintArgs.brushColor);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size)
 {
-	drawTexture(pos, size, LinearColor(mColorBrush, mAlpha));
+	drawTexture(pos, size, mPaintArgs.brushColor);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize)
 {
-	drawTexture(pos, mCurTextureSize, texPos, texSize, LinearColor(mColorBrush, mAlpha));
+	drawTexture(pos, mCurTextureSize, texPos, texSize, mPaintArgs.brushColor);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize)
 {
-	drawTexture(pos, size, texPos, texSize, LinearColor(mColorBrush, mAlpha));
+	drawTexture(pos, size, texPos, texSize, mPaintArgs.brushColor);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Color4f const& color)
@@ -435,7 +461,7 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Color4f
 	else
 	{
 		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		RHISetFixedShaderPipelineState(GetCommandList(), transform, LinearColor(mColorBrush, mAlpha), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
+		RHISetFixedShaderPipelineState(GetCommandList(), transform, mPaintArgs.brushColor, mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
 		DrawUtility::Sprite(GetCommandList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
 		mbPipelineStateChanged = true;
 	}
@@ -467,22 +493,22 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2
 void RHIGraphics2D::drawPolygonBuffer()
 {
 	assert(!mBuffer.empty());
-	if (mDrawBrush)
+	if (mPaintArgs.bUseBrush)
 	{
-		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::Polygon, mBuffer.data(), mBuffer.size() , LinearColor(mColorBrush, mAlpha));
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::Polygon, mBuffer.data(), mBuffer.size() , mPaintArgs.brushColor);
 	}
-	if (mDrawPen)
+	if (mPaintArgs.bUsePen)
 	{
-		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , LinearColor(mColorPen, mAlpha));
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , mPaintArgs.penColor);
 	}
 }
 
 void RHIGraphics2D::drawLineBuffer()
 {
 	assert(!mBuffer.empty());
-	if (mDrawPen)
+	if (mPaintArgs.bUsePen)
 	{
-		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , LinearColor(mColorPen, mAlpha));
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , mPaintArgs.penColor);
 	}
 }
 
@@ -507,14 +533,7 @@ void RHIGraphics2D::setTextureState(RHITexture2D* texture /*= nullptr*/)
 
 void RHIGraphics2D::setTexture(RHITexture2D& texture)
 {
-	if (CVarUseBachedRender2D)
-	{
-		setTextureState(&texture);
-	}
-	else
-	{
-		mRenderStatePending.texture = &texture;
-	}
+	setTextureState(&texture);
 	mCurTextureSize = Vector2(mRenderStatePending.texture->getSizeX(), mRenderStatePending.texture->getSizeY());
 }
 
@@ -536,53 +555,9 @@ void RHIGraphics2D::setBlendState(ESimpleBlendMode mode)
 	mRenderStatePending.blendMode = mode;
 }
 
-void RHIGraphics2D::comitRenderState()
+void SetBlendState(RHICommandList& commandList, ESimpleBlendMode blendMode)
 {
-	bool bRenderPipleStateNeedCommit = mbPipelineStateChanged || (mRenderStateCommitted.texture != mRenderStatePending.texture);
-	if (bRenderPipleStateNeedCommit || mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
-	{
-		preModifyRenderState();
-
-		if (bRenderPipleStateNeedCommit)
-		{
-			mbPipelineStateChanged = false;
-			mRenderStateCommitted.texture = mRenderStatePending.texture;
-			RHISetFixedShaderPipelineState(GetCommandList(), mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
-		}
-
-		if (mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
-		{
-			mRenderStateCommitted.blendMode = mRenderStatePending.blendMode;
-
-			switch (mRenderStateCommitted.blendMode)
-			{
-			case ESimpleBlendMode::Translucent:
-				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
-				break;
-			case ESimpleBlendMode::Add:
-				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
-				break;
-			case ESimpleBlendMode::Multiply:
-				RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA, EBlend::DestColor, EBlend::Zero >::GetRHI());
-				break;
-			case ESimpleBlendMode::None:
-				RHISetBlendState(GetCommandList(), TStaticBlendState<>::GetRHI());
-				break;
-			default:
-				NEVER_REACH("RHIGraphics2D::checkComitRenderState");
-			}	
-		}
-	}
-}
-
-void RHIGraphics2D::restoreRenderState()
-{
-	auto& commandList = GetCommandList();
-	preModifyRenderState();
-
-	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
-	switch (mRenderStateCommitted.blendMode)
+	switch (blendMode)
 	{
 	case ESimpleBlendMode::Translucent:
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
@@ -601,16 +576,50 @@ void RHIGraphics2D::restoreRenderState()
 	}
 }
 
+void RHIGraphics2D::comitRenderState()
+{
+	bool bRenderPipleStateNeedCommit = mbPipelineStateChanged || (mRenderStateCommitted.texture != mRenderStatePending.texture);
+	if (bRenderPipleStateNeedCommit || mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
+	{
+		preModifyRenderState();
+		auto& commandList = GetCommandList();
+		if (bRenderPipleStateNeedCommit)
+		{
+			mbPipelineStateChanged = false;
+			mRenderStateCommitted.texture = mRenderStatePending.texture;
+			mRenderStateCommitted.sampler = mRenderStatePending.sampler;
+			RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
+		}
+
+		if (mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
+		{
+			mRenderStateCommitted.blendMode = mRenderStatePending.blendMode;
+			SetBlendState(commandList, mRenderStateCommitted.blendMode);
+		}
+	}
+}
+
+
+void RHIGraphics2D::restoreRenderState()
+{
+	auto& commandList = GetCommandList();
+	preModifyRenderState();
+
+	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
+	SetBlendState(commandList, mRenderStateCommitted.blendMode);
+}
+
 void RHIGraphics2D::setPen(Color3ub const& color, int width)
 {
-	mColorPen = color;
-	if (mPenWidth != width)
+	mPaintArgs.penColor = Color4f(Color3f(color), mPaintArgs.penColor.a);
+	if (mPaintArgs.penWidth != width)
 	{
 		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{
 			glLineWidth(width);
 		}
-		mPenWidth = width;
+		mPaintArgs.penWidth = width;
 	}
 }
 
@@ -635,17 +644,17 @@ void RHIGraphics2D::endClip()
 void RHIGraphics2D::beginBlend(Vector2 const& pos, Vector2 const& size, float alpha)
 {
 	setBlendState(ESimpleBlendMode::Translucent);
-	mAlpha = alpha;
+	setBlendAlapha(alpha);
 }
 
 void RHIGraphics2D::beginBlend(float alpha, ESimpleBlendMode mode)
 {
 	setBlendState(mode);
-	mAlpha = alpha;
+	setBlendAlapha(alpha);
 }
 
 void RHIGraphics2D::endBlend()
 {
 	setBlendState(ESimpleBlendMode::None);
-	mAlpha = 1.0f;
+	setBlendAlapha(1.0f);
 }

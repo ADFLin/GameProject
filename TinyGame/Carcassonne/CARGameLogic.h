@@ -74,11 +74,11 @@ namespace CAR
 
 		
 		void   loadSetting( bool bInit );
-		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask);
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
 
-		void   reserveTile( TileId id );
+		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask, std::vector< ActorPosInfo >& outActorDeployPosList);
+		void   reserveTile(TileId id);
 		void   checkReservedTileToMix();
 
 		void   randomPlayerPlayOrder();
@@ -194,12 +194,12 @@ namespace CAR
 
 		PlayerBase* getTurnPlayer(){ return mOrderedPlayers[ mIdxPlayerTrun ]; }
 	
-		void  returnActorToPlayer( LevelActor* actor );
-		void  removeActor(LevelActor* actor)
+		void  returnActorToPlayer(LevelActor& actor);
+		void  removeActor(LevelActor& actor)
 		{
 			moveActor(actor, ActorPos::None(), nullptr);
 		}
-		void  moveActor( LevelActor* actor , ActorPos const& pos , MapTile* mapTile );
+		void  moveActor( LevelActor& actor , ActorPos const& pos , MapTile* mapTile );
 
 		void  shuffleTiles( TileId* begin , TileId* end );
 
@@ -239,17 +239,13 @@ namespace CAR
 
 		int getFollowers( unsigned playerIdMask , ActorList& outActors , LevelActor* actorSkip  = nullptr );
 		LevelActor* createActor( EActor::Type type );
-		void destroyActor( LevelActor* actor );
 
 
+		void destroyActor( LevelActor& actor );
 		void deleteActor( LevelActor* actor );
-		
-		
+		PlayerBase* getOwnedPlayer(LevelActor& actor);
 
 		void cleanupData();
-
-		PlayerBase* getOwnedPlayer(LevelActor* actor);
-
 
 
 		static GameParamCollection& GetParamCollection(GameLogic& logic);
@@ -271,7 +267,7 @@ namespace CAR
 		int    mNumTrun;
 		bool   mbNeedShutdown;
 		bool   mIsRunning;
-		bool   mIsStartGame;
+		bool   mbGameStarted;
 		TileId mUseTileId;
 		int    mIdxPlayerTrun;
 		int    mIdxTile;
@@ -281,7 +277,6 @@ namespace CAR
 		std::vector< Vec2i >  mPlaceTilePosList;
 		std::vector< TileId > mTilesQueue;
 		std::vector< PlayerBase* > mOrderedPlayers;
-		std::vector< ActorPosInfo > mActorDeployPosList;
 
 		void placeAllTileDebug( int numRow );
 

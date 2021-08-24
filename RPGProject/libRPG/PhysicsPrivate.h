@@ -22,15 +22,15 @@ public:
 	CollisionDetector( btCollisionObject* obj );
 	~CollisionDetector();
 
-	int	getNumOverlappingObjects() const  {  return m_overlappingObjects.size();  }
+	int	getNumOverlappingObjects() const  {  return mOverlappingObjects.size();  }
 
-	btCollisionObject*        getOverlappingObject(int index)       {  return m_overlappingObjects[index];  }
-	btCollisionObject const*  getOverlappingObject(int index) const {  return m_overlappingObjects[index]; }
+	btCollisionObject*        getOverlappingObject(int index)       {  return mOverlappingObjects[index];  }
+	btCollisionObject const*  getOverlappingObject(int index) const {  return mOverlappingObjects[index]; }
 
-	CollisionObjectArray&	     getOverlappingPairs()       {  return m_overlappingObjects;  }
-	CollisionObjectArray const&  getOverlappingPairs() const {  return m_overlappingObjects;  }
+	CollisionObjectArray&	     getOverlappingPairs()       {  return mOverlappingObjects;  }
+	CollisionObjectArray const&  getOverlappingPairs() const {  return mOverlappingObjects;  }
 
-	btHashedOverlappingPairCache*	getOverlappingPairCache(){  return m_hashPairCache; }
+	btHashedOverlappingPairCache*	getOverlappingPairCache(){  return mHashPairCache; }
 
 	void  convexSweepTest(
 		const btConvexShape* castShape, 
@@ -48,20 +48,20 @@ public:
 
 	btCollisionObject* getCollisionObj(){ return mObject; }
 
-	void clear()
+	void reset()
 	{
-		m_overlappingObjects.clear();
+		mOverlappingObjects.clear();
 
-		m_hashPairCache->~btHashedOverlappingPairCache();
-		btAlignedFree( m_hashPairCache );
+		mHashPairCache->~btHashedOverlappingPairCache();
+		btAlignedFree( mHashPairCache );
 
-		m_hashPairCache = new (btAlignedAlloc(sizeof(btHashedOverlappingPairCache),16)) btHashedOverlappingPairCache();
+		mHashPairCache = new (btAlignedAlloc(sizeof(btHashedOverlappingPairCache),16)) btHashedOverlappingPairCache();
 	}
 private:
 
 	btCollisionObject*             mObject;
-	CollisionObjectArray           m_overlappingObjects;
-	btHashedOverlappingPairCache*  m_hashPairCache;
+	CollisionObjectArray           mOverlappingObjects;
+	btHashedOverlappingPairCache*  mHashPairCache;
 	friend class CollisionDetectorCallback;
 };
 

@@ -876,7 +876,7 @@ namespace SR
 				if( !scene.raycast(trace, result) )
 					continue;
 				
-				if( result.material )
+				if( result.material && 0 )
 				{
 					float attenuation = Math::Clamp< float >(-result.normal.dot(trace.dir), 0, 1) /*/ Math::Squre(result.distance)*/;
 					LinearColor c = result.material->emissiveColor;

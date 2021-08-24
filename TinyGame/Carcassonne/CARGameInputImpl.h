@@ -131,8 +131,8 @@ namespace CAR
 		GameActionData* getReplyData(){ return mActionData; }
 		void clearReplyAction();
 
-		std::function< void ( GameLogic& , CGameInput& ) > onAction;
-		std::function< void ( GameLogic& , CGameInput& ) > onPrevAction;
+		std::function< void ( CGameInput& ) > onAction;
+		std::function< void ( CGameInput& ) > onPrevAction;
 		void waitReply();
 
 		void replyPlaceTile( Vec2i const& pos , int rotation );

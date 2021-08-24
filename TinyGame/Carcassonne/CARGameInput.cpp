@@ -23,8 +23,8 @@ namespace CAR
 
 			infos.push_back(info);
 		}
-		mapTiles = &mapTileStorage[0];
-		numSelection = mapTileStorage.size();
+
+		options = MakeView(mapTileStorage);
 	}
 
 	FeatureBase* GameFeatureTileSelectData::getResultFeature()

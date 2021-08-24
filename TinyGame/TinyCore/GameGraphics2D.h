@@ -32,6 +32,8 @@ class RHIGraphics2D;
 class IGraphics2D
 {
 public:
+	virtual void  beginFrame() = 0;
+	virtual void  endFrame() = 0;
 	virtual void  beginRender() = 0;
 	virtual void  endRender() = 0;
 	virtual void  beginClip(Vec2i const& pos, Vec2i const& size) = 0;
@@ -51,6 +53,15 @@ public:
 	virtual void  setTextColor(Color3ub const& color) = 0;
 	virtual void  drawText(Vector2 const& pos, char const* str) = 0;
 	virtual void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip = false) = 0;
+
+	virtual void  beginXForm() = 0;
+	virtual void  finishXForm() = 0;
+	virtual void  pushXForm() = 0;
+	virtual void  popXForm() = 0;
+	virtual void  identityXForm() = 0;
+	virtual void  translateXForm(float ox, float oy) = 0;
+	virtual void  rotateXForm(float angle) = 0;
+	virtual void  scaleXForm(float sx, float sy) = 0;
 
 	void  drawRect(int left, int top, int right, int bottom)
 	{

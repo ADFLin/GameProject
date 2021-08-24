@@ -187,7 +187,7 @@ END_DEF_BUILDING()
 #undef COM_NULL
 #undef END_COM_MAP
 
-	ComMap& Actor::getComMap( ComMapID id )
+	ComMap& Actor::GetComMap( ComMapID id )
 	{
 		return gComMapInfo[id];
 	}

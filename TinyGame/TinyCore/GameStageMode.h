@@ -43,7 +43,7 @@ public:
 	virtual bool   canRender() { return true; }
 	virtual bool   saveReplay(char const* name) { return false; }
 	virtual IPlayerManager* getPlayerManager() = 0;
-	virtual bool   tryChangeState(EGameState state) { return true; }
+	virtual bool   prevChangeState(EGameState state) { return true; }
 
 	virtual ReplayStageMode* getReplayMode() { return nullptr; }
 	virtual NetLevelStageMode* getNetLevelMode() { return nullptr; }

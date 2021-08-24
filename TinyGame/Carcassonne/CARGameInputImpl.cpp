@@ -107,7 +107,7 @@ namespace CAR
 		}
 
 		if ( onPrevAction )
-			onPrevAction( *mGameLogic , *this );
+			onPrevAction( *this );
 
 		if ( mbReplayMode )
 		{
@@ -144,7 +144,7 @@ namespace CAR
 					for( int i = 0 ; i < com.numParam ; ++i )
 						mRecordAction.take( com.params[i] );
 
-					if( ! executeActionCom(com) )
+					if( !executeActionCom(com) )
 					{
 						CAR_LOG("Record Buffer Error Format");
 						mRecordAction.setFillSize(lastUsePos);
@@ -164,7 +164,7 @@ namespace CAR
 		if ( mbReplayMode == false )
 		{
 			mbWaitReply = false;
-			onAction( *mGameLogic , *this );
+			onAction( *this );
 			if ( mbWaitReply == false )
 			{
 				ActionHeader header;
@@ -301,7 +301,6 @@ namespace CAR
 
 	void CGameInput::executeAction( ActionCom const* com )
 	{
-
 		++mNumActionInput;
 
 		if ( mbReplayMode == false )
@@ -331,7 +330,6 @@ namespace CAR
 		if (!mAutoSavePath.empty())
 		{
 			saveReplay(mAutoSavePath.c_str());
-
 		}
 
 		if ( com == nullptr || com->bReply == true )

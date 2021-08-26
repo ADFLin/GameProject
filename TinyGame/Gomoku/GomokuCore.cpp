@@ -3,7 +3,15 @@
 
 namespace Gomoku
 {
-#define EMIT_POS(index) GDebugListener->emitPos(index);
+#define GOMOKU_DEBUG_LOG 1
+
+#define GOMOKU_DEBUG_VISUAL 1
+
+#if GOMOKU_DEBUG_VISUAL
+#define EMIT_POS(index,type) GDebugListener->emitDebugPos(index, EDebugType::type);
+#else
+#define EMIT_POS(...) 
+#endif
 
 	IDebugListener* GDebugListener = nullptr;
 
@@ -478,12 +486,36 @@ namespace Gomoku
 		return FCon::ConnectCount(conData[indexRoot]);
 	}
 
+	bool Game::canPlayStone(int x, int y) const
+	{
+		if (!mBoard.checkRange(x, y))
+			return false;
+
+		auto pos = mBoard.getPos(x, y);
+		if (mBoard.getData(pos) != EStoneColor::Empty)
+			return false;
+
+		if (shouldCheckBanMove(mNextPlayColor))
+		{
+			return isBanMovePutStone(pos.toIndex(), mNextPlayColor);
+		}
+		return true;
+	}
+
 	bool Game::playStone(Pos const& pos)
 	{
 		if (mBoard.getData(pos) != EStoneColor::Empty)
 			return false;
 
 		mBoard.putStone(pos.toIndex(), mNextPlayColor);
+		if ( shouldCheckBanMove(mNextPlayColor) )
+		{
+			if (IsBanMove(checkStatusInternal<true>(pos.toIndex(), mNextPlayColor)))
+			{
+				mBoard.removeStone(pos.toIndex());
+				return false;
+			}
+		}
 
 		StepInfo step;
 		step.bPlay = true;
@@ -502,23 +534,16 @@ namespace Gomoku
 		}
 	}
 
-	EGameStatus Game::checkStatus()
+	EGameStatus Game::checkStatus() const
 	{
 		if (mCurrentStep == 0)
 			return EGameStatus::Nothing;
 
-		StepInfo& step = mStepHistory[mCurrentStep - 1];
-
+		StepInfo const& step = mStepHistory[mCurrentStep - 1];
 
 		int color = EStoneColor::Opposite(mNextPlayColor);
-		int oppositeColor = mNextPlayColor;
-		auto CheckBanMove = [=]()->bool
-		{
-			return color == EStoneColor::Black;
-		};
 
-		bool bCheckBanMove = CheckBanMove();
-		if (bCheckBanMove)
+		if (shouldCheckBanMove(color))
 		{
 			return checkStatusInternal<true>(step.indexPos, color);
 		}
@@ -527,7 +552,6 @@ namespace Gomoku
 			return checkStatusInternal<false>(step.indexPos, color);
 		}
 	}
-
 
 	bool Game::undo()
 	{
@@ -559,12 +583,12 @@ namespace Gomoku
 		auto CheckJumpPointNotColor = [this, pOffset](int const endpoints[2], int dist , int color) -> bool
 		{
 			int indexJumpA = mBoard.offsetIndex(endpoints[0], dist * pOffset[0], dist * pOffset[1]);
-			EMIT_POS(indexJumpA);
+			EMIT_POS(indexJumpA, CHECK_POS);
 			if (mBoard.getData(indexJumpA) == color)
 				return false;
 
 			int indexJumpB = mBoard.offsetIndex(endpoints[1], -dist * pOffset[0], -dist * pOffset[1]);
-			EMIT_POS(indexJumpB);
+			EMIT_POS(indexJumpB, CHECK_POS);
 			if (mBoard.getData(indexJumpB) == color)
 				return false;
 
@@ -580,36 +604,37 @@ namespace Gomoku
 				{
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
 					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], 2 * pOffset[0], 2 * pOffset[1]);
-					EMIT_POS(indexJump2);
-					if (mBoard.getData(indexJump2) == line.color)
-					{
-						LineInfo jumpLine = mBoard.getLineInfo(indexJump2, line.dir);
-						if (jumpLine.count + line.count == 3)
-						{
-							if (jumpLine.blockMask)
-								return 0;
-							//-o-oo-
-							int endpoints[2];
-							if (indexEndpoint == 0)
-							{
-								endpoints[0] = jumpLine.endpoints[0];
-								endpoints[1] = line.endpoints[1];
-							}
-							else
-							{
-								endpoints[0] = line.endpoints[0];
-								endpoints[1] = jumpLine.endpoints[1];
-							}
+					EMIT_POS(indexJump2, CHECK_POS);
+					if (mBoard.getData(indexJump2) != line.color)
+						continue;
+					
+					LineInfo jumpLine = mBoard.getLineInfo(indexJump2, line.dir);
+					if (jumpLine.count + line.count != 3)
+						continue;
 
-							EMIT_POS(endpoints[0]);
-							EMIT_POS(endpoints[1]);
-							if (CheckJumpPointNotColor(endpoints, 2, line.color))
-							{
-								outNextPos[0] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
-								EMIT_POS(outNextPos[0]);
-								return 1;
-							}
-						}
+					if (jumpLine.blockMask)
+						return 0;
+					//-o-oo-
+					int endpoints[2];
+					if (indexEndpoint == 0)
+					{
+						endpoints[0] = jumpLine.endpoints[0];
+						endpoints[1] = line.endpoints[1];
+					}
+					else
+					{
+						endpoints[0] = line.endpoints[0];
+						endpoints[1] = jumpLine.endpoints[1];
+					}
+
+					EMIT_POS(endpoints[0], CHECK_POS);
+					EMIT_POS(endpoints[1], CHECK_POS);
+					//check over 5 case
+					if (CheckJumpPointNotColor(endpoints, 2, line.color))
+					{
+						outNextPos[0] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+						EMIT_POS(outNextPos[0], NEXT_POS);
+						return 1;
 					}
 				}
 			}
@@ -621,22 +646,23 @@ namespace Gomoku
 
 				for( int indexEndpoint = 0; indexEndpoint < 2; ++indexEndpoint )
 				{
-					EMIT_POS(line.endpoints[indexEndpoint]);
+					EMIT_POS(line.endpoints[indexEndpoint], CHECK_POS);
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
 
 					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], 2 * pOffset[0], 2 * pOffset[1]);
-					EMIT_POS(indexJump2);
-					if (mBoard.getData(indexJump2) == EStoneColor::Empty)
-					{
-						int indexJump3 = mBoard.offsetIndex(indexJump2, pOffset[0], pOffset[1]);
-						EMIT_POS(indexJump3);
-						if (mBoard.getData(indexJump3) != line.color)
-						{
-							outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
-							EMIT_POS(outNextPos[numPos]);
-							++numPos;
-						}
-					}
+					EMIT_POS(indexJump2, CHECK_POS);
+					if (mBoard.getData(indexJump2) != EStoneColor::Empty)
+						continue;
+					
+					//ignore over5 case
+					int indexJump3 = mBoard.offsetIndex(indexJump2, pOffset[0], pOffset[1]);
+					EMIT_POS(indexJump3, CHECK_POS);
+					if (mBoard.getData(indexJump3) == line.color)
+						continue;
+		
+					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+					EMIT_POS(outNextPos[numPos], NEXT_POS);
+					++numPos;		
 				}
 
 				return numPos;
@@ -665,15 +691,15 @@ namespace Gomoku
 
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
 					int indexJump2 = mBoard.offsetIndex(line.endpoints[1], 2 * pOffset[0], 2 * pOffset[1]);
-					if (mBoard.getData(indexJump2) == line.color)
-					{
-						int jump2Count = mBoard.getConnectCount(indexJump2, line.dir);
-						if (jump2Count + line.count == 4)
-						{
-							outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
-							++numPos;
-						}
-					}
+					if (mBoard.getData(indexJump2) != line.color)
+						continue;
+
+					int jump2Count = mBoard.getConnectCount(indexJump2, line.dir);
+					if (jump2Count + line.count != 4)
+						continue;
+
+					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+					++numPos;
 				}
 
 				return numPos;
@@ -691,12 +717,14 @@ namespace Gomoku
 
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
 
+					//ignore over5 case
 					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], 2 * pOffset[0], 2 * pOffset[1]);
-					if (mBoard.getData(indexJump2) != line.color)
-					{
-						outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
-						++numPos;
-					}
+					if (mBoard.getData(indexJump2) == line.color)
+						continue;
+
+					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+					++numPos;
+
 				}
 
 				return numPos;
@@ -707,6 +735,35 @@ namespace Gomoku
 		return 0;
 	}
 
+#define GOMOKU_DEBUG_LOG 1
+
+	bool Game::isBanMovePutStone(int index, int color) const
+	{
+		CHECK(mBoard.getData(index) == EStoneColor::Empty);
+
+		mBoard.putStone(index, color);
+		EGameStatus status = checkStatusInternal<true>(index, color);
+	
+		bool result = IsBanMove(status);
+#if GOMOKU_DEBUG_LOG
+		if (result)
+		{
+			int coord[2];
+			mBoard.getPosCoord(index, coord);
+			LogMsg("Ban Move : (%d , %d ) = %d", coord[0] , coord[1], (int)status);
+		}
+		else if (status == EGameStatus::BlackWin)
+		{
+			int coord[2];
+			mBoard.getPosCoord(index, coord);
+			LogMsg("Win Move : (%d , %d ) = %d", coord[0], coord[1], (int)status);
+		}
+#endif
+
+		mBoard.removeStone(index);
+		return result;
+	}
+
 	template< bool bCheckBanMove >
 	EGameStatus Game::checkStatusInternal(int index, int color) const
 	{
@@ -714,7 +771,16 @@ namespace Gomoku
 
 		int const WinCount = 5;
 
-		if (bCheckBanMove)
+		if (bCheckBanMove == false)
+		{
+			for (int dir = 0; dir < EConDir::Count; ++dir)
+			{
+				int count = mBoard.getConnectCount(index, EConDir::Type(dir));
+				if (count >= WinCount)
+					return color == EStoneColor::Black ? EGameStatus::BlackWin : EGameStatus::WhiteWin;
+			}
+		}
+		else
 		{
 			bool bOver5 = false;
 			for (int dir = 0; dir < EConDir::Count; ++dir)
@@ -722,14 +788,14 @@ namespace Gomoku
 				int count = mBoard.getConnectCount(index, EConDir::Type(dir));
 				if (count == WinCount)
 					return color == EStoneColor::Black ? EGameStatus::BlackWin : EGameStatus::WhiteWin;
-				else if (bCheckBanMove && count > WinCount)
+				else if (count > WinCount)
 					bOver5 = true;
 			}
 
 			if (bOver5)
 				return EGameStatus::BanMove_Over5;
 
-			int cALiveThree = 0;
+			int cAliveThree = 0;
 			int cAnyFour = 0;
 			for (int dir = 0; dir < EConDir::Count; ++dir)
 			{
@@ -739,28 +805,25 @@ namespace Gomoku
 				{
 					int outPos[2];
 					int numPos = isAliveThree(line, outPos);
-
-					bool bAliveThree = numPos != 0;
-					if (numPos && 0)
+					if (numPos)
 					{
-						for (int i = 0; i < numPos; ++i)
+						int numSaved = numPos;
+						for (int i = 0; i < numSaved; ++i)
 						{
-							mBoard.putStone(outPos[i], color);
-							ON_SCOPE_EXIT
+							if ( isBanMovePutStone(outPos[i], color))
 							{
-								mBoard.removeStone(outPos[i]);
-							};
-							if ( IsBanMove(checkStatusInternal<true>(index, color)) )
-							{
-								bAliveThree = false;
-								break;
+								--numPos;
 							}
 						}
-					}
-
-					if (bAliveThree)
-					{
-						++cALiveThree;
+						
+						if (numPos != 0)
+						{
+							++cAliveThree;
+						}
+						else
+						{
+							CHECK(isAnyFour(line, outPos) == false);
+						}
 					}
 					else if (isAnyFour(line, outPos))
 					{
@@ -777,20 +840,12 @@ namespace Gomoku
 				}
 			}
 
-			if (cALiveThree >= 2)
+			if (cAliveThree >= 2)
 				return EGameStatus::BanMove_33;
 			if (cAnyFour >= 2)
 				return EGameStatus::BanMove_44;
 		}
-		else
-		{
-			for (int dir = 0; dir < EConDir::Count; ++dir)
-			{
-				int count = mBoard.getConnectCount(index, EConDir::Type(dir));
-				if (count >= WinCount)
-					return color == EStoneColor::Black ? EGameStatus::BlackWin : EGameStatus::WhiteWin;
-			}
-		}
+
 
 		return EGameStatus::Nothing;
 	}

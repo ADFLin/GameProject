@@ -11,11 +11,19 @@ namespace Gomoku
 	using Go::EDGE_MARK;
 	namespace EStoneColor = Go::EStoneColor;
 
+	namespace EDebugType
+	{
+		enum 
+		{
+			CHECK_POS,
+			NEXT_POS,
+		};
+	};
 	class IDebugListener
 	{
 	public:
 		virtual ~IDebugListener() {};
-		virtual void emitPos(int index) = 0;
+		virtual void emitDebugPos(int index, int type) = 0;
 	};
 	extern IDebugListener* GDebugListener;
 
@@ -127,6 +135,12 @@ namespace Gomoku
 			mNextPlayColor = EStoneColor::Black;
 		}
 
+		bool    canPlayStone(int x, int y) const;
+
+		bool    shouldCheckBanMove(int color) const
+		{
+			return color == EStoneColor::Black;
+		}
 		bool    playStone(int x, int y)
 		{
 			if (!mBoard.checkRange(x, y))
@@ -137,7 +151,7 @@ namespace Gomoku
 
 		bool    playStone(Pos const& pos);
 
-		EGameStatus checkStatus();
+		EGameStatus checkStatus() const;
 
 		bool undo();
 
@@ -163,10 +177,13 @@ namespace Gomoku
 			auto pos = mBoard.getPos(x, y);
 			int color = mBoard.getData(pos);
 			if (color == EStoneColor::Empty)
-				return false;
-
+			{
+				return isBanMoveEmptySpace(pos.toIndex(), mNextPlayColor);
+			}
 			return IsBanMove( checkStatusInternal<true>(pos.toIndex(),color) );
 		}
+
+		bool isBanMoveEmptySpace(int index, int color) const;
 
 		template< bool bCheckBanMove >
 		EGameStatus checkStatusInternal(int index, int color) const;

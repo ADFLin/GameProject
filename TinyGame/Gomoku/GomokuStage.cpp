@@ -82,11 +82,14 @@ namespace Gomoku
 		mBoardRenderer.releaseRHI();
 	}
 
-	void TestStage::emitPos(int index)
+	void TestStage::emitDebugPos(int index, int type)
 	{
-		int coord[2];
-		mGame.getBoard().getPosCoord(index, coord);
-		mPosList.push_back(Vec2i(coord[0], coord[1]));
+		if ( type == EDebugType::NEXT_POS )
+		{
+			int coord[2];
+			mGame.getBoard().getPosCoord(index, coord);
+			mPosList.push_back(Vec2i(coord[0], coord[1]));
+		}
 	}
 
 	void BoardRenderer::draw(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState /*= nullptr*/)

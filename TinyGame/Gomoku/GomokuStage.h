@@ -95,7 +95,7 @@ namespace Gomoku
 		void preShutdownRenderSystem(bool bReInit = false) override;
 
 
-		void emitPos(int index) override;
+		void emitDebugPos(int index, int type) override;
 
 	protected:
 		std::vector< Vec2i > mPosList;

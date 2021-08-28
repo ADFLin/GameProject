@@ -178,12 +178,12 @@ namespace Gomoku
 			int color = mBoard.getData(pos);
 			if (color == EStoneColor::Empty)
 			{
-				return isBanMoveEmptySpace(pos.toIndex(), mNextPlayColor);
+				return isBanMovePutStone(pos.toIndex(), mNextPlayColor);
 			}
 			return IsBanMove( checkStatusInternal<true>(pos.toIndex(),color) );
 		}
 
-		bool isBanMoveEmptySpace(int index, int color) const;
+		bool isBanMovePutStone(int index, int color) const;
 
 		template< bool bCheckBanMove >
 		EGameStatus checkStatusInternal(int index, int color) const;

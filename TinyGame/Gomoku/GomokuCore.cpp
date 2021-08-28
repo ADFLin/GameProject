@@ -735,8 +735,6 @@ namespace Gomoku
 		return 0;
 	}
 
-#define GOMOKU_DEBUG_LOG 1
-
 	bool Game::isBanMovePutStone(int index, int color) const
 	{
 		CHECK(mBoard.getData(index) == EStoneColor::Empty);

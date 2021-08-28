@@ -500,7 +500,7 @@ namespace Go
 	class MonitorBot : public IBot
 	{
 	public:
-		bool initialize(void* settingData) override
+		bool initialize(IBotSetting* setting) override
 		{
 			if( !mBoard.initialize() )
 				return false;

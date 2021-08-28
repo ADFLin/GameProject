@@ -211,7 +211,7 @@ namespace Go
 	class KataBot : public TGTPLikeBot< KataAppRun >
 	{
 	public:
-		bool initialize(void* settingData) override;
+		bool initialize(IBotSetting* setting) override;
 		bool isGPUBased() const override { return true; }
 	};
 

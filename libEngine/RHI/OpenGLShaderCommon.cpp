@@ -528,7 +528,7 @@ void main()
 
 	void FOpenGLShader::GenerateParameterMap(GLuint handle, ShaderParameterMap& parameterMap)
 	{
-		auto GetBlockParameterFun = [&](GLenum BlockTypeInterface)
+		auto GetBlockParameter = [&](GLenum BlockTypeInterface)
 		{
 			GLint numBlocks = 0;
 			glGetProgramInterfaceiv(handle, BlockTypeInterface, GL_ACTIVE_RESOURCES, &numBlocks);
@@ -548,11 +548,10 @@ void main()
 			}
 		};
 
-		GetBlockParameterFun(GL_UNIFORM_BLOCK);
-		GetBlockParameterFun(GL_SHADER_STORAGE_BLOCK);
+		GetBlockParameter(GL_UNIFORM_BLOCK);
+		GetBlockParameter(GL_SHADER_STORAGE_BLOCK);
 
 #if 0
-
 		GLint numParam = 0;
 		glGetProgramiv(handle, GL_ACTIVE_UNIFORMS, &numParam);
 		for (int i = 0; i < numParam; ++i)
@@ -618,7 +617,6 @@ void main()
 		glGetProgramiv(handle, GL_PROGRAM_BINARY_LENGTH, &binaryLength);
 		if (binaryLength <= 0)
 		{
-
 			return false;
 		}
 
@@ -628,7 +626,6 @@ void main()
 		glGetProgramBinary(handle, binaryLength, &binaryLength, (GLenum*)pData, pData + sizeof(GLenum));
 		if (!VerifyOpenGLStatus())
 		{
-
 			return false;
 		}
 		return true;

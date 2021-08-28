@@ -39,7 +39,7 @@ namespace Go
 		return result;
 	}
 
-	bool MatchPlayer::initialize(ControllerType inType, void* botSetting, MatchPlayer const* otherPlayer)
+	bool MatchPlayer::initialize(ControllerType inType, IBotSetting* botSetting, MatchPlayer const* otherPlayer)
 	{
 		type = inType;
 		winCount = 0;

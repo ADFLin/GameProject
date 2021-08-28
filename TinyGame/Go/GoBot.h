@@ -99,10 +99,29 @@ namespace Go
 	};
 
 
+	struct IBotSetting
+	{
+		virtual ~IBotSetting() {}
+	};
+
+	template< class T >
+	struct TBotSettingData : public IBotSetting , public T
+	{
+		TBotSettingData() = default;
+
+		TBotSettingData(T const& value)
+			:T(value) {}
+
+		T& operator = (T const& value)
+		{
+			return static_cast<T&>(*this) = value;
+		}
+	};
+
 	class IBot
 	{
 	public:
-		virtual bool initialize(void* settingData) = 0;
+		virtual bool initialize(IBotSetting* setting) = 0;
 		virtual void destroy() = 0;
 		virtual bool setupGame(GameSetting const& setting) = 0;
 		virtual bool restart(GameSetting const& setting) = 0;
@@ -136,7 +155,7 @@ namespace Go
 		{
 		}
 
-		bool initialize(void* settingData) override { return true; }
+		bool initialize(IBotSetting* setting) override { return true; }
 		void destroy() override {}
 		bool setupGame(GameSetting const& setting) override { if( bShared ) return true; return mBot->setupGame(setting); }
 		bool restart(GameSetting const& setting) override { if( bShared ) return true; return mBot->restart(setting); }

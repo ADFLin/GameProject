@@ -450,11 +450,11 @@ namespace Go
 		return setting;
 	}
 
-	bool ZenBot::initialize(void* settingData)
+	bool ZenBot::initialize(IBotSetting* setting)
 	{
-		auto const& setting = (settingData) ? *static_cast<Zen::CoreSetting*>(settingData) : GetCoreConfigSetting();
-		mCoreVersion = setting.version;
-		switch( setting.version )
+		auto const& mySetting = (setting) ? *static_cast<TBotSettingData< Zen::CoreSetting >*>(setting) : GetCoreConfigSetting();
+		mCoreVersion = mySetting.version;
+		switch(mySetting.version )
 		{
 		case 4: mCore.reset(buildCoreT< 4 >()); break;
 		case 6: mCore.reset(buildCoreT< 6 >()); break;
@@ -467,7 +467,7 @@ namespace Go
 			return false;
 
 		mCore->caputureResource();
-		mCore->setCoreSetting(setting);
+		mCore->setCoreSetting(mySetting);
 		return true;
 	}
 

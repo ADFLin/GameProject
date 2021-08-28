@@ -215,7 +215,7 @@ namespace Go
 
 		InlineString< 128 > getName() const;
 		bool   isBot() const { return type != ControllerType::ePlayer; }
-		bool   initialize(ControllerType inType, void* botSetting = nullptr, MatchPlayer const* otherPlayer = nullptr);
+		bool   initialize(ControllerType inType, IBotSetting* botSetting = nullptr, MatchPlayer const* otherPlayer = nullptr);
 
 
 		static std::string GetParamString(ControllerType inType, void* botSetting);
@@ -431,6 +431,23 @@ namespace Go
 		bool        bSwapEachMatch = true;
 		uint32      historyWinCounts[2];
 		DateTime    startTime;
+
+		void resetGame(GameSetting const& setting)
+		{
+			idxPlayerTurn = (setting.bBlackFirst) ? 0 : 1;
+			if (bSwapColor)
+			{
+				idxPlayerTurn = 1 - idxPlayerTurn;
+			}
+
+			for (auto & player : players)
+			{
+				if (player.bot)
+				{
+					player.bot->restart(setting);
+				}
+			}
+		}
 
 		MatchPlayer& getPlayer(int color)
 		{

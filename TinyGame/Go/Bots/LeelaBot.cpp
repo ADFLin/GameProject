@@ -757,11 +757,11 @@ namespace Go
 	}
 
 
-	bool LeelaBot::initialize(void* settingData)
+	bool LeelaBot::initialize(IBotSetting* setting)
 	{
-		if( settingData )
+		if(setting)
 		{
-			if( !mAI.buildPlayGame(*static_cast<LeelaAISetting*>(settingData)) )
+			if( !mAI.buildPlayGame(*static_cast<TBotSettingData<LeelaAISetting>*>(setting)) )
 				return false;
 		}
 		else

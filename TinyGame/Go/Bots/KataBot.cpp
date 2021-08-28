@@ -594,9 +594,9 @@ logToStderr = false
 		return FFileUtility::SaveFromBuffer(path, configText.c_str(), configText.length());
 	}
 
-	bool KataBot::initialize(void* settingData)
+	bool KataBot::initialize(IBotSetting* setting)
 	{
-		if (!mAI.buildPlayGame(*static_cast<KataAISetting*>(settingData)))
+		if (!mAI.buildPlayGame(*static_cast<TBotSettingData< KataAISetting >* >(setting)))
 			return false;
 
 		//static_cast<GTPOutputThread*>(mAI.outputThread)->bLogMsg = false;

@@ -106,7 +106,7 @@ namespace Go
 			eWeightName ,
 		};
 	
-		virtual bool initialize(void* settingData) override;
+		virtual bool initialize(IBotSetting* setting) override;
 		virtual bool isGPUBased() const override { return true; }
 		virtual bool getMetaData(int id, uint8* dataBuffer, int size);
 

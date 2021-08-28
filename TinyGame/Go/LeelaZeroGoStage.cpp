@@ -1536,7 +1536,7 @@ namespace Go
 		}
 
 		{
-			LeelaAISetting setting;
+			TBotSettingData< LeelaAISetting > setting;
 			setting.weightName = weightName;
 			if( !mMatchData.players[1].initialize(ControllerType::eLeelaZero , &setting ) )
 				return false;
@@ -1566,7 +1566,7 @@ namespace Go
 		std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
 
 		{
-			LeelaAISetting setting;
+			TBotSettingData<LeelaAISetting> setting;
 			setting.weightName = weightNameA;
 			setting.seed = generateRandSeed();
 			setting.visits = 6000;
@@ -1577,7 +1577,7 @@ namespace Go
 		}
 
 		{
-			LeelaAISetting setting;
+			TBotSettingData<LeelaAISetting> setting;
 			setting.weightName = bestWeigetName.c_str();
 			setting.seed = generateRandSeed();
 			setting.visits = 6000;
@@ -1612,7 +1612,7 @@ namespace Go
 	bool LeelaZeroGoStage::buildLeelaZenMatchMode()
 	{
 		{
-			LeelaAISetting setting = LeelaAISetting::GetDefalut();
+			TBotSettingData<LeelaAISetting> setting = LeelaAISetting::GetDefalut();
 			std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
 			InlineString<256> path;
 			path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME , bestWeigetName.c_str());
@@ -1633,7 +1633,7 @@ namespace Go
 		}
 
 		{
-			Zen::CoreSetting setting;
+			TBotSettingData< Zen::CoreSetting > setting;
 			int numCPU = SystemPlatform::GetProcessorNumber();
 			setting.numThreads = numCPU - 2;
 			setting.numSimulations = 20000000;
@@ -1693,32 +1693,22 @@ namespace Go
 			mGame.setSetting(setting);
 		}
 
-		
-		int indexBlack = (mMatchData.bSwapColor) ? 1 : 0;
+		resetGameParam();
+		mMatchData.resetGame(setting);
+
 		bool bHavePlayerController = false;
-		for(auto& player : mMatchData.players)
+		for (auto& player : mMatchData.players)
 		{
 			IBot* bot = player.bot.get();
-			if( bot )
-			{
-				bot->setupGame(setting);
-			}
-			else
+			if (!bot)
 			{
 				bHavePlayerController = true;
 			}
 		}
-
-		if( bHavePlayerController )
+		if (bHavePlayerController)
 		{
 			createPlayWidget();
 		}
-
-		resetGameParam();
-
-		mMatchData.idxPlayerTurn = (setting.bBlackFirst) ? 0 : 1;
-		if( mMatchData.bSwapColor )
-			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
 
 		IBot* bot = mMatchData.getCurTurnBot();
 		if( bot )
@@ -2254,24 +2244,14 @@ namespace Go
 	void LeelaZeroGoStage::restartAutoMatch()
 	{
 		LogMsg("==Restart Auto Match==");
-		if( mMatchData.bSwapEachMatch )
+		
+		if (mMatchData.bSwapEachMatch)
 		{
 			mMatchData.bSwapColor = !mMatchData.bSwapColor;
 		}
 
-		mMatchData.idxPlayerTurn = (mGame.getSetting().bBlackFirst) ? 0 : 1;
-		if( mMatchData.bSwapColor )
-			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
-
 		resetGameParam();
-
-		for(auto & player : mMatchData.players)
-		{
-			if( player.bot )
-			{
-				player.bot->restart(mGame.getSetting());
-			}
-		}
+		mMatchData.resetGame(mGame.getSetting());
 
 		IBot* bot = mMatchData.getCurTurnBot();
 		if( bot )
@@ -2659,7 +2639,7 @@ namespace Go
 			{
 			case ControllerType::eLeelaZero:
 				{
-					LeelaAISetting setting = LeelaAISetting::GetDefalut();
+					TBotSettingData<LeelaAISetting> setting = LeelaAISetting::GetDefalut();
 					std::string weightName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
 					setting.weightName = FFileUtility::GetFileName(weightName.c_str());
 					setting.visits = getParamValue< int, GTextCtrl >(id + UPARAM_VISITS);
@@ -2686,7 +2666,7 @@ namespace Go
 				break;
 			case ControllerType::eKata:
 				{
-					KataAISetting setting;
+					TBotSettingData<KataAISetting> setting;
 					//setting.rootNoiseEnabled = true;
 					setting.maxVisits = getParamValue< int , GTextCtrl >(id + UPARAM_VISITS);
 					//setting.bUseDefaultConfig = true;
@@ -2700,7 +2680,7 @@ namespace Go
 				break;
 			case ControllerType::eZen:
 				{
-					Zen::CoreSetting setting = ZenBot::GetCoreConfigSetting();
+					TBotSettingData<Zen::CoreSetting> setting = ZenBot::GetCoreConfigSetting();
 					//#TODO
 					setting.version = 7;
 					setting.numSimulations = getParamValue< float , GTextCtrl >(id + UPARAM_SIMULATIONS_NUM);

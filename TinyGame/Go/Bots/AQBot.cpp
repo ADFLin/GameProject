@@ -13,7 +13,7 @@ namespace Go
 		return buildProcessT< GTPOutputThread >(path, command);
 	}
 
-	bool AQBot::initialize(void* settingData)
+	bool AQBot::initialize(IBotSetting* setting)
 	{
 		if (!mAI.buildPlayGame())
 			return false;

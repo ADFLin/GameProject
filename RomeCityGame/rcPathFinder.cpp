@@ -313,13 +313,13 @@ void rcPathFinder::setupDestion( Vec2i const& mapPos )
 
 bool rcPath::getNextRoutePos( Cookie& cookie , Vec2i& pos )
 {
-	if ( mRotePosList.size() == 1 )
-	{
-		int i = 1;
-	}
+	if (mRotePosList.empty())
+		return false;
+
 	++cookie;
 	if ( cookie == mRotePosList.end() )
 		return false;
+	
 	pos = *cookie;
 	return true;
 }

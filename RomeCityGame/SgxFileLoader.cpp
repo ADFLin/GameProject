@@ -217,18 +217,20 @@ bool SgxFileLoader::readBitmap( int idx , char* buf )
 	data += imageInfo->offset;
 
 	SreamBuffer buffer( (char*) data , imageInfo->sizeTotal );
+	buffer.setFillSize(imageInfo->sizeTotal);
 
 	switch( imageInfo->type )
 	{
 	case 0: case 1: case 10: case 12: case 13:
 		ReadPlainBitmap( buffer , *imageInfo , buf ); 
 		break;
+	case 30:
+		readIsometricBitmap(buffer, *imageInfo, buf);
+		break;
 	case 256: case 257: case 276:
 		ReadCompressedBitmap( buffer , imageInfo->width * imageInfo->height , buf ); 
 		break;
-	case 30:
-		readIsometricBitmap( buffer , *imageInfo , buf ); 
-		break;
+
 	}
 	return true;
 }

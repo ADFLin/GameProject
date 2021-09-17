@@ -165,7 +165,7 @@ class WinGdiRenderSystem
 {
 public:
 	WinGdiRenderSystem( HWND hWnd , HDC hDC );
-
+	~WinGdiRenderSystem();
 	typedef WinGdiGraphics2D Graphics2D;
 
 	Vec2i       getClientSize() const;

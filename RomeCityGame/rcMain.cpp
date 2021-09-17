@@ -371,7 +371,7 @@ public:// System Message
 			g.drawCircle( sPos , 3 );
 		}
 	}
-	bool  onKey(KeyMsg const& msg)
+	bool  handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
 	{ 
 		if ( !msg.isDown() )
 			return true;
@@ -422,7 +422,13 @@ public:// System Message
 
 		return true; 
 	}
-	bool  handleCharEvent( unsigned code ) CRTP_OVERRIDE { return true; }
+	bool handleCharEvent( unsigned code ) CRTP_OVERRIDE { return true; }
+
+	bool handleWindowDestroy(HWND hWnd) CRTP_OVERRIDE
+	{ 
+		GameLoop::setLoopOver(true);
+		return true; 
+	}
 
 	bool initTestVariable()
 	{

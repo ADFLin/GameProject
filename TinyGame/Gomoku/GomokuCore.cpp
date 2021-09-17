@@ -757,7 +757,6 @@ namespace Gomoku
 			LogMsg("Win Move : (%d , %d ) = %d", coord[0], coord[1], (int)status);
 		}
 #endif
-
 		mBoard.removeStone(index);
 		return result;
 	}
@@ -843,7 +842,6 @@ namespace Gomoku
 			if (cAnyFour >= 2)
 				return EGameStatus::BanMove_44;
 		}
-
 
 		return EGameStatus::Nothing;
 	}

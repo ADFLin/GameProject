@@ -33,7 +33,7 @@ namespace Private
 	};
 }
 
-#define MSG_DEUFLT MSG_CHAR | MSG_KEY | MSG_MOUSE | MSG_ACTIAVTE | MSG_PAINT
+#define MSG_DEUFLT MSG_CHAR | MSG_KEY | MSG_MOUSE | MSG_ACTIAVTE | MSG_PAINT | MSG_DESTROY
 
 template< class T , unsigned MSG = MSG_DEUFLT >
 class WindowsMessageHandlerT : private TSelect< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::Type

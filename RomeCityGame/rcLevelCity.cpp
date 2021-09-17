@@ -533,8 +533,10 @@ bool rcLevelCity::checkRoadAquaductConnect( Vec2i const& pos , unsigned tagID , 
 
 		if ( destData.haveConnect( checkType ) )
 		{
-			if ( prvHave )
+			if (prvHave)
+			{
 				return false;
+			}
 			prvHave = true;
 			allowDir = ( i + 1 ) % 2;
 		}

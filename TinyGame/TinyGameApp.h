@@ -99,7 +99,7 @@ public:
 
 
 class TinyGameApp : public GameLoopT< TinyGameApp , WindowsPlatform >
-				  , public WindowsMessageHandlerT< TinyGameApp , MSG_DEUFLT | MSG_DATA | MSG_DESTROY >
+				  , public WindowsMessageHandlerT< TinyGameApp , MSG_DEUFLT | MSG_DATA >
 				  , public StageManager
 				  , public TaskListener
 				  , public IGUIDelegate

@@ -384,6 +384,11 @@ WinGdiRenderSystem::WinGdiRenderSystem( HWND hWnd , HDC hDC )
 }
 
 
+WinGdiRenderSystem::~WinGdiRenderSystem()
+{
+	mGraphics.releaseReources();
+}
+
 void WinGdiRenderSystem::beginRender()
 {
 	mBufferDC.clear();

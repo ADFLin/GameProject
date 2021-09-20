@@ -15,7 +15,7 @@ namespace Cube
 {
 	void BlockRenderer::draw( int ox , int oy , int oz , BlockId id )
 	{
-		Block* block = Block::get( id );
+		Block* block = Block::Get( id );
 		unsigned faceMask = block->calcRenderFaceMask( *mBlockAccess , mBasePos.x + ox , mBasePos.y + oy , mBasePos.z + oz );
 		if ( !faceMask )
 			return;

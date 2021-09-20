@@ -10,13 +10,13 @@ namespace Cube
 	static Block* sBlockMap[ 256 ] = { 0 };
 
 
-	void Block::initList()
+	void Block::InitList()
 	{
 		(*new Block( BLOCK_DIRT )).setSolid( true );
 		(*new LiquidBlock( BLOCK_WATER ) ).setSolid( false );
 	}
 
-	Block* Block::get( BlockId id )
+	Block* Block::Get( BlockId id )
 	{
 		return sBlockMap[ id ];
 	}

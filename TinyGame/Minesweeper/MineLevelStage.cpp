@@ -51,11 +51,11 @@ namespace Mine
 
 		}
 
-		int  lookCell(int cx, int cy)
+		int  lookCell(int cx, int cy, bool bCracked = false)
 		{
 			assert(mCells.checkRange(cx, cy));
 			CellData& cell = mCells(cx, cy);
-			if( cell.bProbed )
+			if( cell.bProbed || bCracked )
 				return cell.number;
 			return CV_UNPROBLED;
 		}
@@ -118,9 +118,9 @@ namespace Mine
 
 		struct CellData
 		{
-			int   number;
-			bool  bProbed;
-			bool  bMarked;
+			uint32  number;
+			uint32  bProbed : 1;
+			uint32  bMarked : 1;
 		};
 
 		TGrid2D< CellData > mCells;
@@ -139,7 +139,7 @@ namespace Mine
 		}
 		virtual int  look(int cx, int cy, bool bWaitResult)
 		{
-			return mLevel.lookCell(cx, cy);
+			return mLevel.lookCell(cx, cy, bCracked);
 		}
 		virtual bool mark(int cx, int cy)
 		{
@@ -155,6 +155,7 @@ namespace Mine
 		virtual int  getBombNum() { return mLevel.mNumBomb; }
 
 		Level& mLevel;
+		bool bCracked = false;
 	};
 
 	class TestStage : public StageBase
@@ -200,10 +201,13 @@ namespace Mine
 		virtual void onRender(float dFrame) 
 		{
 			Graphics2D& g = Global::GetGraphics2D();
-			draw(g ,LevelMineMap(mLevel), Vec2i(20, 20) ); 
+			LevelMineMap map{ mLevel };
+			//map.bCracked = true;
+			draw(g ,map ,Vec2i(20, 20) );
 		}
 
-		int const LengthCell = 20;
+		int const LengthCell = 24;
+
 
 		void draw(Graphics2D& g , IMineMap& mineMap , Vec2i const& drawOrigin )
 		{
@@ -212,34 +216,71 @@ namespace Mine
 			RenderUtility::SetBrush(g, EColor::Gray);
 			g.drawRect(Vec2i(0, 0), ::Global::GetScreenSize());
 
-
-
 			Vec2i textOrg = drawOrigin + Vec2i(5, 3);
 
 			InlineString<512> str;
 
+			Color3ub NumberColorMap []=
+			{
+				Color3ub(25, 118, 210),
+				Color3ub(56, 142, 60),
+				Color3ub(211, 47, 47),
+				Color3ub(123, 31, 162),
+				Color3ub(255, 143, 0),
+				Color3ub(3, 150, 170),
+				Color3ub(66, 66, 66),
+				Color3ub(117, 128, 139),
+			};
+
 			int sizeX = mineMap.getSizeX();
 			int sizeY = mineMap.getSizeY();
+
+			RenderUtility::SetFont(g, FONT_S12);
 			for( int j = 0; j < sizeY; ++j )
 			{
 				for( int i = 0; i < sizeX; ++i)
 				{
 					Vec2i offset = Vec2i(i * LengthCell, j *LengthCell);
-					Vec2i pt = textOrg + offset;
+					Vec2i pt = drawOrigin + offset;
 
 					int number = mineMap.look(i, j, false);
 					switch( number )
 					{
 					case CV_FLAG:
-						g.drawCircle(pt + Vec2i(LengthCell, LengthCell) / 2, 4);
-						break;
 					case CV_UNPROBLED:
+						{
+							Color3ub c = (i + j) % 2 ? Color3ub(185, 221, 119) : Color3ub(191, 225, 125);
+							g.setPen(c);
+							g.setBrush(c);
+							g.drawRect(pt, Vec2i(LengthCell, LengthCell));
+
+							if (number == CV_FLAG)
+							{
+
+
+							}
+						}
 						break;
-					case 0:
+					case CV_BOMB:
+						{
+
+							RenderUtility::SetBrush(g, EColor::Red);
+							RenderUtility::SetPen(g, EColor::Red);
+							g.drawCircle(pt + Vec2i(LengthCell, LengthCell) / 2, 3 * LengthCell / 8);
+						}
 						break;
 					default:
-						g.drawText(pt, Vec2i(LengthCell, LengthCell), FStringConv::From(number));
-						break;
+						{
+							Color3ub c = (i + j ) % 2 ? Color3ub(229, 194, 159) : Color3ub(215, 184, 153);
+							g.setPen(c);
+							g.setBrush(c);
+							g.drawRect(pt, Vec2i(LengthCell, LengthCell));
+							if (number)
+							{
+								g.setTextColor(NumberColorMap[number - 1]);
+								g.drawText(pt, Vec2i(LengthCell, LengthCell), FStringConv::From(number));
+							}
+						}
 					}
 				}
 			}
@@ -247,13 +288,13 @@ namespace Mine
 			RenderUtility::SetPen(g, EColor::Black);
 			int TotalSize;
 			TotalSize = sizeY * LengthCell;
-			for( int i = 0; i <= sizeX; ++i )
+			for( int i = 0; i <= sizeX; i += sizeX )
 			{
 				Vec2i p1 = drawOrigin + Vec2i(i * LengthCell, 0);
 				g.drawLine(p1, p1 + Vec2i(0, TotalSize));
 			}
 			TotalSize = sizeX * LengthCell;
-			for( int i = 0; i <= sizeY; ++i )
+			for( int i = 0; i <= sizeY; i += sizeY )
 			{
 				Vec2i p1 = drawOrigin + Vec2i(0, i * LengthCell);
 				g.drawLine(p1, p1 + Vec2i(TotalSize, 0));
@@ -286,6 +327,12 @@ namespace Mine
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;
+
+			if (bPlayMode)
+			{
+
+
+			}
 			return true;
 		}
 
@@ -311,6 +358,8 @@ namespace Mine
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
 	protected:
+
+		bool bPlayMode;
 	};
 
 	REGISTER_STAGE_ENTRY("MineSweeper", TestStage, EExecGroup::Test, "Game|AI");

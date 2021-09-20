@@ -22,8 +22,8 @@ namespace Cube
 		BlockId getId(){ return mId; }
 
 
-		static void   initList();
-		static Block* get( BlockId id );
+		static void   InitList();
+		static Block* Get( BlockId id );
 
 
 		bool    isSolid(){ return mbSolid; }

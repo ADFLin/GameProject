@@ -9,7 +9,7 @@ namespace Cube
 
 	void Level::init()
 	{
-		Block::initList();
+		Block::InitList();
 	}
 
 	Level::Level()

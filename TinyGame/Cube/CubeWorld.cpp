@@ -231,7 +231,7 @@ namespace Cube
 			BlockId id = getBlockId( curPos[0] , curPos[1] , curPos[2] );
 			if ( id )
 			{
-				Block* block = Block::get( id );
+				Block* block = Block::Get( id );
 				if ( block )
 				{
 

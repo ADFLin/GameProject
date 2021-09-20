@@ -24,6 +24,7 @@ namespace Mine
 			cell.bProbed = true;
 			return cell.number;
 		}
+
 		bool markCell(int cx, int cy)
 		{
 			assert(mCells.checkRange(cx, cy));
@@ -46,8 +47,54 @@ namespace Mine
 			return true;
 		}
 
-		void openNeighberCell(int cx, int cy)
+		bool openNeighberCell(int cx, int cy)
 		{
+			assert(mCells.checkRange(cx, cy));
+			CellData& cell = mCells(cx, cy);
+			if (!cell.bProbed)
+				return false;
+
+			if (cell.number <= 0 )
+				return false;
+
+			int numMarks = 0;
+			for (int j = -1; j <= 1; ++j)
+			{
+				for (int i = -1; i <= 1; ++i)
+				{
+					if ( i == 0 && j == 0 )
+						continue;
+
+					if (mCells.checkRange(cx + i, cy + j))
+					{
+						CellData& nCell = mCells(cx + i, cy + j);
+						if (nCell.bProbed == false && nCell.bMarked == true)
+						{
+							++numMarks;
+						}
+					}
+				}
+			}
+			if (numMarks != cell.number)
+				return false;
+
+			for (int j = -1; j <= 1; ++j)
+			{
+				for (int i = -1; i <= 1; ++i)
+				{
+					if (i == 0 && j == 0)
+						continue;
+
+					if (mCells.checkRange(cx + i, cy + j))
+					{
+						CellData& nCell = mCells(cx + i, cy + j);
+						if (nCell.bMarked == false)
+						{
+							nCell.bProbed = true;
+						}
+					}
+				}
+			}
 
 		}
 
@@ -57,6 +104,8 @@ namespace Mine
 			CellData& cell = mCells(cx, cy);
 			if( cell.bProbed || bCracked )
 				return cell.number;
+			if (cell.bMarked)
+				return CV_FLAG;
 			return CV_UNPROBLED;
 		}
 
@@ -197,17 +246,21 @@ namespace Mine
 
 			updateFrame(frame);
 		}
+		Vec2i mapOrigin = Vec2i(20, 20);
+		int const LengthCell = 24;
 
 		virtual void onRender(float dFrame) 
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 			LevelMineMap map{ mLevel };
 			//map.bCracked = true;
-			draw(g ,map ,Vec2i(20, 20) );
+			draw(g ,map , mapOrigin);
 		}
 
-		int const LengthCell = 24;
-
+		Vec2i toCellPos(Vec2i const& screenPos)
+		{
+			return (screenPos - mapOrigin) / LengthCell;
+		}
 
 		void draw(Graphics2D& g , IMineMap& mineMap , Vec2i const& drawOrigin )
 		{
@@ -243,8 +296,8 @@ namespace Mine
 					Vec2i offset = Vec2i(i * LengthCell, j *LengthCell);
 					Vec2i pt = drawOrigin + offset;
 
-					int number = mineMap.look(i, j, false);
-					switch( number )
+					int state = mineMap.look(i, j, false);
+					switch( state )
 					{
 					case CV_FLAG:
 					case CV_UNPROBLED:
@@ -254,9 +307,11 @@ namespace Mine
 							g.setBrush(c);
 							g.drawRect(pt, Vec2i(LengthCell, LengthCell));
 
-							if (number == CV_FLAG)
+							if (state == CV_FLAG)
 							{
-
+								RenderUtility::SetBrush(g, EColor::Red);
+								RenderUtility::SetPen(g, EColor::Red);
+								g.drawRect(pt + Vec2i(4, 4), Vec2i(LengthCell - 8, LengthCell - 8));
 
 							}
 						}
@@ -275,10 +330,10 @@ namespace Mine
 							g.setPen(c);
 							g.setBrush(c);
 							g.drawRect(pt, Vec2i(LengthCell, LengthCell));
-							if (number)
+							if (state)
 							{
-								g.setTextColor(NumberColorMap[number - 1]);
-								g.drawText(pt, Vec2i(LengthCell, LengthCell), FStringConv::From(number));
+								g.setTextColor(NumberColorMap[state - 1]);
+								g.drawText(pt, Vec2i(LengthCell, LengthCell), FStringConv::From(state));
 							}
 						}
 					}
@@ -330,6 +385,40 @@ namespace Mine
 
 			if (bPlayMode)
 			{
+				Vec2i cPos = toCellPos(msg.getPos());
+				if (mLevel.mCells.checkRange(cPos.x, cPos.y))
+				{
+					int state = mLevel.lookCell(cPos.x, cPos.y);
+					if ( state <= 0 )
+					{
+						if (msg.isLeftDown())
+						{
+							if (state == CV_UNPROBLED)
+							{
+								mLevel.openCell(cPos.x, cPos.y);
+							}
+						}
+						else if (msg.onRightDown())
+						{
+							if (state == CV_UNPROBLED)
+							{
+								mLevel.markCell(cPos.x, cPos.y);
+							}
+							else
+							{
+								mLevel.unmarkCell(cPos.x, cPos.y);
+							}
+						}
+					}
+					else if (state > 0)
+					{
+						if ((msg.onLeftDown() || msg.onRightDown()) && msg.isLeftDown() && msg.isRightDown())
+						{
+							mLevel.openNeighberCell(cPos.x, cPos.y);
+						}
+					}
+
+				}
 
 
 			}

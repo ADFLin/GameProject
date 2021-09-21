@@ -392,6 +392,9 @@
     <ClInclude Include="Minesweeper\GameController_Windows7.h">
       <Filter>GameMinesweeper</Filter>
     </ClInclude>
+    <ClInclude Include="Minesweeper\MineLevelStage.h">
+      <Filter>GameMinesweeper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Test">

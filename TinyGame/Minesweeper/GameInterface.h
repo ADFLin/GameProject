@@ -33,6 +33,13 @@ namespace Mine
 		virtual int  getSizeX() = 0;
 		virtual int  getSizeY() = 0;
 		virtual int  getBombNum() = 0;
+
+		//helper function
+		bool isValidPos(int cx, int cy)
+		{
+			return 0 <= cx && cx < getSizeX() &&
+				   0 <= cy && cy < getSizeY();
+		}
 	};
 
 

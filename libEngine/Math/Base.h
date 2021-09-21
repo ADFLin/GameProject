@@ -58,6 +58,8 @@ namespace Math
 	FORCEINLINE float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
 
 	template< class T >
+	FORCEINLINE T Abs(T val) { return (val >= 0) ? val : -val; }
+	template< class T >
 	FORCEINLINE T Squre(T val) { return val * val; }
 
 	template< class T >

@@ -256,6 +256,7 @@
     <ClInclude Include="Minesweeper\ImageScanser.h" />
     <ClInclude Include="Minesweeper\InputHook.h" />
     <ClInclude Include="Minesweeper\MineDefines.h" />
+    <ClInclude Include="Minesweeper\MineLevelStage.h" />
     <ClInclude Include="Minesweeper\MineSweeperSolver.h" />
     <ClInclude Include="MonumentValley\MVCommon.h" />
     <ClInclude Include="MonumentValley\MVLevel.h" />

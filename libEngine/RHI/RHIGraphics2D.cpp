@@ -16,7 +16,7 @@
 CORE_API extern TConsoleVariable<bool> CVarUseBachedRender2D;
 
 #if CORE_SHARE_CODE
-TConsoleVariable<bool> CVarUseBachedRender2D(false, "r.UseBachedRender2D");
+TConsoleVariable<bool> CVarUseBachedRender2D(true, "r.UseBachedRender2D");
 #endif
 using namespace Render;
 
@@ -88,6 +88,20 @@ void RHIGraphics2D::scaleXForm(float sx, float sy)
 {
 	mXFormStack.scale(Vector2(sx, sy));
 }
+
+
+void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool bApplyPrev)
+{
+	if (bApplyPrev)
+	{
+		mXFormStack.transform(xform);
+	}
+	else
+	{
+		mXFormStack.set(xform);
+	}
+}
+
 
 void RHIGraphics2D::beginFrame()
 {
@@ -607,11 +621,14 @@ void RHIGraphics2D::restoreRenderState()
 
 	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
+	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+	RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 	SetBlendState(commandList, mRenderStateCommitted.blendMode);
 }
 
 void RHIGraphics2D::setPen(Color3ub const& color, int width)
 {
+	mPaintArgs.bUsePen = true;
 	mPaintArgs.penColor = Color4f(Color3f(color), mPaintArgs.penColor.a);
 	if (mPaintArgs.penWidth != width)
 	{
@@ -621,6 +638,11 @@ void RHIGraphics2D::setPen(Color3ub const& color, int width)
 		}
 		mPaintArgs.penWidth = width;
 	}
+}
+
+void RHIGraphics2D::setPenWidth(int width)
+{
+	mPaintArgs.penWidth = width;
 }
 
 void RHIGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)

@@ -11,11 +11,6 @@
 #include "BitUtility.h"
 #include "Algo/FFT.h"
 
-
-
-constexpr int16 MaxInt16 = 32767l;
-
-
 float GetFFTInValue(const int16 SampleValue, const int16 sampleIndex, const int16 sampleCount)
 {
 	float FFTValue = SampleValue;

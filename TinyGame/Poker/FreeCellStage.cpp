@@ -520,14 +520,14 @@ namespace Poker
 		{
 			if ( getGoalCardNum() == 52 )
 			{
-				::Global::GUI().showMessageBox( UI_NEW_GAME , "You Win! Do You Play Again?" , GMB_YESNO );
+				::Global::GUI().showMessageBox( UI_NEW_GAME , "You Win! Do You Play Again?" , EMessageButton::YesNo );
 				return;
 			}
 
 			int numPossible = calcPossibleMoveNum();
 			if ( numPossible  == 0 )
 			{
-				::Global::GUI().showMessageBox( UI_NEW_GAME , "You Lose! Do You Give up This Game?" , GMB_YESNO );
+				::Global::GUI().showMessageBox( UI_NEW_GAME , "You Lose! Do You Give up This Game?" , EMessageButton::YesNo );
 			}
 			else if( numPossible == 1 )
 			{

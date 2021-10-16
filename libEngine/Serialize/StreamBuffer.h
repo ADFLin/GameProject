@@ -392,6 +392,12 @@ public:
 private:
 	typedef typename TSelect< bRef, BufferType&, BufferType >::Type HoldType;
 	HoldType mBuffer;
+
+	virtual int32 getVersion(HashString name) override
+	{
+		return MaxInt32;
+	}
+
 };
 
 template< class BufferType >

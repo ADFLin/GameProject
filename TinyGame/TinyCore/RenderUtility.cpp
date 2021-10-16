@@ -68,12 +68,12 @@ void RenderUtility::Initialize()
 		gColorMap[COLOR_DEEP][i] = Color3ub(FColorConv::HSVToRGB(hsvDark));
 		gColorMap[COLOR_LIGHT][i] = Color3ub( FColorConv::HSVToRGB(hsvLight));
 #endif
-		hBrush[ COLOR_NORMAL][i] = ::CreateSolidBrush(gColorMap[COLOR_NORMAL][i].toXBGR());
-		hBrush[ COLOR_DEEP ][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i].toXBGR() );
-		hBrush[ COLOR_LIGHT ][i] = ::CreateSolidBrush( gColorMap[COLOR_LIGHT][i].toXBGR() );
-		hCPen[COLOR_NORMAL][ i ] = CreatePen( PS_SOLID , 1 , gColorMap[COLOR_NORMAL][i].toXBGR() );
-		hCPen[COLOR_DEEP][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_DEEP][i].toXBGR() );
-		hCPen[COLOR_LIGHT][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i].toXBGR() );
+		hBrush[COLOR_NORMAL][i] = ::CreateSolidBrush(gColorMap[COLOR_NORMAL][i].toXBGR());
+		hBrush[COLOR_DEEP][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i].toXBGR() );
+		hBrush[COLOR_LIGHT][i] = ::CreateSolidBrush( gColorMap[COLOR_LIGHT][i].toXBGR() );
+		hCPen[COLOR_NORMAL][i] = ::CreatePen(PS_SOLID, 1, gColorMap[COLOR_NORMAL][i].toXBGR() );
+		hCPen[COLOR_DEEP][i] = ::CreatePen(PS_SOLID, 1, gColorMap[COLOR_DEEP][i].toXBGR() );
+		hCPen[COLOR_LIGHT][i] = ::CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i].toXBGR() );
 	}
 
 	DrawEngine& de = Global::GetDrawEngine();
@@ -114,10 +114,24 @@ Color3ub RenderUtility::GetColor(int color, int type /*= COLOR_NORMAL*/)
 	return gColorMap[type][color];
 }
 
-void RenderUtility::SetPen( Graphics2D& g , int color , int type )
+#if ADD_PEN_WIDTH
+void RenderUtility::SetPen( Graphics2D& g , int color , int type, int width)
 {
-	g.setPen( hCPen[type][ color ] );
+	if (width == 1)
+	{
+		g.setPen(hCPen[type][color]);
+	}
+	else
+	{
+		g.setPen(gColorMap[type][color], width);
+	}
 }
+#else
+void RenderUtility::SetPen(Graphics2D& g, int color, int type)
+{
+	g.setPen(hCPen[type][color]);
+}
+#endif
 
 void RenderUtility::SetBrush( Graphics2D& g , int color , int type )
 {
@@ -129,7 +143,8 @@ void RenderUtility::SetFont( Graphics2D& g , int fontID )
 	g.setFont( hFont[fontID] );
 }
 
-void RenderUtility::SetPen( RHIGraphics2D& g , int color , int type )
+#if ADD_PEN_WIDTH
+void RenderUtility::SetPen( RHIGraphics2D& g , int color , int type, int width)
 {
 	if ( color == EColor::Null )
 	{
@@ -137,11 +152,22 @@ void RenderUtility::SetPen( RHIGraphics2D& g , int color , int type )
 	}
 	else
 	{
-		g.enablePen( true );
+		g.setPen(gColorMap[type][color], width);
+	}
+}
+#else
+void RenderUtility::SetPen(RHIGraphics2D& g, int color, int type)
+{
+	if (color == EColor::Null)
+	{
+		g.enablePen(false);
+	}
+	else
+	{
 		g.setPen(gColorMap[type][color]);
 	}
 }
-
+#endif
 
 void RenderUtility::SetBrush(RHIGraphics2D& g, int color, int type /*= COLOR_NORMAL */)
 {
@@ -151,7 +177,6 @@ void RenderUtility::SetBrush(RHIGraphics2D& g, int color, int type /*= COLOR_NOR
 	}
 	else
 	{
-		g.enableBrush(true);
 		g.setBrush(gColorMap[type][color]);
 	}
 }
@@ -162,19 +187,37 @@ void RenderUtility::SetFont(RHIGraphics2D& g, int fontID)
 	g.setFont(FontGL[fontID]);
 }
 
-void RenderUtility::SetPen(IGraphics2D& g , int color , int type )
+#if ADD_PEN_WIDTH
+void RenderUtility::SetPen(IGraphics2D& g , int color , int type, int width)
 {
 	struct MyVisistor : IGraphics2D::Visitor
 	{
-		virtual void visit(Graphics2D& g){  RenderUtility::SetPen(  g , color );  }
-		virtual void visit(RHIGraphics2D& g){  RenderUtility::SetPen(  g , color );  }
+		virtual void visit(Graphics2D& g){  RenderUtility::SetPen(  g , color , width);  }
+		virtual void visit(RHIGraphics2D& g){  RenderUtility::SetPen(  g , color , width );  }
+		int color;
+		int type;
+		int width;
+	} visitor;
+	visitor.color = color;
+	visitor.type = type;
+	visitor.width = width;
+	g.accept( visitor );
+}
+#else
+void RenderUtility::SetPen(IGraphics2D& g, int color, int type)
+{
+	struct MyVisistor : IGraphics2D::Visitor
+	{
+		virtual void visit(Graphics2D& g) { RenderUtility::SetPen(g, color); }
+		virtual void visit(RHIGraphics2D& g) { RenderUtility::SetPen(g, color); }
 		int color;
 		int type;
 	} visitor;
 	visitor.color = color;
 	visitor.type = type;
-	g.accept( visitor );
+	g.accept(visitor);
 }
+#endif
 
 void RenderUtility::SetBrush(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {

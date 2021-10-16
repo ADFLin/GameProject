@@ -28,7 +28,7 @@ class TKDTree
 public:
 	static int const EMPTY_LEAF_ID = std::numeric_limits<int>::min();
 	typedef typename DimTraits< Dim >::VectorType VectorType;
-	typedef Math::TBoundBox< VectorType > BoundType;
+	typedef Math::TAABBox< VectorType > BoundType;
 	typedef Math::TRay< VectorType > RayType;
 
 	TKDTree()

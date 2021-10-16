@@ -126,6 +126,7 @@ namespace Mine
 	{
 		if( !::BringWindowToTop(hWnd) )
 			return false;
+
 		::keybd_event(vKey, 0, 0, 0);
 		::Sleep(20);
 		::keybd_event(vKey, 0, KEYEVENTF_KEYUP, 0);
@@ -338,9 +339,9 @@ namespace Mine
 		{
 			int nx = x + numberOffset[i][0];
 			int ny = y + numberOffset[i][1];
-			if( isSameColor(::GetPixel(hDC, nx, ny), sNumberColor[i]) ||
-			    isSameColor(::GetPixel(hDC, nx + 1, ny), sNumberColor[i]) ||
-			    isSameColor(::GetPixel(hDC, nx, ny + 1), sNumberColor[i]) )
+			if( IsSameColor(::GetPixel(hDC, nx, ny), sNumberColor[i]) ||
+			    IsSameColor(::GetPixel(hDC, nx + 1, ny), sNumberColor[i]) ||
+			    IsSameColor(::GetPixel(hDC, nx, ny + 1), sNumberColor[i]) )
 			{
 				num = i;
 				break;
@@ -349,21 +350,21 @@ namespace Mine
 		switch( num )
 		{
 		case 1:
-			if( isSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), sNumberColor[0]) ||
-			   isSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), RGB(175, 184, 215)) ||
-			   isSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), sNumberColor[0]) ||
-			   isSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), RGB(175, 184, 215)) )
+			if( IsSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), sNumberColor[0]) ||
+			    IsSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), RGB(175, 184, 215)) ||
+			    IsSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), sNumberColor[0]) ||
+			    IsSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), RGB(175, 184, 215)) )
 				return 1;
 			break;
 		case 3:
-			if( isSameColor(::GetPixel(hDC, x + numberOffset[8][0], y + numberOffset[8][1]), sNumberColor[8]) )
+			if( IsSameColor(::GetPixel(hDC, x + numberOffset[8][0], y + numberOffset[8][1]), sNumberColor[8]) )
 				return 8;
 			return 3;
 		case CV_UNPROBLED:
-			if( isSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), sNumberColor[0]) ||
-			   isSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), RGB(175, 184, 215)) ||
-			   isSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), sNumberColor[0]) ||
-			   isSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), RGB(175, 184, 215)) )
+			if( IsSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), sNumberColor[0]) ||
+			    IsSameColor(::GetPixel(hDC, x + numberOffset[0][0], y + numberOffset[0][1]), RGB(175, 184, 215)) ||
+			    IsSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), sNumberColor[0]) ||
+			    IsSameColor(::GetPixel(hDC, x - numberOffset[0][0], y - numberOffset[0][1]), RGB(175, 184, 215)) )
 				return 0;
 			break;
 		default:
@@ -372,7 +373,7 @@ namespace Mine
 		return CV_UNPROBLED;
 	}
 
-	bool GameController_Windows7::setupMode(GameMode mode)
+	bool GameController_Windows7::setupMode(EGameMode mode)
 	{
 		HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_SETTING]);
 		if( !hWnd )
@@ -402,7 +403,7 @@ namespace Mine
 		return true;
 	}
 
-	bool GameController_Windows7::setupCustomMode(int sx, int sy, int numbomb)
+	bool GameController_Windows7::setupCustomMode(int sx, int sy, int numbombs)
 	{
 		HWND hWnd = ::FindWindowEx(NULL, NULL, TEXT("#32770"), mWinowTextMap[LT_SETTING]);
 		if( !hWnd )
@@ -418,17 +419,19 @@ namespace Mine
 		if( !mInput.actionKey(hWnd, 'U') )
 			return false;
 
-		DWORD const idWidthEdit = 0x3f3;
-		DWORD const idHeightEdit = 0x3fb;
-		DWORD const idBombEdit = 0x3f4;
+		DWORD const ID_WidthEdit = 0x3f3;
+		DWORD const ID_HeightEdit = 0x3fb;
+		DWORD const ID_BombEdit = 0x3f4;
 
-		TCHAR str[256] = "120";
-		sprintf_s(str, "%d", sx);
-		::SendMessage(::GetDlgItem(hWnd, idWidthEdit), WM_SETTEXT, 0, (LPARAM)str);
-		sprintf_s(str, "%d", sy);
-		::SendMessage(::GetDlgItem(hWnd, idHeightEdit), WM_SETTEXT, 0, (LPARAM)str);
-		sprintf_s(str, "%d", numbomb);
-		::SendMessage(::GetDlgItem(hWnd, idBombEdit), WM_SETTEXT, 0, (LPARAM)str);
+		auto SetControlText = [=]( DWORD id , int value )
+		{
+			TInlineString<256, TCHAR > str;
+			str.format(TEXT("%d"), value);
+			::SendMessage(::GetDlgItem(hWnd, id), WM_SETTEXT, 0, (LPARAM)str.c_str());
+		};
+		SetControlText(ID_WidthEdit, sx);
+		SetControlText(ID_HeightEdit, sy);
+		SetControlText(ID_BombEdit, numbombs);
 		//mInput.actionKey( hWnd , VK_RETURN );
 
 		return true;

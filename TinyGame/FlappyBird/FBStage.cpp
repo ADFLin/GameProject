@@ -552,7 +552,7 @@ namespace FlappyBird
 			if( mScore > mMaxScore )
 				mMaxScore = mScore;
 
-			Global::GUI().showMessageBox(UI_ANY, "You Die!", GMB_OK);
+			Global::GUI().showMessageBox(UI_ANY, "You Die!", EMessageButton::Ok);
 		}
 	}
 

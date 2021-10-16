@@ -12,12 +12,14 @@ namespace Mine
 	public:
 		ExpSolveStrategy();
 	public:
-		virtual void loadMap(IMineMap& map) { refreshInformation(map, false); }
-		virtual void restart(IMineMap& map) { refreshInformation(map, true); }
+		virtual void loadMap(IMineControl& constrol) { refreshInformation(constrol, false); }
+		virtual void restart(IMineControl& constrol) { refreshInformation(constrol, true); }
 		virtual bool solveStep() /*throw ( HookException )*/;
 
+
+		bool bUsePropSolve = false;
 	private:
-		IMineMap*  mMineMap;
+		IMineControl*  mMineControl;
 	public:
 
 		int  getCellSizeX() const { return mCellSizeX; }
@@ -30,10 +32,9 @@ namespace Mine
 			cy = mLastCheckPos.y;
 		}
 
-		void setRule(IMineMap& map);
-		void refreshInformation(IMineMap& map, bool beRestart);
+		void setRule();
+		void refreshInformation(IMineControl& constrol, bool beRestart);
 		void print();
-		bool setepSolve() /*throw ( HookException )*/;
 		void enableMarkFlag(bool beE) { mMarkFlagEnable = beE; }
 
 		enum CellFlag
@@ -143,7 +144,7 @@ namespace Mine
 
 		void generateCellProb();
 		void geerateCellProbConstraint();
-		void geerateCellProbSimple();
+		void generateCellProbSimple();
 
 		void updateOtherPropInfo(float accProb);
 		int  calcCellProb(CellPos const& cp, ProbInfo &info);

@@ -212,12 +212,15 @@ public:
 
 };
 
-enum
+namespace EMessageButton
 {
-	GMB_OK ,
-	GMB_YESNO ,
-	GMB_NONE ,
-};
+	enum Type
+	{
+		Ok,
+		YesNo,
+		None,
+	};
+}
 
 
 class UIMotionTask;
@@ -373,7 +376,7 @@ class  GMsgBox : public GPanel
 public:
 	static Vec2i const BoxSize;
 
-	TINY_API GMsgBox( int _id , Vec2i const& size  , GWidget* parent ,unsigned flag = GMB_YESNO);
+	TINY_API GMsgBox( int _id , Vec2i const& size  , GWidget* parent , EMessageButton::Type buttonType = EMessageButton::YesNo);
 
 	void setTitle( char const* str ){ mTitle = str; }
 	bool onChildEvent( int event , int id , GWidget* ui );

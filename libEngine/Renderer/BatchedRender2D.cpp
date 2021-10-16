@@ -339,6 +339,27 @@ namespace Render
 					float halfWidth = 0.5 * float(payload.width);
 					Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
 
+#if 1
+					Vector2 dir = positions[1] - positions[0];
+					int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
+					int index1 = (index0 + 1) % 4;
+					int index2 = (index0 + 2) % 4;
+					int index3 = (index0 + 3) % 4;
+
+					int baseIndex;
+					BaseVertex* pVertices = fetchBaseBuffer(3 * 2, baseIndex);
+					pVertices[0] = { positions[0] + offset[index2] , payload.color };
+					pVertices[1] = { positions[0] + offset[index3] , payload.color };
+					pVertices[2] = { positions[0] + offset[index1] , payload.color };
+					pVertices[3] = { positions[1] + offset[index0] , payload.color };
+					pVertices[4] = { positions[1] + offset[index1] , payload.color };
+					pVertices[5] = { positions[1] + offset[index3] , payload.color };
+
+					uint32* pIndices = fetchIndexBuffer(4 * 3);
+					pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
+					pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
+					pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
+#else
 					int baseIndex;
 					BaseVertex* pVertices = fetchBaseBuffer(4 * 2, baseIndex);
 					for (int i = 0; i < 2; ++i)
@@ -351,7 +372,8 @@ namespace Render
 					}
 
 					uint32* pIndices = fetchIndexBuffer(4 * 6);
-					EmitLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
+					FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
+#endif
 				}
 				break;
 			case RenderBachedElement::Text:
@@ -373,8 +395,7 @@ namespace Render
 						pVertices += 4;
 						pSrcVertices += 4;
 
-						FillQuad(pIndices, baseIndex + 0, baseIndex + 1, baseIndex + 2, baseIndex + 3);
-						pIndices += 6;
+						pIndices = FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
 						baseIndex += 4;
 					}
 				}
@@ -419,10 +440,7 @@ namespace Render
 		uint32* pIndices = fetchIndexBuffer(3 * numTriangle);
 		for (int i = 0; i < numTriangle; ++i)
 		{
-			pIndices[0] = baseIndex;
-			pIndices[1] = baseIndex + i + 1;
-			pIndices[2] = baseIndex + i + 2;
-			pIndices += 3;
+			pIndices = FillTriangle(pIndices, baseIndex, 0, i + 1, i + 2);
 		}
 	}
 
@@ -450,7 +468,7 @@ namespace Render
 			pVertices[3] = { v[3] , paintArgs.brushColor };
 
 			uint32* pIndices = fetchIndexBuffer(3 * 2);
-			FillQuad(pIndices, baseIndex + 0 , baseIndex + 1 , baseIndex + 2 , baseIndex + 3);
+			FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
 		}
 
 		if (paintArgs.bUsePen)
@@ -469,13 +487,10 @@ namespace Render
 			}
 
 			uint32* pIndices = fetchIndexBuffer(3 * 2 * 4);
-			FillQuad(pIndices, baseIndex + 0, baseIndex + 1, baseIndex + 3, baseIndex + 2); 
-			pIndices += 6;
-			FillQuad(pIndices, baseIndex + 2, baseIndex + 3, baseIndex + 5, baseIndex + 4); 
-			pIndices += 6;
-			FillQuad(pIndices, baseIndex + 4, baseIndex + 5, baseIndex + 7, baseIndex + 6);
-			pIndices += 6;
-			FillQuad(pIndices, baseIndex + 6, baseIndex + 7, baseIndex + 1, baseIndex + 0);
+			pIndices = FillQuad(pIndices, baseIndex, 0, 1, 3, 2);
+			pIndices = FillQuad(pIndices, baseIndex, 2, 3, 5, 4);
+			pIndices = FillQuad(pIndices, baseIndex, 4, 5, 7, 6);
+			pIndices = FillQuad(pIndices, baseIndex, 6, 7, 1, 0);
 		}
 	}
 
@@ -521,8 +536,7 @@ namespace Render
 		uint32* pIndices = fetchIndexBuffer(3 * 2 * numV);
 		for (int i = 0; i < numV - 1; ++i)
 		{
-			FillQuad(pIndices, baseIndex + 0, baseIndex + 1, baseIndex + 3, baseIndex + 2);
-			pIndices += 6;
+			pIndices = FillQuad(pIndices, baseIndex + 0, baseIndex + 1, baseIndex + 3, baseIndex + 2);
 			baseIndex += 2;
 		}
 		FillQuad(pIndices, baseIndex , baseIndex + 1, baseIndexStart + 1, baseIndexStart + 0);
@@ -547,10 +561,10 @@ namespace Render
 		int indexCur = baseIndex;
 		for (int i = 0; i < numV - 1; ++i)
 		{
-			EmitLineShapeIndices(pIndices, indexCur, indexCur + 4);
+			pIndices = FillLineShapeIndices(pIndices, indexCur, indexCur + 4);
 			indexCur += 4;
 		}
-		EmitLineShapeIndices(pIndices, indexCur, baseIndex);
+		FillLineShapeIndices(pIndices, indexCur, baseIndex);
 #endif
 	}
 

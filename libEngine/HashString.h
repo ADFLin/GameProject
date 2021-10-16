@@ -6,6 +6,7 @@
 #include "Core/IntegerType.h"
 #include "Core/TypeHash.h"
 #include "Template/StringView.h"
+#include "Serialize/SerializeFwd.h"
 
 
 enum class EName : uint8
@@ -67,6 +68,23 @@ public:
 	
 	CORE_API uint32 getTypeHash() const;
 	friend uint32 HashValue(HashString const & string) { return string.getTypeHash(); }
+	template< class OP >
+	void serialize(OP& op)
+	{
+		if (OP::IsLoading)
+		{
+			bool bCS;
+			std::string str;
+			op & bCS & str;
+			init(str.c_str(), str.length(),bCS);
+		}
+		else
+		{
+			bool bCS = isCastSensitive();
+			std::string str = c_str();
+			op & bCS & str;
+		}
+	}
 private:
 	CORE_API void init(char const* str, bool bCaseSensitive = false);
 	CORE_API void init(char const* str, int len , bool bCaseSensitive = false);
@@ -78,6 +96,7 @@ private:
 
 };
 
+TYPE_SUPPORT_SERIALIZE_FUNC(HashString);
 EXPORT_MEMBER_HASH_TO_STD(HashString);
 
 #endif // HashString_h__

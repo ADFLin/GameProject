@@ -14,7 +14,7 @@
 
 
 using Vector2 = Math::Vector2;
-using BoundBox2D = Math::TBoundBox< Vector2 >;
+using BoundBox2D = Math::TAABBox< Vector2 >;
 using Ray2D = Math::TRay< Vector2 >;
 
 using KDTree = TKDTree< 2 >;

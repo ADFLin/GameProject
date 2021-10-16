@@ -35,7 +35,7 @@ enum
 	FONT_NUM ,
 };
 
-
+#define ADD_PEN_WIDTH 0
 
 class RenderUtility
 {
@@ -44,7 +44,11 @@ public:
 	static TINY_API void Finalize();
 
 	static TINY_API Color3ub GetColor(int color, int type = COLOR_NORMAL);
-	static TINY_API void SetPen( Graphics2D& g , int color , int type = COLOR_NORMAL );
+#if ADD_PEN_WIDTH
+	static TINY_API void SetPen(Graphics2D& g, int color, int type = COLOR_NORMAL, int width = 1);
+#else
+	static TINY_API void SetPen(Graphics2D& g, int color, int type = COLOR_NORMAL);
+#endif
 	static TINY_API void SetBrush( Graphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetFont( Graphics2D& g , int fontID );
 	static TINY_API void SetFontColor( Graphics2D& g , int color , int type = COLOR_NORMAL );
@@ -52,13 +56,20 @@ public:
 	static TINY_API void InitializeRHI();
 	static TINY_API void ReleaseRHI();
 
-	static TINY_API void SetPen( RHIGraphics2D& g , int color , int type = COLOR_NORMAL );
+#if ADD_PEN_WIDTH
+	static TINY_API void SetPen( RHIGraphics2D& g , int color , int type = COLOR_NORMAL, int width = 1);
+#else
+	static TINY_API void SetPen(RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
+#endif
 	static TINY_API void SetBrush( RHIGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetFont( RHIGraphics2D& g , int fontID );
 	static TINY_API void SetFontColor( RHIGraphics2D& g , int color , int type = COLOR_NORMAL );
-
-	static TINY_API void SetPen( IGraphics2D& g , int color , int type = COLOR_NORMAL );
-	static TINY_API void SetBrush( IGraphics2D& g , int color , int type = COLOR_NORMAL );
+#if ADD_PEN_WIDTH
+	static TINY_API void SetPen(IGraphics2D& g, int color, int type = COLOR_NORMAL, int width = 1);
+#else
+	static TINY_API void SetPen(IGraphics2D& g, int color, int type = COLOR_NORMAL);
+#endif
+	static TINY_API void SetBrush( IGraphics2D& g, int color, int type = COLOR_NORMAL);
 	static TINY_API void SetFont( IGraphics2D& g , int fontID );
 	static TINY_API void SetFontColor( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 

@@ -308,7 +308,7 @@ namespace Go
 		}
 
 		template< class OP >
-		void serialize(OP op)
+		void serialize(OP& op)
 		{
 			op & winCounts[0] & winCounts[1];
 			op & gameSetting & playerSetting[0] & playerSetting[1];

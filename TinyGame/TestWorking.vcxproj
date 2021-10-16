@@ -223,6 +223,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Chess\ChessCore.cpp" />
+    <ClCompile Include="StoneBlocks\SBlocksCore.cpp" />
+    <ClCompile Include="StoneBlocks\SBlocksSolver.cpp" />
+    <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
@@ -237,6 +240,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chess\ChessCore.h" />
+    <ClInclude Include="StoneBlocks\SBlocksCore.h" />
+    <ClInclude Include="StoneBlocks\SBlocksSolver.h" />
+    <ClInclude Include="StoneBlocks\SBlocksStage.h" />
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />

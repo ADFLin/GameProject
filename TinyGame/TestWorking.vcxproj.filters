@@ -17,6 +17,15 @@
       <Filter>GameChess</Filter>
     </ClCompile>
     <ClCompile Include="TestRender\Stage\PlantRenderStage.cpp" />
+    <ClCompile Include="StoneBlocks\SBlocksSolver.cpp">
+      <Filter>GameStoneBlocks</Filter>
+    </ClCompile>
+    <ClCompile Include="StoneBlocks\SBlocksStage.cpp">
+      <Filter>GameStoneBlocks</Filter>
+    </ClCompile>
+    <ClCompile Include="StoneBlocks\SBlocksCore.cpp">
+      <Filter>GameStoneBlocks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
@@ -27,10 +36,22 @@
     </ClInclude>
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
     <ClInclude Include="TestRender\Stage\PlantRenderStage.h" />
+    <ClInclude Include="StoneBlocks\SBlocksSolver.h">
+      <Filter>GameStoneBlocks</Filter>
+    </ClInclude>
+    <ClInclude Include="StoneBlocks\SBlocksStage.h">
+      <Filter>GameStoneBlocks</Filter>
+    </ClInclude>
+    <ClInclude Include="StoneBlocks\SBlocksCore.h">
+      <Filter>GameStoneBlocks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GameChess">
       <UniqueIdentifier>{ffad3502-f911-445b-ac2c-e484697a5c3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameStoneBlocks">
+      <UniqueIdentifier>{6ac44b66-ae71-4bd7-8a4f-45e6adc0e637}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

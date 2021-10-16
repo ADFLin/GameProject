@@ -21,7 +21,7 @@ public:
 	TINY_API void         finalize();
 
 	TINY_API int          getModalId();
-	TINY_API GWidget*     showMessageBox( int id , char const* msg , unsigned flag = GMB_YESNO );
+	TINY_API GWidget*     showMessageBox( int id , char const* msg , EMessageButton::Type buttonType = EMessageButton::YesNo );
 	TINY_API void         hideWidgets( bool bHide ){ mHideWidgets = bHide; }
 	TINY_API void         update();
 	TINY_API void         render();

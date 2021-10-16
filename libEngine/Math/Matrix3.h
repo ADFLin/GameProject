@@ -93,7 +93,7 @@ namespace Math
 #undef MAT_MUL
 		}
 
-		Vector3 rightMul( Vector3 const& v ) const
+		Vector3 mul( Vector3 const& v ) const
 		{
 #define MAT_MUL( m , index )\
 	( v.x * m[ 3 * index ] + v.y * m[ 3 * index + 1 ] + v.z * m[ 3 * index + 2 ] )

@@ -8,13 +8,14 @@
 template<class T>
 class TVector2
 {
-	using ElementInputType = typename TSelect< Meta::IsPrimary<T>::Value, T, T const& >::Type;
+	using ScalarInputType = typename TSelect< Meta::IsPrimary<T>::Value, T, T const& >::Type;
 public:
+	using ScalarType = T;
 	
 	TVector2() = default;
 	constexpr TVector2(TVector2 const& rhs) = default;
 
-	constexpr TVector2( ElementInputType x ,ElementInputType y):x(x),y(y){}
+	constexpr TVector2( ScalarInputType x ,ScalarInputType y):x(x),y(y){}
 
 	template< class Q >
 	constexpr TVector2( TVector2<Q> const& v ){ setValue( T(v.x) , T(v.y) ); }
@@ -22,7 +23,7 @@ public:
 	template< class Q >
 	constexpr TVector2& operator = (TVector2<Q> const& v){  x = T(v.x);  y = T(v.y);  return *this; }
 
-	constexpr void  setValue( ElementInputType vx,ElementInputType vy){	x = vx; y = vy;  }
+	constexpr void  setValue( ScalarInputType vx,ScalarInputType vy){	x = vx; y = vy;  }
 	T        dot  ( TVector2 const& v ) const { return x * v.x + y * v.y ; }
 	T        cross( TVector2 const& v ) const { return x * v.y - y * v.x ; }
 	T        length2()                  const { return x * x + y * y; }
@@ -32,8 +33,20 @@ public:
 	TVector2 max( TVector2 const& v ) const { return TVector2(Math::Max(x , v.x), Math::Max(y, v.y)); }
 	TVector2 min( TVector2 const& v ) const { return TVector2(Math::Min(x, v.x), Math::Min(y, v.y)); }
 
-	TVector2& operator *= ( ElementInputType s )  {  x *= s ; y *= s; return *this;  }
-	TVector2& operator /= ( ElementInputType s )  {  x /= s ; y /= s; return *this;  }
+	void setMax(TVector2 const& rhs)
+	{
+		if (x < rhs.x) x = rhs.x;
+		if (y < rhs.y) y = rhs.y;
+	}
+
+	void setMin(TVector2 const& rhs)
+	{
+		if (x > rhs.x) x = rhs.x;
+		if (y > rhs.y) y = rhs.y;
+	}
+
+	TVector2& operator *= ( ScalarInputType s )  {  x *= s ; y *= s; return *this;  }
+	TVector2& operator /= ( ScalarInputType s )  {  x /= s ; y /= s; return *this;  }
 	TVector2& operator += ( TVector2 const& v ){  x += v.x;  y += v.y;  return *this;  }
 	TVector2& operator -= ( TVector2 const& v ){  x -= v.x;  y -= v.y;  return *this;  }
 
@@ -44,6 +57,7 @@ public:
 	operator T const*() const { return &x; }
 
 	static TVector2 Zero(){ return TVector2(0,0); }
+	static TVector2 Fill(ScalarInputType s) { return TVector2(s, s); }
 	static TVector2 PositiveX(){ return TVector2(1,0); }
 	static TVector2 PositiveY(){ return TVector2(0,1); }
 	static TVector2 NegativeX(){ return TVector2(-1,0); }
@@ -52,8 +66,8 @@ public:
 	TVector2 const operator + (TVector2 const& v) const {	return TVector2(x + v.x,y + v.y);  }
 	TVector2 const operator - (TVector2 const& v) const {	return TVector2(x - v.x,y - v.y);  }
 
-	TVector2 const operator * ( ElementInputType s ) const {	return TVector2( x * s, y * s );  }
-	TVector2 const operator / ( ElementInputType s ) const {	return TVector2( x / s, y / s );  }
+	TVector2 const operator * ( ScalarInputType s ) const {	return TVector2( x * s, y * s );  }
+	TVector2 const operator / ( ScalarInputType s ) const {	return TVector2( x / s, y / s );  }
 
 	TVector2 operator * (TVector2 const& v1) const {  return mul(v1);  }
 	TVector2 operator / (TVector2 const& v1) const {  return div(v1);  }
@@ -67,7 +81,7 @@ public:
 	bool     operator <= (TVector2 const& rhs) const { return x <= rhs.x && y <= rhs.y; }
 	bool     operator >= (TVector2 const& rhs) const { return rhs <= *this; }
 
-	friend TVector2 const operator * ( ElementInputType s,TVector2 const& v){  return TVector2(s*v.x,s*v.y);	}
+	friend TVector2 const operator * ( ScalarInputType s,TVector2 const& v){  return TVector2(s*v.x,s*v.y);	}
 
 	friend TVector2 Abs(TVector2 const& v)
 	{

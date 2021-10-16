@@ -119,6 +119,7 @@ public:
 
 	virtual void execute( void* argsData[] ) = 0;
 	virtual void getValue( void* pDest ){}
+	virtual bool isHoldObject(void* objectPtr) { return false; }
 	virtual VariableConsoleCommadBase* asVariable() { return nullptr; }
 
 };
@@ -139,6 +140,11 @@ struct TMemberFuncConsoleCom : public ConsoleCommandBase
 	virtual void execute(void* argsData[]) override
 	{
 		Meta::Invoke(mFunc, mObject, argsData );
+	}
+
+	virtual bool isHoldObject(void* objectPtr) override
+	{
+		return objectPtr == mObject;
 	}
 };
 
@@ -274,6 +280,7 @@ struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
 		if (!FStringConv::ToCheck(str.data(), str.length(), value))
 			return false;
 		mSetValue(value);
+		return true;
 	}
 
 	bool formStringImpl(StringView const& str, Meta::TureType )
@@ -321,6 +328,7 @@ public:
 
 	CORE_API void        unregisterCommand( ConsoleCommandBase* commond );
 	CORE_API void        unregisterCommandByName( char const* name );
+	CORE_API void        unregisterAllCommandsByObject(void* objectPtr);
 
 	CORE_API ConsoleCommandBase* findCommand(char const* comName);
 

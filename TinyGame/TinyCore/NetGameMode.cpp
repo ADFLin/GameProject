@@ -556,13 +556,13 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 		{
 			::Global::GUI().showMessageBox( 
 				UI_DISCONNECT_MSGBOX , 
-				LOCTEXT("Server shout down") , GMB_OK );
+				LOCTEXT("Server shout down") , EMessageButton::Ok );
 		}
 		else if ( mWorker->getPlayerManager()->getUserID() == com->playerId )
 		{
 			::Global::GUI().showMessageBox( 
 				UI_DISCONNECT_MSGBOX , 
-				LOCTEXT("You are kicked by Server") , GMB_OK );
+				LOCTEXT("You are kicked by Server") , EMessageButton::Ok );
 		}
 		else
 		{
@@ -1007,7 +1007,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 				else
 				{
 					::Global::GUI().showMessageBox(
-						UI_RESTART_GAME, LOCTEXT("Do you Want to Stop Current Game?"), GMB_YESNO);
+						UI_RESTART_GAME, LOCTEXT("Do you Want to Stop Current Game?"), EMessageButton::YesNo);
 				}
 			}
 			return false;
@@ -1029,7 +1029,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		}
 		else
 		{
-			::Global::GUI().showMessageBox(id, LOCTEXT("Be Sure Exit Game"), GMB_YESNO);
+			::Global::GUI().showMessageBox(id, LOCTEXT("Be Sure Exit Game"), EMessageButton::YesNo);
 			return false;
 		}
 		break;
@@ -1176,7 +1176,7 @@ void NetLevelStageMode::procNetControlRequest(IComPacket* cp)
 			if( haveServer() )
 			{
 				::Global::GUI().showMessageBox(
-					UI_UNPAUSE_GAME, LOCTEXT("Stop Game. Click OK to Continue Game."), GMB_OK);
+					UI_UNPAUSE_GAME, LOCTEXT("Stop Game. Click OK to Continue Game."), EMessageButton::Ok);
 			}
 			else
 			{
@@ -1184,8 +1184,7 @@ void NetLevelStageMode::procNetControlRequest(IComPacket* cp)
 				GamePlayer* player = mWorker->getPlayerManager()->getPlayer(com->playerId);
 				InlineString< 256 > str;
 				str.format(LOCTEXT("%s Puase Game"), player->getName());
-				::Global::GUI().showMessageBox(
-					UI_UNPAUSE_GAME, str, GMB_NONE);
+				::Global::GUI().showMessageBox(UI_UNPAUSE_GAME, str, EMessageButton::None);
 #endif
 			}
 		}
@@ -1235,7 +1234,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 			if( haveServer() || com->playerId == mWorker->getPlayerManager()->getUserID() )
 			{
 				::Global::GUI().showMessageBox(
-					UI_UNPAUSE_GAME, LOCTEXT("Stop Game. Click OK to Continue Game."), GMB_OK);
+					UI_UNPAUSE_GAME, LOCTEXT("Stop Game. Click OK to Continue Game."), EMessageButton::Ok);
 			}
 			else
 			{
@@ -1243,7 +1242,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 				InlineString< 256 > str;
 				str.format(LOCTEXT("%s Puase Game"), player->getName());
 				::Global::GUI().showMessageBox(
-					UI_UNPAUSE_GAME, str, GMB_NONE);
+					UI_UNPAUSE_GAME, str, EMessageButton::None);
 			}
 		}
 		break;
@@ -1358,7 +1357,7 @@ void NetLevelStageMode::onServerEvent(EventID event, unsigned msg)
 	{
 	case eCON_CLOSE:
 		str.format("Lost Server %s", "");
-		::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
+		::Global::GUI().showMessageBox(UI_ANY, str, EMessageButton::Ok);
 		break;
 	}
 }

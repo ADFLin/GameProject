@@ -313,11 +313,11 @@ public:
 	}
 
 	template< class K, class V, class KF, class A >
-	void read(std::map< K, V, KF, A >& mapValue) { readMap(mapValue); }
+	void read(std::map< K, V, KF, A >& mapValue) { readMap<K,V>(mapValue); }
 	template< class K, class V, class H, class KF, class A >
-	void read(std::unordered_map< K, V, H, KF, A >& mapValue) { readMap(mapValue); }
+	void read(std::unordered_map< K, V, H, KF, A >& mapValue) { readMap<K,V>(mapValue); }
 
-	template< class MapType >
+	template<class K,class V, class MapType >
 	void readMap(MapType& mapValue)
 	{
 		uint32 size = 0;
@@ -326,10 +326,11 @@ public:
 		{
 			for( uint32 i = 0; i < size; ++i )
 			{
-				std::pair< K, V > value;
-				(*this) >> value.first;
-				(*this) >> value.second;
-				mapValue[value.first] = value.second;
+				K k;
+				V v;
+				(*this) >> k;
+				(*this) >> v;
+				mapValue[k] = v;
 			}
 		}
 	}
@@ -361,7 +362,7 @@ public:
 		template< class T >
 		ThisOp& operator >> (T& value) { serializer >> value; return *this; }
 
-		int32 version(HashString name) { return 0; }
+		int32 version(HashString name = EName::None) { return serializer.getVersion(name); }
 
 		IStreamSerializer& serializer;
 	};
@@ -379,7 +380,7 @@ public:
 		template< class T >
 		ThisOp& operator >> (T const& value) { return *this; }
 
-		int32 version(HashString name) { return serializer.getVersion(name); }
+		int32 version(HashString name = EName::None ) { return serializer.getVersion(name); }
 
 		IStreamSerializer& serializer;
 	};

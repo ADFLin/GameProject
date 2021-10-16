@@ -81,7 +81,7 @@ public:
 	
 	TGrid2D()
 	{
-		mStorage = 0;
+		mStorage = nullptr;
 		mSizeX = mSizeY = 0;
 	}
 	TGrid2D( int sx , int sy )

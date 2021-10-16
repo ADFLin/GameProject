@@ -41,7 +41,7 @@ namespace Mine
 		int mScreenHeight;
 	};
 
-	class GameController_Windows7 : public IGameController
+	class GameController_Windows7 : public IMineControlClient
 	{
 	public:
 		static LRESULT __stdcall CALLBACK MouseHookProc(int code, WPARAM wParam, LPARAM lParam);
@@ -56,8 +56,8 @@ namespace Mine
 		virtual bool markCell(int cx, int cy);
 		virtual bool unmarkCell(int cx, int cy);
 		virtual void restart();
-		virtual bool setupMode(GameMode mode);
-		virtual bool setupCustomMode(int sx, int sy, int numbomb);
+		virtual bool setupMode(EGameMode mode);
+		virtual bool setupCustomMode(int sx, int sy, int numbombs);
 
 		virtual EGameState checkState();
 
@@ -75,7 +75,7 @@ namespace Mine
 				for( int j = 0; j < len; ++j )
 				{
 					COLORREF cmpColor = ::GetPixel(hDC, x + i, y + j);
-					if( isSameColor(cmpColor, color) )
+					if( IsSameColor(cmpColor, color) )
 						return true;
 				}
 			return false;
@@ -107,14 +107,14 @@ namespace Mine
 
 		static COLORREF sNumberColor[];
 
-		static bool isSameColor(COLORREF color, COLORREF cmpColor)
+		static bool IsSameColor(COLORREF color, COLORREF cmpColor)
 		{
 			int const error = 20;
-			int dR = abs(GetRValue(color) - GetRValue(cmpColor));
+			int dR = Math::Abs(GetRValue(color) - GetRValue(cmpColor));
 			if( dR > error ) return false;
-			int dG = abs(GetGValue(color) - GetGValue(cmpColor));
+			int dG = Math::Abs(GetGValue(color) - GetGValue(cmpColor));
 			if( dG > error ) return false;
-			int dB = abs(GetBValue(color) - GetBValue(cmpColor));
+			int dB = Math::Abs(GetBValue(color) - GetBValue(cmpColor));
 			if( dB > error ) return false;
 			//if ( dR + dB + dG > 30 )
 			//	return false;

@@ -32,7 +32,7 @@ namespace Render
 		std::map< std::string, std::string > unknownParameters;
 
 		template< class OP >
-		void serialize(OP op)
+		void serialize(OP& op)
 		{
 			op & ambient;
 			op & diffuse;

@@ -45,7 +45,7 @@ struct ReplayInfo
 	}
 
 	template< class OP >
-	void serialize(OP op)
+	void serialize(OP& op)
 	{
 		op & IStreamSerializer::MakeSequence( name.data() , name.max_size() );
 		op & gameVersion &  templateVersion & dataSize;

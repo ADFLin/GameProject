@@ -3,17 +3,40 @@
 #define FileStream_H_FD26BF8C_47A3_4547_AD8F_E03F1D9EC3D6
 
 #include "Serialize/DataStream.h"
+#include "HashString.h"
 
 #include <fstream>
+static_assert(TTypeSupportSerializeOPFunc<HashString>::Value);
 
 
-class FileVersionData
+struct FileVersionData
 {
 	std::unordered_map< HashString, int32 > versionMap;
+
+	template< class OP >
+	void serialize(OP& op)
+	{
+		op & versionMap;
+	}
+
+	int getVersion(HashString const& name)
+	{
+		auto iter = versionMap.find(name);
+		if (iter != versionMap.end())
+			return iter->second;
+
+		return 0;
+	}
+
+	void addVersion(HashString const& name, int32 value)
+	{
+		versionMap[name] = value;
+	}
 };
+TYPE_SUPPORT_SERIALIZE_FUNC(FileVersionData);
 
 
-template< class TSrteamType >
+template< class TStreamType >
 class TFileFileSerializer : public IStreamSerializer
 {
 public:
@@ -26,17 +49,34 @@ public:
 	{
 		mFS.flush();
 	}
+
+	virtual int32 getVersion(HashString name) override
+	{
+		if (name == EName::None)
+			return mMasterVersion;
+
+		if (mVersionData)
+		{
+			return mVersionData->getVersion(name);
+		}
+		return 0;
+	}
 protected:
-	TSrteamType mFS;
+	std::unique_ptr< FileVersionData > mVersionData;
+	int mMasterVersion = 0;
+	TStreamType mFS;
 
 };
 
 class InputFileSerializer : public TFileFileSerializer< std::ifstream >
 {
 public:
-	bool open(char const* path);
+	bool open(char const* path, bool bConsdierLegacy = false);
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
+
+	using IStreamSerializer::read;
+
 };
 
 class OutputFileSerializer : public TFileFileSerializer< std::ofstream >
@@ -45,6 +85,11 @@ public:
 	bool open(char const* path);
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
+	virtual void registerVersion(HashString name, int32 version);
+
+	using IStreamSerializer::write;
+
+	void writeVersionData();
 };
 
 class IOFileSerializer : public TFileFileSerializer< std::fstream >

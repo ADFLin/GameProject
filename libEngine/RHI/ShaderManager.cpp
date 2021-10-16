@@ -128,7 +128,7 @@ namespace Render
 			DateTime    lastModifyTime;
 
 			template< class Op >
-			void serialize(Op op)
+			void serialize(Op& op)
 			{
 				op & path & lastModifyTime;
 			}
@@ -138,7 +138,7 @@ namespace Render
 		std::vector< uint8 > codeBuffer;
 
 		template< class Op >
-		void serialize(Op op)
+		void serialize(Op& op)
 		{
 			op & assetDependences & codeBuffer;
 		}

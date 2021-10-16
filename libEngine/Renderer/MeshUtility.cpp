@@ -105,8 +105,8 @@ namespace Render
 		for( int i = 1; i < numVertices; ++i )
 		{
 			Vector3 const& pos = positionReader.get(i);
-			outMax.max(pos);
-			outMin.min(pos);
+			outMax.setMax(pos);
+			outMin.setMin(pos);
 		}
 	}
 

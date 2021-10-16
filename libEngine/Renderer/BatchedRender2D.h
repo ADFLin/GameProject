@@ -254,21 +254,42 @@ namespace Render
 		void emitPolygon(Vector2 v[], int numV, Color4f const& color);
 		void emitPolygonLine(Vector2 v[], int numV, Color4ub const& color, int lineWidth);
 
-		static void FillQuad(uint32* pIndices, int i0, int i1, int i2, int i3)
+		FORCEINLINE static uint32* FillTriangle(uint32* pIndices, int i0, int i1, int i2)
 		{
-			pIndices[0] = i0; pIndices[1] = i1; pIndices[2] = i2;
-			pIndices[3] = i0; pIndices[4] = i2; pIndices[5] = i3;
+			pIndices[0] = i0;
+			pIndices[1] = i1;
+			pIndices[2] = i2;
+			return pIndices + 3;
 		}
-		static void EmitLineShapeIndices(uint32*& pIndices, int baseIndexA, int baseIndexB)
+		FORCEINLINE static uint32* FillTriangle(uint32* pIndices, int base, int i0, int i1, int i2)
 		{
-			FillQuad(pIndices, baseIndexA, baseIndexA + 1, baseIndexB, baseIndexB + 1); 
-			pIndices += 6;
-			FillQuad(pIndices, baseIndexA + 1, baseIndexA + 2, baseIndexB + 1, baseIndexB + 2); 
-			pIndices += 6;
-			FillQuad(pIndices, baseIndexA + 2, baseIndexA + 3, baseIndexB + 2, baseIndexB + 3); 
-			pIndices += 6;
-			FillQuad(pIndices, baseIndexA + 3, baseIndexA, baseIndexB + 3, baseIndexB); 
-			pIndices += 6;
+			pIndices[0] = base + i0;
+			pIndices[1] = base + i1;
+			pIndices[2] = base + i2;
+			return pIndices + 3;
+		}
+
+		FORCEINLINE static uint32* FillQuad(uint32* pIndices,int base, int i0, int i1, int i2, int i3)
+		{
+			pIndices = FillTriangle(pIndices, base, i0, i1, i2);
+			pIndices = FillTriangle(pIndices, base, i0, i2, i3);
+			return pIndices;
+		}
+
+		FORCEINLINE static uint32* FillQuad(uint32* pIndices, int i0, int i1, int i2, int i3)
+		{
+			pIndices = FillTriangle(pIndices, i0, i1, i2);
+			pIndices = FillTriangle(pIndices + 3, i0, i2, i3);
+			return pIndices;
+		}
+
+		FORCEINLINE static uint32* FillLineShapeIndices(uint32* pIndices, int baseIndexA, int baseIndexB)
+		{
+			pIndices = FillQuad(pIndices, baseIndexA, baseIndexA + 1, baseIndexB + 1, baseIndexB);
+			pIndices = FillQuad(pIndices, baseIndexA + 1, baseIndexA + 2, baseIndexB + 2, baseIndexB + 1);
+			pIndices = FillQuad(pIndices, baseIndexA + 2, baseIndexA + 3, baseIndexB + 3, baseIndexB + 2);
+			pIndices = FillQuad(pIndices, baseIndexA + 3, baseIndexA, baseIndexB, baseIndexB + 3);
+			return pIndices;
 		}
 
 		std::vector< Vector2 >    mCachedPositionList;

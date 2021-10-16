@@ -207,14 +207,14 @@ WidgetRenderer& GWidget::getRenderer()
 
 Vec2i const GMsgBox::BoxSize( 300 , 150 );
 
-GMsgBox::GMsgBox( int _id , Vec2i const& pos , GWidget* parent , unsigned flag ) 
+GMsgBox::GMsgBox( int _id , Vec2i const& pos , GWidget* parent , EMessageButton::Type buttonType)
 	:GPanel( _id , pos , BoxSize , parent )
 {
 	GButton* button;
 
-	switch( flag )
+	switch( buttonType )
 	{
-	case GMB_YESNO:
+	case EMessageButton::YesNo:
 		button = new GButton( UI_NO , BoxSize - Vec2i( 50 , 30 ) , Vec2i( 40 , 20 ) , this );
 		button->setTitle( LOCTEXT("No") );
 		button->setHotkey( ACT_BUTTON0 );
@@ -222,7 +222,7 @@ GMsgBox::GMsgBox( int _id , Vec2i const& pos , GWidget* parent , unsigned flag )
 		button->setTitle( LOCTEXT("Yes") );
 		button->setHotkey( ACT_BUTTON1 );
 		break;
-	case GMB_OK :
+	case EMessageButton::Ok:
 		button = new GButton( UI_OK , BoxSize - Vec2i( 50 , 30 ) , Vec2i( 40 , 20 ) , this );
 		button->setTitle( LOCTEXT("OK") );
 		button->setHotkey( ACT_BUTTON0 );

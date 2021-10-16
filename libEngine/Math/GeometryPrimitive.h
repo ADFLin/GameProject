@@ -10,47 +10,81 @@
 namespace Math
 {
 	template< class VectorType >
-	struct TBoundBox
+	struct TAABBox
 	{
+		using ScalarType = typename VectorType::ScalarType;
 		VectorType min;
 		VectorType max;
 
 
-		bool isIntersect(TBoundBox const& rhs) const
+		static TAABBox Empty() 
+		{ 
+			TAABBox result; result.invalidate();
+			return result;
+		}
+
+		void invalidate()
+		{
+			min = VectorType::Fill(std::numeric_limits<ScalarType>::max());
+			max = VectorType::Fill(std::numeric_limits<ScalarType>::min());
+		}
+
+		bool isIntersect(TAABBox const& rhs) const
 		{
 			return Math::BoxBoxTest(min, max, rhs.min, rhs.max);
 		}
 
-		bool isValid() const
+		bool isValid() const {  return min <= max;  }
+		bool isEmpty() const { return max <= min; }
+
+		VectorType getSize() const { return max - min; }
+
+		void translate(VectorType const& offset)
 		{
-			return min <= max;
+			min += offset;
+			max += offset;
 		}
 
-		TBoundBox& operator += (TBoundBox const& rhs)
+		void expand(VectorType const& dv)
+		{
+			min -= dv;
+			max += dv;
+		}
+
+		void addPoint(VectorType const& v)
+		{
+			min.setMin(v);
+			max.setMax(v);
+		}
+
+		TAABBox& operator += (TAABBox const& rhs)
 		{
 			assert(rhs.isValid());
-			min.min(rhs.min);
-			max.max(rhs.max);
+			min.setMin(rhs.min);
+			max.setMax(rhs.max);
 			return *this;
 		}
 
-		TBoundBox& operator += (VectorType const& pos)
+		TAABBox& operator += (VectorType const& v)
 		{
-			min.min(pos);
-			max.max(pos);
+			addPoint(v);
 			return *this;
 		}
 
-
-		TBoundBox() {}
-		TBoundBox(EForceInit)
+		void setZero()
 		{
 			min = VectorType::Zero();
 			max = VectorType::Zero();
 		}
+
+		TAABBox() {}
+		TAABBox(EForceInit)
+		{
+			setZero();
+		}
 	};
 
-	FORCEINLINE float DistanceSqure(TBoundBox<Vector2> const& box, Vector2 const& pos)
+	FORCEINLINE float DistanceSqure(TAABBox<Vector2> const& box, Vector2 const& pos)
 	{
 		Vector2 dMin = pos - box.min;
 		Vector2 dMax = box.max - pos;
@@ -65,7 +99,7 @@ namespace Math
 		return result;
 	}
 
-	FORCEINLINE float DistanceSqure(TBoundBox<Vector3> const& box, Vector3 const& pos)
+	FORCEINLINE float DistanceSqure(TAABBox<Vector3> const& box, Vector3 const& pos)
 	{
 		Vector3 dMin = pos - box.min;
 		Vector3 dMax = box.max - pos;
@@ -89,7 +123,7 @@ namespace Math
 		VectorType dir;
 
 		VectorType getPosition(float dist) const { return pos + dist * dir; }
-		int     testIntersect(TBoundBox<VectorType> const& bound, float outDists[2]) const
+		int     testIntersect(TAABBox<VectorType> const& bound, float outDists[2]) const
 		{
 			if( !Math::LineAABBTest(pos, dir, bound.min, bound.max, outDists) )
 				return 0;

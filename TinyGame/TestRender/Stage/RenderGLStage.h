@@ -33,6 +33,7 @@
 #include <memory>
 #include <typeindex>
 #include "PlatformThread.h"
+#include "Math/GeometryPrimitive.h"
 
 
 class Thread;
@@ -188,58 +189,7 @@ namespace Render
 		
 	};
 
-	class AABBox
-	{
-	public:
-
-		AABBox() {}
-		AABBox(Vector3 const& min, Vector3 const& max)
-			:mMin(min), mMax(max)
-		{
-		}
-
-		static AABBox Empty() { return AABBox(Vector3::Zero(), Vector3::Zero()); }
-
-		Vector3 getMin() const { return mMin; }
-		Vector3 getMax() const { return mMax; }
-		Vector3 getSize() const { return mMax - mMin; }
-		float getVolume()
-		{
-			Vector3 size = getSize();
-			return size.x * size.y * size.z;
-		}
-		void setEmpty()
-		{
-			mMin = mMax = Vector3::Zero();
-		}
-
-		void addPoint(Vector3 const& v)
-		{
-			mMax.max(v);
-			mMin.min(v);
-		}
-		void translate(Vector3 const& offset)
-		{
-			mMax += offset;
-			mMin += offset;
-		}
-		void expand(Vector3 const& dv)
-		{
-			mMax += dv;
-			mMin -= dv;
-		}
-
-		void makeUnion(AABBox const& other)
-		{
-			mMin.min(other.mMin);
-			mMax.max(other.mMax);
-		}
-	private:
-		Vector3 mMin;
-		Vector3 mMax;
-	};
-
-
+	using AABBox = Math::TAABBox< Vector3 >;
 
 	struct GLGpuSync
 	{

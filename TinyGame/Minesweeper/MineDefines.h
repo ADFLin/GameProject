@@ -10,9 +10,10 @@ namespace Mine
 		CV_FLAG = -2,
 		CV_UNPROBLED = -3,
 		CV_OUT_OF_BOUNDS = -4,
-		CV_UNKNOWN = -5,
-	};
 
+		CV_FLAG_NO_BOMB  = -5,
+		CV_UNKNOWN = -6,
+	};
 
 	enum class EGameState
 	{

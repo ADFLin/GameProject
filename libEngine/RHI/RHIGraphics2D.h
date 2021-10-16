@@ -48,6 +48,8 @@ public:
 	void  rotateXForm(float angle);
 	void  scaleXForm(float sx, float sy);
 
+	void  transformXForm(Render::RenderTransform2D const& xform, bool bApplyPrev);
+
 	void  beginFrame();
 	void  endFrame();
 	void  beginRender();
@@ -61,12 +63,15 @@ public:
 
 	void  setPen(Color3f const& color)
 	{
+		mPaintArgs.bUsePen = true;
 		mPaintArgs.penColor = Color4f(color, mPaintArgs.penColor.a);
 	}
 	void  setPen(Color3ub const& color, int width);
+	void  setPenWidth(int width);
 
 	void  setBrush(Color3f const& color)
 	{
+		mPaintArgs.bUseBrush = true;
 		mPaintArgs.brushColor = Color4f(color,mPaintArgs.brushColor.a);
 	}
 

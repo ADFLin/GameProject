@@ -1,4 +1,6 @@
 #include "MineLevelStage.h"
+#include "ExpSolveStrategy.h"
+#include "MineSweeperSolver.h"
 
 namespace Mine
 {
@@ -37,6 +39,77 @@ namespace Mine
 
 		return cell.number;
 	}
+
+	bool Level::validateMarkCount()
+	{
+		int count = 0;
+		for (int i = 0; i < mCells.getRawDataSize(); ++i)
+		{
+			if (mCells[i].isMarked())
+				++count;
+		}
+
+		if (mMarkCount != count)
+		{
+			mMarkCount = count;
+			return false;
+		}
+		return true;
+	}
+
+	bool Level::openNeighberCell(int cx, int cy, bool& bHaveBomb)
+	{
+		assert(mCells.checkRange(cx, cy));
+		CellData& cell = mCells(cx, cy);
+		if (!cell.isProbed())
+			return false;
+
+		if (cell.number <= 0)
+			return false;
+
+		int numMarks = 0;
+		for (int j = -1; j <= 1; ++j)
+		{
+			for (int i = -1; i <= 1; ++i)
+			{
+				if (i == 0 && j == 0)
+					continue;
+
+				if (mCells.checkRange(cx + i, cy + j))
+				{
+					CellData& nCell = mCells(cx + i, cy + j);
+					if (nCell.isProbed() == false && nCell.isMarked() == true)
+					{
+						++numMarks;
+					}
+				}
+			}
+		}
+		if (numMarks != cell.number)
+			return false;
+
+		bHaveBomb = false;
+		for (int j = -1; j <= 1; ++j)
+		{
+			for (int i = -1; i <= 1; ++i)
+			{
+				if (i == 0 && j == 0)
+					continue;
+
+				if (mCells.checkRange(cx + i, cy + j))
+				{
+					int state = openCell(cx + i, cy + j);
+					if (state == CV_BOMB)
+					{
+						bHaveBomb = true;
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
 	void Level::expendCell(int cx, int cy)
 	{
 		CellData& cell = mCells(cx, cy);
@@ -88,71 +161,6 @@ namespace Mine
 		cell.bMarked = false;
 		--mMarkCount;
 		return true;
-	}
-
-	bool Level::openNeighberCell(int cx, int cy, bool& bHaveBomb)
-	{
-		assert(mCells.checkRange(cx, cy));
-		CellData& cell = mCells(cx, cy);
-		if (!cell.isProbed())
-			return false;
-
-		assert(cell.number > 0);
-
-		int numMarks = 0;
-		for (int j = -1; j <= 1; ++j)
-		{
-			for (int i = -1; i <= 1; ++i)
-			{
-				if (i == 0 && j == 0)
-					continue;
-
-				if (mCells.checkRange(cx + i, cy + j))
-				{
-					CellData& nCell = mCells(cx + i, cy + j);
-					if (nCell.isProbed() == false && nCell.isMarked() == true)
-					{
-						++numMarks;
-					}
-				}
-			}
-		}
-		if (numMarks != cell.number)
-			return false;
-
-		bHaveBomb = false;
-		for (int j = -1; j <= 1; ++j)
-		{
-			for (int i = -1; i <= 1; ++i)
-			{
-				if (i == 0 && j == 0)
-					continue;
-
-				if (mCells.checkRange(cx + i, cy + j))
-				{
-					int state = openCell(cx + i, cy + j);
-					if (state == CV_BOMB)
-					{
-						bHaveBomb = true;
-					}
-				}
-			}
-		}
-
-		return true;
-	}
-
-	int Level::lookCell(int cx, int cy, bool bCracked /*= false*/)
-	{
-		assert(mCells.checkRange(cx, cy));
-		CellData& cell = mCells(cx, cy);
-		if (cell.isProbed() || bCracked)
-			return cell.number;
-
-		if (cell.isMarked())
-			return CV_FLAG;
-
-		return CV_UNPROBLED;
 	}
 
 	void Level::buildBomb(int numBombs, int* ignoreCoords)
@@ -257,7 +265,68 @@ namespace Mine
 		mbBuildBomb = false;
 	}
 
-	void TestStage::draw(Graphics2D& g, IMineMap& mineMap, Vec2i const& drawOrigin)
+	void Level::makeCellProbed(CellData& cell)
+	{
+		assert(!cell.isProbed());
+		cell.bProbed = true;
+		if (cell.bMarked)
+		{
+			cell.bMarked = false;
+			--mMarkCount;
+		}
+	}
+
+	void TestStage::onRender(float dFrame)
+	{
+		Graphics2D& g = Global::GetGraphics2D();
+		LevelMineQuery map{ mLevel };
+		if (bPlayMode)
+		{
+			map.bCracked = mbCracked;
+			map.bGameOver = bGameOver;
+		}
+		draw(g, map, mapOrigin);
+
+		if (bPlayMode)
+		{
+			Vec2i viewportSize = LengthCell * Vec2i(mLevel.mCells.getSizeX(), mLevel.mCells.getSizeY());
+			if (bGameOver)
+			{
+				RenderUtility::SetPen(g, EColor::Black);
+				RenderUtility::SetBrush(g, EColor::Black);
+				g.beginBlend(mapOrigin, viewportSize, 0.5 * mCanvasAlpha);
+				g.drawRect(mapOrigin, viewportSize);
+				g.endBlend();
+
+				if (mCanvasAlpha < 1.0f)
+				{
+					g.beginBlend(mapOrigin, viewportSize, mCanvasAlpha);
+				}
+
+				RenderUtility::SetFont(g, FONT_S24);
+				RenderUtility::SetFontColor(g, EColor::Red);
+				g.drawText(mapOrigin, viewportSize, "Game Over");
+				if (mCanvasAlpha < 1.0f)
+				{
+					g.endBlend();
+				}
+			}
+
+
+			RenderUtility::SetFont(g, FONT_S12);
+			RenderUtility::SetFontColor(g, EColor::Yellow);
+			g.drawText(Vec2i(200, 0), InlineStringA<>::Make("Mark Count = %d", mLevel.getMarkCount()));
+
+			if (!bGameOver && mMsStart > 0)
+			{
+				mElapsedTime = SystemPlatform::GetTickCount() - mMsStart;
+			}
+
+			g.drawText(Vec2i(50, 0), InlineStringA<>::Make("Elapsed Time = %ld", mElapsedTime / 1000));
+		}
+	}
+
+	void TestStage::draw(Graphics2D& g, IMineQuery& mineMap, Vec2i const& drawOrigin)
 	{
 		RenderUtility::SetPen(g, EColor::Gray);
 		RenderUtility::SetBrush(g, EColor::Gray);
@@ -267,7 +336,7 @@ namespace Mine
 
 		InlineString<512> str;
 
-		Color3ub NumberColorMap[] =
+		static const Color3ub NumberColorMap[] =
 		{
 			Color3ub(25, 118, 210),
 			Color3ub(56, 142, 60),
@@ -281,10 +350,15 @@ namespace Mine
 
 		int sizeX = mineMap.getSizeX();
 		int sizeY = mineMap.getSizeY();
+		auto IsValidPos = [=](int cx, int cy) -> bool
+		{
+			return 0 <= cx && cx < sizeX &&
+				   0 <= cy && cy < sizeY;
+		};
 
 		RenderUtility::SetFont(g, FONT_S12);
 
-		bool bHoveredPosValid = mineMap.isValidPos(mHoveredCellPos.x, mHoveredCellPos.y);
+		bool bHoveredPosValid = IsValidPos(mHoveredCellPos.x, mHoveredCellPos.y);
 		for (int j = 0; j < sizeY; ++j)
 		{
 			for (int i = 0; i < sizeX; ++i)
@@ -292,7 +366,7 @@ namespace Mine
 				Vec2i offset = Vec2i(i * LengthCell, j *LengthCell);
 				Vec2i pt = drawOrigin + offset;
 
-				int state = mineMap.look(i, j, false);
+				int state = mineMap.lookCell(i, j, false);
 
 				bool bHightlight = false;
 				if (bHoveredPosValid && bGameOver == false)
@@ -311,6 +385,7 @@ namespace Mine
 				{
 				case CV_FLAG:
 				case CV_UNPROBLED:
+				case CV_FLAG_NO_BOMB:
 					{
 						Color3ub c;
 						if (bHightlight)
@@ -335,7 +410,7 @@ namespace Mine
 							//   |\
 							//	 |_\ Bx By
 							//
-							int L = 60 * LengthCell / 100;
+							int L = 56 * LengthCell / 100;
 							int Tx = 20 * LengthCell / 100;
 							int Ty = 10 * LengthCell / 100;
 							int Bx = Tx + L;
@@ -345,11 +420,20 @@ namespace Mine
 							Vec2i TriPos[] =
 							{
 								pt + Vec2i(Tx,By),
-								pt + Vec2i(Bx,By),
+								pt + Vec2i(Bx,(By+Ty)/2),
 								pt + Vec2i(Tx,Ty),
 							};
 							g.drawPolygon(TriPos, 3);
 							g.drawRect(pt + Vec2i(Tx, Ty), Vec2i(2 , 80 * LengthCell / 100));
+
+
+						}
+						else if (state == CV_FLAG_NO_BOMB)
+						{
+							int offset = 2;
+							g.setPen(Color3ub(255, 0, 0), 2);
+							g.drawLine(pt + Vec2i(offset, offset), pt + Vec2i(LengthCell - offset, LengthCell - offset));
+							g.drawLine(pt + Vec2i(LengthCell - offset, offset), pt + Vec2i(offset, LengthCell - offset));
 						}
 					}
 					break;
@@ -383,19 +467,24 @@ namespace Mine
 						int border = 2;
 						Color3ub borderColor{ 135, 175, 58 };
 
-						Vec2i dirOffsets[] =
+						static const Vec2i dirOffsets[] =
 						{
 							Vec2i(1,0),Vec2i(-1,0),Vec2i(0,1),Vec2i(0,-1),
+						};
+
+						auto IsNeedBorder = [](int stateN)
+						{
+							return stateN == CV_FLAG || stateN == CV_UNPROBLED || stateN == CV_BOMB || stateN == CV_FLAG_NO_BOMB;
 						};
 						for (int dir = 0; dir < 4; ++dir)
 						{
 							int nx = i + dirOffsets[dir].x;
 							int ny = j + dirOffsets[dir].y;
-							if (!mineMap.isValidPos(nx, ny))
+							if (!IsValidPos(nx, ny))
 								continue;
 
-							int stateN = mineMap.look(nx, ny, false);
-							if (stateN == CV_FLAG || stateN == CV_UNPROBLED || stateN == CV_BOMB)
+							int stateN = mineMap.lookCell(nx, ny, false);
+							if (IsNeedBorder(stateN))
 							{
 								g.setPen(borderColor);
 								g.setBrush(borderColor);
@@ -411,7 +500,7 @@ namespace Mine
 							}
 						}
 
-						Vec2i dirOffsets2[] =
+						static const Vec2i dirOffsets2[] =
 						{
 							Vec2i(1,1),Vec2i(-1,1),Vec2i(-1,-1),Vec2i(1,-1),
 						};
@@ -419,11 +508,11 @@ namespace Mine
 						{
 							int nx = i + dirOffsets2[dir].x;
 							int ny = j + dirOffsets2[dir].y;
-							if ( !mineMap.isValidPos(nx ,ny) )
+							if ( !IsValidPos(nx ,ny) )
 								continue;
 
-							int stateN = mineMap.look(nx, ny, false);
-							if (stateN == CV_FLAG || stateN == CV_UNPROBLED || stateN == CV_BOMB)
+							int stateN = mineMap.lookCell(nx, ny, false);
+							if (IsNeedBorder(stateN))
 							{
 								g.setPen(borderColor);
 								g.setBrush(borderColor);
@@ -479,6 +568,121 @@ namespace Mine
 			mStragtegy.getSolvedBombNum(), mStragtegy.getOpenCellNum(), cx, cy);
 		dc.TextOut(150, 0, str);
 #endif
+	}
+
+	bool TestStage::onMouse(MouseMsg const& msg)
+	{
+		if (!BaseClass::onMouse(msg))
+			return false;
+
+		if (bPlayMode)
+		{
+			Vec2i cPos = toCellPos(msg.getPos());
+
+			if (msg.onMoving())
+			{
+				mHoveredCellPos = cPos;
+			}
+
+			if (bGameOver == false && mLevel.mCells.checkRange(cPos.x, cPos.y))
+			{
+				auto const& cell = mLevel.mCells(cPos.x, cPos.y);
+				if (cell.isProbed())
+				{
+					if ((msg.onLeftDown() && msg.isRightDown()) || (msg.onRightDown() && msg.isLeftDown()))
+					{
+						bOpenNeighborOp = true;
+						bool bHaveBomb;
+						if (mLevel.openNeighberCell(cPos.x, cPos.y, bHaveBomb))
+						{
+							if (bHaveBomb)
+							{
+								execGameOver();
+							}
+						}
+					}
+					else
+					{
+						bOpenNeighborOp = false;
+					}
+				}
+				else
+				{
+					if (msg.onLeftDown())
+					{
+						openGameCell(cPos.x, cPos.y);
+					}
+					else if (msg.onRightDown())
+					{
+						if (cell.isMarked())
+						{
+							mLevel.unmarkCell(cPos.x, cPos.y);
+						}
+						else
+						{
+							mLevel.markCell(cPos.x, cPos.y);
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	void TestStage::buildLevelSolver()
+	{
+		if (mSolver == nullptr)
+		{
+			mControl = new LevelGameControlClient(*this);
+			mStrategy = new ExpSolveStrategy();
+			mSolver = new MineSweeperSolver(*mStrategy, *mControl);
+			mSolver->scanMap();
+		}
+	}
+
+	bool LevelGameControlClient::hookGame()
+	{
+		return true;
+	}
+
+	bool LevelGameControlClient::setupMode(EGameMode mode)
+	{
+		return false;
+	}
+
+	bool LevelGameControlClient::setupCustomMode(int sx, int sy, int numbomb)
+	{
+		mLevel.restoreCell(sx, sy, numbomb);
+		return true;
+	}
+
+	void LevelGameControlClient::restart()
+	{
+		mLevel.restart();
+	}
+
+	EGameState LevelGameControlClient::checkState()
+	{
+		if (mStage.bGameOver)
+		{
+			return EGameState::Fail;
+		}
+		return EGameState::Run;
+	}
+
+	int LevelGameControlClient::getSizeX()
+	{
+		return mLevel.mCells.getSizeX();
+	}
+
+	int LevelGameControlClient::getSizeY()
+	{
+		return mLevel.mCells.getSizeY();
+	}
+
+	int LevelGameControlClient::getBombNum()
+	{
+		return mLevel.mNumBombs;
 	}
 
 }

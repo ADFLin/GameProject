@@ -11,6 +11,8 @@ namespace Math
 	class Vector4
 	{
 	public:
+		using ScaleType = float;
+
 		Vector4() = default;
 		Vector4(Vector4 const& rhs) = default;
 
@@ -24,6 +26,8 @@ namespace Math
 			:x(u.x), y(u.y), z(v.x), w(v.y){}
 
 		static Vector4 Zero() { return Vector4(0,0,0,0); }
+		static Vector4 Fill(float s) { return Vector4(s, s, s, s); }
+
 		void    setValue( float inX , float inY , float inZ , float inW ){  x = inX; y = inY ; z = inZ ; w = inW;  }
 
 

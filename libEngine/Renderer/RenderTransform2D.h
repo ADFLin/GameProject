@@ -45,6 +45,12 @@ namespace Render
 
 		}
 
+		void setIdentity()
+		{
+			M.setIdentity();
+			P = Vector2::Zero();
+		}
+
 		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
 		static RenderTransform2D TranslateThenScale(Vector2 const& offset, Vector2 const& scale)
 		{
@@ -79,6 +85,18 @@ namespace Render
 			return M.leftMul(v);
 		}
 
+		RenderTransform2D inverse() const
+		{
+			//[ M  0 ] [ Mr 0 ]  =  [ M * Mr        0 ] = [ 1  0 ]
+			//[ P  1 ] [ Pr 1 ]     [ P * Mr + Pr   1 ] = [ 0  1 ]
+			RenderTransform2D result;
+			float det;
+			M.inverse(result.M, det);
+			result.P = -P * result.M;
+
+			return result;
+		}
+
 		FORCEINLINE void translateWorld(Vector2 const& offset)
 		{
 			P += offset;
@@ -93,7 +111,11 @@ namespace Render
 
 		FORCEINLINE void rotateWorld(float angle)
 		{
-			M = M * Matrix2::Rotate(angle);
+			//[ M  0 ] [ R 0 ]  =  [ M * R  0 ]
+			//[ P  1 ] [ 0 1 ]     [ P * R  1 ]
+			Matrix2 R = Matrix2::Rotate(angle);
+			M = M * R;
+			P = P * R;
 		}
 
 		FORCEINLINE void rotateLocal(float angle)
@@ -105,7 +127,10 @@ namespace Render
 
 		FORCEINLINE void scaleWorld(Vector2 const& scale)
 		{
+			//[ M  0 ] [ S 0 ]  =  [ M * S  0 ]
+			//[ P  1 ] [ 0 1 ]     [ P * S  1 ]
 			M.rightScale(scale);
+			P = P.mul(scale);
 		}
 
 		FORCEINLINE void scaleLocal(Vector2 const& scale)

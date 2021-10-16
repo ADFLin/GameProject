@@ -3,11 +3,11 @@
 
 namespace Mine
 {
-	MineSweeperSolver::MineSweeperSolver(ISolveStrategy& strategy, IGameController& controller)
+	MineSweeperSolver::MineSweeperSolver(ISolveStrategy& strategy, IMineControlClient& control)
 	{
 		mSettingFlag = 0;
 		mGameState = EGameState::Run;
-		mControler = &controller;
+		mControl = &control;
 		mStrategy = &strategy;
 		setCustomMode(30, 16, 99);
 	}
@@ -20,9 +20,9 @@ namespace Mine
 		mNumTotalBomb = numBomb;
 	}
 
-	bool MineSweeperSolver::setepSolve() /*throw ( HookException )*/
+	bool MineSweeperSolver::setepSolve() /*throw ( ControlException )*/
 	{
-		mGameState = mControler->checkState();
+		mGameState = mControl->checkState();
 
 		switch( mGameState )
 		{
@@ -48,7 +48,7 @@ namespace Mine
 
 	void MineSweeperSolver::restart()
 	{
-		mControler->restart();
+		mControl->restart();
 		enableSetting(ST_PAUSE_SOLVE, false);
 		mStrategy->restart(*this);
 	}

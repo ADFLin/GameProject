@@ -52,7 +52,7 @@ void WinGdiGraphics2D::releaseUsedResources()
 	}
 }
 
-void WinGdiGraphics2D::setPenImpl( HPEN hPen , bool beManaged  )
+void WinGdiGraphics2D::setPenImpl( HPEN hPen , bool beManaged )
 {
 	if ( hPen != mCurPen )
 	{
@@ -149,6 +149,7 @@ void WinGdiGraphics2D::beginBlend( Vec2i const& pos , Vec2i const& size , float 
 		 mBlendDC.getHeight() < size.y )
 	{
 		mBlendDC.initialize( mhDCTarget , size.x , size.y );
+		::SetBkMode(mBlendDC.getHandle(), TRANSPARENT);
 	}
 
 	mBlendPos   = pos;

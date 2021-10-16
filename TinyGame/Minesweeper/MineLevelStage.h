@@ -9,6 +9,10 @@
 #include "DataStructure/Grid2d.h"
 #include "SystemPlatform.h"
 
+#include "Tween.h"
+#include "EasingFunction.h"
+#include "MineSweeperSolver.h"
+
 namespace Mine
 {
 
@@ -17,18 +21,12 @@ namespace Mine
 	public:
 
 		int  openCell(int cx, int cy);
-
-
-		void expendCell(int cx, int cy);
-
-		bool markCell(int cx, int cy);
-
-		bool unmarkCell(int cx, int cy);
-
 		bool openNeighberCell(int cx, int cy, bool& bHaveBomb);
 
-		int  lookCell(int cx, int cy, bool bCracked = false);
-
+		void expendCell(int cx, int cy);
+		bool markCell(int cx, int cy);
+		bool unmarkCell(int cx, int cy);
+		
 		void restart()
 		{
 			restoreCell(mCells.getSizeX(), mCells.getSizeY(), mNumBombs);
@@ -46,35 +44,11 @@ namespace Mine
 			bool isProbed() const { return bProbed; }
 			bool isMarked() const { return bMarked; }
 		};
-		void makeCellProbed(CellData& cell)
-		{
-			assert(!cell.isProbed());
-			cell.bProbed = true;
-			if (cell.bMarked)
-			{
-				cell.bMarked = false;
-				--mMarkCount;
-			}
-		}
+		void makeCellProbed(CellData& cell);
 
 
 		int openCellInternal(int cx, int cy);
-		bool validateMarkCount()
-		{
-			int count = 0;
-			for (int i = 0; i < mCells.getRawDataSize(); ++i)
-			{
-				if (mCells[i].isMarked())
-					++count;
-			}
-
-			if (mMarkCount != count)
-			{
-				mMarkCount = count;
-				return false;
-			}
-			return true;
-		}
+		bool validateMarkCount();
 
 
 		int getMarkCount() const { return mMarkCount; }
@@ -85,29 +59,32 @@ namespace Mine
 		int  mMarkCount;
 	};
 
-	class LevelMineMap : public IMineMap
+	class LevelMineQuery : public IMineQuery
 	{
 	public:
-		LevelMineMap(Level& level)
+		LevelMineQuery(Level& level)
 			:mLevel(level)
 		{
 		}
 
-		virtual int  probe(int cx, int cy)
+		virtual int  lookCell(int cx, int cy, bool bWaitResult)
 		{
-			return mLevel.openCell(cx, cy);
-		}
-		virtual int  look(int cx, int cy, bool bWaitResult)
-		{
-			return mLevel.lookCell(cx, cy, bCracked);
-		}
-		virtual bool mark(int cx, int cy)
-		{
-			return mLevel.markCell(cx, cy);
-		}
-		virtual bool unmark(int cx, int cy)
-		{
-			return mLevel.unmarkCell(cx, cy);
+			Level::CellData& cell = mLevel.mCells(cx, cy);
+			if (bGameOver && !bCracked)
+			{
+				if (cell.isMarked() && cell.number != CV_BOMB)
+				{
+					return CV_FLAG_NO_BOMB;
+				}
+			}
+
+			if (cell.isProbed() || bCracked)
+				return cell.number;
+
+			if (cell.isMarked())
+				return CV_FLAG;
+
+			return CV_UNPROBLED;
 		}
 
 		virtual int  getSizeX() { return mLevel.mCells.getSizeX(); }
@@ -116,6 +93,7 @@ namespace Mine
 
 		Level& mLevel;
 		bool bCracked = false;
+		bool bGameOver = false;
 	};
 
 	class TestStage : public StageBase
@@ -131,6 +109,7 @@ namespace Mine
 			if (!BaseClass::onInit())
 				return false;
 			::Global::GUI().cleanupWidget();
+			::srand(generateRandSeed());
 			restart();
 			return true;
 		}
@@ -155,6 +134,7 @@ namespace Mine
 
 		virtual void onUpdate(long time)
 		{
+
 			BaseClass::onUpdate(time);
 
 			int frame = time / gDefaultTickTime;
@@ -162,61 +142,44 @@ namespace Mine
 				tick();
 
 			updateFrame(frame);
+
+			float dt = float(time) / 1000;
+			mTweener.update(dt);
 		}
 		Vec2i mapOrigin = Vec2i(20, 20);
 		int const LengthCell = 24;
 
-		int64 mMsStart;
-		int64 mElapsedTime;
-		virtual void onRender(float dFrame)
+		int openGameCell(int cx, int cy)
 		{
-			Graphics2D& g = Global::GetGraphics2D();
-			LevelMineMap map{ mLevel };
-			if (bPlayMode)
+			CHECK(bPlayMode);
+
+			auto const& cell = mLevel.mCells(cx, cy);
+			if (cell.isMarked())
+				return CV_FLAG;
+	
+			if (mLevel.mbBuildBomb == false)
 			{
-				map.bCracked = mbCracked;
+				mMsStart = SystemPlatform::GetTickCount();
 			}
-			draw(g, map, mapOrigin);
-
-			if (bPlayMode)
+			int state = mLevel.openCell(cx, cy);
+			if (state == CV_BOMB)
 			{
-				Vec2i viewportSize = LengthCell * Vec2i(mLevel.mCells.getSizeX(), mLevel.mCells.getSizeY());
-				if (bGameOver)
-				{
-					RenderUtility::SetPen(g, EColor::Black);
-					RenderUtility::SetBrush(g, EColor::Black);
-					g.beginBlend(mapOrigin, viewportSize, 0.5);
-					g.drawRect(mapOrigin, viewportSize);
-					g.endBlend();
-
-
-					RenderUtility::SetFont(g, FONT_S24);
-					RenderUtility::SetFontColor(g, EColor::Red);
-
-
-					g.drawText(mapOrigin, viewportSize,  "Game Over");
-				}
-
-
-				RenderUtility::SetFont(g, FONT_S12);
-				RenderUtility::SetFontColor(g, EColor::Yellow);
-				g.drawText(Vec2i(200, 0), InlineStringA<>::Make("Mark Count = %d", mLevel.getMarkCount()) );
-
-				if (!bGameOver && mMsStart > 0)
-				{
-					mElapsedTime = SystemPlatform::GetTickCount() - mMsStart;
-				}
-
-				g.drawText(Vec2i(50, 0), InlineStringA<>::Make("Elapsed Time = %ld", mElapsedTime / 1000) );
+				execGameOver();
 			}
+
+			return state;
+
 		}
+
+
+		virtual void onRender(float dFrame);
 
 		Vec2i toCellPos(Vec2i const& screenPos)
 		{
 			return (screenPos - mapOrigin + Vec2i(LengthCell-1 , LengthCell - 1) ) / LengthCell - Vec2i(1,1);
 		}
 
-		void draw(Graphics2D& g, IMineMap& mineMap, Vec2i const& drawOrigin);
+		void draw(Graphics2D& g, IMineQuery& mineMap, Vec2i const& drawOrigin);
 
 
 
@@ -224,75 +187,9 @@ namespace Mine
 		bool  bOpenNeighborOp = false;
 
 
-		bool onMouse(MouseMsg const& msg)
-		{
-			if (!BaseClass::onMouse(msg))
-				return false;
+		bool onMouse(MouseMsg const& msg);
 
-			if (bPlayMode)
-			{
-				Vec2i cPos = toCellPos(msg.getPos());
-
-				if (msg.onMoving())
-				{
-					mHoveredCellPos = cPos;
-				}
-
-				if (bGameOver == false && mLevel.mCells.checkRange(cPos.x, cPos.y))
-				{
-					int state = mLevel.lookCell(cPos.x, cPos.y);
-					if (state <= 0)
-					{
-						if (msg.onLeftDown())
-						{
-							if (state == CV_UNPROBLED)
-							{
-								if (mLevel.mbBuildBomb == false)
-								{
-									mMsStart = SystemPlatform::GetTickCount();
-								}
-								int state = mLevel.openCell(cPos.x, cPos.y);
-								if (state == CV_BOMB)
-								{
-									bGameOver = true;
-								}
-							}
-						}
-						else if (msg.onRightDown())
-						{
-							if (state == CV_UNPROBLED)
-							{
-								mLevel.markCell(cPos.x, cPos.y);
-							}
-							else
-							{
-								mLevel.unmarkCell(cPos.x, cPos.y);
-							}
-						}
-					}
-					else if (state > 0)
-					{
-						if ((msg.onLeftDown() || msg.onRightDown()) && msg.isLeftDown() && msg.isRightDown())
-						{
-							bOpenNeighborOp = true;
-							bool bHaveBomb;
-							if (mLevel.openNeighberCell(cPos.x, cPos.y, bHaveBomb))
-							{
-								if (bHaveBomb)
-								{
-									bGameOver = true;
-								}
-							}
-						}
-						else
-						{
-							bOpenNeighborOp = false;
-						}
-					}
-				}
-			}
-			return true;
-		}
+		Tween::GroupTweener< float > mTweener;
 
 		bool onKey(KeyMsg const& msg)
 		{
@@ -305,6 +202,12 @@ namespace Mine
 				if (bPlayMode)
 				{
 					mbCracked = !mbCracked;
+				}
+				break;
+			case EKeyCode::X:
+				{
+					buildLevelSolver();
+					mSolver->setepSolve();
 				}
 				break;
 			}
@@ -323,12 +226,92 @@ namespace Mine
 		}
 	protected:
 
+		void buildLevelSolver();
+
 		bool bPlayMode;
 		bool bGameOver;
+
+		float mCanvasAlpha;
+		int64 mMsStart;
+		int64 mElapsedTime;
+
+		ISolveStrategy* mStrategy = nullptr;
+		IMineControlClient* mControl = nullptr;
+		class MineSweeperSolver* mSolver = nullptr;
+
+
+		void execGameOver()
+		{
+			bGameOver = true;
+			mCanvasAlpha = 0.0f;
+			mTweener.tweenValue< Easing::ICubic >(mCanvasAlpha, 0.0f, 1.0f, 0.8, 0);
+		}
+
+		friend class LevelGameControlClient;
+
 	};
 
 
+	class LevelGameControlClient : public IMineControlClient
+	{
+	public:
+		LevelGameControlClient(TestStage& stage)
+			:mStage(stage)
+			,mLevel(stage.mLevel)
+		{
 
+		}
+		virtual bool getCellSize(int& sx, int& sy)
+		{
+			sx = mLevel.mCells.getSizeX();
+			sy = mLevel.mCells.getSizeY();
+			return true;
+		}
+		virtual int  openCell(int cx, int cy)
+		{
+			return mStage.openGameCell(cx, cy);
+		}
+		virtual int  lookCell(int cx, int cy, bool bWaitResult)
+		{
+			Level::CellData& cell = mLevel.mCells(cx, cy);
+			if (cell.isProbed())
+				return cell.number;
+
+			if (cell.isMarked())
+				return CV_FLAG;
+
+			return CV_UNPROBLED;
+		}
+		virtual bool markCell(int cx, int cy)
+		{
+			return mLevel.markCell(cx, cy);
+		}
+		virtual bool unmarkCell(int cx, int cy)
+		{
+			return mLevel.unmarkCell(cx, cy);
+		}
+		virtual void openNeighberCell(int cx, int cy)
+		{
+			bool bHaveBomb;
+			mLevel.openNeighberCell(cx, cy, bHaveBomb);
+		}
+
+		Level& mLevel;
+		TestStage& mStage;
+
+		bool hookGame() override;
+		bool setupMode(EGameMode mode) override;
+		bool setupCustomMode(int sx, int sy, int numbomb) override;
+
+		void restart() override;
+
+		EGameState checkState() override;
+
+		int getSizeX() override;
+		int getSizeY() override;
+		int getBombNum() override;
+
+	};
 }
 
 #endif // MineLevelStage_H_A26CEC18_98E8_4E16_8C5C_F3F446822D68

@@ -32,7 +32,7 @@ struct ReplayInfoV0_0_1
 	}
 
 	template< class OP >
-	void serialize(OP op)
+	void serialize(OP& op)
 	{
 		op & name & gameVersion &  dataSize;
 

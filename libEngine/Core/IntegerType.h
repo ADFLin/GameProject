@@ -37,5 +37,17 @@ typedef uint8_t  uint8;
 
 #endif
 
+constexpr int32 MaxInt8 = 0x7F;
+constexpr int32 MinInt8 = 0x80;
+constexpr int32 MaxInt16 = 0x7FFF;
+constexpr int32 MinInt16 = 0x8000;
+constexpr int32 MaxInt32 = 0x7FFFFFFF;
+constexpr int32 MinInt32 = 0x80000000;
+constexpr int64 MaxInt64 = 0x7FFFFFFFFFFFFFFFLL;
+constexpr int64 MinInt64 = 0x8000000000000000LL;
+constexpr int32 MaxUint8 = 0xFF;
+constexpr int32 MaxUint16 = 0xFFFF;
+constexpr int32 MaxUint32 = 0xFFFFFFFF;
+constexpr int32 MaxUint64 = 0xFFFFFFFFFFFFFFFF;
 
 #endif // IntegerType_h__

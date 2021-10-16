@@ -209,8 +209,8 @@ namespace Mine
 	class CSPSolveStrategy : public ISolveStrategy
 	{
 	public:
-		virtual void restart( IMineMap& map );
-		virtual void loadMap( IMineMap& map );
+		virtual void restart(IMineControl& control);
+		virtual void loadMap(IMineControl& control);
 		virtual bool solveStep()
 		{
 			if ( !mSolvedCell.empty() )
@@ -223,7 +223,7 @@ namespace Mine
 		}
 
 
-		void restoreData( IMineMap& map );
+		void restoreData(IMineControl& control);
 
 		void  addUpdateCTGroup( ConstraintGroup* group )
 		{
@@ -272,9 +272,9 @@ namespace Mine
 			//data->ct   = ct;
 			//action.data = data;
 
-			//mMap->addAction( action );
+			//mControl->addAction( action );
 			//assert( cell.number == CN_UNPROBLED );
-			//int num = mMap->probe( cell.x , cell.y );
+			//int num = mControl->probe( cell.x , cell.y );
 			//if ( num >= 0 )
 			//	updateSolveCell( cell , num , ct , true );
 		}
@@ -313,7 +313,7 @@ namespace Mine
 			if ( cell.number != CV_UNPROBLED )
 				return;
 
-			int num = mMap->look( cell.x , cell.y , beWait );
+			int num = mControl->lookCell( cell.x , cell.y , beWait );
 
 			if ( num >= 0 )
 				updateSolveCell( cell , num , ct , false );
@@ -330,7 +330,7 @@ namespace Mine
 		std::vector< SolveInfo >        mSolvedCell;
 		std::vector< CellData >         mData;
 		std::vector< ConstraintGroup* > mCTGroup;
-		IMineMap* mMap;
+		IMineControl* mControl;
 		int       mNumSolvedCell;
 		int       mSizeX;
 		int       mSizeY;

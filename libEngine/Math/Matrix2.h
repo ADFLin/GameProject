@@ -103,7 +103,7 @@ namespace Math
 #endif
 		}
 
-		FORCEINLINE Vector2 rightMul(Vector2 const& v) const
+		FORCEINLINE Vector2 mul(Vector2 const& v) const
 		{
 #if USE_MATH_SIMD
 			__m128 rv = _mm_setr_ps(v.x, v.y, v.x, v.y);
@@ -125,7 +125,7 @@ namespace Math
 
 		FORCEINLINE friend Vector2 operator * (Matrix2 const& lhs, Vector2 const& rhs)
 		{
-			return lhs.rightMul(rhs);
+			return lhs.mul(rhs);
 		}
 
 		FORCEINLINE float deter() const

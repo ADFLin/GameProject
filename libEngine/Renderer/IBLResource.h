@@ -75,7 +75,7 @@ namespace Render
 		std::vector< uint8 > perFiltered[IBLResource::NumPerFilteredLevel];
 
 		template< class OP >
-		void serialize(OP op)
+		void serialize(OP& op)
 		{
 			op & envMapSize & irradianceSize & perFilteredSize;
 			op & envMap;

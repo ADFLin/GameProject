@@ -17,22 +17,9 @@ namespace Mine
 		ST_PAUSE_SOLVE = 1 << 4,
 	};
 
-
-
-
-	class IGame
-	{
-
-		void restart()
-		{
-
-
-
-		}
-	};
-
 	class GameHookMap
 	{
+	public:
 
 
 		void restart()
@@ -42,47 +29,40 @@ namespace Mine
 
 		}
 
-
-
-
-
-
-
-
-		IGameController& mController;
+		IMineControlClient& mController;
 	};
 
 
-	class MineSweeperSolver : public IMineMap
+	class MineSweeperSolver : public IMineControl
 	{
 	public:
-		MineSweeperSolver(ISolveStrategy& strategy, IGameController& controller);
+		MineSweeperSolver(ISolveStrategy& strategy, IMineControlClient& controller);
 
 		void       restart();
 		void       scanMap()
 		{
 			mStrategy->loadMap(*this);
 		}
-		bool       setepSolve() /*throw ( HookException )*/;
+		bool       setepSolve() /*throw ( ControlException )*/;
 		void       enableSetting(SolverSetting setting, bool beE = true);
 		bool       checkSetting(SolverSetting setting) { return (mSettingFlag & setting) != 0; }
 		void       setCustomMode(int sx, int sy, int numBomb);
 		EGameState  getGameState() const { return mGameState; }
 
 	public:
-		virtual int probe(int cx, int cy)
+		virtual int openCell(int cx, int cy)
 		{
 			if( mGameState == EGameState::Fail )
 				return CV_UNKNOWN;
-			return mControler->openCell(cx, cy);
+			return mControl->openCell(cx, cy);
 		}
 
-		virtual int look(int cx, int cy, bool bWaitResult)
+		virtual int lookCell(int cx, int cy, bool bWaitResult)
 		{
-			return mControler->lookCell(cx, cy, bWaitResult);
+			return mControl->lookCell(cx, cy, bWaitResult);
 		}
 
-		virtual bool mark(int cx, int cy)
+		virtual bool markCell(int cx, int cy)
 		{
 			if( mGameState == EGameState::Fail )
 				return false;
@@ -91,7 +71,7 @@ namespace Mine
 			{
 				try
 				{
-					mControler->markCell(cx, cy);
+					mControl->markCell(cx, cy);
 				}
 				catch( ControlException& e )
 				{
@@ -101,14 +81,14 @@ namespace Mine
 			}
 			return true;
 		}
-		virtual bool unmark(int cx, int cy)
+		virtual bool unmarkCell(int cx, int cy)
 		{
 			if( mGameState == EGameState::Fail )
 				return false;
 
 			if( (mSettingFlag & ST_MARK_FLAG) == 0 )
 			{
-				mControler->markCell(cx, cy);
+				mControl->markCell(cx, cy);
 			}
 			return true;
 		}
@@ -131,7 +111,7 @@ namespace Mine
 		int  mNumTotalBomb;
 		EGameState      mGameState;
 		ISolveStrategy* mStrategy;
-		IGameController* mControler;
+		IMineControlClient* mControl;
 
 	private:
 

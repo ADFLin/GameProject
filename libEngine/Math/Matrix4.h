@@ -180,9 +180,9 @@ namespace Math
 		Vector3   leftMul(Vector3 const& v) const;
 		Vector4   leftMul(Vector4 const& v) const;
 		// result = this * m
-		Matrix4   rightMul( Matrix3 const& m ) const;
-		Vector3   rightMul( Vector3 const& v ) const;
-		Vector4   rightMul( Vector4 const& v ) const;
+		Matrix4   mul( Matrix3 const& m ) const;
+		Vector3   mul( Vector3 const& v ) const;
+		Vector4   mul( Vector4 const& v ) const;
 
 		float     deter() const
 		{
@@ -252,7 +252,7 @@ namespace Math
 
 	FORCEINLINE Matrix4 operator * ( Matrix4 const m1 , Matrix3 const& m2 )
 	{
-		return m1.rightMul( m2 );
+		return m1.mul( m2 );
 	}
 
 	FORCEINLINE Matrix4 operator * ( Matrix3 const& m2 , Matrix4 const m1 )
@@ -263,7 +263,7 @@ namespace Math
 	// v' = ( v , 1 )
 	FORCEINLINE Vector3 operator * ( Matrix4 const& m , Vector3 const& v )
 	{
-		return m.rightMul( v );
+		return m.mul( v );
 	}
 
 	FORCEINLINE Vector3 operator * (  Vector3 const& v  , Matrix4 const& m )
@@ -273,7 +273,7 @@ namespace Math
 
 	FORCEINLINE Vector4 operator * ( Matrix4 const m , Vector4 const& v )
 	{
-		return m.rightMul( v );
+		return m.mul( v );
 	}
 
 	FORCEINLINE Vector4 operator * (  Vector4 const& v  , Matrix4 const& m )
@@ -309,7 +309,7 @@ namespace Math
 #undef MAT_MUL
 	}
 
-	FORCEINLINE Vector3 Matrix4::rightMul( Vector3 const& v ) const
+	FORCEINLINE Vector3 Matrix4::mul( Vector3 const& v ) const
 	{
 #define MAT_MUL( m , index )\
 	( v.x * m[ 4 * index ] + v.y * m[ 4 * index + 1 ] + v.z * m[ 4 * index + 2 ] + m[ 4 * index + 3 ] )
@@ -325,7 +325,7 @@ namespace Math
 #undef MAT_MUL
 	}
 
-	FORCEINLINE Vector4 Matrix4::rightMul( Vector4 const& v ) const
+	FORCEINLINE Vector4 Matrix4::mul( Vector4 const& v ) const
 	{
 #define MAT_MUL( m , index )\
 	( v.x * m[ 4 * index ] + v.y * m[ 4 * index + 1 ] + v.z * m[ 4 * index + 2 ] + v.w + m[ 4 * index + 3 ] )

@@ -57,7 +57,7 @@ namespace CarTrain
 		}
 
 		template< class OP >
-		void serialize(OP op)
+		void serialize(OP& op)
 		{
 			op & bodyType & collisionType & collisionMask & mass;
 		}
@@ -71,7 +71,7 @@ namespace CarTrain
 		Vector2 extend;
 
 		template< class OP >
-		void serialize(OP op)
+		void serialize(OP& op)
 		{
 			PhyObjectDef::serialize(op);
 			op & extend;
@@ -412,7 +412,7 @@ namespace CarTrain
 		typedef BoxObjectDef BaseClass;
 		XForm2D transform;
 		template< class OP >
-		void serialize(OP op)
+		void serialize(OP& op)
 		{
 			BaseClass::serialize(op);
 			op & transform;

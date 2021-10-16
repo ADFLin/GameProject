@@ -90,10 +90,10 @@ void GUISystem::scanHotkey( GameController& controller )
 	//}
 }
 
-GWidget* GUISystem::showMessageBox( int id , char const* msg , unsigned flag /*= GMB_YESNO */ )
+GWidget* GUISystem::showMessageBox( int id , char const* msg , EMessageButton::Type buttonType)
 {
 	Vec2i pos = calcScreenCenterPos( GMsgBox::BoxSize );
-	GMsgBox* box = new GMsgBox( id , pos , NULL , flag );
+	GMsgBox* box = new GMsgBox( id , pos , NULL , buttonType);
 	box->setTitle( msg );
 	box->setAlpha( 0.8f );
 	addWidget( box );

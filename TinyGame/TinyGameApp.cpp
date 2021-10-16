@@ -574,7 +574,7 @@ ServerWorker* TinyGameApp::createServer()
 	if ( !server->startNetwork() )
 	{
 		::Global::GUI().showMessageBox( 
-			UI_ANY , LOCTEXT("Can't Create Server") , GMB_OK );
+			UI_ANY , LOCTEXT("Can't Create Server") , EMessageButton::Ok );
 		delete server;
 		return nullptr;
 	}
@@ -604,7 +604,7 @@ ClientWorker* TinyGameApp::createClinet()
 	if ( !worker->startNetwork() )
 	{
 		delete worker;
-		::Global::GUI().showMessageBox( UI_ANY , LOCTEXT("Can't Create Client") ,  GMB_OK);
+		::Global::GUI().showMessageBox( UI_ANY , LOCTEXT("Can't Create Client") ,  EMessageButton::Ok);
 		return nullptr;
 	}
 
@@ -1147,7 +1147,7 @@ void TinyGameApp::postStageChange( StageBase* stage )
 	addTask( new FadeInEffect( EColor::Black , 1000 ) , this );
 	if ( mShowErrorMsg )
 	{
-		//::Global::getGUI().showMessageBox( UI_ANY , mErrorMsg.c_str() , GMB_OK );
+		//::Global::getGUI().showMessageBox( UI_ANY , mErrorMsg.c_str() , EMessageButton::Ok );
 		mShowErrorMsg = false;
 	}
 }

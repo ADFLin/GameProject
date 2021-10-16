@@ -1872,7 +1872,7 @@ namespace Go
 					InlineString< 128 > str;
 
 					str.format("%s Win", name);
-					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
+					::Global::GUI().showMessageBox(UI_ANY, str, EMessageButton::Ok);
 				}
 
 				InlineString<128> matchResult;
@@ -1902,7 +1902,7 @@ namespace Go
 					InlineString< 128 > str;
 
 					str.format("%s Resigned", name);
-					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
+					::Global::GUI().showMessageBox(UI_ANY, str, EMessageButton::Ok);
 				}
 				InlineString<128> matchResult;
 				matchResult.format("%s+R", EStoneColor::Opposite(color) == EStoneColor::Black ? "B" : "W");

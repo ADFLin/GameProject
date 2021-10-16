@@ -59,21 +59,20 @@ namespace Mine
 		}
 	}
 
-	void ExpSolveStrategy::setRule(IMineMap& map)
+	void ExpSolveStrategy::setRule()
 	{
-		mCellSizeX = map.getSizeX();
-		mCellSizeY = map.getSizeY();
-		mNumTotalBomb = map.getBombNum();
+		mCellSizeX = mMineControl->getSizeX();
+		mCellSizeY = mMineControl->getSizeY();
+		mNumTotalBomb = mMineControl->getBombNum();
 		mCellData.resize(mCellSizeX * mCellSizeY);
 	}
 
-	void ExpSolveStrategy::refreshInformation(IMineMap& map, bool beRestart)
+	void ExpSolveStrategy::refreshInformation(IMineControl& constrol, bool beRestart)
 	{
+		mMineControl = &constrol;
 		mSolveState = eLogicSolve;
 
-		setRule(map);
-		mMineMap = &map;
-
+		setRule();
 		restoreCell();
 
 		if( !beRestart )
@@ -86,7 +85,7 @@ namespace Mine
 				cp.x = 0;
 				for( short& i = cp.x; i < mCellSizeX; ++i, ++cp.idx )
 				{
-					int num = map.look(i, j, false);
+					int num = mMineControl->lookCell(i, j, false);
 					if( num != CV_UNPROBLED )
 					{
 						addCellInformation(cp, num);
@@ -189,7 +188,7 @@ namespace Mine
 			}
 		}
 	}
-	void ExpSolveStrategy::geerateCellProbSimple()
+	void ExpSolveStrategy::generateCellProbSimple()
 	{
 		float accProb = 0;
 
@@ -231,7 +230,7 @@ namespace Mine
 	}
 	void ExpSolveStrategy::generateCellProb()
 	{
-		geerateCellProbSimple();
+		generateCellProbSimple();
 	}
 
 	void ExpSolveStrategy::updateOtherPropInfo(float accProb)
@@ -284,7 +283,7 @@ namespace Mine
 
 	void ExpSolveStrategy::openCell(CellPos const& cp)
 	{
-		int num = mMineMap->probe(cp.x, cp.y);
+		int num = mMineControl->openCell(cp.x, cp.y);
 		//if ( num >= 0 )
 		{
 			scanCellInternal(cp, num);
@@ -303,7 +302,7 @@ namespace Mine
 
 	void ExpSolveStrategy::markCell(CellPos const& cp)
 	{
-		if( mMineMap->mark(cp.x, cp.y) )
+		if( mMineControl->markCell(cp.x, cp.y) )
 		{
 			addCellInformation(cp, CV_FLAG);
 		}
@@ -361,7 +360,7 @@ namespace Mine
 	VECTOR.resize( swapIndex + 1 );
 
 			FILTER_VECTOR(mUnknownProbCells, i, mUnknownProbCells[i]->idxProb != -1)
-				FILTER_VECTOR(mSortedProbCells, i, mSortedProbCells[i]->idxProb == -1)
+			FILTER_VECTOR(mSortedProbCells, i, mSortedProbCells[i]->idxProb == -1)
 
 #undef  FILTER_VECTOR
 		}
@@ -374,7 +373,7 @@ namespace Mine
 			return;
 
 		DBG_STOP(cp.x == 2 && cp.y == 4)
-			int num = mMineMap->look(cp.x, cp.y, true);
+			int num = mMineControl->lookCell(cp.x, cp.y, true);
 		scanCellInternal(cp, num);
 	}
 
@@ -996,7 +995,7 @@ namespace Mine
 			catch( ControlException& e )
 			{
 				mCheckList.push_back(mLastCheckPos);
-				throw e;
+				throw;
 			}
 			if( logicSucceed )
 				break;
@@ -1006,6 +1005,7 @@ namespace Mine
 		{
 			if( mSolveState == eLogicSolve )
 				generateCellProb();
+			
 			mSolveState = eProbSolve;
 		}
 		else
@@ -1013,7 +1013,7 @@ namespace Mine
 			mSolveState = eLogicSolve;
 		}
 
-		if( mSolveState == eProbSolve )
+		if(bUsePropSolve && mSolveState == eProbSolve)
 		{
 			//if ( mSettingFlag & ST_DISABLE_PROB_SOLVE )
 			//	return false;

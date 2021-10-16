@@ -152,13 +152,14 @@ next:
 	}
 
 
-	void CSPSolveStrategy::loadMap( IMineMap& map )
+	void CSPSolveStrategy::loadMap(IMineControl& control )
 	{
-		restoreData( map );
+		restoreData(control);
+
 		for( int i = 0 ; i < mData.size() ; ++i )
 		{
 			CellData& cell = mData[i];
-			int num = map.look( cell.x , cell.y , false );
+			int num = control.lookCell( cell.x , cell.y , false );
 			cell.number = num;
 		}
 
@@ -244,12 +245,12 @@ next:
 		}
 	}
 
-	void CSPSolveStrategy::restoreData( IMineMap& map )
+	void CSPSolveStrategy::restoreData(IMineControl& control)
 	{
-		mMap = &map;
+		mControl = &control;
 
-		mSizeX = map.getSizeX();
-		mSizeY = map.getSizeY();
+		mSizeX = mControl->getSizeX();
+		mSizeY = mControl->getSizeY();
 
 		mData.resize( mSizeX * mSizeY );
 
@@ -257,31 +258,33 @@ next:
 		int xMax = mSizeX - 1;
 		int yMax = mSizeY - 1;
 		for( int j = 0 ; j < mSizeY ; ++j )
-			for( int i = 0 ; i < mSizeX ; ++i , ++idx )
+		{
+			for (int i = 0; i < mSizeX; ++i, ++idx)
 			{
-				CellData& data = mData[ idx ];
+				CellData& data = mData[idx];
 				data.x = i;
 				data.y = j;
-				data.x1 = std::max( 0 , i - 1 );
-				data.y1 = std::max( 0 , j - 1 );
-				data.x2 = std::min( xMax , i + 1 );
-				data.y2 = std::min( yMax , j + 1 );
-				data.group  = NULL;
+				data.x1 = std::max(0, i - 1);
+				data.y1 = std::max(0, j - 1);
+				data.x2 = std::min(xMax, i + 1);
+				data.y2 = std::min(yMax, j + 1);
+				data.group = NULL;
 				data.number = CV_UNPROBLED;
 			}
+		}
 
-			for( int i = 0 ; i < mCTGroup.size() ; ++i )
-			{
-				delete mCTGroup[i];
-			}
+		for (int i = 0; i < mCTGroup.size(); ++i)
+		{
+			delete mCTGroup[i];
+		}
 
-			mCTGroup.clear();
-			mGroupUpdate.clear();
+		mCTGroup.clear();
+		mGroupUpdate.clear();
 	}
 
-	void CSPSolveStrategy::restart( IMineMap& map )
+	void CSPSolveStrategy::restart(IMineControl& control)
 	{
-		restoreData( map );
+		restoreData(control);
 	}
 
 }//namespace csp

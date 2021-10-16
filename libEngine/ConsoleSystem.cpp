@@ -112,6 +112,24 @@ void ConsoleSystem::unregisterCommandByName(char const* name)
 	mNameMap.erase(iter);
 }
 
+void ConsoleSystem::unregisterAllCommandsByObject(void* objectPtr)
+{
+	CommandMap::iterator iter = mNameMap.begin();
+	while (iter != mNameMap.end())
+	{
+		ConsoleCommandBase* command = iter->second;
+
+		if (command->isHoldObject(objectPtr))
+		{
+			iter = mNameMap.erase(iter);
+		}
+		else
+		{
+			++iter;
+		}
+	}
+}
+
 void ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 {
 	std::pair<CommandMap::iterator, bool> result =

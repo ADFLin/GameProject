@@ -5,7 +5,7 @@ template< class T >
 class TVector3
 {
 public:
-	using InputType = T;
+	using ScalarInputType = T;
 	using ScaleType = T;
 
 	TVector3() = default;
@@ -16,7 +16,7 @@ public:
 	{
 
 	}
-	constexpr TVector3( InputType sx,InputType sy, InputType sz)
+	constexpr TVector3( ScalarInputType sx,ScalarInputType sy, ScalarInputType sz)
 		:x(sx), y(sy), z(sz)
 	{
 
@@ -26,7 +26,7 @@ public:
 	constexpr TVector3( TVector3< Q > const& rhs )
 		:x( rhs.x ),y(rhs.y),z(rhs.z){}
 
-	void setValue( InputType sx,InputType sy,InputType sz)
+	constexpr void setValue( ScalarInputType sx,ScalarInputType sy,ScalarInputType sz)
 	{ x=sx; y=sy; z=sz;}
 
 	T length2() const { return dot( *this ); }
@@ -34,9 +34,18 @@ public:
 	operator T*(){ return &x; }
 	operator T const*() const { return &x; }
 
+	static TVector3 Zero() { return TVector3(0, 0, 0); }
+	static TVector3 Fill(ScalarInputType s) { return TVector3(s, s, s); }
+	static TVector3 PositiveX() { return TVector3(1, 0, 0); }
+	static TVector3 PositiveY() { return TVector3(0, 1, 0); }
+	static TVector3 PositiveZ() { return TVector3(0, 0, 1); }
+	static TVector3 NegativeX() { return TVector3(-1, 0, 0); }
+	static TVector3 NegativeY() { return TVector3(0, -1, 0); }
+	static TVector3 NegativeZ() { return TVector3(0, 0, -1); }
+
 	TVector3& operator += ( TVector3 const& v);
 	TVector3& operator -= ( TVector3 const& v);
-	TVector3& operator *= ( InputType s );
+	TVector3& operator *= ( ScalarInputType s );
 
 
 	TVector3 mul( TVector3 const& v )
@@ -88,7 +97,7 @@ FORCEINLINE TVector3<T>& TVector3<T>::operator -= (const TVector3& v)
 }
 
 template< class T >
-FORCEINLINE TVector3<T>& TVector3<T>::operator *= ( InputType s )
+FORCEINLINE TVector3<T>& TVector3<T>::operator *= ( ScalarInputType s )
 {
 	x *= s; y *= s; z *= s;
 	return *this;
@@ -107,19 +116,19 @@ FORCEINLINE TVector3<T> operator- (TVector3<T> const& a,TVector3<T> const& b)
 }
 
 template< class T >
-FORCEINLINE TVector3<T> operator * ( typename TVector3<T>::InputType s , TVector3<T> const& v )
+FORCEINLINE TVector3<T> operator * ( typename TVector3<T>::ScalarInputType s , TVector3<T> const& v )
 {
 	return TVector3< T >( s*v.x , s*v.y , s*v.z );
 }
 
 template< class T >
-FORCEINLINE TVector3<T> operator*(TVector3<T> const& v, typename TVector3<T>::InputType s)
+FORCEINLINE TVector3<T> operator*(TVector3<T> const& v, typename TVector3<T>::ScalarInputType s)
 {
 	return TVector3<T>( s*v.x , s*v.y , s*v.z );
 }
 
 template< class T >
-FORCEINLINE TVector3<T> operator/(TVector3<T> const& v, typename TVector3<T>::InputType s)
+FORCEINLINE TVector3<T> operator/(TVector3<T> const& v, typename TVector3<T>::ScalarInputType s)
 {
 	return TVector3<T>( v.x / s , v.y / s , v.z / s );
 }

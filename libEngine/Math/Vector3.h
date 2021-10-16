@@ -9,6 +9,8 @@ namespace Math
 	class  Vector3
 	{
 	public:
+		typedef float ScalarType;
+
 		Vector3() = default;
 		constexpr explicit Vector3( float const v[] )
 			:x(v[0]),y(v[1]),z(v[2])
@@ -81,19 +83,21 @@ namespace Math
 		float   dot(Vector3 const& b) const;
 		Vector3 cross(Vector3 const& b) const;
 
-		void    max( Vector3 const& rhs )
+		void setMax( Vector3 const& rhs )
 		{
 			if ( x < rhs.x ) x = rhs.x;
 			if ( y < rhs.y ) y = rhs.y;
 			if ( z < rhs.z ) z = rhs.z;
 		}
 
-		void    min( Vector3 const& rhs )
+		void setMin( Vector3 const& rhs )
 		{
 			if ( x > rhs.x ) x = rhs.x;
 			if ( y > rhs.y ) y = rhs.y;
 			if ( z > rhs.z ) z = rhs.z;
 		}
+		Vector3 max(Vector3 const& v) const { return Vector3(Math::Max(x, v.x), Math::Max(y, v.y), Math::Max(z, v.z)); }
+		Vector3 min(Vector3 const& v) const { return Vector3(Math::Min(x, v.x), Math::Min(y, v.y), Math::Min(z, v.z)); }
 
 		Vector3 abs() const { return Vector3(Math::Abs(x), Math::Abs(y), Math::Abs(z)); }
 		Vector3 projectNormal(Vector3 const& dir) const;

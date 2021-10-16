@@ -113,6 +113,32 @@ namespace SBlocks
 		outlines.insert(outlines.end(), VLines.begin(), VLines.end());
 	}
 
+	int PieceShape::getDifferentShapeDirs(int outDirs[4])
+	{
+		int numDir = 1;
+		outDirs[0] = 0;
+		for (int dir = 1; dir < DirType::RestNumber; ++dir)
+		{
+			bool bOk = true;
+			for (int indexDir = 0; indexDir < numDir; ++indexDir)
+			{
+				int otherDir = outDirs[indexDir];
+				if (mDataMap[otherDir] == mDataMap[dir])
+				{
+					bOk = false;
+					break;
+				}
+			}
+			if (bOk)
+			{
+				outDirs[numDir] = dir;
+				++numDir;
+			}
+		}
+
+		return numDir;
+	}
+
 	void PieceShape::exportDesc(PieceShapeDesc& outDesc)
 	{
 		outDesc.pivot = pivot;
@@ -213,14 +239,7 @@ namespace SBlocks
 		if (!canLock(pos, shapeData))
 			return false;
 
-		for (auto const& block : shapeData.blocks)
-		{
-			Vec2i mapPos = pos + block;
-			uint8& data = mData.getData(mapPos.x, mapPos.y);
-			CHECK(data == 0);
-			data = PIECE_BLOCK;
-			++numBlockLocked;
-		}
+		lockChecked(pos, shapeData);
 		return true;
 	}
 
@@ -232,8 +251,42 @@ namespace SBlocks
 			uint8& data = mData.getData(mapPos.x, mapPos.y);
 			CHECK(data == PIECE_BLOCK);
 			data = 0;
-			--numBlockLocked;
 		}
+
+		numBlockLocked -= shapeData.blocks.size();
+	}
+
+	bool MarkMap::tryLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData)
+	{
+		if (!canLockAssumeInBound(pos, shapeData))
+			return false;
+
+		lockChecked(pos, shapeData);
+		return true;
+	}
+
+	bool MarkMap::canLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData)
+	{
+		for (auto const& block : shapeData.blocks)
+		{
+			Vec2i mapPos = pos + block;
+			CHECK(mData.checkRange(mapPos.x, mapPos.y));
+			if (mData.getData(mapPos.x, mapPos.y) != 0)
+				return false;
+		}
+		return true;
+	}
+
+	void MarkMap::lockChecked(Vec2i const& pos, PieceShape::Data const& shapeData)
+	{
+		for (auto const& block : shapeData.blocks)
+		{
+			Vec2i mapPos = pos + block;
+			uint8& data = mData.getData(mapPos.x, mapPos.y);
+			CHECK(data == 0);
+			data = PIECE_BLOCK;
+		}
+		numBlockLocked += shapeData.blocks.size();
 	}
 
 	bool MarkMap::canLock(Vec2i const& pos, PieceShape::Data const& shapeData)
@@ -246,15 +299,7 @@ namespace SBlocks
 			if (!mData.checkRange(maxPos.x, maxPos.y))
 				return false;
 		}
-
-		for (auto const& block : shapeData.blocks)
-		{
-			Vec2i mapPos = pos + block;
-			CHECK(mData.checkRange(mapPos.x, mapPos.y));
-			if (mData.getData(mapPos.x, mapPos.y) != 0)
-				return false;
-		}
-		return true;
+		return canLockAssumeInBound(pos, shapeData);
 	}
 
 	void MarkMap::improtDesc(MapDesc const& desc)
@@ -340,6 +385,29 @@ namespace SBlocks
 		}
 	}
 
+	void MarkMap::copy(MarkMap const& rhs, bool bInitState)
+	{
+		numTotalBlocks = rhs.numTotalBlocks;
+		if (bInitState)
+		{
+			mData.resize(rhs.mData.getSizeX(), rhs.mData.getSizeY());
+			mData.fillValue(0);
+			for (int i = 0; i < mData.getRawDataSize(); ++i)
+			{
+				if (rhs.mData[i] == MAP_BLOCK)
+				{
+					mData[i] = MAP_BLOCK;
+				}
+			}
+			numBlockLocked = 0;
+		}
+		else
+		{
+			mData = rhs.mData;
+			numBlockLocked = rhs.numBlockLocked;
+		}
+	}
+
 	int Level::findShapeID(PieceShape* shape)
 	{
 		for (int i = 0; i < mShapes.size(); ++i)
@@ -401,6 +469,7 @@ namespace SBlocks
 		piece->bLocked = false;
 		piece->pos = Vector2::Zero();
 		piece->updateTransform();
+		piece->index = mPieces.size();
 
 		Piece* result = piece.get();
 		mPieces.push_back(std::move(piece));
@@ -409,6 +478,10 @@ namespace SBlocks
 
 	Piece* Level::createPiece(PieceDesc const& desc)
 	{
+		if (desc.id < 0 || desc.id >= mShapes.size())
+		{
+			return nullptr;
+		}
 		std::unique_ptr< Piece > piece = std::make_unique< Piece >();
 
 		piece->shape = mShapes[desc.id].get();
@@ -417,6 +490,7 @@ namespace SBlocks
 		piece->bLocked = false;
 		piece->pos = desc.pos;
 		piece->updateTransform();
+		piece->index = mPieces.size();
 
 		Piece* result = piece.get();
 		mPieces.push_back(std::move(piece));
@@ -452,7 +526,10 @@ namespace SBlocks
 			piece.updateTransform();
 		}
 
-		Vec2i mapPos = GetLockMapPos(piece);
+		Vector2 pos = piece.getLTCornerPos();
+		Vec2i mapPos;
+		mapPos.x = Math::RoundToInt(pos.x);
+		mapPos.y = Math::RoundToInt(pos.y);
 		if (!mMap.isInBound(mapPos))
 			return false;
 
@@ -460,15 +537,9 @@ namespace SBlocks
 			return false;
 
 		piece.bLocked = true;
-		Vector2 pos = piece.xform.transformPosition(Vector2::Zero());
-
-		Vector2 offset;
-		offset.x = pos.x - Math::RoundToInt(pos.x);
-		offset.y = pos.y - Math::RoundToInt(pos.y);
-#if 1	
-		piece.pos -= offset;
+		piece.pos += Vector2(mapPos) - pos;
 		piece.updateTransform();
-#endif
+		
 		return true;
 	}
 

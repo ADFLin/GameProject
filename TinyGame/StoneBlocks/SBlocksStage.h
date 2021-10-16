@@ -169,7 +169,7 @@ namespace SBlocks
 		{
 			auto& console = ConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC )\
-			console.registerCommand("SBlock."NAME, &Editor::FUNC, this)
+			console.registerCommand("SBlocks."NAME, &Editor::FUNC, this)
 
 			REGISTER_COM("SetMapSize", setMapSize);
 			REGISTER_COM("Save", saveLevel);
@@ -282,6 +282,7 @@ namespace SBlocks
 		Editor*  mEditor = nullptr;
 		bool     bEditEnabled;
 
+		std::unique_ptr< Solver > mSolver;
 		LevelTheme mTheme;
 
 		bool onInit() override
@@ -293,7 +294,7 @@ namespace SBlocks
 
 			auto& console = ConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC )\
-			console.registerCommand("SBlock."NAME, &TestStage::FUNC, this)
+			console.registerCommand("SBlocks."NAME, &TestStage::FUNC, this)
 			REGISTER_COM("Solve", solveLevel);
 #undef REGISTER_COM
 			return true;
@@ -331,15 +332,7 @@ namespace SBlocks
 
 		void onRender(float dFrame) override;
 
-		void solveLevel()
-		{
-			TIME_SCOPE("Solve Level");
-			Solver solver;
-			solver.setup(mLevel);
-
-			bool bSuccess = solver.solve();
-			LogMsg("Solve level %s !" , bSuccess ? "success" : "fail");
-		}
+		void solveLevel();
 
 
 		Piece* selectedPiece = nullptr;

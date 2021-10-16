@@ -6,6 +6,8 @@
 
 namespace SBlocks
 {
+	class SolveWork;
+
 	class Solver
 	{
 	public:
@@ -13,8 +15,17 @@ namespace SBlocks
 		struct LockedState;
 
 		void setup(Level& level);
-		bool solve();
-		void getSolvedState(std::vector< LockedState >& outStates)
+		bool solve()
+		{
+			return solveImpl(0, 0) >= 0;
+		}
+		bool solveNext()
+		{
+			return solveImpl(mPieceStates.size() - 1, 0) >= 0;
+		}
+		int  solveImpl(int index, int startIndex);
+
+		void getSolvedStates(std::vector< LockedState >& outStates)
 		{
 			for (auto& state : mPieceStates)
 			{
@@ -22,11 +33,18 @@ namespace SBlocks
 				outStates.push_back(state.possibleStates[state.index]);
 			}
 		}
-
-		bool advanceState(PieceState& state);
-
-
+		static bool AdvanceState(MarkMap& map, PieceState& state, int& inoutIndex);
+		struct ThreadData
+		{
+			int startIndex;
+			int numIndices;
+			MarkMap map;
+			std::vector<int> stateIndices;
+		};
 		MarkMap mMap;
+
+		void solveParallel(int numTheads);
+
 		struct LockedState
 		{
 			Vec2i pos;
@@ -35,9 +53,11 @@ namespace SBlocks
 		struct PieceState
 		{
 			Piece* piece;
+			PieceShape* shape;
 			std::vector< LockedState > possibleStates;
 			int index;
 		};
+		
 		std::vector< PieceState > mPieceStates;
 	};
 

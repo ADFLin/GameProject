@@ -532,6 +532,8 @@ namespace Gomoku
 		{
 			mNextPlayColor = EStoneColor::Black;
 		}
+
+		return true;
 	}
 
 	EGameStatus Game::checkStatus() const

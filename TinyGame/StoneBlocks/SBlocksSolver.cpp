@@ -1,12 +1,16 @@
 #include "SBlocksSolver.h"
 
+#include "PlatformThread.h"
+
+
 namespace SBlocks
 {
 
 
 	void Solver::setup(Level& level)
 	{
-		mMap.copy(level.mMap);
+		mMap.copy(level.mMap, true);
+
 		mPieceStates.resize(level.mPieces.size());
 
 		for (int index = 0; index < level.mPieces.size(); ++index)
@@ -15,12 +19,21 @@ namespace SBlocks
 
 			PieceState& state = mPieceStates[index];
 			state.piece = piece;
+			state.shape = piece->shape;
 			state.possibleStates.clear();
 			state.index = INDEX_NONE;
 
-			for (uint8 dir = 0; dir < DirType::RestNumber; ++dir)
+#if 1
+			int dirs[4];
+			int numDir = state.shape->getDifferentShapeDirs(dirs);
+			for( int i = 0 ; i < numDir; ++i )
 			{
-				PieceShape::Data& shapeData = piece->shape->mDataMap[dir];
+				uint8 dir = dirs[i];
+#else
+			for (int dir = 0; dir < DirType::RestNumber; ++dir)
+			{
+#endif
+				PieceShape::Data& shapeData = state.shape->mDataMap[dir];
 				Vec2i posMax = mMap.getBoundSize() - shapeData.boundSize;
 				for (int y = 0; y <= posMax.y; ++y)
 				{
@@ -28,7 +41,7 @@ namespace SBlocks
 					{
 						Vec2i pos = { x, y };
 
-						if (mMap.canLock(pos, shapeData))
+						if (mMap.canLockAssumeInBound(pos, shapeData))
 						{
 							LockedState lockState;
 							lockState.pos = pos;
@@ -41,17 +54,16 @@ namespace SBlocks
 		}
 	}
 
-	bool Solver::solve()
+	int Solver::solveImpl(int index, int startIndex)
 	{
-		int index = 0;
-		while (index >= 0)
+		while (index >= startIndex)
 		{
 			PieceState& state = mPieceStates[index];
-			if (advanceState(state))
+			if (AdvanceState(mMap, state, state.index))
 			{
 				++index;
 				if (index == mPieceStates.size())
-					return true;
+					break;
 			}
 			else
 			{
@@ -59,28 +71,54 @@ namespace SBlocks
 				--index;
 			}
 		}
-		return false;
+		return index;
 	}
 
-	bool Solver::advanceState(PieceState& state)
+	bool Solver::AdvanceState(MarkMap& map, PieceState& state, int& inoutIndex)
 	{
-		if (state.index != INDEX_NONE)
+		if (inoutIndex != INDEX_NONE)
 		{
-			LockedState const& lockState = state.possibleStates[state.index];
-			mMap.unlock(lockState.pos, state.piece->shape->mDataMap[lockState.dir]);
+			LockedState const& lockState = state.possibleStates[inoutIndex];
+			map.unlock(lockState.pos, state.shape->mDataMap[lockState.dir]);
+
 		}
 
-		++state.index;
-		while (state.index != state.possibleStates.size())
+		++inoutIndex;
+		while (inoutIndex != state.possibleStates.size())
 		{
-			LockedState const& lockState = state.possibleStates[state.index];
-			if (mMap.tryLock(lockState.pos, state.piece->shape->mDataMap[lockState.dir]))
+			LockedState const& lockState = state.possibleStates[inoutIndex];
+			if (map.tryLockAssumeInBound(lockState.pos, state.shape->mDataMap[lockState.dir]))
 			{
 				return true;
 			}
-			++state.index;
+
+			++inoutIndex;
 		}
 		return false;
 	}
+
+	struct SolveWork : public RunnableThreadT< SolveWork >
+	{
+	public:
+		SolveWork()
+		{
+		}
+
+		unsigned run()
+		{
+
+		}
+		void exit()
+		{
+			delete this;
+		}
+	};
+
+	void Solver::solveParallel(int numTheads)
+	{
+
+	}
+
+
 
 }//namespace SBlocks

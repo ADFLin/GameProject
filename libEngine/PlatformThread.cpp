@@ -2,7 +2,7 @@
 
 #if SYS_PLATFORM_WIN
 
-WinThread::WinThread() 
+WindowsThread::WindowsThread() 
 	:mPriorityLevel(THREAD_PRIORITY_NORMAL)
 	,mhThread(0)
 	,mbRunning(false)
@@ -10,17 +10,17 @@ WinThread::WinThread()
 
 }
 
-WinThread::~WinThread()
+WindowsThread::~WindowsThread()
 {
 	detach();
 }
 
-uint32 WinThread::GetCurrentThreadId()
+uint32 WindowsThread::GetCurrentThreadId()
 {
 	return ::GetCurrentThreadId();
 }
 
-bool WinThread::create( ThreadFunc func , void* ptr , uint32 stackSize )
+bool WindowsThread::create( ThreadFunc func , void* ptr , uint32 stackSize )
 {
 	if ( !mbRunning )
 	{
@@ -38,7 +38,7 @@ bool WinThread::create( ThreadFunc func , void* ptr , uint32 stackSize )
 	return true;
 }
 
-void WinThread::detach()
+void WindowsThread::detach()
 {
 	if( mhThread )
 	{
@@ -48,7 +48,7 @@ void WinThread::detach()
 	}
 }
 
-bool WinThread::suspend()
+bool WindowsThread::suspend()
 {
 	DWORD reault = SuspendThread(mhThread);
 	if ( reault != -1 ) 
@@ -59,7 +59,7 @@ bool WinThread::suspend()
 	return false;
 }
 
-bool WinThread::resume()
+bool WindowsThread::resume()
 {
 	DWORD reault = ResumeThread(mhThread);
 	if ( reault != -1 ) 
@@ -70,12 +70,12 @@ bool WinThread::resume()
 	return false;
 }
 
-void WinThread::join()
+void WindowsThread::join()
 {
 	::WaitForSingleObject(mhThread, INFINITE);
 }
 
-bool WinThread::setPriorityLevel( DWORD level )
+bool WindowsThread::setPriorityLevel( DWORD level )
 {
 	if ( isRunning() && !SetThreadPriority(mhThread,level) )
 		return false;
@@ -84,7 +84,7 @@ bool WinThread::setPriorityLevel( DWORD level )
 	return true;
 }
 
-void WinThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
+void WindowsThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
 {
 	/**
 	* Code setting the thread name for use in the debugger.
@@ -119,7 +119,7 @@ void WinThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
 	}
 }
 
-bool WinThread::kill()
+bool WindowsThread::kill()
 {
 	if ( isRunning() )
 	{

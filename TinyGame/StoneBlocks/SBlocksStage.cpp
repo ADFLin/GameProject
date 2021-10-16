@@ -9,6 +9,8 @@ namespace SBlocks
 {
 	REGISTER_STAGE_ENTRY("Stone Blocks", TestStage, EExecGroup::Dev4, "Game");
 
+	TConsoleVariable< bool > CVarShowDebug(false, "SBlocks.ShowDebug", CVF_TOGGLEABLE);
+
 	constexpr uint8 MakeByte(uint8 b0) { return b0; }
 	template< typename ...Args >
 	constexpr uint8 MakeByte(uint8 b0, Args ...args) { return b0 | ( MakeByte(args...) << 1 ); }
@@ -99,6 +101,100 @@ namespace SBlocks
 		}
 	};
 
+	LevelDesc TestLv2 =
+	{
+		//map
+		{
+			6 ,
+			{
+				M(0,0,0,0,0,0),
+				M(0,0,0,0,0,0),
+				M(0,0,1,0,0,0),
+				M(0,0,0,0,0,0),
+				M(0,0,0,0,0,1),
+			}
+		} ,
+
+		//shape
+		{
+			{
+				3,
+				{
+					M(1,1,1),
+					M(0,1,0),
+				},
+				{1.5 , 0.5},
+			},
+			{
+				3,
+				{
+					M(0,1,1),
+					M(1,1,0),
+				},
+				{1.5 , 1.0},
+			},
+			{
+				3,
+				{
+					M(1,0,0),
+					M(1,1,1),
+				},
+				{1.5 , 1},
+			},
+			{
+				2,
+				{
+					M(1,1),
+				},
+				{1 , 0.5},
+			},
+			{
+				3,
+				{
+					M(1,1,1),
+				},
+				{1.5 , 0.5},
+			},
+			{
+				2,
+				{
+					M(1,1),
+					M(1,0),
+				},
+				{0.5 , 0.5},
+			},
+			{
+				2,
+				{
+					M(1,1),
+					M(1,1),
+				},
+				{1 , 1},
+			},
+
+			{
+				5,
+				{
+					M(1,1,1,1),
+				},
+				{2.5 , 0.5},
+			},
+		},
+
+		//piece
+		{
+			{7},
+			{0},
+			{1},
+			{2},
+			{3},
+			{4},
+			{5},
+			{6},
+
+		}
+	};
+
 #undef M
 
 
@@ -164,6 +260,15 @@ namespace SBlocks
 		for (Piece* piece : mSortedPieces )
 		{
 			drawPiece(g, *piece, selectedPiece == piece);
+			if (CVarShowDebug)
+			{
+				g.pushXForm();
+				g.identityXForm();
+
+				Vector2 pos = mLocalToWorld.transformPosition(piece->getLTCornerPos());
+				g.drawText(pos, InlineString<>::Make( "%d", piece->index ) );
+				g.popXForm();
+			}
 		}
 
 #if 1
@@ -213,6 +318,45 @@ namespace SBlocks
 	void TestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
 
+	}
+
+	void TestStage::solveLevel()
+	{
+		TIME_SCOPE("Solve Level");
+		bool bSuccess;
+		if (mSolver == nullptr)
+		{
+			mSolver = std::make_unique< Solver >();
+			mSolver->setup(mLevel);
+			bSuccess = mSolver->solve();
+		}
+		else
+		{
+			bSuccess = mSolver->solveNext();
+		}
+
+		LogMsg("Solve level %s !", bSuccess ? "success" : "fail");
+		if (bSuccess)
+		{
+			std::vector<Solver::LockedState> sovledStates;
+			mSolver->getSolvedStates(sovledStates);
+
+			mLevel.unlockAllPiece();
+			for (int i = 0; i < mLevel.mPieces.size(); ++i)
+			{
+				Piece* piece = mLevel.mPieces[i].get();
+				auto const& state = sovledStates[i];
+				LogMsg("%d = (%d, %d) dir = %d", i , state.pos.x , state.pos.y , state.dir );
+				piece->dir = DirType::ValueChecked(state.dir );
+				piece->angle = piece->dir * Math::PI / 2;
+				piece->updateTransform();
+				Vector2 pos = piece->getLTCornerPos();
+				piece->pos += Vector2(state.pos) - pos;
+				piece->updateTransform();
+
+				mLevel.tryLockPiece(*piece);
+			}
+		}
 	}
 
 	void Editor::saveLevel(char const* name)

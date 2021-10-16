@@ -141,6 +141,9 @@ namespace SBlocks
 
 			bool operator == (Data const& rhs) const
 			{
+				if (boundSize != rhs.boundSize)
+					return false;
+
 				if (blocks.size() != rhs.blocks.size())
 					return false;
 
@@ -168,6 +171,8 @@ namespace SBlocks
 		Int16Point2D boundSize;
 		Data mDataMap[DirType::RestNumber];
 		Vector2 pivot;
+
+		int getDifferentShapeDirs(int outDirs[4]);
 
 		void exportDesc(PieceShapeDesc& outDesc);
 
@@ -200,6 +205,7 @@ namespace SBlocks
 		DirType dir;
 		bool bLocked;
 
+		int index = 0;
 		EColor::Name color;
 		RenderTransform2D xform;
 		float angle = 0.0f;
@@ -207,7 +213,13 @@ namespace SBlocks
 
 		int clickFrame = 0;
 
-		Vector2 getLTCornerPos()
+
+		Vector2 getLTCornerOffset() const
+		{
+			return getLTCornerPos() - pos;
+		}
+
+		Vector2 getLTCornerPos() const
 		{
 			Vector2 lPos = shape->getCornerPos(dir);
 			return xform.transformPosition(lPos);
@@ -285,6 +297,9 @@ namespace SBlocks
 
 		bool tryLock(Vec2i const& pos, PieceShape::Data const& shapeData);
 		void unlock(Vec2i const& pos, PieceShape::Data const& shapeData);
+		bool tryLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData);
+		bool canLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData);
+		void lockChecked(Vec2i const& pos, PieceShape::Data const& shapeData);
 		bool canLock(Vec2i const& pos, PieceShape::Data const& shapeData);
 
 		bool isFinish() { return numTotalBlocks == numBlockLocked; }
@@ -295,20 +310,7 @@ namespace SBlocks
 
 		void toggleDataType(Vec2i const& pos);
 
-		void copy(MarkMap const& rhs)
-		{
-			numBlockLocked = 0;
-			numTotalBlocks = rhs.numTotalBlocks;
-			mData.resize(rhs.mData.getSizeX(), rhs.mData.getSizeY());
-			mData.fillValue(0);
-			for (int i = 0; i < mData.getRawDataSize(); ++i)
-			{
-				if ( rhs.mData[i] == PIECE_BLOCK )
-				{
-					mData[i] = PIECE_BLOCK;
-				}
-			}
-		}
+		void copy(MarkMap const& rhs, bool bInitState = false);
 		int numBlockLocked;
 		int numTotalBlocks;
 		TGrid2D<uint8> mData;

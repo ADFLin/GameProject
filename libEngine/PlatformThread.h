@@ -21,13 +21,13 @@ uint32 const WAIT_TIME_INFINITE = 0xffffffff;
 #include <process.h>
 
 #define ERROR_THREAD_ID (-1)
-class WinThread
+class WindowsThread
 {
 public:
 	typedef unsigned (_stdcall *ThreadFunc)(void*);
 
-	WinThread();
-	~WinThread();
+	WindowsThread();
+	~WindowsThread();
 
 	static uint32 GetCurrentThreadId();
 
@@ -68,29 +68,29 @@ protected:
 };
 
 
-class WinMutex
+class WindowsMutex
 {
 public:
-	WinMutex()     { ::InitializeCriticalSection( &mCS ); }
-	~WinMutex()    { ::DeleteCriticalSection( &mCS ); }
+	WindowsMutex()     { ::InitializeCriticalSection( &mCS ); }
+	~WindowsMutex()    { ::DeleteCriticalSection( &mCS ); }
 	void lock()    { ::EnterCriticalSection( &mCS ); }
 	void unlock()  { ::LeaveCriticalSection( &mCS ); }
 	bool tryLock() { return !!::TryEnterCriticalSection(&mCS); }
 private: 
-	friend class WinConditionVariable;
+	friend class WindowsConditionVariable;
 	CRITICAL_SECTION mCS;
 };
 
 
-class WinConditionVariable
+class WindowsConditionVariable
 {
 public:
-	WinConditionVariable()
+	WindowsConditionVariable()
 	{
 		InitializeConditionVariable( &mCV );
 	}
 
-	~WinConditionVariable()
+	~WindowsConditionVariable()
 	{
 
 
@@ -106,14 +106,14 @@ public:
 	}
 protected:
 
-	bool doWait(WinMutex& mutex)
+	bool doWait(WindowsMutex& mutex)
 	{
 		bool result = SleepConditionVariableCS(&mCV, &mutex.mCS, INFINITE) != 0;
 		return result;
 	}
 
 	template< class TFunc >
-	bool doWait( WinMutex& mutex , TFunc func )
+	bool doWait( WindowsMutex& mutex , TFunc func )
 	{
 		bool result = true;
 		while( !func() )
@@ -122,7 +122,7 @@ protected:
 		}
 		return result;
 	}
-	bool doWaitTime( WinMutex& mutex , uint32 time = INFINITE )
+	bool doWaitTime( WindowsMutex& mutex , uint32 time = INFINITE )
 	{ 
 		return SleepConditionVariableCS( &mCV , &mutex.mCS , time ) !=0;
 	}
@@ -131,9 +131,9 @@ private:
 };
 
 
-typedef WinThread PlatformThread;
-typedef WinMutex  PlatformMutex;
-typedef WinConditionVariable PlatformConditionVariable;
+typedef WindowsThread PlatformThread;
+typedef WindowsMutex  PlatformMutex;
+typedef WindowsConditionVariable PlatformConditionVariable;
 
 #elif SYS_SUPPORT_POSIX_THREAD
 

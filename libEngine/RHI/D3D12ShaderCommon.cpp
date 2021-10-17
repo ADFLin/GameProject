@@ -58,7 +58,7 @@ namespace Render
 		do
 		{
 			bSuccess = true;
-			std::vector< char > codeBuffer;
+			std::vector< uint8 > codeBuffer;
 
 			if (bUsePreprocess)
 			{

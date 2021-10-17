@@ -440,7 +440,7 @@ namespace Render
 		bool   bHDR = false;
 		bool   bSRGB = false;
 		bool   bUseHalf = true;
-		bool   bReverseH = false;
+		bool   bFlipV = false;
 		bool   bAutoMipMap = false;
 		int    numMipLevel = 0;
 		uint32 creationFlags = TCF_DefalutValue;
@@ -452,10 +452,10 @@ namespace Render
 		{
 			return bHDR && (bUseHalf && isNeedConvertFloatToHalf());
 		}
-		bool isSupportRGBTexture() const;
+		bool isRGBTextureSupported() const;
 		bool isNeedConvertFloatToHalf() const;
 
-		TextureLoadOption& ReverseH(bool value = true) { bReverseH = value; return *this; }
+		TextureLoadOption& FlipV(bool value = true) { bFlipV = value; return *this; }
 		TextureLoadOption& HDR(bool value = true) { bHDR = value; return *this; }
 		TextureLoadOption& SRGB(bool value = true) { bSRGB = value; return *this; }
 		TextureLoadOption& AutoMipMap(bool value = true){ bAutoMipMap = value;  return *this;  }

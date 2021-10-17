@@ -558,12 +558,12 @@ namespace Render
 
 		bool loadMaterial(char const* path)
 		{
-			std::vector< char > buffer;
+			std::vector< uint8 > buffer;
 			if( !FFileUtility::LoadToBuffer(path, buffer, true) )
 				return false;
 			buffer.push_back(0);
 			MaterialFileParser parser(*this);
-			bool bOk = parser.load(buffer.data(), buffer.size(), nullptr);
+			bool bOk = parser.load((char const*)buffer.data(), buffer.size(), nullptr);
 
 #define NAME_OP( id ) #id ,
 			char const* MaterialNames[] = { MATERIAL_LIST(NAME_OP) };

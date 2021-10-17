@@ -142,7 +142,7 @@ namespace Render
 			return false;
 		}
 
-		bool preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<char>& inoutCodes );
+		bool preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes );
 
 		virtual ShaderPreprocessSettings getPreprocessSettings()
 		{

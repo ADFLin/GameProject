@@ -310,8 +310,8 @@ namespace Render
 		DataCacheKey cacheKey;
 		cacheKey.typeName = "TEXTURE";
 		cacheKey.version = "8AE15F61-E1CF-4639-B7D8-409CF17933F0";
-		cacheKey.keySuffix.add(path, option.bHDR, option.bReverseH, option.bSRGB, option.creationFlags, option.numMipLevel, option.bAutoMipMap,
-			option.isSupportRGBTexture(), bConvToHalf);
+		cacheKey.keySuffix.add(path, option.bHDR, option.bFlipV, option.bSRGB, option.creationFlags, option.numMipLevel, option.bAutoMipMap,
+			option.isRGBTextureSupported(), bConvToHalf);
 
 		void* pData;
 		ImageData imageData;
@@ -332,7 +332,7 @@ namespace Render
 
 		if( !dataCache.loadDelegate(cacheKey, LoadCache) )
 		{
-			if( !imageData.load(path, option.bHDR, option.bReverseH , !option.isSupportRGBTexture()) )
+			if( !imageData.load(path, option.bHDR, option.bFlipV, !option.isRGBTextureSupported()) )
 				return false;
 
 			pData = imageData.data;
@@ -398,7 +398,7 @@ namespace Render
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{
 		ImageData imageData;
-		if( !imageData.load(path, option.bHDR , option.bReverseH, !option.isSupportRGBTexture()) )
+		if( !imageData.load(path, option.bHDR , option.bFlipV, !option.isRGBTextureSupported()) )
 			return false;
 
 		return CreateTexture2D(imageData, option);
@@ -412,7 +412,7 @@ namespace Render
 		void* data[ETexture::FaceCount];
 		for( int i = 0; i < ETexture::FaceCount; ++i )
 		{
-			if( !imageDatas[i].load(paths[i], option.bHDR, option.bReverseH, !option.isSupportRGBTexture()) )
+			if( !imageDatas[i].load(paths[i], option.bHDR, option.bFlipV, !option.isRGBTextureSupported()) )
 				return false;
 
 			data[i] = imageDatas[i].data;
@@ -517,7 +517,7 @@ namespace Render
 	}
 
 
-	bool TextureLoadOption::isSupportRGBTexture() const
+	bool TextureLoadOption::isRGBTextureSupported() const
 	{
 		if (GRHISystem->getName() == RHISystemName::OpenGL ||
 			GRHISystem->getName() == RHISystemName::Vulkan)

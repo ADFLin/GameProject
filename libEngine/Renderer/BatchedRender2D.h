@@ -211,7 +211,7 @@ namespace Render
 	class BatchedRender
 	{
 	public:
-
+		BatchedRender();
 		void render(RHICommandList& commandList, RenderBachedElementList& elementList);
 		void flushDrawCommond(RHICommandList& commandList);
 

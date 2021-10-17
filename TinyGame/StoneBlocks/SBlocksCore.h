@@ -20,6 +20,7 @@ namespace SBlocks
 	using DirType = TCycleNumber< 4, uint8 >;
 	using Int16Point2D = TVector2< int16 >;
 	using RenderTransform2D = Render::RenderTransform2D;
+	using Math::Matrix2;
 	using Math::Vector2;
 
 	namespace ELevelSaveVersion
@@ -28,6 +29,7 @@ namespace SBlocks
 		{
 			InitVersion = 0,
 			UseBitGird ,
+			ShapeCustomPivotOption,
 			LastVersionPlusOne,
 			LastVersion = LastVersionPlusOne - 1,
 		};
@@ -103,15 +105,31 @@ namespace SBlocks
 	{
 		uint16 sizeX;
 		std::vector< uint8 > data;
-		Vector2 pivot;
+
+		bool	bUseCustomPivot;
+		Vector2 customPivot;
 
 		template< class OP >
 		void serialize(OP& op)
 		{
-			op & sizeX & data & pivot;
+			op & sizeX & data;
 			if (OP::IsLoading && op.version() < ELevelSaveVersion::UseBitGird)
 			{
 				data = std::move(FBitGird::ConvertForm(data, sizeX));
+			}
+
+			if (OP::IsLoading && op.version() < ELevelSaveVersion::ShapeCustomPivotOption)
+			{
+				bUseCustomPivot = true;
+				op & customPivot;
+			}
+			else
+			{
+				op & bUseCustomPivot;
+				if (bUseCustomPivot)
+				{
+					op & customPivot;
+				}
 			}
 		}
 	};
@@ -208,6 +226,7 @@ namespace SBlocks
 		int index = 0;
 		EColor::Name color;
 		RenderTransform2D xform;
+		RenderTransform2D renderXForm;
 		float angle = 0.0f;
 		Vector2 pos;
 
@@ -225,12 +244,30 @@ namespace SBlocks
 			return xform.transformPosition(lPos);
 		}
 
+		static Matrix2 GetRotation(DirType dir)
+		{
+			switch (dir)
+			{
+			case 0: return Matrix2::Identity();
+			case 1: return Matrix2(0, 1, -1, 0);
+			case 2: return Matrix2(-1, 0, 0, -1);
+			case 3: return Matrix2(0,-1, 1 ,0);
+			}
+			NEVER_REACH("GetRotation");
+			return Matrix2::Identity();
+		}
+
 		void updateTransform()
 		{
 			xform.setIdentity();
 			xform.translateWorld(-shape->pivot);
-			xform.rotateWorld(angle);
+			xform.rotateWorld(GetRotation(dir));
 			xform.translateWorld(pos + shape->pivot);
+
+			renderXForm.setIdentity();
+			renderXForm.translateWorld(-shape->pivot);
+			renderXForm.rotateWorld(angle);
+			renderXForm.translateWorld(pos + shape->pivot);
 		}
 
 		bool hitTest(Vector2 const& pos, Vector2& outHitLocalPos)

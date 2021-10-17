@@ -443,7 +443,7 @@ namespace Bloxorz
 			code += "\treturn data;\n";
 			code += "}\n";
 
-			FFileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", code.data(), code.length());
+			FFileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", (uint8* const)code.data(), code.length());
 
 
 

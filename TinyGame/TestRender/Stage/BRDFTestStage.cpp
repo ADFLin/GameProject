@@ -43,7 +43,7 @@ namespace Render
 		char const* HDRImagePath = "Texture/HDR/A.hdr";
 		{
 			TIME_SCOPE("HDR Texture");
-			VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/HDR/A.hdr", TextureLoadOption().HDR().ReverseH()));
+			VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/HDR/A.hdr", TextureLoadOption().HDR().FlipV()));
 		}
 		{
 			TIME_SCOPE("IBL");
@@ -52,7 +52,7 @@ namespace Render
 
 		{
 			TIME_SCOPE("BRDF Texture");
-			VERIFY_RETURN_FALSE(mRockTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/rocks.jpg", TextureLoadOption().SRGB().ReverseH()));
+			VERIFY_RETURN_FALSE(mRockTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/rocks.jpg", TextureLoadOption().SRGB().FlipV()));
 			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/N.png", TextureLoadOption()));
 		}
 

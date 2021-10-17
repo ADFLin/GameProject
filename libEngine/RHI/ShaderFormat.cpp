@@ -10,7 +10,7 @@
 
 namespace Render
 {
-	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<char>& inoutCodes)
+	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes)
 	{
 		TimeScope scope("PreprocessCode");
 
@@ -22,7 +22,7 @@ namespace Render
 			source.appendString(StringView(def, len));
 			source.lineOffset = -FStringParse::CountChar(def, def + len + 1, '\n');
 		}
-		source.appendString( StringView(&inoutCodes[0] , inoutCodes.size() ));
+		source.appendString( StringView((char const*)inoutCodes.data() , inoutCodes.size() ));
 		source.filePath = path;
 
 		auto settings = getPreprocessSettings();
@@ -83,7 +83,7 @@ namespace Render
 			outputPath += "_";
 			outputPath += getName();
 			outputPath += SHADER_FILE_SUBNAME;
-			FFileUtility::SaveFromBuffer(outputPath.c_str(), &inoutCodes[0], inoutCodes.size() - 1);
+			FFileUtility::SaveFromBuffer(outputPath.c_str(), inoutCodes.data(), inoutCodes.size() - 1);
 		}
 		return true;
 	}

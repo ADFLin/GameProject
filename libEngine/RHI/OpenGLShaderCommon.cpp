@@ -64,7 +64,7 @@ void main()
 
 	bool OpenGLShaderObject::loadFile(EShader::Type type, char const* path, char const* def)
 	{
-		std::vector< char > codeBuffer;
+		std::vector<uint8> codeBuffer;
 		if (!FFileUtility::LoadToBuffer(path, codeBuffer, true))
 			return false;
 		int num = 0;
@@ -74,7 +74,7 @@ void main()
 			src[num] = def;
 			++num;
 		}
-		src[num] = &codeBuffer[0];
+		src[num] = (char const*)codeBuffer.data();
 		++num;
 
 		bool result = compile(type, src, num);
@@ -290,7 +290,7 @@ void main()
 		do
 		{
 			bSuccess = false;
-			std::vector< char > codeBuffer;
+			std::vector< uint8 > codeBuffer;
 			if( !FFileUtility::LoadToBuffer(input.path, codeBuffer, true) )
 				return false;
 			int numSourceCodes = 0;
@@ -301,7 +301,7 @@ void main()
 				if (!preprocessCode(input.path, output.compileInfo, input.definition, input.sourceLibrary, codeBuffer))
 					return false;
 
-				sourceCodes[numSourceCodes] = &codeBuffer[0];
+				sourceCodes[numSourceCodes] = (char const*)codeBuffer.data();
 				++numSourceCodes;
 			}
 			else
@@ -311,14 +311,14 @@ void main()
 					sourceCodes[numSourceCodes] = input.definition;
 					++numSourceCodes;
 				}
-				sourceCodes[numSourceCodes] = &codeBuffer[0];
+				sourceCodes[numSourceCodes] = (char const*)codeBuffer.data();
 				++numSourceCodes;
 			}
 
 			auto ProcessCompileError = [&]( GLuint shaderHandle )
 			{
 				{
-					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, &codeBuffer[0], codeBuffer.size() - 1);
+					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size() - 1);
 				}
 
 				if (shaderHandle)

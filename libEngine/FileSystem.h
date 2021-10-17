@@ -24,8 +24,8 @@ public:
 	static TStringView<CharT> GetDirectory(CharT const* filePath);
 	static TStringView<CharT> GetBaseFileName(CharT const* filePath);
 
-	static bool LoadToBuffer(CharT const* path, std::vector< char >& outBuffer, bool bAppendZeroAfterEnd = false, bool bAppendToBuffer = false);
-	static bool SaveFromBuffer(CharT const* path, char const* data, uint32 dataSize);
+	static bool LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterEnd = false, bool bAppendToBuffer = false);
+	static bool SaveFromBuffer(CharT const* path, uint8 const* data, uint32 dataSize);
 };
 
 

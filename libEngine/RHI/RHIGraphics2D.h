@@ -149,6 +149,8 @@ public:
 		return mXFormStack.get();
 	}
 
+	Render::TransformStack2D& getTransformStack() { return mXFormStack; }
+
 	bool bUseGraphicOnly = false;
 
 private:

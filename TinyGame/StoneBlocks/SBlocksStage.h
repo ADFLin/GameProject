@@ -24,7 +24,7 @@ namespace SBlocks
 
 		void resetRenderParams()
 		{
-			constexpr float BlockLen = 40;
+			constexpr float BlockLen = 32;
 			constexpr Vector2 BlockSize = Vector2(BlockLen, BlockLen);
 
 			Vector2 worldPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMap.getBoundSize())));
@@ -35,7 +35,7 @@ namespace SBlocks
 		std::vector< Piece* > mSortedPieces;
 		int mClickFrame;
 
-		void init()
+		virtual void initializeGame()
 		{
 			resetRenderParams();
 			mClickFrame = 0;
@@ -89,16 +89,33 @@ namespace SBlocks
 		Color3ub pieceBlockLockedColor;
 		Color3ub pieceOutlineColor;
 		
-
+		Color3ub mapEmptyColor;
 		Color3ub mapBlockColor;
 		Color3ub mapOuterColor;
+		Color3ub mapFrameColor;
+
+		Color3ub backgroundColor;
+
+		Color3ub shadowColor;
+		float    shadowOpacity;
+		Vector2  shadowOffset;
 
 		LevelTheme()
 		{
-			pieceBlockColor = Color3ub(176, 88, 0);
-			pieceBlockLockedColor = Color3ub(255, 153, 9);
+			pieceBlockColor = Color3ub(203, 105, 5);
+			pieceBlockLockedColor = Color3ub(255, 155, 18);
 			
-			mapBlockColor = Color3ub(188, 98, 42);
+			mapEmptyColor = Color3ub(165, 82, 37);
+			mapBlockColor = Color3ub(126, 51, 15);
+			mapOuterColor = Color3ub(111, 39, 9);
+
+			mapFrameColor = Color3ub(222, 186, 130);
+
+			backgroundColor = Color3ub(203, 163, 106);
+
+			shadowColor = Color3ub(20, 20, 20);
+			shadowOpacity = 0.5;
+			shadowOffset = Vector2(0.2, 0.2);
 		}
 
 	};
@@ -173,7 +190,7 @@ namespace SBlocks
 
 			REGISTER_COM("SetMapSize", setMapSize);
 			REGISTER_COM("Save", saveLevel);
-			REGISTER_COM("Load", loadLevel);
+
 			REGISTER_COM("AddPiece", addPiece);
 			//REGISTER_COM("NewShape, ")
 
@@ -209,13 +226,14 @@ namespace SBlocks
 		{
 			EditPieceShape shape;
 			shape.ptr = nullptr;
-			shape.desc.pivot = 0.5 * Vector2(sizeX, sizeY);
+			shape.desc.bUseCustomPivot = false;
+			shape.desc.customPivot = 0.5 * Vector2(sizeX, sizeY);
 			shape.desc.sizeX = sizeX;
 			shape.desc.data.resize(FBitGird::GetDataSizeX(sizeX) * sizeY, 1);
 			mPieceShapeLibrary.push_back(shape);
 		}
+
 		void saveLevel(char const* name);
-		void loadLevel(char const* name);
 
 		struct EditPiece
 		{
@@ -285,6 +303,12 @@ namespace SBlocks
 		std::unique_ptr< Solver > mSolver;
 		LevelTheme mTheme;
 
+		virtual void initializeGame()
+		{
+			GameData::initializeGame();
+			mSolver.release();
+		}
+
 		bool onInit() override
 		{
 			if (!BaseClass::onInit())
@@ -296,9 +320,13 @@ namespace SBlocks
 #define REGISTER_COM( NAME , FUNC )\
 			console.registerCommand("SBlocks."NAME, &TestStage::FUNC, this)
 			REGISTER_COM("Solve", solveLevel);
+			REGISTER_COM("Load", loadLevel);
 #undef REGISTER_COM
 			return true;
 		}
+
+		void loadLevel(char const* name);
+
 
 		void onEnd() override
 		{
@@ -321,12 +349,15 @@ namespace SBlocks
 
 		void onUpdate(long time) override
 		{
+			float dt = time / 1000.0;
+
 			BaseClass::onUpdate(time);
 
 			int frame = time / gDefaultTickTime;
 			for (int i = 0; i < frame; ++i)
 				tick();
 
+			mTweener.update(dt);
 			updateFrame(frame);
 		}
 
@@ -392,9 +423,20 @@ namespace SBlocks
 						mLevel.unlockPiece(*piece);
 						bPiecesOrderDirty = true;
 					}
-
+					class PieceAngle
+					{
+					public:
+						using DataType = Piece&;
+						using ValueType = float;
+						void operator()(DataType& data, ValueType const& value)			
+						{ 
+							data.angle = value;
+							data.updateTransform();
+						}
+					};
 					piece->dir += 1;
-					piece->angle = piece->dir * Math::PI / 2;
+					mTweener.tween< Easing::IOSine, PieceAngle >(*piece, (int(piece->dir) - 1) * Math::PI / 2, (int(piece->dir)) * Math::PI / 2, 0.1, 0);
+					//piece->angle = piece->dir * Math::PI / 2;
 					piece->updateTransform();
 
 					//mLevel.tryLockPiece(*piece);
@@ -460,6 +502,8 @@ namespace SBlocks
 		ERenderSystem getDefaultRenderSystem() override;
 		bool setupRenderSystem(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
+
+		Tween::GroupTweener< float > mTweener;
 
 	};
 

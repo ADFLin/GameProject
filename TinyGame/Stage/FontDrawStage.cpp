@@ -28,7 +28,7 @@ public:
 	}
 
 
-	std::vector<char> textBuffer;
+	std::vector<uint8> textBuffer;
 
 	bool onInit() override
 	{

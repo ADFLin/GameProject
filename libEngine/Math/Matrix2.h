@@ -110,6 +110,7 @@ namespace Math
 			__m128 mv = _mm_loadu_ps(mValues);
 			__m128 xv = _mm_dp_ps(mv, rv, 0x31);
 			__m128 yv = _mm_dp_ps(mv, rv, 0xc1);
+			return Vector2(xv.m128_f32[0], yv.m128_f32[0]);
 #else
 #define MAT_MUL( m , index )\
 	( v.x * m[ 2 * index ] + v.y * m[ 2 * index + 1 ] )

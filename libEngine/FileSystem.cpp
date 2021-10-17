@@ -492,7 +492,7 @@ TStringView<CharT> TFileUtility<CharT>::GetBaseFileName(CharT const* filePath)
 }
 
 template < class CharT >
-bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< char >& outBuffer, bool bAppendZeroAfterEnd /*= false*/, bool bAppendToBuffer /*= false*/)
+bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterEnd /*= false*/, bool bAppendToBuffer /*= false*/)
 {
 	std::ifstream fs(path, std::ios::binary);
 
@@ -510,12 +510,12 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< char >& o
 	{
 		int64 oldSize = outBuffer.size();
 		outBuffer.resize(bAppendZeroAfterEnd ? (oldSize + size + 1) : oldSize + size);
-		fs.read(&outBuffer[oldSize], size);
+		fs.read((char*)&outBuffer[oldSize], size);
 	}
 	else
 	{
 		outBuffer.resize(bAppendZeroAfterEnd ? (size + 1) : size);
-		fs.read(&outBuffer[0], size);
+		fs.read((char*)&outBuffer[0], size);
 	}
 
 
@@ -527,7 +527,7 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< char >& o
 }
 
 template < class CharT >
-bool TFileUtility<CharT>::SaveFromBuffer(CharT const* path, char const* data, uint32 dataSize)
+bool TFileUtility<CharT>::SaveFromBuffer(CharT const* path, uint8 const* data, uint32 dataSize)
 {
 	std::ofstream fs(path, std::ios::binary);
 	if (!fs.is_open())

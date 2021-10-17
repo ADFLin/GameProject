@@ -263,6 +263,14 @@ namespace Render
 		mAllocator.clearFrame();
 	}
 
+	BatchedRender::BatchedRender()
+	{
+		mCachedPositionList.reserve(1024);
+		mBaseVertices.reserve(1024);
+		mBaseIndices.reserve(1024 * 3);
+		//mTexVerteices.reserve(1024);
+	}
+
 	void BatchedRender::render(RHICommandList& commandList, RenderBachedElementList& elementList)
 	{
 		for (RenderBachedElement* element : elementList.mElements)

@@ -141,7 +141,8 @@ namespace SBlocks
 
 	void PieceShape::exportDesc(PieceShapeDesc& outDesc)
 	{
-		outDesc.pivot = pivot;
+		outDesc.bUseCustomPivot = (2.0 * pivot != Vector2(boundSize));
+		outDesc.customPivot = pivot;
 		outDesc.sizeX = boundSize.x;
 
 		uint8 dataSizeX = ( boundSize.x + 7 ) / 8;
@@ -157,8 +158,6 @@ namespace SBlocks
 
 	void PieceShape::importDesc(PieceShapeDesc const& desc)
 	{
-		pivot = desc.pivot;
-
 		{
 			auto& shapeData = mDataMap[0];
 			shapeData.blocks.clear();
@@ -230,6 +229,16 @@ namespace SBlocks
 			shapeData.sortBlocks();
 			shapeData.boundSize = getBoundSize(DirType::ValueChecked(dir));
 		}
+
+		if (desc.bUseCustomPivot)
+		{
+			pivot = desc.customPivot;
+		}
+		else
+		{
+			pivot = 0.5 * Vector2(boundSize);
+		}
+
 
 		generateOutline();
 	}

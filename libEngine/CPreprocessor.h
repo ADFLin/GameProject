@@ -401,7 +401,7 @@ namespace CPP
 		int lineOffset = 0;
 	private:
 
-		std::vector< char > mBuffer;
+		std::vector< uint8 > mBuffer;
 
 		friend class Preprocessor;
 		friend class CodeInput;
@@ -425,9 +425,8 @@ namespace CPP
 		void resetSeek()
 		{
 			assert(source);
-			mCur = &source->mBuffer[0];
+			mCur = (char const*)source->mBuffer.data();
 			//skip BOM
-
 			SkipBOM(mCur);
 			mLineCount = 0;
 		}
@@ -439,7 +438,7 @@ namespace CPP
 
 		int countCharFormStart(char c) const
 		{
-			return FStringParse::CountChar(&source->mBuffer[0], mCur, c);
+			return FStringParse::CountChar((char const*)source->mBuffer.data(), mCur, c);
 		}
 		
 	private:

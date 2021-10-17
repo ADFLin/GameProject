@@ -85,6 +85,11 @@ namespace Render
 			return M.leftMul(v);
 		}
 
+		FORCEINLINE Vector2 transformInvVectorAssumeNoScale(Vector2 const& v) const
+		{
+			return M.mul(v);
+		}
+
 		RenderTransform2D inverse() const
 		{
 			//[ M  0 ] [ Mr 0 ]  =  [ M * Mr        0 ] = [ 1  0 ]
@@ -109,6 +114,14 @@ namespace Render
 			P = MulOffset( offset , M , P );
 		}
 
+		FORCEINLINE void rotateLocal(float angle)
+		{
+			//[ R  0 ] [ M 0 ]  =  [ R * M  0 ]
+			//[ 0  1 ] [ P 1 ]     [ P      1 ]
+			Matrix2 R = Matrix2::Rotate(angle);
+			M = R * M;
+		}
+
 		FORCEINLINE void rotateWorld(float angle)
 		{
 			//[ M  0 ] [ R 0 ]  =  [ M * R  0 ]
@@ -118,11 +131,19 @@ namespace Render
 			P = P * R;
 		}
 
-		FORCEINLINE void rotateLocal(float angle)
+		FORCEINLINE void rotateLocal(Matrix2 const& R)
 		{
 			//[ R  0 ] [ M 0 ]  =  [ R * M  0 ]
 			//[ 0  1 ] [ P 1 ]     [ P      1 ]
-			M = Matrix2::Rotate(angle) * M;
+			M = R * M;
+		}
+
+		FORCEINLINE void rotateWorld(Matrix2 const& R)
+		{
+			//[ M  0 ] [ R 0 ]  =  [ M * R  0 ]
+			//[ P  1 ] [ 0 1 ]     [ P * R  1 ]
+			M = M * R;
+			P = P * R;
 		}
 
 		FORCEINLINE void scaleWorld(Vector2 const& scale)

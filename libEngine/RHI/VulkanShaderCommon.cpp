@@ -195,7 +195,7 @@ namespace Render
 	bool ShaderFormatSpirv::compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output)
 	{
 #if USE_SHADERC_COMPILE
-		std::vector<char> codeBuffer;
+		std::vector<uint8> codeBuffer;
 
 		if (bUsePreprocess)
 		{
@@ -243,7 +243,7 @@ namespace Render
 		};
 
 		shaderc_compilation_result_t resultHandle = shaderc_compile_into_spv(
-			compilerHandle, codeBuffer.data(), codeBuffer.size(), 
+			compilerHandle,(char const*)codeBuffer.data(), codeBuffer.size(), 
 			ShaderKindMap[input.type], input.path, "main", optionHandle);
 
 		ON_SCOPE_EXIT

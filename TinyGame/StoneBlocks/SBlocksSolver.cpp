@@ -33,7 +33,7 @@ namespace SBlocks
 			for (int dir = 0; dir < DirType::RestNumber; ++dir)
 			{
 #endif
-				PieceShape::Data& shapeData = state.shape->mDataMap[dir];
+				PieceShapeData& shapeData = state.shape->mDataMap[dir];
 				Vec2i posMax = mMap.getBoundSize() - shapeData.boundSize;
 				for (int y = 0; y <= posMax.y; ++y)
 				{

@@ -4,7 +4,76 @@
 
 namespace SBlocks
 {
-	int PieceShape::findSameShape(Data const& data)
+	void PieceShapeData::initialize(PieceShapeDesc const& desc)
+	{
+		blocks.clear();
+		AABB bound;
+		bound.invalidate();
+
+		int32 dataSizeX = FBitGird::GetDataSizeX(desc.sizeX);
+		int32 sizeY = (desc.data.size() + dataSizeX - 1) / dataSizeX;
+		for (int32 y = 0; y < sizeY; ++y)
+		{
+			for (int32 x = 0; x < desc.sizeX; ++x)
+			{
+				if (FBitGird::Read(desc.data, dataSizeX, x, y))
+				{
+					Int16Point2D block;
+					block.x = x;
+					block.y = y;
+					bound.addPoint(block);
+					blocks.push_back(block);
+				}
+			}
+		}
+
+		if (bound.isEmpty())
+		{
+			LogWarning(0, "Piece Shape no block");
+		}
+
+		boundSize = bound.max - bound.min + Vec2i(1, 1);
+		if (bound.min != Vec2i(0, 0))
+		{
+			for (auto& block : blocks)
+			{
+				block -= bound.min;
+			}
+		}
+		sortBlocks();
+	}
+
+	void PieceShapeData::sortBlocks()
+	{
+		std::sort(blocks.begin(), blocks.end(), [](Int16Point2D const& lhs, Int16Point2D const& rhs)
+		{
+			if (lhs.x < rhs.x)
+				return true;
+			if (lhs.x == rhs.x && lhs.y < rhs.y)
+				return true;
+
+			return false;
+		});
+	}
+
+	bool PieceShapeData::operator==(PieceShapeData const& rhs) const
+	{
+		if (boundSize != rhs.boundSize)
+			return false;
+
+		if (blocks.size() != rhs.blocks.size())
+			return false;
+
+		for (int i = 0; i < blocks.size(); ++i)
+		{
+			if (blocks[i] != rhs.blocks[i])
+				return false;
+		}
+
+		return true;
+	}
+
+	int PieceShape::findSameShape(PieceShapeData const& data)
 	{
 		for (int i = 0; i < DirType::RestNumber; ++i)
 		{
@@ -16,7 +85,7 @@ namespace SBlocks
 
 	void PieceShape::generateOutline()
 	{
-		Data& data = mDataMap[0];
+		PieceShapeData& data = mDataMap[0];
 
 		auto FindBlock = [&](Int16Point2D const& inBlock) -> bool
 		{
@@ -157,47 +226,13 @@ namespace SBlocks
 	}
 
 	void PieceShape::importDesc(PieceShapeDesc const& desc)
-	{
+	{		
 		{
 			auto& shapeData = mDataMap[0];
-			shapeData.blocks.clear();
-			AABB bound;
-			bound.invalidate();
+			shapeData.initialize(desc);
 
-			int32 dataSizeX = FBitGird::GetDataSizeX(desc.sizeX);
-			int32 sizeY = (desc.data.size() + dataSizeX - 1 ) / dataSizeX;
-			for (int32 y = 0; y < sizeY; ++y)
-			{
-				for (int32 x = 0; x < desc.sizeX; ++x)
-				{
-					if (FBitGird::Read(desc.data, dataSizeX, x, y))
-					{
-						Int16Point2D block;
-						block.x = x;
-						block.y = y;
-						bound.addPoint(block);
-						shapeData.blocks.push_back(block);
-					}
-				}
-			}
-
-			if (bound.isEmpty())
-			{
-				LogWarning(0, "Piece Shape no block");
-			}
-
-			boundSize = bound.max - bound.min + Vec2i(1, 1);
-			if (bound.min != Vec2i(0, 0))
-			{
-				for (auto& block : shapeData.blocks)
-				{
-					block -= bound.min;
-				}
-			}
-			shapeData.boundSize = boundSize;
-			shapeData.sortBlocks();
+			boundSize = shapeData.boundSize;
 		}
-
 
 		for (int dir = 1; dir < DirType::RestNumber; ++dir)
 		{
@@ -243,7 +278,7 @@ namespace SBlocks
 		generateOutline();
 	}
 
-	bool MarkMap::tryLock(Vec2i const& pos, PieceShape::Data const& shapeData)
+	bool MarkMap::tryLock(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
 		if (!canLock(pos, shapeData))
 			return false;
@@ -252,7 +287,7 @@ namespace SBlocks
 		return true;
 	}
 
-	void MarkMap::unlock(Vec2i const& pos, PieceShape::Data const& shapeData)
+	void MarkMap::unlock(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
 		for (auto const& block : shapeData.blocks)
 		{
@@ -265,7 +300,7 @@ namespace SBlocks
 		numBlockLocked -= shapeData.blocks.size();
 	}
 
-	bool MarkMap::tryLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData)
+	bool MarkMap::tryLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
 		if (!canLockAssumeInBound(pos, shapeData))
 			return false;
@@ -274,7 +309,7 @@ namespace SBlocks
 		return true;
 	}
 
-	bool MarkMap::canLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData)
+	bool MarkMap::canLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
 		for (auto const& block : shapeData.blocks)
 		{
@@ -286,7 +321,7 @@ namespace SBlocks
 		return true;
 	}
 
-	void MarkMap::lockChecked(Vec2i const& pos, PieceShape::Data const& shapeData)
+	void MarkMap::lockChecked(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
 		for (auto const& block : shapeData.blocks)
 		{
@@ -298,7 +333,7 @@ namespace SBlocks
 		numBlockLocked += shapeData.blocks.size();
 	}
 
-	bool MarkMap::canLock(Vec2i const& pos, PieceShape::Data const& shapeData)
+	bool MarkMap::canLock(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
 		{
 			//check boundary
@@ -468,12 +503,12 @@ namespace SBlocks
 		}
 	}
 
-	Piece* Level::createPiece(PieceShape& shape)
+	Piece* Level::createPiece(PieceShape& shape, DirType dir)
 	{
 		std::unique_ptr< Piece > piece = std::make_unique< Piece >();
 
 		piece->shape = &shape;
-		piece->dir = DirType::ValueChecked(0);
+		piece->dir = dir;
 		piece->angle = 0;
 		piece->bLocked = false;
 		piece->pos = Vector2::Zero();
@@ -514,6 +549,23 @@ namespace SBlocks
 		PieceShape* result = shape.get();
 		mShapes.push_back(std::move(shape));
 		return result;
+	}
+
+	PieceShape* Level::findPieceShape(PieceShapeDesc const& desc, int& outDir)
+	{
+		PieceShapeData shapeData;
+		shapeData.initialize(desc);
+		for (int index = 0; index < mShapes.size(); ++index)
+		{
+			PieceShape* shape = mShapes[index].get();
+			int dir = shape->findSameShape(shapeData);
+			if (dir != INDEX_NONE)
+			{
+				outDir = dir;
+				return shape;
+			}
+		}
+		return nullptr;
 	}
 
 	Vec2i Level::GetLockMapPos(Piece& piece)

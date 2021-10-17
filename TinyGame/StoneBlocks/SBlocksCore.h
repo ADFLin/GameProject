@@ -23,18 +23,6 @@ namespace SBlocks
 	using Math::Matrix2;
 	using Math::Vector2;
 
-	namespace ELevelSaveVersion
-	{
-		enum
-		{
-			InitVersion = 0,
-			UseBitGird ,
-			ShapeCustomPivotOption,
-			LastVersionPlusOne,
-			LastVersion = LastVersionPlusOne - 1,
-		};
-	}
-
 	class FBitGird
 	{
 	public:
@@ -81,7 +69,7 @@ namespace SBlocks
 			return result;
 		}
 		template< class T >
-		static std::vector< T > ConvertTo(std::vector< uint8 >& bitData, uint32 sizeX , T value = T(1) )
+		static std::vector< T > ConvertTo(std::vector< uint8 >& bitData, uint32 sizeX, T value = T(1))
 		{
 			std::vector< T > result;
 
@@ -92,7 +80,7 @@ namespace SBlocks
 			{
 				uint32 x = index % sizeX;
 				uint32 y = index / sizeX;
-				if (Read(bitData, dataSizeX, x , y ))
+				if (Read(bitData, dataSizeX, x, y))
 				{
 					result[index] = value;
 				}
@@ -110,70 +98,29 @@ namespace SBlocks
 		Vector2 customPivot;
 
 		template< class OP >
-		void serialize(OP& op)
-		{
-			op & sizeX & data;
-			if (OP::IsLoading && op.version() < ELevelSaveVersion::UseBitGird)
-			{
-				data = std::move(FBitGird::ConvertForm(data, sizeX));
-			}
-
-			if (OP::IsLoading && op.version() < ELevelSaveVersion::ShapeCustomPivotOption)
-			{
-				bUseCustomPivot = true;
-				op & customPivot;
-			}
-			else
-			{
-				op & bUseCustomPivot;
-				if (bUseCustomPivot)
-				{
-					op & customPivot;
-				}
-			}
-		}
+		void serialize(OP& op);
 	};
+
 	TYPE_SUPPORT_SERIALIZE_FUNC(PieceShapeDesc);
 
 	using AABB = ::Math::TAABBox< Int16Point2D >;
 
+
+	struct PieceShapeData
+	{
+		Vec2i boundSize;
+		std::vector< Int16Point2D > blocks;
+
+		void initialize(PieceShapeDesc const& desc);
+
+		void sortBlocks();
+
+		bool operator == (PieceShapeData const& rhs) const;
+	};
+
+
 	struct PieceShape
 	{
-		struct Data
-		{
-			Vec2i boundSize;
-			std::vector< Int16Point2D > blocks;
-
-			void sortBlocks()
-			{
-				std::sort(blocks.begin(), blocks.end(), [](Int16Point2D const& lhs, Int16Point2D const& rhs)
-				{
-					if (lhs.x < rhs.x)
-						return true;
-					if (lhs.x == rhs.x && lhs.y < rhs.y)
-						return true;
-
-					return false;
-				});
-			}
-
-			bool operator == (Data const& rhs) const
-			{
-				if (boundSize != rhs.boundSize)
-					return false;
-
-				if (blocks.size() != rhs.blocks.size())
-					return false;
-
-				for (int i = 0; i < blocks.size(); ++i)
-				{
-					if (blocks[i] != rhs.blocks[i])
-						return false;
-				}
-
-				return true;
-			}
-		};
 
 		struct Line
 		{
@@ -182,12 +129,12 @@ namespace SBlocks
 		};
 		std::vector< Line > outlines;
 
-		int findSameShape(Data const& data);
+		int findSameShape(PieceShapeData const& data);
 
 		void generateOutline();
 
 		Int16Point2D boundSize;
-		Data mDataMap[DirType::RestNumber];
+		PieceShapeData mDataMap[DirType::RestNumber];
 		Vector2 pivot;
 
 		int getDifferentShapeDirs(int outDirs[4]);
@@ -226,7 +173,7 @@ namespace SBlocks
 		int index = 0;
 		EColor::Name color;
 		RenderTransform2D xform;
-		RenderTransform2D renderXForm;
+		RenderTransform2D xFormRender;
 		float angle = 0.0f;
 		Vector2 pos;
 
@@ -264,10 +211,10 @@ namespace SBlocks
 			xform.rotateWorld(GetRotation(dir));
 			xform.translateWorld(pos + shape->pivot);
 
-			renderXForm.setIdentity();
-			renderXForm.translateWorld(-shape->pivot);
-			renderXForm.rotateWorld(angle);
-			renderXForm.translateWorld(pos + shape->pivot);
+			xFormRender.setIdentity();
+			xFormRender.translateWorld(-shape->pivot);
+			xFormRender.rotateWorld(angle);
+			xFormRender.translateWorld(pos + shape->pivot);
 		}
 
 		bool hitTest(Vector2 const& pos, Vector2& outHitLocalPos)
@@ -295,14 +242,7 @@ namespace SBlocks
 		std::vector< uint8 > data;
 
 		template< class OP >
-		void serialize(OP& op)
-		{
-			op & sizeX & data;
-			if (OP::IsLoading && op.version() < ELevelSaveVersion::UseBitGird)
-			{
-				data = std::move( FBitGird::ConvertForm(data, sizeX) );
-			}
-		}
+		void serialize(OP& op);
 	};
 	TYPE_SUPPORT_SERIALIZE_FUNC(MapDesc);
 
@@ -332,12 +272,12 @@ namespace SBlocks
 			return Vec2i(mData.getSizeX(), mData.getSizeY());
 		}
 
-		bool tryLock(Vec2i const& pos, PieceShape::Data const& shapeData);
-		void unlock(Vec2i const& pos, PieceShape::Data const& shapeData);
-		bool tryLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData);
-		bool canLockAssumeInBound(Vec2i const& pos, PieceShape::Data const& shapeData);
-		void lockChecked(Vec2i const& pos, PieceShape::Data const& shapeData);
-		bool canLock(Vec2i const& pos, PieceShape::Data const& shapeData);
+		bool tryLock(Vec2i const& pos, PieceShapeData const& shapeData);
+		void unlock(Vec2i const& pos, PieceShapeData const& shapeData);
+		bool tryLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData);
+		bool canLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData);
+		void lockChecked(Vec2i const& pos, PieceShapeData const& shapeData);
+		bool canLock(Vec2i const& pos, PieceShapeData const& shapeData);
 
 		bool isFinish() { return numTotalBlocks == numBlockLocked; }
 
@@ -360,10 +300,7 @@ namespace SBlocks
 		uint8   dir;
 
 		template< class OP >
-		void serialize(OP& op)
-		{
-			op & id & pos & dir;
-		}
+		void serialize(OP& op);
 	};
 	TYPE_SUPPORT_SERIALIZE_FUNC(PieceDesc);
 
@@ -375,10 +312,7 @@ namespace SBlocks
 		std::vector<PieceDesc> pieces;
 
 		template< class OP >
-		void serialize(OP& op)
-		{
-			op & map & shapes & pieces;
-		}
+		void serialize(OP& op);
 	};
 	TYPE_SUPPORT_SERIALIZE_FUNC(LevelDesc);
 
@@ -391,9 +325,10 @@ namespace SBlocks
 		void importDesc(LevelDesc const& desc);
 		void exportDesc(LevelDesc& outDesc);
 
-		Piece* createPiece(PieceShape& shape);
+		Piece* createPiece(PieceShape& shape, DirType dir);
 		Piece* createPiece(PieceDesc const& desc);
 		PieceShape* createPieceShape(PieceShapeDesc const& desc);
+		PieceShape* findPieceShape(PieceShapeDesc const& desc , int& outDir);
 
 		static Vec2i GetLockMapPos(Piece& piece);
 

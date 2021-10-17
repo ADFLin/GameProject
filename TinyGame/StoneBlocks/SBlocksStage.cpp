@@ -1,5 +1,7 @@
 #include "SBlocksStage.h"
 
+#include "SBlocksSerialize.h"
+
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
 #include "Serialize/FileStream.h"
@@ -427,7 +429,7 @@ namespace SBlocks
 
 		
 		g.pushXForm();
-		g.transformXForm(piece.renderXForm, true);
+		g.transformXForm(piece.xFormRender, true);
 		auto DrawPiece = [&]()
 		{
 			for (auto const& block : shapeData.blocks)
@@ -442,7 +444,7 @@ namespace SBlocks
 			g.beginBlend(mTheme.shadowOpacity);
 
 			g.pushXForm();
-			Vector2 offset = piece.renderXForm.transformInvVectorAssumeNoScale(mTheme.shadowOffset);
+			Vector2 offset = piece.xFormRender.transformInvVectorAssumeNoScale(mTheme.shadowOffset);
 			g.translateXForm(offset.x, offset.y);
 			DrawPiece();
 			g.popXForm();

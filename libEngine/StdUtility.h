@@ -4,8 +4,8 @@
 
 #include <algorithm>
 
-template< class T >
-bool RemoveValue(std::vector< T >& v, T const& val)
+template< typename T, typename A >
+bool RemoveValue(std::vector< T , A >& v, T const& val)
 {
 	auto iter = std::find(v.begin(), v.end(), val);
 
@@ -16,8 +16,8 @@ bool RemoveValue(std::vector< T >& v, T const& val)
 	return true;
 }
 
-template< class T >
-bool AddUnique(std::vector< T >& v, T const& val)
+template< typename T, typename A >
+bool AddUnique(std::vector< T , A >& v, T const& val)
 {
 	for( int i = 0; i < v.size(); ++i )
 	{
@@ -28,8 +28,8 @@ bool AddUnique(std::vector< T >& v, T const& val)
 	return true;
 }
 
-template < class T >
-bool IsValueUnique(std::vector< T > const& v)
+template < typename T, typename A >
+bool IsValueUnique(std::vector< T , A > const& v)
 {
 	int size = v.size();
 
@@ -44,8 +44,8 @@ bool IsValueUnique(std::vector< T > const& v)
 	return true;
 }
 
-template< class T >
-void MakeValueUnique(std::vector< T >& v, int idxStart = 0)
+template< typename T, typename A  >
+void MakeValueUnique(std::vector< T , A >& v, int idxStart = 0)
 {
 	int idxLast = v.size() - 1;
 	for( int i = idxStart; i <= idxLast; ++i )
@@ -69,6 +69,13 @@ void MakeValueUnique(std::vector< T >& v, int idxStart = 0)
 	}
 
 	assert(IsValueUnique(v));
+}
+
+
+template< typename T, typename A >
+FORCEINLINE bool IsValidIndex(std::vector<T, A> const& v, int index)
+{
+	return 0 <= index && index < v.size();
 }
 
 template< class T >

@@ -45,6 +45,9 @@
     <ClInclude Include="StoneBlocks\SBlocksCore.h">
       <Filter>GameStoneBlocks</Filter>
     </ClInclude>
+    <ClInclude Include="StoneBlocks\SBlocksSerialize.h">
+      <Filter>GameStoneBlocks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GameChess">

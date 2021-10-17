@@ -48,6 +48,7 @@ namespace SBlocks
 			for (int index = 0; index < mLevel.mPieces.size(); ++index)
 			{
 				Piece* piece = mLevel.mPieces[index].get();
+				piece->index = index;
 				mSortedPieces.push_back(piece);
 			}
 			bPiecesOrderDirty = true;
@@ -83,7 +84,7 @@ namespace SBlocks
 		}
 	};
 
-	struct LevelTheme
+	struct SceneTheme
 	{
 		Color3ub pieceBlockColor;
 		Color3ub pieceBlockLockedColor;
@@ -100,7 +101,7 @@ namespace SBlocks
 		float    shadowOpacity;
 		Vector2  shadowOffset;
 
-		LevelTheme()
+		SceneTheme()
 		{
 			pieceBlockColor = Color3ub(203, 105, 5);
 			pieceBlockLockedColor = Color3ub(255, 155, 18);
@@ -149,7 +150,6 @@ namespace SBlocks
 
 		}
 
-
 		bool onMouse(MouseMsg const& msg, Vector2 const& lPos , Piece* piece)
 		{
 			if ( msg.onLeftDown() )
@@ -192,7 +192,11 @@ namespace SBlocks
 			REGISTER_COM("Save", saveLevel);
 
 			REGISTER_COM("AddPiece", addPiece);
-			//REGISTER_COM("NewShape, ")
+			REGISTER_COM("RemovePiece", removePiece);
+			
+			REGISTER_COM("AddShape", addEditPieceShape);
+			REGISTER_COM("RemoveShape", addEditPieceShape);
+			REGISTER_COM("CopyShape", copyEditPieceShape);
 
 #undef REGISTER_COM
 		}
@@ -208,21 +212,41 @@ namespace SBlocks
 			mGame->mLevel.mMap.resize(x, y);
 			mGame->resetRenderParams();
 		}
+
+
 		void addPiece(int id)
 		{
-			if (0 <= id && id < mPieceShapeLibrary.size())
+			if (!IsValidIndex(mPieceShapeLibrary, id))
+				return;
+
+			EditPieceShape& editShape = mPieceShapeLibrary[id];
+			int dir = 0;
+			if (editShape.ptr == nullptr)
 			{
-				EditPieceShape& editShape = mPieceShapeLibrary[id];
+				int dir;
+				editShape.ptr = mGame->mLevel.findPieceShape(editShape.desc, dir);
 				if (editShape.ptr == nullptr)
 				{
 					editShape.ptr = mGame->mLevel.createPieceShape(editShape.desc);
 				}
-
-				mGame->mLevel.createPiece(*editShape.ptr);
-				mGame->refreshPieceList();
 			}
+
+			Piece* piece = mGame->mLevel.createPiece(*editShape.ptr, DirType::ValueChecked(dir));
+			mGame->refreshPieceList();
+		
 		}
-		void newEditPieceShape(int sizeX, int sizeY)
+		void removePiece(int id)
+		{
+			auto& piecesList = mGame->mLevel.mPieces;
+			if (!IsValidIndex(piecesList, id))
+				return;
+
+
+			piecesList.erase(piecesList.begin() + id);
+			mGame->refreshPieceList();
+		}
+
+		void addEditPieceShape(int sizeX, int sizeY)
 		{
 			EditPieceShape shape;
 			shape.ptr = nullptr;
@@ -231,6 +255,18 @@ namespace SBlocks
 			shape.desc.sizeX = sizeX;
 			shape.desc.data.resize(FBitGird::GetDataSizeX(sizeX) * sizeY, 1);
 			mPieceShapeLibrary.push_back(shape);
+		}
+
+		void removeEditPieceShape(int id)
+		{
+
+
+		}
+
+		void copyEditPieceShape(int id)
+		{
+
+
 		}
 
 		void saveLevel(char const* name);
@@ -248,7 +284,7 @@ namespace SBlocks
 			PieceShapeDesc desc;
 		};
 
-		static void Draw(RHIGraphics2D& g, PieceShapeDesc const& desc)
+		static void Draw(RHIGraphics2D& g, SceneTheme& theme , PieceShapeDesc const& desc)
 		{
 			RenderUtility::SetPen(g, EColor::Black);
 
@@ -260,7 +296,7 @@ namespace SBlocks
 				{
 					if (FBitGird::Read(desc.data, dataSizeX, x, y))
 					{
-						RenderUtility::SetBrush(g, EColor::Gray);
+						g.setBrush(theme.pieceBlockColor);
 						RenderUtility::SetPen(g, EColor::Black);
 						g.drawRect(Vector2(x, y), Vector2(1, 1));
 					}
@@ -301,7 +337,7 @@ namespace SBlocks
 		bool     bEditEnabled;
 
 		std::unique_ptr< Solver > mSolver;
-		LevelTheme mTheme;
+		SceneTheme mTheme;
 
 		virtual void initializeGame()
 		{

@@ -333,6 +333,13 @@ T& WidgetCoreT<T>::makeFocus()
 	return *_this();
 }
 
+template< class T >
+T& WidgetCoreT<T>::clearFocus()
+{
+	getManager()->clearFocusWidget(this);
+	return *_this();
+}
+
 
 template< class T >
 void WidgetCoreT<T>::doRenderAll()
@@ -855,6 +862,16 @@ void TWidgetManager<T>::focusWidget( WidgetCore* ui )
 	{
 		setNamedSlot(ESlotName::Focus, *ui);
 		ui->focus(true);
+	}
+}
+
+template < class T >
+void TWidgetManager<T>::clearFocusWidget(WidgetCore* ui)
+{
+	if (ui == mNamedSlots[ESlotName::Focus])
+	{
+		clearNamedSlot(ESlotName::Focus);
+		ui->focus(false);
 	}
 }
 

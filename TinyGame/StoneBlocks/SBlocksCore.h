@@ -130,7 +130,10 @@ namespace SBlocks
 		std::vector< Line > outlines;
 
 		int findSameShape(PieceShapeData const& data);
-
+		int getBlockCount() const
+		{
+			return mDataMap[0].blocks.size();
+		}
 		void generateOutline();
 
 		Int16Point2D boundSize;
@@ -260,6 +263,10 @@ namespace SBlocks
 			return mData(x, y);
 		}
 
+		int getValue(Vec2i const& pos)
+		{
+			return mData(pos.x, pos.y);
+		}
 		bool isInBound(Vec2i const& pos)
 		{
 			return 0 <= pos.x && pos.x < mData.getSizeX() &&

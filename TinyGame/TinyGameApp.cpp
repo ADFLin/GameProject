@@ -624,6 +624,7 @@ void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
 	else
 	{
 		mConsoleWidget->show(false);
+		mConsoleWidget->clearFocus();
 	}
 	
 }

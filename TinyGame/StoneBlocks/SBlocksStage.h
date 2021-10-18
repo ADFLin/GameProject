@@ -129,25 +129,25 @@ namespace SBlocks
 
 		void init()
 		{
-			registerCommand();
+
 		}
 
 		void cleanup()
 		{
-			unregisterCommand();
+
 		}
 
 		void startEdit()
 		{
 			LogMsg("Edit Start");
-
+			registerCommand();
 			mGame->mLevel.unlockAllPiece();
 		}
 
 		void endEdit()
 		{
 			LogMsg("Edit End");
-
+			unregisterCommand();
 		}
 
 		bool onMouse(MouseMsg const& msg, Vector2 const& lPos , Piece* piece)
@@ -353,9 +353,9 @@ namespace SBlocks
 			restart();
 
 			auto& console = ConsoleSystem::Get();
-#define REGISTER_COM( NAME , FUNC )\
-			console.registerCommand("SBlocks."NAME, &TestStage::FUNC, this)
-			REGISTER_COM("Solve", solveLevel);
+#define REGISTER_COM( NAME , FUNC , ... )\
+			console.registerCommand("SBlocks."NAME, &TestStage::FUNC, this , ##__VA_ARGS__ )
+			REGISTER_COM("Solve", solveLevel, CVF_CAN_OMIT_ARGS);
 			REGISTER_COM("Load", loadLevel);
 #undef REGISTER_COM
 			return true;
@@ -399,13 +399,20 @@ namespace SBlocks
 
 		void onRender(float dFrame) override;
 
-		void solveLevel();
+		void solveLevel(bool bForceReset);
 
 
 		Piece* selectedPiece = nullptr;
 		bool bStartDragging = false;
 		Vector2 lastHitLocalPos;
 		void drawPiece(RHIGraphics2D& g, Piece const& piece, bool bSelected);
+
+		void updatePieceClickFrame(Piece& piece)
+		{
+			mClickFrame += 1;
+			piece.clickFrame = mClickFrame;
+			bPiecesOrderDirty = true;
+		}
 
 		bool onMouse(MouseMsg const& msg) override
 		{
@@ -424,9 +431,7 @@ namespace SBlocks
 			{
 				if (selectedPiece != piece)
 				{
-					mClickFrame += 1;
-					piece->clickFrame = mClickFrame;
-					bPiecesOrderDirty = true;
+					updatePieceClickFrame(*piece);
 				}
 				selectedPiece = piece;
 				if (selectedPiece)
@@ -459,9 +464,10 @@ namespace SBlocks
 						mLevel.unlockPiece(*piece);
 						bPiecesOrderDirty = true;
 					}
-					class PieceAngle
+
+					updatePieceClickFrame(*piece);
+					struct PieceAngle
 					{
-					public:
 						using DataType = Piece&;
 						using ValueType = float;
 						void operator()(DataType& data, ValueType const& value)			
@@ -470,8 +476,8 @@ namespace SBlocks
 							data.updateTransform();
 						}
 					};
+					mTweener.tween< Easing::IOBounce, PieceAngle >(*piece, int(piece->dir) * Math::PI / 2, (int(piece->dir) + 1) * Math::PI / 2, 0.1, 0);
 					piece->dir += 1;
-					mTweener.tween< Easing::IOSine, PieceAngle >(*piece, (int(piece->dir) - 1) * Math::PI / 2, (int(piece->dir)) * Math::PI / 2, 0.1, 0);
 					//piece->angle = piece->dir * Math::PI / 2;
 					piece->updateTransform();
 

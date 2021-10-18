@@ -5,7 +5,6 @@
 #include "CoreShare.h"
 
 #include "FunctionTraits.h"
-#include <cstring>
 #include "Singleton.h"
 #include "InlineString.h"
 #include "HashString.h"
@@ -15,17 +14,19 @@
 #include "Math/Vector4.h"
 #include "Template/ArrayView.h"
 #include "Core/StringConv.h"
+#include "Meta/EnableIf.h"
 
 #include <string>
 #include <map>
 #include <typeindex>
 #include <functional>
-#include "Meta/EnableIf.h"
+
 
 enum EConsoleVariableFlag
 {
-	CVF_CONFIG     = 1 << 0,
-	CVF_TOGGLEABLE = 2 << 0,
+	CVF_CONFIG        = 1 << 0,
+	CVF_TOGGLEABLE    = 1 << 1,
+	CVF_CAN_OMIT_ARGS = 1 << 2,
 };
 
 struct ConsoleArgTypeInfo
@@ -111,11 +112,13 @@ class VariableConsoleCommadBase;
 class ConsoleCommandBase
 {
 public:
- 	ConsoleCommandBase( char const* inName , TArrayView< ConsoleArgTypeInfo const > inArgs );
+ 	ConsoleCommandBase( char const* inName , TArrayView< ConsoleArgTypeInfo const > inArgs, uint32 flags = 0);
 	virtual ~ConsoleCommandBase(){}
 
 	std::string   mName;
 	TArrayView< ConsoleArgTypeInfo const > mArgs;
+	uint32 getFlags() { return mFlags; }
+	uint32 mFlags;
 
 	virtual void execute( void* argsData[] ) = 0;
 	virtual void getValue( void* pDest ){}
@@ -131,8 +134,8 @@ struct TMemberFuncConsoleCom : public ConsoleCommandBase
 	TFunc  mFunc;
 	T*     mObject;
 
-	TMemberFuncConsoleCom( char const* inName , TFunc inFunc, T* inObj = NULL )
-		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() )
+	TMemberFuncConsoleCom( char const* inName , TFunc inFunc, T* inObj = NULL, uint32 flags = 0)
+		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() , flags)
 		, mFunc(inFunc), mObject(inObj)
 	{
 	}
@@ -152,8 +155,8 @@ template < class TFunc >
 struct TBaseFuncConsoleCommand : public ConsoleCommandBase
 {
 	TFunc mFunc;
-	TBaseFuncConsoleCommand( char const* inName, TFunc inFunc)
-		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() )
+	TBaseFuncConsoleCommand( char const* inName, TFunc inFunc, uint32 flags = 0)
+		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() , flags)
 		,mFunc(inFunc)
 	{
 	}
@@ -168,8 +171,7 @@ class VariableConsoleCommadBase : public ConsoleCommandBase
 {
 public:
 	VariableConsoleCommadBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs, uint32 flags)
-		:ConsoleCommandBase(inName, inArgs)
-		,mFlags(flags)
+		:ConsoleCommandBase(inName, inArgs, flags)
 	{
 
 	}
@@ -184,9 +186,6 @@ public:
 
 	virtual bool  setFromFloat(float inValue) { return false; }
 	virtual float getAsFloat() const { return 0; }
-
-	uint32 getFlags() { return mFlags; }
-	uint32 mFlags;
 };
 
 template < class Type >
@@ -346,17 +345,17 @@ public:
 	}
 
 	template < class TFunc, class T >
-	auto* registerCommand( char const* name , TFunc func , T* obj )
+	auto* registerCommand( char const* name , TFunc func , T* obj , uint32 flags = 0)
 	{
-		auto* command = new TMemberFuncConsoleCom<TFunc, T >( name ,func , obj );
+		auto* command = new TMemberFuncConsoleCom<TFunc, T >( name ,func , obj, flags);
 		insertCommand(command);
 		return command;
 	}
 
 	template < class TFunc >
-	auto* registerCommand( char const* name , TFunc func )
+	auto* registerCommand( char const* name , TFunc func, uint32 flags = 0)
 	{
-		auto* command = new TBaseFuncConsoleCommand<TFunc>( name ,func );
+		auto* command = new TBaseFuncConsoleCommand<TFunc>( name ,func, flags);
 		insertCommand(command);
 		return command;
 	}
@@ -391,7 +390,7 @@ protected:
 		std::string errorMsg;
 	};
 
-	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData );
+	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bCanOmitArgs);
 	bool executeCommandImpl(ExecuteContext& context);
 
 	struct StrCmp

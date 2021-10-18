@@ -480,11 +480,11 @@ namespace SBlocks
 
 	}
 
-	void TestStage::solveLevel()
+	void TestStage::solveLevel(bool bForceReset)
 	{
 		TIME_SCOPE("Solve Level");
 		bool bSuccess;
-		if (mSolver == nullptr)
+		if (mSolver == nullptr || bForceReset)
 		{
 			mSolver = std::make_unique< Solver >();
 			mSolver->setup(mLevel);
@@ -498,7 +498,7 @@ namespace SBlocks
 		LogMsg("Solve level %s !", bSuccess ? "success" : "fail");
 		if (bSuccess)
 		{
-			std::vector<Solver::LockedState> sovledStates;
+			std::vector<PieceSolveState> sovledStates;
 			mSolver->getSolvedStates(sovledStates);
 
 			mLevel.unlockAllPiece();

@@ -252,7 +252,6 @@ namespace SBlocks
 				shapeData.blocks.push_back(blockAdd);
 			}
 
-			//shapeData.boundSize = bound.max - bound.min;
 			if (bound.min != Vec2i(0, 0))
 			{
 				for (auto& block : shapeData.blocks)

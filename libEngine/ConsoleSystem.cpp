@@ -10,9 +10,10 @@
 #define STRING_BUFFER_SIZE 256
 #define DATA_BUFFER_SIZE 1024
 
-ConsoleCommandBase::ConsoleCommandBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs)
+ConsoleCommandBase::ConsoleCommandBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs, uint32 flags)
 	:mName(inName)
 	,mArgs(inArgs)
+	,mFlags(flags)
 {
 
 }
@@ -188,7 +189,7 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 	int totalArgSize = 0;
 	for (auto const& arg : context.command->mArgs)
 	{
-		totalArgSize += arg.size;
+		totalArgSize += Math::Max(arg.size , 4 );
 	}
 
 #if 1
@@ -199,11 +200,13 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 	void*  argData[NumMaxParams];
 	CHECK(context.command->mArgs.size() <= NumMaxParams);
 	uint8* pData = dataBuffer;
+
+	bool bCanOmitArgs = !!(CVF_CAN_OMIT_ARGS & context.command->getFlags() );
 	for( int argIndex = 0; argIndex < context.command->mArgs.size(); ++argIndex )
 	{
 		ConsoleArgTypeInfo const& arg = context.command->mArgs[argIndex];
 
-		if (!fillParameterData(context, arg, pData))
+		if (!fillParameterData(context, arg, pData, bCanOmitArgs))
 		{
 			if (context.command->mArgs.size() == 1)
 			{
@@ -229,10 +232,16 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 						return true;
 					}
 				}
-				else
+				else if (var)
 				{
 					LogMsg("Var %s = %s" , var->mName.c_str() , var->toString().c_str() );
 					return true;
+				}
+				else
+				{
+
+
+
 				}
 			}
 			return false;
@@ -247,7 +256,7 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 	return true;
 }
 
-bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData)
+bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData, bool bCanOmitArgs)
 {
 	char const* fptr = arg.format;
 	int fillSize = 0;
@@ -263,31 +272,43 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 		if ( *fptr =='\0' )
 			break;
 
+		char const* paramString;
+
 		if ( context.numUsedParam >= context.numArgs )
 		{
-			context.errorMsg = "less param : ";
-			context.errorMsg += context.command->mName;
-			for ( int i = 0 ; i < context.command->mArgs.size() ; ++ i )
+			if (bCanOmitArgs)
 			{
-				context.errorMsg += std::string(" ");
-
-				char const* pStr = context.command->mArgs[i].format;
-				switch( pStr[1] )
-				{
-				case 'd': context.errorMsg += "#int"; break;
-				case 'f': context.errorMsg += "#float"; break;
-				case 's': context.errorMsg += "#String"; break;
-				case 'u': context.errorMsg += "#uint"; break;
-				case 'l':
-					if ( pStr[2] == 'f')
-						context.errorMsg += "#double";
-					break;
-				}
+				paramString = "0";
 			}
-			return 0;
+			else
+			{
+				context.errorMsg = "less param : ";
+				context.errorMsg += context.command->mName;
+				for (int i = 0; i < context.command->mArgs.size(); ++i)
+				{
+					context.errorMsg += std::string(" ");
+
+					char const* pStr = context.command->mArgs[i].format;
+					switch (pStr[1])
+					{
+					case 'd': context.errorMsg += "#int"; break;
+					case 'f': context.errorMsg += "#float"; break;
+					case 's': context.errorMsg += "#String"; break;
+					case 'u': context.errorMsg += "#uint"; break;
+					case 'l':
+						if (pStr[2] == 'f')
+							context.errorMsg += "#double";
+						break;
+					}
+				}
+				return false;
+			}
+		}
+		else
+		{
+			paramString = context.paramStrings[context.numUsedParam];
 		}
 
-		char const* paramString = context.paramStrings[context.numUsedParam];
 
 		if ( paramString[0] =='$')
 		{
@@ -296,7 +317,7 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 			if ( !paramCom || paramCom->mArgs.size() != 1)
 			{
 				context.errorMsg = "No match ComVar";
-				return 0;
+				return false;
 			}
 			if ( FCString::CompareN( paramCom->mArgs[0].format , fptr , FCString::Strlen(paramCom->mArgs[0].format) ) == 0 )
 			{
@@ -305,7 +326,7 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 			else
 			{
 				context.errorMsg = "ComVar's param is not match function's param";
-				return 0;
+				return false;
 			}
 		}
 		else
@@ -316,7 +337,7 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 				if ( num == 0 )
 				{
 					context.errorMsg = "param error";
-					return 0;
+					return false;
 				}
 			}
 			else

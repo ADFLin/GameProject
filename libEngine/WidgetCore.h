@@ -96,6 +96,7 @@ public:
 	T&             setSize(Vec2i const& size) { mBoundRect.max = mBoundRect.min + size;  return *_this(); }
 	T&             setTop(bool beAlways = false);
 	T&             makeFocus();
+	T&             clearFocus();
 	T&             show(bool beS = true);
 	T&             enable(bool beE = true);
 
@@ -259,6 +260,7 @@ public:
 	bool      procCharMsg( unsigned code );
 
 	void      focusWidget(WidgetCore* ui );
+	void      clearFocusWidget(WidgetCore* ui);
 
 	void      captureMouse(WidgetCore* ui){ mNamedSlots[ESlotName::Capture] = ui;}
 	void      releaseMouse(){ mNamedSlots[ESlotName::Capture] = NULL; }
@@ -339,7 +341,6 @@ private:
 	TWidgetManager( TWidgetManager const& ){}
 	TWidgetManager& operator = (TWidgetManager const&);
 };
-
 
 #include "WidgetCore.hpp"
 

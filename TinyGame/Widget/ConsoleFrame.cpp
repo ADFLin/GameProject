@@ -4,6 +4,8 @@
 
 ConsoleFrame::ConsoleFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent) :BaseClass(id, pos, size, parent)
 {
+	setRenderType( GPanel::eRectType );
+
 	mComText = new GTextCtrl(UI_COM_TEXT, Vec2i(3, size.y - 3 - GTextCtrl::UI_Height ), size.x - 6, this);
 	mComText->setRerouteCharMsg();
 	mComText->setRerouteKeyMsg();

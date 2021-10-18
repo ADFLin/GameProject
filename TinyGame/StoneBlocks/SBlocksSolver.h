@@ -8,12 +8,88 @@ namespace SBlocks
 {
 	class SolveWork;
 
-	class Solver
+	struct SolveOption
+	{
+		bool bTestMinConnectTiles;
+		bool bTestConnectTileShape;
+	};
+
+
+	struct PieceSolveState
+	{
+		Vec2i pos;
+		uint8 dir;
+	};
+
+
+	struct PieceSolveData
+	{
+		Piece* piece;
+		PieceShape* shape;
+		std::vector< PieceSolveState > states;
+		int index;
+	};
+
+	namespace ERejectResult
+	{
+		enum Type
+		{
+			None,
+			MinConnectTiles,
+			ConnectTileShape,
+		};
+	};
+
+	struct GlobalSolveData
+	{
+		struct PieceLink
+		{
+			Piece* piece;
+			PieceLink* next;
+		};
+		std::vector< PieceLink >  mPieceLinkData;
+		std::vector< PieceLink* > mPieceSizeMap;
+		std::vector< PieceSolveData > mPieceList;
+		int minShapeBlockCount;
+		int maxShapeBlockCount;
+
+
+		void setup(Level& level, SolveOption const& option)
+		{
+
+		}
+
+	};
+
+	struct SolveData
+	{
+		MarkMap mMap;
+		TGrid2D<int> mTestFrameMap;
+		int mTestFrame;
+		std::vector<int> stateIndices;
+
+		PieceShapeData mCachedShapeData;
+		struct ShapeTest
+		{
+			Vec2i pos;
+			int   count;
+			int   mapIndex;
+		};
+		std::vector< ShapeTest > mCachedPendingTests;
+
+		void setup(Level& level, SolveOption const& option);
+		int  countConnectTiles(Vec2i const& pos);
+		void getConnectedTilePosList(Vec2i const& pos, std::vector< Int16Point2D >& outPosList);
+		bool advanceState(PieceSolveData& pieceData, int indexPiece);
+
+		template< typename TFunc >
+		ERejectResult::Type testRejection(GlobalSolveData& globalData, Vec2i const pos,  PieceShapeData& shapeData, SolveOption const& option, TFunc func);
+	};
+
+
+	class Solver : public GlobalSolveData
 	{
 	public:
-		struct PieceState;
-		struct LockedState;
-
 		void setup(Level& level);
 		bool solve()
 		{
@@ -21,19 +97,21 @@ namespace SBlocks
 		}
 		bool solveNext()
 		{
-			return solveImpl(mPieceStates.size() - 1, 0) >= 0;
+			return solveImpl(mPieceList.size() - 1, 0) >= 0;
 		}
 		int  solveImpl(int index, int startIndex);
 
-		void getSolvedStates(std::vector< LockedState >& outStates)
+		void getSolvedStates(std::vector< PieceSolveState >& outStates)
 		{
-			for (auto& state : mPieceStates)
+			int index = 0;
+			for (auto& pieceData : mPieceList)
 			{
-				CHECK(state.index != INDEX_NONE);
-				outStates.push_back(state.possibleStates[state.index]);
+				int indexState = mSolveData.stateIndices[index];
+				CHECK(indexState != INDEX_NONE);
+				outStates.push_back(pieceData.states[indexState]);
+				++index;
 			}
 		}
-		static bool AdvanceState(MarkMap& map, PieceState& state, int& inoutIndex);
 		struct ThreadData
 		{
 			int startIndex;
@@ -41,24 +119,12 @@ namespace SBlocks
 			MarkMap map;
 			std::vector<int> stateIndices;
 		};
-		MarkMap mMap;
+		SolveData mSolveData;
 
 		void solveParallel(int numTheads);
 
-		struct LockedState
-		{
-			Vec2i pos;
-			uint8 dir;
-		};
-		struct PieceState
-		{
-			Piece* piece;
-			PieceShape* shape;
-			std::vector< LockedState > possibleStates;
-			int index;
-		};
-		
-		std::vector< PieceState > mPieceStates;
+
+
 	};
 
 

@@ -503,7 +503,7 @@ namespace Render
 		}
 	}
 
-	void BatchedRender::emitPolygonLine(Vector2 v[], int numV, Color4ub const& color, int lineWidth)
+	void BatchedRender::emitPolygonLine(Vector2 v[], int numV, Color4f const& color, int lineWidth)
 	{
 		float halfWidth = 0.5 * float(lineWidth);
 #if 1
@@ -566,7 +566,7 @@ namespace Render
 			pVertices += 4;
 		}
 
-		int* pIndices = fetchIndexBuffer(4 * 6 * numV);
+		uint32* pIndices = fetchIndexBuffer(4 * 6 * numV);
 		int indexCur = baseIndex;
 		for (int i = 0; i < numV - 1; ++i)
 		{

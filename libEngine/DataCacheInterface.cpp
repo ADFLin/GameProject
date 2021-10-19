@@ -51,15 +51,15 @@ public:
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
 
-		IOFileSerializer fs;
-		if( !fs.open(filePath, true) )
+		OutputFileSerializer fs;
+		if( !fs.open(filePath) )
 		{
 			auto dirView = FFileUtility::GetDirectory(filePath);
 			if( !FFileSystem::CreateDirectorySequence(dirView.toCString()) )
 			{
 				return false;
 			}
-			if( !fs.open(filePath, true) )
+			if( !fs.open(filePath) )
 				return false;
 		}
 
@@ -78,15 +78,15 @@ public:
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
 
-		IOFileSerializer fs;
-		if( !fs.open(filePath, true) )
+		OutputFileSerializer fs;
+		if( !fs.open(filePath) )
 		{
 			auto dirView = FFileUtility::GetDirectory(filePath);
 			if( !FFileSystem::CreateDirectorySequence(dirView.toCString()) )
 			{
 				return false;
 			}
-			if( !fs.open(filePath, true) )
+			if( !fs.open(filePath) )
 				return false;
 		}
 
@@ -107,12 +107,11 @@ public:
 		if( !FFileSystem::IsExist(filePath) )
 			return false;
 
-		IOFileSerializer fs;
-		if( !fs.open(filePath, false) )
+		InputFileSerializer fs;
+		if( !fs.open(filePath) )
 		{
 			return false;
 		}
-
 
 		if( !inDelegate(fs) )
 		{
@@ -133,7 +132,7 @@ public:
 		if( !FFileSystem::IsExist(filePath) )
 			return false;
 
-		IOFileSerializer fs;
+		InputFileSerializer fs;
 		if( !fs.open(filePath, false) )
 		{
 			return false;

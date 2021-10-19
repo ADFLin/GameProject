@@ -71,9 +71,10 @@ protected:
 class InputFileSerializer : public TFileFileSerializer< std::ifstream >
 {
 public:
-	bool open(char const* path, bool bConsdierLegacy = false);
+	bool open(char const* path, bool bForceLegacy = false);
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
+	size_t getSize();
 
 	using IStreamSerializer::read;
 
@@ -92,6 +93,7 @@ public:
 	void writeVersionData();
 };
 
+#if 0
 class IOFileSerializer : public TFileFileSerializer< std::fstream >
 {
 public:
@@ -100,6 +102,7 @@ public:
 	virtual void write(void const* ptr, size_t num) override;
 	size_t getSize();
 };
+#endif
 
 
 

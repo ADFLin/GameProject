@@ -10,15 +10,18 @@ namespace SBlocks
 
 	struct SolveOption
 	{
+		bool bEnableSortPiece;
 		bool bEnableRejection;
 		bool bTestMinConnectTiles;
 		bool bTestConnectTileShape;
+		bool bEnableSameShapePieceCombination;
 
 		SolveOption()
 		{
 			bEnableRejection = true;
 			bTestMinConnectTiles = true;
 			bTestConnectTileShape = true;
+			bEnableSameShapePieceCombination = true;
 		}
 	};
 
@@ -29,12 +32,21 @@ namespace SBlocks
 		uint8 dir;
 	};
 
-
+	struct ShapeSolveData;
 	struct PieceSolveData
 	{
 		Piece* piece;
 		PieceShape* shape;
+		ShapeSolveData* shapeSaveData;
+	};
+
+	struct ShapeSolveData
+	{
+		PieceShape* shape;
+
+		std::vector< PieceSolveData* > pieces;
 		std::vector< PieceSolveState > states;
+		std::vector< Int16Point2D > outerConPosListMap[4];
 	};
 
 	namespace ERejectResult
@@ -58,10 +70,7 @@ namespace SBlocks
 		std::vector< PieceLink* > mPieceSizeMap;
 		std::vector< PieceSolveData > mPieceList;
 
-		struct ShapeSolveData
-		{
-			std::vector< Int16Point2D > outerConPosListMap[4];
-		};
+
 		std::vector< ShapeSolveData > mShapeList;
 		int mMinShapeBlockCount;
 		int mMaxShapeBlockCount;
@@ -86,7 +95,7 @@ namespace SBlocks
 		void setup(Level& level, SolveOption const& option);
 		int  countConnectTiles(Vec2i const& pos);
 		void getConnectedTilePosList(Vec2i const& pos);
-		bool advanceState(PieceSolveData& pieceData, int indexPiece);
+		bool advanceState(ShapeSolveData& shapeSolveData, int indexPiece);
 
 		template< typename TFunc > 
 		ERejectResult::Type testRejection(
@@ -125,14 +134,15 @@ namespace SBlocks
 
 		int  solveImpl(int index, int startIndex);
 
-		void getSolvedStates(std::vector< PieceSolveState >& outStates)
+		void getSolvedStates(std::vector< PieceSolveState >& outStates) const
 		{
 			int index = 0;
 			for (auto& pieceData : mPieceList)
 			{
 				int indexState = mSolveData.stateIndices[index];
+				auto const& shapeSolveData = mShapeList[pieceData.shape->indexSolve];
 				CHECK(indexState != INDEX_NONE);
-				outStates.push_back(pieceData.states[indexState]);
+				outStates.push_back(shapeSolveData.states[indexState]);
 				++index;
 			}
 		}

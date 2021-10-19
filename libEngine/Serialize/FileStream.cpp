@@ -51,73 +51,41 @@ struct FileStreamHeader
 };
 TYPE_SUPPORT_SERIALIZE_FUNC(FileStreamHeader);
 
-
-bool IOFileSerializer::open(char const* path, bool bRemoveOldData /*= false */)
-{
-	using namespace std;
-	ios_base::openmode mode = ios::binary | ios::out | ios::in;
-	if( mFS.is_open() )
-		return true;
-
-	mode |= bRemoveOldData ? ios::trunc : ios::app;
-	mFS.open(path, mode);
-	return mFS.is_open();
-}
-
-void IOFileSerializer::read(void* ptr, size_t num)
-{
-	if( mFS.good() )
-		mFS.read((char*)ptr, (std::streamsize) num);
-}
-
-void IOFileSerializer::write(void const* ptr, size_t num)
-{
-	if( mFS.good() )
-		mFS.write((char const*)ptr, (std::streamsize) num);
-}
-
-size_t IOFileSerializer::getSize()
-{
-	using namespace std;
-	ios::pos_type cur = mFS.tellg();
-	mFS.seekg(0, ios::end);
-	ios::pos_type result = mFS.tellg();
-	mFS.seekg(cur, ios::beg);
-	return result;
-}
-
-bool InputFileSerializer::open(char const* path, bool bConsdierLegacy)
+bool InputFileSerializer::open(char const* path, bool bForceLegacy)
 {
 	using namespace std;
 	mFS.open(path, ios::binary);
 	if (!mFS.is_open())
 		return false;
 
-	std::ios::pos_type cur = mFS.tellg();
+	if (!bForceLegacy)
+	{
+		std::ios::pos_type cur = mFS.tellg();
 
-	FileStreamHeader header;
-	IStreamSerializer::read(header.magicCode);
-	if (header.magicCode == FLIE_MAGIC_CODE)
-	{
-		mFS.seekg(0, ios::beg);
-		IStreamSerializer::read(header);
-		mMasterVersion = header.masterVersion;
-		if (header.versionOffset)
+		FileStreamHeader header;
+		IStreamSerializer::read(header.magicCode);
+		if (header.magicCode == FLIE_MAGIC_CODE)
 		{
-			mVersionData = std::make_unique< FileVersionData >();
-			ios::pos_type cur = mFS.tellg();
-			mFS.seekg(header.versionOffset, ios::beg);
-			IStreamSerializer::read(*mVersionData.get());
-			mFS.seekg(cur, ios::beg);
+			mFS.seekg(0, ios::beg);
+			IStreamSerializer::read(header);
+			mMasterVersion = header.masterVersion;
+			if (header.versionOffset)
+			{
+				mVersionData = std::make_unique< FileVersionData >();
+				ios::pos_type cur = mFS.tellg();
+				mFS.seekg(header.versionOffset, ios::beg);
+				IStreamSerializer::read(*mVersionData.get());
+				mFS.seekg(cur, ios::beg);
+			}
 		}
-	}
-	else if ( bConsdierLegacy )
-	{
-		mFS.seekg(0, ios::beg);
+		else
+		{
+			mFS.seekg(0, ios::beg);
+		}
 	}
 
 	return true;
-	
+
 }
 
 void InputFileSerializer::read(void* ptr, size_t num)
@@ -131,6 +99,15 @@ void InputFileSerializer::write(void const* ptr, size_t num)
 
 }
 
+size_t InputFileSerializer::getSize()
+{
+	using namespace std;
+	ios::pos_type cur = mFS.tellg();
+	mFS.seekg(0, ios::end);
+	ios::pos_type result = mFS.tellg();
+	mFS.seekg(cur, ios::beg);
+	return result;
+}
 bool OutputFileSerializer::open(char const* path)
 {
 	using namespace std;
@@ -202,3 +179,39 @@ void OutputFileSerializer::writeVersionData()
 		}
 	}
 }
+
+#if 0
+bool IOFileSerializer::open(char const* path, bool bRemoveOldData /*= false */)
+{
+	using namespace std;
+	ios_base::openmode mode = ios::binary | ios::out | ios::in;
+	if (mFS.is_open())
+		return true;
+
+	mode |= bRemoveOldData ? ios::trunc : ios::app;
+	mFS.open(path, mode);
+	return mFS.is_open();
+}
+
+void IOFileSerializer::read(void* ptr, size_t num)
+{
+	if (mFS.good())
+		mFS.read((char*)ptr, (std::streamsize) num);
+}
+
+void IOFileSerializer::write(void const* ptr, size_t num)
+{
+	if (mFS.good())
+		mFS.write((char const*)ptr, (std::streamsize) num);
+}
+
+size_t IOFileSerializer::getSize()
+{
+	using namespace std;
+	ios::pos_type cur = mFS.tellg();
+	mFS.seekg(0, ios::end);
+	ios::pos_type result = mFS.tellg();
+	mFS.seekg(cur, ios::beg);
+	return result;
+}
+#endif

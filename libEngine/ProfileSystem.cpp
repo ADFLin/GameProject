@@ -37,13 +37,41 @@ private:
 
 CORE_API HighResClock  gProfileClock;
 
+struct TimeScopeResult
+{
+
+	~TimeScopeResult() = default;
+
+	std::string name;
+	std::vector< std::unique_ptr< TimeScopeResult > > children;
+	uint64 duration;
+
+	void logMsg(int level = 0)
+	{
+		if (level)
+		{
+			LogMsg("%*c%c%s = %.3f", 2 * level, ' ', '|-' , name.c_str(), duration / 1000.0f);
+		}
+		else
+		{
+			LogMsg("%s = %.3f", name.c_str(), duration / 1000.0f);
+		}
+		for (int i = 0; i < children.size(); ++i)
+		{
+			TimeScopeResult* child = children[i].get();
+			child->logMsg(level + 1);
+		}
+	}
+};
+
 #if CORE_SHARE_CODE
 
-thread_local int sStackCount = 0;
-CORE_API int& TimeScope::GetStaticCount()
+thread_local std::vector< TimeScopeResult* > sTimeScopeStacks;
+CORE_API std::vector< TimeScopeResult* >& TimeScope::GetResultStack()
 {
-	return sStackCount;
+	return sTimeScopeStacks;
 }
+
 
 #if 0
 Mutex gInstanceLock;
@@ -127,7 +155,6 @@ void ProfileSystemImpl::incrementFrameCount()
 {
 	++mFrameCounter;
 }
-
 
 float ProfileSystemImpl::getTimeSinceReset()
 {
@@ -485,22 +512,46 @@ void ThreadProfileData::cleanup()
 
 }
 
-TimeScope::TimeScope(char const* name)
+TimeScope::TimeScope(char const* name, bool bUseStack)
 {
-	level = GetStaticCount();
-	mName = name;
+	if (bUseStack)
+	{
+		mResult = new TimeScopeResult;
+		mResult->name = name;
+
+		auto& stack = GetResultStack();
+		stack.push_back(mResult);
+	}
+	else
+	{
+		mResult = nullptr;
+		mName = name;
+	}
+
 	Profile_GetTicks(&startTime);
-	++GetStaticCount();
 }
 
 TimeScope::~TimeScope()
 {
-	--GetStaticCount();
 	uint64 endTime;
 	Profile_GetTicks(&endTime);
-	if (level)
+
+	if (mResult)
 	{
-		LogMsg("%*c%s = %.3f", 2 * level , '-', mName, (endTime - startTime) / 1000.0f);
+		mResult->duration = endTime - startTime;
+		auto& stack = GetResultStack();
+		stack.pop_back();
+
+		if (stack.empty())
+		{
+			mResult->logMsg();
+			delete mResult;
+		}
+		else
+		{
+			TimeScopeResult* parent = stack.back();
+			parent->children.push_back(std::unique_ptr<TimeScopeResult>(mResult) );
+		}
 	}
 	else
 	{

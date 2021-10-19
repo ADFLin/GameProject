@@ -252,7 +252,7 @@ namespace Render
 		}
 
 		void emitPolygon(Vector2 v[], int numV, Color4f const& color);
-		void emitPolygonLine(Vector2 v[], int numV, Color4ub const& color, int lineWidth);
+		void emitPolygonLine(Vector2 v[], int numV, Color4f const& color, int lineWidth);
 
 		FORCEINLINE static uint32* FillTriangle(uint32* pIndices, int i0, int i1, int i2)
 		{
@@ -279,7 +279,7 @@ namespace Render
 		FORCEINLINE static uint32* FillQuad(uint32* pIndices, int i0, int i1, int i2, int i3)
 		{
 			pIndices = FillTriangle(pIndices, i0, i1, i2);
-			pIndices = FillTriangle(pIndices + 3, i0, i2, i3);
+			pIndices = FillTriangle(pIndices, i0, i2, i3);
 			return pIndices;
 		}
 

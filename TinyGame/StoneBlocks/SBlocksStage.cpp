@@ -13,7 +13,8 @@ namespace SBlocks
 	REGISTER_STAGE_ENTRY("Stone Blocks", TestStage, EExecGroup::Dev4, "Game");
 
 	TConsoleVariable< bool > CVarShowDebug{false, "SBlocks.ShowDebug", CVF_TOGGLEABLE};
-	TConsoleVariable< bool > CVarSolverEnableRejection{ true, "SBlocks.SolverUseRejectMethod", CVF_TOGGLEABLE };
+	TConsoleVariable< bool > CVarSolverEnableRejection{ true, "SBlocks.SolverEnableRejection", CVF_TOGGLEABLE };
+	TConsoleVariable< bool > CVarSolverEnableSortPiece{ true, "SBlocks.SolverEnableSortPiece", CVF_TOGGLEABLE };
 
 	void TestStage::restart()
 	{
@@ -208,7 +209,9 @@ namespace SBlocks
 		if (bFullSolve || bForceReset || mSolver == nullptr)
 		{
 			SolveOption option;
+			option.bEnableSortPiece = CVarSolverEnableSortPiece;
 			option.bEnableRejection = CVarSolverEnableRejection;
+			
 			TIME_SCOPE("Solver Setup");
 			mSolver = std::make_unique< Solver >();
 			mSolver->setup(mLevel, option);

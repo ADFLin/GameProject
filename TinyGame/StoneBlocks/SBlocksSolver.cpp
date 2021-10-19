@@ -60,21 +60,21 @@ namespace SBlocks
 		}
 	}
 
-	bool SolveData::advanceState(PieceSolveData& pieceData, int indexPiece)
+	bool SolveData::advanceState(ShapeSolveData& shapeSolveData, int indexPiece)
 	{
 		int& indexState = stateIndices[indexPiece];
 
 		if (indexState != INDEX_NONE)
 		{
-			PieceSolveState const& state = pieceData.states[indexState];
-			mMap.unlock(state.pos, pieceData.shape->mDataMap[state.dir]);
+			PieceSolveState const& state = shapeSolveData.states[indexState];
+			mMap.unlock(state.pos, shapeSolveData.shape->mDataMap[state.dir]);
 		}
 
 		++indexState;
-		while (indexState != pieceData.states.size())
+		while (indexState != shapeSolveData.states.size())
 		{
-			PieceSolveState const& state = pieceData.states[indexState];
-			if (mMap.tryLockAssumeInBound(state.pos, pieceData.shape->mDataMap[state.dir]))
+			PieceSolveState const& state = shapeSolveData.states[indexState];
+			if (mMap.tryLockAssumeInBound(state.pos, shapeSolveData.shape->mDataMap[state.dir]))
 			{
 				return true;
 			}
@@ -173,11 +173,13 @@ namespace SBlocks
 			sortedPieces.push_back(piece);
 		}
 
-		std::sort(sortedPieces.begin(), sortedPieces.end(), [](Piece* lhs, Piece* rhs)
+		if ( mUsedOption.bEnableSortPiece )
 		{
-			return lhs->shape->getBlockCount() > rhs->shape->getBlockCount();
-		});
-
+			std::sort(sortedPieces.begin(), sortedPieces.end(), [](Piece* lhs, Piece* rhs)
+			{
+				return lhs->shape->getBlockCount() > rhs->shape->getBlockCount();
+			});
+		}
 
 		if (mUsedOption.bEnableRejection)
 		{
@@ -220,18 +222,16 @@ namespace SBlocks
 				mPieceSizeMap[mapIndex] = &linkData;
 			}
 
-			mShapeList.resize(level.mShapes.size());
-			for (int index = 0; index < level.mShapes.size(); ++index)
-			{
-				PieceShape* shape = level.mShapes[index].get();
-				shape->indexSolve = index;
-				auto& shapeData = mShapeList[index];
-				for (int dir = 0; dir < 4; ++dir)
-				{
-					shapeData.outerConPosListMap[dir].clear();
-					shape->mDataMap[dir].generateOuterConPosList(shapeData.outerConPosListMap[dir]);
-				}
-			}
+		}
+
+		mShapeList.resize(level.mShapes.size());
+		for (int index = 0; index < level.mShapes.size(); ++index)
+		{
+			PieceShape* shape = level.mShapes[index].get();
+			auto& shapeSolveData = mShapeList[index];
+			shapeSolveData.shape = shape;
+			shapeSolveData.pieces.clear();
+			shape->indexSolve = index;
 		}
 
 		mSolveData.setup(level, mUsedOption);
@@ -240,30 +240,51 @@ namespace SBlocks
 		int const maxCompareShapeSize = 2 * mMinShapeBlockCount;
 		for (int indexPiece = 0; indexPiece < sortedPieces.size(); ++indexPiece)
 		{
-			int mapBlockRejectCount = 0;
-			int minConnectTilesRejectCount = 0;
-			int connectTileShapeRejectCount = 0;
-
 			Piece* piece = sortedPieces[indexPiece];
 			piece->indexSolve = indexPiece;
-
-			auto CheckPieceFunc = [piece](Piece* testPiece)
-			{
-				return testPiece != piece;
-			};
 
 			PieceSolveData& pieceData = mPieceList[indexPiece];
 			pieceData.piece = piece;
 			pieceData.shape = piece->shape;
-			pieceData.states.clear();
+
+			ShapeSolveData& shapeSolveData = mShapeList[piece->shape->indexSolve];
+			shapeSolveData.pieces.push_back(&pieceData);
+		}
+
+		//generate posible states
+		for (auto& shapeSolveData : mShapeList )
+		{
+			PieceShape* shape = shapeSolveData.shape;
+
+			if (mUsedOption.bEnableRejection && mUsedOption.bTestConnectTileShape)
+			{
+				for (int dir = 0; dir < 4; ++dir)
+				{
+					shapeSolveData.outerConPosListMap[dir].clear();
+					shape->mDataMap[dir].generateOuterConPosList(shapeSolveData.outerConPosListMap[dir]);
+				}
+			}
+
+			shapeSolveData.states.clear();
+
+			int mapBlockRejectCount = 0;
+			int minConnectTilesRejectCount = 0;
+			int connectTileShapeRejectCount = 0;
+
+			auto CheckPieceFunc = [&shapeSolveData, shape](Piece* testPiece)
+			{
+				if (shape != testPiece->shape)
+					return true;
+				return shapeSolveData.pieces.size() > 1;
+			};
 
 			int dirs[4];
-			int numDir = pieceData.shape->getDifferentShapeDirs(dirs);
-			for( int i = 0 ; i < numDir; ++i )
+			int numDir = shape->getDifferentShapeDirs(dirs);
+			for (int i = 0; i < numDir; ++i)
 			{
 				uint8 dir = dirs[i];
 
-				PieceShapeData& shapeData = pieceData.shape->mDataMap[dir];
+				PieceShapeData& shapeData = shape->mDataMap[dir];
 				Vec2i posMax = mSolveData.mMap.getBoundSize() - shapeData.boundSize;
 				Vec2i pos;
 				for (pos.y = 0; pos.y <= posMax.y; ++pos.y)
@@ -283,11 +304,11 @@ namespace SBlocks
 								mSolveData.mMap.lockChecked(pos, shapeData);
 
 								ERejectResult::Type result = mSolveData.testRejection(*this, pos,
-									mShapeList[pieceData.shape->indexSolve].outerConPosListMap[dir], 
+									shapeSolveData.outerConPosListMap[dir],
 									mUsedOption, maxCompareShapeSize, CheckPieceFunc);
 
 								mSolveData.mMap.unlock(pos, shapeData);
-							
+
 								if (result != ERejectResult::None)
 								{
 #if SBLOCK_LOG_SOLVE_INFO
@@ -308,7 +329,7 @@ namespace SBlocks
 							PieceSolveState lockState;
 							lockState.pos = pos;
 							lockState.dir = dir;
-							pieceData.states.push_back(lockState);
+							shapeSolveData.states.push_back(lockState);
 
 						} while (0);
 					}
@@ -317,9 +338,9 @@ namespace SBlocks
 
 #if SBLOCK_LOG_SOLVE_INFO
 			int totalRejectCount = mapBlockRejectCount + minConnectTilesRejectCount + connectTileShapeRejectCount;
-			LogMsg("%d)Piece %d - State = %d, Reject: Total = %d, MapBlock = %d, MinConnectTiles = %d, ConnectTileShape = %d", 
-				indexPiece, piece->index , (int)pieceData.states.size() ,
-				totalRejectCount, mapBlockRejectCount, minConnectTilesRejectCount , connectTileShapeRejectCount);
+			LogMsg("Shape %d - State = %d, Reject: Total = %d, MapBlock = %d, MinConnectTiles = %d, ConnectTileShape = %d",
+				shape->indexSolve, (int)shapeSolveData.states.size(),
+				totalRejectCount, mapBlockRejectCount, minConnectTilesRejectCount, connectTileShapeRejectCount);
 #endif
 		}
 	}
@@ -345,16 +366,17 @@ namespace SBlocks
 		while (index >= startIndex)
 		{
 			PieceSolveData& pieceData = mPieceList[index];
-			if (mSolveData.advanceState(pieceData, index))
+			ShapeSolveData& shapeSolveData = mShapeList[pieceData.shape->indexSolve];
+			if (mSolveData.advanceState(shapeSolveData, index))
 			{
 				if ( mUsedOption.bEnableRejection )
 				{
 					if (1 <= index && index < 2 * mPieceList.size() / 3)
 					{
-						PieceSolveState const& state = pieceData.states[mSolveData.stateIndices[index]];
+						PieceSolveState const& state = shapeSolveData.states[mSolveData.stateIndices[index]];
 
 						auto result = mSolveData.testRejection(*this, state.pos,
-							mShapeList[pieceData.shape->indexSolve].outerConPosListMap[state.dir],
+							shapeSolveData.outerConPosListMap[state.dir],
 							mUsedOption, maxCompareShapeSize, CheckPieceFunc);
 
 						if (result != ERejectResult::None)

@@ -274,21 +274,21 @@ public:
 	CORE_API ~ProfileSampleScope( void );
 };
 
-
+struct TimeScopeResult;
 struct TimeScope
 {
-	TimeScope(char const* name);
+	TimeScope(char const* name , bool bUseStack = true);
 	~TimeScope();
 
 private:
 	uint64 startTime;
+	CORE_API std::vector< TimeScopeResult* >& GetResultStack();
 
-	CORE_API static int& GetStaticCount();
-	int level;
 	char const* mName;
+	TimeScopeResult* mResult;
 };
 
-#define TIME_SCOPE( NAME ) TimeScope ANONYMOUS_VARIABLE(timeScope)( NAME );
+#define TIME_SCOPE( NAME , ... ) TimeScope ANONYMOUS_VARIABLE(timeScope)( NAME , ##__VA_ARGS__ );
 
 
 

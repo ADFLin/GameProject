@@ -1,6 +1,7 @@
 #include "SBlocksStage.h"
 
 #include "SBlocksSerialize.h"
+#include "SBlocksLevelData.h"
 
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
@@ -11,291 +12,8 @@ namespace SBlocks
 {
 	REGISTER_STAGE_ENTRY("Stone Blocks", TestStage, EExecGroup::Dev4, "Game");
 
-	TConsoleVariable< bool > CVarShowDebug(false, "SBlocks.ShowDebug", CVF_TOGGLEABLE);
-
-	constexpr uint8 MakeByte(uint8 b0) { return b0; }
-	template< typename ...Args >
-	constexpr uint8 MakeByte(uint8 b0, Args ...args) { return b0 | ( MakeByte(args...) << 1 ); }
-
-#define M(...) MakeByte( __VA_ARGS__ )
-
-	LevelDesc TestLv =
-	{
-		//map
-		{ 
-			5 , 
-			{ 
-				M(0,0,0,0,0),
-				M(0,0,0,0,0),
-				M(0,0,0,1,0),
-				M(0,0,0,0,0),
-				M(0,0,0,0,0),
-			} 
-		} ,
-
-		//shape
-		{
-			{
-				3,
-				{
-					M(1,1,1),
-					M(0,1,0),
-				},
-				true, {1.5 , 0.5},
-			},
-			{
-				3,
-				{
-					M(0,1,1),
-					M(1,1,0),
-				},
-				true, {1.5 , 1.0},
-			},
-			{
-				3,
-				{
-					M(1,0,0),
-					M(1,1,1),
-				},
-				true, {1.5 , 1},
-			},
-			{
-				2,
-				{
-					M(1,1),
-				},
-				true, {1 , 0.5},
-			},
-			{
-				3,
-				{
-					M(1,1,1),
-				},
-				true, {1.5 , 0.5},
-			},
-			{
-				2,
-				{
-					M(1,1),
-					M(1,0),
-				},
-				true, {0.5 , 0.5},
-			},
-			{
-				2,
-				{
-					M(1,1),
-					M(1,1),
-				},
-				true, {1 , 1},
-			},
-		},
-
-		//piece
-		{
-			{0},
-			{1},
-			{2},
-			{3},
-			{4},
-			{5},
-			{6},
-		}
-	};
-
-	LevelDesc TestLv2 =
-	{
-		//map
-		{
-			6 ,
-			{
-				M(0,0,0,0,0,0),
-				M(0,0,0,0,0,0),
-				M(0,0,1,0,0,0),
-				M(0,0,0,0,0,0),
-				M(0,0,0,0,0,1),
-			}
-		} ,
-
-		//shape
-		{
-			{
-				3,
-				{
-					M(1,1,1),
-					M(0,1,0),
-				},
-				true, {1.5 , 0.5},
-			},
-			{
-				3,
-				{
-					M(0,1,1),
-					M(1,1,0),
-				},
-				true, {1.5 , 1.0},
-			},
-			{
-				3,
-				{
-					M(1,0,0),
-					M(1,1,1),
-				},
-				true, {1.5 , 1},
-			},
-			{
-				2,
-				{
-					M(1,1),
-				},
-				true, {1 , 0.5},
-			},
-			{
-				3,
-				{
-					M(1,1,1),
-				},
-				true, {1.5 , 0.5},
-			},
-			{
-				2,
-				{
-					M(1,1),
-					M(1,0),
-				},
-				true, {0.5 , 0.5},
-			},
-			{
-				2,
-				{
-					M(1,1),
-					M(1,1),
-				},
-				true, {1 , 1},
-			},
-
-			{
-				5,
-				{
-					M(1,1,1,1),
-				},
-				true, {2.5 , 0.5},
-			},
-		},
-
-		//piece
-		{
-			{7},
-			{0},
-			{1},
-			{2},
-			{3},
-			{4},
-			{5},
-			{6},
-
-		}
-	};
-
-	LevelDesc TestLv3 =
-	{
-		//map
-		{
-			8 ,
-			{
-				M(0,0,0,0,0,0,0,1),
-				M(0,0,0,0,0,0,0,1),
-				M(1,0,0,0,0,0,1,1),
-				M(1,0,1,0,0,0,1,1),
-				M(1,0,0,0,0,0,0,0),
-				M(0,0,0,0,0,0,0,0),
-				M(0,0,0,0,0,0,0,0),
-				M(0,0,0,0,0,0,0,0),
-			}
-		} ,
-
-		//shape
-		{
-			{
-				5,
-				{
-					M(1,1,0,0,0),
-					M(0,1,1,1,1),
-				},
-				true, {2.5 , 1.0},
-			},
-			{
-				4,
-				{
-					M(0,0,1,1),
-					M(1,1,1,1),
-				},
-				true, {2.0 , 1.0},
-			},
-			{
-				3,
-				{
-					M(0,1,1),
-					M(0,1,1),
-					M(1,1,1),
-				},
-				true, {1.5 , 1.5},
-			},
-			{
-				3,
-				{
-					M(1,1,0),
-					M(1,1,1),
-					M(1,1,1),
-				},
-				true, {1.5 , 1.5},
-			},
-			{
-				2,
-				{
-					M(0,1),
-					M(0,1),
-					M(1,1),
-				},
-				true, {1 , 1.5},
-			},
-			{
-				4,
-				{
-					M(1,1,0,0),
-					M(1,1,0,0),
-					M(1,1,1,0),
-					M(1,1,1,1),
-					M(1,1,1,1),
-				},
-				true, {2 , 2.5},
-			},
-			{
-				4,
-				{
-					M(0,0,1,1),
-					M(0,0,1,1),
-					M(1,1,1,1),
-				},
-				true, {2.5 , 1.5},
-			},
-		},
-
-		//piece
-		{
-			{0},
-			{1},
-			{2},
-			{3},
-			{4},
-			{5},
-			{6},
-			{7},
-		}
-	};
-
-#undef M
-
+	TConsoleVariable< bool > CVarShowDebug{false, "SBlocks.ShowDebug", CVF_TOGGLEABLE};
+	TConsoleVariable< bool > CVarSolverEnableRejection{ true, "SBlocks.SolverUseRejectMethod", CVF_TOGGLEABLE };
 
 	void TestStage::restart()
 	{
@@ -403,7 +121,7 @@ namespace SBlocks
 				g.pushXForm();
 				g.identityXForm();
 
-				Vector2 pos = mLocalToWorld.transformPosition(piece->getLTCornerPos());
+				Vector2 pos = mLocalToWorld.transformPosition( piece->xFormRender.transformPosition(piece->shape->pivot) );
 				g.drawText(pos, InlineString<>::Make( "%d", piece->index ) );
 				g.popXForm();
 			}
@@ -480,14 +198,34 @@ namespace SBlocks
 
 	}
 
-	void TestStage::solveLevel(bool bForceReset)
+	void TestStage::solveLevel(int option)
 	{
+		bool bForceReset = option == 1;
+		bool bFullSolve = option == 2;
 		TIME_SCOPE("Solve Level");
-		bool bSuccess;
-		if (mSolver == nullptr || bForceReset)
+
+		bool bFristSolve = false;
+		if (bFullSolve || bForceReset || mSolver == nullptr)
 		{
+			SolveOption option;
+			option.bEnableRejection = CVarSolverEnableRejection;
+			TIME_SCOPE("Solver Setup");
 			mSolver = std::make_unique< Solver >();
-			mSolver->setup(mLevel);
+			mSolver->setup(mLevel, option);
+			bFristSolve = true;
+		}
+
+		if (bFullSolve)
+		{
+			int numSolutions = mSolver->solveAll();
+			LogMsg("Solve level %d Solution !", numSolutions);
+			mSolver.release();
+			return;
+		}
+
+		bool bSuccess;
+		if (bFristSolve)
+		{
 			bSuccess = mSolver->solve();
 		}
 		else
@@ -505,9 +243,9 @@ namespace SBlocks
 			for (int i = 0; i < mLevel.mPieces.size(); ++i)
 			{
 				Piece* piece = mLevel.mPieces[i].get();
-				auto const& state = sovledStates[i];
-				LogMsg("%d = (%d, %d) dir = %d", i , state.pos.x , state.pos.y , state.dir );
-				piece->dir = DirType::ValueChecked(state.dir );
+				auto const& state = sovledStates[piece->indexSolve];
+				LogMsg("%d = (%d, %d) dir = %d", i, state.pos.x, state.pos.y, state.dir);
+				piece->dir = DirType::ValueChecked(state.dir);
 				piece->angle = piece->dir * Math::PI / 2;
 				piece->updateTransform();
 				Vector2 pos = piece->getLTCornerPos();

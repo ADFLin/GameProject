@@ -399,7 +399,7 @@ namespace SBlocks
 
 		void onRender(float dFrame) override;
 
-		void solveLevel(bool bForceReset);
+		void solveLevel(int option);
 
 
 		Piece* selectedPiece = nullptr;

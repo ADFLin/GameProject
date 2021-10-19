@@ -321,7 +321,7 @@ public:
 	CORE_API bool        initialize();
 	CORE_API void        finalize();
 
-	CORE_API bool        executeCommand(char const* comStr);
+	CORE_API bool        executeCommand(char const* inCmdText);
 	CORE_API int         findCommandName( char const* includeStr, char const** findStr , int maxNum );
 	CORE_API int         findCommandName2( char const* includeStr , char const** findStr , int maxNum );
 
@@ -379,13 +379,14 @@ protected:
 	struct ExecuteContext
 	{
 		InlineString<512> buffer;
-		ConsoleCommandBase*    command;
+		ConsoleCommandBase* command;
 
-		char const* commandString;
+		char const* cmdText;
+		char const* cmdName;
 		char const* paramStrings[NumMaxParams];
 		int  numArgs;
 		int  numUsedParam;
-		bool init(char const* inCommandString);
+		bool init(char const* inCmdText);
 
 		std::string errorMsg;
 	};

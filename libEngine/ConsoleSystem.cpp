@@ -139,21 +139,18 @@ void ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 		delete com;
 }
 
-bool ConsoleSystem::executeCommand(char const* comStr)
+bool ConsoleSystem::executeCommand(char const* inCmdText)
 {
 	ExecuteContext context;
-	if (!context.init(comStr))
+	if (!context.init(inCmdText))
 		return false;
 
 	bool result = executeCommandImpl(context);
-	if( !result )
+	if (!result)
 	{
-		LogMsg("Com : Fail \"%s\" : %s", comStr, context.errorMsg.c_str());
+		LogMsg("Com : Fail \"%s\" : %s", inCmdText, context.errorMsg.c_str());
 	}
-	else
-	{
-		LogMsg("Execute Com : \"%s\"", comStr);
-	}
+
 	return result;
 }
 
@@ -171,7 +168,7 @@ ConsoleCommandBase* ConsoleSystem::findCommand(char const* str)
 bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 {
 
-	context.command = findCommand(context.commandString);
+	context.command = findCommand(context.cmdName);
 	if( context.command == nullptr )
 	{
 		context.errorMsg = "Unknown executeCommand";
@@ -251,6 +248,7 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 		pData += arg.size;
 	}
 
+	LogMsg("Execute Com : \"%s\"", context.cmdText);
 	context.command->execute(argData);
 
 	return true;
@@ -380,11 +378,12 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 	return fillSize != 0;
 }
 
-bool ConsoleSystem::ExecuteContext::init(char const* inCommandString)
+bool ConsoleSystem::ExecuteContext::init(char const* inCmdText)
 {
+	cmdText = inCmdText;
 	numArgs = 0;
 	numUsedParam = 0;
-	buffer = inCommandString;
+	buffer = inCmdText;
 	StringView token;
 	char const* data = buffer;
 	if( !FStringParse::StringToken(data, " ", token) )
@@ -395,7 +394,8 @@ bool ConsoleSystem::ExecuteContext::init(char const* inCommandString)
 		*const_cast<char*>(token.data() + token.length()) = 0;
 		++data;
 	}
-	commandString = token.data();
+
+	cmdName = token.data();
 
 	while( FStringParse::StringToken(data, " ", token))
 	{

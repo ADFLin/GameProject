@@ -145,6 +145,11 @@ namespace Math
 			return true;
 		}
 
+		Matrix2 transpose() const
+		{
+			return Matrix2(mValues[0], mValues[2], mValues[1], mValues[3]);
+		}
+
 		FORCEINLINE void leftScale(Vector2 const& s)
 		{
 #if USE_MATH_SIMD
@@ -182,6 +187,7 @@ namespace Math
 
 		float& operator()(int i, int j) { return mM[i][j]; }
 		float  operator()(int i, int j) const { return mM[i][j]; }
+
 
 	private:
 		union

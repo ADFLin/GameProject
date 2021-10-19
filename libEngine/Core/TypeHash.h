@@ -48,6 +48,12 @@ inline void HashCombine(uint32& seed, const T& v)
 	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
+inline uint32 CombineHash(uint32 a, uint32 b)
+{
+	a ^= b + 0x9e3779b9 + (a << 6) + (a >> 2);
+	return a;
+}
+
 struct MemberFuncHasher
 {
 	template< class T >

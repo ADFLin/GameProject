@@ -1,6 +1,7 @@
 #include "SBlocksCore.h"
 
 #include "LogSystem.h"
+#include "Core/TypeHash.h"
 
 namespace SBlocks
 {
@@ -54,22 +55,52 @@ namespace SBlocks
 
 			return false;
 		});
+
+#if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
+		blockHash = 0xcab129de1;
+		for (auto const& block : blocks)
+		{
+			HashCombine(blockHash, block.x);
+			HashCombine(blockHash, block.y);
+		}
+#endif
+	}
+
+	void PieceShapeData::generateOuterConPosList(std::vector< Int16Point2D >& outPosList)
+	{
+		for (auto const& block : blocks)
+		{
+			for (int i = 0; i < 4; ++i)
+			{
+				Int16Point2D pos = block + GConsOffsets[i];
+
+				auto iter = std::find(blocks.begin(), blocks.end(), pos);
+				if (iter == blocks.end())
+				{
+					outPosList.push_back(pos);
+				}
+			}
+		}
 	}
 
 	bool PieceShapeData::operator==(PieceShapeData const& rhs) const
 	{
-		if (boundSize != rhs.boundSize)
-			return false;
-
 		if (blocks.size() != rhs.blocks.size())
+			return false;
+#if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
+		if (blockHash != rhs.blockHash)
+			return false;
+#endif
+		if (boundSize != rhs.boundSize)
 			return false;
 
 		for (int i = 0; i < blocks.size(); ++i)
 		{
 			if (blocks[i] != rhs.blocks[i])
+			{
 				return false;
+			}
 		}
-
 		return true;
 	}
 

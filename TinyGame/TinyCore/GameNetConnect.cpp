@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-TConsoleVariable<bool> CVarClUseConnectedUDP(true, "cl.UseConnectedUDP");
+TConsoleVariable<bool> CVarClUseConnectedUDP{ true, "cl.UseConnectedUDP" };
 
 void NetConnection::recvData( NetBufferOperator& bufCtrl , int len , NetAddress* addr )
 {

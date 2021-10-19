@@ -10,8 +10,16 @@ namespace SBlocks
 
 	struct SolveOption
 	{
+		bool bEnableRejection;
 		bool bTestMinConnectTiles;
 		bool bTestConnectTileShape;
+
+		SolveOption()
+		{
+			bEnableRejection = true;
+			bTestMinConnectTiles = true;
+			bTestConnectTileShape = true;
+		}
 	};
 
 
@@ -27,7 +35,6 @@ namespace SBlocks
 		Piece* piece;
 		PieceShape* shape;
 		std::vector< PieceSolveState > states;
-		int index;
 	};
 
 	namespace ERejectResult
@@ -50,14 +57,14 @@ namespace SBlocks
 		std::vector< PieceLink >  mPieceLinkData;
 		std::vector< PieceLink* > mPieceSizeMap;
 		std::vector< PieceSolveData > mPieceList;
-		int minShapeBlockCount;
-		int maxShapeBlockCount;
 
-
-		void setup(Level& level, SolveOption const& option)
+		struct ShapeSolveData
 		{
-
-		}
+			std::vector< Int16Point2D > outerConPosListMap[4];
+		};
+		std::vector< ShapeSolveData > mShapeList;
+		int mMinShapeBlockCount;
+		int mMaxShapeBlockCount;
 
 	};
 
@@ -72,25 +79,27 @@ namespace SBlocks
 		struct ShapeTest
 		{
 			Vec2i pos;
-			int   count;
 			int   mapIndex;
 		};
 		std::vector< ShapeTest > mCachedPendingTests;
 
 		void setup(Level& level, SolveOption const& option);
 		int  countConnectTiles(Vec2i const& pos);
-		void getConnectedTilePosList(Vec2i const& pos, std::vector< Int16Point2D >& outPosList);
+		void getConnectedTilePosList(Vec2i const& pos);
 		bool advanceState(PieceSolveData& pieceData, int indexPiece);
 
-		template< typename TFunc >
-		ERejectResult::Type testRejection(GlobalSolveData& globalData, Vec2i const pos,  PieceShapeData& shapeData, SolveOption const& option, TFunc func);
+		template< typename TFunc > 
+		ERejectResult::Type testRejection(
+			GlobalSolveData& globalData, Vec2i const pos, 
+			std::vector< Int16Point2D > const& outerConPosList, SolveOption const& option, 
+			int maxCompareShapeSize, TFunc CheckPieceFunc);
 	};
 
 
 	class Solver : public GlobalSolveData
 	{
 	public:
-		void setup(Level& level);
+		void setup(Level& level, SolveOption const& option = SolveOption());
 		bool solve()
 		{
 			return solveImpl(0, 0) >= 0;
@@ -99,6 +108,21 @@ namespace SBlocks
 		{
 			return solveImpl(mPieceList.size() - 1, 0) >= 0;
 		}
+
+		int  solveAll()
+		{
+			int numSolution = 0;
+			if (!solve())
+				return 0;
+
+			++numSolution;
+			while (solveNext())
+			{
+				++numSolution;
+			}
+			return numSolution;
+		}
+
 		int  solveImpl(int index, int startIndex);
 
 		void getSolvedStates(std::vector< PieceSolveState >& outStates)
@@ -119,7 +143,8 @@ namespace SBlocks
 			MarkMap map;
 			std::vector<int> stateIndices;
 		};
-		SolveData mSolveData;
+		SolveData   mSolveData;
+		SolveOption mUsedOption;
 
 		void solveParallel(int numTheads);
 

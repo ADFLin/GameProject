@@ -394,7 +394,6 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 
 	Vector2 extent = mFont->calcTextExtent(str);
 	int fontSize = mFont->getSize();
-	int strLen = strlen(str);
 	Vector2 renderPos = pos + (size - extent) / 2;
 	drawTextImpl(renderPos.x, renderPos.y, str);
 
@@ -406,7 +405,7 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 
 
 template< typename CharT >
-void RHIGraphics2D::drawTextImpl(float  ox, float  oy, CharT const* str)
+void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str)
 {
 	assert(mFont);
 

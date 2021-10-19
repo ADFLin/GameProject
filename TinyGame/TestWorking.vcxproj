@@ -241,6 +241,7 @@
   <ItemGroup>
     <ClInclude Include="Chess\ChessCore.h" />
     <ClInclude Include="StoneBlocks\SBlocksCore.h" />
+    <ClInclude Include="StoneBlocks\SBlocksLevelData.h" />
     <ClInclude Include="StoneBlocks\SBlocksSerialize.h" />
     <ClInclude Include="StoneBlocks\SBlocksSolver.h" />
     <ClInclude Include="StoneBlocks\SBlocksStage.h" />

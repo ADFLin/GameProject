@@ -23,6 +23,13 @@ namespace SBlocks
 	using Math::Matrix2;
 	using Math::Vector2;
 
+
+	const Int16Point2D GConsOffsets[8] = {
+		Int16Point2D(1,0) , Int16Point2D(0,1) , Int16Point2D(-1,0) , Int16Point2D(0,-1),
+		Int16Point2D(1,1) , Int16Point2D(-1,1) , Int16Point2D(-1,-1) , Int16Point2D(1,-1)
+	};
+
+
 	class FBitGird
 	{
 	public:
@@ -105,28 +112,34 @@ namespace SBlocks
 
 	using AABB = ::Math::TAABBox< Int16Point2D >;
 
-
+#define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 0
 	struct PieceShapeData
 	{
 		Vec2i boundSize;
 		std::vector< Int16Point2D > blocks;
-
+#if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
+		uint32 blockHash;
+#endif
 		void initialize(PieceShapeDesc const& desc);
 
 		void sortBlocks();
 
 		bool operator == (PieceShapeData const& rhs) const;
+
+		void generateOuterConPosList(std::vector< Int16Point2D >& outPosList);
+
 	};
 
 
 	struct PieceShape
 	{
-
 		struct Line
 		{
 			Int16Point2D start;
 			Int16Point2D end;
 		};
+
+		int indexSolve;
 		std::vector< Line > outlines;
 
 		int findSameShape(PieceShapeData const& data);
@@ -174,6 +187,7 @@ namespace SBlocks
 		bool bLocked;
 
 		int index = 0;
+		int indexSolve;
 		EColor::Name color;
 		RenderTransform2D xform;
 		RenderTransform2D xFormRender;

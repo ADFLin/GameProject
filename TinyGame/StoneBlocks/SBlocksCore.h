@@ -30,6 +30,20 @@ namespace SBlocks
 	};
 
 
+	FORCEINLINE Matrix2 GetRotation(DirType dir)
+	{
+		switch (dir)
+		{
+		case 0: return Matrix2::Identity();
+		case 1: return Matrix2(0, 1, -1, 0);
+		case 2: return Matrix2(-1, 0, 0, -1);
+		case 3: return Matrix2(0, -1, 1, 0);
+		}
+		NEVER_REACH("GetRotation");
+		return Matrix2::Identity();
+	}
+
+
 	class FBitGird
 	{
 	public:
@@ -122,32 +136,33 @@ namespace SBlocks
 #endif
 		void initialize(PieceShapeDesc const& desc);
 
-		void sortBlocks();
+		void standardizeBlocks();
 
 		bool operator == (PieceShapeData const& rhs) const;
 
-		void generateOuterConPosList(std::vector< Int16Point2D >& outPosList);
-
-	};
-
-
-	struct PieceShape
-	{
 		struct Line
 		{
 			Int16Point2D start;
 			Int16Point2D end;
 		};
 
+		void generateOuterConPosList(std::vector< Int16Point2D >& outPosList);
+		void generateOutline(std::vector<Line>& outlines);
+	};
+
+
+	struct PieceShape
+	{
+
 		int indexSolve;
-		std::vector< Line > outlines;
+		std::vector< PieceShapeData::Line > outlines;
 
 		int findSameShape(PieceShapeData const& data);
 		int getBlockCount() const
 		{
 			return mDataMap[0].blocks.size();
 		}
-		void generateOutline();
+
 
 		Int16Point2D boundSize;
 		PieceShapeData mDataMap[DirType::RestNumber];
@@ -178,13 +193,20 @@ namespace SBlocks
 			NEVER_REACH("dir value always in 0-3");
 			return Vec2i::Zero();
 		}
+
+		Vector2 getLTCornerOffset(DirType inDir)
+		{
+			Vector2 lPos = getCornerPos(inDir);
+			return pivot + GetRotation(inDir).leftMul(lPos - pivot);
+		}
+
 	};
 
 	struct Piece
 	{
 		PieceShape* shape;
 		DirType dir;
-		bool bLocked;
+
 
 		int index = 0;
 		int indexSolve;
@@ -196,29 +218,14 @@ namespace SBlocks
 
 		int clickFrame = 0;
 
-
-		Vector2 getLTCornerOffset() const
-		{
-			return getLTCornerPos() - pos;
-		}
+		int indexMapLocked = INDEX_NONE;
+		Int16Point2D mapPosLocked;
+		bool isLocked() const { return indexMapLocked != INDEX_NONE; }
 
 		Vector2 getLTCornerPos() const
 		{
 			Vector2 lPos = shape->getCornerPos(dir);
 			return xform.transformPosition(lPos);
-		}
-
-		static Matrix2 GetRotation(DirType dir)
-		{
-			switch (dir)
-			{
-			case 0: return Matrix2::Identity();
-			case 1: return Matrix2(0, 1, -1, 0);
-			case 2: return Matrix2(-1, 0, 0, -1);
-			case 3: return Matrix2(0,-1, 1 ,0);
-			}
-			NEVER_REACH("GetRotation");
-			return Matrix2::Identity();
 		}
 
 		void updateTransform()
@@ -236,7 +243,7 @@ namespace SBlocks
 
 		bool hitTest(Vector2 const& pos, Vector2& outHitLocalPos)
 		{
-			Vector2 lPos = xform.inverse().transformPosition(pos);
+			Vector2 lPos = xFormRender.inverse().transformPosition(pos);
 
 			auto const& shapeData = shape->mDataMap[0];
 			for (auto const& block : shapeData.blocks)
@@ -257,6 +264,7 @@ namespace SBlocks
 	{
 		int sizeX;
 		std::vector< uint8 > data;
+		Vector2 pos;
 
 		template< class OP >
 		void serialize(OP& op);
@@ -272,12 +280,12 @@ namespace SBlocks
 			PIECE_BLOCK = 2,
 		};
 
-		int getValue(int x, int y)
+		int getValue(int x, int y) const
 		{
 			return mData(x, y);
 		}
 
-		int getValue(Vec2i const& pos)
+		int getValue(Vec2i const& pos) const
 		{
 			return mData(pos.x, pos.y);
 		}
@@ -308,7 +316,9 @@ namespace SBlocks
 
 		void toggleDataType(Vec2i const& pos);
 
-		void copy(MarkMap const& rhs, bool bInitState = false);
+		void copyFrom(MarkMap const& rhs, bool bInitState = false);
+
+		Vector2 mPos;
 		int numBlockLocked;
 		int numTotalBlocks;
 		TGrid2D<uint8> mData;
@@ -328,7 +338,7 @@ namespace SBlocks
 
 	struct LevelDesc
 	{
-		MapDesc map;
+		std::vector< MapDesc > maps;
 		std::vector<PieceShapeDesc> shapes;
 		std::vector<PieceDesc> pieces;
 
@@ -362,6 +372,7 @@ namespace SBlocks
 		std::vector< std::unique_ptr< PieceShape > > mShapes;
 
 		MarkMap mMap;
+		std::vector< MarkMap > mMaps;
 	};
 
 }//namespace SBlock

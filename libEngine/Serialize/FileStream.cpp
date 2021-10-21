@@ -108,6 +108,18 @@ size_t InputFileSerializer::getSize()
 	mFS.seekg(cur, ios::beg);
 	return result;
 }
+
+OutputFileSerializer::~OutputFileSerializer()
+{
+	if (mFS.is_open())
+	{
+		if (mbNeedWriteVersionData)
+		{
+			writeVersionData();
+		}
+	}
+}
+
 bool OutputFileSerializer::open(char const* path)
 {
 	using namespace std;
@@ -119,6 +131,15 @@ bool OutputFileSerializer::open(char const* path)
 	header.init();
 	IStreamSerializer::write(header);
 	return true;
+}
+
+void OutputFileSerializer::close()
+{
+	if (mbNeedWriteVersionData)
+	{
+		writeVersionData();
+	}
+	mFS.close();
 }
 
 void OutputFileSerializer::read(void* ptr, size_t num)
@@ -145,6 +166,7 @@ void OutputFileSerializer::registerVersion(HashString name, int32 version)
 			mVersionData = std::make_unique< FileVersionData >();
 		}
 		mVersionData->addVersion(name, version);
+		mbNeedWriteVersionData = true;
 	}
 }
 

@@ -50,7 +50,7 @@ struct TimeScopeResult
 	{
 		if (level)
 		{
-			LogMsg("%*c%c%s = %.3f", 2 * level, ' ', '|-' , name.c_str(), duration / 1000.0f);
+			LogMsg("%*c%s%s = %.3f", 2 * level, ' ', "|-" , name.c_str(), duration / 1000.0f);
 		}
 		else
 		{

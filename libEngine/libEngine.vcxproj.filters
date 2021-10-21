@@ -1335,6 +1335,9 @@
     <ClInclude Include="Template\ConstString.h">
       <Filter>Template</Filter>
     </ClInclude>
+    <ClInclude Include="Algo\Combination.h">
+      <Filter>Algo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

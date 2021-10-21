@@ -19,17 +19,27 @@ namespace SBlocks
 	{
 
 		Level mLevel;
-		RenderTransform2D mLocalToWorld;
-		RenderTransform2D mWorldToLocal;
+		RenderTransform2D mWorldToScreen;
+		RenderTransform2D mScreenToWorld;
 
 		void resetRenderParams()
 		{
 			constexpr float BlockLen = 32;
 			constexpr Vector2 BlockSize = Vector2(BlockLen, BlockLen);
+			Vector2 screenPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMaps[0].getBoundSize())));
+			if (mLevel.mMaps.size() == 1)
+			{
+				screenPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMaps[0].getBoundSize())));
+			}
+			else
+			{
+				//TODO
 
-			Vector2 worldPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMap.getBoundSize())));
-			mLocalToWorld = RenderTransform2D(BlockSize, worldPos);
-			mWorldToLocal = mLocalToWorld.inverse();
+
+			}
+
+			mWorldToScreen = RenderTransform2D(BlockSize, screenPos);
+			mScreenToWorld = mWorldToScreen.inverse();
 		}
 		bool bPiecesOrderDirty;
 		std::vector< Piece* > mSortedPieces;
@@ -62,9 +72,9 @@ namespace SBlocks
 				std::sort(mSortedPieces.begin(), mSortedPieces.end(),
 					[](Piece* lhs, Piece* rhs) -> bool
 					{
-						if (lhs->bLocked == rhs->bLocked)
+						if (lhs->isLocked() == rhs->isLocked())
 							return lhs->clickFrame < rhs->clickFrame;
-						return lhs->bLocked;
+						return lhs->isLocked();
 					}
 				);
 			}
@@ -150,20 +160,26 @@ namespace SBlocks
 			unregisterCommand();
 		}
 
-		bool onMouse(MouseMsg const& msg, Vector2 const& lPos , Piece* piece)
+		bool onMouse(MouseMsg const& msg, Vector2 const& worldPos , Piece* piece)
 		{
 			if ( msg.onLeftDown() )
 			{
 				if (piece == nullptr)
 				{
-					Vec2i mapPos;
-					mapPos.x = lPos.x;
-					mapPos.y = lPos.y;
-					if (mGame->mLevel.mMap.isInBound(mapPos))
+					for (int i = 0; i < mGame->mLevel.mMaps.size(); ++i)
 					{
-						mGame->mLevel.mMap.toggleDataType(mapPos);
-						return false;
+						MarkMap& map = mGame->mLevel.mMaps[i];
+						Vector2 lPos = worldPos - map.mPos;
+						Vec2i mapPos;
+						mapPos.x = worldPos.x;
+						mapPos.y = worldPos.y;
+						if (map.isInBound(mapPos))
+						{
+							map.toggleDataType(mapPos);
+							return false;
+						}
 					}
+
 				}
 			}
 
@@ -207,12 +223,14 @@ namespace SBlocks
 			console.unregisterAllCommandsByObject(this);
 		}
 
-		void setMapSize(int x, int y)
+		void setMapSize(int x, int y , int index)
 		{
-			mGame->mLevel.mMap.resize(x, y);
-			mGame->resetRenderParams();
+			if (IsValidIndex(mGame->mLevel.mMaps, index))
+			{
+				mGame->mLevel.mMaps[index].resize(x, y);
+				mGame->resetRenderParams();
+			}
 		}
-
 
 		void addPiece(int id)
 		{
@@ -416,13 +434,13 @@ namespace SBlocks
 
 		bool onMouse(MouseMsg const& msg) override
 		{
-			Vector2 lPos = mWorldToLocal.transformPosition(msg.getPos());
+			Vector2 worldPos = mScreenToWorld.transformPosition(msg.getPos());
 			Vector2 hitLocalPos;
-			Piece* piece = getPiece(lPos, hitLocalPos);
+			Piece* piece = getPiece(worldPos, hitLocalPos);
 
 			if (bEditEnabled)
 			{
-				if (!mEditor->onMouse(msg, lPos, piece))
+				if (!mEditor->onMouse(msg, worldPos, piece))
 					return false;
 			}
 
@@ -438,7 +456,7 @@ namespace SBlocks
 				{
 					lastHitLocalPos = hitLocalPos;
 					bStartDragging = true;
-					if (selectedPiece->bLocked)
+					if (selectedPiece->isLocked())
 					{
 						mLevel.unlockPiece(*piece);
 						bPiecesOrderDirty = true;
@@ -459,7 +477,7 @@ namespace SBlocks
 			{
 				if (piece)
 				{
-					if (piece->bLocked)
+					if (piece->isLocked())
 					{
 						mLevel.unlockPiece(*piece);
 						bPiecesOrderDirty = true;
@@ -488,8 +506,8 @@ namespace SBlocks
 			{
 				if (bStartDragging)
 				{
-					Vector2 pinPos = selectedPiece->xform.transformPosition(lastHitLocalPos);
-					Vector2 offset = lPos - pinPos;
+					Vector2 pinPos = selectedPiece->xFormRender.transformPosition(lastHitLocalPos);
+					Vector2 offset = worldPos - pinPos;
 
 					selectedPiece->pos += offset;
 					selectedPiece->updateTransform();

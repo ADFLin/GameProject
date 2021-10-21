@@ -12,7 +12,7 @@ namespace SBlocks
 			InitVersion = 0,
 			UseBitGird,
 			ShapeCustomPivotOption,
-
+			MultiMarkMap ,
 			//-----------------------
 			LastVersionPlusOne,
 			LastVersion = LastVersionPlusOne - 1,
@@ -51,6 +51,15 @@ namespace SBlocks
 		{
 			data = std::move(FBitGird::ConvertForm(data, sizeX));
 		}
+
+		if (OP::IsLoading && op.version() < ELevelSaveVersion::MultiMarkMap)
+		{
+			pos = Vector2::Zero();
+		}
+		else
+		{
+			op & pos;
+		}
 	}
 
 	template< class OP >
@@ -62,7 +71,16 @@ namespace SBlocks
 	template< class OP >
 	void LevelDesc::serialize(OP& op)
 	{
-		op & map & shapes & pieces;
+		if (OP::IsLoading && op.version() < ELevelSaveVersion::MultiMarkMap)
+		{
+			maps.resize(1);
+			op & maps[0];
+		}
+		else
+		{
+			op & maps;
+		}
+		op & shapes & pieces;
 	}
 
 }//namespace SBlocks

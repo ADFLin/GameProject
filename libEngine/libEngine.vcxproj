@@ -375,6 +375,7 @@
     <ClInclude Include="AI\NeuralNetwork.h" />
     <ClInclude Include="Algo\AStar.h" />
     <ClInclude Include="Algo\AStarDefultPolicy.h" />
+    <ClInclude Include="Algo\Combination.h" />
     <ClInclude Include="Algo\IDAStar.h" />
     <ClInclude Include="Alloc.h" />
     <ClInclude Include="AllocFIFO.h" />

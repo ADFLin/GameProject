@@ -41,7 +41,7 @@ class TFileFileSerializer : public IStreamSerializer
 {
 public:
 	bool isValid() const { return mFS.good(); }
-	void close()
+	virtual void close()
 	{
 		mFS.close();
 	}
@@ -83,13 +83,17 @@ public:
 class OutputFileSerializer : public TFileFileSerializer< std::ofstream >
 {
 public:
+	~OutputFileSerializer();
 	bool open(char const* path);
+	virtual void close() override;
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
 	virtual void registerVersion(HashString name, int32 version);
 
 	using IStreamSerializer::write;
 
+private:
+	bool mbNeedWriteVersionData = false;
 	void writeVersionData();
 };
 

@@ -71,6 +71,12 @@ namespace SBlocks
 			bitData[index] &= ~BIT(x % 8);
 		}
 
+		static void Toggle(std::vector< uint8 >& bitData, uint32 dataSizeX, int x, int y)
+		{
+			uint32 index = ToIndex(dataSizeX, x, y);
+			bitData[index] ^= BIT(x % 8);
+		}
+
 		template< class T >
 		static std::vector< uint8 > ConvertForm(std::vector< T >& data, uint32 sizeX)
 		{
@@ -110,14 +116,31 @@ namespace SBlocks
 		}
 	};
 
+	FORCEINLINE bool IsInBound(Vec2i const& pos, Vec2i const& boundSize)
+	{
+		return 0 <= pos.x && pos.x < boundSize.x &&
+			   0 <= pos.y && pos.y < boundSize.y;
+	}
+
 	struct PieceShapeDesc
 	{
 		uint16 sizeX;
+		//bool   bBitData;
 		std::vector< uint8 > data;
-
 		bool	bUseCustomPivot;
 		Vector2 customPivot;
 
+		void toggleValue(Vec2i const& pos)
+		{
+			int dataSizeX = FBitGird::GetDataSizeX(sizeX);
+			FBitGird::Toggle(data, dataSizeX, pos.x, pos.y);
+		}
+
+		Vec2i getBoundSize() const
+		{
+			int dataSizeX = FBitGird::GetDataSizeX(sizeX);
+			return Vec2i(sizeX, (data.size() - dataSizeX + 1) / dataSizeX);
+		}
 		template< class OP >
 		void serialize(OP& op);
 	};
@@ -153,20 +176,19 @@ namespace SBlocks
 
 	struct PieceShape
 	{
+		Int16Point2D boundSize;
+		PieceShapeData mDataMap[DirType::RestNumber];
+		Vector2 pivot;
+
+		std::vector< PieceShapeData::Line > outlines;
 
 		int indexSolve;
-		std::vector< PieceShapeData::Line > outlines;
 
 		int findSameShape(PieceShapeData const& data);
 		int getBlockCount() const
 		{
 			return mDataMap[0].blocks.size();
 		}
-
-
-		Int16Point2D boundSize;
-		PieceShapeData mDataMap[DirType::RestNumber];
-		Vector2 pivot;
 
 		int getDifferentShapeDirs(int outDirs[4]);
 
@@ -207,34 +229,26 @@ namespace SBlocks
 		PieceShape* shape;
 		DirType dir;
 
-
 		int index = 0;
-		int indexSolve;
-		EColor::Name color;
-		RenderTransform2D xform;
-		RenderTransform2D xFormRender;
-		float angle = 0.0f;
-		Vector2 pos;
-
-		int clickFrame = 0;
-
 		int indexMapLocked = INDEX_NONE;
 		Int16Point2D mapPosLocked;
+
+		Vector2 pos;
+		float angle = 0.0f;
+		RenderTransform2D xFormRender;
+		int clickFrame = 0;
+
+		int indexSolve;
 		bool isLocked() const { return indexMapLocked != INDEX_NONE; }
 
 		Vector2 getLTCornerPos() const
 		{
-			Vector2 lPos = shape->getCornerPos(dir);
-			return xform.transformPosition(lPos);
+			Vector2 offset = shape->getLTCornerOffset(dir);
+			return pos + offset;
 		}
 
 		void updateTransform()
 		{
-			xform.setIdentity();
-			xform.translateWorld(-shape->pivot);
-			xform.rotateWorld(GetRotation(dir));
-			xform.translateWorld(pos + shape->pivot);
-
 			xFormRender.setIdentity();
 			xFormRender.translateWorld(-shape->pivot);
 			xFormRender.rotateWorld(angle);
@@ -243,7 +257,7 @@ namespace SBlocks
 
 		bool hitTest(Vector2 const& pos, Vector2& outHitLocalPos)
 		{
-			Vector2 lPos = xFormRender.inverse().transformPosition(pos);
+			Vector2 lPos = xFormRender.transformInvPositionAssumeNoScale(pos);
 
 			auto const& shapeData = shape->mDataMap[0];
 			for (auto const& block : shapeData.blocks)
@@ -262,7 +276,8 @@ namespace SBlocks
 
 	struct MapDesc
 	{
-		int sizeX;
+		int  sizeX;
+		//bool bBitData;
 		std::vector< uint8 > data;
 		Vector2 pos;
 
@@ -291,10 +306,8 @@ namespace SBlocks
 		}
 		bool isInBound(Vec2i const& pos)
 		{
-			return 0 <= pos.x && pos.x < mData.getSizeX() &&
-				0 <= pos.y && pos.y < mData.getSizeY();
+			return IsInBound(pos, getBoundSize());
 		}
-
 
 		Vec2i getBoundSize() const
 		{
@@ -310,7 +323,7 @@ namespace SBlocks
 
 		bool isFinish() { return numTotalBlocks == numBlockLocked; }
 
-		void improtDesc(MapDesc const& desc);
+		void importDesc(MapDesc const& desc);
 		void exportDesc(MapDesc& outDesc);
 		void resize(int sizeX, int sizeY);
 
@@ -318,7 +331,7 @@ namespace SBlocks
 
 		void copyFrom(MarkMap const& rhs, bool bInitState = false);
 
-		Vector2 mPos;
+		Vector2 mPos = Vector2::Zero();
 		int numBlockLocked;
 		int numTotalBlocks;
 		TGrid2D<uint8> mData;
@@ -361,7 +374,7 @@ namespace SBlocks
 		PieceShape* createPieceShape(PieceShapeDesc const& desc);
 		PieceShape* findPieceShape(PieceShapeDesc const& desc , int& outDir);
 
-		static Vec2i GetLockMapPos(Piece& piece);
+		void removePieceShape(PieceShape* shape);
 
 		bool tryLockPiece(Piece& piece);
 		void unlockPiece(Piece& piece);
@@ -370,8 +383,6 @@ namespace SBlocks
 
 		std::vector< std::unique_ptr< Piece > > mPieces;
 		std::vector< std::unique_ptr< PieceShape > > mShapes;
-
-		MarkMap mMap;
 		std::vector< MarkMap > mMaps;
 	};
 

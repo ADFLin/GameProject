@@ -89,7 +89,7 @@ public:
 		build( sx , sy );
 	}
 
-	TGrid2D( TGrid2D const& rhs ){  copy( rhs );  }
+	TGrid2D( TGrid2D const& rhs ){  construct( rhs );  }
 
 	~TGrid2D(){  cleanup(); }
 
@@ -181,9 +181,9 @@ private:
 		mSizeX = x;
 		mSizeY = y;
 		mStorage = new T[ mSizeX * mSizeY ];
-
 		MP::build( mStorage , x , y );
 	}
+
 	void cleanup()
 	{ 
 		delete [] mStorage;
@@ -193,11 +193,16 @@ private:
 		mSizeX = mSizeY = 0;
 	}
 
+	void construct(TGrid2D const& rhs)
+	{
+		build(rhs.mSizeX, rhs.mSizeY);
+		std::copy(rhs.mStorage, rhs.mStorage + rhs.mSizeX  * rhs.mSizeY, mStorage);
+	}
+
 	void copy( TGrid2D const& rhs )
 	{
 		cleanup();
-		build( rhs.mSizeX , rhs.mSizeY );
-		std::copy( rhs.mStorage , rhs.mStorage + rhs.mSizeX  * rhs.mSizeY , mStorage );
+		construct(rhs);
 	}
 
 	T*   mStorage;

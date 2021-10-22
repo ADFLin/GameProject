@@ -90,6 +90,11 @@ namespace Render
 			return M.mul(v);
 		}
 
+		FORCEINLINE Vector2 transformInvPositionAssumeNoScale(Vector2 const& pos) const
+		{
+			return M.mul(pos - P);
+		}
+
 		RenderTransform2D inverse() const
 		{
 			//[ M  0 ] [ Mr 0 ]  =  [ M * Mr        0 ] = [ 1  0 ]

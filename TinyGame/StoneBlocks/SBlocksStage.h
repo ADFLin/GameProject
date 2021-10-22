@@ -8,12 +8,49 @@
 
 #include "RHI/RHIGraphics2D.h"
 #include "ProfileSystem.h"
-
+#include <algorithm>
+#include "GameWidget.h"
 
 namespace SBlocks
 {
 	Vector2 DebugPos;
 
+	struct SceneTheme
+	{
+		Color3ub pieceBlockColor;
+		Color3ub pieceBlockLockedColor;
+		Color3ub pieceOutlineColor;
+
+		Color3ub mapEmptyColor;
+		Color3ub mapBlockColor;
+		Color3ub mapOuterColor;
+		Color3ub mapFrameColor;
+
+		Color3ub backgroundColor;
+
+		Color3ub shadowColor;
+		float    shadowOpacity;
+		Vector2  shadowOffset;
+
+		SceneTheme()
+		{
+			pieceBlockColor = Color3ub(203, 105, 5);
+			pieceBlockLockedColor = Color3ub(255, 155, 18);
+
+			mapEmptyColor = Color3ub(165, 82, 37);
+			mapBlockColor = Color3ub(126, 51, 15);
+			mapOuterColor = Color3ub(111, 39, 9);
+
+			mapFrameColor = Color3ub(222, 186, 130);
+
+			backgroundColor = Color3ub(203, 163, 106);
+
+			shadowColor = Color3ub(20, 20, 20);
+			shadowOpacity = 0.5;
+			shadowOffset = Vector2(0.2, 0.2);
+		}
+
+	};
 
 	struct GameData
 	{
@@ -22,23 +59,42 @@ namespace SBlocks
 		RenderTransform2D mWorldToScreen;
 		RenderTransform2D mScreenToWorld;
 
+		SceneTheme mTheme;
+
+
 		void resetRenderParams()
 		{
 			constexpr float BlockLen = 32;
 			constexpr Vector2 BlockSize = Vector2(BlockLen, BlockLen);
-			Vector2 screenPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMaps[0].getBoundSize())));
-			if (mLevel.mMaps.size() == 1)
+
+			if (mLevel.mMaps.empty())
 			{
-				screenPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMaps[0].getBoundSize())));
+				mWorldToScreen = RenderTransform2D(BlockSize, Vector2::Zero());
 			}
 			else
 			{
-				//TODO
+				Vector2 screenPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMaps[0].getBoundSize())));
+				if (mLevel.mMaps.size() == 1)
+				{
+					screenPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(Vector2(mLevel.mMaps[0].getBoundSize())));
+				}
+				else
+				{
+					Math::TAABBox< Vector2 > aabb;
+					aabb.invalidate();
 
+					for (auto& map : mLevel.mMaps)
+					{
+						aabb.addPoint(map.mPos);
+						aabb.addPoint(map.mPos + Vector2(map.getBoundSize()));
+					}
 
+					screenPos = 0.5 * (Vector2(::Global::GetScreenSize()) - BlockSize.mul(aabb.getSize()));
+				}
+
+				mWorldToScreen = RenderTransform2D(BlockSize, screenPos);
 			}
 
-			mWorldToScreen = RenderTransform2D(BlockSize, screenPos);
 			mScreenToWorld = mWorldToScreen.inverse();
 		}
 		bool bPiecesOrderDirty;
@@ -94,52 +150,15 @@ namespace SBlocks
 		}
 	};
 
-	struct SceneTheme
-	{
-		Color3ub pieceBlockColor;
-		Color3ub pieceBlockLockedColor;
-		Color3ub pieceOutlineColor;
-		
-		Color3ub mapEmptyColor;
-		Color3ub mapBlockColor;
-		Color3ub mapOuterColor;
-		Color3ub mapFrameColor;
-
-		Color3ub backgroundColor;
-
-		Color3ub shadowColor;
-		float    shadowOpacity;
-		Vector2  shadowOffset;
-
-		SceneTheme()
-		{
-			pieceBlockColor = Color3ub(203, 105, 5);
-			pieceBlockLockedColor = Color3ub(255, 155, 18);
-			
-			mapEmptyColor = Color3ub(165, 82, 37);
-			mapBlockColor = Color3ub(126, 51, 15);
-			mapOuterColor = Color3ub(111, 39, 9);
-
-			mapFrameColor = Color3ub(222, 186, 130);
-
-			backgroundColor = Color3ub(203, 163, 106);
-
-			shadowColor = Color3ub(20, 20, 20);
-			shadowOpacity = 0.5;
-			shadowOffset = Vector2(0.2, 0.2);
-		}
-
-	};
-
-
 
 	class Editor
 	{
 	public:
 
-		void init()
+		void initEdit()
 		{
-
+			loadShapeLibrary();
+			registerGamePieces();
 		}
 
 		void cleanup()
@@ -147,18 +166,8 @@ namespace SBlocks
 
 		}
 
-		void startEdit()
-		{
-			LogMsg("Edit Start");
-			registerCommand();
-			mGame->mLevel.unlockAllPiece();
-		}
-
-		void endEdit()
-		{
-			LogMsg("Edit End");
-			unregisterCommand();
-		}
+		void startEdit();
+		void endEdit();
 
 		bool onMouse(MouseMsg const& msg, Vector2 const& worldPos , Piece* piece)
 		{
@@ -171,8 +180,8 @@ namespace SBlocks
 						MarkMap& map = mGame->mLevel.mMaps[i];
 						Vector2 lPos = worldPos - map.mPos;
 						Vec2i mapPos;
-						mapPos.x = worldPos.x;
-						mapPos.y = worldPos.y;
+						mapPos.x = lPos.x;
+						mapPos.y = lPos.y;
 						if (map.isInBound(mapPos))
 						{
 							map.toggleDataType(mapPos);
@@ -198,36 +207,47 @@ namespace SBlocks
 			return true;
 		}
 
-		void registerCommand()
+		void registerCommand();
+		void unregisterCommand();
+
+		void runScript();
+
+		void saveLevel(char const* name);
+		void newLevel();
+
+
+		void setMapSize(int id, int x, int y)
 		{
-			auto& console = ConsoleSystem::Get();
-#define REGISTER_COM( NAME , FUNC )\
-			console.registerCommand("SBlocks."NAME, &Editor::FUNC, this)
-
-			REGISTER_COM("SetMapSize", setMapSize);
-			REGISTER_COM("Save", saveLevel);
-
-			REGISTER_COM("AddPiece", addPiece);
-			REGISTER_COM("RemovePiece", removePiece);
-			
-			REGISTER_COM("AddShape", addEditPieceShape);
-			REGISTER_COM("RemoveShape", addEditPieceShape);
-			REGISTER_COM("CopyShape", copyEditPieceShape);
-
-#undef REGISTER_COM
-		}
-
-		void unregisterCommand()
-		{
-			auto& console = ConsoleSystem::Get();
-			console.unregisterAllCommandsByObject(this);
-		}
-
-		void setMapSize(int x, int y , int index)
-		{
-			if (IsValidIndex(mGame->mLevel.mMaps, index))
+			if (IsValidIndex(mGame->mLevel.mMaps, id))
 			{
-				mGame->mLevel.mMaps[index].resize(x, y);
+				mGame->mLevel.mMaps[id].resize(x, y);
+				mGame->resetRenderParams();
+			}
+		}
+
+		void setMapPos(int id, float x, float y)
+		{
+			if (IsValidIndex(mGame->mLevel.mMaps, id))
+			{
+				mGame->mLevel.mMaps[id].mPos.setValue(x,y);
+				mGame->resetRenderParams();
+			}
+		}
+
+		void addMap(int x, int y)
+		{
+			MarkMap newMap;
+			newMap.resize(x, y);
+			newMap.mData.fillValue(0);
+			mGame->mLevel.mMaps.push_back(std::move(newMap));
+			mGame->resetRenderParams();
+		}
+
+		void removeMap(int id)
+		{
+			if (IsValidIndex(mGame->mLevel.mMaps, id))
+			{
+				mGame->mLevel.mMaps.erase(mGame->mLevel.mMaps.begin() + id);
 				mGame->resetRenderParams();
 			}
 		}
@@ -238,18 +258,19 @@ namespace SBlocks
 				return;
 
 			EditPieceShape& editShape = mPieceShapeLibrary[id];
-			int dir = 0;
+
 			if (editShape.ptr == nullptr)
 			{
-				int dir;
-				editShape.ptr = mGame->mLevel.findPieceShape(editShape.desc, dir);
+				editShape.ptr = mGame->mLevel.findPieceShape(editShape.desc, editShape.rotation);
 				if (editShape.ptr == nullptr)
 				{
 					editShape.ptr = mGame->mLevel.createPieceShape(editShape.desc);
+					editShape.rotation = 0;
 				}
 			}
 
-			Piece* piece = mGame->mLevel.createPiece(*editShape.ptr, DirType::ValueChecked(dir));
+			Piece* piece = mGame->mLevel.createPiece(*editShape.ptr, DirType::ValueChecked(editShape.rotation));
+			editShape.usageCount += 1;
 			mGame->refreshPieceList();
 		
 		}
@@ -259,35 +280,71 @@ namespace SBlocks
 			if (!IsValidIndex(piecesList, id))
 				return;
 
-
+			Piece* piece = piecesList[id].get();
+			auto iter = std::find_if( mPieceShapeLibrary.begin() , mPieceShapeLibrary.end() , 
+				[piece](auto& value)
+				{
+					return value.ptr = piece->shape;
+				}
+			);
+			CHECK(iter != mPieceShapeLibrary.end());
+			iter->usageCount -= 1;
 			piecesList.erase(piecesList.begin() + id);
 			mGame->refreshPieceList();
 		}
 
 		void addEditPieceShape(int sizeX, int sizeY)
 		{
-			EditPieceShape shape;
-			shape.ptr = nullptr;
-			shape.desc.bUseCustomPivot = false;
-			shape.desc.customPivot = 0.5 * Vector2(sizeX, sizeY);
-			shape.desc.sizeX = sizeX;
-			shape.desc.data.resize(FBitGird::GetDataSizeX(sizeX) * sizeY, 1);
-			mPieceShapeLibrary.push_back(shape);
+			EditPieceShape editShape;
+			editShape.bLibrary = false;
+			editShape.usageCount = 0;
+			editShape.ptr = nullptr;
+			editShape.desc.bUseCustomPivot = false;
+			editShape.desc.customPivot = 0.5 * Vector2(sizeX, sizeY);
+			editShape.desc.sizeX = sizeX;
+			editShape.desc.data.resize(FBitGird::GetDataSizeX(sizeX) * sizeY, 0xff);
+			mPieceShapeLibrary.push_back(std::move(editShape));
 		}
 
 		void removeEditPieceShape(int id)
 		{
+			if (!IsValidIndex(mPieceShapeLibrary, id))
+				return;
 
+			EditPieceShape& shape = mPieceShapeLibrary[id];
+			if (shape.ptr)
+			{
+				if (shape.usageCount == 0)
+				{
+					mGame->mLevel.removePieceShape(shape.ptr);
+				}
+				return;
+			}
 
+			mPieceShapeLibrary.erase( mPieceShapeLibrary.begin() + id);
 		}
 
 		void copyEditPieceShape(int id)
 		{
+			if (!IsValidIndex(mPieceShapeLibrary, id))
+				return;
 
+			EditPieceShape editShape = mPieceShapeLibrary[id];
+			editShape.bLibrary = false;
+			editShape.ptr = nullptr;
+			editShape.rotation = 0;
+			editShape.usageCount = 0;
+			mPieceShapeLibrary.push_back(std::move(editShape));
 
 		}
 
-		void saveLevel(char const* name);
+		class ShapeListPanel* mShapeLibraryPanel = nullptr;
+		class ShapeEditPanel* mShapeEditPanel = nullptr;
+
+		void openEditPieceShapeEditor(int id);
+
+		void notifyLevelChanged();
+
 
 		struct EditPiece
 		{
@@ -299,8 +356,18 @@ namespace SBlocks
 		struct EditPieceShape
 		{
 			PieceShape* ptr;
+			int rotation;
+
 			PieceShapeDesc desc;
+
+			bool bLibrary;
+			int  usageCount;
 		};
+
+		void registerGamePieces();
+
+		EditPieceShape* registerEditShape(PieceShape* shape);
+
 
 		static void Draw(RHIGraphics2D& g, SceneTheme& theme , PieceShapeDesc const& desc)
 		{
@@ -325,23 +392,147 @@ namespace SBlocks
 						float const border = 0.1;
 						g.drawRect(Vector2(x + border, y + border), Vector2(1 - 2 * border, 1 - 2 * border));
 					}
-
 				}
 			}
 		}
 
+		template< class OP >
+		void serializeShapeLibrary(OP&& op)
+		{
+			if (OP::IsSaving)
+			{
+				int num = mPieceShapeLibrary.size();
+				op & num;
+				for (auto& editShape : mPieceShapeLibrary)
+				{
+					op & editShape.desc;
+				}
+			}
+			else
+			{
+				int num;
+				op & num;
+				mPieceShapeLibrary.resize(num);
+				for (auto& editShape : mPieceShapeLibrary)
+				{
+					op & editShape.desc;
+					editShape.bLibrary = true;
+					editShape.usageCount = 0;
+					editShape.ptr = nullptr;
+					editShape.rotation = 0;
+				}
+			}
+		}
+
+		void saveShapeLibrary();
+
+		void loadShapeLibrary();
 
 		std::vector< EditPieceShape > mPieceShapeLibrary;
+
+		bool      mbEnabled = false;
 		GameData* mGame;
 	};
 
 
-
-	class ShapeEditPanel : public GPanel
+	class ShapeListPanel : public GFrame
 	{
+		using BaseClass = GFrame;
 	public:
+		ShapeListPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent = nullptr)
+			:GFrame(id, pos, size, parent)
+		{
+
+		}
+		void onRender()
+		{
+			BaseClass::onRender();
+
+			float scale = 20.0;
+
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+			Vec2i screenPos = getWorldPos();
+			g.pushXForm();
+			g.translateXForm(screenPos.x, screenPos.y);
+			
+			int index = 0;
+			for (auto const& editShape : mEditor->mPieceShapeLibrary)
+			{
+				g.pushXForm();
+				g.translateXForm(120 * index, 10);
+				g.scaleXForm(scale, scale);
+				Editor::Draw(g, mEditor->mGame->mTheme, editShape.desc);
+				g.popXForm();
+				++index;
+			}
+			g.popXForm();
+		}
+
+		Editor* mEditor;
+	};
 
 
+	class ShapeEditPanel : public GFrame
+	{
+		using BaseClass = GFrame;
+	public:
+		ShapeEditPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent = nullptr)
+			:GFrame(id, pos, size, parent)
+		{
+
+		}
+
+		void init()
+		{
+			mLocalToFrame.setIdentity();
+			float scale = 20.0;
+			Vector2 offset = Vector2(getSize()) - scale * Vector2(mShape->desc.getBoundSize());
+			mLocalToFrame.translateLocal(0.5 * offset);
+			mLocalToFrame.scaleLocal(Vector2(scale, scale));
+		}
+
+		void refreshSize()
+		{
+			setSize(Vec2i(400, 400));
+		}
+
+		void onRender()
+		{
+			BaseClass::onRender();
+
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+			Vec2i screenPos = getWorldPos();
+			g.pushXForm();
+			g.translateXForm(screenPos.x, screenPos.y);
+			g.transformXForm(mLocalToFrame, true);
+			Editor::Draw(g, editor->mGame->mTheme, mShape->desc);
+			g.popXForm();
+		}
+
+		bool onMouseMsg(MouseMsg const& msg)
+		{
+			if ( msg.onLeftDown() )
+			{
+				Vec2i framePos = msg.getPos() - getWorldPos();
+
+				Vec2i localPos = mLocalToFrame.inverse().transformPosition(framePos);
+
+				Vec2i boundSize = mShape->desc.getBoundSize();
+				if (IsInBound(localPos, boundSize))
+				{
+					mShape->desc.toggleValue(localPos);
+					if (mShape->ptr)
+					{
+						mShape->ptr->importDesc(mShape->desc);
+					}
+					return false;
+				}
+			}
+
+			return BaseClass::onMouseMsg(msg);
+		}
+		RenderTransform2D mLocalToFrame;
+		Editor* editor;
 		Editor::EditPieceShape* mShape;
 	};
 
@@ -355,12 +546,21 @@ namespace SBlocks
 		bool     bEditEnabled;
 
 		std::unique_ptr< Solver > mSolver;
-		SceneTheme mTheme;
 
 		virtual void initializeGame()
 		{
 			GameData::initializeGame();
 			mSolver.release();
+
+			if (mEditor)
+			{
+				mEditor->notifyLevelChanged();
+				if (bEditEnabled)
+				{
+
+
+				}
+			}
 		}
 
 		bool onInit() override
@@ -418,7 +618,6 @@ namespace SBlocks
 		void onRender(float dFrame) override;
 
 		void solveLevel(int option);
-
 
 		Piece* selectedPiece = nullptr;
 		bool bStartDragging = false;
@@ -533,7 +732,7 @@ namespace SBlocks
 					{
 						mEditor = new Editor;
 						mEditor->mGame = this;
-						mEditor->init();
+						mEditor->initEdit();
 					}
 					mEditor->startEdit();
 				}

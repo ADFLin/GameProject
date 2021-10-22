@@ -1,14 +1,15 @@
 #include "ConsoleFrame.h"
 
 #include "ConsoleSystem.h"
+#include <unordered_set>
 
 ConsoleFrame::ConsoleFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent) :BaseClass(id, pos, size, parent)
 {
 	setRenderType( GPanel::eRectType );
 
-	mComText = new GTextCtrl(UI_COM_TEXT, Vec2i(3, size.y - 3 - GTextCtrl::UI_Height ), size.x - 6, this);
-	mComText->setRerouteCharMsg();
-	mComText->setRerouteKeyMsg();
+	mCmdText = new GTextCtrl(UI_COM_TEXT, Vec2i(3, size.y - 3 - GTextCtrl::UI_Height ), size.x - 6, this);
+	mCmdText->setRerouteCharMsg();
+	mCmdText->setRerouteKeyMsg();
 }
 
 ConsoleFrame::~ConsoleFrame()
@@ -48,38 +49,66 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 
 	if( msg.getCode() == EKeyCode::Tab )
 	{
-		if( mIndexFoundComUsed == INDEX_NONE )
+		if( mIndexFoundCmdUsed == INDEX_NONE )
 		{
-			char const* foundComs[256];
-			int numFound = ConsoleSystem::Get().findCommandName2(mComText->getValue(), foundComs, ARRAY_SIZE(foundComs));
+			char const* foundCmds[256];
+			int numFound = ConsoleSystem::Get().findCommandName2(mCmdText->getValue(), foundCmds, ARRAY_SIZE(foundCmds));
 			if( numFound != 0 )
 			{
-				mFoundComs.assign(foundComs, foundComs + numFound);
-				mIndexFoundComUsed = 0;
+				bool bNeedAddNamespace = *FCString::FindChar(mCmdText->getValue(), '.') == 0;
+				if (bNeedAddNamespace)
+				{
+					mFoundCmds.clear();
+					std::vector< std::string > namespaceUsed;
+
+					for (int index = 0; index < numFound; ++index)
+					{
+						char const* nsEnd = FCString::FindChar(foundCmds[index], '.');
+						if (*nsEnd)
+						{
+							std::string ns = { foundCmds[index] , nsEnd + 1 };
+							auto iter = std::find( namespaceUsed.begin(), namespaceUsed.end(), ns );
+							if (iter == namespaceUsed.end())
+							{
+								mFoundCmds.push_back(ns);
+								namespaceUsed.push_back(ns);
+							}
+						}
+
+						mFoundCmds.push_back(foundCmds[index]);
+					}
+				}
+				else
+				{
+					mFoundCmds.assign(foundCmds, foundCmds + numFound);
+				}
+
+				mIndexFoundCmdUsed = 0;
 			}
 		}
 		else
 		{
-			mIndexFoundComUsed = (mIndexFoundComUsed + 1) % mFoundComs.size();
+			mIndexFoundCmdUsed = (mIndexFoundCmdUsed + 1) % mFoundCmds.size();
 		}
 
-		if( mIndexFoundComUsed != INDEX_NONE)
+		if( mIndexFoundCmdUsed != INDEX_NONE)
 		{
-			mComText->setValue(mFoundComs[mIndexFoundComUsed].c_str());
-			mComText->appendValue(" ");
+			mCmdText->setValue(mFoundCmds[mIndexFoundCmdUsed].c_str());
+			if (mFoundCmds[mIndexFoundCmdUsed].back() != '.')
+				mCmdText->appendValue(" ");
 		}
 		return false;
 	}
 	else if (msg.getCode() == EKeyCode::Up)
 	{
 		++mIndexHistoryUsed;
-		if (mIndexHistoryUsed < mHistoryComs.size())
+		if (mIndexHistoryUsed < mHistoryCmds.size())
 		{
-			mComText->setValue(mHistoryComs[mIndexHistoryUsed].c_str());
+			mCmdText->setValue(mHistoryCmds[mIndexHistoryUsed].c_str());
 		}
 		else
 		{
-			mIndexHistoryUsed = mHistoryComs.size() - 1;
+			mIndexHistoryUsed = mHistoryCmds.size() - 1;
 		}
 	}
 	else if (msg.getCode() == EKeyCode::Down)
@@ -87,14 +116,14 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 		--mIndexHistoryUsed;
 		if (mIndexHistoryUsed >= 0)
 		{
-			mComText->setValue(mHistoryComs[mIndexHistoryUsed].c_str());
+			mCmdText->setValue(mHistoryCmds[mIndexHistoryUsed].c_str());
 		}
 		else
 		{
 			mIndexHistoryUsed = 0;
 		}
 	}
-	bool result = mComText->onKeyMsg(msg);
+	bool result = mCmdText->onKeyMsg(msg);
 
 	if( msg.getCode() == EKeyCode::Return )
 	{
@@ -107,12 +136,12 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 bool ConsoleFrame::onCharMsg(unsigned code)
 {
 	//eat tab char and ~
-	if( code == 0x09 || code == 0x60 )
+	if( code == EKeyCode::Tab || code == 0x60 )
 	{
 		return false;
 	}
-	mIndexFoundComUsed = INDEX_NONE;
-	return mComText->onCharMsg(code);
+	mIndexFoundCmdUsed = INDEX_NONE;
+	return mCmdText->onCharMsg(code);
 }
 
 bool ConsoleFrame::onChildEvent(int event, int id, GWidget* ui)
@@ -123,12 +152,20 @@ bool ConsoleFrame::onChildEvent(int event, int id, GWidget* ui)
 		if( event == EVT_TEXTCTRL_COMMITTED )
 		{
 			char const* comStr = ui->cast<GTextCtrl>()->getValue();
-			if( comStr && comStr != 0 )
+			if( comStr && *comStr != 0 )
 			{
 				bool result = ConsoleSystem::Get().executeCommand(comStr);
 
-				mHistoryComs.push_back(comStr);
-				mIndexHistoryUsed = -1;
+				if (mIndexHistoryUsed != INDEX_NONE && mHistoryCmds[mIndexHistoryUsed] == comStr)
+				{
+					--mIndexHistoryUsed;
+				}
+				else
+				{
+					mHistoryCmds.push_back(comStr);
+					mIndexHistoryUsed = INDEX_NONE;
+				}
+
 				ui->cast<GTextCtrl>()->clearValue();
 				makeFocus();
 			}

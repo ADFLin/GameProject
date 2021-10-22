@@ -13,6 +13,7 @@ namespace SBlocks
 			UseBitGird,
 			ShapeCustomPivotOption,
 			MultiMarkMap ,
+			//BitGirdOptional,
 			//-----------------------
 			LastVersionPlusOne,
 			LastVersion = LastVersionPlusOne - 1,

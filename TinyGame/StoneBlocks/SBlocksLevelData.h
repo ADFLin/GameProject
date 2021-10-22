@@ -8,6 +8,33 @@ namespace SBlocks
 
 #define M(...) MakeByte( __VA_ARGS__ )
 
+	LevelDesc DefautlNewLevel =
+	{
+		//map
+		{
+			{
+				5 ,
+				{
+					M(0,0,0,0,0),
+					M(0,0,0,0,0),
+					M(0,0,0,0,0),
+					M(0,0,0,0,0),
+					M(0,0,0,0,0),
+				}
+			}
+		},
+
+		//shape
+		{
+
+		},
+
+		//piece
+		{
+
+		},
+	};
+
 	LevelDesc TestLv =
 	{
 		//map

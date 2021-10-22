@@ -14,14 +14,14 @@ namespace SBlocks
 	{
 		bool bEnableSortPiece;
 		bool bEnableRejection;
-		bool bTestMinConnectTiles;
+		bool bTestConnectTilesCount;
 		bool bTestConnectTileShape;
 		bool bEnableIdenticalShapeCombination;
 
 		SolveOption()
 		{
 			bEnableRejection = true;
-			bTestMinConnectTiles = true;
+			bTestConnectTilesCount = true;
 			bTestConnectTileShape = true;
 			bEnableIdenticalShapeCombination = true;
 		}
@@ -68,30 +68,27 @@ namespace SBlocks
 			mbValid = NextCombination(mStates.begin(), mStates.begin() + mTakeCount, mStates.end());
 		}
 
-		void advance(int n)
+		int advance(int nStep)
 		{
-			for( int i = 0 ; i < n; ++i)
+			int step = 0;
+			for( ; step < nStep && mbValid; ++step)
 				mbValid = NextCombination(mStates.begin(), mStates.begin() + mTakeCount, mStates.end());
-		}
 
+			return step;
+		}
 
 		int  getStateNum() const
 		{
-			int result = 1;
-
+			int dividend = 1;
+			int divisor = 1;
 			int num = mStates.size();
-			for (int i = 0; i < mTakeCount; ++i)
+			for (int i = 1; i <= mTakeCount; ++i)
 			{
-				result *= num;
+				dividend *= num;
+				divisor *= i;
 				--num;
 			}
-
-			for (int i = 2; i <= mTakeCount; ++i)
-			{
-				result /= i;
-			}
-
-			return result;
+			return dividend / divisor;
 		}
 
 		int const* getStates() const { return mStates.data(); }
@@ -108,7 +105,7 @@ namespace SBlocks
 		int indexCombination;
 		std::vector< PieceSolveData* > pieces;
 		std::vector< PieceSolveState > states;
-		std::vector< Int16Point2D > outerConPosListMap[4];
+		std::vector< Int16Point2D > outerConPosListMap[DirType::RestNumber];
 	};
 
 	namespace ERejectResult
@@ -116,7 +113,7 @@ namespace SBlocks
 		enum Type
 		{
 			None,
-			MinConnectTiles,
+			ConnectTilesCount,
 			ConnectTileShape,
 		};
 	};
@@ -129,20 +126,31 @@ namespace SBlocks
 		std::vector< PieceSolveData* > mPieceSizeMap;
 		int mMinShapeBlockCount;
 		int mMaxShapeBlockCount;
+
+		SolveOption mUsedOption;
 	};
 
 
 	struct MapSolveData
 	{
 		MarkMap mMap;
-		TGrid2D<int> mTestFrameMap;
-		int mTestFrame;
+		struct TestFrame
+		{
+			uint32 master;
+			uint32 sub;
+		};
+
+		TGrid2D<TestFrame> mTestFrameMap;
+		uint32  mSubTestFrame = 0;
+		uint32* mTestFramePtr;
+		int  mMaxCount;
 		PieceShapeData mCachedShapeData;
 
-		void setup(Level& level, SolveOption const& option);
-
+		void setup(MarkMap const& map, SolveOption const& option);
 		void copyFrom(MapSolveData const& rhs);
 		int countConnectTiles(Vec2i const& pos);
+
+		int countConnectTilesRec(Vec2i const& pos);
 
 		void getConnectedTilePosList(Vec2i const& pos);
 
@@ -150,18 +158,21 @@ namespace SBlocks
 	};
 	struct SolveData
 	{
+		GlobalSolveData* globalData;
+		uint32 mTestFrame = 0;
+
 		std::vector<int> stateIndices;
 		std::vector< MapSolveData > mMaps;
 		std::vector< StateCombination > mCombinations;
 
-		void getSolvedStates(GlobalSolveData const& globalData, std::vector< PieceSolveState >& outStates) const;
+		void getSolvedStates(std::vector< PieceSolveState >& outStates) const;
 
 		void copyFrom(SolveData const& rhs);
 
 		struct ShapeTest
 		{
 			Vec2i pos;
-			int   mapIndex;
+			int   index;
 			MapSolveData* mapData;
 		};
 		std::vector< ShapeTest > mCachedPendingTests;
@@ -170,29 +181,41 @@ namespace SBlocks
 		bool advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
 		bool advanceCombinedState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
 
+		int getPieceStateCount(int indexPiece);
 
 		template< typename TFunc >
 		ERejectResult::Type testRejection(
-			GlobalSolveData& globalData, MapSolveData& mapData, 
-			Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, 
+			MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, 
 			SolveOption const& option, int maxCompareShapeSize, 
 			TFunc CheckPieceFunc);
 
 		template< typename TFunc >
 		ERejectResult::Type testRejection(
-			GlobalSolveData& globalData, 
 			ShapeSolveData& shapeSolveData, int indexPiece,
 			SolveOption const& option, int maxCompareShapeSize, 
 			TFunc CheckPieceFunc);
 
+		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos,  SolveOption const &option, int maxCompareShapeSize);
+
 		template< typename TFunc >
-		ERejectResult::Type runPendingTest(GlobalSolveData& globalData, TFunc CheckPieceFunc);
+		ERejectResult::Type runPendingShapeTest(TFunc CheckPieceFunc);
+	};
+
+	class ISolver
+	{
+	public:
+		virtual ~ISolver() {};
 	};
 
 
 	class Solver : public GlobalSolveData
 	{
 	public:
+		~Solver()
+		{
+			cleanupSolveWork();
+		}
+
 		void setup(Level& level, SolveOption const& option = SolveOption());
 		bool solve()
 		{
@@ -225,37 +248,40 @@ namespace SBlocks
 			int numStatesUsed;
 		};
 
-		int  solveImpl(SolveData& solveData, int indexPiece, PartWorkInfo* partWork = nullptr);
 
-		template< bool bEnableRejection , bool bEnableIdenticalShapeCombination >
+		int  solveImpl(SolveData& solveData, int indexPiece);
+
+		int  solvePart(SolveData& solveData, int indexPiece, PartWorkInfo& partWork);
+
+
+		template< bool bEnableRejection , bool bEnableIdenticalShapeCombination, bool bHavePartWork >
 		int  solveImplT(SolveData& solveData, int indexPiece, PartWorkInfo* partWork);
+		using SolveFunc = decltype(&Solver::solveImplT<false,false,false>);
 
 
 		void getSolvedStates(std::vector< PieceSolveState >& outStates) const
 		{
-			return mSolveData.getSolvedStates(*this, outStates);
+			return mSolveData.getSolvedStates(outStates);
 		}
 
-		int getPieceStateCount(int indexPiece)
-		{
-			auto const& pieceData = mPieceList[indexPiece];
-			auto const& shapeSolveData = *pieceData.shapeSaveData;
-			if (mUsedOption.bEnableIdenticalShapeCombination && shapeSolveData.indexCombination != INDEX_NONE)
-			{
-				return mSolveData.mCombinations[shapeSolveData.indexCombination].getStateNum();
-			}
-			else
-			{
-				return shapeSolveData.states.size();
-			}
-		}
+		template< bool bHavePartWork >
+		static SolveFunc GetSolveFunc(SolveOption const& option);
 
-		TLockFreeFIFOList<std::vector< PieceSolveState > > mSolutionList;
-		
 		SolveData   mSolveData;
-		SolveOption mUsedOption;
+		SolveFunc   mUsedSolveFunc;
+		SolveFunc   mUsedSolvePartFunc;
 
 		std::vector< SolveWork* > mParallelWorks;
+		TLockFreeFIFOList<std::vector< PieceSolveState > > mSolutionList;
+
+		void cleanupSolveWork()
+		{
+			for (auto work : mParallelWorks)
+			{
+				delete work;
+			}
+			mParallelWorks.clear();
+		}
 
 		void solveParallel(int numThreads);
 		void waitWorkCompilition();

@@ -12,6 +12,9 @@ namespace SBlocks
 {
 	REGISTER_STAGE_ENTRY("Stone Blocks", TestStage, EExecGroup::Dev4, "Game");
 
+#define SBLOCKS_DIR "SBlocks"
+
+
 	TConsoleVariable< bool > CVarShowDebug{false, "SBlocks.ShowDebug", CVF_TOGGLEABLE};
 	TConsoleVariable< bool > CVarSolverEnableRejection{ true, "SBlocks.SolverEnableRejection", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarSolverEnableSortPiece{ true, "SBlocks.SolverEnableSortPiece", CVF_TOGGLEABLE };
@@ -270,10 +273,10 @@ namespace SBlocks
 			{
 				Piece* piece = mLevel.mPieces[i].get();
 				auto const& state = sovledStates[piece->indexSolve];
-				LogMsg("%d = (%d, %d) dir = %d", i, state.pos.x, state.pos.y, state.dir);
+				LogMsg("%d = [%d](%d, %d) dir = %d", i, state.mapIndex, state.pos.x, state.pos.y, state.dir);
 				piece->dir = DirType::ValueChecked(state.dir);
 				piece->angle = piece->dir * Math::PI / 2;
-				piece->pos = Vector2(state.pos) - piece->shape->getLTCornerOffset(DirType::ValueChecked(state.dir));
+				piece->pos = mLevel.mMaps[state.mapIndex].mPos + Vector2(state.pos) - piece->shape->getLTCornerOffset(DirType::ValueChecked(state.dir));
 				piece->updateTransform();
 
 				mLevel.tryLockPiece(*piece);
@@ -288,7 +291,7 @@ namespace SBlocks
 	void TestStage::loadLevel(char const* name)
 	{
 		InputFileSerializer serializer;
-		if (serializer.open(InlineString<>::Make("SBlock/levels/%s.lv", name)))
+		if (serializer.open(InlineString<>::Make(SBLOCKS_DIR"/levels/%s.lv", name)))
 		{
 			LevelDesc desc;
 			serializer.read(desc);
@@ -298,21 +301,219 @@ namespace SBlocks
 		}
 	}
 
+	void Editor::registerCommand()
+	{
+		auto& console = ConsoleSystem::Get();
+#define REGISTER_COM( NAME , FUNC )\
+				console.registerCommand("SBlocks."NAME, &Editor::FUNC, this)
+
+		REGISTER_COM("Save", saveLevel);
+		REGISTER_COM("New", newLevel);
+
+		REGISTER_COM("SetMapSize", setMapSize);
+		REGISTER_COM("SetMapPos", setMapPos);
+		REGISTER_COM("AddMap", addMap);
+		REGISTER_COM("RemoveMap", removeMap);
+
+
+		REGISTER_COM("AddPiece", addPiece);
+		REGISTER_COM("RemovePiece", removePiece);
+
+		REGISTER_COM("AddShape", addEditPieceShape);
+		REGISTER_COM("RemoveShape", addEditPieceShape);
+		REGISTER_COM("CopyShape", copyEditPieceShape);
+		REGISTER_COM("EditShape", openEditPieceShapeEditor);
+
+		REGISTER_COM("RunScript", runScript);
+#undef REGISTER_COM
+	}
+
+	void Editor::unregisterCommand()
+	{
+		auto& console = ConsoleSystem::Get();
+		console.unregisterAllCommandsByObject(this);
+	}
+
+	char const* BatchScript[] =
+	{
+		"New",
+		"AddShape 2 2",
+		"EditShape 0",
+		"AddPiece 0",
+	};
+
+	void Editor::runScript()
+	{
+		for (int i = 0; i < ARRAY_SIZE(BatchScript); ++i)
+		{
+			std::string cmd = "SBlocks.";
+			cmd += BatchScript[i];
+			ConsoleSystem::Get().executeCommand(cmd.c_str());
+		}
+	}
+
+
 	void Editor::saveLevel(char const* name)
 	{
 		OutputFileSerializer serializer;
 		serializer.registerVersion(EName::None, ELevelSaveVersion::LastVersion);
 
-		if (!FFileSystem::IsExist("SBlock/levels"))
+		if (!FFileSystem::IsExist(SBLOCKS_DIR"/levels"))
 		{
-			FFileSystem::CreateDirectorySequence("SBlock/levels");
+			FFileSystem::CreateDirectorySequence(SBLOCKS_DIR"/levels");
 		}
 
-		if (serializer.open(InlineString<>::Make("SBlock/levels/%s.lv", name)))
+		if (serializer.open(InlineString<>::Make(SBLOCKS_DIR"/levels/%s.lv", name)))
 		{
 			LevelDesc desc;
 			mGame->mLevel.exportDesc(desc);
 			serializer.write(desc);
+		}
+	}
+
+
+	void Editor::newLevel()
+	{
+		mGame->mLevel.importDesc(DefautlNewLevel);
+		mGame->initializeGame();
+	}
+
+	void Editor::openEditPieceShapeEditor(int id)
+	{
+		if (!IsValidIndex(mPieceShapeLibrary, id))
+			return;
+
+		if (mShapeEditPanel == nullptr)
+		{
+			mShapeEditPanel = new ShapeEditPanel(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
+			::Global::GUI().addWidget(mShapeEditPanel);
+		}
+
+		EditPieceShape& editShape = mPieceShapeLibrary[id];
+		mShapeEditPanel->editor = this;
+		mShapeEditPanel->mShape = &editShape;
+		mShapeEditPanel->init();
+
+		mShapeEditPanel->show();
+	}
+
+
+	void Editor::registerGamePieces()
+	{
+		for (int indexPiece = 0; indexPiece < mGame->mLevel.mPieces.size(); ++indexPiece)
+		{
+			Piece* piece = mGame->mLevel.mPieces[indexPiece].get();
+			EditPieceShape* editShape = registerEditShape(piece->shape);
+			editShape->usageCount += 1;
+		}
+	}
+
+	Editor::EditPieceShape* Editor::registerEditShape(PieceShape* shape)
+	{
+		for (EditPieceShape& editShape : mPieceShapeLibrary)
+		{
+			if (editShape.ptr == shape)
+				return &editShape;
+		}
+
+		for (EditPieceShape& editShape : mPieceShapeLibrary)
+		{
+			PieceShapeData shapeData;
+			shapeData.initialize(editShape.desc);
+			int dir = shape->findSameShape(shapeData);
+
+			if (dir != INDEX_NONE)
+			{
+				editShape.ptr = shape;
+				editShape.rotation = dir;
+
+				return &editShape;
+			}
+		}
+
+		EditPieceShape editShape;
+		editShape.bLibrary = false;
+		editShape.usageCount = 0;
+		editShape.ptr = shape;
+		editShape.rotation = 0;
+		shape->exportDesc(editShape.desc);
+
+		mPieceShapeLibrary.push_back(std::move(editShape));
+		return &mPieceShapeLibrary.back();
+	}
+
+	void Editor::saveShapeLibrary()
+	{
+		OutputFileSerializer serializer;
+		if (!FFileSystem::IsExist(SBLOCKS_DIR))
+		{
+			FFileSystem::CreateDirectorySequence(SBLOCKS_DIR);
+		}
+
+		if (serializer.open(SBLOCKS_DIR"/ShapeLib.bin"))
+		{
+			serializeShapeLibrary(IStreamSerializer::WriteOp(serializer));
+		}
+	}
+
+	void Editor::loadShapeLibrary()
+	{
+		InputFileSerializer serializer;
+		if (serializer.open(SBLOCKS_DIR"/ShapeLib.bin"))
+		{
+			serializeShapeLibrary(IStreamSerializer::ReadOp(serializer));
+		}
+	}
+
+	void Editor::startEdit()
+	{
+		LogMsg("Edit Start");
+		registerCommand();
+		mGame->mLevel.unlockAllPiece();
+		mbEnabled = true;
+
+		mShapeLibraryPanel = new ShapeListPanel(UI_ANY, Vec2i(10, 10), Vec2i(::Global::GetScreenSize().x - 20, 120), nullptr);
+		mShapeLibraryPanel->mEditor = this;
+		::Global::GUI().addWidget(mShapeLibraryPanel);
+	}
+
+	void Editor::endEdit()
+	{
+		if (mShapeLibraryPanel)
+		{
+			mShapeLibraryPanel->destroy();
+			mShapeLibraryPanel = nullptr;
+		}
+		saveShapeLibrary();
+
+		LogMsg("Edit End");
+		unregisterCommand();
+
+		mbEnabled = false;
+	}
+
+	void Editor::notifyLevelChanged()
+	{
+		RemoveAllPred(mPieceShapeLibrary, [](auto& value)
+		{
+			return value.bLibrary == false;
+		});
+
+		for (EditPieceShape& editShape : mPieceShapeLibrary)
+		{
+			editShape.ptr = nullptr;
+			editShape.usageCount = 0;
+		}
+
+		if (mShapeEditPanel)
+		{
+			mShapeEditPanel->destroy();
+			mShapeEditPanel = nullptr;
+		}
+
+		if (mbEnabled)
+		{
+			registerGamePieces();
 		}
 	}
 

@@ -129,12 +129,12 @@ public:
 
 
 template < class TFunc, class T = void >
-struct TMemberFuncConsoleCom : public ConsoleCommandBase
+struct TMemberFuncConsoleCommand : public ConsoleCommandBase
 {
 	TFunc  mFunc;
 	T*     mObject;
 
-	TMemberFuncConsoleCom( char const* inName , TFunc inFunc, T* inObj = NULL, uint32 flags = 0)
+	TMemberFuncConsoleCommand( char const* inName , TFunc inFunc, T* inObj = NULL, uint32 flags = 0)
 		:ConsoleCommandBase(inName, TCommandFuncTraints<TFunc>::GetArgs() , flags)
 		, mFunc(inFunc), mObject(inObj)
 	{
@@ -347,7 +347,7 @@ public:
 	template < class TFunc, class T >
 	auto* registerCommand( char const* name , TFunc func , T* obj , uint32 flags = 0)
 	{
-		auto* command = new TMemberFuncConsoleCom<TFunc, T >( name ,func , obj, flags);
+		auto* command = new TMemberFuncConsoleCommand<TFunc, T >( name ,func , obj, flags);
 		insertCommand(command);
 		return command;
 	}
@@ -501,7 +501,7 @@ public:
 
 	~AutoConsoleCommand()
 	{
-		if (ConsoleSystem::Get().isInitialized())
+		if ( mCommand && ConsoleSystem::Get().isInitialized())
 		{
 			ConsoleSystem::Get().unregisterCommand(mCommand);
 		}

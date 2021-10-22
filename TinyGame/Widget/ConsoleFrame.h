@@ -153,12 +153,12 @@ public:
 	};
 
 	TCycleBuffer< ComLine , 37 > mLines;
-	GTextCtrl* mComText;
+	GTextCtrl* mCmdText;
 
-	std::vector< std::string > mFoundComs;
-	std::vector< std::string > mHistoryComs;
+	std::vector< std::string > mFoundCmds;
+	std::vector< std::string > mHistoryCmds;
 	int mIndexHistoryUsed = INDEX_NONE;
-	int mIndexFoundComUsed = INDEX_NONE;
+	int mIndexFoundCmdUsed = INDEX_NONE;
 public:
 	//LogOutput
 	virtual bool filterLog(LogChannel channel, int level) override

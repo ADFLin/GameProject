@@ -2,6 +2,7 @@
 
 #include "LogSystem.h"
 #include "Core/TypeHash.h"
+#include "StdUtility.h"
 
 namespace SBlocks
 {
@@ -36,7 +37,7 @@ namespace SBlocks
 			bound.addPoint(block);
 		}
 
-		if (bound.isEmpty())
+		if (!bound.isValid())
 		{
 			LogWarning(0, "Piece Shape no block");
 		}
@@ -367,7 +368,7 @@ namespace SBlocks
 		return canLockAssumeInBound(pos, shapeData);
 	}
 
-	void MarkMap::improtDesc(MapDesc const& desc)
+	void MarkMap::importDesc(MapDesc const& desc)
 	{
 		uint32 sizeX = desc.sizeX;
 		uint32 dataSizeX = FBitGird::GetDataSizeX(desc.sizeX);
@@ -494,11 +495,7 @@ namespace SBlocks
 		int index = 0;
 		for (auto const& mapDesc : desc.maps)
 		{
-			mMaps[index].improtDesc(mapDesc);
-			if (index == 0)
-			{
-				mMap.improtDesc(mapDesc);
-			}
+			mMaps[index].importDesc(mapDesc);
 			++index;
 		}
 	
@@ -561,10 +558,9 @@ namespace SBlocks
 
 	Piece* Level::createPiece(PieceDesc const& desc)
 	{
-		if (desc.id < 0 || desc.id >= mShapes.size())
-		{
+		if (IsValidIndex(mShapes, desc.id) == false)
 			return nullptr;
-		}
+		
 		std::unique_ptr< Piece > piece = std::make_unique< Piece >();
 
 		piece->shape = mShapes[desc.id].get();
@@ -605,15 +601,6 @@ namespace SBlocks
 			}
 		}
 		return nullptr;
-	}
-
-	Vec2i Level::GetLockMapPos(Piece& piece)
-	{
-		Vector2 pos = piece.getLTCornerPos();
-		Vec2i mapPos;
-		mapPos.x = Math::RoundToInt(pos.x);
-		mapPos.y = Math::RoundToInt(pos.y);
-		return mapPos;
 	}
 
 	bool Level::tryLockPiece(Piece& piece)

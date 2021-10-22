@@ -78,6 +78,45 @@ FORCEINLINE bool IsValidIndex(std::vector<T, A> const& v, int index)
 	return 0 <= index && index < v.size();
 }
 
+template< typename T, typename A, typename TFunc >
+FORCEINLINE bool RemovePred(std::vector<T, A>& v, TFunc func)
+{
+	auto iter = v.begin();
+	while (iter != v.end())
+	{
+		if (func(*iter))
+		{
+			iter = v.erase(iter);
+			return true;
+		}
+		else
+		{
+			++iter;
+		}
+	}
+	return false;
+}
+
+template< typename T, typename A , typename TFunc >
+FORCEINLINE int RemoveAllPred(std::vector<T, A>& v, TFunc func )
+{
+	int result = 0;
+	auto iter = v.begin();
+	while (iter != v.end())
+	{
+		if (func(*iter) )
+		{
+			iter = v.erase(iter);
+			++result;
+		}
+		else
+		{
+			++iter;
+		}
+	}
+	return result;
+}
+
 template< class T >
 class TIterator
 {

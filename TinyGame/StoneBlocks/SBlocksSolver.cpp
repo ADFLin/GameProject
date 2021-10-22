@@ -12,22 +12,23 @@
 namespace SBlocks
 {
 
-	void MapSolveData::setup(Level& level, SolveOption const& option)
+	void MapSolveData::setup(MarkMap const& map, SolveOption const& option)
 	{
-		mMap.copyFrom(level.mMap, true);
-		if (option.bTestMinConnectTiles)
+		mMap.copyFrom(map, true);
+		if (option.bTestConnectTilesCount)
 		{
-			mTestFrameMap.resize(level.mMap.getBoundSize().x, level.mMap.getBoundSize().y);
-			mTestFrameMap.fillValue(0);
-			mTestFrame = 0;
+			mTestFrameMap.resize(map.getBoundSize().x, map.getBoundSize().y);
+			mTestFrameMap.fillValue({ 0,0 });
+			mSubTestFrame = 0;
 		}
 	}
 
 	void MapSolveData::copyFrom(MapSolveData const& rhs)
 	{
 		mMap.copyFrom(rhs.mMap);
-		mTestFrameMap = rhs.mTestFrameMap;
-		mTestFrame = rhs.mTestFrame;
+		mTestFrameMap.resize(rhs.mTestFrameMap.getSizeX(), rhs.mTestFrameMap.getSizeY());
+		mTestFrameMap.fillValue({ 0,0 });
+		mSubTestFrame = 0;
 	}
 
 	int MapSolveData::countConnectTiles(Vec2i const& pos)
@@ -36,16 +37,39 @@ namespace SBlocks
 			return 0;
 
 		auto& frame = mTestFrameMap(pos.x, pos.y);
-		if (frame == mTestFrame)
+		if (frame.master == *mTestFramePtr)
 			return 0;
 
-		frame = mTestFrame;
+		frame.master = *mTestFramePtr;
+		int result = 1;
+		for (int i = 0; i < 4; ++i)
+		{
+			Vec2i testPos = pos + GConsOffsets[i];
+			result += countConnectTilesRec(testPos);
+			if (result >= mMaxCount)
+				break;
+		}
+		return result;
+	}
+
+	int MapSolveData::countConnectTilesRec(Vec2i const& pos)
+	{
+		if (!mMap.isInBound(pos) || mMap.getValue(pos) != 0)
+			return 0;
+
+		auto& frame = mTestFrameMap(pos.x, pos.y);
+		if (frame.sub == mSubTestFrame)
+			return 0;
+		frame.master = *mTestFramePtr;
+		frame.sub = mSubTestFrame;
 
 		int result = 1;
 		for (int i = 0; i < 4; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
-			result += countConnectTiles(testPos);
+			result += countConnectTilesRec(testPos);
+			if (result >= mMaxCount)
+				break;
 		}
 		return result;
 	}
@@ -56,10 +80,10 @@ namespace SBlocks
 			return;
 
 		auto& frame = mTestFrameMap(pos.x, pos.y);
-		if (frame == mTestFrame)
+		if (frame.master == *mTestFramePtr)
 			return;
 
-		frame = mTestFrame;
+		frame.master = *mTestFramePtr;
 		mCachedShapeData.blocks.push_back(pos);
 		for (int i = 0; i < 4; ++i)
 		{
@@ -68,14 +92,42 @@ namespace SBlocks
 		}
 	}
 
+	void SolveData::getSolvedStates(std::vector< PieceSolveState >& outStates) const
+	{
+		int index = 0;
+		for (auto const& pieceData : globalData->mPieceList)
+		{
+			int indexState = stateIndices[index];
+			auto const* shapeSolveData = pieceData.shapeSaveData;
+			CHECK(indexState != INDEX_NONE);
+			outStates.push_back(shapeSolveData->states[indexState]);
+			++index;
+		}
+	}
+
 	void SolveData::setup(Level& level, SolveOption const& option)
 	{
 		mMaps.resize(level.mMaps.size());
 		for (int i = 0; i < mMaps.size(); ++i)
 		{
-			mMaps[i].setup(level, option);
+			mMaps[i].setup(level.mMaps[i], option);
+			mMaps[i].mTestFramePtr = &mTestFrame;
 		}
 		stateIndices.resize(level.mPieces.size(), INDEX_NONE);
+	}
+
+	void SolveData::copyFrom(SolveData const& rhs)
+	{
+		globalData = rhs.globalData;
+		stateIndices = rhs.stateIndices;
+		mTestFrame = 0;
+		mMaps.resize(rhs.mMaps.size());
+		for (int i = 0; i < mMaps.size(); ++i)
+		{
+			mMaps[i].copyFrom(rhs.mMaps[i]);
+			mMaps[i].mTestFramePtr = &mTestFrame;
+		}
+		mCombinations = rhs.mCombinations;
 	}
 
 	bool SolveData::advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount )
@@ -164,112 +216,121 @@ namespace SBlocks
 		return false;
 	}
 
-	template< typename TFunc >
-	ERejectResult::Type SolveData::testRejection(GlobalSolveData& globalData, MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, SolveOption const& option, int maxCompareShapeSize, TFunc CheckPieceFunc)
+	int SolveData::getPieceStateCount(int indexPiece)
 	{
+		auto const& pieceData = globalData->mPieceList[indexPiece];
+		auto const& shapeSolveData = *pieceData.shapeSaveData;
+		if (globalData->mUsedOption.bEnableIdenticalShapeCombination && shapeSolveData.indexCombination != INDEX_NONE)
+		{
+			return mCombinations[shapeSolveData.indexCombination].getStateNum();
+		}
+		else
+		{
+			return shapeSolveData.states.size();
+		}
+	}
 
+	template< typename TFunc >
+	ERejectResult::Type SolveData::testRejection(MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, SolveOption const& option, int maxCompareShapeSize, TFunc CheckPieceFunc)
+	{
 		mCachedPendingTests.clear();
-		++mapData.mTestFrame;
+		++mTestFrame;
+		CHECK(mTestFrame != 0);
+		mapData.mMaxCount = maxCompareShapeSize;
 		for (auto const& outerPos : outerConPosList)
 		{
 			Vec2i testPos = pos + outerPos;
-			int count = mapData.countConnectTiles(testPos);
-			if (count != 0)
-			{
-				if (count < globalData.mMinShapeBlockCount)
-				{
-					return ERejectResult::MinConnectTiles;
-				}
-				if (option.bTestConnectTileShape)
-				{
-					int pieceMapIndex = count - globalData.mMinShapeBlockCount;
-					if (count < maxCompareShapeSize && IsValidIndex(globalData.mPieceSizeMap, pieceMapIndex))
-					{
-						if (globalData.mPieceSizeMap[pieceMapIndex] == nullptr)
-						{
-							return ERejectResult::ConnectTileShape;
-						}
-						ShapeTest test;
-						test.pos = testPos;
-						test.mapIndex = pieceMapIndex;
-						test.mapData = &mapData;
-						mCachedPendingTests.push_back(test);
-					}
-				}
-			}
+			++mapData.mSubTestFrame;
+			CHECK(mapData.mSubTestFrame != 0);
+			auto testResult = testRejectionInternal(mapData, testPos, option, maxCompareShapeSize);
+			if (testResult != ERejectResult::None)
+				return testResult;
 		}
 
 		if (option.bTestConnectTileShape)
 		{
-			return runPendingTest(globalData, CheckPieceFunc);
+			return runPendingShapeTest(CheckPieceFunc);
 		}
 
 		return ERejectResult::None;
 	}
 
 	template< typename TFunc >
-	ERejectResult::Type SolveData::testRejection(GlobalSolveData& globalData, ShapeSolveData& shapeSolveData, int indexPiece, SolveOption const& option, int maxCompareShapeSize, TFunc CheckPieceFunc)
+	ERejectResult::Type SolveData::testRejection(ShapeSolveData& shapeSolveData, int indexPiece, SolveOption const& option, int maxCompareShapeSize, TFunc CheckPieceFunc)
 	{
 		mCachedPendingTests.clear();
-
+		++mTestFrame;
+		CHECK(mTestFrame != 0);
 		for (int i = 0; i < shapeSolveData.pieces.size(); ++i)
 		{
 			PieceSolveState const& state = shapeSolveData.states[stateIndices[indexPiece + i]];
 			auto& mapData = mMaps[state.mapIndex];
-
-			++mapData.mTestFrame;
+			mapData.mMaxCount = maxCompareShapeSize;
 			for (auto const& outerPos : shapeSolveData.outerConPosListMap[state.dir])
 			{
 				Vec2i testPos = state.pos + outerPos;
-				int count = mapData.countConnectTiles(testPos);
-				if (count != 0)
-				{
-					if (count < globalData.mMinShapeBlockCount)
-					{
-						return ERejectResult::MinConnectTiles;
-					}
-					if (option.bTestConnectTileShape)
-					{
-						int pieceMapIndex = count - globalData.mMinShapeBlockCount;
-						if (count < maxCompareShapeSize && IsValidIndex(globalData.mPieceSizeMap, pieceMapIndex))
-						{
-							if (globalData.mPieceSizeMap[pieceMapIndex] == nullptr)
-							{
-								return ERejectResult::ConnectTileShape;
-							}
-							ShapeTest test;
-							test.pos = testPos;
-							test.mapIndex = pieceMapIndex;
-							test.mapData = &mapData;
-							mCachedPendingTests.push_back(test);
-						}
-					}
-				}
+				++mapData.mSubTestFrame;
+				CHECK(mapData.mSubTestFrame != 0);
+				auto testResult = testRejectionInternal(mapData, testPos, option, maxCompareShapeSize);
+				if (testResult != ERejectResult::None)
+					return testResult;
 			}
 		}
 
 		if (option.bTestConnectTileShape)
 		{
-			return runPendingTest(globalData, CheckPieceFunc);
+			return runPendingShapeTest(CheckPieceFunc);
+		}
+
+		return ERejectResult::None;
+	}
+
+	ERejectResult::Type SolveData::testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos, SolveOption const &option, int maxCompareShapeSize)
+	{
+		int count = mapData.countConnectTiles(testPos);
+		if (count != 0)
+		{
+			if (count < globalData->mMinShapeBlockCount)
+			{
+				return ERejectResult::ConnectTilesCount;
+			}
+	
+			int pieceMapIndex = count - globalData->mMinShapeBlockCount;
+			if (count < maxCompareShapeSize && IsValidIndex(globalData->mPieceSizeMap, pieceMapIndex))
+			{
+				if (globalData->mPieceSizeMap[pieceMapIndex] == nullptr)
+				{
+					return ERejectResult::ConnectTilesCount;
+				}
+				if (option.bTestConnectTileShape)
+				{
+					ShapeTest test;
+					test.pos = testPos;
+					test.index = pieceMapIndex;
+					test.mapData = &mapData;
+					mCachedPendingTests.push_back(test);
+				}
+			}
 		}
 
 		return ERejectResult::None;
 	}
 
 	template< typename TFunc >
-	ERejectResult::Type SolveData::runPendingTest(GlobalSolveData& globalData, TFunc CheckPieceFunc)
+	ERejectResult::Type SolveData::runPendingShapeTest(TFunc CheckPieceFunc)
 	{
 		for (auto const& test : mCachedPendingTests)
 		{
 			auto& mapData = *test.mapData;
 
 			mapData.mCachedShapeData.blocks.clear();
-			++mapData.mTestFrame;
+			++mTestFrame;
+			CHECK(mTestFrame != 0);
 			mapData.getConnectedTilePosList(test.pos);
 
 			mapData.mCachedShapeData.standardizeBlocks();
 
-			PieceSolveData* pieceData = globalData.mPieceSizeMap[test.mapIndex];
+			PieceSolveData* pieceData = globalData->mPieceSizeMap[test.index];
 			for (; pieceData; pieceData = pieceData->link)
 			{
 				if (CheckPieceFunc(*pieceData) && pieceData->shape->findSameShape(mapData.mCachedShapeData) != INDEX_NONE)
@@ -290,6 +351,7 @@ namespace SBlocks
 	void Solver::setup(Level& level, SolveOption const& option)
 	{
 		mUsedOption = option;
+		mSolveData.globalData = this;
 
 		std::vector<Piece*> sortedPieces;
 		for (int index = 0; index < level.mPieces.size(); ++index)
@@ -376,7 +438,7 @@ namespace SBlocks
 			pieceData.shapeSaveData = &shapeSolveData;
 		}
 
-		if (mUsedOption.bEnableRejection && mUsedOption.bTestConnectTileShape)
+		if (mUsedOption.bEnableRejection && mUsedOption.bTestConnectTilesCount)
 		{
 			mPieceSizeMap.resize(mMaxShapeBlockCount - mMinShapeBlockCount + 1);
 
@@ -410,7 +472,7 @@ namespace SBlocks
 			shapeSolveData.states.clear();
 
 			int mapBlockRejectCount = 0;
-			int minConnectTilesRejectCount = 0;
+			int connectTilesCountRejectCount = 0;
 			int connectTileShapeRejectCount = 0;
 
 			auto CheckPieceFunc = [&shapeSolveData](PieceSolveData& testPieceData)
@@ -452,8 +514,7 @@ namespace SBlocks
 									mapData.mMap.lockChecked(pos, shapeData);
 
 									ERejectResult::Type result = mSolveData.testRejection(
-										*this, mapData, pos,
-										shapeSolveData.outerConPosListMap[dir],
+										mapData, pos, shapeSolveData.outerConPosListMap[dir],
 										mUsedOption, maxCompareShapeSize, CheckPieceFunc);
 
 									mapData.mMap.unlock(pos, shapeData);
@@ -463,8 +524,8 @@ namespace SBlocks
 #if SBLOCK_LOG_SOLVE_INFO
 										switch (result)
 										{
-										case ERejectResult::MinConnectTiles:
-											++minConnectTilesRejectCount;
+										case ERejectResult::ConnectTilesCount:
+											++connectTilesCountRejectCount;
 											break;
 										case ERejectResult::ConnectTileShape:
 											++connectTileShapeRejectCount;
@@ -488,10 +549,10 @@ namespace SBlocks
 			}
 
 #if SBLOCK_LOG_SOLVE_INFO
-			int totalRejectCount = mapBlockRejectCount + minConnectTilesRejectCount + connectTileShapeRejectCount;
-			LogMsg("Shape %d - State = %d, Reject: Total = %d, MapBlock = %d, MinConnectTiles = %d, ConnectTileShape = %d",
+			int totalRejectCount = mapBlockRejectCount + connectTilesCountRejectCount + connectTileShapeRejectCount;
+			LogMsg("Shape %d - State = %d, Reject: Total = %d, MapBlock = %d, ConnectTilesCount = %d, ConnectTileShape = %d",
 				shape->indexSolve, (int)shapeSolveData.states.size(),
-				totalRejectCount, mapBlockRejectCount, minConnectTilesRejectCount, connectTileShapeRejectCount);
+				totalRejectCount, mapBlockRejectCount, connectTilesCountRejectCount, connectTileShapeRejectCount);
 #endif
 		}
 
@@ -514,26 +575,22 @@ namespace SBlocks
 				}
 			}
 		}
+
+		mUsedSolveFunc = GetSolveFunc< false >(mUsedOption);
+		mUsedSolvePartFunc = GetSolveFunc< true >(mUsedOption);
 	}
 
-	int Solver::solveImpl(SolveData& solveData, int indexPiece, PartWorkInfo* partWork)
+	int Solver::solveImpl(SolveData& solveData, int indexPiece)
 	{
-		if (mUsedOption.bEnableRejection)
-		{
-			if (mUsedOption.bEnableIdenticalShapeCombination)
-				return solveImplT< true, true >(solveData, indexPiece, partWork);
-			else
-				return solveImplT< true, false >(solveData, indexPiece, partWork);
-		}
-
-		if (mUsedOption.bEnableIdenticalShapeCombination)
-			return solveImplT< false, true >(solveData, indexPiece, partWork);
-			
-		return solveImplT< false, false >(solveData, indexPiece, partWork);
+		return (this->*mUsedSolveFunc)(solveData, indexPiece, nullptr);
 	}
 
+	int Solver::solvePart(SolveData& solveData, int indexPiece, PartWorkInfo& partWork)
+	{
+		return (this->*mUsedSolvePartFunc)(solveData, indexPiece, &partWork);
+	}
 
-	template< bool bEnableRejection, bool bEnableIdenticalShapeCombination >
+	template< bool bEnableRejection, bool bEnableIdenticalShapeCombination, bool bHavePartWork >
 	int Solver::solveImplT(SolveData& solveData, int indexPiece, PartWorkInfo* partWork)
 	{
 		auto CheckPieceFunc = [&indexPiece](PieceSolveData& testPieceData)
@@ -572,7 +629,7 @@ namespace SBlocks
 
 				if (solveData.advanceCombinedState(shapeSolveData, indexPiece, stateUsedCount))
 				{
-					if (partWork)
+					if (bHavePartWork)
 					{
 						if (indexPiece == partWork->indexPieceWork)
 						{
@@ -589,7 +646,7 @@ namespace SBlocks
 					{
 						if (1 <= indexPiece && indexPiece < 2 * mPieceList.size() / 3)
 						{
-							auto result = solveData.testRejection(*this,
+							auto result = solveData.testRejection(
 								shapeSolveData, indexPiece,
 								mUsedOption, maxCompareShapeSize, CheckPieceFunc);
 
@@ -620,7 +677,7 @@ namespace SBlocks
 			{
 				if (solveData.advanceState(shapeSolveData, indexPiece, stateUsedCount))
 				{
-					if (partWork)
+					if (bHavePartWork)
 					{
 						if (indexPiece == partWork->indexPieceWork)
 						{
@@ -639,11 +696,10 @@ namespace SBlocks
 						{
 							PieceSolveState const& state = shapeSolveData.states[solveData.stateIndices[indexPiece]];
 
-							auto& mapData = mSolveData.mMaps[state.mapIndex];
+							auto& mapData = solveData.mMaps[state.mapIndex];
 
 							auto result = solveData.testRejection(
-								*this, mapData, state.pos,
-								shapeSolveData.outerConPosListMap[state.dir],
+								mapData, state.pos, shapeSolveData.outerConPosListMap[state.dir],
 								mUsedOption, maxCompareShapeSize, CheckPieceFunc);
 
 							if (result != ERejectResult::None)
@@ -677,8 +733,22 @@ namespace SBlocks
 		return indexPiece;
 	}
 
+	template< bool bHavePartWork >
+	Solver::SolveFunc Solver::GetSolveFunc(SolveOption const& option)
+	{
+		if (option.bEnableRejection)
+		{
+			if (option.bEnableIdenticalShapeCombination)
+				return &Solver::solveImplT< true, true , bHavePartWork>;
+			else
+				return &Solver::solveImplT< true, false, bHavePartWork>;
+		}
 
+		if (option.bEnableIdenticalShapeCombination)
+			return &Solver::solveImplT< false, true, bHavePartWork>;
 
+		return &Solver::solveImplT< false, false, bHavePartWork>;
+	}
 
 	class SolveWork : public RunnableThreadT< SolveWork >
 		            , public SolveData
@@ -711,13 +781,13 @@ namespace SBlocks
 			int indexPieceCur = partWork.indexPieceWork;
 			while ( partWork.numStatesUsed <= partWork.numStates )
 			{
-				indexPieceCur = solver->solveImpl(*this, indexPieceCur, &partWork);
+				indexPieceCur = solver->solvePart(*this, indexPieceCur, partWork);
 
 				if (indexPieceCur >= partWork.indexPieceWork)
 				{
 					++numSolutions;
 					std::vector< PieceSolveState > states;
-					getSolvedStates(*solver, states);
+					getSolvedStates(states);
 					solver->mSolutionList.push(std::move(states));
 					--indexPieceCur;
 				}
@@ -744,7 +814,7 @@ namespace SBlocks
 
 	void Solver::solveParallel(int numThreads)
 	{
-		int numWorkState = getPieceStateCount(0);
+		int numWorkState = mSolveData.getPieceStateCount(0);
 		int numTheadWork = numWorkState / numThreads;
 		int numResWork = numWorkState - numTheadWork * numThreads;
 

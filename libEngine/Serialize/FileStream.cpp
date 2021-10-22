@@ -158,6 +158,7 @@ void OutputFileSerializer::registerVersion(HashString name, int32 version)
 	if (name == EName::None)
 	{
 		mMasterVersion = version;
+		mbNeedWriteVersionData = true;
 	}
 	else if (version)
 	{

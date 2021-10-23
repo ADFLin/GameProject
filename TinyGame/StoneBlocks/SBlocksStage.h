@@ -199,7 +199,7 @@ namespace SBlocks
 						mapPos.y = lPos.y;
 						if (map.isInBound(mapPos))
 						{
-							map.toggleDataType(mapPos);
+							map.toggleBlock(mapPos);
 							return false;
 						}
 					}
@@ -380,6 +380,7 @@ namespace SBlocks
 		struct ShapeInfo
 		{
 			EditPieceShape*   editShape;
+			Vector2 pivot;
 			RenderTransform2D localToFrame;
 			RenderTransform2D FrameToLocal;
 		};
@@ -401,8 +402,24 @@ namespace SBlocks
 				shapeInfo.FrameToLocal = shapeInfo.localToFrame.inverse();
 				Vec2i boundSize = editShape.desc.getBoundSize();
 
+				updateShape(shapeInfo);
+
 				mShapeList.push_back(std::move(shapeInfo));
 				pos.x += boundSize.x * scale + 5;
+			}
+		}
+
+		void updateShape(ShapeInfo& shapeInfo)
+		{
+			Vec2i boundSize = shapeInfo.editShape->desc.getBoundSize();
+
+			if (shapeInfo.editShape->desc.bUseCustomPivot)
+			{
+				shapeInfo.pivot = shapeInfo.editShape->desc.customPivot;
+			}
+			else
+			{
+				shapeInfo.pivot = 0.5 * Vector2(boundSize);
 			}
 		}
 
@@ -422,6 +439,9 @@ namespace SBlocks
 				g.pushXForm();
 				g.transformXForm(shapeInfo.localToFrame, true);
 				Editor::Draw(g, mEditor->mGame->mTheme, shapeInfo.editShape->desc);
+				RenderUtility::SetBrush(g, EColor::Red);
+				RenderUtility::SetPen(g, EColor::Red);
+				g.drawRect(shapeInfo.pivot, Vector2(0.01, 0.01));
 				g.popXForm();
 			}
 

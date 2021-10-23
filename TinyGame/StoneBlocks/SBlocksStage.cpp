@@ -100,15 +100,13 @@ namespace SBlocks
 					uint8 value = map.getValue(i, j);
 
 					RenderUtility::SetPen(g, EColor::Null);
-					switch (value)
+					if (MarkMap::HaveBlock(value))
 					{
-					case MarkMap::MAP_BLOCK:
 						g.setBrush(mTheme.mapBlockColor);
-						break;
-					case MarkMap::PIECE_BLOCK:
-					case 0:
+					}
+					else
+					{
 						g.setBrush(mTheme.mapEmptyColor);
-						break;
 					}
 
 					float border = 0.025;
@@ -159,7 +157,7 @@ namespace SBlocks
 		{
 			for (auto const& block : shapeData.blocks)
 			{
-				g.drawRect(block, Vector2(1, 1));
+				g.drawRect(block.pos, Vector2(1, 1));
 			}
 		};
 
@@ -276,7 +274,7 @@ namespace SBlocks
 				LogMsg("%d = [%d](%d, %d) dir = %d", i, state.mapIndex, state.pos.x, state.pos.y, state.dir);
 				piece->dir = DirType::ValueChecked(state.dir);
 				piece->angle = piece->dir * Math::PI / 2;
-				piece->pos = mLevel.mMaps[state.mapIndex].mPos + Vector2(state.pos) - piece->shape->getLTCornerOffset(DirType::ValueChecked(state.dir));
+				piece->pos = mLevel.calcPiecePos(*piece, state.mapIndex , state.pos , DirType::ValueChecked(state.dir));
 				piece->updateTransform();
 
 				mLevel.tryLockPiece(*piece);
@@ -305,7 +303,7 @@ namespace SBlocks
 	{
 		auto& console = ConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC )\
-				console.registerCommand("SBlocks."NAME, &Editor::FUNC, this)
+		console.registerCommand("SBlocks."NAME, &Editor::FUNC, this)
 
 		REGISTER_COM("Save", saveLevel);
 		REGISTER_COM("New", newLevel);

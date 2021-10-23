@@ -187,18 +187,18 @@ namespace SBlocks
 		ERejectResult::Type testRejection(
 			MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, 
 			SolveOption const& option, int maxCompareShapeSize, 
-			TFunc CheckPieceFunc);
+			TFunc& CheckPieceFunc);
 
 		template< typename TFunc >
 		ERejectResult::Type testRejection(
 			ShapeSolveData& shapeSolveData, int indexPiece,
 			SolveOption const& option, int maxCompareShapeSize, 
-			TFunc CheckPieceFunc);
+			TFunc& CheckPieceFunc);
 
 		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos,  SolveOption const &option, int maxCompareShapeSize);
 
 		template< typename TFunc >
-		ERejectResult::Type runPendingShapeTest(TFunc CheckPieceFunc);
+		ERejectResult::Type runPendingShapeTest(TFunc& CheckPieceFunc);
 	};
 
 	class ISolver

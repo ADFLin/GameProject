@@ -137,7 +137,7 @@ namespace SBlocks
 
 		Vec2i getBoundSize() const
 		{
-			return Vec2i(sizeX, (data.size() - sizeX + 1) / sizeX);
+			return Vec2i(sizeX, (data.size() + sizeX - 1) / sizeX);
 		}
 		template< class OP >
 		void serialize(OP& op);
@@ -151,14 +151,36 @@ namespace SBlocks
 	struct PieceShapeData
 	{
 		Vec2i boundSize;
-		std::vector< Int16Point2D > blocks;
+		struct Block
+		{
+			Block() = default;
+			Block(Int16Point2D const& inPos, uint8 inType):pos(inPos), type(inType){}
+
+			bool operator == (Block const& rhs) const
+			{
+				return pos == rhs.pos && type == rhs.type;
+			}
+
+			bool operator != (Block const& rhs) const
+			{
+				return !this->operator==(rhs);
+			}
+
+			Int16Point2D pos;
+			uint8 type;
+			operator Int16Point2D() const { return pos; }
+		};
+		std::vector< Block > blocks;
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
 		uint32 blockHash;
+		uint32 blockHashNoType;
 #endif
 		void initialize(PieceShapeDesc const& desc);
 
 		void standardizeBlocks();
 
+
+		bool compareBlockPos(PieceShapeData const& rhs) const;
 		bool operator == (PieceShapeData const& rhs) const;
 
 		struct Line
@@ -183,6 +205,7 @@ namespace SBlocks
 		int indexSolve;
 
 		int findSameShape(PieceShapeData const& data);
+		int findSameShapeIgnoreBlockType(PieceShapeData const& data);
 		int getBlockCount() const
 		{
 			return mDataMap[0].blocks.size();
@@ -260,8 +283,8 @@ namespace SBlocks
 			auto const& shapeData = shape->mDataMap[0];
 			for (auto const& block : shapeData.blocks)
 			{
-				if (block.x < lPos.x && lPos.x < block.x + 1 &&
-					block.y < lPos.y && lPos.y < block.y + 1)
+				if (block.pos.x < lPos.x && lPos.x < block.pos.x + 1 &&
+					block.pos.y < lPos.y && lPos.y < block.pos.y + 1)
 				{
 					outHitLocalPos = lPos;
 					return true;
@@ -288,24 +311,32 @@ namespace SBlocks
 	public:
 		enum EBlock
 		{
-			Normal = 1,
+			Normal = 0,
 		};
-#define MAKE_BLOCK(TYPE, v) (((TYPE) << 1 ) | v)
+#define MAKE_MAP_DATA(TYPE, v) (((TYPE) << 2 ) | v)
 		enum
 		{
-			MAP_BLOCK   = MAKE_BLOCK(EBlock::Normal, 0),
-			PIECE_BLOCK = MAKE_BLOCK(EBlock::Normal, 1),
+			MAP_BLOCK   = MAKE_MAP_DATA(EBlock::Normal, 0x3),
 		};
 
-		int getValue(int x, int y) const
+		uint8 getValue(int x, int y) const
 		{
 			return mData(x, y);
 		}
 
-		int getValue(Vec2i const& pos) const
+		uint8 getValue(Vec2i const& pos) const
 		{
 			return mData(pos.x, pos.y);
 		}
+
+		static bool  CanLock(uint8 value)   { return !(value & 0x3); }
+		static bool  HaveBlock(uint8 value) { return !!(value & 0x2); }
+		static void  AddBlock(uint8& value) { value |= 0x2; }
+		static void  RemoveBlock(uint8& value) { value &= ~0x2; }
+		static bool  IsLocked(uint8 value)  { return !!(value & 0x1); }
+		static void  AddLock(uint8& value)  { value |= 0x1; }
+		static void  RemoveLock(uint8& value) { value &= ~0x1; }
+		static uint8 GetType(uint8 value)   { return value >> 2; }
 		bool isInBound(Vec2i const& pos)
 		{
 			return IsInBound(pos, getBoundSize());
@@ -329,7 +360,7 @@ namespace SBlocks
 		void exportDesc(MapDesc& outDesc);
 		void resize(int sizeX, int sizeY);
 
-		void toggleDataType(Vec2i const& pos);
+		void toggleBlock(Vec2i const& pos);
 
 		void copyFrom(MarkMap const& rhs, bool bInitState = false);
 
@@ -383,6 +414,7 @@ namespace SBlocks
 
 		void unlockAllPiece();
 
+		Vector2 calcPiecePos(Piece& piece, int indexMap, Vec2i const& mapPos , DirType dir );
 		std::vector< std::unique_ptr< Piece > > mPieces;
 		std::vector< std::unique_ptr< PieceShape > > mShapes;
 		std::vector< MarkMap > mMaps;

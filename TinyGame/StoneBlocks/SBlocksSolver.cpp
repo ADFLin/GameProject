@@ -76,7 +76,11 @@ namespace SBlocks
 
 	void MapSolveData::getConnectedTilePosList(Vec2i const& pos)
 	{
-		if (!mMap.isInBound(pos) || mMap.getValue(pos) != 0)
+		if (!mMap.isInBound(pos))
+			return;
+
+		uint8 data = mMap.getValue(pos);
+		if (!MarkMap::CanLock(data))
 			return;
 
 		auto& frame = mTestFrameMap(pos.x, pos.y);
@@ -84,7 +88,7 @@ namespace SBlocks
 			return;
 
 		frame.master = *mTestFramePtr;
-		mCachedShapeData.blocks.push_back(pos);
+		mCachedShapeData.blocks.push_back(PieceShapeData::Block( pos , MarkMap::GetType(data)));
 		for (int i = 0; i < 4; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
@@ -231,7 +235,7 @@ namespace SBlocks
 	}
 
 	template< typename TFunc >
-	ERejectResult::Type SolveData::testRejection(MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, SolveOption const& option, int maxCompareShapeSize, TFunc CheckPieceFunc)
+	ERejectResult::Type SolveData::testRejection(MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, SolveOption const& option, int maxCompareShapeSize, TFunc& CheckPieceFunc)
 	{
 		mCachedPendingTests.clear();
 		++mTestFrame;
@@ -256,7 +260,7 @@ namespace SBlocks
 	}
 
 	template< typename TFunc >
-	ERejectResult::Type SolveData::testRejection(ShapeSolveData& shapeSolveData, int indexPiece, SolveOption const& option, int maxCompareShapeSize, TFunc CheckPieceFunc)
+	ERejectResult::Type SolveData::testRejection(ShapeSolveData& shapeSolveData, int indexPiece, SolveOption const& option, int maxCompareShapeSize, TFunc& CheckPieceFunc)
 	{
 		mCachedPendingTests.clear();
 		++mTestFrame;
@@ -317,7 +321,7 @@ namespace SBlocks
 	}
 
 	template< typename TFunc >
-	ERejectResult::Type SolveData::runPendingShapeTest(TFunc CheckPieceFunc)
+	ERejectResult::Type SolveData::runPendingShapeTest(TFunc& CheckPieceFunc)
 	{
 		for (auto const& test : mCachedPendingTests)
 		{

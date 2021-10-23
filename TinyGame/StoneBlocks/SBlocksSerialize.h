@@ -13,7 +13,7 @@ namespace SBlocks
 			UseBitGird,
 			ShapeCustomPivotOption,
 			MultiMarkMap ,
-			AutoDetectBitGird,
+			AutoConvertBitGird,
 			MapSizeXIntToUint16,
 			//-----------------------
 			LastVersionPlusOne,
@@ -24,21 +24,7 @@ namespace SBlocks
 	template < typename OP , typename SizeType>
 	void SerializeGridData(OP& op, std::vector<uint8>& data , SizeType& sizeX)
 	{
-		if (OP::IsSaving)
-		{
-			bool bBitData = std::find_if(data.begin(), data.end(), [](uint8 value) { return (value & ~BIT(0)) != 0; }) == data.end();
-			op & bBitData;
-			if (bBitData)
-			{
-				std::vector<uint8> temp = FBitGird::ConvertForm(data, sizeX);
-				op & temp;
-			}
-			else
-			{
-				op & data;
-			}
-		}
-		else
+		if (OP::IsLoading)
 		{
 			int32 version = op.version();
 
@@ -47,7 +33,7 @@ namespace SBlocks
 			{
 				bBitData = false;
 			}
-			else if (version < ELevelSaveVersion::AutoDetectBitGird)
+			else if (version < ELevelSaveVersion::AutoConvertBitGird)
 			{
 				bBitData = true;
 			}
@@ -61,6 +47,20 @@ namespace SBlocks
 				std::vector<uint8> temp;
 				op & temp;
 				data = FBitGird::ConvertTo<uint8>(temp, sizeX);
+			}
+			else
+			{
+				op & data;
+			}
+		}
+		else
+		{
+			bool bBitData = std::find_if(data.begin(), data.end(), [](uint8 value) { return (value & ~BIT(0)) != 0; }) == data.end();
+			op & bBitData;
+			if (bBitData)
+			{
+				std::vector<uint8> temp = FBitGird::ConvertForm(data, sizeX);
+				op & temp;
 			}
 			else
 			{

@@ -6,7 +6,7 @@ namespace SBlocks
 	template< typename ...Args >
 	constexpr uint8 MakeByte(uint8 b0, Args ...args) { return b0 | (MakeByte(args...) << 1); }
 
-#define M(...) MakeByte( __VA_ARGS__ )
+#define M(...) __VA_ARGS__
 
 	LevelDesc DefautlNewLevel =
 	{

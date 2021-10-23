@@ -13,21 +13,68 @@ namespace SBlocks
 			UseBitGird,
 			ShapeCustomPivotOption,
 			MultiMarkMap ,
-			//BitGirdOptional,
+			AutoDetectBitGird,
+			MapSizeXIntToUint16,
 			//-----------------------
 			LastVersionPlusOne,
 			LastVersion = LastVersionPlusOne - 1,
 		};
 	}
 
+	template < typename OP , typename SizeType>
+	void SerializeGridData(OP& op, std::vector<uint8>& data , SizeType& sizeX)
+	{
+		if (OP::IsSaving)
+		{
+			bool bBitData = std::find_if(data.begin(), data.end(), [](uint8 value) { return (value & ~BIT(0)) != 0; }) == data.end();
+			op & bBitData;
+			if (bBitData)
+			{
+				std::vector<uint8> temp = FBitGird::ConvertForm(data, sizeX);
+				op & temp;
+			}
+			else
+			{
+				op & data;
+			}
+		}
+		else
+		{
+			int32 version = op.version();
+
+			bool bBitData = false;
+			if (version < ELevelSaveVersion::UseBitGird)
+			{
+				bBitData = false;
+			}
+			else if (version < ELevelSaveVersion::AutoDetectBitGird)
+			{
+				bBitData = true;
+			}
+			else
+			{
+				op & bBitData;
+			}
+
+			if (bBitData)
+			{
+				std::vector<uint8> temp;
+				op & temp;
+				data = FBitGird::ConvertTo<uint8>(temp, sizeX);
+			}
+			else
+			{
+				op & data;
+			}
+		}
+	}
+
+
 	template< class OP >
 	void PieceShapeDesc::serialize(OP& op)
 	{
-		op & sizeX & data;
-		if (OP::IsLoading && op.version() < ELevelSaveVersion::UseBitGird)
-		{
-			data = std::move(FBitGird::ConvertForm(data, sizeX));
-		}
+		op & sizeX;
+		SerializeGridData(op, data, sizeX);
 
 		if (OP::IsLoading && op.version() < ELevelSaveVersion::ShapeCustomPivotOption)
 		{
@@ -47,12 +94,19 @@ namespace SBlocks
 	template< class OP >
 	void MapDesc::serialize(OP& op)
 	{
-		op & sizeX & data;
-		if (OP::IsLoading && op.version() < ELevelSaveVersion::UseBitGird)
+		if (OP::IsLoading && op.version() < ELevelSaveVersion::MapSizeXIntToUint16)
 		{
-			data = std::move(FBitGird::ConvertForm(data, sizeX));
+			int32 temp;
+			op & temp;
+			sizeX = temp;
+		}
+		else
+		{
+			op & sizeX;
 		}
 
+		SerializeGridData(op, data, sizeX);
+	
 		if (OP::IsLoading && op.version() < ELevelSaveVersion::MultiMarkMap)
 		{
 			pos = Vector2::Zero();

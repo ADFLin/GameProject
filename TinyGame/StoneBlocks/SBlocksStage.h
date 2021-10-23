@@ -150,6 +150,21 @@ namespace SBlocks
 		}
 	};
 
+	struct ChapterDesc
+	{
+		std::string name;
+	};
+
+	struct EditPieceShape
+	{
+		PieceShape* ptr;
+		int rotation;
+
+		PieceShapeDesc desc;
+
+		bool bMarkSave;
+		int  usageCount;
+	};
 
 	class Editor
 	{
@@ -252,91 +267,14 @@ namespace SBlocks
 			}
 		}
 
-		void addPiece(int id)
-		{
-			if (!IsValidIndex(mPieceShapeLibrary, id))
-				return;
+		void addPiece(int id);
+		void removePiece(int id);
 
-			EditPieceShape& editShape = mPieceShapeLibrary[id];
+		void addEditPieceShape(int sizeX, int sizeY);
 
-			if (editShape.ptr == nullptr)
-			{
-				editShape.ptr = mGame->mLevel.findPieceShape(editShape.desc, editShape.rotation);
-				if (editShape.ptr == nullptr)
-				{
-					editShape.ptr = mGame->mLevel.createPieceShape(editShape.desc);
-					editShape.rotation = 0;
-				}
-			}
+		void removeEditPieceShape(int id);
 
-			Piece* piece = mGame->mLevel.createPiece(*editShape.ptr, DirType::ValueChecked(editShape.rotation));
-			editShape.usageCount += 1;
-			mGame->refreshPieceList();
-		
-		}
-		void removePiece(int id)
-		{
-			auto& piecesList = mGame->mLevel.mPieces;
-			if (!IsValidIndex(piecesList, id))
-				return;
-
-			Piece* piece = piecesList[id].get();
-			auto iter = std::find_if( mPieceShapeLibrary.begin() , mPieceShapeLibrary.end() , 
-				[piece](auto& value)
-				{
-					return value.ptr = piece->shape;
-				}
-			);
-			CHECK(iter != mPieceShapeLibrary.end());
-			iter->usageCount -= 1;
-			piecesList.erase(piecesList.begin() + id);
-			mGame->refreshPieceList();
-		}
-
-		void addEditPieceShape(int sizeX, int sizeY)
-		{
-			EditPieceShape editShape;
-			editShape.bLibrary = false;
-			editShape.usageCount = 0;
-			editShape.ptr = nullptr;
-			editShape.desc.bUseCustomPivot = false;
-			editShape.desc.customPivot = 0.5 * Vector2(sizeX, sizeY);
-			editShape.desc.sizeX = sizeX;
-			editShape.desc.data.resize(FBitGird::GetDataSizeX(sizeX) * sizeY, 0xff);
-			mPieceShapeLibrary.push_back(std::move(editShape));
-		}
-
-		void removeEditPieceShape(int id)
-		{
-			if (!IsValidIndex(mPieceShapeLibrary, id))
-				return;
-
-			EditPieceShape& shape = mPieceShapeLibrary[id];
-			if (shape.ptr)
-			{
-				if (shape.usageCount == 0)
-				{
-					mGame->mLevel.removePieceShape(shape.ptr);
-				}
-				return;
-			}
-
-			mPieceShapeLibrary.erase( mPieceShapeLibrary.begin() + id);
-		}
-
-		void copyEditPieceShape(int id)
-		{
-			if (!IsValidIndex(mPieceShapeLibrary, id))
-				return;
-
-			EditPieceShape editShape = mPieceShapeLibrary[id];
-			editShape.bLibrary = false;
-			editShape.ptr = nullptr;
-			editShape.rotation = 0;
-			editShape.usageCount = 0;
-			mPieceShapeLibrary.push_back(std::move(editShape));
-
-		}
+		void copyEditPieceShape(int id);
 
 		class ShapeListPanel* mShapeLibraryPanel = nullptr;
 		class ShapeEditPanel* mShapeEditPanel = nullptr;
@@ -353,16 +291,7 @@ namespace SBlocks
 			bool    bLock;
 		};
 
-		struct EditPieceShape
-		{
-			PieceShape* ptr;
-			int rotation;
 
-			PieceShapeDesc desc;
-
-			bool bLibrary;
-			int  usageCount;
-		};
 
 		void registerGamePieces();
 
@@ -373,39 +302,42 @@ namespace SBlocks
 		{
 			RenderUtility::SetPen(g, EColor::Black);
 
-			uint32 dataSizeX = FBitGird::GetDataSizeX(desc.sizeX);
-			uint32 sizeY = (desc.data.size() + dataSizeX - 1) / dataSizeX;
-			for (uint32 y = 0; y < sizeY; ++y)
+
+			for (int index = 0; index < desc.data.size(); ++index)
 			{
-				for (uint32 x = 0; x < desc.sizeX; ++x)
+				int x = index % desc.sizeX;
+				int y = index / desc.sizeX;
+
+				if (desc.data[index])
 				{
-					if (FBitGird::Read(desc.data, dataSizeX, x, y))
-					{
-						g.setBrush(theme.pieceBlockColor);
-						RenderUtility::SetPen(g, EColor::Black);
-						g.drawRect(Vector2(x, y), Vector2(1, 1));
-					}
-					else
-					{
-						RenderUtility::SetPen(g, EColor::Gray);
-						RenderUtility::SetBrush(g, EColor::Gray);
-						float const border = 0.1;
-						g.drawRect(Vector2(x + border, y + border), Vector2(1 - 2 * border, 1 - 2 * border));
-					}
+					g.setBrush(theme.pieceBlockColor);
+					RenderUtility::SetPen(g, EColor::Black);
+					g.drawRect(Vector2(x, y), Vector2(1, 1));
 				}
+				else
+				{
+					RenderUtility::SetPen(g, EColor::Gray);
+					RenderUtility::SetBrush(g, EColor::Gray);
+					float const border = 0.1;
+					g.drawRect(Vector2(x + border, y + border), Vector2(1 - 2 * border, 1 - 2 * border));
+				}
+
 			}
 		}
 
 		template< class OP >
-		void serializeShapeLibrary(OP&& op)
+		void serializeShapeLibrary(OP& op)
 		{
 			if (OP::IsSaving)
 			{
-				int num = mPieceShapeLibrary.size();
+				int num = std::count_if(mPieceShapeLibrary.begin(), mPieceShapeLibrary.end(), [](auto const& value) {  return value.bMarkSave; });
 				op & num;
 				for (auto& editShape : mPieceShapeLibrary)
 				{
-					op & editShape.desc;
+					if (editShape.bMarkSave)
+					{
+						op & editShape.desc;
+					}
 				}
 			}
 			else
@@ -416,7 +348,7 @@ namespace SBlocks
 				for (auto& editShape : mPieceShapeLibrary)
 				{
 					op & editShape.desc;
-					editShape.bLibrary = true;
+					editShape.bMarkSave = true;
 					editShape.usageCount = 0;
 					editShape.ptr = nullptr;
 					editShape.rotation = 0;
@@ -444,6 +376,36 @@ namespace SBlocks
 		{
 
 		}
+
+		struct ShapeInfo
+		{
+			EditPieceShape*   editShape;
+			RenderTransform2D localToFrame;
+			RenderTransform2D FrameToLocal;
+		};
+		std::vector< ShapeInfo > mShapeList;
+		void refreshShapeList()
+		{
+			mShapeList.clear();
+
+			Vector2 pos = { 10 , 10 };
+			float scale = 20.0;
+
+			for (auto& editShape : mEditor->mPieceShapeLibrary)
+			{
+				ShapeInfo shapeInfo;
+				shapeInfo.editShape = &editShape;
+				shapeInfo.localToFrame.setIdentity();
+				shapeInfo.localToFrame.translateLocal(pos);
+				shapeInfo.localToFrame.scaleLocal(Vector2(scale, scale));
+				shapeInfo.FrameToLocal = shapeInfo.localToFrame.inverse();
+				Vec2i boundSize = editShape.desc.getBoundSize();
+
+				mShapeList.push_back(std::move(shapeInfo));
+				pos.x += boundSize.x * scale + 5;
+			}
+		}
+
 		void onRender()
 		{
 			BaseClass::onRender();
@@ -454,17 +416,15 @@ namespace SBlocks
 			Vec2i screenPos = getWorldPos();
 			g.pushXForm();
 			g.translateXForm(screenPos.x, screenPos.y);
-			
-			int index = 0;
-			for (auto const& editShape : mEditor->mPieceShapeLibrary)
+
+			for (auto const& shapeInfo : mShapeList)
 			{
 				g.pushXForm();
-				g.translateXForm(120 * index, 10);
-				g.scaleXForm(scale, scale);
-				Editor::Draw(g, mEditor->mGame->mTheme, editShape.desc);
+				g.transformXForm(shapeInfo.localToFrame, true);
+				Editor::Draw(g, mEditor->mGame->mTheme, shapeInfo.editShape->desc);
 				g.popXForm();
-				++index;
 			}
+
 			g.popXForm();
 		}
 
@@ -533,7 +493,7 @@ namespace SBlocks
 		}
 		RenderTransform2D mLocalToFrame;
 		Editor* editor;
-		Editor::EditPieceShape* mShape;
+		EditPieceShape* mShape;
 	};
 
 	class TestStage : public StageBase

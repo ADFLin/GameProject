@@ -78,7 +78,7 @@ namespace SBlocks
 		}
 
 		template< class T >
-		static std::vector< uint8 > ConvertForm(std::vector< T >& data, uint32 sizeX)
+		static std::vector< uint8 > ConvertForm(std::vector< T >& data, uint32 sizeX , uint32 mask = 0xff)
 		{
 			std::vector< uint8 > result;
 			uint32 sizeY = (data.size() + sizeX - 1) / sizeX;
@@ -86,7 +86,7 @@ namespace SBlocks
 			result.resize(dataSizeX * sizeY, 0);
 			for (uint32 index = 0; index < data.size(); ++index)
 			{
-				if (data[index])
+				if (data[index] & mask)
 				{
 					uint32 x = index % sizeX;
 					uint32 y = index / sizeX;
@@ -101,8 +101,8 @@ namespace SBlocks
 			std::vector< T > result;
 
 			uint32 dataSizeX = GetDataSizeX(sizeX);
-			uint32 sizeY = (bitData.size() + dataSizeX - 1) / sizeX;
-			result.resize(dataSizeX * sizeY, 0);
+			uint32 sizeY = (bitData.size() + dataSizeX - 1) / dataSizeX;
+			result.resize(sizeX * sizeY, 0);
 			for (uint32 index = 0; index < result.size(); ++index)
 			{
 				uint32 x = index % sizeX;
@@ -125,21 +125,19 @@ namespace SBlocks
 	struct PieceShapeDesc
 	{
 		uint16 sizeX;
-		//bool   bBitData;
 		std::vector< uint8 > data;
 		bool	bUseCustomPivot;
 		Vector2 customPivot;
 
 		void toggleValue(Vec2i const& pos)
 		{
-			int dataSizeX = FBitGird::GetDataSizeX(sizeX);
-			FBitGird::Toggle(data, dataSizeX, pos.x, pos.y);
+			int index = pos.x + sizeX * pos.y;
+			data[index] ^= 0x1;
 		}
 
 		Vec2i getBoundSize() const
 		{
-			int dataSizeX = FBitGird::GetDataSizeX(sizeX);
-			return Vec2i(sizeX, (data.size() - dataSizeX + 1) / dataSizeX);
+			return Vec2i(sizeX, (data.size() - sizeX + 1) / sizeX);
 		}
 		template< class OP >
 		void serialize(OP& op);
@@ -276,8 +274,7 @@ namespace SBlocks
 
 	struct MapDesc
 	{
-		int  sizeX;
-		//bool bBitData;
+		uint16  sizeX;
 		std::vector< uint8 > data;
 		Vector2 pos;
 
@@ -289,10 +286,15 @@ namespace SBlocks
 	class MarkMap
 	{
 	public:
+		enum EBlock
+		{
+			Normal = 1,
+		};
+#define MAKE_BLOCK(TYPE, v) (((TYPE) << 1 ) | v)
 		enum
 		{
-			MAP_BLOCK = 1,
-			PIECE_BLOCK = 2,
+			MAP_BLOCK   = MAKE_BLOCK(EBlock::Normal, 0),
+			PIECE_BLOCK = MAKE_BLOCK(EBlock::Normal, 1),
 		};
 
 		int getValue(int x, int y) const

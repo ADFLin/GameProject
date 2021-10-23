@@ -10,21 +10,18 @@ namespace SBlocks
 	{
 		blocks.clear();
 
-		int32 dataSizeX = FBitGird::GetDataSizeX(desc.sizeX);
-		int32 sizeY = (desc.data.size() + dataSizeX - 1) / dataSizeX;
-		for (int32 y = 0; y < sizeY; ++y)
+		for (int index = 0; index < desc.data.size(); ++index)
 		{
-			for (int32 x = 0; x < desc.sizeX; ++x)
+			if (desc.data[index])
 			{
-				if (FBitGird::Read(desc.data, dataSizeX, x, y))
-				{
-					Int16Point2D block;
-					block.x = x;
-					block.y = y;
-					blocks.push_back(block);
-				}
+				Int16Point2D block;
+				block.x = index % desc.sizeX;
+				block.y = index / desc.sizeX;
+				blocks.push_back(block);
+
 			}
 		}
+
 		standardizeBlocks();
 	}
 
@@ -254,14 +251,11 @@ namespace SBlocks
 		outDesc.customPivot = pivot;
 		outDesc.sizeX = boundSize.x;
 
-		uint8 dataSizeX = ( boundSize.x + 7 ) / 8;
-		outDesc.data.resize(dataSizeX * boundSize.y, 0);
+		outDesc.data.resize(boundSize.x * boundSize.y, 0);
 		for (auto block : mDataMap[0].blocks)
 		{
 			int index = boundSize.x * block.y + block.x;
-			uint32 x = block.x;
-			uint32 y = block.y;
-			FBitGird::Add(outDesc.data, dataSizeX, x, y);
+			outDesc.data[index] = 1;
 		}
 	}
 
@@ -371,24 +365,21 @@ namespace SBlocks
 	void MarkMap::importDesc(MapDesc const& desc)
 	{
 		uint32 sizeX = desc.sizeX;
-		uint32 dataSizeX = FBitGird::GetDataSizeX(desc.sizeX);
-		uint32 sizeY = (desc.data.size() + dataSizeX - 1) / dataSizeX;
-		mData.resize(sizeX, sizeY);
-		numTotalBlocks = 0;
+		uint32 sizeY = (desc.data.size() + sizeX - 1) / sizeX;
 		mPos = desc.pos;
-		for (uint32 y = 0; y < sizeY; ++y)
+		mData.resize(sizeX, sizeY);
+		mData.fillValue(0);
+		numTotalBlocks = 0;
+		for (int index = 0; index < desc.data.size(); ++index)
 		{
-			for (uint32 x = 0; x < desc.sizeX; ++x)
+			uint32 value = desc.data[index];
+			if (value)
 			{
-				if (FBitGird::Read(desc.data, dataSizeX, x, y))
-				{
-					mData(x,y) = MAP_BLOCK;
-				}
-				else
-				{
-					mData(x,y) = 0;
-					++numTotalBlocks;
-				}
+				mData[index] = value << 1;
+			}
+			else
+			{
+				++numTotalBlocks;
 			}
 		}
 	}
@@ -397,16 +388,13 @@ namespace SBlocks
 	{
 		outDesc.pos = mPos;
 		outDesc.sizeX = mData.getSizeX();
-		uint8 dataSizeX = FBitGird::GetDataSizeX(outDesc.sizeX);
-		outDesc.data.resize(dataSizeX * mData.getSizeY(), 0);
+		outDesc.data.resize(mData.getRawDataSize(), 0);
 		for (int index = 0; index < mData.getRawDataSize(); ++index)
 		{
-			if (mData[index] == MAP_BLOCK)
-			{
-				int x = index % mData.getSizeX();
-				int y = index / mData.getSizeY();
-				FBitGird::Add(outDesc.data, dataSizeX, x, y);
-			}
+			if ( mData[index] & 0x1 )
+				continue;
+
+			outDesc.data[index] = mData[index] >> 1;
 		}
 	}
 
@@ -601,6 +589,11 @@ namespace SBlocks
 			}
 		}
 		return nullptr;
+	}
+
+	void Level::removePieceShape(PieceShape* shape)
+	{
+		RemovePred(mShapes, [shape](auto const& value) { return value.get() == shape; });
 	}
 
 	bool Level::tryLockPiece(Piece& piece)

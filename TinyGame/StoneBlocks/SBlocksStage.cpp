@@ -408,7 +408,7 @@ namespace SBlocks
 		}
 	}
 
-	Editor::EditPieceShape* Editor::registerEditShape(PieceShape* shape)
+	EditPieceShape* Editor::registerEditShape(PieceShape* shape)
 	{
 		for (EditPieceShape& editShape : mPieceShapeLibrary)
 		{
@@ -432,7 +432,7 @@ namespace SBlocks
 		}
 
 		EditPieceShape editShape;
-		editShape.bLibrary = false;
+		editShape.bMarkSave = false;
 		editShape.usageCount = 0;
 		editShape.ptr = shape;
 		editShape.rotation = 0;
@@ -475,6 +475,8 @@ namespace SBlocks
 		mShapeLibraryPanel = new ShapeListPanel(UI_ANY, Vec2i(10, 10), Vec2i(::Global::GetScreenSize().x - 20, 120), nullptr);
 		mShapeLibraryPanel->mEditor = this;
 		::Global::GUI().addWidget(mShapeLibraryPanel);
+
+		mShapeLibraryPanel->refreshShapeList();
 	}
 
 	void Editor::endEdit()
@@ -496,7 +498,7 @@ namespace SBlocks
 	{
 		RemoveAllPred(mPieceShapeLibrary, [](auto& value)
 		{
-			return value.bLibrary == false;
+			return value.bMarkSave == false;
 		});
 
 		for (EditPieceShape& editShape : mPieceShapeLibrary)
@@ -515,6 +517,107 @@ namespace SBlocks
 		{
 			registerGamePieces();
 		}
+
+		mShapeLibraryPanel->refreshShapeList();
+
+	}
+
+	void Editor::addEditPieceShape(int sizeX, int sizeY)
+	{
+		EditPieceShape editShape;
+		editShape.bMarkSave = false;
+		editShape.usageCount = 0;
+		editShape.ptr = nullptr;
+		editShape.desc.bUseCustomPivot = false;
+		editShape.desc.customPivot = 0.5 * Vector2(sizeX, sizeY);
+		editShape.desc.sizeX = sizeX;
+		editShape.desc.data.resize(sizeX * sizeY, 1);
+		mPieceShapeLibrary.push_back(std::move(editShape));
+
+		mShapeLibraryPanel->refreshShapeList();
+	}
+
+	void Editor::removeEditPieceShape(int id)
+	{
+		if (!IsValidIndex(mPieceShapeLibrary, id))
+			return;
+
+		EditPieceShape& shape = mPieceShapeLibrary[id];
+		if (shape.ptr)
+		{
+			if (shape.usageCount == 0)
+			{
+				mGame->mLevel.removePieceShape(shape.ptr);
+			}
+			return;
+		}
+
+		mPieceShapeLibrary.erase(mPieceShapeLibrary.begin() + id);
+
+		mShapeLibraryPanel->refreshShapeList();
+	}
+
+	void Editor::copyEditPieceShape(int id)
+	{
+		if (!IsValidIndex(mPieceShapeLibrary, id))
+			return;
+
+		EditPieceShape editShape = mPieceShapeLibrary[id];
+		editShape.bMarkSave = false;
+		editShape.ptr = nullptr;
+		editShape.rotation = 0;
+		editShape.usageCount = 0;
+		mPieceShapeLibrary.push_back(std::move(editShape));
+
+		mShapeLibraryPanel->refreshShapeList();
+	}
+
+	void Editor::addPiece(int id)
+	{
+		if (!IsValidIndex(mPieceShapeLibrary, id))
+			return;
+
+		EditPieceShape& editShape = mPieceShapeLibrary[id];
+
+		if (editShape.ptr == nullptr)
+		{
+			editShape.ptr = mGame->mLevel.findPieceShape(editShape.desc, editShape.rotation);
+			if (editShape.ptr == nullptr)
+			{
+				editShape.ptr = mGame->mLevel.createPieceShape(editShape.desc);
+				editShape.rotation = 0;
+			}
+		}
+
+		Piece* piece = mGame->mLevel.createPiece(*editShape.ptr, DirType::ValueChecked(editShape.rotation));
+		editShape.usageCount += 1;
+		mGame->refreshPieceList();
+	}
+
+	void Editor::removePiece(int id)
+	{
+		auto& piecesList = mGame->mLevel.mPieces;
+		if (!IsValidIndex(piecesList, id))
+			return;
+
+		Piece* piece = piecesList[id].get();
+		auto iter = std::find_if(mPieceShapeLibrary.begin(), mPieceShapeLibrary.end(),
+			[piece](auto& value)
+		{
+			return value.ptr = piece->shape;
+		}
+		);
+		CHECK(iter != mPieceShapeLibrary.end());
+		iter->usageCount -= 1;
+
+		if (iter->usageCount <= 0 && iter->ptr)
+		{
+			mGame->mLevel.removePieceShape(iter->ptr);
+			iter->ptr = nullptr;
+			iter->rotation = 0;
+		}
+		piecesList.erase(piecesList.begin() + id);
+		mGame->refreshPieceList();
 	}
 
 }

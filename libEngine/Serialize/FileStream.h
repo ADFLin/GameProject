@@ -52,6 +52,11 @@ public:
 
 	virtual int32 getVersion(HashString name) override
 	{
+		auto iter = mRedirectVersionNameMap.find(name);
+		if (iter != mRedirectVersionNameMap.end())
+		{
+			name = iter->second;
+		}
 		if (name == EName::None)
 			return mMasterVersion;
 
@@ -61,7 +66,21 @@ public:
 		}
 		return 0;
 	}
+
+	virtual void redirectVersion(HashString from, HashString to)
+	{
+		if (from == to)
+		{
+			mRedirectVersionNameMap.erase(from);
+		}
+		else
+		{
+			mRedirectVersionNameMap[from] = to;
+		}
+
+	}
 protected:
+	std::unordered_map< HashString, HashString > mRedirectVersionNameMap;
 	std::unique_ptr< FileVersionData > mVersionData;
 	int mMasterVersion = 0;
 	TStreamType mFS;
@@ -74,6 +93,7 @@ public:
 	bool open(char const* path, bool bForceLegacy = false);
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
+
 	size_t getSize();
 
 	using IStreamSerializer::read;

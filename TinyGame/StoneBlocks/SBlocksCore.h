@@ -139,6 +139,18 @@ namespace SBlocks
 		{
 			return Vec2i(sizeX, (data.size() + sizeX - 1) / sizeX);
 		}
+
+		Vector2 getPivot() const
+		{
+			if (bUseCustomPivot)
+			{
+				return customPivot;
+			}
+			else
+			{
+				return 0.5f * Vector2(getBoundSize());
+			}
+		}
 		template< class OP >
 		void serialize(OP& op);
 	};

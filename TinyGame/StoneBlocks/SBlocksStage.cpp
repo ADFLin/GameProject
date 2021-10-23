@@ -314,13 +314,13 @@ namespace SBlocks
 		REGISTER_COM("RemoveMap", removeMap);
 
 
-		REGISTER_COM("AddPiece", addPiece);
+		REGISTER_COM("AddPiece", addPieceCmd);
 		REGISTER_COM("RemovePiece", removePiece);
 
 		REGISTER_COM("AddShape", addEditPieceShape);
 		REGISTER_COM("RemoveShape", addEditPieceShape);
 		REGISTER_COM("CopyShape", copyEditPieceShape);
-		REGISTER_COM("EditShape", openEditPieceShapeEditor);
+		REGISTER_COM("EditShape", editEditPieceShapeCmd);
 
 		REGISTER_COM("RunScript", runScript);
 #undef REGISTER_COM
@@ -376,25 +376,31 @@ namespace SBlocks
 		mGame->initializeGame();
 	}
 
-	void Editor::openEditPieceShapeEditor(int id)
+	void Editor::editEditPieceShapeCmd(int id)
 	{
 		if (!IsValidIndex(mPieceShapeLibrary, id))
 			return;
 
+		EditPieceShape& editShape = mPieceShapeLibrary[id];
+		editEditPieceShape(editShape);
+
+	}
+
+	void Editor::editEditPieceShape(EditPieceShape& editShape)
+	{
 		if (mShapeEditPanel == nullptr)
 		{
 			mShapeEditPanel = new ShapeEditPanel(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
 			::Global::GUI().addWidget(mShapeEditPanel);
 		}
 
-		EditPieceShape& editShape = mPieceShapeLibrary[id];
+	
 		mShapeEditPanel->editor = this;
 		mShapeEditPanel->mShape = &editShape;
 		mShapeEditPanel->init();
 
 		mShapeEditPanel->show();
 	}
-
 
 	void Editor::registerGamePieces()
 	{
@@ -450,6 +456,7 @@ namespace SBlocks
 
 		if (serializer.open(SBLOCKS_DIR"/ShapeLib.bin"))
 		{
+			serializer.registerVersion("LevelVersion", ELevelSaveVersion::LastVersion);
 			serializeShapeLibrary(IStreamSerializer::WriteOp(serializer));
 		}
 	}
@@ -570,13 +577,19 @@ namespace SBlocks
 		mShapeLibraryPanel->refreshShapeList();
 	}
 
-	void Editor::addPiece(int id)
+	void Editor::addPieceCmd(int id)
 	{
 		if (!IsValidIndex(mPieceShapeLibrary, id))
 			return;
 
 		EditPieceShape& editShape = mPieceShapeLibrary[id];
 
+		addPiece(editShape);
+
+	}
+
+	void Editor::addPiece(EditPieceShape &editShape)
+	{
 		if (editShape.ptr == nullptr)
 		{
 			editShape.ptr = mGame->mLevel.findPieceShape(editShape.desc, editShape.rotation);

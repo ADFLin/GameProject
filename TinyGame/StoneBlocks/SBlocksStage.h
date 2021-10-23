@@ -148,6 +148,12 @@ namespace SBlocks
 			}
 			return nullptr;
 		}
+
+		virtual void notifyPieceLocked()
+		{
+
+
+		}
 	};
 
 	struct ChapterDesc
@@ -267,7 +273,10 @@ namespace SBlocks
 			}
 		}
 
-		void addPiece(int id);
+		void addPieceCmd(int id);
+
+		void addPiece(EditPieceShape &editShape);
+
 		void removePiece(int id);
 
 		void addEditPieceShape(int sizeX, int sizeY);
@@ -276,14 +285,16 @@ namespace SBlocks
 
 		void copyEditPieceShape(int id);
 
-		class ShapeListPanel* mShapeLibraryPanel = nullptr;
-		class ShapeEditPanel* mShapeEditPanel = nullptr;
 
-		void openEditPieceShapeEditor(int id);
+		void editEditPieceShapeCmd(int id);
+
+		void editEditPieceShape(EditPieceShape& editShape);
 
 		void notifyLevelChanged();
 
 
+		class ShapeListPanel* mShapeLibraryPanel = nullptr;
+		class ShapeEditPanel* mShapeEditPanel = nullptr;
 		struct EditPiece
 		{
 			Vector2 pos;
@@ -298,10 +309,11 @@ namespace SBlocks
 		EditPieceShape* registerEditShape(PieceShape* shape);
 
 
-		static void Draw(RHIGraphics2D& g, SceneTheme& theme , PieceShapeDesc const& desc)
+		static void Draw(RHIGraphics2D& g, SceneTheme& theme , EditPieceShape const& editShape)
 		{
-			RenderUtility::SetPen(g, EColor::Black);
+			PieceShapeDesc const& desc = editShape.desc;
 
+			RenderUtility::SetPen(g, EColor::Black);
 
 			for (int index = 0; index < desc.data.size(); ++index)
 			{
@@ -321,8 +333,13 @@ namespace SBlocks
 					float const border = 0.1;
 					g.drawRect(Vector2(x + border, y + border), Vector2(1 - 2 * border, 1 - 2 * border));
 				}
-
 			}
+
+			RenderUtility::SetBrush(g, EColor::Red);
+			RenderUtility::SetPen(g, EColor::Red);
+			float len = 0.2;
+			Vector2 pivot = editShape.desc.getPivot();
+			g.drawRect(pivot - 0.5 * Vector2(len, len), Vector2(len, len));
 		}
 
 		template< class OP >
@@ -342,6 +359,8 @@ namespace SBlocks
 			}
 			else
 			{
+				op.redirectVersion(EName::None, "LevelVersion");
+
 				int num;
 				op & num;
 				mPieceShapeLibrary.resize(num);
@@ -353,6 +372,8 @@ namespace SBlocks
 					editShape.ptr = nullptr;
 					editShape.rotation = 0;
 				}
+
+				op.redirectVersion(EName::None, EName::None);
 			}
 		}
 
@@ -380,7 +401,6 @@ namespace SBlocks
 		struct ShapeInfo
 		{
 			EditPieceShape*   editShape;
-			Vector2 pivot;
 			RenderTransform2D localToFrame;
 			RenderTransform2D FrameToLocal;
 		};
@@ -402,24 +422,8 @@ namespace SBlocks
 				shapeInfo.FrameToLocal = shapeInfo.localToFrame.inverse();
 				Vec2i boundSize = editShape.desc.getBoundSize();
 
-				updateShape(shapeInfo);
-
 				mShapeList.push_back(std::move(shapeInfo));
 				pos.x += boundSize.x * scale + 5;
-			}
-		}
-
-		void updateShape(ShapeInfo& shapeInfo)
-		{
-			Vec2i boundSize = shapeInfo.editShape->desc.getBoundSize();
-
-			if (shapeInfo.editShape->desc.bUseCustomPivot)
-			{
-				shapeInfo.pivot = shapeInfo.editShape->desc.customPivot;
-			}
-			else
-			{
-				shapeInfo.pivot = 0.5 * Vector2(boundSize);
 			}
 		}
 
@@ -438,14 +442,68 @@ namespace SBlocks
 			{
 				g.pushXForm();
 				g.transformXForm(shapeInfo.localToFrame, true);
-				Editor::Draw(g, mEditor->mGame->mTheme, shapeInfo.editShape->desc);
-				RenderUtility::SetBrush(g, EColor::Red);
-				RenderUtility::SetPen(g, EColor::Red);
-				g.drawRect(shapeInfo.pivot, Vector2(0.01, 0.01));
+
+			
+				float border = 0.1;
+				RenderUtility::SetPen(g, shapeInfo.editShape->bMarkSave ? EColor::Orange : EColor::Gray);
+				g.enableBrush(false);
+				g.drawRect(-Vector2(border, border) , Vector2(shapeInfo.editShape->desc.getBoundSize()) + 2 * Vector2(border, border));
+				Editor::Draw(g, mEditor->mGame->mTheme, *shapeInfo.editShape);
 				g.popXForm();
 			}
 
 			g.popXForm();
+		}
+
+		ShapeInfo* clickTest(Vec2i const& framePos)
+		{
+			for (auto& shapeInfo : mShapeList)
+			{
+				Vector2 pos = shapeInfo.FrameToLocal.transformPosition(framePos);
+				if (IsInBound(Vec2i(pos), shapeInfo.editShape->desc.getBoundSize()))
+				{
+					return &shapeInfo;
+				}
+			}
+
+			return nullptr;
+		}
+
+		bool onMouseMsg(MouseMsg const& msg)
+		{
+			Vec2i framePos = msg.getPos() - getWorldPos();
+			if (msg.onLeftDown() && msg.isControlDown())
+			{
+				ShapeInfo* clickShape = clickTest(framePos);
+
+				if (clickShape)
+				{
+					clickShape->editShape->bMarkSave = !clickShape->editShape->bMarkSave;
+				}
+
+			}
+			else if (msg.onRightDClick())
+			{
+				ShapeInfo* clickShape = clickTest(framePos);
+
+				if (clickShape)
+				{
+					mEditor->editEditPieceShape(*clickShape->editShape);
+					return false;
+				}
+			}
+			else if (msg.onLeftDClick())
+			{
+				ShapeInfo* clickShape = clickTest(framePos);
+
+				if (clickShape)
+				{
+					mEditor->addPiece(*clickShape->editShape);
+					return false;
+				}
+			}
+
+			return BaseClass::onMouseMsg(msg);
 		}
 
 		Editor* mEditor;
@@ -485,7 +543,7 @@ namespace SBlocks
 			g.pushXForm();
 			g.translateXForm(screenPos.x, screenPos.y);
 			g.transformXForm(mLocalToFrame, true);
-			Editor::Draw(g, editor->mGame->mTheme, mShape->desc);
+			Editor::Draw(g, editor->mGame->mTheme, *mShape);
 			g.popXForm();
 		}
 
@@ -647,8 +705,15 @@ namespace SBlocks
 				if (selectedPiece)
 				{
 					bStartDragging = false;
-					mLevel.tryLockPiece(*selectedPiece);
-					bPiecesOrderDirty = true;
+					if (bEditEnabled == false)
+					{
+						if (mLevel.tryLockPiece(*selectedPiece))
+						{
+							notifyPieceLocked();
+							bPiecesOrderDirty = true;
+						}
+					}
+
 					selectedPiece = nullptr;
 				}
 			}

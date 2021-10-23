@@ -331,14 +331,7 @@ namespace SBlocks
 			shapeData.standardizeBlocks();
 		}
 
-		if (desc.bUseCustomPivot)
-		{
-			pivot = desc.customPivot;
-		}
-		else
-		{
-			pivot = 0.5 * Vector2(boundSize);
-		}
+		pivot = desc.getPivot();
 	}
 
 	bool MarkMap::tryLock(Vec2i const& pos, PieceShapeData const& shapeData)

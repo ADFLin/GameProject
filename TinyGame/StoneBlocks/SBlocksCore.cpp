@@ -483,7 +483,7 @@ namespace SBlocks
 		}
 		else
 		{
-			CHECK(IsLocked(data));
+			CHECK(IsLocked(data) == false);
 			AddBlock(data);
 			--numTotalBlocks;
 		}

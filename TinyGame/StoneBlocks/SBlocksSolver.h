@@ -79,16 +79,15 @@ namespace SBlocks
 
 		int  getStateNum() const
 		{
-			int dividend = 1;
-			int divisor = 1;
+			int result = 1;
 			int num = mStates.size();
 			for (int i = 1; i <= mTakeCount; ++i)
 			{
-				dividend *= num;
-				divisor *= i;
+				result *= num;
+				result /= i;
 				--num;
 			}
-			return dividend / divisor;
+			return result;
 		}
 
 		int const* getStates() const { return mStates.data(); }

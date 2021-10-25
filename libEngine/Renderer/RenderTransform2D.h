@@ -107,6 +107,17 @@ namespace Render
 			return result;
 		}
 
+		Vector2 removeScale()
+		{
+			Vector2 xAxis = Vector2(M[0], M[1]);
+			float xScale = xAxis.normalize();
+			Vector2 yAxis = Vector2(M[2], M[3]);
+			float yScale = yAxis.normalize();
+
+			M = Matrix2(xAxis, yAxis);
+			return Vector2(xScale, yScale);
+		}
+
 		FORCEINLINE void translateWorld(Vector2 const& offset)
 		{
 			P += offset;

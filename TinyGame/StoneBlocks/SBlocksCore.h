@@ -328,7 +328,7 @@ namespace SBlocks
 #define MAKE_MAP_DATA(TYPE, v) (((TYPE) << 2 ) | v)
 		enum
 		{
-			MAP_BLOCK   = MAKE_MAP_DATA(EBlock::Normal, 0x3),
+			MAP_BLOCK   = MAKE_MAP_DATA(EBlock::Normal, 0x2),
 		};
 
 		uint8 getValue(int x, int y) const

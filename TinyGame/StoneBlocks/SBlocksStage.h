@@ -179,7 +179,6 @@ namespace SBlocks
 		void initEdit()
 		{
 			loadShapeLibrary();
-			registerGamePieces();
 		}
 
 		void cleanup()
@@ -438,18 +437,26 @@ namespace SBlocks
 			g.pushXForm();
 			g.translateXForm(screenPos.x, screenPos.y);
 
+			RenderUtility::SetFont(g, FONT_S8);
+
 			for (auto const& shapeInfo : mShapeList)
 			{
 				g.pushXForm();
 				g.transformXForm(shapeInfo.localToFrame, true);
 
-			
+		
+				Vector2 boundSize = Vector2(shapeInfo.editShape->desc.getBoundSize());
 				float border = 0.1;
 				RenderUtility::SetPen(g, shapeInfo.editShape->bMarkSave ? EColor::Orange : EColor::Gray);
 				g.enableBrush(false);
-				g.drawRect(-Vector2(border, border) , Vector2(shapeInfo.editShape->desc.getBoundSize()) + 2 * Vector2(border, border));
+				g.drawRect(-Vector2(border, border) , boundSize + 2 * Vector2(border, border));
 				Editor::Draw(g, mEditor->mGame->mTheme, *shapeInfo.editShape);
 				g.popXForm();
+
+				Vector2 pos = shapeInfo.localToFrame.transformPosition(Vector2(0, boundSize.y));
+
+				g.drawText(pos, InlineString<>::Make("%d", shapeInfo.editShape->usageCount) );
+
 			}
 
 			g.popXForm();
@@ -574,14 +581,15 @@ namespace SBlocks
 		EditPieceShape* mShape;
 	};
 
-	class TestStage : public StageBase
-					, public GameData
-					, public IGameRenderSetup
+	class LevelStage : public StageBase
+					 , public GameData
+					 , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 
 		Editor*  mEditor = nullptr;
-		bool     bEditEnabled;
+
+		bool IsEditEnabled() const { return mEditor && mEditor->mbEnabled; }
 
 		std::unique_ptr< Solver > mSolver;
 
@@ -593,11 +601,6 @@ namespace SBlocks
 			if (mEditor)
 			{
 				mEditor->notifyLevelChanged();
-				if (bEditEnabled)
-				{
-
-
-				}
 			}
 		}
 
@@ -610,7 +613,7 @@ namespace SBlocks
 
 			auto& console = ConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC , ... )\
-			console.registerCommand("SBlocks."NAME, &TestStage::FUNC, this , ##__VA_ARGS__ )
+			console.registerCommand("SBlocks."NAME, &LevelStage::FUNC, this , ##__VA_ARGS__ )
 			REGISTER_COM("Solve", solveLevel, CVF_CAN_OMIT_ARGS);
 			REGISTER_COM("Load", loadLevel);
 #undef REGISTER_COM
@@ -675,7 +678,7 @@ namespace SBlocks
 			Vector2 hitLocalPos;
 			Piece* piece = getPiece(worldPos, hitLocalPos);
 
-			if (bEditEnabled)
+			if (IsEditEnabled())
 			{
 				if (!mEditor->onMouse(msg, worldPos, piece))
 					return false;
@@ -705,7 +708,7 @@ namespace SBlocks
 				if (selectedPiece)
 				{
 					bStartDragging = false;
-					if (bEditEnabled == false)
+					if (IsEditEnabled() == false)
 					{
 						if (mLevel.tryLockPiece(*selectedPiece))
 						{
@@ -770,8 +773,11 @@ namespace SBlocks
 			{
 			case EKeyCode::R: restart(); break;
 			case EKeyCode::Num1: 
-				bEditEnabled = !bEditEnabled;
-				if ( bEditEnabled )
+				if (IsEditEnabled())
+				{
+					mEditor->endEdit();
+				}
+				else
 				{
 					if (mEditor == nullptr)
 					{
@@ -780,10 +786,6 @@ namespace SBlocks
 						mEditor->initEdit();
 					}
 					mEditor->startEdit();
-				}
-				else
-				{
-					mEditor->endEdit();
 				}
 				break;
 			}

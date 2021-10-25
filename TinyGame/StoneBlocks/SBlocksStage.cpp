@@ -10,7 +10,7 @@
 
 namespace SBlocks
 {
-	REGISTER_STAGE_ENTRY("Stone Blocks", TestStage, EExecGroup::Dev4, "Game");
+	REGISTER_STAGE_ENTRY("Stone Blocks", LevelStage, EExecGroup::Dev4, "Game");
 
 #define SBLOCKS_DIR "SBlocks"
 
@@ -21,13 +21,13 @@ namespace SBlocks
 	TConsoleVariable< bool > CVarSolverEnableIdenticalShapeCombination{ true, "SBlocks.SolverEnableIdenticalShapeCombination", CVF_TOGGLEABLE };
 	TConsoleVariable< int  > CVarSolverParallelThreadCount{ 8, "SBlocks.SolverParallelThreadCount" };
 
-	void TestStage::restart()
+	void LevelStage::restart()
 	{
 		mLevel.importDesc(TestLv3);
 		initializeGame();
 	}
 
-	void TestStage::onRender(float dFrame)
+	void LevelStage::onRender(float dFrame)
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
 
@@ -93,6 +93,7 @@ namespace SBlocks
 			DrawMapFrame();
 
 			RenderUtility::SetPen(g, EColor::Black);
+			RenderUtility::SetFont(g, FONT_S8);
 			for (int j = 0; j < mapSize.y; ++j)
 			{
 				for (int i = 0; i < mapSize.x; ++i)
@@ -111,6 +112,18 @@ namespace SBlocks
 
 					float border = 0.025;
 					g.drawRect(Vector2(i + border, j + border), Vector2(1 - 2 * border, 1 - 2 * border));
+
+					if (CVarShowDebug)
+					{
+						g.pushXForm();
+						g.identityXForm();
+						Vector2 pos = mWorldToScreen.transformPosition(Vector2(i + border, j + border));
+						g.drawText(pos, InlineString<>::Make("%d-%d-%d", 
+							value ,
+							(int)MarkMap::IsLocked(value),
+							(int)MarkMap::GetType(value)) );
+						g.popXForm();
+					}
 				}
 			}
 
@@ -143,7 +156,7 @@ namespace SBlocks
 	}
 
 
-	void TestStage::drawPiece(RHIGraphics2D& g, Piece const& piece, bool bSelected)
+	void LevelStage::drawPiece(RHIGraphics2D& g, Piece const& piece, bool bSelected)
 	{
 		auto const& shapeData = piece.shape->mDataMap[0];
 
@@ -188,22 +201,22 @@ namespace SBlocks
 		g.popXForm();
 	}
 
-	ERenderSystem TestStage::getDefaultRenderSystem()
+	ERenderSystem LevelStage::getDefaultRenderSystem()
 	{
 		return ERenderSystem::OpenGL;
 	}
 
-	bool TestStage::setupRenderSystem(ERenderSystem systemName)
+	bool LevelStage::setupRenderSystem(ERenderSystem systemName)
 	{
 		return true;
 	}
 
-	void TestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
+	void LevelStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
 
 	}
 
-	void TestStage::solveLevel(int option)
+	void LevelStage::solveLevel(int option)
 	{
 		bool bForceReset = option == 1;
 		bool bFullSolve = option == 2;
@@ -286,7 +299,7 @@ namespace SBlocks
 		}
 	}
 
-	void TestStage::loadLevel(char const* name)
+	void LevelStage::loadLevel(char const* name)
 	{
 		InputFileSerializer serializer;
 		if (serializer.open(InlineString<>::Make(SBLOCKS_DIR"/levels/%s.lv", name)))
@@ -334,10 +347,7 @@ namespace SBlocks
 
 	char const* BatchScript[] =
 	{
-		"New",
-		"AddShape 2 2",
-		"EditShape 0",
-		"AddPiece 0",
+		"Load lv05",
 	};
 
 	void Editor::runScript()
@@ -472,10 +482,13 @@ namespace SBlocks
 
 	void Editor::startEdit()
 	{
+		mbEnabled = true;
+
 		LogMsg("Edit Start");
 		registerCommand();
 		mGame->mLevel.unlockAllPiece();
-		mbEnabled = true;
+
+		registerGamePieces();
 
 		mShapeLibraryPanel = new ShapeListPanel(UI_ANY, Vec2i(10, 10), Vec2i(::Global::GetScreenSize().x - 20, 120), nullptr);
 		mShapeLibraryPanel->mEditor = this;
@@ -486,6 +499,12 @@ namespace SBlocks
 
 	void Editor::endEdit()
 	{
+		if (mShapeEditPanel)
+		{
+			mShapeEditPanel->destroy();
+			mShapeEditPanel = nullptr;
+		}
+
 		if (mShapeLibraryPanel)
 		{
 			mShapeLibraryPanel->destroy();
@@ -523,8 +542,10 @@ namespace SBlocks
 			registerGamePieces();
 		}
 
-		mShapeLibraryPanel->refreshShapeList();
-
+		if (mShapeLibraryPanel)
+		{
+			mShapeLibraryPanel->refreshShapeList();
+		}
 	}
 
 	void Editor::addEditPieceShape(int sizeX, int sizeY)
@@ -550,11 +571,10 @@ namespace SBlocks
 		EditPieceShape& shape = mPieceShapeLibrary[id];
 		if (shape.ptr)
 		{
-			if (shape.usageCount == 0)
-			{
-				mGame->mLevel.removePieceShape(shape.ptr);
-			}
-			return;
+			if (shape.usageCount != 0)
+				return;
+
+			mGame->mLevel.removePieceShape(shape.ptr);
 		}
 
 		mPieceShapeLibrary.erase(mPieceShapeLibrary.begin() + id);
@@ -619,14 +639,18 @@ namespace SBlocks
 		}
 		);
 		CHECK(iter != mPieceShapeLibrary.end());
-		iter->usageCount -= 1;
 
-		if (iter->usageCount <= 0 && iter->ptr)
+		if (iter->ptr)
 		{
-			mGame->mLevel.removePieceShape(iter->ptr);
-			iter->ptr = nullptr;
-			iter->rotation = 0;
+			iter->usageCount -= 1;
+			if (iter->usageCount <= 0)
+			{
+				mGame->mLevel.removePieceShape(iter->ptr);
+				iter->ptr = nullptr;
+				iter->rotation = 0;
+			}
 		}
+
 		piecesList.erase(piecesList.begin() + id);
 		mGame->refreshPieceList();
 	}

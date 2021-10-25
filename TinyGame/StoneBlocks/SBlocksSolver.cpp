@@ -33,14 +33,19 @@ namespace SBlocks
 
 	int MapSolveData::countConnectTiles(Vec2i const& pos)
 	{
-		if (!mMap.isInBound(pos) || mMap.getValue(pos) != 0)
+		if (!mMap.isInBound(pos))
+			return 0;
+
+		uint8 data = mMap.getValue(pos);
+		if (!MarkMap::CanLock(data))
 			return 0;
 
 		auto& frame = mTestFrameMap(pos.x, pos.y);
 		if (frame.master == *mTestFramePtr)
 			return 0;
-
 		frame.master = *mTestFramePtr;
+		frame.sub = mSubTestFrame;
+
 		int result = 1;
 		for (int i = 0; i < 4; ++i)
 		{
@@ -54,7 +59,11 @@ namespace SBlocks
 
 	int MapSolveData::countConnectTilesRec(Vec2i const& pos)
 	{
-		if (!mMap.isInBound(pos) || mMap.getValue(pos) != 0)
+		if (!mMap.isInBound(pos))
+			return 0;
+
+		uint8 data = mMap.getValue(pos);
+		if (!MarkMap::CanLock(data))
 			return 0;
 
 		auto& frame = mTestFrameMap(pos.x, pos.y);

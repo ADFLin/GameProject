@@ -93,7 +93,7 @@ namespace Chess
 			:g(g)
 		{
 			g.setBlendState(ESimpleBlendMode::Translucent);
-			g.setBlendAlapha(alpha);
+			g.setBlendAlpha(alpha);
 		}
 
 		~ScopedBlendState()

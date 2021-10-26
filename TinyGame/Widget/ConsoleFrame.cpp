@@ -6,10 +6,7 @@
 ConsoleFrame::ConsoleFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent) :BaseClass(id, pos, size, parent)
 {
 	setRenderType( GPanel::eRectType );
-
-	mCmdText = new GTextCtrl(UI_COM_TEXT, Vec2i(3, size.y - 3 - GTextCtrl::UI_Height ), size.x - 6, this);
-	mCmdText->setRerouteCharMsg();
-	mCmdText->setRerouteKeyMsg();
+	mCmdText = new ConsoleCmdTextCtrl(UI_COM_TEXT, Vec2i(3, size.y - 3 - GTextCtrl::UI_Height), size.x - 6, this);
 }
 
 ConsoleFrame::~ConsoleFrame()
@@ -44,18 +41,71 @@ void ConsoleFrame::onRender()
 
 bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 {
+	return mCmdText->onKeyMsg(msg);
+}
+
+bool ConsoleFrame::onCharMsg(unsigned code)
+{
+	return mCmdText->onCharMsg(code);
+}
+
+bool ConsoleFrame::onChildEvent(int event, int id, GWidget* ui)
+{
+	switch( id )
+	{
+	case UI_COM_TEXT:
+		if( event == EVT_TEXTCTRL_COMMITTED )
+		{
+
+		}
+		else if( event == EVT_TEXTCTRL_VALUE_CHANGED )
+		{
+
+
+		}
+		return false;
+	default:
+		break;
+	}
+
+	return true;
+}
+
+bool ConsoleCmdTextCtrl::onCharMsg(unsigned code)
+{
+	//eat tab char and ~
+	if (code == EKeyCode::Tab || code == 0x60)
+	{
+		return false;
+	}
+	mIndexFoundCmdUsed = INDEX_NONE;
+	return BaseClass::onCharMsg(code);
+}
+
+bool ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
+{
 	if (!msg.isDown())
 		return false;
 
-	if( msg.getCode() == EKeyCode::Tab )
+	if (msg.getCode() == EKeyCode::Tab)
 	{
-		if( mIndexFoundCmdUsed == INDEX_NONE )
+		if (mIndexFoundCmdUsed == INDEX_NONE)
 		{
 			char const* foundCmds[256];
-			int numFound = ConsoleSystem::Get().findCommandName2(mCmdText->getValue(), foundCmds, ARRAY_SIZE(foundCmds));
-			if( numFound != 0 )
+			int numFound;
+			if (mNamespace.empty())
 			{
-				bool bNeedAddNamespace = *FCString::FindChar(mCmdText->getValue(), '.') == 0;
+				numFound = ConsoleSystem::Get().findCommandName2(getValue(), foundCmds, ARRAY_SIZE(foundCmds));
+			}
+			else
+			{
+				std::string findText = mNamespace + '.' + getValue();
+				numFound = ConsoleSystem::Get().findCommandName2(findText.c_str(), foundCmds, ARRAY_SIZE(foundCmds));
+			}
+
+			if (numFound != 0)
+			{
+				bool bNeedAddNamespace = *FCString::FindChar(getValue(), '.') == 0 && mNamespace.empty();
 				if (bNeedAddNamespace)
 				{
 					mFoundCmds.clear();
@@ -67,7 +117,7 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 						if (*nsEnd)
 						{
 							std::string ns = { foundCmds[index] , nsEnd + 1 };
-							auto iter = std::find( namespaceUsed.begin(), namespaceUsed.end(), ns );
+							auto iter = std::find(namespaceUsed.begin(), namespaceUsed.end(), ns);
 							if (iter == namespaceUsed.end())
 							{
 								mFoundCmds.push_back(ns);
@@ -91,11 +141,9 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 			mIndexFoundCmdUsed = (mIndexFoundCmdUsed + 1) % mFoundCmds.size();
 		}
 
-		if( mIndexFoundCmdUsed != INDEX_NONE)
+		if (mIndexFoundCmdUsed != INDEX_NONE)
 		{
-			mCmdText->setValue(mFoundCmds[mIndexFoundCmdUsed].c_str());
-			if (mFoundCmds[mIndexFoundCmdUsed].back() != '.')
-				mCmdText->appendValue(" ");
+			setFoundCmdToText();
 		}
 		return false;
 	}
@@ -104,7 +152,7 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 		++mIndexHistoryUsed;
 		if (mIndexHistoryUsed < mHistoryCmds.size())
 		{
-			mCmdText->setValue(mHistoryCmds[mIndexHistoryUsed].c_str());
+			setValue(mHistoryCmds[mIndexHistoryUsed].c_str());
 		}
 		else
 		{
@@ -116,16 +164,16 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 		--mIndexHistoryUsed;
 		if (mIndexHistoryUsed >= 0)
 		{
-			mCmdText->setValue(mHistoryCmds[mIndexHistoryUsed].c_str());
+			setValue(mHistoryCmds[mIndexHistoryUsed].c_str());
 		}
 		else
 		{
 			mIndexHistoryUsed = 0;
 		}
 	}
-	bool result = mCmdText->onKeyMsg(msg);
+	bool result = BaseClass::onKeyMsg(msg);
 
-	if( msg.getCode() == EKeyCode::Return )
+	if (msg.getCode() == EKeyCode::Return)
 	{
 
 	}
@@ -133,51 +181,57 @@ bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 	return false;
 }
 
-bool ConsoleFrame::onCharMsg(unsigned code)
+void ConsoleCmdTextCtrl::setFoundCmdToText()
 {
-	//eat tab char and ~
-	if( code == EKeyCode::Tab || code == 0x60 )
+	if (mNamespace.empty() == false &&
+		FCString::CompareN(mFoundCmds[mIndexFoundCmdUsed].c_str(), mNamespace.c_str(), mNamespace.length()) == 0)
 	{
-		return false;
+		setValue(mFoundCmds[mIndexFoundCmdUsed].c_str() + mNamespace.length() + 1);
+		appendValue(" ");
+		return;
 	}
-	mIndexFoundCmdUsed = INDEX_NONE;
-	return mCmdText->onCharMsg(code);
+
+	setValue(mFoundCmds[mIndexFoundCmdUsed].c_str());
+	if (mFoundCmds[mIndexFoundCmdUsed].back() != '.')
+		appendValue(" ");
 }
 
-bool ConsoleFrame::onChildEvent(int event, int id, GWidget* ui)
+bool ConsoleCmdTextCtrl::preSendEvent(int event)
 {
-	switch( id )
+	if (event == EVT_TEXTCTRL_COMMITTED)
 	{
-	case UI_COM_TEXT:
-		if( event == EVT_TEXTCTRL_COMMITTED )
+		char const* cmdText = getValue();
+		if (cmdText && *cmdText != 0)
 		{
-			char const* comStr = ui->cast<GTextCtrl>()->getValue();
-			if( comStr && *comStr != 0 )
+			bool cmdResult;
+			if (mNamespace.empty())
 			{
-				bool result = ConsoleSystem::Get().executeCommand(comStr);
-
-				if (mIndexHistoryUsed != INDEX_NONE && mHistoryCmds[mIndexHistoryUsed] == comStr)
-				{
-					--mIndexHistoryUsed;
-				}
-				else
-				{
-					mHistoryCmds.push_back(comStr);
-					mIndexHistoryUsed = INDEX_NONE;
-				}
-
-				ui->cast<GTextCtrl>()->clearValue();
-				makeFocus();
+				cmdResult = ConsoleSystem::Get().executeCommand(cmdText);
 			}
+			else
+			{
+				std::string cmd = mNamespace + '.' + getValue();
+				cmdResult = ConsoleSystem::Get().executeCommand(cmd.c_str());
+			}
+			
+			if (mIndexHistoryUsed != INDEX_NONE && mHistoryCmds[mIndexHistoryUsed] == cmdText)
+			{
+				--mIndexHistoryUsed;
+			}
+			else
+			{
+				mHistoryCmds.push_back(cmdText);
+				mIndexHistoryUsed = INDEX_NONE;
+			}
+
+			clearValue();
+			makeFocus();
 		}
-		else if( event == EVT_TEXTCTRL_VALUE_CHANGED )
-		{
+	}
+	else if (event == EVT_TEXTCTRL_VALUE_CHANGED)
+	{
 
 
-		}
-		return false;
-	default:
-		break;
 	}
 
 	return true;

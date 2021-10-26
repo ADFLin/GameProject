@@ -283,7 +283,7 @@ namespace SBlocks
 		}
 
 		void solveParallel(int numThreads);
-		void waitWorkCompilition();
+		void waitWorkCompletion();
 
 	};
 

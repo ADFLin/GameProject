@@ -124,6 +124,28 @@ public:
 
 };
 
+class ConsoleCmdTextCtrl : public GTextCtrl
+{
+	using BaseClass = GTextCtrl;
+public:
+	using GTextCtrl::GTextCtrl;
+
+	bool onCharMsg(unsigned code);
+	bool onKeyMsg(KeyMsg const& msg);
+
+
+	void setFoundCmdToText();
+	std::vector< std::string > mFoundCmds;
+	std::vector< std::string > mHistoryCmds;
+	int mIndexHistoryUsed = INDEX_NONE;
+	int mIndexFoundCmdUsed = INDEX_NONE;
+
+	std::string mNamespace;
+
+	bool preSendEvent(int event);
+
+};
+
 class ConsoleFrame : public GFrame
 	               , public LogOutput
 {
@@ -171,7 +193,7 @@ public:
 		switch( channel )
 		{
 		case LOG_MSG: color = RenderUtility::GetColor(EColor::White); break;
-		case LOG_DEV: color = RenderUtility::GetColor(EColor::White , COLOR_DEEP); break;
+		case LOG_DEV: color = RenderUtility::GetColor(EColor::Yellow , COLOR_LIGHT); break;
 		case LOG_WARNING: color = RenderUtility::GetColor(EColor::Orange, COLOR_DEEP); break;
 		case LOG_ERROR:   color = RenderUtility::GetColor(EColor::Red, COLOR_DEEP); break;
 		}

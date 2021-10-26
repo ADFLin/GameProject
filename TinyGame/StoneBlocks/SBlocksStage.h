@@ -11,6 +11,8 @@
 #include <algorithm>
 #include "GameWidget.h"
 
+class ConsoleCmdTextCtrl;
+
 namespace SBlocks
 {
 	Vector2 DebugPos;
@@ -587,6 +589,12 @@ namespace SBlocks
 	{
 		using BaseClass = StageBase;
 
+		enum 
+		{
+			UI_CmdCtrl = BaseClass::NEXT_UI_ID,
+			NEXT_UI_ID,
+		};
+
 		Editor*  mEditor = nullptr;
 
 		bool IsEditEnabled() const { return mEditor && mEditor->mbEnabled; }
@@ -638,6 +646,7 @@ namespace SBlocks
 			BaseClass::onEnd();
 		}
 
+		ConsoleCmdTextCtrl* mCmdTextCtrl = nullptr;
 		void restart();
 		void tick() {}
 		void updateFrame(int frame) {}
@@ -764,46 +773,11 @@ namespace SBlocks
 			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
-		{
-			if (!msg.isDown())
-				return false;
-
-			switch (msg.getCode())
-			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::Num1: 
-				if (IsEditEnabled())
-				{
-					mEditor->endEdit();
-				}
-				else
-				{
-					if (mEditor == nullptr)
-					{
-						mEditor = new Editor;
-						mEditor->mGame = this;
-						mEditor->initEdit();
-					}
-					mEditor->startEdit();
-				}
-				break;
-			}
-			return BaseClass::onKey(msg);
-		}
+		bool onKey(KeyMsg const& msg) override;
 
 
 
-		bool onWidgetEvent(int event, int id, GWidget* ui) override
-		{
-			switch (id)
-			{
-			default:
-				break;
-			}
-
-			return BaseClass::onWidgetEvent(event, id, ui);
-		}
+		bool onWidgetEvent(int event, int id, GWidget* ui) override;
 	public:
 		ERenderSystem getDefaultRenderSystem() override;
 		bool setupRenderSystem(ERenderSystem systemName) override;

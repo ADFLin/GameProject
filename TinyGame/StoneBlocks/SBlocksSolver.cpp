@@ -186,7 +186,7 @@ namespace SBlocks
 			for (int i = 0; i < shapeSolveData.pieces.size(); ++i)
 			{
 				int& indexState = stateIndices[indexPiece + i];
-				if (indexState != INDEX_NONE)
+				if (indexState >= 0)
 				{
 					PieceSolveState const& state = shapeSolveData.states[indexState];
 					mMaps[state.mapIndex].mMap.unlock(state.pos, shapeSolveData.shape->mDataMap[state.dir]);
@@ -301,6 +301,7 @@ namespace SBlocks
 	ERejectResult::Type SolveData::testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos, SolveOption const &option, int maxCompareShapeSize)
 	{
 		int count = mapData.countConnectTiles(testPos);
+
 		if (count != 0)
 		{
 			if (count < globalData->mMinShapeBlockCount)
@@ -309,9 +310,10 @@ namespace SBlocks
 			}
 	
 			int pieceMapIndex = count - globalData->mMinShapeBlockCount;
-			if (count < maxCompareShapeSize && IsValidIndex(globalData->mPieceSizeMap, pieceMapIndex))
+			if (count < maxCompareShapeSize)
 			{
-				if (globalData->mPieceSizeMap[pieceMapIndex] == nullptr)
+				if (IsValidIndex(globalData->mPieceSizeMap, pieceMapIndex) == false || 
+					globalData->mPieceSizeMap[pieceMapIndex] == nullptr)
 				{
 					return ERejectResult::ConnectTilesCount;
 				}
@@ -507,7 +509,6 @@ namespace SBlocks
 				{
 					MapSolveData& mapData = mSolveData.mMaps[indexMap];
 
-
 					Vec2i posMax = mapData.mMap.getBoundSize() - shapeData.boundSize;
 					Vec2i pos;
 					for (pos.y = 0; pos.y <= posMax.y; ++pos.y)
@@ -636,13 +637,17 @@ namespace SBlocks
 			ShapeSolveData& shapeSolveData = *pieceData.shapeSaveData;
 
 			int stateUsedCount = 0;
-			if (bEnableIdenticalShapeCombination && shapeSolveData.indexCombination != INDEX_NONE)
+
+			if constexpr ( bEnableIdenticalShapeCombination )
 			{
+				if (shapeSolveData.indexCombination == INDEX_NONE)
+					goto NoCombineSolve;
+
 				indexPiece = shapeSolveData.pieces.front()->piece->indexSolve;
 
 				if (solveData.advanceCombinedState(shapeSolveData, indexPiece, stateUsedCount))
 				{
-					if (bHavePartWork)
+					if constexpr (bHavePartWork)
 					{
 						if (indexPiece == partWork->indexPieceWork)
 						{
@@ -650,12 +655,12 @@ namespace SBlocks
 							if (partWork->numStatesUsed > partWork->numStates)
 							{
 								--indexPiece;
-								break;
+								return indexPiece;
 							}
 						}
 					}
 
-					if (bEnableRejection)
+					if constexpr (bEnableRejection)
 					{
 						if (1 <= indexPiece && indexPiece < 2 * mPieceList.size() / 3)
 						{
@@ -676,7 +681,7 @@ namespace SBlocks
 
 					indexPiece += shapeSolveData.pieces.size();
 					if (indexPiece == mPieceList.size())
-						break;
+						return indexPiece;
 				}
 				else
 				{
@@ -685,12 +690,15 @@ namespace SBlocks
 #endif
 					--indexPiece;
 				}
+
+				continue;
 			}
-			else
+
+NoCombineSolve:
 			{
 				if (solveData.advanceState(shapeSolveData, indexPiece, stateUsedCount))
 				{
-					if (bHavePartWork)
+					if constexpr (bHavePartWork)
 					{
 						if (indexPiece == partWork->indexPieceWork)
 						{
@@ -698,12 +706,12 @@ namespace SBlocks
 							if (partWork->numStatesUsed > partWork->numStates)
 							{
 								--indexPiece;
-								break;
+								return indexPiece;
 							}
 						}
 					}
 
-					if (bEnableRejection)
+					if constexpr (bEnableRejection)
 					{
 						if (1 <= indexPiece && indexPiece < 2 * mPieceList.size() / 3)
 						{
@@ -728,7 +736,7 @@ namespace SBlocks
 
 					++indexPiece;
 					if (indexPiece == mPieceList.size())
-						break;
+						return indexPiece;
 				}
 				else
 				{

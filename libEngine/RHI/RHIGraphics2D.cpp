@@ -665,17 +665,17 @@ void RHIGraphics2D::endClip()
 void RHIGraphics2D::beginBlend(Vector2 const& pos, Vector2 const& size, float alpha)
 {
 	setBlendState(ESimpleBlendMode::Translucent);
-	setBlendAlapha(alpha);
+	setBlendAlpha(alpha);
 }
 
 void RHIGraphics2D::beginBlend(float alpha, ESimpleBlendMode mode)
 {
 	setBlendState(mode);
-	setBlendAlapha(alpha);
+	setBlendAlpha(alpha);
 }
 
 void RHIGraphics2D::endBlend()
 {
 	setBlendState(ESimpleBlendMode::None);
-	setBlendAlapha(1.0f);
+	setBlendAlpha(1.0f);
 }

@@ -83,7 +83,7 @@ public:
 	void  beginBlend(float alpha, ESimpleBlendMode mode = ESimpleBlendMode::Translucent);
 	void  endBlend();
 	void  setBlendState(ESimpleBlendMode mode);
-	void  setBlendAlapha(float value)
+	void  setBlendAlpha(float value)
 	{ 
 		mPaintArgs.brushColor.a = value;
 		mPaintArgs.penColor.a = value;

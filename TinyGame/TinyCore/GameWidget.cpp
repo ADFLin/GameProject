@@ -130,6 +130,9 @@ GWidget::~GWidget()
 
 void GWidget::sendEvent( int eventID )
 {
+	if (!preSendEvent(eventID))
+		return;
+
 	bool bKeep = true;
 	if( onEvent )
 	{
@@ -461,6 +464,8 @@ void GTextCtrl::onRender()
 	Vec2i pos = getWorldPos();
 
 	IGraphics2D& g = Global::GetIGraphics2D();
+
+	RenderUtility::SetPen(g, EColor::Black);
 
 	Vec2i size = getSize();
 	RenderUtility::SetBrush( g , EColor::Gray  );

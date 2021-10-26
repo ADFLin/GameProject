@@ -352,7 +352,7 @@ namespace Go
 			Vector2 const& min = mTexInfos[id].uvMin;
 			Vector2 const& max = mTexInfos[id].uvMax;
 			g.setBrush(LinearColor( color.xyz() ));
-			g.setBlendAlapha(color.w);
+			g.setBlendAlpha(color.w);
 			g.drawTexture(mTextureAtlas.getTexture(), posLT, size, min, max - min);
 		};
 		AddSprite(id, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));

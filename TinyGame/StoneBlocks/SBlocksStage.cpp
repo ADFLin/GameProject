@@ -7,6 +7,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "Serialize/FileStream.h"
 #include "FileSystem.h"
+#include "Widget/ConsoleFrame.h"
 
 namespace SBlocks
 {
@@ -15,7 +16,7 @@ namespace SBlocks
 #define SBLOCKS_DIR "SBlocks"
 
 
-	TConsoleVariable< bool > CVarShowDebug{false, "SBlocks.ShowDebug", CVF_TOGGLEABLE};
+	TConsoleVariable< bool > CVarDevMode{false, "SBlocks.DevMode", CVF_TOGGLEABLE};
 	TConsoleVariable< bool > CVarSolverEnableRejection{ true, "SBlocks.SolverEnableRejection", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarSolverEnableSortPiece{ true, "SBlocks.SolverEnableSortPiece", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarSolverEnableIdenticalShapeCombination{ true, "SBlocks.SolverEnableIdenticalShapeCombination", CVF_TOGGLEABLE };
@@ -113,7 +114,7 @@ namespace SBlocks
 					float border = 0.025;
 					g.drawRect(Vector2(i + border, j + border), Vector2(1 - 2 * border, 1 - 2 * border));
 
-					if (CVarShowDebug)
+					if (CVarDevMode)
 					{
 						g.pushXForm();
 						g.identityXForm();
@@ -134,7 +135,7 @@ namespace SBlocks
 		for (Piece* piece : mSortedPieces )
 		{
 			drawPiece(g, *piece, selectedPiece == piece);
-			if (CVarShowDebug)
+			if (CVarDevMode)
 			{
 				g.pushXForm();
 				g.identityXForm();
@@ -145,7 +146,7 @@ namespace SBlocks
 			}
 		}
 
-		if ( CVarShowDebug )
+		if ( CVarDevMode )
 		{
 			RenderUtility::SetPen(g, EColor::Red);
 			RenderUtility::SetBrush(g, EColor::Null);
@@ -309,7 +310,78 @@ namespace SBlocks
 
 			mLevel.importDesc(desc);
 			initializeGame();
+			LogMsg("Load Level %s Success", name);
 		}
+		else
+		{
+			LogMsg("Load Level %s Fail", name);
+		}
+	}
+
+	bool LevelStage::onKey(KeyMsg const& msg)
+	{
+		if (!msg.isDown())
+			return false;
+
+		switch (msg.getCode())
+		{
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::Num1:
+			if (IsEditEnabled())
+			{
+				mEditor->endEdit();
+			}
+			else
+			{
+				if (mEditor == nullptr)
+				{
+					mEditor = new Editor;
+					mEditor->mGame = this;
+					mEditor->initEdit();
+				}
+				mEditor->startEdit();
+			}
+			break;
+		case EKeyCode::Return:
+			if (true)
+			{
+				if (mCmdTextCtrl == nullptr)
+				{
+					int len = 400;
+
+					Vec2i screenSize = ::Global::GetScreenSize();
+
+					mCmdTextCtrl = new ConsoleCmdTextCtrl(UI_CmdCtrl, Vec2i( ( screenSize.x - len ) / 2, screenSize.y - 50), len , nullptr);
+
+					mCmdTextCtrl->mNamespace = "SBlocks";
+					::Global::GUI().addWidget(mCmdTextCtrl);
+				}
+				mCmdTextCtrl->show();
+				mCmdTextCtrl->makeFocus();
+			}
+		}
+		return BaseClass::onKey(msg);
+	}
+
+	bool LevelStage::onWidgetEvent(int event, int id, GWidget* ui)
+	{
+		switch (id)
+		{
+		case UI_CmdCtrl:
+			if (event == EVT_TEXTCTRL_COMMITTED)
+			{
+				if (mCmdTextCtrl)
+				{
+					mCmdTextCtrl->show(false);
+					mCmdTextCtrl->clearFocus();
+				}
+			}
+			return false;
+		default:
+			break;
+		}
+
+		return BaseClass::onWidgetEvent(event, id, ui);
 	}
 
 	void Editor::registerCommand()
@@ -363,19 +435,25 @@ namespace SBlocks
 
 	void Editor::saveLevel(char const* name)
 	{
-		OutputFileSerializer serializer;
-		serializer.registerVersion(EName::None, ELevelSaveVersion::LastVersion);
 
 		if (!FFileSystem::IsExist(SBLOCKS_DIR"/levels"))
 		{
 			FFileSystem::CreateDirectorySequence(SBLOCKS_DIR"/levels");
 		}
 
+		OutputFileSerializer serializer;
+		serializer.registerVersion(EName::None, ELevelSaveVersion::LastVersion);
+
 		if (serializer.open(InlineString<>::Make(SBLOCKS_DIR"/levels/%s.lv", name)))
 		{
 			LevelDesc desc;
 			mGame->mLevel.exportDesc(desc);
 			serializer.write(desc);
+			LogMsg("Save Level %s Success", name);
+		}
+		else
+		{
+			LogMsg("Save Level %s Fail", name);
 		}
 	}
 

@@ -113,6 +113,7 @@ public:
 	TINY_API ~GWidget();
 	int  getID(){ return mID; }
 
+
 	virtual bool onChildEvent( int event , int id , GWidget* ui ){  return true; }
 
 	WidgetEventDelegate onEvent;
@@ -160,6 +161,7 @@ public:
 	}
 
 protected:
+	virtual bool preSendEvent(int event) { return true; }
 
 	TINY_API void sendEvent( int eventID );
 	TINY_API void removeMotionTask();

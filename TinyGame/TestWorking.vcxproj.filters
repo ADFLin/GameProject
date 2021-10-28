@@ -26,6 +26,9 @@
     <ClCompile Include="StoneBlocks\SBlocksCore.cpp">
       <Filter>GameStoneBlocks</Filter>
     </ClCompile>
+    <ClCompile Include="Life\LifeStage.cpp">
+      <Filter>GameLife</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
@@ -51,6 +54,9 @@
     <ClInclude Include="StoneBlocks\SBlocksLevelData.h">
       <Filter>GameStoneBlocks</Filter>
     </ClInclude>
+    <ClInclude Include="Life\LifeStage.h">
+      <Filter>GameLife</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GameChess">
@@ -58,6 +64,9 @@
     </Filter>
     <Filter Include="GameStoneBlocks">
       <UniqueIdentifier>{6ac44b66-ae71-4bd7-8a4f-45e6adc0e637}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameLife">
+      <UniqueIdentifier>{5ff9500e-1b78-4eca-a20b-4752be3c5986}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

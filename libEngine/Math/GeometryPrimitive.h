@@ -16,13 +16,6 @@ namespace Math
 		VectorType min;
 		VectorType max;
 
-
-		static TAABBox Empty() 
-		{ 
-			TAABBox result; result.invalidate();
-			return result;
-		}
-
 		void invalidate()
 		{
 			min = VectorType::Fill(std::numeric_limits<ScalarType>::max());
@@ -75,6 +68,14 @@ namespace Math
 		{
 			min = VectorType::Zero();
 			max = VectorType::Zero();
+		}
+
+		TAABBox intersection(TAABBox const& rhs)
+		{
+			TAABBox result;
+			result.min = min.max(rhs.min);
+			result.max = max.min(rhs.max);
+			return result;
 		}
 
 		TAABBox() {}

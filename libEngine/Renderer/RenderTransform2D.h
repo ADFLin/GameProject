@@ -78,11 +78,28 @@ namespace Render
 		FORCEINLINE Vector2 transformPosition(Vector2 const& pos) const
 		{
 			return MulOffset(pos, M, P);
+
+		}
+
+		FORCEINLINE Vector2 transformInvPosition(Vector2 const& pos) const
+		{
+			Matrix2 InvM;
+			float det;
+			M.inverse(InvM, det);
+			return MulOffset(pos, InvM, -P * InvM);
 		}
 
 		FORCEINLINE Vector2 transformVector(Vector2 const& v) const
 		{
 			return M.leftMul(v);
+		}
+
+		FORCEINLINE Vector2 transformInvVector(Vector2 const& v) const
+		{
+			Matrix2 InvM;
+			float det;
+			M.inverse(InvM, det);
+			return InvM.leftMul(v);
 		}
 
 		FORCEINLINE Vector2 transformInvVectorAssumeNoScale(Vector2 const& v) const
@@ -182,8 +199,8 @@ namespace Render
 			return Matrix4(
 				M[0], M[1], 0, 0,
 				M[2], M[3], 0, 0,
-				0, 0, 1, 0,
-				P.x, P.y, 0, 1);
+				   0,    0, 1, 0,
+				 P.x,  P.y, 0, 1);
 		}
 
 

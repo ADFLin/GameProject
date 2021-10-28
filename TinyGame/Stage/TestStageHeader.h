@@ -132,9 +132,7 @@ public:
 
 	bool onMouse(MouseMsg const& msg) override
 	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 	bool onKey(KeyMsg const& msg) override

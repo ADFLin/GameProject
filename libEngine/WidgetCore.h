@@ -275,9 +275,9 @@ public:
 
 protected:
 	void        destroyWidgetChildren_R(WidgetCore* ui);
-	void        destroyWidgetActually(WidgetCore* ui );
-	void        removeWidgetReference(WidgetCore* ui );
-	void        updateInternal(WidgetCore& ui );
+	void        destroyWidgetActually(WidgetCore* ui);
+	void        removeWidgetReference(WidgetCore* ui);
+	void        updateInternal(WidgetCore& ui);
 
 	template< class Visitor >
 	void        visitWidgetInternal( Visitor visitor , WidgetCore& ui );

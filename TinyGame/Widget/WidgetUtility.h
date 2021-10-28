@@ -99,13 +99,13 @@ struct FWidgetProperty
 		};
 	}
 
-	static void Bind(GSlider* widget, float& valueRef, float min, float max , float power , std::function< void (float) > inDelegate = std::function< void(float) >() )
+	static void Bind(GSlider* widget, float& valueRef, float min, float max, float power, std::function< void (float) > inDelegate = std::function< void(float) >() )
 	{
 		float constexpr scale = 0.001;
 		widget->setRange(0, 1 / scale);
 		float delta = max - min;
 		FWidgetProperty::Set(widget, Math::Exp( Math::Log( (valueRef - min ) / delta ) / power ) / scale );
-		widget->onEvent = [&valueRef, scale, min , delta , power , inDelegate](int event, GWidget* widget)
+		widget->onEvent = [&valueRef, scale, min, delta, power, inDelegate](int event, GWidget* widget)
 		{
 			float factor = scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
 			valueRef = min + delta * Math::Pow(factor, power);

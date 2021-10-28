@@ -3,6 +3,7 @@
 #define Grid2D_H_758B1030_6F18_46B7_9EA5_9E7974186B6E
 
 #include <cassert>
+#include "Math/TVector2.h"
 #include "CppVersion.h"
 
 template< class T >
@@ -82,13 +83,15 @@ public:
 	TGrid2D()
 	{
 		mStorage = nullptr;
-		mSizeX = mSizeY = 0;
+		mSize = TVector2<int>::Zero();
 	}
+
 	TGrid2D( int sx , int sy )
 	{
 		build( sx , sy );
 	}
 
+	TGrid2D( TVector2<int> const& size) : TGrid2D( size.x , size.y ){}
 	TGrid2D( TGrid2D const& rhs ){  construct( rhs );  }
 
 	~TGrid2D(){  cleanup(); }
@@ -97,12 +100,10 @@ public:
 	TGrid2D( TGrid2D&& rhs )
 		:MP( rhs )
 		,mStorage( rhs.mStorage )
-		,mSizeX( rhs.mSizeX )
-		,mSizeY( rhs.mSizeY )
+		,mSize( rhs.mSize )
 	{
 		rhs.mStorage = 0;
-		rhs.mSizeX = 0;
-		rhs.mSizeY = 0;
+		rhs.mSize = TVector2<int>::Zero();
 	}
 
 	TGrid2D& operator = ( TGrid2D&& rhs )
@@ -116,26 +117,28 @@ public:
 	typedef T const* const_iterator;
 
 	iterator begin(){ return mStorage; }
-	iterator end()  { return mStorage + mSizeX * mSizeY; }
+	iterator end()  { return mStorage + getRawDataSize(); }
 
-	T&       getData( int i , int j )       { assert( checkRange( i , j ) ); return MP::getData( mStorage , mSizeX , mSizeY , i , j ); }
-	T const& getData( int i , int j ) const { assert( checkRange( i , j ) ); return MP::getData( mStorage , mSizeX , mSizeY , i , j ); }
+	T&       getData( int i , int j )       { assert( checkRange( i , j ) ); return MP::getData( mStorage , mSize.x , mSize.y , i , j ); }
+	T const& getData( int i , int j ) const { assert( checkRange( i , j ) ); return MP::getData( mStorage , mSize.x , mSize.y , i , j ); }
 
 	T&       operator()( int i , int j )       { return getData( i , j ); }
 	T const& operator()( int i , int j ) const { return getData( i , j ); }
 
+	T&       operator()(TVector2<int> const& pos) { return getData(pos.x, pos.y); }
+	T const& operator()(TVector2<int> const& pos) const { return getData(pos.x, pos.y); }
 
-	T&       operator[]( int idx )       { assert( 0 <= idx && idx < mSizeX * mSizeY ); return mStorage[ idx ]; }
-	T const& operator[]( int idx ) const { assert( 0 <= idx && idx < mSizeX * mSizeY ); return mStorage[ idx ]; }
+	T&       operator[]( int idx )       { assert( 0 <= idx && idx < getRawDataSize()); return mStorage[ idx ]; }
+	T const& operator[]( int idx ) const { assert( 0 <= idx && idx < getRawDataSize()); return mStorage[ idx ]; }
 
 	T*       getRawData()       { return mStorage; }
 	T const* getRawData() const { return mStorage; }
 
-	int  toIndex( int x , int y ) const { return x + y * mSizeX; }
+	int  toIndex( int x , int y ) const { return x + y * mSize.x; }
 	void toCoord( int index , int& outX , int& outY ) const
 	{
-		outX = index % mSizeX;
-		outY = index / mSizeX;
+		outX = index % mSize.x;
+		outY = index / mSize.x;
 	}
 
 	void resize( int x , int y )
@@ -144,12 +147,18 @@ public:
 		build( x , y );
 	}
 
-	void fillValue( T const& val ){	std::fill_n( mStorage , mSizeX * mSizeY , val );  }
+	void fillValue( T const& val ){	std::fill_n( mStorage , mSize.x * mSize.y , val );  }
 
 	bool checkRange( int i , int j ) const
 	{
-		return 0 <= i && i < mSizeX && 
-			   0 <= j && j < mSizeY;
+		return 0 <= i && i < mSize.x && 
+			   0 <= j && j < mSize.y;
+	}
+
+	bool checkRange(TVector2<int> const& pos) const
+	{
+		return 0 <= pos.x && pos.x < mSize.x &&
+			   0 <= pos.y && pos.y < mSize.y;
 	}
 
 	TGrid2D& operator = ( TGrid2D const& rhs )
@@ -158,9 +167,11 @@ public:
 		return *this;
 	}
 
-	int      getSizeX() const { return mSizeX; }
-	int      getSizeY() const { return mSizeY; }
-	int      getRawDataSize() const { return mSizeX * mSizeY; }
+	TVector2<int> const& getSize() const { return mSize; }
+	int getSizeX() const { return mSize.x; }
+	int getSizeY() const { return mSize.y; }
+
+	int getRawDataSize() const { return mSize.x * mSize.y; }
 
 
 	void     swap( TGrid2D& other )
@@ -168,9 +179,7 @@ public:
 		using std::swap;
 		MP::swap( other );
 		swap( mStorage , other.mStorage );
-		swap( mSizeX , other.mSizeX );
-		swap( mSizeY , other.mSizeY );
-		
+		swap( mSize , other.mSize );
 	}
 
 
@@ -178,9 +187,9 @@ private:
 
 	void build( int x , int y )
 	{
-		mSizeX = x;
-		mSizeY = y;
-		mStorage = new T[ mSizeX * mSizeY ];
+		mSize.x = x;
+		mSize.y = y;
+		mStorage = new T[ mSize.x * mSize.y ];
 		MP::build( mStorage , x , y );
 	}
 
@@ -189,14 +198,14 @@ private:
 		delete [] mStorage;
 		mStorage = 0; 
 
-		MP::cleanup( mSizeX , mSizeY );
-		mSizeX = mSizeY = 0;
+		MP::cleanup( mSize.x , mSize.y );
+		mSize = TVector2<int>::Zero();
 	}
 
 	void construct(TGrid2D const& rhs)
 	{
-		build(rhs.mSizeX, rhs.mSizeY);
-		std::copy(rhs.mStorage, rhs.mStorage + rhs.mSizeX  * rhs.mSizeY, mStorage);
+		build(rhs.mSize.x, rhs.mSize.y);
+		std::copy(rhs.mStorage, rhs.mStorage + rhs.getRawDataSize(), mStorage);
 	}
 
 	void copy( TGrid2D const& rhs )
@@ -206,8 +215,7 @@ private:
 	}
 
 	T*   mStorage;
-	int  mSizeX;
-	int  mSizeY;
+	TVector2< int > mSize;
 };
 
 

@@ -858,7 +858,7 @@ NoCombineSolve:
 		}
 	}
 
-	void Solver::waitWorkCompilition()
+	void Solver::waitWorkCompletion()
 	{
 		for (auto work : mParallelWorks)
 		{

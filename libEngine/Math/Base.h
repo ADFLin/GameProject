@@ -22,8 +22,10 @@ namespace Math
 	FORCEINLINE int CeilToInt(float val) { return (int)::ceil(val); }
 	FORCEINLINE int RoundToInt(float val) { return (int)::round(val); }
 
+	FORCEINLINE float Floor(float val) { return ::floor(val); }
+	FORCEINLINE float Ceil(float val) { return ::ceil(val); }
+
 	FORCEINLINE float Square(float val) { return val * val; }
-	FORCEINLINE float Floor( float val ){ return ::floor( val ); }
 	FORCEINLINE float Sqrt( float val ){ return ::sqrt( val ); }
 	FORCEINLINE float InvSqrt( float val ){ return 1.0f / Sqrt( val ); }
 	FORCEINLINE float Sin( float val ){ return ::sin( val ); }

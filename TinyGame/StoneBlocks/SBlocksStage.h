@@ -562,7 +562,7 @@ namespace SBlocks
 			{
 				Vec2i framePos = msg.getPos() - getWorldPos();
 
-				Vec2i localPos = mLocalToFrame.inverse().transformPosition(framePos);
+				Vec2i localPos = mLocalToFrame.transformInvPosition(framePos);
 
 				Vec2i boundSize = mShape->desc.getBoundSize();
 				if (IsInBound(localPos, boundSize))

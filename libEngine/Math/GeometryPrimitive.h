@@ -4,6 +4,7 @@
 
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
+#include "Math/Vector4.h"
 
 #include <type_traits>
 
@@ -29,6 +30,11 @@ namespace Math
 
 		bool isValid() const {  return min <= max;  }
 		bool isEmpty() const { return max <= min; }
+
+		bool isInside(VectorType const& p) const
+		{
+			return min <= p && p <= max;
+		}
 
 		VectorType getSize() const { return max - min; }
 
@@ -70,7 +76,7 @@ namespace Math
 			max = VectorType::Zero();
 		}
 
-		TAABBox intersection(TAABBox const& rhs)
+		TAABBox intersection(TAABBox const& rhs) const
 		{
 			TAABBox result;
 			result.min = min.max(rhs.min);

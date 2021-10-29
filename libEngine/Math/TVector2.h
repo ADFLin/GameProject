@@ -8,7 +8,7 @@
 template<class T>
 class TVector2
 {
-	using ScalarInputType = typename TSelect< Meta::IsPrimary<T>::Value, T, T const& >::Type;
+	using ScalarInputType = typename TSelect< Meta::IsPrimary<T>::Value, const T, T const& >::Type;
 public:
 	using ScalarType = T;
 	
@@ -73,8 +73,8 @@ public:
 	TVector2 operator / (TVector2 const& v1) const {  return div(v1);  }
 
 
-	bool operator == (TVector2 const& v) const {  return x == v.x  && y == v.y;  }
-	bool operator != (TVector2 const& v) const {  return ! (*this == v ); }
+	constexpr bool operator == (TVector2 const& v) const {  return x == v.x  && y == v.y;  }
+	constexpr bool operator != (TVector2 const& v) const {  return ! (*this == v ); }
 
 	bool     operator < (TVector2 const& rhs) const { return x < rhs.x && y < rhs.y; }
 	bool     operator > (TVector2 const& rhs) const { return rhs < *this ; }

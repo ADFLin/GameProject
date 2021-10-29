@@ -741,7 +741,7 @@ GSlider::GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* p
 void GSlider::renderValue( GWidget* widget )
 {
 	Vec2i pos = getWorldPos();
-	Graphics2D& g = Global::GetGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	InlineString< 256 > str;
 	str.format( "%d" , getValue() );

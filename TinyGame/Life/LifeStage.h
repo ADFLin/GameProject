@@ -1,39 +1,55 @@
 #include "Stage/TestStageHeader.h"
 #include "GameRenderSetup.h"
 
+#include "LifeCore.h"
 
 #include "Math/GeometryPrimitive.h"
 #include "DataStructure/Grid2D.h"
 #include "RHI/RHIGraphics2D.h"
 #include "ConsoleSystem.h"
-#include "Serialize/SerializeFwd.h"
-
 
 namespace Life
 {
 	using namespace Render;
-	using BoundBox = ::Math::TAABBox< Vec2i >;
-
 
 	class Viewport
 	{
 	public:
+
+		Vec2i   screenSize;
+		float   cellLength;
 		Vector2 pos;
-		Vector2 size;
 		float   zoomOut;
 
 		RenderTransform2D xform;
+		float cellRenderScale;
 
-		void updateTransform(Vec2i const& screenSize)
+		void updateTransform()
 		{
-			Vector2 cellSize = Vector2(screenSize).div(zoomOut * size);
-			float cellScale = cellSize.x;
-
+			cellRenderScale = cellLength / zoomOut;
 			xform.setIdentity();
-			xform.translateLocal(Vector2(screenSize) / 2);
-			xform.scaleLocal(Vector2(cellScale, cellScale));
+			xform.translateLocal(0.5 * Vector2(screenSize));
+			xform.scaleLocal(Vector2(cellRenderScale, cellRenderScale));
 			Vector2 offset = -pos;
 			xform.translateLocal(offset);
+		}
+
+
+		BoundBox calcBound(Vector2 const& min, Vector2 const& max) const
+		{
+			BoundBox result;
+			Vector2 cellMinVP = xform.transformInvPosition(min);
+			result.min.x = Math::FloorToInt(cellMinVP.x);
+			result.min.y = Math::FloorToInt(cellMinVP.y);
+			Vector2 cellMaxVP = xform.transformInvPosition(max);
+			result.max.x = Math::CeilToInt(cellMaxVP.x);
+			result.max.y = Math::CeilToInt(cellMaxVP.y);
+			return result;
+		}
+
+		BoundBox getViewBound() const
+		{
+			return calcBound(Vector2::Zero(), Vector2::Zero() + screenSize);
 		}
 	};
 
@@ -48,27 +64,11 @@ namespace Life
 		}
 	};
 
-	class IAlgorithm
-	{
-	public:
-		virtual ~IAlgorithm(){}
-		virtual bool  setCell(int x, int y, uint8 value) = 0;
-		virtual uint8 getCell(int x, int y) = 0;
-		virtual void  clearCell() = 0;
-		virtual BoundBox getBound() = 0;
-		virtual BoundBox getLimitBound() = 0;
-		virtual void  getPattern(std::vector<Vec2i>& outList) = 0;
-		virtual void  step() = 0;
-		virtual IRenderer* getRenderer() { return nullptr; }
-	};
-
-
 	Vec2i constexpr NegihborOffsets[] =
 	{
 		Vec2i(1,0),Vec2i(1,1),Vec2i(0,1),Vec2i(-1,1),
 		Vec2i(-1,0),Vec2i(-1,-1),Vec2i(0,-1),Vec2i(1,-1),
 	};
-
 
 	class Rule
 	{
@@ -122,16 +122,13 @@ namespace Life
 		}
 		virtual BoundBox getBound() final
 		{
-			BoundBox result;
-			result.min = Vec2i::Zero();
-			result.max = Vec2i(mGrid.getSizeX() , mGrid.getSizeY());
-			return result;
+			return getLimitBound();
 		}
 		virtual BoundBox getLimitBound() final
 		{
 			BoundBox result;
 			result.min = Vec2i::Zero();
-			result.max = Vec2i(mGrid.getSizeX(), mGrid.getSizeY());
+			result.max = Vec2i(mGrid.getSizeX() - 1, mGrid.getSizeY() - 1);
 			return result;
 		}
 		virtual void  step() final
@@ -177,6 +174,22 @@ namespace Life
 			}
 		}
 
+		virtual void  getPattern(BoundBox const& bound , std::vector<Vec2i>& outList) final
+		{
+			BoundBox boundClip = bound.intersection(getBound());
+			for (int j = boundClip.min.y; j <= boundClip.max.y; ++j)
+			{
+				for (int i = boundClip.min.x; i <= boundClip.min.x; ++i)
+				{
+					auto data = mGrid(i, j).data[mIndex];
+					if (data)
+					{
+						outList.push_back(Vec2i(i, j));
+					}
+				}
+			}
+		}
+
 		struct DataValue
 		{
 			uint8 data[2];
@@ -195,13 +208,15 @@ namespace Life
 	class ChunkAlgo : public IAlgorithm , public IRenderer
 	{
 	public:
-		ChunkAlgo(uint32 x, uint32 y)
+		ChunkAlgo(int32 x, int32 y)
 		{
 			for (int i = 0; i < 2; ++i)
 			{
 				mChunkMap.resize(AlignUp(x, ChunkLength) , AlignUp(y, ChunkLength));
 				mChunkMap.fillValue(nullptr);
 			}
+
+			mChunkBound.invalidate();
 		}
 
 		virtual bool setCell(int x, int y, uint8 value) final
@@ -215,11 +230,16 @@ namespace Life
 					auto chunk = fetchChunk(cPos);
 					int ix = x - cPos.x * ChunkLength;
 					int iy = y - cPos.y * ChunkLength;
-					chunk->data[mIndex][Chunk::ToDataIndex(ix, iy)] = value;
+
+					uint8& data = chunk->data[mIndex][Chunk::ToDataIndex(ix, iy)];
+					if (data == 0)
+					{
+						data = value;
 #if USE_CHUNK_COUNT
-					++chunk->count;
-					chunk->bHadSleeped = false;
+						++chunk->count;
+						chunk->bHadSleeped = false;
 #endif
+					}
 				}
 				else
 				{
@@ -228,10 +248,15 @@ namespace Life
 					{
 						int ix = x - cPos.x * ChunkLength;
 						int iy = y - cPos.y * ChunkLength;
-						chunk->data[mIndex][Chunk::ToDataIndex(ix, iy)] = 0;
+
+						uint8& data = chunk->data[mIndex][Chunk::ToDataIndex(ix, iy)];
+						if (data )
+						{
+							data = 0;
 #if USE_CHUNK_COUNT
-						--chunk->count;
+							--chunk->count;
 #endif
+						}
 					}
 				}
 
@@ -248,8 +273,8 @@ namespace Life
 				auto chunk = mChunkMap(cPos);
 				if (chunk && chunk->count)
 				{
-					int ix = x % ChunkLength;
-					int iy = y % ChunkLength;
+					int ix = x - cPos.x * ChunkLength;
+					int iy = y - cPos.y * ChunkLength;
 					return chunk->data[mIndex][Chunk::ToDataIndex(ix, iy)];
 				}
 			}
@@ -266,8 +291,8 @@ namespace Life
 				chunk->bHadSleeped = true;
 				chunk->count = 0;
 #endif
-				uint8* pChunkData = chunk->data[mIndex];
-				memset(pChunkData, 0, ChunkDataSize);
+				uint8* pChunkData = chunk->data[0];
+				memset(pChunkData, 0, 2 * ChunkDataSize);
 			}
 		}
 		virtual BoundBox getBound() final
@@ -289,7 +314,7 @@ namespace Life
 		{
 			BoundBox result;
 			result.min = Vec2i::Zero();
-			result.max = ChunkLength * mChunkMap.getSize();
+			result.max = ChunkLength * mChunkMap.getSize() - Vec2i(1,1);
 			return result;
 		}
 
@@ -393,8 +418,8 @@ namespace Life
 				{
 					if (!chunk->bHadSleeped)
 					{
-						uint8* pChunkData = chunk->data[mIndex];
-						memset(pChunkData, 0, ChunkDataSize);
+						uint8* pChunkData = chunk->data[0];
+						memset(pChunkData, 0, 2 * ChunkDataSize);
 						chunk->bHadSleeped = true;
 					}
 					continue;
@@ -486,10 +511,7 @@ namespace Life
 				auto chunk = mChunks[indexChunk];
 
 #if USE_CHUNK_COUNT
-				if (chunk == nullptr || chunk->count == 0)
-					continue;
-#else
-				if (chunk == nullptr)
+				if (chunk->count == 0)
 					continue;
 #endif
 				Vec2i chunkPos = ChunkLength * chunk->pos;
@@ -510,17 +532,69 @@ namespace Life
 		}
 
 
-		static constexpr uint32 ChunkLength = 64; //1 << 8;
-		static constexpr uint32 ChunkDataStrideLength = ChunkLength + 2;
-		static constexpr uint32 ChunkDataSize = ChunkDataStrideLength * ChunkDataStrideLength;
+		virtual void  getPattern(BoundBox const& bound, std::vector<Vec2i>& outList) final
+		{
+			BoundBox boundClip = bound.intersection(getBound());
 
-		static Vec2i ToChunkPos(Vec2i const& pos)
-		{
-			return ToChunkPos(pos.x, pos.y);
+			BoundBox chunkBound;
+			chunkBound.min = ToChunkPos(boundClip.min);
+			chunkBound.max = ToChunkPos(boundClip.max);
+
+			for (int indexChunk = 0; indexChunk < mChunks.size(); ++indexChunk)
+			{
+				auto chunk = mChunks[indexChunk];
+#if USE_CHUNK_COUNT
+				if (chunk->count == 0)
+					continue;
+#endif
+				if (!chunkBound.isInside(chunk->pos))
+					continue;
+
+				Vec2i chunkPos = ChunkLength * chunk->pos;
+				uint8 const* pChunkData = chunk->data[mIndex];
+
+				for (int j = 0; j < ChunkLength; ++j)
+				{
+					for (int i = 0; i < ChunkLength; ++i)
+					{
+						Vec2i pos = chunkPos + Vec2i(i, j);
+						if (!bound.isInside(pos) )
+							continue;
+
+						if (pChunkData[Chunk::ToDataIndex(i, j)])
+						{
+							outList.push_back(pos);
+						}
+					}
+				}
+			}
 		}
-		static Vec2i ToChunkPos(int x, int y)
+
+
+		static constexpr int32 ChunkLength = 64; //1 << 8;
+		static constexpr int32 ChunkDataStrideLength = ChunkLength + 2;
+		static constexpr int32 ChunkDataSize = ChunkDataStrideLength * ChunkDataStrideLength;
+
+		static constexpr int ToChunkValue(int value)
 		{
-			return Vec2i(AlignUp<int>(x, ChunkLength) - 1, AlignUp<int>(y, ChunkLength) - 1);
+			return Math::ToTileValue(value, ChunkLength);
+		}
+		static constexpr Vec2i ToChunkPos(Vec2i const& pos)
+		{
+			return Vec2i(ToChunkValue(pos.x), ToChunkValue(pos.y));
+		}
+		static constexpr Vec2i ToChunkPos(int x, int y)
+		{
+			return Vec2i(ToChunkValue(x), ToChunkValue(y));
+		}
+
+		bool CheckChunkPos()
+		{
+			static_assert(ToChunkPos( 0, ChunkLength - 1) == Vec2i(0, 0));
+			static_assert(ToChunkPos(ChunkLength, 2 *ChunkLength - 1) == Vec2i(1, 1));
+			static_assert(ToChunkPos(-1, -ChunkLength) == Vec2i(-1, -1));
+			static_assert(ToChunkPos(-ChunkLength - 1, -2  *ChunkLength) == Vec2i(-2,-2));
+			static_assert(ToChunkPos(-2 *ChunkLength - 1, -3 * ChunkLength) == Vec2i(-3, -3));
 		}
 
 		struct Chunk
@@ -542,6 +616,7 @@ namespace Life
 
 		Chunk* createChunk(Vec2i const& cPos)
 		{
+
 			Chunk* chunk = new Chunk;
 			memset(chunk, 0, sizeof(Chunk));
 			//std::fill_n(chunk->data[0], ARRAY_SIZE(chunk->data[0]), 0);
@@ -573,33 +648,254 @@ namespace Life
 	};
 
 
-	struct PatternData
-	{
-		std::vector< Vec2i > posList;
-
-		template< class OP >
-		void serialize(OP&& op)
-		{
-			op & posList;
-		}
-	};
-
-	TYPE_SUPPORT_SERIALIZE_FUNC(PatternData);
-
-
 	class SelectionRect : public GWidget
 	{
 	public:
+		SelectionRect(Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:GWidget( pos - BoxSize , size + 2 * BoxSize , parent )
+		{
 
+		}
 
+		constexpr static int BoxLength = 10;
+		constexpr static Vec2i BoxSize = Vec2i(BoxLength, BoxLength);
+		void onRender()
+		{
+			IGraphics2D& g = Global::GetIGraphics2D();
+			Vector2 size = getSize();
+			Vector2 pos = getWorldPos();
 
+			Vector2 center = pos + 0.5 * size;
 
+			Vector2 boxSize = Vector2(BoxLength, BoxLength);
+			RenderUtility::SetPen(g, EColor::Black);
+			RenderUtility::SetBrush(g, EColor::White);
+			for (int i = 0; i < 8; ++i)
+			{
+				Vector2 offset = ( 0.5 * size ) * GetBoxOffset()[i] - 0.5 * ( GetBoxOffset()[i] + Vector2(1,1) ) * boxSize;
+				g.drawRect(center + offset, BoxSize);
+			}
+
+			RenderUtility::SetPen(g, EColor::Red);
+			RenderUtility::SetBrush(g, EColor::Null);
+			g.drawRect(pos + boxSize, size - 2 * boxSize);
+		}
+
+		BoundBox getSelection()
+		{
+			BoundBox result;
+			result.min = getWorldPos() + Vec2i(BoxLength, BoxLength);
+			result.max = result.min + getSize() - 2 * Vec2i(BoxLength, BoxLength);
+			return result;
+		}
+
+		Vector2 const* GetBoxOffset()
+		{
+			static Vector2 result[] =
+			{
+				Vector2(-1,-1) , Vector2(-1,0) , Vector2(-1,1) ,
+				Vector2(0,-1) , Vector2(0,1) ,
+				Vector2(1,-1) , Vector2(1,0) , Vector2(1,1) ,
+			};
+			return result;
+		}
+
+		int hitBoxTest( Vector2 const& hitPos)
+		{
+			Vector2 size = getSize();
+			Vector2 pos = getWorldPos();
+
+			Vector2 center = pos + 0.5 * size;
+	
+			for (int i = 0; i < 8; ++i)
+			{
+				Vector2 offset = (0.5 * size) * GetBoxOffset()[i] - 0.5 * (GetBoxOffset()[i] + Vector2(1, 1)) * BoxSize;
+				TRect< float > rect;
+				rect.min = center + offset;
+				rect.max = rect.min + BoxSize;
+				if (rect.hitTest(hitPos))
+					return i;
+			}
+
+			return INDEX_NONE;
+		}
+
+		int32 mIndexBoxDragging = INDEX_NONE;
+		Vec2i mLastTrackingPos;
+		bool  bStartDragging = false;
+		void startResize(Vec2i const& pos)
+		{
+			bStartDragging = true;
+			mLastTrackingPos = pos + Vec2i(BoxLength,BoxLength);
+			mIndexBoxDragging = 7;
+			mManager->focusWidget(this);
+			mManager->captureMouse(this);
+		}
+
+		bool onMouseMsg(MouseMsg const& msg)
+		{
+			if (msg.onLeftDown())
+			{
+				int indexBox = hitBoxTest(msg.getPos());
+
+				bStartDragging = true;
+				mIndexBoxDragging = indexBox;
+				mLastTrackingPos = msg.getPos();
+				getManager()->captureMouse(this);
+				return false;
+			}
+			else if (msg.onLeftUp())
+			{
+				if (bStartDragging)
+				{
+					bStartDragging = false;
+					mIndexBoxDragging = INDEX_NONE;
+					getManager()->releaseMouse();
+					return false;
+				}
+			}
+			else if (msg.onRightDown())
+			{
+				if (onLock)
+					onLock();
+			}
+			else if (msg.onMoving())
+			{
+				if (bStartDragging)
+				{
+					Vector2 offset = msg.getPos() - mLastTrackingPos;
+					if (mIndexBoxDragging == INDEX_NONE)
+					{
+						setPos(getPos() + offset);
+					}
+					else
+					{
+						Vector2 boxOffset = GetBoxOffset()[mIndexBoxDragging];
+						Vector2 delatSize = boxOffset.mul(offset);
+						Vector2 size = getSize() + delatSize;
+						Vector2 posOffset = Vector2::Zero();
+
+						Vector2 newSize = getSize() + delatSize;
+						if (newSize.x < 2 * BoxLength)
+						{
+							newSize.x = 2 * BoxLength;
+						}
+						if (newSize.y < 2 * BoxLength)
+						{
+							newSize.y = 2 * BoxLength;
+						}
+						setSize(newSize);
+						if (boxOffset.x < 0)
+						{
+							posOffset.x = delatSize.x;
+						}
+						if (boxOffset.y < 0)
+						{
+							posOffset.y = delatSize.y;
+						}
+	
+						setPos(getPos() - posOffset);
+					}
+	
+					mLastTrackingPos = msg.getPos();
+					return false;
+				}
+			}
+
+			return !bStartDragging;
+		}
+
+		std::function< void() > onLock;
 	};
 
-	enum EditMode
+	enum class EditMode : uint8
 	{
 		AddCell,
-		Bound ,
+		SelectCell ,
+		PastePattern ,
+	
+	};
+
+	struct EditPattern
+	{
+
+
+		struct MyHash
+		{
+			std::size_t operator()(Vec2i const& s) const noexcept
+			{
+				uint32 result = HashValue(s.x);
+				HashCombine(result, s.y);
+				return result;
+			}
+		};
+		std::unordered_set< Vec2i , MyHash > cellList;
+		BoundBox bound;
+
+		void mirrorH()
+		{
+			CHECK(bound.isValid());
+
+			std::unordered_set< Vec2i, MyHash > temp = std::move(cellList);
+
+			for (auto& pos : temp)
+			{
+				Vec2i posNew;
+				posNew.x = bound.max.x - pos.x;
+				posNew.y = pos.y;
+				cellList.insert(posNew);
+			}
+		}
+
+		void mirrorV()
+		{
+			CHECK(bound.isValid());
+
+			std::unordered_set< Vec2i, MyHash > temp = std::move(cellList);
+
+			for (auto& pos : temp)
+			{
+				Vec2i posNew;
+				posNew.y = bound.max.y - pos.y;
+				posNew.x = pos.x;
+				cellList.insert(posNew);
+			}
+		}
+
+		void rotate()
+		{
+			CHECK(bound.isValid());
+
+			std::unordered_set< Vec2i, MyHash > temp = std::move(cellList);
+			for (auto& pos : temp)
+			{
+				Vec2i posNew;
+				posNew.x = bound.max.y - pos.y;
+				posNew.y = pos.x;
+				cellList.insert(posNew);
+			}
+
+			bound.max = Vec2i(bound.max.y, bound.max.x);
+		}
+
+		void validate()
+		{
+			if (bound.isValid() == false)
+			{
+				for (auto const& pos : cellList)
+				{
+					bound.addPoint(pos);
+				}
+
+				std::unordered_set< Vec2i, MyHash > temp = std::move(cellList);
+				for (auto const& pos : temp)
+				{
+					cellList.insert(pos - bound.min);
+				}
+
+				bound.translate(-bound.min);
+			}
+		};
 	};
 
 
@@ -616,53 +912,8 @@ namespace Life
 		bool bRunEvolate = false;
 		Viewport mViewport;
 
-		bool onInit() override
-		{
-			if (!BaseClass::onInit())
-				return false;
-			::Global::GUI().cleanupWidget();
 
-			auto& console = ConsoleSystem::Get();
-
-#define REGISTER_COM( NAME , FUNC , ... )\
-			console.registerCommand("Life."NAME, &TestStage::FUNC, this , ##__VA_ARGS__ )
-			REGISTER_COM("Save", savePattern);
-			REGISTER_COM("Load", loadPattern);
-#undef REGISTER_COM
-
-			restart();
-			
-			auto devFrame = WidgetUtility::CreateDevFrame();
-			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Run"), bRunEvolate);
-			devFrame->addButton("Step", [this](int event, GWidget*)
-			{
-				if (bRunEvolate == false)
-				{
-					mAlgorithm->step();
-				}
-				return false;
-			});
-			devFrame->addText("Evolate Time Rate");
-			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), evolateTimeRate, 0.5, 100, 2, [this](float v)
-			{
-				mViewport.updateTransform(::Global::GetScreenSize());
-			});
-
-			devFrame->addText("Zoom Out");
-			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mViewport.zoomOut, 0.25, 10.0, 2 , [this](float v)
-			{
-				mViewport.updateTransform(::Global::GetScreenSize());
-			});
-			devFrame->addButton("Clear", [this](int event, GWidget*)
-			{
-				if (bRunEvolate == false)
-				{
-					mAlgorithm->clearCell();
-				}
-				return false;
-			});
-			return true;
-		}
+		bool onInit() override;
 
 		void onEnd() override
 		{
@@ -673,8 +924,8 @@ namespace Life
 		}
 
 		bool savePattern(char const* name);
-
 		bool loadPattern(char const* name);
+		bool loadGolly(char const* name);
 
 		void restart() 
 		{
@@ -694,9 +945,9 @@ namespace Life
 			}
 
 			mViewport.zoomOut = 1;
-			mViewport.size = Vec2i(80,80);
-
-			mViewport.updateTransform(::Global::GetScreenSize());
+			mViewport.cellLength = 10.0;
+			mViewport.screenSize = ::Global::GetScreenSize();
+			mViewport.updateTransform();
 		}
 
 		void onUpdate(long time) override
@@ -727,53 +978,41 @@ namespace Life
 
 		bool bStartDragging = false;
 		Vector2 draggingPos;
+		SelectionRect* mSelectionRect = nullptr;
 
-		bool onMouse(MouseMsg const& msg) override
+		Vec2i mLastMousePos;
+
+		EditMode mEditMode;
+
+		EditPattern mCopyPattern;
+
+		void selectPattern(bool bAppend = false)
 		{
-			if (msg.onLeftDown())
-			{
-				if (bRunEvolate == false)
-				{
-					Vector2 localPos = mViewport.xform.transformInvPosition(msg.getPos());
-					Vec2i cellPos = { Math::FloorToInt(localPos.x), Math::FloorToInt(localPos.y) };
+			CHECK(mSelectionRect);
 
-					uint8 value = mAlgorithm->getCell(cellPos.x, cellPos.y);
-					mAlgorithm->setCell(cellPos.x, cellPos.y, !value);
-				}
-			}
-			else if (msg.onRightDown())
+			BoundBox bound = mSelectionRect->getSelection();
+
+			BoundBox boundSelect = mViewport.calcBound(bound.min, bound.max);
+			std::vector<Vec2i> posList;
+			mAlgorithm->getPattern(boundSelect, posList);
+
+			mCopyPattern.bound.invalidate();
+
+			if (!bAppend)
 			{
-				bStartDragging = true;
-				draggingPos = mViewport.xform.transformInvPosition(msg.getPos());
+				mCopyPattern.cellList.clear();
 			}
-			else if (msg.onRightUp())
+			for (auto const& pos : posList)
 			{
-				bStartDragging = false;
-			}
-			else if (msg.onMoving())
-			{
-				if (bStartDragging)
-				{
-					Vector2 localPos = mViewport.xform.transformInvPosition(msg.getPos());
-					mViewport.pos -= (localPos - draggingPos);
-					mViewport.updateTransform(::Global::GetScreenSize());
-				}
+				mCopyPattern.cellList.insert(pos);
 			}
 
-			return BaseClass::onMouse(msg);
+			mSelectionRect->destroy();
+			mSelectionRect = nullptr;
 		}
 
-		bool onKey(KeyMsg const& msg) override
-		{
-			if (!msg.isDown())
-				return false;
-
-			switch (msg.getCode())
-			{
-			case EKeyCode::R: restart(); break;
-			}
-			return BaseClass::onKey(msg);
-		}
+		bool onMouse(MouseMsg const& msg) override;
+		bool onKey(KeyMsg const& msg) override;
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
@@ -785,6 +1024,9 @@ namespace Life
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
+
 	protected:
 	};
 

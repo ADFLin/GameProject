@@ -176,7 +176,8 @@ namespace Mine
 
 		Vec2i toCellPos(Vec2i const& screenPos)
 		{
-			return (screenPos - mapOrigin + Vec2i(LengthCell-1 , LengthCell - 1) ) / LengthCell - Vec2i(1,1);
+			Vec2i pos = screenPos - mapOrigin;
+			return Vec2i(Math::ToTileValue(pos.x, LengthCell), Math::ToTileValue(pos.y, LengthCell));
 		}
 
 		void draw(Graphics2D& g, IMineQuery& mineMap, Vec2i const& drawOrigin);

@@ -29,6 +29,9 @@
     <ClCompile Include="Life\LifeStage.cpp">
       <Filter>GameLife</Filter>
     </ClCompile>
+    <ClCompile Include="Life\GollyFile.cpp">
+      <Filter>GameLife</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
@@ -55,6 +58,12 @@
       <Filter>GameStoneBlocks</Filter>
     </ClInclude>
     <ClInclude Include="Life\LifeStage.h">
+      <Filter>GameLife</Filter>
+    </ClInclude>
+    <ClInclude Include="Life\LifeCore.h">
+      <Filter>GameLife</Filter>
+    </ClInclude>
+    <ClInclude Include="Life\GollyFile.h">
       <Filter>GameLife</Filter>
     </ClInclude>
   </ItemGroup>

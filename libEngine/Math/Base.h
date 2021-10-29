@@ -121,6 +121,17 @@ namespace Math
 
 		return true;
 	}
+
+	template< class T >
+	static constexpr T ToTileValue(T value, T tileLength)
+	{
+		if constexpr (std::is_signed_v< T >)
+		{
+			if (value < 0)
+				value -= tileLength - 1;
+		}
+		return value / tileLength;
+	}
 }//namespace Math
 
 

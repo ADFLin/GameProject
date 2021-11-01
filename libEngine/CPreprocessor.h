@@ -479,7 +479,7 @@ namespace CPP
 		void getUsedIncludeFiles(std::vector< HashString >& outFiles);
 
 		bool bSupportMarcoArg = true;
-		bool bReplaceMarcoText = true;
+		bool bReplaceMarcoText = false;
 		bool bAllowRedefineMarco = false;
 		bool bCommentIncludeFileName = true;
 		bool bAddLineMarco = true;

@@ -22,7 +22,7 @@ namespace Render
 	bool GForceInitState = false;
 	bool GbOpenglOutputDebugMessage = true;
 
-	TConsoleVariable<bool> CVarOpenGLFixedPiplineUseShader( true , "r.OpenGLFixedPiplineUseShader", CVF_TOGGLEABLE);
+	TConsoleVariable<bool> CVarOpenGLFixedPiplineUseShader{ true , "r.OpenGLFixedPiplineUseShader", CVF_TOGGLEABLE };
 
 
 	template < class TFunc >

@@ -128,7 +128,7 @@ namespace Go
 
 		void generateNoiseOffset(int boradSize);
 
-		void drawStoneSequence(SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity);
+		void drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity);
 		void drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number);
 
 

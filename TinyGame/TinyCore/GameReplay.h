@@ -61,8 +61,6 @@ struct ReplayInfo
 	}
 };
 
-TYPE_SUPPORT_SERIALIZE_FUNC(ReplayInfo);
-
 struct ReplayHeader
 {
 	uint32   version;

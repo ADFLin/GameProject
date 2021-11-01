@@ -51,8 +51,6 @@ namespace Render
 		}
 	};
 
-	TYPE_SUPPORT_SERIALIZE_FUNC(OBJMaterialSaveInfo)
-
 	bool LoadObjectMesh(StaticMesh& mesh, char const* path)
 	{
 		return false;

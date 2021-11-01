@@ -96,7 +96,6 @@ private:
 
 };
 
-TYPE_SUPPORT_SERIALIZE_FUNC(HashString);
 EXPORT_MEMBER_HASH_TO_STD(HashString);
 
 #endif // HashString_h__

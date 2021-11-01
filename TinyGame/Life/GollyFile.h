@@ -4,6 +4,8 @@
 
 #include "LifeCore.h"
 
+#include <istream>
+
 namespace Life
 {
 	class GollyFileReader
@@ -16,14 +18,24 @@ namespace Life
 
 		static constexpr int BUFFSIZE = 8192;
 
-		FILE *pattfile;
-		char filebuff[BUFFSIZE];
-		int buffpos, bytesread, prevchar;
+		GollyFileReader(std::istream& stream)
+			:mStream(stream)
+		{
 
-		long filesize;             // length of file in bytes
+
+		}
+
+
+		const char *loadPattern(IAlgorithm& imp);
+
+		std::istream& mStream;
+		int   prevchar;
 
 		// use buffered getchar instead of slow fgetc
 		// don't override the "getchar" name which is likely to be a macro
+
+		int imp_gridwd = 0;
+		int imp_gridht = 0;
 
 		void findedges(IAlgorithm& imp)
 		{
@@ -48,12 +60,13 @@ namespace Life
 		}
 		bool isaborted() { return false; }
 
-		int mgetchar();
-
-		
+		// use getline instead of fgets so we can handle DOS/Mac/Unix line endings
 		char *getline(char *line, int maxlinelen);
 
 
+		// Read a text pattern like "...ooo$$$ooo" where '.', ',' and chars <= ' '
+		// represent dead cells, '$' represents 10 dead cells, and all other chars
+		// represent live cells.
 		const char *readtextpattern(IAlgorithm &imp, char *line);
 
 		/*
@@ -81,17 +94,6 @@ namespace Life
 		//
 		const char *readmcell(IAlgorithm &imp, char *line);
 
-		long getfilesize(const char *filename)
-		{
-			long flen = 0;
-			FILE *f = fopen(filename, "r");
-			if (f != 0) {
-				fseek(f, 0L, SEEK_END);
-				flen = ftell(f);
-				fclose(f);
-			}
-			return flen;
-		}
 
 		// This function guesses whether `line' is the start of a headerless Life RLE
 		// pattern.  It is used to distinguish headerless RLE from plain text patterns.
@@ -104,9 +106,8 @@ namespace Life
 			return file_err_str;
 		}
 
-		const char *loadpattern(IAlgorithm &imp);
+		const char *readPattern(IAlgorithm& imp);
 
-		const char *readpattern(const char *filename, IAlgorithm& imp);
 	};
 
 }

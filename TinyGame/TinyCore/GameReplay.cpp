@@ -48,8 +48,6 @@ struct ReplayInfoV0_0_1
 };
 
 
-TYPE_SUPPORT_SERIALIZE_FUNC(ReplayInfoV0_0_1);
-
 void ReplayHeader::clear( uint32 version )
 {
 	version    = version;

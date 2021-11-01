@@ -984,6 +984,11 @@ namespace CPP
 					       , public CodeTokenUtiliyT<LineStringViewCode>
 	{
 	public:
+		LineStringViewCode(std::string const& code)
+			:StringView(code)
+		{
+
+		}
 		LineStringViewCode(StringView const& code)
 			:StringView(code)
 		{
@@ -1114,7 +1119,6 @@ namespace CPP
 		return expandMarcoInternal(LineStringViewCode(lineText), outText, expandResult);
 	}
 
-
 	bool Preprocessor::checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult)
 	{
 		MarcoSymbol* marco = findMarco(id);
@@ -1227,7 +1231,11 @@ namespace CPP
 			}
 			else
 			{
-				outText += marco->expr;
+				if (!expandMarcoInternal(LineStringViewCode(marco->expr), outText, outResult))
+				{
+					return false;
+				}
+
 				outResult.numRefMarco += 1;
 			}
 		}

@@ -84,7 +84,6 @@ namespace Render
 		}
 	};
 
-	TYPE_SUPPORT_SERIALIZE_FUNC(ImageBaseLightingData);
 
 	class IBLShaderParameters
 	{

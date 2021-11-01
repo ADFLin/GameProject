@@ -16,21 +16,23 @@
 #include <unordered_map>
 #include <string>
 
-struct CInputSteamable
+
+struct CGlobalInputSteamable
 {
-	template< typename Steam, typename T, typename ...Args >
-	static auto requires(Steam& stream, T& t ) -> decltype 
+	template< typename TStream, typename T >
+	static auto requires(void(*result)(TStream&, T&)) -> decltype
 	(
-		stream >> t
+		result = &operator >>
 	);
 };
 
-struct COutputSteamable
+
+struct CGlobalOutputSteamable
 {
-	template< typename Steam, typename T, typename ...Args >
-	static auto requires(Steam& stream, T& t) -> decltype
+	template< typename TStream, typename T >
+	static auto requires(void(*result)(TStream&, T const&)) -> decltype
 	(
-		stream << t
+		result = &operator <<
 	);
 };
 
@@ -74,7 +76,7 @@ public:
 	template< class T >
  	void write(TArrayBitData<T> const& data)
 	{
-		if constexpr ( TCheckConcept< COutputSteamable , BitWriter , T >::Value )
+		if constexpr ( TCheckConcept< CGlobalOutputSteamable, BitWriter , T >::Value )
 		{
 			if (data.length)
 			{
@@ -100,7 +102,7 @@ public:
 	template< class T >
 	void read(TArrayBitData<T> const& data)
 	{
-		if constexpr ( TCheckConcept< CInputSteamable, BitWriter, T >::Value )
+		if constexpr ( TCheckConcept< CGlobalInputSteamable, BitWriter, T >::Value )
 		{
 			if (data.length)
 			{
@@ -140,10 +142,19 @@ public:
 		}
 	}
 
+	struct CSerializeCallable
+	{
+		template< typename T, typename OP>
+		static auto requires(T& value, OP& op) -> decltype
+		(
+			value.serialize(op)
+		);
+	};
+
 	template < class T >
 	void write(T const& value)
 	{
-		if constexpr (TTypeSupportSerializeOPFunc<T>::Value)
+		if constexpr (TCheckConcept< CSerializeCallable , T , WriteOp >::Value && TTypeSupportSerializeOPFunc<T>::Value)
 		{
 			const_cast<T&>(value).serialize(WriteOp(*this));
 		}
@@ -157,7 +168,7 @@ public:
 	template < class T >
 	void read(T& value)
 	{
-		if constexpr (TTypeSupportSerializeOPFunc<T>::Value)
+		if constexpr (TCheckConcept< CSerializeCallable, T, ReadOp >::Value && TTypeSupportSerializeOPFunc<T>::Value)
 		{
 			value.serialize(ReadOp(*this));
 		}
@@ -169,14 +180,14 @@ public:
 	}
 
 	template< class T >
-	struct CanUseInputSequence : Meta::HaveResult< Meta::IsPod<T>::Value &&
-		 !(TCheckConcept< CInputSteamable, IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
+	struct CanUseInputSequence : Meta::HaveResult< Meta::IsPod<T>::Value && 
+		!(TCheckConcept< CGlobalInputSteamable , IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 
 	template< class T >
-	struct CanUseOutputSequence : Meta::HaveResult < Meta::IsPod<T>::Value &&
-		! (TCheckConcept< COutputSteamable, IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
+	struct CanUseOutputSequence : Meta::HaveResult < Meta::IsPod<T>::Value && 
+		!(TCheckConcept< CGlobalOutputSteamable , IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 
@@ -200,7 +211,7 @@ public:
 	template < class T >
 	void writeSequence(T const* ptr, size_t num)
 	{
-		if constexpr (CanUseInputSequence<T>::Value)
+		if constexpr (CanUseOutputSequence<T>::Value)
 		{
 			write((void const*)ptr, num * sizeof(T));
 		}

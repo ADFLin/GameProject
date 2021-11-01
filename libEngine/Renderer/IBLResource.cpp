@@ -392,7 +392,7 @@ namespace Render
 				return true;
 			};
 
-			if (true || !dataCache.loadDelegate(cacheKey, LoadFunc))
+			if (!dataCache.loadDelegate(cacheKey, LoadFunc))
 			{
 				if (!resource.initializeRHI(setting))
 					return false;

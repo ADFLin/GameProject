@@ -33,6 +33,8 @@ public:
 	TVector2 max( TVector2 const& v ) const { return TVector2(Math::Max(x , v.x), Math::Max(y, v.y)); }
 	TVector2 min( TVector2 const& v ) const { return TVector2(Math::Min(x, v.x), Math::Min(y, v.y)); }
 
+	TVector2 abs() const { return TVector2(Math::Abs(x), Math::Abs(y)); }
+
 	void setMax(TVector2 const& rhs)
 	{
 		if (x < rhs.x) x = rhs.x;

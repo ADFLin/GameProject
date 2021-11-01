@@ -155,8 +155,6 @@ namespace SBlocks
 		void serialize(OP& op);
 	};
 
-	TYPE_SUPPORT_SERIALIZE_FUNC(PieceShapeDesc);
-
 	using AABB = ::Math::TAABBox< Int16Point2D >;
 
 #define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 0
@@ -316,7 +314,6 @@ namespace SBlocks
 		template< class OP >
 		void serialize(OP& op);
 	};
-	TYPE_SUPPORT_SERIALIZE_FUNC(MapDesc);
 
 	class MarkMap
 	{
@@ -391,8 +388,6 @@ namespace SBlocks
 		template< class OP >
 		void serialize(OP& op);
 	};
-	TYPE_SUPPORT_SERIALIZE_FUNC(PieceDesc);
-
 
 	struct LevelDesc
 	{
@@ -403,8 +398,6 @@ namespace SBlocks
 		template< class OP >
 		void serialize(OP& op);
 	};
-	TYPE_SUPPORT_SERIALIZE_FUNC(LevelDesc);
-
 
 	class Level
 	{

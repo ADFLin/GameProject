@@ -53,15 +53,19 @@
 
 int  GDevMsgLevel = -1;
 
-TConsoleVariable<bool> GbProfileGPU(true , "ProfileGPU", CVF_TOGGLEABLE);
-TConsoleVariable<bool> GbDrawGPUUsage(false, "r.GPUUsage", CVF_TOGGLEABLE);
+namespace
+{
+	TConsoleVariable<bool> CVarProfileGPU{ true , "ProfileGPU", CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarDrawGPUUsage{ false, "r.GPUUsage", CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarDrawProifle{ false, "DrawProfile" , CVF_TOGGLEABLE };
+
+	AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
+}
+
 
 TINY_API IGameNetInterface* GGameNetInterfaceImpl;
 TINY_API IDebugInterface*   GDebugInterfaceImpl;
-
-TConsoleVariable< bool > CVarShowFPS(false, "ShowFPS" , CVF_TOGGLEABLE);
-
-AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
 
 void ToggleGraphics()
 {
@@ -783,7 +787,7 @@ void TinyGameApp::render( float dframe )
 	if ( !drawEngine.beginRender() )
 		return;
 
-	if ( GbProfileGPU )
+	if ( CVarProfileGPU )
 		GpuProfiler::Get().beginFrame();
 
 	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
@@ -815,7 +819,7 @@ void TinyGameApp::render( float dframe )
 	}
 
 
-	if( GbProfileGPU )
+	if( CVarProfileGPU )
 		GpuProfiler::Get().endFrame();
 	
 	mFPSCalc.increaseFrame(getMillionSecond());
@@ -830,7 +834,7 @@ void TinyGameApp::render( float dframe )
 		//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
 	}
 
-	if (GbDrawGPUUsage)
+	if (CVarDrawGPUUsage)
 	{
 		struct LocalInit
 		{
@@ -886,7 +890,7 @@ void TinyGameApp::render( float dframe )
 		}
 	}
 
-	if( GbProfileGPU && RHIIsInitialized() )
+	if( CVarProfileGPU && RHIIsInitialized() )
 	{
 		g.setTextColor(Color3ub(255, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
@@ -929,6 +933,11 @@ void TinyGameApp::render( float dframe )
 			}
 			textlayout.show( g , "%7.4lf %s--> %s", sample->time, temp.c_str() , sample->name.c_str());
 		}
+	}
+
+	if (CVarDrawProifle)
+	{
+		::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
 	}
 
 	if( drawEngine.isUsageRHIGraphic2D() )

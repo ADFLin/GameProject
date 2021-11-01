@@ -223,8 +223,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Chess\ChessCore.cpp" />
+    <ClCompile Include="Life\ChunkAlgo.cpp" />
     <ClCompile Include="Life\GollyFile.cpp" />
     <ClCompile Include="Life\LifeStage.cpp" />
+    <ClCompile Include="Life\SimpleAlgo.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksCore.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksSolver.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
@@ -242,9 +244,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chess\ChessCore.h" />
+    <ClInclude Include="Life\ChunkAlgo.h" />
     <ClInclude Include="Life\GollyFile.h" />
     <ClInclude Include="Life\LifeCore.h" />
     <ClInclude Include="Life\LifeStage.h" />
+    <ClInclude Include="Life\SimpleAlgo.h" />
     <ClInclude Include="StoneBlocks\SBlocksCore.h" />
     <ClInclude Include="StoneBlocks\SBlocksLevelData.h" />
     <ClInclude Include="StoneBlocks\SBlocksSerialize.h" />

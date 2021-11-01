@@ -1,5 +1,7 @@
 #include "GollyFile.h"
 
+
+
 namespace Life
 {
 
@@ -10,28 +12,12 @@ namespace Life
 
 	const char *SETCELLERROR = "Impossible; set cell error for state 1";
 
-	int GollyFileReader::mgetchar()
-	{
-		if (buffpos == BUFFSIZE)
-		{
-			double filepos;
-
-			bytesread = fread(filebuff, 1, BUFFSIZE, pattfile);
-			filepos = ftell(pattfile);
-			buffpos = 0;
-			lifeabortprogress(filepos / filesize, "");
-		}
-		if (buffpos >= bytesread) return EOF;
-		return filebuff[buffpos++];
-	}
-
-	// use getline instead of fgets so we can handle DOS/Mac/Unix line endings
 	char * GollyFileReader::getline(char *line, int maxlinelen)
 	{
 		int i = 0;
 		while (i < maxlinelen)
 		{
-			int ch = mgetchar();
+			int ch = mStream.get();
 			if (isaborted())
 				return NULL;
 			switch (ch)
@@ -64,23 +50,25 @@ namespace Life
 		return line;
 	}
 
-	// Read a text pattern like "...ooo$$$ooo" where '.', ',' and chars <= ' '
-	// represent dead cells, '$' represents 10 dead cells, and all other chars
-	// represent live cells.
 	const char * GollyFileReader::readtextpattern(IAlgorithm &imp, char *line)
 	{
 		int x = 0, y = 0;
 		char *p;
 
-		do {
-			for (p = line; *p; p++) {
-				if (*p == '.' || *p == ',' || *p <= ' ') {
+		do 
+		{
+			for (p = line; *p; p++) 
+			{
+				if (*p == '.' || *p == ',' || *p <= ' ') 
+				{
 					x++;
 				}
-				else if (*p == '$') {
+				else if (*p == '$') 
+				{
 					x += 10;
 				}
-				else {
+				else 
+				{
 					if (imp.setCell(x, y, 1) == false)
 					{
 						return SETCELLERROR;
@@ -105,12 +93,15 @@ namespace Life
 			// set key to start of next key word
 			while (*key && *key != ' ') key++;
 			while (*key == ' ') key++;
-			if (*key == 0) return;
+			if (*key == 0) 
+				return;
 
 			// set value to pos of char after next '='
 			char *value = key;
 			while (*value && *value != '=') value++;
-			if (*value == 0) return;
+			if (*value == 0) 
+				return;
+			
 			value++;
 
 			if (strncmp(key, "Pos", 3) == 0)
@@ -152,7 +143,8 @@ namespace Life
 		{
 			ParseXRLELine(line, &xoff, &yoff, &sawpos, gen);
 			//imp.setGeneration(gen);
-			if (getline(line, LINESIZE) == NULL) return 0;
+			if (getline(line, LINESIZE) == NULL) 
+				return 0;
 		}
 
 		do
@@ -198,7 +190,9 @@ namespace Life
 					if (p[-1] == ',') p--;
 					*p = 0;
 					//errmsg = imp.setrule(ruleptr);
-					if (errmsg) return errmsg;
+					if (errmsg) 
+						return errmsg;
+
 					sawrule = true;
 				}
 
@@ -207,40 +201,45 @@ namespace Life
 					// if no rule given then try Conway's Life; if it fails then
 					// return error so Golly will look for matching algo
 					//errmsg = imp.setrule("B3/S23");
-					if (errmsg) return errmsg;
+					if (errmsg) 
+						return errmsg;
 				}
-
-				BoundBox bound = imp.getLimitBound();
-				int imp_gridwd = 0;
-				int imp_gridht = 0;
-				if (bound.isValid())
-				{
-					imp_gridwd = bound.getSize().x;
-					imp_gridht = bound.getSize().y;
-				}
-
-
 
 				// imp.setrule() has set imp.gridwd and imp.gridht
-				if (!sawpos && (imp_gridwd > 0 || imp_gridht > 0))
+				if (sawpos)
 				{
-#if 1
-					if (wd > 0 && (wd <= (int)imp_gridwd || imp_gridwd == 0) &&
-						ht > 0 && (ht <= (int)imp_gridht || imp_gridht == 0)) {
-						// pattern size is known and fits within the bounded grid
-						// so position pattern in the middle of the grid
-						xoff = int(wd / 2);
-						yoff = int(ht / 2);
-					}
-					else
-#endif
+					if (imp_gridwd > 0 || imp_gridht > 0)
 					{
-						// position pattern at top left corner of bounded grid
-						// to try and ensure the entire pattern will fit
-						xoff = int(imp_gridwd / 2);
-						yoff = int(imp_gridht / 2);
+						if (xoff < 0 || xoff + wd > imp_gridwd ||
+							yoff < 0 || yoff + ht > imp_gridht)
+						{
+							sawpos = false;
+						}
 					}
+				}
 
+				if (!sawpos)
+				{
+					if (imp_gridwd > 0 || imp_gridht > 0)
+					{
+#if 0
+						if (wd > 0 && (wd <= (int)imp_gridwd || imp_gridwd == 0) &&
+							ht > 0 && (ht <= (int)imp_gridht || imp_gridht == 0)) {
+							// pattern size is known and fits within the bounded grid
+							// so position pattern in the middle of the grid
+							xoff = int(wd / 2);
+							yoff = int(ht / 2);
+						}
+						else
+#endif
+						{
+							// position pattern at top left corner of bounded grid
+							// to try and ensure the entire pattern will fit
+							xoff = int((imp_gridwd - wd) / 2);
+							yoff = int((imp_gridht - ht) / 2);
+						}
+
+					}
 				}
 
 				if (getedges)
@@ -253,15 +252,6 @@ namespace Life
 			}
 			else
 			{
-				BoundBox bound = imp.getLimitBound();
-				int imp_gridwd = 0;
-				int imp_gridht = 0;
-				if (bound.isValid())
-				{
-					imp_gridwd = bound.getSize().x;
-					imp_gridht = bound.getSize().y;
-				}
-
 				int gwd = (int)imp_gridwd;
 				int ght = (int)imp_gridht;
 				for (p = line; *p; p++)
@@ -359,7 +349,8 @@ namespace Life
 						// if no rule given then try Conway's Life; if it fails then
 						// return error so Golly will look for matching algo
 						//errmsg = imp.setrule("B3/S23");
-						if (errmsg) return errmsg;
+						if (errmsg) 
+							return errmsg;
 						sawrule = true;      // in case there are many #P lines
 					}
 					sscanf(line + 2, " %d %d", &x, &y);
@@ -368,7 +359,8 @@ namespace Life
 				else if (line[1] == 'N')
 				{
 					//errmsg = imp.setrule("B3/S23");
-					if (errmsg) return errmsg;
+					if (errmsg) 
+						return errmsg;
 					sawrule = true;
 				}
 				else if (line[1] == 'R')
@@ -380,7 +372,8 @@ namespace Life
 					while (*p > ' ') p++;
 					*p = 0;
 					//errmsg = imp.setrule(ruleptr);
-					if (errmsg) return errmsg;
+					if (errmsg) 
+						return errmsg;
 					sawrule = true;
 				}
 			}
@@ -428,7 +421,8 @@ namespace Life
 					}
 					else {
 						if (n == 0) n = 1;
-						if (*p == '.') {
+						if (*p == '.') 
+						{
 							x += n;
 						}
 						else if (*p == 'O')
@@ -437,7 +431,8 @@ namespace Life
 								if (imp.setCell(x++, y, 1) == false)
 									return SETCELLERROR;
 						}
-						else {
+						else 
+						{
 							// ignore dblife commands like "5k10h@"
 						}
 						n = 0;
@@ -621,14 +616,6 @@ namespace Life
 							sprintf(ltlrule, "%s", ruleptr);
 							// also save default grid size in case there is no #BOARD line
 
-							BoundBox bound = imp.getLimitBound();
-							int imp_gridwd = 0;
-							int imp_gridht = 0;
-							if (bound.isValid())
-							{
-								imp_gridwd = bound.getSize().x;
-								imp_gridht = bound.getSize().y;
-							}
 
 							defwd = imp_gridwd;
 							defht = imp_gridht;
@@ -732,7 +719,7 @@ namespace Life
 		return have_digit || *end == '!';
 	}
 
-	const char * GollyFileReader::loadpattern(IAlgorithm &imp)
+	const char * GollyFileReader::readPattern(IAlgorithm &imp)
 	{
 		char line[LINESIZE + 1];
 		const char *errmsg = 0;
@@ -852,18 +839,24 @@ namespace Life
 		return errmsg;
 	}
 
-	const char * GollyFileReader::readpattern(const char *filename, IAlgorithm& imp)
+	const char* GollyFileReader::loadPattern(IAlgorithm& imp)
 	{
-		filesize = getfilesize(filename);
-		pattfile = fopen(filename, "r");
-		if (pattfile == 0)
-			return build_err_str(filename);
-
-		buffpos = BUFFSIZE;                       // for 1st getchar call
 		prevchar = 0;                             // for 1st getline call
-		const char *errmsg = loadpattern(imp);
-		fclose(pattfile);
-		return errmsg;
+
+		BoundBox bound = imp.getLimitBound();
+
+		if (bound.isValid())
+		{
+			imp_gridwd = bound.getSize().x;
+			imp_gridht = bound.getSize().y;
+		}
+		else
+		{
+			imp_gridwd = 0;
+			imp_gridht = 0;
+		}
+		
+		return readPattern(imp);
 	}
 
 }//namespace Life

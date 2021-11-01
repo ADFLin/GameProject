@@ -32,6 +32,8 @@
     <ClCompile Include="Life\GollyFile.cpp">
       <Filter>GameLife</Filter>
     </ClCompile>
+    <ClCompile Include="Life\SimpleAlgo.cpp" />
+    <ClCompile Include="Life\ChunkAlgo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
@@ -66,6 +68,12 @@
     <ClInclude Include="Life\GollyFile.h">
       <Filter>GameLife</Filter>
     </ClInclude>
+    <ClInclude Include="Life\ChunkAlgo.h">
+      <Filter>GameLife\Algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="Life\SimpleAlgo.h">
+      <Filter>GameLife\Algorithms</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GameChess">
@@ -76,6 +84,9 @@
     </Filter>
     <Filter Include="GameLife">
       <UniqueIdentifier>{5ff9500e-1b78-4eca-a20b-4752be3c5986}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameLife\Algorithms">
+      <UniqueIdentifier>{d0b4e85c-d470-45d3-ab09-a89b4aa9f1ff}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

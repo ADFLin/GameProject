@@ -63,9 +63,6 @@ namespace CarTrain
 		}
 	};
 
-
-	TYPE_SUPPORT_SERIALIZE_FUNC(PhyObjectDef)
-
 	struct BoxObjectDef : PhyObjectDef
 	{
 		Vector2 extend;
@@ -78,7 +75,6 @@ namespace CarTrain
 		}
 	};
 
-	TYPE_SUPPORT_SERIALIZE_FUNC(BoxObjectDef)
 	struct RayHitInfo
 	{
 		float   fraction;
@@ -419,7 +415,7 @@ namespace CarTrain
 		}
 
 	};
-	TYPE_SUPPORT_SERIALIZE_FUNC(GameBoxDef)
+
 	class LevelData
 	{
 	public:

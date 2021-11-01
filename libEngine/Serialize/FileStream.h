@@ -33,8 +33,6 @@ struct FileVersionData
 		versionMap[name] = value;
 	}
 };
-TYPE_SUPPORT_SERIALIZE_FUNC(FileVersionData);
-
 
 template< class TStreamType >
 class TFileFileSerializer : public IStreamSerializer
@@ -90,7 +88,7 @@ protected:
 class InputFileSerializer : public TFileFileSerializer< std::ifstream >
 {
 public:
-	bool open(char const* path, bool bForceLegacy = false);
+	bool open(char const* path, bool bCheckLegacy = false);
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
 

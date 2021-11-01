@@ -89,6 +89,10 @@ public:
 		mPaintArgs.penColor.a = value;
 		mColorFont.a = value; 
 	}
+	void  enableMultisample(bool bEnabled)
+	{
+		mRenderStatePending.bEnableMultiSample = bEnabled;
+	}
 
 	void  drawPixel(Vector2 const& p, Color3ub const& color);
 	void  drawLine(Vector2 const& p1, Vector2 const& p2);
@@ -153,6 +157,8 @@ public:
 
 	bool bUseGraphicOnly = false;
 
+	Render::RHICommandList& getCommandList();
+
 private:
 	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
 	void emitVertex(Vector2 const& v);
@@ -163,7 +169,7 @@ private:
 	void drawPolygonBuffer();
 	void drawLineBuffer();
 
-	Render::RHICommandList& GetCommandList();
+
 
 	void flushBatchedElements();
 	void preModifyRenderState();
@@ -186,6 +192,8 @@ private:
 		RHITexture2D*    texture;
 		RHISamplerState* sampler;
 		ESimpleBlendMode blendMode;
+		bool bEnableMultiSample;
+		bool bEnableScissor;
 	};
 
 	RenderState   mRenderStateCommitted;

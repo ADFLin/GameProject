@@ -144,9 +144,6 @@ namespace Render
 		}
 	};
 
-	TYPE_SUPPORT_SERIALIZE_FUNC(ShaderCacheBinaryData);
-	TYPE_SUPPORT_SERIALIZE_FUNC(ShaderCacheBinaryData::ShaderFile);
-
 	class ShaderCache : public IAssetViewer
 	{
 	public:

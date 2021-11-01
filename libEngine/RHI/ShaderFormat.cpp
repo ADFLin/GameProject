@@ -32,7 +32,7 @@ namespace Render
 		{
 			preprocessor.setSourceLibrary(*sourceLibrary);
 		}
-		preprocessor.bReplaceMarcoText = true;
+		//preprocessor.bReplaceMarcoText = true;
 		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_LineNumber;
 		std::stringstream oss;
 		CPP::CodeOutput codeOutput(oss);

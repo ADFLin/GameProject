@@ -797,7 +797,7 @@ namespace Go
 		{
 			if( showBranchVertex == bestMoveVertex && !bestThinkInfo.vSeq.empty() )
 			{
-				mBoardRenderer.drawStoneSequence(renderState, context, bestThinkInfo.vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
+				mBoardRenderer.drawStoneSequence(g, renderState, context, bestThinkInfo.vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
 			}
 
 			Vector2 pos = context.getIntersectionPos(bestMoveVertex.x, bestMoveVertex.y);
@@ -927,7 +927,7 @@ namespace Go
 		}
 		if( iter != data.candidatePosList.end() )
 		{
-			mBoardRenderer.drawStoneSequence(renderState, context, iter->vSeq, game.getInstance().getNextPlayColor(), 0.7);
+			mBoardRenderer.drawStoneSequence(g, renderState, context, iter->vSeq, game.getInstance().getNextPlayColor(), 0.7);
 		}
 		else
 		{

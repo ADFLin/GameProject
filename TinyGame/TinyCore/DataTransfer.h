@@ -7,9 +7,6 @@
 
 #define SLOT_SERVER -1
 
-DEFINE_HAVE_MEMBER_FUNC_IMPL(THaveGetSendSizeFuncImpl, getSendSize);
-
-
 struct CGetSendSizeCallable
 {
 	template< typename T , typename Ret = int >
@@ -21,11 +18,6 @@ struct CGetSendSizeCallable
 
 template< class T >
 struct DataTransferTypeToId {};
-
-
-
-template< class T >
-struct THaveGetSendSizeFunc : Meta::HaveResult< THaveGetSendSizeFuncImpl<T>::Value >{};
 
 typedef fastdelegate::FastDelegate< void ( int recvId , int dataId , void* data , int dataSize ) > RecvFunc;
 
@@ -50,11 +42,7 @@ public:
 	template< class T >
 	void sendData( int recvId , int dataId , T& data )
 	{
-#if 0
-		if constexpr (THaveGetSendSizeFunc<T>::Value)
-#else
 		if constexpr (TCheckConcept< CGetSendSizeCallable, T , int >::Value)
-#endif
 		{
 			sendData(recvId, dataId, &data, data.getSendSize());
 		}

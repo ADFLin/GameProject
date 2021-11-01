@@ -751,8 +751,6 @@ namespace Render
 		}
 	};
 
-	TYPE_SUPPORT_SERIALIZE_FUNC(InputLayoutDesc);
-
 	class RHIInputLayout : public RHIResource
 	{
 	public:

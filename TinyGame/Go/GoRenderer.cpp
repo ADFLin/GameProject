@@ -20,14 +20,16 @@ namespace Go
 
 	bool BoardRendererBase::initializeRHI()
 	{
-		VERIFY_RETURN_FALSE(mTextureAtlas.initialize(ETexture::RGBA8, 128, 128, 2));
-		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/blackStone.png") == 0);
-		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/WhiteStone.png") == 1);
+		VERIFY_RETURN_FALSE(mTextureAtlas.initialize(ETexture::RGBA8, 256, 256, 2));
+		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/blackStone.png") == TextureId::eBlockStone);
+		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/WhiteStone.png") == TextureId::eWhiteStone);
 
 #define TEXTURE( ID , PATH , bGetUV )\
+		{\
 			mTextures[ID] = RHIUtility::LoadTexture2DFromFile(PATH);\
 			VERIFY_RETURN_FALSE( mTextures[ID].isValid() );\
-			if ( bGetUV ) mTextureAtlas.getRectUV(ID, mTexInfos[ID].uvMin , mTexInfos[ID].uvMax);
+			if ( bGetUV ) mTextureAtlas.getRectUV(ID, mTexInfos[ID].uvMin , mTexInfos[ID].uvMax);\
+		}
 
 		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png", true);
 		TEXTURE(TextureId::eWhiteStone, "Go/WhiteStone.png", true);
@@ -67,13 +69,12 @@ namespace Go
 	}
 
 
-	void BoardRendererBase::drawStoneSequence( SimpleRenderState& renderState , RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
+	void BoardRendererBase::drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState , RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
 	{
 		using namespace Render;
 		using namespace Go;
 
-		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHICommandList& commandList = g.getCommandList();
 		{
 			GPU_PROFILE("Draw Stone");
 
@@ -85,6 +86,9 @@ namespace Go
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #endif
+			RenderUtility::SetBrush(g, EColor::White);
+			g.beginBlend(1.0f);
+			g.setTexture(mTextureAtlas.getTexture());
 #endif
 			int color = colorStart;
 			for( PlayVertex const& v : vertices)
@@ -115,7 +119,7 @@ namespace Go
 			glDisable(GL_TEXTURE_2D);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 #endif
-
+			g.endBlend();
 #endif
 		}
 	}
@@ -147,7 +151,7 @@ namespace Go
 		float const border = 0.5 * context.cellLength + ((bDrawCoord) ? 30 : 0);
 		float const boardRenderLength = length + 2 * border;
 
-		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHICommandList& commandList = g.getCommandList();
 
 #if DRAW_TEXTURE
 #if USE_OPENGL_NATIVE
@@ -248,6 +252,7 @@ namespace Go
 #else
 			RenderUtility::SetBrush(g, EColor::White);
 			g.beginBlend(1.0f);
+			g.setTexture(mTextureAtlas.getTexture());
 #endif
 #endif
 
@@ -351,9 +356,9 @@ namespace Go
 			Vector2 posRB = posLT + size;
 			Vector2 const& min = mTexInfos[id].uvMin;
 			Vector2 const& max = mTexInfos[id].uvMax;
-			g.setBrush(LinearColor( color.xyz() ));
+			g.setBrush( Color3f( color.xyz() ));
 			g.setBlendAlpha(color.w);
-			g.drawTexture(mTextureAtlas.getTexture(), posLT, size, min, max - min);
+			g.drawTexture(posLT, size, min, max - min);
 		};
 		AddSprite(id, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
 		AddSprite(id, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(1, 1, 1, opaticy));

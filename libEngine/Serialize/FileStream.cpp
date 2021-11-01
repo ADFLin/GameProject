@@ -49,43 +49,42 @@ struct FileStreamHeader
 		op & versionOffset;
 	}
 };
-TYPE_SUPPORT_SERIALIZE_FUNC(FileStreamHeader);
 
-bool InputFileSerializer::open(char const* path, bool bForceLegacy)
+bool InputFileSerializer::open(char const* path, bool bCheckLegacy)
 {
 	using namespace std;
 	mFS.open(path, ios::binary);
 	if (!mFS.is_open())
 		return false;
 
-	if (!bForceLegacy)
-	{
-		std::ios::pos_type cur = mFS.tellg();
+	std::ios::pos_type cur = mFS.tellg();
 
-		FileStreamHeader header;
-		IStreamSerializer::read(header.magicCode);
-		if (header.magicCode == FLIE_MAGIC_CODE)
+	FileStreamHeader header;
+	IStreamSerializer::read(header.magicCode);
+	if (header.magicCode == FLIE_MAGIC_CODE)
+	{
+		mFS.seekg(0, ios::beg);
+		IStreamSerializer::read(header);
+		mMasterVersion = header.masterVersion;
+		if (header.versionOffset)
 		{
-			mFS.seekg(0, ios::beg);
-			IStreamSerializer::read(header);
-			mMasterVersion = header.masterVersion;
-			if (header.versionOffset)
-			{
-				mVersionData = std::make_unique< FileVersionData >();
-				ios::pos_type cur = mFS.tellg();
-				mFS.seekg(header.versionOffset, ios::beg);
-				IStreamSerializer::read(*mVersionData.get());
-				mFS.seekg(cur, ios::beg);
-			}
+			mVersionData = std::make_unique< FileVersionData >();
+			ios::pos_type cur = mFS.tellg();
+			mFS.seekg(header.versionOffset, ios::beg);
+			IStreamSerializer::read(*mVersionData.get());
+			mFS.seekg(cur, ios::beg);
 		}
-		else
-		{
-			mFS.seekg(0, ios::beg);
-		}
+	}
+	else if ( bCheckLegacy )
+	{
+		mFS.seekg(cur, ios::beg);
+	}
+	else
+	{
+		return false;
 	}
 
 	return true;
-
 }
 
 void InputFileSerializer::read(void* ptr, size_t num)

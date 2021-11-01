@@ -316,8 +316,6 @@ namespace Go
 
 	};
 
-	TYPE_SUPPORT_SERIALIZE_FUNC(MatchResultData);
-
 	class MatchResultMap
 	{
 	public:

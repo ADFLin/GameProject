@@ -11,11 +11,8 @@
 #include "Renderer/BasePassRendering.h"
 #include "Renderer/SceneLighting.h"
 
-
 //#REMOVE ME
 #include "OpenGLCommon.h"
-
-
 
 namespace Render
 {

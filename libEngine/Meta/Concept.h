@@ -24,5 +24,7 @@ struct TCheckConcept
 	static constexpr bool Value = sizeof(tester<Args...>(0)) == sizeof(Yes);
 };
 
+template <typename Concept, typename... Args>
+auto Refines() -> int(&)[!!TCheckConcept<Concept, Args...>::Value * 2 - 1];
 
 #endif // Concept_H_DE28E8DF_9819_454A_A691_58F960CEC90E

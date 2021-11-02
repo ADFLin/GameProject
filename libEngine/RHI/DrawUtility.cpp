@@ -421,14 +421,21 @@ namespace Render
 
 		//RHISetFixedShaderPipelineState(commandList, XForm, color, &texture, &sampler);
 		//DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
-
-		glEnable(GL_TEXTURE_CUBE_MAP);
+	
+		if ( GRHISystem->getName() == RHISystemName::OpenGL )
 		{
-			GL_SCOPED_BIND_OBJECT(texCube);
-			glColor3f(1, 1, 1);
-			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
+			glEnable(GL_TEXTURE_CUBE_MAP);
+			{
+				GL_SCOPED_BIND_OBJECT(texCube);
+				glColor3f(1, 1, 1);
+				TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
+			}
+			glDisable(GL_TEXTURE_CUBE_MAP);
 		}
-		glDisable(GL_TEXTURE_CUBE_MAP);
+		else
+		{
+
+		}
 	}
 
 

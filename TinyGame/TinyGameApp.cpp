@@ -784,7 +784,7 @@ void TinyGameApp::render( float dframe )
 
 	DrawEngine& drawEngine = Global::GetDrawEngine();
 
-	if ( !drawEngine.beginRender() )
+	if ( !drawEngine.beginFrame() )
 		return;
 
 	if ( CVarProfileGPU )
@@ -943,7 +943,7 @@ void TinyGameApp::render( float dframe )
 	if( drawEngine.isUsageRHIGraphic2D() )
 		::Global::GetRHIGraphics2D().endRender();
 		
-	drawEngine.endRender();
+	drawEngine.endFrame();
 }
 
 void TinyGameApp::exportUserProfile()
@@ -1134,12 +1134,12 @@ void TinyGameApp::prevStageChange()
 {
 	DrawEngine& de = ::Global::GetDrawEngine();
 	Graphics2D& g = ::Global::GetGraphics2D();
-	if ( de.beginRender() )
+	if ( de.beginFrame() )
 	{
 		RenderUtility::SetBrush( g , EColor::Black );
 		RenderUtility::SetPen( g , EColor::Black );
 		g.drawRect( Vec2i(0,0) , ::Global::GetScreenSize() );
-		de.endRender();
+		de.endFrame();
 	}
 }
 

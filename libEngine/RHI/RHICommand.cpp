@@ -216,6 +216,16 @@ namespace Render
 		return EXECUTE_RHI_FUNC(RHIUnlockBuffer(buffer));
 	}
 
+	//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset /*= 0*/, uint32 size /*= 0*/)
+	//{
+	//	return EXECUTE_RHI_FUNC(RHILockTexture(texture, access, offset, size));
+	//}
+
+	//void RHIUnlockTexture(RHITextureBase* texture)
+	//{
+	//	return EXECUTE_RHI_FUNC(RHIUnlockTexture(texture));
+	//}
+
 	RHIFrameBuffer* RHICreateFrameBuffer()
 	{
 		return EXECUTE_RHI_FUNC( RHICreateFrameBuffer() );

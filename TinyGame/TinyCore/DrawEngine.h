@@ -70,8 +70,8 @@ public:
 	TINY_API bool  startupSystem(ERenderSystem targetName , RenderSystemConfigs const& configs = RenderSystemConfigs() );
 	TINY_API void  shutdownSystem(bool bDeferred = true);
 
-	TINY_API bool  beginRender();
-	TINY_API void  endRender();
+	TINY_API bool  beginFrame();
+	TINY_API void  endFrame();
 
 	bool        bUsePlatformBuffer = true;
 	bool        bBlockRender = false;

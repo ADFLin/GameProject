@@ -28,6 +28,7 @@ namespace Render
 	{
 		mTexture.release();
 		mHelper.clear();
+		mNextImageId = 0;
 	}
 
 	int TextureAtlas::addImageFile(char const* path)

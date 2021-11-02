@@ -469,6 +469,9 @@ namespace Render
 		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
+		//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size);
+		//void  RHIUnlockTexture(RHITextureBase* texture);
+
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
 		RHISamplerState*  RHICreateSamplerState(SamplerStateInitializer const& initializer);

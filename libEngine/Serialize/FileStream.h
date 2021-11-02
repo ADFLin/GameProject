@@ -6,8 +6,6 @@
 #include "HashString.h"
 
 #include <fstream>
-static_assert(TTypeSupportSerializeOPFunc<HashString>::Value);
-
 
 struct FileVersionData
 {

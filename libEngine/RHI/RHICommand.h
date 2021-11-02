@@ -153,6 +153,9 @@ namespace Render
 	RHI_API void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	RHI_API void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
+	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
+	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
+
 	RHI_API RHIFrameBuffer*  RHICreateFrameBuffer();
 
 	RHI_API RHIInputLayout*       RHI_TRACE_FUNC(RHICreateInputLayout, InputLayoutDesc const& desc);
@@ -354,6 +357,9 @@ namespace Render
 		RHI_FUNC(void  RHIUnlockBuffer(RHIVertexBuffer* buffer));
 		RHI_FUNC(void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
 		RHI_FUNC(void  RHIUnlockBuffer(RHIIndexBuffer* buffer));
+
+		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
+		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));
 
 		RHI_FUNC(RHIFrameBuffer*  RHICreateFrameBuffer());
 

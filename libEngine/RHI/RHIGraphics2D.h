@@ -54,8 +54,6 @@ public:
 	void  endFrame();
 	void  beginRender();
 
-	void  initPiplineState();
-
 	void  endRender();
 
 	void  enablePen(bool beE) { mPaintArgs.bUsePen = beE; }
@@ -169,6 +167,9 @@ private:
 	void drawPolygonBuffer();
 	void drawLineBuffer();
 
+
+	void initRenderState();
+	void setupCommittedRenderState();
 
 
 	void flushBatchedElements();

@@ -18,6 +18,7 @@ namespace Life
 
 	TConsoleVariable< bool > CVarUseRenderer{ true, "Life.UseRenderer", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarUseTexture{ true, "Life.UseTexture", CVF_TOGGLEABLE };
+
 #define LIFE_DIR "LifeGame"
 
 	bool TestStage::onInit()
@@ -221,7 +222,6 @@ namespace Life
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
 
 		g.beginRender();
-		g.enableMultisample(true);
 
 		RenderUtility::SetPen(g, EColor::Null);
 		RenderUtility::SetBrush(g, EColor::Gray, COLOR_DEEP);

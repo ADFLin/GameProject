@@ -8,12 +8,17 @@
 template< class T >
 struct TTypeSupportSerializeOPFunc
 { 
-	enum { Value = 1, };
+	enum { Value = 0, };
+	enum { Defined = 0 };
 };
+
+#define TYPE_SUPPORT_SERIALIZE_FUNC( TYPE )\
+	template<>\
+	struct ::TTypeSupportSerializeOPFunc<TYPE> { enum { Value = 1, Defined = 1, }; };
 
 #define TYPE_DONT_SUPPORT_SERIALIZE_FUNC( TYPE )\
 	template<>\
-	struct ::TTypeSupportSerializeOPFunc<TYPE> { enum { Value = 0, }; };
+	struct ::TTypeSupportSerializeOPFunc<TYPE> { enum { Value = 0, Defined = 1, }; };
 
 
 template< class T >

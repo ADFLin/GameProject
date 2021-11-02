@@ -151,10 +151,19 @@ public:
 		);
 	};
 
+	template< typename T , typename OP >
+	struct TUseSerializeFunc
+	{
+		enum 
+		{
+			Value = TTypeSupportSerializeOPFunc<T>::Value || (TCheckConcept< CSerializeCallable, T, OP >::Value && !TTypeSupportSerializeOPFunc<T>::Defined ),
+		};
+	};
+
 	template < class T >
 	void write(T const& value)
 	{
-		if constexpr (TCheckConcept< CSerializeCallable , T , WriteOp >::Value && TTypeSupportSerializeOPFunc<T>::Value)
+		if constexpr (TUseSerializeFunc<T, WriteOp>::Value)
 		{
 			const_cast<T&>(value).serialize(WriteOp(*this));
 		}
@@ -168,7 +177,7 @@ public:
 	template < class T >
 	void read(T& value)
 	{
-		if constexpr (TCheckConcept< CSerializeCallable, T, ReadOp >::Value && TTypeSupportSerializeOPFunc<T>::Value)
+		if constexpr (TUseSerializeFunc<T, ReadOp>::Value)
 		{
 			value.serialize(ReadOp(*this));
 		}
@@ -179,22 +188,19 @@ public:
 		}	
 	}
 
-	template< class T >
-	struct CanUseInputSequence : Meta::HaveResult< Meta::IsPod<T>::Value && 
-		!(TCheckConcept< CGlobalInputSteamable , IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
+	template< typename T, typename OP >
+	struct TUseSequenceAccess
 	{
-	};
-
-	template< class T >
-	struct CanUseOutputSequence : Meta::HaveResult < Meta::IsPod<T>::Value && 
-		!(TCheckConcept< CGlobalOutputSteamable , IStreamSerializer, T >::Value || TTypeSupportSerializeOPFunc<T>::Value) >
-	{
+		enum
+		{
+			Value = Meta::IsPod<T>::Value && !(TCheckConcept< CGlobalOutputSteamable, IStreamSerializer, T >::Value || TUseSerializeFunc<T, OP>::Value),
+		};
 	};
 
 	template < class T >
 	void readSequence(T* ptr, size_t num)
 	{
-		if constexpr (CanUseInputSequence<T>::Value)
+		if constexpr (TUseSequenceAccess<T, ReadOp>::Value)
 		{
 			read((void*)ptr, num * sizeof(T));
 		}
@@ -211,7 +217,7 @@ public:
 	template < class T >
 	void writeSequence(T const* ptr, size_t num)
 	{
-		if constexpr (CanUseOutputSequence<T>::Value)
+		if constexpr (TUseSequenceAccess<T, WriteOp>::Value)
 		{
 			write((void const*)ptr, num * sizeof(T));
 		}
@@ -332,6 +338,7 @@ public:
 	template<class K,class V, class MapType >
 	void readMap(MapType& mapValue)
 	{
+		mapValue.clear();
 		uint32 size = 0;
 		this->read(size);
 		if( size )

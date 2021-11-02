@@ -231,8 +231,8 @@ namespace Render
 		swapChainDesc.BufferDesc.Height = info.extent.y;
 		swapChainDesc.BufferCount = info.bufferCount;
 		swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
+		swapChainDesc.SwapEffect = info.numSamples > 1 ? DXGI_SWAP_EFFECT_DISCARD : DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+		swapChainDesc.Flags = info.numSamples > 1 ? 0 : DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
 
 		TComPtr<IDXGISwapChain> swapChainResource;
 		VERIFY_D3D_RESULT(factory->CreateSwapChain(mDevice, &swapChainDesc, &swapChainResource), return nullptr;);

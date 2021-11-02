@@ -39,6 +39,8 @@ RHIGraphics2D::RHIGraphics2D()
 	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
 	mRenderStateCommitted.bEnableMultiSample = false;
 	mRenderStateCommitted.bEnableScissor = false;
+
+	mRenderStatePending = mRenderStateCommitted;
 }
 
 void RHIGraphics2D::init(int w, int h)
@@ -109,7 +111,7 @@ void RHIGraphics2D::beginFrame()
 {
 	if (bUseGraphicOnly)
 	{
-		initPiplineState();
+		initRenderState();
 		mXFormStack.clear();
 	}
 }
@@ -123,34 +125,123 @@ void RHIGraphics2D::beginRender()
 {
 	if (!bUseGraphicOnly)
 	{
-		initPiplineState();
+		initRenderState();
 		mXFormStack.clear();
 	}
 }
 
-void RHIGraphics2D::initPiplineState()
+RHIBlendState& GetBlendState(ESimpleBlendMode blendMode)
 {
-	RHICommandList& commandList = getCommandList();
+	switch (blendMode)
+	{
+	case ESimpleBlendMode::Translucent: 
+		return TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI();
+	case ESimpleBlendMode::Add:
+		return TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI();
+	case ESimpleBlendMode::Multiply:
+		return TStaticBlendState< CWM_RGBA, EBlend::DestColor, EBlend::Zero >::GetRHI();
+	case ESimpleBlendMode::None:
+		return TStaticBlendState<>::GetRHI();
+	}
+	NEVER_REACH("RHIGraphics2D::checkComitRenderState");
+	return TStaticBlendState<>::GetRHI();
+}
 
-	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+RHIRasterizerState& GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample)
+{
+	if (bEnableMultiSample)
+	{
+		if (bEnableScissor)
+		{
+			return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true, true >::GetRHI();
+		}
+		else
+		{
+			return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false, true >::GetRHI();
+		}
 
-	RHISetShaderProgram(commandList, nullptr);
-	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+	}
+	else if (bEnableScissor)
+	{
+		return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true >::GetRHI();
+	}
 
-	mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
+	return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false >::GetRHI();
+}
 
-	RHISetFixedShaderPipelineState(commandList, mBaseTransform);
+void RHIGraphics2D::initRenderState()
+{
 	mbPipelineStateChanged = false;
 	mRenderStateCommitted.texture = nullptr;
 	mRenderStateCommitted.sampler = nullptr;
 	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
-	mRenderStateCommitted.bEnableMultiSample = false;
+	mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
 	mRenderStateCommitted.bEnableScissor = false;
 	mRenderStatePending = mRenderStateCommitted;
 	mCurTextureSize = Vector2(0, 0);
+
+	mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
+	setupCommittedRenderState();
+}
+
+
+void RHIGraphics2D::setupCommittedRenderState()
+{
+	RHICommandList& commandList = getCommandList();
+	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+
+	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+	RHISetBlendState(commandList, GetBlendState(mRenderStateCommitted.blendMode));
+	RHISetRasterizerState(commandList, GetRasterizerState(mRenderStateCommitted.bEnableScissor, mRenderStateCommitted.bEnableMultiSample));
+
+	//RHISetShaderProgram(commandList, nullptr);
+	RHISetFixedShaderPipelineState(commandList, mBaseTransform);
+
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI(), nullptr, 0);
+}
+
+
+void RHIGraphics2D::comitRenderState()
+{
+	bool bHadPreModifyRenderStateCalled = false;
+	bool bRenderPipleStateNeedCommit = mbPipelineStateChanged || (mRenderStateCommitted.texture != mRenderStatePending.texture);
+	auto& commandList = getCommandList();
+	if (bRenderPipleStateNeedCommit)
+	{
+		if (bHadPreModifyRenderStateCalled == false)
+		{
+			bHadPreModifyRenderStateCalled = true;
+			preModifyRenderState();
+		}
+		mbPipelineStateChanged = false;
+		mRenderStateCommitted.texture = mRenderStatePending.texture;
+		mRenderStateCommitted.sampler = mRenderStatePending.sampler;
+		RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
+	}
+
+	if (mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
+	{
+		if (bHadPreModifyRenderStateCalled == false)
+		{
+			bHadPreModifyRenderStateCalled = true;
+			preModifyRenderState();
+		}
+		mRenderStateCommitted.blendMode = mRenderStatePending.blendMode;
+		RHISetBlendState(commandList, GetBlendState(mRenderStatePending.blendMode));
+	}
+
+	if (mRenderStateCommitted.bEnableMultiSample != mRenderStatePending.bEnableMultiSample ||
+		mRenderStateCommitted.bEnableScissor != mRenderStatePending.bEnableScissor)
+	{
+		if (bHadPreModifyRenderStateCalled == false)
+		{
+			bHadPreModifyRenderStateCalled = true;
+			preModifyRenderState();
+		}
+		mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
+		mRenderStateCommitted.bEnableScissor = mRenderStatePending.bEnableScissor;
+		RHISetRasterizerState(commandList, GetRasterizerState(mRenderStateCommitted.bEnableScissor , mRenderStateCommitted.bEnableMultiSample));
+	}
 }
 
 void RHIGraphics2D::endRender()
@@ -572,104 +663,10 @@ void RHIGraphics2D::setBlendState(ESimpleBlendMode mode)
 	mRenderStatePending.blendMode = mode;
 }
 
-void SetBlendState(RHICommandList& commandList, ESimpleBlendMode blendMode)
-{
-	switch (blendMode)
-	{
-	case ESimpleBlendMode::Translucent:
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
-		break;
-	case ESimpleBlendMode::Add:
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
-		break;
-	case ESimpleBlendMode::Multiply:
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::DestColor, EBlend::Zero >::GetRHI());
-		break;
-	case ESimpleBlendMode::None:
-		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-		break;
-	default:
-		NEVER_REACH("RHIGraphics2D::checkComitRenderState");
-	}
-}
-
-RHIRasterizerState& GetRasterizerState(bool bEnableMultiSample, bool bEnableScissor)
-{
-	if (bEnableMultiSample)
-	{
-		if (bEnableScissor)
-		{
-			TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true, true >::GetRHI();
-		}
-		else
-		{
-			TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false , true >::GetRHI();
-		}
-
-	}
-	else if (bEnableScissor)
-	{
-		return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true >::GetRHI();
-	}
-
-	return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false >::GetRHI();
-}
-
-void RHIGraphics2D::comitRenderState()
-{
-	bool bHadPreModifyRenderStateCalled = false;
-	bool bRenderPipleStateNeedCommit = mbPipelineStateChanged || (mRenderStateCommitted.texture != mRenderStatePending.texture);
-	auto& commandList = getCommandList();
-	if (bRenderPipleStateNeedCommit)
-	{
-		if (bHadPreModifyRenderStateCalled == false)
-		{
-			bHadPreModifyRenderStateCalled = true;
-			preModifyRenderState();
-		}
-		mbPipelineStateChanged = false;
-		mRenderStateCommitted.texture = mRenderStatePending.texture;
-		mRenderStateCommitted.sampler = mRenderStatePending.sampler;
-		RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
-	}
-
-	if (mRenderStateCommitted.blendMode != mRenderStatePending.blendMode)
-	{
-		if (bHadPreModifyRenderStateCalled == false)
-		{
-			bHadPreModifyRenderStateCalled = true;
-			preModifyRenderState();
-		}
-		mRenderStateCommitted.blendMode = mRenderStatePending.blendMode;
-		SetBlendState(commandList, mRenderStateCommitted.blendMode);
-	}
-
-	if (mRenderStateCommitted.bEnableMultiSample != mRenderStatePending.bEnableMultiSample ||
-		mRenderStateCommitted.bEnableScissor != mRenderStatePending.bEnableScissor)
-	{
-		if (bHadPreModifyRenderStateCalled == false)
-		{
-			bHadPreModifyRenderStateCalled = true;
-			preModifyRenderState();
-		}
-		mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
-		mRenderStateCommitted.bEnableScissor = mRenderStatePending.bEnableScissor;
-		RHISetRasterizerState(commandList, GetRasterizerState(mRenderStateCommitted.bEnableMultiSample, mRenderStateCommitted.bEnableScissor));
-	}
-
-}
-
-
 void RHIGraphics2D::restoreRenderState()
 {
-	auto& commandList = getCommandList();
 	preModifyRenderState();
-
-	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
-	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-	RHISetRasterizerState(commandList, GetRasterizerState(mRenderStateCommitted.bEnableMultiSample, mRenderStateCommitted.bEnableScissor));
-	SetBlendState(commandList, mRenderStateCommitted.blendMode);
+	setupCommittedRenderState();
 }
 
 void RHIGraphics2D::setPen(Color3ub const& color, int width)

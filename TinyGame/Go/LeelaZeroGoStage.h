@@ -540,6 +540,7 @@ namespace Go
 			systemConfigs.numSamples = 1;
 		}
 		bool setupRenderSystem(ERenderSystem systemName);
+		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
 
 		void preShutdownRenderSystem(bool bReInit /*= false*/);
 		bool onInit() override;

@@ -21,7 +21,7 @@ using namespace Render;
 
 ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
 
-namespace FLocal
+namespace
 {
 	static char const* GetDefaultRHI()
 	{
@@ -53,14 +53,15 @@ namespace FLocal
 			GDefaultRHIName = ERenderSystem::Vulkan;
 		}
 	}
-};
 
-TConsoleVariableDelegate< char const* > CVarDefalultRHISystem
-(
-	&FLocal::GetDefaultRHI, &FLocal::SetDefaultRHI,
-	"g.DefaultRHI",
-	0
-);
+	TConsoleVariable< bool > CVarUseMultisample{ true , "g.UseMultisample", CVF_TOGGLEABLE };
+	TConsoleVariableDelegate< char const* > CVarDefalultRHISystem
+	{
+		&GetDefaultRHI, &SetDefaultRHI,
+		"g.DefaultRHI",
+		0
+	};
+};
 
 WORD GameWindow::getIcon()
 {
@@ -71,7 +72,6 @@ WORD GameWindow::getSmallIcon()
 {
 	return IDI_ICON1;
 }
-
 
 template< class T >
 class TGraphics2DProxy : public IGraphics2D
@@ -209,6 +209,13 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 	RHISystemInitParams initParam;
 	initParam.numSamples = configs.numSamples;
+	if (CVarUseMultisample)
+	{
+		if (initParam.numSamples == 1)
+		{
+			initParam.numSamples = 4;
+		}
+	}
 	initParam.bVSyncEnable = configs.bVSyncEnable;
 	initParam.bDebugMode = configs.bDebugMode;
 	initParam.hWnd = getWindow().getHWnd();
@@ -243,7 +250,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		info.bWindowed = !mGameWindow->isFullscreen();
 		info.extent.x = mGameWindow->getWidth();
 		info.extent.y = mGameWindow->getHeight();
-		info.numSamples = configs.numSamples;
+		info.numSamples = initParam.numSamples;
 		info.bCreateDepth = true;
 		RHICreateSwapChain(info);
 	}
@@ -274,7 +281,7 @@ void DrawEngine::shutdownSystem(bool bDeferred)
 	setupBuffer(getScreenWidth(), getScreenHeight());
 }
 
-bool DrawEngine::beginRender()
+bool DrawEngine::beginFrame()
 {
 	if (bBlockRender)
 	{
@@ -293,6 +300,10 @@ bool DrawEngine::beginRender()
 			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
 		}
+
+		mRHIGraphics->enableMultisample(CVarUseMultisample);
+		mRHIGraphics->beginFrame();
+
 	}
 	else
 	{
@@ -306,16 +317,18 @@ bool DrawEngine::beginRender()
 	return true;
 }
 
-void DrawEngine::endRender()
+void DrawEngine::endFrame()
 {
 	if ( isRHIEnabled() )
 	{
+		mRHIGraphics->endFrame();
 		RHIEndRender(!bUsePlatformBuffer);
 	}
 	else
 	{
 		mPlatformGraphics->endRender();
 	}
+
 	if( bUsePlatformBuffer )
 	{
 		mBufferDC.bitBltTo(getWindow().getHDC());

@@ -302,7 +302,7 @@ namespace Render
 			RHISetDepthStencilState(*mImmediateCommandList, TStaticDepthStencilState<>::GetRHI(), 0xff);
 			RHISetBlendState(*mImmediateCommandList, TStaticBlendState<>::GetRHI());
 			RHISetRasterizerState(*mImmediateCommandList, TStaticRasterizerState<>::GetRHI());
-			//gForceInitState = true;
+			GForceInitState = false;
 		}
 
 		return true;
@@ -378,6 +378,21 @@ namespace Render
 	{
 		OpenGLCast::To(buffer)->unlock();
 	}
+
+	//void* OpenGLSystem::RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size)
+	//{
+	//	switch (texture->getType())
+	//	{
+	//	case ETexture::Type1D:
+	//	case ETexture::Type2D:
+	//	}
+	//	return nullptr;
+	//}
+
+	//void OpenGLSystem::RHIUnlockTexture(RHITextureBase* texture)
+	//{
+
+	//}
 
 	void* OpenGLSystem::RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
@@ -576,13 +591,13 @@ namespace Render
 	{
 		if (mLastFrameBuffer.isValid())
 		{
-			OpenGLCast::To(mLastFrameBuffer.get())->unbind();
+			OpenGLCast::To(mLastFrameBuffer)->unbind();
 		}
 
 		mLastFrameBuffer = frameBuffer;
 		if (mLastFrameBuffer.isValid())
 		{
-			OpenGLCast::To(mLastFrameBuffer.get())->bind();
+			OpenGLCast::To(mLastFrameBuffer)->bind();
 		}
 	}
 

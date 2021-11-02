@@ -752,8 +752,9 @@ namespace Go
 		using namespace Go;
 
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
-		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHICommandList& commandList = g.getCommandList();
 
+		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 
 		g.beginRender();

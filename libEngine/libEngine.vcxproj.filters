@@ -1338,6 +1338,9 @@
     <ClInclude Include="Algo\Combination.h">
       <Filter>Algo</Filter>
     </ClInclude>
+    <ClInclude Include="RHI\ShaderPermutation.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

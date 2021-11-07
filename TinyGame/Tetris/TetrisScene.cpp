@@ -147,34 +147,70 @@ namespace Tetris
 
 				RenderUtility::SetPen( g , EColor::Null );
 
-				if ( color == Piece::Color( dataR ) && i != mapSizeX - 1 )
+				if ( g.isUseRHI() )
 				{
-					RenderUtility::SetBrush( g , color , COLOR_DEEP );
-					g.drawRect( 
-						bPos + Vec2i( BlockSize - 5 , 1 )  , 
-						Vec2i( 10 , BlockSize - 1) );
+					if (color == Piece::Color(dataR) && i != mapSizeX - 1)
+					{
+						RenderUtility::SetBrush(g, color, COLOR_DEEP);
+						g.drawRect(
+							bPos + Vec2i(BlockSize - 5, 0),
+							Vec2i(10, BlockSize));
 
-					RenderUtility::SetBrush( g , color );
-					g.drawRect( 
-						bPos + Vec2i( BlockSize - 5 , 3 ), 
-						Vec2i( 10 , BlockSize - 5 ) );
-					beCon = true;
+						RenderUtility::SetBrush(g, color);
+						g.drawRect(
+							bPos + Vec2i(BlockSize - 5, 3),
+							Vec2i(10, BlockSize - 6));
+						beCon = true;
+					}
+
+
+					if (color == Piece::Color(dataT) && layer != extendMapSizeY - 1 && checkTop)
+					{
+						RenderUtility::SetBrush(g, color, COLOR_DEEP);
+						g.drawRect(
+							bPos + Vec2i(0, -5),
+							Vec2i(BlockSize, 10));
+
+						RenderUtility::SetBrush(g, color);
+						g.drawRect(
+							bPos + Vec2i(3, -5),
+							Vec2i(BlockSize - 6, 10));
+						beCon = true;
+
+					}
+
 				}
-
-
-				if ( color == Piece::Color( dataT ) && layer != extendMapSizeY  - 1 && checkTop )
+				else
 				{
-					RenderUtility::SetBrush( g , color , COLOR_DEEP );
-					g.drawRect( 
-						bPos + Vec2i( 1, - 5 ) , 
-						Vec2i( BlockSize - 1 , 10 ) );
+					if (color == Piece::Color(dataR) && i != mapSizeX - 1)
+					{
+						RenderUtility::SetBrush(g, color, COLOR_DEEP);
+						g.drawRect(
+							bPos + Vec2i(BlockSize - 5, 1),
+							Vec2i(10, BlockSize - 1));
 
-					RenderUtility::SetBrush( g , color );
-					g.drawRect( 
-						bPos + Vec2i( 3, - 5 ) , 
-						Vec2i( BlockSize - 5 , 10 ) );
-					beCon = true;
+						RenderUtility::SetBrush(g, color);
+						g.drawRect(
+							bPos + Vec2i(BlockSize - 5, 3),
+							Vec2i(10, BlockSize - 5));
+						beCon = true;
+					}
 
+
+					if (color == Piece::Color(dataT) && layer != extendMapSizeY - 1 && checkTop)
+					{
+						RenderUtility::SetBrush(g, color, COLOR_DEEP);
+						g.drawRect(
+							bPos + Vec2i(1, -5),
+							Vec2i(BlockSize - 1, 10));
+
+						RenderUtility::SetBrush(g, color);
+						g.drawRect(
+							bPos + Vec2i(3, -5),
+							Vec2i(BlockSize - 5, 10));
+						beCon = true;
+
+					}
 				}
 
 				if ( !beCon )

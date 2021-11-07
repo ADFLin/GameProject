@@ -196,9 +196,6 @@ namespace Bloxorz
 		std::vector< ObjectData > mObjectList;
 		SceneEnvData mSceneEnv;
 
-		class RayTraceProgram* mProgRayTrace;
-		class RayTraceProgram* mProgRayTraceBuiltin;
-		class RayTraceProgram* mProgRayTraceDeferred;
 		class RayTraceLightingProgram* mProgRayTraceLighting;
 		TStructuredBuffer< ObjectData >   mObjectBuffer;
 		TStructuredBuffer< MaterialData > mMaterialBuffer;

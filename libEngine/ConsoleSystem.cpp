@@ -131,12 +131,18 @@ void ConsoleSystem::unregisterAllCommandsByObject(void* objectPtr)
 	}
 }
 
-void ConsoleSystem::insertCommand(ConsoleCommandBase* com)
+bool ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 {
 	std::pair<CommandMap::iterator, bool> result =
 		mNameMap.insert(std::make_pair(com->mName.c_str(), com));
-	if( !result.second )
+	if (!result.second)
+	{
+		LogWarning(0, "Cmd %s is defined", com->mName.c_str());
 		delete com;
+		return false;
+	}
+
+	return true;
 }
 
 bool ConsoleSystem::executeCommand(char const* inCmdText)

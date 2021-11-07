@@ -197,7 +197,7 @@ namespace Tetris
 	{
 		GetRecordManager().init();
 
-		::Global::GetDrawEngine().startupSystem(ERenderSystem::OpenGL);
+		::Global::GetDrawEngine().setupSystem(this);
 		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
 	}
 
@@ -206,9 +206,32 @@ namespace Tetris
 		GetRecordManager().saveFile( "record.dat" );
 		GetRecordManager().clear();
 
-		::Global::GetDrawEngine().shutdownSystem();
+		::Global::GetDrawEngine().setupSystem(nullptr);
 	}
 
+
+	ERenderSystem GameModule::getDefaultRenderSystem()
+	{
+		return ERenderSystem::OpenGL;
+	}
+
+	void GameModule::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+	{
+
+	}
+
+	bool GameModule::setupRenderSystem(ERenderSystem systemName)
+	{
+		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
+
+
+		return true;
+	}
+
+	void GameModule::preShutdownRenderSystem(bool bReInit /*= false*/)
+	{
+
+	}
 
 }//namespace Tetris
 

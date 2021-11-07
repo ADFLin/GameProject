@@ -296,17 +296,17 @@ namespace Render
 					struct Vertex_XYZ_C
 					{
 						Vector3 pos;
-						Vector3 color;
+						Color4f color;
 					};
 
 					Vertex_XYZ_C vetices[] =
 					{
-						{ Vector3(0,0,0) , Vector3(1,0,0) },
-						{ Vector3(2,0,0) , Vector3(0,1,0) },
-						{ Vector3(2,2,0) , Vector3(1,1,1) },
-						{ Vector3(0,2,0) , Vector3(0,0,1) },
+						{ Vector3(0,0,0) , Color4f(1,0,0) },
+						{ Vector3(2,0,0) , Color4f(0,1,0) },
+						{ Vector3(2,2,0) , Color4f(1,1,1) },
+						{ Vector3(0,2,0) , Color4f(0,0,1) },
 					};
-					TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::Quad, vetices, 4);
+					TRenderRT< RTVF_XYZ_CA >::Draw(commandList, EPrimitive::Quad, vetices, 4);
 				}
 
 				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(0, 10, 0));

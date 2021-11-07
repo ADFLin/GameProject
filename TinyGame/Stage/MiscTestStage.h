@@ -837,7 +837,7 @@ namespace MRT
 #include "RHI/RHIGraphics2D.h"
 
 class RHIGraphics2DTestStage : public StageBase
-	                        , public IGameRenderSetup
+	                         , public IGameRenderSetup
 {
 	using BaseClass = StageBase;
 public:
@@ -850,6 +850,11 @@ public:
 		systemConfigs.screenWidth = 800;
 		systemConfigs.screenHeight = 600;
 	}
+	ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
+	bool setupRenderSystem(ERenderSystem systemName) override;
+	void preShutdownRenderSystem(bool bReInit = false) override;
+
+	Render::RHITexture2DRef mTexture;
 
 	bool onInit() override;
 
@@ -858,8 +863,13 @@ public:
 		BaseClass::onEnd();
 	}
 
+	float mAngle = 0.0;
+	float mSpeed = 0.01;
+
 	void onUpdate( long time ) override
 	{
+		mAngle += mSpeed * time;
+
 		BaseClass::onUpdate( time );
 
 		int frame = time / gDefaultTickTime;

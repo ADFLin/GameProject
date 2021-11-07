@@ -349,7 +349,12 @@ void RedirectStdIO()
 
 bool TinyGameApp::initializeGame()
 {
-	EngineInitialize();
+	TIME_SCOPE("Game Initialize");
+
+	{
+		TIME_SCOPE("Engine Initialize");
+		EngineInitialize();
+	}
 
 	RedirectStdIO();
 
@@ -359,72 +364,100 @@ bool TinyGameApp::initializeGame()
 	gLogPrinter.addChannel(LOG_ERROR);
 
 	LogMsg("OS Loc = %s", SystemPlatform::GetUserLocaleName().c_str());
-
-	if (!Global::GameConfig().loadFile(GAME_SETTING_PATH))
 	{
-		LogWarning(0,"Can't load config file : %s" , GAME_SETTING_PATH );
+		TIME_SCOPE("Load GameConfig");
+		if (!Global::GameConfig().loadFile(GAME_SETTING_PATH))
+		{
+			LogWarning(0, "Can't load config file : %s", GAME_SETTING_PATH);
+		}
+
+		importUserProfile();
+		mbLockFPS = ::Global::GameConfig().getIntValue("bLockFPS", nullptr, 0);
 	}
 
-	if (!createWindowInternal(mGameWindow, gDefaultScreenWidth, gDefaultScreenHeight, TEXT("Tiny Game")))
-		return false;
-
-	ConsoleSystem::Get().initialize();
-
-	ExecutionRegisterHelper::Manager = this;
-
-	FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION);
-
-	::Global::Initialize();
-
-	Render::ShaderManager::Get().setDataCache(&::Global::DataCache());
-
-	GameLoop::setUpdateTime( gDefaultTickTime );
-
-	::Global::GetAssetManager().init();
-	::Global::GetAssetManager().registerViewer(&gGameConfigAsset);
-
-	Render::ShaderManager::Get().setAssetViewerRegister(&Global::GetAssetManager());
-
-	exportUserProfile();
-
-	mbLockFPS = ::Global::GameConfig().getIntValue("bLockFPS", nullptr, 0);
-
-	::Global::GetDrawEngine().initialize( *this );
-
-	::Global::GUI().initialize( *this );
-
-	mConsoleWidget = new ConsoleFrame(UI_ANY, Vec2i(10, 10), Vec2i(600, 500), nullptr);
-	mConsoleWidget->setGlobal();
-	mConsoleWidget->addChannel(LOG_ERROR);
-	mConsoleWidget->addChannel(LOG_DEV);
-	mConsoleWidget->addChannel(LOG_MSG);
-	mConsoleWidget->addChannel(LOG_WARNING);
-	::Global::GUI().addWidget(mConsoleWidget);
-
-	loadModules();
-
-	setupStage();
-
-	setConsoleShowMode(ConsoleShowMode::None);
-
-	bool havePlayGame = false;
-	char const* gameName;
-	if ( ::Global::GameConfig().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
 	{
-		IGameModule* game = ::Global::ModuleManager().changeGame( gameName );
-		if ( game )
+		TIME_SCOPE("Console Initialize");
+		ConsoleSystem::Get().initialize();
+		ExecutionRegisterHelper::Manager = this;
 		{
-			game->beginPlay( *this, EGameStageMode::Single );
-			havePlayGame = true;
+			TIME_SCOPE("Import Config");
+			FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION);
 		}
 	}
-	
-	if ( havePlayGame == false )
+
 	{
-		changeStage( STAGE_MAIN_MENU );
+		TIME_SCOPE("Create Window");
+		if (!createWindowInternal(mGameWindow, gDefaultScreenWidth, gDefaultScreenHeight, TEXT("Tiny Game")))
+			return false;
 	}
-	
-	mFPSCalc.init( getMillionSecond() );
+
+
+	{
+		TIME_SCOPE("Global Initialize");
+		::Global::Initialize();
+	}
+
+	{
+		TIME_SCOPE("Asset Misc");
+		Render::ShaderManager::Get().setDataCache(&::Global::DataCache());
+
+		GameLoop::setUpdateTime(gDefaultTickTime);
+
+		::Global::GetAssetManager().init();
+		::Global::GetAssetManager().registerViewer(&gGameConfigAsset);
+
+		Render::ShaderManager::Get().setAssetViewerRegister(&Global::GetAssetManager());
+
+	}
+	{
+		TIME_SCOPE("Draw Initialize");
+		::Global::GetDrawEngine().initialize(*this);
+	}
+	{
+		TIME_SCOPE("GUI Initialize");
+		::Global::GUI().initialize(*this);
+	}
+	{
+		TIME_SCOPE("Common Widget");
+		mConsoleWidget = new ConsoleFrame(UI_ANY, Vec2i(10, 10), Vec2i(600, 500), nullptr);
+		mConsoleWidget->setGlobal();
+		mConsoleWidget->addChannel(LOG_ERROR);
+		mConsoleWidget->addChannel(LOG_DEV);
+		mConsoleWidget->addChannel(LOG_MSG);
+		mConsoleWidget->addChannel(LOG_WARNING);
+		::Global::GUI().addWidget(mConsoleWidget);
+	}
+
+	{
+		TIME_SCOPE("Load Modules");
+		loadModules();
+	}
+
+	{
+		TIME_SCOPE("Stage Initialize");
+		setupStage();
+
+		setConsoleShowMode(ConsoleShowMode::None);
+
+		bool havePlayGame = false;
+		char const* gameName;
+		if (::Global::GameConfig().tryGetStringValue("DefaultGame", nullptr, gameName))
+		{
+			IGameModule* game = ::Global::ModuleManager().changeGame(gameName);
+			if (game)
+			{
+				game->beginPlay(*this, EGameStageMode::Single);
+				havePlayGame = true;
+			}
+		}
+
+		if (havePlayGame == false)
+		{
+			changeStage(STAGE_MAIN_MENU);
+		}
+
+		mFPSCalc.init(getMillionSecond());
+	}
 
 	return true;
 }
@@ -455,7 +488,7 @@ void TinyGameApp::cleanup()
 
 	Global::GetAssetManager().cleanup();
 
-	importUserProfile();
+	exportUserProfile();
 
 	Global::GameConfig().saveFile(GAME_SETTING_PATH);
 
@@ -685,26 +718,11 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 		case EKeyCode::F11:
 			{
 				using namespace Render;
-				if (mRenderSetup)
+
+				if (GRHISystem)
 				{
-					mRenderSetup->preShutdownRenderSystem(true);
 					ERenderSystem systemName = GRHISystem->getName() == RHISystemName::OpenGL ? ERenderSystem::D3D11 : ERenderSystem::OpenGL;
-					Global::GetDrawEngine().shutdownSystem(false);
-					RenderSystemConfigs configs;
-
-					mRenderSetup->configRenderSystem(systemName, configs);
-					
-					if (!Global::GetDrawEngine().startupSystem(systemName, configs))
-					{
-
-
-					}
-
-					if (!mRenderSetup->setupRenderSystem(systemName))
-					{
-
-
-					}
+					::Global::GetDrawEngine().resetupSystem(systemName);
 				}
 			}
 			break;
@@ -946,7 +964,7 @@ void TinyGameApp::render( float dframe )
 	drawEngine.endFrame();
 }
 
-void TinyGameApp::exportUserProfile()
+void TinyGameApp::importUserProfile()
 {
 	PropertySet& setting = Global::GameConfig();
 	UserProfile& userPorfile = Global::GetUserProfile();
@@ -965,11 +983,14 @@ void TinyGameApp::exportUserProfile()
 	{
 		userPorfile.language = LAN_CHINESE_T;
 	}
+	{
+		TIME_SCOPE("Localization Initialize");
+		ILocalization::Get().initialize((Language)userPorfile.language);
+	}
 
-	ILocalization::Get().initialize( ( Language )userPorfile.language );
 }
 
-void TinyGameApp::importUserProfile()
+void TinyGameApp::exportUserProfile()
 {
 	PropertySet& setting = Global::GameConfig();
 
@@ -1084,26 +1105,7 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if ( renderSetup )
 	{
-		mRenderSetup = renderSetup;
-		systemName = renderSetup->getDefaultRenderSystem();
-		if (systemName == ERenderSystem::None)
-		{
-			if (renderSetup->isRenderSystemSupported(ERenderSystem::OpenGL))
-				systemName = ERenderSystem::OpenGL;
-		}
-
-		RenderSystemConfigs configs;
-		renderSetup->configRenderSystem(systemName, configs);
-
-		if (!::Global::GetDrawEngine().startupSystem(systemName, configs))
-		{
-			return false;
-		}
-	}
-	else
-	{
-
-
+		::Global::GetDrawEngine().setupSystem(renderSetup);
 	}
 
 	if( !stage->onInit() )
@@ -1148,7 +1150,7 @@ void TinyGameApp::postStageEnd(StageBase* stage)
 	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if (renderSetup)
 	{
-		Global::GetDrawEngine().shutdownSystem(true);
+		Global::GetDrawEngine().setupSystem(nullptr);
 	}
 }
 
@@ -1236,6 +1238,7 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 		break;
 	case UI_CREATE_SERVER:
 		{
+			TIME_SCOPE("Build Server");
 			closeNetwork();
 
 			ServerWorker* server = createServer();

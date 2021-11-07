@@ -77,51 +77,53 @@ template< class T >
 class TGraphics2DProxy : public IGraphics2D
 {
 public:
-	TGraphics2DProxy( T& g ):mImpl(g){}
+	TGraphics2DProxy( T& g ):mImpl(&g){}
 
-	void beginFrame() override { mImpl.beginFrame(); }
-	void endFrame() override { mImpl.endFrame(); }
-	void beginRender() override { mImpl.beginRender(); }
-	void endRender() override { mImpl.endRender(); }
+	void beginFrame() override { mImpl->beginFrame(); }
+	void endFrame() override { mImpl->endFrame(); }
+	void beginRender() override { mImpl->beginRender(); }
+	void endRender() override { mImpl->endRender(); }
 
-	void beginClip(Vec2i const& pos, Vec2i const& size) { mImpl.beginClip(pos, size); }
-	void endClip() { mImpl.endClip(); }
-	void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha )  override { mImpl.beginBlend( pos , size , alpha ); }
-	void endBlend() override { mImpl.endBlend(); }
-	void setPen( Color3ub const& color ) override { mImpl.setPen( color ); }
-	void setBrush( Color3ub const& color ) override { mImpl.setBrush( color ); }
-	void drawPixel  ( Vector2 const& p , Color3ub const& color ) override { mImpl.drawPixel( p , color ); }
-	void drawLine   (Vector2 const& p1 , Vector2 const& p2 ) override { mImpl.drawLine( p1 , p2 ); }
-	void drawRect   (Vector2 const& pos , Vector2 const& size ) override { mImpl.drawRect( pos , size ); }
-	void drawCircle (Vector2 const& center , float radius ) override { mImpl.drawCircle( center , radius); }
-	void drawEllipse(Vector2 const& pos , Vector2 const& size ) override { mImpl.drawEllipse(  pos ,  size ); }
-	void drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize ) override { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
-	void drawPolygon(Vector2 pos[], int num) override { mImpl.drawPolygon(pos, num); }
+	void beginClip(Vec2i const& pos, Vec2i const& size) { mImpl->beginClip(pos, size); }
+	void endClip() { mImpl->endClip(); }
+	void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha)  override { mImpl->beginBlend( pos , size , alpha ); }
+	void endBlend() override { mImpl->endBlend(); }
+	void setPen( Color3ub const& color ) override { mImpl->setPen( color ); }
+	void setBrush( Color3ub const& color ) override { mImpl->setBrush( color ); }
+	void drawPixel  (Vector2 const& p , Color3ub const& color) override { mImpl->drawPixel( p , color ); }
+	void drawLine   (Vector2 const& p1 , Vector2 const& p2) override { mImpl->drawLine( p1 , p2 ); }
+	void drawRect   (Vector2 const& pos , Vector2 const& size) override { mImpl->drawRect( pos , size ); }
+	void drawCircle (Vector2 const& center , float radius) override { mImpl->drawCircle( center , radius); }
+	void drawEllipse(Vector2 const& pos , Vector2 const& size) override { mImpl->drawEllipse(  pos ,  size ); }
+	void drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize) override { mImpl->drawRoundRect( pos , rectSize , circleSize ); }
+	void drawPolygon(Vector2 pos[], int num) override { mImpl->drawPolygon(pos, num); }
 
-	void setTextColor(Color3ub const& color) override { mImpl.setTextColor(color);  }
-	void drawText(Vector2 const& pos , char const* str ) override { mImpl.drawText( pos , str ); }
-	void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip ) override { mImpl.drawText( pos , size , str , beClip  ); }
+	void setTextColor(Color3ub const& color) override { mImpl->setTextColor(color);  }
+	void drawText(Vector2 const& pos , char const* str ) override { mImpl->drawText( pos , str ); }
+	void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip) override { mImpl->drawText( pos , size , str , beClip  ); }
 
-	void  beginXForm() override { mImpl.beginXForm(); }
-	void  finishXForm() override { mImpl.finishXForm(); }
-	void  pushXForm() override {  mImpl.pushXForm();  }
-	void  popXForm() override { mImpl.popXForm(); }
-	void  identityXForm() override { mImpl.identityXForm(); }
-	void  translateXForm(float ox, float oy) override { mImpl.translateXForm(ox,oy); }
-	void  rotateXForm(float angle) override { mImpl.rotateXForm(angle); }
-	void  scaleXForm(float sx, float sy) override { mImpl.scaleXForm(sx,sy); }
+	void  beginXForm() override { mImpl->beginXForm(); }
+	void  finishXForm() override { mImpl->finishXForm(); }
+	void  pushXForm() override {  mImpl->pushXForm();  }
+	void  popXForm() override { mImpl->popXForm(); }
+	void  identityXForm() override { mImpl->identityXForm(); }
+	void  translateXForm(float ox, float oy) override { mImpl->translateXForm(ox,oy); }
+	void  rotateXForm(float angle) override { mImpl->rotateXForm(angle); }
+	void  scaleXForm(float sx, float sy) override { mImpl->scaleXForm(sx,sy); }
 
-	void accept( Visitor& visitor ) { visitor.visit( mImpl ); }
-	T& mImpl;
+	bool  isUseRHI() const { return Meta::IsSameType<T, RHIGraphics2D >::Value; }
+
+	void accept( Visitor& visitor ) { visitor.visit( *mImpl ); }
+	T* mImpl;
 };
 
 IGraphics2D& DrawEngine::getIGraphics()
 {
-	static TGraphics2DProxy< Graphics2D > proxyPlatform( *mPlatformGraphics );
-	static TGraphics2DProxy< RHIGraphics2D > proxyRHI( *mRHIGraphics );
-	if ( isUsageRHIGraphic2D() )
-		return proxyRHI;
-	return proxyPlatform;
+	if (isUsageRHIGraphic2D())
+	{
+		return *mRHIProxy;
+	}
+	return *mPlatformProxy;
 }
 
 DrawEngine::DrawEngine()
@@ -144,10 +146,11 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 	mGameWindow = &provider.getMainWindow();
 	mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
 	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getHandle() ) );
-	RenderUtility::Initialize();
 
-	mRHIGraphics.reset(new RHIGraphics2D);
-	mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
+	mPlatformProxy.reset(new TGraphics2DProxy< Graphics2D >(*mPlatformGraphics));
+	mRHIProxy.reset(new TGraphics2DProxy< RHIGraphics2D >(*mRHIGraphics));
+
+	RenderUtility::Initialize();
 
 	mbInitialized = true;
 }
@@ -169,6 +172,67 @@ void DrawEngine::update(long deltaTime)
 		bRHIShutdownDeferred = false;
 		RHISystemShutdown();
 	}
+}
+
+bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup)
+{
+	if (isRHIEnabled())
+	{
+		shutdownSystem(renderSetup == nullptr);
+	}
+
+	mRenderSetup = renderSetup;
+	if (mRenderSetup)
+	{
+		if (!setupSystemInternal(mRenderSetup->getDefaultRenderSystem()))
+			return false;
+	}
+	return true;
+}
+
+bool DrawEngine::resetupSystem(ERenderSystem systemName)
+{
+	if (mRenderSetup == nullptr)
+		return false;
+
+	mRenderSetup->preShutdownRenderSystem(true);
+	shutdownSystem(false);
+
+	if (!setupSystemInternal(systemName))
+	{
+		return false;
+	}
+
+	if (!mRenderSetup->setupRenderSystem(systemName))
+	{
+		return false;
+	}
+}
+
+bool DrawEngine::setupSystemInternal(ERenderSystem systemName)
+{
+	if (mRenderSetup == nullptr)
+		return false;
+
+	if (systemName == ERenderSystem::None)
+	{
+		if (mRenderSetup->isRenderSystemSupported(ERenderSystem::OpenGL))
+			systemName = ERenderSystem::OpenGL;
+	}
+	else if (!mRenderSetup->isRenderSystemSupported(systemName))
+	{
+		return false;
+	}
+
+	RenderSystemConfigs configs;
+	mRenderSetup->configRenderSystem(systemName, configs);
+
+	if (!startupSystem(systemName, configs))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool DrawEngine::isUsageRHIGraphic2D() const
@@ -254,6 +318,13 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		info.bCreateDepth = true;
 		RHICreateSwapChain(info);
 	}
+
+	{
+		mRHIGraphics.reset(new RHIGraphics2D);
+		mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
+		static_cast<TGraphics2DProxy< RHIGraphics2D >&>(*mRHIProxy).mImpl = mRHIGraphics.get();
+	}
+
 	bHasUseRHI = true;
 	bUsePlatformBuffer = false;
 	bWasUsedPlatformGrapthics = false;
@@ -267,6 +338,7 @@ void DrawEngine::shutdownSystem(bool bDeferred)
 
 	RenderUtility::ReleaseRHI();
 	mSystemName = ERenderSystem::None;
+	mRHIGraphics.release();
 
 	if( bDeferred == false )
 	{
@@ -303,7 +375,6 @@ bool DrawEngine::beginFrame()
 
 		mRHIGraphics->enableMultisample(CVarUseMultisample);
 		mRHIGraphics->beginFrame();
-
 	}
 	else
 	{

@@ -166,16 +166,31 @@ namespace Bloxorz
 		1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0,
 	};
 #undef G
-
-	class RayTraceProgram : public GlobalShaderProgram
+	class RayTraceProgramBase : public GlobalShaderProgram
 	{
-		DECLARE_SHADER_PROGRAM(RayTraceProgram, Global);
 	public:
-
 		static char const* GetShaderFileName()
 		{
 			return "Shader/Game/RayTraceSDF";
 		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, ObjectNum);
+			BIND_SHADER_PARAM(parameterMap, MapTileNum);
+		}
+
+		DEFINE_SHADER_PARAM(ObjectNum);
+		DEFINE_SHADER_PARAM(MapTileNum);
+	};
+
+	class RayTraceProgram : public RayTraceProgramBase
+	{
+		DECLARE_SHADER_PROGRAM(RayTraceProgram, Global);
+	public:
+		SHADER_PERMUTATION_TYPE_BOOL(UseBuiltinScene, SHADER_PARAM(USE_BUILTIN_SCENE));
+		SHADER_PERMUTATION_TYPE_BOOL(UseDeferredRendering, SHADER_PARAM(USE_DEFERRED_RENDERING));
+		using PermutationDomain = TShaderPermutationDomain<UseBuiltinScene, UseDeferredRendering>;
 
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
@@ -197,38 +212,18 @@ namespace Bloxorz
 		DEFINE_SHADER_PARAM(MapTileNum);
 	};
 
-	template< bool bUseBuiltinScene, bool bDeferredRendering >
-	class TRayTraceProgram : public RayTraceProgram
-	{
-		DECLARE_SHADER_PROGRAM(TRayTraceProgram, Global);
-	public:
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			option.addDefine(SHADER_PARAM(USE_BUILTIN_SCENE), bUseBuiltinScene);
-			option.addDefine(SHADER_PARAM(USE_DEFERRED_RENDERING), bDeferredRendering);
-		}
-	};
-
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TRayTraceProgram< false, false>));
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TRayTraceProgram< true, false>));
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TRayTraceProgram< true, true>));
-
-
-	class RayTraceLightingProgram : public RayTraceProgram
+	IMPLEMENT_SHADER_PROGRAM(RayTraceProgram);
+	
+	class RayTraceLightingProgram : public RayTraceProgramBase
 	{
 		DECLARE_SHADER_PROGRAM(RayTraceLightingProgram, Global);
-		using BassClass = RayTraceProgram;
+		using BassClass = RayTraceProgramBase;
 	public:
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			option.addDefine(SHADER_PARAM(USE_BUILTIN_SCENE), true);
 			option.addDefine(SHADER_PARAM(USE_DEFERRED_RENDERING), true);
-		}
-
-		static char const* GetShaderFileName()
-		{
-			return "Shader/Game/RayTraceSDF";
 		}
 
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
@@ -445,11 +440,6 @@ namespace Bloxorz
 
 			FFileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", (uint8* const)code.data(), code.length());
 
-
-
-			VERIFY_RETURN_FALSE(mProgRayTrace = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TRayTraceProgram<false, false>) >());
-			VERIFY_RETURN_FALSE(mProgRayTraceBuiltin = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TRayTraceProgram<true, false>)>());
-			VERIFY_RETURN_FALSE(mProgRayTraceDeferred = ShaderManager::Get().getGlobalShaderT<COMMA_SEPARATED(TRayTraceProgram<true, true>)>());
 			VERIFY_RETURN_FALSE(mProgRayTraceLighting = ShaderManager::Get().getGlobalShaderT< RayTraceLightingProgram >());
 
 
@@ -480,10 +470,6 @@ namespace Bloxorz
 
 	void TestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
-		mProgRayTrace = nullptr;
-		mProgRayTraceBuiltin = nullptr;
-		mProgRayTraceDeferred = nullptr;
-
 		mFrameBuffer.release();
 
 		mCube.releaseRHIResource();
@@ -670,7 +656,10 @@ namespace Bloxorz
 			renderBuffers[0] = mRenderTargetPool.fetchElement(desc)->texture;
 			renderBuffers[1] = mRenderTargetPool.fetchElement(desc)->texture;
 
-			RayTraceProgram* progRayTrace;
+			RayTraceProgram::PermutationDomain permutationVector;
+			permutationVector.set<RayTraceProgram::UseBuiltinScene>( bUseDeferredRending ? false : bUseSceneBuitin);
+			permutationVector.set<RayTraceProgram::UseDeferredRendering>(bUseDeferredRending);
+
 			if (bUseDeferredRending)
 			{
 				mFrameBuffer->setTexture(0, *renderBuffers[0]);
@@ -678,15 +667,12 @@ namespace Bloxorz
 				RHISetFrameBuffer(commandList, mFrameBuffer);
 				LinearColor clearColors[2] = { LinearColor(0, 0, 0, 0) , LinearColor(0, 0, 0, 0) };
 				RHIClearRenderTargets(commandList, EClearBits::Color, clearColors, 2);
-
-				progRayTrace = mProgRayTraceDeferred;
 			}
 			else
 			{
 				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
-				progRayTrace = (bUseSceneBuitin) ? mProgRayTraceBuiltin : mProgRayTrace;
 			}
-
+			RayTraceProgram* progRayTrace = ShaderManager::Get().getGlobalShaderT< RayTraceProgram >(permutationVector);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None >::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());

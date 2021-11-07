@@ -28,30 +28,48 @@ namespace Render
 		RTS_MAX ,
 	};
 
-#define RTS_ELEMENT_MASK 0x7
-#define RTS_ELEMENT_BIT_OFFSET 3
-#define RTS_ELEMENT( S , SIZE )\
-	( uint32( (SIZE) & RTS_ELEMENT_MASK ) << ( RTS_ELEMENT_BIT_OFFSET * S ) )
+	enum RenderRTType
+	{
+		RTT_FLOAT = 0,
+		RTT_U8N   = 1,
+	};
+
+#define RTS_ELEMENT_COUNT_MASK 0x7
+#define RTS_ELEMENT_BIT_OFFSET 4
+#define RTS_ELEMENT_( S , SIZE , TYPE )\
+	uint32(((((SIZE) & RTS_ELEMENT_COUNT_MASK)<< 1) | TYPE) << (RTS_ELEMENT_BIT_OFFSET * (S)) )
+
+
+#define RTS_ELEMENT(S , SIZE) RTS_ELEMENT_(S, SIZE , RTT_FLOAT )
+#define RTS_ELEMENT_U8N(S , SIZE) RTS_ELEMENT_(S, SIZE , RTT_U8N )
+
+#define USE_SEMANTIC( VF , S ) ( ( VF ) & RTS_ELEMENT_( S , RTS_ELEMENT_COUNT_MASK , 0x1) )
+#define VERTEX_ELEMENT_COUNT( VF , S ) ( USE_SEMANTIC( VF , S ) >> ( RTS_ELEMENT_BIT_OFFSET * (S) + 1 ) )
+#define VERTEX_ELEMENT_TYPE( VF , S ) ( ( USE_SEMANTIC( VF , S ) >> ( RTS_ELEMENT_BIT_OFFSET * (S) ) ) & 0x1 )
 
 	static_assert(RTS_ELEMENT_BIT_OFFSET * (RTS_MAX - 1) <= sizeof(uint32) * 8, "RenderRTSemantic Can't Support ");
 
-	enum RenderRTVertexFormat
+	enum RenderRTVertexFormat : uint32
 	{
 		RTVF_XY      = RTS_ELEMENT(RTS_Position, 2),
 		RTVF_XYZ     = RTS_ELEMENT(RTS_Position, 3),
 		RTVF_XYZW    = RTS_ELEMENT(RTS_Position, 4),
 		RTVF_C       = RTS_ELEMENT(RTS_Color, 3),
+		RTVF_C8      = RTS_ELEMENT_U8N(RTS_Color, 3),
 		RTVF_CA      = RTS_ELEMENT(RTS_Color, 4),
+		RTVF_CA8     = RTS_ELEMENT_U8N(RTS_Color, 4),
 		RTVF_N       = RTS_ELEMENT(RTS_Normal, 3),
 		RTVF_TEX_UV  = RTS_ELEMENT(RTS_Texcoord, 2),
 		RTVF_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
 
 		RTVF_XYZ_C       = RTVF_XYZ | RTVF_C,
+		RTVF_XYZ_C8      = RTVF_XYZ | RTVF_C8,
 		RTVF_XYZ_C_N     = RTVF_XYZ | RTVF_C | RTVF_N,
 		RTVF_XYZ_C_N_T2  = RTVF_XYZ | RTVF_C | RTVF_N | RTVF_TEX_UV,
 		RTVF_XYZ_C_T2    = RTVF_XYZ | RTVF_C | RTVF_TEX_UV,
 
 		RTVF_XYZ_CA      = RTVF_XYZ | RTVF_CA,
+		RTVF_XYZ_CA8     = RTVF_XYZ | RTVF_CA8,
 		RTVF_XYZ_CA_N    = RTVF_XYZ | RTVF_CA | RTVF_N,
 		RTVF_XYZ_CA_N_T2 = RTVF_XYZ | RTVF_CA | RTVF_N | RTVF_TEX_UV,
 		RTVF_XYZ_CA_T2   = RTVF_XYZ | RTVF_CA | RTVF_TEX_UV,
@@ -64,42 +82,58 @@ namespace Render
 
 		RTVF_XY_C        = RTVF_XY | RTVF_C,
 		RTVF_XY_CA       = RTVF_XY | RTVF_CA ,
+		RTVF_XY_CA8      = RTVF_XY | RTVF_CA8,
 		RTVF_XY_T2       = RTVF_XY | RTVF_TEX_UV,
 		RTVF_XY_CA_T2    = RTVF_XY | RTVF_CA | RTVF_TEX_UV,
-	};
-
-	template< uint32 VF, uint32 SEMANTIC >
-	struct VertexElementOffset
-	{
-		enum { Result = sizeof(float) * (VF & RTS_ELEMENT_MASK) + VertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result };
-	};
-
-	template< uint32 VF >
-	struct VertexElementOffset< VF, 0 >
-	{
-		enum { Result = 0 };
+		RTVF_XY_CA8_T2   = RTVF_XY | RTVF_CA8 | RTVF_TEX_UV,
 	};
 
 
-#define USE_SEMANTIC( VF , S ) ( ( VF ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
-#define VERTEX_ELEMENT_SIZE( VF , S ) ( USE_SEMANTIC( VF , S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
-#define VETEX_ELEMENT_OFFSET( VF , S ) VertexElementOffset< VF , S >::Result
 
-
-#define  ENCODE_VECTOR_FORAMT( TYPE , NUM ) (( TYPE << 2 ) | ( NUM - 1 ) )
 	template < uint32 VertexFormat , uint32 SkipVertexFormat = 0 >
 	inline void SetupRenderRTInputLayoutDesc(int indexStream , InputLayoutDesc& desc )
 	{
-		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Position) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Position) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_POSITION, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Position)), false);
-		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Color) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Color) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_COLOR, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Color)), false);
-		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Normal) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Normal) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_NORMAL, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Normal)), false);
-		if constexpr ( USE_SEMANTIC(VertexFormat, RTS_Texcoord) )
-			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Texcoord) ? EVertex::ATTRIBUTE_UNUSED : EVertex::ATTRIBUTE_TEXCOORD, EVertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Texcoord)), false);
+		auto AddElement = [&desc , indexStream](RenderRTSemantic semantic , int attribute)
+		{
+			auto type = VERTEX_ELEMENT_TYPE(VertexFormat, semantic) == RTT_FLOAT ? CVT_Float : CVT_UByte;
+			bool bNormalized = type != CVT_Float;
+			auto format = EVertex::GetFormat(type, VERTEX_ELEMENT_COUNT(VertexFormat, semantic));
+
+			if constexpr (SkipVertexFormat)
+			{
+				desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, semantic) ? EVertex::ATTRIBUTE_UNUSED : attribute, format, bNormalized);
+			}
+			else
+			{
+				desc.addElement(indexStream, attribute, format, bNormalized);
+			}
+		};
+
+		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Position))
+			AddElement(RTS_Position, EVertex::ATTRIBUTE_POSITION);
+		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Color))
+			AddElement(RTS_Color, EVertex::ATTRIBUTE_COLOR);
+		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Normal))
+			AddElement(RTS_Normal, EVertex::ATTRIBUTE_NORMAL);
+		if constexpr (USE_SEMANTIC(VertexFormat, RTS_Texcoord))
+			AddElement(RTS_Texcoord, EVertex::ATTRIBUTE_TEXCOORD);
 	}
 
+	template< uint32 VF, uint32 SEMANTIC >
+	struct TVertexElementOffset
+	{
+		enum
+		{
+			ElementSize = (VERTEX_ELEMENT_TYPE(VF, 0) == RTT_FLOAT) ? sizeof(float) : sizeof(uint8),
+			Result = ElementSize * VERTEX_ELEMENT_COUNT(VF, 0) + TVertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result,
+		};
+	};
+
+	template< uint32 VF >
+	struct TVertexElementOffset< VF, 0 >
+	{
+		enum { Result = 0 };
+	};
 
 	template < uint32 VertexFormat0 , uint32 VertexFormat1 = 0 >
 	class TStaticRenderRTInputLayout : public StaticRHIResourceT< TStaticRenderRTInputLayout< VertexFormat0, VertexFormat1> , RHIInputLayout >
@@ -116,6 +150,28 @@ namespace Render
 			return RHICreateInputLayout(desc);
 		}
 	};
+
+	template < uint32 VertexFormat0, uint32 VertexFormat1 = 0 >
+	class TStaticRenderRTInputLayoutSkip : public StaticRHIResourceT< TStaticRenderRTInputLayoutSkip< VertexFormat0, VertexFormat1>, RHIInputLayout >
+	{
+	public:
+		static RHIInputLayoutRef CreateRHI()
+		{
+			InputLayoutDesc desc;
+			SetupRenderRTInputLayoutDesc< VertexFormat0, VertexFormat1 >(0, desc);
+			return RHICreateInputLayout(desc);
+		}
+	};
+
+	FORCEINLINE void RenderRTVertexFormatTest()
+	{
+		static_assert(VERTEX_ELEMENT_COUNT(RTVF_CA8, RTS_Color) == 4);
+		static_assert(VERTEX_ELEMENT_TYPE(RTVF_CA8, RTS_Color) == RTT_U8N);
+
+		static_assert(TVertexElementOffset< RTVF_CA8, RTS_MAX >::Result == 4);
+		static_assert(TVertexElementOffset< RTVF_XY_CA8, RTS_MAX >::Result == 12);
+		static_assert(TVertexElementOffset< RTVF_XYZ_C8, RTS_MAX >::Result == 15);
+	}
 
 	template < uint32 VertexFormat >
 	class TRenderRT
@@ -172,13 +228,12 @@ namespace Render
 
 		FORCEINLINE static int GetVertexSize()
 		{
-			return (int)VertexElementOffset< VertexFormat , RTS_MAX >::Result;
+			return (int)TVertexElementOffset< VertexFormat , RTS_MAX >::Result;
 		}
 	};
 
-
-#undef VETEX_ELEMENT_OFFSET
-#undef VERTEX_ELEMENT_SIZE
+#undef VERTEX_ELEMENT_TYPE
+#undef VERTEX_ELEMENT_COUNT
 #undef USE_SEMANTIC
 
 

@@ -3,25 +3,25 @@
 
 namespace Mario
 {
-	Block* gBlockMap[ 256 ] = { NULL };
+	Block* GBlockMap[ 256 ] = { NULL };
 
 	float const gTileMargin = 0.001f;
 	//float const gTileMargin = 0;
 
-	void Block::initMap()
+	void Block::InitializeMap()
 	{
 		static Block block;
 		static BlockSlope slope;
-		gBlockMap[ BLOCK_NULL   ] = NULL;
-		gBlockMap[ BLOCK_STATIC ] = &block;
-		gBlockMap[ BLOCK_BRICK  ] = &block;
-		gBlockMap[ BLOCK_SLOPE_21 ] = &slope;
-		gBlockMap[ BLOCK_SLOPE_11 ] = &slope;
+		GBlockMap[ BLOCK_NULL   ] = NULL;
+		GBlockMap[ BLOCK_STATIC ] = &block;
+		GBlockMap[ BLOCK_BRICK  ] = &block;
+		GBlockMap[ BLOCK_SLOPE_21 ] = &slope;
+		GBlockMap[ BLOCK_SLOPE_11 ] = &slope;
 	}
 
-	Block* Block::get( int type )
+	Block* Block::Get( int type )
 	{
-		return gBlockMap[ type ];
+		return GBlockMap[ type ];
 	}
 
 	bool Block::checkCollision( Tile const& tile , Vector2 const& pos , Vector2 const& size )
@@ -165,7 +165,7 @@ namespace Mario
 			pos.x += offset;
 			if ( Tile* tile = getWorld()->testTileCollision( pos , size ) )
 			{
-				Block* block = Block::get( tile->block );
+				Block* block = Block::Get( tile->block );
 				
 				bool haveBlock = true;
 				if ( moveType == eRUN && 0 )
@@ -174,7 +174,7 @@ namespace Mario
 					{
 					case BLOCK_SLOPE_11:
 						{
-							int dir = BlockSlope::getDir( tile->meta );
+							int dir = BlockSlope::GetDir( tile->meta );
 							if ( dir == 0 && offset < 0 )
 							{
 								float factor = 0.5;
@@ -236,7 +236,7 @@ namespace Mario
 			pos.y += offset;
 			if ( Tile* tile = getWorld()->testTileCollision( pos , size ) )
 			{
-				Block* block = Block::get( tile->block );
+				Block* block = Block::Get( tile->block );
 				pos.y = block->calcFixPosY( *tile , pos , size , offset );
 
 				if ( vel.y > 0 )
@@ -281,7 +281,7 @@ namespace Mario
 		case BLOCK_SLOPE_21:
 			break;
 		case BLOCK_SLOPE_11:
-			switch ( getDir( tile.meta ) )
+			switch ( GetDir( tile.meta ) )
 			{
 			case 0:
 				if ( dif.x + dif.y > TileLength )
@@ -311,7 +311,7 @@ namespace Mario
 		case BLOCK_SLOPE_21:
 			break;
 		case BLOCK_SLOPE_11:
-			switch ( getDir( tile.meta ) )
+			switch ( GetDir( tile.meta ) )
 			{
 			case 0:
 				if ( -( dif.x - offset ) + gTileMargin > size.x )
@@ -346,7 +346,7 @@ namespace Mario
 		case BLOCK_SLOPE_21:
 			break;
 		case BLOCK_SLOPE_11:
-			switch ( getDir( tile.meta ) )
+			switch ( GetDir( tile.meta ) )
 			{
 			case 0:
 				if ( -( dif.y - offset ) + gTileMargin > size.y )
@@ -372,8 +372,6 @@ namespace Mario
 	}
 
 
-	
-
 	Tile* World::testTileCollision( Vector2 const& pos , Vector2 const& size )
 	{
 		Vec2i start = Vec2i( int( ( pos.x + gTileMargin )/ TileLength ) , int( ( pos.y + gTileMargin ) / TileLength ) );
@@ -392,7 +390,7 @@ namespace Mario
 				if ( tile.block == BLOCK_NULL )
 					continue;
 
-				Block* block = Block::get( tile.block );
+				Block* block = Block::Get( tile.block );
 
 				if ( !block->checkCollision( tile , pos , size ) )
 					continue;

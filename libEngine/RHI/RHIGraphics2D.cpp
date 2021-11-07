@@ -28,11 +28,11 @@ RHIGraphics2D::RHIGraphics2D()
 	mPaintArgs.penWidth = 1;
 	mPaintArgs.bUseBrush = true;
 	mPaintArgs.bUsePen = true;
-	mPaintArgs.brushColor = Color4f(0, 0, 0, 1);
-	mPaintArgs.penColor = Color4f(0, 0, 0, 1);
+	mPaintArgs.brushColor = Color4Type(0, 0, 0);
+	mPaintArgs.penColor = Color4Type(0, 0, 0);
 
 	mFont = nullptr;
-	mColorFont = Color3f(0, 0, 0);
+	mColorFont = Color4Type(0, 0, 0);
 
 	mRenderStateCommitted.texture = nullptr;
 	mRenderStateCommitted.sampler = nullptr;
@@ -269,7 +269,7 @@ void RHIGraphics2D::emitVertex(Vector2 const& v)
 	mBuffer.push_back(temp);
 }
 
-void RHIGraphics2D::drawPixel(Vector2 const& p, Color3ub const& color)
+void RHIGraphics2D::drawPixel(Vector2 const& p, Color3Type const& color)
 {
 	if (CVarUseBachedRender2D)
 	{
@@ -281,9 +281,9 @@ void RHIGraphics2D::drawPixel(Vector2 const& p, Color3ub const& color)
 	struct Vertex_XY_CA
 	{
 		Math::Vector2 pos;
-		Color4f c;
-	} v = { p , Color4f(color , mPaintArgs.brushColor.a) };
-	TRenderRT<RTVF_XY_CA>::Draw(getCommandList(), EPrimitive::Points, &v, 1);
+		Color4Type c;
+	} v = { p , Color4Type(color , mPaintArgs.brushColor.a) };
+	TRenderRT<RTVF_XY_CA8>::Draw(getCommandList(), EPrimitive::Points, &v, 1);
 }
 
 void RHIGraphics2D::drawRect(int left, int top, int right, int bottom)
@@ -444,14 +444,14 @@ void RHIGraphics2D::drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, V
 	}
 }
 
-void RHIGraphics2D::fillGradientRect(Vector2 const& posLT, Color3ub const& colorLT, Vector2 const& posRB, Color3ub const& colorRB, bool bHGrad)
+void RHIGraphics2D::fillGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
 {
 	setTextureState();
 }
 
-void RHIGraphics2D::setTextColor(Color3ub const& color)
+void RHIGraphics2D::setTextColor(Color3Type const& color)
 {
-	mColorFont = Color4f( Color3f( color ) , mColorFont.a );
+	mColorFont = Color4Type( Color3Type( color ) , mColorFont.a );
 }
 
 void RHIGraphics2D::drawText(Vector2 const& pos, char const* str)
@@ -669,10 +669,10 @@ void RHIGraphics2D::restoreRenderState()
 	setupCommittedRenderState();
 }
 
-void RHIGraphics2D::setPen(Color3ub const& color, int width)
+void RHIGraphics2D::setPen(Color3Type const& color, int width)
 {
 	mPaintArgs.bUsePen = true;
-	mPaintArgs.penColor = Color4f(Color3f(color), mPaintArgs.penColor.a);
+	mPaintArgs.penColor = Color4Type(Color3Type(color), mPaintArgs.penColor.a);
 	if (mPaintArgs.penWidth != width)
 	{
 		if (GRHISystem->getName() == RHISystemName::OpenGL)
@@ -698,7 +698,7 @@ void RHIGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 
 void RHIGraphics2D::setClipRect(Vec2i const& pos, Vec2i const& size)
 {
-	preModifyRenderState();
+	//preModifyRenderState();
 	RHISetScissorRect(getCommandList(), pos.x, mHeight - pos.y - size.y, size.x, size.y);
 }
 

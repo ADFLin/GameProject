@@ -513,7 +513,7 @@ namespace CPP
 		{
 			if (bAllowRedefineMarco)
 			{
-				PARSE_WARNING("Marco %s is defined" , marcoString.c_str() );
+				PARSE_WARNING("Marco %s is defined : %s -> %s" , marcoString.c_str() , iter->second.expr.c_str() ,  marco.expr.c_str() );
 				mMarcoSymbolMap.emplace_hint(iter, marcoString, std::move(marco));
 				++mCurFrame;
 			}

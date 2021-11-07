@@ -83,7 +83,7 @@ namespace Mario
 				switch( tile.block )
 				{
 				case BLOCK_SLOPE_11:
-					if( BlockSlope::getDir(tile.meta) == 0 )
+					if( BlockSlope::GetDir(tile.meta) == 0 )
 					{
 						Vector2 v = tile.pos * TileLength;
 						drawTriangle(g, v, v + Vector2(TileLength, 0), v + Vector2(0, TileLength));
@@ -95,7 +95,7 @@ namespace Mario
 					}
 					break;
 				case BLOCK_SLOPE_21:
-					if( BlockSlope::getDir(tile.meta) == 0 )
+					if( BlockSlope::GetDir(tile.meta) == 0 )
 					{
 						Vector2 v = tile.pos * TileLength;
 						drawTriangle(g, v, v + Vector2(TileLength, 0), v + Vector2(0, TileLength));

@@ -17,6 +17,7 @@
 
 #include "StringParse.h"
 #include "MiscTestRegister.h"
+#include "RHI/ShaderManager.h"
 
 namespace MRT
 {
@@ -846,11 +847,11 @@ namespace Bsp2D
 
 }
 
+#include "RHI/RHICommon.h"
+
 bool RHIGraphics2DTestStage::onInit()
 {
 	VERIFY_RETURN_FALSE(BaseClass::onInit());
-
-	::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
 
 	restart();
 	::Global::GUI().cleanupWidget();
@@ -860,10 +861,28 @@ bool RHIGraphics2DTestStage::onInit()
 
 void RHIGraphics2DTestStage::onRender(float dFrame)
 {
-	GameWindow& window = ::Global::GetDrawEngine().getWindow();
-
+	using namespace Render;
 	RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+	RHICommandList& commandList = g.getCommandList();
+
+	//RHISetFrameBuffer(commandList, nullptr);
+	//RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
+
+
 	g.beginRender();
+
+	float angle = mAngle + mSpeed * dFrame * gDefaultTickTime;
+
+	RenderUtility::SetBrush(g, EColor::White);
+	g.pushXForm();
+	g.translateXForm(300, 300);
+	g.rotateXForm(angle);
+	g.translateXForm(-300, -300);
+	g.setSampler(TStaticSamplerState< ESampler::Trilinear , ESampler::Clamp , ESampler::Clamp >::GetRHI());
+	g.drawTexture(*mTexture, Vector2(0, 0), Vector2(600, 600));
+	g.endRender();
+
+	return;
 
 	g.setPen( Color3ub(255,0,0) );
 	g.enableBrush( false );
@@ -883,7 +902,23 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 	RenderUtility::SetFont( g , FONT_S8 );
 	g.drawText( Vec2i( 10 , 10 ) , "aa");
 
+
 	g.endRender();
+}
+
+bool RHIGraphics2DTestStage::setupRenderSystem(ERenderSystem systemName)
+{
+	using namespace Render;
+	VERIFY_RETURN_FALSE(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/Gird.png", TextureLoadOption().MipLevel(5) ));
+
+	::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
+
+	return true;
+}
+
+void RHIGraphics2DTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
+{
+	mTexture.release();
 }
 
 namespace Meta
@@ -1299,6 +1334,38 @@ void TestCycleQueue()
 REGISTER_MISC_TEST_ENTRY("Class Tree", TestClassTree);
 REGISTER_MISC_TEST_ENTRY("Big Number", TestBigNumber);
 REGISTER_MISC_TEST_ENTRY("Cycle Queue", TestCycleQueue);
+
+struct PBool
+{
+	bool p;
+};
+struct PInt
+{
+	int p;
+};
+
+struct PA1 : PBool
+{
+
+};
+struct PA2 : PBool
+{
+
+};
+struct PDomain : PA1, PA2
+{
+
+};
+void TestMultiInherit()
+{
+
+	PDomain domain;
+
+	static_cast<PA1&>(domain).p = false;
+	static_cast<PA2&>(domain).p = true;
+
+}
+REGISTER_MISC_TEST_ENTRY("Multi Inherit", TestMultiInherit);
 
 bool MiscTestStage::onInit()
 {

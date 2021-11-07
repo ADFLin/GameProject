@@ -88,8 +88,12 @@ namespace Render
 
 	struct ShapePaintArgs
 	{
-		Color4f penColor;
-		Color4f brushColor;
+		using Color4Type = Color4f;
+		using Color3Type = Color3f;
+
+
+		Color4Type penColor;
+		Color4Type brushColor;
 		bool bUsePen;
 		bool bUseBrush;
 		int  penWidth;
@@ -99,6 +103,9 @@ namespace Render
 	class RenderBachedElementList
 	{
 	public:
+		using Color4Type = ShapePaintArgs::Color4Type;
+		using Color3Type = ShapePaintArgs::Color3Type;
+
 		RenderBachedElementList()
 			:mAllocator(2048)
 		{
@@ -142,7 +149,7 @@ namespace Render
 
 		struct TextureRectPayload
 		{
-			Color4f color;
+			Color4Type color;
 			Vector2 min;
 			Vector2 max;
 			Vector2 uvMin;
@@ -151,7 +158,7 @@ namespace Render
 
 		struct LinePayload
 		{
-			Color4f color;
+			Color4Type color;
 			Vector2 p1;
 			Vector2 p2;
 			int     width;
@@ -159,7 +166,7 @@ namespace Render
 
 		struct TextPayload
 		{
-			Color4f color;
+			Color4Type color;
 			std::vector< FontVertex > vertices;
 		};
 
@@ -189,9 +196,9 @@ namespace Render
 
 		RenderBachedElement& addCircle( ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius);
 		RenderBachedElement& addEllipse( ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size);
-		RenderBachedElement& addTextureRect( Color4f const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
-		RenderBachedElement& addLine( Color4f const& color, Vector2 const& p1, Vector2 const& p2, int width);
-		RenderBachedElement& addText( Color4f const& color, std::vector< FontVertex >&& vertices);
+		RenderBachedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
+		RenderBachedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
+		RenderBachedElement& addText(Color4Type const& color, std::vector< FontVertex >&& vertices);
 
 		template< class TPayload >
 		TRenderBachedElement<TPayload>* addElement()
@@ -211,7 +218,15 @@ namespace Render
 	class BatchedRender
 	{
 	public:
+
+		using Color4Type = ShapePaintArgs::Color4Type;
+		using Color3Type = ShapePaintArgs::Color3Type;
+
+
 		BatchedRender();
+
+		void initializeRHI();
+		void releaseRHI();
 		void render(RHICommandList& commandList, RenderBachedElementList& elementList);
 		void flushDrawCommond(RHICommandList& commandList);
 
@@ -222,13 +237,13 @@ namespace Render
 		struct BaseVertex
 		{
 			Vector2  pos;
-			Color4f  color;
+			Color4Type  color;
 		};
 
 		struct TexVertex
 		{
 			Vector2  pos;
-			Color4f  color;
+			Color4Type  color;
 			Vector2 uv;
 		};
 
@@ -251,8 +266,8 @@ namespace Render
 			return &mBaseIndices[index];
 		}
 
-		void emitPolygon(Vector2 v[], int numV, Color4f const& color);
-		void emitPolygonLine(Vector2 v[], int numV, Color4f const& color, int lineWidth);
+		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
+		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
 
 		FORCEINLINE static uint32* FillTriangle(uint32* pIndices, int i0, int i1, int i2)
 		{
@@ -297,6 +312,14 @@ namespace Render
 		std::vector< uint32 >     mBaseIndices;
 
 		std::vector< TexVertex > mTexVerteices;
+
+		RHIVertexBufferRef mBaseVertexBuffer;
+		int numBaseVertices;
+		RHIVertexBufferRef mTexVertexBuffer;
+		int numTexVertices;
+
+		RHIIndexBufferRef mIndexBuffer;
+
 	};
 
 

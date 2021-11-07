@@ -51,7 +51,6 @@ namespace Render
 
 	struct ShaderProgramManagedData : public ShaderManagedDataBase
 	{
-
 		std::vector< ShaderCompileInfo > compileInfos;
 		bool           bShowComplieInfo = false;
 		std::string    sourceFile;
@@ -89,28 +88,36 @@ namespace Render
 		template< class TShaderType >
 		TShaderType* getGlobalShaderT(bool bForceLoad = true)
 		{
-			return static_cast<TShaderType*>( getGlobalShader(TShaderType::GetShaderClass() , bForceLoad) );
+			uint32 permutationId = 0;
+			return static_cast<TShaderType*>( getGlobalShader(TShaderType::GetShaderClass(), permutationId, bForceLoad) );
 		}
 
 		template< class TShaderType >
-		TShaderType* loadGlobalShaderT( ShaderCompileOption& option)
+		TShaderType* getGlobalShaderT(typename TShaderType::PermutationDomain const& domain, bool bForceLoad = true)
 		{
-			return static_cast<TShaderType*>(constructShaderInternal(TShaderType::GetShaderClass(), ShaderClassType::Common , option ));
+			return static_cast<TShaderType*>(getGlobalShader(TShaderType::GetShaderClass(), domain.getPermutationId(), bForceLoad));
+		}
+
+		template< class TShaderType >
+		TShaderType* loadGlobalShaderT(ShaderCompileOption& option)
+		{
+			uint32 permutationId = 0;
+			return static_cast<TShaderType*>(constructShaderInternal(TShaderType::GetShaderClass(), permutationId, option, ShaderClassType::Common));
 		}
 
 		int loadMeshMaterialShaders(MaterialShaderCompileInfo const& info, VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
 
 		MaterialShaderProgram* loadMaterialShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& materialClass );
 
-		CORE_API ShaderObject* getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, bool bForceLoad );
+		CORE_API ShaderObject* getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, bool bForceLoad );
 		CORE_API void cleanupLoadedSource();
 
-		bool registerGlobalShader(GlobalShaderObjectClass& shaderClass);
+		bool registerGlobalShader(GlobalShaderObjectClass& shaderClass, uint32 permutationCount);
 
 		int  loadAllGlobalShaders();
 
-		ShaderObject* constructGlobalShader(GlobalShaderObjectClass const& shaderObjectClass);
-		ShaderObject* constructShaderInternal(GlobalShaderObjectClass const& shaderObjectClass, ShaderClassType classType, ShaderCompileOption& option);
+		ShaderObject* constructGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, ShaderCompileOption& option);
+		ShaderObject* constructShaderInternal(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, ShaderCompileOption& option, ShaderClassType classType);
 
 		void cleanupGlobalShader();
 
@@ -202,12 +209,30 @@ namespace Render
 		ShaderCache* getCache();
 
 		CPP::CodeSourceLibrary* mSourceLibrary = nullptr;
+		struct GlobalShaderEntry
+		{
+			uint32 permutationId;
+			GlobalShaderObjectClass const* shaderClass;
+
+			bool operator == (GlobalShaderEntry const& rhs) const
+			{
+				return permutationId == rhs.permutationId &&
+					shaderClass == rhs.shaderClass;
+			}
+
+			uint32 getTypeHash() const
+			{
+				uint32 result = HashValue(permutationId);
+				HashCombine(result, shaderClass);
+				return result;
+			}
+		};
 #if 1
 		std::unordered_map< ShaderObject*, ShaderManagedDataBase* > mShaderDataMap;
-		std::unordered_map< GlobalShaderObjectClass const*, ShaderObject* > mGlobalShaderMap;
+		std::unordered_map< GlobalShaderEntry, ShaderObject* , MemberFuncHasher > mGlobalShaderMap;
 #else
 		std::map< ShaderObject*, ShaderProgramManagedData* > mShaderDataMap;
-		std::map< GlobalShaderObjectClass const*, GlobalShaderProgram* > mGlobalShaderMap;
+		std::map<GlobalShaderEntry, GlobalShaderProgram* > mGlobalShaderMap;
 #endif
 
 	};

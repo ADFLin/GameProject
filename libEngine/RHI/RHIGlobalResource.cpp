@@ -24,56 +24,20 @@ namespace Render
 		setParam(commandList, mParamXForm, transform);
 	}
 
-	template< bool bHaveVertexColor , bool bHaveTexcoord >
-	class TSimplePipelineProgram : public SimplePipelineProgram
-	{
-	public:
-		DECLARE_EXPORTED_SHADER_PROGRAM(TSimplePipelineProgram, Global, CORE_API)
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
-		{
-			option.addDefine("HAVE_VERTEX_COLOR", bHaveVertexColor);
-			option.addDefine("HAVE_TEXTCOORD", bHaveTexcoord);
-		}
-	};
+	class ShaderCompileOption;
+	struct ShaderEntryInfo;
 
 
 #if CORE_SHARE_CODE
 
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<false, true>));
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<false, false>));
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, true>));
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, COMMA_SEPARATED(TSimplePipelineProgram<true, false>));
-
-	SimplePipelineProgram* GSimpleShaderPipline = nullptr;
-	SimplePipelineProgram* GSimpleShaderPiplineCT = nullptr;
-	SimplePipelineProgram* GSimpleShaderPiplineT = nullptr;
-	SimplePipelineProgram* GSimpleShaderPiplineC = nullptr;
+	IMPLEMENT_SHADER_PROGRAM(SimplePipelineProgram);
 
 	SimplePipelineProgram* SimplePipelineProgram::Get(uint32 attributeMask , bool bHaveTexture)
 	{
-		SimplePipelineProgram* program = GSimpleShaderPipline;
-
-		if (attributeMask & BIT(EVertex::ATTRIBUTE_COLOR))
-		{
-			if (attributeMask & BIT(EVertex::ATTRIBUTE_TEXCOORD) && bHaveTexture )
-			{
-				program = GSimpleShaderPiplineCT;
-			}
-			else
-			{
-				program = GSimpleShaderPiplineC;
-			}
-		}
-		else
-		{
-			if ((attributeMask & BIT(EVertex::ATTRIBUTE_TEXCOORD)) && bHaveTexture)
-			{
-				program = GSimpleShaderPiplineT;
-			}
-		}
-
-		return program;
+		SimplePipelineProgram::PermutationDomain permutationVector;
+		permutationVector.set< SimplePipelineProgram::HaveVertexColor >(attributeMask & BIT(EVertex::ATTRIBUTE_COLOR));
+		permutationVector.set< SimplePipelineProgram::HaveTexcoord >((attributeMask & BIT(EVertex::ATTRIBUTE_TEXCOORD)) && bHaveTexture);
+		return ShaderManager::Get().getGlobalShaderT< SimplePipelineProgram >(permutationVector);
 	}
 
 	TGlobalRenderResource<RHITexture2D>   GDefaultMaterialTexture2D;
@@ -163,11 +127,6 @@ namespace Render
 				SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
 				return false;
 		}
-
-		VERIFY_RETURN_FALSE(GSimpleShaderPipline = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TSimplePipelineProgram<false, false>) >());
-		VERIFY_RETURN_FALSE(GSimpleShaderPiplineCT = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TSimplePipelineProgram<true, true>) >());
-		VERIFY_RETURN_FALSE(GSimpleShaderPiplineC = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TSimplePipelineProgram<true, false>) >());
-		VERIFY_RETURN_FALSE(GSimpleShaderPiplineT = ShaderManager::Get().getGlobalShaderT< COMMA_SEPARATED(TSimplePipelineProgram<false, true>) >());
 		return true;
 	}
 
@@ -216,7 +175,6 @@ namespace Render
 	}
 
 #endif
-
 
 }
 

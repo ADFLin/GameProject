@@ -29,6 +29,15 @@ namespace Render
 	class SimplePipelineProgram : public GlobalShaderProgram
 	{
 	public:
+
+		DECLARE_EXPORTED_SHADER_PROGRAM(SimplePipelineProgram, Global, CORE_API);
+		
+
+		SHADER_PERMUTATION_TYPE_BOOL(HaveVertexColor, "HAVE_VERTEX_COLOR");
+		SHADER_PERMUTATION_TYPE_BOOL(HaveTexcoord, "HAVE_TEXTCOORD");
+		using PermutationDomain = TShaderPermutationDomain<HaveVertexColor, HaveTexcoord>;
+
+
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
 		{
@@ -122,43 +131,32 @@ namespace Render
 		TRefCountPtr< RHIResourceType > mResource;
 	};
 
-	template< class ThisClass , class RHIResource >
+	template< class ThisClass , class RHIResourceType >
 	class StaticRHIResourceT
 	{
 	public:
-		static RHIResource& GetRHI()
+		static RHIResourceType& GetRHI()
 		{
-			static TStaticRenderResource< RHIResource >* sObject = nullptr;
+			static StaticRenderResource* sObject = nullptr;
 			if( sObject == nullptr )
 			{
-				TRACE_RESOURCE_TAG_SCOPE("StaticRHI")
-				sObject = new TStaticRenderResource<RHIResource>();
+				TRACE_RESOURCE_TAG_SCOPE("StaticRHI");
+				sObject = new StaticRenderResource();
 				sObject->restoreRHI();
 			}
 			return sObject->getRHI();
 		}
 	
 	private:
-		template< class RHIResource >
-		class TStaticRenderResource : public GlobalRenderResourceBase
+		class StaticRenderResource : public GlobalRenderResourceBase
 		{
-	
 		public:
+			RHIResourceType& getRHI() { return *mResource; }
+			virtual void restoreRHI(){  mResource = ThisClass::CreateRHI(); }
+			virtual void releaseRHI(){  mResource.release();  }
 	
-			RHIResource& getRHI() { return *mResource; }
-	
-			virtual void restoreRHI()
-			{
-				mResource = ThisClass::CreateRHI();
-			}
-			virtual void releaseRHI()
-			{
-				mResource.release();
-			}
-	
-			TRefCountPtr< RHIResource > mResource;
+			TRefCountPtr< RHIResourceType > mResource;
 		};
-	
 	};
 
 	CORE_API extern TGlobalRenderResource<RHITexture2D>    GDefaultMaterialTexture2D;

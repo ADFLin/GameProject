@@ -3,6 +3,7 @@
 
 #include "GameModule.h"
 #include "GameControl.h"
+#include "GameRenderSetup.h"
 
 #define TETRIS_NAME "Tetris"
 
@@ -17,6 +18,7 @@ namespace Tetris
 	typedef SimpleController MyController;
 
 	class GameModule : public IGameModule
+		             , public IGameRenderSetup
 	{
 	public:
 		GameModule();
@@ -31,6 +33,12 @@ namespace Tetris
 		virtual void    enter();
 		virtual void    exit(); 
 		virtual void    deleteThis(){ delete this; }
+
+		ERenderSystem getDefaultRenderSystem() override;
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
+		bool setupRenderSystem(ERenderSystem systemName) override;
+		void preShutdownRenderSystem(bool bReInit = false) override;
+
 	private:
 		MyController  mController;
 	};

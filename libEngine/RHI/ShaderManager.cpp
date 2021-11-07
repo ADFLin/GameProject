@@ -375,15 +375,19 @@ namespace Render
 		return sInatance;
 	}
 
-	ShaderObject* ShaderManager::getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, bool bForceLoad)
+	ShaderObject* ShaderManager::getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, bool bForceLoad)
 	{
-		ShaderObject* result = mGlobalShaderMap[&shaderObjectClass];
+		GlobalShaderEntry entry;
+		entry.shaderClass = &shaderObjectClass;
+		entry.permutationId = permutationId;
+		ShaderObject* result = mGlobalShaderMap[entry];
 		if( result == nullptr && bForceLoad )
 		{
-			result = constructGlobalShader(shaderObjectClass);
+			ShaderCompileOption option;
+			result = constructGlobalShader(shaderObjectClass, permutationId, option);
 			if( result )
 			{
-				mGlobalShaderMap[&shaderObjectClass] = result;
+				mGlobalShaderMap[entry] = result;
 			}
 		}
 		return result;
@@ -502,7 +506,8 @@ namespace Render
 			info.setup(option);
 
 			option.addMeta("SourceFile", path.c_str());
-			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, ShaderClassType::Material, option );
+			uint32 permutationId = 0;
+			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, permutationId, option, ShaderClassType::Material);
 
 			if( shaderProgram )
 			{
@@ -522,14 +527,20 @@ namespace Render
 		mShaderFormat->setupShaderCompileOption(option);
 		option.addInclude(info.name);
 		info.setup(option);
-
+		uint32 permutationId = 0;
 		option.addMeta("SourceFile", materialPath.c_str());
-		return (MaterialShaderProgram*)constructShaderInternal(materialClass, ShaderClassType::Material, option);
+		return (MaterialShaderProgram*)constructShaderInternal(materialClass, permutationId, option, ShaderClassType::Material);
 	}
 
-	bool ShaderManager::registerGlobalShader(GlobalShaderObjectClass& shaderClass)
+	bool ShaderManager::registerGlobalShader(GlobalShaderObjectClass& shaderClass, uint32 permutationCount)
 	{
-		mGlobalShaderMap.insert({ &shaderClass , nullptr });
+		GlobalShaderEntry entry;
+		entry.shaderClass = &shaderClass;
+		for (uint id = 0; id < permutationCount; ++id)
+		{
+			entry.permutationId = id;
+			mGlobalShaderMap.insert({ entry , nullptr });
+		}
 		return true;
 	}
 
@@ -541,8 +552,10 @@ namespace Render
 			ShaderObject* shaderObject = pair.second;
 			if (shaderObject == nullptr)
 			{
-				shaderObject = constructGlobalShader(*pair.first);
-				mGlobalShaderMap[pair.first] = shaderObject;
+				GlobalShaderEntry const& entry = pair.first;
+				ShaderCompileOption option;
+				shaderObject = constructGlobalShader(*entry.shaderClass, entry.permutationId, option);
+				mGlobalShaderMap[entry] = shaderObject;
 			}
 
 			if( shaderObject == nullptr )
@@ -553,14 +566,13 @@ namespace Render
 		return numFailLoad;
 	}
 
-	ShaderObject* ShaderManager::constructGlobalShader(GlobalShaderObjectClass const& shaderObjectClass)
+	ShaderObject* ShaderManager::constructGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, ShaderCompileOption& option)
 	{
-		ShaderCompileOption option;
 		mShaderFormat->setupShaderCompileOption(option);
-		return constructShaderInternal(shaderObjectClass, ShaderClassType::Global, option );
+		return constructShaderInternal(shaderObjectClass, permutationId, option, ShaderClassType::Global);
 	}
 
-	ShaderObject* ShaderManager::constructShaderInternal(GlobalShaderObjectClass const& shaderObjectClass , ShaderClassType classType , ShaderCompileOption& option )
+	ShaderObject* ShaderManager::constructShaderInternal(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, ShaderCompileOption& option, ShaderClassType classType )
 	{
 		ShaderObject* result = (*shaderObjectClass.CreateShaderObject)();
 		if( result )
@@ -572,8 +584,9 @@ namespace Render
 					GlobalShaderProgram* shaderProgram = static_cast<GlobalShaderProgram*>(result);
 					GlobalShaderProgramClass const& shaderProgramClass = static_cast<GlobalShaderProgramClass const&>(shaderObjectClass);
 					shaderProgram->myClass = &shaderProgramClass;
+					shaderProgram->permutationId = permutationId;
 
-					shaderProgramClass.SetupShaderCompileOption(option);
+					shaderProgramClass.SetupShaderCompileOption(option, permutationId);
 
 					if (!loadInternal(*shaderProgram, 
 						shaderProgramClass.GetShaderFileName(),
@@ -591,8 +604,9 @@ namespace Render
 					GlobalShader* shader = static_cast<GlobalShader*>(result);
 					GlobalShaderClass const& shaderClass = static_cast<GlobalShaderClass const&>(shaderObjectClass);
 					shader->myClass = &shaderClass;
+					shader->permutationId = permutationId;
 
-					shaderClass.SetupShaderCompileOption(option);
+					shaderClass.SetupShaderCompileOption(option, permutationId);
 
 					if (!loadInternal(*shader,
 						shaderClass.GetShaderFileName(),
@@ -804,7 +818,7 @@ namespace Render
 			mShaderFormat->setupShaderCompileOption(option);
 
 			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
-			myClass.SetupShaderCompileOption(option);
+			myClass.SetupShaderCompileOption(option, shaderProgram.permutationId);
 
 			managedData->compileInfos.clear();
 			generateCompileSetup(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
@@ -827,7 +841,7 @@ namespace Render
 			mShaderFormat->setupShaderCompileOption(option);
 
 			GlobalShaderClass const& myClass = *static_cast<GlobalShader&>(shader).myClass;
-			myClass.SetupShaderCompileOption(option);
+			myClass.SetupShaderCompileOption(option, shader.permutationId);
 
 			generateCompileSetup(*managedData, myClass.entry , option, nullptr, myClass.GetShaderFileName());
 		}

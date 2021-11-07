@@ -332,7 +332,7 @@ public:
 	CORE_API ConsoleCommandBase* findCommand(char const* comName);
 
 
-	CORE_API void     insertCommand(ConsoleCommandBase* com);
+	CORE_API bool       insertCommand(ConsoleCommandBase* com);
 
 	bool isInitialized() const { return mbInitialized; }
 
@@ -416,12 +416,15 @@ public:
 	TConsoleVariable(T const& val , char const* name, uint32 flags = 0)
 		:mValue(val)
 	{
-		mCommand = new TVariableConsoleCommad<T>( name, &mValue, flags);
-		ConsoleSystem::Get().insertCommand(mCommand);
+		auto command = new TVariableConsoleCommad<T>( name, &mValue, flags);
+		if (ConsoleSystem::Get().insertCommand(command))
+		{
+			mCommand = command;
+		}
 	}
 	~TConsoleVariable()
 	{
-		if (ConsoleSystem::Get().isInitialized())
+		if (mCommand && ConsoleSystem::Get().isInitialized())
 		{
 			ConsoleSystem::Get().unregisterCommand(mCommand);
 		}
@@ -431,7 +434,7 @@ public:
 	TConsoleVariable operator = ( T const& val ){   mValue = val;   }
 	operator T(){ return mValue; }
 
-	TVariableConsoleCommad<T>* mCommand;
+	TVariableConsoleCommad<T>* mCommand = nullptr;
 	T mValue;
 };
 
@@ -444,18 +447,21 @@ public:
 		typename TVariableConsoleDelegateCommad<T>::SetValueDelegate inSetValue ,
 		char const* name, uint32 flags = 0)
 	{
-		mCommand = new TVariableConsoleDelegateCommad<T>(name, inGetValue , inSetValue , flags);
-		ConsoleSystem::Get().insertCommand(mCommand);
+		auto command = new TVariableConsoleDelegateCommad<T>(name, inGetValue, inSetValue, flags);
+		if (ConsoleSystem::Get().insertCommand(command))
+		{
+			mCommand = command;
+		}
 	}
 	~TConsoleVariableDelegate()
 	{
-		if (ConsoleSystem::Get().isInitialized())
+		if (mCommand && ConsoleSystem::Get().isInitialized())
 		{
 			ConsoleSystem::Get().unregisterCommand(mCommand);
 		}
 	}
 
-	TVariableConsoleDelegateCommad<T>* mCommand;
+	TVariableConsoleDelegateCommad<T>* mCommand = nullptr;
 };
 
 template< class T >
@@ -465,12 +471,15 @@ public:
 	TConsoleVariableRef(T& val, char const* name, uint32 flags = 0)
 		:mValueRef(val)
 	{
-		mCommand = new TVariableConsoleCommad<T>(name, &mValueRef, flags);
-		ConsoleSystem::Get().insertCommand(mCommand);
+		auto command = new TVariableConsoleCommad<T>(name, &mValueRef, flags);
+		if (ConsoleSystem::Get().insertCommand(command))
+		{
+			mCommand = command;
+		}
 	}
 	~TConsoleVariableRef()
 	{
-		if (ConsoleSystem::Get().isInitialized())
+		if (mCommand && ConsoleSystem::Get().isInitialized())
 		{
 			ConsoleSystem::Get().unregisterCommand(mCommand);
 		}
@@ -480,7 +489,7 @@ public:
 	TConsoleVariableRef& operator = (T const& val) { mValueRef = val; return *this; }
 	operator T() { return mValueRef; }
 
-	TVariableConsoleCommad<T>* mCommand;
+	TVariableConsoleCommad<T>* mCommand = nullptr;
 	T& mValueRef;
 };
 

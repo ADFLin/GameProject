@@ -190,6 +190,11 @@ namespace Render
 	class SplineProgram : public GlobalShaderProgram
 	{
 	public:
+		DECLARE_SHADER_PROGRAM(SplineProgram, Global);
+
+		SHADER_PERMUTATION_TYPE_INT(SplineType , SHADER_PARAM(SPLINE_TYPE), 0 , 1);
+		using PermutationDomain = TShaderPermutationDomain< SplineType >;
+
 		using BaseClass = GlobalShaderProgram;
 
 		static bool constexpr UseTesselation = true;
@@ -230,27 +235,16 @@ namespace Render
 			};
 			return entries;
 		}
-	};
 
-	template< int SplineType >
-	class TSplineProgram : public SplineProgram
-	{
-	public:
-		DECLARE_SHADER_PROGRAM(TSplineProgram, Global);
-		using BaseClass = SplineProgram;
-
-		static bool constexpr UseTesselation = true;
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
 			option.addDefine(SHADER_PARAM(USE_TESSELLATION), UseTesselation);
-			option.addDefine(SHADER_PARAM(SPLINE_TYPE), SplineType);
 		}
 	};
 
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<0>);
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<1>);
+	IMPLEMENT_SHADER_PROGRAM(SplineProgram);
 
 	template< bool bEnable >
 	class TTessellationProgram : public GlobalShaderProgram
@@ -581,7 +575,6 @@ namespace Render
 		int TessFactor3 = 1;
 		float mDispFactor = 1.0;
 
-		SplineProgram* mProgSplines[2];
 		int mSplineType = 0;
 
 		bool bUseTessellation = true;
@@ -593,9 +586,6 @@ namespace Render
 
 			VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 			VERIFY_RETURN_FALSE(GPUParticleData::initialize());
-			
-			VERIFY_RETURN_FALSE(mProgSplines[0] = ShaderManager::Get().getGlobalShaderT< TSplineProgram<0> >(true));
-			VERIFY_RETURN_FALSE(mProgSplines[1] = ShaderManager::Get().getGlobalShaderT< TSplineProgram<1> >(true));
 
 			VERIFY_RETURN_FALSE(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/star.png"));
 			VERIFY_RETURN_FALSE(mBaseTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones.bmp"));
@@ -793,7 +783,9 @@ namespace Render
 					0,0,1,2, 0,1,2,3, 1,2,3,3
 				};
 
-				SplineProgram* progSpline = mProgSplines[mSplineType];
+				SplineProgram::PermutationDomain permutationVector;
+				permutationVector.set<SplineProgram::SplineType>(mSplineType);
+				SplineProgram* progSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(permutationVector);
 				RHISetShaderProgram(commandList, progSpline->getRHIResource());
 				progSpline->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI(OrthoMatrix(0, width, 0, height, -100, 100) ));
 				progSpline->setParam(commandList, SHADER_PARAM(TessFactor), TessFactor1);

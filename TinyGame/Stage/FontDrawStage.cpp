@@ -166,6 +166,30 @@ public:
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
+
+		{
+			struct Vertex_XY_C
+			{
+				Vector2 pos;
+				Color4ub color;
+			};
+
+			Vertex_XY_C vetices[] =
+			{
+				{ Vector2(0,0) , Color4f(1,0,0) },
+				{ Vector2(100,0) , Color4f(0,1,0) },
+				{ Vector2(100,100) , Color4f(1,1,1) },
+				{ Vector2(0,100) , Color4f(0,0,1) },
+			};
+
+			g.beginRender();
+			g.comitRenderState();
+			TRenderRT< RTVF_XY_CA8 >::Draw(commandList, EPrimitive::Quad, vetices, 4);
+			g.endRender();
+		}
+
+		return;
+
 		DrawUtility::DrawTexture(commandList, g.getBaseTransform(), mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
 
 		g.beginRender();

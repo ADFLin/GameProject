@@ -59,8 +59,8 @@ namespace Mario
 		
 		virtual bool  update( Tile& tile , World& world ){ return false; }
 
-		static void   initMap();
-		static Block* get( int type );
+		static void   InitializeMap();
+		static Block* Get( int type );
 	};
 
 
@@ -72,7 +72,7 @@ namespace Mario
 		virtual float calcFixPosX(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
 		virtual float calcFixPosY(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
 
-		static int  getDir( int meta )
+		static int  GetDir( int meta )
 		{
 			return int( meta & 0xf );
 		}
@@ -134,15 +134,16 @@ namespace Mario
 
 		void resetTile()
 		{
-			for( int i = 0 ; i < mTileMap.getSizeX() ; ++i )
-			for( int j = 0 ; j < mTileMap.getSizeY() ; ++j )
+			for (int j = 0; j < mTileMap.getSizeY(); ++j)
 			{
-				Tile& tile = mTileMap.getData( i , j );
+				for (int i = 0; i < mTileMap.getSizeX(); ++i)
+				{
+					Tile& tile = mTileMap.getData(i, j);
 
-				tile.pos   = Vec2i( i , j );
-				tile.block = BLOCK_NULL;
-				tile.meta  = 0;
-
+					tile.pos = Vec2i(i, j);
+					tile.block = BLOCK_NULL;
+					tile.meta = 0;
+				}
 			}
 		}
 
@@ -188,9 +189,9 @@ namespace Mario
 		bool     onGround;
 		unsigned button;
 		MoveType moveType;
-		Vector2    vel;
-		Vector2    pos;
-		Vector2    size;
+		Vector2  vel;
+		Vector2  pos;
+		Vector2  size;
 		World*   world;
 	};
 

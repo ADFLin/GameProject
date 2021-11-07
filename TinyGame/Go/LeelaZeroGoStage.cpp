@@ -164,6 +164,11 @@ namespace Go
 	class SplineProgram : public GlobalShaderProgram
 	{
 	public:
+		DECLARE_SHADER_PROGRAM(SplineProgram, Global);
+
+		SHADER_PERMUTATION_TYPE_INT(SplineType, SHADER_PARAM(SPLINE_TYPE), 0 , 1);
+		using PermutationDomain = TShaderPermutationDomain<SplineType>;
+
 		using BaseClass = GlobalShaderProgram;
 
 		static bool constexpr UseTessellation = true;
@@ -204,27 +209,15 @@ namespace Go
 			};
 			return entries;
 		}
-	};
-
-	template< int SplineType >
-	class TSplineProgram : public SplineProgram
-	{
-	public:
-		DECLARE_SHADER_PROGRAM(TSplineProgram, Global);
-		using BaseClass = SplineProgram;
-
-		static bool constexpr UseTessellation = true;
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
 			option.addDefine(SHADER_PARAM(USE_TESSELLATION), UseTessellation);
-			option.addDefine(SHADER_PARAM(SPLINE_TYPE), SplineType);
 		}
 	};
 
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<0>);
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, TSplineProgram<1>);
+	IMPLEMENT_SHADER_PROGRAM(SplineProgram);
 
 	bool DumpFunSymbol( char const* path , char const* outPath )
 	{
@@ -1178,7 +1171,10 @@ namespace Go
 
 					if (CVarUseSpline)
 					{
-						SplineProgram* progSpline = ShaderManager::Get().getGlobalShaderT< TSplineProgram<true> >();
+						SplineProgram::PermutationDomain permutationVector;
+						permutationVector.set< SplineProgram::SplineType >(1);
+
+						SplineProgram* progSpline = ShaderManager::Get().getGlobalShaderT<SplineProgram>(permutationVector);
 						RHISetShaderProgram(commandList, progSpline->getRHIResource());
 						progSpline->setParam(commandList, SHADER_PARAM(XForm), matProj);
 						progSpline->setParam(commandList, SHADER_PARAM(TessFactor), 32);

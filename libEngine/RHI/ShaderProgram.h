@@ -25,6 +25,7 @@ namespace Render
 		virtual ~ShaderObject(){}
 
 		std::string  shaderName;
+		uint32       permutationId = 0;
 	};
 
 	template< class RHIResourceType >

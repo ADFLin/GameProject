@@ -36,6 +36,9 @@ public:
 	using RHITexture2D = Render::RHITexture2D;
 	using RHISamplerState = Render::RHISamplerState;
 
+	using Color4Type = Render::ShapePaintArgs::Color4Type;
+	using Color3Type = Render::ShapePaintArgs::Color3Type;
+
 	void  init(int w, int h);
 	void  beginXForm();
 	void  finishXForm();
@@ -58,19 +61,18 @@ public:
 
 	void  enablePen(bool beE) { mPaintArgs.bUsePen = beE; }
 	void  enableBrush(bool beE) { mPaintArgs.bUseBrush = beE; }
-
-	void  setPen(Color3f const& color)
+	void  setPen(Color3Type const& color)
 	{
 		mPaintArgs.bUsePen = true;
-		mPaintArgs.penColor = Color4f(color, mPaintArgs.penColor.a);
+		mPaintArgs.penColor = Color4Type(color, mPaintArgs.penColor.a);
 	}
-	void  setPen(Color3ub const& color, int width);
+	void  setPen(Color3Type const& color, int width);
 	void  setPenWidth(int width);
 
-	void  setBrush(Color3f const& color)
+	void  setBrush(Color3Type const& color)
 	{
 		mPaintArgs.bUseBrush = true;
-		mPaintArgs.brushColor = Color4f(color,mPaintArgs.brushColor.a);
+		mPaintArgs.brushColor = Color4Type(color,mPaintArgs.brushColor.a);
 	}
 
 	void  beginClip(Vec2i const& pos, Vec2i const& size);
@@ -83,16 +85,26 @@ public:
 	void  setBlendState(ESimpleBlendMode mode);
 	void  setBlendAlpha(float value)
 	{ 
-		mPaintArgs.brushColor.a = value;
-		mPaintArgs.penColor.a = value;
-		mColorFont.a = value; 
+		if constexpr (Meta::IsSameType< Color4Type, Color4f >::Value)
+		{
+			mPaintArgs.brushColor.a = value;
+			mPaintArgs.penColor.a = value;
+			mColorFont.a = value;
+		}
+		else
+		{
+			uint8 byteValue = uint32(value * 255) & 0xff;
+			mPaintArgs.brushColor.a = byteValue;
+			mPaintArgs.penColor.a = byteValue;
+			mColorFont.a = byteValue;
+		}
 	}
 	void  enableMultisample(bool bEnabled)
 	{
 		mRenderStatePending.bEnableMultiSample = bEnabled;
 	}
 
-	void  drawPixel(Vector2 const& p, Color3ub const& color);
+	void  drawPixel(Vector2 const& p, Color3Type const& color);
 	void  drawLine(Vector2 const& p1, Vector2 const& p2);
 
 	void  drawRect(int left, int top, int right, int bottom);
@@ -103,8 +115,8 @@ public:
 	void  drawPolygon(Vec2i pos[], int num);
 	void  drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize);
 
-	void  fillGradientRect(Vector2 const& posLT, Color3ub const& colorLT,
-		Vector2 const& posRB, Color3ub const& colorRB, bool bHGrad);
+	void  fillGradientRect(Vector2 const& posLT, Color3Type const& colorLT,
+		Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
 
 	void  setTexture(RHITexture2D& texture);
@@ -127,7 +139,7 @@ public:
 	{
 		mFont = &font;
 	}
-	void  setTextColor(Color3ub const& color);
+	void  setTextColor(Color3Type const& color);
 	void  drawText(Vector2 const& pos, char const* str);
 	void  drawText(Vector2 const& pos, wchar_t const* str);
 	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip = false);
@@ -206,7 +218,7 @@ private:
 	int       mWidth;
 	int       mHeight;
 
-	Color4f   mColorFont;
+	Color4Type   mColorFont;
 
 	Render::FontDrawer*   mFont;
 	std::vector< Vector2 >  mBuffer;

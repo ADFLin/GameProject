@@ -12,10 +12,11 @@
 #include "Core/StringConv.h"
 #include "CoreShare.h"
 #include "TemplateMisc.h"
-
+#include "CompilerConfig.h"
 #include <vector>
 
-#define USE_RHI_RESOURCE_TRACE 1
+
+#define USE_RHI_RESOURCE_TRACE 0
 
 #if USE_RHI_RESOURCE_TRACE
 #define TRACE_TYPE_NAME(str) str
@@ -667,12 +668,14 @@ namespace Render
 			:mElements(std::move(other.mElements))
 		{
 			std::copy(other.mVertexSizes, other.mVertexSizes + MAX_INPUT_STREAM_NUM, mVertexSizes);
+			std::fill_n(other.mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 		}
 
 		InputLayoutDesc& operator = (InputLayoutDesc&& other)
 		{
 			mElements = std::move(other.mElements);
 			std::copy(other.mVertexSizes, other.mVertexSizes + MAX_INPUT_STREAM_NUM, mVertexSizes);
+			std::fill_n(other.mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 			return *this;
 		}
 

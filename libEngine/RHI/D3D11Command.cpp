@@ -224,8 +224,16 @@ namespace Render
 		DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
 		swapChainDesc.OutputWindow = info.windowHandle;
 		swapChainDesc.Windowed = info.bWindowed;
+
+		UINT quality = 0;
+		if (info.numSamples > 1)
+		{
+			hr = mDevice->CheckMultisampleQualityLevels(D3D11Translate::To(info.colorForamt), info.numSamples, &quality);
+			quality = quality - 1;
+		}
+
 		swapChainDesc.SampleDesc.Count = info.numSamples;
-		swapChainDesc.SampleDesc.Quality = 0;
+		swapChainDesc.SampleDesc.Quality = quality;
 		swapChainDesc.BufferDesc.Format = D3D11Translate::To(info.colorForamt);
 		swapChainDesc.BufferDesc.Width = info.extent.x;
 		swapChainDesc.BufferDesc.Height = info.extent.y;
@@ -472,7 +480,6 @@ namespace Render
 
 	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
-
 		InputLayoutKey key(desc);
 		auto iter = mInputLayoutMap.find(key);
 		if( iter != mInputLayoutMap.end() )
@@ -576,7 +583,7 @@ namespace Render
 		desc.DepthClipEnable = FALSE;
 		desc.ScissorEnable = initializer.bEnableScissor;
 		desc.MultisampleEnable = initializer.bEnableMultisample;
-		desc.AntialiasedLineEnable = FALSE;
+		desc.AntialiasedLineEnable = initializer.bEnableMultisample;
 
 		TComPtr<ID3D11RasterizerState> stateResource;
 		VERIFY_D3D_RESULT(mDevice->CreateRasterizerState(&desc, &stateResource) , );
@@ -776,8 +783,14 @@ namespace Render
 		desc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
 		SetupTextureDesc(desc, creationFlags);
 
+		HRESULT hr;
+		UINT maxQuality = 0;
+		if (numSamples > 1 && !bDepth)
+		{
+			hr = mDevice->CheckMultisampleQualityLevels(format, numSamples, &maxQuality);
+		}
 		desc.SampleDesc.Count = numSamples;
-		desc.SampleDesc.Quality = 0;
+		desc.SampleDesc.Quality = maxQuality;
 
 		if (creationFlags & TCF_CreateSRV)
 		{
@@ -1115,7 +1128,7 @@ namespace Render
 				if( mask & BIT(index) )
 				{
 					mask &= ~BIT(index);
-					switch( TypeValue )
+					switch ( TypeValue )
 					{
 					case EShader::Vertex:   context->VSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
 					case EShader::Pixel:    context->PSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
@@ -1145,7 +1158,7 @@ namespace Render
 				if( mask & BIT(index) )
 				{
 					mask &= ~BIT(index);
-					switch( TypeValue )
+					switch ( TypeValue )
 					{
 					case EShader::Vertex:   context->VSSetSamplers(index, 1, mBoundedSamplers + index); break;
 					case EShader::Pixel:    context->PSSetSamplers(index, 1, mBoundedSamplers + index); break;
@@ -1169,7 +1182,7 @@ namespace Render
 				mBoundedConstBuffers[index] = nullptr;
 				ID3D11Buffer* emptyBuffer = nullptr;
 
-				switch (TypeValue)
+				switch constexpr (TypeValue)
 				{
 				case EShader::Vertex:   context->VSSetConstantBuffers(index, 1, &emptyBuffer); break;
 				case EShader::Pixel:    context->PSSetConstantBuffers(index, 1, &emptyBuffer); break;
@@ -1766,7 +1779,6 @@ namespace Render
 				offsets[i] = inputStreams[i].offset;
 				strides[i] = inputStreams[i].stride >= 0 ? inputStreams[i].stride : inputStreams[i].buffer->getElementSize();
 			}
-
 		}
 
 		mInputLayout = inputLayout;

@@ -63,6 +63,8 @@ public:
 	virtual void  rotateXForm(float angle) = 0;
 	virtual void  scaleXForm(float sx, float sy) = 0;
 
+	virtual bool  isUseRHI() const = 0;
+
 	void  drawRect(int left, int top, int right, int bottom)
 	{
 		drawRect(Vector2(left, top), Vector2(right - left, bottom - right));

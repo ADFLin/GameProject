@@ -1,3 +1,5 @@
+#include "Common.sgc"
+
 #ifndef ATTRIBUTE_SHOW_TEXCOORD
 #define ATTRIBUTE_SHOW_TEXCOORD ATTRIBUTE_TEXCOORD
 #endif
@@ -33,8 +35,8 @@ PS_ENTRY_END(MainPS)
 {
 	OutColor = float4(1,1,1, 1);
 
-	if (OutputVS.uv.x < 0 || OutputVS.uv.y < 0 ||
-		OutputVS.uv.x > 1 || OutputVS.uv.y > 1)
+	if (OutputVS.uv.x <= 0 || OutputVS.uv.y <= 0 ||
+		OutputVS.uv.x >= 1 || OutputVS.uv.y >= 1)
 	{
 		OutColor = float4(1, 0, 0, 1);
 	}

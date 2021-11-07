@@ -32,6 +32,8 @@
 #include "Renderer/BasePassRendering.cpp"
 #include "Renderer/ShadowDepthRendering.cpp"
 #include "Renderer/RenderTargetPool.cpp"
+#include "Renderer/BatchedRender2D.cpp"
+
 #endif
 
 #define EXPORT_FUN(funcc) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &func;

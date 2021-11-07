@@ -1,10 +1,19 @@
 #include "BatchedRender2D.h"
 #include "RHI/DrawUtility.h"
+#include "ConsoleSystem.h"
+#include "CoreShare.h"
 
 //#TODO : Heap Corrupted when show console frame draw Round Rect
 
 namespace Render
 {
+	constexpr int MaxBaseVerticesCount = 2048;
+	constexpr int MaxTexVerticesCount = 2048;
+	constexpr int MaxIndicesCount = 2048 * 3;
+
+#if CORE_SHARE_CODE
+	CORE_API TConsoleVariable< bool > CVarUseBufferResource{ false , "g.BatchedRenderUseBuffer", CVF_TOGGLEABLE };
+#endif
 
 	void ShapeVertexBuilder::buildRect(Vector2 const& p1, Vector2 const& p2)
 	{
@@ -195,7 +204,7 @@ namespace Render
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addTextureRect(Color4f const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax)
+	RenderBachedElement& RenderBachedElementList::addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax)
 	{
 		TRenderBachedElement<TextureRectPayload>* element = addElement< TextureRectPayload >();
 		element->type = RenderBachedElement::TextureRect;
@@ -207,7 +216,7 @@ namespace Render
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addLine(Color4f const& color, Vector2 const& p1, Vector2 const& p2, int width)
+	RenderBachedElement& RenderBachedElementList::addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width)
 	{
 		TRenderBachedElement<LinePayload>* element = addElement< LinePayload >();
 		element->type = RenderBachedElement::Line;
@@ -218,7 +227,7 @@ namespace Render
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addText( Color4f const& color, std::vector< FontVertex >&& vertices)
+	RenderBachedElement& RenderBachedElementList::addText(Color4Type const& color, std::vector< FontVertex >&& vertices)
 	{
 		TRenderBachedElement<TextPayload>* element = addElement< TextPayload >();
 		element->type = RenderBachedElement::Text;
@@ -270,6 +279,20 @@ namespace Render
 		mBaseVertices.reserve(1024);
 		mBaseIndices.reserve(1024 * 3);
 		mTexVerteices.reserve(1024);
+	}
+
+	void BatchedRender::initializeRHI()
+	{
+		mBaseVertexBuffer = RHICreateVertexBuffer(sizeof(BaseVertex), MaxBaseVerticesCount, BCF_CpuAccessWrite | BCF_DefalutValue, nullptr);
+		mTexVertexBuffer = RHICreateVertexBuffer(sizeof(TexVertex), MaxTexVerticesCount, BCF_CpuAccessWrite | BCF_DefalutValue, nullptr);
+		mIndexBuffer = RHICreateIndexBuffer(MaxIndicesCount, true, BCF_CpuAccessWrite);
+	}
+
+	void BatchedRender::releaseRHI()
+	{
+		mBaseVertexBuffer.release();
+		mTexVertexBuffer.release();
+		mIndexBuffer.release();
 	}
 
 	void BatchedRender::render(RHICommandList& commandList, RenderBachedElementList& elementList)
@@ -325,9 +348,8 @@ namespace Render
 			case RenderBachedElement::TextureRect:
 				{
 					RenderBachedElementList::TextureRectPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::TextureRectPayload >(element);
-					int baseIndex = mTexVerteices.size();
-					mTexVerteices.resize(baseIndex + 4);
-					TexVertex* pVertices = &mTexVerteices[baseIndex];
+					int baseIndex;
+					TexVertex* pVertices = fetchTexBuffer(4, baseIndex);
 					pVertices[0] = { element->transform.transformPosition(payload.min) , payload.color , payload.uvMin };
 					pVertices[1] = { element->transform.transformPosition(Vector2(payload.min.x, payload.max.y)), payload.color , Vector2(payload.uvMin.x , payload.uvMax.y) };
 					pVertices[2] = { element->transform.transformPosition(payload.max), payload.color , payload.uvMax };
@@ -418,21 +440,39 @@ namespace Render
 	void BatchedRender::flushDrawCommond(RHICommandList& commandList)
 	{
 		//CHECK(mTexVerteices.size() || mBaseVertices.size());
-		if (!mBaseVertices.empty())
+		if constexpr ( Meta::IsSameType< Color4Type , Color4f >::Value )
 		{
-			TRenderRT< RTVF_XY_CA >::DrawIndexed(commandList, EPrimitive::TriangleList, mBaseVertices.data(), mBaseVertices.size(), mBaseIndices.data(), mBaseIndices.size());
-			mBaseVertices.clear();
-			mBaseIndices.clear();
+			if (!mBaseVertices.empty())
+			{
+				TRenderRT< RTVF_XY_CA >::DrawIndexed(commandList, EPrimitive::TriangleList, mBaseVertices.data(), mBaseVertices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mBaseVertices.clear();
+				mBaseIndices.clear();
+			}
+			else if (!mTexVerteices.empty())
+			{
+				TRenderRT< RTVF_XY_CA_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, mTexVerteices.data(), mTexVerteices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mTexVerteices.clear();
+				mBaseIndices.clear();
+			}
 		}
-		else if (!mTexVerteices.empty())
+		else
 		{
-			TRenderRT< RTVF_XY_CA_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, mTexVerteices.data(), mTexVerteices.size(), mBaseIndices.data(), mBaseIndices.size());
-			mTexVerteices.clear();
-			mBaseIndices.clear();
+			if (!mBaseVertices.empty())
+			{
+				TRenderRT< RTVF_XY_CA8 >::DrawIndexed(commandList, EPrimitive::TriangleList, mBaseVertices.data(), mBaseVertices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mBaseVertices.clear();
+				mBaseIndices.clear();
+			}
+			else if (!mTexVerteices.empty())
+			{
+				TRenderRT< RTVF_XY_CA8_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, mTexVerteices.data(), mTexVerteices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mTexVerteices.clear();
+				mBaseIndices.clear();
+			}
 		}
 	}
 
-	void BatchedRender::emitPolygon(Vector2 v[], int numV, Color4f const& color)
+	void BatchedRender::emitPolygon(Vector2 v[], int numV, Color4Type const& color)
 	{
 		assert(numV > 2);
 		int baseIndex;
@@ -503,7 +543,7 @@ namespace Render
 		}
 	}
 
-	void BatchedRender::emitPolygonLine(Vector2 v[], int numV, Color4f const& color, int lineWidth)
+	void BatchedRender::emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth)
 	{
 		float halfWidth = 0.5 * float(lineWidth);
 #if 1

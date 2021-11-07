@@ -140,8 +140,8 @@ protected:
 	void           postStageEnd(StageBase* stage);
 	//~StageManager
 
-	void  exportUserProfile();
 	void  importUserProfile();
+	void  exportUserProfile();
 
 public: 
 	//GameLoop
@@ -178,8 +178,6 @@ private:
 	NetWorker*         mNetWorker;
 	bool               mShowErrorMsg;
 	FPSCalculator      mFPSCalc;
-
-	IGameRenderSetup*  mRenderSetup;
 
 	enum class ConsoleShowMode
 	{

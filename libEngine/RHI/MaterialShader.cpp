@@ -11,7 +11,7 @@ namespace Render
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption, 
 		GetShaderFileNameFunc inGetShaderFileName, 
 		GetShaderEntriesFunc inGetShaderEntries)
-		:GlobalShaderProgramClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName, inGetShaderEntries)
+		:GlobalShaderProgramClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName, inGetShaderEntries, 1)
 	{
 		ClassList.push_back(this);
 	}
@@ -31,11 +31,12 @@ namespace Render
 		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption,
 		GetShaderFileNameFunc inGetShaderFileName,
-		GetShaderEntriesFunc inGetShaderEntries)
+		GetShaderEntriesFunc inGetShaderEntries,
+		uint32 inPermutationCount)
 		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName)
 		, GetShaderEntries(inGetShaderEntries)
 	{
-		ShaderManager::Get().registerGlobalShader(*this);
+		ShaderManager::Get().registerGlobalShader(*this, inPermutationCount);
 	}
 
 
@@ -43,11 +44,12 @@ namespace Render
 		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption, 
 		GetShaderFileNameFunc inGetShaderFileName,
-		ShaderEntryInfo inEntry)
+		ShaderEntryInfo inEntry,
+		uint32 inPermutationCount)
 		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName)
 		, entry(inEntry)
 	{
-		ShaderManager::Get().registerGlobalShader(*this);
+		ShaderManager::Get().registerGlobalShader(*this, inPermutationCount);
 	}
 
 #endif //CORE_SHARE_CODE

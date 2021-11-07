@@ -38,13 +38,11 @@ namespace Render
 		static bool GetProgramBinary(GLuint handle, std::vector<uint8>& outBinary);
 	};
 
-
 	struct RMPShaderProgram
 	{
 		static void Create(GLuint& handle) { handle = glCreateProgram(); }
 		static void Destroy(GLuint& handle) { glDeleteProgram(handle); }
 	};
-
 
 	class OpenGLShader : public TOpenGLResource< RHIShader , RMPShaderProgram >
 	{

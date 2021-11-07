@@ -20,7 +20,7 @@ namespace Mario
 		{
 			::Global::GUI().cleanupWidget();
 
-			Block::initMap();
+			Block::InitializeMap();
 
 			restart();
 			return true;

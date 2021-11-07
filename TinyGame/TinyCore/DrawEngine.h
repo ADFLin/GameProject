@@ -45,6 +45,13 @@ public:
 	TINY_API void  changeScreenSize( int w , int h );
 	TINY_API void  update(long deltaTime);
 
+	TINY_API bool setupSystem(IGameRenderSetup* renderSetup);
+	TINY_API bool resetupSystem(ERenderSystem systemName);
+
+	IGameRenderSetup* getRenderSetup() { return mRenderSetup; }
+
+	bool setupSystemInternal(ERenderSystem systemName);
+
 	Vec2i          getScreenSize(){ return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() ); }
 	int            getScreenWidth(){ return mBufferDC.getWidth(); }
 	int            getScreenHeight(){ return mBufferDC.getHeight(); }
@@ -83,10 +90,14 @@ private:
 	bool        bRHIShutdownDeferred;
 	bool        bHasUseRHI = false;
 	
+	IGameRenderSetup* mRenderSetup = nullptr;
 	IGameWindowProvider* mWindowProvider = nullptr;
 	GameWindow* mGameWindow;
 	BitmapDC    mBufferDC;
 	std::unique_ptr< Graphics2D > mPlatformGraphics;
+
+	std::unique_ptr< IGraphics2D > mPlatformProxy;
+	std::unique_ptr< IGraphics2D > mRHIProxy;
 
 	ERenderSystem mSystemName = ERenderSystem::None;
 	WindowsGLContext*  mGLContext = nullptr;

@@ -1,5 +1,5 @@
 #include "Common.sgc"
-#include "VertexFactoryProcess.sgc"
+//#include "VertexFactoryProcess.sgc"
 
 #include "ViewParam.sgc"
 #include "PrimitiveParam.sgc"

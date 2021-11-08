@@ -366,8 +366,8 @@ namespace Render
 		"TASK_SHADER" ,
 		"MESH_SHADER" ,
 	};
-#if CORE_SHARE_CODE
 
+#if CORE_SHARE_CODE
 
 	ShaderManager& ShaderManager::Get()
 	{
@@ -491,6 +491,7 @@ namespace Render
 
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
 		{
+			//#REMOVE
 			//if (GRHISystem->getName() == RHISytemName::D3D11)
 			{
 				if ( pShaderClass != &DeferredBasePassProgram::GetShaderClass() 
@@ -584,19 +585,21 @@ namespace Render
 					GlobalShaderProgram* shaderProgram = static_cast<GlobalShaderProgram*>(result);
 					GlobalShaderProgramClass const& shaderProgramClass = static_cast<GlobalShaderProgramClass const&>(shaderObjectClass);
 					shaderProgram->myClass = &shaderProgramClass;
-					shaderProgram->permutationId = permutationId;
-
 					shaderProgramClass.SetupShaderCompileOption(option, permutationId);
 
-					if (!loadInternal(*shaderProgram, 
-						shaderProgramClass.GetShaderFileName(),
-						shaderProgramClass.GetShaderEntries(),
-						option, nullptr, true, classType))
+					ShaderProgramManagedData* mamagedData = loadInternal(
+						*shaderProgram, shaderProgramClass.GetShaderFileName(),
+						shaderProgramClass.GetShaderEntries(), option,
+						nullptr, true, classType);
+
+					if (mamagedData == nullptr)
 					{
 						LogWarning(0, "Can't Load Shader %s", shaderProgramClass.GetShaderFileName());
 						delete result;
 						result = nullptr;
 					}
+
+					mamagedData->permutationId = permutationId;
 				}
 				break;
 			case EShaderObjectType::Shader:
@@ -604,20 +607,20 @@ namespace Render
 					GlobalShader* shader = static_cast<GlobalShader*>(result);
 					GlobalShaderClass const& shaderClass = static_cast<GlobalShaderClass const&>(shaderObjectClass);
 					shader->myClass = &shaderClass;
-					shader->permutationId = permutationId;
 
 					shaderClass.SetupShaderCompileOption(option, permutationId);
 
-					if (!loadInternal(*shader,
-						shaderClass.GetShaderFileName(),
-						shaderClass.entry,
-						option, nullptr, classType))
+					ShaderManagedData* mamagedData = loadInternal(
+						*shader, shaderClass.GetShaderFileName(), shaderClass.entry, option, nullptr, classType);
+
+					if ( mamagedData == nullptr )
 					{
 						LogWarning(0, "Can't Load Shader %s", shaderClass.GetShaderFileName());
 						delete result;
 						result = nullptr;
 					}
 
+					mamagedData->permutationId = permutationId;
 				}
 				break;
 
@@ -678,7 +681,7 @@ namespace Render
 		for( int i = 0; i < entries.size(); ++i )
 			filePaths[i] = path;
 
-		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
+		return !!loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
 
@@ -689,15 +692,15 @@ namespace Render
 			{ EShader::Vertex , vertexEntryName } ,
 			{ EShader::Pixel , pixelEntryName } ,
 		};
-		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
+		return !!loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
 	}
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
 	{
-		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
+		return !!loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
+	ShaderProgramManagedData* ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
@@ -705,19 +708,20 @@ namespace Render
 		managedData->classType = classType;
 		managedData->shaderProgram = &shaderProgram;
 		managedData->bShowComplieInfo = option.bShowComplieInfo;
+
 		char const* sourceFile = option.getMeta("SourceFile");
 		if (sourceFile)
 			managedData->sourceFile = sourceFile;
-		generateCompileSetup(*managedData, entries, option, additionalCode , fileName , bSingleFile );
+		generateCompileSetup(*managedData, entries, option, additionalCode, fileName, bSingleFile );
 
 		if( !buildShader(shaderProgram, *managedData) )
 		{
 			delete managedData;
-			return false;
+			return nullptr;
 		}
 
 		postShaderLoaded(shaderProgram, *managedData);
-		return true;
+		return managedData;
 	}
 
 	bool ShaderManager::loadFile(Shader& shader, char const* fileName, EShader::Type type, char const* entryName, char const* additionalCode /*= nullptr*/)
@@ -726,11 +730,10 @@ namespace Render
 		ShaderEntryInfo entry;
 		entry.name = entryName;
 		entry.type = type;
-		return loadInternal(shader, fileName, entry , option, additionalCode);
+		return !!loadInternal(shader, fileName, entry, option, additionalCode);
 	}
 
-
-	bool ShaderManager::loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, ShaderClassType classType)
+	ShaderManagedData* ShaderManager::loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, ShaderClassType classType)
 	{
 		removeFromShaderCompileMap(shader);
 
@@ -738,6 +741,7 @@ namespace Render
 		managedData->classType = classType;
 		managedData->shader = &shader;
 		managedData->bShowComplieInfo = option.bShowComplieInfo;
+		
 		char const* sourceFile = option.getMeta("SourceFile");
 		if (sourceFile)
 			managedData->sourceFile = sourceFile;
@@ -747,20 +751,20 @@ namespace Render
 		if (!buildShader(shader, *managedData))
 		{
 			delete managedData;
-			return false;
+			return nullptr;
 		}
 
 		postShaderLoaded(shader, *managedData);
-		return true;
+		return managedData;
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType)
+	ShaderProgramManagedData* ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType)
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
-		ShaderProgramManagedData* info = new ShaderProgramManagedData;
-		info->classType = classType;
-		info->shaderProgram = &shaderProgram;
+		ShaderProgramManagedData* managedData = new ShaderProgramManagedData;
+		managedData->classType = classType;
+		managedData->shaderProgram = &shaderProgram;
 
 		for( int i = 0; i < entries.size(); ++i )
 		{
@@ -777,17 +781,17 @@ namespace Render
 			}
 			headCode = option.getCode(entry, headCode.c_str(), additionalCode);
 
-			info->compileInfos.emplace_back(entry.type, filePaths[i]  , std::move(headCode) , entry.name);
+			managedData->compileInfos.emplace_back(entry.type, filePaths[i], std::move(headCode), entry.name);
 		}
 
-		if( !buildShader(shaderProgram, *info) )
+		if( !buildShader(shaderProgram, *managedData) )
 		{
-			delete info;
-			return false;
+			delete managedData;
+			return nullptr;
 		}
 
-		postShaderLoaded(shaderProgram, *info);
-		return true;
+		postShaderLoaded(shaderProgram, *managedData);
+		return managedData;
 	}
 
 	bool ShaderManager::loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* entryVS , char const* entryPS , char const* def, char const* additionalCode)
@@ -802,7 +806,7 @@ namespace Render
 		paths[1].format("%s%s%s", mBaseDir.c_str(), fileNamePS, SHADER_FILE_SUBNAME);
 		char const* filePaths[2] = { paths[0] , paths[1] };
 
-		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
+		return !!loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
 	bool ShaderManager::reloadShader(ShaderProgram& shaderProgram)
@@ -818,7 +822,7 @@ namespace Render
 			mShaderFormat->setupShaderCompileOption(option);
 
 			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
-			myClass.SetupShaderCompileOption(option, shaderProgram.permutationId);
+			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
 			managedData->compileInfos.clear();
 			generateCompileSetup(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
@@ -841,7 +845,7 @@ namespace Render
 			mShaderFormat->setupShaderCompileOption(option);
 
 			GlobalShaderClass const& myClass = *static_cast<GlobalShader&>(shader).myClass;
-			myClass.SetupShaderCompileOption(option, shader.permutationId);
+			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
 			generateCompileSetup(*managedData, myClass.entry , option, nullptr, myClass.GetShaderFileName());
 		}

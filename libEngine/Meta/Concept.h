@@ -7,7 +7,7 @@
 struct TConcept
 {	
 	template< typename T , typename ...Args >
-	static auto requires(T& t) -> decltype ();
+	static auto Requires(T& t) -> decltype ();
 }
 #endif
 
@@ -17,11 +17,11 @@ struct TCheckConcept
 	struct Yes { char a[2]; };
 
 	template< typename ...Ts >
-	static Yes  tester(decltype(&TConcept::template requires<Ts...>)*);
+	static Yes  Tester(decltype(&TConcept::template Requires<Ts...>)*);
 	template< typename ...Ts >
-	static char tester(...);
+	static char Tester(...);
 
-	static constexpr bool Value = sizeof(tester<Args...>(0)) == sizeof(Yes);
+	static constexpr bool Value = sizeof(Tester<Args...>(0)) == sizeof(Yes);
 };
 
 template <typename Concept, typename... Args>

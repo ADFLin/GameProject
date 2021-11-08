@@ -66,6 +66,45 @@ namespace Render
 			CreateShaderObjectFunc inCreateShaderObject,
 			SetupShaderCompileOptionFunc inSetupShaderCompileOption,
 			GetShaderFileNameFunc inGetShaderFileName);
+
+
+		struct CPermutationDomainDefined
+		{
+			template< class T >
+			static auto requires(typename T::PermutationDomain& value) -> decltype
+			(
+				value
+			);
+		};
+
+		template< class TShaderClass >
+		static void SetupShaderCompileOptionT(ShaderCompileOption& option, uint32 permutationId)
+		{
+			if constexpr (TCheckConcept<CPermutationDomainDefined, TShaderClass >::Value)
+			{
+				typename TShaderClass::PermutationDomain domain;
+				domain.setPermutationId(permutationId);
+				domain.setupShaderCompileOption(option);
+				TShaderClass::SetupShaderCompileOption(option);
+			}
+			else
+			{
+				TShaderClass::SetupShaderCompileOption(option);
+			}
+		}
+
+		template< class TShaderClass >
+		static uint32 GetShaderPermutationCountT()
+		{
+			if constexpr (TCheckConcept<CPermutationDomainDefined, TShaderClass >::Value)
+			{
+				return TShaderClass::PermutationDomain::GetPermutationCount();
+			}
+			else
+			{
+				return 1;
+			}
+		}
 	};
 
 	class GlobalShaderProgramClass : public GlobalShaderObjectClass
@@ -84,6 +123,9 @@ namespace Render
 			uint32 inPermutationCount);
 	};
 
+
+
+
 	class GlobalShaderClass : public GlobalShaderObjectClass
 	{
 	public:
@@ -95,46 +137,8 @@ namespace Render
 			GetShaderFileNameFunc inGetShaderFileName,
 			ShaderEntryInfo entry,
 			uint32 inPermutationCount);
+
 	};
-
-	
-	struct CPermutationDomainDefined
-	{
-		template< class T >
-		static auto requires(typename T::PermutationDomain& value) -> decltype
-		(
-			value
-		);
-	};
-
-	template< class TShaderClass >
-	void SetupShaderCompileOption(ShaderCompileOption& option , uint32 permutationId)
-	{
-		if constexpr (TCheckConcept<CPermutationDomainDefined , TShaderClass >::Value)
-		{
-			typename TShaderClass::PermutationDomain domain;
-			domain.setPermutationId(permutationId);
-			domain.setupShaderCompileOption(option);
-			TShaderClass::SetupShaderCompileOption(option);
-		}
-		else
-		{
-			TShaderClass::SetupShaderCompileOption(option);
-		}
-	}
-
-	template< class TShaderClass >
-	uint32 GetShaderPermutationCount()
-	{
-		if constexpr (TCheckConcept<CPermutationDomainDefined, TShaderClass >::Value)
-		{
-			return TShaderClass::PermutationDomain::GetPermutationCount();
-		}
-		else
-		{
-			return 1;
-		}
-	}
 
 
 	class GlobalShaderObjectClass;
@@ -168,10 +172,10 @@ namespace Render
 	CLASS::ShaderClassType CLASS::ShaderClass\
 	(\
 		(GlobalShaderObjectClass::CreateShaderObjectFunc) &CLASS::CreateShaderObject,\
-		::Render::SetupShaderCompileOption< CLASS >,\
+		GlobalShaderObjectClass::SetupShaderCompileOptionT< CLASS >,\
 		CLASS::GetShaderFileName, \
 		CLASS::GetShaderEntries, \
-		::Render::GetShaderPermutationCount< CLASS >()\
+		GlobalShaderObjectClass::GetShaderPermutationCountT< CLASS >()\
 	)
 #define IMPLEMENT_SHADER_PROGRAM_T( TEMPLATE_ARGS , CLASS )\
 	TEMPLATE_ARGS \
@@ -182,10 +186,10 @@ namespace Render
 	CLASS::ShaderClassType CLASS::ShaderClass\
 	(\
 		(GlobalShaderObjectClass::CreateShaderObjectFunc) &CLASS::CreateShaderObject,\
-		::Render::SetupShaderCompileOption< CLASS >,\
+		GlobalShaderObjectClass::SetupShaderCompileOptionT< CLASS >,\
 		CLASS::GetShaderFileName, \
 		{ SHADER_TYPE , ENTRY_NAME }, \
-		::Render::GetShaderPermutationCount< CLASS >()\
+		GlobalShaderObjectClass::GetShaderPermutationCountT< CLASS >()\
 	)
 
 #define IMPLEMENT_SHADER_T( TEMPLATE_ARGS , CLASS , SHADER_TYPE , ENTRY_NAME )\

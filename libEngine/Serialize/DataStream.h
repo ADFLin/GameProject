@@ -20,7 +20,7 @@
 struct CGlobalInputSteamable
 {
 	template< typename TStream, typename T >
-	static auto requires(void(*result)(TStream&, T&)) -> decltype
+	static auto Requires(void(*result)(TStream&, T&)) -> decltype
 	(
 		result = &operator >>
 	);
@@ -30,7 +30,7 @@ struct CGlobalInputSteamable
 struct CGlobalOutputSteamable
 {
 	template< typename TStream, typename T >
-	static auto requires(void(*result)(TStream&, T const&)) -> decltype
+	static auto Requires(void(*result)(TStream&, T const&)) -> decltype
 	(
 		result = &operator <<
 	);
@@ -145,7 +145,7 @@ public:
 	struct CSerializeCallable
 	{
 		template< typename T, typename OP>
-		static auto requires(T& value, OP& op) -> decltype
+		static auto Requires(T& value, OP& op) -> decltype
 		(
 			value.serialize(op)
 		);

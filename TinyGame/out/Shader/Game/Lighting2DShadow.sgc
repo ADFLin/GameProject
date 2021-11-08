@@ -36,8 +36,6 @@ struct GSOutputParams
 	GS_NO_MEMBER_PARAM
 	GS_SV_POSTITION_OUT
 };
-
-
 [instance(1)]
 [maxvertexcount(4)]
 void MainGS(line float4 SvPositions[2] : SV_POSITION, inout TriangleStream< GSOutputParams > OutputStream)

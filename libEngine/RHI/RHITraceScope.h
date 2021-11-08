@@ -1,4 +1,3 @@
-
 #ifndef RHI_TRACE_DEFINED
 #define RHI_TRACE_DEFINED
 

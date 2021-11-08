@@ -33,6 +33,7 @@ namespace Render
 			preprocessor.setSourceLibrary(*sourceLibrary);
 		}
 		preprocessor.bReplaceMarcoText = true;
+		//preprocessor.bAllowRedefineMarco = true;
 		preprocessor.lineFormat = (settings.bSupportLineFilePath) ? CPP::Preprocessor::LF_LineNumberAndFilePath : CPP::Preprocessor::LF_LineNumber;
 		std::stringstream oss;
 		CPP::CodeOutput codeOutput(oss);
@@ -40,15 +41,10 @@ namespace Render
 		char const* DefaultDir = "Shader";
 		preprocessor.setOutput(codeOutput);
 		preprocessor.addSreachDir(DefaultDir);
-		char const* dirPathEnd = FFileUtility::GetFileName(path);
-		if (dirPathEnd != path)
+		StringView dir = FFileUtility::GetDirectory(path);
+		if (dir != DefaultDir)
 		{
-			--dirPathEnd;
-		}
-		if (strncmp(DefaultDir, path, dirPathEnd - path) != 0)
-		{
-			std::string dir(path, dirPathEnd);
-			preprocessor.addSreachDir(dir.c_str());
+			preprocessor.addSreachDir(dir.toCString());
 		}
 
 		try

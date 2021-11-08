@@ -1335,37 +1335,21 @@ REGISTER_MISC_TEST_ENTRY("Class Tree", TestClassTree);
 REGISTER_MISC_TEST_ENTRY("Big Number", TestBigNumber);
 REGISTER_MISC_TEST_ENTRY("Cycle Queue", TestCycleQueue);
 
-struct PBool
+SHADER_PERMUTATION_TYPE_INT(TestVal, "TestVal", 3, 6);
+void TestShaderPermutation()
 {
-	bool p;
-};
-struct PInt
-{
-	int p;
-};
+	using namespace Render;
 
-struct PA1 : PBool
-{
+	using PermutationDomain = TShaderPermutationDomain< SimplePipelineProgram::PermutationDomain, TestVal>;
+	PermutationDomain vector;
+	vector.set<SimplePipelineProgram::HaveTexcoord>(false);
+	vector.set<SimplePipelineProgram::HaveVertexColor>(true);
+	vector.set<TestVal>(4);
 
-};
-struct PA2 : PBool
-{
-
-};
-struct PDomain : PA1, PA2
-{
-
-};
-void TestMultiInherit()
-{
-
-	PDomain domain;
-
-	static_cast<PA1&>(domain).p = false;
-	static_cast<PA2&>(domain).p = true;
+	LogMsg("PermutationId = %d %u", vector.getPermutationId(), vector.GetPermutationCount());
 
 }
-REGISTER_MISC_TEST_ENTRY("Multi Inherit", TestMultiInherit);
+REGISTER_MISC_TEST_ENTRY("Shader Permutation", TestShaderPermutation);
 
 bool MiscTestStage::onInit()
 {

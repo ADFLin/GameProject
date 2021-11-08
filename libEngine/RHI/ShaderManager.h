@@ -44,6 +44,7 @@ namespace Render
 			Shader* shader;
 		};
 
+		uint32         permutationId = 0;
 		bool           bShowComplieInfo = false;
 		std::string    sourceFile;
 		
@@ -159,10 +160,17 @@ namespace Render
 			char const* additionalCode;
 		};
 
-		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
+		ShaderProgramManagedData* loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], 
+			TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode,
+			ShaderClassType classType = ShaderClassType::Common);
 
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
-		bool loadInternal(Shader& shader, char const* fileName, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
+		ShaderProgramManagedData* loadInternal(ShaderProgram& shaderProgram, char const* fileName, 
+			TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, 
+			char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+
+		ShaderManagedData* loadInternal(Shader& shader, char const* fileName, 
+			ShaderEntryInfo const& entry, ShaderCompileOption const& option, 
+			char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
 		
 		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{

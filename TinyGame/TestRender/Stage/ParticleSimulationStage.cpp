@@ -744,20 +744,6 @@ namespace Render
 
 
 			{
-				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::One >::GetRHI());
-				RHISetShaderProgram(commandList, mProgParticleRender->getRHIResource());
-				mView.setupShader(commandList, *mProgParticleRender);
-				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
-				//glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
-
-				RHIDrawPrimitive(commandList, EPrimitive::Points, 0, mParticleBuffer.getElementNum() - 2);
-			}
-
-
-
-			{
 				int width = ::Global::GetScreenSize().x;
 				int height = ::Global::GetScreenSize().y;
 
@@ -872,6 +858,20 @@ namespace Render
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 			}
+
+
+			{
+				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::One >::GetRHI());
+				RHISetShaderProgram(commandList, mProgParticleRender->getRHIResource());
+				mView.setupShader(commandList, *mProgParticleRender);
+				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
+				//glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
+
+				RHIDrawPrimitive(commandList, EPrimitive::Points, 0, mParticleBuffer.getElementNum() - 2);
+			}
+
 
 			g.beginRender();
 

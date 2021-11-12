@@ -15,7 +15,7 @@ namespace CarTrain
 
 
 	TConsoleVariable<bool> CVarShowDebugDraw{ true, "CT.ShowDebugDraw", CVF_TOGGLEABLE };
-
+	TConsoleVariable<int>  CVarFrameTickFactor{ 1, "CT.FrameTickFactor", CVF_TOGGLEABLE };
 #define CARTRAIN_DIR "CarTrain"
 	class TestLevelData : public LevelData
 	{
@@ -146,6 +146,11 @@ namespace CarTrain
 				boxObjects.push_back(def);
 			}
 
+			{
+				def.extend = Vector2(50, 50);
+				def.transform = XForm2D(Vector2(700, 250), Math::Deg2Rad(45));
+				boxObjects.push_back(def);
+			}
 
 			{
 				def.extend = Vector2(50, 50);
@@ -278,6 +283,32 @@ namespace CarTrain
 		{
 			LogMsg("Load Train Pool  %s Fail", name);
 		}
+	}
+
+	void TestStage::tick()
+	{
+		mWorld.tick(GDeltaTime);
+		if (AgentGameWorld::CheckTrainEnd(mTrainData))
+		{
+			mTrainData.runEvolution(&mGenePool);
+			restart();
+		}
+		else
+		{
+			mTrainData.findBestAgnet();
+		}
+	}
+
+	void TestStage::onUpdate(long time)
+	{
+		BaseClass::onUpdate(time);
+
+		int frame = time / gDefaultTickTime;
+		int tickCount = CVarFrameTickFactor * frame;
+		for (int i = 0; i < tickCount; ++i)
+			tick();
+
+		updateFrame(frame);
 	}
 
 	void TestStage::onRender(float dFrame)

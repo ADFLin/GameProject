@@ -96,11 +96,12 @@ public:
 	T&             setSize(Vec2i const& size) { mBoundRect.max = mBoundRect.min + size;  return *_this(); }
 	T&             setTop(bool beAlways = false);
 	T&             makeFocus();
-	T&             clearFocus();
+	T&             clearFocus(bool bSubWidgetsIncluded = true);
 	T&             show(bool beS = true);
 	T&             enable(bool beE = true);
 
 	T&             addChild(WidgetCoreT* ui);
+	bool           isSubWidgetOf(WidgetCoreT* ui) const;
 	void           destroy();
 
 	T&             setGlobal() { addFlagInternal(WIF_PERSISTENT); return *_this(); }
@@ -221,7 +222,6 @@ protected:
 };
 
 
-
 template < class T >
 class TWidgetManager
 {
@@ -260,7 +260,7 @@ public:
 	bool      procCharMsg( unsigned code );
 
 	void      focusWidget(WidgetCore* ui );
-	void      clearFocusWidget(WidgetCore* ui);
+	void      clearFocusWidget(WidgetCore* ui, bool bSubWidgetsIncluded);
 
 	void      captureMouse(WidgetCore* ui){ mNamedSlots[ESlotName::Capture] = ui;}
 	void      releaseMouse(){ mNamedSlots[ESlotName::Capture] = NULL; }

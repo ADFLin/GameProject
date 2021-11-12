@@ -2,16 +2,17 @@
 #ifndef TrainManager_H_1AA8F01D_3E72_4D7F_8447_38AF459C75A2
 #define TrainManager_H_1AA8F01D_3E72_4D7F_8447_38AF459C75A2
 
-#include "RenderUtility.h"
-#include "Serialize/DataStream.h"
-
 #include "AI/NeuralNetwork.h"
 #include "AI/GeneticAlgorithm.h"
+
+#include "Serialize/DataStream.h"
 #include "AsyncWork.h"
 
-namespace FlappyBird
+#include <functional>
+
+namespace AI
 {
-	class Agent;
+	class TrainAgent;
 	class TrainData;
 
 
@@ -37,14 +38,16 @@ namespace FlappyBird
 	};
 
 
-	class Agent
+	class TrainAgent
 	{
 	public:
 
-		~Agent();
+		~TrainAgent();
+
+		int index;
 		FCNeuralNetwork FNN;
 		GenotypePtr     genotype;
-		NNScale*        inputsAndSignals = nullptr;
+		NNScalar*       inputsAndSignals = nullptr;
 		AgentEntity*    entity = nullptr;
 
 		void init(FCNNLayout const& layout);
@@ -101,10 +104,17 @@ namespace FlappyBird
 
 		TrainDataSetting const* setting;
 		int    generation;
-		Agent* bestAgent = nullptr;
+		TrainAgent* bestAgent = nullptr;
 
-		std::vector< NNScale > bestInputsAndSignals;
-		std::vector< std::unique_ptr< Agent > > mAgents;
+		std::vector< NNScalar > bestInputsAndSignals;
+		//uint8* bestInputsAndSignals;
+
+		NNScalar* getBestInputsAndSignals()
+		{
+			return bestInputsAndSignals.data();
+			//return (NNScalar*)((intptr_t(bestInputsAndSignals) + 15) & ~15);
+		}
+		std::vector< std::unique_ptr< TrainAgent > > mAgents;
 		GeneticAlgorithm GA;
 
 	};
@@ -178,7 +188,7 @@ namespace FlappyBird
 	{
 	public:
 		~TrainManager();
-		void init(TrainWorkSetting const& inSetting , int topology[] , int numTopology);
+		void init(TrainWorkSetting const& inSetting , uint32 topology[] , uint32 numTopology);
 
 		void startTrain();
 		void stopTrain();
@@ -198,6 +208,11 @@ namespace FlappyBird
 		void stopAllWork();
 		FCNNLayout& getNetLayout() { return mNNLayout; }
 
+
+		static void OutputData(FCNNLayout const& layout, GenePool const& pool, IStreamSerializer& serializer);
+		static void IntputData(FCNNLayout& layout, GenePool& pool, IStreamSerializer& serializer);
+
+
 		TrainWorkSetting setting;
 
 		float topFitness = 0;
@@ -210,55 +225,6 @@ namespace FlappyBird
 		QueueThreadPool  mWorkRunPool;
 	};
 
-
-	class NeuralNetworkRenderer
-	{
-	public:
-		NeuralNetworkRenderer(FCNeuralNetwork& inFNN)
-			:FNN(inFNN)
-		{
-
-
-		}
-
-		
-
-		void draw(IGraphics2D& g);
-
-		void drawNode(IGraphics2D& g, Vector2 pos)
-		{
-			g.drawCircle(pos, 10);
-		}
-
-		void drawLink(IGraphics2D& g, Vector2 const& p1, Vector2 const& p2, float width);
-		int  getValueColor(NNScale value);
-
-		float getOffsetY(int idx, int numNode)
-		{
-			return (float(idx) - 0.5 * float(numNode - 1)) * nodeOffset;
-		}
-		Vector2 getInputNodePos(int idx)
-		{
-			int numInput = FNN.getLayout().getInputNum();
-			float offsetY = getOffsetY(idx, numInput);
-			return basePos + Vector2(0, offsetY);
-		}
-		Vector2 getLayerNodePos(int idxLayer, int idxNode)
-		{
-			NeuralFullConLayer const& layer = FNN.getLayout().getLayer(idxLayer);
-			float offsetY = getOffsetY(idxNode, layer.numNode);
-			return basePos + Vector2((idxLayer + 1) * layerOffset, offsetY);
-		}
-
-		NNScale* inputsAndSignals = nullptr;
-		bool bShowSignalLink = true;
-		float scaleFactor = 1.5;
-		float layerOffset = scaleFactor * 40;
-		float nodeOffset = scaleFactor * 30;
-		Vector2 basePos = Vector2(0, 0);
-		FCNeuralNetwork& FNN;
-	};
-
-} //namespace FlappyBird
+} //namespace AI
 
 #endif // TrainManager_H_1AA8F01D_3E72_4D7F_8447_38AF459C75A2

@@ -15,6 +15,8 @@
 
 CORE_API extern TConsoleVariable<bool> CVarUseBachedRender2D;
 
+
+
 #if CORE_SHARE_CODE
 TConsoleVariable<bool> CVarUseBachedRender2D(true, "r.UseBachedRender2D");
 #endif
@@ -33,6 +35,25 @@ RHIGraphics2D::RHIGraphics2D()
 
 	mFont = nullptr;
 	mColorFont = Color4Type(0, 0, 0);
+
+	mRenderStateCommitted.texture = nullptr;
+	mRenderStateCommitted.sampler = nullptr;
+	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
+	mRenderStateCommitted.bEnableMultiSample = false;
+	mRenderStateCommitted.bEnableScissor = false;
+
+	mRenderStatePending = mRenderStateCommitted;
+}
+
+void RHIGraphics2D::initializeRHI()
+{
+	mBatchedRender.initializeRHI();
+
+}
+
+void RHIGraphics2D::releaseRHI()
+{
+	mBatchedRender.releaseRHI();
 
 	mRenderStateCommitted.texture = nullptr;
 	mRenderStateCommitted.sampler = nullptr;

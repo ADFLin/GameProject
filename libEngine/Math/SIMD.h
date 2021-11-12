@@ -9,12 +9,15 @@ namespace SIMD
 {
 	struct alignas(16) SBase
 	{
-		SBase() {}
-		SBase(float x, float y, float z, float w)
-			:x(x),y(y),z(z),w(w){}
-
-		FORCEINLINE SBase operator + (SBase const& rhs) const { return _mm_add_ps(reg, rhs.reg); }
-		FORCEINLINE SBase operator - (SBase const& rhs) const { return _mm_sub_ps(reg, rhs.reg); }
+		SBase() = default;
+		FORCEINLINE SBase(float x, float y, float z, float w)
+		{
+			reg = _mm_set_ps(x, y, z, w);
+		}
+		FORCEINLINE SBase(float const* v)
+		{
+			reg = _mm_loadu_ps(v);
+		}
 
 		SBase(__m128 val) :reg(val) {}
 
@@ -37,16 +40,32 @@ namespace SIMD
 		};
 	};
 
+	struct SScalar : SBase
+	{
+		SScalar() = default;
+		SScalar(float value) { reg = _mm_set_ss(value); }
+		SScalar(__m128 val) : SBase(val) {}
+
+		FORCEINLINE SScalar operator * (SScalar const& rhs) const { return _mm_mul_ps(reg, rhs.reg); }
+		FORCEINLINE SScalar operator / (SScalar const& rhs) const { return _mm_div_ps(reg, rhs.reg); }
+		FORCEINLINE SScalar operator + (SScalar const& rhs) const { return _mm_add_ps(reg, rhs.reg); }
+		FORCEINLINE SScalar operator - (SScalar const& rhs) const { return _mm_sub_ps(reg, rhs.reg); }
+
+		operator float() const {  return _mm_cvtss_f32(reg); }
+	};
+
 	struct SVectorBase : SBase
 	{
-		SVectorBase() {}
-		SVectorBase(float x, float y, float z, float w)
+		SVectorBase() = default;
+		FORCEINLINE SVectorBase(float x, float y, float z, float w)
 			:SBase(x,y,z,w){}
 
-		SVectorBase operator * (SVectorBase const& rhs) const { return _mm_mul_ps(reg, rhs.reg); }
-		SVectorBase operator / (SVectorBase const& rhs) const { return _mm_div_ps(reg, rhs.reg); }
+		FORCEINLINE SVectorBase operator * (SVectorBase const& rhs) const { return _mm_mul_ps(reg, rhs.reg); }
+		FORCEINLINE SVectorBase operator / (SVectorBase const& rhs) const { return _mm_div_ps(reg, rhs.reg); }
+		FORCEINLINE SVectorBase operator + (SVectorBase const& rhs) const { return _mm_add_ps(reg, rhs.reg); }
+		FORCEINLINE SVectorBase operator - (SVectorBase const& rhs) const { return _mm_sub_ps(reg, rhs.reg); }
 
-		SVectorBase(__m128 val) :SBase(val) {}
+		FORCEINLINE SVectorBase(__m128 val) :SBase(val) {}
 	};
 
 	struct SVector4 : SVectorBase
@@ -55,17 +74,23 @@ namespace SIMD
 		SVector4() {}
 		SVector4(float x, float y, float z, float w)
 			:SVectorBase(x,y,z,w){ }
-		FORCEINLINE float dot(SVector4 const& rhs) const
+		SVector4(float const* v)
 		{
-			return _mm_cvtss_f32(_mm_dp_ps(*this, rhs, 0xf1) );
+			reg = _mm_loadu_ps(v);
 		}
-		FORCEINLINE float length(SVector4 const& rhs) const
+		
+
+		FORCEINLINE SScalar dot(SVector4 const& rhs) const
 		{
-			return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(*this, rhs, 0xf1)));
+			return _mm_dp_ps(*this, rhs, 0xf1);
 		}
-		FORCEINLINE float lengthInv(SVector4 const& rhs) const
+		FORCEINLINE SScalar length(SVector4 const& rhs) const
 		{
-			return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_dp_ps(*this, rhs, 0xf1)));
+			return _mm_sqrt_ss(_mm_dp_ps(*this, rhs, 0xf1));
+		}
+		FORCEINLINE SScalar lengthInv(SVector4 const& rhs) const
+		{
+			return _mm_rsqrt_ss(_mm_dp_ps(*this, rhs, 0xf1));
 		}
 
 		SVector4( SBase const& rhs ):SVectorBase( rhs ){}
@@ -79,21 +104,25 @@ namespace SIMD
 			:SVectorBase(x, y, z, 0)
 		{
 		}
-		FORCEINLINE float dot(SVector3 const& rhs) const
+		SVector3(float const* v)
 		{
-			return _mm_cvtss_f32(_mm_dp_ps(reg, rhs.reg, 0x71));
+			reg = _mm_loadu_ps(v);
 		}
-		FORCEINLINE float lengthSquare() const
+		FORCEINLINE SScalar dot(SVector3 const& rhs) const
 		{
-			return _mm_cvtss_f32(_mm_dp_ps(reg, reg, 0x71));
+			return _mm_dp_ps(reg, rhs.reg, 0x71);
 		}
-		FORCEINLINE float length() const
+		FORCEINLINE SScalar lengthSquare() const
 		{
-			return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(reg, reg, 0x71)));
+			return _mm_dp_ps(reg, reg, 0x71);
 		}
-		FORCEINLINE float lengthInv() const
+		FORCEINLINE SScalar length() const
 		{
-			return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_dp_ps(reg, reg, 0x71)));
+			return _mm_sqrt_ss(_mm_dp_ps(reg, reg, 0x71));
+		}
+		FORCEINLINE SScalar lengthInv() const
+		{
+			return _mm_rsqrt_ss(_mm_dp_ps(reg, reg, 0x71));
 		}
 		FORCEINLINE SVector3 cross(SVector3 const& rhs) const
 		{
@@ -103,6 +132,46 @@ namespace SIMD
 			);
 		}
 		SVector3(SBase const& rhs) :SVectorBase(rhs) {}
+	};
+
+	struct SVector2 : SVectorBase
+	{
+	public:
+		SVector2() {}
+		SVector2(float x, float y)
+			:SVectorBase(x, y, 0, 0)
+		{
+		}
+		SVector2(float const* v)
+		{
+			reg = _mm_loadu_ps(v);
+		}
+		FORCEINLINE SScalar dot(SVector2 const& rhs) const
+		{
+			return _mm_dp_ps(reg, rhs.reg, 0x31);
+		}
+		FORCEINLINE SScalar lengthSquare() const
+		{
+			return _mm_dp_ps(reg, reg, 0x31);
+		}
+		FORCEINLINE SScalar length() const
+		{
+			return _mm_sqrt_ss(_mm_dp_ps(reg, reg, 0x31));
+		}
+		FORCEINLINE SScalar lengthInv() const
+		{
+			return _mm_rsqrt_ss(_mm_dp_ps(reg, reg, 0x31));
+		}
+#if 0
+		FORCEINLINE SVector2 cross(SVector2 const& rhs) const
+		{
+			return _mm_sub_ps(
+				_mm_mul_ps(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 0, 2, 1)), _mm_shuffle_ps(rhs.reg, rhs.reg, _MM_SHUFFLE(3, 1, 0, 2))),
+				_mm_mul_ps(_mm_shuffle_ps(reg, reg, _MM_SHUFFLE(3, 1, 0, 2)), _mm_shuffle_ps(rhs.reg, rhs.reg, _MM_SHUFFLE(3, 0, 2, 1)))
+			);
+		}
+#endif
+		SVector2(SBase const& rhs) :SVectorBase(rhs) {}
 	};
 
 	struct SCompolex : SBase
@@ -124,6 +193,8 @@ namespace SIMD
 		{
 			return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_dp_ps(reg, reg, 0x31)));
 		}
+		FORCEINLINE SCompolex operator + (SCompolex const& rhs) const { return _mm_add_ps(reg, rhs.reg); }
+		FORCEINLINE SCompolex operator - (SCompolex const& rhs) const { return _mm_sub_ps(reg, rhs.reg); }
 		FORCEINLINE SCompolex operator * (SCompolex const& rhs) const
 		{
 			__m128 aa = _mm_moveldup_ps(reg);

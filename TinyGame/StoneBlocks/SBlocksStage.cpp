@@ -204,7 +204,7 @@ namespace SBlocks
 
 	ERenderSystem LevelStage::getDefaultRenderSystem()
 	{
-		return ERenderSystem::OpenGL;
+		return ERenderSystem::D3D11;
 	}
 
 	bool LevelStage::setupRenderSystem(ERenderSystem systemName)

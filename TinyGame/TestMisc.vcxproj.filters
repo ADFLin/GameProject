@@ -66,9 +66,6 @@
     <ClCompile Include="FlappyBird\FBStage.cpp">
       <Filter>GameFlappyBird</Filter>
     </ClCompile>
-    <ClCompile Include="FlappyBird\TrainManager.cpp">
-      <Filter>GameFlappyBird</Filter>
-    </ClCompile>
     <ClCompile Include="TripleTown\TTStage.cpp">
       <Filter>GameTripleTown</Filter>
     </ClCompile>
@@ -211,6 +208,9 @@
     <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
+    <ClCompile Include="CarTrain\GameFramework.cpp">
+      <Filter>GameCarTrain</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />
@@ -272,9 +272,6 @@
       <Filter>GameFlappyBird</Filter>
     </ClInclude>
     <ClInclude Include="FlappyBird\FBStage.h">
-      <Filter>GameFlappyBird</Filter>
-    </ClInclude>
-    <ClInclude Include="FlappyBird\TrainManager.h">
       <Filter>GameFlappyBird</Filter>
     </ClInclude>
     <ClInclude Include="Qix\QixLevel.h">
@@ -394,6 +391,12 @@
     </ClInclude>
     <ClInclude Include="Minesweeper\MineLevelStage.h">
       <Filter>GameMinesweeper</Filter>
+    </ClInclude>
+    <ClInclude Include="CarTrain\CTTestStage.h">
+      <Filter>GameCarTrain</Filter>
+    </ClInclude>
+    <ClInclude Include="CarTrain\GameFramework.h">
+      <Filter>GameCarTrain</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

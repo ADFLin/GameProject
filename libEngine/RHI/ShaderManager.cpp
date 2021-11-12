@@ -584,7 +584,6 @@ namespace Render
 				{
 					GlobalShaderProgram* shaderProgram = static_cast<GlobalShaderProgram*>(result);
 					GlobalShaderProgramClass const& shaderProgramClass = static_cast<GlobalShaderProgramClass const&>(shaderObjectClass);
-					shaderProgram->myClass = &shaderProgramClass;
 					shaderProgramClass.SetupShaderCompileOption(option, permutationId);
 
 					ShaderProgramManagedData* mamagedData = loadInternal(
@@ -599,6 +598,7 @@ namespace Render
 						result = nullptr;
 					}
 
+					mamagedData->shaderClass = &shaderObjectClass;
 					mamagedData->permutationId = permutationId;
 				}
 				break;
@@ -606,7 +606,6 @@ namespace Render
 				{
 					GlobalShader* shader = static_cast<GlobalShader*>(result);
 					GlobalShaderClass const& shaderClass = static_cast<GlobalShaderClass const&>(shaderObjectClass);
-					shader->myClass = &shaderClass;
 
 					shaderClass.SetupShaderCompileOption(option, permutationId);
 
@@ -620,6 +619,7 @@ namespace Render
 						result = nullptr;
 					}
 
+					mamagedData->shaderClass = &shaderObjectClass;
 					mamagedData->permutationId = permutationId;
 				}
 				break;
@@ -820,8 +820,7 @@ namespace Render
 		{
 			ShaderCompileOption option;
 			mShaderFormat->setupShaderCompileOption(option);
-
-			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
+			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgramClass const*>(managedData->shaderClass);
 			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
 			managedData->compileInfos.clear();
@@ -844,7 +843,7 @@ namespace Render
 			ShaderCompileOption option;
 			mShaderFormat->setupShaderCompileOption(option);
 
-			GlobalShaderClass const& myClass = *static_cast<GlobalShader&>(shader).myClass;
+			GlobalShaderClass const& myClass = *static_cast<GlobalShaderClass const*>(managedData->shaderClass);
 			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
 			generateCompileSetup(*managedData, myClass.entry , option, nullptr, myClass.GetShaderFileName());
@@ -861,16 +860,10 @@ namespace Render
 			switch (pair.first->getType())
 			{
 			case EShaderObjectType::Shader:
-				buildShader(
-					*static_cast<Shader*>(pair.first),
-					*static_cast<ShaderManagedData*>(pair.second),
-					true);
+				reloadShader(*static_cast<Shader*>(pair.first));
 				break;
 			case EShaderObjectType::Program:
-				buildShader(
-					*static_cast<ShaderProgram*>(pair.first), 
-					*static_cast<ShaderProgramManagedData*>( pair.second ), 
-					true);
+				reloadShader(*static_cast<ShaderProgram*>(pair.first));
 				break;
 			}		
 		}

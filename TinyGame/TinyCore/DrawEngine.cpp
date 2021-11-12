@@ -319,11 +319,14 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		RHICreateSwapChain(info);
 	}
 
+	if ( mRHIGraphics == nullptr )
 	{
 		mRHIGraphics.reset(new RHIGraphics2D);
 		mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
 		static_cast<TGraphics2DProxy< RHIGraphics2D >&>(*mRHIProxy).mImpl = mRHIGraphics.get();
 	}
+
+	mRHIGraphics->initializeRHI();
 
 	bHasUseRHI = true;
 	bUsePlatformBuffer = false;
@@ -338,7 +341,7 @@ void DrawEngine::shutdownSystem(bool bDeferred)
 
 	RenderUtility::ReleaseRHI();
 	mSystemName = ERenderSystem::None;
-	mRHIGraphics.release();
+	mRHIGraphics->releaseRHI();
 
 	if( bDeferred == false )
 	{

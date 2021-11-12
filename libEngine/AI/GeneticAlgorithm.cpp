@@ -89,7 +89,7 @@ void GeneticAlgorithm::crossoverData(float powerA, DataType const& dataA, DataTy
 	}
 }
 
-void GeneticAlgorithm::mutateData(DataType& data, float valueMutationProb, NNScale valueDelta)
+void GeneticAlgorithm::mutateData(DataType& data, float valueMutationProb, NNScalar valueDelta)
 {
 	for( int i = 0; i < data.size(); ++i )
 	{
@@ -100,16 +100,16 @@ void GeneticAlgorithm::mutateData(DataType& data, float valueMutationProb, NNSca
 	}
 }
 
-void Genotype::randomizeData(NNRand& random, NNScale valueMin, NNScale valueMax)
+void Genotype::randomizeData(NNRand& random, NNScalar valueMin, NNScalar valueMax)
 {
-	NNScale valueDelta = valueMax - valueMin;
+	NNScalar valueDelta = valueMax - valueMin;
 	for( int i = 0; i < data.size(); ++i )
 	{
 		data[i] = random.nextScale() * valueDelta + valueMin;
 	}
 }
 
-bool Genotype::isDataIdentical(DataType const& otherData, NNScale maxError /*= 1e-10*/)
+bool Genotype::isDataIdentical(DataType const& otherData, NNScalar maxError /*= 1e-10*/)
 {
 	if( data.size() != otherData.size() )
 		return false;
@@ -121,7 +121,7 @@ bool Genotype::isDataIdentical(DataType const& otherData, NNScale maxError /*= 1
 	return true;
 }
 
-int GenePool::appendWithCopy(GenePool& other, float fitnessError, NNScale dataError)
+int GenePool::appendWithCopy(GenePool& other, float fitnessError, NNScalar dataError)
 {
 	int result = 0;
 	for( int i = 0; i < other.mStorage.size(); ++i )
@@ -169,12 +169,12 @@ void GenePool::clear()
 	mStorage.clear();
 }
 
-void GenePool::removeIdentical(float fitnessError, NNScale dataError)
+void GenePool::removeIdentical(float fitnessError, NNScalar dataError)
 {
 	RemoveIdenticalGenotype(mStorage, fitnessError, dataError);
 }
 
-bool GenePool::haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScale dataError, int startIndex /*= 0*/)
+bool GenePool::haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScalar dataError, int startIndex /*= 0*/)
 {
 	for( int i = startIndex; i < (int)mStorage.size(); ++i )
 	{
@@ -196,7 +196,7 @@ bool GenePool::haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScale
 	return false;
 }
 
-void GenePool::RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScale dataError)
+void GenePool::RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScalar dataError)
 {
 	for( int i = 0; i < sortedGenotypes.size(); ++i )
 	{

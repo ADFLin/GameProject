@@ -197,6 +197,7 @@
     <ClInclude Include="CurveBuilder\ShapeMeshBuilder.h" />
     <ClInclude Include="CurveBuilder\Surface.h" />
     <ClInclude Include="GameMenuStage.h" />
+    <ClInclude Include="Misc\NeuralNetworkRenderer.h" />
     <ClInclude Include="SuperFractial\SelectRectBase.h" />
     <ClInclude Include="TinyCore\GameGraphics2D.h" />
     <ClInclude Include="TinyCore\GameStageMode.h" />
@@ -244,6 +245,7 @@
     </ClCompile>
     <ClCompile Include="CurveBuilder\Surface.cpp" />
     <ClCompile Include="GameMenuStage.cpp" />
+    <ClCompile Include="Misc\NeuralNetworkRenderer.cpp" />
     <ClCompile Include="SuperFractial\SelectRectBase.cpp" />
     <ClCompile Include="TinyCore\DataStreamBuffer.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />

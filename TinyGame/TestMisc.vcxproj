@@ -239,12 +239,13 @@
     <ClInclude Include="Bejeweled\BJStage.h" />
     <ClInclude Include="Cantan\CantanLevel.h" />
     <ClInclude Include="Cantan\CantanStage.h" />
+    <ClInclude Include="CarTrain\CTTestStage.h" />
+    <ClInclude Include="CarTrain\GameFramework.h" />
     <ClInclude Include="Civ\CvCity.h" />
     <ClInclude Include="Civ\CvMap.h" />
     <ClInclude Include="Fight\FightLevel.h" />
     <ClInclude Include="FlappyBird\FBLevel.h" />
     <ClInclude Include="FlappyBird\FBStage.h" />
-    <ClInclude Include="FlappyBird\TrainManager.h" />
     <ClInclude Include="LordMonarch\LmLevel.h" />
     <ClInclude Include="Mario\MBLevel.h" />
     <ClInclude Include="Mario\MBStage.h" />
@@ -303,9 +304,9 @@
     <ClCompile Include="Bejeweled\BJStage.cpp" />
     <ClCompile Include="Cantan\CantanLevel.cpp" />
     <ClCompile Include="CarTrain\CTTestStage.cpp" />
+    <ClCompile Include="CarTrain\GameFramework.cpp" />
     <ClCompile Include="FlappyBird\FBLevel.cpp" />
     <ClCompile Include="FlappyBird\FBStage.cpp" />
-    <ClCompile Include="FlappyBird\TrainManager.cpp" />
     <ClCompile Include="Laser2D\LATestStage.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
     <ClCompile Include="Mario\MBStage.cpp" />

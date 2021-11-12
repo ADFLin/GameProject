@@ -169,6 +169,9 @@ public:
 
 	Render::RHICommandList& getCommandList();
 
+	void initializeRHI();
+	void releaseRHI();
+
 private:
 	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
 	void emitVertex(Vector2 const& v);

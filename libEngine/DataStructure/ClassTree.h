@@ -17,22 +17,24 @@ protected:
 #include <vector>
 #endif
 
+class ClassTree;
 class ClassTreeNode
 #if CLASS_TREE_USE_INTRLIST
 	: public ClassTreeLink
 #endif
 {
 public:
-	ClassTreeNode(ClassTreeNode* parent);
+	ClassTreeNode(ClassTree& tree, ClassTreeNode* parent);
 	~ClassTreeNode();
 
-	bool isChildOf(ClassTreeNode* testParent);
+	bool isChildOf(ClassTreeNode* testParent) const;
 	void changeParent(ClassTreeNode* newParent);
 
 private:
 	void offsetQueryIndex(int offset);
 
 	ClassTreeNode* parent;
+	ClassTree*  mTree;
 	int      indexQuery;
 	unsigned numTotalChildren;
 	
@@ -58,10 +60,12 @@ private:
 class ClassTree
 {
 public:
-	CORE_API static ClassTree& Get();
-	CORE_API void registerClass(ClassTreeNode* node);
-	CORE_API void unregisterClass(ClassTreeNode* node, bool bReregister);
-	CORE_API void unregisterAllClass();
+	ClassTree();
+	~ClassTree();
+
+	void registerClass(ClassTreeNode* node);
+	void unregisterClass(ClassTreeNode* node, bool bReregister);
+	void unregisterAllClass();
 
 private:
 	static void UnregisterAllNode_R(ClassTreeNode* node);
@@ -71,9 +75,6 @@ private:
 	bool checkValid();
 	static bool CheckChildValid_R(ClassTreeNode* parent, int& numTotalChildren);
 
-	ClassTree();
-	ClassTree(ClassTree const&);
-	~ClassTree();
 	ClassTreeNode mRoot;
 };
 

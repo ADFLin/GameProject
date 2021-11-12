@@ -5,11 +5,9 @@
 
 #include <algorithm>
 
-
-namespace FlappyBird
+namespace AI
 {
-
-	Agent::~Agent()
+	TrainAgent::~TrainAgent()
 	{
 		if (entity)
 		{
@@ -17,7 +15,7 @@ namespace FlappyBird
 		}
 	}
 
-	void Agent::init(FCNNLayout const& layout)
+	void TrainAgent::init(FCNNLayout const& layout)
 	{
 		FNN.init(layout);
 		GenotypePtr pGT = std::make_shared<Genotype>();
@@ -25,7 +23,7 @@ namespace FlappyBird
 		setGenotype(pGT);
 	}
 
-	void Agent::setGenotype(GenotypePtr inGenotype)
+	void TrainAgent::setGenotype(GenotypePtr inGenotype)
 	{
 		assert(FNN.getLayout().getWeightNum() == inGenotype->data.size());
 		genotype = inGenotype;
@@ -33,7 +31,7 @@ namespace FlappyBird
 	}
 
 
-	void Agent::randomizeData(NNRand& random)
+	void TrainAgent::randomizeData(NNRand& random)
 	{
 		genotype->randomizeData(random, -1, 1);
 	}
@@ -47,13 +45,15 @@ namespace FlappyBird
 		generation = 0;
 		for( int i = 0; i < setting->numAgents; ++i )
 		{
-			auto pAgent = std::make_unique< Agent >();
+			auto pAgent = std::make_unique< TrainAgent >();
 			pAgent->init(netLayout);
+			pAgent->index = i;
 			pAgent->randomizeData(GA.mRand);
 			mAgents.push_back(std::move(pAgent));
 		}
 		FCNeuralNetwork& FNN = mAgents[0]->FNN;
 		bestInputsAndSignals.resize(netLayout.getInputNum() + netLayout.getHiddenNodeNum() + netLayout.getOutputNum());
+		//bestInputsAndSignals = (uint8*)::malloc((netLayout.getInputNum() + netLayout.getHiddenNodeNum() + netLayout.getOutputNum() + 4) * sizeof(NNScalar) + 15);
 	}
 
 	void TrainData::findBestAgnet()
@@ -67,7 +67,7 @@ namespace FlappyBird
 					bestAgent->inputsAndSignals = nullptr;
 				}
 				bestAgent = agentPtr.get();
-				bestAgent->inputsAndSignals = &bestInputsAndSignals[0];
+				bestAgent->inputsAndSignals = getBestInputsAndSignals();
 			}
 		}
 	}
@@ -89,7 +89,7 @@ namespace FlappyBird
 				int numNewAgents = setting->numAgents - mAgents.size();
 				for( int i = 0; i < numNewAgents; ++i )
 				{
-					auto pAgent = std::make_unique< Agent >();
+					auto pAgent = std::make_unique< TrainAgent >();
 					pAgent->init(netLayout);
 					mAgents.push_back(std::move(pAgent));
 				}
@@ -151,7 +151,7 @@ namespace FlappyBird
 			}
 
 			float const fitnessError = 1e-3;
-			NNScale const dataError = 1e-6;
+			NNScalar const dataError = 1e-6;
 			std::sort(temps.begin(), temps.end(), GenePool::FitnessCmp());
 			GenePool::RemoveIdenticalGenotype(temps, fitnessError, dataError);
 			for(auto& gene : temps)
@@ -188,7 +188,7 @@ namespace FlappyBird
 				op & gt->fitness;
 				op & gt->data;
 
-				auto pAgent = std::make_unique< Agent >();
+				auto pAgent = std::make_unique< TrainAgent >();
 				pAgent->FNN.init(netLayout);
 				pAgent->setGenotype(gt);
 				mAgents.push_back(std::move(pAgent));
@@ -250,18 +250,19 @@ namespace FlappyBird
 	{
 		float maxFitness = trainData.getMaxFitness();
 
-
-
 		trainData.runEvolution(&genePool);
 
-		bool const bRestData = ( maxGeneration && ( trainData.generation > maxGeneration ) );
+		bool const bRestData = (maxGeneration && (trainData.generation > maxGeneration));
 		bool const bClearPool = (trainData.generation > 500 && genePool[0]->fitness < 50);
-		bool bSendDataToMaster = bRestData || (SystemPlatform::GetTickCount() - lastUpdateTime > 10000);
-		if( bSendDataToMaster )
+		if ( manager )
 		{
-			sendDataToMaster();
-			LogMsg("%d TrainCompleted ,genteration = %d , MaxFitness = %f",
-				index, trainData.generation, maxFitness);
+			bool bSendDataToMaster = bRestData || (SystemPlatform::GetTickCount() - lastUpdateTime > 10000);
+			if (bSendDataToMaster)
+			{
+				sendDataToMaster();
+				LogMsg("%d TrainCompleted ,genteration = %d , MaxFitness = %f",
+					index, trainData.generation, maxFitness);
+			}
 		}
 
 		if( bRestData || bClearPool )
@@ -300,7 +301,7 @@ namespace FlappyBird
 		int numAdded;
 		{
 			float const fitnessError = 1e-3;
-			NNScale const dataError = 1e-6;
+			NNScalar const dataError = 1e-6;
 
 			TLockedObject< GenePool > masterPool = manager->lockPool();
 			numAdded = masterPool->appendWithCopy(genePool, fitnessError, dataError);
@@ -321,7 +322,7 @@ namespace FlappyBird
 		stopAllWork();
 	}
 
-	void TrainManager::init(TrainWorkSetting const& inSetting, int topology[], int numTopology)
+	void TrainManager::init(TrainWorkSetting const& inSetting, uint32 topology[], uint32 numTopology)
 	{
 		setting = inSetting;
 		setting.dataSetting.netLayout = &mNNLayout;
@@ -367,7 +368,7 @@ namespace FlappyBird
 		IStreamSerializer::ReadOp op(serializer);
 		data.setting = &getDataSetting();
 
-		std::vector<int> topology;
+		std::vector<uint32> topology;
 		op & topology;
 		mNNLayout.init(&topology[0], topology.size());
 
@@ -411,8 +412,7 @@ namespace FlappyBird
 
 		IStreamSerializer::WriteOp op(serializer);
 
-
-		std::vector<int> topology;
+		std::vector<uint32> topology;
 		mNNLayout.getTopology(topology);
 		op & topology;
 
@@ -454,88 +454,52 @@ namespace FlappyBird
 		}
 	}
 
-	int NeuralNetworkRenderer::getValueColor(NNScale value)
+	void TrainManager::OutputData(FCNNLayout const& layout, GenePool const& pool, IStreamSerializer& serializer)
 	{
-		if( value > 0.9 )
-			return EColor::White;
-		if( value > 0.75 )
-			return EColor::Yellow;
-		if( value > 0.5 )
-			return EColor::Orange;
-		if( value > 0.25 )
-			return EColor::Blue;
-		if( value > 0.1 )
-			return EColor::Gray;
-		return EColor::Black;
-	}
+		std::vector<uint32> topology;
+		layout.getTopology(topology);
+		serializer << topology;
 
-	void NeuralNetworkRenderer::draw(IGraphics2D& g)
-	{
-		FCNNLayout const& NNLayout = FNN.getLayout();
-		for( int i = 0; i < NNLayout.getInputNum(); ++i )
+		uint32 numPoolData = pool.mStorage.size();
+		serializer << numPoolData;
+		if (numPoolData)
 		{
-			Vector2 pos = getInputNodePos(i);
-			RenderUtility::SetPen(g, EColor::Black);
-			RenderUtility::SetBrush(g, getValueColor(inputsAndSignals[i]));
-			drawNode(g, pos);
-		}
-
-		int idxSignal = NNLayout.getInputNum();
-		int idxPrevLayerSignal = 0;
-		for( int i = 0; i <= NNLayout.getHiddenLayerNum(); ++i )
-		{
-			NeuralFullConLayer const& layer = NNLayout.getLayer(i);
-			int prevNodeNum = NNLayout.getPrevLayerNodeNum(i);
-			for( int idxNode = 0; idxNode < layer.numNode; ++idxNode )
+			uint32 dataSize = pool[0].get()->data.size();
+			serializer << dataSize;
+			for (int i = 0; i < numPoolData; ++i)
 			{
-				Vector2 pos = getLayerNodePos(i, idxNode);
-				RenderUtility::SetPen(g, EColor::Black);
-				if( inputsAndSignals )
-				{
-					RenderUtility::SetBrush(g, getValueColor(inputsAndSignals[idxSignal]));
-				}
-				else
-				{
-					RenderUtility::SetBrush(g, EColor::Purple);
-				}
-				drawNode(g, pos);
-
-				NNScale* weights = FNN.getWeights(i, idxNode);
-				for( int n = 0; n < prevNodeNum; ++n )
-				{
-					Vector2 prevPos = (i == 0) ? getInputNodePos(n) : getLayerNodePos(i - 1, n);
-					NNScale value = weights[n + 1];
-					if( bShowSignalLink && inputsAndSignals )
-					{
-						value *= inputsAndSignals[idxPrevLayerSignal+n];
-					}
-					RenderUtility::SetPen(g, (value > 0) ? EColor::Green : EColor::Red);
-					RenderUtility::SetBrush(g, (value > 0) ? EColor::Green : EColor::Red);
-					drawLink(g, prevPos, pos, Math::Abs(value));
-				}
-				++idxSignal;
+				Genotype* gt = pool[i].get();
+				serializer << gt->fitness;
+				serializer << IStreamSerializer::MakeSequence(gt->data.data(), dataSize);
 			}
-			idxPrevLayerSignal += prevNodeNum;
 		}
 	}
 
-	void NeuralNetworkRenderer::drawLink(IGraphics2D& g, Vector2 const& p1, Vector2 const& p2, float width)
+	void TrainManager::IntputData(FCNNLayout& layout, GenePool& pool, IStreamSerializer& serializer)
 	{
-		Vector2 dir = p2 - p1;
-		if( dir.normalize() < 1e-4 )
-			return;
+		std::vector<uint32> topology;
+		serializer >> topology;
+		layout.init(&topology[0], topology.size());
 
-		float halfWidth = 0.25 * width;
-		if( bShowSignalLink )
-			halfWidth *= 4;
+		int numPoolData;
+		serializer >> numPoolData;
+		if (numPoolData)
+		{
+			uint32 dataSize = 0;
+			serializer >> dataSize;
 
-		halfWidth = std::min(10.0f, halfWidth);
-		Vector2 normalOffset;
-		normalOffset.x = dir.y;
-		normalOffset.y = -dir.x;
-		normalOffset *= halfWidth;
-		Vector2 v[4] = { p1 + normalOffset , p1 - normalOffset , p2 - normalOffset , p2 + normalOffset };
-		g.drawPolygon(v, 4);
+			if (dataSize)
+			{
+				for (int i = 0; i < numPoolData; ++i)
+				{
+					GenotypePtr gt = std::make_shared<Genotype>();
+					serializer >> gt->fitness;
+					gt->data.resize(dataSize);
+					serializer >> IStreamSerializer::MakeSequence(gt->data.data(), dataSize);
+					pool.add(gt);
+				}
+			}
+		}
 	}
 
 }//namespace FlappyBird

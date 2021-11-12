@@ -11,14 +11,16 @@
 #include "RHI/TextureAtlas.h"
 #include "Renderer/RenderTransform2D.h"
 
-
+namespace AI
+{
+	class TrainManager;
+	class TrainData;
+}
 
 namespace FlappyBird
 {
 	using namespace Render;
-
-	class TrainManager;
-	class TrainData;
+	using namespace AI;
 
 	namespace TextureID
 	{
@@ -57,8 +59,6 @@ namespace FlappyBird
 		GameLevel& getLevel() { return mLevel; }
 
 		void onRender( float dFrame );
-
-
 
 		void restart();
 		void notifyGameOver( GameLevel& level);

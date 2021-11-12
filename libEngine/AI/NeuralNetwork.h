@@ -6,10 +6,12 @@
 
 #include <cassert>
 #include <vector>
+#include "Meta/MetaBase.h"
+#include "Math/SIMD.h"
 
-typedef float NNScale;
-typedef NNScale (*NNActivationFunc)(NNScale);
-typedef void    (*NNActivationTrasnformFunc)(NNScale* inoutValues, int numValues);
+typedef float NNScalar;
+typedef NNScalar (*NNActivationFunc)(NNScalar);
+typedef void    (*NNActivationTrasnformFunc)(NNScalar* inoutValues, int numValues);
 template< class T , class Q , class TFunc >
 void Transform(T begin, T end, T dest, TFunc func = TFunc())
 {
@@ -25,14 +27,14 @@ void Transform(T begin, T end, T dest, TFunc func = TFunc())
 class NNFunc
 {
 public:
-	enum Name
+	enum EName
 	{
-		eSigmoid ,
-		eTanh ,
-		eReLu ,
+		Sigmoid ,
+		Tanh ,
+		ReLU ,
 	};
 
-	static NNScale Sigmoid(NNScale value)
+	static NNScalar SigmoidFunc(NNScalar value)
 	{
 		if( value < -10 )
 			return 0;
@@ -41,46 +43,46 @@ public:
 		return 1.0 / (1.0 + exp(-value));
 	}
 
-	static NNScale SigmoidDif(NNScale value)
+	static NNScalar SigmoidDif(NNScalar value)
 	{
 		if( value < -10 )
 			return 0;
 		if( value > 10 )
 			return 0;
-		NNScale v = 1.0 / (1.0 + exp(-value));
+		NNScalar v = 1.0 / (1.0 + exp(-value));
 		return v * (1 - v);
 	}
-	static NNScale Tanh(NNScale value)
+	static NNScalar TanhFunc(NNScalar value)
 	{
 		if( value < -10 )
 			return 0;
 		if( value > 10 )
 			return 1;
 
-		NNScale expV = exp(value);
-		NNScale expVInv = 1 / expV;
+		NNScalar expV = exp(value);
+		NNScalar expVInv = 1 / expV;
 
 		return (expV - expVInv) / (expV + expVInv);
 	}
 
-	static NNScale TanhDif(NNScale value)
+	static NNScalar TanhDif(NNScalar value)
 	{
 		if( value < -10 )
 			return 0;
 		if( value > 10 )
 			return 0;
 
-		NNScale expV = exp(value);
-		NNScale expVInv = 1 / expV;
+		NNScalar expV = exp(value);
+		NNScalar expVInv = 1 / expV;
 		return (expV - expVInv) / (expV + expVInv);
 	}
 
-	static NNScale ReLU(NNScale value)
+	static NNScalar ReLUFunc(NNScalar value)
 	{
 		return (value > 0) ? value : 0;
 	}
 
-	static NNScale ReLUDif(NNScale value)
+	static NNScalar ReLUDif(NNScalar value)
 	{
 		return (value > 0) ? 1 : 0;
 	}
@@ -88,36 +90,51 @@ public:
 };
 
 
-template< NNScale (*StaticFunc)(NNScale) >
-struct FNNFuncHelper
-{
-	static void Trasnform(NNScale* inoutValues, int numValues)
-	{
-		for( int i = 0; i < numValues ; ++i )
-		{
-			*inoutValues = (*StaticFunc)(*inoutValues);
-			++inoutValues;
-		}
-	}
-};
+template< NNFunc::EName >
+struct NNFuncTraits {};
 
+#define NN_FUNC_TRAITS( NAME , FUNC , FUNC_DIF )\
+	template<>\
+	struct NNFuncTraits< NAME >\
+	{\
+		constexpr static NNActivationFunc Func = FUNC;\
+		constexpr static NNActivationFunc FuncDif = FUNC_DIF;\
+	};
 
+NN_FUNC_TRAITS(NNFunc::ReLU, NNFunc::ReLUFunc, NNFunc::ReLUDif);
+NN_FUNC_TRAITS(NNFunc::Tanh, NNFunc::TanhFunc, NNFunc::TanhDif);
+NN_FUNC_TRAITS(NNFunc::Sigmoid, NNFunc::SigmoidFunc, NNFunc::SigmoidDif);
 
 struct NeuralLayer
 {
 	int weightOffset;
 	NNActivationFunc func;
 	NNActivationFunc funcDif;
-	NNActivationTrasnformFunc transformFunc;
+	NNActivationTrasnformFunc funcTransform;
 	int numNode;
 	NeuralLayer()
 	{
 		numNode = 0;
 		weightOffset = 0;
-		//func = NNFun::ReLU;
-		func = NNFunc::Sigmoid;
-		funcDif = NNFunc::SigmoidDif;
-		transformFunc = FNNFuncHelper< &NNFunc::Sigmoid >::Trasnform;
+		setFuncionT< NNFunc::ReLU >();
+	}
+
+	template< NNFunc::EName Name >
+	void setFuncionT()
+	{
+		func = NNFuncTraits<Name>::Func;
+		funcDif = NNFuncTraits<Name>::FuncDif;
+		funcTransform = Trasnform< NNFuncTraits<Name>::Func >;
+	}
+
+	template< NNActivationFunc Func >
+	static void Trasnform(NNScalar* inoutValues, int numValues)
+	{
+		for (; numValues; --numValues)
+		{
+			*inoutValues = Func(*inoutValues);
+			++inoutValues;
+		}
 	}
 };
 
@@ -136,8 +153,7 @@ struct NeuralConv2DLayer : NeuralLayer
 
 	NeuralConv2DLayer()
 	{
-		func = NNFunc::ReLU;
-		transformFunc = FNNFuncHelper< &NNFunc::ReLU >::Trasnform;
+
 	}
 };
 
@@ -152,34 +168,27 @@ class FNNCalc
 {
 public:
 	static void LayerFrontFeedback(
-		NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, 
-		int numInput, NNScale* RESTRICT inputs, 
-		NNScale* RESTRICT outputs);
+		NeuralFullConLayer const& layer, NNScalar* RESTRICT weightData, 
+		int numInput, NNScalar* RESTRICT inputs, 
+		NNScalar* RESTRICT outputs);
 
 	static void LayerFrontFeedback(
-		NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, 
-		int numInput, NNScale* RESTRICT inputs,
-		NNScale* RESTRICT outputs, NNScale* RESTRICT outNetworkInputs);
-
-	static void LayerFrontFeedback(
-		NeuralConv2DLayer const& layer, NNScale* RESTRICT weightData, 
+		NeuralConv2DLayer const& layer, NNScalar* RESTRICT weightData, 
 		int numSliceInput, int  inputSize[],
-		NNScale* RESTRICT inputs, NNScale* RESTRICT outputs);
+		NNScalar* RESTRICT inputs, NNScalar* RESTRICT outputs);
+
+	static void LayerFrontFeedback(
+		NeuralFullConLayer const& layer, NNScalar* RESTRICT weightData, 
+		int numInput, NNScalar* RESTRICT inputs, 
+		NNScalar* RESTRICT outputs, NNScalar* RESTRICT outNetworkInputs);
 
 
-	static FORCEINLINE NNScale VectorDot(int dim, NNScale* RESTRICT a, NNScale* RESTRICT b)
+	static NNScalar VectorDot(int dim, NNScalar* RESTRICT a, NNScalar* RESTRICT b);
+	static NNScalar VectorDotNOP(int dim, NNScalar* RESTRICT a, NNScalar* RESTRICT b);
+
+	static FORCEINLINE NNScalar AreaConv(int dim, int stride, NNScalar* RESTRICT area, NNScalar* RESTRICT v)
 	{
-		NNScale result = 0;
-		for( ; dim; --dim )
-		{
-			result += (*a++) * (*b++);
-		}
-		return result;
-	}
-
-	static FORCEINLINE NNScale AreaConv(int dim, int stride, NNScale* RESTRICT area, NNScale* RESTRICT v)
-	{
-		NNScale result = 0;
+		NNScalar result = 0;
 		for( int i = 0; i < dim; ++i )
 		{
 			result += VectorDot(dim, area, v);
@@ -193,12 +202,12 @@ public:
 class FCNNLayout
 {
 public:
-	void init(int const topology[], int dimNum);
-	void init(int numInput, int numOutput, int numHiddenLayer, int const hiddenlayerNodeNum[]);
+	void init(uint32 const topology[], uint32 dimNum);
+	void init(uint32 numInput, uint32 numOutput, uint32 numHiddenLayer, uint32 const hiddenlayerNodeNum[]);
 
 	NeuralFullConLayer& getLayer(int idx) { return mLayers[idx]; }
 	NeuralFullConLayer const& getLayer(int idx) const { return mLayers[idx]; }
-	void getTopology(std::vector<int>& outTopology);
+	void getTopology(std::vector<uint32>& outTopology) const;
 
 
 	int getPrevLayerNodeNum(int idxLayer) const;
@@ -231,22 +240,22 @@ public:
 	{
 		mLayout = &inLayout;
 	}
-	NNScale* getWeights(int idxLayer, int idxNode);
+	NNScalar* getWeights(int idxLayer, int idxNode);
 
-	void setWeights(std::vector< NNScale >& weights)
+	void setWeights(std::vector< NNScalar >& weights)
 	{
 		assert(mLayout->getWeightNum() <= weights.size());
 		mWeights = &weights[0];
 	}
 	
-	void calcForwardFeedback(NNScale inputs[], NNScale outputs[]);
-	void calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[]);
-	void calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[], NNScale outNetworkInputs[]);
+	void calcForwardFeedback(NNScalar inputs[], NNScalar outputs[]);
+	void calcForwardFeedbackSignal(NNScalar inputs[], NNScalar outSingnals[]);
+	void calcForwardFeedbackSignal(NNScalar inputs[], NNScalar outSingnals[], NNScalar outNetworkInputs[]);
 	FCNNLayout const& getLayout() { return *mLayout; }
 private:
 	
 	FCNNLayout const* mLayout = nullptr;
-	NNScale* mWeights;	
+	NNScalar* mWeights;	
 };
 
 class Conv2DNeuralNetwork

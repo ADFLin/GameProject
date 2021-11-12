@@ -242,6 +242,7 @@
     </ClCompile>
     <ClCompile Include="AI\GeneticAlgorithm.cpp" />
     <ClCompile Include="AI\NeuralNetwork.cpp" />
+    <ClCompile Include="AI\TrainManager.cpp" />
     <ClCompile Include="AppEntry.cpp" />
     <ClCompile Include="Asset.cpp" />
     <ClCompile Include="AsyncWork.cpp" />
@@ -373,6 +374,7 @@
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
     <ClInclude Include="AI\GeneticAlgorithm.h" />
     <ClInclude Include="AI\NeuralNetwork.h" />
+    <ClInclude Include="AI\TrainManager.h" />
     <ClInclude Include="Algo\AStar.h" />
     <ClInclude Include="Algo\AStarDefultPolicy.h" />
     <ClInclude Include="Algo\Combination.h" />

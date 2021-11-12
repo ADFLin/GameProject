@@ -12,8 +12,9 @@ void ClassTreeNode::offsetQueryIndex(int offset)
 	}
 }
 
-ClassTreeNode::ClassTreeNode(ClassTreeNode* parent)
+ClassTreeNode::ClassTreeNode(ClassTree& tree, ClassTreeNode* parent)
 	:parent(parent)
+	,mTree(&tree)
 	,numTotalChildren(0)
 	,indexQuery(INDEX_NONE)
 #if CLASS_TREE_USE_INTRLIST
@@ -22,16 +23,16 @@ ClassTreeNode::ClassTreeNode(ClassTreeNode* parent)
 #endif
 
 {
-
 #if _DEBUG
 	static int gIdDbg = 0;
 	idDbg = gIdDbg++;
 #endif
-	ClassTree::Get().registerClass(this);
+	mTree->registerClass(this);
 }
 
 ClassTreeNode::ClassTreeNode(ERootConstruct)
 	:parent(nullptr)
+	,mTree(nullptr)
 	,numTotalChildren(0)
 	,indexQuery(INDEX_NONE)
 #if CLASS_TREE_USE_INTRLIST
@@ -53,11 +54,11 @@ ClassTreeNode::~ClassTreeNode()
 	if (indexParentSlot != -1)
 #endif
 	{
-		ClassTree::Get().unregisterClass(this, false);
+		mTree->unregisterClass(this, false);
 	}
 }
 
-bool ClassTreeNode::isChildOf(ClassTreeNode* testParent)
+bool ClassTreeNode::isChildOf(ClassTreeNode* testParent) const
 {
 #if CLASS_TREE_USE_INTRLIST
 	assert(childHook.isLinked() && testParent->childHook.isLinked());
@@ -72,9 +73,9 @@ void ClassTreeNode::changeParent(ClassTreeNode* newParent)
 	if( newParent == parent )
 		return;
 
-	ClassTree::Get().unregisterClass(this, true);
+	mTree->unregisterClass(this, true);
 	parent = newParent;
-	ClassTree::Get().registerClass(this);
+	mTree->registerClass(this);
 }
 
 void ClassTree::UnregisterAllNode_R(ClassTreeNode* node)
@@ -169,14 +170,6 @@ ClassTree::ClassTree()
 ClassTree::~ClassTree()
 {
 	unregisterAllClass();
-}
-
-#if CORE_SHARE_CODE
-
-ClassTree& ClassTree::Get()
-{
-	static ClassTree sClassTree;
-	return sClassTree;
 }
 
 void ClassTree::registerClass(ClassTreeNode* node)
@@ -286,4 +279,3 @@ void ClassTree::unregisterAllClass()
 #endif
 	mRoot.numTotalChildren = 0;
 }
-#endif //CORE_SHARE_CODE

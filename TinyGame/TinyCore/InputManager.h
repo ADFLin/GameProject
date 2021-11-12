@@ -10,6 +10,19 @@ class MouseMsg;
 typedef fastdelegate::FastDelegate< void ( MouseMsg const& ) > MouseCallback;
 typedef fastdelegate::FastDelegate< void ( char , bool ) >     KeyCallback;
 
+
+struct AxisActionInput
+{
+
+
+};
+
+struct ButtonActionInput
+{
+
+
+};
+
 class  InputManager
 {
 public:

@@ -8,7 +8,7 @@
 #include <memory>
 #include <intrin.h>
 
-using NNScale = float;
+using NNScalar = float;
 
 class NNRand
 {
@@ -28,9 +28,9 @@ public:
 		s[3] = CPUSeed() & 0xffff;
 		mImpl.init(s);
 	}
-	NNScale nextScale()
+	NNScalar nextScale()
 	{
-		return NNScale(nextInt()) / 0xffffffff;
+		return NNScalar(nextInt()) / 0xffffffff;
 	}
 	float   nextFloat()
 	{
@@ -49,7 +49,7 @@ class Genotype
 {
 public:
 
-	using DataType = std::vector< NNScale >;
+	using DataType = std::vector< NNScalar >;
 
 	Genotype(DataType const& inData)
 		:data(inData)
@@ -64,8 +64,8 @@ public:
 	{
 	}
 
-	void randomizeData(NNRand& random, NNScale valueMin, NNScale valueMax);
-	bool isDataIdentical(DataType const& otherData, NNScale maxError = 1e-10);
+	void randomizeData(NNRand& random, NNScalar valueMin, NNScalar valueMax);
+	bool isDataIdentical(DataType const& otherData, NNScalar maxError = 1e-10);
 
 	float    fitness;
 	DataType data;
@@ -88,28 +88,29 @@ public:
 	};
 
 
-	int appendWithCopy(GenePool& other, float fitnessError, NNScale dataError);
+	int appendWithCopy(GenePool& other, float fitnessError, NNScalar dataError);
 
 	GenotypePtr cloneGenotype(int index);
 
 	bool add(GenotypePtr pGenotype);
 	void clear();
 
-	void removeIdentical(float fitnessError, NNScale dataError);
-	bool haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScale dataError, int startIndex = 0);
+	void removeIdentical(float fitnessError, NNScalar dataError);
+	bool haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScalar dataError, int startIndex = 0);
 
-	static void RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScale dataError);
+	static void RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScalar dataError);
 
 	std::vector< GenotypePtr > const& getDataSet() { return mStorage; }
 
-	GenotypePtr& operator[](int idx) { return mStorage[idx]; }
+	GenotypePtr&       operator[](int idx) { return mStorage[idx]; }
+	GenotypePtr const& operator[](int idx) const { return mStorage[idx]; }
 	std::vector< GenotypePtr > mStorage;
 };
 
 class GeneticAlgorithm
 {
 public:
-	using DataType = std::vector< NNScale >;
+	using DataType = std::vector< NNScalar >;
 	float selectPowerFactor = 5;
 
 	void select(int numSelection, std::vector< GenotypePtr > const& candidates, std::vector< GenotypePtr >& outSelections);
@@ -117,7 +118,7 @@ public:
 	void mutate(std::vector< GenotypePtr >& populations, float geneMutationProb, float valueMutationProb, float valueDelta);
 
 	void crossoverData(float powerA, DataType const& dataA, DataType const& dataB, DataType& outData);
-	void mutateData(DataType& data, float valueMutationProb, NNScale valueDelta);
+	void mutateData(DataType& data, float valueMutationProb, NNScalar valueDelta);
 
 	NNRand mRand;
 };

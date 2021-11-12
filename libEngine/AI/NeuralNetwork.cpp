@@ -4,23 +4,23 @@
 #include "CompilerConfig.h"
 
 
-NNScale* FCNeuralNetwork::getWeights(int idxLayer, int idxNode)
+NNScalar* FCNeuralNetwork::getWeights(int idxLayer, int idxNode)
 {
 	FCNNLayout const& NNLayout = getLayout();
 
 	NeuralFullConLayer const& layer = NNLayout.mLayers[idxLayer];
-	NNScale* result = &mWeights[layer.weightOffset];
+	NNScalar* result = &mWeights[layer.weightOffset];
 	result += idxNode * (NNLayout.getPrevLayerNodeNum(idxLayer) + 1);
 	return result;
 }
 
 
-void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[])
+void FCNeuralNetwork::calcForwardFeedbackSignal(NNScalar inputs[], NNScalar outSingnals[])
 {
 	FCNNLayout const& NNLayout = getLayout();
 
-	NNScale* tempInputs = inputs;
-	NNScale* tempOutputs = &outSingnals[0];
+	NNScalar* tempInputs = inputs;
+	NNScalar* tempOutputs = &outSingnals[0];
 	int curInputNum = NNLayout.getInputNum();
 	for( int i = 0; i < NNLayout.mLayers.size(); ++i )
 	{
@@ -32,12 +32,18 @@ void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSin
 	}
 }
 
-void FCNeuralNetwork::calcForwardFeedback(NNScale inputs[], NNScale outputs[])
+template< typename T >
+T  AlignUp(T  value, T  align)
+{
+	return (value + align - 1) & ~(align - 1);
+}
+
+void FCNeuralNetwork::calcForwardFeedback(NNScalar inputs[], NNScalar outputs[])
 {
 	FCNNLayout const& NNLayout = getLayout();
 
-	NNScale* tempInputs = (NNScale*)_alloca( 2 * NNLayout.getMaxLayerNodeNum() * sizeof(NNScale));
-	NNScale* tempOutputs = tempInputs + NNLayout.getMaxLayerNodeNum();
+	NNScalar* tempInputs = (NNScalar*)(_alloca((2 * NNLayout.getMaxLayerNodeNum() + 3) * sizeof(NNScalar)));
+	NNScalar* tempOutputs = tempInputs + NNLayout.getMaxLayerNodeNum();
 
 	FNNCalc::LayerFrontFeedback(NNLayout.mLayers[0], mWeights , NNLayout.getInputNum(), inputs, tempInputs);
 	int curInputNum = NNLayout.mLayers[0].numNode;
@@ -53,12 +59,12 @@ void FCNeuralNetwork::calcForwardFeedback(NNScale inputs[], NNScale outputs[])
 }
 
 
-void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[], NNScale outNetworkInputs[])
+void FCNeuralNetwork::calcForwardFeedbackSignal(NNScalar inputs[], NNScalar outSingnals[], NNScalar outNetworkInputs[])
 {
 	FCNNLayout const& NNLayout = getLayout();
 
-	NNScale* tempInputs = inputs;
-	NNScale* tempOutputs = &outSingnals[0];
+	NNScalar* tempInputs = inputs;
+	NNScalar* tempOutputs = &outSingnals[0];
 	int curInputNum = NNLayout.getInputNum();
 	for(const NeuralFullConLayer& layer : NNLayout.mLayers)
 	{
@@ -71,19 +77,18 @@ void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSin
 	}
 }
 
-
-void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, int numInput, NNScale* RESTRICT inputs, NNScale* RESTRICT outputs, NNScale* RESTRICT outNetworkInputs )
+void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScalar* RESTRICT weightData, int numInput, NNScalar* RESTRICT inputs, NNScalar* RESTRICT outputs, NNScalar* RESTRICT outNetworkInputs)
 {
-	NNScale* pWeight = weightData + layer.weightOffset;
-	NNScale* pInput = inputs;
-	NNScale* pOutput = outputs;
-	NNScale* pNetworkInput = outNetworkInputs;
+	NNScalar* pWeight = weightData + layer.weightOffset;
+	NNScalar* pInput = inputs;
+	NNScalar* pOutput = outputs;
+	NNScalar* pNetworkInput = outNetworkInputs;
 
-	for( int i = 0; i < layer.numNode; ++i )
+	for (int i = 0; i < layer.numNode; ++i)
 	{
-		NNScale value = *pWeight;
+		NNScalar value = *pWeight;
 		++pWeight;
-		value += VectorDot(numInput, pWeight, pInput);
+		value += VectorDotNOP(numInput, pWeight, pInput);
 		pWeight += numInput;
 
 		*pNetworkInput = value;
@@ -92,21 +97,21 @@ void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScale* RESTR
 		++pOutput;
 	}
 
-	if( layer.transformFunc )
+	if (layer.funcTransform)
 	{
-		(*layer.transformFunc)(outputs, layer.numNode);
+		(*layer.funcTransform)(outputs, layer.numNode);
 	}
 }
 
-void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, int numInput, NNScale* RESTRICT inputs, NNScale* RESTRICT outputs)
+void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScalar* RESTRICT weightData, int numInput, NNScalar* RESTRICT inputs, NNScalar* RESTRICT outputs)
 {
-	NNScale* pWeight = weightData + layer.weightOffset;
-	NNScale* pInput = inputs;
-	NNScale* pOutput = outputs;
+	NNScalar* pWeight = weightData + layer.weightOffset;
+	NNScalar* pInput = inputs;
+	NNScalar* pOutput = outputs;
 	
 	for( int i = 0; i < layer.numNode; ++i )
 	{
-		NNScale value = *pWeight;
+		NNScalar value = *pWeight;
 		++pWeight;
 		value += VectorDot(numInput, pWeight, pInput);
 		pWeight += numInput;
@@ -115,13 +120,13 @@ void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScale* RESTR
 		++pOutput;
 	}
 
-	if( layer.transformFunc )
+	if( layer.funcTransform )
 	{
-		(*layer.transformFunc)(outputs, layer.numNode);
+		(*layer.funcTransform)(outputs, layer.numNode);
 	}
 }
 
-void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScale* RESTRICT weightData, int numSliceInput, int inputSize[], NNScale* RESTRICT inputs, NNScale* RESTRICT outputs)
+void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScalar* RESTRICT weightData, int numSliceInput, int inputSize[], NNScalar* RESTRICT inputs, NNScalar* RESTRICT outputs)
 {
 
 	int const nx = inputSize[0] - layer.convSize + 1;
@@ -132,19 +137,19 @@ void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScale* RESTRI
 	int const sliceOutputSize = nx * ny;
 	int const inputStride = inputSize[0];
 
-	NNScale* pWeight = weightData + layer.weightOffset;
-	NNScale* pInput = inputs;
-	NNScale* pOutput = outputs;
+	NNScalar* pWeight = weightData + layer.weightOffset;
+	NNScalar* pInput = inputs;
+	NNScalar* pOutput = outputs;
 
 	for( int idxNode = 0; idxNode < layer.numNode; ++idxNode )
 	{
 #if 0	
-		NNScale* pSliceWeight = pWeight;
-		NNScale* pSliceInput = pInput;
+		NNScalar* pSliceWeight = pWeight;
+		NNScalar* pSliceInput = pInput;
 
 		for( int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice )
 		{
-			NNScale* pSliceOutput = pOutput;
+			NNScalar* pSliceOutput = pOutput;
 
 			std::fill_n(pSliceOutput, sliceOutputSize, *pSliceWeight);
 			++pSliceWeight;
@@ -164,17 +169,17 @@ void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScale* RESTRI
 			
 		}
 #else
-		NNScale* pSliceOutput = outputs;
+		NNScalar* pSliceOutput = outputs;
 		for( int j = 0; j < ny; ++j )
 		{
 			for( int i = 0; i < nx; ++i )
 			{
 				int idx = i + inputSize[0] * j;
 
-				NNScale* pSliceWeight = pWeight;
-				NNScale* pSliceInput = pInput + idx;
+				NNScalar* pSliceWeight = pWeight;
+				NNScalar* pSliceInput = pInput + idx;
 
-				NNScale value = *pSliceWeight;
+				NNScalar value = *pSliceWeight;
 				++pSliceWeight;
 				for( int idxSlice = 0; idxSlice < numSliceInput; ++idxSlice )
 				{
@@ -191,22 +196,85 @@ void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScale* RESTRI
 	}
 
 
-	if( layer.transformFunc )
+	if( layer.funcTransform )
 	{
 		int num = sliceOutputSize * layer.numNode;
-		(*layer.transformFunc)(outputs, num);
+		(*layer.funcTransform)(outputs, num);
 	}
 }
 
-void FCNNLayout::init(int const topology[], int dimNum)
+NNScalar FNNCalc::VectorDot(int dim, NNScalar* RESTRICT a, NNScalar* RESTRICT b)
+{
+	NNScalar result = 0;
+#if USE_MATH_SIMD 
+	if constexpr (Meta::IsSameType< NNScalar, float >::Value)
+	{
+		using namespace SIMD;
+		int numPackedDim = dim / 4;
+
+		SScalar vr = SScalar(0.0f);
+		for (; numPackedDim; --numPackedDim)
+		{
+			SVector4 va = SVector4(a);
+			SVector4 vb = SVector4(b);
+			vr = vr + va.dot(vb);
+			a += 4;
+			b += 4;
+		}
+
+		switch (dim % 4)
+		{
+		case 1: vr = vr + SScalar(a[0]) * SScalar(b[0]); break;
+		case 2: 
+			{
+				SVector2 va = SVector2(a);
+				SVector2 vb = SVector2(b);
+				vr = vr + va.dot(vb);
+			}
+			break;
+		case 3:
+			{
+				SVector3 va = SVector3(a);
+				SVector3 vb = SVector3(b);
+				vr = vr + va.dot(vb);
+			}
+			break;
+		}
+		result = vr;
+	}
+	else
+#endif
+	{
+
+		for (; dim; --dim)
+		{
+			result += (*a++) * (*b++);
+		}
+	}
+	return result;
+}
+
+
+NNScalar FNNCalc::VectorDotNOP(int dim, NNScalar* RESTRICT a, NNScalar* RESTRICT b)
+{
+	NNScalar result = 0;
+	for (; dim; --dim)
+	{
+		result += (*a++) * (*b++);
+	}
+	return result;
+}
+
+
+void FCNNLayout::init(uint32 const topology[], uint32 dimNum)
 {
 	assert(dimNum >= 2);
-	int numInput = topology[0];
-	int numOutput = topology[dimNum - 1];
+	uint32 numInput = topology[0];
+	uint32 numOutput = topology[dimNum - 1];
 	init(numInput, numOutput, dimNum - 2, topology + 1);
 }
 
-void FCNNLayout::init(int numInput, int numOutput, int numHiddenLayer, int const hiddenlayerNodeNum[])
+void FCNNLayout::init(uint32 numInput, uint32 numOutput, uint32 numHiddenLayer, uint32 const hiddenlayerNodeNum[])
 {
 	mNumInput = numInput;
 	mLayers.resize(numHiddenLayer + 1);
@@ -234,7 +302,7 @@ void FCNNLayout::init(int numInput, int numOutput, int numHiddenLayer, int const
 	}
 }
 
-void FCNNLayout::getTopology(std::vector<int>& outTopology)
+void FCNNLayout::getTopology(std::vector<uint32>& outTopology) const
 {
 	outTopology.resize(mLayers.size() + 1);
 	outTopology[0] = mNumInput;

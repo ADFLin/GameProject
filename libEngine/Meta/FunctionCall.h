@@ -7,7 +7,7 @@
 struct FunctionCallable
 {
 	template< typename T, typename... Args >
-	static auto requires(T& t , Args... args) -> decltype 
+	static auto Requires(T& t , Args... args) -> decltype 
 	(	
 		t(args...)
 	);

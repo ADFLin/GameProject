@@ -1255,21 +1255,21 @@ static void TestClassTree()
 	}
 #define CHECK_RESULT( EXPR , VALUE ) CHECK_RESULT_INNER( EXPR ,VALUE , __FILE__ , __LINE__ )
 
-	ClassTree& tree = ClassTree::Get();
-	TPtrHolder< ClassTreeNode > root = new ClassTreeNode( nullptr );
-	TPtrHolder< ClassTreeNode > a = new ClassTreeNode( root );
-	TPtrHolder< ClassTreeNode > b = new ClassTreeNode( root );
-	TPtrHolder< ClassTreeNode > c = new ClassTreeNode( a );
-	TPtrHolder< ClassTreeNode > d = new ClassTreeNode( a );
-	TPtrHolder< ClassTreeNode > e = new ClassTreeNode( b );
+	ClassTree tree;
+	TPtrHolder< ClassTreeNode > root = new ClassTreeNode(tree ,nullptr );
+	TPtrHolder< ClassTreeNode > a = new ClassTreeNode(tree, root );
+	TPtrHolder< ClassTreeNode > b = new ClassTreeNode(tree, root );
+	TPtrHolder< ClassTreeNode > c = new ClassTreeNode(tree, a );
+	TPtrHolder< ClassTreeNode > d = new ClassTreeNode(tree, a );
+	TPtrHolder< ClassTreeNode > e = new ClassTreeNode(tree, b );
 
 	CHECK_RESULT(e->isChildOf( a ), false);
 	CHECK_RESULT(e->isChildOf( d ), false);
 	CHECK_RESULT(c->isChildOf( e ), false);
 	CHECK_RESULT(c->isChildOf( a ), true);
 
-	TPtrHolder< ClassTreeNode > f = new ClassTreeNode( d );
-	TPtrHolder< ClassTreeNode > g = new ClassTreeNode( a );
+	TPtrHolder< ClassTreeNode > f = new ClassTreeNode(tree, d );
+	TPtrHolder< ClassTreeNode > g = new ClassTreeNode(tree, a );
 
 	f->isChildOf(b);
 	f->isChildOf(root);
@@ -1336,6 +1336,7 @@ REGISTER_MISC_TEST_ENTRY("Big Number", TestBigNumber);
 REGISTER_MISC_TEST_ENTRY("Cycle Queue", TestCycleQueue);
 
 SHADER_PERMUTATION_TYPE_INT(TestVal, "TestVal", 3, 6);
+SHADER_PERMUTATION_TYPE_INT(TestVal2, "TestVal2", 3, 6);
 void TestShaderPermutation()
 {
 	using namespace Render;
@@ -1345,6 +1346,7 @@ void TestShaderPermutation()
 	vector.set<SimplePipelineProgram::HaveTexcoord>(false);
 	vector.set<SimplePipelineProgram::HaveVertexColor>(true);
 	vector.set<TestVal>(4);
+	//vector.set<TestVal2>(4);
 
 	LogMsg("PermutationId = %d %u", vector.getPermutationId(), vector.GetPermutationCount());
 

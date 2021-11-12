@@ -6,7 +6,7 @@
 #include "Widget/WidgetUtility.h"
 #include "DrawEngine.h"
 
-#include "TrainManager.h"
+#include "AI/TrainManager.h"
 
 #include "SystemPlatform.h"
 
@@ -15,11 +15,13 @@
 #include "Image/ImageData.h"
 #include "ConsoleSystem.h"
 
+#include "Misc/NeuralNetworkRenderer.h"
+
 #define USE_TEXTURE_ATLAS 0
 
 namespace FlappyBird
 {
-	using namespace Render;
+
 
 	REGISTER_STAGE_ENTRY("FlappyBird Test", LevelStage, EExecGroup::Dev, 2, "Game|AI");
 
@@ -27,7 +29,7 @@ namespace FlappyBird
 		            , public IBirdController
 	{
 	public:
-		AgentBird(Agent& agent)
+		AgentBird(TrainAgent& agent)
 		{
 			mAgent = &agent;
 			agent.entity = this;
@@ -36,8 +38,8 @@ namespace FlappyBird
 		void updateInput(GameLevel& world, BirdEntity& bird) override
 		{
 			assert(&hostBird == &bird);
-			NNScale inputs[8];
-			std::fill_n(inputs, ARRAY_SIZE(inputs), NNScale(0));
+			NNScalar inputs[8];
+			std::fill_n(inputs, ARRAY_SIZE(inputs), NNScalar(0));
 			assert(ARRAY_SIZE(inputs) >= mAgent->FNN.getLayout().getInputNum());
 
 			switch (mAgent->FNN.getLayout().getInputNum())
@@ -102,7 +104,7 @@ namespace FlappyBird
 				break;
 			}
 
-			NNScale output;
+			NNScalar output;
 			mAgent->FNN.calcForwardFeedback(inputs, &output);
 			if (output >= 0.5)
 			{
@@ -115,7 +117,7 @@ namespace FlappyBird
 				mAgent->FNN.calcForwardFeedbackSignal(inputs, mAgent->inputsAndSignals + mAgent->FNN.getLayout().getInputNum());
 			}
 		}
-		void getPipeInputs(NNScale inputs[], PipeInfo const& pipe)
+		void getPipeInputs(NNScalar inputs[], PipeInfo const& pipe)
 		{
 			inputs[0] = (pipe.posX - hostBird.getPos().x) / WorldHeight;
 			inputs[1] = (0.5 * (pipe.topHeight + pipe.buttonHeight) - hostBird.getPos().y) / WorldHeight;
@@ -150,8 +152,8 @@ namespace FlappyBird
 
 		bool       bCompleted = false;
 		float      lifeTime = 0;
-		Agent*     mAgent;
-		BirdEntity hostBird;
+		TrainAgent* mAgent;
+		BirdEntity  hostBird;
 	};
 
 	class AgentBirdWorld : public AgentWorld
@@ -195,7 +197,7 @@ namespace FlappyBird
 			return GetDefaultColTypeResponse(obj.type);
 		}
 
-		static AgentBird* GetEntity(std::unique_ptr<Agent> const& agentPtr)
+		static AgentBird* GetEntity(std::unique_ptr<TrainAgent> const& agentPtr)
 		{
 			return static_cast<AgentBird*>(agentPtr->entity);
 		}
@@ -264,7 +266,7 @@ namespace FlappyBird
 		getLevel().onGameOver = LevelOverDelegate(this, &LevelStage::notifyGameOver);
 
 #define INPUT_MODE 0
-		int gDefaultTopology[] =
+		uint32 gDefaultTopology[] =
 		{
 #if INPUT_MODE == 0
 			3 , 5 , 7 , 5 , 3 , 1 
@@ -735,7 +737,7 @@ namespace FlappyBird
 				FCNeuralNetwork& FNN = mTrainData->bestAgent->FNN;
 				NeuralNetworkRenderer renderer(FNN);
 				renderer.basePos = Vector2(400, 300);
-				renderer.inputsAndSignals = &mTrainData->bestInputsAndSignals[0];
+				renderer.inputsAndSignals = mTrainData->getBestInputsAndSignals();
 				renderer.draw(g);
 			}
 

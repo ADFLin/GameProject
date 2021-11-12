@@ -38,6 +38,7 @@ namespace Render
 	struct ShaderManagedDataBase : public IAssetViewer
 	{
 		ShaderClassType classType = ShaderClassType::Common;
+		GlobalShaderObjectClass const* shaderClass = nullptr;
 		union 
 		{
 			ShaderProgram*  shaderProgram;
@@ -97,6 +98,12 @@ namespace Render
 		TShaderType* getGlobalShaderT(typename TShaderType::PermutationDomain const& domain, bool bForceLoad = true)
 		{
 			return static_cast<TShaderType*>(getGlobalShader(TShaderType::GetShaderClass(), domain.getPermutationId(), bForceLoad));
+		}
+
+		template< class TShaderType >
+		TShaderType* getGlobalShaderT(uint32 permutationId, bool bForceLoad = true)
+		{
+			return static_cast<TShaderType*>(getGlobalShader(TShaderType::GetShaderClass(), permutationId, bForceLoad));
 		}
 
 		template< class TShaderType >

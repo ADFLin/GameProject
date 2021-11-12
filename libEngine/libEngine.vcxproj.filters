@@ -556,6 +556,9 @@
     <ClCompile Include="RHI\D3DSharedCommon.cpp">
       <Filter>RHI\D3D12</Filter>
     </ClCompile>
+    <ClCompile Include="AI\TrainManager.cpp">
+      <Filter>AI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -1340,6 +1343,9 @@
     </ClInclude>
     <ClInclude Include="RHI\ShaderPermutation.h">
       <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="AI\TrainManager.h">
+      <Filter>AI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

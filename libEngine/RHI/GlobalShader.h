@@ -22,7 +22,6 @@ namespace Render
 		}
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
-
 			assert(0);
 #if 0
 			static ShaderEntryInfo const entries[] =
@@ -35,7 +34,6 @@ namespace Render
 			return TArrayView< ShaderEntryInfo const >();
 #endif
 		}
-		class GlobalShaderProgramClass const* myClass;
 	};
 
 	class GlobalShader : public Shader
@@ -48,7 +46,6 @@ namespace Render
 			assert(0);
 			return nullptr;
 		}
-		class GlobalShaderClass const* myClass;
 	};
 
 	class GlobalShaderObjectClass
@@ -71,7 +68,7 @@ namespace Render
 		struct CPermutationDomainDefined
 		{
 			template< class T >
-			static auto requires(typename T::PermutationDomain& value) -> decltype
+			static auto Requires(typename T::PermutationDomain& value) -> decltype
 			(
 				value
 			);

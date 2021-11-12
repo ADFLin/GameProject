@@ -78,7 +78,6 @@ namespace Render
 		FORCEINLINE Vector2 transformPosition(Vector2 const& pos) const
 		{
 			return MulOffset(pos, M, P);
-
 		}
 
 		FORCEINLINE Vector2 transformInvPosition(Vector2 const& pos) const
@@ -293,21 +292,21 @@ namespace Render
 		std::vector< RenderTransform2D > mStack;
 	};
 
-	class TransformStackScope
+	class ScopedTransformPush
 	{
 	public:
-		FORCEINLINE TransformStackScope(TransformStack2D& stack)
+		FORCEINLINE ScopedTransformPush(TransformStack2D& stack)
 			:mStack(stack)
 		{
 			mStack.push();
 		}
-		FORCEINLINE TransformStackScope(TransformStack2D& stack , RenderTransform2D const& transform , bool bApplyPrev = true )
+		FORCEINLINE ScopedTransformPush(TransformStack2D& stack , RenderTransform2D const& transform , bool bApplyPrev = true )
 			:mStack(stack)
 		{
 			mStack.pushTransform(transform , bApplyPrev);
 		}
 
-		FORCEINLINE ~TransformStackScope()
+		FORCEINLINE ~ScopedTransformPush()
 		{
 			mStack.pop();
 		}
@@ -315,7 +314,7 @@ namespace Render
 		TransformStack2D& mStack;
 	};
 
-#define TRANSFORM_STACK_SCOPE( STACK , ... ) ::Render::TransformStackScope ANONYMOUS_VARIABLE(Scope)(STACK,##__VA_ARGS__);
+#define TRANSFORM_PUSH_SCOPE( STACK , ... ) ::Render::ScopedTransformPush ANONYMOUS_VARIABLE(Scope)(STACK,##__VA_ARGS__);
 
 }//namespace Render
 

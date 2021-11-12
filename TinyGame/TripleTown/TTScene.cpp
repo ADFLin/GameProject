@@ -595,7 +595,7 @@ namespace TripleTown
 		mRenderState.sampler = &TStaticSamplerState< ESampler::Bilinear >::GetRHI();
 		float scaleMap = float( TileLength ) / TileImageLength;
 	
-		TRANSFORM_STACK_SCOPE(xformStack, RenderTransform2D( Vector2(scaleMap , scaleMap ) , mMapOffset) );
+		TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D( Vector2(scaleMap , scaleMap ) , mMapOffset) );
 
 		TileMap const& map = mLevel->getMap();
 
@@ -614,7 +614,7 @@ namespace TripleTown
 				Tile const& tile = map.getData( i , j );
 
 				//depth offset = -1
-				TRANSFORM_STACK_SCOPE(xformStack);
+				TRANSFORM_PUSH_SCOPE(xformStack);
 
 				xformStack.translate(Vector2(i * TileImageLength, j * TileImageLength));
 				switch( tile.getTerrain() )
@@ -665,7 +665,7 @@ namespace TripleTown
 
 				Tile const& tile = map.getData( i , j );
 
-				TRANSFORM_STACK_SCOPE(xformStack);
+				TRANSFORM_PUSH_SCOPE(xformStack);
 
 				if ( tile.isEmpty() )
 				{
@@ -682,7 +682,7 @@ namespace TripleTown
 						//depth offset = j
 						xformStack.translate(data.pos);
 						{
-							TRANSFORM_STACK_SCOPE(xformStack);
+							TRANSFORM_PUSH_SCOPE(xformStack);
 							xformStack.translate(Vector2((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
 							drawItemByTexId(TID_ITEM_SHADOW_LARGE);
 
@@ -695,7 +695,7 @@ namespace TripleTown
 						//depth offset = j
 						xformStack.translate(data.pos);
 						{
-							TRANSFORM_STACK_SCOPE(xformStack);
+							TRANSFORM_PUSH_SCOPE(xformStack);
 							xformStack.translate(Vector2((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
 							drawItemByTexId(TID_ITEM_SHADOW_LARGE);
 							drawItem(tile.id, (tile.bSpecial && gItemImageList[tile.id].addition) ? EItemImage::eAddition : EItemImage::eNormal);
@@ -707,7 +707,7 @@ namespace TripleTown
 							if ( tile.meta )
 							{
 								//depth offset = 0.1
-								TRANSFORM_STACK_SCOPE(xformStack, RenderTransform2D( Vector2(scaleItem, scaleItem) , Vector2(TileImageLength / 2, TileImageLength / 2)) );
+								TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D( Vector2(scaleItem, scaleItem) , Vector2(TileImageLength / 2, TileImageLength / 2)) );
 								drawItemCenter( tile.meta , EItemImage::eNormal );
 							}
 						}
@@ -723,7 +723,7 @@ namespace TripleTown
 			if ( mLevel->isMapRange( posTileMouse ) )
 			{
 				//depth offset = 10
-				TRANSFORM_STACK_SCOPE(xformStack, RenderTransform2D( Vector2(mItemScale * scaleMap, mItemScale * scaleMap) , Vector2(mLastMousePos) ) , false);
+				TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D( Vector2(mItemScale * scaleMap, mItemScale * scaleMap) , Vector2(mLastMousePos) ) , false);
 
 				drawItemCenter( mLevel->getQueueObject() , EItemImage::eNormal );
 				//drawItemOutline( *mItemImageMap[ mLevel->getQueueObject() ][ 2 ].texture );
@@ -733,7 +733,7 @@ namespace TripleTown
 		{
 
 			//depth = 50
-			TRANSFORM_STACK_SCOPE(xformStack, RenderTransform2D::Translate(posTileMouse.x * TileImageLength, posTileMouse.y * TileImageLength));
+			TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D::Translate(posTileMouse.x * TileImageLength, posTileMouse.y * TileImageLength));
 			drawImageByTextId(TID_UI_CURSOR, Vector2(TileImageLength, TileImageLength));
 			xformStack.transform(RenderTransform2D(Vector2(mItemScale, mItemScale), 0.5 * Vector2(TileImageLength, TileImageLength)));
 
@@ -745,12 +745,12 @@ namespace TripleTown
 
 		if( bShowTexAtlas )
 		{
-			TRANSFORM_STACK_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
+			TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
 			drawImageInvTexY(mTexAtlas.getTexture(), 700, 700);
 		}
 		else if ( mPreviewTexture.isValid() && bShowPreviewTexture )
 		{
-			TRANSFORM_STACK_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
+			TRANSFORM_PUSH_SCOPE(xformStack, RenderTransform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
 			drawImageInvTexY(*mPreviewTexture, 700, 700);
 		}
 

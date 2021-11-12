@@ -127,6 +127,11 @@ namespace Render
 				SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
 				return false;
 		}
+
+		for (uint32 i = 0; i < SimplePipelineProgram::PermutationDomain::GetPermutationCount(); ++i)
+		{
+			ShaderManager::Get().getGlobalShaderT< SimplePipelineProgram >(i);
+		}
 		return true;
 	}
 

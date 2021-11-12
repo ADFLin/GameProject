@@ -19,10 +19,10 @@ public:
 
 	FCNNLayout      mLayout;
 	FCNeuralNetwork mFNN;
-	std::vector< NNScale > mWeights;
-	std::vector< NNScale > mSingnals;
-	std::vector< NNScale > mNetworkInputs;
-	std::vector< NNScale > mSensivityValues;
+	std::vector< NNScalar > mWeights;
+	std::vector< NNScalar > mSingnals;
+	std::vector< NNScalar > mNetworkInputs;
+	std::vector< NNScalar > mSensivityValues;
 
 
 	virtual bool onInit()
@@ -31,7 +31,7 @@ public:
 			return false;
 
 		::Global::GUI().cleanupWidget();
-		int topology[] = { 1 , 4 , 4 , 1 };
+		uint32 topology[] = { 1 , 4 , 4 , 1 };
 		mLayout.init(topology, ARRAY_SIZE(topology));
 		mFNN.init(mLayout);
 		mWeights.resize(mLayout.getWeightNum());
@@ -42,13 +42,13 @@ public:
 		restart();
 		return true;
 	}
-	static NNScale RandFloat(NNScale min, NNScale max)
+	static NNScalar RandFloat(NNScalar min, NNScalar max)
 	{
-		return min + (max - min) * NNScale(::rand()) / RAND_MAX;
+		return min + (max - min) * NNScalar(::rand()) / RAND_MAX;
 	}
-	static void Randomize(std::vector< NNScale >& v)
+	static void Randomize(std::vector< NNScalar >& v)
 	{
-		for( NNScale& x : v )
+		for( NNScalar& x : v )
 		{
 			x = RandFloat(-1, 1);
 		}
@@ -66,7 +66,7 @@ public:
 
 	void Step()
 	{
-		NNScale input = RandFloat(-1, 1);
+		NNScalar input = RandFloat(-1, 1);
 		mFNN.calcForwardFeedbackSignal( &input , mSingnals.data() , mNetworkInputs.data());
 
 		// E = sum( 0.5 *( tj - a[l|j] )^2 )
@@ -95,7 +95,7 @@ public:
 			for( int idxNode = 0; idxNode < mLayout.getOutputNum(); ++idxNode )
 			{
 				NNScale z_lj = pNetworkInputs[idxNode];
-				NNScale p_lj = layer.funDif( z_lj );
+				NNScale p_lj = layer.funcDif( z_lj );
 				if( idxLayer == mLayout.getHiddenLayerNum() )
 				{
 					p_lj *= -(TestFunc(input) - outputs[idxNode]);

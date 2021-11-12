@@ -24,6 +24,9 @@
     <Filter Include="CurveBuilder\Shader">
       <UniqueIdentifier>{d296853c-2372-47a4-8343-b873d7d26115}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{c37f384d-876e-4899-aa56-27c5a86d235c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TinyCore\DataTransfer.h">
@@ -143,6 +146,12 @@
     <ClInclude Include="TinyCore\GameGraphics2D.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Widget\GameDetailPanel.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc\NeuralNetworkRenderer.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -219,6 +228,9 @@
     </ClCompile>
     <ClCompile Include="TinyCore\PropertySet.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Misc\NeuralNetworkRenderer.cpp">
+      <Filter>Misc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

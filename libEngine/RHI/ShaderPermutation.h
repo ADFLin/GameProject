@@ -6,9 +6,8 @@
 
 namespace Render
 {
-	struct ShaderPermutationBase {};
 
-	struct ShaderPermutationBool : ShaderPermutationBase
+	struct ShaderPermutationBool
 	{
 		using Type = bool;
 		constexpr static uint32 GetPermutationCount() { return 2; }
@@ -16,10 +15,14 @@ namespace Render
 		static uint32 ToDimensionId(Type value) { return value ? 1 : 0; }
 	};
 
-	template< int32 ValueMin , int32 ValueMax >
-	struct TShaderPermutationInt : ShaderPermutationBase
+	struct ShaderPermutationInt
 	{
 		using Type = int32;
+	};
+
+	template< int32 ValueMin , int32 ValueMax >
+	struct TShaderPermutationInt : ShaderPermutationInt
+	{
 		constexpr static uint32 GetPermutationCount() { return ( ValueMax - ValueMin ) + 1; }
 		static Type   ToValue(uint32 id) { return ValueMin + id; }
 		static uint32 ToDimensionId(Type value)
@@ -166,6 +169,7 @@ namespace Render
 		template< typename P >
 		void set(typename P::Type value)
 		{
+			static_assert(ContainPermutation<P>());
 			FShaderPermutation::GetPermutation<Type, P, Ts...>(*this).value = value;
 		}
 

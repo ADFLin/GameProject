@@ -15,7 +15,7 @@ namespace CarTrain
 
 
 	TConsoleVariable<bool> CVarShowDebugDraw{ true, "CT.ShowDebugDraw", CVF_TOGGLEABLE };
-
+	TConsoleVariable<int>  CVarFrameTickFactor{ 1, "CT.FrameTickFactor", CVF_TOGGLEABLE };
 #define CARTRAIN_DIR "CarTrain"
 	class TestLevelData : public LevelData
 	{
@@ -125,12 +125,12 @@ namespace CarTrain
 			}
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(250, 520), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(220, 520), Math::Deg2Rad(45));
 				boxObjects.push_back(def);
 			}
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(500, 450), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(400, 450), Math::Deg2Rad(45));
 				boxObjects.push_back(def);
 			}
 			{
@@ -138,7 +138,16 @@ namespace CarTrain
 				def.transform = XForm2D(Vector2(500, 450), -Math::Deg2Rad(45));
 				boxObjects.push_back(def);
 			}
-
+			{
+				def.extend = Vector2(20, 200);
+				def.transform = XForm2D(Vector2(400, 600), Math::Deg2Rad(45));
+				boxObjects.push_back(def);
+			}
+			{
+				def.extend = Vector2(20, 200);
+				def.transform = XForm2D(Vector2(500, 600), -Math::Deg2Rad(45));
+				boxObjects.push_back(def);
+			}
 
 			{
 				def.extend = Vector2(50, 50);
@@ -146,10 +155,15 @@ namespace CarTrain
 				boxObjects.push_back(def);
 			}
 
+			{
+				def.extend = Vector2(50, 50);
+				def.transform = XForm2D(Vector2(700, 350), Math::Deg2Rad(45));
+				boxObjects.push_back(def);
+			}
 
 			{
 				def.extend = Vector2(50, 50);
-				def.transform = XForm2D(Vector2(700, 450), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(700, 500), Math::Deg2Rad(45));
 				boxObjects.push_back(def);
 			}
 
@@ -278,6 +292,32 @@ namespace CarTrain
 		{
 			LogMsg("Load Train Pool  %s Fail", name);
 		}
+	}
+
+	void TestStage::tick()
+	{
+		mWorld.tick(GDeltaTime);
+		if (AgentGameWorld::CheckTrainEnd(mTrainData))
+		{
+			mTrainData.runEvolution(&mGenePool);
+			restart();
+		}
+		else
+		{
+			mTrainData.findBestAgnet();
+		}
+	}
+
+	void TestStage::onUpdate(long time)
+	{
+		BaseClass::onUpdate(time);
+
+		int frame = time / gDefaultTickTime;
+		int tickCount = CVarFrameTickFactor * frame;
+		for (int i = 0; i < tickCount; ++i)
+			tick();
+
+		updateFrame(frame);
 	}
 
 	void TestStage::onRender(float dFrame)

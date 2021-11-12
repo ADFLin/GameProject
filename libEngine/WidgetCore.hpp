@@ -142,6 +142,24 @@ T& WidgetCoreT<T>::addChild( WidgetCoreT* ui )
 	return *_this();
 }
 
+
+template< class T >
+bool WidgetCoreT<T>::isSubWidgetOf(WidgetCoreT* ui) const
+{
+	WidgetCoreT const* curWidget = this;
+	do
+	{
+		if (curWidget->mParent == ui)
+			return true;
+
+		curWidget = curWidget->mParent;
+
+	}
+	while (curWidget);
+	return false;
+}
+
+
 template< class T >
 bool WidgetCoreT<T>::isFocus()
 {
@@ -334,9 +352,9 @@ T& WidgetCoreT<T>::makeFocus()
 }
 
 template< class T >
-T& WidgetCoreT<T>::clearFocus()
+T& WidgetCoreT<T>::clearFocus(bool bSubWidgetsIncluded)
 {
-	getManager()->clearFocusWidget(this);
+	getManager()->clearFocusWidget(this, bSubWidgetsIncluded);
 	return *_this();
 }
 
@@ -866,10 +884,19 @@ void TWidgetManager<T>::focusWidget( WidgetCore* ui )
 }
 
 template < class T >
-void TWidgetManager<T>::clearFocusWidget(WidgetCore* ui)
+void TWidgetManager<T>::clearFocusWidget(WidgetCore* ui, bool bSubWidgetsIncluded)
 {
+	if (mNamedSlots[ESlotName::Focus] == nullptr)
+		return;
+
 	if (ui == mNamedSlots[ESlotName::Focus])
 	{
+		clearNamedSlot(ESlotName::Focus);
+		ui->focus(false);
+	}
+	else if (bSubWidgetsIncluded && mNamedSlots[ESlotName::Focus]->isSubWidgetOf(ui))
+	{
+		ui = mNamedSlots[ESlotName::Focus];
 		clearNamedSlot(ESlotName::Focus);
 		ui->focus(false);
 	}

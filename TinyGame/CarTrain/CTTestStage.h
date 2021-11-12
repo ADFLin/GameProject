@@ -533,31 +533,10 @@ namespace CarTrain
 		}
 
 		CarEntity* mCar = nullptr;
-		void tick()
-		{
-			mWorld.tick(GDeltaTime);
-			if (AgentGameWorld::CheckTrainEnd(mTrainData))
-			{
-				mTrainData.runEvolution(&mGenePool);
-				restart();
-			}
-			else
-			{
-				mTrainData.findBestAgnet();
-			}
-		}
+		void tick();
 		void updateFrame(int frame) {}
 
-		void onUpdate(long time) override
-		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			for (int i = 0; i < frame; ++i)
-				tick();
-
-			updateFrame(frame);
-		}
+		void onUpdate(long time) override;
 
 
 		RenderTransform2D mWorldToScreen = RenderTransform2D::Identity();

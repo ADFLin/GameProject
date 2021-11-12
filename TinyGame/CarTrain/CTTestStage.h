@@ -169,17 +169,6 @@ namespace CarTrain
 	public:
 		DECLARE_GAME_ENTITY(CarEntity, GameEntity);
 
-		static int constexpr NumDetectors = 3;
-		static float constexpr MaxDetectDistance = 300.0f;
-		static Vector2 constexpr DetectorLocalDirs[] =
-		{
-			Vector2(1,1),
-			Vector2(1,0),
-			Vector2(1,-1),
-			Vector2(0,1),
-			Vector2(0,-1),
-		};
-
 		CarEntity(XForm2D const& transform)
 			:mTransform(transform)
 		{
@@ -202,7 +191,6 @@ namespace CarTrain
 			{
 				die();
 			};
-			updateDetectors();
 		}
 
 
@@ -211,6 +199,106 @@ namespace CarTrain
 			bDead = true;
 			bActive = false;
 			mBody->setLinearVel(Vector2(0, 0));
+		}
+
+		void tick(float deltaTime);
+
+		bool  bDead = false;
+		float turnAngle = 0;
+		float moveSpeed = 350;
+
+		XForm2D  mTransform;
+		IPhysicsBody* mBody;
+	};
+
+
+
+	class CarAgentEntiy : public CarEntity
+		                , public AgentEntity
+					    , public IEntityController
+	{
+	public:
+		DECLARE_GAME_ENTITY(CarAgentEntiy,  CarEntity);
+
+		CarAgentEntiy(XForm2D const& transform)
+			:BaseClass(transform)
+		{
+
+		}
+
+		void release()
+		{
+			destroyEntity();
+		}
+		TrainAgent* mAgent;
+
+		void beginPlay() override
+		{
+			BaseClass::beginPlay();
+			getWorld()->mControlList.push_back({this , this});
+			updateDetectors();
+		}
+
+		void restart()
+		{
+			bDead = false;
+			bActive = true;
+			mAgent->genotype->fitness = 0;
+			stayTime = 0;
+			box.invalidate();
+		}
+
+		float stayTime = 0.0f;
+		using BoundBox = Math::TAABBox< Vector2 >;
+		BoundBox box;
+
+
+		struct Detector
+		{
+			float   fraction = 0.0;
+			float   fractionDelta = 0.0;
+			bool    bHitted;
+		};
+
+		static int constexpr NumDetectors = 3;
+		static float constexpr MaxDetectDistance = 300.0f;
+		static Vector2 constexpr DetectorLocalDirs[] =
+		{
+			Vector2(1,1),
+			Vector2(1,0),
+			Vector2(1,-1),
+			Vector2(0,1),
+			Vector2(0,-1),
+		};
+		Detector mDetectors[NumDetectors];
+
+		constexpr static float MaxRotateAngle = 4;
+		void postTick(float deltaTime) override
+		{
+			BaseClass::postTick(deltaTime);
+			if (!bDead)
+			{
+				updateDetectors();
+				mAgent->genotype->fitness += deltaTime;
+
+				box.addPoint(mTransform.getPos());
+				
+				Vector2 size = box.getSize();
+				float radius2 = 2 * moveSpeed / ( Math::Deg2Rad(MaxRotateAngle) / GDeltaTime );
+				if ( size.x < 1.2 * radius2 && size.y < 1.2 * radius2 && size.x * size.y < radius2 * radius2)
+				{
+					stayTime += deltaTime;
+					if (stayTime > 4)
+					{
+						die();
+					}
+				}
+				else
+				{
+					box.invalidate();
+					stayTime = 0;
+				}
+			}
 		}
 
 		void updateDetectors()
@@ -237,101 +325,7 @@ namespace CarTrain
 			}
 		}
 
-		struct Detector
-		{
-			float   fraction = 0.0;
-			float   fractionDelta = 0.0;
-			bool    bHitted;
-		};
-
-
-		void tick(float deltaTime);
-
 		void drawDetector(RHIGraphics2D& g);
-
-		bool  bDead = false;
-		float turnAngle = 0;
-		float moveSpeed = 350;
-		Detector mDetectors[NumDetectors];
-		XForm2D  mTransform;
-		IPhysicsBody* mBody;
-	};
-
-
-	class IEditMode
-	{
-	public:
-		virtual void render() {}
-		virtual void tick() {}
-		virtual bool onMouse(MouseMsg const& msg) { return true; }
-	};
-
-	using BoundBox = Math::TAABBox< Vector2 >;
-
-	class CarAgentEntiy : public CarEntity
-		                , public AgentEntity
-					    , public IEntityController
-	{
-	public:
-		DECLARE_GAME_ENTITY(CarAgentEntiy,  CarEntity);
-
-		CarAgentEntiy(XForm2D const& transform)
-			:BaseClass(transform)
-		{
-
-		}
-
-		void release()
-		{
-			destroyEntity();
-		}
-		TrainAgent* mAgent;
-
-		void beginPlay() override
-		{
-			BaseClass::beginPlay();
-			getWorld()->mControlList.push_back({this , this});
-		}
-
-		void restart()
-		{
-			bDead = false;
-			bActive = true;
-			mAgent->genotype->fitness = 0;
-			stayTime = 0;
-			box.invalidate();
-		}
-
-		float stayTime = 0.0f;
-		BoundBox box;
-
-		constexpr static float MaxRotateAngle = 4;
-		void postTick(float deltaTime) override
-		{
-			BaseClass::postTick(deltaTime);
-			if (!bDead)
-			{
-				mAgent->genotype->fitness += deltaTime;
-
-				box.addPoint(mTransform.getPos());
-				
-				Vector2 size = box.getSize();
-				float radius2 = 2 * moveSpeed / ( Math::Deg2Rad(MaxRotateAngle) / GDeltaTime );
-				if ( size.x < 1.2 * radius2 && size.y < 1.2 * radius2 && size.x * size.y < radius2 * radius2)
-				{
-					stayTime += deltaTime;
-					if (stayTime > 4)
-					{
-						die();
-					}
-				}
-				else
-				{
-					box.invalidate();
-					stayTime = 0;
-				}
-			}
-		}
 
 
 #if 0
@@ -465,6 +459,17 @@ namespace CarTrain
 		XForm2D   startXForm;
 		GameWorld mWorld;
 	};
+
+
+	class IEditMode
+	{
+	public:
+		virtual void render() {}
+		virtual void tick() {}
+		virtual bool onMouse(MouseMsg const& msg) { return true; }
+	};
+
+
 
 	class TestStage : public StageBase
 					, public IGameRenderSetup

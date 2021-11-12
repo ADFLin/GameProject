@@ -16,6 +16,7 @@ namespace CarTrain
 
 	TConsoleVariable<bool> CVarShowDebugDraw{ true, "CT.ShowDebugDraw", CVF_TOGGLEABLE };
 
+#define CARTRAIN_DIR "CarTrain"
 	class TestLevelData : public LevelData
 	{
 	public:
@@ -180,7 +181,6 @@ namespace CarTrain
 			}
 
 			mTransform = mBody->getTransform();
-			updateDetectors();
 			Vector2 moveDir = mTransform.transformVector(Vector2(1, 0));
 			mBody->setLinearVel(moveSpeed * moveDir);
 		}
@@ -190,7 +190,8 @@ namespace CarTrain
 		}
 	}
 
-	void CarEntity::drawDetector(RHIGraphics2D& g)
+
+	void CarAgentEntiy::drawDetector(RHIGraphics2D& g)
 	{
 		g.pushXForm();
 		g.translateXForm(mTransform.getPos().x, mTransform.getPos().y);
@@ -244,7 +245,6 @@ namespace CarTrain
 		return true;
 	}
 
-#define CARTRAIN_DIR "CarTrain"
 	void TestStage::saveTrainPool(char const* name)
 	{
 		if (!FFileSystem::IsExist(CARTRAIN_DIR))
@@ -305,8 +305,8 @@ namespace CarTrain
 
 			for (auto entity : mWorld.mEntities)
 			{
-				CarEntity* car = entity->cast<CarEntity>();
-				if (!car->bDead)
+				CarAgentEntiy* car = entity->cast<CarAgentEntiy>();
+				if (car && !car->bDead)
 				{
 					car->drawDetector(g);
 				}

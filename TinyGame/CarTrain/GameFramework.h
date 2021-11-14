@@ -120,8 +120,7 @@ namespace CarTrain
 		{
 		}
 
-
-		bool isChildOf(GameEntityClass& other) const
+		bool isSubClassOf(GameEntityClass& other) const
 		{
 			return ClassTreeNode::isChildOf(&other);
 		}
@@ -143,13 +142,6 @@ namespace CarTrain
 		}
 
 	};
-#define DECLARE_GAME_ENTITY(TYPE , PARENT_TYPE)\
-	using BaseClass = PARENT_TYPE;\
-	static TGameEntityClass<TYPE>& StaticClass()\
-	{\
-		static TGameEntityClass<TYPE> sClass(&BaseClass::StaticClass());\
-		return sClass;\
-	}
 
 
 	class GameEntity
@@ -157,8 +149,8 @@ namespace CarTrain
 	public:
 		GameWorld* getWorld() { return mWorld; }
 
-
 		virtual ~GameEntity(){}
+		virtual GameEntityClass* getClass() { return &StaticClass(); }
 		virtual void beginPlay() {}
 		virtual void endPlay() {}
 		virtual void tick(float deltaTime) {}
@@ -168,8 +160,6 @@ namespace CarTrain
 		bool bActive;
 
 		GameWorld* mWorld;
-		GameEntityClass* mClass;
-
 
 		static TGameEntityClass<GameEntity>& StaticClass()
 		{
@@ -180,7 +170,7 @@ namespace CarTrain
 		template< typename TEntity >
 		TEntity* cast()
 		{
-			if (mClass->isChildOf(TEntity::StaticClass()))
+			if (getClass()->isSubClassOf(TEntity::StaticClass()))
 			{
 				return static_cast<TEntity*>(this);
 			}
@@ -188,6 +178,14 @@ namespace CarTrain
 		}
 	};
 
+#define DECLARE_GAME_ENTITY(TYPE , PARENT_TYPE)\
+	using BaseClass = PARENT_TYPE;\
+	static TGameEntityClass<TYPE>& StaticClass()\
+	{\
+		static TGameEntityClass<TYPE> sClass(&BaseClass::StaticClass());\
+		return sClass;\
+	}\
+	GameEntityClass* getClass() override { return &TYPE::StaticClass(); }
 
 
 	class IEntityController
@@ -228,7 +226,6 @@ namespace CarTrain
 		{
 			TEntity* entity = new TEntity(std::forward<Args>(args)...);
 			entity->mWorld = this;
-			entity->mClass = &TEntity::StaticClass();
 			mEntities.push_back(entity);
 			entity->beginPlay();
 			return entity;

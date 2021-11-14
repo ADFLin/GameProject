@@ -160,6 +160,7 @@ namespace CarTrain
 		std::unique_ptr< PhyObjectDef > mPhyDef;
 		b2Body* mBody;
 	};
+
 	class PhysicsSceneBox2D : public IPhysicsScene
 						    , public b2ContactFilter
 		                    , public b2ContactListener
@@ -196,7 +197,19 @@ namespace CarTrain
 		}
 
 
-
+		void createBoxFixture(b2Body* body, BoxObjectDef const& def, void* userData)
+		{
+			b2PolygonShape shape;
+			shape.SetAsBox(def.extend.x / 2, def.extend.y / 2);
+			b2FixtureDef   fixtureDef;
+			fixtureDef.filter.categoryBits = BIT(def.collisionType);
+			fixtureDef.filter.maskBits = def.collisionMask;
+			//fixtureDef.density = 1.0;
+			fixtureDef.shape = &shape;
+			fixtureDef.isSensor = !def.bCollisionResponse;
+			fixtureDef.userData = userData;
+			body->CreateFixture(&fixtureDef);
+		}
 		IPhysicsBody*  createBox(BoxObjectDef const& def, XForm2D xForm) override
 		{
 			PhyBodyBox2D* result = new PhyBodyBox2D;
@@ -213,20 +226,10 @@ namespace CarTrain
 
 			bodyDef.position = B2Conv::To(xForm.getPos());
 			bodyDef.angle = xForm.getRotateAngle();
-			auto body = mWorld->CreateBody(&bodyDef);
-			b2PolygonShape shape;
-			shape.SetAsBox(def.extend.x / 2, def.extend.y / 2);
-			b2FixtureDef   fixtureDef;
-			fixtureDef.filter.categoryBits = BIT(def.collisionType);
-			fixtureDef.filter.maskBits = def.collisionMask;
-			//fixtureDef.density = 1.0;
-			fixtureDef.shape = &shape;
-			fixtureDef.isSensor = !def.bCollisionResponse;
-			fixtureDef.userData = result;
-			body->CreateFixture(&fixtureDef);
-
-			result->mBody = body;
+			result->mBody = mWorld->CreateBody(&bodyDef);
 			result->mPhyDef = std::make_unique< BoxObjectDef >(def);
+			createBoxFixture(result->mBody, def, result);
+
 
 			return result;
 		}

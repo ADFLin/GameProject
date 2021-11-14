@@ -25,7 +25,7 @@ namespace CarTrain
 			Vector2 RectSize = Vector2(760, 560);
 			Vector2 CenterPos = 0.5 * Vector2(::Global::GetScreenSize());
 
-			spawnPoint = XForm2D(Vector2(100, 100), 0);
+			spawnPoint = XForm2D(Vector2(200, 470), Math::Deg2Rad(135));
 
 			GameBoxDef def;
 			def.bCollisionDetection = false;

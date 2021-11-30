@@ -6,7 +6,7 @@
 
 class ActionTrigger;
 struct ActionPort;
-class Graphics2D;
+class IGraphics2D;
 
 namespace Bubble
 {
@@ -73,7 +73,7 @@ namespace Bubble
 		void        updateFrame( int frame );
 		void        fireAction( ActionTrigger& trigger );
 		void        firePlayerAction(ActionPort port, ActionTrigger& trigger );
-		void        render( Graphics2D& g );
+		void        render( IGraphics2D& g );
 		PlayerData* createData();
 		PlayerData* getPlayerData( unsigned id )
 		{

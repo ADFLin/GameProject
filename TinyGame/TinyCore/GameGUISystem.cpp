@@ -69,13 +69,13 @@ void GUISystem::addHotkey( GWidget* ui , ControlAction key )
 	mHotKeys.push_back( info );
 }
 
-void GUISystem::scanHotkey( GameController& controller )
+void GUISystem::scanHotkey( InputControl& inputConrol )
 {
 	//for ( HotkeyList::iterator iter = mHotKeys.begin();
 	//	iter != mHotKeys.end() ; ++iter )
 	//{
 	//	iter->ui->markDestroyDefferred();
-	//	if ( controller.checkKey( 0 , iter->keyAction ) )
+	//	if ( inputConrol.checkKey( 0 , iter->keyAction ) )
 	//	{
 	//		iter->ui->onHotkey( iter->keyAction );
 	//	}

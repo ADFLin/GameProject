@@ -34,7 +34,7 @@ namespace Render
 	{
 		if (!mUniformBuffer.isValid())
 		{
-			mUniformBuffer = RHICreateVertexBuffer(sizeof(ViewBufferData), 1, BCF_UsageConst | BCF_CpuAccessWrite);
+			mUniformBuffer = RHICreateVertexBuffer(sizeof(ViewBufferData), 1, BCF_UsageConst | BCF_CreateSRV | BCF_CpuAccessWrite);
 		}
 
 		if (mbDataDirty)

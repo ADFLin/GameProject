@@ -53,8 +53,8 @@ namespace Bubble
 
 	void LevelStage::setupScene( IPlayerManager& playerManager )
 	{
-		Controller& controller = static_cast< Controller& >(	
-			getGame()->getController() );
+		CInputControl& controller = static_cast< CInputControl& >(	
+			getGame()->getInputControl() );
 		
 		int numLevel = 0;
 		PlayerData* mainViewPlayer = nullptr;
@@ -109,7 +109,7 @@ namespace Bubble
 	{
 		Vector2 pos = Vector2( 100 , 100 );
 
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		mDataManager.render( g );
 	}

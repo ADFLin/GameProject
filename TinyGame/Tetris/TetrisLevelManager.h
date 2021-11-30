@@ -11,7 +11,7 @@ class  RenderCallBack;
 class  IPlayerManager;
 class  CLPlayerManager;
 
-class  SimpleController;
+class  DefaultInputControl;
 struct PlayerInfo;
 class  GamePlayer;
 
@@ -20,7 +20,7 @@ namespace Tetris
 	class  RecordManager;
 	static float const PieceRotateSpeed = 0.1f;
 
-	typedef SimpleController MyController;
+	typedef DefaultInputControl CInputControl;
 
 	struct GameInfo;
 	class Scene;
@@ -96,7 +96,7 @@ namespace Tetris
 
 		virtual void render( Scene* scene ){}
 		virtual void setupScene( unsigned flag ){}
-		virtual void setupSingleGame( MyController& controller ) = 0;
+		virtual void setupSingleGame( CInputControl& inputConrol ) = 0;
 		virtual int  markRecord( RecordManager& manager, GamePlayer* player ){ return -1; }
 		virtual bool checkOver(){ return false; }
 

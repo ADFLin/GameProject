@@ -402,7 +402,7 @@ void ReplayStageMode::updateTime(long time)
 
 	if (getGame())
 	{
-		::Global::GUI().scanHotkey(getGame()->getController());
+		::Global::GUI().scanHotkey(getGame()->getInputControl());
 	}
 
 	int totalFrame = mReplayInput->getRecordFrame();

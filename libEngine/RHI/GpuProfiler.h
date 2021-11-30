@@ -26,7 +26,9 @@ namespace Render
 
 		virtual void startTiming(uint32 timingHandle) = 0;
 		virtual void endTiming(uint32 timingHandle) = 0;
+		virtual void beginReadback() {}
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) = 0;
+		virtual void endReadback() {}
 		virtual double getCycleToMillisecond() = 0;
 	};
 

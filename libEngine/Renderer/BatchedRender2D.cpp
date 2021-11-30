@@ -266,6 +266,9 @@ namespace Render
 			case RenderBachedElement::Text:
 				TypeDataHelper::Destruct< TRenderBachedElement<TextPayload> >(element);
 				break;
+			case RenderBachedElement::LineStrip:
+				TypeDataHelper::Destruct< TRenderBachedElement<LineStripPayload> >(element);
+				break;
 			}
 		}
 
@@ -370,7 +373,8 @@ namespace Render
 					float halfWidth = 0.5 * float(payload.width);
 					Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
 
-#if 1
+#define USE_NEW_LINE_IDNEX 1
+#if USE_NEW_LINE_IDNEX
 					Vector2 dir = positions[1] - positions[0];
 					int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
 					int index1 = (index0 + 1) % 4;
@@ -405,6 +409,63 @@ namespace Render
 					uint32* pIndices = fetchIndexBuffer(4 * 6);
 					FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
 #endif
+				}
+				break;
+			case RenderBachedElement::LineStrip:
+				{
+					RenderBachedElementList::LineStripPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::LineStripPayload >(element);
+
+					int lineCount = payload.posList.size() - 1;
+					float halfWidth = 0.5 * float(payload.width);
+					Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
+
+#if USE_NEW_LINE_IDNEX
+					int baseIndex;
+					BaseVertex* pVertices = fetchBaseBuffer(3 * 2 * lineCount, baseIndex);
+					uint32* pIndices = fetchIndexBuffer(4 * 3 * lineCount);
+#else
+					BaseVertex* pVertices = fetchBaseBuffer(4 * 2, baseIndex);
+					uint32* pIndices = fetchIndexBuffer(4 * 6 * lineCount);
+#endif
+
+					for( int i = 0 ; i < lineCount; ++i )
+					{
+						Vector2 positions[2];
+						positions[0] = payload.posList[i];
+						positions[1] = payload.posList[i+1];
+#if USE_NEW_LINE_IDNEX
+						Vector2 dir = positions[1] - positions[0];
+						int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
+						int index1 = (index0 + 1) % 4;
+						int index2 = (index0 + 2) % 4;
+						int index3 = (index0 + 3) % 4;
+
+						pVertices[0] = { positions[0] + offset[index2] , payload.color };
+						pVertices[1] = { positions[0] + offset[index3] , payload.color };
+						pVertices[2] = { positions[0] + offset[index1] , payload.color };
+						pVertices[3] = { positions[1] + offset[index0] , payload.color };
+						pVertices[4] = { positions[1] + offset[index1] , payload.color };
+						pVertices[5] = { positions[1] + offset[index3] , payload.color };
+						pVertices += 6;
+
+						pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
+						pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
+						pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
+						baseIndex += 6;
+#else
+						for (int i = 0; i < 2; ++i)
+						{
+							pVertices[0] = { positions[i] + offset[0] , payload.color };
+							pVertices[1] = { positions[i] + offset[1] , payload.color };
+							pVertices[2] = { positions[i] + offset[2] , payload.color };
+							pVertices[3] = { positions[i] + offset[3] , payload.color };
+							pVertices += 4;
+						}
+
+						pIndices = FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
+						baseIndex += 8;
+#endif
+					}
 				}
 				break;
 			case RenderBachedElement::Text:

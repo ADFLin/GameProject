@@ -78,7 +78,7 @@ namespace GreedySnake
 		case EGameStageMode::Net:
 			{
 				GamePlayer* player = playerManager.getUser();
-				getGame()->getController().setPortControl( player->getActionPort() , 0 );
+				getGame()->getInputControl().setPortControl( player->getActionPort() , 0 );
 			}
 			break;
 		}

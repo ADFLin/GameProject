@@ -29,7 +29,7 @@ bool GameStageMode::changeState(EGameState state)
 
 void GameStageMode::restart(bool beInit)
 {
-	getGame()->getController().restart();
+	getGame()->getInputControl().restart();
 	doRestart(beInit);
 }
 

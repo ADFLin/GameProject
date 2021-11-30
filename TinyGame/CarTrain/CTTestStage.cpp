@@ -25,7 +25,7 @@ namespace CarTrain
 			Vector2 RectSize = Vector2(760, 560);
 			Vector2 CenterPos = 0.5 * Vector2(::Global::GetScreenSize());
 
-			spawnPoint = XForm2D(Vector2(200, 470), Math::Deg2Rad(135));
+			spawnPoint = XForm2D(Vector2(420, 470), Math::Deg2Rad(135));
 
 			GameBoxDef def;
 			def.bCollisionDetection = false;
@@ -205,7 +205,7 @@ namespace CarTrain
 	}
 
 
-	void CarAgentEntiy::drawDetector(RHIGraphics2D& g)
+	void AgentCarEntiy::drawDetector(RHIGraphics2D& g)
 	{
 		g.pushXForm();
 		g.translateXForm(mTransform.getPos().x, mTransform.getPos().y);
@@ -225,25 +225,28 @@ namespace CarTrain
 
 		VERIFY_RETURN_FALSE(mWorld.initialize());
 
-		mWorld.getPhysicsScene()->setupDebugView(Global::GetRHIGraphics2D());
+		mWorld.getPhysicsScene()->setupDebug(Global::GetRHIGraphics2D());
 
 		mLevelData = std::make_unique<TestLevelData>();
 		mLevelData->setup(mWorld);
 
 
-		mNNLayout.init(CarAgentEntiy::Topology, ARRAY_SIZE(CarAgentEntiy::Topology));
+		mNNLayout.init(AgentCarEntiy::Topology, ARRAY_SIZE(AgentCarEntiy::Topology));
 
 		mTrainSettings.netLayout = &mNNLayout;
 		mTrainSettings.initWeightSeed = generateRandSeed();
 		mTrainSettings.numAgents = 200;
 		mTrainSettings.numTrainDataSelect = 25;
-		mTrainSettings.mutationValueDelta = 0.6;
+		mTrainSettings.numPoolDataSelectUsed = 30;
+		mTrainSettings.mutationValueDelta = 0.1;
+		mTrainSettings.mutationValueProb = 0.8;
+		mTrainSettings.mutationGeneProb = 0.5;
 		mGenePool.maxPoolNum = 100;
 
 		mTrainData.init(mTrainSettings);
 		mTrainData.bestAgent = mTrainData.mAgents[0].get();
 
-		AgentGameWorld::SpawnAgents(mWorld, mTrainData, mLevelData->spawnPoint);
+		mWorld.spawnAgents(mTrainData, mLevelData->spawnPoint);
 
 
 		auto& console = ConsoleSystem::Get();
@@ -253,6 +256,7 @@ namespace CarTrain
 		REGISTER_COM("CT.RandomizeAgents", randomizeAgentsCmd);
 		REGISTER_COM("CT.SaveTrainPool", saveTrainPool);
 		REGISTER_COM("CT.LoadTrainPool", loadTrainPool);
+		REGISTER_COM("CT.SpawnPoint", setSpawnPoint);
 
 		::Global::GUI().cleanupWidget();
 		restart();
@@ -297,14 +301,16 @@ namespace CarTrain
 	void TestStage::tick()
 	{
 		mWorld.tick(GDeltaTime);
-		if (AgentGameWorld::CheckTrainEnd(mTrainData))
+
+		mWorld.checkAliveCars();
+		if (mWorld.mAliveCars.size() > 0)
 		{
-			mTrainData.runEvolution(&mGenePool);
-			restart();
+			mTrainData.findBestAgnet();
 		}
 		else
 		{
-			mTrainData.findBestAgnet();
+			mTrainData.runEvolution(&mGenePool);
+			restart();
 		}
 	}
 
@@ -345,7 +351,7 @@ namespace CarTrain
 
 			for (auto entity : mWorld.mEntities)
 			{
-				CarAgentEntiy* car = entity->cast<CarAgentEntiy>();
+				AgentCarEntiy* car = entity->cast<AgentCarEntiy>();
 				if (car && !car->bDead)
 				{
 					car->drawDetector(g);

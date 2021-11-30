@@ -13,6 +13,7 @@
 #include "ConsoleSystem.h"
 
 
+
 CORE_API extern TConsoleVariable<bool> CVarUseBachedRender2D;
 
 
@@ -445,6 +446,29 @@ void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 		drawLineBuffer();
 	}
 }
+
+
+void RHIGraphics2D::drawLineStrip(Vector2 pos[], int num)
+{
+	setTextureState();
+	comitRenderState();
+
+	if (CVarUseBachedRender2D)
+	{
+		auto& element = mBachedElementList.addLineStrip(mXFormStack.get(), mPaintArgs.penColor, pos, num, mPaintArgs.penWidth);
+		setupElement(element);
+	}
+	else
+	{
+		mBuffer.clear();
+		for (int i = 1; i < num; ++i)
+		{
+			emitLineVertex(pos[i], pos[i-1]);
+		}
+		drawLineBuffer();
+	}
+}
+
 
 void RHIGraphics2D::drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize)
 {

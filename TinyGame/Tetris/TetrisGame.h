@@ -15,7 +15,7 @@ namespace Tetris
 	RecordManager& GetRecordManager();
 
 	union GameInfoData;	
-	typedef SimpleController MyController;
+	typedef DefaultInputControl CInputControl;
 
 	class GameModule : public IGameModule
 		             , public IGameRenderSetup
@@ -23,7 +23,7 @@ namespace Tetris
 	public:
 		GameModule();
 		char const*     getName(){  return TETRIS_NAME;  }
-		GameController& getController(){  return mController;  }
+		InputControl&   getInputControl(){  return mInputControl;  }
 		SettingHepler*  createSettingHelper( SettingHelperType type );
 		ReplayTemplate* createReplayTemplate( unsigned version );
 		StageBase*      createStage( unsigned id );
@@ -40,7 +40,7 @@ namespace Tetris
 		void preShutdownRenderSystem(bool bReInit = false) override;
 
 	private:
-		MyController  mController;
+		CInputControl  mInputControl;
 	};
 
 }//namespace Tetris

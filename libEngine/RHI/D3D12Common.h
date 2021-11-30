@@ -68,6 +68,12 @@ namespace Render
 		typedef D3D12VertexBuffer ImplType;
 	};
 	template<>
+	struct TD3D12TypeTraits< RHIIndexBuffer >
+	{
+		typedef ID3D12Resource ResourceType;
+		typedef D3D12IndexBuffer ImplType;
+	};
+	template<>
 	struct TD3D12TypeTraits< RHITexture2D >
 	{
 		typedef ID3D12Resource ResourceType;
@@ -362,13 +368,67 @@ namespace Render
 
 		uint32 formatGUID = 0;
 
+		struct FormatKey
+		{
+			DXGI_FORMAT colors[MaxSimulationBufferCount];
+			int numColors = 0;
+			DXGI_FORMAT depth;
+
+
+			bool operator == (FormatKey const& rhs) const
+			{
+				if (numColors != rhs.numColors)
+					return false;
+				if (depth != rhs.depth)
+					return false;
+				for (int i = 0; i < numColors; ++i)
+				{
+					if (colors[i] != rhs.colors[i])
+						return false;
+				}
+
+				return true;
+			}
+
+			uint32 getTypeHash() const
+			{
+				uint32 result = HashValue(numColors);
+				for (int i = 0; i < numColors; ++i)
+					HashCombine(result, colors[i]);
+
+				HashCombine(result, depth);
+				return result;
+			}
+		};
+
+		void getFormatKey(FormatKey& outKey) const
+		{
+			outKey.numColors = numColorBuffers;
+			for (int i = 0; i < numColorBuffers; ++i)
+			{
+				outKey.colors[i] = colorBuffers[i].format;
+			}
+			outKey.depth = depthBuffer.format;
+		}
+
+
 		void updateFormatGUID()
 		{
-			//#TODO : Impl
+			static uint32 NextGUID = 0;
+			static std::unordered_map< FormatKey, uint32 , MemberFuncHasher > FormatIDMap;
+			FormatKey key;
+			getFormatKey(key);
 
+			auto iter = FormatIDMap.find(key);
+			if (iter != FormatIDMap.end())
+			{
+				formatGUID = iter->second;
+				return;
+			}
 
-
-
+			formatGUID = NextGUID;
+			++NextGUID;
+			FormatIDMap[key] = formatGUID;
 		}
 
 		void releasePoolHandle()
@@ -490,13 +550,29 @@ namespace Render
 			return true;
 		}
 
-
 		virtual void releaseResource()
 		{
 			D3D12DescriptorHeapPool::Get().freeHandle(mViewHandle);
 		}
 
 		D3D12PooledHeapHandle mViewHandle;
+	};
+
+	class D3D12IndexBuffer : public TD3D12Resource< RHIIndexBuffer >
+	{
+	public:
+		bool initialize(TComPtr<ID3D12Resource>& resource, TComPtr<ID3D12DeviceRHI>& device, int elementSize, int numElements)
+		{
+			mNumElements = numElements;
+			mElementSize = elementSize;
+			mResource = resource.detach();
+			return true;
+		}
+
+		virtual void releaseResource()
+		{
+
+		}
 	};
 
 	class D3D12RasterizerState : public TRefcountResource< RHIRasterizerState >

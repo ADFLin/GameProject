@@ -272,7 +272,7 @@ namespace CarTrain
 			return callback.bHitted;
 		}
 
-		void setupDebugView(RHIGraphics2D& g) override
+		void setupDebug(RHIGraphics2D& g) override
 		{
 			mDebugDraw = std::make_unique< Box2DDraw >(g);
 			mWorld->SetDebugDraw(mDebugDraw.get());

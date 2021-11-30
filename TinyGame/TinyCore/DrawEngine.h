@@ -60,7 +60,6 @@ public:
 
 	TINY_API IGraphics2D&  getIGraphics();
 
-	HFONT       createFont( int size , char const* faceName , bool beBold , bool beItalic );
 	WindowsGLContext*    getGLContext(){ return mGLContext; }
 	
 	GameWindow& getWindow(){ return *mGameWindow; }

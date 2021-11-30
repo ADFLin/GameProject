@@ -21,7 +21,7 @@
 
 class DrawEngine;
 class StageManager;
-class GameController;
+class InputControl;
 struct UserProfile;
 
 typedef std::string String;

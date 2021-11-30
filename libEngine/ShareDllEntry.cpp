@@ -5,11 +5,12 @@
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 
-BOOL WINAPI DllMain( _In_  HINSTANCE hinstDLL, _In_  DWORD fdwReason, _In_  LPVOID lpvReserved)
+BOOL WINAPI DllMain( _In_  HMODULE hModule, _In_  DWORD fdwReason, _In_  LPVOID lpvReserved)
 {
 	switch( fdwReason )
 	{
 	case DLL_PROCESS_ATTACH :
+		DisableThreadLibraryCalls(hModule);
 		CoreShareInitialize();
 		break;
 	case DLL_PROCESS_DETACH:

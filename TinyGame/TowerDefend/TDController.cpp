@@ -6,7 +6,7 @@
 
 namespace TowerDefend
 {
-	Controller::Controller()
+	CInputControl::CInputControl()
 	{
 		mRectSelectStep = STEP_NONE;
 		mBlockLeftUp    = false;
@@ -14,7 +14,7 @@ namespace TowerDefend
 	}
 
 
-	void   Controller::clearFrameInput()
+	void   CInputControl::clearFrameInput()
 	{
 		BaseClass::clearFrameInput();
 
@@ -24,12 +24,12 @@ namespace TowerDefend
 		mUIComID = CID_NULL;
 	}
 
-	bool Controller::shouldLockMouse()
+	bool CInputControl::shouldLockMouse()
 	{
 		return mEnableRectSelect && mRectSelectStep != STEP_NONE;
 	}
 
-	bool Controller::scanInput( bool beUpdateFrame )
+	bool CInputControl::scanInput( bool beUpdateFrame )
 	{
 		if ( !BaseClass::scanInput( beUpdateFrame ) )
 			return false;
@@ -78,7 +78,7 @@ namespace TowerDefend
 		return true;
 	}
 
-	int Controller::scanCom( ComMap& comMap , int idx )
+	int CInputControl::scanCom( ComMap& comMap , int idx )
 	{
 		ComMap* curMap = &comMap;
 		while( 1 )
@@ -98,7 +98,7 @@ namespace TowerDefend
 		}
 		return 0;
 	}
-	bool Controller::checkAction( ActionParam& param )
+	bool CInputControl::checkAction( ActionParam& param )
 	{
 		switch( param.act )
 		{
@@ -228,7 +228,7 @@ namespace TowerDefend
 		return false;
 	}
 
-	void Controller::enableRectSelect( bool beE )
+	void CInputControl::enableRectSelect( bool beE )
 	{
 		if ( mEnableRectSelect == beE )
 			return;

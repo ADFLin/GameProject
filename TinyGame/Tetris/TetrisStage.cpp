@@ -79,15 +79,15 @@ namespace Tetris
 
 		::Global::GUI().cleanupWidget();
 
-		MyController& controller = static_cast< MyController& >(	
-			getGame()->getController() );
+		CInputControl& inputConrol = static_cast< CInputControl& >(
+			getGame()->getInputControl() );
 
 		mWorld->storePlayerLevel( playerMgr );
 
 		switch( getModeType() )
 		{
 		case EGameStageMode::Single:
-			mGameMode->setupSingleGame( controller );
+			mGameMode->setupSingleGame(inputConrol);
 			break;
 		case EGameStageMode::Replay:
 			if ( getModeType() == EGameStageMode::Replay )
@@ -98,7 +98,7 @@ namespace Tetris
 		case EGameStageMode::Net: 
 			{
 				GamePlayer* player = playerMgr.getPlayer( playerMgr.getUserID() );
-				controller.setPortControl( player->getActionPort() , 0 );
+				inputConrol.setPortControl( player->getActionPort() , 0 );
 			}
 			flag |= LevelMode::eNetGame; 
 			if ( ::Global::GameNet().getNetWorker()->isServer() )
@@ -554,7 +554,7 @@ namespace Tetris
 			{
 				Vec2i pos = ::Global::GUI().calcScreenCenterPos( OptionNoteBook::UI_Size );
 				OptionNoteBook* book = new OptionNoteBook( UI_GAME_OPTION , pos  , NULL );
-				book->init( Global::ModuleManager().getRunningGame()->getController() );
+				book->init( Global::ModuleManager().getRunningGame()->getInputControl() );
 				::Global::GUI().addWidget( book );
 				book->setTop();
 				book->doModal();

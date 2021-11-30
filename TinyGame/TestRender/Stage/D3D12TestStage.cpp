@@ -83,6 +83,7 @@ namespace Render
 		RHITexture2DRef mTexture1;
 
 		RHIVertexBufferRef mVertexBuffer;
+		RHIIndexBufferRef  mIndexBuffer;
 		RHIInputLayoutRef  mInputLayout;
 
 		bool bUseProgram = true;
@@ -167,22 +168,26 @@ namespace Render
 					Vector2 uv;
 				};
 
-				Vertex triangleVertices[] =
+				Vertex vertices[] =
 				{
-					{ { 0.0f, 0.25f , 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } , { 0.5f, 0.0f} },
-					{ { 0.25f, -0.25f , 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } , {1.0f, 1.0f}},
-					{ { -0.25f, -0.25f , 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } , { 0.0f, 1.0f } }
+					{ { -0.25f, -0.25f , 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } , { 0.0f, 0.0f} },
+					{ {  0.25f, -0.25f , 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } , { 1.0f, 0.0f} },
+					{ {  0.25f,  0.25f , 0.0f }, { 0.0f, 1.0f, 1.0f, 1.0f } , {1.0f, 1.0f} },
+					{ { -0.25f,  0.25f , 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } , { 0.0f, 1.0f } }
 				};
-				mVertexBuffer = RHICreateVertexBuffer(sizeof(Vertex) , ARRAY_SIZE(triangleVertices) , BCF_DefalutValue , triangleVertices );
+				mVertexBuffer = RHICreateVertexBuffer(sizeof(Vertex) , ARRAY_SIZE(vertices) , BCF_DefalutValue , vertices);
+
+				uint32 indices[] = { 0, 2 ,1 , 0, 3, 2 };
+				mIndexBuffer = RHICreateIndexBuffer(6, true, BCF_DefalutValue, indices);
 			}
 
 			{
 				std::vector<uint8> texData = GenerateTextureData();
-				mTexture = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 1, 1, TCF_DefalutValue, texData.data());
+				mTexture = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 5, 1, TCF_DefalutValue | TCF_GenerateMips, texData.data());
 			}
 			{
 				std::vector<uint8> texData = GenerateTextureData(4);
-				mTexture1 = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 1, 1, TCF_DefalutValue, texData.data());
+				mTexture1 = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 5, 1, TCF_DefalutValue | TCF_GenerateMips, texData.data());
 			}
 			return true;
 		}
@@ -240,6 +245,7 @@ namespace Render
 
 		void onRender(float dFrame) override
 		{
+			initializeRenderState();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -262,8 +268,10 @@ namespace Render
 			{
 				RHISetShaderProgram(commandList, mProgTriangle->getRHIResource());
 				mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
-				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), TStaticSamplerState<>::GetRHI());
-				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), TStaticSamplerState<>::GetRHI());
+				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
+				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), samplerState);
+				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), samplerState);
+				mView.setupShader(commandList, *mProgTriangle);
 			}
 			else
 			{
@@ -279,8 +287,8 @@ namespace Render
 			InputStreamInfo inputStream;
 			inputStream.buffer = mVertexBuffer;
 			RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
-
-			RHIDrawPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 3, 4, 0);
+			RHISetIndexBuffer(commandList, mIndexBuffer);
+			RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, 4, 0);
 
 
 			Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1);
@@ -291,7 +299,6 @@ namespace Render
 				uint32 indices[] = { 0, 2, 2, 1,1,3,3,0 };
 				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, v, ARRAY_SIZE(v), indices, ARRAY_SIZE(indices));
 			}
-			RHIFlushCommand(commandList);
 			{
 
 				Vector2 v[] = { Vector2(100,100) , Vector2(200,200), Vector2(100,200), Vector2(200,100) };

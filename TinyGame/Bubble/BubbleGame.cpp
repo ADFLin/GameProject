@@ -4,6 +4,8 @@
 #include "BubbleStage.h"
 #include "GameReplay.h"
 
+#include "DrawEngine.h"
+
 
 #include "GameSettingHelper.h"
 #include "GameClient.h"
@@ -111,7 +113,7 @@ namespace Bubble
 		}
 	}
 
-	bool Controller::checkAction( ActionParam& param )
+	bool CInputControl::checkAction( ActionParam& param )
 	{
 		switch( param.act )
 		{
@@ -178,13 +180,14 @@ namespace Bubble
 		{
 		case ATTR_NET_SUPPORT:
 		case ATTR_SINGLE_SUPPORT:
+		case ATTR_GRAPRHICS_SWAP_SUPPORT:
 			value.iVal = 1;
 			return true;
-		case ATTR_CONTROLLER_DEFUAULT_SETTING:
-			mController.clearAllKey();
-			mController.initKey( ACT_BB_ROTATE_LEFT   ,        1 , EKeyCode::A , EKeyCode::Left  );
-			mController.initKey( ACT_BB_ROTATE_RIGHT  ,        1 , EKeyCode::D , EKeyCode::Right );
-			mController.initKey( ACT_BB_SHOOT         , KEY_ONCE , EKeyCode::W ,  EKeyCode::Up    );
+		case ATTR_INPUT_DEFUAULT_SETTING:
+			mInputControl.clearAllKey();
+			mInputControl.initKey( ACT_BB_ROTATE_LEFT   ,        1 , EKeyCode::A , EKeyCode::Left  );
+			mInputControl.initKey( ACT_BB_ROTATE_RIGHT  ,        1 , EKeyCode::D , EKeyCode::Right );
+			mInputControl.initKey( ACT_BB_SHOOT         , KEY_ONCE , EKeyCode::W ,  EKeyCode::Up    );
 			return true;
 		}
 		return false;
@@ -221,5 +224,22 @@ namespace Bubble
 		changeDefaultStage(manger, modeType);
 	}
 
+
+	void GameModule::enter()
+	{
+		::Global::GetDrawEngine().setupSystem(this);
+		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
+	}
+
+	void GameModule::exit()
+	{
+		::Global::GetDrawEngine().setupSystem(nullptr);
+	}
+
+	bool GameModule::setupRenderSystem(ERenderSystem systemName)
+	{
+		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
+		return true;
+	}
 
 }// namespace Bubble

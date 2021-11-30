@@ -57,7 +57,7 @@ namespace Tetris
 		void        fireAction( LevelData& lvData , ActionTrigger& trigger );
 		ModeData*   createModeData(){  return new ChallengeModeData;  }
 		void        setupScene( unsigned flag );
-		void        setupSingleGame( MyController& controller );
+		void        setupSingleGame( CInputControl& inputConrol);
 		void        onLevelEvent( LevelData& lvData , Event const& event );
 		void        renderStats( GWidget* ui );
 		int         markRecord( RecordManager& manager, GamePlayer* player );
@@ -93,7 +93,7 @@ namespace Tetris
 		void        fireAction( LevelData& lvData , ActionTrigger& trigger );
 
 		void        setupScene( unsigned flag );
-		void        setupSingleGame( MyController& controller );
+		void        setupSingleGame( CInputControl& inputConrol);
 		void        onLevelEvent( LevelData& lvData , Event const& event );
 		void        onGameOver(){}
 
@@ -128,7 +128,7 @@ namespace Tetris
 		void        setupScene( unsigned flag );
 		void        fireAction( LevelData& lvData , ActionTrigger& trigger );
 		ModeData*   createModeData(){  return new BattleModeData;  }
-		void        setupSingleGame( MyController& controller );
+		void        setupSingleGame( CInputControl& inputConrol);
 		bool        checkOver();
 		void        renderStats( GWidget* ui );
 		void        onLevelEvent( LevelData& lvData , Event const& event );

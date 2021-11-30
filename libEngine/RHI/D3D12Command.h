@@ -41,13 +41,13 @@ namespace Render
 			eGraphiscsState,
 			eMeshState,
 			eCompute,
+			eShaderProgram,
 		};
 		union
 		{
 			struct
 			{
-				uint64 boundType : 3;
-				uint64 shaderA   : 21;
+				uint64 shaderA   : 24;
 				uint64 shaderB   : 20;
 				uint64 shaderC   : 20;
 			};
@@ -55,13 +55,13 @@ namespace Render
 			uint64 valueA;
 		};
 
-
 		union
 		{
 			struct
 			{
-				uint32 shaderD   : 16;
-				uint32 shaderE   : 16;
+				uint64 boundType : 4;
+				uint32 shaderD   : 14;
+				uint32 shaderE   : 14;
 			};
 
 			uint32 valueB;
@@ -79,7 +79,7 @@ namespace Render
 
 		void initialize(MeshShaderStateDesc const& stateDesc)
 		{
-			boundType = eGraphiscsState;
+			boundType = eMeshState;
 			shaderA = stateDesc.pixel ? stateDesc.pixel->mGUID : 0;
 			shaderB = stateDesc.mesh ? stateDesc.mesh->mGUID : 0;
 			shaderC = stateDesc.task ? stateDesc.task->mGUID : 0;
@@ -93,6 +93,18 @@ namespace Render
 
 			boundType = eCompute;
 			shaderA = shader->mGUID;
+			shaderB = 0;
+			shaderC = 0;
+			shaderD = 0;
+			shaderE = 0;
+		}
+
+		void initialize(RHIShaderProgram* shaderProgram)
+		{
+			CHECK(shaderProgram);
+
+			boundType = eShaderProgram;
+			shaderA = shaderProgram->mGUID;
 			shaderB = 0;
 			shaderC = 0;
 			shaderD = 0;
@@ -117,7 +129,8 @@ namespace Render
 	public:
 		struct ShaderInfo
 		{
-			RHIShaderRef resource;
+			EShader::Type type;
+			D3D12ShaderData* data;
 			uint rootSlotStart;
 		};
 		D3D12ShaderBoundStateKey     cachedKey;
@@ -221,24 +234,45 @@ namespace Render
 	{
 	public:
 		bool initialize(ID3D12DeviceRHI* device, uint32 bufferSizes[] , int numBuffers );
-		bool allocNewBuffer(ID3D12DeviceRHI* device, uint32 size);
+		bool allocNewBuffer(uint32 size);
 
-		void* lock(uint32 size);
-		void  unlock(D3D12_VERTEX_BUFFER_VIEW& bufferView);
-		void  unlock(D3D12_INDEX_BUFFER_VIEW& bufferView);
+		void* lock(ID3D12GraphicsCommandListRHI* cmdList, uint32 size);
+		void  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_VERTEX_BUFFER_VIEW& bufferView);
+		void  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_INDEX_BUFFER_VIEW& bufferView);
 
+		void beginFrame()
+		{
+			for (auto& info : mAllocedBuffers)
+			{
+				info.indexNext = 0;
+			}
+		}
 		struct BufferInfo
 		{
 			uint32 size;
-			TComPtr< ID3D12Resource > resource;
+			std::vector< ID3D12Resource* > resources;
+			int indexNext;
+
+			
+			ID3D12Resource* fetchResource(ID3D12DeviceRHI* device)
+			{
+				if (indexNext == resources.size())
+				{
+					return allocResource(device);
+				}
+				return resources[indexNext];
+			}
+			ID3D12Resource* allocResource(ID3D12DeviceRHI* device);
 		};
 
+		ID3D12DeviceRHI* mDevice;
 		std::vector< BufferInfo > mAllocedBuffers;
 		D3D12_GPU_VIRTUAL_ADDRESS mLockedGPUAddress;
 		void*  mLockPtr;
 		uint32 mLockedSize;
 
 		int32  mLockedIndex = INDEX_NONE;
+		ID3D12Resource* mLockedResource = nullptr;
 		
 	};
 
@@ -321,7 +355,7 @@ namespace Render
 		{
 			for (auto & shader : mBoundState->mShaders)
 			{
-				mResourceBoundStates[shader.resource->mType].resetDrawCall();
+				mResourceBoundStates[shader.type].resetDrawCall();
 			}
 		}
 		void RHIDrawPrimitive(EPrimitive type, int start, int nv)
@@ -396,7 +430,7 @@ namespace Render
 
 		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
-		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer) {}
+		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer);
 
 		void RHIFlushCommand();
 
@@ -425,26 +459,33 @@ namespace Render
 		void setShaderValueT(RHIShaderProgram& shaderProgram, ShaderParameter const& param, T const val[], int dim)
 		{
 			auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
-			shaderProgramImpl.setupShader(param, [this, &val, dim](RHIShader& shader, ShaderParameter const& shaderParam)
+			shaderProgramImpl.setupShader(param, [this, &val, dim](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
 			{
-				setShaderValue(shader, shaderParam, val, dim);
+				setShaderValueT(shaderType, shaderData, shaderParam, val, dim);
 			});
 		}
 
 		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
 
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
-
 		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler);
 		void clearShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param) {}
 		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler);
 
+
+
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param) {}
 
-		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) {}
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer){}
+
+		void setShaderTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture);
+		void setShaderSampler(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHISamplerState& sampler);
+		void setShaderUniformBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIVertexBuffer& buffer);
+
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
@@ -467,18 +508,35 @@ namespace Render
 		void setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim, 3 * sizeof(float)); }
 		void setShaderMatrix34(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim); }
 
+
+		template< class T >
+		void setShaderValueT(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, T const val[], int dim)
+		{
+			setShaderValueInternal(shaderType, shaderData, param, (uint8 const*)val, dim * sizeof(T));
+		}
+
+		template< class T >
+		void setShaderValueT(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, T const val[], int dim, uint32 elementSize, uint32 stride = 4 * sizeof(float))
+		{
+			setShaderValueInternal(shaderType, shaderData, param, (uint8 const*)val, dim * sizeof(T), elementSize, stride);
+		}
+
 		template< class T >
 		void setShaderValueT(RHIShader& shader, ShaderParameter const& param, T const val[], int dim) 
 		{
-			setShaderValueInternal(shader, param, (uint8 const*)val, dim * sizeof(T));
+			D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(shader);
+			setShaderValueInternal(shaderImpl.getType(), shaderImpl, param, (uint8 const*)val, dim * sizeof(T));
 		}
 		template< class T >
 		void setShaderValueT(RHIShader& shader, ShaderParameter const& param, T const val[], int dim, uint32 elementSize, uint32 stride = 4 * sizeof(float))
 		{
-			setShaderValueInternal(shader, param, (uint8 const*)val, dim * sizeof(T), elementSize , stride);
+			D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(shader);
+			setShaderValueInternal(shaderImpl.getType(), shaderImpl, param, (uint8 const*)val, dim * sizeof(T), elementSize , stride);
 		}
-		void setShaderValueInternal(RHIShader& shader, ShaderParameter const& param, uint8 const* pData, uint32 size);
-		void setShaderValueInternal(RHIShader& shader, ShaderParameter const& param, uint8 const* pData, uint32 size, uint32 elementSize, uint32 stride = 4 * sizeof(float));
+
+		void setShaderValueInternal(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, uint8 const* pData, uint32 size, uint32 elementSize, uint32 stride = 4 * sizeof(float));
+		void setShaderValueInternal(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, uint8 const* pData, uint32 size);
+
 		void setShaderResourceView(RHIShader& shader, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
 
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture);
@@ -494,7 +552,7 @@ namespace Render
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param){}
-		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
 		{
@@ -510,7 +568,7 @@ namespace Render
 
 		}
 
-		void SetShaderSamplerInternal(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler)
+		void setShaderSamplerInternal(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler)
 		{
 
 		}
@@ -526,9 +584,9 @@ namespace Render
 		RHIDepthStencilStateRef mDepthStencilStatePending;
 		RHIBlendStateRef        mBlendStateStatePending;
 
-		std::vector< ID3D12DescriptorHeap* > mUsedHeaps;
+		std::vector< ID3D12DescriptorHeap* > mUsedDescHeaps;
 		uint32 mCSUHeapUsageMask;
-		uint32 mSamplerHeapUsageMAsk;
+		uint32 mSamplerHeapUsageMask;
 		uint32 mRootSlotStart[EShader::Count];
 		D3D12ResourceBoundState mResourceBoundStates[EShader::Count];
 
@@ -592,26 +650,9 @@ namespace Render
 		void shutdown();
 		virtual ShaderFormat* createShaderFormat();
 
-		bool RHIBeginRender()
-		{
-			if (!mRenderContext.beginFrame())
-			{
-				return false;
-			}
-			return true;
-		}
+		bool RHIBeginRender();
 
-		void RHIEndRender(bool bPresent)
-		{
-			mRenderContext.endFrame();
-
-			mRenderContext.RHIFlushCommand();
-			if (bPresent)
-			{
-				mSwapChain->Present(bPresent);
-			}
-			mRenderContext.moveToNextFrame(mSwapChain->mResource);
-		}
+		void RHIEndRender(bool bPresent);
 
 		RHICommandList&  getImmediateCommandList()
 		{
@@ -665,13 +706,13 @@ namespace Render
 
 		RHITexture2D*     RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags) { return nullptr; }
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
-		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data) { return nullptr; }
+		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 
 
 		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
-		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size) { return nullptr; }
-		void  RHIUnlockBuffer(RHIIndexBuffer* buffer) { return; }
+		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 
@@ -755,7 +796,7 @@ namespace Render
 		
 		D3D12ShaderBoundState* getShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		D3D12ShaderBoundState* getShaderBoundState(MeshShaderStateDesc const& stateDesc);
-
+		D3D12ShaderBoundState* getShaderBoundState(D3D12ShaderProgram* shaderProgram);
 		D3D12PipelineState* getPipelineState(
 			GraphicsPipelineStateDesc const& stateDesc,
 			D3D12ShaderBoundState* boundState, 
@@ -766,6 +807,8 @@ namespace Render
 
 		D3D12Context   mRenderContext;
 		TComPtr<ID3D12DeviceRHI> mDevice;
+
+		class D3D12ProfileCore* mProfileCore = nullptr;
 
 		TComPtr<ID3D12RootSignature> mRootSignature;
 		TRefCountPtr< D3D12SwapChain > mSwapChain;

@@ -115,20 +115,20 @@ namespace BomberMan
 			}
 		}
 
-		GameController& controller = getGame()->getController();
+		InputControl& inputControl = getGame()->getInputControl();
 		
 		switch( getModeType() )
 		{
 		case EGameStageMode::Net:
 			{
 				GamePlayer* player = playerMgr.getUser();
-				controller.setPortControl( player->getActionPort() , 0 );
+				inputControl.setPortControl( player->getActionPort() , 0 );
 			}
 			break;
 		case EGameStageMode::Single:
 			{
-				controller.setPortControl( 0 , 0 );
-				controller.setPortControl( 1 , 1 );
+				inputControl.setPortControl( 0 , 0 );
+				inputControl.setPortControl( 1 , 1 );
 			}
 			break;
 		}

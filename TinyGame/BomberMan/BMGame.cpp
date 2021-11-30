@@ -34,13 +34,13 @@ namespace BomberMan
 			return true;
 		case ATTR_REPLAY_SUPPORT:
 			return false;
-		case ATTR_CONTROLLER_DEFUAULT_SETTING:
-			mController.initKey( ACT_BM_MOVE_LEFT  , 0 , EKeyCode::A , EKeyCode::Left );
-			mController.initKey( ACT_BM_MOVE_RIGHT , 0 , EKeyCode::D , EKeyCode::Right );
-			mController.initKey( ACT_BM_MOVE_TOP   , 0 , EKeyCode::W , EKeyCode::Up );
-			mController.initKey( ACT_BM_MOVE_DOWN  , 0 , EKeyCode::S , EKeyCode::Down );
-			mController.initKey( ACT_BM_BOMB     , KEY_ONCE , EKeyCode::L );
-			mController.initKey( ACT_BM_FUNCTION , KEY_ONCE , EKeyCode::K );
+		case ATTR_INPUT_DEFUAULT_SETTING:
+			mInputControl.initKey( ACT_BM_MOVE_LEFT  , 0 , EKeyCode::A , EKeyCode::Left );
+			mInputControl.initKey( ACT_BM_MOVE_RIGHT , 0 , EKeyCode::D , EKeyCode::Right );
+			mInputControl.initKey( ACT_BM_MOVE_TOP   , 0 , EKeyCode::W , EKeyCode::Up );
+			mInputControl.initKey( ACT_BM_MOVE_DOWN  , 0 , EKeyCode::S , EKeyCode::Down );
+			mInputControl.initKey( ACT_BM_BOMB     , KEY_ONCE , EKeyCode::L );
+			mInputControl.initKey( ACT_BM_FUNCTION , KEY_ONCE , EKeyCode::K );
 			return true;
 		}
 		return false;

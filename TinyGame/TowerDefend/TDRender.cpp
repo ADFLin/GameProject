@@ -78,7 +78,7 @@ namespace TowerDefend
 		return Global::GetGraphics2D();
 	}
 
-	void Controller::renderMouse( Renderer& renderer )
+	void CInputControl::renderMouse( Renderer& renderer )
 	{
 		Graphics2D& g = renderer.getGraphics();
 
@@ -125,9 +125,9 @@ namespace TowerDefend
 
 		if ( mComID == CID_BUILD )
 		{
-			if ( mController )
+			if ( mInputConrol )
 			{
-				Vec2i const& pos = mController->getLastMosuePos();
+				Vec2i const& pos = mInputConrol->getLastMosuePos();
 
 				Vec2i mapPos;
 				if ( canBuild( mComActorID , NULL , pos , mapPos , &mPlayerInfo , false ) )
@@ -143,7 +143,7 @@ namespace TowerDefend
 		{
 			if ( mSelectMode != SM_NORMAL )
 			{
-				Vec2i const& pos = mController->getLastMosuePos();
+				Vec2i const& pos = mInputConrol->getLastMosuePos();
 				g.drawCircle( pos , 3 );
 			}
 		}

@@ -104,7 +104,7 @@ namespace Bubble
 		return data;
 	}
 
-	void PlayerDataManager::render( Graphics2D& g )
+	void PlayerDataManager::render( IGraphics2D& g )
 	{
 		for( PlayerDataVec::iterator iter = mPlayerDataVec.begin();
 			iter != mPlayerDataVec.end() ; ++iter )

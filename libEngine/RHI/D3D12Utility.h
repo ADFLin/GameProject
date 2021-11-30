@@ -120,6 +120,24 @@ namespace Render
 
 			return result;
 		}
+		static D3D12_SHADER_RESOURCE_VIEW_DESC BufferViewDesc(
+			UINT structureByteStride,
+			UINT numElements = 1,
+			UINT64 firstElement = 0,
+			D3D12_BUFFER_SRV_FLAGS flags = D3D12_BUFFER_SRV_FLAG_NONE)
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC result = {};
+			result.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			result.Format = DXGI_FORMAT_UNKNOWN;
+			result.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			result.Buffer.FirstElement = firstElement;
+			result.Buffer.NumElements = numElements;
+			result.Buffer.StructureByteStride = structureByteStride;
+			result.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+			return result;
+		}
+
 	};
 
 	class D3D12HeapPoolChunk

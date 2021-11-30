@@ -20,7 +20,7 @@ namespace Chromatron
 		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 	public:
 		char const*           getName() override{ return CHROMATRON_NAME;   }
-		GameController&       getController() override{ return IGameModule::getController(); }
+		InputControl&         getInputControl() override{ return IGameModule::getInputControl(); }
 		StageBase*            createStage( unsigned id ) override;
 		SettingHepler*        createSettingHelper( SettingHelperType type ) override{ return nullptr; }
 		bool                  queryAttribute( GameAttribute& value ) override;

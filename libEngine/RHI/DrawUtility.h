@@ -30,7 +30,7 @@ namespace Render
 
 	enum RenderRTType
 	{
-		RTT_FLOAT = 0,
+		RTT_Float = 0,
 		RTT_U8N   = 1,
 	};
 
@@ -40,7 +40,7 @@ namespace Render
 	uint32(((((SIZE) & RTS_ELEMENT_COUNT_MASK)<< 1) | TYPE) << (RTS_ELEMENT_BIT_OFFSET * (S)) )
 
 
-#define RTS_ELEMENT(S , SIZE) RTS_ELEMENT_(S, SIZE , RTT_FLOAT )
+#define RTS_ELEMENT(S , SIZE) RTS_ELEMENT_(S, SIZE , RTT_Float )
 #define RTS_ELEMENT_U8N(S , SIZE) RTS_ELEMENT_(S, SIZE , RTT_U8N )
 
 #define USE_SEMANTIC( VF , S ) ( ( VF ) & RTS_ELEMENT_( S , RTS_ELEMENT_COUNT_MASK , 0x1) )
@@ -95,7 +95,7 @@ namespace Render
 	{
 		auto AddElement = [&desc , indexStream](RenderRTSemantic semantic , int attribute)
 		{
-			auto type = VERTEX_ELEMENT_TYPE(VertexFormat, semantic) == RTT_FLOAT ? CVT_Float : CVT_UByte;
+			auto type = VERTEX_ELEMENT_TYPE(VertexFormat, semantic) == RTT_Float ? CVT_Float : CVT_UByte;
 			bool bNormalized = type != CVT_Float;
 			auto format = EVertex::GetFormat(type, VERTEX_ELEMENT_COUNT(VertexFormat, semantic));
 
@@ -124,7 +124,7 @@ namespace Render
 	{
 		enum
 		{
-			ElementSize = (VERTEX_ELEMENT_TYPE(VF, 0) == RTT_FLOAT) ? sizeof(float) : sizeof(uint8),
+			ElementSize = (VERTEX_ELEMENT_TYPE(VF, 0) == RTT_Float) ? sizeof(float) : sizeof(uint8),
 			Result = ElementSize * VERTEX_ELEMENT_COUNT(VF, 0) + TVertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result,
 		};
 	};
@@ -202,7 +202,7 @@ namespace Render
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertices, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
-			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat , RTVF_CA >::GetRHI(), nullptr, 0);
+			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat, RTVF_CA >::GetRHI(), nullptr, 0);
 			VertexDataInfo infos[2];
 			infos[0].ptr = vetrices;
 			infos[0].size = numVertices * vertexStride;
@@ -210,7 +210,7 @@ namespace Render
 			infos[1].ptr = &color;
 			infos[1].size = sizeof(LinearColor);
 			infos[1].stride = 0;
-			RHIDrawPrimitiveUP(commandList, type, numVertices, infos , 2 );
+			RHIDrawPrimitiveUP(commandList, type, numVertices, infos, 2);
 		}
 
 		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, void const* vetrices, int numVertices, uint32 const* indices, int nIndex, LinearColor const& color, int vertexStride = GetVertexSize())

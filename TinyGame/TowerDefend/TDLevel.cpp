@@ -510,7 +510,7 @@ namespace TowerDefend
 			mSelectMode == SM_LOCK_POS   ||
 			mSelectMode == SM_LOCK_ACTOR_POS );
 
-		mController->enableRectSelect( beE );
+		mInputConrol->enableRectSelect( beE );
 	}
 
 

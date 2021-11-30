@@ -36,7 +36,7 @@ public:
 
 	TINY_API void         addHotkey( GWidget* ui , ControlAction key );
 	TINY_API void         removeHotkey( GWidget* ui );
-	TINY_API void         scanHotkey( GameController& controller );
+	TINY_API void         scanHotkey( InputControl& inputConrol);
 
 	int          getUpdateFrameNum(){ return mCurUpdateFrame; }
 

@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include "WinGDIRenderSystem.h"
 
 WindowsProfileViewer::WindowsProfileViewer( HDC hDC )
 	:msgShow( hDC )
@@ -71,7 +72,7 @@ void WindowsProfileViewer::setTextColor( BYTE r, BYTE g , BYTE b , BYTE a /*= 25
 TMessageShow::TMessageShow( HDC hDC )
 {
 	mhDC  = hDC;
-	hFont = CreateFont( hDC , 8 , TEXT("新細明體") , false , false );
+	hFont = FWindowsGDI::CreateFont( hDC , TEXT("新細明體"), 8 , false , false );
 
 	height = 15;
 	setPos( 20 , 20 );
@@ -81,28 +82,6 @@ TMessageShow::TMessageShow( HDC hDC )
 TMessageShow::~TMessageShow()
 {
 	::DeleteObject( hFont );
-}
-
-HFONT TMessageShow::CreateFont( HDC hDC , int size , char const* faceName , bool beBold , bool beItalic )
-{
-	LOGFONT lf;
-
-	lf.lfHeight = -(int)(fabs( ( float)10 * size *GetDeviceCaps( hDC ,LOGPIXELSY)/72)/10.0+0.5);
-	lf.lfWeight = 0;
-	lf.lfEscapement = 0;
-	lf.lfOrientation = 0;
-	lf.lfWeight = ( beBold ) ? FW_BOLD : FW_NORMAL ;
-	lf.lfItalic = beItalic;
-	lf.lfUnderline = FALSE;
-	lf.lfStrikeOut = FALSE;
-	lf.lfCharSet = CHINESEBIG5_CHARSET;
-	lf.lfOutPrecision = OUT_TT_PRECIS;
-	lf.lfClipPrecision = CLIP_TT_ALWAYS;
-	lf.lfQuality = DEFAULT_QUALITY;
-	lf.lfPitchAndFamily = DEFAULT_PITCH;
-	strcpy_s( lf.lfFaceName , faceName );
-
-	return CreateFontIndirect( &lf );
 }
 
 void TMessageShow::shiftPos( int dx , int dy )

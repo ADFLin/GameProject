@@ -161,7 +161,7 @@ enum GameAction
 	ACT_BUTTON2 = 2,
 };
 
-class  GameController
+class  InputControl
 {
 public:
 	virtual void  restart(){}
@@ -181,11 +181,11 @@ public:
 
 
 
-class  SimpleController : public GameController
-	                    , public IActionInput
+class  DefaultInputControl : public InputControl
+	                       , public IActionInput
 {
 public:
-	TINY_API SimpleController();
+	TINY_API DefaultInputControl();
 
 	TINY_API void  restart();
 	TINY_API void  clearAllKey();

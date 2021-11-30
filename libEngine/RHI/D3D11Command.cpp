@@ -31,8 +31,7 @@ namespace Render
 			D3D11_QUERY_DESC desc;
 			desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
 			desc.MiscFlags = 0;
-			if( RESULT_FAILED(mDevice->CreateQuery(&desc, &mQueryDisjoint)) )
-				return false;
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateQuery(&desc, &mQueryDisjoint));
 
 			return true;
 		}
@@ -65,10 +64,9 @@ namespace Render
 			desc.Query = D3D11_QUERY_TIMESTAMP;
 			desc.MiscFlags = 0;
 			TComPtr< ID3D11Query > startQuery;
+			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &startQuery), return RHI_ERROR_PROFILE_HANDLE;);
 			TComPtr< ID3D11Query > endQuery;
-			if ( RESULT_FAILED(mDevice->CreateQuery(&desc, &startQuery)) ||
-				 RESULT_FAILED(mDevice->CreateQuery(&desc, &endQuery)) )
-				return RHI_ERROR_PROFILE_HANDLE;
+			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
 
 			uint32 result = mStartQueries.size();
 			mStartQueries.push_back(std::move(startQuery));
@@ -79,6 +77,7 @@ namespace Render
 		virtual void startTiming(uint32 timingHandle) override
 		{
 			mDeviceContext->End(mStartQueries[timingHandle]);
+			mDeviceContext->End(mEndQueries[timingHandle]);
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
@@ -88,9 +87,8 @@ namespace Render
 
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
 		{
-			if( RESULT_FAILED(mDeviceContext->GetData(mStartQueries[timingHandle], NULL, 0, 0)) ||
-			    RESULT_FAILED(mDeviceContext->GetData(mEndQueries[timingHandle], NULL, 0, 0)) )
-				return false;
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(mStartQueries[timingHandle], NULL, 0, 0));
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(mEndQueries[timingHandle], NULL, 0, 0));
 
 			UINT64 startData;
 			mDeviceContext->GetData(mStartQueries[timingHandle], &startData, sizeof(startData), 0);

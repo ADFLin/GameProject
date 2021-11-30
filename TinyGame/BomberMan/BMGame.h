@@ -22,7 +22,7 @@ namespace BomberMan
 	public:
 
 		virtual char const*           getName(){ return BOMBER_MAN_NAME; }
-		virtual GameController&       getController(){ return mController;  }
+		virtual InputControl&         getInputControl(){ return mInputControl;  }
 		virtual StageBase*            createStage(unsigned id);
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type );
 		virtual bool                  queryAttribute( GameAttribute& value );
@@ -31,7 +31,7 @@ namespace BomberMan
 		virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return NULL; }
 
 
-		SimpleController mController;
+		DefaultInputControl mInputControl;
 	};
 
 

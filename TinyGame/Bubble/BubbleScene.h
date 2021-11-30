@@ -4,7 +4,7 @@
 #include "BubbleLevel.h"
 #include "RenderLayer.h"
 
-class Graphics2D;
+class IGraphics2D;
 class ActionTrigger;
 struct ActionPort;
 
@@ -32,7 +32,7 @@ namespace Bubble
 
 		void   shoot();
 		void   rotateRight( float delta );
-		void   render( Graphics2D& g );
+		void   render( IGraphics2D& g );
 
 		void   fireAction(ActionPort port, ActionTrigger& tigger );
 
@@ -47,12 +47,12 @@ namespace Bubble
 		BubbleList mFallList;
 		float      mFallBubbleAcc;
 
-		void render( Graphics2D& g , Vector2 const& pos );
-		void renderBubbleList( Graphics2D& g , Vector2 const& pos , BubbleList& bList );
-		void renderBubble( Graphics2D& g , Vector2 const& pos , int color );
-		void renderDbg( Graphics2D& g , Vector2 const& pos , int index );
-		void renderBackground( Graphics2D& g , Vector2 const& pos );
-		void renderLauncher( Graphics2D& g , Vector2 const& pos );
+		void render(IGraphics2D& g , Vector2 const& pos );
+		void renderBubbleList(IGraphics2D& g , Vector2 const& pos , BubbleList& bList );
+		void renderBubble(IGraphics2D& g , Vector2 const& pos , int color );
+		void renderDbg(IGraphics2D& g , Vector2 const& pos , int index );
+		void renderBackground(IGraphics2D& g , Vector2 const& pos );
+		void renderLauncher(IGraphics2D& g , Vector2 const& pos );
 
 
 		Level     mLevel;

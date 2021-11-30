@@ -47,7 +47,21 @@ namespace Render
 		std::vector< ShaderParameterSlotInfo >   slots;
 	};
 
+	struct D3D12ShaderData
+	{
+		ShaderRootSignature  rootSignature;
+		std::vector<uint8>   code;
+
+		bool initialize(TComPtr<IDxcBlob>& shaderCode);
+		bool initialize(std::vector<uint8>&& binaryCode);
+
+		D3D12_SHADER_BYTECODE getByteCode() { return { code.data() , code.size() }; }
+		D3D12_ROOT_PARAMETER1 getRootParameter(int index, int num = 1) const;
+
+	};
+
 	class D3D12Shader : public TRefcountResource< RHIShader >
+		              , public D3D12ShaderData
 	{
 	public:
 		D3D12Shader(EShader::Type type)
@@ -55,20 +69,7 @@ namespace Render
 			initType(type);
 		}
 
-		bool initialize(TComPtr<IDxcBlob>& shaderCode);
-		bool initialize(std::vector<uint8>&& binaryCode);
 
-		D3D12_SHADER_BYTECODE getByteCode() { return { code.data() , code.size() }; }
-		D3D12_ROOT_PARAMETER1 getRootParameter(int index , int num = 1) const
-		{
-			D3D12_ROOT_PARAMETER1 result;
-			result.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			result.DescriptorTable.pDescriptorRanges = mRootSignature.descRanges.data() + index;
-			result.DescriptorTable.NumDescriptorRanges = num;
-			result.ShaderVisibility = mRootSignature.visibility;
-			return result;
-		}
-		
 		static bool GenerateParameterMap(std::vector< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap , ShaderRootSignature& inOutSignature);
 		static void SetupShader(ShaderRootSignature& inOutSignature, EShader::Type type);
 		
@@ -92,8 +93,6 @@ namespace Render
 		}
 
 		ShaderParameterMap   mParameterMap;
-		ShaderRootSignature  mRootSignature;
-		std::vector<uint8>   code;
 	};
 
 	template< class ...TypeList >
@@ -152,18 +151,26 @@ namespace Render
 		template< class TFunc >
 		void setupShader(ShaderParameter const& parameter, TFunc&& func)
 		{
-			mParameterMap.setupShader(parameter, 
-				[this , &func](int shaderIndex, ShaderParameter const& shaderParam)
+			mParameterMap.setupShader(parameter,
+				[this, &func](int shaderIndex, ShaderParameter const& shaderParam)
 				{
-					func(*mShaders[shaderIndex], shaderParam);
+					func(mShaderDatas[shaderIndex].type, mShaderDatas[shaderIndex], shaderParam);
 				}
 			);
 		}
+		virtual void releaseResource()
+		{
+			delete[] mShaderDatas;
+		}
 
-		class D3D12ShaderBoundState* cacheState = nullptr;
+		class D3D12ShaderBoundState* cachedState = nullptr;
 		ShaderPorgramParameterMap mParameterMap;
-		TRefCountPtr< D3D12Shader > mShaders[EShader::MaxStorageSize];
-		int mNumShaders;
+		struct ShaderData : D3D12ShaderData
+		{
+			EShader::Type type;
+		};
+		ShaderData* mShaderDatas = nullptr;
+		int mNumShaders = 0;
 	};
 
 	class ShaderFormatHLSL_D3D12 final : public ShaderFormat

@@ -409,29 +409,6 @@ void DrawEngine::endFrame()
 	}
 }
 
-HFONT DrawEngine::createFont( int size , char const* faceName , bool beBold , bool beItalic )
-{
-	LOGFONT lf;
-
-	lf.lfHeight = -(int)(fabs( ( float)10 * size *GetDeviceCaps( getWindow().getHDC() ,LOGPIXELSY)/72)/10.0+0.5);
-	lf.lfWeight        = 0;
-	lf.lfEscapement    = 0;
-	lf.lfOrientation   = 0;
-	lf.lfWeight        = ( beBold ) ? FW_BOLD : FW_NORMAL ;
-	lf.lfItalic        = beItalic;
-	lf.lfUnderline     = FALSE;
-	lf.lfStrikeOut     = FALSE;
-	lf.lfCharSet       = CHINESEBIG5_CHARSET;
-	lf.lfOutPrecision  = OUT_TT_PRECIS;
-	lf.lfClipPrecision = CLIP_TT_ALWAYS;
-	lf.lfQuality       = DEFAULT_QUALITY;
-	lf.lfPitchAndFamily = DEFAULT_PITCH;
-	strcpy_s( lf.lfFaceName , faceName );
-
-	return CreateFontIndirect( &lf );
-}
-
-
 class ProfileTextDraw : public ProfileNodeVisitorT< ProfileTextDraw >
 {
 public:

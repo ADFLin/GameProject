@@ -34,13 +34,13 @@ namespace GreedySnake
 		case ATTR_AI_SUPPORT:
 			value.iVal = true;
 			return true;
-		case ATTR_CONTROLLER_DEFUAULT_SETTING:
-			mController.clearAllKey();
-			mController.initKey( ACT_GS_MOVE_E , KEY_ONCE , EKeyCode::D , EKeyCode::Right );
-			mController.initKey( ACT_GS_MOVE_N , KEY_ONCE , EKeyCode::W , EKeyCode::Up    );
-			mController.initKey( ACT_GS_MOVE_S , KEY_ONCE , EKeyCode::S , EKeyCode::Down  );
-			mController.initKey( ACT_GS_MOVE_W , KEY_ONCE , EKeyCode::A , EKeyCode::Left  );
-			mController.initKey( ACT_GS_CHANGE_DIR, KEY_ONCE, EKeyCode::E);
+		case ATTR_INPUT_DEFUAULT_SETTING:
+			mInputControl.clearAllKey();
+			mInputControl.initKey( ACT_GS_MOVE_E , KEY_ONCE , EKeyCode::D , EKeyCode::Right );
+			mInputControl.initKey( ACT_GS_MOVE_N , KEY_ONCE , EKeyCode::W , EKeyCode::Up    );
+			mInputControl.initKey( ACT_GS_MOVE_S , KEY_ONCE , EKeyCode::S , EKeyCode::Down  );
+			mInputControl.initKey( ACT_GS_MOVE_W , KEY_ONCE , EKeyCode::A , EKeyCode::Left  );
+			mInputControl.initKey( ACT_GS_CHANGE_DIR, KEY_ONCE, EKeyCode::E);
 			return true;
 		}
 		return false;

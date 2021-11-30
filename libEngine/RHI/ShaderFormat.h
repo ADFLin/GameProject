@@ -93,6 +93,7 @@ namespace Render
 
 	struct ShaderProgramSetupData
 	{
+		int numShaders;
 		ShaderProgramManagedData*      managedData;
 		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
 		std::vector< ShaderResourceInfo > shaderResources;

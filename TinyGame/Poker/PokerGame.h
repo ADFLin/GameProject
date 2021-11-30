@@ -30,7 +30,7 @@ namespace Poker
 		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 	public:
 		virtual char const*           getName(){ return POKER_GAME_NAME; }
-		virtual GameController&       getController(){ return IGameModule::getController(); }
+		virtual InputControl&         getInputControl(){ return IGameModule::getInputControl(); }
 		virtual StageBase*            createStage( unsigned id );
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type );
 		virtual bool                  queryAttribute( GameAttribute& value );

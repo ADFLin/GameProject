@@ -62,15 +62,15 @@ namespace Tetris
 		case ATTR_GRAPRHICS_SWAP_SUPPORT:
 			value.iVal = true;
 			return true;
-		case ATTR_CONTROLLER_DEFUAULT_SETTING:
-			mController.clearAllKey();
-			mController.initKey( ACT_MOVE_LEFT  , 2 , EKeyCode::A , EKeyCode::Left);
-			mController.initKey( ACT_MOVE_RIGHT , 2 , EKeyCode::D , EKeyCode::Right);
-			mController.initKey( ACT_MOVE_DOWN  , 1 , EKeyCode::S , EKeyCode::Down);
-			mController.initKey( ACT_ROTATE_CW  , KEY_ONCE , EKeyCode::K , EKeyCode::Num1 );
-			mController.initKey( ACT_ROTATE_CCW , KEY_ONCE , EKeyCode::L , EKeyCode::Num2 );
-			mController.initKey( ACT_HOLD_PIECE , KEY_ONCE , EKeyCode::I , EKeyCode::Num3 );
-			mController.initKey( ACT_FALL_PIECE , KEY_ONCE , EKeyCode::J , EKeyCode::Num0 );
+		case ATTR_INPUT_DEFUAULT_SETTING:
+			mInputControl.clearAllKey();
+			mInputControl.initKey( ACT_MOVE_LEFT  , 2 , EKeyCode::A , EKeyCode::Left);
+			mInputControl.initKey( ACT_MOVE_RIGHT , 2 , EKeyCode::D , EKeyCode::Right);
+			mInputControl.initKey( ACT_MOVE_DOWN  , 1 , EKeyCode::S , EKeyCode::Down);
+			mInputControl.initKey( ACT_ROTATE_CW  , KEY_ONCE , EKeyCode::K , EKeyCode::Num1 );
+			mInputControl.initKey( ACT_ROTATE_CCW , KEY_ONCE , EKeyCode::L , EKeyCode::Num2 );
+			mInputControl.initKey( ACT_HOLD_PIECE , KEY_ONCE , EKeyCode::I , EKeyCode::Num3 );
+			mInputControl.initKey( ACT_FALL_PIECE , KEY_ONCE , EKeyCode::J , EKeyCode::Num0 );
 			return true;
 		}
 		return false;

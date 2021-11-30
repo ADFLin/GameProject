@@ -13,7 +13,7 @@ namespace TowerDefend
 	{
 	public:
 		char const*     getName()      {  return TOWER_DEFEND_NAME;  }
-		GameController& getController(){  return mController;  }
+		InputControl&   getInputControl(){  return mInputControl;  }
 		SettingHepler*  createSettingHelper( SettingHelperType type )
 		{
 			return NULL;
@@ -25,7 +25,7 @@ namespace TowerDefend
 		virtual void    deleteThis(){ delete this; }
 
 	private:
-		Controller    mController;
+		CInputControl    mInputControl;
 	};
 
 }//namespace TowerDefend

@@ -22,7 +22,7 @@ namespace CAR
 		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 	public:
 		char const*           getName() override{ return CAR_GAME_NAME; }
-		GameController&       getController() override{ return IGameModule::getController(); }
+		InputControl&         getInputControl() override{ return IGameModule::getInputControl(); }
 		StageBase*            createStage( unsigned id ) override;
 		SettingHepler*        createSettingHelper( SettingHelperType type ) override;
 		bool                  queryAttribute( GameAttribute& value ) override;

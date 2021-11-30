@@ -23,7 +23,7 @@ public:
 	ControlAction mAction;
 	
 	static KeyButton*     sInputButton;
-	static GameController* sController;
+	static InputControl*  sInputControl;
 };
 
 
@@ -43,7 +43,7 @@ public:
 	{
 
 	}
-	void init( GameController& controller );
+	void init( InputControl& inputConrol);
 private:
 	KeyButton* createKeyButton( Vec2i const& pos , ControlAction action , GWidget* parent );
 	void renderControl( GWidget* ui );

@@ -110,9 +110,9 @@ char const* QuadAssaultModule::getName()
 	return "QuadAssault";
 }
 
-GameController& QuadAssaultModule::getController()
+InputControl& QuadAssaultModule::getInputControl()
 {
-	return IGameModule::getController();
+	return IGameModule::getInputControl();
 }
 
 bool QuadAssaultModule::queryAttribute(GameAttribute& value)

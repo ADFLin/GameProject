@@ -40,7 +40,7 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* m
 
 	if( gameModule )
 	{
-		GameAttribute attrSetting(ATTR_CONTROLLER_DEFUAULT_SETTING);
+		GameAttribute attrSetting(ATTR_INPUT_DEFUAULT_SETTING);
 		gameModule->queryAttribute(attrSetting);
 	}
 

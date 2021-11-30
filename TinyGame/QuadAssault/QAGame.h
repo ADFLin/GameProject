@@ -14,7 +14,7 @@ public:
 
 	virtual char const* getName() override;
 
-	virtual GameController& getController() override;
+	virtual InputControl& getInputControl() override;
 
 	virtual bool queryAttribute(GameAttribute& value) override;
 	virtual void beginPlay(StageManager& manger, EGameStageMode modeType) override;

@@ -88,7 +88,7 @@ void ToggleGraphics()
 		}
 	}
 }
-AutoConsoleCommand CmdToggleRHISystem("r.ToggleGraphics", ToggleGraphics);
+AutoConsoleCommand CmdToggleRHISystem("g.ToggleRHI", ToggleGraphics);
 
 void Foo(int a, int b)
 {
@@ -533,7 +533,7 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 		IGameModule* game = Global::ModuleManager().getRunningGame();
 		if( game )
 		{
-			game->getController().clearFrameInput();
+			game->getInputControl().clearFrameInput();
 		}
 	}
 
@@ -673,15 +673,15 @@ bool TinyGameApp::handleMouseEvent( MouseMsg const& msg )
 	IGameModule* game = Global::ModuleManager().getRunningGame();
 	if ( game )
 	{
-		GameController& controller = game->getController();
+		InputControl& inputControl = game->getInputControl();
 
-		if ( !controller.shouldLockMouse() )
+		if ( !inputControl.shouldLockMouse() )
 		{
 			result = ::Global::GUI().procMouseMsg( msg );
 		}
 
 		if ( result )
-			controller.recvMouseMsg( msg );
+			inputControl.recvMouseMsg( msg );
 	}
 	else
 	{
@@ -719,9 +719,21 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 			{
 				using namespace Render;
 
+				struct Local
+				{
+					Local()
+					{
+						NextSystem[(int)RHISystemName::OpenGL] = ERenderSystem::D3D11;
+						NextSystem[(int)RHISystemName::D3D11] = ERenderSystem::D3D12;
+						NextSystem[(int)RHISystemName::D3D12] = ERenderSystem::OpenGL;
+					}
+					ERenderSystem NextSystem[(int)RHISystemName::Count];
+				};
+
+				static Local SLocal;
 				if (GRHISystem)
 				{
-					ERenderSystem systemName = GRHISystem->getName() == RHISystemName::OpenGL ? ERenderSystem::D3D11 : ERenderSystem::OpenGL;
+					ERenderSystem systemName = SLocal.NextSystem[(int)GRHISystem->getName()];
 					::Global::GetDrawEngine().resetupSystem(systemName);
 				}
 			}
@@ -1100,12 +1112,12 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 			return false;
 	}
 
-	ERenderSystem systemName = ERenderSystem::None;
 
 	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if ( renderSetup )
 	{
-		::Global::GetDrawEngine().setupSystem(renderSetup);
+		if (!::Global::GetDrawEngine().setupSystem(renderSetup))
+			return false;
 	}
 
 	if( !stage->onInit() )
@@ -1113,6 +1125,7 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 	if (renderSetup)
 	{
+		ERenderSystem systemName = ::Global::GetDrawEngine().getSystemName();
 		if (!renderSetup->setupRenderSystem(systemName))
 		{
 			LogWarning(0, "Can't Initialize Stage Render Resource");

@@ -72,6 +72,7 @@ namespace Render
 			RoundRect,
 			TextureRect,
 			Line,
+			LineStrip,
 			Text ,
 		};
 
@@ -147,6 +148,13 @@ namespace Render
 			std::vector< Vector2 > posList;
 		};
 
+		struct LineStripPayload : ShapePayload
+		{
+			Color4Type color;
+			std::vector< Vector2 > posList;
+			int     width;
+		};
+
 		struct TextureRectPayload
 		{
 			Color4Type color;
@@ -186,6 +194,22 @@ namespace Render
 			TRenderBachedElement<PolygonPayload>* element = addElement< PolygonPayload >();
 			element->type = RenderBachedElement::Polygon;
 			element->payload.paintArgs = paintArgs;
+			element->payload.posList.resize(numV);
+			for (int i = 0; i < numV; ++i)
+			{
+				element->payload.posList[i] = transform.transformPosition(v[i]);
+			}
+			return *element;
+		}
+
+		template< class TVector2 >
+		RenderBachedElement& addLineStrip(RenderTransform2D const& transform, Color4Type const& color, TVector2 const v[], int numV, int width)
+		{
+			CHECK(numV >= 2);
+			TRenderBachedElement<LineStripPayload>* element = addElement< LineStripPayload >();
+			element->type = RenderBachedElement::LineStrip;
+			element->payload.color = color;
+			element->payload.width = width;
 			element->payload.posList.resize(numV);
 			for (int i = 0; i < numV; ++i)
 			{

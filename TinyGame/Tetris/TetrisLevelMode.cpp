@@ -100,9 +100,9 @@ namespace Tetris
 	}
 
 
-	void ChallengeMode::setupSingleGame( MyController& controller )
+	void ChallengeMode::setupSingleGame( CInputControl& inputConrol)
 	{
-		controller.setPortControl( 0 , 0 );
+		inputConrol.setPortControl( 0 , 0 );
 	}
 
 	void ChallengeMode::onLevelEvent( LevelData& lvData , Event const& event )
@@ -241,11 +241,11 @@ namespace Tetris
 
 	}
 
-	void BattleMode::setupSingleGame( MyController& controller )
+	void BattleMode::setupSingleGame( CInputControl& inputConrol)
 	{
 		for( int i = 0 ; i < 2 ; ++i )
 		{
-			controller.setPortControl( i , i );
+			inputConrol.setPortControl( i , i );
 		}
 	}
 
@@ -319,9 +319,9 @@ namespace Tetris
 		}
 	}
 
-	void PracticeMode::setupSingleGame( MyController& controller )
+	void PracticeMode::setupSingleGame( CInputControl& inputConrol)
 	{
-		controller.setPortControl( 0 , 0 );
+		inputConrol.setPortControl( 0 , 0 );
 	}
 
 	void PracticeMode::setupScene( unsigned flag )

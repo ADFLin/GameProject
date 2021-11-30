@@ -1,4 +1,3 @@
-
 #include "D3D12ShaderCommon.h"
 
 #include "D3D12Utility.h"
@@ -27,6 +26,23 @@
 
 namespace Render
 {
+	class D3D12ShaderCompileIntermediates : public ShaderCompileIntermediates
+	{
+	public:
+		D3D12ShaderCompileIntermediates(int numShaders)
+		{
+			CHECK(numShaders > 0);
+			shaderDatas = new D3D12ShaderProgram::ShaderData[numShaders];
+		}
+
+		~D3D12ShaderCompileIntermediates()
+		{
+			delete[] shaderDatas;
+		}
+
+		D3D12ShaderProgram::ShaderData* shaderDatas = nullptr;
+		int shaderCount = 0;
+	};
 
 
 	ShaderFormatHLSL_D3D12::ShaderFormatHLSL_D3D12(TComPtr< ID3D12Device8 >& inDevice) :mDevice(inDevice)
@@ -156,13 +172,24 @@ namespace Render
 			TComPtr<IDxcBlob> shaderCode;
 			compileResult->GetResult(&shaderCode);
 
-			auto* shaderImpl = static_cast<D3D12Shader*>(RHICreateShader(input.type));
-			output.resource = shaderImpl;
-
-			if (!shaderImpl->initialize(shaderCode))
+			if (input.programSetupData)
 			{
-				LogWarning(0, "Can't create shader resource");
-				return false;
+				D3D12ShaderCompileIntermediates* myIntermediates = static_cast<D3D12ShaderCompileIntermediates*>(input.programSetupData->intermediateData.get());
+				auto& shaderData = myIntermediates->shaderDatas[myIntermediates->shaderCount];
+				shaderData.type = input.type;
+				shaderData.initialize(shaderCode);
+				++myIntermediates->shaderCount;
+				output.formatData = &shaderData;
+			}
+			else
+			{
+				auto* shaderImpl = static_cast<D3D12Shader*>(RHICreateShader(input.type));
+				output.resource = shaderImpl;
+				if (!shaderImpl->initialize(shaderCode))
+				{
+					LogWarning(0, "Can't create shader resource");
+					return false;
+				}
 			}
 		} 
 		while (!bSuccess && bRecompile);
@@ -185,10 +212,10 @@ namespace Render
 		serializer.write(numShaders);
 		for (int i = 0; i < numShaders; ++i)
 		{
-			D3D12Shader& shaderImpl = *shaderProgramImpl.mShaders[i];
-			uint8 shaderType = shaderImpl.mType;
+			auto& shaderData = shaderProgramImpl.mShaderDatas[i];
+			uint8 shaderType = shaderData.type;
 			serializer.write(shaderType);
-			serializer.write(shaderImpl.code);
+			serializer.write(shaderData.code);
 		}
 
 		return true;
@@ -196,8 +223,7 @@ namespace Render
 
 	void ShaderFormatHLSL_D3D12::precompileCode(ShaderProgramSetupData& setupData)
 	{
-
-
+		setupData.intermediateData = std::make_unique<D3D12ShaderCompileIntermediates>(setupData.numShaders);
 	}
 
 	void ShaderFormatHLSL_D3D12::precompileCode(ShaderSetupData& setupData)
@@ -225,8 +251,8 @@ namespace Render
 		shader.mRHIResource = setupData.shaderResource.resource;
 		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
 
-		D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.mRootSignature);
-		D3D12Shader::SetupShader(shaderImpl.mRootSignature, shaderImpl.mType);
+		D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
+		D3D12Shader::SetupShader(shaderImpl.rootSignature, shaderImpl.mType);
 		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
 	}
@@ -242,8 +268,8 @@ namespace Render
 		if (!shaderImpl.initialize(std::move(temp)))
 			return false;
 
-		D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.mRootSignature);
-		D3D12Shader::SetupShader(shaderImpl.mRootSignature, shaderImpl.mType);
+		D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
+		D3D12Shader::SetupShader(shaderImpl.rootSignature, shaderImpl.mType);
 		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
 	}
@@ -253,15 +279,17 @@ namespace Render
 		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
 		shaderProgramImpl.mParameterMap.clear();
 
-		assert(ARRAY_SIZE(shaderProgramImpl.mShaders) >= setupData.shaderResources.size());
 		shaderProgramImpl.mNumShaders = setupData.shaderResources.size();
+		shaderProgramImpl.mShaderDatas = static_cast<D3D12ShaderCompileIntermediates*>(setupData.intermediateData.get())->shaderDatas;
+		static_cast<D3D12ShaderCompileIntermediates*>(setupData.intermediateData.get())->shaderDatas = nullptr;
+
 		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
 		{
-			shaderProgramImpl.mShaders[i] = &static_cast<D3D12Shader&>(*setupData.shaderResources[i].resource);
-			auto& shaderImpl = *shaderProgramImpl.mShaders[i];
-			D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.mRootSignature);
-			D3D12Shader::SetupShader(shaderImpl.mRootSignature, shaderImpl.mType);
-			shaderProgramImpl.mParameterMap.addShaderParameterMap( i , shaderImpl.mParameterMap);
+			auto& shaderData = shaderProgramImpl.mShaderDatas[i];
+			ShaderParameterMap parameterMap;
+			D3D12Shader::GenerateParameterMap(shaderData.code, mLibrary, parameterMap, shaderData.rootSignature);
+			D3D12Shader::SetupShader(shaderData.rootSignature, shaderData.type);
+			shaderProgramImpl.mParameterMap.addShaderParameterMap( i , parameterMap);
 		}
 
 		shaderProgramImpl.mParameterMap.finalizeParameterMap();
@@ -279,6 +307,7 @@ namespace Render
 		serializer.read(numShaders);
 
 		shaderProgramImpl.mNumShaders = numShaders;
+		shaderProgramImpl.mShaderDatas = new D3D12ShaderProgram::ShaderData[numShaders];
 		for (int i = 0; i < numShaders; ++i)
 		{
 			uint8 shaderType;
@@ -286,14 +315,13 @@ namespace Render
 			std::vector< uint8 > byteCode;
 			serializer.read(byteCode);
 
-			TRefCountPtr< D3D12Shader > shader = (D3D12Shader*)RHICreateShader(EShader::Type(shaderType));
-			if (!shader->initialize(std::move(byteCode)))
-				return false;
+			auto& shaderData = shaderProgramImpl.mShaderDatas[i];
+			shaderData.type = EShader::Type(shaderType);
+			shaderData.initialize(std::move(byteCode));
 
-			shaderProgramImpl.mShaders[i] = shader;
 			ShaderParameterMap parameterMap;
-			D3D12Shader::GenerateParameterMap(shader->code, mLibrary, parameterMap, shader->mRootSignature);
-			D3D12Shader::SetupShader(shader->mRootSignature, shader->mType);
+			D3D12Shader::GenerateParameterMap(shaderData.code, mLibrary, parameterMap, shaderData.rootSignature);
+			D3D12Shader::SetupShader(shaderData.rootSignature, shaderData.type);
 			shaderProgramImpl.mParameterMap.addShaderParameterMap( i , parameterMap);
 		}
 
@@ -302,18 +330,7 @@ namespace Render
 		return true;
 	}
 
-	bool D3D12Shader::initialize(TComPtr<IDxcBlob>& shaderCode)
-	{
-		uint8 const* pCode = (uint8 const*)shaderCode->GetBufferPointer();
-		code.assign(pCode, pCode + shaderCode->GetBufferSize());
-		return true;
-	}
 
-	bool D3D12Shader::initialize(std::vector<uint8>&& binaryCode)
-	{
-		code = std::move(binaryCode);
-		return true;
-	}
 
 	bool D3D12Shader::GenerateParameterMap(std::vector< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature)
 	{
@@ -337,8 +354,8 @@ namespace Render
 			inOutSignature.slots.push_back(slot);
 			auto& param = parameterMap.addParameter(name, slotIndex, 0, 0);
 			return param;
-
 		};
+
 		inOutSignature.globalCBRegister = INDEX_NONE;
 		D3D12_SHADER_DESC shaderDesc;
 		reflection->GetDesc(&shaderDesc);
@@ -500,8 +517,7 @@ namespace Render
 		return true;
 	}
 
-	void D3D12Shader::SetupShader(ShaderRootSignature& 
-		inOutSignature, EShader::Type type)
+	void D3D12Shader::SetupShader(ShaderRootSignature& inOutSignature, EShader::Type type)
 	{
 		auto visibility = D3D12Translate::ToVisibiltiy(type);
 		inOutSignature.visibility = visibility;
@@ -522,4 +538,27 @@ namespace Render
 		}
 	}
 
-}
+	bool D3D12ShaderData::initialize(TComPtr<IDxcBlob>& shaderCode)
+	{
+		uint8 const* pCode = (uint8 const*)shaderCode->GetBufferPointer();
+		code.assign(pCode, pCode + shaderCode->GetBufferSize());
+		return true;
+	}
+
+	bool D3D12ShaderData::initialize(std::vector<uint8>&& binaryCode)
+	{
+		code = std::move(binaryCode);
+		return true;
+	}
+
+	D3D12_ROOT_PARAMETER1 D3D12ShaderData::getRootParameter(int index, int num /*= 1*/) const
+	{
+		D3D12_ROOT_PARAMETER1 result;
+		result.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		result.DescriptorTable.pDescriptorRanges = rootSignature.descRanges.data() + index;
+		result.DescriptorTable.NumDescriptorRanges = num;
+		result.ShaderVisibility = rootSignature.visibility;
+		return result;
+	}
+
+}//namespace Render

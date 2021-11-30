@@ -1,4 +1,5 @@
 #include "Common.sgc"
+#include "ViewParam.sgc"
 
 struct PSInput
 {
@@ -9,12 +10,14 @@ struct PSInput
 
 float4 Values;
 
-PSInput MainVS(float4 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_COLOR, float2 uv : ATTRIBUTE_TEXCOORD, uint intanceId : SV_InstanceID)
+PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_COLOR, float2 uv : ATTRIBUTE_TEXCOORD, uint intanceId : SV_InstanceID)
 {
 	PSInput result;
 
 	//result.position = position + float4(0.2 * intanceId, 0, 0, 0);
-	result.position = position + float4(Values.x * intanceId , 0 , 0 , 0 );
+
+	float3 pos = position + float3(Values.x * intanceId, 0, 0);
+	result.position = mul( View.worldToClip , float4(pos, 1) );
 	result.color = color;
 	result.uv = uv;
 

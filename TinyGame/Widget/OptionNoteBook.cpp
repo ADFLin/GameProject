@@ -7,16 +7,16 @@
 
 #include "RenderUtility.h"
 
-GameController* KeyButton::sController = NULL;
+InputControl* KeyButton::sInputControl = NULL;
 KeyButton*      KeyButton::sInputButton = NULL;
 Vec2i const    KeyButton::UI_Size( 100 , 20 );
 
 Vec2i OptionNoteBook::UI_Size( 300 , 300 );
 
 
-void OptionNoteBook::init( GameController& controller )
+void OptionNoteBook::init( InputControl& inputConrol )
 {
-	KeyButton::sController = &controller;
+	KeyButton::sInputControl = &inputConrol;
 
 	Vec2i pageSize = getPageSize();
 	Page* page;
@@ -114,7 +114,7 @@ KeyButton::KeyButton( int id , Vec2i const& pos , ControlAction action , GWidget
 	:GButton( id , pos , UI_Size , parent )
 	,mAction( action )
 {
-	setCurKey( sController->getKey( 0 ,mAction ) );
+	setCurKey( sInputControl->getKey( 0 ,mAction ) );
 }
 
 bool KeyButton::onKeyMsg(KeyMsg const& msg)
@@ -131,7 +131,7 @@ bool KeyButton::onKeyMsg(KeyMsg const& msg)
 void KeyButton::setCurKey( unsigned key )
 {
 	InlineString< 256 > title;
-	sController->setKey( 0 , mAction , key );
+	sInputControl->setKey( 0 , mAction , key );
 	title.format( "%c" , key );
 	setTitle( title );
 }
@@ -161,5 +161,5 @@ void KeyButton::onMouse( bool beInside )
 
 void KeyButton::cancelInput()
 {
-	setCurKey( sController->getKey( 0 , mAction ) );
+	setCurKey( sInputControl->getKey( 0 , mAction ) );
 }

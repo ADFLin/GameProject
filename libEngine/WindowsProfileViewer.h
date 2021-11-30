@@ -25,7 +25,6 @@ public:
 	
 private:
 
-	static HFONT CreateFont( HDC hDC , int size , char const* faceName , bool beBold , bool beItalic );
 	HDC      mhDC;
 	HFONT    hFont;
 	char     string[512];

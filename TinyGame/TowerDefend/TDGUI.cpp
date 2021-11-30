@@ -12,7 +12,7 @@ namespace TowerDefend
 	Vec2i ActComPanel::PanelSize( 5 * ButtonSize.x + 10 , 3 * ButtonSize.y + 10 );
 
 
-	ActComPanel::ActComPanel( int id , Controller& controller , Vec2i const& pos , GWidget* parent ) 
+	ActComPanel::ActComPanel( int id , CInputControl& controller , Vec2i const& pos , GWidget* parent ) 
 		:BaseClass( id , pos , PanelSize , parent )
 	{
 		setRenderType( GPanel::eRectType );

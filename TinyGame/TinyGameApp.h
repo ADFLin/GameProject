@@ -29,7 +29,7 @@ class LevelMode;
 enum  StageID;
 
 class GameStageMode;
-class GameController;
+class InputControl;
 
 
 class RenderEffect : public LifeTimeTask

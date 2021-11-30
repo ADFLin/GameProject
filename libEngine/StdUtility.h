@@ -17,6 +17,17 @@ bool RemoveValue(std::vector< T , A >& v, T const& val)
 }
 
 template< typename T, typename A >
+void RemoveIndexSwap(std::vector< T, A >& v, int index)
+{
+	CHECK(IsValidIndex(v, index));
+	if (v.size() - 1 != index)
+	{
+		std::swap(v[index], v.back());
+	}
+	v.pop_back();
+}
+
+template< typename T, typename A >
 bool AddUnique(std::vector< T , A >& v, T const& val)
 {
 	for( int i = 0; i < v.size(); ++i )

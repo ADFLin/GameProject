@@ -13,7 +13,7 @@ using WidgetEventCallBack = fastdelegate::FastDelegate< bool ( int , int , GWidg
 
 class StageBase;
 class StageManager;
-class GameController;
+class InputControl;
 class IPlayerManager;
 class GameStage;
 class ReplayTemplate;
@@ -93,7 +93,7 @@ public:
 	bool isGameModule() const final { return true; }
 public:
 	virtual char const*           getName() = 0;
-	virtual GameController&       getController() = 0;
+	virtual InputControl&         getInputControl() = 0;
 	virtual StageBase*            createStage( unsigned id ){ return nullptr; }
 	virtual SettingHepler*        createSettingHelper( SettingHelperType type ){ return nullptr; }
 	virtual bool                  queryAttribute( GameAttribute& value ){ return false; }

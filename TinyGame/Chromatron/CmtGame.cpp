@@ -18,7 +18,7 @@ namespace Chromatron
 		case ATTR_NET_SUPPORT:
 			value.iVal = false;
 			return true;
-		case ATTR_CONTROLLER_DEFUAULT_SETTING:
+		case ATTR_INPUT_DEFUAULT_SETTING:
 			return true;
 		}
 		return false;

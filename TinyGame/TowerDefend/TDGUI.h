@@ -8,7 +8,7 @@ class Graphics2D;
 
 namespace TowerDefend
 {
-	class Controller;
+	class CInputControl;
 
 	class ActComButton : public GButtonBase
 	{
@@ -47,7 +47,7 @@ namespace TowerDefend
 		};
 		typedef GPanel BaseClass;
 	public:
-		ActComPanel( int id , Controller& controller , Vec2i const& pos , GWidget* parent );
+		ActComPanel( int id , CInputControl& controller , Vec2i const& pos , GWidget* parent );
 
 		void    setComMap( ComMapID id );
 		void    glowButton( int index );
@@ -56,7 +56,7 @@ namespace TowerDefend
 		static Vec2i ButtonSize;
 		static Vec2i PanelSize;
 
-		Controller*    mController;
+		CInputControl*    mController;
 		ActComButton*  mButton[ COM_MAP_ELEMENT_NUN ];
 	};
 

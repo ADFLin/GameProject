@@ -163,7 +163,7 @@ namespace TowerDefend
 	public:
 		Level()
 		{
-			mController  = NULL;
+			mInputConrol  = NULL;
 			mControlUI   = NULL;
 			mComID       = CID_NULL;
 			mSelectMode  = SM_NORMAL;
@@ -188,7 +188,7 @@ namespace TowerDefend
 			testR = 30;
 		}
 
-		void setController( Controller* controller ){ mController = controller;  }
+		void setInputControl( CInputControl* inputConrol){ mInputConrol = inputConrol;  }
 		void setControlUI( IControlUI* controlUI ){ mControlUI = controlUI; }
 
 		bool  testHaveCol;
@@ -422,7 +422,7 @@ namespace TowerDefend
 		PlayerInfo      mMonsterPlayerInfo;
 
 		Builder*        mBuiler;
-		Controller*     mController;
+		CInputControl*  mInputConrol;
 		IControlUI*     mControlUI;
 	};
 

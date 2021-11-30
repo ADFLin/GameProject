@@ -40,7 +40,7 @@ public:
 
 	TMessageShow()
 	{
-		hFont = getRenderSystem()->createFont( 8 , TEXT("新細明體") );
+		hFont = getRenderSystem()->createFont(TEXT("新細明體"), 8);
 
 		height = 15;
 		setPos( 20 , 20 );
@@ -186,18 +186,18 @@ public:  //GameCore
 	{
 		PROFILE_ENTRY( "Game::Init" )
 
-			if ( !WinFrame::create( TEXT("Tetris") , 800 , 600 , WindowsMessageHandler::MsgProc  ) )
+			if ( !WinFrame::create( TEXT("RomeCity") , 800 , 600 , WindowsMessageHandler::MsgProc  ) )
 			return false;
 
 		mRenderSystem.reset( new rcRenderSystem( getHWnd() , getHDC() ) );
 
-		hFont = mRenderSystem->createFont( 12 , TEXT("華康中圓體") );		
+		hFont = mRenderSystem->createFont(TEXT("華康中圓體"),  12);
 		mProfileViewer.reset( new CProfileViewer );
 
 		mControl.reset( new rcControl );
 		
 
-		//mRenderSystem->createFont( 12 , TEXT("華康中圓體") );
+		//mRenderSystem->createFont( TEXT("華康中圓體") , 12 );
 		rcDataManager::Get().init();
 
 		rcGUISystem::Get().setControl( mControl );

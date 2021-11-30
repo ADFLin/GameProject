@@ -161,6 +161,15 @@ private:
 
 };
 
+class FWindowsGDI
+{
+public:
+	static HFONT CreateFont(HDC hDC, char const* faceName, int size, bool bBold = false, bool bItalic = false, bool bUnderLine = false);
+	static HBRUSH CreateBrush(Color3ub const& color);
+	static HPEN CreatePen(Color3ub const& color, int width);
+
+};
+
 class WinGdiRenderSystem
 {
 public:
@@ -173,8 +182,7 @@ public:
 	HDC         getWindowDC(){ return mhDCWindow; }
 	void        beginRender();
 	void        endRender();
-	HFONT       createFont( int size , char const* faceName , bool beBold = false , bool beItalic = false );
-
+ 	HFONT       createFont(char const* faceName, int size, bool bBold = false, bool bItalic = false);
 	BitmapDC    mBufferDC;
 	Graphics2D  mGraphics;
 	HDC         mhDCWindow;

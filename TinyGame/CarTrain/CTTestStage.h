@@ -140,11 +140,13 @@ namespace CarTrain
 		template< class OP >
 		void serialize(OP& op)
 		{
-			op & mBoxObjects;
+			op & spawnPoint;
+			op & boxObjects;
 		}
 
 		XForm2D spawnPoint;
 		std::vector< GameBoxDef > boxObjects;
+
 	};
 
 
@@ -213,14 +215,14 @@ namespace CarTrain
 
 
 
-	class CarAgentEntiy : public CarEntity
+	class AgentCarEntiy : public CarEntity
 		                , public AgentEntity
 					    , public IEntityController
 	{
 	public:
-		DECLARE_GAME_ENTITY(CarAgentEntiy,  CarEntity);
+		DECLARE_GAME_ENTITY(AgentCarEntiy,  CarEntity);
 
-		CarAgentEntiy(XForm2D const& transform)
+		AgentCarEntiy(XForm2D const& transform)
 			:BaseClass(transform)
 		{
 
@@ -336,7 +338,7 @@ namespace CarTrain
 #else
 		static constexpr uint32 Topology[] =
 		{
-			6 , 8 , 8 , 5 , 4, 3, 2, 1
+			6 , 5 , 4, 3, 2, 1
 		};
 
 #endif
@@ -370,10 +372,62 @@ namespace CarTrain
 	{
 	public:
 
+		void checkAliveCars()
+		{
+			int num = mAliveCars.size();
+			for (int i = 0; i < num;)
+			{
+				if ( mAliveCars[i]->bDead )
+				{
+					RemoveIndexSwap(mAliveCars, i);
+					--num;
+				}
+				else
+				{
+					++i;
+				}
+			}
+		}
 
+		void spawnAgents(TrainData& trainData, XForm2D const& startXForm)
+		{
+			for (auto& agentPtr : trainData.mAgents)
+			{
+				if (agentPtr->entity == nullptr)
+				{
+					AgentCarEntiy* entity = spawnEntity<AgentCarEntiy>(startXForm);
+					entity->mAgent = agentPtr.get();
+					agentPtr->entity = entity;
+				}
+			}
+		}
 
+		void restartAgents(TrainData& trainData, XForm2D const& startXForm)
+		{
+			mAliveCars.clear();
+			for (auto& agentPtr : trainData.mAgents)
+			{
+				AgentCarEntiy* car = static_cast<AgentCarEntiy*>(agentPtr->entity);
+				car->restart();
 
+				if (car->mAgent->index % 2 || 1)
+				{
+					car->mBody->setTransform(startXForm);
+					car->mTransform = startXForm;
+				}
+				else
+				{
+					XForm2D  xForm = startXForm;
+					xForm.rotate(Math::Deg2Rad(90));
+					car->mBody->setTransform(xForm);
+					car->mTransform = xForm;
+				}
 
+				mAliveCars.push_back(car);
+			}
+		}
+
+		std::vector< AgentCarEntiy* > mAliveCars;
 	};
 
 
@@ -389,75 +443,26 @@ namespace CarTrain
 		}
 		virtual void setup(TrainData& trainData)
 		{
-			SpawnAgents(mWorld, trainData, startXForm);
+			mWorld.spawnAgents(trainData, startXForm);
 		}
 		virtual void restart(TrainData& trainData)
 		{
-			RestartAgents(trainData, startXForm);
+			mWorld.restartAgents(trainData, startXForm);
 		}
 
 		virtual void tick(TrainData& trainData)
 		{
 			mWorld.tick(GDeltaTime);
-			if (CheckTrainEnd(trainData))
+			if (mWorld.mAliveCars.size() == 0)
 			{
 				onTrainCompleted();
 			}
-
-		}
-
-		static bool CheckTrainEnd(TrainData& trainData)
-		{
-			for (auto& agentPtr : trainData.mAgents)
-			{
-				CarAgentEntiy* car = static_cast<CarAgentEntiy*>(agentPtr->entity);
-				if (!car->bDead)
-				{
-					return false;
-				}
-			}
-			return true;
-		}
-
-		static void SpawnAgents(GameWorld& world , TrainData& trainData, XForm2D const& startXForm)
-		{
-			for (auto& agentPtr : trainData.mAgents)
-			{
-				if (agentPtr->entity == nullptr)
-				{
-					CarAgentEntiy* entity = world.spawnEntity<CarAgentEntiy>(startXForm);
-					entity->mAgent = agentPtr.get();
-					agentPtr->entity = entity;
-					
-				}
-			}
-		}
-
-		static void RestartAgents(TrainData& trainData, XForm2D const& startXForm)
-		{
-			for (auto& agentPtr : trainData.mAgents)
-			{
-				CarAgentEntiy* car = static_cast<CarAgentEntiy*>(agentPtr->entity);
-				car->restart();
-				
-				if (car->mAgent->index % 2 || 1)
-				{
-					car->mBody->setTransform(startXForm);
-					car->mTransform = startXForm;
-				}
-				else
-				{
-					XForm2D  xForm = startXForm;
-					xForm.rotate(Math::Deg2Rad(90));
-					car->mBody->setTransform(xForm);
-					car->mTransform = xForm;
-				}
-			}
 		}
 
 
-		XForm2D   startXForm;
-		GameWorld mWorld;
+
+		XForm2D    startXForm;
+		TrainWorld mWorld;
 	};
 
 
@@ -481,7 +486,7 @@ namespace CarTrain
 
 
 
-		GameWorld mWorld;
+		TrainWorld mWorld;
 		std::unique_ptr< LevelData > mLevelData;
 
 		FCNNLayout mNNLayout;
@@ -512,6 +517,12 @@ namespace CarTrain
 			restart();
 		}
 
+		void setSpawnPoint(Vector2 const& pos, float angle)
+		{
+			mLevelData->spawnPoint.setTranslation(pos);
+			mLevelData->spawnPoint.setRoatation(Math::Deg2Rad(angle));
+		}
+
 		void saveTrainPool(char const* name);
 		void loadTrainPool(char const* name);
 
@@ -529,7 +540,7 @@ namespace CarTrain
 
 		void restart() 
 		{
-			AgentGameWorld::RestartAgents(mTrainData, mLevelData->spawnPoint);
+			mWorld.restartAgents(mTrainData, mLevelData->spawnPoint);
 		}
 
 		CarEntity* mCar = nullptr;

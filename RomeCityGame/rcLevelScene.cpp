@@ -203,7 +203,7 @@ Color3ub const BaseMaskColor( 255 , 255 , 255 );
 
 void rcLevelScene::init()
 {
-	mFont = getRenderSystem()->createFont( 10 , TEXT("華康中圓體") );
+	mFont = getRenderSystem()->createFont(TEXT("華康中圓體"), 10 );
 }
 
 void rcLevelScene::renderTile( RenderCoord const& coord , rcMapData& tileData )

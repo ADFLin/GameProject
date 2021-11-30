@@ -5,9 +5,14 @@
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #include "BitmapDC.h"
+
+#include "WinGDIRenderSystem.h"
 #endif //SYS_PLATFORM_WIN
-#include <cuchar>
+
+
 #include "FileSystem.h"
+#include <cuchar>
+
 
 namespace Render
 {
@@ -15,7 +20,7 @@ namespace Render
 	class GDIFontCharDataProvider : public ICharDataProvider
 	{
 	public:
-		bool initialize( HDC hDC, char const* faceName, int size, bool bBold = true, bool bUnderLine = false);
+		bool initialize( HDC hDC, FontFaceInfo const& fontFace);
 
 		static void CopyImage(uint8* dest, int w, int h, int pixeSize, uint8* src, int pixelStride)
 		{
@@ -37,26 +42,9 @@ namespace Render
 		HFONT    hFont = NULL;
 	};
 
-	bool GDIFontCharDataProvider::initialize(HDC hDC , char const* faceName, int size, bool bBold /*= true*/, bool bUnderLine /*= false*/)
+	bool GDIFontCharDataProvider::initialize(HDC hDC , FontFaceInfo const& fontFace)
 	{
-		int fontHeight = MulDiv(size, GetDeviceCaps(hDC, LOGPIXELSY), 72);
-
-		hFont = ::CreateFontA(
-			-fontHeight,				        // Height Of Font
-			0,								// Width Of Font
-			0,								// Angle Of Escapement
-			0,								// Orientation Angle
-			bBold ? FW_BOLD : FW_NORMAL,	// Font Weight
-			FALSE,							// Italic
-			bUnderLine,							// Underline
-			FALSE,							// Strikeout
-			DEFAULT_CHARSET,			    // Character Set Identifier
-			OUT_TT_PRECIS,					// Output Precision
-			CLIP_DEFAULT_PRECIS,			// Clipping Precision
-			ANTIALIASED_QUALITY,			// Output Quality
-			FF_DONTCARE | DEFAULT_PITCH,    // Family And Pitch
-			faceName);			            // Font Name
-
+		hFont = FWindowsGDI::CreateFont(hDC, fontFace.name.c_str(), fontFace.size, fontFace.bBold, false, fontFace.bUnderLine);
 		if( hFont == NULL )
 			return false;
 
@@ -84,7 +72,7 @@ namespace Render
 		::SetBkMode(textureDC, TRANSPARENT);
 		::SelectObject(textureDC, hFont);
 		::SetTextColor(textureDC, RGB(255, 255, 255));
-		mSize = size;
+		mSize = fontFace.size;
 
 		return true;
 	}
@@ -140,7 +128,7 @@ namespace Render
 	{
 #if SYS_PLATFORM_WIN
 		GDIFontCharDataProvider* result = new GDIFontCharDataProvider;
-		if( !result->initialize( FontCharCache::Get().hDC , fontFace.name.c_str(), fontFace.size , fontFace.bBold , fontFace.bUnderLine ) )
+		if( !result->initialize( FontCharCache::Get().hDC , fontFace) )
 		{
 			delete result;
 			return nullptr;

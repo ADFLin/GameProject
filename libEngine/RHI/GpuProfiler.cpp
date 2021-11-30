@@ -68,6 +68,7 @@ namespace Render
 				endSample(*mRootSample);
 				if( mCore->endFrame() )
 				{
+					mCore->beginReadback();
 					for( int i = 0; i < mNumSampleUsed; ++i )
 					{
 						GpuProfileSample* sample = mSamples[i].get();
@@ -86,6 +87,7 @@ namespace Render
 							sample->time = -1;
 						}
 					}
+					mCore->endReadback();
 				}
 				mbStartSampling = false;
 			}

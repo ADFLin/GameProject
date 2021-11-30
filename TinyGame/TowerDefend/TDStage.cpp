@@ -13,12 +13,12 @@ namespace TowerDefend
 		if( !BaseClass::onInit() )
 			return false;
 
-		Controller& controller = static_cast< Controller& >(
-			getGame()->getController() );
+		CInputControl& inputConrol = static_cast< CInputControl& >(
+			getGame()->getInputControl() );
 
 		mLevel = new Level;
 		getActionProcessor().setLanucher( mLevel );
-		mLevel->setController( &controller );
+		mLevel->setInputControl( &inputConrol);
 
 		mRenderer = new Renderer();
 		return true; 
@@ -28,17 +28,17 @@ namespace TowerDefend
 	{
 		::Global::GUI().cleanupWidget();
 
-		Controller& controller = static_cast< Controller& >(
-			getGame()->getController() );
+		CInputControl& inputConrol = static_cast< CInputControl& >(
+			getGame()->getInputControl() );
 
-		CControlUI* controlUI = new CControlUI( controller , ::Global::GUI() );
+		CControlUI* controlUI = new CControlUI(inputConrol, ::Global::GUI() );
 		mLevel->setControlUI( controlUI );
 	}
 
-	CControlUI::CControlUI( Controller& controller , GUISystem& guiSystem )
+	CControlUI::CControlUI( CInputControl& inputConrol, GUISystem& guiSystem )
 	{
 		Vec2i panelPos = ::Global::GetScreenSize() - ActComPanel::PanelSize;
-		mActComPanel = new ActComPanel( UI_ANY , controller , panelPos , NULL );
+		mActComPanel = new ActComPanel( UI_ANY , inputConrol, panelPos , NULL );
 		mActComPanel->setAlpha( 1.0f );
 		guiSystem.addWidget( mActComPanel );
 	}

@@ -20,7 +20,7 @@ class ComEvaluator;
 class IActionInput;
 class IComPacket;
 class IPlayerManager;
-class GameController;
+class InputControl;
 
 
 enum NetActionState

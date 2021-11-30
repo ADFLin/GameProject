@@ -22,6 +22,9 @@ enum class RHISystemName
 	D3D12,
 	OpenGL,
 	Vulkan,
+
+
+	Count,
 };
 
 #if USE_RHI_RESOURCE_TRACE

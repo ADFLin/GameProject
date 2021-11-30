@@ -19,6 +19,8 @@ namespace
 	FontDrawer FontGL[FONT_NUM];
 
 	Color3ub gColorMap[3][EColor::Number];
+
+	TCHAR const* FontName = "華康中圓體";
 }
 
 
@@ -68,24 +70,25 @@ void RenderUtility::Initialize()
 		gColorMap[COLOR_DEEP][i] = Color3ub(FColorConv::HSVToRGB(hsvDark));
 		gColorMap[COLOR_LIGHT][i] = Color3ub( FColorConv::HSVToRGB(hsvLight));
 #endif
-		hBrush[COLOR_NORMAL][i] = ::CreateSolidBrush(gColorMap[COLOR_NORMAL][i].toXBGR());
-		hBrush[COLOR_DEEP][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i].toXBGR() );
-		hBrush[COLOR_LIGHT][i] = ::CreateSolidBrush( gColorMap[COLOR_LIGHT][i].toXBGR() );
-		hCPen[COLOR_NORMAL][i] = ::CreatePen(PS_SOLID, 1, gColorMap[COLOR_NORMAL][i].toXBGR() );
-		hCPen[COLOR_DEEP][i] = ::CreatePen(PS_SOLID, 1, gColorMap[COLOR_DEEP][i].toXBGR() );
-		hCPen[COLOR_LIGHT][i] = ::CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i].toXBGR() );
+		hBrush[COLOR_NORMAL][i] = FWindowsGDI::CreateBrush(gColorMap[COLOR_NORMAL][i]);
+		hBrush[COLOR_DEEP][i]   = FWindowsGDI::CreateBrush(gColorMap[COLOR_DEEP][i]);
+		hBrush[COLOR_LIGHT][i]  = FWindowsGDI::CreateBrush(gColorMap[COLOR_LIGHT][i]);
+		hCPen[COLOR_NORMAL][i]  = FWindowsGDI::CreatePen(gColorMap[COLOR_NORMAL][i], 1);
+		hCPen[COLOR_DEEP][i]    = FWindowsGDI::CreatePen(gColorMap[COLOR_DEEP][i], 1 );
+		hCPen[COLOR_LIGHT][i]   = FWindowsGDI::CreatePen(gColorMap[COLOR_LIGHT][i], 1 );
 	}
 
 	DrawEngine& de = Global::GetDrawEngine();
+	HDC hDC = de.getPlatformGraphics().getRenderDC();
 
-	HFONT badFont = de.createFont( 20 , TEXT("華康中圓體") , true , false );
+
+	HFONT badFont = FWindowsGDI::CreateFont( hDC, FontName, 20, true , false );
 	DeleteObject( badFont );
-
-	hFont[ FONT_S8 ]  = de.createFont(  8 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S10 ] = de.createFont( 10 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S12 ] = de.createFont( 12 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S16 ] = de.createFont( 16 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S24 ] = de.createFont( 24 , TEXT("華康中圓體") , true , false );
+	hFont[ FONT_S8 ]  = FWindowsGDI::CreateFont(hDC, FontName, 8 , true , false );
+	hFont[ FONT_S10 ] = FWindowsGDI::CreateFont(hDC, FontName, 10, true , false );
+	hFont[ FONT_S12 ] = FWindowsGDI::CreateFont(hDC, FontName, 12, true , false );
+	hFont[ FONT_S16 ] = FWindowsGDI::CreateFont(hDC, FontName, 16, true , false );
+	hFont[ FONT_S24 ] = FWindowsGDI::CreateFont(hDC, FontName, 24, true , false );
 
 }
 
@@ -94,11 +97,11 @@ void RenderUtility::Finalize()
 {
 	for(int i= 1 ; i < EColor::Number ;++i)
 	{
-		::DeleteObject( hBrush[ COLOR_NORMAL ][i] );
-		::DeleteObject( hBrush[ COLOR_DEEP ][i] );
-		::DeleteObject( hBrush[ COLOR_LIGHT ][i] );
+		::DeleteObject(hBrush[ COLOR_NORMAL ][i]);
+		::DeleteObject(hBrush[ COLOR_DEEP ][i]);
+		::DeleteObject(hBrush[ COLOR_LIGHT ][i]);
 
-		::DeleteObject( hCPen[COLOR_NORMAL][i] );
+		::DeleteObject(hCPen[COLOR_NORMAL][i]);
 		::DeleteObject(hCPen[COLOR_DEEP][i]);
 		::DeleteObject(hCPen[COLOR_LIGHT][i]);
 	}
@@ -264,12 +267,11 @@ void RenderUtility::InitializeRHI()
 	FontCharCache::Get().hDC = hDC;
 	FontCharCache::Get().initialize();
 
-	char const* faceName = "新細明體";
-	FontGL[ FONT_S8  ].initialize(FontFaceInfo(faceName, 8 , true));
-	FontGL[ FONT_S10 ].initialize(FontFaceInfo(faceName, 10, true));
-	FontGL[ FONT_S12 ].initialize(FontFaceInfo(faceName, 12, true));
-	FontGL[ FONT_S16 ].initialize(FontFaceInfo(faceName, 16, true));
-	FontGL[ FONT_S24 ].initialize(FontFaceInfo(faceName, 24, true));
+	FontGL[ FONT_S8  ].initialize(FontFaceInfo(FontName, 8 , true));
+	FontGL[ FONT_S10 ].initialize(FontFaceInfo(FontName, 10, true));
+	FontGL[ FONT_S12 ].initialize(FontFaceInfo(FontName, 12, true));
+	FontGL[ FONT_S16 ].initialize(FontFaceInfo(FontName, 16, true));
+	FontGL[ FONT_S24 ].initialize(FontFaceInfo(FontName, 24, true));
 }
 
 void RenderUtility::ReleaseRHI()

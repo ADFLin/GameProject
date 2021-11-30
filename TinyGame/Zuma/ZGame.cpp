@@ -176,7 +176,7 @@ namespace Zuma
 #endif
 			return true;
 		case ATTR_NET_SUPPORT:
-		case ATTR_CONTROLLER_DEFUAULT_SETTING:
+		case ATTR_INPUT_DEFUAULT_SETTING:
 			return false;
 		case ATTR_TICK_TIME:
 			value.iVal = g_GameTime.updateTime;

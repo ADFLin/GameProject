@@ -46,7 +46,7 @@ namespace Bubble
 		mTimeCount = 0;
 	}
 
-	void Scene::render( Graphics2D& g , Vector2 const& pos )
+	void Scene::render(IGraphics2D& g , Vector2 const& pos )
 	{
 		for ( int i = 0 ; i < mLevel.mNumCellData ; ++i )
 		{
@@ -81,7 +81,7 @@ namespace Bubble
 
 	}
 
-	void Scene::render( Graphics2D& g )
+	void Scene::render(IGraphics2D& g )
 	{
 		if ( mScale != 1.0f )
 		{
@@ -97,7 +97,7 @@ namespace Bubble
 		}
 	}
 
-	void Scene::renderDbg( Graphics2D& g , Vector2 const& pos , int index )
+	void Scene::renderDbg(IGraphics2D& g , Vector2 const& pos , int index )
 	{
 		bool isEven = mLevel.isEvenLayer( index );
 
@@ -124,7 +124,7 @@ namespace Bubble
 		//}
 	}
 
-	void Scene::renderBubbleList( Graphics2D& g , Vector2 const& pos , BubbleList& bList )
+	void Scene::renderBubbleList(IGraphics2D& g , Vector2 const& pos , BubbleList& bList )
 	{
 		for( SceneBubble* bubble : bList )
 		{
@@ -146,7 +146,7 @@ namespace Bubble
 		}
 	}
 
-	void Scene::renderBubble( Graphics2D& g , Vector2 const& pos , int color )
+	void Scene::renderBubble( IGraphics2D& g , Vector2 const& pos , int color )
 	{
 		RenderUtility::SetPen( g , EColor::Black );
 		RenderUtility::SetBrush( g , color , COLOR_NORMAL);
@@ -160,7 +160,7 @@ namespace Bubble
 		g.drawCircle( pos + Vector2( 5 , -5 ) , 5 );
 	}
 
-	void Scene::renderBackground( Graphics2D& g , Vector2 const& pos )
+	void Scene::renderBackground(IGraphics2D& g , Vector2 const& pos )
 	{
 		int width  = int( mLevel.mNumFreeCellLayer * g_BubbleDiameter );
 		RenderUtility::DrawBlock( g , pos - Vector2( (float)BlockSize , (float)BlockSize ) , 
@@ -174,7 +174,7 @@ namespace Bubble
 
 	}
 
-	void Scene::renderLauncher( Graphics2D& g , Vector2 const& pos )
+	void Scene::renderLauncher(IGraphics2D& g , Vector2 const& pos )
 	{
 		RenderUtility::SetBrush( g ,  mLevel.mShootBubbleColor );
 		RenderUtility::SetPen( g ,  mLevel.mShootBubbleColor );

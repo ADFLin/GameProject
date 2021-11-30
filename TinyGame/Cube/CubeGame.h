@@ -11,7 +11,7 @@ namespace Cube
 	public:
 		char const*     getName(){  return "CubeWorld"; }
 
-		GameController& getController(){  return IGameModule::getController(); }
+		InputControl& getInputControl(){  return IGameModule::getInputControl(); }
 		//SettingHepler*  createSettingHelper( SettingHelperType type );
 		//ReplayTemplate* createReplayTemplate( unsigned version );
 		//GameSubStage*   createSubStage( unsigned id );

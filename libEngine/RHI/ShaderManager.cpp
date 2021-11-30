@@ -934,7 +934,7 @@ namespace Render
 
 			ShaderProgramSetupData setupData;
 			setupData.managedData = &managedData;
-
+			setupData.numShaders = managedData.compileInfos.size();
 			mShaderFormat->precompileCode(setupData);
 
 			ShaderResourceInfo shaders[EShader::MaxStorageSize];

@@ -17,7 +17,7 @@ namespace TowerDefend
 	{
 
 	public:
-		CControlUI( Controller& controller , GUISystem& guiSystem );
+		CControlUI( CInputControl& inputConrol, GUISystem& guiSystem );
 		void setComMap( ComMapID id ) override;
 		void onFireCom( int idx , int comId ) override;
 		ActComPanel* mActComPanel;
@@ -73,10 +73,10 @@ namespace TowerDefend
 			param.drawMouse = ::Global::GUI().getManager().getMouseWidget() == NULL;
 			mLevel->render( *mRenderer , param );
 
-			Controller& controller = static_cast< Controller& >(
-				getGame()->getController() );
+			CInputControl& inputConrol = static_cast< CInputControl& >(
+				getGame()->getInputControl() );
 
-			controller.renderMouse( *mRenderer );
+			inputConrol.renderMouse( *mRenderer );
 
 		}
 		virtual void setupScene( IPlayerManager& playerManager );

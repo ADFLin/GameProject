@@ -42,7 +42,7 @@ bool SingleStageMode::postStageInit()
 	ActionProcessor& processor = stage->getActionProcessor();
 	if( getGame() )
 	{
-		getGame()->getController().setupInput(processor);
+		getGame()->getInputControl().setupInput(processor);
 	}
 
 	restart(true);
@@ -79,7 +79,7 @@ void SingleStageMode::updateTime(long time)
 
 	mCurStage->updateFrame(frame);
 	if ( getGame() )
-		::Global::GUI().scanHotkey(getGame()->getController());
+		::Global::GUI().scanHotkey(getGame()->getInputControl());
 }
 
 bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)

@@ -4,7 +4,7 @@
 #include "GameControl.h"
 #include "StageBase.h"
 
-class EmptyController : public GameController
+class EmptyInputControl : public InputControl
 {
 public:
 	virtual void  setupInput(ActionProcessor& proccessor) {}
@@ -23,11 +23,11 @@ public:
 
 namespace
 {
-	EmptyController gEmptyController;
+	EmptyInputControl GEmptyInputControl;
 }
-GameController& IGameModule::getController()
+InputControl& IGameModule::getInputControl()
 {
-	return gEmptyController;
+	return GEmptyInputControl;
 }
 
 bool IGameModule::changeDefaultStage(StageManager& stageManager, EGameStageMode modeType)

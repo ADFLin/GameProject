@@ -93,7 +93,7 @@ void WinGdiGraphics2D::setPen(Color3ub const& color, int width /*= 1 */)
 		}
 		else
 		{
-			hPen = ::CreatePen(PS_SOLID, width, color.toXBGR());
+			hPen = FWindowsGDI::CreatePen(color, width);
 			mCachedPenMap.emplace(color.toXBGR(), hPen);
 		}
 		assert(hPen != NULL);
@@ -101,7 +101,7 @@ void WinGdiGraphics2D::setPen(Color3ub const& color, int width /*= 1 */)
 	}
 	else
 	{
-		setPenImpl(::CreatePen(PS_SOLID, width, color.toXBGR()), true);
+		setPenImpl(FWindowsGDI::CreatePen(color, width), true);
 	}
 }
 
@@ -116,7 +116,7 @@ void WinGdiGraphics2D::setBrush(Color3ub const& color)
 	}
 	else
 	{
-		hBrush = ::CreateSolidBrush(color.toXBGR());
+		hBrush = FWindowsGDI::CreateBrush(color);
 		mCachedBrushMap.emplace(color.toXBGR(), hBrush);
 	}
 	assert(hBrush != NULL);
@@ -402,29 +402,44 @@ void WinGdiRenderSystem::endRender()
 	mBufferDC.bitBltTo( mhDCWindow );
 }
 
-HFONT WinGdiRenderSystem::createFont( int size , char const* faceName , bool beBold , bool beItalic )
+HFONT WinGdiRenderSystem::createFont(char const* faceName, int size , bool bBold , bool bItalic )
 {
-	LOGFONT lf;
-
-	lf.lfHeight = -(int)(fabs( ( float)10 * size *GetDeviceCaps( mhDCWindow ,LOGPIXELSY)/72)/10.0+0.5);
-	lf.lfWeight        = 0;
-	lf.lfEscapement    = 0;
-	lf.lfOrientation   = 0;
-	lf.lfWeight        = ( beBold ) ? FW_BOLD : FW_NORMAL ;
-	lf.lfItalic        = beItalic;
-	lf.lfUnderline     = FALSE;
-	lf.lfStrikeOut     = FALSE;
-	lf.lfCharSet       = CHINESEBIG5_CHARSET;
-	lf.lfOutPrecision  = OUT_TT_PRECIS;
-	lf.lfClipPrecision = CLIP_TT_ALWAYS;
-	lf.lfQuality       = DEFAULT_QUALITY;
-	lf.lfPitchAndFamily = DEFAULT_PITCH;
-	strcpy_s( lf.lfFaceName , faceName );
-
-	return CreateFontIndirect( &lf );
+	return FWindowsGDI::CreateFont(mhDCWindow, faceName, size, bBold, bItalic );
 }
 
 Vec2i WinGdiRenderSystem::getClientSize() const
 {
 	return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() );
+}
+
+HFONT FWindowsGDI::CreateFont(HDC hDC, char const* faceName, int size, bool bBold , bool bItalic , bool bUnderLine )
+{
+	LOGFONT lf;
+
+	lf.lfHeight = -MulDiv(size, GetDeviceCaps(hDC, LOGPIXELSY), 72);
+	lf.lfWeight = 0;
+	lf.lfEscapement = 0;
+	lf.lfOrientation = 0;
+	lf.lfWeight = (bBold) ? FW_BOLD : FW_NORMAL;
+	lf.lfItalic = bItalic;
+	lf.lfUnderline = bUnderLine;
+	lf.lfStrikeOut = FALSE;
+	lf.lfCharSet = DEFAULT_CHARSET;
+	lf.lfOutPrecision = OUT_TT_PRECIS;
+	lf.lfClipPrecision = CLIP_DEFAULT_PRECIS;
+	lf.lfQuality = ANTIALIASED_QUALITY;
+	lf.lfPitchAndFamily = FF_DONTCARE | DEFAULT_PITCH;
+	strcpy_s(lf.lfFaceName, faceName);
+
+	return CreateFontIndirectA(&lf);
+}
+
+HBRUSH FWindowsGDI::CreateBrush(Color3ub const& color)
+{
+	return ::CreateSolidBrush(color.toXBGR());
+}
+
+HPEN FWindowsGDI::CreatePen(Color3ub const& color, int width)
+{
+	return ::CreatePen(PS_SOLID, width, color.toXBGR());
 }

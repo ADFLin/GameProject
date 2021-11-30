@@ -38,7 +38,7 @@ public:
 		}
 
 		mCurStage->updateFrame(frame);
-		::Global::GUI().scanHotkey(getGame()->getController());
+		::Global::GUI().scanHotkey(getGame()->getInputControl());
 	}
 
 

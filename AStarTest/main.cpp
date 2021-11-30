@@ -89,7 +89,7 @@ public:
 
 		//mRegionMgr->productHole( Vec2i(10,10) , Vec2i(5, 6 ) ); 
 
-		hFont = mRenderSystem->createFont( 8 , TEXT("新細明體") );
+		hFont = mRenderSystem->createFont(TEXT("新細明體"), 8 );
 
 
 		astar.mManager = mRegionMgr;

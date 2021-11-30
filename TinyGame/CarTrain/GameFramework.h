@@ -102,7 +102,7 @@ namespace CarTrain
 
 		virtual bool rayCast(Vector2 const& startPos, Vector2 const& endPos, RayHitInfo& outInfo, uint16 collisionMask = 0xff) = 0;
 
-		virtual void setupDebugView(RHIGraphics2D& g) = 0;
+		virtual void setupDebug(RHIGraphics2D& g) = 0;
 		virtual void drawDebug() = 0;
 
 		static IPhysicsScene* Create();
@@ -112,7 +112,7 @@ namespace CarTrain
 	class GameWorld;
 
 
-	class GameEntityClass : public ClassTreeNode
+	class GameEntityClass : private ClassTreeNode
 	{
 	public:
 		GameEntityClass(GameEntityClass* superClass)
@@ -208,27 +208,27 @@ namespace CarTrain
 			mPhyScene->drawDebug();
 		}
 
-		void updateControl()
-		{
-			for (EntityControl& control : mControlList)
-			{
-				if (control.entity->bActive)
-				{
-					control.controller->updateInput(*control.entity);
-				}
-			}
-		}
-
 		void tick(float deltaTime);
 
 		template< typename TEntity, typename ...Args >
 		TEntity* spawnEntity(Args&& ...args)
 		{
 			TEntity* entity = new TEntity(std::forward<Args>(args)...);
+			registerEntity(entity);
+			return entity;
+		}
+
+		void registerEntity(GameEntity* entity)
+		{
 			entity->mWorld = this;
 			mEntities.push_back(entity);
 			entity->beginPlay();
-			return entity;
+		}
+
+		void unregisterEntity(GameEntity* entity)
+		{
+			entity->endPlay();
+			RemoveValue(mEntities, entity);
 		}
 
 
@@ -240,8 +240,7 @@ namespace CarTrain
 
 		void destroyEntity(GameEntity* entity)
 		{
-			RemoveValue(mEntities, entity);
-			entity->endPlay();
+			unregisterEntity(entity);
 			delete entity;
 		}
 
@@ -250,6 +249,17 @@ namespace CarTrain
 
 		std::vector<GameEntity*> mEntities;
 
+
+		void updateControl()
+		{
+			for (EntityControl& control : mControlList)
+			{
+				if (control.entity->bActive)
+				{
+					control.controller->updateInput(*control.entity);
+				}
+			}
+		}
 		struct EntityControl
 		{
 			IEntityController* controller;

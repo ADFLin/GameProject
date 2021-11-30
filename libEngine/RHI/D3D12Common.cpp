@@ -200,6 +200,11 @@ namespace Render
 			state.colorBuffers[0].RTVHandle = D3D12DescriptorHeapPool::Get().allocRTV(state.colorBuffers[0].resource, nullptr);
 			D3D12_RESOURCE_DESC desc = state.colorBuffers[0].resource->GetDesc();
 			state.colorBuffers[0].format = desc.Format;
+
+			//#TODO:depth
+			state.depthBuffer.format;
+			state.depthBuffer.resource;
+			state.depthBuffer.RTVHandle;
 		}
 
 		return true;

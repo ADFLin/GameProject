@@ -150,7 +150,7 @@ bool ActionTrigger::peek(ActionPort port, ControlAction action )
 	return mProcessor->checkActionPrivate( mParam );
 }
 
-SimpleController::SimpleController()
+DefaultInputControl::DefaultInputControl()
 {
 	mActionBlocked = false;
 
@@ -160,12 +160,12 @@ SimpleController::SimpleController()
 	std::fill_n( mKeySen , ARRAY_SIZE( mKeySen ) , 0 );
 }
 
-void SimpleController::restart()
+void DefaultInputControl::restart()
 {
 	std::fill_n(mKeySen, ARRAY_SIZE(mKeySen), 0);
 }
 
-void SimpleController::initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 )
+void DefaultInputControl::initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 )
 {
 	ActionKey& key = mActionKeyMap[act];
 	key.keyChar[0] = key0;
@@ -175,7 +175,7 @@ void SimpleController::initKey( ControlAction act , int sen , uint8 key0 , uint8
 	key.senCur[1] = 0;
 }
 
-bool SimpleController::scanInput( bool beUpdateFrame )
+bool DefaultInputControl::scanInput( bool beUpdateFrame )
 {
 	if( mActionBlocked )
 		return false;
@@ -183,18 +183,18 @@ bool SimpleController::scanInput( bool beUpdateFrame )
 	return ::GetKeyboardState(mKeyState) || mMouseEventMask;
 }
 
-void SimpleController::setKey( unsigned cID , ControlAction action , unsigned key )
+void DefaultInputControl::setKey( unsigned cID , ControlAction action , unsigned key )
 {
 	assert( 0 <= cID && cID < MaxControlerNum );
 	mActionKeyMap[ action ].keyChar[ cID ] = key;
 }
 
-bool SimpleController::checkKey( unsigned key )
+bool DefaultInputControl::checkKey( unsigned key )
 {
 	return mKeyState[ key ] > 1;
 }
 
-bool SimpleController::peekKey( uint8 k , uint8 keySen , uint8 sen )
+bool DefaultInputControl::peekKey( uint8 k , uint8 keySen , uint8 sen )
 {
 	if ( sen == KEY_ONCE )
 	{
@@ -219,7 +219,7 @@ bool SimpleController::peekKey( uint8 k , uint8 keySen , uint8 sen )
 	return false;
 }
 
-bool SimpleController::checkKey( uint8 k , uint8& keySen , uint8 sen )
+bool DefaultInputControl::checkKey( uint8 k , uint8& keySen , uint8 sen )
 {
 	if ( sen == KEY_ONCE )
 	{
@@ -258,19 +258,19 @@ bool SimpleController::checkKey( uint8 k , uint8& keySen , uint8 sen )
 	return false;
 }
 
-bool SimpleController::checkKey( unsigned key , uint8 sen )
+bool DefaultInputControl::checkKey( unsigned key , uint8 sen )
 {
 	return checkKey( key , mKeySen[ key ] , sen );
 }
 
-bool SimpleController::checkKey( unsigned cID , ControlAction action )
+bool DefaultInputControl::checkKey( unsigned cID , ControlAction action )
 {
 	ActionKey& key = mActionKeyMap[ action ];
 	uint8 keyChar = key.keyChar[ cID ];
 	return checkKey( keyChar , key.senCur[ cID ] , key.sen );
 }
 
-bool SimpleController::checkActionKey( ActionParam& param )
+bool DefaultInputControl::checkActionKey( ActionParam& param )
 {
 	unsigned cID = mCMap[ param.port ];
 
@@ -286,7 +286,7 @@ bool SimpleController::checkActionKey( ActionParam& param )
 		return checkKey( keyChar , mKeySen[ keyChar ] , key.sen );
 }
 
-void SimpleController::recvMouseMsg( MouseMsg const& msg )
+void DefaultInputControl::recvMouseMsg( MouseMsg const& msg )
 {
 	int button = -1;
 	switch ( msg.getMsg() & MBS_BUTTON_MASK )
@@ -310,19 +310,19 @@ void SimpleController::recvMouseMsg( MouseMsg const& msg )
 	mLastMousePos = msg.getPos();
 }
 
-void SimpleController::removeMouseEvent( int evt )
+void DefaultInputControl::removeMouseEvent( int evt )
 {
 	mMouseEventMask &= ~evt;
 }
 
-MouseMsg* SimpleController::getMouseEvent( int evt )
+MouseMsg* DefaultInputControl::getMouseEvent( int evt )
 {
 	if ( mMouseEventMask & BIT(evt ) )
 		return &mMouseEvt[ evt ];
 	return NULL;
 }
 
-void SimpleController::setPortControl( unsigned port , unsigned cID )
+void DefaultInputControl::setPortControl( unsigned port , unsigned cID )
 {
 	assert( 0 <= cID && cID < MaxControlerNum );
 	assert( 0 <= port && port < MAX_PLAYER_NUM );
@@ -332,18 +332,18 @@ void SimpleController::setPortControl( unsigned port , unsigned cID )
 	mCMap[ port ] = cID;
 }
 
-char SimpleController::getKey( unsigned cID , ControlAction action )
+char DefaultInputControl::getKey( unsigned cID , ControlAction action )
 {
 	assert( 0 <= cID && cID < MaxControlerNum );
 	return mActionKeyMap[ action ].keyChar[ cID ];
 }
 
-void SimpleController::clearFrameInput()
+void DefaultInputControl::clearFrameInput()
 {
 	mMouseEventMask = 0;
 }
 
-void SimpleController::clearAllKey()
+void DefaultInputControl::clearAllKey()
 {
 
 }

@@ -21,7 +21,7 @@ bool CFrameActionEngine::build( BuildParam& buildParam )
 	mTickTime = buildParam.tickTime;
 
 	mNetFrameMgr->setupInput(*buildParam.processor);
-	buildParam.game->getController().setupInput( mNetFrameMgr->getActionProcessor() );
+	buildParam.game->getInputControl().setupInput( mNetFrameMgr->getActionProcessor() );
 
 	return true;
 }

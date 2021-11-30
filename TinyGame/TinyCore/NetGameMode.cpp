@@ -1049,7 +1049,7 @@ bool NetLevelStageMode::onKey(KeyMsg const& msg)
 			mMsgPanel->clearInputString();
 			mMsgPanel->makeFocus();
 		}
-		getGame()->getController().blockAllAction(beShow);
+		getGame()->getInputControl().blockAllAction(beShow);
 		return false;
 	}
 
@@ -1301,7 +1301,7 @@ void NetLevelStageMode::updateTime(long time)
 	mNetEngine->update(*this, time);
 	if (getGame())
 	{
-		::Global::GUI().scanHotkey(getGame()->getController());
+		::Global::GUI().scanHotkey(getGame()->getInputControl());
 	}
 }
 

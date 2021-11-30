@@ -86,11 +86,11 @@ namespace TowerDefend
 		ComID   mode;
 	};
 
-	class Controller : public SimpleController
+	class CInputControl : public DefaultInputControl
 	{
-		typedef SimpleController BaseClass;
+		typedef DefaultInputControl BaseClass;
 	public:
-		Controller();
+		CInputControl();
 
 
 		bool  scanInput( bool beUpdateFrame );

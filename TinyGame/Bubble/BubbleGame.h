@@ -5,6 +5,7 @@
 #include "GameReplay.h"
 
 #include "BubbleAction.h"
+#include "GameRenderSetup.h"
 
 #define BUBBLE_NAME "Bubble"
 
@@ -12,7 +13,7 @@ class StageManager;
 
 namespace Bubble
 {
-	class Controller : public SimpleController
+	class CInputControl : public DefaultInputControl
 	{
 	public:
 		virtual bool checkAction( ActionParam& param );
@@ -20,18 +21,30 @@ namespace Bubble
 	};
 
 	class GameModule : public IGameModule
+					 , public IGameRenderSetup
 	{
 	public:
 		char const*     getName(){ return BUBBLE_NAME;  }
-		GameController& getController(){  return mController;  }
+		InputControl&   getInputControl(){  return mInputControl;  }
 		ReplayTemplate* createReplayTemplate( unsigned version );
 		StageBase*      createStage( unsigned id );
 		bool            queryAttribute( GameAttribute& value );
 		SettingHepler*  createSettingHelper( SettingHelperType type );
 		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 		virtual void    deleteThis(){ delete this; }
+
+		void enter() override;
+		void exit() override;
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::OpenGL;
+		}
+		bool setupRenderSystem(ERenderSystem systemName);
+
+
 	private:
-		Controller mController;
+		CInputControl mInputControl;
 	};
 
 	struct BubbleGameInfo

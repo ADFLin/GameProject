@@ -227,7 +227,7 @@ namespace Render
 	RHI_API void RHIDrawPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[] , int numData );
 	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 	
-	RHI_API void RHIDrawMeshTasks(RHICommandList& commandList, int start, int count);
+	RHI_API void RHIDrawMeshTasks(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 	RHI_API void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	
 	
@@ -285,24 +285,65 @@ namespace Render
 	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& stateDesc);
 
 
-	struct GraphicsPipelineStateDesc
+	struct GraphicsRenderStateDesc
 	{
 		RHIRasterizerState*   rasterizerState;
 		RHIDepthStencilState* depthStencilState;
 		RHIBlendState*        blendState;
 
-		GraphicsShaderStateDesc shaderBoundState;
-		RHIShaderProgram*   shaderProgram;
-
 		EPrimitive          primitiveType;
 		RHIInputLayout*     inputLayout;
 
+		GraphicsRenderStateDesc()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+
+		GraphicsRenderStateDesc(ENoInit) {}
+	};
+
+	struct GraphicsPipelineStateDesc : GraphicsRenderStateDesc
+	{
+
+		GraphicsShaderStateDesc shaderBoundState;
+		RHIShaderProgram*   shaderProgram;
+
+
 		GraphicsPipelineStateDesc()
+			:GraphicsRenderStateDesc(NoInit)
 		{
 			::memset(this, 0, sizeof(*this));
 		}
 	};
 
+	struct MeshRenderStateDesc
+	{
+		RHIRasterizerState*   rasterizerState;
+		RHIDepthStencilState* depthStencilState;
+		RHIBlendState*        blendState;
+
+		MeshRenderStateDesc()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+		MeshRenderStateDesc(ENoInit) {}
+	};
+
+	struct MeshPipelineStateDesc : MeshRenderStateDesc
+	{
+		RHIRasterizerState*   rasterizerState;
+		RHIDepthStencilState* depthStencilState;
+		RHIBlendState*        blendState;
+
+		MeshShaderStateDesc shaderBoundState;
+		RHIShaderProgram*   shaderProgram;
+
+		MeshPipelineStateDesc()
+			:MeshRenderStateDesc(NoInit)
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+	};
 
 
 	RHI_API void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader);

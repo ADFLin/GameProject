@@ -8,8 +8,8 @@ struct PSInput
 	float2 uv : TEXCOORD1;
 };
 
+#if VERTEX_SHADER
 float4 Values;
-
 PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_COLOR, float2 uv : ATTRIBUTE_TEXCOORD, uint intanceId : SV_InstanceID)
 {
 	PSInput result;
@@ -23,7 +23,9 @@ PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_CO
 
 	return result;
 }
+#endif
 
+#if PIXEL_SHADER
 DEFINE_TEXTURE(Texture2D, BaseTexture);
 DEFINE_TEXTURE(Texture2D, BaseTexture1);
 
@@ -34,3 +36,22 @@ float4 MainPS(PSInput input) : SV_TARGET0
 	float4 color = float4(tc.r,tc1.r, 0, 1);
 	return float4(color.rgb, 1);
 }
+
+#endif
+
+
+#if COMPUTE_SHADER
+
+RWTexture2D<float4> RWTexture;
+
+[numthreads(TG_SIZE_X, TG_SIZE_Y, TG_SIZE_Z)]
+void MainCS()
+{
+
+
+
+
+}
+
+
+#endif

@@ -217,7 +217,7 @@ void RHIGraphics2D::setupCommittedRenderState()
 	RHISetRasterizerState(commandList, GetRasterizerState(mRenderStateCommitted.bEnableScissor, mRenderStateCommitted.bEnableMultiSample));
 
 	//RHISetShaderProgram(commandList, nullptr);
-	RHISetFixedShaderPipelineState(commandList, mBaseTransform);
+	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1,1,1,1), mRenderStateCommitted.texture , mRenderStateCommitted.sampler);
 
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI(), nullptr, 0);
 }
@@ -275,7 +275,7 @@ void RHIGraphics2D::endRender()
 		flushBatchedElements();
 	}
 
-	RHIFlushCommand(commandList);
+	//RHIFlushCommand(commandList);
 	//glPopAttrib();
 }
 

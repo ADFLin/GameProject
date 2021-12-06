@@ -111,13 +111,8 @@ namespace Render
 	void RHISystemShutdown()
 	{	
 		GRHISystem->preShutdown();
-		
-		if (GpuProfiler::Get().mCore)
-		{
-			GpuProfiler::Get().mCore->releaseRHI();
-			delete GpuProfiler::Get().mCore;
-			GpuProfiler::Get().mCore = nullptr;
-		}
+
+		GpuProfiler::Get().releaseRHIResource();
 
 		//#FIXME
 		if( GRHISystem->getName() != RHISystemName::Vulkan ||

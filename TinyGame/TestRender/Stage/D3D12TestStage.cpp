@@ -20,6 +20,7 @@
 
 #include "RHI/D3D12ShaderCommon.h"
 #include "RHI/D3D12Utility.h"
+#include "RHI/RHIGraphics2D.h"
 
 namespace Render
 {
@@ -39,15 +40,15 @@ namespace Render
 	};
 
 
-	class TriangleProgram : public GlobalShaderProgram
+	class SimpleProgram : public GlobalShaderProgram
 	{
 		using BaseClass = GlobalShaderProgram;
-		DECLARE_SHADER_PROGRAM(TriangleProgram, Global);
+		DECLARE_SHADER_PROGRAM(SimpleProgram, Global);
 	public:
 
 		static char const* GetShaderFileName()
 		{
-			return "Shader/Test/TriangleTest";
+			return "Shader/Test/D3D12Simple";
 		}
 
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
@@ -61,7 +62,7 @@ namespace Render
 		}
 	};
 
-	IMPLEMENT_SHADER_PROGRAM(TriangleProgram);
+	IMPLEMENT_SHADER_PROGRAM(SimpleProgram);
 
 	class TestD3D12Stage : public TestRenderStageBase
 	{
@@ -69,15 +70,10 @@ namespace Render
 	public:
 		TestD3D12Stage() {}
 
-		D3D12System* mD3D12System;
-
 		ERenderSystem getDefaultRenderSystem() override
 		{
 			return ERenderSystem::D3D12;
 		}
-
-		ID3D12DeviceRHI* device;
-		D3D12Context* renderContext;
 
 		RHITexture2DRef mTexture;
 		RHITexture2DRef mTexture1;
@@ -88,7 +84,7 @@ namespace Render
 
 		bool bUseProgram = true;
 
-		TriangleProgram* mProgTriangle;
+		SimpleProgram* mProgTriangle;
 		Shader mVertexShader;
 		Shader mPixelShader;
 	
@@ -135,21 +131,14 @@ namespace Render
 
 		virtual bool setupRenderSystem(ERenderSystem systemName) override
 		{
-			if (systemName != ERenderSystem::D3D12)
-				return false;
-			device = static_cast<D3D12System*>(GRHISystem)->mDevice;
-			renderContext = &static_cast<D3D12System*>(GRHISystem)->mRenderContext;
-
-			ID3D12GraphicsCommandListRHI* graphicsCmdList = renderContext->mGraphicsCmdList;
-
 			// Create the pipeline state, which includes compiling and loading shaders.
 			{
-				char const* shaderPath = "Shader/Test/TriangleTest";
+				char const* shaderPath = "Shader/Test/D3D12Simple";
 				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mVertexShader, shaderPath, EShader::Vertex, SHADER_ENTRY(MainVS)));
 				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mPixelShader, shaderPath, EShader::Pixel, SHADER_ENTRY(MainPS)));
 
 
-				mProgTriangle = ShaderManager::Get().getGlobalShaderT< TriangleProgram >();
+				mProgTriangle = ShaderManager::Get().getGlobalShaderT< SimpleProgram >();
 
 				InputLayoutDesc desc;
 				desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
@@ -170,9 +159,9 @@ namespace Render
 
 				Vertex vertices[] =
 				{
-					{ { -0.25f, -0.25f , 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } , { 0.0f, 0.0f} },
-					{ {  0.25f, -0.25f , 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } , { 1.0f, 0.0f} },
-					{ {  0.25f,  0.25f , 0.0f }, { 0.0f, 1.0f, 1.0f, 1.0f } , {1.0f, 1.0f} },
+					{ { -0.25f, -0.25f , 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } , { 0.0f, 0.0f } },
+					{ {  0.25f, -0.25f , 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } , { 1.0f, 0.0f } },
+					{ {  0.25f,  0.25f , 0.0f }, { 0.0f, 1.0f, 1.0f, 1.0f } , { 1.0f, 1.0f } },
 					{ { -0.25f,  0.25f , 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } , { 0.0f, 1.0f } }
 				};
 				mVertexBuffer = RHICreateVertexBuffer(sizeof(Vertex) , ARRAY_SIZE(vertices) , BCF_DefalutValue , vertices);
@@ -189,8 +178,26 @@ namespace Render
 				std::vector<uint8> texData = GenerateTextureData(4);
 				mTexture1 = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 5, 1, TCF_DefalutValue | TCF_GenerateMips, texData.data());
 			}
+
 			return true;
 		}
+
+
+
+		void preShutdownRenderSystem(bool bReInit) override
+		{
+			mTexture.release();
+			mTexture1.release();
+			mVertexBuffer.release();
+			mIndexBuffer.release();
+			mInputLayout.release();
+			mProgTriangle;
+			mVertexShader.releaseRHI();
+			mPixelShader.releaseRHI();
+
+			BaseClass::preShutdownRenderSystem(bReInit);
+		}
+
 
 		struct AxisVertex
 		{
@@ -205,7 +212,12 @@ namespace Render
 
 			::Global::GUI().cleanupWidget();
 
-			WidgetUtility::CreateDevFrame();
+
+			GButton* button = new GButton(UI_ANY, Vec2i(300, 300), Vec2i(200, 20), nullptr);
+			::Global::GUI().addWidget(button);
+
+			auto frame = WidgetUtility::CreateDevFrame();
+			frame->addText("aaa");
 			restart();
 			
 			return true;
@@ -247,9 +259,7 @@ namespace Render
 		{
 			initializeRenderState();
 
-			RHICommandList& commandList = RHICommandList::GetImmediateList();
-
-			ID3D12GraphicsCommandListRHI* graphicsCmdList = renderContext->mGraphicsCmdList;
+			auto& commandList = RHICommandList::GetImmediateList();
 
 			IntVector2 screenSize = ::Global::GetScreenSize();
 
@@ -293,6 +303,8 @@ namespace Render
 
 			Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1);
 			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix), LinearColor(1, 0, 0, 1));
+
+
 			{
 
 				Vector2 v[] = { Vector2(1,1) , Vector2(100,100), Vector2(1,100), Vector2(100,1) };
@@ -305,6 +317,27 @@ namespace Render
 				uint32 indices[] = { 0, 2, 2, 1,1,3,3,0 };
 				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, v, ARRAY_SIZE(v), indices, ARRAY_SIZE(indices));
 			}
+
+
+			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
+#if 1
+			g.beginRender();
+
+			g.beginBlend(0.5);
+
+			RenderUtility::SetPen(g, EColor::Red);
+			RenderUtility::SetBrush(g, EColor::White);
+			RenderUtility::SetFont(g, FONT_S12);
+			g.setTextColor(Color3f(1, 0, 0));
+			g.drawTexture(*mTexture, Vector2(0, 0), Vector2(100, 100));
+			g.drawTexture(*mTexture1, Vector2(100, 100), Vector2(100, 100));
+
+			g.endBlend();
+			//g.drawRect(Vector2(100, 100), Vector2(100, 100));
+			g.drawText(10, 10, "Test");
+			g.endRender();
+#endif
+
 		}
 
 		bool onKey(KeyMsg const& msg) override

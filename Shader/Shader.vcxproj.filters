@@ -194,9 +194,6 @@
     <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc">
       <Filter>Test</Filter>
     </None>
-    <None Include="..\TinyGame\out\Shader\Test\TriangleTest.sgc">
-      <Filter>Test</Filter>
-    </None>
     <None Include="..\TinyGame\out\Shader\Game\Chess.sgc">
       <Filter>Game</Filter>
     </None>
@@ -208,6 +205,9 @@
       <Filter>Game</Filter>
     </None>
     <None Include="cpp.hint" />
+    <None Include="..\TinyGame\out\Shader\Test\D3D12Simple.sgc">
+      <Filter>Test</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

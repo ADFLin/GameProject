@@ -56,7 +56,6 @@ void EncodeGBuffer(in GBufferData GBuffer ,
 				   out float4 GBufferC,
 				   out float4 GBufferD)
 {
-
 	GBufferA = float4(EncodeNormal(GBuffer.normal), 1);
 	GBufferB = float4(GBuffer.baseColor, 1);
 

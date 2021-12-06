@@ -59,7 +59,7 @@ namespace Render
 		{
 			struct
 			{
-				uint64 boundType : 4;
+				uint32 boundType : 4;
 				uint32 shaderD   : 14;
 				uint32 shaderE   : 14;
 			};
@@ -159,10 +159,17 @@ namespace Render
 		};
 
 		void initialize(
-			GraphicsPipelineStateDesc const& stateDesc,
+			GraphicsRenderStateDesc const& renderState,
 			D3D12ShaderBoundState* boundState,
 			D3D12RenderTargetsState* renderTargetsState,
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE  topologyType);
+
+		void initialize(
+			MeshRenderStateDesc const& renderState,
+			D3D12ShaderBoundState* boundState,
+			D3D12RenderTargetsState* renderTargetsState);
+
+		void initialize(D3D12ShaderBoundState* boundState);
 
 		bool operator == (D3D12PipelineStateKey const& rhs) const
 		{
@@ -237,8 +244,8 @@ namespace Render
 		bool allocNewBuffer(uint32 size);
 
 		void* lock(ID3D12GraphicsCommandListRHI* cmdList, uint32 size);
-		void  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_VERTEX_BUFFER_VIEW& bufferView);
-		void  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_INDEX_BUFFER_VIEW& bufferView);
+		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_VERTEX_BUFFER_VIEW& bufferView);
+		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_INDEX_BUFFER_VIEW& bufferView);
 
 		void beginFrame()
 		{
@@ -251,7 +258,7 @@ namespace Render
 		{
 			uint32 size;
 			std::vector< ID3D12Resource* > resources;
-			int indexNext;
+			int indexNext = 0;
 
 			
 			ID3D12Resource* fetchResource(ID3D12DeviceRHI* device)
@@ -282,7 +289,7 @@ namespace Render
 	public:
 		bool initialize( ID3D12DeviceRHI* device );
 
-		void UpdateConstantData( void const* pData , uint32 offset , uint32 size )
+		void updateConstantData( void const* pData , uint32 offset , uint32 size )
 		{
 			memcpy(mConstDataPtr + mConstDataOffset + offset, pData, size);
 			mCurrentUpdatedSize = Math::Max(mCurrentUpdatedSize, offset + size);
@@ -308,6 +315,13 @@ namespace Render
 			return mConstBuffer->GetGPUVirtualAddress() + mConstDataOffset;
 		}
 
+		struct UAVBoundState
+		{
+			ID3D12Resource* resource = nullptr;
+		};
+		UAVBoundState mUAVStates[8];
+		
+
 		uint32 mBufferSize;
 		uint8* mConstDataPtr;
 		uint32 mConstDataOffset = 0;
@@ -323,13 +337,7 @@ namespace Render
 
 		void release();
 
-		void RHISetRasterizerState(RHIRasterizerState& rasterizerState) 
-		{
-			if (mRasterizerStatePending != &rasterizerState)
-			{
-				mRasterizerStatePending = &rasterizerState;
-			}
-		}
+		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState) 
 		{
 			if (mBlendStateStatePending != &blendState)
@@ -349,7 +357,7 @@ namespace Render
 		void RHISetViewports(ViewportInfo const viewports[], int numViewports);
 		void RHISetScissorRect(int x, int y, int w, int h);
 
-		bool determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, D3D12_INDEX_BUFFER_VIEW& outIndexBufferView, int& outIndexNum);
+		bool determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, D3D12_INDEX_BUFFER_VIEW& outIndexBufferView, int& outIndexNum, ID3D12Resource*& outIndexResource);
 		
 		void postDrawPrimitive() 
 		{
@@ -360,38 +368,38 @@ namespace Render
 		}
 		void RHIDrawPrimitive(EPrimitive type, int start, int nv)
 		{
-			commitGraphicsState(type);
+			commitGraphicsPipelineState(type);
 			mGraphicsCmdList->DrawInstanced(nv, 1, start, 0);
 			postDrawPrimitive();
 		}
 
 		void RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex, uint32 baseVertex)
 		{
-			commitGraphicsState(type);
+			commitGraphicsPipelineState(type);
 			mGraphicsCmdList->DrawIndexedInstanced(nIndex, 1, indexStart, baseVertex, 0);
 			postDrawPrimitive();
 		}
 
 		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
-			commitGraphicsState(type);
+			commitGraphicsPipelineState(type);
 			postDrawPrimitive();
 		}
 		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
-			commitGraphicsState(type);
+			commitGraphicsPipelineState(type);
 			postDrawPrimitive();
 		}
 		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 		{
-			commitGraphicsState(type);
+			commitGraphicsPipelineState(type);
 			mGraphicsCmdList->DrawInstanced(nv, numInstance,vStart, baseInstance);
 			postDrawPrimitive();
 		}
 
 		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
 		{
-			commitGraphicsState(type);
+			commitGraphicsPipelineState(type);
 			mGraphicsCmdList->DrawIndexedInstanced(nIndex, numInstance, indexStart, baseVertex, baseInstance);
 			postDrawPrimitive();
 		}
@@ -402,11 +410,13 @@ namespace Render
 		void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 
 
-		void RHIDrawMeshTasks(int start, int count)
+		void RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 		{
-
-
+			commitMeshPipelineState();
+			mGraphicsCmdList->DispatchMesh(numGroupX, numGroupY, numGroupZ);
+			postDrawPrimitive();
 		}
+
 		void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 
@@ -435,10 +445,7 @@ namespace Render
 		void RHIFlushCommand();
 
 
-		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
-		{
-
-		}
+		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
@@ -477,6 +484,7 @@ namespace Render
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param) {}
 
+		void clearShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param);
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) {}
@@ -488,11 +496,8 @@ namespace Render
 
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
-		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
-		{
-
-		}
-		void RHISetComputeShader(RHIShader* shader) {}
+		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc);
+		void RHISetComputeShader(RHIShader* shader);
 
 
 		void setShaderBoundState(D3D12ShaderBoundState* newState);
@@ -550,8 +555,9 @@ namespace Render
 
 		}
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
-		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
-		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param){}
+		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+		void setShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
@@ -574,15 +580,23 @@ namespace Render
 		}
 
 
-		void commitGraphicsState(EPrimitive type);
+		void commitGraphicsPipelineState(EPrimitive type);
+		void commitMeshPipelineState();
+		void commitComputePipelineState();
 
 
 		D3D12RenderTargetsState* mRenderTargetsState;
 		D3D12ShaderBoundState*  mBoundState = nullptr;
+		D3D12ShaderBoundState*  mComputeBoundState = nullptr;
 		RHIInputLayoutRef       mInputLayoutPending;
 		RHIRasterizerStateRef   mRasterizerStatePending;
 		RHIDepthStencilStateRef mDepthStencilStatePending;
 		RHIBlendStateRef        mBlendStateStatePending;
+
+
+		D3D12_RECT mScissorRects[8];
+		D3D12_RECT mViewportRects[8];
+		uint32 mNumViewports = 1;
 
 		std::vector< ID3D12DescriptorHeap* > mUsedDescHeaps;
 		uint32 mCSUHeapUsageMask;
@@ -662,15 +676,6 @@ namespace Render
 		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 
 
-		RHITexture1D*    RHICreateTexture1D(
-			ETexture::Format format, int length,
-			int numMipLevel, uint32 createFlags,
-			void* data)
-		{
-			return nullptr;
-		}
-
-
 		std::vector < TComPtr< ID3D12Resource > > mCopyResources;
 		TComPtr< ID3D12GraphicsCommandListRHI >   mCopyCmdList;
 		TComPtr< ID3D12CommandQueue > mCopyCmdQueue;
@@ -683,6 +688,12 @@ namespace Render
 			mDevice->GetCopyableFootprints(&Desc, firstSubresource, numSubresources, 0, nullptr, nullptr, nullptr, &RequiredSize);
 			return RequiredSize;
 		}
+
+
+		RHITexture1D*    RHICreateTexture1D(
+			ETexture::Format format, int length,
+			int numMipLevel, uint32 createFlags,
+			void* data);
 
 		RHITexture2D*    RHICreateTexture2D(
 			ETexture::Format format, int w, int h,
@@ -708,6 +719,8 @@ namespace Render
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 
+		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width , uint32 height, uint32 rowPatch, uint32 level = 0);
+		bool updateTexture1DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 offset, uint32 length, uint32 level = 0);
 
 		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
@@ -749,6 +762,22 @@ namespace Render
 						pSrcSlice + pSrc->RowPitch * LONG_PTR(y),
 						RowSizeInBytes);
 				}
+			}
+		}
+
+		static void MemcpySubresource(
+			const D3D12_MEMCPY_DEST* pDest,
+			const D3D12_SUBRESOURCE_DATA* pSrc,
+			SIZE_T RowSizeInBytes,
+			UINT NumRows) noexcept
+		{
+			auto pDestSlice = static_cast<BYTE*>(pDest->pData);
+			auto pSrcSlice = static_cast<const BYTE*>(pSrc->pData);
+			for (UINT y = 0; y < NumRows; ++y)
+			{
+				memcpy(pDestSlice + pDest->RowPitch * y,
+					pSrcSlice + pSrc->RowPitch * LONG_PTR(y),
+					RowSizeInBytes);
 			}
 		}
 
@@ -796,11 +825,20 @@ namespace Render
 		
 		D3D12ShaderBoundState* getShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		D3D12ShaderBoundState* getShaderBoundState(MeshShaderStateDesc const& stateDesc);
+		D3D12ShaderBoundState* getShaderBoundState(RHIShader* computeShader);
+
 		D3D12ShaderBoundState* getShaderBoundState(D3D12ShaderProgram* shaderProgram);
 		D3D12PipelineState* getPipelineState(
-			GraphicsPipelineStateDesc const& stateDesc,
+			GraphicsRenderStateDesc const& renderState,
 			D3D12ShaderBoundState* boundState, 
 			D3D12RenderTargetsState* renderTargetsState);
+
+		D3D12PipelineState* getPipelineState(
+			MeshRenderStateDesc const& renderState,
+			D3D12ShaderBoundState* boundState,
+			D3D12RenderTargetsState* renderTargetsState);
+
+		D3D12PipelineState* getPipelineState(D3D12ShaderBoundState* boundState);
 
 		std::unordered_map< D3D12PipelineStateKey, TRefCountPtr< D3D12PipelineState >, MemberFuncHasher> mPipelineStateMap;
 

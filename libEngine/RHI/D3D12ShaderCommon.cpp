@@ -276,6 +276,8 @@ namespace Render
 
 	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
+		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
+
 		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
 		shaderProgramImpl.mParameterMap.clear();
 
@@ -300,6 +302,8 @@ namespace Render
 
 	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode)
 	{
+		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
+
 		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
 
 		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeView(binaryCode));
@@ -434,7 +438,7 @@ namespace Render
 						inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
 						//CBuffer TBuffer
 						slot.type = ShaderParameterSlotInfo::eCVB;
-						auto param = AddToParameterMap(bindDesc.Name, slot);
+						auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if _DEBUG
 						param.mbindType = EShaderParamBindType::UniformBuffer;
 						param.mName = bindDesc.Name;
@@ -472,21 +476,19 @@ namespace Render
 					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eSampler;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
-
 #endif
 
 #if _DEBUG
 					param.mbindType = EShaderParamBindType::Sampler;
 					param.mName = bindDesc.Name;
 #endif
-
 				}
 				break;
 			case D3D_SIT_TEXTURE:
 				{
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = inOutSignature.descRanges.size();
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
+					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eSRV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if _DEBUG
@@ -502,10 +504,9 @@ namespace Render
 				{
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = inOutSignature.descRanges.size();
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
+					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eUAV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
-
 #if _DEBUG
 					param.mbindType = EShaderParamBindType::StorageBuffer;
 					param.mName = bindDesc.Name;

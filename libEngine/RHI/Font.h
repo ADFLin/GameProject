@@ -177,11 +177,10 @@ namespace Render
 		}
 
 
-
-
 	private:
 		void drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
-		
+	
+	public:
 		CharDataSet* mCharDataSet;
 		int     mSize;
 	};

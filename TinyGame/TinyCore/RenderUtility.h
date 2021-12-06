@@ -37,11 +37,18 @@ enum
 
 #define ADD_PEN_WIDTH 0
 
+namespace  Render
+{
+	class FontDrawer;
+}
+
 class RenderUtility
 {
 public:
 	static TINY_API void Initialize();
 	static TINY_API void Finalize();
+
+	static TINY_API Render::FontDrawer& GetFontDrawer(int fontID);
 
 	static TINY_API Color3ub GetColor(int color, int type = COLOR_NORMAL);
 #if ADD_PEN_WIDTH

@@ -32,7 +32,7 @@ namespace Render
 		RHI_FUNC(void RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numData));
 		RHI_FUNC(void RHIDrawIndexedPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex));
 
-		RHI_FUNC(void RHIDrawMeshTasks(int start, int count));
+		RHI_FUNC(void RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ));
 		RHI_FUNC(void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
 
 		RHI_FUNC(void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer));

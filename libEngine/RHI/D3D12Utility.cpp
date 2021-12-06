@@ -50,6 +50,14 @@ namespace Render
 		return true;
 	}
 
+	uint D3D12HeapPoolChunk::fetchFreeSlotFirstTime()
+	{
+		CHECK(numElementsUasge == 0 && numElements > 0);
+		mUsageMask[0] |= 0x1;
+		++numElementsUasge;
+		return 0;
+	}
+
 	void D3D12HeapPoolChunk::freeSlot(uint slotIndex)
 	{
 		uint groupIndex = slotIndex / 32;
@@ -89,17 +97,8 @@ namespace Render
 		D3D12PooledHeapHandle result;
 		if (!findFreeHandle(mCSUChunks, result))
 		{
-			D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
-			if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE))
-			{
+			if (!fetchHandleFromNewCSUChunk(result))
 				return D3D12PooledHeapHandle();
-			}
-
-			chunk->id = mCSUChunks.size();
-			mCSUChunks.push_back(chunk);
-		
-			chunk->fetchFreeSlot(result.chunkSlot);
-			result.chunk = chunk;	
 		}
 
 		mDevice->CreateShaderResourceView(resource, desc, result.getCPUHandle());
@@ -111,20 +110,24 @@ namespace Render
 		D3D12PooledHeapHandle result;
 		if (!findFreeHandle(mCSUChunks, result))
 		{
-			D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
-			if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE))
-			{
+			if (!fetchHandleFromNewCSUChunk(result))
 				return D3D12PooledHeapHandle();
-			}
-
-			chunk->id = mCSUChunks.size();
-			mCSUChunks.push_back(chunk);
-
-			chunk->fetchFreeSlot(result.chunkSlot);
-			result.chunk = chunk;
 		}
 
 		mDevice->CreateConstantBufferView(desc, result.getCPUHandle());
+		return result;
+	}
+
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocUAV(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc)
+	{
+		D3D12PooledHeapHandle result;
+		if (!findFreeHandle(mCSUChunks, result))
+		{
+			if (!fetchHandleFromNewCSUChunk(result))
+				return D3D12PooledHeapHandle();
+		}
+
+		mDevice->CreateUnorderedAccessView(resource, nullptr, desc, result.getCPUHandle());
 		return result;
 	}
 
@@ -141,8 +144,7 @@ namespace Render
 
 			chunk->id = mRTVChunks.size();
 			mRTVChunks.push_back(chunk);
-
-			chunk->fetchFreeSlot(result.chunkSlot);
+			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
 			result.chunk = chunk;
 		}
 
@@ -163,7 +165,8 @@ namespace Render
 
 			chunk->id = mSamplerChunks.size();
 			mSamplerChunks.push_back(chunk);
-			chunk->fetchFreeSlot(result.chunkSlot);
+
+			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
 			result.chunk = chunk;
 		}
 
@@ -203,8 +206,23 @@ namespace Render
 		{
 			delete chunk;
 		}
-		chunks.empty();
+		chunks.clear();
 		chunks.shrink_to_fit();
+	}
+
+	bool D3D12DescriptorHeapPool::fetchHandleFromNewCSUChunk(D3D12PooledHeapHandle& outHandle)
+	{
+		D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
+		if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE))
+		{
+			return false;
+		}
+		chunk->id = mCSUChunks.size();
+		mCSUChunks.push_back(chunk);
+
+		outHandle.chunkSlot = chunk->fetchFreeSlotFirstTime();
+		outHandle.chunk = chunk;
+		return true;
 	}
 
 }//namespace Render

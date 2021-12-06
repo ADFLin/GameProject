@@ -103,6 +103,12 @@ namespace Render
 
 	uint32 GShaderSerials[EShader::Count];
 	uint32 GTableResourceSerials[ETableID::Count];
+
+	struct  
+	{
+		//std::unordered_multimap< uint32 , 
+	};
+
 	void FRHIResourceTable::Initialize()
 	{
 		std::fill_n(GShaderSerials, EShader::Count, 0);

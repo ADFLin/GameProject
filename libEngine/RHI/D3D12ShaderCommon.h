@@ -191,7 +191,7 @@ namespace Render
 
 		}
 
-		virtual bool doesSuppurtBinaryCode() const { return false; }
+		virtual bool doesSuppurtBinaryCode() const { return true; }
 		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode);
 
 

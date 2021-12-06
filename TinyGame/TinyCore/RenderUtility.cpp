@@ -16,15 +16,12 @@ namespace
 	HBRUSH hBrush[3][EColor::Number];
 	HPEN   hCPen[3][EColor::Number];
 	HFONT  hFont[FONT_NUM];
-	FontDrawer FontGL[FONT_NUM];
-
+	FontDrawer FontRHI[FONT_NUM];
 	Color3ub gColorMap[3][EColor::Number];
-
 	TCHAR const* FontName = "µØ±d¤¤¶êÅé";
 }
 
-
-static HBRUSH getColorBrush( int color , int type = COLOR_NORMAL )
+static HBRUSH GetColorBrush( int color , int type = COLOR_NORMAL )
 {
 	return hBrush[type][color];
 }
@@ -112,6 +109,11 @@ void RenderUtility::Finalize()
 	}
 }
 
+Render::FontDrawer& RenderUtility::GetFontDrawer(int fontID)
+{
+	return FontRHI[fontID];
+}
+
 Color3ub RenderUtility::GetColor(int color, int type /*= COLOR_NORMAL*/)
 {
 	return gColorMap[type][color];
@@ -138,7 +140,7 @@ void RenderUtility::SetPen(Graphics2D& g, int color, int type)
 
 void RenderUtility::SetBrush( Graphics2D& g , int color , int type )
 {
-	g.setBrush( getColorBrush( color , type ) );
+	g.setBrush( GetColorBrush( color , type ) );
 }
 
 void RenderUtility::SetFont( Graphics2D& g , int fontID )
@@ -187,7 +189,7 @@ void RenderUtility::SetBrush(RHIGraphics2D& g, int color, int type /*= COLOR_NOR
 void RenderUtility::SetFont(RHIGraphics2D& g, int fontID)
 {
 	//#TODO
-	g.setFont(FontGL[fontID]);
+	g.setFont(FontRHI[fontID]);
 }
 
 #if ADD_PEN_WIDTH
@@ -251,10 +253,11 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 
 static bool IsRHISupport()
 {
-	if (GRHISystem->getName() != RHISystemName::OpenGL &&
-		GRHISystem->getName() != RHISystemName::D3D11)
-		return false;
-	return true;
+	if (GRHISystem->getName() == RHISystemName::OpenGL ||
+		GRHISystem->getName() == RHISystemName::D3D11 ||
+		GRHISystem->getName() == RHISystemName::D3D12 )
+		return true;
+	return false;
 }
 
 void RenderUtility::InitializeRHI()
@@ -267,11 +270,11 @@ void RenderUtility::InitializeRHI()
 	FontCharCache::Get().hDC = hDC;
 	FontCharCache::Get().initialize();
 
-	FontGL[ FONT_S8  ].initialize(FontFaceInfo(FontName, 8 , true));
-	FontGL[ FONT_S10 ].initialize(FontFaceInfo(FontName, 10, true));
-	FontGL[ FONT_S12 ].initialize(FontFaceInfo(FontName, 12, true));
-	FontGL[ FONT_S16 ].initialize(FontFaceInfo(FontName, 16, true));
-	FontGL[ FONT_S24 ].initialize(FontFaceInfo(FontName, 24, true));
+	FontRHI[ FONT_S8  ].initialize(FontFaceInfo(FontName, 8 , true));
+	FontRHI[ FONT_S10 ].initialize(FontFaceInfo(FontName, 10, true));
+	FontRHI[ FONT_S12 ].initialize(FontFaceInfo(FontName, 12, true));
+	FontRHI[ FONT_S16 ].initialize(FontFaceInfo(FontName, 16, true));
+	FontRHI[ FONT_S24 ].initialize(FontFaceInfo(FontName, 24, true));
 }
 
 void RenderUtility::ReleaseRHI()
@@ -280,7 +283,7 @@ void RenderUtility::ReleaseRHI()
 		return;
 
 	for( int i = 0 ; i < FONT_NUM ; ++i)
-		FontGL[i].cleanup();
+		FontRHI[i].cleanup();
 
 	FontCharCache::Get().releaseRHI();
 }

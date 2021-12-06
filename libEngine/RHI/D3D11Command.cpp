@@ -189,8 +189,6 @@ namespace Render
 
 	void D3D11System::shutdown()
 	{
-		GpuProfiler::Get().releaseRHIResource();
-
 		mInputLayoutMap.clear();
 		mRenderContext.release();
 		mSwapChain.release();

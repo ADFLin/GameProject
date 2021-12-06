@@ -275,8 +275,6 @@ namespace Render
 
 	void OpenGLSystem::shutdown()
 	{
-		GpuProfiler::Get().releaseRHIResource();
-
 		delete mImmediateCommandList;
 
 		mDrawContext.shutdown();
@@ -840,10 +838,12 @@ namespace Render
 		glDrawElements(primitiveGL, numIndex, GL_UNSIGNED_INT, (void*)pIndices);
 	}
 
-	void OpenGLContext::RHIDrawMeshTasks(int start, int count)
+	void OpenGLContext::RHIDrawMeshTasks(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 	{
 		commitGraphicStates();
 
+		uint32 count = numGroupX * numGroupY * numGroupZ;
+		GLuint start = 0;
 		while (count > mMaxDrawMeshTasksCount)
 		{
 			glDrawMeshTasksNV(start, mMaxDrawMeshTasksCount);

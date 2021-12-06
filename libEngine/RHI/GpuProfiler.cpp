@@ -25,6 +25,7 @@ namespace Render
 
 		if (mCore)
 		{
+			mCore->releaseRHI();
 			delete mCore;
 			mCore = nullptr;
 		}

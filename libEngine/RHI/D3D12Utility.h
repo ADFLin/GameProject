@@ -26,7 +26,7 @@ namespace Render
 {
 	using IDXGISwapChainRHI = IDXGISwapChain3;
 	using ID3D12DeviceRHI = ID3D12Device8;
-	using ID3D12GraphicsCommandListRHI = ID3D12GraphicsCommandList2;
+	using ID3D12GraphicsCommandListRHI = ID3D12GraphicsCommandList6;
 
 	struct FD3D12Init
 	{
@@ -152,6 +152,7 @@ namespace Render
 
 
 		bool fetchFreeSlot(uint& outSlotIndex);
+		uint fetchFreeSlotFirstTime();
 
 		void freeSlot(uint slotIndex);
 
@@ -212,6 +213,7 @@ namespace Render
 		void releaseRHI();
 		D3D12PooledHeapHandle allocSRV(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocUAV(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocRTV(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocSampler(D3D12_SAMPLER_DESC const& desc);
 
@@ -223,6 +225,8 @@ namespace Render
 		ID3D12DeviceRHI* mDevice;
 
 		bool bInitialized = false;
+
+		bool fetchHandleFromNewCSUChunk(D3D12PooledHeapHandle& outHandle);
 
 		std::vector< D3D12HeapPoolChunk* > mCSUChunks;
 		std::vector< D3D12HeapPoolChunk* > mRTVChunks;

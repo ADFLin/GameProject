@@ -212,7 +212,7 @@ namespace Tetris
 
 	ERenderSystem GameModule::getDefaultRenderSystem()
 	{
-		return ERenderSystem::OpenGL;
+		return ERenderSystem::D3D12;
 	}
 
 	void GameModule::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)

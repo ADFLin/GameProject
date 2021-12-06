@@ -12,6 +12,7 @@
 #include "InlineString.h"
 
 #include <unordered_map>
+#include "TypeConstruct.h"
 
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
@@ -73,6 +74,14 @@ namespace Render
 		typedef ID3D12Resource ResourceType;
 		typedef D3D12IndexBuffer ImplType;
 	};
+
+	template<>
+	struct TD3D12TypeTraits< RHITexture1D >
+	{
+		typedef ID3D12Resource ResourceType;
+		typedef D3D12Texture1D ImplType;
+	};
+
 	template<>
 	struct TD3D12TypeTraits< RHITexture2D >
 	{
@@ -229,7 +238,7 @@ namespace Render
 			mBuffer.insert(mBuffer.end(), sizeof(TPSSubobjectStreamData< SubobjectID >), 0);
 
 			void* ptr = mBuffer.data() + offset;
-			new (ptr) TPSSubobjectStreamData< SubobjectID >();
+			TypeDataHelper::Construct<TPSSubobjectStreamData< SubobjectID >>(ptr);
 			return *reinterpret_cast<TPSSubobjectStreamData< SubobjectID >*>(ptr);
 		}
 
@@ -239,16 +248,22 @@ namespace Render
 			size_t offset = mBuffer.size();
 			mBuffer.insert(mBuffer.end(), sizeof(T), 0);
 			void* ptr = mBuffer.data() + offset;
-			new (ptr) T();
+			TypeDataHelper::Construct<T>(ptr);
 			return *reinterpret_cast<T*>(ptr);
 		}
-
-
 
 		std::vector< uint8 > mBuffer;
 	};
 
 #define USE_D3D12_RESOURCE_CUSTOM_COUNT 1
+
+	struct CNameable
+	{
+		template< typename T >
+		auto Requires(T& t, wchar_t const* str) -> decltype(
+			t.SetName(str)
+		);
+	};
 
 	template< class RHIResoureType >
 	class TD3D12Resource : public RHIResoureType
@@ -334,6 +349,17 @@ namespace Render
 		typedef typename TD3D12TypeTraits< RHIResoureType >::ResourceType ResourceType;
 
 		ResourceType* getResource() { return mResource; }
+
+		virtual void setDebugName(char const* name) override
+		{ 
+			if constexpr ( TCheckConcept< CNameable , ResourceType >::Value )
+			{
+				if (mResource)
+				{
+					mResource->SetName(FCString::CharToWChar(name).c_str());
+				}
+			}
+		}
 
 
 		void release()
@@ -512,30 +538,35 @@ namespace Render
 	template< class TRHIResource >
 	class TD3D12Texture : public TD3D12Resource< TRHIResource >
 	{
+	public:
+		virtual void releaseResource()
+		{
+			TD3D12Resource< TRHIResource >::releaseResource();
+			D3D12DescriptorHeapPool::Get().freeHandle(mSRV);
+			D3D12DescriptorHeapPool::Get().freeHandle(mUAV);
+		}
 
+		D3D12PooledHeapHandle mSRV;
+		D3D12PooledHeapHandle mUAV;
 
+	};
 
+	class D3D12Texture1D : public TD3D12Texture< RHITexture1D >
+	{
+	public:
 
+		bool initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int length);
+		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0);
 	};
 
 	class D3D12Texture2D : public TD3D12Texture< RHITexture2D >
 	{
 	public:
 
-		bool initialize(TComPtr< ID3D12Resource >& resource, int w, int h);
+		bool initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int w, int h);
 
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level) 
-		{
-			return false;
-		}
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level) 
-		{
-			return false;
-		}
-
-		D3D12PooledHeapHandle mSRV;
-
-
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
+		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
 	};
 
 	class D3D12VertexBuffer : public TD3D12Resource< RHIVertexBuffer >
@@ -552,6 +583,7 @@ namespace Render
 
 		virtual void releaseResource()
 		{
+			TD3D12Resource< RHIVertexBuffer >::releaseResource();
 			D3D12DescriptorHeapPool::Get().freeHandle(mViewHandle);
 		}
 
@@ -581,6 +613,7 @@ namespace Render
 		D3D12RasterizerState(RasterizerStateInitializer const& initializer);
 
 		D3D12_RASTERIZER_DESC mDesc;
+		bool bEnableScissor;
 	};
 
 	class D3D12BlendState : public TRefcountResource< RHIBlendState >

@@ -556,12 +556,12 @@ namespace Render
 						{
 							
 							int const NumThread = 32;
-							RHIDrawMeshTasks(commandList, 0, ( mMeshletResource.getMeshletCount() + NumThread - 1 ) / NumThread);
+							RHIDrawMeshTasks(commandList, ( mMeshletResource.getMeshletCount() + NumThread - 1 ) / NumThread, 1 , 1);
 
 						}
 						else
 						{
-							RHIDrawMeshTasks(commandList, 0, mMeshletResource.getMeshletCount());
+							RHIDrawMeshTasks(commandList, mMeshletResource.getMeshletCount(), 1 , 1);
 						}	
 					}
 

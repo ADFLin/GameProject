@@ -237,7 +237,7 @@ bool DrawEngine::setupSystemInternal(ERenderSystem systemName)
 
 bool DrawEngine::isUsageRHIGraphic2D() const
 {
-	if (mSystemName == ERenderSystem::OpenGL || mSystemName == ERenderSystem::D3D11 )
+	if (mSystemName == ERenderSystem::OpenGL || mSystemName == ERenderSystem::D3D11 || mSystemName == ERenderSystem::D3D12)
 		return true;
 
 	return false;
@@ -376,7 +376,7 @@ bool DrawEngine::beginFrame()
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1, 1, 0);
 		}
 
-		mRHIGraphics->enableMultisample(CVarUseMultisample);
+		//mRHIGraphics->enableMultisample(CVarUseMultisample);
 		mRHIGraphics->beginFrame();
 	}
 	else

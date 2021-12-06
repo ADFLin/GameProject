@@ -1,6 +1,7 @@
 
 #include "D3D12Common.h"
 #include "D3D12ShaderCommon.h"
+#include "D3D12Command.h"
 
 #pragma comment(lib , "D3D12.lib")
 #pragma comment(lib , "DXGI.lib")
@@ -248,6 +249,8 @@ namespace Render
 		mDesc.AntialiasedLineEnable = FALSE;
 		mDesc.ForcedSampleCount = 0;
 		mDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+		bEnableScissor = initializer.bEnableScissor;
 	}
 
 	D3D12BlendState::D3D12BlendState(BlendStateInitializer const& initializer)
@@ -304,12 +307,55 @@ namespace Render
 		mDesc.DepthBoundsTestEnable = FALSE;
 	}
 
-	bool D3D12Texture2D::initialize(TComPtr< ID3D12Resource >& resource, int w, int h)
+
+	bool D3D12Texture1D::initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int length)
 	{
+		mFormat = format;
+		mResource = resource.detach();
+		mSize = length;
+		return true;
+	}
+
+	bool D3D12Texture1D::update(int offset, int length, ETexture::Format format, void* data, int level)
+	{
+		if (mFormat == format)
+		{
+			return static_cast<D3D12System*>(GRHISystem)->updateTexture1DSubresources(
+				mResource, mFormat, data, offset, length, level
+			);
+		}
+		return false;
+	}
+
+	bool D3D12Texture2D::initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int w, int h)
+	{
+		mFormat = format;
 		mResource = resource.detach();
 		mSizeX = w;
 		mSizeY = h;
 		return true;
+	}
+
+	bool D3D12Texture2D::update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
+	{
+		if (mFormat == format)
+		{
+			return static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
+				mResource, mFormat, data, ox, oy, w, h, w * ETexture::GetFormatSize(mFormat), level
+			);
+		}
+		return false;
+	}
+
+	bool D3D12Texture2D::update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
+	{
+		if (mFormat == format)
+		{
+			return static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
+				mResource, mFormat, data, ox, oy, w, h, dataImageWidth * ETexture::GetFormatSize(mFormat), level
+			);
+		}
+		return false;
 	}
 
 	D3D12SamplerState::D3D12SamplerState(SamplerStateInitializer const& initializer)
@@ -328,5 +374,6 @@ namespace Render
 		mDesc = desc;
 		mHandle = D3D12DescriptorHeapPool::Get().allocSampler(desc);
 	}
+
 
 }//namespace Render

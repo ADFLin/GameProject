@@ -13,7 +13,9 @@
 #include "CoreShare.h"
 #include "TemplateMisc.h"
 #include "CompilerConfig.h"
+
 #include <vector>
+#include <functional>
 
 
 #define USE_RHI_RESOURCE_TRACE 0
@@ -236,6 +238,17 @@ namespace Render
 		int  mLineNumber;
 	};
 
+	class IRHIResourceIdentify
+	{
+	public:
+		virtual uint32 getStateHash(RHIRasterizerState& state) = 0;
+		virtual uint32 getStateHash(RHIDepthStencilState& state) = 0;
+		virtual uint32 getStateHash(RHIBlendState& state) = 0;
+		virtual bool identifyState(RHIRasterizerState& stateA, RHIRasterizerState& stateB) = 0;
+		virtual bool identifyState(RHIDepthStencilState& stateA, RHIDepthStencilState& stateB) = 0;
+		virtual bool identifyState(RHIBlendState& stateA, RHIBlendState& stateB) = 0;
+	};
+
 	struct CORE_API FRHIResourceTable
 	{
 		static void Initialize();
@@ -279,6 +292,8 @@ namespace Render
 			releaseResource();
 			delete this;
 		}
+
+		virtual void setDebugName( char const* name){}
 
 
 		static CORE_API void DumpResource();

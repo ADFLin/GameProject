@@ -179,7 +179,8 @@ class MandelbrotProgram : public GlobalShader
 		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
 
 		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
-		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, COMMA_SEPARATED(TStaticSamplerState< ESampler::Bilinear, ESampler::Warp >::GetRHI()));
+		auto& samplerState = TStaticSamplerState< ESampler::Bilinear, ESampler::Warp >::GetRHI();
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, samplerState);
 	}
 
 	void clearParameters(RHICommandList& commandList)
@@ -369,6 +370,10 @@ public:
 		restart();
 	}
 
+	virtual ERenderSystem getDefaultRenderSystem() override
+	{
+		return ERenderSystem::D3D12;
+	}
 	virtual bool setupRenderSystem(ERenderSystem systemName) override
 	{
 		VERIFY_RETURN_FALSE(mProgMandelbrot = ShaderManager::Get().getGlobalShaderT< MandelbrotProgram >(true));
@@ -381,7 +386,6 @@ public:
 		colorMap.addPoint(3430 / 4, Color3ub(0, 2, 0));
 		colorMap.setSmoothLine(true);
 		colorMap.calcColorMap(true);
-
 		Color4f colors[1024];
 		for (int i = 0; i < ARRAY_SIZE(colors); ++i)
 		{
@@ -394,7 +398,7 @@ public:
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mParam.viewSize = screenSize;
 		VERIFY_RETURN_FALSE(mTexture = RHICreateTexture2D(ETexture::RGBA32F, screenSize.x, screenSize.y, 0, 1, TCF_CreateUAV | TCF_CreateSRV));
-
+		mTexture->setDebugName("RWTexture");
 		return true;
 	}
 	virtual void preShutdownRenderSystem(bool bReInit) override
@@ -426,10 +430,12 @@ public:
 	{
 		mParam.setDefalut();
 		mParam.magnification = 1.5;
-		updateTexture();
+		//updateTexture();
 	}
 	void tick() {}
 	void updateFrame(int frame) {}
+
+	int mFrameIndex = 0;
 
 	virtual void onUpdate(long time)
 	{
@@ -530,7 +536,7 @@ public:
 				mSelectRect.enable(false);
 
 				mParam.zoomInPos(info.centerOffset , info.zoomFactor, info.angle);
-				updateTexture();
+				//updateTexture();
 				return false;
 			}
 		}
@@ -561,6 +567,9 @@ public:
 
 		return BaseClass::onWidgetEvent(event, id, ui);
 	}
+
+
+
 protected:
 };
 

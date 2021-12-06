@@ -110,7 +110,8 @@ namespace Render
 		data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelSize);
 		CopyImage(&data.imageData[0], data.imageWidth, data.imageHeight, data.pixelSize, pDataTexture, textureDC.getWidth());
 
-		if (GRHISystem->getName() == RHISystemName::D3D11)
+		if (GRHISystem->getName() == RHISystemName::D3D11 || 
+			GRHISystem->getName() == RHISystemName::D3D12)
 		{
 			uint8* pData = data.imageData.data();
 			int count = data.imageData.size() / 4;

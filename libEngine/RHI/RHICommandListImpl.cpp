@@ -91,9 +91,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVerex, dataInfos, numVertexData, pIndices, numIndex));
 	}
 
-	void RHIDrawMeshTasks(RHICommandList& commandList, int start, int count)
+	void RHIDrawMeshTasks(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawMeshTasks(start, count));
+		RHI_COMMAND_FUNC(commandList, RHIDrawMeshTasks(numGroupX, numGroupY, numGroupZ));
 	}
 
 	void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)

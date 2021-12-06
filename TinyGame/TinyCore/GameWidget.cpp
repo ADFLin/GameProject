@@ -46,11 +46,12 @@ void WidgetRenderer::drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const
 		RenderUtility::SetBrush(g,EColor::Gray, COLOR_NORMAL);
 	}
 
-	RenderUtility::DrawCapsuleX( g , renderPos , size );
+	//RenderUtility::DrawCapsuleX( g , renderPos , size );
+	g.drawRect(renderPos, size);
 	RenderUtility::SetPen( g , EColor::Null );
 	RenderUtility::SetBrush( g ,  EColor::White , COLOR_NORMAL );
-	RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 2 ) , size - Vec2i( 4 , 6 ) );
-
+	//RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 2 ) , size - Vec2i( 4 , 6 ) );
+	g.drawRect(renderPos + Vec2i(3, 2), size - Vec2i(4, 6));
 	if( beEnable )
 	{
 		color.setupBrush(g, COLOR_DEEP);
@@ -59,7 +60,8 @@ void WidgetRenderer::drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const
 	{
 		RenderUtility::SetBrush(g, EColor::White, COLOR_DEEP);
 	}
-	RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 4  ) , size - Vec2i( 4 , 6 ) );
+	//RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 4  ) , size - Vec2i( 4 , 6 ) );
+	g.drawRect(renderPos + Vec2i(3, 4), size - Vec2i(4, 6));
 }
 
 void WidgetRenderer::drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color, bool beEnable /*= true */ )

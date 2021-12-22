@@ -40,6 +40,9 @@ namespace Render
 		BitmapDC textureDC;
 		uint8*   pDataTexture = nullptr;
 		HFONT    hFont = NULL;
+
+		void getKerningPairs(std::unordered_map<uint32, float>& outKerningMap) const override;
+
 	};
 
 	bool GDIFontCharDataProvider::initialize(HDC hDC , FontFaceInfo const& fontFace)
@@ -124,7 +127,30 @@ namespace Render
 
 		return true;
 	}
+
+	void GDIFontCharDataProvider::getKerningPairs(std::unordered_map<uint32, float>& outKerningMap) const
+	{
+		int num = GetKerningPairsW(textureDC.getHandle(), 0, nullptr);
+		if (num > 0)
+		{
+			std::vector<KERNINGPAIR> pairs;
+			pairs.resize(num);
+			GetKerningPairsW(textureDC.getHandle(), num, pairs.data());
+
+			for (auto& pair : pairs)
+			{
+				if ( pair.iKernAmount == 0)
+					continue;
+
+				uint32 key = (uint32(pair.wFirst) << 16 ) | uint32(pair.wSecond);
+				outKerningMap[key] = float(pair.iKernAmount);
+			}
+		}
+	}
+
 #endif //SYS_PLATFORM_WIN
+
+
 	ICharDataProvider* ICharDataProvider::Create(FontFaceInfo const& fontFace)
 	{
 #if SYS_PLATFORM_WIN
@@ -224,6 +250,7 @@ namespace Render
 			return false;
 
 		mFontHeight = mProvider->getFontHeight();
+		mProvider->getKerningPairs(mKerningPairMap);
 		return true;
 	}
 
@@ -264,10 +291,8 @@ namespace Render
 		return charData;
 	}
 
-
 	FontDrawer::FontDrawer()
 	{
-		mSize = 0;
 	}
 
 
@@ -305,6 +330,7 @@ namespace Render
 		Vector2 result = Vector2(0, 0);
 		bool bPrevSpace = false;
 		bool bStartChar = true;
+		wchar_t prevChar = 0;
 
 		float curPosX = 0;
 		float curPosY = 0;
@@ -323,16 +349,27 @@ namespace Render
 
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if( !(bPrevSpace || bStartChar) )
+			if (!(bPrevSpace || bStartChar))
+			{
 				curPosX += data.kerning;
+				uint32 key = (uint32(prevChar) << 16) | uint32(c);
+#if 1
+				float kerning;
+				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+				{
+					curPosX += kerning;
+				}
+#endif
+			}
 
 			curPosY = std::max(curPosY, float(data.height));
 			curPosX += data.advance;
 			bStartChar = false;
-			if( c == iswspace(c) )
+			if (c == FCString::IsSpace(c))
 			{
 				bPrevSpace = true;
 			}
+			prevChar = c;
 		}
 
 		result.x = std::max(result.x, curPosX);
@@ -378,14 +415,12 @@ namespace Render
 		if( mCharDataSet == nullptr )
 			return false;
 
-		mSize = fontFace.size;
 		return true;
 	}
 
 	void FontDrawer::cleanup()
 	{
 		mCharDataSet = nullptr;
-		mSize = 0;
 	}
 
 #if 0
@@ -414,6 +449,7 @@ namespace Render
 		Vector2 curPos = pos;
 		bool bPrevSpace = false;
 		bool bStartChar = true;
+		wchar_t prevChar = 0;
 
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
 		{
@@ -438,7 +474,16 @@ namespace Render
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
 			if (!(bPrevSpace || bStartChar))
+			{
 				curPos.x += data.kerning;
+#if 1
+				float kerning;
+				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+				{
+					curPos.x += kerning;
+				}
+#endif
+			}
 
 			AddQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
 			curPos.x += data.advance;
@@ -447,6 +492,7 @@ namespace Render
 			{
 				bPrevSpace = true;
 			}
+			prevChar = c;
 		}
 	}
 

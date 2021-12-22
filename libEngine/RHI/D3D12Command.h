@@ -243,9 +243,9 @@ namespace Render
 		bool initialize(ID3D12DeviceRHI* device, uint32 bufferSizes[] , int numBuffers );
 		bool allocNewBuffer(uint32 size);
 
-		void* lock(ID3D12GraphicsCommandListRHI* cmdList, uint32 size);
-		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_VERTEX_BUFFER_VIEW& bufferView);
-		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* cmdList, D3D12_INDEX_BUFFER_VIEW& bufferView);
+		void* lock(ID3D12GraphicsCommandListRHI* commandList, uint32 size);
+		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* commandList, D3D12_VERTEX_BUFFER_VIEW& bufferView);
+		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* commandList, D3D12_INDEX_BUFFER_VIEW& bufferView);
 
 		void beginFrame()
 		{
@@ -327,6 +327,14 @@ namespace Render
 		uint32 mConstDataOffset = 0;
 		uint32 mCurrentUpdatedSize = 0;
 		TComPtr< ID3D12Resource > mConstBuffer;
+	};
+
+	class D3D12RenderStateCache
+	{
+
+
+
+
 	};
 
 	class D3D12Context : public RHIContext
@@ -598,9 +606,40 @@ namespace Render
 		D3D12_RECT mViewportRects[8];
 		uint32 mNumViewports = 1;
 
-		std::vector< ID3D12DescriptorHeap* > mUsedDescHeaps;
-		uint32 mCSUHeapUsageMask;
-		uint32 mSamplerHeapUsageMask;
+		void updateCSUHeapUsage(D3D12PooledHeapHandle const& handle)
+		{
+			if (mUsedDescHeaps[0] != handle.chunk->resource)
+			{
+				if (mUsedDescHeaps[0] == nullptr)
+					++mNumUsedHeaps;
+				mUsedDescHeaps[0] = handle.chunk->resource;
+				mGraphicsCmdList->SetDescriptorHeaps(mNumUsedHeaps, mUsedDescHeaps);
+			}
+		}
+
+		void updateSamplerHeapUsage(D3D12PooledHeapHandle const& handle)
+		{
+			if (mUsedDescHeaps[1] != handle.chunk->resource)
+			{
+				if (mUsedDescHeaps[1] == nullptr)
+					++mNumUsedHeaps;
+
+				mUsedDescHeaps[1] = handle.chunk->resource;
+				if (mNumUsedHeaps == 1)
+					mUsedDescHeaps[0] = mUsedDescHeaps[1];
+
+				mGraphicsCmdList->SetDescriptorHeaps(mNumUsedHeaps, mUsedDescHeaps);
+			}
+		}
+		ID3D12DescriptorHeap* mUsedDescHeaps[2];
+		int mNumUsedHeaps = 0;
+
+
+		uint32 getRootSlot(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param)
+		{
+			auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
+			return mRootSlotStart[shaderType] + slotInfo.slotOffset;
+		}
 		uint32 mRootSlotStart[EShader::Count];
 		D3D12ResourceBoundState mResourceBoundStates[EShader::Count];
 
@@ -763,6 +802,36 @@ namespace Render
 						RowSizeInBytes);
 				}
 			}
+		}
+
+		ID3D12Resource* createDepthTexture2D(DXGI_FORMAT format, uint64 w , uint64 h, uint32 sampleCount)
+		{
+			D3D12_RESOURCE_DESC textureDesc = {};
+			textureDesc.MipLevels = 1;
+			textureDesc.Format = format;
+			textureDesc.Width = w;
+			textureDesc.Height = h;
+			textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+			textureDesc.DepthOrArraySize = 1;
+			textureDesc.SampleDesc.Count = sampleCount;
+			textureDesc.SampleDesc.Quality = 0;
+			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+			D3D12_CLEAR_VALUE optimizedClearValue = {};
+			optimizedClearValue.Format = format;
+			optimizedClearValue.DepthStencil = { 1.0f, 0 };
+
+			ID3D12Resource* textureResource;
+			VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+				&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&textureDesc,
+				D3D12_RESOURCE_STATE_DEPTH_WRITE,
+				&optimizedClearValue,
+				IID_PPV_ARGS(&textureResource)), return nullptr;);
+
+			return textureResource;
 		}
 
 		static void MemcpySubresource(

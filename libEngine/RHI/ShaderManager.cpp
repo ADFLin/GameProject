@@ -36,7 +36,7 @@ namespace Render
 		bool addFileDependences( ShaderProgramManagedData const& managedData )
 		{
 			std::set< HashString > assetFilePaths;
-			for( auto const& compileInfo : managedData.compileInfos )
+			for( auto const& compileInfo : managedData.descList )
 			{
 				assetFilePaths.insert(compileInfo.filePath);
 				assetFilePaths.insert(compileInfo.includeFiles.begin() , compileInfo.includeFiles.end() );
@@ -47,7 +47,7 @@ namespace Render
 		bool addFileDependences(ShaderManagedData const& managedData)
 		{
 			std::set< HashString > assetFilePaths;
-			auto const& compileInfo = managedData.compileInfo;
+			auto const& compileInfo = managedData.desc;
 			assetFilePaths.insert(compileInfo.filePath);
 			assetFilePaths.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
 
@@ -83,7 +83,7 @@ namespace Render
 			return true;
 		}
 
-		bool setupProgram(ShaderFormat& format, ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles )
+		bool setupProgram(ShaderFormat& format, ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& shaderCompiles )
 		{
 			if( codeBuffer.empty() )
 				return false;
@@ -102,7 +102,7 @@ namespace Render
 			return true;
 		}
 
-		bool setupShader(ShaderFormat& format, Shader& shader, ShaderCompileInfo const& shaderCompile)
+		bool setupShader(ShaderFormat& format, Shader& shader, ShaderCompileDesc const& shaderCompile)
 		{
 			if (codeBuffer.empty())
 				return false;
@@ -171,7 +171,7 @@ namespace Render
 
 
 			}
-			for( auto const& compileInfo : managedData.compileInfos )
+			for( auto const& compileInfo : managedData.descList )
 			{
 				outKey.keySuffix.add((uint8)compileInfo.type, format.getName() , compileInfo.filePath.c_str(), compileInfo.headCode.c_str());
 			}
@@ -195,7 +195,7 @@ namespace Render
 
 			}
 
-			auto const& compileInfo = managedData.compileInfo;
+			auto const& compileInfo = managedData.desc;
 			outKey.keySuffix.add((uint8)compileInfo.type, format.getName(), compileInfo.filePath.c_str(), compileInfo.headCode.c_str());
 		
 		}
@@ -295,12 +295,12 @@ namespace Render
 				if( !binaryData.checkAssetNotModified() )
 					return false;
 
-				if( !binaryData.setupProgram(format, *managedData.shaderProgram, managedData.compileInfos ) )
+				if( !binaryData.setupProgram(format, *managedData.shaderProgram, managedData.descList ) )
 					return false;
 
 				for( auto const& asset : binaryData.assetDependences )
 				{
-					managedData.compileInfos.front().includeFiles.push_back(asset.path.c_str());
+					managedData.descList.front().includeFiles.push_back(asset.path.c_str());
 				}
 				return true;
 			});
@@ -325,12 +325,12 @@ namespace Render
 				if (!binaryData.checkAssetNotModified())
 					return false;
 
-				if (!binaryData.setupShader(format, *managedData.shader, managedData.compileInfo))
+				if (!binaryData.setupShader(format, *managedData.shader, managedData.desc))
 					return false;
 
 				for (auto const& asset : binaryData.assetDependences)
 				{
-					managedData.compileInfo.includeFiles.push_back(asset.path.c_str());
+					managedData.desc.includeFiles.push_back(asset.path.c_str());
 				}
 				return true;
 			});
@@ -675,7 +675,7 @@ namespace Render
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
 	{
-		char const* filePaths[EShader::Count];
+		char const* filePaths[EShader::MaxStorageSize];
 		InlineString< 256 > path;
 		path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
 		for( int i = 0; i < entries.size(); ++i )
@@ -781,7 +781,7 @@ namespace Render
 			}
 			headCode = option.getCode(entry, headCode.c_str(), additionalCode);
 
-			managedData->compileInfos.emplace_back(entry.type, filePaths[i], std::move(headCode), entry.name);
+			managedData->descList.emplace_back(entry.type, filePaths[i], std::move(headCode), entry.name);
 		}
 
 		if( !buildShader(shaderProgram, *managedData) )
@@ -823,7 +823,7 @@ namespace Render
 			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgramClass const*>(managedData->shaderClass);
 			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
-			managedData->compileInfos.clear();
+			managedData->descList.clear();
 			generateCompileSetup(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
 		}
 
@@ -898,15 +898,16 @@ namespace Render
 
 		TIME_SCOPE("Build Shader Program");
 
+		bForceReload = true;
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData) )
 		{
 			if (!managedData.sourceFile.empty())
 			{
-				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", managedData.compileInfos[0].filePath.c_str(), managedData.sourceFile.c_str());
+				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", managedData.descList[0].filePath.c_str(), managedData.sourceFile.c_str());
 			}
 			else
 			{
-				LogDevMsg(0, "Use Cache Data : %s ", managedData.compileInfos[0].filePath.c_str());
+				LogDevMsg(0, "Use Cache Data : %s ", managedData.descList[0].filePath.c_str());
 			}
 		}
 		else
@@ -918,11 +919,11 @@ namespace Render
 
 			if (!managedData.sourceFile.empty())
 			{
-				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.compileInfos[0].filePath.c_str(), managedData.sourceFile.c_str());
+				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.descList[0].filePath.c_str(), managedData.sourceFile.c_str());
 			}
 			else
 			{
-				LogDevMsg(0, "Recompile shader : %s ", managedData.compileInfos[0].filePath.c_str());
+				LogDevMsg(0, "Recompile shader : %s ", managedData.descList[0].filePath.c_str());
 			}
 
 			//if (!shaderProgram.mRHIResource.isValid())
@@ -933,26 +934,22 @@ namespace Render
 			}
 
 			ShaderProgramSetupData setupData;
+			setupData.resource = shaderProgram.mRHIResource;
 			setupData.managedData = &managedData;
-			setupData.numShaders = managedData.compileInfos.size();
 			mShaderFormat->precompileCode(setupData);
 
 			ShaderResourceInfo shaders[EShader::MaxStorageSize];
-			int numShaders = 0;
+			int shaderIndex = 0;
 			bool bFailed = false;
-			for (ShaderCompileInfo& shaderInfo : managedData.compileInfos)
+			ShaderCompileContext  context;
+			context.sourceLibrary = mSourceLibrary;
+
+			for (ShaderCompileDesc& desc : managedData.descList)
 			{
-				ShaderCompileInput  compileInput;
-				compileInput.sourceLibrary = mSourceLibrary;
-				compileInput.type = shaderInfo.type;
-				compileInput.entry = shaderInfo.entryName.c_str();
-				compileInput.path = shaderInfo.filePath.c_str();
-				compileInput.definition = shaderInfo.headCode.c_str();
-				compileInput.programSetupData = &setupData;
-				ShaderCompileOutput compileOutput;
-				compileOutput.compileInfo = &shaderInfo;
-				compileOutput.formatData = nullptr;
-				if (!mShaderFormat->compileCode(compileInput, compileOutput))
+				context.shaderIndex = shaderIndex;
+				context.desc = &desc;
+				context.programSetupData = &setupData;
+				if (!mShaderFormat->compileCode(context))
 				{
 					bFailed = true;
 					break;
@@ -963,13 +960,7 @@ namespace Render
 
 				}
 
-				ShaderResourceInfo shaderSetup;
-				shaderSetup.type = shaderInfo.type;
-				shaderSetup.entry = shaderInfo.entryName.c_str();
-				shaderSetup.resource = compileOutput.resource;
-				shaderSetup.formatData = compileOutput.formatData;
-				setupData.shaderResources.push_back(shaderSetup);
-				++numShaders;
+				++shaderIndex;
 			}
 
 			if (bFailed)
@@ -1001,15 +992,16 @@ namespace Render
 
 		TIME_SCOPE("Build Shader");
 
+		bForceReload = true;
 		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
 		{
 			if (!managedData.sourceFile.empty())
 			{
-				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", managedData.compileInfo.filePath.c_str(), managedData.sourceFile.c_str());
+				LogDevMsg(0, "Use Cache Data : %s , source file : %s ", managedData.desc.filePath.c_str(), managedData.sourceFile.c_str());
 			}
 			else
 			{
-				LogDevMsg(0, "Use Cache Data : %s ", managedData.compileInfo.filePath.c_str());
+				LogDevMsg(0, "Use Cache Data : %s ", managedData.desc.filePath.c_str());
 			}
 		}
 		else
@@ -1021,11 +1013,11 @@ namespace Render
 
 			if (!managedData.sourceFile.empty())
 			{
-				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.compileInfo.filePath.c_str(), managedData.sourceFile.c_str());
+				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.desc.filePath.c_str(), managedData.sourceFile.c_str());
 			}
 			else
 			{
-				LogDevMsg(0, "Recompile shader : %s ", managedData.compileInfo.filePath.c_str());
+				LogDevMsg(0, "Recompile shader : %s ", managedData.desc.filePath.c_str());
 			}
 
 			ShaderSetupData setupData;
@@ -1034,19 +1026,14 @@ namespace Render
 			mShaderFormat->precompileCode(setupData);
 
 			bool bFailed = false;
-			ShaderCompileInfo& shaderInfo = managedData.compileInfo;
+			ShaderCompileDesc& shaderInfo = managedData.desc;
 
-			ShaderCompileInput  compileInput;
-			compileInput.sourceLibrary = mSourceLibrary;
-			compileInput.type = shaderInfo.type;
-			compileInput.entry = shaderInfo.entryName.c_str();
-			compileInput.path = shaderInfo.filePath.c_str();
-			compileInput.definition = shaderInfo.headCode.c_str();
-			compileInput.shaderSetupData = &setupData;
-			ShaderCompileOutput compileOutput;
-			compileOutput.compileInfo = &shaderInfo;
-			compileOutput.formatData = nullptr;
-			if (!mShaderFormat->compileCode(compileInput, compileOutput))
+			ShaderCompileContext  context;
+			context.shaderIndex = 0;
+			context.desc = &shaderInfo;
+			context.sourceLibrary = mSourceLibrary;
+			context.shaderSetupData = &setupData;
+			if (!mShaderFormat->compileCode(context))
 			{
 				bFailed = true;
 			}
@@ -1061,12 +1048,6 @@ namespace Render
 				return false;
 			}
 
-			ShaderResourceInfo& shaderResource = setupData.shaderResource;
-			shaderResource.type = shaderInfo.type;
-			shaderResource.entry = shaderInfo.entryName.c_str();
-			shaderResource.resource = compileOutput.resource;
-			shaderResource.formatData = compileOutput.formatData;
-
 			if (!mShaderFormat->initializeShader(shader, setupData))
 			{
 				return false;
@@ -1077,8 +1058,6 @@ namespace Render
 				LogWarning(0, "Can't Save Shader Cache");
 			}
 		}
-
-		mShaderFormat->postShaderLoaded(shader);
 
 		return true;
 	}
@@ -1100,7 +1079,7 @@ namespace Render
 
 	void ShaderManager::generateCompileSetup(ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
 	{
-		assert( fileName &&  managedData.compileInfos.empty());
+		assert( fileName &&  managedData.descList.empty());
 
 		for( auto const& entry : entries )
 		{
@@ -1118,7 +1097,7 @@ namespace Render
 			{
 				path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
 			}
-			managedData.compileInfos.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
+			managedData.descList.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
 		}
 	}
 
@@ -1133,7 +1112,7 @@ namespace Render
 
 		InlineString< 256 > path;
 		path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);
-		managedData.compileInfo = { entry.type , path.c_str() , std::move(headCode) , entry.name };
+		managedData.desc = { entry.type , path.c_str() , std::move(headCode) , entry.name };
 
 	}
 
@@ -1158,7 +1137,7 @@ namespace Render
 	void ShaderProgramManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
-		for( ShaderCompileInfo const& compileInfo : compileInfos )
+		for( ShaderCompileDesc const& compileInfo : descList )
 		{
 			filePathSet.insert(compileInfo.filePath);
 			filePathSet.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
@@ -1182,8 +1161,8 @@ namespace Render
 	{
 		std::set< HashString > filePathSet;
 
-		filePathSet.insert(compileInfo.filePath);
-		filePathSet.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
+		filePathSet.insert(desc.filePath);
+		filePathSet.insert(desc.includeFiles.begin(), desc.includeFiles.end());
 
 		for (auto const& filePath : filePathSet)
 		{

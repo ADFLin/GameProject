@@ -21,20 +21,20 @@
 #undef GetFullPathName
 
 template< class T >
-struct WindowType {};
+struct TWindowsType {};
 
 template<>
-struct WindowType< char > 
+struct TWindowsType< char > 
 {
 	using WIN32_FIND_DATA = WIN32_FIND_DATAA;
 };
 template<>
-struct WindowType< wchar_t >
+struct TWindowsType< wchar_t >
 {
 	using WIN32_FIND_DATA = WIN32_FIND_DATAW;
 };
 
-struct FWindow
+struct FWindows
 {
 	static HANDLE FindFirstFile(char const* lpFileName, WIN32_FIND_DATAA* data)
 	{
@@ -106,8 +106,8 @@ struct FWindowsFileSystem
 	template< class CharT >
 	static bool IsExist(CharT const* path)
 	{
-		WindowType< CharT >::WIN32_FIND_DATA data;
-		HANDLE hFind = FWindow::FindFirstFile(path, &data);
+		TWindowsType< CharT >::WIN32_FIND_DATA data;
+		HANDLE hFind = FWindows::FindFirstFile(path, &data);
 		if (hFind == INVALID_HANDLE_VALUE)
 			return false;
 
@@ -118,7 +118,7 @@ struct FWindowsFileSystem
 	template< class CharT >
 	static bool CreateDirectory(CharT const* pathDir)
 	{
-		if (!FWindow::CreateDirectory(pathDir, NULL))
+		if (!FWindows::CreateDirectory(pathDir, NULL))
 		{
 			switch (GetLastError())
 			{
@@ -136,7 +136,7 @@ struct FWindowsFileSystem
 	static bool GetFileSize(CharT const* path, int64& size)
 	{
 		WIN32_FILE_ATTRIBUTE_DATA fad;
-		if (!FWindow::GetFileAttributesEx(path, GetFileExInfoStandard, &fad))
+		if (!FWindows::GetFileAttributesEx(path, GetFileExInfoStandard, &fad))
 			return false; // error condition, could call GetLastError to find out more
 		LARGE_INTEGER temp;
 		temp.HighPart = fad.nFileSizeHigh;
@@ -148,7 +148,7 @@ struct FWindowsFileSystem
 	template< class CharT >
 	static bool DeleteFile(CharT const* lpFileName)
 	{
-		return !!FWindow::DeleteFile(lpFileName);
+		return !!FWindows::DeleteFile(lpFileName);
 	}
 
 	template< class CharT >
@@ -157,21 +157,21 @@ struct FWindowsFileSystem
 		TInlineString< MAX_PATH , CharT > newPath;
 		newPath.assign(path, FFileUtility::GetFileName(path) - path);
 		newPath += newFileName;
-		return !!FWindow::MoveFile(path, newPath);
+		return !!FWindows::MoveFile(path, newPath);
 	}
 
 	template< class CharT >
 	static std::basic_string<CharT> ConvertToFullPath(CharT const* path)
 	{
 		CharT full_path[MAX_PATH];
-		FWindow::GetFullPathName(path, MAX_PATH, full_path, NULL);
+		FWindows::GetFullPathName(path, MAX_PATH, full_path, NULL);
 		return full_path;
 	}
 
 	template< class CharT >
 	static bool CopyFile(CharT const* path, CharT const* newFilePath, bool bFailIfExists)
 	{
-		return !!FWindow::CopyFile(path, newFilePath, bFailIfExists);
+		return !!FWindows::CopyFile(path, newFilePath, bFailIfExists);
 	}
 };
 

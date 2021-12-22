@@ -84,8 +84,7 @@ namespace Render
 	{
 	public:
 
-		bool setupShaders(VkDevice device, ShaderResourceInfo shaders[], int numShaders);
-
+		bool setupShaders(VkDevice device, std::vector< ShaderCompileDesc > const& descList, SpirvShaderCode shaderCodes[]);
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) override
 		{
 			return false;
@@ -124,10 +123,10 @@ namespace Render
 		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
 
-		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) final;
+		virtual bool compileCode(ShaderCompileContext const& context) final;
 		virtual void precompileCode(ShaderProgramSetupData& setupData);
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) final;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode) final;
 
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
 

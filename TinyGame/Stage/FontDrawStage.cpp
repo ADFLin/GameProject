@@ -188,7 +188,7 @@ public:
 			g.endRender();
 		}
 
-		return;
+		//return;
 
 		DrawUtility::DrawTexture(commandList, g.getBaseTransform(), mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(1024, 1024));
 
@@ -248,7 +248,7 @@ public:
 			Vector2(200 , 300),
 			Vector2(100 , 200),
 		};
-		int indices[] =
+		uint32 indices[] =
 		{
 			0,1,2,0,2,3,
 		};

@@ -159,8 +159,10 @@ void DrawEngine::release()
 {
 	mPlatformGraphics->releaseReources();
 
-	if( isRHIEnabled() || bRHIShutdownDeferred )
+	if (isRHIEnabled() || bRHIShutdownDeferred)
+	{
 		RHISystemShutdown();
+	}
 
 	RenderUtility::Finalize();
 }
@@ -193,6 +195,9 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup)
 bool DrawEngine::resetupSystem(ERenderSystem systemName)
 {
 	if (mRenderSetup == nullptr)
+		return false;
+
+	if (!mRenderSetup->isRenderSystemSupported(systemName))
 		return false;
 
 	mRenderSetup->preShutdownRenderSystem(true);
@@ -316,6 +321,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		info.extent.y = mGameWindow->getHeight();
 		info.numSamples = initParam.numSamples;
 		info.bCreateDepth = true;
+		info.depthFormat = ETexture::D32FS8;
 		RHICreateSwapChain(info);
 	}
 
@@ -340,7 +346,7 @@ void DrawEngine::shutdownSystem(bool bDeferred)
 		return;
 
 	RenderUtility::ReleaseRHI();
-	mSystemName = ERenderSystem::None;
+
 	mRHIGraphics->releaseRHI();
 
 	if( bDeferred == false )
@@ -351,6 +357,15 @@ void DrawEngine::shutdownSystem(bool bDeferred)
 	{
 		bRHIShutdownDeferred = true;
 	}
+
+	if (mSystemName == ERenderSystem::D3D12)
+	{
+		TGuardValue<bool> value(bBlockRender, true);
+		bHasUseRHI = false;
+		mWindowProvider->reconstructWindow(*mGameWindow);
+	}
+
+	mSystemName = ERenderSystem::None;
 
 	bUsePlatformBuffer = true;
 	setupBuffer(getScreenWidth(), getScreenHeight());

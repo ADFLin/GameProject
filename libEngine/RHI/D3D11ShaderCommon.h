@@ -6,17 +6,19 @@
 #include "ShaderFormat.h"
 #include "RHICommon.h"
 
+#include "Template/ArrayView.h"
 #include "Platform/Windows/ComUtility.h"
 
 #include <D3D11.h>
 #include <D3Dcompiler.h>
+
 
 //#include <D3DX11async.h>
 #pragma comment(lib , "D3dcompiler.lib")
 
 namespace Render
 {
-	struct D3D11ShaderResource
+	struct D3D11ShaderData
 	{
 		EShader::Type type;
 		union
@@ -30,8 +32,8 @@ namespace Render
 			ID3D11DomainShader*   domain;
 		};
 
-		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, size_t codeSize);
-
+		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode);
+		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, uint32 codeSize);
 		void release();
 	};
 
@@ -45,14 +47,13 @@ namespace Render
 			mResource.ptr = nullptr;
 		}
 
-		bool initialize( TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode );
-		bool initialize( TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode );
-
 		virtual void releaseResource()
 		{
 			mResource.release();
 		}
 
+		bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode);
+		bool initialize(TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode);
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) 
 		{ 
 			return outParam.bind(mParameterMap, name);
@@ -69,10 +70,10 @@ namespace Render
 			}
 			return structInfo.blockName;
 		}
-		static bool GenerateParameterMap(std::vector< uint8 > const& byteCode , ShaderParameterMap& parameterMap);
 
+		static bool GenerateParameterMap(TArrayView< uint8 > const& byteCode, ShaderParameterMap& parameterMap);
 		std::vector< uint8 > byteCode;
-		D3D11ShaderResource  mResource;
+		D3D11ShaderData      mResource;
 		ShaderParameterMap   mParameterMap;
 	};
 
@@ -80,7 +81,11 @@ namespace Render
 	{
 	public:
 
-		bool setupShaders(ShaderResourceInfo shaders[], int numShaders);
+		void initializeData(int numShaders)
+		{
+			mShaderDatas = new D3D11ShaderData[numShaders];
+			mNumShaders = numShaders;
+		}
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam);
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam);
@@ -98,9 +103,9 @@ namespace Render
 		void setupShader(ShaderParameter const& parameter, TFunc&& func)
 		{
 			mParameterMap.setupShader(parameter,
-				[&func](int shaderIndex, ShaderParameter const& shaderParam)
+				[this, &func](int shaderIndex, ShaderParameter const& shaderParam)
 				{
-					func( EShader::Type(shaderIndex), shaderParam);
+					func(mShaderDatas[shaderIndex].type, shaderParam);
 				}
 			);
 		}
@@ -108,7 +113,7 @@ namespace Render
 		ShaderPorgramParameterMap mParameterMap;
 
 		std::vector< uint8 > vertexByteCode;
-		TRefCountPtr< D3D11Shader >     mShaders[EShader::MaxStorageSize];
+		D3D11ShaderData* mShaderDatas;
 		int mNumShaders;
 	};
 
@@ -121,10 +126,10 @@ namespace Render
 		virtual char const* getName() final { return "hlsl"; }
 		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
-		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) final;
+		virtual bool compileCode(ShaderCompileContext const& context) final;
 
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) final;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode) final;
 
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
 
@@ -135,11 +140,17 @@ namespace Render
 		TComPtr< ID3D11Device > mDevice;
 
 		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) override;
+		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode) override;
 
 
 		virtual void postShaderLoaded(Shader& shader) override;
 		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode) override;
+
+
+		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
+
+
+		void precompileCode(ShaderSetupData& setupData) override;
 
 	};
 

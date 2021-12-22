@@ -407,7 +407,8 @@ namespace Render
 		SimplePipelineParamValues mFixedShaderParams;
 		bool bUseFixedShaderPipeline = true;
 
-		RHIShader* mVertexShader = nullptr;
+		RHIResource* mVertexShader = nullptr;
+		std::vector< uint8 >* mVertexShaderByteCode;
 		TComPtr< ID3D11DeviceContext >  mDeviceContext;
 		TComPtr< ID3D11Device > mDevice;
 		RHIInputLayout* mInputLayout = nullptr;

@@ -74,6 +74,7 @@ namespace Render
 			Line,
 			LineStrip,
 			Text ,
+			GradientRect ,
 		};
 
 		EType type;
@@ -178,6 +179,15 @@ namespace Render
 			std::vector< FontVertex > vertices;
 		};
 
+		struct GradientRectPayload
+		{
+			Vector2 posLT;
+			Color4Type colorLT;
+			Vector2 posRB;
+			Color4Type colorRB;
+			bool bHGrad;
+		};
+
 		template < class TPayload >
 		static TPayload& GetPayload(RenderBachedElement* ptr)
 		{
@@ -223,6 +233,7 @@ namespace Render
 		RenderBachedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
 		RenderBachedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
 		RenderBachedElement& addText(Color4Type const& color, std::vector< FontVertex >&& vertices);
+		RenderBachedElement& addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
 		template< class TPayload >
 		TRenderBachedElement<TPayload>* addElement()

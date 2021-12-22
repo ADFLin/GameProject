@@ -408,6 +408,8 @@ public:
 		mTexture.release();
 	}
 
+
+	bool bNeedUpdateTexture = false;
 	void updateTexture()
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
@@ -430,6 +432,7 @@ public:
 	{
 		mParam.setDefalut();
 		mParam.magnification = 1.5;
+		bNeedUpdateTexture = true;
 		//updateTexture();
 	}
 	void tick() {}
@@ -456,10 +459,11 @@ public:
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-
+		if (bNeedUpdateTexture)
 		{
 			GPU_PROFILE("Update Texture");
 			updateTexture();
+			bNeedUpdateTexture = false;
 		}
 
 		Matrix4 projectionMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, 1, -1));
@@ -536,6 +540,7 @@ public:
 				mSelectRect.enable(false);
 
 				mParam.zoomInPos(info.centerOffset , info.zoomFactor, info.angle);
+				bNeedUpdateTexture = true;
 				//updateTexture();
 				return false;
 			}

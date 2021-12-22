@@ -723,9 +723,9 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 				{
 					Local()
 					{
-						NextSystem[(int)RHISystemName::OpenGL] = ERenderSystem::D3D11;
-						NextSystem[(int)RHISystemName::D3D11] = ERenderSystem::D3D12;
-						NextSystem[(int)RHISystemName::D3D12] = ERenderSystem::OpenGL;
+						NextSystem[(int)ERenderSystem::OpenGL] = ERenderSystem::D3D11;
+						NextSystem[(int)ERenderSystem::D3D11] = ERenderSystem::D3D12;
+						NextSystem[(int)ERenderSystem::D3D12] = ERenderSystem::OpenGL;
 					}
 					ERenderSystem NextSystem[(int)RHISystemName::Count];
 				};
@@ -733,8 +733,23 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 				static Local SLocal;
 				if (GRHISystem)
 				{
-					ERenderSystem systemName = SLocal.NextSystem[(int)GRHISystem->getName()];
-					::Global::GetDrawEngine().resetupSystem(systemName);
+					ERenderSystem systemName = []
+					{
+						switch (GRHISystem->getName())
+						{
+						case RHISystemName::OpenGL: return ERenderSystem::OpenGL;
+						case RHISystemName::D3D11: return ERenderSystem::D3D11;
+						case RHISystemName::D3D12: return ERenderSystem::D3D12;
+						case RHISystemName::Vulkan: return ERenderSystem::Vulkan;
+						}
+						return ERenderSystem::OpenGL;
+					}();
+					for (;;)
+					{
+						systemName = SLocal.NextSystem[int(systemName)];
+						if ( ::Global::GetDrawEngine().resetupSystem(systemName) )
+							break;
+					}
 				}
 			}
 			break;

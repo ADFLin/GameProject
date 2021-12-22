@@ -137,6 +137,11 @@ namespace Render
 		using DataType = D3D12_RT_FORMAT_ARRAY;
 	};
 	template<>
+	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT>
+	{
+		using DataType = TValueWapper< DXGI_FORMAT >;
+	};
+	template<>
 	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>
 	{
 		using DataType = D3D12_SHADER_BYTECODE;
@@ -387,10 +392,17 @@ namespace Render
 			D3D12PooledHeapHandle RTVHandle;
 		};
 
+		struct DepthBufferState
+		{
+			DXGI_FORMAT format;
+			TComPtr< ID3D12Resource > resource;
+			D3D12PooledHeapHandle DSVHandle;
+		};
+
 
 		BufferState colorBuffers[MaxSimulationBufferCount];
 		int numColorBuffers = 0;
-		BufferState depthBuffer;
+		DepthBufferState depthBuffer;
 
 		uint32 formatGUID = 0;
 
@@ -464,7 +476,7 @@ namespace Render
 				D3D12DescriptorHeapPool::Get().freeHandle(colorBuffers[i].RTVHandle);
 			}
 
-			D3D12DescriptorHeapPool::Get().freeHandle(depthBuffer.RTVHandle);
+			D3D12DescriptorHeapPool::Get().freeHandle(depthBuffer.DSVHandle);
 		}
 	};
 
@@ -543,12 +555,13 @@ namespace Render
 		{
 			TD3D12Resource< TRHIResource >::releaseResource();
 			D3D12DescriptorHeapPool::Get().freeHandle(mSRV);
+			D3D12DescriptorHeapPool::Get().freeHandle(mRTVorDSV);
 			D3D12DescriptorHeapPool::Get().freeHandle(mUAV);
 		}
 
 		D3D12PooledHeapHandle mSRV;
+		D3D12PooledHeapHandle mRTVorDSV;
 		D3D12PooledHeapHandle mUAV;
-
 	};
 
 	class D3D12Texture1D : public TD3D12Texture< RHITexture1D >
@@ -584,10 +597,10 @@ namespace Render
 		virtual void releaseResource()
 		{
 			TD3D12Resource< RHIVertexBuffer >::releaseResource();
-			D3D12DescriptorHeapPool::Get().freeHandle(mViewHandle);
+			D3D12DescriptorHeapPool::Get().freeHandle(mSRV);
 		}
 
-		D3D12PooledHeapHandle mViewHandle;
+		D3D12PooledHeapHandle mSRV;
 	};
 
 	class D3D12IndexBuffer : public TD3D12Resource< RHIIndexBuffer >

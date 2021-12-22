@@ -205,7 +205,7 @@ namespace Render
 			//#TODO:depth
 			state.depthBuffer.format;
 			state.depthBuffer.resource;
-			state.depthBuffer.RTVHandle;
+			//state.depthBuffer.RTVHandle;
 		}
 
 		return true;

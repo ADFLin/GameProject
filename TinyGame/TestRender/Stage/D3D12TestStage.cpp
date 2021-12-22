@@ -70,11 +70,6 @@ namespace Render
 	public:
 		TestD3D12Stage() {}
 
-		ERenderSystem getDefaultRenderSystem() override
-		{
-			return ERenderSystem::D3D12;
-		}
-
 		RHITexture2DRef mTexture;
 		RHITexture2DRef mTexture1;
 
@@ -82,7 +77,7 @@ namespace Render
 		RHIIndexBufferRef  mIndexBuffer;
 		RHIInputLayoutRef  mInputLayout;
 
-		bool bUseProgram = true;
+		bool bUseProgram = false;
 
 		SimpleProgram* mProgTriangle;
 		Shader mVertexShader;
@@ -128,6 +123,19 @@ namespace Render
 			return data;
 		}
 
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::D3D12;
+		}
+
+		bool isRenderSystemSupported(ERenderSystem systemName) override
+		{
+			if (systemName == ERenderSystem::D3D11 || systemName == ERenderSystem::D3D12)
+				return true;
+
+			return false;
+		}
 
 		virtual bool setupRenderSystem(ERenderSystem systemName) override
 		{
@@ -290,8 +298,11 @@ namespace Render
 				stateDesc.pixel = mPixelShader.getRHIResource();
 				RHISetGraphicsShaderBoundState(commandList, stateDesc);
 				mVertexShader.setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
-				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), TStaticSamplerState<>::GetRHI());
-				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), TStaticSamplerState<>::GetRHI());
+				mView.setupShader(commandList, mVertexShader);
+
+				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
+				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), samplerState);
+				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), samplerState);
 			}
 
 			InputStreamInfo inputStream;
@@ -334,7 +345,8 @@ namespace Render
 
 			g.endBlend();
 			//g.drawRect(Vector2(100, 100), Vector2(100, 100));
-			g.drawText(10, 10, "Test");
+			g.drawText(10, 10, "AVAVAVAVAVAVAYa");
+			g.drawGradientRect(Vector2(300, 0), Color3f(1, 0, 0), Vector2(400, 100), Color3f(0, 1, 0), true);
 			g.endRender();
 #endif
 
@@ -363,6 +375,7 @@ namespace Render
 				return false;
 			return true;
 		}
+
 
 
 

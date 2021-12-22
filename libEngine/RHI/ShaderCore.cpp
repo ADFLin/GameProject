@@ -64,10 +64,8 @@ namespace Render
 	{
 		std::sort(mParamEntries.begin(), mParamEntries.end(), [](ShaderParamEntry const& lhs, ShaderParamEntry const& rhs)
 		{
-			if (lhs.loc < rhs.loc)
-				return true;
-			else if (lhs.loc > rhs.loc)
-				return false;
+			if (lhs.loc != rhs.loc)
+				return lhs.loc < rhs.loc;
 			return lhs.shaderIndex < rhs.shaderIndex;
 		});
 

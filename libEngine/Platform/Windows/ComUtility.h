@@ -97,6 +97,7 @@ public:
 		return 0;
 	}
 	T* get() { return mPtr; }
+	bool isValid() const { return !!mPtr; }
 
 	bool operator == (void* ptr) const { return mPtr == ptr; }
 	bool operator != (void* ptr) const { return mPtr != ptr; }

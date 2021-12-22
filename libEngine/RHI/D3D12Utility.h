@@ -85,6 +85,18 @@ namespace Render
 			return result;
 		}
 
+
+		static D3D12_RESOURCE_BARRIER UAVBarrier(
+			ID3D12Resource* pResource,
+			D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE) noexcept
+		{
+			D3D12_RESOURCE_BARRIER result = {};
+			result.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+			result.Flags = flags;
+			result.UAV.pResource = pResource;
+			return result;
+		}
+
 		static D3D12_HEAP_PROPERTIES HeapProperrties(
 			D3D12_HEAP_TYPE type,
 			UINT creationNodeMask = 1,
@@ -156,8 +168,6 @@ namespace Render
 
 		void freeSlot(uint slotIndex);
 
-
-		uint id;
 		TComPtr< ID3D12DescriptorHeap > resource;
 		D3D12_DESCRIPTOR_HEAP_TYPE type;
 		uint elementSize;
@@ -215,6 +225,7 @@ namespace Render
 		D3D12PooledHeapHandle allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocUAV(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocRTV(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle allocDSV(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocSampler(D3D12_SAMPLER_DESC const& desc);
 
 		bool findFreeHandle(std::vector< D3D12HeapPoolChunk* >& chunks , D3D12PooledHeapHandle& outHandle);
@@ -230,7 +241,9 @@ namespace Render
 
 		std::vector< D3D12HeapPoolChunk* > mCSUChunks;
 		std::vector< D3D12HeapPoolChunk* > mRTVChunks;
+		std::vector< D3D12HeapPoolChunk* > mDSVChunks;
 		std::vector< D3D12HeapPoolChunk* > mSamplerChunks;
+
 	};
 
 

@@ -24,7 +24,7 @@ namespace Render
 		numElements = inNumElements;
 		type = inType;
 		numElementsUasge = 0;
-		mUsageMask.resize(numElements / 32, 0);
+		mUsageMask.resize(( numElements + 31 )/ 32, 0);
 		return true;
 	}
 
@@ -142,13 +142,32 @@ namespace Render
 				return D3D12PooledHeapHandle();
 			}
 
-			chunk->id = mRTVChunks.size();
 			mRTVChunks.push_back(chunk);
 			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
 			result.chunk = chunk;
 		}
 
 		mDevice->CreateRenderTargetView(resource, desc, result.getCPUHandle());
+		return result;
+	}
+
+	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocDSV(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc)
+	{
+		D3D12PooledHeapHandle result;
+		if (!findFreeHandle(mDSVChunks, result))
+		{
+			D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
+			if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 32, D3D12_DESCRIPTOR_HEAP_FLAG_NONE))
+			{
+				return D3D12PooledHeapHandle();
+			}
+
+			mDSVChunks.push_back(chunk);
+			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
+			result.chunk = chunk;
+		}
+
+		mDevice->CreateDepthStencilView(resource, desc, result.getCPUHandle());
 		return result;
 	}
 
@@ -163,7 +182,6 @@ namespace Render
 				return D3D12PooledHeapHandle();
 			}
 
-			chunk->id = mSamplerChunks.size();
 			mSamplerChunks.push_back(chunk);
 
 			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
@@ -217,7 +235,7 @@ namespace Render
 		{
 			return false;
 		}
-		chunk->id = mCSUChunks.size();
+
 		mCSUChunks.push_back(chunk);
 
 		outHandle.chunkSlot = chunk->fetchFreeSlotFirstTime();

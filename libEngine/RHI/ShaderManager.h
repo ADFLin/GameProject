@@ -53,9 +53,8 @@ namespace Render
 
 	struct ShaderProgramManagedData : public ShaderManagedDataBase
 	{
-		std::vector< ShaderCompileInfo > compileInfos;
+		std::vector< ShaderCompileDesc > descList;
 		bool           bShowComplieInfo = false;
-		std::string    sourceFile;
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 		virtual void postFileModify(EFileAction action) override;
@@ -63,7 +62,7 @@ namespace Render
 
 	struct ShaderManagedData : public ShaderManagedDataBase
 	{
-		ShaderCompileInfo compileInfo;
+		ShaderCompileDesc desc;
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 		virtual void postFileModify(EFileAction action) override;

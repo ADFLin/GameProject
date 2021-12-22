@@ -41,7 +41,8 @@ namespace Render
 	struct ShaderRootSignature 
 	{
 		D3D12_SHADER_VISIBILITY visibility;
-		int  globalCBRegister = INDEX_NONE;
+		int    globalCBRegister = INDEX_NONE;
+		uint32 globalCBSize = 0;
 		std::vector< D3D12_DESCRIPTOR_RANGE1 >   descRanges;
 		std::vector< D3D12_STATIC_SAMPLER_DESC > samplers;
 		std::vector< ShaderParameterSlotInfo >   slots;
@@ -148,6 +149,21 @@ namespace Render
 			return structInfo.blockName;
 		}
 
+		void initializeParameterMap(TComPtr<IDxcLibrary>& library)
+		{
+			mParameterMap.clear();
+			for (int i = 0; i < mNumShaders; ++i)
+			{
+				auto& shaderData = mShaderDatas[i];
+				ShaderParameterMap parameterMap;
+				D3D12Shader::GenerateParameterMap(shaderData.code, library, parameterMap, shaderData.rootSignature);
+				D3D12Shader::SetupShader(shaderData.rootSignature, shaderData.type);
+				mParameterMap.addShaderParameterMap(i, parameterMap);
+			}
+
+			mParameterMap.finalizeParameterMap();
+		}
+
 		template< class TFunc >
 		void setupShader(ShaderParameter const& parameter, TFunc&& func)
 		{
@@ -162,6 +178,14 @@ namespace Render
 		{
 			delete[] mShaderDatas;
 		}
+
+		void initializeData(int numShaders)
+		{
+			CHECK(mShaderDatas == nullptr);
+			mNumShaders = numShaders;
+			mShaderDatas = new ShaderData[numShaders];
+		}
+
 
 		class D3D12ShaderBoundState* cachedState = nullptr;
 		ShaderPorgramParameterMap mParameterMap;
@@ -181,10 +205,10 @@ namespace Render
 		virtual char const* getName() final { return "hlsl_dxc"; }
 		virtual void setupShaderCompileOption(ShaderCompileOption& option);
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry);
-		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output);
+		virtual bool compileCode(ShaderCompileContext const& context);
 
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode);
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode);
 
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram)
 		{
@@ -204,7 +228,7 @@ namespace Render
 
 
 		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) override;
+		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode) override;
 
 
 		virtual void postShaderLoaded(Shader& shader) override

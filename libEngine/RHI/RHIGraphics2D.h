@@ -116,7 +116,7 @@ public:
 	void  drawPolygon(Vec2i pos[], int num);
 	void  drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize);
 
-	void  fillGradientRect(Vector2 const& posLT, Color3Type const& colorLT,
+	void  drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT,
 		Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
 
@@ -215,9 +215,16 @@ private:
 
 	RenderState   mRenderStateCommitted;
 	RenderState   mRenderStatePending;
-	bool          mbPipelineStateChanged;
-	bool          mbBlendStateChanged;
+	bool          mbPipelineStateNeedCommit;
+	bool          mbScissorRectNeedCommit;
 	Vector2       mCurTextureSize;
+
+	struct Rect 
+	{
+		Vec2i pos;
+		Vec2i size;
+	};
+	Rect      mScissorRect;
 
 	int       mWidth;
 	int       mHeight;

@@ -236,6 +236,18 @@ namespace Render
 		return *element;
 	}
 
+	RenderBachedElement& RenderBachedElementList::addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
+	{
+		TRenderBachedElement<GradientRectPayload>* element = addElement< GradientRectPayload >();
+		element->type = RenderBachedElement::GradientRect;
+		element->payload.posLT = posLT;
+		element->payload.posRB = posRB;
+		element->payload.colorLT = colorLT;
+		element->payload.colorRB = colorRB;
+		element->payload.bHGrad = bHGrad;
+		return *element;
+	}
+
 	void RenderBachedElementList::releaseElements()
 	{
 		for (auto element : mElements)
@@ -268,6 +280,9 @@ namespace Render
 				break;
 			case RenderBachedElement::LineStrip:
 				TypeDataHelper::Destruct< TRenderBachedElement<LineStripPayload> >(element);
+				break;
+			case RenderBachedElement::GradientRect:
+				TypeDataHelper::Destruct< TRenderBachedElement<GradientRectPayload> >(element);
 				break;
 			}
 		}
@@ -492,6 +507,20 @@ namespace Render
 					}
 				}
 				break;
+			case RenderBachedElement::GradientRect:
+				{
+					RenderBachedElementList::GradientRectPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::GradientRectPayload >(element);
+
+					int baseIndex;
+					BaseVertex* pVertices = fetchBaseBuffer(4, baseIndex);
+					pVertices[0] = { element->transform.transformPosition(payload.posLT) , payload.colorLT };
+					pVertices[1] = { element->transform.transformPosition(Vector2(payload.posLT.x, payload.posRB.y)), payload.bHGrad ? payload.colorLT : payload.colorRB };
+					pVertices[2] = { element->transform.transformPosition(payload.posRB), payload.colorRB };
+					pVertices[3] = { element->transform.transformPosition(Vector2(payload.posRB.x, payload.posLT.y)),  payload.bHGrad ? payload.colorRB : payload.colorLT };
+
+					uint32* pIndices = fetchIndexBuffer(6);
+					FillQuad(pIndices, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
+				}
 			}
 		}
 

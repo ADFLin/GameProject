@@ -166,6 +166,8 @@ namespace Render
 			FloatRGBA = RGBA16F,
 		};
 
+		static constexpr int DepthStencilFormatStart = Depth16;
+		static constexpr int DepthStencilFormatEnd = Stencil16;
 		enum Face
 		{
 			FaceX = 0,
@@ -187,6 +189,10 @@ namespace Render
 		static uint32  GetComponentCount(Format format);
 		static EComponentType GetComponentType(Format format);
 
+		static bool IsDepthStencil(Format format)
+		{
+			return DepthStencilFormatStart <= format && format <= DepthStencilFormatEnd;
+		}
 		static bool ContainDepth(Format format)
 		{
 			return format == Depth16 ||
@@ -199,7 +205,8 @@ namespace Render
 		}
 		static bool ContainStencil(Format format)
 		{
-			return format == D24S8 || format == D32FS8 || format == D32FS8 || format == Stencil1 || format == Stencil8 || format == Stencil4 || format == Stencil16;
+			return format == D24S8 || format == D32FS8 || format == D32FS8 || 
+				   format == Stencil1 || format == Stencil8 || format == Stencil4 || format == Stencil16;
 		}
 	};
 
@@ -639,37 +646,41 @@ namespace Render
 
 	struct InputElementDesc
 	{
-		uint16 offset;
-		uint16 instanceStepRate;
-		uint8  streamIndex;
-		uint8  attribute;
-		uint8  format;
-		bool   bNormalized;
-		bool   bIntanceData;
+		union
+		{
+			struct
+			{
+				uint16 offset;
+				uint16 instanceStepRate;
+				uint8  streamIndex;
+				uint8  attribute;
+				uint8  format;
+				uint8  bNormalized : 1;
+				uint8  bIntanceData : 1;
+				uint8  dummy : 6;
+			};
+			uint64 value;
+		};
+		InputElementDesc()
+		{
+			value = 0;
+		}
 
 		bool operator == (InputElementDesc const& rhs) const
 		{
-			return streamIndex == rhs.streamIndex && 
-				   attribute == rhs.attribute &&
-				   format == rhs.format &&
-				   offset == rhs.offset &&
-				   instanceStepRate == rhs.instanceStepRate &&
-				   bNormalized == rhs.bNormalized &&
-				   bIntanceData == rhs.bIntanceData;
+			return value == rhs.value;
 		}
 
 		uint32 getTypeHash() const
 		{
-			uint32 result = HashValue(streamIndex);
-			HashCombine(result, attribute);
-			HashCombine(result, format);
-			HashCombine(result, offset);
-			HashCombine(result, instanceStepRate);
-			HashCombine(result, bNormalized);
-			HashCombine(result, bIntanceData);
-			return result;
+			return HashValue(value);
 		}
-
+		
+		template< class Op >
+		void serialize(Op& op)
+		{
+			op & value;
+		}
 	};
 
 	int constexpr MAX_INPUT_STREAM_NUM = 8;

@@ -96,7 +96,6 @@ void main()
 		return true;
 	}
 
-
 	bool OpenGLShaderProgram::updateShader( bool bLinkShader )
 	{
 		uint32 handle = getHandle();
@@ -113,31 +112,16 @@ void main()
 		if (!FOpenGLShader::CheckProgramStatus(handle, GL_VALIDATE_STATUS, "Can't Validate Program"))
 			return false;
 #endif
-
 		return true;
 	}
 
-	bool OpenGLShaderProgram::setupShaders(ShaderResourceInfo shaders[], int numShaders)
+	void OpenGLShaderProgram::attach(EShader::Type type, OpenGLShaderObject const& shaderObject)
 	{
-		mShaderMask = 0;
-		auto DetachAllShader =  [this]()
-		{
-			GLuint shaders[EShader::Count];
-			GLsizei numShaders = 0;
-			glGetAttachedShaders(getHandle(), ARRAY_SIZE(shaders), &numShaders, shaders);
-			for (int i = 0; i < numShaders; ++i)
-			{
-				glDetachShader(getHandle(), shaders[i]);
-			}
-		};
+		glAttachShader(getHandle(), shaderObject.mHandle);
+	}
 
-		for( int i = 0; i < numShaders; ++i )
-		{
-			assert(shaders[i].formatData);
-			mShaderMask |= BIT(shaders[i].type);
-			glAttachShader(getHandle(), static_cast<OpenGLShaderObject*>(shaders[i].formatData)->mHandle );
-		}
-
+	bool OpenGLShaderProgram::initialize()
+	{
 		if (CVarShaderUseCache)
 		{
 			glProgramParameteri(getHandle(), GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
@@ -145,9 +129,35 @@ void main()
 
 		bool result = updateShader(true);
 
+		auto DetachAllShader = [this]()
+		{
+			GLuint shaders[EShader::MaxStorageSize];
+			GLsizei numShaders = 0;
+			glGetAttachedShaders(getHandle(), ARRAY_SIZE(shaders), &numShaders, shaders);
+			for (int i = 0; i < numShaders; ++i)
+			{
+				glDetachShader(getHandle(), shaders[i]);
+			}
+		};
 		DetachAllShader();
 
 		return result;
+	}
+
+	bool OpenGLShaderProgram::initialize(std::vector<uint8> const& binaryCode)
+	{
+		GLenum format = *(GLenum*)binaryCode.data();
+		glProgramBinary(getHandle(), format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
+		if (!VerifyOpenGLStatus())
+		{
+			return false;
+		}
+		if (!updateShader(false))
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	void OpenGLShaderProgram::bind()
@@ -272,48 +282,45 @@ void main()
 
 	void ShaderFormatGLSL::precompileCode(ShaderProgramSetupData& setupData)
 	{
-		auto data = std::make_unique<GLSLCompileIntermediates>();
-		data->shaders.reserve(setupData.managedData->compileInfos.size());
-		setupData.intermediateData = std::move(data);
 
 	}
+
 	void ShaderFormatGLSL::precompileCode(ShaderSetupData& setupData)
 	{
-		auto data = std::make_unique<GLSLCompileIntermediates>();
-		data->shaders.reserve(1);
-		setupData.intermediateData = std::move(data);
+
 	}
 
-	bool ShaderFormatGLSL::compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output)
+	bool ShaderFormatGLSL::compileCode(ShaderCompileContext const& context)
 	{
 		bool bSuccess;
 		do
 		{
 			bSuccess = false;
-			std::vector< uint8 > codeBuffer;
-			if( !FFileUtility::LoadToBuffer(input.path, codeBuffer, true) )
-				return false;
+
 			int numSourceCodes = 0;
 			char const* sourceCodes[2];
 
-			if( bUsePreprocess )
+			std::vector< uint8 > codeBuffer;
+			if (bUsePreprocess)
 			{
-				if (!preprocessCode(input.path, output.compileInfo, input.definition, input.sourceLibrary, codeBuffer))
+				if (!loadCode(context, codeBuffer))
 					return false;
-
-				sourceCodes[numSourceCodes] = (char const*)codeBuffer.data();
-				++numSourceCodes;
 			}
 			else
 			{
-				if(input.definition)
+				StringView definition = context.getDefinition();
+				if (definition.size())
 				{
-					sourceCodes[numSourceCodes] = input.definition;
+					sourceCodes[numSourceCodes] = definition.data();
 					++numSourceCodes;
 				}
-				sourceCodes[numSourceCodes] = (char const*)codeBuffer.data();
-				++numSourceCodes;
+
+				if (!FFileUtility::LoadToBuffer(context.getPath(), codeBuffer, true))
+					return false;
 			}
+
+			sourceCodes[numSourceCodes] = (char const*)codeBuffer.data();
+			++numSourceCodes;
 
 			auto ProcessCompileError = [&]( GLuint shaderHandle )
 			{
@@ -328,29 +335,41 @@ void main()
 					std::vector< char > buf(maxLength);
 					int logLength = 0;
 					glGetShaderInfoLog(shaderHandle, maxLength, &logLength, &buf[0]);
-					emitCompileError(input , buf.data());
+					emitCompileError(context , buf.data());
 				}
 			};
 
+
 			OpenGLShaderObject shaderObject;
-			bSuccess = shaderObject.compile(input.type, sourceCodes, numSourceCodes);
+			bSuccess = shaderObject.compile(context.getType(), sourceCodes, numSourceCodes);
 
-			if (bSuccess)
+			if (!bSuccess )
 			{
+				if (bUsePreprocess)
+				{
+					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
+				}
+				ProcessCompileError(shaderObject.mHandle);
 
-				GLSLCompileIntermediates* myIntermediates;
-				if (input.programSetupData)
-					myIntermediates = static_cast<GLSLCompileIntermediates*>(input.programSetupData->intermediateData.get());
-				else
-					myIntermediates = static_cast<GLSLCompileIntermediates*>(input.shaderSetupData->intermediateData.get());
-
-				myIntermediates->shaders.push_back(std::move(shaderObject));
-				output.formatData = &myIntermediates->shaders.back();
+				continue;
 			}
 
-			if (!bSuccess && bUsePreprocess)
+			if (context.programSetupData)
 			{
-				ProcessCompileError(shaderObject.mHandle);
+				//If a shader object is deleted while it is attached to a program object, it will be flagged for deletion, 
+				//and deletion will not occur until glDetachShader is called to detach it from all program objects to which it is attached
+				auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*context.programSetupData->resource);
+				shaderProgramImpl.attach(context.getType(), shaderObject);
+			}
+			else
+			{
+				auto* shaderImpl = static_cast<OpenGLShader*>(RHICreateShader(context.getType()));
+				if (!shaderImpl->attach(shaderObject))
+				{
+					LogWarning(0, "Can't create shader resource");
+					return false;
+				}
+				context.shaderSetupData->resource = shaderImpl;
 			}
 
 		} while( !bSuccess && bRecompile );
@@ -361,8 +380,7 @@ void main()
 	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
 		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
-
-		if (!shaderProgramImpl.setupShaders(setupData.shaderResources.data(), setupData.shaderResources.size()))
+		if (!shaderProgramImpl.initialize())
 			return false;
 
 		ShaderParameterMap parameterMap;
@@ -371,26 +389,11 @@ void main()
 		return true;
 	}
 
-	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode)
+	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode)
 	{
 		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
-
-		GLenum format = *(GLenum*)binaryCode.data();
-		glProgramBinary(shaderProgramImpl.getHandle(), format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
-		if (!VerifyOpenGLStatus())
-		{
+		if (!shaderProgramImpl.initialize(binaryCode))
 			return false;
-		}
-		if (!shaderProgramImpl.updateShader(false))
-		{
-			return false;
-		}
-
-		shaderProgramImpl.mShaderMask = 0;
-		for (auto const& info : shaderCompiles)
-		{
-			shaderProgramImpl.mShaderMask |= BIT(info.type);
-		}
 
 		ShaderParameterMap parameterMap;
 		shaderProgramImpl.generateParameterMap(parameterMap);
@@ -403,13 +406,11 @@ void main()
 
 	}
 
-
 	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
 	{
-		shader.mRHIResource = RHICreateShader(setupData.shaderResource.type);
+		shader.mRHIResource = setupData.resource;
+
 		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
-		if (!shaderImpl.attach(*static_cast<OpenGLShaderObject*>(setupData.shaderResource.formatData)))
-			return false;
 
 		ShaderParameterMap parameterMap;
 		shaderImpl.generateParameterMap(parameterMap);
@@ -418,9 +419,9 @@ void main()
 		return true;
 	}
 
-	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode)
+	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode)
 	{
-		shader.mRHIResource = RHICreateShader(shaderCompile.type);
+		shader.mRHIResource = RHICreateShader(desc.type);
 		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
 
 		GLenum format = *(GLenum*)binaryCode.data();

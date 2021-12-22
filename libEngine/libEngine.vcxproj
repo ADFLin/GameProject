@@ -583,7 +583,6 @@
     <ClInclude Include="SortFunction.h" />
     <ClInclude Include="StackParam.h" />
     <ClInclude Include="StdUtility.h" />
-    <ClInclude Include="StreamBuffer.h" />
     <ClInclude Include="StringParse.h" />
     <ClInclude Include="SystemMessage.h" />
     <ClInclude Include="SystemPlatform.h" />

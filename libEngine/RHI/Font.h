@@ -87,6 +87,7 @@ namespace Render
 		~ICharDataProvider() {}
 		virtual bool getCharData(uint32 charWord, CharImageData& data) = 0;
 		virtual int  getFontHeight() const = 0;
+		virtual void getKerningPairs(std::unordered_map< uint32 , float >& outKerningMap ) const = 0;
 
 		static ICharDataProvider* Create(FontFaceInfo const& fontFace);
 	};
@@ -117,7 +118,19 @@ namespace Render
 		{
 			return mFontHeight;
 		}
+
+		bool getKerningPair(uint32 charA, uint32 charB, float& outKerning)
+		{
+			uint32 key = (uint32(charA) << 16) | uint32(charB);
+			auto iter = mKerningPairMap.find(key);
+			if (iter == mKerningPairMap.end())
+				return false;
+
+			outKerning = iter->second;
+			return true;
+		}
 		int mFontHeight;
+		std::unordered_map< uint32, float > mKerningPairMap;
 		ICharDataProvider* mProvider;
 		TextureAtlas* mUsedTextAtlas;
 		std::unordered_map< uint32, CharData > mCharMap;
@@ -166,7 +179,6 @@ namespace Render
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
 		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, std::vector< FontVertex > const& buffer);
 
-		int  getSize() const { return mSize; }
 		int  getFontHeight() const { return mCharDataSet->getFontHeight(); }
 		Vector2 calcTextExtent(wchar_t const* str);
 
@@ -176,13 +188,11 @@ namespace Render
 			return mCharDataSet->getTexture();
 		}
 
-
 	private:
 		void drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
 	
 	public:
 		CharDataSet* mCharDataSet;
-		int     mSize;
 	};
 
 

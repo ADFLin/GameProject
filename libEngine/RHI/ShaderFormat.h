@@ -30,7 +30,7 @@ namespace Render
 
 	};
 
-	struct ShaderCompileInfo
+	struct ShaderCompileDesc
 	{
 		HashString   filePath;
 		EShader::Type type;
@@ -40,14 +40,14 @@ namespace Render
 		std::string  entryName;
 
 		template< class S1 , class S2 >
-		ShaderCompileInfo(EShader::Type inType, HashString inFilePath, S1&& inCode , S2&& inEntryName )
+		ShaderCompileDesc(EShader::Type inType, HashString inFilePath, S1&& inCode , S2&& inEntryName )
 			:filePath(inFilePath), type(inType)
 			,headCode(std::forward<S1>(inCode))
 			,entryName(std::forward<S2>(inEntryName))
 		{
 		}
 
-		ShaderCompileInfo() {}
+		ShaderCompileDesc() {}
 	};
 
 	class ShaderCompileIntermediates
@@ -56,54 +56,52 @@ namespace Render
 		virtual ~ShaderCompileIntermediates() {}
 	};
 
-	struct ShaderCompileInput
+	struct ShaderResourceInfo
 	{
 		EShader::Type type;
-		char const* path;
-		char const* entry;
-		char const* definition;
+		void*        formatData;
+	};
 
+
+	struct ShaderProgramSetupData
+	{
+		RHIShaderProgramRef       resource;
+		ShaderProgramManagedData* managedData;
+
+		int getShaderCount() const;
+
+		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
+	};
+
+	struct ShaderSetupData
+	{
+		RHIShaderRef         resource;
+		ShaderManagedData*   managedData;
+
+		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
+		ShaderResourceInfo   shaderResource;
+	};
+
+	struct ShaderCompileContext
+	{
+		int shaderIndex;
+		ShaderCompileDesc* desc;
+		EShader::Type getType() const { return desc->type; }
+		char const* getPath() const { return desc->filePath.c_str(); }
+		char const* getEntry() const {  return desc->entryName.c_str();  }
+		StringView  getDefinition() const { return desc->headCode; }
+		
 		CPP::CodeSourceLibrary* sourceLibrary;
 
-		struct ShaderProgramSetupData* programSetupData;
-		struct ShaderSetupData* shaderSetupData;
+		ShaderProgramSetupData* programSetupData;
+		ShaderSetupData* shaderSetupData;
 
-		ShaderCompileInput()
+		ShaderCompileContext()
 		{
 			programSetupData = nullptr;
 			shaderSetupData = nullptr;
 			sourceLibrary = nullptr;
 		}
-	};
-
-	struct ShaderCompileOutput
-	{
-		RHIShaderRef resource;
-		ShaderCompileInfo* compileInfo;
-		void*   formatData;
-	};
-
-	struct ShaderResourceInfo
-	{
-		EShader::Type type;
-		RHIShaderRef resource;
-		char const*  entry;
-		void*        formatData;
-	};
-
-	struct ShaderProgramSetupData
-	{
-		int numShaders;
-		ShaderProgramManagedData*      managedData;
-		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
-		std::vector< ShaderResourceInfo > shaderResources;
-	};
-
-	struct ShaderSetupData
-	{
-		ShaderManagedData*   managedData;
-		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
-		ShaderResourceInfo   shaderResource;
 	};
 
 	struct ShaderPreprocessSettings
@@ -122,18 +120,18 @@ namespace Render
 
 		virtual char const* getName() = 0;
 
-		virtual void setupShaderCompileOption(ShaderCompileOption& option) = 0;
+		virtual void setupShaderCompileOption(ShaderCompileOption& context) = 0;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) = 0;
 
-		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) = 0;
+		virtual bool compileCode(ShaderCompileContext const& context) = 0;
 		virtual void precompileCode(ShaderProgramSetupData& setupData){}
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) = 0;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) = 0;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode) = 0;
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram){}
 		
 		virtual void precompileCode(ShaderSetupData& setupData) {}
 		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) { return false; }
-		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) { return false; }
+		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode) { return false; }
 		virtual void postShaderLoaded(Shader& shader) {}
 
 		virtual bool doesSuppurtBinaryCode() const { return false; }
@@ -143,14 +141,15 @@ namespace Render
 			return false;
 		}
 
-		bool preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes );
+		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes );
+		bool loadCode(ShaderCompileContext const& context, std::vector<uint8>& outCodes);
 
 		virtual ShaderPreprocessSettings getPreprocessSettings()
 		{
 			return ShaderPreprocessSettings();
 		}
 
-		void emitCompileError(ShaderCompileInput const& input, char const* errorCode);
+		void emitCompileError(ShaderCompileContext const& context, char const* errorCode);
 		static void OutputError(char const* title, char const* text);
 		
 

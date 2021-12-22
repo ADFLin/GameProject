@@ -87,10 +87,15 @@ namespace Render
 	public:
 		bool    create();
 
+		void    attach(EShader::Type type, OpenGLShaderObject const& shaderObject);
+		bool    initialize();
+		bool    initialize( std::vector<uint8> const& binaryCode);
+
 		bool    updateShader(bool bLinkShader = true);
+		
 		void    bind();
 		void    unbind();
-		virtual bool setupShaders(ShaderResourceInfo shaders[], int numShaders);
+
 
 		virtual bool  getParameter(char const* name, ShaderParameter& outParameter)
 		{
@@ -106,7 +111,6 @@ namespace Render
 		{
 			FOpenGLShader::GenerateParameterMap(getHandle(), parameterMap);
 		}
-		uint32 mShaderMask;
 	};
 
 	class ShaderFormatGLSL : public ShaderFormat
@@ -119,16 +123,16 @@ namespace Render
 		virtual char const* getName() final { return "glsl"; }
 		virtual void setupShaderCompileOption(ShaderCompileOption& option) final;
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
-		virtual bool compileCode(ShaderCompileInput const& input, ShaderCompileOutput& output) final;
+		virtual bool compileCode(ShaderCompileContext const& context);
 
 		virtual void precompileCode(ShaderProgramSetupData& setupData) final;
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileInfo > const& shaderCompiles, std::vector<uint8> const& binaryCode) final;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode) final;
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
 
 		virtual void precompileCode(ShaderSetupData& setupData) final;
 		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileInfo const& shaderCompile, std::vector<uint8> const& binaryCode) override;
+		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode) override;
 		virtual void postShaderLoaded(Shader& shader) final;
 
 		virtual bool doesSuppurtBinaryCode() const final;

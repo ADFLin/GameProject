@@ -805,17 +805,17 @@ namespace Render
 
 		void releaseResource() override;
 
+
 		bool haveAttribute(uint8 attribute) const
 		{
 			return !!(mAttriableMask & BIT(attribute));
 		}
-
-		ID3D11InputLayout* GetShaderLayout( ID3D11Device* device , RHIShader* shader);
+		ID3D11InputLayout* getShaderLayout(ID3D11Device* device, RHIResource* resource, std::vector< uint8 > const& shaderByteCode);
 
 		std::vector< D3D11_INPUT_ELEMENT_DESC > mDescList;
 		uint32 mAttriableMask;
 		ID3D11InputLayout* mUniversalResource;
-		std::unordered_map< RHIShader*, ID3D11InputLayout* > mResourceMap;
+		std::unordered_map< RHIResource*, ID3D11InputLayout* > mResourceMap;
 	};
 
 

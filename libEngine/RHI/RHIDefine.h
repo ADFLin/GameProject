@@ -191,6 +191,12 @@ namespace Render
 			Task = 6,
 			Mesh = 7,
 
+#if 0
+			RayGen = 8,
+			RayHit = 9,
+			RayMiss = 10,
+#endif
+
 			Count,
 			
 			Empty = -1,
@@ -198,7 +204,6 @@ namespace Render
 
 		constexpr int  MaxStorageSize = 5;
 	};
-
 
 	enum class EFrontFace
 	{

@@ -16,7 +16,8 @@ void FCString::Stricpy(char * dest, char const* src)
 	}
 }
 
-uint32 FCString::StriHash(char const* str)
+template< class CharT >
+uint32 FCString::StriHash(CharT const* str)
 {
 	uint32 result = 5381;
 	while( *str )
@@ -28,7 +29,8 @@ uint32 FCString::StriHash(char const* str)
 	return result;
 }
 
-uint32 FCString::StriHash(char const* str, int len)
+template< class CharT >
+uint32 FCString::StriHash(CharT const* str, int len)
 {
 	uint32 result = 5381;
 	while( len )
@@ -41,7 +43,8 @@ uint32 FCString::StriHash(char const* str, int len)
 	return result;
 }
 
-uint32 FCString::StrHash(char const* str)
+template< class CharT >
+uint32 FCString::StrHash(CharT const* str)
 {
 	uint32 result = 5381;
 	while (*str)
@@ -53,7 +56,8 @@ uint32 FCString::StrHash(char const* str)
 	return result;
 }
 
-uint32 FCString::StrHash(char const* str, int len)
+template< class CharT >
+uint32 FCString::StrHash(CharT const* str, int len)
 {
 	uint32 result = 5381;
 	while (len)
@@ -105,7 +109,11 @@ CharT const* FCString::FindChar(CharT const* str, CharT c)
 }
 
 #define FUNCTION_LIST( CharT )\
-	template CharT const* FCString::FindChar<CharT>(CharT const* str, CharT c);
+	template CharT const* FCString::FindChar<CharT>(CharT const* str, CharT c);\
+	template uint32 FCString::StriHash<CharT>(CharT const* str);\
+	template uint32 FCString::StriHash<CharT>(CharT const* str, int len);\
+	template uint32 FCString::StrHash<CharT>(CharT const* str);\
+	template uint32 FCString::StrHash<CharT>(CharT const* str, int len);\
 
 
 FUNCTION_LIST(char)

@@ -290,25 +290,24 @@ namespace Render
 		mUniversalResource = nullptr;
 	}
 
-	ID3D11InputLayout* D3D11InputLayout::GetShaderLayout(ID3D11Device* device, RHIShader* shader)
+	ID3D11InputLayout* D3D11InputLayout::getShaderLayout(ID3D11Device* device, RHIResource* resource , std::vector< uint8 > const& shaderByteCode)
 	{
-		auto iter = mResourceMap.find(shader);
+		auto iter = mResourceMap.find(resource);
 		if (iter != mResourceMap.end())
 		{
 			return iter->second;
 		}
 
 		ID3D11InputLayout* inputLayoutResource = nullptr;
-		std::vector< uint8 > const& byteCode = static_cast<D3D11Shader*>(shader)->byteCode;
-		HRESULT hr = device->CreateInputLayout(mDescList.data(), mDescList.size(), byteCode.data(), byteCode.size(), &inputLayoutResource);
+		HRESULT hr = device->CreateInputLayout(mDescList.data(), mDescList.size(), shaderByteCode.data(), shaderByteCode.size(), &inputLayoutResource);
 		if (hr != S_OK)
 		{
 			LogWarning(0 , "Can't create D3D11InputLayout , code = %d" , hr );
 			mUniversalResource->AddRef();
-			mResourceMap.insert(std::make_pair(shader, mUniversalResource));
+			mResourceMap.insert(std::make_pair(resource, mUniversalResource));
 			return mUniversalResource;
 		}
-		mResourceMap.insert(std::make_pair(shader, inputLayoutResource));
+		mResourceMap.insert(std::make_pair(resource, inputLayoutResource));
 		return inputLayoutResource;
 	}
 

@@ -16,7 +16,7 @@ PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_CO
 
 	//result.position = position + float4(0.2 * intanceId, 0, 0, 0);
 
-	float3 pos = position + float3(Values.x * intanceId, 0, 0);
+	float3 pos = position + float3(Values.x * intanceId, 0, -0.1 * intanceId);
 	result.position = mul( View.worldToClip , float4(pos, 1) );
 	result.color = color;
 	result.uv = uv;
@@ -33,7 +33,7 @@ float4 MainPS(PSInput input) : SV_TARGET0
 {
 	float4 tc = TEXTURE_SAMPLE(BaseTexture , input.uv);
 	float4 tc1 = TEXTURE_SAMPLE(BaseTexture1, input.uv);
-	float4 color = float4(tc.r,tc1.r, 0, 1);
+	float4 color = float4(tc.r,tc1.r, 1, 1);
 	return float4(color.rgb, 1);
 }
 

@@ -1,5 +1,7 @@
 #include "ShaderFormat.h"
 
+#include "ShaderManager.h"
+
 #include "CPreprocessor.h"
 #include "FileSystem.h"
 
@@ -7,20 +9,18 @@
 #include "ProfileSystem.h"
 #include "InlineString.h"
 
-
 namespace Render
 {
-	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileInfo* compileInfo, char const* def, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes)
+	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes)
 	{
 		TimeScope scope("PreprocessCode");
 
 		CPP::CodeSource source;
 
-		if (def)
+		if (definition.size())
 		{
-			int len = strlen(def);
-			source.appendString(StringView(def, len));
-			source.lineOffset = -FStringParse::CountChar(def, def + len + 1, '\n');
+			source.appendString(definition);
+			source.lineOffset = -FStringParse::CountChar(definition.data(), definition.data() + definition.size() + 1, '\n');
 		}
 		source.appendString( StringView((char const*)inoutCodes.data() , inoutCodes.size() ));
 		source.filePath = path;
@@ -57,9 +57,9 @@ namespace Render
 			return false;
 		}
 
-		if (compileInfo)
+		if (compileDesc)
 		{
-			preprocessor.getUsedIncludeFiles(compileInfo->includeFiles);
+			preprocessor.getUsedIncludeFiles(compileDesc->includeFiles);
 		}
 #if 1
 		inoutCodes.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
@@ -74,8 +74,11 @@ namespace Render
 			FFileSystem::CreateDirectory("ShaderOutput");
 			std::string outputPath = "ShaderOutput/";
 			outputPath += FFileUtility::GetBaseFileName(path).toCString();
-			outputPath += "_";
-			outputPath += compileInfo->entryName.c_str();
+			if ( compileDesc )
+			{
+				outputPath += "_";
+				outputPath += compileDesc->entryName.c_str();
+			}
 			outputPath += "_";
 			outputPath += getName();
 			outputPath += SHADER_FILE_SUBNAME;
@@ -84,13 +87,42 @@ namespace Render
 		return true;
 	}
 
+	bool ShaderFormat::loadCode(ShaderCompileContext const& context, std::vector<uint8>& outCodes)
+	{
+		if (bUsePreprocess)
+		{
+			if (!FFileUtility::LoadToBuffer(context.getPath(), outCodes, true))
+			{
+				LogWarning(0, "Can't load shader file %s", context.getPath());
+				return false;
+			}
+			return preprocessCode(context.getPath(), context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes);
+		}
+		else
+		{
+			StringView definition = context.getDefinition();
+			if (definition.size())
+			{
+				outCodes.resize(definition.size());
+				outCodes.assign(definition.data(), definition.data() + definition.size());
+			}
 
-	void ShaderFormat::emitCompileError(ShaderCompileInput const& input, char const* errorCode)
+			if (!FFileUtility::LoadToBuffer(context.getPath(), outCodes, true, true))
+			{
+				LogWarning(0, "Can't load shader file %s", context.getPath());
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	void ShaderFormat::emitCompileError(ShaderCompileContext const& context, char const* errorCode)
 	{
 		std::string title;
-		title += FFileUtility::GetBaseFileName(input.path).toCString();
+		title += FFileUtility::GetBaseFileName(context.getPath()).toCString();
 		title += "_";
-		title += input.entry;
+		title += context.getEntry();
 		title += "_";
 		title += getName();
 		title += SHADER_FILE_SUBNAME;
@@ -103,6 +135,11 @@ namespace Render
 #if SYS_PLATFORM_WIN
 		::MessageBoxA(NULL, text, (title) ? InlineString<256>::Make("Shader Compile Error : %s", title ).c_str() :"Shader Compile Error" , 0);
 #endif
+	}
+
+	int ShaderProgramSetupData::getShaderCount() const
+	{
+		return managedData->descList.size();
 	}
 
 }//namespace Render

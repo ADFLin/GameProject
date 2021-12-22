@@ -68,32 +68,31 @@ namespace Render
 			TComPtr< ID3D11Query > endQuery;
 			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
 
-			uint32 result = mStartQueries.size();
-			mStartQueries.push_back(std::move(startQuery));
-			mEndQueries.push_back(std::move(endQuery));
+			uint32 result = mSamples.size();
+			mSamples.emplace_back(std::move(startQuery), std::move(endQuery));
 			return result;
 		}
 
 		virtual void startTiming(uint32 timingHandle) override
 		{
-			mDeviceContext->End(mStartQueries[timingHandle]);
-			mDeviceContext->End(mEndQueries[timingHandle]);
+			mDeviceContext->End(mSamples[timingHandle].startQeury);
 		}
 
 		virtual void endTiming(uint32 timingHandle) override
 		{
-			mDeviceContext->End(mEndQueries[timingHandle]);
+			mDeviceContext->End(mSamples[timingHandle].endQuery);
 		}
 
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
 		{
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(mStartQueries[timingHandle], NULL, 0, 0));
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(mEndQueries[timingHandle], NULL, 0, 0));
+			Sample& sample = mSamples[timingHandle];
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(sample.startQeury, NULL, 0, 0));
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(sample.endQuery, NULL, 0, 0));
 
 			UINT64 startData;
-			mDeviceContext->GetData(mStartQueries[timingHandle], &startData, sizeof(startData), 0);
+			mDeviceContext->GetData(sample.startQeury, &startData, sizeof(startData), 0);
 			UINT64 endData;
-			mDeviceContext->GetData(mEndQueries[timingHandle], &endData, sizeof(endData), 0);
+			mDeviceContext->GetData(sample.endQuery, &endData, sizeof(endData), 0);
 			outDuration = endData - startData;
 			return true;
 		}
@@ -121,8 +120,7 @@ namespace Render
 		virtual void releaseRHI() override
 		{
 			mQueryDisjoint.reset();
-			mStartQueries.clear();
-			mEndQueries.clear();
+			mSamples.clear();
 			mDeviceContext.reset();
 			mDevice.reset();
 		}
@@ -130,8 +128,17 @@ namespace Render
 
 		TComPtr< ID3D11Query > mQueryDisjoint;
 
-		std::vector< TComPtr< ID3D11Query > > mStartQueries;
-		std::vector< TComPtr< ID3D11Query > > mEndQueries;
+		struct Sample
+		{
+			TComPtr< ID3D11Query > startQeury;
+			TComPtr< ID3D11Query > endQuery;
+
+			Sample(TComPtr< ID3D11Query >&& startQeury, TComPtr< ID3D11Query >&& endQuery)
+				:startQeury(startQeury), endQuery(endQuery)
+			{
+			}
+		};
+		std::vector< Sample > mSamples;
 
 		TComPtr<ID3D11DeviceContext> mDeviceContext;
 		TComPtr<ID3D11Device> mDevice;
@@ -1842,7 +1849,7 @@ namespace Render
 
 		if (mInputLayout && mVertexShader)
 		{
-			mDeviceContext->IASetInputLayout(static_cast<D3D11InputLayout*>(mInputLayout)->GetShaderLayout(mDevice, mVertexShader));
+			mDeviceContext->IASetInputLayout(static_cast<D3D11InputLayout*>(mInputLayout)->getShaderLayout(mDevice, mVertexShader, *mVertexShaderByteCode));
 		}
 	}
 
@@ -1890,12 +1897,12 @@ namespace Render
 
 			if (shaderProgramImpl.mNumShaders == 1 )
 			{
-				auto& shader = *shaderProgramImpl.mShaders[0];
-				if (shader.mResource.type == EShader::Compute)
+				auto& shaderData = shaderProgramImpl.mShaderDatas[0];
+				if (shaderData.type == EShader::Compute)
 				{
-					if (mBoundedShaders[EShader::Compute].resource != shader.mResource.ptr)
+					if (mBoundedShaders[EShader::Compute].resource != shaderData.ptr)
 					{
-						mBoundedShaders[EShader::Compute].resource = shader.mResource.ptr;
+						mBoundedShaders[EShader::Compute].resource = shaderData.ptr;
 						mBoundedShaderDirtyMask |= BIT(EShader::Compute);
 					}
 					return;
@@ -1905,22 +1912,20 @@ namespace Render
 			uint32 setupMask = 0;
 			for( int i = 0; i < shaderProgramImpl.mNumShaders; ++i )
 			{
-				if( !shaderProgramImpl.mShaders[i].isValid() )
-					break;
-
-				auto& shader = *shaderProgramImpl.mShaders[i];
-				EShader::Type type = shader.mResource.type;
+				auto& shaderData = shaderProgramImpl.mShaderDatas[i];
+				EShader::Type type = shaderData.type;
 
 				if (type == EShader::Vertex)
 				{
-					mVertexShader = &shader;
+					mVertexShader = &shaderProgramImpl;
+					mVertexShaderByteCode = &shaderProgramImpl.vertexByteCode;
 				}
 
 				setupMask |= BIT(type);
 				mBoundedShaderMask |= BIT(type);
-				if( mBoundedShaders[type].resource != shader.mResource.ptr )
+				if (mBoundedShaders[type].resource = shaderData.ptr)
 				{
-					mBoundedShaders[type].resource = shader.mResource.ptr;
+					mBoundedShaders[type].resource = shaderData.ptr;
 					mBoundedShaderDirtyMask |= BIT(type);
 				}
 			}
@@ -1965,7 +1970,12 @@ namespace Render
 			}
 		};
 
+
 		mVertexShader = stateDesc.vertex;
+		if (mVertexShader)
+		{
+			mVertexShaderByteCode = &static_cast<D3D11Shader*>(mVertexShader)->byteCode;
+		}
 
 		SetupShader(EShader::Vertex, stateDesc.vertex);
 		SetupShader(EShader::Pixel, stateDesc.pixel);

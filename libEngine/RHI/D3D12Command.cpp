@@ -306,9 +306,10 @@ namespace Render
 
 	void D3D12System::shutdown()
 	{
-		mSwapChain->release();
+		cleanupPipelineState();
+		cleanupShaderBoundState();
 
-		releaseShaderBoundState();
+		mSwapChain->release();
 
 		D3D12DescriptorHeapPool::Get().releaseRHI();
 	}
@@ -1033,7 +1034,11 @@ namespace Render
 			auto shaderImpl = static_cast<D3D12Shader*>(shader);
 			return addShaderData(shaderImpl->getType(), *shaderImpl);
 		}
-
+		bool addShader(RHIShader& shader)
+		{
+			auto& shaderImpl = static_cast<D3D12Shader&>(shader);
+			return addShaderData(shaderImpl.getType(), shaderImpl);
+		}
 
 		bool addShaderData(D3D12ShaderProgram::ShaderData& shaderData)
 		{
@@ -1102,7 +1107,7 @@ namespace Render
 
 	D3D12ShaderBoundState* D3D12System::getShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
 	{
-		D3D12ShaderBoundStateKey key;
+		ShaderBoundStateKey key;
 		key.initialize(stateDesc);
 		auto iter = mShaderBoundStateMap.find(key);
 		if (iter != mShaderBoundStateMap.end())
@@ -1141,7 +1146,7 @@ namespace Render
 
 	D3D12ShaderBoundState* D3D12System::getShaderBoundState(MeshShaderStateDesc const& stateDesc)
 	{
-		D3D12ShaderBoundStateKey key;
+		ShaderBoundStateKey key;
 		key.initialize(stateDesc);
 		auto iter = mShaderBoundStateMap.find(key);
 		if (iter != mShaderBoundStateMap.end())
@@ -1171,9 +1176,9 @@ namespace Render
 		return result;
 	}
 
-	D3D12ShaderBoundState* D3D12System::getShaderBoundState(D3D12ShaderProgram* shaderProgram)
+	D3D12ShaderBoundState* D3D12System::getShaderBoundState(D3D12ShaderProgram& shaderProgram)
 	{
-		D3D12ShaderBoundStateKey key;
+		ShaderBoundStateKey key;
 		key.initialize(shaderProgram);
 		auto iter = mShaderBoundStateMap.find(key);
 		if (iter != mShaderBoundStateMap.end())
@@ -1182,11 +1187,11 @@ namespace Render
 		}
 
 		D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-		auto FindShaderTypeMask = [shaderProgram](uint32 shaderMasks) -> uint32
+		auto FindShaderTypeMask = [&shaderProgram](uint32 shaderMasks) -> uint32
 		{
-			for (int i = 0; i < shaderProgram->mNumShaders; ++i)
+			for (int i = 0; i < shaderProgram.mNumShaders; ++i)
 			{
-				uint32 mask = BIT(shaderProgram->mShaderDatas[i].type);
+				uint32 mask = BIT(shaderProgram.mShaderDatas[i].type);
 				if (shaderMasks & mask)
 					return mask;
 			}
@@ -1197,12 +1202,12 @@ namespace Render
 		auto specialShaderTypeMask = FindShaderTypeMask(BIT(EShader::Mesh) | BIT(EShader::Compute));
 		if (specialShaderTypeMask & BIT(EShader::Compute))
 		{
-			CHECK(shaderProgram->mNumShaders == 1);
+			CHECK(shaderProgram.mNumShaders == 1);
 
 		}
 		else if (specialShaderTypeMask & BIT(EShader::Mesh))
 		{
-			CHECK(shaderProgram->mNumShaders <= 3);
+			CHECK(shaderProgram.mNumShaders <= 3);
 		}
 		else
 		{
@@ -1211,9 +1216,9 @@ namespace Render
 		}
 
 		ShaderStateSetup stateSetup;
-		for (int i = 0; i < shaderProgram->mNumShaders; ++i)
+		for (int i = 0; i < shaderProgram.mNumShaders; ++i)
 		{
-			auto& shaderData = shaderProgram->mShaderDatas[i];
+			auto& shaderData = shaderProgram.mShaderDatas[i];
 			if (!stateSetup.addShaderData(shaderData))
 			{
 				switch (shaderData.type)
@@ -1238,9 +1243,9 @@ namespace Render
 		return result;
 	}
 
-	D3D12ShaderBoundState* D3D12System::getShaderBoundState(RHIShader* computeShader)
+	D3D12ShaderBoundState* D3D12System::getShaderBoundState(RHIShader& computeShader)
 	{
-		D3D12ShaderBoundStateKey key;
+		ShaderBoundStateKey key;
 		key.initialize(computeShader);
 		auto iter = mShaderBoundStateMap.find(key);
 		if (iter != mShaderBoundStateMap.end())
@@ -1248,14 +1253,11 @@ namespace Render
 			return iter->second;
 		}
 
-
 		D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-
 		ShaderStateSetup stateSetup;
-
 		if (!stateSetup.addShader(computeShader))
 		{
-			return nullptr;
+
 		}
 
 		if (!stateSetup.createRootSignature(mDevice, flags))
@@ -1330,10 +1332,8 @@ namespace Render
 
 	D3D12PipelineState* D3D12System::getPipelineState(GraphicsRenderStateDesc const& renderState, D3D12ShaderBoundState* boundState, D3D12RenderTargetsState* renderTargetsState)
 	{
-
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12Translate::ToTopologyType(renderState.primitiveType);
 		D3D12PipelineStateKey key;
-		key.initialize(renderState, boundState, renderTargetsState, topologyType);
+		key.initialize(renderState, boundState, renderTargetsState);
 		auto iter = mPipelineStateMap.find(key);
 		if (iter != mPipelineStateMap.end())
 		{
@@ -1396,9 +1396,8 @@ namespace Render
 		};
 
 		auto& streamDesc = stateStream.addDataT< FixedPipelineStateStream >();
-
 		streamDesc.pRootSignature = boundState->mRootSignature;
-		streamDesc.PrimitiveTopologyType = topologyType;
+		streamDesc.PrimitiveTopologyType = D3D12Translate::ToTopologyType(renderState.primitiveType);
 
 
 		TComPtr<ID3D12PipelineState> resource;
@@ -2030,7 +2029,7 @@ namespace Render
 	{
 		if (shader)
 		{
-			auto newState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(shader);
+			auto newState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(*shader);
 			setShaderBoundState(newState);
 		}
 		else
@@ -2051,7 +2050,7 @@ namespace Render
 
 		if (shaderProgramImpl->cachedState == nullptr)
 		{
-			shaderProgramImpl->cachedState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(shaderProgramImpl);
+			shaderProgramImpl->cachedState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(*shaderProgramImpl);
 		}
 
 		setShaderBoundState(shaderProgramImpl->cachedState);
@@ -2341,7 +2340,7 @@ namespace Render
 				D3D12InputLayout* inputLayoutImpl = static_cast<D3D12InputLayout*>(mInputLayoutPending.get());
 				SimplePipelineProgram* program = SimplePipelineProgram::Get(inputLayoutImpl->mAttriableMask, mFixedShaderParams.texture);
 
-				RHISetShaderProgram(program->getRHIResource());
+				RHISetShaderProgram(program->getRHI());
 				program->setParameters(RHICommandListImpl(*this), mFixedShaderParams);
 			}
 		}
@@ -2508,7 +2507,7 @@ namespace Render
 		return true;
 	}
 
-	void D3D12PipelineStateKey::initialize(GraphicsRenderStateDesc const& renderState, D3D12ShaderBoundState* boundState, D3D12RenderTargetsState* renderTargetsState, D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType)
+	void D3D12PipelineStateKey::initialize(GraphicsRenderStateDesc const& renderState, D3D12ShaderBoundState* boundState, D3D12RenderTargetsState* renderTargetsState)
 	{
 		boundStateKey = boundState->cachedKey;
 		rasterizerID = renderState.rasterizerState ? renderState.rasterizerState->mGUID : 0;
@@ -2518,7 +2517,7 @@ namespace Render
 		renderTargetFormatID = renderTargetsState->formatGUID;
 
 		inputLayoutID = renderState.inputLayout ? renderState.inputLayout->mGUID : 0;
-		topologyType = topologyType;
+		primitiveType = (uint32)renderState.primitiveType;
 	}
 
 	void D3D12PipelineStateKey::initialize(MeshRenderStateDesc const& renderState, D3D12ShaderBoundState* boundState, D3D12RenderTargetsState* renderTargetsState)
@@ -2531,7 +2530,7 @@ namespace Render
 		renderTargetFormatID = renderTargetsState->formatGUID;
 
 		inputLayoutID = 0;
-		topologyType = 0;
+		primitiveType = 0;
 	}
 
 	void D3D12PipelineStateKey::initialize(D3D12ShaderBoundState* boundState)

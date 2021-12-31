@@ -61,71 +61,6 @@ namespace Render
 		}
 	};
 
-	class OpenGLShaderBoundStateKey
-	{
-	public:
-		OpenGLShaderBoundStateKey(GraphicsShaderStateDesc const& stateDesc)
-		{
-			hash = 0x12362dc1;
-			numShaders = 0;
-			auto CheckShader = [&](void* shader, GLbitfield stageBit)
-			{
-				if (shader)
-				{
-					HashCombine(hash, shader);
-					stageMask |= stageBit;
-					shaders[numShaders] = shader;
-					++numShaders;
-				}
-			};
-			CheckShader(stateDesc.vertex, GL_VERTEX_SHADER_BIT);
-			CheckShader(stateDesc.pixel, GL_FRAGMENT_SHADER_BIT);
-			CheckShader(stateDesc.geometry, GL_GEOMETRY_SHADER_BIT);
-			CheckShader(stateDesc.hull, GL_TESS_CONTROL_SHADER_BIT);
-			CheckShader(stateDesc.domain, GL_TESS_EVALUATION_SHADER_BIT);
-		}
-
-		OpenGLShaderBoundStateKey(MeshShaderStateDesc const& stateDesc)
-		{
-			hash = 0x12dc3621;
-			numShaders = 0;
-			auto CheckShader = [&](void* shader, GLbitfield stageBit)
-			{
-				if (shader)
-				{
-					HashCombine(hash, shader);
-					stageMask |= stageBit;
-					shaders[numShaders] = shader;
-					++numShaders;
-				}
-			};
-
-			CheckShader(stateDesc.task, GL_TASK_SHADER_BIT_NV);
-			CheckShader(stateDesc.mesh, GL_MESH_SHADER_BIT_NV);
-			CheckShader(stateDesc.pixel, GL_FRAGMENT_SHADER_BIT);
-		}
-		uint32     hash;
-		GLbitfield stageMask;
-		void*      shaders[EShader::MaxStorageSize];
-		int        numShaders;
-
-		bool operator == (OpenGLShaderBoundStateKey const& rhs) const
-		{
-			if (numShaders != rhs.numShaders)
-				return false;
-
-			for (int i = 0; i < numShaders; ++i)
-			{
-				if (shaders[i] != rhs.shaders[i])
-					return false;
-			}
-
-			return true;
-		}
-
-		uint32 getTypeHash() const { return hash; }
-	};
-
 	struct RMPProgramPipeline
 	{
 		static void Create(GLuint& handle) { glGenProgramPipelines(1, &handle); }
@@ -486,7 +421,7 @@ namespace Render
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 		class OpenglProfileCore* mProfileCore = nullptr;
 
-		std::unordered_map< OpenGLShaderBoundStateKey, OpenGLShaderBoundState , MemberFuncHasher > mGfxBoundStateMap;
+		std::unordered_map< ShaderBoundStateKey, OpenGLShaderBoundState , MemberFuncHasher > mGfxBoundStateMap;
 
 		OpenGLShaderBoundState* getShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		OpenGLShaderBoundState* getShaderBoundState(MeshShaderStateDesc const& stateDesc);

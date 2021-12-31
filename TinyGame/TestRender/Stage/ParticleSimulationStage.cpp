@@ -514,14 +514,14 @@ namespace Render
 
 		void initParticleData(RHICommandList& commandList)
 		{
-			RHISetShaderProgram(commandList, mProgInit->getRHIResource());
+			RHISetShaderProgram(commandList, mProgInit->getRHI());
 			mProgInit->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer);
 			RHIDispatchCompute(commandList, mParticleBuffer.getElementNum(), 1, 1);
 		}
 
 		void updateParticleData(RHICommandList& commandList, float dt)
 		{
-			RHISetShaderProgram(commandList, mProgUpdate->getRHIResource());
+			RHISetShaderProgram(commandList, mProgUpdate->getRHI());
 			mProgUpdate->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
 			mProgUpdate->setStructuredUniformBufferT<CollisionPrimitive>(commandList, *mCollisionPrimitiveBuffer.getRHI());
 			RHIDispatchCompute(commandList, mParticleBuffer.getElementNum(), 1, 1);
@@ -667,7 +667,7 @@ namespace Render
 		{
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-			RHISetShaderProgram(commandList, mProgSphere->getRHIResource());
+			RHISetShaderProgram(commandList, mProgSphere->getRHI());
 			mView.setupShader(commandList, *mProgSphere);
 
 			mProgSphere->setParameters(commandList, pos, radius, Color3f(1, 1, 1));
@@ -678,7 +678,7 @@ namespace Render
 		{
 			mIndexWaterBufferUsing = 1 - mIndexWaterBufferUsing;
 			{
-				RHISetShaderProgram(commandList, mProgWaterSimulation->getRHIResource());
+				RHISetShaderProgram(commandList, mProgWaterSimulation->getRHI());
 				Vector4 waterParam;
 				waterParam.x = dt;
 				waterParam.y = mWaterSpeed * dt * mTileNum / 10;
@@ -687,7 +687,7 @@ namespace Render
 				RHIDispatchCompute(commandList, mTileNum, mTileNum, 1);
 			}
 			{
-				RHISetShaderProgram(commandList, mProgWaterUpdateNormal->getRHIResource());
+				RHISetShaderProgram(commandList, mProgWaterUpdateNormal->getRHI());
 				mProgWaterUpdateNormal->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				RHIDispatchCompute(commandList, mTileNum, mTileNum, 1);
 
@@ -724,7 +724,7 @@ namespace Render
 			initializeRenderState();
 
 			{
-				RHISetShaderProgram(commandList, mProgWater->getRHIResource());
+				RHISetShaderProgram(commandList, mProgWater->getRHI());
 				mProgWater->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				mView.setupShader(commandList, *mProgWater);
 				mTileMesh.draw(commandList, LinearColor(1, 0, 0));
@@ -772,7 +772,7 @@ namespace Render
 				SplineProgram::PermutationDomain permutationVector;
 				permutationVector.set<SplineProgram::SplineType>(mSplineType);
 				SplineProgram* progSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(permutationVector);
-				RHISetShaderProgram(commandList, progSpline->getRHIResource());
+				RHISetShaderProgram(commandList, progSpline->getRHI());
 				progSpline->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI(OrthoMatrix(0, width, 0, height, -100, 100) ));
 				progSpline->setParam(commandList, SHADER_PARAM(TessFactor), TessFactor1);
 
@@ -808,7 +808,7 @@ namespace Render
 					program = ShaderManager::Get().getGlobalShaderT< TTessellationProgram<false> >();
 				}
 
-				RHISetShaderProgram(commandList, program->getRHIResource());
+				RHISetShaderProgram(commandList, program->getRHI());
 				Matrix4 localToWorld = Matrix4::Scale(10) * Matrix4::Translate( -20 , - 20 , 10 );
 				Matrix4 worldToLocal;
 				float det;
@@ -864,7 +864,7 @@ namespace Render
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::One >::GetRHI());
-				RHISetShaderProgram(commandList, mProgParticleRender->getRHIResource());
+				RHISetShaderProgram(commandList, mProgParticleRender->getRHI());
 				mView.setupShader(commandList, *mProgParticleRender);
 				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
 				//glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);

@@ -731,7 +731,7 @@ namespace SBlocks
 			}
 			if (msg.onRightDown())
 			{
-				if (piece)
+				if (piece && piece->bCanRoate)
 				{
 					if (piece->isLocked())
 					{

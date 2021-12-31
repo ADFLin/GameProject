@@ -163,11 +163,14 @@ namespace SBlocks
 		{
 			++outUsedStateCount;
 			PieceSolveState const& state = shapeSolveData.states[indexState];
-			if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.shape->mDataMap[state.dir]))
+			Piece* piece = globalData->mPieceList[indexPiece].piece;
+			if ( piece->bCanRoate || piece->dir == state.dir)
 			{
-				return true;
+				if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.shape->mDataMap[state.dir]))
+				{
+					return true;
+				}
 			}
-
 			++indexState;
 		}
 
@@ -207,14 +210,19 @@ namespace SBlocks
 			{
 				int indexState = pStateIndices[i];
 				PieceSolveState const& state = shapeSolveData.states[indexState];
-				if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.shape->mDataMap[state.dir]))
+
+				Piece* piece = globalData->mPieceList[indexPiece + i].piece;
+				if (piece->bCanRoate || piece->dir == state.dir)
 				{
-					stateIndices[indexPiece + i] = indexState;
-				}
-				else
-				{
-					UnlockUsedStates();
-					break;
+					if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.shape->mDataMap[state.dir]))
+					{
+						stateIndices[indexPiece + i] = indexState;
+					}
+					else
+					{
+						UnlockUsedStates();
+						break;
+					}
 				}
 			}
 
@@ -391,13 +399,11 @@ namespace SBlocks
 			{
 				std::sort(sortedPieces.begin(), sortedPieces.end(), [](Piece* lhs, Piece* rhs)
 				{
-					if (lhs->shape->getBlockCount() < rhs->shape->getBlockCount())
-						return false;
-					if (lhs->shape->getBlockCount() == rhs->shape->getBlockCount())
-					{
+					if (lhs->shape->getBlockCount() != rhs->shape->getBlockCount())
+						return lhs->shape->getBlockCount() > rhs->shape->getBlockCount();
+					
+					//if (lhs->shape->indexSolve != rhs->shape->indexSolve)
 						return lhs->shape->indexSolve < rhs->shape->indexSolve;
-					}
-					return true;
 				});
 			}
 			else
@@ -499,7 +505,15 @@ namespace SBlocks
 			};
 
 			int dirs[4];
-			int numDir = shape->getDifferentShapeDirs(dirs);
+			int numDir;
+			if (shapeSolveData.checkFixedRotation(dirs))
+			{
+				numDir = 1;
+			}
+			else
+			{
+				numDir = shape->getDifferentShapeDirs(dirs);
+			}
 			for (int i = 0; i < numDir; ++i)
 			{
 				uint8 dir = dirs[i];
@@ -626,9 +640,13 @@ namespace SBlocks
 
 		int numStateUsed = 0;
 		int indexPieceMinToSolve = 0;
-		if (partWork)
+
+		if constexpr (bHavePartWork)
 		{
-			indexPieceMinToSolve = partWork->indexPieceWork;
+			if (partWork)
+			{
+				indexPieceMinToSolve = partWork->indexPieceWork;
+			}
 		}
 
 		while (indexPiece >= indexPieceMinToSolve)

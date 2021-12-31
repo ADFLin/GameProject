@@ -597,7 +597,7 @@ namespace Render
 			{
 				RHISetViewport(commandList, pos.x, pos.y, size.x, size.y);	
 			}		
-			RHISetShaderProgram(commandList, shader.getRHIResource());
+			RHISetShaderProgram(commandList, shader.getRHI());
 			shader.setParameters(commandList, mData);
 			DrawUtility::ScreenRect(commandList);
 		}

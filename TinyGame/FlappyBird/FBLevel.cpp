@@ -207,7 +207,7 @@ namespace FlappyBird
 	void GameLevel::removeAllBird()
 	{
 		mAllBirds.clear();
-		mAllBirds.clear();
+		mActiveBirds.clear();
 		mBirdControls.clear();
 	}
 
@@ -221,7 +221,7 @@ namespace FlappyBird
 			bool needRemove = false;
 
 			Vector2 offset = obj.pos - (bird.getPos() - Vector2(BirdRadius, BirdRadius));
-			if( testInterection(BirdSize, offset, obj.size) )
+			if( TestInterection(BirdSize, offset, obj.size) )
 			{
 				switch( onBirdCollsion(bird, obj) )
 				{
@@ -234,6 +234,8 @@ namespace FlappyBird
 				case EColResponse::RemoveAndStop:
 					needRemove = true;
 					bStop = true;
+					break;
+
 				default:
 					break;
 				};

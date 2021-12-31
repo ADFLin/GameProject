@@ -197,7 +197,7 @@ void RenderEngine::renderSceneFinal( RenderParam& param )
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 	ShaderProgram& shader = mShaderScene[ param.mode ];
 
-	RHISetShaderProgram(commandList, shader.getRHIResource());
+	RHISetShaderProgram(commandList, shader.getRHI());
 
 	glEnable(GL_TEXTURE_2D);
 	shader.setTexture(commandList, SHADER_PARAM(texGeometry) , *mTexGeometry );
@@ -257,7 +257,7 @@ void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Lig
 
 	Vec2f posLight = lightPos - param.camera->getPos();
 
-	RHISetShaderProgram(commandList, mShaderLighting.getRHIResource());
+	RHISetShaderProgram(commandList, mShaderLighting.getRHI());
 	mShaderLighting.setTexture(commandList, SHADER_PARAM( texNormalMap ) , *mTexNormalMap );
 	//mShaderLighting->setParam( SHADER_PARAM(frameHeight), mFrameHeight );
 	//mShaderLighting->setParam( SHADER_PARAM(scaleFactor) , param.scaleFactor );

@@ -12,6 +12,7 @@
 
 #include <unordered_map>
 #include <map>
+#include <unordered_set>
 
 namespace CPP
 {
@@ -48,7 +49,7 @@ namespace Render
 		uint32         permutationId = 0;
 		bool           bShowComplieInfo = false;
 		std::string    sourceFile;
-		
+		std::unordered_set< HashString > includeFiles;
 	};
 
 	struct ShaderProgramManagedData : public ShaderManagedDataBase

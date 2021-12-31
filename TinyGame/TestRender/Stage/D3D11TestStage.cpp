@@ -213,7 +213,7 @@ namespace Render
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-			RHISetShaderProgram(commandList, mProgTest.getRHIResource());
+			RHISetShaderProgram(commandList, mProgTest.getRHI());
 
 			float c = 0.5 * Math::Sin(worldTime) + 0.5;
 

@@ -158,7 +158,7 @@ namespace Render
 
 				//RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 				DeferredBasePassProgram* progBase = mMaterial.getShaderT< DeferredBasePassProgram >(nullptr);
-				RHISetShaderProgram(commandList, progBase->getRHIResource());
+				RHISetShaderProgram(commandList, progBase->getRHI());
 				mView.setupShader(commandList, *progBase);
 
 				auto SetupTransform = [&](Matrix4 const& localToWorld)
@@ -189,7 +189,7 @@ namespace Render
 				mSceneRenderTargets.getFrameBuffer()->removeDepth();
 				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 
-				RHISetShaderProgram(commandList, mProgLiginting->getRHIResource());
+				RHISetShaderProgram(commandList, mProgLiginting->getRHI());
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());

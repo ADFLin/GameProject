@@ -299,7 +299,7 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-		RHISetShaderProgram(commandList, mProgGeom.getRHIResource());
+		RHISetShaderProgram(commandList, mProgGeom.getRHI());
 		mProgGeom.setTextureParameters(commandList, mTexBlock[RP_DIFFUSE]->resource , mTexBlock[RP_NORMAL]->resource, nullptr );
 
 		for( int j = 0 ; j < 10 ; ++j )
@@ -335,7 +335,7 @@ public:
 
 		Vec2i size = getGame()->getScreenSize();
 
-		RHISetShaderProgram(commandList, mProgLightingGlow.getRHIResource());
+		RHISetShaderProgram(commandList, mProgLightingGlow.getRHI());
 		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texBaseColor ) , *mGBuffer->getTexture( GBuffer::eBASE_COLOR ) );
 		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texGlow ) , *mGBuffer->getTexture( GBuffer::eLIGHTING ) );
 
@@ -346,7 +346,7 @@ public:
 		glTexCoord2f(0.0, 0.0); glVertex2f(0, size.y);
 		glEnd();
 
-		RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
+		RHISetShaderProgram(commandList, mProgLighting.getRHI());
 		mProgLighting.setTextureParameters(commandList, mGBuffer , *mTexMaterial );
 
 		for( int i = 0 ; i < ARRAY_SIZE( mLights ) ; ++i )

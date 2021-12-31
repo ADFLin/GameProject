@@ -1807,7 +1807,7 @@ namespace Render
 				D3D11InputLayout* inputLayoutImpl = D3D11Cast::To(mInputLayout);
 				SimplePipelineProgram* program = SimplePipelineProgram::Get( inputLayoutImpl->mAttriableMask , mFixedShaderParams.texture);
 
-				RHISetShaderProgram(program->getRHIResource());
+				RHISetShaderProgram(program->getRHI());
 				program->setParameters(RHICommandListImpl(*this), mFixedShaderParams);
 			}
 

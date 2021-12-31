@@ -521,7 +521,7 @@ namespace Render
 					mRenderStatsBuffer.updateBuffer( TArrayView<RenderStats>( &zeroStats, 1 ) );
 #endif
 					SimpleMeshProgram* progSimpleMesh = (bUseTask) ? mProgSimpleMeshWithTask : mProgSimpleMesh;
-					RHISetShaderProgram(commandList, progSimpleMesh->getRHIResource());
+					RHISetShaderProgram(commandList, progSimpleMesh->getRHI());
 					progSimpleMesh->setStorageBuffer(commandList, SHADER_PARAM(VertexDataBlock), *mSimpleMeshs[SimpleMeshId::Doughnut].mVertexBuffer);
 					progSimpleMesh->setTexture(commandList, SHADER_PARAM(Texture), *mTexture);
 					progSimpleMesh->mMeshletParam.setParameters(commandList, *progSimpleMesh, mMeshletResource);
@@ -572,7 +572,7 @@ namespace Render
 						if (GRHISystem->getName() == RHISystemName::OpenGL)
 						{
 							ShaderParameter param;
-							progSimpleMesh->getRHIResource()->getResourceParameter(EShaderResourceType::AtomicCounter, SHADER_PARAM(RenderMeshletCount), param);
+							progSimpleMesh->getRHI()->getResourceParameter(EShaderResourceType::AtomicCounter, SHADER_PARAM(RenderMeshletCount), param);
 							glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, 0);
 						}
 #endif
@@ -616,7 +616,7 @@ namespace Render
 				{
 
 					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back , EFillMode::Wireframe >::GetRHI());
-					RHISetShaderProgram(commandList, mProgSimple->getRHIResource());
+					RHISetShaderProgram(commandList, mProgSimple->getRHI());
 					mProgSimple->setTexture(commandList, SHADER_PARAM(Texture), *mTexture);
 					mView.setupShader(commandList, *mProgSimple);
 					for (int i = 0; i < 100; ++i)

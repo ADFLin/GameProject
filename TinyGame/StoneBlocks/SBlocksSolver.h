@@ -100,11 +100,26 @@ namespace SBlocks
 	struct ShapeSolveData
 	{
 		PieceShape* shape;
-
 		int indexCombination;
 		std::vector< PieceSolveData* > pieces;
 		std::vector< PieceSolveState > states;
 		std::vector< Int16Point2D > outerConPosListMap[DirType::RestNumber];
+
+		bool checkFixedRotation(int* outRotation)
+		{
+			int rotation = -1;
+			for (auto pieceData : pieces)
+			{
+				if (pieceData->piece->bCanRoate)
+					return false;
+				if (rotation == -1)
+					rotation = pieceData->piece->dir;
+				else if (rotation != pieceData->piece->dir)
+					return false;
+			}
+			*outRotation = rotation;
+			return true;
+		}
 	};
 
 	namespace ERejectResult

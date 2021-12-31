@@ -24,7 +24,8 @@ namespace SBlocks
 	using Math::Vector2;
 
 
-	const Int16Point2D GConsOffsets[8] = {
+	const Int16Point2D GConsOffsets[8] = 
+	{
 		Int16Point2D(1,0) , Int16Point2D(0,1) , Int16Point2D(-1,0) , Int16Point2D(0,-1),
 		Int16Point2D(1,1) , Int16Point2D(-1,1) , Int16Point2D(-1,-1) , Int16Point2D(1,-1)
 	};
@@ -259,6 +260,7 @@ namespace SBlocks
 	{
 		PieceShape* shape;
 		DirType dir;
+		bool bCanRoate;
 
 		int index = 0;
 		int indexMapLocked = INDEX_NONE;
@@ -383,7 +385,15 @@ namespace SBlocks
 	{
 		uint16  id;
 		Vector2 pos;
-		uint8   dir;
+		union
+		{
+			struct
+			{
+				uint8   dir : 7;
+				uint8   bRotationFixed : 1;
+			};
+			uint8 dirAngFlags;
+		};
 
 		template< class OP >
 		void serialize(OP& op);

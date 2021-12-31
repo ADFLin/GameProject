@@ -414,7 +414,7 @@ public:
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		//RHISetShaderProgram(commandList, mProgMandelbrot->getRHIResource());
-		RHISetComputeShader(commandList, mProgMandelbrot->getRHIResource());
+		RHISetComputeShader(commandList, mProgMandelbrot->getRHI());
 		mProgMandelbrot->setParameters(commandList, mParam, *mTexture, *mColorMap );
 		int nx = (mTexture->getSizeX() + MandelbrotProgram::SizeX - 1) / MandelbrotProgram::SizeX;
 		int ny = (mTexture->getSizeY() + MandelbrotProgram::SizeY - 1) / MandelbrotProgram::SizeY;

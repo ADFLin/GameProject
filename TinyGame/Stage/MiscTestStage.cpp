@@ -1353,6 +1353,67 @@ void TestShaderPermutation()
 }
 REGISTER_MISC_TEST_ENTRY("Shader Permutation", TestShaderPermutation);
 
+#if 0
+#include "Meta/Concept.h"
+namespace RenderTest
+{
+	struct SParam
+	{
+
+	};
+
+	template< class TShader >
+	void SetParam(TShader& shader, char const* param, float value)
+	{
+		shader.setParam(param, value);
+	}
+	template< class TShader >
+	void SetParam(TShader& shader, SParam& param, float value)
+	{
+		shader.setParam(param, value);
+	}
+
+	struct ShaderTest
+	{
+		void setParam(char const* str, float value){}
+		void setParam(SParam& param, float value){}
+		SParam Test;
+	};
+
+	template< typename TConcept >
+	struct TCheckShader
+	{
+		struct Yes { char a[2]; };
+
+		static Yes  Tester(decltype(&TConcept::Requires)*);
+		static char Tester(...);
+
+		static constexpr bool Value = sizeof(Tester(0)) == sizeof(Yes);
+	};
+
+
+	void TestShaderParam()
+	{
+		ShaderTest shader;
+
+		struct CMemberParamReadable
+		{
+			template< class TShader >
+			static auto Requires(TShader& t, SParam& outParam) -> decltype (outParam = t.Test2);
+		};
+		if constexpr (TCheckShader< CMemberParamReadable >::Value)
+		{
+			shader.setParam(shader.Test, 1.0f);
+		}
+		else
+		{
+			shader.setParam("Test", 1.0f);
+		}
+	}
+}
+#endif
+
+
 bool MiscTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();

@@ -682,12 +682,12 @@ namespace Render
 	{
 #if USE_SEPARATE_SHADER
 		GraphicsShaderStateDesc state;
-		state.vertex = mScreenVS->getRHIResource();
-		state.pixel = mCopyTexturePS->getRHIResource();
+		state.vertex = mScreenVS->getRHI();
+		state.pixel = mCopyTexturePS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
 		mCopyTexturePS->setParameters(commandList, copyTexture);
 #else
-		RHISetShaderProgram(commandList, mProgCopyTexture->getRHIResource());
+		RHISetShaderProgram(commandList, mProgCopyTexture->getRHI());
 		mProgCopyTexture->setParameters(commandList, copyTexture);
 		
 #endif
@@ -705,12 +705,12 @@ namespace Render
 	{
 #if USE_SEPARATE_SHADER
 		GraphicsShaderStateDesc state;
-		state.vertex = mScreenVS->getRHIResource();
-		state.pixel = mCopyTextureMaskPS->getRHIResource();
+		state.vertex = mScreenVS->getRHI();
+		state.pixel = mCopyTextureMaskPS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
 		mCopyTextureMaskPS->setParameters(commandList, copyTexture, colorMask);
 #else
-		RHISetShaderProgram(commandList, mProgCopyTextureMask->getRHIResource());
+		RHISetShaderProgram(commandList, mProgCopyTextureMask->getRHI());
 		mProgCopyTextureMask->setParameters(commandList, copyTexture, colorMask);
 #endif
 
@@ -722,12 +722,12 @@ namespace Render
 	{
 #if USE_SEPARATE_SHADER
 		GraphicsShaderStateDesc state;
-		state.vertex = mScreenVS->getRHIResource();
-		state.pixel = mCopyTextureBiasPS->getRHIResource();
+		state.vertex = mScreenVS->getRHI();
+		state.pixel = mCopyTextureBiasPS->getRHI();
 		RHISetGraphicsShaderBoundState(commandList, state);
 		mCopyTextureBiasPS->setParameters(commandList, copyTexture, colorBais);
 #else
-		RHISetShaderProgram(commandList, mProgCopyTextureBias->getRHIResource());
+		RHISetShaderProgram(commandList, mProgCopyTextureBias->getRHI());
 		mProgCopyTextureBias->setParameters(commandList, copyTexture, colorBais);
 #endif
 		DrawUtility::ScreenRect(commandList);
@@ -736,7 +736,7 @@ namespace Render
 
 	void ShaderHelper::mapTextureColorToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 	{
-		RHISetShaderProgram(commandList, mProgMappingTextureColor->getRHIResource());
+		RHISetShaderProgram(commandList, mProgMappingTextureColor->getRHI());
 		mProgMappingTextureColor->setParameters(commandList, copyTexture, colorMask, valueFactor);
 		DrawUtility::ScreenRect(commandList);
 		RHISetShaderProgram(commandList, nullptr);

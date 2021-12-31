@@ -174,7 +174,7 @@ namespace Render
 
 				if (bUseGeometryShader)
 				{
-					RHISetShaderProgram(commandList, mProgShadow.getRHIResource());
+					RHISetShaderProgram(commandList, mProgShadow.getRHI());
 					mProgShadow.setParameters(commandList, light.pos, ::Global::GetScreenSize());
 
 					if (!mBuffers.empty())
@@ -214,7 +214,7 @@ namespace Render
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
 				{
-					RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
+					RHISetShaderProgram(commandList, mProgLighting.getRHI());
 					mProgLighting.setParameters(commandList, light.pos, light.color);
 					DrawUtility::ScreenRect(commandList, w, h);
 				}

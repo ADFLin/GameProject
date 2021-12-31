@@ -121,7 +121,7 @@ namespace Render
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
-				RHISetShaderProgram(commandList, mProgSkyBox->getRHIResource());
+				RHISetShaderProgram(commandList, mProgSkyBox->getRHI());
 				mProgSkyBox->setTexture(commandList, 
 					SHADER_PARAM(Texture), *mHDRImage, 
 					SHADER_SAMPLER(Texture), TStaticSamplerState< ESampler::Trilinear, ESampler::Clamp, ESampler::Clamp, ESampler::Clamp > ::GetRHI());
@@ -146,6 +146,7 @@ namespace Render
 					mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
 				}
 				
+
 				mView.setupShader(commandList, *mProgSkyBox);
 				mSkyBox.draw(commandList);
 			}
@@ -160,7 +161,7 @@ namespace Render
 			{
 				GPU_PROFILE("LightProbe Visualize");
 
-				RHISetShaderProgram(commandList, mProgVisualize->getRHIResource());
+				RHISetShaderProgram(commandList, mProgVisualize->getRHI());
 				mProgVisualize->setStructuredUniformBufferT< LightProbeVisualizeParams >(commandList, *mParamBuffer.getRHI());
 				mProgVisualize->setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture);
 				mView.setupShader(commandList, *mProgVisualize);
@@ -188,7 +189,7 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
-			RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
+			RHISetShaderProgram(commandList, mProgTonemap->getRHI());
 
 			mProgTonemap->setParameters(commandList, context);
 			DrawUtility::ScreenRect(commandList);

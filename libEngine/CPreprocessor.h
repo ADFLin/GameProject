@@ -476,7 +476,7 @@ namespace CPP
 		void addSreachDir(char const* dir);
 		void addDefine(char const* name, int value);
 
-		void getUsedIncludeFiles(std::vector< HashString >& outFiles);
+		void getUsedIncludeFiles(std::unordered_set< HashString >& outFiles);
 
 		bool bSupportMarcoArg = true;
 		bool bReplaceMarcoText = false;

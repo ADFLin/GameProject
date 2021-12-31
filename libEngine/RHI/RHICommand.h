@@ -254,34 +254,8 @@ namespace Render
 	RHI_API void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
 	RHI_API void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
 
-	struct GraphicsShaderStateDesc
-	{
-		RHIShader* vertex;
-		RHIShader* pixel;
-		RHIShader* geometry;
-		RHIShader* hull;
-		RHIShader* domain;
-
-		GraphicsShaderStateDesc()
-		{
-			::memset(this, 0, sizeof(*this));
-		}
-	};
-
 	RHI_API void RHISetGraphicsShaderBoundState(RHICommandList& commandList, GraphicsShaderStateDesc const& stateDesc);
 
-
-	struct MeshShaderStateDesc
-	{
-		RHIShader* task;
-		RHIShader* mesh;
-		RHIShader* pixel;
-
-		MeshShaderStateDesc()
-		{
-			::memset(this, 0, sizeof(*this));
-		}
-	};
 	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& stateDesc);
 
 

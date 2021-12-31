@@ -131,7 +131,7 @@ namespace Render
 					RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
-					RHISetShaderProgram(commandList, mProgSkyBox->getRHIResource());
+					RHISetShaderProgram(commandList, mProgSkyBox->getRHI());
 					SET_SHADER_TEXTURE( commandList, *mProgSkyBox, Texture, *mHDRImage);
 					switch( SkyboxShowIndex )
 					{
@@ -160,7 +160,7 @@ namespace Render
 				}
 
 				{
-					RHISetShaderProgram(commandList, mTestShader.getRHIResource());
+					RHISetShaderProgram(commandList, mTestShader.getRHI());
 					mView.setupShader(commandList, mTestShader);
 
 					auto& samplerState = (mbUseMipMap) ? TStaticSamplerState<ESampler::Trilinear>::GetRHI() : TStaticSamplerState<ESampler::Bilinear>::GetRHI();
@@ -176,7 +176,7 @@ namespace Render
 				{
 					GPU_PROFILE("LightProbe Visualize");
 
-					RHISetShaderProgram(commandList, mProgVisualize->getRHIResource());
+					RHISetShaderProgram(commandList, mProgVisualize->getRHI());
 					mProgVisualize->setStructuredUniformBufferT< LightProbeVisualizeParams >(commandList, *mParamBuffer.getRHI());
 					mProgVisualize->setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture);
 					mView.setupShader(commandList, *mProgVisualize);
@@ -199,7 +199,7 @@ namespace Render
 
 				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 
-				RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
+				RHISetShaderProgram(commandList, mProgTonemap->getRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGB >::GetRHI());

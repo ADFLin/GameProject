@@ -160,7 +160,7 @@ namespace Render
 		shadowPrjectParam.setupLight(light);
 		renderShadowDepth(commandList, view, scene, shadowPrjectParam);
 
-		RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
+		RHISetShaderProgram(commandList, mProgLighting.getRHI());
 		//mProgLighting.setTexture(SHADER_PARAM(texSM) , mShadowMap2 , 0 );
 
 		view.setupShader(commandList, mProgLighting);
@@ -215,7 +215,7 @@ namespace Render
 		lightView.mUniformBuffer = nullptr;
 
 #if !USE_MATERIAL_SHADOW
-		RHISetShaderProgram(commandList, mProgShadowDepthList->getRHIResource());
+		RHISetShaderProgram(commandList, mProgShadowDepthList->getRHI());
 		mEffectCur = &mProgShadowDepthList[LIGHTTYPE_POINT];
 		mEffectCur->setParam(SHADER_PARAM(DepthParam), depthParam[0], depthParam[1]);
 #endif
@@ -610,7 +610,7 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Front >::GetRHI());
 			{
 				RHISetFrameBuffer(commandList, mLightingBuffer);
-				RHISetShaderProgram(commandList, lightShader->getRHIResource());
+				RHISetShaderProgram(commandList, lightShader->getRHI());
 				//if( debugMode == DebugMode::eNone )
 				{
 					BindShaderParam(commandList, *lightShader);
@@ -628,7 +628,7 @@ namespace Render
 				RHISetFrameBuffer(commandList, mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
 				DeferredLightingProgram* program = mProgLightingScreenRect[(int)light.type];
-				RHISetShaderProgram(commandList, program->getRHIResource());
+				RHISetShaderProgram(commandList, program->getRHI());
 				BindShaderParam(commandList, *program);
 				DrawUtility::ScreenRect(commandList);
 				RHISetFrameBuffer(commandList, nullptr);
@@ -768,7 +768,7 @@ namespace Render
 			mFrameBuffer->setTexture(0, *mSSAOTexture);
 
 			RHISetFrameBuffer(commandList, mFrameBuffer);
-			RHISetShaderProgram(commandList, mProgSSAOGenerate->getRHIResource());
+			RHISetShaderProgram(commandList, mProgSSAOGenerate->getRHI());
 			view.setupShader(commandList, *mProgSSAOGenerate);
 			mProgSSAOGenerate->setParameters(commandList, sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
 			DrawUtility::ScreenRect(commandList);
@@ -780,7 +780,7 @@ namespace Render
 			GPU_PROFILE("SSAO-Blur");
 			mFrameBuffer->setTexture(0, *mSSAOTextureBlur);
 			RHISetFrameBuffer(commandList, mFrameBuffer);
-			RHISetShaderProgram(commandList, mProgSSAOBlur->getRHIResource());
+			RHISetShaderProgram(commandList, mProgSSAOBlur->getRHI());
 			mProgSSAOBlur->setParameters(commandList, *mSSAOTexture);
 			DrawUtility::ScreenRect(commandList);
 			RHISetFrameBuffer(commandList, nullptr);
@@ -793,7 +793,7 @@ namespace Render
 			RHISetFrameBuffer(commandList, sceneRenderTargets.getFrameBuffer());
 
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::One, EBlend::One >::GetRHI());	
-			RHISetShaderProgram(commandList, mProgAmbient->getRHIResource());
+			RHISetShaderProgram(commandList, mProgAmbient->getRHI());
 			mProgAmbient->setParameters(commandList, sceneRenderTargets, *mSSAOTextureBlur);
 			DrawUtility::ScreenRect(commandList);		
 		}
@@ -1010,7 +1010,7 @@ namespace Render
 				Vector4(1,1,1,0.1),
 			};
 
-			RHISetShaderProgram(commandList, mShaderBassPassTest.getRHIResource());
+			RHISetShaderProgram(commandList, mShaderBassPassTest.getRHI());
 			view.setupShader(commandList, mShaderBassPassTest);
 			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
 			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
@@ -1162,7 +1162,7 @@ namespace Render
 						>::GetRHI() , BMA_InternalValMin[i]);
 
 					BMAResolveProgram* shaderprogram = mShaderBMAResolves[i];
-					RHISetShaderProgram(commandList, shaderprogram->getRHIResource());
+					RHISetShaderProgram(commandList, shaderprogram->getRHI());
 					shaderprogram->setParameters(commandList, mShaderData );
 					mScreenMesh.draw(commandList);
 				}
@@ -1173,7 +1173,7 @@ namespace Render
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState< bWriteDepth , ECompareFunc::Always >::GetRHI());
 
 				BMAResolveProgram* shaderprogram = mShaderBMAResolves[0];
-				RHISetShaderProgram(commandList, shaderprogram->getRHIResource());
+				RHISetShaderProgram(commandList, shaderprogram->getRHI());
 				shaderprogram->setParameters(commandList, mShaderData);
 				mScreenMesh.draw(commandList);
 			}
@@ -1592,7 +1592,7 @@ namespace Render
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 
-			RHISetShaderProgram(commandList, mProgBlurV->getRHIResource());
+			RHISetShaderProgram(commandList, mProgBlurV->getRHI());
 			mProgBlurV->setTexture(commandList, SHADER_PARAM(Texture), frameTexture , SHADER_PARAM(TextureSampler), sampler);
 
 			DrawUtility::ScreenRect(commandList);
@@ -1606,7 +1606,7 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-			RHISetShaderProgram(commandList, mProgBlurHAndCombine->getRHIResource());
+			RHISetShaderProgram(commandList, mProgBlurHAndCombine->getRHI());
 			mProgBlurHAndCombine->setParameters(commandList, *mTextureBlurR, *mTextureBlurG, *mTextureBlurB);
 			//mProgBlurHAndCombine->setTexture(SHADER_PARAM(Texture), frameTexture, sampler);
 			DrawUtility::ScreenRect(commandList);
@@ -1639,7 +1639,7 @@ namespace Render
 			int nx = (buffer.getSizeX() + SizeX - 1) / SizeX;
 			int ny = (buffer.getSizeY() + SizeY - 1) / SizeY;
 			int nz = (buffer.getSizeZ() + SizeZ - 1) / SizeZ;
-			RHISetShaderProgram(commandList, getRHIResource());
+			RHISetShaderProgram(commandList, getRHI());
 			setParameters(commandList, buffer, clearValue);
 			RHIDispatchCompute(commandList, nx, ny, nz);
 		}
@@ -1798,7 +1798,7 @@ namespace Render
 
 		{
 			GPU_PROFILE("LightScattering");
-			RHISetShaderProgram(commandList, mProgLightScattering->getRHIResource());
+			RHISetShaderProgram(commandList, mProgLightScattering->getRHI());
 			mProgLightScattering->setParameters(commandList, view , parameter);
 		}
 	}

@@ -330,8 +330,6 @@ namespace Render
 
 	using RHIShaderRef = TRefCountPtr< RHIShader >;
 	
-
-
 	class RHIShaderProgram : public RHIResource
 	{
 	public:
@@ -348,6 +346,135 @@ namespace Render
 	};
 
 	using RHIShaderProgramRef = TRefCountPtr< RHIShaderProgram >;
+
+	struct ShaderBoundStateKey
+	{
+		enum Type
+		{
+			eNone,
+			eGraphiscsVsPs,
+			eGraphiscsVsPsGs,
+			eGraphiscsVsPsGsHsDs,
+			eMesh,
+			eCompute,
+			eShaderProgram,
+		};
+		union
+		{
+			struct
+			{
+				uint64 type : 3;
+				uint64 sv   : 61;
+			};
+			struct
+			{
+				uint64 type : 3;
+				uint64 sv21 : 31;
+				uint64 sv22 : 30;
+			};
+
+			struct
+			{
+				uint64 type : 3;
+				uint64 sv31 : 23;
+				uint64 sv32 : 22;
+				uint64 sv33 : 16;
+			};
+
+			struct
+			{
+				uint64 type : 3;
+				uint64 sv51 : 15;
+				uint64 sv52 : 14;
+				uint64 sv53 : 11;
+				uint64 sv54 : 11;
+				uint64 sv55 : 10;
+			};
+			uint64 value;
+		};
+
+
+		static uint32 GetGUID(RHIShader* shader)
+		{
+			return shader ? shader->mGUID : 0;
+		}
+		void initialize(GraphicsShaderStateDesc const& stateDesc)
+		{
+			if (stateDesc.hull || stateDesc.domain)
+			{
+				type = eGraphiscsVsPsGsHsDs;
+				sv51 = GetGUID(stateDesc.pixel);
+				sv52 = GetGUID(stateDesc.vertex);
+				sv53 = GetGUID(stateDesc.hull);
+				sv54 = GetGUID(stateDesc.domain);
+				sv55 = GetGUID(stateDesc.geometry);
+			}
+			else if (stateDesc.geometry)
+			{
+				type = eGraphiscsVsPsGs;
+				sv31 = GetGUID(stateDesc.pixel);
+				sv32 = GetGUID(stateDesc.vertex);
+				sv33 = GetGUID(stateDesc.geometry);
+			}
+			else if (stateDesc.pixel || stateDesc.vertex)
+			{
+				type = eGraphiscsVsPs;
+				sv21 = GetGUID(stateDesc.pixel);
+				sv22 = GetGUID(stateDesc.vertex);
+			}
+			else
+			{
+				value = 0;
+			}
+		}
+
+		void initialize(MeshShaderStateDesc const& stateDesc)
+		{
+			type = eNone;
+			sv31 = GetGUID(stateDesc.pixel);
+			sv32 = GetGUID(stateDesc.mesh);
+			sv33 = GetGUID(stateDesc.task);
+			if (value)
+			{
+				type = eMesh;
+			}
+		}
+
+		void initialize(RHIShader& shader)
+		{
+			CHECK(shader.getType() == EShader::Compute);
+
+			type = eCompute;
+			sv = shader.mGUID;
+		}
+
+		void initialize(RHIShaderProgram& shaderProgram)
+		{
+			type = eShaderProgram;
+			sv = shaderProgram.mGUID;
+		}
+
+		bool isValid() const
+		{
+			return value != 0;
+		}
+
+		bool operator == (ShaderBoundStateKey const& rhs) const
+		{
+			return value == rhs.value;
+		}
+		uint32 getTypeHash() const
+		{
+			uint32 result = std::hash_value(value);
+			return result;
+		}
+
+#if 0
+		ShaderBoundStateKey()
+		{
+		}
+#endif
+	};
 
 }//namespace Render
 

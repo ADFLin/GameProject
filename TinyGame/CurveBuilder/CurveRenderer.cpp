@@ -199,7 +199,7 @@ namespace CB
 		{
 			auto DrawFunc = [this](RHICommandList& commandList)
 			{
-				RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHIResource());
+				RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHI());
 				mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
 				mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
@@ -227,7 +227,7 @@ namespace CB
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(1, 1);
 
-			RHISetShaderProgram(commandList, mProgCurveContour->getRHIResource());
+			RHISetShaderProgram(commandList, mProgCurveContour->getRHI());
 			mViewInfo.setupShader(commandList, *mProgCurveContour);
 			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -266,7 +266,7 @@ namespace CB
 			}
 			else
 			{
-				RHISetShaderProgram(commandList, mProgCurveMesh->getRHIResource());
+				RHISetShaderProgram(commandList, mProgCurveMesh->getRHI());
 				mViewInfo.setupShader(commandList, *mProgCurveMesh);
 				drawMesh(surface);
 			}
@@ -458,7 +458,7 @@ namespace CB
 
 
 		int d = std::max(1, int(1.0f / surface.getMeshLineDensity()));
-		RHISetShaderProgram(commandList, mProgMeshNormalVisualize->getRHIResource());
+		RHISetShaderProgram(commandList, mProgMeshNormalVisualize->getRHI());
 		mProgMeshNormalVisualize->setParameters(commandList, Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
 		mViewInfo.setupShader(commandList, *mProgMeshNormalVisualize);
 		TRenderRT< RTVF_XYZ_CA_N >::Draw(commandList, EPrimitive::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());

@@ -192,7 +192,7 @@ namespace SBlocks
 		DrawPiece();
 
 		
-		RenderUtility::SetPen(g, piece.isLocked() ? EColor::Red : bSelected ? EColor::Yellow : EColor::Gray );
+		RenderUtility::SetPen(g, piece.isLocked() ? EColor::Red : bSelected ? EColor::Yellow : piece.bCanRoate ? EColor::Gray : EColor::Black );
 		g.setPenWidth(3);
 		for (auto const& line : piece.shape->outlines)
 		{

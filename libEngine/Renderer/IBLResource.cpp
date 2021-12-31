@@ -462,7 +462,7 @@ namespace Render
 		{
 			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(i), level);
 			RHISetFrameBuffer(commandList, frameBuffer);
-			RHISetShaderProgram(commandList, updateShader.getRHIResource());
+			RHISetShaderProgram(commandList, updateShader.getRHI());
 			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(i)));
 			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(i)));
 			shaderSetup(commandList);
@@ -488,8 +488,8 @@ namespace Render
 			RHISetFrameBuffer(commandList, frameBuffer);
 
 			GraphicsShaderStateDesc boundState;
-			boundState.vertex = mScreenVS->getRHIResource();
-			boundState.pixel = shaderPS.getRHIResource();
+			boundState.vertex = mScreenVS->getRHI();
+			boundState.pixel = shaderPS.getRHI();
 			RHISetGraphicsShaderBoundState(commandList, boundState);
 
 			shaderPS.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(i)));
@@ -579,12 +579,12 @@ namespace Render
 
 #if USE_SEPARATE_SHADER  && 0
 			GraphicsShaderStateDesc boundState;
-			boundState.vertex = mScreenVS->getRHIResource();
-			boundState.pixel = mPreIntegrateBRDFGenPS->getRHIResource();
+			boundState.vertex = mScreenVS->getRHI();
+			boundState.pixel = mPreIntegrateBRDFGenPS->getRHI();
 			RHISetGraphicsShaderBoundState(commandList, boundState);
 			mPreIntegrateBRDFGenPS->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
 #else
-			RHISetShaderProgram(commandList, mProgPreIntegrateBRDFGen->getRHIResource());
+			RHISetShaderProgram(commandList, mProgPreIntegrateBRDFGen->getRHI());
 			mProgPreIntegrateBRDFGen->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
 #endif
 

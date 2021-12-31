@@ -1096,6 +1096,32 @@ namespace Render
 	};
 
 
+	struct GraphicsShaderStateDesc
+	{
+		RHIShader* vertex;
+		RHIShader* pixel;
+		RHIShader* geometry;
+		RHIShader* hull;
+		RHIShader* domain;
+
+		GraphicsShaderStateDesc()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+	};
+
+	struct MeshShaderStateDesc
+	{
+		RHIShader* task;
+		RHIShader* mesh;
+		RHIShader* pixel;
+
+		MeshShaderStateDesc()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+	};
+
 }//namespace Render
 
 

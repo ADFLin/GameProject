@@ -50,12 +50,10 @@ namespace SBlocks
 
 		std::sort(blocks.begin(), blocks.end(), [](Int16Point2D const& lhs, Int16Point2D const& rhs)
 		{
-			if (lhs.x < rhs.x)
-				return true;
-			if (lhs.x == rhs.x && lhs.y < rhs.y)
-				return true;
+			if (lhs.x != rhs.x)
+				return lhs.x < rhs.x;
 
-			return false;
+			return lhs.y < rhs.y;
 		});
 
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
@@ -571,6 +569,7 @@ namespace SBlocks
 			desc.id = findShapeID(piece->shape);
 			desc.pos = piece->pos;
 			desc.dir = piece->dir;
+			desc.bRotationFixed = piece->bCanRoate == false;
 			outDesc.pieces.push_back(std::move(desc));
 		}
 	}
@@ -582,6 +581,7 @@ namespace SBlocks
 		piece->shape = &shape;
 		piece->dir = dir;
 		piece->angle = 0;
+		piece->bCanRoate = true;
 		piece->indexMapLocked = INDEX_NONE;
 		piece->pos = Vector2::Zero();
 		piece->updateTransform();
@@ -601,6 +601,7 @@ namespace SBlocks
 
 		piece->shape = mShapes[desc.id].get();
 		piece->dir.setValue(desc.dir);
+		piece->bCanRoate = desc.bRotationFixed == 0;
 		piece->angle = desc.dir * Math::PI / 2;
 		piece->indexMapLocked = INDEX_NONE;
 		piece->pos = desc.pos;

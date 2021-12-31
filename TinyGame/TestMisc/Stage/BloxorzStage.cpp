@@ -677,7 +677,7 @@ namespace Bloxorz
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-			RHISetShaderProgram(commandList, progRayTrace->getRHIResource());
+			RHISetShaderProgram(commandList, progRayTrace->getRHI());
 			mView.setupShader(commandList, *progRayTrace);
 			SET_SHADER_PARAM(commandList, *progRayTrace, ObjectNum, (int)mObjectList.size());
 			progRayTrace->setStructuredStorageBufferT< ObjectData >(commandList, *mObjectBuffer.getRHI());
@@ -696,7 +696,7 @@ namespace Bloxorz
 			if (bUseDeferredRending)
 			{
 				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
-				RHISetShaderProgram(commandList, mProgRayTraceLighting->getRHIResource());
+				RHISetShaderProgram(commandList, mProgRayTraceLighting->getRHI());
 				mView.setupShader(commandList, *mProgRayTraceLighting);
 				mProgRayTraceLighting->setRenderTargets(commandList, renderBuffers);
 				//SET_SHADER_PARAM(commandList, *mProgRayTraceLighting, ObjectNum, (int)mObjectList.size());
@@ -741,7 +741,7 @@ namespace Bloxorz
 					mBloomFrameBuffer->setTexture(0, *downsampleTexture);
 					RHISetViewport(commandList, 0, 0, size.x, size.y);
 					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
-					RHISetShaderProgram(commandList, mProgDownsample->getRHIResource());
+					RHISetShaderProgram(commandList, mProgDownsample->getRHI());
 					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgDownsample, Texture, sourceTexture, sampler);
 					SET_SHADER_PARAM(commandList, *mProgDownsample, ExtentInverse, Vector2(1 / float(size.x), 1 / float(size.y)));
@@ -771,7 +771,7 @@ namespace Bloxorz
 					mBloomFrameBuffer->setTexture(0, *bloomSetupRT->texture);
 					RHISetViewport(commandList, 0, 0, size.x, size.y);
 					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
-					RHISetShaderProgram(commandList, mProgBloomSetup->getRHIResource());
+					RHISetShaderProgram(commandList, mProgBloomSetup->getRHI());
 
 					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgBloomSetup, Texture, *halfSceneTexture, sampler);
@@ -815,7 +815,7 @@ namespace Bloxorz
 						GPU_PROFILE(str);
 						RHISetFrameBuffer(commandList, mBloomFrameBuffer);
 						RHISetViewport(commandList, 0, 0, sizeH.x , sizeH.y);
-						RHISetShaderProgram(commandList, mProgFliter->getRHIResource());
+						RHISetShaderProgram(commandList, mProgFliter->getRHI());
 						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliter, FliterTexture, fliterTexture, sampler);
 						numSamples = generateFliterData(fliterTexture.getSizeX(), Vector2(1, 0), LinearColor(1,1,1,1), bloomRadius);
 						mProgFliter->setParam(commandList, SHADER_PARAM(Weights), mWeightData.data(), MaxWeightNum);
@@ -835,7 +835,7 @@ namespace Bloxorz
 						GPU_PROFILE(str);
 						RHISetFrameBuffer(commandList, mBloomFrameBuffer);
 						RHISetViewport(commandList, 0, 0, sizeV.x, sizeV.y);
-						RHISetShaderProgram(commandList, mProgFliterAdd->getRHIResource());
+						RHISetShaderProgram(commandList, mProgFliterAdd->getRHI());
 
 						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, FliterTexture, *blurXRT->texture, sampler);
 						SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgFliterAdd, AddTexture, bloomTexture, sampler);
@@ -884,7 +884,7 @@ namespace Bloxorz
 
 					RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 					RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
-					RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
+					RHISetShaderProgram(commandList, mProgTonemap->getRHI());
 
 					auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI();
 					SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgTonemap, BloomTexture, *bloomTexture, sampler);

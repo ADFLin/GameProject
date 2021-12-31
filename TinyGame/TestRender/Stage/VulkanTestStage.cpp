@@ -261,7 +261,7 @@ namespace RenderVulkan
 			graphicsState.blendState = &TStaticBlendState<>::GetRHI();
 
 			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mShaderProgram, "Shader/Test/VulkanTest", "MainVS", "MainPS"));
-			graphicsState.shaderProgram = mShaderProgram.getRHIResource();
+			graphicsState.shaderProgram = mShaderProgram.getRHI();
 
 			setupDescriptorPool();
 

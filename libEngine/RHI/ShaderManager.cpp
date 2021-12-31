@@ -21,11 +21,11 @@
 #include "Renderer/ShadowDepthRendering.h"
 
 extern CORE_API TConsoleVariable< bool > CVarShaderUseCache;
-extern CORE_API TConsoleVariable< bool > CVarShaderDectectFileMoidfy;
+extern CORE_API TConsoleVariable< bool > CVarShaderDectectFileModify;
 
 #if CORE_SHARE_CODE
 TConsoleVariable< bool > CVarShaderUseCache( true , "Shader.bUseCache" , CVF_CONFIG );
-TConsoleVariable< bool > CVarShaderDectectFileMoidfy(true, "Shader.DetectFileModiy", CVF_CONFIG);
+TConsoleVariable< bool > CVarShaderDectectFileModify(true, "Shader.DetectFileModify", CVF_CONFIG);
 #endif
 
 namespace Render
@@ -36,21 +36,21 @@ namespace Render
 		bool addFileDependences( ShaderProgramManagedData const& managedData )
 		{
 			std::set< HashString > assetFilePaths;
-			for( auto const& compileInfo : managedData.descList )
-			{
-				assetFilePaths.insert(compileInfo.filePath);
-				assetFilePaths.insert(compileInfo.includeFiles.begin() , compileInfo.includeFiles.end() );
-			}
 
+
+			for( auto const& desc : managedData.descList )
+			{
+				assetFilePaths.insert(desc.filePath);		
+			}
+			assetFilePaths.insert(managedData.includeFiles.begin(), managedData.includeFiles.end());
 			return addFileDependencesInternal(assetFilePaths);
 		}
 		bool addFileDependences(ShaderManagedData const& managedData)
 		{
 			std::set< HashString > assetFilePaths;
-			auto const& compileInfo = managedData.desc;
-			assetFilePaths.insert(compileInfo.filePath);
-			assetFilePaths.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
-
+			auto const& desc = managedData.desc;
+			assetFilePaths.insert(desc.filePath);
+			assetFilePaths.insert(managedData.includeFiles.begin(), managedData.includeFiles.end());
 			return addFileDependencesInternal(assetFilePaths);
 		}
 
@@ -300,7 +300,7 @@ namespace Render
 
 				for( auto const& asset : binaryData.assetDependences )
 				{
-					managedData.descList.front().includeFiles.push_back(asset.path.c_str());
+					managedData.includeFiles.insert(asset.path.c_str());
 				}
 				return true;
 			});
@@ -330,7 +330,7 @@ namespace Render
 
 				for (auto const& asset : binaryData.assetDependences)
 				{
-					managedData.desc.includeFiles.push_back(asset.path.c_str());
+					managedData.includeFiles.insert(asset.path.c_str());
 				}
 				return true;
 			});
@@ -871,7 +871,7 @@ namespace Render
 
 	void ShaderManager::registerShaderAssets()
 	{
-		if ( CVarShaderDectectFileMoidfy )
+		if ( CVarShaderDectectFileModify )
 		{
 			for (auto pair : mShaderDataMap)
 			{
@@ -882,7 +882,7 @@ namespace Render
 
 	void ShaderManager::unregisterShaderAssets()
 	{
-		if (CVarShaderDectectFileMoidfy)
+		if (CVarShaderDectectFileModify)
 		{
 			for (auto pair : mShaderDataMap)
 			{
@@ -1068,7 +1068,7 @@ namespace Render
 
 		if (iter != mShaderDataMap.end())
 		{
-			if (mAssetViewerReigster && CVarShaderDectectFileMoidfy)
+			if (mAssetViewerReigster && CVarShaderDectectFileModify)
 			{
 				mAssetViewerReigster->unregisterViewer(iter->second);
 			}
@@ -1119,7 +1119,7 @@ namespace Render
 	void ShaderManager::postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData)
 	{
 		mShaderDataMap.insert({ &shader , &managedData });
-		if (mAssetViewerReigster && CVarShaderDectectFileMoidfy)
+		if (mAssetViewerReigster && CVarShaderDectectFileModify)
 		{
 			mAssetViewerReigster->registerViewer(&managedData);
 		}
@@ -1137,11 +1137,12 @@ namespace Render
 	void ShaderProgramManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
-		for( ShaderCompileDesc const& compileInfo : descList )
+		for( ShaderCompileDesc const& desc : descList )
 		{
-			filePathSet.insert(compileInfo.filePath);
-			filePathSet.insert(compileInfo.includeFiles.begin(), compileInfo.includeFiles.end());
+			filePathSet.insert(desc.filePath);
+			
 		}	
+		filePathSet.insert(includeFiles.begin(), includeFiles.end());
 		for( auto const& filePath : filePathSet )
 		{
 			paths.push_back( FCString::CharToWChar(filePath) );
@@ -1162,7 +1163,7 @@ namespace Render
 		std::set< HashString > filePathSet;
 
 		filePathSet.insert(desc.filePath);
-		filePathSet.insert(desc.includeFiles.begin(), desc.includeFiles.end());
+		filePathSet.insert(includeFiles.begin(), includeFiles.end());
 
 		for (auto const& filePath : filePathSet)
 		{

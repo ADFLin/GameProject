@@ -254,7 +254,7 @@ namespace Render
 	{
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-		RHISetShaderProgram(commandList, mProgSphere->getRHIResource());
+		RHISetShaderProgram(commandList, mProgSphere->getRHI());
 		view.setupShader(commandList, *mProgSphere);
 
 		float radius = 0.15f;

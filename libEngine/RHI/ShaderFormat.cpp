@@ -11,7 +11,7 @@
 
 namespace Render
 {
-	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes)
+	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles)
 	{
 		TimeScope scope("PreprocessCode");
 
@@ -57,9 +57,9 @@ namespace Render
 			return false;
 		}
 
-		if (compileDesc)
+		if (outIncludeFiles)
 		{
-			preprocessor.getUsedIncludeFiles(compileDesc->includeFiles);
+			preprocessor.getUsedIncludeFiles(*outIncludeFiles);
 		}
 #if 1
 		inoutCodes.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
@@ -96,7 +96,10 @@ namespace Render
 				LogWarning(0, "Can't load shader file %s", context.getPath());
 				return false;
 			}
-			return preprocessCode(context.getPath(), context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes);
+			ShaderManagedData* managedData = context.shaderSetupData ? 
+				(ShaderManagedData*)context.shaderSetupData->managedData:
+				(ShaderManagedData*)context.programSetupData->managedData;
+			return preprocessCode(context.getPath(), context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes, &managedData->includeFiles);
 		}
 		else
 		{

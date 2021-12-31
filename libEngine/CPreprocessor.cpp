@@ -1343,9 +1343,9 @@ namespace CPP
 		mMarcoSymbolMap.emplace( HashString(name, true) , std::move(marco));
 	}
 
-	void Preprocessor::getUsedIncludeFiles(std::vector< HashString >& outFiles)
+	void Preprocessor::getUsedIncludeFiles(std::unordered_set< HashString >& outFiles)
 	{
-		outFiles.insert(outFiles.end(), mUsedFiles.begin(), mUsedFiles.end());
+		outFiles.insert(mUsedFiles.begin(), mUsedFiles.end());
 	}
 
 	void Preprocessor::emitSourceLine(int lineOffset)

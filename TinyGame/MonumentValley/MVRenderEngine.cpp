@@ -144,7 +144,7 @@ namespace MV
 
 	void RenderEngine::beginRender()
 	{
-		RHISetShaderProgram(*mCommandList, mProgBaseRender->getRHIResource());
+		RHISetShaderProgram(*mCommandList, mProgBaseRender->getRHI());
 		RHISetRasterizerState(*mCommandList, TStaticRasterizerState<>::GetRHI());
 		RHISetDepthStencilState(*mCommandList, TStaticDepthStencilState<>::GetRHI());
 	}
@@ -333,7 +333,7 @@ namespace MV
 		RHISetShaderProgram(commandList, nullptr);
 		context.setupSimplePipeline(commandList);
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, vertices, ARRAY_SIZE(vertices));
-		RHISetShaderProgram(commandList, mProgBaseRender->getRHIResource());
+		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
 
 		context.stack.pop();
 		
@@ -397,7 +397,7 @@ namespace MV
 
 		context.setupSimplePipeline(commandList);
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, buffer , nV  );
-		RHISetShaderProgram(commandList, mProgBaseRender->getRHIResource());
+		RHISetShaderProgram(commandList, mProgBaseRender->getRHI());
 	}
 
 }//namespace MV

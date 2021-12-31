@@ -906,7 +906,7 @@ namespace Render
 					RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-				RHISetShaderProgram(commandList, mProgMeshRender->getRHIResource());
+				RHISetShaderProgram(commandList, mProgMeshRender->getRHI());
 				mView.setupShader(commandList, *mProgMeshRender);
 
 				mMesh.draw(commandList);
@@ -917,7 +917,7 @@ namespace Render
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				//RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
-				RHISetShaderProgram(commandList, mProgShowValue->getRHIResource());
+				RHISetShaderProgram(commandList, mProgShowValue->getRHI());
 				SET_SHADER_PARAM(commandList, *mProgShowValue, CubeSize, mConfig.voxelSize);
 				SET_SHADER_PARAM(commandList, *mProgShowValue, CubeOffset, mChunkData.offset);
 				SET_SHADER_PARAM(commandList, *mProgShowValue, DataDim, mConfig.dataDim);

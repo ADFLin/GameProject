@@ -113,7 +113,7 @@ namespace Chess
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 
-			RHISetShaderProgram(commandList, mProgBoard->getRHIResource());
+			RHISetShaderProgram(commandList, mProgBoard->getRHI());
 
 			mProgBoard->setTexture(commandList, SHADER_PARAM(NormalTexture), mTextures[1]);
 			mProgBoard->setTexture(commandList, SHADER_PARAM(RoughnessTexture), mTextures[2]);
@@ -128,7 +128,7 @@ namespace Chess
 			mProgBoard->setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
 			mBoardMesh.draw(commandList);
 
-			RHISetShaderProgram(commandList, mProgChess->getRHIResource());
+			RHISetShaderProgram(commandList, mProgChess->getRHI());
 
 			mProgChess->setTexture(commandList, SHADER_PARAM(NormalTexture), mTextures[1]);
 			mProgChess->setTexture(commandList, SHADER_PARAM(RoughnessTexture), mTextures[2]);
@@ -189,7 +189,7 @@ namespace Chess
 
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Wireframe>::GetRHI());
 
-				RHISetShaderProgram(commandList, mProgMeshUV->getRHIResource());
+				RHISetShaderProgram(commandList, mProgMeshUV->getRHI());
 				mProgMeshUV->setParam(commandList, SHADER_PARAM(XForm), transform);
 				mChessMeshs[1].draw(commandList);
 

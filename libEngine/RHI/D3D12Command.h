@@ -34,96 +34,6 @@ namespace Render
 
 	constexpr uint32 D3D12_BUFFER_SIZE_ALIGN = 4;
 
-	struct D3D12ShaderBoundStateKey
-	{
-		enum Type
-		{
-			eGraphiscsState,
-			eMeshState,
-			eCompute,
-			eShaderProgram,
-		};
-		union
-		{
-			struct
-			{
-				uint64 shaderA   : 24;
-				uint64 shaderB   : 20;
-				uint64 shaderC   : 20;
-			};
-
-			uint64 valueA;
-		};
-
-		union
-		{
-			struct
-			{
-				uint32 boundType : 4;
-				uint32 shaderD   : 14;
-				uint32 shaderE   : 14;
-			};
-
-			uint32 valueB;
-		};
-
-		void initialize(GraphicsShaderStateDesc const& stateDesc)
-		{
-			boundType = eGraphiscsState;
-			shaderA = stateDesc.pixel ? stateDesc.pixel->mGUID : 0;
-			shaderB = stateDesc.vertex ? stateDesc.vertex->mGUID : 0;
-			shaderC = stateDesc.geometry ? stateDesc.geometry->mGUID : 0;
-			shaderD = stateDesc.hull ? stateDesc.hull->mGUID : 0;
-			shaderE = stateDesc.domain ? stateDesc.domain->mGUID : 0;
-		}
-
-		void initialize(MeshShaderStateDesc const& stateDesc)
-		{
-			boundType = eMeshState;
-			shaderA = stateDesc.pixel ? stateDesc.pixel->mGUID : 0;
-			shaderB = stateDesc.mesh ? stateDesc.mesh->mGUID : 0;
-			shaderC = stateDesc.task ? stateDesc.task->mGUID : 0;
-			shaderD = 0;
-			shaderE = 0;
-		}
-
-		void initialize(RHIShader* shader)
-		{
-			CHECK(shader && shader->mType == EShader::Compute);
-
-			boundType = eCompute;
-			shaderA = shader->mGUID;
-			shaderB = 0;
-			shaderC = 0;
-			shaderD = 0;
-			shaderE = 0;
-		}
-
-		void initialize(RHIShaderProgram* shaderProgram)
-		{
-			CHECK(shaderProgram);
-
-			boundType = eShaderProgram;
-			shaderA = shaderProgram->mGUID;
-			shaderB = 0;
-			shaderC = 0;
-			shaderD = 0;
-			shaderE = 0;
-		}
-
-		bool operator == (D3D12ShaderBoundStateKey const& rhs) const
-		{
-			return valueA == rhs.valueA && valueB == rhs.valueB;
-		}
-		uint32 getTypeHash() const
-		{
-			uint32 result = std::hash_value(valueA);
-			HashCombine(result, valueB);
-			return result;
-		}
-	};
-
-
 	class D3D12ShaderBoundState
 	{
 	public:
@@ -133,7 +43,7 @@ namespace Render
 			D3D12ShaderData* data;
 			uint rootSlotStart;
 		};
-		D3D12ShaderBoundStateKey     cachedKey;
+		ShaderBoundStateKey     cachedKey;
 		std::vector< ShaderInfo >    mShaders;
 		TComPtr<ID3D12RootSignature> mRootSignature;
 	};
@@ -141,7 +51,7 @@ namespace Render
 
 	struct D3D12PipelineStateKey
 	{
-		D3D12ShaderBoundStateKey boundStateKey;
+		ShaderBoundStateKey boundStateKey;
 
 		union
 		{
@@ -152,7 +62,7 @@ namespace Render
 				uint64 blendID         : 12;
 				uint64 depthStenceilID : 12;
 				uint64 renderTargetFormatID : 12;
-				uint64 topologyType : 4;
+				uint64 primitiveType : 4;
 			};
 
 			uint64 value;
@@ -161,8 +71,7 @@ namespace Render
 		void initialize(
 			GraphicsRenderStateDesc const& renderState,
 			D3D12ShaderBoundState* boundState,
-			D3D12RenderTargetsState* renderTargetsState,
-			D3D12_PRIMITIVE_TOPOLOGY_TYPE  topologyType);
+			D3D12RenderTargetsState* renderTargetsState);
 
 		void initialize(
 			MeshRenderStateDesc const& renderState,
@@ -330,6 +239,14 @@ namespace Render
 	};
 
 	class D3D12RenderStateCache
+	{
+
+
+
+
+	};
+
+	class D3D12Device
 	{
 
 
@@ -881,8 +798,8 @@ namespace Render
 			}
 		}
 
-		std::unordered_map< D3D12ShaderBoundStateKey, D3D12ShaderBoundState*, MemberFuncHasher > mShaderBoundStateMap;
-		void releaseShaderBoundState()
+		std::unordered_map< ShaderBoundStateKey, D3D12ShaderBoundState*, MemberFuncHasher > mShaderBoundStateMap;
+		void cleanupShaderBoundState()
 		{
 			for (auto& pair : mShaderBoundStateMap)
 			{
@@ -894,9 +811,9 @@ namespace Render
 		
 		D3D12ShaderBoundState* getShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		D3D12ShaderBoundState* getShaderBoundState(MeshShaderStateDesc const& stateDesc);
-		D3D12ShaderBoundState* getShaderBoundState(RHIShader* computeShader);
+		D3D12ShaderBoundState* getShaderBoundState(RHIShader& computeShader);
 
-		D3D12ShaderBoundState* getShaderBoundState(D3D12ShaderProgram* shaderProgram);
+		D3D12ShaderBoundState* getShaderBoundState(D3D12ShaderProgram& shaderProgram);
 		D3D12PipelineState* getPipelineState(
 			GraphicsRenderStateDesc const& renderState,
 			D3D12ShaderBoundState* boundState, 
@@ -908,6 +825,10 @@ namespace Render
 			D3D12RenderTargetsState* renderTargetsState);
 
 		D3D12PipelineState* getPipelineState(D3D12ShaderBoundState* boundState);
+		void cleanupPipelineState()
+		{
+			mPipelineStateMap.clear();
+		}
 
 		std::unordered_map< D3D12PipelineStateKey, TRefCountPtr< D3D12PipelineState >, MemberFuncHasher> mPipelineStateMap;
 
@@ -916,8 +837,6 @@ namespace Render
 		TComPtr<ID3D12DeviceRHI> mDevice;
 
 		class D3D12ProfileCore* mProfileCore = nullptr;
-
-		TComPtr<ID3D12RootSignature> mRootSignature;
 		TRefCountPtr< D3D12SwapChain > mSwapChain;
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;

@@ -447,8 +447,9 @@ namespace Render
 	template< class TShaderBoundState >
 	OpenGLShaderBoundState* OpenGLSystem::getShaderBoundStateT(TShaderBoundState const& state)
 	{
-		OpenGLShaderBoundStateKey key(state);
-		if (key.numShaders == 0)
+		ShaderBoundStateKey key;
+		key.initialize(state);
+		if (!key.isValid())
 			return nullptr;
 
 		auto iter = mGfxBoundStateMap.find(key);
@@ -1700,7 +1701,7 @@ namespace Render
 					OpenGLInputLayout* inputLayoutImpl = OpenGLCast::To(mInputLayoutCommitted);
 					SimplePipelineProgram* program = SimplePipelineProgram::Get(inputLayoutImpl->mAttributeMask, mFixedShaderParams.texture);
 
-					RHISetShaderProgram(program->getRHIResource());
+					RHISetShaderProgram(program->getRHI());
 					program->setParameters(RHICommandListImpl(*this), mFixedShaderParams);
 				}
 

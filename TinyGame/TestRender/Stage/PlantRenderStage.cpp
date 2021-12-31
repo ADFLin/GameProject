@@ -91,7 +91,7 @@ namespace Render
 
 		int32 numVertices = mMesh.mVertexBuffer->getNumElements();
 		int32 stride = mMesh.mVertexBuffer->getElementSize() / sizeof(float);
-		RHISetShaderProgram(commandList, mProgGenerateHeight->getRHIResource());
+		RHISetShaderProgram(commandList, mProgGenerateHeight->getRHI());
 
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(NumVertices), numVertices);
 		mProgGenerateHeight->setParam(commandList, SHADER_PARAM(VertexStride), stride);
@@ -263,7 +263,7 @@ namespace Render
 		auto& rasterizerState = (bWireframe) ? TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe>::GetRHI() : TStaticRasterizerState<>::GetRHI();
 		RHISetRasterizerState(commandList, rasterizerState);
 
-		RHISetShaderProgram(commandList, mProgRender->getRHIResource());
+		RHISetShaderProgram(commandList, mProgRender->getRHI());
 
 		mProgRender->setParam(commandList, SHADER_PARAM(XForm), mView.worldToClip);
 		mProgRender->setStorageBuffer(commandList, SHADER_PARAM(HeightBlock), *mMeshOffsetData.getRHI(), AO_READ_ONLY);

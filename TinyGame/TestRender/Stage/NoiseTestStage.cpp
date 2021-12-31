@@ -568,7 +568,7 @@ namespace Render
 					GPU_PROFILE("DrawGrass");
 					RHISetBlendState(commandList, TStaticAlphaToCoverageBlendState<>::GetRHI());
 					auto& progGrass = (mbDrawInstaced) ? mProgGrassInstanced : mProgGrass;
-					RHISetShaderProgram(commandList, progGrass.getRHIResource());
+					RHISetShaderProgram(commandList, progGrass.getRHI());
 					mView.setupShader(commandList, progGrass);
 					progGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< ESampler::Trilinear > ::GetRHI());
 
@@ -626,7 +626,7 @@ namespace Render
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFunc::Always >::GetRHI());
 
-				RHISetShaderProgram(commandList, mProgResolveDepth->getRHIResource());
+				RHISetShaderProgram(commandList, mProgResolveDepth->getRHI());
 				mProgResolveDepth->setTexture(commandList, SHADER_PARAM(UnsolvedDepthTexture), *mDepthBuffer);
 				DrawUtility::ScreenRect(commandList, mDepthBuffer->getSizeX() , mDepthBuffer->getSizeY());
 			}
@@ -644,7 +644,7 @@ namespace Render
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-				RHISetShaderProgram(commandList, mProgSmokeRender->getRHIResource());
+				RHISetShaderProgram(commandList, mProgSmokeRender->getRHI());
 				mProgSmokeRender->setParameters(commandList, mView, mData, Vector3(0, 0, 0), Vector3(20, 20, 20), mSmokeParams);
 				mProgSmokeRender->setStructuredStorageBufferT< TiledLightInfo >(commandList, *mLightsBuffer.getRHI());
 				mProgSmokeRender->setParam(commandList, SHADER_PARAM(TiledLightNum), (int)mLights.size());
@@ -666,7 +666,7 @@ namespace Render
 				RHISetBlendState(commandList, TStaticBlendState<CWM_RGB, EBlend::One, EBlend::SrcAlpha >::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-				RHISetShaderProgram(commandList, mProgSmokeBlend->getRHIResource());
+				RHISetShaderProgram(commandList, mProgSmokeBlend->getRHI());
 				mProgSmokeBlend->setParameters(commandList, mView, *mSmokeFrameTextures[indexFrameTexture], *mSmokeFrameTextures[1 - indexFrameTexture]);
 				auto& sampler = TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp>::GetRHI();
 				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mProgSmokeBlend, SceneDepthTexture, *mSmokeDepthTexture, sampler);

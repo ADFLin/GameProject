@@ -284,7 +284,7 @@ namespace Render
 
 			if (bUseProgram)
 			{
-				RHISetShaderProgram(commandList, mProgTriangle->getRHIResource());
+				RHISetShaderProgram(commandList, mProgTriangle->getRHI());
 				mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
 				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
 				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), samplerState);
@@ -294,8 +294,8 @@ namespace Render
 			else
 			{
 				GraphicsShaderStateDesc stateDesc;
-				stateDesc.vertex = mVertexShader.getRHIResource();
-				stateDesc.pixel = mPixelShader.getRHIResource();
+				stateDesc.vertex = mVertexShader.getRHI();
+				stateDesc.pixel = mPixelShader.getRHI();
 				RHISetGraphicsShaderBoundState(commandList, stateDesc);
 				mVertexShader.setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
 				mView.setupShader(commandList, mVertexShader);

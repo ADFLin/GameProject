@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_set>
 
 #define SHADER_FILE_SUBNAME ".sgc"
 
@@ -36,7 +37,6 @@ namespace Render
 		EShader::Type type;
 		
 		std::string  headCode;
-		std::vector< HashString > includeFiles;
 		std::string  entryName;
 
 		template< class S1 , class S2 >
@@ -141,7 +141,7 @@ namespace Render
 			return false;
 		}
 
-		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes );
+		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles);
 		bool loadCode(ShaderCompileContext const& context, std::vector<uint8>& outCodes);
 
 		virtual ShaderPreprocessSettings getPreprocessSettings()

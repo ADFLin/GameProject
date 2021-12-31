@@ -109,7 +109,7 @@ namespace FlappyBird
 		Vector2  size;
 	};
 
-	static bool testInterection(float len, float min, float max)
+	static bool TestInterection(float len, float min, float max)
 	{
 		if( max < 0.0f )
 			return false;
@@ -118,10 +118,10 @@ namespace FlappyBird
 		return true;
 	}
 
-	static bool testInterection(Vector2 const& size, Vector2 const& offset, Vector2 const& sizeOther)
+	static bool TestInterection(Vector2 const& size, Vector2 const& offset, Vector2 const& sizeOther)
 	{
-		return testInterection(size.x, offset.x, offset.x + sizeOther.x) &&
-			testInterection(size.y, offset.y, offset.y + sizeOther.y);
+		return TestInterection(size.x, offset.x, offset.x + sizeOther.x) &&
+			TestInterection(size.y, offset.y, offset.y + sizeOther.y);
 	}
 
 	struct PipeInfo

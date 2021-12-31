@@ -1152,7 +1152,7 @@ namespace Go
 						(UnderCurveAreaProgram*)ShaderManager::Get().getGlobalShaderT < TUnderCurveAreaProgram<true> >() : 
 						(UnderCurveAreaProgram*)ShaderManager::Get().getGlobalShaderT < TUnderCurveAreaProgram<false> >();
 
-					RHISetShaderProgram(commandList, prog->getRHIResource());
+					RHISetShaderProgram(commandList, prog->getRHI());
 					prog->setParameters(commandList,
 						float(50), matProj,
 						Vector4(colors[i], alpha[i]),
@@ -1175,7 +1175,7 @@ namespace Go
 						permutationVector.set< SplineProgram::SplineType >(1);
 
 						SplineProgram* progSpline = ShaderManager::Get().getGlobalShaderT<SplineProgram>(permutationVector);
-						RHISetShaderProgram(commandList, progSpline->getRHIResource());
+						RHISetShaderProgram(commandList, progSpline->getRHI());
 						progSpline->setParam(commandList, SHADER_PARAM(XForm), matProj);
 						progSpline->setParam(commandList, SHADER_PARAM(TessFactor), 32);
 					}

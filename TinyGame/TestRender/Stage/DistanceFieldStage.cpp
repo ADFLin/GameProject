@@ -178,7 +178,7 @@ namespace Render
 
 			{
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
-				RHISetShaderProgram(commandList, mProgRayMarching->getRHIResource());
+				RHISetShaderProgram(commandList, mProgRayMarching->getRHI());
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(WorldToLocal), Matrix4::Identity());
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMax), mSDFData.boundMax);
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMin), mSDFData.boundMin);

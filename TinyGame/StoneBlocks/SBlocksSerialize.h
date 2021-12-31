@@ -120,7 +120,7 @@ namespace SBlocks
 	template< class OP >
 	void PieceDesc::serialize(OP& op)
 	{
-		op & id & pos & dir;
+		op & id & pos & dirAngFlags;
 	}
 
 	template< class OP >

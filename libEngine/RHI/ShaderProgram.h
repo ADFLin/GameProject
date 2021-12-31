@@ -32,7 +32,7 @@ namespace Render
 	{
 	public:
 
-		RHIResourceType* getRHIResource() { return mRHIResource; }
+		RHIResourceType* getRHI() { return mRHIResource; }
 		void releaseRHI()
 		{
 			mBoundedBlocks.clear();

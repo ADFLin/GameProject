@@ -89,22 +89,22 @@ bool SampleBase::handleMouseEvent( MouseMsg const& msg )
 	return true;
 }
 
-bool SampleBase::handleKeyEvent(KeyMsg const& msg)
+MsgReply SampleBase::handleKeyEvent(KeyMsg const& msg)
 {
 	float moveSpeed = 10;
-	if ( !msg.isDown() )
-		return false;
-
-	switch( msg.getCode() )
+	if ( msg.isDown() )
 	{
-	case EKeyCode::Escape: setLoopOver( true ); break;
-	case EKeyCode::W: mMainCamera->translate( Vector3( 0,0,-moveSpeed ) , CFTO_LOCAL ); break;
-	case EKeyCode::S: mMainCamera->translate( Vector3( 0,0,moveSpeed ) , CFTO_LOCAL ); break;
-	case EKeyCode::A: mMainCamera->translate( Vector3( -moveSpeed ,0 , 0 ) , CFTO_LOCAL ); break;
-	case EKeyCode::D: mMainCamera->translate( Vector3( moveSpeed ,0 , 0 ) , CFTO_LOCAL ); break;
+		switch (msg.getCode())
+		{
+		case EKeyCode::Escape: setLoopOver(true); break;
+		case EKeyCode::W: mMainCamera->translate(Vector3(0, 0, -moveSpeed), CFTO_LOCAL); break;
+		case EKeyCode::S: mMainCamera->translate(Vector3(0, 0, moveSpeed), CFTO_LOCAL); break;
+		case EKeyCode::A: mMainCamera->translate(Vector3(-moveSpeed, 0, 0), CFTO_LOCAL); break;
+		case EKeyCode::D: mMainCamera->translate(Vector3(moveSpeed, 0, 0), CFTO_LOCAL); break;
+		}
 	}
 
-	return true;
+	return MsgReply::Unhandled();
 }
 
 void SampleBase::handleGameRender()

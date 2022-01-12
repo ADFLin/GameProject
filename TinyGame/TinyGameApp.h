@@ -152,9 +152,9 @@ public:
 	void  handleGameIdle( long time ) CRTP_OVERRIDE;
 
 	//WindowsMessageHandlerT
-	bool  handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
-	bool  handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE;
-	bool  handleCharEvent( unsigned code )  CRTP_OVERRIDE;
+	MsgReply handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
+	MsgReply handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE;
+	MsgReply handleCharEvent( unsigned code )  CRTP_OVERRIDE;
 	bool  handleWindowActivation( bool beA ) CRTP_OVERRIDE;
 	void  handleWindowPaint( HDC hDC ) CRTP_OVERRIDE;
 	bool  handleWindowDestroy( HWND hWnd ) CRTP_OVERRIDE;

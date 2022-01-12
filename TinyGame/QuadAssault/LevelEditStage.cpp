@@ -200,20 +200,22 @@ void LevelEditStage::onRender()
 
 }
 
-bool LevelEditStage::onMouse( MouseMsg const& msg )
+MsgReply LevelEditStage::onMouse( MouseMsg const& msg )
 {
-	if ( !mMode->onMouse( msg ) )
-		return false;		
+	MsgReply reply = mMode->onMouse(msg);
+	if (reply.isHandled())
+		return reply;
 
-	return false;
+	return BaseClass::onMouse(msg);
 }
 
 
 
-bool LevelEditStage::onKey(KeyMsg const& msg)
+MsgReply LevelEditStage::onKey(KeyMsg const& msg)
 {
-	if ( !mMode->onKey(msg) )
-		return false;
+	MsgReply replay = mMode->onKey(msg);
+	if ( replay.isHandled() )
+		return replay;
 
 	if ( msg.isDown() )
 	{
@@ -480,23 +482,23 @@ void TileEditMode::enumProp( IPropEditor& editor )
 	editor.addProp( "Meta" , mTile->meta );
 }
 
-bool TileEditMode::onKey(KeyMsg const& msg)
+MsgReply TileEditMode::onKey(KeyMsg const& msg)
 {
-	if ( !msg.isDown())
-		return true;
-
-	switch(msg.getCode())
+	if (msg.isDown())
 	{
-	case EKeyCode::Num1: setEditType( BID_FLAT ); return false;
-	case EKeyCode::Num2: setEditType( BID_WALL ); return false;
-	case EKeyCode::Num3: setEditType( BID_GAP );  return false;
-	case EKeyCode::Num4: setEditType( BID_DOOR ); return false;
-	case EKeyCode::Num7: setEditType( BID_ROCK ); return false;
+		switch (msg.getCode())
+		{
+		case EKeyCode::Num1: setEditType(BID_FLAT); return MsgReply::Handled();
+		case EKeyCode::Num2: setEditType(BID_WALL); return MsgReply::Handled();
+		case EKeyCode::Num3: setEditType(BID_GAP);  return MsgReply::Handled();
+		case EKeyCode::Num4: setEditType(BID_DOOR); return MsgReply::Handled();
+		case EKeyCode::Num7: setEditType(BID_ROCK); return MsgReply::Handled();
+		}
 	}
-	return true;
+	return MsgReply::Unhandled();
 }
 
-bool TileEditMode::onMouse( MouseMsg const& msg )
+MsgReply TileEditMode::onMouse( MouseMsg const& msg )
 {
 	Vec2f wPos = getWorld().convertToWorldPos( msg.getPos() );
 	Tile* tile = getWorld().getLevel()->getTile( wPos );
@@ -507,7 +509,7 @@ bool TileEditMode::onMouse( MouseMsg const& msg )
 		{
 			mTile = tile;
 			getWorld().mPropFrame->changeEdit( *this );
-			return false;
+			return MsgReply::Handled();
 		}
 	}
 	else if( msg.onRightDown() )
@@ -519,12 +521,11 @@ bool TileEditMode::onMouse( MouseMsg const& msg )
 
 			mTile = tile;
 			getWorld().mPropFrame->changeEdit( *this );
-			return false;
+			return MsgReply::Handled();
 		}
 	}
 
-
-	return true;
+	return MsgReply::Unhandled();
 }
 
 void TileEditMode::onWidgetEvent( int event , int id , QWidget* sender )
@@ -596,7 +597,7 @@ void ObjectEditMode::onDisable()
 	mActFrame->show( false );
 }
 
-bool ObjectEditMode::onMouse( MouseMsg const& msg )
+MsgReply ObjectEditMode::onMouse( MouseMsg const& msg )
 {
 	Vec2f wPos = getWorld().convertToWorldPos( msg.getPos() );
 
@@ -607,7 +608,7 @@ bool ObjectEditMode::onMouse( MouseMsg const& msg )
 			LevelObject* obj = getWorld().getLevel()->spawnObjectByName( mObjectName , wPos );
 			changeObject( obj );
 
-			return false;
+			return MsgReply::Handled();
 		}
 	}
 	else if ( msg.onLeftDown() )
@@ -616,7 +617,7 @@ bool ObjectEditMode::onMouse( MouseMsg const& msg )
 		if ( obj )
 		{
 			changeObject( obj );
-			return false;
+			return MsgReply::Handled();
 		}
 	}
 	else if ( msg.onMoving() )
@@ -642,8 +643,7 @@ bool ObjectEditMode::onMouse( MouseMsg const& msg )
 		}
 	}
 
-	return true;
-
+	return MsgReply::Unhandled();
 }
 
 void ObjectEditMode::onWidgetEvent( int event , int id , QWidget* sender )

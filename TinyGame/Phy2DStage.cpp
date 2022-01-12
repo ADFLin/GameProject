@@ -209,46 +209,46 @@ namespace Phy2D
 		g.endRender();
 	}
 
-	bool CollideTestStage::onKey(KeyMsg const& msg)
+	MsgReply CollideTestStage::onKey(KeyMsg const& msg)
 	{
-		if( !msg.isDown())
-			return false;
-
-		static int idx = 0;
-		static int idx2 = 0;
-		float speed = 0.013;
-		switch(msg.getCode())
+		if(msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::D: moveObject(Vector2(speed, 0)); break;
-		case EKeyCode::A: moveObject(Vector2(-speed, 0)); break;
-		case EKeyCode::W: moveObject(Vector2(0, speed)); break;
-		case EKeyCode::S: moveObject(Vector2(0, -speed)); break;
-		case EKeyCode::Left:
-			mObjects[1].mXForm.rotate(0.01); break;
-		case EKeyCode::Right:
-			mObjects[1].mXForm.rotate(-0.01); break;
-		case EKeyCode::Num1:
-			++idx; if( idx >= ARRAY_SIZE(mShapes) ) idx = 0;
-			mObjects[0].mShape = mShapes[idx];
-			break;
-		case EKeyCode::Num2:
-			--idx; if( idx < 0 ) idx = ARRAY_SIZE(mShapes) - 1;
-			mObjects[0].mShape = mShapes[idx];
-			break;
-		case EKeyCode::Num3:
-			++idx2; if( idx2 >= ARRAY_SIZE(mShapes) ) idx2 = 0;
-			mObjects[1].mShape = mShapes[idx2];
-			break;
-		case EKeyCode::Num4:
-			--idx2; if( idx2 < 0 ) idx2 = ARRAY_SIZE(mShapes) - 1;
-			mObjects[1].mShape = mShapes[idx2];
-			break;
-		case 'E':
-			mIsCollided = mCollision.test(&mObjects[0], &mObjects[1], mContact);
-			break;
+			static int idx = 0;
+			static int idx2 = 0;
+			float speed = 0.013;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::D: moveObject(Vector2(speed, 0)); break;
+			case EKeyCode::A: moveObject(Vector2(-speed, 0)); break;
+			case EKeyCode::W: moveObject(Vector2(0, speed)); break;
+			case EKeyCode::S: moveObject(Vector2(0, -speed)); break;
+			case EKeyCode::Left:
+				mObjects[1].mXForm.rotate(0.01); break;
+			case EKeyCode::Right:
+				mObjects[1].mXForm.rotate(-0.01); break;
+			case EKeyCode::Num1:
+				++idx; if (idx >= ARRAY_SIZE(mShapes)) idx = 0;
+				mObjects[0].mShape = mShapes[idx];
+				break;
+			case EKeyCode::Num2:
+				--idx; if (idx < 0) idx = ARRAY_SIZE(mShapes) - 1;
+				mObjects[0].mShape = mShapes[idx];
+				break;
+			case EKeyCode::Num3:
+				++idx2; if (idx2 >= ARRAY_SIZE(mShapes)) idx2 = 0;
+				mObjects[1].mShape = mShapes[idx2];
+				break;
+			case EKeyCode::Num4:
+				--idx2; if (idx2 < 0) idx2 = ARRAY_SIZE(mShapes) - 1;
+				mObjects[1].mShape = mShapes[idx2];
+				break;
+			case EKeyCode::E:
+				mIsCollided = mCollision.test(&mObjects[0], &mObjects[1], mContact);
+				break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	bool WorldTestStage::onInit()
@@ -394,44 +394,44 @@ namespace Phy2D
 		g.endRender();
 	}
 
-	bool WorldTestStage::onKey(KeyMsg const& msg)
+	MsgReply WorldTestStage::onKey(KeyMsg const& msg)
 	{
-		if( !msg.isDown())
-			return false;
-
-		float speed = 0.013;
-		switch( msg.getCode() )
+		if(msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::D:  break;
-		case EKeyCode::A: break;
-		case EKeyCode::W: break;
-		case EKeyCode::S: break;
-		case EKeyCode::E:
-		{
-			BodyInfo info;
-			RigidBody* body = mWorld.createRigidBody(&mCircleShape, info);
-			body->setPos(Vector2(0, 30));
-		}
-		break;
-		case EKeyCode::F2:
-		{
-			if( gDebugStep )
+			float speed = 0.013;
+			switch (msg.getCode())
 			{
-				gDebugStep = false;
-				gDebugJumper.jump();
-			}
-			else
-			{
-				gDebugStep = true;
-				std::function< void() > func = std::bind(&WorldTestStage::debugEntry, this);
-				gDebugJumper.start(func);
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::D:  break;
+			case EKeyCode::A: break;
+			case EKeyCode::W: break;
+			case EKeyCode::S: break;
+			case EKeyCode::E:
+				{
+					BodyInfo info;
+					RigidBody* body = mWorld.createRigidBody(&mCircleShape, info);
+					body->setPos(Vector2(0, 30));
+				}
+				break;
+			case EKeyCode::F2:
+				{
+					if (gDebugStep)
+					{
+						gDebugStep = false;
+						gDebugJumper.jump();
+					}
+					else
+					{
+						gDebugStep = true;
+						std::function< void() > func = std::bind(&WorldTestStage::debugEntry, this);
+						gDebugJumper.start(func);
+					}
+				}
+				break;
+			case 'Q': jumpDebug(); break;
 			}
 		}
-		break;
-		case 'Q': jumpDebug(); break;
-		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	void WorldTestStage::debugEntry()

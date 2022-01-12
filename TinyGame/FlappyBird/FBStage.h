@@ -71,8 +71,8 @@ namespace FlappyBird
 
 		}
 
-		bool onMouse( MouseMsg const& msg );
-		bool onKey(KeyMsg const& msg);
+		MsgReply onMouse( MouseMsg const& msg );
+		MsgReply onKey(KeyMsg const& msg);
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 
 		ERenderSystem getDefaultRenderSystem() override;

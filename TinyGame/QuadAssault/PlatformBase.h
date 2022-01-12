@@ -22,9 +22,9 @@ class ISystemListener
 {
 public:
 	virtual bool onSystemEvent( SystemEvent event ){ return true; }
-	virtual bool onMouse( MouseMsg const& msg ){ return true; }
-	virtual bool onKey( KeyMsg const& msg ){ return true; }
-	virtual bool onChar( unsigned code ){ return true; }
+	virtual MsgReply onMouse( MouseMsg const& msg ){ return MsgReply::Unhandled(); }
+	virtual MsgReply onKey( KeyMsg const& msg ){ return MsgReply::Unhandled(); }
+	virtual MsgReply onChar( unsigned code ) { return MsgReply::Unhandled(); }
 };
 
 

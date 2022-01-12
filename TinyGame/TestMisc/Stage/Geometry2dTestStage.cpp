@@ -81,7 +81,6 @@ namespace G2D
 
 		bool onInit() override
 		{
-
 			{
 				Vertices vertices{ Vector2(-1,0) , Vector2(0,-1)  , Vector2(1,0) };
 				Geom2D::CalcMinimumBoundingRectangle(vertices, mBoundCenter, mBoundAxisX, mBoundSize);
@@ -181,11 +180,8 @@ namespace G2D
 
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if( !BaseClass::onMouse(msg) )
-				return false;
-
 			if( msg.onLeftDown() )
 			{
 				Vector2 wPos = mRenderer.convertToWorld(msg.getPos());
@@ -208,7 +204,8 @@ namespace G2D
 					updateHull();
 				}
 			}
-			return true;
+
+			return BaseClass::onMouse(msg);
 		}
 
 		void updateTestPos(Vector2 const& pos)
@@ -218,16 +215,16 @@ namespace G2D
 				mbInside = Geom2D::TestInSide(mVertices, mTestPos);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if( !msg.isDown())
-				return false;
-
-			switch(msg.getCode())
+			if( msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 	protected:
@@ -407,7 +404,7 @@ namespace G2D
 
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos;
 			if( msg.onLeftDown() )
@@ -424,21 +421,21 @@ namespace G2D
 					oldPos = msg.getPos();
 				}
 			}
-			return false;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if( !msg.isDown() )
-				return false;
-
-			switch(msg.getCode())
+			if(msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::W: mMode = (mMode == MODE_CIRCLE) ? MODE_POLY : MODE_CIRCLE; break;
-			case EKeyCode::Q: updateCollision(); break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::W: mMode = (mMode == MODE_CIRCLE) ? MODE_POLY : MODE_CIRCLE; break;
+				case EKeyCode::Q: updateCollision(); break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 	protected:
 

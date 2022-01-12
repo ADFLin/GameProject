@@ -537,11 +537,8 @@ namespace FlowFree
 		g.endRender();
 	}
 
-	bool TestStage::onMouse(MouseMsg const& msg)
+	MsgReply TestStage::onMouse(MouseMsg const& msg)
 	{
-		if (!BaseClass::onMouse(msg))
-			return false;
-
 		if (msg.onLeftDown())
 		{
 			Vec2i cPos = ToCellPos(msg.getPos());
@@ -620,7 +617,7 @@ namespace FlowFree
 			}
 		}
 
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 }//namespace Flow

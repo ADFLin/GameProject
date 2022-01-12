@@ -39,12 +39,12 @@ void ConsoleFrame::onRender()
 	}
 }
 
-bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
+MsgReply ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 {
 	return mCmdText->onKeyMsg(msg);
 }
 
-bool ConsoleFrame::onCharMsg(unsigned code)
+MsgReply ConsoleFrame::onCharMsg(unsigned code)
 {
 	return mCmdText->onCharMsg(code);
 }
@@ -71,21 +71,21 @@ bool ConsoleFrame::onChildEvent(int event, int id, GWidget* ui)
 	return true;
 }
 
-bool ConsoleCmdTextCtrl::onCharMsg(unsigned code)
+MsgReply ConsoleCmdTextCtrl::onCharMsg(unsigned code)
 {
 	//eat tab char and ~
 	if (code == EKeyCode::Tab || code == 0x60)
 	{
-		return false;
+		return MsgReply::Handled();
 	}
 	mIndexFoundCmdUsed = INDEX_NONE;
 	return BaseClass::onCharMsg(code);
 }
 
-bool ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
+MsgReply ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
 {
 	if (!msg.isDown())
-		return false;
+		return MsgReply::Handled();
 
 	if (msg.getCode() == EKeyCode::Tab)
 	{
@@ -145,7 +145,7 @@ bool ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
 		{
 			setFoundCmdToText();
 		}
-		return false;
+		return MsgReply::Handled();
 	}
 	else if (msg.getCode() == EKeyCode::Up)
 	{
@@ -171,14 +171,14 @@ bool ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
 			mIndexHistoryUsed = 0;
 		}
 	}
-	bool result = BaseClass::onKeyMsg(msg);
+	MsgReply reply = BaseClass::onKeyMsg(msg);
 
 	if (msg.getCode() == EKeyCode::Return)
 	{
 
 	}
 
-	return false;
+	return reply;
 }
 
 void ConsoleCmdTextCtrl::setFoundCmdToText()

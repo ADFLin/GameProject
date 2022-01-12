@@ -522,9 +522,8 @@ namespace Render
 
 		}
 
-		bool onMouse( MouseMsg const& msg );
-
-		bool onKey(KeyMsg const& msg);
+		MsgReply onMouse(MouseMsg const& msg);
+		MsgReply onKey(KeyMsg const& msg);
 		
 		enum
 		{

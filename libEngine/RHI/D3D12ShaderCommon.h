@@ -217,12 +217,12 @@ namespace Render
 
 		virtual bool doesSuppurtBinaryCode() const { return true; }
 		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode);
-
-
+		
 		TComPtr<ID3D12Device8> mDevice;
+#if TARGET_PLATFORM_64BITS
 		TComPtr<IDxcLibrary>   mLibrary;
 		TComPtr<IDxcCompiler>  mCompiler;
-
+#endif
 
 		bool ensureDxcObjectCreation();
 

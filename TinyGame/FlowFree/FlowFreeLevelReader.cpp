@@ -418,8 +418,8 @@ namespace FlowFree
 				{
 					int k = 1;
 				}
-				Vector2 CellLTUV = Vector2(VLines[i], HLines[j]);
-				Vector2 cellCenterUV = CellLTUV + 0.5 * gridUVSize;
+				Vector2 cellLTUV = Vector2(VLines[i], HLines[j]);
+				Vector2 cellCenterUV = cellLTUV + 0.5 * gridUVSize;
 				Vector2 detectUV = cellCenterUV +gridUVSize.mul(Vector2(0, -0.1));
 				addDebugLine(detectUV, cellCenterUV , Color3ub(100, 255, 100));
 				Color3ub sourceColor = GetSourceColor(detectUV);
@@ -466,8 +466,8 @@ namespace FlowFree
 					for (int n = 0; n < 4; ++n)
 					{
 						float lenHalfUV = 0.2;
-						Vector2 startUV = CellLTUV + gridUVSize.mul(bridgeDetctPointUVOffsets[n] - Vector2(0, lenHalfUV));
-						Vector2 stopUV = CellLTUV + gridUVSize.mul(bridgeDetctPointUVOffsets[n] + Vector2(0, lenHalfUV));
+						Vector2 startUV = cellLTUV + gridUVSize.mul(bridgeDetctPointUVOffsets[n] - Vector2(0, lenHalfUV));
+						Vector2 stopUV = cellLTUV + gridUVSize.mul(bridgeDetctPointUVOffsets[n] + Vector2(0, lenHalfUV));
 						Vec2i startPos = imageView.getPixelPos(startUV);
 						Vec2i stopPos = imageView.getPixelPos(stopUV);
 						int len = stopPos.y - startPos.y + 1;
@@ -543,9 +543,9 @@ namespace FlowFree
 		{
 			for (int n = 0; n <= levelSize.y; ++n)
 			{
-				Vector2 CellLTUV = Vector2(VLines[i], HLines[n]);
-				Vector2 startUV = CellLTUV + Vector2(0.2, -offsetFac).mul(gridUVSize);
-				Vector2 stopUV = CellLTUV + Vector2(0.2, +offsetFac).mul(gridUVSize);
+				Vector2 cellLTUV = Vector2(VLines[i], HLines[n]);
+				Vector2 startUV = cellLTUV + Vector2(0.2, -offsetFac).mul(gridUVSize);
+				Vector2 stopUV = cellLTUV + Vector2(0.2, +offsetFac).mul(gridUVSize);
 				Vec2i startPos = imageView.getPixelPos(startUV);
 				Vec2i stopPos = imageView.getPixelPos(stopUV);
 				int len = stopPos.y - startPos.y + 1;

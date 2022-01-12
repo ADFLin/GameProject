@@ -52,9 +52,9 @@ public:
 	virtual void onUpdate( long time ){}
 	virtual void onRender( float dFrame ){}
 	
-	virtual bool onChar( unsigned code );
-	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey( KeyMsg const& msg );
+	virtual MsgReply onChar( unsigned code );
+	virtual MsgReply onKey( KeyMsg const& msg );
+	virtual MsgReply onMouse(MouseMsg const& msg);
 
 	virtual bool onWidgetEvent( int event , int id , GWidget* ui ){ return true; }
 	virtual void onTaskMessage( TaskBase* task , TaskMsg const& msg );

@@ -140,9 +140,9 @@ protected:
 public:
 
 	virtual void  deleteThis() { delete this; }
-	virtual bool  onKeyMsg(KeyMsg const& msg) { (void)msg; return true; }
-	virtual bool  onCharMsg(unsigned code) { (void)code; return true; }
-	virtual bool  onMouseMsg(MouseMsg const& msg) { (void)msg; return false; }
+	virtual MsgReply onKeyMsg(KeyMsg const& msg) { (void)msg; return MsgReply::Unhandled(); }
+	virtual MsgReply onCharMsg(unsigned code) { (void)code; return MsgReply::Unhandled(); }
+	virtual MsgReply onMouseMsg(MouseMsg const& msg) { (void)msg; return MsgReply::Handled(); }
 
 private:
 	void    deleteChildren_R();
@@ -255,9 +255,9 @@ public:
 	void      startModal(WidgetCore* ui );
 	void      endModal(WidgetCore* ui );
 
-	bool      procMouseMsg( MouseMsg const& msg );
-	bool      procKeyMsg( KeyMsg const& msg );
-	bool      procCharMsg( unsigned code );
+	MsgReply  procMouseMsg( MouseMsg const& msg );
+	MsgReply  procKeyMsg( KeyMsg const& msg );
+	MsgReply  procCharMsg( unsigned code );
 
 	void      focusWidget(WidgetCore* ui );
 	void      clearFocusWidget(WidgetCore* ui, bool bSubWidgetsIncluded);
@@ -286,7 +286,7 @@ protected:
 	void        postProcMsg();
 
 	template< class TFunc >
-	bool processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, TFunc func);
+	MsgReply processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, TFunc func);
 
 	struct ProcMsgScope
 	{
@@ -340,6 +340,7 @@ private:
 private:
 	TWidgetManager( TWidgetManager const& ){}
 	TWidgetManager& operator = (TWidgetManager const&);
+
 };
 
 #include "WidgetCore.hpp"

@@ -218,13 +218,17 @@ namespace Rich
 
 		virtual bool onWidgetEvent( int event , int id , GWidget* widget );
 
-		virtual bool onMouse( MouseMsg const& msg )
+		virtual MsgReply onMouse( MouseMsg const& msg )
 		{  
-			if ( mEditor && !mEditor->onMouse( msg ) )
-				return false;
-			return true;  
+			if (mEditor)
+			{
+				MsgReply reply = mEditor->onMouse(msg);
+				if (reply.isHandled())
+					return reply;
+			}
+			return BaseClass::onMouse(msg);  
 		}
-		virtual bool onKey(KeyMsg const& msg){  return true;  }
+		virtual MsgReply onKey(KeyMsg const& msg){  return MsgReply::Unhandled();  }
 
 		GameInputController mUserController;
 

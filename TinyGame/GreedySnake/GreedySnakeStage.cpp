@@ -181,11 +181,8 @@ namespace GreedySnake
 		return true;
 	}
 
-	bool LevelStage::onKey(KeyMsg const& msg)
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
-		if( !BaseClass::onKey(msg) )
-			return false;
-
 		if (msg.isDown())
 		{
 			switch(msg.getCode())
@@ -199,7 +196,7 @@ namespace GreedySnake
 			}
 		}
 
-		return true;
+		return BaseClass::onKey(msg);
 	}
 
 	void LevelStage::setupLocalGame(LocalPlayerManager& playerManager)

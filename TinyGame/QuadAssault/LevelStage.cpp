@@ -118,26 +118,26 @@ void LevelStageBase::onWidgetEvent( int event , int id , QWidget* sender )
 }
 
 
-bool LevelStageBase::onMouse( MouseMsg const& msg )
+MsgReply LevelStageBase::onMouse( MouseMsg const& msg )
 {
-	return true;
+	return BaseClass::onMouse(msg);
 }
 
-bool LevelStageBase::onKey(KeyMsg const& msg)
+MsgReply LevelStageBase::onKey(KeyMsg const& msg)
 {
-	if ( !msg.isDown() )
-		return false;
-
-	switch(msg.getCode())
+	if (msg.isDown())
 	{
-	case EKeyCode::F2:
-		break;
-	case EKeyCode::Escape:
-		GUISystem::Get().findTopWidget( UI_MENU_PANEL )->show( true );
-		mPause = true;
-		break;
+		switch (msg.getCode())
+		{
+		case EKeyCode::F2:
+			break;
+		case EKeyCode::Escape:
+			GUISystem::Get().findTopWidget(UI_MENU_PANEL)->show(true);
+			mPause = true;
+			break;
+		}
 	}
-	return false;
+	return BaseClass::onKey(msg);
 }
 
 bool LevelStage::onInit()
@@ -432,15 +432,15 @@ void LevelStage::onRender()
 #endif
 }
 
-bool LevelStage::onMouse( MouseMsg const& msg )
+MsgReply LevelStage::onMouse( MouseMsg const& msg )
 {
-	return true;
+	return BaseClass::onMouse(msg);
 }
 
 extern bool gUseGroupRender;
 #include <iostream>
 
-bool LevelStage::onKey(KeyMsg const& msg)
+MsgReply LevelStage::onKey(KeyMsg const& msg)
 {
 	if ( msg.isDown() )
 	{

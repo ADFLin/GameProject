@@ -49,9 +49,9 @@ namespace TripleTown
 		virtual void onRestart( bool beInit );
 		void onRender( float dFrame ) override;
 
-		bool onMouse( MouseMsg const& msg ) override;
+		MsgReply onMouse( MouseMsg const& msg ) override;
+		MsgReply onKey(KeyMsg const& msg) override;
 
-		bool onKey(KeyMsg const& msg) override;
 		bool onWidgetEvent(int event, int id, GWidget* ui) override 
 		{
 			switch( id )

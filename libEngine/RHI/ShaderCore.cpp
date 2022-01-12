@@ -8,20 +8,14 @@ namespace Render
 {
 	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
 	{
-
-		auto iter = paramMap.mMap.find(name);
-		if( iter == paramMap.mMap.end() )
-		{
-#if _DEBUG
-			mName = name;
-#endif
-			return false;
-		}
-
-		*this = iter->second;
 #if _DEBUG
 		mName = name;
 #endif
+		auto iter = paramMap.mMap.find(name);
+		if( iter == paramMap.mMap.end() )
+			return false;
+
+		*this = iter->second;
 		return true;
 	}
 
@@ -81,7 +75,6 @@ namespace Render
 		}
 	}
 
-
 	void MaterialShaderCompileInfo::setup(ShaderCompileOption& option) const
 	{
 		switch (tessellationMode)
@@ -94,7 +87,6 @@ namespace Render
 			option.addDefine(SHADER_PARAM(USE_PN_TRIANGLE), true);
 			break;
 		}
-
 	}
 
 }//namespace Render

@@ -174,9 +174,9 @@ float CWidget::calcDepthOffset()
 	return depth;
 }
 
-bool CWidget::onMouseMsg( MouseMsg const& msg )
+MsgReply CWidget::onMouseMsg( MouseMsg const& msg )
 {
-	return true;
+	return MsgReply::Unhandled();
 }
 
 void CWidget::onChangeOrder()
@@ -249,7 +249,7 @@ CFrameUI::CFrameUI( Vec2i const& pos , Vec2i const& size  , CWidget* parent )
 }
 
 
-bool CFrameUI::onMouseMsg( MouseMsg const& msg )
+MsgReply CFrameUI::onMouseMsg( MouseMsg const& msg )
 {
 	CWidget::onMouseMsg( msg );
 
@@ -275,7 +275,7 @@ bool CFrameUI::onMouseMsg( MouseMsg const& msg )
 		x = msg.x();
 		y = msg.y();
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 

@@ -93,28 +93,28 @@ public:
 		}
 	}
 
-	bool handleKeyEvent(KeyMsg const& msg)
+	MsgReply handleKeyEvent(KeyMsg const& msg)
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::Q:
-			--mIdxLeafDBG;
-			if ( mIdxLeafDBG < 0 )
-				mIdxLeafDBG = mBspTree.getLeafNum() - 1;
-			break;
-		case EKeyCode::E:
-			++mIdxLeafDBG;
-			if ( mIdxLeafDBG >= mBspTree.getLeafNum() )
-				mIdxLeafDBG = 0;
-			break;
-		case EKeyCode::R:
-			mIdxLeafDBG += 20;
-			if ( mIdxLeafDBG >= mBspTree.getLeafNum() )
-				mIdxLeafDBG = 0;
-			break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::Q:
+				--mIdxLeafDBG;
+				if (mIdxLeafDBG < 0)
+					mIdxLeafDBG = mBspTree.getLeafNum() - 1;
+				break;
+			case EKeyCode::E:
+				++mIdxLeafDBG;
+				if (mIdxLeafDBG >= mBspTree.getLeafNum())
+					mIdxLeafDBG = 0;
+				break;
+			case EKeyCode::R:
+				mIdxLeafDBG += 20;
+				if (mIdxLeafDBG >= mBspTree.getLeafNum())
+					mIdxLeafDBG = 0;
+				break;
+			}
 		}
 
 		return BaseClass::handleKeyEvent( msg );

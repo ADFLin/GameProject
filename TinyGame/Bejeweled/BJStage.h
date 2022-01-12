@@ -20,8 +20,8 @@ namespace Bejeweled
 		void tick();
 		void updateFrame( int frame );
 
-		bool onMouse( MouseMsg const& msg );
-		bool onKey(KeyMsg const& msg);
+		MsgReply onMouse( MouseMsg const& msg );
+		MsgReply onKey(KeyMsg const& msg);
 	protected:
 		Scene mScene;
 	};

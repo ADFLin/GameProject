@@ -20,11 +20,13 @@
 #include <D3D12Shader.h>
 #include <D3Dcompiler.h>
 
-#include "Dxc/dxcapi.h"
+
 #include "Serialize/StreamBuffer.h"
 
-
+#include "Dxc/dxcapi.h"
+#if TARGET_PLATFORM_64BITS
 #pragma comment(lib , "dxcompiler.lib")
+#endif
 
 namespace Render
 {
@@ -52,6 +54,7 @@ namespace Render
 
 	bool ShaderFormatHLSL_D3D12::compileCode(ShaderCompileContext const& context)
 	{
+#if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
 		bool bSuccess;
@@ -155,6 +158,9 @@ namespace Render
 		while (!bSuccess && bRecompile);
 
 		return bSuccess;
+#else
+		return false;
+#endif
 	}
 
 	bool ShaderFormatHLSL_D3D12::getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
@@ -194,6 +200,7 @@ namespace Render
 
 	bool ShaderFormatHLSL_D3D12::ensureDxcObjectCreation()
 	{
+#if TARGET_PLATFORM_64BITS
 		if (!mLibrary)
 		{
 			VERIFY_D3D_RESULT_RETURN_FALSE(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&mLibrary)));
@@ -204,10 +211,14 @@ namespace Render
 		}
 
 		return true;
+#else
+		return false;
+#endif
 	}
 
 	bool ShaderFormatHLSL_D3D12::initializeShader(Shader& shader, ShaderSetupData& setupData)
 	{
+#if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 		shader.mRHIResource = setupData.resource;
 		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
@@ -216,10 +227,14 @@ namespace Render
 		D3D12Shader::SetupShader(shaderImpl.rootSignature, shaderImpl.mType);
 		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
+#else
+		return false;
+#endif
 	}
 
 	bool ShaderFormatHLSL_D3D12::initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode)
 	{
+#if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
 		shader.mRHIResource = RHICreateShader(desc.type);
@@ -233,10 +248,14 @@ namespace Render
 		D3D12Shader::SetupShader(shaderImpl.rootSignature, shaderImpl.mType);
 		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
+#else
+		return false;
+#endif
 	}
 
 	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
+#if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
 		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
@@ -245,10 +264,14 @@ namespace Render
 		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
 
 		return true;
+#else
+		return false;
+#endif
 	}
 
 	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode)
 	{
+#if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
 		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
@@ -272,12 +295,16 @@ namespace Render
 		shaderProgramImpl.initializeParameterMap(mLibrary);
 		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
 		return true;
+#else
+		return false;
+#endif
 	}
 
 
 
 	bool D3D12Shader::GenerateParameterMap(std::vector< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature)
 	{
+#if TARGET_PLATFORM_64BITS
 		TComPtr<IDxcContainerReflection> containerReflection;
 		VERIFY_D3D_RESULT_RETURN_FALSE(DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&containerReflection)));
 
@@ -459,6 +486,9 @@ namespace Render
 			}
 		}
 		return true;
+#else
+		return false;
+#endif
 	}
 
 	void D3D12Shader::SetupShader(ShaderRootSignature& inOutSignature, EShader::Type type)

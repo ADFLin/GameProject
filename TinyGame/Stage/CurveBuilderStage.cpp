@@ -225,7 +225,7 @@ namespace CB
 			g.endRender();
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos = msg.getPos();
 
@@ -241,12 +241,10 @@ namespace CB
 				oldPos = msg.getPos();
 			}
 
-			if( !BaseClass::onMouse(msg) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
 			if( msg.isDown())
 			{
@@ -265,7 +263,7 @@ namespace CB
 				case EKeyCode::Subtract: modifyParamIncrement(2); break;
 				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 		void modifyParamIncrement( float modifyFactor )

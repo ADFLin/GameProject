@@ -216,7 +216,7 @@ void CModelShowPanel::onRender()
 		mCamera , mViewport , CFly::CFRF_DEFULT | CFly::CFRF_SAVE_RENDER_TARGET );
 }
 
-bool CModelShowPanel::onMouseMsg( MouseMsg const& msg )
+MsgReply CModelShowPanel::onMouseMsg( MouseMsg const& msg )
 {
 	return getParent()->onMouseMsg( msg );
 }

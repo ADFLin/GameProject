@@ -14,6 +14,7 @@ class QTextButton;
 
 class MenuStage : public GameStage
 {
+	using BaseClass = GameStage;
 public:
 
 	enum State
@@ -29,8 +30,8 @@ public:
 	virtual void onUpdate(float deltaT);	
 	virtual void onRender();
 	virtual void onExit();
-	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey(KeyMsg const& msg);
+	virtual MsgReply onMouse( MouseMsg const& msg );
+	virtual MsgReply onKey(KeyMsg const& msg);
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 
 private:

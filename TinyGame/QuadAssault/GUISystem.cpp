@@ -294,7 +294,7 @@ QFrame::~QFrame()
 		mTile->release();
 }
 
-bool QFrame::onMouseMsg( MouseMsg const& msg )
+MsgReply QFrame::onMouseMsg( MouseMsg const& msg )
 {
 	BaseClass::onMouseMsg( msg );
 
@@ -350,7 +350,7 @@ bool QFrame::onMouseMsg( MouseMsg const& msg )
 			y = msg.y();
 		}
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 void QFrame::onRender()

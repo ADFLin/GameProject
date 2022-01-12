@@ -130,8 +130,8 @@ class ConsoleCmdTextCtrl : public GTextCtrl
 public:
 	using GTextCtrl::GTextCtrl;
 
-	bool onCharMsg(unsigned code);
-	bool onKeyMsg(KeyMsg const& msg);
+	MsgReply onCharMsg(unsigned code);
+	MsgReply onKeyMsg(KeyMsg const& msg);
 
 
 	void setFoundCmdToText();
@@ -161,8 +161,8 @@ public:
 	};
 
 	virtual void onRender();
-	virtual bool onKeyMsg(KeyMsg const& msg);
-	virtual bool onCharMsg(unsigned code);
+	virtual MsgReply onKeyMsg(KeyMsg const& msg);
+	virtual MsgReply onCharMsg(unsigned code);
 	virtual bool onChildEvent(int event, int id, GWidget* ui);
 	struct ComLine
 	{

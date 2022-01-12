@@ -33,8 +33,8 @@ namespace Chromatron
 		void   onUpdate( long time ) override;
 		void   onRender( float dFrame ) override;
 		bool   onWidgetEvent( int event , int id , GWidget* ui ) override;
-		bool   onKey(KeyMsg const& msg) override;
-		bool   onMouse( MouseMsg const& msg ) override;
+		MsgReply onKey(KeyMsg const& msg) override;
+		MsgReply onMouse( MouseMsg const& msg ) override;
 
 		void   tick();
 		void   updateFrame( int frame );

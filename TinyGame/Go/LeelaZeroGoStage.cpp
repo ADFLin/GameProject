@@ -1340,17 +1340,14 @@ namespace Go
 		}
 	}
 
-	bool LeelaZeroGoStage::onMouse(MouseMsg const& msg)
+	MsgReply LeelaZeroGoStage::onMouse(MouseMsg const& msg)
 	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-
 		if( msg.onLeftDown() )
 		{
 			Vec2i pos = RenderContext::CalcCoord(msg.getPos() , BoardPos , RenderBoardScale, mGame.getBoard().getSize());
 
 			if( !mGame.getBoard().checkRange(pos.x, pos.y) )
-				return false;
+				return MsgReply::Handled();
 
 			if( bTryPlayingGame )
 			{
@@ -1412,70 +1409,72 @@ namespace Go
 				showBranchVertex = PlayVertex::Undefiend();
 			}
 		}
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool LeelaZeroGoStage::onKey( KeyMsg const& msg )
+	MsgReply LeelaZeroGoStage::onKey( KeyMsg const& msg )
 	{
-		if( !msg.isDown())
-			return false;
-		switch(msg.getCode())
+		if(msg.isDown())
 		{
-		case EKeyCode::L: mBoardRenderer.bDrawLinkInfo = !mBoardRenderer.bDrawLinkInfo; break;
-		case EKeyCode::Z: mBoardRenderer.bUseBatchedRender = !mBoardRenderer.bUseBatchedRender; break;
-		case EKeyCode::N: mBoardRenderer.bUseNoiseOffset = !mBoardRenderer.bUseNoiseOffset; break;
-		case EKeyCode::O:
+			switch (msg.getCode())
 			{
-				if (mGameMode == GameMode::Match)
+			case EKeyCode::L: mBoardRenderer.bDrawLinkInfo = !mBoardRenderer.bDrawLinkInfo; break;
+			case EKeyCode::Z: mBoardRenderer.bUseBatchedRender = !mBoardRenderer.bUseBatchedRender; break;
+			case EKeyCode::N: mBoardRenderer.bUseNoiseOffset = !mBoardRenderer.bUseNoiseOffset; break;
+			case EKeyCode::O:
 				{
-					if (mbBotBoardStateValid)
+					if (mGameMode == GameMode::Match)
 					{
-						mbBotBoardStateValid = !mbBotBoardStateValid;
-					}
-					else
-					{
-						IBot* bot = mMatchData.players[0].bot ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get();
-						if (bot)
+						if (mbBotBoardStateValid)
 						{
-							if (bot->readBoard(mBotBoardState) == BOT_OK)
+							mbBotBoardStateValid = !mbBotBoardStateValid;
+						}
+						else
+						{
+							IBot* bot = mMatchData.players[0].bot ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get();
+							if (bot)
 							{
-								mbBotBoardStateValid = true;
-								LogMsg("Show Bot Board State");
+								if (bot->readBoard(mBotBoardState) == BOT_OK)
+								{
+									mbBotBoardStateValid = true;
+									LogMsg("Show Bot Board State");
+								}
 							}
 						}
 					}
 				}
-			}
-			break;
-		case EKeyCode::F2: bDrawDebugMsg = !bDrawDebugMsg; break;
-		case EKeyCode::F5: saveMatchGameSGF(); break;
-		case EKeyCode::F6: restartAutoMatch(); break;
-		case EKeyCode::X:
-			if( !bAnalysisEnabled && mGameMode == GameMode::Match )
-			{
-				tryEnableAnalysis(true);
-			}
-			if( bAnalysisEnabled )
-			{
-				toggleAnalysisPonder();
-			}
-			break;
-		case EKeyCode::C:
-			if ( mGameMode == GameMode::Match )
-			{
-				if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
-				    mMatchData.players[1].type == ControllerType::eLeelaZero )
+				break;
+			case EKeyCode::F2: bDrawDebugMsg = !bDrawDebugMsg; break;
+			case EKeyCode::F5: saveMatchGameSGF(); break;
+			case EKeyCode::F6: restartAutoMatch(); break;
+			case EKeyCode::X:
+				if (!bAnalysisEnabled && mGameMode == GameMode::Match)
 				{
-					auto* bot = static_cast<LeelaBot*>((mMatchData.players[0].type == ControllerType::eLeelaZero) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
-					bot->mAI.inputCommand("showboard\n", { GTPCommand::eNone , 0 });
+					tryEnableAnalysis(true);
 				}
+				if (bAnalysisEnabled)
+				{
+					toggleAnalysisPonder();
+				}
+				break;
+			case EKeyCode::C:
+				if (mGameMode == GameMode::Match)
+				{
+					if (mMatchData.players[0].type == ControllerType::eLeelaZero ||
+						mMatchData.players[1].type == ControllerType::eLeelaZero)
+					{
+						auto* bot = static_cast<LeelaBot*>((mMatchData.players[0].type == ControllerType::eLeelaZero) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
+						bot->mAI.inputCommand("showboard\n", { GTPCommand::eNone , 0 });
+					}
+				}
+				break;
+			case EKeyCode::V: glEnable(GL_MULTISAMPLE); break;
+			case EKeyCode::B: glDisable(GL_MULTISAMPLE); break;
+			case EKeyCode::Q: bDrawFontCacheTexture = !bDrawFontCacheTexture; break;
 			}
-			break;
-		case EKeyCode::V: glEnable(GL_MULTISAMPLE); break;
-		case EKeyCode::B: glDisable(GL_MULTISAMPLE); break;
-		case EKeyCode::Q: bDrawFontCacheTexture = !bDrawFontCacheTexture; break;
 		}
-		return false;
+
+		return MsgReply::Handled();
 	}
 
 	bool LeelaZeroGoStage::buildLearningMode()

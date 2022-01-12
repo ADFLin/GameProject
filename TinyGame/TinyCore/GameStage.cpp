@@ -96,7 +96,7 @@ void GameStageBase::onUpdate(long time)
 	BaseClass::onUpdate(time);
 }
 
-bool GameStageBase::onKey(KeyMsg const& msg)
+MsgReply GameStageBase::onKey(KeyMsg const& msg)
 {
 	return mStageMode->onKey(msg);
 }

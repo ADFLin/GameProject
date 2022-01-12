@@ -2,8 +2,9 @@
 #define GameStage_h__
 
 #include "Base.h"
-#include <functional>
+#include "SystemMessage.h"
 
+#include <functional>
 class Game;
 class QWidget;
 class MouseMsg;
@@ -51,8 +52,8 @@ public:
 	virtual void onUpdate( float deltaT ) = 0;	
 	virtual void onRender() = 0;
 
-	virtual bool onMouse( MouseMsg const& msg ){ return true; }
-	virtual bool onKey(KeyMsg const& msg) { return true; }
+	virtual MsgReply onMouse( MouseMsg const& msg ){ return MsgReply::Unhandled(); }
+	virtual MsgReply onKey(KeyMsg const& msg) { return MsgReply::Unhandled(); }
 	virtual void onWidgetEvent( int event , int id , QWidget* sender ){}
 
 	void  stop(){ mNeedStop = true; }

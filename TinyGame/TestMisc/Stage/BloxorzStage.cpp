@@ -1083,7 +1083,7 @@ namespace Bloxorz
 		return eGoal;
 	}
 
-	bool TestStage::onKey(KeyMsg const& msg)
+	MsgReply TestStage::onKey(KeyMsg const& msg)
 	{
 		if (!canInput())
 		{
@@ -1110,11 +1110,8 @@ namespace Bloxorz
 		return BaseClass::onKey(msg);
 	}
 
-	bool TestStage::onMouse(MouseMsg const& msg)
+	MsgReply TestStage::onMouse(MouseMsg const& msg)
 	{
-		if (!BaseClass::onMouse(msg))
-			return false;
-
 		if (bFreeView)
 		{
 			static Vec2i oldPos = msg.getPos();
@@ -1131,7 +1128,7 @@ namespace Bloxorz
 			}
 		}
 
-		return false;
+		return BaseClass::onMouse(msg);
 	}
 
 }//namespace Bloxorz

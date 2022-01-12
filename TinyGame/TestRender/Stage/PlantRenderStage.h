@@ -137,19 +137,14 @@ namespace Render
 
 		void onRender(float dFrame) override;
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if (!BaseClass::onMouse(msg))
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if (!BaseClass::onKey(msg))
-				return false;
-
-			return true;
+			return BaseClass::onKey(msg);
 		}
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override

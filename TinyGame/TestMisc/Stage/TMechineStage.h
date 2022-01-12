@@ -207,11 +207,9 @@ namespace TMechine
 			}
 			return -1;
 		}
-		bool onMouse(MouseMsg const& msg)
-		{
-			if( !BaseClass::onMouse(msg) )
-				return false;
 
+		MsgReply onMouse(MouseMsg const& msg)
+		{
 			if( msg.onLeftDown() )
 			{
 				Vec2i codeLoc = screenToCodeLoc(msg.getPos());
@@ -230,21 +228,21 @@ namespace TMechine
 				}
 			}
 
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		MsgReply onKey(KeyMsg const& msg)
 		{
-			if( !isDown )
-				return false;
-
-			switch( key )
+			if(msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::X: mechine.runStep(); break;
-			case EKeyCode::C: bExecuting = true; break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::X: mechine.runStep(); break;
+				case EKeyCode::C: bExecuting = true; break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 	protected:
 

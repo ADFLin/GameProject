@@ -689,11 +689,11 @@ namespace Poker { namespace Big2 {
 
 	}
 
-	bool CardListUI::onMouseMsg( MouseMsg const& msg )
+	MsgReply CardListUI::onMouseMsg( MouseMsg const& msg )
 	{
 		if ( mHaveAnim || mClinetCards->size() == 0 )
 		{
-			return true;
+			return MsgReply::Unhandled();
 		}
 
 		if ( msg.onLeftDown() || msg.onLeftDClick() )
@@ -705,13 +705,13 @@ namespace Poker { namespace Big2 {
 			if ( mbSelectedMap[ index ] )
 			{
 				if ( localPos.y > msCardSize.y )
-					return false;
+					return MsgReply::Handled();
 			}
 			else
 			{
 				if ( localPos.y < SelectOffect )
 				{
-					return true;
+					return MsgReply::Handled();
 				}
 			}
 			mbSelectedMap[ index ] = toggleCardSelect( index , mbSelectedMap[ index ] );
@@ -719,14 +719,14 @@ namespace Poker { namespace Big2 {
 			if ( onChangeIndexSelected )
 				onChangeIndexSelected( mIndexSelected , mNumSelected );
 
-			return false;
+			return MsgReply::Handled();
 		}
 		else if ( msg.onRightDown() )
 		{
 
 		}
 
-		return false;
+		return MsgReply::Handled();
 	}
 
 	void CardListUI::setScene( Scene& scene )

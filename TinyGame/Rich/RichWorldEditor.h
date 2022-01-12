@@ -66,10 +66,10 @@ namespace Rich
 		{
 			return true;
 		}
-		bool onMouse( MouseMsg const& msg );
-		bool onKey(KeyMsg const& msg)
+		MsgReply onMouse( MouseMsg const& msg );
+		MsgReply onKey(KeyMsg const& msg)
 		{
-			return true;
+			return MsgReply::Unhandled();
 		}
 
 		virtual void setup( Level& level , Scene& scene );

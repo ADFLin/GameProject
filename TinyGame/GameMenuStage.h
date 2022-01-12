@@ -26,8 +26,8 @@ public:
 	GameMenuStage();
 	bool onInit() override;
 	void onUpdate( long time ) override;
-	bool onMouse( MouseMsg const& msg ) override;
-	bool onKey(KeyMsg const& msg) override;
+	MsgReply onMouse(MouseMsg const& msg) override;
+	MsgReply onKey(KeyMsg const& msg) override;
 
 	void changeWidgetGroup( StageGroupID group )
 	{

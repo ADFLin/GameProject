@@ -125,7 +125,7 @@ namespace Cube
 
 		}
 
-		bool onMouse( MouseMsg const& msg )
+		MsgReply onMouse( MouseMsg const& msg )
 		{
 			if ( msg.onMoving() )
 			{
@@ -144,25 +144,22 @@ namespace Cube
 				}
 			}
 
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg)
+		MsgReply onKey(KeyMsg const& msg)
 		{
-			if ( !msg.isDown() )
-				return false;
-
-			switch(msg.getCode())
+			if ( msg.isDown() )
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::W: mCamera.moveFront( 0.5 ); break;
-			case EKeyCode::S: mCamera.moveFront( -0.5 ); break;
-			case EKeyCode::Up: mCamera.setPos( mCamera.getPos() + Vec3f( 0,0,2) );break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::W: mCamera.moveFront(0.5); break;
+				case EKeyCode::S: mCamera.moveFront(-0.5); break;
+				case EKeyCode::Up: mCamera.setPos(mCamera.getPos() + Vec3f(0, 0, 2)); break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 	protected:
 

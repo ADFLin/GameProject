@@ -3,8 +3,6 @@
 namespace FlowFree
 {
 
-
-
 	Cell::Cell()
 	{
 		::memset(this, 0, sizeof(*this));
@@ -122,7 +120,7 @@ namespace FlowFree
 		return -1;
 	}
 
-	FlowFree::ColorType Cell::getFunFlowColor(int dir /*= -1*/, ColorType inColor /*= 0*/) const
+	ColorType Cell::getFunFlowColor(int dir /*= -1*/, ColorType inColor /*= 0*/) const
 	{
 		switch (func)
 		{
@@ -222,7 +220,7 @@ namespace FlowFree
 		}
 	}
 
-	FlowFree::Level::BreakResult Level::breakFlow(Vec2i const& pos, int dir, ColorType curColor)
+	Level::BreakResult Level::breakFlow(Vec2i const& pos, int dir, ColorType curColor)
 	{
 		Cell& cell = getCellChecked(pos);
 		BreakResult result = BreakResult::NoBreak;
@@ -314,7 +312,7 @@ namespace FlowFree
 		return result;
 	}
 
-	FlowFree::Cell* Level::findSourceCell(Vec2i const& pos, int dir, int& outDist)
+	Cell* Level::findSourceCell(Vec2i const& pos, int dir, int& outDist)
 	{
 		outDist = 0;
 
@@ -381,7 +379,7 @@ namespace FlowFree
 		}
 	}
 
-	FlowFree::ColorType Level::linkFlow(Vec2i const& pos, int dir)
+	ColorType Level::linkFlow(Vec2i const& pos, int dir)
 	{
 		Cell& cellOut = getCellChecked(pos);
 

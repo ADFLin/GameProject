@@ -263,7 +263,7 @@ namespace SBlocks
 		bool bCanRoate;
 
 		int index = 0;
-		int indexMapLocked = INDEX_NONE;
+
 		Int16Point2D mapPosLocked;
 
 		Vector2 pos;
@@ -305,6 +305,9 @@ namespace SBlocks
 			return false;
 		}
 
+	private:
+		friend class Level;
+		int indexMapLocked = INDEX_NONE;
 	};
 
 	struct MapDesc
@@ -365,7 +368,7 @@ namespace SBlocks
 		void lockChecked(Vec2i const& pos, PieceShapeData const& shapeData);
 		bool canLock(Vec2i const& pos, PieceShapeData const& shapeData);
 
-		bool isFinish() { return numTotalBlocks == numBlockLocked; }
+		bool isFinish() const { return numTotalBlocks == numBlockLocked; }
 
 		void importDesc(MapDesc const& desc);
 		void exportDesc(MapDesc& outDesc);
@@ -389,8 +392,9 @@ namespace SBlocks
 		{
 			struct
 			{
-				uint8   dir : 7;
-				uint8   bRotationFixed : 1;
+				uint8   dir : 2;
+				uint8   bLockRotation : 1;
+				uint8   dummy : 5;
 			};
 			uint8 dirAngFlags;
 		};
@@ -413,6 +417,8 @@ namespace SBlocks
 	{
 	public:
 		int findShapeID(PieceShape* shape);
+
+		bool isFinish() const;
 
 		void importDesc(LevelDesc const& desc);
 		void exportDesc(LevelDesc& outDesc);

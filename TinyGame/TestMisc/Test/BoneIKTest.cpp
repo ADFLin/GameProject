@@ -137,17 +137,15 @@ namespace BoneIK
 		void restart() {}
 		void tick() {}
 		void updateFrame(int frame) {}
-		bool onMouse(MouseMsg const& msg)
+		
+		MsgReply onMouse(MouseMsg const& msg)
 		{
-			if( !BaseClass::onMouse(msg) )
-				return false;
-
 			if( msg.onLeftDown() )
 			{
 				mLastTargetPos = ToWorldPos(msg.getPos());
 				solveIK();
 			}
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
 		void solveIK()
@@ -212,22 +210,22 @@ namespace BoneIK
 			solveIK();
 		}
 
-		bool onKey(KeyMsg const& msg)
+		MsgReply onKey(KeyMsg const& msg)
 		{
-			if( !msg.isDown())
-				return false;
-			switch(msg.getCode())
+			if(msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::Num1:
-				changeMethod( SolveMethod::FABRIK );
-				break;
-			case EKeyCode::Num2:
-				changeMethod( SolveMethod::CCD );
-				break;
-
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::Num1:
+					changeMethod(SolveMethod::FABRIK);
+					break;
+				case EKeyCode::Num2:
+					changeMethod(SolveMethod::CCD);
+					break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 

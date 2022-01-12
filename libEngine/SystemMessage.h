@@ -145,6 +145,19 @@ enum MouseState
 	MBS_ACTION_MASK  = MBS_BUTTON_ACTION_MASK | MBS_WHEEL | MBS_MOVING ,
 };
 
+class MsgReply
+{
+public:
+	bool isHandled() const { return bHandled; }
+
+	static MsgReply Handled() { return MsgReply(true); }
+	static MsgReply Unhandled() { return MsgReply(false); }
+
+	explicit MsgReply(bool bHandled = false)
+		:bHandled(bHandled){}
+
+	bool bHandled;
+};
 
 
 class MouseMsg : public SystemMessage

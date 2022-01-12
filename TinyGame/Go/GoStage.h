@@ -119,6 +119,7 @@ namespace Go
 
 	class Stage : public StageBase
 	{
+		using BaseClass = StageBase;
 	public:
 		virtual bool onInit()
 		{
@@ -144,16 +145,17 @@ namespace Go
 
 		void drawStone( Graphics2D& g , Vec2i const& pos , int color );
 
-		virtual bool onMouse( MouseMsg const& msg );
-		virtual bool onKey( KeyMsg const& msg )
+		virtual MsgReply onMouse( MouseMsg const& msg );
+		virtual MsgReply onKey( KeyMsg const& msg )
 		{
-			if ( !msg.isDown())
-				return true;
-			switch(msg.getCode())
+			if ( msg.isDown())
 			{
-			case EKeyCode::R: mGame.restart(); break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: mGame.restart(); break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 		BotTestMode mMode;
 		Game        mGame;

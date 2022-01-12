@@ -76,15 +76,13 @@ namespace MV
 		}
 		void onRender( float dFrame );
 
-		bool onMouse( MouseMsg const& msg );
-		bool onWidgetEvent(int event , int id , GWidget* ui);
-		bool onKey(KeyMsg const& msg);
+		bool onWidgetEvent(int event, int id, GWidget* ui);
+		MsgReply onMouse( MouseMsg const& msg );
+		MsgReply onKey(KeyMsg const& msg);
+
 		void onKeyDown_EditMode(unsigned key);
-
 		void onKeyDown_EditSpaceNode(unsigned key);
-
 		void onKeyDown_EditBlock(unsigned key);
-
 		void onKeyDown_EditMesh(unsigned key);
 
 

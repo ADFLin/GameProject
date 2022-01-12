@@ -252,7 +252,7 @@ namespace Bejeweled
 		return RM_NORMAL;
 	}
 
-	bool Scene::procMouseMsg( MouseMsg const& msg )
+	MsgReply Scene::procMouseMsg( MouseMsg const& msg )
 	{
 		if ( mState == eChoiceSwapGem )
 		{
@@ -293,7 +293,7 @@ namespace Bejeweled
 				break;
 			}
 		}
-		return false;
+		return MsgReply::Handled();
 	}
 
 	void Scene::updateAnim( long dt )
@@ -331,26 +331,27 @@ namespace Bejeweled
 		addGemAnim( idx2 , pos1 , pos2 , TimeSwapGem );
 	}
 
-	bool Scene::procKey( KeyMsg const& msg )
+	MsgReply Scene::procKey( KeyMsg const& msg )
 	{
-		if ( !msg.isDown() )
-			return false;
-
-		if ( mCtrlMode == CM_CHOICE_GEM2 )
+		if ( msg.isDown() )
 		{
-			switch(msg.getCode())
+			if (mCtrlMode == CM_CHOICE_GEM2)
 			{
-			case EKeyCode::Num1:
-			case EKeyCode::Num2:
-			case EKeyCode::Num3:
-			case EKeyCode::Num4:
-			case EKeyCode::Num5:
-				getLevel().setBoardGem( mIndexSwapCell[0] , msg.getCode() - EKeyCode::Num1 + 1 );
-				mCtrlMode = CM_CHOICE_GEM1;
-				break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::Num1:
+				case EKeyCode::Num2:
+				case EKeyCode::Num3:
+				case EKeyCode::Num4:
+				case EKeyCode::Num5:
+					getLevel().setBoardGem(mIndexSwapCell[0], msg.getCode() - EKeyCode::Num1 + 1);
+					mCtrlMode = CM_CHOICE_GEM1;
+					break;
+				}
 			}
 		}
-		return true;
+
+		return MsgReply::Unhandled();
 	}
 
 	void Scene::checkAllPosibleSwapPair()

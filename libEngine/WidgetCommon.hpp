@@ -9,7 +9,7 @@
 #endif
 
 template < class Impl ,class CoreImpl >
-bool  WButtonT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
+MsgReply  WButtonT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 {
 	CoreImpl::onMouseMsg( msg );
 
@@ -26,7 +26,7 @@ bool  WButtonT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 	{
 		setButtonState( BS_HIGHLIGHT );
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 template < class Impl ,class CoreImpl >
@@ -138,25 +138,25 @@ void TItemOwnerUI<Impl, CoreImpl>::tryMoveSelect( bool beNext )
 }
 
 template < class Impl, class CoreImpl >
-bool TItemOwnerUI<Impl, CoreImpl>::onKeyMsg(KeyMsg const& msg)
+MsgReply TItemOwnerUI<Impl, CoreImpl>::onKeyMsg(KeyMsg const& msg)
 {
-	if ( !msg.isDown() )
-		return true;
-
-	switch( msg.getCode() )
+	if ( msg.isDown() )
 	{
-	case EKeyCode::Up: 
-		tryMoveSelect( false );
-		return false;
-	case EKeyCode::Down:
-		tryMoveSelect( true );
-		return false;
+		switch (msg.getCode())
+		{
+		case EKeyCode::Up:
+			tryMoveSelect(false);
+			return MsgReply::Handled();
+		case EKeyCode::Down:
+			tryMoveSelect(true);
+			return MsgReply::Handled();
+		}
 	}
-	return true;
+	return MsgReply::Unhandled();
 }
 
 template < class Impl, class CoreImpl >
-bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
+MsgReply WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 {
 	CoreImpl::onMouseMsg( msg );
 
@@ -182,7 +182,7 @@ bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 			mMenu->makeFocus();
 		}
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 
@@ -199,7 +199,7 @@ void WChoiceT<Impl, CoreImpl>::destroyMenu()
 }
 
 template < class Impl, class CoreImpl >
-bool WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg )
+MsgReply WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg )
 {
 	assert(mMenu == menu);
 	Vec2i menuSize = menu->getSize();
@@ -220,7 +220,7 @@ bool WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& 
 			destroyMenu();
 		}
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 template < class Impl, class CoreImpl >
@@ -255,7 +255,7 @@ bool WTextCtrlT<Impl, CoreImpl>::isDoubleChar( int pos )
 }
 
 template < class Impl , class CoreImpl >
-bool WTextCtrlT<Impl, CoreImpl>::onKeyMsg( KeyMsg const& msg )
+MsgReply WTextCtrlT<Impl, CoreImpl>::onKeyMsg(KeyMsg const& msg)
 {
 	if ( msg.isDown() )
 	{
@@ -319,11 +319,11 @@ bool WTextCtrlT<Impl, CoreImpl>::onKeyMsg( KeyMsg const& msg )
 
 		}
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 template < class Impl , class CoreImpl >
-bool WTextCtrlT<Impl, CoreImpl>::onCharMsg( unsigned code )
+MsgReply WTextCtrlT<Impl, CoreImpl>::onCharMsg( unsigned code )
 {
 	if ( ( code & 0x80 ) || isprint( code ) )
 	{
@@ -331,7 +331,7 @@ bool WTextCtrlT<Impl, CoreImpl>::onCharMsg( unsigned code )
 		++mKeyInPos;
 		_this()->onEditText();
 	}
-	return false;
+	return MsgReply::Unhandled();
 }
 
 template < class Impl , class CoreImpl >
@@ -376,7 +376,7 @@ void WSliderT<Impl, CoreImpl>::updateValue()
 }
 
 template < class Impl , class CoreImpl >
-bool WSliderT<Impl, CoreImpl>::TipWidget::onMouseMsg( MouseMsg const& msg )
+MsgReply WSliderT<Impl, CoreImpl>::TipWidget::onMouseMsg( MouseMsg const& msg )
 {
 	static int x , y;
 
@@ -402,7 +402,7 @@ bool WSliderT<Impl, CoreImpl>::TipWidget::onMouseMsg( MouseMsg const& msg )
 		x = msg.x();
 		y = msg.y();
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 
@@ -500,7 +500,7 @@ void WListCtrlT< Impl , CoreImpl >::onRender()
 }
 
 template < class Impl , class CoreImpl  >
-bool WListCtrlT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
+MsgReply WListCtrlT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 {
 	unsigned posItem = mIndexShowStart + ( msg.getPos().y - getWorldPos().y ) / _this()->getItemHeight(); 
 	if ( posItem < mItemList.size() )
@@ -516,7 +516,7 @@ bool WListCtrlT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 			_this()->onItemLDClick( posItem );
 		}
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 

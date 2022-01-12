@@ -1038,7 +1038,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	return true;
 }
 
-bool NetLevelStageMode::onKey(KeyMsg const& msg)
+MsgReply NetLevelStageMode::onKey(KeyMsg const& msg)
 {
 	if(msg.isDown() && msg.getCode() == EKeyCode::Tab )
 	{
@@ -1050,13 +1050,10 @@ bool NetLevelStageMode::onKey(KeyMsg const& msg)
 			mMsgPanel->makeFocus();
 		}
 		getGame()->getInputControl().blockAllAction(beShow);
-		return false;
+		return MsgReply::Handled();
 	}
 
-	if( !BaseClass::onKey(msg) )
-		return false;
-
-	return true;
+	return BaseClass::onKey(msg);
 }
 
 void NetLevelStageMode::onRestart(uint64& seed)

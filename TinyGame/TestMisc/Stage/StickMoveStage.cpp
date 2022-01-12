@@ -401,30 +401,28 @@ namespace StickMove
 
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if( !BaseClass::onMouse(msg) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg)
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if( !msg.isDown() )
-				return false;
-
-			switch(msg.getCode())
+			if(msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::T:
+				switch (msg.getCode())
 				{
-					Stick stick;
-					stick.init(mMoveBound , Vector2(0,0) , Vector2( Global::Random() % 100 , 0 ) );
-					mSticks.push_back(stick);
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::T:
+					{
+						Stick stick;
+						stick.init(mMoveBound, Vector2(0, 0), Vector2(Global::Random() % 100, 0));
+						mSticks.push_back(stick);
+					}
+					break;
 				}
-				break;
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 		std::vector< Stick > mSticks;

@@ -262,7 +262,7 @@ namespace Life
 				if (!mChunkMap.checkRange(cx, cy))
 					continue;
 
-				auto chunk = mChunkMap(cx, cy);
+				Chunk* chunk = mChunkMap(cx, cy);
 	#if USE_CHUNK_COUNT
 				if (chunk == nullptr || chunk->count == 0)
 					continue;
@@ -275,6 +275,7 @@ namespace Life
 
 				uint8 const* pChunkData = chunk->data[mIndex];
 
+#if 0
 				for (int j = 0; j < ChunkLength; ++j)
 				{
 					for (int i = 0; i < ChunkLength; ++i)
@@ -285,6 +286,9 @@ namespace Life
 						}
 					}
 				}
+#else
+				renderer.drawCells(Vec2i(ox, oy), Vec2i(ChunkLength, ChunkLength), pChunkData + Chunk::ToDataIndex(0,0), ChunkDataStrideLength);
+#endif
 			}
 		}
 	}

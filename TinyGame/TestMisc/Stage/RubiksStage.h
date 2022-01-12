@@ -355,47 +355,43 @@ namespace Rubiks
 			updateFrame( frame );
 		}
 
-
-
-		void onRender( float dFrame )
+		void onRender(float dFrame)
 		{
 			Graphics2D& g = Global::GetGraphics2D();
-			drawCube( g , Vec2i(100,50) , mState[ idxCur ] );
-			drawCube( g , Vec2i(100,300) , mState[ 1 - idxCur ] );
+			drawCube(g, Vec2i(100, 50), mState[idxCur]);
+			drawCube(g, Vec2i(100, 300), mState[1 - idxCur]);
 		}
 
-		bool onMouse( MouseMsg const& msg )
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg)
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if ( !msg.isDown())
-				return false;
-
-			switch(msg.getCode())
+			if (msg.isDown())
 			{
-
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::A: rotateCube( FaceLeft , bInvRotation ); break;
-			case EKeyCode::S: rotateCube( FaceFront , bInvRotation); break;
-			case EKeyCode::D: rotateCube( FaceRight , bInvRotation ); break;
-			case EKeyCode::F: rotateCube( FaceBack , bInvRotation ); break;
-			case EKeyCode::W: rotateCube( FaceUp  , bInvRotation ); break;
-			case EKeyCode::X: rotateCube( FaceDown , bInvRotation ); break;
-			case EKeyCode::E: bInvRotation = !bInvRotation; break;
-			case EKeyCode::P:
+				switch (msg.getCode())
 				{
-					solver.mInitState = mState[ idxCur ];
-					solver.mFinalState.setGlobalState();
-					solver.run();
+
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::A: rotateCube(FaceLeft, bInvRotation); break;
+				case EKeyCode::S: rotateCube(FaceFront, bInvRotation); break;
+				case EKeyCode::D: rotateCube(FaceRight, bInvRotation); break;
+				case EKeyCode::F: rotateCube(FaceBack, bInvRotation); break;
+				case EKeyCode::W: rotateCube(FaceUp, bInvRotation); break;
+				case EKeyCode::X: rotateCube(FaceDown, bInvRotation); break;
+				case EKeyCode::E: bInvRotation = !bInvRotation; break;
+				case EKeyCode::P:
+					{
+						solver.mInitState = mState[idxCur];
+						solver.mFinalState.setGlobalState();
+						solver.run();
+					}
+					break;
 				}
-				break;
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 		void rotateCube( FaceDir dir , bool bInverse = false )

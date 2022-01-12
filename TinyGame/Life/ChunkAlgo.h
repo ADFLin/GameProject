@@ -177,7 +177,6 @@ namespace Life
 			uint32 count;
 			bool   bHadSleeped;
 #endif
-			int x, y;
 			Vec2i pos;
 
 			static int ToDataIndex(int i, int j)

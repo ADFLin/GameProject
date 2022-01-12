@@ -112,6 +112,7 @@ namespace Life
 	{
 	public:
 		virtual void drawCell(int x, int y) = 0;
+		virtual void drawCells(Vec2i const& rectPos, Vec2i const& rectSize, uint8 const* cellData, uint32 rowStride) = 0;
 	};
 
 	class IRenderProxy

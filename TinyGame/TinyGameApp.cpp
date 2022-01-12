@@ -666,9 +666,9 @@ void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
 	
 }
 
-bool TinyGameApp::handleMouseEvent( MouseMsg const& msg )
+MsgReply TinyGameApp::handleMouseEvent( MouseMsg const& msg )
 {
-	bool result = true;
+	MsgReply result;
 
 	IGameModule* game = Global::ModuleManager().getRunningGame();
 	if ( game )
@@ -680,23 +680,25 @@ bool TinyGameApp::handleMouseEvent( MouseMsg const& msg )
 			result = ::Global::GUI().procMouseMsg( msg );
 		}
 
-		if ( result )
-			inputControl.recvMouseMsg( msg );
+		if (result.isHandled())
+			return result;
+
+		inputControl.recvMouseMsg( msg );
 	}
 	else
 	{
 		result = ::Global::GUI().procMouseMsg(msg);
 	}
 
-	if ( result )
-	{
-		result = getCurStage()->onMouse( msg );
-		InputManager::Get().procMouseEvent( msg );
-	}
+	if (result.isHandled())
+		return result;
+	
+	result = getCurStage()->onMouse( msg );
+	InputManager::Get().procMouseEvent( msg );
 	return result;
 }
 
-bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
+MsgReply TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 {
 	if ( msg.isDown() )
 	{
@@ -755,18 +757,18 @@ bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 			break;
 		}
 	}
-	bool result = ::Global::GUI().procKeyMsg(msg);
-	if( result )
+	MsgReply result = ::Global::GUI().procKeyMsg(msg);
+	if( !result.isHandled() )
 	{
 		result = getCurStage()->onKey(msg);
 	}
 	return result;
 }
 
-bool TinyGameApp::handleCharEvent( unsigned code )
+MsgReply TinyGameApp::handleCharEvent( unsigned code )
 {
-	bool result = ::Global::GUI().procCharMsg(code);
-	if( result )
+	MsgReply result = ::Global::GUI().procCharMsg(code);
+	if( !result.isHandled() )
 	{
 		result = getCurStage()->onChar(code);
 	}

@@ -296,11 +296,8 @@ namespace Render
 
 	}
 
-	bool Lighting2DTestStage::onMouse( MouseMsg const& msg )
+	MsgReply Lighting2DTestStage::onMouse( MouseMsg const& msg )
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-
 		Vec2i screenSize = ::Global::GetScreenSize();
 		Vector2 worldPos = Vector2(msg.getPos().x, screenSize.y - msg.getPos().y);
 		if ( msg.onLeftDown() )
@@ -327,7 +324,7 @@ namespace Render
 			}
 		}
 
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 }//namespace Lighting

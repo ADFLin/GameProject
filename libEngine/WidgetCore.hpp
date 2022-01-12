@@ -448,16 +448,17 @@ void TWidgetManager<T>::postProcMsg()
 }
 
 template< class T >
-bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
+MsgReply TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 {
 	//System maybe send callback
 	if (mbProcessingMsg)
-		return false;
+		return MsgReply::Handled();
+
 	WIDGET_PROFILE_ENTRY("UI System");
 
 	ProcMsgScope scope(this);
 
-	bool result = true;
+	MsgReply result = MsgReply::Unhandled();
 
 	mLastMouseMsg = msg;
 
@@ -538,12 +539,12 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 		{
 			if ( msg.isDraging() && ui != mNamedSlots[ESlotName::Focus] )
 			{
-				result = (mNamedSlots[ESlotName::Focus] == NULL ) ;
+				result = MsgReply(mNamedSlots[ESlotName::Focus] != NULL) ;
 			}
 			else
 			{
 				result = ui->onMouseMsg( mLastMouseMsg );
-				while ( result && ui->checkFlag( WIF_REROUTE_MOUSE_EVENT_UNHANDLED ) )
+				while ( !result.isHandled() && ui->checkFlag( WIF_REROUTE_MOUSE_EVENT_UNHANDLED ) )
 				{
 					if ( ui->isTop() )
 						break;
@@ -557,13 +558,6 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 					setNamedSlot(ESlotName::LastMouseMsg, *ui);
 				}
 			}
-
-			//while ( bool still = ui->onMouseMsg( mLastMouseMsg ) )
-			//{
-			//	ui = ui->getParent();
-			//	if ( !still || ui == getRoot() )
-			//		return still;
-			//}
 		}
 	}
 
@@ -584,20 +578,19 @@ WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
 	return nullptr;
 }
 
-
 template< class T >
 template< class TFunc >
-bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , TFunc func)
+MsgReply TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, TFunc func)
 {
-	bool result = true;
-	while( ui != nullptr )
+	MsgReply reply(false);
+	while (ui != nullptr)
 	{
-		if( ui->checkFlag(flag | unhandledFlag) )
+		if (ui->checkFlag(flag | unhandledFlag))
 		{
-			if( ui->checkFlag(unhandledFlag) )
+			if (ui->checkFlag(unhandledFlag))
 			{
-				result = func(ui);
-				if( !result )
+				reply = func(ui);
+				if (reply.isHandled())
 					break;
 			}
 
@@ -605,41 +598,42 @@ bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag ,
 		}
 		else
 		{
-			result = func(ui);
+			reply = func(ui);
 			break;
 		}
 	}
 
-	return result;
+	return reply;
 }
 
 template< class T >
-bool TWidgetManager<T>::procCharMsg( unsigned code )
+MsgReply TWidgetManager<T>::procCharMsg( unsigned code )
 {
 	//System maybe send callback
 	if (mbProcessingMsg)
-		return false;
+		return MsgReply::Handled();
+
 	ProcMsgScope scope(this);
-	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_CHAR_EVENT, WIF_REROUTE_CHAR_EVENT_UNHANDLED, [code](WidgetCore* ui)
+	MsgReply reply = processMessage(getKeyInputWidget(), WIF_REROUTE_CHAR_EVENT, WIF_REROUTE_CHAR_EVENT_UNHANDLED, [code](WidgetCore* ui)
 	{
 		return ui->onCharMsg(code);
 	});
-	return result;
+	return reply;
 }
 
 template< class T >
-bool TWidgetManager<T>::procKeyMsg(KeyMsg const& msg)
+MsgReply TWidgetManager<T>::procKeyMsg(KeyMsg const& msg)
 {
 	//System maybe send callback
 	if (mbProcessingMsg)
-		return false;
+		return MsgReply::Handled();
 
 	ProcMsgScope scope(this);
-	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [msg](WidgetCore* ui)
+	MsgReply reply = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [msg](WidgetCore* ui)
 	{
 		return ui->onKeyMsg(msg);
 	});
-	return result;
+	return reply;
 }
 
 template< class T >

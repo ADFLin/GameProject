@@ -808,7 +808,7 @@ namespace SR
 		}
 	}
 
-	bool TestStage::onKey(KeyMsg const& msg)
+	MsgReply TestStage::onKey(KeyMsg const& msg)
 	{
 		float baseImpulse = 500;
 		switch (msg.getCode())
@@ -822,16 +822,16 @@ namespace SR
 		}
 
 
-		if (!msg.isDown())
-			return false;
-
-		switch (msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::P: bPause = !bPause; break;
-		case EKeyCode::F2: bRayTracerUsed = !bRayTracerUsed; break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::P: bPause = !bPause; break;
+			case EKeyCode::F2: bRayTracerUsed = !bRayTracerUsed; break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	bool RayTraceRenderer::init()

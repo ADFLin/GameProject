@@ -31,7 +31,7 @@ public:
 	///////////////////////////////////
 protected:
 	void mouseOverlap( bool beInside );
-	bool onMouseMsg( MouseMsg const& msg );
+	MsgReply onMouseMsg( MouseMsg const& msg );
 
 	void setButtonState( ButtonState state );
 	ButtonState mState;
@@ -148,7 +148,7 @@ public:
 	public:
 		TipWidget( Vec2i const& size , CoreImpl* parent )
 			:CoreImpl( Vec2i(0,0) , size , parent ){}
-		bool onMouseMsg( MouseMsg const& msg );
+		MsgReply onMouseMsg( MouseMsg const& msg );
 		WSliderT* getSlider(){ return  static_cast< WSliderT*>( getParent() ); }
 	};
 
@@ -236,9 +236,9 @@ public:
 
 public:
 	//virtual 
-	bool onKeyMsg(KeyMsg const& msg);
+	MsgReply onKeyMsg(KeyMsg const& msg);
 	//virtual 
-	bool onCharMsg(unsigned code);
+	MsgReply onCharMsg(unsigned code);
 
 protected:
 
@@ -349,7 +349,7 @@ protected:
 	void onRemoveItem( Item& item ){}
 protected:
 	void tryMoveSelect( bool beNext );
-	bool onKeyMsg(KeyMsg const& msg);
+	MsgReply onKeyMsg(KeyMsg const& msg);
 
 
 	using ItemVec = std::vector< Item >;
@@ -399,7 +399,7 @@ public:
 		}
 		WChoiceT* getOwner(){ return mOwner; }
 		virtual void render(){  getOwner()->notifyRenderMenu( this );  }
-		virtual bool onMouseMsg( MouseMsg const& msg ){  return getOwner()->notifyMenuMouseMsg( this , msg ); }
+		virtual MsgReply onMouseMsg( MouseMsg const& msg ){  return getOwner()->notifyMenuMouseMsg( this , msg ); }
 
 		WChoiceT* mOwner;
 	};
@@ -411,11 +411,11 @@ public:
 	int  getMenuItemHeight(){ return 15; }
 	/////////////////////////////////////////////////////////////////
 
-	bool onMouseMsg( MouseMsg const& msg );
+	MsgReply onMouseMsg( MouseMsg const& msg );
 protected:
 	void destroyMenu();
 	void notifyRenderMenu( Menu* menu );
-	bool notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg );
+	MsgReply notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg );
 
 	int        mLightSelect;
 	Menu*      mMenu = nullptr;
@@ -446,7 +446,7 @@ public:
 	/////////////////////////////////////
 protected:
 	void onRender();
-	bool onMouseMsg( MouseMsg const& msg );
+	MsgReply onMouseMsg( MouseMsg const& msg );
 
 	int  mIndexShowStart;
 };

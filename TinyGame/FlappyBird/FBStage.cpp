@@ -492,34 +492,31 @@ namespace FlappyBird
 #endif
 	}
 
-	bool LevelStage::onMouse(MouseMsg const& msg)
+	MsgReply LevelStage::onMouse(MouseMsg const& msg)
 	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-
 		if( msg.onLeftDown() || msg.onLeftDClick() )
 		{
 			if( !getLevel().mIsOver )
 				mBird.fly();
 		}
 
-		return false;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool LevelStage::onKey(KeyMsg const& msg)
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
-		if( !msg.isDown() )
-			return false;
-
-		switch(msg.getCode())
+		if(msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::S:
-			if( !getLevel().mIsOver )
-				mBird.fly();
-			break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::S:
+				if (!getLevel().mIsOver)
+					mBird.fly();
+				break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	void LevelStage::notifyGameOver(GameLevel& level)

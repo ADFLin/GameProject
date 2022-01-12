@@ -217,9 +217,9 @@ namespace Poker { namespace Big2 {
 		return BaseClass::onWidgetEvent( event , id , ui );
 	}
 
-	bool LevelStage::onMouse( MouseMsg const& msg )
+	MsgReply LevelStage::onMouse( MouseMsg const& msg )
 	{
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 	void LevelStage::updateTestUI()

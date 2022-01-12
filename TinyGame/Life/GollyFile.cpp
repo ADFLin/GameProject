@@ -1,10 +1,7 @@
 #include "GollyFile.h"
 
-
-
 namespace Life
 {
-
 	constexpr int LINESIZE = 20000;
 	constexpr int CR = 13;
 	constexpr int LF = 10;
@@ -419,7 +416,8 @@ namespace Life
 					{
 						n = n * 10 + *p - '0';
 					}
-					else {
+					else 
+					{
 						if (n == 0) n = 1;
 						if (*p == '.') 
 						{
@@ -581,16 +579,20 @@ namespace Life
 				else if (!sawrule && (strncmp(line, "#GOLLY", 6) == 0 ||
 					strncmp(line, "#RULE", 5) == 0))
 				{
-					if (strncmp(line, "#RULE 1,0,1,0,0,0,1,0,0,0,0,0,0,2,2,1,1,2,2,2,2,2,0,2,2,2,1,2,2,2,2,2", 69) == 0) {
+					if (strncmp(line, "#RULE 1,0,1,0,0,0,1,0,0,0,0,0,0,2,2,1,1,2,2,2,2,2,0,2,2,2,1,2,2,2,2,2", 69) == 0) 
+					{
 						// standard HistoricalLife rule -- all states transfer directly to LifeHistory
-						if (strncmp(line, "#RULE 1,0,1,0,0,0,1,0,0,0,0,0,0,2,2,1,1,2,2,2,2,2,0,2,2,2,1,2,2,2,2,2,", 70) == 0) {
+						if (strncmp(line, "#RULE 1,0,1,0,0,0,1,0,0,0,0,0,0,2,2,1,1,2,2,2,2,2,0,2,2,2,1,2,2,2,2,2,", 70) == 0)
+						{
 							// special case:  Brice Due's extended HistoricalLife rules have
 							// non-contiguous states (State 8 but no State 4, 6, or 7)
 							// that need translating to work in LifeHistory)
 							extendedHL = true;
 						}
 						//errmsg = imp.setrule("LifeHistory");
-						if (errmsg) return errmsg;
+						if (errmsg) 
+							return errmsg;
+
 						sawrule = true;
 					}
 					else if (strncmp(line, "#RULE 1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,1", 40) == 0) {
@@ -628,7 +630,8 @@ namespace Life
 
 		if (wd > 0 || ht > 0)
 		{
-			if (useltl) {
+			if (useltl) 
+			{
 				// setrule has already been called above
 			}
 			else {
@@ -641,7 +644,8 @@ namespace Life
 					sprintf(rule, "%s:P%d,%d", imp.getrule(), wd, ht);
 				errmsg = imp.setrule(rule);
 #endif
-				if (errmsg) {
+				if (errmsg) 
+				{
 					// should never happen
 					//lifewarning("Bug in readmcell code!");
 					return errmsg;
@@ -681,10 +685,12 @@ namespace Life
 	{
 		// Find end of line, or terminating '!' character, whichever comes first:
 		const char *end = line;
-		while (*end && *end != '!') ++end;
+		while (*end && *end != '!') 
+			++end;
 
 		// Verify that '!' (if present) is the final printable character:
-		if (*end == '!') {
+		if (*end == '!') 
+		{
 			for (const char *p = end + 1; *p; ++p) {
 				if ((unsigned)*p > ' ') {
 					return false;

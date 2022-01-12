@@ -289,34 +289,32 @@ void Game::procSystemEvent()
 		mWindow->procSystemMessage();
 }
 
-bool Game::onMouse( MouseMsg const& msg )
+MsgReply Game::onMouse( MouseMsg const& msg )
 {
 	mMousePos = msg.getPos();
 
-	if ( !GUISystem::Get().mManager.procMouseMsg( msg ) )
+	MsgReply reply = GUISystem::Get().mManager.procMouseMsg(msg);
+	if ( !reply.isHandled() )
 	{
 		if ( !msg.onMoving() )
-			return true;
+			return MsgReply::Unhandled();
 	}
 	mStageStack.back()->onMouse( msg );
-	return true;
+	return MsgReply::Unhandled();
 }
 
-bool Game::onKey(KeyMsg const& msg)
+MsgReply Game::onKey(KeyMsg const& msg)
 {
-	if ( !GUISystem::Get().mManager.procKeyMsg( msg ) )
-		return true;
+	MsgReply reply = GUISystem::Get().mManager.procKeyMsg(msg);
+	if ( reply.isHandled() )
+		return reply;
 
-	mStageStack.back()->onKey( msg );
-	return true;
+	return mStageStack.back()->onKey( msg );
 }
 
-bool Game::onChar( unsigned code )
+MsgReply Game::onChar( unsigned code )
 {
-	if ( !GUISystem::Get().mManager.procCharMsg( code ) )
-		return true;
-
-	return true;
+	return GUISystem::Get().mManager.procCharMsg(code);
 }
 
 bool Game::onSystemEvent( SystemEvent event )

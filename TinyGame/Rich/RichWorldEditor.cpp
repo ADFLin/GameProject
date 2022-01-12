@@ -19,7 +19,7 @@ namespace Rich
 		mAreaEdit = nullptr;
 	}
 
-	bool WorldEditor::onMouse( MouseMsg const& msg )
+	MsgReply WorldEditor::onMouse( MouseMsg const& msg )
 	{
 		if ( msg.onLeftDown() )
 		{
@@ -34,7 +34,8 @@ namespace Rich
 							mWorld->addTile( coord , EMPTY_AREA_ID );
 						else if ( mMode == MODE_REMOVE )
 							mWorld->removeTile( coord );
-						return false;
+
+						return MsgReply::Handled();
 					}
 				}
 				break;
@@ -50,7 +51,7 @@ namespace Rich
 				}
 			}
 		}
-		return true;
+		return MsgReply::Unhandled();
 	}
 
 	void WorldEditor::setup( Level& level , Scene& scene )

@@ -329,23 +329,23 @@ public:
 		return time;
 	}
 
-	bool handleKeyEvent(KeyMsg const& msg)
+	MsgReply handleKeyEvent(KeyMsg const& msg)
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if ( msg.isDown())
 		{
-		case EKeyCode::Up:    cam->translate( Vector3( 0,0,10 ) , CFTO_LOCAL ); break;
-		case EKeyCode::Down:  cam->translate( Vector3( 0,0,-10 ) , CFTO_LOCAL); break;
-		case EKeyCode::Left:  cam->translate( Vector3( -10 ,0 , 0 ) , CFTO_LOCAL ); break;
-		case EKeyCode::Right: cam->translate( Vector3( 10 ,0 , 0 ) , CFTO_LOCAL ); break;
-		case EKeyCode::P: std::swap( mMainCamera , cam );break;
-		case EKeyCode::O: g_useObjFrushumClip = !g_useObjFrushumClip; break;
-		default:
-			SampleBase::handleKeyEvent( msg );
+			switch (msg.getCode())
+			{
+			case EKeyCode::Up:    cam->translate(Vector3(0, 0, 10), CFTO_LOCAL); break;
+			case EKeyCode::Down:  cam->translate(Vector3(0, 0, -10), CFTO_LOCAL); break;
+			case EKeyCode::Left:  cam->translate(Vector3(-10, 0, 0), CFTO_LOCAL); break;
+			case EKeyCode::Right: cam->translate(Vector3(10, 0, 0), CFTO_LOCAL); break;
+			case EKeyCode::P: std::swap(mMainCamera, cam); break;
+			case EKeyCode::O: g_useObjFrushumClip = !g_useObjFrushumClip; break;
+			default:
+				SampleBase::handleKeyEvent(msg);
+			}
 		}
-		return true;
+		return MsgReply::Unhandled();
 	}
 
 

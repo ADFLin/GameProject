@@ -107,12 +107,12 @@ namespace SBlocks
 
 		bool checkFixedRotation(int* outRotation)
 		{
-			int rotation = -1;
+			int rotation = INDEX_NONE;
 			for (auto pieceData : pieces)
 			{
 				if (pieceData->piece->bCanRoate)
 					return false;
-				if (rotation == -1)
+				if (rotation == INDEX_NONE)
 					rotation = pieceData->piece->dir;
 				else if (rotation != pieceData->piece->dir)
 					return false;
@@ -191,7 +191,7 @@ namespace SBlocks
 		};
 		std::vector< ShapeTest > mCachedPendingTests;
 
-		void setup(Level& level, SolveOption const& option);
+		void setup(Level& level);
 		bool advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
 		bool advanceCombinedState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
 
@@ -200,16 +200,14 @@ namespace SBlocks
 		template< typename TFunc >
 		ERejectResult::Type testRejection(
 			MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, 
-			SolveOption const& option, int maxCompareShapeSize, 
-			TFunc& CheckPieceFunc);
+			int maxCompareShapeSize, TFunc& CheckPieceFunc);
 
 		template< typename TFunc >
 		ERejectResult::Type testRejection(
 			ShapeSolveData& shapeSolveData, int indexPiece,
-			SolveOption const& option, int maxCompareShapeSize, 
-			TFunc& CheckPieceFunc);
+			int maxCompareShapeSize, TFunc& CheckPieceFunc);
 
-		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos,  SolveOption const &option, int maxCompareShapeSize);
+		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos, int maxCompareShapeSize);
 
 		template< typename TFunc >
 		ERejectResult::Type runPendingShapeTest(TFunc& CheckPieceFunc);
@@ -269,8 +267,8 @@ namespace SBlocks
 
 
 		template< bool bEnableRejection , bool bEnableIdenticalShapeCombination, bool bHavePartWork >
-		int  solveImplT(SolveData& solveData, int indexPiece, PartWorkInfo* partWork);
-		using SolveFunc = decltype(&Solver::solveImplT<false,false,false>);
+		static int  SolveImplT(SolveData& solveData, int indexPiece, PartWorkInfo* partWork);
+		using SolveFunc = decltype(&Solver::SolveImplT<false,false,false>);
 
 
 		void getSolvedStates(std::vector< PieceSolveState >& outStates) const

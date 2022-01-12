@@ -39,7 +39,7 @@ public:
 	GChoice*  getStateChioce(){ return mStateChoice; }
 
 	void onRender();
-	bool onMouseMsg( MouseMsg const& msg );
+	MsgReply onMouseMsg( MouseMsg const& msg );
 	void enableDrag( bool beCan ){ mCanDrag = beCan; }
 
 	Slot&     mSlot;

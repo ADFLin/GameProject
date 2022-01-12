@@ -731,9 +731,9 @@ public:
 		return BaseClass::onWidgetEvent(event, id, ui);
 	}
 
-	bool onMouse(MouseMsg const& msg);
+	MsgReply onMouse(MouseMsg const& msg);
 
-	bool onKey(KeyMsg const& msg);
+	MsgReply onKey(KeyMsg const& msg);
 
 
 protected:
@@ -939,29 +939,27 @@ void AudioTestStage::onRender(float dFrame)
 	g.drawRect(org, Vector2(mNumFreqGroup * 5, 10));
 }
 
-bool AudioTestStage::onKey(KeyMsg const& msg)
+MsgReply AudioTestStage::onKey(KeyMsg const& msg)
 {
-	if( !msg.isDown() )
-		return false;
-	switch(msg.getCode())
+	if(msg.isDown())
 	{
-	case EKeyCode::R: restart(); break;
-	case EKeyCode::B:
-		mAudioDevice->stopAllSound();
-		mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 1.0, false);
-		break;
-	case EKeyCode::Z:
-		mSoundWave.PCMData.clear();
-		break;
+		switch (msg.getCode())
+		{
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::B:
+			mAudioDevice->stopAllSound();
+			mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 1.0, false);
+			break;
+		case EKeyCode::Z:
+			mSoundWave.PCMData.clear();
+			break;
+		}
 	}
-	return false;
+	return BaseClass::onKey(msg);
 }
 
-bool AudioTestStage::onMouse(MouseMsg const& msg)
+MsgReply AudioTestStage::onMouse(MouseMsg const& msg)
 {
-	if( !BaseClass::onMouse(msg) )
-		return false;
-
 	if( msg.onLeftDown() && !bMoving )
 	{
 		if( step == 0 )
@@ -978,5 +976,5 @@ bool AudioTestStage::onMouse(MouseMsg const& msg)
 		}
 		++step;
 	}
-	return true;
+	return BaseClass::onMouse(msg);
 }

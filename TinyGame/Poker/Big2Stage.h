@@ -40,7 +40,7 @@ namespace Poker { namespace Big2 {
 		void onEnd();
 		void onRender( float dFrame );
 		bool onWidgetEvent( int event , int id , GWidget* ui );
-		bool onMouse(MouseMsg const& msg);
+		MsgReply onMouse(MouseMsg const& msg);
 
 		void tick();
 		void updateFrame( int frame );

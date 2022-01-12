@@ -397,9 +397,9 @@ namespace Render
 
 		RHIFrameBufferRef mBitbltFrameBuffer;
 
-		bool onMouse(MouseMsg const& msg) override;
+		MsgReply onMouse(MouseMsg const& msg) override;
 
-		bool onKey(KeyMsg const& msg) override;
+		MsgReply onKey(KeyMsg const& msg) override;
 
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override

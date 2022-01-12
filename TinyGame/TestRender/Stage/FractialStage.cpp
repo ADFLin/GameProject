@@ -519,15 +519,12 @@ public:
 	}
 
 	Vector2 mPosRectCenter;
-	bool onMouse(MouseMsg const& msg)
+	MsgReply onMouse(MouseMsg const& msg)
 	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-
 		mPosOnMouse = mParam.getCoordinates(msg.getPos());
 
 		if( !mSelectRect.procMouseMsg(msg) )
-			return false;
+			return MsgReply::Handled();
 
 		if ( mSelectRect.isEnable() )
 		{
@@ -542,24 +539,25 @@ public:
 				mParam.zoomInPos(info.centerOffset , info.zoomFactor, info.angle);
 				bNeedUpdateTexture = true;
 				//updateTexture();
-				return false;
+				return MsgReply::Handled();
 			}
 		}
 
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 	Vector2 mPosOnMouse;
 
-	bool onKey(KeyMsg const& msg)
+	MsgReply onKey(KeyMsg const& msg)
 	{
-		if( !msg.isDown() )
-			return false;
-		switch(msg.getCode())
+		if( msg.isDown() )
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	virtual bool onWidgetEvent(int event, int id, GWidget* ui) override

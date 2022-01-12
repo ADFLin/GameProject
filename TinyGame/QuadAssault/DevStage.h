@@ -13,11 +13,12 @@ public:
 	virtual void setDevMsg( FString& str ){}
 	virtual void onUpdate( float dt ){}
 	virtual void onRender() = 0;
-	virtual bool onMouse( MouseMsg const& msg ){ return true; }
+	virtual MsgReply onMouse( MouseMsg const& msg ){ return MsgReply::Unhandled(); }
 };
 
 class DevStage : public GameStage
 {
+	using BaseClass = GameStage;
 public:
 	DevStage();
 	~DevStage();
@@ -26,8 +27,8 @@ public:
 	virtual void onExit();
 	virtual void onUpdate( float deltaT );
 	virtual void onRender();
-	virtual bool onKey(KeyMsg const& msg);
-	virtual bool onMouse(MouseMsg const& msg);
+	virtual MsgReply onKey(KeyMsg const& msg);
+	virtual MsgReply onMouse(MouseMsg const& msg);
 
 	FPtr< TestBase > mTest;
 	Texture*  mTexCursor;

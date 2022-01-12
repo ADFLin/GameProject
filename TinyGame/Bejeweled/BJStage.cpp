@@ -52,25 +52,27 @@ namespace Bejeweled
 		mScene.updateFrame( frame );
 	}
 
-	bool TestStage::onMouse( MouseMsg const& msg )
+	MsgReply TestStage::onMouse( MouseMsg const& msg )
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-		return mScene.procMouseMsg( msg );
+		MsgReply reply = mScene.procMouseMsg( msg );
+		if (reply.isHandled())
+			return reply;
+
+		return BaseClass::onMouse(msg);
 	}
 
-	bool TestStage::onKey(KeyMsg const& msg)
+	MsgReply TestStage::onKey(KeyMsg const& msg)
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		default:
-			mScene.procKey( msg );
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			default:
+				mScene.procKey(msg);
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 }//namespace Bejeweled

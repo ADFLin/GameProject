@@ -212,7 +212,7 @@ void CMiniMapUI::drawText()
 
 }
 
-bool CMiniMapUI::onMouseMsg( MouseMsg const& msg )
+MsgReply CMiniMapUI::onMouseMsg( MouseMsg const& msg )
 {
 	CWidget::onMouseMsg( msg );
 	if ( msg.onLeftDown() )
@@ -231,7 +231,7 @@ bool CMiniMapUI::onMouseMsg( MouseMsg const& msg )
 		//	}
 		//}
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 Vec3D CMiniMapUI::transWorldPos( Vec2i const& dPos )

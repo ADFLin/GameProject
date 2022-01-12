@@ -200,7 +200,7 @@ namespace Render
 		}
 	}
 
-	bool TestRenderStageBase::onMouse(MouseMsg const& msg)
+	MsgReply TestRenderStageBase::onMouse(MouseMsg const& msg)
 	{
 		static Vec2i oldPos = msg.getPos();
 
@@ -216,12 +216,10 @@ namespace Render
 			oldPos = msg.getPos();
 		}
 
-		if (!BaseClass::onMouse(msg))
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool TestRenderStageBase::onKey(KeyMsg const& msg)
+	MsgReply TestRenderStageBase::onKey(KeyMsg const& msg)
 	{
 		float baseImpulse = 500;
 		switch (msg.getCode())
@@ -234,20 +232,20 @@ namespace Render
 		case EKeyCode::X: mCamera.moveUp(-0.5); break;
 		}
 
-		if (!msg.isDown())
-			return false;
-
-		switch (msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::F2:
+			switch (msg.getCode())
 			{
-				ShaderManager::Get().reloadAll();
-				//initParticleData();
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::F2:
+				{
+					ShaderManager::Get().reloadAll();
+					//initParticleData();
+				}
+				break;
 			}
-			break;
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	void TestRenderStageBase::drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights)

@@ -11,6 +11,7 @@
 #include "InputManager.h"
 
 #include <sstream>
+#include "Core/ScopeExit.h"
 
 namespace Life
 {
@@ -145,25 +146,44 @@ namespace Life
 		Vec2i  offset;
 		uint32* data;
 
-		void drawCell(int x, int y) override
+		void fillData(Vec2i const& pos)
 		{
-			Vec2i pos = Vec2i(x, y) - offset;
-
 			if (IsInBound(pos, size))
 			{
 				data[pos.x + pos.y * size.x] = 0xffffffff;
 			}
 		}
 
+		void drawCell(int x, int y) override
+		{
+			Vec2i pos = Vec2i(x, y) - offset;
+			fillData(pos);
+		}
+
+		void drawCells(Vec2i const& rectPos, Vec2i const& rectSize, uint8 const* cellData, uint32 rowStride) override
+		{
+			Vec2i posStart = Vector2(rectPos) - offset;
+			for (int j = 0; j < rectSize.y; ++j)
+			{
+				Vec2i pos;
+				pos.y = posStart.y + j;
+				uint8 const* pRow = cellData + j * rowStride;
+				for (int i = 0; i < rectSize.x; ++i)
+				{
+					if (pRow[i])
+					{
+						pos.x = posStart.x + i;
+						fillData(pos);
+					}
+				}
+			}
+		}
+
 	};
 
-	class TextureGenerateWithScale : public IRenderer
+	class TextureGenerateWithScale : public TextureGenerate
 	{
 	public:
-
-		Vec2i   size;
-		Vector2 offset;
-		uint32* data;
 		float   scale;
 
 		void drawCell(int x, int y) override
@@ -173,12 +193,32 @@ namespace Life
 			Vec2i pixelPos;
 			pixelPos.x = Math::FloorToInt(pos.x);
 			pixelPos.y = Math::FloorToInt(pos.y);
-			if (IsInBound(pixelPos, size))
-			{
-				data[pixelPos.x + pixelPos.y * size.x] += 0xffffffff;
-			}
+			fillData(pixelPos);
 		}
 
+		void drawCells(Vec2i const& rectPos, Vec2i const& rectSize, uint8 const* cellData, uint32 rowStride) override
+		{
+			Vector2 posStart = scale * (Vector2(rectPos) - offset);
+
+			for (int j = 0; j < rectSize.y; ++j)
+			{
+				Vector2 pos;
+				pos.y = posStart.y + j * scale;
+				uint8 const* pRow = cellData + j * rowStride;
+				for (int i = 0; i < rectSize.x; ++i)
+				{
+					if (pRow[i])
+					{
+						pos.x = posStart.x + i * scale;
+
+						Vec2i pixelPos;
+						pixelPos.x = Math::FloorToInt(pos.x);
+						pixelPos.y = Math::FloorToInt(pos.y);
+						fillData(pixelPos);
+					}
+				}
+			}
+		}
 	};
 
 
@@ -231,14 +271,14 @@ namespace Life
 
 		bool bDrawGridLine = true;
 		float gridLineAlpha = 1.0f;
-		float GridLineFadeStart = 10;
+		float gridLineFadeStart = 10;
 		if (cellScale < 3.0)
 		{
 			bDrawGridLine = false;
 		}
-		else if (cellScale < GridLineFadeStart)
+		else if (cellScale < gridLineFadeStart)
 		{
-			gridLineAlpha = Remap(cellScale, 3.0, GridLineFadeStart, 0, 1);
+			gridLineAlpha = Remap(cellScale, 3.0, gridLineFadeStart, 0, 1);
 
 		}
 
@@ -318,6 +358,22 @@ namespace Life
 			int count = 0;
 
 			RHIGraphics2D* g;
+
+			void drawCells(Vec2i const& rectPos, Vec2i const& rectSize, uint8 const* cellData, uint32 rowStride) override
+			{
+				for (int j = 0; j < rectSize.y; ++j)
+				{
+					uint8 const* pRowData = cellData + rowStride * j;
+					for (int i = 0; i < rectSize.x; ++i)
+					{
+						if (pRowData[i])
+						{
+							g->drawRect(rectPos + Vec2i(i, j), Vector2(1, 1));
+						}
+					}
+				}
+			}
+
 		};
 
 		if (CVarUseRenderer)
@@ -336,8 +392,6 @@ namespace Life
 				std::fill_n(mBuffer.data(), mBuffer.size(), 0x00000000);
 
 				Vector2 uv;
-				Vector2 pos;
-				Vector2 size;
 				if (mViewport.cellPixelSize >= 1.0)
 				{
 					TextureGenerate textureGen;
@@ -346,8 +400,6 @@ namespace Life
 					textureGen.offset = boundRender.min;
 					renderProxy->draw(textureGen, mViewport, boundRender);
 					uv = Vector2(boundRender.getSize() + Vec2i(1, 1)) / screenSize;
-					pos = boundRender.min;
-					size = boundRender.getSize() + Vec2i(1, 1);
 				}
 				else
 				{
@@ -358,14 +410,15 @@ namespace Life
 					textureGen.scale = mViewport.cellPixelSize;
 					renderProxy->draw(textureGen, mViewport, boundRender);
 					uv = Vector2(1, 1);
-					pos = boundViewport.min;
-					size = boundViewport.getSize() + Vec2i(1, 1);
 				}
 
 				mTexture->update(0, 0, screenSize.x, screenSize.y, ETexture::RGBA8, mBuffer.data());
+				
+				Vector2 pos = boundRender.min;
+				Vector2 size = boundRender.getSize() + Vec2i(1, 1);
+
 				RenderUtility::SetBrush(g, EColor::White);
 				//g.setSampler(TStaticSamplerState<>::GetRHI());
-
 				g.beginBlend(1, ESimpleBlendMode::Translucent);
 				g.drawTexture(*mTexture, pos, size, Vector2(0, 0), uv);
 				g.endBlend();
@@ -429,7 +482,7 @@ namespace Life
 		g.endRender();
 	}
 
-	bool TestStage::onMouse(MouseMsg const& msg)
+	MsgReply TestStage::onMouse(MouseMsg const& msg)
 	{
 		mLastMousePos = msg.getPos();
 
@@ -508,138 +561,138 @@ namespace Life
 		return BaseClass::onMouse(msg);
 	}
 
-	bool TestStage::onKey(KeyMsg const& msg)
+	MsgReply TestStage::onKey(KeyMsg const& msg)
 	{
-		if (!msg.isDown())
-			return false;
-
-		auto RemoveCells = [this]()
+		if (msg.isDown())
 		{
-			for (auto const& pos : mCopyPattern.cellList)
+			auto RemoveCells = [this]()
 			{
-				mAlgorithm->setCell(pos.x, pos.y, 0);
-			}
-		};
+				for (auto const& pos : mCopyPattern.cellList)
+				{
+					mAlgorithm->setCell(pos.x, pos.y, 0);
+				}
+			};
 
-		switch (msg.getCode())
-		{
-		case EKeyCode::Escape:
+			switch (msg.getCode())
 			{
-				if (mEditMode == EditMode::PastePattern)
+			case EKeyCode::Escape:
 				{
-					mEditMode = EditMode::SelectCell;
-				}
-			}
-			break;
-		case EKeyCode::R:
-			{
-				if (mEditMode == EditMode::PastePattern)
-				{
-					mCopyPattern.rotate();
-				}
-				else
-				{
-					restart();
-				}
-			}
-			break;
-		case EKeyCode::W:
-			{
-				if (mEditMode == EditMode::PastePattern)
-				{
-					mCopyPattern.mirrorV();
-				}
-			}
-			break;
-		case EKeyCode::E:
-			{
-				if (mEditMode == EditMode::PastePattern)
-				{
-					mCopyPattern.mirrorH();
-				}
-			}
-			break;
-		case EKeyCode::Return:
-			{
-				if (mEditMode == EditMode::SelectCell)
-				{
-					if (mSelectionRect)
+					if (mEditMode == EditMode::PastePattern)
 					{
-						selectPattern(InputManager::Get().isKeyDown(EKeyCode::Shift));
+						mEditMode = EditMode::SelectCell;
 					}
 				}
-			}
-			break;
-		case EKeyCode::X:
-			{
-				if (mEditMode == EditMode::SelectCell)
+				break;
+			case EKeyCode::R:
 				{
-					if (InputManager::Get().isKeyDown(EKeyCode::Control))
+					if (mEditMode == EditMode::PastePattern)
 					{
-						if ( mCopyPattern.bound.isValid() == false )
+						mCopyPattern.rotate();
+					}
+					else
+					{
+						restart();
+					}
+				}
+				break;
+			case EKeyCode::W:
+				{
+					if (mEditMode == EditMode::PastePattern)
+					{
+						mCopyPattern.mirrorV();
+					}
+				}
+				break;
+			case EKeyCode::E:
+				{
+					if (mEditMode == EditMode::PastePattern)
+					{
+						mCopyPattern.mirrorH();
+					}
+				}
+				break;
+			case EKeyCode::Return:
+				{
+					if (mEditMode == EditMode::SelectCell)
+					{
+						if (mSelectionRect)
 						{
-							RemoveCells();
-							mCopyPattern.validate();
+							selectPattern(InputManager::Get().isKeyDown(EKeyCode::Shift));
 						}
-						mEditMode = EditMode::PastePattern;
 					}
 				}
-			}
-			break;
-		case EKeyCode::C:
-			{
-				if (mEditMode == EditMode::SelectCell)
+				break;
+			case EKeyCode::X:
 				{
-					if (InputManager::Get().isKeyDown(EKeyCode::Control))
+					if (mEditMode == EditMode::SelectCell)
 					{
-						mCopyPattern.validate();
-						mEditMode = EditMode::PastePattern;
-					}
-				}
-			}
-			break;
-		case EKeyCode::V:
-			{
-#ifdef SYS_PLATFORM_WIN
-				if (InputManager::Get().isKeyDown(EKeyCode::Control))
-				{
-					if (::OpenClipboard(NULL))
-					{
-						HANDLE hData = ::GetClipboardData(CF_TEXT);
-						struct Locker
+						if (InputManager::Get().isKeyDown(EKeyCode::Control))
 						{
-							Locker(HANDLE  hData) : hData(hData) { ::GlobalLock(hData); }
-							~Locker() { ::GlobalUnlock(hData); }
-							HANDLE hData;
-						};
-						if (hData)
-						{
-							char* data = (char*)::GlobalLock(hData);
-							if (data)
+							if (mCopyPattern.bound.isValid() == false)
 							{
-								int size = ::GlobalSize(hData);
-								std::string dataStr{ data , data + size };
-								std::istringstream stream(dataStr);
-								GollyFileReader reader(stream);
-								reader.loadPattern(*mAlgorithm);
+								RemoveCells();
+								mCopyPattern.validate();
 							}
-							::GlobalUnlock(hData);
+							mEditMode = EditMode::PastePattern;
 						}
-						::CloseClipboard();
 					}
 				}
-#endif //SYS_PLATFORM_WIN
-			}
-			break;
-		case EKeyCode::Delete:
-			{
-				if (mEditMode == EditMode::SelectCell)
+				break;
+			case EKeyCode::C:
 				{
-					RemoveCells();
-					mCopyPattern.cellList.clear();
+					if (mEditMode == EditMode::SelectCell)
+					{
+						if (InputManager::Get().isKeyDown(EKeyCode::Control))
+						{
+							mCopyPattern.validate();
+							mEditMode = EditMode::PastePattern;
+						}
+					}
 				}
+				break;
+			case EKeyCode::V:
+				{
+					if (InputManager::Get().isKeyDown(EKeyCode::Control))
+					{
+#ifdef SYS_PLATFORM_WIN
+						if (::OpenClipboard(NULL))
+						{
+							ON_SCOPE_EXIT
+							{
+								::CloseClipboard();
+							};
+							HANDLE hData = ::GetClipboardData(CF_TEXT);
+							if (hData)
+							{
+								char* data = (char*)::GlobalLock(hData);
+								if (data)
+								{
+									ON_SCOPE_EXIT
+									{
+										::GlobalUnlock(hData);
+									};
+									int size = ::GlobalSize(hData);
+									std::string dataStr{ data , data + size };
+									std::istringstream stream(dataStr);
+									GollyFileReader reader(stream);
+									reader.loadPattern(*mAlgorithm);
+								}
+							}
+						}
+#endif //SYS_PLATFORM_WIN
+					}
+				}
+				break;
+			case EKeyCode::Delete:
+				{
+					if (mEditMode == EditMode::SelectCell)
+					{
+						RemoveCells();
+						mCopyPattern.cellList.clear();
+					}
+				}
+				break;
 			}
-			break;
 		}
 		return BaseClass::onKey(msg);
 	}

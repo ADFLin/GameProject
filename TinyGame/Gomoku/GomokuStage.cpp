@@ -40,17 +40,14 @@ namespace Gomoku
 		g.endRender();
 	}
 
-	bool TestStage::onMouse(MouseMsg const& msg)
+	MsgReply TestStage::onMouse(MouseMsg const& msg)
 	{
-		if (!BaseClass::onMouse(msg))
-			return false;
-
 		if (msg.onLeftDown())
 		{
 			Vec2i pos = RenderContext::CalcCoord(msg.getPos(), BoardPos, RenderBoardScale, mGame.getBoard().getSize());
 
 			if (!mGame.getBoard().checkRange(pos.x, pos.y))
-				return false;
+				return MsgReply::Handled();
 
 			mGame.playStone(pos.x, pos.y);
 		}
@@ -68,7 +65,7 @@ namespace Gomoku
 				mGame.undo();
 			}
 		}
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 	bool TestStage::setupRenderSystem(ERenderSystem systemName)

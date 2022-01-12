@@ -119,11 +119,8 @@ public:
 
 	int mIndexNearset = -1;
 
-	bool onMouse(MouseMsg const& msg) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-
 		if( msg.onLeftDown() )
 		{
 			Vector2 worldPos = convertToWorld(msg.getPos());
@@ -153,17 +150,19 @@ public:
 			mRayResult.indexData = INDEX_NONE;
 			mTree.raycast(mTestRay, mRayResult);
 		}
-		return true;
+
+		return BaseClass::onMouse(msg);
 	}
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if( !msg.isDown())
-			return false;
-		switch(msg.getCode())
+		if(msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 };
 

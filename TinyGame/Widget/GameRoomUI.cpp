@@ -27,7 +27,7 @@ SlotFrame::SlotFrame( Slot& slot , Vec2i const& pos , Vec2i const& size , Player
 
 }
 
-bool SlotFrame::onMouseMsg( MouseMsg const& msg )
+MsgReply SlotFrame::onMouseMsg( MouseMsg const& msg )
 {
 	if ( getSlot().state == SLOT_PLAYER )
 	{
@@ -45,7 +45,7 @@ bool SlotFrame::onMouseMsg( MouseMsg const& msg )
 		}
 
 	}
-	return false;
+	return MsgReply::Handled();
 }
 
 void SlotFrame::onRender()

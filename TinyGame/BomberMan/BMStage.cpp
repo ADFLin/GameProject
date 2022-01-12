@@ -202,16 +202,16 @@ namespace BomberMan
 		mScene.updateFrame( frame );
 	}
 
-	bool LevelStage::onKey(unsigned key, bool isDown)
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
-		if( !isDown )
-			return false;
-
-		switch( key )
+		if( msg.isDown() )
 		{
-		case EKeyCode::R: getStageMode()->restart(false); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: getStageMode()->restart(false); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	IFrameActionTemplate* LevelStage::createActionTemplate(unsigned version)

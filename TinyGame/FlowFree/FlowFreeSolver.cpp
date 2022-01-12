@@ -114,23 +114,13 @@ namespace FlowFree
 		return true;
 	}
 
-	static int const gBitIndexMap[9] = { 0 , 0 , 1 , 1 , 2 , 2 , 2 , 2 , 3 };
-	int ToIndex8(uint8 bit)
-	{
-		assert((bit & 0xff) == bit);
-		assert((bit & (bit - 1)) == 0);
-		int result = 0;
-		if (bit & 0xf0) { result += 4; bit >>= 4; }
-		return result + gBitIndexMap[bit];
-	}
-
 	bool DepthFirstSolver::checkSourceConnectCompleted(SolveState& state, int indexSource)
 	{
 		Cell& cell = mCellMap[indexSource];
 		assert(cell.func == CellFunc::Source);
 		uint8 const sourceColor = cell.funcMeta;
 
-		int dir = ToIndex8(state.cells[indexSource].connectMask);
+		int dir = FBitUtility::ToIndex8(state.cells[indexSource].connectMask);
 		Vec2i linkPos = cell.pos;
 
 		for (;;)
@@ -154,7 +144,7 @@ namespace FlowFree
 						break;
 					}
 
-					dir = ToIndex8(connectMask);
+					dir = FBitUtility::ToIndex8(connectMask);
 				}
 			}
 		}

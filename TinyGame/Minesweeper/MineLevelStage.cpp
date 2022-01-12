@@ -570,11 +570,8 @@ namespace Mine
 #endif
 	}
 
-	bool TestStage::onMouse(MouseMsg const& msg)
+	MsgReply TestStage::onMouse(MouseMsg const& msg)
 	{
-		if (!BaseClass::onMouse(msg))
-			return false;
-
 		if (bPlayMode)
 		{
 			Vec2i cPos = toCellPos(msg.getPos());
@@ -626,7 +623,7 @@ namespace Mine
 				}
 			}
 		}
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 	void TestStage::buildLevelSolver()

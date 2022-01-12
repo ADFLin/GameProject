@@ -34,7 +34,7 @@ public:
 	virtual bool postStageInit() {  return true; }
 	virtual void onEnd(){}
 	virtual void onRestart(uint64& seed) {}
-	virtual bool onKey(KeyMsg const& msg) { return true;  }
+	virtual MsgReply onKey(KeyMsg const& msg) { return MsgReply::Unhandled();  }
 	virtual bool onWidgetEvent(int event, int id, GWidget* ui) { return true; }
 
 	virtual void restart(bool beInit);

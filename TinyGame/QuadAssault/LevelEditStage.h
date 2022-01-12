@@ -28,8 +28,8 @@ public:
 	virtual void onEnable(){}
 	virtual void onDisable(){}
 
-	virtual bool onKey(KeyMsg const& msg){ return true; }
-	virtual bool onMouse( MouseMsg const& msg ){ return true; }
+	virtual MsgReply onKey(KeyMsg const& msg){ return MsgReply::Unhandled(); }
+	virtual MsgReply onMouse( MouseMsg const& msg ){ return MsgReply::Unhandled(); }
 	virtual void onWidgetEvent( int event , int id , QWidget* sender ){}
 	virtual void render(){}
 
@@ -55,7 +55,7 @@ public:
 	virtual void onDisable();
 	virtual void cleanup();
 
-	virtual bool onMouse( MouseMsg const& msg );
+	virtual MsgReply onMouse( MouseMsg const& msg );
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual void render();
 
@@ -87,8 +87,8 @@ public:
 	virtual void onEnable();
 	virtual void onDisable();
 	virtual void cleanup();
-	virtual bool onKey(KeyMsg const& msg);
-	virtual bool onMouse( MouseMsg const& msg );
+	virtual MsgReply onKey(KeyMsg const& msg);
+	virtual MsgReply onMouse( MouseMsg const& msg );
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual void render();
 	virtual void enumProp( IPropEditor& editor );
@@ -116,8 +116,8 @@ public:
 	virtual void onUpdate( float deltaT );
 	virtual void onRender();
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
-	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey(KeyMsg const& msg);
+	virtual MsgReply onMouse( MouseMsg const& msg );
+	virtual MsgReply onKey(KeyMsg const& msg);
 
 	bool   saveLevel( char const* path );
 	void   generateEmptyLevel();

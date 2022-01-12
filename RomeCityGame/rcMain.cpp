@@ -371,58 +371,58 @@ public:// System Message
 			g.drawCircle( sPos , 3 );
 		}
 	}
-	bool  handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
+
+	MsgReply  handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
 	{ 
-		if ( !msg.isDown() )
-			return true;
-
-
-		unsigned buildingList[] =
+		if (msg.isDown())
 		{
-			BT_WATER_WELL ,
-			BT_AQUADUCT ,
-			BT_RESEVIOR ,
-			BT_HOUSE_SIGN ,
-			BT_ROAD ,
-			BT_WAREHOUSE ,
-			BT_WS_POTTERY , 
-			BT_CALY_PIT ,
-			BT_MINE ,
-		};
+			unsigned buildingList[] =
+			{
+				BT_WATER_WELL ,
+				BT_AQUADUCT ,
+				BT_RESEVIOR ,
+				BT_HOUSE_SIGN ,
+				BT_ROAD ,
+				BT_WAREHOUSE ,
+				BT_WS_POTTERY ,
+				BT_CALY_PIT ,
+				BT_MINE ,
+			};
 
 
-		static TCycleNumber< ARRAY_SIZE( buildingList ) > idx(0);
+			static TCycleNumber< ARRAY_SIZE(buildingList) > idx(0);
 
-		static TCycleNumber< 4 > dir;
-		rcViewport& vp = mLevelScene->getViewPort();
+			static TCycleNumber< 4 > dir;
+			rcViewport& vp = mLevelScene->getViewPort();
 
-		int moveSpeed = 5;
-		switch( msg.getCode() )
-		{
-		case EKeyCode::S: vp.shiftScreenOffset( Vec2i( 0 , moveSpeed ) ); break;
-		case EKeyCode::W: vp.shiftScreenOffset( Vec2i( 0 , -moveSpeed ) ); break;
-		case EKeyCode::A: vp.shiftScreenOffset( Vec2i( -moveSpeed , 0 ) ); break;
-		case EKeyCode::D: vp.shiftScreenOffset( Vec2i( moveSpeed , 0 ) ); break;
-		case EKeyCode::Q:
-			idx += 1;
-			mChioceBuildingTag = buildingList[idx.getValue() ];
-			break;
-		case EKeyCode::E:
-			idx -= 1;
-			mChioceBuildingTag = buildingList[idx.getValue() ];
-			break;
-		case EKeyCode::F1:
-			dir += 1;
-			mLevelScene->getViewPort().setDir( rcViewport::ViewDir( dir.getValue() ) );
-			break;
-		case EKeyCode::F2:
-			ProfileSystem::Get().cleanup();
-			break;
+			int moveSpeed = 5;
+			switch (msg.getCode())
+			{
+			case EKeyCode::S: vp.shiftScreenOffset(Vec2i(0, moveSpeed)); break;
+			case EKeyCode::W: vp.shiftScreenOffset(Vec2i(0, -moveSpeed)); break;
+			case EKeyCode::A: vp.shiftScreenOffset(Vec2i(-moveSpeed, 0)); break;
+			case EKeyCode::D: vp.shiftScreenOffset(Vec2i(moveSpeed, 0)); break;
+			case EKeyCode::Q:
+				idx += 1;
+				mChioceBuildingTag = buildingList[idx.getValue()];
+				break;
+			case EKeyCode::E:
+				idx -= 1;
+				mChioceBuildingTag = buildingList[idx.getValue()];
+				break;
+			case EKeyCode::F1:
+				dir += 1;
+				mLevelScene->getViewPort().setDir(rcViewport::ViewDir(dir.getValue()));
+				break;
+			case EKeyCode::F2:
+				ProfileSystem::Get().cleanup();
+				break;
+			}
 		}
-
-		return true; 
+		return MsgReply::Unhandled(); 
 	}
-	bool handleCharEvent( unsigned code ) CRTP_OVERRIDE { return true; }
+
+	MsgReply handleCharEvent( unsigned code ) CRTP_OVERRIDE { return MsgReply::Unhandled(); }
 
 	bool handleWindowDestroy(HWND hWnd) CRTP_OVERRIDE
 	{ 

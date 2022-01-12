@@ -56,7 +56,7 @@ namespace BomberMan
 		void tick();
 		void updateFrame( int frame );
 
-		bool onKey( unsigned key , bool isDown );
+		MsgReply onKey( KeyMsg const& msg );
 		void fireAction( ActionTrigger& trigger );
 
 		void setStep( StageStep step , long time );

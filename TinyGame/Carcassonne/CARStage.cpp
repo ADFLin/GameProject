@@ -765,8 +765,7 @@ namespace CAR
 		return tempPos;
 	}
 
-
-	bool LevelStage::onKey(KeyMsg const& msg)
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
 		if ( msg.isDown() )
 		{
@@ -822,14 +821,11 @@ namespace CAR
 			case EKeyCode::Right: setRenderOffset(mRenderOffset - Vector2(offset, 0)); break;
 			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
-	bool LevelStage::onMouse(MouseMsg const& msg)
+	MsgReply LevelStage::onMouse(MouseMsg const& msg)
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-
 		WorldTileManager& level = mGameLogic.getWorld();
 
 		if ( msg.onLeftDown() )
@@ -909,7 +905,7 @@ namespace CAR
 			}
 		}
 
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
 	void LevelStage::setRenderScale(float scale)

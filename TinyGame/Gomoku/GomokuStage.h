@@ -66,16 +66,16 @@ namespace Gomoku
 		Vector2 BoardPos = Vector2(100, 55);
 		float const RenderBoardScale = 1.2;
 
-		bool onMouse(MouseMsg const& msg) override;
+		MsgReply onMouse(MouseMsg const& msg) override;
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if (!msg.isDown())
-				return false;
-
-			switch (msg.getCode())
+			if (msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				}
 			}
 			return BaseClass::onKey(msg);
 		}

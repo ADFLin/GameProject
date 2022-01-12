@@ -132,8 +132,8 @@ namespace CAR
 		void onRestart(bool bInit) override;
 		void onRender( float dFrame ) override;
 		bool onWidgetEvent(int event , int id , GWidget* ui) override;
-		bool onKey(KeyMsg const& msg) override;
-		bool onMouse( MouseMsg const& msg ) override;
+		MsgReply onKey(KeyMsg const& msg) override;
+		MsgReply onMouse( MouseMsg const& msg ) override;
 
 
 		bool setupNetwork( NetWorker* worker , INetEngine** engine ) override{ return true; }

@@ -197,16 +197,14 @@ namespace Render
 
 		int TessFactor = 5;
 		int TessFactor2 = 1;
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos = msg.getPos();
 
-			if( !BaseClass::onMouse(msg) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
 			if(msg.isDown())
 			{

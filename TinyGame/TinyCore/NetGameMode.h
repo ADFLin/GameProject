@@ -152,7 +152,7 @@ public:
 	void restart(bool beInit);
 
 	bool onWidgetEvent(int event, int id, GWidget* ui);
-	bool onKey(KeyMsg const& msg);
+	MsgReply onKey(KeyMsg const& msg);
 
 	void   onRestart(uint64& seed);
 	bool   doesAllowChangeState(EGameState state);

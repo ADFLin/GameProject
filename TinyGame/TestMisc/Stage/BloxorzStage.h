@@ -135,9 +135,8 @@ namespace Bloxorz
 
 		void updateFrame( int frame );
 
-		bool onMouse( MouseMsg const& msg );
-
-		bool onKey(KeyMsg const& msg);
+		MsgReply onMouse( MouseMsg const& msg );
+		MsgReply onKey(KeyMsg const& msg);
 
 		void drawObjectBody( Vector3 const& color );
 

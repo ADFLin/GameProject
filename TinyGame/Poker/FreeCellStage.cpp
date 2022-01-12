@@ -265,7 +265,7 @@ namespace Poker
 		return INDEX_NONE;
 	}
 
-	bool FreeCellStage::onMouse( MouseMsg const& msg )
+	MsgReply FreeCellStage::onMouse( MouseMsg const& msg )
 	{
 		if ( msg.onLeftDClick() )
 		{
@@ -368,7 +368,8 @@ namespace Poker
 			undoMove();
 			mSelectCell = nullptr;
 		}
-		return false;
+
+		return BaseClass::onMouse(msg);
 	}
 
 	void FreeCellStage::drawCell( Graphics2D& g , Vec2i const& pos )

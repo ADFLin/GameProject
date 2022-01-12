@@ -174,25 +174,22 @@ namespace Chromatron
 		mScene.updateFrame( frame );
 	}
 
-	bool LevelStage::onMouse( MouseMsg const& msg )
+	MsgReply LevelStage::onMouse( MouseMsg const& msg )
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-
 		mScene.procMouseMsg( msg );
-		return false;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool LevelStage::onKey(KeyMsg const& msg)
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	bool LevelStage::onWidgetEvent( int event , int id , GWidget* ui )

@@ -471,7 +471,7 @@ namespace CarTrain
 	public:
 		virtual void render() {}
 		virtual void tick() {}
-		virtual bool onMouse(MouseMsg const& msg) { return true; }
+		virtual MsgReply onMouse(MouseMsg const& msg) { return MsgReply::Unhandled(); }
 	};
 
 
@@ -560,12 +560,13 @@ namespace CarTrain
 		Vector2 mRayCastHit;
 		bool    mbRayCastHitted = false;
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
 			if (bEditMode && mEditMode)
 			{
-				if (!mEditMode->onMouse(msg))
-					return false;
+				MsgReply reply = mEditMode->onMouse(msg);
+				if (reply.isHandled())
+					return reply;
 			}
 
 			if (msg.onLeftDown() || msg.onRightDown())
@@ -590,9 +591,8 @@ namespace CarTrain
 			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-
 			if (msg.isDown())
 			{
 				switch (msg.getCode())

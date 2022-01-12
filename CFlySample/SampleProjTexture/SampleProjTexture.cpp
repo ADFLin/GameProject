@@ -200,15 +200,15 @@ public:
 
 	 }
 
-	 bool handleKeyEvent(KeyMsg const& msg)
+	 MsgReply handleKeyEvent(KeyMsg const& msg)
 	 {
-		 if ( !msg.isDown())
-			 return false;
-
-		 switch(msg.getCode())
+		 if (msg.isDown())
 		 {
-		 case EKeyCode::O: viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(1) , CFTO_LOCAL);  break;
-		 case EKeyCode::P: viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(-1) , CFTO_LOCAL );  break;
+			 switch (msg.getCode())
+			 {
+			 case EKeyCode::O: viewCamera->rotate(CF_AXIS_X, Math::Deg2Rad(1), CFTO_LOCAL);  break;
+			 case EKeyCode::P: viewCamera->rotate(CF_AXIS_X, Math::Deg2Rad(-1), CFTO_LOCAL);  break;
+			 }
 		 }
 
 		 return SampleBase::handleKeyEvent( msg );

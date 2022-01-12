@@ -137,9 +137,17 @@ namespace Render
 			uint32 chunkIndex = timingHandle / TimeStampChunk::Size;
 			uint32 index = 2 * (timingHandle % TimeStampChunk::Size);
 
-			uint64 startData = mChunks[chunkIndex].timeStampData[index];
-			uint64 endData = mChunks[chunkIndex].timeStampData[index + 1];
-			outDuration = endData - startData;
+			auto timeStampData = mChunks[chunkIndex].timeStampData;
+			if (timeStampData)
+			{
+				uint64 startData = mChunks[chunkIndex].timeStampData[index];
+				uint64 endData = mChunks[chunkIndex].timeStampData[index + 1];
+				outDuration = endData - startData;
+			}
+			else
+			{
+				outDuration = 0.0;
+			}
 			return true;
 		}
 
@@ -499,8 +507,6 @@ namespace Render
 
 		return texture;
 
-
-		return nullptr;
 	}
 
 	RHITexture2D* D3D12System::RHICreateTexture2D(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
@@ -719,7 +725,7 @@ namespace Render
 		static_cast<D3D12IndexBuffer*>(buffer)->mResource->Unmap(0, nullptr);
 	}
 
-	Render::RHIFrameBuffer* D3D12System::RHICreateFrameBuffer()
+	RHIFrameBuffer* D3D12System::RHICreateFrameBuffer()
 	{
 		return new D3D12FrameBuffer;
 	}
@@ -754,7 +760,7 @@ namespace Render
 		return new D3D12Shader(type);
 	}
 
-	Render::RHIShaderProgram* D3D12System::RHICreateShaderProgram()
+	RHIShaderProgram* D3D12System::RHICreateShaderProgram()
 	{
 		return new D3D12ShaderProgram;
 	}
@@ -1409,8 +1415,6 @@ namespace Render
 		return result;
 
 	}
-
-
 
 	D3D12PipelineState* D3D12System::getPipelineState(MeshRenderStateDesc const& renderState, D3D12ShaderBoundState* boundState, D3D12RenderTargetsState* renderTargetsState)
 	{

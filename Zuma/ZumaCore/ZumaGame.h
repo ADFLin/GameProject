@@ -124,8 +124,8 @@ namespace Zuma
 		bool   onUIEvent( int evtID , int uiID , ZWidget* ui );
 		void   onStageEnd( ZStage* stage , unsigned flag  );
 
-		bool   onMouse( MouseMsg const& msg );
-		bool   onKey( KeyMsg const& msg );
+		MsgReply   onMouse( MouseMsg const& msg );
+		MsgReply   onKey( KeyMsg const& msg );
 		ZUserData&  getUserData()    { return mUserData; }
 
 		void    changeLevel( LevelStage* stage );
@@ -165,8 +165,8 @@ namespace Zuma
 		long   handleGameUpdate( long time ) CRTP_OVERRIDE { GameCore::update( time ); return time; }
 
 		//SysMsgHandler
-		bool   handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE { return GameCore::onMouse( msg );}
-		bool   handleKeyEvent( KeyMsg const& msg ) CRTP_OVERRIDE { return GameCore::onKey( msg ); }
+		MsgReply handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE { return GameCore::onMouse( msg );}
+		MsgReply handleKeyEvent( KeyMsg const& msg ) CRTP_OVERRIDE { return GameCore::onKey( msg ); }
 		bool   handleWindowActivation( bool beA ) CRTP_OVERRIDE { isGmaePause = !beA; return true; }
 	};
 

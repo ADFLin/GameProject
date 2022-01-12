@@ -158,6 +158,12 @@ namespace SBlocks
 		}
 	};
 
+	struct ChapterEdit
+	{
+		std::string name;
+		std::vector< std::string > levels;
+	};
+
 	struct ChapterDesc
 	{
 		std::string name;
@@ -191,7 +197,7 @@ namespace SBlocks
 		void startEdit();
 		void endEdit();
 
-		bool onMouse(MouseMsg const& msg, Vector2 const& worldPos , Piece* piece)
+		MsgReply onMouse(MouseMsg const& msg, Vector2 const& worldPos , Piece* piece)
 		{
 			if ( msg.onLeftDown() )
 			{
@@ -207,16 +213,17 @@ namespace SBlocks
 						if (map.isInBound(mapPos))
 						{
 							map.toggleBlock(mapPos);
-							return false;
+							return MsgReply::Handled();
 						}
 					}
 
 				}
 			}
 
-			return true;
+			return MsgReply::Unhandled();
 		}
-		bool onKey(KeyMsg const& msg)
+
+		MsgReply onKey(KeyMsg const& msg)
 		{
 			if (msg.isDown())
 			{
@@ -226,7 +233,7 @@ namespace SBlocks
 				}
 
 			}
-			return true;
+			return MsgReply::Unhandled();
 		}
 
 		void registerCommand();
@@ -293,7 +300,6 @@ namespace SBlocks
 
 		void notifyLevelChanged();
 
-
 		class ShapeListPanel* mShapeLibraryPanel = nullptr;
 		class ShapeEditPanel* mShapeEditPanel = nullptr;
 		struct EditPiece
@@ -302,8 +308,6 @@ namespace SBlocks
 			DirType dir;
 			bool    bLock;
 		};
-
-
 
 		void registerGamePieces();
 
@@ -478,7 +482,7 @@ namespace SBlocks
 			return nullptr;
 		}
 
-		bool onMouseMsg(MouseMsg const& msg)
+		MsgReply onMouseMsg(MouseMsg const& msg)
 		{
 			Vec2i framePos = msg.getPos() - getWorldPos();
 			if (msg.onLeftDown() && msg.isControlDown())
@@ -498,7 +502,7 @@ namespace SBlocks
 				if (clickShape)
 				{
 					mEditor->editEditPieceShape(*clickShape->editShape);
-					return false;
+					return MsgReply::Handled();
 				}
 			}
 			else if (msg.onLeftDClick())
@@ -508,7 +512,7 @@ namespace SBlocks
 				if (clickShape)
 				{
 					mEditor->addPiece(*clickShape->editShape);
-					return false;
+					return MsgReply::Handled();
 				}
 			}
 
@@ -556,14 +560,12 @@ namespace SBlocks
 			g.popXForm();
 		}
 
-		bool onMouseMsg(MouseMsg const& msg)
+		MsgReply onMouseMsg(MouseMsg const& msg)
 		{
 			if ( msg.onLeftDown() )
 			{
 				Vec2i framePos = msg.getPos() - getWorldPos();
-
 				Vec2i localPos = mLocalToFrame.transformInvPosition(framePos);
-
 				Vec2i boundSize = mShape->desc.getBoundSize();
 				if (IsInBound(localPos, boundSize))
 				{
@@ -572,7 +574,7 @@ namespace SBlocks
 					{
 						mShape->ptr->importDesc(mShape->desc);
 					}
-					return false;
+					return MsgReply::Handled();
 				}
 			}
 
@@ -681,7 +683,7 @@ namespace SBlocks
 			bPiecesOrderDirty = true;
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
 			Vector2 worldPos = mScreenToWorld.transformPosition(msg.getPos());
 			Vector2 hitLocalPos;
@@ -689,8 +691,9 @@ namespace SBlocks
 
 			if (IsEditEnabled())
 			{
-				if (!mEditor->onMouse(msg, worldPos, piece))
-					return false;
+				MsgReply reply = mEditor->onMouse(msg, worldPos, piece);
+				if ( reply.isHandled() )
+					return reply;
 			}
 
 
@@ -773,7 +776,7 @@ namespace SBlocks
 			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override;
+		MsgReply onKey(KeyMsg const& msg) override;
 
 
 

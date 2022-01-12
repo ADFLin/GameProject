@@ -45,10 +45,8 @@ GWidget* GameMenuStage::createButton( int delay , int id , char const* title , V
 }
 
 
-bool GameMenuStage::onMouse( MouseMsg const& msg )
+MsgReply GameMenuStage::onMouse( MouseMsg const& msg )
 {
-	bool result = StageBase::onMouse( msg );
-
 	if ( msg.onLeftDown() &&
 		::Global::GUI().getManager().getLastMouseMsgWidget() == NULL )
 	{
@@ -61,11 +59,11 @@ bool GameMenuStage::onMouse( MouseMsg const& msg )
 		mSkipTasks.clear();
 	}
 
-	return result;
+	return BaseClass::onMouse(msg);
 }
 
 
-bool GameMenuStage::onKey(KeyMsg const& msg)
+MsgReply GameMenuStage::onKey(KeyMsg const& msg)
 {
 	if (msg.isDown())
 	{
@@ -73,7 +71,7 @@ bool GameMenuStage::onKey(KeyMsg const& msg)
 		{
 		case EKeyCode::Escape:
 			popWidgetGroup();
-			return false;
+			return MsgReply::Handled();
 		}
 	}
 

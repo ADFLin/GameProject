@@ -30,7 +30,7 @@ public:
 	void  onChangeChildrenOrder();
 	void  onChangeOrder();
 
-	virtual bool onMouseMsg( MouseMsg const& msg );
+	virtual MsgReply onMouseMsg( MouseMsg const& msg );
 	void  onMouse( bool beIn ){}
 	void  onFocus( bool beF ){}
 	virtual void onSetOpactity( float val ){}
@@ -156,7 +156,7 @@ public:
 	CFrameUI( Vec2i const& pos , Vec2i const& size  , CWidget* parent );
 
 	static PanelTemplateInfo DefultTemplate;
-	bool  onMouseMsg( MouseMsg const& msg );
+	MsgReply  onMouseMsg( MouseMsg const& msg );
 
 protected:
 	CCloseButton* m_closeButton;

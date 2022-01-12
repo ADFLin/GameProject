@@ -32,7 +32,6 @@ namespace Render
 			BIND_SHADER_PARAM(parameterMap, NumPlants);
 			BIND_SHADER_PARAM(parameterMap, GravityScale);
 			BIND_SHADER_PARAM(parameterMap, PlantDataTexture);
-
 		}
 
 		DEFINE_SHADER_PARAM(UvToWorldPos);
@@ -143,11 +142,10 @@ namespace Render
 			g.endRender();
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
 			if (msg.onLeftDown())
 			{
-
 				Vector3 data;
 				data.x = msg.x();
 				data.y = msg.y();
@@ -158,7 +156,7 @@ namespace Render
 			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
 			if (msg.isDown())
 			{

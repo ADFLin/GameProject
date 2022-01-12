@@ -19,7 +19,7 @@ public:
 	~CModelShowPanel();
 
 	void onRender();
-	bool onMouseMsg( MouseMsg const& msg );
+	MsgReply onMouseMsg( MouseMsg const& msg );
 
 	IRenderEntity*  mModel;
 	CFCamera*       mCamera;

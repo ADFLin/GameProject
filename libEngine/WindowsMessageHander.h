@@ -49,9 +49,9 @@ public:
 	}
 
 public:
-	CRTP_FUNC bool handleMouseEvent( MouseMsg const& msg ){ return true; }
-	CRTP_FUNC bool handleKeyEvent(KeyMsg const& msg ){ return true; }
-	CRTP_FUNC bool handleCharEvent( unsigned code ){ return true; }
+	CRTP_FUNC MsgReply handleMouseEvent( MouseMsg const& msg ){ return true; }
+	CRTP_FUNC MsgReply handleKeyEvent(KeyMsg const& msg ){ return true; }
+	CRTP_FUNC MsgReply handleCharEvent( unsigned code ){ return MsgReply::Unhandled(); }
 	CRTP_FUNC bool handleWindowActivation( bool beA ){ return true; }
 	CRTP_FUNC void handleWindowPaint( HDC hDC ){}
 	CRTP_FUNC bool handleWindowDestroy(HWND hWnd) { return true; }
@@ -76,12 +76,12 @@ private:
 
 	inline bool _procKeyMsg( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
-		return _this()->handleKeyEvent( KeyMsg(ConvToKeyCode(wParam) , msg == WM_KEYDOWN) );
+		return _this()->handleKeyEvent( KeyMsg(ConvToKeyCode(wParam) , msg == WM_KEYDOWN) ).isHandled() == false;
 	}
 
 	inline bool _procCharMsg( HWND hWnd ,UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
-		return _this()->handleCharEvent( unsigned(wParam) );
+		return _this()->handleCharEvent( unsigned(wParam) ).isHandled() == false;
 	}
 	inline bool _procActivateMsg( HWND hWnd ,UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
@@ -251,7 +251,7 @@ bool WindowsMessageHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM
 	if (x >= 32767) x -= 65536;
 	if (y >= 32767) y -= 65536;
 
-	return _this()->handleMouseEvent( MouseMsg( x , y , button , mMouseState ) );
+	return _this()->handleMouseEvent( MouseMsg( x , y , button , mMouseState ) ).isHandled() == false;
 }
 
 #endif // WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E

@@ -632,7 +632,7 @@ void GPanel::onRender()
 	}
 }
 
-bool GPanel::onMouseMsg(MouseMsg const& msg)
+MsgReply GPanel::onMouseMsg(MouseMsg const& msg)
 {
 	if( msg.onLeftDown() )
 	{
@@ -711,7 +711,7 @@ struct DragOperation
 	bool  bStart;
 };
 
-bool GFrame::onMouseMsg( MouseMsg const& msg )
+MsgReply GFrame::onMouseMsg( MouseMsg const& msg )
 {
 	BaseClass::onMouseMsg( msg );
 
@@ -739,7 +739,7 @@ bool GFrame::onMouseMsg( MouseMsg const& msg )
 		}
 	}
 
-	return false;
+	return MsgReply::Handled();
 }
 
 Vec2i GSlider::TipSize( 10, 10 );

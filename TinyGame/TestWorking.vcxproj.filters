@@ -32,9 +32,13 @@
     <ClCompile Include="Life\GollyFile.cpp">
       <Filter>GameLife</Filter>
     </ClCompile>
-    <ClCompile Include="Life\SimpleAlgo.cpp" />
-    <ClCompile Include="Life\ChunkAlgo.cpp" />
     <ClCompile Include="TestRender\Stage\ODETestStage.cpp" />
+    <ClCompile Include="Life\ChunkAlgo.cpp">
+      <Filter>GameLife\Algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="Life\SimpleAlgo.cpp">
+      <Filter>GameLife\Algorithms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />

@@ -71,9 +71,9 @@ public:
 	virtual void tick() {}
 	virtual void updateFrame(int frame) {}
 
-	bool onMouse(MouseMsg const& msg) override { return true; }
-	bool onKey(KeyMsg const& msg) override;
-	bool onChar(unsigned code) override { return true; }
+	MsgReply onMouse(MouseMsg const& msg) override { return MsgReply::Unhandled(); }
+	MsgReply onKey(KeyMsg const& msg) override;
+	MsgReply onChar(unsigned code) override { return MsgReply::Unhandled(); }
 	bool onWidgetEvent(int event, int id, GWidget* ui) override;
 
 	GameStageBase* getGameStage() override { return this; }

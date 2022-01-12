@@ -110,9 +110,9 @@ bool GameWindowWin::procMsg( UINT message, WPARAM wParam, LPARAM lParam )
 		return precMouseMsg( message , wParam , lParam );
 
 	case WM_KEYDOWN: case WM_KEYUP: 
-		return mListener->onKey( KeyMsg( EKeyCode::Type( wParam ) , message == WM_KEYDOWN ) );
+		return mListener->onKey( KeyMsg( EKeyCode::Type( wParam ) , message == WM_KEYDOWN ) ).isHandled() == false;
 	case WM_CHAR:
-		return mListener->onChar( wParam );
+		return mListener->onChar( wParam ).isHandled() == false;
 	}
 	return true;
 
@@ -164,7 +164,7 @@ case WM_MOUSEWHEEL:
 	if (x >= 32767) x -= 65536;
 	if (y >= 32767) y -= 65536;
 
-	return mListener->onMouse( MouseMsg( x , y , button , mMouseState ) );
+	return mListener->onMouse( MouseMsg( x , y , button , mMouseState ) ).isHandled() == false;
 }
 
 bool GameWindowWin::create( char const* title , Vec2i const& size , int colorBit , bool bFullScreen )

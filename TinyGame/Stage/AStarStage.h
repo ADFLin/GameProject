@@ -432,11 +432,8 @@ namespace AStar
 
 		}
 
-		bool onMouse( MouseMsg const& msg ) override
+		MsgReply onMouse( MouseMsg const& msg ) override
 		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-
 			Vec2i tilePos = convertToWorld( msg.getPos() );
 			if ( mAStar.mMap.checkRange( tilePos.x , tilePos.y ) )
 			{
@@ -459,34 +456,34 @@ namespace AStar
 				}
 			}
 
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if ( !msg.isDown())
-				return false;
-
-			switch(msg.getCode())
+			if (msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::Q:
+				switch (msg.getCode())
 				{
-					++mAStar.mClearance;
-					findPath();
-				}
-				break;
-			case EKeyCode::W:
-				{
-					--mAStar.mClearance;
-					if( mAStar.mClearance <= 0 )
-						mAStar.mClearance = 1;
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::Q:
+					{
+						++mAStar.mClearance;
+						findPath();
+					}
+					break;
+				case EKeyCode::W:
+					{
+						--mAStar.mClearance;
+						if (mAStar.mClearance <= 0)
+							mAStar.mClearance = 1;
 
-					findPath();
+						findPath();
+					}
+					break;
 				}
-				break;
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 		void findPath()

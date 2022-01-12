@@ -145,9 +145,8 @@ namespace Render
 
 		}
 
-		bool onMouse( MouseMsg const& msg ) override;
-
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onMouse( MouseMsg const& msg ) override;
+		MsgReply onKey(KeyMsg const& msg) override
 		{
 			if ( msg.isDown() )
 			{

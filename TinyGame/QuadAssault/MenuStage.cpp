@@ -313,23 +313,24 @@ void MenuStage::onRender()
 #endif
 }
 
-bool MenuStage::onKey(KeyMsg const& msg)
+MsgReply MenuStage::onKey(KeyMsg const& msg)
 {
-	if ( !msg.isDown() )
-		return true;
-	switch(msg.getCode())
+	if (msg.isDown())
 	{
-	case EKeyCode::Escape:
-		if( mState == MS_SELECT_MENU )
-			stop();
-		else
-			changeState( MS_SELECT_MENU );
-		break;
+		switch (msg.getCode())
+		{
+		case EKeyCode::Escape:
+			if (mState == MS_SELECT_MENU)
+				stop();
+			else
+				changeState(MS_SELECT_MENU);
+			break;
+		}
 	}
-	return false;
+	return BaseClass::onKey(msg);
 }
 
-bool MenuStage::onMouse( MouseMsg const& msg )
+MsgReply MenuStage::onMouse( MouseMsg const& msg )
 {
-	return true;
+	return BaseClass::onMouse(msg);
 }

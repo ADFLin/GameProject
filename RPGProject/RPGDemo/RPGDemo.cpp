@@ -552,36 +552,36 @@ public:
 		return true;
 	}
 
-	bool handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
+	MsgReply handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
 	{
-		if ( !msg.isDown() )
-			return false;
-
-		switch( msg.getCode() )
+		if (msg.isDown())
 		{
-		case EKeyCode::Escape: setLoopOver( true ); break;
-		//case EKeyCode::W: mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;
-		//case EKeyCode::S: mCFCamera->translate( Vec3D( 0,0,-10 ) , CFly::CFTO_LOCAL); break;
-		//case EKeyCode::A: mCFCamera->translate( Vec3D( 10 ,0 , 0 ), CFly::CFTO_LOCAL ); break;
-		//case EKeyCode::D: mCFCamera->translate( Vec3D( -10 ,0 , 0 ) , CFly::CFTO_LOCAL ); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::Escape: setLoopOver(true); break;
+				//case EKeyCode::W: mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;
+				//case EKeyCode::S: mCFCamera->translate( Vec3D( 0,0,-10 ) , CFly::CFTO_LOCAL); break;
+				//case EKeyCode::A: mCFCamera->translate( Vec3D( 10 ,0 , 0 ), CFly::CFTO_LOCAL ); break;
+				//case EKeyCode::D: mCFCamera->translate( Vec3D( -10 ,0 , 0 ) , CFly::CFTO_LOCAL ); break;
 
-		//case EKeyCode::W: mCamControl->moveForward(); break;
-		//case EKeyCode::S: mCamControl->moveBack(); break;
-		//case EKeyCode::A: mCamControl->moveLeft(); break;
-		//case EKeyCode::D: mCamControl->moveRight(); break;
-		//case EKeyCode::O: mBloodBarComp->setLife( mBloodBarComp->getLife() - 10 ); break;
-		//case EKeyCode::P: mBloodBarComp->setLife( mBloodBarComp->getLife() + 10 ); break;
-		case EKeyCode::L: mPlayer->attack(); break;
-		case EKeyCode::M: mActorModel->changeAction( ANIM_ATTACK , true ); break;
-		case EKeyCode::N: mActorModel->changeAction( ANIM_WAIT , true ); break;
-		case EKeyCode::K: if ( mCDMask ) mCDMask->restore( 2 ); break;
-		case EKeyCode::R:
-			createBoxEntity( Vec3D(200,200,200) );
-			break;
+				//case EKeyCode::W: mCamControl->moveForward(); break;
+				//case EKeyCode::S: mCamControl->moveBack(); break;
+				//case EKeyCode::A: mCamControl->moveLeft(); break;
+				//case EKeyCode::D: mCamControl->moveRight(); break;
+				//case EKeyCode::O: mBloodBarComp->setLife( mBloodBarComp->getLife() - 10 ); break;
+				//case EKeyCode::P: mBloodBarComp->setLife( mBloodBarComp->getLife() + 10 ); break;
+			case EKeyCode::L: mPlayer->attack(); break;
+			case EKeyCode::M: mActorModel->changeAction(ANIM_ATTACK, true); break;
+			case EKeyCode::N: mActorModel->changeAction(ANIM_WAIT, true); break;
+			case EKeyCode::K: if (mCDMask) mCDMask->restore(2); break;
+			case EKeyCode::R:
+				createBoxEntity(Vec3D(200, 200, 200));
+				break;
 
+			}
 		}
 
-		return true;
+		return MsgReply::Unhandled();
 	}
 
 private:

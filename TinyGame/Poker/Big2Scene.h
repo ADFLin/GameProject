@@ -32,7 +32,7 @@ namespace Poker { namespace Big2 {
 		int*  getSelcetIndex( int& num );
 
 		void  onRender();
-		bool  onMouseMsg(MouseMsg const& msg);
+		MsgReply  onMouseMsg(MouseMsg const& msg);
 
 		void   selectIndex( int pIndex[] , int num );
 		void   clearSelect();

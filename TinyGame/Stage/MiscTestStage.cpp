@@ -767,9 +767,8 @@ namespace Bsp2D
 		return BaseClass::onWidgetEvent( event , id , ui );
 	}
 
-	bool TestStage::onMouse( MouseMsg const& msg )
+	MsgReply TestStage::onMouse( MouseMsg const& msg )
 	{
-
 		switch( mCtrlMode )
 		{
 		case CMOD_CREATE_POLYAREA:
@@ -825,24 +824,23 @@ namespace Bsp2D
 				mActor.pos = convertToWorld( msg.getPos() );
 			}
 		}
-		return false;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool TestStage::onKey(KeyMsg const& msg)
+	MsgReply TestStage::onKey(KeyMsg const& msg)
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::Q: --gIdxNode; break;
-		case EKeyCode::W: ++gIdxNode; break;
-		case EKeyCode::F2: gShowEdgeNormal = !gShowEdgeNormal; break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::Q: --gIdxNode; break;
+			case EKeyCode::W: ++gIdxNode; break;
+			case EKeyCode::F2: gShowEdgeNormal = !gShowEdgeNormal; break;
+			}
 		}
 
-
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 }

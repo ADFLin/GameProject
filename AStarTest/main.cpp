@@ -222,12 +222,11 @@ public:
 	}
 
 
-	bool handleCharEvent( unsigned code ) CRTP_OVERRIDE
+	MsgReply handleCharEvent( unsigned code ) CRTP_OVERRIDE
 	{
-
-
-		return true;
+		return MsgReply::Unhandled();
 	}
+
 	bool handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
 	{ 
 		Vec2i mapPos = ( msg.getPos() - Vec2i( 20 , 20 ) ) / CellLength ;

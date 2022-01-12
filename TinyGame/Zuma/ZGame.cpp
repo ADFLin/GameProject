@@ -132,13 +132,13 @@ namespace Zuma
 		{ 
 			mGameCore->render( dFrame ); 
 		}
-		virtual bool onChar( unsigned code ){ return false; }
-		virtual bool onMouse( MouseMsg const& msg )
+		virtual MsgReply onChar( unsigned code ){ return MsgReply::Handled(); }
+		virtual MsgReply onMouse( MouseMsg const& msg )
 		{ 
 			return mGameCore->onMouse( msg ); 
 		}
 
-		virtual bool onKey(KeyMsg const& msg)
+		virtual MsgReply onKey(KeyMsg const& msg)
 		{ 
 			return mGameCore->onKey(msg);
 		}

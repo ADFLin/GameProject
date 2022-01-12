@@ -260,25 +260,22 @@ public:
 		}
 	}
 
-
-	bool onMouse(MouseMsg const& msg)
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg)
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if(msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::J: mSolver.Jumper.jump(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::J: mSolver.Jumper.jump(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 protected:

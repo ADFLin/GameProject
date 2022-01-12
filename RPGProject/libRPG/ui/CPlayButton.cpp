@@ -69,12 +69,12 @@ void CPlayButton::setFunction( CActor* actor , char const* name )
 	}
 }
 
-bool CPlayButton::onMouseMsg( MouseMsg const& msg )
+MsgReply CPlayButton::onMouseMsg( MouseMsg const& msg )
 {
 	if ( msg.onLeftDown() )
 	{
 		if ( m_playInfo.type == PT_NULL )
-			return false;
+			return MsgReply::Handled();
 
 		sDragIcon->removeRectArea( 0 );
 		setupPlayIcon( sDragIcon );
@@ -107,7 +107,7 @@ bool CPlayButton::onMouseMsg( MouseMsg const& msg )
 					setFunction( NULL , NULL );
 			}
 			// skip OnClick
-			return false;
+			return MsgReply::Handled();
 		}
 	}
 
@@ -123,7 +123,7 @@ bool CPlayButton::onMouseMsg( MouseMsg const& msg )
 
 	CButtonUI::onMouseMsg( msg );
 
-	return false;
+	return MsgReply::Handled();
 }
 
 

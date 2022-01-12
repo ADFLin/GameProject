@@ -32,7 +32,7 @@ public:
 	void setFollowActor( CActor* actor );
 
 
-	bool onMouseMsg(MouseMsg const& msg);
+	MsgReply onMouseMsg(MouseMsg const& msg);
 
 	void setLevel( CSceneLevel* level );
 	void makeMapTexture( CFScene* scene );

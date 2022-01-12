@@ -96,23 +96,21 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	bool onWidgetEvent(int event , int id , GWidget* ui) override;
@@ -210,28 +208,26 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
 		if ( msg.onLeftDown() )
 		{
 			mSpline.mB = msg.getPos();
 			constructSpline();
 		}
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 protected:
@@ -529,23 +525,21 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 protected:
@@ -796,23 +790,22 @@ namespace MRT
 		}
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override;
-		bool onMouse( MouseMsg const& msg ) override
+
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if ( !msg.isDown())
-				return false;
-
-			switch(msg.getCode())
+			if (msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 
@@ -898,26 +891,22 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
-
-	
 
 protected:
 
@@ -1065,23 +1054,21 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 protected:
 
@@ -1203,24 +1190,21 @@ namespace TankGame
 
 		}
 
-		bool onMouse( MouseMsg const& msg ) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if ( !msg.isDown())
-				return false;
-
-			switch(msg.getCode())
+			if (msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 	protected:
 
@@ -1370,8 +1354,8 @@ namespace Bsp2D
 		}
 
 
-		bool onMouse( MouseMsg const& msg ) override;
-		bool onKey(KeyMsg const& msg) override;
+		MsgReply onMouse( MouseMsg const& msg ) override;
+		MsgReply onKey(KeyMsg const& msg) override;
 		bool onWidgetEvent( int event , int id , GWidget* ui ) override;
 
 	protected:
@@ -1446,24 +1430,21 @@ public:
 		mTweener.update( frame * gDefaultTickTime / 1000.0f );
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 
@@ -1606,25 +1587,23 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown() )
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::D: break;
-		case EKeyCode::A: break;
-		case EKeyCode::W: break;
-		case EKeyCode::S: break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::D: break;
+			case EKeyCode::A: break;
+			case EKeyCode::W: break;
+			case EKeyCode::S: break;
+			}
 		}
 		return BaseClass::onKey(msg);
 	}
@@ -1695,24 +1674,21 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg ) override
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if ( !BaseClass::onMouse( msg ) )
-			return false;
-
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg) override
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if ( !msg.isDown())
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 protected:
 
@@ -1875,20 +1851,18 @@ namespace Net
 			}
 		}
 
-
-		bool onMouse( MouseMsg const& msg ) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if ( !msg.isDown())
-				return false;
-			return true;
+			if (msg.isDown())
+			{
+
+			}
+			return BaseClass::onKey(msg);
 		}
 
 		bool setupNetwork( NetWorker* worker , INetEngine** engine ) override

@@ -144,7 +144,7 @@ namespace Tetris
 		RecordStage();
 
 		bool onWidgetEvent( int event , int id , GWidget* ui );
-		bool onKey(KeyMsg const& msg);
+		MsgReply onKey(KeyMsg const& msg);
 		bool onInit();
 		void onUpdate( long time );
 		void onRender( float dFrame );

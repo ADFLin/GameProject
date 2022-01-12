@@ -836,10 +836,10 @@ namespace Tetris
 			ch = 126;
 	}
 
-	bool RecordStage::onKey(KeyMsg const& msg)
+	MsgReply RecordStage::onKey(KeyMsg const& msg)
 	{
 		if ( !chName || !msg.isDown())
-			return true;
+			return MsgReply::Unhandled();
 
 		switch (msg.getCode())
 		{
@@ -848,7 +848,7 @@ namespace Tetris
 		case EKeyCode::Right: idxChar = std::min( idxChar + 1 , 2 ); break;
 		case EKeyCode::Left:  idxChar = std::max( idxChar - 1 , 0 ); break;
 		}
-		return false;
+		return MsgReply::Handled();
 	}
 
 

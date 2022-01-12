@@ -80,7 +80,7 @@ void IntPropChioce::outputData()
 	if ( pos == -1 )
 		return;
 
-	int  value = (int)getItemData( pos );
+	int  value = (intptr_t)getItemData( pos );
 	switch( mDataSize )
 	{
 	case 1: *((int8*)mData)  = value; break;

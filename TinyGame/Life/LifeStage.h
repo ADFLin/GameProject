@@ -20,6 +20,11 @@ namespace Life
 		return Math::Lerp(os, oe, (v - is) / (ie - is));
 	}
 
+	float RemapClamp(float v, float is, float ie, float os, float oe)
+	{
+		return Math::Lerp(os, oe, Math::Clamp<float>( (v - is) / (ie - is) , 0.0f , 1.0f ));
+	}
+
 	class SelectionRect : public GWidget
 	{
 	public:
@@ -112,7 +117,7 @@ namespace Life
 			mManager->captureMouse(this);
 		}
 
-		bool onMouseMsg(MouseMsg const& msg)
+		MsgReply onMouseMsg(MouseMsg const& msg)
 		{
 			if (msg.onLeftDown())
 			{
@@ -124,7 +129,7 @@ namespace Life
 				mDraggingBound.min = getPos();
 				mDraggingBound.max = mDraggingBound.min + getSize();
 				getManager()->captureMouse(this);
-				return false;
+				return MsgReply::Handled();
 			}
 			else if (msg.onLeftUp())
 			{
@@ -133,7 +138,7 @@ namespace Life
 					bStartDragging = false;
 					mIndexBoxDragging = INDEX_NONE;
 					getManager()->releaseMouse();
-					return false;
+					return MsgReply::Handled();
 				}
 			}
 			else if (msg.onRightDown())
@@ -171,11 +176,11 @@ namespace Life
 						setSize(size);
 					}
 	
-					return false;
+					return MsgReply::Handled();
 				}
 			}
 
-			return !bStartDragging;
+			return MsgReply(bStartDragging);
 		}
 
 		std::function< void() > onLock;
@@ -227,8 +232,8 @@ namespace Life
 			for (auto& pos : temp)
 			{
 				Vec2i posNew;
-				posNew.y = bound.max.y - pos.y;
 				posNew.x = pos.x;
+				posNew.y = bound.max.y - pos.y;
 				cellList.insert(posNew);
 			}
 		}
@@ -362,8 +367,8 @@ namespace Life
 			mSelectionRect = nullptr;
 		}
 
-		bool onMouse(MouseMsg const& msg) override;
-		bool onKey(KeyMsg const& msg) override;
+		MsgReply onMouse(MouseMsg const& msg) override;
+		MsgReply onKey(KeyMsg const& msg) override;
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{

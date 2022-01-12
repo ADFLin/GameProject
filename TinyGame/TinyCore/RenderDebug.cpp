@@ -28,7 +28,7 @@ namespace Render
 		int mBaseLength = 256;
 		void updateSize();
 		void onRender() override;
-		bool onMouseMsg(MouseMsg const& msg) override;
+		MsgReply onMouseMsg(MouseMsg const& msg) override;
 	};
 
 	void TextureShowFrame::updateSize()
@@ -77,7 +77,7 @@ namespace Render
 
 	}
 
-	bool TextureShowFrame::onMouseMsg(MouseMsg const& msg)
+	MsgReply TextureShowFrame::onMouseMsg(MouseMsg const& msg)
 	{
 
 		static bool sbScaling = false;
@@ -173,8 +173,7 @@ namespace Render
 			}
 		}
 
-
-		return false;
+		return MsgReply::Handled();
 	}
 
 

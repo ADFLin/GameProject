@@ -65,19 +65,17 @@ namespace Phy2D
 
 		}
 
-		bool onMouse( MouseMsg const& msg )
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
-		void moveObject( Vector2 const& offset )
-		{
-			mObjects[1].mXForm.translate( offset );
-			mIsCollided = mCollision.test( &mObjects[0] , &mObjects[1] , mContact );
-		}
+		MsgReply onKey(KeyMsg const& msg) override;
 
-		bool onKey(KeyMsg const& msg);
+		void moveObject(Vector2 const& offset)
+		{
+			mObjects[1].mXForm.translate(offset);
+			mIsCollided = mCollision.test(&mObjects[0], &mObjects[1], mContact);
+		}
 	protected:
 		Contact mContact;
 
@@ -124,15 +122,12 @@ namespace Phy2D
 
 		}
 
-		bool onMouse( MouseMsg const& msg )
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-
-		bool onKey(KeyMsg const& msg);
+		MsgReply onKey(KeyMsg const& msg) override;
 	protected:
 
 		RigidBody*   mBody[2];

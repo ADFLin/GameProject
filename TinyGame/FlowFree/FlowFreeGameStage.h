@@ -86,21 +86,22 @@ namespace FlowFree
 		int numCellFilled = 0;
 		int IndexReaderTextureShow = ImageReader::DebugTextureCount;
 
-		bool onMouse(MouseMsg const& msg) override;
+		MsgReply onMouse(MouseMsg const& msg) override;
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if( !msg.isDown() )
-				return false;
-			switch(msg.getCode())
+			if( msg.isDown() )
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::X: mSolver.solveNext(); break;
-			case EKeyCode::C: for (int i = 0; i < 97; ++i) mSolver.solveNext(); break;
-			case EKeyCode::P: ++IndexReaderTextureShow; if (IndexReaderTextureShow > ImageReader::DebugTextureCount) IndexReaderTextureShow = 0; break;
-			case EKeyCode::O: --IndexReaderTextureShow; if (IndexReaderTextureShow < 0) IndexReaderTextureShow = ImageReader::DebugTextureCount; break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::X: mSolver.solveNext(); break;
+				case EKeyCode::C: for (int i = 0; i < 97; ++i) mSolver.solveNext(); break;
+				case EKeyCode::P: ++IndexReaderTextureShow; if (IndexReaderTextureShow > ImageReader::DebugTextureCount) IndexReaderTextureShow = 0; break;
+				case EKeyCode::O: --IndexReaderTextureShow; if (IndexReaderTextureShow < 0) IndexReaderTextureShow = ImageReader::DebugTextureCount; break;
+				}
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override

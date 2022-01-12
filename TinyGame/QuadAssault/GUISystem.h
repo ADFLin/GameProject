@@ -54,7 +54,7 @@ public:
 	virtual void onMouse( bool beIn ){  /*sendEvent( ( beIn ) ? EVT_ENTER_UI : EVT_EXIT_UI );*/  }
 	virtual void onRender(){}
 	virtual void onUpdateUI(){}
-	virtual bool onKeyMsg(KeyMsg const& msg){ return true; }
+	virtual MsgReply onKeyMsg(KeyMsg const& msg){ return MsgReply::Unhandled(); }
 	virtual void onHotkey( unsigned key ){}
 	virtual void onFocus( bool beF ){}
 
@@ -156,7 +156,7 @@ public:
 	void setTile( char const* name );
 
 protected:
-	bool onMouseMsg( MouseMsg const& msg );
+	MsgReply onMouseMsg( MouseMsg const& msg );
 	void onRender();
 	
 

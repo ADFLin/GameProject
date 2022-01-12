@@ -125,6 +125,7 @@ namespace Render
 				VERIFY_RETURN_FALSE(mAxisInputLayout = RHICreateInputLayout(desc));
 			}
 
+			return true;
 		}
 
 
@@ -336,7 +337,7 @@ namespace Render
 		}
 
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
 			if(msg.isDown())
 			{
@@ -352,18 +353,16 @@ namespace Render
 
 						mCBuffer.unlock();
 					}
-					return false;
+					return MsgReply::Handled();
 				}
 			}
 
 			return BaseClass::onKey(msg);
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if( !BaseClass::onMouse(msg) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
 

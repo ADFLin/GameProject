@@ -520,6 +520,16 @@ namespace SBlocks
 		return INDEX_NONE;
 	}
 
+	bool Level::isFinish() const
+	{
+		for (MarkMap const& map : mMaps)
+		{
+			if (!map.isFinish())
+				return false;
+		}
+		return true;
+	}
+
 	void Level::importDesc(LevelDesc const& desc)
 	{
 		mShapes.clear();
@@ -569,7 +579,7 @@ namespace SBlocks
 			desc.id = findShapeID(piece->shape);
 			desc.pos = piece->pos;
 			desc.dir = piece->dir;
-			desc.bRotationFixed = piece->bCanRoate == false;
+			desc.bLockRotation = piece->bCanRoate == false;
 			outDesc.pieces.push_back(std::move(desc));
 		}
 	}
@@ -601,7 +611,7 @@ namespace SBlocks
 
 		piece->shape = mShapes[desc.id].get();
 		piece->dir.setValue(desc.dir);
-		piece->bCanRoate = desc.bRotationFixed == 0;
+		piece->bCanRoate = desc.bLockRotation == 0;
 		piece->angle = desc.dir * Math::PI / 2;
 		piece->indexMapLocked = INDEX_NONE;
 		piece->pos = desc.pos;
@@ -648,13 +658,6 @@ namespace SBlocks
 	bool Level::tryLockPiece(Piece& piece)
 	{
 		assert(piece.isLocked() == false);
-
-		if (piece.angle != piece.dir * Math::PI / 2)
-		{
-			piece.angle = piece.dir * Math::PI / 2;
-			piece.updateTransform();
-		}
-
 		Vector2 posWorld = piece.getLTCornerPos();
 
 		for (int indexMap = 0; indexMap < mMaps.size(); ++indexMap)
@@ -673,6 +676,7 @@ namespace SBlocks
 			piece.indexMapLocked = indexMap;
 			piece.mapPosLocked = mapPos;
 			piece.pos += Vector2(mapPos) - pos;
+			piece.angle = piece.dir * Math::PI / 2;
 			piece.updateTransform();
 
 			return true;

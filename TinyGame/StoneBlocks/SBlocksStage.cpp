@@ -318,46 +318,46 @@ namespace SBlocks
 		}
 	}
 
-	bool LevelStage::onKey(KeyMsg const& msg)
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
-		if (!msg.isDown())
-			return false;
-
-		switch (msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
-		case EKeyCode::Num1:
-			if (IsEditEnabled())
+			switch (msg.getCode())
 			{
-				mEditor->endEdit();
-			}
-			else
-			{
-				if (mEditor == nullptr)
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::Num1:
+				if (IsEditEnabled())
 				{
-					mEditor = new Editor;
-					mEditor->mGame = this;
-					mEditor->initEdit();
+					mEditor->endEdit();
 				}
-				mEditor->startEdit();
-			}
-			break;
-		case EKeyCode::Return:
-			if (true)
-			{
-				if (mCmdTextCtrl == nullptr)
+				else
 				{
-					int len = 400;
-
-					Vec2i screenSize = ::Global::GetScreenSize();
-
-					mCmdTextCtrl = new ConsoleCmdTextCtrl(UI_CmdCtrl, Vec2i( ( screenSize.x - len ) / 2, screenSize.y - 50), len , nullptr);
-
-					mCmdTextCtrl->mNamespace = "SBlocks";
-					::Global::GUI().addWidget(mCmdTextCtrl);
+					if (mEditor == nullptr)
+					{
+						mEditor = new Editor;
+						mEditor->mGame = this;
+						mEditor->initEdit();
+					}
+					mEditor->startEdit();
 				}
-				mCmdTextCtrl->show();
-				mCmdTextCtrl->makeFocus();
+				break;
+			case EKeyCode::Return:
+				if (true)
+				{
+					if (mCmdTextCtrl == nullptr)
+					{
+						int len = 400;
+
+						Vec2i screenSize = ::Global::GetScreenSize();
+
+						mCmdTextCtrl = new ConsoleCmdTextCtrl(UI_CmdCtrl, Vec2i((screenSize.x - len) / 2, screenSize.y - 50), len, nullptr);
+
+						mCmdTextCtrl->mNamespace = "SBlocks";
+						::Global::GUI().addWidget(mCmdTextCtrl);
+					}
+					mCmdTextCtrl->show();
+					mCmdTextCtrl->makeFocus();
+				}
 			}
 		}
 		return BaseClass::onKey(msg);
@@ -388,7 +388,7 @@ namespace SBlocks
 	{
 		auto& console = ConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC )\
-		console.registerCommand("SBlocks."NAME, &Editor::FUNC, this)
+		console.registerCommand("SBlocks."##NAME, &Editor::FUNC, this)
 
 		REGISTER_COM("Save", saveLevel);
 		REGISTER_COM("New", newLevel);
@@ -397,7 +397,6 @@ namespace SBlocks
 		REGISTER_COM("SetMapPos", setMapPos);
 		REGISTER_COM("AddMap", addMap);
 		REGISTER_COM("RemoveMap", removeMap);
-
 
 		REGISTER_COM("AddPiece", addPieceCmd);
 		REGISTER_COM("RemovePiece", removePiece);

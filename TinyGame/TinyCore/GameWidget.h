@@ -127,7 +127,7 @@ public:
 	virtual void onMouse( bool beIn ){  /*sendEvent( ( beIn ) ? EVT_ENTER_UI : EVT_EXIT_UI );*/  }
 	virtual void onRender(){}
 	virtual void onUpdateUI(){}
-	virtual bool onKeyMsg(KeyMsg const& msg){ return true; }
+	virtual MsgReply onKeyMsg(KeyMsg const& msg){ return MsgReply::Unhandled(); }
 	virtual void onHotkey( unsigned key ){}
 	virtual void onFocus( bool beF ){}
 	virtual void onChangePos(Vec2i const& newPos, bool bParentMove) {}
@@ -323,7 +323,7 @@ public:
 	TINY_API ~GPanel();
 
 	TINY_API void onRender();
-	TINY_API bool onMouseMsg(MouseMsg const& msg);
+	TINY_API MsgReply onMouseMsg(MouseMsg const& msg);
 	void setAlpha( float alpha ){  mAlpha = alpha; }
 	void setRenderType( RenderType type ){ mRenderType = type; }
 
@@ -338,7 +338,7 @@ class  GFrame : public GPanel
 public:
 	TINY_API GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 protected:
-	TINY_API bool onMouseMsg( MouseMsg const& msg );
+	TINY_API MsgReply onMouseMsg( MouseMsg const& msg );
 	virtual void onFocus(bool beF) { if( beF ) sendEvent(EVT_FRAME_FOCUS); }
 };
 

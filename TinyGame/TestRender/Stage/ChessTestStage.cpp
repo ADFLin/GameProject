@@ -637,11 +637,8 @@ namespace Chess
 			mMovePosList.clear();
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
-			if (!BaseClass::onMouse(msg))
-				return false;
-
 			Vec2i tPos = toTilePos(msg.getPos());
 
 			mMouseTilePos = tPos;
@@ -702,14 +699,16 @@ namespace Chess
 				mCamera.rotateByMouse(off.x, off.y);
 				oldPos = msg.getPos();
 			}
-			return true;
+
+			return BaseClass::onMouse(msg);
 		}
+
 		bool bShowAttackTerritory = false;
 		Vec2i mSelectedChessPos;
 		Vec2i mMouseTilePos;
 		std::vector<MoveInfo> mMovePosList;
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
 			float baseImpulse = 500;
 			switch (msg.getCode())
@@ -723,14 +722,14 @@ namespace Chess
 			}
 
 
-			if (!msg.isDown())
-				return false;
-
-			switch (msg.getCode())
+			if (msg.isDown())
 			{
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::X: bShowAttackTerritory = !bShowAttackTerritory; break;
-			case EKeyCode::V: bShow2D = !bShow2D; break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::X: bShowAttackTerritory = !bShowAttackTerritory; break;
+				case EKeyCode::V: bShow2D = !bShow2D; break;
+				}
 			}
 			return BaseClass::onKey(msg);
 		}

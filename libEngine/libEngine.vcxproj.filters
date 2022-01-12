@@ -585,9 +585,6 @@
     <ClInclude Include="Reflection.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="StreamBuffer.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
     <ClInclude Include="TaskBase.h">
       <Filter>標頭檔</Filter>
     </ClInclude>

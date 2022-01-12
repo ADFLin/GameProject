@@ -140,7 +140,7 @@ namespace MV
 		cleanup( false );
 	}
 
-	bool TestStage::onMouse(MouseMsg const& msg)
+	MsgReply TestStage::onMouse(MouseMsg const& msg)
 	{
 		Vec3f viewPos = getViewPos();
 		Vec2i screenSize = ::Global::GetScreenSize();
@@ -286,7 +286,7 @@ namespace MV
 			}
 		}
 
-		return false;
+		return BaseClass::onMouse(msg);
 	}
 
 	bool TestStage::onWidgetEvent(int event , int id , GWidget* ui)
@@ -320,77 +320,77 @@ namespace MV
 		case KEY1: if ( C.empty() ){ VAR = INDEX_NONE; } else { --VAR; if ( VAR < 0 ) VAR = C.size() - 1; } break;\
 		case KEY2: if ( C.empty() ){ VAR = INDEX_NONE; } else { ++VAR; if ( VAR >= C.size() ) VAR = 0; } break; 
 
-	bool TestStage::onKey(KeyMsg const& msg)
+	MsgReply TestStage::onKey(KeyMsg const& msg)
 	{
-		if ( !msg.isDown() )
-			return false;
-
-		World& world = Level::mWorld;
-
-		if ( isEditMode )
+		if ( msg.isDown() )
 		{
-			onKeyDown_EditMode(msg.getCode());
-		}
-		else
-		{
-			switch(msg.getCode())
+			World& world = Level::mWorld;
+
+			if (isEditMode)
 			{
-			case EKeyCode::R: restart( false ); break;
-			case EKeyCode::Up: world.action( player , 0 ); break;
-			case EKeyCode::Down: world.action( player , 1 ); break;
-			case EKeyCode::Left: world.action( player , 2 ); break;
-			case EKeyCode::Right: world.action( player , 3 ); break;
-			//case EKeyCode::D: mWorld.player.rotate( 3 ); break;
-			//case EKeyCode::A: mWorld.player.rotate( 1 ); break;
-			case EKeyCode::Q:
-				break;
+				onKeyDown_EditMode(msg.getCode());
+			}
+			else
+			{
+				switch (msg.getCode())
+				{
+				case EKeyCode::R: restart(false); break;
+				case EKeyCode::Up: world.action(player, 0); break;
+				case EKeyCode::Down: world.action(player, 1); break;
+				case EKeyCode::Left: world.action(player, 2); break;
+				case EKeyCode::Right: world.action(player, 3); break;
+					//case EKeyCode::D: mWorld.player.rotate( 3 ); break;
+					//case EKeyCode::A: mWorld.player.rotate( 1 ); break;
+				case EKeyCode::Q:
+					break;
+				}
+
+				if (bCameraView)
+				{
+					switch (msg.getCode())
+					{
+					case EKeyCode::W: mCamera.moveFront(0.5); break;
+					case EKeyCode::S: mCamera.moveFront(-0.5); break;
+					case EKeyCode::D: mCamera.moveRight(0.5); break;
+					case EKeyCode::A: mCamera.moveRight(-0.5); break;
+						//case EKeyCode::Z: mCamera.moveUp( 0.5 ); break;
+						//case EKeyCode::X: mCamera.moveUp( -0.5 ); break;
+					}
+				}
+
 			}
 
-			if ( bCameraView )
+			RenderParam& param = mRenderEngine.mParam;
+			switch (msg.getCode())
 			{
-				switch(msg.getCode())
+			case EKeyCode::F3:
+				isEditMode = !isEditMode;
+				break;
+			case EKeyCode::F4:
+				mViewMode = (mViewMode == eView3D) ? eViewSplit4 : eView3D;
+				break;
+			case EKeyCode::F5:
+				param.bShowNavNode = !param.bShowNavNode;
+				break;
+			case EKeyCode::F6:
+				bCameraView = !bCameraView;
+				break;
+			case EKeyCode::F7:
+				world.removeAllParallaxNavNode();
+				world.updateAllNavNode();
+				break;
+			case EKeyCode::F8:
 				{
-				case EKeyCode::W: mCamera.moveFront( 0.5 ); break;
-				case EKeyCode::S: mCamera.moveFront( -0.5 ); break;
-				case EKeyCode::D: mCamera.moveRight( 0.5 ); break;
-				case EKeyCode::A: mCamera.moveRight( -0.5 ); break;
-				//case EKeyCode::Z: mCamera.moveUp( 0.5 ); break;
-				//case EKeyCode::X: mCamera.moveUp( -0.5 ); break;
+					int idx = world.mIdxParallaxDir;
+					++idx;
+					if (idx >= 4)
+						idx = 0;
+					world.setParallaxDir(idx);
+
 				}
 			}
-
 		}
-
-		RenderParam& param = mRenderEngine.mParam;
-		switch(msg.getCode())
-		{
-		case EKeyCode::F3:
-			isEditMode = !isEditMode;
-			break;
-		case EKeyCode::F4:
-			mViewMode = ( mViewMode == eView3D ) ? eViewSplit4 : eView3D;
-			break;
-		case EKeyCode::F5:
-			param.bShowNavNode = !param.bShowNavNode;
-			break;
-		case EKeyCode::F6:
-			bCameraView = !bCameraView;
-			break;
-		case EKeyCode::F7:
-			world.removeAllParallaxNavNode();
-			world.updateAllNavNode();
-			break;
-		case EKeyCode::F8:
-			{
-				int idx = world.mIdxParallaxDir;
-				++idx;
-				if ( idx >= 4 )
-					idx = 0;
-				world.setParallaxDir( idx );
-
-			}
-		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	void TestStage::onKeyDown_EditMode(unsigned key)

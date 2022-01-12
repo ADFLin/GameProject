@@ -431,17 +431,17 @@ namespace Zuma
 		}
 	}
 
-	bool GameCore::onMouse( MouseMsg const& msg )
+	MsgReply GameCore::onMouse( MouseMsg const& msg )
 	{
-		if ( !uiSystem.procMouseMsg( msg ) )
-			return true;
+		MsgReply reply = uiSystem.procMouseMsg( msg );
+		if (reply.isHandled())
+			return reply;
 
 		getCurStage()->onMouse( msg );
-		return true;
-
+		return MsgReply::Unhandled();
 	}
 
-	bool GameCore::onKey(KeyMsg const& msg)
+	MsgReply GameCore::onKey(KeyMsg const& msg)
 	{
 		getCurStage()->onKey(msg);
 
@@ -453,7 +453,7 @@ namespace Zuma
 		case EKeyCode::Up    : DBG_Y += 1; break;
 		//case EKeyCode::F1    : toggleFullscreen(); break;
 		}
-		return true;
+		return MsgReply::Unhandled();
 	}
 
 	LevelStage* ZAdventureMode::createLevelStage( unsigned idStage , int idxLv )

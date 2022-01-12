@@ -204,26 +204,23 @@ namespace Go
 
 		}
 
-		bool onMouseMsg(MouseMsg const& msg) override
+		MsgReply onMouseMsg(MouseMsg const& msg) override
 		{
 			if( msg.onLeftDown() )
 			{
 				Vec2i pos = renderContext.getCoord(msg.getPos());
 				if( !game.canPlay(pos.x, pos.y) )
-					return false;
+					return MsgReply::Handled();
 				if ( game.playStone(pos.x, pos.y) )
-					return false;
+					return MsgReply::Handled();
 			}
 			else if( msg.onRightDown() )
 			{
 				game.undo();
-				return false;
+				return MsgReply::Handled();
 			}
 
-			if( !BaseClass::onMouseMsg(msg) )
-				return false;
-
-			return true;
+			return BaseClass::onMouseMsg(msg);
 		}
 
 		GameProxy game;
@@ -549,8 +546,8 @@ namespace Go
 
 		void onRender(float dFrame) override;
 		bool onWidgetEvent(int event, int id, GWidget* ui) override;
-		bool onMouse(MouseMsg const& msg) override;
-		bool onKey(KeyMsg const& msg) override;
+		MsgReply onMouse(MouseMsg const& msg) override;
+		MsgReply onKey(KeyMsg const& msg) override;
 
 
 		void tick() {}

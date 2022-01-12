@@ -83,17 +83,17 @@ public:
 		mGame->render();
 	}
 
-	virtual bool onChar(unsigned code) override
+	virtual MsgReply onChar(unsigned code) override
 	{
 		return mGame->onChar(code);
 	}
 
-	virtual bool onMouse(MouseMsg const& msg) override
+	virtual MsgReply onMouse(MouseMsg const& msg) override
 	{
 		return mGame->onMouse(msg);
 	}
 
-	virtual bool onKey(KeyMsg const& msg) override
+	virtual MsgReply onKey(KeyMsg const& msg) override
 	{
 		return mGame->onKey(msg);
 	}

@@ -144,22 +144,21 @@ public:
 		Graphics2D& g = Global::GetGraphics2D();
 	}
 
-	bool onMouse(MouseMsg const& msg)
+	MsgReply onMouse(MouseMsg const& msg) override
 	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-		return true;
+		return BaseClass::onMouse(msg);
 	}
 
-	bool onKey(KeyMsg const& msg)
+	MsgReply onKey(KeyMsg const& msg) override
 	{
-		if( !msg.isDown() )
-			return false;
-		switch(msg.getCode())
+		if(msg.isDown())
 		{
-		case EKeyCode::R: restart(); break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			}
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	virtual bool onWidgetEvent(int event, int id, GWidget* ui) override

@@ -99,7 +99,7 @@ namespace TripleTown
 		}
 	}
 
-	bool LevelStage::onMouse(MouseMsg const& msg)
+	MsgReply LevelStage::onMouse(MouseMsg const& msg)
 	{
 		mScene.setLastMousePos(msg.getPos());
 		if( msg.onLeftDown() )
@@ -117,35 +117,36 @@ namespace TripleTown
 				mScene.click(msg.getPos());
 			}
 			
-			return false;
+			return MsgReply::Handled();
 		}
 		else if( msg.onMoving() )
 		{
 			mScene.peekObject(msg.getPos());
 		}
-		return true;
+
+		return BaseClass::onMouse(msg);
 	}
 
-	bool LevelStage::onKey(KeyMsg const& msg)
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
-		if( !msg.isDown() )
-			return true;
-
-		switch(msg.getCode())
+		if( msg.isDown() )
 		{
-		case EKeyCode::S: mLevel.setQueueObject(OBJ_BEAR); return false;
-		case EKeyCode::A: mLevel.setQueueObject(OBJ_GRASS); return false;
-		case EKeyCode::Q: mLevel.setQueueObject(OBJ_CRYSTAL); return false;
-		case EKeyCode::W: mLevel.setQueueObject(OBJ_ROBOT); return false;
-		case EKeyCode::X:
-			if( mFileIterator.haveMore() )
+			switch (msg.getCode())
 			{
-				mFileIterator.goNext();
-				mScene.loadPreviewTexture(mFileIterator.getFileName());
+			case EKeyCode::S: mLevel.setQueueObject(OBJ_BEAR); return MsgReply::Handled();
+			case EKeyCode::A: mLevel.setQueueObject(OBJ_GRASS); return MsgReply::Handled();
+			case EKeyCode::Q: mLevel.setQueueObject(OBJ_CRYSTAL); return MsgReply::Handled();
+			case EKeyCode::W: mLevel.setQueueObject(OBJ_ROBOT); return MsgReply::Handled();
+			case EKeyCode::X:
+				if (mFileIterator.haveMore())
+				{
+					mFileIterator.goNext();
+					mScene.loadPreviewTexture(mFileIterator.getFileName());
+				}
+				break;
 			}
-			break;
 		}
-		return true;
+		return BaseClass::onKey(msg);
 	}
 
 }

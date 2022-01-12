@@ -18,7 +18,7 @@ typedef unsigned __int32 uint32;
 typedef unsigned __int16 uint16;
 typedef unsigned __int8  uint8;
 
-#elif CPP_COMPILER_GCC
+#elif CPP_COMPILER_GCC || CPP_COMPILER_CLANG
 
 #include "stdint.h"
 
@@ -37,17 +37,17 @@ typedef uint8_t  uint8;
 
 #endif
 
-constexpr int32 MaxInt8 = 0x7F;
-constexpr int32 MinInt8 = 0x80;
-constexpr int32 MaxInt16 = 0x7FFF;
-constexpr int32 MinInt16 = 0x8000;
+constexpr int8 MaxInt8 = 0x7F;
+constexpr int8 MinInt8 = 0x80;
+constexpr int16 MaxInt16 = 0x7FFF;
+constexpr int16 MinInt16 = 0x8000;
 constexpr int32 MaxInt32 = 0x7FFFFFFF;
 constexpr int32 MinInt32 = 0x80000000;
 constexpr int64 MaxInt64 = 0x7FFFFFFFFFFFFFFFLL;
 constexpr int64 MinInt64 = 0x8000000000000000LL;
-constexpr int32 MaxUint8 = 0xFF;
-constexpr int32 MaxUint16 = 0xFFFF;
-constexpr int32 MaxUint32 = 0xFFFFFFFF;
-constexpr int32 MaxUint64 = 0xFFFFFFFFFFFFFFFF;
+constexpr uint8 MaxUint8 = 0xFFU;
+constexpr uint16 MaxUint16 = 0xFFFFU;
+constexpr uint32 MaxUint32 = 0xFFFFFFFFU;
+constexpr uint64 MaxUint64 = 0xFFFFFFFFFFFFFFFFLLU;
 
 #endif // IntegerType_h__

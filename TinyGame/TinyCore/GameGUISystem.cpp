@@ -126,24 +126,24 @@ void GUISystem::updateFrame( int frame , long tickTime )
 	mTweener.update( frame * tickTime );
 }
 
-bool GUISystem::procMouseMsg(MouseMsg const& msg)
+MsgReply GUISystem::procMouseMsg(MouseMsg const& msg)
 {
 	if( mHideWidgets || mbSkipMouseEvent )
-		return true;
+		return MsgReply::Unhandled();
 	return getManager().procMouseMsg(msg);
 }
 
-bool GUISystem::procKeyMsg(KeyMsg const& msg)
+MsgReply GUISystem::procKeyMsg(KeyMsg const& msg)
 {
 	if( mHideWidgets || mbSkipKeyEvent )
-		return true;
+		return MsgReply::Unhandled();
 	return getManager().procKeyMsg(msg);
 }
 
-bool GUISystem::procCharMsg(unsigned code)
+MsgReply GUISystem::procCharMsg(unsigned code)
 {
 	if( mHideWidgets || mbSkipCharEvent )
-		return true;
+		return MsgReply::Unhandled();
 	return getManager().procCharMsg(code);
 }
 

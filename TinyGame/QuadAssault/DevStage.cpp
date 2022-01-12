@@ -270,11 +270,12 @@ public:
 
 	}
 
-	bool onMouse(MouseMsg const& msg)
+	MsgReply onMouse(MouseMsg const& msg)
 	{
 		mLights[0].pos.x = msg.getPos().x;
 		mLights[0].pos.y = msg.getPos().y;
-		return true; 
+
+		return MsgReply::Unhandled(); 
 	}
 
 	virtual void onUpdate( float dt )
@@ -480,21 +481,21 @@ void DevStage::onRender()
 	getRenderSystem()->drawText( mDevMsg , Vec2f( 5 ,5 ) , TEXT_SIDE_LEFT | TEXT_SIDE_TOP );
 }
 
-bool DevStage::onKey(KeyMsg const& msg)
+MsgReply DevStage::onKey(KeyMsg const& msg)
 {
-	if ( !msg.isDown())
-		return false;
-
-	switch(msg.getCode())
+	if (msg.isDown())
 	{
-	case EKeyCode::Escape:
-		getGame()->addStage( new MenuStage , true );
-		break;
+		switch (msg.getCode())
+		{
+		case EKeyCode::Escape:
+			getGame()->addStage(new MenuStage, true);
+			break;
+		}
 	}
-	return false;
+	return BaseClass::onKey(msg);
 }
 
-bool DevStage::onMouse(MouseMsg const& msg)
+MsgReply DevStage::onMouse(MouseMsg const& msg)
 {
 	return mTest->onMouse( msg );
 }

@@ -115,8 +115,6 @@ namespace Render
 			Tokenizer tokenizer(pData, " \n\r\t", "{}\"=,()");
 
 			StringView token;
-			FStringParse::TokenType tokenType;
-			
 
 			bool bEnd = false;
 			for( ;; )
@@ -763,7 +761,7 @@ namespace Render
 
 		}
 
-		bool onMouse(MouseMsg const& msg) override
+		MsgReply onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos = msg.getPos();
 
@@ -779,32 +777,31 @@ namespace Render
 				oldPos = msg.getPos();
 			}
 
-			if( !BaseClass::onMouse(msg) )
-				return false;
-			return true;
+			return BaseClass::onMouse(msg);
 		}
 
-		bool onKey(KeyMsg const& msg) override
+		MsgReply onKey(KeyMsg const& msg) override
 		{
-			if( !msg.isDown())
-				return false;
-			switch(msg.getCode())
+			if( msg.isDown())
 			{
-			case EKeyCode::W: mCamera.moveFront(1); break;
-			case EKeyCode::S: mCamera.moveFront(-1); break;
-			case EKeyCode::D: mCamera.moveRight(1); break;
-			case EKeyCode::A: mCamera.moveRight(-1); break;
-			case EKeyCode::Z: mCamera.moveUp(0.5); break;
-			case EKeyCode::X: mCamera.moveUp(-0.5); break;
-			case EKeyCode::R: restart(); break;
-			case EKeyCode::F2:
+				switch (msg.getCode())
 				{
-					ShaderManager::Get().reloadAll();
-					//initParticleData();
+				case EKeyCode::W: mCamera.moveFront(1); break;
+				case EKeyCode::S: mCamera.moveFront(-1); break;
+				case EKeyCode::D: mCamera.moveRight(1); break;
+				case EKeyCode::A: mCamera.moveRight(-1); break;
+				case EKeyCode::Z: mCamera.moveUp(0.5); break;
+				case EKeyCode::X: mCamera.moveUp(-0.5); break;
+				case EKeyCode::R: restart(); break;
+				case EKeyCode::F2:
+					{
+						ShaderManager::Get().reloadAll();
+						//initParticleData();
+					}
+					break;
 				}
-				break;
 			}
-			return false;
+			return BaseClass::onKey(msg);
 		}
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override

@@ -65,7 +65,7 @@ public:
 
 	void play()   {  m_playInfo.doPlay(); }
 	void onClick(){ BassClass::onClick(); play(); }
-	bool onMouseMsg( MouseMsg const& msg );
+	MsgReply onMouseMsg( MouseMsg const& msg );
 	void onMouse( bool beIn );
 
 	void onShow( bool beS );

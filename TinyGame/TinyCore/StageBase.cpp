@@ -23,19 +23,19 @@ void StageBase::render( float dFrame )
 	onRender( dFrame );
 }
 
-bool StageBase::onChar( unsigned code )
+MsgReply StageBase::onChar( unsigned code )
 {
-	return true;
+	return MsgReply::Unhandled();
 }
 
-bool StageBase::onKey(KeyMsg const& msg)
+MsgReply StageBase::onKey(KeyMsg const& msg)
 {
-	return true;
+	return MsgReply::Unhandled();
 }
 
-bool StageBase::onMouse( MouseMsg const& msg )
+MsgReply StageBase::onMouse( MouseMsg const& msg )
 {
-	return true;
+	return MsgReply::Unhandled();
 }
 
 void StageBase::onTaskMessage( TaskBase* task , TaskMsg const& msg )

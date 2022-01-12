@@ -138,7 +138,7 @@ namespace Go
 		g.drawText( Vec2i( 5 , 5 + 15 ) , str );
 	}
 
-	bool Stage::onMouse( MouseMsg const& msg )
+	MsgReply Stage::onMouse( MouseMsg const& msg )
 	{
 		Vec2i lPos = ( msg.getPos() - BoardPos + Vec2i( CellSize , CellSize ) / 2 ) / CellSize;
 
@@ -169,7 +169,7 @@ namespace Go
 			}
 		}
 
-		return false;
+		return BaseClass::onMouse(msg);
 	}
 
 	void Stage::drawStone( Graphics2D& g , Vec2i const& pos , int color )

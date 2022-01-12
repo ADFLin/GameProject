@@ -403,21 +403,18 @@ public:
 		return time;
 	}
 
-	bool handleKeyEvent(KeyMsg const& msg)
+	MsgReply handleKeyEvent(KeyMsg const& msg)
 	{
-		if ( !msg.isDown() )
-			return false;
-
-		switch(msg.getCode())
+		if (msg.isDown())
 		{
-		case EKeyCode::O: lightHeight += 1; break;
-		case EKeyCode::P: lightHeight -= 1; break;
+			switch (msg.getCode())
+			{
+			case EKeyCode::O: lightHeight += 1; break;
+			case EKeyCode::P: lightHeight -= 1; break;
+			}
 		}
-
 		return SampleBase::handleKeyEvent(msg);
 	}
-
-
 
 	void stencielTest()
 	{

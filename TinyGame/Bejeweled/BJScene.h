@@ -36,8 +36,8 @@ namespace Bejeweled
 
 		//FIXME : move to GameControllor
 	public:
-		bool procMouseMsg( MouseMsg const& msg );
-		bool procKey( KeyMsg const& msg );
+		MsgReply procMouseMsg( MouseMsg const& msg );
+		MsgReply procKey( KeyMsg const& msg );
 	private:
 		enum ControlMode
 		{

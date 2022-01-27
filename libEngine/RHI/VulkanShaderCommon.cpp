@@ -7,7 +7,7 @@
 #include "SystemPlatform.h"
 #include "Platform/Windows/WindowsProcess.h"
 #include "FileSystem.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "Serialize/StreamBuffer.h"
 
 #include "RHICommand.h"

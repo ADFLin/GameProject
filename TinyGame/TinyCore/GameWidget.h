@@ -117,6 +117,10 @@ public:
 	virtual bool onChildEvent( int event , int id , GWidget* ui ){  return true; }
 
 	WidgetEventDelegate onEvent;
+	using WidgetRefreshDelegate = std::function< void(GWidget*) >;
+	WidgetRefreshDelegate onRefresh;
+	TINY_API void  refresh();
+
 	TINY_API void  setRenderCallback( RenderCallBack* cb );
 
 	intptr_t getUserData(){ return userData; }

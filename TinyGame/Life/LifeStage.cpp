@@ -11,7 +11,7 @@
 #include "InputManager.h"
 
 #include <sstream>
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 
 namespace Life
 {

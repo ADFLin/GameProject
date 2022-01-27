@@ -2,7 +2,7 @@
 
 #include "PlatformThread.h"
 #include "LogSystem.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "StdUtility.h"
 #include "ProfileSystem.h"
 #include "InlineString.h"

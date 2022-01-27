@@ -768,7 +768,7 @@ TStringView<CharT> TStringParse< CharT >::StringTokenLine(CharT const*& inoutStr
 	return TStringView<CharT>( start , end - start );
 }
 
-#undef LCHAR
+#undef CharL
 
 template class TStringParse<char>;
 template class TStringParse<wchar_t>;

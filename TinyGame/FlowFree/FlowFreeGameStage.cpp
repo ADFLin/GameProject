@@ -185,12 +185,9 @@ namespace FlowFree
 		LoadParamFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 			:BaseClass(id, pos, size, parent)
 		{
-			addText("fliterThreshold");
-			FWidgetProperty::Bind(addSlider(UI_ANY), mParams.fliterThreshold, 0.0f, 1.0f);
-			addText("houghThreshold");
-			FWidgetProperty::Bind(addSlider(UI_ANY), mParams.houghThreshold, 0.0f, 1.0f);
-			addText("removeHeadHLineCount");
-			FWidgetProperty::Bind(addTextCtrl(UI_ANY), mParams.removeHeadHLineCount, 0 , 5);
+			FWidgetProperty::Bind(addSlider("fliterThreshold"), mParams.fliterThreshold, 0.0f, 1.0f);
+			FWidgetProperty::Bind(addSlider("houghThreshold"), mParams.houghThreshold, 0.0f, 1.0f);
+			FWidgetProperty::Bind(addTextCtrl("removeHeadHLineCount"), mParams.removeHeadHLineCount, 0 , 5);
 
 			addButton("BuildAndSolve", [this](int event, GWidget *)
 			{

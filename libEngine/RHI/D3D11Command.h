@@ -9,7 +9,7 @@
 
 #include "D3D11Common.h"
 #include "InlineString.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "Core/TypeHash.h"
 
 #include <D3D11Shader.h>

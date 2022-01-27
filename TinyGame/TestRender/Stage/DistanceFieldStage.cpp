@@ -8,7 +8,7 @@
 #include "Renderer/MeshBuild.h"
 #include "Renderer/MeshUtility.h"
 
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "Math/PrimitiveTest.h"
 #include "AsyncWork.h"
 

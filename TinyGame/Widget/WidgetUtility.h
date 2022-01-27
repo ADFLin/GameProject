@@ -14,10 +14,14 @@ public:
 	GButton*   addButton(char const* title, WidgetEventDelegate delegate);
 	GCheckBox* addCheckBox(int id, char const* tile);
 	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
-	GSlider*   addSlider( int id );
+	GSlider*   addSlider( int id = UI_ANY);
+	GSlider*   addSlider( char const* title, int id = UI_ANY);
 	GTextCtrl* addTextCtrl(int id);
+	GTextCtrl* addTextCtrl(char const* title, int id = UI_ANY);
 	GText*     addText(char const* pText, bool bUseBroder = false);
 
+
+	void refresh();
 private:
 	template< class T >
 	T* addWidget(int id , char const* title);
@@ -75,6 +79,10 @@ struct FWidgetProperty
 		float len = max - min;
 		widget->setRange(0, len / scale);
 		FWidgetProperty::Set(widget, (valueRef - min) / scale);
+		widget->onRefresh = [&valueRef, scale, min](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GSlider>(), (valueRef - min) / scale);
+		};
 		widget->onEvent = [&valueRef, scale, min](int event, GWidget* widget)
 		{
 			valueRef = min + scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
@@ -88,6 +96,10 @@ struct FWidgetProperty
 		float len = max - min;
 		widget->setRange(0, len / scale);
 		FWidgetProperty::Set(widget, (valueRef - min) / scale);
+		widget->onRefresh = [&valueRef, scale, min](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GSlider>(), (valueRef - min) / scale);
+		};
 		widget->onEvent = [&valueRef, scale, min, inDelegate](int event, GWidget* widget)
 		{
 			valueRef = min + scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
@@ -105,6 +117,11 @@ struct FWidgetProperty
 		widget->setRange(0, 1 / scale);
 		float delta = max - min;
 		FWidgetProperty::Set(widget, Math::Exp( Math::Log( (valueRef - min ) / delta ) / power ) / scale );
+
+		widget->onRefresh = [&valueRef, scale, min, delta, power](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GSlider>(), Math::Exp(Math::Log((valueRef - min) / delta) / power) / scale);
+		};
 		widget->onEvent = [&valueRef, scale, min, delta, power, inDelegate](int event, GWidget* widget)
 		{
 			float factor = scale * FWidgetProperty::Get<float>(widget->cast<GSlider>());
@@ -121,6 +138,11 @@ struct FWidgetProperty
 	{
 		widget->setRange(min, max);
 		FWidgetProperty::Set(widget, valueRef);
+
+		widget->onRefresh = [&valueRef](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GSlider>(), valueRef);
+		};
 		widget->onEvent = [&valueRef](int event, GWidget* widget)
 		{
 			valueRef = FWidgetProperty::Get<int>(widget->cast<GSlider>());
@@ -132,6 +154,10 @@ struct FWidgetProperty
 	{
 		widget->setRange(min, max);
 		FWidgetProperty::Set(widget, valueRef);
+		widget->onRefresh = [&valueRef](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GSlider>(), valueRef);
+		};
 		widget->onEvent = [&valueRef, inDelegate](int event, GWidget* widget)
 		{
 			valueRef = FWidgetProperty::Get<int>(widget->cast<GSlider>());
@@ -147,6 +173,10 @@ struct FWidgetProperty
 	static void Bind(GTextCtrl* widget, T& valueRef, T min, T max)
 	{
 		FWidgetProperty::Set(widget, valueRef);
+		widget->onRefresh = [&valueRef, min, max](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GTextCtrl>(), valueRef);
+		};
 		widget->onEvent = [&valueRef, min, max](int event, GWidget* widget)
 		{
 			valueRef = Math::Clamp(  FWidgetProperty::Get<T>(widget->cast<GTextCtrl>()) , min , max );
@@ -158,6 +188,10 @@ struct FWidgetProperty
 	static void Bind(GCheckBox* widget, T& valueRef)
 	{
 		FWidgetProperty::Set(widget, valueRef);
+		widget->onRefresh = [&valueRef](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GCheckBox>(), valueRef);
+		};
 		widget->onEvent = [&valueRef](int event, GWidget* widget)
 		{
 			valueRef = FWidgetProperty::Get<T>(widget->cast<GCheckBox>());
@@ -169,6 +203,10 @@ struct FWidgetProperty
 	static void Bind(GCheckBox* widget, T& valueRef, TFunc inDelegate )
 	{
 		FWidgetProperty::Set(widget, valueRef);
+		widget->onRefresh = [&valueRef](GWidget* widget)
+		{
+			FWidgetProperty::Set(widget->cast<GCheckBox>(), valueRef);
+		};
 		widget->onEvent = [&valueRef, inDelegate](int event, GWidget* widget)
 		{
 			valueRef = FWidgetProperty::Get<T>(widget->cast<GCheckBox>());

@@ -5,7 +5,7 @@
 #include "RHI/GpuProfiler.h"
 #include "Platform/Windows/WindowsProcess.h"
 #include "FileSystem.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 
 #include "RHI/VulkanCommon.h"
 #include "RHI/VulkanCommand.h"

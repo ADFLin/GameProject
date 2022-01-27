@@ -1,6 +1,6 @@
 #include "MeshImporterFBX.h"
 
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "Renderer/MeshUtility.h"
 
 

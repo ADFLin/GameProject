@@ -5,7 +5,7 @@
 #include "CmtDeviceFactory.h"
 #include "CmtDeviceID.h"
 
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 
 #include <fstream>
 #include <algorithm>

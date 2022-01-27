@@ -9,7 +9,7 @@
 #include "FileSystem.h"
 #include "LogSystem.h"
 
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "DataStructure/KDTree.h"
 #include "Math/PrimitiveTest.h"
 #include "AsyncWork.h"

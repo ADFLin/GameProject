@@ -192,7 +192,7 @@ namespace Zuma
 		ITexture2D* mLvBGImage;
 		ZLevelInfo& mPreLvInfo;
 		ZQuakeMap&  mQMap;
-		Vector2       bgAlphaPos[6];
+		Vector2     bgAlphaPos[6];
 	};
 
 	class PSRunTask;

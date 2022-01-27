@@ -25,7 +25,7 @@
 #include "ProfileSystem.h"
 
 #include <Dbghelp.h>
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "RenderUtility.h"
 
 

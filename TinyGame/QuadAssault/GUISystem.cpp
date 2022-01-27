@@ -157,7 +157,6 @@ void QWidget::sendEvent( int eventID )
 
 QWidget* QWidget::findChild( int id , QWidget* start )
 {
-
 	for( auto child = createChildrenIterator(); child; ++child )
 	{
 		if( child->mId == id )

@@ -130,72 +130,55 @@ namespace Render
 
 		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "Wireframe"), bWireframe);
 
-		frame->addText("Mesh Level");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.meshLevel, 0, 250,
+		FWidgetProperty::Bind(frame->addSlider("Mesh Level"), mSettings.meshLevel, 0, 250,
 			[this](int level)
 			{
 				mPendingBuildMask = EBuildMask::All;
 			}
 		);
-
-		frame->addText("Craters Num");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.numCraters, 0, 500,
+		FWidgetProperty::Bind(frame->addSlider("Craters Num"), mSettings.numCraters, 0, 500,
 			[this](int level)
 			{
 				mPendingBuildMask = EBuildMask::Crater | EBuildMask::PlantHeight;
 			}
 		);
-
-		frame->addText("Radius Min");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.radiusMinMax.x, 0.0f, 1.0f,
+		FWidgetProperty::Bind(frame->addSlider("Radius Min"), mSettings.radiusMinMax.x, 0.0f, 1.0f,
 			[this](float value)
 			{
 				mPendingBuildMask = EBuildMask::Crater | EBuildMask::PlantHeight;
 			}
 		);
-
-		frame->addText("Radius Max");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.radiusMinMax.y, 0.0f, 1.0f,
+		FWidgetProperty::Bind(frame->addSlider("Radius Max"), mSettings.radiusMinMax.y, 0.0f, 1.0f,
 			[this](float value)
 			{
 				mPendingBuildMask = EBuildMask::Crater | EBuildMask::PlantHeight;
 			}
 		);
-
-		frame->addText("Radius Distribution");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.radiusDistribution, -2.0f, 2.0f,
+		FWidgetProperty::Bind(frame->addSlider("Radius Distribution"), mSettings.radiusDistribution, -2.0f, 2.0f,
 			[this](float value)
 			{
 				mPendingBuildMask = EBuildMask::PlantHeight;
 			}
 		);
-
-		frame->addText("Floor Height");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.floorHeight, -1.0f, 2.0f,
+		FWidgetProperty::Bind(frame->addSlider("Floor Height"), mSettings.floorHeight, -1.0f, 2.0f,
 			[this](float value)
 			{
 				mPendingBuildMask = EBuildMask::PlantHeight;
 			}
 		);
-
-		frame->addText("Rim Steepness");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.rimSteepness, -2.0f, 2.0f,
+		FWidgetProperty::Bind(frame->addSlider("Rim Steepness"), mSettings.rimSteepness, -2.0f, 2.0f,
 			[this](float value)
 			{
 				mPendingBuildMask = EBuildMask::PlantHeight;
 			}
 		);
-
-		frame->addText("Rim Width");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.rimWidth, 0.0f, 10.0f,
+		FWidgetProperty::Bind(frame->addSlider("Rim Width"), mSettings.rimWidth, 0.0f, 10.0f,
 			[this](float value)
 			{
 				mPendingBuildMask = EBuildMask::PlantHeight;
 			}
 		);
-
-		frame->addText("Smoothness");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSettings.smoothness, 0.0f, 10.0f,
+		FWidgetProperty::Bind(frame->addSlider("Smoothness"), mSettings.smoothness, 0.0f, 10.0f,
 			[this](float value)
 			{
 				mPendingBuildMask = EBuildMask::PlantHeight;

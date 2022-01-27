@@ -84,6 +84,12 @@ GSlider* DevFrame::addSlider(int id)
 }
 
 
+GSlider* DevFrame::addSlider(char const* title, int id )
+{
+	addText(title);
+	return addSlider(id);
+}
+
 GTextCtrl* DevFrame::addTextCtrl(int id)
 {
 	return addWidget<GTextCtrl>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
@@ -91,6 +97,12 @@ GTextCtrl* DevFrame::addTextCtrl(int id)
 		GTextCtrl* widget = new GTextCtrl(id, widgetPos, widgetSize.x, this);
 		return widget;
 	});
+}
+
+GTextCtrl* DevFrame::addTextCtrl(char const* title, int id )
+{
+	addText(title);
+	return addTextCtrl(id);
 }
 
 GText* DevFrame::addText(char const* pText, bool bUseBroder)
@@ -101,6 +113,14 @@ GText* DevFrame::addText(char const* pText, bool bUseBroder)
 		widget->setText(pText);
 		return widget;
 	} , bUseBroder);
+}
+
+void DevFrame::refresh()
+{
+	for (auto child = createChildrenIterator(); child; ++child)
+	{
+		child->refresh();
+	}
 }
 
 DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )

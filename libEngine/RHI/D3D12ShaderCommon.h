@@ -96,39 +96,6 @@ namespace Render
 		ShaderParameterMap   mParameterMap;
 	};
 
-	template< class ...TypeList >
-	struct TMaxSizeof
-	{
-	};
-
-	template< class T , class ...TypeList >
-	struct TMaxSizeof< T , TypeList... >
-	{
-		static constexpr int RHSResult = TMaxSizeof<TypeList...>::Result;
-		static constexpr int Result = sizeof(T) >= RHSResult ? sizeof(T) : RHSResult;
-	};
-
-	template< class T >
-	struct TMaxSizeof< T >
-	{
-		static constexpr int Result =  sizeof(T);
-	};
-
-	template< class ...TypeList >
-	struct TInlineMemoryStorage
-	{
-		template< class T >
-		T& construct() { return *new (mData) T(); }
-		template< class T >
-		void destruct() { get<T>().~T(); }
-
-
-		template< class T >
-		T& get() { return *reinterpret_cast<T*>(mData); }
-
-		uint8 mData[TMaxSizeof< TypeList... >::Result];
-	};
-
 	class D3D12ShaderProgram : public TRefcountResource< RHIShaderProgram >
 	{
 	public:

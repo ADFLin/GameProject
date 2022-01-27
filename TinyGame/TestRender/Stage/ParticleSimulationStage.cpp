@@ -640,19 +640,15 @@ namespace Render
 			::Global::GUI().cleanupWidget();
 
 			auto devFrame = WidgetUtility::CreateDevFrame();
-			devFrame->addText("Water Speed");
-			auto slider = devFrame->addSlider(UI_ANY);
-			FWidgetProperty::Bind(slider, mWaterSpeed, 0, 10);
-			devFrame->addText("Spline Type");
-			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mSplineType, 0 , 1);
+			FWidgetProperty::Bind(devFrame->addSlider("Water Speed"), mWaterSpeed, 0, 10);
+			FWidgetProperty::Bind(devFrame->addSlider("Spline Type"), mSplineType, 0 , 1);
 			devFrame->addText("TessFactor");
 			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 0, 70);
 			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 0, 70);
 			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), TessFactor3, 0, 70);
 			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "UseTess"), bUseTessellation);
 			FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "WireFrame"), bWireframe);
-			devFrame->addText("DispFactor");
-			FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mDispFactor, 0, 10);
+			FWidgetProperty::Bind(devFrame->addSlider("DispFactor"), mDispFactor, 0, 10);
 			restart();
 
 			return true;

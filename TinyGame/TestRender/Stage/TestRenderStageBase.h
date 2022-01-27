@@ -15,7 +15,7 @@
 #include "Renderer/Mesh.h"
 #include "Renderer/SimpleCamera.h"
 
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "Math/PrimitiveTest.h"
 #include "Serialize/SerializeFwd.h"
 

@@ -403,7 +403,7 @@
     <ClInclude Include="Core\HalfFlot.h" />
     <ClInclude Include="Core\LockFreeList.h" />
     <ClInclude Include="Core\MD5.h" />
-    <ClInclude Include="Core\ScopeExit.h" />
+    <ClInclude Include="Core\ScopeGuard.h" />
     <ClInclude Include="Core\StringConv.h" />
     <ClInclude Include="Core\ThreadSafeCounter.h" />
     <ClInclude Include="Core\TypeHash.h" />
@@ -588,6 +588,7 @@
     <ClInclude Include="SystemPlatform.h" />
     <ClInclude Include="TemplateMisc.h" />
     <ClInclude Include="Template\ArrayView.h" />
+    <ClInclude Include="Template\Expected.h" />
     <ClInclude Include="Template\Optional.h" />
     <ClInclude Include="Template\ConstString.h" />
     <ClInclude Include="Template\StringView.h" />

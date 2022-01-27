@@ -915,9 +915,6 @@
     <ClInclude Include="Math\SIMD.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="Core\ScopeExit.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Misc\ImageMergeHelper.h">
       <Filter>Misc</Filter>
     </ClInclude>
@@ -1343,6 +1340,12 @@
     </ClInclude>
     <ClInclude Include="AI\TrainManager.h">
       <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Template\Expected.h">
+      <Filter>Template</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ScopeGuard.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

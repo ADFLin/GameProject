@@ -3,7 +3,7 @@
 #include "Renderer/MeshUtility.h"
 #include "RHI/RHICommand.h"
 
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "Serialize/DataStream.h"
 
 namespace Render

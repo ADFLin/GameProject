@@ -12,7 +12,7 @@
 
 #include "D3D12Common.h"
 #include "InlineString.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "Core/TypeHash.h"
 
 #if USE_RHI_RESOURCE_TRACE

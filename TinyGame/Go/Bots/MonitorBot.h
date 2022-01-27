@@ -6,7 +6,7 @@
 #include "WindowsHeader.h"
 #include "Platform/Windows/WindowsProcess.h"
 
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 
 #include "ProfileSystem.h"
 #include "Image/ImageProcessing.h"

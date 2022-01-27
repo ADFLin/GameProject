@@ -6,7 +6,7 @@
 #if SYS_PLATFORM_WIN
 
 #include "Shlwapi.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #pragma comment(lib,"Shlwapi.lib")
 
 class WinodwsFileMonitor : public IPlatformFileMonitor

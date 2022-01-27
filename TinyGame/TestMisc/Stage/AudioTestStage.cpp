@@ -7,7 +7,7 @@
 #include "Widget/WidgetUtility.h"
 
 #include "SystemPlatform.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "BitUtility.h"
 #include "Algo/FFT.h"
 

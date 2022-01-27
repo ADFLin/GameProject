@@ -177,6 +177,14 @@ void GWidget::removeMotionTask()
 		motionTask->stop();
 }
 
+void GWidget::refresh()
+{
+	if (onRefresh)
+	{
+		onRefresh(this);
+	}
+}
+
 void GWidget::setRenderCallback( RenderCallBack* cb )
 {
 	if ( callback ) 

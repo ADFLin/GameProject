@@ -1,5 +1,5 @@
 #include "GomokuCore.h"
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 
 namespace Gomoku
 {

@@ -13,7 +13,7 @@
 #include <ctime>
 #include "MemorySecurity.h"
 #endif
-#include "Core/ScopeExit.h"
+#include "Core/ScopeGuard.h"
 #include "CString.h"
 
 

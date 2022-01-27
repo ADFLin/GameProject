@@ -307,16 +307,11 @@ namespace Bloxorz
 
 		auto UpdateSceneEnvBufferFunc = [this](float) { UpdateSceneEnvBuffer(); };
 
-		frame->addText("Sun Intensity");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSceneEnv.sunIntensity, 0, 10, 1, UpdateSceneEnvBufferFunc);
-		frame->addText("Fog Distance");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mSceneEnv.fogDistance, 0, 150, 1.3, UpdateSceneEnvBufferFunc);
-		frame->addText("Blur Radius Scale");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), blurRadiusScale, 0, 30, 1);
-		frame->addText("Bloom Intensity");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mBloomIntensity, 0, 5, 1);
-		frame->addText("Bloom Threshold");
-		FWidgetProperty::Bind(frame->addSlider(UI_ANY), mBloomThreshold, -0.5, 2, 1);
+		FWidgetProperty::Bind(frame->addSlider("Sun Intensity"), mSceneEnv.sunIntensity, 0, 10, 1, UpdateSceneEnvBufferFunc);
+		FWidgetProperty::Bind(frame->addSlider("Fog Distance"), mSceneEnv.fogDistance, 0, 150, 1.3, UpdateSceneEnvBufferFunc);
+		FWidgetProperty::Bind(frame->addSlider("Blur Radius Scale"), blurRadiusScale, 0, 30, 1);
+		FWidgetProperty::Bind(frame->addSlider("Bloom Intensity"), mBloomIntensity, 0, 5, 1);
+		FWidgetProperty::Bind(frame->addSlider("Bloom Threshold"), mBloomThreshold, -0.5, 2, 1);
 
 
 		ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, &mTextureShowManager);

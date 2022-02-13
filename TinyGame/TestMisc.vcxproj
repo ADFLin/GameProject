@@ -85,7 +85,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -122,7 +122,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -155,7 +155,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -189,7 +189,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -216,18 +216,14 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\libEngine\EngineCore.vcxproj">
+    <ProjectReference Include="..\Engine\EngineCore.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libEngine\EngineRender.vcxproj">
+    <ProjectReference Include="..\Engine\EngineRender.vcxproj">
       <Project>{b44b3265-be59-4382-a519-cd347a8d560f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libEngine\EngineShare.vcxproj">
+    <ProjectReference Include="..\Engine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libEngine\libEngine.vcxproj">
-      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="TinyCore.vcxproj">
       <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
@@ -239,7 +235,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\libEngine\Algo\FFT.h" />
+    <ClInclude Include="..\Engine\Algo\FFT.h" />
     <ClInclude Include="Bejeweled\BJLevel.h" />
     <ClInclude Include="Bejeweled\BJScene.h" />
     <ClInclude Include="Bejeweled\BJStage.h" />
@@ -304,7 +300,7 @@
     <ClInclude Include="TripleTown\TTStage.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\libEngine\Algo\FFT.cpp" />
+    <ClCompile Include="..\Engine\Algo\FFT.cpp" />
     <ClCompile Include="Bejeweled\BJLevel.cpp" />
     <ClCompile Include="Bejeweled\BJScene.cpp" />
     <ClCompile Include="Bejeweled\BJStage.cpp" />

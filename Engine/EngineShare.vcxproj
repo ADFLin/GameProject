@@ -43,7 +43,7 @@
     <ProjectReference Include="EngineRender.vcxproj">
       <Project>{b44b3265-be59-4382-a519-cd347a8d560f}</Project>
     </ProjectReference>
-    <ProjectReference Include="libEngine.vcxproj">
+    <ProjectReference Include="EngineCore.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>
   </ItemGroup>
@@ -52,7 +52,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}</ProjectGuid>
-    <RootNamespace>LibEngine</RootNamespace>
+    <RootNamespace>Engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

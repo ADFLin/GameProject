@@ -114,7 +114,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameCarcassonne", "TinyGame
 		{F3B972DF-7AED-4D2E-99AF-5AD3BC736F61} = {F3B972DF-7AED-4D2E-99AF-5AD3BC736F61}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineShare", "libEngine\EngineShare.vcxproj", "{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineShare", "Engine\EngineShare.vcxproj", "{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}"
 	ProjectSection(ProjectDependencies) = postProject
 		{B44B3265-BE59-4382-A519-CD347A8D560F} = {B44B3265-BE59-4382-A519-CD347A8D560F}
 	EndProjectSection
@@ -141,12 +141,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WebGame", "WebGame\WebGame.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{179117DD-A176-4976-8092-41D4D4AFEF61}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineRender", "libEngine\EngineRender.vcxproj", "{B44B3265-BE59-4382-A519-CD347A8D560F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineRender", "Engine\EngineRender.vcxproj", "{B44B3265-BE59-4382-A519-CD347A8D560F}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C1B32C2B-9A40-4874-869F-FCC57BB1D93F} = {C1B32C2B-9A40-4874-869F-FCC57BB1D93F}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineCore", "libEngine\EngineCore.vcxproj", "{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineCore", "Engine\EngineCore.vcxproj", "{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

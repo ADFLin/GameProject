@@ -77,7 +77,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../Engine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;WIN32;_LIB;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -108,7 +108,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../Engine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;WIN32;_LIB;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -141,7 +141,7 @@
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../Engine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;NDEBUG;_LIB;WIN32;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -157,7 +157,7 @@
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../Engine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/DirectX/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;NDEBUG;_LIB;WIN32;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -302,10 +302,10 @@
     <ClCompile Include="libRPG\UtilityMath.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\libEngine\EngineShare.vcxproj">
+    <ProjectReference Include="..\Engine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libEngine\libEngine.vcxproj">
+    <ProjectReference Include="..\Engine\EngineCore.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>
   </ItemGroup>

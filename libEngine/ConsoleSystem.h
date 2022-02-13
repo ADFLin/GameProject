@@ -82,7 +82,7 @@ struct TCommandFuncTraints< RT(*)(Args...) >
 {
 	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
 	{
-		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
+		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< typename Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
 		return MakeView( sArgs );
 	}
 };
@@ -101,7 +101,7 @@ struct TCommandFuncTraints< RT(T::*)(Args...) >
 {
 	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
 	{
-		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
+		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< typename Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
 		return MakeView(sArgs);
 	}
 };

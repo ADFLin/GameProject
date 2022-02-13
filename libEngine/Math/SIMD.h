@@ -2,6 +2,15 @@
 #ifndef SIMD_H_A48E9490_F46C_48AF_8AB6_98AE7574890B
 #define SIMD_H_A48E9490_F46C_48AF_8AB6_98AE7574890B
 
+#include "PlatformConfig.h"
+
+#if SYS_PLATFORM_WIN
+#define USE_MATH_SIMD 1
+#else
+#define USE_MATH_SIMD 0
+#endif
+
+#if USE_MATH_SIMD
 #include "xmmintrin.h"
 #include "smmintrin.h"
 
@@ -241,5 +250,7 @@ namespace SIMD
 	};
 
 }//namespace SIMD
+
+#endif
 
 #endif // SIMD_H_A48E9490_F46C_48AF_8AB6_98AE7574890B

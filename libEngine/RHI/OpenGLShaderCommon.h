@@ -23,6 +23,7 @@ namespace Render
 		bool loadFile(EShader::Type type, char const* path, char const* def);
 
 		GLuint getIntParam(GLuint val);
+
 	};
 
 	struct FOpenGLShader
@@ -36,6 +37,8 @@ namespace Render
 		static void GenerateParameterMap(GLuint handle, ShaderParameterMap& parameterMap);
 
 		static bool GetProgramBinary(GLuint handle, std::vector<uint8>& outBinary);
+
+		static int GetLogInfo(GLuint handle, std::vector<char>& outBuffer);
 	};
 
 	struct RMPShaderProgram

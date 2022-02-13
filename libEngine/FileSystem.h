@@ -10,7 +10,7 @@
 #include "Template/StringView.h"
 
 
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #endif
 #include "TemplateMisc.h"
@@ -69,7 +69,7 @@ using FilePath = TFilePath<TChar>;
 
 class FileIterator : public Noncopyable
 {
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 
 public:
 	FileIterator();

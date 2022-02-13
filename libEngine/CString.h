@@ -48,40 +48,144 @@ struct TStringLiteral< wchar_t >
 
 #define STRING_LITERAL( TYPE , LITERAL ) TStringLiteral< TYPE >::Select( LITERAL , L##LITERAL )
 
+#if CPP_COMPILER_MSVC
+#define STRING_FUNC_S_SUPPORTED 1
+#else
+#define STRING_FUNC_S_SUPPORTED 0
+#endif
+
 struct FCString
 {
 	template< int N >
-	FORCEINLINE static int    PrintfV(char(&str)[N], char const* fmt, va_list al) { return ::vsprintf_s(str, fmt, al); }
+	FORCEINLINE static int    PrintfV(char(&str)[N], char const* fmt, va_list al) 
+	{ 
+#if STRING_FUNC_S_SUPPORTED
+		return ::vsprintf_s(str, fmt, al);
+#else
+		return ::vsprintf(str, fmt, al);
+#endif
+	}
 	template< int N >
-	FORCEINLINE static int    PrintfV(wchar_t(&str)[N], wchar_t const* fmt, va_list al) { ::vswprintf_s(str, fmt, al); }
+	FORCEINLINE static int    PrintfV(wchar_t(&str)[N], wchar_t const* fmt, va_list al) 
+	{ 
+#if STRING_FUNC_S_SUPPORTED
+		return ::vswprintf_s(str, fmt, al); 
+#else
+		return ::vswprintf(str, fmt, al);
+#endif
+	}
 
-	FORCEINLINE static int    PrintfV(char* str, int size , char const* fmt, va_list al) { return ::vsprintf_s(str, size, fmt, al); }
+	FORCEINLINE static int    PrintfV(char* str, int size , char const* fmt, va_list al) 
+	{ 
+#if STRING_FUNC_S_SUPPORTED
+		return ::vsprintf_s(str, size, fmt, al); 
+#else
+		return ::vsprintf(str, fmt, al);
+#endif
+	}
 	template< int N >
-	FORCEINLINE static int    PrintfV(wchar_t* str, int size, wchar_t const* fmt, va_list al) { ::vswprintf_s(str, size, fmt, al); }
+	FORCEINLINE static int    PrintfV(wchar_t* str, int size, wchar_t const* fmt, va_list al) 
+	{
+#if STRING_FUNC_S_SUPPORTED
+		return ::vswprintf_s(str, size, fmt, al); 
+#else
+		return ::vswprintf(str,size, fmt, al);
+#endif
+	}
 
 	template< int N >
-	FORCEINLINE static void   Copy(char(&dst)[N], char const* src) { ::strcpy_s(dst, src); }
+	FORCEINLINE static void   Copy(char(&dst)[N], char const* src) 
+	{ 
+#if STRING_FUNC_S_SUPPORTED
+		::strcpy_s(dst, src);
+#else
+		::strcpy(dst, src);
+#endif
+	}
 	template< int N >
-	FORCEINLINE static void   Copy(wchar_t(&dst)[N], wchar_t const* src) { ::wcscpy_s(dst, src); }
+	FORCEINLINE static void   Copy(wchar_t(&dst)[N], wchar_t const* src) 
+	{
+#if STRING_FUNC_S_SUPPORTED
+		::wcscpy_s(dst, src);
+#else
+		::wcscpy(dst, src);
+#endif
+	}
 
 	template< int N >
-	FORCEINLINE static void   CopyN(char(&dst)[N], char const* src, int num) { ::strncpy_s(dst, src, num); }
+	FORCEINLINE static void   CopyN(char(&dst)[N], char const* src, int num) 
+	{
+#if STRING_FUNC_S_SUPPORTED
+		::strncpy_s(dst, src, num);
+#else
+		::strncpy(dst, src, num);
+#endif
+	}
 	template< int N >
-	FORCEINLINE static void   CopyN(wchar_t(&dst)[N], wchar_t const* src, int num) { ::wcsncpy_s(dst, src, num); }
+	FORCEINLINE static void   CopyN(wchar_t(&dst)[N], wchar_t const* src, int num)
+	{ 
+#if STRING_FUNC_S_SUPPORTED
+		::wcsncpy_s(dst, src, num); 
+#else
+		::wcsncpy(dst, src, num);
+#endif
+	}
 
 	template< int N >
-	FORCEINLINE static void   Cat(char(&dst)[N], char const* src) { ::strcat_s(dst, src); }
+	FORCEINLINE static void   Cat(char(&dst)[N], char const* src) 
+	{ 
+#if STRING_FUNC_S_SUPPORTED
+		::strcat_s(dst, src); 
+#else
+		::strcat(dst, src);
+#endif
+	}
 	template< int N >
-	FORCEINLINE static void   Cat(wchar_t(&dst)[N], wchar_t const* src) { ::wcscat_s(dst, src); }
+	FORCEINLINE static void   Cat(wchar_t(&dst)[N], wchar_t const* src) 
+	{ 
+#if STRING_FUNC_S_SUPPORTED
+		::wcscat_s(dst, src);
+#else
+		::wcscat(dst, src);
+#endif
+	}
 
 	FORCEINLINE static int    Compare(char const* s1, char const* s2) { return ::strcmp(s1, s2); }
 	FORCEINLINE static int    Compare(wchar_t const* s1, wchar_t const* s2) { return ::wcscmp(s1, s2); }
 
-	FORCEINLINE static int    CompareIgnoreCase(char const* s1, char const* s2) { return ::_stricmp(s1, s2); }
-	FORCEINLINE static int    CompareIgnoreCase(wchar_t const* s1, wchar_t const* s2) { return ::_wcsicmp(s1, s2); }
+	FORCEINLINE static int    CompareIgnoreCase(char const* s1, char const* s2) 
+	{
+#if CPP_COMPILER_MSVC
+		return ::_stricmp(s1, s2); 
+#else
+		return ::strcasecmp(s1, s2);
+#endif
+	}
+	FORCEINLINE static int    CompareIgnoreCase(wchar_t const* s1, wchar_t const* s2) 
+	{ 
+#if CPP_COMPILER_MSVC
+		return ::_wcsicmp(s1, s2); 
+#else
+		return ::wcscasecmp(s1, s2);
+#endif
+	}
 
-	FORCEINLINE static int    CompareIgnoreCaseN(char const* s1, char const* s2, size_t num) { return ::_strnicmp(s1, s2, num); }
-	FORCEINLINE static int    CompareIgnoreCaseN(wchar_t const* s1, wchar_t const* s2, size_t num) { return ::_wcsnicmp(s1, s2, num); }
+	FORCEINLINE static int    CompareIgnoreCaseN(char const* s1, char const* s2, size_t num)
+	{ 
+#if CPP_COMPILER_MSVC
+		return ::_strnicmp(s1, s2, num);
+#else
+		return ::strncasecmp(s1, s2, num);
+#endif
+	}
+	FORCEINLINE static int    CompareIgnoreCaseN(wchar_t const* s1, wchar_t const* s2, size_t num)
+	{ 
+#if CPP_COMPILER_MSVC
+		return ::_wcsnicmp(s1, s2, num); 
+#else
+		return ::wcsncasecmp(s1, s2, num);
+#endif
+	}
 
 	FORCEINLINE static int    CompareN(char const* s1, char const* s2 , size_t num ) { return ::strncmp(s1, s2 , num ); }
 	FORCEINLINE static int    CompareN(wchar_t const* s1, wchar_t const* s2 , size_t num ) { return ::wcsncmp(s1, s2 , num ); }
@@ -111,24 +215,7 @@ struct FCString
 	static CharT const* FindChar(CharT const* str, CharT c);
 
 	template< class CharT, class T >
-	static bool CheckForamtStringInternal(CharT const*& format, T&& t)
-	{
-		format = FindChar(format, '%');
-		if (*format == 0)
-		{
-			LogWarning(0, "Format string args is less than inpput args");
-			return false;
-		}
-		char const* strFormat = TTypeFormatTraits<std::remove_reference_t<T>>::GetString();
-		int lenFormat = FCString::Strlen(strFormat);
-		if (FCString::CompareN(strFormat, format, lenFormat) != 0)
-		{
-			LogWarning(0, "Format string args is less than inpput args");
-			return false;
-		}
-		format += lenFormat;
-		return true;
-	}
+	static bool CheckForamtStringInternal(CharT const*& format, T&& t);
 
 	template< class CharT >
 	static bool CheckForamtString(CharT const* format)
@@ -184,6 +271,26 @@ struct FCString
 	static std::wstring CharToWChar(const char *c);
 	static std::string WCharToChar(const wchar_t* str);
 };
+
+template< class CharT, class T >
+bool FCString::CheckForamtStringInternal(CharT const*& format, T&& t)
+{
+	format = FindChar(format, '%');
+	if (*format == 0)
+	{
+		//LogWarning(0, "Format string args is less than inpput args");
+		return false;
+	}
+	char const* strFormat = TTypeFormatTraits<std::remove_reference_t<T>>::GetString();
+	int lenFormat = FCString::Strlen(strFormat);
+	if (FCString::CompareN(strFormat, format, lenFormat) != 0)
+	{
+		//LogWarning(0, "Format string args is less than inpput args");
+		return false;
+	}
+	format += lenFormat;
+	return true;
+}
 
 
 

@@ -37,6 +37,12 @@
     <ClCompile Include="ShareDllEntry.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="EngineCore.vcxproj">
+      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="EngineRender.vcxproj">
+      <Project>{b44b3265-be59-4382-a519-cd347a8d560f}</Project>
+    </ProjectReference>
     <ProjectReference Include="libEngine.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>

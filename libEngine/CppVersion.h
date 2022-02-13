@@ -1,10 +1,11 @@
-#ifndef CppVersion_h__
-#define CppVersion_h__
+#pragma once
+#ifndef CppVersion_H_A68F36BE_5E61_4EF2_8674_82EF117FF939
+#define CppVersion_H_A68F36BE_5E61_4EF2_8674_82EF117FF939
 
 #include "CompilerConfig.h"
 #include "MarcoCommon.h"
 
-#ifdef CPP_COMPILER_MSVC
+#if CPP_COMPILER_MSVC
 #	if ( _MSC_VER >= 1914 && _MSVC_LANG > 201402L ) 
 #		define CPP_CHARCONV_SUPPORT 1
 #   endif
@@ -26,6 +27,18 @@
 #	if ( _MSC_VER >= 1500 ) 
 #       define CPP_TR1_SUPPORT 1
 #   endif
+#elif CPP_COMPILER_CLANG
+#	define CPP_CHARCONV_SUPPORT 1
+#	define CPP_FOLD_EXPRESSION_SUPPORT 1
+#	define CPP_RVALUE_REFENCE_SUPPORT 1
+#	define CPP_VARIADIC_TEMPLATE_SUPPORT 1
+#   define CPP_11_STDLIB_SUPPORT 1
+#   define CPP_STATIC_ASSERT_SUPPORT 1
+#   define CPP_TYPE_TRAITS_SUPPORT 1
+#   define CPP_FUNCTION_DELETE_SUPPORT 1
+#   define CPP_USING_TYPE_ALIAS_SUPPORT 1 
+#	define CPP_11_KEYWORD_SUPPORT 1
+#	define CPP_TR1_SUPPORT 1
 #endif
 
 #ifndef CPP_RVALUE_REFENCE_SUPPORT
@@ -100,4 +113,4 @@ namespace CppVerPriv
 #endif
 
 
-#endif // CppVersion_h__
+#endif // CppVersion_H_A68F36BE_5E61_4EF2_8674_82EF117FF939

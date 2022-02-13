@@ -10,7 +10,7 @@
 #include "DataStructure/IntrList.h"
 class ClassTreeLink
 {
-protected:
+public:
 	LinkHook childHook;
 };
 #else

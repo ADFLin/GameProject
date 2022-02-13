@@ -3,10 +3,10 @@
 
 #if defined ( _MSC_VER )
 #define CPP_COMPILER_MSVC 1
+#elif defined(__clang__)
+#define CPP_COMPILER_CLANG 1
 #elif defined ( __GNUC__ )
 #define CPP_COMPILER_GCC 1
-#elif defined (__clang__)
-#define CPP_COMPILER_CLANG 1
 #else
 #error "unknown compiler"
 #endif
@@ -60,6 +60,12 @@
 #define NOINLINE __attribute__((noinline))
 
 #define ASSUME_BUILTIN(EXPR) __builtin_assume(EXPR)
+
+#define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
+	CLASSNAME(char const* what) :mWhat(what) {}\
+	virtual const char* what() const _NOEXCEPT { return mWhat; }\
+	char const* mWhat;
+
 #endif
 
 #endif // CompilerConfig_h__

@@ -4,7 +4,7 @@
 
 #include "StringParse.h"
 #include "HashString.h"
-
+#include "LogSystem.h"
 #include "Template/ConstString.h"
 
 #include <vector>
@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <functional>
 #include <unordered_set>
+
 
 namespace CPP
 {

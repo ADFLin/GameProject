@@ -29,7 +29,7 @@ public:
 		}
 		else
 		{
-			TypeDataHelper::Construct((T*)mStorage[(mIndexStart + mNum) % N], std::forward<Args>(args)...);
+			TypeDataHelper::Construct<T>(mStorage[(mIndexStart + mNum) % N], std::forward<Args>(args)...);
 			++mNum;
 		}
 

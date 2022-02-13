@@ -11,13 +11,13 @@
 static InlineString<512> GMsg;
 #define PARSE_ERROR( MSG , ... ) \
 	{\
-		GMsg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
-		throw SyntaxError( GMsg );\
+		GMsg.format( "%s (%d) - " MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
+		throw SyntaxError( GMsg.c_str() );\
 	}
 #define PARSE_WARNING( MSG , ... )\
 	{\
-		GMsg.format( "%s (%d) - "MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
-		emitWarning( GMsg );\
+		GMsg.format( "%s (%d) - " MSG , mInput.source ? mInput.source->filePath.c_str() : "" , mInput.getLine() , ##__VA_ARGS__ );\
+		emitWarning( GMsg.c_str() );\
 	}
 
 #define FUNCTION_CHECK( func ) func
@@ -1116,7 +1116,8 @@ namespace CPP
 	bool Preprocessor::expandMarco(StringView const& lineText,std::string& outText)
 	{
 		ExpandMarcoResult expandResult;
-		return expandMarcoInternal(LineStringViewCode(lineText), outText, expandResult);
+		LineStringViewCode codeView(lineText);
+		return expandMarcoInternal(codeView, outText, expandResult);
 	}
 
 	bool Preprocessor::checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult)
@@ -1212,7 +1213,8 @@ namespace CPP
 						auto const& arg = argList[entry.indexArg];
 #if 1
 						std::string expandText;
-						if (!expandMarcoInternal(LineStringViewCode(arg), expandText, outResult))
+						LineStringViewCode codeView(arg);
+						if (!expandMarcoInternal(codeView, expandText, outResult))
 						{
 							PARSE_ERROR("Expand Arg Error : %s" , static_cast<char const*>( arg.toCString()) );
 							return false;
@@ -1231,7 +1233,8 @@ namespace CPP
 			}
 			else
 			{
-				if (!expandMarcoInternal(LineStringViewCode(marco->expr), outText, outResult))
+			LineStringViewCode codeView(marco->expr);
+				if (!expandMarcoInternal(codeView, outText, outResult))
 				{
 					return false;
 				}

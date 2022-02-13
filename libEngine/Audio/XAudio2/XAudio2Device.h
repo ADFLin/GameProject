@@ -1,7 +1,7 @@
+#include "Audio/AudioDevice.h"
+
 #include "XAudio2.h"
 #include "X3DAudio.h"
-
-#include "Audio/AudioDevice.h"
 
 #include "Platform/Windows/ComUtility.h"
 

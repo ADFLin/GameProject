@@ -1,5 +1,8 @@
-#include "XAudio2Device.h"
+#include "PlatformConfig.h"
 
+#if SYS_PLATFORM_WIN
+
+#include "XAudio2Device.h"
 #include "LogSystem.h"
 
 float gStreamLockedDuration = 1;
@@ -259,3 +262,4 @@ void XAudio2SourceCallback::OnVoiceError(void* pBufferContext, HRESULT Error)
 {
 
 }
+#endif

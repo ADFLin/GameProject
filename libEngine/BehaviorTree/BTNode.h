@@ -340,10 +340,10 @@ namespace BT
 		typedef T             RetType;
 		typedef EmptyType     Context;
 		typedef GlobalFuncRef RefHolder;
-		T operator()() const { return  (*mFunc)();  }
 
-		typedef T (*Func)();
-		GlobalFuncRef(Func func):mFunc( Func ){}
+		using Func = T (*)();
+		T operator()() const { return  (mFunc)(); }
+		GlobalFuncRef(Func func):mFunc( func ){}
 		Func  mFunc;
 	};
 
@@ -427,9 +427,9 @@ namespace BT
 	class TBaseBlackBoardNodeInstance : public ContextNodeInstance< typename RefType::Context >
 	{
 	public:
-		typedef typename RefType::RetType   VarType;
-		typedef typename RefType::Context   Context;
-		typedef typename RefType::RefHolder RefHolder;
+		using VarType = typename RefType::RetType;
+		using Context = typename RefType::Context;
+		using RefHolder = typename RefType::RefHolder;
 	protected:
 
 		template< class Node >
@@ -449,14 +449,14 @@ namespace BT
 		struct Eval
 		{
 			static VarType evalValue( ContextHolder< Context >& cHolder , RefHolder const& holder )
-			{  return cHolder._evalValue< VarType >( holder );  }
+			{  return cHolder.template _evalValue< VarType >( holder );  }
 		};
 
 		template<>
 		struct Eval< EmptyType >
 		{
 			static VarType evalValue( ContextHolder< Context >& cHolder , EmptyType const& )
-			{  return cHolder._evalValue< VarType >( RefType() ); }
+			{  return cHolder.template _evalValue< VarType >( RefType() ); }
 		};
 
 	};
@@ -464,6 +464,15 @@ namespace BT
 	template< class RefType , class CmpOp  >
 	class TConditionNodeInstance : public TBaseBlackBoardNodeInstance< RefType >
 	{
+#if CPP_COMPILER_CLANG
+		using VarType = typename TBaseBlackBoardNodeInstance< RefType >::RetType;
+		using Context = typename TBaseBlackBoardNodeInstance< RefType >::Context;
+		using RefHolder = typename TBaseBlackBoardNodeInstance< RefType >::RefHolder;
+		template< typename Node >
+		using NodeData = typename TBaseBlackBoardNodeInstance< RefType >::NodeData;
+		template< typename RefHolder >
+		using Eval = typename TBaseBlackBoardNodeInstance< RefType >::Eval;
+#endif
 	public:
 		class Node : public  TBaseConditionNode< TConditionNodeInstance< RefType , CmpOp > >
 				   , public  NodeData< Node >
@@ -489,6 +498,15 @@ namespace BT
 	template< class RefType , class CmpOp >
 	class TFilterNodeInstance : public TBaseBlackBoardNodeInstance< RefType >
 	{
+#if CPP_COMPILER_CLANG
+		using VarType = typename TBaseBlackBoardNodeInstance< RefType >::RetType;
+		using Context = typename TBaseBlackBoardNodeInstance< RefType >::Context;
+		using RefHolder = typename TBaseBlackBoardNodeInstance< RefType >::RefHolder;
+		template< typename Node >
+		using NodeData = typename TBaseBlackBoardNodeInstance< RefType >::NodeData;
+		template< typename RefHolder >
+		using Eval = typename TBaseBlackBoardNodeInstance< RefType >::Eval;
+#endif
 	public:
 		class Node : public  DecoratorNode
 			       , public  NodeData< Node >

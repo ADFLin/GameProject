@@ -44,10 +44,10 @@ struct ListNodeTraits
 
 };
 
-template< class NodeTraits >
+template< class NT >
 class CycleListAlgorithm
 {
-	typename NodeTraits NodeTraits;
+	using NodeTraits = NT;
 	typedef typename NodeTraits::NodeType NodeType;
 	typedef typename NodeTraits::NodePtr NodePtr;
 	typedef typename NodeTraits::ConstNodePtr ConstNodePtr;
@@ -234,8 +234,8 @@ public:
 		clear();
 	}
 
-	RType  front(){ return TP::fixRT( HookTraits::castValue< T >( *NodeTraits::getNext( &mHeader ) ) ); }
-	RType  back() { return TP::fixRT( HookTraits::castValue< T >( *NodeTraits::getPrev( &mHeader ) ) ); }
+	RType  front(){ return TP::fixRT( HookTraits::template castValue< T >( *NodeTraits::getNext( &mHeader ) ) ); }
+	RType  back() { return TP::fixRT( HookTraits::template castValue< T >( *NodeTraits::getPrev( &mHeader ) ) ); }
 
 	bool   empty() const { return NodeTraits::getNext( &mHeader ) == &mHeader; }
 	size_t size() const {  return Algorithm::count( NodeTraits::getNext( &mHeader ) , &mHeader );  }
@@ -333,8 +333,8 @@ private:
 		Iterator& operator++( int ){ mNode = NodeTraits::getNext( mNode ); return *this; }
 		Iterator& operator--( int ){ mNode = NodeTraits::getPrev( mNode ); return *this; }
 
-		reference operator*(){ return TP::fixRT( HookTraits::castValue< T >( *mNode ) );  }
-		pointer   operator->(){ return &TP::fixRT( HookTraits::castValue< T >( *mNode ) ); }
+		reference operator*(){ return TP::fixRT( HookTraits::template castValue< T >( *mNode ) );  }
+		pointer   operator->(){ return &TP::fixRT( HookTraits::template castValue< T >( *mNode ) ); }
 		bool operator == ( Iterator other ) const { return mNode == other.mNode; }
 		bool operator != ( Iterator other ) const { return mNode != other.mNode; }
 	private:
@@ -356,8 +356,8 @@ private:
 		ReverseIterator& operator--(int) { mNode = NodeTraits::getNext(mNode); return *this; }
 		ReverseIterator& operator++(int) { mNode = NodeTraits::getPrev(mNode); return *this; }
 
-		reference operator*() { return TP::fixRT(HookTraits::castValue< T >(*mNode)); }
-		pointer   operator->() { return &TP::fixRT(HookTraits::castValue< T >(*mNode)); }
+		reference operator*() { return TP::fixRT(HookTraits::template castValue< T >(*mNode)); }
+		pointer   operator->() { return &TP::fixRT(HookTraits::template castValue< T >(*mNode)); }
 		bool operator == (ReverseIterator other) const { return mNode == other.mNode; }
 		bool operator != (ReverseIterator other) const { return mNode != other.mNode; }
 	private:

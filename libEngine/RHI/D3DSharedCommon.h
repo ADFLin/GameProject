@@ -3,6 +3,7 @@
 #define D3DSharedCommon_H_846539EC_B59A_4E0F_9EBB_8D2735D24F68
 
 #include "RHICommon.h"
+#include "LogSystem.h"
 
 #include <D3DCommon.h>
 #include <dxgiformat.h>

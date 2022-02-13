@@ -71,7 +71,6 @@ uint32 FCString::StrHash(CharT const* str, int len)
 }
 
 thread_local wchar_t GWCharBuff[1024 * 256];
-
 std::wstring FCString::CharToWChar(const char *str)
 {
 	const size_t cSize = FCString::Strlen(str) + 1;
@@ -87,8 +86,8 @@ std::wstring FCString::CharToWChar(const char *str)
 thread_local char GCharBuff[1024 * 256];
 std::string FCString::WCharToChar(const wchar_t* str)
 {
-#if SYS_PLATFORM_WIN
 	const size_t cSize = FCString::Strlen(str) + 1;
+#if SYS_PLATFORM_WIN
 	::WideCharToMultiByte(CP_ACP, 0, str, cSize, GCharBuff, ARRAY_SIZE(GCharBuff), NULL, NULL);
 #else
 	wcstombs(GCharBuff, str, cSize);

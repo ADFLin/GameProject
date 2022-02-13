@@ -3,30 +3,31 @@
 #define TypeConstruct_H_CF8B1CE1_FBAC_450E_B932_B8C76DF1B46A
 
 #include "Meta/MetaBase.h"
+#include <utility>
 
 class TypeDataHelper
 {
 public:
 	template< class T >
-	static void Construct(void* ptr, T const& val = T())
+	static void Construct(void* ptr, T const& val)
 	{
 		ConstructInternal(static_cast<T*>(ptr), val, Meta::IsPod< T >::Type());
 	}
 
-	template< class T , class Q >
-	static void Construct(T* ptr, Q&& val )
+	template< class T >
+	static void Construct(T* ptr, T const& val)
 	{
-		::new (ptr) T(std::forward<Q>(val));
+		ConstructInternal(static_cast<T*>(ptr), val, Meta::IsPod< T >::Type());
 	}
 
 	template< class T, class ...Args >
-	static void Construct(T* ptr, Args&& ...args)
+	static void Construct(void* ptr, Args&& ...args)
 	{
 		::new (ptr) T(std::forward<Args>(args)...);
 	}
 
-	template< class ...Args >
-	static void Construct(void* ptr, Args&& ...args)
+	template< class T, class ...Args >
+	static void Construct(T* ptr, Args&& ...args)
 	{
 		::new (ptr) T(std::forward<Args>(args)...);
 	}
@@ -142,7 +143,7 @@ private:
 	template< class T >
 	static void MoveInternal(T* ptr, T* from, Meta::FalseType)
 	{
-		new (ptr) (std::move(*from));
+		new (ptr) T(std::move(*from));
 		from->~T();
 	}
 	template< class T >

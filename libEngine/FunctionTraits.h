@@ -24,7 +24,7 @@ namespace Meta
 	template< class ...Args >
 	struct TypeList
 	{
-		enum { Length = sizeof...(Args); };
+		enum { Length = sizeof...(Args), };
 	};
 
 	template< class T >

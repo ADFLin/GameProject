@@ -5,12 +5,15 @@
 
 HighResClock::HighResClock()
 {
+#if SYS_PLATFORM_WIN
 	QueryPerformanceFrequency(&mClockFrequency);
+#endif
 	reset();
 }
 
 uint64 HighResClock::getTimeMicroseconds()
 {
+#if SYS_PLATFORM_WIN
 	LARGE_INTEGER currentTime;
 	QueryPerformanceCounter(&currentTime);
 	LONGLONG elapsedTime = currentTime.QuadPart - 
@@ -43,11 +46,17 @@ uint64 HighResClock::getTimeMicroseconds()
 		mClockFrequency.QuadPart);
 
 	return usecTicks;
+#else
+
+	return 0;
+#endif
 }
 
 void HighResClock::reset()
 {
+#if PLATFORM_WINDOWS
 	QueryPerformanceCounter(&mStartTime);
 	mStartTick = GetTickCount();
 	mPrevElapsedTime = 0;
+#endif
 }

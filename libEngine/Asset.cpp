@@ -2,11 +2,13 @@
 
 #include "FileSystem.h"
 #include <cassert>
+#include "LogSystem.h"
 
 #if SYS_PLATFORM_WIN
 
 #include "Shlwapi.h"
 #include "Core/ScopeGuard.h"
+
 #pragma comment(lib,"Shlwapi.lib")
 
 class WinodwsFileMonitor : public IPlatformFileMonitor
@@ -367,8 +369,11 @@ bool AssetManager::init()
 	mFileModifyMonitor = IPlatformFileMonitor::Create();
 	if (mFileModifyMonitor == nullptr)
 		return false;
-
+#if USE_FAST_DELEGATE
 	mFileModifyMonitor->setFileNotifyCallback(FileNotifyCallback(this, &AssetManager::handleDirectoryModify));
+#else
+	mFileModifyMonitor->setFileNotifyCallback(std::bind(&AssetManager::handleDirectoryModify, this, std::placeholders::_1, std::placeholders::_2));
+#endif
 	return true;
 }
 

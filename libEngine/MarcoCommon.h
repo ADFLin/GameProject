@@ -5,6 +5,7 @@
 #include "CompilerConfig.h"
 #include "Core/IntegerType.h"
 #include <cassert>
+#include <cstddef>
 
 
 #ifndef BIT
@@ -55,8 +56,8 @@ constexpr size_t array_size(T(&ar)[N]) { return N; }
 #define VERIFY_RETURN_FALSE( CODE ) VERIFY_FAILCODE_INNEAR( CODE, return false; ,  __FILE__ , __LINE__ )
 #define VERIFY_FAILCODE( CODE , FAILCODE ) VERIFY_FAILCODE_INNEAR( CODE, FAILCODE , __FILE__ , __LINE__ )
 
-#define CODE_STRING_INNER( CODE_TEXT ) R#CODE_TEXT
-#define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE_STRING_(##CODE_TEXT)CODE_STRING_ );
+#define CODE_STRING_INNER( CODE_TEXT ) R###CODE_TEXT
+#define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE_STRING_(##CODE_TEXT)CODE_STRING_ )
 
 
 #if CPP_COMPILER_MSVC

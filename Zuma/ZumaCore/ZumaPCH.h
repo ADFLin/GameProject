@@ -11,7 +11,6 @@ typedef std::string String;
 #include <functional>
 
 #include <memory>
-
 #include "Cpp11StdConfig.h"
 using std::shared_ptr;
 

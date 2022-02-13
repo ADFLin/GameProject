@@ -71,13 +71,11 @@ public:
 #else
 #error "No impl"
 #endif
-
 	}
 
 	template< class CharT = TChar >
 	FORCEINLINE static bool ToCheck(CharT const* value, int len, bool& outValue)
 	{
-#if CPP_CHARCONV_SUPPORT
 		if (FCString::CompareIgnoreCase(STRING_LITERAL(CharT, "true"), value) == 0)
 		{
 			outValue = true;
@@ -88,6 +86,8 @@ public:
 			outValue = false;
 			return true;
 		}
+
+#if CPP_CHARCONV_SUPPORT
 		int temp = 0;
 		if (std::from_chars(value, value + len, temp).ec == std::errc())
 		{

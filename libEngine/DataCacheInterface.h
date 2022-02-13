@@ -8,9 +8,11 @@
 #include "Serialize/DataStream.h"
 
 #include "Core/StringConv.h"
+#include "InlineString.h"
 
 #include <vector>
 #include <functional>
+
 
 using SerializeDelegate = std::function< bool (IStreamSerializer&) >;
 struct DataCacheArg

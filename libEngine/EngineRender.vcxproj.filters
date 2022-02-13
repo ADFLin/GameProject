@@ -1,0 +1,458 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="RHI">
+      <UniqueIdentifier>{a98209cf-e602-4602-9a8d-647fb1638152}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RHI\OpenGL">
+      <UniqueIdentifier>{a84d06d0-aca9-40f3-95a4-dfee286a30da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RHI\D3D11">
+      <UniqueIdentifier>{93d8d9c8-8ff7-4f27-b612-b8fc81e49bef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RHI\D3D12">
+      <UniqueIdentifier>{32c11dda-8a97-4070-b891-2d589c5d3c73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RHI\Vulkan">
+      <UniqueIdentifier>{a869bdb1-aeb7-4f4b-a7bb-b0cf88e2e463}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{94fe69b5-0e42-431b-949f-1dc3383d89e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib">
+      <UniqueIdentifier>{b2f7af10-3c73-4381-ba9a-c366801dc205}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\NvTriStrip">
+      <UniqueIdentifier>{30d4316b-f6be-4e04-a519-75ecee45f881}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\NvTess">
+      <UniqueIdentifier>{83e58566-e359-4fa9-9b92-d0ae70f7a2f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\minisat">
+      <UniqueIdentifier>{829b52a6-adfb-447f-b2d7-5c1c9ea59434}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\SpirvReflect">
+      <UniqueIdentifier>{b7c74b3c-8d74-4907-b9e5-90da4fc01964}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\DirectXSamples">
+      <UniqueIdentifier>{b1d2dec9-8600-40d6-8b3f-46d3fdb7e898}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\Simplygon">
+      <UniqueIdentifier>{6a5043f0-eb48-4f4e-92ef-471041b410c3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="RHI\DrawUtility.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\Font.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\GpuProfiler.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\LazyObject.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\Material.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\MaterialShader.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\PrimitiveBatch.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\RenderContext.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\RHICommand.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\RHICommandListImpl.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\RHICommon.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\RHIGraphics2D.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\RHIGlobalResource.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\Scene.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\SceneObject.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\SceneRenderer.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\ShaderFormat.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\ShaderManager.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\ShaderCore.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\ShaderProgram.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\TextureAtlas.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\VertexFactory.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\OpenGLCommon.cpp">
+      <Filter>RHI\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\OpenGLCommand.cpp">
+      <Filter>RHI\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\OpenGLShaderCommon.cpp">
+      <Filter>RHI\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D11Command.cpp">
+      <Filter>RHI\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D11Common.cpp">
+      <Filter>RHI\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D11ShaderCommon.cpp">
+      <Filter>RHI\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D12Command.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D12Common.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D12ShaderCommon.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D12Utility.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3DSharedCommon.cpp">
+      <Filter>RHI\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\VulkanCommand.cpp">
+      <Filter>RHI\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\VulkanCommon.cpp">
+      <Filter>RHI\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\VulkanShaderCommon.cpp">
+      <Filter>RHI\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\BasePassRendering.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\BatchedRender2D.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Bloom.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\IBLResource.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Mesh.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\MeshBuild.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\MeshImportor.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\MeshUtility.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\RenderTargetPool.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\RenderTransform2D.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\SceneLighting.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\SceneView.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\ShadowDepthRendering.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\stb\stb_compile.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStrip.cpp">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStripObjects.cpp">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp">
+      <Filter>OtherLib\NvTess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\Main.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\utils\System.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c">
+      <Filter>OtherLib\SpirvReflect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.cpp">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\DirectXSamples\Generation.cpp">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\DirectXSamples\Utilities.cpp">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp">
+      <Filter>OtherLib\Simplygon</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="RHI\RHITraceScope.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHIType.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\DrawUtility.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\Font.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\FrameRenderGraph.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\GlobalShader.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\GpuProfiler.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\LazyObject.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\Material.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\MaterialShader.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\PrimitiveBatch.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RenderContext.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHICommand.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHICommandListImpl.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHICommon.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHIDefine.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHIGraphics2D.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHIGlobalResource.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\Scene.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\SceneObject.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\SceneRenderer.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderManager.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderCore.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderFormat.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderPermutation.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderProgram.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\SimpleRenderState.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\TextureAtlas.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\VertexFactory.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\OpenGLCommon.h">
+      <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\OpenGLCommand.h">
+      <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\OpenGLShaderCommon.h">
+      <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D11Command.h">
+      <Filter>RHI\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D11Common.h">
+      <Filter>RHI\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D11ShaderCommon.h">
+      <Filter>RHI\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12Command.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12Common.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12ShaderCommon.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D12Utility.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3DSharedCommon.h">
+      <Filter>RHI\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\VulkanCommand.h">
+      <Filter>RHI\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\VulkanCommon.h">
+      <Filter>RHI\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\VulkanShaderCommon.h">
+      <Filter>RHI\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\BasePassRendering.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\BatchedRender2D.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\Bloom.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\IBLResource.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\Mesh.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshBuild.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshCommon.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshImportor.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\MeshUtility.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\RenderTargetPool.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\RenderTransform2D.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\SceneLighting.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\SceneView.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\ShadowDepthRendering.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\SimpleCamera.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\stb\stb_image.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTess\nvtess.h">
+      <Filter>OtherLib\NvTess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h">
+      <Filter>OtherLib\SpirvReflect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.h">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\DirectXSamples\Generation.h">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\DirectXSamples\Utilities.h">
+      <Filter>OtherLib\DirectXSamples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDK.h">
+      <Filter>OtherLib\Simplygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDKLoader.h">
+      <Filter>OtherLib\Simplygon</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="RHI\VulkanDevice.h">
+      <Filter>RHI\Vulkan</Filter>
+    </Text>
+    <Text Include="..\OtherLib\NvTriStrip\README.txt">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </Text>
+  </ItemGroup>
+</Project>

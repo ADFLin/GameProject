@@ -1,11 +1,17 @@
 #pragma once
 #ifndef FFT_H_9ABF3973_71C0_4E29_9578_E20AF2269494
 #define FFT_H_9ABF3973_71C0_4E29_9578_E20AF2269494
+
 #include "Core/IntegerType.h"
 #include "Math/SIMD.h"
 
+#if USE_MATH_SIMD
+struct Complex : SIMD::SCompolex
+{
+	using SIMD::SCompolex::SCompolex;
+public:
 
-#if 0
+#else
 struct Complex
 {
 	Complex() {}
@@ -27,13 +33,6 @@ struct Complex
 	{
 		return Complex{ r * rhs.r - i * rhs.i , r * rhs.i + i * rhs.r };
 	}
-
-#else
-
-struct Complex : SIMD::SCompolex
-{
-	using SIMD::SCompolex::SCompolex;
-public:
 #endif
 	static Complex Expi(float value)
 	{

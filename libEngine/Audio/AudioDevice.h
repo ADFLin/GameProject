@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cassert>
+#include <string>
 
 typedef uint32 AudioHandle;
 AudioHandle const ERROR_AUDIO_HANDLE = AudioHandle(0);

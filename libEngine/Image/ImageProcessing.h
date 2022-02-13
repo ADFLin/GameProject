@@ -58,7 +58,7 @@ public:
 
 	TVector2<float> getPixelCenterToUV( TVector2<int> const& pos) const 
 	{ 
-		TVector2< float > temp = TVector2<float>(pos) + TVector2(0.5f, 0.5f);
+		TVector2< float > temp = TVector2<float>(pos) + TVector2<float>(0.5f, 0.5f);
 		return temp.div( mSize );
 	}
 

@@ -61,33 +61,32 @@ void Normalize(TImageView< float >& input)
 	}
 }
 
+#define USE_FAST_MATH 1
+#if USE_FAST_MATH
+int const HoughAngleNum = 90;
+float const HoughMaxAngle = 180;
+float const HoughAngleDelta = HoughMaxAngle / HoughAngleNum;
+float const HoughDistDelta = 1;
+struct FFastMath
+{
+	FFastMath()
+	{
+		for (int i = 0; i < HoughAngleNum; ++i)
+		{
+			float c, s;
+			Math::SinCos(Math::Deg2Rad(HoughAngleDelta*i), s, c);
+			mCosTable[i] = c;
+			mSinTable[i] = s;
+		}
+	}
+
+	float mCosTable[HoughAngleNum];
+	float mSinTable[HoughAngleNum];
+};
+#endif
+
 void HoughLines(HoughSetting const& setting, TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView, std::vector< HoughLine >& outLines, std::vector<float>* outDebugData)
 {
-#define USE_FAST_MATH 1
-
-	int const HoughAngleNum = 90;
-	float const HoughMaxAngle = 180;
-	float const HoughAngleDelta = HoughMaxAngle / HoughAngleNum;
-	float const HoughDistDelta = 1;
-#if USE_FAST_MATH
-	struct FFastMath
-	{
-		FFastMath()
-		{
-			for (int i = 0; i < HoughAngleNum; ++i)
-			{
-				float c, s;
-				Math::SinCos(Math::Deg2Rad(HoughAngleDelta*i), s, c);
-				mCosTable[i] = c;
-				mSinTable[i] = s;
-			}
-		}
-
-		float mCosTable[HoughAngleNum];
-		float mSinTable[HoughAngleNum];
-	};
-
-#endif
 
 	int const HX = HoughAngleNum;
 	int HY = Math::CeilToInt(Math::Max(input.getWidth(), input.getHeight()) / HoughDistDelta);

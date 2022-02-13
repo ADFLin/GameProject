@@ -24,8 +24,8 @@ public:
 
 	FORCEINLINE explicit TInlineString(CharT const* str, int num) { assign(str, num); }
 
-	template< typename Q , TEnableIf_Type< Meta::IsSameType< T const*, Q >::Value , bool > = true >
-	explicit TInlineString(Q str)
+	template< typename Q , TEnableIf_Type< Meta::IsSameType< Q, T const* >::Value , bool > = true >
+	TInlineString(Q str)
 	{
 		assign(str);
 	}
@@ -185,7 +185,7 @@ public:
 	}
 private:
 	
-	template< int M , class T >
+	template< int M , class Q >
 	friend class TInlineString;
 #if INLINE_STRING_USE_LENGTH_MEMBER
 	size_t mLength;

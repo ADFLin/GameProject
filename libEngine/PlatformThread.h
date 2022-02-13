@@ -6,9 +6,11 @@
 
 #include "Core/IntegerType.h"
 
+#include <utility>
+
 uint32 const WAIT_TIME_INFINITE = 0xffffffff;
 
-#if SYS_PLATFORM_LINUX
+#if SYS_PLATFORM_LINUX || SYS_PLATFORM_HTML5
 #define SYS_SUPPORT_POSIX_THREAD 1
 #endif
 
@@ -19,6 +21,7 @@ uint32 const WAIT_TIME_INFINITE = 0xffffffff;
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #include <process.h>
+
 
 #define ERROR_THREAD_ID (-1)
 class WindowsThread
@@ -137,6 +140,8 @@ typedef WindowsConditionVariable PlatformConditionVariable;
 
 #elif SYS_SUPPORT_POSIX_THREAD
 
+#include <pthread.h>
+
 class PosixThread
 {
 public:
@@ -153,11 +158,11 @@ public:
 	bool     kill();
 	bool     suspend()
 	{
-
+		return false;
 	}
 	bool     resume()
 	{
-
+		return false;
 	}
 	void     join();
 
@@ -165,7 +170,7 @@ public:
 	template< class T >
 	static void* RunnableProcess( void* t )
 	{
-		return static_cast< T* >( t )->execRun();
+		return nullptr;
 	}
 
 	pthread_t mHandle;
@@ -174,8 +179,8 @@ public:
 class PosixMutex
 {
 public:
-	PostfixMutex()  { ::pthread_mutex_init(&mMutex,NULL); }
-	~PostfixMutex() { :: pthread_mutex_destroy(&mMutex); }
+	PosixMutex()  { ::pthread_mutex_init(&mMutex,NULL); }
+	~PosixMutex() { :: pthread_mutex_destroy(&mMutex); }
 	void lock()  { ::pthread_mutex_lock(&mMutex); }
 	void unlock(){ ::pthread_mutex_unlock(&mMutex); }
 private: 
@@ -185,8 +190,31 @@ private:
 
 class PosixConditionVariable
 {
+public:
+	void notifyOne()
+	{
 
+	}
 
+	void notifyAll()
+	{
+
+	}
+protected:
+	bool doWait(PosixMutex& mutex)
+	{
+		return false;
+	}
+
+	template< class TFunc >
+	bool doWait(PosixMutex& mutex, TFunc func)
+	{
+		return false;
+	}
+	bool doWaitTime(PosixMutex& mutex, uint32 time = -1)
+	{
+		return false;
+	}
 };
 
 typedef PosixThread PlatformThread;
@@ -294,7 +322,7 @@ public:
 private:
 	Mutex* mutex;
 	T*     object;
-	template< class T >
+	template< class Q >
 	friend class TLockedObject;
 };
 

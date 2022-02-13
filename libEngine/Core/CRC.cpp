@@ -73,10 +73,10 @@ static uint32 const CRCTable32[] =
 
 static_assert(sizeof(CRCTable32) / sizeof(CRCTable32[0]) == 256 , "CRCTable32 is incorrent!!" );
 
-uint32 FCRC::Value32(uint8 const* pData, size_t numData)
+uint32 FCRC::Value32(uint8 const* pData, uint32 numData)
 {
 	uint32 result = 0xffffffff;
-	for( uint i = 0; i < numData; ++i )
+	for(uint32 i = 0; i < numData; ++i )
 	{
 		uint32 index = ((result >> 24 ) ^ pData[i]) & 0xff;
 		result = (result << 8) ^ CRCTable32[index];

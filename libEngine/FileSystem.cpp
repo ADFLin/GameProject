@@ -4,13 +4,12 @@
 #include "CString.h"
 #include "InlineString.h"
 
-#include <tchar.h>
 #include <stdio.h>
-
-#include <Strsafe.h>
 #include <fstream>
 
 #if SYS_PLATFORM_WIN
+#include <tchar.h>
+#include <Strsafe.h>
 #include "WindowsHeader.h"
 
 #undef FindFirstFile
@@ -174,13 +173,13 @@ struct FWindowsFileSystem
 		return !!FWindows::CopyFile(path, newFilePath, bFailIfExists);
 	}
 };
-
-
+#else
+#define MAX_PATH 260
 #endif
 
 bool FFileSystem::IsExist( char const* path )
 {
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::IsExist(path);
 #else
 	return false;
@@ -189,7 +188,7 @@ bool FFileSystem::IsExist( char const* path )
 
 bool FFileSystem::IsExist(wchar_t const* path)
 {
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::IsExist(path);
 #else
 	return false;
@@ -198,7 +197,7 @@ bool FFileSystem::IsExist(wchar_t const* path)
 
 bool FFileSystem::CreateDirectory(char const* pathDir)
 {
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::CreateDirectory(pathDir);
 #else
 	return false;
@@ -207,7 +206,7 @@ bool FFileSystem::CreateDirectory(char const* pathDir)
 
 bool FFileSystem::CreateDirectory(wchar_t const* pathDir)
 {
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::CreateDirectory(pathDir);
 #else
 	return false;
@@ -251,6 +250,7 @@ bool FFileSystem::CreateDirectorySequence(char const* pathDir)
 
 bool FFileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )
 {
+#if SYS_PLATFORM_WIN
 	char szDir[MAX_PATH];
 
 	DWORD dwError=0;
@@ -281,6 +281,10 @@ bool FFileSystem::FindFiles( char const* dir , char const* subName , FileIterato
 
 	iter.mHaveMore = true;
 	return true;
+#else
+
+	return false;
+#endif
 }
 
 std::string FFileSystem::ConvertToFullPath(char const* path)
@@ -303,10 +307,10 @@ std::wstring FFileSystem::ConvertToFullPath(wchar_t const* path)
 
 bool FFileSystem::GetFileSize( char const* path , int64& size )
 {
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::GetFileSize(path, size);
 #else
-
+	using namespace std;
 	ifstream fs( path , ios::binary );
 	if ( !fs.is_open() )
 		return false;
@@ -322,10 +326,10 @@ bool FFileSystem::GetFileSize( char const* path , int64& size )
 
 bool FFileSystem::GetFileSize(wchar_t const* path, int64& size)
 {
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 	return FWindowsFileSystem::GetFileSize(path, size);
 #else
-
+	using namespace std;
 	ifstream fs(path, ios::binary);
 	if (!fs.is_open())
 		return false;
@@ -415,7 +419,7 @@ bool FFileSystem::GetFileAttributes(char const* path, FileAttributes& outAttribu
 #endif
 }
 
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 FileIterator::FileIterator()
 {
 	mhFind = INVALID_HANDLE_VALUE;

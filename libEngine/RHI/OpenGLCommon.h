@@ -284,7 +284,7 @@ namespace Render
 
 		static GLenum VertexComponentType(uint8 format)
 		{
-			return OpenGLTranslate::To(EVertex::GetComponentType(EVertex::Format(format)));
+			return To(EVertex::GetComponentType(EVertex::Format(format)));
 		}
 	};
 

@@ -253,6 +253,9 @@
     <ProjectReference Include="..\CFlyMain\CFlyMain.vcxproj">
       <Project>{ce65a4f4-d290-4e05-b119-7d6cf538e05d}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\libEngine\EngineCore.vcxproj">
+      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libEngine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
     </ProjectReference>

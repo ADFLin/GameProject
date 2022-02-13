@@ -44,7 +44,9 @@ void QueueThreadPool::init(int numThread, uint32 stackSize)
 		InlineString< 128 > name;
 		runThread->start(stackSize);
 		name.format("QueuedWorker%d", i + 1);
+#if SYS_PLATFORM_WIN
 		runThread->setDisplayName(name);
+#endif
 		mAllThreads.push_back(runThread);
 		mQueuedThreads.push_back(runThread);
 	}

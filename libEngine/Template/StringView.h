@@ -3,9 +3,11 @@
 #define StringView_H_CA843BB9_3C9D_487D_9EC7_9D3F1EE8E800
 
 #include "CString.h"
+#include "Core/StringConv.h"
 #include "EnumCommon.h"
 #include "Meta/EnableIf.h"
 #include "Meta/MetaBase.h"
+
 
 template < typename CharT >
 class TStringView

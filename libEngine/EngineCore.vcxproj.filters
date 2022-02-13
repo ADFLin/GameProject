@@ -98,26 +98,8 @@
     <Filter Include="GameFramework">
       <UniqueIdentifier>{9e425877-efb6-4cf3-a37d-a12f5a8f9efa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="RHI">
-      <UniqueIdentifier>{49fa5d67-1cba-4ef9-981c-5728b658764c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OtherLib">
-      <UniqueIdentifier>{e32409f7-7336-41a0-9274-2841fc8f9b9a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Hardware">
       <UniqueIdentifier>{e62429ee-90bb-44a8-a466-b572fa4ae06b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RHI\OpenGL">
-      <UniqueIdentifier>{c967042e-a842-4761-b97f-191342eee644}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RHI\D3D11">
-      <UniqueIdentifier>{a8ca91b3-67c5-4e34-abdd-c79673a86a32}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OtherLib\NvTriStrip">
-      <UniqueIdentifier>{7be770d2-98ef-4ec1-b501-82a3426021e9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OtherLib\NvTess">
-      <UniqueIdentifier>{2e129a27-6d6f-4020-8624-3122a56a91de}</UniqueIdentifier>
     </Filter>
     <Filter Include="GameFramework\ECS">
       <UniqueIdentifier>{b14a3fda-3a8a-4c7a-bd65-02192ee4dee8}</UniqueIdentifier>
@@ -131,29 +113,8 @@
     <Filter Include="Meta">
       <UniqueIdentifier>{dca9d62c-e6fd-42f1-bf94-6421eeda46c8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OtherLib\minisat">
-      <UniqueIdentifier>{8e429900-dede-426f-b67c-523616ccedce}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RHI\D3D12">
-      <UniqueIdentifier>{03a43dab-c2e1-4c0e-962c-4bddd27eaf5e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RHI\Vulkan">
-      <UniqueIdentifier>{7d4f4d9d-152b-4cee-9f2c-ceab637e2cf1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Reflection">
       <UniqueIdentifier>{ffb3b22c-63cb-4ece-8314-c237834cc77d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OtherLib\SpirvReflect">
-      <UniqueIdentifier>{d608aeec-bafe-44a0-8af7-299eb489accf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer">
-      <UniqueIdentifier>{5dd8e390-7e50-4213-b623-e5d756e4d64e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OtherLib\DirectXSamples">
-      <UniqueIdentifier>{06fd6662-097c-4f15-af0b-2fb97288277f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="OtherLib\Simplygon">
-      <UniqueIdentifier>{b6d18cb1-ad7c-40f3-b22e-0cd9aae02a98}</UniqueIdentifier>
     </Filter>
     <Filter Include="ScriptGraphs">
       <UniqueIdentifier>{cb2a5983-c77b-4fb2-8c7d-24018f01f34b}</UniqueIdentifier>
@@ -304,89 +265,11 @@
     <ClCompile Include="CRSpline.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\ShaderCore.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\TextureAtlas.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\VertexFactory.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\DrawUtility.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\GpuProfiler.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\LazyObject.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\Material.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\PrimitiveBatch.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\RenderContext.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\RHICommand.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\RHICommon.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\RHIGraphics2D.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\Scene.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\SceneObject.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\SceneRenderer.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\Font.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\MaterialShader.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\OpenGLCommand.cpp">
-      <Filter>RHI\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D11Command.cpp">
-      <Filter>RHI\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\OpenGLCommon.cpp">
-      <Filter>RHI\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D11Common.cpp">
-      <Filter>RHI\D3D11</Filter>
-    </ClCompile>
     <ClCompile Include="Math\PrimitiveTest.cpp">
       <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStripObjects.cpp">
-      <Filter>OtherLib\NvTriStrip</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStrip.cpp">
-      <Filter>OtherLib\NvTriStrip</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp">
-      <Filter>OtherLib\NvTess</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
-      <Filter>OtherLib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\stb\stb_compile.cpp">
-      <Filter>OtherLib</Filter>
     </ClCompile>
     <ClCompile Include="Json.cpp">
       <Filter>原始程式檔</Filter>
@@ -418,24 +301,6 @@
     <ClCompile Include="Serialize\FileStream.cpp">
       <Filter>Serialize</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\RHIGlobalResource.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\RHICommandListImpl.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\ShaderProgram.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\ShaderManager.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D11ShaderCommon.cpp">
-      <Filter>RHI\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\OpenGLShaderCommon.cpp">
-      <Filter>RHI\OpenGL</Filter>
-    </ClCompile>
     <ClCompile Include="Core\CRC.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -445,56 +310,11 @@
     <ClCompile Include="Image\GIFLoader.cpp">
       <Filter>Image</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\core\Main.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\minisat\utils\System.cc">
-      <Filter>OtherLib\minisat</Filter>
-    </ClCompile>
     <ClCompile Include="Math\Matrix2.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\D3D12Command.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D12Common.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D12ShaderCommon.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
     <ClCompile Include="Image\ImageProcessing.cpp">
       <Filter>Image</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c">
-      <Filter>OtherLib\SpirvReflect</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\VulkanShaderCommon.cpp">
-      <Filter>RHI\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\VulkanCommand.cpp">
-      <Filter>RHI\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\VulkanCommon.cpp">
-      <Filter>RHI\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\ShaderFormat.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\RenderTransform2D.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\BatchedRender2D.cpp">
-      <Filter>Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Platform\Windows\WindowsWindowBase.cpp">
       <Filter>Platform\Windows</Filter>
@@ -502,59 +322,8 @@
     <ClCompile Include="WindowsProfileViewer.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer\IBLResource.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\RenderTargetPool.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\BasePassRendering.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\Bloom.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\SceneLighting.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\SceneView.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\ShadowDepthRendering.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="RHI\GLExtensions.cpp">
       <Filter>Opengl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\DirectXSamples\Generation.cpp">
-      <Filter>OtherLib\DirectXSamples</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\DirectXSamples\Utilities.cpp">
-      <Filter>OtherLib\DirectXSamples</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.cpp">
-      <Filter>OtherLib\DirectXSamples</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\Mesh.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\MeshBuild.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\MeshImportor.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\MeshUtility.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp">
-      <Filter>OtherLib\Simplygon</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D12Utility.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3DSharedCommon.cpp">
-      <Filter>RHI\D3D12</Filter>
     </ClCompile>
     <ClCompile Include="AI\TrainManager.cpp">
       <Filter>AI</Filter>
@@ -975,80 +744,11 @@
     <ClInclude Include="Core\ThreadSafeCounter.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\ShaderCore.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\TextureAtlas.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\VertexFactory.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\DrawUtility.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\GpuProfiler.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\LazyObject.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\Material.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\PrimitiveBatch.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\RenderContext.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\RHICommand.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\RHICommon.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\RHIDefine.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\RHIGraphics2D.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\Scene.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\SceneObject.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\SceneRenderer.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\Font.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="Hardware\GPUDeviceQuery.h">
       <Filter>Hardware</Filter>
     </ClInclude>
     <ClInclude Include="Platform\Windows\ComUtility.h">
       <Filter>Platform\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\MaterialShader.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\GlobalShader.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\OpenGLCommand.h">
-      <Filter>RHI\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D11Command.h">
-      <Filter>RHI\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\OpenGLCommon.h">
-      <Filter>RHI\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D11Common.h">
-      <Filter>RHI\D3D11</Filter>
     </ClInclude>
     <ClInclude Include="DataStructure\KDTree.h">
       <Filter>DataStructure</Filter>
@@ -1058,24 +758,6 @@
     </ClInclude>
     <ClInclude Include="Math\PrimitiveTest.h">
       <Filter>Math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h">
-      <Filter>OtherLib\NvTriStrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h">
-      <Filter>OtherLib\NvTriStrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h">
-      <Filter>OtherLib\NvTriStrip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\NvTess\nvtess.h">
-      <Filter>OtherLib\NvTess</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h">
-      <Filter>OtherLib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\stb\stb_image.h">
-      <Filter>OtherLib</Filter>
     </ClInclude>
     <ClInclude Include="Json.h">
       <Filter>標頭檔</Filter>
@@ -1116,35 +798,8 @@
     <ClInclude Include="Serialize\SerializeFwd.h">
       <Filter>Serialize</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\RHIGlobalResource.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\RHICommandListImpl.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\ShaderProgram.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\ShaderManager.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\ShaderFormat.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D11ShaderCommon.h">
-      <Filter>RHI\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\OpenGLShaderCommon.h">
-      <Filter>RHI\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="Core\CRC.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\RHIType.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\SimpleRenderState.h">
-      <Filter>RHI</Filter>
     </ClInclude>
     <ClInclude Include="Core\CRTPCheck.h">
       <Filter>Core</Filter>
@@ -1185,26 +840,8 @@
     <ClInclude Include="Core\TypeHash.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\RHITraceScope.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12Command.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12Common.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12ShaderCommon.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
     <ClInclude Include="Image\ImageProcessing.h">
       <Filter>Image</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\VulkanCommand.h">
-      <Filter>RHI\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\VulkanCommon.h">
-      <Filter>RHI\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="EasingFunction.h">
       <Filter>Utility</Filter>
@@ -1230,18 +867,6 @@
     <ClInclude Include="AssetViewer.h">
       <Filter>DataManage</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\VulkanShaderCommon.h">
-      <Filter>RHI\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h">
-      <Filter>OtherLib\SpirvReflect</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\RenderTransform2D.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\BatchedRender2D.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Template\Optional.h">
       <Filter>Template</Filter>
     </ClInclude>
@@ -1254,74 +879,11 @@
     <ClInclude Include="Core\HalfFlot.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Renderer\IBLResource.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="OpenGLHeader.h">
       <Filter>Opengl</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\FrameRenderGraph.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\RenderTargetPool.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\BasePassRendering.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\SimpleCamera.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\Bloom.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\SceneLighting.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\SceneView.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\ShadowDepthRendering.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\GLExtensions.h">
       <Filter>Opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\DirectXSamples\Generation.h">
-      <Filter>OtherLib\DirectXSamples</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\DirectXSamples\Utilities.h">
-      <Filter>OtherLib\DirectXSamples</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.h">
-      <Filter>OtherLib\DirectXSamples</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\Mesh.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\MeshBuild.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\MeshImportor.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\MeshUtility.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer\MeshCommon.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDKLoader.h">
-      <Filter>OtherLib\Simplygon</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDK.h">
-      <Filter>OtherLib\Simplygon</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12Utility.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3DSharedCommon.h">
-      <Filter>RHI\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="ScriptGraphs\SGNode.h">
       <Filter>ScriptGraphs</Filter>
@@ -1334,9 +896,6 @@
     </ClInclude>
     <ClInclude Include="Algo\Combination.h">
       <Filter>Algo</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\ShaderPermutation.h">
-      <Filter>RHI</Filter>
     </ClInclude>
     <ClInclude Include="AI\TrainManager.h">
       <Filter>AI</Filter>
@@ -1352,13 +911,5 @@
     <None Include="ObjectHandle.cpp">
       <Filter>temp</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\OtherLib\NvTriStrip\README.txt">
-      <Filter>OtherLib\NvTriStrip</Filter>
-    </Text>
-    <Text Include="RHI\VulkanDevice.h">
-      <Filter>RHI\Vulkan</Filter>
-    </Text>
   </ItemGroup>
 </Project>

@@ -5,11 +5,12 @@
 #include <cmath>
 #include <cassert>
 #include <cfloat>
+#include <type_traits>
 
+#include "PlatformConfig.h"
 #include "CompilerConfig.h"
 #include "EnumCommon.h"
 
-#define USE_MATH_SIMD 1
 float constexpr FLT_DIV_ZERO_EPSILON = 1e-6f;
 
 namespace Math

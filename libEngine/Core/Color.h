@@ -3,8 +3,8 @@
 #define Color_H_1E8ED4FF_1757_42A2_A7E6_7284644A5164
 
 #include "IntegerType.h"
-#include "math/Vector3.h"
-#include "math/Vector4.h"
+#include "Math/Vector3.h"
+#include "Math/Vector4.h"
 
 class FColor
 {
@@ -84,8 +84,7 @@ template< class T >
 class TColor3
 {
 public:
-
-	typedef TColorElementTraits< T > CET;
+	using CET = TColorElementTraits< T >;
 
 	T  r, g, b;
 
@@ -118,7 +117,6 @@ public:
 		return *this;
 	}
 
-	template< class T >
 	operator T const*() const { return &r; }
 	operator T*      () { return &r; }
 
@@ -130,7 +128,12 @@ template< class T >
 class TColor4 : public TColor3< T >
 {
 public:
+	using TColor3<T>::r;
+	using TColor3<T>::g;
+	using TColor3<T>::b;
 	T a;
+
+	using CET = typename TColor3<T>::CET;
 
 	TColor4() = default;
 	TColor4(T cr, T cg, T cb, T ca = CET::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
@@ -152,7 +155,7 @@ public:
 
 	template< class Q >
 	TColor4(TColor4<Q> const& c)
-		: TColor3(CET::Normalize(c.r), CET::Normalize(c.g), CET::Normalize(c.b))
+		: TColor3<T>(CET::Normalize(c.r), CET::Normalize(c.g), CET::Normalize(c.b))
 		, a(CET::Normalize(c.a))
 	{
 	}
@@ -235,6 +238,10 @@ class Color4f : public TColor4< float >
 	using CET = TColorElementTraits<float>;
 public:
 	using TColor4<float>::TColor4;
+	using TColor4<float>::r;
+	using TColor4<float>::g;
+	using TColor4<float>::b;
+	using TColor4<float>::a;
 
 	Color4f() = default;
 

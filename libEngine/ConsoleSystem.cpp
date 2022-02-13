@@ -337,7 +337,11 @@ bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInf
 		{
 			if ( fptr[1] != 's' )
 			{
+#if CPP_COMPILER_MSVC
 				int num = sscanf_s( paramString , fptr , outData );
+#else
+				int num = sscanf(paramString, fptr, outData);
+#endif
 				if ( num == 0 )
 				{
 					context.errorMsg = "param error";

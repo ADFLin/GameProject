@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 
+
+#if SYS_PLATFORM_WIN
 BitmapDC::BitmapDC(HDC hDC, HWND hWnd)
 {
 	RECT rect;
@@ -205,5 +207,6 @@ void BitmapDC::cleanup()
 	}
 }
 
+#endif
 
 

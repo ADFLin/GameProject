@@ -51,7 +51,7 @@ template < int NumWord >
 class TBigUint : public BigUintBase
 {
 public:
-	static const int NumWord = NumWord;
+	//static const int NumWord = NW;
 	typedef TBigUint< 2 * NumWord > MulRType;
 
 	TBigUint(){}
@@ -230,6 +230,7 @@ private:
 
 	friend class BigUintBase;
 	template < int N >  friend class TBigUint;
+	template < int N >  friend class TBigInt;
 	template < int N , int M >  friend class TBigFloat;
 };
 
@@ -897,6 +898,11 @@ void TBigUint<NumWord>::fillBit( unsigned word , unsigned bit )
 template < int NumWord >
 class TBigInt : private TBigUint< NumWord >
 {
+private:
+	using TBigUint<NumWord>::elements;
+	using TBigUint<NumWord>::fillElements;
+	using TBigUint<NumWord>::BaseTypeMaxValue;
+	using TBigUint<NumWord>::BaseTypeHighestBit;
 public:
 
 	TBigInt(){}
@@ -907,7 +913,7 @@ public:
 	void     setValue( int n );
 	unsigned setValue( TBigUint< NumWord > const& rhs )
 	{  
-		TBigUint::setValue( rhs );
+		TBigUint< NumWord >::setValue( rhs );
 		if ( elements[ NumWord - 1 ] & BaseTypeHighestBit )
 			return 1;
 		return 0;
@@ -917,7 +923,7 @@ public:
 	void setMax()
 	{
 		fillElements( BaseTypeMaxValue );
-		elements[ NumWord - 1 ] &= ~BaseTypeHighestBit;  
+		elements[ NumWord - 1 ] &= ~BaseTypeHighestBit;
 	}
 
 	void setMin()
@@ -974,12 +980,12 @@ public:
 		lh.setValue( *this );  
 	}
 
-	bool equal( TBigInt const& rhs ) const { return TBigUint::equal( rhs ); }
+	bool equal( TBigInt const& rhs ) const { return TBigUint< NumWord >::equal( rhs ); }
 	bool operator == ( TBigInt const& rhs ) const { return equal( rhs ); }
 	bool operator != ( TBigInt const& rhs ) const { return !equal( rhs ); }
 
-	bool isZero() const { return TBigUint::isZero(); }
-	void setZero(){  TBigUint::setZero(); }
+	bool isZero() const { return TBigUint< NumWord >::isZero(); }
+	void setZero(){  TBigUint< NumWord >::setZero(); }
 
 	bool convertToInt( int& val ) const;
 
@@ -990,7 +996,7 @@ public:
 		bool bNS = false;
 		bool bBS = isSign();
 
-		TBigUint::add( n );
+		TBigUint< NumWord >::add( n );
 
 		return checkAddCarry( bNS , bBS );
 	}
@@ -1000,7 +1006,7 @@ public:
 		bool bNS = n.isSign();
 		bool bBS = isSign();
 
-		TBigUint::add( n );
+		TBigUint< NumWord >::add( n );
 
 		return checkAddCarry( bNS , bBS );
 	}
@@ -1019,7 +1025,7 @@ public:
 		bool bNS = false;
 		bool bBS = isSign();
 
-		TBigUint::sub( n );
+		TBigUint< NumWord >::sub( n );
 
 		return checkSubCarry( bNS , bBS );
 	}
@@ -1030,7 +1036,7 @@ public:
 		bool bNS = n.isSign();
 		bool bBS = isSign();
 
-		TBigUint::sub( n );
+		TBigUint< NumWord >::sub( n );
 
 		return checkSubCarry( bNS , bBS );
 	}
@@ -1060,7 +1066,7 @@ public:
 		if ( ncrhs.isSign() )
 			applyComplement();
 
-		TBigUint::div( rhs , mod );
+		TBigUint< NumWord >::div( rhs , mod );
 
 		if ( !beSS )
 			applyComplement();
@@ -1080,7 +1086,7 @@ public:
 	{
 		bool bNS = true;
 		bool bBS = isSign();
-		TBigUint::mul( n );
+		TBigUint< NumWord >::mul( n );
 
 		return checkMulCarry( bNS , bBS );
 	}
@@ -1090,7 +1096,7 @@ public:
 		bool bNS = n.isSign();
 		bool bBS = isSign();
 
-		TBigUint::mul(n);
+		TBigUint< NumWord >::mul(n);
 
 		return checkMulCarry( bNS , bBS );
 	}
@@ -1136,7 +1142,7 @@ public:
 		return isMin() ? 1 : 0;
 	}
 
-	void applyComplement(){  bitNOT();  TBigUint::add( 1 );  }
+	void applyComplement(){  this->bitNOT();  TBigUint< NumWord >::add( 1 );  }
 	void getString( std::string& str , unsigned base = 10 ) const
 	{
 		TBigInt temp = *this;
@@ -1172,7 +1178,7 @@ public:
 			++str;
 			haveSignal = true;
 		}
-		TBigUint::setFromStr( str , base );
+		TBigUint< NumWord >::setFromStr( str , base );
 
 		if ( haveSignal )
 			applyComplement();

@@ -4,6 +4,9 @@
 
 #include "Core/IntegerType.h"
 #include "Core/CRC.h"
+
+#include <type_traits>
+
 inline uint32 HashValue(char const* str)
 {
 	int32 hash = 5381;

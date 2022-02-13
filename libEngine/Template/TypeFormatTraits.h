@@ -2,8 +2,6 @@
 #ifndef TypeFormatTraits_H_6B3580E8_D568_4EC7_9A6F_1FDE130FF8B5
 #define TypeFormatTraits_H_6B3580E8_D568_4EC7_9A6F_1FDE130FF8B5
 
-#include "LogSystem.h"
-
 template <typename T>
 struct TIsValidFormatType
 {
@@ -48,7 +46,7 @@ template< class CharT = char >
 struct TTypeFormat
 {
 	static CharT const* GetString(unsigned) { return "%u"; }
-	static CharT const* GetString(long unsigned) { return "%lu" };
+	static CharT const* GetString(long unsigned) { return "%lu"; }
 	static CharT const* GetString(uint8);
 	static CharT const* GetString(int32);
 	static CharT const* GetString(uint64);

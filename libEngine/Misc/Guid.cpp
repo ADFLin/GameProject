@@ -5,6 +5,9 @@
 #if SYS_PLATFORM_WIN
 #include "Objbase.h"
 #pragma comment (lib,"Ole32.lib")
+#else
+#include <stdlib.h>
+#include "MarcoCommon.h"
 #endif
 
 Guid Guid::New()
@@ -18,7 +21,10 @@ Guid Guid::New()
 
 	}
 #else
-#error not impl yet!
+	for (int i = 0; i < ARRAY_SIZE(result.mData); ++i)
+	{
+		result.mData[i] = rand();
+	}
 #endif
 	return result;
 }

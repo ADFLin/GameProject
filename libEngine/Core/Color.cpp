@@ -23,7 +23,7 @@ Color3f FColorConv::HSVToRGB(Vector3 hsv)
 		{ 1 , 2 , 0 },
 		{ 0 , 2 , 3 },
 	};
-	return Vector3(rgb[rgbSwizzle[index][0]], rgb[rgbSwizzle[index][1]], rgb[rgbSwizzle[index][2]]);
+	return Color3f(rgb[rgbSwizzle[index][0]], rgb[rgbSwizzle[index][1]], rgb[rgbSwizzle[index][2]]);
 }
 
 FColorConv::Vector3 FColorConv::RGBToHSV(Color3f rgb)

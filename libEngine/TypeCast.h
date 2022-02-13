@@ -32,10 +32,10 @@ public:
 		//This is the traditional C-front approach: __MWERKS__, __DMC__, __SUNPRO_CC
 		union caster_union
 		{
-			const Member Parent::* ptr_to_member;
+			const Member T::* ptr_to_member;
 			std::ptrdiff_t offset;
 		} caster;
-		caster.ptr_to_member = ptr_to_member;
+		caster.ptr_to_member = ptrMember;
 		memberOffset = caster.offset - 1;
 #endif
 		return static_cast<T*>(

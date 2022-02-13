@@ -2,8 +2,10 @@
 
 #include "Serialize/FileStream.h"
 #include "SystemPlatform.h"
+#include "LogSystem.h"
 
 #include <algorithm>
+
 
 namespace AI
 {
@@ -495,7 +497,8 @@ namespace AI
 					GenotypePtr gt = std::make_shared<Genotype>();
 					serializer >> gt->fitness;
 					gt->data.resize(dataSize);
-					serializer >> IStreamSerializer::MakeSequence(gt->data.data(), dataSize);
+					auto sequence = IStreamSerializer::MakeSequence(gt->data.data(), dataSize);
+					serializer >> sequence;
 					pool.add(gt);
 				}
 			}

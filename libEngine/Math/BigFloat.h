@@ -289,7 +289,7 @@ unsigned TBigFloat<MantNum, ExpNum>::addDirty( TBigFloat& rh )
 template < int MantNum , int ExpNum >
 unsigned TBigFloat<MantNum, ExpNum>::mul( TBigFloat const& rh )
 {
-	MantType::MulRType result;
+	typename MantType::MulRType result;
 
 	mantissa.doMul( rh.mantissa , result );
 
@@ -377,9 +377,9 @@ unsigned TBigFloat<MantNum, ExpNum>::div( TBigFloat const& rh )
 		return 1;
 	}
 
-	MantType::MulRType md;
-	MantType::MulRType mr;
-	MantType::MulRType mod;
+	typename MantType::MulRType md;
+	typename MantType::MulRType mr;
+	typename MantType::MulRType mod;
 
 	for ( int i = 0 ; i < MantNum ; ++i )
 	{

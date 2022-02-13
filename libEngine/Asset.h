@@ -5,16 +5,14 @@
 #include "AssetViewer.h"
 #include "PlatformConfig.h"
 #include "Core/IntegerType.h"
-#include "FastDelegate/FastDelegate.h"
+
+#include "Delegate.h"
 
 #include <set>
 #include <map>
 #include <vector>
 
-typedef fastdelegate::FastDelegate<
-	void(wchar_t const* path, EFileAction action)
-> FileNotifyCallback;
-
+DECLARE_DELEGATE(FileNotifyCallback, void(wchar_t const* path, EFileAction action));
 
 namespace EFileMonitorStatus
 {

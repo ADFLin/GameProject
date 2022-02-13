@@ -3,10 +3,7 @@
 
 #include "Math/Base.h"
 #include "Math/Vector2.h"
-
-#if USE_MATH_SIMD
 #include "Math/SIMD.h"
-#endif
 
 namespace Math
 {

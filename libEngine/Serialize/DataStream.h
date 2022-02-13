@@ -17,6 +17,7 @@
 #include <string>
 
 
+#if CPP_COMPILER_MSVC
 struct CGlobalInputSteamable
 {
 	template< typename TStream, typename T >
@@ -35,6 +36,27 @@ struct CGlobalOutputSteamable
 		result = &operator <<
 	);
 };
+#else
+struct CGlobalInputSteamable
+{
+	template< typename TStream, typename T >
+	static auto Requires(TStream& s, T const& t) -> decltype
+	(
+		s >> t
+	);
+};
+
+
+struct CGlobalOutputSteamable
+{
+	template< typename TStream, typename T >
+	static auto Requires(TStream& s, T const& t) -> decltype
+	(
+		s << t
+	);
+};
+
+#endif
 
 class IStreamSerializer
 {

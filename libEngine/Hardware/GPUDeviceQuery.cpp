@@ -1,5 +1,6 @@
 #include "GPUDeviceQuery.h"
 
+#if SYS_PLATFORM_WIN
 #include "nvapi/nvapi.h"
 #include "WindowsHeader.h"
 
@@ -625,8 +626,11 @@ public:
 	std::vector< NvPhysicalGpuHandle > mGpuHandles;
 };
 
+#endif
+
 GPUDeviceQuery* GPUDeviceQuery::Create()
 {
+#if SYS_PLATFORM_WIN
 	auto result = new NvGpuDeviceQuery;
 	if( result && !result->initialize() )
 	{
@@ -634,4 +638,7 @@ GPUDeviceQuery* GPUDeviceQuery::Create()
 		return nullptr;
 	}
 	return result;
+#else
+	return nullptr;
+#endif
 }

@@ -38,11 +38,16 @@ T  AlignUp(T  value, T  align)
 	return (value + align - 1) & ~(align - 1);
 }
 
+#if CPP_COMPILER_MSVC
+#define ALLOCA _alloca
+#else
+#define ALLOCA alloca
+#endif
 void FCNeuralNetwork::calcForwardFeedback(NNScalar inputs[], NNScalar outputs[])
 {
 	FCNNLayout const& NNLayout = getLayout();
 
-	NNScalar* tempInputs = (NNScalar*)(_alloca((2 * NNLayout.getMaxLayerNodeNum() + 3) * sizeof(NNScalar)));
+	NNScalar* tempInputs = (NNScalar*)(ALLOCA((2 * NNLayout.getMaxLayerNodeNum() + 3) * sizeof(NNScalar)));
 	NNScalar* tempOutputs = tempInputs + NNLayout.getMaxLayerNodeNum();
 
 	FNNCalc::LayerFrontFeedback(NNLayout.mLayers[0], mWeights , NNLayout.getInputNum(), inputs, tempInputs);

@@ -2,16 +2,16 @@
 #ifndef StringParse_H_B9D7C5CE_5A1A_4B11_94A1_4BC663FBA46F
 #define StringParse_H_B9D7C5CE_5A1A_4B11_94A1_4BC663FBA46F
 
-#include <string>
-#include <cassert>
-#include <cstring>
-#include <cstdlib>
-
 #include "Core/IntegerType.h"
 #include "EnumCommon.h"
 #include "MemorySecurity.h"
 #include "Template/StringView.h"
+#include "CompilerConfig.h"
 
+#include <string>
+#include <cstring>
+#include <cassert>
+#include <cstdlib>
 
 class DelimsTable
 {

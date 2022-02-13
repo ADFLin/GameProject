@@ -326,16 +326,15 @@ AudioDevice* AudioDevice::Create()
 {
 #if SYS_PLATFORM_WIN
 	AudioDevice* device = new XAudio2Device;
-#else
-
-#endif
-
 	if( !device->initialize() )
 	{
 		delete device;
 		return nullptr;
 	}
 	return device;
+#else
+	return nullptr;
+#endif
 }
 
 bool AudioSource::initialize(SoundInstance& instance)

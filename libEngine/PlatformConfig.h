@@ -11,7 +11,9 @@
 #	define SYS_PLATFORM_MACOS 1
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #	define SYS_PLATFORM_FREEBSD 1
-else
+#elif  defined(__EMSCRIPTEN__)
+#	define SYS_PLATFORM_HTML5 1 
+#else
 #   define SYS_PLATFORM_UNKNOWN 1
 #endif
 
@@ -35,6 +37,9 @@ else
 #	define SYS_PLATFORM_FREEBSD 0
 #endif
 
+#ifndef SYS_PLATFORM_HTML5
+#	define SYS_PLATFORM_HTML5 0 
+#endif
 
 #if SYS_PLATFORM_WIN
 #	if defined( _WIN64 )

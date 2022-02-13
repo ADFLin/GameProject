@@ -1,9 +1,12 @@
 #ifndef TVector2_h__
 #define TVector2_h__
 
-#include <algorithm>
+#include "Math/Base.h"
+
 #include "Meta/Select.h"
 #include "Meta/MetaBase.h"
+
+#include <algorithm>
 
 template<class T>
 class TVector2

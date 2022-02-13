@@ -69,11 +69,11 @@ JsonObject* JsonObject::LoadFromFile(char const* path)
 	std::ifstream fs(path);
 
 	if( !fs.is_open() )
-		return false;
+		return nullptr;
 	nlohmann::json j;
 	fs >> j;
 	if( !fs )
-		return false;
+		return nullptr;
 
 	return new JsonObjectImpl(std::move(j));
 }

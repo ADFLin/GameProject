@@ -98,7 +98,7 @@ void main()
 
 	bool OpenGLShaderProgram::updateShader( bool bLinkShader )
 	{
-		uint32 handle = getHandle();
+		GLuint handle = getHandle();
 
 		if(bLinkShader)
 		{
@@ -330,11 +330,8 @@ void main()
 
 				if (shaderHandle)
 				{
-					int maxLength = 0;
-					glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &maxLength);
-					std::vector< char > buf(maxLength);
-					int logLength = 0;
-					glGetShaderInfoLog(shaderHandle, maxLength, &logLength, &buf[0]);
+					std::vector< char > buf;
+					FOpenGLShader::GetLogInfo(shaderHandle, buf);
 					emitCompileError(context , buf.data());
 				}
 			};
@@ -630,6 +627,16 @@ void main()
 			return false;
 		}
 		return true;
+	}
+
+	int FOpenGLShader::GetLogInfo(GLuint handle, std::vector<char>& outBuffer)
+	{
+		int maxLength = 0;
+		glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &maxLength);
+		outBuffer.reserve(maxLength);
+		int logLength = 0;
+		glGetShaderInfoLog(handle, maxLength, &logLength, &outBuffer[0]);
+		return logLength;
 	}
 
 }

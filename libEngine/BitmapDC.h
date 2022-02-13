@@ -1,6 +1,9 @@
 #ifndef BitmapDC_h__
 #define BitmapDC_h__
 
+#include "PlatformConfig.h"
+
+#if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 
 class BitmapDC
@@ -40,5 +43,7 @@ private:
 	HDC     mhDC;
 	HBITMAP mhBmp;
 };
+#endif
+
 
 #endif // BitmapDC_h__

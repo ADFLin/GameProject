@@ -4,7 +4,7 @@
 
 #include "RHICommon.h"
 #include "FunctionTraits.h"
-
+#include "LogSystem.h"
 
 #include <vector>
 

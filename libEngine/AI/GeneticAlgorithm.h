@@ -6,7 +6,12 @@
 
 #include <vector>
 #include <memory>
+
+#define USE_SSE 0
+
+#if CPP_COMPILER_MSVC
 #include <intrin.h>
+#endif
 
 using NNScalar = float;
 
@@ -16,8 +21,15 @@ public:
 
 	uint32 CPUSeed()
 	{
+#if CPP_COMPILER_MSVC
 		uint64 result = __rdtsc();
 		return result;
+#else
+		//#FIXME
+		unsigned dummy;
+		//return __rdtscp(&dummy);
+		return 0;
+#endif
 	}
 	NNRand()
 	{

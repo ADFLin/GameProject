@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Emscripten">
+      <Configuration>Debug</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Emscripten">
+      <Configuration>Release</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{FCF5545B-5B54-4732-8D8D-97CBAD886DE1}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>WebTest</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.20206.0</WindowsTargetPlatformVersion>
+    <ProjectName>WebGame</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+    <PlatformToolset>emcc</PlatformToolset>
+    <EmscriptenDir>E:\CodeWork\Emsdk\upstream\emscripten\</EmscriptenDir>
+    <ConfigurationType>JSApplication</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+    <PlatformToolset>emcc</PlatformToolset>
+    <EmscriptenDir>E:\CodeWork\Emsdk\upstream\emscripten\</EmscriptenDir>
+    <ConfigurationType>JSApplication</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) C:\web\WebGame\
+copy $(TargetDir)$(TargetName).wasm C:\web\WebGame\</Command>
+    </PostBuildEvent>
+    <Link />
+    <Link>
+      <AdditionalOptions>-s MAX_WEBGL_VERSION=2 %(AdditionalOptions)</AdditionalOptions>
+      <JsLibrary>WebGameLib.js</JsLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) C:\web\WebGame\
+copy $(TargetDir)$(TargetName).wasm C:\web\WebGame\</Command>
+    </PostBuildEvent>
+    <Link />
+    <Link />
+    <Link>
+      <JsLibrary>WebGameLib.js</JsLibrary>
+      <AdditionalOptions>-s MAX_WEBGL_VERSION=2 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="WebGame.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="WebGameLib.js" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

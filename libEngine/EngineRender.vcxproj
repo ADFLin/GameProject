@@ -1,0 +1,354 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Emscripten">
+      <Configuration>Debug</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Emscripten">
+      <Configuration>Release</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.cpp" />
+    <ClCompile Include="..\OtherLib\DirectXSamples\Generation.cpp" />
+    <ClCompile Include="..\OtherLib\DirectXSamples\Utilities.cpp" />
+    <ClCompile Include="..\OtherLib\minisat\core\Main.cc" />
+    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc" />
+    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc" />
+    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc" />
+    <ClCompile Include="..\OtherLib\minisat\utils\System.cc" />
+    <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp" />
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStrip.cpp" />
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStripObjects.cpp" />
+    <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp" />
+    <ClCompile Include="..\OtherLib\SpirvReflect\spirv_reflect.c" />
+    <ClCompile Include="..\OtherLib\stb\stb_compile.cpp" />
+    <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc" />
+    <ClCompile Include="Renderer\BasePassRendering.cpp" />
+    <ClCompile Include="Renderer\BatchedRender2D.cpp" />
+    <ClCompile Include="Renderer\Bloom.cpp" />
+    <ClCompile Include="Renderer\IBLResource.cpp" />
+    <ClCompile Include="Renderer\Mesh.cpp" />
+    <ClCompile Include="Renderer\MeshBuild.cpp" />
+    <ClCompile Include="Renderer\MeshImportor.cpp" />
+    <ClCompile Include="Renderer\MeshUtility.cpp" />
+    <ClCompile Include="Renderer\RenderTargetPool.cpp" />
+    <ClCompile Include="Renderer\RenderTransform2D.cpp" />
+    <ClCompile Include="Renderer\SceneLighting.cpp" />
+    <ClCompile Include="Renderer\SceneView.cpp" />
+    <ClCompile Include="Renderer\ShadowDepthRendering.cpp" />
+    <ClCompile Include="RHI\D3D11Command.cpp" />
+    <ClCompile Include="RHI\D3D11Common.cpp" />
+    <ClCompile Include="RHI\D3D11ShaderCommon.cpp" />
+    <ClCompile Include="RHI\D3D12Command.cpp" />
+    <ClCompile Include="RHI\D3D12Common.cpp" />
+    <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
+    <ClCompile Include="RHI\D3D12Utility.cpp" />
+    <ClCompile Include="RHI\D3DSharedCommon.cpp" />
+    <ClCompile Include="RHI\DrawUtility.cpp" />
+    <ClCompile Include="RHI\Font.cpp" />
+    <ClCompile Include="RHI\GpuProfiler.cpp" />
+    <ClCompile Include="RHI\LazyObject.cpp" />
+    <ClCompile Include="RHI\Material.cpp" />
+    <ClCompile Include="RHI\MaterialShader.cpp" />
+    <ClCompile Include="RHI\OpenGLCommand.cpp" />
+    <ClCompile Include="RHI\OpenGLCommon.cpp" />
+    <ClCompile Include="RHI\OpenGLShaderCommon.cpp" />
+    <ClCompile Include="RHI\PrimitiveBatch.cpp" />
+    <ClCompile Include="RHI\RenderContext.cpp" />
+    <ClCompile Include="RHI\RHICommand.cpp" />
+    <ClCompile Include="RHI\RHICommandListImpl.cpp" />
+    <ClCompile Include="RHI\RHICommon.cpp" />
+    <ClCompile Include="RHI\RHIGlobalResource.cpp" />
+    <ClCompile Include="RHI\RHIGraphics2D.cpp" />
+    <ClCompile Include="RHI\Scene.cpp" />
+    <ClCompile Include="RHI\SceneObject.cpp" />
+    <ClCompile Include="RHI\SceneRenderer.cpp" />
+    <ClCompile Include="RHI\ShaderCore.cpp" />
+    <ClCompile Include="RHI\ShaderFormat.cpp" />
+    <ClCompile Include="RHI\ShaderManager.cpp" />
+    <ClCompile Include="RHI\ShaderProgram.cpp" />
+    <ClCompile Include="RHI\TextureAtlas.cpp" />
+    <ClCompile Include="RHI\VertexFactory.cpp" />
+    <ClCompile Include="RHI\VulkanCommand.cpp" />
+    <ClCompile Include="RHI\VulkanCommon.cpp" />
+    <ClCompile Include="RHI\VulkanShaderCommon.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.h" />
+    <ClInclude Include="..\OtherLib\DirectXSamples\Generation.h" />
+    <ClInclude Include="..\OtherLib\DirectXSamples\Utilities.h" />
+    <ClInclude Include="..\OtherLib\NvTess\nvtess.h" />
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h" />
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h" />
+    <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h" />
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDK.h" />
+    <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDKLoader.h" />
+    <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h" />
+    <ClInclude Include="..\OtherLib\stb\stb_image.h" />
+    <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
+    <ClInclude Include="Renderer\BasePassRendering.h" />
+    <ClInclude Include="Renderer\BatchedRender2D.h" />
+    <ClInclude Include="Renderer\Bloom.h" />
+    <ClInclude Include="Renderer\IBLResource.h" />
+    <ClInclude Include="Renderer\Mesh.h" />
+    <ClInclude Include="Renderer\MeshBuild.h" />
+    <ClInclude Include="Renderer\MeshCommon.h" />
+    <ClInclude Include="Renderer\MeshImportor.h" />
+    <ClInclude Include="Renderer\MeshUtility.h" />
+    <ClInclude Include="Renderer\RenderTargetPool.h" />
+    <ClInclude Include="Renderer\RenderTransform2D.h" />
+    <ClInclude Include="Renderer\SceneLighting.h" />
+    <ClInclude Include="Renderer\SceneView.h" />
+    <ClInclude Include="Renderer\ShadowDepthRendering.h" />
+    <ClInclude Include="Renderer\SimpleCamera.h" />
+    <ClInclude Include="RHI\D3D11Command.h" />
+    <ClInclude Include="RHI\D3D11Common.h" />
+    <ClInclude Include="RHI\D3D11ShaderCommon.h" />
+    <ClInclude Include="RHI\D3D12Command.h" />
+    <ClInclude Include="RHI\D3D12Common.h" />
+    <ClInclude Include="RHI\D3D12ShaderCommon.h" />
+    <ClInclude Include="RHI\D3D12Utility.h" />
+    <ClInclude Include="RHI\D3DSharedCommon.h" />
+    <ClInclude Include="RHI\DrawUtility.h" />
+    <ClInclude Include="RHI\Font.h" />
+    <ClInclude Include="RHI\FrameRenderGraph.h" />
+    <ClInclude Include="RHI\GlobalShader.h" />
+    <ClInclude Include="RHI\GpuProfiler.h" />
+    <ClInclude Include="RHI\LazyObject.h" />
+    <ClInclude Include="RHI\Material.h" />
+    <ClInclude Include="RHI\MaterialShader.h" />
+    <ClInclude Include="RHI\OpenGLCommand.h" />
+    <ClInclude Include="RHI\OpenGLCommon.h" />
+    <ClInclude Include="RHI\OpenGLShaderCommon.h" />
+    <ClInclude Include="RHI\PrimitiveBatch.h" />
+    <ClInclude Include="RHI\RenderContext.h" />
+    <ClInclude Include="RHI\RHICommand.h" />
+    <ClInclude Include="RHI\RHICommandListImpl.h" />
+    <ClInclude Include="RHI\RHICommon.h" />
+    <ClInclude Include="RHI\RHIDefine.h" />
+    <ClInclude Include="RHI\RHIGlobalResource.h" />
+    <ClInclude Include="RHI\RHIGraphics2D.h" />
+    <ClInclude Include="RHI\RHITraceScope.h" />
+    <ClInclude Include="RHI\RHIType.h" />
+    <ClInclude Include="RHI\Scene.h" />
+    <ClInclude Include="RHI\SceneObject.h" />
+    <ClInclude Include="RHI\SceneRenderer.h" />
+    <ClInclude Include="RHI\ShaderCore.h" />
+    <ClInclude Include="RHI\ShaderFormat.h" />
+    <ClInclude Include="RHI\ShaderManager.h" />
+    <ClInclude Include="RHI\ShaderPermutation.h" />
+    <ClInclude Include="RHI\ShaderProgram.h" />
+    <ClInclude Include="RHI\SimpleRenderState.h" />
+    <ClInclude Include="RHI\TextureAtlas.h" />
+    <ClInclude Include="RHI\VertexFactory.h" />
+    <ClInclude Include="RHI\VulkanCommand.h" />
+    <ClInclude Include="RHI\VulkanCommon.h" />
+    <Text Include="..\OtherLib\NvTriStrip\README.txt" />
+    <Text Include="RHI\VulkanDevice.h" />
+    <ClInclude Include="RHI\VulkanShaderCommon.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="EngineCore.vcxproj">
+      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <RootNamespace>EngineRender</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <ProjectName>EngineRender</ProjectName>
+    <ProjectGuid>{B44B3265-BE59-4382-A519-CD347A8D560F}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+    <PlatformToolset>emcc</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <EmscriptenDir>E:\CodeWork\Emsdk\upstream\emscripten\</EmscriptenDir>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+    <PlatformToolset>emcc</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <EmscriptenDir>E:\CodeWork\Emsdk\upstream\emscripten\</EmscriptenDir>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SDLCheck>
+      </SDLCheck>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <BrowseInformation>false</BrowseInformation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
+    <Lib>
+      <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SDLCheck>
+      </SDLCheck>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <BrowseInformation>false</BrowseInformation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <OmitFramePointers>false</OmitFramePointers>
+    </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
+    <Lib>
+      <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

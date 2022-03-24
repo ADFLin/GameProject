@@ -900,7 +900,7 @@ namespace Mine
 
 	bool ExpSolveStrategy::makeCellPos(CellPos& cp, int cx, int cy)
 	{
-		if( !isVaildRange(cx, cy) )
+		if( !isValidRange(cx, cy) )
 			return false;
 		cp.x = cx;
 		cp.y = cy;

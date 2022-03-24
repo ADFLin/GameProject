@@ -115,7 +115,7 @@ namespace Mine
 
 	private:
 
-		bool      isVaildRange(int cx, int cy)
+		bool      isValidRange(int cx, int cy)
 		{
 			return 0 <= cx  && cx < mCellSizeX &&
 				0 <= cy  && cy < mCellSizeY;

@@ -99,12 +99,6 @@ public:
 	}
 };
 
-
-void QuadAssaultModule::deleteThis()
-{
-	delete this;
-}
-
 char const* QuadAssaultModule::getName()
 {
 	return "QuadAssault";

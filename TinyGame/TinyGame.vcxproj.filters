@@ -4,12 +4,6 @@
     <Filter Include="Stage">
       <UniqueIdentifier>{b9218adf-4ea7-4099-919e-f9bc016bbb48}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GameGo">
-      <UniqueIdentifier>{7f776862-f28c-44ba-9e97-75de743bdb40}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="GameSudoku">
-      <UniqueIdentifier>{715ca2a3-4bbc-4a9b-8ece-9f8a71a3ce90}</UniqueIdentifier>
-    </Filter>
     <Filter Include="StageMode">
       <UniqueIdentifier>{a7bcd586-f00e-4b97-80fa-078643775276}</UniqueIdentifier>
     </Filter>
@@ -27,37 +21,28 @@
     <Filter Include="Stage\Test\Shader">
       <UniqueIdentifier>{4235a2ac-a5fb-48d9-9dc1-55905821b318}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GameAngryBird">
-      <UniqueIdentifier>{368f9ef3-070f-4736-8cf5-3465227754a2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="GameGo\Bots">
-      <UniqueIdentifier>{4a0b8540-7f5c-432c-b847-380c9e1edab1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OtherLibs">
       <UniqueIdentifier>{3a19cab7-5791-4469-86fd-41ff5e7d3c1a}</UniqueIdentifier>
     </Filter>
     <Filter Include="OtherLibs\NesEmu">
       <UniqueIdentifier>{26f5deba-4574-4217-a320-544dcde40c35}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GameFlowFree">
-      <UniqueIdentifier>{6480a186-d6f6-454c-8904-bd09edc6a9bf}</UniqueIdentifier>
+    <Filter Include="GameGo">
+      <UniqueIdentifier>{75011985-96a6-41cb-8ccc-ff3200cc7e15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameGo\Bots">
+      <UniqueIdentifier>{8fb146d1-59f5-4f56-9645-29a8de771758}</UniqueIdentifier>
     </Filter>
     <Filter Include="GameGomoku">
-      <UniqueIdentifier>{1f0c76f6-b147-4be1-86d1-1c5082463114}</UniqueIdentifier>
+      <UniqueIdentifier>{977feaf6-0d46-41e3-8b71-fc251ddea6d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameAngryBird">
+      <UniqueIdentifier>{b139af88-1f4e-454e-9d65-fc28a05f42ae}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Voronoi.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\GoCore.cpp">
-      <Filter>GameGo</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\GoStage.cpp">
-      <Filter>GameGo</Filter>
-    </ClCompile>
-    <ClCompile Include="Sudoku\SudokuStage.cpp">
-      <Filter>GameSudoku</Filter>
     </ClCompile>
     <ClCompile Include="Stage\MainMenuStage.cpp">
       <Filter>Stage</Filter>
@@ -83,14 +68,8 @@
     <ClCompile Include="Stage\NesEmulatorStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="Go\GoRenderer.cpp">
-      <Filter>GameGo</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\GlobalStageRegister.cpp">
       <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\LeelaZeroGoStage.cpp">
-      <Filter>GameGo</Filter>
     </ClCompile>
     <ClCompile Include="Stage\FontDrawStage.cpp">
       <Filter>Stage</Filter>
@@ -110,38 +89,8 @@
     <ClCompile Include="TinyCore\SingleStageMode.cpp">
       <Filter>StageMode</Filter>
     </ClCompile>
-    <ClCompile Include="Go\MatchGame.cpp">
-      <Filter>GameGo</Filter>
-    </ClCompile>
-    <ClCompile Include="AngryBird\AngryBirdStage.cpp">
-      <Filter>GameAngryBird</Filter>
-    </ClCompile>
-    <ClCompile Include="AngryBird\GameObject.cpp">
-      <Filter>GameAngryBird</Filter>
-    </ClCompile>
-    <ClCompile Include="AngryBird\HeaderPCH.cpp">
-      <Filter>GameAngryBird</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\AStarStage.cpp">
       <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\Bots\ZenBot.cpp">
-      <Filter>GameGo\Bots</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\Bots\LeelaBot.cpp">
-      <Filter>GameGo\Bots</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\Bots\GTPBotBase.cpp">
-      <Filter>GameGo\Bots</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\Bots\GTPOutput.cpp">
-      <Filter>GameGo\Bots</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\Bots\AQBot.cpp">
-      <Filter>GameGo\Bots</Filter>
-    </ClCompile>
-    <ClCompile Include="Go\Bots\KataBot.cpp">
-      <Filter>GameGo\Bots</Filter>
     </ClCompile>
     <ClCompile Include="..\OtherLib\NesEmu\ControllerPorts.cpp">
       <Filter>OtherLibs\NesEmu</Filter>
@@ -200,26 +149,56 @@
     <ClCompile Include="..\OtherLib\NesEmu\TestMain.cpp">
       <Filter>OtherLibs\NesEmu</Filter>
     </ClCompile>
-    <ClCompile Include="FlowFree\FlowFreeGameStage.cpp">
-      <Filter>GameFlowFree</Filter>
-    </ClCompile>
-    <ClCompile Include="FlowFree\FlowFreeLevel.cpp">
-      <Filter>GameFlowFree</Filter>
-    </ClCompile>
-    <ClCompile Include="FlowFree\FlowFreeSolver.cpp">
-      <Filter>GameFlowFree</Filter>
-    </ClCompile>
-    <ClCompile Include="FlowFree\FlowFreeLevelReader.cpp">
-      <Filter>GameFlowFree</Filter>
-    </ClCompile>
     <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\GoRenderer.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\LeelaZeroGoStage.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\MatchGame.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\GoCore.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\GoStage.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\Bots\AQBot.cpp">
+      <Filter>GameGo\Bots</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\Bots\GTPBotBase.cpp">
+      <Filter>GameGo\Bots</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\Bots\GTPOutput.cpp">
+      <Filter>GameGo\Bots</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\Bots\KataBot.cpp">
+      <Filter>GameGo\Bots</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\Bots\LeelaBot.cpp">
+      <Filter>GameGo\Bots</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\Bots\ZenBot.cpp">
+      <Filter>GameGo\Bots</Filter>
+    </ClCompile>
+    <ClCompile Include="Gomoku\GomokuCore.cpp">
+      <Filter>GameGomoku</Filter>
     </ClCompile>
     <ClCompile Include="Gomoku\GomokuStage.cpp">
       <Filter>GameGomoku</Filter>
     </ClCompile>
-    <ClCompile Include="Gomoku\GomokuCore.cpp">
-      <Filter>GameGomoku</Filter>
+    <ClCompile Include="AngryBird\AngryBirdStage.cpp">
+      <Filter>GameAngryBird</Filter>
+    </ClCompile>
+    <ClCompile Include="AngryBird\GameObject.cpp">
+      <Filter>GameAngryBird</Filter>
+    </ClCompile>
+    <ClCompile Include="AngryBird\HeaderPCH.cpp">
+      <Filter>GameAngryBird</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -241,23 +220,8 @@
     <ClInclude Include="VoronoiStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
-    <ClInclude Include="Go\GoCore.h">
-      <Filter>GameGo</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\GoStage.h">
-      <Filter>GameGo</Filter>
-    </ClInclude>
-    <ClInclude Include="Sudoku\SudokuSolver.h">
-      <Filter>GameSudoku</Filter>
-    </ClInclude>
-    <ClInclude Include="Sudoku\SudokuSolver.hpp">
-      <Filter>GameSudoku</Filter>
-    </ClInclude>
     <ClInclude Include="Stage\TestStageHeader.h">
       <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="Sudoku\SamplerTest.h">
-      <Filter>GameSudoku</Filter>
     </ClInclude>
     <ClInclude Include="..\va_stdafx.h">
       <Filter>Common</Filter>
@@ -283,15 +247,6 @@
     <ClInclude Include="resource.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Go\GoRenderer.h">
-      <Filter>GameGo</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\LeelaZeroGoStage.h">
-      <Filter>GameGo</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\GoBot.h">
-      <Filter>GameGo</Filter>
-    </ClInclude>
     <ClInclude Include="TinyCore\NetGameMode.h">
       <Filter>StageMode</Filter>
     </ClInclude>
@@ -300,33 +255,6 @@
     </ClInclude>
     <ClInclude Include="TinyCore\SingleStageMode.h">
       <Filter>StageMode</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\MatchGame.h">
-      <Filter>GameGo</Filter>
-    </ClInclude>
-    <ClInclude Include="AngryBird\GameObject.h">
-      <Filter>GameAngryBird</Filter>
-    </ClInclude>
-    <ClInclude Include="AngryBird\HeaderPCH.h">
-      <Filter>GameAngryBird</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\Bots\GTPBotBase.h">
-      <Filter>GameGo\Bots</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\Bots\KataBot.h">
-      <Filter>GameGo\Bots</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\Bots\LeelaBot.h">
-      <Filter>GameGo\Bots</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\Bots\ZenBot.h">
-      <Filter>GameGo\Bots</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\Bots\AQBot.h">
-      <Filter>GameGo\Bots</Filter>
-    </ClInclude>
-    <ClInclude Include="Go\Bots\GTPOutput.h">
-      <Filter>GameGo\Bots</Filter>
     </ClInclude>
     <ClInclude Include="..\OtherLib\NesEmu\CircularBuffer.h">
       <Filter>OtherLibs\NesEmu</Filter>
@@ -430,26 +358,56 @@
     <ClInclude Include="..\OtherLib\NesEmu\InputKey.h">
       <Filter>OtherLibs\NesEmu</Filter>
     </ClInclude>
-    <ClInclude Include="FlowFree\FlowFreeGameStage.h">
-      <Filter>GameFlowFree</Filter>
+    <ClInclude Include="Go\GoBot.h">
+      <Filter>GameGo</Filter>
     </ClInclude>
-    <ClInclude Include="FlowFree\FlowFreeLevel.h">
-      <Filter>GameFlowFree</Filter>
+    <ClInclude Include="Go\GoRenderer.h">
+      <Filter>GameGo</Filter>
     </ClInclude>
-    <ClInclude Include="FlowFree\FlowFreeSolver.h">
-      <Filter>GameFlowFree</Filter>
+    <ClInclude Include="Go\LeelaZeroGoStage.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\MatchGame.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\GoCore.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\GoStage.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\Bots\AQBot.h">
+      <Filter>GameGo\Bots</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\Bots\GTPBotBase.h">
+      <Filter>GameGo\Bots</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\Bots\GTPOutput.h">
+      <Filter>GameGo\Bots</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\Bots\KataBot.h">
+      <Filter>GameGo\Bots</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\Bots\LeelaBot.h">
+      <Filter>GameGo\Bots</Filter>
     </ClInclude>
     <ClInclude Include="Go\Bots\MonitorBot.h">
       <Filter>GameGo\Bots</Filter>
     </ClInclude>
-    <ClInclude Include="FlowFree\FlowFreeLevelReader.h">
-      <Filter>GameFlowFree</Filter>
+    <ClInclude Include="Go\Bots\ZenBot.h">
+      <Filter>GameGo\Bots</Filter>
+    </ClInclude>
+    <ClInclude Include="Gomoku\GomokuCore.h">
+      <Filter>GameGomoku</Filter>
     </ClInclude>
     <ClInclude Include="Gomoku\GomokuStage.h">
       <Filter>GameGomoku</Filter>
     </ClInclude>
-    <ClInclude Include="Gomoku\GomokuCore.h">
-      <Filter>GameGomoku</Filter>
+    <ClInclude Include="AngryBird\GameObject.h">
+      <Filter>GameAngryBird</Filter>
+    </ClInclude>
+    <ClInclude Include="AngryBird\HeaderPCH.h">
+      <Filter>GameAngryBird</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

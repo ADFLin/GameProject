@@ -14,7 +14,6 @@
 #endif
 
 #include <vector>
-#include "StdUtility.h"
 #include "BitUtility.h"
 
 namespace CAR

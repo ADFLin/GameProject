@@ -5,8 +5,6 @@
 #include "TestRenderStageBase.h"
 
 #include "HashString.h"
-#include "GL/glew.h"
-#include "WinGLPlatform.h"
 #include "SystemPlatform.h"
 #include "Asset.h"
 
@@ -15,7 +13,6 @@
 #include "FastDelegate/FastDelegate.h"
 #include "RandomUtility.h"
 
-#include "RHI/OpenGLCommon.h"
 #include "RHI/ShaderCore.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/GpuProfiler.h"
@@ -24,6 +21,9 @@
 #include "RHI/SceneObject.h"
 #include "RHI/SceneRenderer.h"
 #include "RHI/LazyObject.h"
+
+
+#include "RHI/OpenGLCommon.h"
 
 #include "Renderer/SimpleCamera.h"
 

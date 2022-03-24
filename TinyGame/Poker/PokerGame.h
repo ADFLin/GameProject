@@ -21,8 +21,9 @@ namespace Poker
 	public:
 		GameModule();
 		virtual ~GameModule();
-		virtual bool  initialize(){ return true; }
-		virtual void  cleanup(){}
+		virtual void  startupModule(){}
+		virtual void  shutdownModule(){}
+	
 		virtual void  enter(){}
 		virtual void  exit(){} 
 		virtual void  deleteThis(){ delete this; }

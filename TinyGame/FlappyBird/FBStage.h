@@ -6,7 +6,6 @@
 
 #include "FBLevel.h"
 
-#include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/TextureAtlas.h"
 #include "Renderer/RenderTransform2D.h"

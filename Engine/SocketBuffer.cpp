@@ -28,8 +28,8 @@ void SocketBuffer::fill( char const* str )
 	if ( len > getFreeSize() )
 		 throw BufferException( "Fill error : Free size too small" );
 
-	strcpy_s( mData + mFillSize , getFreeSize() , str );
-	mFillSize += len;
+	strcpy_s( mData + mSizeFilled , getFreeSize() , str );
+	mSizeFilled += len;
 }
 
 void SocketBuffer::fill( char const* str , size_t maxSize )
@@ -39,8 +39,8 @@ void SocketBuffer::fill( char const* str , size_t maxSize )
 	if ( len > getFreeSize() )
 		 throw BufferException( "Fill error : Free size too small" );
 
-	strcpy_s( mData + mFillSize , getFreeSize() , str );
-	mFillSize += len;
+	strcpy_s( mData + mSizeFilled , getFreeSize() , str );
+	mSizeFilled += len;
 }
 
 int SocketBuffer::fill( NetSocket& socket , size_t len )
@@ -48,11 +48,11 @@ int SocketBuffer::fill( NetSocket& socket , size_t len )
 	if ( len > getFreeSize()  )
 		throw BufferException( "Fill error : Free size too small" );
 
-	int num = socket.recvData( mData + mFillSize , len );
+	int num = socket.recvData( mData + mSizeFilled , len );
 
 	if ( num != SOCKET_ERROR )
 	{
-		mFillSize += num;
+		mSizeFilled += num;
 		return num;
 	}
 	return 0;
@@ -63,10 +63,10 @@ int SocketBuffer::fill( NetSocket& socket , size_t len , NetAddress& addr )
 	if  ( len > getFreeSize()  )
 		throw BufferException( "Fill error : Free size too small" );
 
-	int num =  socket.recvData( mData + mFillSize , len , addr );
+	int num =  socket.recvData( mData + mSizeFilled , len , addr );
 	if ( num != SOCKET_ERROR )
 	{
-		mFillSize += num;
+		mSizeFilled += num;
 		return num;
 	}
 	return 0;
@@ -77,10 +77,10 @@ int SocketBuffer::fill( NetSocket& socket , size_t len , sockaddr* addr , unsign
 	if  ( len > getFreeSize() )
 		throw BufferException( "Fill error : Free size too small" );
 
-	int num = socket.recvData( mData + mFillSize , len , addr , addrLen );
+	int num = socket.recvData( mData + mSizeFilled , len , addr , addrLen );
 	if ( num != SOCKET_ERROR )
 	{
-		mFillSize += num;
+		mSizeFilled += num;
 		return num;
 	}
 	return 0;
@@ -96,17 +96,17 @@ void SocketBuffer::take( char* str )
 {
 	size_t avialable = getAvailableSize();
 
-	size_t len = strnlen( mData + mUseSize , avialable ) + 1;
+	size_t len = strnlen( mData + mSizeUsed , avialable ) + 1;
 	if ( len > getAvailableSize()  )
 		throw BufferException( "Take error : error string format" );
 
-	strcpy_s( str , len , mData + mUseSize );
-	mUseSize += len;
+	strcpy_s( str , len , mData + mSizeUsed );
+	mSizeUsed += len;
 }
 
 void SocketBuffer::take( char* str , size_t maxSize )
 {
-	size_t len = strnlen( mData + mUseSize , getAvailableSize() ) + 1;
+	size_t len = strnlen( mData + mSizeUsed , getAvailableSize() ) + 1;
 
 	if ( len > getAvailableSize()  )
 		throw BufferException( "Take error : error string format" );
@@ -114,31 +114,31 @@ void SocketBuffer::take( char* str , size_t maxSize )
 	if ( len > maxSize )
 		throw BufferException( "Take error : Storage don't have enough space" );
 
-	strcpy_s( str , maxSize , mData + mUseSize );
-	mUseSize += len;
+	strcpy_s( str , maxSize , mData + mSizeUsed );
+	mSizeUsed += len;
 }
 
 
 
 int SocketBuffer::take( NetSocket& socket )
 {
-	int numSend = socket.sendData( mData + mUseSize , mFillSize - mUseSize );
+	int numSend = socket.sendData( mData + mSizeUsed , mSizeFilled - mSizeUsed );
 	
 	if ( numSend == SOCKET_ERROR )
 		return 0;
 
-	mUseSize += numSend;
+	mSizeUsed += numSend;
 	return numSend;
 }
 
 int SocketBuffer::take( NetSocket& socket , size_t num )
 {
-	int numSend = socket.sendData( mData + mUseSize , num );
+	int numSend = socket.sendData( mData + mSizeUsed , num );
 
 	if ( numSend == SOCKET_ERROR )
 		return 0;
 
-	mUseSize += numSend;
+	mSizeUsed += numSend;
 	return numSend;
 }
 
@@ -148,21 +148,21 @@ int SocketBuffer::take( NetSocket& socket , size_t num , NetAddress& addr )
 	if ( num < getAvailableSize() )
 		return false;
 
-	int numSend = socket.sendData( mData + mUseSize , num , addr );
+	int numSend = socket.sendData( mData + mSizeUsed , num , addr );
 	
 	if ( numSend == SOCKET_ERROR )
 		return 0;
 
-	mUseSize += numSend;
+	mSizeUsed += numSend;
 	return numSend;
 }
 
 int SocketBuffer::take( NetSocket& socket  , NetAddress& addr )
 {
 	size_t MAX_UDP_DATA_SIZE = 65507u;
-	size_t sendSize = std::min(mFillSize - mUseSize, MAX_UDP_DATA_SIZE);
+	size_t sendSize = std::min(mSizeFilled - mSizeUsed, MAX_UDP_DATA_SIZE);
 
-	int numSend = socket.sendData( mData + mUseSize , sendSize , addr );
+	int numSend = socket.sendData( mData + mSizeUsed , sendSize , addr );
 	
 	if( numSend == SOCKET_ERROR )
 	{
@@ -170,7 +170,7 @@ int SocketBuffer::take( NetSocket& socket  , NetAddress& addr )
 		return 0;
 	}
 
-	mUseSize += numSend;
+	mSizeUsed += numSend;
 	return numSend;
 }
 
@@ -191,7 +191,7 @@ void SocketBuffer::grow( size_t newSize )
 		return;
 
 	char* newData = new char[ newSize ];
-	memcpy( newData , mData , mFillSize );
+	FMemory::Copy( newData , mData , mSizeFilled );
 	delete [] mData;
 	mData = newData;
 	mMaxSize = newSize;

@@ -39,6 +39,21 @@
     <ClCompile Include="Life\SimpleAlgo.cpp">
       <Filter>GameLife\Algorithms</Filter>
     </ClCompile>
+    <ClCompile Include="FlowFree\FlowFreeGameStage.cpp">
+      <Filter>GameFlowFree</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowFree\FlowFreeLevel.cpp">
+      <Filter>GameFlowFree</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowFree\FlowFreeLevelReader.cpp">
+      <Filter>GameFlowFree</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowFree\FlowFreeSolver.cpp">
+      <Filter>GameFlowFree</Filter>
+    </ClCompile>
+    <ClCompile Include="Sudoku\SudokuStage.cpp">
+      <Filter>GameSudoku</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
@@ -79,6 +94,27 @@
     <ClInclude Include="Life\SimpleAlgo.h">
       <Filter>GameLife\Algorithms</Filter>
     </ClInclude>
+    <ClInclude Include="FlowFree\FlowFreeGameStage.h">
+      <Filter>GameFlowFree</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowFree\FlowFreeLevel.h">
+      <Filter>GameFlowFree</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowFree\FlowFreeLevelReader.h">
+      <Filter>GameFlowFree</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowFree\FlowFreeSolver.h">
+      <Filter>GameFlowFree</Filter>
+    </ClInclude>
+    <ClInclude Include="Sudoku\SamplerTest.h">
+      <Filter>GameSudoku</Filter>
+    </ClInclude>
+    <ClInclude Include="Sudoku\SudokuSolver.h">
+      <Filter>GameSudoku</Filter>
+    </ClInclude>
+    <ClInclude Include="Sudoku\SudokuSolver.hpp">
+      <Filter>GameSudoku</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GameChess">
@@ -92,6 +128,12 @@
     </Filter>
     <Filter Include="GameLife\Algorithms">
       <UniqueIdentifier>{d0b4e85c-d470-45d3-ab09-a89b4aa9f1ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameFlowFree">
+      <UniqueIdentifier>{40818cd9-e61f-42ee-8dba-55a0e225430c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameSudoku">
+      <UniqueIdentifier>{8d36dc8b-8c84-45d4-bde4-f4baacee0b08}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

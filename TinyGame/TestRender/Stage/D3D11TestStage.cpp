@@ -3,7 +3,6 @@
 #include "RHI/RHIDefine.h"
 #include "RHI/RHIType.h"
 #include "RHI/RHICommon.h"
-#include "RHI/D3D11Command.h"
 
 #include "RHI/ShaderProgram.h"
 #include "RHI/ShaderManager.h"
@@ -27,7 +26,6 @@ namespace Render
 		using BaseClass = TestRenderStageBase;
 	public:
 		TestD3D11Stage() {}
-		D3D11System* mD3D11System;
 		ShaderProgram mProgTest;
 		static int constexpr MaxConstBufferNum = 1;
 

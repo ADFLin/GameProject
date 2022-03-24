@@ -51,8 +51,11 @@ void DataStreamBuffer::resize( size_t size )
 
 void DataStreamBuffer::cleanup()
 {
-	delete[] mData;
-	mData = nullptr;
+	if (mData)
+	{
+		delete[] mData;
+		mData = nullptr;
+	}
 	mMaxSize = 0;
 	clear();
 }
@@ -78,47 +81,47 @@ void DataStreamBuffer::take( char* str )
 {
 	size_t avialable = getAvailableSize();
 
-	size_t len = strnlen( mData + mUseSize , avialable ) + 1;
+	size_t len = strnlen( mData + mSizeUsed , avialable ) + 1;
 	if ( len > getAvailableSize()  )
 		throw BufferException( "Take error : error string format" );
 
-	strcpy_s( str , len , mData + mUseSize );
-	mUseSize += len;
+	strcpy_s( str , len , mData + mSizeUsed );
+	mSizeUsed += len;
 }
 
 void DataStreamBuffer::take( char* str , size_t max )
 {
 	size_t avialable = getAvailableSize();
 
-	size_t len = strnlen( mData + mUseSize , avialable ) + 1;
+	size_t len = strnlen( mData + mSizeUsed , avialable ) + 1;
 	if ( len > getAvailableSize()  )
 		throw BufferException( "Take error : error string format" );
 	if ( len > max )
 		throw BufferException( "Take error : str storage too small" );
 
-	strcpy_s( str , len , mData + mUseSize );
-	mUseSize += len;
+	strcpy_s( str , len , mData + mSizeUsed );
+	mSizeUsed += len;
 }
 
 void DataStreamBuffer::copy( DataStreamBuffer const& rhs )
 {
-	if ( mMaxSize < rhs.mFillSize )
+	if ( mMaxSize < rhs.mSizeFilled )
 	{
 		delete [] mData;
-		mData = new char [ rhs.mFillSize ];
-		mMaxSize = rhs.mFillSize;
+		mData = new char [ rhs.mSizeFilled ];
+		mMaxSize = rhs.mSizeFilled;
 	}
-	::memcpy( mData , rhs.mData , rhs.mFillSize );
-	mFillSize = rhs.mFillSize;
-	mUseSize  = rhs.mUseSize;
+	::memcpy( mData , rhs.mData , rhs.mSizeFilled );
+	mSizeFilled = rhs.mSizeFilled;
+	mSizeUsed  = rhs.mSizeUsed;
 }
 
 void DataStreamBuffer::moveData( DataStreamBuffer& other )
 {
 	mData     = other.mData;
-	mFillSize = other.mFillSize;
+	mSizeFilled = other.mSizeFilled;
 	mMaxSize  = other.mMaxSize;
-	mUseSize  = other.mUseSize;
+	mSizeUsed  = other.mSizeUsed;
 
 	other.setEmpty();
 }

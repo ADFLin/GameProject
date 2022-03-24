@@ -30,7 +30,7 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 	case BOP_POW:    cout<<"^";  break;
 	case UOP_MINS:   cout<<"-";  break;
 	case BOP_ASSIGN: cout<<"=";  break;
-	case VALUE_CONST: cout << unit.constValue.toReal ; break;
+	case VALUE_CONST: cout << unit.constValue.asReal ; break;
 	case VALUE_INPUT:
 		{
 			char const* name = table.getInputName(unit.symbol->input.index);
@@ -427,9 +427,9 @@ bool ParseResult::isUsingVar( char const* name ) const
 		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
 		if( symbol )
 		{
-			for( int i = 0; i < mPFCodes.size(); ++i )
+			for( auto const& unit : mPFCodes )
 			{
-				if( mPFCodes[i].type == VALUE_VARIABLE && mPFCodes[i].symbol == symbol )
+				if( unit.type == VALUE_VARIABLE && unit.symbol == symbol )
 					return true;
 			}
 		}
@@ -444,9 +444,9 @@ bool ParseResult::isUsingInput(char const* name) const
 		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
 		if( symbol )
 		{
-			for( int i = 0; i < mPFCodes.size(); ++i )
+			for (auto const& unit : mPFCodes)
 			{
-				if( mPFCodes[i].type == VALUE_INPUT && mPFCodes[i].symbol == symbol )
+				if( unit.type == VALUE_INPUT && unit.symbol == symbol )
 					return true;
 			}
 		}
@@ -701,25 +701,25 @@ bool ParseResult::optimizeConstValue( int index )
 			switch (elem.type)
 			{
 			case BOP_ADD:
-				val = elemL.constValue.toReal + elemR.constValue.toReal;
+				val = elemL.constValue.asReal + elemR.constValue.asReal;
 				done = true;
 				break;
 			case BOP_MUL:
-				val = elemL.constValue.toReal * elemR.constValue.toReal;
+				val = elemL.constValue.asReal * elemR.constValue.asReal;
 				done = true;
 				break;
 			case BOP_SUB:
 				if ( elem.isReverse )
-					val = elemR.constValue.toReal - elemL.constValue.toReal;
+					val = elemR.constValue.asReal - elemL.constValue.asReal;
 				else
-					val = elemL.constValue.toReal - elemR.constValue.toReal;
+					val = elemL.constValue.asReal - elemR.constValue.asReal;
 				done = true;
 				break;
 			case BOP_DIV:
 				if ( elem.isReverse )
-					val = elemR.constValue.toReal / elemL.constValue.toReal;
+					val = elemR.constValue.asReal / elemL.constValue.asReal;
 				else
-					val = elemL.constValue.toReal / elemR.constValue.toReal;
+					val = elemL.constValue.asReal / elemR.constValue.asReal;
 				done = true;
 				break;
 			}
@@ -753,7 +753,7 @@ bool ParseResult::optimizeConstValue( int index )
 			switch (elem.type)
 			{
 			case UOP_MINS:
-				val = -elemL.constValue.toDouble;
+				val = -elemL.constValue.asDouble;
 				done = true;
 				break;
 			}
@@ -786,29 +786,29 @@ bool ParseResult::optimizeConstValue( int index )
 				testOk = false;
 				break;
 			}
-			val[j] = mPFCodes[index-j-1].constValue.toReal;
+			val[j] = mPFCodes[index-j-1].constValue.asReal;
 		}
 		if (testOk)
 		{
 			switch(num)
 			{
 			case 0:
-				val[0] = (*(FunType0)funPtr)();
+				val[0] = (*(FuncType0)funPtr)();
 				break;
 			case 1:
-				val[0] = (*(FunType1)funPtr)(val[0]);
+				val[0] = (*(FuncType1)funPtr)(val[0]);
 				break;
 			case 2:
-				val[0] = (*(FunType2)funPtr)(val[1],val[0]);
+				val[0] = (*(FuncType2)funPtr)(val[1],val[0]);
 				break;
 			case 3:
-				val[0] = (*(FunType3)funPtr)(val[2],val[1],val[0]);
+				val[0] = (*(FuncType3)funPtr)(val[2],val[1],val[0]);
 				break;
 			case 4:
-				val[0] = (*(FunType4)funPtr)(val[3],val[2],val[1],val[0]);
+				val[0] = (*(FuncType4)funPtr)(val[3],val[2],val[1],val[0]);
 				break;
 			case 5:
-				val[0] = (*(FunType5)funPtr)(val[4],val[3],val[2],val[1],val[0]);
+				val[0] = (*(FuncType5)funPtr)(val[4],val[3],val[2],val[1],val[0]);
 				break;
 			}
 			elem = Unit(VALUE_CONST,val[0]);
@@ -843,7 +843,7 @@ bool ParseResult::optimizeZeroValue( int index )
 	if ( elem.type == BOP_ADD || elem.type == BOP_SUB )
 	{
 		if ( mPFCodes[index-1].type == VALUE_CONST &&
-			 mPFCodes[index-1].constValue.toReal == 0 )
+			 mPFCodes[index-1].constValue.asReal == 0 )
 		{
 			MoveElement(index+1,mPFCodes.size() ,-2);
 			mPFCodes.pop_back();
@@ -1223,25 +1223,25 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 		switch ( unit.type )
 		{
 		case BOP_ADD:
-			value = unitL.constValue.toReal + unitR.constValue.toReal;
+			value = unitL.constValue.asReal + unitR.constValue.asReal;
 			break;
 		case BOP_MUL:
-			value = unitL.constValue.toReal * unitR.constValue.toReal;
+			value = unitL.constValue.asReal * unitR.constValue.asReal;
 			break;
 		case BOP_SUB:
 			if ( unit.isReverse )
-				value = unitR.constValue.toReal - unitL.constValue.toReal;
+				value = unitR.constValue.asReal - unitL.constValue.asReal;
 			else
-				value = unitL.constValue.toReal - unitR.constValue.toReal;
+				value = unitL.constValue.asReal - unitR.constValue.asReal;
 			break;
 		case BOP_DIV:
 			if ( unit.isReverse )
-				value = unitR.constValue.toReal / unitL.constValue.toReal;
+				value = unitR.constValue.asReal / unitL.constValue.asReal;
 			else
-				value = unitL.constValue.toReal / unitR.constValue.toReal;
+				value = unitL.constValue.asReal / unitR.constValue.asReal;
 			break;
 		case BOP_COMMA:
-			value = unitR.constValue.toReal;
+			value = unitR.constValue.asReal;
 			break;
 		default:
 			return false;
@@ -1260,10 +1260,10 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 		switch (unit.type)
 		{
 		case UOP_MINS:
-			value = -unitR.constValue.toReal;
+			value = -unitR.constValue.asReal;
 			break;
 		case UOP_PLUS:
-			value = unitR.constValue.toReal;
+			value = unitR.constValue.asReal;
 			break;
 		default:
 			return false;
@@ -1273,7 +1273,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 	{
 		RealType params[5];
 		int   numParam = unit.symbol->func.getArgNum();
-		void* ptrFun = unit.symbol->func.funcPtr;
+		void* funcPtr = unit.symbol->func.funcPtr;
 
 		if ( numParam )
 		{
@@ -1291,7 +1291,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 				if ( unitVal.type != VALUE_CONST )
 					return false;
 
-				params[n] = unitVal.constValue.toReal;
+				params[n] = unitVal.constValue.asReal;
 				idxParam = nodeParam.children[ CN_LEFT ];
 			}
 
@@ -1299,28 +1299,28 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 			if ( unitVal.type != VALUE_CONST )
 				return false;
 
-			params[ numParam - 1 ] = unitVal.constValue.toReal;
+			params[ numParam - 1 ] = unitVal.constValue.asReal;
 		}
 
 		switch(numParam)
 		{
 		case 0:
-			value = ( *static_cast< FunType0 >( ptrFun ) )();
+			value = ( *static_cast< FuncType0 >( funcPtr ) )();
 			break;
 		case 1:
-			value = ( *static_cast< FunType1 >( ptrFun ) )(params[0]);
+			value = ( *static_cast< FuncType1 >( funcPtr ) )(params[0]);
 			break;
 		case 2:
-			value = ( *static_cast< FunType2 >( ptrFun ) )(params[1],params[0]);
+			value = ( *static_cast< FuncType2 >( funcPtr ) )(params[1],params[0]);
 			break;
 		case 3:
-			value = ( *static_cast< FunType3 >( ptrFun ) )(params[2],params[1],params[0]);
+			value = ( *static_cast< FuncType3 >( funcPtr ) )(params[2],params[1],params[0]);
 			break;
 		case 4:
-			value = ( *static_cast< FunType4 >( ptrFun ) )(params[3],params[2],params[1],params[0]);
+			value = ( *static_cast< FuncType4 >( funcPtr ) )(params[3],params[2],params[1],params[0]);
 			break;
 		case 5:
-			value = ( *static_cast< FunType5 >( ptrFun ) )(params[4],params[3],params[2],params[1],params[0]);
+			value = ( *static_cast< FuncType5 >( funcPtr ) )(params[4],params[3],params[2],params[1],params[0]);
 			break;
 		}
 	}
@@ -1332,7 +1332,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 
 	unit.type       = ExprParse::VALUE_CONST;
 	unit.constValue.layout = ValueLayout::Real;
-	unit.constValue.toReal = value;
+	unit.constValue.asReal = value;
 	return true;
 }
 

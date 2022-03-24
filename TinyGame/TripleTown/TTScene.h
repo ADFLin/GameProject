@@ -47,13 +47,47 @@ namespace TripleTown
 	{
 		enum Type
 		{
-			eNormal , 
-			eOutline ,
-			eAddition,
-			eAdditionOutline,
-			Count,
+			Normal , 
+			Outline ,
+			Addition,
+			AdditionOutline,
+
+			COUNT,
 		};
 	}
+
+	class IAssetSerializer
+	{
+
+
+
+	};
+
+	class IAssetObject
+	{
+	public:
+		virtual void improt();
+		virtual void serialize(IAssetSerializer& serializer);
+	};
+
+	class TextureAsset : public IAssetObject
+	{
+
+
+	};
+
+	template< typename T >
+	struct TObjectPtr
+	{
+
+	};
+
+	struct SpriteComponent
+	{
+	public:
+		TObjectPtr< TextureAsset > texture;
+		Vector2 pos;
+	};
 
 
 	class Scene : public LevelListener
@@ -86,30 +120,28 @@ namespace TripleTown
 		void  render( Graphics2D& g );
 		void  renderTile( Graphics2D& g , Vec2i const& pos , ObjectId id , int meta = 0 );
 
+		void  drawQuad(Vector2 const& pos, Vector2 const& size, Vector2 const& uv1, Vector2 const& uv2);
+		void  drawQuad(Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax);
+		void  drawQuadRotateUV90(Vector2 const& pos, Vector2 const& size, Vector2 const& uv1, Vector2 const& uv2);
 
+		void  emitQuad(Vector2 const& p1, Vector2 const& p2, Vector2 const& uv1, Vector2 const& uv2);
+		void  emitQuadRotateUV90(Vector2 const& pos, Vector2 const& size, Vector2 const& uv1, Vector2 const& uv2);
 
-		void  drawQuad(float x , float y , float w , float h , float tx , float ty , float tw , float th );
-		void  drawQuad(float w , float h , float tx , float ty , float tw , float th );
-
-
-		void  emitQuad(Vector2 const& p1, Vector2 const& p2, Vector2 const& uvMin, Vector2 const& uvMax);
-		void  emitQuad(Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax);
 
 		void  drawImageInvTexY(RHITexture2D& texture, int w, int h);
 		void  drawItem(int itemId, EItemImage::Type imageType);
 		void  drawItemCenter(int itemId, EItemImage::Type imageType);
-		void  drawItemByTexId(int texId);
+		void  drawImageByTexId(int texId);
 		void  drawImageByTextId(int texId , Vector2 size );
 		
 		void  drawItemOutline(RHITexture2D& texture);
-		bool  loadImageTexFile(char const* path, int itemId, EItemImage::Type imageType);
+		bool  loadItemImageTexFile(char const* path, int itemId, EItemImage::Type imageType);
 
 		void drawTilePartImpl( int x , int y , int dir , TerrainType tId , float const (*texCoord)[2] );
 
 		bool loadTextureImageResource(char const* path, int textureId);
 		bool loadItemImageResource( struct ItemImageLoadInfo& info);
 		TilePos calcTilePos(Vec2i const& pos);
-		void  drawQuadRotateTex90(float x , float y , float w , float h , float tx , float ty , float tw , float th );
 
 		void loadPreviewTexture(char const* name);
 
@@ -124,22 +156,22 @@ namespace TripleTown
 			float   shadowScale;
 
 			bool    bTexDirty;
-			bool    bSpecial[4];
-			Vector2 texPos[4];
-			Vector2 texSize[4];
+
+			struct  
+			{
+				bool bSpecial;
+				Vector2 uv1;
+				Vector2 uv2;
+			} dirMap[4];
 		};
 		TGrid2D< TileData > mMap;
 		Level*     mLevel;
 
+
+		RenderTransform2D mMapTileToScreen;
+
 		Vec2i      mMapOffset;
 		Vec2i      mLastMousePos;
-
-
-		struct CompactRect
-		{
-			Vector2 offset;
-			Vector2 size;
-		};
 
 		TilePos    mRemovePos[ 36 ];
 		int        mNumPosRemove;
@@ -151,14 +183,32 @@ namespace TripleTown
 		Tweener    mTweener; 
 		float      mItemScale;
 
-		RHITexture2DRef mTexMap[64];
+		struct CompactRect
+		{
+			Vector2 offset;
+			Vector2 size;
+		};
+
+		struct UVBound
+		{
+			Vector2 min;
+			Vector2 max;
+		};
+
+		struct TexImageInfo
+		{
+			UVBound atlasUV;
+			RHITexture2DRef tex;
+		};
+		std::vector<TexImageInfo> mTexMap;
 
 		struct ItemImageInfo
 		{
 			CompactRect     rect;
-			RHITexture2DRef texture;
+			UVBound         atlasUV;
+			RHITexture2DRef tex;
 		};
-		ItemImageInfo    mItemImageMap[NUM_OBJ][EItemImage::Count];
+		ItemImageInfo    mItemImageMap[NUM_OBJ][EItemImage::COUNT];
 
 
 		RHITexture2DRef mPreviewTexture;
@@ -177,13 +227,17 @@ namespace TripleTown
 		//ImageTexture    mTexItemMap[ NUM_OBJ ][ 2 ];
 
 		//LevelListener
-		virtual void postSetupLand() override;
-		virtual void postSetupMap() override;
-		virtual void notifyObjectAdded(TilePos const& pos, ObjectId id) override;
-		virtual void notifyObjectRemoved(TilePos const& pos, ObjectId id) override;
-		virtual void notifyActorMoved(ObjectId id, TilePos const& posFrom, TilePos const& posTo) override;
-
+		void postSetupLand() override;
+		void postSetupMap() override;
+		void notifyObjectAdded(TilePos const& pos, ObjectId id) override;
+		void notifyObjectRemoved(TilePos const& pos, ObjectId id) override;
+		void notifyObjectMerged(){}
+		void notifyActorMoved(ObjectId id, TilePos const& posFrom, TilePos const& posTo) override;
+		void notifyWorldRestore() override;
+		//
 		void markTileDirty(TilePos const& pos);
+
+
 
 	};
 

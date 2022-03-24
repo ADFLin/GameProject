@@ -5,12 +5,13 @@
 #include "RHICommon.h"
 #include "CoreShare.h"
 #include "SystemPlatform.h"
-
+#include "ModuleInterface.h"
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #endif
 #include "TemplateMisc.h"
+
 
 class DataCacheInterface;
 struct ImageData;
@@ -155,6 +156,9 @@ namespace Render
 	RHI_API void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
 	RHI_API void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	RHI_API void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
+
+	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
+	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
 
 	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
@@ -376,6 +380,9 @@ namespace Render
 		RHI_FUNC(void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
 		RHI_FUNC(void  RHIUnlockBuffer(RHIIndexBuffer* buffer));
 
+		RHI_FUNC(void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData));
+		RHI_FUNC(void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData));
+
 		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
 		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));
 
@@ -497,8 +504,40 @@ namespace Render
 	};
 
 
+	class RHISystemFactory
+	{
+	public:
+		virtual ~RHISystemFactory() {}
+		virtual RHISystem* createRHISystem(RHISystemName name) = 0;
+	};
 
+	CORE_API void RHIRegisterSystem(RHISystemName name, RHISystemFactory* factory);
+	CORE_API void RHIUnregisterSystem(RHISystemName name);
 
+	template<RHISystemName SystemName, typename TSystem >
+	class TRHISystemModule : public IModuleInterface
+		                   , public RHISystemFactory
+	{
+	public:
+		void startupModule() override
+		{
+			RHIRegisterSystem(SystemName, this);
+		}
+
+		void shutdownModule() override
+		{
+			RHIUnregisterSystem(SystemName);
+		}
+
+		RHISystem* createRHISystem(RHISystemName name) override
+		{
+			return new TSystem();
+		}
+	};
+
+#define EXPORT_RHI_SYSTEM_MODULE( SYSTEM_NAME , SYSTEM )\
+	using SYSTE##Module = TRHISystemModule<SYSTEM_NAME,SYSTEM >;\
+	EXPORT_MODULE(SYSTE##Module)
 
 }//namespace Render
 

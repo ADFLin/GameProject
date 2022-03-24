@@ -1,5 +1,7 @@
 #include "MD5.h"
 
+#include "Core/Memory.h"
+
 /* MD5
 converted to C++ class by Frank Thilo (thilo@unix-ag.org)
 for bzflag (http://www.bzflag.org)
@@ -32,14 +34,8 @@ documentation and/or software.
 
 */
 
-/* interface header */
-#include "MD5.h"
-
 /* system implementation headers */
 #include <cstdio>
-
-
-
 
 ///////////////////////////////////////////////
 
@@ -298,7 +294,7 @@ void MD5::update(uint8 const input[], size_type length)
 	if( length >= firstpart )
 	{
 		// fill buffer first, transform
-		memcpy(&buffer[index], input, firstpart);
+		FMemory::Copy(&buffer[index], input, firstpart);
 		transform(buffer);
 
 		// transform chunks of blocksize (64 bytes)
@@ -311,7 +307,7 @@ void MD5::update(uint8 const input[], size_type length)
 		i = 0;
 
 	// buffer remaining input
-	memcpy(&buffer[index], &input[i], length - i);
+	FMemory::Copy(&buffer[index], &input[i], length - i);
 }
 
 //////////////////////////////

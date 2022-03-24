@@ -195,7 +195,7 @@ namespace Render
 	
 	DEFINE_DATA_MAP(CompareFuncMapInfoD3D11, GCompareFuncMapD3D11, COMPAREFUNC_OP_LIST_D3D11);
 #if _DEBUG
-	STATIC_CHECK_DATA_MAP(CompareFuncMapVaild, GCompareFuncMapD3D11, src);
+	STATIC_CHECK_DATA_MAP(CompareFuncMapValid, GCompareFuncMapD3D11, src);
 #endif
 	D3D11_COMPARISON_FUNC D3D11Translate::To(ECompareFunc func)
 	{

@@ -51,6 +51,7 @@ public:
 #endif
 	}
 	FORCEINLINE TInlineString(StdString const& str) { assign(str.c_str(), str.length()); }
+	FORCEINLINE TInlineString(TStringView<T> const& str) { assign(str.data(), str.length()); }
 
 	FORCEINLINE TInlineString& operator = (CharT const* str) { assign(str); return *this; }
 	FORCEINLINE TInlineString& operator = (TInlineString< CHAR_COUNT, CharT > const& other)
@@ -96,13 +97,13 @@ public:
 	}
 	FORCEINLINE TInlineString& operator += (StdString const& str)
 	{ 
-#if INLINE_STRING_USE_LENGTH_MEMBER
-		FCString::Cat(mData + mLength, str.c_str());
-		mLength += str.length();
-#else
-		FCString::Cat(mData, str.c_str());
-#endif
+		append(str.c_str(), str.length());
 		return *this; 
+	}
+	FORCEINLINE TInlineString& operator += (TStringView<CharT> const& str)
+	{
+		append(str.data(), str.length());
+		return *this;
 	}
 
 	FORCEINLINE bool  empty() const 
@@ -123,6 +124,18 @@ public:
 		mLength = num;
 #endif
 	}
+
+	FORCEINLINE void append(CharT const* str, int num)
+	{
+#if INLINE_STRING_USE_LENGTH_MEMBER
+		FCString::CopyN_Unsafe(mData + mLength, str, num);
+		mLength += num;
+		mData[mLength] = 0;
+#else
+		FCString::CatN(mData, str, num);
+#endif
+	}
+
 	FORCEINLINE void  clear()
 	{ 
 		mData[0] = 0;
@@ -184,7 +197,7 @@ public:
 		return str;
 	}
 private:
-	
+
 	template< int M , class Q >
 	friend class TInlineString;
 #if INLINE_STRING_USE_LENGTH_MEMBER

@@ -3,6 +3,8 @@
 #define TypeConstruct_H_CF8B1CE1_FBAC_450E_B932_B8C76DF1B46A
 
 #include "Meta/MetaBase.h"
+#include "Core/Memory.h"
+
 #include <utility>
 
 class TypeDataHelper
@@ -110,7 +112,7 @@ private:
 	template< class T >
 	static void ConstructInternal(T* ptr, size_t num, T* ptrValue, Meta::TureType)
 	{
-		::memcpy(ptr, ptrValue, sizeof(T) * num);
+		FMemory::Copy(ptr, ptrValue, sizeof(T) * num);
 	}
 	template< class T >
 	static void ConstructInternal(T* ptr, size_t num, T* ptrValue, Meta::FalseType)
@@ -149,7 +151,7 @@ private:
 	template< class T >
 	static void MoveInternal(T* ptr, size_t num, T* from, Meta::TureType)
 	{
-		memcpy(ptr, from, sizeof(T)*num);
+		FMemory::Copy(ptr, from, sizeof(T)*num);
 	}
 	template< class T >
 	static void MoveInternal(T* ptr, size_t num, T* from, Meta::FalseType)

@@ -665,9 +665,6 @@ namespace Render
 					RHIUnlockBuffer(mRenderStatsBuffer.getRHI());
 				}
 
-
-
-				
 				g.beginRender();
 
 				InlineString<512> str;

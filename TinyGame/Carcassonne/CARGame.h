@@ -13,11 +13,13 @@ namespace CAR
 	public:
 		GameModule();
 		virtual ~GameModule();
-		bool  initialize() override{ return true; }
-		void  cleanup() override{}
+		void  startupModule() override {}
+		void  shutdownModule() override {}
+		void  deleteThis() override { delete this; }
+
 		void  enter() override{}
 		void  exit() override{} 
-		void  deleteThis() override{ delete this; }
+
 		//
 		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 	public:

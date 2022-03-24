@@ -322,13 +322,13 @@ namespace SR
 		Vector3 dir;
 	};
 
-	struct RayResult
+	struct RayHitResult
 	{
 		float     distance;
 		Vector3   normal;
 		Material* material;
 
-		RayResult()
+		RayHitResult()
 		{
 			distance = 0;
 			material = nullptr;
@@ -338,14 +338,14 @@ namespace SR
 	class PrimitiveShape : public RefCountedObjectT< PrimitiveShape >
 	{
 	public:
-		virtual bool raycast( RayTrace const& trace , RayResult& result ) = 0;
+		virtual bool raycast( RayTrace const& trace , RayHitResult& result ) = 0;
 	};
 
 	class SphereShape : public PrimitiveShape
 	{
 
 	public:
-		bool raycast(RayTrace const& trace, RayResult& result) override
+		bool raycast(RayTrace const& trace, RayHitResult& result) override
 		{
 			float distances[2];
 			if( !LineSphereTest(trace.pos, trace.dir, Vector3::Zero(), radius, distances) )
@@ -376,7 +376,7 @@ namespace SR
 		{
 
 		}
-		bool raycast(RayTrace const& trace, RayResult& result) override
+		bool raycast(RayTrace const& trace, RayHitResult& result) override
 		{
 			float DoN = normal.dot(trace.dir);
 			if( Math::Abs( DoN ) < 1e-5 )
@@ -448,7 +448,7 @@ namespace SR
 	class PrimitiveObject : public ObjectBase
 	{
 	public:
-		bool raycast(RayTrace const& trace, RayResult& result)
+		bool raycast(RayTrace const& trace, RayHitResult& result)
 		{
 			RayTrace localTrace;
 			localTrace.pos = transform.transformPositionInverse(trace.pos);
@@ -502,22 +502,22 @@ namespace SR
 			mPrimitiveObjects.push_back(obj);
 		}
 
-		bool raycast(RayTrace const& trace, RayResult& result)
+		bool raycast(RayTrace const& trace, RayHitResult& outResult)
 		{
 			PrimitiveObject* hitObject = nullptr;
-			result.distance = Math::MaxFloat;
+			outResult.distance = Math::MaxFloat;
 			for( PrimitiveObject* object : mPrimitiveObjects )
 			{
-				RayResult objResult;
-				if( object->raycast(trace, objResult) )
+				RayHitResult hitResult;
+				if( object->raycast(trace, hitResult) )
 				{
-					if ( objResult.distance < 1e-4 )
+					if ( hitResult.distance < 1e-4 )
 						continue;
 
-					if( objResult.distance < result.distance )
+					if( hitResult.distance < outResult.distance )
 					{
 						hitObject = object;
-						result = objResult;
+						outResult = hitResult;
 					}
 				}
 			}

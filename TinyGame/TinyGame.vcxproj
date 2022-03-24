@@ -132,7 +132,10 @@
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
 copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
-copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
+copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -179,7 +182,11 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
 copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
-copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
+copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -225,7 +232,10 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
 copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
-copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
+copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -267,7 +277,11 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
 copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
-copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
+copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -294,10 +308,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="AngryBird\GameObject.cpp" />
     <ClCompile Include="AngryBird\HeaderPCH.cpp" />
     <ClCompile Include="Bsp2D.cpp" />
-    <ClCompile Include="FlowFree\FlowFreeGameStage.cpp" />
-    <ClCompile Include="FlowFree\FlowFreeLevel.cpp" />
-    <ClCompile Include="FlowFree\FlowFreeLevelReader.cpp" />
-    <ClCompile Include="FlowFree\FlowFreeSolver.cpp" />
     <ClCompile Include="Gomoku\GomokuCore.cpp" />
     <ClCompile Include="Gomoku\GomokuStage.cpp" />
     <ClCompile Include="Go\Bots\AQBot.cpp" />
@@ -306,15 +316,15 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Go\Bots\KataBot.cpp" />
     <ClCompile Include="Go\Bots\LeelaBot.cpp" />
     <ClCompile Include="Go\Bots\ZenBot.cpp" />
+    <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoRenderer.cpp" />
+    <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="Go\LeelaZeroGoStage.cpp" />
     <ClCompile Include="Go\MatchGame.cpp" />
     <ClCompile Include="NesEmulator.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
     </ClCompile>
-    <ClCompile Include="Go\GoCore.cpp" />
-    <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\AStarStage.cpp" />
     <ClCompile Include="Stage\CurveBuilderStage.cpp" />
@@ -324,7 +334,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\GlobalStageRegister.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
     <ClCompile Include="Stage\MiscTestStage.cpp" />
-    <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp" />
     <ClCompile Include="TinyCore\NetGameMode.cpp" />
     <ClCompile Include="TinyCore\ReplayStageMode.cpp" />
@@ -378,10 +387,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="AngryBird\HeaderPCH.h" />
     <ClInclude Include="Bsp2D.h" />
     <ClInclude Include="CellWalker.h" />
-    <ClInclude Include="FlowFree\FlowFreeGameStage.h" />
-    <ClInclude Include="FlowFree\FlowFreeLevel.h" />
-    <ClInclude Include="FlowFree\FlowFreeLevelReader.h" />
-    <ClInclude Include="FlowFree\FlowFreeSolver.h" />
     <ClInclude Include="Gomoku\GomokuCore.h" />
     <ClInclude Include="Gomoku\GomokuStage.h" />
     <ClInclude Include="Go\Bots\AQBot.h" />
@@ -392,21 +397,18 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="Go\Bots\MonitorBot.h" />
     <ClInclude Include="Go\Bots\ZenBot.h" />
     <ClInclude Include="Go\GoBot.h" />
+    <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoRenderer.h" />
+    <ClInclude Include="Go\GoStage.h" />
     <ClInclude Include="Go\LeelaZeroGoStage.h" />
     <ClInclude Include="Go\MatchGame.h" />
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
-    <ClInclude Include="Go\GoCore.h" />
-    <ClInclude Include="Go\GoStage.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stage\AgarStage.h" />
     <ClInclude Include="Stage\AStarStage.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
-    <ClInclude Include="Sudoku\SamplerTest.h" />
-    <ClInclude Include="Sudoku\SudokuSolver.h" />
-    <ClInclude Include="Sudoku\SudokuSolver.hpp" />
     <ClInclude Include="Stage\MiscTestStage.h" />
     <ClInclude Include="TinyCore\NetGameMode.h" />
     <ClInclude Include="TinyCore\ReplayStageMode.h" />
@@ -429,6 +431,12 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\TestShader\Vertex.sgc" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Engine\D3D11RHI.vcxproj">
+      <Project>{d400fd7c-3d3a-47e2-992e-f6aa70e4192b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\D3D12RHI.vcxproj">
+      <Project>{d4a8c158-1d66-4f50-bc31-ec5789098431}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\Engine\EngineCore.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>
@@ -437,6 +445,12 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </ProjectReference>
     <ProjectReference Include="..\Engine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\OpenGLRHI.vcxproj">
+      <Project>{7ec6733c-3ecd-4c69-a8dc-dc11c0ed8321}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\VulkanRHI.vcxproj">
+      <Project>{52b9b264-2b19-4211-a6f7-723ab74a0e03}</Project>
     </ProjectReference>
     <ProjectReference Include="TinyCore.vcxproj">
       <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>

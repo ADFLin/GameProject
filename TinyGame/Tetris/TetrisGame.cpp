@@ -174,10 +174,17 @@ namespace Tetris
 		return NULL;
 	}
 
+	GameModule::GameModule()
+	{
+
+	}
 
 	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
 	{
 		LogMsg( "Run Tetris!!!" );
+		if ( modeType != EGameStageMode::Net )
+			::Global::GetDrawEngine().setupSystem(this);
+
 		if( modeType == EGameStageMode::Single )
 		{
 			manger.changeStage(STAGE_GAME_MENU);
@@ -188,27 +195,21 @@ namespace Tetris
 		}
 	}
 
-	GameModule::GameModule()
+	void GameModule::endPlay()
 	{
-
+		::Global::GetDrawEngine().setupSystem(nullptr);
 	}
 
 	void GameModule::enter()
 	{
 		GetRecordManager().init();
-
-		::Global::GetDrawEngine().setupSystem(this);
-		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
 	}
 
 	void GameModule::exit()
 	{
 		GetRecordManager().saveFile( "record.dat" );
 		GetRecordManager().clear();
-
-		::Global::GetDrawEngine().setupSystem(nullptr);
 	}
-
 
 	ERenderSystem GameModule::getDefaultRenderSystem()
 	{
@@ -232,6 +233,7 @@ namespace Tetris
 	{
 
 	}
+
 
 }//namespace Tetris
 

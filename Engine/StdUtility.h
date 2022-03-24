@@ -3,6 +3,9 @@
 #define StdUtility_h__
 
 #include <algorithm>
+#include <vector>
+#include <map>
+#include <unordered_map>
 
 template< typename T, typename A >
 bool RemoveValue(std::vector< T , A >& v, T const& val)
@@ -15,6 +18,32 @@ bool RemoveValue(std::vector< T , A >& v, T const& val)
 	v.erase(iter);
 	return true;
 }
+
+template< typename K, typename V, typename C, typename A >
+bool RemoveValue(std::map< K, V, C, A >& v, K const& val)
+{
+	auto iter = v.find(val);
+
+	if (iter == v.end())
+		return false;
+
+	v.erase(iter);
+	return true;
+}
+
+
+template< typename K, typename V, typename H, typename KE, typename A >
+bool RemoveValue(std::unordered_map< K , V , H , KE , A >& v, K const& val)
+{
+	auto iter = v.find(val);
+
+	if (iter == v.end())
+		return false;
+
+	v.erase(iter);
+	return true;
+}
+
 
 template< typename T, typename A >
 void RemoveIndexSwap(std::vector< T, A >& v, int index)
@@ -164,5 +193,35 @@ template< class T >
 auto MakeIterator(T& c) { return TIterator<T>(c); }
 template< class T >
 auto MakeIterator(T const& c) { return TConstIterator<T>(c); }
+
+template< typename It , typename V >
+int FindIndex(It start, It end , V const& value )
+{
+	It cur = start;
+	while (cur != end)
+	{
+		if (*cur == value)
+			return cur - start;
+
+		++cur;
+	}
+
+	return INDEX_NONE;
+}
+
+template< typename T, typename A, typename TFunc >
+FORCEINLINE int FindIndexPred(std::vector<T, A>& v, TFunc func)
+{
+	auto start = std::begin(v);
+	auto end = std::end(v);
+	auto cur = start;
+	while (cur != end)
+	{
+		if (func(*cur))
+			return cur - start;
+		++cur;
+	}
+	return INDEX_NONE;
+}
 
 #endif // StdUtility_h__

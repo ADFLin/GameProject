@@ -3,22 +3,13 @@
 class TestWorkingModule : public IModuleInterface
 {
 public:
-	bool initialize() override
+	void startupModule() override
 	{
-		return true;
+
 	}
-	void cleanup() override
+	void shutdownModule() override
 	{
 		
-	}
-	bool isGameModule() const override
-	{
-		return false;
-	}
-
-	void deleteThis() override
-	{
-		delete this;
 	}
 };
 

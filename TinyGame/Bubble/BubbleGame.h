@@ -31,7 +31,6 @@ namespace Bubble
 		bool            queryAttribute( GameAttribute& value );
 		SettingHepler*  createSettingHelper( SettingHelperType type );
 		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
-		virtual void    deleteThis(){ delete this; }
 
 		void enter() override;
 		void exit() override;

@@ -311,6 +311,7 @@
     <ClInclude Include="Core\HalfFlot.h" />
     <ClInclude Include="Core\LockFreeList.h" />
     <ClInclude Include="Core\MD5.h" />
+    <ClInclude Include="Core\Memory.h" />
     <ClInclude Include="Core\ScopeGuard.h" />
     <ClInclude Include="Core\StringConv.h" />
     <ClInclude Include="Core\ThreadSafeCounter.h" />
@@ -364,6 +365,7 @@
     <ClInclude Include="Meta\Select.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
+    <ClInclude Include="ModuleInterface.h" />
     <ClInclude Include="ObjectHandle.h" />
     <ClInclude Include="Clock.h" />
     <ClInclude Include="MarcoCommon.h" />

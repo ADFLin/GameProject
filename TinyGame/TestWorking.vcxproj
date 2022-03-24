@@ -84,7 +84,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;../OtherLib/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -104,7 +104,7 @@
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Boost/lib/x86</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
@@ -117,7 +117,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;../OtherLib/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -135,7 +135,7 @@
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/Boost/lib/x64</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
@@ -149,7 +149,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;../OtherLib/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -169,7 +169,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Boost/lib/x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
@@ -179,7 +179,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;../OtherLib/FBX/Include;../OtherLib/glew;../OtherLib/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -198,7 +198,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/Boost/lib/x64</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
@@ -214,6 +214,9 @@
     <ProjectReference Include="..\Engine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\Engine\OpenGLRHI.vcxproj">
+      <Project>{7ec6733c-3ecd-4c69-a8dc-dc11c0ed8321}</Project>
+    </ProjectReference>
     <ProjectReference Include="TinyCore.vcxproj">
       <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -225,6 +228,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Chess\ChessCore.cpp" />
+    <ClCompile Include="FlowFree\FlowFreeGameStage.cpp" />
+    <ClCompile Include="FlowFree\FlowFreeLevel.cpp" />
+    <ClCompile Include="FlowFree\FlowFreeLevelReader.cpp" />
+    <ClCompile Include="FlowFree\FlowFreeSolver.cpp" />
     <ClCompile Include="Life\ChunkAlgo.cpp" />
     <ClCompile Include="Life\GollyFile.cpp" />
     <ClCompile Include="Life\LifeStage.cpp" />
@@ -232,6 +239,7 @@
     <ClCompile Include="StoneBlocks\SBlocksCore.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksSolver.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
+    <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
@@ -247,6 +255,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chess\ChessCore.h" />
+    <ClInclude Include="FlowFree\FlowFreeGameStage.h" />
+    <ClInclude Include="FlowFree\FlowFreeLevel.h" />
+    <ClInclude Include="FlowFree\FlowFreeLevelReader.h" />
+    <ClInclude Include="FlowFree\FlowFreeSolver.h" />
     <ClInclude Include="Life\ChunkAlgo.h" />
     <ClInclude Include="Life\GollyFile.h" />
     <ClInclude Include="Life\LifeCore.h" />
@@ -257,6 +269,9 @@
     <ClInclude Include="StoneBlocks\SBlocksSerialize.h" />
     <ClInclude Include="StoneBlocks\SBlocksSolver.h" />
     <ClInclude Include="StoneBlocks\SBlocksStage.h" />
+    <ClInclude Include="Sudoku\SamplerTest.h" />
+    <ClInclude Include="Sudoku\SudokuSolver.h" />
+    <ClInclude Include="Sudoku\SudokuSolver.hpp" />
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
     <ClInclude Include="TestRender\Stage\PerlinNoise.h" />

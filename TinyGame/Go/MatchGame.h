@@ -464,7 +464,7 @@ namespace Go
 			return (idx == 0) ? EStoneColor::Black : EStoneColor::White;
 		}
 
-		void advanceStep()
+		void notifyTurnAdvance()
 		{
 			idxPlayerTurn = 1 - idxPlayerTurn;
 		}

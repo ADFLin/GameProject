@@ -68,13 +68,11 @@ namespace Render
 		--numElementsUasge;
 	}
 
-#if CORE_SHARE_CODE
 	D3D12DescriptorHeapPool& D3D12DescriptorHeapPool::Get()
 	{
 		static D3D12DescriptorHeapPool SInstance;
 		return SInstance;
 	}
-#endif
 
 	void D3D12DescriptorHeapPool::initialize(ID3D12DeviceRHI* device)
 	{

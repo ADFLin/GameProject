@@ -8,18 +8,6 @@
 #include "RHI/ShaderProgram.h"
 #include "RHI/ShaderManager.h"
 #include "RHI/RenderContext.h"
-
-
-
-#include "RHI/D3D12Command.h"
-
-#pragma comment(lib , "D3D12.lib")
-#pragma comment(lib , "DXGI.lib")
-#pragma comment(lib , "dxguid.lib")
-
-
-#include "RHI/D3D12ShaderCommon.h"
-#include "RHI/D3D12Utility.h"
 #include "RHI/RHIGraphics2D.h"
 
 namespace Render

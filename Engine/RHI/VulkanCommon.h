@@ -39,7 +39,7 @@
 namespace Render
 {
 	class VulkanDevice;
-	extern VkAllocationCallbacks* gAllocCB;
+	extern CORE_API VkAllocationCallbacks* gAllocCB;
 
 	template< class ...FuncArgs, class ...Args >
 	FORCEINLINE static auto GetEnumValues(VkResult(VKAPI_CALL &Func)(FuncArgs...), Args... args)
@@ -773,7 +773,7 @@ namespace Render
 	};
 
 
-	struct VulkanTranslate
+	struct CORE_API VulkanTranslate
 	{
 		static VkPrimitiveTopology To(EPrimitive type, int& outPatchPointCount);
 		static VkFormat To(EVertex::Format format, bool bNormalized);

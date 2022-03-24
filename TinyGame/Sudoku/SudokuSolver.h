@@ -73,27 +73,27 @@ public:
 
 
 
-	enum Method
+	enum EMethod
 	{
-		eSolvedValue ,
-		eSingleValue ,
-		eNakedPair ,
-		eNakedTriple ,
-		eHiddenPair ,
-		eHiddenTriple ,
-		ePointing ,
-		eBoxLine ,
-		eXWing ,
-		eYWing ,
-		eSimpleColour,
-		eSwordFish ,
-		eXCycle ,
-		eXYChain ,
+		SolvedValue ,
+		SingleValue ,
+		NakedPair ,
+		NakedTriple ,
+		HiddenPair ,
+		HiddenTriple ,
+		Pointing ,
+		BoxLine ,
+		XWing ,
+		YWing ,
+		SimpleColour,
+		SwordFish ,
+		XCycle ,
+		XYChain ,
 	};
 
 	struct MethodSolveResult
 	{
-		Method   method;
+		EMethod   method;
 		Group    group;
 		int      idx;
 		unsigned numBits;
@@ -119,8 +119,8 @@ public:
 	void printSolution( int nSol ){ print( solution[nSol] ); }
 
 	//
-	bool onPrevEvalMethod( Method method, Group group, int idx, unsigned numBits ){ return true; }
-	void onPostEvalMethod( Method method, Group group, int idx, unsigned numBits ){}
+	bool onPrevEvalMethod( EMethod method, Group group, int idx, unsigned numBits ){ return true; }
+	void onPostEvalMethod( EMethod method, Group group, int idx, unsigned numBits ){}
 
 	struct RelatedCellInfo
 	{
@@ -797,7 +797,7 @@ protected:
 
 	int  generateGroupNumBitIndex( Group group , int index , unsigned numBits , int pIndex[] , int maxNum );
 
-	bool evalHiddenMethodInternal( int index , Group group , int idxGroup , int num , unsigned numBits , Method method  );
+	bool evalHiddenMethodInternal( int index , Group group , int idxGroup , int num , unsigned numBits , EMethod method  );
 
 	bool      indexCheck[ MaxIndex ];
 	unsigned  groupCheck[3];

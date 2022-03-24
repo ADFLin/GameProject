@@ -8,7 +8,6 @@
 #include <cmath>
 #include <vector>
 
-#include "RHI/OpenGLCommon.h"
 #include "RHI/RenderContext.h"
 #include "RHI/SceneRenderer.h"
 #include "FrameAllocator.h"

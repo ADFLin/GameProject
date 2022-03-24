@@ -335,7 +335,6 @@ namespace GGJ
 		void onEnd() override
 		{
 
-			//::Global::GetDrawEngine().stopOpenGL();
 		}
 
 		void onUpdate( long time ) override

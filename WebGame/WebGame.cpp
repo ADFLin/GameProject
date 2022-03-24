@@ -36,6 +36,37 @@ EM_PORT_API bool  WG_IsWebGL2Supported();
 EM_PORT_API bool  WG_LoadAndCompileShader(GLuint handle, int type, int id);
 EM_PORT_API void  WG_PrintTest(char const* a);
 
+#include "Core/IntegerType.h"
+
+struct FHtml5Time
+{
+	static double emscripten_t0;
+	static float SecondsPerCycle;
+	static double SecondsPerCycle64;
+
+	// for HTML5 - this returns the time since startup.
+	static double Seconds()
+	{
+		return (emscripten_get_now() - emscripten_t0) * 0.001;
+	}
+
+	static uint32 Cycles()
+	{
+		return (uint32)((emscripten_get_now() - emscripten_t0) * 1000.0);
+	}
+	static uint64 Cycles64()
+	{
+		return (uint64)((emscripten_get_now() - emscripten_t0) * 1000.0);
+	}
+
+	static double InitTiming()
+	{
+		emscripten_t0 = emscripten_get_now();
+		SecondsPerCycle = 1.0f / 1000000.0f;
+		SecondsPerCycle64 = 1.0 / 1000000.0;
+		return Seconds();
+	}
+};
 
 namespace EShader
 {
@@ -64,7 +95,9 @@ namespace EShader
 
 	constexpr int  MaxStorageSize = 5;
 };
-
+double FHtml5Time::emscripten_t0 = 0.0;
+float FHtml5Time::SecondsPerCycle = 0.0;
+double FHtml5Time::SecondsPerCycle64 = 0.0;
 
 class OpenGLTranslate
 {
@@ -321,11 +354,16 @@ public:
 #if 1
 		shaderProgram.initialize();
 #endif
+		ParamTime = glGetUniformLocation(shaderProgram.mHandle, "Time");
 	}
 
-	void drawTest()
+	GLint ParamTime;
+
+	void drawTest(double currentTime)
 	{
 		shaderProgram.bind();
+		glUniform1f(ParamTime, currentTime);
+
 		glBindBuffer(GL_ARRAY_BUFFER, vb);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 4, GL_FLOAT, false, 6 * sizeof(float) , (void*)0);
@@ -342,10 +380,14 @@ RenderResource resource;
 void WebGameTick()
 {
 	static int i = 0;
+	static double prevTime = FHtml5Time::Seconds();
+	
+	double currentTime = FHtml5Time::Seconds();
+
 	i = (i + 1) % 256;
 	glClearColor(1, 1, 0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
-	resource.drawTest();
+	resource.drawTest(currentTime);
 
 	//emscripten_webgl_commit_frame();
 }
@@ -354,6 +396,7 @@ void WebGameTick()
 int main()
 {
 	LogMsg("Game Start");
+	FHtml5Time::InitTiming();
 
 	bool IsWebGL2Supported = WG_IsWebGL2Supported();
 	LogMsg("IsWebGL2Supported = %s", IsWebGL2Supported ? "true" : "false");

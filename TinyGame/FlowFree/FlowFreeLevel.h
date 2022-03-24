@@ -3,11 +3,14 @@
 #define FlowFreeLevel_H_E6A7EB14_BFE9_4FFE_B10C_2E1493A9CC34
 
 #include "DataStructure/Grid2D.h"
+#include "Math/TVector2.h"
 
 #include <vector>
 
 namespace FlowFree
 {
+	using Vec2i = TVector2<int>;
+
 	int const DirCount = 4;
 	Vec2i const gDirOffset[] = { Vec2i(1,0) , Vec2i(0,1) , Vec2i(-1,0) , Vec2i(0,-1) };
 	

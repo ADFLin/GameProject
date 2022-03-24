@@ -122,7 +122,7 @@ namespace SBlocks
 			bPiecesOrderDirty = true;
 		}
 
-		void vaildatePiecesOrder()
+		void validatePiecesOrder()
 		{
 			if (bPiecesOrderDirty)
 			{
@@ -141,7 +141,7 @@ namespace SBlocks
 
 		Piece* getPiece(Vector2 const& pos, Vector2& outHitLocalPos)
 		{
-			vaildatePiecesOrder();
+			validatePiecesOrder();
 			for (int index = mSortedPieces.size() - 1; index >= 0; --index)
 			{
 				Piece* piece = mSortedPieces[index];

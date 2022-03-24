@@ -58,7 +58,21 @@ namespace Chess
 		updateAttackTerritory();
 	}
 
-	bool Game::getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outPosList, bool bCheckAttack /*= false*/) const
+	bool Game::isValidMove(Vec2i const& from, MoveInfo const& move) const
+	{
+		std::vector< MoveInfo > moveList;
+		if (getPossibleMove(from, moveList))
+		{
+			for (auto& moveCheck : moveList)
+			{
+				if (moveCheck == move)
+					return true;
+			}
+		}
+		return false;
+	}
+
+	bool Game::getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outPosList) const
 	{
 		if (!mBoard.checkRange(pos.x, pos.y))
 			return false;
@@ -67,7 +81,7 @@ namespace Chess
 		ChessData const* chess = tileData.chess;
 		if (chess == nullptr)
 			return false;
-		return getPossibleMove(pos, chess->type, chess->color, chess->moveState, outPosList, bCheckAttack);
+		return getPossibleMove(pos, chess->type, chess->color, chess->moveState, outPosList, false);
 	}
 
 	bool Game::getPossibleMove(Vec2i const& pos, EChess::Type type, EChessColor color, EMoveState moveState, std::vector<MoveInfo>& outMoveList, bool bCheckAttack /*= false*/) const
@@ -89,7 +103,7 @@ namespace Chess
 				}
 				else
 				{
-					outMoveList.push_back(MoveInfo(posCheck, EMoveTag::Normal, true));
+					outMoveList.push_back(MoveInfo::WithCapture(posCheck));
 				}
 
 				return false;
@@ -229,7 +243,7 @@ namespace Chess
 					{
 						return false;
 					}
-					outMoveList.push_back(MoveInfo(posCheck, tag, false));
+					outMoveList.push_back(MoveInfo(posCheck, tag));
 					return true;
 				};
 
@@ -259,7 +273,7 @@ namespace Chess
 						return false;
 					}
 
-					outMoveList.push_back(MoveInfo(posCheck, tag, true));
+					outMoveList.push_back(MoveInfo::WithCapture(posCheck, tag, posCheck));
 					return true;
 				};
 
@@ -279,7 +293,7 @@ namespace Chess
 						data.chess->lastMoveTurn != mCurTurn - 1)
 						return false;
 
-					outMoveList.push_back(MoveInfo(posCheck + GetForwardDir(color), EMoveTag::EnPassant, true, posCheck));
+					outMoveList.push_back(MoveInfo::WithCapture(posCheck + GetForwardDir(color), EMoveTag::EnPassant, posCheck));
 					return true;
 				};
 
@@ -292,6 +306,11 @@ namespace Chess
 		return outMoveList.size() != oldSize;
 	}
 
+	Vec2i GetRookCastlingMoveToPos(Vec2i const& posKingFrom , Vec2i const& posKingTo)
+	{
+		return (posKingFrom + posKingTo) / 2;
+	}
+
 	void Game::moveChess(Vec2i const& from, MoveInfo const& move)
 	{
 		CHECK(isValidPos(from) && isValidPos(move.pos));
@@ -299,8 +318,14 @@ namespace Chess
 		TileData& fromTile = mBoard.getData(from.x, from.y);
 		TileData& toTile = mBoard.getData(move.pos.x, move.pos.y);
 
-		auto RemoveChess = [](TileData& tile)
+		TurnInfo turn;
+		turn.pos = from;
+		turn.move = move;
+		turn.chessMoved = *fromTile.chess;
+		auto RemoveChess = [&](TileData& tile)
 		{
+			turn.chessOther = *tile.chess;
+			mFreeChessList.push_back(tile.chess);
 			tile.chess = nullptr;
 		};
 
@@ -337,9 +362,11 @@ namespace Chess
 			{
 				Game::TileData& tileRook = mBoard.getData(move.posEffect.x, move.posEffect.y);
 				CHECK(tileRook.chess && tileRook.chess->type == EChess::Rook);
-				Vec2i posRookMoveTo = (from + move.pos) / 2;
+				Vec2i posRookMoveTo = GetRookCastlingMoveToPos(from, move.pos);
 				Game::TileData& tileRookMoveTo = mBoard.getData(posRookMoveTo.x, posRookMoveTo.y);
 				CHECK(tileRookMoveTo.chess == nullptr);
+
+				turn.chessOther = *tileRook.chess;
 
 				MoveTileChess(tileRook, tileRookMoveTo);
 				UpdateMovedChessState(*tileRookMoveTo.chess);
@@ -348,6 +375,7 @@ namespace Chess
 		default:
 			if ( move.bCapture )
 			{
+				CHECK(move.pos == move.posEffect);
 				RemoveChess(toTile);
 			}
 		} 
@@ -365,8 +393,67 @@ namespace Chess
 			UpdateMovedChessState(*chessMove);
 		}
 
+		mTurnHistory.push_back(turn);
 		updateAttackTerritory();
 		advanceTurn();
+	}
+
+	void Game::promotePawn(MoveInfo const& move, EChess::Type promotionType)
+	{
+		CHECK(move.tag == EMoveTag::Promotion);
+
+		TileData& tile = mBoard.getData(move.pos.x, move.pos.y);
+		CHECK(tile.chess->type == EChess::Pawn && promotionType != EChess::Pawn && promotionType != EChess::King);
+
+		tile.chess->type = promotionType;
+		mTurnHistory.back().chessMoved.type = promotionType;
+	}
+
+	void Game::undo()
+	{
+		if (mTurnHistory.empty())
+		{
+			CHECK(mCurTurn == 0);
+			return;
+		}
+
+		auto const& turn = mTurnHistory.back();
+
+		auto& tileMoved = mBoard.getData(turn.move.pos.x, turn.move.pos.y);
+		auto& tileRestore = mBoard.getData(turn.pos.x, turn.pos.y);
+
+		CHECK(tileRestore.chess == nullptr);
+		tileRestore.chess = tileMoved.chess;
+		tileMoved.chess = nullptr;
+		*tileRestore.chess = turn.chessMoved;
+
+		if (turn.move.bCapture)
+		{
+			auto chess = mFreeChessList.back();
+			mFreeChessList.pop_back();
+
+			*chess = turn.chessOther;
+
+			Vec2i posCaptured = turn.move.posEffect;
+			auto& tile = mBoard.getData(posCaptured.x, posCaptured.y);
+			tile.chess = chess;
+		}
+		else if (turn.move.tag == EMoveTag::Castling)
+		{
+			Vec2i posTileRook = GetRookCastlingMoveToPos(turn.pos, turn.move.pos);
+			auto& tileRook = mBoard.getData(posTileRook.x, posTileRook.y);
+			auto& tileRookRestore = mBoard.getData(turn.move.posEffect.x, turn.move.posEffect.y);
+			tileRookRestore.chess = tileRook.chess;
+			tileRook.chess = nullptr;
+			*tileRookRestore.chess = turn.chessOther;
+		}
+		else if (turn.move.tag == EMoveTag::Promotion)
+		{
+			tileRestore.chess->type = EChess::Pawn;
+		}
+
+		mTurnHistory.pop_back();
+		--mCurTurn;
 	}
 
 	void Game::updateAttackTerritory()
@@ -386,10 +473,11 @@ namespace Chess
 			if (tileData.chess == nullptr)
 				continue;
 
+			auto chess = tileData.chess;
 			Vec2i pos;
 			mBoard.toCoord(i, pos.x, pos.y);
 			moveList.clear();
-			getPossibleMove(pos, moveList, true);
+			getPossibleMove(pos, chess->type, chess->color, chess->moveState, moveList, true);
 
 			int indexColor = (int)tileData.chess->color;
 			for (auto const& move : moveList)

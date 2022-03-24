@@ -108,7 +108,7 @@ namespace Mine
 		int       getNeighbourNum(int cx, int cy);
 		int       getIndex(int cx, int cy) { return cx + mCellSizeX * cy; }
 		int       calcIndex(CellPos& cp) { return cp.idx = cp.x + mCellSizeX * cp.y; }
-		bool      isVaildRange(int cx, int cy)
+		bool      isValidRange(int cx, int cy)
 		{
 			return 0 <= cx  && cx < mCellSizeX &&
 				0 <= cy  && cy < mCellSizeY;

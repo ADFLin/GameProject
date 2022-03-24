@@ -872,7 +872,7 @@ namespace SR
 				trace.pos = camera.transform.location;
 				trace.dir = Math::GetNormal(lookDir + offsetX + offsetY);
 
-				RayResult result;
+				RayHitResult result;
 				if( !scene.raycast(trace, result) )
 					continue;
 				
@@ -885,7 +885,7 @@ namespace SR
 					reflectTrace.dir = Math::GetNormal(trace.dir - 2 * trace.dir.projectNormal(result.normal));
 					reflectTrace.pos = trace.pos + result.distance * trace.dir;
 
-					RayResult reflectResult;
+					RayHitResult reflectResult;
 					if( scene.raycast(reflectTrace, reflectResult) )
 					{
 						if( reflectResult.material )

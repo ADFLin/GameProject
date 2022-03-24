@@ -6,6 +6,7 @@
 #include "CARMapTile.h"
 
 #include "Core/TypeHash.h"
+#include "StdUtility.h"
 
 #include <map>
 #include <set>

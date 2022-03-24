@@ -91,7 +91,7 @@ namespace TripleTown
 		{
 			mPlayerCoins = 0;
 			mPlayerPoints = 0;
-			mLevel.setupLand(LT_STANDARD, true);
+			mLevel.setupLand(LT_DANGERUOS, false);
 		}
 		else
 		{
@@ -142,6 +142,43 @@ namespace TripleTown
 				{
 					mFileIterator.goNext();
 					mScene.loadPreviewTexture(mFileIterator.getFileName());
+				}
+				break;
+			case EKeyCode::N:
+			case EKeyCode::M:
+				{
+					ObjectId const items[] =
+					{
+						OBJ_GRASS,
+						OBJ_BUSH,
+						OBJ_TREE,
+						OBJ_HUT,
+						OBJ_HOUSE,
+						OBJ_MANSION,
+						OBJ_CASTLE,
+						OBJ_FLOATING_CASTLE,
+						OBJ_TRIPLE_CASTLE,
+					};
+
+
+					int index = FindIndex(items, items + ARRAY_SIZE(items), mLevel.getQueueObject());
+					if (index == INDEX_NONE)
+					{
+						mLevel.setQueueObject((msg.getCode() == EKeyCode::N) ? OBJ_GRASS : OBJ_TRIPLE_CASTLE );
+					}
+					else
+					{
+						if ((msg.getCode() == EKeyCode::N))
+						{
+							index = ( index - 1 + ARRAY_SIZE(items) ) % ARRAY_SIZE(items);
+						}
+						else
+						{
+							index = (index + 1) % ARRAY_SIZE(items);
+						}
+
+						mLevel.setQueueObject(items[index]);
+					}
 				}
 				break;
 			}

@@ -294,7 +294,7 @@
     <ClInclude Include="TestMisc\Stage\TMechineStage.h" />
     <ClInclude Include="TestMisc\TestMiscPCH.h" />
     <ClInclude Include="TestMisc\Test\SpatialIndexTest.h" />
-    <ClInclude Include="TripleTown\TextureId.h" />
+    <ClInclude Include="TripleTown\TTResource.h" />
     <ClInclude Include="TripleTown\TTLevel.h" />
     <ClInclude Include="TripleTown\TTScene.h" />
     <ClInclude Include="TripleTown\TTStage.h" />

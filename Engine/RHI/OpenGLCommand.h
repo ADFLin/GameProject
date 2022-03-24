@@ -404,6 +404,10 @@ namespace Render
 		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
+		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
+		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
+
+
 		//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size);
 		//void  RHIUnlockTexture(RHITextureBase* texture);
 

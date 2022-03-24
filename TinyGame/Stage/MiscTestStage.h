@@ -1696,10 +1696,7 @@ protected:
 
 namespace Net
 {
-	class TestPackage : public IGameModule
-	{
 
-	};
 	class NetEngine : public INetEngine
 	{
 	public:

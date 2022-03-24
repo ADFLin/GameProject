@@ -279,7 +279,7 @@ namespace Render
 		{
 			if (mResource != nullptr)
 			{
-				LogWarning(0, "D3D11Resource no release");
+				LogWarning(0, "D3D12Resource no release");
 			}
 		}
 
@@ -326,7 +326,7 @@ namespace Render
 #if _DEBUG
 			if (mCount != 0)
 			{
-				LogWarning(0, "D3D11Resource refcount error");
+				LogWarning(0, "D3D12Resource refcount error");
 			}
 #endif
 
@@ -337,11 +337,11 @@ namespace Render
 #if USE_RHI_RESOURCE_TRACE
 				if (mTag)
 				{
-					LogDevMsg(0, "D3D11Resource: %p %p %d %s : %s , %s", this, mResource, count, mTypeName.c_str(), mTag, mTrace.toString().c_str());
+					LogDevMsg(0, "D3D12Resource: %p %p %d %s : %s , %s", this, mResource, count, mTypeName.c_str(), mTag, mTrace.toString().c_str());
 				}
 				else
 				{
-					LogDevMsg(0, "D3D11Resource: %p %p %d %s : %s", this, mResource, count, mTypeName.c_str(), mTrace.toString().c_str());
+					LogDevMsg(0, "D3D12Resource: %p %p %d %s : %s", this, mResource, count, mTypeName.c_str(), mTrace.toString().c_str());
 				}
 #endif
 			}

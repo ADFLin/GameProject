@@ -620,8 +620,14 @@ namespace Chess
 				Vec2i result;
 				result.x = Math::FloorToInt(temp.x);
 				result.y = BOARD_SIZE - Math::FloorToInt(temp.y) - 1;
+				if (result)
+				{
+
+				}
 				return result;
 			}
+
+			return Vec2i(INDEX_NONE, INDEX_NONE);
 		}
 
 		void moveChess(Vec2i const& from, MoveInfo const& move)
@@ -646,30 +652,37 @@ namespace Chess
 			{
 				if (mGame.isValidPos(mSelectedChessPos))
 				{
-					MoveInfo const* moveUsed = nullptr;
-					for (auto const& move : mMovePosList)
+					Game::ChessData const* chessSelected = mGame.getTile(mSelectedChessPos).chess;
+					bool bCanMove = msg.isControlDown() || mGame.getCurTurnColor() == chessSelected->color;
+					if ( bCanMove )
 					{
-						if (move.pos == tPos)
+						MoveInfo const* moveUsed = nullptr;
+						for (auto const& move : mMovePosList)
 						{
-							moveUsed = &move;
-							break;
-						}
-					}
-					if (moveUsed)
-					{
-						if (moveUsed->bCapture)
-						{
-							if (moveUsed->tag == EMoveTag::EnPassant)
+							if (move.pos == tPos)
 							{
-								Game::TileData const& removeChessTile = mGame.getTile(moveUsed->posEffect);
-							}
-							else
-							{
-								Game::TileData const& removeChessTile = mGame.getTile(moveUsed->pos);
+								moveUsed = &move;
+								break;
 							}
 						}
 
-						moveChess(mSelectedChessPos, *moveUsed);
+						if (moveUsed)
+						{
+							if (moveUsed->bCapture)
+							{
+								Game::TileData const& removeChessTile = mGame.getTile(moveUsed->posEffect);
+							}
+
+							moveChess(mSelectedChessPos, *moveUsed);
+
+							if (moveUsed->tag == EMoveTag::Promotion)
+							{
+								EChess::Type promotionType = EChess::Queen;
+								//#TODO: user choice promoted chess
+
+								mGame.promotePawn(*moveUsed, promotionType);
+							}
+						}
 					}
 				}
 				else
@@ -729,6 +742,7 @@ namespace Chess
 				case EKeyCode::R: restart(); break;
 				case EKeyCode::X: bShowAttackTerritory = !bShowAttackTerritory; break;
 				case EKeyCode::V: bShow2D = !bShow2D; break;
+				case EKeyCode::U: mGame.undo(); break;
 				}
 			}
 			return BaseClass::onKey(msg);

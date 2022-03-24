@@ -1820,7 +1820,7 @@ namespace Go
 				}
 				else
 				{
-					mMatchData.advanceStep();
+					mMatchData.notifyTurnAdvance();
 
 					auto CheckRunAnalysis = [this]
 					{
@@ -1913,7 +1913,7 @@ namespace Go
 				{
 					mWinRateDataList[indexPlayer].history.pop_back();
 				}
-				mMatchData.advanceStep();
+				mMatchData.notifyTurnAdvance();
 
 				auto CheckRunAnalysis = [this]
 				{
@@ -2059,7 +2059,7 @@ namespace Go
 				if( mGame.playStone(x, y) )
 				{
 					resetTurnParam();
-					mMatchData.advanceStep();
+					mMatchData.notifyTurnAdvance();
 
 					auto CheckRunAnalysis = [this, x , y, color]
 					{
@@ -2171,13 +2171,19 @@ namespace Go
 					case LeelaGameParam::eNetWeight:
 						{	
 							mUsedWeight = StringView(com.strParam, 8);
-							int index = 0;
-							for(  ;index < ELFWeights.size(); ++index )
+
+							auto IsELFWeight = [&]()
 							{
-								if( FCString::Compare(com.strParam, ELFWeights[index]) == 0 )
-									break;
-							}
-							if( index == ELFWeights.size() )
+								int index = 0;
+								for (; index < ELFWeights.size(); ++index)
+								{
+									if (FCString::Compare(com.strParam, ELFWeights[index]) == 0)
+										return true;
+								}
+								return false;
+							};
+
+							if( !IsELFWeight() )
 							{
 								::Global::GameConfig().setKeyValue("Leela.LastNetWeight", "Go", com.strParam);
 							}

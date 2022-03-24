@@ -12,8 +12,10 @@
 
 namespace Render
 {
+	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::Vulkan, VulkanSystem);
 
 	VkAllocationCallbacks* gAllocCB = nullptr;
+
 	VKAPI_ATTR VkBool32 VKAPI_CALL DebugVKCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,

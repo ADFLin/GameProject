@@ -3,6 +3,7 @@
 #include "StringParse.h"
 #include "SystemPlatform.h"
 #include "Core/StringConv.h"
+#include "Core/Memory.h"
 
 namespace Go
 {
@@ -187,7 +188,7 @@ namespace Go
 			mNumUsed = pDataEnd - pData;
 			if (pData != mBuffer.data())
 			{
-				::memmove(mBuffer.data(), pData, mNumUsed);
+				FMemory::Move(mBuffer.data(), pData, mNumUsed);
 			}
 			mBuffer[mNumUsed] = 0;
 		}

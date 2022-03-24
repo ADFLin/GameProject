@@ -12,10 +12,10 @@ bool SudokuSolverT<T,BS>::evalSolvedValueMethod( int index , Group group , int i
 	unsigned posible = mPosibleBitsCell[index];
 	if ( isOneBitSet( posible ) )
 	{
-		if ( _this()->onPrevEvalMethod( eSolvedValue , group , index , posible ) )
+		if ( _this()->onPrevEvalMethod(EMethod::SolvedValue , group , index , posible ) )
 		{
 			fillNumber( index , posible );
-			_this()->onPostEvalMethod( eSolvedValue , group , index , posible );
+			_this()->onPostEvalMethod(EMethod::SolvedValue , group , index , posible );
 			return true;
 		}
 	}
@@ -37,10 +37,10 @@ bool SudokuSolverT<T,BS>::evalSingleValueMethod( int index , Group group , int i
 
 		if ( calcGroupNumBitCount( group , idxGroup , numBits ) == 1 )
 		{
-			if ( _this()->onPrevEvalMethod( eSingleValue , group , index , numBits ) )
+			if ( _this()->onPrevEvalMethod(EMethod::SingleValue , group , index , numBits ) )
 			{
 				fillNumber( index , numBits );
-				_this()->onPostEvalMethod( eSingleValue , group , index , numBits );
+				_this()->onPostEvalMethod(EMethod::SingleValue , group , index , numBits );
 				return true;
 			}
 		}
@@ -103,7 +103,7 @@ bool SudokuSolverT<T,BS>::evalNakedPairOrderInternal(  int index , Group group ,
 
 		if ( mPosibleBitsCell[idx1] == posible )
 		{
-			if ( _this()->onPrevEvalMethod( eNakedPair , group , index  , posible ) )
+			if ( _this()->onPrevEvalMethod(EMethod::NakedPair , group , index  , posible ) )
 			{
 				Iterator iter2;
 				for( iter2.setGroupIndex( group , idxGroup ); iter2; ++iter2 )
@@ -113,7 +113,7 @@ bool SudokuSolverT<T,BS>::evalNakedPairOrderInternal(  int index , Group group ,
 						removeNumBit( idx2 , posible );
 				}
 
-				_this()->onPostEvalMethod( eNakedPair , group , index  , posible );
+				_this()->onPostEvalMethod(EMethod::NakedPair , group , index  , posible );
 				return true;
 			}
 			break;
@@ -184,10 +184,10 @@ bool SudokuSolverT<T,BS>::evalNakedOrderInternal(  int index , Group group , int
 
 		if ( acc == 3 )
 		{
-			if ( _this()->onPrevEvalMethod( eNakedTriple , group , index  , numBits ) )
+			if ( _this()->onPrevEvalMethod(EMethod::NakedTriple , group , index  , numBits ) )
 			{
 				removeGroupNumBit( group , idxGroup , numBits , useIdx , 3 );
-				_this()->onPostEvalMethod( eNakedTriple , group , index  , numBits );
+				_this()->onPostEvalMethod(EMethod::NakedTriple , group , index  , numBits );
 				return true;
 			}
 		}
@@ -303,7 +303,7 @@ bool SudokuSolverT<T,BS>::evalNakedTripleOrderInternal(  int index , Group group
 			if ( !match )
 				continue;
 
-			if ( _this()->onPrevEvalMethod( eNakedTriple , group , index  , numBits ) )
+			if ( _this()->onPrevEvalMethod(EMethod::NakedTriple , group , index  , numBits ) )
 			{
 				Iterator iter;
 				for( iter.setGroupIndex( group , idxGroup ); iter; ++iter )
@@ -312,7 +312,7 @@ bool SudokuSolverT<T,BS>::evalNakedTripleOrderInternal(  int index , Group group
 					if ( idx != idx2 && idx != idx1 && idx != index )
 						removeNumBit( idx , numBits );
 				}
-				_this()->onPostEvalMethod( eNakedTriple , group , index  , numBits );
+				_this()->onPostEvalMethod(EMethod::NakedTriple , group , index  , numBits );
 				return true;
 			}
 		}
@@ -385,7 +385,7 @@ bool SudokuSolverT<T,BS>::evalPointingInternal( int index , int idxGroup , unsig
 	if ( lineGroup == BOX )
 		return false;
 
-	if ( _this()->onPrevEvalMethod( ePointing , BOX , index , numBits ) )
+	if ( _this()->onPrevEvalMethod(EMethod::Pointing , BOX , index , numBits ) )
 	{
 		for ( iter.setGroupIndex( lineGroup , lineAt ); iter; ++iter )
 		{
@@ -393,7 +393,7 @@ bool SudokuSolverT<T,BS>::evalPointingInternal( int index , int idxGroup , unsig
 			if ( BoxIndex( idx ) != idxGroup )
 				removeNumBit( idx ,numBits );
 		}
-		_this()->onPostEvalMethod( ePointing , BOX , index , numBits );
+		_this()->onPostEvalMethod(EMethod::Pointing , BOX , index , numBits );
 		return true;
 	}
 	return false;
@@ -433,7 +433,7 @@ bool SudokuSolverT<T,BS>::evalBoxLineMethod( int index , Group group , int idxGr
 
 		if ( checkNumInBox( COL , col , idxGroup , numBits ) )
 		{
-			if ( _this()->onPrevEvalMethod( eBoxLine , BOX , index , numBits ) )
+			if ( _this()->onPrevEvalMethod(EMethod::BoxLine , BOX , index , numBits ) )
 			{
 				Iterator iter;
 				for ( iter.setGroupIndex( BOX , idxGroup ) ; iter ; ++iter )
@@ -444,14 +444,14 @@ bool SudokuSolverT<T,BS>::evalBoxLineMethod( int index , Group group , int idxGr
 						removeNumBit(idx, numBits);
 					}
 				}
-				_this()->onPostEvalMethod( eBoxLine , BOX , index , numBits );
+				_this()->onPostEvalMethod(EMethod::BoxLine , BOX , index , numBits );
 
 				result |= true;
 			}
 		}
 		if ( checkNumInBox( ROW , row , idxGroup , numBits ) )
 		{
-			if ( _this()->onPrevEvalMethod( eBoxLine , BOX , index , numBits ) )
+			if ( _this()->onPrevEvalMethod(EMethod::BoxLine , BOX , index , numBits ) )
 			{
 				Iterator iter;
 				for ( iter.setGroupIndex( BOX , idxGroup ) ; iter ; ++iter )
@@ -462,7 +462,7 @@ bool SudokuSolverT<T,BS>::evalBoxLineMethod( int index , Group group , int idxGr
 						removeNumBit( idx ,numBits );
 					}
 				}
-				_this()->onPostEvalMethod( eBoxLine , BOX , index , numBits );
+				_this()->onPostEvalMethod(EMethod::BoxLine , BOX , index , numBits );
 
 				result |= true;
 			}
@@ -534,7 +534,7 @@ bool SudokuSolverT<T,BS>::evalXWingInternal(  int index , Group group , int idxG
 		if ( ( mPosibleBitsCell[ cIndex[0][1] ] & numBits ) &&
 			 ( mPosibleBitsCell[ cIndex[1][1] ] & numBits ) )
 		{
-			if ( _this()->onPrevEvalMethod( eXWing , group , index , numBits ) )
+			if ( _this()->onPrevEvalMethod(EMethod::XWing , group , index , numBits ) )
 			{
 				for( int i = 0 ; i < 2 ; ++i )
 				{
@@ -545,7 +545,7 @@ bool SudokuSolverT<T,BS>::evalXWingInternal(  int index , Group group , int idxG
 							removeNumBit( idx , numBits );
 					}
 				}
-				_this()->onPostEvalMethod( eXWing , group , index , numBits );
+				_this()->onPostEvalMethod(EMethod::XWing , group , index , numBits );
 				return true;
 			}
 		}
@@ -641,14 +641,14 @@ bool SudokuSolverT<T,BS>::evalSwordFishInternal(  int index , Group group , int 
 			 ( mPosibleBitsCell[ cIndex[1][2] ] & numBits ) && 
 			 ( mPosibleBitsCell[ cIndex[2][2] ] & numBits ) )
 		{
-			if ( _this()->onPrevEvalMethod( eSwordFish , group , index , numBits ) )
+			if ( _this()->onPrevEvalMethod( EMethod::SwordFish , group , index , numBits ) )
 			{
 				for( int i = 0 ; i < 3 ; ++i )
 				{
 					iter.setCellIndex( rGroup , cIndex[i][0] );
 					removeGroupNumBit( iter , numBits , cIndex[i] , 3 );
 				}
-				_this()->onPostEvalMethod( eSwordFish , group , index , numBits );
+				_this()->onPostEvalMethod(EMethod::SwordFish , group , index , numBits );
 				return true;
 			}
 		}
@@ -681,7 +681,7 @@ bool SudokuSolverT<T,BS>::evalHiddenMethod(  int index , Group group , int idxGr
 			for( int j = i + 1 ; j < num ; ++j )
 			{
 				unsigned numBits = posibleNumBit[i] | posibleNumBit[j];
-				if ( evalHiddenMethodInternal( index , group , idxGroup , 1 , numBits , eHiddenPair ) )
+				if ( evalHiddenMethodInternal( index , group , idxGroup , 1 , numBits , EMethod::HiddenPair ) )
 					return true;
 			}
 		}
@@ -696,7 +696,7 @@ bool SudokuSolverT<T,BS>::evalHiddenMethod(  int index , Group group , int idxGr
 				for( int k = j + 1 ; k < num ; ++k )
 				{
 					unsigned numBits = posibleNumBit[i] | posibleNumBit[j] | posibleNumBit[k];
-					if ( evalHiddenMethodInternal( index , group , idxGroup , 1 , numBits , eHiddenTriple ) )
+					if ( evalHiddenMethodInternal( index , group , idxGroup , 1 , numBits , EMethod::HiddenTriple ) )
 						return true;
 				}
 			}
@@ -706,7 +706,7 @@ bool SudokuSolverT<T,BS>::evalHiddenMethod(  int index , Group group , int idxGr
 }
 
 template < class T , int BS>
-bool SudokuSolverT<T,BS>::evalHiddenMethodInternal(  int index , Group group , int idxGroup , int num , unsigned numBits , Method method  )
+bool SudokuSolverT<T,BS>::evalHiddenMethodInternal(  int index , Group group , int idxGroup , int num , unsigned numBits , EMethod method  )
 {
 	int* iterator = sGroupNextIndex[ group ];
 	int count = 0;
@@ -831,7 +831,7 @@ bool SudokuSolverT<T,BS>::evalYWingInternal( int index , Group group , int idxGr
 		if ( numBits != mPosibleBitsCell[idx] )
 			continue;
 
-		if ( _this()->onPrevEvalMethod( eYWing , group , index  , mPosibleBitsCell[ index ] | removeBit  ) )
+		if ( _this()->onPrevEvalMethod(EMethod::YWing , group , index  , mPosibleBitsCell[ index ] | removeBit  ) )
 		{
 			switch( nGroup )
 			{
@@ -867,7 +867,7 @@ bool SudokuSolverT<T,BS>::evalYWingInternal( int index , Group group , int idxGr
 				}
 				break;
 			}
-			_this()->onPostEvalMethod( eYWing , group , index  , mPosibleBitsCell[ index ] | removeBit );
+			_this()->onPostEvalMethod(EMethod::YWing , group , index  , mPosibleBitsCell[ index ] | removeBit );
 			result = true;
 		}
 	}
@@ -951,10 +951,10 @@ bool SudokuSolverT<T,BS>::evalSimpleColourInternal( int index , unsigned numBits
 			{
 				if ( color[testIndex] == color[ pairIndex ] )
 				{
-					if ( _this()->onPrevEvalMethod( eSimpleColour , NO_GROUP , index , numBits ) )
+					if ( _this()->onPrevEvalMethod(EMethod::SimpleColour , NO_GROUP , index , numBits ) )
 					{
 						removeNumBit( pairIndex , numBits );
-						_this()->onPostEvalMethod( eSimpleColour , NO_GROUP , index , numBits );
+						_this()->onPostEvalMethod(EMethod::SimpleColour , NO_GROUP , index , numBits );
 						result |= true;
 					}
 				}
@@ -1000,7 +1000,7 @@ bool SudokuSolverT<T,BS>::evalSimpleColourInternal( int index , unsigned numBits
 
 	if ( removeColor )
 	{
-		if ( _this()->onPrevEvalMethod( eSimpleColour , NO_GROUP , index , numBits ) )
+		if ( _this()->onPrevEvalMethod(EMethod::SimpleColour , NO_GROUP , index , numBits ) )
 		{
 			for( int i = 0 ; i < numUsed ; ++i )
 			{
@@ -1008,7 +1008,7 @@ bool SudokuSolverT<T,BS>::evalSimpleColourInternal( int index , unsigned numBits
 				if ( color[idx] == removeColor )
 					removeNumBit( idx , numBits );
 			}
-			_this()->onPostEvalMethod( eSimpleColour , NO_GROUP , index , numBits );
+			_this()->onPostEvalMethod(EMethod::SimpleColour , NO_GROUP , index , numBits );
 			result |= true;
 		}
 	}

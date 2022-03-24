@@ -219,6 +219,9 @@
     <ProjectReference Include="..\Engine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\Engine\VulkanRHI.vcxproj">
+      <Project>{52b9b264-2b19-4211-a6f7-723ab74a0e03}</Project>
+    </ProjectReference>
     <ProjectReference Include="TinyCore.vcxproj">
       <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

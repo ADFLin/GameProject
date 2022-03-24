@@ -220,9 +220,9 @@ protected:
 #endif
 	}
 protected:
-	typedef fastdelegate::FastDelegate< void ( )> SocketFun;
-	typedef TFunctionThread< SocketFun > SocketThread;
-	TINY_API void sendUdpCom( NetSocket& socket );
+	typedef fastdelegate::FastDelegate< void ( )> SocketFunc;
+	typedef TFunctionThread< SocketFunc > SocketThread;
+	TINY_API void sendUdpCmd( NetSocket& socket );
 
 	typedef std::vector< INetStateListener* > NetMsgListenerVec;
 	INetStateListener* mNetListener;
@@ -270,14 +270,14 @@ protected:
 #endif
 
 private:
-	struct UdpCom
+	struct UdpCmd
 	{
 		NetAddress  addr;
 		size_t      dataSize;
 	};
-	typedef std::vector< UdpCom > UdpComList;
-	NET_MUTEX( mMutexUdpComList )
-	UdpComList    mUdpComList;
+	typedef std::vector< UdpCmd > UdpCmdList;
+	NET_MUTEX( mMutexUdpCmdList )
+	UdpCmdList    mUdpCmdList;
 	SocketBuffer  mUdpSendBuffer;
 #if TINY_USE_NET_THREAD
 	SocketThread  mSocketThread;

@@ -2,11 +2,14 @@
 #ifndef GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 #define GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 
+#include "ModuleInterface.h"
+
 #include "GameDefines.h"
 #include "CppVersion.h"
 #include "Serialize/DataStream.h"
 #include "MarcoCommon.h"
 #include "FastDelegate/FastDelegate.h"
+
 
 class GWidget;
 using WidgetEventCallBack = fastdelegate::FastDelegate< bool ( int , int , GWidget* ) >;
@@ -67,17 +70,6 @@ public:
 	virtual ~IGameInstance(){}
 };
 
-class IModuleInterface
-{
-public:
-	virtual ~IModuleInterface() {}
-	virtual bool initialize() { return true; }
-	virtual void cleanup() {}
-	virtual bool isGameModule() const = 0;
-
-	virtual void  deleteThis() = 0;
-};
-
 class IGameModule : public IModuleInterface
 {
 public:
@@ -104,19 +96,6 @@ public:
 	bool changeDefaultStage(StageManager& stageManager, EGameStageMode modeType);
 };
 
-using CreateModuleFun = IModuleInterface* (*)();
-
-#define CREATE_MODULE CreateModule
-#define CREATE_MODULE_STR MAKE_STRING(CREATE_MODULE)
-
-#define EXPORT_MODULE( CLASS )\
-	extern "C" DLLEXPORT IModuleInterface* CREATE_MODULE()\
-	{\
-		return new CLASS; \
-	}\
-
-#define EXPORT_GAME_MODULE( CLASS )\
-	EXPORT_MODULE(CLASS)
 
 #endif // GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 

@@ -9,8 +9,6 @@
 #include "UnitTest/TestClass.cpp"
 #include "DataStructure/ClassTree.cpp"
 
-#include "RHI/D3D12Utility.cpp"
-
 #include "RHI/RHICommon.cpp"
 #include "RHI/ShaderManager.cpp"
 #include "RHI/MaterialShader.cpp"

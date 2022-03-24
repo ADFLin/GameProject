@@ -209,7 +209,8 @@ public:
 	void move( NetSocket& socket );
 public:	// TCP
 	bool createTCP( bool beNB );
-	bool detectTCP( SocketDetector& detector , NetSelectSet* pSelectSet = nullptr );
+	bool detectTCP( SocketDetector& detector);
+	bool detectTCP(SocketDetector& detector, NetSelectSet& selectSet);
 
 	bool listen(unsigned port, int maxWaitClient);
 	bool connect( NetAddress const& addr );
@@ -224,7 +225,9 @@ public:	// TCP
 public: 	//UDP
 
 	bool createUDP();
-	bool detectUDP(SocketDetector& detector, NetSelectSet* pSelectSet = nullptr);
+	bool detectUDP(SocketDetector& detector);
+	bool detectUDP(SocketDetector& detector, NetSelectSet& selectSet);
+
 	int  recvData(char* data, size_t maxNum, sockaddr* addrInfo, int addrLength);
 	int  recvData( char* data , size_t maxNum , NetAddress& addr  )
 	{

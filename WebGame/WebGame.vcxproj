@@ -45,6 +45,9 @@ copy $(TargetDir)$(TargetName).wasm C:\web\WebGame\</Command>
       <AdditionalOptions>-s MAX_WEBGL_VERSION=2 %(AdditionalOptions)</AdditionalOptions>
       <JsLibrary>WebGameLib.js</JsLibrary>
     </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
     <PostBuildEvent>
@@ -57,6 +60,9 @@ copy $(TargetDir)$(TargetName).wasm C:\web\WebGame\</Command>
       <JsLibrary>WebGameLib.js</JsLibrary>
       <AdditionalOptions>-s MAX_WEBGL_VERSION=2 %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="WebGame.cpp" />

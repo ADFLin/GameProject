@@ -202,16 +202,16 @@ struct ConstValueInfo
 	ValueLayout layout;
 	union 
 	{
-		double toDouble;
-		float  toFloat;
-		int32  toInt32;
-		RealType toReal;
+		double   asDouble;
+		float    asFloat;
+		int32    asInt32;
+		RealType asReal;
 	};
 
 	ConstValueInfo(){}
-	ConstValueInfo(double value):layout(ValueLayout::Double), toDouble(value){}
-	ConstValueInfo(float  value):layout(ValueLayout::Float), toFloat(value) {}
-	ConstValueInfo(int32  value):layout(ValueLayout::Int32), toInt32(value) {}
+	ConstValueInfo(double value):layout(ValueLayout::Double), asDouble(value){}
+	ConstValueInfo(float  value):layout(ValueLayout::Float), asFloat(value) {}
+	ConstValueInfo(int32  value):layout(ValueLayout::Int32), asInt32(value) {}
 
 	bool operator == (ConstValueInfo const& rhs ) const
 	{
@@ -220,9 +220,9 @@ struct ConstValueInfo
 
 		switch( layout )
 		{
-		case ValueLayout::Int32:  return toInt32 == rhs.toInt32;
-		case ValueLayout::Double: return toDouble == rhs.toDouble;
-		case ValueLayout::Float:  return toFloat == rhs.toFloat;
+		case ValueLayout::Int32:  return asInt32 == rhs.asInt32;
+		case ValueLayout::Double: return asDouble == rhs.asDouble;
+		case ValueLayout::Float:  return asFloat == rhs.asFloat;
 		}
 
 		return true;
@@ -232,9 +232,9 @@ struct ConstValueInfo
 	{
 		switch( layout )
 		{
-		case ValueLayout::Int32:  return *(int32*)data == toInt32;
-		case ValueLayout::Double: return *(double*)data == toDouble;
-		case ValueLayout::Float:  return *(float*)data == toFloat;
+		case ValueLayout::Int32:  return *(int32*)data == asInt32;
+		case ValueLayout::Double: return *(double*)data == asDouble;
+		case ValueLayout::Float:  return *(float*)data == asFloat;
 		}
 		return false;
 	}
@@ -243,9 +243,9 @@ struct ConstValueInfo
 	{
 		switch( layout )
 		{
-		case ValueLayout::Int32:  *(int32*)data = toInt32;
-		case ValueLayout::Double: *(double*)data = toDouble;
-		case ValueLayout::Float:  *(float*)data = toFloat;
+		case ValueLayout::Int32:  *(int32*)data = asInt32;
+		case ValueLayout::Double: *(double*)data = asDouble;
+		case ValueLayout::Float:  *(float*)data = asFloat;
 		}
 	}
 };
@@ -276,12 +276,12 @@ struct InputInfo
 };
 
 
-using FunType0 = RealType (__cdecl *)();
-using FunType1 = RealType (__cdecl *)(RealType);
-using FunType2 = RealType (__cdecl *)(RealType,RealType);
-using FunType3 = RealType (__cdecl *)(RealType,RealType,RealType);
-using FunType4 = RealType (__cdecl *)(RealType,RealType,RealType,RealType);
-using FunType5 = RealType (__cdecl *)(RealType,RealType,RealType,RealType,RealType);
+using FuncType0 = RealType (__cdecl *)();
+using FuncType1 = RealType (__cdecl *)(RealType);
+using FuncType2 = RealType (__cdecl *)(RealType,RealType);
+using FuncType3 = RealType (__cdecl *)(RealType,RealType,RealType);
+using FuncType4 = RealType (__cdecl *)(RealType,RealType,RealType,RealType);
+using FuncType5 = RealType (__cdecl *)(RealType,RealType,RealType,RealType,RealType);
 
 class ExprParse
 {
@@ -599,7 +599,36 @@ public:
 	void   optimize();
 
 	template< class TCodeGenerator >
-	void   generateCode(TCodeGenerator& geneartor , int numInput, ValueLayout inputLayouts[]);
+	void   generateCode(TCodeGenerator& generator, int numInput, ValueLayout inputLayouts[]);
+	template< class TCodeGenerator >
+	static void  Process(TCodeGenerator& generator, Unit const& unit)
+	{
+		switch (unit.type)
+		{
+		case ExprParse::VALUE_CONST:
+			generator.codeConstValue(unit.constValue);
+			break;
+		case ExprParse::VALUE_VARIABLE:
+			generator.codeVar(unit.symbol->varValue);
+			break;
+		case ExprParse::VALUE_INPUT:
+			generator.codeInput(unit.symbol->input);
+			break;
+		default:
+			switch (unit.type & TOKEN_MASK)
+			{
+			case TOKEN_FUN:
+				generator.codeFunction(unit.symbol->func);
+				break;
+			case TOKEN_UNARY_OP:
+				generator.codeUnaryOp(unit.type);
+				break;
+			case TOKEN_BINARY_OP:
+				generator.codeBinaryOp(unit.type, unit.isReverse);
+				break;
+			}
+		}
+	}
 
 	UnitCodes const& getInfixCodes() const { return mIFCodes; }
 	UnitCodes const& getPostfixCodes() const { return mPFCodes; }
@@ -616,6 +645,47 @@ private:
 	NodeVec      mTreeNodes;
 	UnitCodes    mIFCodes;
 	UnitCodes    mPFCodes;
+
+
+	template< typename TCodeGenerator >
+	void visitTree(TCodeGenerator& geneartor)
+	{
+		if (!mTreeNodes.empty())
+		{
+			Node& root = mTreeNodes[0];
+			visitTree_R(geneartor, root.children[CN_LEFT]);
+		}
+	}
+
+	template< typename TCodeGenerator >
+	void visitTree_R(TCodeGenerator& geneartor, int idxNode)
+	{
+		if (idxNode < 0)
+		{
+			Process(geneartor, mIFCodes[LEAF_UNIT_INDEX(idxNode)]);
+			return;
+		}
+		else if (idxNode == 0)
+			return;
+
+		Node& node = mTreeNodes[idxNode];
+		Unit& unit = *node.opUnit;
+		if (unit.type == BOP_ASSIGN)
+		{
+			visitTree_R(geneartor, node.children[CN_RIGHT]);
+			visitTree_R(geneartor, node.children[CN_LEFT]);
+			Process(geneartor, unit);
+		}
+		else
+		{
+			visitTree_R(geneartor, node.children[CN_LEFT]);
+			visitTree_R(geneartor, node.children[CN_RIGHT]);
+			if (unit.type != IDT_SEPARETOR)
+			{
+				Process(geneartor, unit);
+			}
+		}
+	}
 
 	friend class ExpressionParser;
 public:
@@ -675,36 +745,10 @@ template< class TCodeGenerator >
 void ParseResult::generateCode( TCodeGenerator& generator , int numInput, ValueLayout inputLayouts[] )
 {
 	generator.codeInit(numInput , inputLayouts);
-
 	for ( Unit const& unit : mPFCodes )
 	{
-		switch( unit.type )
-		{
-		case ExprParse::VALUE_CONST:
-			generator.codeConstValue(unit.constValue);
-			break;
-		case ExprParse::VALUE_VARIABLE:
-			generator.codeVar(unit.symbol->varValue);
-			break;
-		case ExprParse::VALUE_INPUT:
-			generator.codeInput(unit.symbol->input);
-			break;
-		default:
-			switch( unit.type & TOKEN_MASK )
-			{
-			case TOKEN_FUN:
-				generator.codeFunction(unit.symbol->func);
-				break;
-			case TOKEN_UNARY_OP:
-				generator.codeUnaryOp(unit.type);
-				break;
-			case TOKEN_BINARY_OP:
-				generator.codeBinaryOp(unit.type, unit.isReverse);
-				break;
-			}
-		}
+		Process(generator, unit);
 	}
-
 	generator.codeEnd();
 }
 

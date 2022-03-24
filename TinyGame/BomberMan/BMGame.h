@@ -12,13 +12,13 @@ namespace BomberMan
 	class GameModule : public IGameModule
 	{
 	public:
-		virtual bool  initialize(){ return true; }
-		virtual void  cleanup(){}
-		virtual void  enter(){}
-		virtual void  exit(){} 
-		virtual void  deleteThis(){ delete this; }
+		void  startupModule() override {}
+		void  shutdownModule() override {}
+		void  enter() override {}
+		void  exit() override {}
+		void  deleteThis() override { delete this; }
 		//
-		virtual void beginPlay(StageManager& manger, EGameStageMode modeType) override;
+		void beginPlay(StageManager& manger, EGameStageMode modeType) override;
 	public:
 
 		virtual char const*           getName(){ return BOMBER_MAN_NAME; }

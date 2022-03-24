@@ -69,8 +69,8 @@ bool ClientWorker::update_NetThread( long time )
 
 	if (mNetSelect.select(0, 0))
 	{
-		mTcpClient.updateSocket(time, &mNetSelect);
-		mUdpClient.updateSocket(time, &mNetSelect);
+		mTcpClient.updateSocket(time, mNetSelect);
+		mUdpClient.updateSocket(time, mNetSelect);
 	}
 
 	return true;
@@ -344,7 +344,7 @@ void ClientWorker::sreachLanServer()
 void ClientWorker::notifyConnectionSend( NetConnection* con )
 {
 	assert( con == &mUdpClient );
-	sendUdpCom( mUdpClient.getSocket() );
+	sendUdpCmd( mUdpClient.getSocket() );
 }
 
 void ClientWorker::connect( char const* hostName , char const* loginName )
@@ -508,7 +508,7 @@ void SendDelayCtrl::update( long time )
 	{
 		mBufferCtrl.fillBuffer( mBuffer , size );
 		mInfoList.erase( mInfoList.begin() , iter );
-		mBuffer.removeUseData();
+		mBuffer.removeUsedData();
 	}
 }
 
@@ -580,7 +580,7 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 	if ( size )
 	{
 		mInfoList.erase( mInfoList.begin() , iter );
-		mBuffer.removeUseData();
+		mBuffer.removeUsedData();
 	}
 }
 

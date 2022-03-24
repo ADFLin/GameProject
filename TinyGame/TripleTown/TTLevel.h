@@ -91,7 +91,7 @@ namespace TripleTown
 		OT_BASIC  ,
 		OT_ACTOR ,
 		OT_TOOL ,
-		OT_FUN_LAND ,
+		OT_FUNC_LAND ,
 	};
 
 	enum ObjectState
@@ -404,12 +404,12 @@ namespace TripleTown
 			ObjectId id;
 			float    rate;
 		};
-		enum EProduceOverwriteMode
+		enum EProduceOverrideMode
 		{
 			ReplaceObject ,
 			ReplaceAll ,
 		};
-		void      setupRandProduce(EProduceOverwriteMode mode , ProduceInfo const overwriteProduces[] , int num );
+		void      setupRandProduce(EProduceOverrideMode mode , ProduceInfo const producesOverrided[] , int num );
 		ObjectId  randomObject();
 		
 
@@ -427,7 +427,7 @@ namespace TripleTown
 
 		friend class Scene;
 
-		friend class ECFunLand;
+		friend class ECFuncLand;
 		friend class ECBasicLand;
 		friend class ECActor;
 		friend class ECToolBase;

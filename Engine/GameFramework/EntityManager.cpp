@@ -1,8 +1,52 @@
 #include "EntityManager.h"
 #include "Math/Base.h"
 
+#include "MarcoCommon.h"
+
 namespace ECS
 {
+
+	static EntityManager* GManagerList[1 << 8] = {};
+
+	void EntityManager::registerToList()
+	{
+		CHECK(mIndexSlot == INDEX_NONE);
+		for (int i = 0; i < ARRAY_SIZE(GManagerList); ++i)
+		{
+			if (GManagerList[i] == nullptr)
+			{
+				mIndexSlot = i;
+				GManagerList[i] = this;
+				return;
+			}
+		}
+
+		NEVER_REACH("Entity Manager Can't Register");
+	}
+
+	void EntityManager::unregisterFromList()
+	{
+		CHECK(mIndexSlot != INDEX_NONE && GManagerList[mIndexSlot] == this);
+		GManagerList[mIndexSlot] = nullptr;
+		mIndexSlot = INDEX_NONE;
+	}
+
+	EntityManager* EntityManager::FromHandle(EntityHandle const& handle)
+	{
+		if (!handle.isNull())
+		{
+			CHECK(handle.indexManager < ARRAY_SIZE(GManagerList));
+			return GManagerList[handle.indexManager];
+		}
+
+		return nullptr;
+	}
+
+	EntityManager& EntityManager::FromHandleChecked(EntityHandle const& handle)
+	{
+		CHECK(handle.indexManager < ARRAY_SIZE(GManagerList));
+		return *GManagerList[handle.indexManager];
+	}
 
 	EntityHandle EntityManager::createEntity()
 	{
@@ -32,7 +76,7 @@ namespace ECS
 
 		auto& data = mEntityLists[indexSlot];
 		data.flags |= EEntityFlag::Used;
-		data.serialNumber = mNextSerialNumber;
+		data.handle = EntityHandle(indexSlot, mNextSerialNumber, mIndexSlot);
 
 		++mNextSerialNumber;
 		if( mNextSerialNumber == 0 )
@@ -40,18 +84,18 @@ namespace ECS
 			mNextSerialNumber = 1;
 		}
 
-		return EntityHandle(indexSlot, data.serialNumber);
+		return data.handle;
 	}
 
 	int EntityManager::getAllComponentInternal(EntityHandle const& handle, ComponentType* type, std::vector< EnitiyComponent* >& outComponents)
 	{
-		assert(isVaild(handle));
+		assert(isValid(handle));
 		int result = 0;
-		for( auto componet : mEntityLists[handle.indexSlot].components )
+		for( auto const& componetData : mEntityLists[handle.indexSlot].components )
 		{
-			if( componet->type == type )
+			if( componetData.type == type )
 			{
-				outComponents.push_back(componet);
+				outComponents.push_back(componetData.ptr);
 				++result;
 			}
 		}
@@ -60,41 +104,44 @@ namespace ECS
 
 	EnitiyComponent* EntityManager::getComponentInternal(EntityHandle const& handle, ComponentType* type)
 	{
-		assert(isVaild(handle));
-		for( auto componet : mEntityLists[handle.indexSlot].components )
+		assert(isValid(handle));
+		for(auto const& componetData : mEntityLists[handle.indexSlot].components )
 		{
-			if( componet->type == type )
-				return componet;
+			if (componetData.type == type)
+				componetData.ptr;
 		}
 		return nullptr;
 	}
 
 	EnitiyComponent* EntityManager::addComponentInternal(EntityHandle const& handle, ComponentType* type)
 	{
-		assert(isVaild(handle));
+		assert(isValid(handle));
 		EnitiyComponent* component = type->getPool()->fetchComponent();
 		if( component )
 		{
-			mEntityLists[handle.indexSlot].components.push_back(component);
+			ComponentData componentData;
+			componentData.ptr = component;
+			componentData.type = type;
+			mEntityLists[handle.indexSlot].components.push_back(componentData);
 		}
 		return component;
 	}
 
 	bool EntityManager::removeComponentInternal(EntityHandle const& handle, ComponentType* type)
 	{
-		assert(isVaild(handle));
+		assert(isValid(handle));
 		EntityData& entityData = mEntityLists[handle.indexSlot];
 		auto iter = std::find_if( 
 			entityData.components.begin() , entityData.components.end() , 
-			[type](EnitiyComponent* comp)
+			[type](auto const& componetData)
 			{
-				return comp->type == type;
+				return componetData.type == type;
 			});
 
 		if( iter == entityData.components.end() )
 			return false;
 
-		EnitiyComponent* component = *iter;
+		EnitiyComponent* component = iter->ptr;
 		entityData.components.erase(iter);
 		type->getPool()->releaseComponent(component);
 		return true;
@@ -102,7 +149,7 @@ namespace ECS
 
 	void EntityManager::destroyEntity(EntityHandle const& handle)
 	{
-		if( !isVaild(handle) )
+		if( !isValid(handle) )
 			return;
 
 		notifyEvent([handle](IEntityEventLister* listener)
@@ -123,17 +170,20 @@ namespace ECS
 		});
 	}
 
-	bool EntityManager::isVaild(EntityHandle const& handle) const
+	bool EntityManager::isValid(EntityHandle const& handle) const
 	{
+		if (handle.indexManager != mIndexSlot)
+			return false;
+
 		if( handle.indexSlot >= mEntityLists.size() )
 			return false;
 
-		return handle.serialNumber == mEntityLists[handle.indexSlot].serialNumber;
+		return handle.serialNumber == mEntityLists[handle.indexSlot].handle.serialNumber;
 	}
 
 	bool EntityManager::isPadingKill(EntityHandle const& handle) const
 	{
-		assert(isVaild(handle));
+		assert(isValid(handle));
 		return !!(mEntityLists[handle.indexSlot].flags & EEntityFlag::PaddingKill);
 	}
 

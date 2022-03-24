@@ -19,6 +19,8 @@
 
 namespace Render
 {
+	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::OpenGL, OpenGLSystem);
+
 	bool GForceInitState = false;
 	bool GbOpenglOutputDebugMessage = true;
 
@@ -375,6 +377,51 @@ namespace Render
 	void OpenGLSystem::RHIUnlockBuffer(RHIVertexBuffer* buffer)
 	{
 		OpenGLCast::To(buffer)->unlock();
+	}
+
+	void OpenGLSystem::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		auto GetFormatClientSize = [](ETexture::Format format) -> int
+		{
+			int formatSize = ETexture::GetFormatSize(format);
+			if (ETexture::GetComponentType(format) == CVT_Half)
+			{
+				formatSize *= 2;
+			}
+			return formatSize;
+		};
+		int formatSize = GetFormatClientSize(format);
+		int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
+		outData.resize(dataSize);
+
+		OpenGLCast::To(&texture)->bind();
+		glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[0]);
+		OpenGLCast::To(&texture)->unbind();
+	}
+
+	void OpenGLSystem::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		auto GetFormatClientSize = [](ETexture::Format format)
+		{
+			int formatSize = ETexture::GetFormatSize(format);
+			if (ETexture::GetComponentType(format) == CVT_Half)
+			{
+				formatSize *= 2;
+			}
+			return formatSize;
+		};
+
+		int formatSize = GetFormatClientSize(format);
+		int textureSize = Math::Max(texture.getSize() >> level, 1);
+		int faceDataSize = textureSize * textureSize * formatSize;
+		outData.resize(ETexture::FaceCount * faceDataSize);
+
+		OpenGLCast::To(&texture)->bind();
+		for (int i = 0; i < ETexture::FaceCount; ++i)
+		{
+			glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*i]);
+		}
+		OpenGLCast::To(&texture)->unbind();
 	}
 
 	//void* OpenGLSystem::RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size)
@@ -1283,7 +1330,7 @@ namespace Render
 		{
 			do
 			{
-
+#define OPENGL_USE_NEW_BIND_TEXTURE 1
 				uint32 dirtyBit = FBitUtility::ExtractTrailingBit(mSimplerSlotDirtyMask);
 				mSimplerSlotDirtyMask &= ~dirtyBit;
 				int index = FBitUtility::ToIndex32(dirtyBit);
@@ -1296,8 +1343,12 @@ namespace Render
 				}
 				else
 				{
+#if OPENGL_USE_NEW_BIND_TEXTURE
+					glBindTextureUnit(index, state.textureHandle);
+#else
 					glActiveTexture(GL_TEXTURE0 + index);
 					glBindTexture(state.typeEnum, state.textureHandle);
+#endif
 					glBindSampler(index, state.samplerHandle);
 				}
 				glProgramUniform1i(state.shaderHandle, state.loc, index);
@@ -1305,7 +1356,11 @@ namespace Render
 			} 
 			while (mSimplerSlotDirtyMask);
 
+#if OPENGL_USE_NEW_BIND_TEXTURE
+
+#else
 			glActiveTexture(GL_TEXTURE0);
+#endif
 		}
 	}
 

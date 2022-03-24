@@ -336,7 +336,7 @@ namespace Render
 		void setDepth( RHITexture2D& target );
 		void removeDepth();
 
-		void blitToBackBuffer(int index = 0);
+		CORE_API void blitToBackBuffer(int index = 0);
 
 		
 		struct BufferInfo

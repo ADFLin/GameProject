@@ -1,5 +1,8 @@
-#ifndef Clock_h__
-#define Clock_h__
+#pragma once
+#ifndef Clock_H_256BC468_5264_45D9_A4CE_7B0E125DDC69
+#define Clock_H_256BC468_5264_45D9_A4CE_7B0E125DDC69
+
+#include "PlatformConfig.h"
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
@@ -34,7 +37,4 @@ private:
 
 };
 
-
-
-
-#endif // Clock_h__
+#endif // Clock_H_256BC468_5264_45D9_A4CE_7B0E125DDC69

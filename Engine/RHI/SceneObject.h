@@ -5,7 +5,6 @@
 #include "Renderer/Mesh.h"
 
 #include "LazyObject.h"
-#include "OpenGLCommon.h"
 #include "Scene.h"
 
 namespace Render

@@ -4,18 +4,6 @@
     <Filter Include="RHI">
       <UniqueIdentifier>{a98209cf-e602-4602-9a8d-647fb1638152}</UniqueIdentifier>
     </Filter>
-    <Filter Include="RHI\OpenGL">
-      <UniqueIdentifier>{a84d06d0-aca9-40f3-95a4-dfee286a30da}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RHI\D3D11">
-      <UniqueIdentifier>{93d8d9c8-8ff7-4f27-b612-b8fc81e49bef}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RHI\D3D12">
-      <UniqueIdentifier>{32c11dda-8a97-4070-b891-2d589c5d3c73}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RHI\Vulkan">
-      <UniqueIdentifier>{a869bdb1-aeb7-4f4b-a7bb-b0cf88e2e463}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Renderer">
       <UniqueIdentifier>{94fe69b5-0e42-431b-949f-1dc3383d89e3}</UniqueIdentifier>
     </Filter>
@@ -39,6 +27,9 @@
     </Filter>
     <Filter Include="OtherLib\Simplygon">
       <UniqueIdentifier>{6a5043f0-eb48-4f4e-92ef-471041b410c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RHI\D3D">
+      <UniqueIdentifier>{a37205ca-027a-47ea-a41f-6c3ed531befd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -107,48 +98,6 @@
     </ClCompile>
     <ClCompile Include="RHI\VertexFactory.cpp">
       <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\OpenGLCommon.cpp">
-      <Filter>RHI\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\OpenGLCommand.cpp">
-      <Filter>RHI\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\OpenGLShaderCommon.cpp">
-      <Filter>RHI\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D11Command.cpp">
-      <Filter>RHI\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D11Common.cpp">
-      <Filter>RHI\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D11ShaderCommon.cpp">
-      <Filter>RHI\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D12Command.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D12Common.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D12ShaderCommon.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3D12Utility.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\D3DSharedCommon.cpp">
-      <Filter>RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\VulkanCommand.cpp">
-      <Filter>RHI\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\VulkanCommon.cpp">
-      <Filter>RHI\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\VulkanShaderCommon.cpp">
-      <Filter>RHI\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Renderer\BasePassRendering.cpp">
       <Filter>Renderer</Filter>
@@ -233,6 +182,9 @@
     </ClCompile>
     <ClCompile Include="..\OtherLib\Simplygon\SimplygonSDKLoader.cpp">
       <Filter>OtherLib\Simplygon</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3DSharedCommon.cpp">
+      <Filter>RHI\D3D</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -323,48 +275,6 @@
     <ClInclude Include="RHI\VertexFactory.h">
       <Filter>RHI</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\OpenGLCommon.h">
-      <Filter>RHI\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\OpenGLCommand.h">
-      <Filter>RHI\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\OpenGLShaderCommon.h">
-      <Filter>RHI\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D11Command.h">
-      <Filter>RHI\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D11Common.h">
-      <Filter>RHI\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D11ShaderCommon.h">
-      <Filter>RHI\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12Command.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12Common.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12ShaderCommon.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3D12Utility.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\D3DSharedCommon.h">
-      <Filter>RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\VulkanCommand.h">
-      <Filter>RHI\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\VulkanCommon.h">
-      <Filter>RHI\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\VulkanShaderCommon.h">
-      <Filter>RHI\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="Renderer\BasePassRendering.h">
       <Filter>Renderer</Filter>
     </ClInclude>
@@ -446,11 +356,11 @@
     <ClInclude Include="..\OtherLib\Simplygon\SimplygonSDKLoader.h">
       <Filter>OtherLib\Simplygon</Filter>
     </ClInclude>
+    <ClInclude Include="RHI\D3DSharedCommon.h">
+      <Filter>RHI\D3D</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="RHI\VulkanDevice.h">
-      <Filter>RHI\Vulkan</Filter>
-    </Text>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">
       <Filter>OtherLib\NvTriStrip</Filter>
     </Text>

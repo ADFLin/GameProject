@@ -459,15 +459,19 @@ template < class CharT >
 CharT const* TFileUtility< CharT >::GetFileName(CharT const* filePath)
 {
 	CharT const* pos = FCString::Strrchr(filePath, STRING_LITERAL(CharT, '\\'));
-	if (pos == nullptr)
+	if (pos != nullptr)
 	{
-		pos = FCString::Strrchr(filePath, STRING_LITERAL(CharT, '/'));
-		if (pos == nullptr)
-			return filePath;
+		filePath = pos + 1;
 	}
-	return pos + 1;
-}
+		
+	pos = FCString::Strrchr(filePath, STRING_LITERAL(CharT, '/'));
+	if (pos != nullptr)
+	{
+		filePath = pos + 1;
+	}
 
+	return filePath;
+}
 
 template < class CharT >
 TStringView<CharT> TFileUtility<CharT>::GetDirectory(CharT const* filePath)

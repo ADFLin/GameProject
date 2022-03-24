@@ -8,11 +8,6 @@
 #include "DataCacheInterface.h"
 #include "ProfileSystem.h"
 
-//#TODO : remove
-#include "RHI/D3D11Command.h"
-#include "RHI/OpenGLCommon.h"
-
-
 namespace Render
 {
 	class EquirectangularToCubeProgram : public GlobalShaderProgram
@@ -224,54 +219,12 @@ namespace Render
 
 	void IBLResource::ReadTextureData(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
 	{
-		int formatSize = GetFormatClientSize(format);
-		int textureSize = Math::Max(texture.getSize() >> level, 1);
-		int faceDataSize = textureSize * textureSize * formatSize;
-		outData.resize(ETexture::FaceCount * faceDataSize);
-		if (GRHISystem->getName() == RHISystemName::OpenGL)
-		{
-			OpenGLCast::To(&texture)->bind();
-			for (int i = 0; i < ETexture::FaceCount; ++i)
-			{
-				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*i]);
-			}
-			OpenGLCast::To(&texture)->unbind();
-		}
-		else if ( GRHISystem->getName() == RHISystemName::D3D11 )
-		{
-			TComPtr<ID3D11Texture2D> stagingTexture;
-			static_cast<D3D11System*>(GRHISystem)->createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
-			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
-
-			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ, 0, &mappedResource);
-			memcpy(outData.data(), mappedResource.pData, outData.size());
-			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Unmap(stagingTexture, level);
-		}
+		RHIReadTexture(texture, format, level, outData);
 	}
 
 	void IBLResource::ReadTextureData(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
 	{
-		int formatSize = GetFormatClientSize(format);
-		int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
-		outData.resize(dataSize);
-		if (GRHISystem->getName() == RHISystemName::OpenGL)
-		{
-			OpenGLCast::To(&texture)->bind();
-			glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[0]);
-			OpenGLCast::To(&texture)->unbind();
-		}
-		else if (GRHISystem->getName() == RHISystemName::D3D11)
-		{
-			TComPtr<ID3D11Texture2D> stagingTexture;
-			static_cast<D3D11System*>(GRHISystem)->createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
-			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
-
-			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ, 0, &mappedResource);
-			memcpy(outData.data(), mappedResource.pData, outData.size());
-			static_cast<D3D11System*>(GRHISystem)->mDeviceContext->Unmap(stagingTexture, level);
-		}
+		RHIReadTexture(texture, format, level, outData);
 	}
 
 	bool IBLResource::initializeRHI(ImageBaseLightingData& IBLData)

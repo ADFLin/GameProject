@@ -3,22 +3,13 @@
 class TestRenderModule : public IModuleInterface
 {
 public:
-	virtual bool initialize() override
+	virtual void startupModule() override
 	{
-		return true;
+
 	}
-	virtual void cleanup() override
+	virtual void shutdownModule() override
 	{
 		
-	}
-	virtual bool isGameModule() const override
-	{
-		return false;
-	}
-
-	virtual void deleteThis() override
-	{
-		delete this;
 	}
 };
 

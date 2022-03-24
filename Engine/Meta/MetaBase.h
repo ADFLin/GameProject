@@ -99,7 +99,7 @@ namespace Meta
 
 	template< class T, class ...Args >
 	struct Or : HaveResult< T::Value || Or< Args... >::Value > {};
-}//namespace Meta
 
+}//namespace Meta
 
 #endif // MetaTemplate_h__

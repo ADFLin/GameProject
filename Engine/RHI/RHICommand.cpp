@@ -3,13 +3,6 @@
 #include "RHICommon.h"
 #include "RHIGlobalResource.h"
 
-
-//TODO: Remove
-#include "OpenGLCommand.h"
-#include "D3D11Command.h"
-#include "D3D12Command.h"
-#include "VulkanCommand.h"
-
 #include "ShaderManager.h"
 #include "GpuProfiler.h"
 
@@ -23,8 +16,6 @@
 #include "RHITraceScope.h"
 #endif
 #include "Core/HalfFlot.h"
-
-
 
 namespace Render
 {
@@ -53,57 +44,123 @@ namespace Render
 
 #define EXECUTE_RHI_FUNC( CODE ) GRHISystem->CODE
 
+#define RHI_USE_FACTORY_LIST 1
+
+#if RHI_USE_FACTORY_LIST
+	struct RHIFactoryInfo
+	{
+		RHISystemName name;
+		RHISystemFactory* factory;
+	};
+	std::vector< RHIFactoryInfo > GRHISystemFactoryList;
+
+	RHISystemFactory* RHIGetSystemFactory(RHISystemName name)
+	{
+		int index = FindIndexPred(GRHISystemFactoryList,
+			[name](auto const& info) { return info.name == name; });
+
+		if (index == INDEX_NONE)
+			return nullptr;
+
+		return GRHISystemFactoryList[index].factory;
+	}
+
+	void RHIRegisterSystem(RHISystemName name, RHISystemFactory* factory)
+	{
+#if 0
+		if (!VERIFY(RHIGetSystemFactory( name ) == nullptr))
+		{
+			LogWarning(0, "RHISystem %s is registered already !!", ToString(name));
+			return;
+		}
+#endif
+		GRHISystemFactoryList.push_back({ name , factory });
+	}
+	void RHIUnregisterSystem(RHISystemName name)
+	{
+		RemovePred(GRHISystemFactoryList, [name](auto const& info)
+		{
+			return info.name == name;
+		});
+	}
+#else
+	std::unordered_map< RHISystemName, RHISystemFactory*> GRHISystemFactoryMap;
+
+	RHISystemFactory* RHIGetSystemFactory(RHISystemName name)
+	{
+		auto iter = GRHISystemFactoryMap.find(name);
+		if (iter == GRHISystemFactoryMap.end())
+			return nullptr;
+		return iter->second;
+	}
+
+	void RHIRegisterSystem(RHISystemName name, RHISystemFactory* factory)
+	{
+		GRHISystemFactoryMap.emplace(name, factory);
+	}
+	void RHIUnregisterSystem(RHISystemName name)
+	{
+		RemoveValue(GRHISystemFactoryMap, name);
+	}
+#endif
+
 	bool RHISystemInitialize(RHISystemName name, RHISystemInitParams const& initParam)
 	{
-		if( GRHISystem == nullptr )
+		if (GRHISystem != nullptr)
 		{
-			switch( name )
-			{
-			case RHISystemName::D3D11: GRHISystem = new D3D11System; break;
-			case RHISystemName::D3D12: GRHISystem = new D3D12System; break;
-			case RHISystemName::OpenGL:GRHISystem = new OpenGLSystem; break;
-			case RHISystemName::Vulkan:GRHISystem = new VulkanSystem; break;
-			}
-
-			LogMsg("===== Init RHI System : %s ====" , ToString(name) );
-
-			GRHIDeviceVendorName = DeviceVendorName::Unknown;
-			GRHISupportRayTracing = false;
-			GRHISupportMeshShader = false;
-
-			char const* cmdLine = GetCommandLineA();
-			GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
-
-			FRHIResourceTable::Initialize();
-
-			if( GRHISystem && !GRHISystem->initialize(initParam) )
-			{
-				delete GRHISystem;
-				GRHISystem = nullptr;
-			}
-
-			if( GRHISystem )
-			{
-				ShaderFormat* shaderFormat = GRHISystem->createShaderFormat();
-				if (shaderFormat == nullptr)
-				{
-					LogError("Can't create shader format for %d system", (int)GRHISystem->getName());
-					return false;
-				}
-
-				if (!ShaderManager::Get().initialize(*shaderFormat))
-				{
-					LogError("ShaderManager can't initialize");
-					return false;
-				}
-
-
-				GlobalRenderResourceBase::RestoreAllResource();
-
-				InitGlobalRenderResource();
-			}		
+			LogWarning(0, "RHISystem is Initialized!");
+			return true;
 		}
-		
+
+		RHISystemFactory* factory = RHIGetSystemFactory(name);
+		if (factory)
+		{
+			GRHISystem = factory->createRHISystem(name);
+		}
+		else
+		{
+			LogError("RHI System %s can't found", ToString(name));
+			return false;
+		}
+
+		LogMsg("===== Init RHI System : %s ====", ToString(name));
+
+		GRHIDeviceVendorName = DeviceVendorName::Unknown;
+		GRHISupportRayTracing = false;
+		GRHISupportMeshShader = false;
+
+		char const* cmdLine = GetCommandLineA();
+		GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
+
+		FRHIResourceTable::Initialize();
+
+		if (GRHISystem && !GRHISystem->initialize(initParam))
+		{
+			delete GRHISystem;
+			GRHISystem = nullptr;
+		}
+
+		if (GRHISystem)
+		{
+			ShaderFormat* shaderFormat = GRHISystem->createShaderFormat();
+			if (shaderFormat == nullptr)
+			{
+				LogError("Can't create shader format for %d system", (int)GRHISystem->getName());
+				return false;
+			}
+
+			if (!ShaderManager::Get().initialize(*shaderFormat))
+			{
+				LogError("ShaderManager can't initialize");
+				return false;
+			}
+
+
+			GlobalRenderResourceBase::RestoreAllResource();
+
+			InitGlobalRenderResource();
+		}
+
 		return GRHISystem != nullptr;
 	}
 
@@ -140,7 +197,6 @@ namespace Render
 	{
 		EXECUTE_RHI_FUNC( RHIEndRender(bPresent) );
 	}
-
 
 	RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info)
 	{
@@ -191,6 +247,7 @@ namespace Render
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data)) );
 	}
 
+
 	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
 		return EXECUTE_RHI_FUNC(RHILockBuffer(buffer, access , offset, size));
@@ -210,6 +267,17 @@ namespace Render
 	{
 		return EXECUTE_RHI_FUNC(RHIUnlockBuffer(buffer));
 	}
+
+	void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		EXECUTE_RHI_FUNC(RHIReadTexture(texture, format, level, outData));
+	}
+
+	void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		EXECUTE_RHI_FUNC(RHIReadTexture(texture, format, level, outData));
+	}
+
 
 	//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset /*= 0*/, uint32 size /*= 0*/)
 	//{
@@ -524,12 +592,13 @@ namespace Render
 
 	bool TextureLoadOption::isRGBTextureSupported() const
 	{
-		if (GRHISystem->getName() == RHISystemName::OpenGL ||
-			GRHISystem->getName() == RHISystemName::Vulkan)
+		auto systemName = GRHISystem->getName();
+		if (systemName == RHISystemName::OpenGL ||
+			systemName == RHISystemName::Vulkan)
 			return true;
 
-		if ( GRHISystem->getName() == RHISystemName::D3D11 ||
-			 GRHISystem->getName() == RHISystemName::D3D12 )
+		if (systemName == RHISystemName::D3D11 ||
+			systemName == RHISystemName::D3D12 )
 		{
 			if (bHDR)
 			{
@@ -548,9 +617,10 @@ namespace Render
 
 	bool TextureLoadOption::isNeedConvertFloatToHalf() const
 	{
-		if (GRHISystem->getName() == RHISystemName::D3D11 ||
-			GRHISystem->getName() == RHISystemName::D3D12 ||
-			GRHISystem->getName() == RHISystemName::Vulkan)
+		auto systemName = GRHISystem->getName();
+		if (systemName == RHISystemName::D3D11 ||
+			systemName == RHISystemName::D3D12 ||
+			systemName == RHISystemName::Vulkan)
 			return true;
 
 		return false;

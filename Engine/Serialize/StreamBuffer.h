@@ -7,13 +7,11 @@
 #include "Meta/MetaBase.h"
 #include "Meta/Select.h"
 #include "Template/ArrayView.h"
+#include "Core/Memory.h"
 
 #include <exception>
-#include <memory>
 #include <cassert>
 #include <vector>
-
-
 
 class CheckPolicy
 {
@@ -74,7 +72,6 @@ struct  ThrowCheckPolicy
 };
 
 
-
 template< class CheckPolicy = AssertCheckPolicy >
 class TStreamBuffer
 {
@@ -90,16 +87,16 @@ public:
 
 	char*   getData()          const { return mData; }
 
-	size_t  getFillSize()      const { return mFillSize; }
-	size_t  getUseSize()       const { return mUseSize;  }
+	size_t  getFillSize()      const { return mSizeFilled; }
+	size_t  getUseSize()       const { return mSizeUsed;  }
 	size_t  getMaxSize()       const { return mMaxSize; }
-	size_t  getAvailableSize() const { assert( mFillSize >= mUseSize ); return mFillSize - mUseSize; }
-	size_t  getFreeSize()      const { assert( mMaxSize >= mFillSize ) ; return mMaxSize - mFillSize; }
+	size_t  getAvailableSize() const { assert( mSizeFilled >= mSizeUsed ); return mSizeFilled - mSizeUsed; }
+	size_t  getFreeSize()      const { assert( mMaxSize >= mSizeFilled ) ; return mMaxSize - mSizeFilled; }
 
 	void clear()
 	{
-		mFillSize = 0;
-		mUseSize  = 0;
+		mSizeFilled = 0;
+		mSizeUsed  = 0;
 	}
 
 	void fill( void const* ptr , size_t num )
@@ -107,8 +104,8 @@ public:
 		if ( !checkFill( num ) )
 			return;
 
-		memcpy( mData + mFillSize , ptr , num );
-		mFillSize += num;
+		FMemory::Copy( mData + mSizeFilled , ptr , num );
+		mSizeFilled += num;
 
 	}
 
@@ -117,8 +114,8 @@ public:
 		if( !checkFill(num) )
 			return;
 
-		memset(mData + mFillSize, value, num);
-		mFillSize += num;
+		memset(mData + mSizeFilled, value, num);
+		mSizeFilled += num;
 	}
 
 	void take( void* ptr , size_t num )
@@ -126,8 +123,8 @@ public:
 		if ( !checkTake( num ) )
 			return;
 
-		memcpy( ptr , mData + mUseSize , num );
-		mUseSize += num;
+		FMemory::Copy( ptr , mData + mSizeUsed , num );
+		mSizeUsed += num;
 	}
 
 	template< class ConvType , class T >
@@ -149,8 +146,8 @@ public:
 	void fill( TStreamBuffer< Q >& buffer , size_t num )
 	{
 		assert( num <= buffer.getAvailableSize() );
-		fill(  (void*)( buffer.getData() + buffer.mUseSize ) , num  );
-		buffer.mUseSize += num;
+		fill(  (void*)( buffer.getData() + buffer.mSizeUsed ) , num  );
+		buffer.mSizeUsed += num;
 	}
 
 	template < class T >
@@ -164,8 +161,8 @@ public:
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;
 
-		Strategy::Fill( mData + mFillSize , val );
-		mFillSize += sizeof( T );
+		Strategy::Fill( mData + mSizeFilled , val );
+		mSizeFilled += sizeof( T );
 	}
 
 	template < class T >
@@ -179,8 +176,8 @@ public:
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;
 
-		Strategy::Take( mData + mUseSize , val );
-		mUseSize += sizeof( T );
+		Strategy::Take( mData + mSizeUsed , val );
+		mSizeUsed += sizeof( T );
 	}
 
 	void swap( TStreamBuffer& buffer )
@@ -188,8 +185,8 @@ public:
 		using std::swap;
 		swap( mData    , buffer.mData );
 		swap( mMaxSize , buffer.mMaxSize );
-		swap( mUseSize , buffer.mUseSize );
-		swap( mFillSize, buffer.mFillSize );
+		swap( mSizeUsed , buffer.mSizeUsed );
+		swap( mSizeFilled, buffer.mSizeFilled );
 	}
 
 	template< class T >
@@ -278,56 +275,56 @@ public:
 	void copy( TStreamBuffer< Q >& buffer , size_t num )
 	{
 		assert( num <= buffer.getAvailableSize() );
-		fill(  (void*)( buffer.getData() + buffer.mUseSize ) , num );
+		fill(  (void*)( buffer.getData() + buffer.mSizeUsed ) , num );
 	}
 
 	void setUseSize( size_t size )
 	{
 		//assert( size >= 0 );
-		assert( size <= mFillSize );
-		mUseSize = size;
+		assert( size <= mSizeFilled );
+		mSizeUsed = size;
 	}
 	void setFillSize( size_t size )
 	{
-		assert( size >= mUseSize );
+		assert( size >= mSizeUsed );
 		assert( size <= mMaxSize );
-		mFillSize = size;
+		mSizeFilled = size;
 	}
 
 	void shiftUseSize( int num )
 	{
-		//assert( mUseSize + num >= 0 );
-		assert( mUseSize + num <= mFillSize );
-		mUseSize = (int)mUseSize + num;
+		//assert( mSizeUsed + num >= 0 );
+		assert( mSizeUsed + num <= mSizeFilled );
+		mSizeUsed = (int)mSizeUsed + num;
 	}
 	void shiftFillSize( int num )
 	{
-		assert( mFillSize + num >= mUseSize );
-		assert( mFillSize + num <  mMaxSize );
-		mFillSize = (int)mFillSize + num;
+		assert( mSizeFilled + num >= mSizeUsed );
+		assert( mSizeFilled + num <  mMaxSize );
+		mSizeFilled = (int)mSizeFilled + num;
 	}
 
-	void removeUseData()
+	void removeUsedData()
 	{
-		if( mUseSize == 0 )
+		if( mSizeUsed == 0 )
 			return;
 
 		size_t size = getAvailableSize();
 		char* dst = mData;
-		char* src = mData + mUseSize;
-		::memmove(dst, src, size);
-		mUseSize = 0;
-		mFillSize = size;
+		char* src = mData + mSizeUsed;
+		FMemory::Move(dst, src, size);
+		mSizeUsed = 0;
+		mSizeFilled = size;
 	}
 
 private:
 	bool checkFill( size_t num )
 	{
-		return CP::CheckFill( mData , mMaxSize , mFillSize  , num  );
+		return CP::CheckFill( mData , mMaxSize , mSizeFilled  , num  );
 	}
 	bool checkTake( size_t num )
 	{
-		return CP::CheckTake( mData , mFillSize  , mUseSize ,  num );
+		return CP::CheckTake( mData , mSizeFilled  , mSizeUsed ,  num );
 	}
 
 	struct AssignStrategy
@@ -341,9 +338,9 @@ private:
 	struct MemcpyStrategy
 	{
 		template < class T >
-		static void Fill( char* data , T const& c ){  ::memcpy( data , (char const*)&c , sizeof(c) );  }
+		static void Fill( char* data , T const& c ){ FMemory::Copy( data , (char const*)&c , sizeof(c) );  }
 		template < class T >
-		static void Take( char* data , T& c ){  ::memcpy( (char*) &c , data , sizeof(c) );  }
+		static void Take( char* data , T& c ){ FMemory::Copy( (char*) &c , data , sizeof(c) );  }
 	};
 
 protected:
@@ -358,8 +355,8 @@ protected:
 	friend class TStreamBuffer;
 	char*    mData;
 	size_t   mMaxSize;
-	size_t   mUseSize;
-	size_t   mFillSize;
+	size_t   mSizeUsed;
+	size_t   mSizeFilled;
 
 };
 

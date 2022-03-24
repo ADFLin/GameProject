@@ -155,6 +155,40 @@ public:
 	template< size_t BufferSize = 256 >
 	TCStringConvertible< BufferSize > toCString() const { return TCStringConvertible<BufferSize>(mData, mNum); }
 
+	struct CStringMutable
+	{
+		CStringMutable(TStringView const& view)
+			:mView(view)
+		{
+			if (mView.mNum == 0)
+			{
+				mPtr = STRING_LITERAL(CharT, "");
+			}
+			else
+			{
+				assert(data);
+				mOldChar = mView[mView.length()];
+				mView[mView.length()] = 0;
+				mPtr = data;
+			}
+		}
+
+		~CStringMutable()
+		{
+			if (mView.mNum)
+			{
+				mView[mView.length()] = mOldChar;
+			}
+		}
+
+		operator CharT const* () const { return mPtr; }
+
+		TStringView& mView;
+		CharT  mOldChar;
+	};
+
+	CStringMutable toMutableCString() const { return CStringMutable(*this); }
+
 	template<class Q>
 	Q toValue() const
 	{

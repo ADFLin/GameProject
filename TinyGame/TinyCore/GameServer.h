@@ -67,11 +67,17 @@ struct NetClientData : public SocketDetector
 	}
 
 
-	void updateUdpSocket(long time, NetSelectSet* pNetSelect)
+	void updateUdpSocket(long time, NetSelectSet& netSelect)
 	{
 		mTime = time;
-		udpChannel.getSocket().detectUDP(*this, pNetSelect);
+		udpChannel.getSocket().detectUDP(*this, netSelect);
 	}
+	void updateUdpSocket(long time)
+	{
+		mTime = time;
+		udpChannel.getSocket().detectUDP(*this);
+	}
+
 	volatile int32 locked;
 	SessionId    id;
 	TCPClient    tcpChannel;
@@ -169,11 +175,11 @@ public:
 	ServerClientManager();
 	~ServerClientManager();
 
-	void        updateSocket( long time , NetSelectSet* pNetSelect = nullptr );
+	void        updateSocket( long time , NetSelectSet& netSelect);
 	void        sendUdpData( long time , UdpServer& server );
 	NetClientData* findClient( NetAddress const& addr );
 	NetClientData* findClient( SessionId id );
-	NetClientData* createClient( NetSocket& socket );
+	NetClientData* createClient( NetAddress const& address, NetSocket& socket );
 
 	void        cleanup();
 

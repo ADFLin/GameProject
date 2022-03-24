@@ -16,7 +16,6 @@
 #include "Renderer/MeshBuild.h"
 
 #include "FileSystem.h"
-#include "RHI/OpenGLCommon.h"
 #include "ConsoleSystem.h"
 
 namespace Bloxorz

@@ -9,8 +9,6 @@ class QuadAssaultModule : public IGameModule
 {
 
 public:
-	virtual void deleteThis() override;
-
 
 	virtual char const* getName() override;
 

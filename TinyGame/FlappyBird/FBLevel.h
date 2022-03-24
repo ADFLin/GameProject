@@ -4,7 +4,6 @@
 
 #include "Math/Math2D.h"
 #include "Delegate.h"
-#include "StdUtility.h"
 
 #include <list>
 

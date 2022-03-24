@@ -1,10 +1,14 @@
 #include "TinyGamePCH.h"
 #include "GameModuleManager.h"
 #include "GameControl.h"
-#include "WindowsHeader.h"
 
 #include "FileSystem.h"
+#include "Core/ScopeGuard.h"
 
+#if SYS_PLATFORM_WIN
+#include "WindowsHeader.h"
+#endif
+#include "StringParse.h"
 
 bool GameModuleManager::registerModule( IModuleInterface* module , char const* moduleName 
 #if SYS_PLATFORM_WIN
@@ -24,9 +28,6 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* m
 	if( findModule(registerName) )
 		return false;
 
-	if( !module->initialize() )
-		return false;
-
 	bool bInserted = mNameToModuleMap.insert(std::make_pair(registerName, module)).second;
 	assert(bInserted);
 	mModuleDataList.push_back(
@@ -36,7 +37,7 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* m
 #endif
 		});
 
-	LogMsg("Module Registered : %s", registerName);
+	module->startupModule();
 
 	if( gameModule )
 	{
@@ -57,7 +58,7 @@ void GameModuleManager::cleanupModuleInstances()
 
 	visitInternal([](ModuleData& info) ->bool
 	{
-		info.instance->cleanup();
+		info.instance->shutdownModule();
 		info.instance->deleteThis();
 		info.instance = nullptr;
 		return true;
@@ -158,34 +159,6 @@ GameModuleManager::~GameModuleManager()
 	cleanupModuleInstances();
 }
 
-
-template< class T , class Policy >
-class TScopeRelease
-{
-public:
-	TScopeRelease(T& object)
-		:mObject(&object)
-	{
-
-	}
-
-	~TScopeRelease()
-	{
-		if( mObject )
-		{
-			Policy::Release(*mObject);
-		}
-	}
-
-	void release()
-	{
-		mObject = nullptr;
-	}
-	T* mObject;
-};
-
-
-
 bool GameModuleManager::loadModule( char const* path )
 {
 #if SYS_PLATFORM_WIN
@@ -209,39 +182,80 @@ bool GameModuleManager::loadModule( char const* path )
 		::LocalFree(lpMsgBuf);
 		return false;
 	}
-	struct ModouleReleasePolicy
+
+	ON_SCOPE_EXIT
 	{
-		static void Release(HMODULE handle) { ::FreeLibrary(handle); }
+		if (hModule)
+		{
+			::FreeLibrary(hModule);
+		}
 	};
 
-	TScopeRelease< HMODULE, ModouleReleasePolicy > scopeRelease( hModule );
 	char const* funName = CREATE_MODULE_STR;
-	auto createFun = (CreateModuleFun)GetProcAddress(hModule, CREATE_MODULE_STR);
+	auto createFunc = (CreateModuleFunc)GetProcAddress(hModule, CREATE_MODULE_STR);
 #else
-
-	CreateModuleFun createFun = nullptr;
+	CreateModuleFunc createFunc = nullptr;
 #endif 
-	if( !createFun )
+	if( !createFunc )
 		return false;
 
-	IModuleInterface* module = (*createFun)();
+	IModuleInterface* module = (*createFunc)();
 	if( !module )
 		return false;
 
 	StringView loadName = FFileUtility::GetBaseFileName(path);
-	if( !registerModule( module , loadName.toCString() 
+	if (registerModule(module, loadName.toCString()
 #if SYS_PLATFORM_WIN
-						, hModule 
+		, hModule
 #endif
-	) )
+	))
+	{
+
+	}
+	else
 	{
 		module->deleteThis();
 		return false;
 	}
 
 #if SYS_PLATFORM_WIN
-	scopeRelease.release();
+	hModule = NULL;
 #endif
+
+	LogMsg("Module Loaded: %s", (char const*)loadName.toCString());
+	return true;
+}
+
+bool GameModuleManager::loadModulesFromFile(char const* path)
+{
+	std::vector< uint8 > buffer;
+	if (!FFileUtility::LoadToBuffer(path, buffer, true, false))
+	{
+		LogWarning(0 , "Can't Load Module File : %s", path);
+		return false;
+	}
+
+	StringView moduleDir = FFileUtility::GetDirectory(path);
+	char const* text = (char const*)buffer.data();
+	bool result = true;
+	for (;;)
+	{
+		StringView moduleName = FStringParse::StringTokenLine(text);
+		if (moduleName.size() == 0)
+			break;
+
+		if (moduleDir.size())
+		{
+			InlineString<MAX_PATH + 1> path = moduleDir;
+			path += "/";
+			path += moduleName;
+			result |= loadModule(path);
+		}
+		else
+		{
+			result |= loadModule(moduleName.toCString());
+		}
+	}
 
 	return true;
 }

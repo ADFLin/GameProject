@@ -146,8 +146,10 @@ namespace Render
 		auto* node = mHelper.getNode(id);
 		if (node == nullptr)
 			return false;
+
 		auto const& rect = node->rect;
-		return IntVector2(rect.w, rect.h);
+		outSize = IntVector2(rect.w, rect.h);
+		return true;
 	}
 
 	IntVector2 TextureAtlas::getRectSizeChecked(int id) const

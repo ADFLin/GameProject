@@ -37,9 +37,14 @@ void NetConnection::close()
 	mSocket.close();
 }
 
-void NetConnection::updateSocket( long time , NetSelectSet* pNetSelect )
+void NetConnection::updateSocket( long time)
 {
-	doUpdateSocket( time , pNetSelect);
+	doUpdateSocket(time);
+}
+
+void NetConnection::updateSocket(long time, NetSelectSet& netSelect)
+{
+	doUpdateSocket(time, netSelect);
 }
 
 bool NetConnection::checkConnectStatus( long time )
@@ -548,7 +553,7 @@ void UdpChain::refrushReliableData( unsigned outgoing )
 	{
 		mInfoList.erase( mInfoList.begin() , iter );
 		mBufferRel.shiftUseSize( endPos );
-		mBufferRel.removeUseData();
+		mBufferRel.removeUsedData();
 		checkBuffer( mBufferRel.getData() , (int)mBufferRel.getFillSize() );
 	}
 }

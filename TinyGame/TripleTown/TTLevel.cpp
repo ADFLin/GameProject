@@ -37,10 +37,10 @@ namespace TripleTown
 	};
 
 
-	class ECFunLand : public ObjectClass
+	class ECFuncLand : public ObjectClass
 	{
 	public:
-		ECFunLand():ObjectClass( OT_FUN_LAND ){}
+		ECFuncLand():ObjectClass( OT_FUNC_LAND ){}
 		void setup( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			assert( tile.id == OBJ_NULL && !tile.haveActor() );
@@ -449,7 +449,7 @@ namespace TripleTown
 		ECToolBase():ObjectClass( OT_TOOL ){}
 	};
 
-	class ECStoreHouse : public ECFunLand
+	class ECStoreHouse : public ECFuncLand
 	{
 	public:
 		void play( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
@@ -647,11 +647,11 @@ namespace TripleTown
 			{
 				{ OBJ_GRASS , 100 } ,
 			};
-			setupRandProduce( EProduceOverwriteMode::ReplaceAll , infoTest, ARRAY_SIZE(infoTest));
+			setupRandProduce( EProduceOverrideMode::ReplaceAll , infoTest, ARRAY_SIZE(infoTest));
 		}
 		else
 		{
-			setupRandProduce( EProduceOverwriteMode::ReplaceObject , pInfo, numInfo);
+			setupRandProduce( EProduceOverrideMode::ReplaceObject , pInfo, numInfo);
 		}
 		restart();
 		getListener().postSetupLand();
@@ -694,6 +694,8 @@ namespace TripleTown
 			break;
 		}
 		resetObjectQueue();
+
+		getListener().notifyWorldRestore();
 	}
 
 	void Level::setTerrain( TilePos const& pos , TerrainType type )
@@ -706,17 +708,17 @@ namespace TripleTown
 			--mNumEmptyTile;
 	}
 
-	void Level::setupRandProduce(EProduceOverwriteMode mode, ProduceInfo const overwriteProduces[] , int num )
+	void Level::setupRandProduce(EProduceOverrideMode mode, ProduceInfo const producesOverrided[] , int num )
 	{
-		if( mode == EProduceOverwriteMode::ReplaceAll )
+		if( mode == EProduceOverrideMode::ReplaceAll )
 		{
 			mNumRandProduces = num;
-			std::copy(overwriteProduces, overwriteProduces + num, mRandProduceMap);
+			std::copy(producesOverrided, producesOverrided + num, mRandProduceMap);
 		}
-		else if ( mode == EProduceOverwriteMode::ReplaceObject )
+		else if ( mode == EProduceOverrideMode::ReplaceObject )
 		{
 			ProduceInfo temp[NUM_OBJ];
-			std::copy(overwriteProduces, overwriteProduces + num, temp);
+			std::copy(producesOverrided, producesOverrided + num, temp);
 			std::sort(temp, temp + num, [](Level::ProduceInfo const& p1, Level::ProduceInfo const& p2)
 			{
 				return p1.id < p2.id;
@@ -810,7 +812,7 @@ namespace TripleTown
 	void Level::addObject( TilePos const& pos , ObjectId id , bool bInit )
 	{
 		assert( GetInfo( id ).typeClass->getType() == OT_BASIC ||
-			    GetInfo( id ).typeClass->getType() == OT_FUN_LAND ||
+			    GetInfo( id ).typeClass->getType() == OT_FUNC_LAND ||
 			    GetInfo( id ).typeClass->getType() == OT_ACTOR );
 
 		assert( isMapRange( pos ) );
@@ -883,13 +885,11 @@ namespace TripleTown
 		ECActor* actorClass = ECActor::FromId( e.id );
 		actorClass->evalState( *this , e );
 
-
 		return true;
 	}
 
 	int Level::peekObject( TilePos const& pos , ObjectId id , TilePos posRemove[] )
 	{
-
 		if ( !isMapRange( pos ) )
 			return 0;
 
@@ -967,9 +967,9 @@ namespace TripleTown
 
 			TilePos nPos = getNeighborPos( pos , dir );
 
-
 			if ( !isMapRange( nPos ) )
 				continue;
+			
 			Tile& tileCon = getTile( nPos );
 			if ( tileCon.id != id )
 				continue;
@@ -1440,8 +1440,8 @@ namespace TripleTown
 		OBJINFO( OBJ_MOUNTAIN        , MKS_PTR( ECBasicLand )    , 0, 3 ,     1000, OBJ_LARGE_CHEST )
 
 		OBJINFO( OBJ_STOREHOUSE      , MKS_PTR( ECStoreHouse )   , 0 , 0 , 0, OBJ_NULL )
-		OBJINFO( OBJ_CRATE           , MKS_PTR( ECFunLand )      , 0 , 0 , 0, OBJ_NULL )
-		OBJINFO( OBJ_TIME_MACHINE    , MKS_PTR( ECFunLand )      , 0 , 0 , 0, OBJ_NULL )
+		OBJINFO( OBJ_CRATE           , MKS_PTR( ECFuncLand )      , 0 , 0 , 0, OBJ_NULL )
+		OBJINFO( OBJ_TIME_MACHINE    , MKS_PTR( ECFuncLand )      , 0 , 0 , 0, OBJ_NULL )
 
 		OBJINFO( OBJ_BEAR            , MKS_PTR( ECBear )         , 15 , 0 , 0, OBJ_TOMBSTONE )
 		OBJINFO( OBJ_NINJA           , MKS_PTR( ECNinja )        , 2.5 , 0 , 0, OBJ_TOMBSTONE )

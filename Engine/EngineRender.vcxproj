@@ -55,13 +55,6 @@
     <ClCompile Include="Renderer\SceneLighting.cpp" />
     <ClCompile Include="Renderer\SceneView.cpp" />
     <ClCompile Include="Renderer\ShadowDepthRendering.cpp" />
-    <ClCompile Include="RHI\D3D11Command.cpp" />
-    <ClCompile Include="RHI\D3D11Common.cpp" />
-    <ClCompile Include="RHI\D3D11ShaderCommon.cpp" />
-    <ClCompile Include="RHI\D3D12Command.cpp" />
-    <ClCompile Include="RHI\D3D12Common.cpp" />
-    <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
-    <ClCompile Include="RHI\D3D12Utility.cpp" />
     <ClCompile Include="RHI\D3DSharedCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
@@ -69,9 +62,6 @@
     <ClCompile Include="RHI\LazyObject.cpp" />
     <ClCompile Include="RHI\Material.cpp" />
     <ClCompile Include="RHI\MaterialShader.cpp" />
-    <ClCompile Include="RHI\OpenGLCommand.cpp" />
-    <ClCompile Include="RHI\OpenGLCommon.cpp" />
-    <ClCompile Include="RHI\OpenGLShaderCommon.cpp" />
     <ClCompile Include="RHI\PrimitiveBatch.cpp" />
     <ClCompile Include="RHI\RenderContext.cpp" />
     <ClCompile Include="RHI\RHICommand.cpp" />
@@ -88,9 +78,6 @@
     <ClCompile Include="RHI\ShaderProgram.cpp" />
     <ClCompile Include="RHI\TextureAtlas.cpp" />
     <ClCompile Include="RHI\VertexFactory.cpp" />
-    <ClCompile Include="RHI\VulkanCommand.cpp" />
-    <ClCompile Include="RHI\VulkanCommon.cpp" />
-    <ClCompile Include="RHI\VulkanShaderCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\DirectXSamples\D3D12MeshletGenerator.h" />
@@ -120,13 +107,6 @@
     <ClInclude Include="Renderer\SceneView.h" />
     <ClInclude Include="Renderer\ShadowDepthRendering.h" />
     <ClInclude Include="Renderer\SimpleCamera.h" />
-    <ClInclude Include="RHI\D3D11Command.h" />
-    <ClInclude Include="RHI\D3D11Common.h" />
-    <ClInclude Include="RHI\D3D11ShaderCommon.h" />
-    <ClInclude Include="RHI\D3D12Command.h" />
-    <ClInclude Include="RHI\D3D12Common.h" />
-    <ClInclude Include="RHI\D3D12ShaderCommon.h" />
-    <ClInclude Include="RHI\D3D12Utility.h" />
     <ClInclude Include="RHI\D3DSharedCommon.h" />
     <ClInclude Include="RHI\DrawUtility.h" />
     <ClInclude Include="RHI\Font.h" />
@@ -136,9 +116,6 @@
     <ClInclude Include="RHI\LazyObject.h" />
     <ClInclude Include="RHI\Material.h" />
     <ClInclude Include="RHI\MaterialShader.h" />
-    <ClInclude Include="RHI\OpenGLCommand.h" />
-    <ClInclude Include="RHI\OpenGLCommon.h" />
-    <ClInclude Include="RHI\OpenGLShaderCommon.h" />
     <ClInclude Include="RHI\PrimitiveBatch.h" />
     <ClInclude Include="RHI\RenderContext.h" />
     <ClInclude Include="RHI\RHICommand.h" />
@@ -160,11 +137,7 @@
     <ClInclude Include="RHI\SimpleRenderState.h" />
     <ClInclude Include="RHI\TextureAtlas.h" />
     <ClInclude Include="RHI\VertexFactory.h" />
-    <ClInclude Include="RHI\VulkanCommand.h" />
-    <ClInclude Include="RHI\VulkanCommon.h" />
     <Text Include="..\OtherLib\NvTriStrip\README.txt" />
-    <Text Include="RHI\VulkanDevice.h" />
-    <ClInclude Include="RHI\VulkanShaderCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="EngineCore.vcxproj">

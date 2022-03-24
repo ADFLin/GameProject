@@ -10,6 +10,7 @@
 #include "LogSystem.h"
 
 #include "Core/ScopeGuard.h"
+#include "Core/Memory.h"
 #include "DataStructure/KDTree.h"
 #include "Math/PrimitiveTest.h"
 #include "AsyncWork.h"
@@ -24,6 +25,8 @@
 #include <fstream>
 #include <algorithm>
 
+
+#define DF_BUILD_USE_KDTREE 1
 
 namespace
 {
@@ -136,7 +139,7 @@ namespace Render
 
 	bool MeshUtility::BuildDistanceField(VertexElementReader const& positionReader, int numVertices, uint32* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
 	{
-#define USE_KDTREE 1
+
 		Vector3 boundMin;
 		Vector3 boundMax;
 		CalcAABB(positionReader, numVertices, boundMin, boundMax);
@@ -153,7 +156,7 @@ namespace Render
 		Vector3 gridLength = (boundSize).div(Vector3(gridSize.x, gridSize.y, gridSize.z));
 		outResult.volumeData.resize(gridSize.x * gridSize.y * gridSize.z);
 
-#if USE_KDTREE
+#if DF_BUILD_USE_KDTREE
 		using MyTree = TKDTree<3>;
 		MyTree tree;
 		{
@@ -192,7 +195,7 @@ namespace Render
 					int indexCell = gridSize.x * (gridSize.y * nz + ny) + nx;
 					Vector3 p = minCellPos + Vector3(nx, ny, nz).mul(gridLength);
 
-#if USE_KDTREE
+#if DF_BUILD_USE_KDTREE
 					int count = 0;
 					float side = 1.0;
 					auto DistFunc = [&](MyTree::PrimitiveData const& data, Vector3 const& pos, float minDistSqr)
@@ -532,7 +535,7 @@ namespace Render
 			{
 				NvTriStrip::PrimitiveGroup& group = groups[i];
 				assert(group.type == NvTriStrip::PT_LIST);
-				memcpy(pData, group.indices, group.numIndices * sizeof(uint32));
+				FMemory::Copy(pData, group.indices, group.numIndices * sizeof(uint32));
 				pData += group.numIndices;
 			}
 		}
@@ -1204,8 +1207,8 @@ namespace Render
 
 		for (auto const& meshLit : meshletList)
 		{
-			std::memcpy(vertDest, meshLit.uniqueVertexIndices.data(), meshLit.uniqueVertexIndices.size() * sizeof(IndexType));
-			std::memcpy(primDest, meshLit.primitiveIndices.data(), meshLit.primitiveIndices.size() * sizeof(uint32));
+			FMemory::Copy(vertDest, meshLit.uniqueVertexIndices.data(), meshLit.uniqueVertexIndices.size() * sizeof(IndexType));
+			FMemory::Copy(primDest, meshLit.primitiveIndices.data(), meshLit.primitiveIndices.size() * sizeof(uint32));
 
 			vertDest += meshLit.uniqueVertexIndices.size();
 			primDest += meshLit.primitiveIndices.size();
@@ -1733,6 +1736,7 @@ namespace Render
 					dest += 3;
 					src += 1;
 				}
+				return &outConvertBuffer[0];
 			}
 			break;
 		case EPrimitive::TriangleAdjacency:
@@ -1751,6 +1755,7 @@ namespace Render
 					dest += 3;
 					src += 6;
 				}
+				return &outConvertBuffer[0];
 			}
 			break;
 		case EPrimitive::TriangleFan:
@@ -1774,6 +1779,7 @@ namespace Render
 					dest += 3;
 					src += 1;
 				}
+				return &outConvertBuffer[0];
 			}
 			break;
 		case EPrimitive::Quad:

@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <corecrt_io.h>
+#include "Core/Memory.h"
 
 WORD  gSockVersion = MAKEWORD(1,1);
 
@@ -202,15 +203,10 @@ bool NetSocket::accept( NetSocket& clientSocket , sockaddr* addr , int addrLengt
 }
 
 
-bool NetSocket::detectTCP( SocketDetector& detector , NetSelectSet *pSelectSet )
+bool NetSocket::detectTCP( SocketDetector& detector)
 {
 	if ( mState == SKS_CLOSE )
 		return false;
-
-	if (pSelectSet)
-	{
-		return detectTCPInternal(detector, *pSelectSet);
-	}
 
 	NetSelectSet selectSet;
 	selectSet.addSocket(*this);
@@ -220,10 +216,17 @@ bool NetSocket::detectTCP( SocketDetector& detector , NetSelectSet *pSelectSet )
 	return detectTCPInternal(detector , selectSet);
 }
 
-bool NetSocket::detectTCPInternal(SocketDetector& detector, NetSelectSet& selectSet)
+bool NetSocket::detectTCP(SocketDetector& detector, NetSelectSet& selectSet)
 {
 	if (mState == SKS_CLOSE)
 		return false;
+
+	return detectTCPInternal(detector, selectSet);
+}
+
+bool NetSocket::detectTCPInternal(SocketDetector& detector, NetSelectSet& selectSet)
+{
+	assert(mState != SKS_CLOSE);
 
 	SOCKET hSocket = getHandle();
 	switch (mState)
@@ -291,17 +294,10 @@ bool NetSocket::detectTCPInternal(SocketDetector& detector, NetSelectSet& select
 	return true;
 }
 
-bool NetSocket::detectUDP( SocketDetector& detector , NetSelectSet* pSelectSet)
+bool NetSocket::detectUDP( SocketDetector& detector)
 {
 	if ( mState == SKS_CLOSE )
 		return false;
-
-	assert( mState == SKS_UDP || mState == SKS_CONNECTED_UDP );
-
-	if (pSelectSet)
-	{
-		return detectUDPInternal(detector, *pSelectSet);
-	}
 
 	NetSelectSet selectSet;
 	selectSet.addSocket(*this);
@@ -312,8 +308,18 @@ bool NetSocket::detectUDP( SocketDetector& detector , NetSelectSet* pSelectSet)
 
 }
 
+bool NetSocket::detectUDP(SocketDetector& detector, NetSelectSet& selectSet)
+{
+	if (mState == SKS_CLOSE)
+		return false;
+
+	return detectUDPInternal(detector, selectSet);
+}
+
 bool NetSocket::detectUDPInternal(SocketDetector& detector , NetSelectSet& selectSet)
 {
+	assert(mState == SKS_UDP || mState == SKS_CONNECTED_UDP);
+
 	SOCKET hSocket = getHandle();
 
 	if (selectSet.canRead(*this))
@@ -361,9 +367,11 @@ bool NetSocket::StartupSystem()
 	if ( bNetSocketSystemInitialized )
 		return true;
 
+#if SYS_PLATFORM_WIN
 	WSADATA wsaData;
 	if ( WSAStartup( gSockVersion , &wsaData ) != NET_INIT_OK )
 		return false;
+#endif
 
 
 	bNetSocketSystemInitialized  = true;
@@ -374,7 +382,9 @@ void NetSocket::ShutdownSystem()
 {
 	if ( bNetSocketSystemInitialized )
 	{
+#if SYS_PLATFORM_WIN
 		WSACleanup();
+#endif
 		bNetSocketSystemInitialized = false;
 	}
 }
@@ -386,7 +396,9 @@ bool NetSocket::IsInitialized()
 
 int NetSocket::getLastError()
 {
+#if SYS_PLATFORM_WIN
 	return WSAGetLastError();
+#endif
 }
 
 void NetSocket::move( NetSocket& socket )
@@ -416,7 +428,7 @@ bool NetAddress::setInternet( char const* addrName , unsigned port )
 	mAddr.sin_addr.s_addr = *( ( unsigned long*) host->h_addr );
 	mAddr.sin_port = htons( port );
 
-	ZeroMemory( mAddr.sin_zero , 8 );
+	FMemory::Zero( mAddr.sin_zero , 8 );
 	return true;
 }
 
@@ -426,7 +438,7 @@ void NetAddress::setBroadcast( unsigned port )
 	mAddr.sin_addr.s_addr = INADDR_BROADCAST;
 	mAddr.sin_port = htons( port );
 
-	ZeroMemory( mAddr.sin_zero , 8 );
+	FMemory::Zero( mAddr.sin_zero , 8 );
 }
 
 void NetSelectSet::clear()

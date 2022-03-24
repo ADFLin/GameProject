@@ -1233,7 +1233,7 @@ namespace CPP
 			}
 			else
 			{
-			LineStringViewCode codeView(marco->expr);
+				LineStringViewCode codeView(marco->expr);
 				if (!expandMarcoInternal(codeView, outText, outResult))
 				{
 					return false;

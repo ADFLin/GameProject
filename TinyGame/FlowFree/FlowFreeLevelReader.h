@@ -6,6 +6,8 @@
 
 namespace FlowFree
 {
+	using Vec2i = TVector2<int>;
+
 	using namespace Render;
 
 	class Level;

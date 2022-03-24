@@ -45,6 +45,7 @@
 
 #include <iostream>
 #include "Hardware/GPUDeviceQuery.h"
+#include "StringParse.h"
 
 
 
@@ -351,17 +352,27 @@ bool TinyGameApp::initializeGame()
 {
 	TIME_SCOPE("Game Initialize");
 
-	{
-		TIME_SCOPE("Engine Initialize");
-		EngineInitialize();
-	}
-
 	RedirectStdIO();
 
 	gLogPrinter.addChannel(LOG_DEV);
 	gLogPrinter.addChannel(LOG_MSG);
 	gLogPrinter.addChannel(LOG_WARNING);
 	gLogPrinter.addChannel(LOG_ERROR);
+
+#if SYS_PLATFORM_WIN
+	{
+		InlineString<MAX_PATH + 1> moduleDir;
+		::GetModuleFileNameA(NULL, moduleDir.data(), moduleDir.max_size());
+		moduleDir = FFileUtility::GetDirectory(moduleDir);
+		//LogMsg("Exec Path = %s", moduleDir.c_str());
+		::SetCurrentDirectoryA(moduleDir);
+	}
+#endif
+
+	{
+		TIME_SCOPE("Engine Initialize");
+		EngineInitialize();
+	}
 
 	LogMsg("OS Loc = %s", SystemPlatform::GetUserLocaleName().c_str());
 	{
@@ -558,26 +569,30 @@ void TinyGameApp::handleGameRender()
 
 void TinyGameApp::loadModules()
 {
-	FileIterator fileIter;
-
-	InlineString<MAX_PATH + 1> dir;
+	InlineString<MAX_PATH + 1> moduleDir;
 #if _DEBUG
-	GetCurrentDirectory(
-		dir.max_size(),
-		dir.data()
+	GetCurrentDirectoryA(
+		moduleDir.max_size(),
+		moduleDir.data()
 	);
-	if (FFileSystem::FindFiles(dir, ".dll", fileIter))
 #else
-	
-	::GetModuleFileName(NULL, dir.data(), dir.max_size());
-	if (FFileSystem::FindFiles(FFileUtility::GetDirectory(dir).toCString(), ".dll", fileIter))
+	::GetModuleFileNameA(NULL, moduleDir.data(), moduleDir.max_size());
+	moduleDir = FFileUtility::GetDirectory(moduleDir);
 #endif
+
+	if (!Global::ModuleManager().loadModulesFromFile("TinyGame.module"))
+	{
+
+	}
+
+	FileIterator fileIter;
+	if (FFileSystem::FindFiles(moduleDir, ".dll", fileIter))
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{
 			char const* fileName = fileIter.getFileName();
-			if ( FCString::CompareN( fileName, "Game" , 4 ) != 0 &&
-				 FCString::CompareN( fileName, "Test", 4) != 0  )
+			if ( FCString::CompareN(fileName, "Game", 4 ) != 0 &&
+				 FCString::CompareN(fileName, "Test", 4) != 0 )
 				continue;
 #if _DEBUG
 			if ( fileName[ FCString::Strlen( fileName ) - 5 ] != 'D' )
@@ -601,7 +616,6 @@ void TinyGameApp::closeNetwork()
 		mNetWorker = nullptr;
 	}
 }
-
 
 ServerWorker* TinyGameApp::createServer()
 {

@@ -104,13 +104,13 @@ public:
 	void          recvData( NetBufferOperator& bufCtrl , int len , NetAddress* addr );
 	void          close();
 
-	void          updateSocket( long time , NetSelectSet* pNetSelect = nullptr  );
-	
+	void          updateSocket(long time);
+	void          updateSocket(long time, NetSelectSet& netSelect);
 protected:
 
 	bool checkConnectStatus( long time );
-	virtual void  doUpdateSocket( long time , NetSelectSet* pNetSelect){}
-
+	virtual bool  doUpdateSocket(long time) = 0;
+	virtual bool  doUpdateSocket(long time, NetSelectSet& netSelect) = 0;
 	//SocketDetector
 	virtual void onReadable( NetSocket& socket , int len ){ assert(0); }
 	virtual void onSendable( NetSocket& socket ){ assert(0); }
@@ -138,10 +138,11 @@ public:
 	bool sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress* csaddr );
 	bool readPacket( SocketBuffer& buffer , uint32& readSize );
 
-private:
-	UdpChain( UdpChain const& );
-	UdpChain& operator = ( UdpChain const& );
 
+	UdpChain( UdpChain const& ) = delete;
+	UdpChain& operator = ( UdpChain const& ) = delete;
+
+private:
 	void refrushReliableData( unsigned outgoing );
 	
 	struct DataInfo
@@ -175,7 +176,8 @@ class UdpConnection : public NetConnection
 public:
 	UdpConnection( int recvSize );
 
-	void doUpdateSocket( long time, NetSelectSet* pNetSelect){  mSocket.detectUDP( *this , pNetSelect);  }
+	bool doUpdateSocket(long time){ return mSocket.detectUDP(*this);  }
+	bool doUpdateSocket(long time, NetSelectSet& netSelect) { return mSocket.detectUDP(*this, netSelect); }
 	void onReadable( NetSocket& socket , int len );
 
 protected:
@@ -187,7 +189,8 @@ class TcpConnection : public NetConnection
 public:
 	TcpConnection(){}
 	bool isConnected(){ return mSocket.getState() == SKS_CONNECTED; }
-	void doUpdateSocket( long time, NetSelectSet* pNetSelect){  mSocket.detectTCP( *this , pNetSelect);  }
+	bool doUpdateSocket(long time) { return mSocket.detectTCP(*this); }
+	bool doUpdateSocket(long time, NetSelectSet& netSelect) { return mSocket.detectTCP(*this, netSelect); }
 	void onExcept( NetSocket& socket ){ resolveExcept(); }
 };
 
@@ -224,11 +227,17 @@ public:
 	UdpClient();
 	void initialize();
 	void setServerAddr( char const* addrName , unsigned port );
-	void doUpdateSocket( long time , NetSelectSet* pNetSelect)
+	bool doUpdateSocket( long time)
 	{
 		mNetTime = time;
-		UdpConnection::doUpdateSocket( time , pNetSelect );
+		return UdpConnection::doUpdateSocket( time );
 	}
+	bool doUpdateSocket(long time, NetSelectSet& netSelect)
+	{
+		mNetTime = time;
+		return UdpConnection::doUpdateSocket(time, netSelect);
+	}
+
 	void onSendable( NetSocket& socket );
 	void onReadable( NetSocket& socket , int len );
 	NetAddress const& getServerAddress(){ return mServerAddr; }

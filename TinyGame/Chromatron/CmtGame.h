@@ -11,8 +11,8 @@ namespace Chromatron
 	class GameModule : public IGameModule
 	{
 	public:
-		bool  initialize() override{ return true; }
-		void  cleanup() override{}
+		void  startupModule() override {}
+		void  shutdownModule() override {}
 		void  enter() override{}
 		void  exit() override{} 
 		void  deleteThis() override{ delete this; }

@@ -390,18 +390,10 @@ public:
 		return *this;
 	}
 
-	class ReadOp
+	class OpBase
 	{
 	public:
-		enum { IsLoading = 1, IsSaving = 0 };
-		ReadOp(IStreamSerializer& s) :serializer(s) {}
-		typedef ReadOp ThisOp;
-		template< class T >
-		ThisOp& operator & (T& value) { serializer >> value; return *this; }
-		template< class T >
-		ThisOp& operator << (T& value) { return *this; }
-		template< class T >
-		ThisOp& operator >> (T& value) { serializer >> value; return *this; }
+		OpBase(IStreamSerializer& s) :serializer(s) {}
 
 		int32 version(HashString name = EName::None) { return serializer.getVersion(name); }
 		void  redirectVersion(HashString from, HashString to) { serializer.redirectVersion(from, to); }
@@ -409,23 +401,36 @@ public:
 		IStreamSerializer& serializer;
 	};
 
-	class WriteOp
+	class ReadOp : public OpBase
+	{
+	public:
+		enum { IsLoading = 1, IsSaving = 0 };
+		typedef ReadOp ThisOp;
+
+		ReadOp(IStreamSerializer& s) :OpBase(s) {}
+
+		template< class T >
+		ThisOp& operator & (T& value) { serializer >> value; return *this; }
+		template< class T >
+		ThisOp& operator << (T& value) { return *this; }
+		template< class T >
+		ThisOp& operator >> (T& value) { serializer >> value; return *this; }
+	};
+
+	class WriteOp : public OpBase
 	{
 	public:
 		enum { IsLoading = 0, IsSaving = 1 };
 		typedef WriteOp ThisOp;
-		WriteOp(IStreamSerializer& s) :serializer(s) {}
+		
+		WriteOp(IStreamSerializer& s) :OpBase(s) {}
+
 		template< class T >
 		ThisOp& operator & (T const& value) { serializer << value; return *this; }
 		template< class T >
 		ThisOp& operator << (T const& value) { serializer << value; return *this; }
 		template< class T >
 		ThisOp& operator >> (T const& value) { return *this; }
-
-		int32 version(HashString name = EName::None ) { return serializer.getVersion(name); }
-		void  redirectVersion(HashString from, HashString to) { serializer.redirectVersion(from, to); }
-
-		IStreamSerializer& serializer;
 	};
 };
 

@@ -9,8 +9,11 @@
 #include "RHITraceScope.h"
 #endif
 
+
+
 namespace Render
 {
+	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D11, D3D11System);
 
 #define RESULT_FAILED( hr ) ( hr ) != S_OK
 	class D3D11ProfileCore : public RHIProfileCore
@@ -464,6 +467,51 @@ namespace Render
 	void D3D11System::RHIUnlockBuffer(RHIVertexBuffer* buffer)
 	{
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
+	}
+
+	void D3D11System::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		auto GetFormatClientSize = [](ETexture::Format format) -> int
+		{
+			int formatSize = ETexture::GetFormatSize(format);
+			return formatSize;
+		};
+		int formatSize = GetFormatClientSize(format);
+		int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
+		outData.resize(dataSize);
+
+		TComPtr<ID3D11Texture2D> stagingTexture;
+		createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
+		mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ, 0, &mappedResource);
+		memcpy(outData.data(), mappedResource.pData, outData.size());
+		mDeviceContext->Unmap(stagingTexture, level);
+	}
+
+	void D3D11System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	{
+		auto GetFormatClientSize = [](ETexture::Format format) -> int
+		{
+			int formatSize = ETexture::GetFormatSize(format);
+			return formatSize;
+		};
+
+
+		int formatSize = GetFormatClientSize(format);
+		int textureSize = Math::Max(texture.getSize() >> level, 1);
+		int faceDataSize = textureSize * textureSize * formatSize;
+		outData.resize(ETexture::FaceCount * faceDataSize);
+
+		TComPtr<ID3D11Texture2D> stagingTexture;
+		createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
+		mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ, 0, &mappedResource);
+		memcpy(outData.data(), mappedResource.pData, outData.size());
+		mDeviceContext->Unmap(stagingTexture, level);
 	}
 
 	RHIFrameBuffer* D3D11System::RHICreateFrameBuffer()

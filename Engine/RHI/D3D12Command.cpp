@@ -16,6 +16,7 @@
 
 namespace Render
 {
+	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D12, D3D12System);
 
 #if 1
 	class D3D12ProfileCore : public RHIProfileCore

@@ -6,8 +6,6 @@
 #include "DataStructure/Grid2D.h"
 #include "RHI/RHICommand.h"
 
-#include "Delegate.h"
-
 namespace Chess
 {
 	typedef TVector2<int> Vec2i;
@@ -53,26 +51,46 @@ namespace Chess
 
 	struct MoveInfo
 	{
-		Vec2i      pos;
-		Vec2i      posEffect;
-		EMoveTag   tag;
-		bool       bCapture;
+		Vec2i        pos;
+		Vec2i        posEffect;
+		EMoveTag     tag;
+		bool         bCapture;
 
 		MoveInfo() = default;
 
+		static MoveInfo WithCapture(Vec2i const& inPos)
+		{
+			MoveInfo result;
+			result.pos = inPos;
+			result.posEffect = inPos;
+			result.bCapture = true;
+			result.tag = EMoveTag::Normal;
+			return result;
+		}
+
+		static MoveInfo WithCapture(Vec2i const& inPos, EMoveTag inTag, Vec2i const& inPosEffect)
+		{
+			MoveInfo result;
+			result.pos = inPos;
+			result.posEffect = inPosEffect;
+			result.bCapture = true;
+			result.tag = inTag;
+			return result;
+
+		}
 		MoveInfo(Vec2i const& inPos)
-			:pos(inPos), tag(EMoveTag::Normal)
+			:pos(inPos), tag(EMoveTag::Normal),bCapture(false)
 		{
 
 		}
 
-		MoveInfo(Vec2i const& inPos, EMoveTag inTag, bool inbCapture)
-			:pos(inPos), tag(inTag), bCapture(inbCapture)
+		MoveInfo(Vec2i const& inPos, EMoveTag inTag)
+			:pos(inPos), tag(inTag), bCapture(false)
 		{
 
 		}
-		MoveInfo(Vec2i const& inPos, EMoveTag inTag, bool inbCapture, Vec2i inPosEffect)
-			:pos(inPos), tag(inTag), posEffect(inPosEffect), bCapture(inbCapture)
+		MoveInfo(Vec2i const& inPos, EMoveTag inTag, Vec2i const& inPosEffect)
+			:pos(inPos), tag(inTag), posEffect(inPosEffect), bCapture(false)
 		{
 
 		}
@@ -153,22 +171,13 @@ namespace Chess
 			return mBoard.getData(pos.x, pos.y);
 		}
 
-		bool isValidMove(Vec2i const& from, MoveInfo const& move) const
-		{
-			std::vector< MoveInfo > moveList;
-			if (getPossibleMove(from, moveList))
-			{
-				for (auto& moveCheck : moveList)
-				{
-					if (moveCheck == move)
-						return true;
-				}
-			}
-			return false;
-		}
+		bool isValidMove(Vec2i const& from, MoveInfo const& move) const;
+		bool getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outMoveList) const;
+		void moveChess(Vec2i const& from, MoveInfo const& move);
+		void promotePawn(MoveInfo const& move, EChess::Type promotionType);
 
+		void undo();
 
-		bool getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outMoveList, bool bCheckAttack = false) const;
 
 		static Vec2i GetForwardDir(EChessColor color)
 		{
@@ -176,18 +185,6 @@ namespace Chess
 		}
 
 		bool getPossibleMove(Vec2i const& pos, EChess::Type type, EChessColor color, EMoveState moveState, std::vector<MoveInfo>& outPosList, bool bCheckAttack = false) const;
-
-		void moveChess(Vec2i const& from, MoveInfo const& move);
-
-		void promotePawn(Vec2i const& pos, EChess::Type promotionType)
-		{
-			TileData& tile = mBoard.getData(pos.x, pos.y);
-
-			CHECK(tile.chess->type == EChess::Pawn && promotionType != EChess::Pawn );
-
-			tile.chess->type = promotionType;
-		}
-
 
 		void updateAttackTerritory();
 
@@ -208,7 +205,16 @@ namespace Chess
 
 		int mCurTurn;
 		TGrid2D<TileData> mBoard;
-		std::vector< ChessData > mChessList;		
+		struct TurnInfo
+		{
+			Vec2i     pos;
+			MoveInfo  move;
+			ChessData chessMoved;
+			ChessData chessOther;
+		};
+		std::vector< TurnInfo >	 mTurnHistory;
+		std::vector< ChessData > mChessList;	
+		std::vector< ChessData* > mFreeChessList;
 	};
 
 }//namespace Chess

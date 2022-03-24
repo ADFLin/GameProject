@@ -29,15 +29,19 @@ namespace Tetris
 		StageBase*      createStage( unsigned id );
 		bool            queryAttribute( GameAttribute& value );
 
-		virtual void    beginPlay( StageManager& manger, EGameStageMode modeType ) override;
-		virtual void    enter();
-		virtual void    exit(); 
-		virtual void    deleteThis(){ delete this; }
+		void  beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void  endPlay() override;
+		void  enter() override;
+		void  exit() override;
+		void  deleteThis() override { delete this; }
 
 		ERenderSystem getDefaultRenderSystem() override;
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 		bool setupRenderSystem(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
+
+
+
 
 	private:
 		CInputControl  mInputControl;

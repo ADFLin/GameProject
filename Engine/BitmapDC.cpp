@@ -35,7 +35,7 @@ BitmapDC::BitmapDC( HDC hDC , LPSTR fileName )
 	mhDC = ::CreateCompatibleDC( hDC );
 
 	// Use LoadImage() to get the image loaded into a DIBSection
-	mhBmp = (HBITMAP)LoadImage( NULL, fileName, IMAGE_BITMAP, 0, 0,
+	mhBmp = (HBITMAP)LoadImageA( NULL, fileName, IMAGE_BITMAP, 0, 0,
 		LR_CREATEDIBSECTION | LR_DEFAULTSIZE | LR_LOADFROMFILE );
 
 	if( mhBmp == NULL )
@@ -151,7 +151,7 @@ bool BitmapDC::initialize( HDC hDC, LPSTR file )
 		return false;
 
 	// Use LoadImage() to get the image loaded into a DIBSection
-	mhBmp = (HBITMAP)::LoadImage( NULL, file , IMAGE_BITMAP, 0, 0,
+	mhBmp = (HBITMAP)::LoadImageA( NULL, file , IMAGE_BITMAP, 0, 0,
 		LR_CREATEDIBSECTION | LR_DEFAULTSIZE | LR_LOADFROMFILE );
 
 	if( mhBmp == NULL )

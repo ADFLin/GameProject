@@ -22,7 +22,6 @@ namespace TowerDefend
 		bool            queryAttribute( GameAttribute& value ){ return false; }
 
 		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
-		virtual void    deleteThis(){ delete this; }
 
 	private:
 		CInputControl    mInputControl;

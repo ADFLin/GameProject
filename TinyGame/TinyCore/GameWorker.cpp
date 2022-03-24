@@ -36,7 +36,7 @@ char const* NetActionStateStrings[] =
 	"NAS_RECONNECT"   ,
 
 
-	//TODO# split
+	//#TODO split
 	"NAS_TIME_SYNC"   ,
 
 	"NAS_ROOM_ENTER"  ,
@@ -69,7 +69,7 @@ void ComWorker::changeState( NetActionState state )
 NetWorker::NetWorker() 
 	:mUdpSendBuffer( 1024 )
 #if TINY_USE_NET_THREAD
-	,mSocketThread( SocketFun( this , &NetWorker::entryNetThread ) )
+	,mSocketThread( SocketFunc( this , &NetWorker::entryNetThread ) )
 #endif
 {
 	mNetListener = NULL;
@@ -78,8 +78,8 @@ NetWorker::NetWorker()
 NetWorker::~NetWorker()
 {
 	{
-		NET_MUTEX_LOCK( mMutexUdpComList );
-		mUdpComList.clear();
+		NET_MUTEX_LOCK( mMutexUdpCmdList );
+		mUdpCmdList.clear();
 	}
 #if TINY_USE_NET_THREAD
 	mSocketThread.stop();
@@ -169,8 +169,8 @@ bool NetWorker::startNetwork()
 void NetWorker::closeNetwork()
 {
 	{
-		NET_MUTEX_LOCK(mMutexUdpComList);
-		mUdpComList.clear();
+		NET_MUTEX_LOCK(mMutexUdpCmdList);
+		mUdpCmdList.clear();
 	}
 
 #if TINY_USE_NET_THREAD
@@ -183,13 +183,13 @@ void NetWorker::closeNetwork()
 	NetSocket::ShutdownSystem();
 }
 
-void NetWorker::sendUdpCom( NetSocket& socket )
+void NetWorker::sendUdpCmd( NetSocket& socket )
 {
-	NET_MUTEX_LOCK( mMutexUdpComList );
-	UdpComList::iterator iter = mUdpComList.begin();
-	for( ; iter != mUdpComList.end() ; ++iter )
+	NET_MUTEX_LOCK( mMutexUdpCmdList );
+	UdpCmdList::iterator iter = mUdpCmdList.begin();
+	for( ; iter != mUdpCmdList.end() ; ++iter )
 	{
-		UdpCom& uc = *iter;
+		UdpCmd& uc = *iter;
 		try
 		{
 			int numSend = mUdpSendBuffer.take( socket , uc.dataSize , uc.addr );
@@ -205,25 +205,25 @@ void NetWorker::sendUdpCom( NetSocket& socket )
 		{
 			LogError("Send Udp Com Error" );
 			mUdpSendBuffer.clear();
-			mUdpComList.clear();
+			mUdpCmdList.clear();
 			return;
 		}
 	}
 
-	mUdpComList.erase( mUdpComList.begin() , iter );
-	mUdpSendBuffer.removeUseData();
+	mUdpCmdList.erase( mUdpCmdList.begin() , iter );
+	mUdpSendBuffer.removeUsedData();
 }
 
 bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 {
 	try
 	{
-		NET_MUTEX_LOCK( mMutexUdpComList );
+		NET_MUTEX_LOCK( mMutexUdpCmdList );
 		size_t fillSize = ComEvaluator::WriteBuffer( mUdpSendBuffer , cp );
-		UdpCom uc;
+		UdpCmd uc;
 		uc.addr     = addr;
 		uc.dataSize = fillSize;
-		mUdpComList.push_back( uc );
+		mUdpCmdList.push_back( uc );
 	}
 	catch ( ... )
 	{

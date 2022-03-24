@@ -21,7 +21,7 @@ namespace Cube
 		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 		virtual void enter();
 		virtual void exit();
-		virtual void deleteThis(){ delete this; }
+
 	};
 
 

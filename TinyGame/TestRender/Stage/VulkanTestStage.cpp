@@ -18,6 +18,8 @@
 #include "DrawEngine.h"
 #include "GameRenderSetup.h"
 
+//#TODO REMOVEME
+#pragma comment(lib , "vulkan-1.lib")
 
 namespace RenderVulkan
 {

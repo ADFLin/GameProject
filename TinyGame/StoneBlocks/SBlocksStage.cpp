@@ -131,7 +131,7 @@ namespace SBlocks
 			g.popXForm();
 		}
 	
-		vaildatePiecesOrder();
+		validatePiecesOrder();
 		for (Piece* piece : mSortedPieces )
 		{
 			drawPiece(g, *piece, selectedPiece == piece);
@@ -559,9 +559,10 @@ namespace SBlocks
 
 	void Editor::startEdit()
 	{
+		LogMsg("Edit Start");
+
 		mbEnabled = true;
 
-		LogMsg("Edit Start");
 		registerCommand();
 		mGame->mLevel.unlockAllPiece();
 
@@ -576,6 +577,8 @@ namespace SBlocks
 
 	void Editor::endEdit()
 	{
+		LogMsg("Edit End");
+
 		if (mShapeEditPanel)
 		{
 			mShapeEditPanel->destroy();
@@ -587,9 +590,8 @@ namespace SBlocks
 			mShapeLibraryPanel->destroy();
 			mShapeLibraryPanel = nullptr;
 		}
-		saveShapeLibrary();
 
-		LogMsg("Edit End");
+		saveShapeLibrary();
 		unregisterCommand();
 
 		mbEnabled = false;

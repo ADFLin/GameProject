@@ -59,7 +59,7 @@ void CUISystem::onRenderNodeEnd()
 
 bool CUISystem::processMouseEvent( MouseMsg const& msg )
 {
-	return mUIManager.procMouseMsg( msg );
+	return mUIManager.procMouseMsg( msg ).isHandled() == false;
 }
 
 MouseMsg const& CUISystem::getLastMouseMsg()

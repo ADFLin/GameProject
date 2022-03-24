@@ -4,6 +4,7 @@
 #include "FileSystem.h"
 #include "StringParse.h"
 #include "Core/StringConv.h"
+#include "Core/Memory.h"
 #include "PropertySet.h"
 
 //TODO:remove me
@@ -34,7 +35,7 @@ namespace Go
 				int numSaved = parseOutput(mBuffer.data(), mNumUsed);
 				if( numSaved && numSaved != mNumUsed )
 				{
-					::memmove(mBuffer.data(), mBuffer.data() + mNumUsed - numSaved, numSaved);
+					FMemory::Move(mBuffer.data(), mBuffer.data() + mNumUsed - numSaved, numSaved);
 				}
 				mNumUsed = numSaved;
 			}

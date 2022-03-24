@@ -13,7 +13,6 @@ namespace GreedySnake
 	public:
 		
 		virtual void   beginPlay( StageManager& manger, EGameStageMode modeType ) override;
-		virtual void   deleteThis(){ delete this; }
 
 	public:
 		char const*                getName(){ return GREEDY_SNAKE_NAME;  }

@@ -19,7 +19,7 @@ public:
 		lastIndex = -1;
 		methodMask = -1;
 	}
-	bool onPrevEvalMethod(Method method, Group group, int idx, unsigned numBit) 
+	bool onPrevEvalMethod(EMethod method, Group group, int idx, unsigned numBit) 
 	{
 		if( !(methodMask & BIT(method)) )
 			return false;
@@ -32,7 +32,7 @@ public:
 		Jumper.jump();
 		return true; 
 	}
-	void onPostEvalMethod(Method method, Group group, int idx, unsigned numBit) 
+	void onPostEvalMethod(EMethod method, Group group, int idx, unsigned numBit) 
 	{
 		if( !checkState() )
 		{
@@ -64,7 +64,7 @@ public:
 	}
 
 	bool        bRelatedCell[NumberNum * NumberNum];
-	Method      lastMethod;
+	EMethod      lastMethod;
 	Group       lastGroup;
 	int         lastIndex;
 	unsigned    lastNumBit;
@@ -226,18 +226,18 @@ public:
 		char const* methodStr = "Unknown Method!";
 		switch( mSolver.lastMethod )
 		{
-		case SudokuSolver::eSolvedValue:   methodStr = "SolvedValue"; break;
-		case SudokuSolver::eSingleValue:   methodStr = "SingleValue"; break;
-		case SudokuSolver::eNakedPair:     methodStr = "NakedPair"; break;
-		case SudokuSolver::eNakedTriple:   methodStr = "NakedTriple"; break;
-		case SudokuSolver::eHiddenPair:    methodStr = "HiddenPair"; break;
-		case SudokuSolver::eHiddenTriple:  methodStr = "HiddenTriple"; break;
-		case SudokuSolver::ePointing:      methodStr = "Pointing"; break;
-		case SudokuSolver::eBoxLine:       methodStr = "BoxLine"; break;
-		case SudokuSolver::eXWing:         methodStr = "X-Wing"; break;
-		case SudokuSolver::eYWing:         methodStr = "Y-Wing"; break;
-		case SudokuSolver::eSimpleColour:  methodStr = "SimpleColour"; break;
-		case SudokuSolver::eXCycle:        methodStr = "X-Cycle"; break;
+		case SudokuSolver::SolvedValue:   methodStr = "SolvedValue"; break;
+		case SudokuSolver::SingleValue:   methodStr = "SingleValue"; break;
+		case SudokuSolver::NakedPair:     methodStr = "NakedPair"; break;
+		case SudokuSolver::NakedTriple:   methodStr = "NakedTriple"; break;
+		case SudokuSolver::HiddenPair:    methodStr = "HiddenPair"; break;
+		case SudokuSolver::HiddenTriple:  methodStr = "HiddenTriple"; break;
+		case SudokuSolver::Pointing:      methodStr = "Pointing"; break;
+		case SudokuSolver::BoxLine:       methodStr = "BoxLine"; break;
+		case SudokuSolver::XWing:         methodStr = "X-Wing"; break;
+		case SudokuSolver::YWing:         methodStr = "Y-Wing"; break;
+		case SudokuSolver::SimpleColour:  methodStr = "SimpleColour"; break;
+		case SudokuSolver::XCycle:        methodStr = "X-Cycle"; break;
 		}
 
 		g.drawText(methodPos, methodStr );

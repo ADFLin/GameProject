@@ -529,12 +529,12 @@ public:
 	}
 
 
-	bool handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
+	MsgReply handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
 	{
 		static Vec2i pos;
 
 		if ( !CUISystem::Get().processMouseEvent( msg ) )
-			return false;
+			return MsgReply::Handled();
 
 		if ( msg.onLeftDown() )
 		{
@@ -549,7 +549,7 @@ public:
 			mCamControl->rotateByMouse( offset.x , offset.y );
 			pos = msg.getPos();
 		}
-		return true;
+		return MsgReply::Unhandled();
 	}
 
 	MsgReply handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE

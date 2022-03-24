@@ -21,7 +21,7 @@ ExecutionEntryInfo gPreRegisterStageGroup[] =
 class TestMiscModule : public IModuleInterface
 {
 public:
-	bool initialize() override
+	void startupModule() override
 	{
 		static bool gbNeedRegisterStage = true;
 		if( gbNeedRegisterStage )
@@ -32,21 +32,11 @@ public:
 			}
 			gbNeedRegisterStage = false;
 		}
-		return true;
 	}
 
-	void cleanup() override
+	void shutdownModule() override
 	{
 
-	}
-	bool isGameModule() const override
-	{
-		return false;
-	}
-
-	void deleteThis() override
-	{
-		delete this;
 	}
 };
 

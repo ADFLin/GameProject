@@ -121,6 +121,11 @@ bool MainMenuStage::onInit()
 		category.removeTailSpace();
 		std::vector< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
 
+		std::sort(stageInfoList.begin(), stageInfoList.end(), [](ExecutionEntryInfo const* lhs, ExecutionEntryInfo const* rhs)
+		{
+			return FCString::Compare(lhs->title, rhs->title) < 0;
+		});
+
 		int index = 0;
 		for (auto& info : stageInfoList)
 		{

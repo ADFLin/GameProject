@@ -170,18 +170,17 @@ namespace Chromatron
 
 	void Level::updateWorld()
 	{
-		WorldUpdateContext context( mWorld );
+		WorldUpdateContext context(mWorld);
 
-		
 		bool bRecalc = false;
 		do
 		{
 			resetDeviceFlag( !bRecalc );
 			context.prevUpdate();
 
-			for( auto& deviceTile : mMapDCList )
+			for( auto dc : mUpdateDCs )
 			{
-				deviceTile.dc->update(context);
+				dc->update(context);
 			}
 
 			switch ( context.transmitLight() )
@@ -197,23 +196,21 @@ namespace Chromatron
 
 		} while (bRecalc);
 
-		bool goal = true;
-		for( auto& deviceTile : mMapDCList )
+		bool bGoal = true;
+		for(Device* dc : mCheckDCs )
 		{
-			Device* dc = deviceTile.dc;
-
-			if ( !dc->checkFinish( context ) )
+			if ( dc->isInWorld() && dc->checkFinish( context ) )
 			{
-				goal = false;
-				dc->getFlag().removeBits( DFB_GOAL );
+				dc->getFlag().addBits(DFB_GOAL);
 			}
-			else 
+			else
 			{
-				dc->getFlag().addBits( DFB_GOAL );
+				bGoal = false;
+				dc->getFlag().removeBits(DFB_GOAL);
 			}
 		}
 
-		mIsGoal = goal;
+		mIsGoal = bGoal;
 	}
 
 	void Level::destoryAllDevice()
@@ -224,6 +221,8 @@ namespace Chromatron
 		});
 
 		mUserDCs.clear();
+		mUpdateDCs.clear();
+		mCheckDCs.clear();
 		mWorld.clearDevice();
 		mMapDCList.clear();
 		std::fill_n( mStorgeMap , MaxNumUserDC , nullptr );
@@ -263,6 +262,10 @@ namespace Chromatron
 
 		if ( beUserDC )
 			mUserDCs.push_back( dc );
+		if (dc->haveUpdateFunc())
+			mUpdateDCs.push_back(dc);
+		if (dc->haveCheckFunc())
+			mCheckDCs.push_back(dc);
 
 		return dc;
 	}

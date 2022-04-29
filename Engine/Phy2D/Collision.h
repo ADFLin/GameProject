@@ -230,7 +230,7 @@ namespace Phy2D
 		};
 		struct Edge
 		{
-			Vector2    normal;
+			Vector2  normal;
 			float    depth;
 			Edge*    next;
 			Simplex* sv;

@@ -27,7 +27,7 @@ namespace CAR
 		EXP_THE_CATAPULT,
 		EXP_BRIDGES_CASTLES_AND_BAZAARS, //
 		EXP_HILLS_AND_SHEEP,             //-T -Vineyards -Hill -shepherd -ST_HalfSeparate
-		EXP_THE_WHEEL_OF_FORTUNE ,
+		EXP_THE_WHEEL_OF_FORTUNE,
 
 		//Minor
 		EXP_THE_ABBOT,
@@ -49,7 +49,7 @@ namespace CAR
 		EXP_THE_PHANTOM,
 		EXP_THE_PLAGUE ,
 		EXP_LA_PORXADA,
-		EXP_THE_RIVER_I,                   //+T +RiverRule
+		EXP_THE_RIVER_I,                 //+T +RiverRule
 		EXP_THE_ROBBERS , //Mini 6
 		EXP_RUSSIAN_PROMOS ,
 		EXP_THE_SCHOOL,
@@ -65,19 +65,6 @@ namespace CAR
 	};
 
 	char const* GetExpansionString(Expansion exp);
-
-
-	enum GameRule
-	{
-		eHardcore,
-
-		eSmallCity,
-		eDoubleTurnDrawImmediately,
-		eCantMoveFairy,
-		ePrincessTileMustRemoveKnightOrBuilder,
-		eMoveDragonBeforeScoring,
-		eTowerCaptureEverything,
-	};
 
 	enum class ERule
 	{
@@ -125,8 +112,8 @@ namespace CAR
 		HaveRiverTile,
 		HaveHalflingTile,
 		
-		eHaveMonaster,
-		eRemoveOriginalCloister ,
+		HaveMonaster,
+		RemoveOriginalCloister ,
 
 		//////////////
 		Hardcore,

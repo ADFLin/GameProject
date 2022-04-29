@@ -23,19 +23,19 @@ namespace CAR
 	{
 	public:
 		virtual ~IInputCommand() {}
-		virtual void execute(CGameInput&) = 0;
+		virtual void execute(GameInput&) = 0;
 	};
 	template < class TFunc >
 	class TFuncInputCommand : public IInputCommand
 	{
 	public:
 		TFuncInputCommand(TFunc func) :mFunc(func) {}
-		void execute(CGameInput& input) override { mFunc(input); }
+		void execute(GameInput& input) override { mFunc(input); }
 		TFunc mFunc;
 	};
 #define CAR_INPUT_COMMAND( CODE , ...)\
 	{\
-		auto ComFunc = [__VA_ARGS__](CGameInput& mInput) CODE; \
+		auto ComFunc = [__VA_ARGS__](GameInput& mInput) CODE; \
 		addInputCommand( new TFuncInputCommand< decltype ( ComFunc ) >( ComFunc ) );\
 	}
 #else
@@ -1096,7 +1096,7 @@ namespace CAR
 		return true;
 	}
 
-	void LevelStage::onGamePrevAction( CGameInput& input )
+	void LevelStage::onGamePrevAction( GameInput& input )
 	{
 		if ( input.isReplayMode() && input.getReplyAction() == ACTION_TRUN_OVER )
 		{
@@ -1107,7 +1107,7 @@ namespace CAR
 		}
 	}
 
-	void LevelStage::onGameAction( CGameInput& input )
+	void LevelStage::onGameAction( GameInput& input )
 	{
 		PlayerAction action = input.getReplyAction();
 		GameActionData* data = input.getReplyData();
@@ -1774,7 +1774,7 @@ namespace CAR
 		button->setTitle( "OK" );
 	}
 
-	void AuctionPanel::fireInput(CGameInput& input)
+	void AuctionPanel::fireInput(GameInput& input)
 	{
 		int idxSelect = -1;
 		if ( mData->playerId == mData->pIdRound )

@@ -6,6 +6,8 @@
 #include "Math/Math2D.h"
 #include "Renderer/RenderTransform2D.h"
 
+#include "GameFramework/EntityManager.h"
+
 namespace CarTrain
 {
 	using Math::XForm2D;
@@ -144,7 +146,7 @@ namespace CarTrain
 	};
 
 
-	class GameEntity
+	class GameEntity : public ECS::EntityProxy
 	{
 	public:
 		GameWorld* getWorld() { return mWorld; }
@@ -213,14 +215,16 @@ namespace CarTrain
 		template< typename TEntity, typename ...Args >
 		TEntity* spawnEntity(Args&& ...args)
 		{
-			TEntity* entity = new TEntity(std::forward<Args>(args)...);
+			TEntity* entity = new TEntity;
+			entity->mHandle = mEntitiesManager.createEntity();
+			entity->mWorld = this;
+			entity->initialize(args...);
 			registerEntity(entity);
 			return entity;
 		}
 
 		void registerEntity(GameEntity* entity)
 		{
-			entity->mWorld = this;
 			mEntities.push_back(entity);
 			entity->beginPlay();
 		}
@@ -240,6 +244,8 @@ namespace CarTrain
 
 		void destroyEntity(GameEntity* entity)
 		{
+			CHECK(entity);
+			mEntitiesManager.destroyEntity(entity->mHandle);
 			unregisterEntity(entity);
 			delete entity;
 		}
@@ -266,6 +272,7 @@ namespace CarTrain
 			GameEntity* entity;
 		};
 		std::vector<EntityControl> mControlList;
+		ECS::EntityManager mEntitiesManager;
 	};
 
 }

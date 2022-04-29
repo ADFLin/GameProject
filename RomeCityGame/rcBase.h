@@ -13,7 +13,7 @@
 
 #include "Holder.h"
 #include "Singleton.h"
-#include "TCycleNumber.h"
+#include "CycleValue.h"
 #include "Math/TVector2.h"
 
 #include "ProfileSystem.h"
@@ -23,7 +23,7 @@
 
 
 typedef TVector2< int > Vec2i;
-typedef TCycleNumber< 8 , char > rcDirection;
+typedef TCycleValue< 8 , char > rcDirection;
 
 class rcBuilding;
 class rcHouse;

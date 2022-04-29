@@ -67,9 +67,11 @@ namespace Chromatron
 		Dir   const& getDir()   const { return mDir; }
 		Color        getColor() const { return mColor; }
 
+		bool         haveUpdateFunc() const { return !!mInfo->funcUpdate; }
 		void         update( WorldUpdateContext& context ){ mInfo->funcUpdate( *this , context ); }
 		void         effect( WorldUpdateContext& context , LightTrace const& light ){  mInfo->funcEffect( *this , context , light ); }
 
+		bool         haveCheckFunc() const {  return !!mInfo->funcCheck;  }
 		bool         checkFinish(WorldUpdateContext& context) { return mInfo->funcCheck(*this, context); }
 
 		bool         isRotatable() const { return !mFlag.checkBits( DFB_UNROTATABLE ); }

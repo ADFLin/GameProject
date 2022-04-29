@@ -184,6 +184,7 @@ namespace CarTrain
 
 	void CarEntity::tick(float deltaTime)
 	{
+		XForm2D& XForm = getComponentCheckedT< XForm2D >();
 		if (!bDead)
 		{
 			if (turnAngle != 0)
@@ -194,22 +195,25 @@ namespace CarTrain
 				turnAngle = 0;
 			}
 
-			mTransform = mBody->getTransform();
-			Vector2 moveDir = mTransform.transformVector(Vector2(1, 0));
+		
+			XForm = mBody->getTransform();
+			Vector2 moveDir = XForm.transformVector(Vector2(1, 0));
 			mBody->setLinearVel(moveSpeed * moveDir);
 		}
 		else
 		{
-			mTransform = mBody->getTransform();
+			XForm = mBody->getTransform();
 		}
 	}
 
 
 	void AgentCarEntiy::drawDetector(RHIGraphics2D& g)
 	{
+		XForm2D& XForm = getComponentCheckedT< XForm2D >();
+
 		g.pushXForm();
-		g.translateXForm(mTransform.getPos().x, mTransform.getPos().y);
-		g.rotateXForm(Math::Rad2Deg(mTransform.getRotateAngle()));
+		g.translateXForm(XForm.getPos().x, XForm.getPos().y);
+		g.rotateXForm(Math::Rad2Deg(XForm.getRotateAngle()));
 		for (int i = 0; i < NumDetectors; ++i)
 		{
 			RenderUtility::SetPen(g, mDetectors[i].bHitted ? EColor::Red : EColor::Yellow);

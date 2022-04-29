@@ -3868,22 +3868,22 @@ namespace CAR
 		if ( getTurnPlayer() == nullptr )
 			return false;
 
-		int idx = 0 ;
-		for( ; idx < mPrisoners.size() ; ++idx )
+		int index = 0 ;
+		for( ; index < mPrisoners.size(); ++index)
 		{
-			PrisonerInfo& info = mPrisoners[idx];
+			PrisonerInfo& info = mPrisoners[index];
 			if ( info.playerId == getTurnPlayer()->getId() &&
 				 info.ownerId == ownerId &&
-				 info.type == type )
+				 info.type == type)
 				break;
 		}
-		if ( idx == mPrisoners.size() )
+		if (index == mPrisoners.size())
 			return false;
 
-		mPrisoners.erase( mPrisoners.begin() + idx);
+		mPrisoners.erase( mPrisoners.begin() + index );
 
 		modifyPlayerScore(ownerId, CAR_PARAM_VALUE(PrisonerRedeemScore));
-		modifyPlayerScore(getTurnPlayer()->getId(), CAR_PARAM_VALUE(PrisonerRedeemScore));
+		modifyPlayerScore(getTurnPlayer()->getId(), -CAR_PARAM_VALUE(PrisonerRedeemScore));
 		getTurnPlayer()->modifyFieldValue( type , 1 );
 		return true;
 	}
@@ -3901,7 +3901,7 @@ namespace CAR
 
 		int idx = mRandom->getInt() % mSheepBags.size();
 
-		SheepToken tok = mSheepBags[ idx ];
+		SheepToken token = mSheepBags[ idx ];
 		int idxLast = mSheepBags.size() - 1;
 		if ( idx != idxLast )
 		{
@@ -3909,9 +3909,9 @@ namespace CAR
 		}
 		mSheepBags.pop_back();
 
-		if ( tok == eWolf )
+		if ( token == eWolf )
 		{
-			mSheepBags.push_back( tok );
+			mSheepBags.push_back( token );
 
 			FeatureBase* farm = actor->feature;
 			int iter = 0;
@@ -3921,12 +3921,12 @@ namespace CAR
 				{
 					mSheepBags.push_back(token);
 				}
-				returnActorToPlayer( *shepherd );
+				returnActorToPlayer(*shepherd);
 			}
 		}
 		else
 		{
-			static_cast< ShepherdActor* >( actor )->ownSheep.push_back( tok );
+			static_cast< ShepherdActor* >( actor )->ownSheep.push_back( token );
 		}
 	}
 
@@ -4043,8 +4043,8 @@ namespace CAR
 	void GamePlayerManager::addPlayer(PlayerBase* player)
 	{
 		mPlayerMap[ mNumPlayer ] = player;
-		player->mId = mNumPlayer;
 		++mNumPlayer;
+		player->mId = mNumPlayer;
 	}
 
 

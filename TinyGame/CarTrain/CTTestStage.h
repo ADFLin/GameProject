@@ -171,21 +171,25 @@ namespace CarTrain
 	public:
 		DECLARE_GAME_ENTITY(CarEntity, GameEntity);
 
-		CarEntity(XForm2D const& transform)
-			:mTransform(transform)
-		{
+		CarEntity() {}
 
+		void initialize(XForm2D const& transform)
+		{
+			XForm2D* xForm = addComponentT<XForm2D>();
+			*xForm = transform;
 		}
 
 		virtual void beginPlay()
 		{
+			XForm2D& XForm = getComponentCheckedT<XForm2D>();
+
 			GameBoxDef def;
 			def.bCollisionResponse = false;
 			def.bCollisionDetection = true;
 			def.collisionType = ECollision::Car;
 			def.collisionMask = BIT(ECollision::Wall);
 			def.extend = Vector2(20, 10);
-			def.transform = mTransform;
+			def.transform = XForm;
 			mBody = getWorld()->getPhysicsScene()->createBox(def, def.transform);
 			mBody->setLinearVel(Vector2(1, 0));
 			mBody->setUserData(this);
@@ -209,10 +213,16 @@ namespace CarTrain
 		float turnAngle = 0;
 		float moveSpeed = 350;
 
-		XForm2D  mTransform;
 		IPhysicsBody* mBody;
 	};
 
+
+	class Physics2DSystem : public ECS::ISystemSerivce
+	{
+
+
+
+	};
 
 
 	class AgentCarEntiy : public CarEntity
@@ -222,10 +232,14 @@ namespace CarTrain
 	public:
 		DECLARE_GAME_ENTITY(AgentCarEntiy,  CarEntity);
 
-		AgentCarEntiy(XForm2D const& transform)
-			:BaseClass(transform)
+		AgentCarEntiy()
 		{
 
+		}
+
+		void initialize(XForm2D const& transform)
+		{
+			CarEntity::initialize(transform);
 		}
 
 		void release()
@@ -277,13 +291,15 @@ namespace CarTrain
 		constexpr static float MaxRotateAngle = 4;
 		void postTick(float deltaTime) override
 		{
+			XForm2D* xForm = addComponentT<XForm2D>();
+
 			BaseClass::postTick(deltaTime);
 			if (!bDead)
 			{
 				updateDetectors();
 				mAgent->genotype->fitness += deltaTime;
 
-				box.addPoint(mTransform.getPos());
+				box.addPoint(xForm->getPos());
 				
 				Vector2 size = box.getSize();
 				float radius2 = 2 * moveSpeed / ( Math::Deg2Rad(MaxRotateAngle) / GDeltaTime );
@@ -305,16 +321,18 @@ namespace CarTrain
 
 		void updateDetectors()
 		{
+			XForm2D& XForm = getComponentCheckedT< XForm2D >();
+
 			for (int i = 0; i < NumDetectors; ++i)
 			{
 				Detector& detector = mDetectors[i];
-				Vector2 dir = mTransform.transformVector(DetectorLocalDirs[i]);
+				Vector2 dir = XForm.transformVector(DetectorLocalDirs[i]);
 				dir.normalize();
 
 				RayHitInfo info;
 				uint16 collisionMask = BIT(ECollision::Wall);
 
-				detector.bHitted = getWorld()->getPhysicsScene()->rayCast(mTransform.getPos(), mTransform.getPos() + MaxDetectDistance * dir, info, collisionMask);
+				detector.bHitted = getWorld()->getPhysicsScene()->rayCast(XForm.getPos(), XForm.getPos() + MaxDetectDistance * dir, info, collisionMask);
 				if (detector.bHitted)
 				{
 					detector.fractionDelta = info.fraction - detector.fraction;
@@ -372,6 +390,12 @@ namespace CarTrain
 	{
 	public:
 
+		TrainWorld()
+		{
+			mEntitiesManager.registerToList();
+			mEntitiesManager.registerComponentTypeT< XForm2D >();
+		}
+
 		void checkAliveCars()
 		{
 			int num = mAliveCars.size();
@@ -413,14 +437,14 @@ namespace CarTrain
 				if (car->mAgent->index % 2 || 1)
 				{
 					car->mBody->setTransform(startXForm);
-					car->mTransform = startXForm;
+					car->getComponentCheckedT<XForm2D>() = startXForm;
 				}
 				else
 				{
 					XForm2D  xForm = startXForm;
 					xForm.rotate(Math::Deg2Rad(90));
 					car->mBody->setTransform(xForm);
-					car->mTransform = xForm;
+					car->getComponentCheckedT<XForm2D>() = xForm;
 				}
 
 				mAliveCars.push_back(car);

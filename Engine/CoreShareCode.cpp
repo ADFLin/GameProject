@@ -32,9 +32,11 @@
 #include "Renderer/RenderTargetPool.cpp"
 #include "Renderer/BatchedRender2D.cpp"
 
+#include "GameFramework/EntityManager.cpp"
+
 #endif
 
-#define EXPORT_FUN(funcc) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &func;
+#define EXPORT_FUNC(func) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &func;
 
 
-#undef EXPORT_FUN
+#undef EXPORT_FUNC

@@ -120,9 +120,6 @@ namespace Chromatron
 
 		static int const MaxNumMapDC  = 15 * 15;
 
-		using MapDCInfoList = std::list< DeviceTileData >;
-		MapDCInfoList mMapDCList;
-
 		bool        mIsGoal;
 		World       mWorld;
 		Device*     mStorgeMap[ MaxNumUserDC ];
@@ -131,6 +128,13 @@ namespace Chromatron
 		static void removeDevice( DeviceVec& dcVec , Device& dc );
 
 		DeviceVec   mUserDCs;
+		DeviceVec   mUpdateDCs;
+		DeviceVec   mCheckDCs;
+
+
+		using MapDCInfoList = std::list< DeviceTileData >;
+		MapDCInfoList mMapDCList;
+
 	};
 
 }//namespace Chromatron

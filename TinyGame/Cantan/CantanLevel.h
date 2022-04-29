@@ -1,4 +1,4 @@
-#include "TCycleNumber.h"
+#include "CycleValue.h"
 #include "Math/TVector2.h"
 
 #include "CppVersion.h"
@@ -12,7 +12,7 @@
 namespace Cantan
 {
 	int const DirNum = 6;
-	typedef TCycleNumber< DirNum > Dir;
+	typedef TCycleValue< DirNum > Dir;
 	typedef TVector2< int > Vec2i;
 
 	class HexCellUtility

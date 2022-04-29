@@ -447,7 +447,7 @@
     <ClInclude Include="Template\TypeFormatTraits.h" />
     <ClInclude Include="WindowsMessageHander.h" />
     <ClInclude Include="TaskBase.h" />
-    <ClInclude Include="TCycleNumber.h" />
+    <ClInclude Include="CycleValue.h" />
     <ClInclude Include="TGrid2D.h" />
     <ClInclude Include="Holder.h" />
     <ClInclude Include="PlatformThread.h" />

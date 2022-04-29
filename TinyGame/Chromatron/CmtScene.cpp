@@ -599,7 +599,7 @@ namespace Chromatron
 
 	void Scene::drawLight( Graphics2D& g , Vec2i const& pos , Tile const& tile )
 	{
-		for(int i = 0; i < Dir::RestNumber ; ++i)
+		for(int i = 0; i < Dir::RestValue ; ++i)
 		{
 			Dir dir = Dir::ValueChecked( i );
 			int color = tile.getLightPathColor( dir );

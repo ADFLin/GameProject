@@ -319,7 +319,7 @@ public:// System Message
 			mapPos = vp.transScreenPosToMapPos( msg.getPos() );
 			mLevelCity->destoryContruction( mapPos );
 
-			//static TCycleNumber< 2 > start(0);
+			//static TCycleValue< 2 > start(0);
 			//rcViewport& vp = mLevelScene->getViewPort();
 			//mapPos = vp.transScreenPosToMapPos( msg.getPos() );
 
@@ -390,9 +390,9 @@ public:// System Message
 			};
 
 
-			static TCycleNumber< ARRAY_SIZE(buildingList) > idx(0);
+			static TCycleValue< ARRAY_SIZE(buildingList) > idx(0);
 
-			static TCycleNumber< 4 > dir;
+			static TCycleValue< 4 > dir;
 			rcViewport& vp = mLevelScene->getViewPort();
 
 			int moveSpeed = 5;

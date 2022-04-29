@@ -43,10 +43,8 @@ namespace Mine
 	{
 	public:
 		virtual int  openCell(int cx, int cy) = 0;
-		virtual int  lookCell(int cx, int cy, bool bWaitResult) = 0;
 		virtual bool markCell(int cx, int cy) = 0;
 		virtual bool unmarkCell(int cx, int cy) = 0;
-
 	};
 
 

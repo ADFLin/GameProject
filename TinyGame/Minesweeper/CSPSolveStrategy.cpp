@@ -238,7 +238,7 @@ next:
 			}
 		}
 
-		if ( cell.group == NULL )
+		if ( cell.group == nullptr )
 		{
 			cell.group = new ConstraintGroup( cell.ct );
 			addCTGroup( cell.group );

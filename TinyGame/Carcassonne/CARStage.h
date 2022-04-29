@@ -89,7 +89,7 @@ namespace CAR
 		};
 
 		void init( LevelStage& stage , GameAuctionTileData* data);
-		void fireInput( CGameInput& input );
+		void fireInput( GameInput& input );
 		void onRender() override;
 		bool onChildEvent( int event , int id , GWidget* ui ) override;
 
@@ -194,8 +194,8 @@ namespace CAR
 		Vector2 convertToScreenPos_2D(Vector2 const& posMap);
 		Vector2 convertToScreenPos_3D(Vector2 const& posMap);
 
-		void  onGamePrevAction( CGameInput& input );
-		void  onGameAction( CGameInput& input );
+		void  onGamePrevAction( GameInput& input );
+		void  onGameAction( GameInput& input );
 		void  removeGameActionUI();
 		Vector2 getActorPosMapOffset( ActorPos const& pos );
 
@@ -230,7 +230,7 @@ namespace CAR
 		using SideNode = MapTile::SideNode;
 		using FarmNode = MapTile::FarmNode;
 
-		CGameInput        mInput;
+		GameInput        mInput;
 		GameLogic         mGameLogic;
 		GamePlayerManager mPlayerManager;
 		GameplaySetting   mSetting;

@@ -74,7 +74,7 @@ namespace CAR
 	public:
 		GamePlayerManager();
 		int         getPlayerNum() { return mNumPlayer; }
-		PlayerBase* getPlayer(PlayerId id) { assert(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id]; }
+		PlayerBase* getPlayer(PlayerId id) const { assert(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id + 1]; }
 		void        addPlayer(PlayerBase* player);
 		void        clearAllPlayer(bool bNeedDelete);
 

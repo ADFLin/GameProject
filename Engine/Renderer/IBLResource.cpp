@@ -524,7 +524,6 @@ namespace Render
 			frameBuffer->setTexture(0, *resource.SharedBRDFTexture);
 			RHISetFrameBuffer(commandList, frameBuffer);
 
-
 			RHISetViewport(commandList, 0, 0, resource.SharedBRDFTexture->getSizeX(), resource.SharedBRDFTexture->getSizeY());
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());

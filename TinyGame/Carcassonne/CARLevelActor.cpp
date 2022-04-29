@@ -27,16 +27,27 @@ namespace CAR
 		return result;
 	}
 
+	bool TestPlayerMask(LevelActor* actor, unsigned playerMask)
+	{
+#if 0
+		if (actor->ownerId == CAR_ERROR_PLAYER_ID)
+			return false;
+#endif
+		return !!(playerMask & BIT(actor->ownerId));
+	}
+
+	bool TestActorTypeMask(LevelActor* actor, unsigned actorTypeMask)
+	{
+		return !!(actorTypeMask & BIT(actor->type));
+	}
+
 	LevelActor* ActorCollection::iteratorActorFromPlayer(unsigned playerMask , int& iter) const
 	{
 		for( ; iter < mActors.size() ; ++iter )
 		{
 			LevelActor* actor = mActors[iter];
-			if ( actor->ownerId == CAR_ERROR_PLAYER_ID )
+			if (!TestPlayerMask(actor, playerMask))
 				continue;
-			if (( playerMask & BIT( actor->ownerId ) ) == 0 )
-				continue;
-
 			++iter;
 			return actor;
 		}
@@ -48,7 +59,7 @@ namespace CAR
 		for( ; iter < mActors.size(); ++iter )
 		{
 			LevelActor* actor = mActors[iter];
-			if( (actorTypeMask & BIT(actor->type)) == 0 )
+			if( !TestActorTypeMask(actor, actorTypeMask) )
 				continue;
 			++iter;
 			return actor;
@@ -61,11 +72,9 @@ namespace CAR
 		for( ; iter < mActors.size() ; ++iter )
 		{
 			LevelActor* actor = mActors[iter];
-			if( actor->ownerId == CAR_ERROR_PLAYER_ID )
+			if (!TestActorTypeMask(actor, actorTypeMask))
 				continue;
-			if( (playerMask & BIT(actor->ownerId)) == 0 )
-				continue;
-			if (( actorTypeMask & BIT(actor->type) ) == 0 )
+			if (!TestPlayerMask(actor, playerMask))
 				continue;
 
 			++iter;
@@ -73,7 +82,6 @@ namespace CAR
 		}
 		return nullptr;
 	}
-
 
 	LevelActor* ActorCollection::findActor(unsigned playerMask, unsigned actorTypeMask) const
 	{

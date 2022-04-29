@@ -2,7 +2,7 @@
 #ifndef SBlockCore_H_CEF300EC_5B0F_406A_942F_AC4CBE559D18
 #define SBlockCore_H_CEF300EC_5B0F_406A_942F_AC4CBE559D18
 
-#include "TCycleNumber.h"
+#include "CycleValue.h"
 #include "Renderer/RenderTransform2D.h"
 #include "DataStructure/Grid2D.h"
 #include "Math/Vector2.h"
@@ -17,7 +17,7 @@
 
 namespace SBlocks
 {
-	using DirType = TCycleNumber< 4, uint8 >;
+	using DirType = TCycleValue< 4, uint8 >;
 	using Int16Point2D = TVector2< int16 >;
 	using RenderTransform2D = Render::RenderTransform2D;
 	using Math::Matrix2;
@@ -208,7 +208,7 @@ namespace SBlocks
 	struct PieceShape
 	{
 		Int16Point2D boundSize;
-		PieceShapeData mDataMap[DirType::RestNumber];
+		PieceShapeData mDataMap[DirType::RestValue];
 		Vector2 pivot;
 
 		std::vector< PieceShapeData::Line > outlines;

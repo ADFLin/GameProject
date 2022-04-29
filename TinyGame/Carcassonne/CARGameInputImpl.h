@@ -111,13 +111,13 @@ namespace CAR
 #undef COMMAND_LIST
 
 
-	class CGameInput : public IGameInput
+	class GameInput : public IGameInput
 	{
 		using ExecType  = boost::coroutines::asymmetric_coroutine< void >::pull_type;
 		using YeildType = boost::coroutines::asymmetric_coroutine< void >::push_type;
 
 	public:
-		CGameInput();
+		GameInput();
 
 		void runLogic( GameLogic& gameLogic );
 		void setRemoteSender( IDataTransfer* transfer );
@@ -131,8 +131,8 @@ namespace CAR
 		GameActionData* getReplyData(){ return mActionData; }
 		void clearReplyAction();
 
-		std::function< void ( CGameInput& ) > onAction;
-		std::function< void ( CGameInput& ) > onPrevAction;
+		std::function< void ( GameInput& ) > onAction;
+		std::function< void ( GameInput& ) > onPrevAction;
 		void waitReply();
 
 		void replyPlaceTile( Vec2i const& pos , int rotation );
@@ -152,7 +152,7 @@ namespace CAR
 	private:
 
 		void commitActionCom( ActionCom& com, bool bReply = true );
-		void handleRecvCommond(int slot, int dataId, void* data, int dataSize);
+		void handleRecvCommand(int slot, int dataId, void* data, int dataSize);
 		bool executeActionCom( ActionCom const& com );
 		void executeSkipAction();
 	public:

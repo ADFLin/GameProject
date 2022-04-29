@@ -245,7 +245,7 @@ namespace SBlocks
 
 	int PieceShape::findSameShape(PieceShapeData const& data)
 	{
-		for (int i = 0; i < DirType::RestNumber; ++i)
+		for (int i = 0; i < DirType::RestValue; ++i)
 		{
 			if (mDataMap[i] == data)
 				return i;
@@ -255,7 +255,7 @@ namespace SBlocks
 
 	int PieceShape::findSameShapeIgnoreBlockType(PieceShapeData const& data)
 	{
-		for (int i = 0; i < DirType::RestNumber; ++i)
+		for (int i = 0; i < DirType::RestValue; ++i)
 		{
 			if (mDataMap[i].compareBlockPos(data))
 				return i;
@@ -267,7 +267,7 @@ namespace SBlocks
 	{
 		int numDir = 1;
 		outDirs[0] = 0;
-		for (int dir = 1; dir < DirType::RestNumber; ++dir)
+		for (int dir = 1; dir < DirType::RestValue; ++dir)
 		{
 			bool bOk = true;
 			for (int indexDir = 0; indexDir < numDir; ++indexDir)
@@ -312,7 +312,7 @@ namespace SBlocks
 			shapeData.generateOutline(outlines);
 		}
 
-		for (int dir = 1; dir < DirType::RestNumber; ++dir)
+		for (int dir = 1; dir < DirType::RestValue; ++dir)
 		{
 			auto const& shapeDataPrev = mDataMap[dir - 1];
 

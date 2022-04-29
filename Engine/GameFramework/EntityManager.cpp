@@ -2,10 +2,11 @@
 #include "Math/Base.h"
 
 #include "MarcoCommon.h"
+#include "CoreShare.h"
 
 namespace ECS
 {
-
+#if CORE_SHARE_CODE
 	static EntityManager* GManagerList[1 << 8] = {};
 
 	void EntityManager::registerToList()
@@ -47,6 +48,8 @@ namespace ECS
 		CHECK(handle.indexManager < ARRAY_SIZE(GManagerList));
 		return *GManagerList[handle.indexManager];
 	}
+#endif
+
 
 	EntityHandle EntityManager::createEntity()
 	{
@@ -87,49 +90,38 @@ namespace ECS
 		return data.handle;
 	}
 
-	int EntityManager::getAllComponentInternal(EntityHandle const& handle, ComponentType* type, std::vector< EnitiyComponent* >& outComponents)
-	{
-		assert(isValid(handle));
-		int result = 0;
-		for( auto const& componetData : mEntityLists[handle.indexSlot].components )
-		{
-			if( componetData.type == type )
-			{
-				outComponents.push_back(componetData.ptr);
-				++result;
-			}
-		}
-		return result;
-	}
 
-	EnitiyComponent* EntityManager::getComponentInternal(EntityHandle const& handle, ComponentType* type)
+	EntityComponent* EntityManager::getComponentInternal(EntityHandle const& handle, ComponentType* type)
 	{
-		assert(isValid(handle));
-		for(auto const& componetData : mEntityLists[handle.indexSlot].components )
+		CHECK(isValid(handle));
+		EntityData& entityData = mEntityLists[handle.indexSlot];
+		for(auto const& componetData : entityData.components )
 		{
 			if (componetData.type == type)
-				componetData.ptr;
+				return componetData.ptr;
 		}
 		return nullptr;
 	}
 
-	EnitiyComponent* EntityManager::addComponentInternal(EntityHandle const& handle, ComponentType* type)
+	EntityComponent* EntityManager::addComponentInternal(EntityHandle const& handle, ComponentType* type)
 	{
-		assert(isValid(handle));
-		EnitiyComponent* component = type->getPool()->fetchComponent();
+		CHECK(isValid(handle));
+		EntityComponent* component = type->getPool()->fetchComponent();
 		if( component )
 		{
 			ComponentData componentData;
 			componentData.ptr = component;
 			componentData.type = type;
 			mEntityLists[handle.indexSlot].components.push_back(componentData);
+
+			type->registerComponent(handle, component);
 		}
 		return component;
 	}
 
 	bool EntityManager::removeComponentInternal(EntityHandle const& handle, ComponentType* type)
 	{
-		assert(isValid(handle));
+		CHECK(isValid(handle));
 		EntityData& entityData = mEntityLists[handle.indexSlot];
 		auto iter = std::find_if( 
 			entityData.components.begin() , entityData.components.end() , 
@@ -141,8 +133,9 @@ namespace ECS
 		if( iter == entityData.components.end() )
 			return false;
 
-		EnitiyComponent* component = iter->ptr;
+		EntityComponent* component = iter->ptr;
 		entityData.components.erase(iter);
+		type->unregisterComponent(handle, component);
 		type->getPool()->releaseComponent(component);
 		return true;
 	}
@@ -157,11 +150,15 @@ namespace ECS
 			listener->noitfyEntityPrevDestroy(handle);
 		});
 
-		auto& data = mEntityLists[handle.indexSlot];
+		auto& entityData = mEntityLists[handle.indexSlot];
 
+		for (auto const& compentData : entityData.components)
+		{
+			compentData.type->unregisterComponent(handle, compentData.ptr);
+		}
 
 		mFreeSlotIndices.push_back(handle.indexSlot);
-		data.flags = 0;
+		entityData.flags = EEntityFlag::PaddingKill;
 		std::push_heap(mFreeSlotIndices.begin(), mFreeSlotIndices.end(), FreeSlotCmp());
 
 		notifyEvent([handle](IEntityEventLister* listener)
@@ -178,7 +175,15 @@ namespace ECS
 		if( handle.indexSlot >= mEntityLists.size() )
 			return false;
 
-		return handle.serialNumber == mEntityLists[handle.indexSlot].handle.serialNumber;
+		auto& entityData = mEntityLists[handle.indexSlot];
+
+		if (handle.serialNumber != entityData.handle.serialNumber)
+			return false;
+
+		if (entityData.flags & EEntityFlag::PaddingKill)
+			return false;
+
+		return true;
 	}
 
 	bool EntityManager::isPadingKill(EntityHandle const& handle) const

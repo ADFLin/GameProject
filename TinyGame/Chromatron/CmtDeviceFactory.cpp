@@ -40,7 +40,7 @@ namespace Chromatron
 	static int const QSpinUp = 1;
 	static int const QSpinDown = -1;
 
-	struct DeviceFun
+	struct DeviceFunc
 	{
 		static Dir IncidentDir( Device const& dc , LightTrace const& light )
 		{
@@ -69,22 +69,23 @@ namespace Chromatron
 		static void Update( Device& dc , WorldUpdateContext& context ){}
 		template< DeviceTag ID >
 		static bool CheckFinish( Device& dc , WorldUpdateContext& context ){ return true; }
+
 	};
 
 	template<>
-	void DeviceFun::Update< DC_LIGHTSOURCE >( Device& dc , WorldUpdateContext& context )
+	void DeviceFunc::Update< DC_LIGHTSOURCE >( Device& dc , WorldUpdateContext& context )
 	{
 		context.addEffectedLight( dc.getPos() , dc.getColor() , dc.getDir() );
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		context.addEffectedLight( dc.getPos() , light.getColor() , light.getDir() );
 	}
 
 	template<>
-	bool DeviceFun::CheckFinish< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context )
+	bool DeviceFunc::CheckFinish< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context )
 	{
 		Color color = COLOR_NULL;
 		Tile const& tile = context.getTile( dc.getPos() );
@@ -106,7 +107,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_SMIRROR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_SMIRROR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 
@@ -119,7 +120,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_CONDUITS >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_CONDUITS >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 		if( dir == 0 || dir == 4 )
@@ -129,7 +130,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_SPECTROSCOPE >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_SPECTROSCOPE >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 
@@ -145,7 +146,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_SMIRROR_45 >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_SMIRROR_45 >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 
@@ -159,7 +160,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_PRISM >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_PRISM >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 		Dir invDir = light.getDir().inverse();
@@ -188,7 +189,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_FILTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_FILTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 
@@ -203,7 +204,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_DOPPLER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_DOPPLER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 
@@ -218,7 +219,7 @@ namespace Chromatron
 
 
 	template<>
-	void DeviceFun::Effect< DC_SPINSPLITTER >(Device& dc, WorldUpdateContext& context, LightTrace const& light)
+	void DeviceFunc::Effect< DC_SPINSPLITTER >(Device& dc, WorldUpdateContext& context, LightTrace const& light)
 	{
 		Dir dir = IncidentDir(dc, light);
 
@@ -297,7 +298,7 @@ namespace Chromatron
 			case DC_DOPPLER:
 				if ( passStep == EDeivcePassStep::Doppler )
 				{
-					Dir dir = DeviceFun::IncidentDir( dc , light );
+					Dir dir = DeviceFunc::IncidentDir( dc , light );
 					if ( dir == 0 || dir == 4 )
 					{
 						bool isSameDir = ( dir == 0 );
@@ -309,7 +310,7 @@ namespace Chromatron
 			case DC_SPINSPLITTER:
 				if( passStep == EDeivcePassStep::SpinSplitter )
 				{
-					Dir dir = DeviceFun::IncidentDir(dc, light);
+					Dir dir = DeviceFunc::IncidentDir(dc, light);
 					if( (dir % 2) == 0 )
 					{
 						bool bCW = (light.getParam() == QSpinUp);
@@ -410,7 +411,7 @@ namespace Chromatron
 			{
 				if ( lightOther.getParam() != light.getParam() )
 				{
-					Color outColor = DeviceFun::DopplerColor(lightOther.getColor() , beSameDir );
+					Color outColor = DeviceFunc::DopplerColor(lightOther.getColor() , beSameDir );
 					lightOther.setColor( outColor );
 				}
 			}
@@ -422,7 +423,7 @@ namespace Chromatron
 			{
 				if( lightOther.getParam() == QState )
 				{
-					Dir dir = DeviceFun::Rotate(lightOther.getDir(), bCW);
+					Dir dir = DeviceFunc::Rotate(lightOther.getDir(), bCW);
 					lightOther.changeDir(dir);
 				}
 			}
@@ -436,7 +437,7 @@ namespace Chromatron
 	};
 
 	template<>
-	void DeviceFun::Effect< DC_QTANGLER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_QTANGLER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );	
 		if ( dir != 0 ) 
@@ -448,7 +449,7 @@ namespace Chromatron
 
 
 	template<>
-	void DeviceFun::Effect< DC_TELEPORTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_TELEPORTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = light.getDir();
 		Vec2i pos = dc.getPos();
@@ -469,7 +470,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_MULTIFILTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_MULTIFILTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 		int select = dir % 4;
@@ -482,7 +483,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_TWISTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_TWISTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir turnDir = ( dc.getFlag() & DFB_CLOCKWISE ) ?Dir(-2):Dir(2);
 		Dir outDir(light.getDir() + turnDir);
@@ -491,7 +492,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_DUALREFLECTOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_DUALREFLECTOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 		if ( dir == 2 || dir == 6 ) 
@@ -502,14 +503,14 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_STARBURST >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_STARBURST >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		for(int i= (light.getDir()+1)%2 ; i < NumDir ; i+=2 )
 			context.addEffectedLight( dc.getPos() , light.getColor(), Dir::ValueChecked( i ) );
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_COMPLEMENTOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_COMPLEMENTOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 
@@ -545,7 +546,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_QUADBENDER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_QUADBENDER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc, light );
 		//int dout=2*m_dir-arcdir+1;
@@ -554,7 +555,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_LOGICGATE_AND >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_LOGICGATE_AND >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc , light );
 		if ( dir != 1 && dir != 7 )
@@ -573,7 +574,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_LOGICGATE_AND_PRIMARY >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_LOGICGATE_AND_PRIMARY >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc , light );
 		if ( dir != 1 && dir != 7 )
@@ -592,7 +593,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::Effect< DC_LOGICGATE_OR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
+	void DeviceFunc::Effect< DC_LOGICGATE_OR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = IncidentDir( dc , light );
 		if ( dir != 1 && dir != 7 )
@@ -610,11 +611,32 @@ namespace Chromatron
 		}
 	}
 
+	template< DeviceTag ID >
+	static UpdateFunc GetUpdateFunc()
+	{
+		constexpr UpdateFunc func = &DeviceFunc::Update<ID>;
+		constexpr UpdateFunc func2 = &DeviceFunc::Update<DC_DEVICE_NUM>;
+		if constexpr (func == func2)
+			return nullptr;
+
+		return func;
+	}
+	template< DeviceTag ID >
+	static CheckFunc GetCheckFunc()
+	{
+		constexpr CheckFunc func = &DeviceFunc::CheckFinish<ID>;
+		constexpr CheckFunc func2 = &DeviceFunc::CheckFinish<DC_DEVICE_NUM>;
+		if constexpr (func == func2)
+			return nullptr;
+
+		return func;
+	}
+
 #define BEGIN_DC_INFO()\
 	void initDeviceInfo(){ \
 
 #define DC_INFO( id , flag ) \
-	gDeviceInfo[ id ] = DeviceInfo( id , flag , &DeviceFun::Effect< id > , &DeviceFun::Update< id > , &DeviceFun::CheckFinish< id > );
+	gDeviceInfo[ id ] = DeviceInfo( id , flag , &DeviceFunc::Effect< id > , GetUpdateFunc< id >() , GetCheckFunc< id >() );
 
 #define END_DC_INFO() }
 
@@ -639,7 +661,7 @@ namespace Chromatron
 		DC_INFO( DC_LOGICGATE_AND, DFB_REMOVE_QSTATE )
 		DC_INFO( DC_LOGICGATE_AND_PRIMARY , DFB_REMOVE_QSTATE )
 		DC_INFO( DC_LOGICGATE_OR , DFB_REMOVE_QSTATE )
-		DC_INFO( DC_SPINSPLITTER      , DFB_DRAW_FIRST )
+		DC_INFO( DC_SPINSPLITTER , DFB_DRAW_FIRST )
 	END_DC_INFO()
 
 

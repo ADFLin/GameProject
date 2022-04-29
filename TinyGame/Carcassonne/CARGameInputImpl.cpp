@@ -45,13 +45,13 @@ namespace CAR
 
 	static_assert( sizeof(ActionHeader) == sizeof( uint32 ) , "Action Header Size Check Fail");
 
-	CGameInput::CGameInput()
+	GameInput::GameInput()
 	{
 		mInputExecution = nullptr;
 		reset();
 	}
 
-	void CGameInput::reset()
+	void GameInput::reset()
 	{
 		assert(mInputExecution == nullptr);
 		mbReplayMode = false;
@@ -63,19 +63,19 @@ namespace CAR
 		mRecordAction.clear();
 	}
 
-	void CGameInput::clearReplyAction()
+	void GameInput::clearReplyAction()
 	{
 		mAction = ACTION_NONE;
 		mActionData = nullptr;
 	}
 
-	void CGameInput::runLogic(GameLogic& gameLogic)
+	void GameInput::runLogic(GameLogic& gameLogic)
 	{
 		mGameLogic = &gameLogic;
-		mGameLogicExecution = ExecType( std::bind( &CGameInput::LogicExecutionEntry, this , std::placeholders::_1 ) );
+		mGameLogicExecution = ExecType( std::bind( &GameInput::LogicExecutionEntry, this , std::placeholders::_1 ) );
 	}
 
-	void CGameInput::LogicExecutionEntry(YeildType& yeild )
+	void GameInput::LogicExecutionEntry(YeildType& yeild )
 	{
 		try 
 		{
@@ -96,7 +96,7 @@ namespace CAR
 	}
 
 
-	void CGameInput::requestActionImpl( PlayerAction action , GameActionData& data )
+	void GameInput::requestActionImpl( PlayerAction action , GameActionData& data )
 	{
 		mAction = action;
 		mActionData = &data;
@@ -177,16 +177,14 @@ namespace CAR
 		}
 	}
 
-
-
-	void CGameInput::waitReply()
+	void GameInput::waitReply()
 	{
 		assert( mInputExecution );
 		mbWaitReply = true;
 		(*mInputExecution)();
 	}
 
-	bool CGameInput::executeActionCom( ActionCom const& com  )
+	bool GameInput::executeActionCom( ActionCom const& com  )
 	{
 		if ( com.bReply && com.action != getReplyAction() )
 		{
@@ -290,7 +288,7 @@ namespace CAR
 		return true;
 	}
 
-	void CGameInput::executeSkipAction()
+	void GameInput::executeSkipAction()
 	{
 		if ( mActionData )
 		{
@@ -299,7 +297,7 @@ namespace CAR
 		}
 	}
 
-	void CGameInput::executeAction( ActionCom const* com )
+	void GameInput::executeAction( ActionCom const* com )
 	{
 		++mNumActionInput;
 
@@ -342,7 +340,7 @@ namespace CAR
 		}
 	}
 
-	bool CGameInput::loadReplay(char const* file)
+	bool GameInput::loadReplay(char const* file)
 	{
 		std::ifstream  fs;
 		fs.open( file , std::ios::in | std::ios::binary );
@@ -368,7 +366,7 @@ namespace CAR
 		return true;
 	}
 
-	bool CGameInput::saveReplay(char const* file)
+	bool GameInput::saveReplay(char const* file)
 	{
 		std::ofstream fs( file , std::ios::binary );
 		if ( !fs.is_open() )
@@ -387,7 +385,7 @@ namespace CAR
 		return true;
 	}
 
-	void CGameInput::replyPlaceTile(Vec2i const& pos , int rotation)
+	void GameInput::replyPlaceTile(Vec2i const& pos , int rotation)
 	{
 		assert( mAction == ACTION_PLACE_TILE );
 
@@ -398,8 +396,7 @@ namespace CAR
 		commitActionCom( com );
 	}
 
-
-	void CGameInput::replyDeployActor(int index , EActor::Type type)
+	void GameInput::replyDeployActor(int index , EActor::Type type)
 	{
 		assert( mAction == ACTION_DEPLOY_ACTOR );
 
@@ -409,18 +406,18 @@ namespace CAR
 		commitActionCom( com );
 	}
 
-	void CGameInput::replySelection(int index)
+	void GameInput::replySelection(int index)
 	{
 		assert( mAction == ACTION_SELECT_ACTOR || 
-			mAction == ACTION_SELECT_MAPTILE ||
-			mAction == ACTION_SELECT_ACTOR_INFO );
+			    mAction == ACTION_SELECT_MAPTILE ||
+			    mAction == ACTION_SELECT_ACTOR_INFO );
 
 		ActionCom com;
 		com.addParam( index );
 		commitActionCom( com );
 	}
 
-	void CGameInput::replyAuctionTile( int riseScore , int index /*= -1 */)
+	void GameInput::replyAuctionTile( int riseScore , int index /*= -1 */)
 	{
 		assert( mAction == ACTION_AUCTION_TILE );
 		ActionCom com;
@@ -430,7 +427,7 @@ namespace CAR
 		commitActionCom( com );
 	}
 
-	void CGameInput::replyActorType(EActor::Type type)
+	void GameInput::replyActorType(EActor::Type type)
 	{
 		assert(mAction == ACTION_EXCHANGE_ACTOR_POS);
 		ActionCom com;
@@ -438,7 +435,7 @@ namespace CAR
 		commitActionCom(com);
 	}
 
-	void CGameInput::replyDoIt()
+	void GameInput::replyDoIt()
 	{
 		assert( mAction == ACTION_BUILD_CASTLE || 
 			    mAction == ACTION_TRUN_OVER ||
@@ -447,7 +444,7 @@ namespace CAR
 		commitActionCom( com );
 	}
 
-	void CGameInput::replySkip()
+	void GameInput::replySkip()
 	{
 		if ( mRemoteSender )
 		{
@@ -461,16 +458,16 @@ namespace CAR
 		}
 	}
 
-	void CGameInput::setRemoteSender(IDataTransfer* transfer)
+	void GameInput::setRemoteSender(IDataTransfer* transfer)
 	{
 		mRemoteSender = transfer;
 		if (mRemoteSender)
 		{
-			mRemoteSender->setRecvFunc(RecvFunc(this, &CGameInput::handleRecvCommond));
+			mRemoteSender->setRecvFunc(RecvFunc(this, &GameInput::handleRecvCommand));
 		}
 	}
 
-	void CGameInput::handleRecvCommond(int slot , int dataId , void* data , int dataSize)
+	void GameInput::handleRecvCommand(int slot , int dataId , void* data , int dataSize)
 	{
 		switch( dataId )
 		{
@@ -492,7 +489,7 @@ namespace CAR
 		}
 	}
 
-	void CGameInput::commitActionCom( ActionCom& com , bool bReply )
+	void GameInput::commitActionCom( ActionCom& com , bool bReply )
 	{	
 		com.bReply = bReply;
 		if (bReply)
@@ -510,7 +507,7 @@ namespace CAR
 		}
 	}
 
-	void CGameInput::buildBridge(Vec2i const& pos , int dir)
+	void GameInput::buildBridge(Vec2i const& pos , int dir)
 	{
 		ActionCom com;
 		com.action = ACTION_BUILD_BRIDGE;
@@ -520,7 +517,7 @@ namespace CAR
 		commitActionCom(com, false);
 	}
 
-	void CGameInput::executeGameLogic()
+	void GameInput::executeGameLogic()
 	{
 		if (mInputExecution)
 		{
@@ -528,7 +525,7 @@ namespace CAR
 		}
 	}
 
-	void CGameInput::exitGame()
+	void GameInput::exitGame()
 	{
 		if ( mActionData )
 		{
@@ -537,7 +534,7 @@ namespace CAR
 		}
 	}
 
-	void CGameInput::changePlaceTile(TileId id)
+	void GameInput::changePlaceTile(TileId id)
 	{
 		ActionCom com;
 		com.action = ACTION_CHANGE_TILE;

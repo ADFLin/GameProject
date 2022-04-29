@@ -175,7 +175,6 @@ namespace CAR
 			FIELD_VALUE(EField::RobberScorePos, -1);
 		}
 
-#undef FIELD_ACTOR
 #undef FIELD_VALUE
 #undef VALUE
 

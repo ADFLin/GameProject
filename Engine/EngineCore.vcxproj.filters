@@ -381,9 +381,6 @@
     <ClInclude Include="StackParam.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="TCycleNumber.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
     <ClInclude Include="TGrid2D.h">
       <Filter>Utility</Filter>
     </ClInclude>
@@ -911,6 +908,9 @@
     </ClInclude>
     <ClInclude Include="ModuleInterface.h">
       <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CycleValue.h">
+      <Filter>Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

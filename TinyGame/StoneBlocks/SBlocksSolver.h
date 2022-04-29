@@ -103,7 +103,7 @@ namespace SBlocks
 		int indexCombination;
 		std::vector< PieceSolveData* > pieces;
 		std::vector< PieceSolveState > states;
-		std::vector< Int16Point2D > outerConPosListMap[DirType::RestNumber];
+		std::vector< Int16Point2D > outerConPosListMap[DirType::RestValue];
 
 		bool checkFixedRotation(int* outRotation)
 		{

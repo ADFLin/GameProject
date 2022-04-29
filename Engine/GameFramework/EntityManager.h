@@ -3,6 +3,7 @@
 
 #include "Core/TypeHash.h"
 #include "MarcoCommon.h"
+#include "CoreShare.h"
 
 #include <vector>
 #include <unordered_map>
@@ -11,19 +12,20 @@
 #include <cassert>
 
 
+
 namespace ECS
 {
 
 	class ComponentType;
 	class EntityHandle;
 
-	using EnitiyComponent = void;
+	using EntityComponent = void;
 
 	class IComponentPool
 	{
 	public:
-		virtual void releaseComponent(EnitiyComponent* component) = 0;
-		virtual EnitiyComponent* fetchComponent() = 0;
+		virtual void releaseComponent(EntityComponent* component) = 0;
+		virtual EntityComponent* fetchComponent() = 0;
 	};
 
 
@@ -31,8 +33,10 @@ namespace ECS
 	{
 	public:
 		virtual IComponentPool* getPool() = 0;
-		virtual void registerComponent(EntityHandle const& handle, EnitiyComponent* component) {}
-		virtual void unregisterComponent(EntityHandle const& handle, EnitiyComponent* component) {}
+		virtual void registerComponent(EntityHandle const& handle, EntityComponent* component) {}
+		virtual void unregisterComponent(EntityHandle const& handle, EntityComponent* component) {}
+
+		uint32 mID;
 	};
 
 	class EntityHandle
@@ -66,7 +70,7 @@ namespace ECS
 	private:
 		EntityHandle(uint32 inIndexSlot, uint32 inSerialNumber, uint32 inIndexManager)
 		{
-			inIndexManager = inIndexManager;
+			indexManager = inIndexManager;
 			indexSlot = inIndexSlot;
 			serialNumber = inSerialNumber;
 		}
@@ -88,14 +92,53 @@ namespace ECS
 	template< class T >
 	class TSimpleComponentPool : public IComponentPool
 	{
-		virtual void releaseComponent(EnitiyComponent* component)
+		virtual void releaseComponent(EntityComponent* component)
 		{
 			delete component;
 		}
-		virtual EnitiyComponent* fetchComponent()
+		virtual EntityComponent* fetchComponent()
 		{
 			return new T();
 		}
+	};
+
+
+
+	enum EComponentCondiditon
+	{
+		Required,
+		Excluded,
+		Optional,
+	};
+
+	struct EntityServiceEnumer
+	{
+	public:
+		template<typename T>
+		void addComponent(EComponentCondiditon condition = EComponentCondiditon::Required)
+		{
+			CompSeviceDesc desc;
+			desc.type = mManager->getComponentT<T>();
+			desc.condition = condition;
+			mDescList.push_back(desc);
+		}
+
+		struct CompSeviceDesc
+		{
+			ComponentType* type;
+			EComponentCondiditon condition;
+		};
+
+		std::vector< CompSeviceDesc > mDescList;
+		EntityManager* mManager;
+	};
+
+	class ISystemSerivce
+	{
+	public:
+		virtual void notiyEntityRegister(EntityHandle const& handle) {}
+		virtual void notiyEntityUnregister(EntityHandle const& handle) {}
+		virtual void enumServedComponents(EntityServiceEnumer& enumer) {}
 	};
 
 
@@ -110,11 +153,11 @@ namespace ECS
 				unregisterFromList();
 			}
 		}
-		void registerToList();
-		void unregisterFromList();
+		CORE_API void registerToList();
+		CORE_API void unregisterFromList();
 
-		static EntityManager* FromHandle(EntityHandle const& handle);
-		static EntityManager& FromHandleChecked(EntityHandle const& handle);
+		CORE_API static EntityManager* FromHandle(EntityHandle const& handle);
+		CORE_API static EntityManager& FromHandleChecked(EntityHandle const& handle);
 
 		static bool IsValid(EntityHandle const& handle)
 		{
@@ -137,18 +180,12 @@ namespace ECS
 			TSimpleComponentPool< T > poolInstance;
 		};
 
-		template< class TComponent >
-		void registerDefaultComponentTypeT()
-		{
-			static TDefaultComponentType< TComponent > sComponentTypeInstance;
-			mComponentTypeMap.emplace(std::type_index( typeid(TComponent) ), &sComponentTypeInstance);
-		}
-
-		template< class TComponent , typename TComponentType >
+		template< class TComponent , typename TComponentType = TDefaultComponentType< TComponent > >
 		void registerComponentTypeT()
 		{
-
-
+			CHECK(mComponentTypeMap.find(std::type_index(typeid(TComponent))) == mComponentTypeMap.end());
+			static TComponentType sComponentTypeInstance;
+			mComponentTypeMap.emplace(std::type_index(typeid(TComponent)), &sComponentTypeInstance);
 		}
 
 		template< class TComponent , typename TFunc >
@@ -178,6 +215,7 @@ namespace ECS
 
 		EntityHandle createEntity();
 		void  destroyEntity(EntityHandle const& handle);
+
 		bool  isValid(EntityHandle const& handle) const;
 		bool  isPadingKill(EntityHandle const& handle) const;
 
@@ -188,32 +226,63 @@ namespace ECS
 			if( !isValid(handle) )
 				return nullptr;
 			ComponentType* type = getComponentTypeT<TComponent>();
-			return getComponentInternal(handle, type);
+			if (type == nullptr)
+				return nullptr;
+
+			return (TComponent*)getComponentInternal(handle, type);
 		}
 
 		template< class TComponent >
-		int getAllComponentsT(EntityHandle const& handle, std::vector< TComponent* >& outComponents)
+		TComponent& getComponentCheckedT(EntityHandle const& handle)
+		{
+			CHECK(isValid(handle));
+			ComponentType* type = getComponentTypeT<TComponent>();
+			CHECK(type);
+			return *(TComponent*)getComponentInternal(handle, type);
+		}
+
+		template< class TComponent >
+		int getComponentsT(EntityHandle const& handle, std::vector< TComponent* >& outComponents)
 		{
 			if( !isValid(handle) )
 				return 0;
-			ComponentType* type = getComponentTypeT<TComponent>();
+
 			int result = 0;
-			for( auto componet : mEntityLists[handle.indexSlot].components )
+			ComponentType* type = getComponentTypeT<TComponent>();
+			if (type)
 			{
-				if( componet->type == type )
+				for (auto componet : mEntityLists[handle.indexSlot].components)
 				{
-					outComponents.push_back(componet);
-					++result;
+					if (componet->type == type)
+					{
+						outComponents.push_back(componet.ptr);
+						++result;
+					}
 				}
 			}
 			return result;
 		}
 
-		template< class T >
-		T* addComponentT(EntityHandle const& handle)
+		int getAllComponents(EntityHandle const& handle, std::vector< EntityComponent* >& outComponents)
+		{
+			if (!isValid(handle))
+				return 0;
+
+			int result = 0;
+			for (auto componet : mEntityLists[handle.indexSlot].components)
+			{
+				outComponents.push_back(componet.ptr);
+				++result;
+			}
+			return result;
+		}
+
+
+		template< class TComponent >
+		TComponent* addComponentT(EntityHandle const& handle)
 		{
 			assert(isValid(handle));
-			return (T*)addComponentInternal(handle, getComponentTypeT<T>());
+			return (TComponent*)addComponentInternal(handle, getComponentTypeT<TComponent>());
 		}
 
 		template< class T >
@@ -223,9 +292,8 @@ namespace ECS
 			return removeComponentInternal(handle, getComponentTypeT<T>());
 		}
 
-		EnitiyComponent* getComponentInternal(EntityHandle const& handle, ComponentType* type);
-		int getAllComponentInternal(EntityHandle const& handle, ComponentType* type, std::vector< EnitiyComponent* >& outComponents);
-		EnitiyComponent* addComponentInternal(EntityHandle const& handle, ComponentType* type);
+		EntityComponent* getComponentInternal(EntityHandle const& handle, ComponentType* type);
+		EntityComponent* addComponentInternal(EntityHandle const& handle, ComponentType* type);
 		bool removeComponentInternal(EntityHandle const& handle, ComponentType* type);
 
 
@@ -250,10 +318,23 @@ namespace ECS
 		struct EntityData
 		{
 			uint32 flags;
+			int32  linkIndex;
+			uint64 systemMask;
 			EntityHandle handle;
 			std::vector< ComponentData > components;
 		};
 
+		void  cleanupEntity(EntityData& entityData)
+		{
+			CHECK(entityData.flags & EEntityFlag::PaddingKill);
+			for (auto const& compentData : entityData.components)
+			{
+				compentData.type->getPool()->releaseComponent(compentData.ptr);
+			}
+			entityData.components.clear();
+			entityData.components.shrink_to_fit();
+			entityData.flags = 0;
+		}
 		int mIndexSlot = INDEX_NONE;
 
 		std::vector< uint32 > mUsedSlotIndices;
@@ -270,10 +351,10 @@ namespace ECS
 			}
 		}
 
-		template< class T >
+		template< class TComponent >
 		ComponentType* getComponentTypeT()
 		{
-			auto iter = mComponentTypeMap.find(std::type_index(typeid(T)));
+			auto iter = mComponentTypeMap.find(std::type_index(typeid(TComponent)));
 			if( iter == mComponentTypeMap.end() )
 				return nullptr;
 			return iter->second;
@@ -282,71 +363,11 @@ namespace ECS
 		std::unordered_map< std::type_index, ComponentType* > mComponentTypeMap;
 		std::vector< EntityData > mEntityLists;
 		std::vector< IEntityEventLister* > mEventListers;
-	};
 
-
-
-	class EntityProxy
-	{
-	public:
-		EntityProxy() :mHandle() {}
-		EntityProxy(EntityHandle handle)
-			:mHandle(handle)
-		{
-
-		}
-
-		bool isValid() const { return EntityManager::IsValid(mHandle); }
-
-		template< class T >
-		T* getComponentT()
-		{
-			return getManager().getComponentT<T>(mHandle);
-		}
-		template< class T >
-		int getAllComponentsT(std::vector< T* >& outComponents)
-		{
-			return getManager().getAllComponentsT(mHandle, outComponents);
-		}
-		template< class T >
-		T* addComponentT()
-		{
-			return getManager().addComponentT<T>(mHandle);
-		}
-		template< class T >
-		void removeComponentT()
-		{
-			getManager().removeComponentT<T>(mHandle);
-		}
-
-		EntityManager& getManager() {  return EntityManager::FromHandleChecked(mHandle); }
-		EntityHandle mHandle;
-	};
-
-
-	class ISystemSerivce
-	{
-	public:
-		virtual void tickSystem(float deltaTime) {}
-		virtual void notiyEntityRegister(EntityHandle const& handle) {}
-		virtual void notiyEntityUnregister(EntityHandle const& handle) {}
-	};
-
-
-	struct SystemServiceType
-	{
-
-
-	};
-	class SystemAdmin
-	{
-	public:
-		template< class T >
-		T* getSystem();
 
 
 		template< class T >
-		void registerSystem(T* system = nullptr)
+		T* registerSystem(T* system = nullptr)
 		{
 
 
@@ -362,9 +383,69 @@ namespace ECS
 
 		}
 
-		static SystemAdmin& Get();
+		struct ServiceData
+		{
+			ISystemSerivce* service;
+			bool bManageed;
+		};
+		std::vector< ISystemSerivce* > mSystems;
 	};
 
+
+
+	class EntityProxy
+	{
+	public:
+		EntityProxy() :mHandle(),mManagerCached(nullptr) {}
+		EntityProxy(EntityHandle handle)
+			:mHandle(handle)
+		{
+			mManagerCached = EntityManager::FromHandle(mHandle);
+		}
+
+		bool isValid() const { return mManagerCached && mManagerCached->isValid(mHandle); }
+
+		template< typename TComponent >
+		TComponent* getComponentT()
+		{
+			return getManager().getComponentT<TComponent>(mHandle);
+		}
+
+		template< typename TComponent >
+		TComponent& getComponentCheckedT()
+		{
+			return getManager().getComponentCheckedT<TComponent>(mHandle);
+		}
+
+		template< typename TComponent >
+		int getComponentsT(std::vector<TComponent*>& outComponents)
+		{
+			return getManager().getComponentsT(mHandle, outComponents);
+		}
+
+		int getAllComponents(std::vector<EntityComponent*>& outComponents)
+		{
+			return getManager().getAllComponents(mHandle, outComponents);
+		}
+
+
+		template< class T >
+		T* addComponentT()
+		{
+			return getManager().addComponentT<T>(mHandle);
+		}
+
+		template< class T >
+		void removeComponentT()
+		{
+			getManager().removeComponentT<T>(mHandle);
+		}
+
+		EntityManager& getManager() {  return *mManagerCached; }
+
+		EntityHandle   mHandle;
+		EntityManager* mManagerCached;
+	};
 }
 
 #endif // Entity_h__

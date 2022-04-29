@@ -13,7 +13,7 @@
 
 #include "Holder.h"
 #include "Singleton.h"
-#include "TCycleNumber.h"
+#include "CycleValue.h"
 #include "Math/TVector2.h"
 
 #include "ProfileSystem.h"

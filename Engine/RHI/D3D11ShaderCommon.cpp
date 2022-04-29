@@ -1,22 +1,16 @@
 #include "D3D11ShaderCommon.h"
 
 #include "D3D11Common.h"
+
+#include "RHICommand.h"
 #include "ShaderProgram.h"
 
 #include "FileSystem.h"
 #include "CPreprocessor.h"
 
 #include "Serialize/StreamBuffer.h"
-#include "RHICommand.h"
-#include "Platform/Windows/WindowsProcess.h"
-
-
-#include <streambuf>
-#include <fstream>
-#include <sstream>
 
 #include <D3D11.h>
-
 
 namespace Render
 {

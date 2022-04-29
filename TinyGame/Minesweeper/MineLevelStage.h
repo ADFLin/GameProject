@@ -230,7 +230,7 @@ namespace Mine
 
 		void buildLevelSolver();
 
-		bool bPlayMode;
+		bool bPlayMode = true;
 		bool bGameOver;
 
 		float mCanvasAlpha;

@@ -6,7 +6,7 @@
 #include "Core/IntegerType.h"
 
 #include "Math/TVector2.h"
-#include "TCycleNumber.h"
+#include "CycleValue.h"
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif
@@ -20,7 +20,7 @@ namespace Chromatron
 	DeviceId const ErrorDeviceId = DeviceId( -1 );
 
 	int const NumDir = 8;
-	using Dir = TCycleNumber< NumDir, int >;
+	using Dir = TCycleValue< NumDir, int >;
 
 	inline bool IsInRect( Vec2i const& pt , Vec2i const& rectPos , Vec2i const& rectSize )
 	{

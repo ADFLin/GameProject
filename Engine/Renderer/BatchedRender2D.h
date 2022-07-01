@@ -245,6 +245,7 @@ namespace Render
 		}
 
 		void releaseElements();
+		bool isEmpty() const { return mElements.empty(); }
 
 		FrameAllocator mAllocator;
 		std::vector< RenderBachedElement* > mElements;

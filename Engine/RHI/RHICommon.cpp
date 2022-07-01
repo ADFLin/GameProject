@@ -189,7 +189,7 @@ namespace Render
 		{
 			if (element.attribute == attribute)
 			{
-				element.attribute == EVertex::ATTRIBUTE_UNUSED;
+				element.attribute = EVertex::ATTRIBUTE_UNUSED;
 				break;
 			}
 		}

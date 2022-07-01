@@ -724,8 +724,8 @@ namespace Render
 	}
 
 
-	template< class TD3D11_TEXTURE1D_DESC >
-	void SetupTextureDesc(TD3D11_TEXTURE1D_DESC& desc, uint32 creationFlags)
+	template< class TD3D11_TEXTURE_DESC >
+	void SetupTextureDesc(TD3D11_TEXTURE_DESC& desc, uint32 creationFlags)
 	{
 		desc.Usage = (creationFlags & TCF_AllowCPUAccess) ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
 		if (creationFlags & TCF_RenderTarget)

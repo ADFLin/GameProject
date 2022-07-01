@@ -1012,26 +1012,26 @@ namespace Render
 
 		bool update(InputStreamInfo inInputSteams[], int inNumInputStream)
 		{
-			bool result = false;
+			bool bModified = false;
 			if (inputStreamCount != inNumInputStream)
 			{
 				inputStreamCount = inNumInputStream;
-				result = true;
+				bModified = true;
 			}
 			for (int i = 0; i < inNumInputStream; ++i)
 			{
 				if (!(inputStreams[i] == inInputSteams[i]))
 				{
 					inputStreams[i] = inInputSteams[i];
-					result = true;
+					bModified = true;
 				}
 			}
 
-			if (result)
+			if (bModified)
 			{
 				updateHash();
 			}
-			return result;
+			return bModified;
 		}
 
 

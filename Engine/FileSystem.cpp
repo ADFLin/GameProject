@@ -514,8 +514,14 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& 
 {
 #if SYS_PLATFORM_WIN
 	HANDLE hFile = FWinApi::CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-	if (hFile == NULL)
+	if (hFile == INVALID_HANDLE_VALUE)
 		return false;
+
+	ON_SCOPE_EXIT
+	{
+		CloseHandle(hFile);
+	};
+
 	LARGE_INTEGER iSize;
 	GetFileSizeEx(hFile, &iSize);
 	int64 size = iSize.QuadPart;
@@ -532,8 +538,6 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& 
 	}
 	if (bAppendZeroAfterEnd)
 		outBuffer[size] = 0;
-
-	CloseHandle(hFile);
 
 	return true;
 #else

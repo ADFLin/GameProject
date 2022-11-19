@@ -263,7 +263,7 @@ void RHIGraphics2D::commitRenderState()
 		}
 		if (mDirtyState.scissorRect)
 		{
-			RHISetScissorRect(getCommandList(), mScissorRect.pos.x, mHeight - mScissorRect.pos.y - mScissorRect.size.y, mScissorRect.size.x, mScissorRect.size.y);
+			RHISetScissorRect(commandList, mScissorRect.pos.x, mHeight - mScissorRect.pos.y - mScissorRect.size.y, mScissorRect.size.x, mScissorRect.size.y);
 		}
 
 		mDirtyState.value = 0;
@@ -664,7 +664,7 @@ void RHIGraphics2D::drawLineBuffer()
 
 void RHIGraphics2D::flushBatchedElements()
 {
-	if ( !mBachedElementList.mElements.empty() )
+	if ( !mBachedElementList.isEmpty() )
 	{
 		mBatchedRender.render(getCommandList(), mBachedElementList);
 		mBachedElementList.releaseElements();

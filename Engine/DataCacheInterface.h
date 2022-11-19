@@ -76,6 +76,7 @@ public:
 	virtual bool saveDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) = 0;
 	virtual bool load(DataCacheKey const& key, std::vector< uint8 >& outBuffer) = 0;
 	virtual bool loadDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) = 0;
+	virtual void ignoreDataType(char const* typeName) = 0;
 
 	virtual DataCacheHandle find(DataCacheKey const& key) = 0;
 	virtual void release() = 0;

@@ -338,6 +338,7 @@ namespace CFly
 
 	Texture* Material::addTexture( int slot, int idxLayer, char const* texName, TextureType type /*= CFT_TEXTURE_2D */, Color3ub const* colorKey /*= nullptr */, int mipMapLevel /*= 0 */ )
 	{
+
 		Texture* texture = mMamager->createTexture( texName , type , colorKey , mipMapLevel);
 
 		if ( !texture )

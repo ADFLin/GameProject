@@ -10,6 +10,10 @@ class IStreamSerializer;
 namespace Render
 {
 
+	FORCEINLINE bool IsIntType(RHIBuffer* buffer)
+	{
+		return buffer->getElementSize() == 4;
+	}
 	class Mesh
 	{
 	public:
@@ -29,8 +33,8 @@ namespace Render
 
 
 		void setupColorOverride(LinearColor const& color);
-		void drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
-		void drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer);
+		void drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIBuffer* indexBuffer);
+		void drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIBuffer* indexBuffer);
 
 		bool buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector<MeshletCullData>* outCullDataList = nullptr);
 
@@ -68,7 +72,7 @@ namespace Render
 
 		bool generateVertexAdjacency();
 		bool generateTessellationAdjacency();
-		bool generateAdjacencyInternal(EAdjacencyType type, RHIIndexBufferRef& outIndexBuffer);
+		bool generateAdjacencyInternal(EAdjacencyType type, RHIBufferRef& outIndexBuffer);
 
 		bool save(IStreamSerializer& serializer);
 		bool load(IStreamSerializer& serializer);
@@ -79,11 +83,11 @@ namespace Render
 		InputLayoutDesc     mInputLayoutDesc;
 		RHIInputLayoutRef   mInputLayout;
 		RHIInputLayoutRef   mInputLayoutOverwriteColor;
-		RHIVertexBufferRef  mVertexBuffer;
-		RHIVertexBufferRef  mColorBuffer;
-		RHIIndexBufferRef   mIndexBuffer;
-		RHIIndexBufferRef   mVertexAdjIndexBuffer;
-		RHIIndexBufferRef   mTessAdjIndexBuffer;
+		RHIBufferRef  mVertexBuffer;
+		RHIBufferRef  mColorBuffer;
+		RHIBufferRef  mIndexBuffer;
+		RHIBufferRef  mVertexAdjIndexBuffer;
+		RHIBufferRef  mTessAdjIndexBuffer;
 
 		std::vector< MeshSection > mSections;
 	};

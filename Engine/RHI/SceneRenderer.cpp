@@ -1671,7 +1671,7 @@ namespace Render
 	{
 		RHITexture3D*     volumeBuffer[2];
 		RHITexture3D*     scatteringBuffer[2];
-		RHIVertexBuffer*  lightBuffer;
+		RHIBuffer*  lightBuffer;
 		int               numLights;
 	};
 

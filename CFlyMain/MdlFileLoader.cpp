@@ -404,7 +404,7 @@ namespace CFly
 		for( int i = 0 ; i < texArea ; ++i )
 		{
 			uint8* palC = pal + 3 * data[i];
-			pColor[i] = FColor::ToARGB( palC[0] , palC[1], palC[2] , 255 );
+			pColor[i] = FColor::ToRGBA( palC[0] , palC[1], palC[2] , 255 );
 		}
 
 		MaterialManager* manager = mScene->getWorld()->_getMaterialManager();

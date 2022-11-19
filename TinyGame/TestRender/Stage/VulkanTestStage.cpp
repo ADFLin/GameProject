@@ -147,8 +147,8 @@ namespace RenderVulkan
 		VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
 		VkRenderPass mSimpleRenderPass = VK_NULL_HANDLE;
 
-		RHIVertexBufferRef mVertexBuffer;
-		RHIIndexBufferRef  mIndexBuffer;
+		RHIBufferRef mVertexBuffer;
+		RHIBufferRef  mIndexBuffer;
 
 		ShaderProgram mShaderProgram;
 		RHIInputLayoutRef mInputLayout;

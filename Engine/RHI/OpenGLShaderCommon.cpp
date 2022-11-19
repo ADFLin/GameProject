@@ -540,8 +540,8 @@ void main()
 				assert(values[0] < ARRAY_SIZE(name));
 				glGetProgramResourceName(handle, BlockTypeInterface, idxBlock, ARRAY_SIZE(name), NULL, &name[0]);
 				auto& param = parameterMap.addParameter(name, idxBlock);
-#if _DEBUG
-				param.mName = name;
+#if SHADER_DEBUG
+				param.mbindType = BlockTypeInterface == GL_UNIFORM_BLOCK ? EShaderParamBindType::UniformBuffer : EShaderParamBindType::StorageBuffer;
 #endif
 			}
 		};
@@ -593,7 +593,7 @@ void main()
 				if (values[2] != -1)
 				{
 					auto& param = parameterMap.addParameter(name, values[2]);
-#if _DEBUG
+#if SHADER_DEBUG
 					param.mName = name;
 #endif
 				}
@@ -601,8 +601,8 @@ void main()
 			else
 			{
 				auto& param = parameterMap.addParameter(name, values[1]);
-#if _DEBUG
-				param.mName = name;
+#if SHADER_DEBUG
+				param.mbindType = EShaderParamBindType::Uniform;
 #endif
 			}
 		}
@@ -633,7 +633,7 @@ void main()
 	{
 		int maxLength = 0;
 		glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &maxLength);
-		outBuffer.reserve(maxLength);
+		outBuffer.resize(maxLength);
 		int logLength = 0;
 		glGetShaderInfoLog(handle, maxLength, &logLength, &outBuffer[0]);
 		return logLength;

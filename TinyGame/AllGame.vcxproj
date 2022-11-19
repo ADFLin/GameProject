@@ -19,11 +19,35 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Engine\D3D11RHI.vcxproj">
+      <Project>{d400fd7c-3d3a-47e2-992e-f6aa70e4192b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\D3D12RHI.vcxproj">
+      <Project>{d4a8c158-1d66-4f50-bc31-ec5789098431}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\EngineCore.vcxproj">
+      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\EngineRender.vcxproj">
+      <Project>{b44b3265-be59-4382-a519-cd347a8d560f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\EngineShare.vcxproj">
+      <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\OpenGLRHI.vcxproj">
+      <Project>{7ec6733c-3ecd-4c69-a8dc-dc11c0ed8321}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\VulkanRHI.vcxproj">
+      <Project>{52b9b264-2b19-4211-a6f7-723ab74a0e03}</Project>
+    </ProjectReference>
     <ProjectReference Include="GameBomberMan.vcxproj">
       <Project>{03b12fb6-53ee-4cf9-820b-0b9196e1acba}</Project>
     </ProjectReference>
     <ProjectReference Include="GameBubble.vcxproj">
       <Project>{80a582ab-6663-463b-b8f2-9f8e5ed6519c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameCarcassonne.vcxproj">
+      <Project>{3e831092-4348-48af-821a-9caf0eea86e1}</Project>
     </ProjectReference>
     <ProjectReference Include="GameChromatron.vcxproj">
       <Project>{cb655cb7-1b1b-4e96-bb3b-55b7159cde41}</Project>

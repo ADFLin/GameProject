@@ -208,6 +208,8 @@
     <None Include="..\TinyGame\out\Shader\Test\D3D12Simple.sgc">
       <Filter>Test</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\TexturePreview.sgc" />
+    <None Include="..\TinyGame\out\Shader\CubeMapCommon.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

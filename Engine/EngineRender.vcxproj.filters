@@ -359,6 +359,9 @@
     <ClInclude Include="RHI\D3DSharedCommon.h">
       <Filter>RHI\D3D</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer\TransformPushScope.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">

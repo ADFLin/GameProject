@@ -449,6 +449,7 @@
     <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\StackStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TMechineStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp" />

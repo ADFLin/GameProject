@@ -105,6 +105,11 @@ namespace SBlocks
 		std::vector< PieceSolveState > states;
 		std::vector< Int16Point2D > outerConPosListMap[DirType::RestValue];
 
+		PieceShapeData const& getShapeData( PieceSolveState const& state ) const
+		{ 
+			return shape->getData(DirType::ValueChecked(state.dir));
+		}
+
 		bool checkFixedRotation(int* outRotation)
 		{
 			int rotation = INDEX_NONE;

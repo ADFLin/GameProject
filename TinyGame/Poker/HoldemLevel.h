@@ -5,7 +5,9 @@
 #include "DataTransfer.h"
 #include "DataStructure/FixVector.h"
 
-namespace Poker { namespace Holdem {
+namespace Holdem {
+
+	using namespace Poker;
 
 	int const PocketCardNum = 2;
 	int const CommunityCardNum = 5;
@@ -227,6 +229,5 @@ namespace Poker { namespace Holdem {
 	};
 
 }//namespace Holdem
-}//namespace Poker
 
 #endif // HoldemLevel_h__

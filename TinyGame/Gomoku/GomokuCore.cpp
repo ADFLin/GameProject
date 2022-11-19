@@ -156,7 +156,7 @@ namespace Gomoku
 			FCon::AddConnect(cValue);
 			int indexLinkRoot = INDEX_NONE;
 			int removeRootCount = 0;
-			int conIndexA = offsetIndex(index, pOffset[0], pOffset[1]);
+			int conIndexA = offsetIndex(index, pOffset);
 			int dataA = mData[conIndexA];
 			int countA = -1;
 			if (dataA != EDGE_MARK)
@@ -189,7 +189,7 @@ namespace Gomoku
 				FCon::AddBlock(cValue, true);
 			}
 
-			int conIndexB = offsetIndex(index, -pOffset[0], -pOffset[1]);
+			int conIndexB = offsetIndex(index, pOffset, -1);
 			int dataB = mData[conIndexB];
 			if (dataB != EDGE_MARK )
 			{
@@ -231,7 +231,7 @@ namespace Gomoku
 			if (removeRootCount == 2)
 			{
 				CHECK(countA != -1);
-				indexLinkRoot = offsetIndex(index, countA * pOffset[0], countA * pOffset[1]);
+				indexLinkRoot = offsetIndex(index, pOffset, countA);
 				conData[index] = indexLinkRoot;
 				conData[indexLinkRoot] = cValue;
 			}
@@ -272,8 +272,8 @@ namespace Gomoku
 				}
 			};
 
-			int conIndexA = offsetIndex(index, pOffset[0], pOffset[1]);
-			int conIndexB = offsetIndex(index, -pOffset[0], -pOffset[1]);
+			int conIndexA = offsetIndex(index, pOffset);
+			int conIndexB = offsetIndex(index, pOffset, -1);
 			if (mData[conIndexA] == color)
 			{
 				if (mData[conIndexB] == color)
@@ -347,16 +347,16 @@ namespace Gomoku
 		else
 		{
 			int dist = count - 1;
-			int indexNext = offsetIndex(indexLinkRoot, pOffset[0], pOffset[1]);
+			int indexNext = offsetIndex(indexLinkRoot, pOffset);
 			if (mData[indexNext] == mData[index])
 			{
-				outIndices[0] = offsetIndex(indexLinkRoot, dist * pOffset[0], dist * pOffset[1]);
+				outIndices[0] = offsetIndex(indexLinkRoot, pOffset, dist);
 				outIndices[1] = indexLinkRoot;
 			}
 			else
 			{
 				outIndices[0] = indexLinkRoot;
-				outIndices[1] = offsetIndex(indexLinkRoot, -dist * pOffset[0], -dist * pOffset[1]);
+				outIndices[1] = offsetIndex(indexLinkRoot, pOffset, -dist);
 			}
 		}
 
@@ -401,7 +401,7 @@ namespace Gomoku
 		int oppositeColor = EStoneColor::Opposite(color);
 		for (;;)
 		{
-			curIndex = offsetIndex(curIndex, pOffset[0], pOffset[1]);
+			curIndex = offsetIndex(curIndex, pOffset);
 			int data = mData[curIndex];
 			if (data != color)
 			{
@@ -445,16 +445,16 @@ namespace Gomoku
 		{
 			int dist = result.count - 1;
 			int const* pOffset = EConDir::GetOffset(dir);
-			int indexNext = offsetIndex(indexLinkRoot, pOffset[0], pOffset[1]);
+			int indexNext = offsetIndex(indexLinkRoot, pOffset);
 			if (mData[indexNext] == mData[index])
 			{
-				result.endpoints[0] = offsetIndex(indexLinkRoot, dist * pOffset[0], dist * pOffset[1]);
+				result.endpoints[0] = offsetIndex(indexLinkRoot, pOffset, dist);
 				result.endpoints[1] = indexLinkRoot;
 			}
 			else
 			{
 				result.endpoints[0] = indexLinkRoot;
-				result.endpoints[1] = offsetIndex(indexLinkRoot, -dist * pOffset[0], -dist * pOffset[1]);
+				result.endpoints[1] = offsetIndex(indexLinkRoot, pOffset, -dist);
 			}
 		}
 
@@ -544,7 +544,6 @@ namespace Gomoku
 		StepInfo const& step = mStepHistory[mCurrentStep - 1];
 
 		int color = EStoneColor::Opposite(mNextPlayColor);
-
 		if (shouldCheckBanMove(color))
 		{
 			return checkStatusInternal<true>(step.indexPos, color);
@@ -584,12 +583,12 @@ namespace Gomoku
 		int const* pOffset = EConDir::GetOffset(line.dir);
 		auto CheckJumpPointNotColor = [this, pOffset](int const endpoints[2], int dist , int color) -> bool
 		{
-			int indexJumpA = mBoard.offsetIndex(endpoints[0], dist * pOffset[0], dist * pOffset[1]);
+			int indexJumpA = mBoard.offsetIndex(endpoints[0], pOffset, dist);
 			EMIT_POS(indexJumpA, CHECK_POS);
 			if (mBoard.getData(indexJumpA) == color)
 				return false;
 
-			int indexJumpB = mBoard.offsetIndex(endpoints[1], -dist * pOffset[0], -dist * pOffset[1]);
+			int indexJumpB = mBoard.offsetIndex(endpoints[1], pOffset, -dist);
 			EMIT_POS(indexJumpB, CHECK_POS);
 			if (mBoard.getData(indexJumpB) == color)
 				return false;
@@ -605,7 +604,7 @@ namespace Gomoku
 				for (int indexEndpoint = 0; indexEndpoint < 2; ++indexEndpoint)
 				{
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
-					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], 2 * pOffset[0], 2 * pOffset[1]);
+					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset, 2);
 					EMIT_POS(indexJump2, CHECK_POS);
 					if (mBoard.getData(indexJump2) != line.color)
 						continue;
@@ -634,7 +633,7 @@ namespace Gomoku
 					//check over 5 case
 					if (CheckJumpPointNotColor(endpoints, 2, line.color))
 					{
-						outNextPos[0] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+						outNextPos[0] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset);
 						EMIT_POS(outNextPos[0], NEXT_POS);
 						return 1;
 					}
@@ -651,18 +650,18 @@ namespace Gomoku
 					EMIT_POS(line.endpoints[indexEndpoint], CHECK_POS);
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
 
-					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], 2 * pOffset[0], 2 * pOffset[1]);
+					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset, 2);
 					EMIT_POS(indexJump2, CHECK_POS);
 					if (mBoard.getData(indexJump2) != EStoneColor::Empty)
 						continue;
 					
 					//ignore over5 case
-					int indexJump3 = mBoard.offsetIndex(indexJump2, pOffset[0], pOffset[1]);
+					int indexJump3 = mBoard.offsetIndex(indexJump2, pOffset);
 					EMIT_POS(indexJump3, CHECK_POS);
 					if (mBoard.getData(indexJump3) == line.color)
 						continue;
 		
-					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset);
 					EMIT_POS(outNextPos[numPos], NEXT_POS);
 					++numPos;		
 				}
@@ -692,7 +691,7 @@ namespace Gomoku
 						continue;
 
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
-					int indexJump2 = mBoard.offsetIndex(line.endpoints[1], 2 * pOffset[0], 2 * pOffset[1]);
+					int indexJump2 = mBoard.offsetIndex(line.endpoints[1], pOffset, 2);
 					if (mBoard.getData(indexJump2) != line.color)
 						continue;
 
@@ -700,7 +699,7 @@ namespace Gomoku
 					if (jump2Count + line.count != 4)
 						continue;
 
-					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset);
 					++numPos;
 				}
 
@@ -720,13 +719,12 @@ namespace Gomoku
 					int const* pOffset = EConDir::GetOffset(line.dir, indexEndpoint);
 
 					//ignore over5 case
-					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], 2 * pOffset[0], 2 * pOffset[1]);
+					int indexJump2 = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset, 2);
 					if (mBoard.getData(indexJump2) == line.color)
 						continue;
 
-					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset[0], pOffset[1]);
+					outNextPos[numPos] = mBoard.offsetIndex(line.endpoints[indexEndpoint], pOffset);
 					++numPos;
-
 				}
 
 				return numPos;

@@ -273,6 +273,7 @@ copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\</Command>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
+      <StackReserveSize>0x00400000 </StackReserveSize>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
@@ -419,7 +420,9 @@ copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="VoronoiStage.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="poker\bitmap1.bmp" />
     <Image Include="Poker\cards.bmp" />
+    <Image Include="Poker\cards_mask.bmp" />
     <Image Include="Resource\GameIcon.ico" />
   </ItemGroup>
   <ItemGroup>

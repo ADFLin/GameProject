@@ -19,13 +19,13 @@ namespace CAR
 	class LevelActor;
 
 	using TileId   = uint32;
-	using PlayerId = int;
+	using PlayerId = uint32;
 
 	TileId const FAIL_TILE_ID = TileId(-1);
 	TileId const TEMP_TILE_ID = TileId(-2);
 
-	PlayerId const CAR_ERROR_PLAYER_ID = PlayerId(0);
-	PlayerId const FAIL_PLAYER_ID = PlayerId(31);
+	PlayerId const CAR_ERROR_PLAYER_ID = PlayerId(-1);
+	PlayerId const FAIL_PLAYER_ID = PlayerId(-2);
 
 	int const ERROR_GROUP_ID = -1;
 	int const ABBEY_GROUP_ID = -2;
@@ -167,7 +167,7 @@ namespace CAR
 		static ActorPos Player(PlayerId id) { return ActorPos(ePlayer, id); }
 		static ActorPos SideNode(int index) { return ActorPos(eSideNode, index); }
 		static ActorPos FarmNode(int index) { return ActorPos(eFarmNode, index); }
-		static ActorPos WheelSector(int index) { return ActorPos(eFarmNode, index); }
+		static ActorPos WheelSector(int index) { return ActorPos(eWheelSector, index); }
 		Type type;
 		int  meta;
 

@@ -293,7 +293,7 @@ namespace Render
 		RHITexture3DRef mVolumeBufferB;
 		RHITexture3DRef mScatteringBuffer;
 		RHITexture2DRef mShadowMapAtlas;
-		RHIVertexBufferRef mTiledLightBuffer;
+		RHIBufferRef mTiledLightBuffer;
 
 		class ClearBufferProgram* mProgClearBuffer;
 		class LightScatteringProgram* mProgLightScattering;
@@ -349,7 +349,7 @@ namespace Render
 		RHITexture2DRef colorStorageTexture;
 		RHITexture2DRef nodeAndDepthStorageTexture;
 		RHITexture2DRef nodeHeadTexture;
-		RHIVertexBufferRef storageUsageCounter;
+		RHIBufferRef storageUsageCounter;
 	};
 
 	struct OITCommonParameter

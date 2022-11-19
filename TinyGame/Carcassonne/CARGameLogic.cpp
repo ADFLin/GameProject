@@ -110,7 +110,7 @@ namespace CAR
 		mSetting = &setting;
 		mRandom = &random;
 		mPlayerManager = &playerManager;
-		mSetting->calcUsageOfField( mPlayerManager->getPlayerNum() );
+		mSetting->setup(mPlayerManager->getPlayerNum());
 	}
 
 	void GameLogic::loadSetting( bool beInit )
@@ -163,7 +163,7 @@ namespace CAR
 		} proc;
 		for( int i = 0; i < mPlayerManager->getPlayerNum(); ++i )
 		{
-			PlayerBase* player = mPlayerManager->getPlayer(i);
+			PlayerBase* player = mPlayerManager->getPlayerByIndex(i);
 			player->setupSetting( *mSetting );
 			player->mScore = 0;
 			proc.player = player;
@@ -412,7 +412,7 @@ namespace CAR
 		{
 			for( int i = 0; i < mPlayerManager->getPlayerNum(); ++i )
 			{
-				PlayerBase* player = mPlayerManager->getPlayer(i);
+				PlayerBase* player = mPlayerManager->getPlayerByIndex(i);
 				int numGoldPieces = player->getFieldValue(EField::GoldPieces);
 				int scoreFactor = 0;
 				for( int i = 0; i < 4; ++i )
@@ -431,7 +431,7 @@ namespace CAR
 		{
 			for( int i = 0; i < mPlayerManager->getPlayerNum(); ++i )
 			{
-				PlayerBase* player = mPlayerManager->getPlayer(i);
+				PlayerBase* player = mPlayerManager->getPlayerByIndex(i);
 				player->mScore += player->getFieldValue(EField::WomenScore);
 			}
 		}
@@ -659,7 +659,7 @@ namespace CAR
 		int numPlayer = mPlayerManager->getPlayerNum();
 		for( int i = 0; i < numPlayer; ++i )
 		{
-			mOrderedPlayers.push_back(mPlayerManager->getPlayer(i));
+			mOrderedPlayers.push_back(mPlayerManager->getPlayerByIndex(i));
 		}
 
 		for( int i = 0; i < numPlayer; ++i )
@@ -920,7 +920,7 @@ namespace CAR
 							unsigned ignoreDeployFeaturesMask = 0;
 							if ( step == 0 )
 							{
-								actorMask = turnContext.getPlayer()->getSupportActorMask() & ~BIT( EActor::Phantom );
+								actorMask = turnContext.getPlayer()->getSupportedActorMask() & ~BIT( EActor::Phantom );
 							}
 							else //step == 1
 							{
@@ -1901,7 +1901,7 @@ namespace CAR
 				{
 					CHECK(mSetting->have(ERule::ShepherdAndSheep));
 					ShepherdActor* shepherd = static_cast< ShepherdActor* >( actor );
-					for(auto token : shepherd->ownSheep)
+					for(auto token : shepherd->sheepOwned)
 					{
 						mSheepBags.push_back(token);
 					}
@@ -1995,7 +1995,7 @@ namespace CAR
 				int iter = 0;
 				while( ShepherdActor* shepherd = static_cast< ShepherdActor* >( feature->iteratorActor( AllPlayerMask , BIT( EActor::Shepherd ) , iter ) ) )
 				{
-					for( auto token : shepherd->ownSheep )
+					for( auto token : shepherd->sheepOwned )
 					{
 						score += token;
 						mSheepBags.push_back(token);
@@ -2318,7 +2318,7 @@ namespace CAR
 
 			if ( linkFeatures.empty() == false )
 			{
-				struct WagonCompFun
+				struct WagonCompFunc
 				{
 					bool operator()(LevelActor* lhs, LevelActor* rhs) const
 					{
@@ -2338,11 +2338,11 @@ namespace CAR
 					int numPlayer;
 				};
 
-				WagonCompFun wagonFun;
-				wagonFun.curPlayerOrder = getTurnPlayer()->mPlayOrder;
-				wagonFun.numPlayer = mPlayerManager->getPlayerNum();
-				wagonFun.manager = mPlayerManager;
-				std::sort( wagonGroup.begin() , wagonGroup.end() , wagonFun );
+				WagonCompFunc wagonFunc;
+				wagonFunc.curPlayerOrder = getTurnPlayer()->mPlayOrder;
+				wagonFunc.numPlayer = mPlayerManager->getPlayerNum();
+				wagonFunc.manager = mPlayerManager;
+				std::sort( wagonGroup.begin() , wagonGroup.end() , wagonFunc );
 
 				std::vector< MapTile* > mapTiles;
 				GameFeatureTileSelectData data;
@@ -3339,7 +3339,7 @@ namespace CAR
 	}
 
 	void GameLogic::destroyActor(LevelActor& actor)
-	{;
+	{
 		if ( actor.feature )
 		{
 			actor.feature->removeActor( actor );
@@ -3902,14 +3902,9 @@ namespace CAR
 		int idx = mRandom->getInt() % mSheepBags.size();
 
 		SheepToken token = mSheepBags[ idx ];
-		int idxLast = mSheepBags.size() - 1;
-		if ( idx != idxLast )
-		{
-			std::swap( mSheepBags[ idx ] , mSheepBags[ idxLast ] );
-		}
-		mSheepBags.pop_back();
+		RemoveIndexSwap(mSheepBags, idx);
 
-		if ( token == eWolf )
+		if ( token == SheepToken::eWolf )
 		{
 			mSheepBags.push_back( token );
 
@@ -3917,7 +3912,7 @@ namespace CAR
 			int iter = 0;
 			while( ShepherdActor* shepherd = static_cast< ShepherdActor* >( farm->findActorFromType( BIT( EActor::Shepherd ) ) ) )
 			{
-				for(auto token : shepherd->ownSheep)
+				for(auto token : shepherd->sheepOwned)
 				{
 					mSheepBags.push_back(token);
 				}
@@ -3926,7 +3921,7 @@ namespace CAR
 		}
 		else
 		{
-			static_cast< ShepherdActor* >( actor )->ownSheep.push_back( token );
+			static_cast< ShepherdActor* >( actor )->sheepOwned.push_back( token );
 		}
 	}
 
@@ -3969,7 +3964,8 @@ namespace CAR
 			if ( feature->group == ERROR_GROUP_ID )
 				continue;
 
-			if ( feature->type != FeatureType::eRoad && feature->type != FeatureType::eCity )
+			if ( feature->type != FeatureType::eRoad && 
+				 feature->type != FeatureType::eCity )
 				continue;
 
 			if ( feature->havePlayerActor( turnPlayer->getId() , EActor::Builder ) == false )
@@ -4043,8 +4039,8 @@ namespace CAR
 	void GamePlayerManager::addPlayer(PlayerBase* player)
 	{
 		mPlayerMap[ mNumPlayer ] = player;
-		++mNumPlayer;
 		player->mId = mNumPlayer;
+		++mNumPlayer;
 	}
 
 

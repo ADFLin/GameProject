@@ -62,7 +62,7 @@ public:
 	size_t   size() const { return mNum; }
 	size_t   length() const { return mNum; }
 
-	void removeHeadSpace()
+	void cutHeadSpace()
 	{
 		if (mData)
 		{
@@ -73,10 +73,26 @@ public:
 			}
 		}
 	}
-	void removeTailSpace()
+	void cutTailSpace()
 	{
 		if (mData)
 		{
+			while (mNum && FCString::IsSpace(mData[mNum - 1]))
+			{
+				--mNum;
+			}
+		}
+	}
+
+	void cutHeadAndTailSpace()
+	{
+		if (mData)
+		{
+			while (mNum && FCString::IsSpace(*mData))
+			{
+				++mData;
+				--mNum;
+			}
 			while (mNum && FCString::IsSpace(mData[mNum - 1]))
 			{
 				--mNum;

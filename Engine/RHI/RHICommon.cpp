@@ -245,15 +245,14 @@ namespace Render
 
 	Vector3 ETexture::GetFaceUpDir(Face face)
 	{
-		static Vector3 const CubeUpDir[] =
+		static Vector3 const CubeFaceUpDir[] =
 		{
 			Vector3(0,-1,0),Vector3(0,-1,0),
 			Vector3(0,0,1),Vector3(0,0,-1),
 			Vector3(0,-1,0),Vector3(0,-1,0),
 		};
-		return CubeUpDir[face];
+		return CubeFaceUpDir[face];
 	}
-
 
 	int EVertex::GetFormatSize(uint8 format)
 	{

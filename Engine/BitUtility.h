@@ -12,6 +12,9 @@ public:
 
 	template< class T >
 	static T ExtractTrailingBit(T v) { return (v & -v); }
+
+	template< class T >
+	static bool IsOneBitSet(T v) { return !(v & (v - 1)); }
 	
 	static int CountTrailingZeros( uint32 n );
 

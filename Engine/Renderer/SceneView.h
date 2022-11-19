@@ -37,7 +37,7 @@ namespace Render
 
 		Plane frustumPlanes[6];
 
-		RHIVertexBufferRef mUniformBuffer;
+		RHIBufferRef mUniformBuffer;
 		bool   mbDataDirty = true;
 
 		bool frustumTest(Vector3 const& pos, float radius) const

@@ -86,6 +86,7 @@ namespace Render
 
 	RHI_API bool RHISystemInitialize(RHISystemName name , RHISystemInitParams const& initParam );
 	RHI_API void RHISystemShutdown();
+	RHI_API bool RHISystemIsSupported(RHISystemName name);
 	RHI_API bool RHIBeginRender();
 	RHI_API void RHIEndRender(bool bPresent);
 
@@ -146,16 +147,17 @@ namespace Render
 	RHI_API RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth,
 		ETexture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
 
-	RHI_API RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
+	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer,
+		uint32 elementSize, uint32 numElements, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+
+	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
-	RHI_API RHIIndexBuffer*  RHI_TRACE_FUNC(RHICreateIndexBuffer,
+	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer,
 		uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
-	RHI_API void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
-	RHI_API void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
-	RHI_API void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
-	RHI_API void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
+	RHI_API void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
+	RHI_API void  RHIUnlockBuffer(RHIBuffer* buffer);
 
 	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
 	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
@@ -214,8 +216,8 @@ namespace Render
 	
 	RHI_API void RHIDrawPrimitive(RHICommandList& commandList, EPrimitive type, int vStart, int nv);
 	RHI_API void RHIDrawIndexedPrimitive(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 baseVertex = 0);
-	RHI_API void RHIDrawPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
-	RHI_API void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	RHI_API void RHIDrawPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	RHI_API void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	
 	RHI_API void RHIDrawPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance = 0);
 	RHI_API void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex = 0, uint32 baseInstance = 0);
@@ -232,7 +234,7 @@ namespace Render
 	RHI_API void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData, uint32 const* pIndices, int numIndex);
 	
 	RHI_API void RHIDrawMeshTasks(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
-	RHI_API void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	RHI_API void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	
 	
 	RHI_API void RHISetFixedShaderPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color = LinearColor(1,1,1,1), RHITexture2D* texture = nullptr, RHISamplerState* sampler = nullptr);
@@ -253,7 +255,7 @@ namespace Render
 
 	RHI_API void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
-	RHI_API void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer);
+	RHI_API void RHISetIndexBuffer(RHICommandList& commandList, RHIBuffer* indexBuffer);
 
 	RHI_API void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
 	RHI_API void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
@@ -372,13 +374,10 @@ namespace Render
 			ETexture::Format format, int w, int h , 
 			int numMipLevel, int numSamples, uint32 creationFlags) );
 		
-		RHI_FUNC(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data));
-		RHI_FUNC(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data));
+		RHI_FUNC(RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data));
 
-		RHI_FUNC(void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
-		RHI_FUNC(void  RHIUnlockBuffer(RHIVertexBuffer* buffer));
-		RHI_FUNC(void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
-		RHI_FUNC(void  RHIUnlockBuffer(RHIIndexBuffer* buffer));
+		RHI_FUNC(void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
+		RHI_FUNC(void  RHIUnlockBuffer(RHIBuffer* buffer));
 
 		RHI_FUNC(void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData));
 		RHI_FUNC(void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData));
@@ -432,7 +431,7 @@ namespace Render
 			} 
 			if (bCPUAccessRead)
 				creationFlags |= BCF_CPUAccessRead;
-			mResource = RHICreateVertexBuffer(sizeof(T), numElement, creationFlags);
+			mResource = RHICreateBuffer(sizeof(T), numElement, creationFlags);
 			if( !mResource.isValid() )
 				return false;
 			return true;
@@ -445,7 +444,7 @@ namespace Render
 
 		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
 
-		RHIVertexBuffer* getRHI() { return mResource; }
+		RHIBuffer* getRHI() { return mResource; }
 
 		void updateBuffer(TArrayView<T> const& updatedData)
 		{
@@ -463,7 +462,7 @@ namespace Render
 			RHIUnlockBuffer(mResource);
 		}
 
-		TRefCountPtr<RHIVertexBuffer> mResource;
+		RHIBufferRef mResource;
 	};
 
 	struct TextureLoadOption
@@ -514,6 +513,10 @@ namespace Render
 	CORE_API void RHIRegisterSystem(RHISystemName name, RHISystemFactory* factory);
 	CORE_API void RHIUnregisterSystem(RHISystemName name);
 
+	using RHISystemEvent = std::function<void()>;
+	CORE_API void RHIRegisterSystemInitializeEvent(RHISystemEvent event);
+	CORE_API void RHIRegisterSystemShutdownEvent(RHISystemEvent event);
+
 	template<RHISystemName SystemName, typename TSystem >
 	class TRHISystemModule : public IModuleInterface
 		                   , public RHISystemFactory
@@ -536,8 +539,8 @@ namespace Render
 	};
 
 #define EXPORT_RHI_SYSTEM_MODULE( SYSTEM_NAME , SYSTEM )\
-	using SYSTE##Module = TRHISystemModule<SYSTEM_NAME,SYSTEM >;\
-	EXPORT_MODULE(SYSTE##Module)
+	using SYSTEM##Module = TRHISystemModule<SYSTEM_NAME,SYSTEM >;\
+	EXPORT_MODULE(SYSTEM##Module)
 
 }//namespace Render
 

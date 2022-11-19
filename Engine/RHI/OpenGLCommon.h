@@ -109,7 +109,7 @@ namespace Render
 	
 	struct RMPBufferObject
 	{
-		static void Create(GLuint& handle) { glGenBuffers(1, &handle); }
+		static void Create(GLuint& handle) { glCreateBuffers(1, &handle); }
 		static void Destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
 	};
 
@@ -279,12 +279,16 @@ namespace Render
 		static GLenum PixelFormat(ETexture::Format format);
 		static GLenum TextureComponentType(ETexture::Format format);
 		static GLenum Image2DType(ETexture::Format format);
-
+		static GLenum TexureType(ETexture::Face face);
 		static GLenum BufferUsageEnum(uint32 creationFlags);
 
 		static GLenum VertexComponentType(uint8 format)
 		{
 			return To(EVertex::GetComponentType(EVertex::Format(format)));
+		}
+		static GLenum IndexType(RHIBuffer* indexBuffer)
+		{  
+			return indexBuffer->getElementSize() == 4 ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT; 
 		}
 	};
 
@@ -361,35 +365,20 @@ namespace Render
 	};
 
 
-
-	template< class RHITextureType >
-	struct OpenGLBufferTraits {};
-
-	template<>
-	struct OpenGLBufferTraits< RHIVertexBuffer >{  static GLenum constexpr EnumValue = GL_ARRAY_BUFFER;  };
-	template<>
-	struct OpenGLBufferTraits< RHIIndexBuffer > { static GLenum constexpr EnumValue = GL_ELEMENT_ARRAY_BUFFER; };
-
-	template < class RHIBufferType >
-	class TOpenGLBuffer : public TOpenGLResource< RHIBufferType, RMPBufferObject >
+	class OpenGLBuffer : public TOpenGLResource< RHIBuffer , RMPBufferObject >
 	{
 	public:
-		static GLenum constexpr GLBufferType = OpenGLBufferTraits< RHIBufferType >::EnumValue;
 
-		void  bind() const { glBindBuffer(GLBufferType, getHandle()); }
-		void  unbind() const { glBindBuffer(GLBufferType, 0); }
+		void  bind(GLenum bufferType) const { glBindBuffer(bufferType, getHandle()); }
+		void  unbind(GLenum bufferType) const { glBindBuffer(bufferType, 0); }
 
 		void* lock(ELockAccess access)
 		{
-			glBindBuffer(GLBufferType, getHandle());
-			void* result = glMapBuffer(GLBufferType, OpenGLTranslate::To(access));
-			glBindBuffer(GLBufferType, 0);
+			void* result = glMapNamedBuffer(getHandle(), OpenGLTranslate::To(access));
 			return result;
 		}
 		void* lock(ELockAccess access, uint32 offset, uint32 length)
 		{
-			glBindBuffer(GLBufferType, getHandle());
-
 			GLbitfield accessBits = 0;
 			switch( access )
 			{
@@ -404,57 +393,36 @@ namespace Render
 				accessBits = GL_MAP_WRITE_BIT;
 				break;
 			}
-			void* result = glMapBufferRange(GLBufferType, offset, length, accessBits);
-			glBindBuffer(GLBufferType, 0);
+			void* result = glMapNamedBufferRange(getHandle(), offset, length, accessBits);
 			return result;
 		}
 
 		void unlock()
 		{
-			glBindBuffer(GLBufferType, getHandle());
-			glUnmapBuffer(GLBufferType);
-			glBindBuffer(GLBufferType, 0);
+			glUnmapNamedBuffer(getHandle());
 		}
 
-		bool createInternal(uint32 elementSize , uint32 numElements, uint32 creationFlags , void* initData)
+		bool create(uint32 elementSize , uint32 numElements, uint32 creationFlags , void* initData)
 		{
 			if( !mGLObject.fetchHandle() )
 				return false;
 
-			return resetDataInternal(elementSize, numElements, creationFlags, initData);
+			return resetData(elementSize, numElements, creationFlags, initData);
 		}
 
-		bool resetDataInternal(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* initData)
+		bool resetData(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* initData)
 		{
-			glBindBuffer(GLBufferType, getHandle());
-			glBufferData(GLBufferType, elementSize * numElements , initData, OpenGLTranslate::BufferUsageEnum(creationFlags));
-			glBindBuffer(GLBufferType, 0);
-
+			glNamedBufferData(getHandle(), elementSize * numElements , initData, OpenGLTranslate::BufferUsageEnum(creationFlags));
 			mCreationFlags = creationFlags;
 			mNumElements = numElements;
 			mElementSize = elementSize;
 			return true;
 		}
-	};
 
-	class OpenGLVertexBuffer : public TOpenGLBuffer< RHIVertexBuffer >
-	{
-	public:
-		bool  create(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
-		void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
-		void  updateData(uint32 vStart, uint32 numVertices, void* data);
-	};
-
-	class OpenGLIndexBuffer : public TOpenGLBuffer< RHIIndexBuffer >
-	{
-	public:
-
-		bool create(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
+		void updateData(uint32 start, uint32 numElements, void* data)
 		{
-			if( !createInternal((bIntIndex ? sizeof(GLuint) : sizeof(GLushort)) , nIndices, creationFlags , data) )
-				return false;
-
-			return true;
+			assert((start + numElements) * mElementSize < getSize());
+			glNamedBufferSubData(getHandle(), start * mElementSize, mElementSize * numElements, data);
 		}
 	};
 
@@ -501,7 +469,7 @@ namespace Render
 
 		GLenum depthFun;
 
-		GLenum stencilFun;
+		GLenum stencilFunc;
 		GLenum stencilFailOp;
 		GLenum stencilZFailOp;
 		GLenum stencilZPassOp;
@@ -528,7 +496,7 @@ namespace Render
 
 			depthFun = GL_LESS;
 
-			stencilFun = stencilFunBack = GL_ALWAYS;
+			stencilFunc = stencilFunBack = GL_ALWAYS;
 			stencilFailOp = stencilFailOpBack = GL_KEEP;
 			stencilZFailOp = stencilZFailOpBack = GL_KEEP;
 			stencilZPassOp = stencilZPassOpBack = GL_KEEP;
@@ -658,46 +626,45 @@ namespace Render
 	class ShaderProgram;
 
 	template< class TRHIResource >
-	struct TOpengGLCastTraits {};
+	struct TOpengGLTypeTraits {};
 
-	template<> struct TOpengGLCastTraits< RHITexture1D > { typedef OpenGLTexture1D CastType; };
-	template<> struct TOpengGLCastTraits< RHITexture2D > { typedef OpenGLTexture2D CastType; };
-	template<> struct TOpengGLCastTraits< RHITexture3D > { typedef OpenGLTexture3D CastType; };
-	template<> struct TOpengGLCastTraits< RHITextureCube > { typedef OpenGLTextureCube CastType; };
-	template<> struct TOpengGLCastTraits< RHITexture2DArray > { typedef OpenGLTexture2DArray CastType; };
-	template<> struct TOpengGLCastTraits< RHIVertexBuffer > { typedef OpenGLVertexBuffer CastType; };
-	template<> struct TOpengGLCastTraits< RHIIndexBuffer > { typedef OpenGLIndexBuffer CastType; };
-	template<> struct TOpengGLCastTraits< RHIInputLayout > { typedef OpenGLInputLayout CastType; };
-	template<> struct TOpengGLCastTraits< RHISamplerState > { typedef OpenGLSamplerState CastType; };
-	template<> struct TOpengGLCastTraits< RHIBlendState > { typedef OpenGLBlendState CastType; };
-	template<> struct TOpengGLCastTraits< RHIRasterizerState > { typedef OpenGLRasterizerState CastType; };
-	template<> struct TOpengGLCastTraits< RHIDepthStencilState > { typedef OpenGLDepthStencilState CastType; };
-	template<> struct TOpengGLCastTraits< RHIShaderProgram > { typedef OpenGLShaderProgram CastType; };
-	template<> struct TOpengGLCastTraits< RHIShader > { typedef OpenGLShader CastType; };
-	template<> struct TOpengGLCastTraits< RHIFrameBuffer > { typedef OpenGLFrameBuffer CastType; };
+	template<> struct TOpengGLTypeTraits< RHITexture1D > { typedef OpenGLTexture1D CastType; };
+	template<> struct TOpengGLTypeTraits< RHITexture2D > { typedef OpenGLTexture2D CastType; };
+	template<> struct TOpengGLTypeTraits< RHITexture3D > { typedef OpenGLTexture3D CastType; };
+	template<> struct TOpengGLTypeTraits< RHITextureCube > { typedef OpenGLTextureCube CastType; };
+	template<> struct TOpengGLTypeTraits< RHITexture2DArray > { typedef OpenGLTexture2DArray CastType; };
+	template<> struct TOpengGLTypeTraits< RHIBuffer > { typedef OpenGLBuffer CastType; };
+	template<> struct TOpengGLTypeTraits< RHIInputLayout > { typedef OpenGLInputLayout CastType; };
+	template<> struct TOpengGLTypeTraits< RHISamplerState > { typedef OpenGLSamplerState CastType; };
+	template<> struct TOpengGLTypeTraits< RHIBlendState > { typedef OpenGLBlendState CastType; };
+	template<> struct TOpengGLTypeTraits< RHIRasterizerState > { typedef OpenGLRasterizerState CastType; };
+	template<> struct TOpengGLTypeTraits< RHIDepthStencilState > { typedef OpenGLDepthStencilState CastType; };
+	template<> struct TOpengGLTypeTraits< RHIShaderProgram > { typedef OpenGLShaderProgram CastType; };
+	template<> struct TOpengGLTypeTraits< RHIShader > { typedef OpenGLShader CastType; };
+	template<> struct TOpengGLTypeTraits< RHIFrameBuffer > { typedef OpenGLFrameBuffer CastType; };
 
 	struct OpenGLCast
 	{
 		template< class TRHIResource >
 		static auto To(TRHIResource* resource)
 		{
-			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType*>(resource);
+			return static_cast<TOpengGLTypeTraits< TRHIResource >::CastType*>(resource);
 		}
 		template< class TRHIResource >
 		static auto To(TRHIResource const* resource)
 		{
-			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType const*>(resource);
+			return static_cast<TOpengGLTypeTraits< TRHIResource >::CastType const*>(resource);
 		}
 		template< class TRHIResource >
 		static auto& To(TRHIResource& resource)
 		{
-			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType&>(resource);
+			return static_cast<TOpengGLTypeTraits< TRHIResource >::CastType&>(resource);
 		}
 
 		template< class TRHIResource >
 		static auto& To(TRHIResource const& resource)
 		{
-			return static_cast<TOpengGLCastTraits< TRHIResource >::CastType const&>(resource);
+			return static_cast<TOpengGLTypeTraits< TRHIResource >::CastType const&>(resource);
 		}
 
 		template < class TRHIResource >
@@ -719,8 +686,14 @@ namespace Render
 		{
 			return OpenGLCast::To(RHIObject).getHandle();
 		}
+
 		template < class TRHIResource >
 		static GLuint GetHandle(TRefCountPtr<TRHIResource>& refPtr)
+		{
+			return OpenGLCast::To(refPtr)->getHandle();
+		}
+		template < class TRHIResource >
+		static GLuint GetHandle(TRefCountPtr<TRHIResource> const& refPtr)
 		{
 			return OpenGLCast::To(refPtr)->getHandle();
 		}

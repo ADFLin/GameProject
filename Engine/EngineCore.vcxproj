@@ -417,6 +417,7 @@
     <ClInclude Include="Platform\Windows\WindowsProcess.h" />
     <ClInclude Include="Platform\Windows\WindowsWindowBase.h" />
     <ClInclude Include="ProfileSystem.h" />
+    <ClInclude Include="ProfileSampleVisitor.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Reflection.h" />
     <ClInclude Include="RefCount.h" />

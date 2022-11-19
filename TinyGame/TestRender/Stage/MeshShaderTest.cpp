@@ -240,6 +240,7 @@ namespace Render
 			if (!BaseClass::onInit())
 				return false;
 
+#if TARGET_PLATFORM_64BITS
 			char const* SimplygonSDKPath = "C:/GameProject/OtherLib/Simplygon/SimplygonSDKRuntimeReleasex64.dll";
 
 			int initval = SimplygonSDK::Initialize(&mSimplygonSDK, SimplygonSDKPath, nullptr);
@@ -248,7 +249,9 @@ namespace Render
 				LogWarning( 0, "Can't Initialize Simplygon : %s", SimplygonSDK::GetError(initval));
 				//return false;
 			}
-
+#else
+			return false;
+#endif
 			IntVector2 screenSize = ::Global::GetScreenSize();
 			::Global::GUI().cleanupWidget();
 
@@ -292,7 +295,7 @@ namespace Render
 
 				std::vector< uint32 > tempBuffer;
 				int numTriangles = 0;
-				uint32* pTriangleIndex = MeshUtility::ConvertToTriangleList(mesh.mType, pIndices, mesh.mIndexBuffer->getNumElements(), mesh.mIndexBuffer->isIntType(), tempBuffer, numTriangles);
+				uint32* pTriangleIndex = MeshUtility::ConvertToTriangleList(mesh.mType, pIndices, mesh.mIndexBuffer->getNumElements(), IsIntType(mesh.mIndexBuffer) , tempBuffer, numTriangles);
 				auto posReader = mesh.makePositionReader(pVertex);
 				auto normalReader = mesh.makeAttributeReader(pVertex, EVertex::ATTRIBUTE_NORMAL);
 				auto tangentReader = mesh.makeAttributeReader(pVertex, EVertex::ATTRIBUTE_TANGENT);

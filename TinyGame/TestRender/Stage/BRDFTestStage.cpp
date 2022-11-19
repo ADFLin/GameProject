@@ -19,7 +19,6 @@ namespace Render
 
 	IMPLEMENT_SHADER_PROGRAM(LightProbeVisualizeProgram);
 	IMPLEMENT_SHADER_PROGRAM(TonemapProgram);
-	IMPLEMENT_SHADER_PROGRAM(SkyBoxProgram);
 
 	bool BRDFTestStage::onInit()
 	{
@@ -39,11 +38,13 @@ namespace Render
 	bool BRDFTestStage::setupRenderSystem(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
-		
+
+		VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
+
 		char const* HDRImagePath = "Texture/HDR/A.hdr";
 		{
 			TIME_SCOPE("HDR Texture");
-			VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/HDR/A.hdr", TextureLoadOption().HDR().FlipV()));
+			VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/HDR/A.hdr", TextureLoadOption().HDR()));
 		}
 		{
 			TIME_SCOPE("IBL");
@@ -56,18 +57,17 @@ namespace Render
 			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/N.png", TextureLoadOption()));
 		}
 
-		registerTexture("HDR", mHDRImage);
-		registerTexture("Rock", mRockTexture);
-		registerTexture("Normal", mNormalTexture);
-		registerTexture("BRDF", IBLResource::SharedBRDFTexture);
-
+		GTextureShowManager.registerTexture("HDR", mHDRImage);
+		GTextureShowManager.registerTexture("Rock", mRockTexture);
+		GTextureShowManager.registerTexture("Normal", mNormalTexture);
+		GTextureShowManager.registerTexture("BRDF", IBLResource::SharedBRDFTexture);
+		GTextureShowManager.registerTexture("SkyBox", mIBLResource.texture);
 		VERIFY_RETURN_FALSE(FMeshBuild::SkyBox(mSkyBox));
 
 		{
 			TIME_SCOPE("BRDF Shader");
 			mProgVisualize = ShaderManager::Get().getGlobalShaderT< LightProbeVisualizeProgram >(true);
 			mProgTonemap = ShaderManager::Get().getGlobalShaderT< TonemapProgram >(true);
-			mProgSkyBox = ShaderManager::Get().getGlobalShaderT< SkyBoxProgram >(true);
 		}
 
 		VERIFY_RETURN_FALSE(mParamBuffer.initializeResource(1));
@@ -88,7 +88,6 @@ namespace Render
 		mSceneRenderTargets.releaseRHI();
 		mProgVisualize = nullptr;
 		mProgTonemap = nullptr;
-		mProgSkyBox = nullptr;
 		mHDRImage.release();
 		mRockTexture.release();
 		mNormalTexture.release();

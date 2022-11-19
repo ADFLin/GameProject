@@ -183,7 +183,7 @@ public:
 			};
 
 			g.beginRender();
-			g.comitRenderState();
+			g.commitRenderState();
 			TRenderRT< RTVF_XY_CA8 >::Draw(commandList, EPrimitive::Quad, vetices, 4);
 			g.endRender();
 		}

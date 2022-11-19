@@ -150,7 +150,7 @@ namespace SBlocks
 		if (indexState >= 0)
 		{
 			PieceSolveState const& state = shapeSolveData.states[indexState];
-			mMaps[state.mapIndex].mMap.unlock(state.pos, shapeSolveData.shape->mDataMap[state.dir]);
+			mMaps[state.mapIndex].mMap.unlock(state.pos, shapeSolveData.getShapeData(state));
 
 			++indexState;
 		}
@@ -166,7 +166,7 @@ namespace SBlocks
 			Piece* piece = globalData->mPieceList[indexPiece].piece;
 			if ( piece->bCanRoate || piece->dir == state.dir)
 			{
-				if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.shape->mDataMap[state.dir]))
+				if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.getShapeData(state)))
 				{
 					return true;
 				}
@@ -192,7 +192,7 @@ namespace SBlocks
 				if (indexState >= 0)
 				{
 					PieceSolveState const& state = shapeSolveData.states[indexState];
-					mMaps[state.mapIndex].mMap.unlock(state.pos, shapeSolveData.shape->mDataMap[state.dir]);
+					mMaps[state.mapIndex].mMap.unlock(state.pos, shapeSolveData.getShapeData(state));
 					indexState = INDEX_NONE;
 				}
 			}
@@ -214,7 +214,7 @@ namespace SBlocks
 				Piece* piece = globalData->mPieceList[indexPiece + i].piece;
 				if (piece->bCanRoate || piece->dir == state.dir)
 				{
-					if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.shape->mDataMap[state.dir]))
+					if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.getShapeData(state)))
 					{
 						stateIndices[indexPiece + i] = indexState;
 					}
@@ -486,7 +486,7 @@ namespace SBlocks
 				for (int dir = 0; dir < 4; ++dir)
 				{
 					shapeSolveData.outerConPosListMap[dir].clear();
-					shape->mDataMap[dir].generateOuterConPosList(shapeSolveData.outerConPosListMap[dir]);
+					shape->getData(DirType::ValueChecked(dir)).generateOuterConPosList(shapeSolveData.outerConPosListMap[dir]);
 				}
 			}
 
@@ -504,21 +504,23 @@ namespace SBlocks
 				return shapeSolveData.pieces.size() > 1;
 			};
 
-			int dirs[4];
-			int numDir;
-			if (shapeSolveData.checkFixedRotation(dirs))
-			{
-				numDir = 1;
-			}
-			else
-			{
-				numDir = shape->getDifferentShapeDirs(dirs);
-			}
-			for (int i = 0; i < numDir; ++i)
-			{
-				uint8 dir = dirs[i];
-				PieceShapeData& shapeData = shape->mDataMap[dir];
+			int dirFixed;
+			bool bFixRotation = shapeSolveData.checkFixedRotation(&dirFixed);
+			int numDifferences = bFixRotation ? 1 : shape->getDifferentShapeNum();
 
+			for (int i = 0; i < numDifferences; ++i)
+			{
+				PieceShapeData const& shapeData = (bFixRotation) ? shape->getData( DirType::ValueChecked(dirFixed)) : shape->getDataByIndex( i );
+				int dir;
+				if (bFixRotation)
+				{
+					dir = dirFixed;
+				}
+				else
+				{
+					PieceShape::OpState opState = shape->getOpState(i);
+					dir = opState.dir;
+				}
 				for (int indexMap = 0; indexMap < mSolveData.mMaps.size(); ++indexMap)
 				{
 					MapSolveData& mapData = mSolveData.mMaps[indexMap];
@@ -568,6 +570,7 @@ namespace SBlocks
 								lockState.mapIndex = indexMap;
 								lockState.pos = pos;
 								lockState.dir = dir;
+
 								shapeSolveData.states.push_back(lockState);
 
 							} while (0);

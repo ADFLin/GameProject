@@ -7,7 +7,7 @@
 namespace Render
 {
 #if CORE_SHARE_CODE
-	CORE_API RenderTargetPool GRenderTargetPool;
+	CORE_API GlobalRenderTargetTool GRenderTargetPool;
 #endif
 	PooledRenderTargetRef RenderTargetPool::fetchElement(RenderTargetDesc const& desc)
 	{
@@ -71,6 +71,15 @@ namespace Render
 		{
 			iter->get()->desc.debugName == EName::None;
 		}
+	}
+
+	void GlobalRenderTargetTool::restoreRHI()
+	{
+	}
+
+	void GlobalRenderTargetTool::releaseRHI()
+	{
+		RenderTargetPool::releaseRHI();
 	}
 
 }//namespace Render

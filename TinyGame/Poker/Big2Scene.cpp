@@ -7,13 +7,12 @@
 
 #include "GameGUISystem.h"
 #include "GamePlayer.h"
+#include "DrawEngine.h"
 
 #include "EasingFunction.h"
 #include "resource.h"
 
-
-
-namespace Poker { namespace Big2 {
+namespace Big2 {
 
 	class CardButton : public GUI::ButtonT< CardButton >
 	{
@@ -49,7 +48,8 @@ namespace Poker { namespace Big2 {
 		
 		void  onRender()
 		{
-			getScene().getCardDraw().draw( ::Global::GetGraphics2D() , getWorldPos() , card );
+			IGraphics2D& g = ::Global::GetIGraphics2D();
+			getScene().getCardDraw().draw( g , getWorldPos() , card );
 		}
 		void  onClick()
 		{
@@ -226,7 +226,7 @@ namespace Poker { namespace Big2 {
 
 
 
-	void Scene::render( Graphics2D& g )
+	void Scene::render( IGraphics2D& g )
 	{
 
 		Vec2i sSize = ::Global::GetScreenSize();
@@ -280,8 +280,14 @@ namespace Poker { namespace Big2 {
 			break;
 		case ePLAYING:
 			{
+				if (g.isUseRHI())
 				{
-					mShowCardBmp.bitBltTransparent( g.getRenderDC() , RGB(0,255,0) , 
+
+				}
+				else
+				{
+					Graphics2D& gImpl = g.getImpl< Graphics2D >();
+					mShowCardBmp.bitBltTransparent(gImpl.getRenderDC() , RGB(0,255,0) ,
 						( sSize.x - mShowCardBmp.getWidth() ) / 2 , 
 						( sSize.y - mShowCardBmp.getHeight() - yOffset ) / 2  );
 					TrickInfo const* info = getLevel().getLastShowCards();
@@ -364,7 +370,7 @@ namespace Poker { namespace Big2 {
 		mTweener.update( gDefaultTickTime * frame );
 	}
 
-	void Scene::drawOtherPlayer( Graphics2D& g , Vec2i const& pos , TablePos tPos , int numCard , bool beCenterPos , bool bDrawBack )
+	void Scene::drawOtherPlayer( IGraphics2D& g , Vec2i const& pos , TablePos tPos , int numCard , bool beCenterPos , bool bDrawBack )
 	{
 		g.beginXForm();
 		g.translateXForm( pos.x , pos.y );
@@ -399,7 +405,7 @@ namespace Poker { namespace Big2 {
 	}
 
 
-	void Scene::drawLastShowCard( Graphics2D& g , Vec2i const& pos , bool beFoucs  )
+	void Scene::drawLastShowCard( IGraphics2D& g , Vec2i const& pos , bool beFoucs  )
 	{
 		TrickInfo const* info = getLevel().getLastShowCards();
 		if ( !info )
@@ -415,10 +421,9 @@ namespace Poker { namespace Big2 {
 		case TPOS_RIGHT:  angle = 270.0f * PI / 180.0f; break;
 		}
 		drawShowCard( g , pos + Vec2i( mShowCardOffset[ tPos ] ) + 5 * gTablePosOffset[ tPos ] , angle , *info , beFoucs );
-
 	}
 
-	void Scene::drawShowCard( Graphics2D& g , Vec2i const& pos , float angle ,  TrickInfo const& info , bool beFoucs  )
+	void Scene::drawShowCard( IGraphics2D& g , Vec2i const& pos , float angle ,  TrickInfo const& info , bool beFoucs  )
 	{
 		int offset = 20;
 
@@ -611,11 +616,22 @@ namespace Poker { namespace Big2 {
 
 	void Scene::drawLastCardOnBitmap()
 	{
-		Graphics2D g( mShowCardBmp.getHandle() );
-		drawLastShowCard( g , Vec2i( mShowCardBmp.getWidth() / 2 , mShowCardBmp.getHeight() / 2 ) , false );
+		IGraphics2D& g = ::Global::GetIGraphics2D();
+		if (g.isUseRHI())
+		{
+
+		}
+		else
+		{
+			Graphics2D gShowCard(mShowCardBmp.getHandle());
+			IGraphics2D* gIShowCar = ::Global::GetDrawEngine().createGraphicInterface(gShowCard);
+			drawLastShowCard(*gIShowCar, Vec2i(mShowCardBmp.getWidth() / 2, mShowCardBmp.getHeight() / 2), false);
+			delete gIShowCar;
+		}
+
 	}
 
-	void Scene::drawSlotStatus( Graphics2D& g , Vec2i const& pos , int slotId )
+	void Scene::drawSlotStatus( IGraphics2D& g , Vec2i const& pos , int slotId )
 	{
 		Vec2i renderPos = pos;
 		SlotStatus& status = getLevel().getSlotStatus( slotId );
@@ -671,18 +687,19 @@ namespace Poker { namespace Big2 {
 	{
 		Vec2i pos = getWorldPos();
 
+		IGraphics2D& g = ::Global::GetIGraphics2D();
 		if ( mHaveAnim )
 		{
 			for( int i = 0 ; i < (int)mClinetCards->size() ; ++i )
 			{
-				msCardDraw->draw( ::Global::GetGraphics2D() , pos + Vec2i( mCardPosOffset + mCardPos[i] , SelectOffect )  , (*mClinetCards)[i] );
+				msCardDraw->draw( g, pos + Vec2i( mCardPosOffset + mCardPos[i] , SelectOffect )  , (*mClinetCards)[i] );
 			}
 		}
 		else
 		{
 			for( int i = 0 ; i < (int)mClinetCards->size() ; ++i )
 			{
-				msCardDraw->draw( ::Global::GetGraphics2D() , pos + Vec2i( 0 , SelectOffect - (int)mCardSelectOffset[i]  ) , (*mClinetCards)[i] );
+				msCardDraw->draw( g, pos + Vec2i( 0 , SelectOffect - (int)mCardSelectOffset[i]  ) , (*mClinetCards)[i] );
 				pos.x += NextOffset;
 			}
 		}
@@ -860,4 +877,3 @@ namespace Poker { namespace Big2 {
 	}
 
 }//namespace Big2
-}//namespace Poker

@@ -328,7 +328,6 @@ namespace Render
 
 			mesh.mType = EPrimitive::TriangleList;
 		}
-
 		return true;
 	}
 	bool FMeshBuild::CubeShare(Mesh& mesh, float halfLen)

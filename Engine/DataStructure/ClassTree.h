@@ -27,16 +27,18 @@ public:
 	ClassTreeNode(ClassTree& tree, ClassTreeNode* parent);
 	~ClassTreeNode();
 
+	void initialize(int inQueryIndex);
 	bool isChildOf(ClassTreeNode* testParent) const;
 	void changeParent(ClassTreeNode* newParent);
 
 private:
 	void offsetQueryIndex(int offset);
+	void notifyChildrenCountChanged(int numChildrenChanged);
 
 	ClassTreeNode* parent;
-	ClassTree*  mTree;
-	int      indexQuery;
-	unsigned numTotalChildren;
+	ClassTree*     mOwnedTree;
+	int            indexQuery;
+	unsigned       numTotalChildren;
 	
 #if CLASS_TREE_USE_INTRLIST
 	typedef TIntrList< ClassTreeNode, MemberHook< ClassTreeLink, &ClassTreeLink::childHook >, PointerType > NodeList;
@@ -60,22 +62,26 @@ private:
 class ClassTree
 {
 public:
-	ClassTree();
+	ClassTree(bool bInitManually = false);
 	~ClassTree();
+
+	void initialize();
 
 	void registerClass(ClassTreeNode* node);
 	void unregisterClass(ClassTreeNode* node, bool bReregister);
 	void unregisterAllClass();
 
+	int getClassCount() const { return mRoot.numTotalChildren; }
+
+
 private:
 	static void UnregisterAllNode_R(ClassTreeNode* node);
-
-	static void UpdateChildNumChanged(ClassTreeNode* parent, int numChildrenChanged);
 
 	bool checkValid();
 	static bool CheckChildValid_R(ClassTreeNode* parent, int& numTotalChildren);
 
 	ClassTreeNode mRoot;
+	bool mbInitialized;
 };
 
 #endif // ClassTree_H_4D9C2491_82E5_426E_8302_6C75E7700E89

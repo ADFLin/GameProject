@@ -51,10 +51,10 @@ namespace Poker
 		void undoMove();
 		void onAnimFinish(int idx, int animType, int metaValue);
 		int  clickCard(StackCell& cell, Vec2i const& pos);
-		void drawCell( Graphics2D& g , Vec2i const& pos );
-		void drawSprite( Graphics2D& g , StackCell& cell );
-		void drawSprite( Graphics2D& g , Card const& card );
-		void drawSelectRect( Graphics2D& g );
+		void drawCell( IGraphics2D& g , Vec2i const& pos );
+		void drawSprite( IGraphics2D& g , StackCell& cell );
+		void drawSprite( IGraphics2D& g , Card const& card );
+		void drawSelectRect( IGraphics2D& g );
 
 		int        mNumAnim;
 		int        mIndexAnim[ 52 ];
@@ -96,9 +96,6 @@ namespace Poker
 		bool mbUndoMove;
 		std::vector< MoveInfo > mMoveInfoVec;
 	};
-
-
-
 
 }//namespace Poker
 

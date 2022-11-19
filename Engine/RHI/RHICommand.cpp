@@ -83,6 +83,7 @@ namespace Render
 			return info.name == name;
 		});
 	}
+
 #else
 	std::unordered_map< RHISystemName, RHISystemFactory*> GRHISystemFactoryMap;
 
@@ -102,7 +103,24 @@ namespace Render
 	{
 		RemoveValue(GRHISystemFactoryMap, name);
 	}
+
 #endif
+
+	bool RHISystemIsSupported(RHISystemName name)
+	{
+		return RHIGetSystemFactory(name) != nullptr;
+	}
+
+	std::vector< RHISystemEvent > GInitEventList;
+	std::vector< RHISystemEvent > GShutdownEventList;
+	void RHIRegisterSystemInitializeEvent(RHISystemEvent event)
+	{
+		GInitEventList.push_back(std::move(event));
+	}
+	void RHIRegisterSystemShutdownEvent(RHISystemEvent event)
+	{
+		GShutdownEventList.push_back(std::move(event));
+	}
 
 	bool RHISystemInitialize(RHISystemName name, RHISystemInitParams const& initParam)
 	{
@@ -156,14 +174,22 @@ namespace Render
 			}
 
 
-			GlobalRenderResourceBase::RestoreAllResource();
+			IGlobalRenderResource::RestoreAllResource();
 
 			InitGlobalRenderResource();
+
+			for (auto& event : GInitEventList)
+			{
+				if (event)
+				{
+					event();
+				}
+			}
+			GInitEventList.clear();
 		}
 
 		return GRHISystem != nullptr;
 	}
-
 
 	void RHISystemShutdown()
 	{	
@@ -171,13 +197,22 @@ namespace Render
 
 		GpuProfiler::Get().releaseRHIResource();
 
+		for (auto& event : GShutdownEventList)
+		{
+			if (event)
+			{
+				event();
+			}
+		}
+		GShutdownEventList.clear();
+
 		//#FIXME
 		if( GRHISystem->getName() != RHISystemName::Vulkan ||
 			GRHISystem->getName() != RHISystemName::D3D12 )
 			ReleaseGlobalRenderResource();
 
 		ShaderManager::Get().clearnupRHIResouse();
-		GlobalRenderResourceBase::ReleaseAllResource();
+		IGlobalRenderResource::ReleaseAllResource();
 
 		GRHISystem->shutdown();
 		delete GRHISystem;
@@ -186,7 +221,6 @@ namespace Render
 		FRHIResourceTable::Release();
 		RHIResource::DumpResource();
 	}
-
 
 	bool RHIBeginRender()
 	{
@@ -233,37 +267,33 @@ namespace Render
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(format, w, h, numMipLevel, numSamples, creationFlags)) );
 	}
 
-	RHIVertexBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer, uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
-		if (numVertices == 0 || vertexSize == 0)
+		if (elementSize == 0 || numElements == 0)
 			return nullptr;
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data) ) );
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBuffer(elementSize, numElements, creationFlags, data)));
 	}
 
-	RHIIndexBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer, uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
+	RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer, uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	{
+		if (vertexSize == 0 || numVertices == 0)
+			return nullptr;
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(vertexSize, numVertices, creationFlags | BCF_UsageVertex, data) ) );
+	}
+
+	RHIBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer, uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
 		if (nIndices == 0)
 			return nullptr;
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data)) );
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(bIntIndex ? sizeof(uint32) : sizeof(uint16), nIndices, creationFlags | BCF_UsageIndex, data)) );
 	}
 
-
-	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
-	{
-		return EXECUTE_RHI_FUNC(RHILockBuffer(buffer, access , offset, size));
-	}
-
-	void RHIUnlockBuffer(RHIVertexBuffer* buffer)
-	{
-		return EXECUTE_RHI_FUNC(RHIUnlockBuffer(buffer));
-	}
-
-	void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
 		return EXECUTE_RHI_FUNC(RHILockBuffer(buffer, access, offset, size));
 	}
 
-	void RHIUnlockBuffer(RHIIndexBuffer* buffer)
+	void RHIUnlockBuffer(RHIBuffer* buffer)
 	{
 		return EXECUTE_RHI_FUNC(RHIUnlockBuffer(buffer));
 	}

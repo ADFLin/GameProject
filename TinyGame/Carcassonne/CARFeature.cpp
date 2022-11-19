@@ -363,16 +363,31 @@ namespace CAR
 	int SideFeature::getSideContentNum(SideContentMask contentMask)
 	{
 		int result = 0;
-		for(SideNode* node : nodes)
+		if (FBitUtility::IsOneBitSet(contentMask))
 		{
-			MapTile const* mapTile = node->getMapTile();
-			SideContentMask content = mapTile->getSideContnet( node->index ) & contentMask;
-			while ( content )
+			for (SideNode* node : nodes)
 			{
-				content &= ~FBitUtility::ExtractTrailingBit( content );
-				++result;
+				MapTile const* mapTile = node->getMapTile();
+				if ( mapTile->getSideContnet(node->index) & contentMask )
+				{
+					++result;
+				}
 			}
 		}
+		else
+		{
+			for (SideNode* node : nodes)
+			{
+				MapTile const* mapTile = node->getMapTile();
+				SideContentMask content = mapTile->getSideContnet(node->index) & contentMask;
+				while (content)
+				{
+					content &= ~FBitUtility::ExtractTrailingBit(content);
+					++result;
+				}
+			}
+		}
+
 		return result;
 	}
 
@@ -964,7 +979,7 @@ namespace CAR
 
 	bool GermanCastleFeature::updateForAdjacentTile(MapTile& tile)
 	{
-		return AddUnique( neighborTiles , &tile );
+		return AddUniqueValue( neighborTiles , &tile );
 	}
 
 	bool GermanCastleFeature::getActorPos(MapTile const& mapTile , ActorPos& actorPos)

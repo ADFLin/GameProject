@@ -122,8 +122,6 @@ public:
 		NodeTraits::setNext( to , next );
 	}
 
-
-
 	static size_t count( ConstNodePtr const& from , ConstNodePtr const& end )
 	{
 		ConstNodePtr node = from;

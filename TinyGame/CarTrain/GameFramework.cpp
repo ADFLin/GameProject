@@ -265,7 +265,7 @@ namespace CarTrain
 				RayHitInfo& outInfo;
 			};
 
-			outInfo.fraction = 10.0f;
+			outInfo.fraction = 1.0f;
 			MyCallback callback(outInfo, collisionMask);
 			mWorld->RayCast(&callback, B2Conv::To(startPos), B2Conv::To(endPos));
 

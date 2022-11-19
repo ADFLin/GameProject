@@ -8,9 +8,9 @@
 namespace Gomoku
 {
 	using namespace Render;
-	using RenderContext = Go::RenderContext;
+	using namespace GoCore;;
 
-	class BoardRenderer : public Go::BoardRendererBase
+	class BoardRenderer : public BoardRendererBase
 	{
 	public:
 		void draw(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr);
@@ -96,6 +96,9 @@ namespace Gomoku
 
 
 		void emitDebugPos(int index, int type) override;
+
+
+		ERenderSystem getDefaultRenderSystem() override;
 
 	protected:
 		std::vector< Vec2i > mPosList;

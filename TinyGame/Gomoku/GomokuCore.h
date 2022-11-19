@@ -6,10 +6,7 @@
 
 namespace Gomoku
 {
-	using Go::PlayVertex;
-	using Go::ReadCoord;
-	using Go::EDGE_MARK;
-	namespace EStoneColor = Go::EStoneColor;
+	using namespace GoCore;
 
 	namespace EDebugType
 	{
@@ -61,7 +58,7 @@ namespace Gomoku
 			return &OffsetMap[type + 4 * indexEndpoint][0];
 		}
 	};
-	class Board : public Go::BoardBase
+	class Board : public BoardBase
 	{
 	public:
 		void setup(int size, bool bClear = true);
@@ -79,6 +76,11 @@ namespace Gomoku
 		void reconnect(int index, int const* pOffset, int16* conData, int color, bool bPositive);
 
 		int getLinkRoot(int index, EConDir::Type dir) const;
+
+		using BoardBase::offsetIndex;
+		int      offsetIndex(int idx, int const* pOffset) const { return offsetIndex(idx, pOffset[0], pOffset[1]); }
+		int      offsetIndex(int idx, int const* pOffset, int dist) const { return offsetIndex(idx, dist * pOffset[0], dist * pOffset[1]); }
+
 		struct LineInfo
 		{
 			int color;
@@ -87,7 +89,6 @@ namespace Gomoku
 			uint blockMask;
 			EConDir::Type dir;
 		};
-
 		LineInfo getLineInfo(int index, EConDir::Type dir);
 		static int GetLinkRoot(int index, int16* conData);
 		mutable std::unique_ptr< int16[] > mConData[EConDir::Count];
@@ -139,7 +140,10 @@ namespace Gomoku
 
 		bool    shouldCheckBanMove(int color) const
 		{
-			return color == EStoneColor::Black;
+			if ( mRule.bBanMove )
+				return color == EStoneColor::Black;
+
+			return false;
 		}
 		bool    playStone(int x, int y)
 		{
@@ -188,6 +192,18 @@ namespace Gomoku
 		template< bool bCheckBanMove >
 		EGameStatus checkStatusInternal(int index, int color) const;
 
+
+		struct Rule
+		{
+			bool bBanMove;
+
+			Rule()
+			{
+				bBanMove = true;
+			}
+		};
+
+		Rule mRule;
 		std::vector< StepInfo > mStepHistory;
 		DataType  mNextPlayColor;
 	};

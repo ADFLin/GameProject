@@ -356,7 +356,7 @@ namespace Render
 	{
 		VulkanShaderProgram& shaderProgramImpl = static_cast<VulkanShaderProgram&>(*shaderProgram.mRHIResource);
 
-		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeView(binaryCode));
+		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeConstView(binaryCode));
 		uint8 numShaders = 0;
 		serializer.read(numShaders);
 

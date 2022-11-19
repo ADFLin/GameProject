@@ -1007,10 +1007,10 @@ namespace Render
 		return true;
 	}
 
-	RHIVertexBuffer*  VulkanSystem::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	RHIBuffer* VulkanSystem::RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
-		VulkanVertexBuffer* buffer = new VulkanVertexBuffer;
-		if (!initalizeBufferInternal(buffer, vertexSize, numVertices, creationFlags, data))
+		VulkanBuffer* buffer = new VulkanBuffer;
+		if (!initalizeBufferInternal(buffer, elementSize, numElements, creationFlags, data))
 		{
 			delete buffer;
 			return nullptr;
@@ -1018,7 +1018,7 @@ namespace Render
 		return buffer;
 	}
 
-	bool VulkanSystem::initalizeBufferInternal(VulkanVertexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
+	bool VulkanSystem::initalizeBufferInternal(VulkanBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
 		buffer->mCreationFlags = creationFlags;
 		buffer->mNumElements   = numElements;
@@ -1027,39 +1027,13 @@ namespace Render
 		VkDeviceSize bufferSize = elementSize * numElements;
 
 		VERIFY_RETURN_FALSE( mDevice->createBuffer(
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | FVulkanBuffer::TranslateUsage(creationFlags),
+			FVulkanBuffer::TranslateUsage(creationFlags),
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			buffer->getBufferData(), bufferSize, data) );
 
 		return true;
 	}
 
-	RHIIndexBuffer*  VulkanSystem::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
-	{
-		VulkanIndexBuffer* buffer = new VulkanIndexBuffer;
-		if (!initalizeBufferInternal(buffer, bIntIndex ? sizeof(int32) : sizeof(int16), nIndices, creationFlags, data))
-		{
-			delete buffer;
-			return nullptr;
-		}
-		return buffer;
-	}
-
-	bool VulkanSystem::initalizeBufferInternal(VulkanIndexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
-	{
-		buffer->mCreationFlags = creationFlags;
-		buffer->mNumElements = numElements;
-		buffer->mElementSize = elementSize;
-
-		VkDeviceSize bufferSize = elementSize * numElements;
-
-		VERIFY_RETURN_FALSE(mDevice->createBuffer(
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | FVulkanBuffer::TranslateUsage(creationFlags),
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			buffer->getBufferData(), bufferSize, data));
-
-		return true;
-	}
 
 	RHIInputLayout* VulkanSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{

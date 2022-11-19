@@ -11,7 +11,7 @@ namespace Poker
 	class ICardDraw;
 }//namespace Poker
 
-namespace Poker { namespace Holdem {
+namespace Holdem {
 
 	class BetPanelBase: public GFrame
 	{
@@ -43,10 +43,10 @@ namespace Poker { namespace Holdem {
 		~Scene();
 
 		ClientLevel& getLevel(){ return *mLevel; }
-		void drawPlayerState( Graphics2D& g , Vec2i const& pos , int posSlot , SlotInfo const& info );
+		void drawPlayerState( IGraphics2D& g , Vec2i const& pos , int posSlot , SlotInfo const& info );
 		void setupWidget();
-		void drawSlot( Graphics2D& g , Vec2i const& pos , SlotInfo const& info );
-		void render( Graphics2D& g );
+		void drawSlot( IGraphics2D& g , Vec2i const& pos , SlotInfo const& info );
+		void render( IGraphics2D& g );
 
 
 		void betRequest( EBetAction type , int money = 0 )
@@ -71,8 +71,6 @@ namespace Poker { namespace Holdem {
 		ICardDraw*      mCardDraw;
 	};
 
-
 }//namespace Holdem
-}//namespace Poker
 
 #endif // HoldemScene_h__

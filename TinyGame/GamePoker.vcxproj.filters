@@ -108,6 +108,7 @@
     <ClCompile Include="Poker\HoldemStage.cpp" />
     <ClCompile Include="Poker\libcards.cpp" />
     <ClCompile Include="Poker\PokerGame.cpp" />
+    <ClCompile Include="Poker\DDStage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\FCSolver\AFreecellGameBoard.h">
@@ -304,5 +305,6 @@
     <ClInclude Include="Poker\libcards.h" />
     <ClInclude Include="Poker\PokerBase.h" />
     <ClInclude Include="Poker\PokerGame.h" />
+    <ClInclude Include="Poker\DDStage.h" />
   </ItemGroup>
 </Project>

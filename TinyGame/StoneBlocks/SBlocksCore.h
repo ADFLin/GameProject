@@ -200,42 +200,85 @@ namespace SBlocks
 			Int16Point2D end;
 		};
 
-		void generateOuterConPosList(std::vector< Int16Point2D >& outPosList);
+		void generateOuterConPosList(std::vector< Int16Point2D >& outPosList) const;
 		void generateOutline(std::vector<Line>& outlines);
 	};
 
+	namespace EMirrorOp
+	{
+		enum Type
+		{
+			None ,
+			X ,
+			Y ,
+
+			COUNT,
+		};
+	};
 
 	struct PieceShape
 	{
 		Int16Point2D boundSize;
-		PieceShapeData mDataMap[DirType::RestValue];
+
 		Vector2 pivot;
 
 		std::vector< PieceShapeData::Line > outlines;
 
 		int indexSolve;
 
+		PieceShapeData const& getData(DirType const& dir, EMirrorOp::Type op = EMirrorOp::None) const
+		{
+			int index = mDataIndexMap[dir][op];
+			return mDataStorage[index];
+		}
+
+		PieceShapeData const& getDataByIndex(int index) const
+		{
+			return mDataStorage[index];
+		}
+
+		struct OpState
+		{
+			int dir;
+			EMirrorOp::Type mirror;
+		};
+
+		OpState getOpState(int index)
+		{
+			for( int mirrorOp = 0 ; mirrorOp < EMirrorOp::COUNT; ++mirrorOp)
+			{
+				for (int dir = 0; dir < DirType::RestValue; ++dir)
+				{
+					if (mDataIndexMap[dir][mirrorOp] == index)
+					{
+						return { dir , EMirrorOp::Type(mirrorOp) };
+					}
+				}
+			}
+			return { INDEX_NONE , EMirrorOp::None };
+		}
+
 		int findSameShape(PieceShapeData const& data);
 		int findSameShapeIgnoreBlockType(PieceShapeData const& data);
 		int getBlockCount() const
 		{
-			return mDataMap[0].blocks.size();
+			return mDataStorage[0].blocks.size();
 		}
 
-		int getDifferentShapeDirs(int outDirs[4]);
+		int getDifferentShapeNum() const;
 
 		void exportDesc(PieceShapeDesc& outDesc);
 
-		void importDesc(PieceShapeDesc const& desc);
+		void importDesc(PieceShapeDesc const& desc, bool bAllowMirrorOp);
 
-		Vec2i getBoundSize(DirType dir)
+		Vec2i getBoundSize(DirType dir) const
 		{
 			if (dir % 2)
 				return Vec2i(boundSize.y, boundSize.x);
 			return boundSize;
 		}
 
-		Vec2i getCornerPos(DirType dir)
+		Vec2i getCornerPos(DirType dir) const
 		{
 			switch (dir)
 			{
@@ -248,12 +291,14 @@ namespace SBlocks
 			return Vec2i::Zero();
 		}
 
-		Vector2 getLTCornerOffset(DirType inDir)
+		Vector2 getLTCornerOffset(DirType inDir) const
 		{
 			Vector2 lPos = getCornerPos(inDir);
 			return pivot + GetRotation(inDir).leftMul(lPos - pivot);
 		}
-
+	private:
+		std::vector<PieceShapeData> mDataStorage;
+		int mDataIndexMap[DirType::RestValue][EMirrorOp::COUNT];
 	};
 
 	struct Piece
@@ -292,7 +337,7 @@ namespace SBlocks
 		{
 			Vector2 lPos = xFormRender.transformInvPositionAssumeNoScale(pos);
 
-			auto const& shapeData = shape->mDataMap[0];
+			auto const& shapeData = shape->getData(DirType::ValueChecked(0));
 			for (auto const& block : shapeData.blocks)
 			{
 				if (block.pos.x < lPos.x && lPos.x < block.pos.x + 1 &&
@@ -409,6 +454,8 @@ namespace SBlocks
 		std::vector<PieceShapeDesc> shapes;
 		std::vector<PieceDesc> pieces;
 
+		bool bAllowMirrorOp = false;
+
 		template< class OP >
 		void serialize(OP& op);
 	};
@@ -439,6 +486,8 @@ namespace SBlocks
 		std::vector< std::unique_ptr< Piece > > mPieces;
 		std::vector< std::unique_ptr< PieceShape > > mShapes;
 		std::vector< MarkMap > mMaps;
+
+		bool bAllowMirrorOp = false;
 	};
 
 }//namespace SBlock

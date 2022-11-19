@@ -223,6 +223,10 @@ namespace Render
 		{
 			GRHIDeviceVendorName = DeviceVendorName::Intel;
 		}
+		else
+		{
+			GRHIDeviceVendorName = DeviceVendorName::Unknown;
+		}
 
 		if (!initParam.bVSyncEnable)
 		{
@@ -298,11 +302,10 @@ namespace Render
 
 		if( 1 )
 		{
-			GForceInitState = true;
-			RHISetDepthStencilState(*mImmediateCommandList, TStaticDepthStencilState<>::GetRHI(), 0xff);
-			RHISetBlendState(*mImmediateCommandList, TStaticBlendState<>::GetRHI());
-			RHISetRasterizerState(*mImmediateCommandList, TStaticRasterizerState<>::GetRHI());
-			GForceInitState = false;
+			TGuardValue<bool> scopedValue(GForceInitState, true);
+			mDrawContext.RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI(), 0xff);
+			mDrawContext.RHISetBlendState(TStaticBlendState<>::GetRHI());
+			mDrawContext.RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		}
 
 		return true;
@@ -357,24 +360,19 @@ namespace Render
 		return result;
 	}
 
-	RHIVertexBuffer* OpenGLSystem::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	RHIBuffer* OpenGLSystem::RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
-		return CreateOpenGLResourceT< OpenGLVertexBuffer >(vertexSize, numVertices, creationFlags, data);
+		return CreateOpenGLResourceT< OpenGLBuffer >(elementSize, numElements, creationFlags, data);
 	}
 
-	RHIIndexBuffer* OpenGLSystem::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
-	{
-		return CreateOpenGLResourceT< OpenGLIndexBuffer >(nIndices, bIntIndex, creationFlags, data);
-	}
-
-	void* OpenGLSystem::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	void* OpenGLSystem::RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
 		if( size )
 			return OpenGLCast::To(buffer)->lock(access, offset, size);
 		return OpenGLCast::To(buffer)->lock(access);
 	}
 
-	void OpenGLSystem::RHIUnlockBuffer(RHIVertexBuffer* buffer)
+	void OpenGLSystem::RHIUnlockBuffer(RHIBuffer* buffer)
 	{
 		OpenGLCast::To(buffer)->unlock();
 	}
@@ -417,9 +415,9 @@ namespace Render
 		outData.resize(ETexture::FaceCount * faceDataSize);
 
 		OpenGLCast::To(&texture)->bind();
-		for (int i = 0; i < ETexture::FaceCount; ++i)
+		for (int face = 0; face < ETexture::FaceCount; ++face)
 		{
-			glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*i]);
+			glGetTexImage(OpenGLTranslate::TexureType(ETexture::Face(face)), level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*face]);
 		}
 		OpenGLCast::To(&texture)->unbind();
 	}
@@ -438,18 +436,6 @@ namespace Render
 	//{
 
 	//}
-
-	void* OpenGLSystem::RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
-	{
-		if( size )
-			return OpenGLCast::To(buffer)->lock(access, offset, size);
-		return OpenGLCast::To(buffer)->lock(access);
-	}
-
-	void OpenGLSystem::RHIUnlockBuffer(RHIIndexBuffer* buffer)
-	{
-		OpenGLCast::To(buffer)->unlock();
-	}
 
 	RHIInputLayout* OpenGLSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
@@ -693,7 +679,7 @@ namespace Render
 		mbHasInputStreamPendingSetted = true;
 	}
 
-	void OpenGLContext::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+	void OpenGLContext::RHISetIndexBuffer(RHIBuffer* indexBuffer)
 	{
 		mLastIndexBuffer = indexBuffer;	
 	}
@@ -725,9 +711,10 @@ namespace Render
 
 		commitGraphicStates();
 
-		OpenGLCast::To(mLastIndexBuffer)->bind();
-		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
-		int indexTypeSize = mLastIndexBuffer->isIntType() ? sizeof(uint32) : sizeof(uint16);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, OpenGLCast::GetHandle(mLastIndexBuffer));
+
+		GLenum indexType = OpenGLTranslate::IndexType(mLastIndexBuffer);
+		int indexTypeSize = mLastIndexBuffer->getElementSize();
 		int indexOffset = indexTypeSize * indexStart;
 
 		GLenum primitiveGL = commitPrimitiveState(type);
@@ -740,11 +727,10 @@ namespace Render
 		{
 			glDrawElements(primitiveGL, nIndex, indexType, (void*)indexOffset);
 		}
-		//OpenGLCast::To(mLastIndexBuffer)->unbind();
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-	void OpenGLContext::RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
+	void OpenGLContext::RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset , int numCommand, int commandStride )
 	{
 		if( !commitInputStream() )
 			return;
@@ -767,7 +753,7 @@ namespace Render
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
+	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset , int numCommand, int commandStride)
 	{
 		if( !mLastIndexBuffer.isValid() )
 		{
@@ -779,10 +765,10 @@ namespace Render
 		
 		commitGraphicStates();
 
-		OpenGLCast::To(mLastIndexBuffer)->bind();
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, OpenGLCast::GetHandle(mLastIndexBuffer));
 		assert(commandBuffer);
 		GLenum primitiveGL = commitPrimitiveState(type);
-		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+		GLenum indexType = OpenGLTranslate::IndexType(mLastIndexBuffer);
 
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
 		if( numCommand > 1 )
@@ -794,8 +780,6 @@ namespace Render
 			glDrawElementsIndirect(primitiveGL, indexType, (void*)offset);
 		}
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-
-		//OpenGLCast::To(mLastIndexBuffer)->unbind();
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
@@ -830,9 +814,10 @@ namespace Render
 		commitGraphicStates();
 		
 		GLenum primitiveGL = commitPrimitiveState(type);
-		OpenGLCast::To(mLastIndexBuffer)->bind();
-		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
-		int indexTypeSize = mLastIndexBuffer->isIntType() ? sizeof(uint32) : sizeof(uint16);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, OpenGLCast::GetHandle(mLastIndexBuffer));
+
+		GLenum indexType = OpenGLTranslate::IndexType(mLastIndexBuffer);
+		int indexTypeSize = mLastIndexBuffer->getElementSize();
 		int indexOffset = indexTypeSize * indexStart;
 
 		if( baseVertex )
@@ -858,7 +843,6 @@ namespace Render
 			}
 			
 		}
-		//OpenGLCast::To(mLastIndexBuffer)->unbind();
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
@@ -904,7 +888,7 @@ namespace Render
 		}	
 	}
 
-	void OpenGLContext::RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void OpenGLContext::RHIDrawMeshTasksIndirect(RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		commitGraphicStates();
 
@@ -1172,7 +1156,7 @@ namespace Render
 	}
 
 	template< class TShaderObject >
-	void OpenGLContext::setShaderUniformBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderUniformBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
@@ -1185,18 +1169,18 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		setShaderUniformBufferT(shaderProgram, param, buffer);
 	}
 
-	void OpenGLContext::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		setShaderUniformBufferT(shader, param, buffer);
 	}	
 	
 	template< class TShaderObject >
-	void OpenGLContext::setShaderStorageBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
+	void OpenGLContext::setShaderStorageBufferT(TShaderObject& shaderObject, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		GLuint shaderHandle = OpenGLCast::GetHandle(shaderObject);
@@ -1209,23 +1193,23 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
+	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
 	{
 		setShaderStorageBufferT(shaderProgram, param, buffer, op);
 	}
 
-	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
+	void OpenGLContext::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
 	{
 		setShaderStorageBufferT(shader, param, buffer, op);
 	}
 
-	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
 	}
 
-	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
@@ -1530,7 +1514,7 @@ namespace Render
 		{
 			if ( CheckStateDirty( committedValue.stencilRef , mDeviceState.stencilRefPending ) )
 			{
-				glStencilFunc(committedValue.stencilFun, mDeviceState.stencilRefPending, committedValue.stencilReadMask);
+				glStencilFunc(committedValue.stencilFunc, mDeviceState.stencilRefPending, committedValue.stencilReadMask);
 			}
 			return;
 		}
@@ -1611,24 +1595,24 @@ namespace Render
 			}
 			if (pendingValue.bUseSeparateStencilFun)
 			{
-				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFun) || GL_IS_STATE_DIRTY(stencilFunBack) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
+				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFunc) || GL_IS_STATE_DIRTY(stencilFunBack) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
 				{
-					GL_COMMIT_STATE_VALUE(stencilFun);
+					GL_COMMIT_STATE_VALUE(stencilFunc);
 					GL_COMMIT_STATE_VALUE(stencilFunBack);
 					GL_COMMIT_STATE_VALUE(stencilReadMask);
 					committedValue.stencilRef = mDeviceState.stencilRefPending;
-					glStencilFuncSeparate(GL_FRONT, pendingValue.stencilFun, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
+					glStencilFuncSeparate(GL_FRONT, pendingValue.stencilFunc, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 					glStencilFuncSeparate(GL_BACK, pendingValue.stencilFunBack, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 				}
 			}
 			else
 			{
-				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFun) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
+				if (bForceRestFunc || GL_IS_STATE_DIRTY(stencilFunc) || committedValue.stencilRef != mDeviceState.stencilRefPending || GL_IS_STATE_DIRTY(stencilReadMask))
 				{
-					GL_COMMIT_STATE_VALUE(stencilFun);
+					GL_COMMIT_STATE_VALUE(stencilFunc);
 					GL_COMMIT_STATE_VALUE(stencilReadMask);
 					committedValue.stencilRef = mDeviceState.stencilRefPending;
-					glStencilFunc(pendingValue.stencilFun, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
+					glStencilFunc(pendingValue.stencilFunc, mDeviceState.stencilRefPending, pendingValue.stencilReadMask);
 				}
 			}
 		}

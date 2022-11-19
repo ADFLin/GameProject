@@ -492,7 +492,7 @@ namespace Go
 								case '.': 
 									*pData = EStoneColor::Empty; ++pData; ++count; break;
 								case 'X': *pData = EStoneColor::Black; ++pData; ++count; break;
-								case 'O': *pData = EStoneColor::Black; ++pData; ++count; break;
+								case 'O': *pData = EStoneColor::White; ++pData; ++count; break;
 								}
 
 								if (count == LeelaGoSize)

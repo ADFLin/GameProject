@@ -340,7 +340,7 @@ namespace CAR
 		class ShepherdActor : public LevelActor
 		{
 		public:
-			std::vector< SheepToken > ownSheep;
+			std::vector< SheepToken > sheepOwned;
 		};
 		std::vector< SheepToken > mSheepBags;
 		

@@ -45,10 +45,10 @@ inline uint32 HashValue(T const& v)
 }
 
 template <class T>
-inline void HashCombine(uint32& seed, const T& v)
+inline uint32 HashCombine(uint32& seed, const T& v)
 {
 	std::hash<T> hasher;
-	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+	return seed ^ ( hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2) );
 }
 
 inline uint32 CombineHash(uint32 a, uint32 b)
@@ -63,7 +63,17 @@ struct MemberFuncHasher
 	uint32 operator()(T const& value) const noexcept { return value.getTypeHash(); }
 };
 
+
+#define DEFINE_TYPE_HASH_TO_STD( TYPE , FUNC_CODE )\
+		namespace std {\
+			template<> struct hash<TYPE>\
+			{\
+				static auto HashFunc FUNC_CODE\
+				size_t operator() (TYPE const& value) const { return HashFunc(value); }\
+			};\
+		}
+
 #define EXPORT_MEMBER_HASH_TO_STD( TYPE )\
-	namespace std { template<> struct hash<TYPE> { size_t operator()(TYPE const& value) const { return value.getTypeHash(); } }; }
+	   DEFINE_TYPE_HASH_TO_STD( TYPE , ( TYPE const& value ){ return value.getTypeHash(); })
 
 #endif // TypeHash_h__

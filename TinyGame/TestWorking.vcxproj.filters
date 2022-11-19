@@ -54,6 +54,12 @@
     <ClCompile Include="Sudoku\SudokuStage.cpp">
       <Filter>GameSudoku</Filter>
     </ClCompile>
+    <ClCompile Include="..\Factorio\FIOStage.cpp">
+      <Filter>GameFactorio</Filter>
+    </ClCompile>
+    <ClCompile Include="Transport\TPStage.cpp">
+      <Filter>GameTransport</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
@@ -134,6 +140,12 @@
     </Filter>
     <Filter Include="GameSudoku">
       <UniqueIdentifier>{8d36dc8b-8c84-45d4-bde4-f4baacee0b08}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameFactorio">
+      <UniqueIdentifier>{4507e7b4-65bf-4c18-bc30-a55c8d06e4da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameTransport">
+      <UniqueIdentifier>{3be567dd-34a4-4e9a-8756-adcacab538cc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

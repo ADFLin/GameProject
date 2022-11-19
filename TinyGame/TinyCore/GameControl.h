@@ -133,6 +133,16 @@ protected:
 	TINY_API void scanControl( unsigned flag = 0 );
 	TINY_API void scanControl( IActionLanucher& lanucher , unsigned flag = 0 );
 private:
+
+	template< class TFunc >
+	void visitListener(TFunc&& func)
+	{
+		for (auto listener : mListeners)
+		{
+			func(listener);
+		}
+	}
+
 	typedef std::vector< IActionListener*> ListenerList;
 	typedef std::vector< IActionInput* >   InputList;
 

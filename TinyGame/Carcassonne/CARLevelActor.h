@@ -18,9 +18,9 @@ namespace CAR
 	public:
 		LevelActor* popActor();
 		bool        haveActor(){ return !mActors.empty(); }
-		bool        haveOtherActor( int playerId );
+		bool        haveOtherActor( PlayerId playerId );
 
-		bool        havePlayerActor(int playerId, EActor::Type type)
+		bool        havePlayerActor(PlayerId playerId, EActor::Type type)
 		{
 			return haveActor(BIT(playerId), BIT(type));
 		}
@@ -32,12 +32,13 @@ namespace CAR
 		LevelActor* findActor( unsigned playerMask , unsigned actorTypeMask ) const;
 		LevelActor* findActorFromType( unsigned actorTypeMask ) const;
 		LevelActor* findActorFromPlayer(unsigned playerMask ) const;
-		bool        haveActor(unsigned playerMask, unsigned actorTypeMask) const { return findActor(playerMask, actorTypeMask) != nullptr; }
-		bool        haveActorFromType(unsigned actorTypeMask) const { return findActorFromType(actorTypeMask) != nullptr; }
-		bool        haveActorFromPlayer(unsigned playerMask) const { return findActorFromPlayer(playerMask) != nullptr; }
+		bool        haveActor(unsigned playerMask, unsigned actorTypeMask) const { return !!findActor(playerMask, actorTypeMask); }
+		bool        haveActorFromType(unsigned actorTypeMask) const { return !!findActorFromType(actorTypeMask); }
+		bool        haveActorFromPlayer(unsigned playerMask) const { return !!findActorFromPlayer(playerMask); }
 
 		int         countActor(unsigned playerMask, unsigned actorTypeMask) const;
-
+		int         countActorFromPlayer(unsigned playerMask) const;
+		int         countActorFromType(unsigned actorTypeMask) const;
 		
 		ActorList mActors;
 	};

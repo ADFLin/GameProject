@@ -17,14 +17,14 @@ namespace Render
 
 	struct MeshBatchElement
 	{
-		RHIIndexBuffer*  indexBuffer;
+		RHIBuffer*  indexBuffer;
 
 		int              idxStart;
 		int              numElement;
 
 		//TODO: use uniform buffer
-		Matrix4  world;
-		RHIVertexBuffer* primitiveBuffer;
+		Matrix4    world;
+		RHIBuffer* primitiveBuffer;
 
 		MeshBatchElement()
 		{
@@ -38,7 +38,7 @@ namespace Render
 		EPrimitive       primitiveType;
 		RHIInputLayout*  inputLayout;
 		Material*        material;
-		RHIVertexBuffer* vertexBuffer;
+		RHIBuffer*       vertexBuffer;
 		std::vector< MeshBatchElement > elements;
 
 		void draw( RenderContext& context);
@@ -79,7 +79,7 @@ namespace Render
 		ShaderProgram mShader;
 		RHIInputLayoutRef  mInputLayout;
 
-		RHIVertexBufferRef mVertexBuffer;
+		RHIBufferRef mVertexBuffer;
 	};
 
 	class PrimitivesCollection

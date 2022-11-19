@@ -538,7 +538,7 @@ namespace Render
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		indexFrameTexture = 1 - indexFrameTexture;
 
-		TextureShowManager::registerTexture("SomkeTexture", mSmokeFrameTextures[indexFrameTexture]);
+		GTextureShowManager.registerTexture("SomkeTexture", mSmokeFrameTextures[indexFrameTexture]);
 		{
 
 			GPU_PROFILE("Scene");

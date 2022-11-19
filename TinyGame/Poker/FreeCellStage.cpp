@@ -110,7 +110,7 @@ namespace Poker
 
 	void FreeCellStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::GetGraphics2D(); 
+		IGraphics2D& g = ::Global::GetIGraphics2D();
 
 		g.setBrush( Color3ub( 0 , 125 , 0 ) );
 		g.setPen( Color3ub( 0 , 125 , 0 ) );
@@ -170,7 +170,7 @@ namespace Poker
 
 	}
 
-	void FreeCellStage::drawSelectRect( Graphics2D& g )
+	void FreeCellStage::drawSelectRect( IGraphics2D& g )
 	{
 		assert( mSelectCell );
 		Vec2i pos = calcCardPos( *mSelectCell );
@@ -193,7 +193,7 @@ namespace Poker
 		g.drawRoundRect( pos - bSize  , mCardSize + 2 * bSize + Vec2i( 1 , 1 ) , Vec2i( 5 , 5 ) );
 	}
 
-	void FreeCellStage::drawSprite( Graphics2D& g , StackCell& cell )
+	void FreeCellStage::drawSprite( IGraphics2D& g , StackCell& cell )
 	{
 		int num = cell.getCardNum();
 		for( int i = 0 ; i < num - 1 ; ++i )
@@ -211,7 +211,7 @@ namespace Poker
 		}
 	}
 
-	void FreeCellStage::drawSprite( Graphics2D& g , Card const& card )
+	void FreeCellStage::drawSprite( IGraphics2D& g , Card const& card )
 	{
 		int index = card.getIndex();
 		Sprite& spr = mSprites[ index ];
@@ -372,7 +372,7 @@ namespace Poker
 		return BaseClass::onMouse(msg);
 	}
 
-	void FreeCellStage::drawCell( Graphics2D& g , Vec2i const& pos )
+	void FreeCellStage::drawCell( IGraphics2D& g , Vec2i const& pos )
 	{
 		RenderUtility::SetPen( g , EColor::Black );
 		RenderUtility::SetBrush( g , EColor::Null );

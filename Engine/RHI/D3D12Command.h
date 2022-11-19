@@ -88,7 +88,7 @@ namespace Render
 		uint32 getTypeHash() const
 		{
 			uint32 result = boundStateKey.getTypeHash();
-			HashCombine(result, value);
+			result = HashCombine(result, value);
 			return result;
 		}
 	};
@@ -305,12 +305,12 @@ namespace Render
 			postDrawPrimitive();
 		}
 
-		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitGraphicsPipelineState(type);
 			postDrawPrimitive();
 		}
-		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitGraphicsPipelineState(type);
 			postDrawPrimitive();
@@ -342,7 +342,7 @@ namespace Render
 			postDrawPrimitive();
 		}
 
-		void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		void RHIDrawMeshTasksIndirect(RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 
 		}
@@ -365,7 +365,7 @@ namespace Render
 
 		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
-		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer);
+		void RHISetIndexBuffer(RHIBuffer* indexBuffer);
 
 		void RHIFlushCommand();
 
@@ -410,14 +410,14 @@ namespace Render
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param) {}
 
 		void clearShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param);
-		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
 
-		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) {}
-		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer){}
+		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op) {}
+		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer){}
 
 		void setShaderTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderSampler(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHISamplerState& sampler);
-		void setShaderUniformBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderUniformBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIBuffer& buffer);
 
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
@@ -483,13 +483,13 @@ namespace Render
 		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void setShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
-		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
 
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
 		{
 
 		}
-		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer)
 		{
 
 		}
@@ -525,6 +525,10 @@ namespace Render
 
 		void updateCSUHeapUsage(D3D12PooledHeapHandle const& handle)
 		{
+			if (handle.chunk == nullptr)
+			{
+				return;
+			}
 			if (mUsedDescHeaps[0] != handle.chunk->resource)
 			{
 				if (mUsedDescHeaps[0] == nullptr)
@@ -536,6 +540,10 @@ namespace Render
 
 		void updateSamplerHeapUsage(D3D12PooledHeapHandle const& handle)
 		{
+			if (handle.chunk == nullptr)
+			{
+				return;
+			}
 			if (mUsedDescHeaps[1] != handle.chunk->resource)
 			{
 				if (mUsedDescHeaps[1] == nullptr)
@@ -672,16 +680,13 @@ namespace Render
 		}
 
 		RHITexture2D*     RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags) { return nullptr; }
-		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
-		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 
 		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width , uint32 height, uint32 rowPatch, uint32 level = 0);
 		bool updateTexture1DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 offset, uint32 length, uint32 level = 0);
 
-		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
-		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
-		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
-		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
+		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIBuffer* buffer);
 
 		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
 		{

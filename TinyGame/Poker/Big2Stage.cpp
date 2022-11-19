@@ -14,8 +14,7 @@
 #include "DataTransferImpl.h"
 
 
-namespace Poker { namespace Big2 {
-
+namespace Big2 {
 
 	LevelStage::LevelStage()
 	{
@@ -195,7 +194,7 @@ namespace Poker { namespace Big2 {
 
 	void LevelStage::onRender( float dFrame )
 	{
-		::Graphics2D& g = Global::GetGraphics2D();		
+		IGraphics2D& g = Global::GetIGraphics2D();		
 		mScene->render( g );
 	}
 
@@ -296,6 +295,4 @@ namespace Poker { namespace Big2 {
 		return false;
 	}
 
-
 }//namespace Big2
-}//namespace Poker

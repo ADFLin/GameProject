@@ -214,7 +214,7 @@ namespace CAR
 			}
 			MapTile const* getMapTile() const
 			{
-				ptrdiff_t offset = offsetof( MapTile , farmNodes ) + index * sizeof( FarmNode );
+				ptrdiff_t offset = offsetof(MapTile , farmNodes) + index * sizeof( FarmNode );
 				return reinterpret_cast< MapTile* >( intptr_t( this ) - offset );
 			}
 			MapTile* getMapTile()

@@ -517,7 +517,7 @@ public:
 		mNumInstruction += 3;
 
 		mNumVarStack -= numParam - 1;
-		mPrevValue.type = TOKEN_FUN;
+		mPrevValue.type = TOKEN_FUNC;
 		mPrevValue.idxStack = INDEX_NONE;
 	}
 
@@ -615,7 +615,7 @@ public:
 			mRegStack.back().type == TOKEN_NONE;
 		}
 
-		mPrevValue.type = TOKEN_FUN;
+		mPrevValue.type = TOKEN_FUNC;
 		mPrevValue.idxStack = INDEX_NONE;
 	}
 

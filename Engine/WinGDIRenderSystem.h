@@ -61,7 +61,7 @@ public:
 	void  beginBlend( Vec2i const& pos , Vec2i const& size , float alpha );
 	void  endBlend();
 
-	void  drawPixel  ( Vec2i const& p , Color3ub const& color ){  ::SetPixel( mhDCRender , p.x , p.y , color.toXBGR() ); }
+	void  drawPixel  ( Vec2i const& p , Color3ub const& color ){  ::SetPixel( mhDCRender , p.x , p.y , color.toRGB() ); }
 	void  drawLine   ( Vec2i const& p1 , Vec2i const& p2 )    {  ::MoveToEx( mhDCRender ,p1.x ,p1.y , NULL ); ::LineTo( mhDCRender,p2.x ,p2.y); }
 	void  drawRect   ( int left , int top , int right , int bottom ){ ::Rectangle( mhDCRender , left , top , right , bottom );  }
 	void  drawRect   ( Vec2i const& pos , Vec2i const& size ) {  ::Rectangle( mhDCRender , pos.x , pos.y , pos.x + size.x , pos.y + size.y );  }
@@ -101,7 +101,7 @@ private:
 	void  setBrushImpl( HBRUSH hBrush , bool beManaged );
 	void  setFontImpl( HFONT hFont , bool beManaged );
 
-	static int const MaxXFormStackNum = 5;
+	static int const MaxXFormStackNum = 32;
 	XFORM    mXFormStack[ MaxXFormStackNum ];
 	int      mNumStack;
 

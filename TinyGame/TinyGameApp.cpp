@@ -9,6 +9,7 @@
 #include "FileSystem.h"
 #include "ProfileSystem.h"
 #include "ConsoleSystem.h"
+#include "DataCacheInterface.h"
 #include "Asset.h"
 
 #include "GameGUISystem.h"
@@ -348,6 +349,37 @@ void RedirectStdIO()
 #endif
 }
 
+char const* GetBuildVersion()
+{
+	struct BuildVersionBuilder
+	{
+		char dayOfTheWeek[32];
+		char mouth[32];
+		int date;
+		int hr;
+		int min;
+		int sec;
+		int year;
+
+		InlineString<> build()
+		{
+			sscanf(__TIMESTAMP__, "%s %s %d %d:%d:%d %d", dayOfTheWeek, mouth, &date, &hr, &min, &sec, &year);
+			return InlineString<>::Make(
+				"%d-%s-%d-%02d:%02d:%02d-%s",
+				year, mouth, date , hr , min , sec , 
+#if _DEBUG
+				"debug"
+#else
+				"release"
+#endif
+			);
+		}
+	};
+
+	static InlineString<> buildVersionCached = BuildVersionBuilder().build();
+	return buildVersionCached;
+}
+
 bool TinyGameApp::initializeGame()
 {
 	TIME_SCOPE("Game Initialize");
@@ -368,6 +400,8 @@ bool TinyGameApp::initializeGame()
 		::SetCurrentDirectoryA(moduleDir);
 	}
 #endif
+
+	LogMsg("BuildVersion = %s", GetBuildVersion());
 
 	{
 		TIME_SCOPE("Engine Initialize");
@@ -406,6 +440,16 @@ bool TinyGameApp::initializeGame()
 	{
 		TIME_SCOPE("Global Initialize");
 		::Global::Initialize();
+
+		char const* ignoreTypes =::Global::GameConfig().getStringValue("DataCache.IgnoreType", CONFIG_SECTION, "");
+		StringView token;
+		while (FStringParse::StringToken(ignoreTypes, " ,", token))
+		{
+			if (token.size() > 0)
+			{
+				::Global::DataCache().ignoreDataType(token.toCString());
+			}
+		}
 	}
 
 	{
@@ -514,6 +558,8 @@ void TinyGameApp::cleanup()
 
 long TinyGameApp::handleGameUpdate( long shouldTime )
 {
+	ProfileSystem::Get().incrementFrameCount();
+
 	int  numFrame = shouldTime / getUpdateTime();
 	long updateTime = numFrame * getUpdateTime();
 	
@@ -523,7 +569,6 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 
 	for( int i = 0 ; i < numFrame ; ++i )
 	{
-		ProfileSystem::Get().incrementFrameCount();
 
 		if( mStageMode && mStageMode->getStage() == nullptr )
 		{
@@ -532,8 +577,10 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 		}
 		checkNewStage();
 
-		if ( mNetWorker )
-			mNetWorker->update( getUpdateTime() );
+		if (mNetWorker)
+		{
+			mNetWorker->update(getUpdateTime());
+		}
 
 		runTask( getUpdateTime() );
 
@@ -625,7 +672,7 @@ ServerWorker* TinyGameApp::createServer()
 	if ( !server->startNetwork() )
 	{
 		::Global::GUI().showMessageBox( 
-			UI_ANY , LOCTEXT("Can't Create Server") , EMessageButton::Ok );
+			UI_ANY, LOCTEXT("Can't Create Server") , EMessageButton::Ok );
 		delete server;
 		return nullptr;
 	}
@@ -838,6 +885,8 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 
 void TinyGameApp::render( float dframe )
 {
+	PROFILE_ENTRY("Render");
+
 	using namespace Render;
 
 	if ( getNextStage() || mbInitializingStage )
@@ -879,130 +928,141 @@ void TinyGameApp::render( float dframe )
 		gLogPrinter.render(Vec2i(5, 25));
 	}
 
-
-	if( CVarProfileGPU )
-		GpuProfiler::Get().endFrame();
-	
-	mFPSCalc.increaseFrame(getMillionSecond());
-	IGraphics2D& g = ::Global::GetIGraphics2D();
-	if ( CVarShowFPS )
 	{
-		InlineString< 256 > str;
-		RenderUtility::SetFont(g, FONT_S8);
-		g.setTextColor(Color3ub(255, 255, 0));
-		str.format("FPS = %3.1f", mFPSCalc.getFPS());
-		g.drawText(Vec2i(5, 5), str);
-		//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
-	}
 
-	if (CVarDrawGPUUsage)
-	{
-		struct LocalInit
+		IGraphics2D& g = ::Global::GetIGraphics2D();
+
+		auto DrawBackgroundRect = [&g](Vec2i rectPos, Vec2i rectSize)
 		{
-			GPUDeviceQuery* deviceQuery = nullptr;
-			LocalInit()
-			{
-				deviceQuery = GPUDeviceQuery::Create();
-				if (deviceQuery == nullptr)
-				{
-					LogWarning(0, "GPU device query can't create");
-				}
-			}
-			~LocalInit()
-			{
-				if (deviceQuery)
-				{
-					deviceQuery->release();
-				}
-			}
+			g.beginBlend(rectPos, rectSize, 0.3f);
+			RenderUtility::SetPen(g, EColor::Null);
+			RenderUtility::SetBrush(g, EColor::Black);
+			g.drawRoundRect(rectPos, rectSize, Vector2(5, 5));
+			g.endBlend();
 		};
 
-		static LocalInit sLocalInit;
-
-		GPUDeviceQuery* deviceQuery = sLocalInit.deviceQuery;
-		if (deviceQuery)
+		mFPSCalc.increaseFrame(getMillionSecond());
+		if (CVarShowFPS)
 		{
-			GPUStatus status;
-			if (deviceQuery->getGPUStatus(0, status))
+			Vec2i pos = Vec2i(5, 5);
+			DrawBackgroundRect( pos - Vec2i(5,5), Vec2i(60, 12) + Vec2i(10 , 10));
+			InlineString< 256 > str;
+			RenderUtility::SetFont(g, FONT_S8);
+			g.setTextColor(Color3ub(255, 255, 0));
+			str.format("FPS = %3.1f", mFPSCalc.getFPS());
+			g.drawText(Vec2i(5, 5), str);
+			//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
+		}
+
+		if (CVarDrawGPUUsage)
+		{
+			struct LocalInit
 			{
-				RenderUtility::SetFont(g, FONT_S8);
+				GPUDeviceQuery* deviceQuery = nullptr;
+				LocalInit()
+				{
+					deviceQuery = GPUDeviceQuery::Create();
+					if (deviceQuery == nullptr)
+					{
+						LogWarning(0, "GPU device query can't create");
+					}
+				}
+				~LocalInit()
+				{
+					if (deviceQuery)
+					{
+						deviceQuery->release();
+					}
+				}
+			};
 
-				float const width = 15;
+			static LocalInit sLocalInit;
 
-				Vector2 renderPos = ::Global::GetScreenSize() - Vector2(5, 5);
-				Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100);
-				RenderUtility::SetPen(g, EColor::Red);
-				RenderUtility::SetBrush(g, EColor::Red);
-				g.drawRect(renderPos - renderSize, renderSize);
+			GPUDeviceQuery* deviceQuery = sLocalInit.deviceQuery;
+			if (deviceQuery)
+			{
+				GPUStatus status;
+				if (deviceQuery->getGPUStatus(0, status))
+				{
+					RenderUtility::SetFont(g, FONT_S8);
 
-				Vector2 textSize = Vector2(width, 20);
-				g.setTextColor(Color3ub(0, 255, 255));
-				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.usage));
+					float const width = 15;
 
-				renderPos.x -= width + 5;
-				renderSize = Vector2(width, 100 * float(status.temperature) / 100);
-				RenderUtility::SetPen(g, EColor::Yellow);
-				RenderUtility::SetBrush(g, EColor::Yellow);
-				g.drawRect(renderPos - renderSize, renderSize);
+					Vector2 renderPos = ::Global::GetScreenSize() - Vector2(5, 5);
+					Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100);
+					RenderUtility::SetPen(g, EColor::Red);
+					RenderUtility::SetBrush(g, EColor::Red);
+					g.drawRect(renderPos - renderSize, renderSize);
 
-				g.setTextColor(Color3ub(0, 0, 255));
-				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.temperature));
+					Vector2 textSize = Vector2(width, 20);
+					g.setTextColor(Color3ub(0, 255, 255));
+					g.drawText(renderPos - textSize, textSize, FStringConv::From(status.usage));
+
+					renderPos.x -= width + 5;
+					renderSize = Vector2(width, 100 * float(status.temperature) / 100);
+					RenderUtility::SetPen(g, EColor::Yellow);
+					RenderUtility::SetBrush(g, EColor::Yellow);
+					g.drawRect(renderPos - renderSize, renderSize);
+
+					g.setTextColor(Color3ub(0, 0, 255));
+					g.drawText(renderPos - textSize, textSize, FStringConv::From(status.temperature));
+				}
 			}
 		}
-	}
 
-	if( CVarProfileGPU && RHIIsInitialized() )
-	{
-		g.setTextColor(Color3ub(255, 0, 0));
-		RenderUtility::SetFont(g, FONT_S10);
-
-		SimpleTextLayout textlayout;
-		textlayout.offset = 15;
-		textlayout.posX = 500;
-		textlayout.posY = 10;
-		InlineString< 512 > str;
-		InlineString< 512 > temp;
-		int curLevel = 0;
-		auto GetSystemNameString = [](RHISystemName name)
+		if (CVarDrawProifle)
 		{
-			switch (name)
-			{
-			case RHISystemName::OpenGL: return "OpenGL";
-			case RHISystemName::D3D11:  return "D3D11";
-			case RHISystemName::D3D12: return "D3D12";
-			case RHISystemName::Vulkan: return "Vulkan";
-			}
-			return "Unknown";
-		};
-		for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
-		{
-			GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
-
-			if( curLevel != sample->level )
-			{
-				if( sample->level > curLevel )
-				{
-					assert(curLevel == sample->level - 1);
-					temp += "  |";
-				}
-				else
-				{
-					temp[3 * sample->level] = 0;
-
-				}
-				curLevel = sample->level;
-			}
-			textlayout.show( g , "%7.4lf %s--> %s", sample->time, temp.c_str() , sample->name.c_str());
+			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
 		}
-	}
 
-	if (CVarDrawProifle)
-	{
-		::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
-	}
+		if (CVarProfileGPU)
+			GpuProfiler::Get().endFrame();
 
-	if( drawEngine.isUsageRHIGraphic2D() )
-		::Global::GetRHIGraphics2D().endRender();
+		if (CVarProfileGPU && RHIIsInitialized())
+		{
+			SimpleTextLayout textlayout;
+			textlayout.offset = 15;
+			textlayout.posX = 500;
+			textlayout.posY = 10;
+
+			Vec2i rectPos;
+			rectPos.x = textlayout.posX - 5;
+			rectPos.y = textlayout.posY - 5;
+			Vec2i rectSize;
+			rectSize.x = 250;
+			rectSize.y = GpuProfiler::Get().getSampleNum() * textlayout.offset + 10;
+			DrawBackgroundRect(rectPos, rectSize);
+
+			g.setTextColor(Color3ub(255, 0, 0));
+			RenderUtility::SetFont(g, FONT_S10);
+
+			InlineString< 512 > str;
+			InlineString< 512 > temp;
+			int curLevel = 0;
+			for (int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i)
+			{
+				GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
+
+				if (curLevel != sample->level)
+				{
+					if (sample->level > curLevel)
+					{
+						assert(curLevel == sample->level - 1);
+						temp += "  |";
+					}
+					else
+					{
+						temp[3 * sample->level] = 0;
+					}
+					curLevel = sample->level;
+				}
+				textlayout.show(g, "%7.4lf %s--> %s", sample->time, temp.c_str(), sample->name.c_str());
+			}
+		}
+
+		if (drawEngine.isUsageRHIGraphic2D())
+			::Global::GetRHIGraphics2D().endRender();
+	}
 		
 	drawEngine.endFrame();
 }
@@ -1136,23 +1196,28 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
 	GameStageBase* gameStage = stage->getGameStage();
 
-	if(gameStage)
+	if (gameStage)
 	{
 		mStageMode = gameStage->getStageMode();
-		if( !mStageMode->prevStageInit() )
+		if (!mStageMode->prevStageInit())
+		{
+			LogWarning(0, "Can't PrevInit Stage");
 			return false;
+		}
 	}
 
-
 	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
-	if ( renderSetup )
+	if (renderSetup)
 	{
 		if (!::Global::GetDrawEngine().setupSystem(renderSetup))
 			return false;
 	}
 
-	if( !stage->onInit() )
+	if (!stage->onInit())
+	{
+		LogWarning(0, "Can't Initialize Stage");
 		return false;
+	}
 
 	if (renderSetup)
 	{
@@ -1169,10 +1234,15 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	if (gameStage)
 	{
 		if (!mStageMode->postStageInit())
+		{
+			LogWarning(0, "Can't PostInit Stage");
 			return false;
+		}
 	}
 
 	stage->postInit();
+
+	::ProfileSystem::Get().resetSample();
 	return true;
 }
 

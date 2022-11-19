@@ -13,6 +13,34 @@
 
 namespace Render
 {
+	template< EShader::Type >
+	struct D3D11ShaderTraits {};
+
+#define D3D11_SHADER_TRAITS( TYPE , PREFIX ) \
+	template<>\
+	struct D3D11ShaderTraits<TYPE>\
+	{\
+		static void SetConstBuffers(ID3D11DeviceContext* context, UINT startSlot, UINT numBuffers, ID3D11Buffer *const *ppConstantBuffers)\
+		{\
+			context->PREFIX##SetConstantBuffers(startSlot, numBuffers, ppConstantBuffers);\
+		}\
+		static void SetSamplers(ID3D11DeviceContext* context, UINT startSlot, UINT numSamplers, ID3D11SamplerState *const *ppSamplers)\
+		{\
+			context->PREFIX##SetSamplers(startSlot, numSamplers, ppSamplers);\
+		}\
+		static void SetShaderResources(ID3D11DeviceContext* context, UINT startSlot, UINT numViews, ID3D11ShaderResourceView *const *ppShaderResourceViews)\
+		{\
+			context->PREFIX##SetShaderResources(startSlot, numViews, ppShaderResourceViews);\
+		}\
+	};
+
+	D3D11_SHADER_TRAITS(EShader::Vertex, VS);
+	D3D11_SHADER_TRAITS(EShader::Pixel, PS);
+	D3D11_SHADER_TRAITS(EShader::Geometry, GS);
+	D3D11_SHADER_TRAITS(EShader::Hull, HS);
+	D3D11_SHADER_TRAITS(EShader::Domain, DS);
+	D3D11_SHADER_TRAITS(EShader::Compute, CS);
+
 	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D11, D3D11System);
 
 #define RESULT_FAILED( hr ) ( hr ) != S_OK
@@ -162,12 +190,7 @@ namespace Render
 		DXGI_ADAPTER_DESC adapterDesc;
 		VERIFY_D3D_RESULT_RETURN_FALSE(pDXGIAdapter->GetDesc(&adapterDesc));
 
-		switch( adapterDesc.VendorId )
-		{
-		case 0x10DE: GRHIDeviceVendorName = DeviceVendorName::NVIDIA; break;
-		case 0x8086: GRHIDeviceVendorName = DeviceVendorName::Intel; break;
-		case 0x1002: GRHIDeviceVendorName = DeviceVendorName::ATI; break;
-		}
+		GRHIDeviceVendorName = FD3DUtils::GetDevicVenderName(adapterDesc.VendorId);
 
 		mbVSyncEnable = initParam.bVSyncEnable;
 
@@ -322,8 +345,7 @@ namespace Render
 		return nullptr;
 	}
 
-
-	bool CreateResourceView(ID3D11Device* device, int elementSize , int elementNum , uint32 creationFlags, D3D11BufferCreationResult& outResult)
+	bool CreateResourceView(ID3D11Device* device, int elementSize, int numElements, uint32 creationFlags, D3D11BufferCreationResult& outResult)
 	{
 		if (creationFlags & BCF_CreateSRV)
 		{
@@ -331,7 +353,7 @@ namespace Render
 			desc.Format = DXGI_FORMAT_UNKNOWN;
 			desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 			desc.Buffer.FirstElement = 0;
-			desc.Buffer.NumElements = elementNum;
+			desc.Buffer.NumElements = numElements;
 			HRESULT hr = device->CreateShaderResourceView(outResult.resource, &desc, &outResult.SRV);
 			if (hr != S_OK)
 			{
@@ -350,7 +372,7 @@ namespace Render
 		return true;
 	}
 
-	RHIVertexBuffer* D3D11System::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	RHIBuffer* D3D11System::RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
 		D3D11_SUBRESOURCE_DATA initData = { 0 };
 		initData.pSysMem = data;
@@ -358,35 +380,40 @@ namespace Render
 		initData.SysMemSlicePitch = 0;
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
-		bufferDesc.ByteWidth = vertexSize * numVertices;
+		bufferDesc.ByteWidth = elementSize * numElements;
 		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		if (creationFlags & BCF_CpuAccessWrite)
 			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 		//if (creationFlags & BCF_CPUAccessRead)
 		//	bufferDesc.Usage = D3D11_USAGE_STAGING;
 		bufferDesc.MiscFlags = 0;
+		{
+			if (creationFlags & BCF_CreateSRV)
+				bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 
+			if (creationFlags & BCF_CreateUAV)
+				bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+
+		if (creationFlags & BCF_UsageVertex)
+		{
+			bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
+		}
+		if (creationFlags & BCF_UsageIndex)
+		{
+			bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
+		}
 		if (creationFlags & BCF_UsageConst)
 		{
-			bufferDesc.BindFlags |= D3D11_BIND_CONSTANT_BUFFER;
+			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		}
-		else if (creationFlags & BCF_Structured)
+		if (creationFlags & BCF_Structured)
 		{
 			bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 			bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-			bufferDesc.StructureByteStride = vertexSize;
-		}
-		else
-		{
-			bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			if (creationFlags & BCF_CreateSRV)
-				bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+			bufferDesc.StructureByteStride = elementSize;
 		}
 
-		if (creationFlags & BCF_CreateUAV)
-		{
-			bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-		}
 
 		if (creationFlags & BCF_CpuAccessWrite)
 			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
@@ -402,49 +429,9 @@ namespace Render
 				return nullptr;
 			}
 		);
-		CreateResourceView(mDevice, vertexSize , numVertices, creationFlags, creationResult);
-		D3D11VertexBuffer* buffer = new D3D11VertexBuffer(numVertices, vertexSize, creationResult);
+		CreateResourceView(mDevice, elementSize, numElements, creationFlags, creationResult);
+		D3D11Buffer* buffer = new D3D11Buffer(elementSize, numElements, creationResult);
 
-		return buffer;
-	}
-
-	RHIIndexBuffer* D3D11System::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
-	{
-		D3D11_SUBRESOURCE_DATA initData = { 0 };
-		initData.pSysMem = data;
-		initData.SysMemPitch = 0;
-		initData.SysMemSlicePitch = 0;
-
-		D3D11_BUFFER_DESC bufferDesc = { 0 };
-		bufferDesc.ByteWidth = nIndices * (bIntIndex ? 4 : 2);
-		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-		if (creationFlags & BCF_CpuAccessWrite)
-			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		//if (creationFlags & BCF_CPUAccessRead )
-		//	bufferDesc.Usage = D3D11_USAGE_STAGING;
-		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		if( creationFlags & BCF_CreateSRV )
-			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-
-		bufferDesc.CPUAccessFlags = (creationFlags & BCF_CpuAccessWrite) ? D3D11_CPU_ACCESS_WRITE : 0;
-		bufferDesc.MiscFlags = 0;
-		bufferDesc.StructureByteStride = 0;
-
-		if (creationFlags & BCF_CpuAccessWrite)
-			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
-		if (creationFlags & BCF_CPUAccessRead)
-			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
-
-		D3D11BufferCreationResult creationResult;
-		creationResult.flags = creationFlags;
-		VERIFY_D3D_RESULT(
-			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &creationResult.resource),
-			{
-				return nullptr;
-			}
-		);
-		CreateResourceView(mDevice, bufferDesc.ByteWidth , nIndices, creationFlags, creationResult);
-		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(nIndices, bIntIndex, creationResult);
 		return buffer;
 	}
 
@@ -459,12 +446,12 @@ namespace Render
 		return (uint8*)mappedData.pData + offset;
 	}
 
-	void* D3D11System::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	void* D3D11System::RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
 		return lockBufferInternal(D3D11Cast::GetResource(*buffer), access, offset, size);
 	}
 
-	void D3D11System::RHIUnlockBuffer(RHIVertexBuffer* buffer)
+	void D3D11System::RHIUnlockBuffer(RHIBuffer* buffer)
 	{
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
@@ -481,11 +468,11 @@ namespace Render
 		outData.resize(dataSize);
 
 		TComPtr<ID3D11Texture2D> stagingTexture;
-		createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
-		mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
-
+		createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture , level);
+		//mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+		mDeviceContext->CopySubresourceRegion(stagingTexture, 0 , 0 , 0 , 0 , D3D11Cast::GetResource(texture), level, nullptr);
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ, 0, &mappedResource);
+		mDeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
 		memcpy(outData.data(), mappedResource.pData, outData.size());
 		mDeviceContext->Unmap(stagingTexture, level);
 	}
@@ -498,35 +485,41 @@ namespace Render
 			return formatSize;
 		};
 
-
 		int formatSize = GetFormatClientSize(format);
 		int textureSize = Math::Max(texture.getSize() >> level, 1);
 		int faceDataSize = textureSize * textureSize * formatSize;
 		outData.resize(ETexture::FaceCount * faceDataSize);
 
-		TComPtr<ID3D11Texture2D> stagingTexture;
-		createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture);
-		mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+		bool bAllowCPUAccess = false;
+		if (bAllowCPUAccess)
+		{
 
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		mDeviceContext->Map(stagingTexture, level, D3D11_MAP_READ, 0, &mappedResource);
-		memcpy(outData.data(), mappedResource.pData, outData.size());
-		mDeviceContext->Unmap(stagingTexture, level);
+		}
+		else
+		{
+
+			TComPtr<ID3D11Texture2D> stagingTexture;
+			createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture, level);
+
+			uint8* pData = outData.data();
+			for (int face = 0; face < ETexture::FaceCount; ++face)
+			{
+				UINT subresource = D3D11CalcSubresource(level, face, texture.getNumMipLevel());
+				mDeviceContext->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0,
+					D3D11Cast::GetResource(texture),
+					subresource, nullptr);
+				D3D11_MAPPED_SUBRESOURCE mappedResource;
+				mDeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
+				memcpy(pData, mappedResource.pData, faceDataSize);
+				pData += faceDataSize;
+				mDeviceContext->Unmap(stagingTexture, 0);
+			}
+		}
 	}
 
 	RHIFrameBuffer* D3D11System::RHICreateFrameBuffer()
 	{
 		return new D3D11FrameBuffer;
-	}
-
-	void* D3D11System::RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
-	{
-		return lockBufferInternal(D3D11Cast::GetResource(*buffer), access, offset, size);
-	}
-
-	void D3D11System::RHIUnlockBuffer(RHIIndexBuffer* buffer)
-	{
-		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
 	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
@@ -577,8 +570,8 @@ namespace Render
 			fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
 		}
 
-		TComPtr< ID3D10Blob > errorCode;
-		TComPtr< ID3D10Blob > byteCode;
+		TComPtr< ID3DBlob > errorCode;
+		TComPtr< ID3DBlob > byteCode;
 		InlineString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice->GetFeatureLevel(), EShader::Vertex);
 
 		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
@@ -975,13 +968,18 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11System::createStagingTexture(ID3D11Texture2D* texture, TComPtr< ID3D11Texture2D >& outTexture)
+	bool D3D11System::createStagingTexture(ID3D11Texture2D* texture, TComPtr< ID3D11Texture2D >& outTexture ,int level)
 	{
 		D3D11_TEXTURE2D_DESC desc;
 		texture->GetDesc(&desc);
+		desc.MipLevels = 1;
+		desc.Width = Math::Max(desc.Width >> level, 1u);
+		desc.Height = Math::Max(desc.Height >> level, 1u);
+		desc.ArraySize = 1;
 		desc.Usage = D3D11_USAGE_STAGING;
 		desc.BindFlags = 0;
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ ;
+		desc.MiscFlags &= ~D3D11_RESOURCE_MISC_TEXTURECUBE;
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, nullptr, &outTexture));
 		return true;
 	}
@@ -997,6 +995,14 @@ namespace Render
 			}
 		}
 		return true;
+	}
+
+	void D3D11ResourceBoundState::bindShader(D3D11ShaderData& shader)
+	{
+		for (int i = 0; i < MaxConstBufferNum; ++i)
+		{
+			mConstBuffers[i].updateBufferSize(shader.globalConstBufferSize);
+		}
 	}
 
 	bool D3D11ResourceBoundState::clearTexture(ShaderParameter const& parameter)
@@ -1089,9 +1095,9 @@ namespace Render
 		}
 	}
 
-	void D3D11ResourceBoundState::setUniformBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer)
+	void D3D11ResourceBoundState::setUniformBuffer(ShaderParameter const& parameter, RHIBuffer& buffer)
 	{
-		D3D11VertexBuffer& bufferImpl = D3D11Cast::To(buffer);
+		D3D11Buffer& bufferImpl = D3D11Cast::To(buffer);
 		if( mBoundedConstBuffers[parameter.mLoc] != bufferImpl.mResource )
 		{
 			mBoundedConstBuffers[parameter.mLoc] = bufferImpl.mResource;
@@ -1100,11 +1106,11 @@ namespace Render
 	}
 
 
-	void D3D11ResourceBoundState::setStructuredBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer, EAccessOperator op)
+	void D3D11ResourceBoundState::setStructuredBuffer(ShaderParameter const& parameter, RHIBuffer& buffer, EAccessOperator op)
 	{
 		if (op == AO_READ_ONLY)
 		{
-			ID3D11ShaderResourceView* SRV = static_cast<D3D11VertexBuffer&>(buffer).mSRV;
+			ID3D11ShaderResourceView* SRV = static_cast<D3D11Buffer&>(buffer).mSRV;
 			if (mBoundedSRVs[parameter.mLoc] != SRV)
 			{
 				mBoundedSRVs[parameter.mLoc] = SRV;
@@ -1116,7 +1122,7 @@ namespace Render
 		}
 		else
 		{
-			ID3D11UnorderedAccessView* UAV = static_cast<D3D11VertexBuffer&>(buffer).mUAV;
+			ID3D11UnorderedAccessView* UAV = static_cast<D3D11Buffer&>(buffer).mUAV;
 
 			if (mBoundedUAVs[parameter.mLoc] != UAV)
 			{
@@ -1138,7 +1144,7 @@ namespace Render
 	void D3D11ResourceBoundState::setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize)
 	{
 		assert(parameter.bindIndex < MaxConstBufferNum);
-		mConstBuffers[parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
+		mConstBuffers[parameter.bindIndex].updateValue(parameter, value, valueSize);
 		mConstBufferValueDirtyMask |= BIT(parameter.bindIndex);
 		if( mConstBuffers[parameter.bindIndex].resource.get() != mBoundedConstBuffers[parameter.bindIndex] )
 		{
@@ -1165,7 +1171,7 @@ namespace Render
 				if( mask & BIT(index) )
 				{
 					mask &= ~BIT(index);
-					mConstBuffers[index].updateResource(context);
+					mConstBuffers[index].commit(context);
 				}
 			}
 		}
@@ -1178,23 +1184,15 @@ namespace Render
 			{
 				if( mask & BIT(index) )
 				{
-					mask &= ~BIT(index);
-					switch ( TypeValue )
-					{
-					case EShader::Vertex:   context->VSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case EShader::Pixel:    context->PSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case EShader::Geometry: context->GSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case EShader::Hull:     context->HSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case EShader::Domain:   context->DSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					case EShader::Compute:  context->CSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
-					}
+					mask &= ~BIT(index);	
+					D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, 1, mBoundedConstBuffers + index);
 				}
 			}
 		}
 
 		commitSAVState<TypeValue>(context);
 
-		if (TypeValue == EShader::Compute)
+		if constexpr (TypeValue == EShader::Compute)
 		{
 			commitUAVState(context);
 		}
@@ -1209,15 +1207,7 @@ namespace Render
 				if( mask & BIT(index) )
 				{
 					mask &= ~BIT(index);
-					switch ( TypeValue )
-					{
-					case EShader::Vertex:   context->VSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case EShader::Pixel:    context->PSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case EShader::Geometry: context->GSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case EShader::Hull:     context->HSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case EShader::Domain:   context->DSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					case EShader::Compute:  context->CSSetSamplers(index, 1, mBoundedSamplers + index); break;
-					}
+					D3D11ShaderTraits<TypeValue>::SetSamplers(context, index, 1, mBoundedSamplers + index);
 				}
 			}
 		}
@@ -1232,28 +1222,19 @@ namespace Render
 			{
 				mBoundedConstBuffers[index] = nullptr;
 				ID3D11Buffer* emptyBuffer = nullptr;
-
-				switch constexpr (TypeValue)
-				{
-				case EShader::Vertex:   context->VSSetConstantBuffers(index, 1, &emptyBuffer); break;
-				case EShader::Pixel:    context->PSSetConstantBuffers(index, 1, &emptyBuffer); break;
-				case EShader::Geometry: context->GSSetConstantBuffers(index, 1, &emptyBuffer); break;
-				case EShader::Hull:     context->HSSetConstantBuffers(index, 1, &emptyBuffer); break;
-				case EShader::Domain:   context->DSSetConstantBuffers(index, 1, &emptyBuffer); break;
-				case EShader::Compute:  context->CSSetConstantBuffers(index, 1, &emptyBuffer); break;
-				}
+				D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, 1, &emptyBuffer);
 			}
 		}
 	}
 
-	template< Render::EShader::Type TypeValue >
+	template< EShader::Type TypeValue >
 	void D3D11ResourceBoundState::postDrawPrimitive(ID3D11DeviceContext* context)
 	{
 
 	}
 
 
-	template< Render::EShader::Type TypeValue >
+	template< EShader::Type TypeValue >
 	void D3D11ResourceBoundState::clearSRVResource(ID3D11DeviceContext* context, RHIResource& resource)
 	{
 		for (int index = mMaxSRVBoundIndex; index >= 0; --index)
@@ -1268,15 +1249,7 @@ namespace Render
 				if (mMaxSRVBoundIndex == index)
 					--mMaxSRVBoundIndex;
 
-				switch (TypeValue)
-				{
-				case EShader::Vertex:   context->VSSetShaderResources(index, 1, &emptySRV); break;
-				case EShader::Pixel:    context->PSSetShaderResources(index, 1, &emptySRV); break;
-				case EShader::Geometry: context->GSSetShaderResources(index, 1, &emptySRV); break;
-				case EShader::Hull:     context->HSSetShaderResources(index, 1, &emptySRV); break;
-				case EShader::Domain:   context->DSSetShaderResources(index, 1, &emptySRV); break;
-				case EShader::Compute:  context->CSSetShaderResources(index, 1, &emptySRV); break;
-				}
+				D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, 1, &emptySRV);
 			}
 		}
 	}
@@ -1289,15 +1262,7 @@ namespace Render
 		}
 		mSRVDirtyMask = 0;
 		mMaxSRVBoundIndex = INDEX_NONE;
-		switch (TypeValue)
-		{
-		case EShader::Vertex:   context->VSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
-		case EShader::Pixel:    context->PSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
-		case EShader::Geometry: context->GSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
-		case EShader::Hull:     context->HSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
-		case EShader::Domain:   context->DSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
-		case EShader::Compute:  context->CSSetShaderResources(0, MaxSimulatedBoundedSRVNum, mBoundedSRVs); break;
-		}
+		D3D11ShaderTraits<TypeValue>::SetShaderResources(context, 0, MaxSimulatedBoundedSRVNum, mBoundedSRVs);
 	}
 
 	template< EShader::Type TypeValue >
@@ -1312,15 +1277,7 @@ namespace Render
 				if (mask & BIT(index))
 				{
 					mask &= ~BIT(index);
-					switch (TypeValue)
-					{
-					case EShader::Vertex:   context->VSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case EShader::Pixel:    context->PSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case EShader::Geometry: context->GSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case EShader::Hull:     context->HSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case EShader::Domain:   context->DSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					case EShader::Compute:  context->CSSetShaderResources(index, 1, mBoundedSRVs + index); break;
-					}
+					D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, 1, mBoundedSRVs + index);
 				}
 			}
 		}
@@ -1462,14 +1419,14 @@ namespace Render
 		postDrawPrimitive();
 	}
 
-	void D3D11Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void D3D11Context::RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 		postDrawPrimitive();
 	}
 
-	void D3D11Context::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void D3D11Context::RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		commitGraphicsShaderState();
 		mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
@@ -1886,7 +1843,7 @@ namespace Render
 		}
 
 #define COMMIT_SHADER_STATE_OP( SHADER_TYPE )\
-		if( mBoundedShaderMask & BIT(SHADER_TYPE) )\
+		if( mGfxBoundedShaderMask & BIT(SHADER_TYPE) )\
 		{\
 			mResourceBoundStates[SHADER_TYPE].commitState<SHADER_TYPE>(mDeviceContext.get());\
 		}
@@ -1923,9 +1880,19 @@ namespace Render
 	{
 		bUseFixedShaderPipeline = false;
 
+		auto BindShader = [this](EShader::Type type , D3D11ShaderData& shaderData)
+		{
+			if (mBoundedShaders[type].resource != shaderData.ptr)
+			{
+				mBoundedShaders[type].resource = shaderData.ptr;
+				mResourceBoundStates[type].bindShader(shaderData);
+				mBoundedShaderDirtyMask |= BIT(type);
+			}
+		};
+
 		if( shaderProgram == nullptr )
 		{
-			mBoundedShaderMask = 0;
+			mGfxBoundedShaderMask = 0;
 			mVertexShader = nullptr;
 			for( int i = 0; i < EShader::Count; ++i )
 			{
@@ -1940,7 +1907,7 @@ namespace Render
 		}
 		else
 		{
-			mBoundedShaderMask = 0;
+			mGfxBoundedShaderMask = 0;
 			auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram);
 
 			if (shaderProgramImpl.mNumShaders == 1 )
@@ -1950,8 +1917,7 @@ namespace Render
 				{
 					if (mBoundedShaders[EShader::Compute].resource != shaderData.ptr)
 					{
-						mBoundedShaders[EShader::Compute].resource = shaderData.ptr;
-						mBoundedShaderDirtyMask |= BIT(EShader::Compute);
+						BindShader(EShader::Compute, shaderData);
 					}
 					return;
 				}
@@ -1970,11 +1936,10 @@ namespace Render
 				}
 
 				setupMask |= BIT(type);
-				mBoundedShaderMask |= BIT(type);
-				if (mBoundedShaders[type].resource = shaderData.ptr)
+				mGfxBoundedShaderMask |= BIT(type);
+				if (mBoundedShaders[type].resource != shaderData.ptr)
 				{
-					mBoundedShaders[type].resource = shaderData.ptr;
-					mBoundedShaderDirtyMask |= BIT(type);
+					BindShader(type, shaderData);
 				}
 			}
 
@@ -1998,6 +1963,18 @@ namespace Render
 
 		auto SetupShader = [this](EShader::Type type, RHIShader* shader)
 		{
+
+			auto BindShader = [this](EShader::Type type, D3D11ShaderData& shaderData)
+			{
+				if (mBoundedShaders[type].resource != shaderData.ptr)
+				{
+					mBoundedShaders[type].resource = shaderData.ptr;
+					mResourceBoundStates[type].bindShader(shaderData);
+					mBoundedShaderDirtyMask |= BIT(type);
+				}
+			};
+
+			D3D11Shader* shaderImpl = static_cast<D3D11Shader*>(shader);
 			if (shader == nullptr)
 			{
 				if (mBoundedShaders[type].resource)
@@ -2009,16 +1986,12 @@ namespace Render
 			else
 			{
 				D3D11Shader* shaderImpl = static_cast<D3D11Shader*>(shader);
-				mBoundedShaderMask |= BIT(type);
-				if (mBoundedShaders[type].resource != shaderImpl->mResource.ptr)
-				{
-					mBoundedShaders[type].resource = shaderImpl->mResource.ptr;
-					mBoundedShaderDirtyMask |= BIT(type);
-				}
+				mGfxBoundedShaderMask |= BIT(type);
+				BindShader(type, shaderImpl->mResource);
 			}
 		};
 
-
+		mGfxBoundedShaderMask = 0;
 		mVertexShader = stateDesc.vertex;
 		if (mVertexShader)
 		{
@@ -2034,21 +2007,27 @@ namespace Render
 
 	void D3D11Context::RHISetComputeShader(RHIShader* shader)
 	{
+
+		auto BindShader = [this](EShader::Type type, D3D11ShaderData& shaderData)
+		{
+			if (mBoundedShaders[type].resource != shaderData.ptr)
+			{
+				mBoundedShaders[type].resource = shaderData.ptr;
+				mResourceBoundStates[type].bindShader(shaderData);
+				mBoundedShaderDirtyMask |= BIT(type);
+			}
+		};
+
 		ID3D11DeviceChild* resource = nullptr;
+		D3D11Shader* shaderImpl = static_cast<D3D11Shader*>(shader);
 		if (shader)
 		{
-			D3D11Shader* shaderImpl = static_cast<D3D11Shader*>(shader);
 			if (shaderImpl->mResource.type != EShader::Compute)
 				return;
 
 			resource = shaderImpl->mResource.ptr;
-		}
-		
-		if (mBoundedShaders[EShader::Compute].resource != resource)
-		{
-			mBoundedShaders[EShader::Compute].resource = resource;
-			mBoundedShaderDirtyMask |= BIT(EShader::Compute);
-		}
+		}	
+		BindShader(EShader::Compute, shaderImpl->mResource);
 	}
 
 	template< EShader::Type TypeValue >
@@ -2249,7 +2228,7 @@ namespace Render
 		}
 	}
 
-	void D3D11Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void D3D11Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this, &buffer](EShader::Type type, ShaderParameter const& shaderParam)
@@ -2258,14 +2237,14 @@ namespace Render
 		});
 	}
 
-	void D3D11Context::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void D3D11Context::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
 		auto type = shaderImpl.mResource.type;
 		mResourceBoundStates[type].setUniformBuffer(param, buffer);
 	}
 
-	void D3D11Context::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
+	void D3D11Context::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this, &buffer, op](EShader::Type type, ShaderParameter const& shaderParam)
@@ -2345,27 +2324,42 @@ namespace Render
 		resource.reset();
 	}
 
-	void ShaderConstDataBuffer::setUpdateValue(ShaderParameter const parameter, void const* value, int valueSize)
+#if _DEBUG
+#define ENSURE(EXPR) EXPR
+#else
+#define ENSURE(EXPR) true
+#endif
+
+	void ShaderConstDataBuffer::updateValue(ShaderParameter const parameter, void const* value, int valueSize)
 	{
 		int idxDataEnd = parameter.offset + parameter.size;
-		if (updateData.size() <= idxDataEnd)
+
+		if (!ENSURE(mDataBuffer.size() >= idxDataEnd ))
 		{
-			updateData.resize(idxDataEnd);
+			mDataBuffer.resize(idxDataEnd);
 		}
 
-		::memcpy(&updateData[parameter.offset], value, parameter.size);
-		if (idxDataEnd > updateDataSize)
+		::memcpy(&mDataBuffer[parameter.offset], value, parameter.size);
+		if (idxDataEnd > mUpdateDataSize)
 		{
-			updateDataSize = idxDataEnd;
+			mUpdateDataSize = idxDataEnd;
 		}
 	}
 
-	void ShaderConstDataBuffer::updateResource(ID3D11DeviceContext* context)
+	void ShaderConstDataBuffer::commit(ID3D11DeviceContext* context)
 	{
-		if (updateDataSize)
+		if (mUpdateDataSize)
 		{
-			context->UpdateSubresource(resource, 0, nullptr, &updateData[0], updateDataSize, updateDataSize);
-			updateDataSize = 0;
+			context->UpdateSubresource(resource, 0, nullptr, &mDataBuffer[0], mUpdateDataSize, mUpdateDataSize);
+			mUpdateDataSize = 0;
+		}
+	}
+
+	void ShaderConstDataBuffer::updateBufferSize(int newSize)
+	{
+		if (mDataBuffer.size() < newSize)
+		{
+			mDataBuffer.resize(newSize);
 		}
 	}
 

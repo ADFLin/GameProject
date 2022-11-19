@@ -10,7 +10,7 @@
 #include "Widget/WidgetUtility.h"
 #include "TaskBase.h"
 
-namespace Poker { namespace Holdem {
+namespace Holdem {
 
 	class DevBetPanel : public BetPanelBase
 	{
@@ -180,7 +180,7 @@ namespace Poker { namespace Holdem {
 
 	void LevelStage::onRender( float dFrame )
 	{
-		Graphics2D& g = ::Global::GetGraphics2D();
+		IGraphics2D& g = ::Global::GetIGraphics2D();
 		mScene->render( g );
 	}
 
@@ -231,4 +231,3 @@ namespace Poker { namespace Holdem {
 	}
 
 }//namespace Holdem
-}//namespace Poker

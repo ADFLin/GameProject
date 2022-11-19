@@ -79,6 +79,8 @@ public:
 	TINY_API bool  beginFrame();
 	TINY_API void  endFrame();
 
+	TINY_API IGraphics2D* createGraphicInterface(Graphics2D& g);
+
 	bool        bUsePlatformBuffer = true;
 	bool        bBlockRender = false;
 	bool        bWasUsedPlatformGrapthics = false;

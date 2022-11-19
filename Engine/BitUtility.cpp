@@ -128,13 +128,13 @@ static int const gBitIndexMap[9] =
 int FBitUtility::ToIndex4(unsigned bit)
 {
 	assert((bit & 0xf) == bit);
-	assert((bit & (bit - 1)) == 0);
+	assert(IsOneBitSet(bit));
 	return gBitIndexMap[bit];
 }
 int FBitUtility::ToIndex8(unsigned bit)
 {
 	assert((bit & 0xff) == bit);
-	assert((bit & (bit - 1)) == 0);
+	assert(IsOneBitSet(bit));
 	int result = 0;
 	if (bit & 0xf0) { result += 4; bit >>= 4; }
 	return result + gBitIndexMap[bit];
@@ -142,7 +142,7 @@ int FBitUtility::ToIndex8(unsigned bit)
 int FBitUtility::ToIndex32(unsigned bit)
 {
 	assert((bit & 0xffffffff) == bit);
-	assert((bit & (bit - 1)) == 0);
+	assert(IsOneBitSet(bit));
 	int result = 0;
 	if (bit & 0xffff0000) { result += 16; bit >>= 16; }
 	if (bit & 0x0000ff00) { result += 8; bit >>= 8; }
@@ -154,7 +154,7 @@ int FBitUtility::ToIndex32(unsigned bit)
 int FBitUtility::ToIndex64(unsigned bit)
 {
 	assert((bit & 0xffffffffffffffffULL) == bit);
-	assert((bit & (bit - 1)) == 0);
+	assert(IsOneBitSet(bit));
 	int result = 0;
 	if (bit & 0xffffffff00000000ULL) { result += 32; bit >>= 32; }
 	if (bit & 0x00000000ffff0000ULL) { result += 16; bit >>= 16; }

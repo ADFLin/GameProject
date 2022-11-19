@@ -2,6 +2,7 @@
 #include "DrawEngine.h"
 
 #include "ProfileSystem.h"
+#include "ProfileSampleVisitor.h"
 #include "PlatformThread.h"
 
 #include "RHI/RHIGraphics2D.h"
@@ -113,7 +114,7 @@ public:
 	void  scaleXForm(float sx, float sy) override { mImpl->scaleXForm(sx,sy); }
 
 	bool  isUseRHI() const { return Meta::IsSameType<T, RHIGraphics2D >::Value; }
-
+	void* getImplPtr() const { return mImpl; }
 	void accept( Visitor& visitor ) { visitor.visit( *mImpl ); }
 	T* mImpl;
 };
@@ -425,6 +426,11 @@ void DrawEngine::endFrame()
 	}
 }
 
+IGraphics2D* DrawEngine::createGraphicInterface(Graphics2D& g)
+{
+	return new TGraphics2DProxy< Graphics2D >(g);
+}
+
 class ProfileTextDraw : public ProfileNodeVisitorT< ProfileTextDraw >
 {
 public:
@@ -433,34 +439,40 @@ public:
 	{
 
 	}
-	static int const OffsetY = 15;
 	void onRoot(SampleNode* node) 
 	{
 		InlineString<512> str;
-		double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
-		str.format("--- Profiling: %s (total running time: %.3f ms) ---",
-					 node->getName(), time_since_reset);
+		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
+		double lastFrameDuration = ProfileSystem::Get().getLastFrameDuration();
+		str.format("--- Profiling: %s (total running time: %.03lf(%.03lf) ms) ---",
+					 node->getName(), time_since_reset, lastFrameDuration);
 		mGraphics2D.drawText(mTextPos, str);
 		mTextPos.y += OffsetY;
 	}
-	void onNode(SampleNode* node, double parentTime) 
+	void onNode(VisitContext const& context)
 	{
+		SampleNode* node = context.node;
 		InlineString<512> str;
-		str.format("|-> %s (%.2f %%) :: %.3f ms / frame (%d calls)",
-					 node->getName(),
-					 parentTime > CLOCK_EPSILON ? (node->getTotalTime() / parentTime) * 100 : 0.f,
-					 node->getTotalTime() / (double)ProfileSystem::Get().getFrameCountSinceReset(),
-					 node->getTotalCalls());
+		str.format("|-> %s (%.2lf %%) :: %.3lf(%.3lf) ms / frame (%d calls)",
+			node->getName(),
+			context.parentTime > CLOCK_EPSILON ? (node->getTotalTime() / context.parentTime) * 100 : 0.f,
+			node->getTotalTime() / double( node->getTotalCalls() ),
+			node->getLastFrameTime() / double( node->getFrameCalls() ),
+			node->getTotalCalls());
 		mGraphics2D.drawText(mTextPos, str);
 		mTextPos.y += OffsetY;
 	}
-	bool onEnterChild(SampleNode* node) 
+	bool onEnterChild(VisitContext const& context)
 	{ 
-		mTextPos += Vec2i(20, 0);
+		mTextPos += Vec2i(OffsetX, 0);
 		return true; 
 	}
-	void onEnterParent(SampleNode* node, int numChildren, double accTime) 
+	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
 	{
+		SampleNode* node = context.node;
+		int    numChildren = childContext.indexNode;
+		double accTime = childContext.accTime;
+
 		if( numChildren )
 		{
 			InlineString<512> str;
@@ -468,21 +480,24 @@ public:
 			if( node->getParent() != NULL )
 				time = node->getTotalTime();
 			else
-				time = ProfileSystem::Get().getTimeSinceReset();
+				time = ProfileSystem::Get().getDurationSinceReset();
 
 			double delta = time - accTime;
-			str.format("|-> %s (%.3f %%) :: %.3f ms / frame", "Other",
+			str.format("|-> %s (%.3lf %%) :: %.3lf(%.3lf) ms / frame", "Other",
 						 // (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
 				(time > CLOCK_EPSILON) ? (delta / time * 100) : 0.f,
-						 delta / (double)ProfileSystem::Get().getFrameCountSinceReset());
+						 delta / ProfileSystem::Get().getFrameCountSinceReset());
 			mGraphics2D.drawText(mTextPos, str);
 			mTextPos.y += OffsetY;
 			mGraphics2D.drawText(mTextPos, "-------------------------------------------------");
 			mTextPos.y += OffsetY;
 		}
 
-		mTextPos += Vec2i(-20, 0);
+		mTextPos += Vec2i(-OffsetX, 0);
 	}
+
+	static int const OffsetX = 20;
+	static int const OffsetY = 15;
 	Vec2i        mTextPos;
 	IGraphics2D& mGraphics2D;
 };
@@ -498,6 +513,7 @@ void* DrawEngine::getWindowHandle()
 
 void DrawEngine::drawProfile(Vec2i const& pos)
 {
+	getIGraphics().setTextColor(Color3ub(255, 255, 0));
 	ProfileTextDraw textDraw( getIGraphics() , pos );
 	textDraw.visitNodes();
 }

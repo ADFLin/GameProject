@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <functional>
 
-namespace Poker { namespace Holdem {
+namespace Holdem {
 
 	int const gFaceRankPower[13] =
 	{
@@ -1686,5 +1686,4 @@ namespace Poker { namespace Holdem {
 	}
 
 }//namespace Holdem
-}//namespace Poker
 

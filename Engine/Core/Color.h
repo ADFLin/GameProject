@@ -9,34 +9,40 @@
 class FColor
 {
 public:
-	static uint32 ToARGB(float r, float g, float b, float a = 1.0)
-	{
-		return ToARGB(uint8(255 * r), uint8(255 * g), uint8(255 * b), uint8(255 * a));
-	}
+
 	static uint32 ToRGBA(float r, float g, float b, float a = 1.0)
 	{
 		return ToRGBA(uint8(255 * r), uint8(255 * g), uint8(255 * b), uint8(255 * a));
 	}
-	static uint32 ToXRGB(float r, float g, float b)
+	static uint32 ToARGB(float r, float g, float b, float a = 1.0)
 	{
-		return ToXRGB(uint8(255 * r), uint8(255 * g), uint8(255 * b));
+		return ToARGB(uint8(255 * r), uint8(255 * g), uint8(255 * b), uint8(255 * a));
+	}
+	static uint32 ToABGR(float r, float g, float b, float a = 1.0)
+	{
+		return ToABGR(uint8(255 * r), uint8(255 * g), uint8(255 * b), uint8(255 * a));
+	}
+	static uint32 ToRGB(float r, float g, float b)
+	{
+		return ToRGB(uint8(255 * r), uint8(255 * g), uint8(255 * b));
 	}
 
 	static uint32 ToARGB(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
-		return (a << 24) | (r << 16) | (g << 8) | b;
-	}
-	static uint32 ToXRGB(uint8 r, uint8 g, uint8 b)
-	{
-		return (r << 16) | (g << 8) | b;
+		return (b << 24) | (g << 16) | (r << 8) | a;
 	}
 
-	static uint32 ToXBGR(uint8 r, uint8 g, uint8 b)
+	static uint32 ToRGB(uint8 r, uint8 g, uint8 b)
 	{
 		return (b << 16) | (g << 8) | r;
 	}
 
 	static uint32 ToRGBA(uint8 r, uint8 g, uint8 b, uint8 a)
+	{
+		return (a << 24) | (b << 16) | (g << 8) | r;
+	}
+
+	static uint32 ToABGR(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
 		return (r << 24) | (g << 16) | (b << 8) | a;
 	}
@@ -120,8 +126,7 @@ public:
 	operator T const*() const { return &r; }
 	operator T*      () { return &r; }
 
-	uint32 toXRGB() const { return FColor::ToXRGB(r, g, b); }
-	uint32 toXBGR() const { return FColor::ToXBGR(r, g, b); }
+	uint32 toRGB() const { return FColor::ToRGB(r, g, b); }
 };
 
 template< class T >
@@ -175,7 +180,7 @@ public:
 	operator T const*() const { return &r; }
 	operator T*      () { return &r; }
 	uint32 toARGB() const { return FColor::ToARGB(r, g, b, a); }
-	uint32 toRGBA() const { return FColor::ToRGBA(r, g, b, a); }
+	uint32 toRGBA() const { return FColor::ToABGR(r, g, b, a); }
 };
 
 

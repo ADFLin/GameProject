@@ -53,7 +53,7 @@ namespace Render
 			return mesh.save(serializer);
 		};
 
-		if( !::Global::DataCache().loadDelegate(key, MeshLoad) )
+		if(!::Global::DataCache().loadDelegate(key, MeshLoad) )
 		{
 			if( !FuncMeshCreate(mesh, std::forward<Args>(args)...) )
 			{
@@ -102,7 +102,7 @@ namespace Render
 			return mesh.save(serializer);
 		};
 
-		if (!::Global::DataCache().loadDelegate(key, MeshLoad))
+		if ( !::Global::DataCache().loadDelegate(key, MeshLoad))
 		{
 			if (!FuncMeshCreate(mesh, meshPath) )
 			{
@@ -255,7 +255,7 @@ namespace Render
 		Mesh* mMesh;
 
 		RHIInputLayoutRef mInputLayout;
-		RHIVertexBufferRef mInstancedBuffer;
+		RHIBufferRef mInstancedBuffer;
 		std::vector< Matrix4 > mInstanceTransforms;
 		std::vector< Vector4 > mInstanceParams;
 		bool bBufferValid = false;
@@ -317,31 +317,64 @@ namespace Render
 		ShaderParameter mParamBaseColor;
 	};
 
+	class SkyBoxProgram : public GlobalShaderProgram
+	{
+	public:
+		using BaseClass = GlobalShaderProgram;
+		DECLARE_SHADER_PROGRAM(SkyBoxProgram, Global);
 
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SkyBox";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+
+		void bindParameters(ShaderParameterMap const& parameterMap)
+		{
+			BIND_SHADER_PARAM(parameterMap, Texture);
+			BIND_SHADER_PARAM(parameterMap, CubeTexture);
+			BIND_SHADER_PARAM(parameterMap, CubeLevel);
+		}
+
+		DEFINE_SHADER_PARAM(Texture);
+		DEFINE_SHADER_PARAM(CubeTexture);
+		DEFINE_SHADER_PARAM(CubeLevel);
+	};
+
+
+	struct SimpleMeshId
+	{
+		enum
+		{
+			Tile,
+			Sphere,
+			Sphere2,
+			SpherePlane,
+			Box,
+			Plane,
+			Doughnut,
+			SkyBox,
+			SimpleSkin,
+			Terrain,
+			NumSimpleMesh,
+		};
+	};
 	struct TINY_API SharedAssetData
 	{
 		bool loadCommonShader();
 		bool createSimpleMesh();
 
-		struct SimpleMeshId
-		{
-			enum
-			{
-				Tile,
-				Sphere,
-				Sphere2,
-				SpherePlane,
-				Box,
-				Plane,
-				Doughnut,
-				SkyBox,
-				SimpleSkin,
-				Terrain,
-				NumSimpleMesh,
-			};
-		};
-
+		Mesh& getMesh(int id) { return mSimpleMeshs[id]; }
 		SphereProgram* mProgSphere;
+		SkyBoxProgram* mProgSkyBox;
 
 		Mesh   mSimpleMeshs[SimpleMeshId::NumSimpleMesh];
 
@@ -352,7 +385,6 @@ namespace Render
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
 		                               , public IGameRenderSetup
-		                               , public TextureShowManager
 	{
 		using BaseClass = StageBase;
 	public:
@@ -385,8 +417,6 @@ namespace Render
 
 		virtual void preShutdownRenderSystem(bool bReInit)
 		{
-			ShaderHelper::Get().releaseRHI();
-			TextureShowManager::releaseRHI();
 			SharedAssetData::releaseRHIResource(bReInit);
 			mView.releaseRHIResource();
 			mBitbltFrameBuffer.release();

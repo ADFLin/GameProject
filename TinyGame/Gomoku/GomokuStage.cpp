@@ -18,8 +18,8 @@ namespace Gomoku
 		RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-
-		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 		g.beginRender();
 		SimpleRenderState renderState;
@@ -87,6 +87,11 @@ namespace Gomoku
 			mGame.getBoard().getPosCoord(index, coord);
 			mPosList.push_back(Vec2i(coord[0], coord[1]));
 		}
+	}
+
+	ERenderSystem TestStage::getDefaultRenderSystem()
+	{
+		return ERenderSystem::D3D11;
 	}
 
 	void BoardRenderer::draw(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState /*= nullptr*/)

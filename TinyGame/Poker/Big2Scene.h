@@ -14,7 +14,7 @@
 class Graphics2D;
 class IPlayerManager;
 
-namespace Poker { namespace Big2 {
+namespace Big2 {
 
 	class ClientLevel;
 	class Scene;
@@ -89,7 +89,7 @@ namespace Poker { namespace Big2 {
 		void         nextCombination( CardGroup group );
 		Vec2i const& getCardSize(){ return mCardSize; }
 
-		void         render( Graphics2D& g );
+		void         render( IGraphics2D& g );
 		void         updateFrame( int frame );
 		
 		
@@ -103,10 +103,10 @@ namespace Poker { namespace Big2 {
 
 		void         refreshUI( bool haveChange );
 
-		void         drawOtherPlayer( Graphics2D& g , Vec2i const& pos , TablePos tPos , int numCard , bool beCenterPos = true , bool bDrawBack = true );
-		void         drawShowCard( Graphics2D& g , Vec2i const& pos , float angle ,  TrickInfo const& info , bool beFoucs );
-		void         drawLastShowCard( Graphics2D& g , Vec2i const& pos , bool beFoucs );
-		void         drawSlotStatus( Graphics2D& g , Vec2i const& pos , int slotId );
+		void         drawOtherPlayer( IGraphics2D& g , Vec2i const& pos , TablePos tPos , int numCard , bool beCenterPos = true , bool bDrawBack = true );
+		void         drawShowCard( IGraphics2D& g , Vec2i const& pos , float angle ,  TrickInfo const& info , bool beFoucs );
+		void         drawLastShowCard( IGraphics2D& g , Vec2i const& pos , bool beFoucs );
+		void         drawSlotStatus( IGraphics2D& g , Vec2i const& pos , int slotId );
 
 		enum RenderState
 		{
@@ -147,6 +147,5 @@ namespace Poker { namespace Big2 {
 	};
 
 }//namespace Big2
-}//namespace Poker
 
 #endif // Big2Scene_h__

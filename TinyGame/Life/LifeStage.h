@@ -201,7 +201,7 @@ namespace Life
 			std::size_t operator()(Vec2i const& v) const
 			{
 				uint32 result = HashValue(v.x);
-				HashCombine(result, v.y);
+				result = HashCombine(result, v.y);
 				return result;
 			}
 		};

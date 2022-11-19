@@ -10,7 +10,7 @@ void test()
 	//NextCombination( n , n + 3 , n )
 }
 
-namespace Poker { namespace Big2 {
+namespace Big2 {
 
 	bool const SupportTwoPair     = false;
 	bool const SupportThreeOfKind = false;
@@ -1257,4 +1257,3 @@ namespace Poker { namespace Big2 {
 	}
 
 }//namespace Big2
-}//namespace Poker

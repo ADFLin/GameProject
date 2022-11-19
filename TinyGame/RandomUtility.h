@@ -10,17 +10,20 @@ inline float RandFloat()
 {
 	return float(::rand()) / RAND_MAX;
 }
+
 inline float RandFloat(float min, float max)
 {
-	return min + (max - min) * float(::rand()) / RAND_MAX;
+	return min + (max - min) * RandFloat();
 }
-inline Vector3 RandVector(Vector3 const& min, Vector3 const& max)
-{
-	return Vector3(RandFloat(min.x, max.x), RandFloat(min.y, max.y), RandFloat(min.z, max.z));
-}
+
 inline Vector3 RandVector()
 {
 	return Vector3(RandFloat(), RandFloat(), RandFloat());
+}
+
+inline Vector3 RandVector(Vector3 const& min, Vector3 const& max)
+{
+	return min + (max - min) * RandVector();
 }
 
 inline Vector3 RandDirection()

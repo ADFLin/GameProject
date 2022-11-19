@@ -313,8 +313,6 @@ namespace Bloxorz
 		FWidgetProperty::Bind(frame->addSlider("Bloom Threshold"), mBloomThreshold, -0.5, 2, 1);
 
 
-		ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, &mTextureShowManager);
-
 		restart();
 		return true;
 	}
@@ -480,9 +478,6 @@ namespace Bloxorz
 
 		mRenderTargetPool.releaseRHI();
 
-		mTextureShowManager.releaseRHI();
-
-		ShaderHelper::Get().releaseRHI();
 	}
 
 

@@ -8,6 +8,8 @@ class ReflectionCollector
 	void beginClass(char const* name);
 	template< class T >
 	void addProperty(T var, char const* name);
+
+	void endClass();
 };
 
 #define REFLECT_OBJECT_BEGIN( CLASS )\
@@ -23,6 +25,7 @@ class ReflectionCollector
 		collector.addProperty( &ThisClass::VAR , #VAR );
 
 #define REFLECT_OBJECT_END()\
+		collector.endClass();\
 	}
 
 

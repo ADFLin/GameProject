@@ -15,6 +15,8 @@ namespace SBlocks
 			MultiMarkMap ,
 			AutoConvertBitGird,
 			MapSizeXIntToUint16,
+			MirrorOpSupported,
+
 			//-----------------------
 			LastVersionPlusOne,
 			LastVersion = LastVersionPlusOne - 1,
@@ -134,6 +136,15 @@ namespace SBlocks
 		else
 		{
 			op & maps;
+		}
+
+		if (OP::IsLoading && op.version() < ELevelSaveVersion::MirrorOpSupported)
+		{
+			bAllowMirrorOp = false;
+		}
+		else
+		{
+			op & bAllowMirrorOp;
 		}
 		op & shapes & pieces;
 	}

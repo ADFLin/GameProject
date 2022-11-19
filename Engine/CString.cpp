@@ -1,4 +1,5 @@
 #include "CString.h"
+#include "PlatformConfig.h"
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"

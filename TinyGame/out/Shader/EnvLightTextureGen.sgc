@@ -1,6 +1,7 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
 #include "LightingCommon.sgc"
+#include "CubeMapCommon.sgc"
 
 #define  USE_CUBE_TEXTURE 0
 
@@ -11,16 +12,6 @@ uniform float3 FaceUpDir;
 
 DEFINE_TEXTURE( Texture2D , Texture );
 DEFINE_TEXTURE( TextureCube, CubeTexture );
-
-GLOBAL_CONST float2 invAtan = float2(0.1591, 0.3183);
-float2 EquirectangularCoord(float3 v)
-{
-	float2 uv = float2(atan2(v.x, v.y), asin(v.z));
-	uv *= invAtan;
-	uv += 0.5;
-	return uv;
-}
-
 
 float3x3 TangentToWorldTransform(float3 tangentZ)
 {

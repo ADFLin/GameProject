@@ -53,16 +53,13 @@ namespace Render
 		static bool InitializeBRDFTexture(void* data);
 		static void FillSharedBRDFData(std::vector< uint8 >& outData)
 		{
-			return ReadTextureData(*IBLResource::SharedBRDFTexture, ETexture::FloatRGBA, 0, outData);
-
+			return RHIReadTexture(*IBLResource::SharedBRDFTexture, ETexture::FloatRGBA, 0, outData);
 		}
 		bool initializeRHI(ImageBaseLightingData& IBLData);
 		bool initializeRHI(IBLBuildSetting const& setting);
 		void fillData(ImageBaseLightingData& outData);
 
 		static void GetCubeMapData(std::vector< uint8 >& data, ETexture::Format format, int size, int level, void* outData[]);
-		static void ReadTextureData(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
-		static void ReadTextureData(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
 	};
 
 	struct ImageBaseLightingData

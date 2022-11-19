@@ -6,7 +6,7 @@
 
 class SocketBuffer;
 
-namespace Go
+namespace GoCore
 {
 	char const EDGE_MARK = 0x80;
 	char const VISITED_MARK = 0x40;
@@ -20,30 +20,30 @@ namespace Go
 			White = 2,
 		};
 
-		inline int Opposite( int color )
+		inline int Opposite(int color)
 		{
 			assert(color == Black || color == White);
 			return (color == Black) ? White : Black;
 		}
 	}
 
-	inline int ReadCoord( char const* coord , uint8 outPos[2] )
+	inline int ReadCoord(char const* coord, uint8 outPos[2])
 	{
-		if( !('A' <= coord[0] && coord[0] <= 'Z') )
+		if (!('A' <= coord[0] && coord[0] <= 'Z'))
 			return 0;
 
 		uint8 x = coord[0] - 'A';
-		if( coord[0] > 'I' )
+		if (coord[0] > 'I')
 		{
 			--x;
 		}
 
-		if( !('0' <= coord[1] && coord[1] <= '9') )
+		if (!('0' <= coord[1] && coord[1] <= '9'))
 			return 0;
 
 		int result = 2;
 		uint8 y = coord[1] - '0';
-		if( ('0' <= coord[2] && coord[2] <= '9') )
+		if (('0' <= coord[2] && coord[2] <= '9'))
 		{
 			y = 10 * y + (coord[2] - '0');
 			++result;
@@ -58,12 +58,12 @@ namespace Go
 	inline int WriteCoord(int const pos[2], char coord[3])
 	{
 		coord[0] = 'A' + pos[0];
-		if( coord[0] >= 'I' )
+		if (coord[0] >= 'I')
 			++coord[0];
-		if( pos[1] > 9 )
+		if (pos[1] > 9)
 		{
-			coord[1] = '0' + ( pos[1] + 1 ) / 10;
-			coord[2] = '0' + ( pos[1] + 1 ) % 10;
+			coord[1] = '0' + (pos[1] + 1) / 10;
+			coord[2] = '0' + (pos[1] + 1) % 10;
 			return 3;
 		}
 
@@ -98,7 +98,7 @@ namespace Go
 
 		static PlayVertex Pass()
 		{
-			PlayVertex result; 
+			PlayVertex result;
 			result.data = -2;
 			return result;
 		}
@@ -119,7 +119,7 @@ namespace Go
 	class BoardBase
 	{
 	public:
-		BoardBase():mSize(0){}
+		BoardBase() :mSize(0) {}
 
 		class Pos
 		{
@@ -186,13 +186,18 @@ namespace Go
 
 		int      calcLinkIndex(int idx, int dir) const { return idx + mIndexOffset[dir]; }
 		int      offsetIndex(int idx, int ox, int oy) const { return idx + ox + oy * getDataSizeX(); }
-
 		void     setupDataEdge(int dataSize);
 
 		int       mSize;
 		std::unique_ptr< char[] > mData;
 		int       mIndexOffset[NumDir];
 	};
+
+}
+
+namespace Go
+{
+	using namespace GoCore;
 
 	class Board : public BoardBase
 	{

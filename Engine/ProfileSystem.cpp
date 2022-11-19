@@ -7,39 +7,135 @@
 
 #include <atomic>
 
+
+CORE_API HighResClock  GProfileClock;
+inline void Profile_GetTicks(uint64 * ticks)
+{
+	*ticks = GProfileClock.getTimeMicroseconds();
+}
+
+inline float Profile_GetTickRate()
+{
+	//	return 1000000.f;
+	return 1000.f;
+}
+
+
+
+class ThreadProfileData
+{
+public:
+	ThreadProfileData(char const* rootName);
+
+
+	uint32                    mThreadId;
+	ProfileSampleNode*	      mCurSample;
+	unsigned                  mCurFlag;
+	unsigned                  mCurStackNum;
+	TPtrHolder< ProfileSampleNode >  mRootSample;
+
+
+	void resetSample();
+	void tryStartTiming(const char * name, unsigned flag);
+	void stopTiming();
+
+	void cleanup();
+
+
+	ProfileSampleNode* getRootSample()
+	{
+		return mRootSample.get();
+	}
+
+	static void cleanupNode(ProfileSampleNode* node)
+	{
+		if (node->mChild)
+			cleanupNode(node->mChild);
+
+		if (node->mSibling)
+			cleanupNode(node->mSibling);
+
+		node->unlink();
+		DestoryNode(node);
+	}
+
+	static ProfileSampleNode* CreateNode(char const* name, ProfileSampleNode* parent)
+	{
+		return new ProfileSampleNode(name, parent);
+	}
+	static void               DestoryNode(ProfileSampleNode* node)
+	{
+		delete node;
+	}
+};
+
 class ProfileSystemImpl : public ProfileSystem
 {
 public:
+
+	ProfileSystemImpl(char const* rootName = "Root");
+	~ProfileSystemImpl();
 
 	void   cleanup() override;
 	void   resetSample() override;
 
 	void   incrementFrameCount() override;
-	int	   getFrameCountSinceReset() override { return mFrameCounter; }
-	float  getTimeSinceReset() override;
+	int	   getFrameCountSinceReset() override { return mFrameCount; }
+	double getDurationSinceReset() override;
 
-	ProfileSampleIterator getSampleIterator(uint32 ThreadId = 0) override;
+	void updateDuration()
+	{
+		if (mbDurationDirty)
+		{
+			mbDurationDirty = false;
+			uint64 time;
+			Profile_GetTicks(&time);
+			mDurationSinceReset = double(time - mResetTime) / Profile_GetTickRate();
+			mLastFrameDuration = double(time - mFrameStartTime) / Profile_GetTickRate();
+		}
+	}
 
-#if 0
-	void   dumpRecursive(ProfileSampleIterator* profileIterator, int spacing);
-	void   dumpAll(uint32 ThreadId);
-#endif
+	double getLastFrameDuration() override
+	{
+		updateDuration();
+		return mLastFrameDuration;
+	}
 
-	static ThreadProfileData* GetThreadData();
+	ProfileSampleNode* getRootSample(uint32 threadId = 0) override
+	{
+		if (threadId)
+		{
+
+		}
+		else
+		{
+			return GetCurrentThreadData()->getRootSample();
+		}
+	}
+
+	static ThreadProfileData* GetCurrentThreadData();
+	static ThreadProfileData* GetThreadData(uint32 threadId);
+
+
+	static ProfileSystemImpl& Get() { return static_cast< ProfileSystemImpl& >( ProfileSystem::Get()); }
+
+
+
 private:
-	friend class ProfileSystem;
-	ProfileSystemImpl(char const* rootName = "Root");
-	~ProfileSystemImpl();
 
-	int	       mFrameCounter;
+
+	friend class ThreadProfileData;
+
+	int	       mFrameCount;
 	uint64     mResetTime;
+	uint64     mFrameStartTime;
+	uint64     mLastFrameDuration;
+	uint64     mDurationSinceReset;
+	bool       mbDurationDirty;
 };
-
-CORE_API HighResClock  gProfileClock;
 
 struct TimeScopeResult
 {
-
 	~TimeScopeResult() = default;
 
 	std::string name;
@@ -76,7 +172,7 @@ CORE_API std::vector< TimeScopeResult* >& TimeScope::GetResultStack()
 #if 0
 Mutex gInstanceLock;
 std::atomic< ProfileSystem* > gInstance;
-ProfileSystem& IProfileSystem::Get()
+ProfileSystem& ProfileSystem::Get()
 {
 	ProfileSystem* instance = gInstance.load(std::memory_order_acquire);
 
@@ -102,31 +198,19 @@ ProfileSystem& ProfileSystem::Get()
 
 ProfileSampleScope::ProfileSampleScope(const char * name, unsigned flag)
 {
-	ProfileSystemImpl::GetThreadData()->tryStartTiming(name, flag);
+	ProfileSystemImpl::GetCurrentThreadData()->tryStartTiming(name, flag);
 }
 
 ProfileSampleScope::~ProfileSampleScope(void)
 {
-	ProfileSystemImpl::GetThreadData()->stopTiming();
+	ProfileSystemImpl::GetCurrentThreadData()->stopTiming();
 }
 
 #endif //CORE_SHARE_CODE
 
 
-inline void Profile_GetTicks(uint64 * ticks)
-{
-	*ticks = gProfileClock.getTimeMicroseconds();
-}
-
-inline float Profile_GetTickRate()
-{
-	//	return 1000000.f;
-	return 1000.f;
-}
-
-
 ProfileSystemImpl::ProfileSystemImpl(char const* rootName)
-	:mFrameCounter(0)
+	:mFrameCount(0)
 	,mResetTime(0)
 {
 
@@ -145,34 +229,33 @@ void ProfileSystemImpl::cleanup()
 
 void ProfileSystemImpl::resetSample()
 {
-	gProfileClock.reset();
-	mFrameCounter = 0;
+	GProfileClock.reset();
+	mFrameCount = 0;
 	Profile_GetTicks(&mResetTime);
+
+	mbDurationDirty = 0;
 	//ThreadData reset
 }
 
 void ProfileSystemImpl::incrementFrameCount()
 {
-	++mFrameCounter;
+	++mFrameCount;
+	mbDurationDirty = true;
+	Profile_GetTicks(&mFrameStartTime);
 }
 
-float ProfileSystemImpl::getTimeSinceReset()
+double ProfileSystemImpl::getDurationSinceReset()
 {
-	uint64 time;
-	Profile_GetTicks(&time);
-	time -= mResetTime;
-	return (float)time / Profile_GetTickRate();
+	updateDuration();
+
+	return mDurationSinceReset;
 }
 
-ProfileSampleIterator ProfileSystemImpl::getSampleIterator(uint32 ThreadId)
-{
-	return GetThreadData()->getSampleIterator();
-}
 
 std::unordered_map< uint32, ThreadProfileData* > ThreadDataMap;
 thread_local ThreadProfileData* gThreadDataLocal = nullptr;
 
-ThreadProfileData* ProfileSystemImpl::GetThreadData()
+ThreadProfileData* ProfileSystemImpl::GetCurrentThreadData()
 {
 	if( gThreadDataLocal == nullptr )
 	{
@@ -183,72 +266,17 @@ ThreadProfileData* ProfileSystemImpl::GetThreadData()
 	return gThreadDataLocal;
 }
 
-#if 0
-#include <stdio.h>
-
-void	ProfileSystemImpl::dumpRecursive(ProfileSampleIterator* profileIterator, int spacing)
+ThreadProfileData* ProfileSystemImpl::GetThreadData(uint32 threadId)
 {
-	profileIterator->first();
-	if( profileIterator->isDone() )
-		return;
-
-	float accumulated_time = 0, parent_time = profileIterator->isRoot() ? ProfileSystem::getTimeSinceReset() : profileIterator->getCurrentParentTotalTime();
-	int i;
-	int frames_since_reset = ProfileSystem::getFrameCountSinceReset();
-	for( i = 0; i < spacing; i++ )	printf(".");
-	printf("----------------------------------\n");
-	for( i = 0; i < spacing; i++ )	printf(".");
-	printf("Profiling: %s (total running time: %.3f ms) ---\n", profileIterator->getCurrentParentName(), parent_time);
-	float totalTime = 0.f;
-
-
-	int numChildren = 0;
-
-	for( i = 0; !profileIterator->isDone(); i++, profileIterator->next() )
-	{
-		numChildren++;
-		float current_total_time = profileIterator->getCurrentTotalTime();
-		accumulated_time += current_total_time;
-		float fraction = parent_time > CLOCK_EPSILON ? (current_total_time / parent_time) * 100 : 0.f;
-		{
-			int i;	for( i = 0; i < spacing; i++ )	printf(".");
-		}
-		printf("%d -- %s (%.2f %%) :: %.3f ms / frame (%d calls)\n", i, profileIterator->getCurrentName(), fraction, (current_total_time / (double)frames_since_reset), profileIterator->getCurrentTotalCalls());
-		totalTime += current_total_time;
-		//recurse into children
-	}
-
-	if( parent_time < accumulated_time )
-	{
-		printf("what's wrong\n");
-	}
-	for( i = 0; i < spacing; i++ )	printf(".");
-	printf("%s (%.3f %%) :: %.3f ms\n", "Unaccounted:", parent_time > CLOCK_EPSILON ? ((parent_time - accumulated_time) / parent_time) * 100 : 0.f, parent_time - accumulated_time);
-
-	for( i = 0; i < numChildren; i++ )
-	{
-		profileIterator->enterChild(i);
-		dumpRecursive(profileIterator, spacing + 3);
-		profileIterator->enterParent();
-	}
+	return nullptr;
 }
-
-
-void ProfileSystemImpl::dumpAll(uint32 ThreadId)
-{
-	//#FIXME
-	ProfileSampleIterator profileIterator = getSampleIterator(ThreadId);
-	dumpRecursive(&profileIterator, 0);
-}
-#endif
-
 
 ProfileSampleNode::ProfileSampleNode( const char * name, ProfileSampleNode * parent )
 	:mName( name )
-	,TotalCalls( 0 )
-	,TotalTime( 0 )
-	,StartTime( 0 )
-	,RecursionCounter( 0 )
+	,mTotalCalls( 0 )
+	,mTotalTime( 0 )
+	,mStartTime( 0 )
+	,mRecursionCounter( 0 )
 	,mParent( parent )
 	,mChild(nullptr)
 	,mSibling(nullptr)
@@ -288,8 +316,8 @@ ProfileSampleNode* ProfileSampleNode::getSubNode( const char * name )
 
 void ProfileSampleNode::reset()
 {
-	TotalCalls = 0;
-	TotalTime = 0.0f;
+	mTotalCalls = 0;
+	mTotalTime = 0.0f;
 
 	if ( mChild ) 
 	{
@@ -304,24 +332,30 @@ void ProfileSampleNode::reset()
 
 void ProfileSampleNode::onCall()
 {
-	TotalCalls++;
-	if (RecursionCounter++ == 0) 
+	if (mRecursionCounter == 0) 
 	{
-		Profile_GetTicks(&StartTime);
+		Profile_GetTicks(&mStartTime);
+		mFrameCalls = 1;
 	}
+	++mRecursionCounter;
+	++mTotalCalls;
 }
-
 
 bool ProfileSampleNode::onReturn()
 {
-	if ( --RecursionCounter == 0 && TotalCalls != 0 ) 
+	--mRecursionCounter;
+	if (mRecursionCounter != 0)
+		return false;
+
+	if ( mTotalCalls != 0 ) 
 	{ 
 		uint64 time;
 		Profile_GetTicks(&time);
-		time-=StartTime;
-		TotalTime += (float)time / Profile_GetTickRate();
+		time -= mStartTime;
+		mLastFrameTime = double(time) / Profile_GetTickRate();
+		mTotalTime += mLastFrameTime;
 	}
-	return ( RecursionCounter == 0 );
+	return true;
 }
 
 void ProfileSampleNode::showAllChild( bool beShow )
@@ -334,77 +368,6 @@ void ProfileSampleNode::showAllChild( bool beShow )
 		node->showAllChild( beShow );
 		node = node->getSibling();
 	}
-}
-
-ProfileSampleIterator::ProfileSampleIterator( ProfileSampleNode* start )
-{
-	parent = start;
-	curNode = parent->getChild();
-}
-
-
-void ProfileSampleIterator::first()
-{
-	curNode = parent->getChild();
-}
-
-void ProfileSampleIterator::next()
-{
-	curNode = curNode->getSibling();
-}
-
-bool ProfileSampleIterator::isDone()
-{
-	return curNode == nullptr;
-}
-
-void ProfileSampleIterator::enterChild( int index )
-{
-	curNode = parent->getChild();
-	while ( (curNode != nullptr) && (index != 0) ) 
-	{
-		index--;
-		curNode = curNode->getSibling();
-	}
-
-	if ( curNode != nullptr ) 
-	{
-		parent = curNode;
-		curNode = parent->getChild();
-	}
-}
-
-void ProfileSampleIterator::enterChild()
-{
-	ProfileSampleNode* nextChild = curNode->getChild();
-
-	parent = curNode;
-	curNode = nextChild;
-}
-
-void ProfileSampleIterator::enterParent()
-{
-	if ( parent->getParent() != nullptr ) 
-	{
-		parent = parent->getParent();
-	}
-	curNode = parent->getChild();
-}
-
-void ProfileSampleIterator::before()
-{
-	ProfileSampleNode* node = parent->getChild();
-
-	if ( node == curNode )
-		return;
-
-	while( node )
-	{
-		if ( node->getSibling() == curNode )
-			break;
-		node = node->getSibling();
-	}
-	curNode = node;
 }
 
 ThreadProfileData::ThreadProfileData(char const* rootName)
@@ -484,6 +447,7 @@ void ThreadProfileData::tryStartTiming(const char * name, unsigned flag)
 
 	mCurSample->onCall();
 	mCurSample->mPrevFlag = mCurFlag;
+	mCurSample->mLastCallFrame = ProfileSystemImpl::Get().mFrameCount;
 	mCurFlag = flag;
 }
 

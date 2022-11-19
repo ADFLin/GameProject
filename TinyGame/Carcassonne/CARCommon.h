@@ -45,16 +45,25 @@ namespace CAR
 
 		TBitMaskIterator(unsigned inMask)
 			:mask(inMask)
-			,index(INDEX_NONE)
 		{
-
+			advance();
 		}
 		operator bool()
 		{ 
-			return FBitUtility::IterateMask< NumBits >(mask, index);
+			return index != INDEX_NONE;
 		}
-		void operator ++(int) {}
-		void operator ++(){}
+
+		void operator ++(int) { advance(); }
+		void operator ++() { advance(); }
+	private:
+
+		void advance()
+		{
+			if (!FBitUtility::IterateMask< NumBits >(mask, index))
+			{
+				index = INDEX_NONE;
+			}
+		}
 	};
 
 	static Vec2i const gDirOffset[] =

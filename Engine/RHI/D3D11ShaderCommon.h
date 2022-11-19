@@ -31,12 +31,17 @@ namespace Render
 			ID3D11HullShader*     hull;
 			ID3D11DomainShader*   domain;
 		};
+		int globalConstBufferSize;
 
-		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode);
+		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode);
 		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, uint32 codeSize);
 		void release();
 	};
 
+	struct D3DShaderParamInfo
+	{
+		int globalConstBufferSize = 0;
+	};
 
 	class D3D11Shader : public TRefcountResource< RHIShader >
 	{
@@ -52,7 +57,7 @@ namespace Render
 			mResource.release();
 		}
 
-		bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode);
+		bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode);
 		bool initialize(TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode);
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) 
 		{ 
@@ -71,7 +76,7 @@ namespace Render
 			return structInfo.blockName;
 		}
 
-		static bool GenerateParameterMap(TArrayView< uint8 > const& byteCode, ShaderParameterMap& parameterMap);
+		static bool GenerateParameterMap(TArrayView<uint8 const> const& byteCode, ShaderParameterMap& parameterMap, D3DShaderParamInfo& outParamInfo);
 		std::vector< uint8 > byteCode;
 		D3D11ShaderData      mResource;
 		ShaderParameterMap   mParameterMap;

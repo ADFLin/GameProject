@@ -164,17 +164,14 @@ namespace Render
 		{
 			return nullptr;
 		}
+		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+		RHIBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
+		RHIBuffer*  RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 
-		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
-		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
+		bool initalizeBufferInternal(VulkanBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
 
-		bool initalizeBufferInternal(VulkanVertexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
-		bool initalizeBufferInternal(VulkanIndexBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
-
-		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size) { return nullptr; }
-		void  RHIUnlockBuffer(RHIVertexBuffer* buffer) {}
-		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size) { return nullptr; }
-		void  RHIUnlockBuffer(RHIIndexBuffer* buffer) {  }
+		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size) { return nullptr; }
+		void  RHIUnlockBuffer(RHIBuffer* buffer) {}
 
 		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
 		{

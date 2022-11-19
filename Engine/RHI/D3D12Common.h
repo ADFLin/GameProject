@@ -34,13 +34,11 @@ namespace Render
 
 	};
 
-
 	class D3D12Texture1D;
 	class D3D12Texture2D;
 	class D3D12Texture3D;
 	class D3D12TextureCube;
-	class D3D12VertexBuffer;
-	class D3D12IndexBuffer;
+	class D3D12Buffer;
 	class D3D12RasterizerState;
 	class D3D12BlendState;
 	class D3D12InputLayout;
@@ -63,16 +61,10 @@ namespace Render
 	};
 
 	template<>
-	struct TD3D12TypeTraits< RHIVertexBuffer >
+	struct TD3D12TypeTraits< RHIBuffer >
 	{
 		typedef ID3D12Resource ResourceType;
-		typedef D3D12VertexBuffer ImplType;
-	};
-	template<>
-	struct TD3D12TypeTraits< RHIIndexBuffer >
-	{
-		typedef ID3D12Resource ResourceType;
-		typedef D3D12IndexBuffer ImplType;
+		typedef D3D12Buffer ImplType;
 	};
 
 	template<>
@@ -116,6 +108,41 @@ namespace Render
 	};
 
 
+	template< D3D12_PIPELINE_STATE_SUBOBJECT_TYPE SubobjectID >
+	struct TPSSubobjectStreamTraits {};
+#define DEFINE_SUBOBJECT_STREAM_DATA( ID , DATA )\
+	template<>\
+	struct TPSSubobjectStreamTraits<ID>\
+	{\
+		using DataType = DATA;\
+	};
+
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, ID3D12RootSignature*);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS, D3D12_RT_FORMAT_ARRAY);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT, DXGI_FORMAT);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS, D3D12_SHADER_BYTECODE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT, D3D12_INPUT_LAYOUT_DESC);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY, D3D12_PRIMITIVE_TOPOLOGY_TYPE);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING, D3D12_VIEW_INSTANCING_DESC);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER, D3D12_RASTERIZER_DESC);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_RHI, D3D12_DEPTH_STENCIL_DESC_RHI);
+	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND, D3D12_BLEND_DESC);
+
+#undef DEFINE_SUBOBJECT_STREAM_DATA
+
+	struct PSSubobjectStreamDataBase
+	{
+		D3D12_PIPELINE_STATE_SUBOBJECT_TYPE ID;
+	};
+
+
 	template< class T >
 	struct TValueWapper
 	{
@@ -125,104 +152,18 @@ namespace Render
 	};
 
 	template< D3D12_PIPELINE_STATE_SUBOBJECT_TYPE SubobjectID >
-	struct TPSSubobjectStreamTraits {};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE>
+	struct TPSSubobjectStreamDataHelper
 	{
-		using DataType = TValueWapper< ID3D12RootSignature* >;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS>
-	{
-		using DataType = D3D12_RT_FORMAT_ARRAY;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT>
-	{
-		using DataType = TValueWapper< DXGI_FORMAT >;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS>
-	{
-		using DataType = D3D12_SHADER_BYTECODE;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT>
-	{
-		using DataType = D3D12_INPUT_LAYOUT_DESC;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY>
-	{
-		using DataType = TValueWapper<D3D12_PRIMITIVE_TOPOLOGY_TYPE>;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING>
-	{
-		using DataType = D3D12_VIEW_INSTANCING_DESC;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER>
-	{
-		using DataType = D3D12_RASTERIZER_DESC;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_RHI>
-	{
-		using DataType = D3D12_DEPTH_STENCIL_DESC_RHI;
-	};
-	template<>
-	struct TPSSubobjectStreamTraits<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND>
-	{
-		using DataType = D3D12_BLEND_DESC;
+		using BaseType = typename TPSSubobjectStreamTraits< SubobjectID >::DataType;
+		using DataType = typename TSelect< std::is_class_v<BaseType>, BaseType, TValueWapper<BaseType> >::Type;
 	};
 
-	struct PSSubobjectStreamDataBase
-	{
-		D3D12_PIPELINE_STATE_SUBOBJECT_TYPE ID;
-	};
 
 	template< D3D12_PIPELINE_STATE_SUBOBJECT_TYPE SubobjectID >
-	struct alignas(void*) TPSSubobjectStreamData : PSSubobjectStreamDataBase , TPSSubobjectStreamTraits< SubobjectID >::DataType
+	struct alignas(void*) TPSSubobjectStreamData : PSSubobjectStreamDataBase , TPSSubobjectStreamDataHelper< SubobjectID >::DataType
 	{
-		TPSSubobjectStreamData() : TPSSubobjectStreamTraits< SubobjectID >::DataType() { ID = SubobjectID; }
-
-		using TPSSubobjectStreamTraits< SubobjectID >::DataType::operator =;
+		TPSSubobjectStreamData() : TPSSubobjectStreamDataHelper< SubobjectID >::DataType() { ID = SubobjectID; }
+		using TPSSubobjectStreamDataHelper< SubobjectID >::DataType::operator =;
 	};
 
 	class D3D12PipelineStateStream
@@ -432,9 +373,9 @@ namespace Render
 			{
 				uint32 result = HashValue(numColors);
 				for (int i = 0; i < numColors; ++i)
-					HashCombine(result, colors[i]);
+					result = HashCombine(result, colors[i]);
 
-				HashCombine(result, depth);
+				result = HashCombine(result, depth);
 				return result;
 			}
 		};
@@ -582,7 +523,7 @@ namespace Render
 		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
 	};
 
-	class D3D12VertexBuffer : public TD3D12Resource< RHIVertexBuffer >
+	class D3D12Buffer : public TD3D12Resource< RHIBuffer >
 	{
 	public:
 		bool initialize(TComPtr<ID3D12Resource>& resource, TComPtr<ID3D12DeviceRHI>& device, int elementSize, int numElements)
@@ -596,28 +537,11 @@ namespace Render
 
 		virtual void releaseResource()
 		{
-			TD3D12Resource< RHIVertexBuffer >::releaseResource();
+			TD3D12Resource< RHIBuffer >::releaseResource();
 			D3D12DescriptorHeapPool::Get().freeHandle(mSRV);
 		}
 
 		D3D12PooledHeapHandle mSRV;
-	};
-
-	class D3D12IndexBuffer : public TD3D12Resource< RHIIndexBuffer >
-	{
-	public:
-		bool initialize(TComPtr<ID3D12Resource>& resource, TComPtr<ID3D12DeviceRHI>& device, int elementSize, int numElements)
-		{
-			mNumElements = numElements;
-			mElementSize = elementSize;
-			mResource = resource.detach();
-			return true;
-		}
-
-		virtual void releaseResource()
-		{
-
-		}
 	};
 
 	class D3D12RasterizerState : public TRefcountResource< RHIRasterizerState >

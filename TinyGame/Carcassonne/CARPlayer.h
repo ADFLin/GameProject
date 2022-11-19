@@ -22,11 +22,11 @@ namespace CAR
 		void startTurn(){}
 		void endTurn(){}
 
-		int  getId(){ return mId; }
+		PlayerId  getId(){ return mId; }
 
 		void setupSetting( GameplaySetting& setting );
 
-		unsigned getSupportActorMask()
+		unsigned getSupportedActorMask()
 		{
 			unsigned result = 0;
 			for( int i = 0 ; i < EActor::PLAYER_TYPE_COUNT ; ++i )
@@ -46,7 +46,7 @@ namespace CAR
 		{  
 			setFieldValue( EField::Type( EField::ActorStart + type ) , value );  
 		}
-		int  modifyFieldValue( EActor::Type type , int value = 1 )
+		int  modifyFieldValue( EActor::Type type , int value )
 		{  
 			return modifyFieldValue( EField::Type( EField::ActorStart + type ) , value ); 
 		}
@@ -54,10 +54,10 @@ namespace CAR
 		int  getFieldValue( EField::Type type , int index = 0 ) const;
 		void setFieldArrayValues(EField::Type type, int* values, int num);
 		void setFieldValue(EField::Type type, int value , int index = 0 );
-		int  modifyFieldValue( EField::Type type , int value = 1 );
+		int  modifyFieldValue( EField::Type type , int value );
 
 		int mPlayOrder;
-		int mId;
+		PlayerId mId;
 		int mTeam;
 
 		int mScore;
@@ -74,7 +74,8 @@ namespace CAR
 	public:
 		GamePlayerManager();
 		int         getPlayerNum() { return mNumPlayer; }
-		PlayerBase* getPlayer(PlayerId id) const { assert(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id + 1]; }
+		PlayerBase* getPlayerByIndex(int index) const { return mPlayerMap[index]; }
+		PlayerBase* getPlayer(PlayerId id) const { CHECK(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id]; }
 		void        addPlayer(PlayerBase* player);
 		void        clearAllPlayer(bool bNeedDelete);
 

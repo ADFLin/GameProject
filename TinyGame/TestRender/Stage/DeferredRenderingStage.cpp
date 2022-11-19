@@ -225,7 +225,7 @@ namespace Render
 				mSceneRenderTargets.getGBuffer().drawTextures(commandList, porjectMatrix, screenSize / 4, IntVector2(2, 2));
 			}
 
-			TextureShowManager::registerRenderTarget(GRenderTargetPool);
+			GTextureShowManager.registerRenderTarget(GRenderTargetPool);
 		}
 
 		MsgReply onMouse(MouseMsg const& msg) override

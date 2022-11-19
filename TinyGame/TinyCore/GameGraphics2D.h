@@ -65,6 +65,11 @@ public:
 
 	virtual bool  isUseRHI() const = 0;
 
+	virtual void* getImplPtr() const = 0;
+
+	template< typename TGraphic >
+	TGraphic& getImpl() const { return *static_cast<TGraphic*>(getImplPtr()); }
+
 	void  drawRect(int left, int top, int right, int bottom)
 	{
 		drawRect(Vector2(left, top), Vector2(right - left, bottom - right));

@@ -42,6 +42,13 @@ namespace ECS
 	class EntityHandle
 	{
 	public:
+
+		enum 
+		{
+			ManagerIndexBits = 8 ,
+			SlotIndexBits = 24,
+			SerialNumberBits = 32,
+		};
 		bool operator == (EntityHandle const& rhs) const
 		{
 			return mPackedValue == rhs.mPackedValue;
@@ -58,9 +65,9 @@ namespace ECS
 			uint64 mPackedValue;
 			struct
 			{
-				uint32 indexManager : 8;
-				uint32 indexSlot    : 24;
-				uint32 serialNumber : 32;
+				uint32 indexManager : ManagerIndexBits;
+				uint32 indexSlot    : SlotIndexBits;
+				uint32 serialNumber : SerialNumberBits;
 			};
 		};
 
@@ -192,9 +199,9 @@ namespace ECS
 		void visitComponent(TFunc&& func)
 		{
 			ComponentType* type = getComponentTypeT<TComponent>();
-			for (auto indexSlot : mUsedSlotIndices)
+			for (auto index : mUsedEntityIndices)
 			{
-				EntityData& entityData = mEntityLists[indexSlot];
+				EntityData& entityData = mEntityLists[index];
 				for (auto const& componentData : entityData.components)
 				{
 					if (componentData.type == type)
@@ -303,7 +310,7 @@ namespace ECS
 		{
 			enum Type
 			{
-				PaddingKill = 0x00000001,
+				PendingKill = 0x00000001,
 				Used = 0x00000002,
 
 			};
@@ -311,14 +318,13 @@ namespace ECS
 
 		struct ComponentData
 		{
-			void* ptr;
+			EntityComponent* ptr;
 			ComponentType* type;
 		};
 
 		struct EntityData
 		{
 			uint32 flags;
-			int32  linkIndex;
 			uint64 systemMask;
 			EntityHandle handle;
 			std::vector< ComponentData > components;
@@ -326,7 +332,7 @@ namespace ECS
 
 		void  cleanupEntity(EntityData& entityData)
 		{
-			CHECK(entityData.flags & EEntityFlag::PaddingKill);
+			CHECK(entityData.flags & EEntityFlag::PendingKill);
 			for (auto const& compentData : entityData.components)
 			{
 				compentData.type->getPool()->releaseComponent(compentData.ptr);
@@ -337,13 +343,13 @@ namespace ECS
 		}
 		int mIndexSlot = INDEX_NONE;
 
-		std::vector< uint32 > mUsedSlotIndices;
-		std::vector< uint32 > mFreeSlotIndices;
+		std::vector< uint32 > mUsedEntityIndices;
+		std::vector< uint32 > mFreeEntityIndices;
 		uint32 mNextSerialNumber = 1;
 
 
 		template< class TFunc >
-		void notifyEvent(TFunc&& func)
+		void visitListener(TFunc&& func)
 		{
 			for( auto listener : mEventListers )
 			{

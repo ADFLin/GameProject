@@ -301,7 +301,7 @@ public:
 		TOKEN_RBAR       = 0x020000 ,
 		TOKEN_BINARY_OP  = 0x030000 ,
 
-		TOKEN_FUN        = 0x040000 ,
+		TOKEN_FUNC       = 0x040000 ,
 		TOKEN_VALUE      = 0x050000 ,
 		TOKEN_UNARY_OP   = 0x060000 ,
 
@@ -326,7 +326,7 @@ public:
 		UOP_INC_PRE      = 0x000903 | TOKEN_UNARY_OP ,
 		UOP_DEC_PRE      = 0x000904 | TOKEN_UNARY_OP ,
 
-		FUN_DEF          = 0x000a01 | TOKEN_FUN ,
+		FUNC_DEF         = 0x000a01 | TOKEN_FUNC ,
 
 		VALUE_CONST      = 0x000001 | TOKEN_VALUE ,
 		VALUE_VARIABLE   = 0x000002 | TOKEN_VALUE ,
@@ -334,7 +334,7 @@ public:
 	};
 
 	inline static int  PrecedeceOrder( TokenType token ){ return token & PRECEDENCE_MASK; }
-	inline static bool IsFunction(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_FUN; }
+	inline static bool IsFunction(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_FUNC; }
 	inline static bool IsBinaryOperator(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_BINARY_OP; }
 	inline static bool IsValue(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_VALUE; }
 	inline static bool IsUnaryOperator(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_UNARY_OP; }
@@ -617,7 +617,7 @@ public:
 		default:
 			switch (unit.type & TOKEN_MASK)
 			{
-			case TOKEN_FUN:
+			case TOKEN_FUNC:
 				generator.codeFunction(unit.symbol->func);
 				break;
 			case TOKEN_UNARY_OP:

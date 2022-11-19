@@ -250,7 +250,9 @@ namespace Render
 
 	void RenderBachedElementList::releaseElements()
 	{
-		for (auto element : mElements)
+		static_assert(std::is_trivially_destructible_v<RenderBachedElement>);
+
+		for (auto element : mDestructElements)
 		{
 			switch (element->type)
 			{
@@ -288,6 +290,7 @@ namespace Render
 		}
 
 		mElements.clear();
+		mDestructElements.clear();
 		mAllocator.clearFrame();
 	}
 
@@ -519,7 +522,7 @@ namespace Render
 					pVertices[3] = { element->transform.transformPosition(Vector2(payload.posRB.x, payload.posLT.y)),  payload.bHGrad ? payload.colorRB : payload.colorLT };
 
 					uint32* pIndices = fetchIndexBuffer(6);
-					FillQuad(pIndices, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
+					pIndices = FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
 				}
 			}
 		}

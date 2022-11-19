@@ -48,6 +48,9 @@ public:
 
 	bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override
 	{
+		if (isDataIgnored(key))
+			return true;
+
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
 
@@ -75,6 +78,9 @@ public:
 
 	bool saveDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
 	{
+		if (isDataIgnored(key))
+			return true;
+
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
 
@@ -102,6 +108,9 @@ public:
 
 	bool loadDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) override
 	{
+		if (isDataIgnored(key))
+			return false;
+
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
 		if( !FFileSystem::IsExist(filePath) )
@@ -127,6 +136,9 @@ public:
 
 	bool load(DataCacheKey const& key, std::vector<uint8>& outBuffer) override
 	{
+		if (isDataIgnored(key))
+			return true;
+
 		InlineString<512> filePath;
 		getFilePath(key, filePath);
 		if( !FFileSystem::IsExist(filePath) )
@@ -157,18 +169,28 @@ public:
 		return ERROR_DATA_CACHE_HANDLE;
 	}
 
+
+	void ignoreDataType(char const* typeName) override
+	{
+		mIgnoreTypeNameSet.insert(typeName);
+	}
+
+	bool isDataIgnored(DataCacheKey const& key)
+	{
+		return mIgnoreTypeNameSet.find(key.typeName) != mIgnoreTypeNameSet.end();
+	}
+
 	void release() override
 	{
 		delete this;
 	}
 
 	std::string mCacheDir;
-
+	std::unordered_set< HashString > mIgnoreTypeNameSet;
 
 };
 
-DataCacheInterface* DataCacheInterface::Create( char const* dir )
+DataCacheInterface* DataCacheInterface::Create(char const* dir)
 {
 	return new DataCacheImpl(dir);
 }
-

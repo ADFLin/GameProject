@@ -30,6 +30,9 @@
     </ClInclude>
     <ClInclude Include="TestRender\TestRenderPCH.h" />
     <ClInclude Include="TestRender\MeshImporterFBX.h" />
+    <ClInclude Include="TestRender\Stage\TestRHIStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestRender\SceneScript.cpp" />
@@ -70,6 +73,9 @@
     <ClCompile Include="TestRender\TestRenderPCH.cpp" />
     <ClCompile Include="TestRender\MeshImporterFBX.cpp" />
     <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestRender\Stage\TestRHIStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>

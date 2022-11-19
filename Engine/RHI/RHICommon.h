@@ -41,8 +41,8 @@ namespace Render
 	class RHIShaderResourceView;
 	class RHIUnorderedAccessView;
 	
-	class RHIVertexBuffer;
-	class RHIIndexBuffer;
+	class RHIBuffer;
+	class RHIBuffer;
 
 	class RHIInputLayout;
 	class RHIRasterizerState;
@@ -170,13 +170,12 @@ namespace Render
 		static constexpr int DepthStencilFormatEnd = Stencil16;
 		enum Face
 		{
-			FaceX = 0,
+			FaceX    = 0,
 			FaceInvX = 1,
-			FaceY = 2,
+			FaceY    = 2,
 			FaceInvY = 3,
-			FaceZ = 4,
+			FaceZ    = 4,
 			FaceInvZ = 5,
-
 
 			FaceCount ,
 		};
@@ -635,10 +634,13 @@ namespace Render
 		BCF_CreateSRV = BIT(0),
 		BCF_CreateUAV = BIT(1),
 		BCF_CpuAccessWrite = BIT(2),
-		BCF_UsageStage = BIT(3),
-		BCF_UsageConst = BIT(4),
-		BCF_Structured = BIT(5),
-		BCF_CPUAccessRead = BIT(6),
+		BCF_UsageVertex = BIT(3),
+		BCF_UsageIndex  = BIT(4),
+		BCF_UsageStage  = BIT(5),
+		BCF_UsageConst  = BIT(6),
+		BCF_Structured  = BIT(7),
+
+		BCF_CPUAccessRead = BIT(8),
 
 		BCF_DefalutValue = 0,
 	};
@@ -754,14 +756,14 @@ namespace Render
 			uint32 result = HashValue(mElements.size());
 			for (auto const element : mElements)
 			{
-				HashCombine(result, element.getTypeHash());
+				result = HashCombine(result, element.getTypeHash());
 			}
 
 			for (uint size : mVertexSizes)
 			{
 				if (size)
 				{
-					HashCombine(result, size);
+					result = HashCombine(result, size);
 				}
 			}
 
@@ -792,14 +794,10 @@ namespace Render
 	};
 
 
-	class RHIBufferBase : public RHIResource
+	class RHIBuffer : public RHIResource
 	{
 	public:
-#if USE_RHI_RESOURCE_TRACE
-		RHIBufferBase(char const* name):RHIResource(name)
-#else
-		RHIBufferBase(): RHIResource()
-#endif
+		RHIBuffer():RHIResource(TRACE_TYPE_NAME("Buffer"))
 		{
 			mNumElements = 0;
 			mElementSize = 0;
@@ -814,19 +812,6 @@ namespace Render
 		uint32 mCreationFlags;
 		uint32 mNumElements;
 		uint32 mElementSize;
-	};
-
-	class RHIVertexBuffer : public RHIBufferBase
-	{
-	public:
-		RHIVertexBuffer() :RHIBufferBase(TRACE_TYPE_NAME("VertexBuffer")) {}
-	};
-
-	class RHIIndexBuffer : public RHIBufferBase
-	{
-	public:
-		RHIIndexBuffer() :RHIBufferBase(TRACE_TYPE_NAME("IndexBuffer")) {}
-		bool  isIntType() const { return mElementSize == 4; }
 	};
 
 	class RHISwapChain : public RHIResource
@@ -958,8 +943,7 @@ namespace Render
 	using RHITextureCubeRef       = TRefCountPtr< RHITextureCube >;
 	using RHITexture2DArrayRef    = TRefCountPtr< RHITexture2DArray >;
 	using RHIFrameBufferRef       = TRefCountPtr< RHIFrameBuffer >;
-	using RHIVertexBufferRef      = TRefCountPtr< RHIVertexBuffer >;
-	using RHIIndexBufferRef       = TRefCountPtr< RHIIndexBuffer >;
+	using RHIBufferRef            = TRefCountPtr< RHIBuffer >;
 	using RHISamplerStateRef      = TRefCountPtr< RHISamplerState >;
 	using RHIRasterizerStateRef   = TRefCountPtr< RHIRasterizerState >;
 	using RHIDepthStencilStateRef = TRefCountPtr< RHIDepthStencilState >;
@@ -970,7 +954,7 @@ namespace Render
 
 	struct InputStreamInfo
 	{
-		RHIVertexBufferRef buffer;
+		RHIBufferRef buffer;
 		intptr_t offset;
 		int32    stride;
 
@@ -1044,9 +1028,9 @@ namespace Render
 			hashValue = HashValue(inputStreamCount);
 			for (int i = 0; i < inputStreamCount; ++i)
 			{
-				HashCombine(hashValue, inputStreams[i].buffer.get());
-				HashCombine(hashValue, inputStreams[i].offset);
-				HashCombine(hashValue, inputStreams[i].stride);
+				hashValue = HashCombine(hashValue, inputStreams[i].buffer.get());
+				hashValue = HashCombine(hashValue, inputStreams[i].offset);
+				hashValue = HashCombine(hashValue, inputStreams[i].stride);
 			}
 		}
 

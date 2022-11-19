@@ -114,7 +114,7 @@ public:
 
 	void onRoot     ( SampleNode* node )
 	{
-		double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
+		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
 		msgShow.push( "--- Profiling: %s (total running time: %.3f ms) ---" , 
 			node->getName() , time_since_reset );
 	}
@@ -137,7 +137,7 @@ public:
 			
 		return true; 
 	}
-	void onEnterParent( SampleNode* node , int numChildren , double accTime )
+	void onReturnParent( SampleNode* node , int numChildren , double accTime )
 	{
 		if ( numChildren )
 		{
@@ -145,7 +145,7 @@ public:
 			if ( node->getParent() != NULL )
 				time = node->getTotalTime();
 			else
-				time = ProfileSystem::Get().getTimeSinceReset();
+				time = ProfileSystem::Get().getDurationSinceReset();
 
 			double delta = time - accTime;
 			msgShow.push( "|-> %s (%.3f %%) :: %.3f ms / frame", "Other",

@@ -199,11 +199,11 @@ namespace Render
 		outData.envMapSize = texture->getSize();
 		outData.irradianceSize = irradianceTexture->getSize();
 		outData.perFilteredSize = perfilteredTexture->getSize();
-		ReadTextureData(*texture, ETexture::FloatRGBA, 0, outData.envMap);
-		ReadTextureData(*irradianceTexture, ETexture::FloatRGBA, 0, outData.irradiance);
+		RHIReadTexture(*texture, ETexture::FloatRGBA, 0, outData.envMap);
+		RHIReadTexture(*irradianceTexture, ETexture::FloatRGBA, 0, outData.irradiance);
 		for (int level = 0; level < IBLResource::NumPerFilteredLevel; ++level)
 		{
-			ReadTextureData(*perfilteredTexture, ETexture::FloatRGBA, level, outData.perFiltered[level]);
+			RHIReadTexture(*perfilteredTexture, ETexture::FloatRGBA, level, outData.perFiltered[level]);
 		}
 	}
 
@@ -215,16 +215,6 @@ namespace Render
 
 		for (int i = 0; i < ETexture::FaceCount; ++i)
 			outData[i] = &data[i * faceDataSize];
-	}
-
-	void IBLResource::ReadTextureData(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
-	{
-		RHIReadTexture(texture, format, level, outData);
-	}
-
-	void IBLResource::ReadTextureData(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
-	{
-		RHIReadTexture(texture, format, level, outData);
 	}
 
 	bool IBLResource::initializeRHI(ImageBaseLightingData& IBLData)
@@ -259,9 +249,10 @@ namespace Render
 
 	bool IBLResource::initializeRHI(IBLBuildSetting const& setting)
 	{
-		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(ETexture::FloatRGBA, setting.envSize, 0, TCF_DefalutValue | TCF_RenderTarget));
-		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.irradianceSize, 0, TCF_DefalutValue | TCF_RenderTarget));
-		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.perfilteredSize, NumPerFilteredLevel, TCF_DefalutValue | TCF_RenderTarget));
+		uint32 flags = TCF_DefalutValue | TCF_RenderTarget;
+		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(ETexture::FloatRGBA, setting.envSize, 0, flags));
+		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.irradianceSize, 0, flags));
+		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.perfilteredSize, NumPerFilteredLevel, flags));
 		return true;
 	}
 
@@ -281,7 +272,7 @@ namespace Render
 		if (mEquirectangularToCubePS != nullptr)
 			return true;
 
-#//if USE_SEPARATE_SHADER
+//#if USE_SEPARATE_SHADER
 		VERIFY_RETURN_FALSE(mScreenVS = ShaderManager::Get().getGlobalShaderT< ScreenVS >(true));
 		VERIFY_RETURN_FALSE(mEquirectangularToCubePS = ShaderManager::Get().getGlobalShaderT< EquirectangularToCubePS >(true));
 		VERIFY_RETURN_FALSE(mIrradianceGenPS = ShaderManager::Get().getGlobalShaderT< IrradianceGenPS >(true));
@@ -313,21 +304,22 @@ namespace Render
 
 	bool IBLResourceBuilder::loadOrBuildResource(DataCacheInterface& dataCache, char const* path, RHITexture2D& HDRImage, IBLResource& resource, IBLBuildSetting const& setting)
 	{
-		auto const GetBRDFCacheKey = [&setting]()->DataCacheKey
+		int formatSize = GetFormatClientSize(ETexture::FloatRGBA);
+		auto const GetBRDFCacheKey = [&setting, formatSize]()->DataCacheKey
 		{
 			DataCacheKey cacheKey;
 			cacheKey.typeName = "IBL-BRDF-LUT";
-			cacheKey.version = "7A38AC9D-1EFC-4537-898E-BC8552AD7758";
-			cacheKey.keySuffix.add(setting.BRDFSampleCount);
+			cacheKey.version = "7A38AC9D-1EFC-4537-898E-BC8552AD7738";
+			cacheKey.keySuffix.add(setting.BRDFSampleCount,formatSize);
 			return cacheKey;
 		};
 
 		{
 			DataCacheKey cacheKey;
 			cacheKey.typeName = "IBL";
-			cacheKey.version = "7A38AC9D-1EFC-4537-898E-BC8552AD7758";
+			cacheKey.version = "7A38AC9D-1EFC-4537-898E-BC8552AD7738";
 			cacheKey.keySuffix.add(path, setting.envSize, setting.irradianceSize, setting.perfilteredSize,
-				setting.irradianceSampleCount[0], setting.irradianceSampleCount[1], setting.prefilterSampleCount);
+				setting.irradianceSampleCount[0], setting.irradianceSampleCount[1], setting.prefilterSampleCount, formatSize);
 
 			auto LoadFunc = [&resource](IStreamSerializer& serializer) -> bool
 			{
@@ -345,7 +337,31 @@ namespace Render
 				return true;
 			};
 
-			if (!dataCache.loadDelegate(cacheKey, LoadFunc))
+			if (dataCache.loadDelegate(cacheKey, LoadFunc))
+			{
+				auto LoadFunc = [this](IStreamSerializer& serializer) -> bool
+				{
+					std::vector< uint8 > data;
+					{
+						TIME_SCOPE("Serialize BRDF Data");
+						serializer >> data;
+					}
+					{
+						TIME_SCOPE("Initialize BRDF Texture");
+						if (!IBLResource::InitializeBRDFTexture(data.data()))
+							return false;
+					}
+
+					return true;
+				};
+
+				TIME_SCOPE("Load BRDF Data");
+				if (!dataCache.loadDelegate(GetBRDFCacheKey(), LoadFunc))
+				{
+					return false;
+				}
+			}
+			else
 			{
 				if (!resource.initializeRHI(setting))
 					return false;
@@ -372,30 +388,6 @@ namespace Render
 					return true;
 				});
 			}
-			else
-			{
-				auto LoadFunc = [this](IStreamSerializer& serializer) -> bool
-				{
-					std::vector< uint8 > data;
-					{
-						TIME_SCOPE("Serialize BRDF Data");
-						serializer >> data;
-					}
-					{
-						TIME_SCOPE("Initialize BRDF Texture");
-						if (!IBLResource::InitializeBRDFTexture(data.data()))
-							return false;
-					}
-
-					return true;
-				};
-
-				TIME_SCOPE("Load BRDF Data");
-				if (!dataCache.loadDelegate(GetBRDFCacheKey(), LoadFunc))
-				{
-					return false;
-				}
-			}
 		}
 
 		return true;
@@ -411,13 +403,13 @@ namespace Render
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
-		for (int i = 0; i < ETexture::FaceCount; ++i)
+		for (int face = 0; face < ETexture::FaceCount; ++face)
 		{
-			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(i), level);
+			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(face), level);
 			RHISetFrameBuffer(commandList, frameBuffer);
 			RHISetShaderProgram(commandList, updateShader.getRHI());
-			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(i)));
-			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(i)));
+			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(face)));
+			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(face)));
 			shaderSetup(commandList);
 			DrawUtility::ScreenRect(commandList);
 			RHISetFrameBuffer(commandList, nullptr);
@@ -434,9 +426,9 @@ namespace Render
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
 
-		for (int i = 0; i < ETexture::FaceCount; ++i)
+		for (int face = 0; face < ETexture::FaceCount; ++face)
 		{
-			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(i), level);
+			frameBuffer->setTexture(0, cubeTexture, ETexture::Face(face), level);
 
 			RHISetFrameBuffer(commandList, frameBuffer);
 
@@ -445,8 +437,8 @@ namespace Render
 			boundState.pixel = shaderPS.getRHI();
 			RHISetGraphicsShaderBoundState(commandList, boundState);
 
-			shaderPS.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(i)));
-			shaderPS.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(i)));
+			shaderPS.setParam(commandList, SHADER_PARAM(FaceDir), ETexture::GetFaceDir(ETexture::Face(face)));
+			shaderPS.setParam(commandList, SHADER_PARAM(FaceUpDir), ETexture::GetFaceUpDir(ETexture::Face(face)));
 
 			shaderSetup(commandList);
 			DrawUtility::ScreenRect(commandList);

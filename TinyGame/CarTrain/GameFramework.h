@@ -239,7 +239,7 @@ namespace CarTrain
 		std::vector<GameEntity*> mPendingDestoryEntities;
 		void markEntityDestroy(GameEntity* entity)
 		{
-			AddUnique(mPendingDestoryEntities, entity);
+			AddUniqueValue(mPendingDestoryEntities, entity);
 		}
 
 		void destroyEntity(GameEntity* entity)

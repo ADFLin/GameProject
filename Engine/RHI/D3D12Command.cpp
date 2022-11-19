@@ -240,12 +240,7 @@ namespace Render
 			DXGI_ADAPTER_DESC1 adapterDesc;
 			if (SUCCEEDED(hardwareAdapter->GetDesc1(&adapterDesc)))
 			{
-				switch (adapterDesc.VendorId)
-				{
-				case 0x10DE: GRHIDeviceVendorName = DeviceVendorName::NVIDIA; break;
-				case 0x8086: GRHIDeviceVendorName = DeviceVendorName::Intel; break;
-				case 0x1002: GRHIDeviceVendorName = DeviceVendorName::ATI; break;
-				}
+				GRHIDeviceVendorName = FD3DUtils::GetDevicVenderName(adapterDesc.VendorId);
 			}
 		}
 
@@ -611,9 +606,9 @@ namespace Render
 		return texture;
 	}
 
-	RHIVertexBuffer* D3D12System::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	RHIBuffer* D3D12System::RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
-		int bufferSize = vertexSize * numVertices;
+		int bufferSize = elementSize * numElements;
 
 		if (creationFlags & BCF_UsageConst)
 		{
@@ -632,98 +627,47 @@ namespace Render
 		// Copy the triangle data to the vertex buffer.
 		if (data)
 		{
-			UINT8* pVertexDataBegin;
+			UINT8* pDataBegin;
 			D3D12_RANGE readRange = {};        // We do not intend to read from this resource on the CPU.
-			VERIFY_D3D_RESULT(resource->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)), return nullptr; );
-			memcpy(pVertexDataBegin, data, bufferSize);
+			VERIFY_D3D_RESULT(resource->Map(0, &readRange, reinterpret_cast<void**>(&pDataBegin)), return nullptr; );
+			memcpy(pDataBegin, data, bufferSize);
 			resource->Unmap(0, nullptr);
 		}
 
-		D3D12VertexBuffer* result = new D3D12VertexBuffer;
-		if (!result->initialize(resource, mDevice, vertexSize, numVertices))
+		D3D12Buffer* result = new D3D12Buffer;
+		if (!result->initialize(resource, mDevice, elementSize, numElements))
 		{
 			delete result;
 			return nullptr;
 		}
 
+		if (creationFlags & BCF_UsageConst)
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.BufferLocation = result->mResource->GetGPUVirtualAddress();
+			cbvDesc.SizeInBytes = bufferSize;
+			result->mSRV = D3D12DescriptorHeapPool::Get().allocCBV(resource, &cbvDesc);
+		}
 		if (creationFlags & BCF_CreateSRV)
 		{
-			if (creationFlags & BCF_UsageConst)
-			{
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.BufferLocation = result->mResource->GetGPUVirtualAddress();
-				cbvDesc.SizeInBytes = bufferSize;
-				result->mSRV = D3D12DescriptorHeapPool::Get().allocCBV(resource, &cbvDesc);
-			}
-			else
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = FD3D12Init::BufferViewDesc(vertexSize);
-				result->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(resource, &srvDesc);
-			}
-		}
-
-		return result;
-	}
-
-	RHIIndexBuffer*  D3D12System::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
-	{
-		int indexSize = bIntIndex ? 4 : 2;
-		int bufferSize = indexSize * nIndices;
-
-		TComPtr< ID3D12Resource > resource;
-		VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
-			&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&FD3D12Init::BufferDesc(bufferSize),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&resource)), return nullptr; );
-
-		// Copy the triangle data to the vertex buffer.
-		if (data)
-		{
-			UINT8* pIndexDataBegin;
-			D3D12_RANGE readRange = {};        // We do not intend to read from this resource on the CPU.
-			VERIFY_D3D_RESULT(resource->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)), return nullptr; );
-			memcpy(pIndexDataBegin, data, bufferSize);
-			resource->Unmap(0, nullptr);
-		}
-
-		D3D12IndexBuffer* result = new D3D12IndexBuffer;
-		if (!result->initialize(resource, mDevice, indexSize, nIndices))
-		{
-			delete result;
-			return nullptr;
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = FD3D12Init::BufferViewDesc(elementSize);
+			result->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(resource, &srvDesc);
 		}
 		return result;
 	}
 
-	void* D3D12System::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	void* D3D12System::RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
 		D3D12_RANGE range = {};
 		void* result = nullptr;
-		static_cast<D3D12VertexBuffer*>(buffer)->mResource->Map(0, &range, &result);
+		static_cast<D3D12Buffer*>(buffer)->mResource->Map(0, &range, &result);
 		return result;
 	}
 
-	void D3D12System::RHIUnlockBuffer(RHIVertexBuffer* buffer)
+	void D3D12System::RHIUnlockBuffer(RHIBuffer* buffer)
 	{
 		D3D12_RANGE range = {};
-		static_cast<D3D12VertexBuffer*>(buffer)->mResource->Unmap(0, nullptr);
-	}
-
-	void* D3D12System::RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
-	{
-		D3D12_RANGE range = {};
-		void* result = nullptr;
-		static_cast<D3D12IndexBuffer*>(buffer)->mResource->Map(0, &range, &result);
-		return result;
-	}
-
-	void D3D12System::RHIUnlockBuffer(RHIIndexBuffer* buffer)
-	{
-		D3D12_RANGE range = {};
-		static_cast<D3D12IndexBuffer*>(buffer)->mResource->Unmap(0, nullptr);
+		static_cast<D3D12Buffer*>(buffer)->mResource->Unmap(0, nullptr);
 	}
 
 	RHIFrameBuffer* D3D12System::RHICreateFrameBuffer()
@@ -1064,6 +1008,7 @@ namespace Render
 			if (shaderData.rootSignature.globalCBRegister != INDEX_NONE)
 			{
 				D3D12_ROOT_PARAMETER1 parameter = {};
+				parameter.ShaderVisibility = shaderData.rootSignature.visibility;
 				parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 				parameter.Descriptor.ShaderRegister = shaderData.rootSignature.globalCBRegister;
 				rootParameters.push_back(parameter);
@@ -1940,7 +1885,6 @@ namespace Render
 				{
 					mGraphicsCmdList->ClearRenderTargetView(RTVHandle.getCPUHandle(), colors[i], 0, nullptr);
 				}
-
 			}
 		}
 		if (HaveBits(clearBits, EClearBits::Depth | EClearBits::Stencil))
@@ -1971,7 +1915,7 @@ namespace Render
 			auto& bufferView = bufferViews[i];
 			if (inputStreams[i].buffer)
 			{
-				D3D12_GPU_VIRTUAL_ADDRESS address = static_cast<D3D12VertexBuffer&>(*inputStreams[i].buffer).getResource()->GetGPUVirtualAddress();
+				D3D12_GPU_VIRTUAL_ADDRESS address = static_cast<D3D12Buffer&>(*inputStreams[i].buffer).getResource()->GetGPUVirtualAddress();
 				address += inputStreams[i].offset;
 				bufferView.BufferLocation = address;
 				bufferView.SizeInBytes = inputStreams[i].buffer->getSize() - inputStreams[i].offset;
@@ -1988,14 +1932,14 @@ namespace Render
 		mGraphicsCmdList->IASetVertexBuffers(0, numInputStream, bufferViews);
 	}
 
-	void D3D12Context::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+	void D3D12Context::RHISetIndexBuffer(RHIBuffer* indexBuffer)
 	{
 		if (indexBuffer)
 		{
 			D3D12_INDEX_BUFFER_VIEW bufferView;
-			bufferView.BufferLocation = static_cast<D3D12IndexBuffer&>(*indexBuffer).mResource->GetGPUVirtualAddress();
+			bufferView.BufferLocation = static_cast<D3D12Buffer&>(*indexBuffer).mResource->GetGPUVirtualAddress();
 			bufferView.SizeInBytes = indexBuffer->getSize();
-			bufferView.Format = indexBuffer->isIntType() ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+			bufferView.Format = D3D12Translate::IndexType(indexBuffer);
 			mGraphicsCmdList->IASetIndexBuffer(&bufferView);
 		}
 		else
@@ -2255,7 +2199,7 @@ namespace Render
 		}
 	}
 
-	void D3D12Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void D3D12Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.setupShader(param, [this, &buffer](EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& shaderParam)
@@ -2264,9 +2208,9 @@ namespace Render
 		});
 	}
 
-	void D3D12Context::setShaderUniformBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void D3D12Context::setShaderUniformBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIBuffer& buffer)
 	{
-		auto const& handle = static_cast<D3D12VertexBuffer&>(buffer).mSRV;
+		auto const& handle = static_cast<D3D12Buffer&>(buffer).mSRV;
 		updateCSUHeapUsage(handle);
 
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
@@ -2282,7 +2226,7 @@ namespace Render
 	}
 
 
-	void D3D12Context::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void D3D12Context::setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		auto& shaderImpl = static_cast<D3D12Shader&>(shader);
 		setShaderUniformBuffer(shaderImpl.getType(), shaderImpl, param, buffer);

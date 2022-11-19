@@ -153,7 +153,7 @@ namespace Render
 		uint32 getTypeHash() const
 		{
 			uint32 result = HashValue(shaderClass);
-			HashCombine(result, uniqueHash);
+			result = (result, uniqueHash);
 			return result;
 		}
 	};

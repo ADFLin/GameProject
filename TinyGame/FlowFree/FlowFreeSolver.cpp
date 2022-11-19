@@ -38,13 +38,13 @@ namespace FlowFree
 			mSourceIndices.push_back(mCellMap.toIndex(pos.x, pos.y));
 		}
 
-		struct SortCellInfo
+		struct SortedCellInfo
 		{
 			int   indexCell;
 			Cell* cell;
 		};
 
-		std::vector<SortCellInfo> sortedCells;
+		std::vector<SortedCellInfo> sortedCells;
 		for (int i = 0; i < mCellMap.getRawDataSize(); ++i)
 		{
 			Cell& cell = mCellMap[i];
@@ -55,7 +55,7 @@ namespace FlowFree
 			cell.funcMeta = levelCell.funcMeta;
 			cell.blockMask = levelCell.blockMask;
 
-			SortCellInfo info;
+			SortedCellInfo info;
 			info.cell = &cell;
 			info.indexCell = i;
 			sortedCells.push_back(info);
@@ -68,7 +68,7 @@ namespace FlowFree
 
 #if USE_SORTED_CELL
 		std::sort(sortedCells.begin(), sortedCells.end(),
-			[](SortCellInfo const& lhs, SortCellInfo const& rhs)
+			[](SortedCellInfo const& lhs, SortedCellInfo const& rhs)
 		{
 			if (lhs.cell->func == CellFunc::Source && rhs.cell->func != CellFunc::Source)
 				return true;

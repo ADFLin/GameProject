@@ -10,6 +10,7 @@
 #include <vector>
 #include <unordered_map>
 
+#define SHADER_DEBUG _DEBUG
 
 namespace Render
 {
@@ -83,7 +84,7 @@ namespace Render
 
 		void appendMeta(HashString key, char const* value)
 		{
-			std::string metaValue = mMetaMap[key];
+			std::string& metaValue = mMetaMap[key];
 			if (metaValue.size())
 			{
 				metaValue += ' ';
@@ -194,7 +195,7 @@ namespace Render
 	public:
 		friend class ShaderProgram;
 
-#if _DEBUG
+#if SHADER_DEBUG
 		HashString mName;
 		bool bHasLogWarning = false;
 		EShaderParamBindType mbindType = EShaderParamBindType::Unknown;
@@ -220,6 +221,9 @@ namespace Render
 
 			auto& result = mMap[name];
 			result = entry;
+#if SHADER_DEBUG
+			result.mName = name;
+#endif
 			return result;
 		}
 		void clear()
@@ -351,7 +355,7 @@ namespace Render
 	{
 		enum Type
 		{
-			eNone,
+			eNone = 0,
 			eGraphiscsVsPs,
 			eGraphiscsVsPsGs,
 			eGraphiscsVsPsGsHsDs,

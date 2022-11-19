@@ -1,0 +1,72 @@
+#include "Common.sgc"
+#include "CubeMapCommon.sgc"
+
+#define TEX_PREVIEW_1D   0
+#define TEX_PREVIEW_2D   1
+#define TEX_PREVIEW_3D   2
+#define TEX_PREVIEW_CUBE 3
+#define TEX_PREVIEW_CUBE_PROJECTION 4
+
+#ifndef TEX_PREVIEW
+#define TEX_PREVIEW TEX_PREVIEW_2D
+#endif
+
+#if TEX_PREVIEW == TEX_PREVIEW_1D
+#define UVType float2
+#define TextureType Texture1D
+#elif TEX_PREVIEW == TEX_PREVIEW_2D
+#define UVType float2
+#define TextureType Texture2D
+#elif TEX_PREVIEW == TEX_PREVIEW_3D
+#define UVType float3
+#define TextureType Texture3D
+#elif TEX_PREVIEW == TEX_PREVIEW_CUBE
+#define UVType float3
+#define TextureType TextureCube
+#elif TEX_PREVIEW == TEX_PREVIEW_CUBE_PROJECTION
+#define UVType float2
+#define TextureType TextureCube
+#endif
+
+struct VSOutputParameters
+{
+	UVType UVs MEMBER_OUT(TEXCOORD0);
+};
+
+#if VERTEX_SHADER
+
+uniform float4x4 XForm;
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float2 InPosition , ATTRIBUTE_POSITION)
+	VS_INPUT(UVType InUV, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+	VSOutput.UVs = InUV;
+	SvPosition = mul( XForm , float4( InPosition , 0 , 1 ));
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+
+DEFINE_TEXTURE(TextureType, Texture);
+uniform float PreviewLevel;
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput , 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+#if TEX_PREVIEW == TEX_PREVIEW_CUBE_PROJECTION
+	float4 color = TEXTURE_SAMPLE_LEVEL(Texture, EquirectangularToDir(VSOutput.UVs), PreviewLevel);
+#elif TEX_PREVIEW == TEX_PREVIEW_1D
+	float4 color = TEXTURE_SAMPLE_LEVEL(Texture, VSOutput.UVs.x, PreviewLevel);
+#else
+	float4 color = TEXTURE_SAMPLE_LEVEL(Texture, VSOutput.UVs, PreviewLevel);
+#endif
+	OutColor = float4(color);
+}
+
+#endif

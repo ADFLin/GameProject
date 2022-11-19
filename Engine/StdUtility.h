@@ -8,6 +8,14 @@
 #include <unordered_map>
 
 template< typename T, typename A >
+void RemoveValueChecked(std::vector< T, A >& v, T const& val)
+{
+	auto iter = std::find(v.begin(), v.end(), val);
+	CHECK(iter != v.end());
+	v.erase(iter);
+}
+
+template< typename T, typename A >
 bool RemoveValue(std::vector< T , A >& v, T const& val)
 {
 	auto iter = std::find(v.begin(), v.end(), val);
@@ -17,6 +25,14 @@ bool RemoveValue(std::vector< T , A >& v, T const& val)
 
 	v.erase(iter);
 	return true;
+}
+
+template< typename K, typename V, typename C, typename A >
+void RemoveValueChecked(std::map< K, V, C, A >& v, K const& val)
+{
+	auto iter = v.find(val);
+	CHECK(iter != v.end());
+	v.erase(iter);
 }
 
 template< typename K, typename V, typename C, typename A >
@@ -57,7 +73,7 @@ void RemoveIndexSwap(std::vector< T, A >& v, int index)
 }
 
 template< typename T, typename A >
-bool AddUnique(std::vector< T , A >& v, T const& val)
+bool AddUniqueValue(std::vector< T , A >& v, T const& val)
 {
 	for( int i = 0; i < v.size(); ++i )
 	{

@@ -9,9 +9,16 @@
 
 #include "DrawEngine.h"
 
+#include "RHI/RHICommand.h"
+#include "RenderDebug.h"
+#include "Core/ScopeGuard.h"
+#include "RHI/RHIGraphics2D.h"
+
 static CardLib gCardLib;
 
 namespace Poker {
+
+	using namespace Render;
 
 	class CCardDraw : public ICardDraw
 	{
@@ -24,17 +31,20 @@ namespace Poker {
 		{
 			return Vec2i( CardLib::CardSizeX , CardLib::CardSizeY );
 		}
-		void draw( Graphics2D& g , Vec2i const& pos , Card const& card ) override
+		void draw(IGraphics2D& g, Vec2i const& pos , Card const& card ) override
 		{
 			if( card == Card::None() )
 				return;
+
+			Graphics2D& impl = g.getImpl< Graphics2D >();
 			cdtDraw( mBugFixDC.getHandle() , 0  , 0 , card.getIndex() , mdFACES , RGB( 0,0,0 )  );
-			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
+			mBugFixDC.bitBltTo( impl.getRenderDC() , pos.x , pos.y  );
 		}
-		void drawCardBack( Graphics2D& g , Vec2i const& pos ) override
+		void drawCardBack(IGraphics2D& g, Vec2i const& pos ) override
 		{
+			Graphics2D& impl = g.getImpl< Graphics2D >();
 			cdtDraw( mBugFixDC.getHandle() , 0 , 0 , 58 , mdBACKS, RGB( 255 , 255 , 255 ) );
-			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
+			mBugFixDC.bitBltTo( impl.getRenderDC() , pos.x , pos.y  );
 		}
 		void release() override
 		{
@@ -57,19 +67,19 @@ namespace Poker {
 	PosInfo const CardPicPos[4] = {{ 0 , 0 , 2 } , { 4 , 0 , 2 } ,{ 6 , 0 , 2 } ,{ 2 , 0 , 2 } };
 	PosInfo const CardBackPos[4] = {{ 0 , 6 , 1 } , { 4 , 6 , 1 } ,{ 6 , 6 , 1 } ,{ 2 , 6 , 1 } };
 
-	class Win7CardShow : public ICardDraw
+
+	class Win7CardDrawBase : public ICardDraw
 	{
 	public:
 		enum
 		{
-			TYPE_A ,
-			TYPE_B ,
-			TYPE_C ,
-			TYPE_BIG ,
+			TYPE_A,
+			TYPE_B,
+			TYPE_C,
+			TYPE_BIG,
 		};
-		Win7CardShow( HDC hDC )
-			:mBmpDC( hDC , IDB_CARDS )
-			,CardSize( 73 , 98 )
+		Win7CardDrawBase()
+			:CardSize(73, 98)
 		{
 			type = TYPE_B;
 			calcCardPos();
@@ -80,41 +90,25 @@ namespace Poker {
 			return CardSize;
 		}
 
-		Vec2i getImagePos( Card const& card )
+		Vec2i getImagePos(Card const& card)
 		{
 			Vec2i out;
-			if ( card.getFaceRank() < 10 )
+			if (card.getFaceRank() < 10)
 			{
-				PosInfo const& info = CardNumPos[ type == TYPE_BIG ? 1 : 0 ][ card.getSuit() ];
+				PosInfo const& info = CardNumPos[type == TYPE_BIG ? 1 : 0][card.getSuit()];
 				int order = card.getFaceRank();
 				out.x = info.x + card.getFaceRank() % info.numRow;
 				out.y = info.y + card.getFaceRank() / info.numRow;
 			}
 			else
 			{
-				PosInfo const& info = CardPicPos[ type ];
+				PosInfo const& info = CardPicPos[type];
 				int const orderFactor[] = { 0 , 1 , 3 , 2 };
-				int order = 3 * orderFactor[ card.getSuit() ] + card.getFaceRank() - 10;
+				int order = 3 * orderFactor[card.getSuit()] + card.getFaceRank() - 10;
 				out.x = info.x + order % info.numRow;
 				out.y = info.y + order / info.numRow;
 			}
-
 			return out;
-		}
-		void draw( Graphics2D& g , Vec2i const& pos , Card const& card ) override
-		{
-			if( card == Card::None() )
-				return;
-
-			Vec2i const& posImg = mCardPos[ card.getIndex() ];
-			mBmpDC.bitBltTo( g.getRenderDC() , pos.x , pos.y , posImg.x , posImg.y , CardSize.x , CardSize.y );
-		}
-		void drawCardBack( Graphics2D& g , Vec2i const& pos ) override
-		{
-			PosInfo const& info = CardBackPos[ type ];
-			int x = info.x;
-			int y = info.y;
-			mBmpDC.bitBltTo( g.getRenderDC() , pos.x , pos.y , x * CardSize.x , y * CardSize.y , CardSize.x , CardSize.y );
 		}
 
 		void release() override
@@ -123,20 +117,121 @@ namespace Poker {
 		}
 		void  calcCardPos()
 		{
-			for( int i = 0 ; i < 52 ; ++i )
+			for (int i = 0; i < 52; ++i)
 			{
-				mCardPos[i] = getImagePos( Card(i) ).mul( CardSize );
+				mCardPos[i] = getImagePos(Card(i)).mul(CardSize);
 			}
+
+			PosInfo const& info = CardBackPos[type];
+			mCardBackPos.x = info.x * CardSize.x;
+			mCardBackPos.y = info.y * CardSize.y;
 		}
 
-		Vec2i    mCardPos[ 52 ];
+		Vec2i    mCardPos[52];
+		Vec2i    mCardBackPos;
 		int      type;
 		Vec2i    CardSize;
+	};
+
+	class Win7CardDraw : public Win7CardDrawBase
+	{
+	public:
+
+		Win7CardDraw( HDC hDC )
+			:mBmpDC( hDC , IDB_CARDS )
+		{
+	
+		}
+
+		void draw(IGraphics2D& g, Vec2i const& pos , Card const& card ) override
+		{
+			if( card == Card::None() )
+				return;
+			Graphics2D& impl = g.getImpl< Graphics2D >();
+			Vec2i const& posImg = mCardPos[ card.getIndex() ];
+			mBmpDC.bitBltTo(impl.getRenderDC() , pos.x , pos.y , posImg.x , posImg.y , CardSize.x , CardSize.y );
+		}
+		void drawCardBack(IGraphics2D& g, Vec2i const& pos ) override
+		{
+			Graphics2D& impl = g.getImpl< Graphics2D >();
+			mBmpDC.bitBltTo( impl.getRenderDC() , pos.x , pos.y , mCardBackPos.x , mCardBackPos.y , CardSize.x , CardSize.y );
+		}
+
 		BitmapDC mBmpDC;
 	};
 
+	class Win7CardDrawRHI : public Win7CardDrawBase
+	{
+	public:
+		Win7CardDrawRHI()
+		{
+			HANDLE hHandle = LoadImageA(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_CARDS), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+			HANDLE hMask = LoadImageA(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_CARDS_MASK), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
 
-	class DBGCardDraw : public ICardDraw
+			ON_SCOPE_EXIT
+			{
+				DeleteObject(hHandle);
+				DeleteObject(hMask);
+			};
+
+			BITMAP bmp , bmpMask;
+			DIBSECTION section, sectionMask;
+			if (GetObject(hHandle, sizeof(bmp), &bmp) && GetObject(hMask, sizeof(bmpMask), &bmpMask))
+			{
+				textSizeInv.x = 1.0f / bmp.bmWidth;
+				textSizeInv.y = 1.0f / bmp.bmHeight;
+
+				cardUVSize = Vector2(CardSize).mul(textSizeInv);
+
+				std::vector< Color4ub > pixelData;
+				pixelData.resize(bmp.bmWidth * bmp.bmHeight);
+
+				int compCount = bmp.bmBitsPixel / 8;
+				Color4ub* pPixel = pixelData.data();
+				for (int j = 0; j < bmp.bmHeight; ++j)
+				{
+					uint8 const* pSrc = static_cast<uint8 const*>(bmp.bmBits) + ( bmp.bmHeight - 1 - j ) * bmp.bmWidthBytes;
+					uint8 const* pSrcMask = static_cast<uint8 const*>(bmpMask.bmBits) + (bmp.bmHeight - 1 - j)  * bmpMask.bmWidthBytes;
+					for (int i = 0; i < bmp.bmWidth; ++i)
+					{
+						uint8 a = *pSrcMask;
+						*pPixel = Color4ub(pSrc[2], pSrc[1], pSrc[0], a);
+
+						++pPixel;
+						pSrc += compCount;
+						pSrcMask += 1;
+					}
+				}
+				mTexture = RHICreateTexture2D(ETexture::RGBA8, bmp.bmWidth, bmp.bmHeight, 0, 1, TCF_DefalutValue, pixelData.data());
+
+				GTextureShowManager.registerTexture("Card", mTexture);
+			}
+		}
+
+		void draw(IGraphics2D& g, Vec2i const& pos, Card const& card) override
+		{
+			if (card == Card::None())
+				return;
+
+			RHIGraphics2D& impl = g.getImpl< RHIGraphics2D >();
+			impl.setBlendState(ESimpleBlendMode::Translucent);
+			Vec2i const& posImg = mCardPos[card.getIndex()];
+			impl.drawTexture(*mTexture, pos, CardSize, Vector2(posImg).mul(textSizeInv), cardUVSize);
+
+		}
+		void drawCardBack(IGraphics2D& g, Vec2i const& pos) override
+		{
+			RHIGraphics2D& impl = g.getImpl< RHIGraphics2D >();
+			impl.setBlendState(ESimpleBlendMode::Translucent);
+			impl.drawTexture(*mTexture, pos, CardSize, Vector2(mCardBackPos).mul(textSizeInv), cardUVSize);
+		}
+
+		Vector2 cardUVSize;
+		RHITexture2DRef mTexture;
+		Vector2 textSizeInv;
+	};
+
+	class DebugCardDraw : public ICardDraw
 	{
 	public:
 		static Vec2i CardSize;
@@ -145,11 +240,10 @@ namespace Poker {
 			return CardSize;
 		}
 		static int const RoundSize = 12;
-		void draw( Graphics2D& g , Vec2i const& pos , Card const& card ) override
+		void draw(IGraphics2D& g, Vec2i const& pos , Card const& card ) override
 		{
 			if( card == Card::None() )
 				return;
-
 			RenderUtility::SetPen(g, EColor::Black);
 			RenderUtility::SetBrush(g, EColor::White);
 			g.drawRoundRect( pos , CardSize , Vec2i(RoundSize, RoundSize));
@@ -163,7 +257,7 @@ namespace Poker {
 			g.drawText( pos, Vec2i(25,20), str.c_str());
 			g.drawText( pos + CardSize - Vec2i(25, 20), Vec2i(25, 20), str.c_str());
 		}
-		void drawCardBack( Graphics2D& g , Vec2i const& pos ) override
+		void drawCardBack(IGraphics2D& g, Vec2i const& pos ) override
 		{
 			RenderUtility::SetPen(g, EColor::Black);
 			RenderUtility::SetBrush(g, EColor::White);
@@ -178,19 +272,26 @@ namespace Poker {
 		}
 	};
 
-	Vec2i DBGCardDraw::CardSize( 73 , 98 );
+	Vec2i DebugCardDraw::CardSize( 73 , 98 );
 
 	ICardDraw* ICardDraw::Create( StyleType type )
 	{
 		switch( type )
 		{
 		case eWin7:		
-			return new Win7CardShow( Global::GetDrawEngine().getWindow().getHDC() );
+			if (Global::GetDrawEngine().isRHIEnabled())
+			{
+				return new Win7CardDrawRHI();
+			}
+			else
+			{
+				return new Win7CardDraw(Global::GetDrawEngine().getWindow().getHDC());
+			}
 		case eWinXP:
 			if ( CardLib::isInitialized() )
 				return new CCardDraw;
 		}
-		return new DBGCardDraw;
+		return new DebugCardDraw;
 	}
 
 

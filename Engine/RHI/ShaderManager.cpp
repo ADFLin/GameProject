@@ -597,9 +597,11 @@ namespace Render
 						delete result;
 						result = nullptr;
 					}
-
-					mamagedData->shaderClass = &shaderObjectClass;
-					mamagedData->permutationId = permutationId;
+					else
+					{
+						mamagedData->shaderClass = &shaderObjectClass;
+						mamagedData->permutationId = permutationId;
+					}
 				}
 				break;
 			case EShaderObjectType::Shader:
@@ -618,9 +620,11 @@ namespace Render
 						delete result;
 						result = nullptr;
 					}
-
-					mamagedData->shaderClass = &shaderObjectClass;
-					mamagedData->permutationId = permutationId;
+					else
+					{
+						mamagedData->shaderClass = &shaderObjectClass;
+						mamagedData->permutationId = permutationId;
+					}
 				}
 				break;
 

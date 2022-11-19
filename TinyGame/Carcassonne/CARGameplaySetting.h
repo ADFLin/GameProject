@@ -22,9 +22,15 @@ namespace CAR
 		{
 			mUseExpansionMask.add(exp);
 		}
+
+		void setup(int numPlayer)
+		{
+			calcUsageOfField(numPlayer);
+			mTotalFieldValueNum = calcTotalFieldValueNum();
+		}
+		
 		int  getFarmScoreVersion() const { return mFarmScoreVersion; }
 
-		void calcUsageOfField( int numPlayer );
 
 		unsigned getFollowerMask()  const;
 		inline bool isFollower( EActor::Type type ) const
@@ -34,12 +40,7 @@ namespace CAR
 
 		int getTotalFieldValueNum() const
 		{
-			int result = 0;
-			for( auto info : mFieldInfos )
-			{
-				result += info.num;
-			}
-			return result;
+			return mTotalFieldValueNum;
 		}
 		int getFieldNum() const
 		{
@@ -57,6 +58,17 @@ namespace CAR
 
 		bool haveUse(Expansion exp) const { return mUseExpansionMask.check(exp); }
 
+		void calcUsageOfField(int numPlayer);
+
+		int calcTotalFieldValueNum() const
+		{
+			int result = 0;
+			for (auto info : mFieldInfos)
+			{
+				result += info.num;
+			}
+			return result;
+		}
 		struct FieldInfo
 		{
 			int index;
@@ -65,6 +77,7 @@ namespace CAR
 		int        mFarmScoreVersion;
 		int        mNumField;
 		FieldInfo  mFieldInfos[EField::COUNT];
+		int        mTotalFieldValueNum = 0;
 
 		FlagBits< (int)ERule::COUNT > mRuleFlags;
 		FlagBits< (int)NUM_EXPANSIONS > mUseExpansionMask;

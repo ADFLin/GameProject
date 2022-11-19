@@ -74,7 +74,7 @@ protected:
 	using KeyValueMap = std::unordered_map< std::string , KeyValue >;
 
 	friend class PropertySet;
-	int  mSequenceOrder = -1;
+	int  mSequenceOrder = INDEX_NONE;
 	KeyValueMap mKeyMap;
 };
 
@@ -102,13 +102,13 @@ public:
 	void setKeyValue( char const* keyName , char const* group , T value )
 	{
 		auto& section = mSectionMap[ group ];
-		if( section.mSequenceOrder == -1 )
+		if( section.mSequenceOrder == INDEX_NONE )
 		{
 			section.mSequenceOrder = mNextSectionSeqOrder;
 			++mNextSectionSeqOrder;
 		}
 		KeyValue* keyValue = section.addKeyValue( keyName , value );
-		if( keyValue && keyValue->mSequenceOrder == -1 )
+		if( keyValue && keyValue->mSequenceOrder == INDEX_NONE )
 		{
 			keyValue->mSequenceOrder = mNextValueSeqOrder;
 			++mNextValueSeqOrder;

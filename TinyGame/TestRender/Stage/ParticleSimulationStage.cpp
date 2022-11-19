@@ -322,7 +322,7 @@ namespace Render
 			mParamTileNum.bind(parameterMap, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters(RHICommandList& commandList, Vector4 const& param , int TileNum , RHIVertexBuffer& DataIn , RHIVertexBuffer& DataOut )
+		void setParameters(RHICommandList& commandList, Vector4 const& param , int TileNum , RHIBuffer& DataIn , RHIBuffer& DataOut )
 		{
 			setStorageBuffer(commandList, mParamDataIn, DataIn);
 			setStorageBuffer(commandList, mParamDataOut, DataOut);
@@ -369,7 +369,7 @@ namespace Render
 			mParamTileNum.bind(parameterMap, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters(RHICommandList& commandList, int TileNum, RHIVertexBuffer& Data)
+		void setParameters(RHICommandList& commandList, int TileNum, RHIBuffer& Data)
 		{
 			setStorageBuffer(commandList, mParamData, Data);
 			setParam(commandList, mParamTileNum, TileNum);
@@ -412,7 +412,7 @@ namespace Render
 			mParamTileNum.bind(parameterMap, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters(RHICommandList& commandList, int TileNum, RHIVertexBuffer& DataIn)
+		void setParameters(RHICommandList& commandList, int TileNum, RHIBuffer& DataIn)
 		{
 			setStorageBuffer(commandList, mParamDataIn, DataIn);
 			if (mParamTileNum.isBound())

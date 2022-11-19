@@ -22,7 +22,6 @@ namespace Render
 		elementSize = device->GetDescriptorHandleIncrementSize(inType);
 
 		numElements = inNumElements;
-		type = inType;
 		numElementsUasge = 0;
 		mUsageMask.resize(( numElements + 31 )/ 32, 0);
 		return true;
@@ -78,13 +77,30 @@ namespace Render
 	{
 		mDevice = device;
 		bInitialized = true;
+
+		mCSUData.chunkSize = 128;
+		mCSUData.type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		mCSUData.flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+		mRTVData.chunkSize = 32;
+		mRTVData.type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		mRTVData.flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+		mDSVData.chunkSize = 32;
+		mDSVData.type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		mDSVData.flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+		mSamplerData.chunkSize = 128;
+		mSamplerData.type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		mSamplerData.flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	}
 
 	void D3D12DescriptorHeapPool::releaseRHI()
 	{
-		ReleaseChunks(mCSUChunks);
-		ReleaseChunks(mRTVChunks);
-		ReleaseChunks(mSamplerChunks);
+		mCSUData.release();
+		mRTVData.release();
+		mDSVData.release();
+		mSamplerData.release();
 
 		mDevice = nullptr;
 		bInitialized = false;
@@ -93,10 +109,9 @@ namespace Render
 	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocSRV(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
-		if (!findFreeHandle(mCSUChunks, result))
+		if (!mCSUData.fetchFreeHandle(mDevice, result))
 		{
-			if (!fetchHandleFromNewCSUChunk(result))
-				return D3D12PooledHeapHandle();
+			return D3D12PooledHeapHandle();
 		}
 
 		mDevice->CreateShaderResourceView(resource, desc, result.getCPUHandle());
@@ -106,10 +121,9 @@ namespace Render
 	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
-		if (!findFreeHandle(mCSUChunks, result))
+		if (!mCSUData.fetchFreeHandle(mDevice, result))
 		{
-			if (!fetchHandleFromNewCSUChunk(result))
-				return D3D12PooledHeapHandle();
+			return D3D12PooledHeapHandle();
 		}
 
 		mDevice->CreateConstantBufferView(desc, result.getCPUHandle());
@@ -119,10 +133,9 @@ namespace Render
 	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocUAV(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
-		if (!findFreeHandle(mCSUChunks, result))
+		if (!mCSUData.fetchFreeHandle(mDevice, result))
 		{
-			if (!fetchHandleFromNewCSUChunk(result))
-				return D3D12PooledHeapHandle();
+			return D3D12PooledHeapHandle();
 		}
 
 		mDevice->CreateUnorderedAccessView(resource, nullptr, desc, result.getCPUHandle());
@@ -132,17 +145,9 @@ namespace Render
 	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocRTV(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
-		if (!findFreeHandle(mRTVChunks, result))
+		if (!mRTVData.fetchFreeHandle(mDevice, result))
 		{
-			D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
-			if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 32, D3D12_DESCRIPTOR_HEAP_FLAG_NONE))
-			{
-				return D3D12PooledHeapHandle();
-			}
-
-			mRTVChunks.push_back(chunk);
-			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
-			result.chunk = chunk;
+			return D3D12PooledHeapHandle();
 		}
 
 		mDevice->CreateRenderTargetView(resource, desc, result.getCPUHandle());
@@ -152,17 +157,9 @@ namespace Render
 	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocDSV(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc)
 	{
 		D3D12PooledHeapHandle result;
-		if (!findFreeHandle(mDSVChunks, result))
+		if (!mDSVData.fetchFreeHandle(mDevice, result))
 		{
-			D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
-			if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 32, D3D12_DESCRIPTOR_HEAP_FLAG_NONE))
-			{
-				return D3D12PooledHeapHandle();
-			}
-
-			mDSVChunks.push_back(chunk);
-			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
-			result.chunk = chunk;
+			return D3D12PooledHeapHandle();
 		}
 
 		mDevice->CreateDepthStencilView(resource, desc, result.getCPUHandle());
@@ -172,37 +169,15 @@ namespace Render
 	D3D12PooledHeapHandle D3D12DescriptorHeapPool::allocSampler(D3D12_SAMPLER_DESC const& desc)
 	{
 		D3D12PooledHeapHandle result;
-		if (!findFreeHandle(mSamplerChunks, result))
+		if (!mSamplerData.fetchFreeHandle(mDevice, result))
 		{
-			D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
-			if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE))
-			{
-				return D3D12PooledHeapHandle();
-			}
-
-			mSamplerChunks.push_back(chunk);
-
-			result.chunkSlot = chunk->fetchFreeSlotFirstTime();
-			result.chunk = chunk;
+			return D3D12PooledHeapHandle();
 		}
 
 		mDevice->CreateSampler(&desc, result.getCPUHandle());
 		return result;
 	}
 
-	bool D3D12DescriptorHeapPool::findFreeHandle(std::vector< D3D12HeapPoolChunk* >& chunks, D3D12PooledHeapHandle& outHandle)
-	{
-		for (int index = chunks.size() - 1; index >= 0; --index)
-		{
-			if (chunks[index]->fetchFreeSlot(outHandle.chunkSlot))
-			{
-				outHandle.chunk = chunks[index];
-				return true;
-			}
-		}
-
-		return false;
-	}
 
 	void D3D12DescriptorHeapPool::freeHandle(D3D12PooledHeapHandle& handle)
 	{
@@ -211,35 +186,10 @@ namespace Render
 
 		if (handle.isValid())
 		{
-			handle.chunk->freeSlot(handle.chunkSlot);
-			handle.chunk = nullptr;
+			handle.chunk->owner->freeHandle(handle);
 		}
 	}
 
-	void D3D12DescriptorHeapPool::ReleaseChunks(std::vector< D3D12HeapPoolChunk* >& chunks)
-	{
-		for (auto chunk : chunks)
-		{
-			delete chunk;
-		}
-		chunks.clear();
-		chunks.shrink_to_fit();
-	}
-
-	bool D3D12DescriptorHeapPool::fetchHandleFromNewCSUChunk(D3D12PooledHeapHandle& outHandle)
-	{
-		D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
-		if (!chunk->initialize(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE))
-		{
-			return false;
-		}
-
-		mCSUChunks.push_back(chunk);
-
-		outHandle.chunkSlot = chunk->fetchFreeSlotFirstTime();
-		outHandle.chunk = chunk;
-		return true;
-	}
 
 }//namespace Render
 

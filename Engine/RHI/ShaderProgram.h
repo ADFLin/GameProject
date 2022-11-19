@@ -142,12 +142,12 @@ namespace Render
 		void clearTexture(RHICommandList& commandList, ShaderParameter const& param);
 
 
-		void setUniformBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer);
-		void setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setStorageBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
-		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
-		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer);
+		void setUniformBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer);
+		void setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer);
+		void setStorageBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
+		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY);
+		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer);
+		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer);
 
 		struct StructuredBlockInfo
 		{
@@ -156,7 +156,7 @@ namespace Render
 		};
 
 		template< class TStruct >
-		void setStructuredUniformBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer)
+		void setStructuredUniformBufferT(RHICommandList& commandList, RHIBuffer& buffer)
 		{
 			auto& bufferStruct = TStruct::GetStructInfo();
 			for (auto const& block : mBoundedBlocks)
@@ -179,7 +179,7 @@ namespace Render
 		}
 
 		template< class TStruct >
-		void setStructuredStorageBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
+		void setStructuredStorageBufferT(RHICommandList& commandList, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
 		{
 			auto& bufferStruct = TStruct::GetStructInfo();
 			for (auto const& block : mBoundedBlocks)
@@ -201,7 +201,7 @@ namespace Render
 			}
 		}
 
-		void setStructuredStorageBuffer(RHICommandList& commandList, StructuredBufferInfo const& info, RHIVertexBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
+		void setStructuredStorageBuffer(RHICommandList& commandList, StructuredBufferInfo const& info, RHIBuffer& buffer, EAccessOperator op = AO_READ_ONLY)
 		{
 			ShaderParameter param;
 			char const* name = mRHIResource->getStructParameterName(EShaderResourceType::Storage, info);

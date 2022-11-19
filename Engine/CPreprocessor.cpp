@@ -998,7 +998,14 @@ namespace CPP
 		void advance()
 		{
 			++mData;
-			mNum -= 1 + SkipConcat(mData);
+			if (mNum > 1)
+			{
+				mNum -= 1 + SkipConcat(mData);
+			}
+			else
+			{
+				mNum -= 1;
+			}
 		}
 		char const* getCur() { return mData; }
 
@@ -1175,8 +1182,7 @@ namespace CPP
 
 					StringView arg = StringView(start, end - start);
 
-					arg.removeHeadSpace();
-					arg.removeTailSpace();
+					arg.cutHeadAndTailSpace();
 
 					argList.push_back(arg);
 
@@ -1344,6 +1350,11 @@ namespace CPP
 		marco.evalFrame = INT_MAX;
 		marco.cachedEvalValue = value;
 		mMarcoSymbolMap.emplace( HashString(name, true) , std::move(marco));
+	}
+
+	void Preprocessor::addInclude(char const* fileName, bool bSystemPath)
+	{
+
 	}
 
 	void Preprocessor::getUsedIncludeFiles(std::unordered_set< HashString >& outFiles)

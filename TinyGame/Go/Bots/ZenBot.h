@@ -591,8 +591,14 @@ namespace Go
 			using ZenCore = Zen::TBotCore< Version >;
 
 			ZenCore* core = ZenCore::Create();
-			if( !core->initialize() )
-				return nullptr;
+			if (core)
+			{
+				if (!core->initialize())
+				{
+					delete core;
+					return nullptr;
+				}
+			}
 			return core;
 		}
 

@@ -37,6 +37,11 @@ namespace Render
 		{
 			module.add(Chai::fun(var), name);
 		}
+
+		void endClass()
+		{
+
+		}
 		ModuleType& module;
 	};
 #define SCRIPT_NAME( NAME ) #NAME
@@ -86,7 +91,7 @@ namespace Render
 			path.format("Script/%s.chai", fileName);
 			Chai::ChaiScript script;
 			script.add(CommonModule);
-			registerSceneFun(script);
+			registerSceneFunc(script);
 			try
 			{
 				script.eval_file(path.c_str());
@@ -166,7 +171,7 @@ namespace Render
 			});
 			module.add(Chai::type_conversion< TextureId::Enum, int >());
 		}
-		void registerSceneFun( Chai::ChaiScript& script)
+		void registerSceneFunc( Chai::ChaiScript& script)
 		{
 
 			script.add(Chai::fun(&SceneScriptImpl::StaticMesh, this), SCRIPT_NAME(StaticMesh));

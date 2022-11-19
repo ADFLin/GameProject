@@ -243,7 +243,15 @@ namespace CAR
 			mInput.loadReplay(file);
 		}
 		
-		CAR_INPUT_COMMAND({ mInput.runLogic(mGameLogic); }, this);
+		if (bInit)
+		{
+			mInput.runLogic(mGameLogic);
+		}
+		else
+		{
+			CAR_INPUT_COMMAND({ mInput.runLogic(mGameLogic); }, this);
+		}
+
 	}
 
 	void LevelStage::tick()
@@ -326,7 +334,7 @@ namespace CAR
 			
 			for( int i = 0 ; i < mPlayerManager.getPlayerNum() ; ++i )
 			{
-				pos = showPlayerInfo( g , pos , mPlayerManager.getPlayer(i) , 12 );
+				pos = showPlayerInfo( g , pos , mPlayerManager.getPlayerByIndex(i) , 12 );
 				pos.y += 2;
 			}
 		}
@@ -1478,7 +1486,7 @@ namespace CAR
 		CFly::Material* mat = obj->getElement(0)->getMaterial();
 		if ( mat )
 		{
-			InlineString< 512 > texName;
+			InlineString< PathSize > texName;
 			getTileTexturePath(id, texName);
 			mat->addTexture(0, 0, texName);
 			mat->getTextureLayer(0).setFilterMode(CFly::CF_FILTER_POINT);
@@ -1643,7 +1651,7 @@ namespace CAR
 		mGameActionUI.clear();
 	}
 
-	void LevelStage::getTileTexturePath(TileId id, InlineString< 512 > &texName)
+	void LevelStage::getTileTexturePath(TileId id, InlineString< PathSize > &texName)
 	{
 		TileSet const& tileSet = mGameLogic.mTileSetManager.getTileSet( id );
 		char const* dir = nullptr;
@@ -1740,7 +1748,7 @@ namespace CAR
 	{
 		mData = data;
 
-		InlineString< 512 > str;
+		InlineString< PathSize > str;
 		int const tileSize = 48;
 		Vec2i pos = getWorldPos();
 		pos.y -= ( tileSize + 2 );

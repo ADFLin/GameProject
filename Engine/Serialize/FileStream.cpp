@@ -154,19 +154,22 @@ void OutputFileSerializer::write(void const* ptr, size_t num)
 
 void OutputFileSerializer::registerVersion(HashString name, int32 version)
 {
-	if (name == EName::None)
+	if (version)
 	{
-		mMasterVersion = version;
-		mbNeedWriteVersionData = true;
-	}
-	else if (version)
-	{
-		if (mVersionData == nullptr)
+		if (name == EName::None)
 		{
-			mVersionData = std::make_unique< FileVersionData >();
+			mMasterVersion = version;
+			mbNeedWriteVersionData = true;
 		}
-		mVersionData->addVersion(name, version);
-		mbNeedWriteVersionData = true;
+		else
+		{
+			if (mVersionData == nullptr)
+			{
+				mVersionData = std::make_unique< FileVersionData >();
+			}
+			mVersionData->addVersion(name, version);
+			mbNeedWriteVersionData = true;
+		}
 	}
 }
 

@@ -157,6 +157,7 @@
     <None Include="..\TinyGame\out\Shader\Common.sgc" />
     <None Include="..\TinyGame\out\Shader\ComplexCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\CopyTexture.sgc" />
+    <None Include="..\TinyGame\out\Shader\CubeMapCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\DecalRender.sgc" />
     <None Include="..\TinyGame\out\Shader\DeferredLighting.sgc" />
     <None Include="..\TinyGame\out\Shader\DeferredShadingCommon.sgc" />
@@ -240,6 +241,7 @@
     <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\D3D12Simple.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\VulkanTest.sgc" />
+    <None Include="..\TinyGame\out\Shader\TexturePreview.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightInjection.sgc" />
     <None Include="..\TinyGame\out\Shader\Tonemap.sgc" />

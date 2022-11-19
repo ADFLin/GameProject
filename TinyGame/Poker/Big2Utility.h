@@ -3,7 +3,9 @@
 
 #include "PokerBase.h"
 
-namespace Poker { namespace Big2 {
+namespace Big2 {
+
+	using namespace Poker;
 
 	enum CardGroup
 	{
@@ -189,6 +191,5 @@ namespace Poker { namespace Big2 {
 	};
 
 }//namespace Big2
-}//namespace Poker
 
 #endif // Big2Utility_h__

@@ -225,12 +225,12 @@ PS_ENTRY_END(MainPS)
 
 	float3 radiance = 1 * float3(5, 5, 5);
 
-	float3 Lo = NoL * shading * radiance;
+	float3 Lo = 0.0 * NoL * shading * radiance;
 
 	float3 envSpecular = GetIBLSpecularColor(specularColor, R, NoV, material.roughness);
-	float3 ambient = ( GetIrradianceColor( N ) * material.baseColor * 0 + envSpecular )  * material.ao;
+	float3 ambient = ( GetIrradianceColor( N ) * material.baseColor + envSpecular )  * material.ao;
 	//ambient *= 0.0;
-	float3 color = ambient + Lo;
+	float3 color = ambient;
 
 	OutColor = float4(color, 1);
 	//OutColor = float4(zAxis, 1);

@@ -407,15 +407,32 @@ bool ConsoleSystem::ExecuteContext::init(char const* inCmdText)
 
 	cmdName = token.data();
 
-	while( FStringParse::StringToken(data, " ", token))
+	for(;;)
 	{
-		if( *data != 0 )
+		if (*data == '\"' || *data == '\'')
+		{
+			char delims[] = " ";
+			delims[0] = *data;
+			++data;
+			if (!FStringParse::StringToken(data, delims, token))
+				return false;
+		}
+		else
+		{
+			if (!FStringParse::StringToken(data, " ", token))
+				break;
+		}
+
+		if (*data != 0)
 		{
 			*const_cast<char*>(token.data() + token.length()) = 0;
 			++data;
 		}
-		paramStrings[ numArgs ] = token.data();
+		paramStrings[numArgs] = token.data();
 		++numArgs;
+
+		if (numArgs > NumMaxParams)
+			return false;
 	}
 
 	return true;

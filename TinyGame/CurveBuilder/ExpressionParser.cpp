@@ -41,7 +41,7 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 
 		}
 		break;
-	case FUN_DEF:
+	case FUNC_DEF:
 		{
 			char const* name = table.getFuncName( unit.symbol->func );
 			if ( name )
@@ -220,7 +220,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 				{
 				case SymbolEntry::eFunction:
 					{
-						type = FUN_DEF;
+						type = FUNC_DEF;
 						infixCode.emplace_back(type, symbol);
 					}
 					break;

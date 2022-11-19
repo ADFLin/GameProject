@@ -86,15 +86,15 @@ public:
 
 	void onRoot     ( SampleNode* node )
 	{
-		double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
-		msgShow.push( "--- Profiling: %s (total running time: %.3f ms) ---" , 
+		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
+		msgShow.push( "--- Profiling: %s (total running time: %.3lf ms) ---" , 
 			node->getName() , time_since_reset );
 	}
 
 	void onNode     ( SampleNode* node , double parentTime )
 	{
 		float tf = node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset();
-		msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame  (%.3f (1e-5ms/call) (%d calls)",
+		msgShow.push( "|-> %d -- %s (%.2lf %%) :: %.3lf ms / frame  (%.3f (1e-5ms/call) (%d calls)",
 			++mIdxChild , node->getName() ,
 			parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / parentTime ) * 100 : 0.f ,
 			tf , 100000 * ( tf / node->getTotalCalls() ) ,
@@ -109,7 +109,7 @@ public:
 
 		return true; 
 	}
-	void onEnterParent( SampleNode* node , int numChildren , double accTime )
+	void onReturnParent( SampleNode* node , int numChildren , double accTime )
 	{
 		if ( numChildren )
 		{
@@ -117,7 +117,7 @@ public:
 			if ( node->getParent() != NULL )
 				time = node->getTotalTime();
 			else
-				time = ProfileSystem::Get().getTimeSinceReset();
+				time = ProfileSystem::Get().getDurationSinceReset();
 
 			double delta = time - accTime;
 			msgShow.push( "|-> %s (%.3f %%) :: %.3f ms / frame", "Other",

@@ -1,8 +1,7 @@
 #include "TinyGamePCH.h"
 #include "Big2Level.h"
 
-namespace Poker { namespace Big2 {
-
+namespace Big2 {
 
 #define DATA_LIST( op )\
 	op(SDGameInit )\
@@ -377,7 +376,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 		return true;
 	}
 
-	void ServerLevel::onRecvData( int slotId , int dataId , void* data , int dataSize)
+	void ServerLevel::handleRecvData( int slotId , int dataId , void* data , int dataSize)
 	{
 		switch( dataId )
 		{
@@ -399,7 +398,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
 	void ServerLevel::doSetupTransfer()
 	{
-		getTransfer().setRecvFunc( RecvFunc( this , &ServerLevel::onRecvData ) );
+		getTransfer().setRecvFunc( RecvFunc( this , &ServerLevel::handleRecvData ) );
 	}
 
 	void ServerLevel::updateBot()
@@ -487,7 +486,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 		return true;
 	}
 
-	void ClientLevel::onRecvData( int slotId , int dataId , void* data , int dataSize )
+	void ClientLevel::handleRecvData( int slotId , int dataId , void* data , int dataSize )
 	{
 		switch( dataId )
 		{
@@ -586,7 +585,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
 	void ClientLevel::doSetupTransfer()
 	{
-		getTransfer().setRecvFunc( RecvFunc( this , &ClientLevel::onRecvData ) );
+		getTransfer().setRecvFunc( RecvFunc( this , &ClientLevel::handleRecvData ) );
 	}
 
 	TablePos ClientLevel::getTablePos( int slotId )
@@ -604,4 +603,3 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
 
 }//namespace Big2
-}//namespace Poker

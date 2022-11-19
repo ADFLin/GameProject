@@ -118,7 +118,7 @@ bool MainMenuStage::onInit()
 		char const* selectValue = static_cast<GChoice*>(widget)->getSelectValue();
 		char const* last = FStringParse::FindChar(selectValue, '(');
 		StringView category = StringView{ selectValue , size_t( last - selectValue) };
-		category.removeTailSpace();
+		category.cutTailSpace();
 		std::vector< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
 
 		std::sort(stageInfoList.begin(), stageInfoList.end(), [](ExecutionEntryInfo const* lhs, ExecutionEntryInfo const* rhs)
@@ -322,10 +322,14 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
 	case UI_CARD_GAME_DEV_GROUP:
-		CREATE_BUTTON( UI_BIG2_TEST      , "Big2 Test" );
-		CREATE_BUTTON( UI_HOLDEM_TEST    , "Holdem Test" );
-		CREATE_BUTTON( UI_FREECELL_TEST  , "FreeCell Test" );
-		CREATE_BUTTON( UI_BACK_GROUP  , LOCTEXT("Back")          );
+		{
+			using namespace Poker;
+			for (int i = 0; i < RULE_COUNT; ++i)
+			{
+				CREATE_BUTTON(UI_GROUP_CARD_INDEX + i, InlineString<>::Make("%s Test", ToRuleString(GameRule(i))));
+			}
+			CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
+		}
 		break;
 	case UI_SINGLEPLAYER:
 		changeStageGroup(EExecGroup::SingleGame);
@@ -374,7 +378,7 @@ void MainMenuStage::changeStageGroup(EExecGroup group)
 
 bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
-	if ( id < UI_GROUP_INDEX  )
+	if ( id < UI_GROUP_START_INDEX )
 	{
 		switch ( id )
 		{
@@ -387,7 +391,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage( stage );
 			}
-			break;
+			return false;
 		case UI_NET_TEST_SV:
 			{
 				auto stage = new Net::TestStage;
@@ -397,24 +401,6 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage(stage);
 
-			}
-			break;
-		case UI_HOLDEM_TEST:
-		case UI_FREECELL_TEST:
-		case UI_BIG2_TEST:
-			{
-				IGameModule* game = Global::ModuleManager().changeGame( "Poker" );
-				if ( !game )
-					return false;
-				Poker::GameRule rule;
-				switch( id )
-				{
-				case UI_BIG2_TEST:     rule = Poker::RULE_BIG2; break;
-				case UI_FREECELL_TEST: rule = Poker::RULE_FREECELL; break;
-				case UI_HOLDEM_TEST:   rule = Poker::RULE_HOLDEM; break;
-				}
-				static_cast< Poker::GameModule* >( game )->setRule( rule );
-				getManager()->changeStage( STAGE_SINGLE_GAME );
 			}
 			return false;
 		case UI_MISC_TEST_GROUP:
@@ -447,14 +433,19 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			return false;
 		}
 	}
-	else
+	else if (id < UI_GROUP_CARD_INDEX + MAX_NUM_GROUP )
 	{
-		ExecutionEntryInfo const* info = nullptr;
-
-		if( id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP )
-		{
-			info = &ExecutionRegisterCollection::Get().getGroupExecutions(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
-		}
+		IGameModule* game = Global::ModuleManager().changeGame("Poker");
+		if (!game)
+			return false;
+		Poker::GameRule rule = Poker::GameRule(id - UI_GROUP_CARD_INDEX);
+		static_cast<Poker::GameModule*>(game)->setRule(rule);
+		getManager()->changeStage(STAGE_SINGLE_GAME);
+		return false;
+	}
+	else if (id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP)
+	{
+		ExecutionEntryInfo const* info = info = &ExecutionRegisterCollection::Get().getGroupExecutions(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
 
 		if ( info )
 		{
@@ -462,6 +453,9 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			return false;
 		}
 	}
-
+	else
+	{
+		LogWarning(0,"Unknow Id %d", id);
+	}
 	return true;
 }

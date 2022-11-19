@@ -61,8 +61,8 @@ namespace Render
 		RHITexture2DRef mTexture;
 		RHITexture2DRef mTexture1;
 
-		RHIVertexBufferRef mVertexBuffer;
-		RHIIndexBufferRef  mIndexBuffer;
+		RHIBufferRef mVertexBuffer;
+		RHIBufferRef  mIndexBuffer;
 		RHIInputLayoutRef  mInputLayout;
 
 		bool bUseProgram = false;

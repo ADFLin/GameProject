@@ -227,6 +227,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Factorio\FIOStage.cpp" />
     <ClCompile Include="Chess\ChessCore.cpp" />
     <ClCompile Include="FlowFree\FlowFreeGameStage.cpp" />
     <ClCompile Include="FlowFree\FlowFreeLevel.cpp" />
@@ -252,6 +253,7 @@
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
     <ClCompile Include="TestWorking\TestWorking.cpp" />
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
+    <ClCompile Include="Transport\TPStage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chess\ChessCore.h" />

@@ -72,7 +72,8 @@ namespace CAR
 	void GameInput::runLogic(GameLogic& gameLogic)
 	{
 		mGameLogic = &gameLogic;
-		mGameLogicExecution = ExecType( std::bind( &GameInput::LogicExecutionEntry, this , std::placeholders::_1 ) );
+		boost::coroutines::attributes attributes(0x0001);
+		mGameLogicExecution = ExecType( std::bind( &GameInput::LogicExecutionEntry, this , std::placeholders::_1 ) , attributes);
 	}
 
 	void GameInput::LogicExecutionEntry(YeildType& yeild )

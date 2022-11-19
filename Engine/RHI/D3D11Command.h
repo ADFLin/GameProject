@@ -34,13 +34,14 @@ namespace Render
 	struct ShaderConstDataBuffer
 	{
 		TComPtr< ID3D11Buffer > resource;
-		std::vector< uint8 >    updateData;
-		uint32 updateDataSize = 0;
+		std::vector< uint8 >    mDataBuffer;
+		uint32 mUpdateDataSize = 0;
 
 		bool initializeResource(ID3D11Device* device);
 		void releaseResource();
-		void setUpdateValue(ShaderParameter const parameter, void const* value, int valueSize);
-		void updateResource(ID3D11DeviceContext* context);
+		void updateBufferSize(int newSize);
+		void updateValue(ShaderParameter const parameter, void const* value, int valueSize);
+		void commit(ID3D11DeviceContext* context);
 	};
 
 	struct D3D11ResourceBoundState
@@ -75,16 +76,15 @@ namespace Render
 			mUAVDirtyMask = 0;
 		}
 
+		void bindShader(class D3D11ShaderData& shader);
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
 		bool clearTexture(ShaderParameter const& parameter);
 		bool clearUAV(ShaderParameter const& parameter);
 		void setRWTexture(ShaderParameter const& parameter, RHITextureBase* texture);
 		void setSampler(ShaderParameter const& parameter, RHISamplerState& sampler);
-		void setUniformBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer);
-		void setStructuredBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer, EAccessOperator op);
+		void setUniformBuffer(ShaderParameter const& parameter, RHIBuffer& buffer);
+		void setStructuredBuffer(ShaderParameter const& parameter, RHIBuffer& buffer, EAccessOperator op);
 		void setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize);
-
-
 
 		template< EShader::Type TypeValue >
 		void commitState( ID3D11DeviceContext* context);
@@ -249,8 +249,8 @@ namespace Render
 
 		void RHIDrawIndexedPrimitive(EPrimitive type, int indexStart, int nIndex, uint32 baseVertex);
 
-		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
-		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawIndexedPrimitiveIndirect(EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawPrimitiveInstanced(EPrimitive type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
 
 		void RHIDrawIndexedPrimitiveInstanced(EPrimitive type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
@@ -265,7 +265,7 @@ namespace Render
 
 
 		}
-		void RHIDrawMeshTasksIndirect(RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		void RHIDrawMeshTasksIndirect(RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 
 		}
@@ -281,11 +281,11 @@ namespace Render
 
 	
 		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
-		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+		void RHISetIndexBuffer(RHIBuffer* indexBuffer)
 		{
 			if( indexBuffer )
 			{
-				mDeviceContext->IASetIndexBuffer(D3D11Cast::To(indexBuffer)->getResource(), indexBuffer->isIntType() ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT, 0);
+				mDeviceContext->IASetIndexBuffer(D3D11Cast::To(indexBuffer)->getResource(), D3D11Translate::IndexType(indexBuffer), 0);
 			}
 			else
 			{
@@ -341,9 +341,9 @@ namespace Render
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param);
 
-		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op);
-		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) 
+		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
+		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
+		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer) 
 		{
 
 		}
@@ -382,19 +382,19 @@ namespace Render
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
-		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op) 
+		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op) 
 		{
 
 		}
-		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIVertexBuffer& buffer) 
+		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer) 
 		{
 		
 		}
 
 		void clearSRVResource(RHIResource& resource);
 
-		uint32                  mBoundedShaderMask = 0;
+		uint32                  mGfxBoundedShaderMask = 0;
 		uint32                  mBoundedShaderDirtyMask = 0;
 		D3D11ShaderVariant      mBoundedShaders[EShader::Count];
 		D3D11ResourceBoundState mResourceBoundStates[EShader::Count];
@@ -471,15 +471,14 @@ namespace Render
 
 		RHITexture2D*     RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
 
-		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
+		RHIBuffer* RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+		RHIBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 
-		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
+		RHIBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 
 
-		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
-		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
-		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
-		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
+		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIBuffer* buffer);
 
 		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
 		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
@@ -503,7 +502,7 @@ namespace Render
 		bool createTextureCubeInternal(DXGI_FORMAT format, int size, int numMipLevel, int numSamples, uint32 creationFlags, void* data[], uint32 pixelSize, TextureCubeCreationResult& outResult);
 		
 
-		bool createStagingTexture(ID3D11Texture2D* texture, TComPtr< ID3D11Texture2D >& outTexture);
+		bool createStagingTexture(ID3D11Texture2D* texture, TComPtr< ID3D11Texture2D >& outTexture, int level = 0);
 
 
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size);
@@ -519,7 +518,7 @@ namespace Render
 					if (e.attribute == EVertex::ATTRIBUTE_UNUSED)
 						continue;
 
-					HashCombine(hash, HashValue(&e , sizeof(e)) );
+					hash = HashCombine(hash, HashValue(&e , sizeof(e)) );
 				}
 			}
 			std::vector< InputElementDesc > elements;

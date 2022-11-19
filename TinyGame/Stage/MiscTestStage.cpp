@@ -18,6 +18,7 @@
 #include "StringParse.h"
 #include "MiscTestRegister.h"
 #include "RHI/ShaderManager.h"
+#include "ProfileSystem.h"
 
 namespace MRT
 {
@@ -1253,7 +1254,35 @@ static void TestClassTree()
 	}
 #define CHECK_RESULT( EXPR , VALUE ) CHECK_RESULT_INNER( EXPR ,VALUE , __FILE__ , __LINE__ )
 
-	ClassTree tree;
+	{
+		TIME_SCOPE("Manual Init");
+		ClassTree tree(true);
+		TPtrHolder< ClassTreeNode > root = new ClassTreeNode(tree, nullptr);
+		TPtrHolder< ClassTreeNode > a = new ClassTreeNode(tree, root);
+		TPtrHolder< ClassTreeNode > b = new ClassTreeNode(tree, root);
+		TPtrHolder< ClassTreeNode > c = new ClassTreeNode(tree, a);
+		TPtrHolder< ClassTreeNode > d = new ClassTreeNode(tree, a);
+		TPtrHolder< ClassTreeNode > e = new ClassTreeNode(tree, b);
+
+		TPtrHolder< ClassTreeNode > f = new ClassTreeNode(tree, d);
+		TPtrHolder< ClassTreeNode > g = new ClassTreeNode(tree, a);
+
+		tree.initialize();
+	}
+	{
+		TIME_SCOPE("Auto Init");
+		ClassTree tree(false);
+		TPtrHolder< ClassTreeNode > root = new ClassTreeNode(tree, nullptr);
+		TPtrHolder< ClassTreeNode > a = new ClassTreeNode(tree, root);
+		TPtrHolder< ClassTreeNode > b = new ClassTreeNode(tree, root);
+		TPtrHolder< ClassTreeNode > c = new ClassTreeNode(tree, a);
+		TPtrHolder< ClassTreeNode > d = new ClassTreeNode(tree, a);
+		TPtrHolder< ClassTreeNode > e = new ClassTreeNode(tree, b);
+
+		TPtrHolder< ClassTreeNode > f = new ClassTreeNode(tree, d);
+		TPtrHolder< ClassTreeNode > g = new ClassTreeNode(tree, a);
+	}
+	ClassTree tree(true);
 	TPtrHolder< ClassTreeNode > root = new ClassTreeNode(tree ,nullptr );
 	TPtrHolder< ClassTreeNode > a = new ClassTreeNode(tree, root );
 	TPtrHolder< ClassTreeNode > b = new ClassTreeNode(tree, root );
@@ -1261,13 +1290,16 @@ static void TestClassTree()
 	TPtrHolder< ClassTreeNode > d = new ClassTreeNode(tree, a );
 	TPtrHolder< ClassTreeNode > e = new ClassTreeNode(tree, b );
 
-	CHECK_RESULT(e->isChildOf( a ), false);
-	CHECK_RESULT(e->isChildOf( d ), false);
-	CHECK_RESULT(c->isChildOf( e ), false);
-	CHECK_RESULT(c->isChildOf( a ), true);
-
 	TPtrHolder< ClassTreeNode > f = new ClassTreeNode(tree, d );
 	TPtrHolder< ClassTreeNode > g = new ClassTreeNode(tree, a );
+
+	tree.initialize();
+
+	CHECK_RESULT(e->isChildOf(a), false);
+	CHECK_RESULT(e->isChildOf(d), false);
+	CHECK_RESULT(c->isChildOf(e), false);
+	CHECK_RESULT(c->isChildOf(a), true);
+
 
 	f->isChildOf(b);
 	f->isChildOf(root);

@@ -16,13 +16,11 @@ namespace Render
 	class SimpleRenderState;
 }
 
-namespace Go
+namespace GoCore
 {
 	using namespace Render;
 
 	class BoardBase;
-	class Board;
-	class Game;
 	struct PlayVertex;
 
 	struct RenderContext
@@ -34,10 +32,10 @@ namespace Go
 		float   stoneRadius;
 		float   starRadius;
 
-		RenderContext(BoardBase const& inBoard , Vector2 inRenderPos = Vector2(0,0) , float inScale = 1.0f )
+		RenderContext(BoardBase const& inBoard, Vector2 inRenderPos = Vector2(0, 0), float inScale = 1.0f)
 			:board(inBoard)
-			,renderPos( inRenderPos )
-			,scale(inScale)
+			, renderPos(inRenderPos)
+			, scale(inScale)
 		{
 			cellLength = DefalutCellLength * scale;
 			stoneRadius = DefalutStoneRadius * scale;
@@ -57,13 +55,13 @@ namespace Go
 		{
 			return renderPos + cellLength * Vector2(i, board.getSize() - 1 - j);
 		}
-		Vec2i getCoord( Vector2 const& pos ) const
+		Vec2i getCoord(Vector2 const& pos) const
 		{
-			Vec2i result = (pos - renderPos + 0.5 * Vector2(cellLength, cellLength) ) / cellLength;
+			Vec2i result = (pos - renderPos + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
 			result.y = board.getSize() - 1 - result.y;
 			return result;
 		}
-		static Vec2i CalcCoord(Vector2 const& coordPos , Vector2 const& renderPos , float scale , int boradSize )
+		static Vec2i CalcCoord(Vector2 const& coordPos, Vector2 const& renderPos, float scale, int boradSize)
 		{
 			float cellLength = DefalutCellLength * scale;
 			Vec2i result = (coordPos - renderPos + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
@@ -139,7 +137,14 @@ namespace Go
 
 		void drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0);
 	};
+}
 
+namespace Go
+{
+	using namespace GoCore;
+
+	class Board;
+	class Game;
 
 	class BoardRenderer : public BoardRendererBase
 	{
@@ -148,7 +153,6 @@ namespace Go
 		bool bDrawLinkInfo = false;
 		void draw(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr);
 	};
-
 
 } //namespace Go
 

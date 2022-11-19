@@ -912,6 +912,9 @@
     <ClInclude Include="CycleValue.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="ProfileSampleVisitor.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

@@ -33,9 +33,12 @@
 #define NOINLINE __declspec(noinline)
 
 #define ASSUME_BUILTIN(EXPR)  __assume(EXPR)
+#define LIKELY(EXPR) EXPR
+#define UNLIKELY(EXPR) EXPR
 
 #define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :std::exception(what) {}
+
 #elif CPP_COMPILER_GCC
 
 #define FORCEINLINE __attribute__((always_inline))
@@ -45,6 +48,8 @@
 #define NOINLINE __attribute__((noinline))
 
 #define ASSUME_BUILTIN(EXPR) { if (!EXPR) __builtin_unreachable(); }
+#define LIKELY(EXPR)	__builtin_expect(!!(EXPR), 1)            
+#define UNLIKELY(EXPR)	__builtin_expect(!!(EXPR), 0)
 
 #define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :mWhat(what) {}\
@@ -60,6 +65,8 @@
 #define NOINLINE __attribute__((noinline))
 
 #define ASSUME_BUILTIN(EXPR) __builtin_assume(EXPR)
+#define LIKELY(EXPR)	__builtin_expect(!!(EXPR), 1)            
+#define UNLIKELY(EXPR)	__builtin_expect(!!(EXPR), 0)
 
 #define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :mWhat(what) {}\

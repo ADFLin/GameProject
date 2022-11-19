@@ -73,13 +73,14 @@ namespace Render
 			TextureRect,
 			Line,
 			LineStrip,
+			ArcLine,
 			Text ,
 			GradientRect ,
 		};
 
 		EType type;
 		RenderTransform2D transform;
-		//int32 layer;
+		int32 layer;
 	};
 
 	template< class TPayload >
@@ -90,9 +91,13 @@ namespace Render
 
 	struct ShapePaintArgs
 	{
+#if 1
+		using Color4Type = Color4ub;
+		using Color3Type = Color3ub;
+#else
 		using Color4Type = Color4f;
 		using Color3Type = Color3f;
-
+#endif
 
 		Color4Type penColor;
 		Color4Type brushColor;
@@ -149,13 +154,6 @@ namespace Render
 			std::vector< Vector2 > posList;
 		};
 
-		struct LineStripPayload : ShapePayload
-		{
-			Color4Type color;
-			std::vector< Vector2 > posList;
-			int     width;
-		};
-
 		struct TextureRectPayload
 		{
 			Color4Type color;
@@ -165,12 +163,34 @@ namespace Render
 			Vector2 uvMax;
 		};
 
+		struct LineShapePlayload
+		{
+			Color4Type color;
+			int        width;
+		};
+
 		struct LinePayload
 		{
 			Color4Type color;
 			Vector2 p1;
 			Vector2 p2;
 			int     width;
+		};
+
+		struct LineStripPayload
+		{
+			Color4Type color;
+			std::vector< Vector2 > posList;
+			int     width;
+		};
+
+		struct ArcLinePlayload
+		{
+			Color4Type color;
+			Vector2 center;
+			float radius;
+			float start;
+			float end;
 		};
 
 		struct TextPayload
@@ -228,6 +248,22 @@ namespace Render
 			return *element;
 		}
 
+
+		template< class TVector2 >
+		RenderBachedElement& addArcLine(RenderTransform2D const& transform, Color4Type const& color, TVector2 const& center, float radius, float start, float end)
+		{
+			CHECK(numV >= 2);
+			TRenderBachedElement<LineStripPayload>* element = addElement< ArcLinePlayload >();
+			element->type = RenderBachedElement::ArcLine;
+			element->payload.color = color;
+			element->payload.center = center;
+			element->payload.radius = radius;
+			element->payload.start = start;
+			element->payload.end = end;
+			return *element;
+		}
+
+
 		RenderBachedElement& addCircle( ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius);
 		RenderBachedElement& addEllipse( ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size);
 		RenderBachedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
@@ -241,6 +277,10 @@ namespace Render
 			TRenderBachedElement<TPayload>* ptr = (TRenderBachedElement<TPayload>*)mAllocator.alloc(sizeof(TRenderBachedElement<TPayload>));
 			TypeDataHelper::Construct(ptr);
 			mElements.push_back(ptr);
+			if constexpr (std::is_trivially_destructible_v< TPayload > == false)
+			{
+				mDestructElements.push_back(ptr);
+			}
 			return ptr;
 		}
 
@@ -248,6 +288,7 @@ namespace Render
 
 		FrameAllocator mAllocator;
 		std::vector< RenderBachedElement* > mElements;
+		std::vector< RenderBachedElement* > mDestructElements;
 	};
 
 	class BatchedRender
@@ -348,12 +389,12 @@ namespace Render
 
 		std::vector< TexVertex > mTexVerteices;
 
-		RHIVertexBufferRef mBaseVertexBuffer;
+		RHIBufferRef mBaseVertexBuffer;
 		int numBaseVertices;
-		RHIVertexBufferRef mTexVertexBuffer;
+		RHIBufferRef mTexVertexBuffer;
 		int numTexVertices;
 
-		RHIIndexBufferRef mIndexBuffer;
+		RHIBufferRef mIndexBuffer;
 
 	};
 

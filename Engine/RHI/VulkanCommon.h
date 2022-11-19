@@ -1200,6 +1200,10 @@ namespace Render
 		static VkBufferUsageFlags TranslateUsage(uint32 createionFlags )
 		{
 			VkBufferUsageFlags result = 0;
+			if (createionFlags & BCF_UsageVertex)
+				result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			if (createionFlags & BCF_UsageIndex)
+				result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 			return result;
 		}
 	};
@@ -1344,8 +1348,7 @@ namespace Render
 
 	};
 
-	template< class RHIBufferType >
-	class TVulkanBuffer : public TRefcountResource< RHIBufferType >
+	class VulkanBuffer : public TRefcountResource< RHIBuffer >
 		                , protected VulkanBufferData
 	{
 	public:
@@ -1360,16 +1363,6 @@ namespace Render
 		friend class VulkanSystem;
 	};
 
-	class VulkanVertexBuffer : public TVulkanBuffer< RHIVertexBuffer >
-	{
-	public:
-		
-	};
-
-	class VulkanIndexBuffer : public TVulkanBuffer< RHIIndexBuffer >
-	{
-	public:
-	};
 
 	template<>
 	struct TVulkanResourceTraits<EVulkanResourceType::VkRenderPass>
@@ -1568,8 +1561,7 @@ namespace Render
 	//template<> struct TVulkanCastTraits< RHITextureCube > { typedef VulkanTextureCube CastType; };
 	//template<> struct TVulkanCastTraits< RHITexture2DArray > { typedef VulkanTexture2DArray CastType; };
 	//template<> struct TVulkanCastTraits< RHITextureDepth > { typedef VulkanTextureDepth CastType; };
-	template<> struct TVulkanCastTraits< RHIVertexBuffer > { typedef VulkanVertexBuffer CastType; };
-	template<> struct TVulkanCastTraits< RHIIndexBuffer > { typedef VulkanIndexBuffer CastType; };
+	template<> struct TVulkanCastTraits< RHIBuffer > { typedef VulkanBuffer CastType; };
 	template<> struct TVulkanCastTraits< RHIInputLayout > { typedef VulkanInputLayout CastType; };
 	template<> struct TVulkanCastTraits< RHISamplerState > { typedef VulkanSamplerState CastType; };
 	template<> struct TVulkanCastTraits< RHIBlendState > { typedef VulkanBlendState CastType; };

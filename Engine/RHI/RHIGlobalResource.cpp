@@ -35,8 +35,8 @@ namespace Render
 	SimplePipelineProgram* SimplePipelineProgram::Get(uint32 attributeMask , bool bHaveTexture)
 	{
 		SimplePipelineProgram::PermutationDomain permutationVector;
-		permutationVector.set< SimplePipelineProgram::HaveVertexColor >(attributeMask & BIT(EVertex::ATTRIBUTE_COLOR));
-		permutationVector.set< SimplePipelineProgram::HaveTexcoord >((attributeMask & BIT(EVertex::ATTRIBUTE_TEXCOORD)) && bHaveTexture);
+		permutationVector.set< HaveVertexColor >(attributeMask & BIT(EVertex::ATTRIBUTE_COLOR));
+		permutationVector.set< HaveTexcoord >((attributeMask & BIT(EVertex::ATTRIBUTE_TEXCOORD)) && bHaveTexture);
 		return ShaderManager::Get().getGlobalShaderT< SimplePipelineProgram >(permutationVector);
 	}
 
@@ -148,18 +148,18 @@ namespace Render
 	}
 
 
-	GlobalRenderResourceBase* GStaticResourceHead = nullptr;
+	IGlobalRenderResource* GStaticResourceHead = nullptr;
 
-	GlobalRenderResourceBase::GlobalRenderResourceBase()
+	IGlobalRenderResource::IGlobalRenderResource()
 	{
 		mNext = GStaticResourceHead;
 		GStaticResourceHead = this;
 	}
 
 
-	void GlobalRenderResourceBase::ReleaseAllResource()
+	void IGlobalRenderResource::ReleaseAllResource()
 	{
-		GlobalRenderResourceBase* cur = GStaticResourceHead;
+		IGlobalRenderResource* cur = GStaticResourceHead;
 
 		while( cur )
 		{
@@ -168,9 +168,9 @@ namespace Render
 		}
 	}
 
-	void GlobalRenderResourceBase::RestoreAllResource()
+	void IGlobalRenderResource::RestoreAllResource()
 	{
-		GlobalRenderResourceBase* cur = GStaticResourceHead;
+		IGlobalRenderResource* cur = GStaticResourceHead;
 
 		while( cur )
 		{

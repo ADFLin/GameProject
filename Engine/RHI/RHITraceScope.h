@@ -8,6 +8,7 @@
 #define RHICreateTextureDepth(...) RHICreateTextureDepthTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateShaderProgram(...) RHICreateShaderProgramTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateInputLayout(...) RHICreateInputLayoutTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
+#define RHICreateBuffer(...) RHICreateBufferTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateVertexBuffer(...) RHICreateVertexBufferTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateIndexBuffer(...) RHICreateIndexBufferTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateSamplerState(...) RHICreateSamplerStateTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
@@ -25,6 +26,7 @@
 #undef RHICreateTextureDepth
 #undef RHICreateShaderProgram
 #undef RHICreateInputLayout
+#undef RHICreateBuffer
 #undef RHICreateVertexBuffer
 #undef RHICreateIndexBuffer
 #undef RHICreateSamplerState

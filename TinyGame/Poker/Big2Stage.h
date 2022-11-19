@@ -8,7 +8,7 @@
 class ComWorker;
 class LocalPlayerManager;
 
-namespace Poker { namespace Big2 {
+namespace Big2 {
 
 	class Scene;
 	class CardListUI;
@@ -68,8 +68,6 @@ namespace Poker { namespace Big2 {
 
 	};
 
-
 }//namespace Big2
-}//namespace Poker
 
 #endif // Big2Stage_h__

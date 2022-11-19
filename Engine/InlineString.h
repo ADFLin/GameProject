@@ -42,7 +42,7 @@ public:
 	{ 
 		if constexpr (CHAR_COUNT < M)
 		{
-			CHECK(CHAR_COUNT <= other.length());
+			CHECK(CHAR_COUNT >= other.length());
 		}
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		assign(other.mData , other.mLength);
@@ -52,6 +52,7 @@ public:
 	}
 	FORCEINLINE TInlineString(StdString const& str) { assign(str.c_str(), str.length()); }
 	FORCEINLINE TInlineString(TStringView<T> const& str) { assign(str.data(), str.length()); }
+	FORCEINLINE TInlineString(CharT const* str) { assign(str); }
 
 	FORCEINLINE TInlineString& operator = (CharT const* str) { assign(str); return *this; }
 	FORCEINLINE TInlineString& operator = (TInlineString< CHAR_COUNT, CharT > const& other)

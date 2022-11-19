@@ -17,12 +17,16 @@
 
 namespace Render
 {
-	struct CharImageData
+	struct CharImageDesc
 	{
 		int    width;
 		int    height;
 		float  kerning;
 		float  advance;
+	};
+
+	struct CharImageData : CharImageDesc
+	{
 		int    imageWidth;
 		int    imageHeight;
 		int    pixelSize;
@@ -60,9 +64,9 @@ namespace Render
 			:fontFace(fontFace)
 		{
 			cachedHash = HashValue(fontFace.name);
-			HashCombine(cachedHash, fontFace.size);
-			HashCombine(cachedHash, fontFace.bBold);
-			HashCombine(cachedHash, fontFace.bUnderLine);
+			cachedHash = HashCombine(cachedHash, fontFace.size);
+			cachedHash = HashCombine(cachedHash, fontFace.bBold);
+			cachedHash = HashCombine(cachedHash, fontFace.bUnderLine);
 
 		}
 
@@ -85,7 +89,8 @@ namespace Render
 	{
 	public:
 		~ICharDataProvider() {}
-		virtual bool getCharData(uint32 charWord, CharImageData& data) = 0;
+		virtual bool getCharData(uint32 charWord, CharImageData& outData) = 0;
+		virtual bool getCharDesc(uint32 charWord, CharImageDesc& outDesc) = 0;
 		virtual int  getFontHeight() const = 0;
 		virtual void getKerningPairs(std::unordered_map< uint32 , float >& outKerningMap ) const = 0;
 
@@ -96,12 +101,17 @@ namespace Render
 	class CharDataSet
 	{
 	public:
-		struct CharData
+
+		struct CharDesc
 		{
 			int     width;
 			int     height;
 			float   kerning;
 			float   advance;
+		};
+
+		struct CharData : CharDesc
+		{
 			int     atlasId;
 			Vector2 uvMin;
 			Vector2 uvMax;
@@ -114,6 +124,7 @@ namespace Render
 			return mUsedTextAtlas->getTexture();
 		}
 		CharData const& findOrAddChar(uint32 charWord);
+		CharDesc const& getCharDesc(uint32 charWord);
 		int getFontHeight() const
 		{
 			return mFontHeight;
@@ -172,8 +183,8 @@ namespace Render
 		bool initialize(FontFaceInfo const& fontFace);
 		bool isValid() const { return mCharDataSet != nullptr; }
 		void cleanup();
-		void generateVertices(Vector2 const& pos, char const* str, std::vector< FontVertex >& outVertices);
-		void generateVertices(Vector2 const& pos, wchar_t const* str, std::vector< FontVertex >& outVertices);
+		void generateVertices(Vector2 const& pos, char const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void generateVertices(Vector2 const& pos, wchar_t const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
 
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);

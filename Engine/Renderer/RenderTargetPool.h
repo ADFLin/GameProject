@@ -5,6 +5,7 @@
 
 #include "RHI/RHIType.h"
 #include "RHI/RHICommon.h"
+#include "RHI/RHIGlobalResource.h"
 
 #include "HashString.h"
 #include "RefCount.h"
@@ -67,7 +68,15 @@ namespace Render
 	};
 
 
-	extern CORE_API RenderTargetPool GRenderTargetPool;
+	class GlobalRenderTargetTool : public RenderTargetPool
+		                         , public IGlobalRenderResource
+	{
+	public:
+		void restoreRHI() override;
+		void releaseRHI() override;
+
+	};
+	extern CORE_API GlobalRenderTargetTool GRenderTargetPool;
 
 }//namespace Render
 

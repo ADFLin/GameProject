@@ -8,6 +8,7 @@
 
 namespace Render
 {
+
 	Mesh::Mesh()
 	{
 		mType = EPrimitive::TriangleList;
@@ -108,7 +109,7 @@ namespace Render
 		if (mVertexBuffer == nullptr)
 			return;
 
-		RHIIndexBuffer* indexBuffer = bUseAdjBuffer ? mTessAdjIndexBuffer : mIndexBuffer;
+		RHIBuffer* indexBuffer = bUseAdjBuffer ? mTessAdjIndexBuffer : mIndexBuffer;
 		if (indexBuffer == nullptr)
 			return;
 
@@ -124,7 +125,7 @@ namespace Render
 		drawInternal(commandList, mType, section.indexStart, section.count, mIndexBuffer);
 	}
 
-	void Mesh::drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer)
+	void Mesh::drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIBuffer* indexBuffer)
 	{
 		assert(mVertexBuffer != nullptr);
 		InputStreamInfo inputStream;
@@ -159,7 +160,7 @@ namespace Render
 
 		std::vector< uint32 > tempBuffer;
 		int numTriangles = 0;
-		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
+		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), IsIntType(mIndexBuffer), tempBuffer, numTriangles);
 		if (pIndexData == nullptr)
 			return false;
 
@@ -195,7 +196,7 @@ namespace Render
 		RHIUnlockBuffer(mColorBuffer);
 	}
 
-	void Mesh::drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIIndexBuffer* indexBuffer)
+	void Mesh::drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIBuffer* indexBuffer)
 	{
 		assert(mVertexBuffer != nullptr);
 		InputStreamInfo inputStreams[2];
@@ -225,7 +226,7 @@ namespace Render
 		return generateAdjacencyInternal(EAdjacencyType::Tessellation, mTessAdjIndexBuffer);
 	}
 
-	bool Mesh::generateAdjacencyInternal(EAdjacencyType type, RHIIndexBufferRef& outIndexBuffer)
+	bool Mesh::generateAdjacencyInternal(EAdjacencyType type, RHIBufferRef& outIndexBuffer)
 	{
 		if (outIndexBuffer.isValid())
 			return true;
@@ -247,7 +248,7 @@ namespace Render
 
 		std::vector< uint32 > tempBuffer;
 		int numTriangles = 0;
-		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
+		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), IsIntType(mIndexBuffer), tempBuffer, numTriangles);
 
 		if (pIndexData == nullptr)
 			return false;
@@ -273,26 +274,50 @@ namespace Render
 		serializer << (uint8)mType;
 		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer, ELockAccess::ReadOnly);
 		uint32 vertexDataSize = mVertexBuffer->getSize();
-		uint8* pIndex = (uint8*)RHILockBuffer(mIndexBuffer, ELockAccess::ReadOnly);
-		uint32 indexDataSize = mIndexBuffer->getSize();
-		ON_SCOPE_EXIT
+		if ( mIndexBuffer.isValid() )
 		{
-			RHIUnlockBuffer(mVertexBuffer);
-			RHIUnlockBuffer(mIndexBuffer);
-		};
+			uint8* pIndex = (uint8*)RHILockBuffer(mIndexBuffer, ELockAccess::ReadOnly);
+			uint32 indexDataSize = mIndexBuffer->getSize();
 
-		if (pVertex == nullptr || pIndex == nullptr)
-			return false;
+			ON_SCOPE_EXIT
+			{
+				RHIUnlockBuffer(mVertexBuffer);
+				RHIUnlockBuffer(mIndexBuffer);
+			};
 
-		bool bIntType = mIndexBuffer->isIntType();
-		serializer << vertexDataSize;
-		serializer.write(pVertex, vertexDataSize);
-		serializer << bIntType;
-		serializer << indexDataSize;
-		serializer.write(pIndex, indexDataSize);
+			if (pVertex == nullptr || pIndex == nullptr)
+				return false;
 
-		serializer << mInputLayoutDesc;
-		serializer << mSections;
+			bool bIntType = IsIntType(mIndexBuffer);
+			serializer << vertexDataSize;
+			serializer.write(pVertex, vertexDataSize);
+			serializer << indexDataSize;
+			serializer << bIntType;
+			serializer.write(pIndex, indexDataSize);
+
+			serializer << mInputLayoutDesc;
+			serializer << mSections;
+			return true;
+		}
+		else
+		{
+			ON_SCOPE_EXIT
+			{
+				RHIUnlockBuffer(mVertexBuffer);
+			};
+
+			if (pVertex == nullptr)
+				return false;
+
+			serializer << vertexDataSize;
+			serializer.write(pVertex, vertexDataSize);
+
+			uint32 indexDataSize = 0;
+			serializer << indexDataSize;
+
+			serializer << mInputLayoutDesc;
+			serializer << mSections;
+		}
 		return true;
 	}
 
@@ -313,10 +338,11 @@ namespace Render
 		}
 		uint32 indexDataSize;
 		bool bIntType;
-		serializer >> bIntType;
+
 		serializer >> indexDataSize;
 		if (indexDataSize)
 		{
+			serializer >> bIntType;
 			indexData.resize(indexDataSize);
 			serializer.read(indexData.data(), indexDataSize);
 		}

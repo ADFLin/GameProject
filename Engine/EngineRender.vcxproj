@@ -107,6 +107,7 @@
     <ClInclude Include="Renderer\SceneView.h" />
     <ClInclude Include="Renderer\ShadowDepthRendering.h" />
     <ClInclude Include="Renderer\SimpleCamera.h" />
+    <ClInclude Include="Renderer\TransformPushScope.h" />
     <ClInclude Include="RHI\D3DSharedCommon.h" />
     <ClInclude Include="RHI\DrawUtility.h" />
     <ClInclude Include="RHI\Font.h" />

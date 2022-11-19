@@ -86,7 +86,7 @@ void WinGdiGraphics2D::setPen(Color3ub const& color, int width /*= 1 */)
 	if( width == 1 )
 	{
 		HPEN hPen;
-		auto iter = mCachedPenMap.find(color.toXBGR());
+		auto iter = mCachedPenMap.find(color.toRGB());
 		if( iter != mCachedPenMap.end() )
 		{
 			hPen = iter->second;
@@ -94,7 +94,7 @@ void WinGdiGraphics2D::setPen(Color3ub const& color, int width /*= 1 */)
 		else
 		{
 			hPen = FWindowsGDI::CreatePen(color, width);
-			mCachedPenMap.emplace(color.toXBGR(), hPen);
+			mCachedPenMap.emplace(color.toRGB(), hPen);
 		}
 		assert(hPen != NULL);
 		setPenImpl(hPen, false);
@@ -109,7 +109,7 @@ void WinGdiGraphics2D::setBrush(Color3ub const& color)
 {
 
 	HBRUSH hBrush;
-	auto iter = mCachedBrushMap.find(color.toXBGR());
+	auto iter = mCachedBrushMap.find(color.toRGB());
 	if( iter != mCachedBrushMap.end() )
 	{
 		hBrush = iter->second;
@@ -117,7 +117,7 @@ void WinGdiGraphics2D::setBrush(Color3ub const& color)
 	else
 	{
 		hBrush = FWindowsGDI::CreateBrush(color);
-		mCachedBrushMap.emplace(color.toXBGR(), hBrush);
+		mCachedBrushMap.emplace(color.toRGB(), hBrush);
 	}
 	assert(hBrush != NULL);
 	setBrushImpl(hBrush, false);
@@ -264,7 +264,7 @@ void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos )
 void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Color3ub const& colorKey)
 {
 	GDI_PROFILE( "WinGdiGraphics2D::drawTexture" )
-	texture.mImpl.bitBltTransparent( getRenderDC() , colorKey.toXBGR() , pos.x , pos.y );
+	texture.mImpl.bitBltTransparent( getRenderDC() , colorKey.toRGB() , pos.x , pos.y );
 }
 
 void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize )
@@ -278,7 +278,7 @@ void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec
 {
 	GDI_PROFILE( "WinGdiGraphics2D::drawTexture" )
 	::TransparentBlt( getRenderDC() , pos.x , pos.y , texSize.x , texSize.y , 
-		texture.mImpl.getHandle() , texPos.x , texPos.y , texSize.x , texSize.y , colorKey.toXBGR()  );
+		texture.mImpl.getHandle() , texPos.x , texPos.y , texSize.x , texSize.y , colorKey.toRGB()  );
 }
 
 void WinGdiGraphics2D::drawTexture(GdiTexture& texture, Vec2i const& pos, Vec2i const& size)
@@ -309,7 +309,7 @@ void WinGdiGraphics2D::drawText( Vec2i const& pos , Vec2i const& size , char con
 
 void WinGdiGraphics2D::setTextColor(Color3ub const& color)
 {
-	::SetTextColor( getRenderDC(), color.toXBGR() );
+	::SetTextColor( getRenderDC(), color.toRGB() );
 }
 
 Vec2i WinGdiGraphics2D::calcTextExtentSize( char const* str , int num )
@@ -436,10 +436,10 @@ HFONT FWindowsGDI::CreateFont(HDC hDC, char const* faceName, int size, bool bBol
 
 HBRUSH FWindowsGDI::CreateBrush(Color3ub const& color)
 {
-	return ::CreateSolidBrush(color.toXBGR());
+	return ::CreateSolidBrush(color.toRGB());
 }
 
 HPEN FWindowsGDI::CreatePen(Color3ub const& color, int width)
 {
-	return ::CreatePen(PS_SOLID, width, color.toXBGR());
+	return ::CreatePen(PS_SOLID, width, color.toRGB());
 }

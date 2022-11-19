@@ -1,16 +1,16 @@
 #include "CAR_PCH.h"
 #include "CARLevelActor.h"
-#include <algorithm>
+
+#include "StdUtility.h"
 
 namespace CAR
 {
 
-
-	bool ActorCollection::haveOtherActor(int playerId)
+	bool ActorCollection::haveOtherActor(PlayerId playerId)
 	{
 		for(LevelActor* actor : mActors)
 		{
-			if ( actor->ownerId != CAR_ERROR_PLAYER_ID &&  actor->ownerId != playerId )
+			if ( actor->ownerId != CAR_ERROR_PLAYER_ID && actor->ownerId != playerId )
 				return true;
 		}
 		return false;
@@ -29,10 +29,7 @@ namespace CAR
 
 	bool TestPlayerMask(LevelActor* actor, unsigned playerMask)
 	{
-#if 0
-		if (actor->ownerId == CAR_ERROR_PLAYER_ID)
-			return false;
-#endif
+		static_assert(BIT(CAR_ERROR_PLAYER_ID) == 0);
 		return !!(playerMask & BIT(actor->ownerId));
 	}
 
@@ -112,6 +109,29 @@ namespace CAR
 		return result;
 	}
 
+
+	int ActorCollection::countActorFromType(unsigned actorTypeMask) const
+	{
+		int result = 0;
+		int iter = 0;
+		while (auto actor = iteratorActorFromType(actorTypeMask, iter))
+		{
+			++result;
+		}
+		return result;
+	}
+
+	int ActorCollection::countActorFromPlayer(unsigned playerMask) const
+	{
+		int result = 0;
+		int iter = 0;
+		while (auto actor = iteratorActorFromPlayer(playerMask, iter))
+		{
+			++result;
+		}
+		return result;
+	}
+
 	LevelActor* ActorCollection::popActor()
 	{
 		if ( mActors.empty() )
@@ -136,7 +156,7 @@ namespace CAR
 	void LevelActor::removeFollower(LevelActor& actor)
 	{
 		assert ( actor.binder == this );
-		followers.erase( std::find( followers.begin() , followers.end() , &actor ) );
+		RemoveValueChecked(followers, &actor);
 		actor.binder = nullptr;
 	}
 

@@ -572,7 +572,7 @@ namespace SBlocks
 					mShape->desc.toggleValue(localPos);
 					if (mShape->ptr)
 					{
-						mShape->ptr->importDesc(mShape->desc);
+						mShape->ptr->importDesc(mShape->desc, editor->mGame->mLevel.bAllowMirrorOp);
 					}
 					return MsgReply::Handled();
 				}

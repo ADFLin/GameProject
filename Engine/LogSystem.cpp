@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include <vector>
+#include "StdUtility.h"
 
 #if USE_LOG
 
@@ -20,26 +21,13 @@ public:
 	void   addListener( LogChannel channel , LogOutput* listener )
 	{
 		LogOutputList& outputList = chanelListenerList[ channel ];
-		LogOutputList::iterator iter = std::find( 
-			outputList.begin() , outputList.end() , listener );
-
-		if ( iter != outputList.end() )
-			return;
-
-		outputList.push_back( listener );
+		AddUniqueValue(outputList, listener);
 	}
 
 	void   removeListener( LogChannel channel , LogOutput* listener )
 	{
 		LogOutputList& outputList = chanelListenerList[ channel ];
-		if( outputList.empty() ) 
-			return;
-
-		LogOutputList::iterator iter = std::find( 
-			outputList.begin() , outputList.end() , listener );
-
-		if ( iter != outputList.end() )
-			outputList.erase( iter );
+		RemoveValue(outputList, listener);
 	}
 
 

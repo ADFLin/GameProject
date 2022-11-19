@@ -27,8 +27,7 @@ namespace Render
 	class D3D11Texture2D;
 	class D3D11Texture3D;
 	class D3D11TextureCube;
-	class D3D11VertexBuffer;
-	class D3D11IndexBuffer;
+	class D3D11Buffer;
 	class D3D11RasterizerState;
 	class D3D11BlendState;
 	class D3D11InputLayout;
@@ -63,16 +62,10 @@ namespace Render
 	};
 
 	template<>
-	struct TD3D11TypeTraits< RHIVertexBuffer > 
+	struct TD3D11TypeTraits< RHIBuffer > 
 	{ 
 		typedef ID3D11Buffer ResourceType;
-		typedef D3D11VertexBuffer ImplType; 
-	};
-	template<>
-	struct TD3D11TypeTraits< RHIIndexBuffer >
-	{
-		typedef ID3D11Buffer ResourceType; 
-		typedef D3D11IndexBuffer ImplType;
+		typedef D3D11Buffer ImplType; 
 	};
 	template<>
 	struct TD3D11TypeTraits< RHIRasterizerState > 
@@ -345,7 +338,7 @@ namespace Render
 			uint32 getTypeHash() const
 			{
 				uint32 result = HashValue(level);
-				HashCombine(result, arrayIndex);
+				result = HashCombine(result, arrayIndex);
 				return result;
 			}
 
@@ -631,13 +624,15 @@ namespace Render
 			TComPtr<ID3D11DeviceContext> deviceContext;
 			device->GetImmediateContext(&deviceContext);
 			D3D11_BOX box;
-			box.front = (int)face;
-			box.back = (int)face + 1;
+			box.front = 0;
+			box.back = 1;
 			box.left = ox;
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * ETexture::GetFormatSize(format), w * h * ETexture::GetFormatSize(format));
+
+			UINT subresource = D3D11CalcSubresource(level, face, getNumMipLevel());
+			deviceContext->UpdateSubresource(mResource, subresource, &box, data, w * ETexture::GetFormatSize(format), w * h * ETexture::GetFormatSize(format));
 			return true;
 		}
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
@@ -651,14 +646,16 @@ namespace Render
 			TComPtr<ID3D11DeviceContext> deviceContext;
 			device->GetImmediateContext(&deviceContext);
 			D3D11_BOX box;
-			box.front = (int)face;
-			box.back = (int)face + 1;
+			box.front = 0;
+			box.back = 1;
 			box.left = ox;
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
+
+			UINT subresource = D3D11CalcSubresource(level, face, getNumMipLevel());
 			//@FIXME : error
-			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * ETexture::GetFormatSize(format), h * dataImageWidth * ETexture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, subresource, &box, data, dataImageWidth * ETexture::GetFormatSize(format), h * dataImageWidth * ETexture::GetFormatSize(format));
 			return true;
 		}
 
@@ -684,17 +681,20 @@ namespace Render
 		uint32 flags;
 	};
 
-	template< class RHIBufferType >
-	class TD3D11Buffer : public TD3D11Resource< RHIBufferType >
+	class D3D11Buffer : public TD3D11Resource< RHIBuffer >
 	{
 	public:
-		TD3D11Buffer(D3D11BufferCreationResult& creationResult)
+		D3D11Buffer(uint32 elementSize, uint32 numElements, D3D11BufferCreationResult& creationResult)
 		{
+			mNumElements = numElements;
+			mElementSize = elementSize;
+
 			mResource = creationResult.resource.detach();
 			mSRV = creationResult.SRV.detach();
 			mUAV = creationResult.UAV.detach();
 			mCreationFlags = creationResult.flags;
 		}
+
 
 #if USE_RHI_RESOURCE_TRACE
 		virtual void setTraceData(ResTraceInfo const& trace)
@@ -702,7 +702,7 @@ namespace Render
 			mTrace = trace;
 			if (mTag)
 			{
-				mResource->SetPrivateData(WKPDID_D3DDebugObjectName, strlen(mTag) , mTag );
+				mResource->SetPrivateData(WKPDID_D3DDebugObjectName, strlen(mTag), mTag);
 			}
 		}
 #endif
@@ -710,26 +710,13 @@ namespace Render
 		{
 			SAFE_RELEASE(mSRV);
 			SAFE_RELEASE(mUAV);
-			TD3D11Resource< RHIBufferType >::releaseResource();
+			TD3D11Resource< RHIBuffer >::releaseResource();
 		}
 
 		ID3D11ShaderResourceView* mSRV;
 		ID3D11UnorderedAccessView* mUAV;
-	};
 
-
-	class D3D11VertexBuffer : public TD3D11Buffer< RHIVertexBuffer >
-	{
-	public:
-		using TD3D11Buffer< RHIVertexBuffer >::TD3D11Buffer;
-		D3D11VertexBuffer(int numVertices , int vertexSize , D3D11BufferCreationResult& creationResult)
-			:TD3D11Buffer< RHIVertexBuffer >(creationResult)
-		{
-			mNumElements = numVertices;
-			mElementSize = vertexSize;
-		}
-
-		void  updateData(uint32 vStart, uint32 numVertices, void* data)
+		void  updateData(uint32 start, uint32 numElements, void* data)
 		{
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
@@ -738,22 +725,10 @@ namespace Render
 			device->GetImmediateContext(&context);
 
 			D3D11_BOX box = { 0 };
-			box.left  = vStart * mElementSize;
-			box.right = vStart + numVertices * mElementSize;
+			box.left  = start * mElementSize;
+			box.right = start + numElements * mElementSize;
 			context->UpdateSubresource(mResource, 0, &box, data, 0, 0);
 		}
-	};
-
-	class D3D11IndexBuffer : public TD3D11Buffer< RHIIndexBuffer >
-	{
-	public:
-		D3D11IndexBuffer( int numIndices, bool bIntType ,D3D11BufferCreationResult& creationResult)
-			:TD3D11Buffer< RHIIndexBuffer >(creationResult)
-		{
-			mNumElements = numIndices;
-			mElementSize = bIntType ? 4 : 2;
-		}
-
 	};
 
 	class D3D11RasterizerState : public TD3D11Resource< RHIRasterizerState >

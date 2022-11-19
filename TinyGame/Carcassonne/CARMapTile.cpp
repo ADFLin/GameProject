@@ -371,10 +371,10 @@ namespace CAR
 	{
 		if( typeA == typeB )
 			return true;
-		unsigned const AbbeyLinkMask = BIT(ESide::Type::Abbey) | BIT(ESide::Type::City) | BIT(ESide::Type::Road) | BIT(ESide::Type::Field);
-		if( typeA == ESide::Type::Abbey && (AbbeyLinkMask & BIT(typeB)) )
+		unsigned const AbbeyLinkMask = BIT(ESide::Abbey) | BIT(ESide::City) | BIT(ESide::Road) | BIT(ESide::Field);
+		if( typeA == ESide::Abbey && (AbbeyLinkMask & BIT(typeB)) )
 			return true;
-		if( typeB == ESide::Type::Abbey && (AbbeyLinkMask & BIT(typeA)) )
+		if( typeB == ESide::Abbey && (AbbeyLinkMask & BIT(typeA)) )
 			return true;
 		return false;
 	}

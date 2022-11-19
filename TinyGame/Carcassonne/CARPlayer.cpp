@@ -45,7 +45,7 @@ namespace CAR
 		mFieldValues[idx+index] = value;
 	}
 
-	int PlayerBase::modifyFieldValue(EField::Type type , int value /*= 1 */)
+	int PlayerBase::modifyFieldValue(EField::Type type , int value)
 	{
 		int idx = mSetting->getFieldIndex( type );
 		if ( idx == INDEX_NONE )

@@ -34,7 +34,9 @@ namespace Render
 			}
 		}
 
-		bool     getCharData(uint32 charWord, CharImageData& data) override;
+		bool getCharData(uint32 charWord, CharImageData& outData) override;
+		bool getCharDesc(uint32 charWord, CharImageDesc& outDesc) override;
+
 		int      getFontHeight() const override { return textureDC.getHeight(); }
 		int      mSize;
 		BitmapDC textureDC;
@@ -80,7 +82,7 @@ namespace Render
 		return true;
 	}
 
-	bool GDIFontCharDataProvider::getCharData(uint32 charWord, CharImageData& data)
+	bool GDIFontCharDataProvider::getCharData(uint32 charWord, CharImageData& outData)
 	{
 		
 		wchar_t charW = charWord;
@@ -103,21 +105,21 @@ namespace Render
 		rect.bottom = textureDC.getHeight();
 		::DrawTextW(textureDC, &charW, 1, &rect, DT_LEFT | DT_TOP);
 
-		data.width = (int)abcFloat.abcfB;
-		data.height = textureDC.getHeight();
-		data.kerning = abcFloat.abcfA;
-		data.advance = abcFloat.abcfB + abcFloat.abcfC;
-		data.imageWidth = data.width;
-		data.imageHeight = textureDC.getHeight();
-		data.pixelSize = 4;
-		data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelSize);
-		CopyImage(&data.imageData[0], data.imageWidth, data.imageHeight, data.pixelSize, pDataTexture, textureDC.getWidth());
+		outData.width = (int)abcFloat.abcfB;
+		outData.height = textureDC.getHeight();
+		outData.kerning = abcFloat.abcfA;
+		outData.advance = abcFloat.abcfB + abcFloat.abcfC;
+		outData.imageWidth = outData.width;
+		outData.imageHeight = textureDC.getHeight();
+		outData.pixelSize = 4;
+		outData.imageData.resize(outData.imageWidth * outData.imageHeight * outData.pixelSize);
+		CopyImage(&outData.imageData[0], outData.imageWidth, outData.imageHeight, outData.pixelSize, pDataTexture, textureDC.getWidth());
 
 		if (GRHISystem->getName() == RHISystemName::D3D11 || 
 			GRHISystem->getName() == RHISystemName::D3D12)
 		{
-			uint8* pData = data.imageData.data();
-			int count = data.imageData.size() / 4;
+			uint8* pData = outData.imageData.data();
+			int count = outData.imageData.size() / 4;
 			for (int i = count; i ; --i )
 			{
 				pData[3] = pData[0];
@@ -125,6 +127,18 @@ namespace Render
 			}
 		}
 
+		return true;
+	}
+
+	bool GDIFontCharDataProvider::getCharDesc(uint32 charWord, CharImageDesc& outDesc)
+	{
+		wchar_t charW = charWord;
+		ABCFLOAT abcFloat;
+		::GetCharABCWidthsFloatW(textureDC, charW, charW, &abcFloat);
+		outDesc.width = (int)abcFloat.abcfB;
+		outDesc.height = textureDC.getHeight();
+		outDesc.kerning = abcFloat.abcfA;
+		outDesc.advance = abcFloat.abcfB + abcFloat.abcfC;
 		return true;
 	}
 
@@ -263,7 +277,7 @@ namespace Render
 	CharDataSet::CharData const& CharDataSet::findOrAddChar(uint32 charWord)
 	{
 		auto iter = mCharMap.find(charWord);
-		if( iter != mCharMap.end() )
+		if( iter != mCharMap.end() && iter->second.atlasId != INDEX_NONE)
 			return iter->second;
 
 		CharImageData imageData;
@@ -288,6 +302,24 @@ namespace Render
 
 		charData.advance = imageData.advance;
 		charData.kerning = imageData.kerning;
+		return charData;
+	}
+
+	CharDataSet::CharDesc const& CharDataSet::getCharDesc(uint32 charWord)
+	{
+		auto iter = mCharMap.find(charWord);
+		if (iter != mCharMap.end())
+			return iter->second;
+
+		CharData& charData = mCharMap[charWord];
+		CharImageDesc imageDesc;
+		mProvider->getCharDesc(charWord, imageDesc);
+		charData.atlasId = INDEX_NONE;
+		charData.width = imageDesc.width;
+		charData.height = imageDesc.height;
+		charData.kerning = imageDesc.kerning;
+		charData.advance = imageDesc.advance;
+
 		return charData;
 	}
 
@@ -322,61 +354,57 @@ namespace Render
 
 	Vector2 FontDrawer::calcTextExtent(wchar_t const* str)
 	{
-		assert(isValid());
+		CHECK(isValid());
 
 		if( str == nullptr )
-			return Vector2(0, 0);
+			return Vector2::Zero();
 
-		Vector2 result = Vector2(0, 0);
-		bool bPrevSpace = false;
-		bool bStartChar = true;
+		Vector2 result = Vector2::Zero();
+
 		wchar_t prevChar = 0;
 
-		float curPosX = 0;
-		float curPosY = 0;
+		float xOffset = 0.0f;
+		float lineMaxHeight = 0.0f;
+
+		bool bApplyKerning = false;
 		while( *str != 0 )
 		{
 			wchar_t c = *(str++);
 
-			if( false && c == L'\n' )
+			if( c == L'\n' )
 			{
-				result.x = std::max(result.x, curPosX);
-				curPosX = 0;
-				result.y += curPosY + 2;
-				bStartChar = true;
+				result.x = Math::Max(result.x, xOffset);
+				result.y += lineMaxHeight + 2;
+
+				xOffset = 0;
+				lineMaxHeight = 0;
+				bApplyKerning = false;
 				continue;
 			}
 
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if (!(bPrevSpace || bStartChar))
+			if (bApplyKerning)
 			{
-				curPosX += data.kerning;
-				uint32 key = (uint32(prevChar) << 16) | uint32(c);
+				xOffset += data.kerning;
 #if 1
 				float kerning;
 				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
 				{
-					curPosX += kerning;
+					xOffset += kerning;
 				}
 #endif
 			}
 
-			curPosY = std::max(curPosY, float(data.height));
-			curPosX += data.advance;
-			bStartChar = false;
-			if (c == FCString::IsSpace(c))
-			{
-				bPrevSpace = true;
-			}
+			lineMaxHeight = Math::Max(lineMaxHeight, float(data.height));
+			xOffset += data.advance;
+			bApplyKerning = !FCString::IsSpace(c);
 			prevChar = c;
 		}
 
-		result.x = std::max(result.x, curPosX);
-		result.y += curPosY;
+		result.x = std::max(result.x, xOffset);
+		result.y += lineMaxHeight;
 		return result;
-
-
 	}
 
 	Vector2 FontDrawer::calcTextExtent(char const* str)
@@ -444,11 +472,9 @@ namespace Render
 	};
 #endif
 
-	void FontDrawer::generateVertices( Vector2 const& pos , wchar_t const* str, std::vector< FontVertex >& outVertices)
+	void FontDrawer::generateVertices( Vector2 const& pos , wchar_t const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize)
 	{
 		Vector2 curPos = pos;
-		bool bPrevSpace = false;
-		bool bStartChar = true;
 		wchar_t prevChar = 0;
 
 		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
@@ -460,6 +486,7 @@ namespace Render
 			outVertices.push_back({ Vector2(pos.x , posMax.y) , Vector2(uvMin.x , uvMax.y) });
 		};
 
+		bool bApplyKerning = false;
 		while (*str != 0)
 		{
 			wchar_t c = *(str++);
@@ -467,13 +494,13 @@ namespace Render
 			{
 				curPos.x = pos.x;
 				curPos.y += mCharDataSet->getFontHeight() + 2;
-				bStartChar = true;
+				bApplyKerning = false;
 				continue;
 			}
 
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
-			if (!(bPrevSpace || bStartChar))
+			if (bApplyKerning)
 			{
 				curPos.x += data.kerning;
 #if 1
@@ -487,19 +514,15 @@ namespace Render
 
 			AddQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
 			curPos.x += data.advance;
-			bStartChar = false;
-			if (c == FCString::IsSpace(c))
-			{
-				bPrevSpace = true;
-			}
+			bApplyKerning = !FCString::IsSpace(c);
 			prevChar = c;
 		}
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, std::vector< FontVertex >& outVertices)
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize)
 	{
 		std::wstring text = FCString::CharToWChar(str);
-		generateVertices(pos, text.c_str(), outVertices);
+		generateVertices(pos, text.c_str(), outVertices, outBoundSize);
 	}
 
 }//namespace Render

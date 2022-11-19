@@ -177,7 +177,7 @@ namespace Render
 	class TRenderRT
 	{
 	public:
-		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer& buffer , int numVertices, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, EPrimitive type, RHIBuffer& buffer , int numVertices, int vertexStride = GetVertexSize())
 		{
 			InputStreamInfo inputStream;
 			inputStream.buffer = &buffer;
@@ -272,6 +272,7 @@ namespace Render
 		static void DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color = LinearColor(1, 1, 1, 1));
 		static void DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler , Vector2 const& pos, Vector2 const& size , LinearColor const& color = LinearColor(1,1,1,1));
 		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, float length);
+		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size);
 
 	};
 
@@ -343,14 +344,13 @@ namespace Render
 		}
 	};
 
-	class ShaderHelper
+	class ShaderHelper : public IGlobalRenderResource
 	{
 	public:
 
 		CORE_API static ShaderHelper& Get();
 
 		bool init();
-		void releaseRHI();
 
 		void copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture);
 		void copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask);
@@ -378,6 +378,9 @@ namespace Render
 
 
 		RHIFrameBufferRef mFrameBuffer;
+	private:
+		void restoreRHI() override;
+		void releaseRHI() override;
 
 	};
 

@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <functional>
 
-namespace Poker { namespace Big2 {
+namespace Big2 {
 
 	int const PlayerNum = 4;
 	int const MaxPlayerCardNum = 26;
@@ -183,7 +183,7 @@ namespace Poker { namespace Big2 {
 
 	private:
 		
-		void        onRecvData( int slotId , int dataId , void* data , int dataSize );
+		void        handleRecvData( int slotId , int dataId , void* data , int dataSize );
 		void        doSetupTransfer() override;
 		void        updateBot();
 		bool        updateBotImpl( int slotId );
@@ -261,7 +261,7 @@ namespace Poker { namespace Big2 {
 		TablePos      getTablePos( int slotId );
 		int           getSlotId( TablePos pos );
 
-		void          onRecvData( int playerId , int dataId , void* data , int dataSize );
+		void          handleRecvData( int playerId , int dataId , void* data , int dataSize );
 
 
 		void          doSetupTransfer() override;
@@ -277,9 +277,6 @@ namespace Poker { namespace Big2 {
 		
 	};
 
-
 }//namespace Big2
-}//namespace Poker
-
 
 #endif // Big2Level_h__

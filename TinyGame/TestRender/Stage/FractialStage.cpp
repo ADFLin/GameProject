@@ -372,7 +372,7 @@ public:
 
 	virtual ERenderSystem getDefaultRenderSystem() override
 	{
-		return ERenderSystem::D3D12;
+		return ERenderSystem::OpenGL;
 	}
 	virtual bool setupRenderSystem(ERenderSystem systemName) override
 	{

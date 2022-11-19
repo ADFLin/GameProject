@@ -7,10 +7,12 @@
 #include "RHI/RHIGlobalResource.h"
 #include "RHI/RHIGraphics2D.h"
 #include "Renderer/RenderTargetPool.h"
+#include "ConsoleSystem.h"
 
 
 namespace Render
 {
+	TINY_API GlobalTextureShowManager GTextureShowManager;
 
 	class TextureShowFrame : public GWidget
 	{
@@ -35,8 +37,20 @@ namespace Render
 	{
 		//if (handle && handle->texture.isValid())
 		{
-			RHITexture2D* texture = handle->texture;
-			setSize(Vec2i(mBaseLength, mBaseLength * texture->getSizeY() / float(texture->getSizeX())));
+			switch (handle->texture->getType())
+			{
+			case ETexture::Type2D:
+				{
+
+					RHITexture2D* texture = static_cast<RHITexture2D*>(handle->texture.get());
+					setSize(Vec2i(mBaseLength, mBaseLength * texture->getSizeY() / float(texture->getSizeX())));
+				}
+				break;
+			case ETexture::TypeCube:
+				{
+					setSize(Vec2i(mBaseLength, mBaseLength / 2));
+				}
+			}
 		}
 	}
 
@@ -47,18 +61,55 @@ namespace Render
 		{
 			updateSize();
 
-			RHITexture2D* texture = handle->texture;
-			g.setBrush(Color3f::White());
-			g.setSampler(TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
+			Vec2i pos = getWorldPos();
+			Vec2i size = getSize();
 
-			if (GRHIVericalFlip < 0)
+			auto VFlip = [](Vec2i& pos, Vec2i& size)
 			{
-				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, 0), Vec2i(1, 1));
-			}
-			else
+				pos.y += size.y;
+				size.y = -size.y;
+			};
+
+			GrapthicStateScope Scope(g);
+			RHISetBlendState(g.getCommandList(), TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+
+			switch (handle->texture->getType())
 			{
-				g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, 1), Vec2i(1, -1));
+			case ETexture::Type2D:
+				{
+					RHITexture2D* texture = static_cast< RHITexture2D*>( handle->texture.get() );
+
+					VFlip(pos, size);
+#if 1
+					DrawUtility::DrawTexture(g.getCommandList(), g.getBaseTransform(), *texture, pos, size);
+#else
+					g.setBrush(Color3f::White());
+					g.setSampler(TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
+
+					if (1)
+					{
+						g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, 0), Vec2i(1, 1));
+					}
+					else
+					{
+						g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, 1), Vec2i(1, -1));
+					}
+#endif
+				}
+				break;
+			case ETexture::TypeCube:
+				{
+					RHITextureCube* texture = static_cast<RHITextureCube*>(handle->texture.get());
+					VFlip(pos, size);
+
+					DrawUtility::DrawCubeTexture(g.getCommandList(), g.getBaseTransform(), *texture, pos, size);
+
+				}
+				break;
+			default:
+				break;
 			}
+
 
 
 			if (isFocus())
@@ -177,7 +228,7 @@ namespace Render
 	}
 
 
-	void TextureShowManager::registerTexture(HashString const& name, RHITexture2D* texture)
+	void TextureShowManager::registerTexture(HashString const& name, RHITextureBase* texture)
 	{
 		auto iter = mTextureMap.find(name);
 		if (iter != mTextureMap.end())
@@ -192,13 +243,19 @@ namespace Render
 		}
 	}
 
-	void TextureShowManager::handleShowTexture()
+	void TextureShowManager::handleShowTexture(char const* texName)
 	{
 		TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
-		textureFrame->handle;
+		if (texName)
+		{
+			auto iter = mTextureMap.find(texName);
+			if (iter != mTextureMap.end())
+			{
+				textureFrame->handle = iter->second;
+			}
+		}
 		textureFrame->mManager = this;
 		::Global::GUI().addWidget(textureFrame);
-
 	}
 
 	void TextureShowManager::registerRenderTarget(RenderTargetPool& renderTargetPool)
@@ -219,5 +276,22 @@ namespace Render
 			pair.second->texture.release();
 		}
 	}
+
+	GlobalTextureShowManager::GlobalTextureShowManager()
+	{
+		ConsoleSystem::Get().registerCommand("ShowTexture", &GlobalTextureShowManager::handleShowTexture, this, CVF_CAN_OMIT_ARGS);
+	}
+
+
+	void GlobalTextureShowManager::restoreRHI()
+	{
+
+	}
+
+	void GlobalTextureShowManager::releaseRHI()
+	{
+		TextureShowManager::releaseRHI();
+	}
+
 }
 

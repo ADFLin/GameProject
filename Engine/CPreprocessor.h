@@ -139,7 +139,7 @@ namespace CPP
 			if (c < 0)
 				return false;
 
-			return ::isalnum(c) || c == '_';
+			return FCString::IsAlphaNumeric(c) || c == '_';
 		}
 
 		static int SkipConcat(char const*& Code)
@@ -471,11 +471,13 @@ namespace CPP
 		Preprocessor();
 		~Preprocessor();
 
+
 		void translate(CodeSource& sorce);
 		void setOutput(CodeOutput& output);
 		void setSourceLibrary(CodeSourceLibrary& sourceLibrary);
 		void addSreachDir(char const* dir);
 		void addDefine(char const* name, int value);
+		void addInclude(char const* fileName, bool bSystemPath = false);
 
 		void getUsedIncludeFiles(std::unordered_set< HashString >& outFiles);
 

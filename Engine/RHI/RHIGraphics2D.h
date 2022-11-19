@@ -143,14 +143,16 @@ public:
 	void  setTextColor(Color3Type const& color);
 	void  drawText(Vector2 const& pos, char const* str);
 	void  drawText(Vector2 const& pos, wchar_t const* str);
-	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool beClip = false);
+	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip = false);
 	void  drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
-	void comitRenderState();
+	void commitRenderState();
 	void restoreRenderState();
+
+
 	void flush()
 	{
-		comitRenderState();
+		commitRenderState();
 		flushBatchedElements();
 	}
 
@@ -196,6 +198,8 @@ private:
 	void setupElement(Render::RenderBachedElement& element)
 	{
 		element.transform = mXFormStack.get();
+		element.layer = mNextLayer;
+		++mNextLayer;
 	}
 
 	Render::ShapePaintArgs const& getPaintArgs()
@@ -215,10 +219,23 @@ private:
 
 	RenderState   mRenderStateCommitted;
 	RenderState   mRenderStatePending;
-	bool          mbPipelineStateNeedCommit;
-	bool          mbScissorRectNeedCommit;
+	struct StateFlags
+	{
+		union 
+		{
+			struct
+			{
+				uint8 pipeline : 1;
+				uint8 scissorRect : 1;
+				uint8 blend : 1;
+				uint8 rasterizer : 1;
+			};
+			uint8 value;
+		};
+	};
+	StateFlags    mDirtyState;
 	Vector2       mCurTextureSize;
-
+	int32         mNextLayer;
 	struct Rect 
 	{
 		Vec2i pos;
@@ -228,6 +245,7 @@ private:
 
 	int       mWidth;
 	int       mHeight;
+
 
 	Color4Type   mColorFont;
 
@@ -240,6 +258,27 @@ private:
 	Render::RenderBachedElementList mBachedElementList;
 	Render::BatchedRender mBatchedRender;
 };
+
+
+struct GrapthicStateScope
+{
+	GrapthicStateScope(RHIGraphics2D& g, bool bNeedFlash = true)
+		:mGraphics(g)
+	{
+		if (bNeedFlash)
+		{
+			mGraphics.flush();
+		}
+	}
+
+	~GrapthicStateScope()
+	{
+		mGraphics.restoreRenderState();
+	}
+
+	RHIGraphics2D& mGraphics;
+};
+
 
 
 #endif // RHIGraphics2D_H_B76821A9_0E45_4D52_8371_17DAF128C490

@@ -159,7 +159,7 @@ namespace SBlocks
 
 	void LevelStage::drawPiece(RHIGraphics2D& g, Piece const& piece, bool bSelected)
 	{
-		auto const& shapeData = piece.shape->mDataMap[0];
+		auto const& shapeData = piece.shape->getData(DirType::ValueChecked(0));
 
 
 		RenderUtility::SetPen(g, EColor::Null);

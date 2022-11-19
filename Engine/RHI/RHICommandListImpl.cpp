@@ -43,12 +43,12 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitive(type, indexStart, nIndex, baseVertex));
 	}
 
-	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
 	}
 
-	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, EPrimitive type, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
 	}
@@ -96,7 +96,7 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawMeshTasks(numGroupX, numGroupY, numGroupZ));
 	}
 
-	void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void RHIDrawMeshTasksIndirect(RHICommandList& commandList, RHIBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIDrawMeshTasksIndirect(commandBuffer, offset, numCommand, commandStride));
 	}
@@ -121,7 +121,7 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetInputStream(inputLayout, inputStreams, numInputStream));
 	}
 
-	void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer)
+	void RHISetIndexBuffer(RHICommandList& commandList, RHIBuffer* indexBuffer)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetIndexBuffer(indexBuffer));
 	}

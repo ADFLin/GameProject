@@ -257,12 +257,11 @@ namespace Bloxorz
 			{
 				if (RT->desc.debugName != EName::None)
 				{
-					mTextureShowManager.registerTexture(RT->desc.debugName, RT->texture);
+					GTextureShowManager.registerTexture(RT->desc.debugName, RT->texture);
 				}
 			}
 		}
 
-		TextureShowManager mTextureShowManager;
 
 	};
 

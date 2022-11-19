@@ -14,7 +14,7 @@
 
 #define USE_OPENGL_NATIVE 0
 
-namespace Go
+namespace GoCore
 {
 	using namespace Render;
 
@@ -50,7 +50,7 @@ namespace Go
 	void BoardRendererBase::releaseRHI()
 	{
 		mTextureAtlas.finalize();
-		for(auto & mTexture : mTextures)
+		for (auto & mTexture : mTextures)
 		{
 			mTexture.release();
 		}
@@ -61,7 +61,7 @@ namespace Go
 		int size = boradSize * boradSize;
 		float maxOffset = 1.6;
 		mNoiseOffsets.resize(size);
-		for( int i = 0; i < size; ++i )
+		for (int i = 0; i < size; ++i)
 		{
 			mNoiseOffsets[i].x = maxOffset * RandFloat(-1, 1);
 			mNoiseOffsets[i].y = maxOffset * RandFloat(-1, 1);
@@ -69,7 +69,7 @@ namespace Go
 	}
 
 
-	void BoardRendererBase::drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState , RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
+	void BoardRendererBase::drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
 	{
 		using namespace Render;
 		using namespace Go;
@@ -91,9 +91,9 @@ namespace Go
 			g.setTexture(mTextureAtlas.getTexture());
 #endif
 			int color = colorStart;
-			for( PlayVertex const& v : vertices)
+			for (PlayVertex const& v : vertices)
 			{
-				if ( v.isOnBoard() )
+				if (v.isOnBoard())
 				{
 					int x = v.x;
 					int y = v.y;
@@ -106,9 +106,9 @@ namespace Go
 #if DRAW_TEXTURE
 
 #if USE_OPENGL_NATIVE
-			if( bUseBatchedRender )
+			if (bUseBatchedRender)
 			{
-				if( !mSpriteVertices.empty() )
+				if (!mSpriteVertices.empty())
 				{
 					GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
 					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, &mSpriteVertices[0], mSpriteVertices.size());
@@ -132,7 +132,7 @@ namespace Go
 	Vector2 BoardRendererBase::getStonePos(RenderContext const& context, int i, int j)
 	{
 		Vector2 pos = context.getIntersectionPos(i, j);
-		if( bUseNoiseOffset )
+		if (bUseNoiseOffset)
 			pos += context.scale * getNoiseOffset(i, j, context.board.getSize());
 		return pos;
 	}
@@ -143,7 +143,7 @@ namespace Go
 		using namespace Go;
 
 		static char const* CoordStr = "ABCDEFGHJKLMNOPQRSTQVWXYZ";
-		
+
 
 		int boardSize = context.board.getSize();
 		float length = (boardSize - 1) * context.cellLength;
@@ -192,9 +192,9 @@ namespace Go
 		RenderUtility::SetPen(g, EColor::Black);
 		RenderUtility::SetBrush(g, EColor::Black);
 
-		if( bDrawStar )
+		if (bDrawStar)
 		{
-			auto DrawStar = [&](TArrayView<int const> starPosList )
+			auto DrawStar = [&](TArrayView<int const> starPosList)
 			{
 				Vector2 pos;
 				for (int i = 0; i < starPosList.size(); ++i)
@@ -207,7 +207,7 @@ namespace Go
 					}
 				}
 			};
-			switch( boardSize )
+			switch (boardSize)
 			{
 			case 19: DrawStar({ 3 , 9 , 15 }); break;
 			case 15: DrawStar({ 3 , 7 , 11 });  break;
@@ -246,7 +246,7 @@ namespace Go
 #if DRAW_TEXTURE
 #if USE_OPENGL_NATIVE
 			g.setBlendState(ESimpleBlendMode::Translucent);
-			g.comitRenderState();
+			g.commitRenderState();
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #else
@@ -273,7 +273,7 @@ namespace Go
 			}
 			else
 			{
-				for (int j = 0; j < boardSize; ++j)		
+				for (int j = 0; j < boardSize; ++j)
 				{
 					for (int i = 0; i < boardSize; ++i)
 					{
@@ -289,9 +289,9 @@ namespace Go
 
 #if DRAW_TEXTURE
 #if USE_OPENGL_NATIVE
-			if( bUseBatchedRender )
+			if (bUseBatchedRender)
 			{
-				if( !mSpriteVertices.empty() )
+				if (!mSpriteVertices.empty())
 				{
 					GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
 					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, &mSpriteVertices[0], mSpriteVertices.size());
@@ -375,6 +375,10 @@ namespace Go
 		}
 #endif
 	}
+}
+
+namespace Go
+{
 
 	void BoardRenderer::draw(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState /*= nullptr*/)
 	{

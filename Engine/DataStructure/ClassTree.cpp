@@ -14,7 +14,7 @@ void ClassTreeNode::offsetQueryIndex(int offset)
 
 ClassTreeNode::ClassTreeNode(ClassTree& tree, ClassTreeNode* parent)
 	:parent(parent)
-	,mTree(&tree)
+	,mOwnedTree(&tree)
 	,numTotalChildren(0)
 	,indexQuery(INDEX_NONE)
 #if CLASS_TREE_USE_INTRLIST
@@ -24,15 +24,15 @@ ClassTreeNode::ClassTreeNode(ClassTree& tree, ClassTreeNode* parent)
 
 {
 #if _DEBUG
-	static int gIdDbg = 0;
-	idDbg = gIdDbg++;
+	static int GDbgID = 0;
+	idDbg = GDbgID++;
 #endif
-	mTree->registerClass(this);
+	mOwnedTree->registerClass(this);
 }
 
 ClassTreeNode::ClassTreeNode(ERootConstruct)
 	:parent(nullptr)
-	,mTree(nullptr)
+	,mOwnedTree(nullptr)
 	,numTotalChildren(0)
 	,indexQuery(INDEX_NONE)
 #if CLASS_TREE_USE_INTRLIST
@@ -54,7 +54,7 @@ ClassTreeNode::~ClassTreeNode()
 	if (indexParentSlot != -1)
 #endif
 	{
-		mTree->unregisterClass(this, false);
+		mOwnedTree->unregisterClass(this, false);
 	}
 }
 
@@ -73,9 +73,53 @@ void ClassTreeNode::changeParent(ClassTreeNode* newParent)
 	if( newParent == parent )
 		return;
 
-	mTree->unregisterClass(this, true);
+	mOwnedTree->unregisterClass(this, true);
 	parent = newParent;
-	mTree->registerClass(this);
+	mOwnedTree->registerClass(this);
+}
+
+void ClassTreeNode::notifyChildrenCountChanged(int numChildrenChanged)
+{
+	ClassTreeNode* super = this;
+	for (;;)
+	{
+		super->numTotalChildren += numChildrenChanged;
+
+		if (super->parent == nullptr)
+			break;
+
+		ClassTreeNode* superParent = super->parent;
+#if CLASS_TREE_USE_INTRLIST
+		auto iter = superParent->children.beginNode(super);
+		for (++iter; iter != superParent->children.end(); ++iter)
+		{
+			ClassTreeNode* child = *iter;
+			child->offsetQueryIndex(numChildrenChanged);
+		}
+#else
+		int indexSlot = super->indexParentSlot + 1;
+		for (int i = indexSlot; i < superParent->children.size(); ++i)
+		{
+			super->children[i]->offsetQueryIndex(numChildrenChanged);
+		}
+#endif
+		super = superParent;
+	}
+}
+
+void ClassTreeNode::initialize(int inQueryIndex)
+{
+	CHECK(indexQuery == INDEX_NONE);
+	CHECK(numTotalChildren == 0);
+	indexQuery = inQueryIndex;
+	int currentIndex = inQueryIndex + 1;
+	for (auto child : children)
+	{
+		child->initialize(currentIndex);
+		int nodeAdded = 1 + child->numTotalChildren;
+		currentIndex += nodeAdded;
+	}
+	numTotalChildren = currentIndex - inQueryIndex - 1;
 }
 
 void ClassTree::UnregisterAllNode_R(ClassTreeNode* node)
@@ -94,36 +138,6 @@ void ClassTree::UnregisterAllNode_R(ClassTreeNode* node)
 #endif
 	node->indexQuery = INDEX_NONE;
 	node->numTotalChildren = 0;
-}
-
-void ClassTree::UpdateChildNumChanged(ClassTreeNode* parent, int numChildrenChanged)
-{
-	ClassTreeNode* super = parent;
-
-	for( ;;)
-	{
-		super->numTotalChildren += numChildrenChanged;
-
-		if( super->parent == nullptr )
-			break;
-
-		ClassTreeNode* superParent = super->parent;
-#if CLASS_TREE_USE_INTRLIST
-		auto iter = superParent->children.beginNode(super);
-		for( ++iter; iter != superParent->children.end(); ++iter )
-		{
-			ClassTreeNode* child = *iter;
-			child->offsetQueryIndex(numChildrenChanged);
-		}
-#else
-		int indexSlot = super->indexParentSlot + 1;
-		for( int i = indexSlot; i < superParent->children.size(); ++i )
-		{
-			super->children[i]->offsetQueryIndex(numChildrenChanged);
-		}
-#endif
-		super = superParent;
-	}
 }
 
 bool ClassTree::checkValid()
@@ -161,8 +175,9 @@ bool ClassTree::CheckChildValid_R(ClassTreeNode* parent, int& numTotalChildren)
 	return true;
 }
 
-ClassTree::ClassTree()
+ClassTree::ClassTree(bool bInitManually)
 	:mRoot(ClassTreeNode::RootConstruct)
+	,mbInitialized(!bInitManually)
 {
 
 }
@@ -172,52 +187,72 @@ ClassTree::~ClassTree()
 	unregisterAllClass();
 }
 
+void ClassTree::initialize()
+{
+	CHECK(mRoot.numTotalChildren == 0);
+	int indexQuery = 0;
+	for (ClassTreeNode* child : mRoot.children)
+	{
+		child->initialize(indexQuery);
+		indexQuery += 1 + child->numTotalChildren;
+	}
+	mRoot.numTotalChildren = indexQuery;
+	CHECK(checkValid());
+	mbInitialized = true;
+}
+
 void ClassTree::registerClass(ClassTreeNode* node)
 {
 #if CLASS_TREE_USE_INTRLIST
-	assert(!node->childHook.isLinked());
+	CHECK(!node->childHook.isLinked());
 #else
-	assert(node->indexParentSlot == INDEX_NONE);
+	CHECK(node->indexParentSlot == INDEX_NONE);
 #endif
 	if( node->parent == nullptr )
 	{
 		node->parent = &mRoot;
 	}
 	ClassTreeNode* parent = node->parent;
-	assert(parent != node);
+	CHECK(parent != node);
 
 #if CLASS_TREE_USE_INTRLIST
 #else
 	node->indexParentSlot = parent->children.size();
 #endif
-	if( node->indexQuery != INDEX_NONE)
-	{
-		int offset = (parent->indexQuery + parent->numTotalChildren + 1) - node->indexQuery;
-		if( offset )
-			node->offsetQueryIndex(offset);
-	}
-	else
-	{
-		node->indexQuery = parent->indexQuery + parent->numTotalChildren + 1;
-	}
-
 	parent->children.push_back(node);
-	int numChildren = 1 + node->numTotalChildren;
-	UpdateChildNumChanged(parent, numChildren);
 
+	if ( UNLIKELY(mbInitialized) )
+	{
+		if (LIKELY(node->indexQuery == INDEX_NONE))
+		{
+			node->indexQuery = parent->indexQuery + parent->numTotalChildren + 1;
+		}
+		else
+		{
+			//node re-register
+			int offset = (parent->indexQuery + parent->numTotalChildren + 1) - node->indexQuery;
+			if (offset)
+				node->offsetQueryIndex(offset);
+		}
 
-	assert(checkValid());
+		int numChildrenAdded = 1 + node->numTotalChildren;
+		parent->notifyChildrenCountChanged(numChildrenAdded);
+		CHECK(checkValid());
+	}
+
 }
 
 void ClassTree::unregisterClass(ClassTreeNode* node, bool bReregister)
 {
+	CHECK(mbInitialized);
+
 #if CLASS_TREE_USE_INTRLIST
-	assert(node->childHook.isLinked());
+	CHECK(node->childHook.isLinked());
 #else
-	assert(node->indexParentSlot != INDEX_NONE);
+	CHECK(node->indexParentSlot != INDEX_NONE);
 #endif
 	ClassTreeNode* parent = node->parent;
-	assert(parent);
+	CHECK(parent);
 
 	int numChildren = 1 + node->numTotalChildren;
 
@@ -239,9 +274,9 @@ void ClassTree::unregisterClass(ClassTreeNode* node, bool bReregister)
 	parent->children.erase(parent->children.begin() + node->indexParentSlot);
 	node->indexParentSlot = INDEX_NONE;
 #endif
-	UpdateChildNumChanged(parent, -numChildren);
+	parent->notifyChildrenCountChanged(-numChildren);
 
-	assert(checkValid());
+	CHECK(checkValid());
 
 	if( !bReregister )
 	{
@@ -257,8 +292,8 @@ void ClassTree::unregisterClass(ClassTreeNode* node, bool bReregister)
 		for( size_t i = 0; i < node->children.size(); ++i )
 		{
 			ClassTreeNode* child = node->children[i];
-			child->indexParentSlot = INDEX_NONE;
 			child->parent = nullptr;
+			child->indexParentSlot = INDEX_NONE;
 			registerClass(child);
 		}
 		node->children.clear();

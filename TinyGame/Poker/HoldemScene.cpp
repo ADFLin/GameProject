@@ -10,7 +10,7 @@
 
 #include <string>
 
-namespace Poker { namespace Holdem {
+namespace Holdem {
 
 	static Vec2i const tableCenterPos = Vec2i( gDefaultScreenWidth , gDefaultScreenHeight ) / 2;
 
@@ -177,7 +177,7 @@ namespace Poker { namespace Holdem {
 		mCardDraw->release();
 	}
 
-	void Scene::render( Graphics2D& g )
+	void Scene::render( IGraphics2D& g )
 	{
 		for( int i = 0 ; i < MaxPlayerNum ; ++i )
 		{
@@ -241,7 +241,7 @@ namespace Poker { namespace Holdem {
 		}
 	}
 
-	void Scene::drawPlayerState( Graphics2D& g , Vec2i const& pos , int posSlot , SlotInfo const& info )
+	void Scene::drawPlayerState( IGraphics2D& g , Vec2i const& pos , int posSlot , SlotInfo const& info )
 	{
 		InlineString<64> str;
 
@@ -307,7 +307,7 @@ namespace Poker { namespace Holdem {
 
 	void Scene::drawSlotPanel( GWidget* widget )
 	{
-		Graphics2D& g = ::Global::GetGraphics2D();
+		IGraphics2D& g = ::Global::GetIGraphics2D();
 
 		SlotPanel* panel = GUI::CastFast< SlotPanel >( widget );
 		SlotInfo& info = getLevel().getSlotInfo( panel->slotPos );
@@ -328,7 +328,7 @@ namespace Poker { namespace Holdem {
 		}
 	}
 
-	void Scene::drawSlot( Graphics2D& g , Vec2i const& pos , SlotInfo const& info )
+	void Scene::drawSlot( IGraphics2D& g , Vec2i const& pos , SlotInfo const& info )
 	{
 		if ( info.status == ESlotStatus::Empty || info.status == ESlotStatus::WaitNext )
 			return;
@@ -356,4 +356,3 @@ namespace Poker { namespace Holdem {
 	}
 
 }//namespace Holdem
-}//namespace Poker

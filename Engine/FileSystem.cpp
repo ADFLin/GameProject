@@ -33,8 +33,18 @@ struct TWindowsType< wchar_t >
 	using WIN32_FIND_DATA = WIN32_FIND_DATAW;
 };
 
-struct FWindows
+struct FWinApi
 {
+	static HANDLE CreateFile(char const* lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
+		LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+	{
+		return CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	}
+	static HANDLE CreateFile(wchar_t const* lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
+		LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+	{
+		return CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	}
 	static HANDLE FindFirstFile(char const* lpFileName, WIN32_FIND_DATAA* data)
 	{
 		return ::FindFirstFileA(lpFileName, data);
@@ -106,7 +116,7 @@ struct FWindowsFileSystem
 	static bool IsExist(CharT const* path)
 	{
 		TWindowsType< CharT >::WIN32_FIND_DATA data;
-		HANDLE hFind = FWindows::FindFirstFile(path, &data);
+		HANDLE hFind = FWinApi::FindFirstFile(path, &data);
 		if (hFind == INVALID_HANDLE_VALUE)
 			return false;
 
@@ -117,12 +127,12 @@ struct FWindowsFileSystem
 	template< class CharT >
 	static bool CreateDirectory(CharT const* pathDir)
 	{
-		if (!FWindows::CreateDirectory(pathDir, NULL))
+		if (!FWinApi::CreateDirectory(pathDir, NULL))
 		{
 			switch (GetLastError())
 			{
 			case ERROR_ALREADY_EXISTS:
-				return false;
+				return true;
 			case ERROR_PATH_NOT_FOUND:
 				return false;
 			}
@@ -135,7 +145,7 @@ struct FWindowsFileSystem
 	static bool GetFileSize(CharT const* path, int64& size)
 	{
 		WIN32_FILE_ATTRIBUTE_DATA fad;
-		if (!FWindows::GetFileAttributesEx(path, GetFileExInfoStandard, &fad))
+		if (!FWinApi::GetFileAttributesEx(path, GetFileExInfoStandard, &fad))
 			return false; // error condition, could call GetLastError to find out more
 		LARGE_INTEGER temp;
 		temp.HighPart = fad.nFileSizeHigh;
@@ -147,7 +157,7 @@ struct FWindowsFileSystem
 	template< class CharT >
 	static bool DeleteFile(CharT const* lpFileName)
 	{
-		return !!FWindows::DeleteFile(lpFileName);
+		return !!FWinApi::DeleteFile(lpFileName);
 	}
 
 	template< class CharT >
@@ -156,21 +166,21 @@ struct FWindowsFileSystem
 		TInlineString< MAX_PATH , CharT > newPath;
 		newPath.assign(path, FFileUtility::GetFileName(path) - path);
 		newPath += newFileName;
-		return !!FWindows::MoveFile(path, newPath);
+		return !!FWinApi::MoveFile(path, newPath);
 	}
 
 	template< class CharT >
 	static std::basic_string<CharT> ConvertToFullPath(CharT const* path)
 	{
 		CharT full_path[MAX_PATH];
-		FWindows::GetFullPathName(path, MAX_PATH, full_path, NULL);
+		FWinApi::GetFullPathName(path, MAX_PATH, full_path, NULL);
 		return full_path;
 	}
 
 	template< class CharT >
 	static bool CopyFile(CharT const* path, CharT const* newFilePath, bool bFailIfExists)
 	{
-		return !!FWindows::CopyFile(path, newFilePath, bFailIfExists);
+		return !!FWinApi::CopyFile(path, newFilePath, bFailIfExists);
 	}
 };
 #else
@@ -502,6 +512,31 @@ TStringView<CharT> TFileUtility<CharT>::GetBaseFileName(CharT const* filePath)
 template < class CharT >
 bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterEnd /*= false*/, bool bAppendToBuffer /*= false*/)
 {
+#if SYS_PLATFORM_WIN
+	HANDLE hFile = FWinApi::CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	if (hFile == NULL)
+		return false;
+	LARGE_INTEGER iSize;
+	GetFileSizeEx(hFile, &iSize);
+	int64 size = iSize.QuadPart;
+	if (bAppendToBuffer)
+	{
+		int64 oldSize = outBuffer.size();
+		outBuffer.resize(bAppendZeroAfterEnd ? (oldSize + size + 1) : oldSize + size);
+		ReadFile(hFile, outBuffer.data() + oldSize, size, NULL, NULL);
+	}
+	else
+	{
+		outBuffer.resize(bAppendZeroAfterEnd ? (size + 1) : size);
+		ReadFile(hFile, outBuffer.data(), size, NULL, NULL);
+	}
+	if (bAppendZeroAfterEnd)
+		outBuffer[size] = 0;
+
+	CloseHandle(hFile);
+
+	return true;
+#else
 	std::ifstream fs(path, std::ios::binary);
 
 	if (!fs.is_open())
@@ -532,6 +567,7 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& 
 
 	fs.close();
 	return true;
+#endif
 }
 
 template < class CharT >

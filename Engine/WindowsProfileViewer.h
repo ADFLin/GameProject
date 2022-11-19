@@ -4,6 +4,7 @@
 
 #include "ProfileSystem.h"
 #include "WindowsHeader.h"
+#include "ProfileSampleVisitor.h"
 
 class TMessageShow
 {
@@ -42,10 +43,10 @@ public:
 	void showText( int x , int y );
 	void setTextColor( BYTE r, BYTE g , BYTE b , BYTE a = 255  );
 public:
-	void onRoot     ( SampleNode* node );
-	void onNode     ( SampleNode* node , double parentTime );
-	bool onEnterChild( SampleNode* node );
-	void onEnterParent( SampleNode* node , int numChildren , double accTime );
+	void onRoot(SampleNode* node);
+	void onNode(VisitContext const& context);
+	bool onEnterChild(VisitContext const& context);
+	void onReturnParent(VisitContext const& context, VisitContext const& childContext);
 private:
 	int          mIdxChild;
 	TMessageShow msgShow;

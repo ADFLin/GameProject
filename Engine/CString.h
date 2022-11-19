@@ -240,6 +240,9 @@ struct FCString
 	FORCEINLINE static bool    IsDigit(char c) { return ::isdigit(c); }
 	FORCEINLINE static bool    IsDigit(wchar_t c) { return ::iswdigit(c); }
 
+	FORCEINLINE static bool    IsAlphaNumeric(char c) { return ::isalnum(c); }
+	FORCEINLINE static bool    IsAlphaNumeric(wchar_t c) { return ::iswalnum(c); }
+
 	template< class CharT >
 	static CharT const* FindChar(CharT const* str, CharT c);
 

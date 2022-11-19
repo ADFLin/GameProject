@@ -40,7 +40,7 @@ Texture::~Texture()
 
 TextureManager::TextureManager()
 {
-	ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, this);
+
 }
 
 TextureManager::~TextureManager()

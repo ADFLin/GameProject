@@ -6,7 +6,7 @@
 
 namespace Render
 {
-#if _DEBUG
+#if SHADER_DEBUG
 	void LogOuptput(char const* text, ShaderParameter const& param)
 	{
 		LogWarning(0, text, param.mName.c_str());
@@ -37,7 +37,7 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		setTexture(commandList, param, texture);
+		GetContext(commandList).setShaderTexture(*mRHIResource, param, texture);
 	}
 
 	template< class RHIResourceType >
@@ -243,7 +243,7 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper<RHIResourceType>::setUniformBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer)
+	void TShaderFuncHelper<RHIResourceType>::setUniformBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer)
 	{
 		ShaderParameter param;
 		if (!mRHIResource->getResourceParameter(EShaderResourceType::Uniform, name, param))
@@ -252,14 +252,14 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper< RHIResourceType>::setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void TShaderFuncHelper< RHIResourceType>::setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderUniformBuffer(*mRHIResource, param, buffer);
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper<RHIResourceType>::setStorageBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer, EAccessOperator op /*= AO_READ_ONLY*/)
+	void TShaderFuncHelper<RHIResourceType>::setStorageBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer, EAccessOperator op /*= AO_READ_ONLY*/)
 	{
 		ShaderParameter param;
 		if (!mRHIResource->getResourceParameter(EShaderResourceType::Storage, name, param))
@@ -268,21 +268,21 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper< RHIResourceType>::setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer, EAccessOperator op)
+	void TShaderFuncHelper< RHIResourceType>::setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderStorageBuffer(*mRHIResource, param, buffer, op);
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper< RHIResourceType>::setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void TShaderFuncHelper< RHIResourceType>::setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderAtomicCounterBuffer(*mRHIResource, param, buffer);
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper< RHIResourceType>::setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer)
+	void TShaderFuncHelper< RHIResourceType>::setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIBuffer& buffer)
 	{
 		ShaderParameter param;
 		if( !mRHIResource->getResourceParameter(EShaderResourceType::AtomicCounter, name, param) )

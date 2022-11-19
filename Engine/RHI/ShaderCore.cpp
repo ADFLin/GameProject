@@ -8,7 +8,7 @@ namespace Render
 {
 	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
 	{
-#if _DEBUG
+#if SHADER_DEBUG
 		mName = name;
 #endif
 		auto iter = paramMap.mMap.find(name);
@@ -35,7 +35,7 @@ namespace Render
 			if (param.mLoc == -1)
 			{
 				param.mLoc = mParamEntryMap.size();
-#if _DEBUG
+#if SHADER_DEBUG
 				param.mbindType = pair.second.mbindType;
 #endif
 				ParameterEntry entry;

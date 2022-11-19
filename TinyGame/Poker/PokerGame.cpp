@@ -9,6 +9,7 @@
 #include "Big2Stage.h"
 #include "HoldemStage.h"
 #include "FreeCellStage.h"
+#include "DDStage.h"
 
 #include "GameSettingPanel.h"
 #include "Widget/GameRoomUI.h"
@@ -21,7 +22,7 @@ namespace Poker
 
 	GameModule::GameModule()
 	{
-		mRule = RULE_BIG2;
+		mRule = RULE_Big2;
 	}
 
 	GameModule::~GameModule()
@@ -33,22 +34,28 @@ namespace Poker
 	{
 		switch( mRule )
 		{
-		case RULE_FREECELL:
+		case RULE_FreeCell:
 			if ( id == STAGE_SINGLE_GAME )
 			{
 				return new FreeCellStage;
 			}
 			break;
-		case RULE_BIG2:
+		case RULE_Big2:
 			if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 			{
 				return new Big2::LevelStage;
 			}
 			break;
-		case RULE_HOLDEM:
+		case RULE_Holdem:
 			if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 			{
 				return new Holdem::LevelStage;
+			}
+			break;
+		case RULE_DouDizhu:
+			if (id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME)
+			{
+				return new DouDizhu::LevelStage;
 			}
 			break;
 		}
@@ -95,7 +102,7 @@ namespace Poker
 			SVPlayerManager* playerMgr = static_cast< SVPlayerManager* >( getPlayerListPanel()->getPlayerManager() );
 			switch( mGame->getRule() )
 			{
-			case RULE_BIG2:
+			case RULE_Big2:
 				if ( playerMgr->getPlayerNum() < 4 )
 				{
 					int num = 4 - playerMgr->getPlayerNum();
@@ -116,10 +123,10 @@ namespace Poker
 
 			switch( mGame->getRule() )
 			{
-			case RULE_BIG2:
+			case RULE_Big2:
 				setupUI_Big2();
 				break;
-			case RULE_HOLDEM:
+			case RULE_Holdem:
 				setupUI_Holdem();
 				break;
 			}
@@ -132,10 +139,10 @@ namespace Poker
 			choice->addItem( LOCTEXT("Holdem") );
 			switch( mGame->getRule() )
 			{
-			case RULE_BIG2:   
+			case RULE_Big2:   
 				choice->setSelection(0); 
 				break;
-			case RULE_HOLDEM: 
+			case RULE_Holdem: 
 				choice->setSelection(1); 
 				break;
 			}
@@ -151,11 +158,11 @@ namespace Poker
 				switch( GUI::CastFast< GChoice >( widget )->getSelection() )
 				{
 				case 0:
-					mGame->setRule( RULE_BIG2 );
+					mGame->setRule( RULE_Big2 );
 					setupUI_Big2();
 					break;
 				case 1:
-					mGame->setRule( RULE_HOLDEM );
+					mGame->setRule( RULE_Holdem );
 					setupUI_Holdem();
 				}
 				modifyCallback( getSettingPanel() );

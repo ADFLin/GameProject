@@ -67,7 +67,7 @@ TArrayView<T> MakeView(std::vector< T >& v) { return TArrayView<T>(v.data(), v.s
 template< class T >
 TArrayView<T const> MakeConstView(std::vector< T >& v) { return TArrayView<T const>(v.data(), v.size()); }
 template< class T >
-TArrayView<T const> MakeView(std::vector< T > const& v) { return TArrayView<T const>(v.data(), v.size()); }
+TArrayView<T const> MakeConstView(std::vector< T > const& v) { return TArrayView<T const>(v.data(), v.size()); }
 
 #define ARRAY_VIEW_REAONLY_DATA( TYPE , ... ) \
 	[](){ static TYPE const data[] = { __VA_ARGS__ }; return TArrayView< TYPE const >(data); }()

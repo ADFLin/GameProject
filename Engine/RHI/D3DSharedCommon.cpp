@@ -33,7 +33,7 @@ namespace Render
 	{
 		switch (format)
 		{
-			//case ETexture::eRGB8:
+		//case ETexture::RGB8:
 		case ETexture::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
 		case ETexture::BGRA8: return DXGI_FORMAT_B8G8R8A8_UNORM;
 		case ETexture::RGB10A2: return DXGI_FORMAT_R10G10B10A2_UNORM;
@@ -45,7 +45,7 @@ namespace Render
 		case ETexture::RGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case ETexture::R16F:  return DXGI_FORMAT_R16_FLOAT;
 		case ETexture::RG16F: return DXGI_FORMAT_R16G16_FLOAT;
-			//case ETexture::eRGB16F:
+		//case ETexture::RGB16F:
 		case ETexture::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
 		case ETexture::R32I: return DXGI_FORMAT_R32_SINT;
 		case ETexture::R16I: return DXGI_FORMAT_R16_SINT;
@@ -59,19 +59,19 @@ namespace Render
 		case ETexture::RG32U: return DXGI_FORMAT_R32G32_UINT;
 		case ETexture::RG16U: return DXGI_FORMAT_R16G16_UINT;
 		case ETexture::RG8U:  return DXGI_FORMAT_R8G8_UINT;
-			//case ETexture::eRGB32I:
+		//case ETexture::RGB32I:
 		case ETexture::RGBA32I: return DXGI_FORMAT_R32G32B32A32_SINT;
-			//case ETexture::eRGB16I:
+		//case ETexture::RGB16I:
 		case ETexture::RGBA16I: return DXGI_FORMAT_R16G16B16A16_SINT;
-			//case ETexture::eRGB8I:
+		//case ETexture::RGB8I:
 		case ETexture::RGBA8I:  return DXGI_FORMAT_R8G8B8A8_SINT;
-			//case ETexture::eRGB32U:
+		//case ETexture::RGB32U:
 		case ETexture::RGBA32U: return DXGI_FORMAT_R32G32B32A32_UINT;
-			//case ETexture::eRGB16U:
+		//case ETexture::RGB16U:
 		case ETexture::RGBA16U: return DXGI_FORMAT_R16G16B16A16_UINT;
-			//case ETexture::eRGB8U:
+		//case ETexture::RGB8U:
 		case ETexture::RGBA8U:  return DXGI_FORMAT_R8G8B8A8_UINT;
-			//case ETexture::eSRGB:
+		//case ETexture::SRGB:
 		case ETexture::SRGBA:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
 		case ETexture::Depth16:  return DXGI_FORMAT_D16_UNORM;
@@ -131,6 +131,25 @@ namespace Render
 		case EVertex::Byte4: return (bNormalized) ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
 		}
 		return DXGI_FORMAT_UNKNOWN;
+	}
+
+	DXGI_FORMAT D3DTranslate::IndexType(RHIBuffer* buffer)
+	{
+		return buffer->getElementSize() == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+	}
+
+	DeviceVendorName FD3DUtils::GetDevicVenderName(UINT vendorId)
+	{
+		switch (vendorId)
+		{
+		case 0x10DE:
+			return DeviceVendorName::NVIDIA; break;
+		case 0x163C: case 0x8086: case 0x8087:
+			return DeviceVendorName::Intel; break;
+		case 0x1002: case 0x1022:
+			return DeviceVendorName::ATI; break;
+		}
+		return	DeviceVendorName::Unknown;
 	}
 
 }

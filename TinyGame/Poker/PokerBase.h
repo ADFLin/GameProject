@@ -28,6 +28,7 @@ namespace Poker
 			eN2 , eN3 , eN4 , eN5 , eN6 , 
 			eN7 , eN8 , eN9 , eN10 ,
 			eJACK , eQUEEN , eKING ,
+			eJOKER,
 		};
 
 		enum Suit : uint8
@@ -36,9 +37,7 @@ namespace Poker
 			eDIAMONDS = 1,
 			eHEARTS   = 2,
 			eSPADES   = 3,
-
 			eNONE ,
-			eJOKER ,
 		};
 
 		Card(){}
@@ -53,7 +52,7 @@ namespace Poker
 		Card(Suit suit , int faceRank );
 
 		static Card const None() { return Card(Suit::eNONE, 0); }
-		static Card const Joker() { return Card(Suit::eJOKER, 0); }
+		static Card const Joker(int suit = 0) { return Card(Suit(suit), Face::eJOKER); }
 
 		Face   getFace()     const { return mFace; }
 		Suit   getSuit()     const { return mSuit; }

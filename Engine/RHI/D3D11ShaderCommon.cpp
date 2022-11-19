@@ -18,7 +18,7 @@ namespace Render
 	class D3D11ShaderCompileIntermediates : public ShaderCompileIntermediates
 	{
 	public:
-		std::vector< TComPtr< ID3D10Blob > > codeList;
+		std::vector< TComPtr< ID3DBlob > > codeList;
 	};
 
 
@@ -61,8 +61,8 @@ namespace Render
 #endif
 
 
-			TComPtr< ID3D10Blob > errorCode;
-			TComPtr< ID3D10Blob > byteCode;
+			TComPtr< ID3DBlob > errorCode;
+			TComPtr< ID3DBlob > byteCode;
 			InlineString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice->GetFeatureLevel() , context.getType());
 
 			uint32 compileFlag = D3DCOMPILE_IEEE_STRICTNESS /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
@@ -136,10 +136,12 @@ namespace Render
 		auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*setupData.intermediateData.get());
 		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
 		{
-			TComPtr<ID3D10Blob>& byteCode = shaderIntermediates.codeList[i];
+			TComPtr<ID3DBlob>& byteCode = shaderIntermediates.codeList[i];
 			ShaderParameterMap parameterMap;
-			D3D11Shader::GenerateParameterMap(TArrayView<uint8>((uint8*)byteCode->GetBufferPointer(), byteCode->GetBufferSize()), parameterMap);
+			D3DShaderParamInfo paramInfo;
+			D3D11Shader::GenerateParameterMap(TArrayView<uint8 const>((uint8*)byteCode->GetBufferPointer(), byteCode->GetBufferSize()), parameterMap, paramInfo);
 			shaderProgramImpl.mParameterMap.addShaderParameterMap(i, parameterMap);
+			shaderProgramImpl.mShaderDatas[i].globalConstBufferSize = paramInfo.globalConstBufferSize;
 		}
 		shaderProgramImpl.mParameterMap.finalizeParameterMap();
 		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
@@ -151,7 +153,7 @@ namespace Render
 		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
 		shaderProgramImpl.mParameterMap.clear();
 
-		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeView(binaryCode));
+		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeConstView(binaryCode));
 		uint8 numShaders = 0;
 		serializer.read(numShaders);
 		shaderProgramImpl.initializeData(numShaders);
@@ -166,10 +168,12 @@ namespace Render
 				return false;
 
 			ShaderParameterMap parameterMap;
-			if (!D3D11Shader::GenerateParameterMap( MakeView( byteCode ) , parameterMap))
+			D3DShaderParamInfo paramInfo;
+			if (!D3D11Shader::GenerateParameterMap( MakeConstView( byteCode ) , parameterMap, paramInfo))
 				return false;
 
 			shaderProgramImpl.mParameterMap.addShaderParameterMap(i, parameterMap);
+			shaderProgramImpl.mShaderDatas[i].globalConstBufferSize = paramInfo.globalConstBufferSize;
 			if (shaderType == EShader::Vertex)
 			{
 				shaderProgramImpl.vertexByteCode = std::move(byteCode );
@@ -197,7 +201,7 @@ namespace Render
 		for (int i = 0; i < numShaders; ++i)
 		{
 			auto& shaderData = shaderProgramImpl.mShaderDatas[i];
-			TComPtr<ID3D10Blob>& byteCode = shaderIntermediates.codeList[i];
+			TComPtr<ID3DBlob>& byteCode = shaderIntermediates.codeList[i];
 			uint8 shaderType = shaderData.type;
 			serializer.write(shaderType);
 			serializer.write(byteCode->GetBufferPointer(), byteCode->GetBufferSize());
@@ -209,7 +213,7 @@ namespace Render
 	bool ShaderFormatHLSL::getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
 	{
 		auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*setupData.intermediateData.get());
-		TComPtr<ID3D10Blob>& byteCode = shaderIntermediates.codeList[0];
+		TComPtr<ID3DBlob>& byteCode = shaderIntermediates.codeList[0];
 		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
 		outBinaryCode.assign((uint8*)byteCode->GetBufferPointer(), (uint8*)(byteCode->GetBufferPointer()) + byteCode->GetBufferSize());
 		return true;
@@ -233,8 +237,16 @@ namespace Render
 	{
 		shader.mRHIResource = setupData.resource;
 		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
-		D3D11Shader::GenerateParameterMap( MakeView(shaderImpl.byteCode) , shaderImpl.mParameterMap);
+		D3D11ShaderCompileIntermediates* intermediateData = static_cast<D3D11ShaderCompileIntermediates*>(setupData.intermediateData.get());
+
+		TComPtr<ID3DBlob>& code = intermediateData->codeList[0];
+
+		D3DShaderParamInfo paramInfo;
+		if (!D3D11Shader::GenerateParameterMap(TArrayView<uint8 const>((uint8*)code->GetBufferPointer(), code->GetBufferSize()), shaderImpl.mParameterMap, paramInfo))
+			return false;
+
 		shader.bindParameters(shaderImpl.mParameterMap);
+		shaderImpl.mResource.globalConstBufferSize = paramInfo.globalConstBufferSize;
 		return true;
 	}
 
@@ -247,8 +259,12 @@ namespace Render
 		if (!shaderImpl.initialize(mDevice, std::move(temp)))
 			return false;
 
-		D3D11Shader::GenerateParameterMap( MakeView(shaderImpl.byteCode) , shaderImpl.mParameterMap);
+		D3DShaderParamInfo paramInfo;
+		if (!D3D11Shader::GenerateParameterMap(MakeConstView(binaryCode), shaderImpl.mParameterMap, paramInfo))
+			return false;
+
 		shader.bindParameters(shaderImpl.mParameterMap);
+		shaderImpl.mResource.globalConstBufferSize = paramInfo.globalConstBufferSize;
 		return true;
 	}
 
@@ -262,7 +278,7 @@ namespace Render
 
 	}
 
-	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
+	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode)
 	{
 		if (!mResource.initialize(mType, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
 			return false;
@@ -286,7 +302,7 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11Shader::GenerateParameterMap(TArrayView< uint8 > const& byteCode, ShaderParameterMap& parameterMap)
+	bool D3D11Shader::GenerateParameterMap(TArrayView<uint8 const> const& byteCode, ShaderParameterMap& parameterMap, D3DShaderParamInfo& outParamInfo)
 	{
 		TComPtr< ID3D11ShaderReflection > reflection;
 		VERIFY_D3D_RESULT_RETURN_FALSE(D3DReflect(byteCode.data(), byteCode.size(), IID_PPV_ARGS(&reflection)));
@@ -309,6 +325,7 @@ namespace Render
 					buffer->GetDesc(&bufferDesc);
 					if( FCString::Compare(bufferDesc.Name, "$Globals") == 0 )
 					{
+						outParamInfo.globalConstBufferSize = bufferDesc.Size;
 						for( int idxVar = 0; idxVar < bufferDesc.Variables; ++idxVar )
 						{
 							ID3D11ShaderReflectionVariable* var = buffer->GetVariableByIndex(idxVar);
@@ -317,9 +334,8 @@ namespace Render
 								D3D11_SHADER_VARIABLE_DESC varDesc;
 								var->GetDesc(&varDesc);
 								auto& param = parameterMap.addParameter(varDesc.Name, bindDesc.BindPoint, varDesc.StartOffset, varDesc.Size);
-#if _DEBUG
+#if SHADER_DEBUG
 								param.mbindType = EShaderParamBindType::Uniform;
-								param.mName = varDesc.Name;
 #endif
 								ID3D11ShaderReflectionType* varType = var->GetType();
 								if (varType)
@@ -349,9 +365,8 @@ namespace Render
 					{
 						//CBuffer TBuffer
 						auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
-#if _DEBUG
+#if SHADER_DEBUG
 						param.mbindType = EShaderParamBindType::UniformBuffer;
-						param.mName = bindDesc.Name;
 #endif
 					}
 				}
@@ -360,18 +375,16 @@ namespace Render
 			case D3D_SIT_SAMPLER:
 				{
 					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
-#if _DEBUG
+#if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::Sampler;
-					param.mName = bindDesc.Name;
 #endif
 				}
 				break;
 			case D3D_SIT_TEXTURE:
 				{
 					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
-#if _DEBUG
+#if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::Texture;
-					param.mName = bindDesc.Name;
 #endif
 				}
 				break;
@@ -380,9 +393,8 @@ namespace Render
 			case D3D_SIT_STRUCTURED:
 				{
 					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
-#if _DEBUG
+#if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::StorageBuffer;
-					param.mName = bindDesc.Name;
 #endif
 				}
 				break;
@@ -413,7 +425,7 @@ namespace Render
 		mNumShaders = 0;
 	}
 
-	bool D3D11ShaderData::initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3D10Blob>& inByteCode)
+	bool D3D11ShaderData::initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode)
 	{
 		auto pCode = (uint8 const*)inByteCode->GetBufferPointer();
 		auto codeSize = inByteCode->GetBufferSize();

@@ -6,7 +6,7 @@
 
 #include "Holder.h"
 
-namespace Poker { namespace Holdem {
+namespace Holdem {
 
 	class Scene;
 
@@ -50,7 +50,6 @@ namespace Poker { namespace Holdem {
 	};
 
 }//namespace Holdem
-}//namespace Poker
 
 
 #endif // HoldemStage_h__

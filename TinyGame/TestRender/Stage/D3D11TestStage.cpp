@@ -34,11 +34,11 @@ namespace Render
 		TStructuredBuffer< ColourBuffer > mCBuffer;
 
 		RHIInputLayoutRef  mInputLayout;
-		RHIVertexBufferRef mVertexBuffer;
-		RHIIndexBufferRef  mIndexBuffer;
+		RHIBufferRef mVertexBuffer;
+		RHIBufferRef  mIndexBuffer;
 
 		RHIInputLayoutRef  mAxisInputLayout;
-		RHIVertexBufferRef mAxisVertexBuffer;
+		RHIBufferRef mAxisVertexBuffer;
 
 		ERenderSystem getDefaultRenderSystem() override
 		{

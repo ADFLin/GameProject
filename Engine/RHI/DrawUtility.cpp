@@ -68,7 +68,7 @@ namespace Render
 		{ Vector4(-1, 3 , 0 , 1) , Vector2(0,2) },
 	};
 
-	class ScreenRenderResoure : public GlobalRenderResourceBase
+	class ScreenRenderResoure : public IGlobalRenderResource
 	{
 	public:
 		virtual void restoreRHI() override
@@ -113,11 +113,49 @@ namespace Render
 
 
 		RHIInputLayoutRef  mRectVertexInputLayout;
-		RHIVertexBufferRef mRectVertexBuffer;
-		RHIIndexBufferRef  mQuadIndexBuffer;
+		RHIBufferRef mRectVertexBuffer;
+		RHIBufferRef  mQuadIndexBuffer;
 
 	};
 	ScreenRenderResoure GScreenRenderResoure;
+
+	enum ETexturePreview
+	{
+		TEX_PREVIEW_1D,
+		TEX_PREVIEW_2D,
+		TEX_PREVIEW_3D,
+		TEX_PREVIEW_CUBE,
+		TEX_PREVIEW_CUBE_PROJECTION,
+		TEX_PREVIEW_COUNT ,
+	};
+	class TexturePreviewProgram : public GlobalShaderProgram
+	{
+	public:
+		SHADER_PERMUTATION_TYPE_INT(TextrueType, "TEX_PREVIEW", 0, TEX_PREVIEW_COUNT - 1);
+		using PermutationDomain = TShaderPermutationDomain<TextrueType>;
+
+		DECLARE_SHADER_PROGRAM(TexturePreviewProgram, Global)
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/TexturePreview";
+		}
+
+		static void SetupShaderCompileOption(ShaderCompileOption&)
+		{
+
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	};
 
 	void DrawUtility::CubeLine(RHICommandList& commandList)
 	{
@@ -325,31 +363,45 @@ namespace Render
 		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
 	}
 
+	template< typename TRHITexture >
+	bool SetupPreviewTextureShader(RHICommandList& commandList, ETexturePreview id, Matrix4 const& XForm, TRHITexture& texture)
+	{
+		TexturePreviewProgram::PermutationDomain permutationVector;
+		permutationVector.set<TexturePreviewProgram::TextrueType>(id);
+		TexturePreviewProgram* shaderProgram = ShaderManager::Get().getGlobalShaderT< TexturePreviewProgram >(permutationVector);
+		if (shaderProgram == nullptr)
+			return false;
+
+		RHISetShaderProgram(commandList, shaderProgram->getRHI());
+		shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture);
+		shaderProgram->setParam(commandList, SHADER_PARAM(XForm), XForm);
+		shaderProgram->setParam(commandList, SHADER_PARAM(PreviewLevel), 0.0f);
+		return true;
+	}
+
 	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
+#if 1
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, XForm, texture))
+			return;
+#else
 		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture);
-		if (GRHIVericalFlip > 0)
-		{
-			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
-		}
-		else
-		{
-			DrawUtility::Rect(commandList, pos.x, pos.y + size.y, size.x, -size.y);
-		}
+#endif
+
+		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+
 	}
 
 	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
+#if 1
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, XForm, texture))
+			return;
+#else
 		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture, &sampler);
+#endif
+		
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
-		if (GRHIVericalFlip > 0)
-		{
-			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
-		}
-		else
-		{
-			DrawUtility::Rect(commandList, pos.x, pos.y + size.y, size.x, -size.y);
-		}
 	}
 
 	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, float length)
@@ -421,9 +473,15 @@ namespace Render
 
 		//RHISetFixedShaderPipelineState(commandList, XForm, color, &texture, &sampler);
 		//DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
-	
+
+#if 1
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE, XForm, texCube))
+			return;
+		TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
+#else
 		if ( GRHISystem->getName() == RHISystemName::OpenGL )
 		{
+			RHISetShaderProgram(commandList, nullptr);
 			glEnable(GL_TEXTURE_CUBE_MAP);
 			{
 				GL_SCOPED_BIND_OBJECT(texCube);
@@ -436,8 +494,15 @@ namespace Render
 		{
 
 		}
+#endif
 	}
 
+	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size)
+	{
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE_PROJECTION, XForm, texCube))
+			return;
+		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+	}
 
 	template< class TShaderType >
 	class TCopyTextureBase : public TShaderType
@@ -623,10 +688,13 @@ namespace Render
 		DEFINE_SHADER_PARAM(ValueFactor);
 	};
 
+
+
 	IMPLEMENT_SHADER_PROGRAM(CopyTextureProgram);
 	IMPLEMENT_SHADER_PROGRAM(CopyTextureMaskProgram);
 	IMPLEMENT_SHADER_PROGRAM(CopyTextureBiasProgram);
 	IMPLEMENT_SHADER_PROGRAM(MappingTextureColorProgram);
+	IMPLEMENT_SHADER_PROGRAM(TexturePreviewProgram);
 
 
 	bool ShaderHelper::init()
@@ -645,7 +713,13 @@ namespace Render
 		
 		VERIFY_RETURN_FALSE(mProgMappingTextureColor = ShaderManager::Get().getGlobalShaderT<MappingTextureColorProgram>(true));
 		mFrameBuffer = RHICreateFrameBuffer();
+
 		return true;
+	}
+
+	void ShaderHelper::restoreRHI()
+	{
+
 	}
 
 	void ShaderHelper::releaseRHI()

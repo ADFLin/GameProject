@@ -152,6 +152,8 @@ namespace Render
 
 	};
 
+	class D3D12HeapPoolData;
+
 	class D3D12HeapPoolChunk
 	{
 	public:
@@ -168,13 +170,16 @@ namespace Render
 
 		void freeSlot(uint slotIndex);
 
+		D3D12HeapPoolData* owner;
+		
 		TComPtr< ID3D12DescriptorHeap > resource;
-		D3D12_DESCRIPTOR_HEAP_TYPE type;
 		uint elementSize;
 		uint numElements;
 		uint numElementsUasge;
 		std::vector< uint32 > mUsageMask;
-
+		
+		static constexpr D3D12HeapPoolChunk* NoLinkPtr = (D3D12HeapPoolChunk*)INT_PTR(-1);
+		D3D12HeapPoolChunk* next = NoLinkPtr;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(uint chunkSlot)
 		{
@@ -213,6 +218,77 @@ namespace Render
 
 	};
 
+
+	class D3D12HeapPoolData
+	{
+	public:
+		std::vector< D3D12HeapPoolChunk* > chunks;
+		D3D12HeapPoolChunk* availableChunk;
+
+		D3D12_DESCRIPTOR_HEAP_TYPE type;
+		D3D12_DESCRIPTOR_HEAP_FLAGS flags;
+		uint32 chunkSize;
+
+		bool fetchFreeHandle(ID3D12DeviceRHI* device, D3D12PooledHeapHandle& outHandle)
+		{
+			if (availableChunk)
+			{
+				availableChunk->fetchFreeSlot(outHandle.chunkSlot);
+				outHandle.chunk = availableChunk;
+				updateAvailableChunk();
+			}
+			else
+			{
+				D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
+				if (!chunk->initialize(device, type, chunkSize, flags))
+				{
+					delete chunk;
+					return false;
+				}
+
+				chunk->owner = this;
+				outHandle.chunkSlot = chunk->fetchFreeSlotFirstTime();
+				outHandle.chunk = chunk;
+				availableChunk = chunk;
+			}
+			return true;
+		}
+		void freeHandle(D3D12PooledHeapHandle& handle)
+		{
+			handle.chunk->fetchFreeSlot(handle.chunkSlot);
+			if (handle.chunk->next == D3D12HeapPoolChunk::NoLinkPtr)
+			{
+				handle.chunk->next = availableChunk;
+				availableChunk = handle.chunk;
+			}
+			handle.chunk = nullptr;
+			handle.chunkSlot = INDEX_NONE;
+		}
+		void updateAvailableChunk()
+		{
+			while (availableChunk)
+			{
+				if (availableChunk->numElements != availableChunk->numElementsUasge)
+					break;
+				D3D12HeapPoolChunk* nextChunk = availableChunk->next;
+				availableChunk->next = (D3D12HeapPoolChunk*)INT_PTR(-1);
+				availableChunk = nextChunk;
+			}
+		}
+
+		void release()
+		{
+			for (auto chunk : chunks)
+			{
+				delete chunk;
+			}
+			chunks.clear();
+			chunks.shrink_to_fit();
+
+			availableChunk = nullptr;
+		}
+	};
+
 	class D3D12DescriptorHeapPool
 	{
 	public:
@@ -228,22 +304,16 @@ namespace Render
 		D3D12PooledHeapHandle allocDSV(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocSampler(D3D12_SAMPLER_DESC const& desc);
 
-		bool findFreeHandle(std::vector< D3D12HeapPoolChunk* >& chunks , D3D12PooledHeapHandle& outHandle);
-
 		void freeHandle(D3D12PooledHeapHandle& handle);
 
-		static void ReleaseChunks(std::vector< D3D12HeapPoolChunk* >& chunks);
 		ID3D12DeviceRHI* mDevice;
 
 		bool bInitialized = false;
 
-		bool fetchHandleFromNewCSUChunk(D3D12PooledHeapHandle& outHandle);
-
-		std::vector< D3D12HeapPoolChunk* > mCSUChunks;
-		std::vector< D3D12HeapPoolChunk* > mRTVChunks;
-		std::vector< D3D12HeapPoolChunk* > mDSVChunks;
-		std::vector< D3D12HeapPoolChunk* > mSamplerChunks;
-
+		D3D12HeapPoolData mCSUData;
+		D3D12HeapPoolData mRTVData;
+		D3D12HeapPoolData mDSVData;
+		D3D12HeapPoolData mSamplerData;
 	};
 
 

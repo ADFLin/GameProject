@@ -127,7 +127,7 @@ namespace Render
 		};
 		std::vector<uint32> tempBuffer;
 		int numTriangles;
-		uint32* pIndexData = ConvertToTriangleList(mesh.mType, pIndexBufferData, mesh.mIndexBuffer->getNumElements() , mesh.mIndexBuffer->isIntType(), tempBuffer , numTriangles);
+		uint32* pIndexData = ConvertToTriangleList(mesh.mType, pIndexBufferData, mesh.mIndexBuffer->getNumElements() , IsIntType(mesh.mIndexBuffer), tempBuffer, numTriangles);
 		bool result = false;
 		if ( pIndexData )
 		{

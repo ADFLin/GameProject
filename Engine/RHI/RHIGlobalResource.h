@@ -85,29 +85,29 @@ namespace Render
 	CORE_API bool InitGlobalRenderResource();
 	CORE_API void ReleaseGlobalRenderResource();
 
-	class RenderResourceBase
+	class IRenderResource
 	{
 	public:
 		virtual void restoreRHI() = 0;
 		virtual void releaseRHI() = 0;
 	};
 	
-	class GlobalRenderResourceBase : public RenderResourceBase
+	class IGlobalRenderResource : public IRenderResource
 	{
 	public:
-		CORE_API GlobalRenderResourceBase();
-		virtual ~GlobalRenderResourceBase() {}
+		CORE_API IGlobalRenderResource();
+		virtual ~IGlobalRenderResource() {}
 		virtual void restoreRHI() = 0;
 		virtual void releaseRHI() = 0;
 
-		GlobalRenderResourceBase* mNext;
+		IGlobalRenderResource* mNext;
 
 		CORE_API static void ReleaseAllResource();
 		CORE_API static void RestoreAllResource();
 	};
 	
 	template< class RHIResourceType >
-	class TGlobalRenderResource : public GlobalRenderResourceBase
+	class TGlobalRenderResource : public IGlobalRenderResource
 	{
 	public:
 		bool isValid() const { return mResource.isValid(); }
@@ -148,7 +148,7 @@ namespace Render
 		}
 	
 	private:
-		class StaticRenderResource : public GlobalRenderResourceBase
+		class StaticRenderResource : public IGlobalRenderResource
 		{
 		public:
 			RHIResourceType& getRHI() { return *mResource; }

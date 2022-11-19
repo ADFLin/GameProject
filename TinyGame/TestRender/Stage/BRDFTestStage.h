@@ -24,7 +24,7 @@ namespace Render
 
 		LightProbeVisualizeParams()
 		{
-			gridNum = IntVector2(10, 10);
+			gridNum = IntVector2(20, 20);
 			xAxis = Vector3(1, 0, 0);
 			yAxis = Vector3(0, 0, 1);
 
@@ -172,39 +172,6 @@ namespace Render
 
 	};
 
-
-	class SkyBoxProgram : public GlobalShaderProgram
-	{
-	public:
-		using BaseClass = GlobalShaderProgram;
-		DECLARE_SHADER_PROGRAM(SkyBoxProgram, Global);
-
-		static char const* GetShaderFileName()
-		{
-			return "Shader/SkyBox";
-		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
-		{
-			static ShaderEntryInfo const entries[] =
-			{
-				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
-				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
-			};
-			return entries;
-		}
-
-		void bindParameters(ShaderParameterMap const& parameterMap)
-		{
-			BIND_SHADER_PARAM(parameterMap, Texture);
-			BIND_SHADER_PARAM(parameterMap, CubeTexture);
-			BIND_SHADER_PARAM(parameterMap, CubeLevel);
-		}
-
-		DEFINE_SHADER_PARAM(Texture);
-		DEFINE_SHADER_PARAM(CubeTexture);
-		DEFINE_SHADER_PARAM(CubeLevel);
-	};
-
 	class BRDFTestStage : public TestRenderStageBase
 	{
 		using BaseClass = TestRenderStageBase;
@@ -217,7 +184,7 @@ namespace Render
 
 		class LightProbeVisualizeProgram* mProgVisualize;
 		class TonemapProgram* mProgTonemap;
-		class SkyBoxProgram* mProgSkyBox;
+
 
 		TStructuredBuffer< LightProbeVisualizeParams > mParamBuffer;
 
@@ -236,7 +203,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{

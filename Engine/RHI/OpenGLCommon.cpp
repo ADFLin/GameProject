@@ -18,12 +18,12 @@ namespace Render
 		switch( error )
 		{
 #define CASE( ENUM ) case ENUM : LogMsg( "Error code = %u (%s)" , error , #ENUM ); break;
-			CASE(GL_INVALID_ENUM);
-			CASE(GL_INVALID_VALUE);
-			CASE(GL_INVALID_OPERATION);
-			CASE(GL_INVALID_FRAMEBUFFER_OPERATION);
-			CASE(GL_STACK_UNDERFLOW);
-			CASE(GL_STACK_OVERFLOW);
+		CASE(GL_INVALID_ENUM);
+		CASE(GL_INVALID_VALUE);
+		CASE(GL_INVALID_OPERATION);
+		CASE(GL_INVALID_FRAMEBUFFER_OPERATION);
+		CASE(GL_STACK_UNDERFLOW);
+		CASE(GL_STACK_OVERFLOW);
 #undef CASE
 		default:
 			LogMsg("Unknown error code = %u", error);
@@ -315,11 +315,11 @@ namespace Render
 			GLenum formatGL = OpenGLTranslate::To(format);
 			GLenum baseFormat = OpenGLTranslate::BaseFormat(format);
 			GLenum componentType = OpenGLTranslate::TextureComponentType(format);
-			for (int i = 0; i < 6; ++i)
+			for (int face = 0; face < ETexture::FaceCount; ++face)
 			{
-				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+				glTexImage2D(OpenGLTranslate::TexureType(ETexture::Face(face)), 0,
 					formatGL, size, size, 0,
-					baseFormat, componentType, data ? data[i] : nullptr);
+					baseFormat, componentType, data ? data[face] : nullptr);
 			}
 		}
 
@@ -342,7 +342,7 @@ namespace Render
 	bool OpenGLTextureCube::update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 	{
 		bind();
-		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, data, level);
+		bool result = UpdateTexture2D(OpenGLTranslate::TexureType(face), ox, oy, w, h, format, data, level);
 		unbind();
 		return result;
 	}
@@ -350,7 +350,7 @@ namespace Render
 	bool OpenGLTextureCube::update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 	{
 		bind();
-		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, dataImageWidth, data, level);
+		bool result = UpdateTexture2D(OpenGLTranslate::TexureType(face), ox, oy, w, h, format, dataImageWidth, data, level);
 		unbind();
 		return result;
 	}
@@ -832,6 +832,21 @@ namespace Render
 		return 0;
 	}
 
+	GLenum OpenGLTranslate::TexureType(ETexture::Face face)
+	{
+		switch (face)
+		{
+		case ETexture::FaceX: return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+		case ETexture::FaceInvX: return GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+		case ETexture::FaceY: return GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+		case ETexture::FaceInvY: return GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+		case ETexture::FaceZ: return GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+		case ETexture::FaceInvZ:  return GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+		}
+		NEVER_REACH("");
+		return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+	}
+
 	GLenum OpenGLTranslate::To(EAccessOperator op)
 	{
 		switch( op )
@@ -1071,31 +1086,6 @@ namespace Render
 		return GL_STATIC_DRAW;
 	}
 
-
-	bool OpenGLVertexBuffer::create(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
-	{
-		if( !createInternal(vertexSize , numVertices, creationFlags, data) )
-			return false;
-
-		return true;
-	}
-
-	void OpenGLVertexBuffer::resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags , void* data)
-	{
-		if( !resetDataInternal(vertexSize , numVertices, creationFlags, data) )
-			return;
-
-	}
-
-	void OpenGLVertexBuffer::updateData(uint32 vStart , uint32 numVertices, void* data)
-	{
-		assert( (vStart + numVertices) * mElementSize < getSize() );
-		glBindBuffer(GL_ARRAY_BUFFER, getHandle());
-		glBufferSubData(GL_ARRAY_BUFFER, vStart * mElementSize , mElementSize * numVertices, data);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
-
-
 	bool OpenGLSamplerState::create(SamplerStateInitializer const& initializer)
 	{
 		if( !mGLObject.fetchHandle() )
@@ -1143,7 +1133,7 @@ namespace Render
 
 		mStateValue.bEnableStencilTest = initializer.bEnableStencilTest;
 
-		mStateValue.stencilFun = OpenGLTranslate::To(initializer.stencilFunc);
+		mStateValue.stencilFunc = OpenGLTranslate::To(initializer.stencilFunc);
 		mStateValue.stencilFailOp = OpenGLTranslate::To(initializer.stencilFailOp);
 		mStateValue.stencilZFailOp = OpenGLTranslate::To(initializer.zFailOp);
 		mStateValue.stencilZPassOp = OpenGLTranslate::To(initializer.zPassOp);
@@ -1158,7 +1148,7 @@ namespace Render
 			(mStateValue.stencilZFailOp != mStateValue.stencilZFailOpBack) ||
 			(mStateValue.stencilZPassOp != mStateValue.stencilZPassOpBack);
 
-		mStateValue.bUseSeparateStencilFun = (mStateValue.stencilFun != mStateValue.stencilFunBack);
+		mStateValue.bUseSeparateStencilFun = (mStateValue.stencilFunc != mStateValue.stencilFunBack);
 		mStateValue.stencilReadMask = initializer.stencilReadMask;
 		mStateValue.stencilWriteMask = initializer.stencilWriteMask;
 	}
@@ -1497,7 +1487,8 @@ namespace Render
 
 		if( numInputStream == 1 )
 		{
-			OpenGLCast::To(inputStreams[0].buffer)->bind();
+			auto& inputStream = inputStreams[0];
+			glBindBuffer(GL_VERTEX_ARRAY, OpenGLCast::GetHandle(inputStream.buffer));
 			bool haveTex = false;
 			for( auto const& e : mElements )
 			{
@@ -1505,7 +1496,7 @@ namespace Render
 				uint32 stride = inputStreams[e.streamIndex].stride > 0 ? inputStreams[e.streamIndex].stride : e.stride;
 				BindElementPointer(e, offset, stride, haveTex);
 			}
-			OpenGLCast::To(inputStreams[0].buffer)->unbind();
+			glBindBuffer(GL_VERTEX_ARRAY, 0);
 		}
 		else
 		{
@@ -1516,8 +1507,7 @@ namespace Render
 			{
 				auto& inputStream = inputStreams[indexStream];
 
-				OpenGLCast::To(inputStream.buffer)->bind();
-
+				glBindBuffer(GL_VERTEX_ARRAY, OpenGLCast::GetHandle(inputStream.buffer));
 				for( ; index < mElements.size(); ++index )
 				{
 					auto const& e = mElements[index];
@@ -1529,7 +1519,7 @@ namespace Render
 					BindElementPointer(e, offset, stride, haveTex);
 
 				}	
-				OpenGLCast::To(inputStream.buffer)->unbind();
+				glBindBuffer(GL_VERTEX_ARRAY, 0);
 			}
 		}
 	}

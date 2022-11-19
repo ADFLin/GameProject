@@ -32,6 +32,8 @@ namespace MV
 		Vec2i size = getSize();
 		Vec2i screenSize = ::Global::GetScreenSize();
 
+		GrapthicStateScope scope(g);
+
 #if 1
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetViewport(commandList, wPos.x, screenSize.y - size.y, size.x, size.y);
@@ -52,8 +54,6 @@ namespace MV
 			re.renderMesh(context ,idMesh , Vec3f(0,0,0) , AxisRoataion::Identity() );
 			re.endRender();
 		}
-
-		g.restoreRenderState();
 #endif
 	}
 

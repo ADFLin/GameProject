@@ -117,6 +117,10 @@ namespace CAR
 			return ::Global::RandomNet();
 		}
 	};
+
+
+	static constexpr int PathSize = 32;
+
 	class LevelStage : public GameStageBase
 		             , public IGameEventListener
 	{
@@ -207,7 +211,9 @@ namespace CAR
 		void createTileMesh( CFly::Object* obj , TileId id );
 		void updateTileMesh( CFly::Object* obj , TileId newId , TileId oldId );
 		void updateShowTileObject( TileId id );
-		void getTileTexturePath( TileId id, InlineString< 512 > &texName );
+
+
+		void getTileTexturePath( TileId id, InlineString< PathSize > &texName );
 
 		void addActionWidget( GWidget* widget );
 

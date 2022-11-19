@@ -278,21 +278,20 @@ bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting
 {
 	PIXELFORMATDESCRIPTOR pfd;
 	::ZeroMemory( &pfd , sizeof( pfd ) );
+	pfd.nSize = sizeof(pfd);
+	pfd.nVersion = 1;
 
 	int pixelFormat = 0;
 #if 1
 	if( setting.numSamples > 1 )
 	{
 		pixelFormat = ChoiceMultiSamplePixelFormat(hDC, setting, bWindowed);
-
 	}
 #endif
 	if ( pixelFormat == 0 )
 	{
 		if( bWindowed )
 		{
-			pfd.nSize = sizeof(pfd);
-			pfd.nVersion = 1;
 			pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_DRAW_TO_WINDOW;
 			pfd.iPixelType = PFD_TYPE_RGBA;
 			pfd.iLayerType = PFD_MAIN_PLANE;

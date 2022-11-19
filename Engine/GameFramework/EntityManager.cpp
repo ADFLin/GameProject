@@ -7,7 +7,7 @@
 namespace ECS
 {
 #if CORE_SHARE_CODE
-	static EntityManager* GManagerList[1 << 8] = {};
+	static EntityManager* GManagerList[1 <<(EntityHandle::ManagerIndexBits)] = {};
 
 	void EntityManager::registerToList()
 	{
@@ -54,7 +54,7 @@ namespace ECS
 	EntityHandle EntityManager::createEntity()
 	{
 		uint32 indexSlot;
-		if( mFreeSlotIndices.empty() )
+		if( mFreeEntityIndices.empty() )
 		{
 			uint32 startIndex = mEntityLists.size();
 			uint32 numNewNum = Math::Max<uint32>( 3 * mEntityLists.size() / 2 , 10 );
@@ -62,24 +62,26 @@ namespace ECS
 
 			indexSlot = startIndex;
 			--numNewNum;
-			mFreeSlotIndices.resize(numNewNum);
+			mFreeEntityIndices.resize(numNewNum);
 			for( uint32 i = 0; i < numNewNum; ++i )
 			{
-				mFreeSlotIndices[i] = startIndex + i + 1;
+				mFreeEntityIndices[i] = startIndex + i + 1;
 			}
-			std::make_heap(mFreeSlotIndices.begin(), mFreeSlotIndices.end(), FreeSlotCmp());
+			std::make_heap(mFreeEntityIndices.begin(), mFreeEntityIndices.end(), FreeSlotCmp());
 
 		}
 		else
 		{
-			std::pop_heap(mFreeSlotIndices.begin(), mFreeSlotIndices.end(), FreeSlotCmp());
-			indexSlot = mFreeSlotIndices.back();
-			mFreeSlotIndices.pop_back();
+			std::pop_heap(mFreeEntityIndices.begin(), mFreeEntityIndices.end(), FreeSlotCmp());
+			indexSlot = mFreeEntityIndices.back();
+			mFreeEntityIndices.pop_back();
 		}
 
 		auto& data = mEntityLists[indexSlot];
 		data.flags |= EEntityFlag::Used;
 		data.handle = EntityHandle(indexSlot, mNextSerialNumber, mIndexSlot);
+
+		mUsedEntityIndices.push_back(indexSlot);
 
 		++mNextSerialNumber;
 		if( mNextSerialNumber == 0 )
@@ -130,6 +132,7 @@ namespace ECS
 				return componetData.type == type;
 			});
 
+
 		if( iter == entityData.components.end() )
 			return false;
 
@@ -145,7 +148,7 @@ namespace ECS
 		if( !isValid(handle) )
 			return;
 
-		notifyEvent([handle](IEntityEventLister* listener)
+		visitListener([handle](IEntityEventLister* listener)
 		{
 			listener->noitfyEntityPrevDestroy(handle);
 		});
@@ -157,11 +160,11 @@ namespace ECS
 			compentData.type->unregisterComponent(handle, compentData.ptr);
 		}
 
-		mFreeSlotIndices.push_back(handle.indexSlot);
-		entityData.flags = EEntityFlag::PaddingKill;
-		std::push_heap(mFreeSlotIndices.begin(), mFreeSlotIndices.end(), FreeSlotCmp());
+		mFreeEntityIndices.push_back(handle.indexSlot);
+		entityData.flags = EEntityFlag::PendingKill;
+		std::push_heap(mFreeEntityIndices.begin(), mFreeEntityIndices.end(), FreeSlotCmp());
 
-		notifyEvent([handle](IEntityEventLister* listener)
+		visitListener([handle](IEntityEventLister* listener)
 		{
 			listener->noitfyEntityPostDestroy(handle);
 		});
@@ -169,8 +172,7 @@ namespace ECS
 
 	bool EntityManager::isValid(EntityHandle const& handle) const
 	{
-		if (handle.indexManager != mIndexSlot)
-			return false;
+		CHECK(handle.indexManager == mIndexSlot);
 
 		if( handle.indexSlot >= mEntityLists.size() )
 			return false;
@@ -180,7 +182,7 @@ namespace ECS
 		if (handle.serialNumber != entityData.handle.serialNumber)
 			return false;
 
-		if (entityData.flags & EEntityFlag::PaddingKill)
+		if (entityData.flags & EEntityFlag::PendingKill)
 			return false;
 
 		return true;
@@ -189,7 +191,7 @@ namespace ECS
 	bool EntityManager::isPadingKill(EntityHandle const& handle) const
 	{
 		assert(isValid(handle));
-		return !!(mEntityLists[handle.indexSlot].flags & EEntityFlag::PaddingKill);
+		return !!(mEntityLists[handle.indexSlot].flags & EEntityFlag::PendingKill);
 	}
 
 }

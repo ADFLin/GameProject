@@ -40,11 +40,6 @@ namespace Render
 	{
 		ShaderClassType classType = ShaderClassType::Common;
 		GlobalShaderObjectClass const* shaderClass = nullptr;
-		union 
-		{
-			ShaderProgram*  shaderProgram;
-			Shader* shader;
-		};
 
 		uint32         permutationId = 0;
 		bool           bShowComplieInfo = false;
@@ -54,6 +49,7 @@ namespace Render
 
 	struct ShaderProgramManagedData : public ShaderManagedDataBase
 	{
+		ShaderProgram*  shaderProgram = nullptr;
 		std::vector< ShaderCompileDesc > descList;
 		bool           bShowComplieInfo = false;
 	protected:
@@ -63,6 +59,7 @@ namespace Render
 
 	struct ShaderManagedData : public ShaderManagedDataBase
 	{
+		Shader* shader = nullptr;
 		ShaderCompileDesc desc;
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
@@ -238,7 +235,7 @@ namespace Render
 			uint32 getTypeHash() const
 			{
 				uint32 result = HashValue(permutationId);
-				HashCombine(result, shaderClass);
+				result = HashCombine(result, shaderClass);
 				return result;
 			}
 		};

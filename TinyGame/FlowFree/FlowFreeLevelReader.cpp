@@ -427,7 +427,7 @@ namespace FlowFree
 				if (hsv.z > 0.2)
 				{
 					++sourceCount;
-					uint32 colorKey = sourceColor.toXRGB();
+					uint32 colorKey = sourceColor.toRGB();
 
 					auto iter = std::find_if(sources.begin(), sources.end(), [sourceColor](auto const& info)
 					{

@@ -265,12 +265,12 @@ namespace CFly
 				for ( int n = 0 ; n < offset ; ++n )
 					*(fDest++) = *(fSrc++);
 
-				*((uint32*)fDest ) = FColor::ToARGB( fSrc[0] , fSrc[1] , fSrc[2] , fSrc[3] );
+				*((uint32*)fDest ) = FColor::ToRGBA( fSrc[0] , fSrc[1] , fSrc[2] , fSrc[3] );
 				++fDest;
 				fSrc += 4;
 				if ( info.type & CFV_COLOR2 )
 				{
-					*((uint32*)fDest ) = FColor::ToARGB( fSrc[0] , fSrc[1] , fSrc[2] , fSrc[3] );
+					*((uint32*)fDest ) = FColor::ToRGBA( fSrc[0] , fSrc[1] , fSrc[2] , fSrc[3] );
 					++fDest;
 					fSrc += 4;
 				}
@@ -291,12 +291,12 @@ namespace CFly
 				for ( int n = 0 ; n < offset ; ++n )
 					*(fDest++) = *(fSrc++);
 
-				*((uint32*)fDest ) = FColor::ToARGB( fSrc[0] , fSrc[1] , fSrc[2] );
+				*((uint32*)fDest ) = FColor::ToRGBA( fSrc[0] , fSrc[1] , fSrc[2] );
 				++fDest;
 				fSrc += 3;
 				if ( info.type & CFV_COLOR2 )
 				{
-					*((uint32*)fDest ) = FColor::ToARGB( fSrc[0] , fSrc[1] , fSrc[2] );
+					*((uint32*)fDest ) = FColor::ToRGBA( fSrc[0] , fSrc[1] , fSrc[2] );
 					++fDest;
 					fSrc += 3;
 				}

@@ -1,8 +1,9 @@
 #include "TinyGamePCH.h"
 #include "GameControl.h"
 
-#include "WindowsHeader.h"
+#include "StdUtility.h"
 #include <algorithm>
+
 
 namespace
 {
@@ -28,10 +29,10 @@ void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 {
 	bool bUpdateFrame = ( flag & CTF_FREEZE_FRAME ) == 0;
 
-	for( auto listener : mListeners )
+	visitListener([&](IActionListener* listener)
 	{
 		listener->onScanActionStart(bUpdateFrame);
-	}
+	});
 	
 	for( auto info : mInputList )
 	{
@@ -48,10 +49,10 @@ void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 	trigger.mParam.port = ERROR_ACTION_PORT;
 	lanucher.fireAction( trigger );
 
-	for( auto listener : mListeners )
+	visitListener([&](IActionListener* listener)
 	{
 		listener->onScanActionEnd();
-	}
+	});
 
 	mActiveInputs.clear();
 }
@@ -84,19 +85,15 @@ void ActionProcessor::addInput( IActionInput& input , ActionPort targetPort )
 bool ActionProcessor::removeInput( IActionInput& input )
 {
 	assert(mActiveInputs.empty());
-	auto iter = std::find_if(mInputList.begin(), mInputList.end(), [&input](InputInfo const& info) { return info.input == &input; } );
-	if ( iter == mInputList.end() )
-		return false;
-	mInputList.erase( iter );
-	return true;
+	return RemovePred(mInputList, [&input](InputInfo const& info) { return info.input == &input; });
 }
 
 void ActionProcessor::prevFireActionPrivate( ActionParam& param )
 {
-	for( auto listener : mListeners )
+	visitListener([&](IActionListener* listener)
 	{
 		listener->onFireAction(param);
-	}
+	});
 }
 
 void ActionProcessor::beginAction( unsigned flag /*= 0 */ )

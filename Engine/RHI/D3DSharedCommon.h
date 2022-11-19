@@ -28,8 +28,15 @@ namespace Render
 		static D3D_PRIMITIVE_TOPOLOGY To(EPrimitive type);
 		static DXGI_FORMAT To(EVertex::Format format, bool bNormalized);
 		static DXGI_FORMAT To(ETexture::Format format);
+		static DXGI_FORMAT IndexType(RHIBuffer* buffer);
 	};
 
+
+	struct FD3DUtils
+	{
+		static DeviceVendorName GetDevicVenderName(UINT vendorId);
+
+	};
 
 
 }//namespace Render

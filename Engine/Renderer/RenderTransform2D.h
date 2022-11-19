@@ -6,6 +6,7 @@
 #include "Math/Matrix2.h"
 #include "Math/Vector2.h"
 #include "Math/Matrix4.h"
+#include "TransformPushScope.h"
 
 #include <vector>
 
@@ -121,6 +122,13 @@ namespace Render
 			result.P = -P * result.M;
 
 			return result;
+		}
+
+		Vector2 getScale() const
+		{
+			Vector2 xAxis = Vector2(M[0], M[1]);
+			Vector2 yAxis = Vector2(M[2], M[3]);
+			return Vector2(xAxis.length(), yAxis.length());
 		}
 
 		Vector2 removeScale()
@@ -292,29 +300,11 @@ namespace Render
 		std::vector< RenderTransform2D > mStack;
 	};
 
-	class ScopedTransformPush
+	template<>
+	struct TTransformStackTraits< TransformStack2D >
 	{
-	public:
-		FORCEINLINE ScopedTransformPush(TransformStack2D& stack)
-			:mStack(stack)
-		{
-			mStack.push();
-		}
-		FORCEINLINE ScopedTransformPush(TransformStack2D& stack , RenderTransform2D const& transform , bool bApplyPrev = true )
-			:mStack(stack)
-		{
-			mStack.pushTransform(transform , bApplyPrev);
-		}
-
-		FORCEINLINE ~ScopedTransformPush()
-		{
-			mStack.pop();
-		}
-
-		TransformStack2D& mStack;
+		using TransformType = RenderTransform2D;
 	};
-
-#define TRANSFORM_PUSH_SCOPE( STACK , ... ) ::Render::ScopedTransformPush ANONYMOUS_VARIABLE(Scope)(STACK,##__VA_ARGS__);
 
 }//namespace Render
 

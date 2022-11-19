@@ -11,6 +11,7 @@
 namespace Render
 {
 	IMPLEMENT_SHADER_PROGRAM(SphereProgram);
+	IMPLEMENT_SHADER_PROGRAM(SkyBoxProgram);
 
 	struct OBJMaterialSaveInfo
 	{
@@ -59,6 +60,7 @@ namespace Render
 	bool SharedAssetData::loadCommonShader()
 	{
 		VERIFY_RETURN_FALSE( mProgSphere = ShaderManager::Get().getGlobalShaderT<SphereProgram>() );
+		VERIFY_RETURN_FALSE( mProgSkyBox = ShaderManager::Get().getGlobalShaderT<SkyBoxProgram>());
 		return true;
 	}
 
@@ -98,6 +100,7 @@ namespace Render
 			mesh.releaseRHIResource();
 		}
 		mProgSphere = nullptr;
+		mProgSkyBox = nullptr;
 	}
 
 	bool TestRenderStageBase::onInit()
@@ -118,8 +121,6 @@ namespace Render
 		mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
 
 		mCamera.lookAt(Vector3(20, 20, 20) , Vector3(0, 0, 0), Vector3(0, 0, 1));
-
-		ConsoleSystem::Get().registerCommand("ShowTexture", &TextureShowManager::handleShowTexture, this);
 
 		return true;
 	}

@@ -89,7 +89,7 @@ void ExecutionEntryInfo::ParseCategories(std::unordered_set< HashString >& inout
 		StringView token;
 		while (FStringParse::StringToken(categoryStr, "|", token))
 		{
-			token.cutHeadAndTailSpace();
+			token.trimStartAndEnd();
 			inoutCategories.emplace(token);
 		}
 	}

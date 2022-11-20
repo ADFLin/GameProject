@@ -1182,7 +1182,7 @@ namespace CPP
 
 					StringView arg = StringView(start, end - start);
 
-					arg.cutHeadAndTailSpace();
+					arg.trimStartAndEnd();
 
 					argList.push_back(arg);
 

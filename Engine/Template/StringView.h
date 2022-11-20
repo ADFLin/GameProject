@@ -62,7 +62,7 @@ public:
 	size_t   size() const { return mNum; }
 	size_t   length() const { return mNum; }
 
-	void cutHeadSpace()
+	void trimStart()
 	{
 		if (mData)
 		{
@@ -73,7 +73,7 @@ public:
 			}
 		}
 	}
-	void cutTailSpace()
+	void trimEnd()
 	{
 		if (mData)
 		{
@@ -84,7 +84,7 @@ public:
 		}
 	}
 
-	void cutHeadAndTailSpace()
+	void trimStartAndEnd()
 	{
 		if (mData)
 		{

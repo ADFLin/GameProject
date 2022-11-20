@@ -118,7 +118,7 @@ bool MainMenuStage::onInit()
 		char const* selectValue = static_cast<GChoice*>(widget)->getSelectValue();
 		char const* last = FStringParse::FindChar(selectValue, '(');
 		StringView category = StringView{ selectValue , size_t( last - selectValue) };
-		category.cutTailSpace();
+		category.trimEnd();
 		std::vector< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
 
 		std::sort(stageInfoList.begin(), stageInfoList.end(), [](ExecutionEntryInfo const* lhs, ExecutionEntryInfo const* rhs)

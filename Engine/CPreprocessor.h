@@ -257,7 +257,7 @@ namespace CPP
 
 		}
 
-		bool tokenLineString(StringView& outString, bool bCutTailSpace = true)
+		bool tokenLineString(StringView& outString, bool bTrimEnd = true)
 		{
 			char const* start = _this()->getCur();
 			_this()->skipToLineEnd();
@@ -266,7 +266,7 @@ namespace CPP
 			if (end == start)
 				return false;
 
-			if ( bCutTailSpace )
+			if ( bTrimEnd )
 			{
 				while (end != start)
 				{

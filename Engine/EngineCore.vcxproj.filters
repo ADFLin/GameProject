@@ -328,6 +328,12 @@
     <ClCompile Include="AI\TrainManager.cpp">
       <Filter>AI</Filter>
     </ClCompile>
+    <ClCompile Include="Platform\PlatformModule.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="PropertySet.cpp">
+      <Filter>Utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -603,9 +609,6 @@
     <ClInclude Include="SystemMessage.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="WindowsMessageHander.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
     <ClInclude Include="WindowsFileSystem.h">
       <Filter>Platform</Filter>
     </ClInclude>
@@ -709,9 +712,6 @@
       <Filter>DataStructure</Filter>
     </ClInclude>
     <ClInclude Include="DataStructure\CycleQueue.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="DataStructure\FixVector.h">
       <Filter>DataStructure</Filter>
     </ClInclude>
     <ClInclude Include="DataStructure\HashMap.h">
@@ -914,6 +914,18 @@
     </ClInclude>
     <ClInclude Include="ProfileSampleVisitor.h">
       <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsMessageHandler.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\FixedArray.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\PlatformModule.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="PropertySet.h">
+      <Filter>Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

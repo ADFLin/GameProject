@@ -36,7 +36,7 @@ namespace Render
 #if CORE_SHARE_CODE
 	RHISystem* GRHISystem = nullptr;
 	float GRHIClipZMin = 0;
-	float GRHIProjectYSign = 1;
+	float GRHIProjectionYSign = 1;
 	float GRHIVericalFlip = 1;
 	bool GRHISupportMeshShader = false;
 	bool GRHISupportRayTracing = false;
@@ -191,12 +191,14 @@ namespace Render
 		return GRHISystem != nullptr;
 	}
 
+	void RHIPreSystemShutdown()
+	{
+		GRHISystem->preShutdown();
+	}
+
 	void RHISystemShutdown()
 	{	
-		GRHISystem->preShutdown();
-
 		GpuProfiler::Get().releaseRHIResource();
-
 		for (auto& event : GShutdownEventList)
 		{
 			if (event)
@@ -406,6 +408,12 @@ namespace Render
 		return result;
 	}
 
+	ImageLoadOption ToImageLoadOption(TextureLoadOption const& option)
+	{
+		ImageLoadOption result;
+		result.FlipV(option.bFlipV).HDR(option.bHDR).UpThreeComponentToFour(!option.isRGBTextureSupported());
+		return result;
+	}
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)
 	{
 		bool bConvToHalf = option.isConvertFloatToHalf();
@@ -435,7 +443,7 @@ namespace Render
 
 		if( !dataCache.loadDelegate(cacheKey, LoadCache) )
 		{
-			if( !imageData.load(path, option.bHDR, option.bFlipV, !option.isRGBTextureSupported()) )
+			if( !imageData.load(path, ToImageLoadOption(option)) )
 				return false;
 
 			pData = imageData.data;
@@ -501,7 +509,7 @@ namespace Render
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{
 		ImageData imageData;
-		if( !imageData.load(path, option.bHDR , option.bFlipV, !option.isRGBTextureSupported()) )
+		if( !imageData.load(path, ToImageLoadOption(option)) )
 			return false;
 
 		return CreateTexture2D(imageData, option);
@@ -515,7 +523,7 @@ namespace Render
 		void* data[ETexture::FaceCount];
 		for( int i = 0; i < ETexture::FaceCount; ++i )
 		{
-			if( !imageDatas[i].load(paths[i], option.bHDR, option.bFlipV, !option.isRGBTextureSupported()) )
+			if( !imageDatas[i].load(paths[i], ToImageLoadOption(option)) )
 				return false;
 
 			data[i] = imageDatas[i].data;

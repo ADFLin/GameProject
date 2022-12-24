@@ -1,21 +1,40 @@
-varying float3  vNormal;
-varying float3  vPosition;
+#include "Common.sgc"
+#include "ViewParam.sgc"
 
-void main() 
+struct VSOutputParameters
 {
-	gl_Position = ftransform();
-	vPosition = float3( gl_ModelViewMatrix * gl_Vertex );
-	vNormal   = normalize( gl_NormalMatrix * gl_Normal );
+	float3 pos    MEMBER_OUT(TEXCOORD0);
+	float3 normal MEMBER_OUT(TEXCOORD1);
+};
+
+#if VERTEX_SHADER
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float3 InNoraml, ATTRIBUTE_NORMAL)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+	VSOutput.pos = InPos;
+	VSOutput.normal = InNoraml;
+	SvPosition = mul(View.worldToClip, float4(InPos,1.0));
 }
 
-void mainPS()
+#endif
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
-	float3 N = normalize( vNormal );
-	float3 L = normalize( gl_LightSource[i].position.xyz - vPosition );
+	float3 N = normalize( VSOutput.normal );
+	float3 L = normalize( float3(1,-1,1) );
 	float3 R = normalize(-reflect(L,N));
-
-	float3 dirEye = normalize( -vPosition );
-
-	float4 dif = max( dot( N , L ) , 0 );
-
+	float diffuse = max( dot( N , L ) , 0 );
+	OutColor = float4(diffuse, diffuse, diffuse, 1.0);
+	OutColor = float4(N, 1.0);
 }
+
+#endif

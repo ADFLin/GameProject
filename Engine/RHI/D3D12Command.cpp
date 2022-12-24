@@ -245,7 +245,7 @@ namespace Render
 		}
 
 		GRHIClipZMin = 0;
-		GRHIProjectYSign = 1;
+		GRHIProjectionYSign = 1;
 		GRHIVericalFlip = -1;
 
 		D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevels{};
@@ -306,6 +306,11 @@ namespace Render
 		}
 
 		return true;
+	}
+
+	void D3D12System::preShutdown()
+	{
+		mRenderContext.release();
 	}
 
 	void D3D12System::shutdown()

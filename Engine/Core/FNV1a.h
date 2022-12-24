@@ -51,6 +51,32 @@ public:
 	}
 
 	template< class T >
+	static constexpr T MakeStringHashIgnoreCase(char const* pStr, T offsetBias = Table<T>::OffsetBias)
+	{
+		T result = offsetBias;
+		while (*pStr)
+		{
+			result ^= uint8(FCString::ToLower(*pStr));
+			result *= Table<T>::Prime;
+			++pStr;
+		}
+		return result;
+	}
+
+	template< class T >
+	static constexpr T MakeStringHashIgnoreCase(char const* pStr, int num, T offsetBias = Table<T>::OffsetBias)
+	{
+		T result = offsetBias;
+		for (; num; --num)
+		{
+			result ^= uint8(FCString::ToLower(*pStr));
+			result *= Table<T>::Prime;
+			++pStr;
+		}
+		return result;
+	}
+
+	template< class T >
 	static constexpr T MakeHash(uint8 const* pValue, int num , T offsetBias = Table<T>::OffsetBias )
 	{
 		T result = offsetBias;

@@ -4,7 +4,10 @@
 
 #include "TypeConstruct.h"
 
+#include "DataStructure/Array.h"
 #include <algorithm>
+
+
 
 template< class T >
 class TCycleQueue
@@ -167,5 +170,134 @@ private:
 	size_t mNumElement;
 	size_t mNumStorage;
 };
+
+
+template< class T, int N >
+class TCycleBuffer
+{
+
+public:
+	TCycleBuffer()
+	{
+		mIndexStart = 0;
+		mNum = 0;
+	}
+
+	template< class ...Args >
+	void emplace(Args ...args)
+	{
+		if (mNum == N)
+		{
+			TypeDataHelper::Assign((T*)mStorage[mIndexStart], std::forward<Args>(args)...);
+			++mIndexStart;
+			if (mIndexStart == N)
+				mIndexStart = 0;
+		}
+		else
+		{
+			TypeDataHelper::Construct<T>(mStorage[(mIndexStart + mNum) % N], std::forward<Args>(args)...);
+			++mNum;
+		}
+
+	}
+
+	template< class Q >
+	void push_back(Q&& value)
+	{
+		if (mNum == N)
+		{
+			TypeDataHelper::Assign((T*)mStorage[mIndexStart], std::forward<Q>(value));
+			++mIndexStart;
+			if (mIndexStart == N)
+				mIndexStart = 0;
+		}
+		else
+		{
+			TypeDataHelper::Construct((T*)mStorage[(mIndexStart + mNum) % N], std::forward<Q>(value));
+			++mNum;
+		}
+	}
+
+	void pop_back()
+	{
+		assert(mNum);
+		int index = (mIndexStart + mNum - 1) % N;
+		TypeDataHelper::Destruct((T*)mStorage[index]);
+		--mNum;
+	}
+
+	void pop_front()
+	{
+		assert(mNum);
+		TypeDataHelper::Destruct((T*)mStorage[mIndexStart]);
+		++mIndexStart;
+		if (mIndexStart == N)
+			mIndexStart = 0;
+		--mNum;
+	}
+
+	int  size() const { return mNum; }
+	bool empty() const { return mNum == 0; }
+	void clear()
+	{
+		size_t numTail = N - mIndexStart;
+		if (mNum > numTail)
+		{
+			TypeDataHelper::Destruct(mStorage.mData + mIndexStart, numTail);
+			TypeDataHelper::Destruct(mStorage.mData, mNum - numTail);
+		}
+		else
+		{
+			TypeDataHelper::Destruct(mStorage.mData + mIndexStart, mNum);
+		}
+		mNum = 0;
+		mIndexStart = 0;
+	}
+
+	struct IteratorBase
+	{
+		IteratorBase(TCycleBuffer* inQueue, int inCount) :buffer(inQueue), count(inCount) {}
+		TCycleBuffer* buffer;
+		size_t        count;
+		IteratorBase& operator++(int) { ++count;  return *this; }
+		IteratorBase& operator+= (int offset) { count += offset; return *this; }
+		IteratorBase  operator++() { IteratorBase temp(*this); ++count; return temp; }
+
+		T* getElement() { return (T*)buffer->mStorage[(buffer->mIndexStart + count) % N]; }
+		bool operator == (IteratorBase const& other) const { assert(buffer == other.buffer); return count == other.count; }
+		bool operator != (IteratorBase const& other) const { return !this->operator==(other); }
+	};
+
+	struct Iterator : IteratorBase
+	{
+		using IteratorBase::IteratorBase;
+		T* operator->() { return getElement(); }
+		T& operator*() { return *(this->operator->()); }
+	};
+
+	struct ConstIterator : IteratorBase
+	{
+		using IteratorBase::IteratorBase;
+		T const* operator->() { return getElement(); }
+		T const& operator*() { return *(this->operator->()); }
+	};
+
+	typedef Iterator iterator;
+	typedef ConstIterator const_iterator;
+
+	iterator begin() { return Iterator(this, 0); }
+	iterator end() { return Iterator(this, mNum); }
+
+	const_iterator cbegin() const { return ConstIterator(this, 0); }
+	const_iterator cend() const { return ConstIterator(this, mNum); }
+
+	T const& operator [](int index) const { return *(T*)mStorage[(index + mIndexStart) % mNum]; }
+
+	int mNum;
+	int mIndexStart;
+	TCompatibleStorage< T, N > mStorage;
+
+};
+
 
 #endif // CycleQueue_H_6D751446_66FF_4899_B21F_F7F2EE0F5C1D

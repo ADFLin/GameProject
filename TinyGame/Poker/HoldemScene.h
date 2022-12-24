@@ -48,6 +48,7 @@ namespace Holdem {
 		void drawSlot( IGraphics2D& g , Vec2i const& pos , SlotInfo const& info );
 		void render( IGraphics2D& g );
 
+		void setupCardDraw(ICardDraw* cardDraw);
 
 		void betRequest( EBetAction type , int money = 0 )
 		{

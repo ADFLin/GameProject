@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Editor\Editor.vcxproj">
+      <Project>{4267392d-1d50-4223-a1c1-fc37a80f7d59}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\Engine\D3D11RHI.vcxproj">
       <Project>{d400fd7c-3d3a-47e2-992e-f6aa70e4192b}</Project>
     </ProjectReference>

@@ -56,6 +56,8 @@ namespace DouDizhu
 		cardDraw->draw(::Global::GetIGraphics2D(), Vec2i(0, 0), Card(Card::eCLUBS, 0));
 
 		g.drawTexture(*mUVTexture, Vec2i(300, 300), Vec2i(300, 300));
+		g.drawTexture(*mTestTexture, Vec2i(  0, 300), Vec2i(300, 300));
+
 		g.endRender();
 	}
 
@@ -75,9 +77,10 @@ namespace DouDizhu
 		cardDraw = ICardDraw::Create(ICardDraw::eWin7);
 
 		VERIFY_RETURN_FALSE(mUVTexture = RHIUtility::LoadTexture2DFromFile("Texture/UVChecker.png"));
+		mTestTexture = &cardDraw->getResource()->getTexture();
 
 		GTextureShowManager.registerTexture("UVChecker", mUVTexture);
-
+		GTextureShowManager.registerTexture("Test", mTestTexture);
 		return true;
 
 	}
@@ -87,7 +90,6 @@ namespace DouDizhu
 		if (cardDraw)
 		{
 			cardDraw->release();
-			delete cardDraw;
 		}
 	}
 

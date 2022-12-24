@@ -440,7 +440,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			return false;
 		Poker::GameRule rule = Poker::GameRule(id - UI_GROUP_CARD_INDEX);
 		static_cast<Poker::GameModule*>(game)->setRule(rule);
-		getManager()->changeStage(STAGE_SINGLE_GAME);
+		game->beginPlay(*getManager(), EGameStageMode::Single);
 		return false;
 	}
 	else if (id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP)

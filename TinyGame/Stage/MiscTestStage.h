@@ -842,6 +842,7 @@ public:
 	{
 		systemConfigs.screenWidth = 800;
 		systemConfigs.screenHeight = 600;
+		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
 	ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
 	bool setupRenderSystem(ERenderSystem systemName) override;

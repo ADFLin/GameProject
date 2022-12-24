@@ -42,6 +42,9 @@ namespace Bubble
 		bool setupRenderSystem(ERenderSystem systemName);
 
 
+
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
+
 	private:
 		CInputControl mInputControl;
 	};

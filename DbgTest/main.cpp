@@ -1,7 +1,7 @@
 #include "WindowsHeader.h"
 #include "GameLoop.h"
 #include "WindowsPlatform.h"
-#include "WindowsMessageHander.h"
+#include "WindowsMessageHandler.h"
 
 #include "DataStructure/IntrList.h"
 

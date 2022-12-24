@@ -79,7 +79,7 @@ namespace Render
 				{
 					RHITexture2D* texture = static_cast< RHITexture2D*>( handle->texture.get() );
 
-					VFlip(pos, size);
+					//VFlip(pos, size);
 #if 1
 					DrawUtility::DrawTexture(g.getCommandList(), g.getBaseTransform(), *texture, pos, size);
 #else
@@ -100,7 +100,7 @@ namespace Render
 			case ETexture::TypeCube:
 				{
 					RHITextureCube* texture = static_cast<RHITextureCube*>(handle->texture.get());
-					VFlip(pos, size);
+					//VFlip(pos, size);
 
 					DrawUtility::DrawCubeTexture(g.getCommandList(), g.getBaseTransform(), *texture, pos, size);
 

@@ -104,7 +104,7 @@ void RHIGraphics2D::translateXForm(float ox, float oy)
 
 void RHIGraphics2D::rotateXForm(float angle)
 {
-	mXFormStack.rotate(Math::Deg2Rad(angle));
+	mXFormStack.rotate(angle);
 }
 
 void RHIGraphics2D::scaleXForm(float sx, float sy)
@@ -205,7 +205,6 @@ using GraphicsDepthState = StaticDepthDisableState;
 
 void RHIGraphics2D::initRenderState()
 {
-
 	mRenderStateCommitted.texture = nullptr;
 	mRenderStateCommitted.sampler = nullptr;
 	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;

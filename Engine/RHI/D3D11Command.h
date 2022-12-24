@@ -402,7 +402,7 @@ namespace Render
 		D3D11DynamicBuffer    mDynamicVBuffer;
 		D3D11DynamicBuffer    mDynamicIBuffer;
 
-		D3D11_VIEWPORT mViewportState[8];
+		D3D11_VIEWPORT mViewportStates[8];
 
 		SimplePipelineParamValues mFixedShaderParams;
 		bool bUseFixedShaderPipeline = true;

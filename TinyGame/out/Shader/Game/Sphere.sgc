@@ -127,7 +127,7 @@ float3 CalcLighting( in FSInput inFS )
 
 
 PS_ENTRY_START(MainPS)
-	PS_INPUT( VSOutputParameters VSOutput , 0 )
+	PS_INPUT_STRUCT( VSOutputParameters VSOutput , 0 )
 	PS_OUTPUT( float4 OutColor , 0 )
 	PS_OUTPUT_DEPTH
 PS_ENTRY_END(MainPS)

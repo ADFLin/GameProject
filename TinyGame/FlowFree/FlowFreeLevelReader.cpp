@@ -15,7 +15,7 @@ namespace FlowFree
 	{
 		ImageData imageData;
 
-		if (!imageData.load(path, false, false))
+		if (!imageData.load(path))
 			return false;
 
 		int width = imageData.width;

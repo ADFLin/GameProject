@@ -4,7 +4,7 @@
 
 
 #if COMPILER_GLSL
-#define USE_RIGHT_HAND_COORD 1
+#define USE_RIGHT_HAND_COORD 0
 #endif
 //#undef VECTOR_FUNCTION_LIST
 #undef DEFINE_FUNCTION_INNER
@@ -21,7 +21,7 @@
 #endif
 
 #if USE_RIGHT_HAND_COORD
-#define SCENE_DEPTH_FACTOR (-1.0)
-#else
 #define SCENE_DEPTH_FACTOR (1.0)
+#else
+#define SCENE_DEPTH_FACTOR (-1.0)
 #endif

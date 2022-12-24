@@ -3,7 +3,7 @@
 
 #include "GameLoop.h"
 #include "WindowsPlatform.h"
-#include "WindowsMessageHander.h"
+#include "WindowsMessageHandler.h"
 
 #include "DrawEngine.h"
 #include "StageBase.h"
@@ -178,6 +178,10 @@ private:
 	NetWorker*         mNetWorker;
 	bool               mShowErrorMsg;
 	FPSCalculator      mFPSCalc;
+
+#if TINY_WITH_EDITOR
+	class IEditor* mEditor = nullptr;
+#endif
 
 	enum class ConsoleShowMode
 	{

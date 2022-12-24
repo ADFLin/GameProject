@@ -19,6 +19,7 @@ uint64 HighResClock::getTimeMicroseconds()
 	LONGLONG elapsedTime = currentTime.QuadPart - 
 		mStartTime.QuadPart;
 
+#if 1
 	// Compute the number of millisecond ticks elapsed.
 	unsigned long msecTicks = (unsigned long)(1000 * elapsedTime / 
 		mClockFrequency.QuadPart);
@@ -40,6 +41,7 @@ uint64 HighResClock::getTimeMicroseconds()
 
 	// Store the current elapsed time for adjustments next time.
 	mPrevElapsedTime = elapsedTime;
+#endif
 
 	// Convert to microseconds.
 	uint64 usecTicks = (unsigned long)(1000000 * elapsedTime /

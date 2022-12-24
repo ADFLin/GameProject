@@ -22,6 +22,7 @@
 using namespace Render;
 
 ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
+bool GbDefaultUsePlatformGraphic = false;
 
 namespace
 {
@@ -63,6 +64,31 @@ namespace
 		"g.DefaultRHI",
 		0
 	};
+
+	ERenderSystem ConvTo(RHISystemName name)
+	{
+		switch (name)
+		{
+		case RHISystemName::D3D11: return ERenderSystem::D3D11;
+		case RHISystemName::D3D12: return ERenderSystem::D3D12;
+		case RHISystemName::OpenGL: return ERenderSystem::OpenGL;
+		case RHISystemName::Vulkan: return ERenderSystem::Vulkan;
+		}
+		return ERenderSystem::None;
+	}
+
+	RHISystemName ConvTo(ERenderSystem systemName)
+	{
+		switch (systemName)
+		{
+		case ERenderSystem::OpenGL: return RHISystemName::OpenGL;
+		case ERenderSystem::D3D11: return RHISystemName::D3D11;
+		case ERenderSystem::D3D12: return RHISystemName::D3D12;
+		case ERenderSystem::Vulkan: return RHISystemName::Vulkan;
+		}
+		NEVER_REACH("Unknown systemName");
+		return RHISystemName::OpenGL;
+	}
 };
 
 WORD GameWindow::getIcon()
@@ -161,12 +187,12 @@ void DrawEngine::release()
 {
 	mPlatformGraphics->releaseReources();
 
+	RenderUtility::Finalize();
+
 	if (isRHIEnabled() || bRHIShutdownDeferred)
 	{
 		RHISystemShutdown();
 	}
-
-	RenderUtility::Finalize();
 }
 
 void DrawEngine::update(long deltaTime)
@@ -182,13 +208,13 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup)
 {
 	if (isRHIEnabled())
 	{
-		shutdownSystem(renderSetup == nullptr);
+		shutdownSystem(renderSetup == nullptr, false);
 	}
 
 	mRenderSetup = renderSetup;
 	if (mRenderSetup)
 	{
-		if (!setupSystemInternal(mRenderSetup->getDefaultRenderSystem()))
+		if (!setupSystemInternal(mRenderSetup->getDefaultRenderSystem(), false))
 			return false;
 	}
 	return true;
@@ -202,10 +228,9 @@ bool DrawEngine::resetupSystem(ERenderSystem systemName)
 	if (!mRenderSetup->isRenderSystemSupported(systemName))
 		return false;
 
-	mRenderSetup->preShutdownRenderSystem(true);
-	shutdownSystem(false);
+	shutdownSystem(false , true);
 
-	if (!setupSystemInternal(systemName))
+	if (!setupSystemInternal(systemName, true))
 	{
 		return false;
 	}
@@ -216,15 +241,15 @@ bool DrawEngine::resetupSystem(ERenderSystem systemName)
 	}
 }
 
-bool DrawEngine::setupSystemInternal(ERenderSystem systemName)
+bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI)
 {
 	if (mRenderSetup == nullptr)
 		return false;
 
 	if (systemName == ERenderSystem::None)
 	{
-		if (mRenderSetup->isRenderSystemSupported(ERenderSystem::OpenGL))
-			systemName = ERenderSystem::OpenGL;
+		if (mRenderSetup->isRenderSystemSupported(GDefaultRHIName))
+			systemName = GDefaultRHIName;
 	}
 	else if (!mRenderSetup->isRenderSystemSupported(systemName))
 	{
@@ -234,11 +259,25 @@ bool DrawEngine::setupSystemInternal(ERenderSystem systemName)
 	RenderSystemConfigs configs;
 	mRenderSetup->configRenderSystem(systemName, configs);
 
+	if (!bForceRHI && configs.bWasUsedPlatformGraphics)
+	{
+		if (GbDefaultUsePlatformGraphic)
+		{
+			mRenderSetup->setupPlatformGraphic();
+			return true;
+		}
+	}
+
 	if (!startupSystem(systemName, configs))
 	{
 		return false;
 	}
 
+	if (!mRenderSetup->setupRenderSystem(systemName))
+	{
+		LogWarning(0, "Can't Setup Render Resource");
+		return false;
+	}
 	return true;
 }
 
@@ -248,6 +287,15 @@ bool DrawEngine::isUsageRHIGraphic2D() const
 		return true;
 
 	return false;
+}
+
+void DrawEngine::lockSystem()
+{
+	CHECK(mSystemLocked == ERenderSystem::None);
+	if (GRHISystem)
+	{
+		mSystemLocked = ConvTo( GRHISystem->getName() );
+	}
 }
 
 bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs const& configs)
@@ -264,20 +312,6 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		}
 	}
 
-	if (systemName == ERenderSystem::None)
-		systemName = GDefaultRHIName;
-
-	if( bHasUseRHI )
-	{
-		TGuardValue<bool> value(bBlockRender, true);
-		if( !mWindowProvider->reconstructWindow(*mGameWindow) )
-		{
-			return false;
-		}
-	}
-
-	setupBuffer(getScreenWidth(), getScreenHeight());
-
 	RHISystemInitParams initParam;
 	initParam.numSamples = configs.numSamples;
 	if (CVarUseMultisample)
@@ -287,34 +321,44 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 			initParam.numSamples = 4;
 		}
 	}
-	initParam.bVSyncEnable = configs.bVSyncEnable;
-	initParam.bDebugMode = configs.bDebugMode;
-	initParam.hWnd = getWindow().getHWnd();
-	initParam.hDC = getWindow().getHDC();
 
-	RHISystemName targetName = [systemName]
+	if (mSystemLocked != ERenderSystem::None)
 	{
-		switch(systemName)
+		setupBuffer(getScreenWidth(), getScreenHeight());
+	}
+	else
+	{
+
+		if (systemName == ERenderSystem::None)
+			systemName = GDefaultRHIName;
+
+		setupBuffer(getScreenWidth(), getScreenHeight());
+
+		if (bHasUseRHI)
 		{
-		case ERenderSystem::OpenGL: return RHISystemName::OpenGL;
-		case ERenderSystem::D3D11: return RHISystemName::D3D11;
-		case ERenderSystem::D3D12: return RHISystemName::D3D12;
-		case ERenderSystem::Vulkan: return RHISystemName::Vulkan;
+			TGuardValue<bool> value(bBlockRender, true);
+			if (!mWindowProvider->reconstructWindow(*mGameWindow))
+			{
+				return false;
+			}
 		}
-		return RHISystemName::OpenGL;
-	}();
-	if( !RHISystemInitialize(targetName, initParam) )
-		return false;
+
+		initParam.bVSyncEnable = configs.bVSyncEnable;
+		initParam.bDebugMode = configs.bDebugMode;
+		initParam.hWnd = getWindow().getHWnd();
+		initParam.hDC = getWindow().getHDC();
+		if (!RHISystemInitialize(ConvTo(systemName), initParam))
+			return false;
+	}
 
 	mSystemName = systemName;
 
-	RenderUtility::InitializeRHI();
-	if( mSystemName == ERenderSystem::OpenGL )
+	if (mSystemName == ERenderSystem::OpenGL)
 	{
 		mGLContext = &static_cast<OpenGLSystem*>(GRHISystem)->mGLContext;
 	}
 	else if (mSystemName == ERenderSystem::D3D11 ||
-		     mSystemName == ERenderSystem::D3D12 )
+		mSystemName == ERenderSystem::D3D12)
 	{
 		SwapChainCreationInfo info;
 		info.windowHandle = mGameWindow->getHWnd();
@@ -327,31 +371,40 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		RHICreateSwapChain(info);
 	}
 
-	if ( mRHIGraphics == nullptr )
+	if (mRHIGraphics == nullptr)
 	{
 		mRHIGraphics.reset(new RHIGraphics2D);
 		mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
 		static_cast<TGraphics2DProxy< RHIGraphics2D >&>(*mRHIProxy).mImpl = mRHIGraphics.get();
 	}
 
+
+	RenderUtility::InitializeRHI();
 	mRHIGraphics->initializeRHI();
 
 	bHasUseRHI = true;
 	bUsePlatformBuffer = false;
-	bWasUsedPlatformGrapthics = false;
+	bWasUsedPlatformGraphics = configs.bWasUsedPlatformGraphics;
 	return true;
 }
 
-void DrawEngine::shutdownSystem(bool bDeferred)
+void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 {
 	if( !isRHIEnabled() )
 		return;
 
-	RenderUtility::ReleaseRHI();
 
+	RHIPreSystemShutdown();
+
+	if (mRenderSetup)
+	{
+		mRenderSetup->preShutdownRenderSystem(bReInit);
+	}
+
+	RenderUtility::ReleaseRHI();
 	mRHIGraphics->releaseRHI();
 
-	if( bDeferred == false )
+	if(bReInit || bDeferred == false )
 	{
 		RHISystemShutdown();
 	}
@@ -367,10 +420,36 @@ void DrawEngine::shutdownSystem(bool bDeferred)
 		mWindowProvider->reconstructWindow(*mGameWindow);
 	}
 
+	mLastRHIName = mSystemName;
 	mSystemName = ERenderSystem::None;
 
 	bUsePlatformBuffer = true;
 	setupBuffer(getScreenWidth(), getScreenHeight());
+}
+
+void DrawEngine::toggleGraphics()
+{
+	if (isRHIEnabled())
+	{
+		shutdownSystem();
+		if (mRenderSetup)
+		{
+			mRenderSetup->setupPlatformGraphic();
+		}
+	}
+	else
+	{
+		if (mRenderSetup)
+		{
+			setupSystemInternal(mLastRHIName != ERenderSystem::None ? mLastRHIName : mRenderSetup->getDefaultRenderSystem(), true );
+		}
+		else
+		{
+			RenderSystemConfigs configs;
+			configs.bWasUsedPlatformGraphics = true;
+			startupSystem(mLastRHIName != ERenderSystem::None ? mLastRHIName : GDefaultRHIName, configs);
+		}
+	}
 }
 
 bool DrawEngine::beginFrame()
@@ -386,7 +465,7 @@ bool DrawEngine::beginFrame()
 		if( !RHIBeginRender() )
 			return false;
 
-		if (bWasUsedPlatformGrapthics)
+		if (bWasUsedPlatformGraphics)
 		{
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			RHISetFrameBuffer(commandList, nullptr);
@@ -398,7 +477,7 @@ bool DrawEngine::beginFrame()
 	}
 	else
 	{
-		mPlatformGraphics->beginRender();	
+		mPlatformGraphics->beginFrame();	
 	}
 
 	if( bUsePlatformBuffer )
@@ -417,7 +496,7 @@ void DrawEngine::endFrame()
 	}
 	else
 	{
-		mPlatformGraphics->endRender();
+		mPlatformGraphics->endFrame();
 	}
 
 	if( bUsePlatformBuffer )
@@ -431,6 +510,37 @@ IGraphics2D* DrawEngine::createGraphicInterface(Graphics2D& g)
 	return new TGraphics2DProxy< Graphics2D >(g);
 }
 
+class ProfileFrameVisualizeDraw : public ProfileNodeVisitorT< ProfileFrameVisualizeDraw >
+{
+public:
+	ProfileFrameVisualizeDraw(IGraphics2D& g, Vector2 const& pos)
+		:mGraphics2D(g), mBasePos(pos)
+	{
+
+	}
+	void onRoot(SampleNode* node) 
+	{
+
+	}
+	void onNode(VisitContext const& context)
+	{
+		SampleNode* node = context.node;
+	}
+	bool onEnterChild(VisitContext const& context)
+	{ 
+		return true; 
+	}
+	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
+	{
+		SampleNode* node = context.node;
+	}
+
+	int mLevel;
+
+	Vector2      mBasePos;
+	IGraphics2D& mGraphics2D;
+};
+
 class ProfileTextDraw : public ProfileNodeVisitorT< ProfileTextDraw >
 {
 public:
@@ -438,14 +548,14 @@ public:
 		:mGraphics2D(g), mTextPos(pos)
 	{
 
-	}
-	void onRoot(SampleNode* node) 
+}
+	void onRoot(SampleNode* node)
 	{
 		InlineString<512> str;
 		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
 		double lastFrameDuration = ProfileSystem::Get().getLastFrameDuration();
 		str.format("--- Profiling: %s (total running time: %.03lf(%.03lf) ms) ---",
-					 node->getName(), time_since_reset, lastFrameDuration);
+			node->getName(), time_since_reset, lastFrameDuration);
 		mGraphics2D.drawText(mTextPos, str);
 		mTextPos.y += OffsetY;
 	}
@@ -456,16 +566,16 @@ public:
 		str.format("|-> %s (%.2lf %%) :: %.3lf(%.3lf) ms / frame (%d calls)",
 			node->getName(),
 			context.parentTime > CLOCK_EPSILON ? (node->getTotalTime() / context.parentTime) * 100 : 0.f,
-			node->getTotalTime() / double( node->getTotalCalls() ),
-			node->getLastFrameTime() / double( node->getFrameCalls() ),
+			node->getTotalTime() / double(node->getTotalCalls()),
+			node->getLastFrameTime() / double(node->getFrameCalls()),
 			node->getTotalCalls());
 		mGraphics2D.drawText(mTextPos, str);
 		mTextPos.y += OffsetY;
 	}
 	bool onEnterChild(VisitContext const& context)
-	{ 
+	{
 		mTextPos += Vec2i(OffsetX, 0);
-		return true; 
+		return true;
 	}
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
 	{
@@ -473,20 +583,17 @@ public:
 		int    numChildren = childContext.indexNode;
 		double accTime = childContext.accTime;
 
-		if( numChildren )
+		if (numChildren)
 		{
 			InlineString<512> str;
-			double time;
-			if( node->getParent() != NULL )
-				time = node->getTotalTime();
-			else
-				time = ProfileSystem::Get().getDurationSinceReset();
-
+			double time = childContext.parentTime;
 			double delta = time - accTime;
-			str.format("|-> %s (%.3lf %%) :: %.3lf(%.3lf) ms / frame", "Other",
-						 // (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
+			str.format("|-> %s (%.3lf %%) :: %.3lf(%.3lf) ms / frame",
+				"Other",
+				// (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
 				(time > CLOCK_EPSILON) ? (delta / time * 100) : 0.f,
-						 delta / ProfileSystem::Get().getFrameCountSinceReset());
+				delta / context.node->getTotalCalls(),
+				(childContext.parentFrameTime - childContext.accFrameTime) / context.node->getFrameCalls());
 			mGraphics2D.drawText(mTextPos, str);
 			mTextPos.y += OffsetY;
 			mGraphics2D.drawText(mTextPos, "-------------------------------------------------");
@@ -526,7 +633,6 @@ void DrawEngine::changeScreenSize( int w , int h )
 		setupBuffer( w , h );
 		if( mRHIGraphics )
 			mRHIGraphics->init(w, h);
-
 	}
 }
 

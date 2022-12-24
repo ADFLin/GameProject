@@ -53,7 +53,7 @@ namespace Render
 
 		{
 			TIME_SCOPE("BRDF Texture");
-			VERIFY_RETURN_FALSE(mRockTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/rocks.jpg", TextureLoadOption().SRGB().FlipV()));
+			VERIFY_RETURN_FALSE(mRockTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/rocks.jpg", TextureLoadOption().SRGB()));
 			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/N.png", TextureLoadOption()));
 		}
 
@@ -97,6 +97,23 @@ namespace Render
 		mParamBuffer.releaseResources();
 
 		BaseClass::preShutdownRenderSystem(bReInit);
+	}
+
+	bool BRDFTestStage::isRenderSystemSupported(ERenderSystem systemName)
+	{
+		switch (systemName)
+		{
+		case ERenderSystem::OpenGL:
+		case ERenderSystem::D3D11:
+			return true;
+		case ERenderSystem::D3D12:
+			break;
+		case ERenderSystem::Vulkan:
+			break;
+		default:
+			break;
+		}
+		return false;
 	}
 
 	void BRDFTestStage::onRender(float dFrame)

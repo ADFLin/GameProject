@@ -150,25 +150,19 @@ namespace Big2 {
 		,mPlayerManager( &playerMgr )
 	{
 		level.setListener( *this );
-
-		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
-		mCardSize = mCardDraw->getSize();
-
 		mShowCardBmp.initialize( ::Global::GetGraphics2D().getTargetDC() , 600 , 400 );
 	}
 
 	Scene::~Scene()
 	{
-		mCardDraw->release();
-	}
 
+	}
 
 	void Scene::setupUI()
 	{
 
 		Vec2i sSize = ::Global::GetScreenSize();
 
-		CardListUI::setScene( *this );
 		mOwnCardsUI = new CardListUI( getLevel().getOwnCards() , Vec2i( sSize.x / 2 , sSize.y - mCardSize.y - 75 ) , NULL );
 		mOwnCardsUI->onChangeIndexSelected.bind( this , &Scene::onListCardSelect );
 		mOwnCardsUI->show( false );
@@ -226,7 +220,19 @@ namespace Big2 {
 
 
 
-	void Scene::render( IGraphics2D& g )
+	void Scene::setupCardDraw(ICardDraw* cardDraw)
+	{
+		mCardDraw = cardDraw;
+		mCardSize = cardDraw->getSize();
+		Vec2i sSize = ::Global::GetScreenSize();
+		CardListUI::setScene(*this);
+		Vec2i pos = Vec2i(sSize.x / 2, sSize.y - mCardSize.y - 75);
+		mOwnCardsUI->setPos(pos);
+		mOwnCardsUI->mBasePos = pos;
+		mOwnCardsUI->refreshCards();
+	}
+
+	void Scene::render(IGraphics2D& g)
 	{
 
 		Vec2i sSize = ::Global::GetScreenSize();
@@ -290,12 +296,13 @@ namespace Big2 {
 					mShowCardBmp.bitBltTransparent(gImpl.getRenderDC() , RGB(0,255,0) ,
 						( sSize.x - mShowCardBmp.getWidth() ) / 2 , 
 						( sSize.y - mShowCardBmp.getHeight() - yOffset ) / 2  );
-					TrickInfo const* info = getLevel().getLastShowCards();
-					if ( info )
-					{
-						Vec2i pos = Vec2i( sSize.x / 2 , ( sSize.y - yOffset ) / 2 );
-						drawLastShowCard( g , pos , true );
-					}
+				}
+				
+				TrickInfo const* info = getLevel().getLastShowCards();
+				if (info)
+				{
+					Vec2i pos = Vec2i(sSize.x / 2, (sSize.y - yOffset) / 2);
+					drawLastShowCard(g, pos, true);
 				}
 
 				{
@@ -376,14 +383,16 @@ namespace Big2 {
 		g.translateXForm( pos.x , pos.y );
 		switch( tPos )
 		{
-		case TPOS_LEFT:   g.rotateXForm( 90.0f * PI / 180.0f ); break;
-		case TPOS_FRONT:  g.rotateXForm( 180.0f * PI / 180.0f ); break;
-		case TPOS_RIGHT:  g.rotateXForm( 270.0f * PI / 180.0f ); break;
+		case TPOS_LEFT:   g.rotateXForm(Math::Deg2Rad(90.0)); break;
+		case TPOS_FRONT:  g.rotateXForm(Math::Deg2Rad(180.0)); break;
+		case TPOS_RIGHT:  g.rotateXForm(Math::Deg2Rad(270.0)); break;
 		}
 		int offset = 15;
 		Vec2i lPos;
 		lPos.x = -( (( beCenterPos ) ? numCard : 13 ) * offset + mCardSize.x ) / 2;
 		lPos.y = 0;
+
+		g.setBrush(Color3ub::White());
 		if ( bDrawBack )
 		{
 			for( int i = 0 ; i < numCard ; ++i )
@@ -441,6 +450,8 @@ namespace Big2 {
 	
 		Vec2i lPos = Vec2i( -( ( info.num - 1 ) * offset + mCardSize.x ) / 2 ,  -mCardSize.y / 2  );
 		Vec2i shell( 3 , 3 );
+
+		g.setBrush(Color3ub::White());
 		for( int i = 0 ; i < info.num ; ++i )
 		{
 			g.pushXForm();
@@ -688,6 +699,7 @@ namespace Big2 {
 		Vec2i pos = getWorldPos();
 
 		IGraphics2D& g = ::Global::GetIGraphics2D();
+		g.setBrush(Color3ub::White());
 		if ( mHaveAnim )
 		{
 			for( int i = 0 ; i < (int)mClinetCards->size() ; ++i )

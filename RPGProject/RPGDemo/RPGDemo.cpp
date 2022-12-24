@@ -45,15 +45,16 @@
 
 #include "GameLoop.h"
 #include "WindowsPlatform.h"
-#include "WindowsMessageHander.h"
+#include "WindowsMessageHandler.h"
 #include "LogSystem.h"
 #include "SystemPlatform.h"
-
+#include "ProfileSampleVisitor.h"
 
 ConsoleSystem gConsoleSystem;
 
 #include "CNPCBase.h"
 #include "CHero.h"
+
 
 GlobalVal g_GlobalVal( 30 );
 
@@ -91,30 +92,34 @@ public:
 			node->getName() , time_since_reset );
 	}
 
-	void onNode     ( SampleNode* node , double parentTime )
+	void onNode(VisitContext const& context)
 	{
+		SampleNode* node = context.node;
 		float tf = node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset();
 		msgShow.push( "|-> %d -- %s (%.2lf %%) :: %.3lf ms / frame  (%.3f (1e-5ms/call) (%d calls)",
 			++mIdxChild , node->getName() ,
-			parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / parentTime ) * 100 : 0.f ,
+			context.parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTime) * 100 : 0.f ,
 			tf , 100000 * ( tf / node->getTotalCalls() ) ,
 			node->getTotalCalls() );
 	}
 
-	bool onEnterChild( SampleNode* node )
+	bool onEnterChild(VisitContext const& context)
 	{ 
 		mIdxChild = 0;
-
 		msgShow.shiftPos( 20 , 0 );
-
 		return true; 
 	}
-	void onReturnParent( SampleNode* node , int numChildren , double accTime )
+
+	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
 	{
+		SampleNode* node = context.node;
+		int    numChildren = childContext.indexNode;
+		double accTime = childContext.accTime;
+
 		if ( numChildren )
 		{
 			double time;
-			if ( node->getParent() != NULL )
+			if (node->haveParent())
 				time = node->getTotalTime();
 			else
 				time = ProfileSystem::Get().getDurationSinceReset();

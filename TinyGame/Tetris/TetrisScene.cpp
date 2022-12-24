@@ -428,7 +428,7 @@ namespace Tetris
 			g.pushXForm();
 			{
 				g.translateXForm( pos.x + 1.5 * BlockSize  , pos.y - 0.5 * BlockSize  );
-				g.rotateXForm( DEG2RAD( mAngle ) );
+				g.rotateXForm( mAngle );
 				g.translateXForm( -1.5 * BlockSize , 0.5 * BlockSize  );
 				renderPiece( g , getLevel()->getMovePiece() , Vec2i( 0 , 0 ) );
 			}

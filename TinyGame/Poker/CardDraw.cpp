@@ -13,6 +13,7 @@
 #include "RenderDebug.h"
 #include "Core/ScopeGuard.h"
 #include "RHI/RHIGraphics2D.h"
+#include "Image/ImageData.h"
 
 static CardLib gCardLib;
 
@@ -161,10 +162,12 @@ namespace Poker {
 	};
 
 	class Win7CardDrawRHI : public Win7CardDrawBase
+		                  , public ICardResource
 	{
 	public:
 		Win7CardDrawRHI()
 		{
+#if 1
 			HANDLE hHandle = LoadImageA(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_CARDS), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
 			HANDLE hMask = LoadImageA(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_CARDS_MASK), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
 
@@ -175,7 +178,6 @@ namespace Poker {
 			};
 
 			BITMAP bmp , bmpMask;
-			DIBSECTION section, sectionMask;
 			if (GetObject(hHandle, sizeof(bmp), &bmp) && GetObject(hMask, sizeof(bmpMask), &bmpMask))
 			{
 				textSizeInv.x = 1.0f / bmp.bmWidth;
@@ -191,7 +193,7 @@ namespace Poker {
 				for (int j = 0; j < bmp.bmHeight; ++j)
 				{
 					uint8 const* pSrc = static_cast<uint8 const*>(bmp.bmBits) + ( bmp.bmHeight - 1 - j ) * bmp.bmWidthBytes;
-					uint8 const* pSrcMask = static_cast<uint8 const*>(bmpMask.bmBits) + (bmp.bmHeight - 1 - j)  * bmpMask.bmWidthBytes;
+					uint8 const* pSrcMask = static_cast<uint8 const*>(bmpMask.bmBits) + (bmp.bmHeight - 1 - j) * bmpMask.bmWidthBytes;
 					for (int i = 0; i < bmp.bmWidth; ++i)
 					{
 						uint8 a = *pSrcMask;
@@ -206,6 +208,19 @@ namespace Poker {
 
 				GTextureShowManager.registerTexture("Card", mTexture);
 			}
+#else
+			HRSRC hRes = FindResource(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_DATA1), "DATA");
+			HGLOBAL hMem = LoadResource(GetModuleHandle(NULL), hRes);
+			int size = SizeofResource(GetModuleHandle(NULL), hRes);
+			void* pData = LockResource(hMem);
+			ImageData imageData;
+			if (imageData.loadFromMemory(pData, size, ImageLoadOption().UpThreeComponentToFour()))
+			{
+				mTexture = RHICreateTexture2D(ETexture::RGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data);
+				GTextureShowManager.registerTexture("Card", mTexture);
+			}
+#endif
+
 		}
 
 		void draw(IGraphics2D& g, Vec2i const& pos, Card const& card) override
@@ -217,8 +232,9 @@ namespace Poker {
 			impl.setBlendState(ESimpleBlendMode::Translucent);
 			Vec2i const& posImg = mCardPos[card.getIndex()];
 			impl.drawTexture(*mTexture, pos, CardSize, Vector2(posImg).mul(textSizeInv), cardUVSize);
-
+			//impl.drawTexture(*mTexture, Vector2(200, 200), Vector2(200, 200));
 		}
+
 		void drawCardBack(IGraphics2D& g, Vec2i const& pos) override
 		{
 			RHIGraphics2D& impl = g.getImpl< RHIGraphics2D >();
@@ -229,6 +245,28 @@ namespace Poker {
 		Vector2 cardUVSize;
 		RHITexture2DRef mTexture;
 		Vector2 textSizeInv;
+
+		Render::RHITexture2D& getTexture() override
+		{
+			return *mTexture;
+		}
+
+		TRect<float> getUVRect(Card const& card) const override
+		{
+			Vec2i const& posImg = mCardPos[card.getIndex()];
+			Vector2 min = Vector2(posImg).mul(textSizeInv);
+			return TRect<float>(min, min + cardUVSize);
+		}
+		TRect<float> getBackUVRect(Card const& card) const override
+		{
+			Vector2 min = Vector2(mCardBackPos).mul(textSizeInv);
+			return TRect<float>(min, min + cardUVSize);
+		}
+
+		ICardResource* getResource() override
+		{
+			return this;
+		}
 	};
 
 	class DebugCardDraw : public ICardDraw

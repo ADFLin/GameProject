@@ -1205,16 +1205,14 @@ namespace Render
 		auto vertDest = reinterpret_cast<IndexType*>(outUniqueVertexIndices.data()) + startVertCount;
 		auto primDest = reinterpret_cast<uint32*>(outPrimitiveIndices.data()) + startPrimCount;
 
-		for (auto const& meshLit : meshletList)
+		for (auto const& meshlet : meshletList)
 		{
-			FMemory::Copy(vertDest, meshLit.uniqueVertexIndices.data(), meshLit.uniqueVertexIndices.size() * sizeof(IndexType));
-			FMemory::Copy(primDest, meshLit.primitiveIndices.data(), meshLit.primitiveIndices.size() * sizeof(uint32));
+			FMemory::Copy(vertDest, meshlet.uniqueVertexIndices.data(), meshlet.uniqueVertexIndices.size() * sizeof(IndexType));
+			FMemory::Copy(primDest, meshlet.primitiveIndices.data(), meshlet.primitiveIndices.size() * sizeof(uint32));
 
-			vertDest += meshLit.uniqueVertexIndices.size();
-			primDest += meshLit.primitiveIndices.size();
+			vertDest += meshlet.uniqueVertexIndices.size();
+			primDest += meshlet.primitiveIndices.size();
 		}
-
-
 	}
 
 	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
@@ -1248,7 +1246,7 @@ namespace Render
 		return true;
 	}
 
-	Vector3 Clamp01(Vector3 v)
+	Vector3 Clamp01(Vector3 const& v)
 	{
 		return Vector3(
 			Math::Clamp<float>(v.x, 0, 1),
@@ -1256,12 +1254,12 @@ namespace Render
 			Math::Clamp<float>(v.z, 0, 1));
 	}
 
-	inline Vector3 QuantizeSNorm(Vector3 value)
+	inline Vector3 QuantizeSNorm(Vector3 const& value)
 	{
 		return (Clamp01(value) * 0.5f + Vector3(0.5f)) * 255.0f;
 	}
 
-	inline Vector3 QuantizeUNorm(Vector3 value)
+	inline Vector3 QuantizeUNorm(Vector3 const& value)
 	{
 		return Clamp01(value) * 255.0f;
 	}

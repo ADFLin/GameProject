@@ -1,11 +1,20 @@
-#ifndef FixVector_h__
-#define FixVector_h__
+#pragma once
+#ifndef FixedArray_H_C315539D_E69B_425C_BD11_1AE933764C8D
+#define FixedArray_H_C315539D_E69B_425C_BD11_1AE933764C8D
 
-#include <cassert>
+#if 1
+
+#include "Array.h"
+
+template< class T, size_t N >
+using TFixedArray = TArray< T, TFixedAllocator<N> >;
+
+#else
+
 #include "TypeConstruct.h"
 
-template< class T , size_t N >
-class FixVector
+template< class T, size_t N >
+class TFixedArray
 {
 public:
 	typedef T*        iterator;
@@ -16,17 +25,17 @@ public:
 	typedef T*        pointer;
 	typedef T const*  const_pointer;
 
-	FixVector()
+	TFixedArray()
 	{  
 		mNext = mEle; 
 	}
 
-	FixVector( size_t num , T val = T() )
+	TFixedArray( size_t num , T val = T() )
 	{
 		TypeDataHelper::Construct((T*)mEle, num, val);
 		mNext = mEle + num;
 	}
-	~FixVector(){  clear();  }
+	~TFixedArray(){  clear();  }
 
 	bool     empty()    const { return mEle == mNext; }
 	size_t   size()     const { return mNext - mEle; }
@@ -112,9 +121,9 @@ private:
 
 
 template< class T , size_t N >
-void  FixVector< T , N >::resize( size_t num )
+void  TFixedArray< T , N >::resize( size_t num )
 { 
-	assert( num < N  ); 
+	CHECK( num < N  ); 
 	if ( num < size() )
 	{
 		erase( begin() + num , end() );
@@ -128,9 +137,9 @@ void  FixVector< T , N >::resize( size_t num )
 
 
 template< class T , size_t N >
-void  FixVector< T , N >::resize( size_t num , value_type const& value )
+void  TFixedArray< T , N >::resize( size_t num , value_type const& value )
 {
-	assert( num < N  ); 
+	CHECK( num < N  );
 	if ( num < size() )
 	{
 		erase( begin() + num , end() );
@@ -141,5 +150,6 @@ void  FixVector< T , N >::resize( size_t num , value_type const& value )
 		mNext += num;
 	}
 }
+#endif
 
-#endif // FixVector_h__
+#endif // FixedArray_H_C315539D_E69B_425C_BD11_1AE933764C8D

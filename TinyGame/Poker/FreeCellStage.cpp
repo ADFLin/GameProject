@@ -81,26 +81,21 @@ namespace Poker
 	};
 
 	bool FreeCellStage::onInit()
-	{ 
-		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
-		mCardSize = mCardDraw->getSize();
-
+	{
 		mSeed  = 0;
-
 		::Global::GUI().cleanupWidget();
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart Game" );
 		frame->addButton( UI_NEW_GAME     , "New Game" );
 		frame->addButton( UI_CHIOCE_GAME  , "Choice Game" );
 
-		restart();
-
+		//restart();
 		return true; 
 	}
 
 	void FreeCellStage::onEnd()
 	{
-		mCardDraw->release();
+
 	}
 
 	void FreeCellStage::onUpdate( long time )
@@ -111,6 +106,7 @@ namespace Poker
 	void FreeCellStage::onRender( float dFrame )
 	{
 		IGraphics2D& g = ::Global::GetIGraphics2D();
+		g.beginRender();
 
 		g.setBrush( Color3ub( 0 , 125 , 0 ) );
 		g.setPen( Color3ub( 0 , 125 , 0 ) );
@@ -149,6 +145,7 @@ namespace Poker
 				int idx = card.getIndex();
 				if ( mSprites[ idx ].bAnimating && card.getFace() != Card::eACE )
 				{
+					g.setBrush(Color3ub::White());
 					mCardDraw->draw( g , pos , Card( card.getSuit() , card.getFaceRank() - 1 ) );
 				}
 				drawSprite( g , card );
@@ -162,12 +159,17 @@ namespace Poker
 			drawSprite( g , cell );
 		}
 
-		for( int i = 0 ; i < mNumAnim ; ++i )
+		if (mNumAnim)
 		{
-			int idx = mIndexAnim[i];
-			mCardDraw->draw( g , Vec2i( mSprites[ idx ].pos ) , Card( idx ) );
+			g.setBrush(Color3ub::White());
+			for (int i = 0; i < mNumAnim; ++i)
+			{
+				int idx = mIndexAnim[i];
+				mCardDraw->draw(g, Vec2i(mSprites[idx].pos), Card(idx));
+			}
 		}
 
+		g.endRender();
 	}
 
 	void FreeCellStage::drawSelectRect( IGraphics2D& g )
@@ -222,6 +224,7 @@ namespace Poker
 		}
 		else
 		{
+			g.setBrush(Color3ub::White());
 			mCardDraw->draw( g , Vec2i( spr.pos ) , card );
 		}
 	}
@@ -573,7 +576,14 @@ namespace Poker
 		return true;
 	}
 
-	void FreeCellStage::onAnimFinish( int idx , int animType , int metaValue )
+	void FreeCellStage::setupCardDraw(ICardDraw* cardDraw)
+	{
+		mCardDraw = cardDraw;
+		mCardSize = cardDraw->getSize();
+		restart();
+	}
+
+	void FreeCellStage::onAnimFinish(int idx, int animType, int metaValue)
 	{
 		Sprite& spr = mSprites[ idx ];
 		spr.bAnimating = false;

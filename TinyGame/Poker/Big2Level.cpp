@@ -218,7 +218,7 @@ DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 			return false;
 
 		TrickInfo info;
-		if ( !checkShowCard( getSlotOwnCards( slotId ) , pIndex , numCard , info ) )
+		if ( !checkSlotShowCard(slotId , pIndex , numCard , info ) )
 		{
 			getTransfer().sendData( slotId , DATA_SDShowFail , NULL , 0 );
 			return false;

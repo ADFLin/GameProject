@@ -4,6 +4,7 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include "Renderer/MeshBuild.h"
 #include "Renderer/MeshUtility.h"
@@ -164,7 +165,7 @@ namespace Render
 
 		void onRender(float dFrame) override
 		{
-			Graphics2D& g = Global::GetGraphics2D();
+			RHIGraphics2D& g = Global::GetRHIGraphics2D();
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			Vec2i screenSize = ::Global::GetScreenSize();

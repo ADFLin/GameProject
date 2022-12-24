@@ -910,8 +910,6 @@ bool RHIGraphics2DTestStage::setupRenderSystem(ERenderSystem systemName)
 	using namespace Render;
 	VERIFY_RETURN_FALSE(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/Gird.png", TextureLoadOption().MipLevel(5) ));
 
-	::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
-
 	return true;
 }
 

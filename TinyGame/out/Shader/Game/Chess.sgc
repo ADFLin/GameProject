@@ -56,7 +56,7 @@ uniform float4 DiffuseColor;
 uniform float4 SpecularColor;
 
 PS_ENTRY_START(MainPS)
-	PS_INPUT(VSOutputParam OutputVS, 0)
+	PS_INPUT_STRUCT(VSOutputParam OutputVS, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {

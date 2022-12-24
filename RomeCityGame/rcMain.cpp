@@ -3,9 +3,10 @@
 #include "GameLoop.h"
 #include "WindowsPlatform.h"
 #include "SystemPlatform.h"
-#include "WindowsMessageHander.h"
+#include "WindowsMessageHandler.h"
 #include "ProfileSystem.h"
 #include "PlatformThread.h"
+#include "ProfileSampleVisitor.h"
 
 #include "rcBase.h"
 
@@ -23,6 +24,7 @@
 #include "rcGUI.h"
 #include "rcGUIData.h"
 #include "rcControl.h"
+
 
 
 
@@ -119,30 +121,33 @@ public:
 			node->getName() , time_since_reset );
 	}
 
-	void onNode     ( SampleNode* node , double parentTime )
+	void onNode(VisitContext const& context)
 	{
+		SampleNode* node = context.node;
 		msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame (%d calls)",
 			++mIdxChild , node->getName() ,
-			parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / parentTime ) * 100 : 0.f ,
+			context.parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTime) * 100 : 0.f ,
 			node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset() ,
 			node->getTotalCalls() );
 	}
 
-	bool onEnterChild( SampleNode* node )
+	bool onEnterChild(VisitContext const& context)
 	{ 
-
 		mIdxChild = 0;
-
 		msgShow.shiftPos( 20 , 0 );
-			
 		return true; 
 	}
-	void onReturnParent( SampleNode* node , int numChildren , double accTime )
+
+	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
 	{
+		SampleNode* node = context.node;
+		int    numChildren = childContext.indexNode;
+		double accTime = childContext.accTime;
+
 		if ( numChildren )
 		{
 			double time;
-			if ( node->getParent() != NULL )
+			if ( node->haveParent() )
 				time = node->getTotalTime();
 			else
 				time = ProfileSystem::Get().getDurationSinceReset();
@@ -299,10 +304,10 @@ public:  //GameCore
 
 
 public:// System Message
-	bool  handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
+	MsgReply handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
 	{
-		if ( !rcGUISystem::Get().procMouse( msg ) )
-			return true;
+		if (!rcGUISystem::Get().procMouse(msg))
+			return MsgReply::Unhandled();
 
 		if ( msg.onLeftDown() )
 		{
@@ -355,7 +360,7 @@ public:// System Message
 
 		}
 
-		return true; 
+		return MsgReply::Unhandled();
 	}
 
 	typedef std::list< Vec2i > PathType;

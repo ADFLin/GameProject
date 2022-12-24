@@ -238,7 +238,7 @@ namespace Render
 	{
 		mDesc.FillMode = D3D12Translate::To(initializer.fillMode);
 		mDesc.CullMode = D3D12Translate::To(initializer.cullMode);
-		mDesc.FrontCounterClockwise = FALSE; //initializer.frontFace;
+		mDesc.FrontCounterClockwise = initializer.frontFace != EFrontFace::Default;
 
 		mDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 		mDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;

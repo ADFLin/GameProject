@@ -261,9 +261,11 @@
     <ClCompile Include="Phy2D\RigidBody.cpp" />
     <ClCompile Include="Phy2D\Shape.cpp" />
     <ClCompile Include="Phy2D\World.cpp" />
+    <ClCompile Include="Platform\PlatformModule.cpp" />
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp" />
     <ClCompile Include="Platform\Windows\WindowsWindowBase.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
+    <ClCompile Include="PropertySet.cpp" />
     <ClCompile Include="RHI\GLExtensions.cpp" />
     <ClCompile Include="Serialize\DataStream.cpp" />
     <ClCompile Include="Serialize\FileStream.cpp" />
@@ -328,7 +330,7 @@
     <ClInclude Include="DataStructure\AVLTree.h" />
     <ClInclude Include="DataStructure\ClassTree.h" />
     <ClInclude Include="DataStructure\CycleQueue.h" />
-    <ClInclude Include="DataStructure\FixVector.h" />
+    <ClInclude Include="DataStructure\FixedArray.h" />
     <ClInclude Include="DataStructure\HashMap.h" />
     <ClInclude Include="DataStructure\Heap.h" />
     <ClInclude Include="DataStructure\IntrList.h" />
@@ -412,12 +414,14 @@
     <ClInclude Include="Phy2D\Shape.h" />
     <ClInclude Include="Phy2D\World.h" />
     <ClInclude Include="PlatformConfig.h" />
+    <ClInclude Include="Platform\PlatformModule.h" />
     <ClInclude Include="Platform\Windows\ComUtility.h" />
     <ClInclude Include="Platform\Windows\MediaFoundationHeader.h" />
     <ClInclude Include="Platform\Windows\WindowsProcess.h" />
     <ClInclude Include="Platform\Windows\WindowsWindowBase.h" />
     <ClInclude Include="ProfileSystem.h" />
     <ClInclude Include="ProfileSampleVisitor.h" />
+    <ClInclude Include="PropertySet.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Reflection.h" />
     <ClInclude Include="RefCount.h" />
@@ -446,7 +450,7 @@
     <ClInclude Include="Template\ConstString.h" />
     <ClInclude Include="Template\StringView.h" />
     <ClInclude Include="Template\TypeFormatTraits.h" />
-    <ClInclude Include="WindowsMessageHander.h" />
+    <ClInclude Include="WindowsMessageHandler.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="CycleValue.h" />
     <ClInclude Include="TGrid2D.h" />

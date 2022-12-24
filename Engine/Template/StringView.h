@@ -136,18 +136,14 @@ public:
 
 	StdString toStdString() const { return StdString(mData, mNum); }
 
-	template< size_t BufferSize >
+	template< size_t BufferSize = 256 >
 	struct TCStringConvertible
 	{
 		TCStringConvertible(CharT const* data, size_t num)
 		{
-			if( num == 0 )
+			if( num )
 			{
-				mPtr = STRING_LITERAL(CharT, "");
-			}
-			else
-			{
-				assert(data);
+				CHECK(data);
 				if (data[num] == 0)
 				{
 					mPtr = data;
@@ -159,6 +155,10 @@ public:
 					mBuffer[num] = 0;
 					mPtr = mBuffer;
 				}
+			}
+			else
+			{
+				mPtr = STRING_LITERAL(CharT, "");
 			}
 		}
 
@@ -173,37 +173,36 @@ public:
 
 	struct CStringMutable
 	{
-		CStringMutable(TStringView const& view)
-			:mView(view)
+		CStringMutable(CharT const* data, size_t num)
 		{
-			if (mView.mNum == 0)
+			if (num)
 			{
-				mPtr = STRING_LITERAL(CharT, "");
+				CHECK(data);
+				mPtr = data;
+				mEndPtr = const_cast<CharT*>(mPtr + num);
+				mOldChar = *mEndPtr;
+				*mEndPtr = 0;
 			}
 			else
 			{
-				assert(data);
-				mOldChar = mView[mView.length()];
-				mView[mView.length()] = 0;
-				mPtr = data;
+				mOldChar = 0;
+				mPtr = &mOldChar;
+				mEndPtr = &mOldChar;
 			}
 		}
 
 		~CStringMutable()
 		{
-			if (mView.mNum)
-			{
-				mView[mView.length()] = mOldChar;
-			}
+			*mEndPtr = mOldChar;
 		}
-
 		operator CharT const* () const { return mPtr; }
 
-		TStringView& mView;
+		CharT const* mPtr;
+		CharT* mEndPtr;
 		CharT  mOldChar;
 	};
 
-	CStringMutable toMutableCString() const { return CStringMutable(*this); }
+	CStringMutable toMutableCString() const { return CStringMutable(mData, mNum); }
 
 	template<class Q>
 	Q toValue() const

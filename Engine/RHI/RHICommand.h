@@ -85,6 +85,7 @@ namespace Render
 
 
 	RHI_API bool RHISystemInitialize(RHISystemName name , RHISystemInitParams const& initParam );
+	RHI_API void RHIPreSystemShutdown();
 	RHI_API void RHISystemShutdown();
 	RHI_API bool RHISystemIsSupported(RHISystemName name);
 	RHI_API bool RHIBeginRender();

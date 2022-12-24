@@ -8,6 +8,10 @@
 #define LAST_VERSION  MAKE_VERSION( 0xff , 0xff , 0xffff )
 #define MAX_PLAYER_NAME_LENGTH 32
 
+#ifndef TINY_WITH_EDITOR
+#define TINY_WITH_EDITOR 1
+#endif
+
 #ifdef TG_DLL
 #	ifdef TG_EXPORT
 #		define TINY_API DLLEXPORT

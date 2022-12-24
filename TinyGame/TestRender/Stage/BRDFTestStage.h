@@ -211,8 +211,9 @@ namespace Render
 			systemConfigs.screenWidth = 1024;
 			systemConfigs.screenHeight = 768;
 		}
-		virtual bool setupRenderSystem(ERenderSystem systemName) override;
-		virtual void preShutdownRenderSystem(bool bReInit = false) override;
+		bool setupRenderSystem(ERenderSystem systemName) override;
+		void preShutdownRenderSystem(bool bReInit = false) override;
+		bool isRenderSystemSupported(ERenderSystem systemName) override;
 
 		bool onInit() override;
 
@@ -287,6 +288,7 @@ namespace Render
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
 
 
 	protected:

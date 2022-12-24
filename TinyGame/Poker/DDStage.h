@@ -26,11 +26,17 @@ namespace DouDizhu
 		Trio,
 		Airplane,
 		Four,
+		Sequence,
 	};
 
 	struct TrickInfo
 	{
-
+		struct GroupInfo
+		{
+			EGroupTrick trick;
+			Card card;
+		};
+		std::vector< GroupInfo > groups;
 	};
 
 	class Scene;
@@ -71,10 +77,10 @@ namespace DouDizhu
 
 
 		RHITexture2DRef mUVTexture;
-
-		ERenderSystem getDefaultRenderSystem() override;
-		bool setupRenderSystem(ERenderSystem systemName) override;
-		void preShutdownRenderSystem(bool bReInit = false) override;
+		RHITexture2DRef mTestTexture;
+		ERenderSystem getDefaultRenderSystem();
+		bool setupRenderSystem(ERenderSystem systemName);
+		void preShutdownRenderSystem(bool bReInit = false);
 
 		ICardDraw* cardDraw = nullptr;
 

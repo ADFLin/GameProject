@@ -2,6 +2,7 @@
 #include "PokerGame.h"
 
 #include "StageBase.h"
+#include "DrawEngine.h"
 #include "GameServer.h"
 #include "GameSettingHelper.h"
 #include "Widget/GameRoomUI.h"
@@ -27,39 +28,46 @@ namespace Poker
 
 	GameModule::~GameModule()
 	{
-
+		releaseResource();
 	}
 
-	StageBase* GameModule::createStage( unsigned id )
+	void GameModule::enter()
 	{
+		::Global::GetDrawEngine().setupSystem(this);
+		initializeResource();
+	}
+
+	StageBase* GameModule::createStage(unsigned id)
+	{
+		StageBase* stage = nullptr;
 		switch( mRule )
 		{
 		case RULE_FreeCell:
 			if ( id == STAGE_SINGLE_GAME )
 			{
-				return new FreeCellStage;
+				stage = new FreeCellStage;
 			}
 			break;
 		case RULE_Big2:
 			if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 			{
-				return new Big2::LevelStage;
+				stage = new Big2::LevelStage;
 			}
 			break;
 		case RULE_Holdem:
 			if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 			{
-				return new Holdem::LevelStage;
+				stage = new Holdem::LevelStage;
 			}
 			break;
 		case RULE_DouDizhu:
 			if (id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME)
 			{
-				return new DouDizhu::LevelStage;
+				stage = new DouDizhu::LevelStage;
 			}
 			break;
 		}
-		return NULL;
+		return stage;
 	}
 
 	bool GameModule::queryAttribute( GameAttribute& value )
@@ -71,7 +79,10 @@ namespace Poker
 			return true;
 		case ATTR_SINGLE_SUPPORT:
 			value.iVal = true;
-			break;
+			return true;
+		case ATTR_GRAPRHICS_SWAP_SUPPORT:
+			value.iVal = true;
+			return true;
 		}
 		return false;
 	}
@@ -79,6 +90,15 @@ namespace Poker
 	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
 	{
 		changeDefaultStage(manger, modeType);
+	}
+
+	void GameModule::notifyStageInitialized(StageBase* stage)
+	{
+		mSetup = dynamic_cast<ICardResourceSetup*>(stage);
+		if (mSetup)
+		{
+			mSetup->setupCardDraw(mCardDraw);
+		}
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

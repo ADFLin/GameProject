@@ -1,6 +1,7 @@
 #pragma once
 #ifndef IsBaseOf_H_90713FBB_7886_4358_881A_FD56E99B92CF
 #define IsBaseOf_H_90713FBB_7886_4358_881A_FD56E99B92CF
+#include "MetaBase.h"
 
 namespace Private
 {

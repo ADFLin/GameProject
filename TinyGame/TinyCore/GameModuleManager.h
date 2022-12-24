@@ -3,9 +3,13 @@
 #define GameModuleManager_H_CE50FE41_ACA5_4EEA_B3A9_C52AF32EF34E
 
 #include "GameModule.h"
+#include "Platform/PlatformModule.h"
+
 #include <map>
 
 typedef std::vector< IGameModule* > GameModuleVec;
+
+using ModuleHandle = FPlatformModule::Handle;
 
 class GameModuleManager
 {
@@ -27,10 +31,7 @@ public:
 	TINY_API bool   registerModule(
 		IModuleInterface* module,
 		char const*       moduleName,
-#if SYS_PLATFORM_WIN
-		HMODULE hModule
-#endif
-	);
+		ModuleHandle hModule );
 
 private:
 
@@ -57,9 +58,7 @@ private:
 	struct ModuleData
 	{
 		IModuleInterface* instance;
-#if SYS_PLATFORM_WIN
-		HMODULE      hModule;
-#endif
+		ModuleHandle      hModule;
 	};
 	typedef std::map< HashString , IModuleInterface* > ModuleMap;
 

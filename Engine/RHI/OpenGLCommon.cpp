@@ -1159,6 +1159,7 @@ namespace Render
 		mStateValue.bEnableScissor = initializer.bEnableScissor;
 		mStateValue.bEnableMultisample = initializer.bEnableMultisample;
 		mStateValue.cullFace = OpenGLTranslate::To(initializer.cullMode);
+		mStateValue.frontFace = initializer.frontFace == EFrontFace::Default ? GL_CW : GL_CCW;
 		mStateValue.fillMode = OpenGLTranslate::To(initializer.fillMode);
 	}
 

@@ -20,6 +20,11 @@ struct FMemory
 	{
 		return ::memset(ptr, 0, size);
 	}
+
+	static void* Realloc(void* ptr, size_t size)
+	{
+		return ::realloc(ptr, size);
+	}
 };
 
 #endif // Memory_H_8EDA60D7_C2B5_4E9C_B36D_8554BAB1DF86

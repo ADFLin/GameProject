@@ -133,6 +133,65 @@ namespace Render
 		return true;
 	}
 
+	template< class TFunc >
+	bool BuildMultiMeshFromFile(std::vector<Mesh>& meshes, char const* meshPath, TFunc&& FuncMeshCreate)
+	{
+		DataCacheKey key;
+		key.typeName = "MESH";
+		key.version = "155CABB4-4F63-4B6C-9249-5BB7861F67E6";
+		key.keySuffix.addFileAttribute(meshPath);
+
+		auto MeshLoad = [&meshes](IStreamSerializer& serializer) -> bool
+		{
+			for (auto& mesh : meshes)
+			{
+				if (!mesh.load(serializer))
+					return false;
+			}
+			return true;
+		};
+
+		auto MeshSave = [&meshes](IStreamSerializer& serializer) -> bool
+		{
+			for (auto& mesh : meshes)
+			{
+				if (!mesh.save(serializer))
+					return false;
+			}
+			return true;
+		};
+
+		if (!::Global::DataCache().loadDelegate(key, MeshLoad))
+		{
+			if (!FuncMeshCreate(meshes, meshPath))
+			{
+				return false;
+			}
+
+			if (GRHISystem->getName() == RHISystemName::D3D11)
+				return true;
+
+
+			if (!::Global::DataCache().saveDelegate(key, MeshSave))
+			{
+
+			}
+#if 0
+			else
+			{
+				Mesh temp;
+				::Global::DataCache().loadDelegate(key, [&temp](IStreamSerializer& serializer) -> bool
+				{
+					return temp.load(serializer);
+				});
+
+			}
+#endif
+		}
+
+		return true;
+	}
+
 	class InstancedMesh
 	{
 	public:
@@ -424,6 +483,7 @@ namespace Render
 
 		void initializeRenderState();
 		void bitBltToBackBuffer(RHICommandList& commandList, RHITexture2D& texture);
+		void registerFrameREnderTargets(FrameRenderTargets const& frameRenderTargets);
 
 		RHIFrameBufferRef mBitbltFrameBuffer;
 

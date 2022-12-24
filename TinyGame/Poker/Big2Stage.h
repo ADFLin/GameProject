@@ -4,6 +4,7 @@
 #include "GameStage.h"
 
 #include "Big2Level.h"
+#include "CardDraw.h"
 
 class ComWorker;
 class LocalPlayerManager;
@@ -24,6 +25,7 @@ namespace Big2 {
 
 	class LevelStage : public GameStageBase
 		             , public ServerLevel::Listener
+		             , public ICardResourceSetup
 	{
 		typedef GameStageBase BaseClass;
 	public:
@@ -65,6 +67,9 @@ namespace Big2 {
 		ServerLevel*   mServerLevel;
 		ClientLevel*   mClientLevel;
 		Scene*         mScene;
+
+
+		void setupCardDraw(ICardDraw* cardDraw) override;
 
 	};
 

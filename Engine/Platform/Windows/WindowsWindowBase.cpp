@@ -65,3 +65,13 @@ void WindowsWindowBase::setPosition(TVector2<int> const& InPos)
 	BOOL result = SetWindowPos(mhWnd, 0, InPos.x, InPos.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
+bool WindowsWindowBase::isShow() const
+{
+	return ::IsWindowVisible(mhWnd);
+}
+
+void WindowsWindowBase::show(bool bShow)
+{
+	::ShowWindow(mhWnd, bShow ? SW_SHOW : SW_HIDE);
+}
+

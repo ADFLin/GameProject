@@ -6,11 +6,13 @@
 
 #include <stdio.h>
 #include <fstream>
+#include "Core/ScopeGuard.h"
 
 #if SYS_PLATFORM_WIN
 #include <tchar.h>
 #include <Strsafe.h>
 #include "WindowsHeader.h"
+
 
 #undef FindFirstFile
 #undef WIN32_FIND_DATA
@@ -72,6 +74,15 @@ struct FWinApi
 		return ::GetFileAttributesExW(lpFileName, fInfoLevelId, lpFileInformation);
 	}
 
+	static DWORD GetFileAttributes(char const* lpFileName)
+	{
+		return ::GetFileAttributesA(lpFileName);
+	}
+	static DWORD GetFileAttributes(wchar_t const* lpFileName)
+	{
+		return ::GetFileAttributesW(lpFileName);
+	}
+
 	static BOOL DeleteFile(char const* lpFileName)
 	{
 		return ::DeleteFileA(lpFileName);
@@ -115,6 +126,7 @@ struct FWindowsFileSystem
 	template< class CharT >
 	static bool IsExist(CharT const* path)
 	{
+#if 0
 		TWindowsType< CharT >::WIN32_FIND_DATA data;
 		HANDLE hFind = FWinApi::FindFirstFile(path, &data);
 		if (hFind == INVALID_HANDLE_VALUE)
@@ -122,6 +134,10 @@ struct FWindowsFileSystem
 
 		::FindClose(hFind);
 		return true;
+#else
+		return FWinApi::GetFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
+#endif
+
 	}
 
 	template< class CharT >
@@ -261,27 +277,25 @@ bool FFileSystem::CreateDirectorySequence(char const* pathDir)
 bool FFileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )
 {
 #if SYS_PLATFORM_WIN
-	char szDir[MAX_PATH];
 
-	DWORD dwError=0;
-
+	InlineString< MAX_PATH > szDir;
 	// Check that the input path plus 3 is not longer than MAX_PATH.
 	// Three characters are for the "\*" plus NULL appended below.
-	size_t length_of_arg;
-	StringCchLengthA( dir , MAX_PATH, &length_of_arg);
+	size_t length_of_arg = FCString::Strlen(dir);
 	if (length_of_arg > (MAX_PATH - 3))
 	{
 		return false;
 	}
 	// Prepare string for use with FindFile functions.  First, copy the
 	// string to a buffer, then append '\*' to the directory name.
-	StringCchCopyA(szDir, MAX_PATH, dir );
-	if ( length_of_arg == 0 )
-		StringCchCatA(szDir, MAX_PATH, "*" );
+	szDir = dir;
+	if (length_of_arg == 0)
+		szDir += "*";
 	else
-		StringCchCatA(szDir, MAX_PATH, "\\*" );
+		szDir += "\\*";
+
 	if ( subName )
-		StringCchCatA( szDir , MAX_PATH , subName );
+		szDir += subName;
 
 	// Find the first file in the directory.
 	iter.mhFind = FindFirstFileA( szDir, &iter.mFindData );
@@ -510,7 +524,7 @@ TStringView<CharT> TFileUtility<CharT>::GetBaseFileName(CharT const* filePath)
 }
 
 template < class CharT >
-bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterEnd /*= false*/, bool bAppendToBuffer /*= false*/)
+bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterLoad /*= false*/, bool bAppendToBuffer /*= false*/)
 {
 #if SYS_PLATFORM_WIN
 	HANDLE hFile = FWinApi::CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -519,24 +533,31 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& 
 
 	ON_SCOPE_EXIT
 	{
-		CloseHandle(hFile);
+		::CloseHandle(hFile);
 	};
 
 	LARGE_INTEGER iSize;
-	GetFileSizeEx(hFile, &iSize);
+	::GetFileSizeEx(hFile, &iSize);
 	int64 size = iSize.QuadPart;
+	uint8* pRead;
+	int64 sizeAdded = size;
+	if (bAppendZeroAfterLoad)
+		sizeAdded += 1;
+
 	if (bAppendToBuffer)
 	{
 		int64 oldSize = outBuffer.size();
-		outBuffer.resize(bAppendZeroAfterEnd ? (oldSize + size + 1) : oldSize + size);
-		ReadFile(hFile, outBuffer.data() + oldSize, size, NULL, NULL);
+		outBuffer.resize(sizeAdded + oldSize);
+		pRead = outBuffer.data() + oldSize;
 	}
 	else
 	{
-		outBuffer.resize(bAppendZeroAfterEnd ? (size + 1) : size);
-		ReadFile(hFile, outBuffer.data(), size, NULL, NULL);
+		outBuffer.resize(sizeAdded);
+		pRead = outBuffer.data();
 	}
-	if (bAppendZeroAfterEnd)
+	::ReadFile(hFile, pRead, size, NULL, NULL);
+	
+	if (bAppendZeroAfterLoad)
 		outBuffer[size] = 0;
 
 	return true;
@@ -556,17 +577,17 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& 
 	if (bAppendToBuffer)
 	{
 		int64 oldSize = outBuffer.size();
-		outBuffer.resize(bAppendZeroAfterEnd ? (oldSize + size + 1) : oldSize + size);
+		outBuffer.resize(bAppendZeroAfterLoad ? (oldSize + size + 1) : oldSize + size);
 		fs.read((char*)&outBuffer[oldSize], size);
 	}
 	else
 	{
-		outBuffer.resize(bAppendZeroAfterEnd ? (size + 1) : size);
+		outBuffer.resize(bAppendZeroAfterLoad ? (size + 1) : size);
 		fs.read((char*)&outBuffer[0], size);
 	}
 
 
-	if (bAppendZeroAfterEnd)
+	if (bAppendZeroAfterLoad)
 		outBuffer[size] = 0;
 
 	fs.close();

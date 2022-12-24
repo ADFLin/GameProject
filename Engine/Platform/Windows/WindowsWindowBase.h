@@ -22,6 +22,9 @@ public:
 	TVector2<int> getPosition();
 	void          setPosition(TVector2<int> const& InPos);
 
+	bool      isShow() const;
+	void      show(bool bShow);
+
 	POINT     mPositionBeforeFullscreen = { 0,0 };
 	int       mWidth;
 	int       mHeight;

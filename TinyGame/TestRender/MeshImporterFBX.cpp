@@ -48,6 +48,8 @@ namespace Render
 
 		if (pRootNode)
 		{
+			MeshData meshData;
+			int meshCount = 0;
 			for (int i = 0; i < pRootNode->GetChildCount(); i++)
 			{
 				FbxNode* pNode = pRootNode->GetChild(i);
@@ -58,12 +60,114 @@ namespace Render
 					switch (attributeType)
 					{
 					case FbxNodeAttribute::eMesh:
-						return parseMesh((FbxMesh*)pNode->GetNodeAttribute(), outMesh);
+						{
+							MeshData subMeshData;
+							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
+							{
+								if (meshCount == 0)
+								{
+									meshData = std::move(subMeshData);
+
+								}
+								else
+								{
+									if (meshData.desc == subMeshData.desc)
+									{
+										meshData.append(subMeshData);
+									}
+									else
+									{
+										int i = 1;
+									}
+								}
+								++meshCount;
+							}
+						}
+						//return parseMesh((FbxMesh*)pNode->GetNodeAttribute(), outMesh);
 						break;
 					default:
 						break;
 					}
 				}
+			}
+
+			if (meshCount > 0 && meshData.numVertices > 0)
+			{
+				return createMesh(meshData, outMesh);
+			}
+		}
+		return false;
+	}
+
+	bool MeshImporterFBX::importMultiFromFile(char const* filePath, std::vector<Mesh>& outMeshes, MeshImportSettings* settings)
+	{
+		FbxImporter* mImporter = FbxImporter::Create(mManager, "");
+		ON_SCOPE_EXIT
+		{
+			mImporter->Destroy();
+		};
+
+		bool lImportStatus = mImporter->Initialize(filePath, -1, mManager->GetIOSettings());
+
+		mScene->Clear();
+		bool lStatus = mImporter->Import(mScene);
+		FbxNode* pRootNode = mScene->GetRootNode();
+
+		if (pRootNode)
+		{
+			std::vector< MeshData > meshDataList;
+			int meshCount = 0;
+			for (int i = 0; i < pRootNode->GetChildCount(); i++)
+			{
+				FbxNode* pNode = pRootNode->GetChild(i);
+
+				if (pNode->GetNodeAttribute())
+				{
+					FbxNodeAttribute::EType attributeType = pNode->GetNodeAttribute()->GetAttributeType();
+					switch (attributeType)
+					{
+					case FbxNodeAttribute::eMesh:
+						{
+							MeshData subMeshData;
+							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
+							{
+								int index = 0;
+								for(; index < meshDataList.size(); ++index)
+								{
+									if (meshDataList[index].desc == subMeshData.desc)
+									{
+										meshDataList[index].append(subMeshData);
+										break;
+									}
+								}
+								if (index == meshDataList.size())
+								{
+									meshDataList.push_back(std::move(subMeshData));
+								}
+							}
+						}
+						//return parseMesh((FbxMesh*)pNode->GetNodeAttribute(), outMesh);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+
+			if (meshDataList.size())
+			{
+				for (auto& meshData : meshDataList)
+				{
+					if (meshData.numVertices > 0)
+					{
+						Mesh mesh;
+						if (!createMesh(meshData, mesh))
+							return false;
+						
+						outMeshes.push_back(std::move(mesh));
+					}
+				}
+				return true;
 			}
 		}
 		return false;
@@ -105,6 +209,16 @@ namespace Render
 	}
 
 	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, Mesh& outMesh)
+	{
+		MeshData meshData;
+		if (!parseMesh(pFBXMesh, meshData))
+			return false;
+
+		return createMesh(meshData, outMesh);
+
+	}
+
+	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, MeshData& outData)
 	{
 		int32 LayerSmoothingCount = pFBXMesh->GetLayerCount(FbxLayerElement::eSmoothing);
 		for (int32 i = 0; i < LayerSmoothingCount; i++)
@@ -168,18 +282,16 @@ namespace Render
 
 		FBXImportSetting importSetting;
 		importSetting.positionScale = 1;
-		vertexFormat.getMeshInputLayout(outMesh.mInputLayoutDesc, importSetting.bAddTangleAndNormal);
-		int vertexSize = outMesh.mInputLayoutDesc.getVertexSize(0);
-		std::vector< uint8 > vertexData;
+		vertexFormat.getMeshInputLayout(outData.desc, importSetting.bAddTangleAndNormal);
+		int vertexSize = outData.desc.getVertexSize(0);
 		int numVertices = pFBXMesh->GetPolygonVertexCount();
-		vertexData.resize(numVertices * vertexSize);
-
-		auto GetBufferData = [&outMesh, &vertexData](EVertex::Attribute attribute) -> uint8*
+		outData.vertices.resize(numVertices * vertexSize);
+		auto GetBufferData = [&outData](EVertex::Attribute attribute) -> uint8*
 		{
-			int offset = outMesh.mInputLayoutDesc.getAttributeOffset(attribute);
+			int offset = outData.desc.getAttributeOffset(attribute);
 			if (offset < 0)
 				return nullptr;
-			return &vertexData[offset];
+			return &outData.vertices[offset];
 		};
 
 
@@ -222,6 +334,10 @@ namespace Render
 						break;
 					}
 				default:
+					{
+
+						int aa = 1;
+					}
 					// any other mapping modes don't make sense
 					break;
 				}
@@ -277,9 +393,8 @@ namespace Render
 
 		} // for polygonCount
 
-		std::vector< uint32 > indexData;
-		indexData.resize(numTriangles * 3);
-		uint32* pIndex = &indexData[0];
+		outData.indices.resize(numTriangles * 3);
+		uint32* pIndex = &outData.indices[0];
 		vertexId = 0;
 
 		for (int idxPolygon = 0; idxPolygon < polygonCount; idxPolygon++)
@@ -302,6 +417,13 @@ namespace Render
 					{
 						materialIndex = layerElementMaterial->GetIndexArray().GetAt(idxPolygon);
 					}
+					break;
+				default:
+					{
+
+						int aa = 1;
+					}
+					// any other mapping modes don't make sense
 					break;
 				}
 			}
@@ -332,18 +454,25 @@ namespace Render
 			{
 				if (pNormal)
 				{
-					MeshUtility::FillTriangleListTangent(outMesh.mInputLayoutDesc, vertexData.data(), numVertices, indexData.data(), indexData.size());
+					MeshUtility::FillTriangleListTangent(outData.desc, outData.vertices.data(), numVertices, outData.indices.data(), outData.indices.size());
 				}
 				else
 				{
-					MeshUtility::FillTriangleListNormalAndTangent(outMesh.mInputLayoutDesc, vertexData.data(), numVertices, indexData.data(), indexData.size());
+					MeshUtility::FillTriangleListNormalAndTangent(outData.desc, outData.vertices.data(), numVertices, outData.indices.data(), outData.indices.size());
 				}
 			}
 		}
 
-		outMesh.mType = EPrimitive::TriangleList;
-		bool result = outMesh.createRHIResource(vertexData.data(), numVertices, indexData.data(), indexData.size(), true);
+		outData.numVertices = numVertices;
+		return true;
+	}
 
+	bool MeshImporterFBX::createMesh(MeshData& meshData, Mesh &outMesh)
+	{
+		outMesh.mType = EPrimitive::TriangleList;
+		outMesh.mInputLayoutDesc = std::move(meshData.desc);
+		outMesh.mSections = std::move(meshData.sections);
+		bool result = outMesh.createRHIResource(meshData.vertices.data(), meshData.numVertices, meshData.indices.data(), meshData.indices.size(), true);
 		return result;
 	}
 

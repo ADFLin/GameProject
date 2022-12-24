@@ -48,6 +48,9 @@
 #include "Hardware/GPUDeviceQuery.h"
 #include "StringParse.h"
 
+#if TINY_WITH_EDITOR
+#include "Editor.h"
+#endif
 
 
 #define GAME_SETTING_PATH "Game.ini"
@@ -58,9 +61,10 @@ int  GDevMsgLevel = -1;
 namespace
 {
 	TConsoleVariable<bool> CVarProfileGPU{ true , "ProfileGPU", CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarProfileCPU{ true , "ProfileCPU", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarDrawGPUUsage{ false, "r.GPUUsage", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
-	TConsoleVariable<bool> CVarDrawProifle{ false, "DrawProfile" , CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
 
 	AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
 }
@@ -77,17 +81,7 @@ void ToggleGraphics()
 	GameAttribute attribute(ATTR_GRAPRHICS_SWAP_SUPPORT);
 	if (game && game->queryAttribute(attribute) && attribute.iVal != 0)
 	{
-		DrawEngine& de = ::Global::GetDrawEngine();
-		if (de.isRHIEnabled())
-		{
-			sSavedRenderSystem = de.getSystemName();
-			de.shutdownSystem();
-		}
-		else
-		{
-			de.startupSystem(sSavedRenderSystem);
-			de.bWasUsedPlatformGrapthics = true;
-		}
+		::Global::GetDrawEngine().toggleGraphics();
 	}
 }
 AutoConsoleCommand CmdToggleRHISystem("g.ToggleRHI", ToggleGraphics);
@@ -105,29 +99,58 @@ void Foo2(Vector2 const& a, Vector2 const& b)
 AutoConsoleCommand CmdFoo("Foo", Foo);
 AutoConsoleCommand CmdFoo2("Foo2", Foo2);
 
-namespace EOutputColor
+
+struct EOutputColorGeneric
 {
 	enum Type
 	{
 		Black = 0,
-		Red     = PLATFORM_WIN_VALUE(FOREGROUND_RED, 0x004),
-		Blue    = PLATFORM_WIN_VALUE(FOREGROUND_BLUE, 0x001),
-		Green   = PLATFORM_WIN_VALUE(FOREGROUND_GREEN, 0x002),
-		Cyan    = Green | Blue,
-		
-		Magenta = Red | Blue,
-		Yellow  = Red | Green,
-		Gray    = Red | Green | Blue,
-		LightGray    = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8),
-		LightBlue    = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Blue,
-		LightGreen   = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Green,
-		LightCyan    = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Green | Blue,
-		LightRed     = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red,
-		LightMagenta = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red | Blue,
-		LightYellow  = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red | Green,
-		White        = PLATFORM_WIN_VALUE(FOREGROUND_INTENSITY,0x8) | Red | Green | Blue,
+		Red,
+		Blue,
+		Green,
+		Cyan,
+		Magenta,
+		Yellow,
+		DarkGray,
+		DarkRed,
+		DarkBlue,
+		DarkGreen,
+		DarkCyan,
+		DarkMagenta,
+		DarkYellow,
+		Gray,
+		White,
 	};
-}
+};
+
+#if SYS_PLATFORM_WIN
+struct EOutputColorWindows
+{
+	enum Type
+	{
+		Black = 0,
+		DarkRed   = FOREGROUND_RED,
+		DarkBlue  = FOREGROUND_BLUE,
+		DarkGreen = FOREGROUND_GREEN,
+		DarkCyan  = DarkGreen | DarkBlue,
+		
+		DarkMagenta = DarkRed | DarkBlue,
+		DarkYellow  = DarkRed | DarkGreen,
+		Gray        = DarkRed | DarkGreen | DarkBlue,
+		DarkGray    = FOREGROUND_INTENSITY,
+		Red         = FOREGROUND_INTENSITY | DarkRed,
+		Green       = FOREGROUND_INTENSITY | DarkGreen,
+		Blue        = FOREGROUND_INTENSITY | DarkBlue,
+		Cyan        = FOREGROUND_INTENSITY | DarkGreen | DarkBlue,
+		Magenta     = FOREGROUND_INTENSITY | DarkRed | DarkBlue,
+		Yellow      = FOREGROUND_INTENSITY | DarkRed | DarkGreen,
+		White       = FOREGROUND_INTENSITY | DarkRed | DarkGreen | DarkBlue,
+	};
+};
+using EOutputColor = EOutputColorWindows;
+#else
+using EOutputColor = EOutputColorGeneric;
+#endif
 
 class FConsoleConfigUtilities
 {
@@ -151,7 +174,7 @@ public:
 	static int Import(PropertySet& configs, char const* sectionGroup)
 	{
 		int result = 0;
-		configs.visitGroup(sectionGroup , 
+		configs.visitSection(sectionGroup , 
 			[&configs, &result](char const* key, KeyValue const& value)
 			{
 			   auto com = ConsoleSystem::Get().findCommand(key);
@@ -171,6 +194,7 @@ public:
 		return result;
 	}
 };
+
 class GameLogPrinter : public LogOutput
 	                 , public IDebugInterface
 {
@@ -184,7 +208,7 @@ public:
 	{
 		std::cout.sync_with_stdio(true);
 	}
-	static int const MaxLineNum = 20;
+
 
 	char const* GetChannelPrefixStr(LogChannel channel)
 	{
@@ -204,9 +228,12 @@ public:
 #if SYS_PLATFORM_WIN
 		auto hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 		SetConsoleTextAttribute(hConsole, prefixStrColor);
-		std::cout << prefixStr;
+		WriteConsoleA(hConsole, prefixStr, FCString::Strlen(prefixStr), NULL , NULL);
+		//std::cout << prefixStr;
 		SetConsoleTextAttribute(hConsole, textColor);
-		std::cout << text << std::endl;
+		WriteConsoleA(hConsole, text, FCString::Strlen(text), NULL, NULL);
+		WriteConsoleA(hConsole, "\n", FCString::Strlen("\n"), NULL, NULL);
+		//std::cout << text << std::endl;
 #else
 		std::cout << prefixStr << text << std::endl;
 #endif
@@ -219,10 +246,10 @@ public:
 
 		switch (channel)
 		{
-		case LOG_MSG:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::White, EOutputColor::White); break;
-		case LOG_DEV:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Blue, EOutputColor::LightBlue); break;
-		case LOG_WARNING: OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Yellow , EOutputColor::LightYellow); break;
-		case LOG_ERROR:   OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Red, EOutputColor::LightRed); break;
+		case LOG_MSG:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::White, EOutputColor::Gray); break;
+		case LOG_DEV:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Blue, EOutputColor::Blue); break;
+		case LOG_WARNING: OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Yellow , EOutputColor::Yellow); break;
+		case LOG_ERROR:   OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Red, EOutputColor::Red); break;
 		}
 
 #if SYS_PLATFORM_WIN
@@ -237,7 +264,7 @@ public:
 		if ( mLogTextList.size() > MaxLineNum )
 			mLogTextList.pop_front();
 
-		mLogTextList.emplace_back( str );
+		mLogTextList.emplace( str );
 		if ( mLogTextList.size() == 1 )
 			mTime = 0;
 	}
@@ -270,11 +297,13 @@ public:
 		Vec2i pos = renderPos;
 		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor(Color3ub(255 , 255 , 0));
-		Mutex::Locker locker( mMutex );
-		for( auto& text : mLogTextList)
 		{
-			g.drawText( pos , text.c_str() );
-			pos.y += 14;
+			Mutex::Locker locker(mMutex);
+			for (auto& text : mLogTextList)
+			{
+				g.drawText(pos, text.c_str());
+				pos.y += 14;
+			}
 		}
 	}
 
@@ -288,8 +317,9 @@ public:
 	//bool     beInited;
 	Mutex    mMutex;
 	unsigned mTime;
-	using StringList = std::list< std::string >;
-	StringList mLogTextList;
+
+	static int const MaxLineNum = 20;
+	TCycleBuffer< std::string , MaxLineNum > mLogTextList;
 };
 
 
@@ -312,6 +342,7 @@ public:
 
 static GameLogPrinter gLogPrinter;
 static GameConfigAsset gGameConfigAsset;
+static TinyGameApp* GApp;
 
 TinyGameApp::TinyGameApp()
 	:mRenderEffect( nullptr )
@@ -323,6 +354,7 @@ TinyGameApp::TinyGameApp()
 
 	GGameNetInterfaceImpl = this;
 	GDebugInterfaceImpl = &gLogPrinter;
+	GApp = this;
 }
 
 TinyGameApp::~TinyGameApp()
@@ -335,16 +367,30 @@ TinyGameApp::~TinyGameApp()
 #include <fcntl.h>
 #include <corecrt_io.h>
 #include <iostream>
+BOOL WINAPI HandleConsoleEvent(DWORD dwCtrlType)
+{
+	switch (dwCtrlType)
+	{
+	case CTRL_CLOSE_EVENT:
+		GApp->setLoopOver(true);
+		break;
+	}
+	return FALSE;
+}
 #endif
-void RedirectStdIO()
+void CreateConsole()
 {
 #if SYS_PLATFORM_WIN
 	if (AllocConsole()) 
 	{
 		FILE* pCout;
 		freopen_s(&pCout, "CONOUT$", "w", stdout);
+		freopen_s(&pCout, "CONOUT$", "w", stderr);
+
 		SetConsoleTitle(TEXT("Debug Console"));
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), EOutputColor::White);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), EOutputColor::Green);
+		SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), EOutputColor::Red);
+		SetConsoleCtrlHandler(HandleConsoleEvent, TRUE);
 	}
 #endif
 }
@@ -380,16 +426,15 @@ char const* GetBuildVersion()
 	return buildVersionCached;
 }
 
+
 bool TinyGameApp::initializeGame()
 {
+
 	TIME_SCOPE("Game Initialize");
 
-	RedirectStdIO();
+	CreateConsole();
 
-	gLogPrinter.addChannel(LOG_DEV);
-	gLogPrinter.addChannel(LOG_MSG);
-	gLogPrinter.addChannel(LOG_WARNING);
-	gLogPrinter.addChannel(LOG_ERROR);
+	gLogPrinter.addDefaultChannels();
 
 #if SYS_PLATFORM_WIN
 	{
@@ -407,6 +452,13 @@ bool TinyGameApp::initializeGame()
 		TIME_SCOPE("Engine Initialize");
 		EngineInitialize();
 	}
+
+#if TINY_WITH_EDITOR
+	{
+		TIME_SCOPE("Editor Initialize");
+		mEditor = IEditor::Create();
+	}
+#endif
 
 	LogMsg("OS Loc = %s", SystemPlatform::GetUserLocaleName().c_str());
 	{
@@ -468,18 +520,26 @@ bool TinyGameApp::initializeGame()
 		TIME_SCOPE("Draw Initialize");
 		::Global::GetDrawEngine().initialize(*this);
 	}
+
 	{
 		TIME_SCOPE("GUI Initialize");
 		::Global::GUI().initialize(*this);
 	}
+
+#if TINY_WITH_EDITOR
+	{
+		TIME_SCOPE("Editor InitializeRender");
+		Global::ModuleManager().loadModule("D3D11RHI.dll");
+		mEditor->initializeRender();
+		::Global::GetDrawEngine().lockSystem();
+	}
+#endif
+
 	{
 		TIME_SCOPE("Common Widget");
 		mConsoleWidget = new ConsoleFrame(UI_ANY, Vec2i(10, 10), Vec2i(600, 500), nullptr);
 		mConsoleWidget->setGlobal();
-		mConsoleWidget->addChannel(LOG_ERROR);
-		mConsoleWidget->addChannel(LOG_DEV);
-		mConsoleWidget->addChannel(LOG_MSG);
-		mConsoleWidget->addChannel(LOG_WARNING);
+		mConsoleWidget->addDefaultChannels();
 		::Global::GUI().addWidget(mConsoleWidget);
 	}
 
@@ -514,6 +574,7 @@ bool TinyGameApp::initializeGame()
 		mFPSCalc.init(getMillionSecond());
 	}
 
+	::ProfileSystem::Get().resetSample();
 	return true;
 }
 
@@ -524,6 +585,14 @@ void TinyGameApp::finalizeGame()
 
 void TinyGameApp::cleanup()
 {
+#if TINY_WITH_EDITOR
+	if (mEditor)
+	{
+		mEditor->release();
+		mEditor = nullptr;
+	}
+#endif
+
 	ExecutionRegisterCollection::Get().cleanup();
 
 	FConsoleConfigUtilities::Export(Global::GameConfig(), CONFIG_SECTION);
@@ -558,7 +627,12 @@ void TinyGameApp::cleanup()
 
 long TinyGameApp::handleGameUpdate( long shouldTime )
 {
+	PROFILE_FUNCTION()
 	ProfileSystem::Get().incrementFrameCount();
+
+#if TINY_WITH_EDITOR
+	mEditor->update();
+#endif
 
 	int  numFrame = shouldTime / getUpdateTime();
 	long updateTime = numFrame * getUpdateTime();
@@ -727,24 +801,25 @@ void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
 	
 }
 
-MsgReply TinyGameApp::handleMouseEvent( MouseMsg const& msg )
+
+MsgReply TinyGameApp::handleMouseEvent(MouseMsg const& msg)
 {
 	MsgReply result;
 
 	IGameModule* game = Global::ModuleManager().getRunningGame();
-	if ( game )
+	if (game)
 	{
 		InputControl& inputControl = game->getInputControl();
 
-		if ( !inputControl.shouldLockMouse() )
+		if (!inputControl.shouldLockMouse())
 		{
-			result = ::Global::GUI().procMouseMsg( msg );
+			result = ::Global::GUI().procMouseMsg(msg);
 		}
 
 		if (result.isHandled())
 			return result;
 
-		inputControl.recvMouseMsg( msg );
+		inputControl.recvMouseMsg(msg);
 	}
 	else
 	{
@@ -753,9 +828,9 @@ MsgReply TinyGameApp::handleMouseEvent( MouseMsg const& msg )
 
 	if (result.isHandled())
 		return result;
-	
-	result = getCurStage()->onMouse( msg );
-	InputManager::Get().procMouseEvent( msg );
+
+	result = getCurStage()->onMouse(msg);
+	InputManager::Get().procMouseEvent(msg);
 	return result;
 }
 
@@ -826,6 +901,7 @@ MsgReply TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 	return result;
 }
 
+
 MsgReply TinyGameApp::handleCharEvent( unsigned code )
 {
 	MsgReply result = ::Global::GUI().procCharMsg(code);
@@ -851,11 +927,12 @@ bool TinyGameApp::handleWindowDestroy(HWND hWnd )
 
 void TinyGameApp::handleWindowPaint(HDC hDC)
 {
-
+#if 0
 	if( !::Global::GetDrawEngine().isInitialized() )
 		return;
 
 	render(0.0f);
+#endif
 }
 
 bool TinyGameApp::handleWindowActivation( bool beA )
@@ -883,9 +960,10 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 	}
 }
 
+
 void TinyGameApp::render( float dframe )
 {
-	PROFILE_ENTRY("Render");
+	//PROFILE_ENTRY("Render");
 
 	using namespace Render;
 
@@ -902,26 +980,44 @@ void TinyGameApp::render( float dframe )
 
 	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
 
-	if( bDrawScene )
 	{
-		getCurStage()->render(dframe);
-
-		if( drawEngine.isUsageRHIGraphic2D() )
-			::Global::GetRHIGraphics2D().beginRender();
-
-		long dt = long(dframe * getUpdateTime());
-		if (mRenderEffect)
-			mRenderEffect->onRender(dt);
+	
+		if (bDrawScene)
 		{
-			GPU_PROFILE("GUI");
-			::Global::GUI().render();
+			{
+				PROFILE_ENTRY("StageRender");
+				if (getCurStage())
+				{
+					getCurStage()->render(dframe);
+				}
+			}
+
+			if (drawEngine.isUsageRHIGraphic2D())
+				::Global::GetRHIGraphics2D().beginRender();
+
+			long dt = long(dframe * getUpdateTime());
+			if (mRenderEffect)
+				mRenderEffect->onRender(dt);
+			{
+				PROFILE_ENTRY("GUIRender");
+				GPU_PROFILE("GUI");
+				::Global::GUI().render();
+			}
+		}
+		else
+		{
+			if (drawEngine.isUsageRHIGraphic2D())
+				::Global::GetRHIGraphics2D().beginRender();
 		}
 	}
-	else
+
+#if TINY_WITH_EDITOR
 	{
-		if( drawEngine.isUsageRHIGraphic2D() )
-			::Global::GetRHIGraphics2D().beginRender();
+		PROFILE_ENTRY("Editor Render");
+		GPU_PROFILE("Editor Render");
+		mEditor->render();
 	}
+#endif
 
 	if( mConsoleShowMode == ConsoleShowMode::Screen )
 	{
@@ -945,7 +1041,7 @@ void TinyGameApp::render( float dframe )
 		if (CVarShowFPS)
 		{
 			Vec2i pos = Vec2i(5, 5);
-			DrawBackgroundRect( pos - Vec2i(5,5), Vec2i(60, 12) + Vec2i(10 , 10));
+			DrawBackgroundRect(pos - Vec2i(5, 5), Vec2i(60, 12) + Vec2i(10, 10));
 			InlineString< 256 > str;
 			RenderUtility::SetFont(g, FONT_S8);
 			g.setTextColor(Color3ub(255, 255, 0));
@@ -1010,7 +1106,7 @@ void TinyGameApp::render( float dframe )
 			}
 		}
 
-		if (CVarDrawProifle)
+		if (CVarShowProifle)
 		{
 			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
 		}
@@ -1206,12 +1302,6 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 		}
 	}
 
-	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
-	if (renderSetup)
-	{
-		if (!::Global::GetDrawEngine().setupSystem(renderSetup))
-			return false;
-	}
 
 	if (!stage->onInit())
 	{
@@ -1219,15 +1309,13 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 		return false;
 	}
 
+
+	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if (renderSetup)
 	{
-		ERenderSystem systemName = ::Global::GetDrawEngine().getSystemName();
-		if (!renderSetup->setupRenderSystem(systemName))
-		{
-			LogWarning(0, "Can't Initialize Stage Render Resource");
+		if (!::Global::GetDrawEngine().setupSystem(renderSetup))
 			return false;
-		}
-		
+
 		Render::ShaderManager::Get().cleanupLoadedSource();
 	}
 
@@ -1242,20 +1330,33 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 	stage->postInit();
 
-	::ProfileSystem::Get().resetSample();
+	IGameModule* game = ::Global::ModuleManager().getRunningGame();
+	if (game)
+	{
+		game->notifyStageInitialized(stage);
+	}
+
+	//::ProfileSystem::Get().resetSample();
 	return true;
 }
 
 void TinyGameApp::prevStageChange()
 {
 	DrawEngine& de = ::Global::GetDrawEngine();
-	Graphics2D& g = ::Global::GetGraphics2D();
 	if ( de.beginFrame() )
 	{
+		Graphics2D& g = ::Global::GetGraphics2D();
+
 		RenderUtility::SetBrush( g , EColor::Black );
 		RenderUtility::SetPen( g , EColor::Black );
 		g.drawRect( Vec2i(0,0) , ::Global::GetScreenSize() );
 		de.endFrame();
+	}
+
+	IGameModule* game = ::Global::ModuleManager().getRunningGame();
+	if (game)
+	{
+		game->notifyStagePreExit(getCurStage());
 	}
 }
 
@@ -1388,7 +1489,7 @@ bool TinyGameApp::reconstructWindow( GameWindow& window )
 {
 	int width = window.getWidth();
 	int height = window.getHeight();
-
+	bool bShow = window.isShow();
 	Vec2i pos = window.getPosition();
 	TCHAR const* title = TEXT("Tiny Game");
 	window.destroy();
@@ -1398,6 +1499,7 @@ bool TinyGameApp::reconstructWindow( GameWindow& window )
 	}
 
 	window.setPosition(pos);
+	window.show(bShow);
 	return true;
 }
 

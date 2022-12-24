@@ -5,16 +5,10 @@
 #include "FileSystem.h"
 #include "Core/ScopeGuard.h"
 
-#if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
-#endif
 #include "StringParse.h"
 
-bool GameModuleManager::registerModule( IModuleInterface* module , char const* moduleName 
-#if SYS_PLATFORM_WIN
-									   , HMODULE hModule 
-#endif
-)
+bool GameModuleManager::registerModule( IModuleInterface* module , char const* moduleName, ModuleHandle hModule )
 {
 	assert(module);
 
@@ -30,12 +24,7 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* m
 
 	bool bInserted = mNameToModuleMap.insert(std::make_pair(registerName, module)).second;
 	assert(bInserted);
-	mModuleDataList.push_back(
-		{   module
-#if SYS_PLATFORM_WIN
-          , hModule
-#endif
-		});
+	mModuleDataList.push_back({ module ,hModule });
 
 	module->startupModule();
 
@@ -63,21 +52,18 @@ void GameModuleManager::cleanupModuleInstances()
 		info.instance = nullptr;
 		return true;
 	});
+	mNameToModuleMap.clear();
 }
 
 void GameModuleManager::cleanupModuleMemory()
 {
-#if SYS_PLATFORM_WIN
 	visitInternal([](ModuleData& info) ->bool
 	{
-		assert(info.instance == nullptr);
-		::FreeLibrary(info.hModule);
+		CHECK(info.instance == nullptr);
+		FPlatformModule::Release(info.hModule);
 		return true;
 	});
-#endif
-
 	mModuleDataList.clear();
-	mNameToModuleMap.clear();
 }
 
 void GameModuleManager::classifyGame( int attrID , GameModuleVec& games )
@@ -156,46 +142,30 @@ GameModuleManager::GameModuleManager()
 
 GameModuleManager::~GameModuleManager()
 {
-	cleanupModuleInstances();
+	CHECK(mModuleDataList.empty());
+	CHECK(mNameToModuleMap.empty());
 }
 
 bool GameModuleManager::loadModule( char const* path )
 {
-#if SYS_PLATFORM_WIN
-	HMODULE hModule = ::LoadLibraryA( path );
+	StringView::TCStringConvertible<> loadName = FFileUtility::GetBaseFileName(path).toCString();
+
+	if (mNameToModuleMap.find((char const*)loadName) != mNameToModuleMap.end())
+		return true;
+
+	FPlatformModule::Handle hModule = FPlatformModule::Load(path);
 	if (hModule == NULL)
-	{
-		char* lpMsgBuf;
-		DWORD dw = ::GetLastError();
-		::FormatMessageA(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
-			dw,
-			MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT),
-			(LPTSTR)&lpMsgBuf,
-			0, NULL);
-
-		LogWarning(0, "Load Module %s Fail : %s", path , lpMsgBuf);
-
-		::LocalFree(lpMsgBuf);
 		return false;
-	}
 
 	ON_SCOPE_EXIT
 	{
 		if (hModule)
 		{
-			::FreeLibrary(hModule);
+			FPlatformModule::Release(hModule);
 		}
 	};
 
-	char const* funName = CREATE_MODULE_STR;
-	auto createFunc = (CreateModuleFunc)GetProcAddress(hModule, CREATE_MODULE_STR);
-#else
-	CreateModuleFunc createFunc = nullptr;
-#endif 
+	auto createFunc = (CreateModuleFunc)FPlatformModule::GetFunctionAddress(hModule, CREATE_MODULE_STR);
 	if( !createFunc )
 		return false;
 
@@ -203,26 +173,17 @@ bool GameModuleManager::loadModule( char const* path )
 	if( !module )
 		return false;
 
-	StringView loadName = FFileUtility::GetBaseFileName(path);
-	if (registerModule(module, loadName.toCString()
-#if SYS_PLATFORM_WIN
-		, hModule
-#endif
-	))
-	{
 
+	if (registerModule(module, loadName, hModule))
+	{
+		hModule = NULL;
 	}
 	else
 	{
 		module->deleteThis();
 		return false;
 	}
-
-#if SYS_PLATFORM_WIN
-	hModule = NULL;
-#endif
-
-	LogMsg("Module Loaded: %s", (char const*)loadName.toCString());
+	LogMsg("Module Loaded: %s", (char const*)loadName);
 	return true;
 }
 
@@ -241,6 +202,7 @@ bool GameModuleManager::loadModulesFromFile(char const* path)
 	for (;;)
 	{
 		StringView moduleName = FStringParse::StringTokenLine(text);
+		moduleName.trimStartAndEnd();
 		if (moduleName.size() == 0)
 			break;
 
@@ -249,13 +211,13 @@ bool GameModuleManager::loadModulesFromFile(char const* path)
 			InlineString<MAX_PATH + 1> path = moduleDir;
 			path += "/";
 			path += moduleName;
-			result |= loadModule(path);
+			result &= loadModule(path);
 		}
 		else
 		{
-			result |= loadModule(moduleName.toCString());
+			result &= loadModule(moduleName.toMutableCString());
 		}
 	}
 
-	return true;
+	return result;
 }

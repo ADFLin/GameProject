@@ -80,6 +80,9 @@ public:
 	virtual void beginPlay(StageManager& manger, EGameStageMode modeType) = 0;
 	virtual void endPlay(){}
 
+	virtual void notifyStageInitialized(StageBase* stage){}
+	virtual void notifyStagePreExit(StageBase* stage){}
+
 	virtual IGameInstance*        createInstance() { return nullptr; }
 
 	bool isGameModule() const final { return true; }

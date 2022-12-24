@@ -3,12 +3,13 @@
 #define Array_H_53348890_2577_41C4_9C3E_01D135F952BD
 
 #include "Core/IntegerType.h"
+#include "TypeConstruct.h"
 
 
 template< class T >
-struct TCompatibleByte
+struct alignas(alignof(T)) TCompatibleByte
 {
-	struct alignas(alignof(T)) Data
+	struct Data
 	{
 		uint8 bytes[sizeof(T)];
 	};
@@ -30,7 +31,7 @@ struct TCompatibleByte
 
 
 template< class T, int N >
-struct TCompatibleStorage
+struct alignas(alignof(T)) TCompatibleStorage
 {
 	void*       operator[](int index)       { return mData + index; }
 	void const* operator[](int index) const { return mData + index; }
@@ -43,7 +44,40 @@ struct TCompatibleStorage
 struct DefaultAllocator
 {
 
+	template< class T >
+	struct TArrayData
+	{
+		TArrayData()
+		{
+			mStorage = nullptr;
+			mMaxSize = 0;
+		}
 
+		void   alloc(int OldSize, int numNewElements)
+		{
+			if (OldSize + numNewElements > mMaxSize)
+			{
+				int growSize = OldSize + numNewElements;
+				growSize += (3 * growSize) / 8;
+				void* newAlloc = FMemory::Realloc(mStorage, growSize);
+				if (newAlloc == nullptr)
+				{
+
+				}
+				if (newAlloc != mStorage)
+				{
+
+				}
+				mStorage = newAlloc;
+				mMaxSize = growSize;
+			}
+		}
+		size_t getMaxSize() const { return mMaxSize; }
+		T*     getAllocation() const { return (T*)mStorage; }
+
+		void*  mStorage;
+		size_t mMaxSize;
+	};
 
 
 };
@@ -68,38 +102,33 @@ struct DyanmicFixedAllocator
 template < uint32 TotalSize >
 struct TFixedAllocator
 {
+	enum 
+	{
+		IsDynamic = 0,
+	};
+
 	template< class T >
 	struct TArrayData
 	{
 		TArrayData()
 		{
-			mNext = mStorage;
+
+		}
+		void   alloc(int OldSize, int numNewElements)
+		{
+			CHECK(OldSize + numNewElements <= TotalSize);
 		}
 		size_t getMaxSize() const { return TotalSize;  }
-		size_t getSize() const { return mNext - mStorage; }
-		T* getHead() { return (T*)mStorage; }
-		T* getEnd()  { return (T*)mNext; }
-		T* alloc(int size)
-		{
-			assert(mNext + size <= mStorage + TotalSize);
-			T* result = (T*)mNext;
-			mNext += Size;
-			return result;
-		}
-		void dealloc(int size)
-		{
-			mNext -= size;
-		}
+		T*     getAllocation() const { return (T*)mStorage; }
 
-		TCompatibleByte< T >  mStroage[TotalSize];
-		TCompatibleByte< T >* mNext;
+		TCompatibleByte< T >  mStorage[TotalSize];
 	};
 };
 
-template< class T , class Allocator >
+template< class T , class Allocator = DefaultAllocator >
 class TArray : private Allocator::template TArrayData< T >
 {
-	typedef typename Allocator::template TArrayData< T > ArrayData;
+	using ArrayData = typename Allocator::template TArrayData< T >;
 
 public:
 	typedef T*        iterator;
@@ -110,37 +139,140 @@ public:
 	typedef T*        pointer;
 	typedef T const*  const_pointer;
 
-	const_refernece front() const { return *ArrayData::getHead(); }
-	reference       front() { return *ArrayData::getHead(); }
-	const_refernece back() const { return *(ArrayData::getEnd() - 1); }
-	reference       back() { return *(ArrayData::getEnd() - 1); }
+	TArray()
+	{
+		mNum = 0;
+	}
 
-	const_refernece operator[](size_t idx) const { return ArrayData::getHead()[idx]; }
-	reference       operator[](size_t idx) { return ArrayData::getHead()[idx]; }
+	~TArray()
+	{
+		clear();
+	}
+
+	const_refernece front() const { return *getElement(0); }
+	reference       front() { return *getElement(0); }
+	const_refernece back() const { return *getElement(mNum - 1); }
+	reference       back() { return *getElement(mNum - 1); }
+
+	const_refernece operator[](size_t index) const { return *getElement(index); }
+	reference       operator[](size_t index) { return *getElement(index); }
+
+	const_iterator begin() const { return getElement(0); }
+	iterator       begin() { return getElement(0); }
+	const_iterator end()   const { return getElement(mNum); }
+	iterator       end() { return getElement(mNum); }
+
+
 
 	template< class Q >
 	void push_back(Q&& val)
 	{ 
-		T* ptr = ArrayData::alloc(1); 
-		TypeDataHelper::Construct(ptr, std::forward< Q >(val)); 
+		T* ptr = addUninitialized();
+		TypeDataHelper::Construct(ptr, std::forward< Q >(val));
 	}
+
 	void pop_back()
 	{ 
-		assert(size() != 0); 
-		TypeDataHelper::Destruct(ArrayData::getEnd() - 1); 
-		ArrayData::dealloc(1);
+		assert(size() != 0);
+		--mNum;
+		TypeDataHelper::Destruct(getElement(mNum));
 	}
 
-	void    resize(size_t num)
+	iterator erase(iterator iter)
 	{
+		checkRange(iter);
+		TypeDataHelper::Destruct(iter);
 
-
+		moveToEnd(iter, iter + 1);
+		return iter;
 	}
-	void    resize(size_t num, value_type const& value)
+	
+	iterator erase(iterator from, iterator to)
 	{
-
-
+		checkRange(from);
+		checkRange(to);
+		assert(to > from);
+		TypeDataHelper::Destruct(from, to - from);
+		moveToEnd(from, to);
+		return from;
 	}
+
+	void resize(size_t num)
+	{
+		if (num < size())
+		{
+			erase(begin() + num, end());
+		}
+		else
+		{
+			T* ptr = addUninitialized(num);
+			TypeDataHelper::Construct(ptr, num);
+		}
+	}
+
+	void resize(size_t num, value_type const& value)
+	{
+		if (num < size())
+		{
+			erase(begin() + num, end());
+		}
+		else
+		{
+			T* ptr = addUninitialized(num);
+			TypeDataHelper::Construct(ptr, num, value);
+		}
+	}
+
+	bool     empty()  const { return !mNum; }
+	size_t   size()     const { return mNum; }
+	void     clear() { eraseToEnd(begin()); }
+
+	T* addUninitialized()
+	{
+		ArrayData::alloc(mNum, 1);
+
+		T* result = getElement(mNum);
+		++mNum;
+		return result;
+	}
+
+	T* addUninitialized(size_t num)
+	{
+		ArrayData::alloc(mNum, num);
+		T* result = getElement(mNum);
+		mNum += num;
+		return result;
+	}
+
+	T* getElement(int index)
+	{
+		return ArrayData::getAllocation() + index;
+	}
+
+	T const* getElement(int index) const
+	{
+		return ArrayData::getAllocation() + index;
+	}
+
+	void  moveToEnd(iterator where, iterator src)
+	{
+		int num = mNum - (src - getElement(0));
+		if (num)
+		{
+			TypeDataHelper::Move(where, num, src);
+		}
+		mNum = mNum - (src - where);
+	}
+
+
+	void  eraseToEnd(iterator is)
+	{
+		TypeDataHelper::Destruct(is, end() - is);
+		mNum = is - getElement(0);
+	}
+
+	void   checkRange(const_iterator it) const { assert(begin() <= it && it < end()); }
+	int mNum;
 
 };
 

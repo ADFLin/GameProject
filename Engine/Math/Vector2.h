@@ -18,7 +18,7 @@ namespace Math
 		float normalize()
 		{
 			float len = Math::Sqrt(length2());
-			if( len < FLT_DIV_ZERO_EPSILON )
+			if( len < FLOAT_DIV_ZERO_EPSILON )
 				return 0.0;
 			*this *= (1 / len);
 			return len;

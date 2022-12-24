@@ -1599,7 +1599,7 @@ namespace CAR
 			mInput.setRemoteSender( new CWorkerDataTransfer( worker , userSlotId ) );
 			if ( ::Global::GameNet().getNetWorker()->isServer() )
 			{
-				mServerDataTranfser = new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), MaxPlayerNum );
+				mServerDataTranfser = new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker());
 				mServerDataTranfser->setRecvFunc( RecvFunc( this , &LevelStage::onRecvDataSV ) );
 			}
 		}

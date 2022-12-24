@@ -83,31 +83,33 @@ class  PropertySet
 {
 public:
 	PropertySet();
-	KeyValue*   getKeyValue( char const* keyName , char const* group );
+	KeyValue*   getKeyValue( char const* keyName , char const* section );
 
-	char        getCharValue  ( char const* keyName , char const* group , char defaultValue );
-	int         getIntValue   ( char const* keyName , char const* group , int defaultValue );
-	float       getFloatValue ( char const* keyName , char const* group , float defaultValue );
-	char const* getStringValue( char const* keyName , char const* group , char const* defaultValue );
+	char        getCharValue  ( char const* keyName , char const* section , char defaultValue );
+	int         getIntValue   ( char const* keyName , char const* section , int defaultValue );
+	float       getFloatValue ( char const* keyName , char const* section , float defaultValue );
+	char const* getStringValue( char const* keyName , char const* section , char const* defaultValue );
+	bool        getBoolValue(char const* keyName, char const* section, bool defaultValue);
 
-	bool        tryGetCharValue  ( char const* keyName , char const* group , char& value );
-	bool        tryGetIntValue   ( char const* keyName , char const* group , int& value );
-	bool        tryGetFloatValue ( char const* keyName , char const* group , float& value );
-	bool        tryGetStringValue( char const* keyName , char const* group , char const*& value );
+	bool        tryGetCharValue  ( char const* keyName , char const* section , char& value );
+	bool        tryGetIntValue   ( char const* keyName , char const* section , int& value );
+	bool        tryGetFloatValue ( char const* keyName , char const* section , float& value );
+	bool        tryGetStringValue( char const* keyName , char const* section , char const*& value );
+	bool        tryGetBoolValue(char const* keyName, char const* section, bool& value);
 
 	bool        saveFile( char const* path );
 	bool        loadFile( char const* path );
 
 	template< class T >
-	void setKeyValue( char const* keyName , char const* group , T value )
+	void setKeyValue( char const* keyName , char const* section , T value )
 	{
-		auto& section = mSectionMap[ group ];
-		if( section.mSequenceOrder == INDEX_NONE )
+		auto& sectionData = mSectionMap[ section ];
+		if(sectionData.mSequenceOrder == INDEX_NONE )
 		{
-			section.mSequenceOrder = mNextSectionSeqOrder;
+			sectionData.mSequenceOrder = mNextSectionSeqOrder;
 			++mNextSectionSeqOrder;
 		}
-		KeyValue* keyValue = section.addKeyValue( keyName , value );
+		KeyValue* keyValue = sectionData.addKeyValue( keyName , value );
 		if( keyValue && keyValue->mSequenceOrder == INDEX_NONE )
 		{
 			keyValue->mSequenceOrder = mNextValueSeqOrder;
@@ -116,9 +118,9 @@ public:
 	}
 
 	template< class TFunc >
-	void visitGroup( char const* group , TFunc&& func )
+	void visitSection( char const* section , TFunc&& func )
 	{
-		auto iter = mSectionMap.find(group);
+		auto iter = mSectionMap.find(section);
 		if (iter != mSectionMap.end())
 		{
 			for (auto& pair : iter->second.mKeyMap)
@@ -129,9 +131,9 @@ public:
 	}
 private:
 	template< class T >
-	T     getValueT( char const* keyName , char const* group , T defaultValue );
+	T     getValueT( char const* keyName , char const* section , T defaultValue );
 	template< class T >
-	bool  tryGetValueT( char const* keyName , char const* group , T& value );
+	bool  tryGetValueT( char const* keyName , char const* section , T& value );
 
 	int   parseLine( char* buffer , KeySection** curSection );
 

@@ -5,6 +5,8 @@
 #include "HoldemLevel.h"
 
 #include "Holder.h"
+#include "GameRenderSetup.h"
+#include "CardDraw.h"
 
 namespace Holdem {
 
@@ -21,6 +23,7 @@ namespace Holdem {
 
 	class LevelStage : public GameStageBase
 		             , public ServerLevel::Listener
+					 , public ICardResourceSetup
 	{
 		typedef GameStageBase BaseClass;
 	public:
@@ -45,7 +48,7 @@ namespace Holdem {
 		TPtrHolder< Scene >        mScene;
 		class DevBetPanel*         mDevPanel;
 
-		
+		void setupCardDraw(ICardDraw* cardDraw) override;
 
 	};
 

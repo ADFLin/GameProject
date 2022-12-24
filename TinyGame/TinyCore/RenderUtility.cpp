@@ -107,6 +107,8 @@ void RenderUtility::Finalize()
 	{
 		::DeleteObject( hFont[i] );
 	}
+
+	ReleaseRHI();
 }
 
 Render::FontDrawer& RenderUtility::GetFontDrawer(int fontID)
@@ -253,11 +255,13 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 
 static bool IsRHISupport()
 {
-	if (GRHISystem->getName() == RHISystemName::OpenGL ||
-		GRHISystem->getName() == RHISystemName::D3D11 ||
-		GRHISystem->getName() == RHISystemName::D3D12 )
-		return true;
-	return false;
+	if (GRHISystem == nullptr)
+		return false;
+		
+	RHISystemName SystemName = GRHISystem->getName();
+	return  SystemName == RHISystemName::OpenGL ||
+			SystemName == RHISystemName::D3D11  ||
+			SystemName == RHISystemName::D3D12;
 }
 
 void RenderUtility::InitializeRHI()

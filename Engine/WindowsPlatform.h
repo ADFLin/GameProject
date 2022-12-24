@@ -161,7 +161,6 @@ private:
 	bool      createWindow( TCHAR const* szTitle , bool fullscreen );
 	bool      registerWindow( WNDPROC wndProc , DWORD wIcon ,WORD wSIcon );
 
-
 };
 
 

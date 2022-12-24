@@ -210,6 +210,9 @@
     </None>
     <None Include="..\TinyGame\out\Shader\TexturePreview.sgc" />
     <None Include="..\TinyGame\out\Shader\CubeMapCommon.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\ClipCoord.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

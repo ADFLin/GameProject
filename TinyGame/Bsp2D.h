@@ -10,7 +10,6 @@
 
 namespace Bsp2D
 {
-	float const FLOAT_EPSILON = 1e-5f;
 
 	typedef ::Math::Vector2 Vector2;
 

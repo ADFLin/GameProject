@@ -61,6 +61,7 @@ PS_ENTRY_END(EquirectangularToCubePS)
 	float3 dir = GetFaceCameraDir(VSOutput.UVs);
 	float3 color = TEXTURE_SAMPLE(Texture, EquirectangularCoord(dir)).rgb;
 	OutColor = float4(color, 1);
+	//OutColor = float4(EquirectangularCoord(dir), 0, 1);
 }
 #endif
 

@@ -127,9 +127,9 @@ namespace Poker
 				card[i] = i;
 
 			//put the cards in "microsoft representation"
-			for(int i=0;i<13;i++)
+			for(int i = 0; i < 13; i++)
 			{
-				for(int j=0;j<4;j++)
+				for(int j = 0; j < 4; j++)
 				{
 					tempDeck[pos] = card[i+j*13];
 					pos++;
@@ -236,8 +236,6 @@ namespace Poker
 		return cell.getCardNum() - index;
 	}
 
-
-
 	int FreeCellLevel::countEmptyCellNum( int index ,int num )
 	{
 		int result = 0;
@@ -250,9 +248,6 @@ namespace Poker
 		}
 		return result;
 	}
-
-
-
 
 	Cell* FreeCellLevel::findEmptyCell(int index, int num)
 	{

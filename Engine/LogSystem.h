@@ -13,49 +13,60 @@
 
 #if USE_LOG
 
-CORE_API void LogMsg    (char const* str);
-CORE_API void LogError  (char const* str);
-CORE_API void LogDevMsg (int level, char const* str);
-CORE_API void LogWarning(int level, char const* str);
+CORE_API void LogMsgImpl(char const* str);
+CORE_API void LogErrorImpl(char const* str);
+CORE_API void LogDevMsgImpl (int level, char const* str);
+CORE_API void LogWarningImpl(int level, char const* str);
 
 #define LOG_BUFFER_SIZE 102400
 
 template< class ...Arg >
-FORCEINLINE void LogMsg(char const* format, Arg ...arg)
+FORCEINLINE void LogMsgImpl(char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);
-	LogMsg(buffer);
+	LogMsgImpl(buffer);
 }
 
 template< class ...Arg >
-FORCEINLINE void LogError(char const* format, Arg ...arg)
+FORCEINLINE void LogErrorImpl(char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);
-	LogError(buffer);
+	LogErrorImpl(buffer);
 }
 
 template< class ...Arg >
-FORCEINLINE void LogDevMsg(int level, char const* format, Arg ...arg)
+FORCEINLINE void LogDevMsgImpl(int level, char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);
-	LogDevMsg(level, buffer);
+	LogDevMsgImpl(level, buffer);
 }
 
 template< class ...Arg >
-FORCEINLINE void LogWarning(int level, char const* format, Arg ...arg)
+FORCEINLINE void LogWarningImpl(int level, char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);
-	LogWarning(level, buffer);
+	LogWarningImpl(level, buffer);
 }
 
-CORE_API void LogMsgV    ( char const* format , va_list argptr );
-CORE_API void LogErrorV  ( char const* format , va_list argptr );
-CORE_API void LogDevMsgV ( int level , char const* format , va_list argptr );
-CORE_API void LogWarningV( int level , char const* format , va_list argptr );
+CORE_API void LogMsgVImpl( char const* format , va_list argptr );
+CORE_API void LogErrorVImpl( char const* format , va_list argptr );
+CORE_API void LogDevMsgVImpl( int level , char const* format , va_list argptr );
+CORE_API void LogWarningVImpl( int level , char const* format , va_list argptr );
+
+
+#define  LogMsg(...) LogMsgImpl(__VA_ARGS__)
+#define  LogError(...) LogErrorImpl(__VA_ARGS__)
+#define  LogDevMsg(...) LogDevMsgImpl(__VA_ARGS__)
+#define  LogWarning(...) LogWarningImpl(__VA_ARGS__)
+
+#define  LogMsgV(...) LogMsgVImpl(__VA_ARGS__)
+#define  LogErrorV(...) LogErrorVImpl(__VA_ARGS__)
+#define  LogDevMsgV(...) LogDevMsgVImpl(__VA_ARGS__)
+#define  LogWarningV(...) LogWarningVImpl(__VA_ARGS__)
 
 #else
 
@@ -86,6 +97,14 @@ public:
 	CORE_API virtual ~LogOutput();
 	CORE_API void addChannel(LogChannel channel);
 	CORE_API void removeChannel(LogChannel channel);
+
+	void addDefaultChannels()
+	{
+		for (int i = 0; i < NUM_DEFAULT_LOG_CHANNEL; ++i)
+		{
+			addChannel(LogChannel(i));
+		}
+	}
 
 	virtual bool filterLog(LogChannel channel, int level) { return true; }
 	virtual void receiveLog(LogChannel channel, char const* str) = 0;

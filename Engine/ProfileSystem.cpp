@@ -27,7 +27,7 @@ class ThreadProfileData
 public:
 	ThreadProfileData(char const* rootName);
 
-
+	std::atomic_bool          mResetRequest;
 	uint32                    mThreadId;
 	ProfileSampleNode*	      mCurSample;
 	unsigned                  mCurFlag;
@@ -83,16 +83,16 @@ public:
 	int	   getFrameCountSinceReset() override { return mFrameCount; }
 	double getDurationSinceReset() override;
 
-	void updateDuration()
+	void updateDuration(bool bForce = false)
 	{
-		if (mbDurationDirty)
-		{
-			mbDurationDirty = false;
-			uint64 time;
-			Profile_GetTicks(&time);
-			mDurationSinceReset = double(time - mResetTime) / Profile_GetTickRate();
-			mLastFrameDuration = double(time - mFrameStartTime) / Profile_GetTickRate();
-		}
+		if (!mbDurationDirty && !bForce)
+			return;
+		
+		mbDurationDirty = false;
+		uint64 time;
+		Profile_GetTicks(&time);
+		mDurationSinceReset = double(time - mResetTime) / Profile_GetTickRate();
+		mLastFrameDuration = double(time - mFrameStartTime) / Profile_GetTickRate();
 	}
 
 	double getLastFrameDuration() override
@@ -227,6 +227,9 @@ void ProfileSystemImpl::cleanup()
 
 }
 
+
+std::unordered_map< uint32, ThreadProfileData* > ThreadDataMap;
+
 void ProfileSystemImpl::resetSample()
 {
 	GProfileClock.reset();
@@ -235,10 +238,15 @@ void ProfileSystemImpl::resetSample()
 
 	mbDurationDirty = 0;
 	//ThreadData reset
+	for (auto& pair : ThreadDataMap)
+	{
+		pair.second->resetSample();
+	}
 }
 
 void ProfileSystemImpl::incrementFrameCount()
 {
+	updateDuration();
 	++mFrameCount;
 	mbDurationDirty = true;
 	Profile_GetTicks(&mFrameStartTime);
@@ -247,12 +255,9 @@ void ProfileSystemImpl::incrementFrameCount()
 double ProfileSystemImpl::getDurationSinceReset()
 {
 	updateDuration();
-
 	return mDurationSinceReset;
 }
 
-
-std::unordered_map< uint32, ThreadProfileData* > ThreadDataMap;
 thread_local ThreadProfileData* gThreadDataLocal = nullptr;
 
 ThreadProfileData* ProfileSystemImpl::GetCurrentThreadData()
@@ -268,12 +273,18 @@ ThreadProfileData* ProfileSystemImpl::GetCurrentThreadData()
 
 ThreadProfileData* ProfileSystemImpl::GetThreadData(uint32 threadId)
 {
-	return nullptr;
+	auto iter = ThreadDataMap.find(threadId);
+	if (iter == ThreadDataMap.end())
+		return nullptr;
+
+	return iter->second;
 }
 
 ProfileSampleNode::ProfileSampleNode( const char * name, ProfileSampleNode * parent )
 	:mName( name )
+	,mFrameCalls( 0 )
 	,mTotalCalls( 0 )
+	,mLastCallFrame(-1)
 	,mTotalTime( 0 )
 	,mStartTime( 0 )
 	,mRecursionCounter( 0 )
@@ -317,7 +328,9 @@ ProfileSampleNode* ProfileSampleNode::getSubNode( const char * name )
 void ProfileSampleNode::reset()
 {
 	mTotalCalls = 0;
+	mFrameCalls = 0;
 	mTotalTime = 0.0f;
+	mRecursionCounter = 0;
 
 	if ( mChild ) 
 	{
@@ -330,7 +343,7 @@ void ProfileSampleNode::reset()
 }
 
 
-void ProfileSampleNode::onCall()
+void ProfileSampleNode::notifyCall()
 {
 	if (mRecursionCounter == 0) 
 	{
@@ -341,7 +354,7 @@ void ProfileSampleNode::onCall()
 	++mTotalCalls;
 }
 
-bool ProfileSampleNode::onReturn()
+bool ProfileSampleNode::notifyReturn()
 {
 	--mRecursionCounter;
 	if (mRecursionCounter != 0)
@@ -379,16 +392,18 @@ ThreadProfileData::ThreadProfileData(char const* rootName)
 	mRootSample->mStackNum = 0;
 
 	mCurSample = mRootSample.get();
+
+	resetSample();
 }
 
 
 void ThreadProfileData::resetSample()
 {
 	mRootSample->reset();
-	mRootSample->onCall();
+	mRootSample->notifyCall();
 }
 
-void ThreadProfileData::tryStartTiming(const char * name, unsigned flag)
+void ThreadProfileData::tryStartTiming(const char* name, unsigned flag)
 {
 	if( flag & PROF_FORCCE_ENABLE )
 	{
@@ -436,7 +451,6 @@ void ThreadProfileData::tryStartTiming(const char * name, unsigned flag)
 			node = mCurSample->getSubNode(name);
 		}
 
-
 		if( node == nullptr )
 		{
 			node = CreateNode(name, mCurSample);
@@ -445,7 +459,7 @@ void ThreadProfileData::tryStartTiming(const char * name, unsigned flag)
 		mCurSample = node;
 	}
 
-	mCurSample->onCall();
+	mCurSample->notifyCall();
 	mCurSample->mPrevFlag = mCurFlag;
 	mCurSample->mLastCallFrame = ProfileSystemImpl::Get().mFrameCount;
 	mCurFlag = flag;
@@ -456,7 +470,7 @@ void ThreadProfileData::stopTiming()
 	if( mCurFlag & PROF_DISABLE_THIS )
 		return;
 
-	if( mCurSample->onReturn() )
+	if( mCurSample->notifyReturn() )
 	{
 		mCurFlag = mCurSample->mPrevFlag;
 		mCurSample = mCurSample->getParent();

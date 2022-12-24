@@ -13,7 +13,7 @@
 namespace Render
 {
 
-	struct GPU_ALIGN ColourBuffer
+	struct GPU_ALIGN ColorBuffer
 	{
 		DECLARE_UNIFORM_BUFFER_STRUCT(ColourBufferBlock)
 		float red;

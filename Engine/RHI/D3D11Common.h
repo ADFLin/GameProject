@@ -124,6 +124,7 @@ namespace Render
 		static D3D11_TEXTURE_ADDRESS_MODE To(ESampler::AddressMode mode);
 		static D3D11_COMPARISON_FUNC To(ECompareFunc func);
 		static D3D11_STENCIL_OP To(EStencil op);
+
 	};
 
 #define USE_D3D11_RESOURCE_CUSTOM_COUNT 1

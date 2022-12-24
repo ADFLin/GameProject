@@ -233,7 +233,7 @@ PS_ENTRY_END(MainPS)
 	float3 color = ambient;
 
 	OutColor = float4(color, 1);
-	//OutColor = float4(zAxis, 1);
+	//OutColor = float4(SvDepth, SvDepth, SvDepth, 1);
 
 }
 

@@ -3,7 +3,7 @@
 
 #include "PokerBase.h"
 #include "DataTransfer.h"
-#include "DataStructure/FixVector.h"
+#include "DataStructure/FixedArray.h"
 
 namespace Holdem {
 
@@ -185,7 +185,7 @@ namespace Holdem {
 		void procRecvData( int recvId , int dataId , void* data , int dataSize );
 
 		Listener* mListener;
-		FixVector< char , 52 > mDecks;
+		TFixedArray< char , 52 > mDecks;
 		int   mNumBet;
 		int   mNumFinishBet;
 		int   mNumCall;

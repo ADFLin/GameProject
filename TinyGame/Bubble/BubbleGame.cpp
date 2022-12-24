@@ -228,7 +228,7 @@ namespace Bubble
 	void GameModule::enter()
 	{
 		::Global::GetDrawEngine().setupSystem(this);
-		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
+		::Global::GetDrawEngine().bWasUsedPlatformGraphics = true;
 	}
 
 	void GameModule::exit()
@@ -238,8 +238,12 @@ namespace Bubble
 
 	bool GameModule::setupRenderSystem(ERenderSystem systemName)
 	{
-		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
 		return true;
+	}
+
+	void GameModule::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+	{
+		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
 
 }// namespace Bubble

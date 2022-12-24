@@ -213,7 +213,7 @@ namespace CarTrain
 
 		g.pushXForm();
 		g.translateXForm(XForm.getPos().x, XForm.getPos().y);
-		g.rotateXForm(Math::Rad2Deg(XForm.getRotateAngle()));
+		g.rotateXForm(XForm.getRotateAngle());
 		for (int i = 0; i < NumDetectors; ++i)
 		{
 			RenderUtility::SetPen(g, mDetectors[i].bHitted ? EColor::Red : EColor::Yellow);
@@ -228,8 +228,6 @@ namespace CarTrain
 			return false;
 
 		VERIFY_RETURN_FALSE(mWorld.initialize());
-
-		mWorld.getPhysicsScene()->setupDebug(Global::GetRHIGraphics2D());
 
 		mLevelData = std::make_unique<TestLevelData>();
 		mLevelData->setup(mWorld);
@@ -350,6 +348,7 @@ namespace CarTrain
 
 			if (CVarShowDebugDraw)
 			{
+				mWorld.getPhysicsScene()->setupDebug(g);
 				mWorld.drawDebug();
 			}
 

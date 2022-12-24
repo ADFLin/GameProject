@@ -47,10 +47,7 @@ public:
 	DWORD    getSuspendTimes(){ return mSupendTimes; }
 	unsigned getID(){ return mThreadID; }
 	bool     isRunning(){ return mbRunning; }
-	void     setDisplayName(char const* name)
-	{
-		SetThreadName(mThreadID, name);
-	}
+	void     setDisplayName(char const* name);
 
 	static void SetThreadName(uint32 ThreadID, LPCSTR ThreadName);
 protected:

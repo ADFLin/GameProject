@@ -21,6 +21,8 @@ namespace Render
 		Mesh();
 		~Mesh();
 
+		Mesh(Mesh const& mesh) = default;
+
 		bool createRHIResource(void* pVertex, int nV, void* pIdx = nullptr, int nIndices = 0, bool bIntIndex = false);
 		void releaseRHIResource();
 		void draw(RHICommandList& commandList);
@@ -78,6 +80,26 @@ namespace Render
 		bool load(IStreamSerializer& serializer);
 
 		int getVertexCount() const { return mVertexBuffer->getNumElements(); }
+
+
+		Mesh& operator = (Mesh&& mesh)
+		{
+			mType = mesh.mType;
+
+#define MOVE_MEMBER(MEMBER)\
+	MEMBER = std::move(mesh.MEMBER);
+
+			MOVE_MEMBER(mInputLayoutDesc);
+			MOVE_MEMBER(mInputLayout);
+			MOVE_MEMBER(mInputLayoutOverwriteColor);
+			MOVE_MEMBER(mVertexBuffer);
+			MOVE_MEMBER(mColorBuffer);
+			MOVE_MEMBER(mIndexBuffer);
+			MOVE_MEMBER(mVertexAdjIndexBuffer);
+			MOVE_MEMBER(mTessAdjIndexBuffer);
+			MOVE_MEMBER(mSections);
+			return *this;
+		}
 
 		EPrimitive          mType;
 		InputLayoutDesc     mInputLayoutDesc;

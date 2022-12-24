@@ -7,6 +7,7 @@
 #include "NetGameMode.h"
 
 #include "GameGUISystem.h"
+#include "DrawEngine.h"
 #include "Widget/WidgetUtility.h"
 #include "TaskBase.h"
 
@@ -105,7 +106,7 @@ namespace Holdem {
 	{
 		mClientLevel.reset( new ClientLevel );
 
-		mScene.reset( new Scene( *mClientLevel , *getStageMode()->getPlayerManager() ) );
+		mScene.reset(new Scene(*mClientLevel, *getStageMode()->getPlayerManager()));
 
 		NetWorker* netWorker = ::Global::GameNet().getNetWorker();
 
@@ -129,7 +130,7 @@ namespace Holdem {
 			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
 			if ( mServerLevel )
 			{
-				mServerLevel->setupTransfer( new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), MaxPlayerNum ) );
+				mServerLevel->setupTransfer( new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker() ) );
 			}
 			mClientLevel->setupTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
 		}
@@ -181,7 +182,9 @@ namespace Holdem {
 	void LevelStage::onRender( float dFrame )
 	{
 		IGraphics2D& g = ::Global::GetIGraphics2D();
+		g.beginRender();
 		mScene->render( g );
+		g.endRender();
 	}
 
 	void LevelStage::tick()
@@ -215,7 +218,12 @@ namespace Holdem {
 		}
 	}
 
-	void LevelStage::onRestart( bool beInit )
+	void LevelStage::setupCardDraw(ICardDraw* cardDraw)
+	{
+		mScene->setupCardDraw(cardDraw);
+	}
+
+	void LevelStage::onRestart(bool beInit)
 	{
 		if ( mServerLevel )
 		{

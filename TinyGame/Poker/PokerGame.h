@@ -2,6 +2,8 @@
 #define PokerGame_h__
 
 #include "GameModule.h"
+#include "GameRenderSetup.h"
+#include "CardDraw.h"
 
 
 #define POKER_GAME_NAME "Poker"
@@ -27,9 +29,12 @@ namespace Poker
 		case RULE_FreeCell: return "FreeCell";
 		case RULE_DouDizhu: return "Dou-Dizhu";
 		}
+
+		return "Unknown";
 	}
 
 	class GameModule : public IGameModule
+		             , public LegacyPlatformRenderSetup
 	{
 	public:
 		GameModule();
@@ -37,11 +42,13 @@ namespace Poker
 		virtual void  startupModule(){}
 		virtual void  shutdownModule(){}
 	
-		virtual void  enter(){}
+		virtual void  enter();
 		virtual void  exit(){} 
 		virtual void  deleteThis(){ delete this; }
 		//
 		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		
+		virtual void notifyStageInitialized(StageBase* stage);
 	public:
 		virtual char const*           getName(){ return POKER_GAME_NAME; }
 		virtual InputControl&         getInputControl(){ return IGameModule::getInputControl(); }
@@ -58,6 +65,45 @@ namespace Poker
 		GameRule getRule(){ return mRule; }
 
 		GameRule mRule;
+
+		void initializeResource()
+		{
+			mCardDraw = ICardDraw::Create(ICardDraw::eWin7);
+		}
+
+		void releaseResource()
+		{
+			if (mCardDraw)
+			{
+				mCardDraw->release();
+				mCardDraw = nullptr;
+			}
+		}
+
+		bool setupRenderSystem(ERenderSystem systemName) override
+		{
+			initializeResource();
+			if (mSetup)
+			{
+				mSetup->setupCardDraw(mCardDraw);
+			}
+			return true;
+		}
+		void preShutdownRenderSystem(bool bReInit) override
+		{
+			releaseResource();
+		}
+		void setupPlatformGraphic() override
+		{
+			initializeResource();
+			if (mSetup)
+			{
+				mSetup->setupCardDraw(mCardDraw);
+			}
+		}
+
+		ICardDraw* mCardDraw = nullptr;
+		ICardResourceSetup* mSetup = nullptr;
 	};
 
 

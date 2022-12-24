@@ -244,12 +244,7 @@ namespace Render
 
 	VkFrontFace VulkanTranslate::To(EFrontFace face)
 	{
-		switch (face)
-		{
-		case EFrontFace::Default: return VK_FRONT_FACE_CLOCKWISE;
-		case EFrontFace::Inverse: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		}
-		return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		return face == EFrontFace::Default ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
 	}
 
 	VkSamplerMipmapMode VulkanTranslate::ToMipmapMode(ESampler::Filter filter)

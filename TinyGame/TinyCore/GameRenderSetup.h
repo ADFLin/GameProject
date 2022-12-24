@@ -18,6 +18,7 @@ struct RenderSystemConfigs
 	int32 numSamples;
 	bool  bVSyncEnable;
 	bool  bDebugMode;
+	bool  bWasUsedPlatformGraphics;
 
 	RenderSystemConfigs()
 	{
@@ -26,6 +27,7 @@ struct RenderSystemConfigs
 		numSamples = 1;
 		bVSyncEnable = false;
 		bDebugMode = true;
+		bWasUsedPlatformGraphics = false;
 	}
 };
 
@@ -54,9 +56,25 @@ public:
 	{
 		return true;
 	}
+
 	virtual void preShutdownRenderSystem(bool bReInit = false)
 	{
 
+	}
+
+	virtual void setupPlatformGraphic()
+	{
+
+	}
+};
+
+
+class LegacyPlatformRenderSetup : public IGameRenderSetup
+{
+public:
+	virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+	{
+		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
 };
 

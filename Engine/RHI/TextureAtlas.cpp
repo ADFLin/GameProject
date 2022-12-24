@@ -1,7 +1,5 @@
 #include "TextureAtlas.h"
 
-#include "stb/stb_image.h"
-
 #include "Image/ImageData.h"
 #include "RHICommand.h"
 
@@ -34,7 +32,7 @@ namespace Render
 	int TextureAtlas::addImageFile(char const* path)
 	{
 		ImageData imageData;
-		if (!imageData.load(path , false , false))
+		if (!imageData.load(path))
 			return false;
 
 		int result = INDEX_NONE;
@@ -55,19 +53,14 @@ namespace Render
 
 	bool TextureAtlas::addImageFile(int id, char const* path)
 	{
-		int w;
-		int h;
-		int comp;
-		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
-
-		if( !image )
+		ImageData imageData;
+		if (!imageData.load(path))
 			return false;
 
 		int result = -1;
-
 		ETexture::Format format = ETexture::RGBA8;
 		//#TODO
-		switch( comp )
+		switch( imageData.numComponent )
 		{
 		case 3:
 			format = ETexture::RGB8;
@@ -79,7 +72,7 @@ namespace Render
 			return false;
 		}
 
-		if( !addImageInteranl(id, w, h, format, image, 0) )
+		if( !addImageInteranl(id, imageData.width, imageData.height, format, imageData.data, 0) )
 			return false;
 
 		if( mNextImageId <= id )
@@ -90,10 +83,10 @@ namespace Render
 
 	int TextureAtlas::addImage(int w, int h, ETexture::Format format, void* data, int dataImageWidth)
 	{
-		if( !addImageInteranl(mNextImageId, w, h, format, data, dataImageWidth) )
+		int result = mNextImageId;
+		if( !addImageInteranl(result, w, h, format, data, dataImageWidth) )
 			return INDEX_NONE;
 
-		int result = mNextImageId;
 		++mNextImageId;
 		return result;
 	}

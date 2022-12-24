@@ -624,7 +624,7 @@ namespace Render
 		~D3D12System();
 		RHISystemName getName() const { return RHISystemName::D3D12; }
 		bool initialize(RHISystemInitParams const& initParam);
-		void preShutdown() { }
+		void preShutdown();
 		void shutdown();
 		virtual ShaderFormat* createShaderFormat();
 

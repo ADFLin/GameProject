@@ -19,9 +19,11 @@
 #if USE_PROFILE
 #	define	PROFILE_ENTRY( name )         ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( name );
 #	define	PROFILE_ENTRY2( name , flag ) ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( name , flag );
+#   define	PROFILE_FUNCTION()             ProfileSampleScope ANONYMOUS_VARIABLE(ProflieFunc)( __FUNCTION__);
 #else
 #	define	PROFILE_ENTRY( name )
 #	define	PROFILE_ENTRY2( name , flag )
+#   define	PROFILE_FUNCTION()
 #endif //USE_PROFILE
 
 
@@ -47,6 +49,9 @@ public:
 	ProfileSampleNode(const char * name, ProfileSampleNode * parent);
 	~ProfileSampleNode();
 
+
+	bool haveParent() const { return !!mParent; }
+
 	ProfileSampleNode*    getSubNode(const char * name);
 	ProfileSampleNode*    getParent() { return mParent; }
 	ProfileSampleNode*    getSibling() { return mSibling; }
@@ -63,17 +68,17 @@ public:
 
 protected:
 
-	void                addSubNode(ProfileSampleNode* node)
+	void  addSubNode(ProfileSampleNode* node)
 	{
+		CHECK(node);
 		node->mSibling = mChild;
 		mChild = node;
 	}
 
-
 	void				unlink();
 	void				reset();
-	void				onCall();
-	bool				onReturn();
+	void				notifyCall();
+	bool				notifyReturn();
 
 	int                 mLastCallFrame;
 	int                 mFrameCalls;

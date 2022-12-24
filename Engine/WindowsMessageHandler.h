@@ -1,7 +1,6 @@
 #pragma once
-#ifndef WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E
-#define WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E
-
+#ifndef WindowsMessageHandler_H_9D1BE6DC_A32F_4152_BE23_850B5FA01404
+#define WindowsMessageHandler_H_9D1BE6DC_A32F_4152_BE23_850B5FA01404
 
 #include "WindowsHeader.h"
 #include "SystemMessage.h"
@@ -19,6 +18,7 @@ enum
 	MSG_PAINT    = BIT(4),	
 	MSG_DESTROY  = BIT(5),
 	MSG_DATA     = BIT(6),
+	MSG_SIZE     = BIT(7),
 };
 
 namespace Private
@@ -33,7 +33,7 @@ namespace Private
 	};
 }
 
-#define MSG_DEUFLT MSG_CHAR | MSG_KEY | MSG_MOUSE | MSG_ACTIAVTE | MSG_PAINT | MSG_DESTROY
+#define MSG_DEUFLT MSG_CHAR | MSG_KEY | MSG_MOUSE | MSG_ACTIAVTE | MSG_PAINT | MSG_DESTROY | MSG_SIZE
 
 template< class T , unsigned MSG = MSG_DEUFLT >
 class WindowsMessageHandlerT : private TSelect< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::Type
@@ -49,14 +49,15 @@ public:
 	}
 
 public:
-	CRTP_FUNC MsgReply handleMouseEvent( MouseMsg const& msg ){ return true; }
-	CRTP_FUNC MsgReply handleKeyEvent(KeyMsg const& msg ){ return true; }
+	CRTP_FUNC MsgReply handleMouseEvent(MouseMsg const& msg){ return MsgReply::Unhandled(); }
+	CRTP_FUNC MsgReply handleKeyEvent(KeyMsg const& msg ){ return MsgReply::Unhandled(); }
 	CRTP_FUNC MsgReply handleCharEvent( unsigned code ){ return MsgReply::Unhandled(); }
 	CRTP_FUNC bool handleWindowActivation( bool beA ){ return true; }
 	CRTP_FUNC void handleWindowPaint( HDC hDC ){}
 	CRTP_FUNC bool handleWindowDestroy(HWND hWnd) { return true; }
 	CRTP_FUNC bool handleIMECharEvent(){ return true;}
 	CRTP_FUNC bool handleDataPaste(){ return true; }
+	CRTP_FUNC bool handleWindowResize(int sizeX, int sizeY) { return true; }
 
 public:
 	static LRESULT CALLBACK MsgProc( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam );
@@ -112,6 +113,14 @@ private:
 	{
 		return _this()->handleDataPaste();
 	}
+
+	bool _procSizeMsg(HWND hWnd, UINT msg, WPARAM, LPARAM lParam, LRESULT& result)
+	{
+		int sizeX = LOWORD(lParam);
+		int sizeY = HIWORD(lParam);
+		return _this()->handleWindowResize(sizeX, sizeY);
+	}
+
 	inline  T* _this(){ return static_cast< T* >( this ); }
 
 	template< bool (ThisType::*FUNC)( HWND , UINT , WPARAM , LPARAM , LRESULT& ) >
@@ -147,10 +156,11 @@ LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg ,
 		return result;\
 	}
 
-
 	case WM_CREATE:
 		break;
-
+	case WM_SIZE:
+		PROC_MSG_FUNC(MSG_SIZE, _procSizeMsg);
+		break;
 	case WM_ACTIVATE: 
 		PROC_MSG_FUNC( MSG_ACTIAVTE , _procActivateMsg ); 
 		break;
@@ -183,7 +193,7 @@ LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg ,
 
 		}
 		break;
-#undef PROC_MSG_FUN
+#undef PROC_MSG_FUNC
 	}
 
 	return ::DefWindowProc ( hWnd , msg , wParam, lParam );
@@ -254,4 +264,4 @@ bool WindowsMessageHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM
 	return _this()->handleMouseEvent( MouseMsg( x , y , button , mMouseState ) ).isHandled() == false;
 }
 
-#endif // WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E
+#endif // WindowsMessageHandler_H_9D1BE6DC_A32F_4152_BE23_850B5FA01404

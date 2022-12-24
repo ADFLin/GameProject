@@ -41,7 +41,7 @@ namespace SR
 	bool Texture::load(char const* path)
 	{
 		ImageData imageData;
-		if (!imageData.load(path, false, false))
+		if (!imageData.load(path))
 			return false;
 
 		mSize.x = imageData.width;

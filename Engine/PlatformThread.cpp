@@ -1,4 +1,5 @@
 #include "PlatformThread.h"
+#include "CString.h"
 
 #if SYS_PLATFORM_WIN
 
@@ -84,6 +85,12 @@ bool WindowsThread::setPriorityLevel( DWORD level )
 	return true;
 }
 
+void WindowsThread::setDisplayName(char const* name)
+{
+	SetThreadName(mThreadID, name);
+	SetThreadDescription(mhThread, FCString::CharToWChar(name).c_str());
+}
+
 void WindowsThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
 {
 	/**
@@ -116,6 +123,7 @@ void WindowsThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
 	}
 	__except( EXCEPTION_EXECUTE_HANDLER )
 	{
+
 	}
 }
 

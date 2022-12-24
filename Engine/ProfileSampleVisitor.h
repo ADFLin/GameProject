@@ -1,6 +1,7 @@
 #pragma once
 #ifndef ProfileSampleVisitor_H_36B36769_BE47_4E96_B0F8_62F7B221D4CF
 #define ProfileSampleVisitor_H_36B36769_BE47_4E96_B0F8_62F7B221D4CF
+#include "ProfileSystem.h"
 
 template < typename T >
 class ProfileNodeVisitorT
@@ -28,15 +29,14 @@ public:
 
 	void visitNodes(uint32 threadId = 0)
 	{
-		VisitContext context;
-		context.node = ProfileSystem::Get().getRootSample(threadId);
-
 		SampleNode* root = ProfileSystem::Get().getRootSample(threadId);
 		_this()->onRoot(root);
 
+		VisitContext context;
+		context.node = root;
 		VisitContext childContext;
 		childContext.parentTime = ProfileSystem::Get().getDurationSinceReset();
-		childContext.parentFrameTime = 0.0;
+		childContext.parentFrameTime = ProfileSystem::Get().getLastFrameDuration();
 
 		SampleNode* node = root->getChild();
 		for (; node; node = node->getSibling())

@@ -1,9 +1,9 @@
-#include "TinyGamePCH.h"
 #include "PropertySet.h"
 #include "Core/StringConv.h"
+#include "StringParse.h"
 
 #include <fstream>
-#include "StringParse.h"
+#include <algorithm>
 
 #define GLOBAL_SECTION "__GLOBAL__"
 
@@ -113,12 +113,12 @@ PropertySet::PropertySet()
 	mNextValueSeqOrder = 0;
 }
 
-KeyValue* PropertySet::getKeyValue( char const* group, char const* keyName )
+KeyValue* PropertySet::getKeyValue( char const* section, char const* keyName )
 {
-	if ( !group )
-		group = GLOBAL_SECTION;
+	if ( !section )
+		section = GLOBAL_SECTION;
 
-	auto iter = mSectionMap.find( group );
+	auto iter = mSectionMap.find( section );
 	if ( iter == mSectionMap.end() )
 		return nullptr;
 
@@ -130,11 +130,12 @@ template<>  struct KeyOp< int >  { static int   Get( KeyValue const* value ){ re
 template<>  struct KeyOp< float >{ static  float Get( KeyValue const* value ){ return value->getFloat(); }  };
 template<>  struct KeyOp< char > { static  char  Get( KeyValue const* value ){ return value->getChar(); }  };
 template<>  struct KeyOp< char const* >{ static char const* Get( KeyValue const* value ){ return value->getString(); } };
+template<>  struct KeyOp< bool > { static bool Get(KeyValue const* value) { return value->getBool(); } };
 
 template< class T >
-bool PropertySet::tryGetValueT( char const* keyName , char const* group , T& value )
+bool PropertySet::tryGetValueT( char const* keyName , char const* section , T& value )
 {
-	KeyValue const* keyValue = getKeyValue( group, keyName );
+	KeyValue const* keyValue = getKeyValue( section, keyName );
 	if ( !keyValue )
 		return false;
 
@@ -143,58 +144,68 @@ bool PropertySet::tryGetValueT( char const* keyName , char const* group , T& val
 }
 
 template< class T >
-T PropertySet::getValueT( char const* keyName , char const* group , T defaultValue )
+T PropertySet::getValueT( char const* keyName , char const* section , T defaultValue )
 {
-	if( !group )
-		group = GLOBAL_SECTION;
+	if( !section )
+		section = GLOBAL_SECTION;
 
-	KeyValue const* keyValue = getKeyValue( group, keyName );
+	KeyValue const* keyValue = getKeyValue( section, keyName );
 	if ( keyValue )
 	{
 		return KeyOp<T>::Get( keyValue );
 	}
-	setKeyValue( keyName , group , defaultValue );
+	setKeyValue( keyName , section , defaultValue );
 	return defaultValue;
 }
 
-bool PropertySet::tryGetCharValue( char const* keyName , char const* group , char& value )
+bool PropertySet::tryGetCharValue( char const* keyName , char const* section , char& value )
 {
-	return tryGetValueT( keyName , group , value );
+	return tryGetValueT( keyName , section , value );
 }
 
-bool PropertySet::tryGetIntValue( char const* keyName , char const* group , int& value )
+bool PropertySet::tryGetIntValue( char const* keyName , char const* section , int& value )
 {
-	return tryGetValueT( keyName , group , value );
+	return tryGetValueT( keyName , section , value );
 }
 
-bool PropertySet::tryGetFloatValue( char const* keyName , char const* group , float& value )
+bool PropertySet::tryGetFloatValue( char const* keyName , char const* section , float& value )
 {
-	return tryGetValueT( keyName , group , value );
+	return tryGetValueT( keyName , section , value );
 }
 
-bool PropertySet::tryGetStringValue( char const* keyName , char const* group , char const*& value )
+bool PropertySet::tryGetStringValue( char const* keyName , char const* section , char const*& value )
 {
-	return tryGetValueT( keyName , group , value );
+	return tryGetValueT( keyName , section , value );
 }
 
-char PropertySet::getCharValue( char const* keyName , char const* group , char defaultValue )
+bool PropertySet::tryGetBoolValue(char const* keyName, char const* section, bool& value)
 {
-	return getValueT( keyName , group , defaultValue );
+	return tryGetValueT(keyName, section, value);
 }
 
-int PropertySet::getIntValue( char const* keyName , char const* group , int defaultValue )
+char PropertySet::getCharValue( char const* keyName , char const* section , char defaultValue )
 {
-	return getValueT( keyName , group , defaultValue );
+	return getValueT( keyName , section , defaultValue );
 }
 
-float PropertySet::getFloatValue( char const* keyName , char const* group , float defaultValue )
+int PropertySet::getIntValue( char const* keyName , char const* section , int defaultValue )
 {
-	return getValueT( keyName , group , defaultValue );
+	return getValueT( keyName , section , defaultValue );
 }
 
-char const* PropertySet::getStringValue( char const* keyName , char const* group , char const* defaultValue )
+float PropertySet::getFloatValue( char const* keyName , char const* section , float defaultValue )
 {
-	return getValueT( keyName , group , defaultValue );
+	return getValueT( keyName , section , defaultValue );
+}
+
+char const* PropertySet::getStringValue( char const* keyName , char const* section , char const* defaultValue )
+{
+	return getValueT( keyName , section , defaultValue );
+}
+
+bool PropertySet::getBoolValue(char const* keyName, char const* section, bool defaultValue)
+{
+	return getValueT(keyName, section, defaultValue);
 }
 
 bool PropertySet::saveFile( char const* path )
@@ -251,11 +262,11 @@ static char* SkipTo( char* str , char* s )
 	return strpbrk( str , s );
 }
 
-static void RemoveTailSpace( char* str )
+static void TrimEnd( char* str )
 {
 	char* p = str;
 	do { --p; } while( FCString::IsSpace( *p ) );
-	*( p + 1 ) = '\0';
+	*( p + 1 ) = 0;
 }
 
 enum
@@ -290,10 +301,10 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 		if ( token == nullptr )
 			return PARSE_SECTION_ERROR;
 
-		RemoveTailSpace( token );
+		TrimEnd( token );
 
 		token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ) );
-		if ( *token != '\0' )
+		if ( *token != 0 )
 			return PARSE_SECTION_ERROR;
 
 		*curSection = &mSectionMap[ sectionName ];
@@ -310,12 +321,12 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 				char* keyName = token;
 				token = test;
 
-				RemoveTailSpace( token );
+				TrimEnd( token );
 
 				token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ));
 				char* keyValueString = token;
 
-				RemoveTailSpace( token + strlen( token ) );
+				TrimEnd( token + strlen( token ) );
 
 				auto pKeyValue = (*curSection)->addKeyValue( keyName , keyValueString );
 

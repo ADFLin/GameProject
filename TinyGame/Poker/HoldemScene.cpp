@@ -167,14 +167,11 @@ namespace Holdem {
 		,mPanel( NULL )
 	{
 		mLevel->setListener( this );
-		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
-		mCardSize = mCardDraw->getSize();
 	}
 
 	Scene::~Scene()
 	{
 		mLevel->setListener( NULL );
-		mCardDraw->release();
 	}
 
 	void Scene::render( IGraphics2D& g )
@@ -199,6 +196,8 @@ namespace Holdem {
 		int const CommunityCardOffset = ComunityCardGap + mCardSize.x;
 		int const ComunityCardGroupOffset = (ComunityCardGap * 4 + 5 * mCardSize.x) / 2;
 		int cardNum = mLevel->getCommunityCardNum();
+
+		g.setBrush(Color3ub::White());
 		for( int i = 0 ; i < cardNum ; ++i )
 		{
 			Card const& card = mLevel->getCommunityCard( i );
@@ -241,10 +240,16 @@ namespace Holdem {
 		}
 	}
 
-	void Scene::drawPlayerState( IGraphics2D& g , Vec2i const& pos , int posSlot , SlotInfo const& info )
+	void Scene::setupCardDraw(ICardDraw* cardDraw)
+	{
+		mCardDraw = cardDraw;
+		mCardSize = cardDraw->getSize();
+	}
+
+	void Scene::drawPlayerState(IGraphics2D& g, Vec2i const& pos, int posSlot, SlotInfo const& info)
 	{
 		InlineString<64> str;
-
+		RenderUtility::SetFont(g, FONT_S8);
 		g.setTextColor(Color3ub(255 , 0 , 0) );
 		switch( info.status )
 		{
@@ -341,6 +346,7 @@ namespace Holdem {
 				
 				for( int i = 0; i < PocketCardNum; ++i )
 				{
+					g.setBrush(Color3ub::White());
 					if( info.pocketCards[i] != -1 )
 					{
 						Card card = Card(info.pocketCards[i]);

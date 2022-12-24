@@ -49,12 +49,11 @@ namespace Render
 	template< class T >
 	bool CheckStateDirty(T& committedValue, T const& pandingValue)
 	{
-		if (GForceInitState || committedValue != pandingValue)
-		{
-			committedValue = pandingValue;
-			return true;
-		}
-		return false;
+		if (committedValue == pandingValue)
+			return GForceInitState;
+
+		committedValue = pandingValue;
+		return true;
 	}
 
 	template< class T >
@@ -246,7 +245,7 @@ namespace Render
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 		GRHIClipZMin = -1;
-		GRHIProjectYSign = 1;
+		GRHIProjectionYSign = 1;
 		GRHIVericalFlip = 1;
 
 		if (GRHIDeviceVendorName == DeviceVendorName::NVIDIA)
@@ -453,6 +452,7 @@ namespace Render
 	}
 
 	RHIRasterizerState* OpenGLSystem::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+
 	{
 		return new OpenGLRasterizerState(initializer);
 	}
@@ -1375,6 +1375,11 @@ namespace Render
 		if (GL_CHECK_STATE_DIRTY(bEnableCull))
 		{
 			EnableGLState(GL_CULL_FACE, pendingValue.bEnableCull);
+
+			if (GL_CHECK_STATE_DIRTY(frontFace))
+			{
+				glFrontFace(pendingValue.frontFace);
+			}
 
 			if (GL_CHECK_STATE_DIRTY(cullFace))
 			{

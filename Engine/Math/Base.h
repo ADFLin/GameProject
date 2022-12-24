@@ -11,8 +11,8 @@
 #include "CompilerConfig.h"
 #include "EnumCommon.h"
 
-float constexpr FLT_DIV_ZERO_EPSILON = 1e-6f;
-
+float constexpr FLOAT_DIV_ZERO_EPSILON = 1e-6f;
+float constexpr FLOAT_EPSILON = 1e-5f;
 namespace Math
 {
 	float constexpr MaxFloat = FLT_MAX;
@@ -113,7 +113,7 @@ namespace Math
 		float d21 = v2.dot(v1);
 		float denom = d00 * d11 - d01 * d01;
 
-		if( Math::Abs(denom) < FLT_DIV_ZERO_EPSILON )
+		if( Math::Abs(denom) < FLOAT_DIV_ZERO_EPSILON )
 			return false;
 
 		coord[1] = (d11 * d20 - d01 * d21) / denom;

@@ -4,7 +4,7 @@
 #include "PokerBase.h"
 #include "Big2Utility.h"
 
-#include "DataStructure/FixVector.h"
+#include "DataStructure/FixedArray.h"
 #include "Core/IntegerType.h"
 #include "DataTransfer.h"
 
@@ -17,7 +17,7 @@ namespace Big2 {
 	int const MaxPlayerCardNum = 26;
 	int const PlayerCardNum = 13;
 
-	typedef FixVector< Card , 13 > CardDeck;
+	typedef TFixedArray< Card , 13 > CardDeck;
 	inline void RemoveCards( CardDeck& cards , int* pIndex , int num )
 	{
 		int temp[ 52 ];
@@ -179,7 +179,10 @@ namespace Big2 {
 		CardDeck&   getSlotOwnCards( int slotId ){ return mSlotOwnCards[ slotId ]; }
 		void        setSlotBot( int slotId , IBot* bot ){ mBot[ slotId ] = bot;  }
 		IBot*       getSlotBot( int slotId ){ return mBot[ slotId ];  }
-
+		bool        checkSlotShowCard(int slotId, int pIndex[], int num, TrickInfo& info)
+		{
+			return checkShowCard(getSlotOwnCards(slotId), pIndex, num, info);
+		}
 
 	private:
 		

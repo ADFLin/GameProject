@@ -3,7 +3,7 @@
 
 #include "PokerBase.h"
 
-#include "DataStructure/FixVector.h"
+#include "DataStructure/FixedArray.h"
 
 #include <vector>
 #include <cstdlib>
@@ -174,7 +174,7 @@ namespace Poker
 	private:
 		StackCell  mSCells[ SCellNum ];
 		FreeCell   mFCells[ FCellNum ];
-		GoalCell   mGCells[4];
+		GoalCell   mGCells[ 4 ];
 		Cell*      mCells[ TotalCellNum ];
 
 	};

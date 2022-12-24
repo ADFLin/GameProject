@@ -27,15 +27,20 @@ namespace CarTrain
 	{
 	public:
 		Box2DDraw(RHIGraphics2D& g)
-			:g(g)
+			:mGraphic(&g)
 		{
 			SetFlags(e_shapeBit);
 		}
 
+		void setGraphics(RHIGraphics2D& g)
+		{
+			mGraphic = &g;
+		}
+
 		void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
 		{
-			g.enableBrush(false);
-			g.setPen(B2Conv::To(color).rgb());
+			mGraphic->enableBrush(false);
+			mGraphic->setPen(B2Conv::To(color).rgb());
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
@@ -48,35 +53,35 @@ namespace CarTrain
 			{
 				v[i] = B2Conv::To(vertices[i]);
 			}
-			g.drawPolygon(v, vertexCount);
+			mGraphic->drawPolygon(v, vertexCount);
 
 		}
 
 		void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
 		{
-			g.setPen(Color3f(0, 0, 0));
-			g.setBrush(B2Conv::To(color).rgb());
+			mGraphic->setPen(Color3f(0, 0, 0));
+			mGraphic->setBrush(B2Conv::To(color).rgb());
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
 
 		void DrawCircle(const b2Vec2& center, float32 radius, const b2Color& color) override
 		{
-			g.drawCircle(B2Conv::To(center), radius);
+			mGraphic->drawCircle(B2Conv::To(center), radius);
 		}
 
 
 		void DrawSolidCircle(const b2Vec2& center, float32 radius, const b2Vec2& axis, const b2Color& color) override
 		{
-			g.setPen(Color3f(0, 0, 0));
-			g.setBrush(B2Conv::To(color).rgb());
-			g.drawCircle(B2Conv::To(center), radius);
+			mGraphic->setPen(Color3f(0, 0, 0));
+			mGraphic->setBrush(B2Conv::To(color).rgb());
+			mGraphic->drawCircle(B2Conv::To(center), radius);
 		}
 
 
 		void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override
 		{
-			g.drawLine(B2Conv::To(p1), B2Conv::To(p2));
+			mGraphic->drawLine(B2Conv::To(p1), B2Conv::To(p2));
 		}
 
 
@@ -91,7 +96,7 @@ namespace CarTrain
 		}
 
 
-		RHIGraphics2D& g;
+		RHIGraphics2D* mGraphic;
 	};
 
 	class PhyBodyBox2D : public IPhysicsBody
@@ -274,8 +279,15 @@ namespace CarTrain
 
 		void setupDebug(RHIGraphics2D& g) override
 		{
-			mDebugDraw = std::make_unique< Box2DDraw >(g);
-			mWorld->SetDebugDraw(mDebugDraw.get());
+			if (mDebugDraw)
+			{
+				static_cast<Box2DDraw*>(mDebugDraw.get())->setGraphics(g);
+			}
+			else
+			{
+				mDebugDraw = std::make_unique< Box2DDraw >(g);
+				mWorld->SetDebugDraw(mDebugDraw.get());
+			}
 		}
 
 		void drawDebug() override

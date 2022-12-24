@@ -52,7 +52,7 @@ namespace Render
 
 		Vector3 getViewForwardDir() const
 		{
-			return TransformVector(Vector3(0, 0, -1), viewToWorld);
+			return TransformVector(Vector3(0, 0, 1), viewToWorld);
 		}
 		Vector3 getViewRightDir() const
 		{

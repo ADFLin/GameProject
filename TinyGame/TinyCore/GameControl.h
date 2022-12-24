@@ -4,10 +4,12 @@
 #include "GameGlobal.h"
 #include "SystemMessage.h"
 
+#include "DataStructure/Array.h"
 
 #include <cassert>
 #include <cstdio>
 #include <vector>
+
 
 typedef uint32 ControlAction;
 struct ActionPort
@@ -143,8 +145,8 @@ private:
 		}
 	}
 
-	typedef std::vector< IActionListener*> ListenerList;
-	typedef std::vector< IActionInput* >   InputList;
+	typedef TArray< IActionListener*> ListenerList;
+	typedef TArray< IActionInput* >   InputList;
 
 	struct InputInfo
 	{

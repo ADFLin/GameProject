@@ -436,7 +436,7 @@ namespace Render
 	{
 		GLenum fillMode;
 		GLenum cullFace;
-
+		GLenum frontFace;
 		bool   bEnableCull;
 		bool   bEnableScissor;
 		bool   bEnableMultisample;
@@ -449,6 +449,7 @@ namespace Render
 			bEnableMultisample = false;
 			fillMode = GL_FILL;
 			cullFace = GL_BACK;
+			frontFace = GL_CW;
 		}
 	};
 

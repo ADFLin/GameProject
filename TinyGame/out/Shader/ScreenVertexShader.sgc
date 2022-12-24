@@ -6,7 +6,8 @@
 #if USE_SCREEN_TEXCOORD
 struct VSOutputParameters
 {
-	float2 UVs MEMBER_OUT(TEXCOORD0);
+	float2 pos MEMBER_OUT(TEXCOORD0);
+	float2 UVs MEMBER_OUT(TEXCOORD1);
 };
 #endif
 
@@ -22,7 +23,7 @@ VS_ENTRY_END(ScreenVS)
 {
 	SvPosition = InPosition;
 #if USE_SCREEN_TEXCOORD
-
+	VSOutput.pos = InPosition.xy;
 	VSOutput.UVs = VFLIP(InUV);
 #endif
 }

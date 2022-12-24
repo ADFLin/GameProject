@@ -322,6 +322,7 @@ public:
 	CORE_API void        finalize();
 
 	CORE_API bool        executeCommand(char const* inCmdText);
+	CORE_API int         getAllCommandNames(char const* buffer[], int bufSize);
 	CORE_API int         findCommandName( char const* includeStr, char const** findStr , int maxNum );
 	CORE_API int         findCommandName2( char const* includeStr , char const** findStr , int maxNum );
 

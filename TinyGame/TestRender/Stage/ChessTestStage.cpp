@@ -264,7 +264,7 @@ namespace Chess
 			{
 
 				char const* HDRImagePath = "Texture/HDR/A.hdr";
-				VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), HDRImagePath, TextureLoadOption().HDR().FlipV()));
+				VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), HDRImagePath, TextureLoadOption().HDR()));
 				VERIFY_RETURN_FALSE(mBuilder.loadOrBuildResource(::Global::DataCache(), HDRImagePath, *mHDRImage, mIBLResource));
 			}
 			

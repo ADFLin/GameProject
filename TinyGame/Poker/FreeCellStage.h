@@ -6,11 +6,14 @@
 #include "CardDraw.h"
 #include "Tween.h"
 
+#include "GameRenderSetup.h"
+
 namespace Poker
 {
 
 	class FreeCellStage : public StageBase
 		                , private FreeCellLevel
+		                , public  ICardResourceSetup
 	{
 		typedef StageBase BaseClass;
 	public:
@@ -76,7 +79,7 @@ namespace Poker
 		State      mState;
 		bool       playAnimation(  Card const& card , Vec2i const& to , float delay = 0.0f , int animType = ANIM_MOVEING );
 		Cell*      mSelectCell;
-		ICardDraw* mCardDraw;
+		ICardDraw* mCardDraw = nullptr;
 		Vec2i      mCardSize;
 		typedef Tween::GroupTweener< float > Tweener;
 		Tweener    mTweener;
@@ -95,6 +98,10 @@ namespace Poker
 		int  mMoveStep;
 		bool mbUndoMove;
 		std::vector< MoveInfo > mMoveInfoVec;
+
+		//ICardResourceSetup
+		void setupCardDraw(ICardDraw* cardDraw) override;
+
 	};
 
 }//namespace Poker

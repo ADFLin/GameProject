@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="OtherLib">
+      <UniqueIdentifier>{0d1f085b-0039-4274-b0fc-927a9fa884fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\ImGui">
+      <UniqueIdentifier>{51fa8093-0356-4bfa-b6bb-001aaa9987d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\ImGui\Backends">
+      <UniqueIdentifier>{0ed0289d-155d-4b1d-a61d-f8a00b71acb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Widget">
+      <UniqueIdentifier>{f03ef978-d0d8-4f45-846f-2c48df63eacd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\OtherLib\ImGui\imconfig.h">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImGui\imgui.h">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImGui\imgui_internal.h">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImGui\imstb_rectpack.h">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImGui\imstb_textedit.h">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImGui\imstb_truetype.h">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor.h" />
+    <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.h">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_win32.h">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorPanel.h" />
+    <ClInclude Include="Widget\ConsolePanel.h">
+      <Filter>Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\ContentPanel.h">
+      <Filter>Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorUtils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\OtherLib\ImGui\imgui.cpp">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImGui\imgui_demo.cpp">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImGui\imgui_draw.cpp">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImGui\imgui_tables.cpp">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImGui\imgui_widgets.cpp">
+      <Filter>OtherLib\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Editor.cpp" />
+    <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.cpp">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_win32.cpp">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorPanel.cpp" />
+    <ClCompile Include="Widget\ConsolePanel.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\ContentPanel.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorUtils.cpp" />
+  </ItemGroup>
+</Project>

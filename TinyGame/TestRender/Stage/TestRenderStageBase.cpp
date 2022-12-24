@@ -201,6 +201,11 @@ namespace Render
 		}
 	}
 
+	void TestRenderStageBase::registerFrameREnderTargets(FrameRenderTargets const& frameRenderTargets)
+	{
+
+	}
+
 	MsgReply TestRenderStageBase::onMouse(MouseMsg const& msg)
 	{
 		static Vec2i oldPos = msg.getPos();

@@ -50,9 +50,8 @@ public:
 
 	IGameRenderSetup* getRenderSetup() { return mRenderSetup; }
 
-	bool setupSystemInternal(ERenderSystem systemName);
 
-	Vec2i          getScreenSize(){ return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() ); }
+	Vec2i          getScreenSize() { return Vec2i(mBufferDC.getWidth(), mBufferDC.getHeight()); }
 	int            getScreenWidth(){ return mBufferDC.getWidth(); }
 	int            getScreenHeight(){ return mBufferDC.getHeight(); }
 	Graphics2D&    getPlatformGraphics(){ return *mPlatformGraphics; }
@@ -66,15 +65,18 @@ public:
 	TINY_API void* getWindowHandle();
 
 	TINY_API void  drawProfile(Vec2i const& pos);
-
+	TINY_API void  toggleGraphics();
 
 	bool          isRHIEnabled() const { return mSystemName != ERenderSystem::None; }
 	ERenderSystem getSystemName() const { return mSystemName; }
 	TINY_API bool isUsageRHIGraphic2D() const;
+	TINY_API void lockSystem();
+
+
 	bool isInitialized() { return mbInitialized; }
 
 	TINY_API bool  startupSystem(ERenderSystem targetName , RenderSystemConfigs const& configs = RenderSystemConfigs() );
-	TINY_API void  shutdownSystem(bool bDeferred = true);
+	TINY_API void  shutdownSystem(bool bDeferred = true, bool bReInit = false);
 
 	TINY_API bool  beginFrame();
 	TINY_API void  endFrame();
@@ -83,9 +85,10 @@ public:
 
 	bool        bUsePlatformBuffer = true;
 	bool        bBlockRender = false;
-	bool        bWasUsedPlatformGrapthics = false;
+	bool        bWasUsedPlatformGraphics = false;
 private:
 	void        setupBuffer( int w , int h );
+	bool        setupSystemInternal(ERenderSystem systemName, bool bForceRHI);
 
 	bool        mbInitialized;
 	bool        bRHIShutdownDeferred;
@@ -100,7 +103,9 @@ private:
 	std::unique_ptr< IGraphics2D > mPlatformProxy;
 	std::unique_ptr< IGraphics2D > mRHIProxy;
 
+	ERenderSystem mSystemLocked = ERenderSystem::None;
 	ERenderSystem mSystemName = ERenderSystem::None;
+	ERenderSystem mLastRHIName = ERenderSystem::None;
 	WindowsGLContext*  mGLContext = nullptr;
 	std::unique_ptr< RHIGraphics2D > mRHIGraphics;
 

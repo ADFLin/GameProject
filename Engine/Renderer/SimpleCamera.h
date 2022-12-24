@@ -46,7 +46,7 @@ namespace Render
 		Matrix4 getTransform() const { return Matrix4(mPos, mRotation); }
 		Vector3 const& getPos() const { return mPos; }
 
-		static Vector3 LocalViewDir() { return Vector3(0, 0, -1); }
+		static Vector3 LocalViewDir() { return Vector3(0, 0, 1); }
 		static Vector3 LocalUpDir() { return Vector3(0, 1, 0); }
 
 		Vector3 getViewDir() const { return mRotation.rotate(LocalViewDir()); }
@@ -66,8 +66,9 @@ namespace Render
 
 		void    rotateByMouse(float dx, float dy)
 		{
-			mYaw -= dx;
-			mPitch -= dy;
+			mYaw += dx;
+			mPitch += dy;
+
 			//float const f = 0.00001;
 			//if ( mPitch < f )
 			//	mPitch = f;

@@ -23,7 +23,7 @@ namespace Render
 
 		void cleanup();
 		bool importFromFile(char const* filePath, Mesh& outMesh, MeshImportSettings* settings) override;
-
+		bool importMultiFromFile(char const* filePath, std::vector<Mesh>& outMeshes, MeshImportSettings* settings) override;
 
 		struct FBXConv
 		{
@@ -103,7 +103,50 @@ namespace Render
 
 		static void GetMeshVertexFormat(FbxMesh* pMesh, FBXVertexFormat& outFormat);
 
+		struct MeshData 
+		{
+			std::vector<uint8>  vertices;
+			std::vector<uint32> indices;
+			int numVertices = 0;
+			InputLayoutDesc desc;
+			std::vector<MeshSection> sections;
+
+			void initSections()
+			{
+				MeshSection section;
+				section.indexStart = 0;
+				section.count = indices.size();
+				sections.push_back(section);
+			}
+
+			void append(MeshData const& other)
+			{
+				if (sections.empty())
+				{
+					initSections();
+				}
+
+				uint32 baseIndex = numVertices;
+				vertices.insert(vertices.end(), other.vertices.begin(), other.vertices.end());
+				
+				int start = indices.size();
+				indices.insert(indices.end(), other.indices.begin(), other.indices.end());
+				for (int i = start; i < indices.size(); ++i)
+				{
+					indices[i] += baseIndex;
+				}
+				numVertices += other.numVertices;
+
+				MeshSection section;
+				section.indexStart = start;
+				section.count = other.indices.size();
+				sections.push_back(section);
+			}
+		};
+		bool parseMesh(FbxMesh* pFBXMesh, MeshData& outData);
 		bool parseMesh(FbxMesh* pFBXMesh, Mesh& outMesh);
+
+		bool createMesh(MeshData& meshData, Mesh &outMesh);
 
 		FbxManager*    mManager = nullptr;
 		FbxIOSettings* mIOSetting = nullptr;

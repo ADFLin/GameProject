@@ -244,6 +244,22 @@ struct FCString
 	FORCEINLINE static bool    IsAlphaNumeric(wchar_t c) { return ::iswalnum(c); }
 
 	template< class CharT >
+	FORCEINLINE static constexpr CharT ToLower(CharT c)
+	{
+		if (STRING_LITERAL(CharT, 'A') <= c && c <= STRING_LITERAL(CharT, 'Z'))
+			return STRING_LITERAL(CharT, 'a') + (c - STRING_LITERAL(CharT, 'A'));
+		return c;
+	}
+
+	template< class CharT >
+	FORCEINLINE static constexpr CharT ToUpper(CharT c)
+	{
+		if (STRING_LITERAL(CharT, 'a') <= c && c <= STRING_LITERAL(CharT, 'z'))
+			return STRING_LITERAL(CharT, 'A') + (c - STRING_LITERAL(CharT, 'a'));
+		return c;
+	}
+
+	template< class CharT >
 	static CharT const* FindChar(CharT const* str, CharT c);
 
 	template< class CharT, class T >
@@ -269,7 +285,6 @@ struct FCString
 
 		return CheckForamtString(format, std::forward<Args>(args)...);
 	}
-
 
 	template< class CharT , int N , class ...Args>
 	FORCEINLINE static int  PrintfT(CharT(&str)[N], CharT const* fmt, Args&& ...args)

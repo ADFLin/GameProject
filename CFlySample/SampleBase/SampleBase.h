@@ -4,7 +4,7 @@
 #include "GameLoop.h"
 
 #include "WindowsPlatform.h"
-#include "WindowsMessageHander.h"
+#include "WindowsMessageHandler.h"
 
 #include "CFlyHeader.h"
 

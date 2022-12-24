@@ -40,7 +40,7 @@ public:
 class CSVWorkerDataTransfer : public CWorkerDataTransfer
 {
 public:
-	CSVWorkerDataTransfer( NetWorker* worker , int numPlayer );
+	CSVWorkerDataTransfer( NetWorker* worker);
 	virtual void sendTcpCommand( int recvId , IComPacket* cp );
 	ServerWorker* getServer();
 

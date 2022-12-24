@@ -195,7 +195,7 @@ namespace Render
 		mbVSyncEnable = initParam.bVSyncEnable;
 
 		GRHIClipZMin = 0;
-		GRHIProjectYSign = 1;
+		GRHIProjectionYSign = 1;
 		GRHIVericalFlip = -1;
 
 		mRenderContext.initialize(mDevice, mDeviceContext);
@@ -620,7 +620,7 @@ namespace Render
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11Translate::To(initializer.fillMode);
 		desc.CullMode = D3D11Translate::To(initializer.cullMode);
-		desc.FrontCounterClockwise = TRUE;
+		desc.FrontCounterClockwise = initializer.frontFace != EFrontFace::Default;
 		desc.DepthBias = 0;
 		desc.DepthBiasClamp = 0;
 		desc.SlopeScaledDepthBias = 0;
@@ -1346,7 +1346,7 @@ namespace Render
 
 	void D3D11Context::RHISetViewport(float x, float y, float w, float h, float zNear, float zFar)
 	{
-		D3D11_VIEWPORT& vp = mViewportState[0];
+		D3D11_VIEWPORT& vp = mViewportStates[0];
 		vp.TopLeftX = x;
 		vp.TopLeftY = y;
 		vp.Width = w;
@@ -1358,22 +1358,22 @@ namespace Render
 
 	void D3D11Context::RHISetViewports(ViewportInfo const viewports[], int numViewports)
 	{
-		assert(numViewports < ARRAY_SIZE(mViewportState));
+		assert(numViewports < ARRAY_SIZE(mViewportStates));
 		for (int i = 0; i < numViewports; ++i)
 		{
-			mViewportState[i].TopLeftX = viewports[i].x;
-			mViewportState[i].TopLeftY = viewports[i].y;
-			mViewportState[i].Width = viewports[i].w;
-			mViewportState[i].Height = viewports[i].h;
-			mViewportState[i].MinDepth = viewports[i].zNear;
-			mViewportState[i].MaxDepth = viewports[i].zFar;
+			mViewportStates[i].TopLeftX = viewports[i].x;
+			mViewportStates[i].TopLeftY = viewports[i].y;
+			mViewportStates[i].Width = viewports[i].w;
+			mViewportStates[i].Height = viewports[i].h;
+			mViewportStates[i].MinDepth = viewports[i].zNear;
+			mViewportStates[i].MaxDepth = viewports[i].zFar;
 		}
-		mDeviceContext->RSSetViewports(numViewports, mViewportState);
+		mDeviceContext->RSSetViewports(numViewports, mViewportStates);
 	}
 
 	void D3D11Context::RHISetScissorRect(int x, int y, int w, int h)
 	{
-		D3D11_VIEWPORT const& vp = mViewportState[0];
+		D3D11_VIEWPORT const& vp = mViewportStates[0];
 		D3D11_RECT rect;	
 
 		rect.left = x;

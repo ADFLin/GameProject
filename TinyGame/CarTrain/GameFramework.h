@@ -216,7 +216,7 @@ namespace CarTrain
 		TEntity* spawnEntity(Args&& ...args)
 		{
 			TEntity* entity = new TEntity;
-			entity->mHandle = mEntitiesManager.createEntity();
+			entity->setHandle(mEntitiesManager.createEntity());
 			entity->mWorld = this;
 			entity->initialize(args...);
 			registerEntity(entity);

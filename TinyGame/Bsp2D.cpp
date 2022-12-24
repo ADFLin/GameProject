@@ -1,37 +1,11 @@
 #include "TinyGamePCH.h"
 #include "Bsp2D.h"
-
-#include "DataStructure/FixVector.h"
+#include "Math/PrimitiveTest.h"
 
 namespace Bsp2D
 {
 	float const WallThin = 1e-3f;
 
-	bool SegmentInterection( Vector2 const& a1 , Vector2 const& a2 , Vector2 const& b1 , Vector2 const& b2 , float& fracA )
-	{
-		float x1 = a1.x, x2 = a2.x, x3 = b1.x, x4 = b2.x;
-		float y1 = a1.y, y2 = a2.y, y3 = b1.y, y4 = b2.y;
-
-		float denom =  x1 * ( y4 - y3 ) + x2 * ( y3 - y4 ) + x4 * ( y2 - y1 ) + x3 * ( y1 - y2 ) ;
-
-		//Segments are parallel
-		if ( fabs ( denom ) < 1e-5 )
-			return false;
-
-		//Compute numerators
-		float numer1 =     x1 * ( y4 - y3 ) + x3 * ( y1 - y4 ) + x4 * ( y3 - y1 );
-		float numer2 = - ( x1 * ( y3 - y2 ) + x2 * ( y1 - y3 ) + x3 * ( y2 - y1 ) );
-
-		double s = numer1 / denom;
-		double t = numer2 / denom;
-
-		if ( s < -FLOAT_EPSILON || s > 1 + FLOAT_EPSILON ||
-			t < -FLOAT_EPSILON || t > 1 + FLOAT_EPSILON )
-			return  false;
-
-		fracA = s;
-		return true;
-	}
 
 	void Plane::init( Vector2 const& v1 , Vector2 const& v2 )
 	{
@@ -85,7 +59,7 @@ namespace Bsp2D
 		return SIDE_IN;
 	}
 
-	Bsp2D::Side Plane::testSegment( Vector2 const& v0 , Vector2 const& v1 )
+	Side Plane::testSegment( Vector2 const& v0 , Vector2 const& v1 )
 	{
 		float dist;
 		Side s0 = testSide( v0 , dist );
@@ -329,7 +303,7 @@ namespace Bsp2D
 					Edge& edge = mTree->getEdge( idxEdge );
 
 					float frac;
-					if ( SegmentInterection( mStart , mEnd , edge.v[0] , edge.v[1] , frac ) )
+					if ( Math::SegmentInterection( mStart , mEnd , edge.v[0] , edge.v[1] , frac ) )
 					{
 						mInfo->indexEdge = idxEdge;
 						mInfo->frac = frac;

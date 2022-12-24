@@ -220,7 +220,6 @@
     <ClInclude Include="TinyCore\GameModule.h" />
     <ClInclude Include="TinyCore\GameStage.h" />
     <ClInclude Include="TinyCore\GameWidgetID.h" />
-    <ClInclude Include="TinyCore\PropertySet.h" />
     <ClInclude Include="TinyCore\StageBase.h" />
     <ClInclude Include="TinyCore\UserProfile.h" />
     <ClInclude Include="TinyGamePCH.h" />
@@ -252,7 +251,6 @@
     <ClCompile Include="TinyCore\GameModule.cpp" />
     <ClCompile Include="TinyCore\GameStage.cpp" />
     <ClCompile Include="TinyCore\GameStageMode.cpp" />
-    <ClCompile Include="TinyCore\PropertySet.cpp" />
     <ClCompile Include="TinyCore\StageBase.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

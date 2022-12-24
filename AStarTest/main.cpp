@@ -6,7 +6,7 @@
 #include "SystemPlatform.h"
 #include "WindowsPlatform.h"
 
-#include "WindowsMessageHander.h"
+#include "WindowsMessageHandler.h"
 #include "WinGDIRenderSystem.h"
 
 #include "TQTPortalAStar.h"

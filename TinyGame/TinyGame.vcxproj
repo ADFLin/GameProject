@@ -65,6 +65,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+	<RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
@@ -75,6 +76,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
@@ -87,6 +89,7 @@
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
     <IntDir>$(Configuration)\$(Platform)\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -135,7 +138,9 @@ copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
 copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
 copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
-copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -145,7 +150,7 @@ copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\</Command>
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;out/Shader;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../Editor;../OtherLib;out/Shader;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -186,7 +191,8 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
 copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
-copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -235,7 +241,9 @@ copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
 copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
 copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
-copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
+copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -243,7 +251,7 @@ copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\</Command>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../OtherLib;out/Shader;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../Engine;../Editor;../OtherLib;out/Shader;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -282,7 +290,8 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\
 copy $(TargetDir)OpenGLRHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D11RHI.dll  $(ProjectDir)out\
 copy $(TargetDir)D3D12RHI.dll  $(ProjectDir)out\
-copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\</Command>
+copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\
+copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -420,7 +429,6 @@ copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="VoronoiStage.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="poker\bitmap1.bmp" />
     <Image Include="Poker\cards.bmp" />
     <Image Include="Poker\cards_mask.bmp" />
     <Image Include="Resource\GameIcon.ico" />
@@ -432,8 +440,12 @@ copy $(TargetDir)VulkanRHI.dll  $(ProjectDir)out\</Command>
     <None Include="out\Game.ini" />
     <None Include="out\TestShader\Pixel.sgc" />
     <None Include="out\TestShader\Vertex.sgc" />
+    <None Include="Poker\cards.bin" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Editor\Editor.vcxproj">
+      <Project>{4267392d-1d50-4223-a1c1-fc37a80f7d59}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\Engine\D3D11RHI.vcxproj">
       <Project>{d400fd7c-3d3a-47e2-992e-f6aa70e4192b}</Project>
     </ProjectReference>

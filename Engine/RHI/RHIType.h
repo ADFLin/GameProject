@@ -44,7 +44,7 @@ namespace Render
 	public:
 		LookAtMatrix(Vector3 const& eyePos, Vector3 const& lookDir, Vector3 const& upDir)
 		{
-			Vector3 zAxis = -Math::GetNormal(lookDir);
+			Vector3 zAxis = Math::GetNormal(lookDir);
 			Vector3 xAxis = Math::GetNormal(upDir.cross(zAxis));
 			Vector3 yAxis = zAxis.cross(xAxis);
 			setValue(
@@ -56,7 +56,7 @@ namespace Render
 
 		LookAtMatrix(Vector3 const& lookDir, Vector3 const& upDir)
 		{
-			Vector3 zAxis = -Math::GetNormal(lookDir);
+			Vector3 zAxis = Math::GetNormal(lookDir);
 			Vector3 xAxis = Math::GetNormal(upDir.cross(zAxis));
 			Vector3 yAxis = zAxis.cross(xAxis);
 			setValue(
@@ -71,10 +71,10 @@ namespace Render
 	{
 		Matrix4 clipTranslateAndScaleMatrix
 		{
-			1 ,                0 ,                0 , 0,
-			0 , GRHIProjectYSign ,                0 , 0,
-			0 ,                0 , 1 - GRHIClipZMin , 0,
-			0 ,                0 ,     GRHIClipZMin , 1
+			1,                   0,                0, 0,
+			0, GRHIProjectionYSign,                0, 0,
+			0,                   0, 1 - GRHIClipZMin, 0,
+			0,                   0,     GRHIClipZMin, 1
 		};
 
 		return inProjection * clipTranslateAndScaleMatrix;
@@ -90,7 +90,7 @@ namespace Render
 			setValue(
 				f / aspect, 0,                       0,  0,
 				         0, f,                       0,  0,
-				         0, 0,         -zFar * zFactor, -1,
+				         0, 0,         zFar * zFactor,   1,
 				         0, 0, -zFar * zNear * zFactor,  0);
 		}
 
@@ -103,7 +103,7 @@ namespace Render
 			setValue(
 			               zn2 * xFactor,                        0,                       0,  0,
 				                       0,            zn2 * yFactor,                       0,  0,
-				(right + left) * xFactor, (top + bottom) * yFactor,         -zFar * zFactor, -1,
+				(right + left) * xFactor, (top + bottom) * yFactor,          zFar * zFactor,  1,
 				                       0,                        0, -zFar * zNear / zFactor,  0);
 		}
 	};
@@ -124,7 +124,7 @@ namespace Render
 				         0, 0,        zNear * zFactor, -1,
 				         0, 0, zFar * zNear * zFactor,  0);
 		}
-
+		//#FIXME
 		FORCEINLINE ReverseZPerspectiveMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
 		{
 			float xFactor = 1 / (right - left);
@@ -151,7 +151,7 @@ namespace Render
 			setValue(
 				xFactor,       0,                0, 0,
 				      0, yFactor,                0, 0,
-				      0,       0,         -zFactor, 0,
+				      0,       0,          zFactor, 0,
 				      0,       0, -zNear * zFactor, 1);
 		}
 
@@ -163,7 +163,7 @@ namespace Render
 			setValue(
 				              2 * xFactor,                         0,                0, 0,
 				                        0,               2 * yFactor,                0, 0,
-				                        0,                         0,         -zFactor, 0,
+				                        0,                         0,          zFactor, 0,
 				-(left + right) * xFactor, -(top + bottom) * yFactor, -zNear * zFactor, 1);
 		}
 	};

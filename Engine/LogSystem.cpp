@@ -63,42 +63,42 @@ void LogRemoveListenLogChannel(LogOutput& listener, LogChannel channel)
 }
 
 #if CORE_SHARE_CODE
-void LogMsg(char const* str)
+void LogMsgImpl(char const* str)
 {
 	LogManager::Get().sendMessage(LOG_MSG, 0, str);
 }
 
-void LogError(char const* str)
+void LogErrorImpl(char const* str)
 {
 	LogManager::Get().sendMessage(LOG_ERROR, 0, str);
 }
 
-void LogDevMsg(int level, char const* str)
+void LogDevMsgImpl(int level, char const* str)
 {
 	LogManager::Get().sendMessage(LOG_DEV, level, str);
 }
 
-void LogWarning(int level, char const* str)
+void LogWarningImpl(int level, char const* str)
 {
 	LogManager::Get().sendMessage(LOG_WARNING, level, str);
 }
 
-void LogMsgV(char const* format, va_list argptr)
+void LogMsgVImpl(char const* format, va_list argptr)
 {
 	LogManager::Get().sendMessageV(LOG_MSG, format, 0, argptr);
 }
 
-void LogErrorV(char const* format, va_list argptr)
+void LogErrorVImpl(char const* format, va_list argptr)
 {
 	LogManager::Get().sendMessageV(LOG_ERROR, format, 0, argptr);
 }
 
-void LogDevMsgV(int level, char const* format, va_list argptr)
+void LogDevMsgVImpl(int level, char const* format, va_list argptr)
 {
 	LogManager::Get().sendMessageV(LOG_DEV, format, level, argptr);
 }
 
-void LogWarningV(int level, char const* format, va_list argptr)
+void LogWarningVImpl(int level, char const* format, va_list argptr)
 {
 	LogManager::Get().sendMessageV(LOG_WARNING, format, level, argptr);
 }

@@ -280,7 +280,7 @@ namespace Phy2D
 		p[1] = e->sv->v.cross( e->normal );
 		p[0] = e->normal.cross( next->sv->v );
 		float sum = p[0] + p[1];
-		if ( Math::Abs( sum ) < FLT_DIV_ZERO_EPSILON )
+		if ( Math::Abs( sum ) < FLOAT_DIV_ZERO_EPSILON )
 		{
 			p[0] = p[1] = 0.5;
 		}
@@ -389,7 +389,7 @@ namespace Phy2D
 			return false;
 
 		float len = Math::Sqrt( len2 );
-		if ( len < FLT_DIV_ZERO_EPSILON )
+		if ( len < FLOAT_DIV_ZERO_EPSILON )
 		{
 			c.depth = r;
 			c.normal = Vector2(1,0);
@@ -490,7 +490,7 @@ namespace Phy2D
 				return false;
 			len = Math::Sqrt( len );
 			c.depth = radius - len;
-			if ( len < FLT_DIV_ZERO_EPSILON )
+			if ( len < FLOAT_DIV_ZERO_EPSILON )
 			{
 				c.normal = GetNormal( Vector2( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
 			}

@@ -18,6 +18,13 @@ namespace Render
 		IBLShaderParameters mParamIBL;
 	};
 
+	class PongProgram : public ShaderProgram
+	{
+	public:
+
+
+	};
+
 	class FBXImportTestStage : public BRDFTestStage
 	{
 		using BaseClass = BRDFTestStage;
@@ -29,12 +36,15 @@ namespace Render
 		}
 
 		EnvTestProgram mTestShader;
-
+		ShaderProgram  mPongShader;
+		ShaderProgram  mClipCoordShader;
 		Mesh mMesh;
+		std::vector<Mesh> mCharMeshes;
 		RHITexture2DRef mDiffuseTexture;
 		RHITexture2DRef mNormalTexture;
 		RHITexture2DRef mMetalTexture;
 		RHITexture2DRef mRoughnessTexture;
+
 		bool mbUseMipMap = true;
 
 		float mSkyLightInstensity = 1.0;
@@ -53,7 +63,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 		virtual bool setupRenderSystem(ERenderSystem systemName) override
 		{
@@ -64,11 +74,20 @@ namespace Render
 				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mTestShader, "Shader/Game/EnvLightingTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), nullptr));
 			}
 			{
+				TIME_SCOPE("Pong Shader");
+				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mPongShader, "Shader/Game/PongShader", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), nullptr));
+			}
+
+			{
+				TIME_SCOPE("ClipCoord Shader");
+				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mClipCoordShader, "Shader/Game/ClipCoord", SHADER_ENTRY(ScreenVS), SHADER_ENTRY(MainPS), nullptr));
+			}
+			{
 				TIME_SCOPE("Mesh Texture");
-				VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_A.tga", TextureLoadOption().SRGB().AutoMipMap().FlipV()));
-				VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_N.tga", TextureLoadOption().AutoMipMap().FlipV()));
-				VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().AutoMipMap().FlipV()));
-				VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().AutoMipMap().FlipV()));
+				VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_A.tga", TextureLoadOption().SRGB().AutoMipMap()));
+				VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_N.tga", TextureLoadOption().AutoMipMap()));
+				VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().AutoMipMap()));
+				VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().AutoMipMap()));
 
 				GTextureShowManager.registerTexture("CD", mDiffuseTexture);
 				GTextureShowManager.registerTexture("CN", mNormalTexture);
@@ -77,13 +96,28 @@ namespace Render
 			}
 			{
 				TIME_SCOPE("FBX Mesh");
-				char const* filePath = "Mesh/Cerberus/Cerberus_LP.FBX";
-				BuildMeshFromFile(mMesh, filePath, [](Mesh& mesh , char const* filePath) ->bool
+				auto LoadFBXMesh = [this](Mesh& mesh, char const* filePath)
 				{
-					IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
-					VERIFY_RETURN_FALSE(importer->importFromFile(filePath, mesh, nullptr));
-					return true;
-				});
+					return BuildMeshFromFile(mesh, filePath, [](Mesh& mesh, char const* filePath) -> bool
+					{
+						IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
+						VERIFY_RETURN_FALSE(importer->importFromFile(filePath, mesh, nullptr));
+						return true;
+					});
+				};
+
+				auto LoadFBXMeshes = [this](std::vector<Mesh>& meshes, char const* filePath) -> bool
+				{
+					return BuildMultiMeshFromFile(meshes, filePath, [](std::vector<Mesh>& meshes, char const* filePath) -> bool
+					{
+						IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
+						VERIFY_RETURN_FALSE(importer->importMultiFromFile(filePath, meshes, nullptr));
+						return true;
+					});
+				};
+
+				LoadFBXMeshes(mCharMeshes, "Mesh/Tracer/tracer.FBX");
+				LoadFBXMesh(mMesh, "Mesh/Cerberus/Cerberus_LP.FBX");
 			}
 
 			return true;
@@ -99,6 +133,10 @@ namespace Render
 			mMetalTexture.release();
 			mRoughnessTexture.release();
 			mMesh.releaseRHIResource();
+			for (auto& mesh : mCharMeshes)
+			{
+				mesh.releaseRHIResource();
+			}
 
 			BaseClass::preShutdownRenderSystem();
 		}
@@ -118,6 +156,19 @@ namespace Render
 
 			GRenderTargetPool.freeAllUsedElements();
 			mSceneRenderTargets.prepare(screenSize);
+
+
+#if 1
+			//RHISetFrameBuffer(commandList, nullptr);
+			RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
+
+			RHISetShaderProgram(commandList, mClipCoordShader.getRHI());
+			DrawUtility::ScreenRect(commandList);
+			bitBltToBackBuffer(commandList, mSceneRenderTargets.getFrameTexture());
+			return;
+#endif
+
+
 
 			{
 				GPU_PROFILE("Scene");
@@ -154,11 +205,12 @@ namespace Render
 				}
 
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 				{
 					RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
 					DrawUtility::AixsLine(commandList);
 				}
-
+				if(0)
 				{
 					RHISetShaderProgram(commandList, mTestShader.getRHI());
 					mView.setupShader(commandList, mTestShader);
@@ -171,6 +223,20 @@ namespace Render
 					mTestShader.setParam(commandList, SHADER_PARAM(SkyLightInstensity), mSkyLightInstensity);
 					mTestShader.mParamIBL.setParameters(commandList, mTestShader, mIBLResource);
 					mMesh.draw(commandList);
+				}
+
+				{
+					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+#if 0
+					RHISetFixedShaderPipelineState(commandList, mView.worldToClip);
+#else
+					RHISetShaderProgram(commandList, mPongShader.getRHI());
+					mView.setupShader(commandList, mPongShader);
+#endif
+					for (auto& mesh : mCharMeshes)
+					{
+						mesh.draw(commandList);
+					}
 				}
 				if ( 0 )
 				{

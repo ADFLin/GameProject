@@ -63,7 +63,7 @@ VS_ENTRY_END(BaseRenderVS)
 
 uniform float3 BaseColor;
 PS_ENTRY_START(BaseRenderPS)
-	PS_INPUT(OutputVSParam OutputVS, 0)
+	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(BaseRenderPS)
 {

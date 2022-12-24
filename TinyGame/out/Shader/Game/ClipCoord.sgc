@@ -1,0 +1,13 @@
+#include "ScreenVertexShader.sgc"
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	OutColor = float4(VSOutput.pos, 0, 1);
+}
+
+#endif //PIXEL_SHADER

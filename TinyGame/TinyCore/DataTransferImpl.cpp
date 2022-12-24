@@ -58,11 +58,11 @@ void CWorkerDataTransfer::procPacket( IComPacket* cp)
 }
 
 
-CSVWorkerDataTransfer::CSVWorkerDataTransfer( NetWorker* worker , int numPlayer ) 
+CSVWorkerDataTransfer::CSVWorkerDataTransfer( NetWorker* worker ) 
 	:CWorkerDataTransfer( worker , SLOT_SERVER )
-	,mPlayerIdMap( numPlayer , ERROR_PLAYER_ID )
 {
 	assert( worker->isServer() );
+	mPlayerIdMap.resize(getServer()->getPlayerManager()->getPlayerNum(), ERROR_PLAYER_ID);
 	for( auto iter = getServer()->getPlayerManager()->createIterator(); iter; ++iter )
 	{
 		GamePlayer* player = iter.getElement();

@@ -58,10 +58,11 @@ PS_ENTRY_END(MainPS)
 #if HAVE_TEXTCOORD
 	float4 texColor = TEXTURE_SAMPLE(Texture, OutputVS.UV);
 	OutColor = texColor * OutputVS.color;
+	//OutColor = float4(OutputVS.UV, 0, 1);
 #else
 	OutColor = OutputVS.color;
 #endif
-	//OutColor = float4(1, 0, 0, 1);
+
 }
 
 #endif //PIXEL_SHADER

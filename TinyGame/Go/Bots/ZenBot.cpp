@@ -19,9 +19,9 @@ namespace Zen
 	}
 
 	template<class TFunc>
-	static inline bool readProcAddress(HMODULE dll, TFunc& func, char* funcName)
+	static inline bool readProcAddress(FPlatformModule::Handle handle, TFunc& func, char* funcName)
 	{
-		func = (TFunc)GetProcAddress(dll, funcName);
+		func = (TFunc)FPlatformModule::GetFunctionAddress(handle, funcName);
 		return func != nullptr;
 	}
 
@@ -54,11 +54,11 @@ namespace Zen
 					break;
 				}
 			}
-			mhModule = LoadLibrary(mDllName.c_str());
+			mhModule = FPlatformModule::Load(mDllName.c_str());
 		}
 		else
 		{
-			mhModule = LoadLibrary(path);
+			mhModule = FPlatformModule::Load(path);
 		}
 
 		if( mhModule == NULL )

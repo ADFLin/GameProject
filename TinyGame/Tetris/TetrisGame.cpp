@@ -182,8 +182,7 @@ namespace Tetris
 	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
 	{
 		LogMsg( "Run Tetris!!!" );
-		if ( modeType != EGameStageMode::Net )
-			::Global::GetDrawEngine().setupSystem(this);
+		::Global::GetDrawEngine().setupSystem(this);
 
 		if( modeType == EGameStageMode::Single )
 		{
@@ -218,12 +217,12 @@ namespace Tetris
 
 	void GameModule::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 	{
-
+		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
 
 	bool GameModule::setupRenderSystem(ERenderSystem systemName)
 	{
-		::Global::GetDrawEngine().bWasUsedPlatformGrapthics = true;
+		
 
 
 		return true;

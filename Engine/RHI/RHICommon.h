@@ -672,7 +672,10 @@ namespace Render
 		{
 			return value == rhs.value;
 		}
-
+		bool operator != (InputElementDesc const& rhs) const
+		{
+			return value != rhs.value;
+		}
 		uint32 getTypeHash() const
 		{
 			return HashValue(value);
@@ -770,6 +773,21 @@ namespace Render
 			return result;
 		}
 
+		bool operator == (InputLayoutDesc const& rhs) const
+		{
+			assert(checkSortedbyStreamIndex());
+
+			if (mElements.size() != rhs.mElements.size())
+				return false;
+
+			for (int i = 0; i < mElements.size(); ++i)
+			{
+				if (mElements[i] != rhs.mElements[i])
+					return false;
+			}
+
+			return true;
+		}
 
 		template< class Op >
 		void serialize(Op& op)

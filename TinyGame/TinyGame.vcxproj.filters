@@ -417,9 +417,6 @@
     <Image Include="Resource\GameIcon.ico">
       <Filter>Resource</Filter>
     </Image>
-    <Image Include="poker\bitmap1.bmp">
-      <Filter>Resource</Filter>
-    </Image>
     <Image Include="Poker\cards_mask.bmp">
       <Filter>Resource</Filter>
     </Image>
@@ -437,5 +434,8 @@
       <Filter>Stage\Test\Shader</Filter>
     </None>
     <None Include="out\Game.ini" />
+    <None Include="Poker\cards.bin">
+      <Filter>Resource</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -44,7 +44,7 @@ namespace Big2 {
 
 		static void setScene( Scene& scene );
 
-
+		Vec2i      mBasePos;
 	private:
 		static Vec2i      msCardSize;
 		static ICardDraw* msCardDraw;
@@ -60,7 +60,7 @@ namespace Big2 {
 		float      mCardPosOffset;
 		float      mCardSelectOffset[ PlayerCardNum ];
 		float      mCardPos[ PlayerCardNum ];
-		Vec2i      mBasePos;
+
 		CardDeck* mClinetCards;
 		bool       mbSelectedMap[ PlayerCardNum ];
 		static int const MaxNumSelected = PlayerCardNum;
@@ -88,7 +88,7 @@ namespace Big2 {
 		void         clearSelect();
 		void         nextCombination( CardGroup group );
 		Vec2i const& getCardSize(){ return mCardSize; }
-
+		void         setupCardDraw(ICardDraw* cardDraw);
 		void         render( IGraphics2D& g );
 		void         updateFrame( int frame );
 		

@@ -11,7 +11,7 @@
 #include "CARDebug.h"
 #include "CARGameInputImpl.h"
 
-#include "DataStructure/FixVector.h"
+#include "DataStructure/FixedArray.h"
 
 #include <fstream>
 #include <sstream>

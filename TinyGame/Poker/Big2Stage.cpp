@@ -94,23 +94,22 @@ namespace Big2 {
 		NetWorker* netWorker = ::Global::GameNet().getNetWorker();
 
 		bool haveBot = false;
-		if ( mServerLevel )
+		if (mServerLevel)
 		{
-
-			for( auto iter = playerManager.createIterator(); iter; ++iter )
+			for (auto iter = playerManager.createIterator(); iter; ++iter)
 			{
 				GamePlayer* player = iter.getElement();
 				int slotId = player->getInfo().slot;
-				player->setActionPort( slotId );
+				player->setActionPort(slotId);
 
-				assert( player->getType() != PT_SPECTATORS );
-				if ( player->getType() == PT_COMPUTER )
+				assert(player->getType() != PT_SPECTATORS);
+				if (player->getType() == PT_COMPUTER)
 				{
 					//mServerLevel->setSlotBot( slotId , new CBot );
 					haveBot = true;
 				}
 
-				SlotStatus& status = mServerLevel->getSlotStatus( slotId );
+				SlotStatus& status = mServerLevel->getSlotStatus(slotId);
 				status.playerId = player->getId();
 			}
 		}
@@ -118,30 +117,30 @@ namespace Big2 {
 
 		int userSlotId;
 
-		for( auto iter = playerManager.createIterator(); iter; ++iter )
+		for (auto iter = playerManager.createIterator(); iter; ++iter)
 		{
 			GamePlayer* player = iter.getElement();
-			assert( player->getType() != PT_SPECTATORS );
+			assert(player->getType() != PT_SPECTATORS);
 
-			mClientLevel->getSlotStatus( player->getSlot() ).playerId = player->getId();
-			player->setActionPort( player->getSlot() );
-			if ( player->getId() == playerManager.getUserID() )
+			mClientLevel->getSlotStatus(player->getSlot()).playerId = player->getId();
+			player->setActionPort(player->getSlot());
+			if (player->getId() == playerManager.getUserID())
 			{
 				userSlotId = player->getSlot();
-				mClientLevel->setPlayerSlotId( userSlotId );
+				mClientLevel->setPlayerSlotId(userSlotId);
 			}
 		}
 
-		if ( getModeType() == EGameStageMode::Net )
+		if (getModeType() == EGameStageMode::Net)
 		{
-			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
-			if ( mServerLevel  )
+			ComWorker* worker = static_cast<NetLevelStageMode*>(getStageMode())->getWorker();
+			if (mServerLevel)
 			{
-				mServerLevel->setupTransfer( new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), 4 ) );
+				mServerLevel->setupTransfer(new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker() ));
 			}
-			mClientLevel->setupTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
+			mClientLevel->setupTransfer(new CWorkerDataTransfer(worker, userSlotId));
 		}
-		else if ( getModeType() == EGameStageMode::Single )
+		else if (getModeType() == EGameStageMode::Single)
 		{
 			CTestDataTransfer* sv = new CTestDataTransfer;
 			CTestDataTransfer* cl = new CTestDataTransfer;
@@ -151,65 +150,52 @@ namespace Big2 {
 			cl->slotId = userSlotId;
 			cl->conTransfer = sv;
 
-			mServerLevel->setupTransfer( sv );
-			mClientLevel->setupTransfer( cl );
+			mServerLevel->setupTransfer(sv);
+			mClientLevel->setupTransfer(cl);
 		}
-
-
 
 		::Global::GUI().cleanupWidget();
 
-		mScene = new Scene( *mClientLevel , playerManager );
-		
+		mScene = new Scene(*mClientLevel, playerManager);
+
 		mScene->setupUI();
-
-		if ( mServerLevel && haveBot )
+		if (mServerLevel)
 		{
-			Vec2i frameSize( 360 , mScene->getCardSize().y + 60 );
-			Vec2i sSize = ::Global::GetScreenSize();
-			mServerLevel->setEventListener( this );
-
-			GFrame* frame = new GFrame( UI_ANY , Vec2i( ( sSize.x - frameSize.x ) / 2 , 350 ) , frameSize , NULL );
-			frame->setAlpha( 0.9f );
-			GWidget* ui = new CardListUI( mServerLevel->getSlotOwnCards( 0 ) , Vec2i( frameSize.x / 2 , 15 ) , frame );
-
-			GButton* button;
-			Vec2i btnSize( 60 , 20 );
-			int offset = btnSize.x + 2;
-			Vec2i pos = Vec2i( frameSize.x / 2 - offset , frameSize.y - btnSize.y - 5 );
-
-			button = new GButton( UI_TEST_PASS , pos , btnSize , frame );
-			button->setTitle( "Pass" );
-			pos.x += offset;
-			button = new GButton( UI_TEST_SHOW_CARD , pos , btnSize , frame );
-			button->setTitle( "Show" );
-
-			mTestUI = frame;
-			mTestUI->show( false );
-			::Global::GUI().addWidget( mTestUI );
+			mServerLevel->setEventListener(this);
 		}
 
 		WidgetUtility::CreateDevFrame();
 	}
 
-	void LevelStage::onRender( float dFrame )
+	void LevelStage::onRender(float dFrame)
 	{
-		IGraphics2D& g = Global::GetIGraphics2D();		
-		mScene->render( g );
+		IGraphics2D& g = Global::GetIGraphics2D();
+		g.beginRender();
+		mScene->render(g);
+		g.endRender();
 	}
 
-	bool LevelStage::onWidgetEvent( int event , int id , GWidget* ui )
+	bool LevelStage::onWidgetEvent(int event, int id, GWidget* ui)
 	{
-		switch( id )
+		switch (id)
 		{
 		case UI_TEST_PASS:
-			mServerLevel->procSlotPass( mServerLevel->getNextShowSlot() );
+			mServerLevel->procSlotPass(mServerLevel->getNextShowSlot());
 			return false;
 		case UI_TEST_SHOW_CARD:
 			{
 				int num;
-				int* pIndex = static_cast< CardListUI* >( mTestUI->getChild() )->getSelcetIndex( num );
-				mServerLevel->procSlotShowCard( mServerLevel->getNextShowSlot() , pIndex , num );
+				int slot = mServerLevel->getNextShowSlot();
+				int* pIndex = static_cast<CardListUI*>(mTestUI->getChild())->getSelcetIndex(num);
+				TrickInfo info;
+				if (mServerLevel->checkSlotShowCard(slot, pIndex, num, info))
+				{
+					mServerLevel->procSlotShowCard(slot, pIndex, num);
+				}
+				else
+				{
+					LogMsg("Card is illegal");
+				}
 			}
 			return false;
 		}
@@ -247,13 +233,52 @@ namespace Big2 {
 		return true;
 	}
 
+	void LevelStage::setupCardDraw(ICardDraw* cardDraw)
+	{
+		mScene->setupCardDraw(cardDraw);
+		
+		if (mServerLevel)
+		{
+			if (mTestUI)
+			{
+				mTestUI->destroy();
+				mTestUI = nullptr;
+			}
+
+			Vec2i frameSize(360, mScene->getCardSize().y + 60);
+			Vec2i sSize = ::Global::GetScreenSize();
+
+			GFrame* frame = new GFrame(UI_ANY, Vec2i((sSize.x - frameSize.x) / 2, 350), frameSize, NULL);
+			frame->setAlpha(0.9f);
+			GWidget* ui = new CardListUI(mServerLevel->getSlotOwnCards(0), Vec2i(frameSize.x / 2, 15), frame);
+
+			GButton* button;
+			Vec2i btnSize(60, 20);
+			int offset = btnSize.x + 2;
+			Vec2i pos = Vec2i(frameSize.x / 2 - offset, frameSize.y - btnSize.y - 5);
+
+			button = new GButton(UI_TEST_PASS, pos, btnSize, frame);
+			button->setTitle("Pass");
+			pos.x += offset;
+			button = new GButton(UI_TEST_SHOW_CARD, pos, btnSize, frame);
+			button->setTitle("Show");
+
+			mTestUI = frame;
+			mTestUI->show(false);
+			::Global::GUI().addWidget(mTestUI);
+
+			refreshTestUI();
+		}
+
+	}
+
 	void LevelStage::refreshTestUI()
 	{
 		int nextSlot = mServerLevel->getNextShowSlot();
 		if ( nextSlot != -1 )
 		{
 			GamePlayer* player = getStageMode()->getPlayerManager()->getPlayer( mServerLevel->getSlotStatus( nextSlot ).playerId );
-			if ( player->getType() == PT_COMPUTER )
+			if ( mTestUI && player->getType() == PT_COMPUTER )
 			{
 				mTestUI->getChild()->cast<CardListUI>()->setClientCards( mServerLevel->getSlotOwnCards( nextSlot ) );
 				mTestUI->show( true );
@@ -261,7 +286,10 @@ namespace Big2 {
 			}
 		}
 
-		mTestUI->show( false );
+		if (mTestUI)
+		{
+			mTestUI->show(false);
+		}
 	}
 
 	void LevelStage::onSlotTurn( int slotId , bool beShow )

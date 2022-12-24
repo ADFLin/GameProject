@@ -134,9 +134,6 @@
     <ClInclude Include="CurveBuilder\ShapeFunction.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
-    <ClInclude Include="TinyCore\PropertySet.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="TinyCore\GameRenderSetup.h">
       <Filter>Stage</Filter>
     </ClInclude>
@@ -225,9 +222,6 @@
     </ClCompile>
     <ClCompile Include="CurveBuilder\ShapeFunction.cpp">
       <Filter>CurveBuilder</Filter>
-    </ClCompile>
-    <ClCompile Include="TinyCore\PropertySet.cpp">
-      <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Misc\NeuralNetworkRenderer.cpp">
       <Filter>Misc</Filter>

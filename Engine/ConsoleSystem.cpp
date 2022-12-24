@@ -56,17 +56,32 @@ void ConsoleSystem::finalize()
 }
 
 
+int ConsoleSystem::getAllCommandNames(char const* buffer[], int bufSize)
+{
+	int count = 0;
+	for (auto& pair : mNameMap )
+	{
+		buffer[count] = pair.first;
+		++count;
+		if (count == bufSize)
+		{
+			break;
+		}
+	}
+	return count;
+}
+
+
 int ConsoleSystem::findCommandName2( char const* includeStr , char const** findStr , int maxNum )
 {
 	int findNum = 0;
 
 	size_t len = strlen( includeStr );
-	for( CommandMap::iterator iter = mNameMap.begin();
-		iter != mNameMap.end() ; ++iter )
+	for (auto& pair : mNameMap)
 	{
-		if ( strnicmp( iter->first , includeStr , len ) == 0 )
+		if ( FCString::CompareIgnoreCaseN( pair.first , includeStr , len ) == 0 )
 		{
-			findStr[ findNum ] = iter->first;
+			findStr[ findNum ] = pair.first;
 			++findNum;
 			if ( findNum == maxNum )
 			{
@@ -159,7 +174,6 @@ bool ConsoleSystem::executeCommand(char const* inCmdText)
 
 	return result;
 }
-
 
 ConsoleCommandBase* ConsoleSystem::findCommand(char const* str)
 {

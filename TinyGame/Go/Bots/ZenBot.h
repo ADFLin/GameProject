@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include "Go/GoBot.h"
+#include "Platform/PlatformModule.h"
 
 namespace Zen
 {
@@ -167,7 +168,7 @@ namespace Zen
 
 		static int InstanceCount;
 
-		HMODULE mhModule;
+		FPlatformModule::Handle mhModule;
 		std::string mDllName;
 
 		bool(__cdecl *ZenAddStone)(int, int, int);

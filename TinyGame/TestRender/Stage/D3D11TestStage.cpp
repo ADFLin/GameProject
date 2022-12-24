@@ -12,7 +12,7 @@
 namespace Render
 {
 
-	struct GPU_ALIGN ColourBuffer
+	struct GPU_ALIGN ColorBuffer
 	{
 		DECLARE_UNIFORM_BUFFER_STRUCT(ColourBufferBlock)
 		float red;
@@ -31,7 +31,7 @@ namespace Render
 
 		RHITexture2DRef mTexture;
 		
-		TStructuredBuffer< ColourBuffer > mCBuffer;
+		TStructuredBuffer< ColorBuffer > mCBuffer;
 
 		RHIInputLayoutRef  mInputLayout;
 		RHIBufferRef mVertexBuffer;
@@ -42,7 +42,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::D3D11;
+			return ERenderSystem::OpenGL;
 		}
 
 		struct MyVertex
@@ -232,7 +232,7 @@ namespace Render
 
 			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < ESampler::Trilinear >::GetRHI());
 			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
-			mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
+			mProgTest.setStructuredUniformBufferT< ColorBuffer >(commandList, *mCBuffer.getRHI());
 			mView.setupShader(commandList, mProgTest);
 
 			{
@@ -260,7 +260,7 @@ namespace Render
 			}
 
 
-			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Scale(10));
 			{
 				InputStreamInfo inputStream;
 				inputStream.buffer = mAxisVertexBuffer;
@@ -308,7 +308,7 @@ namespace Render
 					TRenderRT< RTVF_XYZ_CA >::Draw(commandList, EPrimitive::Quad, vetices, 4);
 				}
 
-				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(0, 10, 0));
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(0, 0, 0));
 				{
 					struct Vertex_XYZ
 					{
@@ -317,12 +317,11 @@ namespace Render
 
 					Vertex_XYZ vetices[] =
 					{
-						{ Vector3(0,0,0) },
 						{ Vector3(2,0,0) },
-						{ Vector3(2,2,0) },
 						{ Vector3(0,2,0) },
+						{ Vector3(0,0,2) },
 					};
-					TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::Quad, vetices, 4, Vector3(1, 0, 0));
+					TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::TriangleList, vetices, 3, Vector3(1, 0, 0));
 				}
 
 			}

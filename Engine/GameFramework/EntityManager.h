@@ -5,11 +5,14 @@
 #include "MarcoCommon.h"
 #include "CoreShare.h"
 
+#include "DataStructure/Array.h"
+
 #include <vector>
 #include <unordered_map>
 #include <typeindex>
 #include <algorithm>
 #include <cassert>
+
 
 
 
@@ -136,7 +139,7 @@ namespace ECS
 			EComponentCondiditon condition;
 		};
 
-		std::vector< CompSeviceDesc > mDescList;
+		TArray< CompSeviceDesc > mDescList;
 		EntityManager* mManager;
 	};
 
@@ -394,7 +397,7 @@ namespace ECS
 			ISystemSerivce* service;
 			bool bManageed;
 		};
-		std::vector< ISystemSerivce* > mSystems;
+		TArray< ISystemSerivce* > mSystems;
 	};
 
 
@@ -406,6 +409,13 @@ namespace ECS
 		EntityProxy(EntityHandle handle)
 			:mHandle(handle)
 		{
+			mManagerCached = EntityManager::FromHandle(mHandle);
+		}
+
+		void setHandle(EntityHandle handle)
+		{
+			CHECK(!handle.isNull());
+			mHandle = handle;
 			mManagerCached = EntityManager::FromHandle(mHandle);
 		}
 

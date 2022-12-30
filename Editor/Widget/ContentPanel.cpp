@@ -39,27 +39,63 @@ void SplitString(char const* str, char const* drop, std::vector<StringView>& out
 }
 
 
-void ContentPanel::render(const char* title, bool* p_open)
+void ContentPanel::render()
 {
-	ImGui::SetNextWindowSize(ImVec2(2048, 1024), ImGuiCond_FirstUseEver);
-	if (!ImGui::Begin(title, p_open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ))
+	auto DrawIconButton = [](int id, bool bEnabled)
 	{
-		ImGui::End();
-		return;
-	}
+		ImGui::BeginDisabled(!bEnabled);
+		ImGui::PushID(id);
+		bool bClicked = FImGui::IconButton(id, ImVec2(16, 16), bEnabled ? ImVec4(1, 1, 1, 1) : ImVec4(0.5, 0.5, 0.5, 0.5));
+		ImGui::PopID();
+		ImGui::EndDisabled();
+		return bClicked;
+	};
 
-	if (FImGui::IconButton(EIconId::CircleArrowLeft, ImVec2(16, 16)))
+	auto DrawHint = [](char const* desc)
 	{
-		
-	}
-	ImGui::SameLine();
-	if (FImGui::IconButton(EIconId::CircleArrowRight, ImVec2(16, 16)))
-	{
-
-	}
-	ImGui::SameLine();
-
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(desc);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	};
 	bool bNeedUpdateContent = false;
+
+	bool bEnabled = indexHistory > 0;
+	if (DrawIconButton(EIconId::CircleArrowLeft, bEnabled))
+	{
+		--indexHistory;
+		mCurrentFolderPath = mFolderPathHistory[indexHistory];
+		bNeedUpdateContent = true;
+	}
+	else if (bEnabled)
+	{
+		DrawHint(mFolderPathHistory[indexHistory - 1].c_str());
+	}
+
+	ImGui::SameLine();
+	bEnabled = indexHistory != INDEX_NONE && indexHistory < (mFolderPathHistory.size() - 1);
+	if (DrawIconButton(EIconId::CircleArrowRight, bEnabled))
+	{
+		++indexHistory;
+		mCurrentFolderPath = mFolderPathHistory[indexHistory];
+		bNeedUpdateContent = true;
+	}
+	else if (bEnabled)
+	{
+		DrawHint(mFolderPathHistory[indexHistory + 1].c_str());
+	}
+
+	ImGui::SameLine();
+	if (FImGui::IconButton(EIconId::FolderClosed, ImVec2(16, 16)))
+	{
+
+	}
+	DrawHint("Choose a path");
+	ImGui::SameLine();
 	{
 		int index = 0;
 		for (auto& folderName : mFolderSeq)
@@ -79,23 +115,61 @@ void ContentPanel::render(const char* title, bool* p_open)
 					}
 					newFolderPath += mFolderSeq[i].toCString();
 				}
-				mCurrentFolderPath = newFolderPath;
+				addCurrentFolder(newFolderPath.c_str());
 				bNeedUpdateContent = true;
 			}
 
 			if ( index != mFolderSeq.size() - 1 || ( mCurrentFiles.size() > 0 && mCurrentFiles[0].bFolder ))
 			{
 				ImGui::SameLine();
+				ImGui::PushID(index);
 				if (ImGui::Button(">"))
 				{
-
-
+					ImGui::OpenPopup("SubFolderSelect");
 				}
+
+				if (ImGui::BeginPopup("SubFolderSelect"))
+				{
+					std::string newFolderPath;
+					for (int i = 0; i <= index; ++i)
+					{
+						if (i != 0)
+						{
+							newFolderPath += "/";
+						}
+						newFolderPath += mFolderSeq[i].toCString();
+					}
+					FileIterator fileIter;
+					if (FFileSystem::FindFiles(newFolderPath.c_str(), nullptr, fileIter))
+					{
+						for (; fileIter.haveMore(); fileIter.goNext())
+						{
+							if (!fileIter.isDirectory())
+								continue;
+
+							if (!FilterDirectory(fileIter.getFileName()))
+								continue;
+
+							if (ImGui::MenuItem(fileIter.getFileName()))
+							{
+								newFolderPath += "/";
+								newFolderPath += fileIter.getFileName();
+
+								addCurrentFolder(newFolderPath.c_str());
+								bNeedUpdateContent = true;
+								break;
+							}
+						}
+					}
+					ImGui::EndPopup();
+				}
+				ImGui::PopID();
 			}
 			++index;
 		}
 	}
 
+	ImGui::Separator();
 
 	if (ImGui::BeginTable("Split", 2, ImGuiTableFlags_Resizable))
 	{
@@ -142,7 +216,7 @@ void ContentPanel::render(const char* title, bool* p_open)
 					{
 						InlineString<MAX_PATH> childDir;
 						childDir.format("%s/%s", mCurrentFolderPath.c_str(), fileData.name.c_str());
-						mCurrentFolderPath = childDir;
+						addCurrentFolder(childDir);
 						bNeedUpdateContent = true;
 					}
 				}
@@ -176,8 +250,6 @@ void ContentPanel::render(const char* title, bool* p_open)
 	{
 		updateContent();
 	}
-
-	ImGui::End();
 }
 
 void ContentPanel::renderFolderTree(char const* name, char const* path, int level, bool bInCurFolderSeq )
@@ -242,7 +314,7 @@ void ContentPanel::renderFolderTree(char const* name, char const* path, int leve
 	ImGui::PopStyleVar();
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 	{
-		mCurrentFolderPath = path;
+		addCurrentFolder(path);
 		updateContent();
 	}
 
@@ -316,3 +388,4 @@ void ContentPanel::updateContent()
 		}
 	);
 }
+

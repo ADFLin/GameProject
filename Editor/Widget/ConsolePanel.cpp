@@ -37,14 +37,8 @@ ConsolePanel::~ConsolePanel()
 	ClearLog();
 }
 
-void ConsolePanel::render(const char* title, bool* p_open)
+void ConsolePanel::render()
 {
-	ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
-	if (!ImGui::Begin(title, p_open))
-	{
-		ImGui::End();
-		return;
-	}
 
 	// As a specific feature guaranteed by the library, after calling Begin() the last Item represent the title bar.
 	// So e.g. IsItemHovered() will return true when hovering the title bar.
@@ -52,7 +46,9 @@ void ConsolePanel::render(const char* title, bool* p_open)
 	if (ImGui::BeginPopupContextItem())
 	{
 		if (ImGui::MenuItem("Close Console"))
-			*p_open = false;
+		{
+			//*p_open = false;
+		}
 		ImGui::EndPopup();
 	}
 
@@ -176,7 +172,6 @@ void ConsolePanel::render(const char* title, bool* p_open)
 	if (reclaim_focus)
 		ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
 
-	ImGui::End();
 }
 
 void ConsolePanel::ExecCommand(const char* command_line)

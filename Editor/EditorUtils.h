@@ -57,6 +57,12 @@ struct FImGui
 
 	static ImTextureID IconTextureID();
 
+	static ImTextureID GetTextureID(Render::RHITexture2D& texture);
+
+
+	static void DisableBlend();
+	static void RestoreBlend();
+
 	static Render::TextureAtlas mIconAtlas;
 	struct Rect
 	{

@@ -1,3 +1,7 @@
+#pragma once
+#ifndef D3D11Common_H_7573DC53_3C25_496C_BB6C_C420008C9170
+#define D3D11Common_H_7573DC53_3C25_496C_BB6C_C420008C9170
+
 #include "RHICommon.h"
 
 #include "D3DSharedCommon.h"
@@ -10,8 +14,6 @@
 #include <D3D11.h>
 
 #include <unordered_map>
-
-
 
 namespace Render
 {
@@ -554,6 +556,16 @@ namespace Render
 			return true;
 		}
 
+		void bitbltFromDevice(HDC hSourceDC, int x = 0, int y = 0)
+		{
+			HDC hDC;
+			TComPtr< IDXGISurface1 > surface;
+			VERIFY_D3D_RESULT(mResource->QueryInterface(IID_IDXGISurface1, (void**)&surface), return;);
+			VERIFY_D3D_RESULT(surface->GetDC(FALSE, &hDC), return;);
+			::BitBlt(hDC, x, y, mSizeX, mSizeY, hSourceDC, 0, 0, SRCCOPY);
+			VERIFY_D3D_RESULT(surface->ReleaseDC(nullptr), return;);
+		}
+
 
 		void releaseResource()
 		{
@@ -880,6 +892,18 @@ namespace Render
 			VERIFY_D3D_RESULT(surface->ReleaseDC(nullptr), );
 		}
 
+		void bitbltFromDevice(HDC hSourceDC, int x = 0,int y = 0)
+		{
+			TComPtr<IDXGISurface1> surface;
+			VERIFY_D3D_RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&surface)), );
+			HDC hDC;
+			VERIFY_D3D_RESULT(surface->GetDC(FALSE, &hDC), );
+			int w = mColorTexture->getSizeX();
+			int h = mColorTexture->getSizeY();
+			::BitBlt(hDC, x, y, w, h, hSourceDC, 0, 0, SRCCOPY);
+			VERIFY_D3D_RESULT(surface->ReleaseDC(nullptr), );
+		}
+
 		virtual void releaseResource()
 		{
 			mColorTexture.release();
@@ -938,3 +962,4 @@ namespace Render
 
 
 }
+#endif // D3D11Common_H_7573DC53_3C25_496C_BB6C_C420008C9170

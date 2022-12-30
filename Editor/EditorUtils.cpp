@@ -1,6 +1,7 @@
 #include "EditorUtils.h"
 
 #include "RHI/D3D11Common.h"
+#include "RHI/D3D11Command.h"
 
 using namespace Render;
 
@@ -57,7 +58,7 @@ bool FImGui::IconButton(int id, ImVec2 const& size, ImVec4 const& tintColor, ImV
 int FImGui::ReigisterIcon(char const* path)
 {
 	int id = mIconAtlas.addImageFile(path);
-	if ( id = INDEX_NONE )
+	if ( id == INDEX_NONE )
 	{
 		LogWarning(0, "Can't Add Icon");
 		return INDEX_NONE;
@@ -68,11 +69,58 @@ int FImGui::ReigisterIcon(char const* path)
 	rect.min = FImGuiConv::To(uvMin);
 	rect.max = FImGuiConv::To(uvMax);
 	mCachedIconUVs.push_back(rect);
+
+	return id;
 }
 
 ImTextureID FImGui::IconTextureID()
 {
-	auto resViewImpl = static_cast<D3D11ShaderResourceView*>(mIconAtlas.getTexture().getBaseResourceView());
+	return GetTextureID(mIconAtlas.getTexture());
+}
+
+ImTextureID FImGui::GetTextureID(Render::RHITexture2D& texture)
+{
+	auto resViewImpl = static_cast<D3D11ShaderResourceView*>(texture.getBaseResourceView());
 	return resViewImpl->getResource();
+}
+
+struct BlendState
+{
+	ID3D11BlendState* resurce = nullptr;
+	FLOAT factor[4];
+	UINT  mask;
+
+	bool bDisabled = false;
+
+} GBlendState;
+
+
+static void DisableBlendCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+{
+	CHECK(!GBlendState.bDisabled);
+	static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMGetBlendState(&GBlendState.resurce, GBlendState.factor, &GBlendState.mask);
+	static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMSetBlendState(nullptr, Vector4(0, 0, 0, 0), 0xffffffff);
+
+	GBlendState.bDisabled = true;
+}
+
+
+static void RestoreBlendCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+{
+	CHECK(GBlendState.bDisabled);
+	static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMSetBlendState(GBlendState.resurce, GBlendState.factor, GBlendState.mask);
+
+	GBlendState.bDisabled = false;
+}
+
+void FImGui::DisableBlend()
+{
+	ImGui::GetWindowDrawList()->AddCallback(DisableBlendCallback, nullptr);
+}
+
+
+void FImGui::RestoreBlend()
+{
+	ImGui::GetWindowDrawList()->AddCallback(RestoreBlendCallback, nullptr);
 }
 

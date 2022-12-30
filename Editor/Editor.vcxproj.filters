@@ -48,6 +48,9 @@
       <Filter>Widget</Filter>
     </ClInclude>
     <ClInclude Include="EditorUtils.h" />
+    <ClInclude Include="Widget\GameViewportPanel.h">
+      <Filter>Widget</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp">
@@ -80,5 +83,8 @@
       <Filter>Widget</Filter>
     </ClCompile>
     <ClCompile Include="EditorUtils.cpp" />
+    <ClCompile Include="Widget\GameViewportPanel.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

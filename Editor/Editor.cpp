@@ -19,21 +19,15 @@
 #include "EditorUtils.h"
 #include "PropertySet.h"
 
+
+#include "Widget/GameViewportPanel.h"
+
 using namespace Render;
 
 #pragma comment(lib , "D3D11.lib")
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
 
-#define EDITOR_INI "Editor.ini"
-class EditorWindow : public WinFrameT< EditorWindow >
-{
-public:
-	LPTSTR getWinClassName() { return TEXT("EditorWindow"); }
-	DWORD  getWinStyle() { return WS_OVERLAPPEDWINDOW | WS_VISIBLE; }
-	DWORD  getWinExtStyle() { return WS_EX_OVERLAPPEDWINDOW; }
-
-};
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
 	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
@@ -44,16 +38,141 @@ public:
 #define VERIFY_D3D_RESULT( CODE , ERRORCODE ) VERIFY_D3D_RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
 #define VERIFY_D3D_RESULT_RETURN_FALSE( CODE ) VERIFY_D3D_RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
 
+
+#define EDITOR_INI "Editor.ini"
+
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static class Editor* GEditor = nullptr;
 
+struct EditorData
+{
+
+	TComPtr< ID3D11Device > mDevice;
+	TComPtr< ID3D11DeviceContext > mDeviceContext;
+
+};
+
+class EditorWindow : public WinFrameT< EditorWindow >
+{
+public:
+	LPTSTR getWinClassName() { return TEXT("EditorWindow"); }
+	DWORD  getWinStyle() { return WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_BORDER; }
+	DWORD  getWinExtStyle() { return WS_EX_OVERLAPPEDWINDOW; }
+
+
+	bool initRenderResource(ID3D11Device* device)
+	{
+		HRESULT hr;
+		TComPtr<IDXGIFactory> factory;
+		hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
+
+		UINT quality = 0;
+		DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+		swapChainDesc.OutputWindow = getHWnd();
+		swapChainDesc.Windowed = true;
+		swapChainDesc.SampleDesc.Count = 1;
+		swapChainDesc.SampleDesc.Quality = quality;
+		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		swapChainDesc.BufferDesc.Width = getWidth();
+		swapChainDesc.BufferDesc.Height = getHeight();
+		swapChainDesc.BufferCount = 2;
+		swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+		swapChainDesc.Flags = 0;
+		VERIFY_D3D_RESULT_RETURN_FALSE(factory->CreateSwapChain(device, &swapChainDesc, &mSwapChain));
+
+		createRenderTarget(device);
+
+		mGuiContext = ImGui::CreateContext();
+		return true;
+	}
+
+	bool createRenderTarget(ID3D11Device* device)
+	{
+		ID3D11Texture2D* pBackBuffer;
+		mSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+		if (pBackBuffer)
+		{
+			device->CreateRenderTargetView(pBackBuffer, NULL, &mRenderTargetView);
+			pBackBuffer->Release();
+		}
+		else
+		{
+			LogWarning(0, "Can't Get BackBuffer");
+			return false;
+		}
+
+		return true;
+	}
+
+	void cleanupRenderTarget()
+	{
+		mRenderTargetView.reset();
+	}
+
+	LRESULT processMessage(EditorData& editorData, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+
+		ImGui::SetCurrentContext(mGuiContext);
+
+		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+			return true;
+
+		switch (msg)
+		{
+		case WM_SIZE:
+			if (mSwapChain.isValid() && wParam != SIZE_MINIMIZED)
+			{
+				cleanupRenderTarget();
+				mSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+				createRenderTarget(editorData.mDevice);
+			}
+			break;
+		case WM_SYSCOMMAND:
+			if ((wParam & 0xfff0) == SC_KEYMENU)
+				return 0;
+			break;
+		case WM_ENTERSIZEMOVE:
+			bSizeMove = true;
+			break;
+
+		case WM_EXITSIZEMOVE:
+			bSizeMove = false;
+			break;
+		case WM_DESTROY:
+			::PostQuitMessage(0);
+			return 0;
+
+#if 0
+		case WM_PAINT:
+			if (bSizeMove)
+			{
+				render();
+			}
+			else
+			{
+				PAINTSTRUCT ps;
+				BeginPaint(hWnd, &ps);
+				EndPaint(hWnd, &ps);
+			}
+			break;
+#endif
+		}
+		return ::DefWindowProc(hWnd, msg, wParam, lParam);
+	}
+	TComPtr< IDXGISwapChain > mSwapChain;
+	TComPtr< ID3D11RenderTargetView > mRenderTargetView;
+
+	ImGuiContext* mGuiContext;
+	bool bSizeMove = false;
+
+};
+
 class Editor : public IEditor
-	         , public WindowsMessageHandlerT< Editor >
+	         , public EditorData
 {
 public:
 	
-	using WindowsMessageHandler = WindowsMessageHandlerT< Editor >;
-
 	Editor()
 	{
 		GEditor = this;
@@ -74,7 +193,7 @@ public:
 			if (info.desc.bAlwaysCreation)
 			{
 				ActivePanel& panel = findOrAddPanel(info);
-				panel.bOpened = true;
+				panel.bOpened = false;
 			}
 		}
 		return true;
@@ -82,9 +201,10 @@ public:
 
 	bool initializeRender()
 	{
-		if (!mWindow.create("Editor", 1600, 900, &WndProc) )
+		if (!mMainWindow.create("Editor", 1600, 900, &WndProc) )
 			return false;
 
+		mWindowMap.emplace(mMainWindow.getHWnd(), &mMainWindow);
 #if 0
 		uint32 deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 		deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -104,50 +224,31 @@ public:
 		mDevice = static_cast<D3D11System*>(GRHISystem)->mDevice;
 		mDeviceContext = static_cast<D3D11System*>(GRHISystem)->mDeviceContext;
 #endif
+		VERIFY_RETURN_FALSE(mMainWindow.initRenderResource(mDevice));
 
-		HRESULT hr;
-		TComPtr<IDXGIFactory> factory;
-		hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
-
-		UINT quality = 0;
-		DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-		swapChainDesc.OutputWindow = mWindow.getHWnd();
-		swapChainDesc.Windowed = true;
-		swapChainDesc.SampleDesc.Count = 1;
-		swapChainDesc.SampleDesc.Quality = quality;
-		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		swapChainDesc.BufferDesc.Width = mWindow.getWidth();
-		swapChainDesc.BufferDesc.Height = mWindow.getHeight();
-		swapChainDesc.BufferCount = 2;
-		swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-		swapChainDesc.Flags = 0;
-
-		VERIFY_D3D_RESULT_RETURN_FALSE(factory->CreateSwapChain(mDevice, &swapChainDesc, &mSwapChain));
-
-		CreateRenderTarget();
-
-		ImGui::CreateContext();
 		importStyle();
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos; // Enable some options
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mWindow.getHWnd()));
+		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mMainWindow.getHWnd()));
 		VERIFY_RETURN_FALSE(ImGui_ImplDX11_Init(mDevice, mDeviceContext));
 
 		FImGui::InitializeRHI();
 
-		for (auto& panel : mPanels)
-		{
-			panel.widget->onOpen();
-		}
 		return true;
 	}
 
+	void createChildWindow()
+	{
+		EditorWindow* newWindow = new EditorWindow;
 
+	}
+		
+	
 	void release() override
 	{
 		FImGui::ReleaseRHI();
@@ -160,35 +261,6 @@ public:
 	}
 
 
-	bool handleWindowResize(int sizeX, int sizeY) 
-	{
-		if( mSwapChain )
-		{
-			CleanupRenderTarget();
-			mSwapChain->ResizeBuffers(0, sizeX, sizeY, DXGI_FORMAT_UNKNOWN, 0);
-			CreateRenderTarget();
-		}
-		return true; 
-	}
-
-	void CreateRenderTarget()
-	{
-		ID3D11Texture2D* pBackBuffer;
-		mSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-		mDevice->CreateRenderTargetView(pBackBuffer, NULL, &mRenderTargetView);
-		pBackBuffer->Release();
-
-	}
-	void CleanupRenderTarget()
-	{
-		mRenderTargetView.reset();
-	}
-	EditorWindow mWindow;
-
-	TComPtr< ID3D11Device > mDevice;
-	TComPtr< ID3D11DeviceContext > mDeviceContext;
-	TComPtr<IDXGISwapChain> mSwapChain;
-	TComPtr< ID3D11RenderTargetView > mRenderTargetView;
 	void update() override
 	{
 
@@ -200,28 +272,66 @@ public:
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-		renderMenu();
+		ImGui::SetCurrentContext(mMainWindow.mGuiContext);
+		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+		renderMainMenu();
 
 		for (auto& panel : mPanels)
 		{
-			if (!panel.bOpened)
-				continue;
-				
-			panel.widget->render(panel.info->desc.name, &panel.bOpened);
+			WindowRenderParams params;
+			panel.widget->getRenderParams(params);
+			ImGui::SetNextWindowSize(params.InitSize, ImGuiCond_FirstUseEver);
+
+			bool bOldState = panel.bOpened;
+			bool bOpened = true;
+			if (ImGui::Begin(panel.name.c_str(), &bOpened, params.flags))
+			{
+				panel.bOpened = true;
+				if (bOldState != panel.bOpened)
+					panel.widget->onOpen();
+
+				panel.widget->render();
+			}
+			else
+			{
+				panel.widget->onClose();
+			}
+			ImGui::End();
 		}
 
 		// End of frame: render Dear ImGui
 		ImGui::Render();
 		const float clear_color_with_alpha[4] = { 0,0,0,1 };
-		mDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, NULL);
-		mDeviceContext->ClearRenderTargetView(mRenderTargetView, clear_color_with_alpha);
+		mDeviceContext->OMSetRenderTargets(1, &mMainWindow.mRenderTargetView, NULL);
+		mDeviceContext->ClearRenderTargetView(mMainWindow.mRenderTargetView, clear_color_with_alpha);
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-		mSwapChain->Present(1, 0);
+		mMainWindow.mSwapChain->Present(1, 0);
+
+
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
 	}
 
-	void renderMenu()
+
+	void addGameViewport(IEditorGameViewport* viewport) override
+	{
+		EditorPanelInfo const* info = EditorPanelInfo::Find("GameViewport");
+		if (info == nullptr)
+		{
+			return;
+		}
+
+		ActivePanel newPanel;
+		newPanel.name = info->desc.name;
+		newPanel.info = info;
+		newPanel.widget = info->factory->create();
+		newPanel.bOpenRequest = true;
+		static_cast<GameViewportPanel*>(newPanel.widget)->mViewport = viewport;
+		mPanels.push_back(newPanel);
+	}
+
+	void renderMainMenu()
 	{
 		static bool bShowIconTexture = true;
 		static bool bShowEditorPreferences = true;
@@ -242,6 +352,9 @@ public:
 			{
 				for (auto& info : EditorPanelInfo::List)
 				{
+					if ( !info.desc.bSingleton )
+						continue;
+
 					if (ImGui::MenuItem(info.desc.name))
 					{
 						ActivePanel& panel = findOrAddPanel(info);
@@ -309,9 +422,11 @@ public:
 
 	struct ActivePanel
 	{
+		std::string name;
 		EditorPanelInfo const* info;
 		IEditorPanel* widget = nullptr;
-		bool bOpened = true;
+		bool bOpenRequest = false;
+		bool bOpened = false;
 	};
 	std::vector< ActivePanel > mPanels;
 	ActivePanel& findOrAddPanel(EditorPanelInfo const& info)
@@ -323,6 +438,7 @@ public:
 		}
 
 		ActivePanel newPanel;
+		newPanel.name = info.desc.name;
 		newPanel.info = &info;
 		newPanel.widget = info.factory->create();
 		mPanels.push_back(newPanel);
@@ -330,53 +446,17 @@ public:
 	}
 
 
-	bool bSizeMove = false;
+
 	LRESULT processWindowMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-			return true;
-
-		switch (msg)
+		auto iter = mWindowMap.find(hWnd);
+		if (iter == mWindowMap.end())
 		{
-		case WM_SIZE:
-			if (mSwapChain.isValid() && wParam != SIZE_MINIMIZED)
-			{
-				CleanupRenderTarget();
-				mSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-				CreateRenderTarget();
-			}
-			break;
-		case WM_SYSCOMMAND:
-			if ((wParam & 0xfff0) == SC_KEYMENU)  
-				return 0;
-			break;
-		case WM_ENTERSIZEMOVE:
-			bSizeMove = true;
-			break;
-
-		case WM_EXITSIZEMOVE:
-			bSizeMove = false;
-			break;
-		case WM_DESTROY:
-			::PostQuitMessage(0);
-			return 0;
-
-#if 0
-		case WM_PAINT:
-			if (bSizeMove)
-			{
-				render();
-			}
-			else
-			{
-				PAINTSTRUCT ps;
-				BeginPaint(hWnd, &ps);
-				EndPaint(hWnd, &ps);
-			}
-			break;
-#endif
+			return ::DefWindowProc(hWnd, msg, wParam, lParam);
 		}
-		return ::DefWindowProc(hWnd, msg, wParam, lParam);
+
+		EditorWindow* window = iter->second;
+		return window->processMessage(*this, hWnd, msg, wParam, lParam);
 	}
 
 	static LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -395,7 +475,11 @@ public:
 		}
 	}
 
+	EditorWindow mMainWindow;
+	std::vector< std::unique_ptr< EditorWindow > > mChildWindows;
+	std::unordered_map< HWND, EditorWindow* > mWindowMap;
 	PropertySet mSetttings;
+
 };
 
 

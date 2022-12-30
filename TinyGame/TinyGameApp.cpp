@@ -43,15 +43,9 @@
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
 
-
 #include <iostream>
 #include "Hardware/GPUDeviceQuery.h"
 #include "StringParse.h"
-
-#if TINY_WITH_EDITOR
-#include "Editor.h"
-#endif
-
 
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
@@ -532,6 +526,8 @@ bool TinyGameApp::initializeGame()
 		Global::ModuleManager().loadModule("D3D11RHI.dll");
 		mEditor->initializeRender();
 		::Global::GetDrawEngine().lockSystem();
+
+		mEditor->addGameViewport(this);
 	}
 #endif
 
@@ -960,7 +956,6 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 	}
 }
 
-
 void TinyGameApp::render( float dframe )
 {
 	//PROFILE_ENTRY("Render");
@@ -1162,6 +1157,30 @@ void TinyGameApp::render( float dframe )
 		
 	drawEngine.endFrame();
 }
+
+#if TINY_WITH_EDITOR
+void TinyGameApp::resizeViewport(int w, int h)
+{
+
+}
+
+void TinyGameApp::renderViewport(IEditorRenderContext& context)
+{
+	if (::Global::GetDrawEngine().isRHIEnabled())
+	{
+
+	}
+	else
+	{
+		context.copyToRenderTarget((void*) ::Global::GetDrawEngine().getPlatformGraphics().getTargetDC());
+	}
+}
+
+void TinyGameApp::onViewportMouseEvent(MouseMsg const& msg)
+{
+	handleMouseEvent(msg);
+}
+#endif
 
 void TinyGameApp::importUserProfile()
 {
@@ -1392,6 +1411,7 @@ void TinyGameApp::addGUITask(TaskBase* task, bool bGlobal)
 	handler->addTask(task);
 }
 
+
 void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 {
 	if ( !getCurStage()->onWidgetEvent( event , id , ui ) )
@@ -1515,6 +1535,7 @@ bool TinyGameApp::createWindowInternal(GameWindow& window , int width, int heigh
 
 	return true;
 }
+
 
 FadeInEffect::FadeInEffect( int _color , long time )
 	:RenderEffect( time )

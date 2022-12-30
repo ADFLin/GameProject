@@ -8,6 +8,15 @@
 
 #include <vector>
 
+#include "ImGui/imgui.h"
+#include "CString.h"
+
+
+struct WindowRenderParams 
+{
+	ImGuiWindowFlags flags = ImGuiWindowFlags_None;
+	ImVec2 InitSize = ImVec2(200,200);
+};
 
 class IEditorPanel
 {
@@ -15,7 +24,9 @@ public:
 	virtual ~IEditorPanel(){}
 	virtual void onOpen(){}
 	virtual void onClose(){}
-	virtual void render(const char* title, bool* p_open){}
+	virtual void render(){}
+
+	virtual void getRenderParams(WindowRenderParams& params) const {}
 };
 
 
@@ -76,6 +87,16 @@ struct EditorPanelInfo
 	static void Register(EditorPanelDesc const& desc)
 	{
 		List.push_back(EditorPanelInfo(desc, MakeFactory<T>()));
+	}
+
+	static  EditorPanelInfo const* Find(char const* name)
+	{
+		for(auto const& info : List)
+		{
+			if (FCString::CompareIgnoreCase(info.desc.name, name) == 0)
+				return &info;
+		}
+		return nullptr;
 	}
 
 	static std::vector< EditorPanelInfo > List;

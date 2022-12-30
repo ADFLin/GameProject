@@ -14,6 +14,10 @@
 #include "GameGUISystem.h"
 #include "GameWidget.h"
 
+#if TINY_WITH_EDITOR
+#include "Editor.h"
+#endif
+
 #include <cassert>
 
 class MouseMsg;
@@ -105,6 +109,9 @@ class TinyGameApp : public GameLoopT< TinyGameApp , WindowsPlatform >
 				  , public IGUIDelegate
 				  , public IGameNetInterface
 	              , public IGameWindowProvider
+#if TINY_WITH_EDITOR
+				  , public IEditorGameViewport
+#endif
 {
 public:
 
@@ -128,6 +135,12 @@ public:
 	virtual bool  reconstructWindow(GameWindow& window) override;
 	virtual GameWindow* createWindow(Vec2i const& pos, Vec2i const& size, char const* title) override;
 	bool createWindowInternal(GameWindow& window, int width , int height, TCHAR const* title);
+
+#if TINY_WITH_EDITOR
+	void resizeViewport(int w, int h) override;
+	void renderViewport(IEditorRenderContext& context) override;
+	void onViewportMouseEvent(MouseMsg const& msg) override;
+#endif
 
 protected:
 	//StageManager

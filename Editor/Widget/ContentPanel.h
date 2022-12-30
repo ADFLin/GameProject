@@ -11,7 +11,7 @@ class ContentPanel : public IEditorPanel
 public:
 
 	void onOpen() override;
-	void render(const char* title, bool* p_open) override;
+	void render() override;
 
 	void renderFolderTree(char const* name, char const* path, int level, bool bInCurFolderSeq);
 	struct FileData
@@ -25,13 +25,25 @@ public:
 	float mThumbnailSize = 64.0f;
 	float mPadding = 8;
 
+	void addCurrentFolder(char const* path, bool bReset = true)
+	{
+		mCurrentFolderPath = path;
+		mFolderPathHistory.push_back(path);
+		indexHistory = mFolderPathHistory.size() - 1;
+	}
 	void updateContent();
 
 
 	std::string mCurrentFolderPath = ".";
-	int indexHistory;
+	int indexHistory = INDEX_NONE;
 	std::vector< std::string > mFolderPathHistory;
 	std::vector<StringView> mFolderSeq;
+
+	void getRenderParams(WindowRenderParams& params) const
+	{
+		params.flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+	}
+
 };
 
 

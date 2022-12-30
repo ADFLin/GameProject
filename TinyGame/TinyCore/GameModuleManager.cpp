@@ -48,7 +48,7 @@ void GameModuleManager::cleanupModuleInstances()
 	visitInternal([](ModuleData& info) ->bool
 	{
 		info.instance->shutdownModule();
-		info.instance->deleteThis();
+		info.instance->release();
 		info.instance = nullptr;
 		return true;
 	});
@@ -170,9 +170,8 @@ bool GameModuleManager::loadModule( char const* path )
 		return false;
 
 	IModuleInterface* module = (*createFunc)();
-	if( !module )
+	if (!module)
 		return false;
-
 
 	if (registerModule(module, loadName, hModule))
 	{
@@ -180,7 +179,7 @@ bool GameModuleManager::loadModule( char const* path )
 	}
 	else
 	{
-		module->deleteThis();
+		module->release();
 		return false;
 	}
 	LogMsg("Module Loaded: %s", (char const*)loadName);

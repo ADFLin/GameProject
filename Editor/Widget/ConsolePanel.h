@@ -67,7 +67,7 @@ public:
 		Items.emplace_back(buf,color);
 	}
 
-	void  render(const char* title, bool* p_open);
+	void  render();
 
 	void    ExecCommand(const char* command_line);
 

@@ -626,6 +626,8 @@ namespace Render
 		TCF_GenerateMips = BIT(5),
 		TCF_HalfData     = BIT(6),
 
+		TCF_PlatformGraphicsCompatible = BIT(7),
+
 		TCF_DefalutValue = TCF_CreateSRV,
 	};
 

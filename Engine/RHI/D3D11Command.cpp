@@ -854,7 +854,13 @@ namespace Render
 				break;
 			}
 		}
-
+#if SYS_PLATFORM_WIN
+		if (creationFlags & TCF_PlatformGraphicsCompatible)
+		{
+			desc.MiscFlags |= D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
+			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		}
+#endif
 		std::vector< D3D11_SUBRESOURCE_DATA > initDataList;
 		if( data )
 		{

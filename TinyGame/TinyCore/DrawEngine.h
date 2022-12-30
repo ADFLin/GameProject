@@ -11,8 +11,15 @@
 #include <memory>
 #include "WindowsPlatform.h"
 
-
 #define OPENGL_RENDER_DIB 0
+
+class IGameWindow
+{
+public:
+	virtual ~IGameWindow() = default;
+	virtual void*         getPlatformHandle() = 0;
+	virtual TVector2<int> getSize() = 0;
+};
 
 class TINY_API GameWindow : public WinFrameT< GameWindow >
 {
@@ -92,7 +99,7 @@ private:
 
 	bool        mbInitialized;
 	bool        bRHIShutdownDeferred;
-	bool        bHasUseRHI = false;
+	bool        bHadUseRHI = false;
 	
 	IGameRenderSetup* mRenderSetup = nullptr;
 	IGameWindowProvider* mWindowProvider = nullptr;

@@ -334,7 +334,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 		setupBuffer(getScreenWidth(), getScreenHeight());
 
-		if (bHasUseRHI)
+		if (bHadUseRHI)
 		{
 			TGuardValue<bool> value(bBlockRender, true);
 			if (!mWindowProvider->reconstructWindow(*mGameWindow))
@@ -382,7 +382,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	RenderUtility::InitializeRHI();
 	mRHIGraphics->initializeRHI();
 
-	bHasUseRHI = true;
+	bHadUseRHI = true;
 	bUsePlatformBuffer = false;
 	bWasUsedPlatformGraphics = configs.bWasUsedPlatformGraphics;
 	return true;
@@ -416,7 +416,7 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 	if (mSystemName == ERenderSystem::D3D12)
 	{
 		TGuardValue<bool> value(bBlockRender, true);
-		bHasUseRHI = false;
+		bHadUseRHI = false;
 		mWindowProvider->reconstructWindow(*mGameWindow);
 	}
 

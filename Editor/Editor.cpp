@@ -22,6 +22,7 @@
 
 #include "Widget/GameViewportPanel.h"
 
+
 using namespace Render;
 
 #pragma comment(lib , "D3D11.lib")
@@ -164,6 +165,7 @@ public:
 	TComPtr< ID3D11RenderTargetView > mRenderTargetView;
 
 	ImGuiContext* mGuiContext;
+
 	bool bSizeMove = false;
 
 };
@@ -242,6 +244,8 @@ public:
 		return true;
 	}
 
+
+
 	void createChildWindow()
 	{
 		EditorWindow* newWindow = new EditorWindow;
@@ -271,7 +275,6 @@ public:
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-
 
 		ImGui::SetCurrentContext(mMainWindow.mGuiContext);
 		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
@@ -360,7 +363,7 @@ public:
 						ActivePanel& panel = findOrAddPanel(info);
 						if (!panel.bOpened)
 						{
-							panel.bOpened = true;
+							panel.bOpenRequest = true;
 							panel.widget->onOpen();
 						}
 						else
@@ -566,7 +569,7 @@ public:
 	op(ScrollbarRounding)\
 	op(GrabMinSize)\
 	op(GrabRounding)\
-	op(LayoutAlign)\
+	/*op(LayoutAlign)*/\
 	op(LogSliderDeadzone)\
 	op(TabRounding)\
 	op(TabBorderSize)\

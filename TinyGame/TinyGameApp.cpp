@@ -21,7 +21,6 @@
 #include "GameServer.h"
 #include "GameClient.h"
 
-
 #include "GameWidget.h"
 #include "GameWidgetID.h"
 #include "Widget/ConsoleFrame.h"
@@ -62,7 +61,6 @@ namespace
 
 	AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
 }
-
 
 TINY_API IGameNetInterface* GGameNetInterfaceImpl;
 TINY_API IDebugInterface*   GDebugInterfaceImpl;

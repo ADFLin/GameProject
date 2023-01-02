@@ -16,7 +16,7 @@ namespace BomberMan
 		void  shutdownModule() override {}
 		void  enter() override {}
 		void  exit() override {}
-		void  deleteThis() override { delete this; }
+		void  release() override { delete this; }
 		//
 		void beginPlay(StageManager& manger, EGameStageMode modeType) override;
 	public:

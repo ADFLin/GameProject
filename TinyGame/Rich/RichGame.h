@@ -13,7 +13,7 @@ namespace Rich
 		void  shutdownModule() override {}
 		void  enter() override {}
 		void  exit() override {}
-		void  deleteThis() override { delete this; }
+		void  release() override { delete this; }
 		//
 		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 	public:

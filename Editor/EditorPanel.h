@@ -3,12 +3,14 @@
 #ifndef EditorPanel_H_7C414633_0488_402F_BBBB_9EAC3396913E
 #define EditorPanel_H_7C414633_0488_402F_BBBB_9EAC3396913E
 
+#include "EditorConfig.h"
+
 #include "Meta/IsBaseOf.h"
 #include "Meta/EnableIf.h"
 
+#include "ImGui/imgui.h"
 #include <vector>
 
-#include "ImGui/imgui.h"
 #include "CString.h"
 
 
@@ -99,7 +101,7 @@ struct EditorPanelInfo
 		return nullptr;
 	}
 
-	static std::vector< EditorPanelInfo > List;
+	EDITOR_API static std::vector< EditorPanelInfo > List;
 
 };
 

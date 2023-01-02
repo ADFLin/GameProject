@@ -27,6 +27,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\OtherLib\ImGuiNode\crude_json.h" />
+    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_bezier_math.h" />
+    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_canvas.h" />
+    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_extra_math.h" />
+    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_node_editor.h" />
+    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_node_editor_internal.h" />
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\OtherLib\ImGui\imconfig.h" />
@@ -36,13 +42,19 @@
     <ClInclude Include="..\OtherLib\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\OtherLib\ImGui\imstb_truetype.h" />
     <ClInclude Include="Editor.h" />
+    <ClInclude Include="EditorConfig.h" />
     <ClInclude Include="EditorUtils.h" />
     <ClInclude Include="EditorPanel.h" />
     <ClInclude Include="Widget\ConsolePanel.h" />
     <ClInclude Include="Widget\ContentPanel.h" />
     <ClInclude Include="Widget\GameViewportPanel.h" />
+    <ClInclude Include="Widget\MaterialGraphPanel.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\ImGuiNode\crude_json.cpp" />
+    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_canvas.cpp" />
+    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_node_editor.cpp" />
+    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_node_editor_api.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp" />
@@ -56,6 +68,7 @@
     <ClCompile Include="Widget\ConsolePanel.cpp" />
     <ClCompile Include="Widget\ContentPanel.cpp" />
     <ClCompile Include="Widget\GameViewportPanel.cpp" />
+    <ClCompile Include="Widget\MaterialGraphPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\EngineCore.vcxproj">
@@ -67,6 +80,11 @@
     <ProjectReference Include="..\Engine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\OtherLib\ImGuiNode\imgui_bezier_math.inl" />
+    <None Include="..\OtherLib\ImGuiNode\imgui_extra_math.inl" />
+    <None Include="..\OtherLib\ImGuiNode\imgui_node_editor_internal.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>Editor</RootNamespace>
@@ -174,7 +192,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_LIB;DEBUG;_WINDOWS;EDITOR_EXPORT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>

@@ -58,15 +58,18 @@ namespace Render
 	{
 		//Rect
 		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
-		{ Vector4(1 , -1 , 0 , 1) , Vector2(1,0) },
-		{ Vector4(1, 1 , 0 , 1) , Vector2(1,1) },
 		{ Vector4(-1, 1, 0 , 1) , Vector2(0,1) },
+		{ Vector4(1, 1 , 0 , 1) , Vector2(1,1) },
+		{ Vector4(1 , -1 , 0 , 1) , Vector2(1,0) },
 
 		//OptimisedTriangle
 		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
-		{ Vector4(3 , -1 , 0 , 1) , Vector2(2,0) },
 		{ Vector4(-1, 3 , 0 , 1) , Vector2(0,2) },
+		{ Vector4(3 , -1 , 0 , 1) , Vector2(2,0) },
 	};
+
+	static uint16 const GScreenIndices[] = { 0, 1 , 2 , 0 , 2 , 3 };
+	static uint32 const GScreenIndices32[] = { 0, 1 , 2 , 0 , 2 , 3 };
 
 	class ScreenRenderResoure : public IGlobalRenderResource
 	{
@@ -74,8 +77,8 @@ namespace Render
 		virtual void restoreRHI() override
 		{ 
 			mRectVertexBuffer = RHICreateVertexBuffer(sizeof(VertexXYZW_T1), 7, BCF_DefalutValue, const_cast<VertexXYZW_T1*>( &GScreenVertices[0] ));
-			uint16 indices[] = { 0, 1 , 2 , 0 , 2 , 3 };
-			mQuadIndexBuffer = RHICreateIndexBuffer(6, false, BCF_DefalutValue, indices);
+	
+			mQuadIndexBuffer = RHICreateIndexBuffer(6, false, BCF_DefalutValue, (void*)GScreenIndices);
 
 			InputLayoutDesc desc;
 			desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float4);
@@ -220,7 +223,7 @@ namespace Render
 			{ Vector2(x , y2) , color , Vector2(0,1) },
 		};
 
-		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_CA_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, GScreenIndices32, 6);
 	}
 
 	void DrawUtility::Rect(RHICommandList& commandList, float x, float y, float width, float height)
@@ -235,7 +238,7 @@ namespace Render
 			{ Vector2(x , y2 ) , Vector2(0,1) },
 		};
 
-		TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, GScreenIndices32, 6);
 	}
 
 	void DrawUtility::Rect(RHICommandList& commandList, float width, float height)
@@ -247,7 +250,7 @@ namespace Render
 			{ Vector2(width , height) , Vector2(1,1) },
 			{ Vector2(0 , height) , Vector2(0,1) },
 		};
-		TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, GScreenIndices32, 6);
 	}
 
 	void DrawUtility::ScreenRect(RHICommandList& commandList, EScreenRenderMethod method)
@@ -259,7 +262,7 @@ namespace Render
 		case EScreenRenderMethod::Rect:
 			if (CVarDrawScreenUseDynamicVertexData)
 			{
-				TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::Quad, GScreenVertices, 4);
+				TRenderRT< RTVF_XYZW_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, GScreenVertices, 4, GScreenIndices32, 6);
 			}
 			else
 			{
@@ -284,11 +287,11 @@ namespace Render
 		VertexXYZW_T1 screenVertices[] =
 		{
 			{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
-			{ Vector4(1 , -1 , 0 , 1) , Vector2(uSize,0) },
-			{ Vector4(1, 1 , 0 , 1) , Vector2(uSize,vSize) },
 			{ Vector4(-1, 1, 0 , 1) , Vector2(0,vSize) },
+			{ Vector4(1, 1 , 0 , 1) , Vector2(uSize,vSize) },
+			{ Vector4(1 , -1 , 0 , 1) , Vector2(uSize,0) },
 		};
-		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, EPrimitive::Quad, screenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, screenVertices, 4, GScreenIndices32, 6);
 	}
 
 	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)

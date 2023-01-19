@@ -237,6 +237,7 @@
     <None Include="..\TinyGame\out\Shader\SkyBox.sgc" />
     <None Include="..\TinyGame\out\Shader\SplineCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\SSAO.sgc" />
+    <None Include="..\TinyGame\out\Shader\Template\Test.sgc" />
     <None Include="..\TinyGame\out\Shader\Terrain.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\HLSLTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc" />

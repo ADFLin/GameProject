@@ -382,19 +382,13 @@ namespace Render
 		{
 			return *mImmediateCommandList;
 		}
-		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
-		RHITexture1D*    RHICreateTexture1D(
-			ETexture::Format format, int length,
-			int numMipLevel, uint32 createFlags, void* data);
-
-		RHITexture2D*    RHICreateTexture2D(
-			ETexture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign);
-
-		RHITexture3D*      RHICreateTexture3D(ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data);
-		RHITextureCube*    RHICreateTextureCube(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
-		RHITexture2DArray* RHICreateTexture2DArray(ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
-		RHITexture2D*      RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
+		RHISwapChain*      RHICreateSwapChain(SwapChainCreationInfo const& info);
+		RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data);
+		RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign);
+		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data);
+		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]);
+		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data);
+		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc);
 
 		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
 

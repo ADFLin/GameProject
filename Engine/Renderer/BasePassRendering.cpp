@@ -153,7 +153,7 @@ namespace Render
 				return false;
 			}
 
-			mFrameBuffer->addTexture(getFrameTexture());
+			mFrameBuffer->setTexture(0,getFrameTexture());
 			mSize = size;
 			mNumSamples = numSamples;
 		}

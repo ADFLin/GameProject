@@ -117,18 +117,14 @@ namespace Render
 
 			if (!bSuccess)
 			{
-				if (bUsePreprocess)
+				if (context.bUsePreprocess)
 				{
 					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
 				}
 
-				if (bRecompile)
-				{
-					TComPtr<IDxcBlobEncoding> errorsBlob;
-					hr = compileResult->GetErrorBuffer(&errorsBlob);
-
-					emitCompileError(context, (LPCSTR)errorsBlob->GetBufferPointer());
-				}
+				TComPtr<IDxcBlobEncoding> errorsBlob;
+				hr = compileResult->GetErrorBuffer(&errorsBlob);
+				emitCompileError(context, (LPCSTR)errorsBlob->GetBufferPointer());
 				continue;
 			}
 
@@ -155,7 +151,7 @@ namespace Render
 				context.shaderSetupData->resource = shaderImpl;
 			}
 		} 
-		while (!bSuccess && bRecompile);
+		while (!bSuccess && context.bRecompile);
 
 		return bSuccess;
 #else

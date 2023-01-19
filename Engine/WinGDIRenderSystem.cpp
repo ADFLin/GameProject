@@ -52,30 +52,30 @@ void WinGdiGraphics2D::releaseUsedResources()
 	}
 }
 
-void WinGdiGraphics2D::setPenImpl( HPEN hPen , bool beManaged )
+void WinGdiGraphics2D::setPenImpl( HPEN hPen , bool bManaged )
 {
 	if ( hPen != mCurPen )
 	{
-		mCurPen.set(hPen, beManaged);
+		mCurPen.set(hPen, bManaged);
 		::SelectObject(getRenderDC(), hPen);
 	}
 }
 
-void WinGdiGraphics2D::setBrushImpl( HBRUSH hBrush , bool beManaged )
+void WinGdiGraphics2D::setBrushImpl( HBRUSH hBrush , bool bManaged )
 {
 	if ( hBrush != mCurBrush )
 	{
-		mCurBrush.set(hBrush, beManaged);
+		mCurBrush.set(hBrush, bManaged);
 		::SelectObject(getRenderDC(), hBrush);
 	}
 }
 
 
-void WinGdiGraphics2D::setFontImpl( HFONT hFont , bool beManaged )
+void WinGdiGraphics2D::setFontImpl( HFONT hFont , bool bManaged )
 {
 	if ( hFont != mCurFont )
 	{
-		mCurFont.set(hFont, beManaged);
+		mCurFont.set(hFont, bManaged);
 		::SelectObject(getRenderDC(), hFont);
 	}
 }
@@ -93,7 +93,7 @@ void WinGdiGraphics2D::setPen(Color3ub const& color, int width /*= 1 */)
 		}
 		else
 		{
-			hPen = FWindowsGDI::CreatePen(color, width);
+			hPen = FWinGDI::CreatePen(color, width);
 			mCachedPenMap.emplace(color.toRGB(), hPen);
 		}
 		assert(hPen != NULL);
@@ -101,7 +101,7 @@ void WinGdiGraphics2D::setPen(Color3ub const& color, int width /*= 1 */)
 	}
 	else
 	{
-		setPenImpl(FWindowsGDI::CreatePen(color, width), true);
+		setPenImpl(FWinGDI::CreatePen(color, width), true);
 	}
 }
 
@@ -116,7 +116,7 @@ void WinGdiGraphics2D::setBrush(Color3ub const& color)
 	}
 	else
 	{
-		hBrush = FWindowsGDI::CreateBrush(color);
+		hBrush = FWinGDI::CreateBrush(color);
 		mCachedBrushMap.emplace(color.toRGB(), hBrush);
 	}
 	assert(hBrush != NULL);
@@ -376,7 +376,7 @@ uint8* GdiTexture::getRawData()
 }
 
 
-WinGdiRenderSystem::WinGdiRenderSystem( HWND hWnd , HDC hDC ) 
+WinGDIRenderSystem::WinGDIRenderSystem( HWND hWnd , HDC hDC ) 
 	:mBufferDC( hDC , hWnd )
 	,mGraphics( mBufferDC.getHandle() )
 	,mhDCWindow( hDC )
@@ -385,34 +385,34 @@ WinGdiRenderSystem::WinGdiRenderSystem( HWND hWnd , HDC hDC )
 }
 
 
-WinGdiRenderSystem::~WinGdiRenderSystem()
+WinGDIRenderSystem::~WinGDIRenderSystem()
 {
 	mGraphics.releaseReources();
 }
 
-void WinGdiRenderSystem::beginRender()
+void WinGDIRenderSystem::beginRender()
 {
 	mBufferDC.clear();
 	mGraphics.beginRender();
 }
 
-void WinGdiRenderSystem::endRender()
+void WinGDIRenderSystem::endRender()
 {
 	mGraphics.endRender();
 	mBufferDC.bitBltTo( mhDCWindow );
 }
 
-HFONT WinGdiRenderSystem::createFont(char const* faceName, int size , bool bBold , bool bItalic )
+HFONT WinGDIRenderSystem::createFont(char const* faceName, int size , bool bBold , bool bItalic )
 {
-	return FWindowsGDI::CreateFont(mhDCWindow, faceName, size, bBold, bItalic );
+	return FWinGDI::CreateFont(mhDCWindow, faceName, size, bBold, bItalic );
 }
 
-Vec2i WinGdiRenderSystem::getClientSize() const
+Vec2i WinGDIRenderSystem::getClientSize() const
 {
 	return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() );
 }
 
-HFONT FWindowsGDI::CreateFont(HDC hDC, char const* faceName, int size, bool bBold , bool bItalic , bool bUnderLine )
+HFONT FWinGDI::CreateFont(HDC hDC, char const* faceName, int size, bool bBold , bool bItalic , bool bUnderLine )
 {
 	LOGFONT lf;
 
@@ -434,12 +434,12 @@ HFONT FWindowsGDI::CreateFont(HDC hDC, char const* faceName, int size, bool bBol
 	return CreateFontIndirectA(&lf);
 }
 
-HBRUSH FWindowsGDI::CreateBrush(Color3ub const& color)
+HBRUSH FWinGDI::CreateBrush(Color3ub const& color)
 {
 	return ::CreateSolidBrush(color.toRGB());
 }
 
-HPEN FWindowsGDI::CreatePen(Color3ub const& color, int width)
+HPEN FWinGDI::CreatePen(Color3ub const& color, int width)
 {
 	return ::CreatePen(PS_SOLID, width, color.toRGB());
 }

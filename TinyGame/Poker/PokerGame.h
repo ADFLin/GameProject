@@ -44,7 +44,6 @@ namespace Poker
 	
 		virtual void  enter();
 		virtual void  exit(){} 
-		virtual void  release(){ delete this; }
 		//
 		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 		

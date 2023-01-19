@@ -149,34 +149,54 @@ namespace Render
 
 
 	IGlobalRenderResource* GStaticResourceHead = nullptr;
+	IGlobalRenderResource* GStaticResourceHeadPendingRestore = nullptr;
 
 	IGlobalRenderResource::IGlobalRenderResource()
 	{
-		mNext = GStaticResourceHead;
-		GStaticResourceHead = this;
+		mNext = GStaticResourceHeadPendingRestore;
+		GStaticResourceHeadPendingRestore = this;
 	}
 
-
-	void IGlobalRenderResource::ReleaseAllResource()
+	void IGlobalRenderResource::ReleaseAllResources()
 	{
-		IGlobalRenderResource* cur = GStaticResourceHead;
-
-		while( cur )
+		IGlobalRenderResource* resource = GStaticResourceHead;
+		if (resource)
 		{
-			cur->releaseRHI();
-			cur = cur->mNext;
+			for(;;)
+			{
+				resource->releaseRHI();
+				if (resource->mNext == nullptr)
+				{
+					resource->mNext = GStaticResourceHeadPendingRestore;
+					break;
+				}
+				resource = resource->mNext;
+			}
 		}
+
+		GStaticResourceHeadPendingRestore = GStaticResourceHead;
+		GStaticResourceHead = nullptr;
 	}
 
-	void IGlobalRenderResource::RestoreAllResource()
+	void IGlobalRenderResource::RestoreAllResources()
 	{
-		IGlobalRenderResource* cur = GStaticResourceHead;
-
-		while( cur )
+		IGlobalRenderResource* resource = GStaticResourceHeadPendingRestore;
+		if (resource)
 		{
-			cur->restoreRHI();
-			cur = cur->mNext;
+			for(;;)
+			{
+				resource->restoreRHI();
+				if (resource->mNext == nullptr)
+				{
+					resource->mNext = GStaticResourceHead;
+					break;
+				}
+				resource = resource->mNext;
+			}
 		}
+
+		GStaticResourceHead = GStaticResourceHeadPendingRestore;
+		GStaticResourceHeadPendingRestore = nullptr;
 	}
 
 #endif

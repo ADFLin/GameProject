@@ -308,40 +308,35 @@ namespace Render
 	}
 
 
-	bool D3D12Texture1D::initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int length)
+	D3D12Texture1D::D3D12Texture1D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource)
+		:TD3D12Texture< RHITexture1D >(desc)
 	{
-		mFormat = format;
 		mResource = resource.detach();
-		mSize = length;
-		return true;
 	}
 
 	bool D3D12Texture1D::update(int offset, int length, ETexture::Format format, void* data, int level)
 	{
-		if (mFormat == format)
+		if (getFormat() == format)
 		{
 			return static_cast<D3D12System*>(GRHISystem)->updateTexture1DSubresources(
-				mResource, mFormat, data, offset, length, level
+				mResource, getFormat(), data, offset, length, level
 			);
 		}
 		return false;
 	}
 
-	bool D3D12Texture2D::initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int w, int h)
+	D3D12Texture2D::D3D12Texture2D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource)
+		:TD3D12Texture< RHITexture2D >(desc)
 	{
-		mFormat = format;
-		mResource = resource.detach();
-		mSizeX = w;
-		mSizeY = h;
-		return true;
+
 	}
 
 	bool D3D12Texture2D::update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 	{
-		if (mFormat == format)
+		if (getFormat() == format)
 		{
 			return static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
-				mResource, mFormat, data, ox, oy, w, h, w * ETexture::GetFormatSize(mFormat), level
+				mResource, getFormat(), data, ox, oy, w, h, w * ETexture::GetFormatSize(getFormat()), level
 			);
 		}
 		return false;
@@ -349,14 +344,15 @@ namespace Render
 
 	bool D3D12Texture2D::update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 	{
-		if (mFormat == format)
+		if (getFormat() == format)
 		{
 			return static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
-				mResource, mFormat, data, ox, oy, w, h, dataImageWidth * ETexture::GetFormatSize(mFormat), level
+				mResource, getFormat(), data, ox, oy, w, h, dataImageWidth * ETexture::GetFormatSize(getFormat()), level
 			);
 		}
 		return false;
 	}
+
 
 	D3D12SamplerState::D3D12SamplerState(SamplerStateInitializer const& initializer)
 	{

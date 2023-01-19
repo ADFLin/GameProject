@@ -112,11 +112,13 @@ namespace GreedySnake
 
 	enum SnakeState
 	{
-		SS_DEAD      = BIT(0),
-		SS_INC_SPEED = BIT(1),
-		SS_DEC_SPEED = BIT(2),
-		SS_CONFUSE   = BIT(3),
-		SS_FREEZE    = BIT(4),
+		SS_DEAD        = BIT(0),
+		SS_INC_SPEED   = BIT(1),
+		SS_DEC_SPEED   = BIT(2),
+		SS_CONFUSE     = BIT(3),
+		SS_FREEZE      = BIT(4),
+		SS_INVINCIBLE  = BIT(5),
+		SS_TRANSPARENT = BIT(7),
 	};
 
 	enum TerrainType
@@ -222,10 +224,9 @@ namespace GreedySnake
 		template< class Visitor >
 		void      visitFood( Visitor& visitor )
 		{
-			for( FoodVec::iterator iter = mFoodVec.begin();
-				iter != mFoodVec.end() ; ++iter )
+			for( auto& food : mFoodVec)
 			{
-				visitor( *iter );
+				visitor( food );
 			}
 		}
 		int       getSnakeNum() const { return mNumSnakePlay;  }

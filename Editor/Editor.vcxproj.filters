@@ -13,7 +13,10 @@
     <Filter Include="Widget">
       <UniqueIdentifier>{f03ef978-d0d8-4f45-846f-2c48df63eacd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OtherLib\ImGuiNode">
+    <Filter Include="ShaderGraph">
+      <UniqueIdentifier>{a4e99651-9dca-47c5-a5af-19a6b8ae165b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib\ImNodeEditor">
       <UniqueIdentifier>{e05c8a22-c2da-48be-88c2-5651d4f4ef84}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -54,28 +57,31 @@
     <ClInclude Include="Widget\GameViewportPanel.h">
       <Filter>Widget</Filter>
     </ClInclude>
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_canvas.h">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_extra_math.h">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_node_editor.h">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_node_editor_internal.h">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\ImGuiNode\crude_json.h">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_bezier_math.h">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClInclude>
-    <ClInclude Include="Widget\MaterialGraphPanel.h">
+    <ClInclude Include="EditorConfig.h" />
+    <ClInclude Include="Widget\ShaderGraphPanel.h">
       <Filter>Widget</Filter>
     </ClInclude>
-    <ClInclude Include="EditorConfig.h" />
+    <ClInclude Include="ShaderGraph\ShaderGraph.h">
+      <Filter>ShaderGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImNodeEditor\crude_json.h">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_bezier_math.h">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_canvas.h">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_extra_math.h">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_node_editor.h">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_node_editor_internal.h">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp">
@@ -111,31 +117,32 @@
     <ClCompile Include="Widget\GameViewportPanel.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_canvas.cpp">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_node_editor.cpp">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_node_editor_api.cpp">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\ImGuiNode\crude_json.cpp">
-      <Filter>OtherLib\ImGuiNode</Filter>
-    </ClCompile>
-    <ClCompile Include="Widget\MaterialGraphPanel.cpp">
+    <ClCompile Include="Widget\ShaderGraphPanel.cpp">
       <Filter>Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderGraph\ShaderGraph.cpp" />
+    <ClCompile Include="..\OtherLib\ImNodeEditor\crude_json.cpp">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_canvas.cpp">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor.cpp">
+      <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor_api.cpp">
+      <Filter>OtherLib\ImNodeEditor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\OtherLib\ImGuiNode\imgui_bezier_math.inl">
-      <Filter>OtherLib\ImGuiNode</Filter>
+    <None Include="..\OtherLib\ImNodeEditor\imgui_bezier_math.inl">
+      <Filter>OtherLib\ImNodeEditor</Filter>
     </None>
-    <None Include="..\OtherLib\ImGuiNode\imgui_extra_math.inl">
-      <Filter>OtherLib\ImGuiNode</Filter>
+    <None Include="..\OtherLib\ImNodeEditor\imgui_extra_math.inl">
+      <Filter>OtherLib\ImNodeEditor</Filter>
     </None>
-    <None Include="..\OtherLib\ImGuiNode\imgui_node_editor_internal.inl">
-      <Filter>OtherLib\ImGuiNode</Filter>
+    <None Include="..\OtherLib\ImNodeEditor\imgui_node_editor_internal.inl">
+      <Filter>OtherLib\ImNodeEditor</Filter>
     </None>
   </ItemGroup>
 </Project>

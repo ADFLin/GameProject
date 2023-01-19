@@ -21,6 +21,10 @@ public:
 
 	uint16 mMouseState;
 
+	ImVec2 mSize;
+
+	bool preRender();
+
 };
 
 

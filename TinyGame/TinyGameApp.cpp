@@ -46,6 +46,7 @@
 #include "Hardware/GPUDeviceQuery.h"
 #include "StringParse.h"
 
+
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
 
@@ -365,9 +366,9 @@ BOOL WINAPI HandleConsoleEvent(DWORD dwCtrlType)
 	{
 	case CTRL_CLOSE_EVENT:
 		GApp->setLoopOver(true);
-		break;
+		return TRUE;
 	}
-	return FALSE;
+	return TRUE;
 }
 #endif
 void CreateConsole()
@@ -445,12 +446,7 @@ bool TinyGameApp::initializeGame()
 		EngineInitialize();
 	}
 
-#if TINY_WITH_EDITOR
-	{
-		TIME_SCOPE("Editor Initialize");
-		mEditor = IEditor::Create();
-	}
-#endif
+
 
 	LogMsg("OS Loc = %s", SystemPlatform::GetUserLocaleName().c_str());
 	{
@@ -463,6 +459,14 @@ bool TinyGameApp::initializeGame()
 		importUserProfile();
 		mbLockFPS = ::Global::GameConfig().getIntValue("bLockFPS", nullptr, 0);
 	}
+
+#if TINY_WITH_EDITOR
+	if (::Global::GameConfig().getBoolValue("Editor", CONFIG_SECTION , false))
+	{
+		TIME_SCOPE("Editor Initialize");
+		VERIFY_RETURN_FALSE(initializeEditor());
+	}
+#endif
 
 	{
 		TIME_SCOPE("Console Initialize");
@@ -519,13 +523,10 @@ bool TinyGameApp::initializeGame()
 	}
 
 #if TINY_WITH_EDITOR
+	if ( mEditor )
 	{
 		TIME_SCOPE("Editor InitializeRender");
-		Global::ModuleManager().loadModule("D3D11RHI.dll");
-		mEditor->initializeRender();
-		::Global::GetDrawEngine().lockSystem();
-
-		mEditor->addGameViewport(this);
+		VERIFY_RETURN_FALSE(initializeEditorRender());
 	}
 #endif
 
@@ -565,7 +566,7 @@ bool TinyGameApp::initializeGame()
 			changeStage(STAGE_MAIN_MENU);
 		}
 
-		mFPSCalc.init(getMillionSecond());
+		mFPSCalc.init(mClock.getTimeMilliseconds());
 	}
 
 	::ProfileSystem::Get().resetSample();
@@ -580,11 +581,7 @@ void TinyGameApp::finalizeGame()
 void TinyGameApp::cleanup()
 {
 #if TINY_WITH_EDITOR
-	if (mEditor)
-	{
-		mEditor->release();
-		mEditor = nullptr;
-	}
+	finalizeEditor();
 #endif
 
 	ExecutionRegisterCollection::Get().cleanup();
@@ -625,7 +622,10 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 	ProfileSystem::Get().incrementFrameCount();
 
 #if TINY_WITH_EDITOR
-	mEditor->update();
+	if (mEditor)
+	{
+		mEditor->update();
+	}
 #endif
 
 	int  numFrame = shouldTime / getUpdateTime();
@@ -795,7 +795,6 @@ void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
 	
 }
 
-
 MsgReply TinyGameApp::handleMouseEvent(MouseMsg const& msg)
 {
 	MsgReply result;
@@ -895,7 +894,6 @@ MsgReply TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 	return result;
 }
 
-
 MsgReply TinyGameApp::handleCharEvent( unsigned code )
 {
 	MsgReply result = ::Global::GUI().procCharMsg(code);
@@ -973,6 +971,7 @@ void TinyGameApp::render( float dframe )
 
 	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
 
+	IGraphics2D& g = ::Global::GetIGraphics2D();
 	{
 	
 		if (bDrawScene)
@@ -985,8 +984,6 @@ void TinyGameApp::render( float dframe )
 				}
 			}
 
-			if (drawEngine.isUsageRHIGraphic2D())
-				::Global::GetRHIGraphics2D().beginRender();
 
 			long dt = long(dframe * getUpdateTime());
 			if (mRenderEffect)
@@ -994,23 +991,15 @@ void TinyGameApp::render( float dframe )
 			{
 				PROFILE_ENTRY("GUIRender");
 				GPU_PROFILE("GUI");
+				g.beginRender();
 				::Global::GUI().render();
+				g.endRender();
 			}
-		}
-		else
-		{
-			if (drawEngine.isUsageRHIGraphic2D())
-				::Global::GetRHIGraphics2D().beginRender();
+
 		}
 	}
 
-#if TINY_WITH_EDITOR
-	{
-		PROFILE_ENTRY("Editor Render");
-		GPU_PROFILE("Editor Render");
-		mEditor->render();
-	}
-#endif
+	g.beginRender();
 
 	if( mConsoleShowMode == ConsoleShowMode::Screen )
 	{
@@ -1018,8 +1007,6 @@ void TinyGameApp::render( float dframe )
 	}
 
 	{
-
-		IGraphics2D& g = ::Global::GetIGraphics2D();
 
 		auto DrawBackgroundRect = [&g](Vec2i rectPos, Vec2i rectSize)
 		{
@@ -1030,7 +1017,7 @@ void TinyGameApp::render( float dframe )
 			g.endBlend();
 		};
 
-		mFPSCalc.increaseFrame(getMillionSecond());
+		mFPSCalc.increaseFrame(mClock.getTimeMilliseconds());
 		if (CVarShowFPS)
 		{
 			Vec2i pos = Vec2i(5, 5);
@@ -1148,37 +1135,21 @@ void TinyGameApp::render( float dframe )
 				textlayout.show(g, "%7.4lf %s--> %s", sample->time, temp.c_str(), sample->name.c_str());
 			}
 		}
-
-		if (drawEngine.isUsageRHIGraphic2D())
-			::Global::GetRHIGraphics2D().endRender();
 	}
+	g.endRender();
 		
 	drawEngine.endFrame();
-}
 
 #if TINY_WITH_EDITOR
-void TinyGameApp::resizeViewport(int w, int h)
-{
-
-}
-
-void TinyGameApp::renderViewport(IEditorRenderContext& context)
-{
-	if (::Global::GetDrawEngine().isRHIEnabled())
+	if (mEditor)
 	{
-
+		PROFILE_ENTRY("Editor Render");
+		GPU_PROFILE("Editor Render");
+		mEditor->render();
 	}
-	else
-	{
-		context.copyToRenderTarget((void*) ::Global::GetDrawEngine().getPlatformGraphics().getTargetDC());
-	}
-}
-
-void TinyGameApp::onViewportMouseEvent(MouseMsg const& msg)
-{
-	handleMouseEvent(msg);
-}
 #endif
+
+}
 
 void TinyGameApp::importUserProfile()
 {

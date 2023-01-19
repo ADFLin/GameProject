@@ -10,7 +10,8 @@ public:
 	virtual void shutdownModule(){}
 	virtual bool isGameModule() const { return false; }
 
-	virtual void  release() = 0;
+	void release() { doRelease(); }
+	virtual void  doRelease() = 0;
 };
 
 using CreateModuleFunc = IModuleInterface* (*)();
@@ -25,7 +26,7 @@ using CreateModuleFunc = IModuleInterface* (*)();
 		class ModuleImpl : public CLASS \
 		{ \
 		public: \
-			void  release() final { delete this;  } \
+			void  doRelease() final { delete this;  } \
 		}; \
 		return new ModuleImpl; \
 	}\

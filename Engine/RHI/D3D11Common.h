@@ -245,10 +245,10 @@ namespace Render
 	class TD3D11Texture : public TD3D11Resource< RHITextureType >
 	{
 	protected:
-		TD3D11Texture(ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
+		TD3D11Texture(TextureDesc const& desc, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
 			:mSRV(SRV),mUAV(UAV)
 		{
-
+			mDesc = desc;
 		}
 
 		virtual void releaseResource()
@@ -276,16 +276,10 @@ namespace Render
 	class D3D11Texture1D : public TD3D11Texture< RHITexture1D >
 	{
 	public:
-		D3D11Texture1D(ETexture::Format format, Texture1DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture1D >(creationResult.SRV.detach(), creationResult.UAV.detach())
+		D3D11Texture1D(TextureDesc const& desc, Texture1DCreationResult& creationResult)
+			:TD3D11Texture< RHITexture1D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
-			mFormat = format;
 			mResource = creationResult.resource.detach();
-			D3D11_TEXTURE1D_DESC desc;
-			mResource->GetDesc(&desc);
-			mSize = desc.Width;
-			mNumSamples = 1;
-			mNumMipLevel = desc.MipLevels;
 		}
 
 		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0)
@@ -314,6 +308,7 @@ namespace Render
 		TComPtr< ID3D11ShaderResourceView >  SRV;
 		TComPtr< ID3D11UnorderedAccessView > UAV;
 	};
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult);
 
 	struct TextureCubeCreationResult
 	{
@@ -462,35 +457,21 @@ namespace Render
 		{
 			DepthFormat ,
 		};
-		D3D11Texture2D(ETexture::Format format, Texture2DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture2D >(creationResult.SRV.detach(), creationResult.UAV.detach())
+		D3D11Texture2D(TextureDesc const& desc, Texture2DCreationResult& creationResult)
+			:TD3D11Texture< RHITexture2D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
-			mFormat = format;
 			mResource = creationResult.resource.detach();
-			D3D11_TEXTURE2D_DESC desc;
-			mResource->GetDesc(&desc);
-			mSizeX = desc.Width;
-			mSizeY = desc.Height;
-			mNumSamples = desc.SampleDesc.Count;
-			mNumMipLevel = desc.MipLevels;
 		}
 
-		D3D11Texture2D(ETexture::Format format, Texture2DCreationResult& creationResult , EDepthFormat )
-			:TD3D11Texture< RHITexture2D >(creationResult.SRV.detach(), creationResult.UAV.detach())
+		D3D11Texture2D(TextureDesc const& desc, Texture2DCreationResult& creationResult , EDepthFormat )
+			:TD3D11Texture< RHITexture2D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
-			mFormat = format;
 			mResource = creationResult.resource.detach();
-			D3D11_TEXTURE2D_DESC desc;
-			mResource->GetDesc(&desc);
-			mSizeX = desc.Width;
-			mSizeY = desc.Height;
-			mNumSamples = desc.SampleDesc.Count;
-			mNumMipLevel = desc.MipLevels;
 
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
 			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-			depthStencilDesc.Format = D3D11Translate::To(format);
+			depthStencilDesc.Format = D3D11Translate::To(mDesc.format);
 			switch (depthStencilDesc.Format)
 			{
 			case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
@@ -499,7 +480,7 @@ namespace Render
 				break;
 			}
 
-			if (mNumSamples > 1)
+			if (mDesc.numSamples > 1)
 			{
 				depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 			}
@@ -515,7 +496,7 @@ namespace Render
 
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
 		{
-			if (format != mFormat)
+			if (format != getFormat())
 			{
 				int i = 1;
 			}
@@ -536,7 +517,7 @@ namespace Render
 
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 		{
-			if (format != mFormat)
+			if (format != getFormat())
 			{
 				int i = 1;
 			}
@@ -562,7 +543,7 @@ namespace Render
 			TComPtr< IDXGISurface1 > surface;
 			VERIFY_D3D_RESULT(mResource->QueryInterface(IID_IDXGISurface1, (void**)&surface), return;);
 			VERIFY_D3D_RESULT(surface->GetDC(FALSE, &hDC), return;);
-			::BitBlt(hDC, x, y, mSizeX, mSizeY, hSourceDC, 0, 0, SRCCOPY);
+			::BitBlt(hDC, x, y, getSizeX(), getSizeY(), hSourceDC, 0, 0, SRCCOPY);
 			VERIFY_D3D_RESULT(surface->ReleaseDC(nullptr), return;);
 		}
 
@@ -576,7 +557,7 @@ namespace Render
 
 		ID3D11RenderTargetView* getRenderTargetView(int level)
 		{
-			return mViewStorage.getRendnerTarget_Texture2D(mResource, mFormat, level, mNumSamples);
+			return mViewStorage.getRendnerTarget_Texture2D(mResource, mDesc.format, level, mDesc.numSamples);
 		}
 
 		D3D11ResourceViewStorage mViewStorage;
@@ -589,24 +570,17 @@ namespace Render
 		TComPtr< ID3D11Texture3D > resource;
 		TComPtr< ID3D11ShaderResourceView >  SRV;
 		TComPtr< ID3D11UnorderedAccessView > UAV;
+		uint32 creationFlags;
 	};
 
 
 	class D3D11Texture3D : public TD3D11Texture< RHITexture3D >
 	{
 	public:
-		D3D11Texture3D(ETexture::Format format, Texture3DCreationResult& creationResult)
-			:TD3D11Texture< RHITexture3D >(creationResult.SRV.detach(), creationResult.UAV.detach())
+		D3D11Texture3D(TextureDesc const& desc, Texture3DCreationResult& creationResult)
+			:TD3D11Texture< RHITexture3D >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
-			mFormat = format;
 			mResource = creationResult.resource.detach();
-			D3D11_TEXTURE3D_DESC desc;
-			mResource->GetDesc(&desc);
-			mSizeX = desc.Width;
-			mSizeY = desc.Height;
-			mSizeZ = desc.Depth;
-			mNumSamples = 1;
-			mNumMipLevel = desc.MipLevels;
 		}
 	};
 
@@ -614,21 +588,15 @@ namespace Render
 	{
 		using BaseClass = TD3D11Texture< RHITextureCube >;
 	public:
-		D3D11TextureCube(ETexture::Format format, TextureCubeCreationResult& creationResult)
-			:TD3D11Texture< RHITextureCube >(creationResult.SRV.detach(), creationResult.UAV.detach())
+		D3D11TextureCube(TextureDesc const& desc, TextureCubeCreationResult& creationResult)
+			:TD3D11Texture< RHITextureCube >(desc, creationResult.SRV.detach(), creationResult.UAV.detach())
 		{
-			mFormat = format;
 			mResource = creationResult.resource.detach();
-			D3D11_TEXTURE2D_DESC desc;
-			mResource->GetDesc(&desc);
-			mSize = desc.Width;
-			mNumSamples = desc.SampleDesc.Count;
-			mNumMipLevel = desc.MipLevels;
 		}
 
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level )
 		{
-			if (format != mFormat)
+			if (format != getFormat())
 			{
 				int i = 1;
 			}
@@ -650,7 +618,7 @@ namespace Render
 		}
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
 		{
-			if (format != mFormat)
+			if (format != getFormat())
 			{
 				int i = 1;
 			}
@@ -681,7 +649,7 @@ namespace Render
 
 		ID3D11RenderTargetView* getRenderTargetView(ETexture::Face face, int level)
 		{
-			return mViewStorage.getRenderTarget_TextureCube(mResource, mFormat, face, level);
+			return mViewStorage.getRenderTarget_TextureCube(mResource, mDesc.format, face, level);
 		}
 		D3D11ResourceViewStorage mViewStorage;
 	};
@@ -691,7 +659,7 @@ namespace Render
 		TComPtr<ID3D11Buffer> resource;
 		TComPtr<ID3D11ShaderResourceView> SRV;
 		TComPtr<ID3D11UnorderedAccessView> UAV;
-		uint32 flags;
+		uint32 creationFlags;
 	};
 
 	class D3D11Buffer : public TD3D11Resource< RHIBuffer >
@@ -705,7 +673,7 @@ namespace Render
 			mResource = creationResult.resource.detach();
 			mSRV = creationResult.SRV.detach();
 			mUAV = creationResult.UAV.detach();
-			mCreationFlags = creationResult.flags;
+			mCreationFlags = creationResult.creationFlags;
 		}
 
 
@@ -861,14 +829,14 @@ namespace Render
 			,mDepthTexture(depthTexture)
 		{
 			mResource = resource.detach();
-			mRenderTargetsState.numColorBuffers = 1;
-			mRenderTargetsState.colorBuffers[0] = mColorTexture->getRenderTargetView(0);
-			if (mDepthTexture)
-			{
-				mRenderTargetsState.depthBuffer = mDepthTexture->mDSV;
-			}
+			updateRenderTargetsState();
 
 		}
+
+		void updateRenderTargetsState();
+
+		virtual void resizeBuffer(int w, int h) override;
+
 		virtual RHITexture2D* getBackBufferTexture() override 
 		{ 
 			return mColorTexture; 
@@ -878,7 +846,6 @@ namespace Render
 		{
 			mResource->Present(bVSync ? 1 : 0, 0);
 		}
-
 
 		void bitbltToDevice(HDC hTargetDC)
 		{

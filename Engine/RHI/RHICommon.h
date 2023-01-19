@@ -329,6 +329,78 @@ namespace Render
 	using RHIShaderResourceViewRef = TRefCountPtr< RHIShaderResourceView >;
 
 
+	enum TextureCreationFlag : uint32
+	{
+		TCF_CreateSRV = BIT(0),
+		TCF_CreateUAV = BIT(1),
+		TCF_RenderTarget = BIT(2),
+		TCF_RenderOnly = BIT(3),
+		TCF_AllowCPUAccess = BIT(4),
+
+		TCF_GenerateMips = BIT(5),
+		TCF_HalfData = BIT(6),
+
+		TCF_PlatformGraphicsCompatible = BIT(7),
+		TCF_DefalutValue = TCF_CreateSRV,
+	};
+	struct TextureDesc
+	{
+		IntVector3       dimension;
+		ETexture::Type   type;
+		ETexture::Format format;
+
+		int numSamples = 1;
+		int numMipLevel = 1;
+		uint32 creationFlags = TCF_DefalutValue;
+
+		TextureDesc& MipLevel(int value) { numMipLevel = Math::Max( 1, value ); return *this; }
+		TextureDesc& Samples(int value) { numSamples = Math::Max( 1, value ); return *this; }
+		TextureDesc& Flags(uint32 value) { creationFlags = value; return *this; }
+
+		static TextureDesc Type1D(ETexture::Format format, int sizeX)
+		{
+			TextureDesc desc;
+			desc.type = ETexture::Type1D;
+			desc.format = format;
+			desc.dimension = IntVector3(sizeX,1,1);
+			return desc;
+		}
+		static TextureDesc Type2D(ETexture::Format format, int sizeX, int sizeY)
+		{
+			TextureDesc desc;
+			desc.type = ETexture::Type2D;
+			desc.format = format;
+			desc.dimension = IntVector3(sizeX, sizeY, 1);
+			return desc;
+		}
+		static TextureDesc Type3D(ETexture::Format format, int sizeX, int sizeY, int sizeZ)
+		{
+			TextureDesc desc;
+			desc.type = ETexture::Type3D;
+			desc.format = format;
+			desc.dimension = IntVector3(sizeX, sizeY, sizeZ);
+			return desc;
+		}
+
+		static TextureDesc TypeCube(ETexture::Format format, int size)
+		{
+			TextureDesc desc;
+			desc.type = ETexture::TypeCube;
+			desc.format = format;
+			desc.dimension = IntVector3(size, size, ETexture::FaceCount);
+			return desc;
+		}
+
+		static TextureDesc Type2DArray(ETexture::Format format, int sizeX, int sizeY, int numLayers)
+		{
+			TextureDesc desc;
+			desc.type = ETexture::Type2DArray;
+			desc.format = format;
+			desc.dimension = IntVector3(sizeX, sizeY, numLayers);
+			return desc;
+		}
+	};
+
 	class RHITextureBase : public RHIResource
 	{
 	public:
@@ -339,8 +411,6 @@ namespace Render
 		RHITextureBase()
 #endif
 		{
-			mNumSamples = 0;
-			mNumMipLevel = 0;
 		}
 		virtual ~RHITextureBase() {}
 		virtual RHITexture1D* getTexture1D() { return nullptr; }
@@ -350,15 +420,14 @@ namespace Render
 		virtual RHITexture2DArray* getTexture2DArray() { return nullptr; }
 		virtual RHIShaderResourceView* getBaseResourceView() { return nullptr; }
 
-		ETexture::Type   getType() const { return mType; }
-		ETexture::Format getFormat() const { return mFormat; }
-		int getNumSamples() const { return mNumSamples; }
-		int getNumMipLevel() const { return mNumMipLevel; }
+		TextureDesc const& getDesc() const { return mDesc; }
+		ETexture::Type   getType() const { return mDesc.type; }
+		ETexture::Format getFormat() const { return mDesc.format; }
+		int getNumSamples() const { return mDesc.numSamples; }
+		int getNumMipLevel() const { return mDesc.numMipLevel; }
 	protected:
-		int mNumSamples;
-		int mNumMipLevel;
-		ETexture::Format mFormat;
-		ETexture::Type   mType;
+
+		TextureDesc mDesc;
 	};
 
 	using RHIResourceRef = TRefCountPtr< RHIResource >;
@@ -368,79 +437,57 @@ namespace Render
 	public:
 		RHITexture1D():RHITextureBase(TRACE_TYPE_NAME("Texture1D"))
 		{
-			mType = ETexture::Type1D;
-			mSize = 0;
 		}
 
 		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0) = 0;
 
-		int  getSize() const { return mSize; }
+		int  getSize() const { return mDesc.dimension.x; }
 
 		virtual RHITexture1D* getTexture1D() override { return this; }
-	protected:
-		int mSize;
 	};
 
 
 	class RHITexture2D : public RHITextureBase
 	{
 	public:
-		RHITexture2D() :RHITextureBase(TRACE_TYPE_NAME("Texture2D")) 
+		RHITexture2D():RHITextureBase(TRACE_TYPE_NAME("Texture2D"))
 		{
-			mType = ETexture::Type2D;
-			mSizeX = 0;
-			mSizeY = 0;
 		}
 
 		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
 
-		int  getSizeX() const { return mSizeX; }
-		int  getSizeY() const { return mSizeY; }
+		int  getSizeX() const { return mDesc.dimension.x; }
+		int  getSizeY() const { return mDesc.dimension.y; }
 
 		virtual RHITexture2D* getTexture2D() override { return this; }
-	protected:
-
-		int mSizeX;
-		int mSizeY;
 	};
 
 	class RHITexture3D : public RHITextureBase
 	{
 	public:
-		RHITexture3D() :RHITextureBase(TRACE_TYPE_NAME("Texture3D")) 
+		RHITexture3D():RHITextureBase(TRACE_TYPE_NAME("Texture3D"))
 		{
-			mType = ETexture::Type3D;
-			mSizeX = 0;
-			mSizeY = 0;
-			mSizeZ = 0;
 		}
 
-		int  getSizeX() const  { return mSizeX; }
-		int  getSizeY() const  { return mSizeY; }
-		int  getSizeZ() const  { return mSizeZ; }
-
+		int  getSizeX() const { return mDesc.dimension.x; }
+		int  getSizeY() const { return mDesc.dimension.y; }
+		int  getSizeZ() const { return mDesc.dimension.z; }
 
 		virtual RHITexture3D* getTexture3D() override { return this; }
-
-	protected:
-		int mSizeX;
-		int mSizeY;
-		int mSizeZ;
 	};
 
 	class RHITextureCube : public RHITextureBase
 	{
 	public:
-		RHITextureCube() :RHITextureBase(TRACE_TYPE_NAME("TextureCube")) 
+		RHITextureCube() :RHITextureBase(TRACE_TYPE_NAME("TextureCube"))
 		{
-			mType = ETexture::TypeCube;
-			mSize = 0;
 		}
 
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
-		int getSize() const { return mSize; }
+		
+		int  getSize() const { return mDesc.dimension.x; }
 
 		virtual RHITextureCube* getTextureCube() override { return this; }
 
@@ -451,24 +498,15 @@ namespace Render
 	class RHITexture2DArray : public RHITextureBase
 	{
 	public:
-		RHITexture2DArray() :RHITextureBase(TRACE_TYPE_NAME("Texture2DArray")) 
+		RHITexture2DArray() :RHITextureBase(TRACE_TYPE_NAME("Texture2DArray"))
 		{
-			mType = mType = ETexture::Type2DArray;
-			mSizeX = 0;
-			mSizeY = 0;
-			mLayerNum = 0;
 		}
 
-		int  getSizeX() const { return mSizeX; }
-		int  getSizeY() const { return mSizeY; }
-		int  getLayerNum() const { return mLayerNum; }
+		int  getSizeX() const { return mDesc.dimension.x; }
+		int  getSizeY() const { return mDesc.dimension.y; }
+		int  getLayerNum() const { return mDesc.dimension.z; }
 
 		virtual RHITexture2DArray* getTexture2DArray() override { return this; }
-	protected:
-
-		int mSizeX;
-		int mSizeY;
-		int mLayerNum;
 	};
 
 	struct BufferInfo
@@ -615,21 +653,6 @@ namespace Render
 		};
 	};
 
-	enum TextureCreationFlag : uint32
-	{
-		TCF_CreateSRV = BIT(0),
-		TCF_CreateUAV = BIT(1),
-		TCF_RenderTarget   = BIT(2),
-		TCF_RenderOnly     = BIT(3),
-		TCF_AllowCPUAccess = BIT(4),
-
-		TCF_GenerateMips = BIT(5),
-		TCF_HalfData     = BIT(6),
-
-		TCF_PlatformGraphicsCompatible = BIT(7),
-
-		TCF_DefalutValue = TCF_CreateSRV,
-	};
 
 	enum BufferCreationFlag : uint32
 	{
@@ -839,6 +862,7 @@ namespace Render
 	public:
 		RHISwapChain() :RHIResource(TRACE_TYPE_NAME("SwapChain")) {}
 
+		virtual void resizeBuffer(int w, int h) = 0;
 		virtual RHITexture2D* getBackBufferTexture() = 0;
 		virtual void Present(bool bVSync) = 0;
 	};
@@ -1077,6 +1101,8 @@ namespace Render
 	class TRefcountResource : public RHIResourceType
 	{
 	public:
+		using RHIResourceType::RHIResourceType;
+
 		TRefcountResource(EPersistent)
 			:mRefcount(EPersistent::EnumValue)
 		{

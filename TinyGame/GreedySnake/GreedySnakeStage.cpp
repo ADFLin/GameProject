@@ -64,8 +64,10 @@ namespace GreedySnake
 
 	void LevelStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::GetGraphics2D();
-		mScene->render( g , dFrame );
+		IGraphics2D& g = Global::GetIGraphics2D();
+		g.beginRender();
+		mScene->render(g, dFrame);
+		g.endRender();
 	}
 
 	void LevelStage::setupScene( IPlayerManager& playerManager )

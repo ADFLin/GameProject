@@ -26,7 +26,12 @@ public:
 	virtual ~IEditorPanel(){}
 	virtual void onOpen(){}
 	virtual void onClose(){}
+	virtual void onShow(){}
+	virtual void onHide(){}
+
+	virtual bool preRender() { return true; }
 	virtual void render(){}
+	virtual void postRender(){}
 
 	virtual void getRenderParams(WindowRenderParams& params) const {}
 };

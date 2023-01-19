@@ -719,23 +719,22 @@ namespace Render
 		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
 
-	RHITexture2D*  VulkanSystem::RHICreateTexture2D(
-		ETexture::Format format, int w, int h,
-		int numMipLevel, int numSamples, uint32 creationFlags,
-		void* data, int dataAlign)
+	RHITexture2D*  VulkanSystem::RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign)
 	{
 		VulkanTexture2D* texture = new VulkanTexture2D;
 
 		//TODO:
-		if (format == ETexture::RGB8)
+		if (desc.format == ETexture::RGB8)
 		{
 			std::vector< uint8 > tempData;
-			tempData.resize(w * h * 4);
+
+			int pixelLength = desc.dimension.x * desc.dimension.y;
+			tempData.resize(pixelLength * sizeof(uint32));
 
 			uint8* dest = tempData.data();
 			uint8* src = (uint8*)data;
 
-			for (int i = 0; i < w * h; ++i)
+			for (int i = 0; i < pixelLength; ++i)
 			{
 				dest[0] = src[0];
 				dest[1] = src[1];
@@ -744,7 +743,10 @@ namespace Render
 				dest += 4;
 				src += 3;
 			}
-			if (!initalizeTexture2DInternal(texture, ETexture::RGBA8, w, h, numMipLevel, numSamples, creationFlags, tempData.data(), dataAlign))
+
+			TextureDesc tempDesc = desc;
+			tempDesc.format = ETexture::RGBA8;
+			if (!initalizeTexture2DInternal(texture, tempDesc, tempData.data(), dataAlign))
 			{
 				delete texture;
 				return nullptr;
@@ -752,7 +754,7 @@ namespace Render
 		}
 		else
 		{
-			if (!initalizeTexture2DInternal(texture, format, w, h, numMipLevel, numSamples, creationFlags, data, dataAlign))
+			if (!initalizeTexture2DInternal(texture, desc, data, dataAlign))
 			{
 				delete texture;
 				return nullptr;
@@ -762,7 +764,7 @@ namespace Render
 	}
 
 
-	bool VulkanSystem::initalizeTexture2DInternal(VulkanTexture2D* texture, ETexture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment)
+	bool VulkanSystem::initalizeTexture2DInternal(VulkanTexture2D* texture, TextureDesc const& desc, void* data, int alignment)
 	{
 		VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		VkCommandPool commandPool = mGraphicsCommandPool;
@@ -774,8 +776,8 @@ namespace Render
 
 		int mipLevels = 1;
 
-		VkFormat formatVK = VulkanTranslate::To(format);
-		VkImageUsageFlags imageUsageFlags = FVulkanTexture::TranslateUsage(createFlags);
+		VkFormat formatVK = VulkanTranslate::To(desc.format);
+		VkImageUsageFlags imageUsageFlags = FVulkanTexture::TranslateUsage(desc.creationFlags);
 
 
 		// Get device properites for the requested texture format
@@ -795,7 +797,7 @@ namespace Render
 		// Use a separate command buffer for texture loading
 		VkCommandBuffer copyCmd = mDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, commandPool, true);
 
-		uint32 textureDataSize = width * height * ETexture::GetFormatSize(format);
+		uint32 textureDataSize = desc.dimension.x * desc.dimension.y * ETexture::GetFormatSize(desc.format);
 
 		if (useStaging)
 		{
@@ -839,8 +841,8 @@ namespace Render
 			bufferCopyRegion.imageSubresource.mipLevel = 0;
 			bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 			bufferCopyRegion.imageSubresource.layerCount = 1;
-			bufferCopyRegion.imageExtent.width = std::max(1, width);
-			bufferCopyRegion.imageExtent.height = std::max(1, height);
+			bufferCopyRegion.imageExtent.width = std::max(1, desc.dimension.x);
+			bufferCopyRegion.imageExtent.height = std::max(1, desc.dimension.y);
 			bufferCopyRegion.imageExtent.depth = 1;
 			bufferCopyRegion.bufferOffset = 0;
 
@@ -857,7 +859,7 @@ namespace Render
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageCreateInfo.extent = { uint32(width), uint32(height), 1 };
+			imageCreateInfo.extent = { uint32(desc.dimension.x), uint32(desc.dimension.y), 1 };
 			imageCreateInfo.usage = imageUsageFlags;
 			// Ensure that the TRANSFER_DST bit is set for staging
 			if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
@@ -930,7 +932,7 @@ namespace Render
 			VkImageCreateInfo imageCreateInfo = FVulkanInit::imageCreateInfo();
 			imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 			imageCreateInfo.format = formatVK;
-			imageCreateInfo.extent = { uint32(width), uint32(height), 1 };
+			imageCreateInfo.extent = { uint32(desc.dimension.x), uint32(desc.dimension.y), 1 };
 			imageCreateInfo.mipLevels = 1;
 			imageCreateInfo.arrayLayers = 1;
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;

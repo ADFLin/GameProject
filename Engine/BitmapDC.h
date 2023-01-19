@@ -16,6 +16,8 @@ public:
 	BitmapDC( HDC hDC, LPSTR file );
 	~BitmapDC();
 
+	bool    isValid() const { return mhDC != NULL; }
+
 	bool    initialize( HDC hDC , LPSTR file );
 	bool    initialize( HDC hDC , HWND hWnd );
 	bool    initialize( HDC hDC , int w , int h );

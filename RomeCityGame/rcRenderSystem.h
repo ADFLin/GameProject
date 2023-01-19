@@ -17,7 +17,7 @@ private:
 	unsigned mID;
 	friend class rcRenderSystem;
 };
-class rcRenderSystem : public WinGdiRenderSystem
+class rcRenderSystem : public WinGDIRenderSystem
 {
 public:
 	rcRenderSystem( HWND hWnd , HDC hDC );

@@ -121,52 +121,17 @@ namespace Render
 		bool RHIBeginRender();
 		void RHIEndRender(bool bPresent);
 
-		RHITexture1D*    RHICreateTexture1D(
-			ETexture::Format format, int length,
-			int numMipLevel, uint32 creationFlags, void* data)
-		{
-			return nullptr;
-		}
 
-		RHITexture2D*    RHICreateTexture2D(
-			ETexture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 creationFlags,
-			void* data, int dataAlign);
+		bool initalizeTexture2DInternal(VulkanTexture2D* texture, TextureDesc const& desc, void* data, int alignment);
 
-		bool initalizeTexture2DInternal(VulkanTexture2D* texture, ETexture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
+		RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data) { return nullptr; }
+		RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign);
+		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) { return nullptr; }
+		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
+		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
+		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc) { return nullptr; }
 
-		RHITexture3D*    RHICreateTexture3D(
-			ETexture::Format format, int sizeX, int sizeY, int sizeZ,
-			int numMipLevel, int numSamples, uint32 creationFlags,
-			void* data)
-		{
-			return nullptr;
-		}
-		RHITextureCube*  RHICreateTextureCube(
-			ETexture::Format format, int size,
-			int numMipLevel, uint32 creationFlags,
-			void* data[])
-		{
-			return nullptr;
-		}
-
-		RHITexture2DArray* RHICreateTexture2DArray(
-			ETexture::Format format, int w, int h, int layerSize,
-			int numMipLevel, int numSamples, uint32 creationFlags,
-			void* data)
-		{
-			return nullptr;
-		}
-
-		RHITexture2D* RHICreateTextureDepth(
-			ETexture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 creationFlags)
-		{
-			return nullptr;
-		}
 		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
-		RHIBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
-		RHIBuffer*  RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 
 		bool initalizeBufferInternal(VulkanBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
 

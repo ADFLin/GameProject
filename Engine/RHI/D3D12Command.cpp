@@ -440,21 +440,21 @@ namespace Render
 		return result;
 	}
 
-	RHITexture1D* D3D12System::RHICreateTexture1D(ETexture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
+	RHITexture1D* D3D12System::RHICreateTexture1D(TextureDesc const& desc, void* data)
 	{
 		D3D12_RESOURCE_DESC textureDesc = {};
-		textureDesc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-		textureDesc.Format = D3D12Translate::To(format);
-		textureDesc.Width = length;
+		textureDesc.MipLevels = desc.numMipLevel;
+		textureDesc.Format = D3D12Translate::To(desc.format);
+		textureDesc.Width = desc.dimension.x;
 		textureDesc.Height = 1;
 		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		if (createFlags & TCF_CreateUAV)
+		if (desc.creationFlags & TCF_CreateUAV)
 			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-		if (createFlags & TCF_RenderTarget)
+		if (desc.creationFlags & TCF_RenderTarget)
 			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 		textureDesc.DepthOrArraySize = 1;
-		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Count = desc.numSamples;
 		textureDesc.SampleDesc.Quality = 0;
 		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
 
@@ -472,19 +472,14 @@ namespace Render
 
 		if (data)
 		{
-			if (!updateTexture1DSubresources(textureResource, format, data, 0, length, 0))
+			if (!updateTexture1DSubresources(textureResource, desc.format, data, 0, desc.dimension.x, 0))
 				return nullptr;
 		}
 
 
-		D3D12Texture1D* texture = new D3D12Texture1D;
-		if (!texture->initialize(textureResource, format, length))
-		{
-			delete texture;
-			return nullptr;
-		}
+		D3D12Texture1D* texture = new D3D12Texture1D(desc, textureResource);
 
-		if (createFlags & TCF_CreateSRV)
+		if (desc.creationFlags & TCF_CreateSRV)
 		{
 			// Describe and create a SRV for the texture.
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -497,7 +492,7 @@ namespace Render
 
 			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
 		}
-		if (createFlags & TCF_CreateUAV)
+		if (desc.creationFlags & TCF_CreateUAV)
 		{
 			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 			uavDesc.Format = textureDesc.Format;
@@ -510,22 +505,22 @@ namespace Render
 
 	}
 
-	RHITexture2D* D3D12System::RHICreateTexture2D(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
+	RHITexture2D* D3D12System::RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign)
 	{
 
 		// Describe and create a Texture2D.
 		D3D12_RESOURCE_DESC textureDesc = {};
-		textureDesc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-		textureDesc.Format = D3D12Translate::To(format);
-		textureDesc.Width = w;
-		textureDesc.Height = h;
+		textureDesc.MipLevels = desc.numMipLevel;
+		textureDesc.Format = D3D12Translate::To(desc.format);
+		textureDesc.Width = desc.dimension.x;
+		textureDesc.Height = desc.dimension.y;
 		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-		bool bDepthStencilFormat = ETexture::IsDepthStencil(format);
+		bool bDepthStencilFormat = ETexture::IsDepthStencil(desc.format);
 
-		if (createFlags & TCF_CreateUAV)
+		if (desc.creationFlags & TCF_CreateUAV)
 			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-		if (createFlags & TCF_RenderTarget)
+		if (desc.creationFlags & TCF_RenderTarget)
 		{
 			if (bDepthStencilFormat)
 			{
@@ -537,7 +532,7 @@ namespace Render
 			}
 		}
 		textureDesc.DepthOrArraySize = 1;
-		textureDesc.SampleDesc.Count = numSamples ? numSamples : 1;
+		textureDesc.SampleDesc.Count = desc.numSamples;
 		textureDesc.SampleDesc.Quality = 0;
 		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
@@ -553,19 +548,15 @@ namespace Render
 
 		if (data)
 		{
-			if (!updateTexture2DSubresources(textureResource, format, data, 0, 0, w, h, w * ETexture::GetFormatSize(format), 0))
+			if (!updateTexture2DSubresources(textureResource, desc.format, data, 0, 0, desc.dimension.x , desc.dimension.y ,
+				desc.dimension.x * ETexture::GetFormatSize(desc.format), 0))
 				return nullptr;
 		}
 
 
-		D3D12Texture2D* texture = new D3D12Texture2D;
-		if (!texture->initialize(textureResource, format, w, h ))
-		{
-			delete texture;
-			return nullptr;
-		}
+		D3D12Texture2D* texture = new D3D12Texture2D(desc, textureResource);
 
-		if (createFlags & TCF_CreateSRV)
+		if (desc.creationFlags & TCF_CreateSRV)
 		{
 			// Describe and create a SRV for the texture.
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -579,7 +570,7 @@ namespace Render
 			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
 		}
 
-		if (createFlags & TCF_CreateUAV)
+		if (desc.creationFlags & TCF_CreateUAV)
 		{
 			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 			uavDesc.Format = textureDesc.Format;
@@ -589,7 +580,7 @@ namespace Render
 			texture->mUAV = D3D12DescriptorHeapPool::Get().allocUAV(texture->mResource, &uavDesc);
 		}
 
-		if (createFlags& TCF_RenderTarget)
+		if (desc.creationFlags & TCF_RenderTarget)
 		{
 			if (bDepthStencilFormat)
 			{
@@ -606,7 +597,6 @@ namespace Render
 				texture->mRTVorDSV = D3D12DescriptorHeapPool::Get().allocRTV(texture->mResource, &rtvDesc);
 			}
 		}
-
 
 		return texture;
 	}

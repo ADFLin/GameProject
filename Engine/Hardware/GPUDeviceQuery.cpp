@@ -1,4 +1,5 @@
 #include "GPUDeviceQuery.h"
+#include "PlatformConfig.h"
 
 #if SYS_PLATFORM_WIN
 #include "nvapi/nvapi.h"

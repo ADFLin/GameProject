@@ -54,11 +54,11 @@
     <ClCompile Include="Sudoku\SudokuStage.cpp">
       <Filter>GameSudoku</Filter>
     </ClCompile>
-    <ClCompile Include="..\Factorio\FIOStage.cpp">
-      <Filter>GameFactorio</Filter>
-    </ClCompile>
     <ClCompile Include="Transport\TPStage.cpp">
       <Filter>GameTransport</Filter>
+    </ClCompile>
+    <ClCompile Include="Factorio\FIOStage.cpp">
+      <Filter>GameFactorio</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

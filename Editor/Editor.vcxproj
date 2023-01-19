@@ -27,12 +27,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\OtherLib\ImGuiNode\crude_json.h" />
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_bezier_math.h" />
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_canvas.h" />
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_extra_math.h" />
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_node_editor.h" />
-    <ClInclude Include="..\OtherLib\ImGuiNode\imgui_node_editor_internal.h" />
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\OtherLib\ImGui\imconfig.h" />
@@ -41,20 +35,23 @@
     <ClInclude Include="..\OtherLib\ImGui\imstb_rectpack.h" />
     <ClInclude Include="..\OtherLib\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\OtherLib\ImGui\imstb_truetype.h" />
+    <ClInclude Include="..\OtherLib\ImNodeEditor\crude_json.h" />
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_bezier_math.h" />
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_canvas.h" />
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_extra_math.h" />
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_node_editor.h" />
+    <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_node_editor_internal.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="EditorConfig.h" />
     <ClInclude Include="EditorUtils.h" />
     <ClInclude Include="EditorPanel.h" />
+    <ClInclude Include="ShaderGraph\ShaderGraph.h" />
     <ClInclude Include="Widget\ConsolePanel.h" />
     <ClInclude Include="Widget\ContentPanel.h" />
     <ClInclude Include="Widget\GameViewportPanel.h" />
-    <ClInclude Include="Widget\MaterialGraphPanel.h" />
+    <ClInclude Include="Widget\ShaderGraphPanel.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\OtherLib\ImGuiNode\crude_json.cpp" />
-    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_canvas.cpp" />
-    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_node_editor.cpp" />
-    <ClCompile Include="..\OtherLib\ImGuiNode\imgui_node_editor_api.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp" />
@@ -62,13 +59,18 @@
     <ClCompile Include="..\OtherLib\ImGui\imgui_draw.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui_tables.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="..\OtherLib\ImNodeEditor\crude_json.cpp" />
+    <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_canvas.cpp" />
+    <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor.cpp" />
+    <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor_api.cpp" />
     <ClCompile Include="Editor.cpp" />
     <ClCompile Include="EditorUtils.cpp" />
     <ClCompile Include="EditorPanel.cpp" />
+    <ClCompile Include="ShaderGraph\ShaderGraph.cpp" />
     <ClCompile Include="Widget\ConsolePanel.cpp" />
     <ClCompile Include="Widget\ContentPanel.cpp" />
     <ClCompile Include="Widget\GameViewportPanel.cpp" />
-    <ClCompile Include="Widget\MaterialGraphPanel.cpp" />
+    <ClCompile Include="Widget\ShaderGraphPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\EngineCore.vcxproj">
@@ -82,9 +84,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\OtherLib\ImGuiNode\imgui_bezier_math.inl" />
-    <None Include="..\OtherLib\ImGuiNode\imgui_extra_math.inl" />
-    <None Include="..\OtherLib\ImGuiNode\imgui_node_editor_internal.inl" />
+    <None Include="..\OtherLib\ImNodeEditor\imgui_bezier_math.inl" />
+    <None Include="..\OtherLib\ImNodeEditor\imgui_extra_math.inl" />
+    <None Include="..\OtherLib\ImNodeEditor\imgui_node_editor_internal.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>Editor</RootNamespace>
@@ -163,7 +165,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../Editor;../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_LIB;DEBUG;_WINDOWS;EDITOR_EXPORT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -191,7 +193,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../Editor;../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_LIB;DEBUG;_WINDOWS;EDITOR_EXPORT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -222,8 +224,8 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../Editor;../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;EDITOR_EXPORT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
@@ -242,8 +244,8 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../Editor;../Engine;../OtherLib/boost;../OtherLib;.;../OtherLib/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;EDITOR_EXPORT=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>

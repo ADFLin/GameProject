@@ -2,11 +2,11 @@
 #define GameLoop_h__
 
 #include "Core/CRTPCheck.h"
+#include "Clock.h"
 
 class PlatformPolicy
 {
 public:
-	long getMillionSecond();
 	bool updateSystem();
 };
 
@@ -43,6 +43,9 @@ protected:
 	CRTP_FUNC void handleGameRender(){}
 	CRTP_FUNC void handleGameLoopBusy( long deltaTime ){}
 
+
+
+	HighResClock mClock;
 private:
 	long  mFrameTime;
 	long  mUpdateTime;
@@ -54,15 +57,16 @@ private:
 template < class T  , class PP  >
 void GameLoopT< T , PP >::run()
 {
+	mClock.reset();
 	if ( !_this()->initializeGame() )
 		return;
 
-	long beforeTime = Platform::getMillionSecond();
+	uint64 beforeTime = mClock.getTimeMilliseconds();
 	unsigned numLoops=0;
 	while( !mIsOver )
 	{
-		long  presentTime = Platform::getMillionSecond();
-		long  intervalTime = presentTime - beforeTime;
+		uint64  presentTime = mClock.getTimeMilliseconds();
+		uint64  intervalTime = presentTime - beforeTime;
 
 		if ( intervalTime < mUpdateTime )
 		{

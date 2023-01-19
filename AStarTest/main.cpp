@@ -70,7 +70,7 @@ public:
 		if ( !WinFrame::create( TEXT("Test") , 800 , 800 , WindowsMessageHandler::MsgProc ) )
 			return false;
 
-		mRenderSystem = ( new WinGdiRenderSystem( getHWnd() , getHDC() ) );
+		mRenderSystem = ( new WinGDIRenderSystem( getHWnd() , getHDC() ) );
 
 		//mRegionMgr.reset( new RegionManager( Vec2i( 64 , 64 ) ) );
 		//mRegionMgr = new RegionManager( Vec2i( 64 , 64 ) );
@@ -295,7 +295,7 @@ public:
 
 
 	PortalList::iterator curPortal;
-	WinGdiRenderSystem*   mRenderSystem;
+	WinGDIRenderSystem*   mRenderSystem;
 	std::list< AStar::FindState > path;
 
 	RegionManager* mRegionMgr;

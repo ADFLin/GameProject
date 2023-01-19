@@ -200,6 +200,9 @@
     <ClCompile Include="AngryBird\HeaderPCH.cpp">
       <Filter>GameAngryBird</Filter>
     </ClCompile>
+    <ClCompile Include="TinyGameEditor.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">

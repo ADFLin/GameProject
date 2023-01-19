@@ -123,6 +123,8 @@ namespace Render
 	class TOpenGLResource : public  TRefcountResource< RHIResourceType > 
 	{
 	public:
+		using TRefcountResource< RHIResourceType >::TRefcountResource;
+
 		GLuint getHandle() const { return mGLObject.mHandle; }
 
 		virtual void releaseResource() 
@@ -184,23 +186,16 @@ namespace Render
 	template< class RHITextureType >
 	class TOpengGLTexture : public TOpenGLResource< RHITextureType , RMPTexture >
 	{
-	protected:
-		TOpengGLTexture()
-		{}
-		
-		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
-		static GLenum const TypeEnumGLMultisample = OpenGLTextureTraits< RHITextureType >::EnumValueMultisample;
-
-		RHIShaderResourceView* getBaseResourceView()
-		{ 
-			mView.handle = mGLObject.mHandle;
-			mView.typeEnum = getGLTypeEnum();
-			return &mView; 
-		}
 	public:
+		TOpengGLTexture(TextureDesc const& desc)
+			:TOpenGLResource< RHITextureType, RMPTexture >()
+		{
+			mDesc = desc;
+		}
+
 		GLenum getGLTypeEnum() const
 		{
-			return (mNumSamples > 1) ? TypeEnumGLMultisample : TypeEnumGL;
+			return (mDesc.numSamples > 1) ? TypeEnumGLMultisample : TypeEnumGL;
 		}
 		void bind() const
 		{
@@ -212,6 +207,17 @@ namespace Render
 			glBindTexture(getGLTypeEnum(), 0);
 		}
 
+		RHIShaderResourceView* getBaseResourceView()
+		{
+			mView.handle = mGLObject.mHandle;
+			mView.typeEnum = getGLTypeEnum();
+			return &mView;
+		}
+	protected:
+		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
+		static GLenum const TypeEnumGLMultisample = OpenGLTextureTraits< RHITextureType >::EnumValueMultisample;
+
+
 		OpenGLShaderResourceView mView;
 	};
 
@@ -219,7 +225,9 @@ namespace Render
 	class OpenGLTexture1D : public TOpengGLTexture< RHITexture1D >
 	{
 	public:
-		bool create(ETexture::Format format, int length, int numMipLevel , uint32 creationFlags, void* data );
+		using TOpengGLTexture< RHITexture1D >::TOpengGLTexture;
+
+		bool create(void* data);
 		bool update(int offset, int length, ETexture::Format format, void* data, int level );
 	};
 
@@ -227,8 +235,11 @@ namespace Render
 	class OpenGLTexture2D : public TOpengGLTexture< RHITexture2D >
 	{
 	public:
-		bool create(ETexture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, int alignment);
-		bool createDepth(ETexture::Format format, int width, int height, int numMipLevel, int numSamples);
+		using TOpengGLTexture< RHITexture2D >::TOpengGLTexture;
+
+		bool create(void* data, int alignment);
+		bool createDepth();
+
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
 		bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
 	};
@@ -237,13 +248,17 @@ namespace Render
 	class OpenGLTexture3D : public TOpengGLTexture< RHITexture3D >
 	{
 	public:
-		bool create(ETexture::Format format, int sizeX, int sizeY, int sizeZ , int numMipLevel, int numSamples, uint32 creationFlags, void* data);
+		using TOpengGLTexture< RHITexture3D >::TOpengGLTexture;
+
+		bool create(void* data);
 	};
 
 	class OpenGLTextureCube : public TOpengGLTexture< RHITextureCube >
 	{
 	public:
-		bool create(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
+		using TOpengGLTexture< RHITextureCube >::TOpengGLTexture;
+
+		bool create(void* data[]);
 		bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level );
 		bool update(ETexture::Face face, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level );
 	};
@@ -251,7 +266,9 @@ namespace Render
 	class OpenGLTexture2DArray : public TOpengGLTexture< RHITexture2DArray >
 	{
 	public:
-		bool create(ETexture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data);
+		using TOpengGLTexture<RHITexture2DArray>::TOpengGLTexture;
+
+		bool create(void* data);
 	};
 
 	class OpenGLTranslate

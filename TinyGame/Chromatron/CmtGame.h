@@ -15,7 +15,6 @@ namespace Chromatron
 		void  shutdownModule() override {}
 		void  enter() override{}
 		void  exit() override{} 
-		void  release() override{ delete this; }
 		//
 		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 	public:

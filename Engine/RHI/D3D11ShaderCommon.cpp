@@ -79,15 +79,13 @@ namespace Render
 
 			if( !bSuccess )
 			{
-				if( bUsePreprocess )
+				if( context.bUsePreprocess )
 				{
 					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
 				}
 
-				if( bRecompile )
-				{
-					emitCompileError(context, (LPCSTR)errorCode->GetBufferPointer());
-				}
+
+				emitCompileError(context, (LPCSTR)errorCode->GetBufferPointer());
 				continue;
 			}
 
@@ -124,7 +122,7 @@ namespace Render
 			}
 
 
-		} while( !bSuccess && bRecompile );
+		} while( !bSuccess && context.bRecompile );
 
 		return bSuccess;
 	}

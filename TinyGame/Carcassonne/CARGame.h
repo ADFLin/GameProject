@@ -15,7 +15,6 @@ namespace CAR
 		virtual ~GameModule();
 		void  startupModule() override {}
 		void  shutdownModule() override {}
-		void  release() override { delete this; }
 
 		void  enter() override{}
 		void  exit() override{} 

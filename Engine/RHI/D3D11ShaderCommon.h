@@ -31,6 +31,12 @@ namespace Render
 			ID3D11HullShader*     hull;
 			ID3D11DomainShader*   domain;
 		};
+		D3D11ShaderData()
+		{
+			ptr = nullptr;
+			globalConstBufferSize = 0;
+		}
+
 		int globalConstBufferSize;
 
 		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode);

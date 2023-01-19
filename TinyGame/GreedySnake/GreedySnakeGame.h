@@ -3,16 +3,27 @@
 
 #include "GameModule.h"
 #include "GameControl.h"
+#include "GameRenderSetup.h"
 
 #define GREEDY_SNAKE_NAME "Greedy Snake"
 namespace GreedySnake
 {
 
 	class GameModule : public IGameModule
+		             , public IGameRenderSetup
 	{
 	public:
 		
-		virtual void   beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay(StageManager& manger, EGameStageMode modeType) override;
+		void endPlay() override;
+
+
+		//IGameRenderSetup
+		ERenderSystem getDefaultRenderSystem();
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
+		bool setupRenderSystem(ERenderSystem systemName) override;
+		void preShutdownRenderSystem(bool bReInit) override;
+		//~IGameRenderSetup
 
 	public:
 		char const*                getName(){ return GREEDY_SNAKE_NAME;  }

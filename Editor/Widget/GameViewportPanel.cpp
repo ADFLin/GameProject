@@ -94,3 +94,24 @@ void GameViewportPanel::render()
 	}
 }
 
+bool GameViewportPanel::preRender()
+{
+	ImVec2 view = ImGui::GetContentRegionAvail();
+
+	if (view.x != mSize.x || view.y != mSize.y)
+	{
+		if (view.x == 0 || view.y == 0)
+		{
+			// The window is too small or collapsed.
+			return false;
+		}
+		mSize = view;
+		mViewport->resizeViewport(mSize.x, mSize.y);
+		mTexture = RHICreateTexture2D(ETexture::BGRA8, mSize.x, mSize.y, 0, 1, TCF_DefalutValue | TCF_PlatformGraphicsCompatible);
+		// The window state has been successfully changed.
+		return true;
+	}
+	// The window state has not changed.
+	return true;
+}
+

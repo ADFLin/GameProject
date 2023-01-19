@@ -321,14 +321,6 @@ bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting
 		return false;
 	}
 
-	mhRC = ::wglCreateContext( hDC );
-
-	if ( mhRC == NULL )
-		return false;
-
-	if ( !::wglMakeCurrent( hDC , mhRC )  )
-		return false;
-
 	return true;
 }
 

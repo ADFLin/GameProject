@@ -183,7 +183,7 @@ bool HashString::Find(StringView const& str, bool bCaseSensitive, HashString& ou
 
 void HashString::init(char const* str, bool bCaseSensitive)
 {
-	if( str == nullptr )
+	if( str == nullptr || *str == 0 )
 	{
 		mIndex = 0;
 		mNumber = 0;

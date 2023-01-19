@@ -174,7 +174,7 @@ namespace Render
 			}
 
 
-			IGlobalRenderResource::RestoreAllResource();
+			IGlobalRenderResource::RestoreAllResources();
 
 			InitGlobalRenderResource();
 
@@ -214,7 +214,7 @@ namespace Render
 			ReleaseGlobalRenderResource();
 
 		ShaderManager::Get().clearnupRHIResouse();
-		IGlobalRenderResource::ReleaseAllResource();
+		IGlobalRenderResource::ReleaseAllResources();
 
 		GRHISystem->shutdown();
 		delete GRHISystem;
@@ -239,34 +239,65 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateSwapChain(info) );
 	}
 
-	RHITexture1D* RHICreateTexture1D(ETexture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data)
+	RHITexture1D* RHI_TRACE_FUNC(RHICreateTexture1D, ETexture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data)
 	{
-		return EXECUTE_RHI_FUNC( RHICreateTexture1D(format, length, numMipLevel, creationFlags , data) );
+		TextureDesc desc = TextureDesc::Type1D(format, length).MipLevel(numMipLevel).Flags(creationFlags);
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateTexture1D(desc, data) ) );
+	}
+
+	RHITexture1D* RHI_TRACE_FUNC(RHICreateTexture1D, TextureDesc const& desc, void* data)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture1D(desc, data)));
 	}
 
 	RHITexture2D* RHI_TRACE_FUNC(RHICreateTexture2D , ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
 	{
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags , data, dataAlign) ) );
+		TextureDesc desc = TextureDesc::Type2D(format, w, h).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateTexture2D(desc, data, dataAlign) ) );
+	}
+	RHITexture2D* RHI_TRACE_FUNC(RHICreateTexture2D, TextureDesc const& desc, void* data, int dataAlign)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture2D(desc, data, dataAlign)));
 	}
 
 	RHITexture3D* RHI_TRACE_FUNC(RHICreateTexture3D ,ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 	{
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel, numSamples, creationFlags, data)) );
+		TextureDesc desc = TextureDesc::Type3D(format, sizeX, sizeY, sizeZ).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture3D(desc, data)) );
+	}
+	RHITexture3D* RHI_TRACE_FUNC(RHICreateTexture3D, TextureDesc const& desc, void* data)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture3D(desc, data)));
 	}
 
 	RHITextureCube* RHI_TRACE_FUNC(RHICreateTextureCube, ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureCube(format, size, numMipLevel, creationFlags, data)) );
+		TextureDesc desc = TextureDesc::TypeCube(format, size).MipLevel(numMipLevel).Flags(creationFlags);
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureCube(desc, data)) );
+	}
+	RHITextureCube* RHI_TRACE_FUNC(RHICreateTextureCube, TextureDesc const& desc, void* data[])
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTextureCube(desc, data)));
 	}
 
 	RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 	{
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture2DArray(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data)) );
+		TextureDesc desc = TextureDesc::Type2DArray(format, w, h, layerSize).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture2DArray(desc, data)) );
+	}
+	RHI_API RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, TextureDesc const& desc, void* data)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture2DArray(desc, data)));
 	}
 
 	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
 	{
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(format, w, h, numMipLevel, numSamples, creationFlags)) );
+		TextureDesc desc = TextureDesc::Type2D(format, w, h).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(desc)) );
+	}
+	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, TextureDesc const& desc)
+	{
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTextureDepth(desc)));
 	}
 
 	RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)

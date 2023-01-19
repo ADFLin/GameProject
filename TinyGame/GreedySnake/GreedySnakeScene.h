@@ -82,7 +82,7 @@ namespace GreedySnake
 
 		}
 
-		void render( Graphics2D& g , float dFrame );
+		void render( IGraphics2D& g , float dFrame );
 		//Level::Listener
 		void onEatFood( Snake& snake , FoodInfo& food );
 		void onCollideSnake( Snake& snake , Snake& colSnake );
@@ -100,9 +100,9 @@ namespace GreedySnake
 
 		void productRandomFood( int type );
 
-		void drawSnake( Graphics2D& g , Snake& snake, float dFrame );
-		void drawSnakeBody(Graphics2D& g, Snake& snake, int color, int offset);
-		void drawFood( Graphics2D& g );
+		void drawSnake( IGraphics2D& g , Snake& snake, float dFrame );
+		void drawSnakeBody( IGraphics2D& g, Snake& snake, int color, int offset);
+		void drawFood( IGraphics2D& g );
 
 		Level& getLevel(){  return mLevel;  }
 		void   setOver(){ mIsOver = true; }

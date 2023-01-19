@@ -160,6 +160,11 @@ namespace Render
 		CORE_API void releaseRHI();
 		CORE_API CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
 
+		RHITexture2D& getTexture()
+		{
+			return mTextAtlas.getTexture();
+		}
+
 		TextureAtlas mTextAtlas;
 		std::unordered_map< FontFaceKey , CharDataSet* , MemberFuncHasher > mCharDataSetMap;
 		bool bInitialized = false;

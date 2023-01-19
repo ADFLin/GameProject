@@ -72,7 +72,7 @@ namespace Zuma
 	public:
 		
 		//GameInitializer
-		virtual bool           setupWindow( char const* title , int w , int h )
+		virtual bool setupWindow( char const* title , int w , int h )
 		{
 			DrawEngine& drawEngine = ::Global::GetDrawEngine();
 			mOldSize = drawEngine.getScreenSize();

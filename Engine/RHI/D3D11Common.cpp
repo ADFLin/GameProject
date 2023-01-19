@@ -1,5 +1,6 @@
 #include "D3D11Common.h"
 #include "D3D11ShaderCommon.h"
+#include "D3D11Command.h"
 
 #pragma comment(lib , "D3D11.lib")
 #pragma comment(lib , "DXGI.lib")
@@ -314,7 +315,7 @@ namespace Render
 
 	int D3D11FrameBuffer::addTexture(RHITexture2D& target, int level)
 	{
-		assert(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
+		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
 		int indexSlot = mRenderTargetsState.numColorBuffers;
 		mRenderTargetsState.colorResources[indexSlot] = &target;
 		mRenderTargetsState.colorBuffers[indexSlot] = static_cast<D3D11Texture2D&>(target).getRenderTargetView(level);
@@ -325,7 +326,7 @@ namespace Render
 
 	int D3D11FrameBuffer::addTexture(RHITextureCube& target, ETexture::Face face, int level)
 	{
-		assert(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
+		CHECK(mRenderTargetsState.numColorBuffers + 1 <= D3D11RenderTargetsState::MaxSimulationBufferCount);
 		int indexSlot = mRenderTargetsState.numColorBuffers;
 
 		mRenderTargetsState.colorResources[indexSlot] = &target;
@@ -337,7 +338,7 @@ namespace Render
 
 	void D3D11FrameBuffer::setTexture(int idx, RHITexture2D& target, int level)
 	{
-		assert(idx <= mRenderTargetsState.numColorBuffers);
+		CHECK(idx <= mRenderTargetsState.numColorBuffers);
 		if (idx == mRenderTargetsState.numColorBuffers)
 			mRenderTargetsState.numColorBuffers += 1;
 
@@ -348,7 +349,7 @@ namespace Render
 
 	void D3D11FrameBuffer::setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level)
 	{
-		assert(idx <= mRenderTargetsState.numColorBuffers);
+		CHECK(idx <= mRenderTargetsState.numColorBuffers);
 		if (idx == mRenderTargetsState.numColorBuffers)
 			mRenderTargetsState.numColorBuffers += 1;
 
@@ -369,6 +370,42 @@ namespace Render
 		mRenderTargetsState.depthResource = nullptr;
 		mRenderTargetsState.depthBuffer = nullptr;
 		bStateDirty = true;
+	}
+
+	void D3D11SwapChain::updateRenderTargetsState()
+	{
+		mRenderTargetsState.numColorBuffers = 1;
+		mRenderTargetsState.colorBuffers[0] = mColorTexture->getRenderTargetView(0);
+		if (mDepthTexture)
+		{
+			mRenderTargetsState.depthResource = mDepthTexture;
+			mRenderTargetsState.depthBuffer = mDepthTexture->mDSV;
+		}
+	}
+
+	void D3D11SwapChain::resizeBuffer(int w, int h)
+	{
+		TextureDesc colorDesc = mColorTexture->getDesc();
+		mColorTexture.release();
+
+		DXGI_SWAP_CHAIN_DESC desc;
+		mResource->GetDesc(&desc);
+		mResource->ResizeBuffers(desc.BufferCount, w, h, DXGI_FORMAT_UNKNOWN, desc.Flags);
+
+		Texture2DCreationResult textureCreationResult;
+		VERIFY_D3D_RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), );
+		CreateResourceView(static_cast<D3D11System*>(GRHISystem)->mDevice, desc.BufferDesc.Format, colorDesc.numSamples, colorDesc.creationFlags, textureCreationResult);
+
+		colorDesc.dimension = IntVector3(w, h, 1);
+		mColorTexture = new D3D11Texture2D(colorDesc, textureCreationResult);
+		if (mDepthTexture.isValid())
+		{
+			TextureDesc depthDesc = mDepthTexture->getDesc();
+			depthDesc.dimension = IntVector3(w, h, 1);
+			mDepthTexture = (D3D11Texture2D*)RHICreateTextureDepth(depthDesc);
+		}
+
+		updateRenderTargetsState();
 	}
 
 }//namespace Render

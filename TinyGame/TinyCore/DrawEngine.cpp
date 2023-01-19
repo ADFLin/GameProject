@@ -173,10 +173,10 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 	mWindowProvider = &provider;
 	mGameWindow = &provider.getMainWindow();
 	mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
-	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getHandle() ) );
+	mPlatformGraphics = std::make_unique< Graphics2D >( mBufferDC.getHandle() );
 
-	mPlatformProxy.reset(new TGraphics2DProxy< Graphics2D >(*mPlatformGraphics));
-	mRHIProxy.reset(new TGraphics2DProxy< RHIGraphics2D >(*mRHIGraphics));
+	mPlatformProxy = std::make_unique< TGraphics2DProxy< Graphics2D > >(*mPlatformGraphics);
+	mRHIProxy = std::make_unique< TGraphics2DProxy< RHIGraphics2D > >(*mRHIGraphics);
 
 	RenderUtility::Initialize();
 
@@ -185,12 +185,14 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 
 void DrawEngine::release()
 {
+	mSwapChain.release();
 	mPlatformGraphics->releaseReources();
 
 	RenderUtility::Finalize();
 
-	if (isRHIEnabled() || bRHIShutdownDeferred)
+	if (GRHISystem)
 	{
+		RHIPreSystemShutdown();
 		RHISystemShutdown();
 	}
 }
@@ -289,13 +291,19 @@ bool DrawEngine::isUsageRHIGraphic2D() const
 	return false;
 }
 
-void DrawEngine::lockSystem()
+bool DrawEngine::lockSystem(ERenderSystem systemLocked)
 {
-	CHECK(mSystemLocked == ERenderSystem::None);
-	if (GRHISystem)
-	{
-		mSystemLocked = ConvTo( GRHISystem->getName() );
-	}
+	CHECK(mSystemLocked == ERenderSystem::None && mSystemName == ERenderSystem::None);
+
+	RHISystemInitParams initParam;
+	initParam.numSamples = 1;
+	initParam.bVSyncEnable = true;
+	initParam.bDebugMode = true;
+	initParam.hWnd = NULL;
+	initParam.hDC = NULL;
+	VERIFY_RETURN_FALSE(RHISystemInitialize(ConvTo(systemLocked), initParam));
+	
+	mSystemLocked = systemLocked;
 }
 
 bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs const& configs)
@@ -308,7 +316,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		if (configs.screenWidth != getScreenWidth() &&
 			configs.screenHeight != getScreenHeight())
 		{
-			changeScreenSize(configs.screenWidth, configs.screenHeight);
+			changeScreenSize(configs.screenWidth, configs.screenHeight, false);
 		}
 	}
 
@@ -324,6 +332,8 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 	if (mSystemLocked != ERenderSystem::None)
 	{
+		initParam.numSamples = 1;
+		IGlobalRenderResource::RestoreAllResources();
 		setupBuffer(getScreenWidth(), getScreenHeight());
 	}
 	else
@@ -358,7 +368,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		mGLContext = &static_cast<OpenGLSystem*>(GRHISystem)->mGLContext;
 	}
 	else if (mSystemName == ERenderSystem::D3D11 ||
-		mSystemName == ERenderSystem::D3D12)
+		     mSystemName == ERenderSystem::D3D12)
 	{
 		SwapChainCreationInfo info;
 		info.windowHandle = mGameWindow->getHWnd();
@@ -368,7 +378,8 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		info.numSamples = initParam.numSamples;
 		info.bCreateDepth = true;
 		info.depthFormat = ETexture::D32FS8;
-		RHICreateSwapChain(info);
+		info.textureCreationFlags = TCF_CreateSRV | TCF_PlatformGraphicsCompatible;
+		mSwapChain = RHICreateSwapChain(info);
 	}
 
 	if (mRHIGraphics == nullptr)
@@ -390,9 +401,8 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 {
-	if( !isRHIEnabled() )
+	if( !isRHIEnabled() || mSystemLocked != ERenderSystem::None)
 		return;
-
 
 	RHIPreSystemShutdown();
 
@@ -625,14 +635,28 @@ void DrawEngine::drawProfile(Vec2i const& pos)
 	textDraw.visitNodes();
 }
 
-void DrawEngine::changeScreenSize( int w , int h )
+void DrawEngine::changeScreenSize(int w, int h, bool bUpdateViewport /*= true*/)
 {
-	getWindow().resize( w , h );
-	if ( mBufferDC.getWidth() != w || mBufferDC.getHeight() != h )
+	getWindow().resize(w, h);
+	if (bUpdateViewport)
 	{
-		setupBuffer( w , h );
-		if( mRHIGraphics )
+		changetViewportSize(w, h);
+	}
+}
+
+void DrawEngine::changetViewportSize(int w, int h)
+{
+	if (mBufferDC.getWidth() != w || mBufferDC.getHeight() != h)
+	{
+		mBufferDC.release();
+		setupBuffer(w, h);
+		if (mRHIGraphics)
 			mRHIGraphics->init(w, h);
+
+		if (mSwapChain.isValid())
+		{
+			mSwapChain->resizeBuffer(w, h);
+		}
 	}
 }
 

@@ -11,7 +11,6 @@ class WindowsPlatform
 public:
 	WindowsPlatform(){ m_hInstance = ::GetModuleHandle( NULL );  }
 	HINSTANCE getAppInstance(){ return m_hInstance; }
-	long      getMillionSecond(){ return GetTickCount(); }
 	bool      updateSystem()
 	{
 		MSG msg;
@@ -60,7 +59,7 @@ public:
 
 		// move the window back to its old position
 		BOOL result = SetWindowPos( mhWnd, 0, 0 , 0 , 		
-			rect.right -rect.left ,rect.bottom - rect.top , SWP_NOMOVE | SWP_NOZORDER );
+			rect.right -rect.left ,rect.bottom - rect.top , SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 
 

@@ -8,7 +8,7 @@ rcRenderSystem* getRenderSystem(){ return g_System; }
 
 
 rcRenderSystem::rcRenderSystem( HWND hWnd , HDC hDC ) 
-	:WinGdiRenderSystem( hWnd , hDC )
+	:WinGDIRenderSystem( hWnd , hDC )
 {
 	g_System = this;
 }

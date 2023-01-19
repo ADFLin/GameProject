@@ -397,6 +397,7 @@ void GButton::onRender()
 	if ( !mTitle.empty() )
 	{
 		RenderUtility::SetFont( g , mFontType );
+		g.setBrush(Color3ub(255, 255, 255));
 
 		if ( getButtonState() == BS_PRESS )
 		{

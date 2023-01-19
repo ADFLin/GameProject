@@ -61,10 +61,7 @@ BitmapDC::BitmapDC()
 
 BitmapDC::~BitmapDC()
 {
-	if ( mhDC )
-		::DeleteObject(mhBmp);
-	if ( mhBmp )
-		::DeleteDC(mhDC);
+	cleanup();
 }
 
 bool BitmapDC::constructBitmap(HDC hdc , int w , int h)

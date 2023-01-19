@@ -445,37 +445,15 @@ namespace Render
 			return *mImmediateCommandList;
 		}
 
-		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
+		RHISwapChain*      RHICreateSwapChain(SwapChainCreationInfo const& info);
+		RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data);
+		RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign);
+		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data);
+		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]);
+		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data);
+		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc);
 
-		RHITexture1D*    RHICreateTexture1D(
-			ETexture::Format format, int length,
-			int numMipLevel, uint32 createFlags,
-			void* data);
-
-		RHITexture2D*    RHICreateTexture2D(
-			ETexture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 createFlags,
-			void* data, int dataAlign);
-
-		RHITexture3D*    RHICreateTexture3D(
-			ETexture::Format format, int sizeX, int sizeY, int sizeZ,
-			int numMipLevel, int numSamples, uint32 createFlags,
-			void* data);
-
-		RHITextureCube*  RHICreateTextureCube(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
-
-		RHITexture2DArray* RHICreateTexture2DArray(ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
-		{
-			return nullptr;
-		}
-
-		RHITexture2D*     RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags);
-
-		RHIBuffer* RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
-		RHIBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
-
-		RHIBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
-
+		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
 
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);
@@ -496,10 +474,10 @@ namespace Render
 		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
 
-		bool createTexture1DInternal(DXGI_FORMAT format, int width, int numMipLevel, uint32 creationFlags, void* data, uint32 pixelSize, Texture1DCreationResult& outResult);
-		bool createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult);
-		bool createTexture3DInternal(DXGI_FORMAT format, int width, int height, int depth, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, Texture3DCreationResult& outResult);
-		bool createTextureCubeInternal(DXGI_FORMAT format, int size, int numMipLevel, int numSamples, uint32 creationFlags, void* data[], uint32 pixelSize, TextureCubeCreationResult& outResult);
+		bool createTexture1DInternal(TextureDesc const& desc, void* data, Texture1DCreationResult& outResult);
+		bool createTexture2DInternal(TextureDesc const& desc, void* data, int dataAlign, bool bDepth, Texture2DCreationResult& outResult);
+		bool createTexture3DInternal(TextureDesc const& desc, void* data, Texture3DCreationResult& outResult);
+		bool createTextureCubeInternal(TextureDesc const& desc, void* data[], TextureCubeCreationResult& outResult);
 		
 
 		bool createStagingTexture(ID3D11Texture2D* texture, TComPtr< ID3D11Texture2D >& outTexture, int level = 0);

@@ -51,7 +51,6 @@ namespace Render
 	{
 		ShaderProgram*  shaderProgram = nullptr;
 		std::vector< ShaderCompileDesc > descList;
-		bool           bShowComplieInfo = false;
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 		virtual void postFileModify(EFileAction action) override;
@@ -149,6 +148,7 @@ namespace Render
 		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, 
 			            char const* entryVS = nullptr, char const* entryPS = nullptr, char const* def = nullptr, char const* additionalCode = nullptr);
 
+
 		bool reloadShader(ShaderProgram& shaderProgram);
 		bool reloadShader(Shader& shader);
 
@@ -201,12 +201,17 @@ namespace Render
 
 		void removeFromShaderCompileMap(ShaderObject& shader);
 
-		void  generateCompileSetup(
+		void  setupManagedData(
 			ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries,
 			ShaderCompileOption const& option, char const* additionalCode ,
 			char const* fileName , bool bSingleFile );
 
-		void generateCompileSetup(ShaderManagedData& managedData, ShaderEntryInfo const& entry, 
+		void  setupManagedData(
+			ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries,
+			ShaderCompileOption const& option, char const* additionalCode,
+			char const* fileNames[]);
+
+		void setupManagedData(ShaderManagedData& managedData, ShaderEntryInfo const& entry, 
 			ShaderCompileOption const& option, char const* additionalCode, 
 			char const* fileName);
 

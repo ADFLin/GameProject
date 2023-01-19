@@ -134,17 +134,17 @@ namespace GreedySnake
 		return eNO_HIT_MASK;
 	}
 
-	void Level::setupMap( Vec2i const& size , MapBoundType type )
+	void Level::setupMap(Vec2i const& size, MapBoundType type)
 	{
-		assert( mNumSnakePlay == 0 );
+		assert(mNumSnakePlay == 0);
 		mMapBoundType = type;
-		mMap.resize( size.x , size.y );
+		mMap.resize(size.x, size.y);
 		MapTileData tile;
 		tile.snakeMask = 0;
 		tile.terrain = 0;
-		mMap.fillValue( tile );
+		tile.itemMask = 0;
+		mMap.fillValue(tile);
 	}
-
 
 	void Level::addSnakeBodyElementMark( unsigned id , Vec2i const& pos )
 	{
@@ -302,24 +302,23 @@ namespace GreedySnake
 
 	void Level::removeAllFood()
 	{
-		for( FoodVec::iterator iter = mFoodVec.begin();
-			iter != mFoodVec.end(); )
+		for( FoodInfo const& info : mFoodVec)
 		{
-			mMap.getData(iter->pos.x, iter->pos.y).itemMask = 0;
+			mMap.getData(info.pos.x, info.pos.y).itemMask = 0;
 		}
 		mFoodVec.clear();
 	}
 
 	void Level::removeFood( Vec2i const& pos )
 	{
-
 		for( FoodVec::iterator iter = mFoodVec.begin();
 			 iter != mFoodVec.end(); )
 		{
 			if( iter->pos == pos )
 			{
 				iter = mFoodVec.erase(iter);
-				mMap.getData(pos.x, pos.y).itemMask = 0;
+				
+				return;
 			}
 			else
 			{
@@ -334,7 +333,12 @@ namespace GreedySnake
 
 		MapTileData& tile = mMap.getData( head.pos.x , head.pos.y );
 
-		unsigned snakeMask = tile.snakeMask & ~BIT( snake.id );
+		unsigned snakeMask = tile.snakeMask;
+		if (snake.stateBit & SS_INVINCIBLE)
+			snakeMask = 0;
+		if ( snake.stateBit & SS_TRANSPARENT )
+			snakeMask &= ~BIT(snake.id);
+		
 		if ( snakeMask )
 		{
 			for( unsigned i = 0 ; i < (unsigned)mNumSnakePlay ; ++i )
@@ -379,6 +383,7 @@ namespace GreedySnake
 				if ( iter->pos == head.pos )
 				{
 					mListener->onEatFood( snake , *iter );
+					mMap.getData(iter->pos.x, iter->pos.y).itemMask = 0;
 					iter = mFoodVec.erase( iter );
 				}
 				else
@@ -420,12 +425,16 @@ namespace GreedySnake
 				result.y -= mMap.getSizeY();
 			break;
 		case MapBoundType::WarpX:
+			if (result.y < 0 || result.y >= mMap.getSizeY())
+				return false;
 			if ( result.x < 0 )
 				result.x += mMap.getSizeX();
 			else if ( result.x >= mMap.getSizeX() )
 				result.x -= mMap.getSizeX();
 			break;
 		case MapBoundType::WarpY:
+			if (result.x < 0 || result.x >= mMap.getSizeX())
+				return false;
 			if ( result.y < 0 )
 				result.y += mMap.getSizeY();
 			else if ( result.y >= mMap.getSizeY() )

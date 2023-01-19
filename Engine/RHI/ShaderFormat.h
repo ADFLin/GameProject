@@ -84,8 +84,13 @@ namespace Render
 
 	struct ShaderCompileContext
 	{
-		int shaderIndex;
+		bool bOuputPreprocessedCode = true;
+		bool bUsePreprocess = true;
+		bool bRecompile = true;
+		int  shaderIndex;
 		ShaderCompileDesc* desc;
+
+		bool haveFile() const { return desc->filePath.empty() == false; }
 		EShader::Type getType() const { return desc->type; }
 		char const* getPath() const { return desc->filePath.c_str(); }
 		char const* getEntry() const {  return desc->entryName.c_str();  }
@@ -140,8 +145,7 @@ namespace Render
 		{
 			return false;
 		}
-
-		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles);
+		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles, bool bOuputPreprocessedCode);
 		bool loadCode(ShaderCompileContext const& context, std::vector<uint8>& outCodes);
 
 		virtual ShaderPreprocessSettings getPreprocessSettings()
@@ -152,10 +156,6 @@ namespace Render
 		void emitCompileError(ShaderCompileContext const& context, char const* errorCode);
 		static void OutputError(char const* title, char const* text);
 		
-
-		bool bOuputPreprocessedCode = true;
-		bool bRecompile = true;
-		bool bUsePreprocess = true;
 	};
 
 }//namespace Render

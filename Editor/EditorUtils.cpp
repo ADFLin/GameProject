@@ -3,6 +3,9 @@
 #include "RHI/D3D11Common.h"
 #include "RHI/D3D11Command.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "ImGui/imgui_internal.h"
+
 using namespace Render;
 
 Render::TextureAtlas FImGui::mIconAtlas;
@@ -84,9 +87,21 @@ ImTextureID FImGui::GetTextureID(Render::RHITexture2D& texture)
 	return resViewImpl->getResource();
 }
 
+bool FImGui::Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size /*= -1.0f*/)
+{
+	using namespace ImGui;
+	ImGuiContext& g = *GImGui;
+	ImGuiWindow* window = g.CurrentWindow;
+	ImGuiID id = window->GetID("##Splitter");
+	ImRect bb;
+	bb.Min = window->DC.CursorPos + (split_vertically ? ImVec2(*size1, 0.0f) : ImVec2(0.0f, *size1));
+	bb.Max = bb.Min + CalcItemSize(split_vertically ? ImVec2(thickness, splitter_long_axis_size) : ImVec2(splitter_long_axis_size, thickness), 0.0f, 0.0f);
+	return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
+}
+
 struct BlendState
 {
-	ID3D11BlendState* resurce = nullptr;
+	TComPtr< ID3D11BlendState > resurce;
 	FLOAT factor[4];
 	UINT  mask;
 
@@ -110,6 +125,7 @@ static void RestoreBlendCallback(const ImDrawList* parent_list, const ImDrawCmd*
 	CHECK(GBlendState.bDisabled);
 	static_cast<D3D11System*>(GRHISystem)->mDeviceContext->OMSetBlendState(GBlendState.resurce, GBlendState.factor, GBlendState.mask);
 
+	GBlendState.resurce.reset();
 	GBlendState.bDisabled = false;
 }
 

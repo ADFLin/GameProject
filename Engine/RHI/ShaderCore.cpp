@@ -3,6 +3,7 @@
 #include "RHICommand.h"
 #include "FileSystem.h"
 #include "LogSystem.h"
+#include "ShaderFormat.h"
 
 namespace Render
 {
@@ -86,6 +87,16 @@ namespace Render
 			option.addDefine(SHADER_PARAM(USE_TESSELLATION), true);
 			option.addDefine(SHADER_PARAM(USE_PN_TRIANGLE), true);
 			break;
+		}
+	}
+
+	void ShaderCompileOption::setup(ShaderFormat& shaderFormat) const
+	{
+		if (bSFSetuped == false)
+		{
+			ShaderCompileOption* mutableThis = const_cast<ShaderCompileOption*>(this);
+			mutableThis->bSFSetuped = true;
+			shaderFormat.setupShaderCompileOption(*mutableThis);
 		}
 	}
 

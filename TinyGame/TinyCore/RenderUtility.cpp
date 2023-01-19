@@ -67,25 +67,25 @@ void RenderUtility::Initialize()
 		gColorMap[COLOR_DEEP][i] = Color3ub(FColorConv::HSVToRGB(hsvDark));
 		gColorMap[COLOR_LIGHT][i] = Color3ub( FColorConv::HSVToRGB(hsvLight));
 #endif
-		hBrush[COLOR_NORMAL][i] = FWindowsGDI::CreateBrush(gColorMap[COLOR_NORMAL][i]);
-		hBrush[COLOR_DEEP][i]   = FWindowsGDI::CreateBrush(gColorMap[COLOR_DEEP][i]);
-		hBrush[COLOR_LIGHT][i]  = FWindowsGDI::CreateBrush(gColorMap[COLOR_LIGHT][i]);
-		hCPen[COLOR_NORMAL][i]  = FWindowsGDI::CreatePen(gColorMap[COLOR_NORMAL][i], 1);
-		hCPen[COLOR_DEEP][i]    = FWindowsGDI::CreatePen(gColorMap[COLOR_DEEP][i], 1 );
-		hCPen[COLOR_LIGHT][i]   = FWindowsGDI::CreatePen(gColorMap[COLOR_LIGHT][i], 1 );
+		hBrush[COLOR_NORMAL][i] = FWinGDI::CreateBrush(gColorMap[COLOR_NORMAL][i]);
+		hBrush[COLOR_DEEP][i]   = FWinGDI::CreateBrush(gColorMap[COLOR_DEEP][i]);
+		hBrush[COLOR_LIGHT][i]  = FWinGDI::CreateBrush(gColorMap[COLOR_LIGHT][i]);
+		hCPen[COLOR_NORMAL][i]  = FWinGDI::CreatePen(gColorMap[COLOR_NORMAL][i], 1);
+		hCPen[COLOR_DEEP][i]    = FWinGDI::CreatePen(gColorMap[COLOR_DEEP][i], 1 );
+		hCPen[COLOR_LIGHT][i]   = FWinGDI::CreatePen(gColorMap[COLOR_LIGHT][i], 1 );
 	}
 
 	DrawEngine& de = Global::GetDrawEngine();
 	HDC hDC = de.getPlatformGraphics().getRenderDC();
 
 
-	HFONT badFont = FWindowsGDI::CreateFont( hDC, FontName, 20, true , false );
+	HFONT badFont = FWinGDI::CreateFont( hDC, FontName, 20, true , false );
 	DeleteObject( badFont );
-	hFont[ FONT_S8 ]  = FWindowsGDI::CreateFont(hDC, FontName, 8 , true , false );
-	hFont[ FONT_S10 ] = FWindowsGDI::CreateFont(hDC, FontName, 10, true , false );
-	hFont[ FONT_S12 ] = FWindowsGDI::CreateFont(hDC, FontName, 12, true , false );
-	hFont[ FONT_S16 ] = FWindowsGDI::CreateFont(hDC, FontName, 16, true , false );
-	hFont[ FONT_S24 ] = FWindowsGDI::CreateFont(hDC, FontName, 24, true , false );
+	hFont[ FONT_S8 ]  = FWinGDI::CreateFont(hDC, FontName, 8 , true , false );
+	hFont[ FONT_S10 ] = FWinGDI::CreateFont(hDC, FontName, 10, true , false );
+	hFont[ FONT_S12 ] = FWinGDI::CreateFont(hDC, FontName, 12, true , false );
+	hFont[ FONT_S16 ] = FWinGDI::CreateFont(hDC, FontName, 16, true , false );
+	hFont[ FONT_S24 ] = FWinGDI::CreateFont(hDC, FontName, 24, true , false );
 
 }
 

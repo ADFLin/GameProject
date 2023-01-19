@@ -96,14 +96,14 @@ namespace Render
 	{
 	public:
 		CORE_API IGlobalRenderResource();
-		virtual ~IGlobalRenderResource() {}
+		virtual ~IGlobalRenderResource() = default;
 		virtual void restoreRHI() = 0;
 		virtual void releaseRHI() = 0;
 
 		IGlobalRenderResource* mNext;
 
-		CORE_API static void ReleaseAllResource();
-		CORE_API static void RestoreAllResource();
+		CORE_API static void ReleaseAllResources();
+		CORE_API static void RestoreAllResources();
 	};
 	
 	template< class RHIResourceType >
@@ -152,8 +152,8 @@ namespace Render
 		{
 		public:
 			RHIResourceType& getRHI() { return *mResource; }
-			virtual void restoreRHI(){  mResource = ThisClass::CreateRHI(); }
-			virtual void releaseRHI(){  mResource.release();  }
+			void restoreRHI() final {  mResource = ThisClass::CreateRHI(); }
+			void releaseRHI() final {  mResource.release();  }
 	
 			TRefCountPtr< RHIResourceType > mResource;
 		};

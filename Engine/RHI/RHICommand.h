@@ -28,6 +28,21 @@ enum class RHISystemName
 	Count,
 };
 
+namespace Literal
+{
+	FORCEINLINE char const* ToString(RHISystemName name)
+	{
+		switch (name)
+		{
+		case RHISystemName::OpenGL: return "OpenGL";
+		case RHISystemName::D3D11:  return "D3D11";
+		case RHISystemName::D3D12: return "D3D12";
+		case RHISystemName::Vulkan: return "Vulkan";
+		}
+		return "Unknown";
+	};
+}
+
 #if USE_RHI_RESOURCE_TRACE
 #define RHI_TRACE_FUNC_NAME(NAME) NAME##Trace
 #define RHI_TRACE_FUNC( NAME , ... ) RHI_TRACE_FUNC_NAME(NAME)(RHI_TRACE_PARAM_DESC, ##__VA_ARGS__)
@@ -103,6 +118,7 @@ namespace Render
 		bool bCreateDepth;
 		ETexture::Format depthFormat;
 
+		uint32 textureCreationFlags = 0;
 		int numSamples;
 		int bufferCount;
 
@@ -116,12 +132,13 @@ namespace Render
 			depthFormat = ETexture::D24S8;
 			numSamples = 1;
 			bufferCount = 2;
+			textureCreationFlags = 0;
 		}
 	};
 
 	RHI_API RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info);
 
-	RHI_API RHITexture1D* RHICreateTexture1D(
+	RHI_API RHITexture1D* RHI_TRACE_FUNC(RHICreateTexture1D,
 		ETexture::Format format, int length ,
 		int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,
 		void* data = nullptr);
@@ -147,6 +164,13 @@ namespace Render
 
 	RHI_API RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth,
 		ETexture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
+
+	RHI_API RHITexture1D*      RHI_TRACE_FUNC(RHICreateTexture1D, TextureDesc const& desc, void* data = nullptr);
+	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTexture2D, TextureDesc const& desc, void* data = nullptr, int dataAlign = 0);
+	RHI_API RHITexture3D*      RHI_TRACE_FUNC(RHICreateTexture3D, TextureDesc const& desc, void* data = nullptr);
+	RHI_API RHITextureCube*    RHI_TRACE_FUNC(RHICreateTextureCube,TextureDesc const& desc,void* data[] = nullptr);
+	RHI_API RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, TextureDesc const& desc, void* data = nullptr);
+	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTextureDepth,TextureDesc const& desc);
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer,
 		uint32 elementSize, uint32 numElements, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -348,32 +372,12 @@ namespace Render
 		RHI_FUNC(bool RHIBeginRender());
 		RHI_FUNC(void RHIEndRender(bool bPresent));
 
-		RHI_FUNC(RHITexture1D*    RHICreateTexture1D(
-			ETexture::Format format, int length,
-			int numMipLevel, uint32 creationFlags, void* data));
-
-		RHI_FUNC(RHITexture2D*    RHICreateTexture2D(
-			ETexture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 creationFlags,
-			void* data, int dataAlign));
-
-		RHI_FUNC(RHITexture3D*    RHICreateTexture3D(
-			ETexture::Format format, int sizeX, int sizeY, int sizeZ,
-			int numMipLevel, int numSamples , uint32 creationFlags , 
-			void* data));
-		RHI_FUNC(RHITextureCube*  RHICreateTextureCube(
-			ETexture::Format format, int size, 
-			int numMipLevel, uint32 creationFlags, 
-			void* data[]));
-
-		RHI_FUNC(RHITexture2DArray* RHICreateTexture2DArray(
-			ETexture::Format format, int w, int h, int layerSize,
-			int numMipLevel, int numSamples, uint32 creationFlags,
-			void* data));
-
-		RHI_FUNC(RHITexture2D* RHICreateTextureDepth(
-			ETexture::Format format, int w, int h , 
-			int numMipLevel, int numSamples, uint32 creationFlags) );
+		RHI_FUNC(RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data));
+		RHI_FUNC(RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign));
+		RHI_FUNC(RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data));
+		RHI_FUNC(RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]));
+		RHI_FUNC(RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data));
+		RHI_FUNC(RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc));
 		
 		RHI_FUNC(RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data));
 

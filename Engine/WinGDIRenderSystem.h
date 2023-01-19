@@ -27,7 +27,7 @@ public:
 private:
 
 	friend class WinGdiGraphics2D;
-	friend class WinGdiRenderSystem;
+	friend class WinGDIRenderSystem;
 	BitmapDC mImpl;
 };
 
@@ -51,10 +51,10 @@ public:
 	void  scaleXForm( float sx , float sy  );
 
 	void  setPen( Color3ub const& color , int width = 1 );
-	void  setPen( HPEN hPen , bool beManaged = false )      {  setPenImpl( hPen , beManaged ); }
+	void  setPen( HPEN hPen , bool bManaged = false )      {  setPenImpl( hPen , bManaged ); }
 	void  setBrush( Color3ub const& color );
-	void  setBrush( HBRUSH hBrush , bool beManaged = false ){  setBrushImpl( hBrush , beManaged ); }
-	void  setFont( HFONT hFont , bool beManaged = false )   {  setFontImpl( hFont , beManaged );  }
+	void  setBrush( HBRUSH hBrush , bool bManaged = false ){  setBrushImpl( hBrush , bManaged ); }
+	void  setFont( HFONT hFont , bool bManaged = false )   {  setFontImpl( hFont , bManaged );  }
 
 	void  beginClip(Vec2i const& pos, Vec2i const& size);
 	void  endClip();
@@ -75,11 +75,11 @@ public:
 	void  setTargetDC( HDC hDC );
 	HDC   getTargetDC(){ return mhDCTarget; }
 
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos );
+	void  drawTexture( GdiTexture& texture, Vec2i const& pos );
 	void  drawTexture( GdiTexture& texture, Vec2i const& pos, Vec2i const& size);
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Color3ub const& colorKey );
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize );
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , Color3ub const& colorKey );
+	void  drawTexture( GdiTexture& texture, Vec2i const& pos, Color3ub const& colorKey );
+	void  drawTexture( GdiTexture& texture, Vec2i const& pos, Vec2i const& texPos, Vec2i const& texSize );
+	void  drawTexture( GdiTexture& texture, Vec2i const& pos, Vec2i const& texPos, Vec2i const& texSize, Color3ub const& colorKey );
 	
 	void  setTextColor(Color3ub const& color);
 	void  drawText( Vec2i const& pos , char const* str );
@@ -97,34 +97,31 @@ private:
 
 	void  releaseUsedResources();
 
-	void  setPenImpl( HPEN hPen , bool beManaged );
-	void  setBrushImpl( HBRUSH hBrush , bool beManaged );
-	void  setFontImpl( HFONT hFont , bool beManaged );
+	void  setPenImpl( HPEN hPen , bool bManaged );
+	void  setBrushImpl( HBRUSH hBrush , bool bManaged );
+	void  setFontImpl( HFONT hFont , bool bManaged );
 
 	static int const MaxXFormStackNum = 32;
 	XFORM    mXFormStack[ MaxXFormStackNum ];
 	int      mNumStack;
 
 	template< class T >
-	struct TGdiObject
+	struct TGDIObject
 	{
-		TGdiObject()
-		{
-			handle = NULL;
-		}
-		~TGdiObject()
+		TGDIObject() = default;
+		
+		~TGDIObject()
 		{
 			assert(handle == NULL);
 		}
 
 		void set(T newHandle, bool bInManaged)
 		{
-			if ( handle && bManaged )
-				::DeleteObject(handle);
-
+			release();
 			handle = newHandle;
 			bManaged = bInManaged;
 		}
+
 		void release()
 		{
 			if ( handle )
@@ -137,14 +134,15 @@ private:
 			}
 		}
 		operator T() { return handle; }
-		T    handle;
+
+		T    handle = NULL;
 		bool bManaged;
+
 	};
 
-	TGdiObject<HBRUSH> mCurBrush;
-	TGdiObject<HPEN>   mCurPen;
-	TGdiObject<HFONT>  mCurFont;
-
+	TGDIObject<HBRUSH> mCurBrush;
+	TGDIObject<HPEN>   mCurPen;
+	TGDIObject<HFONT>  mCurFont;
 
 	unsigned mBlendCount;
 	float    mBlendAlpha;
@@ -161,7 +159,7 @@ private:
 
 };
 
-class FWindowsGDI
+class FWinGDI
 {
 public:
 	static HFONT CreateFont(HDC hDC, char const* faceName, int size, bool bBold = false, bool bItalic = false, bool bUnderLine = false);
@@ -170,11 +168,11 @@ public:
 
 };
 
-class WinGdiRenderSystem
+class WinGDIRenderSystem
 {
 public:
-	WinGdiRenderSystem( HWND hWnd , HDC hDC );
-	~WinGdiRenderSystem();
+	WinGDIRenderSystem( HWND hWnd , HDC hDC );
+	~WinGDIRenderSystem();
 	typedef WinGdiGraphics2D Graphics2D;
 
 	Vec2i       getClientSize() const;

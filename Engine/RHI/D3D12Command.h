@@ -653,33 +653,13 @@ namespace Render
 			return RequiredSize;
 		}
 
+		RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data);
+		RHITexture2D*      RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign);
+		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) { return nullptr; }
+		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
+		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
+		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc) { return nullptr; }
 
-		RHITexture1D*    RHICreateTexture1D(
-			ETexture::Format format, int length,
-			int numMipLevel, uint32 createFlags,
-			void* data);
-
-		RHITexture2D*    RHICreateTexture2D(
-			ETexture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 createFlags,
-			void* data, int dataAlign);
-
-		RHITexture3D*    RHICreateTexture3D(
-			ETexture::Format format, int sizeX, int sizeY, int sizeZ,
-			int numMipLevel, int numSamples, uint32 createFlags,
-			void* data)
-		{
-			return nullptr;
-		}
-
-		RHITextureCube*  RHICreateTextureCube(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]) { return nullptr; }
-
-		RHITexture2DArray* RHICreateTexture2DArray(ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
-		{
-			return nullptr;
-		}
-
-		RHITexture2D*     RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags) { return nullptr; }
 
 		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width , uint32 height, uint32 rowPatch, uint32 level = 0);
 		bool updateTexture1DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 offset, uint32 length, uint32 level = 0);

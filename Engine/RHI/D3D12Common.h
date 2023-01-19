@@ -215,7 +215,6 @@ namespace Render
 	class TD3D12Resource : public RHIResoureType
 	{
 	public:
-
 		~TD3D12Resource()
 		{
 			if (mResource != nullptr)
@@ -447,6 +446,10 @@ namespace Render
 
 		bool initialize(TComPtr<IDXGISwapChainRHI>& resource, TComPtr<ID3D12DeviceRHI>& device , int bufferCount);
 
+		virtual void resizeBuffer(int w, int h) override
+		{
+			mResource->ResizeBuffers(mRenderTargetsStates.size(), w, h, DXGI_FORMAT_UNKNOWN, 0);
+		}
 		virtual RHITexture2D* getBackBufferTexture() override
 		{
 			return nullptr;
@@ -492,6 +495,11 @@ namespace Render
 	class TD3D12Texture : public TD3D12Resource< TRHIResource >
 	{
 	public:
+		TD3D12Texture(TextureDesc const& desc)
+		{
+			mDesc = desc;
+		}
+
 		virtual void releaseResource()
 		{
 			TD3D12Resource< TRHIResource >::releaseResource();
@@ -508,16 +516,14 @@ namespace Render
 	class D3D12Texture1D : public TD3D12Texture< RHITexture1D >
 	{
 	public:
-
-		bool initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int length);
+		D3D12Texture1D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
 		virtual bool update(int offset, int length, ETexture::Format format, void* data, int level = 0);
 	};
 
 	class D3D12Texture2D : public TD3D12Texture< RHITexture2D >
 	{
 	public:
-
-		bool initialize(TComPtr< ID3D12Resource >& resource, ETexture::Format format, int w, int h);
+		D3D12Texture2D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
 
 		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
 		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);

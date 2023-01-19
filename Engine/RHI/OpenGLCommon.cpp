@@ -83,26 +83,19 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture1D::create(ETexture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data )
+	bool OpenGLTexture1D::create( void* data )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
-		mSize = length;
-
-		mFormat = format;
-		mNumMipLevel = numMipLevel;
-
-		if( numMipLevel < 1 )
-			numMipLevel = 1;
 
 		bind();
 
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
-		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
-		glTexImage1D(TypeEnumGL, 0, OpenGLTranslate::To(format), length, 0,
-					 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
+		glTexImage1D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, 0,
+					 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
 
-		if( numMipLevel > 1 )
+		if(mDesc.numMipLevel > 1)
 		{
 			glGenerateMipmap(TypeEnumGL);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -128,49 +121,39 @@ namespace Render
 	}
 
 
-	bool OpenGLTexture2D::create(ETexture::Format format, int width, int height, int numMipLevel,int numSamples, uint32 creationFlags, void* data , int alignment )
+	bool OpenGLTexture2D::create(void* data , int alignment)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
 
-		if( numMipLevel < 1 )
-			numMipLevel = 1;
-		if( numSamples < 1 )
-			numSamples = 1;
-
-		mSizeX = width;
-		mSizeY = height;
-		mFormat = format;
-		mNumMipLevel = numMipLevel;
-		mNumSamples = numSamples;
-
 		bind();
 
-		if( numSamples > 1 )
+		if(mDesc.numSamples > 1)
 		{
-			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), width, height, true);
+			glTexImage2DMultisample(TypeEnumGLMultisample, mDesc.numSamples, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, 
+				mDesc.dimension.y, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
-			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
 
 
 			if( alignment && alignment != GLDefalutUnpackAlignment )
 			{
 				glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, 0,
-							 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, 0,
+							 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
 			}
 			else
 			{
-				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, 0,
-							 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, 0,
+							 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
 			}
 
 
-			if( numMipLevel > 1 )
+			if(mDesc.numMipLevel > 1)
 			{
 				glGenerateMipmap(TypeEnumGL);
 				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -189,32 +172,21 @@ namespace Render
 	}
 
 
-	bool OpenGLTexture2D::createDepth(ETexture::Format format, int width, int height, int numMipLevel, int numSamples)
+	bool OpenGLTexture2D::createDepth()
 	{
 		if (!mGLObject.fetchHandle())
 			return false;
 
-		if (numMipLevel < 1)
-			numMipLevel = 1;
-		if (numSamples < 1)
-			numSamples = 1;
-
-		mFormat = format;
-		mNumMipLevel = numMipLevel;
-		mNumSamples = numSamples;
-		mSizeX = width;
-		mSizeY = height;
-
 		bind();
-		if (numSamples > 1)
+		if (mDesc.numSamples > 1)
 		{
-			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::DepthFormat(format), width, height, true);
+			glTexImage2DMultisample(TypeEnumGLMultisample, mDesc.numSamples, OpenGLTranslate::DepthFormat(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::DepthFormat(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::DepthFormat(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		}
 		VerifyOpenGLStatus();
 		unbind();
@@ -223,7 +195,7 @@ namespace Render
 
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, ETexture::Format format , void* data , int level )
 	{
-		if( mNumSamples > 1 )
+		if(mDesc.numSamples > 1)
 		{
 			return false;
 		}
@@ -235,7 +207,7 @@ namespace Render
 
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level /*= 0 */)
 	{
-		if( mNumSamples > 1 )
+		if( mDesc.numSamples > 1 )
 		{
 			return false;
 		}
@@ -246,40 +218,28 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture3D::create(ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	bool OpenGLTexture3D::create(void* data)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
-
-		if( numMipLevel < 1 )
-			numMipLevel = 1;
-		if( numSamples < 1 )
-			numSamples = 1;
-
-		mSizeX = sizeX;
-		mSizeY = sizeY;
-		mSizeZ = sizeZ;
-		mFormat = format;
-		mNumMipLevel = numMipLevel;
-		mNumSamples = numSamples;
 
 		bind();
 
 		GLenum typeEnumGL = getGLTypeEnum();
 
-		if( numSamples > 1 )
+		if(mDesc.numSamples > 1)
 		{
-			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), sizeX, sizeY, sizeZ, true);
+			glTexImage3DMultisample(TypeEnumGLMultisample, mDesc.numSamples, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, mDesc.dimension.z, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
-			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
 
-			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(format), sizeX, sizeY, sizeZ, 0,
-						 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, mDesc.dimension.z, 0,
+						 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
 
-			if( numMipLevel > 1 )
+			if(mDesc.numMipLevel > 1)
 			{
 				glGenerateMipmap(TypeEnumGL);
 				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -295,35 +255,27 @@ namespace Render
 		return true;
 	}
 
-	bool OpenGLTextureCube::create(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	bool OpenGLTextureCube::create(void* data[])
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
 
-		mSize = size;
-		mFormat = format;
-		mNumMipLevel = numMipLevel;
-		mNumSamples = 1;
-
-		if( numMipLevel < 1 )
-			numMipLevel = 1;
-
 		bind();
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
-		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
 		{
-			GLenum formatGL = OpenGLTranslate::To(format);
-			GLenum baseFormat = OpenGLTranslate::BaseFormat(format);
-			GLenum componentType = OpenGLTranslate::TextureComponentType(format);
+			GLenum formatGL = OpenGLTranslate::To(mDesc.format);
+			GLenum baseFormat = OpenGLTranslate::BaseFormat(mDesc.format);
+			GLenum componentType = OpenGLTranslate::TextureComponentType(mDesc.format);
 			for (int face = 0; face < ETexture::FaceCount; ++face)
 			{
 				glTexImage2D(OpenGLTranslate::TexureType(ETexture::Face(face)), 0,
-					formatGL, size, size, 0,
+					formatGL, mDesc.dimension.x, mDesc.dimension.x, 0,
 					baseFormat, componentType, data ? data[face] : nullptr);
 			}
 		}
 
-		if( numMipLevel > 1 )
+		if(mDesc.numMipLevel > 1)
 		{
 			glGenerateMipmap(TypeEnumGL);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -355,40 +307,26 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture2DArray::create(ETexture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data )
+	bool OpenGLTexture2DArray::create(void* data)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
 
-		if( layerSize < 1 )
-			layerSize = 1;
-		if( numMipLevel < 1 )
-			numMipLevel = 1;
-		if( numSamples < 1 )
-			numSamples = 1;
-
-		mSizeX = width;
-		mSizeY = height;
-		mLayerNum = layerSize;
-		mFormat = format;
-		mNumMipLevel = numMipLevel;
-		mNumSamples = numSamples;
-
 		bind();
 
-		if( numSamples > 1 )
+		if(mDesc.numSamples > 1)
 		{
-			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), width, height , layerSize, true);
+			glTexImage3DMultisample(TypeEnumGLMultisample, mDesc.numSamples, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, mDesc.dimension.z, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
-			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, mDesc.numMipLevel - 1);
 
-			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, layerSize, 0,
-						 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(mDesc.format), mDesc.dimension.x, mDesc.dimension.y, mDesc.dimension.z, 0,
+						 OpenGLTranslate::BaseFormat(mDesc.format), OpenGLTranslate::TextureComponentType(mDesc.format), data);
 
-			if( numMipLevel > 1 )
+			if(mDesc.numMipLevel > 1 )
 			{
 				glGenerateMipmap(TypeEnumGL);
 				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);

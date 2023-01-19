@@ -49,7 +49,7 @@ namespace Render
 
 	bool GDIFontCharDataProvider::initialize(HDC hDC , FontFaceInfo const& fontFace)
 	{
-		hFont = FWindowsGDI::CreateFont(hDC, fontFace.name.c_str(), fontFace.size, fontFace.bBold, false, fontFace.bUnderLine);
+		hFont = FWinGDI::CreateFont(hDC, fontFace.name.c_str(), fontFace.size, fontFace.bBold, false, fontFace.bUnderLine);
 		if( hFont == NULL )
 			return false;
 

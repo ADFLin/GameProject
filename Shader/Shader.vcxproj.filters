@@ -213,6 +213,9 @@
     <None Include="..\TinyGame\out\Shader\Game\ClipCoord.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\Template\Test.sgc">
+      <Filter>Template</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">
@@ -223,6 +226,9 @@
     </Filter>
     <Filter Include="Material">
       <UniqueIdentifier>{c4c50d1f-b14c-4305-9e82-9ab02b76ef0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Template">
+      <UniqueIdentifier>{c56520fe-7e72-47e0-98ec-2205e4af6020}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

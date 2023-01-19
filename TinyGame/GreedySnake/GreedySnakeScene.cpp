@@ -64,7 +64,7 @@ namespace GreedySnake
 		level.addFood( pos , type );
 	}
 
-	void Scene::drawSnake( Graphics2D& g , Snake& snake , float dFrame )
+	void Scene::drawSnake( IGraphics2D& g , Snake& snake , float dFrame )
 	{
 		if( snake.stateBit & SS_DEAD )
 			return;
@@ -75,7 +75,7 @@ namespace GreedySnake
 		drawSnakeBody( g , snake , ColorMap[ snake.id ] , offset );
 	}
 
-	void Scene::drawSnakeBody( Graphics2D& g , Snake& snake , int color , int offset )
+	void Scene::drawSnakeBody( IGraphics2D& g , Snake& snake , int color , int offset )
 	{
 		SnakeBody& snakeBody = snake.getBody();
 
@@ -162,7 +162,7 @@ namespace GreedySnake
 		}
 	}
 
-	void Scene::drawFood(Graphics2D& g)
+	void Scene::drawFood(IGraphics2D& g)
 	{
 		getLevel().visitFood([&g](FoodInfo const& info)
 		{
@@ -185,7 +185,7 @@ namespace GreedySnake
 		});
 	}
 
-	void Scene::render(Graphics2D& g, float dFrame)
+	void Scene::render(IGraphics2D& g, float dFrame)
 	{
 		Vec2i mapSize = mLevel.getMapSize();
 		Vec2i rectSize = mLevel.getMapSize() * BlockSize;
@@ -217,11 +217,13 @@ namespace GreedySnake
 			for( int j = 0 ; j < mapSize.y ; ++j )
 			{
 				MapTileData const& tile = mLevel.mMap.getData( i , j );
-
-				InlineString< 32 > str;
-				str.format( "%u" , tile.snakeMask );
-				//g.drawText( BlockSize * Vec2i(i,j) + offset , Vec2i( BlockSize , BlockSize) , str );
-				g.drawText(BlockSize * Vec2i(i, j) + offset + Vec2i( 5 , 5 ) , str);
+				if ( tile.snakeMask )
+				{
+					InlineString< 32 > str;
+					str.format("%u", tile.snakeMask);
+					//g.drawText( BlockSize * Vec2i(i,j) + offset , Vec2i( BlockSize , BlockSize) , str );
+					g.drawText(BlockSize * Vec2i(i, j) + offset + Vec2i(5, 5), str);
+				}
 			}
 		}
 	}

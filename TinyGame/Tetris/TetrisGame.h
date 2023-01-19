@@ -33,7 +33,6 @@ namespace Tetris
 		void  endPlay() override;
 		void  enter() override;
 		void  exit() override;
-		void  release() override { delete this; }
 
 		ERenderSystem getDefaultRenderSystem() override;
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;

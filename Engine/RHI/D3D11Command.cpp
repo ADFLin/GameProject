@@ -244,6 +244,41 @@ namespace Render
 		return new ShaderFormatHLSL(mDevice);
 	}
 
+	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult)
+	{
+		if (creationFlags & TCF_CreateSRV)
+		{
+			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
+
+			switch (format)
+			{
+			case DXGI_FORMAT_D16_UNORM:
+				desc.Format = DXGI_FORMAT_R16_UNORM;
+				break;
+			case DXGI_FORMAT_D32_FLOAT:
+				desc.Format = DXGI_FORMAT_R32_FLOAT;
+				break;
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+				desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+				break;
+			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+				desc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+				break;
+			}
+
+			desc.ViewDimension = (numSamples > 1 ) ? D3D_SRV_DIMENSION_TEXTURE2DMS : D3D_SRV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipLevels = -1;
+			desc.Texture2D.MostDetailedMip = 0;
+			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateShaderResourceView(outResult.resource, &desc, &outResult.SRV));
+		}
+		if (creationFlags & TCF_CreateUAV)
+		{
+			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
+		}
+		return true;
+	}
+
+
 	RHISwapChain* D3D11System::RHICreateSwapChain(SwapChainCreationInfo const& info)
 	{
 		HRESULT hr;
@@ -254,22 +289,34 @@ namespace Render
 		swapChainDesc.OutputWindow = info.windowHandle;
 		swapChainDesc.Windowed = info.bWindowed;
 
+		DXGI_FORMAT DXColorFormat = D3D11Translate::To(info.colorForamt);
 		UINT quality = 0;
 		if (info.numSamples > 1)
 		{
-			hr = mDevice->CheckMultisampleQualityLevels(D3D11Translate::To(info.colorForamt), info.numSamples, &quality);
+			hr = mDevice->CheckMultisampleQualityLevels(DXColorFormat, info.numSamples, &quality);
 			quality = quality - 1;
 		}
 
 		swapChainDesc.SampleDesc.Count = info.numSamples;
 		swapChainDesc.SampleDesc.Quality = quality;
-		swapChainDesc.BufferDesc.Format = D3D11Translate::To(info.colorForamt);
+		swapChainDesc.BufferDesc.Format = DXColorFormat;
 		swapChainDesc.BufferDesc.Width = info.extent.x;
 		swapChainDesc.BufferDesc.Height = info.extent.y;
 		swapChainDesc.BufferCount = info.bufferCount;
 		swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		if (info.textureCreationFlags & TCF_CreateSRV)
+		{
+			swapChainDesc.BufferUsage |= DXGI_USAGE_SHADER_INPUT;
+		}
 		swapChainDesc.SwapEffect = info.numSamples > 1 ? DXGI_SWAP_EFFECT_DISCARD : DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-		swapChainDesc.Flags = info.numSamples > 1 ? 0 : DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
+		swapChainDesc.Flags = 0;
+		if (info.textureCreationFlags & TCF_PlatformGraphicsCompatible)
+		{
+			if (info.numSamples == 1)
+			{
+				swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
+			}
+		}
 
 		TComPtr<IDXGISwapChain> swapChainResource;
 		VERIFY_D3D_RESULT(factory->CreateSwapChain(mDevice, &swapChainDesc, &swapChainResource), return nullptr;);
@@ -278,11 +325,15 @@ namespace Render
 
 		Texture2DCreationResult textureCreationResult;
 		VERIFY_D3D_RESULT(swapChainResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), return nullptr;);
-		TRefCountPtr< D3D11Texture2D > colorTexture = new D3D11Texture2D(info.colorForamt, textureCreationResult);
+		CreateResourceView(mDevice, DXColorFormat, info.numSamples, info.textureCreationFlags, textureCreationResult);
+
+		TextureDesc colorDesc = TextureDesc::Type2D(info.colorForamt, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(info.textureCreationFlags);
+		TRefCountPtr< D3D11Texture2D > colorTexture = new D3D11Texture2D(colorDesc, textureCreationResult);
 		TRefCountPtr< D3D11Texture2D > depthTexture;
 		if (info.bCreateDepth)
 		{
-			depthTexture = (D3D11Texture2D*)RHICreateTextureDepth(info.depthFormat, info.extent.x, info.extent.y, 1, info.numSamples, 0);
+			TextureDesc depthDesc = TextureDesc::Type2D(info.depthFormat, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(0);
+			depthTexture = (D3D11Texture2D*)RHICreateTextureDepth(depthDesc);
 		}
 		D3D11SwapChain* swapChain = new D3D11SwapChain(swapChainResource, *colorTexture, depthTexture);
 
@@ -290,56 +341,58 @@ namespace Render
 		return swapChain;
 	}
 
-	Render::RHITexture1D* D3D11System::RHICreateTexture1D(ETexture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
+	RHITexture1D* D3D11System::RHICreateTexture1D(TextureDesc const& desc, void* data)
 	{
 		Texture1DCreationResult creationResult;
-		if (createTexture1DInternal(D3D11Translate::To(format), length, numMipLevel, createFlags, data, ETexture::GetFormatSize(format), creationResult))
+		if (createTexture1DInternal(desc, data, creationResult))
 		{
-			return new D3D11Texture1D(format, creationResult);
+			return new D3D11Texture1D(desc, creationResult);
 		}
 		return nullptr;
 	}
 
-	RHITexture2D* D3D11System::RHICreateTexture2D(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
+	RHITexture2D* D3D11System::RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign)
 	{
 		Texture2DCreationResult creationResult;
-		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, createFlags, data, ETexture::GetFormatSize(format), false, creationResult) )
+		if( createTexture2DInternal(desc, data, dataAlign, false, creationResult) )
 		{
-			return new D3D11Texture2D(format, creationResult);
+			return new D3D11Texture2D(desc, creationResult);
 		}
 		return nullptr;
 	}
-	RHITexture3D* D3D11System::RHICreateTexture3D(
-		ETexture::Format format, int sizeX, int sizeY, int sizeZ,
-		int numMipLevel, int numSamples, uint32 createFlags,
-		void* data)
+
+	RHITexture3D* D3D11System::RHICreateTexture3D(TextureDesc const& desc, void* data)
 	{
 		Texture3DCreationResult creationResult;
-		if (createTexture3DInternal(D3D11Translate::To(format), sizeX , sizeY, sizeZ, numMipLevel, numSamples, createFlags, data, ETexture::GetFormatSize(format), creationResult))
+		if (createTexture3DInternal(desc, data, creationResult))
 		{
-			return new D3D11Texture3D(format, creationResult);
+			return new D3D11Texture3D(desc, creationResult);
 		}
 		return nullptr;
 	}
 
-	RHITextureCube* D3D11System::RHICreateTextureCube(
-		ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	RHITexture2DArray* D3D11System::RHICreateTexture2DArray(TextureDesc const& desc, void* data)
+	{
+		return nullptr;
+	}
+
+	RHITextureCube* D3D11System::RHICreateTextureCube(TextureDesc const& desc, void* data[])
 	{
 		TextureCubeCreationResult creationResult;
-		if (createTextureCubeInternal(D3D11Translate::To(format), size, numMipLevel, 1, creationFlags, data, ETexture::GetFormatSize(format), creationResult))
+		if (createTextureCubeInternal(desc, data, creationResult))
 		{
-			return new D3D11TextureCube(format, creationResult);
+			return new D3D11TextureCube(desc, creationResult);
 		}
 		return nullptr;
 	}
 
-	RHITexture2D* D3D11System::RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* D3D11System::RHICreateTextureDepth(TextureDesc const& desc)
 	{
 		Texture2DCreationResult creationResult;
 
-		if( createTexture2DInternal(D3D11Translate::To(format) , w, h, numMipLevel, numSamples, creationFlags, nullptr, 0, true, creationResult) )
+		if (createTexture2DInternal(desc, nullptr, 0, true, creationResult))
 		{
-			return new D3D11Texture2D(format, creationResult, D3D11Texture2D::DepthFormat);
+			return new D3D11Texture2D(desc, creationResult, D3D11Texture2D::DepthFormat);
 		}
 
 		return nullptr;
@@ -421,7 +474,7 @@ namespace Render
 			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
 
 		D3D11BufferCreationResult creationResult;
-		creationResult.flags = creationFlags;
+		creationResult.creationFlags = creationFlags;
 		TComPtr<ID3D11Buffer> BufferResource;
 		VERIFY_D3D_RESULT(
 			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &creationResult.resource),
@@ -751,114 +804,79 @@ namespace Render
 		return true;
 	}
 
-	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, uint32 creationFlags, Texture2DCreationResult& outResult)
+	bool D3D11System::createTexture1DInternal(TextureDesc const& desc, void* data, Texture1DCreationResult& outResult)
 	{
-		if (creationFlags & TCF_CreateSRV)
-		{
-			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
+		DXGI_FORMAT format = D3D11Translate::To(desc.format);
+		uint32 pixelSize = ETexture::GetFormatSize(desc.format);
 
-			switch (format)
-			{
-			case DXGI_FORMAT_D16_UNORM:
-				format = DXGI_FORMAT_R16_UNORM;
-				break;
-			case DXGI_FORMAT_D32_FLOAT:
-				format = DXGI_FORMAT_R32_FLOAT;
-				break;
-			case DXGI_FORMAT_D24_UNORM_S8_UINT:
-				format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-				break;
-			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
-				format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
-				break;
-			}
-			desc.Format = format;
-			desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
-			desc.Texture2D.MipLevels = -1;
-			desc.Texture2D.MostDetailedMip = 0;
-			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateShaderResourceView(outResult.resource, &desc, &outResult.SRV));
-		}
-		if (creationFlags & TCF_CreateUAV)
-		{
-			VERIFY_D3D_RESULT_RETURN_FALSE(device->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
-		}
-		return true;
-	}
-
-
-	bool D3D11System::createTexture1DInternal(DXGI_FORMAT format, int width, int numMipLevel, uint32 creationFlags, void* data, uint32 pixelSize, Texture1DCreationResult& outResult)
-	{
-		D3D11_TEXTURE1D_DESC desc = {};
-		desc.Format = format;
-		desc.Width = width;
-		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-		desc.ArraySize = 1;
-		desc.BindFlags = 0;
-		SetupTextureDesc(desc, creationFlags);
+		D3D11_TEXTURE1D_DESC d3dDesc = {};
+		d3dDesc.Format = format;
+		d3dDesc.Width = desc.dimension.x;
+		d3dDesc.MipLevels = desc.numMipLevel;
+		d3dDesc.ArraySize = 1;
+		d3dDesc.BindFlags = 0;
+		SetupTextureDesc(d3dDesc, desc.creationFlags);
 
 		D3D11_SUBRESOURCE_DATA initData = {};
 		if (data)
 		{
 			initData.pSysMem = (void *)data;
-			initData.SysMemPitch = width * pixelSize;
-			initData.SysMemSlicePitch = width * pixelSize;
+			initData.SysMemPitch = desc.dimension.x * pixelSize;
+			initData.SysMemSlicePitch = initData.SysMemPitch;
 		}
 
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture1D(&desc, data ? &initData : nullptr, &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format,  creationFlags, outResult));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture1D(&d3dDesc, data ? &initData : nullptr, &outResult.resource));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format,  desc.creationFlags, outResult));
 		return true;
 	}
 
-	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult)
+	bool D3D11System::createTexture2DInternal(TextureDesc const& desc, void* data, int dataAlign, bool bDepth, Texture2DCreationResult& outResult)
 	{
-		D3D11_TEXTURE2D_DESC desc = {};
+		DXGI_FORMAT format = D3D11Translate::To(desc.format);
+		uint32 pixelSize = ETexture::GetFormatSize(desc.format);
 
+		D3D11_TEXTURE2D_DESC d3dDesc = {};
 
-		desc.Format = format;
-		desc.Width = width;
-		desc.Height = height;
-
-		if (creationFlags & TCF_GenerateMips)
-			desc.MipLevels = numMipLevel;
-		else
-			desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-		
-		desc.ArraySize = 1;
-		desc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
-		SetupTextureDesc(desc, creationFlags);
+		d3dDesc.Format = format;
+		d3dDesc.Width = desc.dimension.x;
+		d3dDesc.Height = desc.dimension.y;
+		d3dDesc.MipLevels = desc.numMipLevel;
+		d3dDesc.ArraySize = 1;
+		d3dDesc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
+		SetupTextureDesc(d3dDesc, desc.creationFlags);
 
 		HRESULT hr;
 		UINT maxQuality = 0;
-		if (numSamples > 1 && !bDepth)
+		if (desc.numSamples > 1 && !bDepth)
 		{
-			hr = mDevice->CheckMultisampleQualityLevels(format, numSamples, &maxQuality);
+			hr = mDevice->CheckMultisampleQualityLevels(format, desc.numSamples, &maxQuality);
 		}
-		desc.SampleDesc.Count = numSamples;
-		desc.SampleDesc.Quality = maxQuality;
+		d3dDesc.SampleDesc.Count = desc.numSamples;
+		d3dDesc.SampleDesc.Quality = maxQuality;
 
-		if (creationFlags & TCF_CreateSRV)
+		if (desc.creationFlags & TCF_CreateSRV)
 		{
-			switch (desc.Format)
+			switch (d3dDesc.Format)
 			{
 			case DXGI_FORMAT_D16_UNORM:
-				desc.Format = DXGI_FORMAT_R16_TYPELESS;
+				d3dDesc.Format = DXGI_FORMAT_R16_TYPELESS;
 				break;
 			case DXGI_FORMAT_D32_FLOAT:
-				desc.Format = DXGI_FORMAT_R32_TYPELESS;
+				d3dDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 				break;
 			case DXGI_FORMAT_D24_UNORM_S8_UINT:
-				desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+				d3dDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 				break;
 			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
-				desc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+				d3dDesc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
 				break;
 			}
 		}
 #if SYS_PLATFORM_WIN
-		if (creationFlags & TCF_PlatformGraphicsCompatible)
+		if (desc.creationFlags & TCF_PlatformGraphicsCompatible)
 		{
-			desc.MiscFlags |= D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
-			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			d3dDesc.MiscFlags |= D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
+			d3dDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		}
 #endif
 		std::vector< D3D11_SUBRESOURCE_DATA > initDataList;
@@ -876,52 +894,54 @@ namespace Render
 			else
 #endif
 			{
-				initDataList.resize(desc.MipLevels);
+				initDataList.resize(d3dDesc.MipLevels);
 
 				int level = 0;
 				for (auto& initData : initDataList)
 				{
 					initData.pSysMem = (void *)data;
-					initData.SysMemPitch = (width >> level) * pixelSize;
-					initData.SysMemSlicePitch = initData.SysMemPitch * (height >> level);
+					initData.SysMemPitch = (desc.dimension.x >> level) * pixelSize;
+					initData.SysMemSlicePitch = initData.SysMemPitch * (desc.dimension.y >> level);
 					++level;
 				}
 			}
 		}
 
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? initDataList.data() : nullptr , &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, creationFlags, outResult));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, data ? initDataList.data() : nullptr , &outResult.resource));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.numSamples, desc.creationFlags, outResult));
 
-		if (creationFlags & TCF_GenerateMips)
+		if (desc.creationFlags & TCF_GenerateMips)
 		{
-			mDeviceContext->GenerateMips( outResult.SRV );
+			TComPtr<ID3D11ShaderResourceView> SRV = outResult.SRV;
+			mDeviceContext->GenerateMips(SRV);
 		}
-
 		return true;
 	}
 
-
-	bool D3D11System::createTexture3DInternal(DXGI_FORMAT format, int width, int height, int depth, int numMipLevel, int numSamples, uint32 creationFlags, void* data, uint32 pixelSize, Texture3DCreationResult& outResult)
+	bool D3D11System::createTexture3DInternal(TextureDesc const& desc, void* data, Texture3DCreationResult& outResult)
 	{
-		D3D11_TEXTURE3D_DESC desc = {};
-		desc.Format = format;
-		desc.Width = width;
-		desc.Height = height;
-		desc.Depth = depth;
-		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-		desc.BindFlags = 0;
-		SetupTextureDesc(desc, creationFlags);
+		DXGI_FORMAT format = D3D11Translate::To(desc.format);
+		uint32 pixelSize = ETexture::GetFormatSize(desc.format);
+
+		D3D11_TEXTURE3D_DESC d3dDesc = {};
+		d3dDesc.Format = format;
+		d3dDesc.Width = desc.dimension.x;
+		d3dDesc.Height = desc.dimension.y;
+		d3dDesc.Depth = desc.dimension.z;
+		d3dDesc.MipLevels = desc.numMipLevel;
+		d3dDesc.BindFlags = 0;
+		SetupTextureDesc(d3dDesc, desc.creationFlags);
 
 		D3D11_SUBRESOURCE_DATA initData = {};
 		if (data)
 		{
 			initData.pSysMem = (void *)data;
-			initData.SysMemPitch = width * pixelSize;
-			initData.SysMemSlicePitch = initData.SysMemPitch * height;
+			initData.SysMemPitch = desc.dimension.x * pixelSize;
+			initData.SysMemSlicePitch = initData.SysMemPitch * desc.dimension.y;
 		}
 
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&desc, data ? &initData : nullptr, &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, creationFlags, outResult));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture3D(&d3dDesc, data ? &initData : nullptr, &outResult.resource));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.creationFlags, outResult));
 		return true;
 	}
 
@@ -943,34 +963,37 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11System::createTextureCubeInternal(DXGI_FORMAT format, int size, int numMipLevel, int numSamples, uint32 creationFlags, void* data[], uint32 pixelSize, TextureCubeCreationResult& outResult)
+	bool D3D11System::createTextureCubeInternal(TextureDesc const& desc, void* data[], TextureCubeCreationResult& outResult)
 	{
-		D3D11_TEXTURE2D_DESC desc = {};
-		desc.Format = format;
-		desc.Width = size;
-		desc.Height = size;
-		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-		desc.ArraySize = 6;
-		desc.BindFlags = 0;
-		SetupTextureDesc(desc, creationFlags);
-		desc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
+		DXGI_FORMAT format = D3D11Translate::To(desc.format);
 
-		desc.SampleDesc.Count = numSamples;
-		desc.SampleDesc.Quality = 0;
+		D3D11_TEXTURE2D_DESC d3dDesc = {};
+		d3dDesc.Format = format;
+		d3dDesc.Width = desc.dimension.x;
+		d3dDesc.Height = desc.dimension.x;
+		d3dDesc.MipLevels = desc.numMipLevel;
+		d3dDesc.ArraySize = 6;
+		d3dDesc.BindFlags = 0;
+		SetupTextureDesc(d3dDesc, desc.creationFlags);
+		d3dDesc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+		d3dDesc.SampleDesc.Count = desc.numSamples;
+		d3dDesc.SampleDesc.Quality = 0;
 
 		D3D11_SUBRESOURCE_DATA initDataList[6];
 		if (data)
 		{
+			uint32 pixelSize = ETexture::GetFormatSize(desc.format);
 			for (int i = 0; i < 6; ++i)
 			{
 				initDataList[i].pSysMem = (void *)data[i];
-				initDataList[i].SysMemPitch = size * pixelSize;
+				initDataList[i].SysMemPitch = desc.dimension.x * pixelSize;
 				initDataList[i].SysMemSlicePitch = 0;
 			}
 		}
 
-		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? &initDataList[0] : nullptr, &outResult.resource));
-		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.MipLevels, creationFlags, outResult));
+		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&d3dDesc, data ? &initDataList[0] : nullptr, &outResult.resource));
+		VERIFY_RETURN_FALSE(CreateResourceView(mDevice, format, desc.numMipLevel, desc.creationFlags, outResult));
 		return true;
 	}
 

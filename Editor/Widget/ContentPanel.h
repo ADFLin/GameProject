@@ -41,7 +41,9 @@ public:
 
 	void getRenderParams(WindowRenderParams& params) const
 	{
+#if 1
 		params.flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+#endif
 	}
 
 };

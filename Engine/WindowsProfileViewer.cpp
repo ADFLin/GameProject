@@ -74,7 +74,7 @@ void WindowsProfileViewer::setTextColor( BYTE r, BYTE g , BYTE b , BYTE a /*= 25
 TMessageShow::TMessageShow( HDC hDC )
 {
 	mhDC  = hDC;
-	hFont = FWindowsGDI::CreateFont( hDC , TEXT("新細明體"), 8 , false , false );
+	hFont = FWinGDI::CreateFont( hDC , TEXT("新細明體"), 8 , false , false );
 
 	height = 15;
 	setPos( 20 , 20 );

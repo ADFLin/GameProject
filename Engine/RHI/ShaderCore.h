@@ -18,7 +18,7 @@ namespace Render
 	class RHIContext;
 	struct ShaderEntryInfo;
 	class ShaderParameterMap;
-
+	class ShaderFormat;
 
 	struct ShaderEntryInfo
 	{
@@ -119,7 +119,10 @@ namespace Render
 
 		std::string getCode(ShaderEntryInfo const& entry, char const* defCode = nullptr , char const* addionalCode = nullptr ) const;
 
+		void setup(ShaderFormat& shaderFormat) const;
+
 		bool     bShowComplieInfo = false;
+		bool     bSFSetuped = false;
 
 		std::vector< std::string > mCodes;
 		std::vector< ConfigVar >   mConfigVars;

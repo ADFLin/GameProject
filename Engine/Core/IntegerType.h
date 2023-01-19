@@ -50,4 +50,35 @@ constexpr uint16 MaxUint16 = 0xFFFFU;
 constexpr uint32 MaxUint32 = 0xFFFFFFFFU;
 constexpr uint64 MaxUint64 = 0xFFFFFFFFFFFFFFFFLLU;
 
+template< uint32 Size >
+struct TIntegerTraits {};
+
+template<>
+struct TIntegerTraits< 1 >
+{
+	using Type = int8;
+	using UnsignedType = uint8;
+};
+template<>
+struct TIntegerTraits< 2 >
+{
+	using Type = int16;
+	using UnsignedType = uint16;
+}; 
+template<>
+struct TIntegerTraits< 4 >
+{
+	using Type = int32;
+	using UnsignedType = uint32;
+}; 
+template<>
+struct TIntegerTraits< 8 >
+{
+	using Type = int64;
+	using UnsignedType = uint64;
+};
+
+
+
+
 #endif // IntegerType_h__

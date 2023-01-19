@@ -65,7 +65,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
-	<RunPostBuildEvent>Always</RunPostBuildEvent>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\$(Platform)\</OutDir>
@@ -349,6 +349,7 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="TinyCore\ReplayStageMode.cpp" />
     <ClCompile Include="TinyCore\SingleStageMode.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
+    <ClCompile Include="TinyGameEditor.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -137,6 +137,9 @@ public:
 	bool createWindowInternal(GameWindow& window, int width , int height, TCHAR const* title);
 
 #if TINY_WITH_EDITOR
+	bool initializeEditor();
+	bool initializeEditorRender();
+	void finalizeEditor();
 	void resizeViewport(int w, int h) override;
 	void renderViewport(IEditorRenderContext& context) override;
 	void onViewportMouseEvent(MouseMsg const& msg) override;

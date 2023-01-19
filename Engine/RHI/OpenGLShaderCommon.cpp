@@ -301,7 +301,7 @@ void main()
 			char const* sourceCodes[2];
 
 			std::vector< uint8 > codeBuffer;
-			if (bUsePreprocess)
+			if (context.bUsePreprocess)
 			{
 				if (!loadCode(context, codeBuffer))
 					return false;
@@ -342,7 +342,7 @@ void main()
 
 			if (!bSuccess )
 			{
-				if (bUsePreprocess)
+				if (context.bUsePreprocess)
 				{
 					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
 				}
@@ -369,7 +369,7 @@ void main()
 				context.shaderSetupData->resource = shaderImpl;
 			}
 
-		} while( !bSuccess && bRecompile );
+		} while( !bSuccess && context.bRecompile );
 
 		return bSuccess;
 	}

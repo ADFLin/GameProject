@@ -11,19 +11,32 @@
 
 namespace Render
 {
-	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles)
+	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles, bool bOuputPreprocessedCode)
 	{
 		TimeScope scope("PreprocessCode");
 
 		CPP::CodeSource source;
 
-		if (definition.size())
+		if (path)
 		{
-			source.appendString(definition);
-			source.lineOffset = -FStringParse::CountChar(definition.data(), definition.data() + definition.size() + 1, '\n');
+			if (definition.size())
+			{
+				source.appendString(definition);
+				source.lineOffset = -FStringParse::CountChar(definition.data(), definition.data() + definition.size() + 1, '\n');
+			}
+			source.appendString(StringView((char const*)inoutCodes.data(), inoutCodes.size()));
+			source.filePath = path;
+
 		}
-		source.appendString( StringView((char const*)inoutCodes.data() , inoutCodes.size() ));
-		source.filePath = path;
+		else
+		{
+			source.lineOffset = 0;
+			if (definition.size())
+			{
+				source.appendString(definition);
+			}
+			source.filePath = "RuntimeCode";
+		}
 
 		auto settings = getPreprocessSettings();
 
@@ -41,10 +54,13 @@ namespace Render
 		char const* DefaultDir = "Shader";
 		preprocessor.setOutput(codeOutput);
 		preprocessor.addSreachDir(DefaultDir);
-		StringView dir = FFileUtility::GetDirectory(path);
-		if (dir != DefaultDir)
+		if ( path )
 		{
-			preprocessor.addSreachDir(dir.toCString());
+			StringView dir = FFileUtility::GetDirectory(path);
+			if (dir != DefaultDir)
+			{
+				preprocessor.addSreachDir(dir.toCString());
+			}
 		}
 
 		try
@@ -73,7 +89,14 @@ namespace Render
 		{
 			FFileSystem::CreateDirectory("ShaderOutput");
 			std::string outputPath = "ShaderOutput/";
-			outputPath += FFileUtility::GetBaseFileName(path).toCString();
+			if (path)
+			{
+				outputPath += FFileUtility::GetBaseFileName(path).toCString();
+			}
+			else
+			{
+				outputPath += "RuntimeCode";
+			}
 			if ( compileDesc )
 			{
 				outputPath += "_";
@@ -89,17 +112,20 @@ namespace Render
 
 	bool ShaderFormat::loadCode(ShaderCompileContext const& context, std::vector<uint8>& outCodes)
 	{
-		if (bUsePreprocess)
+		if (context.bUsePreprocess)
 		{
-			if (!FFileUtility::LoadToBuffer(context.getPath(), outCodes, true))
+			if (context.haveFile())
 			{
-				LogWarning(0, "Can't load shader file %s", context.getPath());
-				return false;
+				if (!FFileUtility::LoadToBuffer(context.getPath(), outCodes, true))
+				{
+					LogWarning(0, "Can't load shader file %s", context.getPath());
+					return false;
+				}
 			}
 			ShaderManagedData* managedData = context.shaderSetupData ? 
 				(ShaderManagedData*)context.shaderSetupData->managedData:
 				(ShaderManagedData*)context.programSetupData->managedData;
-			return preprocessCode(context.getPath(), context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes, &managedData->includeFiles);
+			return preprocessCode(context.haveFile() ? context.getPath() : nullptr, context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes, &managedData->includeFiles, context.bOuputPreprocessedCode);
 		}
 		else
 		{
@@ -110,10 +136,13 @@ namespace Render
 				outCodes.assign(definition.data(), definition.data() + definition.size());
 			}
 
-			if (!FFileUtility::LoadToBuffer(context.getPath(), outCodes, true, true))
+			if (context.haveFile())
 			{
-				LogWarning(0, "Can't load shader file %s", context.getPath());
-				return false;
+				if (!FFileUtility::LoadToBuffer(context.getPath(), outCodes, true, true))
+				{
+					LogWarning(0, "Can't load shader file %s", context.getPath());
+					return false;
+				}
 			}
 		}
 
@@ -122,15 +151,23 @@ namespace Render
 
 	void ShaderFormat::emitCompileError(ShaderCompileContext const& context, char const* errorCode)
 	{
-		std::string title;
-		title += FFileUtility::GetBaseFileName(context.getPath()).toCString();
-		title += "_";
-		title += context.getEntry();
-		title += "_";
-		title += getName();
-		title += SHADER_FILE_SUBNAME;
+		if (context.bRecompile)
+		{
+			std::string title;
+			title += FFileUtility::GetBaseFileName(context.getPath()).toCString();
+			title += "_";
+			title += context.getEntry();
+			title += "_";
+			title += getName();
+			title += SHADER_FILE_SUBNAME;
 
-		OutputError(title.c_str(), errorCode);
+			OutputError(title.c_str(), errorCode);
+
+		}
+		else
+		{
+			LogWarning(0, errorCode);
+		}
 	}
 
 	void ShaderFormat::OutputError(char const* title, char const* text)

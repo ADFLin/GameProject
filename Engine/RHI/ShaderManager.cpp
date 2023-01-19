@@ -501,7 +501,6 @@ namespace Render
 			}
 
 			ShaderCompileOption option;
-			mShaderFormat->setupShaderCompileOption(option);
 			option.addInclude(path.c_str());
 			vertexFactoryType.getCompileOption(option);
 			info.setup(option);
@@ -525,7 +524,6 @@ namespace Render
 		std::string materialPath = GetFilePath(info.name);
 
 		ShaderCompileOption option;
-		mShaderFormat->setupShaderCompileOption(option);
 		option.addInclude(info.name);
 		info.setup(option);
 		uint32 permutationId = 0;
@@ -569,7 +567,6 @@ namespace Render
 
 	ShaderObject* ShaderManager::constructGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, ShaderCompileOption& option)
 	{
-		mShaderFormat->setupShaderCompileOption(option);
 		return constructShaderInternal(shaderObjectClass, permutationId, option, ShaderClassType::Global);
 	}
 
@@ -681,13 +678,20 @@ namespace Render
 	{
 		char const* filePaths[EShader::MaxStorageSize];
 		InlineString< 256 > path;
-		path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
-		for( int i = 0; i < entries.size(); ++i )
-			filePaths[i] = path;
+		if (fileName)
+		{
+			path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
+			for (int i = 0; i < entries.size(); ++i)
+				filePaths[i] = path;
+		}
+		else
+		{
+			for (int i = 0; i < entries.size(); ++i)
+				filePaths[i] = nullptr;
+		}
 
 		return !!loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
-
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
 	{
@@ -711,12 +715,7 @@ namespace Render
 		ShaderProgramManagedData* managedData = new ShaderProgramManagedData;
 		managedData->classType = classType;
 		managedData->shaderProgram = &shaderProgram;
-		managedData->bShowComplieInfo = option.bShowComplieInfo;
-
-		char const* sourceFile = option.getMeta("SourceFile");
-		if (sourceFile)
-			managedData->sourceFile = sourceFile;
-		generateCompileSetup(*managedData, entries, option, additionalCode, fileName, bSingleFile );
+		setupManagedData(*managedData, entries, option, additionalCode, fileName, bSingleFile );
 
 		if( !buildShader(shaderProgram, *managedData) )
 		{
@@ -744,13 +743,7 @@ namespace Render
 		ShaderManagedData* managedData = new ShaderManagedData;
 		managedData->classType = classType;
 		managedData->shader = &shader;
-		managedData->bShowComplieInfo = option.bShowComplieInfo;
-		
-		char const* sourceFile = option.getMeta("SourceFile");
-		if (sourceFile)
-			managedData->sourceFile = sourceFile;
-
-		generateCompileSetup(*managedData, entry, option, additionalCode, fileName);
+		setupManagedData(*managedData, entry, option, additionalCode, fileName);
 
 		if (!buildShader(shader, *managedData))
 		{
@@ -770,23 +763,8 @@ namespace Render
 		managedData->classType = classType;
 		managedData->shaderProgram = &shaderProgram;
 
-		for( int i = 0; i < entries.size(); ++i )
-		{
-			auto const& entry = entries[i];
-
-			ShaderCompileOption option;
-			mShaderFormat->setupShaderCompileOption(option);
-			std::string headCode;
-			mShaderFormat->getHeadCode(headCode, option, entry);
-
-			if( def )
-			{
-				headCode += def;
-			}
-			headCode = option.getCode(entry, headCode.c_str(), additionalCode);
-
-			managedData->descList.emplace_back(entry.type, filePaths[i], std::move(headCode), entry.name);
-		}
+		ShaderCompileOption option;
+		setupManagedData(*managedData, entries, option, additionalCode, filePaths);
 
 		if( !buildShader(shaderProgram, *managedData) )
 		{
@@ -823,12 +801,11 @@ namespace Render
 		if(managedData->classType == ShaderClassType::Global )
 		{
 			ShaderCompileOption option;
-			mShaderFormat->setupShaderCompileOption(option);
 			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgramClass const*>(managedData->shaderClass);
 			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
 			managedData->descList.clear();
-			generateCompileSetup(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
+			setupManagedData(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
 		}
 
 		return buildShader(shaderProgram, *managedData, true);
@@ -845,12 +822,10 @@ namespace Render
 		if (managedData->classType == ShaderClassType::Global)
 		{
 			ShaderCompileOption option;
-			mShaderFormat->setupShaderCompileOption(option);
-
 			GlobalShaderClass const& myClass = *static_cast<GlobalShaderClass const*>(managedData->shaderClass);
 			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
-			generateCompileSetup(*managedData, myClass.entry , option, nullptr, myClass.GetShaderFileName());
+			setupManagedData(*managedData, myClass.entry , option, nullptr, myClass.GetShaderFileName());
 		}
 
 		return buildShader(shader, *managedData, true);
@@ -916,10 +891,6 @@ namespace Render
 		}
 		else
 		{
-			if (mSourceLibrary == nullptr)
-			{
-				mSourceLibrary = new CPP::CodeSourceLibrary;
-			}
 
 			if (!managedData.sourceFile.empty())
 			{
@@ -946,13 +917,22 @@ namespace Render
 			int shaderIndex = 0;
 			bool bFailed = false;
 			ShaderCompileContext  context;
-			context.sourceLibrary = mSourceLibrary;
 
 			for (ShaderCompileDesc& desc : managedData.descList)
 			{
 				context.shaderIndex = shaderIndex;
 				context.desc = &desc;
 				context.programSetupData = &setupData;
+				context.bRecompile = context.haveFile();
+				if (context.bRecompile)
+				{
+					if (mSourceLibrary == nullptr)
+					{
+						mSourceLibrary = new CPP::CodeSourceLibrary;
+					}
+					context.sourceLibrary = mSourceLibrary;
+				}
+
 				if (!mShaderFormat->compileCode(context))
 				{
 					bFailed = true;
@@ -1010,10 +990,7 @@ namespace Render
 		}
 		else
 		{
-			if (mSourceLibrary == nullptr)
-			{
-				mSourceLibrary = new CPP::CodeSourceLibrary;
-			}
+
 
 			if (!managedData.sourceFile.empty())
 			{
@@ -1030,13 +1007,22 @@ namespace Render
 			mShaderFormat->precompileCode(setupData);
 
 			bool bFailed = false;
-			ShaderCompileDesc& shaderInfo = managedData.desc;
+			ShaderCompileDesc& compileDesc = managedData.desc;
 
 			ShaderCompileContext  context;
 			context.shaderIndex = 0;
-			context.desc = &shaderInfo;
-			context.sourceLibrary = mSourceLibrary;
+			context.desc = &compileDesc;
 			context.shaderSetupData = &setupData;
+			context.bRecompile = context.haveFile();
+			if (context.bRecompile)
+			{
+				if (mSourceLibrary == nullptr)
+				{
+					mSourceLibrary = new CPP::CodeSourceLibrary;
+				}
+				context.sourceLibrary = mSourceLibrary;
+			}
+
 			if (!mShaderFormat->compileCode(context))
 			{
 				bFailed = true;
@@ -1081,10 +1067,17 @@ namespace Render
 		}
 	}
 
-	void ShaderManager::generateCompileSetup(ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
+	void ShaderManager::setupManagedData(ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, char const* fileName, bool bSingleFile)
 	{
-		assert( fileName &&  managedData.descList.empty());
+		CHECK( managedData.descList.empty());
 
+		option.setup(*mShaderFormat);
+		managedData.bShowComplieInfo = option.bShowComplieInfo;
+		char const* sourceFile = option.getMeta("SourceFile");
+		if (sourceFile)
+		{
+			managedData.sourceFile = sourceFile;
+		}
 		for( auto const& entry : entries )
 		{
 			std::string defCode;
@@ -1092,32 +1085,86 @@ namespace Render
 
 			std::string headCode = option.getCode( entry , defCode.c_str(), additionalCode);
 
-			InlineString< 256 > path;
-			if( bSingleFile )
+			if (fileName)
 			{
-				path.format("%s%s%s", mBaseDir.c_str() , fileName, SHADER_FILE_SUBNAME);
+				InlineString< 256 > path;
+				if (bSingleFile)
+				{
+					path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);
+				}
+				else
+				{
+					path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
+				}
+				managedData.descList.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
 			}
 			else
 			{
-				path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
+				managedData.descList.push_back({ entry.type , "" , std::move(headCode) , entry.name });
 			}
-			managedData.descList.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
 		}
 	}
 
-	void ShaderManager::generateCompileSetup(ShaderManagedData& managedData, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, char const* fileName)
+
+	void ShaderManager::setupManagedData(ShaderProgramManagedData& managedData, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, char const* fileNames[])
 	{
-		assert(fileName);
+		CHECK(managedData.descList.empty());
+
+		option.setup(*mShaderFormat);
+		managedData.bShowComplieInfo = option.bShowComplieInfo;
+		char const* sourceFile = option.getMeta("SourceFile");
+		if (sourceFile)
+		{
+			managedData.sourceFile = sourceFile;
+		}
+		int index = 0;
+		for (auto const& entry : entries)
+		{
+			std::string defCode;
+			mShaderFormat->getHeadCode(defCode, option, entry);
+
+			std::string headCode = option.getCode(entry, defCode.c_str(), additionalCode);
+
+			if (fileNames[index])
+			{
+				InlineString< 256 > path;
+				path.format("%s%s%s", mBaseDir.c_str(), fileNames[index], SHADER_FILE_SUBNAME);
+				managedData.descList.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
+			}
+			else
+			{
+				managedData.descList.push_back({ entry.type , "" , std::move(headCode) , entry.name });
+			}
+		}
+	}
+
+
+	void ShaderManager::setupManagedData(ShaderManagedData& managedData, ShaderEntryInfo const& entry, ShaderCompileOption const& option, char const* additionalCode, char const* fileName)
+	{
+		option.setup(*mShaderFormat);
+		
+		managedData.bShowComplieInfo = option.bShowComplieInfo;
+		char const* sourceFile = option.getMeta("SourceFile");
+		if (sourceFile)
+		{
+			managedData.sourceFile = sourceFile;
+		}
 
 		std::string defCode;
 		mShaderFormat->getHeadCode(defCode, option, entry);
 
 		std::string headCode = option.getCode(entry, defCode.c_str(), additionalCode);
 
-		InlineString< 256 > path;
-		path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);
-		managedData.desc = { entry.type , path.c_str() , std::move(headCode) , entry.name };
-
+		if (fileName)
+		{
+			InlineString< 256 > path;
+			path.format("%s%s%s", mBaseDir.c_str(), fileName, SHADER_FILE_SUBNAME);
+			managedData.desc = { entry.type , path.c_str() , std::move(headCode) , entry.name };
+		}
+		else
+		{
+			managedData.desc = { entry.type , "" , std::move(headCode) , entry.name };
+		}
 	}
 
 	void ShaderManager::postShaderLoaded(ShaderObject& shader, ShaderManagedDataBase& managedData)
@@ -1143,8 +1190,9 @@ namespace Render
 		std::set< HashString > filePathSet;
 		for( ShaderCompileDesc const& desc : descList )
 		{
-			filePathSet.insert(desc.filePath);
-			
+			if ( desc.filePath.empty() )
+				continue;
+			filePathSet.insert(desc.filePath);	
 		}	
 		filePathSet.insert(includeFiles.begin(), includeFiles.end());
 		for( auto const& filePath : filePathSet )
@@ -1165,10 +1213,12 @@ namespace Render
 	void ShaderManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
+		if (!desc.filePath.empty())
+		{
+			filePathSet.insert(desc.filePath);
+		}
 
-		filePathSet.insert(desc.filePath);
 		filePathSet.insert(includeFiles.begin(), includeFiles.end());
-
 		for (auto const& filePath : filePathSet)
 		{
 			paths.push_back(FCString::CharToWChar(filePath));

@@ -191,7 +191,6 @@ void ContentPanel::render()
 
 		const float footer_height_to_reserve = ImGui::GetFrameHeight();
 		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false);
-
 		if (ImGui::BeginTable("ContentTile", colCount))
 		{
 			// selectable list

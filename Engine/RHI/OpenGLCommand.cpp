@@ -89,6 +89,18 @@ namespace Render
 		}
 	}
 
+	template< class T, typename P0 , class ...Args >
+	T* CreateOpenGLResource1T( P0&& p0 , Args&& ...args)
+	{
+		T* result = new T(p0);
+		if (result && !result->create(std::forward< Args >(args)...))
+		{
+			delete result;
+			return nullptr;
+		}
+		return result;
+	}
+
 	template< class T, class ...Args >
 	T* CreateOpenGLResourceT(Args&& ...args)
 	{
@@ -323,35 +335,35 @@ namespace Render
 		return nullptr;
 	}
 
-	RHITexture1D* OpenGLSystem::RHICreateTexture1D(ETexture::Format format, int length,  int numMipLevel, uint32 createFlags, void* data)
+	RHITexture1D* OpenGLSystem::RHICreateTexture1D(TextureDesc const& desc, void* data)
 	{
-		return CreateOpenGLResourceT< OpenGLTexture1D >(format, length, numMipLevel, createFlags, data);
+		return CreateOpenGLResource1T< OpenGLTexture1D >(desc, data);
 	}
 
-	RHITexture2D* OpenGLSystem::RHICreateTexture2D(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
+	RHITexture2D* OpenGLSystem::RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign)
 	{
-		return CreateOpenGLResourceT< OpenGLTexture2D >(format, w, h, numMipLevel, numSamples, createFlags, data, dataAlign);
+		return CreateOpenGLResource1T< OpenGLTexture2D >(desc, data, dataAlign);
 	}
 
-	RHITexture3D* OpenGLSystem::RHICreateTexture3D(ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data)
+	RHITexture3D* OpenGLSystem::RHICreateTexture3D(TextureDesc const& desc, void* data)
 	{
-		return CreateOpenGLResourceT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ, numMipLevel, numSamples, createFlags , data);
+		return CreateOpenGLResource1T< OpenGLTexture3D >(desc, data);
 	}
 
-	RHITextureCube* OpenGLSystem::RHICreateTextureCube(ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	RHITextureCube* OpenGLSystem::RHICreateTextureCube(TextureDesc const& desc, void* data[])
 	{
-		return CreateOpenGLResourceT< OpenGLTextureCube >( format , size , numMipLevel , creationFlags , data );
+		return CreateOpenGLResource1T< OpenGLTextureCube >(desc, data );
 	}
 
-	RHITexture2DArray* OpenGLSystem::RHICreateTexture2DArray(ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	RHITexture2DArray* OpenGLSystem::RHICreateTexture2DArray(TextureDesc const& desc, void* data)
 	{
-		return CreateOpenGLResourceT< OpenGLTexture2DArray >(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data);
+		return CreateOpenGLResource1T< OpenGLTexture2DArray >(desc, data);
 	}
 
-	RHITexture2D* OpenGLSystem::RHICreateTextureDepth(ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* OpenGLSystem::RHICreateTextureDepth(TextureDesc const& desc)
 	{
-		OpenGLTexture2D* result = new OpenGLTexture2D;
-		if (result && !result->createDepth(format, w, h, numMipLevel, numSamples))
+		OpenGLTexture2D* result = new OpenGLTexture2D(desc);
+		if (result && !result->createDepth())
 		{
 			delete result;
 			return nullptr;

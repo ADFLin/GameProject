@@ -11,6 +11,8 @@
 #include <memory>
 #include "WindowsPlatform.h"
 
+#include "RHI/RHICommon.h"
+
 #define OPENGL_RENDER_DIB 0
 
 class IGameWindow
@@ -49,7 +51,8 @@ public:
 
 	TINY_API void  initialize( IGameWindowProvider& provider);
 	TINY_API void  release();
-	TINY_API void  changeScreenSize( int w , int h );
+	TINY_API void  changeScreenSize( int w , int h ,bool bUpdateViewport = true);
+	TINY_API void  changetViewportSize(int w, int h);
 	TINY_API void  update(long deltaTime);
 
 	TINY_API bool setupSystem(IGameRenderSetup* renderSetup);
@@ -77,8 +80,7 @@ public:
 	bool          isRHIEnabled() const { return mSystemName != ERenderSystem::None; }
 	ERenderSystem getSystemName() const { return mSystemName; }
 	TINY_API bool isUsageRHIGraphic2D() const;
-	TINY_API void lockSystem();
-
+	TINY_API bool lockSystem(ERenderSystem systemLocked);
 
 	bool isInitialized() { return mbInitialized; }
 
@@ -105,6 +107,9 @@ private:
 	IGameWindowProvider* mWindowProvider = nullptr;
 	GameWindow* mGameWindow;
 	BitmapDC    mBufferDC;
+
+	Render::RHISwapChainRef mSwapChain;
+
 	std::unique_ptr< Graphics2D > mPlatformGraphics;
 
 	std::unique_ptr< IGraphics2D > mPlatformProxy;

@@ -7,6 +7,7 @@
 
 #include "GameSettingHelper.h"
 #include "Widget/GameRoomUI.h"
+#include "DrawEngine.h"
 
 namespace GreedySnake
 {
@@ -46,9 +47,35 @@ namespace GreedySnake
 		return false;
 	}
 
-	void GameModule::beginPlay( StageManager& manger, EGameStageMode modeType )
+	void GameModule::beginPlay(StageManager& manger, EGameStageMode modeType)
 	{
+		::Global::GetDrawEngine().setupSystem(this);
 		changeDefaultStage(manger, modeType);
+	}
+
+	void GameModule::endPlay()
+	{
+		::Global::GetDrawEngine().setupSystem(nullptr);
+	}
+
+	ERenderSystem GameModule::getDefaultRenderSystem()
+	{
+		return ERenderSystem::D3D11;
+	}
+
+	void GameModule::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+	{
+		systemConfigs.bWasUsedPlatformGraphics = true;
+	}
+
+	bool GameModule::setupRenderSystem(ERenderSystem systemName)
+	{
+		return true;
+	}
+
+	void GameModule::preShutdownRenderSystem(bool bReInit)
+	{
+
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

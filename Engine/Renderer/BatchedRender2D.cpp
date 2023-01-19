@@ -37,7 +37,7 @@ namespace Render
 		Vector2* pVertices = mBuffer.data();
 		auto EmitVertex = [&](Vector2 const& p)
 		{
-			*pVertices = p;
+			*pVertices = mTransform.transformPosition(p);
 			++pVertices;
 		};
 
@@ -343,6 +343,7 @@ namespace Render
 				{
 					RenderBachedElementList::CirclePayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::CirclePayload >(element);
 					ShapeVertexBuilder builder(mCachedPositionList);
+					builder.mTransform = element->transform;
 					builder.buildCircle(payload.pos, payload.radius, calcCircleSemgmentNum(payload.radius));
 					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
 				}

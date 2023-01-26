@@ -99,7 +99,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 	TokenType typePrev = TOKEN_NONE;
 	StringView token;
 	Tokenizer::TokenType tokenType;
-	for( tokenType = tok.take(token) ; tokenType != FStringParse::eNoToken ; tokenType = tok.take(token) )
+	for( tokenType = tok.take(token) ; tokenType != EStringToken::None ; tokenType = tok.take(token) )
 	{
 		TokenType type = TOKEN_TYPE_ERROR;
 
@@ -916,7 +916,7 @@ void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*t
 	node.children[ CN_RIGHT ]  = 0;
 }
 
-int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , bool funDef )
+int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , bool funcDef )
 {	
 	if ( idxEnd == idxStart )
 		return 0;
@@ -962,11 +962,11 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 	if ( idxOp != -1 )
 	{
 		Unit& opUnit = mExprCodes[ idxOp ];
-		if ( funDef )
+		if ( funcDef )
 		{
 			if ( opUnit.type != BOP_COMMA )
 			{
-				funDef = false;
+				funcDef = false;
 			}
 			else
 			{
@@ -976,8 +976,8 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 
 		int idxNode = mNumNodes++;
 
-		int idxLeft  = buildTree_R( idxNode , idxStart , idxOp , funDef );
-		int idxRight = buildTree_R( idxNode , idxOp + 1 , idxEnd , funDef );
+		int idxLeft  = buildTree_R( idxNode , idxStart , idxOp , funcDef );
+		int idxRight = buildTree_R( idxNode , idxOp + 1 , idxEnd , funcDef );
 
 		Node& node = mTreeNodes[ idxNode ];
 		node.parent  = idxParent;

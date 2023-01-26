@@ -5,9 +5,13 @@
 #include "LogSystem.cpp"
 #include "ConsoleSystem.cpp"
 #include "HashString.cpp"
+#include "Core/Tickable.cpp"
 
 #include "UnitTest/TestClass.cpp"
 #include "DataStructure/ClassTree.cpp"
+
+#include "Module/ModularFeature.cpp"
+#include "Module/ModuleManager.cpp"
 
 #include "RHI/RHICommon.cpp"
 #include "RHI/ShaderManager.cpp"
@@ -33,6 +37,7 @@
 #include "Renderer/BatchedRender2D.cpp"
 
 #include "GameFramework/EntityManager.cpp"
+
 
 #endif
 

@@ -19,12 +19,12 @@ namespace CB
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override;
 		void evalExpr(Vector3& out, float s);
-		void setExpr(int axis, string const& expr)
+		void setExpr(int axis, std::string const& expr)
 		{
 			assert(axis >= 0 && axis < 3);
 			mCoordExpr[axis].setExprString(expr);
 		}
-		string const& getExprString(int axis)
+		std::string const& getExprString(int axis)
 		{
 			assert(axis >= 0 && axis < 3);
 			return mCoordExpr[axis].getExprString();
@@ -56,8 +56,8 @@ namespace CB
 			assert(isParsed());
 			out.setValue(x, y, mExpr.eval(x, y));
 		}
-		void setExpr(string const& expr) { mExpr.setExprString(expr); }
-		string const& getExprString() { return mExpr.getExprString(); }
+		void setExpr(std::string const& expr) { mExpr.setExprString(expr); }
+		std::string const& getExprString() { return mExpr.getExprString(); }
 
 		void acceptVisit(ShapeFuncVisitor& visitor) override;
 		SurfaceXYFunc* clone() override;
@@ -74,12 +74,12 @@ namespace CB
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override;
 		void evalExpr(Vector3& out, float u, float v);
-		void setExpr(int axis, string const& expr)
+		void setExpr(int axis, std::string const& expr)
 		{
 			assert(axis >= 0 && axis < 3);
 			mAixsExpr[axis].setExprString(expr);
 		}
-		string const& getExprString(int axis)
+		std::string const& getExprString(int axis)
 		{
 			assert(axis >= 0 && axis < 3);
 			return mAixsExpr[axis].getExprString();

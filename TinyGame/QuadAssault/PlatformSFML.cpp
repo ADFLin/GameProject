@@ -175,11 +175,11 @@ bool PlatformSFML::IsButtonPressed( unsigned button )
 	sf::Mouse::Button buttonSF;
 	switch (button)
 	{
-	case Mouse::eLBUTTON:  buttonSF = sf::Mouse::Left;     break;
-	case Mouse::eRBUTTON:  buttonSF = sf::Mouse::Right;    break;
-	case Mouse::eMBUTTON:  buttonSF = sf::Mouse::Middle;   break;
-	case Mouse::eXBUTTON1: buttonSF = sf::Mouse::XButton1; break;
-	case Mouse::eXBUTTON2: buttonSF = sf::Mouse::XButton2; break;
+	case EMouseKey::Left:  buttonSF = sf::Mouse::Left;     break;
+	case EMouseKey::Right:  buttonSF = sf::Mouse::Right;    break;
+	case EMouseKey::Middle:  buttonSF = sf::Mouse::Middle;   break;
+	case EMouseKey::X1: buttonSF = sf::Mouse::XButton1; break;
+	case EMouseKey::X2: buttonSF = sf::Mouse::XButton2; break;
 	}
 	return sf::Mouse::isButtonPressed( buttonSF );
 }

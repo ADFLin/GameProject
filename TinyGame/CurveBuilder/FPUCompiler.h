@@ -17,8 +17,8 @@ public:
 	template< class RT , class ...Args >
 	FORCEINLINE RT evalT(Args ...args) const
 	{
-		using EvalFun = RT (*)(Args...);
-		return reinterpret_cast<EvalFun>(&mCode[0])(args...);
+		using EvalFunc = RT (*)(Args...);
+		return reinterpret_cast<EvalFunc>(&mCode[0])(args...);
 	}
 
 	void   printCode();
@@ -31,9 +31,10 @@ protected:
 	void pushCode(uint8 byte1,uint8 byte2,uint8 byte3 );
 	void pushCode(uint8 const* data, int size);
 
-	void pushCode( uint32 val){  pushCodeT( val ); }
-	void pushCode( void* ptr ){  pushCodeT( ptr ); }
-	void pushCode( double value ){ pushCodeT( value ); }
+	void pushCode(uint32 val){  pushCodeT( val ); }
+	void pushCode(uint64 val) { pushCodeT(val); }
+	void pushCode(void* ptr){  pushCodeT( ptr ); }
+	void pushCode(double value){ pushCodeT( value ); }
 	
 	void setCode( unsigned pos , void* ptr );
 	void setCode( unsigned pos , uint8 byte );

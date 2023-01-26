@@ -76,7 +76,7 @@ int ConsoleSystem::findCommandName2( char const* includeStr , char const** findS
 {
 	int findNum = 0;
 
-	size_t len = strlen( includeStr );
+	size_t len = FCString::Strlen( includeStr );
 	for (auto& pair : mNameMap)
 	{
 		if ( FCString::CompareIgnoreCaseN( pair.first , includeStr , len ) == 0 )
@@ -95,12 +95,11 @@ int ConsoleSystem::findCommandName2( char const* includeStr , char const** findS
 int ConsoleSystem::findCommandName( char const* includeStr , char const** findStr , int maxNum )
 {
 	int findNum = 0;
-	for( CommandMap::iterator iter = mNameMap.begin();
-		iter != mNameMap.end() ; ++iter )
+	for (auto& pair : mNameMap)
 	{
-		if ( FCString::StrStr( iter->first , includeStr ) != NULL )
+		if ( FCString::StrStr( pair.first , includeStr ) != NULL )
 		{
-			findStr[ findNum ] = iter->first;
+			findStr[ findNum ] = pair.first;
 			++findNum;
 
 			if ( findNum == maxNum )
@@ -228,36 +227,37 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 			if (context.command->mArgs.size() == 1)
 			{
 				auto var = context.command->asVariable();
-				if (var && ( var->getFlags() & CVF_TOGGLEABLE ) )
+				if (var)
 				{				
-					if (var->getTypeIndex() == typeid(bool))
+					if(var->getFlags() & CVF_TOGGLEABLE)
 					{
-						bool val;
-						var->getValue(&val);
-						val = !val;
-						var->setValue(&val);
-						LogMsg("Toggle %s to \"%d\"", var->mName.c_str() , (int)val);
+						if (var->getTypeIndex() == typeid(bool))
+						{
+							bool val;
+							var->getValue(&val);
+							val = !val;
+							var->setValue(&val);
+							LogMsg("Toggle %s to \"%d\"", var->mName.c_str(), (int)val);
+							return true;
+						}
+						else if (var->getTypeIndex() == typeid(int))
+						{
+							int val;
+							var->getValue(&val);
+							val = !val;
+							var->setValue(&val);
+							LogMsg("Toggle %s to \"%d\"", var->mName.c_str(), val);
+							return true;
+						}
+					}
+					else
+					{
+						LogMsg("Var %s = %s", var->mName.c_str(), var->toString().c_str());
 						return true;
 					}
-					else if (var->getTypeIndex() == typeid(int))
-					{
-						int val;
-						var->getValue(&val);
-						val = !val;
-						var->setValue(&val);
-						LogMsg("Toggle %s to \"%d\"", var->mName.c_str(), val);
-						return true;
-					}
-				}
-				else if (var)
-				{
-					LogMsg("Var %s = %s" , var->mName.c_str() , var->toString().c_str() );
-					return true;
 				}
 				else
 				{
-
-
 
 				}
 			}

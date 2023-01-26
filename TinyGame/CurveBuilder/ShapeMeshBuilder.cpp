@@ -127,7 +127,6 @@ namespace CB
 
 		if( flag & RUF_GEOM )
 		{
-
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
 
 			float du = paramU.getIncrement();

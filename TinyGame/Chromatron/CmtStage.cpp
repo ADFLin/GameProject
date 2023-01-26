@@ -406,7 +406,7 @@ namespace Chromatron
 			if ( !Global::GameConfig().tryGetStringValue( str ,  CHROMATRON_NAME ,  code ) )
 				return false;
 
-			int maxLen = strlen( code );
+			int maxLen = FCString::Strlen( code );
 			for ( int i = 0 ; i < mNumLevel ; ++i )
 			{
 				int len = mLevels[i].level->loadDCStateFromCode(code, maxLen);

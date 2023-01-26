@@ -241,7 +241,7 @@ namespace Go
 		bool inputProcessStream(char const* command)
 		{
 			int numWrite = 0;
-			return mAI.process.writeInputStream(command, strlen(command), numWrite);
+			return mAI.process.writeInputStream(command, FCString::Strlen(command), numWrite);
 		}
 		T mAI;
 	};

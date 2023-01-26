@@ -42,10 +42,12 @@
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGraphics2D.h"
 
-#include <iostream>
 #include "Hardware/GPUDeviceQuery.h"
 #include "StringParse.h"
+#include "Core/Tickable.h"
+#include "Module/ModuleManager.h"
 
+#include <iostream>
 
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
@@ -429,12 +431,12 @@ bool TinyGameApp::initializeGame()
 
 	gLogPrinter.addDefaultChannels();
 
-#if SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN && 0
 	{
 		InlineString<MAX_PATH + 1> moduleDir;
 		::GetModuleFileNameA(NULL, moduleDir.data(), moduleDir.max_size());
 		moduleDir = FFileUtility::GetDirectory(moduleDir);
-		//LogMsg("Exec Path = %s", moduleDir.c_str());
+		LogMsg("Exec Path = %s", moduleDir.c_str());
 		::SetCurrentDirectoryA(moduleDir);
 	}
 #endif
@@ -445,8 +447,6 @@ bool TinyGameApp::initializeGame()
 		TIME_SCOPE("Engine Initialize");
 		EngineInitialize();
 	}
-
-
 
 	LogMsg("OS Loc = %s", SystemPlatform::GetUserLocaleName().c_str());
 	{
@@ -621,6 +621,8 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 	PROFILE_FUNCTION()
 	ProfileSystem::Get().incrementFrameCount();
 
+	Tickable::Update(float(shouldTime) / 1000.0);
+
 #if TINY_WITH_EDITOR
 	if (mEditor)
 	{
@@ -684,6 +686,9 @@ void TinyGameApp::handleGameRender()
 
 void TinyGameApp::loadModules()
 {
+	//ensure game manager created
+	Global::ModuleManager();
+
 	InlineString<MAX_PATH + 1> moduleDir;
 #if _DEBUG
 	GetCurrentDirectoryA(
@@ -695,7 +700,7 @@ void TinyGameApp::loadModules()
 	moduleDir = FFileUtility::GetDirectory(moduleDir);
 #endif
 
-	if (!Global::ModuleManager().loadModulesFromFile("TinyGame.module"))
+	if (!ModuleManager::Get().loadModulesFromFile("TinyGame.module"))
 	{
 
 	}
@@ -717,7 +722,7 @@ void TinyGameApp::loadModules()
 				continue;
 #endif
 
-			Global::ModuleManager().loadModule( fileName );
+			ModuleManager::Get().loadModule( fileName );
 		}
 	}
 }

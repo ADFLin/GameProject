@@ -2,6 +2,7 @@
 
 #include "FileSystem.h"
 #include "StringParse.h"
+#include "LogSystem.h"
 
 static int Printf(char const* format, std::vector< std::string > const& strList, std::string& outString)
 {
@@ -51,16 +52,21 @@ int32 SGNodeInput::compile(SGCompiler& compiler)
 bool SGCompilerCodeGen::generate(ShaderGraph& graph, std::string& outCode)
 {
 	std::vector<uint8> codeTemplate;
+
+	char const* templateFile = nullptr;
 	switch (graph.mDomain)
 	{
 	case ESGDomainType::Test:
-		if (!FFileUtility::LoadToBuffer("Shader/Template/Test.sgc", codeTemplate, true))
-			return false;
+		templateFile = "Shader/Template/Test.sgc";
 		break;
 	default:
 		return false;
 	}
-
+	if (!FFileUtility::LoadToBuffer(templateFile, codeTemplate, true))
+	{
+		LogWarning(0,"Can't load shader template file : %s", templateFile);
+		return false;
+	}
 	mNodeOutIndexMap.clear();
 	mCode.clear();
 	mDomionInputCodes.clear();
@@ -68,7 +74,7 @@ bool SGCompilerCodeGen::generate(ShaderGraph& graph, std::string& outCode)
 	{
 		if (input.link.expired())
 		{
-
+			input.type;
 		}
 		else
 		{
@@ -77,12 +83,15 @@ bool SGCompilerCodeGen::generate(ShaderGraph& graph, std::string& outCode)
 			codeSpace();
 			ESGValueType returnType = getValueType(indexResult);
 
-			if (returnType != ESGValueType::Float4 || returnType != ESGValueType::Float1) 
+			if (returnType != ESGValueType::Float4) 
 			{
 				codeString("float4(");
-				codeVarString(indexResult);
+				codeVarName(indexResult);
 				switch (returnType)
 				{
+				case ESGValueType::Float1:
+					codeString(".xxxx);");
+					break;
 				case ESGValueType::Float2:
 					codeString(",0,1);");
 					break;
@@ -93,7 +102,7 @@ bool SGCompilerCodeGen::generate(ShaderGraph& graph, std::string& outCode)
 			}
 			else
 			{
-				codeVarString(indexResult);
+				codeVarName(indexResult);
 				codeChar(';');
 			}
 
@@ -112,7 +121,7 @@ int32 SGCompilerCodeGen::emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index)
 	
 	codeValueType(type);
 	codeSpace();
-	codeVarString(result);
+	codeVarName(result);
 	codeString("=");
 	switch (func)
 	{
@@ -128,10 +137,22 @@ int32 SGCompilerCodeGen::emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index)
 	case ESGIntrinsicFunc::Abs:
 		codeString("abs(");
 		break;
+	case ESGIntrinsicFunc::Exp:
+		codeString("exp(");
+		break;
+	case ESGIntrinsicFunc::Log:
+		codeString("log(");
+		break;
 	}
-	codeVarString(index);
+	codeVarName(index);
 	codeString(");");
+	codeNextline();
 
 	return result;
+}
+
+int32 SGCompilerCodeGen::emitTime(bool bReal)
+{
+	return addSymbol(ESGValueType::Float1, bReal ? "View.realTime" : "View.gameTime", false);
 }
 

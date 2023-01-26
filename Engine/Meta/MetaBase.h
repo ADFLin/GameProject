@@ -35,12 +35,24 @@ namespace Meta
 
 
 	template < class T >
-	struct RemoveCV { typedef T Type; };
+	struct RemoveConst { using Type = T; };
 	template < class T >
-	struct RemoveCV< T const > { typedef T Type; };
-	template < class T >
-	struct RemoveCV< volatile T const > { typedef T Type; };
+	struct RemoveConst< T const > { using Type = T; };
 
+	template < class T >
+	struct RemoveVolatile { using Type = T; };
+	template < class T >
+	struct RemoveVolatile< volatile T > { using Type = T; };
+
+	template < class T >
+	struct RemoveRef { using Type = T; };
+	template < class T >
+	struct RemoveRef< T& > { using Type = T; };
+
+	template < class T >
+	struct RemoveCV{ using Type = typename RemoveVolatile< typename RemoveConst<T>::Type >::Type; };
+	template < class T >
+	struct RemoveCVRef { using Type = typename RemoveRef< typename RemoveCV<T>::Type >::Type; };
 
 	template < class T >
 	struct IsPointerInternal : HaveResult< false > {};

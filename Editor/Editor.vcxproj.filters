@@ -120,7 +120,6 @@
     <ClCompile Include="Widget\ShaderGraphPanel.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
-    <ClCompile Include="ShaderGraph\ShaderGraph.cpp" />
     <ClCompile Include="..\OtherLib\ImNodeEditor\crude_json.cpp">
       <Filter>OtherLib\ImNodeEditor</Filter>
     </ClCompile>
@@ -132,6 +131,9 @@
     </ClCompile>
     <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor_api.cpp">
       <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderGraph\ShaderGraph.cpp">
+      <Filter>ShaderGraph</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

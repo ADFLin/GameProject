@@ -119,6 +119,9 @@
     <Filter Include="ScriptGraphs">
       <UniqueIdentifier>{cb2a5983-c77b-4fb2-8c7d-24018f01f34b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Module">
+      <UniqueIdentifier>{6a7ae375-0cc5-4905-aa53-31c936d667e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -333,6 +336,15 @@
     </ClCompile>
     <ClCompile Include="PropertySet.cpp">
       <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Tickable.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Module\ModularFeature.cpp">
+      <Filter>Module</Filter>
+    </ClCompile>
+    <ClCompile Include="Module\ModuleManager.cpp">
+      <Filter>Module</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -926,6 +938,21 @@
     </ClInclude>
     <ClInclude Include="PropertySet.h">
       <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Tickable.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc\StringPtrWrapper.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Module\ModuleInterface.h">
+      <Filter>Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module\ModularFeature.h">
+      <Filter>Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module\ModuleManager.h">
+      <Filter>Module</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -67,7 +67,7 @@ DataStreamBuffer::~DataStreamBuffer()
 
 void DataStreamBuffer::fill( char const* str )
 {
-	size_t len = strlen( str ) + 1;
+	size_t len = FCString::Strlen( str ) + 1;
 	fill( (void*)str , len );
 }
 

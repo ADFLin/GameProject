@@ -42,7 +42,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>VulkanRHI</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.20206.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
     <ProjectName>VulkanRHI</ProjectName>
     <ProjectGuid>{52B9B264-2B19-4211-A6F7-723AB74A0E03}</ProjectGuid>
   </PropertyGroup>

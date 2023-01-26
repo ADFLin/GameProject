@@ -36,7 +36,7 @@ public:
 	ConsolePanel();
 	~ConsolePanel();
 
-	static void  Strtrim(char* s) { char* str_end = s + strlen(s); while (str_end > s && str_end[-1] == ' ') str_end--; *str_end = 0; }
+	static void  Strtrim(char* s) { char* str_end = s + FCString::Strlen(s); while (str_end > s && str_end[-1] == ' ') str_end--; *str_end = 0; }
 
 	void    ClearLog()
 	{

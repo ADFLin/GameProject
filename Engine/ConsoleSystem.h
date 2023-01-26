@@ -15,9 +15,11 @@
 #include "Template/ArrayView.h"
 #include "Core/StringConv.h"
 #include "Meta/EnableIf.h"
+#include "Misc/StringPtrWrapper.h"
 
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <typeindex>
 #include <functional>
 
@@ -105,7 +107,6 @@ struct TCommandFuncTraints< RT(T::*)(Args...) >
 		return MakeView(sArgs);
 	}
 };
-
 
 class VariableConsoleCommadBase;
 
@@ -202,7 +203,7 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 
 	virtual std::type_index getTypeIndex() const override
 	{
-		return typeid(Meta::RemoveCV<Type>::Type);
+		return typeid(Meta::RemoveCVRef<Type>::Type);
 	}
 	virtual std::string toString() const override
 	{
@@ -261,7 +262,7 @@ struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
 
 	virtual std::type_index getTypeIndex() const override
 	{
-		return typeid(Meta::RemoveCV<Type>::Type);
+		return typeid(Meta::RemoveCVRef<Type>::Type);
 	}
 	virtual std::string toString() const override
 	{
@@ -341,7 +342,8 @@ public:
 	auto* registerVar( char const* name , T* obj )
 	{
 		auto* command = new TVariableConsoleCommad<T>( name , obj );
-		insertCommand(command);
+		if (!insertCommand(command))
+			return decltype(command)(nullptr);
 		return command;
 	}
 
@@ -349,7 +351,8 @@ public:
 	auto* registerCommand( char const* name , TFunc func , T* obj , uint32 flags = 0)
 	{
 		auto* command = new TMemberFuncConsoleCommand<TFunc, T >( name ,func , obj, flags);
-		insertCommand(command);
+		if (!insertCommand(command))
+			return decltype(command)(nullptr);
 		return command;
 	}
 
@@ -357,7 +360,8 @@ public:
 	auto* registerCommand( char const* name , TFunc func, uint32 flags = 0)
 	{
 		auto* command = new TBaseFuncConsoleCommand<TFunc>( name ,func, flags);
-		insertCommand(command);
+		if (!insertCommand(command))
+			return decltype(command)(nullptr);
 		return command;
 	}
 
@@ -395,15 +399,11 @@ protected:
 	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bCanOmitArgs);
 	bool executeCommandImpl(ExecuteContext& context);
 
-	struct StrCmp
-	{
-		bool operator()(const char* s1, const char* s2) const
-		{
-			return FCString::CompareIgnoreCase(s1, s2) < 0;
-		}
-	};
-	typedef std::map< char const* , ConsoleCommandBase* , StrCmp > CommandMap;
-
+#if 0
+	using CommandMap = std::map< TStringPtrWrapper<char, true> , ConsoleCommandBase* >;
+#else
+	using CommandMap = std::unordered_map< TStringPtrWrapper<char, true>, ConsoleCommandBase*, MemberFuncHasher>;
+#endif
 	CommandMap   mNameMap;
 	bool         mbInitialized = false;
 

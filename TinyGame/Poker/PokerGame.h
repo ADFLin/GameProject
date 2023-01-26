@@ -39,8 +39,6 @@ namespace Poker
 	public:
 		GameModule();
 		virtual ~GameModule();
-		virtual void  startupModule(){}
-		virtual void  shutdownModule(){}
 	
 		virtual void  enter();
 		virtual void  exit(){} 

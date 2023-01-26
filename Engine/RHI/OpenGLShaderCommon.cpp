@@ -405,8 +405,6 @@ void main()
 
 	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
 	{
-		shader.mRHIResource = setupData.resource;
-
 		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
 
 		ShaderParameterMap parameterMap;

@@ -7,7 +7,7 @@ namespace CAR
 {
 	GameParamCollection& PlayerBase::GetParamCollection(PlayerBase& t)
 	{
-		return *mSetting;
+		return *t.mSetting;
 	}
 
 	void PlayerBase::setupSetting(GameplaySetting& setting)

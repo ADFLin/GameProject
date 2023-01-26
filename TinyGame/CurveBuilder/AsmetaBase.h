@@ -4,9 +4,6 @@
 #include "PlatformConfig.h"
 #include "Core/IntegerType.h"
 
-#define ASMETA_STATIC_ASSERT( COND )\
-struct _TESTCOND_##__LINE__{ int val [ ( COND ) ? 1 : -1 ]; };
-
 //#define ASMETA_INLINE __forceinline 
 #define ASMETA_INLINE inline
 
@@ -327,14 +324,14 @@ namespace Asmeta
 		uint8 opA;
 		uint8 opB;
 	};
-	static FPInist const gFPInistMap[] = 
+	static FPInist const GFPInistMap[] = 
 	{
 #define CODE_OP_DATA_OP( CODE , oA , oB ) 	{ oA , oB } ,
 		FP_INIST_LIST(CODE_OP_DATA_OP)
 #undef CODE_OP_DATA_OP
 	};
-#define FP_INIST_OPA( CODE ) gFPInistMap[ CODE ].opA
-#define FP_INIST_OPB( CODE ) gFPInistMap[ CODE ].opB
+#define FP_INIST_OPA( CODE ) GFPInistMap[ CODE ].opA
+#define FP_INIST_OPB( CODE ) GFPInistMap[ CODE ].opB
 
 	enum IntInstCode
 	{
@@ -391,16 +388,16 @@ namespace Asmeta
 		uint8 opB;
 		uint8 opR;
 	};
-	static IntInist const gIntInistMap[] = 
+	static IntInist const GIntInistMap[] = 
 	{
 #define CODE_OP_DATA_OP( CODE , oA , oB , oR ) 	{ oA , oB , oR } ,
 		INT_INIST_LIST(CODE_OP_DATA_OP)
 #undef CODE_OP_DATA_OP
 	};
 
-#define INT_INIST_OPA( CODE ) gIntInistMap[ CODE ].opA
-#define INT_INIST_OPB( CODE ) gIntInistMap[ CODE ].opB
-#define INT_INIST_OPR( CODE ) gIntInistMap[ CODE ].opR
+#define INT_INIST_OPA( CODE ) GIntInistMap[ CODE ].opA
+#define INT_INIST_OPB( CODE ) GIntInistMap[ CODE ].opB
+#define INT_INIST_OPR( CODE ) GIntInistMap[ CODE ].opR
 
 	class ImmediateBase
 	{

@@ -39,11 +39,11 @@ bool PlatformWin::IsButtonPressed( unsigned button )
 	int key = 0;
 	switch (button)
 	{
-	case Mouse::eLBUTTON:  key = GetSystemMetrics(SM_SWAPBUTTON) ? VK_RBUTTON : VK_LBUTTON; break;
-	case Mouse::eRBUTTON:  key = GetSystemMetrics(SM_SWAPBUTTON) ? VK_LBUTTON : VK_RBUTTON; break;
-	case Mouse::eMBUTTON:  key = VK_MBUTTON;  break;
-	case Mouse::eXBUTTON1: key = VK_XBUTTON1; break;
-	case Mouse::eXBUTTON2: key = VK_XBUTTON2; break;
+	case EMouseKey::Left:  key = GetSystemMetrics(SM_SWAPBUTTON) ? VK_RBUTTON : VK_LBUTTON; break;
+	case EMouseKey::Right:  key = GetSystemMetrics(SM_SWAPBUTTON) ? VK_LBUTTON : VK_RBUTTON; break;
+	case EMouseKey::Middle:  key = VK_MBUTTON;  break;
+	case EMouseKey::X1: key = VK_XBUTTON1; break;
+	case EMouseKey::X2: key = VK_XBUTTON2; break;
 	}
 	return (GetAsyncKeyState(key) & 0x8000) != 0;
 }

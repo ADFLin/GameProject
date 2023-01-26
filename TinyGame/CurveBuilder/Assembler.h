@@ -214,6 +214,9 @@ namespace Asmeta
 		void     emitWord( uint8 byte1 , uint8 byte2 ){}
 		void     emitWord( uint16 val ){}
 		void     emitDWord( uint32 val ){}
+#if TARGET_PLATFORM_64BITS
+		void     emitQWord(uint64 val) {}
+#endif
 		void     emitPtr ( void* ptr ){}
 		uint32   getOffset(){ assert( 0 ); return 0; }
 
@@ -324,19 +327,19 @@ namespace Asmeta
 
 		template< class Ref , int Size >
 		ASMETA_INLINE void imul( RegX86< Size > const& src , RefMem< Ref , Size > const& mem )
-		{  ASMETA_STATIC_ASSERT( Size != 1 ) ; encodeIntInist4< Size >( 0x0f , 0xaf , mem.ref() , src.code() ); }
+		{  static_assert( Size != 1 ) ; encodeIntInist4< Size >( 0x0f , 0xaf , mem.ref() , src.code() ); }
 		template< int Size >
 		ASMETA_INLINE void imul( RegX86< Size > const& src , RegX86< Size > const& reg )
-		{  ASMETA_STATIC_ASSERT( Size != 1 ) ; encodeIntInist4< Size >( 0x0f , 0xaf , reg , src.code() ); }
+		{  static_assert( Size != 1 ) ; encodeIntInist4< Size >( 0x0f , 0xaf , reg , src.code() ); }
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void imul( RegX86< Size > const& dst , Immediate< ImmSize > const& imm ){ imul( dst ,dst ,imm ); }
 
 		template< int Size , class Ref , int ImmSize >
 		ASMETA_INLINE void imul( RegX86< Size > const& dst , RefMem< Ref , Size > const& mem , Immediate< ImmSize > const& imm )
-		{  ASMETA_STATIC_ASSERT( Size != 1 ) ; encodeIntInistRMI< Size >( 0x69 , mem , dst.code() , imm ); }
+		{  static_assert( Size != 1 ); encodeIntInistRMI< Size >( 0x69 , mem , dst.code() , imm ); }
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void imul( RegX86< Size > const& dst , RegX86< Size > const& reg , Immediate< ImmSize > const& imm )
-		{  ASMETA_STATIC_ASSERT( Size != 1 ) ; encodeIntInistRMI< Size >( 0x69 , reg , dst.code() , imm ); }
+		{  static_assert( Size != 1 ) ; encodeIntInistRMI< Size >( 0x69 , reg , dst.code() , imm ); }
 
 		template< class Ref , int Size >
 		ASMETA_INLINE void idiv( RefMem< Ref , Size > const& src ){  encodeIntInist2< Size >( igIDIV , src ); }
@@ -643,7 +646,7 @@ namespace Asmeta
 		ASMETA_INLINE void encodePushPopInist( IntInstCode code , RMType const& rm )
 		{
 			assert( code == igPOP || code == igPUSH );
-			ASMETA_STATIC_ASSERT( Size == 2 || Size == 4 );
+			static_assert( Size == 2 || Size == 4 );
 			encodeIntInist2< Size >( code , rm );
 		}
 
@@ -774,7 +777,7 @@ namespace Asmeta
 		ASMETA_INLINE void encodeIntInist( IntInstCode code , Immediate< ImmSize > const& imm )
 		{
 			encodeInt16Prefix< Size >();
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeIntInistS< Size >( INT_INIST_OPB( code ) );
 			encodeImmediateNoForce( imm );
 		}
@@ -782,7 +785,7 @@ namespace Asmeta
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistSW( IntInstCode code , RMType const& rm , Immediate< ImmSize > const& imm  )
 		{
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeIntInistSW< Size >( INT_INIST_OPB( code ) , imm );
 			encodeModRM( rm , INT_INIST_OPR( code ) );
 			encodeImmediateNoForce( imm );
@@ -791,7 +794,7 @@ namespace Asmeta
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistW( IntInstCode code , RMType const& rm , Immediate< ImmSize > const& imm  )
 		{
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeIntInistW< Size >( INT_INIST_OPB( code ) );
 			encodeModRM( rm , INT_INIST_OPR( code ) );
 			encodeImmediateNoForce( imm );
@@ -800,7 +803,7 @@ namespace Asmeta
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistWF( IntInstCode code , RMType const& rm , Immediate< ImmSize > const& imm )
 		{
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeIntInistW< Size >( INT_INIST_OPB( code ) );
 			encodeModRM( rm , INT_INIST_OPR( code ) );
 			encodeImmediateForce< Size >( imm );
@@ -809,7 +812,7 @@ namespace Asmeta
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistSWF( IntInstCode code , RMType const& rm , Immediate< ImmSize > const& imm )
 		{
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeIntInistSW< Size >( INT_INIST_OPB( code ) , imm );
 			encodeModRM( rm , INT_INIST_OPR( code ) );
 			encodeImmediateForce< Size >( imm );
@@ -818,7 +821,7 @@ namespace Asmeta
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistRMI( uint8 op , RMType const& rm , uint8 opR , Immediate< ImmSize > const& imm  )
 		{
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeInt16Prefix< Size >();
 			uint8 s = ( Size > imm.size() ) ? 1 : 0;
 			_this()->emitByte( op | ( s << 1 ) );
@@ -829,7 +832,7 @@ namespace Asmeta
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistRMI( uint8 op , RMType const& rm , uint8 opR , Immediate< ImmSize > const& imm , bool usageSignExtend  )
 		{
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeInt16Prefix< Size >();
 			uint8 s = ( usageSignExtend ) ? ( Size > imm.size() ? 1 : 0 ) : 0;
 			_this()->emitByte( op | ( s << 1 ) );
@@ -840,7 +843,7 @@ namespace Asmeta
 		template< int Size , class RMType , int ImmSize >
 		ASMETA_INLINE void encodeIntInistFRMI( uint8 op , RMType const& rm , uint8 opR , Immediate< ImmSize > const& imm , bool usageSignExtend  /*true*/  )
 		{
-			ASMETA_STATIC_ASSERT( Size >= ImmSize );
+			static_assert( Size >= ImmSize );
 			encodeInt16Prefix< Size >();
 			uint8 s = ( usageSignExtend ) ? ( Size > imm.size() ? 1 : 0 ) : 0;
 			_this()->emitByte( op | ( s << 1 ) );

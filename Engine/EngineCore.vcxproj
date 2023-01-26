@@ -230,6 +230,7 @@
     <ClCompile Include="Core\CRC.cpp" />
     <ClCompile Include="Core\MD5.cpp" />
     <ClCompile Include="Core\StringConv.cpp" />
+    <ClCompile Include="Core\Tickable.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="CString.cpp" />
@@ -256,6 +257,8 @@
     <ClCompile Include="Math\Transform.cpp" />
     <ClCompile Include="Misc\Guid.cpp" />
     <ClCompile Include="Misc\ImageMergeHelper.cpp" />
+    <ClCompile Include="Module\ModularFeature.cpp" />
+    <ClCompile Include="Module\ModuleManager.cpp" />
     <ClCompile Include="Phy2D\Collision.cpp" />
     <ClCompile Include="Phy2D\Phy2D.cpp" />
     <ClCompile Include="Phy2D\RigidBody.cpp" />
@@ -317,6 +320,7 @@
     <ClInclude Include="Core\ScopeGuard.h" />
     <ClInclude Include="Core\StringConv.h" />
     <ClInclude Include="Core\ThreadSafeCounter.h" />
+    <ClInclude Include="Core\Tickable.h" />
     <ClInclude Include="Core\TypeHash.h" />
     <ClInclude Include="CPreprocessor.h" />
     <ClInclude Include="CString.h" />
@@ -367,7 +371,11 @@
     <ClInclude Include="Meta\Select.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
+    <ClInclude Include="Misc\StringPtrWrapper.h" />
     <ClInclude Include="ModuleInterface.h" />
+    <ClInclude Include="Module\ModularFeature.h" />
+    <ClInclude Include="Module\ModuleInterface.h" />
+    <ClInclude Include="Module\ModuleManager.h" />
     <ClInclude Include="ObjectHandle.h" />
     <ClInclude Include="Clock.h" />
     <ClInclude Include="MarcoCommon.h" />

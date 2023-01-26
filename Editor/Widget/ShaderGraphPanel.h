@@ -11,15 +11,31 @@
 #include "RHI/RHICommon.h"
 
 #include "ImNodeEditor/imgui_node_editor.h"
+#include "Renderer/SceneView.h"
+#include "Core/Tickable.h"
 
 namespace ImNode = ax::NodeEditor;
 
 
 class ShaderGraphPanel : public IEditorPanel
+	                   , public Tickable
 {
 public:
 
 	void runTest();
+
+	bool compileShader();
+
+	void renderShaderPreview();
+	
+	template< typename TNode, typename ...TArgs>
+	void registerNode(TArgs&& ...args)
+	{
+		std::shared_ptr<TNode> result = std::make_shared<TNode>(std::forward<TArgs>(args)...);
+		mNodesList.push_back(result);
+	}
+	std::vector<SGNodePtr> mNodesList;
+	Render::ViewInfo mView;
 
 	Render::RHIFrameBufferRef mFrameBuffer;
 	Render::ShaderProgram mShaderProgram;
@@ -31,13 +47,20 @@ public:
 
 	void render() override;
 
-	int FetchId()
-	{
-		return mNdexId++;
-	}
-	int mNdexId = 1;
 
+	template< typename TNode, typename ...TArgs>
+	std::shared_ptr<TNode> createNode(TArgs&& ...args)
+	{
+		std::shared_ptr<TNode> result = mGraph.createNode<TNode>(std::forward<TArgs>(args)...);
+		return result;
+	}
+
+
+	bool bRealTimePreview = true;
 	ImNode::EditorContext* mEditorContext;
+
+	virtual void tick(float deltaTime) override;
+
 };
 
 

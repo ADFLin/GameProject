@@ -3,7 +3,7 @@
 namespace CB
 {
 
-	Expression::Expression(string const& ExprStr /*= ""*/)
+	Expression::Expression(std::string const& ExprStr /*= ""*/)
 		:mStrExpr(ExprStr)
 		, mIsParsed(false)
 	{
@@ -22,7 +22,6 @@ namespace CB
 	{
 
 	}
-
 
 	Expression& Expression::operator=(const Expression& expr)
 	{

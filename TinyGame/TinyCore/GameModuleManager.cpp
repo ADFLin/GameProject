@@ -7,34 +7,20 @@
 
 #include "WindowsHeader.h"
 #include "StringParse.h"
+#include "StdUtility.h"
+#include "Module/ModularFeature.h"
+#include "Module/ModuleManager.h"
 
-bool GameModuleManager::registerModule( IModuleInterface* module , char const* moduleName, ModuleHandle hModule )
+
+GameModuleManager::GameModuleManager()
 {
-	assert(module);
+	mGameRunning = nullptr;
+	IModularFeatures::Get().addEvent(IGameModule::FeatureName, ModularFeatureEvent(this, &GameModuleManager::handleFeatureEvent));
+}
 
-	IGameModule* gameModule = nullptr;
-	if( module->isGameModule() )
-	{
-		gameModule = static_cast<IGameModule*>(module);
-	}
-
-	char const* registerName = ( gameModule ) ? gameModule->getName() : moduleName;
-	if( findModule(registerName) )
-		return false;
-
-	bool bInserted = mNameToModuleMap.insert(std::make_pair(registerName, module)).second;
-	assert(bInserted);
-	mModuleDataList.push_back({ module ,hModule });
-
-	module->startupModule();
-
-	if( gameModule )
-	{
-		GameAttribute attrSetting(ATTR_INPUT_DEFUAULT_SETTING);
-		gameModule->queryAttribute(attrSetting);
-	}
-
-	return true;
+GameModuleManager::~GameModuleManager()
+{
+	IModularFeatures::Get().removeEvent(IGameModule::FeatureName);
 }
 
 void GameModuleManager::cleanupModuleInstances()
@@ -44,69 +30,61 @@ void GameModuleManager::cleanupModuleInstances()
 		mGameRunning->exit();
 		mGameRunning = nullptr;
 	}
-
-	visitInternal([](ModuleData& info) ->bool
-	{
-		info.instance->shutdownModule();
-		info.instance->release();
-		info.instance = nullptr;
-		return true;
-	});
-	mNameToModuleMap.clear();
+	ModuleManager::Get().cleanupModuleInstances();
 }
 
 void GameModuleManager::cleanupModuleMemory()
 {
-	visitInternal([](ModuleData& info) ->bool
-	{
-		CHECK(info.instance == nullptr);
-		FPlatformModule::Release(info.hModule);
-		return true;
-	});
-	mModuleDataList.clear();
+	ModuleManager::Get().cleanupModuleMemory();
 }
 
 void GameModuleManager::classifyGame( int attrID , GameModuleVec& games )
 {
-	visitInternal( [ attrID , &games ](ModuleData& info)-> bool
+	visitGameInternal( [ attrID , &games ](IGameModule* gameModule)-> bool
 	{
 		GameAttribute    attrValue(attrID);
-
-		if( info.instance->isGameModule() )
+		if (gameModule->queryAttribute(attrValue))
 		{
-			IGameModule* gameModule = static_cast<IGameModule*>(info.instance);
-			if( gameModule->queryAttribute(attrValue) )
+			if (attrValue.iVal)
 			{
-				if( attrValue.iVal )
-				{
-					games.push_back(gameModule);
-				}
+				games.push_back(gameModule);
 			}
 		}
 		return true;
 	});
 }
 
-IModuleInterface* GameModuleManager::findModule( char const* name )
+void GameModuleManager::handleFeatureEvent(IModularFeature* feature, bool bRemove)
 {
-	auto iter = mNameToModuleMap.find( name );
-	if ( iter != mNameToModuleMap.end() )
-		return iter->second;
-	return nullptr;
+	IGameModule* gameModule = static_cast<IGameModule*>(feature);
+	if (bRemove)
+	{
+		RemoveValue(mGameModules, gameModule);
+	}
+	else
+	{
+		GameAttribute attrSetting(ATTR_INPUT_DEFUAULT_SETTING);
+		gameModule->queryAttribute(attrSetting);
+		mGameModules.push_back(gameModule);
+	}
 }
 
 IGameModule* GameModuleManager::changeGame( char const* name )
 {
-	IModuleInterface* module = findModule( name );
-
-	if ( module && module->isGameModule() )
+	IGameModule* result = nullptr;
+	visitGameInternal([name, this, & result](IGameModule* gameModule)-> bool
 	{
-		auto* gameModule = static_cast<IGameModule*>(module);
-		if( changeGame(gameModule) )
-			return gameModule;
-	}
-
-	return nullptr;
+		if (FCString::Compare(name, gameModule->getName()) == 0)
+		{
+			if (changeGame(gameModule))
+			{
+				result = gameModule;
+				return false;
+			}
+		}
+		return true;
+	});
+	return result;
 }
 
 bool GameModuleManager::changeGame(IGameModule* gameModule)
@@ -133,90 +111,4 @@ bool GameModuleManager::changeGame(IGameModule* gameModule)
 
 	}
 	return true;
-}
-
-GameModuleManager::GameModuleManager()
-{
-	mGameRunning = nullptr;
-}
-
-GameModuleManager::~GameModuleManager()
-{
-	CHECK(mModuleDataList.empty());
-	CHECK(mNameToModuleMap.empty());
-}
-
-bool GameModuleManager::loadModule( char const* path )
-{
-	StringView::TCStringConvertible<> loadName = FFileUtility::GetBaseFileName(path).toCString();
-
-	if (mNameToModuleMap.find((char const*)loadName) != mNameToModuleMap.end())
-		return true;
-
-	FPlatformModule::Handle hModule = FPlatformModule::Load(path);
-	if (hModule == NULL)
-		return false;
-
-	ON_SCOPE_EXIT
-	{
-		if (hModule)
-		{
-			FPlatformModule::Release(hModule);
-		}
-	};
-
-	auto createFunc = (CreateModuleFunc)FPlatformModule::GetFunctionAddress(hModule, CREATE_MODULE_STR);
-	if( !createFunc )
-		return false;
-
-	IModuleInterface* module = (*createFunc)();
-	if (!module)
-		return false;
-
-	if (registerModule(module, loadName, hModule))
-	{
-		hModule = NULL;
-	}
-	else
-	{
-		module->release();
-		return false;
-	}
-	LogMsg("Module Loaded: %s", (char const*)loadName);
-	return true;
-}
-
-bool GameModuleManager::loadModulesFromFile(char const* path)
-{
-	std::vector< uint8 > buffer;
-	if (!FFileUtility::LoadToBuffer(path, buffer, true, false))
-	{
-		LogWarning(0 , "Can't Load Module File : %s", path);
-		return false;
-	}
-
-	StringView moduleDir = FFileUtility::GetDirectory(path);
-	char const* text = (char const*)buffer.data();
-	bool result = true;
-	for (;;)
-	{
-		StringView moduleName = FStringParse::StringTokenLine(text);
-		moduleName.trimStartAndEnd();
-		if (moduleName.size() == 0)
-			break;
-
-		if (moduleDir.size())
-		{
-			InlineString<MAX_PATH + 1> path = moduleDir;
-			path += "/";
-			path += moduleName;
-			result &= loadModule(path);
-		}
-		else
-		{
-			result &= loadModule(moduleName.toMutableCString());
-		}
-	}
-
-	return result;
 }

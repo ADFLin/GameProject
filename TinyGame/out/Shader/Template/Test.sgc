@@ -1,0 +1,22 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+#define MATERIAL_TEXCOORD_NUM 1
+#include "MaterialCommon.sgc"
+#include "ViewParam.sgc"
+
+#if PIXEL_SHADER
+float4 GetColor(MaterialParametersPS Parameters)
+{
+%s
+}
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	MaterialParametersPS Parameters;
+	Parameters.texCoords[0] = VSOutput.UVs;
+	OutColor = GetColor(Parameters);
+}
+#endif

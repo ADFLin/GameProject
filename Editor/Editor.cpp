@@ -385,7 +385,7 @@ public:
 					if (settings)
 					{
 						ActivePanel& panel = findOrAddPanel(info);
-						panel.bOpenRequest = !settings->Closed;
+						//panel.bOpenRequest = !settings->Closed;
 					}
 				}
 			}

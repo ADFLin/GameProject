@@ -24,7 +24,6 @@ struct TStringFormatInitializer
 #else
 		FCString::PrintfT(data, TTypeFormatTraits<T>::GetString(), value);
 #endif
-		
 	}
 };
 

@@ -5,7 +5,7 @@
 
 char* cutFloatZero( char* str )
 {
-	int len = strlen( str );
+	int len = FCString::Strlen( str );
 	if ( len == 0 )
 		return str;
 

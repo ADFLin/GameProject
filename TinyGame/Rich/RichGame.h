@@ -9,8 +9,8 @@ namespace Rich
 	class GameModule : public IGameModule
 	{
 	public:
-		void  startupModule() override {}
-		void  shutdownModule() override {}
+
+
 		void  enter() override {}
 		void  exit() override {}
 		//

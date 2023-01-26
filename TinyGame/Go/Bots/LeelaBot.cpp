@@ -475,13 +475,13 @@ namespace Go
 						int* pData = mOutReadBoard + LeelaGoSize * (y - 1);
 
 						StringView token;
-						FStringParse::TokenType tokenType;
+						EStringToken tokenType;
 						char const* readBuffer = buffer;
 
 						int count = 0;
-						while( (tokenType = FStringParse::StringToken(readBuffer, " ()", ".+XO\n", token) ) != FStringParse::eNoToken )
+						while( (tokenType = FStringParse::StringToken(readBuffer, " ()", ".+XO\n", token) ) != EStringToken::None )
 						{					
-							if (tokenType == FStringParse::eDelimsType )
+							if (tokenType == EStringToken::Delim )
 							{					
 								if (token[0] == '\n')
 									break;

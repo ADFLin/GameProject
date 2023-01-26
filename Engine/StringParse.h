@@ -32,15 +32,16 @@ private:
 	uint8 mDelimsMap[256];
 };
 
+enum class EStringToken
+{
+	None = 0,
+	Content = 1,
+	Delim = 2,
+};
+
 class FStringParseBase
 {
 public:
-	enum TokenType
-	{
-		eNoToken = 0,
-		eStringType = 1,
-		eDelimsType = 2,
-	};
 	enum
 	{
 		IntNumber,
@@ -52,7 +53,7 @@ public:
 	};
 };
 
-template<class CharT>
+template<typename CharT>
 class TStringParse : public FStringParseBase
 {
 public:
@@ -85,11 +86,11 @@ public:
 	static void ReplaceChar(CharT* str, CharT c, CharT replace);
 
 
-	static TokenType StringToken(CharT const*& inoutStr, DelimsTable const& table, TStringView<CharT>& outToken);
-	static void      SkipDelims(CharT const*& inoutStr, DelimsTable const& table);
+	static EStringToken StringToken(CharT const*& inoutStr, DelimsTable const& table, TStringView<CharT>& outToken);
+	static void         SkipDelims(CharT const*& inoutStr, DelimsTable const& table);
 
-	static TokenType StringToken(CharT const*& inoutStr, CharT const* dropDelims, CharT const* stopDelims, TStringView<CharT>& outToken);
-	static bool      StringToken(CharT const*& inoutStr, CharT const* dropDelims, TStringView<CharT>& outToken);
+	static EStringToken StringToken(CharT const*& inoutStr, CharT const* dropDelims, CharT const* stopDelims, TStringView<CharT>& outToken);
+	static bool         StringToken(CharT const*& inoutStr, CharT const* dropDelims, TStringView<CharT>& outToken);
 	static TStringView<CharT> StringTokenLine(CharT const*& inoutStr);
 
 
@@ -161,7 +162,7 @@ class Tokenizer : public DelimsTable
 public:
 	Tokenizer(char const* str, char const* dropDelims, char const* stopDelims = "");
 
-	using TokenType = FStringParse::TokenType;
+	using TokenType = EStringToken;
 
 	void        reset(char const* str);
 	char        nextChar() { return *mPtr; }

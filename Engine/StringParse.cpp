@@ -2,7 +2,7 @@
 
 #include "MarcoCommon.h"
 
-template< class CharT >
+template< typename CharT >
 static int CountCharReverse(CharT const* str , CharT const* last , CharT c )
 {
 	int result = 0;
@@ -120,7 +120,7 @@ bool DelimsTable::isDropDelims(char c) const
 
 #define CharL(v) STRING_LITERAL(CharT , v)
 
-template< class CharT >
+template< typename CharT >
 int TStringParse< CharT >::ParseNumber(CharT const* str, int& num)
 {
 	//#TODO : hexInt support
@@ -172,7 +172,7 @@ int TStringParse< CharT >::ParseNumber(CharT const* str, int& num)
 	return result;
 }
 
-template< class CharT >
+template< typename CharT >
 int TStringParse< CharT >::ParseIntNumber(CharT const* str, int& num)
 {
 	CharT const* cur = str;
@@ -196,7 +196,7 @@ int TStringParse< CharT >::ParseIntNumber(CharT const* str, int& num)
 	return result;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindLastChar(CharT const* str, int num, CharT c)
 {
 	CharT const* ptr = str + (num - 1);
@@ -210,55 +210,70 @@ CharT const* TStringParse< CharT >::FindLastChar(CharT const* str, int num, Char
 	return nullptr;
 }
 
-template< class CharT >
+template< typename CharT>
+bool CheckChars(CharT c)
+{
+	return false;
+}
+
+template< typename CharT, typename ...Chars >
+bool CheckChars(CharT c, CharT c1, Chars ...chars)
+{
+	if (c == c1)
+		return true;
+
+	return CheckChars(c, chars...);
+}
+
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c)
 {
 	while( *str != 0 )
 	{
-		if( *str == c )
+		if (CheckChars(*str, c))
 			break;
 		++str;
 	}
 	return str;
 }
-
-template< class CharT >
+ 
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c1, CharT c2)
 {
 	while( *str != 0 )
 	{
-		if( *str == c1 || *str == c2 )
+		if (CheckChars(*str, c1, c2))
 			break;
 		++str;
 	}
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c1, CharT c2, CharT c3)
 {
 	while( *str != 0 )
 	{
-		if( *str == c1 || *str == c2 || *str == c3 )
+		if (CheckChars(*str, c1, c2, c3))
 			break;
 		++str;
 	}
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT c1, CharT c2, CharT c3, CharT c4)
 {
 	while( *str != 0 )
 	{
-		if( *str == c1 || *str == c2 || *str == c3 || *str == c4 )
+		if (CheckChars(*str, c1, c2, c3, c4))
 			break;
 		++str;
 	}
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT const* findChars)
 {
 	assert(str && findChars);
@@ -271,12 +286,12 @@ CharT const* TStringParse< CharT >::FindChar(CharT const* str, CharT const* find
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num , CharT c)
 {
 	while (*str != 0 && num )
 	{
-		if (*str == c)
+		if (CheckChars(*str, c))
 			break;
 		++str;
 		--num;
@@ -284,12 +299,12 @@ CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num , CharT 
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2)
 {
 	while (*str != 0 && num)
 	{
-		if (*str == c1 || *str == c2)
+		if (CheckChars(*str, c1, c2))
 			break;
 		++str;
 		--num;
@@ -297,12 +312,12 @@ CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3)
 {
 	while (*str != 0 && num)
 	{
-		if (*str == c1 || *str == c2 || *str == c3)
+		if (CheckChars(*str, c1, c2, c3))
 			break;
 		++str;
 		--num;
@@ -310,12 +325,12 @@ CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c1, CharT c2, CharT c3, CharT c4)
 {
 	while (*str != 0 && num)
 	{
-		if (*str == c1 || *str == c2 || *str == c3 || *str == c4)
+		if (CheckChars(*str, c1, c2, c3, c4))
 			break;
 		++str;
 		--num;
@@ -324,7 +339,7 @@ CharT const* TStringParse< CharT >::FindCharN(CharT const* str, int num, CharT c
 }
 
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::TrySkipToSectionEnd(CharT const* str, CharT c)
 {
 	assert(str && *str == c);
@@ -332,7 +347,7 @@ CharT const* TStringParse< CharT >::TrySkipToSectionEnd(CharT const* str, CharT 
 	CharT const* ptr = str;
 	for( ;;)
 	{
-		ptr = FindChar(ptr + 1, c , '\n');
+		ptr = FindChar(ptr + 1, c , CharL('\n'));
 		if( *ptr == 0 )
 			return ptr;
 
@@ -353,7 +368,7 @@ CharT const* TStringParse< CharT >::TrySkipToSectionEnd(CharT const* str, CharT 
 	return ptr;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::CheckAndSkipToCommentSectionEnd(CharT const* str)
 {
 	assert(str && *str == CharL('/'));
@@ -382,7 +397,7 @@ CharT const* TStringParse< CharT >::CheckAndSkipToCommentSectionEnd(CharT const*
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT const* skipChars)
 {
 	assert(str && skipChars);
@@ -395,7 +410,7 @@ CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT const* skip
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT skipChar)
 {
 	while( *str != 0 )
@@ -407,7 +422,7 @@ CharT const* TStringParse< CharT >::SkipChar(CharT const* str, CharT skipChar)
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::SkipSpace(CharT const* str)
 {
 	CharT const* p = str;
@@ -420,7 +435,7 @@ CharT const* TStringParse< CharT >::SkipSpace(CharT const* str)
 	return p;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::SkipToNextLine(CharT const* str)
 {
 	CharT const* nextLine = FindChar(str, CharL('\n'));
@@ -429,7 +444,7 @@ CharT const* TStringParse< CharT >::SkipToNextLine(CharT const* str)
 	return nextLine;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::SkipToChar(CharT const* str, CharT c, CharT cPair, bool bCheckComment, bool bCheckString)
 {
 	int countPair = 0;
@@ -549,7 +564,7 @@ CharT const* TStringParse< CharT >::SkipToChar(CharT const* str, CharT c, CharT 
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* TStringParse< CharT >::SkipToChar(CharT const* str, CharT c, bool bCheckComment, bool bCheckString)
 {
 	if( bCheckString )
@@ -632,7 +647,7 @@ CharT const* TStringParse< CharT >::SkipToChar(CharT const* str, CharT c, bool b
 	return str;
 }
 
-template< class CharT >
+template< typename CharT >
 void TStringParse< CharT >::ReplaceChar(CharT* str, CharT c, CharT replace)
 {
 	CharT* ptr = str;
@@ -644,15 +659,15 @@ void TStringParse< CharT >::ReplaceChar(CharT* str, CharT c, CharT replace)
 	}
 }
 
-template< class CharT >
-FStringParseBase::TokenType TStringParse< CharT >::StringToken(CharT const*& inoutStr, DelimsTable const& table, TStringView<CharT>& outToken)
+template< typename CharT >
+EStringToken TStringParse< CharT >::StringToken(CharT const*& inoutStr, DelimsTable const& table, TStringView<CharT>& outToken)
 {
 	CharT cur = *(inoutStr++);
 	for( ;; )
 	{
 		if( cur == CharL('\0') )
 		{
-			return FStringParseBase::eNoToken;
+			return EStringToken::None;
 		}
 		if( !table.isDropDelims(cur) )
 			break;
@@ -664,7 +679,7 @@ FStringParseBase::TokenType TStringParse< CharT >::StringToken(CharT const*& ino
 	if( table.isStopDelims(cur) )
 	{
 		outToken = TStringView<CharT>(ptr, 1);
-		return FStringParseBase::eDelimsType;
+		return EStringToken::Delim;
 	}
 
 	for( ;;)
@@ -675,10 +690,10 @@ FStringParseBase::TokenType TStringParse< CharT >::StringToken(CharT const*& ino
 		++inoutStr;
 	}
 	outToken = TStringView<CharT>(ptr, inoutStr - ptr);
-	return FStringParseBase::eStringType;
+	return EStringToken::Content;
 }
 
-template< class CharT >
+template< typename CharT >
 void TStringParse< CharT >::SkipDelims(CharT const*& inoutStr, DelimsTable const& table)
 {
 	for (;;)
@@ -695,15 +710,15 @@ void TStringParse< CharT >::SkipDelims(CharT const*& inoutStr, DelimsTable const
 	}
 }
 
-template< class CharT >
-FStringParseBase::TokenType TStringParse< CharT >::StringToken(CharT const*& inoutStr, CharT const* dropDelims, CharT const* stopDelims, TStringView<CharT>& outToken)
+template< typename CharT >
+EStringToken TStringParse< CharT >::StringToken(CharT const*& inoutStr, CharT const* dropDelims, CharT const* stopDelims, TStringView<CharT>& outToken)
 {
 	CharT cur = *(inoutStr++);
 	for( ;; )
 	{
 		if( cur == CharL('\0') )
 		{
-			return FStringParseBase::eNoToken;
+			return EStringToken::None;
 		}
 		if (*FindChar(dropDelims, cur) == 0)
 		{
@@ -717,22 +732,22 @@ FStringParseBase::TokenType TStringParse< CharT >::StringToken(CharT const*& ino
 	if( *FindChar(stopDelims, cur) != 0 )
 	{
 		outToken = TStringView<CharT>(ptr, 1);
-		return FStringParseBase::eDelimsType;
+		return EStringToken::Delim;
 	}
 
 	for( ;;)
 	{
 		cur = *inoutStr;
-		if( cur == CharL('\0') || ( *FindChar(stopDelims, cur) ) || (*FindChar(stopDelims, cur) ) )
+		if( cur == CharL('\0') || ( *FindChar(dropDelims, cur) ) || (*FindChar(stopDelims, cur) ) )
 			break;
 		++inoutStr;
 	}
 
 	outToken = TStringView<CharT>(ptr, inoutStr - ptr);
-	return FStringParseBase::eStringType;
+	return EStringToken::Content;
 }
 
-template< class CharT >
+template< typename CharT >
 bool TStringParse< CharT >::StringToken(CharT const*& inoutStr, CharT const* dropDelims, TStringView<CharT>& outToken)
 {
 	inoutStr = SkipChar(inoutStr, dropDelims);
@@ -748,7 +763,7 @@ bool TStringParse< CharT >::StringToken(CharT const*& inoutStr, CharT const* dro
 }
 
 
-template< class CharT >
+template< typename CharT >
 TStringView<CharT> TStringParse< CharT >::StringTokenLine(CharT const*& inoutStr)
 {
 	CharT const* start = inoutStr;

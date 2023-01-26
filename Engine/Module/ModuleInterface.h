@@ -8,7 +8,6 @@ public:
 	virtual ~IModuleInterface(){}
 	virtual void startupModule(){}
 	virtual void shutdownModule(){}
-	virtual bool isGameModule() const { return false; }
 
 	void release() { doRelease(); }
 	virtual void  doRelease() = 0;

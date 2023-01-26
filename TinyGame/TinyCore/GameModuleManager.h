@@ -17,53 +17,29 @@ public:
 	GameModuleManager();
 	~GameModuleManager();
 
-	TINY_API bool            loadModule( char const* path );
-	TINY_API bool            loadModulesFromFile(char const* path);
-	TINY_API void            cleanupModuleInstances();
-	TINY_API void            cleanupModuleMemory();
-	TINY_API void            classifyGame( int attrID , GameModuleVec& games );
-	TINY_API IGameModule*    changeGame( char const* name );
-	TINY_API bool            changeGame(IGameModule* game);
+	TINY_API void         cleanupModuleInstances();
+	TINY_API void         cleanupModuleMemory();
+	TINY_API void         classifyGame( int attrID , GameModuleVec& games );
+	TINY_API IGameModule* changeGame( char const* name );
+	TINY_API bool         changeGame(IGameModule* game);
 
 	IGameModule*  getRunningGame(){ return mGameRunning; }
 
-
-	TINY_API bool   registerModule(
-		IModuleInterface* module,
-		char const*       moduleName,
-		ModuleHandle hModule );
-
 private:
 
-	IModuleInterface*  findModule( char const* name );
-
 	template< class Visitor >
-	void  visitInternal( Visitor& visitor )
+	void  visitGameInternal(Visitor&& visitor)
 	{
-		for( auto& data : mModuleDataList )
+		for (auto* gameMdoule : mGameModules)
 		{
-			if ( !visitor( data ) )
+			if (!visitor(gameMdoule))
 				return;
 		}
 	}
 
-	struct StrCmp
-	{
-		bool operator() ( char const* s1 , char const* s2 ) const
-		{ 
-			return ::strcmp( s1 , s2 ) < 0;  
-		}
-	};
+	void handleFeatureEvent(IModularFeature* feature, bool bRemove);
 
-	struct ModuleData
-	{
-		IModuleInterface* instance;
-		ModuleHandle      hModule;
-	};
-	typedef std::map< HashString , IModuleInterface* > ModuleMap;
-
-	std::vector< ModuleData >   mModuleDataList;
-	ModuleMap        mNameToModuleMap;
+	std::vector< IGameModule* > mGameModules;
 	IGameModule*     mGameRunning;
 };
 

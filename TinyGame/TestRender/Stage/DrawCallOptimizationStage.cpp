@@ -41,10 +41,10 @@ namespace Render
 		{
 			StringView token;
 			auto tokenType = tokenizer.take(token);
-			if( tokenType == FStringParse::eNoToken )
+			if( tokenType == EStringToken::None )
 				return false;
 
-			if( tokenType == FStringParse::eDelimsType )
+			if( tokenType == EStringToken::Delim )
 			{
 				if( token[0] != '"' )
 					return false;
@@ -69,7 +69,7 @@ namespace Render
 		static bool VerifyTokenDelimChar(Tokenizer& tokenizer, char c)
 		{
 			StringView token;
-			return tokenizer.take(token) == FStringParse::eDelimsType && token[0] == c;
+			return tokenizer.take(token) == EStringToken::Delim && token[0] == c;
 		}
 
 		static bool ExitBlock(Tokenizer& tokenizer)
@@ -80,11 +80,11 @@ namespace Render
 				StringView token;
 				auto tokenType = tokenizer.take(token);
 
-				if( tokenType == FStringParse::eNoToken )
+				if( tokenType == EStringToken::None )
 				{
 					return false;
 				}
-				else if( tokenType == FStringParse::eDelimsType )
+				else if( tokenType == EStringToken::Delim )
 				{
 					if( token[0] == '{' )
 					{
@@ -119,14 +119,14 @@ namespace Render
 			bool bEnd = false;
 			for( ;; )
 			{
-				FStringParse::TokenType tokenType = tokenizer.take(token);
-				if ( tokenType == FStringParse::eNoToken )
+				EStringToken tokenType = tokenizer.take(token);
+				if ( tokenType == EStringToken::None )
 					break;
 
 				if( token == "Material" )
 				{
 					StringView materialName;
-					if( tokenizer.take(materialName) != FStringParse::eStringType )
+					if( tokenizer.take(materialName) != EStringToken::Content )
 					{
 						return false;
 					}
@@ -161,7 +161,7 @@ namespace Render
 				return false;
 
 			StringView token;
-			if( tokenizer.take(token) != FStringParse::eStringType || token != "Shader" )
+			if( tokenizer.take(token) != EStringToken::Content || token != "Shader" )
 			{
 				return false;
 			}
@@ -187,12 +187,12 @@ namespace Render
 			for(;;)
 			{
 
-				FStringParse::TokenType tokenType = tokenizer.take(token);
-				if( tokenType == FStringParse::eNoToken )
+				EStringToken tokenType = tokenizer.take(token);
+				if( tokenType == EStringToken::None )
 				{
 					return false;
 				}
-				else if( tokenType == FStringParse::eDelimsType )
+				else if( tokenType == EStringToken::Delim )
 				{
 					if( token[0] == '}' )
 					{
@@ -230,8 +230,8 @@ namespace Render
 			for( ;; )
 			{
 				StringView token;
-				FStringParse::TokenType tokenType = tokenizer.take(token);
-				if( tokenType != FStringParse::eStringType )
+				EStringToken tokenType = tokenizer.take(token);
+				if( tokenType != EStringToken::Content )
 				{
 					return false;
 				}
@@ -242,7 +242,7 @@ namespace Render
 				++num;
 				tokenType = tokenizer.take(token);
 
-				if( tokenType != FStringParse::eDelimsType )
+				if( tokenType != EStringToken::Delim )
 					return false;
 
 				if ( token[0] == ')' )
@@ -264,12 +264,12 @@ namespace Render
 			for( ;; )
 			{
 				StringView key;
-				FStringParse::TokenType tokenType = tokenizer.take(key);
-				if( tokenType == FStringParse::eNoToken )
+				EStringToken tokenType = tokenizer.take(key);
+				if( tokenType == EStringToken::None )
 				{
 					return false;
 				}
-				else if ( tokenType == FStringParse::eDelimsType )
+				else if ( tokenType == EStringToken::Delim )
 				{
 					if( key[0] == '}' )
 					{
@@ -287,7 +287,7 @@ namespace Render
 				}
 
 				StringView valueType;
-				if( tokenizer.take(valueType) != FStringParse::eStringType )
+				if( tokenizer.take(valueType) != EStringToken::Content )
 				{
 					return false;
 				}

@@ -104,7 +104,7 @@ namespace CPP
 					StringView lineText = mInput.getDifference(start);
 					std::string text;
 					expandMarco(lineText, text);
-					emitCode(text.c_str());
+					emitCode(StringView(text));
 				}
 				else
 				{
@@ -1142,7 +1142,6 @@ namespace CPP
 					return true;
 				}
 
-
 				for(;;)
 				{
 					//#TODO: consider SkipConcat ?
@@ -1152,36 +1151,32 @@ namespace CPP
 					{
 						end = FStringParse::FindCharN(code.getCur(), code.size(), ',', ')', '(');
 						if (*end == 0)
-							return false;
+						{
+							PARSE_ERROR("Marco Syntax Error : %s", (char const*)id.toCString());
+						}
 
 						code.offsetTo(end + 1);
-						if ( *end == '(' )
-						{
-							int scopeDepth = 1;
-
-							while (scopeDepth)
-							{
-								char const* pFind = FStringParse::FindCharN(code.getCur(), code.size(), ')', '(');
-								if (*pFind == 0)
-								{
-									return false;
-								}
-
-								code.offsetTo(pFind + 1);
-								if (*pFind == '(')
-									++scopeDepth;
-								else if (*pFind == ')')
-									--scopeDepth;
-							}
-						}
-						else
-						{
+						if ( *end != '(' )
 							break;
+						
+						int scopeDepth = 1;
+						while (scopeDepth)
+						{
+							char const* pFind = FStringParse::FindCharN(code.getCur(), code.size(), ')', '(');
+							if (*pFind == 0)
+							{
+								PARSE_ERROR("Marco Syntax Error : %s", (char const*)id.toCString());
+							}
+
+							code.offsetTo(pFind + 1);
+							if (*pFind == '(')
+								++scopeDepth;
+							else if (*pFind == ')')
+								--scopeDepth;
 						}
 					}
 
 					StringView arg = StringView(start, end - start);
-
 					arg.trimStartAndEnd();
 
 					argList.push_back(arg);

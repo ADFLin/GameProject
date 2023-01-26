@@ -3,7 +3,9 @@
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
+#include <Psapi.h>
 #endif
+
 
 void FCString::Stricpy(char * dest, char const* src)
 {
@@ -94,6 +96,46 @@ std::string FCString::WCharToChar(const wchar_t* str)
 	wcstombs(GCharBuff, str, cSize);
 #endif
 	return GCharBuff;
+}
+
+#if SYS_PLATFORM_WIN
+inline HMODULE GetCurrentModuleHandle()
+{
+#if 0
+	EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+	return (HMODULE)&__ImageBase;
+#else
+	DWORD flags = GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS;
+	HMODULE hModule = 0;
+	::GetModuleHandleEx(flags, reinterpret_cast<LPCTSTR>(GetCurrentModuleHandle), &hModule);
+	return hModule;
+#endif
+}
+#endif
+
+bool FCString::IsConstSegment(void const* ptr)
+{
+#if SYS_PLATFORM_WIN
+	struct Local
+	{
+		Local()
+		{
+			::GetModuleInformation(GetCurrentProcess(), GetCurrentModuleHandle(), &moduleInfo, sizeof(moduleInfo));
+		}
+
+		bool Test(void const* ptr)
+		{
+			return uintptr_t(moduleInfo.lpBaseOfDll) < uintptr_t(ptr) && uintptr_t(ptr) < uintptr_t(moduleInfo.lpBaseOfDll) + uintptr_t(moduleInfo.SizeOfImage);
+		}
+		MODULEINFO moduleInfo;
+	};
+
+	static Local StaticLocal;
+	return StaticLocal.Test(ptr);
+#else
+	static char const* Test = "TestAddr";
+	return Math::Abs(intptr_t(ptr) - intptr_t(Test)) < 1 * 1024 * 1024;
+#endif
 }
 
 template< class CharT >

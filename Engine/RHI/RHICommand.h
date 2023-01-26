@@ -5,7 +5,7 @@
 #include "RHICommon.h"
 #include "CoreShare.h"
 #include "SystemPlatform.h"
-#include "ModuleInterface.h"
+#include "Module/ModuleInterface.h"
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"

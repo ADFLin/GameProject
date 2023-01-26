@@ -8,6 +8,8 @@
 #include "RHI/RHICommand.h"
 #include "RHI/D3D11Command.h"
 
+#include "Module/ModuleManager.h"
+
 using namespace Render;
 
 bool TinyGameApp::initializeEditor()
@@ -18,14 +20,17 @@ bool TinyGameApp::initializeEditor()
 
 bool TinyGameApp::initializeEditorRender()
 {
-	::Global::ModuleManager().loadModule("D3D11RHI.dll");
+	char const* RHIModuleName = "D3D11RHI.dll";
+
+	FCString::IsConstSegment(RHIModuleName);
+
+	ModuleManager::Get().loadModule(RHIModuleName);
 	::Global::GetDrawEngine().lockSystem(ERenderSystem::D3D11);
 
 	mEditor->initializeRender();
 	mEditor->addGameViewport(this);
 	return true;
 }
-
 
 void TinyGameApp::finalizeEditor()
 {

@@ -303,7 +303,7 @@ MsgReply WTextCtrlT<Impl, CoreImpl>::onKeyMsg(KeyMsg const& msg)
 						char* str = ( char* )::GlobalLock( hData );
 						if ( str )
 						{
-							int len = (int)strlen( str );
+							int len = (int)FCString::Strlen( str );
 							mValue.insert( mValue.begin() + mKeyInPos , str , str + len );
 							mKeyInPos += len;
 

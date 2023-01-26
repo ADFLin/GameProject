@@ -115,15 +115,15 @@ private:
 	MsgType mType;
 };
 
-struct Mouse
+namespace EMouseKey
 {
-	enum Enum
+	enum Type
 	{
-		eLBUTTON = 0,
-		eMBUTTON  ,
-		eRBUTTON  ,
-		eXBUTTON1 ,
-		eXBUTTON2 ,
+		Left = 0,
+		Middle  ,
+		Right  ,
+		X1 ,
+		X2 ,
 	};
 };
 

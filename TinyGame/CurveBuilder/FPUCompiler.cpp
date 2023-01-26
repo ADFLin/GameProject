@@ -86,6 +86,7 @@ public:
 	void   emitWord(uint16 val) { mData->pushCodeT(val); }
 	void   emitWord(uint8 byte1, uint8 byte2) { mData->pushCode(byte1, byte2); }
 	void   emitDWord(uint32 val) { mData->pushCode(val); }
+	void   emitQWord(uint64 val) { mData->pushCode(val); }
 	void   emitPtr(void* ptr) { mData->pushCode(ptr); }
 
 	uint32 getOffset() { return mData->getCodeLength(); }
@@ -114,7 +115,6 @@ public:
 
 	int addConstValue(ConstValueInfo const& val)
 	{
-
 		int idx = 0;
 		int size = (int)mConstStack.size();
 		for( ; idx < size; ++idx )

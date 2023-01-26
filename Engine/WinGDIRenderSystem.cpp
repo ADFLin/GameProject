@@ -304,7 +304,7 @@ void WinGdiGraphics2D::drawText( Vec2i const& pos , Vec2i const& size , char con
 	UINT format = DT_CENTER | DT_SINGLELINE | DT_VCENTER;
 	if ( !beClip )
 		format |= DT_NOCLIP;
-	::DrawText( getRenderDC() , str , (int)strlen( str ), &rect , format  );
+	::DrawText( getRenderDC() , str , (int)FCString::Strlen( str ), &rect , format  );
 }
 
 void WinGdiGraphics2D::setTextColor(Color3ub const& color)

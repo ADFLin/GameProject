@@ -326,7 +326,7 @@ int PropertySet::parseLine( char* buffer , KeySection** curSection )
 				token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ));
 				char* keyValueString = token;
 
-				TrimEnd( token + strlen( token ) );
+				TrimEnd( token + FCString::Strlen( token ) );
 
 				auto pKeyValue = (*curSection)->addKeyValue( keyName , keyValueString );
 

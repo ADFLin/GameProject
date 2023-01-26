@@ -44,7 +44,7 @@ private:
 	mutable SavedValue mCacheGetValue;
 	friend class KeySection;
 	friend class PropertySet;
-	int  mSequenceOrder = -1;
+	int  mSequenceOrder = INDEX_NONE;
 	std::string mValue;
 };
 

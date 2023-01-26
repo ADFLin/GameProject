@@ -28,11 +28,7 @@ public:
 
 	bool loadTranslateAsset(char const* path);
 
-
-
 	bool loadFromString(char const* contents);
-	
-
 
 	struct TranslateInfo
 	{
@@ -46,9 +42,6 @@ public:
 
 	Dictionary*  mUsingDict;
 	Dictionary*  mLocals[LANGUAGE_NUM];
-
-
-
 
 };
 

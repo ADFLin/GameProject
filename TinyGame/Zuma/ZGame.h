@@ -12,8 +12,7 @@ namespace Zuma
 	{
 	public:
 		GameModule();
-		void  startupModule() override {}
-		void  shutdownModule() override {}
+
 		void  enter() override;
 		void  exit() override;
 		//

@@ -18,8 +18,6 @@ namespace CAR
 		static unsigned const AllFarmMask = 0xff;
 		static unsigned const CenterMask = BIT( FDir::TotalNum );
 
-
-
 		struct SideData
 		{
 			ESide::Type linkType;

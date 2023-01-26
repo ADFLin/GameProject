@@ -2,13 +2,14 @@
 #ifndef GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 #define GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 
-#include "ModuleInterface.h"
+#include "Module/ModuleInterface.h"
 
 #include "GameDefines.h"
 #include "CppVersion.h"
 #include "Serialize/DataStream.h"
 #include "MarcoCommon.h"
 #include "FastDelegate/FastDelegate.h"
+#include "Module/ModularFeature.h"
 
 
 class GWidget;
@@ -70,9 +71,10 @@ public:
 	virtual ~IGameInstance(){}
 };
 
-class IGameModule : public IModuleInterface
+class IGameModule : public IModuleInterface , public IModularFeature
 {
 public:
+	static HashString FeatureName;
 
 	virtual void enter(){}
 	virtual void exit(){} 
@@ -85,7 +87,10 @@ public:
 
 	virtual IGameInstance*        createInstance() { return nullptr; }
 
-	bool isGameModule() const final { return true; }
+
+	virtual void startupModule() override;
+	virtual void shutdownModule() override;
+
 public:
 	virtual char const*           getName() = 0;
 	virtual InputControl&         getInputControl() = 0;

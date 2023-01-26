@@ -366,23 +366,28 @@ namespace Render
 			eCompute,
 			eShaderProgram,
 		};
+
+		enum 
+		{
+			TYPE_BIT_COUNT = 3,
+		};
 		union
 		{
 			struct
 			{
-				uint64 type : 3;
+				uint64 type : TYPE_BIT_COUNT;
 				uint64 sv   : 61;
 			};
 			struct
 			{
-				uint64 type : 3;
+				uint64 type : TYPE_BIT_COUNT;
 				uint64 sv21 : 31;
 				uint64 sv22 : 30;
 			};
 
 			struct
 			{
-				uint64 type : 3;
+				uint64 type : TYPE_BIT_COUNT;
 				uint64 sv31 : 23;
 				uint64 sv32 : 22;
 				uint64 sv33 : 16;
@@ -390,7 +395,7 @@ namespace Render
 
 			struct
 			{
-				uint64 type : 3;
+				uint64 type : TYPE_BIT_COUNT;
 				uint64 sv51 : 15;
 				uint64 sv52 : 14;
 				uint64 sv53 : 11;

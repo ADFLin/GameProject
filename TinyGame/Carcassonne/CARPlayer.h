@@ -65,7 +65,7 @@ namespace CAR
 		std::vector< int > mFieldValues;
 		GameplaySetting* mSetting;
 
-		GameParamCollection& GetParamCollection(PlayerBase& t);
+		static GameParamCollection& GetParamCollection(PlayerBase& t);
 	};
 
 

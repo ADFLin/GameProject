@@ -294,7 +294,7 @@ void LevelStage::tick()
 		player->addMoment( moveAcc);
 	if(Input::isKeyPressed(EKeyCode::Down) || Input::isKeyPressed(EKeyCode::S))
 		player->addMoment(-moveAcc);
-	if(Platform::IsButtonPressed( Mouse::eLBUTTON ) )
+	if(Platform::IsButtonPressed( EMouseKey::Left ) )
 		player->shoot( wPosMouse );
 
 	player->update( wPosMouse );

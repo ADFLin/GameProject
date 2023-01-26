@@ -108,7 +108,7 @@ void TMessageShow::push( char const* format, ... )
 
 void TMessageShow::pushString( char const* str )
 {
-	::TextOut( mhDC , startX , startY + lineNun * height , str  , (int)strlen(str) );
+	::TextOut( mhDC , startX , startY + lineNun * height , str  , (int)FCString::Strlen(str) );
 	++lineNun;
 }
 

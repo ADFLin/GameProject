@@ -127,10 +127,10 @@ namespace MRT
 			StringView str;
 			switch( tokenizer.take(str) )
 			{
-			case FStringParse::eNoToken:
+			case EStringToken::None:
 				bKeep = false;
 				break;
-			case FStringParse::eDelimsType:
+			case EStringToken::Delim:
 				if( str[0] == '=' )
 				{
 					if( mode != Mode::None )
@@ -151,7 +151,7 @@ namespace MRT
 					bGetDistance = false;
 				}
 				break;
-			case FStringParse::eStringType:
+			case EStringToken::Content:
 				if( mode == Mode::None )
 				{
 					prevStation = createfun(str);

@@ -139,7 +139,7 @@ namespace Go
 	bool GTPLikeAppRun::inputProcessStream(char const* command, int length /*= 0*/)
 	{
 		int numWrite = 0;
-		return process.writeInputStream(command, length ? length : strlen(command), numWrite);
+		return process.writeInputStream(command, length ? length : FCString::Strlen(command), numWrite);
 	}
 
 	template< class TR , class ...TArgs >

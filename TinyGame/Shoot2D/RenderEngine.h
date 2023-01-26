@@ -25,7 +25,7 @@ namespace Shoot2D
 		void drawText( int x ,int y, char* str )
 		{
 			SetTextColor( mhDC , RGB(255,255,0) );
-			TextOut( mhDC , x , y , str , strlen(str) );
+			TextOut( mhDC , x , y , str , FCString::Strlen(str) );
 		}
 
 		void draw(BmpData& data , int x ,int y , bool invDir);

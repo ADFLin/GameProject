@@ -25,6 +25,19 @@ namespace
 {
 	EmptyInputControl GEmptyInputControl;
 }
+
+HashString IGameModule::FeatureName = "GameModule";
+
+void IGameModule::startupModule()
+{
+	IModularFeatures::Get().registerFeature(FeatureName, this);
+}
+
+void IGameModule::shutdownModule()
+{
+	IModularFeatures::Get().unregisterFeature(FeatureName, this);
+}
+
 InputControl& IGameModule::getInputControl()
 {
 	return GEmptyInputControl;

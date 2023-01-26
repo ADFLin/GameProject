@@ -417,7 +417,7 @@ static bool LoadWaveFile(char const* path, WaveFormatInfo& outWaveFormat, std::v
 	if( !MFScope.bInit )
 		return false;
 
-	const size_t cSize = strlen(path) + 1;
+	const size_t cSize = FCString::Strlen(path) + 1;
 	wchar_t wPath[MAX_PATH];
 	mbstowcs(wPath, path, cSize);
 
@@ -438,7 +438,7 @@ public:
 
 	bool initialize(char const* path)
 	{
-		const size_t cSize = strlen(path) + 1;
+		const size_t cSize = FCString::Strlen(path) + 1;
 		wchar_t wPath[MAX_PATH];
 		mbstowcs(wPath, path, cSize);
 		CHECK_RETRUN(MFCreateSourceReaderFromURL(wPath, NULL, &mSourceReader), false);

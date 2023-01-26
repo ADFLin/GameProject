@@ -4,32 +4,19 @@
 
 #include "Core/IntegerType.h"
 #include "Core/CRC.h"
+#include "CString.h"
 
 #include <type_traits>
 
+
 inline uint32 HashValue(char const* str)
 {
-	int32 hash = 5381;
-	int c;
-
-	while( c = *str++ )
-	{
-		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-	}
-	return hash;
+	return FCString::StrHash(str);
 }
 
 inline uint32 HashValue(char const* str, int num)
 {
-	uint32 hash = 5381;
-
-	while( num )
-	{
-		uint32 c = (uint32)*str++;
-		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-		--num;
-	}
-	return hash;
+	return FCString::StrHash(str, num);
 }
 
 inline uint32 HashValue(void const* pData, int num)

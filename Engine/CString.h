@@ -317,6 +317,8 @@ struct FCString
 
 	static std::wstring CharToWChar(const char *c);
 	static std::string WCharToChar(const wchar_t* str);
+
+	static bool IsConstSegment(void const* ptr);
 };
 
 template< class CharT, class T >

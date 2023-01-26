@@ -109,7 +109,6 @@ IDI_ICON1               ICON                    "Resource\\GameIcon.ico"
 // DATA
 //
 
-IDR_DATA1               DATA                    "Poker\\cards.bin"
 
 #endif    // Chinese (Traditional, Taiwan) resources
 /////////////////////////////////////////////////////////////////////////////

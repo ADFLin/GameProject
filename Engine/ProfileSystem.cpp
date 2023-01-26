@@ -105,7 +105,8 @@ public:
 	{
 		if (threadId)
 		{
-
+			//#TODO:impl
+			return nullptr;
 		}
 		else
 		{

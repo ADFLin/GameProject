@@ -216,7 +216,7 @@ namespace Render
 	{
 #if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
-		shader.mRHIResource = setupData.resource;
+
 		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
 
 		D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);

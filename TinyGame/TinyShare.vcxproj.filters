@@ -121,9 +121,6 @@
     <ClCompile Include="TinyCore\GameControl.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="TinyCore\GameDllMain.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="TinyCore\GameGlobal.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -203,5 +200,8 @@
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="TinyCore\RenderDebug.cpp" />
+    <ClCompile Include="TinyCore\GameDllMain.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -36,6 +36,8 @@ enum class ESGIntrinsicFunc
 	Cos,
 	Tan,
 	Abs,
+	Exp,
+	Log,
 };
 
 class SGNode;
@@ -53,6 +55,7 @@ public:
 	virtual int32 emitTexcoord(int index) = 0;
 	virtual int32 emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index) = 0;
 
+	virtual int32 emitTime(bool bReal) = 0;
 	virtual int32 emitNode(SGNode& node) = 0;
 };
 
@@ -70,56 +73,90 @@ class SGNode : public std::enable_shared_from_this<SGNode>
 {
 public:
 
-	int32 id;
-
 	std::vector<SGNodeInput>  inputs;
-	std::vector< std::weak_ptr<SGNode> > linkedNodes;
 
-	void linkOutput(SGNode& node, int index)
+	struct LinkInfo
+	{
+		int index;
+		std::weak_ptr<SGNode> node;
+
+		bool isValid() const { return node.expired() == false; }
+
+		SGNodeInput& getIntput()
+		{
+			CHECK(node.expired() == false);
+			return node.lock()->inputs[index];
+		}
+	};
+	std::vector< LinkInfo > outputLinks;
+
+	void* getOutputId() { return &outputLinks; }
+	static SGNode* GetFromOuputId(void* ptr)
+	{
+		return reinterpret_cast<SGNode*>((uint8*)(ptr)-offsetof(SGNode, outputLinks));
+	}
+
+	void linkTo(SGNode& node, int index)
 	{
 		CHECK(IsValidIndex(node.inputs, index));
 
 		SGNodeInput* input = &node.inputs[index];
-		linkedNodes.push_back(node.weak_from_this());
+		if (!input->link.expired())
+		{
+			node.unlinkInput(index);
+		}
+		LinkInfo link;
+		link.index = index;
+		link.node = node.weak_from_this();
+		outputLinks.push_back(link);
 		input->link = weak_from_this();
 	}
 
-	void unlinkOutput()
+	void unlinkAllOutputs()
 	{
-		for (auto weakNode : linkedNodes)
+		for (auto& link : outputLinks)
 		{
-			if ( weakNode.expired())
-				continue;
-
-			weakNode.lock()->removeInputsLink(*this);
+			if (!link.node.expired())
+			{
+				link.node.lock()->unlinkInput(link.index);
+			}
 		}
-		linkedNodes.clear();
+		outputLinks.clear();
 	}
 
 	void unlinkInput(int index)
 	{
+		SGNodeInput& input = inputs[index];
+		CHECK(input.link.expired() == false);
+		input.link.lock()->removeOutputLink(*this, index);
+		input.link.reset();
+	}
 
-
+	void removeOutputLink(SGNode& node, int index)
+	{
+		for (auto iter = outputLinks.begin(), itEnd = outputLinks.end();
+			iter != itEnd; ++iter)
+		{
+			auto& link = *iter;
+			if (link.index == index && link.node.lock().get() == &node)
+			{
+				outputLinks.erase(iter);
+				return;
+			}
+		}
 	}
 
 	virtual ESGValueType getOutputType() = 0;
 	virtual int32 compile(SGCompiler& compiler) = 0;
 
+
+	virtual std::string getTitle() = 0;
+
+	virtual SGNode* copy() = 0;
+
 private:
 
-	void removeInputsLink(SGNode& node)
-	{
-		for (auto& input : inputs)
-		{
-			if (input.link.expired())
-				continue;
 
-			if (input.link.lock() == node.shared_from_this())
-			{
-				input.link.reset();
-			}
-		}
-	}
 
 };
 
@@ -157,8 +194,30 @@ public:
 		return compiler.emitConst(type, value);
 	}
 
+	std::string getTitle() override
+	{
+		switch (type)
+		{
+		case ESGValueType::Float1:
+			return InlineString<>::Make("%g", value.x);
+		case ESGValueType::Float2:
+			return InlineString<>::Make("float2(%g, %g)", value.x, value.y);
+		case ESGValueType::Float3:
+			return InlineString<>::Make("float3(%g, %g, %g)", value.x, value.y, value.z);
+		case ESGValueType::Float4:
+			return InlineString<>::Make("float4(%g, %g, %g, %g)", value.x, value.y, value.z, value.w);
+		}
+		return "Unknown Const Value";
+	}
+
 	ESGValueType type;
 	Vector4 value;
+
+	virtual SGNode* copy() override
+	{
+		return new SGNodeConst(*this);
+	}
+
 };
 
 
@@ -209,15 +268,40 @@ public:
 		return lhs;
 	}
 
+	std::string getTitle() override
+	{
+		switch (op)
+		{
+		case ESGValueOperator::Add:
+			return "+";
+		case ESGValueOperator::Sub:
+			return "-";
+		case ESGValueOperator::Mul:
+			return "*";
+		case ESGValueOperator::Div:
+			return "/";
+		}
+		return "Unknown Operator";
+	}
 
 
 	ESGValueOperator op;
+
+	virtual SGNode* copy() override
+	{
+		return new SGNodeOperator(op);
+	}
 
 };
 
 class SGNodeTexcooord : public SGNode
 {
 public:
+	SGNodeTexcooord(int index = 0)
+		:index(index)
+	{
+
+	}
 	ESGValueType getOutputType()
 	{
 		return ESGValueType::Float2;
@@ -227,6 +311,17 @@ public:
 	{
 		return compiler.emitTexcoord(index);
 	}
+
+	std::string getTitle() override
+	{
+		return InlineString<>::Make("Texcoord[%d]", index);
+	}
+
+	virtual SGNode* copy() override
+	{
+		return new SGNodeTexcooord(index);
+	}
+
 	int index = 0;
 };
 
@@ -238,7 +333,6 @@ public:
 	{
 		SGNodeInput pin;
 		pin.type = ESGValueType::FloatType;
-		inputs.push_back(pin);
 		inputs.push_back(pin);
 	}
 	virtual ESGValueType getOutputType()
@@ -252,6 +346,61 @@ public:
 		return compiler.emitIntrinsicFunc(func, index);
 	}
 
+	std::string getTitle() override
+	{
+		switch (func)
+		{
+		case ESGIntrinsicFunc::Sin:
+			return "Sin";
+		case ESGIntrinsicFunc::Cos:
+			return "Cos";
+		case ESGIntrinsicFunc::Tan:
+			return "Tan";
+		case ESGIntrinsicFunc::Abs:
+			return "Abs";
+		case ESGIntrinsicFunc::Exp:
+			return "Exp";
+		case ESGIntrinsicFunc::Log:
+			return "Log";
+		}
+
+		return "Unknown Func";
+	}
+
+	virtual SGNode* copy() override
+	{
+		return new SGNodeIntrinsicFunc(func);
+	}
+};
+
+class SGNodeTime : public SGNode
+{
+public:
+	SGNodeTime(bool bReal)
+		:bReal(bReal)
+	{
+
+	}
+	virtual ESGValueType getOutputType()
+	{
+		return ESGValueType::Float1;
+	}
+	int32 compile(SGCompiler& compiler)
+	{
+		return compiler.emitTime(bReal);
+	}
+
+	std::string getTitle() override
+	{
+		return "GameTime";
+	}
+
+	virtual SGNode* copy() override
+	{
+		return new SGNodeTime(bReal);
+	}
+
+	bool bReal;
 };
 
 enum class ESGDomainType
@@ -282,7 +431,8 @@ public:
 	void linkDomainInput(SGNode& node, int index)
 	{
 		CHECK(IsValidIndex(domainInputs, index));
-		domainInputs[index].link = node.weak_from_this();
+		DomainInput& input = domainInputs[index];
+		input.link = node.weak_from_this();
 	}
 
 	void setDoamin(ESGDomainType doamin)
@@ -291,7 +441,7 @@ public:
 			return;
 
 		mDomain = doamin;
-		std::vector<SGNodeInput> domainInputsOld = domainInputs;
+		std::vector<DomainInput> domainInputsOld = domainInputs;
 
 		domainInputs.clear();
 		switch (doamin)
@@ -306,8 +456,54 @@ public:
 			break;
 		}
 	}
+
+	bool isDomainInput(SGNodeInput* input, int& outIndex)
+	{
+		int index = 0;
+		for (auto& domainInput : domainInputs)
+		{
+			if (&domainInput == input)
+			{
+				outIndex = index;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	SGNode* findNode(SGNodeInput* input, int& outIndex)
+	{
+		for (auto& node : nodes)
+		{
+			int index = 0;
+			for (auto& curInput : node->inputs)
+			{
+				if (input == &curInput)
+				{
+					outIndex = index;
+					return node.get();
+				}
+				++index;
+			}
+		}
+		return nullptr;
+	}
+
+	bool isNodeOutputId(void* ptr)
+	{
+		for (auto& node : nodes)
+		{
+			if (ptr == node->getOutputId())
+				return true;
+		}
+		return false;
+	}
 	ESGDomainType mDomain;
-	std::vector<SGNodeInput> domainInputs;
+	struct DomainInput : SGNodeInput
+	{
+		Vector4 defaultValue;
+	};
+	std::vector<DomainInput> domainInputs;
 };
 
 class SGCompilerCodeGen : public SGCompiler
@@ -324,7 +520,7 @@ public:
 
 		codeValueType(type);
 		codeSpace();
-		codeVarString(result);
+		codeVarName(result);
 		codeString("=");
 		codeValue(type, value);
 		codeString(";");
@@ -352,9 +548,7 @@ public:
 	int32 emitOp(int32 lhs, int32 rhs, char const* op)
 	{
 		ESGValueType typeL = getValueType(lhs);
-		ESGValueType typeR = getValueType(lhs);
-
-
+		ESGValueType typeR = getValueType(rhs);
 		ESGValueType type = typeL;
 		if (typeL != typeR)
 		{
@@ -367,11 +561,11 @@ public:
 		int32 result = addLocal(type);
 		codeValueType(type);
 		codeSpace();
-		codeVarString(result);
+		codeVarName(result);
 		codeString("=");
-		codeVarString(lhs);
+		codeVarName(lhs);
 		codeString(op);
-		codeVarString(rhs);
+		codeVarName(rhs);
 		codeString(";");
 		codeNextline();
 		return result;
@@ -380,7 +574,7 @@ public:
 	int32 emitTexcoord(int index)
 	{
 		InlineString<> text;
-		text.format("parameter.texCoords[%d]", index);
+		text.format("Parameters.texCoords[%d]", index);
 		return addSymbol(ESGValueType::Float2, text, false);
 	}
 
@@ -457,7 +651,7 @@ public:
 		}
 	}
 
-	void codeVarString(int32 index)
+	void codeVarName(int32 index)
 	{
 		if (IsLocal(index))
 		{
@@ -535,7 +729,7 @@ public:
 
 
 	int32 emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index) override;
-
+	int32 emitTime(bool bReal) override;
 };
 
 #endif // ShaderGraph_H_8C052C61_D77D_4EE8_AE31_1FEC9A95389E

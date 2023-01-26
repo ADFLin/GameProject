@@ -5,13 +5,9 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <cmath>
 #include <cassert>
-
-
-
-using std::string;
 
 class CodeTemplate;
 class SymbolTable;
@@ -494,7 +490,7 @@ protected:
 	{
 		return findSymbol(name, type) != nullptr;
 	}
-	std::map< HashString, SymbolEntry > mNameToEntryMap;
+	std::unordered_map< HashString, SymbolEntry > mNameToEntryMap;
 
 };
 
@@ -541,7 +537,7 @@ private:
 	Node& getNode( int idx ){ return mTreeNodes[ idx ]; }
 	void  printSpace( int num );
 	void  printTree_R( int idxNode , int depth );
-	int   buildTree_R( int idxParent , int idxStart , int idxEnd , bool funDef );
+	int   buildTree_R( int idxParent , int idxStart , int idxEnd , bool funcDef );
 	void  convertPostfixCode_R( UnitCodes& codes , int idxNode );
 	ErrorCode   checkTreeError_R( int idxNode );
 	int   optimizeNodeOrder_R( int idxNode );

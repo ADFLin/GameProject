@@ -233,7 +233,6 @@ namespace Render
 
 	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
 	{
-		shader.mRHIResource = setupData.resource;
 		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
 		D3D11ShaderCompileIntermediates* intermediateData = static_cast<D3D11ShaderCompileIntermediates*>(setupData.intermediateData.get());
 

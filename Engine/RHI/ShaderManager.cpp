@@ -901,15 +901,13 @@ namespace Render
 				LogDevMsg(0, "Recompile shader : %s ", managedData.descList[0].filePath.c_str());
 			}
 
-			//if (!shaderProgram.mRHIResource.isValid())
-			{
-				shaderProgram.mRHIResource = RHICreateShaderProgram();
-				if (!shaderProgram.mRHIResource.isValid())
-					return false;
-			}
-
 			ShaderProgramSetupData setupData;
-			setupData.resource = shaderProgram.mRHIResource;
+
+			shaderProgram.mRHIResource.release();
+			setupData.resource = RHICreateShaderProgram();
+			if (!setupData.resource.isValid())
+				return false;
+	
 			setupData.managedData = &managedData;
 			mShaderFormat->precompileCode(setupData);
 
@@ -952,8 +950,10 @@ namespace Render
 				return false;
 			}
 	
+			shaderProgram.mRHIResource = setupData.resource;
 			if (!mShaderFormat->initializeProgram(shaderProgram, setupData))
 			{
+				shaderProgram.mRHIResource.release();
 				return false;
 			}
 
@@ -1002,6 +1002,11 @@ namespace Render
 			}
 
 			ShaderSetupData setupData;
+			shader.mRHIResource.release();
+			setupData.resource = RHICreateShader(managedData.desc.type);
+			if (!setupData.resource.isValid())
+				return false;
+
 			setupData.managedData = &managedData;
 
 			mShaderFormat->precompileCode(setupData);
@@ -1038,8 +1043,10 @@ namespace Render
 				return false;
 			}
 
+			shader.mRHIResource = setupData.resource;
 			if (!mShaderFormat->initializeShader(shader, setupData))
 			{
+				shader.mRHIResource.release();
 				return false;
 			}
 

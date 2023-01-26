@@ -222,11 +222,10 @@ namespace CPP
 
 		bool tokenIdentifier(StringView& outIdentifier)
 		{
-			char const* start = _this()->getCur();
-
 			if (!IsValidStartCharForIdentifier(_this()->getChar()))
 				return false;
 			
+			char const* start = _this()->getCur();
 			do
 			{
 				_this()->advance();
@@ -235,7 +234,6 @@ namespace CPP
 
 			outIdentifier = StringView(start, _this()->getCur() - start);
 			return true;
-
 		}
 
 		bool tokenNumber(int& outValue)
@@ -603,15 +601,14 @@ namespace CPP
 
 		struct MarcoSymbol
 		{
-			StringView  name;
+			//StringView  name;
 			std::string expr;
 			int numArgs;
 
 			uint32 flags;
 			enum EFlags
 			{
-				ConstEvalValue = BIT(0), 
-
+				ConstEvalValue = BIT(0),
 			};
 
 			struct ArgEntry

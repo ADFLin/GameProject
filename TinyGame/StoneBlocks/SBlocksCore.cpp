@@ -73,7 +73,7 @@ namespace SBlocks
 
 
 
-	void PieceShapeData::generateOuterConPosList(std::vector< Int16Point2D >& outPosList) const
+	void PieceShapeData::generateOuterConPosList(TArray< Int16Point2D >& outPosList) const
 	{
 		for (auto const& block : blocks)
 		{
@@ -146,7 +146,7 @@ namespace SBlocks
 	}
 
 
-	void PieceShapeData::generateOutline(std::vector<Line>& outlines)
+	void PieceShapeData::generateOutline(TArray<Line>& outlines)
 	{
 		auto FindBlock = [&](Int16Point2D const& inBlock) -> bool
 		{
@@ -158,8 +158,8 @@ namespace SBlocks
 			return false;
 		};
 
-		std::vector< Line > HLines;
-		std::vector< Line > VLines;
+		TArray< Line > HLines;
+		TArray< Line > VLines;
 		for (auto const& block : blocks)
 		{
 			if (FindBlock(block.pos + Int16Point2D(0, -1)) == false)
@@ -192,7 +192,7 @@ namespace SBlocks
 			}
 		}
 
-		auto MergeLine = [](std::vector< Line >& lines)
+		auto MergeLine = [](TArray< Line >& lines)
 		{
 			int numLines = lines.size();
 			for (int i = 0; i < numLines; ++i)
@@ -391,11 +391,38 @@ namespace SBlocks
 
 	bool MarkMap::tryLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
+#if 1
+		int index = 0;
+		for (; index < shapeData.blocks.size(); ++index)
+		{
+			auto const& block = shapeData.blocks[index];
+
+			Vec2i mapPos = pos + block.pos;
+			CHECK(mData.checkRange(mapPos.x, mapPos.y));
+			uint8& data = mData.getData(mapPos.x, mapPos.y);
+			if (!CanLock(data) || GetType(data) != block.type)
+			{
+				for (int i = 0; i < index; ++i)
+				{
+					auto const& block = shapeData.blocks[i];
+					Vec2i mapPos = pos + block.pos;
+					uint8& data = mData.getData(mapPos.x, mapPos.y);
+					RemoveLock(data);
+				}
+				return false;
+			}
+			AddLock(data);
+		}
+
+		numBlockLocked += shapeData.blocks.size();
+		return true;
+#else
 		if (!canLockAssumeInBound(pos, shapeData))
 			return false;
 
 		lockChecked(pos, shapeData);
 		return true;
+#endif
 	}
 
 	bool MarkMap::canLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData)
@@ -639,7 +666,7 @@ namespace SBlocks
 
 	Piece* Level::createPiece(PieceDesc const& desc)
 	{
-		if (IsValidIndex(mShapes, desc.id) == false)
+		if (mShapes.isValidIndex(desc.id) == false)
 			return nullptr;
 		
 		std::unique_ptr< Piece > piece = std::make_unique< Piece >();
@@ -687,7 +714,7 @@ namespace SBlocks
 
 	void Level::removePieceShape(PieceShape* shape)
 	{
-		RemovePred(mShapes, [shape](auto const& value) { return value.get() == shape; });
+		mShapes.removePred([shape](auto const& value) { return value.get() == shape; });
 	}
 
 	bool Level::tryLockPiece(Piece& piece)

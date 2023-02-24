@@ -31,7 +31,7 @@ namespace Life
 		}
 	}
 
-	void SimpleAlgo::getPattern(std::vector<Vec2i>& outList)
+	void SimpleAlgo::getPattern(TArray<Vec2i>& outList)
 	{
 		for (int j = 0; j < mGrid.getSizeY(); ++j)
 		{
@@ -46,7 +46,7 @@ namespace Life
 		}
 	}
 
-	void SimpleAlgo::getPattern(BoundBox const& bound, std::vector<Vec2i>& outList)
+	void SimpleAlgo::getPattern(BoundBox const& bound, TArray<Vec2i>& outList)
 	{
 		BoundBox boundClip = bound.intersection(getBound());
 		for (int j = boundClip.min.y; j <= boundClip.max.y; ++j)

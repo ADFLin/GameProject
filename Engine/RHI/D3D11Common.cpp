@@ -291,7 +291,7 @@ namespace Render
 		mUniversalResource = nullptr;
 	}
 
-	ID3D11InputLayout* D3D11InputLayout::getShaderLayout(ID3D11Device* device, RHIResource* resource , std::vector< uint8 > const& shaderByteCode)
+	ID3D11InputLayout* D3D11InputLayout::getShaderLayout(ID3D11Device* device, RHIResource* resource , TArray< uint8 > const& shaderByteCode)
 	{
 		auto iter = mResourceMap.find(resource);
 		if (iter != mResourceMap.end())

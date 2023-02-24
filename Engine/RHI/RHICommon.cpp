@@ -23,7 +23,7 @@ namespace Render
 		char const* name;
 		int count;
 	};
-	static std::vector< TraceTagInfo > GTagStack;
+	static TArray< TraceTagInfo > GTagStack;
 	void RHIResource::SetNextResourceTag(char const* tag, int count)
 	{
 		if (tag)

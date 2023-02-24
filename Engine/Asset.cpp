@@ -1,13 +1,17 @@
 #include "Asset.h"
 
 #include "FileSystem.h"
-#include <cassert>
 #include "LogSystem.h"
+
+#include <cassert>
 
 #if SYS_PLATFORM_WIN
 
 #include "Shlwapi.h"
 #include "Core/ScopeGuard.h"
+
+#include <unordered_map>
+#include "Misc/StringPtrWrapper.h"
 
 #pragma comment(lib,"Shlwapi.lib")
 
@@ -75,7 +79,7 @@ public:
 			return ::wcscmp(s1, s2) < 0;
 		}
 	};
-	typedef std::map< wchar_t const*, DirMonitorInfo*, StrCmp > WatchDirMap;
+	typedef std::unordered_map< WStringPtrWrapper, DirMonitorInfo*> WatchDirMap;
 
 	DWORD       mLastError;
 	WatchDirMap mDirMap;
@@ -144,7 +148,7 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 	}
 
 	if( !mhIOCP )
-		return EFileMonitorStatus::IOCPError;
+		return EFileMonitorStatus::IOError;
 
 
 	std::unique_ptr< DirMonitorInfo > info = std::make_unique<DirMonitorInfo>();
@@ -190,7 +194,7 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 
 	if( ::CreateIoCompletionPort(info->handle, mhIOCP, (ULONG_PTR)info->handle, 0) == NULL )
 	{
-		return EFileMonitorStatus::IOCPError;
+		return EFileMonitorStatus::IOError;
 	}
 
 
@@ -248,8 +252,9 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 	if( !GetQueuedCompletionStatus(mhIOCP, &dwBytesXFered, &ulKey, &pOl, 0) )
 	{
 		if( GetLastError() == WAIT_TIMEOUT )
-			return EFileMonitorStatus::DirNoChange;
-		return EFileMonitorStatus::IOCPError;
+			return EFileMonitorStatus::OK;
+
+		return EFileMonitorStatus::IOError;
 	}
 
 	DirMonitorInfo* pDirFind = nullptr;
@@ -393,7 +398,7 @@ bool AssetManager::registerViewer(IAssetViewer* asset)
 {
 	assert(asset);
 
-	std::vector< std::wstring > paths;
+	TArray< std::wstring > paths;
 	asset->getDependentFilePaths(paths);
 
 	for ( auto const& path : paths )
@@ -412,7 +417,7 @@ bool AssetManager::registerViewer(IAssetViewer* asset)
 
 void AssetManager::unregisterViewer(IAssetViewer* asset)
 {
-	std::vector< std::wstring > paths;
+	TArray< std::wstring > paths;
 	asset->getDependentFilePaths(paths);
 
 	for( auto& path : paths )

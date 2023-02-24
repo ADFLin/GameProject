@@ -3,9 +3,7 @@
 
 #include "Math/TVector2.h"
 #include "DataStructure/Grid2D.h"
-
-#include <vector>
-#include <list>
+#include "DataStructure/Array.h"
 
 typedef TVector2< int > Vec2i;
 
@@ -70,7 +68,7 @@ namespace GreedySnake
 		Element const& getHead(){ return Elements[ mIdxHead ];  }
 		Element const& getTail(){ return Elements[ mIdxTail ];  } 
 
-		typedef std::vector< Element > ElementVec;
+		typedef TArray< Element > ElementVec;
 		class Iterator
 		{
 		public:
@@ -243,7 +241,7 @@ namespace GreedySnake
 		void      removeSnakeMark( Snake& snake);
 		void      removeSnakeBodyElementMark( unsigned id , Vec2i const& pos );
 		
-		typedef std::list< FoodInfo > FoodVec;
+		typedef TArray< FoodInfo > FoodVec;
 		FoodVec    mFoodVec;
 		Listener*  mListener;
 		int        mNumSnakePlay;

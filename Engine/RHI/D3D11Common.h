@@ -10,10 +10,12 @@
 #include "Platform/Windows/ComUtility.h"
 
 #include "InlineString.h"
+#include "DataStructure/Array.h"
 
 #include <D3D11.h>
 
 #include <unordered_map>
+
 
 namespace Render
 {
@@ -766,9 +768,9 @@ namespace Render
 		{
 			return !!(mAttriableMask & BIT(attribute));
 		}
-		ID3D11InputLayout* getShaderLayout(ID3D11Device* device, RHIResource* resource, std::vector< uint8 > const& shaderByteCode);
+		ID3D11InputLayout* getShaderLayout(ID3D11Device* device, RHIResource* resource, TArray< uint8 > const& shaderByteCode);
 
-		std::vector< D3D11_INPUT_ELEMENT_DESC > mDescList;
+		TArray< D3D11_INPUT_ELEMENT_DESC > mDescList;
 		uint32 mAttriableMask;
 		ID3D11InputLayout* mUniversalResource;
 		std::unordered_map< RHIResource*, ID3D11InputLayout* > mResourceMap;

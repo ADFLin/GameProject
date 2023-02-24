@@ -68,10 +68,10 @@ namespace Go
 		int   nodeVisited;
 		float winRate;
 		float evalValue;
-		std::vector< PlayVertex > vSeq;
+		TArray< PlayVertex > vSeq;
 	};
 
-	typedef std::vector< LeelaThinkInfo >  LeelaThinkInfoVec;
+	typedef TArray< LeelaThinkInfo >  LeelaThinkInfoVec;
 
 	struct LeelaAppRun : public GTPLikeAppRun
 	{

@@ -10,8 +10,10 @@
 #include "HashString.h"
 #include "Core/TypeHash.h"
 #include "CoreShare.h"
+#include "DataStructure/Array.h"
 
 #include <unordered_map>
+
 
 
 
@@ -30,7 +32,7 @@ namespace Render
 		int    imageWidth;
 		int    imageHeight;
 		int    pixelSize;
-		std::vector<uint8> imageData;
+		TArray<uint8> imageData;
 	};
 
 
@@ -188,12 +190,12 @@ namespace Render
 		bool initialize(FontFaceInfo const& fontFace);
 		bool isValid() const { return mCharDataSet != nullptr; }
 		void cleanup();
-		void generateVertices(Vector2 const& pos, char const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
-		void generateVertices(Vector2 const& pos, wchar_t const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
 
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
-		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, std::vector< FontVertex > const& buffer);
+		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< FontVertex > const& buffer);
 
 		int  getFontHeight() const { return mCharDataSet->getFontHeight(); }
 		Vector2 calcTextExtent(wchar_t const* str);

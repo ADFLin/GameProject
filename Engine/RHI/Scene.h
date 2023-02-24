@@ -108,8 +108,8 @@ namespace Render
 		typedef std::unique_ptr< SceneObject > SceneObjectPtr;
 		PrimitivesCollection primitiveCollection;
 		PrimitivesCollection dynamicPrimitiveCollection;
-		std::vector< SceneObjectPtr > objectList;
-		std::vector< SceneLightPtr > lights;
+		TArray< SceneObjectPtr > objectList;
+		TArray< SceneLightPtr > lights;
 		friend class SceneRenderer;
 		bool bNeedUpdatePrimitive;
 	};

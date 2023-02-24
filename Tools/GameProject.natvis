@@ -32,7 +32,16 @@
   <Type Name="InlineString&lt;*&gt;" >
     <DisplayString>{mData}</DisplayString>
   </Type>
-
+  <Type Name="TArray&lt;*,*&gt;" >
+    <DisplayString>{{ size={mNum} }}</DisplayString>
+    <Expand>
+      <Item Name ="capacity">mMaxSize</Item>
+      <ArrayItems>
+        <Size>mNum</Size>
+        <ValuePointer>($T1*)mStorage</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
   <Type Name="HashString">
     <DisplayString>
       { ((EngineShare.dll!NameSlot*)(EngineShare.dll!HashStringInternal::sNameSlots.mChunkStorage[ ( mIndex &gt;&gt; 1 ) / EngineShare.dll!NameSlotChunkNum ]) + ( mIndex &gt;&gt; 1 ) % EngineShare.dll!NameSlotChunkNum)->str }

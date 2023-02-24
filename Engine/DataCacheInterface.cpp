@@ -134,7 +134,7 @@ public:
 		return true;
 	}
 
-	bool load(DataCacheKey const& key, std::vector<uint8>& outBuffer) override
+	bool load(DataCacheKey const& key, TArray<uint8>& outBuffer) override
 	{
 		if (isDataIgnored(key))
 			return true;

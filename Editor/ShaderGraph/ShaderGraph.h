@@ -6,6 +6,7 @@
 #include "Math/Vector4.h"
 #include "StdUtility.h"
 #include "InlineString.h"
+#include "DataStructure/Array.h"
 
 #include <memory>
 
@@ -73,7 +74,7 @@ class SGNode : public std::enable_shared_from_this<SGNode>
 {
 public:
 
-	std::vector<SGNodeInput>  inputs;
+	TArray<SGNodeInput>  inputs;
 
 	struct LinkInfo
 	{
@@ -88,7 +89,7 @@ public:
 			return node.lock()->inputs[index];
 		}
 	};
-	std::vector< LinkInfo > outputLinks;
+	TArray< LinkInfo > outputLinks;
 
 	void* getOutputId() { return &outputLinks; }
 	static SGNode* GetFromOuputId(void* ptr)
@@ -98,7 +99,7 @@ public:
 
 	void linkTo(SGNode& node, int index)
 	{
-		CHECK(IsValidIndex(node.inputs, index));
+		CHECK(node.inputs.isValidIndex(index));
 
 		SGNodeInput* input = &node.inputs[index];
 		if (!input->link.expired())
@@ -426,11 +427,11 @@ public:
 	{
 		nodes.clear();
 	}
-	std::vector<SGNodePtr> nodes;
+	TArray<SGNodePtr> nodes;
 
 	void linkDomainInput(SGNode& node, int index)
 	{
-		CHECK(IsValidIndex(domainInputs, index));
+		CHECK(domainInputs.isValidIndex(index));
 		DomainInput& input = domainInputs[index];
 		input.link = node.weak_from_this();
 	}
@@ -441,7 +442,7 @@ public:
 			return;
 
 		mDomain = doamin;
-		std::vector<DomainInput> domainInputsOld = domainInputs;
+		TArray<DomainInput> domainInputsOld = domainInputs;
 
 		domainInputs.clear();
 		switch (doamin)
@@ -503,7 +504,7 @@ public:
 	{
 		Vector4 defaultValue;
 	};
-	std::vector<DomainInput> domainInputs;
+	TArray<DomainInput> domainInputs;
 };
 
 class SGCompilerCodeGen : public SGCompiler
@@ -720,11 +721,11 @@ public:
 		}
 	}
 
-	std::vector< std::string > mDomionInputCodes;
+	TArray< std::string > mDomionInputCodes;
 	std::string mCode;
-	std::vector<Symbol> mSymbols;
+	TArray<Symbol> mSymbols;
 
-	std::vector<LocalVar> mLocalVars;
+	TArray<LocalVar> mLocalVars;
 
 
 

@@ -5,7 +5,10 @@
 #include "RHI/RHICommon.h"
 #include "Renderer/MeshImportor.h"
 
+#include "DataStructure/Array.h"
+
 #include "fbxsdk.h"
+
 
 #if _DEBUG
 #pragma comment(lib, "debug/libfbxsdk.lib")
@@ -23,7 +26,7 @@ namespace Render
 
 		void cleanup();
 		bool importFromFile(char const* filePath, Mesh& outMesh, MeshImportSettings* settings) override;
-		bool importMultiFromFile(char const* filePath, std::vector<Mesh>& outMeshes, MeshImportSettings* settings) override;
+		bool importMultiFromFile(char const* filePath, TArray<Mesh>& outMeshes, MeshImportSettings* settings) override;
 
 		struct FBXConv
 		{
@@ -59,11 +62,11 @@ namespace Render
 		};
 		struct FBXVertexFormat
 		{
-			std::vector< FBXElementDataInfo > colors;
-			std::vector< FBXElementDataInfo > normals;
-			std::vector< FBXElementDataInfo > tangents;
-			std::vector< FBXElementDataInfo > binormals;
-			std::vector< FBXElementDataInfo > texcoords;
+			TArray< FBXElementDataInfo > colors;
+			TArray< FBXElementDataInfo > normals;
+			TArray< FBXElementDataInfo > tangents;
+			TArray< FBXElementDataInfo > binormals;
+			TArray< FBXElementDataInfo > texcoords;
 
 			void getMeshInputLayout(InputLayoutDesc& inputLayout, bool bAddNormalTangent)
 			{
@@ -98,18 +101,18 @@ namespace Render
 		struct FBXPolygon
 		{
 			int polygonId;
-			std::vector< int > groups;
+			TArray< int > groups;
 		};
 
 		static void GetMeshVertexFormat(FbxMesh* pMesh, FBXVertexFormat& outFormat);
 
 		struct MeshData 
 		{
-			std::vector<uint8>  vertices;
-			std::vector<uint32> indices;
+			TArray<uint8>  vertices;
+			TArray<uint32> indices;
 			int numVertices = 0;
 			InputLayoutDesc desc;
-			std::vector<MeshSection> sections;
+			TArray<MeshSection> sections;
 
 			void initSections()
 			{
@@ -127,10 +130,10 @@ namespace Render
 				}
 
 				uint32 baseIndex = numVertices;
-				vertices.insert(vertices.end(), other.vertices.begin(), other.vertices.end());
+				vertices.append(other.vertices);
 				
 				int start = indices.size();
-				indices.insert(indices.end(), other.indices.begin(), other.indices.end());
+				indices.append(other.indices);
 				for (int i = start; i < indices.size(); ++i)
 				{
 					indices[i] += baseIndex;

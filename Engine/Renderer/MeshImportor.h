@@ -8,9 +8,11 @@
 #include "CoreShare.h"
 #include "Meta/IsBaseOf.h"
 #include "MarcoCommon.h"
+#include "DataStructure/Array.h"
 
 #include <memory>
 #include <unordered_map>
+
 
 namespace Render
 {
@@ -27,7 +29,7 @@ namespace Render
 	public:
 		virtual ~IMeshImporter() {}
 		virtual bool importFromFile(char const* filePath, Mesh& outMesh, MeshImportSettings* settings) = 0; 
-		virtual bool importMultiFromFile(char const* filePath, std::vector< Mesh >& outMeshes, MeshImportSettings* settings) = 0;
+		virtual bool importMultiFromFile(char const* filePath, TArray< Mesh >& outMeshes, MeshImportSettings* settings) = 0;
 	};
 	using IMeshImporterPtr = std::shared_ptr< IMeshImporter >;
 	class IMeshImporterFactory

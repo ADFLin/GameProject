@@ -42,8 +42,8 @@ void MainPS()
 
 	float4 color = texture(SamplerColor, VSOutput.UVs, 0);
 
-	//outColor = vec4(UVs, 0, 1.0);
-	outColor = color;
+	outColor = vec4(VSOutput.UVs, 0, 1.0);
+	//outColor = color;
 }
 
 #endif

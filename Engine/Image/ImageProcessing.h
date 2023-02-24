@@ -4,7 +4,7 @@
 
 #include "Core/Color.h"
 #include "Math/TVector2.h"
-#include <vector>
+#include "DataStructure/Array.h"
 
 template< class T >
 class TImageView
@@ -76,7 +76,6 @@ public:
 };
 
 
-
 struct FColorTraits
 {
 
@@ -110,7 +109,7 @@ void GrayScale(TImageView< T > const& input, TImageView< Q >& output)
 }
 
 
-void Downsample(TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView);
+void Downsample(TImageView< float > const& input, TArray< float >& outData, TImageView<float>& outView);
 
 
 FORCEINLINE float Dot3(float const* RESTRICT a, float const* RESTRICT b)
@@ -169,7 +168,7 @@ struct HoughSetting
 
 void Normalize(TImageView< float >& input);
 
-void HoughLines(HoughSetting const& setting, TImageView< float > const& input , std::vector< float >& outData , TImageView<float>& outView , std::vector< HoughLine >& outLines , std::vector<float>* outDebugData = nullptr );
+void HoughLines(HoughSetting const& setting, TImageView< float > const& input , TArray< float >& outData , TImageView<float>& outView , TArray< HoughLine >& outLines , TArray<float>* outDebugData = nullptr );
 
 template< class T >
 void Conv(TImageView< T > const& input, TImageView< T > const& fliter, TImageView< T >& output)

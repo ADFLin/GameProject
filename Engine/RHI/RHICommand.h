@@ -184,8 +184,8 @@ namespace Render
 	RHI_API void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
 	RHI_API void  RHIUnlockBuffer(RHIBuffer* buffer);
 
-	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
-	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
+	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
+	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
 	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
@@ -384,8 +384,8 @@ namespace Render
 		RHI_FUNC(void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
 		RHI_FUNC(void  RHIUnlockBuffer(RHIBuffer* buffer));
 
-		RHI_FUNC(void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData));
-		RHI_FUNC(void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData));
+		RHI_FUNC(void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData));
+		RHI_FUNC(void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData));
 
 		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
 		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));

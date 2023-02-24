@@ -7,9 +7,6 @@
 #include "DataStructure/Array.h"
 
 #include <cassert>
-#include <cstdio>
-#include <vector>
-
 
 typedef uint32 ControlAction;
 struct ActionPort
@@ -145,18 +142,15 @@ private:
 		}
 	}
 
-	typedef TArray< IActionListener*> ListenerList;
-	typedef TArray< IActionInput* >   InputList;
-
 	struct InputInfo
 	{
 		IActionInput* input;
 		unsigned     port;
 	};
-	std::vector< InputInfo >  mInputList;
-	std::vector< InputInfo* > mActiveInputs;
+	TArray< InputInfo >  mInputList;
+	TArray< InputInfo* > mActiveInputs;
 
-	std::vector< IActionListener* > mListeners;
+	TArray< IActionListener* > mListeners;
 
 	IActionLanucher* mLanucher;
 };

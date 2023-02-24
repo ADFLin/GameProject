@@ -22,7 +22,7 @@ namespace Render
 		int              idxStart;
 		int              numElement;
 
-		//TODO: use uniform buffer
+		//#TODO: use uniform buffer
 		Matrix4    world;
 		RHIBuffer* primitiveBuffer;
 
@@ -39,7 +39,7 @@ namespace Render
 		RHIInputLayout*  inputLayout;
 		Material*        material;
 		RHIBuffer*       vertexBuffer;
-		std::vector< MeshBatchElement > elements;
+		TArray< MeshBatchElement > elements;
 
 		void draw( RenderContext& context);
 
@@ -105,10 +105,10 @@ namespace Render
 		}
 
 		void drawDynamic(RenderContext& context);
-		std::vector< MeshBatch > mMeshBatchs;
-		std::vector< LineBatch > mLineBatchs;
+		TArray< MeshBatch > mMeshBatchs;
+		TArray< LineBatch > mLineBatchs;
 
-		std::vector< SimpleVertex > mCacheBuffer;
+		TArray< SimpleVertex > mCacheBuffer;
 	};
 
 

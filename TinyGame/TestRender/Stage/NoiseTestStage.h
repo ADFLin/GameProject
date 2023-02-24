@@ -549,14 +549,14 @@ namespace Render
 		InstancedMesh    mInstancedMesh;
 		bool             mbDrawInstaced = true;
 
-		std::vector< Vector2 > mImagePixels;
+		TArray< Vector2 > mImagePixels;
 
 		SmokeParams mSmokeParams;
 		float mDensityFactor = 1.0;
 		float mPhaseG = 0.3;
 		float mScatterCoefficient = 1;
 		float mAlbedo = 1;
-		std::vector< LightInfo > mLights;
+		TArray< LightInfo > mLights;
 
 		ERenderSystem getDefaultRenderSystem() override
 		{

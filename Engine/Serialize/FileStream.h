@@ -4,8 +4,10 @@
 
 #include "Serialize/DataStream.h"
 #include "HashString.h"
+#include "LogSystem.h"
 
 #include <fstream>
+
 
 struct FileVersionData
 {
@@ -46,13 +48,10 @@ public:
 		mFS.flush();
 	}
 
-	virtual int32 getVersion(HashString name) override
+	int32 getVersion(HashString name) override
 	{
-		auto iter = mRedirectVersionNameMap.find(name);
-		if (iter != mRedirectVersionNameMap.end())
-		{
-			name = iter->second;
-		}
+		while(redirectName(name)){}
+
 		if (name == EName::None)
 			return mMasterVersion;
 
@@ -63,7 +62,7 @@ public:
 		return 0;
 	}
 
-	virtual void redirectVersion(HashString from, HashString to)
+	void redirectVersion(HashString from, HashString to) override
 	{
 		if (from == to)
 		{
@@ -72,8 +71,42 @@ public:
 		else
 		{
 			mRedirectVersionNameMap[from] = to;
+#if _DEBUG
+			if (detectCycleRedirect(from))
+			{
+				LogError("Cycle Redirect detect!! %s -> %s", from.c_str(), to.c_str());
+				mRedirectVersionNameMap.erase(from);
+			}
+#endif
 		}
+	}
 
+	bool redirectName(HashString& inoutName)
+	{
+		auto iter = mRedirectVersionNameMap.find(inoutName);
+		if (iter == mRedirectVersionNameMap.end())
+			return false;
+		inoutName = iter->second;
+		return true;
+	}
+
+	bool detectCycleRedirect(HashString from)
+	{
+		HashString a = from;
+		HashString b = from;
+
+		for(;;)
+		{
+			if (!redirectName(a))
+				break;
+			if (!redirectName(b))
+				break;
+			if (!redirectName(b))
+				break;
+			if (a == b)
+				return true;
+		}
+		return false;
 	}
 protected:
 	std::unordered_map< HashString, HashString > mRedirectVersionNameMap;
@@ -87,10 +120,12 @@ class InputFileSerializer : public TFileFileSerializer< std::ifstream >
 {
 public:
 	bool open(char const* path, bool bCheckLegacy = false);
+	bool isEOF();
 	virtual void read(void* ptr, size_t num) override;
 	virtual void write(void const* ptr, size_t num) override;
 
 	size_t getSize();
+	std::ios::pos_type mEOFPos;
 
 	using IStreamSerializer::read;
 

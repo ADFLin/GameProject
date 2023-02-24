@@ -480,10 +480,10 @@ namespace SR
 		void lookAt(Vector3 pos, Vector3 lookPos, Vector3 upDir)
 		{
 			transform.location = pos;
-			Vector3 axisZ = Math::GetNormal(pos - lookPos);
-			Vector3 axisY = Math::GetNormal(upDir - upDir.projectNormal(axisZ));
-			Vector3 axisX = axisY.cross(axisZ);
-			transform.rotation = Matrix3(axisX, axisY, axisZ).toQuatNoScale();
+			Vector3 zAxis = Math::GetNormal(lookPos - pos);
+			Vector3 xAxis = Math::GetNormal(upDir.cross(zAxis));
+			Vector3 yAxis = zAxis.cross(xAxis);
+			transform.rotation = Matrix3(xAxis, yAxis, zAxis).toQuatNoScale();
 		}
 		float fov;
 		float aspect;
@@ -553,7 +553,9 @@ namespace SR
 	public:
 
 		bool bRayTracerUsed = true;
-		RayTraceRenderer mRTRenderer;
+		bool bRender = true;
+
+		RayTraceRenderer   mRTRenderer;
 		RasterizedRenderer mRenderer;
 
 		ColorBuffer mColorBuffer;
@@ -589,21 +591,30 @@ namespace SR
 			updateFrame(frame);
 		}
 
-		void renderTest1();
-		void renderTest2();
+		void renderTest1(RenderTarget& renderTarget);
+		void renderTest2(RenderTarget& renderTarget);
 
 	
 		void onRender(float dFrame) override
 		{
-			if( bRayTracerUsed )
+			Graphics2D& g = Global::GetGraphics2D();
+
+			if ( bRender )
 			{
-				renderTest2();
-			}
-			else
-			{
-				renderTest1();
+				RenderTarget renderTarget;
+				renderTarget.colorBuffer = &mColorBuffer;
+
+				if (bRayTracerUsed)
+				{
+					renderTest2(renderTarget);
+				}
+				else
+				{
+					renderTest1(renderTarget);
+				}
 			}
 			
+			mColorBuffer.draw(g);
 		}
 
 		void restart()

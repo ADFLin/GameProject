@@ -134,7 +134,7 @@ namespace Render
 	}
 
 	template< class TFunc >
-	bool BuildMultiMeshFromFile(std::vector<Mesh>& meshes, char const* meshPath, TFunc&& FuncMeshCreate)
+	bool BuildMultiMeshFromFile(TArray<Mesh>& meshes, char const* meshPath, TFunc&& FuncMeshCreate)
 	{
 		DataCacheKey key;
 		key.typeName = "MESH";
@@ -315,8 +315,8 @@ namespace Render
 
 		RHIInputLayoutRef mInputLayout;
 		RHIBufferRef mInstancedBuffer;
-		std::vector< Matrix4 > mInstanceTransforms;
-		std::vector< Vector4 > mInstanceParams;
+		TArray< Matrix4 > mInstanceTransforms;
+		TArray< Vector4 > mInstanceParams;
 		bool bBufferValid = false;
 	};
 

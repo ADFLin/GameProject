@@ -15,7 +15,7 @@ namespace G2D
 	inline Vector2 normalize(Vector2 const& v)
 	{
 		float len = sqrt(v.length2());
-		if( len < 1e-5 )
+		if( len < FLOAT_DIV_ZERO_EPSILON)
 			return Vector2::Zero();
 		return (1 / len) * v;
 

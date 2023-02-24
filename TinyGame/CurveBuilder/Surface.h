@@ -24,7 +24,7 @@ namespace CB
 
 	public:
 
-		bool               update(ShapeMeshBuilder& builder);
+		bool               update(IShapeMeshBuilder& builder);
 		void               visible(bool visable) { mbVisible = visable; }
 		bool               isVisible() { return mbVisible; }
 		ShapeFuncBase*     getFunction() const { return mShapeFun; }
@@ -38,7 +38,7 @@ namespace CB
 		virtual ShapeBase* clone() = 0;
 		virtual void       acceptVisit(ShapeVisitor& visitor) = 0;
 	protected:
-		virtual void       updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder) = 0;
+		virtual void       updateRenderData(IShapeMeshBuilder& builder, ShapeUpdateContext& context) = 0;
 
 
 	protected:
@@ -65,7 +65,7 @@ namespace CB
 		void setFunction(SurfaceFunc* func);
 		int  getShapeType() override { return mCurType; }
 		Surface3D*  clone() override;
-		void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder) override;
+		void updateRenderData(IShapeMeshBuilder& builder, ShapeUpdateContext& context) override;
 		void acceptVisit(ShapeVisitor& visitor) override;
 
 		void setDataSampleNum(int nu, int nv);
@@ -81,21 +81,21 @@ namespace CB
 
 		void setIncrement(float incrementU, float incrementV);
 
-		bool needDrawMesh()   const { return mNeedDrawMesh; }
-		bool needDrawNormal() const { return mNeedDrawNormal; }
-		bool needDrawLine()   const { return mNeedDrawLine; }
+		bool isShowMesh()   const { return mbShowMesh; }
+		bool isShowNormal() const { return mbShowNormal; }
+		bool isShowLine()   const { return mbShowLine; }
 
-		void setDrawMesh(bool beNeed) { mNeedDrawMesh = beNeed; }
-		void setDrawNormal(bool beNeed) { mNeedDrawNormal = beNeed; }
-		void setDrawLine(bool beNeed) { mNeedDrawLine = beNeed; }
+		void showMesh(bool beNeed) { mbShowMesh = beNeed; }
+		void showNormal(bool beNeed) { mbShowNormal = beNeed; }
+		void showLine(bool beNeed) { mbShowLine = beNeed; }
 
 
 	protected:
 		Surface3D(Surface3D const& rhs);
 		int  mCurType;
-		bool mNeedDrawMesh;
-		bool mNeedDrawNormal;
-		bool mNeedDrawLine;
+		bool mbShowMesh;
+		bool mbShowNormal;
+		bool mbShowLine;
 
 		float mMeshLineDensity;
 
@@ -127,7 +127,7 @@ namespace CB
 		void acceptVisit(ShapeVisitor& visitor) override;
 
 	protected:
-		void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder) override;
+		void updateRenderData(IShapeMeshBuilder& builder, ShapeUpdateContext& context) override;
 		Curve3D(Curve3D const& rhs);
 
 

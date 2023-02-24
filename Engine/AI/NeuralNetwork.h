@@ -3,11 +3,13 @@
 #define NeuralNetwork_H_9D9E20F4_5B5B_45BE_A95C_5A2CEB755C3F
 
 #include "Math/Base.h"
+#include "DataStructure/Array.h"
 
-#include <cassert>
-#include <vector>
 #include "Meta/MetaBase.h"
 #include "Math/SIMD.h"
+#include <cassert>
+
+
 
 typedef float NNScalar;
 typedef NNScalar (*NNActivationFunc)(NNScalar);
@@ -207,7 +209,7 @@ public:
 
 	NeuralFullConLayer& getLayer(int idx) { return mLayers[idx]; }
 	NeuralFullConLayer const& getLayer(int idx) const { return mLayers[idx]; }
-	void getTopology(std::vector<uint32>& outTopology) const;
+	void getTopology(TArray<uint32>& outTopology) const;
 
 
 	int getPrevLayerNodeNum(int idxLayer) const;
@@ -230,7 +232,7 @@ public:
 
 	int mMaxLayerNodeNum;
 	int mNumInput;
-	std::vector< NeuralFullConLayer > mLayers;
+	TArray< NeuralFullConLayer > mLayers;
 };
 
 class FCNeuralNetwork
@@ -242,7 +244,7 @@ public:
 	}
 	NNScalar* getWeights(int idxLayer, int idxNode);
 
-	void setWeights(std::vector< NNScalar >& weights)
+	void setWeights(TArray< NNScalar >& weights)
 	{
 		assert(mLayout->getWeightNum() <= weights.size());
 		mWeights = &weights[0];

@@ -38,7 +38,7 @@ namespace Render
 		void drawWithColorInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIBuffer* indexBuffer);
 		void drawInternal(RHICommandList& commandList, EPrimitive type, int idxStart, int num, RHIBuffer* indexBuffer);
 
-		bool buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector<MeshletCullData>* outCullDataList = nullptr);
+		bool buildMeshlet(int maxVertices, int maxPrims, TArray<MeshletData>& outMeshlets, TArray<uint8>& outUniqueIndices, TArray<PackagedTriangleIndices>& outPrimitiveIndices, TArray<MeshletCullData>* outCullDataList = nullptr);
 
 
 		VertexElementReader makeAttributeReader(uint8 const* pData, EVertex::Attribute attribute)
@@ -111,7 +111,7 @@ namespace Render
 		RHIBufferRef  mVertexAdjIndexBuffer;
 		RHIBufferRef  mTessAdjIndexBuffer;
 
-		std::vector< MeshSection > mSections;
+		TArray< MeshSection > mSections;
 	};
 
 

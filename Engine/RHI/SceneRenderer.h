@@ -174,7 +174,7 @@ namespace Render
 		}
 
 	public:
-		std::vector< Vector3 > mKernelVectors;
+		TArray< Vector3 > mKernelVectors;
 		RHIFrameBufferRef  mFrameBuffer;
 		RHITexture2DRef mSSAOTextureBlur;
 		RHITexture2DRef mSSAOTexture;
@@ -288,7 +288,7 @@ namespace Render
 		bool setupBuffer(IntVector2 const& screenSize, int sizeFactor, int depthSlices);
 
 
-		void render(RHICommandList& commandList, ViewInfo& view, std::vector< LightInfo > const& lights);
+		void render(RHICommandList& commandList, ViewInfo& view, TArray< LightInfo > const& lights);
 		RHITexture3DRef mVolumeBufferA;
 		RHITexture3DRef mVolumeBufferB;
 		RHITexture3DRef mScatteringBuffer;

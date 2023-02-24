@@ -6,11 +6,12 @@
 
 #include "Meta/IsBaseOf.h"
 #include "Meta/EnableIf.h"
+#include "DataStructure/Array.h"
 
-#include <map>
-#include <vector>
+#include <unordered_map>
 #include <unordered_set>
 #include <functional>
+
 
 
 class StageBase;
@@ -62,6 +63,13 @@ struct ExecutionEntryInfo
 	TINY_API static void AddCategories(std::unordered_set< HashString >& inoutCategories, EExecGroup group);
 };
 
+template<>
+struct TCanBitwiseRelocate<ExecutionEntryInfo>
+{
+	static constexpr int Value = 0;
+};
+
+
 class ExecutionRegisterCollection
 {
 public:
@@ -72,20 +80,20 @@ public:
 
 	TINY_API static ExecutionRegisterCollection& Get();
 
-	std::vector< ExecutionEntryInfo > const& getGroupExecutions(EExecGroup group) { return mGroupMap[group]; }
-	TINY_API std::vector< ExecutionEntryInfo const* > getExecutionsByCategory(HashString category);
+	TArray< ExecutionEntryInfo > const& getGroupExecutions(EExecGroup group) { return mGroupMap[group]; }
+	TINY_API TArray< ExecutionEntryInfo const* > getExecutionsByCategory(HashString category);
 
 	void cleanup()
 	{
 		mGroupMap.clear();
 		mCategories.clear();
 	}
-	std::vector< HashString > getRegisteredCategories() const
+	TArray< HashString > getRegisteredCategories() const
 	{
-		return std::vector< HashString >{ mCategories.begin(), mCategories.end() };
+		return TArray< HashString >{ mCategories.begin(), mCategories.end() };
 	}
 private:
-	std::map< EExecGroup, std::vector< ExecutionEntryInfo > > mGroupMap;
+	std::unordered_map< EExecGroup, TArray< ExecutionEntryInfo > > mGroupMap;
 	std::unordered_set< HashString > mCategories;
 };
 

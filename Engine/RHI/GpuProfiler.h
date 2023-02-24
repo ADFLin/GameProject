@@ -5,8 +5,8 @@
 #include "Singleton.h"
 #include "Core/IntegerType.h"
 #include "InlineString.h"
+#include "DataStructure/Array.h"
 
-#include <vector>
 #include <memory>
 #include <string>
 
@@ -73,7 +73,7 @@ namespace Render
 			int idxParent;
 		};
 		
-		std::vector< std::unique_ptr< GpuProfileSample > > mSamples;
+		TArray< std::unique_ptr< GpuProfileSample > > mSamples;
 
 		RHIProfileCore* mCore = nullptr;
 		GpuProfileSample* mRootSample;

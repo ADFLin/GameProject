@@ -239,7 +239,7 @@ namespace CB
 		}
 
 
-		if( surface.needDrawLine() )
+		if( surface.isShowLine() )
 		{
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(1, 1);
@@ -254,7 +254,7 @@ namespace CB
 			glDisable(GL_POLYGON_OFFSET_FILL);
 		}
 
-		if( surface.needDrawMesh() )
+		if( surface.isShowMesh() )
 		{
 			if( surface.getColor().a < 1.0 )
 			{
@@ -271,7 +271,7 @@ namespace CB
 				drawMesh(surface);
 			}
 		}
-		if( surface.needDrawNormal() )
+		if( surface.isShowNormal() )
 		{
 			drawMeshNormal(surface, 0.5);
 		}

@@ -81,7 +81,7 @@ namespace Render
 		}
 
 
-		bool getSetLayoutBindings(EShader::Type type, std::vector<VkDescriptorSetLayoutBinding>& outBindings) const
+		bool getSetLayoutBindings(EShader::Type type, TArray<VkDescriptorSetLayoutBinding>& outBindings) const
 		{
 			spv_reflect::ShaderModule moduleReflect(codeBuffer.size(), codeBuffer.data());
 			if (moduleReflect.GetResult() != SPV_REFLECT_RESULT_SUCCESS)
@@ -93,7 +93,7 @@ namespace Render
 			if (count)
 			{
 				auto stageStage = VulkanTranslate::To(type);
-				std::vector< SpvReflectDescriptorBinding* > descrBindings(count);
+				TArray< SpvReflectDescriptorBinding* > descrBindings(count);
 				moduleReflect.EnumerateDescriptorBindings(&count, descrBindings.data());
 				for (uint32 i = 0; i < count; ++i)
 				{
@@ -119,7 +119,7 @@ namespace Render
 			moduleReflect.EnumerateDescriptorBindings(&count, nullptr);
 			if (count)
 			{
-				std::vector< SpvReflectDescriptorBinding* > descrBindings(count);
+				TArray< SpvReflectDescriptorBinding* > descrBindings(count);
 				moduleReflect.EnumerateDescriptorBindings(&count, descrBindings.data());
 				for (uint32 i = 0; i < count; ++i)
 				{
@@ -132,7 +132,7 @@ namespace Render
 			moduleReflect.EnumerateInputVariables(&count, nullptr);
 			if (count)
 			{
-				std::vector< SpvReflectInterfaceVariable* > variables(count);
+				TArray< SpvReflectInterfaceVariable* > variables(count);
 				moduleReflect.EnumerateInputVariables(&count, variables.data());
 				for (uint32 i = 0; i < count; ++i)
 				{
@@ -144,7 +144,7 @@ namespace Render
 			moduleReflect.EnumerateOutputVariables(&count, nullptr);
 			if (count)
 			{
-				std::vector< SpvReflectInterfaceVariable* > variables(count);
+				TArray< SpvReflectInterfaceVariable* > variables(count);
 				moduleReflect.EnumerateOutputVariables(&count, variables.data());
 				for (uint32 i = 0; i < count; ++i)
 				{
@@ -153,7 +153,7 @@ namespace Render
 				}
 			}
 		}
-		std::vector< char > codeBuffer;
+		TArray< char > codeBuffer;
 	};
 
 	void ShaderFormatSpirv::setupShaderCompileOption(ShaderCompileOption& option)
@@ -197,7 +197,7 @@ namespace Render
 	bool ShaderFormatSpirv::compileCode(ShaderCompileContext const& context)
 	{
 #if USE_SHADERC_COMPILE
-		std::vector<uint8> codeBuffer;
+		TArray<uint8> codeBuffer;
 
 		if (!loadCode(context, codeBuffer))
 			return false;
@@ -266,7 +266,7 @@ namespace Render
 		{
 			std::string pathPrep = pathFull.substr(0, posExtension - &pathFull[0]) + "prep" + SHADER_FILE_SUBNAME;
 
-			std::vector<uint8> codeBuffer;
+			TArray<uint8> codeBuffer;
 			if (!loadCode(context, codeBuffer))
 				return false;
 
@@ -352,7 +352,7 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatSpirv::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode)
+	bool ShaderFormatSpirv::initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
 	{
 		VulkanShaderProgram& shaderProgramImpl = static_cast<VulkanShaderProgram&>(*shaderProgram.mRHIResource);
 
@@ -386,11 +386,11 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatSpirv::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	bool ShaderFormatSpirv::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
 		auto* intermediates = static_cast<VulkanShaderCompileIntermediates*>(setupData.intermediateData.get());
 
-		auto serializer = CreateBufferSerializer<VectorWriteBuffer>(outBinaryCode);
+		auto serializer = CreateBufferSerializer<ArrayWriteBuffer>(outBinaryCode);
 		uint8 numShaders = intermediates->numShaders;
 		serializer.write(numShaders);
 		for (int i = 0; i < numShaders; ++i)
@@ -408,7 +408,7 @@ namespace Render
 	{
 		mDevice = device;
 		VERIFY_RETURN_FALSE( code.createModel(mDevice, mModule) );
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
+		TArray<VkDescriptorSetLayoutBinding> setLayoutBindings;
 		VERIFY_RETURN_FALSE(code.getSetLayoutBindings(type, setLayoutBindings) );
 		VkDescriptorSetLayoutCreateInfo descriptorLayout =
 			FVulkanInit::descriptorSetLayoutCreateInfo(
@@ -419,12 +419,12 @@ namespace Render
 		return true;
 	}
 
-	bool VulkanShaderProgram::setupShaders(VkDevice device, std::vector< ShaderCompileDesc > const& descList, SpirvShaderCode shaderCodes[])
+	bool VulkanShaderProgram::setupShaders(VkDevice device, TArray< ShaderCompileDesc > const& descList, SpirvShaderCode shaderCodes[])
 	{
 		mDevice = device;
 		assert( mNumShaders == 0);
 
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
+		TArray<VkDescriptorSetLayoutBinding> setLayoutBindings;
 		for (int i = 0; i < descList.size(); ++i)
 		{
 			SpirvShaderCode& shaderCode = shaderCodes[i];

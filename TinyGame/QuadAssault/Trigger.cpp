@@ -182,7 +182,7 @@ void SpawnAct::fire( Level* level )
 	flag = level->setSpwanDestroyFlag( flag | SDF_SETUP_DEFAULT );
 	LevelObject* object = level->spawnObjectByName( className.c_str() , spawnPos );
 	level->setSpwanDestroyFlag( flag );
-	//TODO
+	//#TODO
 	if ( object )
 	{
 

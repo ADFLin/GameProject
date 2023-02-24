@@ -73,7 +73,7 @@ public:
 	{
 		TestFunc func;
 	};
-	std::vector< TestInfo > mInfos;
+	TArray< TestInfo > mInfos;
 
 	void onRender( float dFrame ) override
 	{
@@ -142,7 +142,7 @@ public:
 
 	MySpline mSpline;
 
-	std::vector< Vector2 > mSplineLine;
+	TArray< Vector2 > mSplineLine;
 	void constructSpline()
 	{
 		int num = 100;
@@ -250,7 +250,7 @@ class XMLPraseTestStage : public StageBase
 public:
 	XMLPraseTestStage(){}
 
-	std::vector< int > mOut;
+	TArray< int > mOut;
 
 	int mPosY;
 
@@ -566,7 +566,7 @@ namespace MRT
 	struct Station
 	{
 		std::string name;
-		std::vector< LinkInfo* > links;
+		TArray< LinkInfo* > links;
 
 		GWidget* visual;
 
@@ -607,8 +607,8 @@ namespace MRT
 
 	struct  Network
 	{
-		std::vector< Station* >  stations;
-		std::vector< LinkInfo* > links;
+		TArray< Station* >  stations;
+		TArray< LinkInfo* > links;
 
 		LinkInfo* findLink(Station* a, Station* b)
 		{
@@ -1288,7 +1288,7 @@ namespace Bsp2D
 
 		ControlMode mCtrlMode;
 		TPtrHolder< PolyArea >  mPolyEdit;
-		using PolyAreaVec = std::vector< PolyArea* >;
+		using PolyAreaVec = TArray< PolyArea* >;
 		PolyAreaVec mPolyAreaMap;
 		Tree     mTree;
 		bool     mDrawTree;
@@ -1783,7 +1783,7 @@ namespace Net
 			return obj;
 		}
 
-		using ObjectVec = std::vector< INetObject* >;
+		using ObjectVec = TArray< INetObject* >;
 		ObjectVec mObjects;
 	};
 
@@ -1870,7 +1870,7 @@ namespace Net
 		}
 
 	protected:
-		std::vector< TestObj > mDataMap;
+		TArray< TestObj > mDataMap;
 	};
 }
 

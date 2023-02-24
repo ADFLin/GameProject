@@ -258,7 +258,7 @@ namespace RenderVulkan
 
 			GraphicsPipelineStateDesc graphicsState;
 			graphicsState.primitiveType = EPrimitive::TriangleList;
-			graphicsState.rasterizerState = &TStaticRasterizerState<>::GetRHI();
+			graphicsState.rasterizerState = &TStaticRasterizerState<ECullMode::None>::GetRHI();
 			graphicsState.depthStencilState = &TStaticDepthStencilState<>::GetRHI();
 			graphicsState.blendState = &TStaticBlendState<>::GetRHI();
 
@@ -326,7 +326,7 @@ namespace RenderVulkan
 
 				if (graphicsState.shaderProgram)
 				{
-					std::vector < VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(graphicsState.shaderProgram)->mStages;
+					TArray< VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(graphicsState.shaderProgram)->mStages;
 					pipelineInfo.pStages = shaderStages.data();
 					pipelineInfo.stageCount = shaderStages.size();
 					pipelineInfo.layout = VulkanCast::To(graphicsState.shaderProgram)->mPipelineLayout;
@@ -525,23 +525,11 @@ namespace RenderVulkan
 	public:
 		TestStage() {}
 
-		ERenderSystem getDefaultRenderSystem() override
-		{
-			return ERenderSystem::Vulkan;
-		}
+
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )
 				return false;
-
-			::Global::GetDrawEngine().bUsePlatformBuffer = false;
-
-			//VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
-			//VERIFY_RETURN_FALSE( createWindowSwapchain() );
-			InitBirdge();
-			VERIFY_RETURN_FALSE( createSimplePipepline() );
-			VERIFY_RETURN_FALSE( createSwapchainFrameBuffers() );
-			VERIFY_RETURN_FALSE( createRenderCommand() );
 
 			::Global::GUI().cleanupWidget();
 
@@ -624,6 +612,26 @@ namespace RenderVulkan
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::Vulkan;
+		}
+
+		bool setupRenderSystem(ERenderSystem systemName) override
+		{
+			::Global::GetDrawEngine().bUsePlatformBuffer = false;
+
+			//VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
+			//VERIFY_RETURN_FALSE( createWindowSwapchain() );
+			InitBirdge();
+			VERIFY_RETURN_FALSE(createSimplePipepline());
+			VERIFY_RETURN_FALSE(createSwapchainFrameBuffers());
+			VERIFY_RETURN_FALSE(createRenderCommand());
+
+			return true;
+		}
+
 	protected:
 	};
 

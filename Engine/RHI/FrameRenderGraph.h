@@ -1,9 +1,12 @@
+#pragma once
+#ifndef FrameRenderGraph_H_02274F78_C3CD_483A_8D48_289110644A5A
+#define FrameRenderGraph_H_02274F78_C3CD_483A_8D48_289110644A5A
 
-#include <vector>
 #include "RefCount.h"
 #include "HashString.h"
-#include <functional>
+#include "DataStructure/Array.h"
 
+#include <functional>
 
 namespace Render
 {
@@ -143,7 +146,7 @@ namespace Render
 		{
 			FRGResourceBase* resource;
 			PassInfo*  productor;
-			std::vector< PassInfo* > users;
+			TArray< PassInfo* > users;
 
 			RefCount   refCount;
 
@@ -158,8 +161,8 @@ namespace Render
 			};
 			uint32 compilesFlags = 0;
 			FRGPassBase* pass;
-			std::vector< ResourceInfo* > inputs;
-			std::vector< ResourceInfo* > outputs;
+			TArray< ResourceInfo* > inputs;
+			TArray< ResourceInfo* > outputs;
 
 			ResourceInfo* findInput(FRGResourceBase* resource)
 			{
@@ -186,7 +189,7 @@ namespace Render
 		std::unordered_map< FRGPassBase*, std::unique_ptr< PassInfo > > mPassMap;
 		std::unordered_map< FRGResourceBase*, std::unique_ptr< ResourceInfo > > mResourceMap;
 
-		void traverseDependentPass(ResourceInfo* resInfo , std::vector< PassInfo* >& outDependentPassList)
+		void traverseDependentPass(ResourceInfo* resInfo , TArray< PassInfo* >& outDependentPassList)
 		{
 			auto productor = resInfo->productor;
 			for (auto inputInfo : productor->inputs)
@@ -215,11 +218,11 @@ namespace Render
 		};
 
 
-		void compile(std::vector< FRGResourceBase* > const& finalOuputResources )
+		void compile(TArray< FRGResourceBase* > const& finalOuputResources )
 		{
 			//flatten pass list
 			mPassMap.clear();
-			std::vector< PassInfo* > flattenedPassList;
+			TArray< PassInfo* > flattenedPassList;
 			for (auto outputRes : finalOuputResources)
 			{
 				ResourceInfo* resInfo = mResourceMap[outputRes].get();
@@ -234,3 +237,4 @@ namespace Render
 	};
 
 }
+#endif // FrameRenderGraph_H_02274F78_C3CD_483A_8D48_289110644A5A

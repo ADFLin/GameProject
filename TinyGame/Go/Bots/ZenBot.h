@@ -5,9 +5,9 @@
 
 //#include "zen.h"
 
-#include <cassert>
 #include "Go/GoBot.h"
 #include "Platform/PlatformModule.h"
+#include "DataStructure/Array.h"
 
 namespace Zen
 {
@@ -32,7 +32,7 @@ namespace Zen
 	{
 		PlayVertex v;
 		float winRate;
-		std::vector< PlayVertex > vSeq;
+		TArray< PlayVertex > vSeq;
 	};
 
 	struct TerritoryInfo

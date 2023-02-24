@@ -60,7 +60,7 @@ namespace Chess
 
 	bool Game::isValidMove(Vec2i const& from, MoveInfo const& move) const
 	{
-		std::vector< MoveInfo > moveList;
+		TArray< MoveInfo > moveList;
 		if (getPossibleMove(from, moveList))
 		{
 			for (auto& moveCheck : moveList)
@@ -72,7 +72,7 @@ namespace Chess
 		return false;
 	}
 
-	bool Game::getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outPosList) const
+	bool Game::getPossibleMove(Vec2i const& pos, TArray<MoveInfo>& outPosList) const
 	{
 		if (!mBoard.checkRange(pos.x, pos.y))
 			return false;
@@ -84,7 +84,7 @@ namespace Chess
 		return getPossibleMove(pos, chess->type, chess->color, chess->moveState, outPosList, false);
 	}
 
-	bool Game::getPossibleMove(Vec2i const& pos, EChess::Type type, EChessColor color, EMoveState moveState, std::vector<MoveInfo>& outMoveList, bool bCheckAttack /*= false*/) const
+	bool Game::getPossibleMove(Vec2i const& pos, EChess::Type type, EChessColor color, EMoveState moveState, TArray<MoveInfo>& outMoveList, bool bCheckAttack /*= false*/) const
 	{
 		auto CheckMove = [&](Vec2i const& posCheck) -> bool
 		{
@@ -466,7 +466,7 @@ namespace Chess
 			tileData.attacks.clear();
 		}
 
-		std::vector< MoveInfo > moveList;
+		TArray< MoveInfo > moveList;
 		for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i)
 		{
 			TileData& tileData = mBoard[i];

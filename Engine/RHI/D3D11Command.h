@@ -11,6 +11,7 @@
 #include "InlineString.h"
 #include "Core/ScopeGuard.h"
 #include "Core/TypeHash.h"
+#include "DataStructure/Array.h"
 
 #include <D3D11Shader.h>
 #include <D3Dcompiler.h>
@@ -18,6 +19,7 @@
 #if USE_RHI_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+
 
 
 namespace Render
@@ -34,7 +36,7 @@ namespace Render
 	struct ShaderConstDataBuffer
 	{
 		TComPtr< ID3D11Buffer > resource;
-		std::vector< uint8 >    mDataBuffer;
+		TArray< uint8 >    mDataBuffer;
 		uint32 mUpdateDataSize = 0;
 
 		bool initializeResource(ID3D11Device* device);
@@ -223,8 +225,8 @@ namespace Render
 		}
 
 		ID3D11Buffer* getLockedBuffer() { return mBuffers[mLockedIndex]; }
-		std::vector< ID3D11Buffer* > mBuffers;
-		std::vector< uint32 >        mBufferSizes;
+		TArray< ID3D11Buffer* > mBuffers;
+		TArray< uint32 >        mBufferSizes;
 		uint32 mBindFlags;
 		int    mLockedIndex = -1;
 	};
@@ -408,7 +410,7 @@ namespace Render
 		bool bUseFixedShaderPipeline = true;
 
 		RHIResource* mVertexShader = nullptr;
-		std::vector< uint8 >* mVertexShaderByteCode;
+		TArray< uint8 >* mVertexShaderByteCode;
 		TComPtr< ID3D11DeviceContext >  mDeviceContext;
 		TComPtr< ID3D11Device > mDevice;
 		RHIInputLayout* mInputLayout = nullptr;
@@ -458,8 +460,8 @@ namespace Render
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);
 
-		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
-		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData);
+		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
+		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
@@ -499,7 +501,7 @@ namespace Render
 					hash = HashCombine(hash, HashValue(&e , sizeof(e)) );
 				}
 			}
-			std::vector< InputElementDesc > elements;
+			TArray< InputElementDesc > elements;
 			uint32 hash;
 
 			uint32 getTypeHash() const { return hash; }

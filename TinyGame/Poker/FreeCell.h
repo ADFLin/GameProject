@@ -84,7 +84,7 @@ namespace Poker
 		void  moveCard(StackCell& to,int num);
 		bool  testRule( Card const& card ) override;
 
-		std::vector< Card >   mCards;
+		TArray< Card >   mCards;
 	};
 
 	class FreeCell final : public SingleCell

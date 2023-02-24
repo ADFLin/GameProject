@@ -3,8 +3,11 @@
 #include "HashString.h"
 #include "Platform/PlatformModule.h"
 
+#include "DataStructure/Array.h"
+
 #include <unordered_map>
-#include <vector>
+
+
 
 
 class IModuleInterface;
@@ -54,6 +57,6 @@ private:
 		ModuleHandle      hModule;
 	};
 	typedef std::unordered_map< HashString, IModuleInterface* > ModuleMap;
-	std::vector< ModuleData >   mModuleDataList;
+	TArray< ModuleData >   mModuleDataList;
 	ModuleMap        mNameToModuleMap;
 };

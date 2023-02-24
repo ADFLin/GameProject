@@ -37,7 +37,7 @@ namespace Go
 		int32 mNumNewRead = 0;
 		int   mNumUsed = 0;
 
-		std::vector< char > mBuffer;
+		TArray< char > mBuffer;
 
 		bool  bNeedRead = true;
 		bool  bLogMsg = true;
@@ -45,7 +45,7 @@ namespace Go
 		ConditionVariable mBufferProcessedCV;
 
 #if AUTO_GTP_DEBUG
-		std::vector< char > debugString;
+		TArray< char > debugString;
 #endif
 
 		unsigned run() override;
@@ -79,7 +79,7 @@ namespace Go
 		bool bThinking;
 		bool bShowDiagnosticOutput = true;
 		//TCycleQueue<GTPCommand> mProcQueue;
-		std::vector< GTPCommand > mProcQueue;
+		TArray< GTPCommand > mProcQueue;
 
 		int* mOutReadBoard = nullptr;
 		bool mbShowParseLine;

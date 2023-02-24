@@ -6,7 +6,7 @@
 template< typename T , bool bIgnoreCase = false >
 struct TStringPtrWrapper
 {
-	TStringPtrWrapper(char const* str) :str(str) {}
+	TStringPtrWrapper(T const* str) :str(str) {}
 
 	T const* str;
 	bool operator == (TStringPtrWrapper const& rhs) const

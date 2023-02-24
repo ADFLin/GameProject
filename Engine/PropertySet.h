@@ -3,9 +3,11 @@
 #define PropertySet_H_F7B8B66E_A07B_44DF_BA67_8895369C3C8E
 
 #include "Template/StringView.h"
+#include "DataStructure/Array.h"
 
 #include <string>
 #include <unordered_map>
+
 
 class  KeyValue
 {
@@ -41,6 +43,7 @@ private:
 		int   intValue;
 		float floatValue;
 	};
+
 	mutable SavedValue mCacheGetValue;
 	friend class KeySection;
 	friend class PropertySet;
@@ -54,14 +57,42 @@ class  KeySection
 public:
 	KeyValue* getKeyValue( char const* keyName );
 
+
+	TArray<KeyValue*> getKeyValues(char const* keyName);
+
 	template< class T >
-	KeyValue* addKeyValue( char const* keyName , T value )
+	KeyValue* setKeyValue(char const* keyName, T&& value)
 	{
-		auto& keyValue = mKeyMap[keyName];
-		keyValue = KeyValue(value);
-		return &keyValue;
+		mKeyMap.erase(keyName);
+		return &mKeyMap.emplace(keyName, std::forward<T>(value))->second;
 	}
-	void serializtion( std::ostream& os );
+
+
+	template< class T >
+	KeyValue* addKeyValue( char const* keyName , T&& value )
+	{
+		return &mKeyMap.emplace(keyName, std::forward<T>(value))->second;
+	}
+
+	bool removeKeyValue(char const* keyName, char const* value)
+	{
+		auto iterPair = mKeyMap.equal_range(keyName);
+		for (auto iter = iterPair.first; iter != iterPair.second; ++iter)
+		{
+			if (FCString::Compare(iter->second.getString(), value) == 0)
+			{
+				mKeyMap.erase(iter);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void removeKey(char const* keyName)
+	{
+		mKeyMap.erase(keyName);
+	}
+
 protected:
 
 	struct StrCmp
@@ -71,13 +102,71 @@ protected:
 			return ::strcmp( s1 , s2 ) < 0;
 		}
 	};
-	using KeyValueMap = std::unordered_map< std::string , KeyValue >;
+	using KeyValueMap = std::unordered_multimap< std::string , KeyValue >;
 
 	friend class PropertySet;
 	int  mSequenceOrder = INDEX_NONE;
 	KeyValueMap mKeyMap;
 };
 
+
+class PropertyFile
+{
+public:
+	enum class EValueOp
+	{
+		Set ,
+		Add ,
+		Remove,
+		RemoveAll,
+	};
+
+	struct Element
+	{
+		EValueOp    op;
+		std::string key;
+		std::string value;
+	};
+
+	struct Section
+	{
+		std::string key;
+		TArray< Element > elements;
+	};
+
+	void clear()
+	{
+		mGlobalElements.clear();
+		mSections.clear();
+	}
+
+	TArray< Element > mGlobalElements;
+	TArray< Section > mSections;
+
+	bool save(char const* path);
+	bool load(char const* path);
+
+	int parseLine(char* buffer, TArray< Element >*& sectionElementsPtr);
+
+
+	struct FindResult
+	{
+		TArray< Element >* firstElements = nullptr;
+		Element* element = nullptr;
+	};
+
+	enum class EVisitOp
+	{
+		Keep,
+		Stop,
+		Remove,
+		RemoveStop,
+	};
+	template< typename TFunc >
+	void visit(char const* sectionName, char const* keyName, TFunc&& func);
+
+	void setKeyValue(char const* section, char const* keyName, char const* value);
+};
 
 class  PropertySet
 {
@@ -100,21 +189,29 @@ public:
 	bool        saveFile( char const* path );
 	bool        loadFile( char const* path );
 
-	template< class T >
-	void setKeyValue( char const* keyName , char const* section , T value )
+	void        getStringValues(char const* keyName, char const* section, TArray< char const* >& outValue)
 	{
-		auto& sectionData = mSectionMap[ section ];
-		if(sectionData.mSequenceOrder == INDEX_NONE )
-		{
-			sectionData.mSequenceOrder = mNextSectionSeqOrder;
-			++mNextSectionSeqOrder;
-		}
-		KeyValue* keyValue = sectionData.addKeyValue( keyName , value );
-		if( keyValue && keyValue->mSequenceOrder == INDEX_NONE )
-		{
-			keyValue->mSequenceOrder = mNextValueSeqOrder;
-			++mNextValueSeqOrder;
-		}
+
+
+	}
+	void        setStringValues(char const* keyName, char const* section, TArray< char const* > const&& values)
+	{
+
+	}
+
+	template< class T >
+	void setKeyValue( char const* keyName , char const* section , T&& value )
+	{
+		auto& sectionData = mSectionMap[section];
+		sectionData.setKeyValue( keyName , std::forward<T>(value) );
+		mFile.setKeyValue(section, keyName, FStringConv::From(value));
+	}
+
+	void setKeyValue(char const* keyName, char const* section, char const* value)
+	{
+		auto& sectionData = mSectionMap[section];
+		sectionData.setKeyValue(keyName, value);
+		mFile.setKeyValue(section, keyName, value);
 	}
 
 	template< class TFunc >
@@ -129,16 +226,18 @@ public:
 			}
 		}
 	}
+
+	void append(PropertyFile& file);
 private:
 	template< class T >
 	T     getValueT( char const* keyName , char const* section , T defaultValue );
 	template< class T >
 	bool  tryGetValueT( char const* keyName , char const* section , T& value );
 
-	int   parseLine( char* buffer , KeySection** curSection );
 
 	using KeySectionMap = std::unordered_map< std::string , KeySection >;
 	KeySectionMap mSectionMap;
+	PropertyFile mFile;
 
 	int mNextSectionSeqOrder;
 	int mNextValueSeqOrder;

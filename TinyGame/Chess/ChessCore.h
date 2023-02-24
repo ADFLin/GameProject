@@ -116,8 +116,8 @@ namespace Chess
 	struct GameStateData
 	{
 		uint32 trun;
-		std::vector<uint8> board;
-		std::vector<uint8> history;
+		TArray<uint8> board;
+		TArray<uint8> history;
 	};
 
 
@@ -155,7 +155,7 @@ namespace Chess
 				int attackCounts[2];
 			};
 
-			std::vector<AttackInfo> attacks;
+			TArray<AttackInfo> attacks;
 		};
 
 		void restart();
@@ -172,7 +172,7 @@ namespace Chess
 		}
 
 		bool isValidMove(Vec2i const& from, MoveInfo const& move) const;
-		bool getPossibleMove(Vec2i const& pos, std::vector<MoveInfo>& outMoveList) const;
+		bool getPossibleMove(Vec2i const& pos, TArray<MoveInfo>& outMoveList) const;
 		void moveChess(Vec2i const& from, MoveInfo const& move);
 		void promotePawn(MoveInfo const& move, EChess::Type promotionType);
 
@@ -184,7 +184,7 @@ namespace Chess
 			return (color == EChessColor::White) ? Vec2i(0, 1) : Vec2i(0, -1);
 		}
 
-		bool getPossibleMove(Vec2i const& pos, EChess::Type type, EChessColor color, EMoveState moveState, std::vector<MoveInfo>& outPosList, bool bCheckAttack = false) const;
+		bool getPossibleMove(Vec2i const& pos, EChess::Type type, EChessColor color, EMoveState moveState, TArray<MoveInfo>& outPosList, bool bCheckAttack = false) const;
 
 		void updateAttackTerritory();
 
@@ -212,9 +212,9 @@ namespace Chess
 			ChessData chessMoved;
 			ChessData chessOther;
 		};
-		std::vector< TurnInfo >	 mTurnHistory;
-		std::vector< ChessData > mChessList;	
-		std::vector< ChessData* > mFreeChessList;
+		TArray< TurnInfo >	 mTurnHistory;
+		TArray< ChessData > mChessList;
+		TArray< ChessData* > mFreeChessList;
 	};
 
 }//namespace Chess

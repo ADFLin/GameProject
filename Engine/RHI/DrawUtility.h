@@ -49,7 +49,7 @@ namespace Render
 
 	static_assert(RTS_ELEMENT_BIT_OFFSET * (RTS_MAX - 1) <= sizeof(uint32) * 8, "RenderRTSemantic Can't Support ");
 
-	enum RenderRTVertexFormat : uint32
+	enum ERenderRTVertexFormat : uint32
 	{
 		RTVF_XY      = RTS_ELEMENT(RTS_Position, 2),
 		RTVF_XYZ     = RTS_ELEMENT(RTS_Position, 3),
@@ -224,6 +224,18 @@ namespace Render
 			infos[1].size = sizeof(LinearColor);
 			infos[1].stride = 0;
 			RHIDrawIndexedPrimitiveUP( commandList, type, numVertices, infos , 2 , indices , nIndex );
+		}
+
+
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, RHIBuffer& vertexbuffer, int numVertices, RHIBuffer& indexbuffer, int nIndex, int vertexStride = GetVertexSize())
+		{
+			InputStreamInfo inputStream;
+			inputStream.buffer = &vertexbuffer;
+			inputStream.offset = 0;
+			inputStream.stride = vertexStride;
+			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), &inputStream, 1);
+			RHISetIndexBuffer(commandList, &indexbuffer);
+			RHIDrawIndexedPrimitive(commandList, type, 0, nIndex);
 		}
 
 		FORCEINLINE static int GetVertexSize()

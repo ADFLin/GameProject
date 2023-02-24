@@ -2,8 +2,6 @@
 #ifndef ClassTree_H_4D9C2491_82E5_426E_8302_6C75E7700E89
 #define ClassTree_H_4D9C2491_82E5_426E_8302_6C75E7700E89
 
-#include "CoreShare.h"
-
 #define CLASS_TREE_USE_INTRLIST 1
 
 #if CLASS_TREE_USE_INTRLIST
@@ -45,7 +43,7 @@ private:
 	NodeList children;
 #else
 	int  indexParentSlot;
-	std::vector< ClassTreeNode* > children;
+	TArray< ClassTreeNode* > children;
 #endif
 
 #if _DEBUG

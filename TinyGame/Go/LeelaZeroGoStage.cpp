@@ -1001,7 +1001,7 @@ namespace Go
 	TConsoleVariable< bool > CVarUseSpline(true, "go.UseSpline");
 
 
-	void UpdateCRSplineIndices(std::vector< uint32 >& inoutIndices, int newPointsCount)
+	void UpdateCRSplineIndices(TArray< uint32 >& inoutIndices, int newPointsCount)
 	{
 		int oldPointsCount = inoutIndices.size() / 4;
 		if (oldPointsCount)
@@ -1107,7 +1107,7 @@ namespace Go
 					{
 						if (winRateHistory.size() >= 2)
 						{
-							std::vector<uint32>& indices = winRateData.splineIndeics;
+							TArray<uint32>& indices = winRateData.splineIndeics;
 							UpdateCRSplineIndices(indices, winRateHistory.size());
 
 							if (bUseColor)
@@ -1189,7 +1189,7 @@ namespace Go
 
 			}
 
-			static std::vector<Vector2> buffer;
+			static TArray<Vector2> buffer;
 			buffer.clear();
 			float offset = 25;
 			for( float y = 10; y < yMax; y += 10 )
@@ -2016,7 +2016,7 @@ namespace Go
 					break;
 				case KATA_PARAM_REMAP(eThinkResult):
 					{
-						std::vector< KataThinkInfo >& thinkInfos = *static_cast<std::vector< KataThinkInfo >*>(com.ptrParam);
+						TArray< KataThinkInfo >& thinkInfos = *static_cast<TArray< KataThinkInfo >*>(com.ptrParam);
 
 						mAnalysisResult.candidatePosList.clear();
 						mAnalysisResult.dataType = ControllerType::eKata;
@@ -2031,7 +2031,7 @@ namespace Go
 								info.nodeVisited = thinkInfo.nodeVisited;
 								info.winRate = thinkInfo.winRate;
 
-								mAnalysisResult.candidatePosList.push_back(info);
+								mAnalysisResult.candidatePosList.push_back(std::move(info));
 							}
 
 							auto topThinkInfo = thinkInfos.front();

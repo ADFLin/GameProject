@@ -3,8 +3,13 @@
 #define Array_H_53348890_2577_41C4_9C3E_01D135F952BD
 
 #include "Core/IntegerType.h"
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 
+template< typename T>
+struct TCanBitwiseRelocate
+{
+	static constexpr int Value = 1;
+};
 
 template< class T >
 struct alignas(alignof(T)) TCompatibleByte
@@ -41,6 +46,13 @@ struct alignas(alignof(T)) TCompatibleStorage
 };
 
 
+template< typename T >
+void MoveValue(T& lhs, T& rhs, T reset = T())
+{
+	lhs = rhs;
+	rhs = reset;
+}
+
 struct DefaultAllocator
 {
 
@@ -53,27 +65,85 @@ struct DefaultAllocator
 			mMaxSize = 0;
 		}
 
-		void   alloc(int OldSize, int numNewElements)
+		~TArrayData()
+		{
+			cleanup();
+		}
+
+		void cleanup()
+		{
+			if (mStorage)
+			{
+				FMemory::Free(mStorage);
+				mStorage = nullptr;
+				mMaxSize = 0;
+			}
+		}
+
+		void   alloc(size_t OldSize, size_t numNewElements)
 		{
 			if (OldSize + numNewElements > mMaxSize)
 			{
-				int growSize = OldSize + numNewElements;
+				size_t growSize = OldSize + numNewElements;
 				growSize += (3 * growSize) / 8;
-				void* newAlloc = FMemory::Realloc(mStorage, growSize);
-				if (newAlloc == nullptr)
-				{
 
-				}
-				if (newAlloc != mStorage)
+				void* newAlloc;
+				if constexpr (TCanBitwiseRelocate<T>::Value)
 				{
+					newAlloc = FMemory::Realloc(mStorage, sizeof(T) * growSize);
+					if (newAlloc == nullptr)
+					{
 
+					}
 				}
+				else
+				{
+					newAlloc = FMemory::Alloc(sizeof(T) * growSize);
+					if (newAlloc == nullptr)
+					{
+
+					}
+					FTypeMemoryOp::MoveSequence((T*)newAlloc, OldSize, (T*)mStorage);
+					FMemory::Free(mStorage);
+				}
+
 				mStorage = newAlloc;
 				mMaxSize = growSize;
 			}
 		}
+
+		void reserve(size_t size)
+		{
+			if (size > mMaxSize)
+			{
+				void* newAlloc = FMemory::Realloc(mStorage, sizeof(T) * size);
+				mStorage = newAlloc;
+				mMaxSize = size;
+			}
+		}
+
+		void  shrinkTofit(size_t size)
+		{
+
+		}
+
+		void swap(TArrayData& other)
+		{
+			using std::swap;
+			swap(mStorage, other.mStorage);
+			swap(mMaxSize, other.mMaxSize);
+		}
+
 		size_t getMaxSize() const { return mMaxSize; }
 		T*     getAllocation() const { return (T*)mStorage; }
+
+		TArrayData& operator = (TArrayData&& rhs)
+		{
+			cleanup();
+			MoveValue(mStorage, rhs.mStorage);
+			MoveValue(mMaxSize, rhs.mMaxSize);
+			return *this;
+		}
 
 		void*  mStorage;
 		size_t mMaxSize;
@@ -99,7 +169,7 @@ struct DyanmicFixedAllocator
 	};
 };
 
-template < uint32 TotalSize >
+template < size_t TotalSize >
 struct TFixedAllocator
 {
 	enum 
@@ -114,13 +184,21 @@ struct TFixedAllocator
 		{
 
 		}
-		void   alloc(int OldSize, int numNewElements)
+		void   alloc(size_t OldSize, size_t numNewElements)
 		{
 			CHECK(OldSize + numNewElements <= TotalSize);
 		}
 		size_t getMaxSize() const { return TotalSize;  }
 		T*     getAllocation() const { return (T*)mStorage; }
 
+		void reserve(size_t size)
+		{
+			CHECK(size <= TotalSize);
+		}
+		void shrinkTofit(size_t size)
+		{
+
+		}
 		TCompatibleByte< T >  mStorage[TotalSize];
 	};
 };
@@ -144,10 +222,85 @@ public:
 		mNum = 0;
 	}
 
+	TArray(std::initializer_list<T> list)
+	{
+		mNum = 0;
+		addRange(list.begin(), list.end());
+	}
+
+	explicit TArray(size_t size)
+	{
+		mNum = 0;
+		T* ptr = addUninitialized(size);
+		FTypeMemoryOp::ConstructSequence(ptr, size);
+	}
+
+	TArray(size_t size, T const& value)
+	{
+		mNum = 0;
+		T* ptr = addUninitialized(size);
+		FTypeMemoryOp::ConstructSequence(ptr, size, value);
+	}
+
+	TArray(TArray const& rhs)
+	{
+		mNum = 0;
+		addRange(rhs.begin(), rhs.end());
+	}
+
+	TArray(TArray&& rhs)
+	{
+		MoveValue(mNum, rhs.mNum);
+		ArrayData::operator = (std::move(rhs));
+	}
+
+	template< typename Iter , TEnableIf_Type< TIsIterator<Iter>::Value , bool > = true >
+	TArray(Iter itBegin, Iter itEnd)
+	{
+		mNum = 0;
+		addRange(itBegin, itEnd);
+	}
+
+	TArray& operator = (TArray const& rhs)
+	{
+		CHECK(this != &rhs);
+		clear();
+		addRange(rhs.begin(), rhs.end());
+		return *this;
+	}
+
+	TArray& operator = ( TArray&& rhs )
+	{
+		CHECK(this != &rhs);
+		clear();
+		MoveValue(mNum, rhs.mNum);
+		ArrayData::operator = ( std::move(rhs) );
+		return *this;
+	}
+
 	~TArray()
 	{
 		clear();
 	}
+
+	bool operator == (TArray const& rhs) const
+	{
+		if (mNum != rhs.mNum)
+			return false;
+
+		for (int i = 0; i < mNum; ++i)
+		{
+			if ( !(*getElement(i) == *rhs.getElement(i)) )
+				return false;
+		}
+		return true;
+	}
+
+	bool operator != (TArray const& rhs) const
+	{
+		return !this->operator == (rhs);
+	}
+
 
 	const_refernece front() const { return *getElement(0); }
 	reference       front() { return *getElement(0); }
@@ -162,26 +315,116 @@ public:
 	const_iterator end()   const { return getElement(mNum); }
 	iterator       end() { return getElement(mNum); }
 
+	T const* data() const { return getElement(0); }
+	T*       data()       { return getElement(0); }
 
 
-	template< class Q >
-	void push_back(Q&& val)
-	{ 
+	bool isValidIndex(int index) const
+	{
+		return 0 < index && index < size();
+	}
+
+	void reserve(size_t size)
+	{
+		ArrayData::reserve(size);
+	}
+
+	template< typename ...TArgs >
+	void emplace_back(TArgs ...args)
+	{
 		T* ptr = addUninitialized();
-		TypeDataHelper::Construct(ptr, std::forward< Q >(val));
+		FTypeMemoryOp::Construct(ptr, std::forward<TArgs>(args)...);
+	}
+
+	void push_back(T const& val)
+	{
+		T* ptr = addUninitialized();
+		FTypeMemoryOp::Construct(ptr, val);
+	}
+
+	void push_back(T&& val)
+	{
+		T* ptr = addUninitialized();
+		FTypeMemoryOp::Construct(ptr, std::move(val));
+	}
+
+	void insert(iterator where, T const& val)
+	{
+		int indexPos = where - begin();
+		int numMove = end() - where;
+		T* ptr = addUninitialized(1);
+		if (numMove)
+		{
+			FTypeMemoryOp::MoveRightOverlap(getElement(indexPos + 1), numMove, getElement(indexPos));
+		}
+
+		FTypeMemoryOp::Construct(getElement(indexPos), val);
+	}
+
+	void insert(iterator where, size_t num, T const& val)
+	{
+		int indexPos = where - begin();
+		int numMove = end() - where;
+		T* ptr = addUninitialized(num);
+		if (numMove)
+		{
+			FTypeMemoryOp::MoveRightOverlap(getElement(indexPos + num), numMove, getElement(indexPos));
+		}
+
+		FTypeMemoryOp::ConstructSequence(getElement(indexPos), num, val);
+	}
+
+	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
+	void insert(iterator where, Iter itBegin, Iter itEnd)
+	{
+		int indexPos = where - begin();
+		int numMove = end() - where;
+		int addSize = std::distance(itBegin, itEnd);
+		T* ptr = addUninitialized(addSize);
+		if (numMove)
+		{
+			FTypeMemoryOp::MoveRightOverlap(getElement(indexPos + addSize), numMove, getElement(indexPos));
+		}
+
+		FTypeMemoryOp::ConstructSequence(getElement(indexPos), addSize, itBegin, itEnd);
+	}
+
+	bool addUnique(T const& val)
+	{
+		if (findIndex(val) != INDEX_NONE)
+			return false;
+		push_back(val);
+		return true;
+	}
+
+	void append(TArray const& rhs)
+	{
+		addRange(rhs.begin(), rhs.end());
+	}
+
+	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
+	void append(Iter itBegin, Iter itEnd)
+	{
+		addRange(itBegin, itEnd);
+	}
+
+	void append(int size, T const& value)
+	{
+		T* ptr = addUninitialized(size);
+		FTypeMemoryOp::ConstructSequence(ptr, size, value);
 	}
 
 	void pop_back()
 	{ 
 		assert(size() != 0);
 		--mNum;
-		TypeDataHelper::Destruct(getElement(mNum));
+		FTypeMemoryOp::Destruct(getElement(mNum));
 	}
 
 	iterator erase(iterator iter)
 	{
 		checkRange(iter);
-		TypeDataHelper::Destruct(iter);
+		FTypeMemoryOp::Destruct(iter);
 
 		moveToEnd(iter, iter + 1);
 		return iter;
@@ -190,42 +433,217 @@ public:
 	iterator erase(iterator from, iterator to)
 	{
 		checkRange(from);
-		checkRange(to);
+		checkRange(to - 1);
 		assert(to > from);
-		TypeDataHelper::Destruct(from, to - from);
+		FTypeMemoryOp::DestructSequence(from, to - from);
 		moveToEnd(from, to);
 		return from;
 	}
 
+	void removeIndex(int index)
+	{
+		erase(begin() + index);
+	}
+
+	void removeIndexSwap(int index)
+	{
+		checkRange( begin() + index);
+		--mNum;
+		if (index != mNum)
+		{
+			FTypeMemoryOp::Move(getElement(index), getElement(mNum));
+		}
+		FTypeMemoryOp::Destruct(getElement(mNum));
+	}
+
+	int findIndex(T const& value)
+	{
+		for (int index = 0; index < mNum; ++index)
+		{
+			if (*getElement(index) == value)
+				return index;
+		}
+		return INDEX_NONE;
+	}
+
+	template< typename TFunc >
+	int findIndexPred(TFunc&& func)
+	{
+		for (int index = 0; index < mNum; ++index)
+		{
+			if (func(*getElement(index)))
+				return index;
+		}
+		return INDEX_NONE;
+	}
+
+	bool remove(T const& value)
+	{
+		int index = findIndex(value);
+		if (index == INDEX_NONE)
+			return false;
+
+		removeIndex(index);
+		return true;
+	}
+
+	template< typename TFunc >
+	bool removePred(TFunc&& func)
+	{
+		int index = findIndexPred(std::forward<TFunc>(func));
+		if (index == INDEX_NONE)
+			return false;
+
+		removeIndex(index);
+		return true;
+	}
+
+	template< typename TFunc >
+	int removeAllPred(TFunc&& func)
+	{
+		int index = 0;
+		for (int i = 0; i < mNum; ++i)
+		{
+			T* ptr = getElement(i);
+			if (func(*ptr))
+			{
+				FTypeMemoryOp::Destruct(ptr);
+			}
+			else 
+			{
+				if (index != i)
+				{
+					FTypeMemoryOp::Move(getElement(index), ptr);
+				}
+				++index;
+			}
+		}
+		int result = mNum - index;
+		mNum = index;
+		return result;
+	}
+
+	void removeChecked(T const& value)
+	{
+		int index = findIndex(value);
+		CHECK(index != INDEX_NONE);
+		removeIndex(index);
+	}
+	void removeSwap(T const& value)
+	{
+		int index = findIndex(value);
+		if (index != INDEX_NONE)
+		{
+			removeIndexSwap(index);
+		}
+	}
+
+	bool isUnique() const
+	{
+		for (int i = 0; i < mNum; ++i)
+		{
+			for (int j = i + 1; j < mNum; ++j)
+			{
+				if (*getElement(i) == *getElement(j))
+					return false;
+			}
+		}
+		return true;
+	}
+
+	void makeUnique(int idxStart = 0)
+	{
+		int idxLast = mNum - 1;
+		for (int i = idxStart; i <= idxLast; ++i)
+		{
+			for (int j = 0; j < i; ++j)
+			{
+				if (*getElement(i) == *getElement(j))
+				{
+					if (i != idxLast)
+					{
+						std::swap(*getElement(i), *getElement(idxLast));
+						--i;
+					}
+					--idxLast;
+				}
+			}
+		}
+		if (idxLast + 1 != mNum)
+		{
+			resize(idxLast + 1);
+		}
+	}
+
 	void resize(size_t num)
 	{
+		if (num == mNum)
+			return;
+
 		if (num < size())
 		{
 			erase(begin() + num, end());
 		}
 		else
 		{
-			T* ptr = addUninitialized(num);
-			TypeDataHelper::Construct(ptr, num);
+			int delta = num - mNum;
+			T* ptr = addUninitialized(delta);
+			FTypeMemoryOp::ConstructSequence(ptr, delta);
 		}
 	}
 
 	void resize(size_t num, value_type const& value)
 	{
+		if (num == mNum)
+			return;
+
 		if (num < size())
 		{
 			erase(begin() + num, end());
 		}
 		else
 		{
+			int delta = num - mNum;
+			T* ptr = addUninitialized(delta);
+			FTypeMemoryOp::ConstructSequence(ptr, delta, value);
+		}
+	}
+
+	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
+	void assign(Iter itBegin, Iter itEnd)
+	{
+		eraseToEnd(begin());
+		addRange(itBegin, itEnd);
+	}
+
+	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
+	void addRange(Iter itBegin, Iter itEnd)
+	{
+		int num = std::distance(itBegin , itEnd);
+		if (num)
+		{
 			T* ptr = addUninitialized(num);
-			TypeDataHelper::Construct(ptr, num, value);
+			FTypeMemoryOp::ConstructSequence(ptr, num, itBegin, itEnd);
 		}
 	}
 
 	bool     empty()  const { return !mNum; }
 	size_t   size()     const { return mNum; }
-	void     clear() { eraseToEnd(begin()); }
+	void     clear() 
+	{ 
+		eraseToEnd(begin()); 
+	}
+	void shrink_to_fit()
+	{
+		ArrayData::shrinkTofit(mNum);
+	}
+
+	void swap(TArray& other)
+	{
+		using std::swap;
+		swap(mNum, other.mNum);
+		ArrayData::swap(other);
+	}
 
 	T* addUninitialized()
 	{
@@ -259,7 +677,7 @@ public:
 		int num = mNum - (src - getElement(0));
 		if (num)
 		{
-			TypeDataHelper::Move(where, num, src);
+			FTypeMemoryOp::MoveSequence(where, num, src);
 		}
 		mNum = mNum - (src - where);
 	}
@@ -267,7 +685,7 @@ public:
 
 	void  eraseToEnd(iterator is)
 	{
-		TypeDataHelper::Destruct(is, end() - is);
+		FTypeMemoryOp::DestructSequence(is, end() - is);
 		mNum = is - getElement(0);
 	}
 

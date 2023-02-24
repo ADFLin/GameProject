@@ -7,7 +7,7 @@
 #include "Core/Memory.h"
 #include "PropertySet.h"
 
-//TODO:remove me
+//#TODO:remove me
 #include "GameGlobal.h"
 
 namespace Go

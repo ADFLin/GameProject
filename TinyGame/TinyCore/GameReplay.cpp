@@ -4,8 +4,6 @@
 #include "GameAction.h"
 
 #include "Serialize/FileStream.h"
-#include <vector>
-
 
 struct ReplayInfoV0_0_1
 {

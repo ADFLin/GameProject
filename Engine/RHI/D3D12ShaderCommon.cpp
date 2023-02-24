@@ -61,7 +61,7 @@ namespace Render
 		do
 		{
 			bSuccess = true;
-			std::vector< uint8 > codeBuffer;
+			TArray< uint8 > codeBuffer;
 			if (!loadCode(context, codeBuffer))
 				return false;
 
@@ -159,17 +159,17 @@ namespace Render
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL_D3D12::getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
 		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
 		outBinaryCode = shaderImpl.code;
 		return true;
 	}
 
-	bool ShaderFormatHLSL_D3D12::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL_D3D12::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
 		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
-		auto serializer = CreateBufferSerializer<VectorWriteBuffer>(outBinaryCode);
+		auto serializer = CreateBufferSerializer<ArrayWriteBuffer>(outBinaryCode);
 		uint8 numShaders = shaderProgramImpl.mNumShaders;
 		serializer.write(numShaders);
 		for (int i = 0; i < numShaders; ++i)
@@ -228,7 +228,7 @@ namespace Render
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode)
+	bool ShaderFormatHLSL_D3D12::initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
 	{
 #if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
@@ -236,7 +236,7 @@ namespace Render
 		shader.mRHIResource = RHICreateShader(desc.type);
 
 		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
-		std::vector<uint8> temp = binaryCode;
+		TArray<uint8> temp = binaryCode;
 		if (!shaderImpl.initialize(std::move(temp)))
 			return false;
 
@@ -265,7 +265,7 @@ namespace Render
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode)
+	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
 	{
 #if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
@@ -280,7 +280,7 @@ namespace Render
 		{
 			uint8 shaderType;
 			serializer.read(shaderType);
-			std::vector< uint8 > byteCode;
+			TArray< uint8 > byteCode;
 			serializer.read(byteCode);
 
 			auto& shaderData = shaderProgramImpl.mShaderDatas[i];
@@ -298,7 +298,7 @@ namespace Render
 
 
 
-	bool D3D12Shader::GenerateParameterMap(std::vector< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature)
+	bool D3D12Shader::GenerateParameterMap(TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature)
 	{
 #if TARGET_PLATFORM_64BITS
 		TComPtr<IDxcContainerReflection> containerReflection;
@@ -509,7 +509,7 @@ namespace Render
 		return true;
 	}
 
-	bool D3D12ShaderData::initialize(std::vector<uint8>&& binaryCode)
+	bool D3D12ShaderData::initialize(TArray<uint8>&& binaryCode)
 	{
 		code = std::move(binaryCode);
 		return true;

@@ -9,7 +9,7 @@
 using namespace Render;
 
 Render::TextureAtlas FImGui::mIconAtlas;
-std::vector<FImGui::Rect> FImGui::mCachedIconUVs;
+TArray<FImGui::Rect> FImGui::mCachedIconUVs;
 
 
 void FImGui::InitializeRHI()

@@ -511,7 +511,7 @@ class GPGameSvList : public GamePacketT< GPGameSvList , GP_GAME_SV_LIST  >
 {
 public:
 	size_t getGameSvInfoNum(){  return gameSvInfo.size();  }
-	std::vector< GameSvInfo > gameSvInfo;
+	TArray< GameSvInfo > gameSvInfo;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )

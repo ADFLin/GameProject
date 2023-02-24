@@ -41,7 +41,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>OpenGLRHI</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.20206.0</WindowsTargetPlatformVersion>
     <ProjectName>OpenGLRHI</ProjectName>
     <ProjectGuid>{7EC6733C-3ECD-4C69-A8DC-DC11C0ED8321}</ProjectGuid>
   </PropertyGroup>

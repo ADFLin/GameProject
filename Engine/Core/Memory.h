@@ -25,6 +25,16 @@ struct FMemory
 	{
 		return ::realloc(ptr, size);
 	}
+
+	static void* Alloc(size_t size)
+	{
+		return ::malloc(size);
+	}
+
+	static void Free(void* ptr)
+	{
+		::free(ptr);
+	}
 };
 
 #endif // Memory_H_8EDA60D7_C2B5_4E9C_B36D_8554BAB1DF86

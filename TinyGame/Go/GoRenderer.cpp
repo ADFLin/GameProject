@@ -12,7 +12,7 @@
 
 #include "ConsoleSystem.h"
 
-#define USE_OPENGL_NATIVE 0
+#define DRAW_TEXTURE 1
 
 namespace GoCore
 {
@@ -28,7 +28,11 @@ namespace GoCore
 		{\
 			mTextures[ID] = RHIUtility::LoadTexture2DFromFile(PATH);\
 			VERIFY_RETURN_FALSE( mTextures[ID].isValid() );\
-			if ( bGetUV ) mTextureAtlas.getRectUV(ID, mTexInfos[ID].uvMin , mTexInfos[ID].uvMax);\
+			if ( bGetUV )\
+			{\
+				mTextureAtlas.getRectUV(ID, mTexInfos[ID].uvMin, mTexInfos[ID].uvMax);\
+				mTexInfos[ID].uvSize = mTexInfos[ID].uvMax - mTexInfos[ID].uvMin;\
+			}\
 		}
 
 		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png", true);
@@ -36,14 +40,6 @@ namespace GoCore
 		TEXTURE(TextureId::eBoardA, "Go/badukpan4.png", false);
 #undef TEXTURE
 
-#if USE_OPENGL_NATIVE
-		//#TODO:Remove me
-		auto cmd = ConsoleSystem::Get().findCommand("r.OpenGLFixedPiplineUseShader");
-		if (cmd)
-		{
-			cmd->asVariable()->setFromInt(0);
-		}
-#endif
 		return true;
 	}
 
@@ -69,7 +65,7 @@ namespace GoCore
 	}
 
 
-	void BoardRendererBase::drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
+	void BoardRendererBase::drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, TArray<PlayVertex> const& vertices, int colorStart, float opacity)
 	{
 		using namespace Render;
 		using namespace Go;
@@ -79,13 +75,6 @@ namespace GoCore
 			GPU_PROFILE("Draw Stone");
 
 #if DRAW_TEXTURE
-
-
-#if USE_OPENGL_NATIVE
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
-			glEnable(GL_TEXTURE_2D);
-			glActiveTexture(GL_TEXTURE0);
-#endif
 			RenderUtility::SetBrush(g, EColor::White);
 			g.beginBlend(1.0f);
 			g.setTexture(mTextureAtlas.getTexture());
@@ -104,21 +93,6 @@ namespace GoCore
 			}
 
 #if DRAW_TEXTURE
-
-#if USE_OPENGL_NATIVE
-			if (bUseBatchedRender)
-			{
-				if (!mSpriteVertices.empty())
-				{
-					GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, &mSpriteVertices[0], mSpriteVertices.size());
-					mSpriteVertices.clear();
-				}
-			}
-
-			glDisable(GL_TEXTURE_2D);
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-#endif
 			g.endBlend();
 #endif
 		}
@@ -154,22 +128,8 @@ namespace GoCore
 		RHICommandList& commandList = g.getCommandList();
 
 #if DRAW_TEXTURE
-#if USE_OPENGL_NATIVE
-		glEnable(GL_TEXTURE_2D);
-		glActiveTexture(GL_TEXTURE0);
-		{
-			GL_SCOPED_BIND_OBJECT(mTextures[TextureId::eBoardA]);
-			DrawUtility::Sprite(commandList,
-				context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0),
-				LinearColor(1, 1, 1, 1), Vector2(0, 0), 2 * Vector2(1, 1));
-		}
-		glDisable(GL_TEXTURE_2D);
-#else
 		RenderUtility::SetBrush(g, EColor::White);
 		g.drawTexture(*mTextures[TextureId::eBoardA], context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0), 2 * Vector2(1, 1));
-
-
-#endif
 #else
 		RenderUtility::SetPen(g, EColor::Black);
 		RenderUtility::SetBrush(g, EColor::Orange);
@@ -244,16 +204,9 @@ namespace GoCore
 			GPU_PROFILE("Draw Stone");
 
 #if DRAW_TEXTURE
-#if USE_OPENGL_NATIVE
-			g.setBlendState(ESimpleBlendMode::Translucent);
-			g.commitRenderState();
-			glEnable(GL_TEXTURE_2D);
-			glActiveTexture(GL_TEXTURE0);
-#else
 			RenderUtility::SetBrush(g, EColor::White);
 			g.beginBlend(1.0f);
 			g.setTexture(mTextureAtlas.getTexture());
-#endif
 #endif
 
 			if (overrideStoneState)
@@ -288,37 +241,9 @@ namespace GoCore
 			}
 
 #if DRAW_TEXTURE
-#if USE_OPENGL_NATIVE
-			if (bUseBatchedRender)
-			{
-				if (!mSpriteVertices.empty())
-				{
-					GL_SCOPED_BIND_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, EPrimitive::Quad, &mSpriteVertices[0], mSpriteVertices.size());
-					mSpriteVertices.clear();
-				}
-			}
-
-			glDisable(GL_TEXTURE_2D);
-			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-			g.setBlendState(ESimpleBlendMode::None);
-#else
 			g.endBlend();
 #endif
-#endif
 		}
-	}
-
-	void BoardRendererBase::addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color)
-	{
-		Vector2 posLT = pos - size.mul(pivot);
-		Vector2 posRB = posLT + size;
-		Vector2 const& min = mTexInfos[id].uvMin;
-		Vector2 const& max = mTexInfos[id].uvMax;
-		mSpriteVertices.push_back({ posLT , color , min });
-		mSpriteVertices.push_back({ Vector2(posLT.x , posRB.y) , color , Vector2(min.x , max.y) });
-		mSpriteVertices.push_back({ posRB , color , max });
-		mSpriteVertices.push_back({ Vector2(posRB.x , posLT.y) , color , Vector2(max.x , min.y) });
 	}
 
 	void BoardRendererBase::drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
@@ -326,48 +251,23 @@ namespace GoCore
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 #if DRAW_TEXTURE
-#if USE_OPENGL_NATIVE
-		if( bUseBatchedRender )
-		{
-			int id = (color == EStoneColor::Black) ? 0 : 1;
-			addBatchedSprite(id, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
-			addBatchedSprite(id, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(1, 1, 1, opaticy));
-		}
-		else
-		{
-			int id = (color == EStoneColor::Black) ? TextureId::eBlockStone : TextureId::eWhiteStone;	
-			{
-				GL_SCOPED_BIND_OBJECT(mTextures[id]);
-
-
-				glColor4f(0, 0, 0, 0.2 * opaticy);
-				DrawUtility::Sprite(commandList, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
-
-				glColor4f(1, 1, 1 , opaticy);
-				DrawUtility::Sprite(commandList, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
-
-			}
-		}
-#else
 		int id = (color == EStoneColor::Black) ? TextureId::eBlockStone : TextureId::eWhiteStone;
 		auto AddSprite = [&](int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color)
 		{
 			Vector2 posLT = pos - size.mul(pivot);
 			Vector2 posRB = posLT + size;
-			Vector2 const& min = mTexInfos[id].uvMin;
-			Vector2 const& max = mTexInfos[id].uvMax;
+			Vector2 const& uvMin = mTexInfos[id].uvMin;
+			Vector2 const& uvSize = mTexInfos[id].uvSize;
 			g.setBrush( Color3f( color.xyz() ));
 			g.setBlendAlpha(color.w);
-			g.drawTexture(posLT, size, min, max - min);
+			g.drawTexture(posLT, size, uvMin, uvSize);
 		};
 		AddSprite(id, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
 		AddSprite(id, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(1, 1, 1, opaticy));
-
-#endif
 #else
 		RenderUtility::SetPen(g, EColor::Black);
 		RenderUtility::SetBrush(g, (color == EStoneColor::Black) ? EColor::Black : EColor::White);
-		g.drawCircle(pos, StoneRadius);
+		g.drawCircle(pos, stoneRadius);
 		if( color == EStoneColor::Black )
 		{
 			RenderUtility::SetBrush(g, EColor::White);

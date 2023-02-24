@@ -70,7 +70,7 @@ struct FImGui
 		ImVec2 min;
 		ImVec2 max;
 	};
-	static std::vector<Rect> mCachedIconUVs;
+	static TArray<Rect> mCachedIconUVs;
 
 };
 #endif // EditorDrawUtil_H_3F0AAB5D_6D2C_4B73_8A9B_44986611DA1D

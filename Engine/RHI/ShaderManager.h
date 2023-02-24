@@ -50,9 +50,9 @@ namespace Render
 	struct ShaderProgramManagedData : public ShaderManagedDataBase
 	{
 		ShaderProgram*  shaderProgram = nullptr;
-		std::vector< ShaderCompileDesc > descList;
+		TArray< ShaderCompileDesc > descList;
 	protected:
-		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
+		virtual void getDependentFilePaths(TArray<std::wstring>& paths) override;
 		virtual void postFileModify(EFileAction action) override;
 	};
 
@@ -61,11 +61,11 @@ namespace Render
 		Shader* shader = nullptr;
 		ShaderCompileDesc desc;
 	protected:
-		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
+		virtual void getDependentFilePaths(TArray<std::wstring>& paths) override;
 		virtual void postFileModify(EFileAction action) override;
 	};
 
-	typedef std::vector< std::pair< MaterialShaderProgramClass*, MaterialShaderProgram* > > MaterialShaderPairVec;
+	typedef TArray< std::pair< MaterialShaderProgramClass*, MaterialShaderProgram* > > MaterialShaderPairVec;
 
 	class ShaderManager : public SingletonT< ShaderManager >
 	{

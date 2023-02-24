@@ -44,7 +44,7 @@ namespace Go
 					debugString.clear();
 				}
 
-				debugString.insert(debugString.end(), pData, pData + numRead);
+				debugString.append(pData, pData + numRead);
 #endif
 				mNumNewRead = numRead;
 				mNumUsed += numRead;

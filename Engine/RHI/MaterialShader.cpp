@@ -4,7 +4,7 @@ namespace Render
 {
 
 #if CORE_SHARE_CODE
-	std::vector< MaterialShaderProgramClass* > MaterialShaderProgramClass::ClassList;
+	TArray< MaterialShaderProgramClass* > MaterialShaderProgramClass::ClassList;
 
 	MaterialShaderProgramClass::MaterialShaderProgramClass(
 		CreateShaderObjectFunc inCreateShaderObject,

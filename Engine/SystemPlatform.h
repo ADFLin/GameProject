@@ -48,6 +48,18 @@ public:
 	}
 
 
+	static bool IsLeapYear(int year)
+	{
+		if (year % 4)
+			return false;
+		if (year % 100)
+			return true;
+		if (year % 400)
+			return false;
+
+		return true;
+	}
+
 	DateTime(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 sec, int32 millisecond)
 	{
 		mYear = year;
@@ -59,6 +71,12 @@ public:
 		mMillisecond = millisecond;
 		mCachedDayOfWeek = -1;
 	}
+
+	int64 getTicks() const
+	{
+
+	}
+
 	int32 getYear() const { return mYear; }
 	int32 getMonth() const { return mMonth; }
 	int32 getDay() const { return mDay; }
@@ -66,7 +84,7 @@ public:
 	{ 
 		if( mCachedDayOfWeek == -1 )
 		{
-			//TODO
+			//#TODO
 		}
 		return EDateWeekOfDay(mCachedDayOfWeek); 
 	}

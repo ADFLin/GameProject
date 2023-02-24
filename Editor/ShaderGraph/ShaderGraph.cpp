@@ -4,7 +4,7 @@
 #include "StringParse.h"
 #include "LogSystem.h"
 
-static int Printf(char const* format, std::vector< std::string > const& strList, std::string& outString)
+static int Printf(char const* format, TArray< std::string > const& strList, std::string& outString)
 {
 	int index = 0;
 	char const* cur = format;
@@ -23,7 +23,7 @@ static int Printf(char const* format, std::vector< std::string > const& strList,
 				}
 				outString += strList[index];
 				++index;
-				if (!IsValidIndex(strList, index))
+				if (!strList.isValidIndex(index))
 				{
 					break;
 				}

@@ -185,7 +185,7 @@ namespace Poker {
 
 				cardUVSize = Vector2(CardSize).mul(textSizeInv);
 
-				std::vector< Color4ub > pixelData;
+				TArray< Color4ub > pixelData;
 				pixelData.resize(bmp.bmWidth * bmp.bmHeight);
 
 				int compCount = bmp.bmBitsPixel / 8;
@@ -204,7 +204,8 @@ namespace Poker {
 						pSrcMask += 1;
 					}
 				}
-				mTexture = RHICreateTexture2D(ETexture::RGBA8, bmp.bmWidth, bmp.bmHeight, 0, 1, TCF_DefalutValue, pixelData.data());
+
+				mTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, bmp.bmWidth, bmp.bmHeight), pixelData.data());
 
 				GTextureShowManager.registerTexture("Card", mTexture);
 			}

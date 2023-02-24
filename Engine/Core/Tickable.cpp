@@ -2,7 +2,7 @@
 
 #if CORE_SHARE_CODE
 
-std::vector<Tickable*> Tickable::List;
+TArray<Tickable*> Tickable::List;
 
 void Tickable::Update(float deltaTime)
 {

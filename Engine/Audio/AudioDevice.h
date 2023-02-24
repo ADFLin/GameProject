@@ -4,10 +4,11 @@
 
 #include "Core/IntegerType.h"
 
+#include "DataStructure/Array.h"
 #include <unordered_map>
-#include <vector>
 #include <cassert>
 #include <string>
+
 
 typedef uint32 AudioHandle;
 AudioHandle const ERROR_AUDIO_HANDLE = AudioHandle(0);
@@ -24,7 +25,7 @@ struct WaveFormatInfo
 };
 
 
-bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, std::vector< uint8 >& outSampleData);
+bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, TArray< uint8 >& outSampleData);
 
 class SoundWave;
 class SoundBase;
@@ -42,7 +43,7 @@ struct ActiveSound
 	bool        bPlay2d;
 	bool        bLoop;
 
-	std::vector< SoundInstance* > playingInstances;
+	TArray< SoundInstance* > playingInstances;
 
 	bool isPlaying() const
 	{
@@ -74,9 +75,9 @@ struct SoundWaveStreamingData
 		uint32 samplePos;
 	};
 
-	std::vector< LoadedChunk > loadedChunks;
+	TArray< LoadedChunk > loadedChunks;
 	uint32 dataPos;
-	std::vector< uint8 > buffer;
+	TArray< uint8 > buffer;
 };
 
 struct SoundInstance
@@ -146,7 +147,7 @@ public:
 	SoundDSPData mData;
 	AudioDevice* mDevice;
 	ActiveSound* mActiveSound;
-	std::vector< SoundDSPData > mDataStack;
+	TArray< SoundDSPData > mDataStack;
 };
 
 
@@ -234,7 +235,7 @@ public:
 	WaveFormatInfo format;
 
 	bool bSaveStreamingPCMData = false;
-	std::vector< uint8 > PCMData;
+	TArray< uint8 > PCMData;
 
 	IAudioStreamSource* streamSource = nullptr;
 };
@@ -298,12 +299,12 @@ protected:
 	ActiveSound* createAtiveSound();
 	void destroyActiveSound(ActiveSound* activeSound);
 
-	std::vector< AudioSource* > mAudioSources;
-	std::vector< int > mIdleSources;
+	TArray< AudioSource* > mAudioSources;
+	TArray< int > mIdleSources;
 	int mMaxChannelNum = 10;
 
 	uint32 mNextHandleId = 1;
-	std::vector< ActiveSound* > mActiveSounds;
+	TArray< ActiveSound* > mActiveSounds;
 	std::unordered_map< uint64, SoundInstance* > mPlayingInstances;
 	std::unordered_map< uint32, ActiveSound* >   mActiveSoundMap;
 };

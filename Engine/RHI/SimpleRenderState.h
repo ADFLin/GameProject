@@ -69,7 +69,7 @@ namespace Render
 
 		Matrix4 const& get() { return mCurrent; }
 		Matrix4 mCurrent;
-		std::vector< Matrix4 > mStack;
+		TArray< Matrix4 > mStack;
 	};
 
 

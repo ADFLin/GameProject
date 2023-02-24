@@ -3,10 +3,10 @@
 
 #include "Core/IntegerType.h"
 #include "Holder.h"
+#include "DataStructure/Array.h"
 
 #include <cassert>
 #include <algorithm>
-#include <vector>
 
 namespace Tetris
 {
@@ -183,8 +183,8 @@ namespace Tetris
 		int     mSizeX;
 		int     mSizeY;
 		TArrayHolder< BlockType > mBlockStorage;
-		std::vector< Layer >  mLayerMap;
-		std::vector< int* >   mConMap;
+		TArray< Layer >  mLayerMap;
+		TArray< int* >   mConMap;
 
 	};
 

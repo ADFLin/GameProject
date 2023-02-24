@@ -2,7 +2,7 @@
 #ifndef CycleQueue_H_6D751446_66FF_4899_B21F_F7F2EE0F5C1D
 #define CycleQueue_H_6D751446_66FF_4899_B21F_F7F2EE0F5C1D
 
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 
 #include "DataStructure/Array.h"
 #include <algorithm>
@@ -27,12 +27,12 @@ public:
 		size_t numTail = mNumStorage - mIndexCur;
 		if( mNumElement > numTail )
 		{
-			TypeDataHelper::Destruct(mStorage + mIndexCur, numTail);
-			TypeDataHelper::Destruct(mStorage, mNumElement - numTail);
+			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, numTail);
+			FTypeMemoryOp::DestructSequence(mStorage, mNumElement - numTail);
 		}
 		else
 		{
-			TypeDataHelper::Destruct(mStorage + mIndexCur, mNumElement);
+			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, mNumElement);
 		}
 
 		if( mStorage )
@@ -47,12 +47,12 @@ public:
 		size_t numTail = mNumStorage - mIndexCur;
 		if( mNumElement > numTail )
 		{
-			TypeDataHelper::Destruct(mStorage + mIndexCur, numTail);
-			TypeDataHelper::Destruct(mStorage, mNumElement - numTail);
+			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, numTail);
+			FTypeMemoryOp::DestructSequence(mStorage, mNumElement - numTail);
 		}
 		else
 		{
-			TypeDataHelper::Destruct(mStorage + mIndexCur, mNumElement);
+			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, mNumElement);
 		}
 
 		mIndexCur = 0;
@@ -75,14 +75,14 @@ public:
 				size_t numTail = mNumStorage - mIndexCur;
 				if ( mNumElement > numTail )
 				{
-					TypeDataHelper::Construct(newPtr, numTail, mStorage + mIndexCur);
-					TypeDataHelper::Construct(newPtr + numTail, mNumElement - numTail, mStorage);
+					FTypeMemoryOp::ConstructSequence(newPtr, numTail, mStorage + mIndexCur);
+					FTypeMemoryOp::ConstructSequence(newPtr + numTail, mNumElement - numTail, mStorage);
 				}
 				else
 				{
-					TypeDataHelper::Construct(newPtr, mNumElement, mStorage + mIndexCur);	
+					FTypeMemoryOp::ConstructSequence(newPtr, mNumElement, mStorage + mIndexCur);
 				}
-				TypeDataHelper::Destruct(mStorage , mNumElement);
+				FTypeMemoryOp::DestructSequence(mStorage , mNumElement);
 			}
 
 			mNumStorage = newSize;
@@ -90,7 +90,7 @@ public:
 			mIndexNext = mNumElement;
 		}
 
-		TypeDataHelper::Construct(mStorage + mIndexNext, value);
+		FTypeMemoryOp::Construct(mStorage + mIndexNext, value);
 		++mIndexNext;
 		if( mIndexNext == mNumStorage )
 			mIndexNext = 0;
@@ -104,7 +104,7 @@ public:
 		if( mIndexNext == mNumStorage )
 			mIndexNext = 0;
 
-		TypeDataHelper::Destruct(mStorage + mIndexCur);
+		FTypeMemoryOp::Destruct(mStorage + mIndexCur);
 		--mNumElement;
 	}
 
@@ -188,14 +188,14 @@ public:
 	{
 		if (mNum == N)
 		{
-			TypeDataHelper::Assign((T*)mStorage[mIndexStart], std::forward<Args>(args)...);
+			FTypeMemoryOp::Assign((T*)mStorage[mIndexStart], std::forward<Args>(args)...);
 			++mIndexStart;
 			if (mIndexStart == N)
 				mIndexStart = 0;
 		}
 		else
 		{
-			TypeDataHelper::Construct<T>(mStorage[(mIndexStart + mNum) % N], std::forward<Args>(args)...);
+			FTypeMemoryOp::Construct<T>(mStorage[(mIndexStart + mNum) % N], std::forward<Args>(args)...);
 			++mNum;
 		}
 
@@ -206,14 +206,14 @@ public:
 	{
 		if (mNum == N)
 		{
-			TypeDataHelper::Assign((T*)mStorage[mIndexStart], std::forward<Q>(value));
+			FTypeMemoryOp::Assign((T*)mStorage[mIndexStart], std::forward<Q>(value));
 			++mIndexStart;
 			if (mIndexStart == N)
 				mIndexStart = 0;
 		}
 		else
 		{
-			TypeDataHelper::Construct((T*)mStorage[(mIndexStart + mNum) % N], std::forward<Q>(value));
+			FTypeMemoryOp::Construct((T*)mStorage[(mIndexStart + mNum) % N], std::forward<Q>(value));
 			++mNum;
 		}
 	}
@@ -222,14 +222,14 @@ public:
 	{
 		assert(mNum);
 		int index = (mIndexStart + mNum - 1) % N;
-		TypeDataHelper::Destruct((T*)mStorage[index]);
+		FTypeMemoryOp::Destruct((T*)mStorage[index]);
 		--mNum;
 	}
 
 	void pop_front()
 	{
 		assert(mNum);
-		TypeDataHelper::Destruct((T*)mStorage[mIndexStart]);
+		FTypeMemoryOp::Destruct((T*)mStorage[mIndexStart]);
 		++mIndexStart;
 		if (mIndexStart == N)
 			mIndexStart = 0;
@@ -243,12 +243,12 @@ public:
 		size_t numTail = N - mIndexStart;
 		if (mNum > numTail)
 		{
-			TypeDataHelper::Destruct(mStorage.mData + mIndexStart, numTail);
-			TypeDataHelper::Destruct(mStorage.mData, mNum - numTail);
+			FTypeMemoryOp::DestructSequence(mStorage.mData + mIndexStart, numTail);
+			FTypeMemoryOp::DestructSequence(mStorage.mData, mNum - numTail);
 		}
 		else
 		{
-			TypeDataHelper::Destruct(mStorage.mData + mIndexStart, mNum);
+			FTypeMemoryOp::DestructSequence(mStorage.mData + mIndexStart, mNum);
 		}
 		mNum = 0;
 		mIndexStart = 0;

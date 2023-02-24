@@ -58,7 +58,7 @@ namespace FlowFree
 				return *this;
 			}
 
-			std::vector< T > data;
+			TArray< T > data;
 			TImageView< T > view;
 		};
 
@@ -71,7 +71,7 @@ namespace FlowFree
 		Vector2 boundUVSize;
 		Vector2 gridUVSize;
 
-		std::vector< HoughLine > mLines;
+		TArray< HoughLine > mLines;
 		enum
 		{
 			eOrigin,
@@ -103,7 +103,7 @@ namespace FlowFree
 			addDebugLine(p3, pos, color);
 		}
 
-		ImageReadResult buildLevel(TImageView< Color3ub > const& imageView,  std::vector< HoughLine >& lines, Vec2i const& houghSize , Level& level, LoadParams const& params);
+		ImageReadResult buildLevel(TImageView< Color3ub > const& imageView,  TArray< HoughLine >& lines, Vec2i const& houghSize , Level& level, LoadParams const& params);
 
 		struct Line
 		{
@@ -112,7 +112,7 @@ namespace FlowFree
 			Color3ub color;
 		};
 
-		std::vector< Line > debugLines;
+		TArray< Line > debugLines;
 		RHITexture2DRef mDebugTextures[DebugTextureCount];
 	};
 

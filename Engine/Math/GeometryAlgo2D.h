@@ -94,7 +94,7 @@ namespace Geom2D
 		int numB = Poly::Size( polyB );
 		assert( numA >= 2 && numB >= 2 );
 
-		std::vector< Vector2 > offsets;
+		TArray< Vector2 > offsets;
 		int num = numA + numB;
 		offsets.resize( num );
 
@@ -110,7 +110,7 @@ namespace Geom2D
 			}
 		}
 
-		std::vector< int >   idxVertex;
+		TArray< int >   idxVertex;
 		idxVertex.resize( num );
 
 		int idxAStart;
@@ -199,7 +199,7 @@ namespace Geom2D
 				else if ( yP[1] < y ){ yI[1] = i; yP[1] = y; }
 			}
 
-			std::vector< int > idxBuf( numV );
+			TArray< int > idxBuf( numV );
 			int* pIdx = &idxBuf[0];
 			int nV = 0;
 			for( int i = 0 ; i < numV ; ++i )
@@ -517,7 +517,7 @@ namespace Geom2D
 	template< class TPoly >
 	inline void CalcMinimumBoundingRectangle(TPoly const& poly, Vector2& outCenter, Vector2& outAxisX, Vector2& outSize)
 	{
-		std::vector< int > hullIndices(Poly::Size(poly));
+		TArray< int > hullIndices(Poly::Size(poly));
 		QHullSolver< TPoly > solver;
 		int numHullVertex = solver.solve(poly, hullIndices.data());
 

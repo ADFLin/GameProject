@@ -8,6 +8,7 @@
 #include "omp.h"
 #endif
 #include "Image/ImageData.h"
+#include "SystemPlatform.h"
 
 REGISTER_STAGE_ENTRY("Software Renderer", SR::TestStage, EExecGroup::GraphicsTest, "Render");
 
@@ -697,12 +698,8 @@ namespace SR
 		return true;
 	}
 
-	void TestStage::renderTest1()
+	void TestStage::renderTest1(RenderTarget& renderTarget)
 	{
-		Graphics2D& g = Global::GetGraphics2D();
-
-		RenderTarget renderTarget;
-		renderTarget.colorBuffer = &mColorBuffer;
 		mRenderer.setRenderTarget(renderTarget);
 		mRenderer.clearBuffer(LinearColor(0.2, 0.2, 0.2, 0));
 
@@ -741,32 +738,27 @@ namespace SR
 							   Vector3(-10, 10, 0), LinearColor(1, 1, 1), Vector2(0, 1));
 
 #endif
-
-		mColorBuffer.draw(g);
 	}
 
-	void TestStage::renderTest2()
+	void TestStage::renderTest2(RenderTarget& renderTarget)
 	{
-		Graphics2D& g = Global::GetGraphics2D();
-
-		RenderTarget renderTarget;
-		renderTarget.colorBuffer = &mColorBuffer;
 		mRTRenderer.setRenderTarget(renderTarget);
 		mRTRenderer.clearBuffer(LinearColor(0.2, 0.2, 0.2, 0));
 
-		mRTRenderer.render(mScene, mCamera);
+		mCamera.lookAt(mCameraControl.getPos(), mCameraControl.getPos() + mCameraControl.getViewDir(), mCameraControl.getUpDir());
 
-		mColorBuffer.draw(g);
+		mRTRenderer.render(mScene, mCamera);
 	}
 
 	void TestStage::setupScene()
 	{
 		mCamera.lookAt(Vector3(0, 5, 1), Vector3(0, 0, 0.5), Vector3(0, 0, 1));
+
 		mCamera.fov = Math::Deg2Rad(70);
 		mCamera.aspect = float(mColorBuffer.getSize().x) / mColorBuffer.getSize().y;
 
-		mCameraControl.lookAt(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0));
-
+		//mCameraControl.lookAt(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0));
+		mCameraControl.lookAt(Vector3(0, 5, 1), Vector3(0, 0, 0.5), Vector3(0, 0, 1));
 		TRefCountPtr< PlaneShape > plane = new PlaneShape;
 
 		TRefCountPtr< SphereShape > sphere = new SphereShape;
@@ -837,26 +829,26 @@ namespace SR
 	bool RayTraceRenderer::init()
 	{
 #if USE_OMP
-		omp_set_num_threads(10);
+		int cout = SystemPlatform::GetProcessorNumber();
+		omp_set_num_threads(Math::Max(cout - 4, 1));
 #endif
 		return true;
 	}
 
 	void RayTraceRenderer::render(Scene& scene, Camera& camera)
 	{
-		Vector3 lookDir = camera.transform.transformVectorNoScale(Vector3(0, 0, -1));
+		Vector3 lookDir = camera.transform.transformVectorNoScale(Vector3(0, 0, 1));
 		Vector3 axisX = camera.transform.transformVectorNoScale(Vector3(1, 0, 0));
 		Vector3 axisY = camera.transform.transformVectorNoScale(Vector3(0, 1, 0));
 
-
 		Vec2i screenSize = mRenderTarget.colorBuffer->getSize();
 
-		
 		Vector3 const pixelOffsetX = ( 2 * Math::Tan(0.5 * camera.fov) * camera.aspect / screenSize.x ) * axisX;
 		Vector3 const pixelOffsetY = ( 2 * Math::Tan(0.5 * camera.fov) / screenSize.y ) * axisY;
 
 		float const centerPixelPosX = 0.5 * screenSize.x + 0.5;
 		float const centerPixelPosY = 0.5 * screenSize.y + 0.5;
+
 #if USE_OMP
 #pragma omp parallel for
 #endif
@@ -876,7 +868,7 @@ namespace SR
 				if( !scene.raycast(trace, result) )
 					continue;
 				
-				if( result.material && 0 )
+				if( result.material )
 				{
 					float attenuation = Math::Clamp< float >(-result.normal.dot(trace.dir), 0, 1) /*/ Math::Squre(result.distance)*/;
 					LinearColor c = result.material->emissiveColor;
@@ -885,6 +877,7 @@ namespace SR
 					reflectTrace.dir = Math::GetNormal(trace.dir - 2 * trace.dir.projectNormal(result.normal));
 					reflectTrace.pos = trace.pos + result.distance * trace.dir;
 
+#if 0
 					RayHitResult reflectResult;
 					if( scene.raycast(reflectTrace, reflectResult) )
 					{
@@ -893,8 +886,8 @@ namespace SR
 							c += reflectResult.material->emissiveColor;
 							c *= attenuation;
 						}
-
 					}
+#endif
 
 					mRenderTarget.colorBuffer->setPixel(i, j, c);
 				}

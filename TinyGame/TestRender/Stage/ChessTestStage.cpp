@@ -719,7 +719,7 @@ namespace Chess
 		bool bShowAttackTerritory = false;
 		Vec2i mSelectedChessPos;
 		Vec2i mMouseTilePos;
-		std::vector<MoveInfo> mMovePosList;
+		TArray<MoveInfo> mMovePosList;
 
 		MsgReply onKey(KeyMsg const& msg) override
 		{

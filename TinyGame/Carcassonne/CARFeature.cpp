@@ -19,7 +19,7 @@ namespace CAR
 		return t.getSetting();
 	}
 
-	int FeatureBase::getActorPutInfoInternal(int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo)
+	int FeatureBase::getActorPutInfoInternal(int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , int numMask , TArray< ActorPosInfo >& outInfo)
 	{
 		unsigned actorTypeMask = 0;
 		unsigned actorTypeMaskOther = 0;
@@ -60,7 +60,7 @@ namespace CAR
 		return 1;
 	}
 
-	int FeatureBase::getDefaultActorPutInfo(int playerId, ActorPos const& actorPos, MapTile& mapTile, unsigned actorMasks[], std::vector< ActorPosInfo >& outInfo)
+	int FeatureBase::getDefaultActorPutInfo(int playerId, ActorPos const& actorPos, MapTile& mapTile, unsigned actorMasks[], TArray< ActorPosInfo >& outInfo)
 	{
 		actorMasks[0] |= BIT(EActor::Meeple) | BIT( EActor::Phantom ) | BIT( EActor::BigMeeple );
 		return getActorPutInfoInternal( playerId , actorPos , mapTile , actorMasks , DefaultActorMaskNum , outInfo );
@@ -127,7 +127,7 @@ namespace CAR
 		return outResult.numController;
 	}
 
-	int FeatureBase::evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores)
+	int FeatureBase::evalMajorityControl(TArray< FeatureControllerScoreInfo >& controllerScores)
 	{
 		assert(!controllerScores.empty());
 
@@ -197,7 +197,7 @@ namespace CAR
 		return false;
 	}
 
-	int FeatureBase::generateController(std::vector< FeatureControllerScoreInfo >& controllerScores)
+	int FeatureBase::generateController(TArray< FeatureControllerScoreInfo >& controllerScores)
 	{
 		generateMajority(controllerScores);
 		if( controllerScores.empty() )
@@ -224,7 +224,7 @@ namespace CAR
 		return 0;
 	}
 
-	void FeatureBase::generateMajority( std::vector< FeatureControllerScoreInfo >& controllerScores )
+	void FeatureBase::generateMajority( TArray< FeatureControllerScoreInfo >& controllerScores )
 	{
 		auto FindController = [&controllerScores](PlayerId id)-> FeatureControllerScoreInfo*
 		{
@@ -488,7 +488,7 @@ namespace CAR
 		haveInn    = false;
 	}
 
-	int RoadFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
+	int RoadFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , TArray< ActorPosInfo >& outInfo)
 	{
 		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) , BIT( EActor::Builder ) , 0 };
 		return getDefaultActorPutInfo( playerId , ActorPos::SideNode( posMeta ) , mapTile , actorMasks , outInfo );
@@ -550,7 +550,7 @@ namespace CAR
 	}
 
 
-	int CityFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
+	int CityFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , TArray< ActorPosInfo >& outInfo)
 	{
 		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) | BIT( EActor::Mayor ) , BIT( EActor::Builder ) , 0 };
 		return getDefaultActorPutInfo( playerId , ActorPos::SideNode( posMeta ) , mapTile , actorMasks ,outInfo );
@@ -676,7 +676,7 @@ namespace CAR
 		haveBarn = false;
 	}
 
-	int FarmFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
+	int FarmFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo)
 	{
 		if ( haveActorFromType( BIT( EActor::Barn ) ) )
 			return 0;
@@ -825,7 +825,7 @@ namespace CAR
 		challenger = nullptr;
 	}
 
-	int CloisterFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
+	int CloisterFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , TArray< ActorPosInfo >& outInfo)
 	{
 		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) | BIT( EActor::Abbot ), 0 , 0 };
 		return getDefaultActorPutInfo( playerId , ActorPos::Tile() , mapTile, actorMasks , outInfo );
@@ -880,7 +880,7 @@ namespace CAR
 
 	}
 
-	int GardenFeature::getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
+	int GardenFeature::getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, TArray< ActorPosInfo >& outInfo)
 	{
 		unsigned actorMasks[DefaultActorMaskNum] = { BIT(EActor::Abbot) , 0 , 0 };
 		return getActorPutInfoInternal(playerId, ActorPos::Tile(), mapTile, actorMasks, DefaultActorMaskNum, outInfo);
@@ -903,7 +903,7 @@ namespace CAR
 
 	}
 
-	int GermanCastleFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
+	int GermanCastleFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo)
 	{
 		unsigned actorMasks[DefaultActorMaskNum] = { BIT( EActor::Wagon ) , 0 , 0 };
 		return getActorPutInfoInternal( playerId , ActorPos::SideNode( posMeta ) , mapTile, actorMasks , ARRAY_SIZE( actorMasks ) , outInfo );
@@ -979,7 +979,7 @@ namespace CAR
 
 	bool GermanCastleFeature::updateForAdjacentTile(MapTile& tile)
 	{
-		return AddUniqueValue( neighborTiles , &tile );
+		return neighborTiles.addUnique( &tile );
 	}
 
 	bool GermanCastleFeature::getActorPos(MapTile const& mapTile , ActorPos& actorPos)

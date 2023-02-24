@@ -45,7 +45,7 @@ namespace Render
 	{
 		int numVertices = mMesh.getVertexCount();
 		float* pHeight = mMeshOffsetData.lock();
-		std::vector< uint8 > vertexData = mMeshData.vertexData;
+		TArray< uint8 > vertexData = mMeshData.vertexData;
 		auto posWriter = mMesh.makePositionWriter(vertexData.data());
 		for (int i = 0; i < numVertices; ++i)
 		{

@@ -33,7 +33,6 @@ namespace CB
 
 		SymbolTable& table = mParser.getSymbolDefine();
 		table.defineVar("t", &mVarTime);
-
 	}
 
 	void ShapeMeshBuilder::setColor(float p, float* color)
@@ -58,13 +57,13 @@ namespace CB
 
 
 
-	void ShapeMeshBuilder::updateCurveData(ShapeUpdateInfo const& info, SampleParam const& paramS)
+	void ShapeMeshBuilder::updateCurveData(ShapeUpdateContext const& context, SampleParam const& paramS)
 	{
-		assert(info.func->getFunType() == TYPE_CURVE_3D);
+		assert(context.func->getFuncType() == TYPE_CURVE_3D);
 
-		RenderData* data = info.data;
+		RenderData* data = context.data;
 
-		unsigned flag = info.flag;
+		unsigned flag = context.flag;
 
 		if( flag & RUF_DATA_SAMPLE )
 		{
@@ -81,7 +80,7 @@ namespace CB
 			float ds = paramS.getIncrement();
 			float s = paramS.getRangeMin();
 
-			Curve3DFunc* func = static_cast<Curve3DFunc*>(info.func);
+			Curve3DFunc* func = static_cast<Curve3DFunc*>(context.func);
 
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
 			for( int i = 0; i < paramS.numData; ++i )
@@ -98,20 +97,20 @@ namespace CB
 			for( int i = 0; i < paramS.numData; ++i )
 			{
 				Color4f* pColor = (Color4f*)(colorData);
-				*pColor = info.color;
+				*pColor = context.color;
 				colorData += data->getVertexSize();
 			}
 		}
 	}
 
-	void ShapeMeshBuilder::updateSurfaceData(ShapeUpdateInfo const& info, SampleParam const& paramU, SampleParam const& paramV)
+	void ShapeMeshBuilder::updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV)
 	{
 		PROFILE_ENTRY("UpdateSurfaceData");
 
-		assert(isSurface(info.func->getFunType()));
+		assert(isSurface(context.func->getFuncType()));
 
-		RenderData* data = info.data;
-		unsigned flag = info.flag;
+		RenderData* data = context.data;
+		unsigned flag = context.flag;
 		int vertexNum = paramU.numData * paramV.numData;
 		int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 
@@ -132,9 +131,9 @@ namespace CB
 			float du = paramU.getIncrement();
 			float dv = paramV.getIncrement();
 
-			if( info.func->getFunType() == TYPE_SURFACE_UV )
+			if( context.func->getFuncType() == TYPE_SURFACE_UV )
 			{
-				SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(info.func);
+				SurfaceUVFunc* func = static_cast<SurfaceUVFunc*>(context.func);
 
 				switch( func->getUsedInputMask() )
 				{
@@ -207,9 +206,9 @@ namespace CB
 					break;
 				}
 			}
-			else if( info.func->getFunType() == TYPE_SURFACE_XY )
+			else if( context.func->getFuncType() == TYPE_SURFACE_XY )
 			{
-				SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(info.func);
+				SurfaceXYFunc* func = static_cast<SurfaceXYFunc*>(context.func);
 
 				switch( func->getUsedInputMask() )
 				{
@@ -364,7 +363,7 @@ namespace CB
 				//m_ColorMap.getColor((z-datamin)/(datamax-datamin),temp);
 				//setColor((z-datamin)/(datamax-datamin),&m_pColorData[4*i]);
 
-				*pColor = info.color;
+				*pColor = context.color;
 				colorData += data->getVertexSize();
 			}
 		}

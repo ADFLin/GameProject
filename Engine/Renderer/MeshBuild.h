@@ -23,7 +23,7 @@ namespace Render
 		char const* diffuseTextureName;
 		char const* specularTextureName;
 		char const* normalTextureName;
-		std::vector < std::pair< char const*, char const* > > unknownParameters;
+		TArray < std::pair< char const*, char const* > > unknownParameters;
 
 		char const* findParam(char const* name) const
 		{
@@ -44,8 +44,8 @@ namespace Render
 
 	struct MeshBuildData
 	{
-		std::vector< uint8 > vertexData;
-		std::vector< uint32 > indexData;
+		TArray< uint8 > vertexData;
+		TArray< uint32 > indexData;
 
 		bool initializeRHI(Mesh& mesh)
 		{

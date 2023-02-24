@@ -11,7 +11,7 @@
 
 namespace Render
 {
-	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles, bool bOuputPreprocessedCode)
+	bool ShaderFormat::preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, TArray<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles, bool bOuputPreprocessedCode)
 	{
 		TimeScope scope("PreprocessCode");
 
@@ -77,7 +77,8 @@ namespace Render
 		{
 			preprocessor.getUsedIncludeFiles(*outIncludeFiles);
 		}
-#if 1
+
+#if 0
 		inoutCodes.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
 #else
 		std::string code = oss.str();
@@ -110,7 +111,7 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormat::loadCode(ShaderCompileContext const& context, std::vector<uint8>& outCodes)
+	bool ShaderFormat::loadCode(ShaderCompileContext const& context, TArray<uint8>& outCodes)
 	{
 		if (context.bUsePreprocess)
 		{

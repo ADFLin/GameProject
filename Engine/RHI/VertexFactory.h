@@ -32,7 +32,7 @@ namespace Render
 		}
 		
 		CORE_API static VertexFactoryType* DefaultType;
-		CORE_API static std::vector< VertexFactoryType* > TypeList;
+		CORE_API static TArray< VertexFactoryType* > TypeList;
 	};
 
 	class VertexFactoryShaderData

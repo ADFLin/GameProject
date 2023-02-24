@@ -5,10 +5,7 @@
 #include "LifeCore.h"
 #include "DataStructure/Grid2D.h"
 
-#include <vector>
-
 #define USE_CHUNK_COUNT 1
-
 
 namespace Life
 {
@@ -76,7 +73,7 @@ namespace Life
 		IRenderProxy* getRenderProxy() { return this; }
 
 
-		virtual void  getPattern(std::vector<Vec2i>& outList) final
+		virtual void  getPattern(TArray<Vec2i>& outList) final
 		{
 			for (int indexChunk = 0; indexChunk < mChunks.size(); ++indexChunk)
 			{
@@ -104,7 +101,7 @@ namespace Life
 		}
 
 
-		virtual void  getPattern(BoundBox const& bound, std::vector<Vec2i>& outList) final
+		virtual void  getPattern(BoundBox const& bound, TArray<Vec2i>& outList) final
 		{
 			BoundBox boundClip = bound.intersection(getBound());
 
@@ -215,7 +212,7 @@ namespace Life
 		int   mIndex = 0;
 		BoundBox mChunkBound;
 		TGrid2D< Chunk* > mChunkMap;
-		std::vector< Chunk* > mChunks;
+		TArray< Chunk* > mChunks;
 	};
 
 }//namespace Life

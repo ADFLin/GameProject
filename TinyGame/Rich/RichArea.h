@@ -3,9 +3,12 @@
 
 #include "RichBase.h"
 
+#include "DataStructure/Array.h"
+
 #include <functional>
 #include <string>
 #include <vector>
+
 
 namespace Rich
 {
@@ -55,7 +58,7 @@ namespace Rich
 	class LandGroup
 	{
 	public:
-		std::vector< LandArea* > mLands;
+		TArray< LandArea* > mLands;
 	};
 
 

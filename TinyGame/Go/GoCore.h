@@ -1,8 +1,8 @@
 #ifndef GoCore_h__
 #define GoCore_h__
 
+#include "DataStructure/Array.h"
 #include <memory>
-#include <vector>
 
 class SocketBuffer;
 
@@ -475,7 +475,7 @@ namespace Go
 			};
 			uint8  bPlay;
 		};
-		std::vector< StepInfo > const& getStepHistory() const { return mStepHistory; }
+		TArray< StepInfo > const& getStepHistory() const { return mStepHistory; }
 
 		DataType getNextPlayColor() const { return mNextPlayColor; }
 		DataType getFirstPlayColor() const { return mSetting.bBlackFirst ? EStoneColor::Black : EStoneColor::White; }
@@ -532,9 +532,9 @@ namespace Go
 		KOState   calcKOState(Pos const& pos) const;
 		void      addKOState( DataType playColor, Pos const* pos , int numCapture, KOState const& koState);
 		void      removeKOState( DataType playColor , Pos const* pos );
-		std::vector< KOState >   mSimpleKOStates;
+		TArray< KOState >   mSimpleKOStates;
 
-		using StepVec = std::vector< StepInfo >;
+		using StepVec = TArray< StepInfo >;
 		StepVec   mStepHistory;
 
 		void takeData( SocketBuffer& buffer );

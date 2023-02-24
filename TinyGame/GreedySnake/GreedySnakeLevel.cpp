@@ -349,9 +349,13 @@ namespace GreedySnake
 				Snake& otherSnake = mSnakes[i];
 
 				bool bCollide = true;
-				if( head.pos == otherSnake.getBody().getHead().pos )
+				if(  head.pos == otherSnake.getBody().getHead().pos )
 				{
-					if( head.dir == InverseDir(otherSnake.getBody().getHead().dir) ||
+					if (&snake == &otherSnake)
+					{
+						bCollide = false;
+					}
+					else if( head.dir == InverseDir(otherSnake.getBody().getHead().dir) ||
 					   snake.frameMoveCount == snake.frameMoveCount )
 					{
 						mListener->onCollideSnake(otherSnake, snake);

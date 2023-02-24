@@ -2,7 +2,8 @@
 #define CARPlayer_h__43b4df64_d035_4b93_80b6_62c64773873b
 
 #include "CARCommon.h"
-#include <vector>
+
+#include "DataStructure/Array.h"
 
 namespace CAR
 {
@@ -62,7 +63,7 @@ namespace CAR
 
 		int mScore;
 
-		std::vector< int > mFieldValues;
+		TArray< int > mFieldValues;
 		GameplaySetting* mSetting;
 
 		static GameParamCollection& GetParamCollection(PlayerBase& t);

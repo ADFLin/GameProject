@@ -17,25 +17,7 @@ public:
 
 	static DWORD FindPIDByNameAndParentPID(TCHAR const* name, DWORD parentID);
 
-	static bool IsProcessRunning(DWORD pid)
-	{
-		bool result = true;
-		HANDLE handle = ::OpenProcess(SYNCHRONIZE, false, pid);
-		if( handle == NULL )
-		{
-			result = false;
-		}
-		else
-		{
-			uint32 WaitResult = WaitForSingleObject(handle, 0);
-			if( WaitResult != WAIT_TIMEOUT )
-			{
-				result = false;
-			}
-			::CloseHandle(handle);
-		}
-		return result;
-	}
+	static bool IsProcessRunning(DWORD pid);
 };
 
 class ChildProcess

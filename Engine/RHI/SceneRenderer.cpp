@@ -1761,7 +1761,7 @@ namespace Render
 		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();
 	}
 
-	void VolumetricLightingTech::render(RHICommandList& commandList, ViewInfo& view, std::vector< LightInfo > const& lights)
+	void VolumetricLightingTech::render(RHICommandList& commandList, ViewInfo& view, TArray< LightInfo > const& lights)
 	{
 		{
 			GPU_PROFILE("ClearBuffer");

@@ -62,9 +62,9 @@ namespace BomberMan
 			tile.meta = 0;
 		}
 
-		std::vector< Vec2i > conPos;
+		TArray< Vec2i > conPos;
 		conPos.reserve( numCon );
-		std::vector< Vec2i > stackPos;
+		TArray< Vec2i > stackPos;
 		stackPos.reserve( 4 * numCon );
 
 		for( int i = 0 ; i < 4 ; ++i )

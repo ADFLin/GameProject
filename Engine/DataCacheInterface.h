@@ -9,8 +9,8 @@
 
 #include "Core/StringConv.h"
 #include "InlineString.h"
+#include "DataStructure/Array.h"
 
-#include <vector>
 #include <functional>
 
 
@@ -74,7 +74,7 @@ public:
 	virtual ~DataCacheInterface() {}
 	virtual bool save(DataCacheKey const& key, TArrayView< uint8 > saveData) = 0;
 	virtual bool saveDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) = 0;
-	virtual bool load(DataCacheKey const& key, std::vector< uint8 >& outBuffer) = 0;
+	virtual bool load(DataCacheKey const& key, TArray< uint8 >& outBuffer) = 0;
 	virtual bool loadDelegate(DataCacheKey const& key, SerializeDelegate inDelegate) = 0;
 	virtual void ignoreDataType(char const* typeName) = 0;
 

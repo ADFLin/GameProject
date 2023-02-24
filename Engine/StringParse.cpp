@@ -211,13 +211,13 @@ CharT const* TStringParse< CharT >::FindLastChar(CharT const* str, int num, Char
 }
 
 template< typename CharT>
-bool CheckChars(CharT c)
+FORCEINLINE bool CheckChars(CharT c)
 {
 	return false;
 }
 
 template< typename CharT, typename ...Chars >
-bool CheckChars(CharT c, CharT c1, Chars ...chars)
+FORCEINLINE bool CheckChars(CharT c, CharT c1, Chars ...chars)
 {
 	if (c == c1)
 		return true;

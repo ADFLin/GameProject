@@ -100,7 +100,7 @@ namespace SBlocks
 			mScreenToWorld = mWorldToScreen.inverse();
 		}
 		bool bPiecesOrderDirty;
-		std::vector< Piece* > mSortedPieces;
+		TArray< Piece* > mSortedPieces;
 		int mClickFrame;
 
 		virtual void initializeGame()
@@ -161,7 +161,7 @@ namespace SBlocks
 	struct ChapterEdit
 	{
 		std::string name;
-		std::vector< std::string > levels;
+		TArray< std::string > levels;
 	};
 
 	struct ChapterDesc
@@ -247,7 +247,7 @@ namespace SBlocks
 
 		void setMapSize(int id, int x, int y)
 		{
-			if (IsValidIndex(mGame->mLevel.mMaps, id))
+			if (mGame->mLevel.mMaps.isValidIndex(id))
 			{
 				mGame->mLevel.mMaps[id].resize(x, y);
 				mGame->resetRenderParams();
@@ -256,7 +256,7 @@ namespace SBlocks
 
 		void setMapPos(int id, float x, float y)
 		{
-			if (IsValidIndex(mGame->mLevel.mMaps, id))
+			if (mGame->mLevel.mMaps.isValidIndex(id))
 			{
 				mGame->mLevel.mMaps[id].mPos.setValue(x,y);
 				mGame->resetRenderParams();
@@ -274,7 +274,7 @@ namespace SBlocks
 
 		void removeMap(int id)
 		{
-			if (IsValidIndex(mGame->mLevel.mMaps, id))
+			if (mGame->mLevel.mMaps.isValidIndex(id))
 			{
 				mGame->mLevel.mMaps.erase(mGame->mLevel.mMaps.begin() + id);
 				mGame->resetRenderParams();
@@ -386,7 +386,7 @@ namespace SBlocks
 
 		void loadShapeLibrary();
 
-		std::vector< EditPieceShape > mPieceShapeLibrary;
+		TArray< EditPieceShape > mPieceShapeLibrary;
 
 		bool      mbEnabled = false;
 		GameData* mGame;
@@ -409,7 +409,7 @@ namespace SBlocks
 			RenderTransform2D localToFrame;
 			RenderTransform2D FrameToLocal;
 		};
-		std::vector< ShapeInfo > mShapeList;
+		TArray< ShapeInfo > mShapeList;
 		void refreshShapeList()
 		{
 			mShapeList.clear();
@@ -765,7 +765,7 @@ namespace SBlocks
 			{
 				if (bStartDragging)
 				{
-					Vector2 pinPos = selectedPiece->xFormRender.transformPosition(lastHitLocalPos);
+					Vector2 pinPos = selectedPiece->renderXForm.transformPosition(lastHitLocalPos);
 					Vector2 offset = worldPos - pinPos;
 
 					selectedPiece->pos += offset;

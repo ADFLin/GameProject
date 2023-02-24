@@ -8,7 +8,8 @@
 #include "FastDelegate/FastDelegate.h"
 #include "Core/IntegerType.h"
 
-#include <vector>
+#include "DataStructure/Array.h"
+
 #include <list>
 #include <cmath>
 
@@ -711,7 +712,7 @@ namespace BomberMan
 		void           fireBomb( Bomb &bomb );
 		int            getBombIndex( Bomb& bomb );
 
-		std::vector< Bomb >  mBombList;
+		TArray< Bomb >  mBombList;
 		int mFreeIndex;
 		int mUsingIndex;
 

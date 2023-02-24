@@ -140,7 +140,7 @@ bool ModuleManager::unloadModule(char const* name)
 
 bool ModuleManager::loadModulesFromFile(char const* path)
 {
-	std::vector< uint8 > buffer;
+	TArray< uint8 > buffer;
 	if (!FFileUtility::LoadToBuffer(path, buffer, true, false))
 	{
 		LogWarning(0, "Can't Load Module File : %s", path);

@@ -51,9 +51,9 @@ namespace Life
 		}
 		virtual void  step() final;
 
-		virtual void  getPattern(std::vector<Vec2i>& outList) final;
+		virtual void  getPattern(TArray<Vec2i>& outList) final;
 
-		virtual void  getPattern(BoundBox const& bound, std::vector<Vec2i>& outList) final;
+		virtual void  getPattern(BoundBox const& bound, TArray<Vec2i>& outList) final;
 
 		struct DataValue
 		{

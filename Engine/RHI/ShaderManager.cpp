@@ -83,7 +83,7 @@ namespace Render
 			return true;
 		}
 
-		bool setupProgram(ShaderFormat& format, ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& shaderCompiles )
+		bool setupProgram(ShaderFormat& format, ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& shaderCompiles )
 		{
 			if( codeBuffer.empty() )
 				return false;
@@ -134,8 +134,8 @@ namespace Render
 			}
 		};
 
-		std::vector< ShaderFile > assetDependences;
-		std::vector< uint8 > codeBuffer;
+		TArray< ShaderFile > assetDependences;
+		TArray< uint8 > codeBuffer;
 
 		template< class Op >
 		void serialize(Op& op)
@@ -465,7 +465,7 @@ namespace Render
 		}
 	}
 
-	//TODO: Remove
+	//#TODO: Remove
 	std::string GetFilePath(char const* name)
 	{
 		std::string path("Material/");
@@ -481,10 +481,10 @@ namespace Render
 		LogDevMsg( 0 , "VertexFactory Type : %s" ,  vertexFactoryType.fileName );
 		std::string path = GetFilePath(info.name);
 #if 0
-		std::vector< std::string > classNames;
+		TArray< std::string > classNames;
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
 		{
-			classNames.push_back((pShaderClass->funGetShaderFileName)());
+			classNames.push_back((pShaderClass->GetShaderFileName)());
 		}
 #endif
 		int result = 0;
@@ -678,16 +678,10 @@ namespace Render
 	{
 		char const* filePaths[EShader::MaxStorageSize];
 		InlineString< 256 > path;
-		if (fileName)
+
+		for (int i = 0; i < entries.size(); ++i)
 		{
-			path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
-			for (int i = 0; i < entries.size(); ++i)
-				filePaths[i] = path;
-		}
-		else
-		{
-			for (int i = 0; i < entries.size(); ++i)
-				filePaths[i] = nullptr;
+			filePaths[i] = fileName;
 		}
 
 		return !!loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
@@ -1192,7 +1186,7 @@ namespace Render
 		return mShaderCache;
 	}
 
-	void ShaderProgramManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
+	void ShaderProgramManagedData::getDependentFilePaths(TArray<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
 		for( ShaderCompileDesc const& desc : descList )
@@ -1217,7 +1211,7 @@ namespace Render
 		}
 	}
 
-	void ShaderManagedData::getDependentFilePaths(std::vector<std::wstring>& paths)
+	void ShaderManagedData::getDependentFilePaths(TArray<std::wstring>& paths)
 	{
 		std::set< HashString > filePathSet;
 		if (!desc.filePath.empty())

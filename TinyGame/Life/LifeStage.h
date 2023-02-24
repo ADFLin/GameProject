@@ -340,7 +340,7 @@ namespace Life
 		EditPattern mCopyPattern;
 
 		RHITexture2DRef mTexture;
-		std::vector< uint32 > mBuffer;
+		TArray< uint32 > mBuffer;
 
 		void selectPattern(bool bAppend = false)
 		{
@@ -349,7 +349,7 @@ namespace Life
 			BoundBox bound = mSelectionRect->getSelection();
 
 			BoundBox boundSelect = mViewport.calcBound(bound.min, bound.max);
-			std::vector<Vec2i> posList;
+			TArray<Vec2i> posList;
 			mAlgorithm->getPattern(boundSelect, posList);
 
 			mCopyPattern.bound.invalidate();

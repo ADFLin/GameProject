@@ -126,10 +126,6 @@ private:
 
 };
 
-
-
-using namespace std;
-
 #define AVLTREE_TEMPLATE_ARG()\
 	template< class T , template< class > class CmpFunc >
 
@@ -158,6 +154,7 @@ TAVLTree< T, CmpFunc >::TAVLTree()
 AVLTREE_FUNC(void)
 print(Node* node, int depth)
 {
+	using namespace std;
 	if( !node )
 	{
 		cout << endl;
@@ -185,6 +182,7 @@ print(Node* node, int depth)
 AVLTREE_FUNC(void)
 print()
 {
+	using namespace std;
 	print(m_root, 0);
 	cout << "==================" << endl;
 }

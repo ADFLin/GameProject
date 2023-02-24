@@ -28,7 +28,7 @@ public:
 	bool isStopDelims(char c) const;
 	bool isDropDelims(char c) const;
 private:
-	//TODO:
+	//#TODO:
 	uint8 mDelimsMap[256];
 };
 

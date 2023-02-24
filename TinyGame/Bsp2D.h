@@ -4,9 +4,10 @@
 #include "Math/TVector2.h"
 #include "Math/Vector2.h"
 #include "Core/IntegerType.h"
-#include "CppVersion.h"
+#include "DataStructure/Array.h"
 
 #include <algorithm>
+
 
 namespace Bsp2D
 {
@@ -33,7 +34,7 @@ namespace Bsp2D
 		void         pushVertex( Vector2 const& v ){ mVtx.push_back( v ); }
 
 
-		std::vector< Vector2 > mVtx;
+		TArray< Vector2 > mVtx;
 		//int mSolidType;
 	};
 
@@ -73,8 +74,8 @@ namespace Bsp2D
 
 
 
-		typedef std::vector< Edge > EdgeVec;
-		typedef std::vector< int > IndexVec;
+		typedef TArray< Edge > EdgeVec;
+		typedef TArray< int > IndexVec;
 
 
 		struct Node
@@ -99,8 +100,8 @@ namespace Bsp2D
 			uint32 con[2];
 		};
 
-		typedef std::vector< Leaf > LeafVec;
-		typedef std::vector< Node* > NodeVec;
+		typedef TArray< Leaf > LeafVec;
+		typedef TArray< Node* > NodeVec;
 
 		NodeVec   mNodes;
 		EdgeVec   mEdges;
@@ -237,7 +238,7 @@ namespace Bsp2D
 		class PortalBuilder
 		{
 
-			typedef std::vector< Portal > PortalVec;
+			typedef TArray< Portal > PortalVec;
 			struct SuperPlane
 			{
 				uint32    tag;
@@ -246,7 +247,7 @@ namespace Bsp2D
 				PortalVec portals;
 			};
 
-			typedef std::vector< SuperPlane* > SPlaneVec;
+			typedef TArray< SuperPlane* > SPlaneVec;
 
 			SPlaneVec mSPlanes;
 

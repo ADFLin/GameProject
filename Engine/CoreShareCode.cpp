@@ -7,8 +7,9 @@
 #include "HashString.cpp"
 #include "Core/Tickable.cpp"
 
+#include "Launch/CommandlLine.cpp"
+
 #include "UnitTest/TestClass.cpp"
-#include "DataStructure/ClassTree.cpp"
 
 #include "Module/ModularFeature.cpp"
 #include "Module/ModuleManager.cpp"
@@ -23,7 +24,6 @@
 #include "RHI/GpuProfiler.cpp"
 #include "RHI/RHIGlobalResource.cpp"
 #include "RHI/SceneRenderer.cpp"
-
 
 #include "RHI/RHIGraphics2D.cpp"
 #include "RHI/DrawUtility.cpp"

@@ -32,10 +32,10 @@ namespace Render
 		{
 			int const maxVertices = 64;
 			int const maxPrimitives = 126;
-			std::vector<MeshletData> meshlets;
-			std::vector<PackagedTriangleIndices> primitiveIndices;
-			std::vector<uint8> uniqueVertexIndices;
-			std::vector<MeshletCullData> cullDataList;
+			TArray<MeshletData> meshlets;
+			TArray<PackagedTriangleIndices> primitiveIndices;
+			TArray<uint8> uniqueVertexIndices;
+			TArray<MeshletCullData> cullDataList;
 
 			auto DataLoad = [&](IStreamSerializer& serializer) -> bool
 			{
@@ -83,10 +83,10 @@ namespace Render
 		{
 			int const maxVertices = 64;
 			int const maxPrimitives = 126;
-			std::vector<MeshletData> meshlets;
-			std::vector<PackagedTriangleIndices> primitiveIndices;
-			std::vector<uint8> uniqueVertexIndices;
-			std::vector< MeshletCullData > cullDataList;
+			TArray<MeshletData> meshlets;
+			TArray<PackagedTriangleIndices> primitiveIndices;
+			TArray<uint8> uniqueVertexIndices;
+			TArray< MeshletCullData > cullDataList;
 			VERIFY_RETURN_FALSE( mesh.buildMeshlet(maxVertices, maxPrimitives, meshlets, uniqueVertexIndices, primitiveIndices, &cullDataList) );
 
 			VERIFY_RETURN_FALSE( mVertexIndexBuffer.initializeResource(uniqueVertexIndices.size() / sizeof(uint32), EStructuredBufferType::Buffer) );
@@ -293,7 +293,7 @@ namespace Render
 
 				int numVertices = mesh.mVertexBuffer->getNumElements();
 
-				std::vector< uint32 > tempBuffer;
+				TArray< uint32 > tempBuffer;
 				int numTriangles = 0;
 				uint32* pTriangleIndex = MeshUtility::ConvertToTriangleList(mesh.mType, pIndices, mesh.mIndexBuffer->getNumElements(), IsIntType(mesh.mIndexBuffer) , tempBuffer, numTriangles);
 				auto posReader = mesh.makePositionReader(pVertex);

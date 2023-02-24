@@ -5,6 +5,7 @@
 
 #include "EditorPanel.h"
 #include "Template/StringView.h"
+#include "DataStructure/Array.h"
 
 class ContentPanel : public IEditorPanel
 {
@@ -21,7 +22,7 @@ public:
 		bool bSelected;
 	};
 
-	std::vector< FileData > mCurrentFiles;
+	TArray< FileData > mCurrentFiles;
 	float mThumbnailSize = 64.0f;
 	float mPadding = 8;
 
@@ -36,8 +37,8 @@ public:
 
 	std::string mCurrentFolderPath = ".";
 	int indexHistory = INDEX_NONE;
-	std::vector< std::string > mFolderPathHistory;
-	std::vector<StringView> mFolderSeq;
+	TArray< std::string > mFolderPathHistory;
+	TArray<StringView> mFolderSeq;
 
 	void getRenderParams(WindowRenderParams& params) const
 	{

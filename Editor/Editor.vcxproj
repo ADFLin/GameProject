@@ -90,7 +90,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <RootNamespace>Editor</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.20206.0</WindowsTargetPlatformVersion>
     <ProjectName>Editor</ProjectName>
     <ProjectGuid>{4267392D-1D50-4223-A1C1-FC37A80F7D59}</ProjectGuid>
   </PropertyGroup>

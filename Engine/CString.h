@@ -12,6 +12,7 @@
 #include <stdarg.h>
 
 typedef char TChar;
+#define TSTR( str ) str
 
 template < class CharT >
 class TStringTraits {};

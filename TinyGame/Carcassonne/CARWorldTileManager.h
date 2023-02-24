@@ -50,7 +50,7 @@ namespace CAR
 		int            numPieces;
 	};
 
-	using TileIdVec = std::vector< TileId >;
+	using TileIdVec = TArray< TileId >;
 
 
 	class TileSetManager
@@ -81,7 +81,7 @@ namespace CAR
 		
 
 		TileIdVec mSetMap[ TileSet::NumGroup ];
-		std::vector< TileSet > mTileMap;
+		TArray< TileSet > mTileMap;
 	};
 
 
@@ -132,7 +132,7 @@ namespace CAR
 		int         placeTile( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] );
 		int         placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] );
 		bool        canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param );
-		int         getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PlaceTileParam& param );
+		int         getPosibleLinkPos( TileId tileId , TArray< Vec2i >& outPos , PlaceTileParam& param );
 		MapTile*    findMapTile( Vec2i const& pos );
 		bool        isEmptyLinkPos( Vec2i const& pos );
 
@@ -184,7 +184,7 @@ namespace CAR
 			}
 		};
 
-		std::vector< MapTile* > mHalflingTiles;
+		TArray< MapTile* > mHalflingTiles;
 #if 0
 		using WorldTileMap = std::map< Vec2i , MapTile , VecCmp >;
 		using PosSet = std::set< Vec2i , VecCmp >;
@@ -200,7 +200,7 @@ namespace CAR
 		TileSetManager* mTileSetManager;
 		uint32          mCheckCount;
 
-		std::vector< TilePiece* > mTempTilePieces;
+		TArray< TilePiece* > mTempTilePieces;
 	};
 
 

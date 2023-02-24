@@ -4,10 +4,10 @@
 
 #include "Meta/MetaTypeList.h"
 #include "Core/IntegerType.h"
+#include "DataStructure/Array.h"
 
 #include <cassert>
 #include <memory>
-#include <vector>
 
 class FlowNodeBase;
 class FlowExecuteContext;
@@ -66,8 +66,8 @@ public:
 	};
 
 	FlowExecuteResult   mLastResult;
-	std::vector< NodeStackData > mStacks;
-	std::vector< uint8 > mNodeData;
+	TArray< NodeStackData > mStacks;
+	TArray< uint8 > mNodeData;
 };
 
 class FlowNodeBase
@@ -89,7 +89,7 @@ typedef std::shared_ptr< FlowNodeBase > FlowNodePtr;
 class FlowNodeArrayComposite : public FlowNodeBase
 {
 protected:
-	std::vector< FlowNodePtr > mNodes;
+	TArray< FlowNodePtr > mNodes;
 };
 
 class FlowNodeSequence : public FlowNodeArrayComposite

@@ -16,6 +16,7 @@
 #include "RHITraceScope.h"
 #endif
 #include "Core/HalfFlot.h"
+#include "Launch/CommandlLine.h"
 
 namespace Render
 {
@@ -52,11 +53,11 @@ namespace Render
 		RHISystemName name;
 		RHISystemFactory* factory;
 	};
-	std::vector< RHIFactoryInfo > GRHISystemFactoryList;
+	TArray< RHIFactoryInfo > GRHISystemFactoryList;
 
 	RHISystemFactory* RHIGetSystemFactory(RHISystemName name)
 	{
-		int index = FindIndexPred(GRHISystemFactoryList,
+		int index = GRHISystemFactoryList.findIndexPred(
 			[name](auto const& info) { return info.name == name; });
 
 		if (index == INDEX_NONE)
@@ -78,7 +79,7 @@ namespace Render
 	}
 	void RHIUnregisterSystem(RHISystemName name)
 	{
-		RemovePred(GRHISystemFactoryList, [name](auto const& info)
+		GRHISystemFactoryList.removePred([name](auto const& info)
 		{
 			return info.name == name;
 		});
@@ -111,8 +112,8 @@ namespace Render
 		return RHIGetSystemFactory(name) != nullptr;
 	}
 
-	std::vector< RHISystemEvent > GInitEventList;
-	std::vector< RHISystemEvent > GShutdownEventList;
+	TArray< RHISystemEvent > GInitEventList;
+	TArray< RHISystemEvent > GShutdownEventList;
 	void RHIRegisterSystemInitializeEvent(RHISystemEvent event)
 	{
 		GInitEventList.push_back(std::move(event));
@@ -147,7 +148,7 @@ namespace Render
 		GRHISupportRayTracing = false;
 		GRHISupportMeshShader = false;
 
-		char const* cmdLine = GetCommandLineA();
+		TChar const* cmdLine = FCommandLine::Get();
 		GRHIPrefEnabled = FCString::StrStr(cmdLine, "-RHIPerf");
 
 		FRHIResourceTable::Initialize();
@@ -331,12 +332,12 @@ namespace Render
 		return EXECUTE_RHI_FUNC(RHIUnlockBuffer(buffer));
 	}
 
-	void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
 		EXECUTE_RHI_FUNC(RHIReadTexture(texture, format, level, outData));
 	}
 
-	void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
 		EXECUTE_RHI_FUNC(RHIReadTexture(texture, format, level, outData));
 	}
@@ -457,7 +458,7 @@ namespace Render
 
 		void* pData;
 		ImageData imageData;
-		std::vector< uint8 > cachedImageData;
+		TArray< uint8 > cachedImageData;
 		auto LoadCache = [&imageData, &cachedImageData](IStreamSerializer& serializer)-> bool
 		{
 			serializer >> imageData.width;
@@ -601,7 +602,7 @@ namespace Render
 
 		if (bConvToHalf)
 		{
-			std::vector< HalfFloat > halfData(imageData.width * imageData.height * imageData.numComponent);
+			TArray< HalfFloat > halfData(imageData.width * imageData.height * imageData.numComponent);
 			float* pFloat = (float*)imageData.data;
 			for (int i = 0; i < halfData.size(); ++i)
 			{

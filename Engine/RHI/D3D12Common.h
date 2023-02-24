@@ -12,7 +12,7 @@
 #include "InlineString.h"
 
 #include <unordered_map>
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
@@ -184,7 +184,7 @@ namespace Render
 			mBuffer.insert(mBuffer.end(), sizeof(TPSSubobjectStreamData< SubobjectID >), 0);
 
 			void* ptr = mBuffer.data() + offset;
-			TypeDataHelper::Construct<TPSSubobjectStreamData< SubobjectID >>(ptr);
+			FTypeMemoryOp::Construct<TPSSubobjectStreamData< SubobjectID >>(ptr);
 			return *reinterpret_cast<TPSSubobjectStreamData< SubobjectID >*>(ptr);
 		}
 
@@ -194,11 +194,11 @@ namespace Render
 			size_t offset = mBuffer.size();
 			mBuffer.insert(mBuffer.end(), sizeof(T), 0);
 			void* ptr = mBuffer.data() + offset;
-			TypeDataHelper::Construct<T>(ptr);
+			FTypeMemoryOp::Construct<T>(ptr);
 			return *reinterpret_cast<T*>(ptr);
 		}
 
-		std::vector< uint8 > mBuffer;
+		TArray< uint8 > mBuffer;
 	};
 
 #define USE_D3D12_RESOURCE_CUSTOM_COUNT 1
@@ -469,7 +469,7 @@ namespace Render
 			mRenderTargetsStates.empty();
 		}
 
-		std::vector< D3D12RenderTargetsState > mRenderTargetsStates;
+		TArray< D3D12RenderTargetsState > mRenderTargetsStates;
 	};
 
 	class D3D12InputLayout : public TRefcountResource< RHIInputLayout >
@@ -479,7 +479,7 @@ namespace Render
 
 		D3D12_INPUT_LAYOUT_DESC getDesc() const { return { mDescList.data(), (uint32)mDescList.size() }; }
 
-		std::vector< D3D12_INPUT_ELEMENT_DESC > mDescList;
+		TArray< D3D12_INPUT_ELEMENT_DESC > mDescList;
 		uint32 mAttriableMask;
 	};
 

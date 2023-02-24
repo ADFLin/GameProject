@@ -59,6 +59,7 @@ void TinyGameApp::renderViewport(IEditorRenderContext& context)
 	}
 }
 
+
 void TinyGameApp::onViewportMouseEvent(MouseMsg const& msg)
 {
 	handleMouseEvent(msg);

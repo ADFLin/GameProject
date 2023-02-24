@@ -824,7 +824,7 @@ namespace Tetris
 
 		for ( int i = 0 ; i < order && recordIter ; ++i , ++recordIter ){}
 
-		highLightRecord = *recordIter;
+		highLightRecord = &(*recordIter);
 		chName = true;
 	}
 
@@ -921,7 +921,7 @@ namespace Tetris
 			y += d;
 			if ( recordIter )
 			{
-				Record* curRecord = *recordIter;
+				Record* curRecord = &(*recordIter);
 
 				long sec = ( curRecord->duration / 1000 );
 				long min = ( sec / 60 ); 

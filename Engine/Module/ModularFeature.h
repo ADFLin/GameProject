@@ -3,8 +3,7 @@
 #include "HashString.h"
 #include "CoreShare.h"
 #include "Delegate.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 
 class IModularFeature
@@ -26,6 +25,6 @@ public:
 	virtual void addEvent(HashString name, ModularFeatureEvent delegate) = 0;
 	virtual void removeEvent(HashString name) = 0;
 
-	virtual void getFeatures(HashString name, std::vector<IModularFeature*>& outFeatures) = 0;
+	virtual void getFeatures(HashString name, TArray<IModularFeature*>& outFeatures) = 0;
 
 };

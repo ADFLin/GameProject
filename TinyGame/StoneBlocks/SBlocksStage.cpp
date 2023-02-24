@@ -140,13 +140,13 @@ namespace SBlocks
 				g.pushXForm();
 				g.identityXForm();
 
-				Vector2 pos = mWorldToScreen.transformPosition( piece->xFormRender.transformPosition(piece->shape->pivot) );
+				Vector2 pos = mWorldToScreen.transformPosition( piece->renderXForm.transformPosition(piece->shape->pivot) );
 				g.drawText(pos, InlineString<>::Make( "%d", piece->index ) );
 				g.popXForm();
 			}
 		}
 
-		if ( CVarDevMode )
+		if ( CVarDevMode)
 		{
 			RenderUtility::SetPen(g, EColor::Red);
 			RenderUtility::SetBrush(g, EColor::Null);
@@ -166,7 +166,7 @@ namespace SBlocks
 
 		
 		g.pushXForm();
-		g.transformXForm(piece.xFormRender, true);
+		g.transformXForm(piece.renderXForm, true);
 		auto DrawPiece = [&]()
 		{
 			for (auto const& block : shapeData.blocks)
@@ -181,7 +181,7 @@ namespace SBlocks
 			g.beginBlend(mTheme.shadowOpacity);
 
 			g.pushXForm();
-			Vector2 offset = piece.xFormRender.transformInvVectorAssumeNoScale(mTheme.shadowOffset);
+			Vector2 offset = piece.renderXForm.transformInvVectorAssumeNoScale(mTheme.shadowOffset);
 			g.translateXForm(offset.x, offset.y);
 			DrawPiece();
 			g.popXForm();
@@ -204,7 +204,7 @@ namespace SBlocks
 
 	ERenderSystem LevelStage::getDefaultRenderSystem()
 	{
-		return ERenderSystem::D3D12;
+		return ERenderSystem::D3D11;
 	}
 
 	bool LevelStage::setupRenderSystem(ERenderSystem systemName)
@@ -277,7 +277,7 @@ namespace SBlocks
 		LogMsg("Solve level %s !", bSuccess ? "success" : "fail");
 		if (bSuccess)
 		{
-			std::vector<PieceSolveState> sovledStates;
+			TArray<PieceSolveState> sovledStates;
 			mSolver->getSolvedStates(sovledStates);
 
 			mLevel.unlockAllPiece();
@@ -465,7 +465,7 @@ namespace SBlocks
 
 	void Editor::editEditPieceShapeCmd(int id)
 	{
-		if (!IsValidIndex(mPieceShapeLibrary, id))
+		if (!mPieceShapeLibrary.isValidIndex(id))
 			return;
 
 		EditPieceShape& editShape = mPieceShapeLibrary[id];
@@ -599,7 +599,7 @@ namespace SBlocks
 
 	void Editor::notifyLevelChanged()
 	{
-		RemoveAllPred(mPieceShapeLibrary, [](auto& value)
+		mPieceShapeLibrary.removeAllPred( [](auto& value)
 		{
 			return value.bMarkSave == false;
 		});
@@ -644,7 +644,7 @@ namespace SBlocks
 
 	void Editor::removeEditPieceShape(int id)
 	{
-		if (!IsValidIndex(mPieceShapeLibrary, id))
+		if (!mPieceShapeLibrary.isValidIndex(id))
 			return;
 
 		EditPieceShape& shape = mPieceShapeLibrary[id];
@@ -663,7 +663,7 @@ namespace SBlocks
 
 	void Editor::copyEditPieceShape(int id)
 	{
-		if (!IsValidIndex(mPieceShapeLibrary, id))
+		if (!mPieceShapeLibrary.isValidIndex(id))
 			return;
 
 		EditPieceShape editShape = mPieceShapeLibrary[id];
@@ -678,7 +678,7 @@ namespace SBlocks
 
 	void Editor::addPieceCmd(int id)
 	{
-		if (!IsValidIndex(mPieceShapeLibrary, id))
+		if (!mPieceShapeLibrary.isValidIndex(id))
 			return;
 
 		EditPieceShape& editShape = mPieceShapeLibrary[id];
@@ -707,7 +707,7 @@ namespace SBlocks
 	void Editor::removePiece(int id)
 	{
 		auto& piecesList = mGame->mLevel.mPieces;
-		if (!IsValidIndex(piecesList, id))
+		if (!piecesList.isValidIndex(id))
 			return;
 
 		Piece* piece = piecesList[id].get();

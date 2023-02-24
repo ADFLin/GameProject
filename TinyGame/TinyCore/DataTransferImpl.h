@@ -44,7 +44,7 @@ public:
 	virtual void sendTcpCommand( int recvId , IComPacket* cp );
 	ServerWorker* getServer();
 
-	std::vector< unsigned > mPlayerIdMap;
+	TArray< unsigned > mPlayerIdMap;
 };
 
 

@@ -483,7 +483,7 @@ public:
 				int numCpuStack = mNumVarStack - FpuRegNum;
 				int numCpuParam = std::min(numParam, numCpuStack);
 
-				//TODO : consider value layout
+				//#TODO : consider value layout
 				paramOffset -= numCpuStack * sizeof(ValueType);
 				for( int num = 0; num < numCpuParam; ++num )
 				{
@@ -791,7 +791,7 @@ public:
 				{
 					mNumInstruction += emitLoadValue(value);
 					mNumInstruction += emitStoreValueWithLayout(valueVar.var->layout, valueVar.var->ptr);	
-					//TODO: use move?
+					//#TODO: use move?
 				}
 			}
 		}

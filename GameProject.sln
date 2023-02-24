@@ -12,6 +12,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CFly Sample", "CFly Sample"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{5728F750-488F-42D3-9DE7-E42FE131D6D5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{9DBF1436-98DB-4EBE-ABF7-8666841E14EB}"
+	ProjectSection(SolutionItems) = preProject
+		Tools\GameProject.natvis = Tools\GameProject.natvis
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{179117DD-A176-4976-8092-41D4D4AFEF61}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libRPG", "RPGProject\libRPG.vcxproj", "{BA443551-7968-4E17-AECD-0CEFB046C2CB}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RPGDemo", "RPGProject\RPGDemo.vcxproj", "{0C60CE3D-3621-4104-B6BB-C2054FFE6EAF}"
@@ -45,12 +52,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SampleCoordTest", "CFlySamp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DbgTest", "DbgTest\DbgTest.vcxproj", "{3DCC4D3F-458C-422E-900D-D818EBE0D830}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ItemEditor", "RPGProject\ItemEditor.vcproj", "{4DA04000-CB26-4FDF-AD2C-AD6CCC2196BE}"
-	ProjectSection(ProjectDependencies) = postProject
-		{C1B32C2B-9A40-4874-869F-FCC57BB1D93F} = {C1B32C2B-9A40-4874-869F-FCC57BB1D93F}
-		{BA443551-7968-4E17-AECD-0CEFB046C2CB} = {BA443551-7968-4E17-AECD-0CEFB046C2CB}
-		{CE65A4F4-D290-4E05-B119-7D6CF538E05D} = {CE65A4F4-D290-4E05-B119-7D6CF538E05D}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ItemEditor", "RPGProject\ItemEditor.vcxproj", "{4DA04000-CB26-4FDF-AD2C-AD6CCC2196BE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AStarTest", "AStarTest\AStarTest.vcxproj", "{BD466434-8C72-4BC5-A090-CBD57DC0D19F}"
 EndProject
@@ -139,16 +141,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestWorking", "TinyGame\Tes
 		{B44B3265-BE59-4382-A519-CD347A8D560F} = {B44B3265-BE59-4382-A519-CD347A8D560F}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{9DBF1436-98DB-4EBE-ABF7-8666841E14EB}"
-	ProjectSection(SolutionItems) = preProject
-		Tools\GameProject.natvis = Tools\GameProject.natvis
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shader", "Shader\Shader.vcxproj", "{8E37B7D0-2741-48CA-A62A-EFA8BB27ACE1}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WebGame", "WebGame\WebGame.vcxproj", "{FCF5545B-5B54-4732-8D8D-97CBAD886DE1}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{179117DD-A176-4976-8092-41D4D4AFEF61}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineRender", "Engine\EngineRender.vcxproj", "{B44B3265-BE59-4382-A519-CD347A8D560F}"
 	ProjectSection(ProjectDependencies) = postProject

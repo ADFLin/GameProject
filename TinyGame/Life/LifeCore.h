@@ -4,9 +4,9 @@
 
 #include "Math/GeometryPrimitive.h"
 
-#include <vector>
 #include "Math/Vector2.h"
 #include "Renderer/RenderTransform2D.h"
+#include "DataStructure/Array.h"
 
 namespace Life
 {
@@ -26,8 +26,8 @@ namespace Life
 		virtual void  clearCell() = 0;
 		virtual BoundBox getBound() = 0;
 		virtual BoundBox getLimitBound() = 0;
-		virtual void  getPattern(std::vector<Vec2i>& outList) = 0;
-		virtual void  getPattern(BoundBox const& bound, std::vector<Vec2i>& outList) = 0;
+		virtual void  getPattern(TArray<Vec2i>& outList) = 0;
+		virtual void  getPattern(BoundBox const& bound, TArray<Vec2i>& outList) = 0;
 		virtual void  step() = 0;
 		virtual IRenderProxy* getRenderProxy() { return nullptr; }
 	};

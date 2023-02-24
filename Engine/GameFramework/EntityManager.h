@@ -7,7 +7,6 @@
 
 #include "DataStructure/Array.h"
 
-#include <vector>
 #include <unordered_map>
 #include <typeindex>
 #include <algorithm>
@@ -252,7 +251,7 @@ namespace ECS
 		}
 
 		template< class TComponent >
-		int getComponentsT(EntityHandle const& handle, std::vector< TComponent* >& outComponents)
+		int getComponentsT(EntityHandle const& handle, TArray< TComponent* >& outComponents)
 		{
 			if( !isValid(handle) )
 				return 0;
@@ -273,7 +272,7 @@ namespace ECS
 			return result;
 		}
 
-		int getAllComponents(EntityHandle const& handle, std::vector< EntityComponent* >& outComponents)
+		int getAllComponents(EntityHandle const& handle, TArray< EntityComponent* >& outComponents)
 		{
 			if (!isValid(handle))
 				return 0;
@@ -330,7 +329,7 @@ namespace ECS
 			uint32 flags;
 			uint64 systemMask;
 			EntityHandle handle;
-			std::vector< ComponentData > components;
+			TArray< ComponentData > components;
 		};
 
 		void  cleanupEntity(EntityData& entityData)
@@ -341,13 +340,13 @@ namespace ECS
 				compentData.type->getPool()->releaseComponent(compentData.ptr);
 			}
 			entityData.components.clear();
-			entityData.components.shrink_to_fit();
+			//entityData.components.shrink_to_fit();
 			entityData.flags = 0;
 		}
 		int mIndexSlot = INDEX_NONE;
 
-		std::vector< uint32 > mUsedEntityIndices;
-		std::vector< uint32 > mFreeEntityIndices;
+		TArray< uint32 > mUsedEntityIndices;
+		TArray< uint32 > mFreeEntityIndices;
 		uint32 mNextSerialNumber = 1;
 
 
@@ -370,8 +369,8 @@ namespace ECS
 		}
 
 		std::unordered_map< std::type_index, ComponentType* > mComponentTypeMap;
-		std::vector< EntityData > mEntityLists;
-		std::vector< IEntityEventLister* > mEventListers;
+		TArray< EntityData > mEntityLists;
+		TArray< IEntityEventLister* > mEventListers;
 
 
 
@@ -434,12 +433,12 @@ namespace ECS
 		}
 
 		template< typename TComponent >
-		int getComponentsT(std::vector<TComponent*>& outComponents)
+		int getComponentsT(TArray<TComponent*>& outComponents)
 		{
 			return getManager().getComponentsT(mHandle, outComponents);
 		}
 
-		int getAllComponents(std::vector<EntityComponent*>& outComponents)
+		int getAllComponents(TArray<EntityComponent*>& outComponents)
 		{
 			return getManager().getAllComponents(mHandle, outComponents);
 		}

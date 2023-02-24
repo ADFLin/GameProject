@@ -85,7 +85,7 @@ void ActionProcessor::addInput( IActionInput& input , ActionPort targetPort )
 bool ActionProcessor::removeInput( IActionInput& input )
 {
 	assert(mActiveInputs.empty());
-	return RemovePred(mInputList, [&input](InputInfo const& info) { return info.input == &input; });
+	return mInputList.removePred( [&input](InputInfo const& info) { return info.input == &input; });
 }
 
 void ActionProcessor::prevFireActionPrivate( ActionParam& param )

@@ -128,7 +128,7 @@ namespace Render
 			return true;
 		}
 	protected:
-		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
+		virtual void getDependentFilePaths(TArray<std::wstring>& paths) override
 		{
 			if ( material )
 			{
@@ -157,7 +157,7 @@ namespace Render
 
 		std::function< void(Scene&) > setupDelegate;
 	protected:
-		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
+		virtual void getDependentFilePaths(TArray<std::wstring>& paths) override
 		{
 			std::string cPath = ISceneScript::GetFilePath( mName.c_str() );
 			paths.push_back(FCString::CharToWChar(cPath.c_str()));

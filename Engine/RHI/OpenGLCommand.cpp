@@ -205,7 +205,7 @@ namespace Render
 		{
 			return 1.0 / 1000000.0;
 		}
-		std::vector< OpenGLTiming > mTimingStorage;
+		TArray< OpenGLTiming > mTimingStorage;
 
 	};
 
@@ -388,7 +388,7 @@ namespace Render
 		OpenGLCast::To(buffer)->unlock();
 	}
 
-	void OpenGLSystem::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	void OpenGLSystem::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
 		auto GetFormatClientSize = [](ETexture::Format format) -> int
 		{
@@ -408,7 +408,7 @@ namespace Render
 		OpenGLCast::To(&texture)->unbind();
 	}
 
-	void OpenGLSystem::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	void OpenGLSystem::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
 		auto GetFormatClientSize = [](ETexture::Format format)
 		{

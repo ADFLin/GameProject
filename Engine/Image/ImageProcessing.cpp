@@ -2,7 +2,7 @@
 
 
 
-void Downsample(TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView)
+void Downsample(TImageView< float > const& input, TArray< float >& outData, TImageView<float>& outView)
 {
 	outData.resize((input.getWidth() / 2) * (input.getHeight() / 2));
 	TImageView< float > downsampleView(outData.data(), input.getWidth() / 2, input.getHeight() / 2);
@@ -85,7 +85,7 @@ struct FFastMath
 };
 #endif
 
-void HoughLines(HoughSetting const& setting, TImageView< float > const& input, std::vector< float >& outData, TImageView<float>& outView, std::vector< HoughLine >& outLines, std::vector<float>* outDebugData)
+void HoughLines(HoughSetting const& setting, TImageView< float > const& input, TArray< float >& outData, TImageView<float>& outView, TArray< HoughLine >& outLines, TArray<float>* outDebugData)
 {
 
 	int const HX = HoughAngleNum;

@@ -11,9 +11,9 @@
 namespace Geom2D
 {
 	template<>
-	struct PolyProperty< std::vector< Vector2 > >
+	struct PolyProperty< TArray< Vector2 > >
 	{
-		typedef std::vector< Vector2 > PolyType;
+		typedef TArray< Vector2 > PolyType;
 		static void  Setup(PolyType& p, int size) { p.resize(size); }
 		static int   Size(PolyType const& p) { return p.size(); }
 		static Vector2 const& Vertex(PolyType const& p, int idx) { return p[idx]; }
@@ -331,7 +331,7 @@ namespace Render
 			{
 				uint8 const* alphaPtr = (uint8*)(imageData.data) + 3;
 
-				std::vector< uint8 > imageFlags;
+				TArray< uint8 > imageFlags;
 				imageFlags.resize(imageData.width * imageData.height, 0);
 
 				for( int j = 0; j < imageData.height; ++j )
@@ -360,7 +360,7 @@ namespace Render
 						}
 					}
 				}
-				std::vector< int > hullIndices;
+				TArray< int > hullIndices;
 				hullIndices.resize( mImagePixels.size() );
 				int numIndices = Geom2D::QuickHull(mImagePixels, hullIndices.data());
 				int xxx = 1;
@@ -393,7 +393,7 @@ namespace Render
 		{
 			Random::Well512 rand;
 			int randSize = 512;
-			std::vector< float > randomData(randSize * randSize);
+			TArray< float > randomData(randSize * randSize);
 			for( float& v : randomData )
 			{
 				v = double(rand.rand()) / double(std::numeric_limits<uint32>::max());
@@ -412,7 +412,7 @@ namespace Render
 			cacheKey.typeName = "NOISE-TEX";
 			cacheKey.version = "66CEB0D6-4DBC-4967-A1CF-00F2221476CB";
 			cacheKey.keySuffix.addFormat("%d-%d-%d", textureSize, noiseSize, cellSize);
-			std::vector< float > data;
+			TArray< float > data;
 			if( !::Global::DataCache().loadT(cacheKey, data) )
 			{
 				data.resize(textureSize * textureSize);
@@ -438,7 +438,7 @@ namespace Render
 			cacheKey.version = "2F7B7D13-7DF5-454B-809E-4D0FD4D0DDFD";
 			cacheKey.keySuffix.addFormat("%d", textureSize);
 
-			std::vector< float > data;
+			TArray< float > data;
 			if( !::Global::DataCache().loadT(cacheKey, data) )
 			{
 				data.resize(textureSize * textureSize * textureSize);
@@ -480,7 +480,7 @@ namespace Render
 			TPerlinNoise<true> noise;
 			noise.repeat = noiseSize;
 
-			std::vector< float > data;
+			TArray< float > data;
 			if( !::Global::DataCache().loadT(cacheKey, data) )
 			{
 				data.resize(textureSize * textureSize * textureSize);

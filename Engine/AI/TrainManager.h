@@ -106,7 +106,7 @@ namespace AI
 		int    generation;
 		TrainAgent* bestAgent = nullptr;
 
-		std::vector< NNScalar > bestInputsAndSignals;
+		TArray< NNScalar > bestInputsAndSignals;
 		//uint8* bestInputsAndSignals;
 
 		NNScalar* getBestInputsAndSignals()
@@ -114,7 +114,7 @@ namespace AI
 			return bestInputsAndSignals.data();
 			//return (NNScalar*)((intptr_t(bestInputsAndSignals) + 15) & ~15);
 		}
-		std::vector< std::unique_ptr< TrainAgent > > mAgents;
+		TArray< std::unique_ptr< TrainAgent > > mAgents;
 		GeneticAlgorithm GA;
 
 	};
@@ -218,7 +218,7 @@ namespace AI
 		float topFitness = 0;
 	private:
 		
-		std::vector< std::unique_ptr<TrainWork> > mWorks;
+		TArray< std::unique_ptr<TrainWork> > mWorks;
 		FCNNLayout mNNLayout;
 		Mutex    mPoolMutex;
 		GenePool mGenePool;

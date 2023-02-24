@@ -143,7 +143,7 @@ namespace Render
 		}
 	}
 
-	bool Mesh::buildMeshlet(int maxVertices, int maxPrims, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector<MeshletCullData>* outCullDataList)
+	bool Mesh::buildMeshlet(int maxVertices, int maxPrims, TArray<MeshletData>& outMeshlets, TArray<uint8>& outUniqueVertexIndices, TArray<PackagedTriangleIndices>& outPrimitiveIndices, TArray<MeshletCullData>* outCullDataList)
 	{
 
 		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer, ELockAccess::ReadOnly);
@@ -158,7 +158,7 @@ namespace Render
 		if (pVertex == nullptr || pIndex == nullptr)
 			return false;
 
-		std::vector< uint32 > tempBuffer;
+		TArray< uint32 > tempBuffer;
 		int numTriangles = 0;
 		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), IsIntType(mIndexBuffer), tempBuffer, numTriangles);
 		if (pIndexData == nullptr)
@@ -246,14 +246,14 @@ namespace Render
 		if (pVertex == nullptr || pIndex == nullptr)
 			return false;
 
-		std::vector< uint32 > tempBuffer;
+		TArray< uint32 > tempBuffer;
 		int numTriangles = 0;
 		uint32* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), IsIntType(mIndexBuffer), tempBuffer, numTriangles);
 
 		if (pIndexData == nullptr)
 			return false;
 
-		std::vector< int > adjIndices;
+		TArray< int > adjIndices;
 
 		switch (type)
 		{
@@ -326,8 +326,8 @@ namespace Render
 		uint8 type;
 		serializer >> type;
 		mType = EPrimitive(type);
-		std::vector<uint8> vertexData;
-		std::vector<uint8> indexData;
+		TArray<uint8> vertexData;
+		TArray<uint8> indexData;
 
 		uint32 vertexDataSize;
 		serializer >> vertexDataSize;

@@ -5,13 +5,14 @@
 
 #include "EditorConfig.h"
 
+#include "ImGui/imgui.h"
+
 #include "Meta/IsBaseOf.h"
 #include "Meta/EnableIf.h"
-
-#include "ImGui/imgui.h"
-#include <vector>
+#include "DataStructure/Array.h"
 
 #include "CString.h"
+
 
 
 struct WindowRenderParams 
@@ -106,7 +107,7 @@ struct EditorPanelInfo
 		return nullptr;
 	}
 
-	EDITOR_API static std::vector< EditorPanelInfo > List;
+	EDITOR_API static TArray< EditorPanelInfo > List;
 
 };
 

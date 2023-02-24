@@ -2,10 +2,10 @@
 
 #include "Core/IntegerType.h"
 #include "DataStructure/Heap.h"
+#include "DataStructure/Array.h"
 
-
-#include <vector>
 #include <cassert>
+
 
 template< class BufferType >
 struct TBufferPolicy
@@ -56,8 +56,8 @@ public:
 		{
 			uint32 children[2];
 		};
-		std::vector< Node > nodes;
-		std::vector< AlphabetType > alphabetMap;
+		TArray< Node > nodes;
+		TArray< AlphabetType > alphabetMap;
 
 		template< class T >
 		AlphabetType* getAlphabet(TDataBitReader<T>& reader,uint32& tokenLen )
@@ -240,8 +240,8 @@ public:
 	}
 	
 
-	std::vector< Node > alphabetNodes;
-	std::vector< Node > tempNodes;
+	TArray< Node > alphabetNodes;
+	TArray< Node > tempNodes;
 	Node* mRoot;
 };
 
@@ -290,7 +290,7 @@ public:
 
 	//std::map< Keyword, size_t > entryMap;
 	std::unordered_map< Keyword, size_t , Hasher > entryMap;
-	std::vector< DictEntry > dictionary;
+	TArray< DictEntry > dictionary;
 
 	void encode(uint8* buffer, size_t size)
 	{

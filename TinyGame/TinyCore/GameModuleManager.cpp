@@ -59,7 +59,7 @@ void GameModuleManager::handleFeatureEvent(IModularFeature* feature, bool bRemov
 	IGameModule* gameModule = static_cast<IGameModule*>(feature);
 	if (bRemove)
 	{
-		RemoveValue(mGameModules, gameModule);
+		mGameModules.remove(gameModule);
 	}
 	else
 	{

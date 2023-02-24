@@ -2,12 +2,12 @@
 #ifndef Tween_H_50802EDF_8D8D_47C6_B3C4_E1EB66015C6C
 #define Tween_H_50802EDF_8D8D_47C6_B3C4_E1EB66015C6C
 
-#include <functional>
-#include <vector>
-#include <algorithm>
-
 #include "Meta/MetaBase.h"
 #include "Meta/Select.h"
+#include "DataStructure/Array.h"
+
+#include <functional>
+#include <algorithm>
 
 namespace Tween
 {
@@ -363,8 +363,8 @@ namespace Tween
 			}
 
 		private:
-			typedef std::vector< IPropValue* > PropValueVec;
-			std::vector< IPropValue* > mProps;
+			typedef TArray< IPropValue* > PropValueVec;
+			TArray< IPropValue* > mProps;
 		};
 
 
@@ -733,7 +733,7 @@ namespace Tween
 		int  getTotalNum() const { return (int)mStorage.size(); }
 
 		bool    mAutoRemove;
-		typedef std::vector< IComponent* > CompVec;
+		typedef TArray< IComponent* > CompVec;
 		CompVec mActiveComps;
 		CompVec mStorage;
 	};
@@ -862,7 +862,7 @@ namespace Tween
 		int mNumFinished;
 		int mTotalRepeat;
 		int mRepeat;
-		typedef std::vector< IComponent* > CompVec;
+		typedef TArray< IComponent* > CompVec;
 		CompVec mStorage;
 	};
 

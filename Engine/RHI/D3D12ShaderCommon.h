@@ -43,18 +43,18 @@ namespace Render
 		D3D12_SHADER_VISIBILITY visibility;
 		int    globalCBRegister = INDEX_NONE;
 		uint32 globalCBSize = 0;
-		std::vector< D3D12_DESCRIPTOR_RANGE1 >   descRanges;
-		std::vector< D3D12_STATIC_SAMPLER_DESC > samplers;
-		std::vector< ShaderParameterSlotInfo >   slots;
+		TArray< D3D12_DESCRIPTOR_RANGE1 >   descRanges;
+		TArray< D3D12_STATIC_SAMPLER_DESC > samplers;
+		TArray< ShaderParameterSlotInfo >   slots;
 	};
 
 	struct D3D12ShaderData
 	{
 		ShaderRootSignature  rootSignature;
-		std::vector<uint8>   code;
+		TArray<uint8>   code;
 
 		bool initialize(TComPtr<IDxcBlob>& shaderCode);
-		bool initialize(std::vector<uint8>&& binaryCode);
+		bool initialize(TArray<uint8>&& binaryCode);
 
 		D3D12_SHADER_BYTECODE getByteCode() { return { code.data() , code.size() }; }
 		D3D12_ROOT_PARAMETER1 getRootParameter(int index, int num = 1) const;
@@ -71,7 +71,7 @@ namespace Render
 		}
 
 
-		static bool GenerateParameterMap(std::vector< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap , ShaderRootSignature& inOutSignature);
+		static bool GenerateParameterMap(TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap , ShaderRootSignature& inOutSignature);
 		static void SetupShader(ShaderRootSignature& inOutSignature, EShader::Type type);
 		
 		virtual bool getParameter(char const* name, ShaderParameter& outParam)
@@ -175,7 +175,7 @@ namespace Render
 		virtual bool compileCode(ShaderCompileContext const& context);
 
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode);
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode);
 
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram)
 		{
@@ -183,7 +183,7 @@ namespace Render
 		}
 
 		virtual bool doesSuppurtBinaryCode() const { return true; }
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode);
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode);
 		
 		TComPtr<ID3D12Device8> mDevice;
 #if TARGET_PLATFORM_64BITS
@@ -195,7 +195,7 @@ namespace Render
 
 
 		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode) override;
+		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
 
 
 		virtual void postShaderLoaded(Shader& shader) override
@@ -203,7 +203,7 @@ namespace Render
 
 		}
 
-		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode) override;
+		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
 		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
 		virtual void precompileCode(ShaderSetupData& setupData) override;
 

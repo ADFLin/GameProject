@@ -122,11 +122,11 @@
     <Filter Include="Module">
       <UniqueIdentifier>{6a7ae375-0cc5-4905-aa53-31c936d667e3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Launch">
+      <UniqueIdentifier>{8c7edf0c-dc07-498b-84ff-bc23a9ee995a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AppEntry.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="ConsoleSystem.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
@@ -345,6 +345,15 @@
     </ClCompile>
     <ClCompile Include="Module\ModuleManager.cpp">
       <Filter>Module</Filter>
+    </ClCompile>
+    <ClCompile Include="Launch\CommandlLine.cpp">
+      <Filter>Launch</Filter>
+    </ClCompile>
+    <ClCompile Include="Launch\AppEntry.cpp">
+      <Filter>Launch</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameAllocator.cpp">
+      <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -597,9 +606,6 @@
     <ClInclude Include="RefCount.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="TypeConstruct.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="ReflectionCollect.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
@@ -718,9 +724,6 @@
       <Filter>DataStructure</Filter>
     </ClInclude>
     <ClInclude Include="DataStructure\TUnsignedHash.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="DataStructure\VertorSet.h">
       <Filter>DataStructure</Filter>
     </ClInclude>
     <ClInclude Include="DataStructure\CycleQueue.h">
@@ -953,6 +956,15 @@
     </ClInclude>
     <ClInclude Include="Module\ModuleManager.h">
       <Filter>Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Launch\CommandlLine.h">
+      <Filter>Launch</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeMemoryOp.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\ArraySet.h">
+      <Filter>DataStructure</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

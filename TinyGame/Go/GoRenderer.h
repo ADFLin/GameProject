@@ -7,8 +7,6 @@
 #include "RandomUtility.h"
 #include "Go/GoCore.h"
 
-#define DRAW_TEXTURE 1
-
 class RHIGraphics2D;
 
 namespace Render
@@ -57,14 +55,18 @@ namespace GoCore
 		}
 		Vec2i getCoord(Vector2 const& pos) const
 		{
-			Vec2i result = (pos - renderPos + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
-			result.y = board.getSize() - 1 - result.y;
-			return result;
+			return CalcCoordInternal(pos - renderPos, cellLength, board.getSize());
 		}
+
 		static Vec2i CalcCoord(Vector2 const& coordPos, Vector2 const& renderPos, float scale, int boradSize)
 		{
 			float cellLength = DefalutCellLength * scale;
-			Vec2i result = (coordPos - renderPos + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
+			return CalcCoordInternal(coordPos - renderPos, cellLength, boradSize);
+		}
+
+		static Vec2i CalcCoordInternal(Vector2 const& offset, float cellLength, int boradSize)
+		{
+			Vec2i result = (offset + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
 			result.y = boradSize - 1 - result.y;
 			return result;
 		}
@@ -107,12 +109,14 @@ namespace GoCore
 		};
 		struct TextureInfo
 		{
-			Vector2 uvMin, uvMax;
+			Vector2 uvMin;
+			Vector2 uvMax;
+			Vector2 uvSize;
 		};
 		TextureInfo mTexInfos[NumTexture];
 		Render::RHITexture2DRef mTextures[NumTexture];
 
-		std::vector< Vector2 > mNoiseOffsets;
+		TArray< Vector2 > mNoiseOffsets;
 		struct Vertex
 		{
 			Vector2 pos;
@@ -120,20 +124,15 @@ namespace GoCore
 			Vector2 tex;
 		};
 
-		std::vector< Vertex > mSpriteVertices;
-
-
 		void generateNoiseOffset(int boradSize);
 
-		void drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity);
+		void drawStoneSequence(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, TArray<PlayVertex> const& vertices, int colorStart, float opacity);
 		void drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number);
 
 
 		Vector2 getStonePos(RenderContext const& context, int i, int j);
 
 		void drawBorad(RHIGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr);
-
-		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
 
 		void drawStone(RHIGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0);
 	};

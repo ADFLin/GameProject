@@ -19,10 +19,10 @@ public:
 
 	FCNNLayout      mLayout;
 	FCNeuralNetwork mFNN;
-	std::vector< NNScalar > mWeights;
-	std::vector< NNScalar > mSingnals;
-	std::vector< NNScalar > mNetworkInputs;
-	std::vector< NNScalar > mSensivityValues;
+	TArray< NNScalar > mWeights;
+	TArray< NNScalar > mSingnals;
+	TArray< NNScalar > mNetworkInputs;
+	TArray< NNScalar > mSensivityValues;
 
 
 	virtual bool onInit()
@@ -46,7 +46,7 @@ public:
 	{
 		return min + (max - min) * NNScalar(::rand()) / RAND_MAX;
 	}
-	static void Randomize(std::vector< NNScalar >& v)
+	static void Randomize(TArray< NNScalar >& v)
 	{
 		for( NNScalar& x : v )
 		{

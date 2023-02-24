@@ -4,6 +4,8 @@
 #include "PlatformConfig.h"
 #include "CompilerConfig.h"
 
+#include "DataStructure/Array.h"
+
 #if SYS_PLATFORM_WIN
 #define  NOMINMAX
 #include <WinSock.h>
@@ -13,7 +15,6 @@
 #error "NetSockt not supported"
 #endif
 #include <exception>
-#include <vector>
 
 #define NET_INIT_OK 0
 
@@ -179,7 +180,7 @@ struct NetSelectSet
 	bool canWrite(NetSocket& socket);
 	bool haveExcept(NetSocket& socket);
 
-	std::vector< NetSocket* > mSockets;
+	TArray< NetSocket* > mSockets;
 	fd_set mRead;
 	fd_set mWrite;
 	fd_set mExcept;

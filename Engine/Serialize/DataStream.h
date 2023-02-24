@@ -8,6 +8,7 @@
 #include "Meta/Concept.h"
 
 #include "HashString.h"
+#include "DataStructure/Array.h"
 
 #include <vector>
 #include <set>
@@ -15,6 +16,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
+
 
 
 #if CPP_COMPILER_MSVC
@@ -288,6 +290,17 @@ public:
 	}
 
 	template<  class T, class A >
+	void write(TArray< T, A > const& value)
+	{
+		uint32 size = value.size();
+		this->write(size);
+		if (size)
+		{
+			this->writeSequence(value.data(), size);
+		}
+	}
+
+	template<  class T, class A >
 	void write(std::vector< T, A > const& value)
 	{
 		uint32 size = value.size();
@@ -295,6 +308,18 @@ public:
 		if( size )
 		{
 			this->writeSequence(value.data(), size);
+		}
+	}
+
+	template< class T, class A >
+	void read(TArray< T , A >& value)
+	{
+		uint32 size = 0;
+		this->read(size);
+		if (size)
+		{
+			value.resize(size);
+			this->readSequence(value.data(), size);
 		}
 	}
 

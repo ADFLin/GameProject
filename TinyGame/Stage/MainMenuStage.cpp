@@ -97,7 +97,7 @@ bool MainMenuStage::onInit()
 	::Global::GUI().addWidget( button );
 #endif
 
-	std::vector< HashString > categories = ExecutionRegisterCollection::Get().getRegisteredCategories();
+	TArray< HashString > categories = ExecutionRegisterCollection::Get().getRegisteredCategories();
 	GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(100, 20), NULL);
 	for (auto const& category : categories)
 	{
@@ -119,7 +119,7 @@ bool MainMenuStage::onInit()
 		char const* last = FStringParse::FindChar(selectValue, '(');
 		StringView category = StringView{ selectValue , size_t( last - selectValue) };
 		category.trimEnd();
-		std::vector< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
+		TArray< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
 
 		std::sort(stageInfoList.begin(), stageInfoList.end(), [](ExecutionEntryInfo const* lhs, ExecutionEntryInfo const* rhs)
 		{

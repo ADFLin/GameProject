@@ -5,10 +5,9 @@
 #include "CoreShare.h"
 
 #include "FunctionTraits.h"
-#include "Singleton.h"
 #include "InlineString.h"
 #include "HashString.h"
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
@@ -56,8 +55,8 @@ struct TCommandArgTypeTraits {};
 DEFINE_COM_ARG_TYPE_TRAITS(bool, "%d", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(float, "%f", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(double, "%lf", 1)
-DEFINE_COM_ARG_TYPE_TRAITS(unsigned, "%u", 1)
-DEFINE_COM_ARG_TYPE_TRAITS(int, "%d", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(uint32, "%u", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(int32, "%d", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(unsigned char, "%u", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(char, "%d", 1)
 DEFINE_COM_ARG_TYPE_TRAITS(char*, "%s", 1)
@@ -222,17 +221,17 @@ struct TVariableConsoleCommad : public VariableConsoleCommadBase
 	}
 	virtual void execute(void* argsData[]) override
 	{
-		TypeDataHelper::Assign(mPtr, *(Type*)argsData[0]);
+		FTypeMemoryOp::Assign(mPtr, *(Type*)argsData[0]);
 	}
 
 	virtual void getValue(void* pDest) override
 	{
-		TypeDataHelper::Assign((Type*)pDest, *mPtr);
+		FTypeMemoryOp::Assign((Type*)pDest, *mPtr);
 	}
 
 	virtual void setValue(void* pDest) 
 	{
-		TypeDataHelper::Assign(mPtr, *(Type*)pDest);
+		FTypeMemoryOp::Assign(mPtr, *(Type*)pDest);
 	}
 
 	virtual bool setFromInt(int inValue) { *mPtr = inValue; return true; }
@@ -302,7 +301,7 @@ struct TVariableConsoleDelegateCommad : public VariableConsoleCommadBase
 
 	virtual void getValue(void* pDest) override
 	{
-		TypeDataHelper::Assign((Type*)pDest, mGetValue());
+		FTypeMemoryOp::Assign((Type*)pDest, mGetValue());
 	}
 
 	virtual void setValue(void* pDest)
@@ -383,22 +382,21 @@ protected:
 	static int const NumMaxParams = 16;
 	struct ExecuteContext
 	{
-		InlineString<512> buffer;
+		char buffer[512];
 		ConsoleCommandBase* command;
 
-		char const* cmdText;
-		char const* cmdName;
-		char const* paramStrings[NumMaxParams];
+		char const* text;
+		char const* name;
+		char const* args[NumMaxParams];
 		int  numArgs;
-		int  numUsedParam;
-		bool init(char const* inCmdText);
+		int  numArgUsed;
+		bool parseText();
 
 		std::string errorMsg;
 	};
 
-	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bCanOmitArgs);
+	bool fillArgumentData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bCanOmitArgs);
 	bool executeCommandImpl(ExecuteContext& context);
-
 #if 0
 	using CommandMap = std::map< TStringPtrWrapper<char, true> , ConsoleCommandBase* >;
 #else

@@ -97,7 +97,7 @@ namespace Poker
 		};
 		int  mMoveStep;
 		bool mbUndoMove;
-		std::vector< MoveInfo > mMoveInfoVec;
+		TArray< MoveInfo > mMoveInfoVec;
 
 		//ICardResourceSetup
 		void setupCardDraw(ICardDraw* cardDraw) override;

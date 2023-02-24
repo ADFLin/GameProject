@@ -37,9 +37,9 @@ namespace Render
 		/** @brief Memory types and heaps of the physical device */
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 		/** @brief Queue family properties of the physical device */
-		std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+		TArray<VkQueueFamilyProperties> queueFamilyProperties;
 		/** @brief List of extensions supported by the device */
-		std::vector<std::string> supportedExtensions;
+		TArray<std::string> supportedExtensions;
 
 		/** @brief Set to true when the debug marker extension is detected */
 		bool enableDebugMarkers = false;
@@ -98,7 +98,7 @@ namespace Render
 		*
 		* @return VkResult of the device creation call
 		*/
-		bool createLogicalDevice(VkPhysicalDeviceFeatures inEnabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices);
+		bool createLogicalDevice(VkPhysicalDeviceFeatures inEnabledFeatures, TArray<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices);
 
 		/**
 		* Create a buffer on the device

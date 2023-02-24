@@ -3,8 +3,7 @@
 #define Tickable_h__
 
 #include "CoreShare.h"
-#include "StdUtility.h"
-#include <vector>
+#include "DataStructure/Array.h"
 
 class Tickable
 {
@@ -15,13 +14,13 @@ public:
 	}
 	~Tickable()
 	{
-		RemoveValue(List, this);
+		List.remove(this);
 	}
 
 	virtual void tick(float deltaTime) = 0;
 
 	CORE_API static void Update(float deltaTime);	
-	CORE_API static std::vector<Tickable*> List;
+	CORE_API static TArray<Tickable*> List;
 
 };
 #endif // Tickable_h__

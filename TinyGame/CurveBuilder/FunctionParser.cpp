@@ -35,27 +35,25 @@ namespace CB
 
 	bool FunctionParser::parse(Expression& expr , int numInput , ValueLayout inputLayouts[] )
 	{
-		expr.mIsParsed = compile(expr.getExprString().c_str(), mSymbolDefine, expr.getEvalData(), numInput , inputLayouts);
+		expr.mIsParsed = mCompiler.compile(expr.getExprString().c_str(), mSymbolDefine, expr.getEvalData(), numInput , inputLayouts);
 		return expr.mIsParsed;
 	}
 
 	FunctionParser::FunctionParser()
 	{
-		SymbolTable& table = getSymbolDefine();
+		mSymbolDefine.defineVarInput("x", 0);
+		mSymbolDefine.defineVarInput("y", 1);
+		mSymbolDefine.defineVarInput("u", 0);
+		mSymbolDefine.defineVarInput("v", 1);
 
-		table.defineVarInput("x", 0);
-		table.defineVarInput("y", 1);
-		table.defineVarInput("u", 0);
-		table.defineVarInput("v", 1);
-
-		table.defineFunc("sin", static_cast< RealType (*)(RealType) >(sin));
-		table.defineFunc("cos", static_cast< RealType(*)(RealType) >(cos));
-		table.defineFunc("tan", static_cast< RealType(*)(RealType) >(tan));
-		table.defineFunc("exp", static_cast< RealType(*)(RealType) >(exp));
-		table.defineFunc("ln", static_cast< RealType(*)(RealType) >(log));
-		table.defineFunc("log", static_cast< RealType(*)(RealType) >(log10));
-		table.defineFunc("sqrt", static_cast< RealType(*)(RealType) >(sqrt));
-		table.defineFunc("pow", static_cast< RealType(*)(RealType, RealType) >(pow));
+		mSymbolDefine.defineFunc("sin", static_cast< RealType (*)(RealType) >(sin));
+		mSymbolDefine.defineFunc("cos", static_cast< RealType(*)(RealType) >(cos));
+		mSymbolDefine.defineFunc("tan", static_cast< RealType(*)(RealType) >(tan));
+		mSymbolDefine.defineFunc("exp", static_cast< RealType(*)(RealType) >(exp));
+		mSymbolDefine.defineFunc("ln", static_cast< RealType(*)(RealType) >(log));
+		mSymbolDefine.defineFunc("log", static_cast< RealType(*)(RealType) >(log10));
+		mSymbolDefine.defineFunc("sqrt", static_cast< RealType(*)(RealType) >(sqrt));
+		mSymbolDefine.defineFunc("pow", static_cast< RealType(*)(RealType, RealType) >(pow));
 	}
 
 }//namespace CB

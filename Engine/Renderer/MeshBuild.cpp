@@ -37,7 +37,7 @@ namespace Render
 #endif
 		};
 
-		std::vector< MyVertex > v(nV);
+		TArray< MyVertex > v(nV);
 		MyVertex* pV = &v[0];
 		float const dtex = 1.0 / tileSize;
 		for (int j = 0; j < vLen; ++j)
@@ -52,7 +52,7 @@ namespace Render
 			}
 		}
 
-		std::vector< int > idx(nI);
+		TArray< int > idx(nI);
 		int* pIdx = &idx[0];
 		for (int j = 0; j < tileSize; ++j)
 		{
@@ -165,7 +165,7 @@ namespace Render
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = (rings - 1) * (sectors + 1) + 2 * sectors;
-		std::vector< float > vertex(nV * size);
+		TArray< float > vertex(nV * size);
 		float const rf = 1.0 / rings;
 		float const sf = 1.0 / sectors;
 		int r, s;
@@ -237,7 +237,7 @@ namespace Render
 		}
 
 
-		std::vector< int > indices((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
+		TArray< int > indices((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
 		int* i = &indices[0];
 
 		int idxOffset = 0;
@@ -320,7 +320,7 @@ namespace Render
 		}
 		else
 		{
-			std::vector< uint32 > tempIndices;
+			TArray< uint32 > tempIndices;
 			int numTriangles;
 			MeshUtility::ConvertToTriangleListIndices(EPrimitive::Quad, indices, 4 * 6, tempIndices, numTriangles);
 			if (!mesh.createRHIResource(&vertices[0], 8, tempIndices.data(), tempIndices.size(), true))
@@ -477,7 +477,7 @@ namespace Render
 		//mesh.mInputLayoutDesc.addElement( 0, EVertex::ATTRIBUTE_TEXCOORD , EVertex::Float2 );
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 		int nV = rings * sectors;
-		std::vector< float > vertex(nV * size);
+		TArray< float > vertex(nV * size);
 		float* pos = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(0) / sizeof(float);
 		float* tangentZ = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(1) / sizeof(float);
 		float* tangentX = &vertex[0] + mesh.mInputLayoutDesc.getElementOffset(2) / sizeof(float);
@@ -518,7 +518,7 @@ namespace Render
 			}
 		}
 
-		std::vector< int > indices(rings * (sectors) * 6);
+		TArray< int > indices(rings * (sectors) * 6);
 		int* i = &indices[0];
 		for (s = 0; s < sectors - 1; ++s)
 		{
@@ -639,7 +639,7 @@ namespace Render
 		float dw = width / (nx - 1);
 		float dh = height / (ny - 1);
 
-		std::vector< FVertex > vertices;
+		TArray< FVertex > vertices;
 		vertices.resize(nx*ny);
 
 		FVertex* pDataV = &vertices[0];
@@ -662,7 +662,7 @@ namespace Render
 			}
 		}
 
-		std::vector< int > indices;
+		TArray< int > indices;
 		indices.resize(6 * (nx - 1) * (ny - 1));
 
 		int* pIdx = &indices[0];
@@ -690,9 +690,10 @@ namespace Render
 	bool FMeshBuild::ObjFileMesh(Mesh& mesh, MeshData& data)
 	{
 		int maxNumVertex = data.numPosition * data.numNormal;
-		std::vector< int > idxMap(maxNumVertex, -1);
-		std::vector< float > vertices;
-		std::vector< int > indices(data.numIndex);
+		TArray< int > idxMap;
+		idxMap.resize(maxNumVertex, -1);
+		TArray< float > vertices;
+		TArray< int > indices(data.numIndex);
 		vertices.reserve(maxNumVertex);
 
 		int numVertices = 0;
@@ -795,8 +796,8 @@ namespace Render
 		}
 
 		int vertexSize = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
-		std::vector< float > vertices(numVertices * vertexSize);
-		std::vector< uint32 > indices;
+		TArray< float > vertices(numVertices * vertexSize);
+		TArray< uint32 > indices;
 		indices.reserve(numIndices);
 
 
@@ -806,7 +807,7 @@ namespace Render
 		struct ObjMeshSection
 		{
 			int matId;
-			std::vector< int > indices;
+			TArray< int > indices;
 		};
 		std::map< int, ObjMeshSection > meshSectionMap;
 #endif
@@ -905,7 +906,7 @@ namespace Render
 		}
 
 #if USE_SAME_MATERIAL_MERGE
-		std::vector< ObjMeshSection* > sortedMeshSctions;
+		TArray< ObjMeshSection* > sortedMeshSctions;
 		for (auto& pair : meshSectionMap)
 		{
 			sortedMeshSctions.push_back(&pair.second);
@@ -952,7 +953,7 @@ namespace Render
 					Vector3& pos = *reinterpret_cast<Vector3*>(v);
 					Vector3& noraml = *reinterpret_cast<Vector3*>(v + 3);
 					pos = Math::TransformPosition(pos, *pTransform);
-					//TODO: non-uniform scale
+					//#TODO: non-uniform scale
 					noraml = Math::TransformVector(noraml, *pTransform);
 					noraml.normalize();
 					v += vertexSize;
@@ -1110,7 +1111,7 @@ namespace Render
 			init(numDiv, radius);
 
 			int nIdx = 3 * IcoFaceNum * (1 << (2 * numDiv));
-			std::vector< int > indices(2 * nIdx);
+			TArray< int > indices(2 * nIdx);
 			std::copy(IcoIndex, IcoIndex + ARRAY_SIZE(IcoIndex), &indices[0]);
 
 			int* pIdx = &indices[0];
@@ -1147,7 +1148,7 @@ namespace Render
 		float  mRadius;
 		using KeyType = uint64;
 		using KeyMap = std::unordered_map< KeyType, int >;
-		std::vector< VertexType > mVertices;
+		TArray< VertexType > mVertices;
 		KeyMap  mKeyMap;
 	};
 
@@ -1298,7 +1299,6 @@ namespace Render
 					}
 				}
 			}
-			                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
 			return true;
 		}
@@ -1358,7 +1358,7 @@ namespace Render
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = numSide + 2;
-		std::vector< float > vertices(nV * size);
+		TArray< float > vertices(nV * size);
 		float const sf = 2 * Math::PI / numSide;
 
 		float* v = &vertices[0] + mesh.mInputLayoutDesc.getAttributeOffset(EVertex::ATTRIBUTE_POSITION) / sizeof(float);
@@ -1387,7 +1387,7 @@ namespace Render
 
 			v += size;
 		}
-		std::vector< int > indices(2 * numSide * 3);
+		TArray< int > indices(2 * numSide * 3);
 		int* idx = &indices[0];
 
 		int idxPrev = numSide - 1;

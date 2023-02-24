@@ -4,6 +4,7 @@
 #include "X3DAudio.h"
 
 #include "Platform/Windows/ComUtility.h"
+#include "DataStructure/Array.h"
 
 struct VoiceDeleter
 {
@@ -39,7 +40,7 @@ public:
 	bool commitStreamingData( bool bInit = false);
 	// pos = -1 , no data need commit;
 	int64 mNextStreamSampleFrame = -1;
-	std::vector< uint32 > mUsedSampleHandles;
+	TArray< uint32 > mUsedSampleHandles;
 };
 
 class XAudio2SourceCallback : public IXAudio2VoiceCallback

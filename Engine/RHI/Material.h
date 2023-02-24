@@ -126,9 +126,9 @@ namespace Render
 		ParamSlot& fetchParam(char const* name, ParamType type);
 
 		int        findParam(ParamSlot const& slot);
-		std::vector< uint8 > mParamDataStorage;
-		std::vector< ParamSlot > mParams;
-		std::vector< RHITextureRef > mTextures;
+		TArray< uint8 > mParamDataStorage;
+		TArray< ParamSlot > mParams;
+		TArray< RHITextureRef > mTextures;
 
 	};
 

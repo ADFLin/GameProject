@@ -1312,7 +1312,7 @@ bool NetLevelStageMode::canRender()
 
 void NetLevelStageMode::restart(bool beInit)
 {
-	//TODO
+	//#TODO
 	if( mServer )
 	{
 		mServer->changeState(NAS_LEVEL_RESTART);

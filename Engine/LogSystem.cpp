@@ -1,12 +1,11 @@
 #include "LogSystem.h"
 
 #include "Singleton.h"
+#include "DataStructure/Array.h"
+
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
-
-#include <vector>
-#include "StdUtility.h"
 
 #if USE_LOG
 
@@ -14,20 +13,20 @@ class LogManager : public SingletonT< LogManager >
 {
 public:
 
-	typedef std::vector< LogOutput* > LogOutputList;
+	typedef TArray< LogOutput* > LogOutputList;
 	LogOutputList chanelListenerList[ NUM_DEFAULT_LOG_CHANNEL ];
 	
 
 	void   addListener( LogChannel channel , LogOutput* listener )
 	{
 		LogOutputList& outputList = chanelListenerList[ channel ];
-		AddUniqueValue(outputList, listener);
+		outputList.addUnique(listener);
 	}
 
 	void   removeListener( LogChannel channel , LogOutput* listener )
 	{
 		LogOutputList& outputList = chanelListenerList[ channel ];
-		RemoveValue(outputList, listener);
+		outputList.remove(listener);
 	}
 
 

@@ -1,8 +1,9 @@
 #ifndef GIFLoader_h__
 #define GIFLoader_h__
 
-#include <vector>
+#include "DataStructure/Array.h"
 #include <iosfwd>
+
 struct COLOR {unsigned char b,g,r,x;};	// Windows GDI expects 4bytes per color
 #define GIF_DEFAULT_ALIGN sizeof(int)				// Windows GDI expects all int-aligned
 
@@ -43,11 +44,11 @@ public:
 	int  load( std::istream& fs , Listener& listener );
 private:
 	int    mImgRowAlign;
-	typedef std::vector< unsigned char > Buffer;
+	typedef TArray< unsigned char > Buffer;
 	Buffer mCompressedBuffer;
 	Buffer mRasterBuffer;
-	std::vector< COLOR > globalColorMap;
-	std::vector< COLOR > localColorMap;
+	TArray< COLOR > globalColorMap;
+	TArray< COLOR > localColorMap;
 };
 
 typedef bool (*GIFLoadCallback )( GIFImageInfo const& info , void* userData );

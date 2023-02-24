@@ -46,7 +46,7 @@ public:
 
 	struct Leaf
 	{
-		std::vector<int> dataIndices;
+		TArray<int> dataIndices;
 	};
 
 	struct Edge
@@ -66,7 +66,7 @@ public:
 
 	void build()
 	{
-		std::vector< int > dataIndices;
+		TArray< int > dataIndices;
 		dataIndices.resize(mDataVec.size());
 
 		BoundType bound;
@@ -105,7 +105,7 @@ public:
 			float range[2];
 		};
 
-		std::vector< PathData > pathStack;
+		TArray< PathData > pathStack;
 
 		VectorType invRayDir = Vector2(1, 1).div(ray.dir);
 
@@ -219,7 +219,7 @@ public:
 		return false;
 	}
 
-	int  makeLeaf(std::vector< int >& dataIndices)
+	int  makeLeaf(TArray< int >& dataIndices)
 	{
 		Leaf leaf;
 		leaf.dataIndices = std::move(dataIndices);
@@ -238,7 +238,7 @@ public:
 			return (size.x >= size.z) ? 0 : 2;
 		return (size.y >= size.z) ? 1 : 2;
 	}
-	int  buildNode_R(std::vector< int >& dataIndices, BoundType const& bound)
+	int  buildNode_R(TArray< int >& dataIndices, BoundType const& bound)
 	{
 		if( dataIndices.size() < 3 )
 		{
@@ -247,7 +247,7 @@ public:
 		VectorType size = bound.max - bound.min;
 		int axis = choiceAxis(size);
 
-		std::vector< Edge > edges;
+		TArray< Edge > edges;
 		edges.reserve(2 * dataIndices.size());
 		for( int i = 0; i < dataIndices.size(); ++i )
 		{
@@ -315,8 +315,8 @@ public:
 			return makeLeaf(dataIndices);
 		}
 
-		std::vector< int > leftIndices;
-		std::vector< int > rightIndices;
+		TArray< int > leftIndices;
+		TArray< int > rightIndices;
 		{
 			int idxCur = 0;
 			for( ; idxCur < indexBestChoice; ++idxCur )
@@ -388,7 +388,7 @@ public:
 			BoundType bound;
 
 		};
-		std::vector< StackData > stack;
+		TArray< StackData > stack;
 		stack.push_back({ mRootId , mBound });
 
 		float minDistSqr = Math::MaxFloat;
@@ -539,9 +539,9 @@ public:
 	int mRootId;
 
 
-	std::vector< Node > mNodes;
-	std::vector< Leaf > mLeaves;
-	std::vector< PrimitiveData > mDataVec;
+	TArray< Node > mNodes;
+	TArray< Leaf > mLeaves;
+	TArray< PrimitiveData > mDataVec;
 };
 
 #endif // KDTree_H_2B427EF1_6D32_40F3_8DCF_E3D9B30FCC2B

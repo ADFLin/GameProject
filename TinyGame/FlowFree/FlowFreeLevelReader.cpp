@@ -106,7 +106,7 @@ namespace FlowFree
 
 			}
 
-			std::vector< float > grayScaleData(imageView.getWidth() * imageView.getHeight());
+			TArray< float > grayScaleData(imageView.getWidth() * imageView.getHeight());
 			TImageView< float > grayView(grayScaleData.data(), imageView.getWidth() , imageView.getHeight());
 
 			mDebugTextures[eFliter] = RHICreateTexture2D(ETexture::RGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
@@ -118,7 +118,7 @@ namespace FlowFree
 
 			mDebugTextures[eGrayScale] = RHICreateTexture2D(ETexture::R32F, grayView.getWidth(), grayView.getHeight(), 0, 1, TCF_DefalutValue, (void*)grayView.getData());
 
-			std::vector< float > downSampleData;
+			TArray< float > downSampleData;
 			TImageView< float > downSampleView;
 			{
 				TIME_SCOPE("Downsample");
@@ -127,7 +127,7 @@ namespace FlowFree
 
 			TImageView< float >& usedView = downSampleView;
 
-			std::vector< float > edgeData(usedView.getWidth() * usedView.getHeight(), 0);
+			TArray< float > edgeData(usedView.getWidth() * usedView.getHeight(), 0);
 			TImageView< float > edgeView(edgeData.data(), usedView.getWidth(), usedView.getHeight());
 			{
 				TIME_SCOPE("Sobel");
@@ -146,7 +146,7 @@ namespace FlowFree
 			mDebugTextures[eDownsample] = RHICreateTexture2D(ETexture::R32F, downSampleView.getWidth(), downSampleView.getHeight(), 0, 1, TCF_DefalutValue, (void*)downSampleView.getData());
 
 #if 1
-			std::vector< float > downSampleData2;
+			TArray< float > downSampleData2;
 			TImageView< float > downSampleView2;
 			{
 				TIME_SCOPE("Downsample");
@@ -155,8 +155,8 @@ namespace FlowFree
 			mDebugTextures[eDownsample2] = RHICreateTexture2D(ETexture::R32F, downSampleView2.getWidth(), downSampleView2.getHeight(), 0, 1, TCF_DefalutValue, (void*)downSampleView2.getData());
 #endif
 
-			std::vector< float > houghData;
-			std::vector< float > houghDebugData;
+			TArray< float > houghData;
+			TArray< float > houghDebugData;
 			TImageView< float > houghView;
 			mLines.clear();
 			{
@@ -172,12 +172,12 @@ namespace FlowFree
 
 		}
 
-		std::vector< HoughLine > lines = mLines;
+		TArray< HoughLine > lines = mLines;
 		return buildLevel(imageView, lines, Vec2i(widthProc, heightProc), level, params);
 	}
 
 
-	ImageReadResult ImageReader::buildLevel(TImageView< Color3ub > const& imageView, std::vector< HoughLine >& lines, Vec2i const& houghSize, Level& level, LoadParams const& params  )
+	ImageReadResult ImageReader::buildLevel(TImageView< Color3ub > const& imageView, TArray< HoughLine >& lines, Vec2i const& houghSize, Level& level, LoadParams const& params  )
 	{
 		TIME_SCOPE("Build Level");
 
@@ -221,8 +221,8 @@ namespace FlowFree
 			}
 		}
 
-		std::vector< float > HLines;
-		std::vector< float > VLines;
+		TArray< float > HLines;
+		TArray< float > VLines;
 
 		for (auto line : mLines)
 		{
@@ -259,9 +259,9 @@ namespace FlowFree
 		addDebugRect(boundUVMin, boundUVSize, Color3ub(255, 0, 255));
 
 
-		auto FindCellLength = [](std::vector<float>& lines)
+		auto FindCellLength = [](TArray<float>& lines)
 		{
-			std::vector< float > lens;
+			TArray< float > lens;
 			for (int j = 1; j < lines.size(); ++j)
 			{
 				float offset1 = lines[j] - lines[j - 1];
@@ -292,7 +292,7 @@ namespace FlowFree
 		levelSize.x = Math::RoundToInt(boundUVSize.x / gridUVSize.x);
 		levelSize.y = Math::RoundToInt(boundUVSize.y / gridUVSize.y);
 
-		auto FillUndetectedGridLine = [](std::vector< float >& lines, float gridLen)
+		auto FillUndetectedGridLine = [](TArray< float >& lines, float gridLen)
 		{
 			for (int i = 1; i < lines.size(); ++i)
 			{
@@ -407,7 +407,7 @@ namespace FlowFree
 
 		};
 
-		std::vector< SourceInfo > sources;
+		TArray< SourceInfo > sources;
 		int nextColorId = 1;
 		int sourceCount = 0;
 		for (int j = 0; j < levelSize.y; ++j)
@@ -501,7 +501,7 @@ namespace FlowFree
 			int   type;
 		};
 
-		std::vector< EdgeInfo > edges;
+		TArray< EdgeInfo > edges;
 		bool haveBlockEdge = false;
 
 		//V-edge
@@ -573,7 +573,7 @@ namespace FlowFree
 			}
 		}
 		{
-			std::vector< EdgeInfo* > sortedEdges;
+			TArray< EdgeInfo* > sortedEdges;
 			for (auto& edge : edges)
 			{
 				sortedEdges.push_back(&edge);
@@ -602,7 +602,7 @@ namespace FlowFree
 			{
 			case 0:
 				{
-					//TODO :check full unbound case
+					//#TODO :check full unbound case
 				
 					Vector2 p[4] =
 					{

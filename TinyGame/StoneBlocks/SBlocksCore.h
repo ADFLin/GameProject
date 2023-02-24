@@ -10,10 +10,11 @@
 
 #include "ColorName.h"
 #include "RenderUtility.h"
+#include "Math/GeometryPrimitive.h"
+#include "DataStructure/Array.h"
 
 #include <memory>
 #include <algorithm>
-#include "Math/GeometryPrimitive.h"
 
 namespace SBlocks
 {
@@ -56,32 +57,32 @@ namespace SBlocks
 		{
 			return (sizeX + 7) / 8;
 		}
-		static bool Read(std::vector< uint8 > const& bitData, uint32 dataSizeX, int x, int y)
+		static bool Read(TArray< uint8 > const& bitData, uint32 dataSizeX, int x, int y)
 		{
 			uint32 index = ToIndex(dataSizeX, x, y);
 			return !!(bitData[index] & BIT(x % 8));
 		}
-		static void Add(std::vector< uint8 >& bitData, uint32 dataSizeX, int x, int y)
+		static void Add(TArray< uint8 >& bitData, uint32 dataSizeX, int x, int y)
 		{
 			uint32 index = ToIndex(dataSizeX, x, y);
 			bitData[index] |= BIT(x % 8);
 		}
-		static void Remove(std::vector< uint8 >& bitData, uint32 dataSizeX, int x, int y)
+		static void Remove(TArray< uint8 >& bitData, uint32 dataSizeX, int x, int y)
 		{
 			uint32 index = ToIndex(dataSizeX, x, y);
 			bitData[index] &= ~BIT(x % 8);
 		}
 
-		static void Toggle(std::vector< uint8 >& bitData, uint32 dataSizeX, int x, int y)
+		static void Toggle(TArray< uint8 >& bitData, uint32 dataSizeX, int x, int y)
 		{
 			uint32 index = ToIndex(dataSizeX, x, y);
 			bitData[index] ^= BIT(x % 8);
 		}
 
 		template< class T >
-		static std::vector< uint8 > ConvertForm(std::vector< T >& data, uint32 sizeX , uint32 mask = 0xff)
+		static TArray< uint8 > ConvertForm(TArray< T >& data, uint32 sizeX , uint32 mask = 0xff)
 		{
-			std::vector< uint8 > result;
+			TArray< uint8 > result;
 			uint32 sizeY = (data.size() + sizeX - 1) / sizeX;
 			uint32 dataSizeX = GetDataSizeX(sizeX);
 			result.resize(dataSizeX * sizeY, 0);
@@ -97,9 +98,9 @@ namespace SBlocks
 			return result;
 		}
 		template< class T >
-		static std::vector< T > ConvertTo(std::vector< uint8 >& bitData, uint32 sizeX, T value = T(1))
+		static TArray< T > ConvertTo(TArray< uint8 >& bitData, uint32 sizeX, T value = T(1))
 		{
-			std::vector< T > result;
+			TArray< T > result;
 
 			uint32 dataSizeX = GetDataSizeX(sizeX);
 			uint32 sizeY = (bitData.size() + dataSizeX - 1) / dataSizeX;
@@ -126,7 +127,7 @@ namespace SBlocks
 	struct PieceShapeDesc
 	{
 		uint16 sizeX;
-		std::vector< uint8 > data;
+		TArray< uint8 > data;
 		bool	bUseCustomPivot;
 		Vector2 customPivot;
 
@@ -181,7 +182,7 @@ namespace SBlocks
 			uint8 type;
 			operator Int16Point2D() const { return pos; }
 		};
-		std::vector< Block > blocks;
+		TArray< Block > blocks;
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
 		uint32 blockHash;
 		uint32 blockHashNoType;
@@ -200,8 +201,8 @@ namespace SBlocks
 			Int16Point2D end;
 		};
 
-		void generateOuterConPosList(std::vector< Int16Point2D >& outPosList) const;
-		void generateOutline(std::vector<Line>& outlines);
+		void generateOuterConPosList(TArray< Int16Point2D >& outPosList) const;
+		void generateOutline(TArray<Line>& outlines);
 	};
 
 	namespace EMirrorOp
@@ -222,7 +223,7 @@ namespace SBlocks
 
 		Vector2 pivot;
 
-		std::vector< PieceShapeData::Line > outlines;
+		TArray< PieceShapeData::Line > outlines;
 
 		int indexSolve;
 
@@ -297,7 +298,7 @@ namespace SBlocks
 			return pivot + GetRotation(inDir).leftMul(lPos - pivot);
 		}
 	private:
-		std::vector<PieceShapeData> mDataStorage;
+		TArray<PieceShapeData> mDataStorage;
 		int mDataIndexMap[DirType::RestValue][EMirrorOp::COUNT];
 	};
 
@@ -308,12 +309,11 @@ namespace SBlocks
 		bool bCanRoate;
 
 		int index = 0;
-
 		Int16Point2D mapPosLocked;
 
 		Vector2 pos;
 		float angle = 0.0f;
-		RenderTransform2D xFormRender;
+		RenderTransform2D renderXForm;
 		int clickFrame = 0;
 
 		int indexSolve;
@@ -327,15 +327,15 @@ namespace SBlocks
 
 		void updateTransform()
 		{
-			xFormRender.setIdentity();
-			xFormRender.translateWorld(-shape->pivot);
-			xFormRender.rotateWorld(angle);
-			xFormRender.translateWorld(pos + shape->pivot);
+			renderXForm.setIdentity();
+			renderXForm.translateWorld(-shape->pivot);
+			renderXForm.rotateWorld(angle);
+			renderXForm.translateWorld(pos + shape->pivot);
 		}
 
 		bool hitTest(Vector2 const& pos, Vector2& outHitLocalPos)
 		{
-			Vector2 lPos = xFormRender.transformInvPositionAssumeNoScale(pos);
+			Vector2 lPos = renderXForm.transformInvPositionAssumeNoScale(pos);
 
 			auto const& shapeData = shape->getData(DirType::ValueChecked(0));
 			for (auto const& block : shapeData.blocks)
@@ -358,7 +358,7 @@ namespace SBlocks
 	struct MapDesc
 	{
 		uint16  sizeX;
-		std::vector< uint8 > data;
+		TArray< uint8 > data;
 		Vector2 pos;
 
 		template< class OP >
@@ -372,10 +372,16 @@ namespace SBlocks
 		{
 			Normal = 0,
 		};
-#define MAKE_MAP_DATA(TYPE, v) (((TYPE) << 2 ) | v)
+
 		enum
 		{
-			MAP_BLOCK   = MAKE_MAP_DATA(EBlock::Normal, 0x2),
+			LOCK_MASK  = BIT(0),
+			BLOCK_MASK = BIT(1),
+			MASK_BITS = 2,
+
+#define MAKE_MAP_DATA(TYPE, v) (((TYPE) << MASK_BITS ) | v)
+
+			MAP_BLOCK = MAKE_MAP_DATA(EBlock::Normal, BLOCK_MASK),
 		};
 
 		uint8 getValue(int x, int y) const
@@ -388,14 +394,14 @@ namespace SBlocks
 			return mData(pos.x, pos.y);
 		}
 
-		static bool  CanLock(uint8 value)   { return !(value & 0x3); }
-		static bool  HaveBlock(uint8 value) { return !!(value & 0x2); }
-		static void  AddBlock(uint8& value) { value |= 0x2; }
-		static void  RemoveBlock(uint8& value) { value &= ~0x2; }
-		static bool  IsLocked(uint8 value)  { return !!(value & 0x1); }
-		static void  AddLock(uint8& value)  { value |= 0x1; }
-		static void  RemoveLock(uint8& value) { value &= ~0x1; }
-		static uint8 GetType(uint8 value)   { return value >> 2; }
+		static bool  CanLock(uint8 value)   { return !(value & (LOCK_MASK | BLOCK_MASK)); }
+		static bool  HaveBlock(uint8 value) { return !!(value & BLOCK_MASK); }
+		static void  AddBlock(uint8& value) { value |= BLOCK_MASK; }
+		static void  RemoveBlock(uint8& value) { value &= ~BLOCK_MASK; }
+		static bool  IsLocked(uint8 value)  { return !!(value & LOCK_MASK); }
+		static void  AddLock(uint8& value)  { value |= LOCK_MASK; }
+		static void  RemoveLock(uint8& value) { value &= ~LOCK_MASK; }
+		static uint8 GetType(uint8 value)   { return value >> MASK_BITS; }
 		bool isInBound(Vec2i const& pos)
 		{
 			return IsInBound(pos, getBoundSize());
@@ -441,7 +447,7 @@ namespace SBlocks
 				uint8   bLockRotation : 1;
 				uint8   dummy : 5;
 			};
-			uint8 dirAngFlags;
+			uint8 dirAndFlags;
 		};
 
 		template< class OP >
@@ -450,9 +456,9 @@ namespace SBlocks
 
 	struct LevelDesc
 	{
-		std::vector< MapDesc > maps;
-		std::vector<PieceShapeDesc> shapes;
-		std::vector<PieceDesc> pieces;
+		TArray< MapDesc > maps;
+		TArray<PieceShapeDesc> shapes;
+		TArray<PieceDesc> pieces;
 
 		bool bAllowMirrorOp = false;
 
@@ -483,9 +489,9 @@ namespace SBlocks
 		void unlockAllPiece();
 
 		Vector2 calcPiecePos(Piece& piece, int indexMap, Vec2i const& mapPos , DirType dir );
-		std::vector< std::unique_ptr< Piece > > mPieces;
-		std::vector< std::unique_ptr< PieceShape > > mShapes;
-		std::vector< MarkMap > mMaps;
+		TArray< std::unique_ptr< Piece > > mPieces;
+		TArray< std::unique_ptr< PieceShape > > mShapes;
+		TArray< MarkMap > mMaps;
 
 		bool bAllowMirrorOp = false;
 	};

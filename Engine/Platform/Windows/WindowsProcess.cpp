@@ -6,6 +6,7 @@
 
 #include  <TlHelp32.h>
 #include <winternl.h>
+#include "Core/ScopeGuard.h"
 
 void ChildProcess::cleanup()
 {
@@ -239,4 +240,21 @@ DWORD FPlatformProcess::FindPIDByNameAndParentPID(TCHAR const* name, DWORD paren
 		return true;
 	});
 	return result;
+}
+
+bool FPlatformProcess::IsProcessRunning(DWORD pid)
+{
+	bool result = true;
+	HANDLE handle = ::OpenProcess(SYNCHRONIZE, false, pid);
+	if (handle == NULL)
+		return false;
+	ON_SCOPE_EXIT
+	{
+		::CloseHandle(handle);
+	};
+	uint32 WaitResult = WaitForSingleObject(handle, 0);
+	if (WaitResult != WAIT_TIMEOUT)
+		return false;
+
+	return true;
 }

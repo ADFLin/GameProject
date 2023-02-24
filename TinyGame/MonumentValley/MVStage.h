@@ -10,7 +10,7 @@
 #include "MVRenderEngine.h"
 
 
-#include "DataStructure/VertorSet.h"
+#include "DataStructure/ArraySet.h"
 #include "GameRenderSetup.h"
 
 #include "Renderer/SimpleCamera.h"
@@ -18,7 +18,7 @@
 #define DEV_MAP_NAME "test.map"
 #define DEV_SAVE_NAME "save.map"
 
-//TODO
+//#TODO
 //GUI interface editor
 //remove glPush/PopMatrix 
 
@@ -178,7 +178,7 @@ namespace MV
 		}
 
 
-		typedef TVectorSet< Block* > BlockSet;
+		typedef TArraySet< Block* > BlockSet;
 		BlockSet mSelectBlocks;
 
 		enum ViewMode

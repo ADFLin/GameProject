@@ -239,7 +239,7 @@ namespace Go
 			outName.format("#%03d-%s-%s", version, format.c_str(), name.c_str());
 		}
 
-		static bool Load(char const* path, std::vector< LeelaWeightInfo >& outTable)
+		static bool Load(char const* path, TArray< LeelaWeightInfo >& outTable)
 		{
 			std::ifstream fs(path);
 			if( !fs.is_open() )
@@ -290,7 +290,7 @@ namespace Go
 				return nullptr;
 			return iter->second;
 		}
-		std::vector< LeelaWeightInfo > table;
+		TArray< LeelaWeightInfo > table;
 		std::unordered_map< std::string, LeelaWeightInfo* > weightMap;
 	};
 

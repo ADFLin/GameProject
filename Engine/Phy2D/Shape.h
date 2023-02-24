@@ -2,8 +2,7 @@
 #define Shape_h__13F88FEE_FB5E_4052_A11C_1B95CC06E91B
 
 #include "Phy2D/Base.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 namespace Phy2D
 {
@@ -78,7 +77,7 @@ namespace Phy2D
 		}
 
 		int getVertexNum() const { return (int)mVertices.size(); }
-		std::vector< Vector2 > mVertices;
+		TArray< Vector2 > mVertices;
 	};
 
 

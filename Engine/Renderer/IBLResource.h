@@ -51,7 +51,7 @@ namespace Render
 		}
 
 		static bool InitializeBRDFTexture(void* data);
-		static void FillSharedBRDFData(std::vector< uint8 >& outData)
+		static void FillSharedBRDFData(TArray< uint8 >& outData)
 		{
 			return RHIReadTexture(*IBLResource::SharedBRDFTexture, ETexture::FloatRGBA, 0, outData);
 		}
@@ -59,17 +59,17 @@ namespace Render
 		bool initializeRHI(IBLBuildSetting const& setting);
 		void fillData(ImageBaseLightingData& outData);
 
-		static void GetCubeMapData(std::vector< uint8 >& data, ETexture::Format format, int size, int level, void* outData[]);
+		static void GetCubeMapData(TArray< uint8 >& data, ETexture::Format format, int size, int level, void* outData[]);
 	};
 
 	struct ImageBaseLightingData
 	{
 		int envMapSize;
-		std::vector< uint8 > envMap;
+		TArray< uint8 > envMap;
 		int irradianceSize;
-		std::vector< uint8 > irradiance;
+		TArray< uint8 > irradiance;
 		int perFilteredSize;
-		std::vector< uint8 > perFiltered[IBLResource::NumPerFilteredLevel];
+		TArray< uint8 > perFiltered[IBLResource::NumPerFilteredLevel];
 
 		template< class OP >
 		void serialize(OP& op)

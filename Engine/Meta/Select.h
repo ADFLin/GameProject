@@ -12,7 +12,7 @@ template < bool, int N1, int N2 >
 struct TSelectValue { enum { Value = N1 }; };
 
 template < int N1, int N2 >
-struct TSelectValue< false, N1, N2  > { enum { Value = N2 }; };
+struct TSelectValue< false, N1, N2 > { enum { Value = N2 }; };
 
 
 #endif // Select_H_3D6BCAD1_C131_4E69_9274_D27DDB1A564F

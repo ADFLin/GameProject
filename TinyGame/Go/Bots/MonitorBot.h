@@ -48,16 +48,16 @@ namespace Go
 		return findData.result;
 	}
 
-	int GetProcessWindows(DWORD processId, std::vector< HWND >& outHandles)
+	int GetProcessWindows(DWORD processId, TArray< HWND >& outHandles)
 	{
 		struct FindData
 		{
-			FindData(std::vector< HWND >& outHandles)
+			FindData(TArray< HWND >& outHandles)
 				:outHandles(outHandles)
 			{
 				numHandles = 0;
 			}
-			std::vector< HWND >& outHandles;
+			TArray< HWND >& outHandles;
 			int    numHandles;
 			DWORD  processId;
 			static BOOL CALLBACK Callback(HWND hWnd, LPARAM param)
@@ -184,7 +184,7 @@ namespace Go
 			}
 
 
-			std::vector< HWND > windowHandles;
+			TArray< HWND > windowHandles;
 			GetProcessWindows(PID, windowHandles);
 			for (HWND hWnd : windowHandles)
 			{
@@ -298,7 +298,7 @@ namespace Go
 		}
 
 		long time;
-		std::vector< HoughLine > mLines;
+		TArray< HoughLine > mLines;
 		using Ray = Math::TRay<Vector2>;
 
 		static Ray ToRay(HoughLine const& line)
@@ -316,7 +316,7 @@ namespace Go
 			int width = mBoardImage.getWidth();
 			int height = mBoardImage.getHeight();
 
-			std::vector< Color4f > imageData(width * height, Color4f(0, 0, 0, 0));
+			TArray< Color4f > imageData(width * height, Color4f(0, 0, 0, 0));
 			TImageView< Color4f > imageView(imageData.data(), width, height);
 
 			for (int y = 0; y < imageView.getHeight(); ++y)
@@ -327,7 +327,7 @@ namespace Go
 					imageView(x, y) = c.bgra();
 				}
 			}
-			std::vector< float > grayScaleData(width * height);
+			TArray< float > grayScaleData(width * height);
 			TImageView< float > grayView(grayScaleData.data(), width, height);
 
 			{
@@ -336,7 +336,7 @@ namespace Go
 			}
 			mDebugTextures[eGrayScale] = RHICreateTexture2D(ETexture::R32F, grayView.getWidth(), grayView.getHeight(), 0, 1, TCF_DefalutValue, (void*)grayView.getData());
 
-			std::vector< float > downSampleData;
+			TArray< float > downSampleData;
 			TImageView< float > downSampleView;
 			{
 				TIME_SCOPE("Downsample");
@@ -345,7 +345,7 @@ namespace Go
 
 			TImageView< float >& usedView = downSampleView;
 
-			std::vector< float > edgeData(usedView.getWidth() * usedView.getHeight(), 0);
+			TArray< float > edgeData(usedView.getWidth() * usedView.getHeight(), 0);
 			TImageView< float > edgeView(edgeData.data(), usedView.getWidth(), usedView.getHeight());
 			{
 				TIME_SCOPE("Sobel");
@@ -359,7 +359,7 @@ namespace Go
 #endif
 			mDebugTextures[eEdgeDetect] = RHICreateTexture2D(ETexture::R32F, edgeView.getWidth(), edgeView.getHeight(), 0, 1, TCF_DefalutValue, (void*)edgeView.getData());
 
-			std::vector< float > houghData;
+			TArray< float > houghData;
 			TImageView< float > houghView;
 			mLines.clear();
 			{

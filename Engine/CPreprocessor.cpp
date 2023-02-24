@@ -383,7 +383,7 @@ namespace CPP
 				PARSE_ERROR("Marco don't support Arg input");
 			}
 
-			std::vector< StringView > argList;
+			TArray< StringView > argList;
 			for(;;)
 			{
 				if (mInput.tokenChar(')'))
@@ -1134,7 +1134,7 @@ namespace CPP
 		{
 			if (marco->numArgs > 0)
 			{
-				std::vector< StringView > argList;
+				TArray< StringView > argList;
 
 				if (!code.tokenChar('('))
 				{
@@ -1411,7 +1411,7 @@ namespace CPP
 	{
 		if (!mBuffer.empty())
 			mBuffer.pop_back();
-		mBuffer.insert(mBuffer.end(), str.begin() , str.end());
+		mBuffer.append(str.begin() , str.end());
 		mBuffer.push_back(0);
 	}
 
@@ -1466,7 +1466,7 @@ namespace CPP
 		int last;
 	};
 
-	//TODO
+	//#TODO
 	constexpr OpRange PrecedenceOpRange[] =
 	{
 		{ EOperator::LogicalOR, EOperator::LogicalOR },

@@ -2,7 +2,7 @@
 #ifndef Optional_H_9BF4B338_1987_4808_A493_4DE55A4E7FB9
 #define Optional_H_9BF4B338_1987_4808_A493_4DE55A4E7FB9
 
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 
 template< class T >
 struct TMemoryStorage
@@ -18,7 +18,7 @@ public:
 	TOptional(T const& rhs)
 	{
 		mIsSet = true;
-		TypeDataHelper::Construct(getValuePtr(), rhs);
+		FTypeMemoryOp::Construct(getValuePtr(), rhs);
 	}
 
 	TOptional()
@@ -30,7 +30,7 @@ public:
 	{
 		if (mIsSet)
 		{
-			TypeDataHelper::Destruct(getValuePtr());
+			FTypeMemoryOp::Destruct(getValuePtr());
 		}
 	}
 
@@ -42,9 +42,9 @@ public:
 	{
 		if (mIsSet)
 		{
-			TypeDataHelper::Destruct(mValue.mData);
+			FTypeMemoryOp::Destruct(mValue.mData);
 		}
-		TypeDataHelper::Construct(getValuePtr(), std::forward<Q>(rhs));
+		FTypeMemoryOp::Construct(getValuePtr(), std::forward<Q>(rhs));
 		return *this;
 	}
 
@@ -52,7 +52,7 @@ public:
 	{
 		if (mIsSet)
 		{
-			TypeDataHelper::Destruct(getValuePtr());
+			FTypeMemoryOp::Destruct(getValuePtr());
 			mIsSet = false;
 		}
 	}

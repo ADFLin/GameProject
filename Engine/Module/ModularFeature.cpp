@@ -1,8 +1,7 @@
 #include "ModularFeature.h"
 
-#include "StdUtility.h"
+#include "DataStructure/Array.h"
 
-#include <vector>
 #include <unordered_map>
 
 
@@ -30,7 +29,7 @@ public:
 		}
 	}
 
-	void getFeatures(HashString name, std::vector<IModularFeature*>& outFeatures)
+	void getFeatures(HashString name, TArray<IModularFeature*>& outFeatures)
 	{
 		auto iter = mNameMap.find(name);
 		if (iter == mNameMap.end())
@@ -56,7 +55,7 @@ public:
 
 	struct FeatureData
 	{
-		std::vector<IModularFeature*> list;
+		TArray<IModularFeature*> list;
 		ModularFeatureEvent event;
 
 		void add(IModularFeature* feature)
@@ -65,7 +64,7 @@ public:
 		}
 		void remove(IModularFeature* feature)
 		{
-			RemoveValue(list, feature);
+			list.remove(feature);
 		}
 	};
 	std::unordered_map<HashString, FeatureData> mNameMap;
@@ -79,7 +78,5 @@ IModularFeatures& IModularFeatures::Get()
 	static ModularFeaturesImpl StaticInstance;
 	return StaticInstance;
 }
-
-
 
 #endif

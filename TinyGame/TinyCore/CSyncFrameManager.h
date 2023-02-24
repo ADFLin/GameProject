@@ -15,7 +15,6 @@ class IFrameActionTemplate;
 class INetFrameCollector;
 class CSyncFrameManager;
 
-
 class ServerWorker;
 class ClientWorker;
 class FramePacket;

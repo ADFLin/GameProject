@@ -10,14 +10,16 @@
 #include "RHI/RHICommand.h"
 #include "RHI/Font.h"
 #include "RHI/RHIGraphics2D.h"
+
+
+#include "DataStructure/Array.h"
+
 using namespace Render;
 
 
 #include <cassert>
 #include <iostream>
 #include <unordered_map>
-
-
 
 #define USE_FREETYPE 0
 
@@ -663,7 +665,7 @@ public:
 
 
 
-	std::vector< FontVertex > mTextVertices;
+	TArray< FontVertex > mTextVertices;
 	
 	CFont::Drawer* mDrawer;
 	std::string mString;

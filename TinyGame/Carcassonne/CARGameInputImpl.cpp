@@ -72,7 +72,7 @@ namespace CAR
 	void GameInput::runLogic(GameLogic& gameLogic)
 	{
 		mGameLogic = &gameLogic;
-		boost::coroutines::attributes attributes(0x0001);
+		boost::coroutines::attributes attributes;
 		mGameLogicExecution = ExecType( std::bind( &GameInput::LogicExecutionEntry, this , std::placeholders::_1 ) , attributes);
 	}
 

@@ -2,7 +2,7 @@
 #ifndef ImageMergeHelper_H_3A8549D5_BFD9_4866_A2D4_AED1F1AF7AA8
 #define ImageMergeHelper_H_3A8549D5_BFD9_4866_A2D4_AED1F1AF7AA8
 
-#include <vector>
+#include "DataStructure/Array.h"
 
 class ImageMergeHelper
 {
@@ -40,7 +40,7 @@ public:
 
 protected:
 
-	typedef std::vector< Node* > NodeMap;
+	typedef TArray< Node* > NodeMap;
 	NodeMap mImageNodeMap;
 	Node*   mRoot;
 

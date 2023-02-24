@@ -2,8 +2,8 @@
 #ifndef AssetViewer_H_FDEDE486_DF02_4EC4_B0B5_B16F5BB0BE5C
 #define AssetViewer_H_FDEDE486_DF02_4EC4_B0B5_B16F5BB0BE5C
 
+#include "DataStructure/Array.h"
 #include <string>
-#include <vector>
 
 enum class EFileAction
 {
@@ -16,7 +16,7 @@ enum class EFileAction
 class IAssetViewer
 {
 public:
-	virtual void getDependentFilePaths(std::vector< std::wstring >& paths) {}
+	virtual void getDependentFilePaths(TArray< std::wstring >& paths) {}
 protected:
 	friend class AssetManager;
 	virtual void postFileModify(EFileAction action) {}

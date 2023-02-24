@@ -156,7 +156,7 @@ namespace CAR
 	void LevelActor::removeFollower(LevelActor& actor)
 	{
 		assert ( actor.binder == this );
-		RemoveValueChecked(followers, &actor);
+		followers.removeChecked(&actor);
 		actor.binder = nullptr;
 	}
 

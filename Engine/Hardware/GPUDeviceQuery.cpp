@@ -1,12 +1,14 @@
 #include "GPUDeviceQuery.h"
 #include "PlatformConfig.h"
 
+
 #if SYS_PLATFORM_WIN
 #include "nvapi/nvapi.h"
 #include "WindowsHeader.h"
 
-#include <vector>
+#include "DataStructure/Array.h"
 #include "PlatformConfig.h"
+
 
 #define NVAPI_MAX_CLOCKS_PER_GPU              0x120  
 
@@ -620,11 +622,11 @@ public:
 	struct DisplayHandle
 	{
 		NvDisplayHandle displayHandle;
-		std::vector< NvPhysicalGpuHandle > GpuHandles;
+		TArray< NvPhysicalGpuHandle > GpuHandles;
 	};
 
-	std::vector< DisplayHandle > mDisplays;
-	std::vector< NvPhysicalGpuHandle > mGpuHandles;
+	TArray< DisplayHandle > mDisplays;
+	TArray< NvPhysicalGpuHandle > mGpuHandles;
 };
 
 #endif

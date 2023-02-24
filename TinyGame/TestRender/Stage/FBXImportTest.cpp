@@ -39,7 +39,7 @@ namespace Render
 		ShaderProgram  mPongShader;
 		ShaderProgram  mClipCoordShader;
 		Mesh mMesh;
-		std::vector<Mesh> mCharMeshes;
+		TArray<Mesh> mCharMeshes;
 		RHITexture2DRef mDiffuseTexture;
 		RHITexture2DRef mNormalTexture;
 		RHITexture2DRef mMetalTexture;
@@ -106,9 +106,9 @@ namespace Render
 					});
 				};
 
-				auto LoadFBXMeshes = [this](std::vector<Mesh>& meshes, char const* filePath) -> bool
+				auto LoadFBXMeshes = [this](TArray<Mesh>& meshes, char const* filePath) -> bool
 				{
-					return BuildMultiMeshFromFile(meshes, filePath, [](std::vector<Mesh>& meshes, char const* filePath) -> bool
+					return BuildMultiMeshFromFile(meshes, filePath, [](TArray<Mesh>& meshes, char const* filePath) -> bool
 					{
 						IMeshImporterPtr importer = MeshImporterRegistry::Get().getMeshImproter("FBX");
 						VERIFY_RETURN_FALSE(importer->importMultiFromFile(filePath, meshes, nullptr));

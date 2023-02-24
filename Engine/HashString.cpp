@@ -3,7 +3,7 @@
 #include "CString.h"
 #include "InlineString.h"
 #include "Core/TypeHash.h"
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 #include "Meta/MetaBase.h"
 
 #include <functional>
@@ -50,21 +50,21 @@ public:
 
 private:
 
-	template< class Q = T >
-	auto release() -> typename std::enable_if< std::is_trivially_destructible<Q>::value >::type
+	template< class Q = T , TEnableIf_Type< std::is_trivially_destructible<Q>::value, bool > = true>
+	void release()
 	{
 		if( mNumElement )
 		{
 			int numChunk = (mNumElement - 1) / ChunkElementNum + 1;
 			for( int i = 0; i < numChunk; ++i )
 			{
-				::free(mChunkStorage[i]);
+				FMemory::Free(mChunkStorage[i]);
 			}
 		}
 	}
 
-	template< class Q = T >
-	auto release() -> typename std::enable_if< !std::is_trivially_destructible<Q>::value >::type
+	template< class Q = T, TEnableIf_Type< !std::is_trivially_destructible<Q>::value, bool > = true >
+	void release()
 	{
 		if( mNumElement )
 		{
@@ -76,7 +76,7 @@ private:
 					T* ptr = (T*)(mChunkStorage[i]) + n;
 					ptr->~T();
 				}
-				::free(mChunkStorage[i]);
+				FMemory::Free(mChunkStorage[i]);
 			}
 
 			int idxChunk = numChunk - 1;
@@ -88,7 +88,7 @@ private:
 				ptr->~T();
 			}
 
-			::free(mChunkStorage[idxChunk]);
+			FMemory::Free(mChunkStorage[idxChunk]);
 		}
 	}
 

@@ -24,7 +24,7 @@ namespace SBlocks
 	}
 
 	template < typename OP , typename SizeType>
-	void SerializeGridData(OP& op, std::vector<uint8>& data , SizeType& sizeX)
+	void SerializeGridData(OP& op, TArray<uint8>& data , SizeType& sizeX)
 	{
 		if (OP::IsLoading)
 		{
@@ -46,7 +46,7 @@ namespace SBlocks
 
 			if (bBitData)
 			{
-				std::vector<uint8> temp;
+				TArray<uint8> temp;
 				op & temp;
 				data = FBitGird::ConvertTo<uint8>(temp, sizeX);
 			}
@@ -61,7 +61,7 @@ namespace SBlocks
 			op & bBitData;
 			if (bBitData)
 			{
-				std::vector<uint8> temp = FBitGird::ConvertForm(data, sizeX);
+				TArray<uint8> temp = FBitGird::ConvertForm(data, sizeX);
 				op & temp;
 			}
 			else
@@ -122,7 +122,7 @@ namespace SBlocks
 	template< class OP >
 	void PieceDesc::serialize(OP& op)
 	{
-		op & id & pos & dirAngFlags;
+		op & id & pos & dirAndFlags;
 	}
 
 	template< class OP >

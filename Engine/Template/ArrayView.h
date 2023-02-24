@@ -3,6 +3,7 @@
 #define ArrayView_H_90099AAD_213F_44A6_8A18_900243D39026
 
 #include <vector>
+#include "DataStructure/Array.h"
 
 template< class T >
 class TArrayView
@@ -62,12 +63,20 @@ template< class T, int N >
 TArrayView<T const> MakeView(T const(&data)[N]) { return TArrayView<T const>(data); }
 
 template< class T >
+TArrayView<T> MakeView(TArray< T >& v) { return TArrayView<T>(v.data(), v.size()); }
+template< class T >
 TArrayView<T> MakeView(std::vector< T >& v) { return TArrayView<T>(v.data(), v.size()); }
 
 template< class T >
 TArrayView<T const> MakeConstView(std::vector< T >& v) { return TArrayView<T const>(v.data(), v.size()); }
 template< class T >
 TArrayView<T const> MakeConstView(std::vector< T > const& v) { return TArrayView<T const>(v.data(), v.size()); }
+
+
+template< class T >
+TArrayView<T const> MakeConstView(TArray< T >& v) { return TArrayView<T const>(v.data(), v.size()); }
+template< class T >
+TArrayView<T const> MakeConstView(TArray< T > const& v) { return TArrayView<T const>(v.data(), v.size()); }
 
 #define ARRAY_VIEW_REAONLY_DATA( TYPE , ... ) \
 	[](){ static TYPE const data[] = { __VA_ARGS__ }; return TArrayView< TYPE const >(data); }()

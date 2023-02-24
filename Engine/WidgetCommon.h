@@ -2,7 +2,10 @@
 #define WidgetCommon_h__
 
 #include "WidgetCore.h"
+#include "DataStructure/Array.h"
+
 #include <algorithm>
+
 
 enum ButtonState
 {
@@ -123,7 +126,7 @@ protected:
 
 	Vec2i       mPageSize;
 	PageButton* mCurPageButton;
-	typedef std::vector< PageButton* > ButtonVec;
+	typedef TArray< PageButton* > ButtonVec;
 	ButtonVec   mPageButtons;
 };
 
@@ -352,7 +355,7 @@ protected:
 	MsgReply onKeyMsg(KeyMsg const& msg);
 
 
-	using ItemVec = std::vector< Item >;
+	using ItemVec = TArray< Item >;
 	ItemVec    mItemList;
 	int        mCurSelect;
 };

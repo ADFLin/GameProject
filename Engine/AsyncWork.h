@@ -4,8 +4,7 @@
 
 #include "PlatformThread.h"
 #include "Core/IntegerType.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 class IQueuedWork
 {
@@ -57,10 +56,10 @@ private:
 	IQueuedWork* doWorkCompleted(PoolRunableThread* runThread);
 
 	Mutex        mQueueMutex;
-	std::vector< IQueuedWork* >       mQueuedWorks;
-	std::vector< PoolRunableThread* > mQueuedThreads;
+	TArray< IQueuedWork* >       mQueuedWorks;
+	TArray< PoolRunableThread* > mQueuedThreads;
 
-	std::vector< PoolRunableThread* > mAllThreads;
+	TArray< PoolRunableThread* > mAllThreads;
 };
 
 

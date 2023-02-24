@@ -50,6 +50,9 @@ public:
 
 	std::vector< GWidget* > mCategoryWidgets;
 	EExecGroup mCurGroup;
+
+
+	std::vector< GWidget* > mHistoryWidgets;
 };
 
 

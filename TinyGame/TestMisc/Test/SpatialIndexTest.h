@@ -89,7 +89,7 @@ public:
 
 		int numShape = 50;
 
-		std::vector< KDTree::PrimitiveData > shapes;
+		TArray< KDTree::PrimitiveData > shapes;
 		shapes.resize(numShape);
 		for( int i = 0; i < numShape; ++i )
 		{
@@ -99,7 +99,7 @@ public:
 			data.BBox.max = data.BBox.min + 10 * Vector2( 0.1 + randFloat(), 0.1 + randFloat() );
 		}
 
-		mTree.mDataVec.swap(shapes);
+		mTree.mDataVec = std::move(shapes);
 		mTree.build();
 
 	}

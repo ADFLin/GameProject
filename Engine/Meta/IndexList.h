@@ -15,7 +15,7 @@ namespace Private
 	template <size_t MIN, size_t... Is>
 	struct TRangeBuilder<MIN, MIN, Is...>
 	{
-		typedef TIndexList<Is...> type;
+		using Type = TIndexList<Is...>;
 	};
 
 	// Induction step
@@ -27,6 +27,6 @@ namespace Private
 
 // Meta-function that returns a [MIN, MAX) index range
 template<size_t MIN, size_t MAX>
-using TIndexRange = typename Private::TRangeBuilder<MIN, MAX>::type;
+using TIndexRange = typename Private::TRangeBuilder<MIN, MAX>::Type;
 
 #endif // IndexList_h__

@@ -71,12 +71,15 @@ bool InputFileSerializer::open(char const* path, bool bCheckLegacy)
 			mVersionData = std::make_unique< FileVersionData >();
 			ios::pos_type cur = mFS.tellg();
 			mFS.seekg(header.versionOffset, ios::beg);
+			mEOFPos = mFS.tellg();
 			IStreamSerializer::read(*mVersionData.get());
 			mFS.seekg(cur, ios::beg);
 		}
 	}
 	else if ( bCheckLegacy )
 	{
+		mFS.seekg(0, ios::end);
+		mEOFPos = mFS.tellg();
 		mFS.seekg(cur, ios::beg);
 	}
 	else
@@ -85,6 +88,11 @@ bool InputFileSerializer::open(char const* path, bool bCheckLegacy)
 	}
 
 	return true;
+}
+
+bool InputFileSerializer::isEOF()
+{
+	return mFS.tellg() == mEOFPos;
 }
 
 void InputFileSerializer::read(void* ptr, size_t num)

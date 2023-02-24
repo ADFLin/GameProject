@@ -48,6 +48,7 @@
 #include "Module/ModuleManager.h"
 
 #include <iostream>
+#include "Launch/CommandlLine.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
@@ -201,7 +202,7 @@ public:
 	}
 	void init()
 	{
-		std::cout.sync_with_stdio(true);
+		std::ios_base::sync_with_stdio(true);
 	}
 
 
@@ -321,7 +322,7 @@ public:
 class GameConfigAsset : public IAssetViewer
 {
 public:
-	void getDependentFilePaths(std::vector< std::wstring >& paths) override 
+	void getDependentFilePaths(TArray< std::wstring >& paths) override
 	{
 		paths.push_back(FCString::CharToWChar(GAME_SETTING_PATH));
 	}
@@ -421,6 +422,42 @@ char const* GetBuildVersion()
 	return buildVersionCached;
 }
 
+struct FData
+{
+	FData(int index)
+		:index(index)
+	{
+		LogMsg("Data %d Construction", index);
+	}
+
+	FData(FData&& InData)
+	{
+		index = InData.index;
+		LogMsg("Data %d Move Construction", index);
+	}
+
+	FData(FData const& InData)
+	{
+		index = InData.index;
+		LogMsg("Data %d Copy Construction", index);
+	}
+
+	~FData()
+	{
+		LogMsg("Data %d Destruction", index);
+	}
+
+	int index;
+	std::function< void() > func;
+	std::unordered_set<HashString> set;
+
+};
+
+template<>
+struct TCanBitwiseRelocate<FData>
+{
+	static constexpr int Value = 0;
+};
 
 bool TinyGameApp::initializeGame()
 {
@@ -430,6 +467,22 @@ bool TinyGameApp::initializeGame()
 	CreateConsole();
 
 	gLogPrinter.addDefaultChannels();
+	{
+		TArray<FData> List;
+		for (int i = 0; i < 64; ++i)
+		{
+			List.emplace_back(i);
+		}
+
+		for (int i = 0; i < 64; ++i)
+		{
+			for (auto const& v : List[i].set)
+			{
+
+
+			}
+		}
+	}
 
 #if SYS_PLATFORM_WIN && 0
 	{
@@ -461,10 +514,18 @@ bool TinyGameApp::initializeGame()
 	}
 
 #if TINY_WITH_EDITOR
-	if (::Global::GameConfig().getBoolValue("Editor", CONFIG_SECTION , false))
+	if (!FCString::StrStr(FCommandLine::Get(), "-NoEditor"))
 	{
-		TIME_SCOPE("Editor Initialize");
-		VERIFY_RETURN_FALSE(initializeEditor());
+		bool bEnableEditor = FCString::StrStr(FCommandLine::Get(), "-Editor");
+		if (!bEnableEditor)
+		{
+			bEnableEditor = ::Global::GameConfig().getBoolValue("Editor", CONFIG_SECTION, false);
+		}
+		if (bEnableEditor)
+		{
+			TIME_SCOPE("Editor Initialize");
+			VERIFY_RETURN_FALSE(initializeEditor());
+		}
 	}
 #endif
 
@@ -832,6 +893,7 @@ MsgReply TinyGameApp::handleMouseEvent(MouseMsg const& msg)
 	return result;
 }
 
+
 MsgReply TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 {
 	if ( msg.isDown() )
@@ -978,7 +1040,6 @@ void TinyGameApp::render( float dframe )
 
 	IGraphics2D& g = ::Global::GetIGraphics2D();
 	{
-	
 		if (bDrawScene)
 		{
 			{
@@ -989,18 +1050,22 @@ void TinyGameApp::render( float dframe )
 				}
 			}
 
+			g.beginRender();
 
-			long dt = long(dframe * getUpdateTime());
-			if (mRenderEffect)
-				mRenderEffect->onRender(dt);
+			{
+				long dt = long(dframe * getUpdateTime());
+				if (mRenderEffect)
+				{
+					mRenderEffect->onRender(dt);
+				}
+			}
 			{
 				PROFILE_ENTRY("GUIRender");
 				GPU_PROFILE("GUI");
-				g.beginRender();
 				::Global::GUI().render();
-				g.endRender();
 			}
 
+			g.endRender();
 		}
 	}
 

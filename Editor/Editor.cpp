@@ -474,7 +474,7 @@ public:
 	}
 
 
-	std::vector< int > mViewportPanelIndices;
+	TArray< int > mViewportPanelIndices;
 
 	void renderMainMenu()
 	{
@@ -620,7 +620,7 @@ public:
 		bool bOpened = false;
 		bool bShown = false;
 	};
-	std::vector< ActivePanel > mPanels;
+	TArray< ActivePanel > mPanels;
 	ActivePanel& findOrAddPanel(EditorPanelInfo const& info)
 	{
 		ActivePanel* panel = findPanel(info);
@@ -682,7 +682,7 @@ public:
 	}
 
 	EditorWindow mMainWindow;
-	std::vector< std::unique_ptr< EditorWindow > > mChildWindows;
+	TArray< std::unique_ptr< EditorWindow > > mChildWindows;
 	std::unordered_map< HWND, EditorWindow* > mWindowMap;
 	PropertySet mSetttings;
 
@@ -718,7 +718,7 @@ public:
 	}
 	void write(char const* name, ImVec2 const& value)
 	{
-		settings->setKeyValue(name, section, InlineString<>::Make("(%g, %g)", value.x, value.y));
+		settings->setKeyValue(name, section, InlineString<>::Make("(%g, %g)", value.x, value.y).c_str());
 	}
 	void read(char const* name, ImVec2& value)
 	{
@@ -730,7 +730,7 @@ public:
 	}
 	void write(char const* name, ImVec4 const& value)
 	{
-		settings->setKeyValue(name, section, InlineString<>::Make("(%g, %g, %g, %g)", value.x, value.y, value.z, value.w));
+		settings->setKeyValue(name, section, InlineString<>::Make("(%g, %g, %g, %g)", value.x, value.y, value.z, value.w).c_str());
 	}
 	void read(char const* name, ImVec4& value)
 	{

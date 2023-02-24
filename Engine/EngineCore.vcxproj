@@ -212,7 +212,6 @@
     <ClCompile Include="AI\GeneticAlgorithm.cpp" />
     <ClCompile Include="AI\NeuralNetwork.cpp" />
     <ClCompile Include="AI\TrainManager.cpp" />
-    <ClCompile Include="AppEntry.cpp" />
     <ClCompile Include="Asset.cpp" />
     <ClCompile Include="AsyncWork.cpp" />
     <ClCompile Include="Audio\AudioDevice.cpp" />
@@ -237,12 +236,15 @@
     <ClCompile Include="DataCacheInterface.cpp" />
     <ClCompile Include="DataStructure\ClassTree.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
+    <ClCompile Include="FrameAllocator.cpp" />
     <ClCompile Include="GameFramework\EntityManager.cpp" />
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp" />
     <ClCompile Include="Image\GIFLoader.cpp" />
     <ClCompile Include="Image\ImageData.cpp" />
     <ClCompile Include="Image\ImageProcessing.cpp" />
     <ClCompile Include="Json.cpp" />
+    <ClCompile Include="Launch\AppEntry.cpp" />
+    <ClCompile Include="Launch\CommandlLine.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="HashString.cpp" />
@@ -345,7 +347,7 @@
     <ClInclude Include="DataStructure\TLinkable.h" />
     <ClInclude Include="DataStructure\TTable.h" />
     <ClInclude Include="DataStructure\TUnsignedHash.h" />
-    <ClInclude Include="DataStructure\VertorSet.h" />
+    <ClInclude Include="DataStructure\ArraySet.h" />
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="GameFramework\EntityManager.h" />
     <ClInclude Include="Hardware\GPUDeviceQuery.h" />
@@ -353,6 +355,7 @@
     <ClInclude Include="Image\ImageData.h" />
     <ClInclude Include="Image\ImageProcessing.h" />
     <ClInclude Include="Json.h" />
+    <ClInclude Include="Launch\CommandlLine.h" />
     <ClInclude Include="Math\GeometryAlgo2D.h" />
     <ClInclude Include="Math\GeometryPrimitive.h" />
     <ClInclude Include="Math\Matrix2.h" />
@@ -469,7 +472,7 @@
     <ClInclude Include="TQuadTree.h" />
     <ClInclude Include="TQuadTreeTile.h" />
     <ClInclude Include="NetSocket.h" />
-    <ClInclude Include="TypeConstruct.h" />
+    <ClInclude Include="TypeMemoryOp.h" />
     <ClInclude Include="WidgetCommon.h" />
     <ClInclude Include="WidgetCommon.hpp" />
     <ClInclude Include="WidgetCore.h" />

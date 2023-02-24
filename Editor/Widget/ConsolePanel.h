@@ -6,10 +6,12 @@
 
 #include "LogSystem.h"
 #include "Core/Color.h"
+#include "DataStructure/Array.h"
 
 #include <string>
 
 #include "ImGui/imgui.h"
+
 
 
 class ConsolePanel : public IEditorPanel
@@ -25,9 +27,9 @@ public:
 		Color4f     color;
 		std::string content;
 	};
-	std::vector<LogLine> Items;
-	std::vector<const char*> mCommands;
-	std::vector<std::string> History;
+	TArray<LogLine>     Items;
+	TArray<const char*> mCommands;
+	TArray<std::string> History;
 	int                   HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
 	ImGuiTextFilter       Filter;
 	bool                  AutoScroll;

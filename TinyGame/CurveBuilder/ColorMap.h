@@ -3,6 +3,7 @@
 
 #include "Color.h"
 #include "Core/IntegerType.h"
+#include "DataStructure/Array.h"
 
 class ColorMap;
 
@@ -62,8 +63,8 @@ private:
 	int     m_iRotion;
 	int     m_iMapSize;
 
-	std::vector< ColorPoint > mSortedCPoints;
-	std::vector< Color3f > mColorData;
+	TArray< ColorPoint > mSortedCPoints;
+	TArray< Color3f > mColorData;
 	
 };
 

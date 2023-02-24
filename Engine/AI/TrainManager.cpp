@@ -111,7 +111,7 @@ namespace AI
 	{
 		++generation;
 		int numGen = mAgents.size();
-		std::vector< GenotypePtr > tempSelections;
+		TArray< GenotypePtr > tempSelections;
 
 		if( genePool && !genePool->mStorage.empty() )
 		{
@@ -136,16 +136,16 @@ namespace AI
 
 		tempSelections.resize( setting->numTrainDataSelect );
 
-		std::vector< GenotypePtr > selections;
+		TArray< GenotypePtr > selections;
 		GA.select(setting->numTrainDataSelect, tempSelections, selections);
 		
-		std::vector< GenotypePtr > offsprings;
+		TArray< GenotypePtr > offsprings;
 		GA.crossover(mAgents.size(), selections, offsprings);
 		GA.mutate(offsprings, setting->mutationGeneProb ,setting->mutationValueProb, setting->mutationValueDelta);
 
 		if ( genePool )
 		{
-			std::vector< GenotypePtr > temps;
+			TArray< GenotypePtr > temps;
 			for( int i = 0; i < mAgents.size(); ++i )
 			{
 				temps.push_back(mAgents[i]->genotype);
@@ -370,7 +370,7 @@ namespace AI
 		IStreamSerializer::ReadOp op(serializer);
 		data.setting = &getDataSetting();
 
-		std::vector<uint32> topology;
+		TArray<uint32> topology;
 		op & topology;
 		mNNLayout.init(&topology[0], topology.size());
 
@@ -414,7 +414,7 @@ namespace AI
 
 		IStreamSerializer::WriteOp op(serializer);
 
-		std::vector<uint32> topology;
+		TArray<uint32> topology;
 		mNNLayout.getTopology(topology);
 		op & topology;
 
@@ -458,7 +458,7 @@ namespace AI
 
 	void TrainManager::OutputData(FCNNLayout const& layout, GenePool const& pool, IStreamSerializer& serializer)
 	{
-		std::vector<uint32> topology;
+		TArray<uint32> topology;
 		layout.getTopology(topology);
 		serializer << topology;
 
@@ -479,7 +479,7 @@ namespace AI
 
 	void TrainManager::IntputData(FCNNLayout& layout, GenePool& pool, IStreamSerializer& serializer)
 	{
-		std::vector<uint32> topology;
+		TArray<uint32> topology;
 		serializer >> topology;
 		layout.init(&topology[0], topology.size());
 

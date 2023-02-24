@@ -150,7 +150,7 @@ namespace Go
 			}
 		}
 
-		std::vector< KataThinkInfo > thinkResults[2];
+		TArray< KataThinkInfo > thinkResults[2];
 		int  indexResultWrite = 0;
 		KataAppRun* mAppRun;
 	};

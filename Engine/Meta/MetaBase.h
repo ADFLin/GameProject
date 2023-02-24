@@ -114,4 +114,21 @@ namespace Meta
 
 }//namespace Meta
 
+
+template <typename T>
+struct TIsIterator
+{
+	static char test(...);
+
+	template <typename U,
+		typename = typename std::iterator_traits<U>::difference_type,
+		typename = typename std::iterator_traits<U>::pointer,
+		typename = typename std::iterator_traits<U>::reference,
+		typename = typename std::iterator_traits<U>::value_type,
+		typename = typename std::iterator_traits<U>::iterator_category
+	> static long test(U&&);
+
+	constexpr static bool Value = std::is_same<decltype(test(std::declval<T>())), long>::value;
+};
+
 #endif // MetaTemplate_h__

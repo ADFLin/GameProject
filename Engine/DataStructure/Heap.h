@@ -1,7 +1,7 @@
 #ifndef Heap_h__
 #define Heap_h__
 
-#include <algorithm>
+#include "DataStructure/Array.h"
 
 template< class KT , class CmpFunc = std::less< KT > >
 class TBinaryHeap
@@ -110,10 +110,10 @@ private:
 		setNode(idxCur,Target);
 	}
 
-	bool  compareNode( Node* a , Node* b ){ return CompareFunType()( *a , *b ); }
-	void  freeNode( Node* node ){  delete node; }
-	Node* allocNode( KeyType const& key ){ return new Node( key ); }
-	std::vector< Node* > mTreeMap;
+	bool  compareNode(Node* a, Node* b) { return CompareFunType()(*a, *b); }
+	void  freeNode(Node* node) { delete node; }
+	Node* allocNode(KeyType const& key) { return new Node(key); }
+	TArray< Node* > mTreeMap;
 };
 
 
@@ -416,7 +416,7 @@ public:
 	struct Node;
 	typedef KT    KeyType;
 	typedef Node* HandleType;
-	typedef CmpFunc CompareFunType;
+	typedef CmpFunc CompareFuncType;
 
 	struct Node : ListHook< Node >
 	{
@@ -511,7 +511,7 @@ public:
 		return a;
 	}
 
-	bool  compareKey( Node* n1 , Node* n2 ){ return CompareFunType()( n1->key , n2->key ); }
+	bool  compareKey( Node* n1 , Node* n2 ){ return CompareFuncType()( n1->key , n2->key ); }
 	void  freeNode( Node* node ){  delete node; }
 	Node* allocNode(){ return new Node; }
 	Node* mRoot;

@@ -169,7 +169,7 @@ namespace Render
 			{
 			}
 		};
-		std::vector< Sample > mSamples;
+		TArray< Sample > mSamples;
 
 		TComPtr<ID3D11DeviceContext> mDeviceContext;
 		TComPtr<ID3D11Device> mDevice;
@@ -509,7 +509,7 @@ namespace Render
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
-	void D3D11System::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	void D3D11System::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
 		auto GetFormatClientSize = [](ETexture::Format format) -> int
 		{
@@ -530,7 +530,7 @@ namespace Render
 		mDeviceContext->Unmap(stagingTexture, level);
 	}
 
-	void D3D11System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+	void D3D11System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 	{
 		auto GetFormatClientSize = [](ETexture::Format format) -> int
 		{
@@ -598,7 +598,7 @@ namespace Render
 			);
 
 			std::string vertexCode;
-			std::vector< InputElementDesc const* > sortedElements;
+			TArray< InputElementDesc const* > sortedElements;
 			for (auto const& e : key.elements)
 			{
 				if (e.attribute == EVertex::ATTRIBUTE_UNUSED)
@@ -879,7 +879,7 @@ namespace Render
 			d3dDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		}
 #endif
-		std::vector< D3D11_SUBRESOURCE_DATA > initDataList;
+		TArray< D3D11_SUBRESOURCE_DATA > initDataList;
 		if( data )
 		{
 #if 0

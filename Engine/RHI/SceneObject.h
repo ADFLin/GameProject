@@ -200,7 +200,7 @@ namespace Render
 
 		bool bSmooth = true;
 		TrackMode mode;
-		std::vector< CurveKey > mKeys;
+		TArray< CurveKey > mKeys;
 	};
 
 	class VectorCurveTrack : public TCurveTrack< Vector3 > {};
@@ -255,7 +255,7 @@ namespace Render
 				return mMaterials[idx].get();
 			return nullptr;
 		}
-		std::vector< MaterialPtr > mMaterials;
+		TArray< MaterialPtr > mMaterials;
 		std::string name;
 	};
 
@@ -304,8 +304,8 @@ namespace Render
 		{
 			float time;
 		};
-		std::vector< LineElement > mLines;
-		std::vector< PointElement > mPoints;
+		TArray< LineElement > mLines;
+		TArray< PointElement > mPoints;
 
 	};
 

@@ -5,8 +5,7 @@
 
 #include "ParamCollection.h"
 #include "DataStructure/Grid2D.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 namespace Rich
 {
@@ -148,7 +147,7 @@ namespace Rich
 
 
 		typedef TGrid2D< TileId > MapDataType;
-		typedef std::vector< Tile* > TileVec;
+		typedef TArray< Tile* > TileVec;
 
 		friend class WorldBuilder;
 		friend class Scene;
@@ -161,7 +160,7 @@ namespace Rich
 		int     mIdxLastArea;
 		int     mIdxFreeAreaId;
 
-		typedef std::vector< IWorldMessageListener* > EventListerVec;
+		typedef TArray< IWorldMessageListener* > EventListerVec;
 		EventListerVec mEvtListers;
 		IObjectQuery*  mQuery;
 

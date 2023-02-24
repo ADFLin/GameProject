@@ -4,6 +4,8 @@
 
 #include <fstream>
 #include <algorithm>
+#include "DataStructure/Array.h"
+
 
 #define GLOBAL_SECTION "__GLOBAL__"
 
@@ -86,26 +88,22 @@ KeyValue* KeySection::getKeyValue( char const* keyName )
 	return nullptr;
 }
 
-void KeySection::serializtion( std::ostream& os )
+TArray<KeyValue*> KeySection::getKeyValues(char const* keyName)
 {
-	std::vector< KeyValueMap::iterator > sortedValueIters;
-
-	for( auto iter = mKeyMap.begin();
-		iter != mKeyMap.end() ; ++iter )
+	TArray<KeyValue*> result;
+	auto iterPair = mKeyMap.equal_range(keyName);
+	for (auto iter = iterPair.first; iter != iterPair.second; ++iter)
 	{
-		sortedValueIters.push_back(iter);	
+		result.push_back(&iter->second);
 	}
-
-	std::sort(sortedValueIters.begin(), sortedValueIters.end(), [](auto lhs, auto rhs)
-	{
-		return lhs->second.mSequenceOrder < rhs->second.mSequenceOrder;
-	});
-
-	for( auto iter : sortedValueIters )
-	{
-		os << iter->first << " = " << iter->second.getString() << '\n';
-	}
+	return result;
 }
+
+template<>
+struct TCanBitwiseRelocate<KeySection::KeyValueMap::iterator>
+{
+	static constexpr int Value = 0;
+};
 
 PropertySet::PropertySet()
 {
@@ -208,47 +206,15 @@ bool PropertySet::getBoolValue(char const* keyName, char const* section, bool de
 	return getValueT(keyName, section, defaultValue);
 }
 
+template<>
+struct TCanBitwiseRelocate<PropertySet::KeySectionMap::iterator>
+{
+	static constexpr int Value = 0;
+};
+
 bool PropertySet::saveFile( char const* path )
 {
-	std::ofstream fs( path );
-
-	if ( !fs )
-		return false;
-
-	auto globalIter = mSectionMap.find( GLOBAL_SECTION );
-
-	if( globalIter != mSectionMap.end() )
-	{
-		globalIter->second.serializtion(fs);
-		fs << "\n";
-	}
-
-	std::vector < KeySectionMap::iterator > sortedSectionIters;
-
-	for( auto iter = mSectionMap.begin();
-		iter != mSectionMap.end() ; ++iter )
-	{
-		if ( iter == globalIter )
-			continue;
-
-		sortedSectionIters.push_back(iter);
-	}
-
-	std::sort( sortedSectionIters.begin() , sortedSectionIters.end() , 
-		[](auto lhs, auto rhs)
-		{
-			return lhs->second.mSequenceOrder < rhs->second.mSequenceOrder;
-		}
-	);
-
-	for( auto iter : sortedSectionIters )
-	{
-		fs << "[" << iter->first << "]" << "\n";
-		iter->second.serializtion(fs);
-		fs << "\n";
-	}
-
-	return true;
+	return mFile.save(path);
 }
 
 
@@ -277,94 +243,100 @@ enum
 	PARSE_KEYVALUE_ERROR ,
 };
 
-int PropertySet::parseLine( char* buffer , KeySection** curSection )
-{
-	char* token;
-	char* test;
-	token = const_cast< char* >( FStringParse::SkipSpace( buffer ) );
-	
-	if ( token[0] == '\0' )
-		return PARSE_SUCCESS;
-
-	if ( token[0] == '/' )
-	{
-		if ( token[1] != '/' )
-			return PARSE_UNKONW_RULE;
-	}
-	else if ( token[0] == '[' )
-	{
-		token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ) );
-		char* sectionName = token;
-
-		token = SkipTo( token , ']' );
-
-		if ( token == nullptr )
-			return PARSE_SECTION_ERROR;
-
-		TrimEnd( token );
-
-		token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ) );
-		if ( *token != 0 )
-			return PARSE_SECTION_ERROR;
-
-		*curSection = &mSectionMap[ sectionName ];
-
-		(*curSection)->mSequenceOrder = mNextSectionSeqOrder;
-		++mNextSectionSeqOrder;
-	}
-	else if ( test = SkipTo( token , '=' ) )
-	{
-		switch( *test )
-		{
-		case '=':
-			{
-				char* keyName = token;
-				token = test;
-
-				TrimEnd( token );
-
-				token = const_cast<char*>( FStringParse::SkipSpace( token + 1 ));
-				char* keyValueString = token;
-
-				TrimEnd( token + FCString::Strlen( token ) );
-
-				auto pKeyValue = (*curSection)->addKeyValue( keyName , keyValueString );
-
-				if( pKeyValue )
-				{
-					pKeyValue->mSequenceOrder = mNextValueSeqOrder;
-					++mNextValueSeqOrder;
-				}
-			}
-			break;
-		}
-	}
-	else
-	{
-		return PARSE_UNKONW_RULE;
-	}
-
-	return PARSE_SUCCESS;
-}
-
 bool PropertySet::loadFile( char const* path )
 {
-	std::ifstream fs( path );
-	if ( !fs.is_open() )
+	mFile.clear();
+	if (!mFile.load(path))
 		return false;
 
-	KeySection* curSection = &mSectionMap[ GLOBAL_SECTION ];
+	append(mFile);
+	return true;
+}
+
+void PropertySet::append(PropertyFile& file)
+{
+	auto AppendSection = [this](KeySection& section, TArray< PropertyFile::Element > const& elements)
+	{
+		for( auto const& element : elements)
+		{
+			switch (element.op)
+			{
+			case PropertyFile::EValueOp::Set:
+				section.setKeyValue(element.key.c_str(), element.value.c_str());
+				break;
+			case PropertyFile::EValueOp::Add:
+				section.addKeyValue(element.key.c_str(), element.value.c_str());
+				break;
+			case PropertyFile::EValueOp::Remove:
+				section.removeKeyValue(element.key.c_str(), element.value.c_str());
+				break;
+			case PropertyFile::EValueOp::RemoveAll:
+				section.removeKey(element.key.c_str());
+				break;
+			}
+		}
+	};
+
+	AppendSection(mSectionMap[GLOBAL_SECTION], file.mGlobalElements);
+	for (auto const& section : file.mSections)
+	{
+		AppendSection(mSectionMap[section.key], section.elements);
+	}
+}
+
+bool PropertyFile::save(char const* path)
+{
+	std::ofstream fs(path);
+
+	if (!fs)
+		return false;
+
+	auto SerializeValues = [&fs](TArray<Element> const& values)
+	{
+		for (auto const& value : values)
+		{
+			switch (value.op)
+			{
+			case EValueOp::Set:
+				break;
+			case EValueOp::Add:
+				fs << '+';
+				break;
+			case EValueOp::Remove:
+				fs << '-';
+				break;
+			}
+			fs << value.key << " = " << value.value << std::endl;
+		}
+	};
+
+	SerializeValues(mGlobalElements);
+
+	for (auto const& section : mSections)
+	{
+		fs << '[' << section.key << ']' << std::endl;
+		SerializeValues(section.elements);
+	}
+}
+
+bool PropertyFile::load(char const* path)
+{
+	std::ifstream fs(path);
+	if (!fs.is_open())
+		return false;
+
+	TArray<Element>* sectionElementsPtr = &mGlobalElements;
 
 	fs.peek();
-	while( fs.good() )
+	while (fs.good())
 	{
 		char buffer[4096];
-		fs.getline( buffer , sizeof( buffer ) );
+		fs.getline(buffer, sizeof(buffer));
 
-		switch ( parseLine( buffer , &curSection ) )
+		switch (parseLine(buffer, sectionElementsPtr))
 		{
 		case PARSE_SECTION_ERROR:
-			return false;			
+			return false;
 		case PARSE_UNKONW_RULE:
 			break;
 		}
@@ -372,4 +344,191 @@ bool PropertySet::loadFile( char const* path )
 	}
 
 	return true;
+}
+
+int PropertyFile::parseLine(char* buffer, TArray< Element >*& sectionElementsPtr)
+{
+	char* token;
+	char* test;
+	token = const_cast<char*>(FStringParse::SkipSpace(buffer));
+
+	if (token[0] == '\0')
+		return PARSE_SUCCESS;
+
+	if (token[0] == '/')
+	{
+		if (token[1] != '/')
+			return PARSE_UNKONW_RULE;
+	}
+	else if (token[0] == '[')
+	{
+		token = const_cast<char*>(FStringParse::SkipSpace(token + 1));
+		char* sectionName = token;
+
+		token = SkipTo(token, ']');
+
+		if (token == nullptr)
+			return PARSE_SECTION_ERROR;
+
+		TrimEnd(token);
+
+		token = const_cast<char*>(FStringParse::SkipSpace(token + 1));
+		if (*token != 0)
+			return PARSE_SECTION_ERROR;
+
+
+		mSections.push_back(Section());
+
+		mSections.back().key = sectionName;
+		sectionElementsPtr = &mSections.back().elements;
+	}
+	else 
+	{
+		EValueOp op = EValueOp::Set;
+		if (*token == '+')
+		{
+			op = EValueOp::Add;
+			++token;
+
+		}
+		else if (*token == '-')
+		{
+			op = EValueOp::Remove;
+			++token;
+		}
+
+		if (test = SkipTo(token, '='))
+		{
+			switch (*test)
+			{
+			case '=':
+				{
+					char* keyName = token;
+					token = test;
+
+					TrimEnd(token);
+
+					token = const_cast<char*>(FStringParse::SkipSpace(token + 1));
+					char* keyValueString = token;
+
+					TrimEnd(token + FCString::Strlen(token));
+
+					Element value;
+					value.op = op;
+					value.key = keyName;
+					value.value = keyValueString;
+					sectionElementsPtr->push_back(std::move(value));
+				}
+				break;
+			}
+		}
+		else if ( op == EValueOp::Remove )
+		{
+			char* keyName = token;
+			token = test;
+			TrimEnd(token);
+			return PARSE_UNKONW_RULE;
+		}
+		else
+		{
+			return PARSE_UNKONW_RULE;
+		}
+	}
+
+	return PARSE_SUCCESS;
+}
+
+
+template< typename TFunc >
+void PropertyFile::visit(char const* sectionName, char const* keyName, TFunc&& func)
+{
+	auto VisitElement = [keyName, &func](TArray<Element>& elements) -> bool
+	{
+		func(elements);
+		for (int i = 0; i < elements.size(); ++i)
+		{
+			switch (func(elements[i]))
+			{
+			case EVisitOp::Remove:
+				elements.removeIndex(i);
+				--i;
+				break;
+			case EVisitOp::RemoveStop:
+				elements.removeIndex(i);
+				--i;
+			case EVisitOp::Stop:
+				return false;
+			}
+		}
+
+		return true;
+	};
+
+	if (sectionName == nullptr || FCString::Compare(sectionName, GLOBAL_SECTION) == 0)
+	{
+		VisitElement(mGlobalElements);
+		return;
+	}
+
+	for (Section& section : mSections)
+	{
+		if (section.key != sectionName)
+			continue;
+
+		if (!VisitElement(section.elements))
+			return;
+	}
+}
+
+
+template< typename ...TFunc >
+struct Overloaded : public TFunc...
+{
+	using TFunc::operator()...;
+};
+
+template< typename ...TFunc >
+Overloaded(TFunc ...func)->Overloaded< TFunc... >;
+
+
+void PropertyFile::setKeyValue(char const* section, char const* keyName, char const* value)
+{
+	TArray< Element >* firstElements = nullptr;
+	bool bSetted = false;
+
+	visit(section, keyName, Overloaded
+		{
+			[&](Element& element)
+			{
+				if (bSetted)
+					return EVisitOp::Remove;
+
+				return EVisitOp::Keep;
+			},
+			[&](TArray< Element >& elements)
+			{
+				if (firstElements == nullptr)
+				{
+					firstElements = &elements;
+				}
+			}
+		}
+	);
+
+	if (bSetted)
+		return;
+
+	if (firstElements == nullptr)
+	{
+		Section section;
+		section.key = keyName;
+		mSections.push_back(std::move(section));
+		firstElements = &mSections.back().elements;
+	}
+
+	Element element;
+	element.key = keyName;
+	element.value = value;
+	element.op = EValueOp::Set;
+	firstElements->push_back(std::move(element));
 }

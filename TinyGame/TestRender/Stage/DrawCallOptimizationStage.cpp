@@ -96,7 +96,7 @@ namespace Render
 						if( stack == 0 )
 							break;
 					}
-					//TODO : skip string
+					//#TODO : skip string
 				}
 			}
 			return true;
@@ -220,7 +220,7 @@ namespace Render
 
 		bool parseStateBlock(Tokenizer& tokenizer)
 		{
-			//TODO
+			//#TODO
 			return SkipBlock(tokenizer);
 		}
 

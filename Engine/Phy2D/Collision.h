@@ -5,12 +5,12 @@
 #include "Phy2D/Shape.h"
 
 #include "DataStructure/IntrList.h"
+#include "DataStructure/Array.h"
 
 #include <algorithm>
 
 namespace Phy2D
 {
-
 
 	struct CollisionProxy;
 	struct ProxyPair;
@@ -114,7 +114,7 @@ namespace Phy2D
 		AABB aabb;
 
 		LinkHook hook;
-		std::vector< ProxyPair* > pairs;
+		TArray< ProxyPair* > pairs;
 		void remove( ProxyPair* pair )
 		{
 			pairs.erase( std::find( pairs.begin() , pairs.end() , pair ) );
@@ -205,7 +205,7 @@ namespace Phy2D
 		ColAlgo*         mMap[ Shape::NumShape ][ Shape::NumShape ];
 		ContactManager   mPairManager;
 		Broadphase       mBroadphase;
-		std::vector< ContactManifold* > mMainifolds;
+		TArray< ContactManifold* > mMainifolds;
 	};
 
 	class GJK
@@ -259,7 +259,7 @@ namespace Phy2D
 		Simplex*  mSv[3];
 		CollideObject* mObj[2];
 #if PHY2D_DEBUG
-		std::vector< Simplex > mDBG;
+		TArray< Simplex > mDBG;
 #endif
 
 	};

@@ -6,7 +6,6 @@
 
 #include "HashString.h"
 
-#include <vector>
 #include <string>
 #include <unordered_set>
 
@@ -131,22 +130,22 @@ namespace Render
 		virtual bool compileCode(ShaderCompileContext const& context) = 0;
 		virtual void precompileCode(ShaderProgramSetupData& setupData){}
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) = 0;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode) = 0;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) = 0;
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram){}
 		
 		virtual void precompileCode(ShaderSetupData& setupData) {}
 		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) { return false; }
-		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode) { return false; }
+		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) { return false; }
 		virtual void postShaderLoaded(Shader& shader) {}
 
 		virtual bool doesSuppurtBinaryCode() const { return false; }
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) = 0;
-		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) = 0;
+		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
 		{
 			return false;
 		}
-		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, std::vector<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles, bool bOuputPreprocessedCode);
-		bool loadCode(ShaderCompileContext const& context, std::vector<uint8>& outCodes);
+		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, TArray<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles, bool bOuputPreprocessedCode);
+		bool loadCode(ShaderCompileContext const& context, TArray<uint8>& outCodes);
 
 		virtual ShaderPreprocessSettings getPreprocessSettings()
 		{

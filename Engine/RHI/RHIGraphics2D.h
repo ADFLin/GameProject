@@ -13,9 +13,9 @@
 #include "Math/Vector2.h"
 #include "Math/Matrix2.h"
 #include "Math/Matrix4.h"
+#include "DataStructure/Array.h"
 
 #include <algorithm>
-#include <vector>
 
 
 enum class ESimpleBlendMode
@@ -195,7 +195,7 @@ private:
 	void setTextureState(RHITexture2D* texture = nullptr);
 
 
-	void setupElement(Render::RenderBachedElement& element)
+	void setupElement(Render::RenderBatchedElement& element)
 	{
 		element.transform = mXFormStack.get();
 		element.layer = mNextLayer;
@@ -250,7 +250,7 @@ private:
 	Color4Type   mColorFont;
 
 	Render::FontDrawer*   mFont;
-	std::vector< Vector2 >  mBuffer;
+	TArray< Vector2 >  mBuffer;
 
 	Math::Matrix4   mBaseTransform;
 

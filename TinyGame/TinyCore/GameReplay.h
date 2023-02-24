@@ -144,8 +144,8 @@ protected:
 		int32  frame;
 		uint32 pos;
 	};
-	std::vector< FrameNode > mFrameNodeVec;
-	std::vector< char >      mData;
+	TArray< FrameNode > mFrameNodeVec;
+	TArray< char >      mData;
 	size_t      mNextNodePos;
 	size_t      mLoadPos;
 };
@@ -230,9 +230,9 @@ namespace OldVersion
 		static int const MaxRegisterNodeNum = 8;
 		int     mNodeFixSize[ MaxRegisterNodeNum ];
 
-		typedef std::vector< NodeHeader > NodeHeaderVec;
+		typedef TArray< NodeHeader > NodeHeaderVec;
 		NodeHeaderVec mNodeHeaders;
-		typedef std::vector< char > NodeData;
+		typedef TArray< char > NodeData;
 		NodeData    mNodeData;
 
 

@@ -48,7 +48,7 @@ protected:
 	};
 
 	WidgetEventCallBack  mCallback;
-	typedef std::vector< SettingInfo > SettingInfoVec;
+	typedef TArray< SettingInfo > SettingInfoVec;
 	SettingInfoVec mSettingInfoVec;
 	Vec2i   mOffset;
 	Vec2i   mUISize;

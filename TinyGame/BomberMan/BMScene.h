@@ -62,8 +62,8 @@ namespace BomberMan
 			}
 		};
 		TGrid2D< TileAnimData > mTileAnim;
-		typedef std::vector< Entity* >  EntityList;
-		std::vector< Entity* >  mSortedEntites;
+		typedef TArray< Entity* >  EntityList;
+		TArray< Entity* >  mSortedEntites;
 
 		Vec2i mViewPos;
 		World mLevel;

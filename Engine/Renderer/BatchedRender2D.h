@@ -3,14 +3,17 @@
 #ifndef BatchedRender2D_H_0BD59426_7313_44DD_9E82_8954B70E3C1B
 #define BatchedRender2D_H_0BD59426_7313_44DD_9E82_8954B70E3C1B
 
-#include <vector>
 #include "Math/Base.h"
 #include "RHI/RHICommon.h"
 #include "Renderer/RenderTransform2D.h"
 
 #include "FrameAllocator.h"
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 #include "RHI/Font.h"
+
+#include "DataStructure/Array.h"
+
+#define BATCHED_ELEMENT_NO_DESTRUCT 1
 
 
 namespace Render
@@ -25,7 +28,7 @@ namespace Render
 	{
 	public:
 
-		ShapeVertexBuilder(std::vector< Vector2 >& buffer)
+		ShapeVertexBuilder(TArray< Vector2 >& buffer)
 			:mBuffer(buffer)
 		{
 
@@ -56,12 +59,12 @@ namespace Render
 
 
 		RenderTransform2D       mTransform;
-		std::vector< Vector2 >& mBuffer;
+		TArray< Vector2 >& mBuffer;
 	};
 
 
 
-	struct RenderBachedElement
+	struct RenderBatchedElement
 	{
 		enum EType
 		{
@@ -84,7 +87,7 @@ namespace Render
 	};
 
 	template< class TPayload >
-	struct TRenderBachedElement : RenderBachedElement
+	struct TRenderBatchedElement : RenderBatchedElement
 	{
 		TPayload payload;
 	};
@@ -105,6 +108,7 @@ namespace Render
 		bool bUseBrush;
 		int  penWidth;
 	};
+
 
 
 	class RenderBachedElementList
@@ -151,7 +155,12 @@ namespace Render
 
 		struct PolygonPayload : ShapePayload
 		{
-			std::vector< Vector2 > posList;
+#if BATCHED_ELEMENT_NO_DESTRUCT
+			Vector2* posList;
+			int posCount;
+#else
+			TArray< Vector2 > posList;
+#endif
 		};
 
 		struct TextureRectPayload
@@ -180,7 +189,12 @@ namespace Render
 		struct LineStripPayload
 		{
 			Color4Type color;
-			std::vector< Vector2 > posList;
+#if BATCHED_ELEMENT_NO_DESTRUCT
+			Vector2* posList;
+			int posCount;
+#else
+			TArray< Vector2 > posList;
+#endif
 			int     width;
 		};
 
@@ -196,7 +210,12 @@ namespace Render
 		struct TextPayload
 		{
 			Color4Type color;
-			std::vector< FontVertex > vertices;
+#if BATCHED_ELEMENT_NO_DESTRUCT
+			FontVertex* vertices;
+			int verticesCount;
+#else
+			TArray< FontVertex > vertices;
+#endif
 		};
 
 		struct GradientRectPayload
@@ -209,22 +228,27 @@ namespace Render
 		};
 
 		template < class TPayload >
-		static TPayload& GetPayload(RenderBachedElement* ptr)
+		static TPayload& GetPayload(RenderBatchedElement* ptr)
 		{
-			return static_cast<TRenderBachedElement<TPayload>*> (ptr)->payload;
+			return static_cast<TRenderBatchedElement<TPayload>*> (ptr)->payload;
 		}
 
-		RenderBachedElement& addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max);
-		RenderBachedElement& addRoundRect(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius);
+		RenderBatchedElement& addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max);
+		RenderBatchedElement& addRoundRect(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius);
 
 		template< class TVector2 >
-		RenderBachedElement& addPolygon(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
+		RenderBatchedElement& addPolygon(RenderTransform2D const& transform, ShapePaintArgs const& paintArgs, TVector2 const v[], int numV)
 		{
 			CHECK(numV > 2);
-			TRenderBachedElement<PolygonPayload>* element = addElement< PolygonPayload >();
-			element->type = RenderBachedElement::Polygon;
+			TRenderBatchedElement<PolygonPayload>* element = addElement< PolygonPayload >();
+			element->type = RenderBatchedElement::Polygon;
 			element->payload.paintArgs = paintArgs;
+#if BATCHED_ELEMENT_NO_DESTRUCT
+			element->payload.posList = (Vector2*)mAllocator.alloc(sizeof(Vector2) * numV);
+			element->payload.posCount = numV;
+#else
 			element->payload.posList.resize(numV);
+#endif
 			for (int i = 0; i < numV; ++i)
 			{
 				element->payload.posList[i] = transform.transformPosition(v[i]);
@@ -233,14 +257,19 @@ namespace Render
 		}
 
 		template< class TVector2 >
-		RenderBachedElement& addLineStrip(RenderTransform2D const& transform, Color4Type const& color, TVector2 const v[], int numV, int width)
+		RenderBatchedElement& addLineStrip(RenderTransform2D const& transform, Color4Type const& color, TVector2 const v[], int numV, int width)
 		{
 			CHECK(numV >= 2);
-			TRenderBachedElement<LineStripPayload>* element = addElement< LineStripPayload >();
-			element->type = RenderBachedElement::LineStrip;
+			TRenderBatchedElement<LineStripPayload>* element = addElement< LineStripPayload >();
+			element->type = RenderBatchedElement::LineStrip;
 			element->payload.color = color;
 			element->payload.width = width;
+#if BATCHED_ELEMENT_NO_DESTRUCT
+			element->payload.posList = (Vector2*)mAllocator.alloc(sizeof(Vector2) * numV);
+			element->payload.posCount = numV;
+#else
 			element->payload.posList.resize(numV);
+#endif
 			for (int i = 0; i < numV; ++i)
 			{
 				element->payload.posList[i] = transform.transformPosition(v[i]);
@@ -250,11 +279,11 @@ namespace Render
 
 
 		template< class TVector2 >
-		RenderBachedElement& addArcLine(RenderTransform2D const& transform, Color4Type const& color, TVector2 const& center, float radius, float start, float end)
+		RenderBatchedElement& addArcLine(RenderTransform2D const& transform, Color4Type const& color, TVector2 const& center, float radius, float start, float end)
 		{
 			CHECK(numV >= 2);
-			TRenderBachedElement<LineStripPayload>* element = addElement< ArcLinePlayload >();
-			element->type = RenderBachedElement::ArcLine;
+			TRenderBatchedElement<LineStripPayload>* element = addElement< ArcLinePlayload >();
+			element->type = RenderBatchedElement::ArcLine;
 			element->payload.color = color;
 			element->payload.center = center;
 			element->payload.radius = radius;
@@ -264,23 +293,29 @@ namespace Render
 		}
 
 
-		RenderBachedElement& addCircle( ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius);
-		RenderBachedElement& addEllipse( ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size);
-		RenderBachedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
-		RenderBachedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
-		RenderBachedElement& addText(Color4Type const& color, std::vector< FontVertex >&& vertices);
-		RenderBachedElement& addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
+		RenderBatchedElement& addCircle( ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius);
+		RenderBatchedElement& addEllipse( ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size);
+		RenderBatchedElement& addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax);
+		RenderBatchedElement& addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width);
+		RenderBatchedElement& addText(Color4Type const& color, TArray< FontVertex >&& vertices);
+		RenderBatchedElement& addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
 		template< class TPayload >
-		TRenderBachedElement<TPayload>* addElement()
+		TRenderBatchedElement<TPayload>* addElement()
 		{
-			TRenderBachedElement<TPayload>* ptr = (TRenderBachedElement<TPayload>*)mAllocator.alloc(sizeof(TRenderBachedElement<TPayload>));
-			TypeDataHelper::Construct(ptr);
+			TRenderBatchedElement<TPayload>* ptr = (TRenderBatchedElement<TPayload>*)mAllocator.alloc(sizeof(TRenderBatchedElement<TPayload>));
+			FTypeMemoryOp::Construct(ptr);
 			mElements.push_back(ptr);
+
+			static_assert(std::is_trivially_destructible_v<RenderBatchedElement>);
+#if BATCHED_ELEMENT_NO_DESTRUCT
+			static_assert(std::is_trivially_destructible_v< TPayload >);
+#else
 			if constexpr (std::is_trivially_destructible_v< TPayload > == false)
 			{
 				mDestructElements.push_back(ptr);
 			}
+#endif
 			return ptr;
 		}
 
@@ -288,64 +323,16 @@ namespace Render
 		bool isEmpty() const { return mElements.empty(); }
 
 		FrameAllocator mAllocator;
-		std::vector< RenderBachedElement* > mElements;
-		std::vector< RenderBachedElement* > mDestructElements;
+		TArray< RenderBatchedElement* > mElements;
+#if BATCHED_ELEMENT_NO_DESTRUCT
+#else
+		TArray< RenderBatchedElement* > mDestructElements;
+#endif
 	};
 
-	class BatchedRender
+
+	struct FPrimitiveHelper
 	{
-	public:
-
-		using Color4Type = ShapePaintArgs::Color4Type;
-		using Color3Type = ShapePaintArgs::Color3Type;
-
-
-		BatchedRender();
-
-		void initializeRHI();
-		void releaseRHI();
-		void render(RHICommandList& commandList, RenderBachedElementList& elementList);
-		void flushDrawCommond(RHICommandList& commandList);
-
-
-		void emitPolygon(Vector2 v[], int numV, ShapePaintArgs const& paintArgs);
-		void emitRect(Vector2 v[], ShapePaintArgs const& paintArgs);
-
-		struct BaseVertex
-		{
-			Vector2  pos;
-			Color4Type  color;
-		};
-
-		struct TexVertex
-		{
-			Vector2  pos;
-			Color4Type  color;
-			Vector2 uv;
-		};
-
-		BaseVertex* fetchBaseBuffer(int size, int& baseIndex)
-		{
-			baseIndex = mBaseVertices.size();
-			mBaseVertices.resize(baseIndex + size);
-			return &mBaseVertices[baseIndex];
-		}
-		TexVertex* fetchTexBuffer(int size, int& baseIndex)
-		{
-			baseIndex = mTexVerteices.size();
-			mTexVerteices.resize(baseIndex + size);
-			return &mTexVerteices[baseIndex];
-		}
-		uint32* fetchIndexBuffer(int size)
-		{
-			int index = mBaseIndices.size();
-			mBaseIndices.resize(index + size);
-			return &mBaseIndices[index];
-		}
-
-		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
-		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
-
 		FORCEINLINE static uint32* FillTriangle(uint32* pIndices, int i0, int i1, int i2)
 		{
 			pIndices[0] = i0;
@@ -361,7 +348,7 @@ namespace Render
 			return pIndices + 3;
 		}
 
-		FORCEINLINE static uint32* FillQuad(uint32* pIndices,int base, int i0, int i1, int i2, int i3)
+		FORCEINLINE static uint32* FillQuad(uint32* pIndices, int base, int i0, int i1, int i2, int i3)
 		{
 			pIndices = FillTriangle(pIndices, base, i0, i1, i2);
 			pIndices = FillTriangle(pIndices, base, i0, i2, i3);
@@ -383,20 +370,120 @@ namespace Render
 			pIndices = FillQuad(pIndices, baseIndexA + 3, baseIndexA, baseIndexB, baseIndexB + 3);
 			return pIndices;
 		}
+	};
 
-		std::vector< Vector2 >    mCachedPositionList;
-		std::vector< BaseVertex > mBaseVertices;
-		std::vector< uint32 >     mBaseIndices;
+	class BatchedRender : public FPrimitiveHelper
+	{
+	public:
 
-		std::vector< TexVertex > mTexVerteices;
+		using Color4Type = ShapePaintArgs::Color4Type;
+		using Color3Type = ShapePaintArgs::Color3Type;
 
-		RHIBufferRef mBaseVertexBuffer;
-		int numBaseVertices;
-		RHIBufferRef mTexVertexBuffer;
-		int numTexVertices;
 
-		RHIBufferRef mIndexBuffer;
+		BatchedRender();
 
+		void initializeRHI();
+		void releaseRHI();
+		void render(RHICommandList& commandList, RenderBachedElementList& elementList);
+
+
+		void emitPolygon(Vector2 v[], int numV, ShapePaintArgs const& paintArgs);
+		void emitRect(Vector2 v[], ShapePaintArgs const& paintArgs);
+
+		struct BaseVertex
+		{
+			Vector2  pos;
+			Color4Type  color;
+		};
+
+		struct TexVertex
+		{
+			Vector2  pos;
+			Color4Type  color;
+			Vector2 uv;
+		};
+
+		BaseVertex* fetchBaseVertex(int size, int& baseIndex);
+		TexVertex* fetchTexVertex(int size, int& baseIndex);
+		uint32* fetchIndex(int size);
+
+		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
+		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
+
+		TArray< Vector2 >    mCachedPositionList;
+		TArray< uint32 >     mBaseIndices;
+		TArray< BaseVertex > mBaseVertices;
+		TArray< TexVertex >  mTexVerteices;
+
+
+		void flushDrawCommandForBuffer(bool bEndRender);
+		void flushDrawCommand();
+
+		template< class T>
+		struct TBufferData
+		{
+			T*  dataPtr = nullptr;
+			int usedCount = 0;
+
+			bool initialize(int num, uint32 flags)
+			{
+				VERIFY_RETURN_FALSE(buffer = RHICreateBuffer(sizeof(T), num, flags));
+				return true;
+			}
+
+			void release()
+			{
+				CHECK(dataPtr == nullptr);
+				buffer.release();
+			}
+
+			bool canFetch(int num)
+			{
+				return usedCount + num <= buffer->getNumElements();
+			}
+			T* fetch(int num)
+			{
+				CHECK(canFetch(num));
+				T* result = dataPtr + usedCount;
+				usedCount += num;
+				return result;
+			}
+			void fill(T value[], int num)
+			{
+				CHECK(usedCount + num <= totalCount);
+				FMemory::Copy(dataPtr + usedCount, value, sizeof(T) * num);
+				usedCount += num;
+			}
+
+			bool lock()
+			{
+				CHECK(dataPtr == nullptr);
+				dataPtr = (T*)RHILockBuffer(buffer, ELockAccess::WriteDiscard);
+				if (dataPtr == nullptr)
+					return false;
+
+				usedCount = 0;
+				return true;
+			}
+
+			void unlock()
+			{
+				CHECK(dataPtr);
+				RHIUnlockBuffer(buffer);
+				dataPtr = nullptr;
+			}
+
+			RHIBufferRef buffer;
+			operator RHIBuffer*() { return buffer; }
+		};
+
+
+		TBufferData< BaseVertex > mBaseVertexBuffer;
+		TBufferData< TexVertex >  mTexVertexBuffer;
+		TBufferData< uint32 >     mIndexBuffer;
+
+		bool bUseBuffer = false;
+		RHICommandList* mCommandList = nullptr;
 	};
 
 

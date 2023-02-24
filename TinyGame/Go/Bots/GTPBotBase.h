@@ -6,6 +6,7 @@
 #include "PlatformThread.h"
 #include "Platform/Windows/WindowsProcess.h"
 #include "Meta/IsBaseOf.h"
+#include "DataStructure/Array.h"
 
 namespace Go
 {
@@ -104,7 +105,7 @@ namespace Go
 
 
 		bool bRequestRestart = false;
-		std::vector< GameCommand > mOutputCommands;
+		TArray< GameCommand > mOutputCommands;
 
 	};
 
@@ -155,7 +156,7 @@ namespace Go
 		void bindCallback();
 
 		template< class T , class ...Args >
-		std::enable_if_t< std::is_base_of_v< IGameOutputThread , T > , bool>
+		TEnableIf_Type< TIsBaseOf< T , IGameOutputThread >::Value , bool>
 		buildProcessT(char const* appPath, char const* command, Args&& ...args)
 		{
 			if (!process.create(appPath, command))
@@ -167,7 +168,7 @@ namespace Go
 			myThread->setDisplayName("Output Thread");
 			outputThread = myThread;
 
-			if (TIsBaseOf< T, GTPOutputThread >::Value)
+			if constexpr (TIsBaseOf< T, GTPOutputThread >::Value)
 			{
 				bindCallback();
 			}

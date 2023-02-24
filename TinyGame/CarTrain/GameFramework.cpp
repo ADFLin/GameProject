@@ -9,7 +9,7 @@
 namespace CarTrain
 {
 
-	struct B2Conv
+	struct Box2DConv
 	{
 		static b2Vec2   To(Vector2 const& v) { return b2Vec2(v.x, v.y); }
 		static Vector2  To(b2Vec2 const& v) { return Vector2(v.x, v.y); }
@@ -40,7 +40,7 @@ namespace CarTrain
 		void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
 		{
 			mGraphic->enableBrush(false);
-			mGraphic->setPen(B2Conv::To(color).rgb());
+			mGraphic->setPen(Box2DConv::To(color).rgb());
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
@@ -51,7 +51,7 @@ namespace CarTrain
 			assert(vertexCount <= ARRAY_SIZE(v));
 			for (int i = 0; i < vertexCount; ++i)
 			{
-				v[i] = B2Conv::To(vertices[i]);
+				v[i] = Box2DConv::To(vertices[i]);
 			}
 			mGraphic->drawPolygon(v, vertexCount);
 
@@ -60,28 +60,28 @@ namespace CarTrain
 		void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
 		{
 			mGraphic->setPen(Color3f(0, 0, 0));
-			mGraphic->setBrush(B2Conv::To(color).rgb());
+			mGraphic->setBrush(Box2DConv::To(color).rgb());
 			drawPolygonInternal(vertices, vertexCount);
 		}
 
 
 		void DrawCircle(const b2Vec2& center, float32 radius, const b2Color& color) override
 		{
-			mGraphic->drawCircle(B2Conv::To(center), radius);
+			mGraphic->drawCircle(Box2DConv::To(center), radius);
 		}
 
 
 		void DrawSolidCircle(const b2Vec2& center, float32 radius, const b2Vec2& axis, const b2Color& color) override
 		{
 			mGraphic->setPen(Color3f(0, 0, 0));
-			mGraphic->setBrush(B2Conv::To(color).rgb());
-			mGraphic->drawCircle(B2Conv::To(center), radius);
+			mGraphic->setBrush(Box2DConv::To(color).rgb());
+			mGraphic->drawCircle(Box2DConv::To(center), radius);
 		}
 
 
 		void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override
 		{
-			mGraphic->drawLine(B2Conv::To(p1), B2Conv::To(p2));
+			mGraphic->drawLine(Box2DConv::To(p1), Box2DConv::To(p2));
 		}
 
 
@@ -113,12 +113,12 @@ namespace CarTrain
 
 		virtual XForm2D getTransform() const override
 		{
-			return B2Conv::To(mBody->GetTransform());
+			return Box2DConv::To(mBody->GetTransform());
 		}
 
 		virtual void setTransform(XForm2D const& xform)
 		{
-			mBody->SetTransform(B2Conv::To(xform.getPos()), xform.getRotateAngle());
+			mBody->SetTransform(Box2DConv::To(xform.getPos()), xform.getRotateAngle());
 		}
 
 		virtual PhyObjectDef* getDefine() override
@@ -127,7 +127,7 @@ namespace CarTrain
 		}
 		virtual Vector2 getLinearVel() const override
 		{
-			return B2Conv::To(mBody->GetLinearVelocity());
+			return Box2DConv::To(mBody->GetLinearVelocity());
 		}
 
 		virtual float   getAngle() const override
@@ -142,7 +142,7 @@ namespace CarTrain
 
 		virtual void setLinearVel(Vector2 const& vel) override
 		{
-			mBody->SetLinearVelocity(B2Conv::To(vel));
+			mBody->SetLinearVelocity(Box2DConv::To(vel));
 		}
 
 		virtual void    setRotation(float angle) override
@@ -229,7 +229,7 @@ namespace CarTrain
 				bodyDef.type = b2_staticBody;
 			}
 
-			bodyDef.position = B2Conv::To(xForm.getPos());
+			bodyDef.position = Box2DConv::To(xForm.getPos());
 			bodyDef.angle = xForm.getRotateAngle();
 			result->mBody = mWorld->CreateBody(&bodyDef);
 			result->mPhyDef = std::make_unique< BoxObjectDef >(def);
@@ -256,9 +256,9 @@ namespace CarTrain
 						bHitted = true;
 						if (fraction < outInfo.fraction)
 						{
-							outInfo.hitPos = B2Conv::To(point);
+							outInfo.hitPos = Box2DConv::To(point);
 							outInfo.fraction = fraction;
-							outInfo.normal = B2Conv::To(normal);
+							outInfo.normal = Box2DConv::To(normal);
 						}
 						return 1;
 					}
@@ -272,7 +272,7 @@ namespace CarTrain
 
 			outInfo.fraction = 1.0f;
 			MyCallback callback(outInfo, collisionMask);
-			mWorld->RayCast(&callback, B2Conv::To(startPos), B2Conv::To(endPos));
+			mWorld->RayCast(&callback, Box2DConv::To(startPos), Box2DConv::To(endPos));
 
 			return callback.bHitted;
 		}

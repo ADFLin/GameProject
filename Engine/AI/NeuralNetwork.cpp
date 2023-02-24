@@ -307,7 +307,7 @@ void FCNNLayout::init(uint32 numInput, uint32 numOutput, uint32 numHiddenLayer, 
 	}
 }
 
-void FCNNLayout::getTopology(std::vector<uint32>& outTopology) const
+void FCNNLayout::getTopology(TArray<uint32>& outTopology) const
 {
 	outTopology.resize(mLayers.size() + 1);
 	outTopology[0] = mNumInput;

@@ -179,7 +179,7 @@ namespace Render
 			}
 		};
 		uint32 mNextHandle;
-		std::vector< TimeStampChunk > mChunks;
+		TArray< TimeStampChunk > mChunks;
 		ID3D12GraphicsCommandListRHI* mReadBackCmdList;
 		ID3D12GraphicsCommandListRHI* mCmdList;
 		TComPtr<ID3D12DeviceRHI> mDevice;
@@ -487,7 +487,7 @@ namespace Render
 			srvDesc.Format = textureDesc.Format;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
 
-			//TODO
+			//#TODO
 			srvDesc.Texture1D.MipLevels = 1;
 
 			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
@@ -564,7 +564,7 @@ namespace Render
 			srvDesc.Format = textureDesc.Format;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 
-			//TODO
+			//#TODO
 			srvDesc.Texture2D.MipLevels = 1;
 
 			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
@@ -967,8 +967,8 @@ namespace Render
 
 	struct ShaderStateSetup 
 	{
-		std::vector< D3D12_STATIC_SAMPLER_DESC > rootSamplers;
-		std::vector< D3D12_ROOT_PARAMETER1 > rootParameters;
+		TArray< D3D12_STATIC_SAMPLER_DESC > rootSamplers;
+		TArray< D3D12_ROOT_PARAMETER1 > rootParameters;
 
 		std::unique_ptr< D3D12ShaderBoundState > boundState = std::make_unique< D3D12ShaderBoundState>();
 

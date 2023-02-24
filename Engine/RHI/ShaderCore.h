@@ -57,20 +57,20 @@ namespace Render
 			ConfigVar var;
 			var.name = name;
 			var.value = FStringConv::From(value);
-			mConfigVars.push_back(var);
+			mConfigVars.push_back(std::move(var));
 		}
 		void addDefine(char const* name, float value)
 		{
 			ConfigVar var;
 			var.name = name;
 			var.value = FStringConv::From(value);
-			mConfigVars.push_back(var);
+			mConfigVars.push_back(std::move(var));
 		}
 		void addDefine(char const* name)
 		{
 			ConfigVar var;
 			var.name = name;
-			mConfigVars.push_back(var);
+			mConfigVars.push_back(std::move(var));
 		}
 		void addCode(char const* name)
 		{
@@ -124,9 +124,9 @@ namespace Render
 		bool     bShowComplieInfo = false;
 		bool     bSFSetuped = false;
 
-		std::vector< std::string > mCodes;
-		std::vector< ConfigVar >   mConfigVars;
-		std::vector< std::string > mIncludeFiles;
+		TArray< std::string > mCodes;
+		TArray< ConfigVar >   mConfigVars;
+		TArray< std::string > mIncludeFiles;
 		std::unordered_map< HashString, std::string > mMetaMap;
 	};
 
@@ -275,8 +275,8 @@ namespace Render
 			ShaderParameter param;
 		};
 
-		std::vector< ParameterEntry >   mParamEntryMap;
-		std::vector< ShaderParamEntry > mParamEntries;
+		TArray< ParameterEntry >   mParamEntryMap;
+		TArray< ShaderParamEntry > mParamEntries;
 
 	};
 

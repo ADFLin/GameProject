@@ -5,8 +5,7 @@
 #include "RHICommon.h"
 #include "FunctionTraits.h"
 #include "LogSystem.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 #include "vulkan/vulkan.h"
 #if SYS_PLATFORM_WIN
@@ -49,7 +48,7 @@ namespace Render
 		typedef typename std::remove_pointer< ArgType >::type PropertyType;
 		uint32 count = 0;
 		VK_CHECK_RESULT(Func(std::forward<Args>(args)..., &count, nullptr));
-		std::vector< PropertyType > result{ count };
+		TArray< PropertyType > result{ count };
 		VK_VERIFY_FAILCDOE(Func(std::forward<Args>(args)..., &count, result.data()), );
 		return result;
 	}
@@ -63,7 +62,7 @@ namespace Render
 
 		uint32 count = 0;
 		Func(std::forward<Args>(args)..., &count, nullptr);
-		std::vector< PropertyType > result{ count };
+		TArray< PropertyType > result{ count };
 		Func(std::forward<Args>(args)..., &count, result.data());
 		return result;
 	}
@@ -75,7 +74,7 @@ namespace Render
 		static char const* Get(char const* name) { return name; }
 
 		template< class T >
-		static bool Find(std::vector<T> const& v, char const* name)
+		static bool Find(TArray<T> const& v, char const* name)
 		{
 			for (auto& element : v)
 			{
@@ -86,7 +85,7 @@ namespace Render
 		}
 
 		template< class T >
-		static void GetAll(std::vector<T> const& v, std::vector< char const* >& outNames)
+		static void GetAll(TArray<T> const& v, TArray< char const* >& outNames)
 		{
 			for (auto& element : v)
 			{
@@ -409,7 +408,7 @@ namespace Render
 		}
 
 		FORCEINLINE VkDescriptorPoolCreateInfo descriptorPoolCreateInfo(
-			const std::vector<VkDescriptorPoolSize>& poolSizes,
+			const TArray<VkDescriptorPoolSize>& poolSizes,
 			uint32 maxSets)
 		{
 			VkDescriptorPoolCreateInfo descriptorPoolInfo{};
@@ -456,7 +455,7 @@ namespace Render
 		}
 
 		FORCEINLINE VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
-			const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+			const TArray<VkDescriptorSetLayoutBinding>& bindings)
 		{
 			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
 			descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -677,7 +676,7 @@ namespace Render
 		}
 
 		FORCEINLINE VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo(
-			const std::vector<VkDynamicState>& pDynamicStates,
+			const TArray<VkDynamicState>& pDynamicStates,
 			VkPipelineDynamicStateCreateFlags flags = 0)
 		{
 			VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
@@ -997,8 +996,8 @@ namespace Render
 
 		}
 
-		std::vector< VkVertexInputAttributeDescription > vertexInputAttrDescs;
-		std::vector< VkVertexInputBindingDescription> vertexInputBindingDescs;
+		TArray< VkVertexInputAttributeDescription > vertexInputAttrDescs;
+		TArray< VkVertexInputBindingDescription> vertexInputBindingDescs;
 		VkPipelineVertexInputStateCreateInfo createInfo = {};
 	};
 
@@ -1137,7 +1136,7 @@ namespace Render
 			int indexLayer;
 			VK_RESOURCE_TYPE(VkImageView) view;
 		};
-		std::vector< CachedView > mCachedViews;
+		TArray< CachedView > mCachedViews;
 	};
 
 	class VulkanTexture2D : public TRefcountResource< RHITexture2D >
@@ -1445,14 +1444,14 @@ namespace Render
 			VkAttachmentStoreOp stencilStoreOp;
 		};
 
-		std::vector< BufferInfo > mColorBuffers;
+		TArray< BufferInfo > mColorBuffers;
 		DepthBufferInfo mDepthBuffer;
 
 		bool createRenderPass()
 		{
-			std::vector< VkAttachmentDescription > attachmentDescriptionList;
+			TArray< VkAttachmentDescription > attachmentDescriptionList;
 
-			std::vector< VkAttachmentReference > attachmentRefList;
+			TArray< VkAttachmentReference > attachmentRefList;
 
 			VkSubpassDescription subpass = {};
 

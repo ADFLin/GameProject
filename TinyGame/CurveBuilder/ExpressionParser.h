@@ -2,12 +2,13 @@
 #define ExpressionParser_H
 
 #include "Template\ArrayView.h"
+#include "DataStructure\Array.h"
 
 #include <string>
-#include <vector>
 #include <unordered_map>
 #include <cmath>
 #include <cassert>
+
 
 class CodeTemplate;
 class SymbolTable;
@@ -386,7 +387,7 @@ public:
 			return LEAF_UNIT_INDEX( children[ idxChild ] ); 
 		}
 	};
-	using NodeVec = std::vector< Node >;
+	using NodeVec = TArray< Node >;
 };
 
 

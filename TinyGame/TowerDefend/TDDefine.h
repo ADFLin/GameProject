@@ -21,7 +21,7 @@ namespace TowerDefend
 	inline float normalize( Vector2& vec )
 	{
 		float len = sqrt( vec.length2() );
-		if ( len > 1e-5f )
+		if ( len > FLOAT_DIV_ZERO_EPSILON)
 		{
 			vec *= ( 1.0f / len );
 		}

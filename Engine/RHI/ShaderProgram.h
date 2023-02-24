@@ -212,7 +212,7 @@ namespace Render
 		}
 		bool getParameter(char const* name, ShaderParameter& outParam);
 
-		std::vector< StructuredBlockInfo > mBoundedBlocks;
+		TArray< StructuredBlockInfo > mBoundedBlocks;
 
 	public:
 		TRefCountPtr< RHIResourceType > mRHIResource;

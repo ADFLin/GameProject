@@ -45,8 +45,8 @@ namespace Render
 			VkImage     image;
 		};
 
-		std::vector< VkImageView >   mImageViews;
-		std::vector< VkImage >       mImages;
+		TArray< VkImageView >   mImageViews;
+		TArray< VkImage >       mImages;
 		VkExtent2D                   mImageSize;
 		VkFormat                     mImageFormat;
 
@@ -69,9 +69,9 @@ namespace Render
 		RHISwapChain* RHICreateSwapChain(SwapChainCreationInfo const& info) { return nullptr; }
 
 
-		std::vector< VkSemaphore > mImageAvailableSemaphores;
-		std::vector< VkSemaphore > mRenderFinishedSemaphores;
-		std::vector< VkFence >     mInFlightFences;
+		TArray< VkSemaphore > mImageAvailableSemaphores;
+		TArray< VkSemaphore > mRenderFinishedSemaphores;
+		TArray< VkFence >     mInFlightFences;
 		const int   MAX_FRAMES_IN_FLIGHT = 2;
 		int mCurrentFrame = 0;
 
@@ -138,11 +138,11 @@ namespace Render
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size) { return nullptr; }
 		void  RHIUnlockBuffer(RHIBuffer* buffer) {}
 
-		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 		{
 
 		}
-		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 		{
 
 		}
@@ -162,7 +162,7 @@ namespace Render
 		RHIShader* RHICreateShader(EShader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
 
-		bool createInstance(std::vector<VkExtensionProperties> const& availableExtensions, bool enableValidation);
+		bool createInstance(TArray<VkExtensionProperties> const& availableExtensions, bool enableValidation);
 #if SYS_PLATFORM_WIN
 		VkSurfaceKHR createWindowSurface(HWND hWnd);
 #endif
@@ -174,8 +174,8 @@ namespace Render
 		
 		VkDebugUtilsMessengerEXT mCallback = VK_NULL_HANDLE;
 
-		std::vector<const char*> enabledDeviceExtensions;
-		std::vector<const char*> enabledInstanceExtensions;
+		TArray<const char*> enabledDeviceExtensions;
+		TArray<const char*> enabledInstanceExtensions;
 
 		VulkanDevice*    mDevice;
 		VulkanSwapChain* mSwapChain;

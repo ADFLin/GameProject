@@ -1,8 +1,8 @@
-#ifndef axShapeMaker_H
-#define axShapeMaker_H
+#pragma once
+#ifndef ShapeMeshBuilder_H_BCBBC6D7_771D_4995_9E5E_3122758EDA04
+#define ShapeMeshBuilder_H_BCBBC6D7_771D_4995_9E5E_3122758EDA04
 
-#include "Base.h"
-#include "Color.h"
+#include "ShapeCommon.h"
 #include "FunctionParser.h"
 #include "ColorMap.h"
 
@@ -12,14 +12,15 @@
 #include <exception>
 #include <functional>
 
-#define USE_PARALLEL_UPDATE 1
+
+#define USE_PARALLEL_UPDATE 0
 
 namespace CB
 {
 	class ShapeFuncBase;
 
 	struct SampleParam;
-	struct ShapeUpdateInfo;
+	struct ShapeUpdateContext;
 	class  RenderData;
 	class  ShapeBase;
 
@@ -28,15 +29,16 @@ namespace CB
 
 	};
 
-	class ShapeMeshBuilder
+
+	class ShapeMeshBuilder : public IShapeMeshBuilder
 	{
 	public:
 		ShapeMeshBuilder();
 
-		void            updateCurveData(ShapeUpdateInfo const& info, SampleParam const& paramS);
-		void            updateSurfaceData(ShapeUpdateInfo const& info, SampleParam const& paramU, SampleParam const& paramV);
-		void            setTime(float t) { mVarTime = t; }
-		bool            parseFunction(ShapeFuncBase& func);
+		void  updateCurveData(ShapeUpdateContext const& context, SampleParam const& paramS) override;
+		void  updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV) override;
+		bool  parseFunction(ShapeFuncBase& func) override;
+		void  setTime(float t) { mVarTime = t; }
 
 	private:
 		void  setColor(float p, float* color);
@@ -47,8 +49,8 @@ namespace CB
 #if USE_PARALLEL_UPDATE
 		Mutex            mParserLock;
 #else
-		std::vector< Vector3 > mCacheNormal;
-		std::vector< int >     mCacheCount;
+		TArray< Vector3 > mCacheNormal;
+		TArray< int >     mCacheCount;
 #endif
 		FunctionParser   mParser;
 
@@ -57,4 +59,4 @@ namespace CB
 }//namespace CB
 
 
-#endif //axShapeMaker_H
+#endif // ShapeMeshBuilder_H_BCBBC6D7_771D_4995_9E5E_3122758EDA04

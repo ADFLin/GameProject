@@ -30,7 +30,7 @@ protected:
 
 private:
 	
-	typedef std::vector< String > StringVec;
+	typedef TArray< String > StringVec;
 	String     mCurDir;
 	GFileListCtrl* mFileListCtrl;
 };

@@ -19,6 +19,7 @@
 #include "GameSettingPanel.h"
 #include "ConsoleSystem.h"
 #include "DrawEngine.h"
+#include "DataStructure/Array.h"
 
 
 
@@ -317,9 +318,9 @@ namespace Go
 					};
 				};
 				
-				std::vector< PlayVertex > vSeq;
+				TArray< PlayVertex > vSeq;
 			};
-			std::vector< PosInfo > candidatePosList;
+			TArray< PosInfo > candidatePosList;
 		};
 
 		AnalysisData  mAnalysisResult;
@@ -486,8 +487,8 @@ namespace Go
 
 		struct WinRateData
 		{
-			std::vector< Vector2 > history;
-			std::vector< uint32 >  splineIndeics;
+			TArray< Vector2 > history;
+			TArray< uint32 >  splineIndeics;
 		};
 		WinRateData mWinRateDataList[2];
 

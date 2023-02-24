@@ -595,6 +595,79 @@ bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, std::vector< uint8 >& 
 #endif
 }
 
+
+template < class CharT >
+bool TFileUtility<CharT>::LoadToBuffer(CharT const* path, TArray< uint8 >& outBuffer, bool bAppendZeroAfterLoad /*= false*/, bool bAppendToBuffer /*= false*/)
+{
+#if SYS_PLATFORM_WIN
+	HANDLE hFile = FWinApi::CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+		return false;
+
+	ON_SCOPE_EXIT
+	{
+		::CloseHandle(hFile);
+	};
+
+	LARGE_INTEGER iSize;
+	::GetFileSizeEx(hFile, &iSize);
+	int64 size = iSize.QuadPart;
+	uint8* pRead;
+	int64 sizeAdded = size;
+	if (bAppendZeroAfterLoad)
+		sizeAdded += 1;
+
+	if (bAppendToBuffer)
+	{
+		int64 oldSize = outBuffer.size();
+		outBuffer.resize(sizeAdded + oldSize);
+		pRead = outBuffer.data() + oldSize;
+	}
+	else
+	{
+		outBuffer.resize(sizeAdded);
+		pRead = outBuffer.data();
+	}
+	::ReadFile(hFile, pRead, size, NULL, NULL);
+
+	if (bAppendZeroAfterLoad)
+		outBuffer[size] = 0;
+
+	return true;
+#else
+	std::ifstream fs(path, std::ios::binary);
+
+	if (!fs.is_open())
+		return false;
+
+	int64 size = 0;
+
+	fs.seekg(0, std::ios::end);
+	size = fs.tellg();
+	fs.seekg(0, std::ios::beg);
+	size -= fs.tellg();
+
+	if (bAppendToBuffer)
+	{
+		int64 oldSize = outBuffer.size();
+		outBuffer.resize(bAppendZeroAfterLoad ? (oldSize + size + 1) : oldSize + size);
+		fs.read((char*)&outBuffer[oldSize], size);
+	}
+	else
+	{
+		outBuffer.resize(bAppendZeroAfterLoad ? (size + 1) : size);
+		fs.read((char*)&outBuffer[0], size);
+	}
+
+
+	if (bAppendZeroAfterLoad)
+		outBuffer[size] = 0;
+
+	fs.close();
+	return true;
+#endif
+}
+
 template < class CharT >
 bool TFileUtility<CharT>::SaveFromBuffer(CharT const* path, uint8 const* data, uint32 dataSize)
 {

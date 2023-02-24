@@ -147,7 +147,7 @@ namespace Render
 		int num = GetKerningPairsW(textureDC.getHandle(), 0, nullptr);
 		if (num > 0)
 		{
-			std::vector<KERNINGPAIR> pairs;
+			TArray<KERNINGPAIR> pairs;
 			pairs.resize(num);
 			GetKerningPairsW(textureDC.getHandle(), num, pairs.data());
 
@@ -410,7 +410,7 @@ namespace Render
 	Vector2 FontDrawer::calcTextExtent(char const* str)
 	{
 		assert(isValid());
-		if( str == nullptr )
+		if( str == nullptr || *str == 0 )
 			return Vector2(0, 0);
 		std::wstring text = FCString::CharToWChar(str);
 		return calcTextExtent(text.c_str());
@@ -418,14 +418,14 @@ namespace Render
 
 	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform , LinearColor const& color , wchar_t const* str)
 	{
-		static thread_local std::vector< FontVertex > GTextBuffer;
+		static thread_local TArray< FontVertex > GTextBuffer;
 		GTextBuffer.clear();
 		generateVertices(pos, str, GTextBuffer);
 		draw(commandList, transform, color, GTextBuffer);
 	}
 
 
-	void FontDrawer::draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, std::vector< FontVertex > const& buffer )
+	void FontDrawer::draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< FontVertex > const& buffer )
 	{
 		if (!buffer.empty())
 		{
@@ -472,7 +472,7 @@ namespace Render
 	};
 #endif
 
-	void FontDrawer::generateVertices( Vector2 const& pos , wchar_t const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices( Vector2 const& pos , wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
 	{
 		Vector2 curPos = pos;
 		wchar_t prevChar = 0;
@@ -519,7 +519,7 @@ namespace Render
 		}
 	}
 
-	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, std::vector< FontVertex >& outVertices, Vector2* outBoundSize)
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
 	{
 		std::wstring text = FCString::CharToWChar(str);
 		generateVertices(pos, text.c_str(), outVertices, outBoundSize);

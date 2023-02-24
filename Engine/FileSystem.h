@@ -8,12 +8,13 @@
 #include "SystemPlatform.h"
 #include "Core/IntegerType.h"
 #include "Template/StringView.h"
-
+#include "DataStructure/Array.h"
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #endif
 #include "TemplateMisc.h"
+
 
 template < class CharT >
 class TFileUtility
@@ -25,6 +26,7 @@ public:
 	static TStringView<CharT> GetBaseFileName(CharT const* filePath);
 
 	static bool LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterLoad = false, bool bAppendToBuffer = false);
+	static bool LoadToBuffer(CharT const* path, TArray< uint8 >& outBuffer, bool bAppendZeroAfterLoad = false, bool bAppendToBuffer = false);
 	static bool SaveFromBuffer(CharT const* path, uint8 const* data, uint32 dataSize);
 };
 

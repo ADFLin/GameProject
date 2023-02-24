@@ -518,7 +518,6 @@ void RHIGraphics2D::drawText(Vector2 const& pos, wchar_t const* str)
 	drawTextImpl(ox, oy, str);
 }
 
-
 void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip /*= false */)
 {
 	if (!mFont || !mFont->isValid())
@@ -547,7 +546,7 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str)
 
 	if (CVarUseBachedRender2D)
 	{
-		std::vector< FontVertex > vertices;
+		TArray< FontVertex > vertices;
 		mFont->generateVertices(Vector2(int(ox), int(oy)), str, vertices);
 		if (!vertices.empty())
 		{

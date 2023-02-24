@@ -77,7 +77,7 @@ namespace CAR
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
 
-		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask, std::vector< ActorPosInfo >& outActorDeployPosList);
+		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask, TArray< ActorPosInfo >& outActorDeployPosList);
 		void   reserveTile(TileId id);
 		void   checkReservedTileToMix();
 
@@ -104,7 +104,7 @@ namespace CAR
 			FeatureBase* feature;
 			bool bAbbeyUpdate;
 		};
-		using FeatureUpdateInfoVec = std::vector< FeatureUpdateInfo >;
+		using FeatureUpdateInfoVec = TArray< FeatureUpdateInfo >;
 
 		struct TurnContext
 		{
@@ -120,7 +120,7 @@ namespace CAR
 
 			TurnStatus  result;
 #if CAR_LOGIC_DEBUG
-			std::vector< std::string > returnStack;
+			TArray< std::string > returnStack;
 #endif
 		private:
 			PlayerBase* mPlayer;
@@ -137,7 +137,7 @@ namespace CAR
 		void resolvePortalUse(TurnContext& turnContext, MapTile*& outDeployMapTile);
 		void resolveeAircraftUse(TurnContext& turnContext, MapTile* aircraftTile, MapTile*& outDeployMapTile);
 		void resolveExpendShepherdFarm(TurnContext& turnContext, FeatureBase* feature );
-		void resolveCompletedCastles(TurnContext& turnContext , std::vector< FeatureScoreInfo >& featureScoreList );
+		void resolveCompletedCastles(TurnContext& turnContext , TArray< FeatureScoreInfo >& featureScoreList );
 		void resolveDrawTile(TurnContext& turnContext, bool& haveHillTile );
 		void resolveCompletedFeature(TurnContext& turnContext, FeatureBase& completedFeature, FeatureScoreInfo& featureScore, CastleScoreInfo* castleScore);
 		void resolveBuildCastle(TurnContext& turnContext, FeatureBase& feature , bool& haveBuild );
@@ -203,9 +203,9 @@ namespace CAR
 
 		void  shuffleTiles( TileId* begin , TileId* end );
 
-		int   getActorPutInfo(int playerId , MapTile& mapTile , bool haveUsePortal, unsigned ignoreFeatureMask, std::vector< ActorPosInfo >& outInfo);
+		int   getActorPutInfo(int playerId , MapTile& mapTile , bool haveUsePortal, unsigned ignoreFeatureMask, TArray< ActorPosInfo >& outInfo);
 
-		void   getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask, std::vector<FeatureBase*>& outFeatures);
+		void   getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask, TArray<FeatureBase*>& outFeatures);
 		void   getFeatureNeighborMapTile(FeatureBase& feature, MapTileSet& outMapTile);
 		int    getMaxFieldValuePlayer( EField::Type type , PlayerBase* outPlayer[] , int& maxValue );
 		int    updatePosibleLinkPos( PlaceTileParam& param );
@@ -224,7 +224,7 @@ namespace CAR
 		T*         createFeatureT();
 		void       destroyFeature( FeatureBase* build );
 
-		std::vector< FeatureBase* > mFeatureMap;
+		TArray< FeatureBase* > mFeatureMap;
 		template< class TFunc >
 		void visitFeatures(TFunc&& func)
 		{
@@ -274,9 +274,9 @@ namespace CAR
 		int    mNumTileNeedMix;
 		bool   mbCanKeep;
 
-		std::vector< Vec2i >  mPlaceTilePosList;
-		std::vector< TileId > mTilesQueue;
-		std::vector< PlayerBase* > mOrderedPlayers;
+		TArray< Vec2i >  mPlaceTilePosList;
+		TArray< TileId > mTilesQueue;
+		TArray< PlayerBase* > mOrderedPlayers;
 
 		void placeAllTileDebug( int numRow );
 
@@ -297,12 +297,12 @@ namespace CAR
 		LevelActor*  mFairy;
 
 		//EXP_THE_TOWER
-		std::vector< MapTile* > mTowerTiles;
+		TArray< MapTile* > mTowerTiles;
 		struct PrisonerInfo : public ActorInfo
 		{
 			int ownerId;
 		};
-		std::vector< PrisonerInfo > mPrisoners;
+		TArray< PrisonerInfo > mPrisoners;
 
 		//EXP_KING_AND_ROBBER
 		int    mIdKing;
@@ -325,7 +325,7 @@ namespace CAR
 			CityFeature* city;
 			Vec2i min;
 			Vec2i max;
-			std::vector< CastleScoreInfo > featureScores;
+			TArray< CastleScoreInfo > featureScores;
 		};
 
 		using CastleInfoList = TIntrList< 
@@ -340,12 +340,12 @@ namespace CAR
 		class ShepherdActor : public LevelActor
 		{
 		public:
-			std::vector< SheepToken > sheepOwned;
+			TArray< SheepToken > sheepOwned;
 		};
-		std::vector< SheepToken > mSheepBags;
+		TArray< SheepToken > mSheepBags;
 		
 		//EXP_CASTLES
-		std::vector< GermanCastleFeature* > mGermanCastles;
+		TArray< GermanCastleFeature* > mGermanCastles;
 
 		//EXP_THE_SCHOOL
 		LevelActor* mTecher;
@@ -357,7 +357,7 @@ namespace CAR
 
 
 		//EXP_THE_MESSSAGES
-		std::vector< EMessageTile::Type > mMessageStack;
+		TArray< EMessageTile::Type > mMessageStack;
 		int mIndexTopMessage;
 		EMessageTile::Type drawMessageTile();
 		//

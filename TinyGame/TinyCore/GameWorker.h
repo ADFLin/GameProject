@@ -32,7 +32,7 @@ enum NetActionState
 	NAS_RECONNECT   ,
 
 
-	//TODO# split
+	//#TODO# split
 	NAS_TIME_SYNC   ,
 
 	NAS_ROOM_ENTER  ,
@@ -224,7 +224,7 @@ protected:
 	typedef TFunctionThread< SocketFunc > SocketThread;
 	TINY_API void sendUdpCmd( NetSocket& socket );
 
-	typedef std::vector< INetStateListener* > NetMsgListenerVec;
+	typedef TArray< INetStateListener* > NetMsgListenerVec;
 	INetStateListener* mNetListener;
 
 	template< class TFunc >
@@ -275,7 +275,7 @@ private:
 		NetAddress  addr;
 		size_t      dataSize;
 	};
-	typedef std::vector< UdpCmd > UdpCmdList;
+	typedef TArray< UdpCmd > UdpCmdList;
 	NET_MUTEX( mMutexUdpCmdList )
 	UdpCmdList    mUdpCmdList;
 	SocketBuffer  mUdpSendBuffer;
@@ -288,13 +288,13 @@ private:
 
 #if NETWORKER_PROCESS_COMMAND_DEFERRED
 	NET_MUTEX(mMutexNetThreadCommands)
-	std::vector< NetCommandDelegate > mNetThreadCommands;
+	TArray< NetCommandDelegate > mNetThreadCommands;
 
 	NET_MUTEX(mMutexGameThreadCommands)
-	std::vector< NetCommandDelegate > mGameThreadCommands;
+	TArray< NetCommandDelegate > mGameThreadCommands;
 
 
-	void processThreadCommandInternal(std::vector< NetCommandDelegate >& commands
+	void processThreadCommandInternal(TArray< NetCommandDelegate >& commands
 #if TINY_USE_NET_THREAD
 								,Mutex& MutexCommands
 #endif

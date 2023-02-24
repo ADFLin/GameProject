@@ -6,8 +6,7 @@
 #include "CARFeature.h"
 
 #include "Template/ArrayView.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 namespace CAR
 {
@@ -87,7 +86,7 @@ namespace CAR
 	struct GameSelectActionOptionData : public GameActionData
 	{
 		ActionOptionGroup group;
-		std::vector< AcionOption > options;
+		TArray< AcionOption > options;
 		unsigned resultIndex;
 
 		void validateResult(char const* actionName)
@@ -124,7 +123,7 @@ namespace CAR
 			LevelActor*  actor;
 			FeatureBase* feature;
 		};
-		std::vector<Object> objects;
+		TArray<Object> objects;
 	};
 
 
@@ -216,15 +215,15 @@ namespace CAR
 			int num;
 		};
 
-		void fill(std::vector<FeatureBase*> const& linkFeatures , std::vector<MapTile*>& mapTileStorage , bool bCheckCanDeployFollower );
+		void fill(TArray<FeatureBase*> const& linkFeatures , TArray<MapTile*>& mapTileStorage , bool bCheckCanDeployFollower );
 
-		std::vector< Info > infos;
+		TArray< Info > infos;
 		FeatureBase* getResultFeature();
 	};
 
 	struct GameAuctionTileData : public GameActionData
 	{
-		std::vector< TileId > auctionTiles;
+		TArray< TileId > auctionTiles;
 
 		TileId   tileIdRound;
 		int      pIdRound;

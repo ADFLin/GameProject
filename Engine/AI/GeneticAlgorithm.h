@@ -3,8 +3,8 @@
 #define GeneticAlgorithm_H_F5535AE5_6B55_41B1_9BBF_A509410271E4
 
 #include "Random.h"
+#include "DataStructure/Array.h"
 
-#include <vector>
 #include <memory>
 
 #define USE_SSE 0
@@ -12,6 +12,7 @@
 #if CPP_COMPILER_MSVC
 #include <intrin.h>
 #endif
+
 
 using NNScalar = float;
 
@@ -61,7 +62,7 @@ class Genotype
 {
 public:
 
-	using DataType = std::vector< NNScalar >;
+	using DataType = TArray< NNScalar >;
 
 	Genotype(DataType const& inData)
 		:data(inData)
@@ -110,24 +111,24 @@ public:
 	void removeIdentical(float fitnessError, NNScalar dataError);
 	bool haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScalar dataError, int startIndex = 0);
 
-	static void RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScalar dataError);
+	static void RemoveIdenticalGenotype(TArray< GenotypePtr >& sortedGenotypes, float fitnessError, NNScalar dataError);
 
-	std::vector< GenotypePtr > const& getDataSet() { return mStorage; }
+	TArray< GenotypePtr > const& getDataSet() { return mStorage; }
 
 	GenotypePtr&       operator[](int idx) { return mStorage[idx]; }
 	GenotypePtr const& operator[](int idx) const { return mStorage[idx]; }
-	std::vector< GenotypePtr > mStorage;
+	TArray< GenotypePtr > mStorage;
 };
 
 class GeneticAlgorithm
 {
 public:
-	using DataType = std::vector< NNScalar >;
+	using DataType = TArray< NNScalar >;
 	float selectPowerFactor = 5;
 
-	void select(int numSelection, std::vector< GenotypePtr > const& candidates, std::vector< GenotypePtr >& outSelections);
-	void crossover(int numCrossover, std::vector< GenotypePtr > const& bases, std::vector< GenotypePtr >& outOffsprings);
-	void mutate(std::vector< GenotypePtr >& populations, float geneMutationProb, float valueMutationProb, float valueDelta);
+	void select(int numSelection, TArray< GenotypePtr > const& candidates, TArray< GenotypePtr >& outSelections);
+	void crossover(int numCrossover, TArray< GenotypePtr > const& bases, TArray< GenotypePtr >& outOffsprings);
+	void mutate(TArray< GenotypePtr >& populations, float geneMutationProb, float valueMutationProb, float valueDelta);
 
 	void crossoverData(float powerA, DataType const& dataA, DataType const& dataB, DataType& outData);
 	void mutateData(DataType& data, float valueMutationProb, NNScalar valueDelta);

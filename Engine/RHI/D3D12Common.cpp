@@ -328,7 +328,7 @@ namespace Render
 	D3D12Texture2D::D3D12Texture2D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource)
 		:TD3D12Texture< RHITexture2D >(desc)
 	{
-
+		mResource = resource.detach();
 	}
 
 	bool D3D12Texture2D::update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)

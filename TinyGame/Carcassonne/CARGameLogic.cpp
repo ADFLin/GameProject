@@ -132,7 +132,7 @@ namespace CAR
 		{
 			for( int i = 0 ; i < SheepToken::Num ; ++i )
 			{
-				mSheepBags.insert( mSheepBags.end() , CAR_PARAM_VALUE(SheepTokenNum[i]) , SheepToken(i) );
+				mSheepBags.append( CAR_PARAM_VALUE(SheepTokenNum[i]) , SheepToken(i) );
 			}
 		}
 		if( mSetting->have(ERule::Teacher) )
@@ -440,8 +440,8 @@ namespace CAR
 	TileId GameLogic::generatePlayTiles()
 	{
 		int numTile = mTileSetManager.getRegisterTileNum();
-		std::vector< int > tilePieceMap ( numTile );
-		std::vector< TileId > specialTileList;
+		TArray< int > tilePieceMap ( numTile );
+		TArray< TileId > specialTileList;
 		for( int i = 0 ; i < numTile ; ++i )
 		{
 			TileSet const& tileSet = mTileSetManager.getTileSet( TileId(i) );
@@ -541,7 +541,7 @@ namespace CAR
 			bool bNeedShuffle;
 		};
 
-		std::vector< ShuffleGroup > shuffleGroups;
+		TArray< ShuffleGroup > shuffleGroups;
 		auto PushShuffleGroup = [&]( bool bNeedShuffle )
 		{
 			shuffleGroups.push_back({ (int)mTilesQueue.size() , bNeedShuffle });
@@ -558,7 +558,7 @@ namespace CAR
 			for(TileId id : idSetGroup)
 			{
 				if ( tilePieceMap[id] != 0)
-					mTilesQueue.insert( mTilesQueue.end() , tilePieceMap[id] , id );
+					mTilesQueue.append( tilePieceMap[id] , id );
 			}
 
 			PushShuffleGroup(true);
@@ -597,7 +597,7 @@ namespace CAR
 			{
 				if (tilePieceMap[id])
 				{
-					mTilesQueue.insert(mTilesQueue.end(), tilePieceMap[id], id);
+					mTilesQueue.append(tilePieceMap[id], id);
 				}
 			}
 
@@ -1089,7 +1089,7 @@ namespace CAR
 				}
 			}
 
-			std::vector< FeatureScoreInfo > featureScoreList;
+			TArray< FeatureScoreInfo > featureScoreList;
 
 			//Step 6: Identify Completed Features
 			for( auto& updateInfo : turnContext.getUpdateFeatures() )
@@ -1148,7 +1148,7 @@ namespace CAR
 
 			if ( !featureScoreList.empty() )
 			{
-				std::vector< PlayerFeatureScoreInfo > sortedPlayerScoreList;
+				TArray< PlayerFeatureScoreInfo > sortedPlayerScoreList;
 				for( auto& featureScore : featureScoreList )
 				{
 					assert(featureScore.numController > 0);
@@ -1446,7 +1446,7 @@ namespace CAR
 		//		o MESSAGES ROBBERS
 		//c) Deploy the barn.The farm will be scored as a normal feature in Step 7.
 
-		std::vector< ActorPosInfo > actorDeployPosList;
+		TArray< ActorPosInfo > actorDeployPosList;
 		calcPlayerDeployActorPos(*turnContext.getPlayer(), deployMapTiles , numDeployTile , actorMask , haveUsePortal, ignoreFeatureMask , actorDeployPosList);
 
 		GameDeployActorData deployActorData;
@@ -1782,9 +1782,9 @@ namespace CAR
 		}
 	}
 
-	void GameLogic::resolveCompletedCastles(TurnContext& turnContext, std::vector< FeatureScoreInfo >& featureScoreList)
+	void GameLogic::resolveCompletedCastles(TurnContext& turnContext, TArray< FeatureScoreInfo >& featureScoreList)
 	{
-		std::vector< CastleInfo* > castleGroup;
+		TArray< CastleInfo* > castleGroup;
 		do
 		{
 			castleGroup.clear();
@@ -1836,7 +1836,7 @@ namespace CAR
 		assert( dragon.mapTile != nullptr );
 
 
-		std::vector< MapTile* > moveTilesBefore;
+		TArray< MapTile* > moveTilesBefore;
 		moveTilesBefore.resize(CAR_PARAM_VALUE(DragonMoveStepNum));
 
 		MapTile* moveTiles[FDir::TotalNum];
@@ -1945,7 +1945,7 @@ namespace CAR
 
 		if ( mapTileSet.empty() == false )
 		{
-			std::vector< MapTile* > mapTiles( mapTileSet.begin() , mapTileSet.end() );
+			TArray< MapTile* > mapTiles( mapTileSet.begin() , mapTileSet.end() );
 
 			GameSelectMapTileData data;
 			data.reason = SAR_MAGIC_PORTAL;
@@ -1991,7 +1991,7 @@ namespace CAR
 		case ACTOPT_SHEPHERD_HERD_THE_FLOCK_INTO_THE_STABLE:
 			{
 				int score = 0;
-				std::vector< ShepherdActor* > shepherds;
+				TArray< ShepherdActor* > shepherds;
 				int iter = 0;
 				while( ShepherdActor* shepherd = static_cast< ShepherdActor* >( feature->iteratorActor( AllPlayerMask , BIT( EActor::Shepherd ) , iter ) ) )
 				{
@@ -2036,7 +2036,7 @@ namespace CAR
 		haveDone = true;
 		mListener->notifyConstructTower( *mapTile );
 
-		std::vector< LevelActor* > actors;
+		TArray< LevelActor* > actors;
 		for( int i = 0 ; i <= mapTile->towerHeight ; ++i )
 		{
 			int num = ( i == 0 ) ? 1 : FDir::TotalNum;
@@ -2083,7 +2083,7 @@ namespace CAR
 			info.type = actor->type;
 			info.ownerId = turnContext.getPlayer()->getId();
 
-			std::vector< ActorInfo > actorInfos;
+			TArray< ActorInfo > actorInfos;
 			for(auto & prisoner : mPrisoners)
 			{
 				if ( prisoner.playerId == info.ownerId && 
@@ -2271,10 +2271,10 @@ namespace CAR
 	void GameLogic::resolveFeatureReturnPlayerActor(TurnContext& turnContext, FeatureBase& feature)
 	{
 		//LevelActor* actor;
-		std::vector< LevelActor* > wagonGroup;
-		std::vector< LevelActor* > mageWitchGroup;
-		std::vector< LevelActor* > hereticMonkGroup;
-		std::vector< LevelActor* > otherGroup;
+		TArray< LevelActor* > wagonGroup;
+		TArray< LevelActor* > mageWitchGroup;
+		TArray< LevelActor* > hereticMonkGroup;
+		TArray< LevelActor* > otherGroup;
 		for( LevelActor * actor : feature.mActors)
 		{
 			PlayerBase* player = getOwnedPlayer(*actor);
@@ -2305,7 +2305,7 @@ namespace CAR
 			GroupSet linkFeatureGroups;
 			feature.generateRoadLinkFeatures( mWorld , linkFeatureGroups );
 
-			std::vector< FeatureBase* > linkFeatures;
+			TArray< FeatureBase* > linkFeatures;
 			for( auto group : linkFeatureGroups )
 			{
 				FeatureBase* featureLink = getFeature( group );
@@ -2344,7 +2344,7 @@ namespace CAR
 				wagonFunc.manager = mPlayerManager;
 				std::sort( wagonGroup.begin() , wagonGroup.end() , wagonFunc );
 
-				std::vector< MapTile* > mapTiles;
+				TArray< MapTile* > mapTiles;
 				GameFeatureTileSelectData data;
 				data.bCanSkip = true;
 				data.reason = SAR_WAGON_MOVE_TO_FEATURE;
@@ -2401,8 +2401,8 @@ namespace CAR
 		{
 		case ACTOPT_LA_PORXADA_EXCHANGE_FOLLOWER_POS:
 			{
-				std::vector< LevelActor* > selfFollowers;
-				std::vector< LevelActor* > otherFollowers;
+				TArray< LevelActor* > selfFollowers;
+				TArray< LevelActor* > otherFollowers;
 
 				int iter = 0;
 				while ( auto actor = iteratorActorFromType( mSetting->getFollowerMask() , iter ) )
@@ -2495,7 +2495,7 @@ namespace CAR
 			}
 		}
 
-		std::vector< FeatureBase* > destFeatures;
+		TArray< FeatureBase* > destFeatures;
 		visitFeatures(
 			[skipActor,&destFeatures]( FeatureBase* feature)
 			{
@@ -2525,7 +2525,7 @@ namespace CAR
 
 		{
 			GameFeatureTileSelectData data;
-			std::vector< MapTile* > selectedTitles;
+			TArray< MapTile* > selectedTitles;
 			data.reason = SAR_MOVE_MEAGE_OR_WITCH;
 			data.fill(destFeatures, selectedTitles, false);
 			assert(!selectedTitles.empty());
@@ -2542,7 +2542,7 @@ namespace CAR
 
 		mapTile->goldPices += 1;
 
-		std::vector< MapTile* > neighborTiles;
+		TArray< MapTile* > neighborTiles;
 		for ( auto const& offset : gAdjacentOffset)
 		{
 			Vec2i neighborPos = mapTile->pos + offset;
@@ -2872,7 +2872,7 @@ namespace CAR
 		return result;
 	}
 
-	void GameLogic::calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask, std::vector< ActorPosInfo >& outActorDeployPosList)
+	void GameLogic::calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask, TArray< ActorPosInfo >& outActorDeployPosList)
 	{
 		for( int i = 0 ; i < numDeployTile ; ++i )
 		{
@@ -3098,7 +3098,7 @@ namespace CAR
 		//#TODO
 	}
 
-	int GameLogic::getActorPutInfo(int playerId , MapTile& mapTile , bool haveUsePortal , unsigned ignoreFeatureMask , std::vector< ActorPosInfo >& outInfo )
+	int GameLogic::getActorPutInfo(int playerId , MapTile& mapTile , bool haveUsePortal , unsigned ignoreFeatureMask , TArray< ActorPosInfo >& outInfo )
 	{
 		int result = 0;
 		if( mapTile.isHalflingType() )
@@ -3159,7 +3159,7 @@ namespace CAR
 			if( mSetting->have(ERule::Barn) )
 			{
 
-				//TODO:
+				//#TODO:
 
 
 
@@ -3247,7 +3247,7 @@ namespace CAR
 		return result;
 	}
 
-	void GameLogic::getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask , std::vector<FeatureBase*>& outFeatures)
+	void GameLogic::getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask , TArray<FeatureBase*>& outFeatures)
 	{
 		int minTileNum = INT_MAX;
 
@@ -3429,7 +3429,7 @@ namespace CAR
 		case EMessageTile::ScoreSmallestCity:
 		case EMessageTile::ScoreSmallestCloister:
 			{
-				std::vector< FeatureBase* > minScoreTilefeatures;
+				TArray< FeatureBase* > minScoreTilefeatures;
 				FeatureType::Enum selectFeatureType;
 				switch( token )
 				{
@@ -3506,7 +3506,7 @@ namespace CAR
 		case EMessageTile::TwoPointsForEachFarmer:
 			{
 				int messageSocre = 0;
-				std::vector< LevelActor* > farmer;
+				TArray< LevelActor* > farmer;
 				int farmerCount = 0;
 				FeatureBase* result = nullptr;
 				visitFeatures(
@@ -3731,7 +3731,7 @@ namespace CAR
 
 		TilePiece const& tile = world.getTile( mAbbeyTileId );
 
-		std::vector< Vec2i > mapTilePosVec;
+		TArray< Vec2i > mapTilePosVec;
 
 		for( auto iter = world.createEmptyLinkPosIterator(); iter ; ++iter )
 		{
@@ -3902,7 +3902,7 @@ namespace CAR
 		int idx = mRandom->getInt() % mSheepBags.size();
 
 		SheepToken token = mSheepBags[ idx ];
-		RemoveIndexSwap(mSheepBags, idx);
+		mSheepBags.removeIndexSwap(idx);
 
 		if ( token == SheepToken::eWolf )
 		{

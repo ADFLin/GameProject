@@ -94,16 +94,16 @@ namespace SBlocks
 
 		bool mbValid;
 		int  mTakeCount;
-		std::vector<int> mStates;
+		TArray<int> mStates;
 	};
 
 	struct ShapeSolveData
 	{
 		PieceShape* shape;
 		int indexCombination;
-		std::vector< PieceSolveData* > pieces;
-		std::vector< PieceSolveState > states;
-		std::vector< Int16Point2D > outerConPosListMap[DirType::RestValue];
+		TArray< PieceSolveData* > pieces;
+		TArray< PieceSolveState > states;
+		TArray< Int16Point2D > outerConPosListMap[DirType::RestValue];
 
 		PieceShapeData const& getShapeData( PieceSolveState const& state ) const
 		{ 
@@ -139,10 +139,10 @@ namespace SBlocks
 
 	struct GlobalSolveData
 	{
-		std::vector< PieceSolveData > mPieceList;
-		std::vector< ShapeSolveData > mShapeList;
+		TArray< PieceSolveData > mPieceList;
+		TArray< ShapeSolveData > mShapeList;
 
-		std::vector< PieceSolveData* > mPieceSizeMap;
+		TArray< PieceSolveData* > mPieceSizeMap;
 		int mMinShapeBlockCount;
 		int mMaxShapeBlockCount;
 
@@ -180,11 +180,11 @@ namespace SBlocks
 		GlobalSolveData* globalData;
 		uint32 mTestFrame = 0;
 
-		std::vector<int> stateIndices;
-		std::vector< MapSolveData > mMaps;
-		std::vector< StateCombination > mCombinations;
+		TArray<int> stateIndices;
+		TArray< MapSolveData > mMaps;
+		TArray< StateCombination > mCombinations;
 
-		void getSolvedStates(std::vector< PieceSolveState >& outStates) const;
+		void getSolvedStates(TArray< PieceSolveState >& outStates) const;
 
 		void copyFrom(SolveData const& rhs);
 
@@ -194,7 +194,7 @@ namespace SBlocks
 			int   index;
 			MapSolveData* mapData;
 		};
-		std::vector< ShapeTest > mCachedPendingTests;
+		TArray< ShapeTest > mCachedPendingTests;
 
 		void setup(Level& level);
 		bool advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
@@ -204,7 +204,7 @@ namespace SBlocks
 
 		template< typename TFunc >
 		ERejectResult::Type testRejection(
-			MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, 
+			MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList,
 			int maxCompareShapeSize, TFunc& CheckPieceFunc);
 
 		template< typename TFunc >
@@ -276,7 +276,7 @@ namespace SBlocks
 		using SolveFunc = decltype(&Solver::SolveImplT<false,false,false>);
 
 
-		void getSolvedStates(std::vector< PieceSolveState >& outStates) const
+		void getSolvedStates(TArray< PieceSolveState >& outStates) const
 		{
 			return mSolveData.getSolvedStates(outStates);
 		}
@@ -288,8 +288,8 @@ namespace SBlocks
 		SolveFunc   mUsedSolveFunc;
 		SolveFunc   mUsedSolvePartFunc;
 
-		std::vector< SolveWork* > mParallelWorks;
-		TLockFreeFIFOList<std::vector< PieceSolveState > > mSolutionList;
+		TArray< SolveWork* > mParallelWorks;
+		TLockFreeFIFOList<TArray< PieceSolveState > > mSolutionList;
 
 		void cleanupSolveWork()
 		{

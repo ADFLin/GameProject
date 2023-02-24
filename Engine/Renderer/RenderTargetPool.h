@@ -63,8 +63,8 @@ namespace Render
 			mUsedRTs.clear();
 		}
 
-		std::vector< PooledRenderTargetRef > mFreeRTs;
-		std::vector< PooledRenderTargetRef > mUsedRTs;
+		TArray< PooledRenderTargetRef > mFreeRTs;
+		TArray< PooledRenderTargetRef > mUsedRTs;
 	};
 
 

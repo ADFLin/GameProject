@@ -1,7 +1,6 @@
 #include "Surface.h"
 
 #include "FunctionParser.h"
-#include "ShapeMeshBuilder.h"
 #include "ShapeFunction.h"
 #include "ProfileSystem.h"
 
@@ -48,7 +47,7 @@ namespace CB
 		addUpdateBit(RUF_COLOR);
 	}
 
-	bool ShapeBase::update(ShapeMeshBuilder& builder)
+	bool ShapeBase::update(IShapeMeshBuilder& builder)
 	{
 		if( mUpdateBit & RUF_FUNCTION )
 		{
@@ -72,14 +71,14 @@ namespace CB
 
 		if( mUpdateBit )
 		{
-			ShapeUpdateInfo info;
-			info.color = getColor();
-			info.data  = &mRenderData;
-			info.flag  = mUpdateBit;
-			info.func   = getFunction();
+			ShapeUpdateContext context;
+			context.color = getColor();
+			context.data  = &mRenderData;
+			context.flag  = mUpdateBit;
+			context.func   = getFunction();
 
 			mUpdateBit = 0;
-			updateRenderData(info, builder);
+			updateRenderData(builder, context);
 
 			return true;
 		}
@@ -89,9 +88,9 @@ namespace CB
 
 	Surface3D::Surface3D()
 		:ShapeBase()
-		, mNeedDrawMesh(true)
-		, mNeedDrawNormal(false)
-		, mNeedDrawLine(true)
+		, mbShowMesh(true)
+		, mbShowNormal(false)
+		, mbShowLine(true)
 		, mMeshLineDensity(1.0f)
 		, mParamU(Range(-10, 10), 0)
 		, mParamV(Range(-10, 10), 0)
@@ -102,9 +101,9 @@ namespace CB
 
 	Surface3D::Surface3D(Surface3D const& rhs)
 		:ShapeBase(rhs)
-		, mNeedDrawMesh(rhs.mNeedDrawMesh)
-		, mNeedDrawNormal(rhs.mNeedDrawNormal)
-		, mNeedDrawLine(rhs.mNeedDrawLine)
+		, mbShowMesh(rhs.mbShowMesh)
+		, mbShowNormal(rhs.mbShowNormal)
+		, mbShowLine(rhs.mbShowLine)
 		, mMeshLineDensity(rhs.mMeshLineDensity)
 		, mParamU(rhs.mParamU)
 		, mParamV(rhs.mParamV)
@@ -140,13 +139,10 @@ namespace CB
 		setDataSampleNum(mParamU.getNumData(), mParamV.getNumData());
 	}
 
-
-	void Surface3D::updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder)
+	void Surface3D::updateRenderData(IShapeMeshBuilder& builder, ShapeUpdateContext& context)
 	{
-		builder.updateSurfaceData(info, mParamU, mParamV);
+		builder.updateSurfaceData(context, mParamU, mParamV);
 	}
-
-
 
 	void Surface3D::acceptVisit(ShapeVisitor& visitor)
 	{
@@ -156,10 +152,8 @@ namespace CB
 	void Surface3D::setFunction(SurfaceFunc* func)
 	{
 		setFunctionInternal(func);
-		mCurType = (func) ? func->getFunType() : TYPE_SURFACE;
+		mCurType = (func) ? func->getFuncType() : TYPE_SURFACE;
 	}
-
-
 
 	Curve3D::Curve3D()
 		:ShapeBase()
@@ -175,7 +169,6 @@ namespace CB
 		setNumData(mParamS.numData);
 	}
 
-
 	Curve3D::~Curve3D()
 	{
 
@@ -185,7 +178,6 @@ namespace CB
 	{
 		setFunctionInternal(func);
 	}
-
 
 	void Curve3D::setNumData(int n)
 	{
@@ -199,11 +191,10 @@ namespace CB
 		return curve;
 	}
 
-	void Curve3D::updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder)
+	void Curve3D::updateRenderData(IShapeMeshBuilder& builder, ShapeUpdateContext& context)
 	{
-		builder.updateCurveData(info, mParamS);
+		builder.updateCurveData(context, mParamS);
 	}
-
 
 	void Curve3D::acceptVisit(ShapeVisitor& visitor)
 	{

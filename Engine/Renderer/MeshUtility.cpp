@@ -40,8 +40,8 @@ namespace
 			uint32 spare : 2;
 		};
 
-		std::vector<int>            uniqueVertexIndices;
-		std::vector<PackedTriangle> primitiveIndices;
+		TArray<int>            uniqueVertexIndices;
+		TArray<PackedTriangle> primitiveIndices;
 	};
 
 
@@ -88,7 +88,7 @@ namespace Render
 	bool gbOptimizeVertexCache = false;
 
 
-	uint32* MeshUtility::ConvertToTriangleList(EPrimitive type, void* pIndexData , int numIndices, bool bIntType , std::vector< uint32 >& outConvertBuffer, int& outNumTriangles)
+	uint32* MeshUtility::ConvertToTriangleList(EPrimitive type, void* pIndexData , int numIndices, bool bIntType , TArray< uint32 >& outConvertBuffer, int& outNumTriangles)
 	{
 		if( bIntType )
 		{
@@ -125,7 +125,7 @@ namespace Render
 			RHIUnlockBuffer(mesh.mVertexBuffer);
 			RHIUnlockBuffer(mesh.mIndexBuffer);
 		};
-		std::vector<uint32> tempBuffer;
+		TArray<uint32> tempBuffer;
 		int numTriangles;
 		uint32* pIndexData = ConvertToTriangleList(mesh.mType, pIndexBufferData, mesh.mIndexBuffer->getNumElements() , IsIntType(mesh.mIndexBuffer), tempBuffer, numTriangles);
 		bool result = false;
@@ -272,7 +272,7 @@ namespace Render
 				int nz;
 			};
 
-			std::vector< std::unique_ptr< MyTask > > allTasks;
+			TArray< std::unique_ptr< MyTask > > allTasks;
 			for( int nz = 0; nz < gridSize.z; ++nz )
 			{
 				auto task = std::make_unique<MyTask>( TaskFunc , boundMaxDistanceSqr , nz );
@@ -304,7 +304,7 @@ namespace Render
 		return true;
 	}
 
-	void MeshUtility::BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, std::vector<int>& outResult)
+	void MeshUtility::BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, TArray<int>& outResult)
 	{
 		class MyRenderBuffer : public nv::RenderBuffer
 		{
@@ -352,15 +352,15 @@ namespace Render
 		}
 	}
 
-	void MeshUtility::BuildVertexAdjacency(VertexElementReader const& positionReader, int numVertices, uint32* triIndices, int numTirangle, std::vector<int>& outResult)
+	void MeshUtility::BuildVertexAdjacency(VertexElementReader const& positionReader, int numVertices, uint32* triIndices, int numTirangle, TArray<int>& outResult)
 	{
-		std::vector< int > triangleIndexMap;
+		TArray< int > triangleIndexMap;
 		struct Vertex
 		{
 			int   index;
 			float z;
 		};
-		std::vector< Vertex > sortedVertices;
+		TArray< Vertex > sortedVertices;
 		sortedVertices.resize(numVertices);
 		for( int i = 0; i < numVertices; ++i )
 		{
@@ -524,7 +524,7 @@ namespace Render
 		}
 		else
 		{
-			std::vector<uint32> tempIndices{ (uint16*)pIndices , (uint16*)(pIndices)+numIndex };
+			TArray<uint32> tempIndices{ (uint16*)pIndices , (uint16*)(pIndices)+numIndex };
 			NvTriStrip::GenerateStrips((uint32*)&tempIndices[0], numIndex, &groups, &numGroup);
 		}
 
@@ -778,7 +778,7 @@ namespace Render
 		const uint32 triCount = indexCount / 3;
 		// Find point reps (unique positions) in the position stream
 		// Create a mapping of non-unique vertex indices to point reps
-		std::vector<T> pointRep;
+		TArray<T> pointRep;
 		pointRep.resize(numVertices);
 
 		std::unordered_map<size_t, T> uniquePositionMap;
@@ -980,12 +980,12 @@ namespace Render
 		}
 	}
 
-	bool MeshletizeInternal(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, std::vector< InlineMeshlet >& outMeshletList)
+	bool MeshletizeInternal(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, TArray< InlineMeshlet >& outMeshletList)
 	{
 
 		using IndexType = uint32;
 
-		std::vector<uint32> adjacency;
+		TArray<uint32> adjacency;
 		adjacency.resize(3 * numTriangles);
 		BuildAdjacencyList((uint32 const*)triIndices, 3 * numTriangles, positionReader, numVertices, adjacency.data());
 
@@ -993,12 +993,12 @@ namespace Render
 		auto* curr = &outMeshletList.back();
 
 		// Bitmask of all triangles in mesh to determine whether a specific one has been added.
-		std::vector<bool> checklist;
+		TArray<bool> checklist;
 		checklist.resize(numTriangles);
 
-		std::vector<Vector3> positions;
-		std::vector<Vector3> normals;
-		std::vector<std::pair<uint32, float>> candidates;
+		TArray<Vector3> positions;
+		TArray<Vector3> normals;
+		TArray<std::pair<uint32, float>> candidates;
 		std::unordered_set<uint32> candidateCheck;
 
 		Vector4 psphere;
@@ -1172,7 +1172,7 @@ namespace Render
 		return true;
 	}
 
-	void ApplyMeshletData(std::vector< InlineMeshlet > const& meshletList, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
+	void ApplyMeshletData(TArray< InlineMeshlet > const& meshletList, TArray<MeshletData>& outMeshlets, TArray<uint8>& outUniqueVertexIndices, TArray<PackagedTriangleIndices>& outPrimitiveIndices)
 	{
 		using IndexType = uint32;
 
@@ -1215,11 +1215,11 @@ namespace Render
 		}
 	}
 
-	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices)
+	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, TArray<MeshletData>& outMeshlets, TArray<uint8>& outUniqueVertexIndices, TArray<PackagedTriangleIndices>& outPrimitiveIndices)
 	{
 		using IndexType = uint32;
 
-		std::vector< InlineMeshlet > meshletList;
+		TArray< InlineMeshlet > meshletList;
 		MeshletizeInternal(maxVertices, maxPrims, triIndices, numTriangles, positionReader, numVertices, meshletList);
 		ApplyMeshletData(meshletList, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
 
@@ -1227,13 +1227,13 @@ namespace Render
 	}
 
 
-	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, TArrayView< MeshSection const > sections, std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices, std::vector< MeshSection >& outSections)
+	bool MeshUtility::Meshletize(int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, TArrayView< MeshSection const > sections, TArray<MeshletData>& outMeshlets, TArray<uint8>& outUniqueVertexIndices, TArray<PackagedTriangleIndices>& outPrimitiveIndices, TArray< MeshSection >& outSections)
 	{
 		for (int indexSection = 0; indexSection < sections.size(); ++indexSection)
 		{
 			MeshSection const& section = sections[indexSection];
 
-			std::vector< InlineMeshlet > meshletList;
+			TArray< InlineMeshlet > meshletList;
 			MeshletizeInternal(maxVertices, maxPrims, triIndices + section.indexStart, section.count / 3, positionReader, numVertices, meshletList);
 			ApplyMeshletData(meshletList, outMeshlets, outUniqueVertexIndices, outPrimitiveIndices);
 
@@ -1532,7 +1532,7 @@ namespace Render
 		int numEle = nIdx / 3;
 		int vertexSize = desc.getVertexSize();
 		uint32* pCur = idx;
-		std::vector< Vector3 > binormals(nV, Vector3(0, 0, 0));
+		TArray< Vector3 > binormals(nV, Vector3(0, 0, 0));
 
 		for (int i = 0; i < numEle; ++i)
 		{
@@ -1611,7 +1611,7 @@ namespace Render
 
 		int numTriangles = numIndices / 3;
 
-		std::vector< Vector3 > binormals(numVertices, Vector3(0, 0, 0));
+		TArray< Vector3 > binormals(numVertices, Vector3(0, 0, 0));
 		if (bNeedClear)
 		{
 			for (int i = 0; i < numVertices; ++i)
@@ -1669,7 +1669,7 @@ namespace Render
 	void MeshUtility::FillTangent_QuadList(InputLayoutDesc const& desc, void* pVertex, int numVertices, uint32* indices, int numIndices, bool bNeedClear)
 	{
 		int numElements = numIndices / 4;
-		std::vector< uint32 > tempIndices(numElements * 6);
+		TArray< uint32 > tempIndices(numElements * 6);
 		uint32* src = indices;
 		uint32* dest = &tempIndices[0];
 		for (int i = 0; i < numElements; ++i)
@@ -1683,7 +1683,7 @@ namespace Render
 	}
 
 	template< class IndexType >
-	static uint32* MeshUtility::ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle)
+	static uint32* MeshUtility::ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, TArray< uint32 >& outConvertBuffer, int& outNumTriangle)
 	{
 		outNumTriangle = 0;
 
@@ -1823,7 +1823,7 @@ namespace Render
 		return nullptr;
 	}
 
-	template uint32* MeshUtility::ConvertToTriangleListIndices<uint32>(EPrimitive type, uint32* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle);
-	template uint32* MeshUtility::ConvertToTriangleListIndices<uint16>(EPrimitive type, uint16* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle);
+	template uint32* MeshUtility::ConvertToTriangleListIndices<uint32>(EPrimitive type, uint32* data, int numData, TArray< uint32 >& outConvertBuffer, int& outNumTriangle);
+	template uint32* MeshUtility::ConvertToTriangleListIndices<uint16>(EPrimitive type, uint16* data, int numData, TArray< uint32 >& outConvertBuffer, int& outNumTriangle);
 
 }//namespace Render

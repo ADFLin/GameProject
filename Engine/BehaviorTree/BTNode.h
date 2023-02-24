@@ -1,11 +1,11 @@
 #ifndef BTNode_h__
 #define BTNode_h__
 
-#include <list>
-#include <vector>
-#include <cassert>
-
 #include "Visitor.h"
+#include "DataStructure/Array.h"
+
+#include <list>
+#include <cassert>
 
 namespace BT
 {
@@ -112,7 +112,7 @@ namespace BT
 		TreeWalker::Entry* mEntry;
 	};
 
-	typedef std::vector< BTNode* > NodeList;
+	typedef TArray< BTNode* > NodeList;
 	class CompositeNode : public BTNode
 	{
 	public:
@@ -176,7 +176,7 @@ namespace BT
 	public:
 		typedef RandSelectorNode ThisNode;
 		ThisNode& Weight( float value ){ mWeights.push_back( value ); return *this;}
-		std::vector< float > mWeights;
+		TArray< float > mWeights;
 	};
 
 

@@ -7,7 +7,7 @@
 
 #include <map>
 
-typedef std::vector< IGameModule* > GameModuleVec;
+typedef TArray< IGameModule* > GameModuleVec;
 
 using ModuleHandle = FPlatformModule::Handle;
 
@@ -39,7 +39,7 @@ private:
 
 	void handleFeatureEvent(IModularFeature* feature, bool bRemove);
 
-	std::vector< IGameModule* > mGameModules;
+	TArray< IGameModule* > mGameModules;
 	IGameModule*     mGameRunning;
 };
 

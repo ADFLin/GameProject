@@ -9,7 +9,6 @@ namespace CB
 
 	bool SurfaceXYFunc::parseExpression(FunctionParser& parser)
 	{
-		SymbolTable& table = parser.getSymbolDefine();
 		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
 		if( parser.parse(mExpr , ARRAY_SIZE(inputLayouts) , inputLayouts ) )
 		{
@@ -40,11 +39,9 @@ namespace CB
 
 	bool SurfaceUVFunc::parseExpression(FunctionParser& parser)
 	{
-		SymbolTable& table = parser.getSymbolDefine();
 		bool bDynamic = false;
 
-		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
-		
+		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };	
 		for( int i = 0; i < 3; ++i )
 		{
 			if( !parser.parse(mAixsExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts) )
@@ -91,8 +88,6 @@ namespace CB
 	bool Curve3DFunc::parseExpression(FunctionParser& parser)
 	{
 		bool bDynamic = false;
-		SymbolTable& table = parser.getSymbolDefine();
-
 		ValueLayout inputLayouts[] = { ValueLayout::Real };
 		for( int i = 0; i < 3; ++i )
 		{

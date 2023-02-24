@@ -6,7 +6,7 @@ namespace Render
 	
 #if CORE_SHARE_CODE
 	VertexFactoryType* VertexFactoryType::DefaultType = &LocalVertexFactory::StaticType;
-	std::vector< VertexFactoryType* > VertexFactoryType::TypeList;
+	TArray< VertexFactoryType* > VertexFactoryType::TypeList;
 
 	VertexFactoryType::VertexFactoryType(char const* inFileName, ModifyCompilationOptionFunc MCO)
 		:fileName(inFileName)

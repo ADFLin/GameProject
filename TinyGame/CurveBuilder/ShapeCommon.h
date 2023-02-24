@@ -64,7 +64,7 @@ namespace CB
 		virtual ~ShapeFuncBase() {}
 		virtual bool   parseExpression(FunctionParser& parser) = 0;
 		virtual bool   isParsed() = 0;
-		virtual int    getFunType() = 0;
+		virtual int    getFuncType() = 0;
 		virtual void   acceptVisit(ShapeFuncVisitor& visitor) = 0;
 		bool    isDynamic() { return mbDynamic; }
 		virtual ShapeFuncBase* clone() = 0;
@@ -86,12 +86,21 @@ namespace CB
 		RUF_ALL_UPDATE_BIT = 0xffffffff,
 	};
 
-	struct ShapeUpdateInfo
+	struct ShapeUpdateContext
 	{
-		RenderData*   data;
-		unsigned      flag;
+		RenderData*    data;
+		unsigned       flag;
 		ShapeFuncBase* func;
-		Color4f       color;
+		Color4f        color;
+	};
+
+	class IShapeMeshBuilder
+	{
+	public:
+		virtual ~IShapeMeshBuilder() = default;
+		virtual void updateCurveData(ShapeUpdateContext const& context, SampleParam const& paramS) = 0;
+		virtual void updateSurfaceData(ShapeUpdateContext const& context, SampleParam const& paramU, SampleParam const& paramV) = 0;
+		virtual bool parseFunction(ShapeFuncBase& func) = 0;
 	};
 
 }//namespace CB

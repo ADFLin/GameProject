@@ -99,7 +99,7 @@ namespace Life
 
 	struct PatternData
 	{
-		std::vector< Vec2i > cellList;
+		TArray< Vec2i > cellList;
 
 		template< class OP >
 		void serialize(OP&& op)

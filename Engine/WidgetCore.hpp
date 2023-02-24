@@ -284,7 +284,7 @@ void WidgetCoreT<T>::setManager( TWidgetManager<T>* mgr )
 template< class T >
 void WidgetCoreT<T>::SetTopInternal(WidgetList& list, WidgetCoreT* ui, bool bAlwaysTop)
 {
-	//TODO
+	//#TODO
 	ui->mLinkHook.unlink();
 	list.push_back(*static_cast<T*>(ui));
 }

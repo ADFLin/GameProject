@@ -3,7 +3,7 @@
 
 #include "GameWidget.h"
 
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 #include "DataStructure/CycleQueue.h"
 
 class ConsoleCmdTextCtrl : public GTextCtrl
@@ -17,8 +17,8 @@ public:
 
 
 	void setFoundCmdToText();
-	std::vector< std::string > mFoundCmds;
-	std::vector< std::string > mHistoryCmds;
+	TArray< std::string > mFoundCmds;
+	TArray< std::string > mHistoryCmds;
 	int mIndexHistoryUsed = INDEX_NONE;
 	int mIndexFoundCmdUsed = INDEX_NONE;
 
@@ -57,12 +57,8 @@ public:
 	};
 
 	TCycleBuffer< ComLine , 37 > mLines;
-	GTextCtrl* mCmdText;
+	ConsoleCmdTextCtrl* mCmdText;
 
-	std::vector< std::string > mFoundCmds;
-	std::vector< std::string > mHistoryCmds;
-	int mIndexHistoryUsed = INDEX_NONE;
-	int mIndexFoundCmdUsed = INDEX_NONE;
 public:
 	//LogOutput
 	virtual bool filterLog(LogChannel channel, int level) override

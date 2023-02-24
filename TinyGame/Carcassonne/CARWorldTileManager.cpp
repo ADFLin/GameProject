@@ -386,7 +386,7 @@ namespace CAR
 		return tileSet.tiles[idx];
 	}
 
-	int WorldTileManager::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PlaceTileParam& param )
+	int WorldTileManager::getPosibleLinkPos( TileId tileId , TArray< Vec2i >& outPos , PlaceTileParam& param )
 	{
 		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
 
@@ -421,7 +421,7 @@ namespace CAR
 					}
 				}
 			}
-			MakeValueUnique( outPos ,idxStart );
+			outPos.makeUnique(idxStart);
 			break;
 		case ETileClass::Halfling:
 			for( Vec2i const& pos : mEmptyLinkPosSet )

@@ -105,7 +105,7 @@ namespace SBlocks
 		}
 	}
 
-	void SolveData::getSolvedStates(std::vector< PieceSolveState >& outStates) const
+	void SolveData::getSolvedStates(TArray< PieceSolveState >& outStates) const
 	{
 		int index = 0;
 		for (auto const& pieceData : globalData->mPieceList)
@@ -252,7 +252,7 @@ namespace SBlocks
 	}
 
 	template< typename TFunc >
-	ERejectResult::Type SolveData::testRejection(MapSolveData& mapData, Vec2i const pos, std::vector< Int16Point2D > const& outerConPosList, int maxCompareShapeSize, TFunc& CheckPieceFunc)
+	ERejectResult::Type SolveData::testRejection(MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList, int maxCompareShapeSize, TFunc& CheckPieceFunc)
 	{
 		mCachedPendingTests.clear();
 		++mTestFrame;
@@ -320,7 +320,7 @@ namespace SBlocks
 			int pieceMapIndex = count - globalData->mMinShapeBlockCount;
 			if (count < maxCompareShapeSize)
 			{
-				if (IsValidIndex(globalData->mPieceSizeMap, pieceMapIndex) == false || 
+				if (globalData->mPieceSizeMap.isValidIndex(pieceMapIndex) == false || 
 					globalData->mPieceSizeMap[pieceMapIndex] == nullptr)
 				{
 					return ERejectResult::ConnectTilesCount;
@@ -376,7 +376,7 @@ namespace SBlocks
 		mUsedOption = option;
 		mSolveData.globalData = this;
 
-		std::vector<Piece*> sortedPieces;
+		TArray<Piece*> sortedPieces;
 		for (int index = 0; index < level.mPieces.size(); ++index)
 		{
 			Piece* piece = level.mPieces[index].get();
@@ -476,7 +476,7 @@ namespace SBlocks
 
 		}
 
-		//generate posible states
+		//generate possible states
 		for (auto& shapeSolveData : mShapeList )
 		{
 			PieceShape* shape = shapeSolveData.shape;
@@ -638,7 +638,7 @@ namespace SBlocks
 			int noState;
 			int rejection;
 		};
-		std::vector<IndexCountData> indexCounts;
+		TArray<IndexCountData> indexCounts;
 		indexCounts.resize(mPieceList.size(), { 0, 0 });
 		int solvingRejectionCount = 0;
 #endif
@@ -825,7 +825,7 @@ NoCombineSolve:
 				if (indexPieceCur >= partWork.indexPieceWork)
 				{
 					++numSolutions;
-					std::vector< PieceSolveState > states;
+					TArray< PieceSolveState > states;
 					getSolvedStates(states);
 					solver->mSolutionList.push(std::move(states));
 					--indexPieceCur;

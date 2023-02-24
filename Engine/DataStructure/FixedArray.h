@@ -11,7 +11,7 @@ using TFixedArray = TArray< T, TFixedAllocator<N> >;
 
 #else
 
-#include "TypeConstruct.h"
+#include "TypeMemoryOp.h"
 
 template< class T, size_t N >
 class TFixedArray
@@ -32,7 +32,7 @@ public:
 
 	TFixedArray( size_t num , T val = T() )
 	{
-		TypeDataHelper::Construct((T*)mEle, num, val);
+		FTypeMemoryOp::ConstructSequence((T*)mEle, num, val);
 		mNext = mEle + num;
 	}
 	~TFixedArray(){  clear();  }
@@ -50,8 +50,8 @@ public:
 	void    resize( size_t num );
 	void    resize( size_t num , value_type const& value );
 
-	void push_back( T const& val ){  assert( mNext != mEle + N ); TypeDataHelper::Construct((T*)mNext , val ); ++mNext; }
-	void pop_back() { assert(size() != 0); --mNext; TypeDataHelper::Destruct((T*)mNext); }
+	void push_back( T const& val ){  assert( mNext != mEle + N ); FTypeMemoryOp::Construct((T*)mNext , val ); ++mNext; }
+	void pop_back() { assert(size() != 0); --mNext; FTypeMemoryOp::Destruct((T*)mNext); }
 
 	const_refernece front() const { return castType( mEle[ 0 ] ); }
 	reference       front()       { return castType( mEle[ 0 ] ); }
@@ -67,7 +67,7 @@ public:
 	iterator erase( iterator iter )
 	{
 		checkRange( iter );
-		TypeDataHelper::Destruct(iter);
+		FTypeMemoryOp::Destruct(iter);
 		
 		moveToEnd( iter , iter + 1 );
 		return iter;
@@ -78,7 +78,7 @@ public:
 		checkRange( from );
 		checkRange( to );
 		assert( to > from );
-		TypeDataHelper::Destruct(from, to - from);
+		FTypeMemoryOp::DestructSequence(from, to - from);
 		moveToEnd( from , to );
 		return from;
 	}	
@@ -96,14 +96,14 @@ private:
 		size_t num = (T*)mNext - src;
 		if( num )
 		{
-			TypeDataHelper::Move(where, num, src);
+			FTypeMemoryOp::MoveSequence(where, num, src);
 		}
 		mNext = reinterpret_cast< Storage*>( where + num );
 	}
 
 	void  eraseToEnd( iterator is )
 	{
-		TypeDataHelper::Destruct(is, end() - is);
+		FTypeMemoryOp::DestructSequence(is, end() - is);
 		mNext = reinterpret_cast< Storage*>( is );
 	}
 
@@ -130,7 +130,7 @@ void  TFixedArray< T , N >::resize( size_t num )
 	}
 	else
 	{
-		TypeDataHelper::Construct(mNext, num);
+		FTypeMemoryOp::ConstructSequence(mNext, num);
 		mNext += num;
 	}
 }
@@ -146,7 +146,7 @@ void  TFixedArray< T , N >::resize( size_t num , value_type const& value )
 	}
 	else
 	{
-		TypeDataHelper::Construct(mNext, num, value );
+		FTypeMemoryOp::ConstructSequence(mNext, num, value );
 		mNext += num;
 	}
 }

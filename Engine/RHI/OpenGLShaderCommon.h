@@ -36,9 +36,9 @@ namespace Render
 
 		static void GenerateParameterMap(GLuint handle, ShaderParameterMap& parameterMap);
 
-		static bool GetProgramBinary(GLuint handle, std::vector<uint8>& outBinary);
+		static bool GetProgramBinary(GLuint handle, TArray<uint8>& outBinary);
 
-		static int GetLogInfo(GLuint handle, std::vector<char>& outBuffer);
+		static int GetLogInfo(GLuint handle, TArray<char>& outBuffer);
 	};
 
 	struct RMPShaderProgram
@@ -92,7 +92,7 @@ namespace Render
 
 		void    attach(EShader::Type type, OpenGLShaderObject const& shaderObject);
 		bool    initialize();
-		bool    initialize( std::vector<uint8> const& binaryCode);
+		bool    initialize( TArray<uint8> const& binaryCode);
 
 		bool    updateShader(bool bLinkShader = true);
 		
@@ -130,17 +130,17 @@ namespace Render
 
 		virtual void precompileCode(ShaderProgramSetupData& setupData) final;
 		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode) final;
+		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
 
 		virtual void precompileCode(ShaderSetupData& setupData) final;
 		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode) override;
+		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
 		virtual void postShaderLoaded(Shader& shader) final;
 
 		virtual bool doesSuppurtBinaryCode() const final;
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode) final;
-		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode) override;
+		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
+		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
 
 		virtual ShaderPreprocessSettings getPreprocessSettings();
 

@@ -32,7 +32,7 @@ namespace Go
 		float LCB;
 		float utilityLCB;
 		int   order;
-		std::vector< PlayVertex > vSeq;
+		TArray< PlayVertex > vSeq;
 	};
 
 

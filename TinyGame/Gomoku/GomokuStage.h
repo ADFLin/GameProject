@@ -101,7 +101,7 @@ namespace Gomoku
 		ERenderSystem getDefaultRenderSystem() override;
 
 	protected:
-		std::vector< Vec2i > mPosList;
+		TArray< Vec2i > mPosList;
 		Game  mGame;
 		BoardRenderer mBoardRenderer;
 	};

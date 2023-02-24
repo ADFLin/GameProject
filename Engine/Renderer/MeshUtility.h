@@ -42,14 +42,14 @@ namespace Render
 		Vector3    boundMax;
 		IntVector3 gridSize;
 		float      maxDistance;
-		std::vector< float > volumeData;
+		TArray< float > volumeData;
 	};
 
 	class MeshUtility
 	{
 	public:
 		static void CalcAABB(VertexElementReader const& positionReader, int numVertices, Vector3& outMin, Vector3& outMax);
-		static uint32* ConvertToTriangleList(EPrimitive type, void* pIndexData, int numIndices, bool bIntType, std::vector< uint32 >& outConvertBuffer, int& outNumTriangles);
+		static uint32* ConvertToTriangleList(EPrimitive type, void* pIndexData, int numIndices, bool bIntType, TArray< uint32 >& outConvertBuffer, int& outNumTriangles);
 		static bool BuildDistanceField(Mesh& mesh, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
 		static bool BuildDistanceField(VertexElementReader const& positionReader, int numVertices, uint32* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
 
@@ -59,8 +59,8 @@ namespace Render
 			return diff.x < error && diff.y < error && diff.z < error;
 		}
 
-		static void BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, std::vector<int>& outResult);
-		static void BuildVertexAdjacency(VertexElementReader const& positionReader, int numVertices, uint32* triIndices, int numTirangle, std::vector<int>& outResult);
+		static void BuildTessellationAdjacency(VertexElementReader const& positionReader, uint32* triIndices, int numTirangle, TArray<int>& outResult);
+		static void BuildVertexAdjacency(VertexElementReader const& positionReader, int numVertices, uint32* triIndices, int numTirangle, TArray<int>& outResult);
 		static void OptimizeVertexCache(void* pIndices, int numIndex, bool bIntType);
 
 		static void FillTriangleListNormalAndTangent(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx);
@@ -69,12 +69,12 @@ namespace Render
 
 		static bool Meshletize(
 			int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices,
-			std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices);
+			TArray<MeshletData>& outMeshlets, TArray<uint8>& outUniqueVertexIndices, TArray<PackagedTriangleIndices>& outPrimitiveIndices);
 
 		static bool Meshletize(
 			int maxVertices, int maxPrims, uint32* triIndices, int numTriangles, VertexElementReader const& positionReader, int numVertices, TArrayView< MeshSection const > sections ,
-			std::vector<MeshletData>& outMeshlets, std::vector<uint8>& outUniqueVertexIndices, std::vector<PackagedTriangleIndices>& outPrimitiveIndices , 
-			std::vector< MeshSection >& outSections );
+			TArray<MeshletData>& outMeshlets, TArray<uint8>& outUniqueVertexIndices, TArray<PackagedTriangleIndices>& outPrimitiveIndices ,
+			TArray< MeshSection >& outSections );
 
 		static void GenerateCullData(
 			VertexElementReader const& positionReader, int numVertices, const MeshletData* meshlets, int meshletCount,
@@ -87,7 +87,7 @@ namespace Render
 		static void FillNormal_TriangleList(VertexElementReader const& positionReader, VertexElementWriter& normalWriter, int numVerteices, uint32* idx, int numIndices, bool bNeedClear = false);
 
 		template< class IndexType >
-		static uint32* ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, std::vector< uint32 >& outConvertBuffer, int& outNumTriangle);
+		static uint32* ConvertToTriangleListIndices(EPrimitive type, IndexType* data, int numData, TArray< uint32 >& outConvertBuffer, int& outNumTriangle);
 
 		static void FillNormalTangent_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, uint32* idx, int nIdx);
 

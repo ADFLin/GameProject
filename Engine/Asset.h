@@ -7,10 +7,9 @@
 #include "Core/IntegerType.h"
 
 #include "Delegate.h"
+#include "DataStructure/Array.h"
 
-#include <set>
-#include <map>
-#include <vector>
+#include <unordered_map>
 
 DECLARE_DELEGATE(FileNotifyCallback, void(wchar_t const* path, EFileAction action));
 
@@ -19,11 +18,9 @@ namespace EFileMonitorStatus
 	enum Type
 	{
 		OK ,
-
-		OutOfMemory,
 		OpenDirFail,
 		ReadDirError,
-		IOCPError,
+		IOError,
 		UnknownError,
 		DirNoChange,
 	};
@@ -58,8 +55,8 @@ public:
 			return ::wcscmp( s1 , s2 ) < 0;
 		}
 	};
-	typedef std::vector< IAssetViewer* > AssetList;
-	typedef std::map< std::wstring , AssetList >  AssetMap;
+	typedef TArray< IAssetViewer* > AssetList;
+	typedef std::unordered_map< std::wstring , AssetList >  AssetMap;
 	AssetMap mAssetMap;
 
 	struct FileModifyInfo

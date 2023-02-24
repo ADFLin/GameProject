@@ -8,10 +8,12 @@
 #include "Meta/Select.h"
 #include "Template/ArrayView.h"
 #include "Core/Memory.h"
+#include "DataStructure/Array.h"
 
 #include <exception>
 #include <cassert>
 #include <vector>
+
 
 class CheckPolicy
 {
@@ -271,6 +273,29 @@ public:
 		}
 	}
 
+	template < class T >
+	void fill(TArray< T > const& data)
+	{
+		size_t num = data.size();
+		fill(num);
+		if (num)
+		{
+			fill(MakeArrayData(&data[0], num));
+		}
+	}
+
+	template < class T >
+	void take(TArray< T >& data)
+	{
+		size_t num;
+		take(num);
+		if (num)
+		{
+			data.resize(num);
+			take(MakeArrayData(&data[0], num));
+		}
+	}
+
 	template< class Q >
 	void copy( TStreamBuffer< Q >& buffer , size_t num )
 	{
@@ -409,10 +434,10 @@ auto CreateBufferSerializer(Args&& ...args)
 	return TBufferSerializer< BufferType , false >(std::forward<Args>(args)...);
 }
 
-class VectorWriteBuffer
+class ArrayWriteBuffer
 {
 public:
-	VectorWriteBuffer(std::vector<uint8>& inData)
+	ArrayWriteBuffer(TArray<uint8>& inData)
 		:mData(inData)
 	{
 	}
@@ -427,7 +452,7 @@ public:
 		mData.insert(mData.end(), static_cast<uint8 const*>(ptr), static_cast<uint8 const*>(ptr) + num);
 	}
 
-	std::vector<uint8>& mData;
+	TArray<uint8>& mData;
 };
 
 

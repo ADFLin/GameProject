@@ -8,7 +8,7 @@
 #include "Math/Matrix4.h"
 #include "TransformPushScope.h"
 
-#include <vector>
+#include "DataStructure/Array.h"
 
 namespace Render
 {
@@ -297,7 +297,7 @@ namespace Render
 		RenderTransform2D const& get() const { return mCurrent; }
 		RenderTransform2D&       get()       { return mCurrent; }
 		RenderTransform2D mCurrent;
-		std::vector< RenderTransform2D > mStack;
+		TArray< RenderTransform2D > mStack;
 	};
 
 	template<>

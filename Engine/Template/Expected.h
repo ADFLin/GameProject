@@ -27,12 +27,12 @@ struct TInlineMemoryStorage
 	template< class T >
 	void construct() 
 	{ 
-		TypeDataHelper::Construct<T>(mData);
+		FTypeMemoryOp::Construct<T>(mData);
 	}
 	template< class T >
 	void construct(T&& v) 
 	{
-		TypeDataHelper::Construct<T>(mData, v);
+		FTypeMemoryOp::Construct<T>(mData, v);
 	}
 
 	template< class T >

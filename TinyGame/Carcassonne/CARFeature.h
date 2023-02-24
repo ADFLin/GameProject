@@ -5,8 +5,11 @@
 #include "CARMapTile.h"
 #include "CARLevelActor.h"
 
+#include "DataStructure/Array.h"
+
 #include <set>
 #include <unordered_set>
+
 
 namespace CAR
 {
@@ -59,7 +62,7 @@ namespace CAR
 	{
 		FeatureBase* feature;
 		int numController;
-		std::vector< FeatureControllerScoreInfo > controllerScores;
+		TArray< FeatureControllerScoreInfo > controllerScores;
 
 		FeatureScoreInfo()
 		{
@@ -94,7 +97,7 @@ namespace CAR
 		int         calcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult);
 
 		virtual bool checkComplete() const { return false; }
-		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) = 0;
+		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo ) = 0;
 		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ){ }
 		virtual bool updateForAdjacentTile( MapTile& tile ){ return false; }
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
@@ -104,10 +107,10 @@ namespace CAR
 		virtual int  getScoreTileNum() const { return 0; }
 		virtual void onAddFollower(LevelActor& actor){}
 
-		int  generateController(std::vector< FeatureControllerScoreInfo >& controllerScores);
+		int  generateController(TArray< FeatureControllerScoreInfo >& controllerScores);
 		int  getMajorityValue( EActor::Type actorType);
-		void generateMajority( std::vector< FeatureControllerScoreInfo >& controllerScores);
-		int  evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores);
+		void generateMajority( TArray< FeatureControllerScoreInfo >& controllerScores);
+		int  evalMajorityControl(TArray< FeatureControllerScoreInfo >& controllerScores);
 		void addMapTile( MapTile& mapTile ){ mapTiles.insert( &mapTile ); }
 		bool haveTileContent(TileContentMask contentMask) const;
 
@@ -115,6 +118,12 @@ namespace CAR
 		static void MergeData( T& to , T const& src )
 		{
 			to.insert( to.end() , src.begin() , src.end() );
+		}
+
+		template< class T >
+		static void MergeData(TArray<T>& to, TArray<T> const& src)
+		{
+			to.append(src);
 		}
 
 		template< class T >
@@ -129,8 +138,8 @@ namespace CAR
 			to.insert(src.begin(), src.end());
 		}
 
-		int getDefaultActorPutInfo( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , std::vector< ActorPosInfo >& outInfo );
-		int getActorPutInfoInternal( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo);
+		int getDefaultActorPutInfo( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , TArray< ActorPosInfo >& outInfo );
+		int getActorPutInfoInternal( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , int numMask , TArray< ActorPosInfo >& outInfo);
 
 		//bool useRule(RuleFunc::Enum ruleFunc)
 		//{
@@ -148,7 +157,7 @@ namespace CAR
 	public:
 		SideFeature();
 
-		std::vector< SideNode* > nodes;
+		TArray< SideNode* > nodes;
 		int  openCount;
 		int  halfSepareteCount;
 
@@ -176,7 +185,7 @@ namespace CAR
 		RoadFeature();
 		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
-		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo ) override;
 		bool checkComplete() const override;
 		int  calcPlayerScore(PlayerBase* player) override;
 		int  getScoreTileNum() const override { return mapTiles.size(); }
@@ -205,7 +214,7 @@ namespace CAR
 
 		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
-		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo ) override;
 		bool checkComplete() const override;
 		int  calcPlayerScore( PlayerBase* player ) override;
 		void onAddFollower(LevelActor& actor) override 
@@ -221,7 +230,7 @@ namespace CAR
 		static int const Type = FeatureType::eCityOfCarcassonne;
 
 		bool checkComplete() const override { return true; }
-		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override { return 0; }
+		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, TArray< ActorPosInfo >& outInfo) override { return 0; }
 		void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override {}
 		bool updateForAdjacentTile(MapTile& tile) override { return false; }
 		void mergeData(FeatureBase& other, MapTile const& putData, int meta) override { NEVER_REACH("City of Carcassonne can't be merged"); }
@@ -242,7 +251,7 @@ namespace CAR
 
 		void addNode( MapTile& mapData , unsigned idxMask , FarmNode* linkNode );
 		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
-		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo ) override;
 		bool checkComplete() const override { return false; }
 		int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 		int  calcPlayerScore( PlayerBase* player ) override;
@@ -254,7 +263,7 @@ namespace CAR
 		int calcPlayerScoreInternal(PlayerBase* player, int farmFactor);
 
 		bool haveBarn;
-		std::vector< FarmNode* > nodes;
+		TArray< FarmNode* > nodes;
 		std::unordered_set< FeatureBase* > linkedCities;
 	};
 
@@ -262,7 +271,7 @@ namespace CAR
 	class AdjacentTileScoringFeature : public FeatureBase
 	{
 	public:
-		std::vector< MapTile* > neighborTiles;
+		TArray< MapTile* > neighborTiles;
 		bool checkComplete() const override { return neighborTiles.size() == 8; }
 		int  getScoreTileNum() const override { return neighborTiles.size() + 1; }
 		void mergeData(FeatureBase& other, MapTile const& putData, int meta) override { NEVER_REACH("Feature can't be merged!!"); }
@@ -280,7 +289,7 @@ namespace CAR
 
 		CloisterFeature* challenger;
 
-		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
+		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, TArray< ActorPosInfo >& outInfo) override;
 		int  calcPlayerScore(PlayerBase* player) override;
 		void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
 		void onAddFollower(LevelActor& actor) override
@@ -294,7 +303,7 @@ namespace CAR
 	public:
 		static int const Type = FeatureType::eGarden;
 		GardenFeature();
-		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
+		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, TArray< ActorPosInfo >& outInfo) override;
 		int  calcPlayerScore(PlayerBase* player) override;
 		void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
 		void onAddFollower(LevelActor& actor) override
@@ -311,14 +320,14 @@ namespace CAR
 
 		GermanCastleFeature();
 
-		std::vector< MapTile* > neighborTiles;
+		TArray< MapTile* > neighborTiles;
 
 		bool checkComplete() const override 
 		{ 
 			assert(mapTiles.size() == 2);
 			return neighborTiles.size() == 10; 
 		}
-		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, TArray< ActorPosInfo >& outInfo ) override;
 		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 		int  calcPlayerScore(PlayerBase* player) override;

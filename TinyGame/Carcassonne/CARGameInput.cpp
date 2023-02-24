@@ -4,7 +4,7 @@
 
 namespace CAR
 {
-	void GameFeatureTileSelectData::fill(std::vector<FeatureBase*> const& linkFeatures, std::vector<MapTile*>& mapTileStorage, bool bCheckCanDeployFollower)
+	void GameFeatureTileSelectData::fill(TArray<FeatureBase*> const& linkFeatures, TArray<MapTile*>& mapTileStorage, bool bCheckCanDeployFollower)
 	{
 		for(auto linkFeature : linkFeatures)
 		{

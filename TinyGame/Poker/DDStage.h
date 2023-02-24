@@ -36,7 +36,7 @@ namespace DouDizhu
 			EGroupTrick trick;
 			Card card;
 		};
-		std::vector< GroupInfo > groups;
+		TArray< GroupInfo > groups;
 	};
 
 	class Scene;

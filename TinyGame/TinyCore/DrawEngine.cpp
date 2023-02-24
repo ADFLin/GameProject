@@ -248,12 +248,17 @@ bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI)
 	if (mRenderSetup == nullptr)
 		return false;
 
-	if (systemName == ERenderSystem::None)
+	if (mSystemLocked != ERenderSystem::None)
 	{
-		if (mRenderSetup->isRenderSystemSupported(GDefaultRHIName))
-			systemName = GDefaultRHIName;
+		systemName = mSystemLocked;
+
 	}
-	else if (!mRenderSetup->isRenderSystemSupported(systemName))
+	else if (systemName == ERenderSystem::None)
+	{
+		systemName = GDefaultRHIName;
+	}
+
+	if (systemName == ERenderSystem::None || !mRenderSetup->isRenderSystemSupported(systemName))
 	{
 		return false;
 	}
@@ -332,6 +337,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 	if (mSystemLocked != ERenderSystem::None)
 	{
+		CHECK(mSystemLocked == systemName);
 		initParam.numSamples = 1;
 		IGlobalRenderResource::RestoreAllResources();
 		setupBuffer(getScreenWidth(), getScreenHeight());

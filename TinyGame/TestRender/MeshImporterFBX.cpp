@@ -99,7 +99,7 @@ namespace Render
 		return false;
 	}
 
-	bool MeshImporterFBX::importMultiFromFile(char const* filePath, std::vector<Mesh>& outMeshes, MeshImportSettings* settings)
+	bool MeshImporterFBX::importMultiFromFile(char const* filePath, TArray<Mesh>& outMeshes, MeshImportSettings* settings)
 	{
 		FbxImporter* mImporter = FbxImporter::Create(mManager, "");
 		ON_SCOPE_EXIT
@@ -175,7 +175,7 @@ namespace Render
 
 	void MeshImporterFBX::GetMeshVertexFormat(FbxMesh* pMesh, FBXVertexFormat& outFormat)
 	{
-		auto AddElementData = [&outFormat](int indexBuffer, FbxLayerElement* pElement, std::vector< FBXElementDataInfo >& elements)
+		auto AddElementData = [&outFormat](int indexBuffer, FbxLayerElement* pElement, TArray< FBXElementDataInfo >& elements)
 		{
 			elements.push_back({ indexBuffer , pElement ,pElement->GetMappingMode(), pElement->GetReferenceMode() });
 		};

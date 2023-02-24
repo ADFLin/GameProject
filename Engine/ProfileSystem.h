@@ -8,6 +8,9 @@
 #include "MarcoCommon.h"
 #include "LogSystem.h"
 #include "Clock.h"
+#include "Holder.h"
+#include "Singleton.h"
+#include "DataStructure/Array.h"
 
 #include <unordered_map>
 
@@ -27,8 +30,7 @@
 #endif //USE_PROFILE
 
 
-#include "Holder.h"
-#include "Singleton.h"
+
 
 #define  CLOCK_EPSILON 1e-6
 
@@ -132,7 +134,7 @@ struct TimeScope
 
 private:
 	uint64 startTime;
-	CORE_API std::vector< TimeScopeResult* >& GetResultStack();
+	CORE_API TArray< TimeScopeResult* >& GetResultStack();
 
 	char const* mName;
 	TimeScopeResult* mResult;

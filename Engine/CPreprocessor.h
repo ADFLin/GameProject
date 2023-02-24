@@ -6,13 +6,13 @@
 #include "HashString.h"
 #include "LogSystem.h"
 #include "Template/ConstString.h"
+#include "DataStructure/Array.h"
 
-#include <vector>
 #include <string>
 #include <ostream>
 #include <unordered_map>
-#include <functional>
 #include <unordered_set>
+#include <functional>
 
 
 namespace CPP
@@ -400,7 +400,7 @@ namespace CPP
 		int lineOffset = 0;
 	private:
 
-		std::vector< uint8 > mBuffer;
+		TArray< uint8 > mBuffer;
 
 		friend class Preprocessor;
 		friend class CodeInput;
@@ -570,7 +570,7 @@ namespace CPP
 		{
 			bool bSkipText;
 		};
-		std::vector< BlockState > mBlockStateStack;
+		TArray< BlockState > mBlockStateStack;
 
 		struct BlockScope
 		{
@@ -616,7 +616,7 @@ namespace CPP
 				int indexArg;
 				int offset;
 			};
-			std::vector< ArgEntry > argEntries;
+			TArray< ArgEntry > argEntries;
 
 			int cachedEvalValue;
 			int evalFrame;
@@ -664,7 +664,7 @@ namespace CPP
 			CodeInput input;
 			std::function< void() > onChildFinish;
 		};
-		std::vector< InputEntry > mInputStack;
+		TArray< InputEntry > mInputStack;
 
 
 		bool findFile(std::string const& name, std::string& fullPath);
@@ -672,7 +672,7 @@ namespace CPP
 		CodeOutput* mOutput;
 
 		std::unordered_set< HashString >  mParamOnceSet;
-		std::vector< std::string > mFileSreachDirs;
+		TArray< std::string > mFileSreachDirs;
 		std::unordered_set< HashString >  mUsedFiles;
 
 
@@ -683,7 +683,6 @@ namespace CPP
 		bool mbSourceLibraryManaged = false;
 		friend class ExpressionEvaluator;
 	};
-
 
 
 	class ExpressionEvaluator
@@ -710,6 +709,13 @@ namespace CPP
 	};
 
 }
+
+
+template<>
+struct TCanBitwiseRelocate<CPP::Preprocessor::InputEntry>
+{
+	static constexpr int Value = 0;
+};
 
 
 #endif // CPreprocessor_H_09DCE0C0_9F70_44E8_A8B4_1C2DF2BC8685

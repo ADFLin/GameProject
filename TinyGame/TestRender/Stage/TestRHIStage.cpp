@@ -23,7 +23,7 @@ namespace Render
 
 			int texSize = 8;
 			int faceOffset = texSize * texSize;
-			std::vector<uint32> data;
+			TArray<uint32> data;
 			data.resize(faceOffset*ETexture::FaceCount);
 			uint32* pDataList[ETexture::FaceCount];
 			for (int face = 0; face < ETexture::FaceCount; ++face)
@@ -49,7 +49,7 @@ namespace Render
 
 			mTexCube = RHICreateTextureCube(ETexture::RGBA8, texSize, 0, TCF_DefalutValue, (void**)pDataList);
 
-			std::vector<uint8> readData;
+			TArray<uint8> readData;
 			RHIReadTexture(*mTexCube, ETexture::RGBA8, 0, readData);
 			mProgSkyBox = context.getAssetData().mProgSkyBox;
 

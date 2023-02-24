@@ -29,7 +29,7 @@ void ContentPanel::onOpen()
 	updateContent();
 }
 
-void SplitString(char const* str, char const* drop, std::vector<StringView>& outList)
+void SplitString(char const* str, char const* drop, TArray<StringView>& outList)
 {
 	StringView token;
 	while (FStringParse::StringToken(str, drop, token))

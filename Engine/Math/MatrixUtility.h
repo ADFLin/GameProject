@@ -99,7 +99,7 @@ namespace Math
 		static void modifyOrientation(TMatrix& m , Quaternion const& q )
 		{
 			float d = q.length2();
-			assert( d > 1e-5 );
+			assert( d > FLOAT_DIV_ZERO_EPSILON);
 			float s = 2.0f / d;
 			float xs = q.x*s , ys = q.y*s ,zs = q.z*s ;
 

@@ -6,14 +6,10 @@
 #include "RHICommon.h"
 
 #include "OpenGLHeader.h"
-
 #include "CppVersion.h"
-
 #include "LogSystem.h"
-
 #include "RefCount.h"
 
-#include <vector>
 #include <functional>
 #include <type_traits>
 
@@ -377,7 +373,7 @@ namespace Render
 		void setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
 		void setDepthInternal(RHIResource& resource, GLuint handle, ETexture::Format format, GLenum typeEnumGL);
 
-		std::vector< BufferInfo > mTextures;
+		TArray< BufferInfo > mTextures;
 		BufferInfo  mDepth;
 	};
 
@@ -625,7 +621,7 @@ namespace Render
 
 		typedef TOpenGLObject< RMPVertexArrayObject > VertexArrayObject;
 		std::unordered_map< InputStreamState, VertexArrayObject, MemberFuncHasher > mVAOMap;
-		std::vector< Element > mElements;
+		TArray< Element > mElements;
 		uint32 mAttributeMask;
 
 		virtual void releaseResource() override;

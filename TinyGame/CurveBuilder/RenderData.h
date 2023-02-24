@@ -4,6 +4,7 @@
 
 #include "Base.h"
 #include "Color.h"
+#include "DataStructure/Array.h"
 
 namespace CB
 {
@@ -36,8 +37,8 @@ namespace CB
 		int         mVertexSize;
 		bool        mbNormalOwned;
 
-		std::vector< uint8 > mVertexBuffer;
-		std::vector< uint32 > mIndexBuffer;
+		TArray< uint8 > mVertexBuffer;
+		TArray< uint32 > mIndexBuffer;
 	};
 
 

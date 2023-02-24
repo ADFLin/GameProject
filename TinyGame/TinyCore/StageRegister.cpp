@@ -22,6 +22,10 @@ ExecutionRegisterCollection::~ExecutionRegisterCollection()
 
 void ExecutionRegisterCollection::registerExecution(ExecutionEntryInfo const& info)
 {
+	if (info.group == EExecGroup::Dev)
+	{
+		int i = 1;
+	}
 	auto& stageInfoList = mGroupMap[info.group];
 
 	auto iter = std::upper_bound(stageInfoList.begin(), stageInfoList.end(), info, 
@@ -29,7 +33,7 @@ void ExecutionRegisterCollection::registerExecution(ExecutionEntryInfo const& in
 		{
 			return lhs.priority > rhs.priority;
 		});
-	mGroupMap[info.group].insert(iter, info);
+	stageInfoList.insert(iter, info);
 	mCategories.insert(info.categories.begin(), info.categories.end());
 }
 
@@ -39,9 +43,9 @@ ExecutionRegisterCollection& ExecutionRegisterCollection::Get()
 	return instance;
 }
 
-std::vector< ExecutionEntryInfo const* > ExecutionRegisterCollection::getExecutionsByCategory(HashString category)
+TArray< ExecutionEntryInfo const* > ExecutionRegisterCollection::getExecutionsByCategory(HashString category)
 {
-	std::vector< ExecutionEntryInfo const* > result;
+	TArray< ExecutionEntryInfo const* > result;
 	for (auto const& pair : mGroupMap)
 	{
 		for (auto const& info : pair.second)

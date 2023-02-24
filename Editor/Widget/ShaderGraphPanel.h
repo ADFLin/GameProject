@@ -13,6 +13,7 @@
 #include "ImNodeEditor/imgui_node_editor.h"
 #include "Renderer/SceneView.h"
 #include "Core/Tickable.h"
+#include "DataStructure/Array.h"
 
 namespace ImNode = ax::NodeEditor;
 
@@ -34,7 +35,7 @@ public:
 		std::shared_ptr<TNode> result = std::make_shared<TNode>(std::forward<TArgs>(args)...);
 		mNodesList.push_back(result);
 	}
-	std::vector<SGNodePtr> mNodesList;
+	TArray<SGNodePtr> mNodesList;
 	Render::ViewInfo mView;
 
 	Render::RHIFrameBufferRef mFrameBuffer;

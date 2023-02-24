@@ -204,7 +204,7 @@ namespace Gomoku
 		};
 
 		Rule mRule;
-		std::vector< StepInfo > mStepHistory;
+		TArray< StepInfo > mStepHistory;
 		DataType  mNextPlayColor;
 	};
 

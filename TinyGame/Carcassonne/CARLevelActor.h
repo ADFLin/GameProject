@@ -3,7 +3,7 @@
 
 #include "CARCommon.h"
 
-#include <vector>
+#include "DataStructure/Array.h"
 
 namespace CAR
 {
@@ -11,7 +11,7 @@ namespace CAR
 	class FeatureBase;
 
 
-	using ActorList = std::vector< class LevelActor* >;
+	using ActorList = TArray< class LevelActor* >;
 
 	class ActorCollection
 	{

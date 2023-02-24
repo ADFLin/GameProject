@@ -5,7 +5,7 @@
 #include <cassert>
 #include <algorithm>
 
-void GeneticAlgorithm::select(int numSelection, std::vector< GenotypePtr > const& candidates, std::vector< GenotypePtr >& outSelections)
+void GeneticAlgorithm::select(int numSelection, TArray< GenotypePtr > const& candidates, TArray< GenotypePtr >& outSelections)
 {
 	int size = candidates.size();
 	assert(numSelection <= size);
@@ -16,7 +16,7 @@ void GeneticAlgorithm::select(int numSelection, std::vector< GenotypePtr > const
 		float factor;
 	};
 
-	std::vector< GeneSelectFactor > selectFactors;
+	TArray< GeneSelectFactor > selectFactors;
 	for( int i = 0; i < size; ++i )
 	{
 		float factor = mRand.nextFloat() * Math::Exp(-selectPowerFactor * i / size);
@@ -36,7 +36,7 @@ void GeneticAlgorithm::select(int numSelection, std::vector< GenotypePtr > const
 	}
 }
 
-void GeneticAlgorithm::crossover(int numCrossover, std::vector< GenotypePtr > const& bases, std::vector< GenotypePtr >& outOffsprings)
+void GeneticAlgorithm::crossover(int numCrossover, TArray< GenotypePtr > const& bases, TArray< GenotypePtr >& outOffsprings)
 {
 	DataType outData;
 	for( int i = 0; i < numCrossover; ++i )
@@ -51,7 +51,7 @@ void GeneticAlgorithm::crossover(int numCrossover, std::vector< GenotypePtr > co
 		float powerA = 0.5;
 #if 0
 		float totalFitness = bases[idx0]->fitness + bases[idx1]->fitness;
-		if( totalFitness > 1e-5 )
+		if( totalFitness > FLOAT_DIV_ZERO_EPSILON)
 			powerA = (bases[idx0]->fitness / totalFitness);
 #endif
 
@@ -61,7 +61,7 @@ void GeneticAlgorithm::crossover(int numCrossover, std::vector< GenotypePtr > co
 	}
 }
 
-void GeneticAlgorithm::mutate(std::vector< GenotypePtr >& populations, float geneMutationProb, float valueMutationProb, float valueDelta)
+void GeneticAlgorithm::mutate(TArray< GenotypePtr >& populations, float geneMutationProb, float valueMutationProb, float valueDelta)
 {
 	for( int i = 0; i < populations.size(); ++i )
 	{
@@ -196,7 +196,7 @@ bool GenePool::haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScala
 	return false;
 }
 
-void GenePool::RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScalar dataError)
+void GenePool::RemoveIdenticalGenotype(TArray< GenotypePtr >& sortedGenotypes, float fitnessError, NNScalar dataError)
 {
 	for( int i = 0; i < sortedGenotypes.size(); ++i )
 	{

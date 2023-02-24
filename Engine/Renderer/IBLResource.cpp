@@ -207,7 +207,7 @@ namespace Render
 		}
 	}
 
-	void IBLResource::GetCubeMapData(std::vector< uint8 >& data, ETexture::Format format, int size, int level, void* outData[])
+	void IBLResource::GetCubeMapData(TArray< uint8 >& data, ETexture::Format format, int size, int level, void* outData[])
 	{
 		int formatSize = GetFormatClientSize(format);
 		int textureSize = Math::Max(size >> level, 1);
@@ -341,7 +341,7 @@ namespace Render
 			{
 				auto LoadFunc = [this](IStreamSerializer& serializer) -> bool
 				{
-					std::vector< uint8 > data;
+					TArray< uint8 > data;
 					{
 						TIME_SCOPE("Serialize BRDF Data");
 						serializer >> data;
@@ -382,7 +382,7 @@ namespace Render
 
 				dataCache.saveDelegate(GetBRDFCacheKey(), [this](IStreamSerializer& serializer) -> bool
 				{
-					std::vector< uint8 > data;
+					TArray< uint8 > data;
 					IBLResource::FillSharedBRDFData(data);
 					serializer << data;
 					return true;

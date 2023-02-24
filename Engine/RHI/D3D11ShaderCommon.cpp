@@ -18,7 +18,7 @@ namespace Render
 	class D3D11ShaderCompileIntermediates : public ShaderCompileIntermediates
 	{
 	public:
-		std::vector< TComPtr< ID3DBlob > > codeList;
+		TArray< TComPtr< ID3DBlob > > codeList;
 	};
 
 
@@ -39,7 +39,7 @@ namespace Render
 		do
 		{
 			bSuccess = true;
-			std::vector< uint8 > codeBuffer;
+			TArray< uint8 > codeBuffer;
 
 			if (!loadCode(context, codeBuffer))
 				return false;
@@ -146,7 +146,7 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatHLSL::initializeProgram(ShaderProgram& shaderProgram, std::vector< ShaderCompileDesc > const& descList, std::vector<uint8> const& binaryCode)
+	bool ShaderFormatHLSL::initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
 	{
 		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
 		shaderProgramImpl.mParameterMap.clear();
@@ -159,7 +159,7 @@ namespace Render
 		{
 			uint8 shaderType;
 			serializer.read(shaderType);
-			std::vector< uint8 > byteCode;
+			TArray< uint8 > byteCode;
 			serializer.read(byteCode);
 
 			if (!shaderProgramImpl.mShaderDatas[i].initialize(EShader::Type(shaderType), mDevice, byteCode.data(), byteCode.size()))
@@ -174,7 +174,7 @@ namespace Render
 			shaderProgramImpl.mShaderDatas[i].globalConstBufferSize = paramInfo.globalConstBufferSize;
 			if (shaderType == EShader::Vertex)
 			{
-				shaderProgramImpl.vertexByteCode = std::move(byteCode );
+				shaderProgramImpl.vertexByteCode = std::move(byteCode);
 			}
 		}
 
@@ -188,12 +188,12 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatHLSL::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
 		auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*setupData.intermediateData.get());
 
 		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
-		auto serializer = CreateBufferSerializer<VectorWriteBuffer>(outBinaryCode);
+		auto serializer = CreateBufferSerializer<ArrayWriteBuffer>(outBinaryCode);
 		uint8 numShaders = shaderProgramImpl.mNumShaders;
 		serializer.write(numShaders);
 		for (int i = 0; i < numShaders; ++i)
@@ -208,7 +208,7 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatHLSL::getBinaryCode(Shader& shader, ShaderSetupData& setupData, std::vector<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL::getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
 		auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*setupData.intermediateData.get());
 		TComPtr<ID3DBlob>& byteCode = shaderIntermediates.codeList[0];
@@ -247,12 +247,13 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderCompileDesc const& desc, std::vector<uint8> const& binaryCode)
+	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
 	{
 		shader.mRHIResource = RHICreateShader(desc.type);
 
 		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
-		std::vector<uint8> temp = binaryCode;
+		//#TODO:
+		TArray<uint8> temp{ binaryCode.begin() , binaryCode.end() };
 		if (!shaderImpl.initialize(mDevice, std::move(temp)))
 			return false;
 
@@ -287,7 +288,7 @@ namespace Render
 		return true;
 	}
 
-	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, std::vector<uint8>&& inByteCode)
+	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode)
 	{
 		if (!mResource.initialize(mType, device, inByteCode.data(), inByteCode.size()))
 			return false;

@@ -9,13 +9,13 @@
 
 #include "Platform/Windows/ComUtility.h"
 #include "CoreShare.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 #include <D3D12.h>
 #include <dxgi1_3.h>
 #include <dxgi1_4.h>
 #include <dxgi1_6.h>
+
 
 
 
@@ -176,7 +176,7 @@ namespace Render
 		uint elementSize;
 		uint numElements;
 		uint numElementsUasge;
-		std::vector< uint32 > mUsageMask;
+		TArray< uint32 > mUsageMask;
 		
 		static constexpr D3D12HeapPoolChunk* NoLinkPtr = (D3D12HeapPoolChunk*)INT_PTR(-1);
 		D3D12HeapPoolChunk* next = NoLinkPtr;
@@ -222,7 +222,7 @@ namespace Render
 	class D3D12HeapPoolData
 	{
 	public:
-		std::vector< D3D12HeapPoolChunk* > chunks;
+		TArray< D3D12HeapPoolChunk* > chunks;
 		D3D12HeapPoolChunk* availableChunk;
 
 		D3D12_DESCRIPTOR_HEAP_TYPE type;

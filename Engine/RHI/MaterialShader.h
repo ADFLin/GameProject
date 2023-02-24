@@ -45,7 +45,7 @@ namespace Render
 			GetShaderFileNameFunc inGetShaderFileName,
 			GetShaderEntriesFunc inGetShaderEntries);
 		using GlobalShaderProgramClass::GlobalShaderProgramClass;
-		CORE_API static std::vector< MaterialShaderProgramClass* > ClassList;
+		CORE_API static TArray< MaterialShaderProgramClass* > ClassList;
 	};
 
 }//namespace Render

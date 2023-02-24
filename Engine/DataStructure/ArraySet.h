@@ -1,13 +1,15 @@
-#ifndef VertorSet_h__
-#define VertorSet_h__
+#pragma once
+#ifndef ArraySet_H_2E6300B5_BD63_4817_AEB4_C5EE7D3A47D5
+#define ArraySet_H_2E6300B5_BD63_4817_AEB4_C5EE7D3A47D5
 
-#include <vector>
+#include "Array.h"
 #include <algorithm>
 
+
 template< class T , class CmpFunc = std::less< T >  >
-class TVectorSet
+class TArraySet
 {
-	typedef std::vector< T > ImplType;
+	typedef TArray< T > ImplType;
 public:
 	typedef typename ImplType::iterator       iterator;
 	typedef typename ImplType::const_iterator const_iterator;
@@ -51,8 +53,8 @@ public:
 	T&   operator[]( int idx ){ return mImpl[idx]; }
 
 private:
-	std::vector< T > mImpl;
+	TArray< T > mImpl;
 
 };
 
-#endif // VertorSet_h__
+#endif // ArraySet_H_2E6300B5_BD63_4817_AEB4_C5EE7D3A47D5

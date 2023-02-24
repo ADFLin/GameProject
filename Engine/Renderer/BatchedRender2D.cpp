@@ -5,14 +5,18 @@
 
 //#TODO : Heap Corrupted when show console frame draw Round Rect
 
+#define USE_NEW_LINE_IDNEX 1
+
 namespace Render
 {
 	constexpr int MaxBaseVerticesCount = 2048;
 	constexpr int MaxTexVerticesCount = 2048;
 	constexpr int MaxIndicesCount = 2048 * 3;
 
+	CORE_API extern TConsoleVariable< bool > CVarUseBufferResource;
+
 #if CORE_SHARE_CODE
-	CORE_API TConsoleVariable< bool > CVarUseBufferResource{ false , "g.BatchedRenderUseBuffer", CVF_TOGGLEABLE };
+	CORE_API TConsoleVariable< bool > CVarUseBufferResource{ true , "g.BatchedRenderUseBuffer", CVF_TOGGLEABLE };
 #endif
 
 	void ShapeVertexBuilder::buildRect(Vector2 const& p1, Vector2 const& p2)
@@ -163,20 +167,20 @@ namespace Render
 		}
 	}
 
-	RenderBachedElement& RenderBachedElementList::addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max)
+	RenderBatchedElement& RenderBachedElementList::addRect(ShapePaintArgs const& paintArgs, Vector2 const& min, Vector2 const& max)
 	{
-		TRenderBachedElement<RectPayload>* element = addElement< RectPayload >();
-		element->type = RenderBachedElement::Rect;
+		TRenderBatchedElement<RectPayload>* element = addElement< RectPayload >();
+		element->type = RenderBatchedElement::Rect;
 		element->payload.paintArgs = paintArgs;
 		element->payload.min = min;
 		element->payload.max = max;
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addRoundRect(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius)
+	RenderBatchedElement& RenderBachedElementList::addRoundRect(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius)
 	{
-		TRenderBachedElement<RoundRectPayload>* element = addElement< RoundRectPayload >();
-		element->type = RenderBachedElement::RoundRect;
+		TRenderBatchedElement<RoundRectPayload>* element = addElement< RoundRectPayload >();
+		element->type = RenderBatchedElement::RoundRect;
 		element->payload.paintArgs = paintArgs;
 		element->payload.pos = pos;
 		element->payload.rectSize = rectSize;
@@ -184,30 +188,30 @@ namespace Render
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addCircle(ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius)
+	RenderBatchedElement& RenderBachedElementList::addCircle(ShapePaintArgs const& paintArgs, Vector2 const& pos, float radius)
 	{
-		TRenderBachedElement<CirclePayload>* element = addElement< CirclePayload >();
-		element->type = RenderBachedElement::Circle;
+		TRenderBatchedElement<CirclePayload>* element = addElement< CirclePayload >();
+		element->type = RenderBatchedElement::Circle;
 		element->payload.paintArgs = paintArgs;
 		element->payload.pos = pos;
 		element->payload.radius = radius;
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addEllipse(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size)
+	RenderBatchedElement& RenderBachedElementList::addEllipse(ShapePaintArgs const& paintArgs, Vector2 const& pos, Vector2 const& size)
 	{
-		TRenderBachedElement<EllipsePayload>* element = addElement< EllipsePayload >();
-		element->type = RenderBachedElement::Ellipse;
+		TRenderBatchedElement<EllipsePayload>* element = addElement< EllipsePayload >();
+		element->type = RenderBatchedElement::Ellipse;
 		element->payload.paintArgs = paintArgs;
 		element->payload.pos = pos;
 		element->payload.size = size;
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax)
+	RenderBatchedElement& RenderBachedElementList::addTextureRect(Color4Type const& color, Vector2 const& min, Vector2 const& max, Vector2 const& uvMin, Vector2 const& uvMax)
 	{
-		TRenderBachedElement<TextureRectPayload>* element = addElement< TextureRectPayload >();
-		element->type = RenderBachedElement::TextureRect;
+		TRenderBatchedElement<TextureRectPayload>* element = addElement< TextureRectPayload >();
+		element->type = RenderBatchedElement::TextureRect;
 		element->payload.color = color;
 		element->payload.min = min;
 		element->payload.max = max;
@@ -216,10 +220,10 @@ namespace Render
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width)
+	RenderBatchedElement& RenderBachedElementList::addLine(Color4Type const& color, Vector2 const& p1, Vector2 const& p2, int width)
 	{
-		TRenderBachedElement<LinePayload>* element = addElement< LinePayload >();
-		element->type = RenderBachedElement::Line;
+		TRenderBatchedElement<LinePayload>* element = addElement< LinePayload >();
+		element->type = RenderBatchedElement::Line;
 		element->payload.color = color;
 		element->payload.p1 = p1;
 		element->payload.p2 = p2;
@@ -227,19 +231,25 @@ namespace Render
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addText(Color4Type const& color, std::vector< FontVertex >&& vertices)
+	RenderBatchedElement& RenderBachedElementList::addText(Color4Type const& color, TArray< FontVertex >&& vertices)
 	{
-		TRenderBachedElement<TextPayload>* element = addElement< TextPayload >();
-		element->type = RenderBachedElement::Text;
+		TRenderBatchedElement<TextPayload>* element = addElement< TextPayload >();
+		element->type = RenderBatchedElement::Text;
 		element->payload.color = color;
+#if BATCHED_ELEMENT_NO_DESTRUCT
+		element->payload.vertices = (FontVertex*)mAllocator.alloc(vertices.size() * sizeof(FontVertex));
+		FMemory::Copy(element->payload.vertices, vertices.data(), vertices.size() * sizeof(FontVertex));
+		element->payload.verticesCount = vertices.size();
+#else
 		element->payload.vertices = std::move(vertices);
+#endif
 		return *element;
 	}
 
-	RenderBachedElement& RenderBachedElementList::addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
+	RenderBatchedElement& RenderBachedElementList::addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
 	{
-		TRenderBachedElement<GradientRectPayload>* element = addElement< GradientRectPayload >();
-		element->type = RenderBachedElement::GradientRect;
+		TRenderBatchedElement<GradientRectPayload>* element = addElement< GradientRectPayload >();
+		element->type = RenderBatchedElement::GradientRect;
 		element->payload.posLT = posLT;
 		element->payload.posRB = posRB;
 		element->payload.colorLT = colorLT;
@@ -250,47 +260,50 @@ namespace Render
 
 	void RenderBachedElementList::releaseElements()
 	{
-		static_assert(std::is_trivially_destructible_v<RenderBachedElement>);
 
+#if BATCHED_ELEMENT_NO_DESTRUCT
+
+#else
 		for (auto element : mDestructElements)
 		{
 			switch (element->type)
 			{
-			case RenderBachedElement::Rect:
-				TypeDataHelper::Destruct< TRenderBachedElement<RectPayload> >(element);
+			case RenderBatchedElement::Rect:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<RectPayload> >(element);
 				break;
-			case RenderBachedElement::Circle:
-				TypeDataHelper::Destruct< TRenderBachedElement<CirclePayload> >(element);
+			case RenderBatchedElement::Circle:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<CirclePayload> >(element);
 				break;
-			case RenderBachedElement::Polygon:
-				TypeDataHelper::Destruct< TRenderBachedElement<PolygonPayload> >(element);
+			case RenderBatchedElement::Polygon:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<PolygonPayload> >(element);
 				break;
-			case RenderBachedElement::Ellipse:
-				TypeDataHelper::Destruct< TRenderBachedElement<EllipsePayload> >(element);
+			case RenderBatchedElement::Ellipse:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<EllipsePayload> >(element);
 				break;
-			case RenderBachedElement::RoundRect:
-				TypeDataHelper::Destruct< TRenderBachedElement<RoundRectPayload> >(element);
+			case RenderBatchedElement::RoundRect:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<RoundRectPayload> >(element);
 				break;
-			case RenderBachedElement::TextureRect:
-				TypeDataHelper::Destruct< TRenderBachedElement<TextureRectPayload> >(element);
+			case RenderBatchedElement::TextureRect:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<TextureRectPayload> >(element);
 				break;
-			case RenderBachedElement::Line:
-				TypeDataHelper::Destruct< TRenderBachedElement<LinePayload> >(element);
+			case RenderBatchedElement::Line:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<LinePayload> >(element);
 				break;
-			case RenderBachedElement::Text:
-				TypeDataHelper::Destruct< TRenderBachedElement<TextPayload> >(element);
+			case RenderBatchedElement::Text:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<TextPayload> >(element);
 				break;
-			case RenderBachedElement::LineStrip:
-				TypeDataHelper::Destruct< TRenderBachedElement<LineStripPayload> >(element);
+			case RenderBatchedElement::LineStrip:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<LineStripPayload> >(element);
 				break;
-			case RenderBachedElement::GradientRect:
-				TypeDataHelper::Destruct< TRenderBachedElement<GradientRectPayload> >(element);
+			case RenderBatchedElement::GradientRect:
+				FTypeMemoryOp::Destruct< TRenderBatchedElement<GradientRectPayload> >(element);
 				break;
 			}
 		}
 
-		mElements.clear();
 		mDestructElements.clear();
+#endif
+		mElements.clear();
 		mAllocator.clearFrame();
 	}
 
@@ -304,9 +317,9 @@ namespace Render
 
 	void BatchedRender::initializeRHI()
 	{
-		mBaseVertexBuffer = RHICreateVertexBuffer(sizeof(BaseVertex), MaxBaseVerticesCount, BCF_CpuAccessWrite | BCF_DefalutValue, nullptr);
-		mTexVertexBuffer = RHICreateVertexBuffer(sizeof(TexVertex), MaxTexVerticesCount, BCF_CpuAccessWrite | BCF_DefalutValue, nullptr);
-		mIndexBuffer = RHICreateIndexBuffer(MaxIndicesCount, true, BCF_CpuAccessWrite);
+		mBaseVertexBuffer.initialize(MaxBaseVerticesCount, BCF_CpuAccessWrite | BCF_UsageVertex); 
+		mTexVertexBuffer.initialize(MaxTexVerticesCount, BCF_CpuAccessWrite | BCF_UsageVertex);
+		mIndexBuffer.initialize(MaxIndicesCount, BCF_CpuAccessWrite | BCF_UsageIndex);
 	}
 
 	void BatchedRender::releaseRHI()
@@ -318,11 +331,22 @@ namespace Render
 
 	void BatchedRender::render(RHICommandList& commandList, RenderBachedElementList& elementList)
 	{
-		for (RenderBachedElement* element : elementList.mElements)
+		mCommandList = &commandList;
+		if (CVarUseBufferResource)
+		{
+			bUseBuffer = mBaseVertexBuffer.lock() &&
+			mTexVertexBuffer.lock() &&
+			mIndexBuffer.lock();
+		}
+		else
+		{
+			bUseBuffer = false;
+		}
+		for (RenderBatchedElement* element : elementList.mElements)
 		{
 			switch (element->type)
 			{
-			case RenderBachedElement::Rect:
+			case RenderBatchedElement::Rect:
 				{
 					RenderBachedElementList::RectPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::RectPayload >(element);
 					Vector2 vertices[4];
@@ -333,13 +357,17 @@ namespace Render
 					emitRect(vertices, payload.paintArgs);
 				}
 				break;
-			case RenderBachedElement::Polygon:
+			case RenderBatchedElement::Polygon:
 				{
 					RenderBachedElementList::PolygonPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::PolygonPayload >(element);
+#if BATCHED_ELEMENT_NO_DESTRUCT
+					emitPolygon(payload.posList, payload.posCount, payload.paintArgs);
+#else
 					emitPolygon(payload.posList.data(), payload.posList.size(), payload.paintArgs);
+#endif
 				}
 				break;
-			case RenderBachedElement::Circle:
+			case RenderBatchedElement::Circle:
 				{
 					RenderBachedElementList::CirclePayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::CirclePayload >(element);
 					ShapeVertexBuilder builder(mCachedPositionList);
@@ -348,7 +376,7 @@ namespace Render
 					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
 				}
 				break;
-			case RenderBachedElement::Ellipse:
+			case RenderBatchedElement::Ellipse:
 				{
 					RenderBachedElementList::EllipsePayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::EllipsePayload >(element);
 					ShapeVertexBuilder builder(mCachedPositionList);
@@ -358,7 +386,7 @@ namespace Render
 					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
 				}
 				break;
-			case RenderBachedElement::RoundRect:
+			case RenderBatchedElement::RoundRect:
 				{
 					RenderBachedElementList::RoundRectPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::RoundRectPayload >(element);
 					ShapeVertexBuilder builder(mCachedPositionList);
@@ -367,21 +395,21 @@ namespace Render
 					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
 				}
 				break;
-			case RenderBachedElement::TextureRect:
+			case RenderBatchedElement::TextureRect:
 				{
 					RenderBachedElementList::TextureRectPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::TextureRectPayload >(element);
 					int baseIndex;
-					TexVertex* pVertices = fetchTexBuffer(4, baseIndex);
+					TexVertex* pVertices = fetchTexVertex(4, baseIndex);
 					pVertices[0] = { element->transform.transformPosition(payload.min) , payload.color , payload.uvMin };
 					pVertices[1] = { element->transform.transformPosition(Vector2(payload.min.x, payload.max.y)), payload.color , Vector2(payload.uvMin.x , payload.uvMax.y) };
 					pVertices[2] = { element->transform.transformPosition(payload.max), payload.color , payload.uvMax };
 					pVertices[3] = { element->transform.transformPosition(Vector2(payload.max.x, payload.min.y)), payload.color , Vector2(payload.uvMax.x , payload.uvMin.y) };
 
-					uint32* pIndices = fetchIndexBuffer(6);
+					uint32* pIndices = fetchIndex(6);
 					FillQuad(pIndices, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
 				}
 				break;
-			case RenderBachedElement::Line:
+			case RenderBatchedElement::Line:
 				{
 					RenderBachedElementList::LinePayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::LinePayload >(element);
 
@@ -390,9 +418,14 @@ namespace Render
 					positions[1] = element->transform.transformPosition(payload.p2);
 
 					float halfWidth = 0.5 * float(payload.width);
-					Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
+					Vector2 offset[4] = 
+					{ 
+						Vector2(-halfWidth,-halfWidth) , 
+						Vector2(-halfWidth,halfWidth)  , 
+						Vector2(halfWidth,halfWidth), 
+						Vector2(halfWidth,-halfWidth) 
+					};
 
-#define USE_NEW_LINE_IDNEX 1
 #if USE_NEW_LINE_IDNEX
 					Vector2 dir = positions[1] - positions[0];
 					int index0 = dir.x < 0 ? (dir.y < 0 ? 0 : 1) : (dir.y < 0 ? 3 : 2);
@@ -401,7 +434,7 @@ namespace Render
 					int index3 = (index0 + 3) % 4;
 
 					int baseIndex;
-					BaseVertex* pVertices = fetchBaseBuffer(3 * 2, baseIndex);
+					BaseVertex* pVertices = fetchBaseVertex(3 * 2, baseIndex);
 					pVertices[0] = { positions[0] + offset[index2] , payload.color };
 					pVertices[1] = { positions[0] + offset[index3] , payload.color };
 					pVertices[2] = { positions[0] + offset[index1] , payload.color };
@@ -409,13 +442,13 @@ namespace Render
 					pVertices[4] = { positions[1] + offset[index1] , payload.color };
 					pVertices[5] = { positions[1] + offset[index3] , payload.color };
 
-					uint32* pIndices = fetchIndexBuffer(4 * 3);
+					uint32* pIndices = fetchIndex(4 * 3);
 					pIndices = FillTriangle(pIndices, baseIndex, 0, 1, 2);
 					pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
 					pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
 #else
 					int baseIndex;
-					BaseVertex* pVertices = fetchBaseBuffer(4 * 2, baseIndex);
+					BaseVertex* pVertices = fetchBaseVertex(4 * 2, baseIndex);
 					for (int i = 0; i < 2; ++i)
 					{
 						pVertices[0] = { positions[i] + offset[0] , payload.color };
@@ -425,26 +458,35 @@ namespace Render
 						pVertices += 4;
 					}
 
-					uint32* pIndices = fetchIndexBuffer(4 * 6);
+					uint32* pIndices = fetchIndex(4 * 6);
 					FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
 #endif
 				}
 				break;
-			case RenderBachedElement::LineStrip:
+			case RenderBatchedElement::LineStrip:
 				{
 					RenderBachedElementList::LineStripPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::LineStripPayload >(element);
-
+#if BATCHED_ELEMENT_NO_DESTRUCT
+					int lineCount = payload.posCount - 1;
+#else
 					int lineCount = payload.posList.size() - 1;
+#endif
 					float halfWidth = 0.5 * float(payload.width);
-					Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
+					Vector2 offset[4] = 
+					{ 
+						Vector2(-halfWidth,-halfWidth) , 
+						Vector2(-halfWidth,halfWidth)  , 
+						Vector2(halfWidth,halfWidth), 
+						Vector2(halfWidth,-halfWidth) 
+					};
 
 #if USE_NEW_LINE_IDNEX
 					int baseIndex;
-					BaseVertex* pVertices = fetchBaseBuffer(3 * 2 * lineCount, baseIndex);
-					uint32* pIndices = fetchIndexBuffer(4 * 3 * lineCount);
+					BaseVertex* pVertices = fetchBaseVertex(3 * 2 * lineCount, baseIndex);
+					uint32* pIndices = fetchIndex(4 * 3 * lineCount);
 #else
-					BaseVertex* pVertices = fetchBaseBuffer(4 * 2, baseIndex);
-					uint32* pIndices = fetchIndexBuffer(4 * 6 * lineCount);
+					BaseVertex* pVertices = fetchBaseVertex(4 * 2, baseIndex);
+					uint32* pIndices = fetchIndex(4 * 6 * lineCount);
 #endif
 
 					for( int i = 0 ; i < lineCount; ++i )
@@ -487,15 +529,20 @@ namespace Render
 					}
 				}
 				break;
-			case RenderBachedElement::Text:
+			case RenderBatchedElement::Text:
 				{
 					RenderBachedElementList::TextPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::TextPayload >(element);
 
+#if USE_NEW_LINE_IDNEX
+					int numChar = payload.verticesCount / 4;
+					FontVertex* pSrcVertices = payload.vertices;
+#else
 					int numChar = payload.vertices.size() / 4;
-					int baseIndex;
-					TexVertex* pVertices = fetchTexBuffer(4 * numChar, baseIndex);
 					FontVertex* pSrcVertices = payload.vertices.data();
-					uint32* pIndices = fetchIndexBuffer(numChar * 6);
+#endif
+					int baseIndex;
+					TexVertex* pVertices = fetchTexVertex(4 * numChar, baseIndex);
+					uint32* pIndices = fetchIndex(numChar * 6);
 					for (int i = 0; i < numChar; ++i)
 					{
 						pVertices[0] = { element->transform.transformPosition(pSrcVertices[0].pos) , payload.color , pSrcVertices[0].uv };
@@ -511,58 +558,30 @@ namespace Render
 					}
 				}
 				break;
-			case RenderBachedElement::GradientRect:
+			case RenderBatchedElement::GradientRect:
 				{
 					RenderBachedElementList::GradientRectPayload& payload = RenderBachedElementList::GetPayload< RenderBachedElementList::GradientRectPayload >(element);
 
 					int baseIndex;
-					BaseVertex* pVertices = fetchBaseBuffer(4, baseIndex);
+					BaseVertex* pVertices = fetchBaseVertex(4, baseIndex);
 					pVertices[0] = { element->transform.transformPosition(payload.posLT) , payload.colorLT };
 					pVertices[1] = { element->transform.transformPosition(Vector2(payload.posLT.x, payload.posRB.y)), payload.bHGrad ? payload.colorLT : payload.colorRB };
 					pVertices[2] = { element->transform.transformPosition(payload.posRB), payload.colorRB };
 					pVertices[3] = { element->transform.transformPosition(Vector2(payload.posRB.x, payload.posLT.y)),  payload.bHGrad ? payload.colorRB : payload.colorLT };
 
-					uint32* pIndices = fetchIndexBuffer(6);
+					uint32* pIndices = fetchIndex(6);
 					pIndices = FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
 				}
 			}
 		}
 
-		flushDrawCommond(commandList);
-	}
-
-	void BatchedRender::flushDrawCommond(RHICommandList& commandList)
-	{
-		//CHECK(mTexVerteices.size() || mBaseVertices.size());
-		if constexpr ( Meta::IsSameType< Color4Type , Color4f >::Value )
+		if (bUseBuffer)
 		{
-			if (!mBaseVertices.empty())
-			{
-				TRenderRT< RTVF_XY_CA >::DrawIndexed(commandList, EPrimitive::TriangleList, mBaseVertices.data(), mBaseVertices.size(), mBaseIndices.data(), mBaseIndices.size());
-				mBaseVertices.clear();
-				mBaseIndices.clear();
-			}
-			else if (!mTexVerteices.empty())
-			{
-				TRenderRT< RTVF_XY_CA_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, mTexVerteices.data(), mTexVerteices.size(), mBaseIndices.data(), mBaseIndices.size());
-				mTexVerteices.clear();
-				mBaseIndices.clear();
-			}
+			flushDrawCommandForBuffer(true);
 		}
 		else
 		{
-			if (!mBaseVertices.empty())
-			{
-				TRenderRT< RTVF_XY_CA8 >::DrawIndexed(commandList, EPrimitive::TriangleList, mBaseVertices.data(), mBaseVertices.size(), mBaseIndices.data(), mBaseIndices.size());
-				mBaseVertices.clear();
-				mBaseIndices.clear();
-			}
-			else if (!mTexVerteices.empty())
-			{
-				TRenderRT< RTVF_XY_CA8_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, mTexVerteices.data(), mTexVerteices.size(), mBaseIndices.data(), mBaseIndices.size());
-				mTexVerteices.clear();
-				mBaseIndices.clear();
-			}
+			flushDrawCommand();
 		}
 	}
 
@@ -570,7 +589,7 @@ namespace Render
 	{
 		assert(numV > 2);
 		int baseIndex;
-		BaseVertex* pVertices = fetchBaseBuffer(numV, baseIndex);
+		BaseVertex* pVertices = fetchBaseVertex(numV, baseIndex);
 		for (int i = 0; i < numV; ++i)
 		{
 			BaseVertex& vtx = pVertices[i];
@@ -580,7 +599,7 @@ namespace Render
 		}
 
 		int numTriangle = (numV - 2);
-		uint32* pIndices = fetchIndexBuffer(3 * numTriangle);
+		uint32* pIndices = fetchIndex(3 * numTriangle);
 		for (int i = 0; i < numTriangle; ++i)
 		{
 			pIndices = FillTriangle(pIndices, baseIndex, 0, i + 1, i + 2);
@@ -604,13 +623,13 @@ namespace Render
 		if (paintArgs.bUseBrush)
 		{
 			int baseIndex;
-			BaseVertex* pVertices = fetchBaseBuffer(4, baseIndex);
+			BaseVertex* pVertices = fetchBaseVertex(4, baseIndex);
 			pVertices[0] = { v[0] , paintArgs.brushColor };
 			pVertices[1] = { v[1] , paintArgs.brushColor };
 			pVertices[2] = { v[2] , paintArgs.brushColor };
 			pVertices[3] = { v[3] , paintArgs.brushColor };
 
-			uint32* pIndices = fetchIndexBuffer(3 * 2);
+			uint32* pIndices = fetchIndex(3 * 2);
 			FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
 		}
 
@@ -618,7 +637,7 @@ namespace Render
 		{
 			float halfWidth = 0.5 * float(paintArgs.penWidth);
 			int baseIndex;
-			BaseVertex* pVertices = fetchBaseBuffer(4 * 2, baseIndex);
+			BaseVertex* pVertices = fetchBaseVertex(4 * 2, baseIndex);
 			for (int i = 0; i < 4; ++i)
 			{
 				Vector2 e1 = Math::GetNormal( v[(i + 1) % 4] - v[i] );
@@ -629,11 +648,70 @@ namespace Render
 				pVertices += 2;
 			}
 
-			uint32* pIndices = fetchIndexBuffer(3 * 2 * 4);
+			uint32* pIndices = fetchIndex(3 * 2 * 4);
 			pIndices = FillQuad(pIndices, baseIndex, 0, 1, 3, 2);
 			pIndices = FillQuad(pIndices, baseIndex, 2, 3, 5, 4);
 			pIndices = FillQuad(pIndices, baseIndex, 4, 5, 7, 6);
 			pIndices = FillQuad(pIndices, baseIndex, 6, 7, 1, 0);
+		}
+	}
+
+	BatchedRender::BaseVertex* BatchedRender::fetchBaseVertex(int size, int& baseIndex)
+	{
+		if (bUseBuffer)
+		{
+			if (!mBaseVertexBuffer.canFetch(size))
+			{
+				flushDrawCommandForBuffer(false);
+			}
+
+			baseIndex = mBaseVertexBuffer.usedCount;
+			return mBaseVertexBuffer.fetch(size);
+		}
+		else
+		{
+			baseIndex = mBaseVertices.size();
+			mBaseVertices.resize(baseIndex + size);
+			return &mBaseVertices[baseIndex];
+		}
+
+	}
+
+	BatchedRender::TexVertex* BatchedRender::fetchTexVertex(int size, int& baseIndex)
+	{
+		if (bUseBuffer)
+		{
+			if (!mTexVertexBuffer.canFetch(size))
+			{
+				flushDrawCommandForBuffer(false);
+			}
+
+			baseIndex = mTexVertexBuffer.usedCount;
+			return mTexVertexBuffer.fetch(size);
+		}
+		else
+		{
+			baseIndex = mTexVerteices.size();
+			mTexVerteices.resize(baseIndex + size);
+			return &mTexVerteices[baseIndex];
+		}
+	}
+
+	uint32* BatchedRender::fetchIndex(int size)
+	{
+		if (bUseBuffer)
+		{
+			if (!mIndexBuffer.canFetch(size))
+			{
+				flushDrawCommandForBuffer(false);
+			}
+			return mIndexBuffer.fetch(size);
+		}
+		else
+		{
+			int index = mBaseIndices.size();
+			mBaseIndices.resize(index + size);
+			return &mBaseIndices[index];
 		}
 	}
 
@@ -642,28 +720,36 @@ namespace Render
 		float halfWidth = 0.5 * float(lineWidth);
 #if 1
 		int baseIndex;
-		BaseVertex* pVertices = fetchBaseBuffer(numV * 2, baseIndex);
+		BaseVertex* pVertices = fetchBaseVertex(numV * 2, baseIndex);
 		int index = 0;
 		for (int i = 0; i < numV; ++i)
 		{
 			Vector2 e1 = v[(i + 1) % numV] - v[i];
-			if (e1.normalize() < 1e-5)
+			if (e1.normalize() < FLOAT_DIV_ZERO_EPSILON)
 			{
 				e1 = v[(i + 2) % numV] - v[i];
 				e1.normalize();
 			}
 			Vector2 e2 = Math::GetNormal(v[(i + numV - 1) % numV] - v[i]);
-			if (e2.normalize() < 1e-5)
+			if (e2.normalize() < FLOAT_DIV_ZERO_EPSILON)
 			{
 				e2 = v[(i + numV - 2) % numV] - v[i];
 				e2.normalize();
 			}
 			Vector2 offsetDir = e1 + e2;
 			Vector2 offset;
-			if (offsetDir.normalize() > 1e-5)
+			if (offsetDir.normalize() > FLOAT_DIV_ZERO_EPSILON)
 			{
 				float s = Math::Abs(e1.cross(offsetDir));
-				offset = (halfWidth / s) * offsetDir;
+				if (s > FLOAT_DIV_ZERO_EPSILON)
+				{
+					offset = (halfWidth / s) * offsetDir;
+				}
+				else
+				{
+					offset = halfWidth * offsetDir;
+				}
+
 			}
 			else
 			{
@@ -676,21 +762,20 @@ namespace Render
 		}
 
 		int baseIndexStart = baseIndex;
-		uint32* pIndices = fetchIndexBuffer(3 * 2 * numV);
+		uint32* pIndices = fetchIndex(3 * 2 * numV);
 		for (int i = 0; i < numV - 1; ++i)
 		{
-			pIndices = FillQuad(pIndices, baseIndex + 0, baseIndex + 1, baseIndex + 3, baseIndex + 2);
+			pIndices = FillQuad(pIndices, baseIndex, 0, 1, 3, 2);
 			baseIndex += 2;
 		}
 		FillQuad(pIndices, baseIndex , baseIndex + 1, baseIndexStart + 1, baseIndexStart + 0);
 
 #else
 
-	
 		Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
 
 		int baseIndex;
-		BaseVertex* pVertices = fetchBaseBuffer(4 * numV, baseIndex);
+		BaseVertex* pVertices = fetchBaseVertex(4 * numV, baseIndex);
 		for (int i = 0; i < numV; ++i)
 		{
 			pVertices[0] = { v[i] + offset[0] , color };
@@ -700,7 +785,7 @@ namespace Render
 			pVertices += 4;
 		}
 
-		uint32* pIndices = fetchIndexBuffer(4 * 6 * numV);
+		uint32* pIndices = fetchIndex(4 * 6 * numV);
 		int indexCur = baseIndex;
 		for (int i = 0; i < numV - 1; ++i)
 		{
@@ -709,6 +794,99 @@ namespace Render
 		}
 		FillLineShapeIndices(pIndices, indexCur, baseIndex);
 #endif
+	}
+
+	void BatchedRender::flushDrawCommand()
+	{
+		//CHECK(mTexVerteices.size() || mBaseVertices.size());
+		if constexpr (Meta::IsSameType< Color4Type, Color4f >::Value)
+		{
+			if (!mBaseVertices.empty())
+			{
+				TRenderRT< RTVF_XY_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, mBaseVertices.data(), mBaseVertices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mBaseVertices.clear();
+				mBaseIndices.clear();
+			}
+			else if (!mTexVerteices.empty())
+			{
+				TRenderRT< RTVF_XY_CA_T2 >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, mTexVerteices.data(), mTexVerteices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mTexVerteices.clear();
+				mBaseIndices.clear();
+			}
+		}
+		else
+		{
+			if (!mBaseVertices.empty())
+			{
+				TRenderRT< RTVF_XY_CA8 >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, mBaseVertices.data(), mBaseVertices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mBaseVertices.clear();
+				mBaseIndices.clear();
+			}
+			else if (!mTexVerteices.empty())
+			{
+				TRenderRT< RTVF_XY_CA8_T2 >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, mTexVerteices.data(), mTexVerteices.size(), mBaseIndices.data(), mBaseIndices.size());
+				mTexVerteices.clear();
+				mBaseIndices.clear();
+			}
+		}
+	}
+
+	void BatchedRender::flushDrawCommandForBuffer(bool bEndRender)
+	{
+		if (bEndRender)
+		{
+			mBaseVertexBuffer.unlock();
+			mTexVertexBuffer.unlock();
+		}
+		else
+		{
+			if (mBaseVertexBuffer.usedCount)
+			{
+				mBaseVertexBuffer.unlock();
+			}
+			else if (mTexVertexBuffer.usedCount)
+			{
+				mTexVertexBuffer.unlock();
+			}
+		}
+
+		mIndexBuffer.unlock();
+
+		if constexpr (Meta::IsSameType< Color4Type, Color4f >::Value)
+		{
+			if (mBaseVertexBuffer.usedCount)
+			{
+				TRenderRT< RTVF_XY_CA >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *mBaseVertexBuffer, mBaseVertexBuffer.usedCount, *mIndexBuffer, mIndexBuffer.usedCount);
+			}
+			else if (mTexVertexBuffer.usedCount)
+			{
+				TRenderRT< RTVF_XY_CA_T2 >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *mTexVertexBuffer, mTexVertexBuffer.usedCount, *mIndexBuffer, mIndexBuffer.usedCount);
+			}
+		}
+		else
+		{
+			if (mBaseVertexBuffer.usedCount)
+			{
+				TRenderRT< RTVF_XY_CA8 >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *mBaseVertexBuffer, mBaseVertexBuffer.usedCount, *mIndexBuffer, mIndexBuffer.usedCount);
+			}
+			else if (mTexVertexBuffer.usedCount)
+			{
+				TRenderRT< RTVF_XY_CA8_T2 >::DrawIndexed(*mCommandList, EPrimitive::TriangleList, *mTexVertexBuffer, mTexVertexBuffer.usedCount, *mIndexBuffer, mIndexBuffer.usedCount);
+			}
+		}
+
+		if (bEndRender == false)
+		{
+			if (mBaseVertexBuffer.usedCount)
+			{
+				mBaseVertexBuffer.lock();
+			}
+			else if (mTexVertexBuffer.usedCount)
+			{
+				mTexVertexBuffer.lock();
+			}
+			mIndexBuffer.lock();
+		}
 	}
 
 }// namespace Render

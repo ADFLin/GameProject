@@ -244,7 +244,7 @@ namespace CAR
 
 		IDataTransfer*    mServerDataTranfser;
 
-		std::vector< GWidget* > mGameActionUI;
+		TArray< GWidget* > mGameActionUI;
 
 		float   mRenderScale;
 		Vector2 mRenderTileSize;
@@ -263,7 +263,7 @@ namespace CAR
 
 		IDirect3DSurface9* mSurfaceBufferTake;
 
-		std::vector< CFly::SceneNode* > mRenderObjects;
+		TArray< CFly::SceneNode* > mRenderObjects;
 		CFly::World*    mWorld;
 		
 		CFly::Scene*    mScene;
@@ -275,7 +275,7 @@ namespace CAR
 		TileId          mTileIdShow;
 
 #if CAR_USE_INPUT_COMMAND
-		std::vector< class IInputCommand* > mInputCommands;
+		TArray< class IInputCommand* > mInputCommands;
 		void addInputCommand(IInputCommand* command) { mInputCommands.push_back(command); }
 #endif
 	};

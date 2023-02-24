@@ -140,7 +140,7 @@ struct TimeScopeResult
 	~TimeScopeResult() = default;
 
 	std::string name;
-	std::vector< std::unique_ptr< TimeScopeResult > > children;
+	TArray< std::unique_ptr< TimeScopeResult > > children;
 	uint64 duration;
 
 	void logMsg(int level = 0)
@@ -163,8 +163,8 @@ struct TimeScopeResult
 
 #if CORE_SHARE_CODE
 
-thread_local std::vector< TimeScopeResult* > sTimeScopeStacks;
-CORE_API std::vector< TimeScopeResult* >& TimeScope::GetResultStack()
+thread_local TArray< TimeScopeResult* > sTimeScopeStacks;
+CORE_API TArray< TimeScopeResult* >& TimeScope::GetResultStack()
 {
 	return sTimeScopeStacks;
 }

@@ -15,7 +15,7 @@ namespace CB
 	public:
 		Curve3DFunc() :ShapeFuncBase() {}
 
-		int  getFunType() override { return TYPE_CURVE_3D; }
+		int  getFuncType() override { return TYPE_CURVE_3D; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override;
 		void evalExpr(Vector3& out, float s);
@@ -48,7 +48,7 @@ namespace CB
 		SurfaceXYFunc():SurfaceFunc() {}
 		virtual ~SurfaceXYFunc() {}
 
-		int  getFunType() override { return TYPE_SURFACE_XY; }
+		int  getFuncType() override { return TYPE_SURFACE_XY; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override { return mExpr.isParsed(); }
 		void evalExpr(Vector3& out, float x, float y)
@@ -70,7 +70,7 @@ namespace CB
 	public:
 		SurfaceUVFunc() :SurfaceFunc() {}
 
-		int  getFunType() override { return TYPE_SURFACE_UV; }
+		int  getFuncType() override { return TYPE_SURFACE_UV; }
 		bool parseExpression(FunctionParser& parser) override;
 		bool isParsed() override;
 		void evalExpr(Vector3& out, float u, float v);

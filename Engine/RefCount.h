@@ -73,7 +73,14 @@ public:
 
 	TRefCountPtr& operator = ( T* ptr ){  assign( ptr ); return *this;  }
 private:
-	void init( T* ptr ){ mPtr = ptr; if ( mPtr ) mPtr->incRef(); }
+	void init(T* ptr)
+	{
+		mPtr = ptr;
+		if (mPtr)
+		{
+			mPtr->incRef();
+		}
+	}
 	void cleanup()
 	{
 		if( mPtr )

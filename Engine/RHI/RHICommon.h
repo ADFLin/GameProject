@@ -13,9 +13,10 @@
 #include "CoreShare.h"
 #include "TemplateMisc.h"
 #include "CompilerConfig.h"
+#include "DataStructure/Array.h"
 
-#include <vector>
 #include <functional>
+
 
 
 #define USE_RHI_RESOURCE_TRACE 0
@@ -752,7 +753,7 @@ namespace Render
 		EVertex::Format  getAttributeFormat(uint8 attribute) const;
 		int              getAttributeStreamIndex(uint8 attribute) const;
 		
-		std::vector< InputElementDesc > mElements;
+		TArray< InputElementDesc > mElements;
 		uint8   mVertexSizes[MAX_INPUT_STREAM_NUM];
 
 		void updateVertexSize();

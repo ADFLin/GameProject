@@ -184,16 +184,16 @@ namespace FlappyBird
 
 		using ColObjectList = std::list< ColObject >;
 
-		std::vector< PipeInfo > mPipes;
+		TArray< PipeInfo > mPipes;
 		ColObjectList mColObjects;
-		std::vector<BirdEntity*> mAllBirds;
-		std::vector<BirdEntity*> mActiveBirds;
+		TArray<BirdEntity*> mAllBirds;
+		TArray<BirdEntity*> mActiveBirds;
 		struct BirdControl
 		{
 			BirdEntity*  bird;
 			IBirdController* controller;
 		};
-		std::vector< BirdControl > mBirdControls;
+		TArray< BirdControl > mBirdControls;
 	};
 
 }//namespace FlappyBird

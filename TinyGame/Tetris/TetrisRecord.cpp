@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <cassert>
+#include "Serialize/FileStream.h"
 
 namespace Tetris
 {
@@ -21,17 +22,19 @@ namespace Tetris
 			(r1.level > r2.level || (r1.level == r2.level &&
 									   (r1.duration > r2.duration))));
 	}
-	int RecordManager::addRecord(Record* record)
+	int RecordManager::addRecord(Record& record)
 	{
-		assert(record);
+		LinkedRecord* newRecord = new LinkedRecord;
+		newRecord->data = record;
+
 
 		int order = 0;
-		Record* prev = NULL;
-		Record* cur = mTopRecord;
+		LinkedRecord* prev = NULL;
+		LinkedRecord* cur = mTopRecord;
 
 		while( cur )
 		{
-			if( CmpRecord(*record, *cur) )
+			if( CmpRecord(newRecord->data, cur->data) )
 				break;
 
 			prev = cur;
@@ -41,70 +44,61 @@ namespace Tetris
 
 		if( prev == NULL )
 		{
-			mTopRecord = record;
-			record->next = cur;
+			mTopRecord = newRecord;
+			newRecord->next = cur;
 		}
 		else
 		{
-			record->next = cur;
-			prev->next = record;
+			newRecord->next = cur;
+			prev->next = newRecord;
 		}
 		return order;
 	}
 
 	bool RecordManager::saveFile(char const* path)
 	{
-		std::ofstream fs(path, std::ios::binary);
-
-		if( !fs.good() )
+		OutputFileSerializer serializer;
+		if (!serializer.open(path))
 			return false;
 
-		Record* record = mTopRecord;
+		IStreamSerializer::WriteOp op = serializer;
 
+		LinkedRecord* record = mTopRecord;
 		int num = 0;
-		while( record && num < NumMaxRecord )
+		while (record && num < NumMaxRecord)
 		{
-			fs.write(record->name, sizeof(record->name));
-			fs.write((char*)&record->score, sizeof(record->score));
-			fs.write((char*)&record->level, sizeof(record->level));
-			fs.write((char*)&record->duration, sizeof(record->duration));
+			op & record->data;
 			record = record->next;
 			++num;
 		}
-
-		fs.close();
-
 		return true;
 	}
 
 	bool RecordManager::loadFile(char const* path)
 	{
-		std::ifstream fs(path, std::ios::binary);
-
-		if( !fs.good() )
+		InputFileSerializer serializer;
+		if (!serializer.open(path, true))
 			return false;
 
-		Record* prevRecord = NULL;
+		IStreamSerializer::ReadOp op = serializer;
+
+		LinkedRecord* prevRecord = NULL;
 		mTopRecord = NULL;
 
-		fs.peek();
-		while( !fs.eof() )
+		while (!serializer.isEOF())
 		{
-			Record* record = new Record;
-			fs.read(record->name, sizeof(record->name));
-			fs.read((char*)&record->score, sizeof(record->score));
-			fs.read((char*)&record->level, sizeof(record->level));
-			fs.read((char*)&record->duration, sizeof(record->duration));
+			LinkedRecord* record = new LinkedRecord;
+			op & record->data;
 
-			if( prevRecord )
+			if (prevRecord)
 				prevRecord->next = record;
 			else
 				mTopRecord = record;
 
 			prevRecord = record;
-			fs.peek();
 		}
-		if( prevRecord )
+
+		if (prevRecord)
 			prevRecord->next = NULL;
 
 		return true;
@@ -117,10 +111,10 @@ namespace Tetris
 
 	void RecordManager::clear()
 	{
-		Record* record = mTopRecord;
+		LinkedRecord* record = mTopRecord;
 		while( record )
 		{
-			Record* next = record->next;
+			LinkedRecord* next = record->next;
 			delete record;
 			record = next;
 		}

@@ -44,7 +44,7 @@ namespace Render
 			uint rootSlotStart;
 		};
 		ShaderBoundStateKey     cachedKey;
-		std::vector< ShaderInfo >    mShaders;
+		TArray< ShaderInfo >    mShaders;
 		TComPtr<ID3D12RootSignature> mRootSignature;
 	};
 
@@ -140,9 +140,9 @@ namespace Render
 		bool allocNewBuffer(ID3D12DeviceRHI* device, uint32 size);
 
 		ID3D12DeviceRHI* mDevice;
-		std::vector< PageInfo > mAllocedPages;
+		TArray< PageInfo > mAllocedPages;
 		uint32 mPageSize;
-		std::vector<uint32> mFreePageIndices;
+		TArray<uint32> mFreePageIndices;
 
 	};
 
@@ -166,7 +166,7 @@ namespace Render
 		struct BufferInfo
 		{
 			uint32 size;
-			std::vector< ID3D12Resource* > resources;
+			TArray< ID3D12Resource* > resources;
 			int indexNext = 0;
 
 			
@@ -182,7 +182,7 @@ namespace Render
 		};
 
 		ID3D12DeviceRHI* mDevice;
-		std::vector< BufferInfo > mAllocedBuffers;
+		TArray< BufferInfo > mAllocedBuffers;
 		D3D12_GPU_VIRTUAL_ADDRESS mLockedGPUAddress;
 		void*  mLockPtr;
 		uint32 mLockedSize;
@@ -612,7 +612,7 @@ namespace Render
 		void waitForGpu(ID3D12CommandQueue* cmdQueue);
 		void moveToNextFrame(IDXGISwapChainRHI* swapChain);
 
-		std::vector< FrameData > mFrameDataList;
+		TArray< FrameData > mFrameDataList;
 
 	};
 
@@ -640,7 +640,7 @@ namespace Render
 		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 
 
-		std::vector < TComPtr< ID3D12Resource > > mCopyResources;
+		TArray < TComPtr< ID3D12Resource > > mCopyResources;
 		TComPtr< ID3D12GraphicsCommandListRHI >   mCopyCmdList;
 		TComPtr< ID3D12CommandQueue > mCopyCmdQueue;
 		TComPtr< ID3D12CommandAllocator > mCopyCmdAllocator;
@@ -668,11 +668,11 @@ namespace Render
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);
 
-		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 		{
 
 		}
-		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, std::vector< uint8 >& outData)
+		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
 		{
 
 		}

@@ -52,7 +52,7 @@ int FlowNodeSequence::nextFlow(int indexStart /*= 0*/)
 
 struct FlowNodeParallelPayload
 {
-	std::vector< FlowExecuteContext > contexts;
+	TArray< FlowExecuteContext > contexts;
 };
 
 FlowExecuteResult FlowNodeParallel::execEnter(FlowExecuteContext& context)

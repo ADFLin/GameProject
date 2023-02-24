@@ -1,8 +1,6 @@
 #include "VulkanCommand.h"
 
-#include <vector>
 #include "MarcoCommon.h"
-#include "StdUtility.h"
 #include "CoreShare.h"
 #include "VulkanShaderCommon.h"
 
@@ -60,7 +58,7 @@ namespace Render
 		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
 		if (extCount > 0)
 		{
-			std::vector<VkExtensionProperties> extensions(extCount);
+			TArray<VkExtensionProperties> extensions(extCount);
 			if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
 			{
 				for (auto ext : extensions)
@@ -132,14 +130,14 @@ namespace Render
 		return false;
 	}
 
-	bool VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures inEnabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices )
+	bool VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures inEnabledFeatures, TArray<const char*> enabledExtensions, void* pNextChain, bool useSwapChain /*= true*/, TArrayView< uint32 const > const& usageQueueIndices )
 	{
 		// enableFeatures = inEnabledFeatures;
 		// Desired queues need to be requested upon logical device creation
 		// Due to differing queue family configurations of Vulkan implementations this can be a bit tricky, especially if the application
 		// requests different queue types
 		const float defaultQueuePriority(0.0f);
-		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+		TArray<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
 		// Get queue family indices for the requested queue family types
 		// Note that the indices may overlap depending on the implementation
@@ -156,7 +154,7 @@ namespace Render
 
 
 		// Create the logical device representation
-		std::vector<const char*> deviceExtensions(enabledExtensions);
+		TArray<const char*> deviceExtensions(enabledExtensions);
 		if (useSwapChain)
 		{
 			// If the device will be used for presenting to a display via a swapchain we need to request the swapchain extension
@@ -362,7 +360,7 @@ namespace Render
 	{
 		// Since all depth formats may be optional, we need to find a suitable depth format to use
 		// Start with the highest precision packed format
-		std::vector<VkFormat> depthFormats =
+		TArray<VkFormat> depthFormats =
 		{
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D32_SFLOAT,
@@ -395,7 +393,7 @@ namespace Render
 
 	bool VulkanSystem::initialize(RHISystemInitParams const& initParam)
 	{
-		std::vector<VkExtensionProperties> availableExtensions = GetEnumValues(vkEnumerateInstanceExtensionProperties, nullptr);
+		TArray<VkExtensionProperties> availableExtensions = GetEnumValues(vkEnumerateInstanceExtensionProperties, nullptr);
 
 		bool const bEnableValidation = true;
 		if (!createInstance(availableExtensions, bEnableValidation))
@@ -412,7 +410,7 @@ namespace Render
 		return false;
 #endif
 
-		std::vector< VkPhysicalDevice > physicalDevices = GetEnumValues(vkEnumeratePhysicalDevices, mInstance);
+		TArray< VkPhysicalDevice > physicalDevices = GetEnumValues(vkEnumeratePhysicalDevices, mInstance);
 
 		//Choice Device
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -428,7 +426,7 @@ namespace Render
 		}
 
 
-		//TODO: EnabledFeatures
+		//#TODO: EnabledFeatures
 		mDevice = new VulkanDevice();
 		if (!mDevice->initialize(physicalDevice))
 			return false;
@@ -451,7 +449,7 @@ namespace Render
 			}
 			++indexCurrent;
 		}
-		std::vector< uint32 > uniqueQueueFamilies;
+		TArray< uint32 > uniqueQueueFamilies;
 	
 		uniqueQueueFamilies.push_back(mUsageQueueFamilyIndices[EQueueFamily::Graphics]);
 		uniqueQueueFamilies.push_back(mUsageQueueFamilyIndices[EQueueFamily::Compute]);
@@ -460,7 +458,7 @@ namespace Render
 		{
 			uniqueQueueFamilies.push_back(mUsageQueueFamilyIndices[EQueueFamily::Graphics]);
 		}
-		MakeValueUnique(uniqueQueueFamilies);
+		uniqueQueueFamilies.makeUnique();
 
 		//#TODO
 		VkPhysicalDeviceFeatures enabledDeviceFeatures = mDevice->supportFeatures;
@@ -550,7 +548,7 @@ namespace Render
 		return new VulkanShaderProgram;
 	}
 
-	bool VulkanSystem::createInstance(std::vector<VkExtensionProperties> const& availableExtensions, bool enableValidation)
+	bool VulkanSystem::createInstance(TArray<VkExtensionProperties> const& availableExtensions, bool enableValidation)
 	{
 		// Validation can also be forced via a define
 		VkApplicationInfo appInfo = {};
@@ -559,7 +557,7 @@ namespace Render
 		appInfo.pEngineName = "RHIEngine";
 		appInfo.apiVersion = 0;
 
-		std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
+		TArray<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
 		// Enable surface extensions depending on os
 #if SYS_PLATFORM_WIN
@@ -601,7 +599,7 @@ namespace Render
 			// Note that on Android this layer requires at least NDK r20 
 			const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 			// Check if this layer is available at instance level
-			std::vector<VkLayerProperties> instanceLayerProperties = GetEnumValues(vkEnumerateInstanceLayerProperties);
+			TArray<VkLayerProperties> instanceLayerProperties = GetEnumValues(vkEnumerateInstanceLayerProperties);
 			bool validationLayerPresent = FPropertyName::Find(instanceLayerProperties, "VK_LAYER_KHRONOS_validation");
 
 			if (validationLayerPresent) 
@@ -723,10 +721,10 @@ namespace Render
 	{
 		VulkanTexture2D* texture = new VulkanTexture2D;
 
-		//TODO:
+		//#TODO:
 		if (desc.format == ETexture::RGB8)
 		{
-			std::vector< uint8 > tempData;
+			TArray< uint8 > tempData;
 
 			int pixelLength = desc.dimension.x * desc.dimension.y;
 			tempData.resize(pixelLength * sizeof(uint32));
@@ -832,7 +830,7 @@ namespace Render
 			vkUnmapMemory(mDevice->logicalDevice, stagingMemory);
 
 			// Setup buffer copy regions for each mip level
-			std::vector<VkBufferImageCopy> bufferCopyRegions;
+			TArray<VkBufferImageCopy> bufferCopyRegions;
 
 			int const mipLevels = 1;
 
@@ -1060,10 +1058,10 @@ namespace Render
 		//swap chain
 		VkSurfaceCapabilitiesKHR capabilities;
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physicalDevice, surface, &capabilities);
-		std::vector<VkSurfaceFormatKHR> formats = GetEnumValues(vkGetPhysicalDeviceSurfaceFormatsKHR, device.physicalDevice, surface);
-		std::vector<VkPresentModeKHR> presentModes = GetEnumValues(vkGetPhysicalDeviceSurfacePresentModesKHR, device.physicalDevice, surface);
+		TArray<VkSurfaceFormatKHR> formats = GetEnumValues(vkGetPhysicalDeviceSurfaceFormatsKHR, device.physicalDevice, surface);
+		TArray<VkPresentModeKHR> presentModes = GetEnumValues(vkGetPhysicalDeviceSurfacePresentModesKHR, device.physicalDevice, surface);
 
-		auto  ChooseSwapSurfaceFormat = [](std::vector<VkSurfaceFormatKHR> const& availableFormats)
+		auto  ChooseSwapSurfaceFormat = [](TArray<VkSurfaceFormatKHR> const& availableFormats)
 		{
 			if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
 			{
@@ -1079,7 +1077,7 @@ namespace Render
 			}
 			return availableFormats[0];
 		};
-		auto  ChooseSwapPresentMode = [bVSync](std::vector<VkPresentModeKHR> const& availablePresentModes)
+		auto  ChooseSwapPresentMode = [bVSync](TArray<VkPresentModeKHR> const& availablePresentModes)
 		{
 			VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 			if (!bVSync)

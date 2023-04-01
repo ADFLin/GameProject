@@ -156,7 +156,7 @@ namespace Render
 				if ( pair.iKernAmount == 0)
 					continue;
 
-				uint32 key = (uint32(pair.wFirst) << 16 ) | uint32(pair.wSecond);
+				uint32 key = Math::PairingFunction(uint32(pair.wFirst), uint32(pair.wSecond));
 				outKerningMap[key] = float(pair.iKernAmount);
 			}
 		}

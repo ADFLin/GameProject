@@ -73,6 +73,25 @@ namespace FlowFree
 		return loadLevel(level, baseImage, params);
 	}
 
+	RHITexture2DRef CreateTexture(TImageView<Color3ub>& imageView)
+	{
+		RHITexture2DRef result = RHICreateTexture2D(ETexture::RGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
+
+		if (result.isValid())
+			return result;
+
+		TArray< Color4ub > temp( imageView.getWidth() * imageView.getHeight() );
+		for (int i = 0; i < temp.size(); ++i)
+		{
+			temp[i].r = imageView.getData()[i].r;
+			temp[i].g = imageView.getData()[i].g;
+			temp[i].b = imageView.getData()[i].b;
+			temp[i].a = 255;
+		}
+		result = RHICreateTexture2D(ETexture::RGBA8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)temp.data());
+		return result;
+	}
+
 	ImageReadResult ImageReader::loadLevel(Level& level, TProcImage<Color3ub> const& baseImage, LoadParams const& params)
 	{
 		TImageView< Color3ub > imageView = baseImage.view;
@@ -81,7 +100,7 @@ namespace FlowFree
 		{		
 			TIME_SCOPE("Image Process");
 
-			mDebugTextures[eOrigin] = RHICreateTexture2D(ETexture::RGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
+			mDebugTextures[eOrigin] = CreateTexture(imageView);
 		
 			{
 				TIME_SCOPE("Fill");
@@ -109,7 +128,7 @@ namespace FlowFree
 			TArray< float > grayScaleData(imageView.getWidth() * imageView.getHeight());
 			TImageView< float > grayView(grayScaleData.data(), imageView.getWidth() , imageView.getHeight());
 
-			mDebugTextures[eFliter] = RHICreateTexture2D(ETexture::RGB8, imageView.getWidth(), imageView.getHeight(), 0, 1, TCF_DefalutValue, (void*)imageView.getData());
+			mDebugTextures[eFliter] = CreateTexture(imageView); 
 
 			{
 				TIME_SCOPE("GrayScale");
@@ -331,9 +350,15 @@ namespace FlowFree
 			static int CalcThinkness(TImageView< Color3ub > const& imageView, Vec2i const& startPos, Vec2i const& dir, int len, int width = 3)
 			{
 				Vec2i offset = (dir.x != 0) ? Vec2i(0, 3) : Vec2i(3, 0);
+
 				for (int n = 0; n < width; ++n)
 				{
 					int result = 0;
+					Color3ub color;
+					int colorCount = 0;
+
+					Color3ub colorHistory[2];
+
 					Vec2i posOffset = startPos + n * offset;
 					for (int i = 0; i < len; ++i)
 					{
@@ -342,15 +367,43 @@ namespace FlowFree
 							continue;
 
 						Color3ub c = imageView(pos.x, pos.y);
-						if (IsColorEqual(c, Color3ub::Black(), 5))
+						if (IsColorEqual(c, Color3ub::Black(), 10))
 						{
 							if (result)
 								break;
 						}
+#if 0
+						else if (colorCount == 0)
+						{
+							color = c;
+							colorHistory[colorCount] = c;
+							++colorCount;
+							++result;
+						}
+						else
+						{
+							if (IsColorEqual(c, color, 20))
+							{
+								++result;
+							}
+							else if ( colorCount == 1)
+							{
+								color = c;
+								colorHistory[colorCount] = c;
+								++colorCount;
+								result = 1;
+							}
+							else
+							{
+								return -1;
+							}
+						}
+#else
 						else
 						{
 							++result;
 						}
+#endif
 					}
 
 					if (result != 0)
@@ -361,6 +414,10 @@ namespace FlowFree
 			};
 
 		};
+
+
+		//
+		Color3ub gridColor;
 
 
 
@@ -414,10 +471,6 @@ namespace FlowFree
 		{
 			for (int i = 0; i < levelSize.x; ++i)
 			{
-				if (i == 10 && j == 10)
-				{
-					int k = 1;
-				}
 				Vector2 cellLTUV = Vector2(VLines[i], HLines[j]);
 				Vector2 cellCenterUV = cellLTUV + 0.5 * gridUVSize;
 				Vector2 detectUV = cellCenterUV +gridUVSize.mul(Vector2(0, -0.1));
@@ -509,13 +562,24 @@ namespace FlowFree
 		{
 			for (int n = 0; n <= levelSize.x; ++n)
 			{
-				Vector2 CellLTUV = Vector2(VLines[n], HLines[j]);
-				Vector2 startUV = CellLTUV + Vector2(-offsetFac, 0.2).mul(gridUVSize);
-				Vector2 stopUV = CellLTUV + Vector2(+offsetFac, 0.2).mul(gridUVSize);
+				Vector2 cellLTUV = Vector2(VLines[n], HLines[j]);
+				Vector2 startUV = cellLTUV + Vector2(-offsetFac, 0.2).mul(gridUVSize);
+				Vector2 stopUV = cellLTUV + Vector2(+offsetFac, 0.2).mul(gridUVSize);
+
 				Vec2i startPos = imageView.getPixelPos(startUV);
 				Vec2i stopPos = imageView.getPixelPos(stopUV);
 				int len = stopPos.x - startPos.x + 1;
 				int thinkness = FLocal::CalcThinkness(imageView, startPos, Vec2i(1, 0), len);
+
+				if (thinkness < 0 || float(thinkness) / len > 0.4)
+				{
+					startUV = cellLTUV + Vector2(-offsetFac, 0.8).mul(gridUVSize);
+					stopUV = cellLTUV + Vector2(+offsetFac, 0.8).mul(gridUVSize);
+					startPos = imageView.getPixelPos(startUV);
+					thinkness = FLocal::CalcThinkness(imageView, startPos, Vec2i(1, 0), len);
+				}
+
+
 				EdgeInfo edge;
 				edge.bV = true;
 				edge.coord = Vec2i(n, j);
@@ -530,19 +594,22 @@ namespace FlowFree
 				else if (thinkness > 0)
 				{
 					addDebugLine(startUV, stopUV, Color3ub(0xff, 0xff, 0));
-
 				}
 				else
 				{
 					addDebugLine(startUV, stopUV, Color3ub(0xff, 0xff, 0xff));
 				}
-
 			}
 		}
 		for (int i = 0; i < levelSize.x; ++i)
 		{
 			for (int n = 0; n <= levelSize.y; ++n)
 			{
+				if (i == 1 && n == 0)
+				{
+					int k = 1;
+				}
+
 				Vector2 cellLTUV = Vector2(VLines[i], HLines[n]);
 				Vector2 startUV = cellLTUV + Vector2(0.2, -offsetFac).mul(gridUVSize);
 				Vector2 stopUV = cellLTUV + Vector2(0.2, +offsetFac).mul(gridUVSize);
@@ -550,6 +617,15 @@ namespace FlowFree
 				Vec2i stopPos = imageView.getPixelPos(stopUV);
 				int len = stopPos.y - startPos.y + 1;
 				int thinkness = FLocal::CalcThinkness(imageView, startPos, Vec2i(0, 1), len);
+
+				if (thinkness < 0 || float(thinkness) / len > 0.4)
+				{
+					startUV = cellLTUV + Vector2(0.8, -offsetFac).mul(gridUVSize);
+					stopUV = cellLTUV + Vector2(0.8, +offsetFac).mul(gridUVSize);
+					startPos = imageView.getPixelPos(startUV);
+					thinkness = FLocal::CalcThinkness(imageView, startPos, Vec2i(0, 1), len);
+				}
+
 				EdgeInfo edge;
 				edge.bV = false;
 				edge.coord = Vec2i(i, n);
@@ -588,9 +664,15 @@ namespace FlowFree
 
 			int lastType = -1;
 			int curThinkness = -100;
+			int exceptionCount = 0;
+
 			for (auto edge : sortedEdges)
 			{
-				if (edge->thinkness - curThinkness > 3)
+				if (edge->thinkness >= 10)
+				{
+					++exceptionCount;
+				}
+				else if (edge->thinkness - curThinkness > 3)
 				{
 					++lastType;
 					curThinkness = edge->thinkness;
@@ -672,7 +754,7 @@ namespace FlowFree
 					{
 						if (edge.type == 1 && level.isValidCellPos(edge.coord))
 						{
-							level.setCellBlocked(edge.coord, edge.bV ? EDir::Left : EDir::Top);
+							level.setBlockLinklBlocked(edge.coord, edge.bV ? EDir::Left : EDir::Top);
 						}
 					}
 				}
@@ -698,6 +780,10 @@ namespace FlowFree
 				}
 				params.colorMap[source.colorId - 1] = source.color;
 			}
+		}
+		if (params.gridColor)
+		{
+			*params.gridColor = gridColor;
 		}
 
 		return IRR_OK;

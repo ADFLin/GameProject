@@ -12,6 +12,7 @@
 #include "Template/ArrayView.h"
 #include "PlatformThread.h"
 #include "GameRenderSetup.h"
+#include "TemplateMisc.h"
 
 
 namespace FlowFree
@@ -19,28 +20,45 @@ namespace FlowFree
 
 #define USE_EDGE_SOLVER 0
 
-	class SolveThread : public RunnableThreadT< SolveThread >
+	class SolveThreadBase : public RunnableThreadT< SolveThreadBase >
 	{
 	public:
 
-		unsigned run() 
+		unsigned run()
 		{
-			mSolver.solve();
-			return 0; 
+			TGuardValue<bool> solveGuard(bSolving, true);
+			solve();
+			return 0;
 		}
+
+		virtual void solve() = 0;
+
 		bool init() { return true; }
 		void exit() {}
 
-		Level* mLevel;
-		DepthFirstSolver& mSolver;
+		bool    bSolving = false;
+	};
+
+	template< typename TSolver> 
+	class TSolveThread : public SolveThreadBase
+	{
+	public:
+
+		virtual void solve()
+		{
+			mSolver.solve();
+		}
+
+		Level*  mLevel;	
+		TSolver& mSolver;
 	};
 
 
-	class TestStage : public StageBase , public IGameRenderSetup
+	class LevelStage : public StageBase , public IGameRenderSetup
 	{
 		using BaseClass = StageBase;
 	public:
-		TestStage() {}
+		LevelStage() {}
 
 		virtual bool onInit() override;
 
@@ -82,27 +100,14 @@ namespace FlowFree
 #else
 		SATSolverCell mSolver2;
 #endif
-		
+		SolveThreadBase* mSolverThread = nullptr;
+
 		int numCellFilled = 0;
 		int IndexReaderTextureShow = ImageReader::DebugTextureCount;
 
 		MsgReply onMouse(MouseMsg const& msg) override;
 
-		MsgReply onKey(KeyMsg const& msg) override
-		{
-			if( msg.isDown() )
-			{
-				switch (msg.getCode())
-				{
-				case EKeyCode::R: restart(); break;
-				case EKeyCode::X: mSolver.solveNext(); break;
-				case EKeyCode::C: for (int i = 0; i < 97; ++i) mSolver.solveNext(); break;
-				case EKeyCode::P: ++IndexReaderTextureShow; if (IndexReaderTextureShow > ImageReader::DebugTextureCount) IndexReaderTextureShow = 0; break;
-				case EKeyCode::O: --IndexReaderTextureShow; if (IndexReaderTextureShow < 0) IndexReaderTextureShow = ImageReader::DebugTextureCount; break;
-				}
-			}
-			return BaseClass::onKey(msg);
-		}
+		MsgReply onKey(KeyMsg const& msg) override;
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
@@ -117,8 +122,8 @@ namespace FlowFree
 
 		Level mLevel;
 	protected:
-
 		Color3ub mColorMap[32];
+		Color3ub mGridColor;
 	};
 }
 

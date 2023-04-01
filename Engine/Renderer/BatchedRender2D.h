@@ -439,6 +439,7 @@ namespace Render
 
 			bool canFetch(int num)
 			{
+				CHECK(dataPtr);
 				return usedCount + num <= buffer->getNumElements();
 			}
 			T* fetch(int num)

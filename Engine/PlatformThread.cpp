@@ -129,10 +129,12 @@ void WindowsThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
 
 bool WindowsThread::kill()
 {
-	if ( isRunning() )
+	if ( mhThread )
 	{
 		if ( TerminateThread(mhThread,0) )
 		{
+			CloseHandle(mhThread);
+			mhThread = NULL;
 			mbRunning = false;
 			return true;
 		}

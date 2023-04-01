@@ -33,10 +33,14 @@ namespace FlowFree
 	{
 		Vec2i mapSize = level.getSize();
 		mCellMap.resize(mapSize.x, mapSize.y);
-		for (Vec2i const& pos : level.mSourceLocations)
-		{
-			mSourceIndices.push_back(mCellMap.toIndex(pos.x, pos.y));
-		}
+
+		level.visitSourcePosList(
+			[this](Vec2i const posPair[])
+			{
+				mSourceIndices.push_back(mCellMap.toIndex(posPair[0].x, posPair[0].y));
+				mSourceIndices.push_back(mCellMap.toIndex(posPair[1].x, posPair[1].y));
+			}
+		);
 
 		struct SortedCellInfo
 		{
@@ -288,7 +292,7 @@ namespace FlowFree
 
 		Vec2i size = level.getSize();
 
-		int colorCount = level.mSourceLocations.size() / 2;
+		int colorCount = level.getSourceCount();
 		colorCount = 1;
 		assert(colorCount <= MaxColorCount);
 
@@ -484,13 +488,37 @@ namespace FlowFree
 
 	bool SATSolverCell::solve(Level& level)
 	{
+		bool bFullSolve = false;
 		mSAT.reset();
 
 		Vec2i size = level.getSize();
 		mSize = size;
-		mColorCount = level.mSourceLocations.size() / 2;
-		assert(mColorCount <= MaxColorCount);
 
+		assert(mColorCount <= MaxColorCount);
+		uint8 colorMap[MaxColorCount];
+
+		if (bFullSolve)
+		{
+			mColorCount = level.getSourceCount();
+			for (int i = 0; i < mColorCount; ++i)
+			{
+				colorMap[i] = i + 1;
+			}
+		}
+		else
+		{
+			mColorCount = 0;
+			level.visitSources(
+				[this, &colorMap](Vec2i const posPair[], Cell const& cellA, Cell const& cellB)
+				{
+					if (!cellA.bCompleted)
+					{
+						colorMap[mColorCount] = cellA.funcMeta;
+						++mColorCount;
+					}
+				}
+			);
+		}
 
 		auto GetLinkPosSkipBirdge = [&level](Vec2i const& pos, int dir) -> Vec2i
 		{
@@ -511,8 +539,11 @@ namespace FlowFree
 		{
 			TIME_SCOPE("SAT Setup");
 #define IGNORE_CELLS 1
-			auto DoseHaveVar = [](Cell const& cell)
+			auto DoseHaveVar = [bFullSolve](Cell const& cell)
 			{
+				if (!bFullSolve && cell.bCompleted)
+					return false;
+
 #if IGNORE_CELLS
 				if (cell.func == CellFunc::Block ||
 					cell.func == CellFunc::Bridge)
@@ -520,6 +551,7 @@ namespace FlowFree
 #endif
 				return true;
 			};
+
 
 			mVarMap.resize(size.x, size.y);
 			for (int j = 0; j < size.y; ++j)
@@ -530,19 +562,22 @@ namespace FlowFree
 
 					Cell const& cell = level.getCellChecked(pos);
 
-					if ( DoseHaveVar(cell) )
-					{
-						for (int c = 0; c < mColorCount; ++c)
-						{
-							auto var = mSAT->newVar();
-							mVarMap(i, j).colors[c] = var;
-						}
+					if ( !DoseHaveVar(cell) )
+						continue;
 
-						for (int t = 0; t < ConnectTypeCount; ++t)
-						{
-							auto var = mSAT->newVar();
-							mVarMap(i, j).conTypes[t] = var;
-						}
+					//LogMsg("var cell(%d,%d)", i, j);
+
+					for (int c = 0; c < mColorCount; ++c)
+					{
+						auto var = mSAT->newVar();
+						mVarMap(i, j).colors[c] = var;
+						
+					}
+
+					for (int t = 0; t < ConnectTypeCount; ++t)
+					{
+						auto var = mSAT->newVar();
+						mVarMap(i, j).conTypes[t] = var;
 					}
 				}
 			}
@@ -557,8 +592,11 @@ namespace FlowFree
 
 					Cell const& cell = level.getCellChecked(pos);
 
+					if (!bFullSolve && cell.bCompleted)
+						continue;
+
 					//Every cell is assigned a single color
-					if ( DoseHaveVar(cell) )
+					if ( DoseHaveVar(cell) /*&& cell.func != CellFunc::Source*/ )
 					{
 						Minisat::vec< SATLit > literals;
 						for (int c = 0; c < mColorCount; ++c)
@@ -575,11 +613,13 @@ namespace FlowFree
 					case CellFunc::Source:
 						{
 							//The color of every endpoint cell is known and specified
-							int sourceColor = cell.funcMeta - 1;
+							int sourceColor = cell.funcMeta;
+							int ci = INDEX_NONE;
 							for (int c = 0; c < mColorCount; ++c)
 							{
-								if (c == sourceColor)
+								if (colorMap[c] == sourceColor)
 								{
+									ci = c;
 									mSAT->addClause(Lit(getColorVar(pos, c)));
 								}
 								else
@@ -587,7 +627,7 @@ namespace FlowFree
 									mSAT->addClause(~Lit(getColorVar(pos, c)));
 								}
 							}
-
+							CHECK_SAT_STATUS;
 							//Every endpoint cell has exactly one neighbor which matches its color
 							Minisat::vec< SATLit > literals;
 							for (int dir = 0; dir < DirCount; ++dir)
@@ -598,7 +638,11 @@ namespace FlowFree
 								}
 
 								Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
-								literals.push(Lit(getColorVar(linkPos, sourceColor)));
+								Cell& linkCell = level.getCellChecked(linkPos);
+								if (!bFullSolve && linkCell.bCompleted)
+									continue;
+
+								literals.push(Lit(getColorVar(linkPos, ci)));
 							}
 
 							if (!literals.empty())
@@ -649,9 +693,10 @@ namespace FlowFree
 								Vec2i ConPos0 = GetLinkPosSkipBirdge(pos, linkDirs[0]);
 								Vec2i ConPos1 = GetLinkPosSkipBirdge(pos, linkDirs[1]);
 #if IGNORE_CELLS
-								if ( !(DoseHaveVar(level.getCellChecked(ConPos0)) && DoseHaveVar(level.getCellChecked(ConPos1))) )		
+								if ( !DoseHaveVar(level.getCellChecked(ConPos0)) || !DoseHaveVar(level.getCellChecked(ConPos1)) )		
 								{
 									mSAT->addClause(~Tij);
+									CHECK_SAT_STATUS;
 								}
 								else
 #endif
@@ -675,6 +720,11 @@ namespace FlowFree
 												continue;
 
 											Vec2i linkPos = GetLinkPosSkipBirdge(pos, dir);
+											Cell& linkCell = level.getCellChecked(linkPos);
+
+											if (!bFullSolve && linkCell.bCompleted)
+												continue;
+
 											mSAT->addClause(~Tij, ~Cij, ~Lit(getColorVar(linkPos, c)));
 										}
 										CHECK_SAT_STATUS;
@@ -720,6 +770,9 @@ namespace FlowFree
 					Vec2i pos = Vec2i(i, j);
 					Cell const& cell = level.getCellChecked(pos);
 
+					if (!bFullSolve && cell.bCompleted)
+						continue;
+
 					auto& cellSolution = mSolution(i, j);
 					switch (cell.func)
 					{
@@ -738,7 +791,7 @@ namespace FlowFree
 							{
 								if (mSAT->modelValue(getColorVar(pos, c)).isTrue())
 								{
-									cellSolution.color = c + 1;
+									cellSolution.color = colorMap[c];
 									break;
 								}
 							}

@@ -351,27 +351,13 @@ public:
 	void insert(iterator where, T const& val)
 	{
 		int indexPos = where - begin();
-		int numMove = end() - where;
-		T* ptr = addUninitialized(1);
-		if (numMove)
-		{
-			FTypeMemoryOp::MoveRightOverlap(getElement(indexPos + 1), numMove, getElement(indexPos));
-		}
-
-		FTypeMemoryOp::Construct(getElement(indexPos), val);
+		insertAt(indexPos, val);
 	}
 
 	void insert(iterator where, size_t num, T const& val)
 	{
 		int indexPos = where - begin();
-		int numMove = end() - where;
-		T* ptr = addUninitialized(num);
-		if (numMove)
-		{
-			FTypeMemoryOp::MoveRightOverlap(getElement(indexPos + num), numMove, getElement(indexPos));
-		}
-
-		FTypeMemoryOp::ConstructSequence(getElement(indexPos), num, val);
+		insertAt(indexPos, num, val);
 	}
 
 	template< typename Iter, TEnableIf_Type< TIsIterator<Iter>::Value, bool > = true >
@@ -387,6 +373,30 @@ public:
 		}
 
 		FTypeMemoryOp::ConstructSequence(getElement(indexPos), addSize, itBegin, itEnd);
+	}
+
+	void insertAt(int indexPos, T const& val)
+	{
+		int numMove = size() - indexPos;
+		T* ptr = addUninitialized(1);
+		if (numMove)
+		{
+			FTypeMemoryOp::MoveRightOverlap(getElement(indexPos + 1), numMove, getElement(indexPos));
+		}
+
+		FTypeMemoryOp::Construct(getElement(indexPos), val);
+	}
+
+	void insertAt(int indexPos, size_t num, T const& val)
+	{
+		int numMove = size() - indexPos;
+		T* ptr = addUninitialized(num);
+		if (numMove)
+		{
+			FTypeMemoryOp::MoveRightOverlap(getElement(indexPos + num), numMove, getElement(indexPos));
+		}
+
+		FTypeMemoryOp::ConstructSequence(getElement(indexPos), num, val);
 	}
 
 	bool addUnique(T const& val)
@@ -456,7 +466,7 @@ public:
 		FTypeMemoryOp::Destruct(getElement(mNum));
 	}
 
-	int findIndex(T const& value)
+	int findIndex(T const& value) const
 	{
 		for (int index = 0; index < mNum; ++index)
 		{
@@ -467,7 +477,7 @@ public:
 	}
 
 	template< typename TFunc >
-	int findIndexPred(TFunc&& func)
+	int findIndexPred(TFunc&& func) const
 	{
 		for (int index = 0; index < mNum; ++index)
 		{

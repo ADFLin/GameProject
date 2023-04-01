@@ -33,6 +33,7 @@ namespace FlowFree
 			float houghThreshold  = 0.60;
 
 			Color3ub* colorMap = nullptr;
+			Color3ub* gridColor = nullptr;
 
 			int removeHeadHLineCount = 0;
 		};

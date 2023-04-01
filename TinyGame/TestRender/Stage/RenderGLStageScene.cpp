@@ -48,7 +48,7 @@ namespace Render
 		mMeshs.resize(ARRAY_SIZE(gMeshLists));
 		mMaterialAssets.resize(ARRAY_SIZE(gMaterialLists));
 
-		typedef std::function< void(int id, StaticMesh* mesh, int section, OBJMaterialInfo const* mat) > MaterialBuildFun;
+		typedef std::function< void(int id, StaticMesh* mesh, int section, OBJMaterialInfo const* mat) > MaterialBuildFunc;
 		class MaterialBuilder : public OBJMaterialBuildListener
 		{
 		public:
@@ -56,13 +56,13 @@ namespace Render
 			{
 				function(id, mesh, idxSection, mat);
 			}
-			MaterialBuildFun function;
+			MaterialBuildFunc function;
 			int id;
 			StaticMesh* mesh;
 		};
 
 		
-		MaterialBuildFun buildFun = [this](int id, StaticMesh* mesh, int section, OBJMaterialInfo const* matInfo)
+		MaterialBuildFunc BuildFunc = [this](int id, StaticMesh* mesh, int section, OBJMaterialInfo const* matInfo)
 		{
 
 			if( matInfo == nullptr )
@@ -140,7 +140,7 @@ namespace Render
 			unsigned run()
 			{
 				wglMakeCurrent(hDC, hLoadRC);
-				loadingFun();
+				loadingFunc();
 				return 0;
 			}
 
@@ -154,7 +154,7 @@ namespace Render
 			}
 			HDC   hDC;
 			HGLRC hLoadRC;
-			std::function< void() > loadingFun;
+			std::function< void() > loadingFunc;
 			std::function< void() > exitFun;
 		};
 
@@ -166,7 +166,7 @@ namespace Render
 
 		LoadAssetTask* loadingTask = new LoadAssetTask;
 		mGpuSync.bUseFence = true;
-		loadingTask->loadingFun = [this , buildFun]()
+		loadingTask->loadingFunc = [this , BuildFunc]()
 		{
 			for( int i = 0; i < ARRAY_SIZE(gMaterialLists); ++i )
 			{
@@ -221,7 +221,7 @@ namespace Render
 			MeshSkip[MeshId::Skeleton] = skeletonSkip;
 
 			MaterialBuilder materialBuilder;
-			materialBuilder.function = buildFun;
+			materialBuilder.function = BuildFunc;
 			for( int i = 0; i < ARRAY_SIZE(gMeshLists); ++i )
 			{
 				if ( i == MeshId::Vanille )

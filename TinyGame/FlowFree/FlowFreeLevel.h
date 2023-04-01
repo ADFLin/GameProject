@@ -4,8 +4,7 @@
 
 #include "DataStructure/Grid2D.h"
 #include "Math/TVector2.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 namespace FlowFree
 {
@@ -31,12 +30,19 @@ namespace FlowFree
 	{
 		return (dir + (DirCount / 2)) % DirCount;
 	}
-	FORCEINLINE void WarpPos(int& p, int size)
+	FORCEINLINE bool WarpPos(int& p, int size)
 	{
 		if (p < 0)
+		{
 			p += size;
+			return true;
+		}
 		else if (p >= size)
+		{
 			p -= size;
+			return true;
+		}
+		return false;
 	}
 
 	enum class CellFunc : uint8
@@ -44,6 +50,7 @@ namespace FlowFree
 		Empty = 0,
 		Source,
 		Bridge,
+		Tunnel,
 		Block,
 	};
 
@@ -53,16 +60,33 @@ namespace FlowFree
 
 		int getColor(int dir) const { return colors[dir]; }
 
-		ColorType     colors[DirCount];
+		union
+		{
+			ColorType  colors[DirCount];
+			uint32     colorValue;
+		};
+
 		CellFunc      func;
 		uint8         funcMeta;
 		EdgeMask      blockMask;
-		mutable uint8 bFilledCached : 1;
-		mutable uint8 bFilledCachedDirty : 1;
+
+		union
+		{
+			struct
+			{
+				mutable uint8 bFilledCached : 1;
+				mutable uint8 bFilledCachedDirty : 1;
+				uint8         bCompleted : 1;
+				uint8         bStartSource : 1;
+				uint8         paddingFlags : 4;
+			};
+			uint8 flags;
+		};
 
 		void removeFlow(int dir)
 		{
 			colors[dir] = 0;
+			flags = 0;
 		}
 
 		void setSource(ColorType color)
@@ -77,7 +101,7 @@ namespace FlowFree
 			if (colors[dir])
 				return 0;
 
-			return getFunFlowColor(dir);
+			return getFuncFlowColor(dir);
 		}
 
 		int  getNeedBreakDirs(int dir, int outDirs[DirCount]);
@@ -86,8 +110,13 @@ namespace FlowFree
 
 		int  getLinkedFlowDir(int dir) const;
 
-		ColorType getFunFlowColor(int dir = -1, ColorType inColor = 0) const;
+		ColorType getFuncFlowColor(int dir = -1, ColorType inColor = 0) const;
 
+		void flowClear()
+		{
+			colorValue = 0;
+			flags = 0;
+		}
 		void flowOut(int dir, ColorType color)
 		{
 			colors[dir] = color;
@@ -99,13 +128,24 @@ namespace FlowFree
 			if (colors[dir])
 				return false;
 
-			if (getFunFlowColor(dir, color) == 0)
+			if (getFuncFlowColor(dir, color) == 0)
 				return false;
 
 			colors[dir] = color;
 			bFilledCachedDirty = true;
 			return true;
 		}
+
+		void restore(uint32 value)
+		{
+			colorValue = value;
+			bFilledCachedDirty = true;
+		}
+	};
+
+	struct LevelState
+	{
+		TGrid2D< uint32 > colors;
 	};
 
 	class Level
@@ -115,29 +155,86 @@ namespace FlowFree
 		void setup(Vec2i const& size);
 
 		void addMapBoundBlock(bool bHEdge = true , bool bVEdge= true);
+
 		Vec2i getSize() const
 		{
 			return Vec2i(mCellMap.getSizeX(), mCellMap.getSizeY());
 		}
+
 
 		bool isValidCellPos(Vec2i const& cellPos) const
 		{
 			return Vec2i(0, 0) <= cellPos && cellPos < Vec2i(mCellMap.getSizeX(), mCellMap.getSizeY());
 		}
 
-		void addSource(Vec2i const& posA, ColorType color)
+		void saveState(LevelState& outState) const
 		{
-			getCellChecked(posA).setSource(color);
-			mSourceLocations.push_back(posA);
+			if (outState.colors.getSize() != mCellMap.getSize())
+			{
+				outState.colors.resize(mCellMap.getSizeX(), mCellMap.getSizeY());
+			}
+
+			for (int i = 0; i < mCellMap.getRawDataSize(); ++i)
+			{
+				Cell const& cell = mCellMap[i];
+				outState.colors[i] = cell.colorValue;
+			}
+		}
+
+		void restoreState(LevelState const& state)
+		{
+			CHECK(state.colors.getSize() == mCellMap.getSize());
+
+			for (int i = 0; i < mCellMap.getRawDataSize(); ++i)
+			{
+				Cell& cell = mCellMap[i];
+				cell.restore(state.colors[i]);
+			}
+		}
+
+		bool addSource(Vec2i const& pos, ColorType color)
+		{
+			getCellChecked(pos).setSource(color);
+			for (int i = 0; i < mSources.size(); ++i)
+			{
+				SourceInfo& source = mSources[i];
+				Cell& cell = getCellChecked(source.posPair[0]);
+				if (cell.funcMeta == color)
+				{
+					if (source.posPair[1] != Vec2i(INDEX_NONE, INDEX_NONE))
+					{
+						return false;
+					}
+					source.posPair[1] = pos;
+					return true;
+				}
+			}
+
+			SourceInfo source;
+			source.posPair[0] = pos;
+			source.posPair[1] = Vec2i(INDEX_NONE, INDEX_NONE);
+			mSources.push_back(source);
+			return true;
 		}
 
 		void addSource(Vec2i const& posA, Vec2i const& posB, ColorType color)
 		{
 			getCellChecked(posA).setSource(color);
-			mSourceLocations.push_back(posA);
 			getCellChecked(posB).setSource(color);
-			mSourceLocations.push_back(posB);
+			SourceInfo info;
+			info.posPair[0] = posA;
+			info.posPair[1] = posB;
+			mSources.push_back(info);
 		}
+
+		int getSourceCount() const
+		{
+			return mSources.size();
+		}
+
+		Vec2i getSourcePos(ColorType color);
+
+		void updateGobalStatus();
 
 		void setCellFunc(Vec2i const& pos, CellFunc func)
 		{
@@ -150,12 +247,12 @@ namespace FlowFree
 			{
 				for (int dir = 0; dir < DirCount; ++dir)
 				{
-					setCellBlocked(pos, dir);
+					setBlockLinklBlocked(pos, dir);
 				}
 			}
 		}
 
-		void setCellBlocked(Vec2i const& pos, int dir)
+		void setBlockLinklBlocked(Vec2i const& pos, int dir)
 		{
 			Vec2i linkPos = getLinkPos(pos, dir);
 			getCellChecked(pos).blockMask |= BIT(dir);
@@ -189,7 +286,7 @@ namespace FlowFree
 		int checkFilledCellCount() const
 		{
 			int count = 0;
-			visitAllCells([&count](Cell const& cell)
+			visitCells([&count](Cell const& cell)
 			{
 				if (cell.isFilled())
 					++count;
@@ -198,6 +295,8 @@ namespace FlowFree
 		}
 
 		BreakResult breakFlow(Vec2i const& pos, int dir, ColorType curColor);
+
+		void clearAllFlows();
 
 		Cell* findSourceCell(Vec2i const& pos, int dir, int& outDist);
 
@@ -210,11 +309,17 @@ namespace FlowFree
 
 		Vec2i getLinkPos(Vec2i const& pos, int dir)
 		{
+			bool bWarpPos;
+			return getLinkPos(pos, dir, bWarpPos);
+		}
+
+		Vec2i getLinkPos(Vec2i const& pos, int dir, bool& bWarpPos)
+		{
 			assert(mCellMap.checkRange(pos.x, pos.y));
 
 			Vec2i result = pos + gDirOffset[dir];
-			WarpPos(result.x, mCellMap.getSizeX());
-			WarpPos(result.y, mCellMap.getSizeY());
+			bWarpPos |= WarpPos(result.x, mCellMap.getSizeX());
+			bWarpPos |= WarpPos(result.y, mCellMap.getSizeY());
 			return result;
 		}
 
@@ -225,45 +330,142 @@ namespace FlowFree
 			return &mCellMap.getData(pos.x, pos.y);
 		}
 
-
-		template< class TFunc >
-		void visitAllCellsBreak(TFunc&& func) const
+		template< typename TFunc >
+		bool visitCells(TFunc&& func) const
 		{
+			constexpr bool bCanBreak = !Meta::IsSameType< decltype(func(Cell())), void >::Value;
 			for (int i = 0; i < mCellMap.getRawDataSize(); ++i)
 			{
-				if (func(mCellMap.getRawData()[i]))
-					return;
+				if constexpr (bCanBreak)
+				{
+					if (func(mCellMap.getRawData()[i]))
+						return true;
+				}
+				else
+				{
+					func(mCellMap.getRawData()[i]);
+				}
 			}
-		}
-		template< class TFunc >
-		void visitAllCells(TFunc&& func) const
-		{
-			for (int i = 0; i < mCellMap.getRawDataSize(); ++i)
-			{
-				func(mCellMap.getRawData()[i]);
-			}
+			return false;
 		}
 
-		template< class TFunc >
-		void visitAllSourcesBreak(TFunc&& func) const
+		template< typename TFunc >
+		bool visitCells(TFunc&& func)
 		{
-			for (auto const& pos : mSourceLocations)
+			constexpr bool bCanBreak = !Meta::IsSameType< decltype(func(Cell())), void >::Value;
+
+			for (int i = 0; i < mCellMap.getRawDataSize(); ++i)
 			{
-				if (func(pos, getCellChecked(pos)))
-					return;
+				if constexpr (bCanBreak)
+				{
+					if (func(mCellMap.getRawData()[i]))
+						return true;
+				}
+				else
+				{
+					func(mCellMap.getRawData()[i]);
+				}
 			}
+			return false;
 		}
-		template< class TFunc >
-		void visitAllSources(TFunc&& func) const
+
+
+		template< typename TFunc >
+		bool visitSources(TFunc&& func)
 		{
-			for (auto const& pos : mSourceLocations)
+			constexpr bool bCanBreak = !Meta::IsSameType< decltype(func((Vec2i*)(nullptr), Cell(), Cell())), void >::Value;
+
+			for (auto const& source : mSources)
 			{
-				func(pos, getCellChecked(pos));
+				if constexpr (bCanBreak)
+				{
+					if (func(source.posPair, getCellChecked(source.posPair[0]), getCellChecked(source.posPair[1])))
+						return true;
+				}
+				else
+				{
+					func(source.posPair, getCellChecked(source.posPair[0]), getCellChecked(source.posPair[1]));
+				}
 			}
+
+			return false;
 		}
+
+
+		template< typename TFunc >
+		bool visitSourcePosList(TFunc&& func)
+		{
+			constexpr bool bCanBreak = !Meta::IsSameType< decltype(func((Vec2i*)(nullptr))), void >::Value;
+
+			for (auto const& source : mSources)
+			{
+				if constexpr (bCanBreak)
+				{
+					if (func(source.posPair))
+						return true;
+				}
+				else
+				{
+					func(source.posPair);
+				}
+			}
+
+			return false;
+		}
+
+
+		template< typename TFunc >
+		bool visitFlow(Vec2i const& sourcePos, int startDir, bool bVisitStart, TFunc&& func)
+		{
+			constexpr bool bCanBreak = !Meta::IsSameType< decltype(func(Vec2i(), Cell())), void >::Value;
+
+			Vec2i pos = sourcePos;
+			Cell* cell = &getCellChecked(pos);
+
+			if (bVisitStart)
+			{
+				if constexpr (bCanBreak)
+				{
+					if (func(pos, *cell))
+						return true;
+				}
+				else
+				{
+					func(pos, *cell);
+				}
+			}
+			int dir = startDir;
+			for (;;)
+			{
+				if (dir == INDEX_NONE)
+					break;
+
+				pos = getLinkPos(pos, dir);
+				cell = &getCellChecked(pos);
+
+				if constexpr (bCanBreak)
+				{
+					if (func(pos, *cell))
+						return true;
+				}
+				else
+				{
+					func(pos, *cell);
+				}
+				dir = cell->getLinkedFlowDir(InverseDir(dir));
+			}
+			return false;
+		}
+
+		
 
 		TGrid2D< Cell > mCellMap;
-		std::vector< Vec2i > mSourceLocations;
+
+		struct SourceInfo
+		{
+			Vec2i posPair[2];
+		};
+		TArray< SourceInfo > mSources;
 	};
 
 

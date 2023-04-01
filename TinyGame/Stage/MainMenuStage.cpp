@@ -13,6 +13,7 @@
 #include "StageRegister.h"
 #include "RenderUtility.h"
 #include "Localization.h"
+#include "PropertySet.h"
 
 #include "Poker/PokerGame.h"
 #include "MiscTestStage.h"
@@ -97,59 +98,126 @@ bool MainMenuStage::onInit()
 	::Global::GUI().addWidget( button );
 #endif
 
-	TArray< HashString > categories = ExecutionRegisterCollection::Get().getRegisteredCategories();
-	GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(100, 20), NULL);
-	for (auto const& category : categories)
 	{
-		InlineString< 128 > title;
-		int count = ExecutionRegisterCollection::Get().getExecutionsByCategory(category).size();
-		title.format("%s (%d)", category.c_str(), count);
-		uint slot = choice->addItem(title);
+		TArray< HashString > categories = ExecutionRegisterCollection::Get().getRegisteredCategories();
+		GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(100, 20), NULL);
+		for (auto const& category : categories)
+		{
+			InlineString< 128 > title;
+			int count = ExecutionRegisterCollection::Get().getExecutionsByCategory(category).size();
+			title.format("%s (%d)", category.c_str(), count);
+			uint slot = choice->addItem(title);
+		}
+
+		choice->onEvent = [this](int event, GWidget* widget) -> bool
+		{
+			for (auto widget : mCategoryWidgets)
+			{
+				widget->destroy();
+			}
+			mCategoryWidgets.clear();
+
+			char const* selectValue = static_cast<GChoice*>(widget)->getSelectValue();
+			char const* last = FStringParse::FindChar(selectValue, '(');
+			StringView category = StringView{ selectValue , size_t(last - selectValue) };
+			category.trimEnd();
+			TArray< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
+
+			std::sort(stageInfoList.begin(), stageInfoList.end(), [](ExecutionEntryInfo const* lhs, ExecutionEntryInfo const* rhs)
+			{
+				return FCString::Compare(lhs->title, rhs->title) < 0;
+			});
+
+			int index = 0;
+			for (auto info : stageInfoList)
+			{
+				Vec2i pos = Vec2i(20, 45) + Vec2i(0, index * 25);
+				GButton* button = new GButton(UI_ANY, pos, Vec2i(200, 20), nullptr);
+				button->setTitle(info->title);
+				button->onEvent = [this, info](int event, GWidget* widget) -> bool
+				{
+					execEntry(*info);
+					return false;
+				};
+				mCategoryWidgets.push_back(button);
+				::Global::GUI().addWidget(button);
+				++index;
+			}
+
+			return false;
+		};
+
+		::Global::GUI().addWidget(choice);
+
 	}
 
-	choice->onEvent = [this](int event, GWidget* widget) -> bool
+
 	{
-		for (auto widget :mCategoryWidgets )
+		TArray< char const* > execHistroy;
+		::Global::GameConfig().getStringValues("Entry", "ExecHistory", execHistroy);
+
+		GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 50), Vec2i(100, 20), NULL);
+		for (auto const& entryName : execHistroy)
 		{
-			widget->destroy();
+			uint slot = choice->addItem(entryName);
 		}
-		mCategoryWidgets.clear();
 
-		char const* selectValue = static_cast<GChoice*>(widget)->getSelectValue();
-		char const* last = FStringParse::FindChar(selectValue, '(');
-		StringView category = StringView{ selectValue , size_t( last - selectValue) };
-		category.trimEnd();
-		TArray< ExecutionEntryInfo const*> stageInfoList = ExecutionRegisterCollection::Get().getExecutionsByCategory(category);
-
-		std::sort(stageInfoList.begin(), stageInfoList.end(), [](ExecutionEntryInfo const* lhs, ExecutionEntryInfo const* rhs)
+		choice->onEvent = [this](int event, GWidget* widget) -> bool
 		{
-			return FCString::Compare(lhs->title, rhs->title) < 0;
-		});
-
-		int index = 0;
-		for (auto& info : stageInfoList)
-		{
-			Vec2i pos = Vec2i(20, 45) + Vec2i(0, index * 25 );
-			GButton* button = new GButton(UI_ANY, pos , Vec2i(200, 20), nullptr );
-			button->setTitle(info->title);
-			button->onEvent = [this,info](int event, GWidget* widget) -> bool
+			char const* selectValue = static_cast<GChoice*>(widget)->getSelectValue();
+			auto const* info = ExecutionRegisterCollection::Get().findExecutionByTitle(selectValue);
+			if ( info )
 			{
-				info->execFunc();
-				return false;
-			};
-			mCategoryWidgets.push_back(button);
-			::Global::GUI().addWidget(button);
-			++index;
-		}
+				execEntry(*info);
+			}
+			return false;
+		};
 
-		return false;
-	};
-
-	::Global::GUI().addWidget(choice);
+		::Global::GUI().addWidget(choice);
+	}
 
 	changeWidgetGroup( UI_MAIN_GROUP );
 	return true;
 }
+
+
+void MainMenuStage::execEntry(ExecutionEntryInfo const& info)
+{
+	info.execFunc();
+
+	char const* SectionName = "ExecHistory";
+	char const* EntryName = "Entry";
+
+	int maxEntry = ::Global::GameConfig().getIntValue("MaxCount", SectionName, 10);
+	TArray< char const* > execHistroy;
+	::Global::GameConfig().getStringValues(EntryName, SectionName, execHistroy);
+
+	int index = execHistroy.findIndexPred([&info](char const* name)
+	{
+		return FCString::Compare(info.title, name) == 0;
+	});
+
+	if (index != INDEX_NONE)
+	{
+		if (index != 0)
+		{
+			execHistroy.removeIndex(index);
+			execHistroy.insertAt(0, info.title);
+		}
+	}
+	else if (execHistroy.size() >= maxEntry)
+	{
+		execHistroy.pop_back();
+		execHistroy.insertAt(0, info.title);
+	}
+	else
+	{
+		execHistroy.insertAt(0, info.title);
+	}
+
+	::Global::GameConfig().setStringValues(EntryName, SectionName, execHistroy, true);
+}
+
 
 class MainOptionBook : public GNoteBook
 {
@@ -369,6 +437,8 @@ void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 		}
 	}
 }
+
+
 #undef  CREATE_BUTTON
 
 void MainMenuStage::changeStageGroup(EExecGroup group)
@@ -449,7 +519,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 
 		if ( info )
 		{
-			info->execFunc();
+			execEntry(*info);
 			return false;
 		}
 	}

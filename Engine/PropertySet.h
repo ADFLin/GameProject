@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 
+#define PROPERTYSET_GLOBAL_SECTION "__GLOBAL__"
 
 class  KeyValue
 {
@@ -47,7 +48,6 @@ private:
 	mutable SavedValue mCacheGetValue;
 	friend class KeySection;
 	friend class PropertySet;
-	int  mSequenceOrder = INDEX_NONE;
 	std::string mValue;
 };
 
@@ -74,6 +74,27 @@ public:
 		return &mKeyMap.emplace(keyName, std::forward<T>(value))->second;
 	}
 
+	template< typename TFunc >
+	bool visitKeys(char const* keyName, TFunc&& func)
+	{
+		bool constexpr bCanBreak = Meta::IsSameType< decltype(func(KeyValue())) , bool > ::Value;
+
+		auto iterPair = mKeyMap.equal_range(keyName);
+		for (auto iter = iterPair.first; iter != iterPair.second; ++iter)
+		{
+			if constexpr (bCanBreak)
+			{
+				if (func(iter->second))
+					return true;
+			}
+			else
+			{
+				func(iter->second);
+			}
+		}
+		return false;
+	}
+
 	bool removeKeyValue(char const* keyName, char const* value)
 	{
 		auto iterPair = mKeyMap.equal_range(keyName);
@@ -86,6 +107,15 @@ public:
 			}
 		}
 		return false;
+	}
+
+	void setKeyValues(char const* keyName, TArray<char const*> const& values)
+	{
+		mKeyMap.erase(keyName);
+		for (auto value : values)
+		{
+			mKeyMap.emplace(keyName, value);
+		}
 	}
 
 	void removeKey(char const* keyName)
@@ -163,9 +193,10 @@ public:
 		RemoveStop,
 	};
 	template< typename TFunc >
-	void visit(char const* sectionName, char const* keyName, TFunc&& func);
+	bool visit(char const* sectionName, char const* keyName, TFunc&& func);
 
-	void setKeyValue(char const* section, char const* keyName, char const* value);
+	void setKeyValue(char const* sectionName, char const* keyName, char const* value);
+	void setKeyValues(char const* sectionName, char const* keyName, TArray<char const*> const& values, bool bSorted = false);
 };
 
 class  PropertySet
@@ -189,34 +220,39 @@ public:
 	bool        saveFile( char const* path );
 	bool        loadFile( char const* path );
 
-	void        getStringValues(char const* keyName, char const* section, TArray< char const* >& outValue)
-	{
-
-
-	}
-	void        setStringValues(char const* keyName, char const* section, TArray< char const* > const&& values)
-	{
-
-	}
+	void        getStringValues(char const* keyName, char const* section, TArray< char const* >& outValue);
+	void        setStringValues(char const* keyName, char const* section, TArray< char const* > const& values, bool bSorted = false);
 
 	template< class T >
 	void setKeyValue( char const* keyName , char const* section , T&& value )
 	{
+		if (section == nullptr)
+			section = PROPERTYSET_GLOBAL_SECTION;
+
+		mFile.setKeyValue(section, keyName, FStringConv::From(value));
+
 		auto& sectionData = mSectionMap[section];
 		sectionData.setKeyValue( keyName , std::forward<T>(value) );
-		mFile.setKeyValue(section, keyName, FStringConv::From(value));
 	}
 
 	void setKeyValue(char const* keyName, char const* section, char const* value)
 	{
+		if (section == nullptr)
+			section = PROPERTYSET_GLOBAL_SECTION;
+
+		mFile.setKeyValue(section, keyName, value);
+
 		auto& sectionData = mSectionMap[section];
 		sectionData.setKeyValue(keyName, value);
-		mFile.setKeyValue(section, keyName, value);
+
 	}
 
 	template< class TFunc >
 	void visitSection( char const* section , TFunc&& func )
 	{
+		if (section == nullptr)
+			section = PROPERTYSET_GLOBAL_SECTION;
+
 		auto iter = mSectionMap.find(section);
 		if (iter != mSectionMap.end())
 		{
@@ -238,9 +274,6 @@ private:
 	using KeySectionMap = std::unordered_map< std::string , KeySection >;
 	KeySectionMap mSectionMap;
 	PropertyFile mFile;
-
-	int mNextSectionSeqOrder;
-	int mNextValueSeqOrder;
 };
 
 #endif // PropertySet_H_F7B8B66E_A07B_44DF_BA67_8895369C3C8E

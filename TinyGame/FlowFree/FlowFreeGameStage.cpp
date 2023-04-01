@@ -3,8 +3,12 @@
 
 
 #include "DrawEngine.h"
+#include "RHI/RHICommand.h"
+#include "InputManager.h"
 
-REGISTER_STAGE_ENTRY("Flow Free Game", FlowFree::TestStage , EExecGroup::Test);
+using namespace Render;
+
+REGISTER_STAGE_ENTRY("Flow Free Game", FlowFree::LevelStage , EExecGroup::Test, "Game");
 
 
 namespace FlowFree
@@ -132,30 +136,113 @@ namespace FlowFree
 		"- - - - - - - - -"
 	};
 
-	void ReadLevel(Level& level, char const* mapData )
+	LevelData Level_Unsolvable2 = { 12 , 15 , EBoundType::Close ,
+		"- - - a - - - - - - - -"
+		"- b - - - c - - - - - -"
+		"- a - - - - - - - - - -"
+		"- d - - - e - - f - - -"
+		"- - - - - - - - - - - -"
+		"- - - - f - - - - - - -"
+		"- - - - - - g - - - - -"
+		"- - - - h - - - g - - -"
+		"- - - - - - - - - - - -"
+		"- b - - - - - - - - - -"
+		"- c - - i - - - - - - -"
+		"- - - - - - - e - - - -"
+		"- - j - - - - - k h - -"
+		"- - k - - - j - - - - -"
+		"d - - - - i - - - - - -"
+	};
+
+#define DEFAULT_LEVEL Level_Unsolvable2
+
+	std::string ExportLevel(Level const& level, bool bStringLiteral = false)
+	{
+		std::string result;
+		Vec2i size = level.getSize();
+
+		for (int j = 0; j < size.y; ++j )
+		{
+			if (bStringLiteral)
+			{
+				result += '\"';
+			}
+			for (int i = 0; i < size.x; ++i)
+			{
+				Cell const& cell = level.getCellChecked(Vec2i(i, j));
+				switch (cell.func)
+				{
+				case CellFunc::Empty:
+					result += '-';
+					break;
+				case CellFunc::Source:
+					{
+						char c = 'a' + cell.funcMeta - 1;
+						result += c;
+					}
+					break;
+				case CellFunc::Bridge:
+					result += '+';
+					break;
+				case CellFunc::Tunnel:
+					break;
+				case CellFunc::Block:
+					result += '#';
+					break;
+				}
+
+				if (i != size.x - 1)
+				{
+					result += ' ';
+				}
+			}
+
+			if (bStringLiteral)
+			{
+				result += '\"';
+			}
+			result += '\n';
+		}
+
+		return result;
+	}
+
+	void ImportLevel(Level& level, char const* mapData )
 	{
 		int index = 0;
 		while (*mapData != 0)
 		{
 			char c = *mapData;
-			if ( c == ' ' )
+			switch (c)
 			{
-				--index;
-			}
-			else if (c == '-')
-			{
+			case ' ':
+			case '\n':
+			case '\r':
+				{
+					--index;
+				}
+				break;
+			case '-':
+				{
 
+				}
+				break;
+			case '+':
+				{
+					level.setCellFunc(Vec2i(index % level.getSize().x, index / level.getSize().x), CellFunc::Bridge);
+				}
+				break;
+			case '#':
+				{
+					level.setCellFunc(Vec2i(index % level.getSize().x, index / level.getSize().x), CellFunc::Block);
+				}
+				break;
+			default:
+				{
+					int color = c - 'a' + 1;
+					level.addSource(Vec2i(index % level.getSize().x, index / level.getSize().x), color);
+				}
 			}
-			else if (c == '#')
-			{
-				level.setCellFunc(Vec2i(index % level.getSize().x, index / level.getSize().x), CellFunc::Block);
-			}
-			else
-			{
-				int color = c - 'a' + 1;
-				level.addSource(Vec2i(index % level.getSize().x, index / level.getSize().x), color);
-			}
-
 			++index;
 			++mapData;
 		}
@@ -168,7 +255,7 @@ namespace FlowFree
 		{
 			level.addMapBoundBlock();
 		}
-		ReadLevel(level, data.mapData);
+		ImportLevel(level, data.mapData);
 	}
 
 
@@ -205,12 +292,12 @@ namespace FlowFree
 			});
 		}
 
-		TestStage* stage;
+		LevelStage* stage;
 		ImageReader::TProcImage< Color3ub > imageData;
 		ImageReader::LoadParams mParams;
 	};
 
-	bool TestStage::onInit()
+	bool LevelStage::onInit()
 	{
 		if (!BaseClass::onInit())
 			return false;
@@ -219,28 +306,29 @@ namespace FlowFree
 
 		for (int i = 0; i < ARRAY_SIZE(mColorMap); ++i)
 		{
-			int const ColorNum = 8;
+			int const ColorNum = 10;
 			int color = (i) % ColorNum + 1; 
 			int colorType = (i) / ColorNum;
-			mColorMap[i] = RenderUtility::GetColor(color, colorType);
+			mColorMap[i] = RenderUtility::GetColor(color, colorType); 
 		}
 
 		auto frame = WidgetUtility::CreateDevFrame();
 
-		frame->addButton("Load/Solve Image Level", [this](int event, GWidget* widget)
+		auto LoadImageLevel = [this]() -> bool
 		{
 			InlineString< 512 > imagePath;
-			if (SystemPlatform::OpenFileName(imagePath, imagePath.max_size(), {}, nullptr , nullptr , ::Global::GetDrawEngine().getWindowHandle() ) )
+			if (SystemPlatform::OpenFileName(imagePath, imagePath.max_size(), {}, nullptr, nullptr, ::Global::GetDrawEngine().getWindowHandle()))
 			{
 				ImageReader::LoadParams params;
 				params.colorMap = mColorMap;
+				params.gridColor = &mGridColor;
 
 				ImageReader::TProcImage< Color3ub > imageData;
 				if (ImageReader::LoadImage(imagePath, imageData))
 				{
 					if (mReader.loadLevel(mLevel, imageData, params) == IRR_OK)
 					{
-						mSolver2.solve(mLevel);
+						return true;
 					}
 					else
 					{
@@ -251,19 +339,45 @@ namespace FlowFree
 						::Global::GUI().addWidget(frame);
 					}
 				}
-
 			}
+			return false;
+		};
 
+		frame->addButton("Load/Solve Image Level", [this, LoadImageLevel](int event, GWidget* widget)
+		{
+			if (LoadImageLevel())
+			{
+				mSolver2.solve(mLevel);
+			}
 			return false;
 		});
-			
+		frame->addButton("Load Image Level", [this, LoadImageLevel](int event, GWidget* widget)
+		{
+			LoadImageLevel();
+			return false;
+		});
+		frame->addButton("Solve Level", [this](int event, GWidget* widget)
+		{
+			mSolver2.solve(mLevel);
+			return false;
+		});
+
+		frame->addButton("Clear Flow", [this](int event, GWidget* widget)
+		{
+			mLevel.clearAllFlows();
+			return false;
+		});
+
+
 		restart();
 		return true;
 	}
 
-	void TestStage::restart()
+	void LevelStage::restart()
 	{
 		bStartFlowOut = false;
+
+		mGridColor = Color3ub(255, 255, 255);
 
 #if 0
 		mLevel.setSize(Vec2i(5, 5));
@@ -275,7 +389,7 @@ namespace FlowFree
 		mLevel.addSource(Vec2i(3, 3), Vec2i(4, 0), EColor::Yellow);
 		mLevel.addSource(Vec2i(3, 4), Vec2i(4, 1), EColor::Orange);
 #else
-		LoadLevel(mLevel, Level7);
+		LoadLevel(mLevel, DEFAULT_LEVEL);
 #endif
 
 #if 0
@@ -288,24 +402,25 @@ namespace FlowFree
 		int i = 1;
 	}
 
-	Vec2i TestStage::ToScreenPos(Vec2i const& cellPos)
+	Vec2i LevelStage::ToScreenPos(Vec2i const& cellPos)
 	{
 		return ScreenOffset + CellLength * cellPos;
 	}
 
-	Vec2i TestStage::ToCellPos(Vec2i const& screenPos)
+	Vec2i LevelStage::ToCellPos(Vec2i const& screenPos)
 	{
 		return (screenPos - ScreenOffset) / CellLength;
 	}
 
-	void TestStage::onRender(float dFrame)
+	void LevelStage::onRender(float dFrame)
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
+		RHICommandList& commandList = g.getCommandList();
+
+		RHISetFrameBuffer(commandList, nullptr);
+		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 
 		g.beginRender();
-
-		glClearColor(0, 0, 0, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
 
 		Vec2i size = mLevel.getSize();
 
@@ -350,7 +465,7 @@ namespace FlowFree
 					uint8 connectMask = cellState.connectMask;
 #else
 
-					auto solvedCell = mSolver2.getSolvedCell(cellPos);
+					auto const& solvedCell = mSolver2.getSolvedCell(cellPos);
 #endif
 
 					if (cell.func == CellFunc::Bridge)
@@ -428,9 +543,37 @@ namespace FlowFree
 			}
 		}
 		
-		RenderUtility::SetPen(g, EColor::White);
+
+		for (int i = 0; i < size.x; ++i)
+		{
+			for (int j = 0; j < size.y; ++j)
+			{
+				Vec2i cellPos = Vec2i(i, j);
+				int cellIndex = mLevel.mCellMap.toIndex(i, j);
+				Cell const& cell = mLevel.getCellChecked(Vec2i(i, j));
+				if (!cell.bCompleted)
+					continue;
+
+				for (int dir = 0; dir < DirCount; ++dir)
+				{
+					ColorType color = cell.colors[dir];
+					if (!color)
+						continue;
+
+					g.beginBlend(0.3f);
+					SetColor(color);
+
+					Vec2i posCellLT = ScreenOffset + CellLength * Vec2i(i, j);
+					g.drawRect(posCellLT, Vec2i(CellLength, CellLength));
+					g.endBlend();
+					break;
+				}
+			}
+		}
 
 #if 1
+		//RenderUtility::SetPen(g, EColor::White);
+		g.setPen(mGridColor);
 		for( int i = 0; i <= size.x; ++i )
 		{
 			Vec2i start = ScreenOffset + Vec2i(i * CellLength, 0);
@@ -457,7 +600,6 @@ namespace FlowFree
 				Solver::Cell const& cellData = mSolver.getCell(cellPos);
 #endif
 
-
 				Vec2i posCellLT = ScreenOffset + CellLength * Vec2i(i, j);
 				switch( cell.func )
 				{
@@ -470,13 +612,13 @@ namespace FlowFree
 					break;
 				}
 
-
 				for( int dir = 0; dir < DirCount; ++dir )
 				{
-					if ( !cell.colors[dir] )
+					ColorType color = cell.colors[dir];
+					if ( !color )
 						continue;
 
-					SetColor(cell.funcMeta);
+					SetColor(color);
 					DrawConnection(posCellLT, dir);
 				}
 
@@ -486,7 +628,9 @@ namespace FlowFree
 					{
 						RenderUtility::SetPen(g, EColor::Red);
 
-						if (cell.func == CellFunc::Block && mLevel.getCellChecked(mLevel.getLinkPos(cellPos, dir)).func == CellFunc::Block)
+						bool bWarpPos = false;
+						Vec2i linkPos = mLevel.getLinkPos(cellPos, dir, bWarpPos);
+						if (cell.func == CellFunc::Block && ( bWarpPos || mLevel.getCellChecked(linkPos).func == CellFunc::Block) )
 							continue;
 
 						if ( cell.blockMask & BIT(dir) )
@@ -501,6 +645,13 @@ namespace FlowFree
 						}
 					}
 				}
+
+#if 0
+				if (cell.func == CellFunc::Source)
+				{
+					g.drawText(posCellLT, FStringConv::From(cell.funcMeta));
+				}
+#endif
 			}
 		}
 		if (IndexReaderTextureShow != ImageReader::DebugTextureCount)
@@ -515,9 +666,10 @@ namespace FlowFree
 				}
 				Vector2 size = Vector2(300, 300 * scale);
 				Vector2 pos = ::Global::GetScreenSize() - size - Vector2(10, 10);
+				g.setBrush(Color3f(1, 1, 1));
 				g.drawTexture(*tex, pos, size);
 
-				if (IndexReaderTextureShow == ImageReader::eOrigin || 
+				if (IndexReaderTextureShow == ImageReader::eOrigin ||
 					IndexReaderTextureShow == ImageReader::eFliter)
 				{
 					for (auto line : mReader.debugLines)
@@ -534,7 +686,7 @@ namespace FlowFree
 		g.endRender();
 	}
 
-	MsgReply TestStage::onMouse(MouseMsg const& msg)
+	MsgReply LevelStage::onMouse(MouseMsg const& msg)
 	{
 		if (msg.onLeftDown())
 		{
@@ -543,13 +695,11 @@ namespace FlowFree
 			if (mLevel.isValidCellPos(cPos))
 			{
 				bStartFlowOut = true;
-				flowOutColor = mLevel.getCellChecked(cPos).getFunFlowColor();
+				flowOutColor = mLevel.getCellChecked(cPos).getFuncFlowColor();
 				flowOutCellPos = cPos;
-				if (mLevel.breakFlow(cPos, 0, 0) == Level::BreakResult::NoBreak)
+				if (mLevel.breakFlow(cPos, 0, 0) != Level::BreakResult::NoBreak)
 				{
-
-
-
+					mLevel.updateGobalStatus();
 				}
 			}
 		}
@@ -592,6 +742,7 @@ namespace FlowFree
 
 						if (mLevel.breakFlow(cPos, dir, flowOutColor) == Level::BreakResult::HaveBreakSameColor)
 						{
+							mLevel.updateGobalStatus();
 							flowOutCellPos = cPos;
 						}
 						else
@@ -602,6 +753,7 @@ namespace FlowFree
 								flowOutCellPos = cPos;
 								flowOutColor = linkColor;
 							}
+							mLevel.updateGobalStatus();
 						}
 					}
 					else
@@ -615,6 +767,55 @@ namespace FlowFree
 		}
 
 		return BaseClass::onMouse(msg);
+	}
+
+	MsgReply LevelStage::onKey(KeyMsg const& msg)
+	{
+		if (msg.isDown())
+		{
+			switch (msg.getCode())
+			{
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::X: mSolver.solveNext(); break;
+			case EKeyCode::Z: for (int i = 0; i < 97; ++i) mSolver.solveNext(); break;
+			case EKeyCode::P: ++IndexReaderTextureShow; if (IndexReaderTextureShow > ImageReader::DebugTextureCount) IndexReaderTextureShow = 0; break;
+			case EKeyCode::O: --IndexReaderTextureShow; if (IndexReaderTextureShow < 0) IndexReaderTextureShow = ImageReader::DebugTextureCount; break;
+			case EKeyCode::C:
+				{
+					if (InputManager::Get().isKeyDown(EKeyCode::Control))
+					{
+#ifdef SYS_PLATFORM_WIN
+						if (::OpenClipboard(NULL))
+						{
+							EmptyClipboard();
+							std::string mapData = ExportLevel(mLevel, true);
+							if (!mapData.empty())
+							{
+								HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE,
+									(mapData.length() + 1) * sizeof(char));
+
+								if (hglbCopy)
+								{
+									char* lptstrCopy = (char*)GlobalLock(hglbCopy);
+									if (lptstrCopy)
+									{
+										memcpy(lptstrCopy, mapData.data(), mapData.length());
+										lptstrCopy[mapData.length()] = 0;
+										GlobalUnlock(hglbCopy);
+
+										SetClipboardData(CF_TEXT, hglbCopy);
+									}
+								}
+							}
+							::CloseClipboard();
+						}
+#endif //SYS_PLATFORM_WIN
+					}
+				}
+				break;
+			}
+		}
+		return BaseClass::onKey(msg);
 	}
 
 }//namespace Flow

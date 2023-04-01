@@ -83,6 +83,7 @@ public:
 	TArray< ExecutionEntryInfo > const& getGroupExecutions(EExecGroup group) { return mGroupMap[group]; }
 	TINY_API TArray< ExecutionEntryInfo const* > getExecutionsByCategory(HashString category);
 
+	TINY_API ExecutionEntryInfo const* findExecutionByTitle(char const* title);
 	void cleanup()
 	{
 		mGroupMap.clear();
@@ -92,6 +93,7 @@ public:
 	{
 		return TArray< HashString >{ mCategories.begin(), mCategories.end() };
 	}
+
 private:
 	std::unordered_map< EExecGroup, TArray< ExecutionEntryInfo > > mGroupMap;
 	std::unordered_set< HashString > mCategories;

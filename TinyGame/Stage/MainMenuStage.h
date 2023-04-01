@@ -48,6 +48,8 @@ public:
 	void createStageGroupButton(int& delay, int& xUI, int& yUI);
 
 
+	void execEntry(ExecutionEntryInfo const& info);
+
 	std::vector< GWidget* > mCategoryWidgets;
 	EExecGroup mCurGroup;
 

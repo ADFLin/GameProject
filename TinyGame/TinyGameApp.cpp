@@ -450,7 +450,6 @@ struct FData
 	int index;
 	std::function< void() > func;
 	std::unordered_set<HashString> set;
-
 };
 
 template<>
@@ -458,6 +457,25 @@ struct TCanBitwiseRelocate<FData>
 {
 	static constexpr int Value = 0;
 };
+
+void RunArrayTest()
+{
+	TArray<FData> List;
+	for (int i = 0; i < 64; ++i)
+	{
+		List.emplace_back(i);
+	}
+
+	for (int i = 0; i < 64; ++i)
+	{
+		for (auto const& v : List[i].set)
+		{
+
+
+		}
+	}
+}
+
 
 bool TinyGameApp::initializeGame()
 {
@@ -467,22 +485,6 @@ bool TinyGameApp::initializeGame()
 	CreateConsole();
 
 	gLogPrinter.addDefaultChannels();
-	{
-		TArray<FData> List;
-		for (int i = 0; i < 64; ++i)
-		{
-			List.emplace_back(i);
-		}
-
-		for (int i = 0; i < 64; ++i)
-		{
-			for (auto const& v : List[i].set)
-			{
-
-
-			}
-		}
-	}
 
 #if SYS_PLATFORM_WIN && 0
 	{

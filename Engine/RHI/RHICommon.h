@@ -739,6 +739,8 @@ namespace Render
 		InputLayoutDesc(InputLayoutDesc const& other) = default;
 		InputLayoutDesc& operator = (InputLayoutDesc const& other) = default;
 
+		bool   isEmpty() const  {  return mElements.empty();  }
+
 		void   clear();
 		uint16 getElementOffset(int idx) const { return mElements[idx].offset; }
 		uint8  getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }

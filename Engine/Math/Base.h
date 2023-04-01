@@ -124,7 +124,7 @@ namespace Math
 	}
 
 	template< class T >
-	static constexpr T ToTileValue(T value, T tileLength)
+	constexpr T ToTileValue(T value, T tileLength)
 	{
 		if constexpr (std::is_signed_v< T >)
 		{
@@ -132,6 +132,13 @@ namespace Math
 				value -= tileLength - 1;
 		}
 		return value / tileLength;
+	}
+
+	template< typename T >
+	constexpr T PairingFunction(T a, T b)
+	{
+		T p = a + b;
+		return (p + 1) * p / 2 + b;
 	}
 }//namespace Math
 

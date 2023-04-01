@@ -20,15 +20,15 @@ namespace Render
 		int const nI = (bHaveSkirt) ? (6 * tileSize * tileSize + 4 * 6 * tileSize) : (6 * tileSize * tileSize);
 
 		float d = len / tileSize;
-		mesh.mInputLayoutDesc.clear();
+
 		//need texcoord?
 #define TILE_NEED_TEXCOORD 1
 
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 #if TILE_NEED_TEXCOORD
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2, 0);
 #endif
-
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -1169,6 +1169,7 @@ namespace Render
 
 	bool FMeshBuild::IcoSphere(Mesh& mesh, float radius, int numDiv)
 	{
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
 
@@ -1353,6 +1354,7 @@ namespace Render
 	bool FMeshBuild::LightCone(Mesh& mesh)
 	{
 		int numSide = 96;
+		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);

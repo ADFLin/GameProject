@@ -28,50 +28,50 @@ Color3f FColorConv::HSVToRGB(Vector3 hsv)
 
 FColorConv::Vector3 FColorConv::RGBToHSV(Color3f rgb)
 {
-	Vector3  result;
+	Vector3  hsv;
 	float min = rgb.r < rgb.g ? rgb.r : rgb.g;
 	min = min < rgb.b ? min : rgb.b;
 
 	float max = rgb.r > rgb.g ? rgb.r : rgb.g;
 	max = max > rgb.b ? max : rgb.b;
 
-	result.z = max;                                // v
+	hsv.z = max;                                // v
 	float delta = max - min;
 	if (delta < 0.00001)
 	{
-		result.y = 0;
-		result.x = 0; // undefined, maybe nan?
-		return result;
+		hsv.y = 0;
+		hsv.x = 0; // undefined, maybe nan?
+		return hsv;
 	}
 	if (max > 0.0) 
 	{ // NOTE: if Max is == 0, this divide would cause a crash
-		result.y = (delta / max);                  // s
+		hsv.y = (delta / max);                  // s
 	}
 	else
 	{
 		// if max is 0, then r = g = b = 0              
 		// s = 0, h is undefined
-		result.y = 0.0;
-		result.x = NAN;                            // its now undefined
-		return result;
+		hsv.y = 0.0;
+		hsv.x = NAN;                            // its now undefined
+		return hsv;
 	}
 	if (rgb.r >= max)  // > is bogus, just keeps compilor happy
 	{
-		result.x = (rgb.g - rgb.b) / delta;        // between yellow & magenta
+		hsv.x = (rgb.g - rgb.b) / delta;        // between yellow & magenta
 	}
 	else if (rgb.g >= max)
 	{
-		result.x = 2.0 + (rgb.b - rgb.r) / delta;  // between cyan & yellow
+		hsv.x = 2.0 + (rgb.b - rgb.r) / delta;  // between cyan & yellow
 	}
 	else
 	{
-		result.x = 4.0 + (rgb.r - rgb.g) / delta;  // between magenta & cyan
+		hsv.x = 4.0 + (rgb.r - rgb.g) / delta;  // between magenta & cyan
 	}
 
-	result.x *= 60.0;                              // degrees
+	hsv.x *= 60.0;                              // degrees
 
-	if (result.x < 0.0)
-		result.x += 360.0;
+	if (hsv.x < 0.0)
+		hsv.x += 360.0;
 
-	return result;
+	return hsv;
 }

@@ -25,7 +25,6 @@ namespace FlowFree
 	public:
 		virtual void setup(Level& level) = 0;
 		virtual bool solve(Level& level) = 0;
-		virtual EdgeMask getConnectMask(Vec2i const& pos) = 0;
 
 		static ISolverInterface* Create(ESolverModel model);
 	};
@@ -240,7 +239,11 @@ namespace FlowFree
 
 		struct SATWapper
 		{
-			void reset() { mImpl.reset(new Minisat::Solver); }
+			void reset() 
+			{
+				mImpl.reset(new Minisat::Solver); 
+				mImpl->verbosity = 1;
+			}
 			operator Minisat::Solver& () { return *mImpl.get(); }
 			Minisat::Solver* operator->() { return mImpl.get(); }
 			std::unique_ptr< Minisat::Solver > mImpl;

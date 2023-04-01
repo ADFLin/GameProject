@@ -13,7 +13,6 @@ namespace Render
 {
 	DeviceVendorName GRHIDeviceVendorName = DeviceVendorName::Unknown;
 
-
 #if CORE_SHARE_CODE
 #if USE_RHI_RESOURCE_TRACE
 	static std::unordered_set< RHIResource* > Resources;
@@ -256,25 +255,9 @@ namespace Render
 
 	int EVertex::GetFormatSize(uint8 format)
 	{
-#if 1
 		int num = EVertex::GetComponentNum(format);
 		int compTypeSize = GetComponentTypeSize(EVertex::GetComponentType(EVertex::Format(format)));
 		return compTypeSize * num;
-#else
-		int num = EVertex::GetComponentNum(format);
-		switch (EVertex::GetComponentType(EVertex::Format(format)))
-		{
-		case CVT_Float:  return sizeof(float) * num;
-		case CVT_Half:   return sizeof(uint16) * num;
-		case CVT_UInt:   return sizeof(uint32) * num;
-		case CVT_Int:    return sizeof(int32) * num;
-		case CVT_UShort: return sizeof(uint16) * num;
-		case CVT_Short:  return sizeof(int16) * num;
-		case CVT_UByte:  return sizeof(uint8) * num;
-		case CVT_Byte:   return sizeof(int8) * num;
-		}
-		return 0;
-#endif
 	}
 
 	struct TextureConvInfo
@@ -286,7 +269,7 @@ namespace Render
 		EComponentType  compType;
 	};
 
-	constexpr TextureConvInfo gTexConvMap[] =
+	constexpr TextureConvInfo GTexConvMap[] =
 	{
 #if _DEBUG
 #define TEXTURE_INFO( FORMAT_CHECK , COMP_COUNT , COMP_TYPE )\
@@ -347,32 +330,33 @@ namespace Render
 #undef TEXTURE_INFO
 	};
 #if _DEBUG
-	constexpr bool CheckTexConvMapValid_R(int i, int size)
-	{
-		return (i == size) ? true : ((i == (int)gTexConvMap[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
-	}
 	constexpr bool CheckTexConvMapValid()
 	{
-		return CheckTexConvMapValid_R(0, sizeof(gTexConvMap) / sizeof(gTexConvMap[0]));
+		for (int i = 0; i < ARRAY_SIZE(GTexConvMap); ++i)
+		{
+			if (i != (int)GTexConvMap[i].formatCheck)
+				return false;
+		}
+		return true;
 	}
 	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
 #endif
 
 	uint32 ETexture::GetFormatSize(Format format)
 	{
-		uint32 result = GetComponentTypeSize(gTexConvMap[format].compType);
-		result *= gTexConvMap[format].compCount;
+		uint32 result = GetComponentTypeSize(GTexConvMap[format].compType);
+		result *= GTexConvMap[format].compCount;
 		return result;
 	}
 
 	uint32 ETexture::GetComponentCount(Format format)
 	{
-		return gTexConvMap[format].compCount;
+		return GTexConvMap[format].compCount;
 	}
 
 	EComponentType ETexture::GetComponentType(Format format)
 	{
-		return gTexConvMap[format].compType;
+		return GTexConvMap[format].compType;
 	}
 
 }//namespace Render

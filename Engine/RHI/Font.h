@@ -132,9 +132,11 @@ namespace Render
 			return mFontHeight;
 		}
 
+
+
 		bool getKerningPair(uint32 charA, uint32 charB, float& outKerning)
 		{
-			uint32 key = (uint32(charA) << 16) | uint32(charB);
+			uint32 key = Math::PairingFunction(charA, charB);
 			auto iter = mKerningPairMap.find(key);
 			if (iter == mKerningPairMap.end())
 				return false;

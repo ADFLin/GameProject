@@ -42,6 +42,13 @@ namespace FlowFree
 
 			}
 			break;
+		case CellFunc::Tunnel:
+			{
+
+
+			}
+			break;
+
 		default:
 			break;
 		}
@@ -72,6 +79,8 @@ namespace FlowFree
 				bFilledCached = count == 1;
 			case CellFunc::Bridge:
 				bFilledCached = count == DirCount;
+			case CellFunc::Tunnel:
+				bFilledCached = count == 1;
 			default:
 				bFilledCached = true;
 			}
@@ -82,11 +91,11 @@ namespace FlowFree
 
 	int Cell::getLinkedFlowDir(int dir) const
 	{
-		ColorType color = colors[dir];
 		switch (func)
 		{
 		case CellFunc::Empty:
 			{
+				ColorType color = colors[dir];
 				int count = 0;
 				assert(color);
 				for (int i = 0; i < DirCount; ++i)
@@ -100,10 +109,26 @@ namespace FlowFree
 			}
 			break;
 		case CellFunc::Source:
-			assert(color == funcMeta);
-			return -1;
+			if (dir == INDEX_NONE)
+			{
+				for (int i = 0; i < DirCount; ++i)
+				{
+					if (colors[i])
+					{
+						assert(colors[i] == funcMeta);
+						return i;
+					}
+				}
+			}
+			else
+			{
+				ColorType color = colors[dir];
+				assert(color == funcMeta);
+			}
+			return INDEX_NONE;
 		case CellFunc::Bridge:
 			{
+				ColorType color = colors[dir];
 				int invDir = InverseDir(dir);
 				if (colors[invDir])
 				{
@@ -120,7 +145,7 @@ namespace FlowFree
 		return -1;
 	}
 
-	ColorType Cell::getFunFlowColor(int dir /*= -1*/, ColorType inColor /*= 0*/) const
+	ColorType Cell::getFuncFlowColor(int dir /*= -1*/, ColorType inColor /*= 0*/) const
 	{
 		switch (func)
 		{
@@ -165,7 +190,7 @@ namespace FlowFree
 			break;
 		case CellFunc::Bridge:
 			{
-				if (dir == -1)
+				if (dir == INDEX_NONE)
 				{
 					for (ColorType color : colors)
 					{
@@ -193,7 +218,7 @@ namespace FlowFree
 	void Level::setup(Vec2i const& size)
 	{
 		mCellMap.resize(size.x, size.y);
-		mSourceLocations.clear();
+		mSources.clear();
 	}
 
 	void Level::addMapBoundBlock( bool bHEdge , bool bVEdge)
@@ -218,6 +243,56 @@ namespace FlowFree
 				rightCell.blockMask |= BIT(0);
 			}
 		}
+	}
+
+	Vec2i Level::getSourcePos(ColorType color)
+	{
+		Vec2i result;
+		bool bHandled = visitSources([color, &result](Vec2i const posPair[], Cell const& cellA , Cell const& cellB)
+		{
+			if (cellA.funcMeta == color)
+			{
+				result = posPair[0];
+				return true;
+			}
+			return false;
+		});
+		if (!bHandled)
+		{
+			return Vec2i(INDEX_NONE, INDEX_NONE);
+		}
+		return result;
+	}
+
+	void Level::updateGobalStatus()
+	{
+		visitCells([](Cell& cell)
+		{
+			cell.bCompleted = false;
+		});
+
+		visitSources(
+			[this](Vec2i const posPair[], Cell const& cellA, Cell const& cellB)
+			{
+				int startDir = cellA.getLinkedFlowDir(INDEX_NONE);
+				bool bLinkToOther = visitFlow(posPair[0], startDir, false,
+					[this](Vec2i const& pos, Cell const& cell)
+					{
+						return cell.func == CellFunc::Source;
+					}
+				);
+
+				if (bLinkToOther)
+				{
+					visitFlow(posPair[0], startDir, true,
+						[this](Vec2i const& pos, Cell& cell)
+						{
+							cell.bCompleted = true;
+						}
+					);
+				}
+			}
+		);
 	}
 
 	Level::BreakResult Level::breakFlow(Vec2i const& pos, int dir, ColorType curColor)
@@ -312,34 +387,31 @@ namespace FlowFree
 		return result;
 	}
 
+	void Level::clearAllFlows()
+	{
+		visitCells([](Cell& cell)
+		{
+			cell.flowClear();
+		});
+	}
+
 	Cell* Level::findSourceCell(Vec2i const& pos, int dir, int& outDist)
 	{
+		Cell* result = nullptr;
 		outDist = 0;
-
-		Vec2i curPos = pos;
-		int   curDir = dir;
-
-		Cell& cell = getCellChecked(pos);
-		if (cell.func == CellFunc::Source)
-			return &cell;
-
-		for (;;)
-		{
-			Vec2i linkPos = getLinkPos(curPos, curDir);
-			Cell& linkCell = getCellChecked(linkPos);
-			if (linkCell.func == CellFunc::Source)
-				return &linkCell;
-
-			int curDirInv = InverseDir(curDir);
-			curDir = linkCell.getLinkedFlowDir(curDirInv);
-			if (curDir == -1)
-				break;
-
-			curPos = linkPos;
-			++outDist;
-		}
-
-		return nullptr;
+		visitFlow(pos, dir, true, 
+			[&result, &outDist](Vec2i const& pos, Cell& cell)
+			{
+				if (cell.func == CellFunc::Source)
+				{
+					result = &cell;
+					return true;
+				}
+				++outDist;
+				return false;
+			}
+		);
+		return result;
 	}
 
 	void Level::removeFlowLink(Vec2i const& pos, int dir)
@@ -368,7 +440,6 @@ namespace FlowFree
 
 			int curDirInv = InverseDir(curDir);
 			curDir = linkCell.getLinkedFlowDir(curDirInv);
-
 			linkCell.removeFlow(curDirInv);
 
 			if (curDir == -1)

@@ -59,6 +59,20 @@ TArray< ExecutionEntryInfo const* > ExecutionRegisterCollection::getExecutionsBy
 	return result;
 }
 
+ExecutionEntryInfo const* ExecutionRegisterCollection::findExecutionByTitle(char const* title)
+{
+	TArray< ExecutionEntryInfo const* > result;
+	for (auto const& pair : mGroupMap)
+	{
+		for (auto const& info : pair.second)
+		{
+			if (FCString::Compare(info.title, title) == 0)
+				return &info;
+		}
+	}
+	return nullptr;
+}
+
 ExecutionRegisterHelper::ExecutionRegisterHelper(ExecutionEntryInfo const& info)
 {
 	ExecutionRegisterCollection::Get().registerExecution(info);

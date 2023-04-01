@@ -713,13 +713,14 @@ namespace Render
 #undef TEXTURE_INFO
 	};
 #if _DEBUG
-	constexpr bool CheckTexConvMapValid_R(int i, int size)
-	{
-		return (i == size) ? true : ((i == (int)GTexConvMapGL[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
-	}
 	constexpr bool CheckTexConvMapValid()
 	{
-		return CheckTexConvMapValid_R(0, sizeof(GTexConvMapGL) / sizeof(GTexConvMapGL[0]));
+		for (int i = 0; i < ARRAY_SIZE(GTexConvMapGL); ++i)
+		{
+			if (i != (int)GTexConvMapGL[i].formatCheck)
+				return false;
+		}
+		return true;
 	}
 	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
 #endif

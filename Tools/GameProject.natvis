@@ -38,7 +38,7 @@
       <Item Name ="capacity">mMaxSize</Item>
       <ArrayItems>
         <Size>mNum</Size>
-        <ValuePointer>($T1*)mStorage</ValuePointer>
+        <ValuePointer>(value_type*)mStorage</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>

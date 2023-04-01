@@ -41,7 +41,7 @@ template < class T >
 class TRefCountPtr
 {
 public:
-	TRefCountPtr():mPtr(0){}
+	TRefCountPtr():mPtr(nullptr){}
 	TRefCountPtr( T* ptr ){  init( ptr );  }
 	TRefCountPtr( TRefCountPtr const& other ){  init( other.mPtr ); }
 	template< class Q >

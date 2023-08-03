@@ -2,7 +2,6 @@
 
 #include "RHI/D3D11Common.h"
 #include "RHI/D3D11Command.h"
-
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui_internal.h"
 #include "RHI/Font.h"

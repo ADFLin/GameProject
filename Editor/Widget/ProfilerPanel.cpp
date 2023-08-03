@@ -73,14 +73,14 @@ public:
 		};
 		if ( bGrouped )
 		{
+			DrawNode(mCurTime + context.displayTimeAcc, context.displayTime);
+		}
+		else
+		{
 			for (auto const& timestamp : stat.timestamps)
 			{
 				DrawNode(timestamp.start, timestamp.duration);
 			}
-		}
-		else
-		{
-			DrawNode(mCurTime + context.displayTimeAcc, context.displayTime);
 		}
 	}
 
@@ -106,7 +106,7 @@ public:
 		if (!bPause)
 		{
 			stat.displayTime = bShowAvg ? stat.execAvg : node->getFrameExecTime();
-			if (bGrouped)
+			if (bGrouped == false)
 			{
 				stat.timestamps.resize(node->getFrameTimestamps().size());
 				int index = 0;

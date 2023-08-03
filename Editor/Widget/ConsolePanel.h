@@ -10,8 +10,8 @@
 
 #include <string>
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui.h"
-
 
 
 class ConsolePanel : public IEditorPanel

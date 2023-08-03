@@ -7,6 +7,7 @@
 #include "RHI/RHIGlobalResource.h"
 #include "RHI/DrawUtility.h"
 #include "ProfileSystem.h"
+#include "imgui_internal.h"
 
 REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
 
@@ -32,7 +33,7 @@ void ShaderGraphPanel::runTest()
 
 	if (compileShader())
 	{
-		renderShaderPreview();
+		renderShaderPreview(TVector2<int>(200,200));
 	}
 
 }
@@ -50,7 +51,7 @@ bool ShaderGraphPanel::compileShader()
 	return ShaderManager::Get().loadFile(mShaderProgram, nullptr, "ScreenVS", "MainPS", option, code.c_str());
 }
 
-void ShaderGraphPanel::renderShaderPreview()
+void ShaderGraphPanel::renderShaderPreview(TVector2<int> const& size)
 {
 	if (mShaderProgram.getRHI() == nullptr)
 		return;
@@ -58,16 +59,18 @@ void ShaderGraphPanel::renderShaderPreview()
 	using namespace Render;
 	if (mFrameBuffer.isValid() == false)
 	{
-		mTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::BGRA8, 200, 200).Flags(TCF_RenderTarget | TCF_CreateSRV | TCF_DefalutValue));
 		mFrameBuffer = RHICreateFrameBuffer();
-		mFrameBuffer->addTexture(*mTexture);
 	}
-
+	if ( mTexture.isValid() == false || ( mTexture->getSizeX() != size.x || mTexture->getSizeY() != size.y ) )
+	{
+		mTexture = RHICreateTexture2D(TextureDesc::Type2D(ETexture::BGRA8, size.x, size.y).Flags(TCF_RenderTarget | TCF_CreateSRV | TCF_DefalutValue));
+		mFrameBuffer->setTexture(0 ,*mTexture);
+	}
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 	RHIBeginRender();
 
 	RHISetFrameBuffer(commandList, mFrameBuffer);
-	RHISetViewport(commandList, 0, 0, 200, 200);
+	RHISetViewport(commandList, 0, 0, size.x, size.y);
 
 	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 	RHISetShaderProgram(commandList, mShaderProgram.getRHI());
@@ -134,6 +137,11 @@ void ShaderGraphPanel::onOpen()
 	runTest();
 }
 
+static ImRect ImGui_GetItemRect()
+{
+	return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+}
+
 class NodeGUIVisitor : public SGNodeVisitor
 {
 
@@ -143,75 +151,83 @@ public:
 	void visit(class SGNode& node) override
 	{
 		ImNode::BeginNode((intptr_t)&node);
-
-#if 0
-
-		ImGui::BeginVertical("content", ImVec2(0.0f, 0.0f));
-		ImGui::Dummy(ImVec2(160, 0));
-		ImGui::Spring(1);
+		ImGui::BeginVertical(&node);
+		ImGui::BeginHorizontal("content");
+		ImGui::Spring(1, 0);
 		ImGui::TextUnformatted(node.getTitle().c_str());
-		ImGui::Spring(1);
-		ImGui::EndVertical();
-#endif
-
-		ImGui::Text(node.getTitle().c_str());
-
+		ImGui::Spring(1, 0);
+		ImGui::EndHorizontal();
 		drawLinkPin(node);
-
+		ImGui::EndVertical();
 		ImNode::EndNode();
 	}
+
 
 
 	void visit(class SGNodeConst& node) override
 	{
 		ImNode::BeginNode((intptr_t)&node);
+		ImGui::BeginVertical(&node);
+
+		//ImGui::BeginHorizontal("content");
+		//ImGui::Spring(1, 0);
+
 
 		ImGui::PushID((intptr_t)&node);
-		ImGui::SetNextItemWidth(200);
 		switch (node.type)
 		{
 		case ESGValueType::Float1:
-			ImGui::SliderFloat("###Object", node.value, -100, 100);
+			ImGui::SetNextItemWidth(100);
+			ImGui::InputFloat("##Object", node.value);
 			break;
 		case ESGValueType::Float2:
-			ImGui::SliderFloat2("##Object", node.value, -100, 100);
+			ImGui::SetNextItemWidth(150);
+			ImGui::InputFloat2("##Object", node.value);
 			break;
 		case ESGValueType::Float3:
-			ImGui::SliderFloat3("##Object", node.value, -100, 100);
+			ImGui::SetNextItemWidth(200);
+			ImGui::InputFloat3("##Object", node.value);
 			break;
 		case ESGValueType::Float4:
-			ImGui::SliderFloat4("##Object", node.value, -100, 100);
+			ImGui::SetNextItemWidth(250);
+			ImGui::InputFloat4("##Object", node.value);
 			break;
 		}
-
-
-		drawLinkPin(node);
-
 		ImGui::PopID();
+		//ImGui::Spring(1, 0);
+		//ImGui::EndHorizontal();
+		drawLinkPin(node);
+		ImGui::EndVertical();
 		ImNode::EndNode();
+
 	}
 
 	void drawLinkPin(SGNode& node)
 	{
-		ImGui::Dummy(ImVec2(100, 0));
-
 		int maxIndex = Math::Max<int>(node.inputs.size(), 1u);
 		for(int index = 0 ; index < maxIndex; ++index)
 		{
+			InlineString<> inputStr;
+			inputStr.format("input%d", index);
+			ImGui::BeginHorizontal(inputStr);
+
 			if (node.inputs.isValidIndex(index))
 			{
 				ImNode::BeginPin((intptr_t)&node.inputs[index], ImNode::PinKind::Input);
-				ImGui::Text("Input");
+				ImGui::TextUnformatted("Input");
 				ImNode::EndPin();
 			}
 
+			ImGui::Spring(1, 10);
+
 			if (index == 0)
 			{
-				ImGui::SameLine();
 				ImNode::BeginPin((intptr_t)&node.outputLinks, ImNode::PinKind::Output);
-				ImGui::Text("Out");
+				ImGui::TextUnformatted("Out");
 				ImNode::EndPin();
 			}
+
+			ImGui::EndHorizontal();
 		}
 	}
 
@@ -233,11 +249,6 @@ void ShaderGraphPanel::render()
 		}
 	}
 
-	if (bRealTimePreview || bRenderPreviewRequest)
-	{
-		mView.updateRHIResource();
-		renderShaderPreview();
-	}
 
 	static float leftPaneWidth = 400.0f;
 	static float rightPaneWidth = 200.0f;
@@ -245,11 +256,18 @@ void ShaderGraphPanel::render()
 
 	FImGui::Splitter("##Left",true, 2.0f, &leftPaneWidth, &temp, 50.0f, rightPaneWidth);
 
+
+	if (bRealTimePreview || bRenderPreviewRequest)
+	{
+		mView.updateRHIResource();
+		renderShaderPreview(TVector2<int>(leftPaneWidth, leftPaneWidth));
+	}
+
 	ImGui::BeginChild("Selection", ImVec2(leftPaneWidth - 4, 0));
 
 	if (mTexture.isValid())
 	{
-		ImGui::Image(FImGui::GetTextureID(*mTexture), ImVec2(200, 200));
+		ImGui::Image(FImGui::GetTextureID(*mTexture), ImVec2(leftPaneWidth, leftPaneWidth));
 	}
 
 
@@ -280,7 +298,9 @@ void ShaderGraphPanel::render()
 	NodeGUIVisitor visitor;
 	for (auto& node : mGraph.nodes)
 	{
+
 		node->acceptVisit(visitor);
+
 	}
 
 	ImNode::BeginNode((intptr_t)&mGraph);

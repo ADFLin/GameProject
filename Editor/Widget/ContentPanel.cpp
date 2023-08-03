@@ -2,6 +2,7 @@
 
 #include "FileSystem.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui.h"
 #include "InlineString.h"
 #include "LogSystem.h"

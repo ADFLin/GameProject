@@ -5,6 +5,7 @@
 
 #include "RHI/TextureAtlas.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui.h"
 #include "Core/FNV1a.h"
 #include "RHI/Font.h"

@@ -6,6 +6,7 @@
 #include "Platform/Windows/ComUtility.h"
 #include "LogSystem.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 
@@ -401,6 +402,7 @@ public:
 				}
 				else
 				{
+#if 0
 					ImGuiID id = ImHashStr(info.desc.name);
 					ImGuiWindowSettings* settings = ImGui::FindWindowSettings(id);
 					if (settings)
@@ -408,6 +410,7 @@ public:
 						ActivePanel& panel = findOrAddPanel(info);
 						//panel.bOpenRequest = !settings->Closed;
 					}
+#endif
 				}
 			}
 		}

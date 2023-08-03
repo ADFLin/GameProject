@@ -14,6 +14,7 @@
 #include "Renderer/SceneView.h"
 #include "Core/Tickable.h"
 #include "DataStructure/Array.h"
+#include "Math/TVector2.h"
 
 namespace ImNode = ax::NodeEditor;
 
@@ -27,8 +28,8 @@ public:
 
 	bool compileShader();
 
-	void renderShaderPreview();
-	
+	void renderShaderPreview(TVector2<int> const& size);
+
 	template< typename TNode, typename ...TArgs>
 	void registerNode(TArgs&& ...args)
 	{

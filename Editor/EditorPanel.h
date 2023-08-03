@@ -5,6 +5,7 @@
 
 #include "EditorConfig.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui.h"
 
 #include "Meta/IsBaseOf.h"

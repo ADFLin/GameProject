@@ -92,7 +92,7 @@ bool InputFileSerializer::open(char const* path, bool bCheckLegacy)
 
 bool InputFileSerializer::isEOF()
 {
-	return mFS.tellg() == mEOFPos;
+	return mFS.tellg() >= mEOFPos;
 }
 
 void InputFileSerializer::read(void* ptr, size_t num)

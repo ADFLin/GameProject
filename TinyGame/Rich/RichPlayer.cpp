@@ -1,4 +1,3 @@
-#include "RichPCH.h"
 #include "RichPlayer.h"
 
 #include "RichWorld.h"
@@ -24,32 +23,37 @@ namespace Rich
 		updateTile(pos);
 	}
 
-	bool Player::updateTile(MapCoord const& pos)
+	Tile* Player::updateTile(MapCoord const& pos)
 	{
 		Tile* tile = getWorld().getTile(pos);
 		if( tile == nullptr )
-			return false;
+			return tile;
 
-		if( tileHook.isLinked() )
-			tileHook.unlink();
-		tile->actors.push_back(*this);
-
-		return true;
+		updateTile(*tile);
+		return tile;
 	}
 
-	bool Player::changePos(MapCoord const& pos)
+	void Player::updateTile(Tile& tile)
+	{
+		if (tileHook.isLinked())
+			tileHook.unlink();
+
+		tile.actors.push_back(*this);
+	}
+
+	Tile* Player::changePos(MapCoord const& pos)
 	{
 		Tile* tile = getWorld().getTile( pos );
+		if(tile == nullptr)
+			return tile;
 
-		if( !updateTile(pos) )
-			return false;
-
+		updateTile(*tile);
 		mPosPrev = pos;
 		mPos = pos;
-		return true;
+		return tile;
 	}
 
-	bool Player::isActive()
+	bool Player::isActive() const
 	{
 		if ( mState != eIDLE )
 			return false;
@@ -61,7 +65,14 @@ namespace Rich
 		return mMovePower;
 	}
 
-
-
+	void Player::modifyMoney(int delta)
+	{
+		mMoney += delta;
+		WorldMsg msg;
+		msg.id = MSG_PLAYER_MONEY_MODIFIED;
+		msg.addParam(this);
+		msg.addParam(delta);
+		getWorld().dispatchMessage(msg);
+	}
 
 }//namespace Rich

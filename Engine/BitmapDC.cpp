@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 
+#pragma comment(lib , "Msimg32.lib")
 
 #if SYS_PLATFORM_WIN
 BitmapDC::BitmapDC(HDC hDC, HWND hWnd)

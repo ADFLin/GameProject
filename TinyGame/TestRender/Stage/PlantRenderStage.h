@@ -113,7 +113,7 @@ namespace Render
 		{
 
 			mMesh.releaseRHIResource();
-			mMeshOffsetData.releaseResources();
+			mMeshOffsetData.releaseResource();
 		}
 
 

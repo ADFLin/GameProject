@@ -712,7 +712,7 @@ namespace CPP
 
 
 template<>
-struct TCanBitwiseRelocate<CPP::Preprocessor::InputEntry>
+struct TBitwiseReallocatable<CPP::Preprocessor::InputEntry>
 {
 	static constexpr int Value = 0;
 };

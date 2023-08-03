@@ -62,7 +62,7 @@ void RHIGraphics2D::releaseRHI()
 	mDirtyState.value = 0;
 }
 
-void RHIGraphics2D::init(int w, int h)
+void RHIGraphics2D::setViewportSize(int w, int h)
 {
 	mWidth = w;
 	mHeight = h;
@@ -518,23 +518,102 @@ void RHIGraphics2D::drawText(Vector2 const& pos, wchar_t const* str)
 	drawTextImpl(ox, oy, str);
 }
 
+void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str,
+	EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip)
+{
+	if (!mFont || !mFont->isValid())
+		return;
+
+	auto DoDrawText = [&]()
+	{
+		Vector2 extent = mFont->calcTextExtent(str);
+		Vector2 renderPos = pos;
+		switch (alignH)
+		{
+		case EHorizontalAlign::Right: 
+			renderPos.x += size.x - extent.x;
+			break;
+		case EHorizontalAlign::Center:
+		case EHorizontalAlign::Fill:
+			renderPos.x += 0.5 * ( size.x - extent.x );
+			break;
+		}
+		switch (alignV)
+		{
+		case EVerticalAlign::Bottom:
+			renderPos.y += size.y - extent.y;
+			break;
+		case EVerticalAlign::Center:
+		case EVerticalAlign::Fill:
+			renderPos.y += 0.5 * (size.y - extent.y);
+			break;
+		}
+		drawTextImpl(renderPos.x, renderPos.y, str);
+	};
+
+	if (bClip)
+	{
+		if (mRenderStatePending.bEnableScissor)
+		{
+			Rect rect = Rect::Intersect(mScissorRect, { pos , size });
+			if (!rect.isValid())
+				return;
+
+			Rect prevRect = mScissorRect;
+			setClipRect(rect.pos, rect.size);
+			DoDrawText();
+			setClipRect(prevRect.pos, prevRect.size);
+		}
+		else
+		{
+			beginClip(pos, size);
+			DoDrawText();
+			endClip();
+		}
+	}
+	else
+	{
+		DoDrawText();
+	}
+
+
+}
+
 void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip /*= false */)
 {
 	if (!mFont || !mFont->isValid())
 		return;
 
+	auto DoDrawText = [&]()
+	{
+		Vector2 extent = mFont->calcTextExtent(str);
+		Vector2 renderPos = pos + (size - extent) / 2;
+		drawTextImpl(renderPos.x, renderPos.y, str);
+	};
+
 	if (bClip)
 	{
-		beginClip(pos, size);
+		if (mRenderStatePending.bEnableScissor)
+		{
+			Rect rect = Rect::Intersect(mScissorRect, { pos , size });
+			if (!rect.isValid())
+				return;
+
+			Rect prevRect = mScissorRect;
+			setClipRect(rect.pos, rect.size);
+			DoDrawText();
+			setClipRect(prevRect.pos, prevRect.size);
+		}
+		else
+		{
+			beginClip(pos, size);
+			DoDrawText();
+			endClip();
+		}
 	}
-
-	Vector2 extent = mFont->calcTextExtent(str);
-	Vector2 renderPos = pos + (size - extent) / 2;
-	drawTextImpl(renderPos.x, renderPos.y, str);
-
-	if (bClip)
+	else
 	{
-		endClip();
+		DoDrawText();
 	}
 }
 
@@ -734,9 +813,7 @@ void RHIGraphics2D::setPenWidth(int width)
 void RHIGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 {
 	mRenderStatePending.bEnableScissor = true;
-	mScissorRect.pos = pos;
-	mScissorRect.size = size;
-	mDirtyState.scissorRect = true;
+	setClipRect(pos, size);
 }
 
 void RHIGraphics2D::setClipRect(Vec2i const& pos, Vec2i const& size)

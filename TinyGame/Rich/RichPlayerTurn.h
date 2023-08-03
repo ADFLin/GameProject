@@ -9,24 +9,41 @@
 namespace Rich
 {
 
+	class ActionEvent
+	{
+	public:
+
+		virtual void doAction(Player* player, PlayerTurn& turn) = 0;
+	};
+
 	enum ActionRequestID
 	{
 		REQ_NONE ,
 		REQ_ROMATE_DICE_VALUE ,
 		REQ_BUY_LAND ,
+		REQ_BUY_STATION ,
 		REQ_UPGRADE_LAND ,
 		REQ_MOVE_DIR ,
+		REQ_DISPOSE_ASSET,
+		REQ_MOVE_DIRECTLY ,
 	};
 
 	struct ActionReqestData
 	{
 		union
 		{
-			int numDice;
-
 			struct
 			{
-				LandArea* land;
+				int numDice;
+			};
+			struct //Buy
+			{
+				union
+				{
+					class OwnableArea* ownable;
+					class LandArea*    land;
+					class StationArea* station;
+				};
 				int   money;
 			};
 			struct
@@ -34,12 +51,19 @@ namespace Rich
 				int         numLink;
 				LinkHandle* links;
 			};
+			struct 
+			{
+				int debt;
+				Player* creditor;
+			};
 		};
 	};
 
-	class IController
+	class IPlayerController
 	{
 	public:
+		virtual void startTurn(PlayerTurn& turn){}
+		virtual void endTurn(PlayerTurn& turn){}
 		virtual void queryAction( ActionRequestID id , PlayerTurn& turn , ActionReqestData const& data ) = 0;
 	};
 
@@ -50,49 +74,32 @@ namespace Rich
 
 	typedef std::function< void ( ActionReplyData const& ) > ReqCallback;
 
-	class ITurnControl
-	{
-	public:
-		virtual bool needRunTurn() = 0;
-	};
-
 	class PlayerTurn
 	{
 
 	public:
 
-		enum TurnStep
-		{
-			STEP_WAIT  ,
-			STEP_START ,
-			STEP_THROW_DICE ,
-			STEP_MOVE_START ,
-			STEP_MOVE_DIR ,
-			STEP_MOVE_EVENT ,
-			STEP_PROCESS_AREA ,
-			STEP_MOVE_END ,
-			STEP_END ,
-		};
-
-		enum TurnState
-		{
-			TURN_KEEP,
-			TURN_WAIT,
-			TURN_END  ,
-		};
-
 		Player*  getPlayer(){ return mPlayer; }
 		World&   getWorld();
 
-		void     beginTurn( Player& player );
-		bool     update();
+		void     startTurn( Player& player );
+
 		void     endTurn();
+
+		void     runTurnAsync();
+
+		void     tick()
+		{
+
+		}
 
 		void     goMoveByPower( int movePower );
 		void     goMoveByStep( int numStep );
-		void     obtainMoney(int money);
 
-		void     loseMoney(int money);
+		void     moveDirectly(Player& player);
+
+		void     moveTo(Player& player, Area& area, bool bTriggerArea = true);
+
 
 		void     calcRomateDiceValue( int totalStep , int numDice , int value[] );
 		void     replyAction( ActionReplyData const& answer );
@@ -111,7 +118,7 @@ namespace Rich
 		bool     sendTurnMsg( WorldMsg const& event );
 		void     queryAction( ActionRequestID id, ActionReqestData const& data );
 		bool     checkKeepRun();
-		void     updateTurnStep();
+
 
 		void     useTool( ToolType type )
 		{
@@ -119,14 +126,14 @@ namespace Rich
 			tool->use(*this);
 		}
 
-		TurnStep     mStep;
-		TurnState    mTurnState;
+		void doBankruptcy(Player& player);
+
+		bool processDebt(Player& player, int debt, std::function<void(int)> callback );
 		
 		bool         mUseRomateDice;
 		RequestInfo  mReqInfo;
-		ActionRequestID    mLastAnswerReq;
-
-		ITurnControl* mControl;
+		void queryResuest(Player& player, ActionReqestData const& data);
+		ActionRequestID  mLastAnswerReq;
 
 		LinkHandle   mMoveLinkHandle;
 		Tile*        mTile;

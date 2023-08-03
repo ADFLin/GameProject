@@ -37,8 +37,8 @@ namespace Render
 		dir = light.dir;
 		radius = light.radius;
 		float angleInner = Math::Min(light.spotAngle.x, light.spotAngle.y);
-		param.x = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, angleInner)));
-		param.y = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, light.spotAngle.y)));
+		param.x = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, angleInner)));
+		param.y = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, light.spotAngle.y)));
 	}
 
 	void LightInfo::setupShaderGlobalParam(RHICommandList& commandList, ShaderProgram& shader) const
@@ -51,8 +51,8 @@ namespace Render
 
 		Vector3 spotParam;
 		float angleInner = Math::Min(spotAngle.x, spotAngle.y);
-		spotParam.x = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, angleInner)));
-		spotParam.y = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, spotAngle.y)));
+		spotParam.x = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, angleInner)));
+		spotParam.y = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, spotAngle.y)));
 		shader.setParam(commandList, SHADER_PARAM(GLight.spotParam), spotParam);
 	}
 
@@ -297,7 +297,7 @@ namespace Render
 		else if( light.type == LightType::Spot )
 		{
 			GPU_PROFILE("Shadow-Spot");
-			shadowProject = PerspectiveMatrix(Math::Deg2Rad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
+			shadowProject = PerspectiveMatrix(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
 			MatrixSaveScope matScope(shadowProject);
 
 			worldToLight = LookAtMatrix(light.pos, light.dir, GetUpDir(light.dir));
@@ -325,7 +325,7 @@ namespace Render
 		else if( light.type == LightType::Point )
 		{
 			GPU_PROFILE("Shadow-Point");
-			shadowProject = PerspectiveMatrix(Math::Deg2Rad(90), 1.0, 0.01, light.radius);
+			shadowProject = PerspectiveMatrix(Math::DegToRad(90), 1.0, 0.01, light.radius);
 			MatrixSaveScope matScope(shadowProject);
 
 			Matrix4 biasMatrix(
@@ -529,7 +529,7 @@ namespace Render
 				break;
 			case LightType::Spot:
 				{
-					float factor = Math::Tan( Math::Deg2Rad( light.spotAngle.y ) );
+					float factor = Math::Tan( Math::DegToRad( light.spotAngle.y ) );
 					lightXForm = Matrix4::Scale(light.radius * Vector3( factor , factor , 1 ) ) * BasisMaterix::FromZ(light.dir) * Matrix4::Translate(light.pos) * view.worldToView;
 					boundMesh = &mConeMesh;
 				}
@@ -1781,8 +1781,8 @@ namespace Render
 			pInfo->radius = light.radius;
 			Vector3 spotParam;
 			float angleInner = Math::Min(light.spotAngle.x, light.spotAngle.y);
-			spotParam.x = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, angleInner)));
-			spotParam.y = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, light.spotAngle.y)));
+			spotParam.x = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, angleInner)));
+			spotParam.y = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, light.spotAngle.y)));
 			pInfo->param = Vector4(spotParam.x,spotParam.y, light.bCastShadow ? 1.0 : 0.0 , 0.0);
 			++pInfo;
 		}

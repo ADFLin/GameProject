@@ -1,4 +1,4 @@
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "GameRenderSetup.h"
 
@@ -10,7 +10,7 @@
 #include "CurveBuilder/CurveRenderer.h"
 #include "CurveBuilder/FPUCompiler.h"
 
-#include "AsyncWork.h"
+#include "Async/AsyncWork.h"
 #include "RHI/RHIGraphics2D.h"
 #include "ProfileSystem.h"
 
@@ -204,9 +204,8 @@ namespace CB
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
-			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::Deg2Rad(45.0f) , float(screenSize.x) / screenSize.y, 0.1f, 1000.0f) );
-			Matrix4 matView = mCamera.getViewMatrix();
-			mRenderer->getViewInfo().setupTransform(matView, matProj);
+			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::DegToRad(45.0f) , float(screenSize.x) / screenSize.y, 0.1f, 1000.0f) );
+			mRenderer->getViewInfo().setupTransform(mCamera.getPos(), mCamera.getRotation(), matProj);
 			mRenderer->beginRender(commandList);
 			{
 				mRenderer->drawAxis();

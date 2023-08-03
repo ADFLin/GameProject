@@ -26,6 +26,7 @@ namespace Render
 
 		void cleanup();
 		bool importFromFile(char const* filePath, Mesh& outMesh, MeshImportSettings* settings) override;
+		bool importFromFile(char const* filePath, MeshImportData& outMeshData) override;
 		bool importMultiFromFile(char const* filePath, TArray<Mesh>& outMeshes, MeshImportSettings* settings) override;
 
 		struct FBXConv
@@ -106,50 +107,11 @@ namespace Render
 
 		static void GetMeshVertexFormat(FbxMesh* pMesh, FBXVertexFormat& outFormat);
 
-		struct MeshData 
-		{
-			TArray<uint8>  vertices;
-			TArray<uint32> indices;
-			int numVertices = 0;
-			InputLayoutDesc desc;
-			TArray<MeshSection> sections;
 
-			void initSections()
-			{
-				MeshSection section;
-				section.indexStart = 0;
-				section.count = indices.size();
-				sections.push_back(section);
-			}
-
-			void append(MeshData const& other)
-			{
-				if (sections.empty())
-				{
-					initSections();
-				}
-
-				uint32 baseIndex = numVertices;
-				vertices.append(other.vertices);
-				
-				int start = indices.size();
-				indices.append(other.indices);
-				for (int i = start; i < indices.size(); ++i)
-				{
-					indices[i] += baseIndex;
-				}
-				numVertices += other.numVertices;
-
-				MeshSection section;
-				section.indexStart = start;
-				section.count = other.indices.size();
-				sections.push_back(section);
-			}
-		};
-		bool parseMesh(FbxMesh* pFBXMesh, MeshData& outData);
+		bool parseMesh(FbxMesh* pFBXMesh, MeshImportData& outData);
 		bool parseMesh(FbxMesh* pFBXMesh, Mesh& outMesh);
 
-		bool createMesh(MeshData& meshData, Mesh &outMesh);
+		bool createMesh(MeshImportData& meshData, Mesh &outMesh);
 
 		FbxManager*    mManager = nullptr;
 		FbxIOSettings* mIOSetting = nullptr;

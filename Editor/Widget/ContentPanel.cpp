@@ -7,6 +7,7 @@
 #include "LogSystem.h"
 #include "EditorUtils.h"
 #include "StringParse.h"
+#include "ProfileSystem.h"
 
 
 REGISTER_EDITOR_PANEL(ContentPanel, "Content", true, true);
@@ -38,9 +39,10 @@ void SplitString(char const* str, char const* drop, TArray<StringView>& outList)
 	}
 }
 
-
 void ContentPanel::render()
 {
+	PROFILE_ENTRY("ContentPanel");
+
 	auto DrawIconButton = [](int id, bool bEnabled)
 	{
 		ImGui::BeginDisabled(!bEnabled);

@@ -11,7 +11,7 @@ namespace Render
 	{
 	public:
 		SimpleCamera()
-			:mPos(0, 0, 0)
+			: mPos(0, 0, 0)
 			, mYaw(0)
 			, mPitch(0)
 			, mRoll(0)
@@ -45,12 +45,13 @@ namespace Render
 		Matrix4 getViewMatrix() const { return LookAtMatrix(mPos, getViewDir(), getUpDir()); }
 		Matrix4 getTransform() const { return Matrix4(mPos, mRotation); }
 		Vector3 const& getPos() const { return mPos; }
+		Quaternion const& getRotation() const { return mRotation; }
 
 		static Vector3 LocalViewDir() { return Vector3(0, 0, 1); }
 		static Vector3 LocalUpDir() { return Vector3(0, 1, 0); }
 
-		Vector3 getViewDir() const { return mRotation.rotate(LocalViewDir()); }
-		Vector3 getUpDir() const { return mRotation.rotate(LocalUpDir()); }
+		Vector3 getViewDir() const { return mRotation.rotate(FRenderView::FrontDirection()); }
+		Vector3 getUpDir() const { return mRotation.rotate(FRenderView::UpDirection()); }
 		Vector3 getRightDir() const { return mRotation.rotate(Vector3(1, 0, 0)); }
 
 		void    moveRight(float dist)

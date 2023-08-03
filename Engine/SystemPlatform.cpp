@@ -5,6 +5,7 @@
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #include <Commdlg.h>
+#include <cderr.h>
 #include <intrin.h>
 //#include <xatomic.h>
 #include <winnt.h>
@@ -253,7 +254,7 @@ DateTime SystemPlatform::GetLocalTime()
 bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, TArrayView< OpenFileFilterInfo const > filters, char const* initDir, char const* title, void* windowOwner)
 {
 #if SYS_PLATFORM_WIN
-	OPENFILENAME ofn;
+	OPENFILENAMEA ofn;
 	// a another memory buffer to contain the file name
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
@@ -292,6 +293,12 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, TArrayView< Op
 		DWORD error = CommDlgExtendedError();
 		switch( error )
 		{
+		case FNERR_SUBCLASSFAILURE:
+			break;
+		case FNERR_INVALIDFILENAME:
+			break;
+		case FNERR_BUFFERTOOSMALL:
+			break;
 		default:
 			break;
 		}

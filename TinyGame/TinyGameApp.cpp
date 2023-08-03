@@ -61,6 +61,7 @@ namespace
 	TConsoleVariable<bool> CVarProfileCPU{ true , "ProfileCPU", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarDrawGPUUsage{ false, "r.GPUUsage", CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarLockFPS{ false, "LockFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
 
 	AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
@@ -346,7 +347,6 @@ TinyGameApp::TinyGameApp()
 	,mStageMode( nullptr )
 {
 	mShowErrorMsg = false;
-	mbLockFPS = false;
 
 	GGameNetInterfaceImpl = this;
 	GDebugInterfaceImpl = &gLogPrinter;
@@ -453,7 +453,7 @@ struct FData
 };
 
 template<>
-struct TCanBitwiseRelocate<FData>
+struct TBitwiseReallocatable<FData>
 {
 	static constexpr int Value = 0;
 };
@@ -512,7 +512,7 @@ bool TinyGameApp::initializeGame()
 		}
 
 		importUserProfile();
-		mbLockFPS = ::Global::GameConfig().getIntValue("bLockFPS", nullptr, 0);
+		CVarLockFPS = ::Global::GameConfig().getIntValue("bLockFPS", nullptr, 0);
 	}
 
 #if TINY_WITH_EDITOR
@@ -584,7 +584,6 @@ bool TinyGameApp::initializeGame()
 		TIME_SCOPE("GUI Initialize");
 		::Global::GUI().initialize(*this);
 	}
-
 #if TINY_WITH_EDITOR
 	if ( mEditor )
 	{
@@ -679,9 +678,11 @@ void TinyGameApp::cleanup()
 	Global::ModuleManager().cleanupModuleMemory();
 }
 
+
 long TinyGameApp::handleGameUpdate( long shouldTime )
-{
-	PROFILE_FUNCTION()
+{	
+	PROFILE_FUNCTION();
+
 	ProfileSystem::Get().incrementFrameCount();
 
 	Tickable::Update(float(shouldTime) / 1000.0);
@@ -689,21 +690,30 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 #if TINY_WITH_EDITOR
 	if (mEditor)
 	{
+		PROFILE_ENTRY("Editor Update");
 		mEditor->update();
 	}
 #endif
 
+#if TINY_WITH_EDITOR
+	if (mEditor)
+	{
+		PROFILE_ENTRY("Editor Render");
+		GPU_PROFILE("Editor Render");
+		mEditor->render();
+
+	}
+#endif
 	int  numFrame = shouldTime / getUpdateTime();
 	long updateTime = numFrame * getUpdateTime();
-	
+
 	::Global::GetAssetManager().tick(updateTime);
 
 	::Global::GetDrawEngine().update(updateTime);
 
-	for( int i = 0 ; i < numFrame ; ++i )
+	for (int i = 0; i < numFrame; ++i)
 	{
-
-		if( mStageMode && mStageMode->getStage() == nullptr )
+		if (mStageMode && mStageMode->getStage() == nullptr)
 		{
 			delete mStageMode;
 			mStageMode = nullptr;
@@ -715,32 +725,45 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 			mNetWorker->update(getUpdateTime());
 		}
 
-		runTask( getUpdateTime() );
+		{
+			PROFILE_ENTRY("Task Update");
+			runTask(getUpdateTime());
+		}
 
-		getCurStage()->update( getUpdateTime() );
+		{
+			PROFILE_ENTRY("Stage Update");
+			getCurStage()->update(getUpdateTime());
+		}
+		{
+			PROFILE_ENTRY("GUI Update");
+			::Global::GUI().update();
+		}
 
-		::Global::GUI().update();
 
 		IGameModule* game = Global::ModuleManager().getRunningGame();
-		if( game )
+		if (game)
 		{
 			game->getInputControl().clearFrameInput();
 		}
 	}
 
-	gLogPrinter.update( updateTime );
+	gLogPrinter.update(updateTime);
 	return updateTime;
 }
 
 
 void TinyGameApp::handleGameIdle(long time)
 {
-	if ( mbLockFPS )
+	//PROFILE_ENTRY("GameIdle");
+#if 0
+	if ( CVarLockFPS )
 		SystemPlatform::Sleep(time);
 	else
 		render( 0.0f );
+#else
+	SystemPlatform::Sleep(time / 2);
+#endif
 }
-
 
 void TinyGameApp::handleGameRender()
 {
@@ -1023,7 +1046,7 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 
 void TinyGameApp::render( float dframe )
 {
-	//PROFILE_ENTRY("Render");
+	PROFILE_ENTRY("Render");
 
 	using namespace Render;
 
@@ -1208,21 +1231,10 @@ void TinyGameApp::render( float dframe )
 			}
 		}
 	}
-	g.endRender();
-		
+	g.endRender();	
 	drawEngine.endFrame();
-
-#if TINY_WITH_EDITOR
-	if (mEditor)
-	{
-		PROFILE_ENTRY("Editor Render");
-		GPU_PROFILE("Editor Render");
-		mEditor->render();
-	}
-#endif
-
 }
-
+///
 void TinyGameApp::importUserProfile()
 {
 	PropertySet& setting = Global::GameConfig();
@@ -1309,7 +1321,6 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 	return newStage;
 }
 
-
 GameStageMode* TinyGameApp::createGameStageMode(StageID stageId)
 {
 	GameStageMode* stageMode = nullptr;
@@ -1327,6 +1338,7 @@ GameStageMode* TinyGameApp::createGameStageMode(StageID stageId)
 	}
 	return stageMode;
 }
+
 
 StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 {
@@ -1352,6 +1364,14 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
 	GameStageBase* gameStage = stage->getGameStage();
 
+
+	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
+	if (renderSetup)
+	{
+		if (!::Global::GetDrawEngine().setupSystem(renderSetup, true))
+			return false;
+	}
+
 	if (gameStage)
 	{
 		mStageMode = gameStage->getStageMode();
@@ -1362,18 +1382,15 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 		}
 	}
 
-
 	if (!stage->onInit())
 	{
 		LogWarning(0, "Can't Initialize Stage");
 		return false;
 	}
 
-
-	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if (renderSetup)
 	{
-		if (!::Global::GetDrawEngine().setupSystem(renderSetup))
+		if (!::Global::GetDrawEngine().setupSystem())
 			return false;
 
 		Render::ShaderManager::Get().cleanupLoadedSource();
@@ -1451,7 +1468,6 @@ void TinyGameApp::addGUITask(TaskBase* task, bool bGlobal)
 	TaskHandler* handler = (bGlobal) ? static_cast<TaskHandler*>( this ) : getCurStage();
 	handler->addTask(task);
 }
-
 
 void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 {
@@ -1564,6 +1580,7 @@ bool TinyGameApp::reconstructWindow( GameWindow& window )
 	return true;
 }
 
+
 GameWindow* TinyGameApp::createWindow(Vec2i const& pos, Vec2i const& size, char const* title)
 {
 	return nullptr;
@@ -1576,7 +1593,6 @@ bool TinyGameApp::createWindowInternal(GameWindow& window , int width, int heigh
 
 	return true;
 }
-
 
 FadeInEffect::FadeInEffect( int _color , long time )
 	:RenderEffect( time )

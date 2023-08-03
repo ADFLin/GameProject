@@ -283,7 +283,7 @@ namespace Homework
 			return SparseMatrix(row,rhs.col,std::move(tempData));
 		}
 		template< class Func >
-		SparseMatrix opFun(SparseMatrix const& rhs) const
+		SparseMatrix opFunc(SparseMatrix const& rhs) const
 		{
 			assert(col == rhs.col && row == rhs.row);
 
@@ -365,7 +365,7 @@ namespace Homework
 					return v1 + v2;
 				}
 			};
-			return c< Func >( rhs );
+			return opFunc< Func >( rhs );
 		}
 		FORCEINLINE SparseMatrix operator - (SparseMatrix const& rhs) const
 		{

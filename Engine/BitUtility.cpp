@@ -119,6 +119,15 @@ uint32 FBitUtility::Reverse(uint32 n)
 	return (n >> 16) | (n << 16);
 }
 
+uint64 FBitUtility::Reverse(uint64 n)
+{
+	n = ((n & 0xaaaaaaaaaaaaaaaallu) >> 1) | ((n & 0x5555555555555555llu) << 1);
+	n = ((n & 0xccccccccccccccccllu) >> 2) | ((n & 0x3333333333333333llu) << 2);
+	n = ((n & 0xf0f0f0f0f0f0f0f0llu) >> 4) | ((n & 0x0f0f0f0f0f0f0f0fllu) << 4);
+	n = ((n & 0xff00ff00ff00ff00llu) >> 8) | ((n & 0x00ff00ff00ff00ffllu) << 8);
+	n = ((n & 0xffff0000ffff0000llu) >> 16) | ((n & 0x0000ffff0000ffffllu) << 16);
+	return (n >> 32) | (n << 32);
+}
 static int const gBitIndexMap[9] = 
 { 
 	0 , 

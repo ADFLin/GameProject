@@ -1,6 +1,6 @@
 #include "Phy2DStage.h"
 
-#include "Coroutine.h"
+#include "Async/Coroutines.h"
 
 #include "RenderUtility.h"
 #include "GameGUISystem.h"
@@ -54,7 +54,7 @@ namespace Phy2D
 		glPushMatrix();
 
 		glTranslatef(obj.getPos().x, obj.getPos().y, 0);
-		glRotatef(Math::Rad2Deg(obj.mXForm.getRotateAngle()), 0, 0, 1);
+		glRotatef(Math::RadToDeg(obj.mXForm.getRotateAngle()), 0, 0, 1);
 		glTranslatef(-obj.getPos().x, -obj.getPos().y, 0);
 
 		switch( shape->getType() )
@@ -150,7 +150,7 @@ namespace Phy2D
 
 			glPushMatrix();
 			glTranslatef(worldTrans.getPos().x, worldTrans.getPos().y, 0);
-			glRotatef(Math::Rad2Deg(worldTrans.getRotateAngle()), 0, 0, 1);
+			glRotatef(Math::RadToDeg(worldTrans.getRotateAngle()), 0, 0, 1);
 
 #if PHY2D_DEBUG	
 

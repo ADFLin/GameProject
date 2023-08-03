@@ -67,9 +67,9 @@ namespace Render
 	{
 		mFreeRTs.insert(mFreeRTs.end(), mUsedRTs.begin(), mUsedRTs.end());
 		mUsedRTs.clear();
-		for (auto iter = mFreeRTs.begin(); iter != mFreeRTs.end(); ++iter)
+		for (auto& rt : mFreeRTs)
 		{
-			iter->get()->desc.debugName == EName::None;
+			rt->desc.debugName == EName::None;
 		}
 	}
 

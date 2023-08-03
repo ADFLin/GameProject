@@ -468,7 +468,7 @@ namespace Render
 
 		bool isValid() const
 		{
-			return value != 0;
+			return !!value;
 		}
 
 		bool operator == (ShaderBoundStateKey const& rhs) const

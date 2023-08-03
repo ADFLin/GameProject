@@ -3,13 +3,15 @@
 
 struct ViewParameters
 {
-	float4x4  worldToView;
-	float4x4  worldToClip;
-	float4x4  viewToWorld;
-	float4x4  viewToClip;
-	float4x4  clipToView;
-	float4x4  clipToWorld;
-	float4x4  worldToClipPrev;
+	float4x4 worldToView;
+	float4x4 worldToClip;
+	float4x4 viewToWorld;
+	float4x4 viewToClip;
+	float4x4 clipToView;
+	float4x4 clipToWorld;
+	float4x4 translatedWorldToClip;
+	float4x4 clipToTranslatedWorld;
+	float4x4 worldToClipPrev;
 
 	float4    frustumPlanes[6];
 

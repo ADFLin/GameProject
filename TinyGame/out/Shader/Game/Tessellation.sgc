@@ -48,8 +48,8 @@ struct VertexOutputParamVSToPS
 
 #if USE_TESSELLATION 
 #define OutputHS InputDS
-#else
-#define OutputVS OutputVS 
+//#else
+//#define OutputVS OutputVS 
 #endif
 
 #if USE_TESSELLATION

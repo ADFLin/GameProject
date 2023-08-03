@@ -41,16 +41,7 @@ void Sobel(TImageView< float > const& input, TImageView< float >& output)
 
 void Normalize(TImageView< float >& input)
 {
-	float maxValue = 0;
-	for (int y = 0; y < input.getHeight(); ++y)
-	{
-		for (int x = 0; x < input.getWidth(); ++x)
-		{
-			float value = input(x, y);
-			if (value > maxValue)
-				maxValue = value;
-		}
-	}
+	float maxValue = Max(input);
 
 	for (int y = 0; y < input.getHeight(); ++y)
 	{
@@ -74,7 +65,7 @@ struct FFastMath
 		for (int i = 0; i < HoughAngleNum; ++i)
 		{
 			float c, s;
-			Math::SinCos(Math::Deg2Rad(HoughAngleDelta*i), s, c);
+			Math::SinCos(Math::DegToRad(HoughAngleDelta*i), s, c);
 			mCosTable[i] = c;
 			mSinTable[i] = s;
 		}
@@ -114,7 +105,7 @@ void HoughLines(HoughSetting const& setting, TImageView< float > const& input, T
 					float s = sMath.mSinTable[index];
 #else
 					float c, s;
-					Math::SinCos(Math::Deg2Rad(index * HoughAngleDelta), s, c);
+					Math::SinCos(Math::DegToRad(index * HoughAngleDelta), s, c);
 #endif
 					float r = (x + offsetX) * c + (y + offsetY) * s;
 					int ri = (int)Math::Round(r / HoughDistDelta);

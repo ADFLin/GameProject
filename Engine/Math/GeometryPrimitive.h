@@ -37,6 +37,7 @@ namespace Math
 		}
 
 		VectorType getSize() const { return max - min; }
+		VectorType getCenter() const { return 0.5 * (max + min); }
 
 		void translate(VectorType const& offset)
 		{

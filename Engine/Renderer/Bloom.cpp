@@ -22,7 +22,7 @@ namespace Render
 		float sigma = kernelRadius * sigmaScale;
 		auto GetWeight = [=](float x)
 		{
-			return Math::Exp(-Math::Squre(x / sigma));
+			return Math::Exp(-Math::Square(x / sigma));
 		};
 
 		int numSamples = 0;

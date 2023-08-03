@@ -100,7 +100,7 @@ TArray<KeyValue*> KeySection::getKeyValues(char const* keyName)
 }
 
 template<>
-struct TCanBitwiseRelocate<KeySection::KeyValueMap::iterator>
+struct TBitwiseReallocatable<KeySection::KeyValueMap::iterator>
 {
 	static constexpr int Value = 0;
 };
@@ -203,7 +203,7 @@ bool PropertySet::getBoolValue(char const* keyName, char const* section, bool de
 }
 
 template<>
-struct TCanBitwiseRelocate<PropertySet::KeySectionMap::iterator>
+struct TBitwiseReallocatable<PropertySet::KeySectionMap::iterator>
 {
 	static constexpr int Value = 0;
 };

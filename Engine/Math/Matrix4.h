@@ -173,7 +173,12 @@ namespace Math
 		void modifyOrientation( Quaternion const& q );
 
 		Vector3 getTranslation() const { return Vector3( mValues[12] , mValues[13] , mValues[14] ); }
-
+		Matrix4 getTranspose() const
+		{
+			Matrix4 result(*this);
+			result.transpose();
+			return result;
+		}
 
 		// result = m * this 
 		Matrix4   leftMul(Matrix3 const& m ) const;
@@ -204,6 +209,8 @@ namespace Math
 		bool  inverse( Matrix4& m , float& det ) const;
 		bool  inverseAffine( Matrix4& m , float& det ) const;
 		bool  isAffine() const;
+
+		void  transpose();
 		Matrix4  operator * ( Matrix4 const& rhs ) const;
 
 		float& operator()( int idx )       { return mValues[idx]; }

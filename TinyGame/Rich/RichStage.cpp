@@ -1,89 +1,54 @@
-#include "RichPCH.h"
 #include "RichStage.h"
 
 #include "GameStageMode.h"
 
 #include "RichWorldEditor.h"
+#include "RichAI.h"
 
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
 
 namespace Rich
 {
-	namespace SimpleMap
-	{
-		uint8 const EE = 0;
-		uint8 const TE = 1;
-		int const SizeX = 8;
-		int const SizeY = 6;
-		uint8 Data[] =
-		{
-			TE,TE,TE,TE,TE,TE,TE,TE,
-			TE,EE,EE,EE,EE,EE,EE,TE,
-			TE,EE,EE,EE,EE,EE,EE,TE,
-			TE,EE,EE,EE,EE,EE,EE,TE,
-			TE,EE,EE,EE,EE,EE,EE,TE,
-			TE,TE,TE,TE,TE,TE,TE,TE,
-		};
-	}
+
+	void LoadMap(Scene& scene);
 
 	LevelStage::LevelStage()
 	{
 		mEditor = nullptr;
 	}
 
-
 	bool LevelStage::onInit()
 	{
+		if (!BaseClass::onInit())
+			return false;
+
 		::Global::GUI().cleanupWidget();
-
+		mScene.initializeRHI();
 		mUserController.mLevel = &mLevel;
-		mLevel.mTurn.mControl = this;
 
-		srand( 12313 );
 		mLevel.init();
-		mScene.setupLevel( mLevel );
-
+		mScene.setupLevel(mLevel);
 		mLevel.getWorld().addMsgListener( *this );
-		mLevel.getWorld().addMsgListener( mUserController );
 
-		Area* area = new LandArea;
 
-		int idx = 0;
-		for( int j = 0 ; j < SimpleMap::SizeY ; ++j )
-		{
-			for( int i = 0; i < SimpleMap::SizeX; ++i )
-			{
-				switch( SimpleMap::Data[idx] )
-				{
-				case SimpleMap::TE:
-					mLevel.getWorld().addTile(MapCoord(i, j), EMPTY_AREA_ID);
-					break;
-				}
-				++idx;
-			}
-		}
-
-		Player* player;
-		player = createUserPlayer();
-		player->initPos(MapCoord(0, 0), MapCoord(0, 1));
-		player->setRole( 0 );
-		
-
-		player = createUserPlayer();
-		player->initPos(MapCoord(0, 0), MapCoord(0, 1));
-		player->setRole( 1 );
-
+		LoadMap(mScene);
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_WORLD_EDITOR , "World Edit" );
-		restart();
+		frame->addButton( UI_RESTART_GAME , "Restart");
+		frame->addCheckBox("Pause", mbPauseGame );
+		frame->addCheckBox("ShowDebugDraw", mbShowDebugDraw);
+		frame->addCheckBox("FollowPlayer", mbFollowPlayer);
 
 		return true;
 	}
 
 	bool LevelStage::onWidgetEvent( int event , int id , GWidget* widget )
 	{
+		if (!BaseClass::onWidgetEvent(event, id, widget))
+			return false;
+
 		if ( mEditor && !mEditor->onWidgetEvent( event , id , widget ) )
 			return false;
 
@@ -127,20 +92,53 @@ namespace Rich
 		return player;
 	}
 
-	void GameInputController::queryAction( ActionRequestID id , PlayerTurn& turn , ActionReqestData const& data )
+	AIController* LevelStage::createAIController(Player& player)
+	{
+		AIController* aiController = new AIController;
+		controllers.push_back(aiController);
+		aiController->process(player);
+		return aiController;
+	}
+
+	void GameInputController::startTurn(PlayerTurn& turn)
+	{
+		MoveFrame* frame = new MoveFrame(UI_MOVE_FRAME, Vec2i(100, 100), nullptr);
+		frame->mLevel = mLevel;
+		frame->mTurn = &turn;
+		frame->setMaxPower(mLevel->getActivePlayer()->getMovePower());
+		::Global::GUI().addWidget(frame);
+		CO_YEILD(this);
+	}
+
+
+	void GameInputController::endTurn(PlayerTurn& turn)
+	{
+
+	}
+
+	void GameInputController::queryAction(ActionRequestID id, PlayerTurn& turn, ActionReqestData const& data)
 	{
 		switch( id )
 		{
 		case REQ_BUY_LAND:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_LAND , "Buy Land?" );
-				widget->setUserData( intptr_t( &turn ) );
+				widget->setUserData(intptr_t( &turn ) );
+				CO_YEILD(this);
+			}
+			break;
+		case REQ_BUY_STATION:
+			{
+				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_STATION, "Buy Land?");
+				widget->setUserData(intptr_t(&turn));
+				CO_YEILD(this);
 			}
 			break;
 		case REQ_UPGRADE_LAND:
 			{
 				GWidget* widget = ::Global::GUI().showMessageBox( UI_UPGRADE_LAND, "Upgrade Land?" );
 				widget->setUserData( intptr_t( &turn ) );
+				CO_YEILD(this);
 			}
 			break;
 		case REQ_ROMATE_DICE_VALUE:
@@ -159,33 +157,27 @@ namespace Rich
 		switch( id )
 		{
 		case UI_BUY_LAND:
+		case UI_BUY_STATION:
 		case UI_UPGRADE_LAND:
 			{
 				PlayerTurn* turn = reinterpret_cast< PlayerTurn* >( widget->getUserData() );
 				ActionReplyData data;
 				data.addParam( ( event == EVT_BOX_YES ) ? 1 : 0 );
 				turn->replyAction( data );
+				mLevel->resumeLogic();
 				widget->destroy();
+			}
+			return false;
+		case UI_MOVE_FRAME:
+			if (event == EVT_EXIT_UI)
+			{
+				mLevel->resumeLogic();
 			}
 			return false;
 		}
 		return true;
 	}
 
-	void GameInputController::onWorldMsg( WorldMsg const& msg )
-	{
-		switch ( msg.id )
-		{
-		case MSG_TURN_START:
-			{
-				MoveFrame* frame = new MoveFrame( UI_ANY , Vec2i( 100 , 100 ) , nullptr );
-				frame->mLevel    = mLevel;
-				frame->mTurn     = msg.getParam<PlayerTurn*>();
-				frame->setMaxPower( mLevel->getActivePlayer()->getMovePower() );
-				::Global::GUI().addWidget( frame );
-			}
-			break;
-		}
-	}
+
 
 }

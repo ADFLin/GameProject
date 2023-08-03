@@ -4,13 +4,18 @@
 #include "CString.h"
 
 template< typename T , bool bIgnoreCase = false >
-struct TStringPtrWrapper
+struct TCStringWrapper
 {
-	TStringPtrWrapper(T const* str) :str(str) {}
+	TCStringWrapper(T const* str) :str(str) {}
+	TCStringWrapper(TCStringWrapper const& rhs): str(rhs.str){}
 
 	T const* str;
-	bool operator == (TStringPtrWrapper const& rhs) const
+	bool operator == (TCStringWrapper const& rhs) const
 	{
+		if (str == nullptr || rhs.str == nullptr)
+		{
+			return str != rhs.str;
+		}
 		if constexpr (bIgnoreCase)
 		{
 			return FCString::CompareIgnoreCase(str, rhs.str) == 0;
@@ -22,8 +27,12 @@ struct TStringPtrWrapper
 
 	}
 
-	bool operator < (TStringPtrWrapper const& rhs) const
+	bool operator < (TCStringWrapper const& rhs) const
 	{
+		if (str == nullptr || rhs.str == nullptr)
+		{
+			return str < rhs.str;
+		}
 		if constexpr (bIgnoreCase)
 		{
 			return FCString::CompareIgnoreCase(str, rhs.str) < 0;
@@ -47,8 +56,8 @@ struct TStringPtrWrapper
 	}
 };
 
-using StringPtrWrapper = TStringPtrWrapper<char>;
-using WStringPtrWrapper = TStringPtrWrapper<wchar_t>;
+using CStringWrapper = TCStringWrapper<char>;
+using WCStringWrapper = TCStringWrapper<wchar_t>;
 
-EXPORT_MEMBER_HASH_TO_STD(StringPtrWrapper);
-EXPORT_MEMBER_HASH_TO_STD(WStringPtrWrapper);
+EXPORT_MEMBER_HASH_TO_STD(CStringWrapper);
+EXPORT_MEMBER_HASH_TO_STD(WCStringWrapper);

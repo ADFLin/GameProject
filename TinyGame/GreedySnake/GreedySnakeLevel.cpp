@@ -240,11 +240,14 @@ namespace GreedySnake
 					{
 						removeSnakeBodyElementMark(snake.id, tailPos);
 					}
-					addSnakeBodyElementMark(snake.id, snake.getBody().getHead().pos);
 
 					if( !(snake.stateBit & SS_DEAD) )
 					{
 						detectMoveSnakeCollision(snake);
+					}
+					if (!(snake.stateBit & SS_DEAD))
+					{
+						addSnakeBodyElementMark(snake.id, snake.getBody().getHead().pos);
 					}
 				}
 
@@ -336,7 +339,7 @@ namespace GreedySnake
 		unsigned snakeMask = tile.snakeMask;
 		if (snake.stateBit & SS_INVINCIBLE)
 			snakeMask = 0;
-		if ( snake.stateBit & SS_TRANSPARENT )
+		if ( snake.stateBit & SS_TRANSPARENT)
 			snakeMask &= ~BIT(snake.id);
 		
 		if ( snakeMask )
@@ -381,18 +384,20 @@ namespace GreedySnake
 		}
 		else if ( tile.itemMask )
 		{
-			for( FoodVec::iterator iter = mFoodVec.begin();
-				iter != mFoodVec.end() ; )
+			int numFood = mFoodVec.size();
+			for (int index = 0; index < numFood; )
 			{
-				if ( iter->pos == head.pos )
+				FoodInfo& food = mFoodVec[index];
+				if (food.pos == head.pos)
 				{
-					mListener->onEatFood( snake , *iter );
-					mMap.getData(iter->pos.x, iter->pos.y).itemMask = 0;
-					iter = mFoodVec.erase( iter );
+					mListener->onEatFood(snake, food);
+					mMap.getData(food.pos.x, food.pos.y).itemMask = 0;
+					mFoodVec.removeIndex(index);
+					--numFood;
 				}
 				else
 				{
-					++iter;
+					++index;
 				}
 			}
 		}

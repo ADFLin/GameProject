@@ -8,6 +8,7 @@
 #include "RHI/RHICommand.h"
 
 #include "EditorUtils.h"
+#include "ProfileSystem.h"
 
 using namespace Render;
 
@@ -41,6 +42,8 @@ void GameViewportPanel::onClose()
 
 void GameViewportPanel::render()
 {
+	PROFILE_ENTRY("GameViewportPanel");
+
 	EditorRenderContext context;
 	context.texture = mTexture;
 	mViewport->renderViewport(context);
@@ -51,46 +54,61 @@ void GameViewportPanel::render()
 
 	if (ImGui::IsItemHovered())
 	{
-		ImVec2 mousePositionAbsolute = ImGui::GetMousePos();
-		ImVec2 screenPositionAbsolute = ImGui::GetItemRectMin();
-		ImVec2 mousePositionRelative = ImVec2(mousePositionAbsolute.x - screenPositionAbsolute.x, mousePositionAbsolute.y - screenPositionAbsolute.y);
+		Vector2 mousePositionAbsolute = FImGuiConv::To(ImGui::GetMousePos());
+		Vector2 screenPositionAbsolute = FImGuiConv::To(ImGui::GetItemRectMin());
+		Vector2 mousePositionRelative = mousePositionAbsolute - screenPositionAbsolute;
 
 		uint32 buttonEvent = MBS_MOVING;
 
 		auto ProcButtonMsg = [&]( uint16 button , ImGuiMouseButton imbtn) -> bool
 		{
+			bool bWasButtonDown = mMouseState & button;
 			if (ImGui::IsMouseDown(imbtn))
 			{
 				mMouseState |= button;
-				buttonEvent = button | MBS_DOWN;
+				if (!bWasButtonDown)
+				{
+					buttonEvent = button | MBS_DOWN;
+					MouseMsg msg(mousePositionRelative, buttonEvent, mMouseState);
+					mViewport->onViewportMouseEvent(msg);
+					return true;
+				}
+
 			}
 			else if (ImGui::IsMouseReleased(imbtn))
 			{
 				mMouseState &= ~button;
-				buttonEvent = button;
+				if (bWasButtonDown)
+				{
+					buttonEvent = button;
+					MouseMsg msg(mousePositionRelative, buttonEvent, mMouseState);
+					mViewport->onViewportMouseEvent(msg);
+					return true;
+				}
 			}
 			else if (ImGui::IsMouseDoubleClicked(imbtn))
 			{
 				buttonEvent = button | MBS_DOUBLE_CLICK;
+				MouseMsg msg(mousePositionRelative, buttonEvent, mMouseState);
+				mViewport->onViewportMouseEvent(msg);
+				return true;
 			}
-			else
-			{
-				return false;
-			}
-			return true;
+
+			return false;
 		};
 
 
-		if (ProcButtonMsg(MBS_LEFT, ImGuiMouseButton_Left) ||
-			ProcButtonMsg(MBS_RIGHT, ImGuiMouseButton_Right) ||
-			ProcButtonMsg(MBS_MIDDLE, ImGuiMouseButton_Middle))
+		bool haveEvent = ProcButtonMsg(MBS_LEFT, ImGuiMouseButton_Left);
+		haveEvent |= ProcButtonMsg(MBS_RIGHT, ImGuiMouseButton_Right);
+		haveEvent |= ProcButtonMsg(MBS_MIDDLE, ImGuiMouseButton_Middle);
+
+		if ( !haveEvent && mLastMousePos != mousePositionRelative )
 		{
-
-
+			MouseMsg msg(mousePositionRelative, MBS_MOVING, mMouseState);
+			mViewport->onViewportMouseEvent(msg);
 		}
 
-		MouseMsg msg(Vec2i(mousePositionRelative.x, mousePositionRelative.y), buttonEvent, mMouseState);
-		mViewport->onViewportMouseEvent(msg);
+		mLastMousePos = mousePositionRelative;
 	}
 }
 

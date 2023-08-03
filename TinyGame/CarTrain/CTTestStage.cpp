@@ -25,7 +25,7 @@ namespace CarTrain
 			Vector2 RectSize = Vector2(760, 560);
 			Vector2 CenterPos = 0.5 * Vector2(::Global::GetScreenSize());
 
-			spawnPoint = XForm2D(Vector2(420, 470), Math::Deg2Rad(135));
+			spawnPoint = XForm2D(Vector2(420, 470), Math::DegToRad(135));
 
 			GameBoxDef def;
 			def.bCollisionDetection = false;
@@ -120,63 +120,63 @@ namespace CarTrain
 
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(160, 450), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(160, 450), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(220, 520), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(220, 520), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(400, 450), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(400, 450), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(500, 450), -Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(500, 450), -Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(400, 600), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(400, 600), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 			{
 				def.extend = Vector2(20, 200);
-				def.transform = XForm2D(Vector2(500, 600), -Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(500, 600), -Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 
 			{
 				def.extend = Vector2(50, 50);
-				def.transform = XForm2D(Vector2(700, 150), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(700, 150), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 
 			{
 				def.extend = Vector2(50, 50);
-				def.transform = XForm2D(Vector2(700, 350), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(700, 350), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 
 			{
 				def.extend = Vector2(50, 50);
-				def.transform = XForm2D(Vector2(700, 500), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(700, 500), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 
 			{
 				def.extend = Vector2(50, 50);
-				def.transform = XForm2D(Vector2(60, 160), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(60, 160), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 
 
 			{
 				def.extend = Vector2(50, 50);
-				def.transform = XForm2D(Vector2(160, 60), Math::Deg2Rad(45));
+				def.transform = XForm2D(Vector2(160, 60), Math::DegToRad(45));
 				boxObjects.push_back(def);
 			}
 		}
@@ -211,15 +211,18 @@ namespace CarTrain
 	{
 		XForm2D& XForm = getComponentCheckedT< XForm2D >();
 
-		g.pushXForm();
-		g.translateXForm(XForm.getPos().x, XForm.getPos().y);
-		g.rotateXForm(XForm.getRotateAngle());
+		TRANSFORM_PUSH_SCOPE(g.getTransformStack(), [&]()
+		{
+			g.translateXForm(XForm.getPos().x, XForm.getPos().y);
+			g.rotateXForm(XForm.getRotateAngle());
+		});
+
 		for (int i = 0; i < NumDetectors; ++i)
 		{
 			RenderUtility::SetPen(g, mDetectors[i].bHitted ? EColor::Red : EColor::Yellow);
 			g.drawLine(Vector2::Zero(), MaxDetectDistance * mDetectors[i].fraction * GetNormal(DetectorLocalDirs[i]));
 		}
-		g.popXForm();
+
 	}
 
 	bool TestStage::onInit()
@@ -236,7 +239,7 @@ namespace CarTrain
 		mNNLayout.init(AgentCarEntiy::Topology, ARRAY_SIZE(AgentCarEntiy::Topology));
 
 		mTrainSettings.netLayout = &mNNLayout;
-		mTrainSettings.initWeightSeed = generateRandSeed();
+		mTrainSettings.initWeightSeed = GenerateRandSeed();
 		mTrainSettings.numAgents = 200;
 		mTrainSettings.numTrainDataSelect = 25;
 		mTrainSettings.numPoolDataSelectUsed = 30;

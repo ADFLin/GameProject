@@ -135,7 +135,7 @@ namespace Render
 
 			mProgTest.releaseRHI();
 			mTexture.release();
-			mCBuffer.releaseResources();
+			mCBuffer.releaseResource();
 			mInputLayout.release();
 			mVertexBuffer.release();
 			mIndexBuffer.release();
@@ -198,8 +198,7 @@ namespace Render
 			mView.rectOffset = IntVector2(0, 0);
 			mView.rectSize = IntVector2(screenSize.x, screenSize.y);
 
-			Matrix4 matView = mCamera.getViewMatrix();
-			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+			mView.setupTransform(mCamera.getPos(), mCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
 			mView.updateRHIResource();
 
 			RHISetFrameBuffer(commandList, nullptr);

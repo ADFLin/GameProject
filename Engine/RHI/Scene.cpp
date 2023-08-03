@@ -55,7 +55,7 @@ namespace Render
 		{
 		case LightType::Spot:
 			{
-				float d = 0.5 * radius / Math::Cos(Math::Deg2Rad(spotAngle.y));
+				float d = 0.5 * radius / Math::Cos(Math::DegToRad(spotAngle.y));
 				return view.frustumTest(pos + d * Math::GetNormal(dir), d);
 			}
 			break;

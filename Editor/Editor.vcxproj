@@ -48,7 +48,9 @@
     <ClInclude Include="ShaderGraph\ShaderGraph.h" />
     <ClInclude Include="Widget\ConsolePanel.h" />
     <ClInclude Include="Widget\ContentPanel.h" />
+    <ClInclude Include="Widget\DetailPanel.h" />
     <ClInclude Include="Widget\GameViewportPanel.h" />
+    <ClInclude Include="Widget\ProfilerPanel.h" />
     <ClInclude Include="Widget\ShaderGraphPanel.h" />
   </ItemGroup>
   <ItemGroup>
@@ -69,7 +71,9 @@
     <ClCompile Include="ShaderGraph\ShaderGraph.cpp" />
     <ClCompile Include="Widget\ConsolePanel.cpp" />
     <ClCompile Include="Widget\ContentPanel.cpp" />
+    <ClCompile Include="Widget\DetailPanel.cpp" />
     <ClCompile Include="Widget\GameViewportPanel.cpp" />
+    <ClCompile Include="Widget\ProfilerPanel.cpp" />
     <ClCompile Include="Widget\ShaderGraphPanel.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -5,10 +5,23 @@
 #include "Core/IntegerType.h"
 #include "TypeMemoryOp.h"
 
+#include <string>
+
 template< typename T>
-struct TCanBitwiseRelocate
+struct TBitwiseReallocatable
 {
 	static constexpr int Value = 1;
+};
+
+template<>
+struct TBitwiseReallocatable<std::string>
+{
+	static constexpr int Value = 0;
+};
+template<>
+struct TBitwiseReallocatable<std::wstring>
+{
+	static constexpr int Value = 0;
 };
 
 template< class T >
@@ -88,7 +101,7 @@ struct DefaultAllocator
 				growSize += (3 * growSize) / 8;
 
 				void* newAlloc;
-				if constexpr (TCanBitwiseRelocate<T>::Value)
+				if constexpr (TBitwiseReallocatable<T>::Value)
 				{
 					newAlloc = FMemory::Realloc(mStorage, sizeof(T) * growSize);
 					if (newAlloc == nullptr)
@@ -321,7 +334,7 @@ public:
 
 	bool isValidIndex(int index) const
 	{
-		return 0 < index && index < size();
+		return 0 <= index && index < size();
 	}
 
 	void reserve(size_t size)
@@ -655,20 +668,19 @@ public:
 		ArrayData::swap(other);
 	}
 
-	T* addUninitialized()
-	{
-		ArrayData::alloc(mNum, 1);
 
-		T* result = getElement(mNum);
-		++mNum;
-		return result;
-	}
-
-	T* addUninitialized(size_t num)
+	T* addUninitialized(size_t num = 1)
 	{
 		ArrayData::alloc(mNum, num);
 		T* result = getElement(mNum);
 		mNum += num;
+		return result;
+	}
+
+	T* addDefault(size_t num = 1)
+	{
+		T* result = addUninitialized(num);
+		FTypeMemoryOp::ConstructSequence(result, num);
 		return result;
 	}
 
@@ -703,7 +715,6 @@ public:
 	int mNum;
 
 };
-
 
 
 #endif // Array_H_53348890_2577_41C4_9C3E_01D135F952BD

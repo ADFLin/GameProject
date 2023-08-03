@@ -59,7 +59,13 @@ namespace Go
 				uint8 playColor;
 				uint8 pos[2];
 			};
-			EBotExecResult result;
+
+			struct  
+			{
+				uint8 execId;
+				EBotExecResult result;
+			};
+
 			int* pBoardData;
 		};
 

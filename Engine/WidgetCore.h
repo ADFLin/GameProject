@@ -117,6 +117,7 @@ private:
 protected:
 	void    onLink() {}
 	void    onUnlink() {}
+	void    onDestroy() {}
 	void    onChangeOrder() {}
 	void    onChangeChildrenOrder() {}
 	void    onEnable(bool beE) {}
@@ -145,7 +146,7 @@ public:
 	virtual MsgReply onMouseMsg(MouseMsg const& msg) { (void)msg; return MsgReply::Handled(); }
 
 private:
-	void    deleteChildren_R();
+	void    destroyChildren_R();
 
 	void          setTopChild(WidgetCoreT* ui, bool beAlways);
 
@@ -216,7 +217,7 @@ protected:
 	WidgetCoreT*       mParent;
 
 	Vec2i          mCacheWorldPos;
-	unsigned       mFlag;
+	uint32         mFlag;
 	int            mNumChild;
 	Rect           mBoundRect;
 };
@@ -322,10 +323,22 @@ private:
 	void      clearNamedSlot(ESlotName name)
 	{
 		assert(mNamedSlots[name]);
-		//mNamedSlots[name]->removeFlagInternal(UF_MANAGER_REF);
+		WidgetCore* ui = mNamedSlots[name];
 		mNamedSlots[name] = nullptr;
+		if (!haveReference(*ui))
+		{
+			ui->removeFlagInternal(WIF_MANAGER_REF);
+		}
 	}
-
+	bool haveReference(WidgetCore& ui)
+	{
+		for (int i = 0; i < ARRAY_SIZE(mNamedSlots); ++i)
+		{
+			if (mNamedSlots[i] == &ui )
+			return true;
+		}
+		return false;
+	}
 	
 	WidgetCore*    getKeyInputWidget();
 

@@ -241,16 +241,8 @@
     <ClCompile Include="StoneBlocks\SBlocksSolver.cpp" />
     <ClCompile Include="StoneBlocks\SBlocksStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
-    <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\AgarStage.cpp" />
     <ClCompile Include="TestRender\Stage\ChessTestStage.cpp" />
-    <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
-    <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
-    <ClCompile Include="TestRender\Stage\MeshShaderTest.cpp" />
-    <ClCompile Include="TestRender\Stage\ODETestStage.cpp" />
-    <ClCompile Include="TestRender\Stage\PlantRenderStage.cpp" />
-    <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
-    <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
-    <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
     <ClCompile Include="TestWorking\TestWorking.cpp" />
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
     <ClCompile Include="Transport\TPStage.cpp" />
@@ -274,10 +266,7 @@
     <ClInclude Include="Sudoku\SamplerTest.h" />
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
-    <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
-    <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
-    <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
-    <ClInclude Include="TestRender\Stage\PlantRenderStage.h" />
+    <ClInclude Include="TestMisc\Stage\AgarStage.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

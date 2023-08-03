@@ -61,9 +61,6 @@
     <ClInclude Include="Widget\ShaderGraphPanel.h">
       <Filter>Widget</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderGraph\ShaderGraph.h">
-      <Filter>ShaderGraph</Filter>
-    </ClInclude>
     <ClInclude Include="..\OtherLib\ImNodeEditor\crude_json.h">
       <Filter>OtherLib\ImNodeEditor</Filter>
     </ClInclude>
@@ -81,6 +78,15 @@
     </ClInclude>
     <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_node_editor_internal.h">
       <Filter>OtherLib\ImNodeEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderGraph\ShaderGraph.h">
+      <Filter>ShaderGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\DetailPanel.h">
+      <Filter>Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\ProfilerPanel.h">
+      <Filter>Widget</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -134,6 +140,12 @@
     </ClCompile>
     <ClCompile Include="ShaderGraph\ShaderGraph.cpp">
       <Filter>ShaderGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\DetailPanel.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\ProfilerPanel.cpp">
+      <Filter>Widget</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

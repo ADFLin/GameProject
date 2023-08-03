@@ -871,7 +871,7 @@ namespace Render
 
 		TIME_SCOPE("Build Shader Program");
 
-		bForceReload = true;
+		//bForceReload = true;
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData) )
 		{
 			if (!managedData.sourceFile.empty())
@@ -945,6 +945,7 @@ namespace Render
 			}
 	
 			shaderProgram.mRHIResource = setupData.resource;
+			shaderProgram.preInitialize();
 			if (!mShaderFormat->initializeProgram(shaderProgram, setupData))
 			{
 				shaderProgram.mRHIResource.release();
@@ -970,7 +971,6 @@ namespace Render
 
 		TIME_SCOPE("Build Shader");
 
-		bForceReload = true;
 		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
 		{
 			if (!managedData.sourceFile.empty())
@@ -1038,6 +1038,7 @@ namespace Render
 			}
 
 			shader.mRHIResource = setupData.resource;
+			shader.preInitialize();
 			if (!mShaderFormat->initializeShader(shader, setupData))
 			{
 				shader.mRHIResource.release();
@@ -1048,6 +1049,8 @@ namespace Render
 			{
 				LogWarning(0, "Can't Save Shader Cache");
 			}
+
+			mShaderFormat->postShaderLoaded(shader);
 		}
 
 		return true;

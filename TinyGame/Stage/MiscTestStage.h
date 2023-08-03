@@ -1213,22 +1213,6 @@ namespace TankGame
 }
 
 
-
-class CoroutineTestStage : public StageBase
-{
-	using BaseClass = StageBase;
-
-public:
-	enum
-	{
-		UI_TEST_BUTTON = BaseClass::NEXT_UI_ID ,
-		UI_TEST_BUTTON2 ,
-	};
-	bool onInit() override;
-	bool onWidgetEvent( int event , int id , GWidget* ui ) override;
-
-};
-
 #include "Bsp2D.h"
 
 namespace Bsp2D

@@ -43,7 +43,7 @@ namespace MV
 
 		//mCamera.setPos( Vector3( 20 , 20 , 20 ) );
 		mCamera.setPos(Vec3f(0, 0, 0));
-		mCamera.setRotation( Math::Deg2Rad( 225 ) , Math::Deg2Rad( 45 ) , 0 );
+		mCamera.setRotation( Math::DegToRad( 225 ) , Math::DegToRad( 45 ) , 0 );
 
 		bCameraView = false;
 		mViewWidth = 32;

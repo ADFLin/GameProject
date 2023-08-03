@@ -74,7 +74,6 @@ namespace Render
 		ShaderParameter mParamXForm;
 	};
 
-
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
 

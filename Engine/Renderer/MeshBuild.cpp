@@ -1195,8 +1195,8 @@ namespace Render
 			mRadius = radius;
 
 			int const FaceCount = 4;
-			mBuidlData.vertexData.resize(( 2 + FaceCount * Math::Squre(level + 1)) * sizeof(VertexType) );
-			mBuidlData.indexData.resize( 3 * 2 * FaceCount * Math::Squre(level + 1));
+			mBuidlData.vertexData.resize(( 2 + FaceCount * Math::Square(level + 1)) * sizeof(VertexType) );
+			mBuidlData.indexData.resize( 3 * 2 * FaceCount * Math::Square(level + 1));
 			uint32* pIndex = mBuidlData.indexData.data();
 			VertexType* pVertex = (VertexType*)mBuidlData.vertexData.data();
 

@@ -44,7 +44,7 @@ void drawSprite(Vec2f const& pos, Vec2f const& size, float rot, Texture* tex )
 	Vec2f hotspot = size / 2;
 	glPushMatrix();
 	glTranslatef( pos.x + hotspot.x , pos.y + hotspot.y , 0);
-	glRotatef( Math::Rad2Deg( rot ),0,0,1);
+	glRotatef( Math::RadToDeg( rot ),0,0,1);
 	glTranslatef( -hotspot.x , -hotspot.y , 0 );
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_EQUAL,1.0f);
@@ -74,7 +74,7 @@ void drawSprite(Vec2f const& pos, Vec2f const& size, float rot )
 
 	glPushMatrix();
 	glTranslatef( pos.x + pivot.x , pos.y + pivot.y , 0);
-	glRotatef( Math::Rad2Deg( rot ),0,0,1);
+	glRotatef( Math::RadToDeg( rot ),0,0,1);
 	glTranslatef( -pivot.x , -pivot.y , 0 );
 
 	glBegin(GL_QUADS);

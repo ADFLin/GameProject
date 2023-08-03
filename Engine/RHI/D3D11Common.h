@@ -844,7 +844,7 @@ namespace Render
 			return mColorTexture; 
 		}
 
-		virtual void Present(bool bVSync) override
+		virtual void present(bool bVSync) override
 		{
 			mResource->Present(bVSync ? 1 : 0, 0);
 		}

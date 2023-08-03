@@ -103,6 +103,16 @@ namespace Math
 		Vector3 projectNormal(Vector3 const& dir) const;
 
 		static Vector3 Zero(){ return Vector3(0,0,0); }
+		static Vector3 Fill(float s) { return Vector3(s, s, s); }
+
+		bool operator == (Vector3 const& rhs) const
+		{
+			return x == rhs.x && y == rhs.y && z == rhs.z;
+		}
+		bool operator != (Vector3 const& rhs) const
+		{
+			return !this->operator==(rhs);
+		}
 	public:
 		float x,y,z;
 

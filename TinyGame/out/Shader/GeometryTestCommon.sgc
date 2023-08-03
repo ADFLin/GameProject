@@ -2,7 +2,7 @@
 
 #include "Common.sgc"
 
-bool RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius, out float outT)
+int RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius, out float outT)
 {
 	// ( ld + vd * t ) ^ 2 = r^2 ; ld = pos - center
 	// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
@@ -15,10 +15,23 @@ bool RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius
 	if( d < 0 )
 	{
 		outT = length(offset - b * dirNormalized);
-		return false;
+		return 0;
 	}
-	outT = -b - sqrt(d);
-	return true;
+	d = sqrt(d);
+
+#if 1
+	float t1 = -b - d;
+	if (t1 > 0)
+	{
+		outT = t1;
+		return 2;
+	}
+	outT = -b + d;
+	return outT > 0 ? 1 : 0;
+#else
+	outT = -b - d;
+	return outT > 0;
+#endif
 }
 
 bool RayAABBTest(float3 pos, float3 dir, float3 boundMin, float3 boundMax , out float2 outT )

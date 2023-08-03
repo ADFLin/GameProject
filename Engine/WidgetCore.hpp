@@ -400,20 +400,22 @@ void WidgetCoreT<T>::destroy()
 	}
 	else
 	{
-		deleteChildren_R();
+		_this()->onDestroy();
+		destroyChildren_R();
 		deleteThis();
 	}
 }
 
 template< class T >
-void WidgetCoreT<T>::deleteChildren_R()
+void WidgetCoreT<T>::destroyChildren_R()
 {
 	auto iterChildren = createChildrenIterator();
 
 	while( iterChildren )
 	{
 		WidgetCoreT* child = &(*iterChildren);
-		child->deleteChildren_R();
+		static_cast<T*>(child)->onDestroy();
+		child->destroyChildren_R();
 		++iterChildren;
 		child->deleteThis();
 	}
@@ -763,6 +765,7 @@ void TWidgetManager<T>::destroyWidgetChildren_R(WidgetCore* ui)
 	while( childIter )
 	{
 		WidgetCore* child = &(*childIter);
+		static_cast<T*>(child)->onDestroy();
 		destroyWidgetChildren_R(child);
 		++childIter;
 		destroyWidget(child);
@@ -773,9 +776,9 @@ void TWidgetManager<T>::destroyWidgetChildren_R(WidgetCore* ui)
 template< class T >
 void TWidgetManager<T>::destroyWidgetActually( WidgetCore* ui )
 {
+	static_cast<T*>(ui)->onDestroy();
 	removeWidgetReference( ui );
 	destroyWidgetChildren_R( ui );
-
 	ui->unlinkInternal(true);
 	ui->deleteThis();
 }

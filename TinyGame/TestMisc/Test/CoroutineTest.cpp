@@ -1,0 +1,213 @@
+#include "StageBase.h"
+#include "StageRegister.h"
+
+#include "Async/Coroutines.h"
+
+
+class GameTimeControl
+{
+public:
+	float time;
+
+	void update(float deltaTime)
+	{
+		time += deltaTime;
+	}
+
+	void reset()
+	{
+		time = 0;
+	}
+};
+
+GameTimeControl GGameTime;
+
+class WaitForSeconds : public IYieldInstruction
+{
+public:
+	WaitForSeconds(float duration)
+	{
+		time = GGameTime.time + duration;
+	}
+
+	float time;
+
+
+	bool isKeepWaiting() const override
+	{
+		return time > GGameTime.time;
+	}
+
+};
+
+class CoroutineTestStage : public StageBase
+{
+	using BaseClass = StageBase;
+
+public:
+	enum
+	{
+		UI_TEST_BUTTON = BaseClass::NEXT_UI_ID,
+		UI_TEST_BUTTON2,
+	};
+	bool onInit() override;
+	bool onWidgetEvent(int event, int id, GWidget* ui) override;
+
+	void onUpdate(long time) override
+	{
+		GGameTime.update(float(time) / 1000.0f);
+		Coroutines::ThreadContext::Get().checkAllExecutions();
+	}
+
+	void test()
+	{
+		auto a = Coroutines::Start([this] { testA(); });
+		auto b = Coroutines::Start([this] { testB(); });
+#if 0
+		CO_YEILD(a);
+		CO_YEILD(b);
+#else
+		CO_RACE(a, b);
+#endif
+		LogMsg("Test End");
+	}
+
+
+	void testA()
+	{
+		LogMsg("TestA Start");
+		for (int i = 0; i < 10; ++i)
+		{
+			LogMsg("TestA %d", i);
+			CO_YEILD(WaitForSeconds(2));
+		}
+		LogMsg("TestA End");
+	}
+
+
+	void testB()
+	{
+#if 1
+		for (int i = 0; i < 10; ++i)
+		{
+			LogMsg("TestB %d", i);
+			CO_YEILD(nullptr);
+		}
+#endif
+		LogMsg("TestB End");
+	}
+};
+
+
+REGISTER_STAGE_ENTRY("Corontine Test", CoroutineTestStage, EExecGroup::Test);
+
+#if 1
+
+
+typedef boost::coroutines2::asymmetric_coroutine< int > CoroutineType;
+
+struct FooFunc
+{
+	FooFunc()
+	{
+		num = 0;
+	}
+
+	void foo(CoroutineType::push_type& ca)
+	{
+		int process = 0;
+		while (true)
+		{
+			InlineString< 32 > str;
+			process = num;
+			GButton* button = new GButton(CoroutineTestStage::UI_TEST_BUTTON, Vec2i(100, 100 + 30 * process), Vec2i(100, 20), nullptr);
+			str.format("%d", num);
+			button->setTitle(str);
+			::Global::GUI().addWidget(button);
+			ca(process);
+		}
+		ca(-1);
+	}
+	int num;
+} gFunc;
+
+static CoroutineType::pull_type* gCor;
+static FunctionJumper gJumper;
+
+template< class TFunc >
+void foo(TFunc func)
+{
+	static int i = 2;
+	boost::unwrap_ref(func)(i);
+}
+
+struct Foo
+{
+	void operator()(int i) { mI = i; }
+	int mI;
+};
+void foo2()
+{
+	GButton* button = new GButton(CoroutineTestStage::UI_TEST_BUTTON2, Vec2i(200, 100), Vec2i(100, 20), nullptr);
+	button->setTitle("foo2");
+	::Global::GUI().addWidget(button);
+	gJumper.jump();
+
+	while (1)
+	{
+
+		for (int i = 0; i < 3; ++i)
+		{
+			button->setSize(2 * button->getSize());
+			gJumper.jump();
+		}
+
+		for (int i = 0; i < 3; ++i)
+		{
+			button->setSize(button->getSize() / 2);
+			gJumper.jump();
+		}
+	}
+}
+
+bool CoroutineTestStage::onInit()
+{
+	::Global::GUI().cleanupWidget();
+	WidgetUtility::CreateDevFrame();
+
+	GGameTime.reset();
+	gFunc.num = 0;
+	gCor = new CoroutineType::pull_type(std::bind(&FooFunc::foo, std::ref(gFunc), std::placeholders::_1));
+	int id = gCor->get();
+
+	Foo f;
+	f.mI = 1;
+	foo(std::ref(f));
+
+	gJumper.start(foo2);
+	auto& context = Coroutines::ThreadContext::Get();
+	Coroutines::Start([this]()
+	{
+		test();
+	});
+
+	return true;
+}
+
+
+bool CoroutineTestStage::onWidgetEvent(int event, int id, GWidget* ui)
+{
+	switch (id)
+	{
+	case UI_TEST_BUTTON:
+		gFunc.num += 1;
+		(*gCor)();
+		return false;
+	case UI_TEST_BUTTON2:
+		gJumper.jump();
+		return false;
+	}
+
+	return true;
+}
+#endif

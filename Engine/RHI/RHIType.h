@@ -39,6 +39,12 @@ namespace Render
 		return Math::Abs(1.0 - v.length2()) < 1e-6;
 	}
 
+	struct FRenderView
+	{
+		static Vector3 FrontDirection() { return Vector3(0, 0, 1); }
+		static Vector3 UpDirection() { return Vector3(0, 1, 0); }
+	};
+
 	class LookAtMatrix : public Matrix4
 	{
 	public:

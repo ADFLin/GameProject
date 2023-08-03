@@ -25,8 +25,8 @@ int const gDefaultScreenWidth  = 800;
 int const gDefaultScreenHeight = 600;
 
 float const PI = 3.141592653589793238462643383279f;
-#define DEG2RAD( deg ) float( deg * PI / 180.0f )
-#define RAD2DEG( rad ) float( rad * 180.0f / PI )
+#define DEG2RAD( deg ) Math::DegToRad( deg )
+#define RAD2DEG( rad ) Math::RadToDeg( rad )
 
 #define COMBINE_HEX(n) 0x##n##LU
 
@@ -61,7 +61,7 @@ struct UserProfile;
 class NetWorker;
 class DataCacheInterface;
 
-TINY_API uint64 generateRandSeed();
+TINY_API uint64 GenerateRandSeed();
 
 
 

@@ -18,7 +18,7 @@ namespace Go
 		if (!mAI.buildPlayGame())
 			return false;
 
-		static_cast<GTPOutputThread*>(mAI.outputThread)->bLogMsg = false;
+		mAI.getThread<GTPOutputThread>()->bLogMsg = false;
 		return true;
 	}
 

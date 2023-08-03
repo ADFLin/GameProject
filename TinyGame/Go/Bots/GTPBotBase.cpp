@@ -9,9 +9,14 @@ namespace Go
 
 	GTPLikeAppRun::~GTPLikeAppRun()
 	{
+
+	}
+
+	void GTPLikeAppRun::update()
+	{
 		if (outputThread)
 		{
-			delete outputThread;
+			outputThread->update();
 		}
 	}
 
@@ -22,8 +27,7 @@ namespace Go
 		if (outputThread)
 		{
 			outputThread->kill();
-			delete outputThread;
-			outputThread = nullptr;
+			outputThread.reset();
 		}
 		process.terminate();
 	}
@@ -119,20 +123,20 @@ namespace Go
 	{
 		if (!inputCommand("showboard\n", { GTPCommand::eShowBoard , 0 }))
 			return false;
-		static_cast<GTPOutputThread*>(outputThread)->mOutReadBoard = outData;
+		getThread<GTPOutputThread>()->mOutReadBoard = outData;
 		return true;
 	}
 
 	bool GTPLikeAppRun::isThinking()
 	{
-		return static_cast<GTPOutputThread*>(outputThread)->mProcQueue.back().id == GTPCommand::eGenmove;
+		return getThread<GTPOutputThread>()->mProcQueue.back().id == GTPCommand::eGenmove;
 	}
 
 	bool GTPLikeAppRun::inputCommand(char const* command, GTPCommand com)
 	{
 		if (!inputProcessStream(command))
 			return false;
-		static_cast<GTPOutputThread*>(outputThread)->mProcQueue.push_back(com);
+		getThread<GTPOutputThread>()->mProcQueue.push_back(com);
 		return true;
 	}
 
@@ -163,7 +167,7 @@ namespace Go
 	bool GTPLikeAppRun::waitCommandCompletion()
 	{
 		mWaitCompletionResult = true;
-		GTPOutputThread* myThread = static_cast<GTPOutputThread*>(outputThread);
+		GTPOutputThread* myThread = getThread<GTPOutputThread>();
 		while (!myThread->mProcQueue.empty())
 		{
 			myThread->update();
@@ -188,6 +192,7 @@ namespace Go
 			{
 				GameCommand resultCom;
 				resultCom.id = GameCommand::eExecResult;
+				resultCom.execId = com.id;
 				resultCom.result = result == EGTPComExecuteResult::Success ? EBotExecResult::BOT_OK : EBotExecResult::BOT_FAIL;
 				outputThread->addOutputCommand(resultCom);
 			}
@@ -199,7 +204,7 @@ namespace Go
 
 	void GTPLikeAppRun::bindCallback()
 	{
-		static_cast<GTPOutputThread*>(outputThread)->onCommandResult = GTPCommandResultDelegate(this, &GTPLikeAppRun::notifyCommandResult);
+		getThread<GTPOutputThread>()->onCommandResult = GTPCommandResultDelegate(this, &GTPLikeAppRun::notifyCommandResult);
 	}
 
 }//namespace Go

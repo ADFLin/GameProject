@@ -120,17 +120,14 @@ namespace Go
 	{
 	public:
 		ChildProcess        process;
-		IGameOutputThread*  outputThread = nullptr;
+		std::unique_ptr<IGameOutputThread> outputThread;
+		
 		bool  bThinking = false;
 		bool  bWaitCommandCompletion = false;
 
 		~GTPLikeAppRun();
 
-		void update()
-		{
-			if (outputThread)
-				outputThread->update();
-		}
+		void update();
 
 		void stop();
 
@@ -166,13 +163,19 @@ namespace Go
 			myThread->process = &process;
 			myThread->start();
 			myThread->setDisplayName("Output Thread");
-			outputThread = myThread;
+			outputThread.reset(myThread);
 
 			if constexpr (TIsBaseOf< T, GTPOutputThread >::Value)
 			{
 				bindCallback();
 			}
 			return true;
+		}
+
+		template< typename T >
+		T* getThread()
+		{
+			return static_cast<T*>(outputThread.get());
 		}
 	};
 

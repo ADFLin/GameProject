@@ -44,7 +44,7 @@ public:
 		return basePos + Vector2((idxLayer + 1) * layerOffset, offsetY);
 	}
 
-	NNScalar* inputsAndSignals = nullptr;
+	NNScalar* signals = nullptr;
 	bool bShowSignalLink = true;
 	float scaleFactor = 1.5;
 	float layerOffset = scaleFactor * 40;

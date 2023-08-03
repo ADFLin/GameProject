@@ -48,7 +48,7 @@ namespace CFly
 		mRender2DCam->scale( Vector3(1,1,-1) , CFTO_REPLACE );
 
 		mRender2DCam->translate( Vector3(0,0,10000) , CFTO_LOCAL );
-		mRender2DCam->rotate( CF_AXIS_Y , Math::Deg2Rad( 180 ) , CFTO_LOCAL );
+		mRender2DCam->rotate( CF_AXIS_Y , Math::DegToRad( 180 ) , CFTO_LOCAL );
 		mRender2DCam->setNear( 10000 );
 		mRender2DCam->setFar( -10000 );
 

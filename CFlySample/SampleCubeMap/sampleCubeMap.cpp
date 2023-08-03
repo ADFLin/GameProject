@@ -23,7 +23,7 @@ public:
 
 		cubeMapCamera = mMainScene->createCamera( nullptr );
 		cubeMapCamera->setAspect( 1.0f );
-		cubeMapCamera->setFov( Math::Deg2Rad(90) ) ;
+		cubeMapCamera->setFov( Math::DegToRad(90) ) ;
 		cubeMapViewport = mWorld->createViewport( 0 , 0 , CubeMapSize , CubeMapSize );
 
 		Object* skyBox = mMainScene->createSkyBox( "hallCube" , 2000 , true );
@@ -94,12 +94,12 @@ public:
 	{
 		static RotationData const cubeViewSetting[]=
 		{
-			CF_AXIS_Y ,  Math::Deg2Rad(90),
-			CF_AXIS_Y , -Math::Deg2Rad(90),
-			CF_AXIS_X , -Math::Deg2Rad(90),
-			CF_AXIS_X ,  Math::Deg2Rad(90),
+			CF_AXIS_Y ,  Math::DegToRad(90),
+			CF_AXIS_Y , -Math::DegToRad(90),
+			CF_AXIS_X , -Math::DegToRad(90),
+			CF_AXIS_X ,  Math::DegToRad(90),
 			CF_AXIS_Y , 0,
-			CF_AXIS_Y , Math::Deg2Rad(180),
+			CF_AXIS_Y , Math::DegToRad(180),
 		};
 
 		cubeMapObj->show( false );

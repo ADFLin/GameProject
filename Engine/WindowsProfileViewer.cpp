@@ -10,19 +10,20 @@ WindowsProfileViewer::WindowsProfileViewer( HDC hDC )
 
 }
 
-void WindowsProfileViewer::onRoot( SampleNode* node )
+void WindowsProfileViewer::onRoot(VisitContext& context)
 {
+	SampleNode* node = context.node;
 	double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
 	msgShow.push( "--- Profiling: %s (total running time: %.3f ms) ---" , 
 		node->getName() , time_since_reset );
 }
 
-void WindowsProfileViewer::onNode(VisitContext const& context)
+void WindowsProfileViewer::onNode(VisitContext& context)
 {
 	SampleNode* node = context.node;
 	msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame (%d calls)",
 		++mIdxChild , node->getName() ,
-		context.parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTime ) * 100 : 0.f ,
+		context.timeTotalParent > CLOCK_EPSILON ? ( node->getTotalTime()  / context.timeTotalParent) * 100 : 0.f ,
 		node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset() ,
 		node->getTotalCalls() );
 }
@@ -38,7 +39,6 @@ void WindowsProfileViewer::onReturnParent(VisitContext const& context, VisitCont
 {
 	SampleNode* node = context.node;
 	int    numChildren = childContext.indexNode;
-	double accTime = childContext.accTime;
 	if ( numChildren )
 	{
 		double time;
@@ -47,7 +47,7 @@ void WindowsProfileViewer::onReturnParent(VisitContext const& context, VisitCont
 		else
 			time = ProfileSystem::Get().getDurationSinceReset();
 
-		double delta = time - accTime;
+		double delta = time - childContext.totalTimeAcc;
 		msgShow.push( "|-> %s (%.3f %%) :: %.3f ms / frame", "Other",
 			// (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
 			( time > CLOCK_EPSILON ) ? ( delta / time * 100 ) : 0.f  , 

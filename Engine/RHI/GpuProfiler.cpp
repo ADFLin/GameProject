@@ -84,10 +84,9 @@ namespace Render
 
 	GpuProfileSample* GpuProfiler::startSample(char const* name)
 	{
-		if( !mbStartSampling )
+		if( !mbStartSampling  || mCore == nullptr)
 			return nullptr;
 
-		assert(mCore);
 		GpuProfileSample* sample;
 		if( mNumSampleUsed >= mSamples.size() )
 		{

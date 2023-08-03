@@ -116,6 +116,9 @@
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="TinyCore\RenderDebug.h" />
+    <ClInclude Include="Widget\ConsoleFrame.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -202,6 +205,9 @@
     <ClCompile Include="TinyCore\RenderDebug.cpp" />
     <ClCompile Include="TinyCore\GameDllMain.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\ConsoleFrame.cpp">
+      <Filter>GUI</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

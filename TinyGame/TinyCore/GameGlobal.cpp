@@ -25,7 +25,7 @@ bool IsInGameThead()
 	return PlatformThread::GetCurrentThreadId() == GGameThreadId;
 }
 
-uint64 generateRandSeed()
+uint64 GenerateRandSeed()
 {
 	uint64 result = __rdtsc();
 	return result;

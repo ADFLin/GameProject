@@ -93,9 +93,9 @@ void Mob::tick()
 		dir = mPosLastView - getPos();
 		dir = Math::GetNormal( dir );
 
-		rotation = atan2(dir.y, dir.x) + Math::Deg2Rad(90);
+		rotation = atan2(dir.y, dir.x) + Math::DegToRad(90);
 
-		float angle = rotation - Math::Deg2Rad( 90 );
+		float angle = rotation - Math::DegToRad( 90 );
 
 		Vec2f monent = acceleration *  GetDirection(angle);
 		Vec2f off = ( mSpeed * TICK_TIME ) * dir;

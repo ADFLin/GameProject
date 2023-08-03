@@ -63,7 +63,7 @@ namespace MV
 			Vec3f pos = Vec3f(mPos.x, mPos.y, mPos.z);
 			context.stack.push();
 			context.stack.translate(pos);
-			context.stack.rotate(Quat::Rotate(axis, Math::Deg2Rad(rotateAngle)));
+			context.stack.rotate(Quat::Rotate(axis, Math::DegToRad(rotateAngle)));
 			context.stack.translate(-pos);
 
 		}
@@ -98,7 +98,7 @@ namespace MV
 
 			//context.stack.push();
 			//context.stack.translate(pos);
-			//context.stack.rotate(Quat::Rotate(axis, Math::Deg2Rad(rotateAngle)));
+			//context.stack.rotate(Quat::Rotate(axis, Math::DegToRad(rotateAngle)));
 			//context.stack.translate(-pos);
 		}
 		void postRender(RenderContext& context) override

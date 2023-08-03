@@ -118,7 +118,7 @@ namespace Render
 		mViewFrustum.mNear = 0.01;
 		mViewFrustum.mFar = 800.0;
 		mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
-		mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
+		mViewFrustum.mYFov = Math::DegToRad(60 / mViewFrustum.mAspect);
 
 		mCamera.lookAt(Vector3(20, 20, 20) , Vector3(0, 0, 0), Vector3(0, 0, 1));
 
@@ -163,9 +163,7 @@ namespace Render
 
 		mView.rectOffset = IntVector2(0, 0);
 		mView.rectSize = screenSize;
-
-		Matrix4 matView = mCamera.getViewMatrix();
-		mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+		mView.setupTransform(mCamera.getPos(), mCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
 
 		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{

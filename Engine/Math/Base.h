@@ -26,7 +26,6 @@ namespace Math
 	FORCEINLINE float Floor(float val) { return ::floor(val); }
 	FORCEINLINE float Ceil(float val) { return ::ceil(val); }
 
-	FORCEINLINE float Square(float val) { return val * val; }
 	FORCEINLINE float Sqrt( float val ){ return ::sqrt( val ); }
 	FORCEINLINE float InvSqrt( float val ){ return 1.0f / Sqrt( val ); }
 	FORCEINLINE float Sin( float val ){ return ::sin( val ); }
@@ -55,15 +54,15 @@ namespace Math
 
 	FORCEINLINE float Round( float value ){ return ::floor( value + 0.5f ); }
 	FORCEINLINE float Fmod( float v1 , float v2 ){ return ::fmod( v1 , v2 ); }
-	FORCEINLINE float Deg2Rad( float val ){ return val * Math::PI / 180.0f; }
-	FORCEINLINE float Rad2Deg( float val ){ return val * 180.0f / Math::PI; }
+	FORCEINLINE float DegToRad( float val ){ return val * Math::PI / 180.0f; }
+	FORCEINLINE float RadToDeg( float val ){ return val * 180.0f / Math::PI; }
 	FORCEINLINE float Pow(float base, float exp) { return ::pow(base, exp); }
 	FORCEINLINE float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
 
 	template< class T >
 	FORCEINLINE T Abs(T val) { return (val >= 0) ? val : -val; }
 	template< class T >
-	FORCEINLINE T Squre(T val) { return val * val; }
+	FORCEINLINE T Square(T val) { return val * val; }
 
 	template< class T >
 	FORCEINLINE T Min(T v1, T v2) { return (v1 < v2) ? v1 : v2; }

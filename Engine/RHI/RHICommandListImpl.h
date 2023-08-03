@@ -82,7 +82,7 @@ namespace Render
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix3 const val[], int dim));
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, Matrix4 const val[], int dim));
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector2 const val[], int dim));
-		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector3 const val[], int dim));
+		RHI_FUNC(void setShaderValue(RHIShader& ser, ShaderParameter const& param, Vector3 const val[], int dim));
 		RHI_FUNC(void setShaderValue(RHIShader& shader, ShaderParameter const& param, Vector4 const val[], int dim));
 		RHI_FUNC(void setShaderMatrix22(RHIShader& shader, ShaderParameter const& param, float const val[], int dim));
 		RHI_FUNC(void setShaderMatrix43(RHIShader& shader, ShaderParameter const& param, float const val[], int dim));

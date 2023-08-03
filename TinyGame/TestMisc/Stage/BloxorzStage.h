@@ -76,8 +76,8 @@ namespace Bloxorz
 
 		Matrix4 worldToLocal;
 		Vector4 typeParams;
-		int     Type;
-		int     MatID;
+		int     type;
+		int     matID;
 		int     dummy[2];
 	};
 	struct GPU_ALIGN MaterialData
@@ -147,7 +147,7 @@ namespace Bloxorz
 		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 		virtual bool setupRenderSystem(ERenderSystem systemName) override;
 
-		void UpdateSceneEnvBuffer();
+		void updateSceneEnvBuffer();
 
 		virtual void preShutdownRenderSystem(bool bReInit = false) override;
 		
@@ -203,10 +203,6 @@ namespace Bloxorz
 		FrameRenderTargets mSceneRenderTargets;
 		RHIFrameBufferRef mFrameBuffer;
 
-		RenderTargetPool mRenderTargetPool;
-
-		
-
 		RHIFrameBufferRef mBloomFrameBuffer;
 		RHITexture2DRef mGirdTexture;
 
@@ -253,7 +249,7 @@ namespace Bloxorz
 
 		void updateRenderTargetShow()
 		{
-			for (auto& RT : mRenderTargetPool.mUsedRTs)
+			for (auto& RT : GRenderTargetPool.mUsedRTs)
 			{
 				if (RT->desc.debugName != EName::None)
 				{

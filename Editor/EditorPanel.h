@@ -12,8 +12,23 @@
 #include "DataStructure/Array.h"
 
 #include "CString.h"
+#include "RHI/RHIGraphics2D.h"
+#include "Math/Vector2.h"
 
+using ::Math::Vector2;
 
+class EditorRenderGloabal
+{
+public:
+	RHIGraphics2D& getGraphics();
+	void   saveRenderTarget();
+	void   resetRenderTarget();
+
+	static EditorRenderGloabal& Get();
+
+private:
+	EditorRenderGloabal(){}
+};
 
 struct WindowRenderParams 
 {

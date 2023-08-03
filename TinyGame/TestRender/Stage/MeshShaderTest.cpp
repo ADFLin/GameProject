@@ -65,16 +65,16 @@ namespace Render
 			}
 
 			VERIFY_RETURN_FALSE(mVertexIndexBuffer.initializeResource(uniqueVertexIndices.size() / sizeof(uint32), EStructuredBufferType::Buffer));
-			mVertexIndexBuffer.updateBuffer(TArrayView<uint32>((uint32*)uniqueVertexIndices.data(), uniqueVertexIndices.size() / sizeof(uint32)));
+			mVertexIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)uniqueVertexIndices.data(), uniqueVertexIndices.size() / sizeof(uint32)));
 
 			VERIFY_RETURN_FALSE(mMeshletBuffer.initializeResource(meshlets.size(), EStructuredBufferType::Buffer));
-			mMeshletBuffer.updateBuffer(MakeView(meshlets));
+			mMeshletBuffer.updateBuffer(MakeConstView(meshlets));
 
 			VERIFY_RETURN_FALSE(mPrimitiveIndexBuffer.initializeResource(primitiveIndices.size(), EStructuredBufferType::Buffer));
-			mPrimitiveIndexBuffer.updateBuffer(TArrayView<uint32>((uint32*)primitiveIndices.data(), primitiveIndices.size()));
+			mPrimitiveIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)primitiveIndices.data(), primitiveIndices.size()));
 
 			VERIFY_RETURN_FALSE(mCullDataBuffer.initializeResource(cullDataList.size(), EStructuredBufferType::Buffer));
-			mCullDataBuffer.updateBuffer(MakeView(cullDataList));
+			mCullDataBuffer.updateBuffer(MakeConstView(cullDataList));
 
 			return true;
 		}
@@ -90,26 +90,26 @@ namespace Render
 			VERIFY_RETURN_FALSE( mesh.buildMeshlet(maxVertices, maxPrimitives, meshlets, uniqueVertexIndices, primitiveIndices, &cullDataList) );
 
 			VERIFY_RETURN_FALSE( mVertexIndexBuffer.initializeResource(uniqueVertexIndices.size() / sizeof(uint32), EStructuredBufferType::Buffer) );
-			mVertexIndexBuffer.updateBuffer(TArrayView<uint32>((uint32*)uniqueVertexIndices.data(), uniqueVertexIndices.size() / sizeof(uint32)));
+			mVertexIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)uniqueVertexIndices.data(), uniqueVertexIndices.size() / sizeof(uint32)));
 
 			VERIFY_RETURN_FALSE(mMeshletBuffer.initializeResource(meshlets.size(), EStructuredBufferType::Buffer));
-			mMeshletBuffer.updateBuffer(MakeView(meshlets));
+			mMeshletBuffer.updateBuffer(MakeConstView(meshlets));
 
 			VERIFY_RETURN_FALSE(mPrimitiveIndexBuffer.initializeResource(primitiveIndices.size(), EStructuredBufferType::Buffer));
-			mPrimitiveIndexBuffer.updateBuffer(TArrayView<uint32>((uint32*)primitiveIndices.data(), primitiveIndices.size()));
+			mPrimitiveIndexBuffer.updateBuffer(TArrayView<uint32 const>((uint32*)primitiveIndices.data(), primitiveIndices.size()));
 
 			VERIFY_RETURN_FALSE(mCullDataBuffer.initializeResource(cullDataList.size(), EStructuredBufferType::Buffer));
-			mCullDataBuffer.updateBuffer(MakeView(cullDataList));
+			mCullDataBuffer.updateBuffer(MakeConstView(cullDataList));
 
 			return true;
 		}
 
 		void releaseRHI()
 		{
-			mMeshletBuffer.releaseResources();
-			mPrimitiveIndexBuffer.releaseResources();
-			mVertexIndexBuffer.releaseResources();
-			mCullDataBuffer.releaseResources();
+			mMeshletBuffer.releaseResource();
+			mPrimitiveIndexBuffer.releaseResource();
+			mVertexIndexBuffer.releaseResource();
+			mCullDataBuffer.releaseResource();
 		}
 	};
 
@@ -521,7 +521,7 @@ namespace Render
 #if USE_SHADER_STATS
 					RenderStats zeroStats;
 					memset(&zeroStats, 0, sizeof(RenderStats));
-					mRenderStatsBuffer.updateBuffer( TArrayView<RenderStats>( &zeroStats, 1 ) );
+					mRenderStatsBuffer.updateBuffer( TArrayView<RenderStats const>( &zeroStats, 1 ) );
 #endif
 					SimpleMeshProgram* progSimpleMesh = (bUseTask) ? mProgSimpleMeshWithTask : mProgSimpleMesh;
 					RHISetShaderProgram(commandList, progSimpleMesh->getRHI());

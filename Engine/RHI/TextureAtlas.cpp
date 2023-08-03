@@ -62,6 +62,9 @@ namespace Render
 		//#TODO
 		switch( imageData.numComponent )
 		{
+		case 1:
+			
+			break;
 		case 3:
 			format = ETexture::RGB8;
 			break;
@@ -141,7 +144,7 @@ namespace Render
 			return false;
 
 		auto const& rect = node->rect;
-		outSize = IntVector2(rect.w, rect.h);
+		outSize = IntVector2(rect.w - 2 * mBorder, rect.h - 2 * mBorder);
 		return true;
 	}
 

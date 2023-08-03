@@ -7,7 +7,6 @@
 
 #include "MiscTestStage.h"
 #include "Phy2DStage.h"
-#include "AStarStage.h"
 
 
 #define STAGE_INFO( DECL , CLASS , ... )\
@@ -21,14 +20,13 @@ ExecutionEntryInfo gPreRegisterStageGroup[] =
 	STAGE_INFO("B-Spline Test"   , BSplineTestStage , EExecGroup::GraphicsTest) ,
 
 	STAGE_INFO("Bsp Test"       , Bsp2D::TestStage , EExecGroup::Test, "Algorithm") ,
-	STAGE_INFO("A-Star Test"    , AStar::TestStage , EExecGroup::Test, "AI") ,
+
 
 	STAGE_INFO("RB Tree Test"   , TreeTestStage , EExecGroup::Test)  ,
 	STAGE_INFO("Tween Test"     , TweenTestStage , EExecGroup::Test) ,
 
 #if 1
 	STAGE_INFO("TileMap Test"   , TileMapTestStage , EExecGroup::Test),
-	STAGE_INFO("Corontine Test" , CoroutineTestStage , EExecGroup::Test) ,
 	STAGE_INFO("XML Prase Test" , XMLPraseTestStage , EExecGroup::Test) ,
 #endif
 

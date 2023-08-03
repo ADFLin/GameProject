@@ -188,7 +188,7 @@ namespace Go
 
 	class KataOutputThread* KataAppRun::getOutputThred()
 	{
-		return static_cast<KataOutputThread*>(outputThread);
+		return getThread<KataOutputThread>();
 	}
 
 	bool KataAppRun::buildPlayGame(KataAISetting const& setting)
@@ -599,7 +599,7 @@ logToStderr = false
 		if (!mAI.buildPlayGame(*static_cast<TBotSettingData< KataAISetting >* >(setting)))
 			return false;
 
-		//static_cast<GTPOutputThread*>(mAI.outputThread)->bLogMsg = false;
+		//static_cast<GTPOutputThread*>(mAI.outputThread.get())->bLogMsg = false;
 		return true;
 	}
 

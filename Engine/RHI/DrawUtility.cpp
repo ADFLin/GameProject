@@ -211,6 +211,18 @@ namespace Render
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
+
+	void DrawUtility::AixsLine(RHICommandList& commandList, float length)
+	{
+		static Vector3 const v[12] =
+		{
+			Vector3(0,0,0),Vector3(length,0,0), Vector3(1,0,0),Vector3(1,0,0),
+			Vector3(0,0,0),Vector3(0,length,0), Vector3(0,1,0),Vector3(0,1,0),
+			Vector3(0,0,0),Vector3(0,0,length), Vector3(0,0,1),Vector3(0,0,1),
+		};
+		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, v, 6, 2 * sizeof(Vector3));
+	}
+
 	void DrawUtility::Rect(RHICommandList& commandList, float x, float y, float width, float height , LinearColor const& color )
 	{
 		float x2 = x + width;

@@ -166,13 +166,13 @@ namespace BoneIK
 				Rotation2D rotation = Rotation2D::Make( Math::GetNormal( dirBone ) , Math::GetNormal( dirTarget ) );
 				float angle = rotation.getAngle();
 
-				float deltaAngle = Math::Abs(angle) - Math::Deg2Rad(45);
+				float deltaAngle = Math::Abs(angle) - Math::DegToRad(45);
 
 				rotate(mBoneState, mBones[0].pos, Math::Sign(angle) * deltaAngle);
 
 				if (solveCount > 0)
 				{
-					rotate(mBoneState, mBones[0].pos, solveCount * Math::Deg2Rad(5));
+					rotate(mBoneState, mBones[0].pos, solveCount * Math::DegToRad(5));
 				}
 
 				bool bOK = true;

@@ -107,7 +107,7 @@ public:
 
 				glPushMatrix();
 				glTranslatef( centerPos.x,centerPos.y,0 );
-				glRotatef( Math::Rad2Deg( player->rotationAim ) + 90 ,0,0,1 );
+				glRotatef( Math::RadToDeg( player->rotationAim ) + 90 ,0,0,1 );
 				weapon->render( pass );
 				glPopMatrix();
 			}
@@ -136,7 +136,7 @@ public:
 		if(pass==RP_NORMAL)
 			tex = texturaN;	
 		glPushMatrix();	
-		drawSprite( player->getRenderPos() , player->getSize(), player->rotationAim + Math::Deg2Rad(90) , tex );			
+		drawSprite( player->getRenderPos() , player->getSize(), player->rotationAim + Math::DegToRad(90) , tex );			
 		glPopMatrix();	
 	}
 
@@ -161,7 +161,7 @@ public:
 
 		glPushMatrix();
 		glTranslatef( centerPos.x, centerPos.y , 0 );
-		glRotatef(Math::Rad2Deg( player->getRotation()),0,0,1);
+		glRotatef(Math::RadToDeg( player->getRotation()),0,0,1);
 		glTranslatef( -odmak - razmak_tracnica, -size.y/2,0);
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0, shift); glVertex2f(0.0, 0.0);
@@ -173,7 +173,7 @@ public:
 
 		glPushMatrix();
 		glTranslatef( centerPos.x, centerPos.y , 0 );
-		glRotatef(Math::Rad2Deg( player->getRotation()),0,0,1);
+		glRotatef(Math::RadToDeg( player->getRotation()),0,0,1);
 		glTranslatef( odmak - razmak_tracnica, -size.y/2,0);
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0, shift); glVertex2f(0.0, 0.0);
@@ -332,7 +332,7 @@ public:
 		LaserBullet* bullet = object->cast< LaserBullet >();
 
 		Vec2f size = Vec2f(16,32);
-		float rot= Math::ATan2( bullet->mDir.y, bullet->mDir.x ) + Math::Deg2Rad( 90 );
+		float rot= Math::ATan2( bullet->mDir.y, bullet->mDir.x ) + Math::DegToRad( 90 );
 		drawSprite( bullet->getPos() - size / 2 , size , rot , texG );		
 	}
 	Texture* texG;
@@ -355,7 +355,7 @@ public:
 		MinigunBullet* bullet = object->cast< MinigunBullet >();
 
 		Vec2f size = Vec2f(16,32);
-		float rot= Math::ATan2( bullet->mDir.y, bullet->mDir.x ) + Math::Deg2Rad( 90 );
+		float rot= Math::ATan2( bullet->mDir.y, bullet->mDir.x ) + Math::DegToRad( 90 );
 		drawSprite( bullet->getPos() - size / 2 , size , rot , texG );
 
 	}

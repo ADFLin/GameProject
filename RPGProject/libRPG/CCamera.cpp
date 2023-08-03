@@ -40,8 +40,8 @@ void FirstViewCamControl::rotateByMouse( int dx , int dy )
 	pitch += m_TurnSpeed * float( dy );
 	//if ( pitch < 0 )
 	//	pitch = 0;
-	//else if ( pitch > Math::Deg2Rad(180) )
-	//	pitch = Math::Deg2Rad(180);
+	//else if ( pitch > Math::DegToRad(180) )
+	//	pitch = Math::DegToRad(180);
 
 	Quat q;
 	q.setEulerZYX( yaw , pitch , 0 );
@@ -88,9 +88,9 @@ FollowCamControl::FollowCamControl( CameraView* cam )
 	,m_localObjFront(0,-1,0)
 	,m_camHeight( 100 )
 	,m_lookHeight( 0 )
-	,m_moveAnglurSpeed( Math::Deg2Rad( 8 ) )
+	,m_moveAnglurSpeed( Math::DegToRad( 8 ) )
 	,m_moveRadialSpeed( 500 )
-	,m_turnSpeed( Math::Deg2Rad(50))
+	,m_turnSpeed( Math::DegToRad(50))
 {
 
 }

@@ -2,9 +2,83 @@
 
 #include "GameGlobal.h"
 #include "GameRenderSetup.h"
+#include "GameGUISystem.h"
+
+
 
 namespace Agar
 {
+
+
+	struct GameParams
+	{
+
+
+
+
+	};
+
+	class Cell
+	{
+	public:
+		Cell()
+		{
+
+		}
+
+
+		Vector2 pos;
+		Vector2 vel;
+		float   mass;
+
+		float getRadius()
+		{
+			float mu = 1;
+			return Math::Sqrt(mass / mu);
+		}
+
+		float getLimitedSpeed()
+		{
+
+			mass;
+
+		}
+		void update(float deltaTime)
+		{
+
+
+
+		}
+
+		void postUpdate()
+		{
+
+
+
+		}
+	};
+
+	class Player
+	{
+	public:
+
+
+
+		void upate(float deltaTime)
+		{
+
+
+
+
+		}
+
+		TArray<Cell> mCellStorage;
+
+
+		Vector2 targetPos;
+
+
+	};
 
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
@@ -76,4 +150,7 @@ namespace Agar
 	protected:
 
 	};
+
+
 }
+

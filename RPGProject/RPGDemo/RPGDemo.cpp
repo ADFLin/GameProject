@@ -85,8 +85,9 @@ class CProfileViewer : public ProfileNodeVisitorT< CProfileViewer >
 {
 public:
 
-	void onRoot     ( SampleNode* node )
+	void onRoot     (VisitContext const& context)
 	{
+		SampleNode* node = context.node;
 		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
 		msgShow.push( "--- Profiling: %s (total running time: %.3lf ms) ---" , 
 			node->getName() , time_since_reset );
@@ -98,7 +99,7 @@ public:
 		float tf = node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset();
 		msgShow.push( "|-> %d -- %s (%.2lf %%) :: %.3lf ms / frame  (%.3f (1e-5ms/call) (%d calls)",
 			++mIdxChild , node->getName() ,
-			context.parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTime) * 100 : 0.f ,
+			context.parentTimeTotal > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTimeTotal) * 100 : 0.f ,
 			tf , 100000 * ( tf / node->getTotalCalls() ) ,
 			node->getTotalCalls() );
 	}
@@ -114,7 +115,7 @@ public:
 	{
 		SampleNode* node = context.node;
 		int    numChildren = childContext.indexNode;
-		double accTime = childContext.accTime;
+		double accTime = childContext.timeAcc;
 
 		if ( numChildren )
 		{
@@ -252,7 +253,7 @@ public:
 		mCFCamera = mCFScene->createCamera();
 		mCFCamera->setAspect( float(  w ) / h );
 		mCFCamera->translate(  Vec3D(0,0,100) , CFly::CFTO_GLOBAL );
-		mCFCamera->rotate(  CFly::CF_AXIS_Y , Math::Deg2Rad( 180 ) , CFly::CFTO_LOCAL );
+		mCFCamera->rotate(  CFly::CF_AXIS_Y , Math::DegToRad( 180 ) , CFly::CFTO_LOCAL );
 		mCFCamera->setNear( 10 );
 		mCFCamera->setFar( 5000 );
 
@@ -473,8 +474,8 @@ public:
 		mCFCamera->setLookAt( mCamera.getPosition() , mCamera.getLookPos() , mCamera.transLocalDir( Vec3D(0,0,1) ) );
 		//mCFCamera->applyTransform( CFly::CFTO_REPLACE  , trans );
 		//mCFCamera->rotate( CFly::CFTO_REPLACE , mCamera.getOrientation() );
-		//mCFCamera->rotate( CFly::CFTO_LOCAL , CFly::CF_AXIS_X , Math::Deg2Rad(90) );
-		//mCFCamera->rotate( CFly::CFTO_LOCAL , CFly::CF_AXIS_Y , Math::Deg2Rad(90) );
+		//mCFCamera->rotate( CFly::CFTO_LOCAL , CFly::CF_AXIS_X , Math::DegToRad(90) );
+		//mCFCamera->rotate( CFly::CFTO_LOCAL , CFly::CF_AXIS_Y , Math::DegToRad(90) );
 
 
 		return shouldTime; 

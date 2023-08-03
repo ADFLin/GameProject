@@ -13,42 +13,48 @@
 namespace Rich
 {
 
+
+
 	class Level : public IObjectQuery
 	{
 	public:
 		Level();
 		void    init();
-
+		void    reset();
 		World&  getWorld(){ return mWorld; }
 
 		void    tick();
-		void    restart();
+		void    start();
+
+		void   runLogicAsync();
+		void   resumeLogic();
 
 		Player* getActivePlayer()
 		{
 			if ( mIdxActive == -1 )
 				return nullptr;
-			return mPlayerVec[ mIdxActive ];
+			return mPlayerList[ mIdxActive ];
 		}
 
 		void    runPlayerMove( int movePower );
+		TArray<Player*> const& getPlayerList() { return mPlayerList; }
+		GameOptions const& getGameOptions() override { return mGameOptions; }
 
 		Player* createPlayer();
 		void    destroyPlayer( Player* player );
-		void    nextActivePlayer();
-
-		void    updateTurn();
+		void    runPlayerTurn(Player& player);
+		Player* nextTurnPlayer();
 
 		Player* getPlayer( ActorId id )
 		{
-			if ( id >= mPlayerVec.size() )
+			if ( id >= mPlayerList.size() )
 				return nullptr;
-			return mPlayerVec[ id ];
+			return mPlayerList[ id ];
 		}
 
 		friend class Scene;
 		typedef TArray< Player* > PlayerVec;
-		TArray< Player* > mPlayerVec;
+		TArray< Player* > mPlayerList;
 		typedef TIntrList< 
 			ActorComp , MemberHook< ActorComp , &ActorComp::levelHook > , PointerType 
 		> ActorList;
@@ -56,6 +62,12 @@ namespace Rich
 		World         mWorld;
 		PlayerTurn    mTurn;
 		int           mIdxActive;
+
+		GameOptions mGameOptions;
+
+		Coroutines::ExecutionHandle mRunHandle;
+
+
 	};
 
 }//namespace Rich

@@ -37,7 +37,7 @@ namespace Math
 			cr*cpcy + sr*spsy );
 	}
 
-	Vector3 Quaternion::getEulerZYX()
+	Vector3 Quaternion::getEulerZYX() const
 	{
 		Vector3 result;
 		result.x = Math::ATan2(  w*x + y*z , 0.5 - ( x*x + y*y ) );

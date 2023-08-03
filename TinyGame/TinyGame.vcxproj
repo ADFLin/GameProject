@@ -336,15 +336,10 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Stage\AStarStage.cpp" />
-    <ClCompile Include="Stage\CurveBuilderStage.cpp" />
-    <ClCompile Include="Stage\DeviceInfoStage.cpp" />
-    <ClCompile Include="Stage\FontDrawStage.cpp" />
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\GlobalStageRegister.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
     <ClCompile Include="Stage\MiscTestStage.cpp" />
-    <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp" />
     <ClCompile Include="TinyCore\NetGameMode.cpp" />
     <ClCompile Include="TinyCore\ReplayStageMode.cpp" />
     <ClCompile Include="TinyCore\SingleStageMode.cpp" />
@@ -417,8 +412,6 @@ copy $(TargetDir)Editor.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="Stage\AgarStage.h" />
-    <ClInclude Include="Stage\AStarStage.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
     <ClInclude Include="Stage\MiscTestStage.h" />
     <ClInclude Include="TinyCore\NetGameMode.h" />

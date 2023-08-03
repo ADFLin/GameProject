@@ -52,10 +52,20 @@ namespace Render
 			P = Vector2::Zero();
 		}
 
+		void setPos(Vector2 const& pos) { P = pos; }
+
 		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
 		static RenderTransform2D TranslateThenScale(Vector2 const& offset, Vector2 const& scale)
 		{
 			return RenderTransform2D(scale, scale * offset);
+		}
+
+		static RenderTransform2D Translate(Vector2 const& pos)
+		{
+			RenderTransform2D result;
+			result.M = Matrix2::Identity();
+			result.P = pos;
+			return  result;
 		}
 
 		static RenderTransform2D Translate(float x, float y)

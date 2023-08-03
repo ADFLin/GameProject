@@ -198,7 +198,7 @@ namespace Render
 				MeshTransform[i].setIdentity();
 				MeshSkip[i] = nullptr;
 			}
-			Matrix4 FixRotation = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(90));
+			Matrix4 FixRotation = Matrix4::Rotate(Vector3(1, 0, 0), Math::DegToRad(90));
 			MeshTransform[MeshId::Dragon2] = Matrix4::Scale(0.05) * FixRotation  *  Matrix4::Translate(Vector3(0, 6, 0));
 			MeshTransform[MeshId::Dragon] =  Matrix4::Scale(10) * FixRotation;
 			MeshTransform[MeshId::Teapot] = Matrix4::Scale(0.05) * FixRotation;
@@ -292,7 +292,7 @@ namespace Render
 			auto material = new MaterialInstance(getMaterial(MaterialId::Simple1));
 			meshObject->material.reset(material);
 			meshObject->color = Vector4(0.3, 0.3, 1, 1);
-			meshObject->worldTransform = Matrix4::Rotate(Vector3(1, 1, 1), Math::Deg2Rad(45)) * Matrix4::Translate(Vector3(-7, -6, 7));
+			meshObject->worldTransform = Matrix4::Rotate(Vector3(1, 1, 1), Math::DegToRad(45)) * Matrix4::Translate(Vector3(-7, -6, 7));
 			scene.addObject(meshObject);
 		}
 
@@ -352,7 +352,7 @@ namespace Render
 
 			StaticMesh& mesh = getMesh(MeshId::Elephant);
 			glColor3f(0.7, 0.7, 0.7);
-			matWorld = Matrix4::Rotate(Vector3(0, 0, -1), Math::Deg2Rad(0)) * Matrix4::Translate(Vector3(6, 8, 4));
+			matWorld = Matrix4::Rotate(Vector3(0, 0, -1), Math::DegToRad(0)) * Matrix4::Translate(Vector3(6, 8, 4));
 			mesh.render(matWorld, context);
 		}
 
@@ -370,7 +370,7 @@ namespace Render
 			{
 
 				context.setMaterial(getMaterial(MaterialId::Simple1));
-				matWorld = Matrix4::Rotate(Vector3(1, 1, 1), Math::Deg2Rad(45)) * Matrix4::Translate(Vector3(-7, -6, 7));
+				matWorld = Matrix4::Rotate(Vector3(1, 1, 1), Math::DegToRad(45)) * Matrix4::Translate(Vector3(-7, -6, 7));
 				context.setWorld(matWorld);
 				mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(0.3, 0.3, 1));
 
@@ -398,7 +398,7 @@ namespace Render
 				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			}
 			Mesh& mesh = getMesh(MeshId::Dragon);
-			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(20, 0, 4));
+			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::DegToRad(45 + 180)) * Matrix4::Translate(Vector3(20, 0, 4));
 			context.setWorld(matWorld);
 			mesh.draw(commandList, Vector4(0.7, 0.7, 0.7, 1) );
 		}
@@ -433,7 +433,7 @@ namespace Render
 				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			}
 			Mesh& mesh = getMesh(MeshId::Dragon2);
-			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(6, -6, 4));
+			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::DegToRad(45 + 180)) * Matrix4::Translate(Vector3(6, -6, 4));
 			context.setWorld(matWorld);
 			mesh.draw(commandList, LinearColor(0.7, 0.7, 0.7,1.0) );
 		}
@@ -441,7 +441,7 @@ namespace Render
 		{
 			StaticMesh& mesh = getMesh(MeshId::Havoc);
 			glColor3f(0.7, 0.7, 0.7);
-			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(85)) * Matrix4::Translate(Vector3(-35, -8, 12));
+			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::DegToRad(85)) * Matrix4::Translate(Vector3(-35, -8, 12));
 			mesh.render(matWorld, context);
 		}
 
@@ -477,7 +477,7 @@ namespace Render
 
 		if( 0 )
 		{
-			matWorld = Matrix4::Rotate(Vector3(0, 0, -1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(-6, 6, 4));
+			matWorld = Matrix4::Rotate(Vector3(0, 0, -1), Math::DegToRad(45 + 180)) * Matrix4::Translate(Vector3(-6, 6, 4));
 			Mesh& mesh = getMesh(MeshId::Teapot);
 			context.setWorld(matWorld);
 			mesh.draw(commandList, LinearColor(0.7, 0.7, 0.7, 1.0));
@@ -502,7 +502,7 @@ namespace Render
 
 		context.setMaterial(getMaterial((int)MaterialId::Simple2));
 
-		matWorld = Matrix4::Rotate(Vector3(0.5, 1, 0), Math::Deg2Rad(-80)) * Matrix4::Scale(3) * Matrix4::Translate(Vector3(0.5 * 20, 0, 20));
+		matWorld = Matrix4::Rotate(Vector3(0.5, 1, 0), Math::DegToRad(-80)) * Matrix4::Scale(3) * Matrix4::Translate(Vector3(0.5 * 20, 0, 20));
 		context.setWorld(matWorld);
 		mSimpleMeshs[SimpleMeshId::Box].draw(commandList);
 #endif
@@ -518,15 +518,15 @@ namespace Render
 			context.setWorld(matWorld);
 			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 1, 1));
 
-			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, len, len));
+			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::DegToRad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, len, len));
 			context.setWorld(matWorld);
 			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(0.5 , 1 , 0 ));
 	
-			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, -len, len));
+			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::DegToRad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, -len, len));
 			context.setWorld(matWorld);
 			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 0.5, 1));
 	
-			matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::Deg2Rad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(len, 0, len));
+			matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::DegToRad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(len, 0, len));
 			context.setWorld(matWorld);
 			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 1, 1));
 	
@@ -548,7 +548,7 @@ namespace Render
 				}
 #endif
 	
-				matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::Deg2Rad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(-len, 0, len));
+				matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::DegToRad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(-len, 0, len));
 				context.setWorld(matWorld);
 				mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 1, 0.5) );
 			}

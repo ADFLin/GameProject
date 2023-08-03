@@ -1,0 +1,690 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "LightingCommon.sgc"
+#include "SignedDistanceFieldCommon.sgc"
+#include "ScreenVertexShader.sgc"
+#include "GeometryTestCommon.sgc"
+
+
+uint Hash(uint s)
+{
+	s ^= 2747636419u;
+	s *= 2654435769u;
+	s ^= s >> 16;
+	s *= 2654435769u;
+	s ^= s >> 16;
+	s *= 2654435769u;
+	return s;
+}
+
+float Random(inout uint seed)
+{
+	seed = Hash(seed);
+	return float(seed) / 4294967295.0; // 2^32-1
+}
+
+
+#if PIXEL_SHADER
+
+
+struct MaterialData
+{
+	float3 baseColor;
+	float  roughness;
+	float3 emissiveColor;
+	float  refractiveIndex;
+	float  refractive;
+	float  dummy[3];
+};
+
+#define OBJ_SPHERE        0
+#define OBJ_CUBE          1
+#define OBJ_TRIANGLE_MESH 2
+#define OBJ_QUAD          3
+
+
+float4 QuatMul(float4 q1, float4 q2)
+{
+	float4 result;
+	result.xyz = cross(q1.xyz, q2.xyz) + q1.w * q2.xyz + q2.w * q1.xyz;
+	result.w = q1.w * q2.w - dot(q1.xyz, q2.xyz);
+	return result;
+}
+
+float4 QuatInverse(float4 q)
+{
+	float4 result;
+	result.xyz = -q.xyz;
+	result.w = q.w;
+	return result;
+}
+
+float3 QuatRotate(float4 q, float3 v)
+{
+	float3 qv = q.xyz;
+	float3 uv = cross(qv, v);
+	float3 uuv = cross(qv , uv);
+	uv *= (2.0f * q.w);
+	uuv *= 2.0f;
+	return v + uv + uuv;
+}
+
+float3 QuatRotateInverse(float4 q, float3 v)
+{
+	return QuatRotate(QuatInverse(q), v);
+}
+
+struct ObjectData
+{
+	
+	float3 pos;
+	int    type;
+	float4 rotation;
+	float3 meta;
+	int    materialId;
+};
+
+struct MeshVertexData
+{
+	float3 pos;
+	//float  dummy;
+	float3 normal;
+	//float  dummy2;
+};
+
+struct MeshData
+{
+	float3 boundMin;
+	int startIndex;
+	float3 boundMax;
+	int numTriangles;
+	int  nodeIndex;
+	int3 dummy;
+};
+
+struct BVHNodeData
+{
+	float3 boundMin;
+	int left;
+	float3 boundMax;
+	int right; // < 0 leaf
+};
+
+#if COMPILER_HLSL
+StructuredBuffer< MaterialData > Materials;
+StructuredBuffer< ObjectData > Objects;
+StructuredBuffer< MeshVertexData > MeshVertices;
+StructuredBuffer< MeshData > Meshes;
+StructuredBuffer< BVHNodeData > BVHNodes;
+StructuredBuffer< int > TriangleIds;
+StructuredBuffer< BVHNodeData > SceneBVHNodes;
+StructuredBuffer< int > ObjectIds;
+#else
+layout(std430) buffer MaterialDataBlock
+{
+	restrict readonly MaterialData Materials[];
+};
+layout(std430) buffer ObjectDataBlock
+{
+	restrict readonly ObjectData Objects[];
+};
+layout(std430) buffer MeshVertexDataBlock
+{
+	restrict readonly ObjectData MeshVertices[];
+};
+layout(std430) buffer MeshDataBlock
+{
+	restrict readonly MeshData Meshes[];
+};
+layout(std430) buffer BVHNodeDataBlock
+{
+	restrict readonly BVHNodeData BVHNodes[];
+};
+layout(std430) buffer SceneBVHNodeDataBlock
+{
+	restrict readonly BVHNodeData BVHNodes[];
+};
+layout(std430) buffer TriangleIdlock
+{
+	restrict readonly int TriangleIds[];
+};
+layout(std430) buffer ObjectIdBlock
+{
+	restrict readonly int ObjectIds[];
+};
+#endif
+
+int NumObjects;
+
+MaterialData GetMaterial(int id)
+{
+	return Materials[id];
+}
+
+struct RayCastResult
+{
+	float3 hitPos;
+	float  dist;
+	float3 hitNormal;
+	int    matId;
+	bool   bHit;
+};
+
+struct Ray
+{
+	float3 pos;
+	float3 dir;
+};
+
+
+
+RayCastResult RayTriangle(Ray ray, MeshVertexData a, MeshVertexData b, MeshVertexData c)
+{
+	float3 edgeAB = b.pos - a.pos;
+	float3 edgeAC = c.pos - a.pos;
+	float3 normalVector = cross(edgeAB, edgeAC);
+	float3 ao = ray.pos - a.pos;
+	float3 dao = cross(ao, ray.dir);
+
+	float determinant = -dot(ray.dir, normalVector);
+	float invDet = 1 / determinant;
+
+	// Calculate dst to triangle & barycentric coordinates of intersection point
+	float dst = dot(ao, normalVector) * invDet;
+	float u = dot(edgeAC, dao) * invDet;
+	float v = -dot(edgeAB, dao) * invDet;
+	float w = 1 - u - v;
+
+	// Initialize hit info
+	RayCastResult result;
+	result.bHit = determinant >= 1E-6 && dst >= 0 && u >= 0 && v >= 0 && w >= 0;
+	result.hitPos = ray.pos + ray.dir * dst;
+	result.hitNormal = normalize(a.normal * w + b.normal* u + c.normal * v);
+	result.dist = dst;
+	return result;
+}
+
+RayCastResult RayBox(Ray ray, float3 size)
+{
+	float3 invDir = 1 / ray.dir;
+	float3 tMin = (-size - ray.pos) * invDir;
+	float3 tMax = (size - ray.pos) * invDir;
+	float3 t1 = min(tMin, tMax);
+	float3 t2 = max(tMin, tMax);
+	float tNear = max(max(t1.x, t1.y), t1.z);
+	float tFar = min(min(t2.x, t2.y), t2.z);
+
+	RayCastResult result;
+	result.bHit = tNear <= tFar && tFar >= 0;
+	result.hitPos = ray.pos + ray.dir * tNear;
+	result.hitNormal = (tNear > 0.0) ? step(tNear.xxx, t1) : step(t2, tFar.xxx);
+	if (dot(result.hitNormal, result.hitPos) < 0)
+	{
+		result.hitNormal = -result.hitNormal;
+	}
+	result.dist = tNear;
+
+	return result;
+};
+
+
+RayCastResult RayQuad(Ray ray, float2 size)
+{
+	float3 normal = float3(0, 0, 1);
+	float determinant = -dot(ray.dir, normal);
+	float invDet = 1 / determinant;
+
+	// Calculate dst to triangle & barycentric coordinates of intersection point
+	float dst = dot(ray.pos, normal) * invDet;
+
+	// Initialize hit info
+	RayCastResult result;
+	result.hitPos = ray.pos + ray.dir * dst;
+	result.bHit = determinant >= 1E-6 && dst >= 0 && abs(result.hitPos.x) < size.x && abs(result.hitPos.y) < size.y;
+	result.hitNormal = normal;
+	result.dist = dst;
+	return result;
+}
+
+bool RayBoundingBox(Ray ray, float3 boxMin, float3 boxMax)
+{
+	float3 invDir = 1 / ray.dir;
+	float3 tMin = (boxMin - ray.pos) * invDir;
+	float3 tMax = (boxMax - ray.pos) * invDir;
+	float3 t1 = min(tMin, tMax);
+	float3 t2 = max(tMin, tMax);
+	float tNear = max(max(t1.x, t1.y), t1.z);
+	float tFar = min(min(t2.x, t2.y), t2.z);
+	return tNear <= tFar && tFar > 0;
+};
+
+
+RayCastResult TraverseBVH(int nodeIndex, Ray ray)
+{
+	RayCastResult result;
+	result.bHit = 0;
+	result.dist = 100000000;
+
+	int nodeStack[64];
+	int stackSize = 0;
+
+	nodeStack[0] = -1;
+	++stackSize;
+
+	do
+	{
+		BVHNodeData node = BVHNodes[nodeIndex];
+		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
+		{
+			if (node.right < 0)
+			{
+				int numPrimitives = -node.right;
+				int indexStart = node.left;
+
+				for (int i = 0; i < numPrimitives; ++i)
+				{
+					int index = TriangleIds[indexStart + i];
+					RayCastResult castResult = RayTriangle(ray,
+						MeshVertices[index + 0],
+						MeshVertices[index + 1],
+						MeshVertices[index + 2]);
+
+					if (castResult.bHit && castResult.dist < result.dist)
+					{
+#if 1
+						result.bHit = castResult.bHit;
+						result.dist = castResult.dist;
+						result.hitPos = castResult.hitPos;
+						result.hitNormal = castResult.hitNormal;
+#else
+						result = castResult;
+#endif
+					}
+				}
+			}
+			else
+			{
+				nodeIndex = nodeIndex + 1;
+				nodeStack[stackSize] = node.right;
+				++stackSize;
+				continue;
+			}
+		}
+
+		--stackSize;
+		nodeIndex = nodeStack[stackSize];
+	}
+	while (nodeIndex >= 0);
+
+	return result;
+}
+
+RayCastResult TraverseSceneBVH(Ray ray)
+{
+	RayCastResult result;
+	result.bHit = 0;
+	result.dist = 100000000;
+
+
+
+	return result;
+}
+
+
+void RayObject(Ray ray , ObjectData object, inout  RayCastResult result)
+{
+
+	switch (object.type)
+	{
+	case OBJ_SPHERE:
+		{
+			float dist;
+			int type = RaySphereTest(ray.pos, ray.dir, object.pos, object.meta.x, dist);
+			if ( type > 0 && dist < result.dist)
+			{
+				result.bHit = 1;
+				result.hitPos = ray.pos + dist * ray.dir;
+				result.hitNormal = normalize(result.hitPos - object.pos);
+				if (type == 1)
+				{
+					result.hitNormal *= -1;
+				}
+				result.matId = object.materialId;
+				result.dist = dist;
+			}
+		}
+		break;
+	case OBJ_CUBE:
+		{
+			float3 size = object.meta;
+			Ray rayLocal;
+			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
+			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+			RayCastResult castResult = RayBox(rayLocal, size);
+			if (castResult.bHit && castResult.dist < result.dist)
+			{
+				result = castResult;
+				result.hitPos = QuatRotate(object.rotation, result.hitPos + object.pos);
+				result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
+				result.matId = object.materialId;
+			}
+		}
+		break;
+
+	case OBJ_TRIANGLE_MESH:
+		{
+			int meshId = asint(object.meta.x);
+			MeshData mesh = Meshes[meshId];
+			float scale = object.meta.y;
+
+			float3 objectPos = object.pos + float3(0, 0, 0);
+			Ray rayLocal;
+			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - objectPos) / scale);
+			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+#if 0
+			if (RayBoundingBox(rayLocal, mesh.boundMin, mesh.boundMax))
+			{
+				for (int i = 0; i < mesh.numTriangles; ++i)
+				{
+					int index = mesh.startIndex + 3 * i;
+					RayCastResult castResult = RayTriangle(rayLocal.pos, rayLocal.dir,
+						MeshVertices[index + 0],
+						MeshVertices[index + 1],
+						MeshVertices[index + 2]);
+
+					if (castResult.bHit && castResult.dist < result.dist)
+					{
+						result = castResult;
+
+						result.hitPos = QuatRotate(object.rotation, result.hitPos + object.pos);
+						result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
+
+						result.id = object.materialId;
+					}
+				}
+			}
+#else
+			RayCastResult castResult = TraverseBVH(mesh.nodeIndex, rayLocal);
+			castResult.dist *= scale;
+			if (castResult.bHit && castResult.dist < result.dist)
+			{
+				result = castResult;
+
+				result.hitPos = QuatRotate(object.rotation, scale * result.hitPos + objectPos);
+				result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
+
+				result.matId = object.materialId;
+			}
+#endif
+			break;
+		}
+		break;
+#if 0
+	case OBJ_QUAD:
+		{
+			float2 size = object.meta.xy;
+			Ray rayLocal;
+			rayLocal.pos = QuatRotateInverse(object.rotation, (ray.pos - object.pos));
+			rayLocal.dir = QuatRotateInverse(object.rotation, ray.dir);
+			RayCastResult castResult = RayQuad(rayLocal, size);
+			if (castResult.bHit && castResult.dist < result.dist)
+			{
+				result = castResult;
+				result.hitPos = QuatRotate(object.rotation, result.hitPos + object.pos);
+				result.hitNormal = QuatRotate(object.rotation, result.hitNormal);
+				result.id = object.materialId;
+			}
+		}
+		break;
+#endif
+	default:
+		break;
+	}
+}
+
+
+RayCastResult RayCast(float3 start, float3 dir)
+{
+	RayCastResult result = (RayCastResult)0;
+	result.bHit = 0;
+	result.dist = 100000000;
+
+	Ray ray;
+	ray.pos = start;
+	ray.dir = dir;
+#if 0
+	for (int i = 0; i < NumObjects; ++i)
+	{
+		float dist;
+		ObjectData object = Objects[i];
+		RayObject(ray, object, result);
+	}
+#else
+
+	int nodeIndex = 0;
+	int nodeStack[64];
+	int stackSize = 0;
+
+	nodeStack[0] = -1;
+	++stackSize;
+
+	do
+	{
+		BVHNodeData node = SceneBVHNodes[nodeIndex];
+		if (RayBoundingBox(ray, node.boundMin, node.boundMax))
+		{
+			if (node.right < 0)
+			{
+				int numPrimitives = -node.right;
+				int indexStart = node.left;
+
+				for (int i = 0; i < numPrimitives; ++i)
+				{
+					int objectId = ObjectIds[indexStart + i];
+					RayObject(ray, Objects[objectId], result);
+				}
+			}
+			else
+			{
+				nodeIndex = nodeIndex + 1;
+				nodeStack[stackSize] = node.right;
+				++stackSize;
+				continue;
+			}
+		}
+
+		--stackSize;
+		nodeIndex = nodeStack[stackSize];
+
+	} while (nodeIndex >= 0);
+
+#endif
+
+	return result;
+}
+
+
+float3x3 TangentToWorldTransform(float3 tangentZ)
+{
+#if 1
+	float3 up = abs(tangentZ.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+	float3 tangentX = normalize(cross(up, tangentZ));
+	float3 tangentY = cross(tangentZ, tangentX);
+#else
+	const float Sign = tangentZ.z >= 0 ? 1 : -1;
+	const float a = -rcp(Sign + tangentZ.z);
+	const float b = tangentZ.x * tangentZ.y * a;
+
+	float3 tangentX = { 1 + Sign * a * Square(tangentZ.x), Sign * b, -Sign * tangentZ.x };
+	float3 tangentY = { b,  Sign + a * Square(tangentZ.y), -tangentZ.y };
+#endif
+
+#if COMPILER_HLSL
+	return transpose(float3x3(tangentX, tangentY, tangentZ));
+#else
+	return float3x3(tangentX, tangentY, tangentZ);
+#endif
+}
+
+#define MaxBounceCount 6
+
+
+float4 ImportanceSampleGGX(float2 E, float a2)
+{
+	float phi = 2.0 * PI * E.x;
+#if 0
+	float cosTheta = sqrt((1.0 - E.y) / (1.0 + (a2 - 1.0) * E.y));
+	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+#else
+	float cosTheta = sqrt((1.0 - E.y) / (1.0 + (a2 - 1.0) * E.y));
+	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+#endif
+
+	// from spherical coordinates to cartesian coordinates
+	float3 H;
+	H.x = cos(phi) * sinTheta;
+	H.y = sin(phi) * sinTheta;
+	H.z = cosTheta;
+
+	float d = (cosTheta * a2 - cosTheta) * cosTheta + 1;
+	float D = a2 / (PI*d*d);
+	float PDF = D * cosTheta;
+	return float4(H, PDF);
+}
+
+float3 TraceLighting(float3 rayStart, float3 rayDir, inout uint randState)
+{
+	float3 incomingLight = float3(0,0,0);
+	float3 rayColor  = float3(1, 1, 1);
+	float refractiveIndex = 1;
+	bool bInside = false;
+	int  objectInside = -1;
+
+	LOOP
+	for (int i = 0; i < MaxBounceCount; ++i)
+	{
+		RayCastResult rayResult = RayCast(rayStart, rayDir);
+
+		if (rayResult.bHit)
+		{
+			float3 V = -rayDir;
+			float3 N = rayResult.hitNormal;
+			float3 R = normalize(-reflect(V, N));
+
+			MaterialData mat = GetMaterial(rayResult.matId);
+			if (mat.refractiveIndex > 0 && Random(randState) < mat.refractive)
+			{
+				float cosI = dot(N, V);
+				float sinI = sqrt(1 - Square(cosI));
+				float sinO;
+				if (objectInside == rayResult.matId)
+				{
+					sinO = refractiveIndex * sinI;
+				}
+				else
+				{
+					sinO = refractiveIndex * sinI / mat.refractiveIndex;
+				}
+
+				float cosO = sqrt(1 - Square(sinO));
+				if (sinO <= 1)
+				{
+					rayDir = -normalize(N * cosO + normalize(V - cosI * N) * sinO);
+					if (objectInside == rayResult.matId)
+					{
+						objectInside = -1;
+						refractiveIndex = 1.0;
+					}
+					else
+					{
+						refractiveIndex = mat.refractiveIndex;
+						objectInside = rayResult.matId;
+					}
+				}
+				else
+				{
+					rayDir = R;
+				}
+
+				incomingLight += mat.emissiveColor * rayColor;
+				rayColor *= mat.baseColor;
+
+				rayStart = rayResult.hitPos + 0.00001 * rayDir;
+
+			}
+			else
+			{
+
+				float3x3 tangentToWorld = TangentToWorldTransform(N);
+
+				float3 diffuseDir = ImportanceSampleGGX(float2(Random(randState), Random(randState)), 1.0f).xyz;
+				diffuseDir = normalize(mul(tangentToWorld, diffuseDir));
+
+				float NoL = saturate(dot(N, diffuseDir));
+
+
+				incomingLight += mat.emissiveColor * rayColor;
+				rayColor *= mat.baseColor * NoL;
+
+				rayDir = diffuseDir;
+				rayStart = rayResult.hitPos + 0.0001 * rayDir;
+			}
+
+#if 0
+			return 0.5 * N + 0.5;
+#endif
+		}
+		else
+		{
+			float3 envLight = float3(1, 0, 0);
+			//incomingLight += envLight * rayColor;
+			break;
+		}
+
+	}
+
+	return incomingLight;
+}
+
+
+#if SHADER_ENTRY(MainPS)
+
+
+DEFINE_TEXTURE(Texture2D, HistoryTexture);
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	uint randState = SvPosition.x + SvPosition.y / View.rectPosAndSizeInv.z;
+	randState += View.frameCount * 793719393;
+#if 0
+	float rand = Random(randState);
+	OutColor = float4(rand, rand, rand, 1);
+	return;
+#endif
+
+	float4 rayOffset =  mul(View.clipToTranslatedWorld, float4(2 * VFLIP(VSOutput.UVs) - 1, 1, 1));
+	float3 rayDir = normalize(rayOffset.xyz);
+	float3 rayPos = View.worldPos;
+
+	float3 totalLighting = 0;
+	int NumRaysPerPixel = 6;
+	for (int index = 0; index < NumRaysPerPixel; ++index)
+	{
+		totalLighting += TraceLighting(rayPos, rayDir, randState);
+	}
+	
+	float weight = 1.0 / View.frameCount;
+	//weight = 1;
+	float3 oldColor = TEXTURE_SAMPLE(HistoryTexture, VSOutput.UVs).rgb;
+	float3 color = totalLighting / NumRaysPerPixel;
+
+	OutColor = float4(lerp(oldColor, color, weight), 1);
+}
+
+#endif //SHADER_ENTRY(MainPS)
+
+#endif
+

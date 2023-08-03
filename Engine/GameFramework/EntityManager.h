@@ -113,7 +113,7 @@ namespace ECS
 
 
 
-	enum EComponentCondiditon
+	enum EComponentCondition
 	{
 		Required,
 		Excluded,
@@ -124,7 +124,7 @@ namespace ECS
 	{
 	public:
 		template<typename T>
-		void addComponent(EComponentCondiditon condition = EComponentCondiditon::Required)
+		void addComponent(EComponentCondition condition = EComponentCondition::Required)
 		{
 			CompSeviceDesc desc;
 			desc.type = mManager->getComponentT<T>();
@@ -135,7 +135,7 @@ namespace ECS
 		struct CompSeviceDesc
 		{
 			ComponentType* type;
-			EComponentCondiditon condition;
+			EComponentCondition condition;
 		};
 
 		TArray< CompSeviceDesc > mDescList;

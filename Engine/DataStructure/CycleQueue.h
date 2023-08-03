@@ -121,36 +121,63 @@ public:
 	bool empty() const { return mNumElement == 0; }
 	size_t size() const { return mNumElement;  }
 
+	void moveFrontToBack()
+	{
+		if (mNumElement == 0)
+			return;
+
+		if (mNumElement == mNumStorage)
+		{
+			CHECK(mIndexCur == mIndexNext);
+
+			++mIndexCur;
+			if (mIndexCur == mNumStorage)
+				mIndexCur = 0;
+
+			mIndexNext = mIndexCur;
+		}
+		else
+		{
+			FTypeMemoryOp::Move(mStorage + mIndexNext, mStorage + mIndexCur);
+			++mIndexNext;
+			++mIndexCur;
+			if (mIndexCur == mNumStorage)
+				mIndexCur = 0;
+			else if (mIndexNext == mNumStorage)
+				mIndexNext = 0;
+		}
+	}
+
 private:
 
 	struct IteratorBase
 	{
-		IteratorBase( TCycleQueue* inQueue , size_t inIndex ):queue(inQueue),idx(inIndex){}
+		IteratorBase( TCycleQueue* inQueue , size_t inIndex ):queue(inQueue),index(inIndex){}
 		TCycleQueue* queue;
-		size_t       idx;
+		size_t       index;
 		IteratorBase& operator++(int)
 		{
-			++idx;
-			if( idx == queue->mNumStorage )
-				idx = 0;
+			++index;
+			if( index == queue->mNumStorage )
+				index = 0;
 			return *this;
 		}
-		IteratorBase operator++() { IteratorBase temp(*this); ++idx; return temp; }
-		bool operator == (IteratorBase const& other) const { assert(queue == other.queue); return idx == other.idx; }
+		IteratorBase operator++() { IteratorBase temp(*this); ++index; return temp; }
+		bool operator == (IteratorBase const& other) const { assert(queue == other.queue); return index == other.index; }
 		bool operator != (IteratorBase const& other) const { return !this->operator==(other); }
 	};
 
 	struct Iterator : IteratorBase
 	{
 		using IteratorBase::IteratorBase;
-		T* operator->() { return queue->mStorage + idx; }
+		T* operator->() { return queue->mStorage + index; }
 		T& operator*() { return *(this->operator->() );  }
 	};
 
 	struct ConstIterator : IteratorBase
 	{
 		using IteratorBase::IteratorBase;
-		T const* operator->() { return queue->mStorage + idx; }
+		T const* operator->() { return queue->mStorage + index; }
 		T const& operator*() { return *(this->operator->()); }
 	};
 

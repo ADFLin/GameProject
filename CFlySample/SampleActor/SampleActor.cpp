@@ -66,13 +66,13 @@ public:
 
 		{
 			Quaternion q;
-			q.setRotation( Vector3(1,2,3) , Math::Deg2Rad(10) );
+			q.setRotation( Vector3(1,2,3) , Math::DegToRad(10) );
 
 			Quaternion qq;
-			qq.setRotation( Vector3(2,1,1) , Math::Deg2Rad(20) );
+			qq.setRotation( Vector3(2,1,1) , Math::DegToRad(20) );
 
 			Quaternion qqq;
-			q.setRotation( Vector3(3,1,3) , Math::Deg2Rad(50) );
+			q.setRotation( Vector3(3,1,3) , Math::DegToRad(50) );
 
 			Quaternion qq1 = q * qq;
 			Quaternion qq2 = qq * q;
@@ -82,7 +82,7 @@ public:
 			Matrix4 mq2 = Matrix4::Rotate( qq2 );
 
 			Matrix4 m;
-			m.setRotation( Vector3(1,2,3) , Math::Deg2Rad(90) );
+			m.setRotation( Vector3(1,2,3) , Math::DegToRad(90) );
 			Matrix4 m2;
 			m2.setQuaternion( q );
 
@@ -143,7 +143,7 @@ public:
 		//	cam->setNear( 50.0f );
 		//	cam->setFar( 3000.0f );
 		//	cam->translate( CFTO_GLOBAL , Vector3(0,0,100) );
-		//	cam->rotate( CFTO_LOCAL , CF_AXIS_Y , Math::Deg2Rad( 180 ) );
+		//	cam->rotate( CFTO_LOCAL , CF_AXIS_Y , Math::DegToRad( 180 ) );
 
 		//	IObject* obj = mMainScene->createObject( cam );
 		//	obj->setRenderMode( CFRM_WIREFRAME );
@@ -170,8 +170,8 @@ public:
 				actor->setWorldPosition( Vector3(0,100,0) );
 				float s = 0.45;
 				actor->scale( Vector3(s,s,s) , CFTO_LOCAL );
-				actor->rotate( CF_AXIS_X , Math::Deg2Rad( 90 ) , CFTO_LOCAL );
-				actor->rotate( CF_AXIS_Y , Math::Deg2Rad( 180 ) , CFTO_LOCAL );
+				actor->rotate( CF_AXIS_X , Math::DegToRad( 90 ) , CFTO_LOCAL );
+				actor->rotate( CF_AXIS_Y , Math::DegToRad( 180 ) , CFTO_LOCAL );
 
 				state = actor->getAnimationState( "idle1" );
 				if ( state )
@@ -215,7 +215,7 @@ public:
 				//Object* weapon = loader.loadObject( "../Data/HL/w_mp5.mdl" );
 
 				//weapon->translate( Vector3(10.855000 ,-0.41671500 , 1.8706800 ) , CFTO_LOCAL );
-				//weapon->rotate( CFTO_LOCAL , CF_AXIS_Z , Math::Deg2Rad(180) );
+				//weapon->rotate( CFTO_LOCAL , CF_AXIS_Z , Math::DegToRad(180) );
 				//state = mHLActor->getAnimationState("ref_shoot_ak47");
 				//actor->setWorldPosition( Vector3(100,200,0) );
 

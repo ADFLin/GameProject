@@ -6,6 +6,7 @@
 #include "RHI/RHICommand.h"
 #include "RHI/RHIGlobalResource.h"
 #include "RHI/DrawUtility.h"
+#include "ProfileSystem.h"
 
 REGISTER_EDITOR_PANEL(ShaderGraphPanel, "ShaderGraph", true, true);
 
@@ -67,6 +68,7 @@ void ShaderGraphPanel::renderShaderPreview()
 
 	RHISetFrameBuffer(commandList, mFrameBuffer);
 	RHISetViewport(commandList, 0, 0, 200, 200);
+
 	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
 	RHISetShaderProgram(commandList, mShaderProgram.getRHI());
 
@@ -77,10 +79,10 @@ void ShaderGraphPanel::renderShaderPreview()
 	mView.setupShader(commandList, mShaderProgram);
 	DrawUtility::ScreenRect(commandList);
 
-	RHISetFrameBuffer(commandList, nullptr);
 
 	RHIFlushCommand(commandList);
 	RHIEndRender(false);
+
 }
 
 void ShaderGraphPanel::onOpen()
@@ -114,6 +116,11 @@ void ShaderGraphPanel::onOpen()
 		registerNode<SGNodeOperator>(ESGValueOperator::Sub);
 		registerNode<SGNodeOperator>(ESGValueOperator::Mul);
 		registerNode<SGNodeOperator>(ESGValueOperator::Div);
+		registerNode<SGNodeOperator>(ESGValueOperator::Dot);
+		registerNode<SGNodeConst>(0);
+		registerNode<SGNodeConst>(0,0);
+		registerNode<SGNodeConst>(0,0,0);
+		registerNode<SGNodeConst>(0,0,0,0);
 		registerNode<SGNodeTexcooord>(0);
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Abs);
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Cos);
@@ -121,23 +128,108 @@ void ShaderGraphPanel::onOpen()
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Tan);
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Exp);
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Log);
+		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Frac);
 	}
 
 	runTest();
 }
 
+class NodeGUIVisitor : public SGNodeVisitor
+{
+
+
+
+public:
+	void visit(class SGNode& node) override
+	{
+		ImNode::BeginNode((intptr_t)&node);
+
+#if 0
+
+		ImGui::BeginVertical("content", ImVec2(0.0f, 0.0f));
+		ImGui::Dummy(ImVec2(160, 0));
+		ImGui::Spring(1);
+		ImGui::TextUnformatted(node.getTitle().c_str());
+		ImGui::Spring(1);
+		ImGui::EndVertical();
+#endif
+
+		ImGui::Text(node.getTitle().c_str());
+
+		drawLinkPin(node);
+
+		ImNode::EndNode();
+	}
+
+
+	void visit(class SGNodeConst& node) override
+	{
+		ImNode::BeginNode((intptr_t)&node);
+
+		ImGui::PushID((intptr_t)&node);
+		ImGui::SetNextItemWidth(200);
+		switch (node.type)
+		{
+		case ESGValueType::Float1:
+			ImGui::SliderFloat("###Object", node.value, -100, 100);
+			break;
+		case ESGValueType::Float2:
+			ImGui::SliderFloat2("##Object", node.value, -100, 100);
+			break;
+		case ESGValueType::Float3:
+			ImGui::SliderFloat3("##Object", node.value, -100, 100);
+			break;
+		case ESGValueType::Float4:
+			ImGui::SliderFloat4("##Object", node.value, -100, 100);
+			break;
+		}
+
+
+		drawLinkPin(node);
+
+		ImGui::PopID();
+		ImNode::EndNode();
+	}
+
+	void drawLinkPin(SGNode& node)
+	{
+		ImGui::Dummy(ImVec2(100, 0));
+
+		int maxIndex = Math::Max<int>(node.inputs.size(), 1u);
+		for(int index = 0 ; index < maxIndex; ++index)
+		{
+			if (node.inputs.isValidIndex(index))
+			{
+				ImNode::BeginPin((intptr_t)&node.inputs[index], ImNode::PinKind::Input);
+				ImGui::Text("Input");
+				ImNode::EndPin();
+			}
+
+			if (index == 0)
+			{
+				ImGui::SameLine();
+				ImNode::BeginPin((intptr_t)&node.outputLinks, ImNode::PinKind::Output);
+				ImGui::Text("Out");
+				ImNode::EndPin();
+			}
+		}
+	}
+
+};
+
 void ShaderGraphPanel::render()
 {
+	PROFILE_ENTRY("ShaderGraphPanel");
 
 	bool bRenderPreviewRequest = false;
 	ImNode::SetCurrentEditor(mEditorContext);
+
 
 	if (ImGui::Button("Compile"))
 	{
 		if (compileShader())
 		{
 			bRenderPreviewRequest = true;
-
 		}
 	}
 
@@ -185,24 +277,10 @@ void ShaderGraphPanel::render()
 
 	ImNode::Begin("Node editor");
 
+	NodeGUIVisitor visitor;
 	for (auto& node : mGraph.nodes)
 	{
-		ImNode::BeginNode((intptr_t)node.get());
-		ImGui::Text(node->getTitle().c_str());
-
-		for (auto& input : node->inputs)
-		{
-			ImNode::BeginPin((intptr_t)&input, ImNode::PinKind::Input);
-			ImGui::Text("Input");
-			ImNode::EndPin();
-		}
-
-		ImNode::BeginPin((intptr_t)&node->outputLinks, ImNode::PinKind::Output);
-		ImGui::Text("Out");
-		ImNode::EndPin();
-
-
-		ImNode::EndNode();
+		node->acceptVisit(visitor);
 	}
 
 	ImNode::BeginNode((intptr_t)&mGraph);

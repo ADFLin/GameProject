@@ -61,7 +61,7 @@ public:
 	T*       get()       { return mPtr; }
 	T const* get() const { return mPtr; }
 
-	bool     isValid() const { return mPtr != nullptr; }
+	bool     isValid() const { return !!mPtr; }
 	void     release() 
 	{ 
 		cleanup();

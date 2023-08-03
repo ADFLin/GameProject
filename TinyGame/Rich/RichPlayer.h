@@ -12,7 +12,7 @@ namespace Rich
 {
 	class Player;
 	class LandArea;
-	class IController;
+	class IPlayerController;
 
 	class Player : public ActorComp
 	{
@@ -28,10 +28,12 @@ namespace Rich
 		Player( World& world , ActorId id );
 		void   initPos(MapCoord const& pos, MapCoord const& prevPos);
 
-		bool   updateTile(MapCoord const& pos);
+		Tile*   updateTile(MapCoord const& pos);
 
-		World& getWorld(){ return *mOwnedWorld; }
-		bool   changePos( MapCoord const& pos );
+		void    updateTile(Tile& tile);
+
+		World&  getWorld() const { return *mOwnedWorld; }
+		Tile*   changePos( MapCoord const& pos );
 
 		void    setRole( RoleId id ){ mRoleId = id; }
 		RoleId  getRoleId(){ return mRoleId; }
@@ -39,32 +41,77 @@ namespace Rich
 		int     getMovePower();
 
 		int     getTotalMoney() const { return mMoney; }
-		void    modifyMoney( int delta )
-		{
-			mMoney += delta;
-		}
-		IController& getController(){ assert( mController ); return *mController; }
-		void         setController( IController& controller ){ mController = &controller; }
+		void    modifyMoney( int delta );
 
-		bool  isActive();
+		IPlayerController& getController(){ assert( mController ); return *mController; }
+		void         setController( IPlayerController& controller ){ mController = &controller; }
+
+		bool  isActive() const;
 
 		void  changeState( State state )
 		{
 			if ( mState == state )
 				return;
 			mState = state;
+			switch (mState)
+			{
+			case Player::eIDLE:
+				break;
+			case Player::eJAILED:
+				mStateCount = 3;
+				break;
+			case Player::eTAKE_SICK:
+				break;
+			}
+		}
+
+		int getTotalAssetValue() const
+		{
+			int totalAssetValue = mMoney;
+			for (auto asset : mAssets)
+			{
+				totalAssetValue += asset->getAssetValue();
+			}
+			return totalAssetValue;
+		}
+
+		void startTurn()
+		{
+			switch (mState)
+			{
+			case Player::eIDLE:
+				break;
+			case Player::eJAILED:
+				--mStateCount;
+				if (mStateCount <= 0)
+				{
+					changeState(Player::eIDLE);
+				}
+				break;
+			case Player::eTAKE_SICK:
+				break;
+			}
+		}
+
+		void reset()
+		{
+			mAssets.clear();
+			mState = eIDLE;
+			mStateCount = 0;
 		}
 
 
 	public:
-
+		TArray< PlayerAsset*> mAssets;
 		int          mMovePower;
 		World*       mOwnedWorld;
 		RoleId       mRoleId;
 		State        mState;
+		int          mStateCount = 0;
+
 		int          mMoney;
 		int          mCardPoint;
-		IController* mController;
+		IPlayerController* mController;
 	};
 
 

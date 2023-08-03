@@ -64,7 +64,7 @@ struct ExecutionEntryInfo
 };
 
 template<>
-struct TCanBitwiseRelocate<ExecutionEntryInfo>
+struct TBitwiseReallocatable<ExecutionEntryInfo>
 {
 	static constexpr int Value = 0;
 };

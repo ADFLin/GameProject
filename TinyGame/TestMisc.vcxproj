@@ -109,7 +109,7 @@
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;../OtherLib/boost/Lib/x86</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
@@ -141,7 +141,7 @@
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/Box2D/Lib/x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/Box2D/Lib/x64;../OtherLib/boost/Lib/x64</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
@@ -179,7 +179,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;../OtherLib/boost/Lib/x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
@@ -209,7 +209,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/Box2D/Lib/x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/Box2D/Lib/x64;../OtherLib/boost/Lib/x64</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
@@ -286,6 +286,7 @@
     <ClInclude Include="Shoot2D\RenderEngine.h" />
     <ClInclude Include="Shoot2D\ResourcesLoader.h" />
     <ClInclude Include="Shoot2D\Weapon.h" />
+    <ClInclude Include="TestMisc\Stage\AStarStage.h" />
     <ClInclude Include="TestMisc\Stage\AudioTestStage.h" />
     <ClInclude Include="TestMisc\Stage\BloxorzStage.h" />
     <ClInclude Include="TestMisc\Stage\GGJStage.h" />
@@ -442,12 +443,17 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="TestMisc\Stage\AoWStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\AStarStage.cpp" />
     <ClCompile Include="TestMisc\Stage\AudioTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\BloxorzStage.cpp" />
     <ClCompile Include="TestMisc\Stage\CompressionTestStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\CurveBuilderStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\DeviceInfoStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FileNameConvStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\FontDrawStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\Phy2DGameStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StackStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />
@@ -463,11 +469,12 @@
     <ClCompile Include="TestMisc\Test\AsyncWokTest.cpp" />
     <ClCompile Include="TestMisc\Test\BehaviorTreeTest.cpp" />
     <ClCompile Include="TestMisc\Test\BoneIKTest.cpp" />
+    <ClCompile Include="TestMisc\Test\CoroutineTest.cpp" />
     <ClCompile Include="TestMisc\Test\CriminalTest.cpp" />
     <ClCompile Include="TestMisc\Test\DelegateTest.cpp" />
     <ClCompile Include="TestMisc\Test\DrawCardTest.cpp" />
     <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp" />
-    <ClCompile Include="TestMisc\Test\FunctionFitTest.cpp" />
+    <ClCompile Include="TestMisc\Test\CurveFitTest.cpp" />
     <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp" />
     <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp" />

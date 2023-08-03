@@ -961,7 +961,7 @@ size_t TArmour::createModel( CFObject* objList[] )
 	Quat r = rotation;
 	r.w = -r.w;
 	obj->rotate( r , CFly::CFTO_LOCAL );
-	obj->rotate( CFly::CF_AXIS_X , Math::Deg2Rad( 90 ) , CFly::CFTO_LOCAL );
+	obj->rotate( CFly::CF_AXIS_X , Math::DegToRad( 90 ) , CFly::CFTO_LOCAL );
 
 	//obj->translate( Vec3D( pos.x , -pos.y , pos.z ) , CFly::CFTO_GLOBAL );
 

@@ -264,7 +264,7 @@ namespace Render
 		static void CubeMesh(RHICommandList& commandList);
 
 		static void AixsLine(RHICommandList& commandList);
-
+		static void AixsLine(RHICommandList& commandList, float length);
 		static void Rect(RHICommandList& commandList, float width, float height);
 		static void Rect(RHICommandList& commandList, float x, float y, float width, float height);
 		static void Rect(RHICommandList& commandList, float x, float y, float width, float height, LinearColor const& color);
@@ -348,8 +348,17 @@ namespace Render
 
 	class ScreenVS : public GlobalShader
 	{
+		using BaseClass = GlobalShader;
+	public:
 		DECLARE_EXPORTED_SHADER(ScreenVS, Global , CORE_API);
 
+		SHADER_PERMUTATION_TYPE_BOOL(UseTexCoord, "USE_SCREEN_TEXCOORD");
+		using PermutationDomain = TShaderPermutationDomain<UseTexCoord>;
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+		}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/ScreenVertexShader";

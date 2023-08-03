@@ -18,6 +18,56 @@ namespace Render
 {
 	class Mesh;
 
+	struct MeshImportData
+	{
+		TArray<uint8>  vertices;
+		TArray<uint32> indices;
+		int numVertices = 0;
+		InputLayoutDesc desc;
+		TArray<MeshSection> sections;
+
+		void initSections()
+		{
+			MeshSection section;
+			section.indexStart = 0;
+			section.count = indices.size();
+			sections.push_back(section);
+		}
+
+		void append(MeshImportData const& other)
+		{
+			if (sections.empty())
+			{
+				initSections();
+			}
+
+			uint32 baseIndex = numVertices;
+			vertices.append(other.vertices);
+
+			int start = indices.size();
+			indices.append(other.indices);
+			for (int i = start; i < indices.size(); ++i)
+			{
+				indices[i] += baseIndex;
+			}
+			numVertices += other.numVertices;
+
+			MeshSection section;
+			section.indexStart = start;
+			section.count = other.indices.size();
+			sections.push_back(section);
+		}
+
+		VertexElementReader makeAttributeReader( EVertex::Attribute attribute)
+		{
+			VertexElementReader result;
+			result.vertexDataStride = desc.getVertexSize();
+			result.pVertexData = vertices.data() + desc.getAttributeOffset(attribute);
+			return result;
+		}
+
+	};
+
 	class MeshImportSettings
 	{
 	public:
@@ -29,6 +79,7 @@ namespace Render
 	public:
 		virtual ~IMeshImporter() {}
 		virtual bool importFromFile(char const* filePath, Mesh& outMesh, MeshImportSettings* settings) = 0; 
+		virtual bool importFromFile(char const* filePath, MeshImportData& outMeshData) = 0;
 		virtual bool importMultiFromFile(char const* filePath, TArray< Mesh >& outMeshes, MeshImportSettings* settings) = 0;
 	};
 	using IMeshImporterPtr = std::shared_ptr< IMeshImporter >;

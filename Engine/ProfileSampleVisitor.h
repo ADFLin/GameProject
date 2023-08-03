@@ -11,40 +11,55 @@ public:
 
 	using SampleNode = ProfileSampleNode;
 
+
 	struct VisitContext
 	{
 		SampleNode* node;
-		double      parentTime;
-		double      parentFrameTime;
-		double      accTime = 0.0;
-		double      accFrameTime = 0.0;
+		double      timeTotalParent;
+		double      displayTimeParent;
+		double      displayTime;
 
+		double      totalTimeAcc = 0.0;
+		double      displayTimeAcc = 0.0;
 		int         indexNode = 0;
 	};
 
-	void onRoot(SampleNode* node) {}
-	void onNode(VisitContext const& context) {}
+	void onRoot(VisitContext& context) {}
+	void onNode(VisitContext& context) {}
 	bool onEnterChild(VisitContext const& context) { return true; }
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext) {}
 
 	void visitNodes(uint32 threadId = 0)
 	{
 		SampleNode* root = ProfileSystem::Get().getRootSample(threadId);
-		_this()->onRoot(root);
 
 		VisitContext context;
 		context.node = root;
-		VisitContext childContext;
-		childContext.parentTime = ProfileSystem::Get().getDurationSinceReset();
-		childContext.parentFrameTime = ProfileSystem::Get().getLastFrameDuration();
+		context.displayTime = root->getFrameExecTime();
+		_this()->onRoot(context);
 
-		SampleNode* node = root->getChild();
+		visitChildren(context);
+
+	}
+
+	void visitChildren(VisitContext const& context)
+	{
+		VisitContext childContext;
+		childContext.timeTotalParent = context.node->getTotalTime();
+		childContext.displayTimeParent = context.displayTime;
+
+		SampleNode* node = context.node->getChild();
 		for (; node; node = node->getSibling())
 		{
+			if ( node->getLastFrame() + 1 != ProfileSystem::Get().getFrameCountSinceReset())
+				continue;
+
 			childContext.node = node;
-			childContext.accTime += node->getTotalTime();
-			childContext.accFrameTime += node->getLastFrameTime();
+			childContext.displayTime = node->getFrameExecTime();
 			visitRecursive(childContext);
+
+			childContext.totalTimeAcc += node->getTotalTime();
+			childContext.displayTimeAcc += childContext.displayTime;
 
 			++childContext.indexNode;
 		}
@@ -52,32 +67,16 @@ public:
 		_this()->onReturnParent(context, childContext);
 	}
 
-	void visitRecursive(VisitContext const& context)
+	void visitRecursive(VisitContext& context)
 	{
 		_this()->onNode(context);
 
 		if (!_this()->onEnterChild(context))
 			return;
 
-		VisitContext childContext;
-		childContext.indexNode = 0;
-		childContext.parentTime = context.node->getTotalTime();
-		childContext.parentFrameTime = context.node->getLastFrameTime();
-
-		SampleNode* node = context.node->getChild();
-		for (; node; node = node->getSibling())
-		{
-			childContext.node = node;
-
-			childContext.accTime += node->getTotalTime();
-			childContext.accFrameTime += node->getLastFrameTime();
-
-			visitRecursive(childContext);
-			++childContext.indexNode;
-		}
-
-		_this()->onReturnParent(context, childContext);
+		visitChildren(context);
 	}
+
 };
 
 #endif // ProfileSampleVisitor_H_36B36769_BE47_4E96_B0F8_62F7B221D4CF

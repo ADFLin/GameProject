@@ -126,7 +126,7 @@ public:
 		SampleNode* node = context.node;
 		msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame (%d calls)",
 			++mIdxChild , node->getName() ,
-			context.parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTime) * 100 : 0.f ,
+			context.parentTimeTotal > CLOCK_EPSILON ? ( node->getTotalTime()  / context.parentTimeTotal) * 100 : 0.f ,
 			node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset() ,
 			node->getTotalCalls() );
 	}
@@ -142,7 +142,7 @@ public:
 	{
 		SampleNode* node = context.node;
 		int    numChildren = childContext.indexNode;
-		double accTime = childContext.accTime;
+		double accTime = childContext.timeAcc;
 
 		if ( numChildren )
 		{

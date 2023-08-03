@@ -62,9 +62,9 @@ bool ActionProcessor::checkActionPrivate( ActionParam& param )
 	bool result = false;
 	for( auto pInfo : mActiveInputs )
 	{
-		IActionInput* input = pInfo->input;
-		if ( pInfo->port == ERROR_ACTION_PORT || param.port == pInfo->port  )
+		if ( pInfo->port == ERROR_ACTION_PORT || pInfo->port == param.port )
 		{
+			IActionInput* input = pInfo->input;
 			if( input->checkAction(param) )
 			{
 				result = true;
@@ -152,9 +152,9 @@ DefaultInputControl::DefaultInputControl()
 	mActionBlocked = false;
 
 	for( int i = 0 ; i < MAX_PLAYER_NUM ; ++i )
-		mCMap[i] = -1;
+		mCMap[i] = INDEX_NONE;
 
-	std::fill_n( mKeySen , ARRAY_SIZE( mKeySen ) , 0 );
+	std::fill_n(mKeySen, ARRAY_SIZE( mKeySen ), 0);
 }
 
 void DefaultInputControl::restart()
@@ -269,9 +269,8 @@ bool DefaultInputControl::checkKey( unsigned cID , ControlAction action )
 
 bool DefaultInputControl::checkActionKey( ActionParam& param )
 {
-	unsigned cID = mCMap[ param.port ];
-
-	if ( cID == -1 )
+	int cID = mCMap[ param.port ];
+	if ( cID == INDEX_NONE)
 		return false;
 
 	ActionKey& key = mActionKeyMap[ param.act ];

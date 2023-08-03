@@ -106,7 +106,6 @@ namespace Render
 	RHI_API bool RHIBeginRender();
 	RHI_API void RHIEndRender(bool bPresent);
 
-
 	struct SwapChainCreationInfo
 	{
 #if SYS_PLATFORM_WIN
@@ -442,7 +441,7 @@ namespace Render
 			return true;
 		}
 
-		void releaseResources()
+		void releaseResource()
 		{
 			mResource.release();
 		}
@@ -451,11 +450,15 @@ namespace Render
 
 		RHIBuffer* getRHI() { return mResource; }
 
-		void updateBuffer(TArrayView<T> const& updatedData)
+		bool updateBuffer(TArray<T> const& updatedData) { return updateBuffer(MakeConstView(updatedData)); }
+		bool updateBuffer(TArrayView<const T> const& updatedData)
 		{
 			T* pData = lock();
+			if (pData == nullptr)
+				return false;
 			std::copy(updatedData.data(), updatedData.data() + updatedData.size(), pData);
 			unlock();
+			return true;
 		}
 
 		T*   lock()

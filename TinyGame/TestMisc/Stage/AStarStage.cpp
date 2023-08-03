@@ -1,4 +1,5 @@
 #include "AStarStage.h"
+#include "StageRegister.h"
 
 namespace AStar
 {
@@ -108,3 +109,6 @@ namespace AStar
 
 
 }//namespace AStar
+
+
+REGISTER_STAGE_ENTRY("A-Star Test", AStar::TestStage, EExecGroup::Test, "AI");

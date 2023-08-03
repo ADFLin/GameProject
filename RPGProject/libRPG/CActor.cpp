@@ -309,7 +309,7 @@ bool CActor::onAttackTest()
 		return false;
 
 	Vec3D pos = mSpatialComp->getPosition() + getFaceOffest() * getFaceDir() ;
-	attackRangeTest( pos , getFaceDir() , mAbilityProp->getPropValue( PROP_AT_RANGE ) , Math::Deg2Rad(120) );
+	attackRangeTest( pos , getFaceDir() , mAbilityProp->getPropValue( PROP_AT_RANGE ) , Math::DegToRad(120) );
 
 	return true;
 }
@@ -826,7 +826,7 @@ float CActor::getVisibleDistance()
 
 float CActor::getMaxRotateAngle()
 {
-	return Math::Deg2Rad( 12 );
+	return Math::DegToRad( 12 );
 
 }
 

@@ -398,7 +398,7 @@ namespace BT
 	public:
 		ContextHolder(){ mHolder = NULL; }
 		void  setHolder( Context* ptr ){ mHolder = ptr; }
-		bool  isValid(){ return mHolder != 0; }
+		bool  isValid(){ return !!mHolder; }
 		template< class RetType , class RefType >
 		RetType _evalValue( RefType const& ref ) {  return ref( mHolder );  }
 	protected:

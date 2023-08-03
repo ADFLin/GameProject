@@ -6,31 +6,6 @@
 
 #include "Core\StringConv.h"
 
-class DevFrame : public GFrame
-{
-public:
-	DevFrame( int id ,  Vec2i const& pos , Vec2i const& size , GWidget* parent );
-	GButton*   addButton( int id , char const* tile );
-	GButton*   addButton(char const* title, WidgetEventDelegate delegate);
-	GCheckBox* addCheckBox(int id, char const* tile);
-	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
-	GSlider*   addSlider( int id = UI_ANY);
-	GSlider*   addSlider( char const* title, int id = UI_ANY);
-	GTextCtrl* addTextCtrl(int id);
-	GTextCtrl* addTextCtrl(char const* title, int id = UI_ANY);
-	GText*     addText(char const* pText, bool bUseBroder = false);
-
-
-	void refresh();
-private:
-	template< class T >
-	T* addWidget(int id , char const* title);
-	template< class T, class LAMBDA >
-	T* addWidget( LAMBDA Lambda , bool bUseBroder = true );
-	template< class T >
-	T* addWidget(char const* title, WidgetEventDelegate delegate);
-	int mNextWidgetPosY;
-};
 
 
 struct FWidgetProperty
@@ -216,10 +191,43 @@ struct FWidgetProperty
 	}
 };
 
+
+class DevFrame : public GFrame
+{
+public:
+	DevFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
+	GButton*   addButton(int id, char const* tile);
+	GButton*   addButton(char const* title, WidgetEventDelegate delegate);
+	GCheckBox* addCheckBox(int id, char const* tile);
+	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
+	GSlider*   addSlider(int id = UI_ANY);
+	GSlider*   addSlider(char const* title, int id = UI_ANY);
+	GTextCtrl* addTextCtrl(int id);
+	GTextCtrl* addTextCtrl(char const* title, int id = UI_ANY);
+	GText*     addText(char const* pText, bool bUseBroder = false);
+
+	void addCheckBox(char const* text, bool& value)
+	{
+		FWidgetProperty::Bind(addCheckBox(UI_ANY, text), value);
+	}
+
+	void refresh();
+private:
+	template< class T >
+	T* addWidget(int id, char const* title);
+	template< class T, class LAMBDA >
+	T* addWidget(LAMBDA Lambda, bool bUseBroder = true);
+	template< class T >
+	T* addWidget(char const* title, WidgetEventDelegate delegate);
+	int mNextWidgetPosY;
+};
+
+
 class  WidgetUtility
 {
 public:
 	static DevFrame* CreateDevFrame( Vec2i const& size = Vec2i(150, 200));
+
 
 };
 #endif // WidgetUtility_h__

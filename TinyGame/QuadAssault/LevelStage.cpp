@@ -284,7 +284,7 @@ void LevelStage::tick()
 
 	Player* player = mLevel->getPlayer();
 
-	float rotateSpeed = Math::Deg2Rad( 150 );
+	float rotateSpeed = Math::DegToRad( 150 );
 	float moveAcc = 1;
 	if(Input::isKeyPressed(EKeyCode::Left) || Input::isKeyPressed(EKeyCode::A))
 		player->rotate(-rotateSpeed*TICK_TIME);

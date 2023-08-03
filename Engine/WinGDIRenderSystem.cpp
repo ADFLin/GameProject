@@ -1,7 +1,4 @@
 #include "WinGDIRenderSystem.h"
-
-#include <cmath>
-
 #include "LogSystem.h"
 #if 1
 #	include "ProfileSystem.h"
@@ -206,8 +203,8 @@ void WinGdiGraphics2D::translateXForm( float ox , float oy  )
 
 void WinGdiGraphics2D::rotateXForm( float angle )
 {
-	float c = cos( angle );
-	float s = sin( angle );
+	float s, c;
+	Math::SinCos(angle, s, c);
 	XFORM xform;
 
 	xform.eM11 = c;  xform.eM12 = s;

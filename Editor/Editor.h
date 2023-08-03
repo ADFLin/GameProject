@@ -7,6 +7,7 @@
 #include "CompilerConfig.h"
 #include "SystemMessage.h"
 #include "RHI/RHICommon.h"
+#include "RHI/RHIGraphics2D.h"
 
 
 class IEditorRenderContext

@@ -19,9 +19,9 @@ public:
 
 	void render() override;
 
-	uint16 mMouseState;
-
-	ImVec2 mSize;
+	uint16  mMouseState;
+	Vector2 mLastMousePos;
+	ImVec2  mSize;
 
 	bool preRender();
 

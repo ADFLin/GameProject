@@ -723,7 +723,7 @@ namespace SR
 		using namespace Render;
 		Vec2i screenSize = ::Global::GetScreenSize();
 		float aspect = float(screenSize.x) / screenSize.y;
-		mRenderer.worldToClip = Matrix4::Rotate(Vector3(0, 1, 0), angle) * mCameraControl.getViewMatrix() * PerspectiveMatrix(Math::Deg2Rad(90), aspect, 0.01, 500);
+		mRenderer.worldToClip = Matrix4::Rotate(Vector3(0, 1, 0), angle) * mCameraControl.getViewMatrix() * PerspectiveMatrix(Math::DegToRad(90), aspect, 0.01, 500);
 		mRenderer.viewportOrg = Vector2(0, 0);
 		mRenderer.viewportSize = Vector2(::Global::GetScreenSize());
 
@@ -754,7 +754,7 @@ namespace SR
 	{
 		mCamera.lookAt(Vector3(0, 5, 1), Vector3(0, 0, 0.5), Vector3(0, 0, 1));
 
-		mCamera.fov = Math::Deg2Rad(70);
+		mCamera.fov = Math::DegToRad(70);
 		mCamera.aspect = float(mColorBuffer.getSize().x) / mColorBuffer.getSize().y;
 
 		//mCameraControl.lookAt(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0));
@@ -784,7 +784,7 @@ namespace SR
 			PrimitiveObjectPtr obj = new PrimitiveObject;
 			obj->shape = plane;
 			obj->transform.location = Vector3(0, 0, 20);
-			obj->transform.rotation = Quaternion::Rotate( Vector3(1,0,0) , Math::Deg2Rad(180) );
+			obj->transform.rotation = Quaternion::Rotate( Vector3(1,0,0) , Math::DegToRad(180) );
 			obj->material = new Material;
 			obj->material->emissiveColor = LinearColor(0.5, 0.5, 0.8);
 			mScene.addPrimitive(obj);

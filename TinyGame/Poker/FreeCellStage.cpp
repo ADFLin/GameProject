@@ -616,7 +616,7 @@ namespace Poker
 
 	void FreeCellStage::newGame()
 	{
-		mSeed = (int)generateRandSeed();
+		mSeed = (int)GenerateRandSeed();
 		restart();
 	}
 

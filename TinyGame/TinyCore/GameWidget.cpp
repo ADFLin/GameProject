@@ -9,6 +9,7 @@
 #include "FileSystem.h"
 
 #include <cmath>
+#include "ProfileSystem.h"
 
 WidgetRenderer  gRenderer;
 
@@ -386,13 +387,18 @@ void GButton::onMouse( bool beInside )
 
 void GButton::onRender()
 {
+	PROFILE_FUNCTION();
+
 	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i pos  = getWorldPos();
 	Vec2i size = getSize();
 
-	//assert( !useColorKey );
-	gRenderer.drawButton( g , pos , size , getButtonState() , mColor , isEnable() );
+	{
+		PROFILE_ENTRY("Button");
+		//assert( !useColorKey );
+		gRenderer.drawButton(g, pos, size, getButtonState(), mColor, isEnable());
+	}
 
 	if ( !mTitle.empty() )
 	{
@@ -409,7 +415,11 @@ void GButton::onRender()
 		{
 			g.setTextColor( Color3ub(255 , 255 , 0) );
 		}
-		g.drawText( pos , size , mTitle.c_str() , true );
+		{
+			PROFILE_ENTRY("Text");
+			g.drawText(pos, size, mTitle.c_str(), true);
+		}
+		
 	}
 }
 

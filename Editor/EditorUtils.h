@@ -7,6 +7,7 @@
 
 #include "ImGui/imgui.h"
 #include "Core/FNV1a.h"
+#include "RHI/Font.h"
 
 using ::Math::Vector2;
 
@@ -14,6 +15,8 @@ struct FImGuiConv
 {
 	FORCEINLINE static ImVec4 To(Color4f const& value) { return *reinterpret_cast<ImVec4 const*>(&value); }
 	FORCEINLINE static ImVec2 To(Vector2 const& value) { return *reinterpret_cast<ImVec2 const*>(&value); }
+
+	FORCEINLINE static Vector2 To(ImVec2 const& value ){ return *reinterpret_cast<Vector2 const*>(&value); }
 };
 
 struct FEditor
@@ -65,6 +68,7 @@ struct FImGui
 	static void RestoreBlend();
 
 	static Render::TextureAtlas mIconAtlas;
+	static Render::FontDrawer   mFont;
 	struct Rect
 	{
 		ImVec2 min;

@@ -1309,6 +1309,12 @@ namespace Render
 		glProgramUniformMatrix3x4fv(shaderImpl.getHandle(), param.mLoc, dim, false, (float const *)val);
 	}
 
+
+	void OpenGLContext::markRenderStateDirty()
+	{
+		//TODO
+	}
+
 	void OpenGLContext::commitGraphicStates()
 	{
 #if COMMIT_STATE_IMMEDIATELY == 0

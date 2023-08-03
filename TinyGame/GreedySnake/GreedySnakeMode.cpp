@@ -40,7 +40,7 @@ namespace GreedySnake
 	void SurvivalMode::onEatFood( Snake& snake , FoodInfo& food )
 	{
 		applyDefaultEffect(snake, food);
-		getScene().productRandomFood( ::Global::RandomNet() %  NumFoodType );
+		getScene().productRandomFood(FOOD_GROW);
 	}
 
 	void SurvivalMode::onCollideSnake( Snake& snake , Snake& colSnake )

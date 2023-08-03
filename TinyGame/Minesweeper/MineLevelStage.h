@@ -109,7 +109,7 @@ namespace Mine
 			if (!BaseClass::onInit())
 				return false;
 			::Global::GUI().cleanupWidget();
-			::srand(generateRandSeed());
+			::srand(GenerateRandSeed());
 			restart();
 			return true;
 		}

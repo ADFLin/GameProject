@@ -77,9 +77,6 @@
     <ClInclude Include="Widget\WidgetUtility.h">
       <Filter>GUI</Filter>
     </ClInclude>
-    <ClInclude Include="Widget\ConsoleFrame.h">
-      <Filter>GUI</Filter>
-    </ClInclude>
     <ClInclude Include="TinyCore\GameStageMode.h">
       <Filter>Stage</Filter>
     </ClInclude>
@@ -176,9 +173,6 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Widget\WidgetUtility.cpp">
-      <Filter>GUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Widget\ConsoleFrame.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
     <ClCompile Include="TinyCore\GameStageMode.cpp">

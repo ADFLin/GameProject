@@ -19,7 +19,7 @@ using Ray2D = Math::TRay< Vector2 >;
 
 using KDTree = TKDTree< 2 >;
 
-class BVH
+class BVHTree
 {
 
 
@@ -56,7 +56,7 @@ public:
 	{
 		if( !BaseClass::onInit() )
 			return false;
-		::Global::RandSeed(generateRandSeed());
+		::Global::RandSeed(GenerateRandSeed());
 		::Global::GUI().cleanupWidget();
 
 		WidgetUtility::CreateDevFrame();

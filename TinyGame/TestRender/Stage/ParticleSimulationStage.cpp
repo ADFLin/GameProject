@@ -628,7 +628,7 @@ namespace Render
 						pWaterData[i].h = 10 * ( 30 - dist ) / 30 ;
 					}
 #else
-					pWaterData[i].h = 10 * Math::Exp(-Math::Squre(dist / 10));
+					pWaterData[i].h = 10 * Math::Exp(-Math::Square(dist / 10));
 #endif
 					//pWaterData[i].normal = Vector3(0, 0, 1);
 				}

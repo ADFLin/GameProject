@@ -94,7 +94,7 @@ namespace Render
 		mIBLResource.releaseRHI();
 		mBuilder.releaseRHI();
 		mSkyBox.releaseRHIResource();
-		mParamBuffer.releaseResources();
+		mParamBuffer.releaseResource();
 
 		BaseClass::preShutdownRenderSystem(bReInit);
 	}

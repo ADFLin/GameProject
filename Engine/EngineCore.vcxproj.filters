@@ -125,6 +125,9 @@
     <Filter Include="Launch">
       <UniqueIdentifier>{8c7edf0c-dc07-498b-84ff-bc23a9ee995a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Async">
+      <UniqueIdentifier>{917e15b1-2fb6-4360-bcc5-479b80506252}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConsoleSystem.cpp">
@@ -225,9 +228,6 @@
     </ClCompile>
     <ClCompile Include="Math\Math2D.cpp">
       <Filter>Math</Filter>
-    </ClCompile>
-    <ClCompile Include="AsyncWork.cpp">
-      <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="SystemPlatform.cpp">
       <Filter>Platform</Filter>
@@ -355,12 +355,15 @@
     <ClCompile Include="FrameAllocator.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
+    <ClCompile Include="Async\AsyncWork.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="Async\Coroutines.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Coroutine.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="FileSystem.h">
@@ -641,9 +644,6 @@
     </ClInclude>
     <ClInclude Include="Math\DualQuat.h">
       <Filter>Math</Filter>
-    </ClInclude>
-    <ClInclude Include="AsyncWork.h">
-      <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="SystemPlatform.h">
       <Filter>Platform</Filter>
@@ -945,9 +945,6 @@
     <ClInclude Include="Core\Tickable.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Misc\StringPtrWrapper.h">
-      <Filter>Misc</Filter>
-    </ClInclude>
     <ClInclude Include="Module\ModuleInterface.h">
       <Filter>Module</Filter>
     </ClInclude>
@@ -965,6 +962,15 @@
     </ClInclude>
     <ClInclude Include="DataStructure\ArraySet.h">
       <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Async\AsyncWork.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="Async\Coroutines.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc\CStringWrapper.h">
+      <Filter>Misc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

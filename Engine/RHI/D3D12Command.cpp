@@ -350,7 +350,7 @@ namespace Render
 		mRenderContext.RHIFlushCommand();
 		if (bPresent)
 		{
-			mSwapChain->Present(bPresent);
+			mSwapChain->present(bPresent);
 		}
 		mRenderContext.moveToNextFrame(mSwapChain->mResource);
 	}

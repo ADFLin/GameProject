@@ -17,7 +17,6 @@
 
 #include <algorithm>
 
-
 enum class ESimpleBlendMode
 {
 	None,
@@ -26,6 +25,23 @@ enum class ESimpleBlendMode
 	Multiply,
 };
 
+
+enum class EVerticalAlign
+{
+	Top,
+	Bottom,
+	Center,
+	Fill,
+};
+
+
+enum class EHorizontalAlign
+{
+	Left,
+	Right,
+	Center,
+	Fill,
+};
 
 class RHIGraphics2D
 {
@@ -39,7 +55,7 @@ public:
 	using Color4Type = Render::ShapePaintArgs::Color4Type;
 	using Color3Type = Render::ShapePaintArgs::Color3Type;
 
-	void  init(int w, int h);
+	void  setViewportSize(int w, int h);
 	void  beginXForm();
 	void  finishXForm();
 
@@ -82,6 +98,7 @@ public:
 	void  beginBlend(Vector2 const& pos, Vector2 const& size, float alpha);
 	void  beginBlend(float alpha, ESimpleBlendMode mode = ESimpleBlendMode::Translucent);
 	void  endBlend();
+
 	void  setBlendState(ESimpleBlendMode mode);
 	void  setBlendAlpha(float value)
 	{ 
@@ -143,7 +160,12 @@ public:
 	void  setTextColor(Color3Type const& color);
 	void  drawText(Vector2 const& pos, char const* str);
 	void  drawText(Vector2 const& pos, wchar_t const* str);
-	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip = false);
+	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str)
+	{
+		drawText(pos, size, str, false);
+	}
+	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, bool bClip);
+	void  drawText(Vector2 const& pos, Vector2 const& size, char const* str, EHorizontalAlign alignH, EVerticalAlign alignV, bool bClip = false);
 	void  drawText(float x, float y, char const* str) { drawText(Vector2(x, y), str); }
 
 	void commitRenderState();
@@ -240,6 +262,18 @@ private:
 	{
 		Vec2i pos;
 		Vec2i size;
+
+		bool isValid() const
+		{
+			return size.x > 0 && size.y > 0;
+		}
+
+		static Rect Intersect(Rect const& r1, Rect const& r2)
+		{
+			Vec2i min = r1.pos.max(r2.pos);
+			Vec2i max = (r1.pos + r1.size).min(r2.pos + r2.size);
+			return { min , max - min };
+		}
 	};
 	Rect      mScissorRect;
 

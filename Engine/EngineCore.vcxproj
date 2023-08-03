@@ -213,7 +213,8 @@
     <ClCompile Include="AI\NeuralNetwork.cpp" />
     <ClCompile Include="AI\TrainManager.cpp" />
     <ClCompile Include="Asset.cpp" />
-    <ClCompile Include="AsyncWork.cpp" />
+    <ClCompile Include="Async\AsyncWork.cpp" />
+    <ClCompile Include="Async\Coroutines.cpp" />
     <ClCompile Include="Audio\AudioDevice.cpp" />
     <ClCompile Include="Audio\XAudio2\XAudio2Device.cpp" />
     <ClCompile Include="BehaviorTree\BTNode.cpp" />
@@ -300,7 +301,8 @@
     <ClInclude Include="Asset.h" />
     <ClInclude Include="AssetViewer.h" />
     <ClInclude Include="AStarTile2D.h" />
-    <ClInclude Include="AsyncWork.h" />
+    <ClInclude Include="Async\AsyncWork.h" />
+    <ClInclude Include="Async\Coroutines.h" />
     <ClInclude Include="Audio\AudioDevice.h" />
     <ClInclude Include="Audio\XAudio2\XAudio2Device.h" />
     <ClInclude Include="BehaviorTree\BTNode.h" />
@@ -374,7 +376,7 @@
     <ClInclude Include="Meta\Select.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
-    <ClInclude Include="Misc\StringPtrWrapper.h" />
+    <ClInclude Include="Misc\CStringWrapper.h" />
     <ClInclude Include="ModuleInterface.h" />
     <ClInclude Include="Module\ModularFeature.h" />
     <ClInclude Include="Module\ModuleInterface.h" />
@@ -384,7 +386,6 @@
     <ClInclude Include="MarcoCommon.h" />
     <ClInclude Include="CompilerConfig.h" />
     <ClInclude Include="ConsoleSystem.h" />
-    <ClInclude Include="Coroutine.h" />
     <ClInclude Include="Cpp11StdConfig.h" />
     <ClInclude Include="CppVersion.h" />
     <ClInclude Include="EnumCommon.h" />

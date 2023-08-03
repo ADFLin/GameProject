@@ -80,7 +80,7 @@ void Player::update( Vec2f const& aimPos )
 {
 	if( !mIsDead )
 	{
-		Vec2f moment = acceleration * GetDirection( rotation - Math::Deg2Rad(90) );
+		Vec2f moment = acceleration * GetDirection( rotation - Math::DegToRad(90) );
 
 		Vec2f off = ( vel * TICK_TIME ) * moment;
 
@@ -170,7 +170,7 @@ void Player::onBodyCollision( ColBody& self , ColBody& other )
 
 void Player::updateHeadlight()
 {
-	float angle = rotationAim + Math::Deg2Rad(180);
+	float angle = rotationAim + Math::DegToRad(180);
 	Vec2f dir = GetDirection( angle );
 	mHeadLight.dir = dir;
 
@@ -200,7 +200,7 @@ void Player::shoot( Vec2f const& posTaget )
 		{
 			Vec2f offset = mWeaponSlot[i]->getPos();
 
-			float angle = rotationAim + Math::ATan2(offset.y,offset.x) + Math::Deg2Rad( 90 );
+			float angle = rotationAim + Math::ATan2(offset.y,offset.x) + Math::DegToRad( 90 );
 
 			Vec2f slotDir = GetDirection( angle );
 			mWeaponSlot[i]->fire( getPos() + offset.length() * slotDir , dir , TEAM_PLAYER );

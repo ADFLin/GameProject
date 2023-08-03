@@ -52,7 +52,7 @@ class IShadowMapTechnique : public IShadowTechnique
 
 		m_viewCamera = m_scene->createCamera( nullptr );
 		m_viewCamera->registerName("viewCamera");
-		m_viewCamera->setFov( Math::Deg2Rad(90) );
+		m_viewCamera->setFov( Math::DegToRad(90) );
 
 		m_viewCamera->setFar( 1000.0f );
 		m_viewCamera->setNear( 1.0f );
@@ -121,8 +121,8 @@ public:
 		{
 			viewCamera = mMainScene->createCamera( nullptr );
 			viewCamera->registerName("viewCamera");
-			viewCamera->setFov( Math::Deg2Rad(120) );
-			viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(90) , CFTO_LOCAL );
+			viewCamera->setFov( Math::DegToRad(120) );
+			viewCamera->rotate( CF_AXIS_X , Math::DegToRad(90) , CFTO_LOCAL );
 
 			viewCamera->setFar( 500.0f );
 			viewCamera->setNear( 1.0f );
@@ -206,8 +206,8 @@ public:
 		 {
 			 switch (msg.getCode())
 			 {
-			 case EKeyCode::O: viewCamera->rotate(CF_AXIS_X, Math::Deg2Rad(1), CFTO_LOCAL);  break;
-			 case EKeyCode::P: viewCamera->rotate(CF_AXIS_X, Math::Deg2Rad(-1), CFTO_LOCAL);  break;
+			 case EKeyCode::O: viewCamera->rotate(CF_AXIS_X, Math::DegToRad(1), CFTO_LOCAL);  break;
+			 case EKeyCode::P: viewCamera->rotate(CF_AXIS_X, Math::DegToRad(-1), CFTO_LOCAL);  break;
 			 }
 		 }
 

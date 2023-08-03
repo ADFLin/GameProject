@@ -46,7 +46,7 @@ void KeyPickup::onDestroy( unsigned flag )
 void KeyPickup::tick()
 {
 	BaseClass::tick();
-	mRotation += Math::Deg2Rad( 100*TICK_TIME );
+	mRotation += Math::DegToRad( 100*TICK_TIME );
 	if(mRotation> 2 * Math::PI )
 		mRotation -= 2 * Math::PI;
 }

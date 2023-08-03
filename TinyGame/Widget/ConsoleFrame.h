@@ -6,7 +6,7 @@
 #include "TypeMemoryOp.h"
 #include "DataStructure/CycleQueue.h"
 
-class ConsoleCmdTextCtrl : public GTextCtrl
+class TINY_API ConsoleCmdTextCtrl : public GTextCtrl
 {
 	using BaseClass = GTextCtrl;
 public:
@@ -28,7 +28,7 @@ public:
 
 };
 
-class ConsoleFrame : public GFrame
+class TINY_API ConsoleFrame : public GFrame
 	               , public LogOutput
 {
 	typedef GFrame BaseClass;

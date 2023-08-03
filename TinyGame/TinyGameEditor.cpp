@@ -41,6 +41,7 @@ void TinyGameApp::finalizeEditor()
 	}
 }
 
+
 void TinyGameApp::resizeViewport(int w, int h)
 {
 	::Global::GetDrawEngine().changeScreenSize(w, h, true);
@@ -58,7 +59,6 @@ void TinyGameApp::renderViewport(IEditorRenderContext& context)
 		context.copyToRenderTarget((void*) ::Global::GetDrawEngine().getPlatformGraphics().getTargetDC());
 	}
 }
-
 
 void TinyGameApp::onViewportMouseEvent(MouseMsg const& msg)
 {

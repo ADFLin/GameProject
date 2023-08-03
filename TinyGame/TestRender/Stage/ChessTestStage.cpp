@@ -149,7 +149,7 @@ namespace Chess
 
 					if (tile.chess)
 					{
-						Matrix4 rotation = Matrix4::Rotate(Quaternion::Rotate(Vector3(0,0,1), Math::Deg2Rad((tile.chess->color == EChessColor::White) ? -90 : 90)));
+						Matrix4 rotation = Matrix4::Rotate(Quaternion::Rotate(Vector3(0,0,1), Math::DegToRad((tile.chess->color == EChessColor::White) ? -90 : 90)));
 						//RHISetFixedShaderPipelineState(commandList, rotation * Matrix4::Translate(tilePos) * view.worldToClip);
 
 						if (tile.chess->color == EChessColor::White)
@@ -318,7 +318,7 @@ namespace Chess
 			mViewFrustum.mNear = 0.01;
 			mViewFrustum.mFar = 800.0;
 			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
-			mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
+			mViewFrustum.mYFov = Math::DegToRad(60 / mViewFrustum.mAspect);
 
 			mCamera.lookAt(Vector3(200, 200, 200), Vector3(0, 0, 0), Vector3(0, 0, 1));
 
@@ -446,8 +446,7 @@ namespace Chess
 			mView.rectOffset = IntVector2(0, 0);
 			mView.rectSize = screenSize;
 
-			Matrix4 matView = mCamera.getViewMatrix();
-			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+			mView.setupTransform(mCamera.getPos(), mCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
 
 			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1, 0);

@@ -186,4 +186,18 @@ namespace Math
 		return mValues[3] == 0 && mValues[7] == 0 && mValues[11] == 0 && mValues[15] == 1.0;
 	}
 
+	void Matrix4::transpose()
+	{
+#define SWAP_RAW_COL( i , j) std::swap(mM[i][j] , mM[j][i])
+
+		SWAP_RAW_COL(0, 1);
+		SWAP_RAW_COL(0, 2);
+		SWAP_RAW_COL(0, 3);
+		SWAP_RAW_COL(1, 2);
+		SWAP_RAW_COL(1, 3);
+		SWAP_RAW_COL(2, 3);
+
+#undef SWAP_RAW_COL
+	}
+
 }

@@ -632,6 +632,11 @@ namespace Render
 
 		void RHIEndRender(bool bPresent);
 
+		void RHIMarkRenderStateDirty()
+		{
+			//TODO:
+		}
+
 		RHICommandList&  getImmediateCommandList()
 		{
 			return *mImmediateCommandList;

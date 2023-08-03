@@ -33,13 +33,13 @@ namespace Render
 			context->PREFIX##SetShaderResources(startSlot, numViews, ppShaderResourceViews);\
 		}\
 	};
-
 	D3D11_SHADER_TRAITS(EShader::Vertex, VS);
 	D3D11_SHADER_TRAITS(EShader::Pixel, PS);
 	D3D11_SHADER_TRAITS(EShader::Geometry, GS);
 	D3D11_SHADER_TRAITS(EShader::Hull, HS);
 	D3D11_SHADER_TRAITS(EShader::Domain, DS);
 	D3D11_SHADER_TRAITS(EShader::Compute, CS);
+#undef D3D11_SHADER_TRAITS
 
 	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D11, D3D11System);
 
@@ -277,7 +277,6 @@ namespace Render
 		}
 		return true;
 	}
-
 
 	RHISwapChain* D3D11System::RHICreateSwapChain(SwapChainCreationInfo const& info)
 	{
@@ -1173,12 +1172,13 @@ namespace Render
 	void D3D11ResourceBoundState::setShaderValue(ShaderParameter const& parameter, void const* value, int valueSize)
 	{
 		assert(parameter.bindIndex < MaxConstBufferNum);
-		mConstBuffers[parameter.bindIndex].updateValue(parameter, value, valueSize);
-		mConstBufferValueDirtyMask |= BIT(parameter.bindIndex);
-		if( mConstBuffers[parameter.bindIndex].resource.get() != mBoundedConstBuffers[parameter.bindIndex] )
+		uint32 const bindIndex = parameter.bindIndex;
+		mConstBuffers[bindIndex].updateValue(parameter, value, valueSize);
+		mConstBufferValueDirtyMask |= BIT(bindIndex);
+		if(mBoundedConstBuffers[bindIndex] != mConstBuffers[bindIndex].resource.get())
 		{
-			mBoundedConstBuffers[parameter.bindIndex] = mConstBuffers[parameter.bindIndex].resource.get();
-			mConstBufferDirtyMask |= BIT(parameter.bindIndex);
+			mBoundedConstBuffers[bindIndex] = mConstBuffers[bindIndex].resource.get();
+			mConstBufferDirtyMask |= BIT(bindIndex);
 		}
 	}
 
@@ -1603,7 +1603,7 @@ namespace Render
 			if (pIndexBufferData == nullptr)
 				return false;
 
-			memcpy(pIndexBufferData, pIndices, indexBufferSize);
+			FMemory::Copy(pIndexBufferData, pIndices, indexBufferSize);
 			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
 			outIndexNum = num;
 
@@ -1647,13 +1647,13 @@ namespace Render
 
 				if( type == EPrimitive::LineLoop )
 				{
-					memcpy(pVBufferData + dataOffset, info.ptr, info.size );
-					memcpy(pVBufferData + dataOffset + info.size , info.ptr, info.stride);
+					FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size );
+					FMemory::Copy(pVBufferData + dataOffset + info.size , info.ptr, info.stride);
 					dataOffset += (D3D11BUFFER_ALIGN * ( info.size + info.stride ) + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
 				}
 				else
 				{
-					memcpy(pVBufferData + dataOffset, info.ptr, info.size);
+					FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size);
 					dataOffset += (D3D11BUFFER_ALIGN * info.size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
 				}
 			}
@@ -1705,7 +1705,7 @@ namespace Render
 				offsets[i] = dataOffset;
 				vertexBuffers[i] = vertexBuffer;
 
-				memcpy(pVBufferData + dataOffset, info.ptr, info.size);
+				FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size);
 				dataOffset += (D3D11BUFFER_ALIGN * info.size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
 			}
 
@@ -1841,10 +1841,9 @@ namespace Render
 				D3D11InputLayout* inputLayoutImpl = D3D11Cast::To(mInputLayout);
 				SimplePipelineProgram* program = SimplePipelineProgram::Get( inputLayoutImpl->mAttriableMask , mFixedShaderParams.texture);
 
-				RHISetShaderProgram(program->getRHI());
+				setGfxShaderProgram(*program->getRHI());
 				program->setParameters(RHICommandListImpl(*this), mFixedShaderParams);
 			}
-
 		}
 
 		if( mBoundedShaderDirtyMask )
@@ -1907,8 +1906,6 @@ namespace Render
 
 	void D3D11Context::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
 	{
-		bUseFixedShaderPipeline = false;
-
 		auto BindShader = [this](EShader::Type type , D3D11ShaderData& shaderData)
 		{
 			if (mBoundedShaders[type].resource != shaderData.ptr)
@@ -1936,54 +1933,69 @@ namespace Render
 		}
 		else
 		{
-			mGfxBoundedShaderMask = 0;
 			auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram);
-
 			if (shaderProgramImpl.mNumShaders == 1 )
 			{
 				auto& shaderData = shaderProgramImpl.mShaderDatas[0];
-				if (shaderData.type == EShader::Compute)
+				if(shaderData.type == EShader::Compute)
 				{
-					if (mBoundedShaders[EShader::Compute].resource != shaderData.ptr)
-					{
-						BindShader(EShader::Compute, shaderData);
-					}
+					BindShader(EShader::Compute, shaderData);
 					return;
 				}
 			}
 
-			uint32 setupMask = 0;
-			for( int i = 0; i < shaderProgramImpl.mNumShaders; ++i )
+			bUseFixedShaderPipeline = false;
+			setGfxShaderProgram(*shaderProgram);
+		}
+	}
+
+	void D3D11Context::setGfxShaderProgram(RHIShaderProgram& shaderProgram)
+	{
+		auto BindShader = [this](EShader::Type type, D3D11ShaderData& shaderData)
+		{
+			if (mBoundedShaders[type].resource != shaderData.ptr)
 			{
-				auto& shaderData = shaderProgramImpl.mShaderDatas[i];
-				EShader::Type type = shaderData.type;
+				mBoundedShaders[type].resource = shaderData.ptr;
+				mResourceBoundStates[type].bindShader(shaderData);
+				mBoundedShaderDirtyMask |= BIT(type);
+			}
+		};
 
-				if (type == EShader::Vertex)
-				{
-					mVertexShader = &shaderProgramImpl;
-					mVertexShaderByteCode = &shaderProgramImpl.vertexByteCode;
-				}
+		mGfxBoundedShaderMask = 0;
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 
-				setupMask |= BIT(type);
-				mGfxBoundedShaderMask |= BIT(type);
-				if (mBoundedShaders[type].resource != shaderData.ptr)
-				{
-					BindShader(type, shaderData);
-				}
+		uint32 setupMask = 0;
+		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
+		{
+			auto& shaderData = shaderProgramImpl.mShaderDatas[i];
+			EShader::Type type = shaderData.type;
+
+			if (type == EShader::Vertex)
+			{
+				mVertexShader = &shaderProgramImpl;
+				mVertexShaderByteCode = &shaderProgramImpl.vertexByteCode;
 			}
 
-			for (int i = 0; i < EShader::Count; ++i)
+			setupMask |= BIT(type);
+			mGfxBoundedShaderMask |= BIT(type);
+			if (mBoundedShaders[type].resource != shaderData.ptr)
 			{
-				if (i == EShader::Compute || ( setupMask & BIT(i) ) )
-					continue;
-
-				if ( mBoundedShaders[i].resource )
-				{
-					mBoundedShaders[i].resource = nullptr;
-					mBoundedShaderDirtyMask |= BIT(i);
-				}
+				BindShader(type, shaderData);
 			}
 		}
+
+		for (int i = 0; i < EShader::Count; ++i)
+		{
+			if (i == EShader::Compute || (setupMask & BIT(i)))
+				continue;
+
+			if (mBoundedShaders[i].resource)
+			{
+				mBoundedShaders[i].resource = nullptr;
+				mBoundedShaderDirtyMask |= BIT(i);
+			}
+		}
+
 	}
 
 	void D3D11Context::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
@@ -2189,6 +2201,25 @@ namespace Render
 		});
 	}
 
+	void D3D11Context::clearShaderTexture(RHIShader& shader, ShaderParameter const& param)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		D3D11ResourceBoundState& boundState = mResourceBoundStates[type];
+		if (boundState.clearTexture(param))
+		{
+			switch (type)
+			{
+			case EShader::Vertex:   boundState.commitSAVState< EShader::Vertex >(mDeviceContext); break;
+			case EShader::Pixel:    boundState.commitSAVState< EShader::Pixel >(mDeviceContext); break;
+			case EShader::Geometry: boundState.commitSAVState< EShader::Geometry >(mDeviceContext); break;
+			case EShader::Compute:  boundState.commitSAVState< EShader::Compute >(mDeviceContext); break;
+			case EShader::Hull:     boundState.commitSAVState< EShader::Hull >(mDeviceContext); break;
+			case EShader::Domain:   boundState.commitSAVState< EShader::Domain >(mDeviceContext); break;
+			}
+		}
+	}
+
 	void D3D11Context::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
 	{
 		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
@@ -2282,6 +2313,13 @@ namespace Render
 		});
 	}
 
+	void D3D11Context::setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
+	{
+		auto& shaderImpl = static_cast<D3D11Shader&>(shader);
+		auto type = shaderImpl.mResource.type;
+		mResourceBoundStates[type].setStructuredBuffer(param, buffer, op);
+	}
+
 	void D3D11Context::clearSRVResource(RHIResource& resource)
 	{
 		mResourceBoundStates[EShader::Vertex].clearSRVResource<EShader::Vertex>(mDeviceContext, resource);
@@ -2335,6 +2373,31 @@ namespace Render
 		setShaderValueT(shader, param, val, dim);
 	}
 
+	void D3D11Context::setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer)
+	{
+
+	}
+
+	void D3D11Context::setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer)
+	{
+
+	}
+
+	void D3D11Context::markRenderStateDirty()
+	{
+		mRenderTargetsState = nullptr;
+
+		for (int i = 0; i < EShader::Count; ++i)
+		{
+			mBoundedShaders[i].resource = nullptr;
+			mResourceBoundStates[i].clear();
+		}
+
+		bUseFixedShaderPipeline = false;
+		mVertexShader = nullptr;
+		mInputLayout = nullptr;
+	}
+
 	bool ShaderConstDataBuffer::initializeResource(ID3D11Device* device)
 	{
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
@@ -2368,7 +2431,7 @@ namespace Render
 			mDataBuffer.resize(idxDataEnd);
 		}
 
-		::memcpy(&mDataBuffer[parameter.offset], value, parameter.size);
+		FMemory::Copy(&mDataBuffer[parameter.offset], value, parameter.size);
 		if (idxDataEnd > mUpdateDataSize)
 		{
 			mUpdateDataSize = idxDataEnd;

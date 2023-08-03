@@ -11,7 +11,10 @@ struct AnyParam
 	template<>
 	int get<int>() const { return intValue; }
 
-	template< class T >
+	template<>
+	float get<float>() const { return floatValue; }
+
+	template< class T , TEnableIf_Type< std::is_pointer_v<T> , bool > = true >
 	void setValue(T value)
 	{
 		ptrValue = value;
@@ -21,10 +24,19 @@ struct AnyParam
 	{
 		intValue = value;
 	}
+	void setValue(size_t value)
+	{
+		intValue = value;
+	}
+	void setValue(float value)
+	{
+		floatValue = value;
+	}
 
 	union
 	{
 		int   intValue;
+		float floatValue;
 		void* ptrValue;
 	};
 };

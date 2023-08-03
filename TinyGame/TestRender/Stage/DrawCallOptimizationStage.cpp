@@ -607,7 +607,7 @@ namespace Render
 			{
 				xform.setIdentity();
 			}
-			Matrix4 FixRotation = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(90));
+			Matrix4 FixRotation = Matrix4::Rotate(Vector3(1, 0, 0), Math::DegToRad(90));
 			MeshTransform[MeshId::Teapot] = Matrix4::Scale(0.05) * FixRotation;
 			MeshTransform[MeshId::Mario] = Matrix4::Scale(0.05) * FixRotation;
 			MeshTransform[MeshId::Lightning] = Matrix4::Scale(0.03) *  FixRotation;
@@ -654,7 +654,7 @@ namespace Render
 			mViewFrustum.mNear = 0.01;
 			mViewFrustum.mFar = 800.0;
 			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
-			mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
+			mViewFrustum.mYFov = Math::DegToRad(60 / mViewFrustum.mAspect);
 
 			mCamera.setPos(Vector3(50, 50, 50));
 			mCamera.setViewDir(Vector3(-1, -1, -1), Vector3(0, 0, 1));
@@ -695,9 +695,7 @@ namespace Render
 				mView.realTime = 0;
 				mView.rectOffset = IntVector2(0, 0);
 				mView.rectSize = screenSize;
-
-				Matrix4 matView = mCamera.getViewMatrix();
-				mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+				mView.setupTransform(mCamera.getPos(), mCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
 
 
 				glMatrixMode(GL_PROJECTION);

@@ -121,7 +121,6 @@ namespace Render
 		bool RHIBeginRender();
 		void RHIEndRender(bool bPresent);
 
-
 		bool initalizeTexture2DInternal(VulkanTexture2D* texture, TextureDesc const& desc, void* data, int alignment);
 
 		RHITexture1D*      RHICreateTexture1D(TextureDesc const& desc, void* data) { return nullptr; }

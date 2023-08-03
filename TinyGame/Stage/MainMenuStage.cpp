@@ -100,7 +100,7 @@ bool MainMenuStage::onInit()
 
 	{
 		TArray< HashString > categories = ExecutionRegisterCollection::Get().getRegisteredCategories();
-		GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(100, 20), NULL);
+		GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 20), Vec2i(125, 20), NULL);
 		for (auto const& category : categories)
 		{
 			InlineString< 128 > title;
@@ -156,7 +156,7 @@ bool MainMenuStage::onInit()
 		TArray< char const* > execHistroy;
 		::Global::GameConfig().getStringValues("Entry", "ExecHistory", execHistroy);
 
-		GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 50), Vec2i(100, 20), NULL);
+		GChoice* choice = new GChoice(UI_ANY, Vec2i(20, 50), Vec2i(125, 20), NULL);
 		for (auto const& entryName : execHistroy)
 		{
 			uint slot = choice->addItem(entryName);

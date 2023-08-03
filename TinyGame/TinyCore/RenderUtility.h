@@ -6,6 +6,7 @@
 #include "GameConfig.h"
 #include "Core/Color.h"
 #include "Math/TVector2.h"
+#include "Renderer/RenderTransform2D.h"
 
 int const BlockSize = 18;
 
@@ -40,7 +41,20 @@ enum
 namespace  Render
 {
 	class FontDrawer;
+
+	FORCEINLINE RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 const& upDir, float viewWidth)
+	{
+		float zoom = screenSize.x / viewWidth;
+		RenderTransform2D result = RenderTransform2D::Translate(-lookPos);
+		result.scaleWorld(Vector2(zoom, zoom));
+		result.rotateWorld(Math::ACos( Vector2(0,-1).dot(upDir) ) );
+		result.translateWorld(0.5 * screenSize);
+
+		return result;
+	}
 }
+
+
 
 class RenderUtility
 {

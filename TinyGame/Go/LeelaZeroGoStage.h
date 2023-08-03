@@ -538,10 +538,11 @@ namespace Go
 			systemConfigs.numSamples = 1;
 		}
 		bool setupRenderSystem(ERenderSystem systemName);
-		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
+		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::OpenGL; }
 
 		void preShutdownRenderSystem(bool bReInit /*= false*/);
 		bool onInit() override;
+		void postInit() override;
 		void onEnd() override;
 		void onUpdate(long time) override;
 

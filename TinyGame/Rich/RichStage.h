@@ -14,15 +14,16 @@
 
 #include "DataTransfer.h"
 
-
-
 namespace Rich
 {
+	class AIController;
 
 	enum
 	{
 		UI_MOVE_BUTTON = UI_GAME_ID ,
+		UI_MOVE_FRAME ,
 		UI_BUY_LAND ,
+		UI_BUY_STATION ,
 		UI_UPGRADE_LAND ,
 	};
 
@@ -109,6 +110,7 @@ namespace Rich
 			case UI_EVAL_MOVESTEP_BUTTON:
 				{
 					mTurn->goMoveByPower( movePower );
+					sendEvent(EVT_EXIT_UI);
 					destroy();
 				}
 				return false;
@@ -120,13 +122,15 @@ namespace Rich
 		int         movePower;
 	};
 
-	class GameInputController : public IController
-		                      , public IWorldMessageListener
+	class GameInputController : public IPlayerController
+							  , public IYieldInstruction
 	{
 	public:
-		virtual void queryAction( ActionRequestID id , PlayerTurn& turn , ActionReqestData const& data );
+		void startTurn(PlayerTurn& turn) override;
+		void endTurn(PlayerTurn& turn) override;
+		void queryAction(ActionRequestID id, PlayerTurn& turn, ActionReqestData const& data);
+
 		virtual bool onWidgetEvent( int event , int id , GWidget* widget );
-		virtual void onWorldMsg( WorldMsg const& msg );
 
 		void setupClientNetwork( Player* player )
 		{
@@ -149,12 +153,10 @@ namespace Rich
 		SS_STORE ,
 	};
 
-	class LevelStage : //public StageBase
-		               public GameStageBase
+	class LevelStage : public GameStageBase
 		             , public IWorldMessageListener
-					 , public ITurnControl
 	{
-		typedef StageBase BaseClass;
+		typedef GameStageBase BaseClass;
 	public:
 		enum 
 		{
@@ -166,21 +168,70 @@ namespace Rich
 
 		Player* createUserPlayer();
 
+
+		std::vector< IPlayerController* > controllers;
+
+		AIController* createAIController(Player& player);
+
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = ::Global::GetGraphics2D();
-			mScene.render( g );
+			IGraphics2D& g = ::Global::GetIGraphics2D();
+
+			RenderParams renderParams;
+			renderParams.bDrawDebug = mbShowDebugDraw;
+			//mView.screenOffset = Vector2::Zero();
+			mScene.mView.screenSize = ::Global::GetScreenSize();
+			mScene.mView.zoom = 0.5;
+			mScene.mView.update();
+			mScene.render( g , renderParams );
 		}
 
-		void restart()
-		{
-			mLevel.restart();
 
+		virtual void onRestart(bool beInit) 
+		{
+			bool bAutoPlay = true;
+			if (beInit)
+			{
+				for (int i = 0; i < 4; ++i)
+				{
+					Player* player = createUserPlayer();
+					player->setRole(i);
+				}
+
+				if (bAutoPlay)
+				{
+					for (auto player : mLevel.getPlayerList())
+					{
+						createAIController(*player);
+					}
+				}
+			}
+			else
+			{
+				mScene.reset();
+				mLevel.reset();
+			}
+
+			for( auto player : mLevel.mPlayerList )
+			{
+				player->initPos(MapCoord(0, 0), MapCoord(0, 1));
+				player->mMoney = mLevel.getGameOptions().initialCash;
+				player->mMovePower = 2;
+			}
+
+			srand(GenerateRandSeed());
+			startGame();
+		}
+
+		void startGame()
+		{
+			mScene.initiliazeTiles();
+			mLevel.start();
 		}
 
 		void tick()
 		{
-			if ( mEditor )
+			if ( mEditor)
 				return;
 
 			mLevel.tick();
@@ -189,18 +240,30 @@ namespace Rich
 		void updateFrame( int frame )
 		{
 			int time = frame * gDefaultTickTime;
+
 			mScene.update( time );
+			if (mbFollowPlayer)
+			{
+				Player* player = mLevel.getActivePlayer();
+				if (player)
+				{
+					RenderView& view = mScene.mView;
+					Vector2 pos = player->getOwner()->getComponentT<ActorRenderComp>(COMP_RENDER)->pos;
+					Vector2 screenPos = view.convMapToScreenPos(pos);
+					view.screenOffset += screenPos - 0.5 * view.screenSize;
+				}
+			}
 		}
 
 		virtual void onUpdate( long time )
 		{
-			BaseClass::onUpdate( time );
+			if (mbPauseGame)
+			{
+				return;
+			}
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
+			int accFactor = 15;
+			BaseClass::onUpdate(accFactor * time );
 		}
 
 		virtual void onWorldMsg( WorldMsg const& msg )
@@ -209,11 +272,6 @@ namespace Rich
 			{
 
 			}
-		}
-
-		virtual bool needRunTurn()
-		{
-			return !mScene.haveAnimation();
 		}
 
 		virtual bool onWidgetEvent( int event , int id , GWidget* widget );
@@ -226,9 +284,36 @@ namespace Rich
 				if (reply.isHandled())
 					return reply;
 			}
+			static Vec2i StaticPrevPos;
+			if (msg.onRightDown())
+			{
+				StaticPrevPos = msg.getPos();
+			}
+
+			if (msg.isRightDown() && msg.onMoving())
+			{
+				Vec2i offset = msg.getPos() - StaticPrevPos;
+				mScene.mView.screenOffset -= Vector2(offset);
+				StaticPrevPos = msg.getPos();
+			}
 			return BaseClass::onMouse(msg);  
 		}
-		virtual MsgReply onKey(KeyMsg const& msg){  return MsgReply::Unhandled();  }
+		virtual MsgReply onKey(KeyMsg const& msg)
+		{
+			if (msg.isDown())
+			{
+				switch (msg.getCode())
+				{
+				case EKeyCode::Q:
+					mScene.mView.dir = ViewDir((mScene.mView.dir + 1) % 4);
+					return MsgReply::Handled();
+				default:
+					break;
+				}
+
+			}
+			return MsgReply::Unhandled();  
+		}
 
 		GameInputController mUserController;
 
@@ -236,6 +321,10 @@ namespace Rich
 		IEditor*   mEditor;
 		Scene      mScene;
 		Level      mLevel;
+
+		bool mbPauseGame = false;
+		bool mbFollowPlayer = false;
+		bool mbShowDebugDraw = false;
 
 		virtual void setupScene(IPlayerManager& playerManager) override;
 

@@ -12,7 +12,7 @@ namespace TripleTown
 	{
 		::Global::GUI().cleanupWidget();
 
-		srand(generateRandSeed());
+		srand(GenerateRandSeed());
 
 		if( !mScene.init() )
 			return false;

@@ -20,10 +20,19 @@ namespace CarTrain
 
 	float GDeltaTime = gDefaultTickTime / 1000.0f;
 
+	struct HitProxyId
+	{
+
+
+
+
+		uint32 value;
+	};
+
 	struct HitProxy
 	{
 	public:
-		virtual void draw() = 0;
+		virtual HitProxyId getId() = 0;
 	};
 
 	class HitProxyRenderProgram : public GlobalShaderProgram
@@ -40,10 +49,21 @@ namespace CarTrain
 
 		struct ProxyData
 		{
-			Color3ub color;
-			uint32 id;
+			Color4ub  color;
+			uint32    id;
 			HitProxy* Proxy;
+
+
+			static uint32 ToId(Color4ub const& color)
+			{
+				return color.toRGBA();
+			}
+			static Color4ub ToColor(uint32 id)
+			{
+				return Color4ub::FromRGBA(id);
+			}
 		};
+
 
 		void initializeRHI(IntVector2 const& screenSize)
 		{
@@ -302,7 +322,7 @@ namespace CarTrain
 				box.addPoint(xForm->getPos());
 				
 				Vector2 size = box.getSize();
-				float radius2 = 2 * moveSpeed / ( Math::Deg2Rad(MaxRotateAngle) / GDeltaTime );
+				float radius2 = 2 * moveSpeed / ( Math::DegToRad(MaxRotateAngle) / GDeltaTime );
 				if ( size.x < 1.2 * radius2 && size.y < 1.2 * radius2 && size.x * size.y < radius2 * radius2)
 				{
 					stayTime += deltaTime;
@@ -375,11 +395,11 @@ namespace CarTrain
 			mAgent->FNN.calcForwardFeedback(inputs, &output);
 			if ( output > 0.6)
 			{
-				turnAngle = -Math::Deg2Rad(MaxRotateAngle * Math::Clamp<float>( (output - 0.6 ) / 0.4 , 0 , 1 ) );
+				turnAngle = -Math::DegToRad(MaxRotateAngle * Math::Clamp<float>( (output - 0.6 ) / 0.4 , 0 , 1 ) );
 			}
 			else if (output < 0.4)
 			{
-				turnAngle = Math::Deg2Rad(MaxRotateAngle * Math::Clamp<float>(( output ) / 0.4, 0 , 1 ) );
+				turnAngle = Math::DegToRad(MaxRotateAngle * Math::Clamp<float>(( output ) / 0.4, 0 , 1 ) );
 			}
 		}
 
@@ -442,7 +462,7 @@ namespace CarTrain
 				else
 				{
 					XForm2D  xForm = startXForm;
-					xForm.rotate(Math::Deg2Rad(90));
+					xForm.rotate(Math::DegToRad(90));
 					car->mBody->setTransform(xForm);
 					car->getComponentCheckedT<XForm2D>() = xForm;
 				}
@@ -525,11 +545,11 @@ namespace CarTrain
 			auto& car = static_cast<CarEntity&>(entity);
 			if (InputManager::Get().isKeyDown(EKeyCode::A))
 			{
-				car.turnAngle = -Math::Deg2Rad(2);
+				car.turnAngle = -Math::DegToRad(2);
 			}
 			else if (InputManager::Get().isKeyDown(EKeyCode::D))
 			{
-				car.turnAngle = Math::Deg2Rad(2);
+				car.turnAngle = Math::DegToRad(2);
 			}
 		}
 
@@ -544,7 +564,7 @@ namespace CarTrain
 		void setSpawnPoint(Vector2 const& pos, float angle)
 		{
 			mLevelData->spawnPoint.setTranslation(pos);
-			mLevelData->spawnPoint.setRoatation(Math::Deg2Rad(angle));
+			mLevelData->spawnPoint.setRoatation(Math::DegToRad(angle));
 		}
 
 		void saveTrainPool(char const* name);

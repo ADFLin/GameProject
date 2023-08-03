@@ -5,7 +5,6 @@
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #include "BitmapDC.h"
-
 #include "WinGDIRenderSystem.h"
 #endif //SYS_PLATFORM_WIN
 

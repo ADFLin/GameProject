@@ -595,7 +595,7 @@ namespace Go
 	LeelaAISetting LeelaAISetting::GetDefalut()
 	{
 		LeelaAISetting setting;
-		setting.seed = generateRandSeed();
+		setting.seed = GenerateRandSeed();
 #if 0
 		setting.bNoise = true;
 		setting.numThread = 4;
@@ -724,7 +724,7 @@ namespace Go
 		setting.bNoise = false;
 		setting.bDumbPass = false;
 		setting.bNoPonder = true;
-		setting.seed = generateRandSeed();
+		setting.seed = GenerateRandSeed();
 		
 		setting.playouts = 0;
 		setting.visits = 0;
@@ -738,7 +738,7 @@ namespace Go
 		bool result = buildPlayGame(setting);
 		if( result )
 		{
-			static_cast<LeelaOutputThread*>(outputThread)->bLogMsg = false;
+			getThread<LeelaOutputThread>()->bLogMsg = false;
 		}
 
 		return result;

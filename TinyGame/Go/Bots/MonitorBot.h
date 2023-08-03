@@ -304,7 +304,7 @@ namespace Go
 		static Ray ToRay(HoughLine const& line)
 		{
 			float s, c;
-			Math::SinCos(Math::Deg2Rad(line.theta), s, c);
+			Math::SinCos(Math::DegToRad(line.theta), s, c);
 			Ray result;
 			result.dir = Vector2(s, -c);
 			result.pos = line.dist * Vector2(c, s);

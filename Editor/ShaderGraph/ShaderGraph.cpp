@@ -4,6 +4,13 @@
 #include "StringParse.h"
 #include "LogSystem.h"
 
+#define DEFINE_VISIT_NODE(NODE)\
+	void SGNodeVisitor::visit(NODE& node){ visitDefault(node); }
+
+DEFINE_VISIT_NODE(SGNodeConst);
+
+#undef DEFINE_VISIT_NODE
+
 static int Printf(char const* format, TArray< std::string > const& strList, std::string& outString)
 {
 	int index = 0;
@@ -113,6 +120,55 @@ bool SGCompilerCodeGen::generate(ShaderGraph& graph, std::string& outCode)
 	return true;
 }
 
+int32 SGCompilerCodeGen::emitDot(int32 lhs, int32 rhs)
+{
+	ESGValueType typeL = getValueType(lhs);
+	ESGValueType typeR = getValueType(rhs);
+	ESGValueType type = ESGValueType::Float1;
+
+	int32 result = addLocal(type);
+	codeValueType(type);
+	codeSpace();
+	codeVarName(result);
+	codeString("= dot(");
+	codeVarName(lhs);
+	codeString(",");
+	codeVarName(rhs);
+	codeString(");");
+	codeNextline();
+	return result;
+}
+
+int32 SGCompilerCodeGen::emitOp(int32 lhs, int32 rhs, char const* op)
+{
+	ESGValueType typeL = getValueType(lhs);
+	ESGValueType typeR = getValueType(rhs);
+	ESGValueType type = typeL;
+	if (typeL != typeR)
+	{
+		if (type == ESGValueType::Float1)
+		{
+			type = typeR;
+		}
+		else if(typeR != ESGValueType::Float1)
+		{
+			type = ESGValueType::Invalid;
+		}
+	}
+
+	int32 result = addLocal(type);
+	codeValueType(type);
+	codeSpace();
+	codeVarName(result);
+	codeString("=");
+	codeVarName(lhs);
+	codeString(op);
+	codeVarName(rhs);
+	codeString(";");
+	codeNextline();
+	return result;
+}
+
 int32 SGCompilerCodeGen::emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index)
 {
 	ESGValueType type = getValueType(index);
@@ -142,6 +198,9 @@ int32 SGCompilerCodeGen::emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index)
 		break;
 	case ESGIntrinsicFunc::Log:
 		codeString("log(");
+		break;
+	case ESGIntrinsicFunc::Frac:
+		codeString("frac(");
 		break;
 	}
 	codeVarName(index);

@@ -202,27 +202,17 @@ namespace CarTrain
 		}
 
 
-		void createBoxFixture(b2Body* body, BoxObjectDef const& def, void* userData)
-		{
-			b2PolygonShape shape;
-			shape.SetAsBox(def.extend.x / 2, def.extend.y / 2);
-			b2FixtureDef   fixtureDef;
-			fixtureDef.filter.categoryBits = BIT(def.collisionType);
-			fixtureDef.filter.maskBits = def.collisionMask;
-			//fixtureDef.density = 1.0;
-			fixtureDef.shape = &shape;
-			fixtureDef.isSensor = !def.bCollisionResponse;
-			fixtureDef.userData = userData;
-			body->CreateFixture(&fixtureDef);
-		}
-		IPhysicsBody*  createBox(BoxObjectDef const& def, XForm2D xForm) override
+		PhyBodyBox2D* createShapeObject(PhyObjectDef const& def, b2Shape const& shape, XForm2D xForm, float density)
 		{
 			PhyBodyBox2D* result = new PhyBodyBox2D;
-
 			b2BodyDef bodyDef;
-			if (def.bEnablePhysics || def.bCollisionDetection)
+			if (def.bEnablePhysics)
 			{
 				bodyDef.type = b2_dynamicBody;
+			}
+			else if (def.bCollisionDetection && def.bCollisionResponse)
+			{
+				bodyDef.type = b2_kinematicBody;
 			}
 			else
 			{
@@ -232,11 +222,41 @@ namespace CarTrain
 			bodyDef.position = Box2DConv::To(xForm.getPos());
 			bodyDef.angle = xForm.getRotateAngle();
 			result->mBody = mWorld->CreateBody(&bodyDef);
-			result->mPhyDef = std::make_unique< BoxObjectDef >(def);
-			createBoxFixture(result->mBody, def, result);
 
+			b2FixtureDef   fixtureDef;
+			fixtureDef.filter.categoryBits = BIT(def.collisionType);
+			fixtureDef.filter.maskBits = def.collisionMask;
+			fixtureDef.density = density;
+			fixtureDef.restitution = def.restitution;
+			fixtureDef.friction = def.friction;
+			fixtureDef.shape = &shape;
+			fixtureDef.isSensor = !def.bCollisionResponse;
+			fixtureDef.userData = result;
+			result->mBody->CreateFixture(&fixtureDef);
 
 			return result;
+		}
+
+		IPhysicsBody*  createBox(BoxObjectDef const& def, XForm2D xForm) override
+		{
+			b2PolygonShape shape;
+			shape.SetAsBox(def.extend.x / 2, def.extend.y / 2);
+			PhyBodyBox2D* result = createShapeObject(def, shape, xForm, def.getDensity());
+			result->mPhyDef = std::make_unique< BoxObjectDef >(def);
+			return result;
+		}
+
+		IPhysicsBody* createCircle(CircleObjectDef const& def, XForm2D xForm) override
+		{
+			b2CircleShape shape;
+			shape.m_radius = def.radius;
+			PhyBodyBox2D* result = createShapeObject(def, shape, xForm, def.getDensity());
+			result->mPhyDef = std::make_unique< CircleObjectDef >(def);
+			return result;
+		}
+		virtual void setGravity(Vector2 const& g) override
+		{
+			mWorld->SetGravity(Box2DConv::To(g));
 		}
 
 		bool rayCast(Vector2 const& startPos, Vector2 const& endPos, RayHitInfo& outInfo, uint16 collisionMask) override
@@ -298,6 +318,19 @@ namespace CarTrain
 		std::unique_ptr<b2Draw> mDebugDraw;
 		std::unique_ptr<b2World> mWorld;
 
+		//b2ContactFilter
+		bool ShouldCollide(b2Fixture* fixtureA, b2Fixture* fixtureB) override
+		{
+			PhyBodyBox2D* bodyA = (PhyBodyBox2D*)fixtureA->GetUserData();
+			PhyBodyBox2D* bodyB = (PhyBodyBox2D*)fixtureB->GetUserData();
+			PhyObjectDef* defA = bodyA->mPhyDef.get();
+			PhyObjectDef* defB = bodyB->mPhyDef.get();
+			return (defA->collisionMask & BIT(defB->collisionType)) &&
+				   (defB->collisionMask & BIT(defA->collisionType));
+		}
+		//~b2ContactFilter
+
+		//b2ContactListener
 		void BeginContact(b2Contact* contact) override
 		{
 			PhyBodyBox2D* bodyA = (PhyBodyBox2D*)contact->GetFixtureA()->GetUserData();
@@ -311,15 +344,20 @@ namespace CarTrain
 				bodyB->onCollision(bodyA);
 		}
 
-		virtual bool ShouldCollide(b2Fixture* fixtureA, b2Fixture* fixtureB) override
+		void EndContact(b2Contact* contact) override { }
+
+		void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) override
 		{
-			PhyBodyBox2D* bodyA = (PhyBodyBox2D*)fixtureA->GetUserData();
-			PhyBodyBox2D* bodyB = (PhyBodyBox2D*)fixtureB->GetUserData();
-			PhyObjectDef* defA = bodyA->mPhyDef.get();
-			PhyObjectDef* defB = bodyB->mPhyDef.get();
-			return (defA->collisionMask & BIT(defB->collisionType)) &&
-				(defB->collisionMask & BIT(defA->collisionType));
+
 		}
+
+		void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) override
+		{
+
+		}
+		//~b2ContactListener
+
+
 
 	};
 

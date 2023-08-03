@@ -254,12 +254,12 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 	CHECK(context.command->mArgs.size() <= NumMaxParams);
 	uint8* pData = dataBuffer;
 
-	bool bCanOmitArgs = !!(CVF_CAN_OMIT_ARGS & context.command->getFlags() );
+	bool bAllowIgnoreArgs = !!(CVF_ALLOW_IGNORE_ARGS & context.command->getFlags() );
 	for( int argIndex = 0; argIndex < context.command->mArgs.size(); ++argIndex )
 	{
 		ConsoleArgTypeInfo const& arg = context.command->mArgs[argIndex];
 
-		if (!fillArgumentData(context, arg, pData, bCanOmitArgs))
+		if (!fillArgumentData(context, arg, pData, bAllowIgnoreArgs))
 		{
 			return false;
 		}
@@ -274,7 +274,7 @@ bool ConsoleSystem::executeCommandImpl(ExecuteContext& context)
 	return true;
 }
 
-bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData, bool bCanOmitArgs)
+bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs)
 {
 	char const* format = arg.format;
 	int fillSize = 0;
@@ -294,7 +294,7 @@ bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo
 
 		if ( context.numArgUsed >= context.numArgs )
 		{
-			if (bCanOmitArgs)
+			if (bAllowIgnoreArgs)
 			{
 				argText = "0";
 			}

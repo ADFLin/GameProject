@@ -275,8 +275,8 @@ namespace Voronoi
 			arch	= 0;
 		}
 
-		void inate(){ point = NULL; }
-		bool isValid() const { return point != NULL; }
+		void inate(){ point = nullptr; }
+		bool isValid() const { return !!point; }
 		/*
 		function for comparing two events (by "y" property)
 		*/

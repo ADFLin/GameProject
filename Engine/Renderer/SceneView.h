@@ -22,8 +22,11 @@ namespace Render
 		Matrix4 viewToClip;
 		Matrix4 clipToWorld;
 		Matrix4 clipToView;
+		Matrix4 translatedWorldToClip;
+		Matrix4 clipToTranslatedWorld;
+		Matrix4 worldToClipPrev;
 
-		Matrix4  worldToClipPrev;
+		Matrix4 viewToTranslatedWorld;
 
 		Vector3 worldPos;
 		Vector3 direction;
@@ -65,6 +68,7 @@ namespace Render
 
 		void updateRHIResource();
 		void releaseRHIResource();
+		void setupTransform(Vector3 const& viewPos, Quaternion const& viewRotation, Matrix4 const& inProjectMatrix);
 		void setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix);
 
 		IntVector2 getViewportSize() const;

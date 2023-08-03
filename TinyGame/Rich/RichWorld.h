@@ -11,8 +11,9 @@ namespace Rich
 {
 	typedef TVector2< int > Vec2i;
 
-	AreaId const ERROR_AREA_ID = AreaId( 0xff );
+	AreaId const ERROR_AREA_ID = AreaId( -1 );
 	AreaId const EMPTY_AREA_ID = AreaId( 0 );
+
 
 	typedef int LinkHandle;
 	LinkHandle const EmptyLinkHandle = LinkHandle( -1 );
@@ -28,9 +29,14 @@ namespace Rich
 		MSG_THROW_DICE ,
 		MSG_MODIFY_MONEY ,
 		MSG_BUY_LAND ,
+		MSG_DISPOSE_ASSET,
+		MSG_BUY_STATION,
+		MSG_UPGRADE_LAND ,
 		MSG_PAY_PASS_TOLL ,
 		MSG_ENTER_STORE ,
 		MSG_MOVE_STEP ,
+
+		MSG_PLAYER_MONEY_MODIFIED,
 	};
 
 
@@ -42,23 +48,52 @@ namespace Rich
 	class IWorldMessageListener
 	{
 	public:
+		virtual ~IWorldMessageListener() = default;
 		virtual void onWorldMsg( WorldMsg const& msg ) = 0;
 	};
 
 
-	class IObjectQuery 
+	class IActorFactory
 	{
 	public:
-		virtual Player* getPlayer( ActorId id ) = 0;
+		virtual ~IActorFactory() = default;
+		virtual Player* createPlayer() = 0;
 	};
+
+	struct GameOptions
+	{
+		int initialCash = 1500;
+		int passingGoAmount = 200;
+	};
+
+
+	class IObjectQuery
+	{
+	public:
+		virtual ~IObjectQuery() = default;
+		virtual TArray<Player*> const& getPlayerList() = 0;
+		virtual GameOptions const& getGameOptions() = 0;
+	};
+
 
 	class Tile
 	{
 	public:
 		MapCoord   pos;
-		AreaId      areaId;
-		typedef TIntrList< ActorComp , MemberHook< ActorComp , &ActorComp::tileHook > > ActorList;
+		AreaId     areaId;
+
+		void reset()
+		{
+			actors.clear();
+		}
+		
+		using ActorList = TIntrList< ActorComp , MemberHook< ActorComp , &ActorComp::tileHook > >;
 		ActorList   actors;
+	};
+
+	struct AreaGroupInfo
+	{
+		TArray<Area*> areas;
 	};
 
 	enum ForkedRoadRule
@@ -78,14 +113,15 @@ namespace Rich
 
 	};
 
-	class World : public AreaRegister
+
+	class World
 	{
 
 		typedef unsigned short TileId;
 		static TileId const ERROR_TILE_ID = TileId( -1 );
 	public:
 
-		World( IObjectQuery* query );
+		World(IObjectQuery* objectQuery, IActorFactory* actorFactory);
 
 		void     setupMap(int w, int h);
 		void     clearMap();
@@ -104,7 +140,7 @@ namespace Rich
 		bool     removeTile( MapCoord const& pos );
 
 		int      getMovableLinks( MapCoord const& posCur , MapCoord const& posPrev , LinkHandle outLinks[] );
-
+		int      getLinks(MapCoord const& posCur, LinkHandle outLinks[]);
 		int      findAreas( MapCoord const& pos , DistType dist , Area* outAreasFound[] );
 
 		AreaId   getAreaId( MapCoord const& pos )
@@ -128,13 +164,122 @@ namespace Rich
 			return pos + dirOffset( linkHandle );
 		}
 
-		Area*  getArea( AreaId id ){ return mAreaMap[ id ]; }
+		Area*   getArea( AreaId id ){ return mAreaMap[ id ]; }
 		AreaId  registerArea( Area* area , AreaId idReg = ERROR_AREA_ID );
-		void   unregisterArea( Area* area );
+		void    unregisterArea( Area* area );
 
 		void   clearArea( bool beDelete );
 
-		IObjectQuery& getObjectQuery(){ return *mQuery; }
+
+		void registerAreaGroup(Area* area, int group)
+		{
+			if (group >= mAreaGroupMap.size())
+			{
+				mAreaGroupMap.resize(group + 1);
+			}
+			mAreaGroupMap[group].areas.push_back(area);
+		}
+		AreaGroupInfo const& getAreaGroup(int group)
+		{
+			return mAreaGroupMap[group];
+		}
+
+		TArray< AreaGroupInfo > mAreaGroupMap;
+
+		void  registerAreaTag(EAreaTag tag, Area* area)
+		{
+			mAreaTagMap[tag] = area;
+		}
+
+		Area* getAreaFromTag(EAreaTag tag)
+		{
+			auto iter = mAreaTagMap.find(tag);
+			if (iter == mAreaTagMap.end())
+				return nullptr;
+
+			return iter->second;
+		}
+
+
+		std::unordered_map< EAreaTag, Area* > mAreaTagMap;
+
+		struct TileIterator
+		{
+			TileIterator(World& inWorld)
+				:world(inWorld), pos(0, 0), index(INDEX_NONE)
+			{
+				CHECK(haveMore());
+				advance();
+			}
+
+			bool haveMore() const { return index < world.mMapData.getRawDataSize(); }
+			void advance()
+			{
+				do
+				{
+					++index;
+					world.mMapData.toCoord(index, pos.x, pos.y);
+					if (world.getTile(pos))
+						break;
+				}
+				while (haveMore());
+			}
+
+			Tile* getTile()
+			{
+				return world.getTile(pos);
+			}
+
+			MapCoord const& getPos() { return pos; }
+			int index = INDEX_NONE;
+			World& world;
+			MapCoord pos;
+		};
+
+		TileIterator createTileIterator()
+		{
+			return TileIterator(*this);
+		}
+		static int const MaxAreaNum = 255;
+		struct AreaIterator
+		{
+			AreaIterator(World& inWorld)
+				:world(inWorld), index(INDEX_NONE)
+			{
+				CHECK(haveMore());
+				advance();
+			}
+
+			bool haveMore() const { return index < MaxAreaNum; }
+			void advance()
+			{
+				do
+				{
+					++index;
+					if (world.mAreaMap[index])
+						break;
+				}
+				while (haveMore());
+			}
+
+			Area* getArea()
+			{
+				return world.mAreaMap[index];
+			}
+
+
+			int index = INDEX_NONE;
+			World& world;
+		};
+			
+		AreaIterator createAreaIterator()
+		{
+			return AreaIterator(*this);
+		}
+
+		IActorFactory*  mActorFactory;
+
+		IObjectQuery* mObjectQuery;
 
 	private:
 		
@@ -152,7 +297,7 @@ namespace Rich
 		friend class WorldBuilder;
 		friend class Scene;
 		MapDataType mMapData;
-		static int const MaxAreaNum = 255;
+
 		Area*   mAreaMap[ MaxAreaNum ];
 		
 		TileVec mTileMap;
@@ -162,8 +307,6 @@ namespace Rich
 
 		typedef TArray< IWorldMessageListener* > EventListerVec;
 		EventListerVec mEvtListers;
-		IObjectQuery*  mQuery;
-
 	};
 
 

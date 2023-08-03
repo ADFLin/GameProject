@@ -29,6 +29,7 @@ enum class ESGValueOperator
 	Sub,
 	Mul,
 	Div,
+	Dot,
 };
 
 enum class ESGIntrinsicFunc
@@ -39,6 +40,9 @@ enum class ESGIntrinsicFunc
 	Abs,
 	Exp,
 	Log,
+	Frac,
+
+
 };
 
 class SGNode;
@@ -52,6 +56,7 @@ public:
 	virtual int32 emitSub(int32 lhs, int32 rhs) = 0;
 	virtual int32 emitMul(int32 lhs, int32 rhs) = 0;
 	virtual int32 emitDiv(int32 lhs, int32 rhs) = 0;
+	virtual int32 emitDot(int32 lhs, int32 rhs) = 0;
 
 	virtual int32 emitTexcoord(int index) = 0;
 	virtual int32 emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index) = 0;
@@ -69,10 +74,29 @@ struct SGNodeInput
 	int32 compile(SGCompiler& compiler);
 };
 
+class SGNodeVisitor
+{
+public:
+	virtual ~SGNodeVisitor() = default;
+	virtual void visit(class SGNode& node){}
+	void visitDefault(SGNode& node) { visit(node); }
+
+#define DECLARE__VISIT_NODE(NODE)\
+	virtual void visit(class NODE& node);
+
+	DECLARE__VISIT_NODE(SGNodeConst);
+#undef DECLARE__VISIT_NODE
+	
+};
+
+
+#define ACCEPT_VISIT_SGNODE() virtual void acceptVisit( SGNodeVisitor& visitor ){ visitor.visit(*this); } 
+
 
 class SGNode : public std::enable_shared_from_this<SGNode>
 {
 public:
+	ACCEPT_VISIT_SGNODE();
 
 	TArray<SGNodeInput>  inputs;
 
@@ -166,6 +190,8 @@ private:
 class SGNodeConst : public SGNode
 {
 public:
+	ACCEPT_VISIT_SGNODE();
+
 	SGNodeConst(float value)
 		:type(ESGValueType::Float1)
 		, value(Vector4(value, 0, 0, 0))
@@ -263,6 +289,9 @@ public:
 			case ESGValueOperator::Div:
 				lhs = compiler.emitDiv(lhs, rhs);
 				break;
+			case ESGValueOperator::Dot:
+				lhs = compiler.emitDot(lhs, rhs);
+				break;
 			}
 		}
 
@@ -281,6 +310,8 @@ public:
 			return "*";
 		case ESGValueOperator::Div:
 			return "/";
+		case ESGValueOperator::Dot:
+			return "Dot";
 		}
 		return "Unknown Operator";
 	}
@@ -363,6 +394,8 @@ public:
 			return "Exp";
 		case ESGIntrinsicFunc::Log:
 			return "Log";
+		case ESGIntrinsicFunc::Frac:
+			return "Frac";
 		}
 
 		return "Unknown Func";
@@ -499,7 +532,7 @@ public:
 		}
 		return false;
 	}
-	ESGDomainType mDomain;
+	ESGDomainType mDomain = ESGDomainType::None;
 	struct DomainInput : SGNodeInput
 	{
 		Vector4 defaultValue;
@@ -546,31 +579,8 @@ public:
 		return emitOp(lhs, rhs, "/");
 	}
 
-	int32 emitOp(int32 lhs, int32 rhs, char const* op)
-	{
-		ESGValueType typeL = getValueType(lhs);
-		ESGValueType typeR = getValueType(rhs);
-		ESGValueType type = typeL;
-		if (typeL != typeR)
-		{
-			if (type == ESGValueType::Float1)
-				type = typeR;
-			else
-				type = ESGValueType::Invalid;
-		}
-
-		int32 result = addLocal(type);
-		codeValueType(type);
-		codeSpace();
-		codeVarName(result);
-		codeString("=");
-		codeVarName(lhs);
-		codeString(op);
-		codeVarName(rhs);
-		codeString(";");
-		codeNextline();
-		return result;
-	}
+	int32 emitDot(int32 lhs, int32 rhs);
+	int32 emitOp(int32 lhs, int32 rhs, char const* op);
 
 	int32 emitTexcoord(int index)
 	{

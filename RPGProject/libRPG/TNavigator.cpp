@@ -82,7 +82,7 @@ void TNavigator::performMovement()
 	//FIXME
 	CActor* actorComp = static_cast< CActor* >( mObjComp );
 
-	if ( fabs( angle ) > Math::Deg2Rad( 10 ) )
+	if ( fabs( angle ) > Math::DegToRad( 10 ) )
 	{
 
 		if ( offset.cross( faceDir ).z < 0 )
@@ -224,7 +224,7 @@ void TNavigator::setupOuter( ILevelObject* logicComp )
 	else
 	{
 		mMaxMoveSpeed = 20;
-		mMaxRotationAngle = Math::Deg2Rad( 180 );
+		mMaxRotationAngle = Math::DegToRad( 180 );
 		mOuterOffset = 0;
 		mLocalFaceDir.setValue( 1,0,0 );
 	}

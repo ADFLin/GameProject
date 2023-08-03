@@ -9,9 +9,9 @@
 
 namespace Render
 {
-	constexpr int MaxBaseVerticesCount = 2048;
-	constexpr int MaxTexVerticesCount = 2048;
-	constexpr int MaxIndicesCount = 2048 * 3;
+	constexpr int MaxBaseVerticesCount = 4 * 2048;
+	constexpr int MaxTexVerticesCount = 4 * 2048;
+	constexpr int MaxIndicesCount = 4 * 2048 * 3;
 
 	CORE_API extern TConsoleVariable< bool > CVarUseBufferResource;
 

@@ -511,7 +511,7 @@ namespace Render
 	void NoiseTestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
 		mData.releaseRHI();
-		mLightsBuffer.releaseResources();
+		mLightsBuffer.releaseResource();
 		mSmokeFrameTextures[0].release();
 		mSmokeFrameTextures[1].release();
 		mSmokeDepthTexture.release();

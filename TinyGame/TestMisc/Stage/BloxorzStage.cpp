@@ -304,7 +304,7 @@ namespace Bloxorz
 		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bMoveCamera"), bMoveCamera);
 		FWidgetProperty::Bind(frame->addCheckBox(UI_ANY, "bUseBloom"), bUseBloom);
 
-		auto UpdateSceneEnvBufferFunc = [this](float) { UpdateSceneEnvBuffer(); };
+		auto UpdateSceneEnvBufferFunc = [this](float) { updateSceneEnvBuffer(); };
 
 		FWidgetProperty::Bind(frame->addSlider("Sun Intensity"), mSceneEnv.sunIntensity, 0, 10, 1, UpdateSceneEnvBufferFunc);
 		FWidgetProperty::Bind(frame->addSlider("Fog Distance"), mSceneEnv.fogDistance, 0, 150, 1.3, UpdateSceneEnvBufferFunc);
@@ -353,7 +353,7 @@ namespace Bloxorz
 		VERIFY_RETURN_FALSE(mObjectBuffer.initializeResource(256, EStructuredBufferType::Buffer));
 		VERIFY_RETURN_FALSE(mMaterialBuffer.initializeResource(32, EStructuredBufferType::Buffer));
 		VERIFY_RETURN_FALSE(mSceneEnvBuffer.initializeResource(1));
-		UpdateSceneEnvBuffer();
+		updateSceneEnvBuffer();
 
 		VERIFY_RETURN_FALSE(mFrameBuffer = RHICreateFrameBuffer());
 
@@ -466,22 +466,22 @@ namespace Bloxorz
 
 		mCube.releaseRHIResource();
 		mView.releaseRHIResource();
-		mMapTileBuffer.releaseResources();
-		mMaterialBuffer.releaseResources();
-		mObjectBuffer.releaseResources();
-		mSceneEnvBuffer.releaseResources();
+		mMapTileBuffer.releaseResource();
+		mMaterialBuffer.releaseResource();
+		mObjectBuffer.releaseResource();
+		mSceneEnvBuffer.releaseResource();
 
 		mSceneRenderTargets.releaseRHI();
 
 		mGirdTexture.release();
 		mBloomFrameBuffer.release();
 
-		mRenderTargetPool.releaseRHI();
+		GRenderTargetPool.releaseRHI();
 
 	}
 
 
-	void TestStage::UpdateSceneEnvBuffer()
+	void TestStage::updateSceneEnvBuffer()
 	{
 		SceneEnvData* pData = mSceneEnvBuffer.lock();
 		if (pData)
@@ -534,14 +534,14 @@ namespace Bloxorz
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-		mRenderTargetPool.freeAllUsedElements();
+		GRenderTargetPool.freeAllUsedElements();
 
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 1), 1);
 		Vec2i screenSize = ::Global::GetScreenSize();
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 		float aspect = float(screenSize.x) / screenSize.y;
-		Matrix4 projectionMatrix = PerspectiveMatrix(Math::Deg2Rad(45), aspect, 0.01, 1000);
+		Matrix4 projectionMatrix = PerspectiveMatrix(Math::DegToRad(45), aspect, 0.01, 1000);
 
 		mCamRefPos = Vector3(-3, -7, 12);
 		Vector3 posCam = mLookPos + mCamRefPos;
@@ -610,7 +610,7 @@ namespace Bloxorz
 				if (mMoveCur != DIR_NONE)
 				{
 					mStack.translate(mRotatePos);
-					mStack.rotate(Quaternion::Rotate(mRotateAxis, Math::Deg2Rad(mRotateAngle)));
+					mStack.rotate(Quaternion::Rotate(mRotateAxis, Math::DegToRad(mRotateAngle)));
 					mStack.translate(-mRotatePos);
 				}
 				else if (mIsGoal)
@@ -642,8 +642,8 @@ namespace Bloxorz
 			desc.format = ETexture::FloatRGBA;
 			desc.creationFlags = TCF_CreateSRV;
 
-			renderBuffers[0] = mRenderTargetPool.fetchElement(desc)->texture;
-			renderBuffers[1] = mRenderTargetPool.fetchElement(desc)->texture;
+			renderBuffers[0] = GRenderTargetPool.fetchElement(desc)->texture;
+			renderBuffers[1] = GRenderTargetPool.fetchElement(desc)->texture;
 
 			RayTraceProgram::PermutationDomain permutationVector;
 			permutationVector.set<RayTraceProgram::UseBuiltinScene>( bUseDeferredRending ? false : bUseSceneBuitin);
@@ -726,7 +726,7 @@ namespace Bloxorz
 					desc.size = size;
 					desc.format = ETexture::FloatRGBA;
 					desc.creationFlags = TCF_CreateSRV;
-					RHITexture2DRef downsampleTexture = mRenderTargetPool.fetchElement(desc)->texture;
+					RHITexture2DRef downsampleTexture = GRenderTargetPool.fetchElement(desc)->texture;
 					mBloomFrameBuffer->setTexture(0, *downsampleTexture);
 					RHISetViewport(commandList, 0, 0, size.x, size.y);
 					RHISetFrameBuffer(commandList, mBloomFrameBuffer);
@@ -755,7 +755,7 @@ namespace Bloxorz
 					desc.format = ETexture::FloatRGBA;
 					desc.creationFlags = TCF_CreateSRV;
 
-					PooledRenderTargetRef bloomSetupRT = mRenderTargetPool.fetchElement(desc);
+					PooledRenderTargetRef bloomSetupRT = GRenderTargetPool.fetchElement(desc);
 
 					mBloomFrameBuffer->setTexture(0, *bloomSetupRT->texture);
 					RHISetViewport(commandList, 0, 0, size.x, size.y);
@@ -798,7 +798,7 @@ namespace Bloxorz
 					desc.size = sizeH;
 					desc.format = ETexture::FloatRGBA;
 					desc.creationFlags = TCF_CreateSRV;
-					PooledRenderTargetRef blurXRT = mRenderTargetPool.fetchElement(desc);
+					PooledRenderTargetRef blurXRT = GRenderTargetPool.fetchElement(desc);
 					mBloomFrameBuffer->setTexture(0, *blurXRT->texture);
 					{
 						GPU_PROFILE(str);
@@ -818,7 +818,7 @@ namespace Bloxorz
 
 					str.format("BlurV(%d)", index);
 					desc.debugName = str;
-					PooledRenderTargetRef blurYRT = mRenderTargetPool.fetchElement(desc);
+					PooledRenderTargetRef blurYRT = GRenderTargetPool.fetchElement(desc);
 					mBloomFrameBuffer->setTexture(0, *blurYRT->texture);
 					{
 						GPU_PROFILE(str);
@@ -924,8 +924,8 @@ namespace Bloxorz
 				mStack.get().inverse(worldToLocal, det);
 				object.worldToLocal = worldToLocal;
 				object.worldToLocal.translate(Vector3(-0.5));
-				object.Type = 0;
-				object.MatID = 3;
+				object.type = 0;
+				object.matID = 3;
 				object.typeParams = Vector4(1, 1, 1, 0);
 				mObjectList.push_back(object);
 			}

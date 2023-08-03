@@ -13,7 +13,7 @@
 #include "Core/Memory.h"
 #include "DataStructure/KDTree.h"
 #include "Math/PrimitiveTest.h"
-#include "AsyncWork.h"
+#include "Async/AsyncWork.h"
 #include "Serialize/DataStream.h"
 
 #include "NvTriStrip/NvTriStrip.h"

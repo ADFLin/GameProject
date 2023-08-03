@@ -31,13 +31,16 @@ namespace CarTrain
 		bool    bEnablePhysics = false;
 		uint8   collisionType;
 		uint16  collisionMask;
-		float   mass;
+		float   mass = 1.0f;
+		float   restitution = 0.3f;
+		float   friction = 0.3f;
 
 		PhyObjectDef()
 		{
 			collisionType = ECollision::Wall;
 			collisionMask = 0xffff;
 		}
+
 
 		template< class OP >
 		void serialize(OP& op)
@@ -46,7 +49,10 @@ namespace CarTrain
 			op & bCollisionResponse;
 			op & bEnablePhysics;
 			op & collisionType;
-			op & collisionMask & mass;
+			op & collisionMask;
+			op & mass;
+			op & restitution;
+			op & friction;
 		}
 	};
 
@@ -54,11 +60,33 @@ namespace CarTrain
 	{
 		Vector2 extend;
 
+
+		float getDensity() const
+		{
+			return mass / (extend.x * extend.y);
+		}
 		template< class OP >
 		void serialize(OP& op)
 		{
 			PhyObjectDef::serialize(op);
 			op & extend;
+		}
+	};
+
+	struct CircleObjectDef : PhyObjectDef
+	{
+		float radius;
+
+		float getDensity() const
+		{
+			return mass / (Math::PI * radius * radius);
+		}
+
+		template< class OP >
+		void serialize(OP& op)
+		{
+			PhyObjectDef::serialize(op);
+			op & radius;
 		}
 	};
 
@@ -100,6 +128,8 @@ namespace CarTrain
 		virtual bool initialize() = 0;
 		virtual void release() = 0;
 		virtual IPhysicsBody* createBox(BoxObjectDef const& def, XForm2D xForm) = 0;
+		virtual IPhysicsBody* createCircle(CircleObjectDef const& def, XForm2D xForm) = 0;
+		virtual void setGravity(Vector2 const& g) = 0;
 		virtual void tick(float deltaTime) = 0;
 
 		virtual bool rayCast(Vector2 const& startPos, Vector2 const& endPos, RayHitInfo& outInfo, uint16 collisionMask = 0xff) = 0;

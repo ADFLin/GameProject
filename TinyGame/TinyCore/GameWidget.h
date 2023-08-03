@@ -135,6 +135,7 @@ public:
 	virtual void onHotkey( unsigned key ){}
 	virtual void onFocus( bool beF ){}
 	virtual void onChangePos(Vec2i const& newPos, bool bParentMove) {}
+	virtual void onDestroy(){}
 
 	virtual void  updateFrame( int frame ){}
 

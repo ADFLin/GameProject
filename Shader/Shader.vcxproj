@@ -184,6 +184,7 @@
     <None Include="..\TinyGame\out\Shader\Game\PointToRectOutline.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\PongShader.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\RayTraceSDF.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\RayTracing.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SDFSceneBuiltin.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Simple.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\SimpleSprite.sgc" />

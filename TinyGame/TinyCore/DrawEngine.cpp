@@ -18,6 +18,8 @@
 
 #include "resource.h"
 #include "ConsoleSystem.h"
+#include "ColorName.h"
+#include "Core/FNV1a.h"
 
 using namespace Render;
 
@@ -206,7 +208,7 @@ void DrawEngine::update(long deltaTime)
 	}
 }
 
-bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup)
+bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 {
 	if (isRHIEnabled())
 	{
@@ -216,8 +218,17 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup)
 	mRenderSetup = renderSetup;
 	if (mRenderSetup)
 	{
-		if (!setupSystemInternal(mRenderSetup->getDefaultRenderSystem(), false))
+		if (!setupSystemInternal(mRenderSetup->getDefaultRenderSystem(), false, bSetupDeferred))
 			return false;
+	}
+	return true;
+}
+
+bool DrawEngine::setupSystem()
+{
+	if (!mRenderSetup->setupRenderSystem(mSystemName))
+	{
+		return false;
 	}
 	return true;
 }
@@ -243,7 +254,7 @@ bool DrawEngine::resetupSystem(ERenderSystem systemName)
 	}
 }
 
-bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI)
+bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI, bool bSetupDeferred)
 {
 	if (mRenderSetup == nullptr)
 		return false;
@@ -280,20 +291,48 @@ bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI)
 		return false;
 	}
 
-	if (!mRenderSetup->setupRenderSystem(systemName))
+	if (bSetupDeferred == false)
 	{
-		LogWarning(0, "Can't Setup Render Resource");
-		return false;
+		if (!mRenderSetup->setupRenderSystem(systemName))
+		{
+			LogWarning(0, "Can't Setup Render Resource");
+			return false;
+		}
 	}
 	return true;
 }
 
-bool DrawEngine::isUsageRHIGraphic2D() const
+
+void DrawEngine::createRHIGraphics()
 {
-	if (mSystemName == ERenderSystem::OpenGL || mSystemName == ERenderSystem::D3D11 || mSystemName == ERenderSystem::D3D12)
+	if (mRHIGraphics == nullptr)
+	{
+		mRHIGraphics.reset(new RHIGraphics2D);
+		mRHIGraphics->setViewportSize(mGameWindow->getWidth(), mGameWindow->getHeight());
+		static_cast<TGraphics2DProxy< RHIGraphics2D >&>(*mRHIProxy).mImpl = mRHIGraphics.get();
+	}
+
+	if (bRHIGraphicsInitialized == false)
+	{
+		bRHIGraphicsInitialized = true;
+		RenderUtility::InitializeRHI();
+		mRHIGraphics->initializeRHI();
+	}
+}
+
+bool IsSupportRHIGraphic2D(ERenderSystem systemName)
+{
+	if (systemName == ERenderSystem::OpenGL || 
+		systemName == ERenderSystem::D3D11 || 
+		systemName == ERenderSystem::D3D12 )
 		return true;
 
 	return false;
+}
+
+bool DrawEngine::isUsageRHIGraphic2D() const
+{
+	return IsSupportRHIGraphic2D(mSystemName);
 }
 
 bool DrawEngine::lockSystem(ERenderSystem systemLocked)
@@ -309,6 +348,10 @@ bool DrawEngine::lockSystem(ERenderSystem systemLocked)
 	VERIFY_RETURN_FALSE(RHISystemInitialize(ConvTo(systemLocked), initParam));
 	
 	mSystemLocked = systemLocked;
+
+	createRHIGraphics();
+
+	return true;
 }
 
 bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs const& configs)
@@ -388,16 +431,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 		mSwapChain = RHICreateSwapChain(info);
 	}
 
-	if (mRHIGraphics == nullptr)
-	{
-		mRHIGraphics.reset(new RHIGraphics2D);
-		mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
-		static_cast<TGraphics2DProxy< RHIGraphics2D >&>(*mRHIProxy).mImpl = mRHIGraphics.get();
-	}
-
-
-	RenderUtility::InitializeRHI();
-	mRHIGraphics->initializeRHI();
+	createRHIGraphics();
 
 	bHadUseRHI = true;
 	bUsePlatformBuffer = false;
@@ -419,6 +453,7 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 
 	RenderUtility::ReleaseRHI();
 	mRHIGraphics->releaseRHI();
+	bRHIGraphicsInitialized = false;
 
 	if(bReInit || bDeferred == false )
 	{
@@ -526,6 +561,17 @@ IGraphics2D* DrawEngine::createGraphicInterface(Graphics2D& g)
 	return new TGraphics2DProxy< Graphics2D >(g);
 }
 
+int GColors[] =
+{
+	EColor::Red,
+	EColor::Green,
+	EColor::Blue,
+	EColor::Orange,
+	EColor::Green,
+	EColor::Purple,
+	EColor::Cyan,
+};
+
 class ProfileFrameVisualizeDraw : public ProfileNodeVisitorT< ProfileFrameVisualizeDraw >
 {
 public:
@@ -534,25 +580,52 @@ public:
 	{
 
 	}
-	void onRoot(SampleNode* node) 
-	{
 
-	}
-	void onNode(VisitContext const& context)
+	float mTotalTime;
+	float mCurTime;
+	float mScale;
+	int mLevel;
+	TArray<float> mLevelTimePos;
+	void onRoot(VisitContext const& context)
 	{
 		SampleNode* node = context.node;
+		mTotalTime = node->getFrameExecTime();
+		mScale = mMaxLength / mTotalTime;
+		mCurTime = 0;
+		mLevel = 0;
+		mLevelTimePos.push_back(mCurTime);
+	}
+
+	void onNode(VisitContext& context)
+	{
+		SampleNode* node = context.node;
+		Vector2 pos = mBasePos + Vector2(mScale * (mCurTime + context.displayTimeAcc), mLevel * offsetY);
+		Vector2 size = Vector2( Math::Max<float>(mScale * node->getFrameExecTime(), 3.0f ) , offsetY);
+
+		int color = FNV1a::MakeStringHash<uint32>(node->getName()) % ARRAY_SIZE(GColors);
+		RenderUtility::SetBrush(mGraphics2D, GColors[color]);
+
+		mGraphics2D.drawRect(pos, size);
+		mGraphics2D.drawText(pos, size, node->getName(), true);
 	}
 	bool onEnterChild(VisitContext const& context)
 	{ 
+		mLevelTimePos.push_back(mCurTime);
+		mCurTime += context.displayTime;
+		++mLevel;
 		return true; 
 	}
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
 	{
 		SampleNode* node = context.node;
+		mCurTime = mLevelTimePos.back();
+		mLevelTimePos.pop_back();
+		--mLevel;
 	}
 
-	int mLevel;
 
+	float mMaxLength = 600;
+	float offsetY = 20;
 	Vector2      mBasePos;
 	IGraphics2D& mGraphics2D;
 };
@@ -565,8 +638,10 @@ public:
 	{
 
 }
-	void onRoot(SampleNode* node)
+	void onRoot(VisitContext& context)
 	{
+		SampleNode* node = context.node;
+
 		InlineString<512> str;
 		double time_since_reset = ProfileSystem::Get().getDurationSinceReset();
 		double lastFrameDuration = ProfileSystem::Get().getLastFrameDuration();
@@ -575,15 +650,15 @@ public:
 		mGraphics2D.drawText(mTextPos, str);
 		mTextPos.y += OffsetY;
 	}
-	void onNode(VisitContext const& context)
+	void onNode(VisitContext& context)
 	{
 		SampleNode* node = context.node;
 		InlineString<512> str;
 		str.format("|-> %s (%.2lf %%) :: %.3lf(%.3lf) ms / frame (%d calls)",
 			node->getName(),
-			context.parentTime > CLOCK_EPSILON ? (node->getTotalTime() / context.parentTime) * 100 : 0.f,
+			context.timeTotalParent > CLOCK_EPSILON ? (node->getTotalTime() / context.timeTotalParent) * 100 : 0.f,
 			node->getTotalTime() / double(node->getTotalCalls()),
-			node->getLastFrameTime() / double(node->getFrameCalls()),
+			node->getFrameExecTime() / double(node->getFrameCalls()),
 			node->getTotalCalls());
 		mGraphics2D.drawText(mTextPos, str);
 		mTextPos.y += OffsetY;
@@ -597,19 +672,19 @@ public:
 	{
 		SampleNode* node = context.node;
 		int    numChildren = childContext.indexNode;
-		double accTime = childContext.accTime;
+		double timeAcc = childContext.totalTimeAcc;
 
 		if (numChildren)
 		{
 			InlineString<512> str;
-			double time = childContext.parentTime;
-			double delta = time - accTime;
+			double time = childContext.timeTotalParent;
+			double delta = time - timeAcc;
 			str.format("|-> %s (%.3lf %%) :: %.3lf(%.3lf) ms / frame",
 				"Other",
 				// (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
 				(time > CLOCK_EPSILON) ? (delta / time * 100) : 0.f,
 				delta / context.node->getTotalCalls(),
-				(childContext.parentFrameTime - childContext.accFrameTime) / context.node->getFrameCalls());
+				(childContext.displayTimeParent - childContext.displayTimeAcc) / context.node->getFrameCalls());
 			mGraphics2D.drawText(mTextPos, str);
 			mTextPos.y += OffsetY;
 			mGraphics2D.drawText(mTextPos, "-------------------------------------------------");
@@ -634,11 +709,25 @@ void* DrawEngine::getWindowHandle()
 #endif
 }
 
+
+TConsoleVariable< int > CVarProfileDrawType(0 , "Profile.DrawType");
+
 void DrawEngine::drawProfile(Vec2i const& pos)
 {
-	getIGraphics().setTextColor(Color3ub(255, 255, 0));
-	ProfileTextDraw textDraw( getIGraphics() , pos );
-	textDraw.visitNodes();
+	IGraphics2D& g = getIGraphics();
+	if (CVarProfileDrawType == 0 || CVarProfileDrawType == 2)
+	{
+		g.setTextColor(Color3ub(255, 255, 0));
+		ProfileTextDraw draw(g, pos);
+		draw.visitNodes();
+	}
+	if (CVarProfileDrawType == 1 || CVarProfileDrawType == 2)
+	{
+		g.setPen(Color3ub(0, 0, 0));
+		g.setTextColor(Color3ub(0, 0, 0));
+		ProfileFrameVisualizeDraw draw(g, pos);
+		draw.visitNodes();
+	}
 }
 
 void DrawEngine::changeScreenSize(int w, int h, bool bUpdateViewport /*= true*/)
@@ -657,7 +746,7 @@ void DrawEngine::changetViewportSize(int w, int h)
 		mBufferDC.release();
 		setupBuffer(w, h);
 		if (mRHIGraphics)
-			mRHIGraphics->init(w, h);
+			mRHIGraphics->setViewportSize(w, h);
 
 		if (mSwapChain.isValid())
 		{

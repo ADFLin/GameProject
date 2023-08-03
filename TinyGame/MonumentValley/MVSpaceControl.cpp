@@ -165,7 +165,7 @@ namespace MV
 			MeshObject* mesh = *iter;
 			mesh->pos = roatePos( mPos , mDir , mesh->pos , factor );
 			Quat q; q.setEulerZYX( mesh->rotation.z , mesh->rotation.y , mesh->rotation.x );
-			Quat rq = Quat::Rotate( FDir::OffsetF( mDir ) , Math::Deg2Rad( 90 * factor )  ) * q;
+			Quat rq = Quat::Rotate( FDir::OffsetF( mDir ) , Math::DegToRad( 90 * factor )  ) * q;
 			mesh->rotation = rq.getEulerZYX();
 		}
 	}

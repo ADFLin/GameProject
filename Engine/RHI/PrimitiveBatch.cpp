@@ -33,7 +33,29 @@ namespace Render
 		}
 	}
 
-	bool SimpleElementRenderer::init()
+	class SimpleElementShaderProgram : public GlobalShaderProgram
+	{
+	public:
+		DECLARE_SHADER_PROGRAM(SimpleElementShaderProgram, Global);
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+				{ EShader::Pixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SimpleElement";
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(SimpleElementShaderProgram);
+
+	bool SimpleElementRenderer::initializeRHI()
 	{
 		InputLayoutDesc desc;
 		desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float4);
@@ -42,24 +64,29 @@ namespace Render
 		mInputLayout = RHICreateInputLayout(desc);
 		mVertexBuffer = RHICreateVertexBuffer(sizeof(SimpleVertex), MaxVertexSize, BCF_CpuAccessWrite);
 
-		if( !ShaderManager::Get().loadFile(
-			mShader, "Shader/SimpleElement",
-			SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS) ) )
-			return false;
-
+		VERIFY_RETURN_FALSE( mProgram = ShaderManager::Get().getGlobalShaderT< SimpleElementShaderProgram >() );
+		
 		return true;
 	}
 
-	void SimpleElementRenderer::draw( RenderContext& context , SimpleVertex* vertices, int numVertices)
+	void SimpleElementRenderer::releaseRHI()
 	{
-		RHICommandList& commandList = context.getCommnadList();
+		mProgram = nullptr;
+		mInputLayout.release();
+		mVertexBuffer.release();
+	}
 
-		void* pData = RHILockBuffer( mVertexBuffer , ELockAccess::WriteOnly);
+	void SimpleElementRenderer::draw(RHICommandList& commandList, ViewInfo& view,  SimpleVertex* vertices, int numVertices)
+	{
+		void* pData = RHILockBuffer( mVertexBuffer , ELockAccess::WriteDiscard);
+		if (pData == nullptr)
+			return;
+
 		memcpy(pData, vertices, numVertices * mVertexBuffer->getElementSize());
 		RHIUnlockBuffer(mVertexBuffer);
 
-		context.setShader(mShader);
-		mShader.setParam(commandList, SHADER_PARAM(VertexTransform), context.getView().worldToClip);
+		RHISetShaderProgram(commandList, mProgram->getRHI());
+		mProgram->setParam(commandList, SHADER_PARAM(VertexTransform), view.worldToClip);
 
 		InputStreamInfo inputStream;
 		inputStream.buffer = mVertexBuffer;
@@ -69,33 +96,80 @@ namespace Render
 	}
 
 
-	SimpleElementRenderer gSimpleElementRender;
+
+	class GlobalSimpleElementRenderer : public SimpleElementRenderer
+	{
+	public:
+
+		bool initializeRHI()
+		{
+			++mRefcount;
+			if (mRefcount == 1)
+			{
+				cachedBuffer.reserve(SimpleElementRenderer::MaxVertexSize);
+				return SimpleElementRenderer::initializeRHI();
+			}
+			return true;
+		}
+
+		void releaseRHI()
+		{
+			--mRefcount;
+			if (mRefcount == 0)
+			{
+				SimpleElementRenderer::releaseRHI();
+			}
+		}
+		TArray< SimpleVertex > cachedBuffer;
+		int mRefcount = 0;
+	};
+
+
+	GlobalSimpleElementRenderer GSimpleElementRender;
+
+
+	void PrimitivesCollection::initializeRHI()
+	{
+		GSimpleElementRender.initializeRHI();
+	}
+
+	void PrimitivesCollection::releaseRHI()
+	{
+		GSimpleElementRender.releaseRHI();
+	}
 
 	void PrimitivesCollection::drawDynamic(RenderContext& context)
 	{
-		RHICommandList& commandList = context.getCommnadList();
-		static bool bInit = false;
-		if( !bInit )
+		drawDynamic(context.getCommnadList(), context.getView());
+	}
+
+	void PrimitivesCollection::drawDynamic(RHICommandList& commandList, ViewInfo& view)
+	{
+
+		if (!mLineBatchs.empty())
 		{
-			mCacheBuffer.reserve(SimpleElementRenderer::MaxVertexSize);
-			gSimpleElementRender.init();
-			bInit = true;
-		}
+			auto& cachedBuffer = GSimpleElementRender.cachedBuffer;
+			cachedBuffer.clear();
 
-		if ( !mLineBatchs.empty() )
-		{
-			mCacheBuffer.clear();
+			Vector3 cameraX = view.getViewRightDir();
+			Vector3 cameraY = view.getViewUpDir();
 
-			Vector3 cameraX = context.getView().getViewRightDir();
-			Vector3 cameraY = context.getView().getViewUpDir();
-
-			IntVector2 screenSize = context.getView().getViewportSize();
+			IntVector2 screenSize = view.getViewportSize();
 
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
-			int idxLine = 0;
+
 			{
-				for( ; idxLine < mLineBatchs.size(); ++idxLine )
+				int idxLine = 0;
+				for (; idxLine < mLineBatchs.size(); ++idxLine)
 				{
+					int LineVertexCount = 24;
+
+					if (cachedBuffer.size() + LineVertexCount > SimpleElementRenderer::MaxVertexSize)
+					{
+						GSimpleElementRender.draw(commandList, view, cachedBuffer.data(), cachedBuffer.size());
+						cachedBuffer.clear();
+					}
+
 					LineBatch& line = mLineBatchs[idxLine];
 
 					bool bScreenSpace = line.thickness >= 0;
@@ -104,10 +178,10 @@ namespace Render
 					float offsetScaleS = tickness;
 					float offsetScaleE = tickness;
 
-					if( bScreenSpace )
+					if (bScreenSpace)
 					{
-						float posWS = (Vector4(line.start, 1) * context.getView().worldToClip).w;
-						float posWE = (Vector4(line.end, 1) * context.getView().worldToClip).w;
+						float posWS = (Vector4(line.start, 1) * view.worldToClip).w;
+						float posWE = (Vector4(line.end, 1) * view.worldToClip).w;
 
 						offsetScaleS *= 0.5 * posWS / float(screenSize.x);
 						offsetScaleE *= 0.5 * posWE / float(screenSize.x);
@@ -131,26 +205,29 @@ namespace Render
 					SimpleVertex vERB = SimpleVertex(line.end + offsetER - offsetET, line.color);
 					SimpleVertex vELB = SimpleVertex(line.end - offsetER - offsetET, line.color);
 
-					mCacheBuffer.push_back(vSLB); mCacheBuffer.push_back(vSRB); mCacheBuffer.push_back(vSRT);
-					mCacheBuffer.push_back(vSLB); mCacheBuffer.push_back(vSRT); mCacheBuffer.push_back(vSLT);
 
-					mCacheBuffer.push_back(vELB); mCacheBuffer.push_back(vERB); mCacheBuffer.push_back(vERT);
-					mCacheBuffer.push_back(vELB); mCacheBuffer.push_back(vERT); mCacheBuffer.push_back(vELT);
+					cachedBuffer.push_back(vSLB); cachedBuffer.push_back(vSRB); cachedBuffer.push_back(vSRT);
+					cachedBuffer.push_back(vSLB); cachedBuffer.push_back(vSRT); cachedBuffer.push_back(vSLT);
 
-					mCacheBuffer.push_back(vSLT); mCacheBuffer.push_back(vSRB); mCacheBuffer.push_back(vERB);
-					mCacheBuffer.push_back(vSLT); mCacheBuffer.push_back(vERB); mCacheBuffer.push_back(vELT);
+					cachedBuffer.push_back(vELB); cachedBuffer.push_back(vERB); cachedBuffer.push_back(vERT);
+					cachedBuffer.push_back(vELB); cachedBuffer.push_back(vERT); cachedBuffer.push_back(vELT);
 
-					mCacheBuffer.push_back(vSRT); mCacheBuffer.push_back(vERT); mCacheBuffer.push_back(vELB);
-					mCacheBuffer.push_back(vSRT); mCacheBuffer.push_back(vELB); mCacheBuffer.push_back(vSLB);
+					cachedBuffer.push_back(vSLT); cachedBuffer.push_back(vSRB); cachedBuffer.push_back(vERB);
+					cachedBuffer.push_back(vSLT); cachedBuffer.push_back(vERB); cachedBuffer.push_back(vELT);
+
+					cachedBuffer.push_back(vSRT); cachedBuffer.push_back(vERT); cachedBuffer.push_back(vELB);
+					cachedBuffer.push_back(vSRT); cachedBuffer.push_back(vELB); cachedBuffer.push_back(vSLB);
 
 				}
-
-
-				gSimpleElementRender.draw(context, &mCacheBuffer[0], mCacheBuffer.size());
+				if (cachedBuffer.size())
+				{
+					GSimpleElementRender.draw(commandList, view, &cachedBuffer[0], cachedBuffer.size());
+				}
 
 			}
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 		}
 	}
+
 
 }//namespace Render

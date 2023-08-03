@@ -43,8 +43,8 @@ public:
 	void showText( int x , int y );
 	void setTextColor( BYTE r, BYTE g , BYTE b , BYTE a = 255  );
 public:
-	void onRoot(SampleNode* node);
-	void onNode(VisitContext const& context);
+	void onRoot(VisitContext& context);
+	void onNode(VisitContext& context);
 	bool onEnterChild(VisitContext const& context);
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext);
 private:

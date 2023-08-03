@@ -21,15 +21,15 @@ namespace AI
 	{
 		FNN.init(layout);
 		GenotypePtr pGT = std::make_shared<Genotype>();
-		pGT->data.resize(layout.getWeightNum());
+		pGT->data.resize(layout.getParameterNum());
 		setGenotype(pGT);
 	}
 
 	void TrainAgent::setGenotype(GenotypePtr inGenotype)
 	{
-		assert(FNN.getLayout().getWeightNum() == inGenotype->data.size());
+		assert(FNN.getLayout().getParameterNum() == inGenotype->data.size());
 		genotype = inGenotype;
-		FNN.setWeights(inGenotype->data);
+		FNN.setParamsters(inGenotype->data);
 	}
 
 
@@ -54,8 +54,7 @@ namespace AI
 			mAgents.push_back(std::move(pAgent));
 		}
 		FCNeuralNetwork& FNN = mAgents[0]->FNN;
-		bestInputsAndSignals.resize(netLayout.getInputNum() + netLayout.getHiddenNodeNum() + netLayout.getOutputNum());
-		//bestInputsAndSignals = (uint8*)::malloc((netLayout.getInputNum() + netLayout.getHiddenNodeNum() + netLayout.getOutputNum() + 4) * sizeof(NNScalar) + 15);
+		mSignals.resize(netLayout.getSignalNum());
 	}
 
 	void TrainData::findBestAgnet()
@@ -66,10 +65,10 @@ namespace AI
 			{
 				if (bestAgent)
 				{
-					bestAgent->inputsAndSignals = nullptr;
+					bestAgent->signals = nullptr;
 				}
 				bestAgent = agentPtr.get();
-				bestAgent->inputsAndSignals = getBestInputsAndSignals();
+				bestAgent->signals = getBestSignals();
 			}
 		}
 	}
@@ -228,7 +227,7 @@ namespace AI
 	void TrainData::clearData()
 	{
 		if( bestAgent )
-			bestAgent->inputsAndSignals = nullptr;
+			bestAgent->signals = nullptr;
 
 		bestAgent = nullptr;
 		mAgents.clear();

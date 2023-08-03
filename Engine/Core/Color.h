@@ -46,6 +46,14 @@ public:
 	{
 		return (r << 24) | (g << 16) | (b << 8) | a;
 	}
+
+	static void FromRGBA(uint32 v, uint8& r, uint8& g, uint8& b, uint8& a)
+	{
+		r = (v >> 0) & 0xff;
+		g = (v >> 8) & 0xff;
+		b = (v >> 16) & 0xff;
+		a = (v >> 24) & 0xff;
+	}
 };
 
 
@@ -220,6 +228,8 @@ public:
 		:TColor3< float >(cr, cg, cb) {}
 
 	operator Vector3() const { return Vector3(r, g, b); }
+
+	friend Color3f operator * ( float s, Color3f const& c ) { return Color3f(s * c.r, s *c.g, s * c.b); }
 };
 
 
@@ -233,6 +243,14 @@ public:
 	Color4ub() = default;
 	Color4ub(uint8 cr, uint8 cg, uint8 cb, uint8 ca = 0xff)
 		:TColor4< uint8 >(cr, cg, cb, ca) {}
+
+
+	static Color4ub FromRGBA(uint32 rgba)
+	{
+		Color4ub result;
+		FColor::FromRGBA(rgba, result.r, result.g, result.b, result.a);
+		return result;
+	}
 };
 
 class Color4f : public TColor4< float >
@@ -257,6 +275,8 @@ public:
 
 	friend Color4f operator * (float f, Color4f const& c) { return Color4f(f * c.r, f * c.g, f * c.b, f * c.a); }
 	friend Color4f operator - (Color4f const& lhs, Color4f const& rhs) { return Color4f(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a); }
+
+
 
 };
 

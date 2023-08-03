@@ -259,12 +259,11 @@ namespace TowerDefend
 					Unit* monster = new Unit( AID_UT_MOUSTER_1 );
 					monster->setPos( Vector2( 10 , 10 ) );
 					monster->setOwner( &mPlayerInfo );
+					mEntityMgr.addEntity(monster);
 
 					Unit::MoveLandAct* act = new Unit::MoveLandAct;
 					act->destPos = Vector2( 400 , 400 );
 					monster->pushAction( act );
-
-					mEntityMgr.addEntity( monster );
 				}
 				//{
 				//	TDUnit* monster = new TDUnit( AID_UT_MOUSTER_1 );

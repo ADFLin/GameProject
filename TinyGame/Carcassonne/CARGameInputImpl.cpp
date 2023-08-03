@@ -72,8 +72,8 @@ namespace CAR
 	void GameInput::runLogic(GameLogic& gameLogic)
 	{
 		mGameLogic = &gameLogic;
-		boost::coroutines::attributes attributes;
-		mGameLogicExecution = ExecType( std::bind( &GameInput::LogicExecutionEntry, this , std::placeholders::_1 ) , attributes);
+		//boost::coroutines2::attributes attributes;
+		mGameLogicExecution = new ExecType( std::bind( &GameInput::LogicExecutionEntry, this , std::placeholders::_1 ) );
 	}
 
 	void GameInput::LogicExecutionEntry(YeildType& yeild )
@@ -85,7 +85,7 @@ namespace CAR
 			mInputExecution = nullptr;
 			mGameLogic = nullptr;
 		} 
-		catch(const boost::coroutines::detail::forced_unwind&) 
+		catch(const boost::coroutines2::detail::forced_unwind&) 
 		{
 			CAR_LOG("Catch forced_unwind Exception!");
 			throw;
@@ -522,7 +522,7 @@ namespace CAR
 	{
 		if (mInputExecution)
 		{
-			mGameLogicExecution();
+			(*mGameLogicExecution)();
 		}
 	}
 

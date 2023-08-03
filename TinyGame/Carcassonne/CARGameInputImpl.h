@@ -3,7 +3,7 @@
 
 #include "CARGameInput.h"
 
-#include "Coroutine.h"
+#include "Async/Coroutines.h"
 #include "DataStreamBuffer.h"
 #include "DataTransfer.h"
 
@@ -113,11 +113,15 @@ namespace CAR
 
 	class GameInput : public IGameInput
 	{
-		using ExecType  = boost::coroutines::asymmetric_coroutine< void >::pull_type;
-		using YeildType = boost::coroutines::asymmetric_coroutine< void >::push_type;
+		using ExecType  = boost::coroutines2::asymmetric_coroutine< void >::pull_type;
+		using YeildType = boost::coroutines2::asymmetric_coroutine< void >::push_type;
 
 	public:
 		GameInput();
+		~GameInput()
+		{
+			delete mGameLogicExecution;
+		}
 
 		void runLogic( GameLogic& gameLogic );
 		void setRemoteSender( IDataTransfer* transfer );
@@ -199,7 +203,7 @@ namespace CAR
 		GameLogic*       mGameLogic;
 		PlayerAction     mAction;
 		GameActionData*  mActionData;
-		ExecType         mGameLogicExecution;
+		ExecType*        mGameLogicExecution = nullptr;
 		YeildType*       mInputExecution;
 	};
 

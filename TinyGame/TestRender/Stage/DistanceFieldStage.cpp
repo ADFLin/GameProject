@@ -11,7 +11,7 @@
 
 #include "Core/ScopeGuard.h"
 #include "Math/PrimitiveTest.h"
-#include "AsyncWork.h"
+#include "Async/AsyncWork.h"
 
 #include "FileSystem.h"
 #include "Serialize/FileStream.h"

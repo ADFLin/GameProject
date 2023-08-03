@@ -138,7 +138,7 @@
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/FBX/Lib/x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/FBX/Lib/x64;../OtherLib/ShaderConductor/lib/x64</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
@@ -203,13 +203,19 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/FBX/Lib/x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/FBX/Lib/x64;../OtherLib/ShaderConductor/lib/x64</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Engine\D3D11RHI.vcxproj">
+      <Project>{d400fd7c-3d3a-47e2-992e-f6aa70e4192b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\D3D12RHI.vcxproj">
+      <Project>{d4a8c158-1d66-4f50-bc31-ec5789098431}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\Engine\EngineCore.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>
@@ -218,6 +224,9 @@
     </ProjectReference>
     <ProjectReference Include="..\Engine\EngineShare.vcxproj">
       <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\OpenGLRHI.vcxproj">
+      <Project>{7ec6733c-3ecd-4c69-a8dc-dc11c0ed8321}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Engine\VulkanRHI.vcxproj">
       <Project>{52b9b264-2b19-4211-a6f7-723ab74a0e03}</Project>
@@ -239,22 +248,39 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\D3D11TestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\D3D12TestStage.cpp" />
     <ClCompile Include="TestRender\Stage\DeferredRenderingStage.cpp" />
     <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimizationStage.cpp" />
+    <ClCompile Include="TestRender\Stage\FBXImportTest.cpp" />
     <ClCompile Include="TestRender\Stage\FluidSimStage.cpp" />
     <ClCompile Include="TestRender\Stage\FractialStage.cpp" />
+    <ClCompile Include="TestRender\Stage\GravityFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\Lighting2DStage.cpp" />
+    <ClCompile Include="TestRender\Stage\MarchingCubesStage.cpp" />
+    <ClCompile Include="TestRender\Stage\MeshShaderTest.cpp" />
+    <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\ODETestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
+    <ClCompile Include="TestRender\Stage\PlantRenderStage.cpp" />
+    <ClCompile Include="TestRender\Stage\RayTracingStage.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
+    <ClCompile Include="TestRender\Stage\ShaderConductorTest.cpp" />
     <ClCompile Include="TestRender\Stage\SoftwareRenderStage.cpp">
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</OpenMPSupport>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\TestRHIStage.cpp" />
     <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp" />
     <ClCompile Include="TestRender\TestRender.cpp" />
@@ -269,14 +295,20 @@
     <ClInclude Include="TestRender\MeshImporterFBX.h" />
     <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\SceneScript.h" />
+    <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
     <ClInclude Include="TestRender\Stage\FluidSimStage.h" />
     <ClInclude Include="TestRender\Stage\Lighting2DStage.h" />
+    <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
+    <ClInclude Include="TestRender\Stage\PerlinNoise.h" />
+    <ClInclude Include="TestRender\Stage\PlantRenderStage.h" />
+    <ClInclude Include="TestRender\Stage\RayTracingStage.h" />
     <ClInclude Include="TestRender\Stage\RenderGLStage.h" />
     <ClInclude Include="TestRender\Stage\SoftwareRenderStage.h" />
     <ClInclude Include="TestRender\Stage\TestRHIStage.h" />
     <ClInclude Include="TestRender\TestRenderPCH.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="out\Script\RTScene\TestA.chai" />
     <None Include="out\Script\SceneA.chai" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

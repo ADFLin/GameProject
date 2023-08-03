@@ -624,7 +624,7 @@ namespace SBlocks
 			auto& console = ConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC , ... )\
 			console.registerCommand("SBlocks."NAME, &LevelStage::FUNC, this , ##__VA_ARGS__ )
-			REGISTER_COM("Solve", solveLevel, CVF_CAN_OMIT_ARGS);
+			REGISTER_COM("Solve", solveLevel, CVF_ALLOW_IGNORE_ARGS);
 			REGISTER_COM("Load", loadLevel);
 #undef REGISTER_COM
 			return true;

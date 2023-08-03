@@ -10,6 +10,8 @@
 #include "RHI/RenderContext.h"
 #include "RHI/RHIGraphics2D.h"
 
+
+
 namespace Render
 {
 
@@ -28,10 +30,10 @@ namespace Render
 	};
 
 
-	class SimpleProgram : public GlobalShaderProgram
+	class SimpleD3D12Program : public GlobalShaderProgram
 	{
 		using BaseClass = GlobalShaderProgram;
-		DECLARE_SHADER_PROGRAM(SimpleProgram, Global);
+		DECLARE_SHADER_PROGRAM(SimpleD3D12Program, Global);
 	public:
 
 		static char const* GetShaderFileName()
@@ -50,7 +52,7 @@ namespace Render
 		}
 	};
 
-	IMPLEMENT_SHADER_PROGRAM(SimpleProgram);
+	IMPLEMENT_SHADER_PROGRAM(SimpleD3D12Program);
 
 	class TestD3D12Stage : public TestRenderStageBase
 	{
@@ -67,7 +69,7 @@ namespace Render
 
 		bool bUseProgram = false;
 
-		SimpleProgram* mProgTriangle;
+		SimpleD3D12Program* mProgTriangle;
 		Shader mVertexShader;
 		Shader mPixelShader;
 	
@@ -134,7 +136,7 @@ namespace Render
 				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mPixelShader, shaderPath, EShader::Pixel, SHADER_ENTRY(MainPS)));
 
 
-				mProgTriangle = ShaderManager::Get().getGlobalShaderT< SimpleProgram >();
+				mProgTriangle = ShaderManager::Get().getGlobalShaderT< SimpleD3D12Program >();
 
 				InputLayoutDesc desc;
 				desc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);

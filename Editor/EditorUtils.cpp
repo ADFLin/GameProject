@@ -5,16 +5,21 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui_internal.h"
+#include "RHI/Font.h"
 
 using namespace Render;
 
 Render::TextureAtlas FImGui::mIconAtlas;
+Render::FontDrawer FImGui::mFont;
+
 TArray<FImGui::Rect> FImGui::mCachedIconUVs;
 
 
 void FImGui::InitializeRHI()
 {
 	mIconAtlas.initialize(ETexture::RGBA8, 2048, 2048, 2);
+	TCHAR const* FontName = "µÿ±d§§∂Í≈È";
+	mFont.initialize(FontFaceInfo(FontName, 8, true));
 	mCachedIconUVs.resize((int)EIconId::Count);
 
 	auto AddIcon = [](EIconId::Type id, char const* path)

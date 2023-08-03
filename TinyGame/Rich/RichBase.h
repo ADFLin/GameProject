@@ -8,6 +8,9 @@
 
 #include <functional>
 #include <string>
+#include "Async/Coroutines.h"
+#undef min
+#undef max
 
 namespace Rich
 {
@@ -38,6 +41,15 @@ namespace Rich
 	class PlayerTurn;
 	class Area;
 	class LandArea;
+
+	enum class EAreaTag : uint8
+	{
+		Hospital,
+		Jail,
+
+		Chance_MoveTo,
+	};
+
 
 	class IRandom
 	{
@@ -102,7 +114,7 @@ namespace Rich
 
 		virtual void tick(){}
 		virtual void turnTick(){}
-		virtual void onMeet( ActorComp const& other , bool beStay ){}
+		virtual void onMeet( ActorComp const& other , bool bStay ){}
 
 
 		virtual void destroy() { delete this; }
@@ -111,7 +123,7 @@ namespace Rich
 		MapCoord const& getPrevPos() const { return mPosPrev; }
 		ActorId         getId() const { return mId; }
 
-		void move( Tile& tile , bool beStay );
+		void move( Tile& tile , bool bStay );
 	protected:
 
 		friend class Tile;
@@ -124,11 +136,8 @@ namespace Rich
 	};
 
 	class AreaVisitor;
-	class AreaRegister
-	{
-	public:
-		virtual void addAreaType( Area* area , AreaType type ){}
-	};
+	class World;
+
 	class Area
 	{
 	public:
@@ -139,17 +148,33 @@ namespace Rich
 		MapCoord const& getPos() const { return mPos; }
 		void            setPos( MapCoord const& pos ){ mPos = pos; }
 
-		virtual void install( AreaRegister& reg ){}
-		virtual void uninstall( AreaRegister& reg ){}
+		virtual void install(World& world){}
+		virtual void uninstall(World& world){}
 
 		virtual void onPlayerPass( PlayerTurn& turn ){}
-		virtual void onPlayerStay( PlayerTurn& turn ){}
+		virtual void onPlayerStay( PlayerTurn& turn , Player& player){}
 		virtual void accept( AreaVisitor& visitor ) = 0;
 
+		virtual void reset(){}
+
+		TArray<MapCoord> mTilePosList;
 	private:
+	
 		MapCoord  mPos;
 		AreaId    mId;
 	};
+
+
+	class PlayerAsset
+	{
+	public:
+		virtual ~PlayerAsset() = default;
+		virtual int   getAssetValue() = 0;
+		virtual void  changeOwner(Player* player) = 0;
+		virtual void  releaseAsset() = 0;
+		virtual Area* getAssetArea() { return nullptr; }
+	};
+
 
 }//namespace Rich
 

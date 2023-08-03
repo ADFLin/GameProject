@@ -10,8 +10,9 @@
 #include "Shlwapi.h"
 #include "Core/ScopeGuard.h"
 
+#include "Misc/CStringWrapper.h"
 #include <unordered_map>
-#include "Misc/StringPtrWrapper.h"
+#include <map>
 
 #pragma comment(lib,"Shlwapi.lib")
 
@@ -79,7 +80,7 @@ public:
 			return ::wcscmp(s1, s2) < 0;
 		}
 	};
-	typedef std::unordered_map< WStringPtrWrapper, DirMonitorInfo*> WatchDirMap;
+	typedef std::map< wchar_t const*, DirMonitorInfo*, StrCmp> WatchDirMap;
 
 	DWORD       mLastError;
 	WatchDirMap mDirMap;
@@ -220,7 +221,7 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 
 	auto pDirPath = info->dirPath.c_str();
 	///////////////////////////////////////////////////
-	mDirMap.insert(std::make_pair(pDirPath, info.release()));
+	mDirMap.emplace(pDirPath, info.release());
 	return EFileMonitorStatus::OK;
 }
 

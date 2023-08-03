@@ -85,6 +85,7 @@ namespace Render
 	{
 		bool bOuputPreprocessedCode = true;
 		bool bUsePreprocess = true;
+		bool bUseShaderConductor = false;
 		bool bRecompile = true;
 		int  shaderIndex;
 		ShaderCompileDesc* desc;

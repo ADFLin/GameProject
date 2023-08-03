@@ -362,7 +362,11 @@ namespace Go
 			return false;
 #endif
 #endif
+		return true;
+	}
 
+	void LeelaZeroGoStage::postInit()
+	{
 		auto devFrame = WidgetUtility::CreateDevFrame( Vec2i(150, 200 + 55) );
 
 		devFrame->addButton("Save SGF", [&](int eventId, GWidget* widget) -> bool
@@ -626,7 +630,6 @@ namespace Go
 			return false;
 		});
 
-		return true;
 	}
 
 	void LeelaZeroGoStage::onEnd()
@@ -1081,8 +1084,14 @@ namespace Go
 			GPU_PROFILE("Draw WinRate Diagram");
 
 			Vec2i screenSize = ::Global::GetScreenSize();
-
-			RHISetViewport(commandList, renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
+			if (GRHISystem->getName() == RHISystemName::OpenGL)
+			{
+				RHISetViewport(commandList, renderPos.x, screenSize.y - (renderPos.y + renderSize.y), renderSize.x, renderSize.y);
+			}
+			else
+			{
+				RHISetViewport(commandList, renderPos.x, renderPos.y , renderSize.x, renderSize.y);
+			}
 			MatrixSaveScope matrixSaveScope;
 
 			float const xMin = 0;
@@ -1094,6 +1103,8 @@ namespace Go
 			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
 			float alpha[2] = { 0.4 , 0.4 };
 
+			bool const bUseSpline = CVarUseSpline && GRHISystem->getName() == RHISystemName::OpenGL;
+
 			for( int i = 0; i < 2; ++i )
 			{
 				auto& winRateData = mWinRateDataList[i];
@@ -1103,7 +1114,7 @@ namespace Go
 
 				auto DrawCommand = [&](bool bUseColor)
 				{
-					if (CVarUseSpline)
+					if (bUseSpline)
 					{
 						if (winRateHistory.size() >= 2)
 						{
@@ -1138,6 +1149,8 @@ namespace Go
 				};
 
 
+				//#TODO : ShaderCode
+				if ( GRHISystem->getName() == RHISystemName::OpenGL )
 				{
 					if( i == 0 )
 					{
@@ -1148,7 +1161,7 @@ namespace Go
 						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::One >::GetRHI());
 					}
 
-					UnderCurveAreaProgram* prog = CVarUseSpline ?
+					UnderCurveAreaProgram* prog = bUseSpline ?
 						(UnderCurveAreaProgram*)ShaderManager::Get().getGlobalShaderT < TUnderCurveAreaProgram<true> >() : 
 						(UnderCurveAreaProgram*)ShaderManager::Get().getGlobalShaderT < TUnderCurveAreaProgram<false> >();
 
@@ -1158,7 +1171,7 @@ namespace Go
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
 
-					if (CVarUseSpline)
+					if (bUseSpline)
 					{
 						prog->setParam(commandList, SHADER_PARAM(TessFactor), 32);
 					}
@@ -1169,7 +1182,8 @@ namespace Go
 				{
 					RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-					if (CVarUseSpline)
+					//#TODO : ShaderCode
+					if (bUseSpline)
 					{
 						SplineProgram::PermutationDomain permutationVector;
 						permutationVector.set< SplineProgram::SplineType >(1);
@@ -1564,7 +1578,7 @@ namespace Go
 		{
 			TBotSettingData<LeelaAISetting> setting;
 			setting.weightName = weightNameA;
-			setting.seed = generateRandSeed();
+			setting.seed = GenerateRandSeed();
 			setting.visits = 6000;
 			setting.playouts = 0;
 			setting.bNoise = true;
@@ -1575,7 +1589,7 @@ namespace Go
 		{
 			TBotSettingData<LeelaAISetting> setting;
 			setting.weightName = bestWeigetName.c_str();
-			setting.seed = generateRandSeed();
+			setting.seed = GenerateRandSeed();
 			setting.visits = 6000;
 			setting.playouts = 0;
 			setting.bNoise = true;
@@ -2646,7 +2660,7 @@ namespace Go
 					setting.weightName = FFileUtility::GetFileName(weightName.c_str());
 					setting.visits = getParamValue< int, GTextCtrl >(id + UPARAM_VISITS);
 					//setting.bUseModifyVersion = true;
-					setting.seed = generateRandSeed();
+					setting.seed = GenerateRandSeed();
 					if( bHavePlayerController || outSetting.numHandicap)
 					{
 						setting.resignpct = 0;

@@ -1,4 +1,3 @@
-#include "RichPCH.h"
 #include "RichTool.h"
 
 #include "RichPlayerTurn.h"
@@ -24,27 +23,27 @@ namespace Rich
 
 	};
 
-	static Tool* gToolMap[ TOOL_NUM ];
+	static Tool* GToolMap[ TOOL_NUM ];
 
 	void Tool::Initialize()
 	{
 		for ( int i = 0 ; i < TOOL_NUM ; ++i )
-			gToolMap[i] = nullptr;
+			GToolMap[i] = nullptr;
 
-		gToolMap[ TOOL_ROADBLOCK ] = new RomateDice;
+		GToolMap[ TOOL_ROADBLOCK ] = new RomateDice;
 	}
 
 	void Tool::Release()
 	{
 		for ( int i = 0 ; i < TOOL_NUM ; ++i )
 		{
-			delete gToolMap[i];
+			delete GToolMap[i];
 		}
 	}
 
 	Tool* Tool::FromType( ToolType type )
 	{
-		return gToolMap[ type ];
+		return GToolMap[ type ];
 	}
 
 }//namespace Rich

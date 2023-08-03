@@ -111,10 +111,10 @@ namespace FlappyBird
 				bird.fly();
 			}
 
-			if (mAgent->inputsAndSignals)
+			if (mAgent->signals)
 			{
-				std::copy(inputs, inputs + mAgent->FNN.getLayout().getInputNum(), mAgent->inputsAndSignals);
-				mAgent->FNN.calcForwardFeedbackSignal(inputs, mAgent->inputsAndSignals + mAgent->FNN.getLayout().getInputNum());
+				std::copy_n(inputs, mAgent->FNN.getLayout().getInputNum(), mAgent->signals);
+				mAgent->FNN.calcForwardFeedbackSignal(mAgent->signals, mAgent->signals + mAgent->FNN.getLayout().getInputNum());
 			}
 		}
 		void getPipeInputs(NNScalar inputs[], PipeInfo const& pipe)
@@ -734,7 +734,7 @@ namespace FlappyBird
 				FCNeuralNetwork& FNN = mTrainData->bestAgent->FNN;
 				NeuralNetworkRenderer renderer(FNN);
 				renderer.basePos = Vector2(400, 300);
-				renderer.inputsAndSignals = mTrainData->getBestInputsAndSignals();
+				renderer.signals = mTrainData->getBestSignals();
 				renderer.draw(g);
 			}
 
@@ -837,7 +837,7 @@ namespace FlappyBird
 			}
 #else
 			float theta = Math::ATan2(dir.y, dir.x);
-			angle = Math::Rad2Deg(theta);
+			angle = Math::RadToDeg(theta);
 #endif
 
 			float sizeFactor = getImageSizeRatio(TextureID::Bird);
@@ -853,7 +853,7 @@ namespace FlappyBird
 			mXFormStack.push();
 			{
 				mXFormStack.translate(rPos);
-				mXFormStack.rotate(Math::Deg2Rad(-angle));
+				mXFormStack.rotate(Math::DegToRad(-angle));
 				drawTexture(TextureID::Bird, Vector2(0,0), Vector2(size * sizeFactor , size ), Vector2(0.5, 0.5), Vec2i( frame , birdType), Vec2i(3, 3));
 			}
 			mXFormStack.pop();

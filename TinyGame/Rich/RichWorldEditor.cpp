@@ -1,4 +1,3 @@
-#include "RichPCH.h"
 #include "RichWorldEditor.h"
 
 #include "RichWorld.h"

@@ -55,15 +55,15 @@ public:
 	TINY_API void  changetViewportSize(int w, int h);
 	TINY_API void  update(long deltaTime);
 
-	TINY_API bool setupSystem(IGameRenderSetup* renderSetup);
+	TINY_API bool setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred = false);
 	TINY_API bool resetupSystem(ERenderSystem systemName);
 
 	IGameRenderSetup* getRenderSetup() { return mRenderSetup; }
 
 
-	Vec2i          getScreenSize() { return Vec2i(mBufferDC.getWidth(), mBufferDC.getHeight()); }
-	int            getScreenWidth(){ return mBufferDC.getWidth(); }
-	int            getScreenHeight(){ return mBufferDC.getHeight(); }
+	Vec2i          getScreenSize() { return Vec2i(mGameWindow->getWidth(), mGameWindow->getHeight()); }
+	int            getScreenWidth(){ return mGameWindow->getWidth(); }
+	int            getScreenHeight(){ return mGameWindow->getHeight(); }
 	Graphics2D&    getPlatformGraphics(){ return *mPlatformGraphics; }
 	RHIGraphics2D& getRHIGraphics(){ return *mRHIGraphics; }
 
@@ -85,6 +85,9 @@ public:
 	bool isInitialized() { return mbInitialized; }
 
 	TINY_API bool  startupSystem(ERenderSystem targetName , RenderSystemConfigs const& configs = RenderSystemConfigs() );
+
+
+	TINY_API bool  setupSystem();
 	TINY_API void  shutdownSystem(bool bDeferred = true, bool bReInit = false);
 
 	TINY_API bool  beginFrame();
@@ -97,7 +100,8 @@ public:
 	bool        bWasUsedPlatformGraphics = false;
 private:
 	void        setupBuffer( int w , int h );
-	bool        setupSystemInternal(ERenderSystem systemName, bool bForceRHI);
+	bool        setupSystemInternal(ERenderSystem systemName, bool bForceRHI, bool bSetupDeferred = false);
+	void        createRHIGraphics();
 
 	bool        mbInitialized;
 	bool        bRHIShutdownDeferred;
@@ -119,6 +123,8 @@ private:
 	ERenderSystem mSystemName = ERenderSystem::None;
 	ERenderSystem mLastRHIName = ERenderSystem::None;
 	WindowsGLContext*  mGLContext = nullptr;
+
+	bool bRHIGraphicsInitialized = false;
 	std::unique_ptr< RHIGraphics2D > mRHIGraphics;
 
 };

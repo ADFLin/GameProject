@@ -26,7 +26,7 @@ END_SCHDULE()
 DEFINE_AI_ACTION_SCHEDULE( CNPCBase , SCHE_ATTACK  )
 	ADD_TASK( TASK_STOP_MOVE        , 0 )
 	ADD_TASK( TASK_SET_EMPTY_TRAGET , 0 )
-	ADD_TASK( TASK_FACE_TARGET      , Math::Deg2Rad( 20.0f ) )
+	ADD_TASK( TASK_FACE_TARGET      , Math::DegToRad( 20.0f ) )
 	ADD_TASK( TASK_ATTACK           , 0 )
 	ADD_TASK( TASK_WAIT_ATTACK      , 0 )
 END_SCHDULE()
@@ -256,7 +256,7 @@ void CNPCBase::getherEmptyCondition()
 
 	float angle = UM_PlaneAngle( getFaceDir() ,getPosition() , m_hEmpty->getPosition() );
 
-	if ( fabs( angle ) < Math::Deg2Rad( 45 ) )
+	if ( fabs( angle ) < Math::DegToRad( 45 ) )
 	{
 		addCondition( CDT_EMPTY_IN_ATTACK_ANGLE );
 	}

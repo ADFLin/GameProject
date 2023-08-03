@@ -202,6 +202,8 @@ namespace Render
 			TComPtr<ID3DBlob>& byteCode = shaderIntermediates.codeList[i];
 			uint8 shaderType = shaderData.type;
 			serializer.write(shaderType);
+			uint32 size = byteCode->GetBufferSize();
+			serializer.write(size);
 			serializer.write(byteCode->GetBufferPointer(), byteCode->GetBufferSize());
 		}
 

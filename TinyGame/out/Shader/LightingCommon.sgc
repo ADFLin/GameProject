@@ -125,7 +125,8 @@ float3 StandardShading(float3 diffuseColor, float3 specularColor, float3 lobeRou
 #if 0
 	// Generalized microfacet specular
 	float D = D_GGX(lobeRoughness[1], NoH) * lobeEnergy[1];
-	float Vis = Vis_SmithJointApprox(lobeRoughness[1], NoV, NoL);
+	float Vis = Vis_SmithJointApprox(lobeRoughness[1], NoV, 
+		NoL);
 	float3 F = F_Schlick(specularColor, VoH);
 
 	float3 diffuse = Diffuse_Lambert(diffuseColor);

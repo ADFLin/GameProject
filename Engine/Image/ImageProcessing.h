@@ -152,6 +152,21 @@ void Fill(TImageView<T>& inoutput, TVector2<int> const& pos, TVector2<int> const
 		}
 	}
 }
+template< class T >
+T Max(TImageView<T> const& input)
+{
+	T result = 0;
+	for (int y = 0; y < input.getHeight(); ++y)
+	{
+		for (int x = 0; x < input.getWidth(); ++x)
+		{
+			T value = input(x, y);
+			if (value > result)
+				result = value;
+		}
+	}
+	return result;
+}
 
 struct HoughLine
 {
@@ -165,6 +180,8 @@ struct HoughSetting
 {
 	float threshold = 0.60;
 };
+
+
 
 void Normalize(TImageView< float >& input);
 

@@ -383,9 +383,9 @@ namespace Big2 {
 		g.translateXForm( pos.x , pos.y );
 		switch( tPos )
 		{
-		case TPOS_LEFT:   g.rotateXForm(Math::Deg2Rad(90.0)); break;
-		case TPOS_FRONT:  g.rotateXForm(Math::Deg2Rad(180.0)); break;
-		case TPOS_RIGHT:  g.rotateXForm(Math::Deg2Rad(270.0)); break;
+		case TPOS_LEFT:   g.rotateXForm(Math::DegToRad(90.0)); break;
+		case TPOS_FRONT:  g.rotateXForm(Math::DegToRad(180.0)); break;
+		case TPOS_RIGHT:  g.rotateXForm(Math::DegToRad(270.0)); break;
 		}
 		int offset = 15;
 		Vec2i lPos;

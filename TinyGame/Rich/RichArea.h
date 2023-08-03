@@ -12,6 +12,10 @@
 
 namespace Rich
 {
+
+	int const STATION_GROUP = 0;
+
+
 	class LandArea;
 	class StationArea;
 	class CardArea;
@@ -19,7 +23,10 @@ namespace Rich
 	class StartArea;
 	class ComponyArea;
 	class StoreArea;
+	class JailArea;
+	class ActionEventArea;
 
+	struct AreaGroupInfo;
 	enum StationType
 	{
 		STATION_TRAIN ,
@@ -43,6 +50,11 @@ namespace Rich
 		virtual void visit( StartArea& area ){}
 		virtual void visit( ComponyArea& area ){}
 		virtual void visit( StoreArea& area ){}
+		virtual void visit( JailArea& area) {}
+		virtual void visit( ActionEventArea& area) {}
+
+
+		void visitWorld(World& world);
 	};
 
 #define ACCEPT_VISIT()\
@@ -64,6 +76,7 @@ namespace Rich
 
 
 	class OwnableArea : public Area
+		              , public PlayerAsset
 	{
 	public:
 		OwnableArea()
@@ -71,6 +84,13 @@ namespace Rich
 			mOwner = nullptr;
 		}
 		Player*  getOwner(){ return mOwner; }
+		void     setOwner(Player& player)
+		{
+			mOwner = &player;
+		}
+
+		Area* getAssetArea() { return this; }
+		void releaseAsset() override {}
 	protected:
 		Player*  mOwner;
 	};
@@ -90,60 +110,94 @@ namespace Rich
 		{
 			String name;
 			int    basePrice;
+			int    motgageCost;
+			TArray<int> tolls;
+			int    upgradeCost;
+			int    group;
 		};
 		Info& getInfo(){  return mInfo; }
 
 		char const* getName() const { return mInfo.name.c_str(); }
 
-		Player* getOwner() { return mOwner;  }
-		void    setOwner( Player& player )
-		{
-			mOwner = &player;
-		}
+
 		int calcPrice( Player const& player ) const 
 		{
-			return mInfo.basePrice;
+			return mInfo.basePrice * ( mLevel + 1 );
 		}
-		int calcToll( Player const&  player ) const 
+		int calcToll( Player const&  player ) const;
+
+		int calcUpgradeCost(Player const& player) const
 		{
-			return 0;
+			return mInfo.upgradeCost;
 		}
 
-		int calcUpdateCost( Player const&  player ) const
-		{
-			return 0;
-		}
-
-		void onPlayerStay( PlayerTurn& turn );
+		void onPlayerStay( PlayerTurn& turn, Player& player);
 
 
 		void upgradeLevel()
 		{
-
+			mLevel += 1;
 		}
 
+		int getMaxLevel() const
+		{
+			return mInfo.tolls.size() - 1;
+		}
 
 		Info    mInfo;
-		int     mLevel;
-		
+		int     mLevel = 0;	
+
+		int getAssetValue() override;
+		void changeOwner(Player* player) override;
+
+
+		void reset() override
+		{
+			mLevel = 0;
+			mOwner = nullptr;
+		}
+
+		bool isGroupOwned( World& world ) const;
+
+		void install(World& world) override;
+
 	};
 
 
-	class StoreArea : public Area
-	{
-	public:
-		void onPlayerStay( PlayerTurn& turn );
+	class StationArea : public OwnableArea
 
-		StoreType mType;
-	};
-
-	class ComponyArea : public Area
 	{
 	public:
 		ACCEPT_VISIT();
 
+		struct Info
+		{
+			String name;
+			int    basePrice;
+			int    motgageCost;
+			TArray<int> tolls;
+		};
+
+		void onPlayerStay(PlayerTurn& turn, Player& player);
+
+		void install(World& world) override;
+		int calcPrice(Player const& player) const
+		{
+			return mInfo.basePrice;
+		}
+		int calcToll(Player const& player) const;
+
+		int getGroupNum(World& world) const;
+
+		Info mInfo;
+
+		int getAssetValue() override;
+		void changeOwner(Player* player) override;
+
 	};
-	class StationArea : public Area
+
+
+	class ComponyArea : public Area
 	{
 	public:
 		ACCEPT_VISIT();
@@ -154,23 +208,14 @@ namespace Rich
 	enum CardGroup
 	{
 		CG_CHANCE ,
-		CG_DESTINY ,
+		CG_COMMUNITY ,
 	};
 
 	class CardArea : public Area
 	{
 	public:
 		ACCEPT_VISIT();
-		void onPlayerStay( PlayerTurn& turn )
-		{
-			switch( mGroup )
-			{
-			case CG_CHANCE:
-				break;
-			case CG_DESTINY:
-				break;
-			}
-		}
+		void onPlayerStay( PlayerTurn& turn, Player& player);
 		CardGroup mGroup;
 	};
 
@@ -179,10 +224,44 @@ namespace Rich
 	public:
 		ACCEPT_VISIT();
 		void onPlayerPass( PlayerTurn& turn );
-		void onPlayerStay( PlayerTurn& turn );
+		void onPlayerStay( PlayerTurn& turn, Player& player);
+	};
 
-		void giveMoney( Player& player );
-		int money;
+	class JailArea : public Area
+	{
+	public:
+		ACCEPT_VISIT();
+		void install(World& world) override;
+	};
+
+	class ActionEvent;
+	class ActionEventArea : public Area
+	{
+	public:
+		ACCEPT_VISIT();
+		virtual ActionEvent& getEvent() = 0;
+	};
+
+	template< typename TEvent >
+	class TActionEventArea : public ActionEventArea
+	{
+	public:
+		void onPlayerStay(PlayerTurn& turn, Player& player) override
+		{
+			mEvent.doAction(&player, turn);
+		}
+
+		ActionEvent& getEvent() { return mEvent; }
+		TEvent mEvent;
+	};
+
+
+	class StoreArea : public Area
+	{
+	public:
+		void onPlayerStay(PlayerTurn& turn, Player& player);
+
+		StoreType mType;
 	};
 
 }//namespace Rich

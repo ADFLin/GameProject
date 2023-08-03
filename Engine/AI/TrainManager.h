@@ -6,7 +6,7 @@
 #include "AI/GeneticAlgorithm.h"
 
 #include "Serialize/DataStream.h"
-#include "AsyncWork.h"
+#include "Async/AsyncWork.h"
 
 #include <functional>
 
@@ -47,7 +47,7 @@ namespace AI
 		int index;
 		FCNeuralNetwork FNN;
 		GenotypePtr     genotype;
-		NNScalar*       inputsAndSignals = nullptr;
+		NNScalar*       signals = nullptr;
 		AgentEntity*    entity = nullptr;
 
 		void init(FCNNLayout const& layout);
@@ -106,12 +106,12 @@ namespace AI
 		int    generation;
 		TrainAgent* bestAgent = nullptr;
 
-		TArray< NNScalar > bestInputsAndSignals;
+		TArray< NNScalar > mSignals;
 		//uint8* bestInputsAndSignals;
 
-		NNScalar* getBestInputsAndSignals()
+		NNScalar* getBestSignals()
 		{
-			return bestInputsAndSignals.data();
+			return mSignals.data();
 			//return (NNScalar*)((intptr_t(bestInputsAndSignals) + 15) & ~15);
 		}
 		TArray< std::unique_ptr< TrainAgent > > mAgents;

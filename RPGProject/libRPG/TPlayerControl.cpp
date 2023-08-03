@@ -35,7 +35,7 @@ PlayerControl::PlayerControl( CameraView* cam  , CGameUI* gameUI , CHero* player
 	maxRotateAngle = player->getMaxRotateAngle();
 	autoMoveTime   = 2.5;
 	idleTime   = 0;
-	turnAngle  = Math::Deg2Rad( 3 );
+	turnAngle  = Math::DegToRad( 3 );
 	controlBit = 0;
 }
 
@@ -236,7 +236,7 @@ void PlayerControl::updateMove()
 			}
 		}
 
-		if ( angle < Math::Deg2Rad(60) )
+		if ( angle < Math::DegToRad(60) )
 			mPlayer->moveFront( moveOffset );
 	}
 	else
@@ -288,7 +288,7 @@ void PlayerControl::updateCamera()
 
 		ObjLookDir = mPlayer->getFaceDir();
 
-		mCamControl.setTurnSpeed( Math::Deg2Rad(90) );
+		mCamControl.setTurnSpeed( Math::DegToRad(90) );
 	}
 	else if ( m_state == CAMS_AUTO_MOVE )
 	{
@@ -297,7 +297,7 @@ void PlayerControl::updateCamera()
 		ObjLookDir[2] = 0;
 		ObjLookDir.normalize();
 
-		mCamControl.setTurnSpeed( Math::Deg2Rad(90) );
+		mCamControl.setTurnSpeed( Math::DegToRad(90) );
 	}
 
 	//m_camera->move( actor->getPosition() , goalCamPos ,ObjLookDir );
@@ -336,7 +336,7 @@ void PlayerControl::setCamera( CameraView* camera )
 
 	mCamControl.setObjLookDist( 0 );
 	mCamControl.setCamToObjDist( 300 );
-	mCamControl.setMoveAnglurSpeed( Math::Deg2Rad( 90 ) );
+	mCamControl.setMoveAnglurSpeed( Math::DegToRad( 90 ) );
 	mCamControl.setObjLookDist( 60 );
 }
 

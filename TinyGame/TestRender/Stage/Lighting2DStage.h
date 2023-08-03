@@ -93,8 +93,8 @@ namespace Render
 	{
 		using BaseClass = TestRenderStageBase;
 
-		using LightList = std::vector< Light >;
-		using BlockList = std::vector< Block >;
+		using LightList = TArray< Light >;
+		using BlockList = TArray< Block >;
 	public:
 
 		enum
@@ -110,7 +110,7 @@ namespace Render
 		LightingShadowProgram mProgShadow;
 		Lighting2DTestStage(){}
 
-		std::vector< Vector2 > mBuffers;
+		TArray< Vector2 > mBuffers;
 
 		bool bShowShadowRender = false;
 		bool bUseGeometryShader = true;

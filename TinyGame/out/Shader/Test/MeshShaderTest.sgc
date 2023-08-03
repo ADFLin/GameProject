@@ -230,23 +230,23 @@ layout(std430) buffer VertexIndicesBlock
 	restrict readonly uint VertexIndices[];
 };
 
-struct VertexData
+struct MeshVertexData
 {
 	float3 pos;
 	float3 normal;
 	float4 tangent;
 };
 
-layout(std430) buffer VertexDataBlock
+layout(std430) buffer MeshVertexDataBlock
 {
-	restrict readonly float Vertices[];
+	restrict readonly float MeshVertices[];
 };
 
 
-VertexData GetVerexData(uint index)
+MeshVertexData GetVerexData(uint index)
 {
 	uint offset = index * 10;
-	VertexData data;
+	MeshVertexData data;
 	data.pos = float3(Vertices[offset + 0], Vertices[offset + 1], Vertices[offset + 2]);
 	data.normal = float3(Vertices[offset + 3], Vertices[offset + 4], Vertices[offset + 5]);
 	data.tangent = float4(Vertices[offset + 6], Vertices[offset + 7], Vertices[offset + 8], Vertices[offset + 9]);
@@ -305,7 +305,7 @@ void MainMS()
 	{
 		uint index = VertexIndices[meshlet.vertexOffset + i];
 
-		VertexData vertex = GetVerexData(index);
+		MeshVertexData vertex = GetVerexData(index);
 		float4 worldPos = LocalToWorld * float4(vertex.pos, 1);
 		gl_MeshVerticesNV[i].gl_Position = View.worldToClip * worldPos;
 		MSOutput[i].color = mcolor;
@@ -336,7 +336,7 @@ void MainMS()
 	{
 		uint index =  min( vertexCountThread * tID + i, meshlet.vertexCount - 1);
 		uint vertexIndex = VertexIndices[meshlet.vertexOffset + index];
-		VertexData vertex = GetVerexData(vertexIndex);
+		MeshVertexData vertex = GetVerexData(vertexIndex);
 		float4 worldPos = LocalToWorld * float4(vertex.pos, 1);
 		gl_MeshVerticesNV[index].gl_Position = View.worldToClip * worldPos;
 

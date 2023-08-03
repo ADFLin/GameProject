@@ -170,14 +170,14 @@ namespace Render
 
 		void freeSlot(uint slotIndex);
 
-		D3D12HeapPoolData* owner;
+		D3D12HeapPoolData* owner = nullptr;
 		
 		TComPtr< ID3D12DescriptorHeap > resource;
 		uint elementSize;
 		uint numElements;
 		uint numElementsUasge;
 		TArray< uint32 > mUsageMask;
-		
+
 		static constexpr D3D12HeapPoolChunk* NoLinkPtr = (D3D12HeapPoolChunk*)INT_PTR(-1);
 		D3D12HeapPoolChunk* next = NoLinkPtr;
 
@@ -255,7 +255,7 @@ namespace Render
 		}
 		void freeHandle(D3D12PooledHeapHandle& handle)
 		{
-			handle.chunk->fetchFreeSlot(handle.chunkSlot);
+			handle.chunk->freeSlot(handle.chunkSlot);
 			if (handle.chunk->next == D3D12HeapPoolChunk::NoLinkPtr)
 			{
 				handle.chunk->next = availableChunk;

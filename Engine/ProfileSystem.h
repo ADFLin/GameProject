@@ -34,6 +34,12 @@
 
 #define  CLOCK_EPSILON 1e-6
 
+inline double Profile_GetTickRate()
+{
+	//	return 1000000.f;
+	return 1000.f;
+}
+
 class ProfileSystem;
 
 
@@ -43,6 +49,13 @@ enum ProfileFlag
 	PROF_DISABLE_THIS     = 2,
 	PROF_DISABLE_CHILDREN = 4,
 	PROF_FORCCE_ENABLE    = 8,
+};
+
+
+struct ProfileTimestamp
+{
+	uint64 start;
+	uint64 end;
 };
 
 class ProfileSampleNode
@@ -60,15 +73,22 @@ public:
 	ProfileSampleNode*    getChild() { return mChild; }
 
 	char const*    getName() const { return mName; }
-	int	           getTotalCalls() const { return mTotalCalls; }
-	int            getFrameCalls() const { return mFrameCalls; }
-	double         getTotalTime() const { return mTotalTime; }
-	double         getLastFrameTime() const { return mLastFrameTime; }
+	int	           getTotalCalls() const { return getReadData().callCountTotal; }
+	int            getFrameCalls() const { return getReadData().callCount; }
+	double         getTotalTime() const { return getReadData().execTimeTotal; }
+	double         getFrameExecTime() const { return getReadData().execTime; }
+	TArray<ProfileTimestamp> const& getFrameTimestamps() const { return getReadData().timestamps; }
+	double         getLastFrame() const { return getReadData().frame; }
 	void           showChild(bool beShow) { mIsShowChild = beShow; }
 	bool           isShowChild() const { return mIsShowChild; }
 	void           showAllChild(bool beShow);
 
+
+	CORE_API static int GetReadIndex();
+	CORE_API static int GetWriteIndex();
+
 protected:
+
 
 	void  addSubNode(ProfileSampleNode* node)
 	{
@@ -79,18 +99,51 @@ protected:
 
 	void				unlink();
 	void				reset();
+	void                resetFrame();
 	void				notifyCall();
 	bool				notifyReturn();
+	void                notifyPause(uint64 tick);
+	void                notifyResume();
+	
 
-	int                 mLastCallFrame;
-	int                 mFrameCalls;
-	int				    mTotalCalls;
-	double			    mTotalTime;
-	double              mLastFrameTime;
+	struct FrameData
+	{
+		uint64 frame;
+		int    callCount;
+		int    callCountTotal;
+
+		double execTime;
+		double execTimeTotal;
+
+		TArray<ProfileTimestamp> timestamps;
+
+		void resetFrame()
+		{
+			execTime = 0;
+			callCount = 0;
+			timestamps.clear();
+		}
+		void reset()
+		{
+			resetFrame();
+			execTimeTotal = 0;
+			callCountTotal = 0;
+		}
+	};
+
+	FrameData const& getReadData() const
+	{
+		return mRecoredData[GetReadIndex()];
+	}
+
+
+	FrameData           mRecoredData[2];
+
+
+	uint64              mLastRecordFrame;
 	uint64           	mStartTime;
 
 	const char *	    mName;
-	uint64              mTimestamp[2];
 
 	int				    mRecursionCounter;
 	bool                mIsShowChild;
@@ -109,6 +162,8 @@ class ProfileSystem
 public:
 	CORE_API static ProfileSystem& Get();
 
+	virtual bool   isEnabled() = 0;
+	virtual void   setEnabled(bool bNewEnabled) = 0;
 	virtual void   cleanup() = 0;
 	virtual void   resetSample() = 0;
 

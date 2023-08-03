@@ -5,7 +5,7 @@
 
 #include "PerlinNoise.h"
 #include "ProfileSystem.h"
-#include "AsyncWork.h"
+#include "Async/AsyncWork.h"
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/D3D11Command.h"
 

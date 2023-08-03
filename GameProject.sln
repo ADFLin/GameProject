@@ -84,6 +84,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameGreedySnake", "TinyGame\GameGreedySnake.vcxproj", "{8AC389E4-51DA-4AE8-BB83-43E5AA6C9E1D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameRich", "TinyGame\GameRich.vcxproj", "{0FC31442-0344-4DF8-93D8-69D5C658D040}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B44B3265-BE59-4382-A519-CD347A8D560F} = {B44B3265-BE59-4382-A519-CD347A8D560F}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GLZuma", "Zuma\GLZuma.vcxproj", "{942FBB1F-5CED-4B80-B085-521D3225D524}"
 EndProject
@@ -135,6 +138,11 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestMisc", "TinyGame\TestMisc.vcxproj", "{C1CA0F43-5C21-4B67-B516-CEE82A329333}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestRender", "TinyGame\TestRender.vcxproj", "{3AB44AFB-E463-4506-B2A1-62AC45B58A17}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7EC6733C-3ECD-4C69-A8DC-DC11C0ED8321} = {7EC6733C-3ECD-4C69-A8DC-DC11C0ED8321}
+		{D4A8C158-1D66-4F50-BC31-EC5789098431} = {D4A8C158-1D66-4F50-BC31-EC5789098431}
+		{D400FD7C-3D3A-47E2-992E-F6AA70E4192B} = {D400FD7C-3D3A-47E2-992E-F6AA70E4192B}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestWorking", "TinyGame\TestWorking.vcxproj", "{08264290-5951-496C-87F1-17681A758D17}"
 	ProjectSection(ProjectDependencies) = postProject

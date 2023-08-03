@@ -217,7 +217,7 @@ namespace Render
 
 		static int const IdxTextureAutoBindStart = 2;
 
-
+		void markRenderStateDirty();
 	
 		GLenum commitPrimitiveState(EPrimitive type)
 		{
@@ -378,6 +378,7 @@ namespace Render
 		class ShaderFormat* createShaderFormat();
 		bool RHIBeginRender();
 		void RHIEndRender(bool bPresent);
+
 		RHICommandList&  getImmediateCommandList()
 		{
 			return *mImmediateCommandList;

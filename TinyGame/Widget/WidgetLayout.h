@@ -2,20 +2,6 @@
 #define WidgetLayout_h__
 
 
-enum class EVerticalAlign
-{
-	Top ,
-	Bottom ,
-	Center ,
-	Fill ,
-};
-enum class EHorizontalAlign
-{
-	Left,
-	Right,
-	Center,
-	Fill,
-};
 
 class GWidget;
 

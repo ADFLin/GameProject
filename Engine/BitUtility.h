@@ -27,6 +27,7 @@ public:
 	static uint32 NextNumberOfPow2( uint32 n);
 
 	static uint32 Reverse(uint32 n);
+	static uint64 Reverse(uint64 n);
 
 	static int ToIndex4(unsigned bit);
 	static int ToIndex8(unsigned bit);

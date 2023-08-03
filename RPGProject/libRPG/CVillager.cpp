@@ -14,7 +14,7 @@
 
 
 DEFINE_AI_ACTION_SCHEDULE( CVillager , SCHE_SELL_ITEMS )
-	ADD_TASK( TASK_FACE_TARGET       , Math::Deg2Rad( 10 ) )
+	ADD_TASK( TASK_FACE_TARGET       , Math::DegToRad( 10 ) )
 	ADD_TASK( TASK_TALK              , 1 )
 	ADD_TASK( TASK_WAIT              , 1.0f )
 	ADD_TASK( TASK_TRADE_ITEMS       , 0 )
@@ -25,7 +25,7 @@ DEFINE_AI_ACTION_SCHEDULE( CVillager , SCHE_SELL_ITEMS )
 END_SCHDULE()
 
 DEFINE_AI_ACTION_SCHEDULE( CVillager , SCHE_SAY_HOLLOW )
-	ADD_TASK( TASK_FACE_TARGET       , Math::Deg2Rad( 10 ) )
+	ADD_TASK( TASK_FACE_TARGET       , Math::DegToRad( 10 ) )
 	ADD_TASK( TASK_TALK              , 3 )
 	ADD_TASK( TASK_WAIT_TALK         , 0 )
 END_SCHDULE()

@@ -68,7 +68,7 @@ class StageDesigner : public IStageManage
 		void doSetupFunc( Impl& impl , Stage& newStage , StageEvent& event ) = 0;
 	};
 
-	template < class SrcStage , class DstStage , class Event , void (Impl::*setupFun)( event& ) >
+	template < class SrcStage , class DstStage , class Event , void (Impl::*setupFunc)( event& ) >
 	class Rule : public IRule
 	{
 		void changeStage( Impl& impl)
@@ -77,7 +77,7 @@ class StageDesigner : public IStageManage
 		}
 		void doSetupFunc( Impl& impl , Stage& newStage , StageEvent& event )
 		{
-			(impl.*setupFun)( newStage , event );
+			(impl.*setupFunc)( newStage , event );
 		}
 	};
 

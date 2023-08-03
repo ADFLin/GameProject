@@ -1,33 +1,34 @@
 #include "Common.sgc"
 
-struct OutputVSParam
+struct VSOutputParameters
 {
-	float4 color;
+	float4 color MEMBER_OUT(TEXCOORD0);
 };
 
 #if VERTEX_SHADER
 
-uniform mat4 VertexTransform;
+uniform float4x4 VertexTransform;
 
-layout(location = ATTRIBUTE_POSITION) in float4 InPos;
-layout(location = ATTRIBUTE_COLOR) in float4 InColor;
-
-out OutputVSParam OutputVS;
-void MainVS()
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float4 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
 {
-	gl_Position = VertexTransform * InPos;
-	OutputVS.color = InColor;
+	SvPosition = mul( VertexTransform , InPos);
+	VSOutput.color = InColor;
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-layout(location = 0) out float4 OutColor;
-in OutputVSParam OutputVS;
-void MainPS()
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
 {
-	OutColor = float4(OutputVS.color.rgb, 1);
+	OutColor = float4(VSOutput.color.rgb, 1);
 }
 
 #endif //PIXEL_SHADER

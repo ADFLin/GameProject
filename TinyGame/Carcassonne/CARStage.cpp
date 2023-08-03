@@ -874,7 +874,7 @@ namespace CAR
 									break;
 								}
 							}
-							mTileShowObject->setLocalOrientation( CFly::CF_AXIS_Z , Math::Deg2Rad( mRotation * 90 ) );
+							mTileShowObject->setLocalOrientation( CFly::CF_AXIS_Z , Math::DegToRad( mRotation * 90 ) );
 						}
 						mTileShowObject->setLocalPosition( CFly::Vector3( pos.x , pos.y , 0 ) );
 						mTileShowObject->show( level.findMapTile( pos ) == nullptr );
@@ -907,7 +907,7 @@ namespace CAR
 					{
 						mRotation = ( mRotation + 1 ) % FDir::TotalNum;
 					}
-					mTileShowObject->setLocalOrientation( CFly::CF_AXIS_Z , Math::Deg2Rad( mRotation * 90 ) );
+					mTileShowObject->setLocalOrientation( CFly::CF_AXIS_Z , Math::DegToRad( mRotation * 90 ) );
 					break;
 				}
 			}
@@ -1389,7 +1389,7 @@ namespace CAR
 			float x = mapTile.pos.x;
 			float y = mapTile.pos.y;
 			obj->setLocalPosition(Vector3(x, y, 0));
-			obj->setLocalOrientation(CF_AXIS_Z, Math::Deg2Rad(90 * mapTile.rotation));
+			obj->setLocalOrientation(CF_AXIS_Z, Math::DegToRad(90 * mapTile.rotation));
 			createTileMesh(obj, id);
 			//obj->setRenderOption( CFRO_CULL_FACE , CF_CULL_NONE );
 

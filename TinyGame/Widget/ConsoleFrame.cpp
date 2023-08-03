@@ -82,6 +82,7 @@ MsgReply ConsoleCmdTextCtrl::onCharMsg(unsigned code)
 	return BaseClass::onCharMsg(code);
 }
 
+
 MsgReply ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
 {
 	if (!msg.isDown())
@@ -183,16 +184,19 @@ MsgReply ConsoleCmdTextCtrl::onKeyMsg(KeyMsg const& msg)
 
 void ConsoleCmdTextCtrl::setFoundCmdToText()
 {
+	auto& str = mFoundCmds[mIndexFoundCmdUsed];
+
 	if (mNamespace.empty() == false &&
-		FCString::CompareN(mFoundCmds[mIndexFoundCmdUsed].c_str(), mNamespace.c_str(), mNamespace.length()) == 0)
+		FCString::CompareN(str.c_str(), mNamespace.c_str(), mNamespace.length()) == 0)
 	{
-		setValue(mFoundCmds[mIndexFoundCmdUsed].c_str() + mNamespace.length() + 1);
+		setValue(str.c_str() + mNamespace.length() + 1);
 		appendValue(" ");
 		return;
 	}
 
-	setValue(mFoundCmds[mIndexFoundCmdUsed].c_str());
-	if (mFoundCmds[mIndexFoundCmdUsed].back() != '.')
+	setValue(str.c_str());
+
+	if (str.back() != '.')
 		appendValue(" ");
 }
 

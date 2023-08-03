@@ -73,13 +73,14 @@ namespace Render
 	public:
 
 		static int const MaxVertexSize = 1024;
-		bool init();
-		void draw(RenderContext& context, SimpleVertex* vertices, int numVertices);
 
-		ShaderProgram mShader;
+		bool initializeRHI();
+		void releaseRHI();
+		void draw(RHICommandList& commandList, ViewInfo& view, SimpleVertex* vertices, int numVertices);
+
+		ShaderProgram*     mProgram = nullptr;
 		RHIInputLayoutRef  mInputLayout;
-
-		RHIBufferRef mVertexBuffer;
+		RHIBufferRef       mVertexBuffer;
 	};
 
 	class PrimitivesCollection
@@ -105,10 +106,16 @@ namespace Render
 		}
 
 		void drawDynamic(RenderContext& context);
+		void drawDynamic(RHICommandList& commandList, ViewInfo& view);
+
+
+		void initializeRHI();
+		void releaseRHI();
+
 		TArray< MeshBatch > mMeshBatchs;
 		TArray< LineBatch > mLineBatchs;
 
-		TArray< SimpleVertex > mCacheBuffer;
+
 	};
 
 

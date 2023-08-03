@@ -5,8 +5,11 @@
 #include "Core/StringConv.h"
 #include "Core/Memory.h"
 
+#include "ConsoleSystem.h"
+
 namespace Go
 {
+	TConsoleVariable<bool> CVarLogGTPOuput( false , "go.LogGTPOutput" , CVF_TOGGLEABLE);
 
 	unsigned CGameOutputThread::run()
 	{
@@ -209,7 +212,10 @@ namespace Go
 
 	bool GTPOutputThread::parseLine(char* buffer, int num)
 	{
-		//LogMsg("%s", buffer);
+		if (CVarLogGTPOuput)
+		{
+			LogMsg("%s", buffer);
+		}
 
 		GTPCommand com = getHeadRequest();
 		if (com.id != GTPCommand::eNone && bDumping == false)

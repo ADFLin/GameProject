@@ -14,7 +14,7 @@
 #include "Template/ArrayView.h"
 #include "Core/StringConv.h"
 #include "Meta/EnableIf.h"
-#include "Misc/StringPtrWrapper.h"
+#include "Misc/CStringWrapper.h"
 
 #include <string>
 #include <map>
@@ -27,7 +27,7 @@ enum EConsoleVariableFlag
 {
 	CVF_CONFIG        = 1 << 0,
 	CVF_TOGGLEABLE    = 1 << 1,
-	CVF_CAN_OMIT_ARGS = 1 << 2,
+	CVF_ALLOW_IGNORE_ARGS = 1 << 2,
 };
 
 struct ConsoleArgTypeInfo
@@ -395,12 +395,12 @@ protected:
 		std::string errorMsg;
 	};
 
-	bool fillArgumentData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bCanOmitArgs);
+	bool fillArgumentData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs);
 	bool executeCommandImpl(ExecuteContext& context);
 #if 0
 	using CommandMap = std::map< TStringPtrWrapper<char, true> , ConsoleCommandBase* >;
 #else
-	using CommandMap = std::unordered_map< TStringPtrWrapper<char, true>, ConsoleCommandBase*, MemberFuncHasher>;
+	using CommandMap = std::unordered_map< TCStringWrapper<char, true>, ConsoleCommandBase*, MemberFuncHasher>;
 #endif
 	CommandMap   mNameMap;
 	bool         mbInitialized = false;
@@ -430,7 +430,7 @@ public:
 	}
 
 	T const& getValue() const { return mValue; }
-	TConsoleVariable operator = ( T const& val ){   mValue = val;   }
+	TConsoleVariable& operator = (T const& val) { mValue = val;  return *this;  }
 	operator T(){ return mValue; }
 
 	TVariableConsoleCommad<T>* mCommand = nullptr;

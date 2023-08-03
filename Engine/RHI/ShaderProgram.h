@@ -212,6 +212,11 @@ namespace Render
 		}
 		bool getParameter(char const* name, ShaderParameter& outParam);
 
+		void preInitialize()
+		{
+			mBoundedBlocks.clear();
+		}
+
 		TArray< StructuredBlockInfo > mBoundedBlocks;
 
 	public:

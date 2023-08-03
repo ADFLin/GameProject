@@ -136,7 +136,7 @@ namespace ODE
 		};
 
 
-#define DFINE_EXPR_OP( NAME , OP )\
+#define DEFINE_EXPR_OP( NAME , OP )\
 		template < typename LV , typename RV >\
 		struct NAME\
 		{\
@@ -167,9 +167,9 @@ namespace ODE
 			using RefType = NAME< LV , RV >;\
 		};
 
-		DFINE_EXPR_OP(TExprAdd, +);
-		DFINE_EXPR_OP(TExprSub, -);
-		DFINE_EXPR_OP(TExprMul, *);
+		DEFINE_EXPR_OP(TExprAdd, +);
+		DEFINE_EXPR_OP(TExprSub, -);
+		DEFINE_EXPR_OP(TExprMul, *);
 	}
 
 	class TestStage : public StageBase

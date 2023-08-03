@@ -17,6 +17,8 @@ namespace Render
 		Matrix4  viewToClip;
 		Matrix4  clipToView;
 		Matrix4  clipToWorld;
+		Matrix4  translatedWorldToClip;
+		Matrix4  clipToTranslatedWorld;
 		Matrix4  worldToClipPrev;
 
 		Vector4  frustumPlanes[6];
@@ -51,6 +53,8 @@ namespace Render
 			data.viewToClip = viewToClip;
 			data.clipToView = clipToView;
 			data.clipToWorld = clipToWorld;
+			data.translatedWorldToClip = translatedWorldToClip;
+			data.clipToTranslatedWorld = clipToTranslatedWorld;
 			data.worldToClipPrev = worldToClipPrev;
 			data.gameTime = gameTime;
 			data.realTime = realTime;
@@ -72,18 +76,53 @@ namespace Render
 		mUniformBuffer.release();
 	}
 
+	void ViewInfo::setupTransform(Vector3 const& viewPos, Quaternion const& viewRotation, Matrix4 const& inProjectMatrix)
+	{
+		float det;
+		worldToClipPrev = worldToClip;
+
+		Matrix4 translatedWorldToView = LookAtMatrix(viewRotation.rotate(FRenderView::FrontDirection()), viewRotation.rotate(FRenderView::UpDirection()));
+		viewToTranslatedWorld = translatedWorldToView.getTranspose();
+
+		worldToView = Matrix4::Translate(-viewPos) * translatedWorldToView;
+		viewToWorld = viewToTranslatedWorld * Matrix4::Translate(viewPos);
+
+		worldPos   = viewPos;
+		viewToClip = AdjProjectionMatrixForRHI(inProjectMatrix);
+		worldToClip = worldToView * viewToClip;
+
+		translatedWorldToClip = translatedWorldToView * viewToClip;
+
+		viewToClip.inverse(clipToView, det);
+		clipToTranslatedWorld = clipToView * viewToTranslatedWorld;
+		clipToWorld = clipToView * viewToWorld;
+
+		direction = getViewForwardDir();
+
+		updateFrustumPlanes();
+
+		mbDataDirty = true;
+	}
+
 	void ViewInfo::setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix)
 	{
+		float det;
 		worldToClipPrev = worldToClip;
 
 		worldToView = inViewMatrix;
-		float det;
+
+		Matrix4 translatedWorldToView = worldToView;
+		translatedWorldToView.setTranslation(Vector3::Zero());
+		viewToTranslatedWorld = translatedWorldToView.getTranspose();
+
 		worldToView.inverse(viewToWorld, det);
 		worldPos = TransformPosition(Vector3(0, 0, 0), viewToWorld);
 		viewToClip = AdjProjectionMatrixForRHI(inProjectMatrix);
 		worldToClip = worldToView * viewToClip;
 
+		translatedWorldToClip = translatedWorldToView * viewToClip;
 		viewToClip.inverse(clipToView, det);
+		clipToTranslatedWorld = clipToView * viewToTranslatedWorld;
 		clipToWorld = clipToView * viewToWorld;
 
 		direction = getViewForwardDir();

@@ -2,11 +2,13 @@
 #define RichGame_h__
 
 #include "GameModule.h"
+#include "GameRenderSetup.h"
 
 namespace Rich
 {
 
 	class GameModule : public IGameModule
+		             , public IGameRenderSetup
 	{
 	public:
 
@@ -14,7 +16,30 @@ namespace Rich
 		void  enter() override {}
 		void  exit() override {}
 		//
-		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
+		void endPlay() override;
+
+		bool queryAttribute(GameAttribute& value) override;
+
+		//IGameRenderSetup
+		ERenderSystem getDefaultRenderSystem()
+		{
+			return ERenderSystem::D3D11;
+		}
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
+		{
+			systemConfigs.bWasUsedPlatformGraphics = true;
+		}
+		bool setupRenderSystem(ERenderSystem systemName) override
+		{
+			return true;
+		}
+		void preShutdownRenderSystem(bool bReInit) override
+		{
+
+		}
+
+		//~IGameRenderSetup
 	public:
 		virtual char const*           getName(){ return "Rich"; }
 		virtual InputControl&         getInputControl(){ return IGameModule::getInputControl(); }

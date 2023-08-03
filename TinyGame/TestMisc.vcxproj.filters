@@ -3,9 +3,6 @@
   <ItemGroup>
     <ClCompile Include="TestMisc\TestMisc.cpp" />
     <ClCompile Include="TestMisc\TestMiscPCH.cpp" />
-    <ClCompile Include="TestMisc\Test\FunctionFitTest.cpp">
-      <Filter>Test</Filter>
-    </ClCompile>
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
@@ -214,6 +211,27 @@
     <ClCompile Include="TestMisc\Stage\StackStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestMisc\Test\CurveFitTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\CurveBuilderStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\DeviceInfoStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\FontDrawStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\AStarStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\CoroutineTest.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\Phy2DGameStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestMisc\TestMiscPCH.h" />
@@ -400,6 +418,9 @@
     <ClInclude Include="..\Engine\Algo\FFT.h" />
     <ClInclude Include="TripleTown\TTResource.h">
       <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\AStarStage.h">
+      <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

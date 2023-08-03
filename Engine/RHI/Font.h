@@ -190,7 +190,7 @@ namespace Render
 		~FontDrawer();
 
 		bool initialize(FontFaceInfo const& fontFace);
-		bool isValid() const { return mCharDataSet != nullptr; }
+		bool isValid() const { return !!mCharDataSet; }
 		void cleanup();
 		void generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
 		void generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);

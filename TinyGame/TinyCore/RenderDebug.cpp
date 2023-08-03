@@ -109,23 +109,19 @@ namespace Render
 			default:
 				break;
 			}
+		}
 
-
-
-			if (isFocus())
-			{
-				g.enableBrush(false);
-				g.setPen(Color3f(1, 1, 0));
-				g.drawRect(getWorldPos(), getSize());
-			}
+		g.enablePen(true);
+		g.enableBrush(false);
+		if (isFocus())
+		{
+			g.setPen(Color3f(1, 1, 0));
 		}
 		else
 		{
-			g.enableBrush(false);
 			g.setPen(Color3f(1, 0, 0));
-			g.drawRect(getWorldPos(), getSize());
 		}
-
+		g.drawRect(getWorldPos(), getSize());
 	}
 
 	MsgReply TextureShowFrame::onMouseMsg(MouseMsg const& msg)
@@ -279,9 +275,8 @@ namespace Render
 
 	GlobalTextureShowManager::GlobalTextureShowManager()
 	{
-		ConsoleSystem::Get().registerCommand("ShowTexture", &GlobalTextureShowManager::handleShowTexture, this, CVF_CAN_OMIT_ARGS);
+		ConsoleSystem::Get().registerCommand("ShowTexture", &GlobalTextureShowManager::handleShowTexture, this, CVF_ALLOW_IGNORE_ARGS);
 	}
-
 
 	void GlobalTextureShowManager::restoreRHI()
 	{

@@ -35,7 +35,6 @@ namespace Render
 		Material,
 	};
 
-
 	struct ShaderManagedDataBase : public IAssetViewer
 	{
 		ShaderClassType classType = ShaderClassType::Common;

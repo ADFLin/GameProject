@@ -29,7 +29,7 @@ namespace Math
 		void    setRotation( Vector3 const& axis , float angle );
 		// Yaw -> z   Pitch -> y  Roll -> x;
 		void    setEulerZYX( float yaw, float pitch , float roll );
-		Vector3 getEulerZYX();
+		Vector3 getEulerZYX() const;
 
 		void    setMatrix( Matrix4 const& m );
 		void    setMatrix( Matrix3 const& m );
@@ -72,7 +72,7 @@ namespace Math
 	}
 	inline Quaternion operator * ( Quaternion const& a, Quaternion const& b )
 	{
-		// a * b = ( va.cross( vb ) + wa * vb + wb * va , wa & wb - va.dot( vb ) )
+		// a * b = ( va.cross( vb ) + wa * vb + wb * va , wa * wb - va.dot( vb ) )
 		return Quaternion(
 			a.y*b.z - a.z*b.y + a.x*b.w + a.w*b.x  ,
 			a.z*b.x - a.x*b.z + a.y*b.w + a.w*b.y  ,

@@ -48,7 +48,7 @@ namespace Render
 
 		if (pRootNode)
 		{
-			MeshData meshData;
+			MeshImportData meshData;
 			int meshCount = 0;
 			for (int i = 0; i < pRootNode->GetChildCount(); i++)
 			{
@@ -61,7 +61,7 @@ namespace Render
 					{
 					case FbxNodeAttribute::eMesh:
 						{
-							MeshData subMeshData;
+							MeshImportData subMeshData;
 							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
 							{
 								if (meshCount == 0)
@@ -99,6 +99,72 @@ namespace Render
 		return false;
 	}
 
+	bool MeshImporterFBX::importFromFile(char const* filePath, MeshImportData& outMeshData)
+	{
+		FbxImporter* mImporter = FbxImporter::Create(mManager, "");
+		ON_SCOPE_EXIT
+		{
+			mImporter->Destroy();
+		};
+
+		bool lImportStatus = mImporter->Initialize(filePath, -1, mManager->GetIOSettings());
+
+		mScene->Clear();
+		bool lStatus = mImporter->Import(mScene);
+		FbxNode* pRootNode = mScene->GetRootNode();
+
+		if (pRootNode)
+		{
+			int meshCount = 0;
+			for (int i = 0; i < pRootNode->GetChildCount(); i++)
+			{
+				FbxNode* pNode = pRootNode->GetChild(i);
+
+				if (pNode->GetNodeAttribute())
+				{
+					FbxNodeAttribute::EType attributeType = pNode->GetNodeAttribute()->GetAttributeType();
+					switch (attributeType)
+					{
+					case FbxNodeAttribute::eMesh:
+						{
+							MeshImportData subMeshData;
+							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
+							{
+								if (meshCount == 0)
+								{
+									outMeshData = std::move(subMeshData);
+
+								}
+								else
+								{
+									if (outMeshData.desc == subMeshData.desc)
+									{
+										outMeshData.append(subMeshData);
+									}
+									else
+									{
+										int i = 1;
+									}
+								}
+								++meshCount;
+							}
+						}
+						//return parseMesh((FbxMesh*)pNode->GetNodeAttribute(), outMesh);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+
+			if (meshCount > 0 && outMeshData.numVertices > 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	bool MeshImporterFBX::importMultiFromFile(char const* filePath, TArray<Mesh>& outMeshes, MeshImportSettings* settings)
 	{
 		FbxImporter* mImporter = FbxImporter::Create(mManager, "");
@@ -115,7 +181,7 @@ namespace Render
 
 		if (pRootNode)
 		{
-			std::vector< MeshData > meshDataList;
+			std::vector< MeshImportData > meshDataList;
 			int meshCount = 0;
 			for (int i = 0; i < pRootNode->GetChildCount(); i++)
 			{
@@ -128,7 +194,7 @@ namespace Render
 					{
 					case FbxNodeAttribute::eMesh:
 						{
-							MeshData subMeshData;
+							MeshImportData subMeshData;
 							if (parseMesh((FbxMesh*)pNode->GetNodeAttribute(), subMeshData))
 							{
 								int index = 0;
@@ -210,7 +276,7 @@ namespace Render
 
 	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, Mesh& outMesh)
 	{
-		MeshData meshData;
+		MeshImportData meshData;
 		if (!parseMesh(pFBXMesh, meshData))
 			return false;
 
@@ -218,7 +284,7 @@ namespace Render
 
 	}
 
-	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, MeshData& outData)
+	bool MeshImporterFBX::parseMesh(FbxMesh* pFBXMesh, MeshImportData& outData)
 	{
 		int32 LayerSmoothingCount = pFBXMesh->GetLayerCount(FbxLayerElement::eSmoothing);
 		for (int32 i = 0; i < LayerSmoothingCount; i++)
@@ -467,7 +533,7 @@ namespace Render
 		return true;
 	}
 
-	bool MeshImporterFBX::createMesh(MeshData& meshData, Mesh &outMesh)
+	bool MeshImporterFBX::createMesh(MeshImportData& meshData, Mesh &outMesh)
 	{
 		outMesh.mType = EPrimitive::TriangleList;
 		outMesh.mInputLayoutDesc = std::move(meshData.desc);

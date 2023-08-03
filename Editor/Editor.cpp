@@ -48,6 +48,7 @@ using namespace Render;
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static class Editor* GEditor = nullptr;
 
+
 class EditorWindow;
 class IEditorRenderer
 {
@@ -60,6 +61,9 @@ public:
 
 	virtual bool initializeWindowRenderData(EditorWindow& window) { return true; }
 	virtual void renderWindow(EditorWindow& window) {}
+
+	virtual void saveRenderTarget() = 0;
+	virtual void resetRenderTarget() = 0;
 
 	virtual void notifyWindowResize(EditorWindow& window, int width, int height) {}
 };
@@ -248,6 +252,20 @@ public:
 	TComPtr< ID3D11DeviceContext > mDeviceContext;
 
 
+	ID3D11RenderTargetView* mSavedRenderTarget[8];
+	ID3D11DepthStencilView* mSavedDepth;
+
+	void saveRenderTarget() override
+	{
+		mDeviceContext->OMGetRenderTargets(ARRAY_SIZE(mSavedRenderTarget),
+			mSavedRenderTarget, &mSavedDepth);
+	}
+	void resetRenderTarget() override
+	{
+		mDeviceContext->OMSetRenderTargets(1, mSavedRenderTarget, mSavedDepth);
+	}
+
+
 	bool initializeWindowRenderData(EditorWindow& window) override
 	{
 		auto renderData = std::make_unique<WindowRenderData>();
@@ -285,7 +303,9 @@ class Editor : public IEditor
 public:
 
 	std::unique_ptr<IEditorRenderer> mRenderer;
-	
+	RHIGraphics2D* mGraphics = nullptr;
+
+
 	Editor()
 	{
 		GEditor = this;
@@ -309,8 +329,6 @@ public:
 
 		addWindow(mMainWindow);
 
-
-
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos; // Enable some options
@@ -329,6 +347,8 @@ public:
 		
 		VERIFY_RETURN_FALSE(mRenderer->initialize(mMainWindow));
 
+		mGraphics = new RHIGraphics2D;
+		mGraphics->initializeRHI();
 		FImGui::InitializeRHI();
 
 		importStyle();
@@ -341,7 +361,6 @@ public:
 		EditorWindow* newWindow = new EditorWindow;
 
 	}
-		
 
 	void addWindow(EditorWindow& window)
 	{
@@ -362,8 +381,10 @@ public:
 
 	bool bPanelInitialized = false;
 
+
 	void render() override
 	{
+
 		mRenderer->beginFrame();
 		ImGui::NewFrame();
 
@@ -373,7 +394,7 @@ public:
 
 			for (auto& info : EditorPanelInfo::List)
 			{
-				if (info.desc.bAlwaysCreation && false)
+				if (info.desc.bAlwaysCreation)
 				{
 					ActivePanel& panel = findOrAddPanel(info);
 					panel.bOpenRequest = true;
@@ -896,4 +917,26 @@ IEditor* IEditor::Create()
 	}
 
 	return editor;
+}
+
+
+RHIGraphics2D& EditorRenderGloabal::getGraphics()
+{
+	return *GEditor->mGraphics;
+}
+
+void EditorRenderGloabal::saveRenderTarget()
+{
+	GEditor->mRenderer->saveRenderTarget();
+}
+
+void EditorRenderGloabal::resetRenderTarget()
+{
+	GEditor->mRenderer->resetRenderTarget();
+}
+
+EditorRenderGloabal& EditorRenderGloabal::Get()
+{
+	static EditorRenderGloabal StaticInstance;
+	return StaticInstance;
 }

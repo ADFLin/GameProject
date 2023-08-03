@@ -1,4 +1,3 @@
-#include "RichPCH.h"
 #include "RichWorld.h"
 
 #include "RichArea.h"
@@ -8,10 +7,11 @@
 namespace Rich
 {
 
-	EmptyArea gEmptyArea( EMPTY_AREA_ID );
+	EmptyArea GEmptyArea( EMPTY_AREA_ID );
 
-	World::World( IObjectQuery* query )
-		:mQuery( query )
+	World::World(IObjectQuery* objectQuery, IActorFactory* actorFactory)
+		:mObjectQuery(objectQuery)
+		,mActorFactory(actorFactory)
 	{
 		restAreaMap();	
 	}
@@ -41,7 +41,24 @@ namespace Rich
 		return result;
 	}
 
-	void World::clearArea( bool beDelete )
+	int World::getLinks(MapCoord const& posCur, LinkHandle outLinks[])
+	{
+		int result = 0;
+
+		for (int i = 0; i < DirNum; ++i)
+		{
+			MapCoord nextPos = posCur + dirOffset(i);
+			if (getTile(nextPos))
+			{
+				outLinks[result] = i;
+				++result;
+			}
+		}
+
+		return result;
+	}
+
+	void World::clearArea(bool beDelete)
 	{
 		if ( beDelete )
 		{
@@ -63,10 +80,12 @@ namespace Rich
 	{
 		std::fill_n( mAreaMap , MaxAreaNum , static_cast< Area* >( 0 ) );
 		mIdxLastArea = 1;
-		mAreaMap[ EMPTY_AREA_ID ] = &gEmptyArea;
+		mAreaMap[ EMPTY_AREA_ID ] = &GEmptyArea;
 		mIdxFreeAreaId = INDEX_NONE;
 	}
 
+
+	MapCoord const UninitPos = MapCoord(MaxInt32, MaxInt32);
 	AreaId World::registerArea( Area* area , AreaId idReg /*= BLOCK_AREA_ID */ )
 	{
 		assert( area );
@@ -93,6 +112,7 @@ namespace Rich
 		mAreaMap[ id ]= area;
 		
 		area->setId( id );
+		area->setPos(UninitPos);
 		area->install( *this );
 
 		return id;
@@ -136,6 +156,11 @@ namespace Rich
 		Tile* tile = new Tile;
 		tile->areaId = id;
 		tile->pos  = pos;
+
+		if (mAreaMap[id]->getPos() == UninitPos)
+		{
+			mAreaMap[id]->setPos(pos);
+		}
 
 		mMapData( pos.x , pos.y ) = ( TileId )mTileMap.size();
 		mTileMap.push_back( tile );
@@ -210,10 +235,7 @@ namespace Rich
 
 	void World::removeMsgListener( IWorldMessageListener& listener )
 	{
-		EventListerVec::iterator iter = std::find( mEvtListers.begin() , mEvtListers.end() , &listener );
-		if ( iter == mEvtListers.end() )
-			return;
-		mEvtListers.erase( iter );
+		mEvtListers.remove(&listener);
 	}
 
 	int World::findAreas( MapCoord const& pos , DistType dist , Area* outAreasFound[] )

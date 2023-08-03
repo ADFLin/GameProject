@@ -72,8 +72,10 @@ namespace Render
 			mMaxSRVBoundIndex = INDEX_NONE;
 			mSamplerDirtyMask = 0;
 
-
-			std::fill_n(mBoundedUAVs, MaxSimulatedBoundedUAVNum, nullptr);
+			std::fill_n(mBoundedConstBuffers, ARRAY_SIZE(mBoundedConstBuffers), nullptr);
+			std::fill_n(mBoundedSRVs, ARRAY_SIZE(mBoundedSRVs), nullptr);
+			std::fill_n(mBoundedConstBuffers, ARRAY_SIZE(mBoundedConstBuffers), nullptr);
+			std::fill_n(mBoundedSamplers, ARRAY_SIZE(mBoundedSamplers), nullptr);
 			mUAVUsageCount = 0;
 			mUAVDirtyMask = 0;
 		}
@@ -104,6 +106,7 @@ namespace Render
 		void commitSAVState(ID3D11DeviceContext* context);
 
 		void commitUAVState(ID3D11DeviceContext* context);
+
 
 		static int constexpr MaxConstBufferNum = 1;
 		uint32 mConstBufferDirtyMask;
@@ -239,6 +242,8 @@ namespace Render
 
 		void release();
 
+
+
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
@@ -275,7 +280,6 @@ namespace Render
 		void RHISetFixedShaderPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* texture, RHISamplerState* sampler);
 
 
-		D3D11RenderTargetsState* mRenderTargetsState = nullptr;
 
 		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer);
 
@@ -309,6 +313,8 @@ namespace Render
 		}
 
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
+
+
 
 
 		void commitGraphicsShaderState();
@@ -345,10 +351,7 @@ namespace Render
 
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
-		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer) 
-		{
-
-		}
+		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
@@ -377,24 +380,22 @@ namespace Render
 
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
-		void clearShaderTexture(RHIShader& shader, ShaderParameter const& param)
-		{
-
-		}
+		void clearShaderTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderSampler(RHIShader& shader, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderRWTexture(RHIShader& shader, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op) 
-		{
-
-		}
-		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer) 
-		{
-		
-		}
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
+		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
 
 		void clearSRVResource(RHIResource& resource);
+
+		void setGfxShaderProgram(RHIShaderProgram& shaderProgram);
+
+		void markRenderStateDirty();
+
+		D3D11RenderTargetsState* mRenderTargetsState = nullptr;
+
 
 		uint32                  mGfxBoundedShaderMask = 0;
 		uint32                  mBoundedShaderDirtyMask = 0;
@@ -430,7 +431,8 @@ namespace Render
 
 		bool RHIBeginRender()
 		{
-			mRenderContext.mRenderTargetsState = nullptr;
+			mRenderContext.markRenderStateDirty();
+
 			return true;
 		}
 
@@ -438,7 +440,7 @@ namespace Render
 		{
 			if ( bPresent && mSwapChain)
 			{
-				mSwapChain->Present(mbVSyncEnable);
+				mSwapChain->present(mbVSyncEnable);
 			}
 		}
 

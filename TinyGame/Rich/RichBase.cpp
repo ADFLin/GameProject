@@ -1,11 +1,10 @@
-#include "RichPCH.h"
 #include "RichBase.h"
 
 #include "RichWorld.h"
 
 namespace Rich
 {
-	void ActorComp::move( Tile& tile , bool beStay )
+	void ActorComp::move( Tile& tile , bool bStay )
 	{
 		mPosPrev = mPos;
 
@@ -22,7 +21,7 @@ namespace Rich
 		for ( Tile::ActorList::iterator end = tile.actors.end();
 			iter != end ; ++iter )
 		{
-			iter->onMeet( *this , beStay );
+			iter->onMeet( *this , bStay);
 		}
 	}
 

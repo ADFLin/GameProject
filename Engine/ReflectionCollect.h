@@ -6,6 +6,10 @@ class ReflectionCollector
 {
 	template< class T >
 	void beginClass(char const* name);
+
+	template< typename T , typename Base >
+	void addBaseClass();
+
 	template< class T >
 	void addProperty(T var, char const* name);
 
@@ -16,10 +20,11 @@ class ReflectionCollector
 	template< class ReflectionCollector >\
 	static void CollectReflection(ReflectionCollector& collector)\
 	{\
-		typedef CLASS ThisClass;\
+		using ThisClass = CLASS;\
 		collector.beginClass< ThisClass >( #CLASS );
 
-//#define REF_OBJECT_COLLECTION_WITH_BASE_BEGIN( CLASS , BASE )
+#define REF_BASE_CLASS( BASE )\
+		collector.addBaseClass< ThisClass , BASE >();
 
 #define REF_PROPERTY( VAR )\
 		collector.addProperty( &ThisClass::VAR , #VAR );

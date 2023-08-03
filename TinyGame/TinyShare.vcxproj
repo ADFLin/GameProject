@@ -254,6 +254,7 @@
     <ClInclude Include="TinyCore\RenderUtility.h" />
     <ClInclude Include="TinyCore\StageRegister.h" />
     <ClInclude Include="TinyGamePCH.h" />
+    <ClInclude Include="Widget\ConsoleFrame.h" />
     <ClInclude Include="Widget\GameRoomUI.h" />
   </ItemGroup>
   <ItemGroup>
@@ -290,6 +291,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Widget\ConsoleFrame.cpp" />
     <ClCompile Include="Widget\GameRoomUI.cpp" />
   </ItemGroup>
   <ItemGroup>

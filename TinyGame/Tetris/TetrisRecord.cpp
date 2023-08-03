@@ -80,7 +80,7 @@ namespace Tetris
 		if (!serializer.open(path, true))
 			return false;
 
-		IStreamSerializer::ReadOp op = serializer;
+		IStreamSerializer::ReadOp op{ serializer };
 
 		LinkedRecord* prevRecord = NULL;
 		mTopRecord = NULL;

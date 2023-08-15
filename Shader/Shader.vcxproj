@@ -196,6 +196,7 @@
     <None Include="..\TinyGame\out\Shader\Game\UnderCurveArea.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\Water.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\WaterSimulation.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\ZumaShaders.sgc" />
     <None Include="..\TinyGame\out\Shader\GeometryTestCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\GLSLDefine.sgc" />
     <None Include="..\TinyGame\out\Shader\GPUSkinCommon.sgc" />

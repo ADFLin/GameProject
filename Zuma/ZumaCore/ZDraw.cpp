@@ -343,7 +343,7 @@ namespace Zuma
 		{
 			RDSystem.translateWorld( 0 , -22 + 12 );
 			RDSystem.drawBitmapWithinMask( *texFrog , *tex ,
-				Vector2( (texFrog->getWidth() - tex->getWidth() ) /2.0 , 12 ) , 
+				Vector2( 0.5 * ( texFrog->getWidth() - tex->getWidth() ) , 12 ) , 
 				TBF_OFFSET_CENTER );
 		}
 		RDSystem.popWorldTransform();
@@ -457,27 +457,21 @@ namespace Zuma
 
 		mLevel.render( RDSystem , mRenderParam );
 
-#if 0
+#if 1
 		RDSystem.setCurOrder( LRO_TEXT );
 
 		if ( mPauseGame )
 		{
-			static Vec2D const screenPos[] = 
-			{
-				Vec2D( 0 , 0 ), Vec2D( g_ScreenWidth ,0 ) ,
-				Vec2D( g_ScreenWidth , g_ScreenHeight ) ,Vec2D( 0 , g_ScreenHeight ) ,
-			};
-
 			RDSystem.setWorldIdentity();
 			RDSystem.setColor( 0 , 0 , 0 , 100 );
 			RDSystem.setBlendFun( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
 			RDSystem.enableBlend( true );
-			RDSystem.drawPolygon( screenPos , 4 );
+			RDSystem.drawRect( Vector2(0,0), Vector2(g_ScreenWidth, g_ScreenHeight));
 			RDSystem.enableBlend( false );
 			RDSystem.setColor( 255 , 255 , 255 , 255 );
 
 			ZFont* font = RDSystem.getFontRes( FONT_HUGE );
-			font->print( Vec2D( g_ScreenWidth / 2 , g_ScreenHeight / 2 ) , 
+			font->print(Vector2( g_ScreenWidth / 2 , g_ScreenHeight / 2 ) ,
 				"Pause" , FF_ALIGN_VCENTER | FF_ALIGN_HCENTER );
 		}
 
@@ -497,8 +491,8 @@ namespace Zuma
 		{
 			tex = RDSystem.getTexture( IMAGE_ZUMA_BAR  );
 			float factor = float( mLevel.getCurComboGauge() ) / mLevel.getMaxComboGauge();
-			RDSystem.drawBitmap( *tex , Vec2D(0 , 0 ), 
-				Vec2D( tex->getWidth() * factor , tex->getHeight() ) );
+			RDSystem.drawBitmap( *tex , Vector2(0 , 0 ),
+				Vector2( tex->getWidth() * factor , tex->getHeight() ) );
 		}
 
 		tex = RDSystem.getTexture( IMAGE_FROG_LIVES );
@@ -515,7 +509,7 @@ namespace Zuma
 		char str[128];
 		sprintf( str , "%d" , showSorce );
 		RDSystem.setColor( 255 , 255 , 0 , 255 );
-		font->print( Vec2D( 365 , 12 ), str , FF_ALIGN_RIGHT | FF_ALIGN_VCENTER );
+		font->print(Vector2( 365 , 12 ), str , FF_ALIGN_RIGHT | FF_ALIGN_VCENTER );
 		RDSystem.setColor( 255 , 255 , 255 , 255 );
 #endif
 
@@ -552,10 +546,12 @@ namespace Zuma
 		RDSystem.translateWorld( 40 , 40 );
 		RDSystem.drawBitmap( *tex , TBF_OFFSET_CENTER );
 
+#if 0
 		ZFont* font = RDSystem.getFontRes( FONT_PLAIN );
 		InlineString< 32 > str;
 		str.format(" Loading Time = %d " );
 		font->print( Vec2i(20,20) , str );
+#endif
 	}
 
 

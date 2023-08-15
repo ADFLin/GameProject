@@ -287,11 +287,13 @@ void WinGdiGraphics2D::drawTexture(GdiTexture& texture, Vec2i const& pos, Vec2i 
 
 void WinGdiGraphics2D::drawText( Vec2i const& pos , char const* str )
 {
+	GDI_PROFILE("TextOut");
 	::TextOut( getRenderDC() , pos.x , pos.y  , str , (int)strlen(str) );
 }
 
 void WinGdiGraphics2D::drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip /*= false */ )
 {
+	GDI_PROFILE("DrawText");
 	RECT rect;
 	rect.left = pos.x;
 	rect.top = pos.y;

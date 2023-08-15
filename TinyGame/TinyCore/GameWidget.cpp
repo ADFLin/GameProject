@@ -417,7 +417,7 @@ void GButton::onRender()
 		}
 		{
 			PROFILE_ENTRY("Text");
-			g.drawText(pos, size, mTitle.c_str(), true);
+			g.drawText(pos, size, mTitle.c_str(), false);
 		}
 		
 	}

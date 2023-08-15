@@ -12,6 +12,8 @@
 #include "SystemMessage.h"
 #include "SystemPlatform.h"
 #include <fstream>
+#include "AudioPlayer.h"
+#include "ProfileSystem.h"
 
 static int64 gLoadingTime = 0;
 
@@ -220,6 +222,12 @@ namespace Zuma
 
 	void LoadingStage::loadResFun()
 	{
+		TIME_SCOPE("Loading");
+		if (audioPlayer)
+		{
+			audioPlayer->init();
+		}
+
 		ScopeTickCount scope(gLoadingTime);
 		Global::getRenderSystem().prevLoadResource();
 		Global::getResManager().load( loadID );

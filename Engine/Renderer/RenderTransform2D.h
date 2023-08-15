@@ -55,9 +55,23 @@ namespace Render
 		void setPos(Vector2 const& pos) { P = pos; }
 
 		static RenderTransform2D Identity() { return { Matrix2::Identity() , Vector2::Zero() }; }
+		static RenderTransform2D Scale(Vector2 const& scale)
+		{
+			return RenderTransform2D(scale);
+		}
 		static RenderTransform2D TranslateThenScale(Vector2 const& offset, Vector2 const& scale)
 		{
 			return RenderTransform2D(scale, scale * offset);
+		}
+
+		static RenderTransform2D Transform(Vector2 const& pos, Vector2 const& dir)
+		{
+			RenderTransform2D result;
+			result.P = pos;
+			float c = dir.x;
+			float s = dir.y;
+			result.M = Matrix2(c, s, -s, c);
+			return result;
 		}
 
 		static RenderTransform2D Translate(Vector2 const& pos)
@@ -132,6 +146,12 @@ namespace Render
 			result.P = -P * result.M;
 
 			return result;
+		}
+
+		bool   isUniformScale() const
+		{
+			Vector2 scale = getScale();
+			return Math::Abs(1 - (scale.x / scale.y)) < 1.0e-5;
 		}
 
 		Vector2 getScale() const

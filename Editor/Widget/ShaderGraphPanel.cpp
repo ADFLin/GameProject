@@ -53,10 +53,11 @@ bool ShaderGraphPanel::compileShader()
 
 void ShaderGraphPanel::renderShaderPreview(TVector2<int> const& size)
 {
+	using namespace Render;
+
 	if (mShaderProgram.getRHI() == nullptr)
 		return;
 
-	using namespace Render;
 	if (mFrameBuffer.isValid() == false)
 	{
 		mFrameBuffer = RHICreateFrameBuffer();
@@ -70,18 +71,17 @@ void ShaderGraphPanel::renderShaderPreview(TVector2<int> const& size)
 	RHIBeginRender();
 
 	RHISetFrameBuffer(commandList, mFrameBuffer);
-	RHISetViewport(commandList, 0, 0, size.x, size.y);
-
 	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1);
-	RHISetShaderProgram(commandList, mShaderProgram.getRHI());
+
+	RHISetViewport(commandList, 0, 0, size.x, size.y);
 
 	RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
+	RHISetShaderProgram(commandList, mShaderProgram.getRHI());
 	mView.setupShader(commandList, mShaderProgram);
 	DrawUtility::ScreenRect(commandList);
-
 
 	RHIFlushCommand(commandList);
 	RHIEndRender(false);
@@ -132,6 +132,7 @@ void ShaderGraphPanel::onOpen()
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Exp);
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Log);
 		registerNode<SGNodeIntrinsicFunc>(ESGIntrinsicFunc::Frac);
+		registerNode<SGNodeCustom>(ESGValueType::Float2);
 	}
 
 	runTest();
@@ -144,30 +145,30 @@ static ImRect ImGui_GetItemRect()
 
 class NodeGUIVisitor : public SGNodeVisitor
 {
-
-
-
 public:
 	void visit(class SGNode& node) override
 	{
-		ImNode::BeginNode((intptr_t)&node);
-		ImGui::BeginVertical(&node);
 		ImGui::BeginHorizontal("content");
 		ImGui::Spring(1, 0);
 		ImGui::TextUnformatted(node.getTitle().c_str());
 		ImGui::Spring(1, 0);
 		ImGui::EndHorizontal();
 		drawLinkPin(node);
-		ImGui::EndVertical();
-		ImNode::EndNode();
 	}
 
-
+	void visit(class SGNodeCustom& node) override
+	{
+		ImGui::BeginHorizontal("content");
+		ImGui::Spring(1, 0);
+		ImGui::TextUnformatted(node.getTitle().c_str());
+		ImGui::Spring(1, 0);
+		ImGui::EndHorizontal();
+		drawLinkCustomPin(node);
+	}
 
 	void visit(class SGNodeConst& node) override
 	{
-		ImNode::BeginNode((intptr_t)&node);
-		ImGui::BeginVertical(&node);
+
 
 		//ImGui::BeginHorizontal("content");
 		//ImGui::Spring(1, 0);
@@ -197,9 +198,99 @@ public:
 		//ImGui::Spring(1, 0);
 		//ImGui::EndHorizontal();
 		drawLinkPin(node);
-		ImGui::EndVertical();
-		ImNode::EndNode();
 
+
+	}
+	void drawLinkCustomPin(SGNodeCustom& node)
+	{
+		struct Funcs
+		{
+			static int MyResizeCallback(ImGuiInputTextCallbackData* data)
+			{
+				if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+				{
+					std::string& my_str = *reinterpret_cast<std::string*>(data->UserData);
+					IM_ASSERT(my_str.data() == data->Buf);
+					my_str.resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+					data->Buf = my_str.data();
+				}
+				return 0;
+			}
+
+			// Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
+			// For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
+			static bool InputTextMultiline(const char* label, std::string& my_str, const ImVec2& size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0)
+			{
+				IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+				return ImGui::InputTextMultiline(label, my_str.data(), (size_t)my_str.size(), size, flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)&my_str);
+			}
+
+
+			static bool InputText(const char* label, std::string& my_str, ImGuiInputTextFlags flags = 0)
+			{
+				IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+				return ImGui::InputText(label, my_str.data(), (size_t)my_str.size(), flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)&my_str);
+			}
+		};
+
+		int maxIndex = Math::Max<int>(node.inputs.size() + 1, 2u);
+		bool bAdd = false;
+		for (int index = 0; index < maxIndex; ++index)
+		{
+			InlineString<> inputStr;
+			inputStr.format("input%d", index);
+			ImGui::BeginHorizontal(inputStr);
+
+			if (node.inputs.isValidIndex(index))
+			{
+				ImNode::BeginPin((intptr_t)&node.inputs[index], ImNode::PinKind::Input);
+				ImNode::PinPivotAlignment(ImVec2(0.0f, 0.5f));
+				ImGui::PushID(index);
+				ImGui::SetNextItemWidth(50);
+				Funcs::InputText("##Input", node.inputNames[index]);
+				ImGui::PopID();
+				ImNode::EndPin();
+			}
+			else if ( bAdd == false )
+			{
+				bAdd = true;
+				ImGui::BeginHorizontal("Add");
+				if (ImGui::Button("+"))
+				{
+					node.addInput();
+				}
+				if (ImGui::Button("-"))
+				{
+					node.removeLastInput();
+				}
+				ImGui::EndHorizontal();
+			}
+			ImGui::Spring(1, 10);
+
+			if (index == 0)
+			{
+				ImNode::BeginPin((intptr_t)&node.outputLinks, ImNode::PinKind::Output);
+				ImNode::PinPivotAlignment(ImVec2(1.0f, 0.5f));
+				ImGui::TextUnformatted("Out");
+				ImNode::EndPin();
+			}
+
+			ImGui::EndHorizontal();
+		}
+
+		ImGui::BeginHorizontal("Code");
+		ImGui::PushID((intptr_t)&node);
+		ImGui::SetNextItemWidth(200);
+		ImGuiInputTextFlags textFlags = 0;
+			//ImGuiInputTextFlags_EnterReturnsTrue |
+			//ImGuiInputTextFlags_AllowTabInput |
+			//ImGuiInputTextFlags_CtrlEnterForNewLine;
+		if (Funcs::InputText("##Object", node.code, textFlags))
+		{
+
+		}
+		ImGui::PopID();
+		ImGui::EndHorizontal();
 	}
 
 	void drawLinkPin(SGNode& node)
@@ -214,6 +305,7 @@ public:
 			if (node.inputs.isValidIndex(index))
 			{
 				ImNode::BeginPin((intptr_t)&node.inputs[index], ImNode::PinKind::Input);
+				ImNode::PinPivotAlignment(ImVec2(0.0f, 0.5f));
 				ImGui::TextUnformatted("Input");
 				ImNode::EndPin();
 			}
@@ -223,6 +315,7 @@ public:
 			if (index == 0)
 			{
 				ImNode::BeginPin((intptr_t)&node.outputLinks, ImNode::PinKind::Output);
+				ImNode::PinPivotAlignment(ImVec2(1.0f, 0.5f));
 				ImGui::TextUnformatted("Out");
 				ImNode::EndPin();
 			}
@@ -248,7 +341,11 @@ void ShaderGraphPanel::render()
 			bRenderPreviewRequest = true;
 		}
 	}
-
+	ImGui::SameLine();
+	if (ImGui::Button("Fit to content"))
+	{
+		ImNode::NavigateToContent();
+	}
 
 	static float leftPaneWidth = 400.0f;
 	static float rightPaneWidth = 200.0f;
@@ -278,6 +375,7 @@ void ShaderGraphPanel::render()
 		if (ImGui::Button(node->getTitle().c_str()))
 		{
 			mGraph.nodes.push_back(SGNodePtr(node->copy()));
+			//ImNode::SetNodePosition( (intptr_t)&*mGraph.nodes.back() , ImGui::GetWindowPos() );
 		}
 	}
 	ImGui::EndChild();
@@ -296,13 +394,21 @@ void ShaderGraphPanel::render()
 	ImNode::Begin("Node editor");
 
 	NodeGUIVisitor visitor;
-	for (auto& node : mGraph.nodes)
+	for (auto& nodePtr : mGraph.nodes)
 	{
-
-		node->acceptVisit(visitor);
-
+		SGNode& node = *nodePtr;
+		ImNode::BeginNode((intptr_t)&node);
+		ImGui::BeginVertical((intptr_t)&node);
+		node.acceptVisit(visitor);
+		ImGui::EndVertical();
+		ImNode::EndNode();
 	}
 
+
+	ImNode::PushStyleColor(ImNode::StyleColor_NodeBg, ImColor(128, 128, 128, 200));
+	ImNode::PushStyleColor(ImNode::StyleColor_NodeBorder, ImColor(32, 32, 32, 200));
+	ImNode::PushStyleColor(ImNode::StyleColor_PinRect, ImColor(60, 180, 255, 150));
+	ImNode::PushStyleColor(ImNode::StyleColor_PinRectBorder, ImColor(60, 180, 255, 150));
 	ImNode::BeginNode((intptr_t)&mGraph);
 	switch (mGraph.mDomain)
 	{
@@ -314,6 +420,7 @@ void ShaderGraphPanel::render()
 			{
 				ImNode::BeginPin((intptr_t)&input, ImNode::PinKind::Input);
 				ImGui::Text(inputNames[index]);
+				ImNode::PinPivotAlignment(ImVec2(0.0f, 0.5f));
 				ImNode::EndPin();
 				++index;
 			}
@@ -321,6 +428,8 @@ void ShaderGraphPanel::render()
 		break;
 	}
 	ImNode::EndNode();
+	ImNode::PopStyleColor(4);
+
 
 	for (auto& node : mGraph.nodes)
 	{
@@ -397,7 +506,6 @@ void ShaderGraphPanel::render()
 		}
 	}
 	ImNode::EndCreate(); // Wraps up object creation action handling.
-
 
 	ImNode::End();
 

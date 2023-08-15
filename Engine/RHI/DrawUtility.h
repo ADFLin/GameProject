@@ -23,7 +23,7 @@ namespace Render
 		RTS_Position = 0,
 		RTS_Color,
 		RTS_Normal ,
-		RTS_Texcoord ,
+		RTS_Texcoord,
 
 		RTS_MAX ,
 	};
@@ -59,33 +59,34 @@ namespace Render
 		RTVF_CA      = RTS_ELEMENT(RTS_Color, 4),
 		RTVF_CA8     = RTS_ELEMENT_U8N(RTS_Color, 4),
 		RTVF_N       = RTS_ELEMENT(RTS_Normal, 3),
-		RTVF_TEX_UV  = RTS_ELEMENT(RTS_Texcoord, 2),
-		RTVF_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
+		RTVF_T2      = RTS_ELEMENT(RTS_Texcoord, 2),
+		RTVF_T3      = RTS_ELEMENT(RTS_Texcoord, 3),
+		RTVF_T4      = RTS_ELEMENT(RTS_Texcoord, 4),
 
 		RTVF_XYZ_C       = RTVF_XYZ | RTVF_C,
 		RTVF_XYZ_C8      = RTVF_XYZ | RTVF_C8,
 		RTVF_XYZ_C_N     = RTVF_XYZ | RTVF_C | RTVF_N,
-		RTVF_XYZ_C_N_T2  = RTVF_XYZ | RTVF_C | RTVF_N | RTVF_TEX_UV,
-		RTVF_XYZ_C_T2    = RTVF_XYZ | RTVF_C | RTVF_TEX_UV,
+		RTVF_XYZ_C_N_T2  = RTVF_XYZ | RTVF_C | RTVF_N | RTVF_T2,
+		RTVF_XYZ_C_T2    = RTVF_XYZ | RTVF_C | RTVF_T2,
 
 		RTVF_XYZ_CA      = RTVF_XYZ | RTVF_CA,
 		RTVF_XYZ_CA8     = RTVF_XYZ | RTVF_CA8,
 		RTVF_XYZ_CA_N    = RTVF_XYZ | RTVF_CA | RTVF_N,
-		RTVF_XYZ_CA_N_T2 = RTVF_XYZ | RTVF_CA | RTVF_N | RTVF_TEX_UV,
-		RTVF_XYZ_CA_T2   = RTVF_XYZ | RTVF_CA | RTVF_TEX_UV,
+		RTVF_XYZ_CA_N_T2 = RTVF_XYZ | RTVF_CA | RTVF_N | RTVF_T2,
+		RTVF_XYZ_CA_T2   = RTVF_XYZ | RTVF_CA | RTVF_T2,
 
 		RTVF_XYZ_N       = RTVF_XYZ | RTVF_N,
-		RTVF_XYZ_N_T2    = RTVF_XYZ | RTVF_N | RTVF_TEX_UV,
-		RTVF_XYZ_T2      = RTVF_XYZ | RTVF_TEX_UV,
+		RTVF_XYZ_N_T2    = RTVF_XYZ | RTVF_N | RTVF_T2,
+		RTVF_XYZ_T2      = RTVF_XYZ | RTVF_T2,
 
-		RTVF_XYZW_T2     = RTVF_XYZW | RTVF_TEX_UV,
+		RTVF_XYZW_T2     = RTVF_XYZW | RTVF_T2,
 
 		RTVF_XY_C        = RTVF_XY | RTVF_C,
 		RTVF_XY_CA       = RTVF_XY | RTVF_CA ,
 		RTVF_XY_CA8      = RTVF_XY | RTVF_CA8,
-		RTVF_XY_T2       = RTVF_XY | RTVF_TEX_UV,
-		RTVF_XY_CA_T2    = RTVF_XY | RTVF_CA | RTVF_TEX_UV,
-		RTVF_XY_CA8_T2   = RTVF_XY | RTVF_CA8 | RTVF_TEX_UV,
+		RTVF_XY_T2       = RTVF_XY | RTVF_T2,
+		RTVF_XY_CA_T2    = RTVF_XY | RTVF_CA | RTVF_T2,
+		RTVF_XY_CA8_T2   = RTVF_XY | RTVF_CA8 | RTVF_T2,
 	};
 
 
@@ -227,7 +228,7 @@ namespace Render
 		}
 
 
-		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, RHIBuffer& vertexbuffer, int numVertices, RHIBuffer& indexbuffer, int nIndex, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, EPrimitive type, RHIBuffer& vertexbuffer, RHIBuffer& indexbuffer, int nIndex, int vertexStride = GetVertexSize())
 		{
 			InputStreamInfo inputStream;
 			inputStream.buffer = &vertexbuffer;

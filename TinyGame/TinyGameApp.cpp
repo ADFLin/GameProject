@@ -63,7 +63,7 @@ namespace
 	TConsoleVariable<bool> CVarShowFPS{ false, "ShowFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarLockFPS{ false, "LockFPS" , CVF_TOGGLEABLE };
 	TConsoleVariable<bool> CVarShowProifle{ false, "ShowProfile" , CVF_TOGGLEABLE };
-
+	TConsoleVariable<bool> CVarShowGPUProifle{ true, "ShowGPUProfile" , CVF_TOGGLEABLE };
 	AutoConsoleCommand CmdRHIDumpResource("r.dumpResource", Render::RHIResource::DumpResource);
 }
 
@@ -504,6 +504,7 @@ bool TinyGameApp::initializeGame()
 	}
 
 	LogMsg("OS Loc = %s", SystemPlatform::GetUserLocaleName().c_str());
+	setlocale(LC_ALL, SystemPlatform::GetUserLocaleName().c_str());
 	{
 		TIME_SCOPE("Load GameConfig");
 		if (!Global::GameConfig().loadFile(GAME_SETTING_PATH))
@@ -754,7 +755,7 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 
 void TinyGameApp::handleGameIdle(long time)
 {
-	//PROFILE_ENTRY("GameIdle");
+	PROFILE_ENTRY("GameIdle");
 #if 0
 	if ( CVarLockFPS )
 		SystemPlatform::Sleep(time);
@@ -1186,48 +1187,54 @@ void TinyGameApp::render( float dframe )
 			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
 		}
 
-		if (CVarProfileGPU)
-			GpuProfiler::Get().endFrame();
-
-		if (CVarProfileGPU && RHIIsInitialized())
+		if (CVarShowGPUProifle)
 		{
-			SimpleTextLayout textlayout;
-			textlayout.offset = 15;
-			textlayout.posX = 500;
-			textlayout.posY = 10;
-
-			Vec2i rectPos;
-			rectPos.x = textlayout.posX - 5;
-			rectPos.y = textlayout.posY - 5;
-			Vec2i rectSize;
-			rectSize.x = 250;
-			rectSize.y = GpuProfiler::Get().getSampleNum() * textlayout.offset + 10;
-			DrawBackgroundRect(rectPos, rectSize);
-
-			g.setTextColor(Color3ub(255, 0, 0));
-			RenderUtility::SetFont(g, FONT_S10);
-
-			InlineString< 512 > str;
-			InlineString< 512 > temp;
-			int curLevel = 0;
-			for (int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i)
 			{
-				GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
+				PROFILE_ENTRY("ProfileGPU.endFrame");
+				if (CVarProfileGPU)
+					GpuProfiler::Get().endFrame();
+			}
 
-				if (curLevel != sample->level)
+			if (CVarProfileGPU && RHIIsInitialized())
+			{
+				SimpleTextLayout textlayout;
+				textlayout.offset = 15;
+				textlayout.posX = 500;
+				textlayout.posY = 10;
+
+				Vec2i rectPos;
+				rectPos.x = textlayout.posX - 5;
+				rectPos.y = textlayout.posY - 5;
+				Vec2i rectSize;
+				rectSize.x = 250;
+				rectSize.y = GpuProfiler::Get().getSampleNum() * textlayout.offset + 10;
+				DrawBackgroundRect(rectPos, rectSize);
+
+				g.setTextColor(Color3ub(255, 0, 0));
+				RenderUtility::SetFont(g, FONT_S10);
+
+				InlineString< 512 > str;
+				InlineString< 512 > temp;
+				int curLevel = 0;
+				for (int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i)
 				{
-					if (sample->level > curLevel)
+					GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
+
+					if (curLevel != sample->level)
 					{
-						assert(curLevel == sample->level - 1);
-						temp += "  |";
+						if (sample->level > curLevel)
+						{
+							assert(curLevel == sample->level - 1);
+							temp += "  |";
+						}
+						else
+						{
+							temp[3 * sample->level] = 0;
+						}
+						curLevel = sample->level;
 					}
-					else
-					{
-						temp[3 * sample->level] = 0;
-					}
-					curLevel = sample->level;
+					textlayout.show(g, "%7.4lf %s--> %s", sample->time, temp.c_str(), sample->name.c_str());
 				}
-				textlayout.show(g, "%7.4lf %s--> %s", sample->time, temp.c_str(), sample->name.c_str());
 			}
 		}
 	}

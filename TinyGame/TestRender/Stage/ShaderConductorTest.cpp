@@ -1,3 +1,4 @@
+#if 0
 #include "TestRenderStageBase.h"
 
 #include "ShaderConductor/ShaderConductor.hpp"
@@ -136,3 +137,4 @@ protected:
 };
 
 REGISTER_STAGE_ENTRY("Shader Conductor Test", SCTestStage, EExecGroup::FeatureDev);
+#endif

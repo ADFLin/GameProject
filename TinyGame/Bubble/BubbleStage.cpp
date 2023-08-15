@@ -110,8 +110,9 @@ namespace Bubble
 		Vector2 pos = Vector2( 100 , 100 );
 
 		IGraphics2D& g = Global::GetIGraphics2D();
-
+		g.beginRender();
 		mDataManager.render( g );
+		g.endRender();
 	}
 
 	void LevelStage::fireAction( ActionTrigger& trigger )

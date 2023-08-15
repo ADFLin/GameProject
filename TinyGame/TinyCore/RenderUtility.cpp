@@ -270,8 +270,6 @@ void RenderUtility::InitializeRHI()
 	if (!IsRHISupport())
 		return;
 
-	HDC hDC = ::Global::GetDrawEngine().getWindow().getHDC();
-	FontCharCache::Get().hDC = hDC;
 	FontCharCache::Get().initialize();
 
 	FontRHI[ FONT_S8  ].initialize(FontFaceInfo(FontName, 8 , true));

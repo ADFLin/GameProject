@@ -46,8 +46,7 @@ namespace Zuma
 
 	AudioPlayer::AudioPlayer()
 	{
-		mFmodSys = NULL;
-
+		mFmodSys = nullptr;
 		gAudioPlayer = this;
 		mSoundVolume = 0.5f;
 
@@ -61,10 +60,10 @@ namespace Zuma
 
 	bool AudioPlayer::init()
 	{
-		unsigned int      version;
-
-		FMOD_CHECK( FMOD_System_Create( &mFmodSys ) );
-		FMOD_CHECK( FMOD_System_GetVersion( mFmodSys , &version ) );
+		unsigned int version;
+		FMOD_SYSTEM* system;
+		FMOD_CHECK( FMOD_System_Create( &system) );
+		FMOD_CHECK( FMOD_System_GetVersion(system, &version ) );
 
 		if (version < FMOD_VERSION)
 		{
@@ -72,8 +71,10 @@ namespace Zuma
 			return false;
 		}
 
-		FMOD_CHECK( FMOD_System_Init( mFmodSys , MaxNumChannel , FMOD_INIT_NORMAL, NULL ) );
-		FMOD_CHECK( FMOD_System_CreateChannelGroup(mFmodSys, "Master", &mMasterGroup) );
+		FMOD_CHECK( FMOD_System_Init(system, MaxNumChannel , FMOD_INIT_NORMAL, NULL ) );
+		FMOD_CHECK( FMOD_System_CreateChannelGroup(system, "Master", &mMasterGroup) );
+
+		mFmodSys = system;
 		return true;
 	}
 
@@ -148,6 +149,9 @@ namespace Zuma
 
 	void AudioPlayer::update( unsigned time )
 	{
+		if (mFmodSys == nullptr)
+			return;
+
 		FMOD_CHECK( FMOD_System_Update( mFmodSys ) );
 
 		for( unsigned i = 0 ; i < MaxNumChannel ; ++i )

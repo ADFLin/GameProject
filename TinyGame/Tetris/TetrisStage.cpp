@@ -438,11 +438,11 @@ namespace Tetris
 
 	static uint32 titleMap[] = 
 	{
-		BINARY32( 11111111,11110100,11000000,00000000 ) , 
-		BINARY32( 01010001,01010101,00000000,00000000 ) , 
-		BINARY32( 01011101,01100101,11000000,00000000 ) , 
-		BINARY32( 01010001,01010100,01000000,00000000 ) , 
-		BINARY32( 01011101,01010101,10000000,00000000 ) , 
+		0b11111111111101001100000000000000, 
+		0b01010001010101010000000000000000,
+		0b01011101011001011100000000000000,
+		0b01010001010101000100000000000000,
+		0b01011101010101011000000000000000,
 	};
 
 	static int const gBGColor[] = 
@@ -490,7 +490,7 @@ namespace Tetris
 		int color[] = { EColor::Red , EColor::Purple , EColor::Blue , EColor::Orange , EColor::Cyan, EColor::Green };
 
 		Vec2i const titlePos( 230 , 150 );
-		g.beginBlend( Vec2i(0,0) , de.getScreenSize() , 0.7f + 0.3f * fabs(sin(t)) );
+		g.beginBlend( Vec2i(0,0) , de.getScreenSize() , 0.5f + 0.5f * fabs(sin(t)) );
 
 		Vec2i blockPos = titlePos;
 

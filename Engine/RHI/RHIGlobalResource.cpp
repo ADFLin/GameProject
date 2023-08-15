@@ -12,14 +12,17 @@
 namespace Render
 {
 
-
-
-	void SimplePipelineProgram::setParameters(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
+	void SimplePipelineProgram::setTextureParam(RHICommandList& commandList, RHITexture2D* texture, RHISamplerState* sampler)
 	{
 		if (mParamTexture.isBound())
 		{
 			setTexture(commandList, mParamTexture, texture ? *texture : *GWhiteTexture2D, mParamTextureSampler, sampler ? *sampler : TStaticSamplerState<>::GetRHI());
 		}
+	}
+
+	void SimplePipelineProgram::setParameters(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler)
+	{
+		setTextureParam(commandList, texture, sampler);
 		setParam(commandList, mParamColor, color);
 		setParam(commandList, mParamXForm, transform);
 	}

@@ -5,6 +5,8 @@
 #include "RefCount.h"
 #include "DataStructure/TLinkable.h"
 
+#include <list>
+
 #define ZUSE_LINKABLE 0
 
 namespace Zuma

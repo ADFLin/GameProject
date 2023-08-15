@@ -554,7 +554,7 @@ void ThreadProfileData::tryStartTiming(const char* name, unsigned flag)
 			node = mCurSample->getParent();
 			while( node )
 			{
-				if( name = node->getName() )
+				if( name == node->getName() )
 					break;
 				node = node->getParent();
 			}

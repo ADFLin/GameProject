@@ -5,6 +5,9 @@
 #include "ViewParam.sgc"
 
 #if PIXEL_SHADER
+
+%s
+
 float4 GetColor(MaterialParametersPS Parameters)
 {
 %s

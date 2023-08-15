@@ -12,6 +12,7 @@
 #include <tchar.h>
 #include <Strsafe.h>
 #include "WindowsHeader.h"
+#include "ProfileSystem.h"
 
 
 #undef FindFirstFile
@@ -276,6 +277,7 @@ bool FFileSystem::CreateDirectorySequence(char const* pathDir)
 
 bool FFileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )
 {
+	PROFILE_ENTRY("FineFiles");
 #if SYS_PLATFORM_WIN
 
 	InlineString< MAX_PATH > szDir;
@@ -462,6 +464,7 @@ bool FileIterator::isDirectory() const
 
 void FileIterator::goNext()
 {
+	PROFILE_ENTRY("FindNextFileA");
 	mHaveMore = ( FindNextFileA( mhFind , &mFindData ) == TRUE );
 }
 #endif

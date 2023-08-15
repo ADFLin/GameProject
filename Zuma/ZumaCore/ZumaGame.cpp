@@ -64,18 +64,20 @@ namespace Zuma
 
 	bool GameCore::init( GameInitializer& initializer )
 	{
-		if ( !initializer.setupWindow( "Zuma Clone" , g_ScreenWidth , g_ScreenHeight ) )
-			return false;
-
-		sRenderSystem = initializer.createRenderSystem();
+		{
+			TIME_SCOPE("Setup Window");
+			if (!initializer.setupWindow("Zuma Clone", g_ScreenWidth, g_ScreenHeight))
+				return false;
+		}
+		{
+			TIME_SCOPE("Create RenderSystem");
+			sRenderSystem = initializer.createRenderSystem();
+		}
 
 		if ( !sRenderSystem )
 			return false;
 
-		if ( !ZRenderUtility::init(  ) )
-			return false;
-
-		if ( !audioPlayer.init() )
+		if ( !ZRenderUtility::init( ) )
 			return false;
 
 		if ( !uiSystem.init( *sRenderSystem ) )
@@ -98,10 +100,14 @@ namespace Zuma
 		g_GameTime.updateTime = 20;
 		g_GameTime.nextTime   = g_GameTime.curTime + g_GameTime.updateTime;
 
-		resManager.load( "Init" );
-		resManager.load( "MainMenu" );
-		resManager.load( "Register" );
+		{
+			TIME_SCOPE("Load Init Resource");
+			resManager.load("Init");
+			resManager.load("MainMenu");
+			resManager.load("Register");
+		}
 		
+		beforeTime = SystemPlatform::GetTickCount() - 1;
 		return true;
 	}
 
@@ -127,15 +133,10 @@ namespace Zuma
 
 		uiSystem.render();
 
-		static int64 beTime = SystemPlatform::GetTickCount();
-
-		if ( renderFrame > 1000 )
-		{
-			showFPS = 1000.0f *float( renderFrame ) / ( SystemPlatform::GetTickCount() - beTime );
-
-			beTime = SystemPlatform::GetTickCount();
-			renderFrame = 0;
-		}
+		int64 curTime = SystemPlatform::GetTickCount();
+		float FPS = (curTime == beforeTime) ? 1000.0f : 1000.0f / (curTime - beforeTime);
+		showFPS = 0.9 * showFPS + 0.1 * FPS;
+		beforeTime = curTime;
 
 		ZFont* font;
 
@@ -162,7 +163,6 @@ namespace Zuma
 		}
 
 		++renderFrame;
-
 		renderSys.endRender();
 	}
 
@@ -503,6 +503,7 @@ namespace Zuma
 		if ( !GameCore::init( *this ) )
 			return false;
 		LoadingStage* stage = new LoadingStage( "LoadingThread" );
+		stage->audioPlayer = &audioPlayer;
 		changeStage( stage );
 		return true;
 	}

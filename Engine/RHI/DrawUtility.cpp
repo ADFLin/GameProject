@@ -492,7 +492,7 @@ namespace Render
 #if 1
 		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE, XForm, texCube))
 			return;
-		TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
+		TRenderRT< RTVF_XY | RTVF_T3 >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
 #else
 		if ( GRHISystem->getName() == RHISystemName::OpenGL )
 		{
@@ -501,7 +501,7 @@ namespace Render
 			{
 				GL_SCOPED_BIND_OBJECT(texCube);
 				glColor3f(1, 1, 1);
-				TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
+				TRenderRT< RTVF_XY | RTVF_T3 >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
 			}
 			glDisable(GL_TEXTURE_CUBE_MAP);
 		}

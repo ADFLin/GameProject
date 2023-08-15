@@ -7,13 +7,21 @@
 #include "RenderUtility.h"
 
 #include "ZumaCore/ZumaGame.h"
-#include "ZumaCore/GLRenderSystem.h"
 #include "ZumaCore/ZDraw.h"
 #include "ZumaCore/ZEvent.h"
 
 #include "GameWidget.h"
 #include "GameGUISystem.h"
+
+
+#define ZUMA_USE_RHI 1
+
+#if ZUMA_USE_RHI
+#include "ZRenderSystemRHI.h"
+#else
 #include "WGLContext.h"
+#include "ZumaCore/GLRenderSystem.h"
+#endif
 
 namespace Zuma
 {
@@ -87,13 +95,24 @@ namespace Zuma
 			DrawEngine& drawEngine = ::Global::GetDrawEngine();
 			GameWindow& window = drawEngine.getWindow();
 
+#if ZUMA_USE_RHI
+			if (!drawEngine.startupSystem(ERenderSystem::D3D11))
+			{
+				return nullptr;
+			}
+			RenderSystemRHI* renderSys = new RenderSystemRHI;
+			renderSys->init(::Global::GetRHIGraphics2D());
+#else
 			//HDC hDC = ::Global::getGraphics2D().getTargetDC();
 			HDC hDC = window.getHDC();
-			drawEngine.startupSystem( ERenderSystem::OpenGL );
-
+			if (!drawEngine.startupSystem(ERenderSystem::OpenGL))
+			{
+				return nullptr;
+			}
 			GLRenderSystem* renderSys = new GLRenderSystem;
 			renderSys->mNeedSweepBuffer = false;
 			renderSys->init( window.getHWnd(), hDC , drawEngine.getGLContext()->getHandle() );
+#endif
 
 			return renderSys;
 		}
@@ -108,10 +127,14 @@ namespace Zuma
 			mGameCore->resManager.setWorkDir( "Zuma/" );
 			mGameCore->setParentHandler( this );
 
-			if ( !mGameCore->init( *this ) )
-				return false;
+			{
+				TIME_SCOPE("GameCore Init");
+				if (!mGameCore->init(*this))
+					return false;
+			}
 
 			LoadingStage* stage = new LoadingStage( "LoadingThread" );
+			stage->audioPlayer = &mGameCore->audioPlayer;
 			mGameCore->changeStage( stage );
 
 			return true; 

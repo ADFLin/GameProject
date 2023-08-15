@@ -41,6 +41,9 @@ namespace Math
 		Vector4& operator *= ( float v ) { x *= v ; y *= v; z *= v; w *= v; return *this; }
 		Vector4& operator /= ( float v ) { x /= v; y /= v; z /= v; w /= v; return *this; }
 
+		bool operator == (Vector4 const& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
+		bool operator != (Vector4 const& rhs) const { return !this->operator==(rhs); }
+
 		Vector4 operator + (Vector4 const& rhs) const { return Vector4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w); }
 		Vector4 operator - (Vector4 const& rhs) const { return Vector4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w); }
 		operator float*() { return &x; }

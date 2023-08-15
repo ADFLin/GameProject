@@ -162,6 +162,8 @@ namespace Zuma
 		virtual void onUpdate( long time );
 		virtual void onStart();
 
+
+		class AudioPlayer* audioPlayer = nullptr;
 		char const* loadID;
 
 		void loadResFun();

@@ -37,53 +37,119 @@ public:
 	uint64 mTickStart;
 	double mCurTime;
 	double mScale;
-	int   mLevel;
+	int    mLevel;
 	TArray<float> mLevelTimePos;
+
+	void drawGird()
+	{
+		mGraphics2D.setPen(Color3ub(180, 180, 180));
+		for (float t = 0; t <= 120; t += 10)
+		{
+			Vector2 p1 = toRenderPos(t, 0);
+			Vector2 p2 = p1 + Vector2(0, 200);
+			mGraphics2D.drawLine(p1, p2);
+		}
+
+		float FPSList[] = { 60 , 30 , 15 };
+		Color3ub colors [] = { Color3ub(0,255,0) , Color3ub(255,255,0) , Color3ub(255,0,0) };
+		int index = 0;
+		for (auto fps : FPSList)
+		{
+			float time = 1000.0f / fps;
+			Vector2 p1 = toRenderPos(time, 0);
+			Vector2 p2 = p1 + Vector2(0, 200);
+			mGraphics2D.setPen(colors[index]);
+			mGraphics2D.drawLine(p1, p2);
+			++index;
+		}
+	}
+
 	void onRoot(VisitContext& context)
 	{
-		updateDisplayTime(context);
-
-		mTotalTime = context.displayTime;
+		mTotalTime = 1000.0 / 60;
 		mTickStart = context.node->getFrameTimestamps()[0].start;
-		mScale     = mMaxLength / mTotalTime;
-		mCurTime   = 0;
-		mLevel     = 0;
+		mScale = mMaxLength / mTotalTime;
+		mCurTime = 0;
+		mLevel = 0;
 		mLevelTimePos.push_back(mCurTime);
+		updateDisplayTime(context);
+		mGraphics2D.setBrush(Color3ub(255,255,255));
+		drawNode("Root", (bGrouped) ? context.displayTimeAcc : mCurTime, context.displayTime, 0);
+		++mLevel;
 	}
+
+	Vector2 toRenderPos(float time, float level)
+	{
+		return mBasePos + Vector2(mScale * time, level * offsetY);
+	}
+
+
+	void drawNode(char const* name, double timePos, double duration, int callCount)
+	{
+		Vector2 pos = mBasePos + Vector2(mScale * timePos, mLevel * offsetY);
+		Vector2 size = Vector2(Math::Max<float>(mScale * duration, 1.5f), offsetY);
+		mGraphics2D.drawRect(pos, size);
+		if (size.x > 1.5)
+		{
+			InlineString<256> text;
+			if (callCount)
+			{
+				text.format("%s (%d - %.2lf)", name, callCount, duration);
+			}
+			else
+			{
+				text.format("%s (%.2lf)", name, duration);
+			}
+
+
+			TextData textData;
+			textData.pos = pos + Vector2(2, 0);
+			textData.size = size;
+			textData.str = text;
+			mRenderTexts.push_back(textData);
+		}
+	};
 
 	void onNode(VisitContext& context)
 	{
 		NodeStat& stat = updateDisplayTime(context);
 
 		SampleNode* node = context.node;
-		Vector2 pos = mBasePos + Vector2(mScale * (mCurTime + context.displayTimeAcc), mLevel * offsetY);
-		Vector2 size = Vector2(Math::Max<float>(mScale * context.displayTime, 1.5f), offsetY);
-
-		int color = FNV1a::MakeStringHash<uint32>(node->getName()) % ARRAY_SIZE(GColors);
+		int color = stat.id % ARRAY_SIZE(GColors);
 		mGraphics2D.setBrush(GColors[color]);
 
-		auto DrawNode = [&](double timePos, double duration)
-		{
-			Vector2 pos = mBasePos + Vector2(mScale * timePos, mLevel * offsetY);
-			Vector2 size = Vector2(Math::Max<float>(mScale * duration, 3.0f), offsetY);
-			mGraphics2D.drawRect(pos, size);
-			InlineString<256> text;
-			text.format("%s (%.2lf)", node->getName(), duration);
-			mGraphics2D.drawText(pos + Vector2(2, 0), size, text, EHorizontalAlign::Left, EVerticalAlign::Center, true);
-		};
 		if ( bGrouped )
 		{
-			DrawNode(mCurTime + context.displayTimeAcc, context.displayTime);
+			drawNode(node->getName(), mCurTime + context.displayTimeAcc, context.displayTime, node->getFrameCalls());
 		}
 		else
 		{
 			for (auto const& timestamp : stat.timestamps)
 			{
-				DrawNode(timestamp.start, timestamp.duration);
+				drawNode(node->getName(), timestamp.start, timestamp.duration, 0);
 			}
 		}
 	}
 
+	void drawTexts(Vector2 const& clipPos)
+	{
+		for (auto const& textData : mRenderTexts)
+		{
+			Vector2 pos = textData.pos;
+			Vector2 size = textData.size;
+			pos.x = Math::Clamp(pos.x, clipPos.x, pos.x + size.x);
+			size.x -= pos.x - textData.pos.x;
+			mGraphics2D.drawText(pos, size, textData.str.c_str(), EHorizontalAlign::Left, EVerticalAlign::Center, true);
+		}
+	}
+
+	struct TextData
+	{
+		Vector2 pos;
+		Vector2 size;
+		std::string str;
+	};
+	TArray< TextData > mRenderTexts;
 
 	struct Timestamp
 	{
@@ -93,19 +159,44 @@ public:
 
 	struct NodeStat
 	{
+		int id = INDEX_NONE;
+		uint64 frameCount = 0;
 		double displayTime = 0;
 		double execAvg = 0;
 		TArray< Timestamp > timestamps;
 	};
 
+	uint64 mFrameCount = 0;
+
+	bool filterNode(SampleNode* node)
+	{
+		if (bPause)
+		{
+			NodeStat& stat = nodeStatMap[node];
+			return stat.frameCount == mFrameCount;
+		}
+		else
+		{
+			return node->getLastFrame() + 1 == ProfileSystem::Get().getFrameCountSinceReset();
+		}
+	}
+
 	NodeStat& updateDisplayTime(VisitContext &context)
 	{
 		SampleNode* node = context.node;
 		NodeStat& stat = nodeStatMap[node];
+		if (stat.id == INDEX_NONE)
+		{
+			stat.id = mNextId++;
+			//stat.id = FNV1a::MakeStringHash<uint32>(node->getName());
+		}
+
 		stat.execAvg = 0.9 * stat.execAvg + 0.1 * node->getFrameExecTime();
 		if (!bPause)
 		{
-			stat.displayTime = bShowAvg ? stat.execAvg : node->getFrameExecTime();
+			mFrameCount = ProfileSystem::Get().getFrameCountSinceReset();
+			stat.frameCount = ProfileSystem::Get().getFrameCountSinceReset();
+			stat.displayTime = ( bShowAvg && bGrouped ) ? stat.execAvg : node->getFrameExecTime();
 			if (bGrouped == false)
 			{
 				stat.timestamps.resize(node->getFrameTimestamps().size());
@@ -142,7 +233,7 @@ public:
 	}
 
 	std::unordered_map< void*, NodeStat > nodeStatMap;
-
+	int mNextId = 0;
 
 	double mMaxLength = 600;
 	double offsetY = 20;
@@ -153,12 +244,16 @@ public:
 
 void ProfilerPanel::render()
 {
+	PROFILE_ENTRY("Profiler.Render");
 	static RenderData data;
 	ImGui::Checkbox("Pause", &bPause);
 	ImGui::SameLine();
-	ImGui::Checkbox("ShowAvg", &bShowAvg);
-	ImGui::SameLine();
 	ImGui::Checkbox("Grouped", &bGrouped);
+	if (bGrouped)
+	{
+		ImGui::SameLine();
+		ImGui::Checkbox("ShowAvg", &bShowAvg);
+	}
 	ImGui::SameLine();
 	ImGui::SliderFloat("Scale", &scale, 0.1, 100, "%g");
 
@@ -168,9 +263,9 @@ void ProfilerPanel::render()
 	ImGuiWindow* window = ImGui::GetCurrentWindowRead();
 
 	data.panel = this;
-	data.clientPos = FImGuiConv::To(ImGui::GetCursorScreenPos()) - FImGuiConv::To(ImGui::GetWindowViewport()->Pos);
+	data.clientPos = FImGuiConv::To(ImGui::GetCursorScreenPos() - ImGui::GetWindowViewport()->Pos);
 	data.clientSize = FImGuiConv::To(window->ContentSize);
-	data.windowPos = FImGuiConv::To(ImGui::GetWindowPos()) - FImGuiConv::To(ImGui::GetWindowViewport()->Pos);
+	data.windowPos = FImGuiConv::To(ImGui::GetWindowPos() - ImGui::GetWindowViewport()->Pos);
 	data.windowSize = FImGuiConv::To(ImGui::GetWindowSize());
 	data.viewportSize = FImGuiConv::To(ImGui::GetWindowViewport()->Size);
 	
@@ -183,30 +278,44 @@ void ProfilerPanel::render()
 
 void ProfilerPanel::renderInternal(RenderData& data)
 {
+	PROFILE_ENTRY("Profiler.RenderNodes");
 	using namespace Render;
 
 	RHIBeginRender();
 
 	RHIGraphics2D& g = EditorRenderGloabal::Get().getGraphics();
+	static ProfileFrameVisualizeDraw drawer(g);
 
 	g.setViewportSize(data.viewportSize.x, data.viewportSize.y);
 	g.beginRender();
 
-	g.beginClip(data.windowPos, data.windowSize);
+	g.beginClip(data.windowPos - Vector2(1,0), data.windowSize);
+
+
+	drawer.drawGird();
 
 	g.setPen(Color3ub(0, 0, 0));
 	g.setFont(FImGui::mFont);
-	static ProfileFrameVisualizeDraw drawer(g);
+
 	drawer.mBasePos = data.clientPos;
 	drawer.bShowAvg = bShowAvg;
 	drawer.bPause = bPause;
 	drawer.bGrouped = bGrouped;
 	drawer.mMaxLength = data.clientSize.x;
-	drawer.visitNodes();
-	
+	drawer.mLevelTimePos.clear();
+	drawer.mRenderTexts.clear();
+
+	{
+		PROFILE_ENTRY("DrawNodes");
+		drawer.visitNodes();
+	}
+	{
+		PROFILE_ENTRY("DrawTexts");
+		drawer.drawTexts(data.windowPos);
+	}
+
 	g.endClip();
 	g.endRender();
-
 
 	RHIEndRender(false);
 }

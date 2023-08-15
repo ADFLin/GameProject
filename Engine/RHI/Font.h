@@ -172,9 +172,6 @@ namespace Render
 		TextureAtlas mTextAtlas;
 		std::unordered_map< FontFaceKey , CharDataSet* , MemberFuncHasher > mCharDataSetMap;
 		bool bInitialized = false;
-#if SYS_PLATFORM_WIN
-		HDC hDC;
-#endif
 	};
 
 	struct FontVertex
@@ -192,17 +189,23 @@ namespace Render
 		bool initialize(FontFaceInfo const& fontFace);
 		bool isValid() const { return !!mCharDataSet; }
 		void cleanup();
-		void generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
-		void generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+
+		int   getVerticesCount(char const* str);
+		void  generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize = nullptr);
+
+		void  generateVertices(Vector2 const& pos, char const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
+		void  generateVertices(Vector2 const& pos, wchar_t const* str, FontVertex* outVertices, Vector2* outBoundSize = nullptr);
 
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, char const* str);
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
 		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< FontVertex > const& buffer);
 
 		int  getFontHeight() const { return mCharDataSet->getFontHeight(); }
-		Vector2 calcTextExtent(wchar_t const* str);
-
-		Vector2 calcTextExtent(char const* str);
+		int     getCharCount(wchar_t const* str);
+		int     getCharCount(char const* str);
+		Vector2 calcTextExtent(wchar_t const* str, int* outCharCount = nullptr);
+		Vector2 calcTextExtent(char const* str, int* outCharCount = nullptr);
 		RHITexture2D& getTexture()
 		{
 			return mCharDataSet->getTexture();
@@ -210,6 +213,17 @@ namespace Render
 
 	private:
 		void drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
+		
+		template< typename CharT >
+		Vector2 calcTextExtentT(CharT const* str, int* outCharCount);
+
+		template< typename CharT >
+		void generateVerticesT(Vector2 const& pos, CharT const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize);
+		template< typename CharT >
+		void generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize);
+
+		template< typename CharT >
+		int getCharCountT(CharT const* str);
 	
 	public:
 		CharDataSet* mCharDataSet;

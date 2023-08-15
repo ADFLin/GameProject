@@ -25,7 +25,8 @@ namespace Zuma
 		bool ownAlpha()  const { return mOwnAlpha; }
 
 		virtual void release() = 0;
-	protected:
+
+	//protected:
 		int  mWidth;
 		int  mHeight;
 		bool mOwnAlpha;
@@ -128,6 +129,15 @@ namespace Zuma
 		virtual void  drawBitmap( ITexture2D const& tex , Vector2 const& texPos , Vector2 const& texSize, unsigned flag = 0 ) = 0;
 		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vector2 const& pos , unsigned flag = 0 ) = 0;
 		virtual void  drawPolygon( Vector2 const pos[] , int num ) = 0;
+		virtual void  drawRect(Vector2 const& pos, Vector2 const& size)
+		{
+			Vector2 posList[4];
+			posList[0] = pos;
+			posList[1] = pos + Vector2(size.x, 0);
+			posList[2] = pos + size;
+			posList[3] = pos + Vector2(0, size.y);
+			drawPolygon(posList, ARRAY_SIZE(posList));
+		}
 
 		virtual void  loadWorldMatrix( Vector2 const& pos , Vector2 const& dir ) = 0;
 		virtual void  translateWorld( float x , float y ) = 0;

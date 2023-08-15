@@ -17,14 +17,8 @@
 
 #include <algorithm>
 
-enum class ESimpleBlendMode
-{
-	None,
-	Translucent,
-	Add,
-	Multiply,
-};
 
+using Render::ESimpleBlendMode;
 
 enum class EVerticalAlign
 {
@@ -43,7 +37,7 @@ enum class EHorizontalAlign
 	Fill,
 };
 
-class RHIGraphics2D
+class RHIGraphics2D : public Render::GraphicsDefinition
 {
 public:
 	RHIGraphics2D();
@@ -129,8 +123,8 @@ public:
 	void  drawRect(Vector2 const& pos, Vector2 const& size);
 	void  drawCircle(Vector2 const& center, float r);
 	void  drawEllipse(Vector2 const& center, Vector2 const& size);
-	void  drawPolygon(Vector2 pos[], int num);
-	void  drawPolygon(Vec2i pos[], int num);
+	void  drawPolygon(Vector2 const pos[], int num);
+	void  drawPolygon(Vec2i const pos[], int num);
 	void  drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize);
 
 	void  drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT,
@@ -172,15 +166,11 @@ public:
 	void restoreRenderState();
 
 
-	void flush()
-	{
-		commitRenderState();
-		flushBatchedElements();
-	}
+	void flush();
 
 	Math::Matrix4 const& getBaseTransform() const
 	{
-		return mBaseTransform;
+		return mBatchedRender.mBaseTransform;
 	}
 
 	Render::RenderTransform2D const& getCurrentTransform() const
@@ -190,27 +180,24 @@ public:
 
 	Render::TransformStack2D& getTransformStack() { return mXFormStack; }
 
-	bool bUseGraphicOnly = false;
-
 	Render::RHICommandList& getCommandList();
 
 	void initializeRHI();
 	void releaseRHI();
 
+	Color4Type getBrushColor() const
+	{
+		return mPaintArgs.brushColor;
+	}
+
 private:
-	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
-	void emitVertex(Vector2 const& v);
 
 	template< typename CharT >
 	void drawTextImpl(float ox, float oy, CharT const* str);
+	template< typename CharT >
+	void drawTextImpl(float ox, float oy, CharT const* str, int charCount);
 
-	void drawPolygonBuffer();
-	void drawLineBuffer();
-
-
-	void initRenderState();
 	void setupCommittedRenderState();
-
 
 	void flushBatchedElements();
 	void preModifyRenderState();
@@ -230,66 +217,22 @@ private:
 	}
 	Render::ShapePaintArgs mPaintArgs;
 
-	struct RenderState
-	{
-		RHITexture2D*    texture;
-		RHISamplerState* sampler;
-		ESimpleBlendMode blendMode;
-		bool bEnableMultiSample;
-		bool bEnableScissor;
-	};
-
 	RenderState   mRenderStateCommitted;
 	RenderState   mRenderStatePending;
-	struct StateFlags
-	{
-		union 
-		{
-			struct
-			{
-				uint8 pipeline : 1;
-				uint8 scissorRect : 1;
-				uint8 blend : 1;
-				uint8 rasterizer : 1;
-			};
-			uint8 value;
-		};
-	};
 	StateFlags    mDirtyState;
 	Vector2       mCurTextureSize;
 	int32         mNextLayer;
-	struct Rect 
-	{
-		Vec2i pos;
-		Vec2i size;
 
-		bool isValid() const
-		{
-			return size.x > 0 && size.y > 0;
-		}
-
-		static Rect Intersect(Rect const& r1, Rect const& r2)
-		{
-			Vec2i min = r1.pos.max(r2.pos);
-			Vec2i max = (r1.pos + r1.size).min(r2.pos + r2.size);
-			return { min , max - min };
-		}
-	};
-	Rect      mScissorRect;
-
-	int       mWidth;
-	int       mHeight;
 
 
 	Color4Type   mColorFont;
 
 	Render::FontDrawer*   mFont;
-	TArray< Vector2 >  mBuffer;
 
-	Math::Matrix4   mBaseTransform;
 
+	FrameAllocator mAllocator;
 	Render::TransformStack2D mXFormStack;
-	Render::RenderBachedElementList mBachedElementList;
+	Render::RenderBatchedElementList mElementList;
 	Render::BatchedRender mBatchedRender;
 };
 

@@ -3,6 +3,9 @@
 
 #include "ZBase.h"
 #include "ResID.h"
+
+#include "DataStructure/Array.h"
+
 #include <map>
 #include <exception>
 
@@ -29,6 +32,8 @@ namespace boost {
 using boost::property_tree::ptree;
 
 #endif //USE_NEW_XML
+
+
 
 namespace Zuma
 {
@@ -180,7 +185,7 @@ namespace Zuma
 		int         mCountLoading;
 		std::string mIdPrefix;
 		std::string mCurDir;
-		std::vector< ResBase* >    mResVec;
+		TArray< ResBase* >    mResVec;
 
 #if USE_NEW_XML
 		void loadImage( IXmlNodePtr node );

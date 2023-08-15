@@ -11,17 +11,13 @@
 #include <algorithm>
 
 #include "ConsoleSystem.h"
+#include "ProfileSystem.h"
 
-CORE_API extern TConsoleVariable<bool> CVarUseBachedRender2D;
-
-#if CORE_SHARE_CODE
-TConsoleVariable<bool> CVarUseBachedRender2D(true, "r.UseBachedRender2D");
-#endif
 using namespace Render;
 
 RHIGraphics2D::RHIGraphics2D()
-	: mWidth(1)
-	, mHeight(1)
+	:mAllocator(2048)
+	,mElementList(mAllocator)
 {
 
 	mPaintArgs.penWidth = 1;
@@ -33,12 +29,7 @@ RHIGraphics2D::RHIGraphics2D()
 	mFont = nullptr;
 	mColorFont = Color4Type(0, 0, 0);
 
-	mRenderStateCommitted.texture = nullptr;
-	mRenderStateCommitted.sampler = nullptr;
-	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
-	mRenderStateCommitted.bEnableMultiSample = false;
-	mRenderStateCommitted.bEnableScissor = false;
-
+	mRenderStateCommitted.setInit();
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
 }
@@ -51,21 +42,14 @@ void RHIGraphics2D::initializeRHI()
 void RHIGraphics2D::releaseRHI()
 {
 	mBatchedRender.releaseRHI();
-
-	mRenderStateCommitted.texture = nullptr;
-	mRenderStateCommitted.sampler = nullptr;
-	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
-	mRenderStateCommitted.bEnableMultiSample = false;
-	mRenderStateCommitted.bEnableScissor = false;
-
+	mRenderStateCommitted.setInit();
 	mRenderStatePending = mRenderStateCommitted;
 	mDirtyState.value = 0;
 }
 
 void RHIGraphics2D::setViewportSize(int w, int h)
 {
-	mWidth = w;
-	mHeight = h;
+	mBatchedRender.setViewportSize(w, h);
 }
 
 void RHIGraphics2D::beginXForm()
@@ -128,11 +112,7 @@ void RHIGraphics2D::transformXForm(Render::RenderTransform2D const& xform, bool 
 
 void RHIGraphics2D::beginFrame()
 {
-	if (bUseGraphicOnly)
-	{
-		initRenderState();
-		mXFormStack.clear();
-	}
+
 }
 
 void RHIGraphics2D::endFrame()
@@ -142,95 +122,29 @@ void RHIGraphics2D::endFrame()
 
 void RHIGraphics2D::beginRender()
 {
-	if (!bUseGraphicOnly)
-	{
-		initRenderState();
-		mXFormStack.clear();
-	}
+	RHICommandList& commandList = getCommandList();
+
+	mRenderStateCommitted.setInit();
+	mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
+	mRenderStatePending = mRenderStateCommitted;
+	mDirtyState.value = 0;
+	mCurTextureSize = Vector2(0, 0);
+	mXFormStack.clear();
+	mBatchedRender.beginRender(commandList);
+
+	setupCommittedRenderState();
 }
 
 void RHIGraphics2D::endRender()
 {
-	RHICommandList& commandList = getCommandList();
-
-	if (CVarUseBachedRender2D)
-	{
-		flushBatchedElements();
-	}
-
-	//RHIFlushCommand(commandList);
-}
-
-RHIBlendState& GetBlendState(ESimpleBlendMode blendMode)
-{
-	switch (blendMode)
-	{
-	case ESimpleBlendMode::Translucent: 
-		return TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI();
-	case ESimpleBlendMode::Add:
-		return TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI();
-	case ESimpleBlendMode::Multiply:
-		return TStaticBlendState< CWM_RGBA, EBlend::DestColor, EBlend::Zero >::GetRHI();
-	case ESimpleBlendMode::None:
-		return TStaticBlendState<>::GetRHI();
-	}
-	NEVER_REACH("RHIGraphics2D::checkComitRenderState");
-	return TStaticBlendState<>::GetRHI();
-}
-
-RHIRasterizerState& GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample)
-{
-	if (bEnableMultiSample)
-	{
-		if (bEnableScissor)
-		{
-			return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true, true >::GetRHI();
-		}
-		else
-		{
-			return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false, true >::GetRHI();
-		}
-
-	}
-	else if (bEnableScissor)
-	{
-		return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, true >::GetRHI();
-	}
-
-	return TStaticRasterizerState< ECullMode::None, EFillMode::Solid, EFrontFace::Default, false >::GetRHI();
-}
-
-
-using GraphicsDepthState = StaticDepthDisableState;
-
-void RHIGraphics2D::initRenderState()
-{
-	mRenderStateCommitted.texture = nullptr;
-	mRenderStateCommitted.sampler = nullptr;
-	mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
-	mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
-	mRenderStateCommitted.bEnableScissor = false;
-	mRenderStatePending = mRenderStateCommitted;
-	mDirtyState.value = 0;
-	mCurTextureSize = Vector2(0, 0);
-
-	mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, mWidth, mHeight, 0, -1, 1));
-	setupCommittedRenderState();
+	mBatchedRender.endRender();
+	flush();
 }
 
 void RHIGraphics2D::setupCommittedRenderState()
 {
 	RHICommandList& commandList = getCommandList();
-	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-
-	RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
-	RHISetBlendState(commandList, GetBlendState(mRenderStateCommitted.blendMode));
-	RHISetRasterizerState(commandList, GetRasterizerState(mRenderStateCommitted.bEnableScissor, mRenderStateCommitted.bEnableMultiSample));
-
-	//RHISetShaderProgram(commandList, nullptr);
-	RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1,1,1,1), mRenderStateCommitted.texture , mRenderStateCommitted.sampler);
-
-	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI(), nullptr, 0);
+	mBatchedRender.commitRenderState(commandList, mRenderStateCommitted);
 }
 
 void RHIGraphics2D::commitRenderState()
@@ -238,55 +152,38 @@ void RHIGraphics2D::commitRenderState()
 	mDirtyState.blend |= mRenderStateCommitted.blendMode != mRenderStatePending.blendMode;
 	mDirtyState.rasterizer |= mRenderStateCommitted.bEnableScissor != mRenderStatePending.bEnableScissor || 
 		mRenderStateCommitted.bEnableMultiSample != mRenderStatePending.bEnableMultiSample;
+	mDirtyState.pipeline |= mRenderStateCommitted.texture != mRenderStatePending.texture;
+	mDirtyState.scissorRect = mRenderStateCommitted.scissorRect != mRenderStatePending.scissorRect;
 	if (mDirtyState.value)
 	{
 		preModifyRenderState();
 
-		auto& commandList = getCommandList();
 		if (mDirtyState.pipeline)
 		{
 			mRenderStateCommitted.texture = mRenderStatePending.texture;
 			mRenderStateCommitted.sampler = mRenderStatePending.sampler;
-			RHISetFixedShaderPipelineState(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
 		}
 		if (mDirtyState.blend)
 		{
 			mRenderStateCommitted.blendMode = mRenderStatePending.blendMode;
-			RHISetBlendState(commandList, GetBlendState(mRenderStatePending.blendMode));
 		}
 		if (mDirtyState.rasterizer)
 		{
 			mRenderStateCommitted.bEnableMultiSample = mRenderStatePending.bEnableMultiSample;
 			mRenderStateCommitted.bEnableScissor = mRenderStatePending.bEnableScissor;
-			RHISetRasterizerState(commandList, GetRasterizerState(mRenderStateCommitted.bEnableScissor, mRenderStateCommitted.bEnableMultiSample));
 		}
 		if (mDirtyState.scissorRect)
 		{
-			RHISetScissorRect(commandList, mScissorRect.pos.x, mHeight - mScissorRect.pos.y - mScissorRect.size.y, mScissorRect.size.x, mScissorRect.size.y);
+			mRenderStateCommitted.scissorRect = mRenderStatePending.scissorRect;
 		}
 
 		mDirtyState.value = 0;
 	}
 }
 
-void RHIGraphics2D::emitLineVertex(Vector2 const &p1, Vector2 const &p2)
-{
-	emitVertex(p1);
-	emitVertex(p2);
-}
-
-void RHIGraphics2D::emitVertex(Vector2 const& v)
-{
-	Vector2 temp = mXFormStack.get().transformPosition(v);
-	mBuffer.push_back(temp);
-}
-
 void RHIGraphics2D::drawPixel(Vector2 const& p, Color3Type const& color)
 {
-	if (CVarUseBachedRender2D)
-	{
-		flushBatchedElements();
-	}
+	flushBatchedElements();
 
 	setTextureState();
 	commitRenderState();
@@ -303,22 +200,10 @@ void RHIGraphics2D::drawRect(int left, int top, int right, int bottom)
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		Vector2 p1(left, top);
-		Vector2 p2(right, bottom);
-		auto& element = mBachedElementList.addRect(getPaintArgs(), p1, p2);
-		setupElement(element);
-	}
-	else
-	{
-		Vector2 p1(left, top);
-		Vector2 p2(right, bottom);
-		ShapeVertexBuilder builder(mBuffer);
-		builder.mTransform = mXFormStack.get();
-		builder.buildRect(p1, p2);
-		drawPolygonBuffer();
-	}
+	Vector2 p1(left, top);
+	Vector2 p2(right, bottom);
+	auto& element = mElementList.addRect(getPaintArgs(), p1, p2);
+	setupElement(element);
 }
 
 void RHIGraphics2D::drawRect(Vector2 const& pos, Vector2 const& size)
@@ -326,19 +211,8 @@ void RHIGraphics2D::drawRect(Vector2 const& pos, Vector2 const& size)
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addRect(getPaintArgs(), pos, pos + size);
-		setupElement(element);
-	}
-	else
-	{
-		Vector2 p2 = pos + size;
-		ShapeVertexBuilder builder(mBuffer);
-		builder.mTransform = mXFormStack.get();
-		builder.buildRect(pos, p2);
-		drawPolygonBuffer();
-	}
+	auto& element = mElementList.addRect(getPaintArgs(), pos, pos + size);
+	setupElement(element);
 }
 
 void RHIGraphics2D::drawCircle(Vector2 const& center, float r)
@@ -346,19 +220,8 @@ void RHIGraphics2D::drawCircle(Vector2 const& center, float r)
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addCircle(getPaintArgs(), center, r);
-		setupElement(element);
-	}
-	else
-	{
-		int numSeg = std::max(2 * r * r, 4.0f);
-		ShapeVertexBuilder builder(mBuffer);
-		builder.mTransform = mXFormStack.get();
-		builder.buildCircle(center, r, calcCircleSemgmentNum(r));
-		drawPolygonBuffer();
-	}
+	auto& element = mElementList.addCircle(getPaintArgs(), center, r);
+	setupElement(element);
 }
 
 void RHIGraphics2D::drawEllipse(Vector2 const& center, Vector2 const& size)
@@ -366,57 +229,26 @@ void RHIGraphics2D::drawEllipse(Vector2 const& center, Vector2 const& size)
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addEllipse(getPaintArgs(), center, size );
-		setupElement(element);
-	}
-	else
-	{
-		ShapeVertexBuilder builder(mBuffer);
-		builder.mTransform = mXFormStack.get();
-		float yFactor = float(size.y) / size.x;
-		builder.buildEllipse(center, size.x, yFactor, calcCircleSemgmentNum((size.x + size.y) / 2));
-		drawPolygonBuffer();
-	}
+	auto& element = mElementList.addEllipse(getPaintArgs(), center, size );
+	setupElement(element);
 }
 
-void RHIGraphics2D::drawPolygon(Vector2 pos[], int num)
+void RHIGraphics2D::drawPolygon(Vector2 const pos[], int num)
 {
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
-		setupElement(element);
-	}
-	else
-	{
-		ShapeVertexBuilder builder(mBuffer);
-		builder.mTransform = mXFormStack.get();
-		builder.buildPolygon(pos, num);
-		drawPolygonBuffer();
-	}
+	auto& element = mElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
+	setupElement(element);
 }
 
-void RHIGraphics2D::drawPolygon(Vec2i pos[], int num)
+void RHIGraphics2D::drawPolygon(Vec2i const pos[], int num)
 {
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
-		setupElement(element);
-	}
-	else
-	{
-		ShapeVertexBuilder builder(mBuffer);
-		builder.mTransform = mXFormStack.get();
-		builder.buildPolygon(pos, num);
-		drawPolygonBuffer();
-	}
+	auto& element = mElementList.addPolygon(mXFormStack.get(), getPaintArgs(), pos, num);
+	setupElement(element);
 }
 
 void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
@@ -424,17 +256,8 @@ void RHIGraphics2D::drawLine(Vector2 const& p1, Vector2 const& p2)
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addLine(mPaintArgs.penColor, p1, p2, mPaintArgs.penWidth);
-		setupElement(element);
-	}
-	else
-	{
-		mBuffer.clear();
-		emitLineVertex(p1, p2);
-		drawLineBuffer();
-	}
+	auto& element = mElementList.addLine(mPaintArgs.penColor, p1, p2, mPaintArgs.penWidth);
+	setupElement(element);
 }
 
 
@@ -443,20 +266,8 @@ void RHIGraphics2D::drawLineStrip(Vector2 pos[], int num)
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addLineStrip(mXFormStack.get(), mPaintArgs.penColor, pos, num, mPaintArgs.penWidth);
-		setupElement(element);
-	}
-	else
-	{
-		mBuffer.clear();
-		for (int i = 1; i < num; ++i)
-		{
-			emitLineVertex(pos[i], pos[i-1]);
-		}
-		drawLineBuffer();
-	}
+	auto& element = mElementList.addLineStrip(mXFormStack.get(), mPaintArgs.penColor, pos, num, mPaintArgs.penWidth);
+	setupElement(element);
 }
 
 
@@ -465,18 +276,8 @@ void RHIGraphics2D::drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, V
 	setTextureState();
 	commitRenderState();
 
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addRoundRect( getPaintArgs(),  pos, rectSize, circleSize / 2);
-		setupElement(element);
-	}
-	else
-	{
-		ShapeVertexBuilder builder(mBuffer);
-		builder.mTransform = mXFormStack.get();
-		builder.buildRoundRect(pos, rectSize, circleSize / 2);
-		drawPolygonBuffer();
-	}
+	auto& element = mElementList.addRoundRect( getPaintArgs(),  pos, rectSize, circleSize / 2);
+	setupElement(element);
 }
 
 void RHIGraphics2D::drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad)
@@ -484,13 +285,8 @@ void RHIGraphics2D::drawGradientRect(Vector2 const& posLT, Color3Type const& col
 	setTextureState();
 	commitRenderState();
 
-	auto& element = mBachedElementList.addGradientRect(posLT, colorLT, posRB, colorRB, bHGrad);
+	auto& element = mElementList.addGradientRect(posLT, colorLT, posRB, colorRB, bHGrad);
 	setupElement(element);
-
-	if (!CVarUseBachedRender2D)
-	{
-		flushBatchedElements();
-	}
 }
 
 void RHIGraphics2D::setTextColor(Color3Type const& color)
@@ -526,7 +322,8 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 
 	auto DoDrawText = [&]()
 	{
-		Vector2 extent = mFont->calcTextExtent(str);
+		int charCount = 0;
+		Vector2 extent = mFont->calcTextExtent(str, &charCount);
 		Vector2 renderPos = pos;
 		switch (alignH)
 		{
@@ -548,18 +345,18 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 			renderPos.y += 0.5 * (size.y - extent.y);
 			break;
 		}
-		drawTextImpl(renderPos.x, renderPos.y, str);
+		drawTextImpl(renderPos.x, renderPos.y, str, charCount);
 	};
 
 	if (bClip)
 	{
 		if (mRenderStatePending.bEnableScissor)
 		{
-			Rect rect = Rect::Intersect(mScissorRect, { pos , size });
+			Rect rect = Rect::Intersect(mRenderStatePending.scissorRect, { pos , size });
 			if (!rect.isValid())
 				return;
 
-			Rect prevRect = mScissorRect;
+			Rect prevRect = mRenderStatePending.scissorRect;
 			setClipRect(rect.pos, rect.size);
 			DoDrawText();
 			setClipRect(prevRect.pos, prevRect.size);
@@ -586,20 +383,21 @@ void RHIGraphics2D::drawText(Vector2 const& pos, Vector2 const& size, char const
 
 	auto DoDrawText = [&]()
 	{
-		Vector2 extent = mFont->calcTextExtent(str);
+		int charCount = 0;
+		Vector2 extent = mFont->calcTextExtent(str, &charCount);
 		Vector2 renderPos = pos + (size - extent) / 2;
-		drawTextImpl(renderPos.x, renderPos.y, str);
+		drawTextImpl(renderPos.x, renderPos.y, str, charCount);
 	};
 
 	if (bClip)
 	{
 		if (mRenderStatePending.bEnableScissor)
 		{
-			Rect rect = Rect::Intersect(mScissorRect, { pos , size });
+			Rect rect = Rect::Intersect(mRenderStatePending.scissorRect, { pos , size });
 			if (!rect.isValid())
 				return;
 
-			Rect prevRect = mScissorRect;
+			Rect prevRect = mRenderStatePending.scissorRect;
 			setClipRect(rect.pos, rect.size);
 			DoDrawText();
 			setClipRect(prevRect.pos, prevRect.size);
@@ -623,32 +421,27 @@ void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str)
 {
 	assert(mFont);
 
-	if (CVarUseBachedRender2D)
-	{
-		TArray< FontVertex > vertices;
-		mFont->generateVertices(Vector2(int(ox), int(oy)), str, vertices);
-		if (!vertices.empty())
-		{
-			ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
-			setBlendState(ESimpleBlendMode::Translucent);
-			setTextureState(&mFont->getTexture());
-			commitRenderState();
-			auto& element = mBachedElementList.addText(mColorFont, std::move(vertices));
-			setupElement(element);
-			setBlendState(prevMode);
-		}
-	}
-	else
-	{
-		ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
-		setBlendState(ESimpleBlendMode::Translucent);
-		commitRenderState();
-		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		mFont->draw(getCommandList(), Vector2(int(ox), int(oy)), transform, mColorFont, str);
-		mRenderStateCommitted.blendMode = ESimpleBlendMode::None;
-		mDirtyState.pipeline = true;
-		setBlendState(prevMode);
-	}
+	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
+	setBlendState(ESimpleBlendMode::Translucent);
+	setTextureState(&mFont->getTexture());
+	commitRenderState();
+	auto& element = mElementList.addText(mColorFont, Vector2(int(ox), int(oy)), *mFont, str);
+	setupElement(element);
+	setBlendState(prevMode);
+}
+
+template< typename CharT >
+void RHIGraphics2D::drawTextImpl(float ox, float oy, CharT const* str, int charCount)
+{
+	assert(mFont);
+
+	ESimpleBlendMode prevMode = mRenderStateCommitted.blendMode;
+	setBlendState(ESimpleBlendMode::Translucent);
+	setTextureState(&mFont->getTexture());
+	commitRenderState();
+	auto& element = mElementList.addText(mColorFont, Vector2(int(ox), int(oy)), *mFont, str, charCount);
+	setupElement(element);
+	setBlendState(prevMode);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos)
@@ -679,19 +472,8 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Color4f const& color)
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Color4f const& color)
 {
 	commitRenderState();
-
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addTextureRect(color, pos, pos + size, Vector2(0, 0), Vector2(1, 1));
-		setupElement(element);
-	}
-	else
-	{
-		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		RHISetFixedShaderPipelineState(getCommandList(), transform, mPaintArgs.brushColor, mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
-		DrawUtility::Sprite(getCommandList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
-		mDirtyState.pipeline = true;
-	}
+	auto& element = mElementList.addTextureRect(color, pos, pos + size, Vector2(0, 0), Vector2(1, 1));
+	setupElement(element);
 }
 
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color)
@@ -702,49 +484,15 @@ void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& texPos, Vecto
 void RHIGraphics2D::drawTexture(Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color4f const& color)
 {
 	commitRenderState();
-
-	if (CVarUseBachedRender2D)
-	{
-		auto& element = mBachedElementList.addTextureRect(color, pos, pos + size, texPos, texPos + texSize);
-		setupElement(element);
-	}
-	else
-	{
-		Matrix4 transform = mXFormStack.get().toMatrix4() * mBaseTransform;
-		RHISetFixedShaderPipelineState(getCommandList(), transform, color, mRenderStateCommitted.texture, mRenderStateCommitted.sampler);
-		DrawUtility::Sprite(getCommandList(), pos, size, Vector2(0, 0), texPos, texSize);
-		mDirtyState.pipeline = true;
-	}
-}
-
-void RHIGraphics2D::drawPolygonBuffer()
-{
-	assert(!mBuffer.empty());
-	if (mPaintArgs.bUseBrush)
-	{
-		TRenderRT<RTVF_XY>::Draw(getCommandList(), EPrimitive::Polygon, mBuffer.data(), mBuffer.size() , mPaintArgs.brushColor);
-	}
-	if (mPaintArgs.bUsePen)
-	{
-		TRenderRT<RTVF_XY>::Draw(getCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , mPaintArgs.penColor);
-	}
-}
-
-void RHIGraphics2D::drawLineBuffer()
-{
-	assert(!mBuffer.empty());
-	if (mPaintArgs.bUsePen)
-	{
-		TRenderRT<RTVF_XY>::Draw(getCommandList(), EPrimitive::LineLoop, mBuffer.data(), mBuffer.size() , mPaintArgs.penColor);
-	}
+	auto& element = mElementList.addTextureRect(color, pos, pos + size, texPos, texPos + texSize);
+	setupElement(element);
 }
 
 void RHIGraphics2D::flushBatchedElements()
 {
-	if ( !mBachedElementList.isEmpty() )
+	if ( !mElementList.isEmpty() )
 	{
-		mBatchedRender.render(getCommandList(), mBachedElementList);
-		mBachedElementList.releaseElements();
+		mBatchedRender.render( mRenderStateCommitted, mElementList);
 		mNextLayer = 0;
 	}
 }
@@ -757,7 +505,7 @@ RHICommandList& RHIGraphics2D::getCommandList()
 void RHIGraphics2D::setTextureState(RHITexture2D* texture /*= nullptr*/)
 {
 	mRenderStatePending.texture = texture;
-	mDirtyState.pipeline |= mRenderStateCommitted.texture != mRenderStatePending.texture;
+
 }
 
 void RHIGraphics2D::setTexture(RHITexture2D& texture)
@@ -768,16 +516,13 @@ void RHIGraphics2D::setTexture(RHITexture2D& texture)
 
 void RHIGraphics2D::setSampler(RHISamplerState& sampler)
 {
-	mRenderStateCommitted.sampler = &sampler;
+	mRenderStatePending.sampler = &sampler;
 	mDirtyState.pipeline |= mRenderStateCommitted.sampler != mRenderStatePending.sampler;
 }
 
 void RHIGraphics2D::preModifyRenderState()
 {
-	if (CVarUseBachedRender2D)
-	{
-		flushBatchedElements();
-	}
+	flushBatchedElements();
 }
 
 void RHIGraphics2D::setBlendState(ESimpleBlendMode mode)
@@ -789,6 +534,7 @@ void RHIGraphics2D::restoreRenderState()
 {
 	preModifyRenderState();
 	setupCommittedRenderState();
+	mBatchedRender.setupInputState(getCommandList());
 }
 
 void RHIGraphics2D::setPen(Color3Type const& color, int width)
@@ -818,15 +564,14 @@ void RHIGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 
 void RHIGraphics2D::setClipRect(Vec2i const& pos, Vec2i const& size)
 {
-	mScissorRect.pos = pos;
-	mScissorRect.size = size;
-	mDirtyState.scissorRect = true;
+	mRenderStatePending.scissorRect.pos  = pos;
+	mRenderStatePending.scissorRect.size = size;
+
 }
 
 void RHIGraphics2D::endClip()
 {
 	mRenderStatePending.bEnableScissor = false;
-	mDirtyState.scissorRect = false;
 }
 
 void RHIGraphics2D::beginBlend(Vector2 const& pos, Vector2 const& size, float alpha)
@@ -845,4 +590,12 @@ void RHIGraphics2D::endBlend()
 {
 	setBlendState(ESimpleBlendMode::None);
 	setBlendAlpha(1.0f);
+}
+
+void RHIGraphics2D::flush()
+{
+	commitRenderState();
+	flushBatchedElements();
+	mBatchedRender.flush();
+	mAllocator.clearFrame();
 }

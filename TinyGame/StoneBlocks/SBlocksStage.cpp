@@ -36,6 +36,7 @@ namespace SBlocks
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
@@ -131,6 +132,7 @@ namespace SBlocks
 			g.popXForm();
 		}
 	
+#if 1
 		validatePiecesOrder();
 		for (Piece* piece : mSortedPieces )
 		{
@@ -145,6 +147,7 @@ namespace SBlocks
 				g.popXForm();
 			}
 		}
+#endif
 
 		if ( CVarDevMode)
 		{
@@ -154,6 +157,7 @@ namespace SBlocks
 		}
 
 		g.endRender();
+		RHIFlushCommand(commandList);
 	}
 
 

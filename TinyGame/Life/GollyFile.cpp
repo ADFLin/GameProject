@@ -295,7 +295,8 @@ namespace Life
 								{
 									state = state + c - 'A' + 1;
 								}
-								else {
+								else 
+								{
 									// return "Illegal multi-char state" ;
 									// be more forgiving so we can read non-standard rle files like
 									// those at http://home.interserv.com/~mniemiec/lifepage.htm

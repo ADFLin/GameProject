@@ -177,11 +177,16 @@ void ContentPanel::render()
 	if (ImGui::BeginTable("Split", 2, ImGuiTableFlags_Resizable))
 	{
 		ImGui::TableNextColumn();
-		ImGui::BeginChild("DirectoryTree");
-		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 12);
-		renderFolderTree("All",".", 0, true);
-		ImGui::PopStyleVar();
-		ImGui::EndChild();
+		{
+			PROFILE_ENTRY("RenderFolderTree");
+			ImGui::BeginChild("FolderTree");
+			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 12);
+			mVisitCount = 0;
+			renderFolderTree("All", ".", 0, true);
+			ImGui::PopStyleVar();
+			ImGui::EndChild();
+		}
+
 
 		ImGui::TableNextColumn();
 
@@ -196,6 +201,8 @@ void ContentPanel::render()
 		ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false);
 		if (ImGui::BeginTable("ContentTile", colCount))
 		{
+			PROFILE_ENTRY("RenderContent");
+
 			// selectable list
 			int id = 0;
 			for (auto& fileData : mCurrentFiles)
@@ -256,24 +263,54 @@ void ContentPanel::render()
 
 void ContentPanel::renderFolderTree(char const* name, char const* path, int level, bool bInCurFolderSeq )
 {
-	bool bHaveSubFolder = false;
+	++mVisitCount;
+	FolderInfo* folderInfo = nullptr;
+
 	{
-		FileIterator fileIter;
-		if (FFileSystem::FindFiles(path, nullptr, fileIter))
+		bool bNeedUpadate = false;
+		auto iter = mCachedFolderMap.find(path);
+		if ( iter != mCachedFolderMap.end() )
 		{
-			for (; fileIter.haveMore(); fileIter.goNext())
+			folderInfo = &iter->second;
+			++folderInfo->count;
+			if ((folderInfo->count + mVisitCount) % 30 == 0)
 			{
-				if (!fileIter.isDirectory())
-					continue;
-
-				if (!FilterDirectory(fileIter.getFileName()))
-					continue;
-
-				bHaveSubFolder = true;
-				break;
+				folderInfo->subFolders.clear();
+				bNeedUpadate = true;
 			}
+
+		}
+		else
+		{
+			folderInfo = &mCachedFolderMap.emplace(path, FolderInfo()).first->second;
+			folderInfo->count = 0;
+			bNeedUpadate = true;
+		}
+	
+
+		if ( bNeedUpadate )
+		{
+			folderInfo->subFolders.clear();
+
+			FileIterator fileIter;
+			if (FFileSystem::FindFiles(path, nullptr, fileIter))
+			{
+				for (; fileIter.haveMore(); fileIter.goNext())
+				{
+					if (!fileIter.isDirectory())
+						continue;
+
+					if (!FilterDirectory(fileIter.getFileName()))
+						continue;
+
+					folderInfo->subFolders.push_back(fileIter.getFileName());
+				}
+			}
+
 		}
 	}
+
+	bool bHaveSubFolder = !folderInfo->subFolders.empty();
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_SpanFullWidth;
 
@@ -332,6 +369,7 @@ void ContentPanel::renderFolderTree(char const* name, char const* path, int leve
 
 	if (bOpened)
 	{
+#if 0
 		FileIterator fileIter;
 		if (FFileSystem::FindFiles(path, nullptr, fileIter))
 		{
@@ -348,6 +386,14 @@ void ContentPanel::renderFolderTree(char const* name, char const* path, int leve
 				renderFolderTree(fileIter.getFileName(), childDir.c_str(), level + 1, bInCurFolderSeqNew);
 			}
 		}
+#else
+		for (auto const& subFolder : folderInfo->subFolders)
+		{
+			InlineString<MAX_PATH> childDir;
+			childDir.format("%s/%s", path, subFolder.c_str());
+			renderFolderTree(subFolder.c_str(), childDir.c_str(), level + 1, bInCurFolderSeqNew);
+		}
+#endif
 
 		ImGui::TreePop();
 	}

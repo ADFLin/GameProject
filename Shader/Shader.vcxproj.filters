@@ -217,6 +217,9 @@
       <Filter>Template</Filter>
     </None>
     <None Include="..\TinyGame\out\Shader\Game\RayTracing.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\ZumaShaders.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

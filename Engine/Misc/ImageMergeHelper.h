@@ -33,6 +33,7 @@ public:
 		bool isLeaf() { return children[0] == nullptr; }
 	};
 
+	bool  isValid(int id) const { return mImageNodeMap.isValidIndex(id); }
 	bool  addImage(int id, int w, int h);
 	Node const* getNode(int id) const { return mImageNodeMap[id]; }
 	int   getTotalArea() const { return mRoot->rect.w * mRoot->rect.h; }

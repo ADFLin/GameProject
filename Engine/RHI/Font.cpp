@@ -10,8 +10,28 @@
 
 
 #include "FileSystem.h"
-#include <cuchar>
+#include <cwchar>
+#include "Core/ScopeGuard.h"
 
+template< class FormCharT, class ToCharT >
+struct FCharConv
+{
+};
+
+template< class CharT >
+struct FCharConv< CharT, CharT >
+{
+	static int Do(CharT const* c, CharT* outConv) { *outConv = *c; return 1; }
+};
+template<>
+struct FCharConv< char, wchar_t >
+{
+	static int Do(char const* c, wchar_t* outConv)
+	{
+		std::mbstate_t state{};
+		return std::mbrtowc(outConv, c, MB_CUR_MAX, &state);
+	}
+};
 
 namespace Render
 {
@@ -19,7 +39,8 @@ namespace Render
 	class GDIFontCharDataProvider : public ICharDataProvider
 	{
 	public:
-		bool initialize( HDC hDC, FontFaceInfo const& fontFace);
+		bool initialize(FontFaceInfo const& fontFace);
+		void finalize();
 
 		static void CopyImage(uint8* dest, int w, int h, int pixeSize, uint8* src, int pixelStride)
 		{
@@ -41,13 +62,16 @@ namespace Render
 		BitmapDC textureDC;
 		uint8*   pDataTexture = nullptr;
 		HFONT    hFont = NULL;
+		HDC      hDC = NULL;
 
 		void getKerningPairs(std::unordered_map<uint32, float>& outKerningMap) const override;
 
 	};
 
-	bool GDIFontCharDataProvider::initialize(HDC hDC , FontFaceInfo const& fontFace)
+	bool GDIFontCharDataProvider::initialize( FontFaceInfo const& fontFace)
 	{
+		hDC = ::GetDC(NULL);
+
 		hFont = FWinGDI::CreateFont(hDC, fontFace.name.c_str(), fontFace.size, fontFace.bBold, false, fontFace.bUnderLine);
 		if( hFont == NULL )
 			return false;
@@ -77,8 +101,17 @@ namespace Render
 		::SelectObject(textureDC, hFont);
 		::SetTextColor(textureDC, RGB(255, 255, 255));
 		mSize = fontFace.size;
-
 		return true;
+	}
+
+	void GDIFontCharDataProvider::finalize()
+	{
+		textureDC.release();
+		if (hDC)
+		{
+			::ReleaseDC(NULL, hDC);
+			hDC = NULL;
+		}
 	}
 
 	bool GDIFontCharDataProvider::getCharData(uint32 charWord, CharImageData& outData)
@@ -168,7 +201,7 @@ namespace Render
 	{
 #if SYS_PLATFORM_WIN
 		GDIFontCharDataProvider* result = new GDIFontCharDataProvider;
-		if( !result->initialize( FontCharCache::Get().hDC , fontFace) )
+		if( !result->initialize(fontFace) )
 		{
 			delete result;
 			return nullptr;
@@ -350,16 +383,21 @@ namespace Render
 		drawImpl(commandList, pos, transform, color, str);
 	}
 
-
-	Vector2 FontDrawer::calcTextExtent(wchar_t const* str)
+	template< typename CharT >
+	Vector2 FontDrawer::calcTextExtentT(CharT const* str, int* outCharCount)
 	{
 		CHECK(isValid());
 
-		if( str == nullptr )
+		if (str == nullptr || *str == 0)
+		{
+			if (outCharCount)
+				*outCharCount = 0;
 			return Vector2::Zero();
+		}
 
 		Vector2 result = Vector2::Zero();
 
+		int count = 0;
 		wchar_t prevChar = 0;
 
 		float xOffset = 0.0f;
@@ -368,7 +406,9 @@ namespace Render
 		bool bApplyKerning = false;
 		while( *str != 0 )
 		{
-			wchar_t c = *(str++);
+			wchar_t c;
+			int num = FCharConv< CharT, wchar_t >::Do(str, &c);
+			str += num;
 
 			if( c == L'\n' )
 			{
@@ -381,6 +421,7 @@ namespace Render
 				continue;
 			}
 
+			++count;
 			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
 			if (bApplyKerning)
@@ -401,21 +442,60 @@ namespace Render
 			prevChar = c;
 		}
 
+		if (outCharCount)
+		{
+			*outCharCount = count;
+		}
+
 		result.x = std::max(result.x, xOffset);
 		result.y += lineMaxHeight;
 		return result;
 	}
 
-	Vector2 FontDrawer::calcTextExtent(char const* str)
+	template< typename CharT >
+	int FontDrawer::getCharCountT(CharT const* str)
 	{
-		assert(isValid());
-		if( str == nullptr || *str == 0 )
-			return Vector2(0, 0);
-		std::wstring text = FCString::CharToWChar(str);
-		return calcTextExtent(text.c_str());
+		if (str == nullptr || *str == 0)
+			return 0;
+
+		int result = 0;
+		while (*str != 0)
+		{
+			wchar_t c;
+			int num = FCharConv< CharT, wchar_t >::Do(str, &c);
+			str += num;
+			if (c == L'\n')
+			{
+				continue;
+			}
+			++result;
+		}
+		return result;
 	}
 
-	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform , LinearColor const& color , wchar_t const* str)
+	int FontDrawer::getCharCount(wchar_t const* str)
+	{
+		return getCharCountT(str);
+	}
+
+	int FontDrawer::getCharCount(char const* str)
+	{
+		return getCharCountT(str);
+	}
+
+	Vector2 FontDrawer::calcTextExtent(wchar_t const* str, int* outCharCount)
+	{
+		assert(isValid());
+		return calcTextExtentT(str, outCharCount);
+	}
+
+	Vector2 FontDrawer::calcTextExtent(char const* str, int* outCharCount)
+	{
+		assert(isValid());
+		return calcTextExtentT(str, outCharCount);
+	}
+
+	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str)
 	{
 		static thread_local TArray< FontVertex > GTextBuffer;
 		GTextBuffer.clear();
@@ -450,28 +530,9 @@ namespace Render
 		mCharDataSet = nullptr;
 	}
 
-#if 0
 
-	template< class FormCharT , class ToCharT >
-	struct FCharConv
-	{};
-
-	template< class CharT >
-	struct FCharConv< CharT , CharT >
-	{
-		static int Do(CharT const* c, CharT const* end , CharT*& outConv) { *outConv = c; return 1; }
-	};
-	template<>
-	struct FCharConv< char ,  wchar_t >
-	{
-		static int Do(char const* c, char const* end, wchar_t*& outConv) 
-		{ 
-			size_t rc = std::mbsrtowcs(outConv , c , end - c + 1 ,   ; return 1; 
-		}
-	};
-#endif
-
-	void FontDrawer::generateVertices( Vector2 const& pos , wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
+	template< typename CharT >
+	void FontDrawer::generateVerticesT( Vector2 const& pos , CharT const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
 	{
 		Vector2 curPos = pos;
 		wchar_t prevChar = 0;
@@ -488,7 +549,10 @@ namespace Render
 		bool bApplyKerning = false;
 		while (*str != 0)
 		{
-			wchar_t c = *(str++);
+			wchar_t c; 
+			int num = FCharConv< CharT, wchar_t >::Do(str, &c);
+			str += num;
+
 			if (c == L'\n')
 			{
 				curPos.x = pos.x;
@@ -520,8 +584,77 @@ namespace Render
 
 	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
 	{
-		std::wstring text = FCString::CharToWChar(str);
-		generateVertices(pos, text.c_str(), outVertices, outBoundSize);
+		generateVerticesT(pos, str, outVertices, outBoundSize);
+	}
+
+	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize /*= nullptr*/)
+	{
+		generateVerticesT(pos, str, outVertices, outBoundSize);
+	}
+
+	template< typename CharT >
+	void FontDrawer::generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize)
+	{
+		Vector2 curPos = pos;
+		wchar_t prevChar = 0;
+
+		FontVertex* cur = outVertices;
+
+		auto AddQuad = [&](Vector2 const& pos, Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
+		{
+			Vector2 posMax = pos + size;
+			cur[0] = { pos , uvMin };
+			cur[1] = { Vector2(posMax.x , pos.y) , Vector2(uvMax.x , uvMin.y) };
+			cur[2] = { posMax , uvMax };
+			cur[3] = { Vector2(pos.x , posMax.y) , Vector2(uvMin.x , uvMax.y) };
+			cur += 4;
+		};
+
+		bool bApplyKerning = false;
+		while (*str != 0)
+		{
+			wchar_t c;
+			int num = FCharConv< CharT, wchar_t >::Do(str, &c);
+			str += num;
+
+			if (c == L'\n')
+			{
+				curPos.x = pos.x;
+				curPos.y += mCharDataSet->getFontHeight() + 2;
+				bApplyKerning = false;
+				continue;
+			}
+
+			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
+
+			if (bApplyKerning)
+			{
+				curPos.x += data.kerning;
+#if 1
+				float kerning;
+				if (mCharDataSet->getKerningPair(prevChar, c, kerning))
+				{
+					curPos.x += kerning;
+				}
+#endif
+			}
+
+			AddQuad(curPos, Vector2(data.width, data.height), data.uvMin, data.uvMax);
+			curPos.x += data.advance;
+			bApplyKerning = !FCString::IsSpace(c);
+			prevChar = c;
+		}
+	}
+
+
+	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, FontVertex* outVertices, Vector2* outBoundSize)
+	{
+		generateVerticesT(pos, str, outVertices, outBoundSize);
+	}
+
+	void FontDrawer::generateVertices(Vector2 const& pos, wchar_t const* str, FontVertex* outVertices, Vector2* outBoundSize)
+	{
+		generateVerticesT(pos, str, outVertices, outBoundSize);
 	}
 
 }//namespace Render

@@ -34,12 +34,19 @@ public:
 	}
 	void updateContent();
 
-
+	int mVisitCount;
 	std::string mCurrentFolderPath = ".";
 	int indexHistory = INDEX_NONE;
 	TArray< std::string > mFolderPathHistory;
 	TArray<StringView> mFolderSeq;
 
+	struct FolderInfo
+	{
+		int count;
+		TArray<std::string> subFolders;
+	};
+
+	std::unordered_map< std::string , FolderInfo > mCachedFolderMap;
 	void getRenderParams(WindowRenderParams& params) const
 	{
 #if 1

@@ -359,6 +359,9 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	if( isRHIEnabled() )
 		return true;
 
+	if (mSystemLocked != ERenderSystem::None && mSystemLocked!= systemName)
+		return false;
+
 	if (configs.screenWidth > 0 && configs.screenHeight > 0)
 	{
 		if (configs.screenWidth != getScreenWidth() &&
@@ -380,7 +383,6 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 	if (mSystemLocked != ERenderSystem::None)
 	{
-		CHECK(mSystemLocked == systemName);
 		initParam.numSamples = 1;
 		IGlobalRenderResource::RestoreAllResources();
 		setupBuffer(getScreenWidth(), getScreenHeight());

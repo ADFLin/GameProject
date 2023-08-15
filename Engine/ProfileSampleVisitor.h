@@ -11,7 +11,6 @@ public:
 
 	using SampleNode = ProfileSampleNode;
 
-
 	struct VisitContext
 	{
 		SampleNode* node;
@@ -28,6 +27,10 @@ public:
 	void onNode(VisitContext& context) {}
 	bool onEnterChild(VisitContext const& context) { return true; }
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext) {}
+	bool filterNode(SampleNode* node)
+	{
+		return node->getLastFrame() + 1 == ProfileSystem::Get().getFrameCountSinceReset();
+	}
 
 	void visitNodes(uint32 threadId = 0)
 	{
@@ -39,7 +42,6 @@ public:
 		_this()->onRoot(context);
 
 		visitChildren(context);
-
 	}
 
 	void visitChildren(VisitContext const& context)
@@ -51,7 +53,7 @@ public:
 		SampleNode* node = context.node->getChild();
 		for (; node; node = node->getSibling())
 		{
-			if ( node->getLastFrame() + 1 != ProfileSystem::Get().getFrameCountSinceReset())
+			if ( !_this()->filterNode(node) )
 				continue;
 
 			childContext.node = node;
@@ -69,6 +71,7 @@ public:
 
 	void visitRecursive(VisitContext& context)
 	{
+
 		_this()->onNode(context);
 
 		if (!_this()->onEnterChild(context))

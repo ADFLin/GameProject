@@ -62,7 +62,7 @@ namespace Render
 			mParamColor.bind(parameterMap, SHADER_PARAM(Color));
 			mParamXForm.bind(parameterMap, SHADER_PARAM(XForm));
 		}
-
+		void setTextureParam(RHICommandList& commandList, RHITexture2D* texture, RHISamplerState* sampler);
 		void setParameters(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* texture, RHISamplerState* sampler);
 		void setParameters(RHICommandList& commandList, SimplePipelineParamValues const& inValues)
 		{

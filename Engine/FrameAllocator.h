@@ -17,6 +17,7 @@ public:
 
 	struct Chunk
 	{
+		int    index;
 		size_t size;
 		Chunk* link;
 		uint8  storage[0];
@@ -35,6 +36,7 @@ public:
 
 	void freePageList(Chunk* chunk);
 
+	int     mNextIndex = 0;;
 	Chunk*  mUsageList;
 	Chunk*  mFreeList;
 	Chunk*  mCur;

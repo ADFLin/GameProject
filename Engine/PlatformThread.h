@@ -50,6 +50,7 @@ public:
 	void     setDisplayName(char const* name);
 
 	static void SetThreadName(uint32 ThreadID, LPCSTR ThreadName);
+
 protected:
 	template< class T >
 	static unsigned _stdcall RunnableProcess( void* t )

@@ -16,6 +16,7 @@ enum class ESGValueType
 {
 	Invalid,
 
+	Wildcard ,
 	FloatType,
 	Float1,
 	Float2,
@@ -41,12 +42,32 @@ enum class ESGIntrinsicFunc
 	Exp,
 	Log,
 	Frac,
-
-
 };
+
+FORCEINLINE char const* GetString(ESGIntrinsicFunc func)
+{
+	switch (func)
+	{
+	case ESGIntrinsicFunc::Sin: return "sin";
+	case ESGIntrinsicFunc::Cos: return "cos";
+	case ESGIntrinsicFunc::Tan: return "tan";
+	case ESGIntrinsicFunc::Abs: return "abs";
+	case ESGIntrinsicFunc::Exp: return "exp";
+	case ESGIntrinsicFunc::Log: return "log";
+	case ESGIntrinsicFunc::Frac:return "frac";
+	}
+	NEVER_REACH("GetString");
+	return "UnknowFunc";
+}
 
 class SGNode;
 using SGNodePtr = std::shared_ptr<SGNode>;
+
+struct SGFuncArgInfo
+{
+	ESGValueType type;
+	char const*  name;
+};
 
 class SGCompiler
 {
@@ -57,12 +78,16 @@ public:
 	virtual int32 emitMul(int32 lhs, int32 rhs) = 0;
 	virtual int32 emitDiv(int32 lhs, int32 rhs) = 0;
 	virtual int32 emitDot(int32 lhs, int32 rhs) = 0;
+	virtual int32 emitCallFunc(int32 indexFunc, TArray<int32> const& inputs) = 0;
 
 	virtual int32 emitTexcoord(int index) = 0;
 	virtual int32 emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index) = 0;
 
 	virtual int32 emitTime(bool bReal) = 0;
 	virtual int32 emitNode(SGNode& node) = 0;
+
+	virtual int32 emitDefineFunc(char const* name, char const* code, ESGValueType returnType,  TArray<SGFuncArgInfo> const& args) = 0;
+	virtual ESGValueType getValueType(int index) = 0;
 };
 
 
@@ -81,11 +106,12 @@ public:
 	virtual void visit(class SGNode& node){}
 	void visitDefault(SGNode& node) { visit(node); }
 
-#define DECLARE__VISIT_NODE(NODE)\
+#define DECLARE_VISIT_NODE(NODE)\
 	virtual void visit(class NODE& node);
 
-	DECLARE__VISIT_NODE(SGNodeConst);
-#undef DECLARE__VISIT_NODE
+	DECLARE_VISIT_NODE(SGNodeConst);
+	DECLARE_VISIT_NODE(SGNodeCustom);
+#undef DECLARE_VISIT_NODE
 	
 };
 
@@ -97,6 +123,13 @@ class SGNode : public std::enable_shared_from_this<SGNode>
 {
 public:
 	ACCEPT_VISIT_SGNODE();
+
+	SGNode() = default;
+	SGNode(SGNode const& rhs)
+		:inputs(rhs.inputs)
+	{
+
+	}
 
 	TArray<SGNodeInput>  inputs;
 
@@ -247,6 +280,81 @@ public:
 
 };
 
+class SGNodeCustom : public SGNode
+{
+public:
+	ACCEPT_VISIT_SGNODE();
+
+	SGNodeCustom(ESGValueType inReturnType)
+		:returnType(inReturnType)
+		, code("return x;")
+	{
+		addInput();
+	}
+
+	SGNodeCustom(SGNodeCustom const& rhs)
+		:SGNode(rhs)
+		,returnType(rhs.returnType)
+		,inputNames(rhs.inputNames)
+		,code(rhs.code)
+	{
+
+
+	}
+	ESGValueType getOutputType() { return returnType; }
+
+	TArray< std::string > inputNames;
+	std::string code;
+
+	void addInput()
+	{
+		inputNames.push_back("x");
+		SGNodeInput pin;
+		pin.type = ESGValueType::Wildcard;
+		inputs.push_back(pin);
+	}
+
+	void removeLastInput()
+	{
+		if (!inputs.empty())
+		{
+			inputs.pop_back();
+			inputNames.pop_back();
+		}
+	}
+
+	virtual int32 compile(SGCompiler& compiler)
+	{
+		TArray< SGFuncArgInfo > args;
+		TArray< int32 > params;
+		for (int i = 0; i < inputs.size(); ++i )
+		{
+			int param = inputs[i].compile(compiler);
+			SGFuncArgInfo info;
+			info.name = inputNames[i].c_str();
+			info.type = compiler.getValueType(param);
+			args.push_back(info);
+			params.push_back(param);
+		}
+		int32 indexFunc = compiler.emitDefineFunc(nullptr, code.c_str(), returnType, args);
+		return compiler.emitCallFunc(indexFunc, params);
+	}
+
+	ESGValueType returnType;
+
+
+
+	std::string getTitle() override
+	{
+		return "Custom";
+	}
+
+	SGNode* copy() override
+	{
+		return new SGNodeCustom( *this );
+	}
+
+};
 
 class SGNodeOperator : public SGNode
 {
@@ -325,6 +433,7 @@ public:
 	}
 
 };
+
 
 class SGNodeTexcooord : public SGNode
 {
@@ -547,15 +656,22 @@ public:
 	bool generate(ShaderGraph& graph, std::string& outCode);
 
 
+	void reset()
+	{
+		mNodeOutIndexMap.clear();
+		mCode.clear();
+		mCodeSegments.resize(1);
+		mCodeSegments[0].clear();
+		mIndexCustomFunc = 0;
+	}
+
+	int mIndexCustomFunc;
+
 
 	int32 emitConst(ESGValueType type, Vector4 const& value) override
 	{
 		int32 result = addLocal(type);
-
-		codeValueType(type);
-		codeSpace();
-		codeVarName(result);
-		codeString("=");
+		codeLocalAssign(result, type);
 		codeValue(type, value);
 		codeString(";");
 		codeNextline();
@@ -609,6 +725,23 @@ public:
 	{
 		mCode += c;
 	}
+
+	struct CodeScope
+	{
+		CodeScope(SGCompilerCodeGen& gen, std::string& codeUsed)
+			:gen(gen),codeUsed(codeUsed)
+		{
+			std::swap(gen.mCode, codeUsed);
+		}
+
+		~CodeScope()
+		{
+			std::swap(gen.mCode, codeUsed);
+		}
+
+		SGCompilerCodeGen& gen;
+		std::string&       codeUsed;
+	};
 
 	void codeSpace() { codeChar(' '); }
 	void codeNextline() { codeChar('\n\t'); }
@@ -673,17 +806,21 @@ public:
 			mCode += mSymbols[index >> 1].name;
 		}
 	}
+	void codeFuncCall(char const* name, int index1);
+	void codeFuncCall(char const* name, int index1, int index2);
+	void codeFuncCall(char const* name, TArray<int> indices);
 
-	int32 addSymbol(ESGValueType type, char const* name, bool bVariable = false)
+	void codeLocalAssign(int index , ESGValueType type)
 	{
-		int result = ( mSymbols.size() << 1 ) | 0x1;
-		Symbol symbol;
-		symbol.name = name;
-		symbol.type = type;
-		symbol.bVariable = bVariable;
-		mSymbols.push_back(symbol);
-		return result;
+		codeValueType(type);
+		codeSpace();
+		codeVarName(index);
+		codeString("=");
 	}
+
+	int32 findSymbol(char const* name);
+
+	int32 addSymbol(ESGValueType type, char const* name, bool bVariable = false);
 
 	int32 addLocal(ESGValueType type)
 	{
@@ -719,7 +856,7 @@ public:
 		return mSymbols[index >> 1];
 	}
 
-	ESGValueType getValueType(int32 index)
+	ESGValueType getValueType(int32 index) final
 	{
 		if (IsLocal(index))
 		{
@@ -731,7 +868,7 @@ public:
 		}
 	}
 
-	TArray< std::string > mDomionInputCodes;
+	TArray< std::string > mCodeSegments;
 	std::string mCode;
 	TArray<Symbol> mSymbols;
 
@@ -741,6 +878,11 @@ public:
 
 	int32 emitIntrinsicFunc(ESGIntrinsicFunc func, int32 index) override;
 	int32 emitTime(bool bReal) override;
+
+	int32 emitCallFunc(int32 indexFunc, TArray<int32> const& inputs) override;
+	int32 emitDefineFunc(char const* name, char const* code, ESGValueType returnType, TArray<SGFuncArgInfo> const& args) override;
+
+
 };
 
 #endif // ShaderGraph_H_8C052C61_D77D_4EE8_AE31_1FEC9A95389E

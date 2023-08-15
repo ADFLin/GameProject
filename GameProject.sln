@@ -74,6 +74,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameCube", "TinyGame\GameCube.vcxproj", "{298D3652-C4FB-4880-A431-8FB106F441F8}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameZuma", "TinyGame\GameZuma.vcxproj", "{BAE631BC-ABEE-40A7-9E56-C21D1B72058C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B44B3265-BE59-4382-A519-CD347A8D560F} = {B44B3265-BE59-4382-A519-CD347A8D560F}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameBomberMan", "TinyGame\GameBomberMan.vcxproj", "{03B12FB6-53EE-4CF9-820B-0B9196E1ACBA}"
 EndProject

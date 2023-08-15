@@ -143,8 +143,9 @@ namespace Zuma
 		ZLevelMode*    mLevelMode;
 
 		bool            isGmaePause;
-		float           showFPS;
+		float           showFPS = 0.0f;
 		unsigned        renderFrame;
+		int64           beforeTime;
 
 	};
 

@@ -16,6 +16,9 @@
     <Filter Include="Comet">
       <UniqueIdentifier>{29fbccca-37c9-4667-8509-0bc57df68e9a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib">
+      <UniqueIdentifier>{4647e591-8f84-4ecc-863c-71db5741450e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZumaCore\AudioPlayer.cpp">
@@ -95,6 +98,9 @@
     </ClCompile>
     <ClCompile Include="ZumaCore\CometZone.cpp">
       <Filter>Comet</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minivorbis\minivorbis.c">
+      <Filter>OtherLib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -205,6 +211,9 @@
     </ClInclude>
     <ClInclude Include="ZumaCore\CometZone.h">
       <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\minivorbis\minivorbis.h">
+      <Filter>OtherLib</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

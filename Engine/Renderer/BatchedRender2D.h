@@ -18,11 +18,6 @@
 namespace Render
 {
 
-	static inline int calcCircleSemgmentNum(int r)
-	{
-		return std::max(4 * (r / 2), 32) * 10;
-	}
-
 	class ShapeVertexBuilder
 	{
 	public:
@@ -150,7 +145,6 @@ namespace Render
 	};
 
 
-
 	struct RenderBatchedElement
 	{
 		enum EType
@@ -165,12 +159,28 @@ namespace Render
 			LineStrip,
 			ArcLine,
 			Text ,
-			GradientRect ,
+			GradientRect,
+			CustomState,
+			CustomRender,
 		};
 
 		EType type;
 		RenderTransform2D transform;
 		int32 layer;
+	};
+
+	enum class EObjectManageMode
+	{
+		Detete,
+		DestructOnly,
+		None,
+	};
+
+	class ICustomElementRenderer
+	{
+	public:
+		virtual ~ICustomElementRenderer() = default;
+		virtual void render(RHICommandList& commandList, RenderBatchedElement& element) = 0;
 	};
 
 	template< class TPayload >
@@ -301,6 +311,12 @@ namespace Render
 			bool bHGrad;
 		};
 
+		struct CustomRenderPayload
+		{
+			ICustomElementRenderer* renderer;
+			EObjectManageMode manageMode;
+		};
+
 		template < class TPayload >
 		static TPayload& GetPayload(RenderBatchedElement* ptr)
 		{
@@ -375,6 +391,9 @@ namespace Render
 		}
 
 		RenderBatchedElement& addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
+
+		RenderBatchedElement& addCustomState(ICustomElementRenderer* renderer, EObjectManageMode mode);
+		RenderBatchedElement& addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode);
 
 		template< class TPayload >
 		TRenderBatchedElement<TPayload>* addElement()
@@ -589,7 +608,7 @@ namespace Render
 		void emitPolygon(Vector2 v[], int numV, ShapePaintArgs const& paintArgs);
 		void emitPolygon(ShapeCachedData& cachedData, RenderTransform2D const& xForm, ShapePaintArgs const& paintArgs);
 		void emitRect(Vector2 v[], ShapePaintArgs const& paintArgs);
-		void emitElements(TArray<RenderBatchedElement* > const& elements);
+		void emitElements(TArray<RenderBatchedElement* > const& elements, RenderState const& renderState);
 
 		struct RenderGroup
 		{
@@ -615,6 +634,14 @@ namespace Render
 
 		TexVertex* fetchVertex(int size, int& baseIndex);
 		uint32*    fetchIndex(int size);
+
+		struct FetchedData
+		{
+			int        base;
+			TexVertex* vertices;
+			uint32*    indices;
+		};
+		FetchedData fetchBuffer(int vSize, int iSize);
 
 		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
 		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
@@ -691,11 +718,11 @@ namespace Render
 		int       mWidth;
 		int       mHeight;
 		Math::Matrix4   mBaseTransform;
-
 		TArray< Vector2 >         mCachedPositionList;
 		TBufferData< TexVertex >  mTexVertexBuffer;
 		TBufferData< uint32 >     mIndexBuffer;
 		RHICommandList* mCommandList = nullptr;
+		SimplePipelineProgram* mProgramCur = nullptr;
 	};
 
 

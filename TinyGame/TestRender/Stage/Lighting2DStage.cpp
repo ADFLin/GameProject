@@ -30,9 +30,9 @@ namespace Render
 		return true;
 	}
 
-	bool Lighting2DTestStage::setupRenderSystem(ERenderSystem systemName)
+	bool Lighting2DTestStage::setupRenderResource(ERenderSystem systemName)
 	{
-		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
+		VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
 		{
 			ShaderEntryInfo entries[] =
 			{

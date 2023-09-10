@@ -157,5 +157,4 @@ namespace Render
 	}
 #endif
 
-
 }//namespace Render

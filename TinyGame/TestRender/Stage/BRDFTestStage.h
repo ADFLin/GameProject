@@ -211,7 +211,7 @@ namespace Render
 			systemConfigs.screenWidth = 1024;
 			systemConfigs.screenHeight = 768;
 		}
-		bool setupRenderSystem(ERenderSystem systemName) override;
+		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
 		bool isRenderSystemSupported(ERenderSystem systemName) override;
 

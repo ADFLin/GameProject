@@ -568,7 +568,7 @@ namespace Render
 			systemConfigs.screenHeight = 768;
 		}
 
-		virtual bool setupRenderSystem(ERenderSystem systemName) override;
+		virtual bool setupRenderResource(ERenderSystem systemName) override;
 		virtual void preShutdownRenderSystem(bool bReInit = false) override;
 
 		bool onInit() override;

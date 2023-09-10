@@ -43,13 +43,13 @@ struct GPU_ALIGN MaterialData
 	float   refractive;
 	Vector3 dummy;
 
-	REFLECT_OBJECT_BEGIN(MaterialData)
+	REFLECT_STRUCT_BEGIN(MaterialData)
 		REF_PROPERTY(baseColor)
 		REF_PROPERTY(roughness)
 		REF_PROPERTY(emissiveColor)
 		REF_PROPERTY(refractiveIndex)
 		REF_PROPERTY(refractive)
-	REFLECT_OBJECT_END()
+	REFLECT_STRUCT_END()
 };
 
 #define OBJ_SPHERE        0
@@ -534,7 +534,7 @@ public:
 	ViewFrustum   mViewFrustum;
 	SimpleCamera  mCamera;
 	bool          mbGamePased;
-
+	RT::ISceneScript* mScript = nullptr;
 	RayTracingTestStage()
 	{
 
@@ -568,6 +568,10 @@ public:
 
 	void onEnd() override
 	{
+		if (mScript)
+		{
+			mScript->release();
+		}
 		BaseClass::onEnd();
 	}
 
@@ -652,7 +656,7 @@ public:
 		systemConfigs.screenHeight = 768;
 	}
 
-	bool setupRenderSystem(ERenderSystem systemName) override;
+	bool setupRenderResource(ERenderSystem systemName) override;
 
 	bool loadSceneRHIResource();
 

@@ -4,7 +4,7 @@
 
 #include "MetaBase.h"
 
-struct FunctionCallable
+struct CFunctionCallable
 {
 	template< typename T, typename... Args >
 	static auto Requires(T& t , Args... args) -> decltype 

@@ -19,6 +19,7 @@ struct RenderSystemConfigs
 	bool  bVSyncEnable;
 	bool  bDebugMode;
 	bool  bWasUsedPlatformGraphics;
+	bool  bMultithreadingSupported;
 
 	RenderSystemConfigs()
 	{
@@ -28,6 +29,7 @@ struct RenderSystemConfigs
 		bVSyncEnable = false;
 		bDebugMode = true;
 		bWasUsedPlatformGraphics = false;
+		bMultithreadingSupported = false;
 	}
 };
 
@@ -52,7 +54,7 @@ public:
 	{
 		return true;
 	}
-	virtual bool setupRenderSystem(ERenderSystem systemName)
+	virtual bool setupRenderResource(ERenderSystem systemName)
 	{
 		return true;
 	}

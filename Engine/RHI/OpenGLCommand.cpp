@@ -6,7 +6,7 @@
 #include "RHI/ShaderCore.h"
 #include "RHI/GpuProfiler.h"
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 #include "GLExtensions.h"
@@ -429,6 +429,53 @@ namespace Render
 		for (int face = 0; face < ETexture::FaceCount; ++face)
 		{
 			glGetTexImage(OpenGLTranslate::TexureType(ETexture::Face(face)), level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*face]);
+		}
+		OpenGLCast::To(&texture)->unbind();
+	}
+
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
+	{
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		bool result = VerifyOpenGLStatus();
+		return result;
+	}
+
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
+	{
+#if 1
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
+		bool result = VerifyOpenGLStatus();
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#else
+		GLenum formatGL = OpenGLTranslate::PixelFormat(format);
+		GLenum typeGL = OpenGLTranslate::TextureComponentType(format);
+		uint8* pData = (uint8*)data;
+		int dataStride = dataImageWidth * ETexture::GetFormatSize(format);
+		for (int dy = 0; dy < h; ++dy)
+		{
+			glTexSubImage2D(textureEnum, level, ox, oy + dy, w, 1, formatGL, typeGL, pData);
+			pData += dataStride;
+		}
+		bool result = VerifyOpenGLStatus();
+#endif
+		return result;
+	}
+
+	bool OpenGLSystem::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		if (texture.getDesc().numSamples > 1)
+			return false;
+
+		OpenGLCast::To(&texture)->bind();
+		bool result;
+		if (dataWidth)
+		{
+			result = UpdateTexture2D(OpenGLTextureTraits< RHITexture2D >::EnumValue, ox, oy, w, h, texture.getDesc().format, dataWidth, data, level);
+		}
+		else
+		{
+			result = UpdateTexture2D(OpenGLTextureTraits< RHITexture2D >::EnumValue, ox, oy, w, h, texture.getDesc().format, data, level);
 		}
 		OpenGLCast::To(&texture)->unbind();
 	}
@@ -1904,6 +1951,6 @@ namespace Render
 	}
 }
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif

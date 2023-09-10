@@ -542,7 +542,6 @@ namespace CPP
 
 		bool expandMarco(StringView const& lineText, std::string& outText );
 
-
 		struct ExpandMarcoResult
 		{
 			int numRefMarco;
@@ -559,7 +558,12 @@ namespace CPP
 				numRefMarco += other.numRefMarco;
 				numRefMarcoWithArgs += other.numRefMarcoWithArgs;
 			}
+
+			bool isExpanded() const { return !!numRefMarco || !!numRefMarcoWithArgs; }
 		};
+		bool expandMarco(StringView const& lineText, std::string& outText, ExpandMarcoResult& outExpandResult);
+
+
 		bool checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult);
 		bool expandMarcoInternal(class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult);
 
@@ -674,8 +678,6 @@ namespace CPP
 		std::unordered_set< HashString >  mParamOnceSet;
 		TArray< std::string > mFileSreachDirs;
 		std::unordered_set< HashString >  mUsedFiles;
-
-
 		EOperator::Type mParsedCachedOP = EOperator::None;
 		EOperatorPrecedence::Type mParesedCacheOPPrecedence;
 

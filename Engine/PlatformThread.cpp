@@ -1,5 +1,6 @@
 #include "PlatformThread.h"
 #include "CString.h"
+#include "Core/ScopeGuard.h"
 
 #if SYS_PLATFORM_WIN
 
@@ -88,10 +89,19 @@ bool WindowsThread::setPriorityLevel( DWORD level )
 void WindowsThread::setDisplayName(char const* name)
 {
 	SetThreadName(mThreadID, name);
-	SetThreadDescription(mhThread, FCString::CharToWChar(name).c_str());
 }
 
-void WindowsThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
+void SetDescription(uint32 threadId, char const* threadName)
+{
+	HANDLE hThread = OpenThread(THREAD_SET_INFORMATION, FALSE, threadId);
+	if (hThread)
+	{
+		SetThreadDescription(hThread, FCString::CharToWChar(threadName).c_str());
+		CloseHandle(hThread);
+	}	
+}
+
+void WindowsThread::SetThreadName(uint32 threadId, char const* threadName)
 {
 	/**
 	* Code setting the thread name for use in the debugger.
@@ -108,23 +118,48 @@ void WindowsThread::SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
 		uint32 dwFlags;		// Reserved for future use, must be zero.
 	};
 
-	// on the xbox setting thread names messes up the XDK COM API that UnrealConsole uses so check to see if they have been
-	// explicitly enabled
-	Sleep(10);
-	THREADNAME_INFO ThreadNameInfo;
-	ThreadNameInfo.dwType = 0x1000;
-	ThreadNameInfo.szName = ThreadName;
-	ThreadNameInfo.dwThreadID = ThreadID;
-	ThreadNameInfo.dwFlags = 0;
+	SetDescription(threadId, threadName);
 
-	__try
 	{
-		RaiseException(MS_VC_EXCEPTION, 0, sizeof(ThreadNameInfo) / sizeof(ULONG_PTR), (ULONG_PTR*)&ThreadNameInfo);
-	}
-	__except( EXCEPTION_EXECUTE_HANDLER )
-	{
+		// on the xbox setting thread names messes up the XDK COM API that UnrealConsole uses so check to see if they have been
+		// explicitly enabled
+		Sleep(10);
+		THREADNAME_INFO ThreadNameInfo;
+		ThreadNameInfo.dwType = 0x1000;
+		ThreadNameInfo.szName = threadName;
+		ThreadNameInfo.dwThreadID = threadId;
+		ThreadNameInfo.dwFlags = 0;
 
+
+		__try
+		{
+			RaiseException(MS_VC_EXCEPTION, 0, sizeof(ThreadNameInfo) / sizeof(ULONG_PTR), (ULONG_PTR*)&ThreadNameInfo);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+
+		}
 	}
+
+}
+
+std::string WindowsThread::GetThreadName(uint32 threadId)
+{
+	HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION, FALSE, threadId);
+	if (hThread)
+	{
+		ON_SCOPE_EXIT
+		{
+			CloseHandle(hThread);
+		};
+		wchar_t* desc = nullptr;
+		GetThreadDescription(hThread, &desc);
+		if (desc)
+		{
+			return FCString::WCharToChar(desc);
+		}
+	}
+	return "";
 }
 
 bool WindowsThread::kill()

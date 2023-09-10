@@ -204,7 +204,7 @@ namespace Render
 		case ETexture::SRGB:    return VK_FORMAT_R8G8B8_SRGB;
 		case ETexture::SRGBA:   return VK_FORMAT_R8G8B8A8_SRGB;
 
-
+		case ETexture::ShadowDepth:
 		case ETexture::Depth16:   return VK_FORMAT_D16_UNORM;
 		case ETexture::Depth24:   return VK_FORMAT_X8_D24_UNORM_PACK32;
 		case ETexture::Depth32F:  return VK_FORMAT_D32_SFLOAT;
@@ -288,7 +288,7 @@ namespace Render
 		case ECompareFunc::NotEqual: return VK_COMPARE_OP_NOT_EQUAL;
 		case ECompareFunc::LessEqual: return VK_COMPARE_OP_LESS_OR_EQUAL;
 		case ECompareFunc::Greater: return VK_COMPARE_OP_GREATER;
-		case ECompareFunc::GeraterEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+		case ECompareFunc::GreaterEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
 		case ECompareFunc::Always: return VK_COMPARE_OP_ALWAYS;
 		}
 		return VK_COMPARE_OP_ALWAYS;

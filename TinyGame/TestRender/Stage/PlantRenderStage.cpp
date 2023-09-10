@@ -110,7 +110,7 @@ namespace Render
 
 	}
 
-	bool PlantRenderStage::setupRenderSystem(ERenderSystem systemName)
+	bool PlantRenderStage::setupRenderResource(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(mProgGenerateHeight = ShaderManager::Get().getGlobalShaderT<GenerateHeightProgram>());
 		VERIFY_RETURN_FALSE(mProgRender = ShaderManager::Get().getGlobalShaderT<RenderProgram>());
@@ -231,12 +231,10 @@ namespace Render
 		mView.rectSize = screenSize;
 
 		RHISetFrameBuffer(commandList, nullptr);
-		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1, 0);
+		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 		RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-		RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?
-			TStaticDepthStencilState< true, ECompareFunc::Greater >::GetRHI() :
-			TStaticDepthStencilState<>::GetRHI());
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 

@@ -22,8 +22,8 @@
 #include <mfidl.h>
 #include <mfapi.h>
 #include <mfreadwrite.h>
-#pragma comment(lib,"mfplat_vista.lib")
-#pragma comment(lib,"mfreadwrite.lib")
+//#pragma comment(lib,"mfplat_vista.lib")
+//#pragma comment(lib,"mfreadwrite.lib")
 
 #endif
 
@@ -32,12 +32,17 @@ struct MediaFoundationScope
 {
 	MediaFoundationScope()
 	{
-		HRESULT hr = MFStartup(MF_VERSION);
+		HRESULT hr;
+		hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+
+		hr = MFStartup(MF_VERSION);
 		bInit = SUCCEEDED(hr);
 	}
 	~MediaFoundationScope()
 	{
 		MFShutdown();
+
+		CoUninitialize();
 	}
 	bool bInit;
 };

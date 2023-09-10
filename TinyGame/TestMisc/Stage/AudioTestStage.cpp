@@ -2,14 +2,17 @@
 
 #include "Stage/TestStageHeader.h"
 
-#include "Platform/Windows/MediaFoundationHeader.h"
+#include "Audio/AudioDecoder.h"
 #include "Audio/XAudio2/XAudio2Device.h"
+#include "Audio/XAudio2/MFDecoder.h"
+
 #include "Widget/WidgetUtility.h"
 
-#include "SystemPlatform.h"
 #include "Core/ScopeGuard.h"
 #include "BitUtility.h"
 #include "Algo/FFT.h"
+#include "ProfileSystem.h"
+
 
 float GetFFTInValue(const int16 SampleValue, const int16 sampleIndex, const int16 sampleCount)
 {
@@ -61,12 +64,11 @@ bool CalcFrequencySpectrum(SoundWave& sound, float t, int samplesToRead, int num
 		}
 	}
 
-	double time = SystemPlatform::GetHighResolutionTime();
 	std::vector< Complex > outFeq(samplesToRead);
-	FFT::Transform(&data[0], samplesToRead, &outFeq[0]);
-	time = SystemPlatform::GetHighResolutionTime() - time;
-	LogMsg("FFT = %lf , %d ", time, firstSample);
-
+	{
+		//TIME_SCOPE("FFT Transform");
+		FFT::Transform(&data[0], samplesToRead, &outFeq[0]);
+	}
 
 	int numSampleInGroup = samplesToRead / ( 2 * numFreqGroup );
 	int numSampleRes = samplesToRead % ( 2 * numFreqGroup );
@@ -122,41 +124,7 @@ struct WavePattern_Sine
 	}
 };
 
-class WaveSampleBuffer
-{
-public:
-	struct SampleData
-	{
-		std::vector<uint8> data;
-	};
-	std::vector< uint32 > mFreeSampleDataIndices;
-	std::vector< std::unique_ptr< SampleData > > mSampleDataList;
-	SampleData* getSampleData(uint32 idx) { return mSampleDataList[idx].get(); }
 
-	uint32 fetchSampleData()
-	{
-		uint32 result;
-		if( mFreeSampleDataIndices.size() )
-		{
-			result = mFreeSampleDataIndices.back();
-			mFreeSampleDataIndices.pop_back();
-			return result;
-		}
-
-		result = mSampleDataList.size();
-		auto sampleData = std::make_unique<SampleData>();
-		mSampleDataList.push_back(std::move(sampleData));
-		return result;
-
-	}
-
-	void releaseSampleData(uint32 sampleHadle)
-	{
-		auto& sampleData = mSampleDataList[sampleHadle];
-		sampleData->data.clear();
-		mFreeSampleDataIndices.push_back(sampleHadle);
-	}
-};
 
 class ProceduralWaveStreamSource : public IAudioStreamSource
 {
@@ -274,359 +242,7 @@ void GenerateTriangleWave(float duration, int numSamplePerSec, float waveFreq, s
 	}
 }
 
-static bool ConfigureAudioStream(
-	IMFSourceReader *pReader,   // Pointer to the source reader.
-	IMFMediaType **ppPCMAudio   // Receives the audio format.
-)
-{
-	// Select the first audio stream, and deselect all other streams.
-	CHECK_RETRUN(pReader->SetStreamSelection(MF_SOURCE_READER_ALL_STREAMS, FALSE), false);
 
-	CHECK_RETRUN(pReader->SetStreamSelection(MF_SOURCE_READER_FIRST_AUDIO_STREAM, TRUE), false);
-
-	TComPtr< IMFMediaType > pPartialType;
-	// Create a partial media type that specifies uncompressed PCM audio.
-	CHECK_RETRUN(MFCreateMediaType(&pPartialType), false);
-
-	CHECK_RETRUN(pPartialType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio), false);
-	CHECK_RETRUN(pPartialType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM), false);
-
-	// Set this type on the source reader. The source reader will
-	// load the necessary decoder.
-	CHECK_RETRUN(pReader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_AUDIO_STREAM, NULL, pPartialType), false);
-
-	TComPtr< IMFMediaType > pUncompressedAudioType;
-	// Get the complete uncompressed format.
-	CHECK_RETRUN(pReader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_AUDIO_STREAM, &pUncompressedAudioType), false);
-
-	// Ensure the stream is selected.
-	CHECK_RETRUN(pReader->SetStreamSelection(MF_SOURCE_READER_FIRST_AUDIO_STREAM, TRUE), false);
-
-	// Return the PCM format to the caller.
-
-	*ppPCMAudio = pUncompressedAudioType;
-	(*ppPCMAudio)->AddRef();
-	return true;
-}
-
-static void  FillData(WaveFormatInfo& formatInfo, WAVEFORMATEX const& format)
-{
-	formatInfo.tag = format.wFormatTag;
-	formatInfo.numChannels = format.nChannels;
-	formatInfo.sampleRate = format.nSamplesPerSec;
-	formatInfo.bitsPerSample = format.wBitsPerSample;
-	formatInfo.byteRate = format.nAvgBytesPerSec;
-	formatInfo.blockAlign = format.nBlockAlign;
-}
-
-int64 GetSourceDuration(IMFSourceReader *pReader)
-{
-	PROPVARIANT DurationAttrib;
-	{
-		const HRESULT Result = pReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &DurationAttrib);
-		if( FAILED(Result) )
-		{
-			return 0;
-		}
-	}
-	const int64 Duration = (DurationAttrib.vt == VT_UI8) ? (int64)DurationAttrib.uhVal.QuadPart : 0;
-	::PropVariantClear(&DurationAttrib);
-	return Duration;
-}
-
-static bool WriteWaveFile(IMFSourceReader *pReader, WaveFormatInfo& outWaveFormat, std::vector<uint8>& outSampleData)
-{
-
-
-	HRESULT hr = S_OK;
-	TComPtr< IMFMediaType > pAudioType;    // Represents the PCM audio format.
-										   // Configure the source reader to get uncompressed PCM audio from the source file.
-	if( !ConfigureAudioStream(pReader, &pAudioType) )
-		return false;
-
-	DWORD cbHeader = 0;         // Size of the WAVE file header, in bytes.
-	DWORD cbAudioData = 0;      // Total bytes of PCM audio data written to the file.
-	DWORD cbMaxAudioData = 0;
-
-	{
-		WAVEFORMATEX *pWavFormat = NULL;
-		UINT32 cbFormat = 0;
-		// Convert the PCM audio format into a WAVEFORMATEX structure.
-		CHECK_RETRUN(MFCreateWaveFormatExFromMFMediaType(pAudioType, &pWavFormat, &cbFormat), false);
-		FillData(outWaveFormat, *pWavFormat);
-		CoTaskMemFree(pWavFormat);
-	}
-
-	int64 duration = GetSourceDuration(pReader);
-	int64 dataSize = outWaveFormat.byteRate * duration;
-	LogMsg("%lld", dataSize);
-
-	{
-		HRESULT hr = S_OK;
-		DWORD cbAudioData = 0;
-
-		// Get audio samples from the source reader.
-		for( ;;)
-		{
-			DWORD dwFlags = 0;
-			TComPtr<IMFSample> pSample;
-			// Read the next sample.
-			hr = pReader->ReadSample(MF_SOURCE_READER_FIRST_AUDIO_STREAM, 0, NULL, &dwFlags, NULL, &pSample);
-
-			if( FAILED(hr) ) { break; }
-
-			if( dwFlags & MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED )
-			{
-				printf("Type change - not supported by WAVE file format.\n");
-				return false;
-			}
-			if( dwFlags & MF_SOURCE_READERF_ENDOFSTREAM )
-			{
-				printf("End of input file.\n");
-				break;
-			}
-
-			if( pSample == nullptr )
-			{
-				printf("No sample\n");
-				continue;
-			}
-
-			// Get a pointer to the audio data in the sample.
-			TComPtr<IMFMediaBuffer> pBuffer;
-			CHECK_RETRUN(pSample->ConvertToContiguousBuffer(&pBuffer), false);
-
-			DWORD cbBuffer = 0;
-			BYTE *pAudioData = NULL;
-			{
-				CHECK_RETRUN(pBuffer->Lock(&pAudioData, NULL, &cbBuffer), false);
-				ON_SCOPE_EXIT{ pBuffer->Unlock(); };
-				outSampleData.insert(outSampleData.end(), pAudioData, pAudioData + cbBuffer);
-			}
-			// Update running total of audio data.
-			cbAudioData += cbBuffer;
-		}
-	}
-
-	return true;
-}
-
-static bool LoadWaveFile(char const* path, WaveFormatInfo& outWaveFormat, std::vector<uint8>& outSampleData)
-{
-	MediaFoundationScope MFScope;
-	if( !MFScope.bInit )
-		return false;
-
-	const size_t cSize = FCString::Strlen(path) + 1;
-	wchar_t wPath[MAX_PATH];
-	mbstowcs(wPath, path, cSize);
-
-	TComPtr< IMFSourceReader  > pReader;
-	// Create the source reader to read the input file.
-	CHECK_RETRUN(MFCreateSourceReaderFromURL(wPath, NULL, &pReader), false);
-
-	// Write the WAVE file.
-	if( !WriteWaveFile(pReader, outWaveFormat, outSampleData) )
-		return false;
-
-	return true;
-}
-
-class MFAudioStreamSource : public IAudioStreamSource
-{
-public:
-
-	bool initialize(char const* path)
-	{
-		const size_t cSize = FCString::Strlen(path) + 1;
-		wchar_t wPath[MAX_PATH];
-		mbstowcs(wPath, path, cSize);
-		CHECK_RETRUN(MFCreateSourceReaderFromURL(wPath, NULL, &mSourceReader), false);
-
-		HRESULT hr = S_OK;
-		TComPtr< IMFMediaType > pAudioType;    // Represents the PCM audio format.
-											   // Configure the source reader to get uncompressed PCM audio from the source file.
-		if( !ConfigureAudioStream(mSourceReader, &pAudioType) )
-			return false;
-
-		DWORD cbHeader = 0;         // Size of the WAVE file header, in bytes.
-		DWORD cbAudioData = 0;      // Total bytes of PCM audio data written to the file.
-		DWORD cbMaxAudioData = 0;
-
-		{
-			WAVEFORMATEX *pWavFormat = NULL;
-			UINT32 cbFormat = 0;
-			// Convert the PCM audio format into a WAVEFORMATEX structure.
-			CHECK_RETRUN(MFCreateWaveFormatExFromMFMediaType(pAudioType, &pWavFormat, &cbFormat), false);
-			FillData(mWaveFormat, *pWavFormat);
-			CoTaskMemFree(pWavFormat);
-		}
-
-		int64 duration = GetSourceDuration(mSourceReader);
-		mTotalSampleNum = mWaveFormat.sampleRate * duration  / 10000000;
-
-		return true;
-	}
-
-	int64 mTotalSampleNum;
-	WaveFormatInfo mWaveFormat;
-	TComPtr< IMFSourceReader  > mSourceReader;
-
-
-	virtual void seekSamplePosition(int64 samplePos) override
-	{
-		int64 duration = 10000000 * samplePos / mWaveFormat.byteRate;
-		PROPVARIANT var;
-		HRESULT hr = InitPropVariantFromInt64(duration, &var);
-		hr = mSourceReader->SetCurrentPosition(GUID_NULL, var);
-		PropVariantClear(&var);
-
-	}
-	virtual void getWaveFormat(WaveFormatInfo& outFormat) override
-	{
-		outFormat = mWaveFormat;
-	}
-
-
-	virtual int64 getTotalSampleNum() override
-	{
-		return mTotalSampleNum;
-	}
-#define USE_COM_BUFFER 0
-
-	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int requiredMinSameleNum) override
-	{
-		HRESULT hr = S_OK;
-
-		EAudioStreamStatus result = EAudioStreamStatus::Ok;
-		// Get audio samples from the source reader.
-
-		int genertatedSampleNum = 0;
-
-		uint32 idxSampleData = fetchSampleData();
-		auto& sampleData = mSampleDataList[idxSampleData];
-		assert(sampleData->data.empty());
-		for(;;)
-		{
-			DWORD dwFlags = 0;
-			TComPtr<IMFSample> pSample;
-			// Read the next sample.
-			hr = mSourceReader->ReadSample(MF_SOURCE_READER_FIRST_AUDIO_STREAM, 0, NULL, &dwFlags, NULL, &pSample);
-
-			if( FAILED(hr) )
-			{
-				result = EAudioStreamStatus::Error;
-				break;
-			}
-
-			if( dwFlags & MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED )
-			{
-				LogWarning(0, "Type change - not supported by WAVE file format.\n");
-				return EAudioStreamStatus::Error;
-				break;
-			}
-			if( dwFlags & MF_SOURCE_READERF_ENDOFSTREAM )
-			{
-				result = EAudioStreamStatus::Eof;
-				break;
-			}
-
-			if( pSample == nullptr )
-			{
-				result = EAudioStreamStatus::NoSample;
-				break;
-			}
-
-			TComPtr<IMFMediaBuffer> buffer;
-			hr = pSample->ConvertToContiguousBuffer(&buffer);
-			if( FAILED(hr) )
-			{
-				result = EAudioStreamStatus::Error;
-				break;
-			}
-
-			DWORD cbBuffer = 0;
-			BYTE *pAudioData = NULL;
-
-			hr = buffer->Lock(&pAudioData, NULL, &cbBuffer);
-			assert((cbBuffer % mWaveFormat.bitsPerSample) == 0);
-			sampleData->data.insert( sampleData->data.begin() , pAudioData, pAudioData + cbBuffer);
-
-			buffer->Unlock();
-
-			genertatedSampleNum += cbBuffer * mWaveFormat.sampleRate / mWaveFormat.byteRate;
-
-			if ( genertatedSampleNum > requiredMinSameleNum )
-				break;
-		}
-
-		switch( result )
-		{
-		case EAudioStreamStatus::Ok:
-			break;
-		case EAudioStreamStatus::Error:
-			releaseSampleData(idxSampleData);
-			break;
-		case EAudioStreamStatus::NoSample:
-		case EAudioStreamStatus::Eof:
-			if( sampleData->data.empty() )
-			{
-				releaseSampleData(idxSampleData);
-			}
-			break;
-		}
-
-		if ( !sampleData->data.empty() )
-		{
-			outSample.handle = idxSampleData;
-			outSample.data = sampleData->data.data();
-			outSample.dataSize = sampleData->data.size();
-		}
-		else
-		{
-
-			outSample.handle = -1;
-			outSample.data = nullptr;
-			outSample.dataSize = 0;
-		}
-
-		return result;
-	}
-
-
-	struct SampleData
-	{
-		std::vector<uint8> data;
-	};
-	std::vector< uint32 > mFreeSampleDataIndices;
-	std::vector< std::unique_ptr< SampleData > > mSampleDataList;
-
-	uint32 fetchSampleData()
-	{
-		uint32 result;
-		if( mFreeSampleDataIndices.size() )
-		{
-			result = mFreeSampleDataIndices.back();
-			mFreeSampleDataIndices.pop_back();
-			return result;
-		}
-
-		result = mSampleDataList.size();
-		auto sampleData = std::make_unique<SampleData>();
-		mSampleDataList.push_back(std::move(sampleData));
-		return result;
-
-	}
-
-	void releaseSampleData(uint32 sampleHadle)
-	{
-		auto& sampleData = mSampleDataList[sampleHadle];
-		sampleData->data.clear();
-		mFreeSampleDataIndices.push_back(sampleHadle);
-	}
-
-
-};
 
 class AudioTestStage : public StageBase
 {
@@ -743,14 +359,22 @@ REGISTER_STAGE_ENTRY("Audio Test", AudioTestStage, EExecGroup::FeatureDev);
 
 bool AudioTestStage::onInit()
 {
+	TIME_SCOPE("AudioTestStage Init");
+
 	if( !BaseClass::onInit() )
 		return false;
 
-	mAudioDevice = AudioDevice::Create();
-	if( mAudioDevice == nullptr )
-		return false;
+	{
+		TIME_SCOPE("AudioDevice Create");
+		mAudioDevice = AudioDevice::Create();
+		if (mAudioDevice == nullptr)
+			return false;
+	}
+	{
+		TIME_SCOPE("MFStartup");
+		HRESULT hr = MFStartup(MF_VERSION);
+	}
 
-	HRESULT hr = MFStartup(MF_VERSION);
 #if 0
 	if( !mSoundWave.loadFromWaveFile("Sounds/Test.wav") )
 	{
@@ -772,21 +396,23 @@ bool AudioTestStage::onInit()
 
 #if 0
 	{
-		if( !LoadWaveFile("Sounds/gem2.mp3", mSoundWave.format, mSoundWave.PCMData) )
+		if( !FMFDecodeUtil::LoadWaveFile("Sounds/gem2.mp3", mSoundWave.format, mSoundWave.PCMData) )
 			return false;
 	}
 #else
-	mAudioStreamSource.initialize("Sounds/gem2.mp3");
-	mSoundWave.bSaveStreamingPCMData = true;
-	mSoundWave.setupStream(&mSineWaveStreamSource);
-	//mSoundWave.setupStream(&mAudioStreamSource);
+	{
+		TIME_SCOPE("Init Stream Source");
+		mAudioStreamSource.initialize("Sounds/gem2.mp3");
+		//mSoundWave.setupStream(&mSineWaveStreamSource);
+		mSoundWave.setupStream(&mAudioStreamSource, true);
+	}
 #endif
 #endif
 
 #endif
 
 
-	mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 0.3, false);
+	mAudioHandle = mAudioDevice->playSound2D(mSoundWave, 0.3, false);
 
 	::Global::GUI().cleanupWidget();
 
@@ -813,6 +439,17 @@ bool AudioTestStage::onInit()
 	{
 		int value = GUI::CastFast<GSlider>(ui)->getValue();
 		mAudioDevice->setAudioPitchMultiplier(mAudioHandle, float(value) / 100);
+		return false;
+	};
+
+	frame->addText("Pos");
+	auto sliderPos = frame->addSlider(UI_ANY);
+	sliderPos->setRange(0, 100);
+	sliderPos->setValue(0);
+	sliderPos->onEvent = [&](int event, GWidget* ui)-> bool
+	{
+		int value = GUI::CastFast<GSlider>(ui)->getValue();
+		mAudioStreamSource.setCurrentTime(double(value) / 100.0 * mAudioStreamSource.getDuration());
 		return false;
 	};
 
@@ -948,7 +585,7 @@ MsgReply AudioTestStage::onKey(KeyMsg const& msg)
 		case EKeyCode::R: restart(); break;
 		case EKeyCode::B:
 			mAudioDevice->stopAllSound();
-			mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 1.0, false);
+			mAudioHandle = mAudioDevice->playSound2D(mSoundWave, 1.0, false);
 			break;
 		case EKeyCode::Z:
 			mSoundWave.PCMData.clear();

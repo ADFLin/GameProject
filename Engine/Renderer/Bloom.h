@@ -43,7 +43,7 @@ namespace Render
 
 	class BloomSetupProgram : public GlobalShaderProgram
 	{
-		DECLARE_SHADER_PROGRAM(BloomSetupProgram, Global)
+		DECLARE_SHADER_PROGRAM(BloomSetupProgram, Global);
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{

@@ -60,7 +60,7 @@ bool SampleBase::initializeGame()
 	return onSetupSample();
 }
 
-bool SampleBase::handleMouseEvent( MouseMsg const& msg )
+MsgReply SampleBase::handleMouseEvent( MouseMsg const& msg )
 {
 	if ( msg.onLeftDown() )
 	{
@@ -86,7 +86,7 @@ bool SampleBase::handleMouseEvent( MouseMsg const& msg )
 		//mMainCamera->rotate( CF_AXIS_X , -0.01 *( mLastDownPos.y - msg.getPos().y ) , CFTO_LOCAL );
 		mLastDownPos = msg.getPos();
 	}
-	return true;
+	return MsgReply::Handled();
 }
 
 MsgReply SampleBase::handleKeyEvent(KeyMsg const& msg)
@@ -112,12 +112,12 @@ void SampleBase::handleGameRender()
 	onRenderScene();
 
 	static float fps = 0.0f;
-	static long time = getMillionSecond();
+	static long time = mClock.getTimeMilliseconds();
 	++m_frameCount;
 	if ( m_frameCount > 50 )
 	{
-		m_fps = 1000.0f * ( m_frameCount ) / ( getMillionSecond() - time );
-		time = getMillionSecond();
+		m_fps = 1000.0f * ( m_frameCount ) / (mClock.getTimeMilliseconds() - time );
+		time = mClock.getTimeMilliseconds();
 		m_frameCount = 0;
 	}
 

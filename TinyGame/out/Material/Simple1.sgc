@@ -22,7 +22,7 @@ void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParamet
 	float3 t = normalize( float3(1, 0, c) );
 	outputPS.baseColor = float3(1,1,1);
 	//outputPS.baseColor = float3(1,1,1) * float3( parameters.worldPos.xy , 0 );
-	//outputPS.emissiveColor = float3(1, 0, 0);
+	outputPS.emissiveColor = float3(0.05, 0.05, 0.05);
 	outputPS.metallic = 0.9;
 	outputPS.roughness = 0.7;
 	outputPS.specular = 0.2;

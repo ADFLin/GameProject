@@ -9,146 +9,154 @@
 
 
 
-template< class T >
-class TCycleQueue
+template< typename T, typename Allocator = DefaultAllocator >
+class TCycleQueue : private Allocator::template TArrayData< T >
 {
+	using ArrayData = typename Allocator::template TArrayData< T >;
+
 public:
 	TCycleQueue()
 	{
-		mStorage = nullptr;
-		mNumElement = 0;
-		mNumStorage = 0;
+		mNum = 0;
 		mIndexCur = 0;
 		mIndexNext = 0;
 	}
 
 	~TCycleQueue()
 	{
-		size_t numTail = mNumStorage - mIndexCur;
-		if( mNumElement > numTail )
-		{
-			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, numTail);
-			FTypeMemoryOp::DestructSequence(mStorage, mNumElement - numTail);
-		}
-		else
-		{
-			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, mNumElement);
-		}
-
-		if( mStorage )
-		{
-			::free(mStorage);
-		}
+		destructElements();
 	}
 
 
 	void clear()
 	{
-		size_t numTail = mNumStorage - mIndexCur;
-		if( mNumElement > numTail )
-		{
-			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, numTail);
-			FTypeMemoryOp::DestructSequence(mStorage, mNumElement - numTail);
-		}
-		else
-		{
-			FTypeMemoryOp::DestructSequence(mStorage + mIndexCur, mNumElement);
-		}
-
+		destructElements();
 		mIndexCur = 0;
 		mIndexNext = 0;
-		mNumElement = 0;
+		mNum = 0;
+	}
+
+
+	template< class ...Args >
+	void emplace(Args ...args)
+	{
+		T* ptr = addUninitialized();
+		FTypeMemoryOp::Construct(ptr, std::forward<Args>(args)...);
 	}
 
 	void push_back(T const& value)
 	{
-		if( mNumElement == mNumStorage )
-		{
-			size_t newSize = std::max< size_t >(2 * mNumStorage, 4);
-			T* newPtr = (T*)::malloc(sizeof(T) * newSize);
-
-			if( newPtr == nullptr )
-				throw std::bad_alloc();
-
-			if( mStorage )
-			{
-				size_t numTail = mNumStorage - mIndexCur;
-				if ( mNumElement > numTail )
-				{
-					FTypeMemoryOp::ConstructSequence(newPtr, numTail, mStorage + mIndexCur);
-					FTypeMemoryOp::ConstructSequence(newPtr + numTail, mNumElement - numTail, mStorage);
-				}
-				else
-				{
-					FTypeMemoryOp::ConstructSequence(newPtr, mNumElement, mStorage + mIndexCur);
-				}
-				FTypeMemoryOp::DestructSequence(mStorage , mNumElement);
-			}
-
-			mNumStorage = newSize;
-			mStorage = newPtr;
-			mIndexNext = mNumElement;
-		}
-
-		FTypeMemoryOp::Construct(mStorage + mIndexNext, value);
-		++mIndexNext;
-		if( mIndexNext == mNumStorage )
-			mIndexNext = 0;
-		++mNumElement;
+		T* ptr = addUninitialized();
+		FTypeMemoryOp::Construct(ptr, value);
 	}
 
 	void pop_front()
 	{
-		assert(mNumElement);
-		++mIndexCur;
-		if( mIndexNext == mNumStorage )
-			mIndexNext = 0;
+		assert(mNum);
+		FTypeMemoryOp::Destruct(getElement(mIndexCur));
+		--mNum;
 
-		FTypeMemoryOp::Destruct(mStorage + mIndexCur);
-		--mNumElement;
+		++mIndexCur;
+		if(mIndexCur == ArrayData::getMaxSize())
+			mIndexCur = 0;
 	}
 
 	T& front()
 	{
-		assert(mNumElement);
-		return *(mStorage + mIndexCur);
+		assert(mNum);
+		return *getElement(mIndexCur);
 	}
 	T const&   front() const
 	{
-		assert(mNumElement);
-		return *( mStorage + mIndexCur );
+		assert(mNum);
+		return *getElement(mIndexCur);
 	}
-	bool empty() const { return mNumElement == 0; }
-	size_t size() const { return mNumElement;  }
+	bool empty() const { return mNum == 0; }
+	size_t size() const { return mNum;  }
+
+	T* getElement(int index)
+	{
+		return ArrayData::getAllocation() + index;
+	}
 
 	void moveFrontToBack()
 	{
-		if (mNumElement == 0)
+		if (mNum == 0)
 			return;
 
-		if (mNumElement == mNumStorage)
+		if (mNum == ArrayData::getMaxSize())
 		{
 			CHECK(mIndexCur == mIndexNext);
 
 			++mIndexCur;
-			if (mIndexCur == mNumStorage)
+			if (mIndexCur == ArrayData::getMaxSize())
 				mIndexCur = 0;
 
 			mIndexNext = mIndexCur;
 		}
 		else
 		{
-			FTypeMemoryOp::Move(mStorage + mIndexNext, mStorage + mIndexCur);
+			FTypeMemoryOp::Move(getElement(mIndexNext), getElement(mIndexCur));
 			++mIndexNext;
 			++mIndexCur;
-			if (mIndexCur == mNumStorage)
+			if (mIndexCur == ArrayData::getMaxSize())
 				mIndexCur = 0;
-			else if (mIndexNext == mNumStorage)
+			else if (mIndexNext == ArrayData::getMaxSize())
 				mIndexNext = 0;
 		}
 	}
 
+	T* addUninitialized()
+	{
+		if (ArrayData::needAlloc(mNum, 1))
+		{
+			if (mIndexCur != 0)
+			{
+				ArrayData::alloc(mNum, 1);
+				size_t growSize = ArrayData::getMaxSize() - mNum;
+				if (growSize >= mIndexNext)
+				{
+					FTypeMemoryOp::MoveSequence(getElement(mNum), mIndexCur, getElement(0));
+					mIndexNext += mNum;
+				}
+				else
+				{
+					FTypeMemoryOp::MoveSequence(getElement(mNum), growSize, getElement(0));
+					FTypeMemoryOp::MoveSequence(getElement(0), mIndexNext - growSize, getElement(growSize));
+					mIndexNext -= growSize;
+				}
+			}
+			else
+			{
+				ArrayData::alloc(mNum, 1);
+				mIndexNext = mNum;
+			}
+		}
+
+		T* result = getElement(mIndexNext);
+		++mIndexNext;
+		if (mIndexNext == ArrayData::getMaxSize())
+			mIndexNext = 0;
+		++mNum;
+		return result;
+	}
+
 private:
+
+	void destructElements()
+	{
+		size_t numTail = ArrayData::getMaxSize() - mIndexCur;
+		if (mNum > numTail)
+		{
+			FTypeMemoryOp::DestructSequence(getElement(mIndexCur), numTail);
+			FTypeMemoryOp::DestructSequence(getElement(0), mNum - numTail);
+		}
+		else
+		{
+			FTypeMemoryOp::DestructSequence(getElement(mIndexCur), mNum);
+		}
+
+	}
 
 	struct IteratorBase
 	{
@@ -158,7 +166,7 @@ private:
 		IteratorBase& operator++(int)
 		{
 			++index;
-			if( index == queue->mNumStorage )
+			if( index == queue->ArrayData::getMaxSize())
 				index = 0;
 			return *this;
 		}
@@ -170,14 +178,14 @@ private:
 	struct Iterator : IteratorBase
 	{
 		using IteratorBase::IteratorBase;
-		T* operator->() { return queue->mStorage + index; }
+		T* operator->() { return queue->getElement(index); }
 		T& operator*() { return *(this->operator->() );  }
 	};
 
 	struct ConstIterator : IteratorBase
 	{
 		using IteratorBase::IteratorBase;
-		T const* operator->() { return queue->mStorage + index; }
+		T const* operator->() { return queue->getElement(index); }
 		T const& operator*() { return *(this->operator->()); }
 	};
 
@@ -191,11 +199,9 @@ public:
 	const_iterator cend() { return const_iterator(this, mIndexNext); }
 private:
 
-	T* mStorage;
 	size_t mIndexNext;
 	size_t mIndexCur;
-	size_t mNumElement;
-	size_t mNumStorage;
+	size_t mNum;
 };
 
 

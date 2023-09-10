@@ -106,7 +106,7 @@ namespace Render
 		void generatePlantHeight();
 
 
-		bool setupRenderSystem(ERenderSystem systemName) override;
+		bool setupRenderResource(ERenderSystem systemName) override;
 
 
 		void preShutdownRenderSystem(bool bReInit) override

@@ -192,11 +192,16 @@ float4x4 inverse(float4x4 input)
 	return transpose(cofactors) / determinant(input);
 }
 
-float BufferDepthToClipZ(float bufferDepth)
+float BufferToNDCDepth(float bufferDepth)
 {
 	return bufferDepth;
 }
 
+
+float NDCToBufferDepth(float ndcZ)
+{
+	return ndcZ;
+}
 
 #if PIXEL_SHADER
 

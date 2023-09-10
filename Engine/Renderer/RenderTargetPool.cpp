@@ -32,17 +32,28 @@ namespace Render
 			}
 		}
 		PooledRenderTarget* result = new PooledRenderTarget;
+
 		result->desc = desc;
 		result->desc.creationFlags |= TCF_RenderTarget;
-		result->texture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, desc.numSamples, desc.creationFlags | TCF_RenderTarget);
-		if (desc.numSamples > 1 )
+
+		if (ETexture::IsDepthStencil(desc.format))
 		{
-			result->resolvedTexture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, 1, desc.creationFlags | TCF_RenderTarget);
+			TextureDesc depthDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags);
+			result->texture = RHICreateTextureDepth(depthDesc);
 		}
 		else
 		{
-			result->resolvedTexture = result->texture;
+			result->texture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, desc.numSamples, desc.creationFlags | TCF_RenderTarget);
+			if (desc.numSamples > 1)
+			{
+				result->resolvedTexture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, 1, desc.creationFlags | TCF_RenderTarget);
+			}
+			else
+			{
+				result->resolvedTexture = result->texture;
+			}
 		}
+
 		mUsedRTs.push_back(result);
 		return result;
 	}

@@ -2,6 +2,8 @@
 #include "Bsp2D.h"
 #include "Math/PrimitiveTest.h"
 
+#include "DebugDraw.h"
+
 namespace Bsp2D
 {
 	float const WallThin = 1e-3f;

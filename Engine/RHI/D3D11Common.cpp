@@ -191,7 +191,7 @@ namespace Render
 	op(ECompareFunc::NotEqual, D3D11_COMPARISON_NOT_EQUAL)\
 	op(ECompareFunc::LessEqual, D3D11_COMPARISON_LESS_EQUAL)\
 	op(ECompareFunc::Greater, D3D11_COMPARISON_GREATER)\
-	op(ECompareFunc::GeraterEqual, D3D11_COMPARISON_GREATER_EQUAL)\
+	op(ECompareFunc::GreaterEqual, D3D11_COMPARISON_GREATER_EQUAL)\
 	op(ECompareFunc::Always, D3D11_COMPARISON_ALWAYS)
 	
 	DEFINE_DATA_MAP(CompareFuncMapInfoD3D11, GCompareFuncMapD3D11, COMPAREFUNC_OP_LIST_D3D11);
@@ -387,10 +387,11 @@ namespace Render
 	{
 		TextureDesc colorDesc = mColorTexture->getDesc();
 		mColorTexture.release();
-
 		DXGI_SWAP_CHAIN_DESC desc;
 		mResource->GetDesc(&desc);
-		mResource->ResizeBuffers(desc.BufferCount, w, h, DXGI_FORMAT_UNKNOWN, desc.Flags);
+
+		//Get E_ACCESSDENIED when window close
+		VERIFY_D3D_RESULT(mResource->ResizeBuffers(desc.BufferCount, w, h, DXGI_FORMAT_UNKNOWN, desc.Flags), return; );
 
 		Texture2DCreationResult textureCreationResult;
 		VERIFY_D3D_RESULT(mResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), );

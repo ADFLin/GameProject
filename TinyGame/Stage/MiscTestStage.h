@@ -29,6 +29,7 @@
 
 #include <functional>
 #include "GameRenderSetup.h"
+#include "PlatformThread.h"
 
 class DrawEngine;
 class GPanel;
@@ -37,8 +38,23 @@ class GSlider;
 struct Record;
 class TaskBase;
 
+class IMiscTestCore
+{
+public:
+	virtual ~IMiscTestCore() = default;
+	virtual void pauseThread(uint32 threadId) = 0;
+	virtual void registerRender(uint32 threadId, std::function< void(IGraphics2D&) > const& func) = 0;
+};
+
+struct FMiscTestUtil
+{
+	static bool IsTesting();
+	static void PauseThread();
+	static void RegisterRender(std::function< void(IGraphics2D&) > const& func);
+};
 
 class MiscTestStage : public StageBase
+	                , public IMiscTestCore
 {
 	using BaseClass = StageBase;
 public:
@@ -52,7 +68,7 @@ public:
 
 	void onEnd() override
 	{
-
+		mInfos.clear();
 	}
 
 	void onUpdate( long time ) override
@@ -75,10 +91,7 @@ public:
 	};
 	TArray< TestInfo > mInfos;
 
-	void onRender( float dFrame ) override
-	{
-		Graphics2D& g = Global::GetGraphics2D();
-	}
+	void onRender( float dFrame ) override;
 
 	void restart()
 	{
@@ -108,6 +121,9 @@ public:
 			switch (msg.getCode())
 			{
 			case EKeyCode::R: restart(); break;
+			case EKeyCode::X:
+				resumeAllThreads();
+				break;
 			}
 		}
 		return BaseClass::onKey(msg);
@@ -115,9 +131,34 @@ public:
 
 	bool onWidgetEvent(int event , int id , GWidget* ui) override;
 
+	void pauseThread(uint32 threadId) override;
+	void registerRender(uint32 threadId, std::function< void(IGraphics2D&) > const& func) override;
+
+	void resumeAllThreads();
+
+	void registerThread(Thread* thread);
+	void unregisterThread(Thread* thread);
+
+
+	struct ExecutionData
+	{
+		Thread* thread;
+		std::function< void(IGraphics2D&) > renderFunc;
+	};
+
+	Mutex mThreadDataMutex;
+
+	TArray< ExecutionData > mRunningExecutions;
+	TArray< Thread* > mPauseExecutions;
+
+
 protected:
 
 };
+
+BITWISE_RELLOCATABLE_FAIL(MiscTestStage::TestInfo);
+BITWISE_RELLOCATABLE_FAIL(MiscTestStage::ExecutionData);
+
 
 template< class T >
 class TQBezierSpline
@@ -845,7 +886,7 @@ public:
 		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
 	ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
-	bool setupRenderSystem(ERenderSystem systemName) override;
+	bool setupRenderResource(ERenderSystem systemName) override;
 	void preShutdownRenderSystem(bool bReInit = false) override;
 
 	Render::RHITexture2DRef mTexture;

@@ -40,7 +40,7 @@ public:
 	virtual void  endClip() = 0;
 	virtual void  beginBlend(Vec2i const& pos, Vec2i const& size, float alpha) = 0;
 	virtual void  endBlend() = 0;
-	virtual void  setPen(Color3ub const& color) = 0;
+	virtual void  setPen(Color3ub const& color, int width = 1) = 0;
 	virtual void  setBrush(Color3ub const& color) = 0;
 	virtual void  drawPixel(Vector2 const& p, Color3ub const& color) = 0;
 	virtual void  drawLine(Vector2 const& p1, Vector2 const& p2) = 0;

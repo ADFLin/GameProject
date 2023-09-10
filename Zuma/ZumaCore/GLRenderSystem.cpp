@@ -17,24 +17,20 @@ namespace Zuma
 	GLRenderSystem::GLRenderSystem()
 	{
 		mNeedSweepBuffer = true;
-
 	}
 
 	GLRenderSystem::~GLRenderSystem()
 	{
-		wglDeleteContext( mhRCTex );
-		mhRCCur = NULL;
+		wglDeleteContext( mhRCLoad );
 	}
 
 	bool GLRenderSystem::init( HWND hWnd , HDC hDC , HGLRC hRC )
 	{
 		mhWnd    = hWnd;
 		mhDC     = hDC;
-		mhRCTex  = wglCreateContext( hDC );
+		mhRCLoad  = wglCreateContext( hDC );
 		mhRCDraw = hRC;
-
-		//wglShareLists( hRC , mhRCTex );
-		wglShareLists( mhRCTex , hRC );
+		wglShareLists( mhRCDraw, mhRCLoad );
 
 		glDisable( GL_DEPTH_TEST );
 		glClearColor( 0.3f , 0.3f , 0.3f , 0 );
@@ -58,12 +54,7 @@ namespace Zuma
 		if ( !LoadGIFImage( path , &TempRawData::GIFCreateAlpha , &data ) )
 			return false;
 
-		{
-			//Mutex::Locker locker( mMutexGL );
-			//setContext( mhRCTex );
-			tex.createFromRawData(  data.buffer , data.w , data.h , true );
-		}
-
+		tex.createFromRawData(  data.buffer , data.w , data.h , true );
 		return true;
 	}
 
@@ -75,9 +66,6 @@ namespace Zuma
 		if ( !LoadGIFImage( path , &TempRawData::GIFCreateRGB , &data ) )
 			return false;
 
-
-		//Mutex::Locker locker( mMutexGL );
-		//setContext( mhRCTex );
 		if ( ! tex.createFromRawData(  data.buffer , data.w , data.h , false ) )
 			return false;
 
@@ -93,12 +81,10 @@ namespace Zuma
 			return false;
 		if ( !LoadGIFImage( alphaPath , &TempRawData::GIFFillAlpha , &data ) )
 			return false;
-		{
-			//Mutex::Locker locker( mMutexGL );
-			//setContext( mhRCTex );
-			if ( !tex.createFromRawData(  data.buffer , data.w , data.h , true ) )
-				return false;
-		}
+
+		if (!tex.createFromRawData(data.buffer, data.w, data.h, true))
+			return false;
+		
 		return true;
 	}
 
@@ -213,12 +199,9 @@ namespace Zuma
 			data.buffer = NULL;
 		}
 
-		{
-			//Mutex::Locker locker( mMutexGL );
-			//setContext( mhRCTex );
-			if ( !tex.createFromRawData(  ( unsigned char* )pBits , lWidthPixels, lHeightPixels ,  alphaPath != NULL ) )
-				return false;
-		}
+		
+		if ( !tex.createFromRawData(  ( unsigned char* )pBits , lWidthPixels, lHeightPixels ,  alphaPath != NULL ) )
+			return false;
 
 		result = true;
 
@@ -349,6 +332,7 @@ cleanup:
 
 	void GLRenderSystem::drawBitmapWithinMask( ITexture2D const& tex ,  ITexture2D const& mask , Vector2 const& pos , unsigned flag )
 	{
+
 		GLTexture const& texG =  GLTexture::castImpl( tex );
 		GLTexture const& maskG = GLTexture::castImpl( mask );
 		setupBlend( true , flag );
@@ -429,12 +413,11 @@ cleanup:
 	}
 
 	bool GLRenderSystem::prevRender()
-{
-		mMutexGL.lock();
-		if ( !setContext( mhRCDraw ) )
-			return false;
+	{
 
+		glClearColor(1, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		glUseProgram(0);
 
 		glMatrixMode( GL_PROJECTION );
 		glLoadIdentity();
@@ -467,7 +450,6 @@ cleanup:
 		{
 			::SwapBuffers( getHDC() );
 		}
-		mMutexGL.unlock();
 	}
 
 	void GLRenderSystem::resize()
@@ -651,27 +633,14 @@ cleanup:
 		glEnable( GL_TEXTURE_2D );
 	}
 
-	bool GLRenderSystem::setContext( HGLRC hRC )
-	{
-		if ( mhRCCur == hRC )
-			return true;
-
-		if ( !::wglMakeCurrent( getHDC() , hRC  ) )
-			return false;
-
-		mhRCCur = hRC;
-		return true;
-	}
-
 	void GLRenderSystem::prevLoadResource()
 	{
-		setContext( mhRCTex );
+		wglMakeCurrent(mhDC,  mhRCLoad);
 	}
 
 	void GLRenderSystem::postLoadResource()
 	{
-		glFinish();
-		::wglMakeCurrent( NULL , NULL );
+		wglMakeCurrent(nullptr, nullptr);
 	}
 
 	bool GLTexture::createFromRawData( unsigned char* data , int w , int h , bool beAlpha )

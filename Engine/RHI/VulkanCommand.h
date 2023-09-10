@@ -9,7 +9,7 @@
 
 #include "VulkanCommon.h"
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 
@@ -145,7 +145,7 @@ namespace Render
 		{
 
 		}
-
+		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
 		RHIFrameBuffer*  RHICreateFrameBuffer() { return nullptr; }
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
@@ -195,7 +195,7 @@ namespace Render
 }//namespace Render
 
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 

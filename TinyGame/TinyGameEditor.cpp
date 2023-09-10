@@ -9,14 +9,18 @@
 #include "RHI/D3D11Command.h"
 
 #include "Module/ModuleManager.h"
+#include "RenderDebug.h"
 
 using namespace Render;
 
 bool TinyGameApp::initializeEditor()
 {
 	VERIFY_RETURN_FALSE(mEditor = IEditor::Create());
+	extern TINY_API IEditor* GEditor;
+	GEditor = mEditor;
 	return true;
 }
+
 
 bool TinyGameApp::initializeEditorRender()
 {
@@ -25,10 +29,16 @@ bool TinyGameApp::initializeEditorRender()
 	FCString::IsConstSegment(RHIModuleName);
 
 	ModuleManager::Get().loadModule(RHIModuleName);
-	::Global::GetDrawEngine().lockSystem(ERenderSystem::D3D11);
+
+	RenderSystemConfigs configs;
+	configs.bDebugMode = true;
+	configs.bVSyncEnable = true;
+	configs.numSamples = 1;
+	::Global::GetDrawEngine().lockSystem(ERenderSystem::D3D11, configs);
 
 	mEditor->initializeRender();
 	mEditor->addGameViewport(this);
+	mEditor->setTextureShowManager(&GTextureShowManager);
 	return true;
 }
 
@@ -40,7 +50,6 @@ void TinyGameApp::finalizeEditor()
 		mEditor = nullptr;
 	}
 }
-
 
 void TinyGameApp::resizeViewport(int w, int h)
 {

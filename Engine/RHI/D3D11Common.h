@@ -197,7 +197,7 @@ namespace Render
 			int count = mResource->Release();
 			if (count > 0)
 			{
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 				if (mTag)
 				{
 					LogDevMsg(0, "D3D11Resource: %p %p %d %s : %s , %s", this , mResource , count, mTypeName.c_str(), mTag, mTrace.toString().c_str());
@@ -679,7 +679,7 @@ namespace Render
 		}
 
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 		virtual void setTraceData(ResTraceInfo const& trace)
 		{
 			mTrace = trace;

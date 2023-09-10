@@ -118,7 +118,7 @@ public:
 	void endClip() { mImpl->endClip(); }
 	void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha)  override { mImpl->beginBlend( pos , size , alpha ); }
 	void endBlend() override { mImpl->endBlend(); }
-	void setPen( Color3ub const& color ) override { mImpl->setPen( color ); }
+	void setPen( Color3ub const& color, int width = 1) override { mImpl->setPen( color, width ); }
 	void setBrush( Color3ub const& color ) override { mImpl->setBrush( color ); }
 	void drawPixel  (Vector2 const& p , Color3ub const& color) override { mImpl->drawPixel( p , color ); }
 	void drawLine   (Vector2 const& p1 , Vector2 const& p2) override { mImpl->drawLine( p1 , p2 ); }
@@ -194,7 +194,7 @@ void DrawEngine::release()
 
 	if (GRHISystem)
 	{
-		RHIPreSystemShutdown();
+		RHIClearResourceReference();
 		RHISystemShutdown();
 	}
 }
@@ -224,9 +224,9 @@ bool DrawEngine::setupSystem(IGameRenderSetup* renderSetup, bool bSetupDeferred)
 	return true;
 }
 
-bool DrawEngine::setupSystem()
+bool DrawEngine::setupRenderResource()
 {
-	if (!mRenderSetup->setupRenderSystem(mSystemName))
+	if (!mRenderSetup->setupRenderResource(mSystemName))
 	{
 		return false;
 	}
@@ -248,7 +248,7 @@ bool DrawEngine::resetupSystem(ERenderSystem systemName)
 		return false;
 	}
 
-	if (!mRenderSetup->setupRenderSystem(systemName))
+	if (!mRenderSetup->setupRenderResource(systemName))
 	{
 		return false;
 	}
@@ -293,7 +293,7 @@ bool DrawEngine::setupSystemInternal(ERenderSystem systemName, bool bForceRHI, b
 
 	if (bSetupDeferred == false)
 	{
-		if (!mRenderSetup->setupRenderSystem(systemName))
+		if (!mRenderSetup->setupRenderResource(systemName))
 		{
 			LogWarning(0, "Can't Setup Render Resource");
 			return false;
@@ -310,6 +310,10 @@ void DrawEngine::createRHIGraphics()
 		mRHIGraphics.reset(new RHIGraphics2D);
 		mRHIGraphics->setViewportSize(mGameWindow->getWidth(), mGameWindow->getHeight());
 		static_cast<TGraphics2DProxy< RHIGraphics2D >&>(*mRHIProxy).mImpl = mRHIGraphics.get();
+	}
+	else
+	{
+		mRHIGraphics->setViewportSize(mGameWindow->getWidth(), mGameWindow->getHeight());
 	}
 
 	if (bRHIGraphicsInitialized == false)
@@ -335,16 +339,17 @@ bool DrawEngine::isUsageRHIGraphic2D() const
 	return IsSupportRHIGraphic2D(mSystemName);
 }
 
-bool DrawEngine::lockSystem(ERenderSystem systemLocked)
+bool DrawEngine::lockSystem(ERenderSystem systemLocked, RenderSystemConfigs const& configs)
 {
 	CHECK(mSystemLocked == ERenderSystem::None && mSystemName == ERenderSystem::None);
 
 	RHISystemInitParams initParam;
-	initParam.numSamples = 1;
-	initParam.bVSyncEnable = true;
-	initParam.bDebugMode = true;
+	initParam.numSamples = configs.numSamples;
+	initParam.bVSyncEnable = configs.bVSyncEnable;
+	initParam.bDebugMode = configs.bDebugMode;
 	initParam.hWnd = NULL;
 	initParam.hDC = NULL;
+	initParam.bMultithreadingSupported = configs.bMultithreadingSupported;
 	VERIFY_RETURN_FALSE(RHISystemInitialize(ConvTo(systemLocked), initParam));
 	
 	mSystemLocked = systemLocked;
@@ -364,7 +369,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 	if (configs.screenWidth > 0 && configs.screenHeight > 0)
 	{
-		if (configs.screenWidth != getScreenWidth() &&
+		if (configs.screenWidth != getScreenWidth() ||
 			configs.screenHeight != getScreenHeight())
 		{
 			changeScreenSize(configs.screenWidth, configs.screenHeight, false);
@@ -373,6 +378,7 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 	RHISystemInitParams initParam;
 	initParam.numSamples = configs.numSamples;
+	initParam.bMultithreadingSupported = configs.bMultithreadingSupported;
 	if (CVarUseMultisample)
 	{
 		if (initParam.numSamples == 1)
@@ -384,16 +390,13 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	if (mSystemLocked != ERenderSystem::None)
 	{
 		initParam.numSamples = 1;
-		IGlobalRenderResource::RestoreAllResources();
-		setupBuffer(getScreenWidth(), getScreenHeight());
+		//IGlobalRenderResource::RestoreAllResources();
 	}
 	else
 	{
 
 		if (systemName == ERenderSystem::None)
 			systemName = GDefaultRHIName;
-
-		setupBuffer(getScreenWidth(), getScreenHeight());
 
 		if (bHadUseRHI)
 		{
@@ -413,6 +416,8 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 	}
 
 	mSystemName = systemName;
+
+	setupBuffer(getScreenWidth(), getScreenHeight());
 
 	if (mSystemName == ERenderSystem::OpenGL)
 	{
@@ -443,15 +448,18 @@ bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs con
 
 void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 {
-	if( !isRHIEnabled() || mSystemLocked != ERenderSystem::None)
+	if( !isRHIEnabled())
 		return;
 
-	RHIPreSystemShutdown();
+	RHIClearResourceReference();
 
 	if (mRenderSetup)
 	{
 		mRenderSetup->preShutdownRenderSystem(bReInit);
 	}
+
+	if (mSystemLocked != ERenderSystem::None)
+		return;
 
 	RenderUtility::ReleaseRHI();
 	mRHIGraphics->releaseRHI();
@@ -759,6 +767,7 @@ void DrawEngine::changetViewportSize(int w, int h)
 
 void DrawEngine::setupBuffer( int w , int h )
 {
+	mBufferDC.release();
 	if ( isRHIEnabled() )
 	{
 		int bitsPerPixel = GetDeviceCaps( getWindow().getHDC() , BITSPIXEL );

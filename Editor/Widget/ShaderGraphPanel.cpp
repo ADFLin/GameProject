@@ -333,6 +333,15 @@ void ShaderGraphPanel::render()
 	bool bRenderPreviewRequest = false;
 	ImNode::SetCurrentEditor(mEditorContext);
 
+	static int FixTrigger = 4;
+	if (FixTrigger > 0)
+	{
+		--FixTrigger;
+		if (FixTrigger == 0)
+		{
+			ImNode::NavigateToContent();
+		}
+	}
 
 	if (ImGui::Button("Compile"))
 	{

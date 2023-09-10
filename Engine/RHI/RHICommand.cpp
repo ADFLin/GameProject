@@ -12,7 +12,7 @@
 #include "Image/ImageData.h"
 
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 #include "Core/HalfFlot.h"
@@ -192,9 +192,9 @@ namespace Render
 		return GRHISystem != nullptr;
 	}
 
-	void RHIPreSystemShutdown()
+	void RHIClearResourceReference()
 	{
-		GRHISystem->preShutdown();
+		GRHISystem->clearResourceReference();
 	}
 
 	void RHISystemShutdown()
@@ -342,6 +342,10 @@ namespace Render
 		EXECUTE_RHI_FUNC(RHIReadTexture(texture, format, level, outData));
 	}
 
+	bool  RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		return EXECUTE_RHI_FUNC(RHIUpdateTexture(texture, ox, oy, w, h, data, level, dataWidth));
+	}
 
 	//void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset /*= 0*/, uint32 size /*= 0*/)
 	//{
@@ -428,7 +432,7 @@ namespace Render
 
 #endif //CORE_SHARE_CODE
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 

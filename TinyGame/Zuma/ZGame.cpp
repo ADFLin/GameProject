@@ -13,15 +13,13 @@
 #include "GameWidget.h"
 #include "GameGUISystem.h"
 
-
-#define ZUMA_USE_RHI 1
-
-#if ZUMA_USE_RHI
 #include "ZRenderSystemRHI.h"
-#else
 #include "WGLContext.h"
 #include "ZumaCore/GLRenderSystem.h"
-#endif
+
+#include "ConsoleSystem.h"
+
+TConsoleVariable<bool> CVarUseRHI( false , "Zuma.UseRHI" , CVF_TOGGLEABLE | CVF_CONFIG | CVF_SECTION_GROUP );
 
 namespace Zuma
 {
@@ -95,26 +93,29 @@ namespace Zuma
 			DrawEngine& drawEngine = ::Global::GetDrawEngine();
 			GameWindow& window = drawEngine.getWindow();
 
-#if ZUMA_USE_RHI
-			if (!drawEngine.startupSystem(ERenderSystem::D3D11))
+			if (CVarUseRHI)
 			{
-				return nullptr;
+				RenderSystemConfigs config;
+				if (!drawEngine.startupSystem(ERenderSystem::D3D11, config))
+				{
+					return nullptr;
+				}
+				RenderSystemRHI* renderSys = new RenderSystemRHI;
+				renderSys->init(::Global::GetRHIGraphics2D());
+				return renderSys;
 			}
-			RenderSystemRHI* renderSys = new RenderSystemRHI;
-			renderSys->init(::Global::GetRHIGraphics2D());
-#else
-			//HDC hDC = ::Global::getGraphics2D().getTargetDC();
-			HDC hDC = window.getHDC();
-			if (!drawEngine.startupSystem(ERenderSystem::OpenGL))
+			else
 			{
-				return nullptr;
+				HDC hDC = window.getHDC();
+				if (!drawEngine.startupSystem(ERenderSystem::OpenGL))
+				{
+					return nullptr;
+				}
+				GLRenderSystem* renderSys = new GLRenderSystem;
+				renderSys->mNeedSweepBuffer = false;
+				renderSys->init(window.getHWnd(), hDC, drawEngine.getGLContext()->getHandle());
+				return renderSys;
 			}
-			GLRenderSystem* renderSys = new GLRenderSystem;
-			renderSys->mNeedSweepBuffer = false;
-			renderSys->init( window.getHWnd(), hDC , drawEngine.getGLContext()->getHandle() );
-#endif
-
-			return renderSys;
 		}
 		//~GameInitializer
 

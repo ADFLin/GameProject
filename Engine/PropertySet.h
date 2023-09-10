@@ -117,7 +117,14 @@ public:
 			mKeyMap.emplace(keyName, value);
 		}
 	}
-
+	void setKeyValues(char const* keyName, TArray<std::string> const& values)
+	{
+		mKeyMap.erase(keyName);
+		for (auto const& value : values)
+		{
+			mKeyMap.emplace(keyName, value.c_str());
+		}
+	}
 	void removeKey(char const* keyName)
 	{
 		mKeyMap.erase(keyName);
@@ -197,6 +204,7 @@ public:
 
 	void setKeyValue(char const* sectionName, char const* keyName, char const* value);
 	void setKeyValues(char const* sectionName, char const* keyName, TArray<char const*> const& values, bool bSorted = false);
+	void setKeyValues(char const* sectionName, char const* keyName, TArray<std::string> const& values, bool bSorted = false);
 };
 
 class  PropertySet
@@ -209,7 +217,7 @@ public:
 	int         getIntValue   ( char const* keyName , char const* section , int defaultValue );
 	float       getFloatValue ( char const* keyName , char const* section , float defaultValue );
 	char const* getStringValue( char const* keyName , char const* section , char const* defaultValue );
-	bool        getBoolValue(char const* keyName, char const* section, bool defaultValue);
+	bool        getBoolValue  (char const* keyName, char const* section, bool defaultValue);
 
 	bool        tryGetCharValue  ( char const* keyName , char const* section , char& value );
 	bool        tryGetIntValue   ( char const* keyName , char const* section , int& value );
@@ -221,7 +229,9 @@ public:
 	bool        loadFile( char const* path );
 
 	void        getStringValues(char const* keyName, char const* section, TArray< char const* >& outValue);
+	void        getStringValues(char const* keyName, char const* section, TArray< std::string >& outValue);
 	void        setStringValues(char const* keyName, char const* section, TArray< char const* > const& values, bool bSorted = false);
+	void        setStringValues(char const* keyName, char const* section, TArray< std::string > const& values, bool bSorted = false);
 
 	template< class T >
 	void setKeyValue( char const* keyName , char const* section , T&& value )

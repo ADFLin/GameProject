@@ -3,7 +3,7 @@
 #include "ViewParam.sgc"
 
 #ifndef USE_PERSPECTIVE_DEPTH
-#define USE_PERSPECTIVE_DEPTH 0
+#define USE_PERSPECTIVE_DEPTH 1
 #endif
 
 #ifndef USE_CASCADE_TEXTURE_ARRAY
@@ -23,10 +23,28 @@ uniform int NumCascade = 0;
 uniform float CacadeDepth[8];
 
 #if USE_CASCADE_TEXTURE_ARRAY 
-uniform sampler2D ShadowCasCadeTexture2D[8];
+uniform sampler2D ShadowCascadeTexture2D[8];
 #else
-uniform sampler2D ShadowCasCadeTexture2D;
+uniform sampler2D ShadowCascadeTexture2D;
 #endif
+
+float ShaderCmp(float s, float depth , float a, float b)
+{
+#if USE_INVERSE_ZBUFFER
+	return s <= depth ? a : b;
+#else
+	return s >= depth ? a : b;
+#endif
+}
+
+float GetShadowProjectDepth(float4 shadowPos)
+{
+#if USE_INVERSE_ZBUFFER
+	return NDCToBufferDepth((shadowPos.z + 0.0001) / shadowPos.w);
+#else
+	return NDCToBufferDepth((shadowPos.z - 0.0001) / shadowPos.w);
+#endif
+}
 
 int GetCubeFace(float3 lightVector)
 {
@@ -117,17 +135,17 @@ float3 SimplePCF(Texture2D shadowTexture, float2 shadowUV, float depth)
 	texSize = float2(textureSize(shadowTexture, 0));
 #endif
 	float2 dUV = 1.0 / texSize;
-	dUV.x /= NumCascade;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV).r >= depth) ? 1.0 : factor;
-#if 0
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV - float2(dUV.x, 0.0)).r >= depth) ? 1.0 : factor;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV - float2(0.0, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + dUV).r >= depth) ? 1.0 : factor;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV - dUV).r >= depth) ? 1.0 : factor;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(-dUV.x, dUV.y)).r >= depth) ? 1.0 : factor;
-	count += (TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(dUV.x, -dUV.y)).r >= depth) ? 1.0 : factor;
+	//dUV.x /= NumCascade;
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV).r, depth, 1.0, factor);
+#if 1
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(dUV.x, 0.0)).r, depth, 1.0, factor);
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV - float2(dUV.x, 0.0)).r, depth, 1.0, factor);
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(0.0, dUV.y)).r, depth, 1.0, factor);
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV - float2(0.0, dUV.y)).r, depth, 1.0, factor);
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV + dUV).r, depth, 1.0 , factor);
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV - dUV).r, depth, 1.0 , factor);
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(-dUV.x, dUV.y)).r, depth, 1.0, factor);
+	count += ShaderCmp(TEXTURE_SAMPLE(shadowTexture, shadowUV + float2(dUV.x, -dUV.y)).r, depth, 1.0, factor);
 	float shadow = count / 9.0;
 #else
 	float shadow = count;
@@ -137,22 +155,18 @@ float3 SimplePCF(Texture2D shadowTexture, float2 shadowUV, float depth)
 
 float3 CalcSpotLightShadow(float3 worldPos, float4x4 shadowMatrix)
 {
-	//return 1;
-	const float factor = 0.0;
 	float4 shadowPos = mul( shadowMatrix , float4(worldPos, 1.0) );
-#if USE_PERSPECTIVE_DEPTH
-	float depth = shadowPos.z / shadowPos.w - 0.003;
-#else
-	float depth = shadowPos.z * ShadowParam.y - 0.005;
-#endif
-	float2 shadowUV = shadowPos.xy / shadowPos.w;
+
+	float depth = GetShadowProjectDepth(shadowPos);
+	float2 shadowUV = VFLIP( shadowPos.xy / shadowPos.w );
 
 #if COMPILER_HLSL
 	float3 shadow = SimplePCF( ShadowTexture2D, ShadowTexture2DSampler , shadowUV , depth );
 #else
 	float3 shadow = SimplePCF(ShadowTexture2D, shadowUV, depth);
 #endif
-	//return float3(shadowUV, shadowPos.z);
+
+	//return float3(shadowUV, 0);
 	return shadow;
 }
 

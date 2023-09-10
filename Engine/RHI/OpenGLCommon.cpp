@@ -53,35 +53,9 @@ namespace Render
 		}
 	}
 
-	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
-	{
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
-		bool result = VerifyOpenGLStatus();
-		return result;
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
 
-	}
-
-	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
-	{
-#if 1
-		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
-		bool result = VerifyOpenGLStatus();
-		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#else
-		GLenum formatGL = OpenGLTranslate::PixelFormat(format);
-		GLenum typeGL = OpenGLTranslate::TextureComponentType(format);
-		uint8* pData = (uint8*)data;
-		int dataStride = dataImageWidth * ETexture::GetFormatSize(format);
-		for( int dy = 0; dy < h; ++dy )
-		{
-			glTexSubImage2D(textureEnum, level, ox, oy + dy, w, 1, formatGL, typeGL, pData);
-			pData += dataStride;
-		}
-		bool result = VerifyOpenGLStatus();
-#endif
-		return result;
-	}
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
 
 	bool OpenGLTexture1D::create( void* data )
 	{
@@ -910,7 +884,7 @@ namespace Render
 		case ECompareFunc::NotEqual:    return GL_NOTEQUAL;
 		case ECompareFunc::LessEqual:   return GL_LEQUAL;
 		case ECompareFunc::Greater:     return GL_GREATER;
-		case ECompareFunc::GeraterEqual:return GL_GEQUAL;
+		case ECompareFunc::GreaterEqual:return GL_GEQUAL;
 		case ECompareFunc::Always:      return GL_ALWAYS;
 		}
 		return GL_LESS;
@@ -1000,6 +974,7 @@ namespace Render
 	{
 		switch( format )
 		{
+		case ETexture::ShadowDepth:
 		case ETexture::Depth16: return GL_DEPTH_COMPONENT16;
 		case ETexture::Depth24: return GL_DEPTH_COMPONENT24;
 		case ETexture::Depth32: return GL_DEPTH_COMPONENT32;

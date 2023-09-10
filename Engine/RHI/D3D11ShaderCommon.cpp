@@ -283,10 +283,6 @@ namespace Render
 		if (!mResource.initialize(mType, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
 			return false;
 
-		if (getType() == EShader::Vertex)
-		{
-			byteCode.assign((uint8*)inByteCode->GetBufferPointer(), (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
-		}
 		return true;
 	}
 
@@ -295,10 +291,6 @@ namespace Render
 		if (!mResource.initialize(mType, device, inByteCode.data(), inByteCode.size()))
 			return false;
 
-		if (getType() == EShader::Vertex)
-		{
-			byteCode = std::move(inByteCode);
-		}
 		return true;
 	}
 

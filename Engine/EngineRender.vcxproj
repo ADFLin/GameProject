@@ -58,6 +58,7 @@
     <ClCompile Include="RHI\D3DSharedCommon.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
+    <ClCompile Include="RHI\GLExtensions.cpp" />
     <ClCompile Include="RHI\GpuProfiler.cpp" />
     <ClCompile Include="RHI\LazyObject.cpp" />
     <ClCompile Include="RHI\Material.cpp" />
@@ -92,6 +93,7 @@
     <ClInclude Include="..\OtherLib\SpirvReflect\spirv_reflect.h" />
     <ClInclude Include="..\OtherLib\stb\stb_image.h" />
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
+    <ClInclude Include="OpenGLHeader.h" />
     <ClInclude Include="Renderer\BasePassRendering.h" />
     <ClInclude Include="Renderer\BatchedRender2D.h" />
     <ClInclude Include="Renderer\Bloom.h" />
@@ -103,6 +105,7 @@
     <ClInclude Include="Renderer\MeshUtility.h" />
     <ClInclude Include="Renderer\RenderTargetPool.h" />
     <ClInclude Include="Renderer\RenderTransform2D.h" />
+    <ClInclude Include="Renderer\SceneDebug.h" />
     <ClInclude Include="Renderer\SceneLighting.h" />
     <ClInclude Include="Renderer\SceneView.h" />
     <ClInclude Include="Renderer\ShadowDepthRendering.h" />
@@ -112,6 +115,7 @@
     <ClInclude Include="RHI\DrawUtility.h" />
     <ClInclude Include="RHI\Font.h" />
     <ClInclude Include="RHI\FrameRenderGraph.h" />
+    <ClInclude Include="RHI\GLExtensions.h" />
     <ClInclude Include="RHI\GlobalShader.h" />
     <ClInclude Include="RHI\GpuProfiler.h" />
     <ClInclude Include="RHI\LazyObject.h" />

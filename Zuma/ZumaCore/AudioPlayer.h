@@ -5,25 +5,27 @@
 #include "ZResManager.h"
 #include "ZEventHandler.h"
 
-#define  ERROR_SOUND_ID -1
-
-struct FMOD_SYSTEM;
-struct FMOD_SOUND;
-struct FMOD_CHANNEL;
-struct FMOD_CHANNELGROUP;
+#include "Audio/AudioDevice.h"
 
 namespace Zuma
 {
 	enum ResID;
-	typedef unsigned SoundID;
+
+	using SoundID = AudioHandle;
+
+#define  ERROR_SOUND_ID ERROR_AUDIO_HANDLE
 
 	class SoundRes : public ResBase
 	{
 	public:
-		SoundRes():ResBase( RES_SOUND ){ sound = NULL; }
+		SoundRes():ResBase( RES_SOUND )
+		{ 
+			volume = 1.0;
+		}
 
 		void release();
-		FMOD_SOUND* sound;
+
+		SoundWave   soundWave;
 		float       volume;
 	};
 
@@ -55,17 +57,12 @@ namespace Zuma
 
 		bool      onEvent( int evtID , ZEventData const& data , ZEventHandler* sender );
 
-		typedef FMOD_CHANNEL Channel;
-		Channel*  getChannel( SoundID sID );
-		unsigned  registerChannel( Channel* channel );
 
 		float          mSoundVolume;
 		float          mMusicVolume;
-		FMOD_SYSTEM*   mFmodSys;
-		FMOD_CHANNELGROUP* mMasterGroup;
-		Channel*       mMusicChannels;
-		Channel*       mChannels[ MaxNumChannel ];
-		unsigned       mChannelSerial[ MaxNumChannel ];
+
+		AudioDevice*   mDevice = nullptr;
+
 	};
 
 

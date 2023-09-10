@@ -86,6 +86,19 @@ namespace Render
 		return inProjection * clipTranslateAndScaleMatrix;
 	}
 
+	FORCEINLINE Matrix4 AdjProjectionMatrixInverseForRHI(Matrix4 const& inProjectionInverse)
+	{
+		Matrix4 clipTranslateAndScaleMatrix
+		{
+			1,                   0,                                0, 0,
+			0, GRHIProjectionYSign,                                0, 0,
+			0,                   0,             1/(1 - GRHIClipZMin), 0,
+			0,                   0, -GRHIClipZMin/(1 - GRHIClipZMin), 1
+		};
+
+		return clipTranslateAndScaleMatrix * inProjectionInverse;
+	}
+
 	class PerspectiveMatrix : public Matrix4
 	{
 	public:
@@ -115,23 +128,23 @@ namespace Render
 	};
 
 
-	class ReverseZPerspectiveMatrix : public Matrix4
+	class ReversedZPerspectiveMatrix : public Matrix4
 	{
 	public:
 
-		//#FIXME
-		FORCEINLINE ReverseZPerspectiveMatrix(float yFov, float aspect, float zNear, float zFar)
+		FORCEINLINE ReversedZPerspectiveMatrix(float yFov, float aspect, float zNear, float zFar)
 		{
 			float f = 1.0 / Math::Tan(yFov / 2);
 			float zFactor = 1 / (zFar - zNear);
 			setValue(
 				f / aspect, 0,                      0,  0,
 				         0, f,                      0,  0,
-				         0, 0,        zNear * zFactor, -1,
+				         0, 0,       -zNear * zFactor,  1,
 				         0, 0, zFar * zNear * zFactor,  0);
 		}
+
 		//#FIXME
-		FORCEINLINE ReverseZPerspectiveMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
+		FORCEINLINE ReversedZPerspectiveMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
 		{
 			float xFactor = 1 / (right - left);
 			float yFactor = 1 / (top - bottom);
@@ -140,11 +153,10 @@ namespace Render
 			setValue(
 				            zn2 * xFactor,                         0,                       0,  0,
 				                        0,             zn2 * yFactor,                       0,  0,
-				-(right + left) * xFactor, -(top + bottom) * yFactor,         zNear * zFactor, -1,
+				 (right + left) * xFactor,  (top + bottom) * yFactor,        -zNear * zFactor,  1,
 				                        0,                         0,  zFar * zNear * zFactor,  0);
 		}
 	};
-
 
 	class OrthoMatrix : public Matrix4
 	{
@@ -155,10 +167,10 @@ namespace Render
 			float yFactor = 2 / (height);
 			float zFactor = 1 / (zFar - zNear);
 			setValue(
-				xFactor,       0,                0, 0,
-				      0, yFactor,                0, 0,
-				      0,       0,          zFactor, 0,
-				      0,       0, -zNear * zFactor, 1);
+				xFactor, 0, 0, 0,
+				0, yFactor, 0, 0,
+				0, 0, zFactor, 0,
+				0, 0, -zNear * zFactor, 1);
 		}
 
 		FORCEINLINE OrthoMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
@@ -173,6 +185,37 @@ namespace Render
 				-(left + right) * xFactor, -(top + bottom) * yFactor, -zNear * zFactor, 1);
 		}
 	};
+
+	class ReversedZOrthoMatrix : public Matrix4
+	{
+	public:
+		FORCEINLINE ReversedZOrthoMatrix(float width, float height, float zNear, float zFar)
+		{
+			float xFactor = 2 / (width);
+			float yFactor = 2 / (height);
+			float zFactor = 1 / (zFar - zNear);
+			setValue(
+				xFactor,       0,                0, 0,
+				      0, yFactor,                0, 0,
+				      0,       0,         -zFactor, 0,
+				      0,       0,  zNear * zFactor, 1);
+		}
+
+		FORCEINLINE ReversedZOrthoMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
+		{
+			float xFactor = 1 / (right - left);
+			float yFactor = 1 / (top - bottom);
+			float zFactor = 1 / (zFar - zNear);
+			setValue(
+				              2 * xFactor,                         0,                0, 0,
+				                        0,               2 * yFactor,                0, 0,
+				                        0,                         0,         -zFactor, 0,
+				-(left + right) * xFactor, -(top + bottom) * yFactor,  zNear * zFactor, 1);
+		}
+	};
+
+
+
 
 	class BasisMaterix : public Matrix4
 	{

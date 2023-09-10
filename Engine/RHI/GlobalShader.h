@@ -58,11 +58,13 @@ namespace Render
 		CreateShaderObjectFunc CreateShaderObject;
 		SetupShaderCompileOptionFunc SetupShaderCompileOption;
 		GetShaderFileNameFunc GetShaderFileName;
+		uint32 permutationCount;
 
 		CORE_API GlobalShaderObjectClass(
 			CreateShaderObjectFunc inCreateShaderObject,
 			SetupShaderCompileOptionFunc inSetupShaderCompileOption,
-			GetShaderFileNameFunc inGetShaderFileName);
+			GetShaderFileNameFunc inGetShaderFileName,
+			uint32 inPermutationCount);
 
 
 		struct CPermutationDomainDefined
@@ -90,6 +92,22 @@ namespace Render
 			}
 		}
 
+
+		template< class TShaderClass >
+		static TArrayView< ShaderEntryInfo const > GetShaderEntriesT(uint32 permutationId)
+		{
+			if constexpr (TCheckConcept<CPermutationDomainDefined, TShaderClass >::Value)
+			{
+				typename TShaderClass::PermutationDomain domain;
+				domain.setPermutationId(permutationId);
+				return TShaderClass::GetShaderEntries(domain);
+			}
+			else
+			{
+				return TShaderClass::GetShaderEntries();
+			}
+		}
+
 		template< class TShaderClass >
 		static uint32 GetShaderPermutationCountT()
 		{
@@ -108,7 +126,7 @@ namespace Render
 	{
 	public:
 
-		typedef TArrayView< ShaderEntryInfo const > (*GetShaderEntriesFunc)();
+		typedef TArrayView< ShaderEntryInfo const > (*GetShaderEntriesFunc)(uint32);
 	
 		GetShaderEntriesFunc GetShaderEntries;
 
@@ -171,7 +189,7 @@ namespace Render
 		(GlobalShaderObjectClass::CreateShaderObjectFunc) &CLASS::CreateShaderObject,\
 		GlobalShaderObjectClass::SetupShaderCompileOptionT< CLASS >,\
 		CLASS::GetShaderFileName, \
-		CLASS::GetShaderEntries, \
+		GlobalShaderObjectClass::GetShaderEntriesT< CLASS >, \
 		GlobalShaderObjectClass::GetShaderPermutationCountT< CLASS >()\
 	)
 #define IMPLEMENT_SHADER_PROGRAM_T( TEMPLATE_ARGS , CLASS )\

@@ -127,6 +127,7 @@ template<>  struct KeyOp< int >  { static int   Get( KeyValue const* value ){ re
 template<>  struct KeyOp< float >{ static  float Get( KeyValue const* value ){ return value->getFloat(); }  };
 template<>  struct KeyOp< char > { static  char  Get( KeyValue const* value ){ return value->getChar(); }  };
 template<>  struct KeyOp< char const* >{ static char const* Get( KeyValue const* value ){ return value->getString(); } };
+template<>  struct KeyOp< StringView > { static StringView Get( KeyValue const* value ) { return value->getStringView(); } };
 template<>  struct KeyOp< bool > { static bool Get(KeyValue const* value) { return value->getBool(); } };
 
 template< class T >
@@ -264,7 +265,31 @@ void PropertySet::getStringValues(char const* keyName, char const* section, TArr
 	});
 }
 
+void PropertySet::getStringValues(char const* keyName, char const* section, TArray< std::string >& outValue)
+{
+	if (!section)
+		section = PROPERTYSET_GLOBAL_SECTION;
+
+	auto iter = mSectionMap.find(section);
+	if (iter == mSectionMap.end())
+		return;
+
+	iter->second.visitKeys(keyName, [&outValue](KeyValue& value)
+	{
+		outValue.push_back(value.getString());
+	});
+}
+
 void PropertySet::setStringValues(char const* keyName, char const* section, TArray< char const* > const& values, bool bSorted)
+{
+	if (!section)
+		section = PROPERTYSET_GLOBAL_SECTION;
+
+	mFile.setKeyValues(section, keyName, values, bSorted);
+	mSectionMap[section].setKeyValues(keyName, values);
+}
+
+void PropertySet::setStringValues(char const* keyName, char const* section, TArray< std::string > const& values, bool bSorted)
 {
 	if (!section)
 		section = PROPERTYSET_GLOBAL_SECTION;
@@ -631,6 +656,74 @@ void PropertyFile::setKeyValues(char const* sectionName, char const* keyName, TA
 		element.op = EValueOp::Add;
 		firstElements->push_back(std::move(element));
 	}
-
 }
 
+
+void PropertyFile::setKeyValues(char const* sectionName, char const* keyName, TArray<std::string> const& values, bool bSorted)
+{
+	TArray< Element >* firstElements = nullptr;
+	TArray< bool > indicesSetted(values.size(), false);
+	int indexCheckSort = 0;
+
+	visit(sectionName, keyName, Overloaded
+		{
+			[&](Element& element)
+			{
+				int32 index = values.findIndexPred([&element](std::string const& value)
+				{
+					return element.value == value;
+				});
+				if (index == INDEX_NONE)
+					return EVisitOp::Remove;
+
+				if (indicesSetted[index])
+					return EVisitOp::Remove;
+
+				if (element.op != EValueOp::Add)
+					return EVisitOp::Remove;
+
+				if (bSorted)
+				{
+					if (index != indexCheckSort)
+					{
+						return EVisitOp::Remove;
+					}
+					else
+					{
+						++indexCheckSort;
+					}
+				}
+
+				indicesSetted[index] = true;
+				return EVisitOp::Keep;
+			},
+			[&](TArray< Element >& elements)
+			{
+				if (firstElements == nullptr)
+				{
+					firstElements = &elements;
+				}
+			}
+		}
+	);
+
+	if (firstElements == nullptr)
+	{
+		Section section;
+		section.key = sectionName;
+		mSections.push_back(std::move(section));
+		firstElements = &mSections.back().elements;
+	}
+
+	for (int index = 0; index < values.size(); ++index)
+	{
+		if (indicesSetted[index])
+			continue;
+
+		Element element;
+		element.key = keyName;
+		element.value = values[index];
+		element.op = EValueOp::Add;
+		firstElements->push_back(std::move(element));
+	}
+}

@@ -26,7 +26,9 @@ namespace Render
 
 		bool addImageInteranl(int id, int w, int h, ETexture::Format format, void* data, int dataImageWidth);
 		void getRectUV(int id, Vector2& outMin, Vector2& outMax) const;
+
 		void getRectUVChecked(int id, Vector2& outMin, Vector2& outMax) const;
+		void getRectUVSizeChecked(int id, Vector2& outPos, Vector2& outSize) const;
 		bool getRectSize(int id, IntVector2& outSize ) const;
 		IntVector2 getRectSizeChecked(int id) const;
 
@@ -41,6 +43,7 @@ namespace Render
 		int              mBorder;
 		int              mNextImageId;
 		RHITexture2DRef  mTexture;
+		Vector2          mInvSize;
 		ImageMergeHelper mHelper;
 	};
 

@@ -103,7 +103,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -131,7 +131,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -162,7 +162,7 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -182,7 +182,7 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../OtherLib/Vulkan/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -216,6 +216,7 @@
     <ClCompile Include="Async\AsyncWork.cpp" />
     <ClCompile Include="Async\Coroutines.cpp" />
     <ClCompile Include="Audio\AudioDevice.cpp" />
+    <ClCompile Include="Audio\XAudio2\MFDecoder.cpp" />
     <ClCompile Include="Audio\XAudio2\XAudio2Device.cpp" />
     <ClCompile Include="BehaviorTree\BTNode.cpp" />
     <ClCompile Include="BehaviorTree\TreeBuilder.cpp" />
@@ -272,7 +273,6 @@
     <ClCompile Include="Platform\Windows\WindowsWindowBase.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
     <ClCompile Include="PropertySet.cpp" />
-    <ClCompile Include="RHI\GLExtensions.cpp" />
     <ClCompile Include="Serialize\DataStream.cpp" />
     <ClCompile Include="Serialize\FileStream.cpp" />
     <ClCompile Include="SocketBuffer.cpp" />
@@ -303,7 +303,11 @@
     <ClInclude Include="AStarTile2D.h" />
     <ClInclude Include="Async\AsyncWork.h" />
     <ClInclude Include="Async\Coroutines.h" />
+    <ClInclude Include="Audio\AudioDecoder.h" />
     <ClInclude Include="Audio\AudioDevice.h" />
+    <ClInclude Include="Audio\AudioStreamSource.h" />
+    <ClInclude Include="Audio\AudioTypes.h" />
+    <ClInclude Include="Audio\XAudio2\MFDecoder.h" />
     <ClInclude Include="Audio\XAudio2\XAudio2Device.h" />
     <ClInclude Include="BehaviorTree\BTNode.h" />
     <ClInclude Include="BehaviorTree\delegateN.hxx" />
@@ -358,6 +362,7 @@
     <ClInclude Include="Image\ImageProcessing.h" />
     <ClInclude Include="Json.h" />
     <ClInclude Include="Launch\CommandlLine.h" />
+    <ClInclude Include="Math\Curve.h" />
     <ClInclude Include="Math\GeometryAlgo2D.h" />
     <ClInclude Include="Math\GeometryPrimitive.h" />
     <ClInclude Include="Math\Matrix2.h" />
@@ -399,7 +404,6 @@
     <ClInclude Include="FunctionTraits.h" />
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameLoop.h" />
-    <ClInclude Include="OpenGLHeader.h" />
     <ClInclude Include="Graphics2DBase.h" />
     <ClInclude Include="CompressAlgo.h" />
     <ClInclude Include="Core\IntegerType.h" />
@@ -440,7 +444,6 @@
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="ReflectionCollect.h" />
     <ClInclude Include="Reflection\ReflectClass.h" />
-    <ClInclude Include="RHI\GLExtensions.h" />
     <ClInclude Include="ScriptGraphs\SGNode.h" />
     <ClInclude Include="Serialize\DataBitSerialize.h" />
     <ClInclude Include="Serialize\DataStream.h" />

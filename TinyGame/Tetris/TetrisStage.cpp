@@ -471,6 +471,7 @@ namespace Tetris
 
 	void MenuStage::onRender( float dFrame )
 	{
+
 		DrawEngine& de = Global::GetDrawEngine();
 		IGraphics2D& g = Global::GetIGraphics2D();
 

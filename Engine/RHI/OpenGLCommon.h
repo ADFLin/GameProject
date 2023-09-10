@@ -127,7 +127,7 @@ namespace Render
 		{
 			if (!mGLObject.destroyHandle())
 			{
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 				LogError("Can't Destory GL Object : %s %s", mTypeName.c_str(), mTrace.toString().c_str());
 #else
 				LogError("Can't Destory GL Object");

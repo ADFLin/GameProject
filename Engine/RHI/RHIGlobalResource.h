@@ -7,6 +7,8 @@
 #include "CoreShare.h"
 #include "GlobalShader.h"
 
+#include "LogSystem.h"
+
 namespace Render
 {
 
@@ -33,8 +35,8 @@ namespace Render
 		DECLARE_EXPORTED_SHADER_PROGRAM(SimplePipelineProgram, Global, CORE_API);
 		
 
-		SHADER_PERMUTATION_TYPE_BOOL(HaveVertexColor, "HAVE_VERTEX_COLOR");
-		SHADER_PERMUTATION_TYPE_BOOL(HaveTexcoord, "HAVE_TEXTCOORD");
+		SHADER_PERMUTATION_TYPE_BOOL(HaveVertexColor, SHADER_PARAM(HAVE_VERTEX_COLOR));
+		SHADER_PERMUTATION_TYPE_BOOL(HaveTexcoord, SHADER_PARAM(HAVE_TEXTCOORD));
 		using PermutationDomain = TShaderPermutationDomain<HaveVertexColor, HaveTexcoord>;
 
 
@@ -43,7 +45,7 @@ namespace Render
 		{
 			return "Shader/SimplePipelineShader";
 		}
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
 			static ShaderEntryInfo const entries[] =
 			{
@@ -139,9 +141,35 @@ namespace Render
 			static StaticRenderResource* sObject = nullptr;
 			if( sObject == nullptr )
 			{
-				TRACE_RESOURCE_TAG_SCOPE("StaticRHI");
 				sObject = new StaticRenderResource();
-				sObject->restoreRHI();
+
+				uint32 key = ThisClass::GetHashKey();
+				RHIResourceType* resource = RHIResource::QueryResource<RHIResourceType>(key);
+
+				if (resource)
+				{
+#if RHI_CHECK_RESOURCE_HASH
+					if (!(resource->mSetupValue == ThisClass::GetSetupValue()))
+					{
+						LogError("QueryResource fail");
+					}
+					else
+#endif
+					{
+						sObject->mResource = resource;
+						return *resource;
+					}
+				}
+
+				{
+					TRACE_RESOURCE_TAG_SCOPE("StaticRHI");
+					sObject->mKey = key;
+
+					sObject->restoreRHI();
+#if RHI_CHECK_RESOURCE_HASH
+					sObject->mResource->mSetupValue = ThisClass::GetSetupValue();
+#endif
+				}
 			}
 			return sObject->getRHI();
 		}
@@ -151,10 +179,18 @@ namespace Render
 		{
 		public:
 			RHIResourceType& getRHI() { return *mResource; }
-			void restoreRHI() final {  mResource = ThisClass::CreateRHI(); }
+			void restoreRHI() final 
+			{  
+				mResource = ThisClass::CreateRHI();
+				if (mKey)
+				{
+					FRHIResourceTable::Register(*mResource, mKey);
+				}
+			}
 			void releaseRHI() final {  mResource.release();  }
 	
 			TRefCountPtr< RHIResourceType > mResource;
+			uint32 mKey = 0;
 		};
 	};
 
@@ -180,15 +216,26 @@ namespace Render
 		RHISamplerState >
 	{
 	public:
-		static RHISamplerStateRef CreateRHI()
+		static RHISamplerState* CreateRHI()
+		{
+			SamplerStateInitializer initializer = GetSetupValue();
+			return RHICreateSamplerState(initializer);
+		}
+		static SamplerStateInitializer GetSetupValue()
 		{
 			SamplerStateInitializer initializer;
 			initializer.filter = Filter;
 			initializer.addressU = AddressU;
 			initializer.addressV = AddressV;
 			initializer.addressW = AddressW;
-			return RHICreateSamplerState(initializer);
+			return initializer;
 		}
+
+		static uint32 GetHashKey()
+		{
+			return GetSetupValue().getTypeHash();
+		}
+
 	};
 
 	template
@@ -206,13 +253,22 @@ namespace Render
 	public:
 		static RHIRasterizerStateRef CreateRHI()
 		{
+			RasterizerStateInitializer initializer = GetSetupValue();
+			return RHICreateRasterizerState(initializer);
+		}
+		static RasterizerStateInitializer GetSetupValue()
+		{
 			RasterizerStateInitializer initializer;
 			initializer.fillMode = FillMode;
 			initializer.cullMode = CullMode;
 			initializer.frontFace = FrontFace;
 			initializer.bEnableScissor = bEnableScissor;
 			initializer.bEnableMultisample = bEnableMultisample;
-			return RHICreateRasterizerState(initializer);
+			return initializer;
+		}
+		static uint32 GetHashKey()
+		{
+			return 0;
 		}
 	};
 
@@ -222,7 +278,7 @@ namespace Render
 	template 
 	<
 		bool bWriteDepth = true,
-		ECompareFunc DepthFun = ECompareFunc::Less,
+		ECompareFunc DepthFun = ECompareFunc::DepthNear,
 		bool bEnableStencilTest = false,
 		ECompareFunc StencilFun = ECompareFunc::Always,
 		EStencil StencilFailOp = EStencil::Keep,
@@ -247,6 +303,11 @@ namespace Render
 	public:
 		static RHIDepthStencilStateRef CreateRHI()
 		{
+			DepthStencilStateInitializer initializer = GetSetupValue();
+			return RHICreateDepthStencilState(initializer);
+		}
+		static DepthStencilStateInitializer GetSetupValue()
+		{
 			DepthStencilStateInitializer initializer;
 			initializer.bWriteDepth = bWriteDepth;
 			initializer.depthFunc = DepthFun;
@@ -261,14 +322,18 @@ namespace Render
 			initializer.zPassOpBack = BackZPassOp;
 			initializer.stencilReadMask = StencilReadMask;
 			initializer.stencilWriteMask = StencilWriteMask;
-			return RHICreateDepthStencilState(initializer);
+			return initializer;
+		}
+		static uint32 GetHashKey()
+		{
+			return 0;
 		}
 	};
 
 	template
 	<
 		bool bWriteDepth = true,
-		ECompareFunc DepthFun = ECompareFunc::Less,
+		ECompareFunc DepthFun = ECompareFunc::DepthNearEqual,
 		bool bEnableStencilTest = false,
 		ECompareFunc StencilFun = ECompareFunc::Always,
 		EStencil StencilFailOp = EStencil::Keep,
@@ -335,7 +400,12 @@ namespace Render
 		>
 	{
 	public:
-		static RHIBlendStateRef CreateRHI()
+		static RHIBlendState* CreateRHI()
+		{
+			BlendStateInitializer initializer = GetSetupValue();
+			return RHICreateBlendState(initializer);
+		}
+		static BlendStateInitializer GetSetupValue()
 		{
 
 			BlendStateInitializer initializer;
@@ -358,7 +428,12 @@ namespace Render
 				SET_TRAGET_VALUE(3);
 			}
 #undef SET_TRAGET_VALUE
-			return RHICreateBlendState(initializer);
+			return initializer;
+		}
+
+		static uint32 GetHashKey()
+		{
+			return 0;
 		}
 	};
 

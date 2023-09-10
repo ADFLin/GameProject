@@ -53,13 +53,13 @@ namespace Render
 	{
 		switch( type )
 		{
-		case LightType::Spot:
+		case ELightType::Spot:
 			{
 				float d = 0.5 * radius / Math::Cos(Math::DegToRad(spotAngle.y));
 				return view.frustumTest(pos + d * Math::GetNormal(dir), d);
 			}
 			break;
-		case LightType::Point:
+		case ELightType::Point:
 			return view.frustumTest(pos, radius);
 		}
 

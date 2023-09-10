@@ -77,7 +77,7 @@ public:
 
 	Texture* createTexture( World* world );
 
-	void convertTexcoord( int imageID , float& u , float& v );
+	void convertTexcoord( int imageID , float& u , float& v ) const;
 
 	TArrayHolder< uint8 > mLightMapData;
 
@@ -158,7 +158,7 @@ public:
 	WAD3::Header* getHeader(){ return reinterpret_cast< WAD3::Header*>( &mData[0] ); }
 
 	WAD3::LumpInfo* mLumps;
-	std::vector< char > mData;
+	std::vector< uint8 > mData;
 };
 
 
@@ -232,7 +232,7 @@ public:
 		return reinterpret_cast<BspV30::header*>(&mData[0]);
 	}
 
-	char* getLumpData( int lumpID )
+	uint8* getLumpData( int lumpID )
 	{
 		return &mData[0] + getHeader()->directory[ lumpID ].offset;
 	}
@@ -266,7 +266,7 @@ public:
 	void     loadFace( int idxFace, MeshBuilder& builder , Object* obj );
 
 	std::map< uint32 , Material* > mMatMap;
-	std::vector< char > mData;
+	std::vector< uint8 > mData;
 
 	BspV30::texture_lump_header* mTexLumpHeader;
 	BspV30::header*    mHeader;
@@ -279,9 +279,9 @@ public:
 	BspV30::leaf_t*    mLeaves;
 	BspV30::miptex_t*  mMipTex;
 	BspV30::model_t*   mModels;
-	char*              mLightMaps;
+	uint8*              mLightMaps;
 
-	char const*        mEntity;
+	uint8 const*        mEntity;
 };
 
 

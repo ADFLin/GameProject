@@ -412,7 +412,7 @@ namespace Life
 					uv = Vector2(1, 1);
 				}
 
-				mTexture->update(0, 0, screenSize.x, screenSize.y, ETexture::RGBA8, mBuffer.data());
+				RHIUpdateTexture(*mTexture, 0, 0, screenSize.x, screenSize.y, mBuffer.data());
 				
 				Vector2 pos = boundRender.min;
 				Vector2 size = boundRender.getSize() + Vec2i(1, 1);
@@ -769,7 +769,7 @@ namespace Life
 		systemConfigs.numSamples = 4;
 	}
 
-	bool TestStage::setupRenderSystem(ERenderSystem systemName)
+	bool TestStage::setupRenderResource(ERenderSystem systemName)
 	{
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mTexture = RHICreateTexture2D(ETexture::RGBA8, screenSize.x, screenSize.y, 1, 1);

@@ -49,6 +49,7 @@
 
 #include <iostream>
 #include "Launch/CommandlLine.h"
+#include <unordered_set>
 
 #define GAME_SETTING_PATH "Game.ini"
 #define CONFIG_SECTION "SystemSetting"
@@ -152,6 +153,17 @@ using EOutputColor = EOutputColorGeneric;
 class FConsoleConfigUtilities
 {
 public:
+
+	static bool SpiltSection(char const* & inoutStr , StringView& outSection)
+	{
+		char const* ptrFound = FCString::FindLastChar(inoutStr, '.');
+		if (*ptrFound == 0)
+			return false;
+		
+		outSection = StringView(inoutStr, ptrFound - inoutStr);
+		inoutStr = ptrFound + 1;
+		return true;
+	}
 	static int Export(PropertySet& configs, char const* sectionGroup)
 	{
 		int result = 0;
@@ -160,7 +172,19 @@ public:
 			{
 				if (var->getFlags() & CVF_CONFIG)
 				{
-					configs.setKeyValue(var->mName.c_str(), sectionGroup, var->toString().c_str());
+					char const* name = var->mName.c_str();
+					if (var->getFlags() & CVF_SECTION_GROUP)
+					{
+						StringView section;
+						if (SpiltSection(name, section))
+						{
+							configs.setKeyValue(name, section.toMutableCString(), var->toString().c_str());
+							++result;
+							return;
+						}
+					}
+
+					configs.setKeyValue(name, sectionGroup, var->toString().c_str());
 					++result;
 				}
 			}
@@ -168,26 +192,57 @@ public:
 		return result;
 	}
 
-	static int Import(PropertySet& configs, char const* sectionGroup)
+	static int Import(PropertySet& configs, char const* sectionGroup, std::unordered_set<VariableConsoleCommadBase*>& inoutVarSet)
 	{
 		int result = 0;
-		configs.visitSection(sectionGroup , 
-			[&configs, &result](char const* key, KeyValue const& value)
+		configs.visitSection(sectionGroup,
+			[&configs, &inoutVarSet, &result](char const* key, KeyValue const& value)
 			{
-			   auto com = ConsoleSystem::Get().findCommand(key);
-			   if (com)
-			   {
-				   auto var = com->asVariable();
-				   if ( var && (var->getFlags() & CVF_CONFIG) )
-				   {
-					   if (var->setFromString(value.getStringView()))
-					   {
-						   ++result;
-					   }				   
-				   }
-			   }
+				auto com = ConsoleSystem::Get().findCommand(key);
+				if (com == nullptr)
+					return;
+				auto var = com->asVariable();
+				if (var == nullptr)
+					return;
+
+				if (var->getFlags() & CVF_CONFIG)
+				{
+					if (!inoutVarSet.emplace(var).second)
+						return;
+
+					if (var->setFromString(value.getStringView()))
+					{
+						++result;
+					}
+				}
 			}
 		);
+
+		ConsoleSystem::Get().visitAllVariables(
+			[&configs, &inoutVarSet, &result](VariableConsoleCommadBase* var)
+			{
+				uint32 const Flags = CVF_CONFIG | CVF_SECTION_GROUP;
+				if ( (var->getFlags() & Flags) == Flags)
+				{
+					if (!inoutVarSet.emplace(var).second)
+						return;
+
+					char const* name = var->mName.c_str();
+
+					StringView section;
+					if (SpiltSection(name, section))
+					{
+						char const* valueStr;
+						if (configs.tryGetStringValue(name, section.toMutableCString(), valueStr))
+						{
+							var->setFromString(valueStr);
+							++result;
+						}
+					}
+				}
+			}
+		);
+
 		return result;
 	}
 };
@@ -452,11 +507,7 @@ struct FData
 	std::unordered_set<HashString> set;
 };
 
-template<>
-struct TBitwiseReallocatable<FData>
-{
-	static constexpr int Value = 0;
-};
+BITWISE_RELLOCATABLE_FAIL(FData);
 
 void RunArrayTest()
 {
@@ -479,8 +530,12 @@ void RunArrayTest()
 
 bool TinyGameApp::initializeGame()
 {
-
 	TIME_SCOPE("Game Initialize");
+	
+	{
+		TIME_SCOPE("Global Initialize");
+		::Global::Initialize();
+	}
 
 	CreateConsole();
 
@@ -532,13 +587,14 @@ bool TinyGameApp::initializeGame()
 	}
 #endif
 
+	std::unordered_set<VariableConsoleCommadBase*> cmdVarSet;
 	{
 		TIME_SCOPE("Console Initialize");
 		ConsoleSystem::Get().initialize();
 		ExecutionRegisterHelper::Manager = this;
 		{
 			TIME_SCOPE("Import Config");
-			FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION);
+			FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION, cmdVarSet);
 		}
 	}
 
@@ -550,8 +606,6 @@ bool TinyGameApp::initializeGame()
 
 
 	{
-		TIME_SCOPE("Global Initialize");
-		::Global::Initialize();
 
 		char const* ignoreTypes =::Global::GameConfig().getStringValue("DataCache.IgnoreType", CONFIG_SECTION, "");
 		StringView token;
@@ -604,6 +658,10 @@ bool TinyGameApp::initializeGame()
 	{
 		TIME_SCOPE("Load Modules");
 		loadModules();
+		{
+			TIME_SCOPE("Import Config");
+			FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION, cmdVarSet);
+		}
 	}
 
 	{
@@ -647,11 +705,11 @@ void TinyGameApp::cleanup()
 	finalizeEditor();
 #endif
 
-	ExecutionRegisterCollection::Get().cleanup();
-
 	FConsoleConfigUtilities::Export(Global::GameConfig(), CONFIG_SECTION);
 
 	StageManager::cleanup();
+
+	ExecutionRegisterCollection::Get().cleanup();
 
 	closeNetwork();
 
@@ -1397,7 +1455,7 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 	if (renderSetup)
 	{
-		if (!::Global::GetDrawEngine().setupSystem())
+		if (!::Global::GetDrawEngine().setupRenderResource())
 			return false;
 
 		Render::ShaderManager::Get().cleanupLoadedSource();

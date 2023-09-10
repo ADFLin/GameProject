@@ -20,10 +20,13 @@
 #include "RHI/TextureAtlas.h"
 #include "EditorUtils.h"
 #include "PropertySet.h"
-
+#include "Renderer/SceneDebug.h"
 
 #include "Widget/GameViewportPanel.h"
 #include "RHI/Font.h"
+#include "../TinyGame/TinyCore/RenderDebug.h"
+#include "Widget/DetailViewPanel.h"
+
 
 
 
@@ -371,6 +374,7 @@ public:
 
 	void release() override
 	{
+		cleanupPanels();
 		FImGui::ReleaseRHI();
 		delete this;
 	}
@@ -477,7 +481,6 @@ public:
 		ImGui::RenderPlatformWindowsDefault();
 	}
 
-
 	void addGameViewport(IEditorGameViewport* viewport) override
 	{
 		EditorPanelInfo const* info = EditorPanelInfo::Find("GameViewport");
@@ -486,23 +489,26 @@ public:
 			return;
 		}
 
-		ActivePanel newPanel;
-		newPanel.name = info->desc.name;
-		newPanel.info = info;
-		newPanel.widget = info->factory->create();
-		newPanel.bOpenRequest = true;
-		static_cast<GameViewportPanel*>(newPanel.widget)->mViewport = viewport;
-
-		mViewportPanelIndices.push_back(mPanels.size());
-		mPanels.push_back(newPanel);
+		ActivePanel* newPanel = createNamedPanel("GameViewport");
+		if (newPanel)
+		{
+			static_cast<GameViewportPanel*>(newPanel->widget)->mViewport = viewport;
+			mViewportPanels.push_back(newPanel->widget);
+		}
 	}
 
 
-	TArray< int > mViewportPanelIndices;
+	TArray< IEditorPanel* > mViewportPanels;
 
+	Render::ITextureShowManager* mTextureShowManager = nullptr;
+
+	void setTextureShowManager(ITextureShowManager* manager) override
+	{
+		mTextureShowManager = manager;
+	}
 	void renderMainMenu()
 	{
-		static bool bShowAtlasTexture = true;
+		static bool bShowTextureViewer = true;
 		static bool bShowEditorPreferences = true;
 		static bool showDemoWindow = true;
 
@@ -548,12 +554,19 @@ public:
 				}
 				if (ImGui::BeginMenu("Viewport"))
 				{
-					for (int index : mViewportPanelIndices)
+					for (auto widget : mViewportPanels)
 					{
-						ActivePanel& panel = mPanels[index];
-						if (ImGui::MenuItem(panel.name.c_str(), NULL, panel.bOpened))
+						int index = mPanels.findIndexPred([widget](ActivePanel const& panel)
 						{
-							ActMenuPanel(panel);
+							return panel.widget == widget;
+						});
+						if (index != INDEX_NONE)
+						{
+							auto& panel = mPanels[index];
+							if (ImGui::MenuItem(panel.name.c_str(), NULL, panel.bOpened))
+							{
+								ActMenuPanel(panel);
+							}
 						}
 					}
 					ImGui::EndMenu();
@@ -563,7 +576,7 @@ public:
 
 			if (ImGui::BeginMenu("Debug"))
 			{
-				if (ImGui::MenuItem("Show Atlas Texture", NULL , &bShowAtlasTexture))
+				if (ImGui::MenuItem("Show Atlas Texture", NULL , &bShowTextureViewer))
 				{
 
 				}
@@ -591,12 +604,12 @@ public:
 			ImGui::End();
 		}
 
-		if (bShowAtlasTexture)
+		if (bShowTextureViewer)
 		{
 			int width = FImGui::mIconAtlas.getTexture().getSizeX();
 			int height = FImGui::mIconAtlas.getTexture().getSizeY();
 			ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_FirstUseEver);
-			if (ImGui::Begin("Atlas Texture", &bShowAtlasTexture))
+			if (ImGui::Begin("Texture Viewer", &bShowTextureViewer, ImGuiWindowFlags_HorizontalScrollbar))
 			{
 				RHITexture2D* texture = nullptr;
 				static int selection = 0;
@@ -604,11 +617,68 @@ public:
 				ImGui::Text("Type");
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(200);
-				ImGui::Combo("##AtlasType", &selection, "Icon\0Font\0");
+
+
+				char const* DefaultTextureNames[] =
+				{
+					"Icon", "Font",
+				};
+				char const* viewTextureName = "";
+				if (selection < ARRAY_SIZE(DefaultTextureNames))
+				{
+					viewTextureName = DefaultTextureNames[selection];
+				}
+				else if ( mTextureShowManager )
+				{
+					int index = ARRAY_SIZE(DefaultTextureNames);
+					for (auto const& pair : mTextureShowManager->getTextureMap())
+					{
+						if (index == selection)
+						{
+							viewTextureName = pair.first.c_str();
+							break;
+						}
+						++index;
+					}
+				}
+
+				if (ImGui::BeginCombo("##TextureList", viewTextureName))
+				{
+					int index = 0;
+					for (auto name : DefaultTextureNames)
+					{
+						const bool is_selected = (selection == index);
+						if (ImGui::Selectable(name, is_selected))
+							selection = index;
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+						++index;
+
+					}
+					if (mTextureShowManager)
+					{
+						for (auto const& pair : mTextureShowManager->getTextureMap())
+						{
+							const bool is_selected = (selection == index);
+							if (ImGui::Selectable(pair.first.c_str(), is_selected))
+								selection = index;
+
+							if (is_selected)
+								ImGui::SetItemDefaultFocus();
+							++index;
+						}
+					}
+					ImGui::EndCombo();
+				}
+
 				static float scale = 1.0;
+				static bool  bUseAlpha = false;
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(200);
 				ImGui::Text("Scale");
+				ImGui::SameLine();
+				ImGui::Checkbox("UseAlpha", &bUseAlpha);
 				ImGui::SameLine();
 				ImGui::DragFloat("##Scale", &scale, 0.1 , 0.0f , 10.0f);
 				switch (selection)
@@ -616,6 +686,22 @@ public:
 				case 0: texture = &FImGui::mIconAtlas.getTexture(); break;
 				case 1: texture = &Render::FontCharCache::Get().getTexture(); break;
 				default:
+					if (mTextureShowManager)
+					{
+						int index = ARRAY_SIZE(DefaultTextureNames);
+						for (auto& pair : mTextureShowManager->getTextureMap())
+						{
+							if (index == selection)
+							{
+								if (pair.second->texture.get())
+								{
+									texture = const_cast< Render::RHITextureBase*>( pair.second->texture.get() )->getTexture2D();
+								}
+								break;
+							}
+							++index;
+						}
+					}
 					break;
 				}
 
@@ -623,7 +709,15 @@ public:
 				{
 					width = texture->getSizeX();
 					height = texture->getSizeY();
+					if (!bUseAlpha)
+					{
+						FImGui::DisableBlend();
+					}
 					ImGui::Image(FImGui::GetTextureID(*texture), ImVec2(scale * width, scale * height));
+					if (!bUseAlpha)
+					{
+						FImGui::RestoreBlend();
+					}
 				}
 			}
 			ImGui::End();
@@ -644,6 +738,7 @@ public:
 		bool bOpened = false;
 		bool bShown = false;
 	};
+
 	TArray< ActivePanel > mPanels;
 	ActivePanel& findOrAddPanel(EditorPanelInfo const& info)
 	{
@@ -675,7 +770,95 @@ public:
 		return nullptr;
 	}
 
+	void destroyPanel(IEditorPanel* widget)
+	{
+		int index = mPanels.findIndexPred([widget](ActivePanel const& panel)
+		{
+			return panel.widget;
+		});
+		if (index != INDEX_NONE)
+		{
+			mPanels.removeIndex(index);
+			delete widget;
+		}
+	}
 
+	void cleanupPanels()
+	{
+		for (auto& panel : mPanels)
+		{
+			delete panel.widget;
+		}
+		mPanels.clear();
+	}
+	ActivePanel* findOrCreateNamedPanel(char const* className, char const* name = nullptr)
+	{
+		EditorPanelInfo const* info = EditorPanelInfo::Find(className);
+		if (info == nullptr)
+		{
+			return nullptr;
+		}
+		ActivePanel* panel = findNamedPanelInternal(*info, className, name);
+		if (panel == nullptr)
+		{
+			panel = createNamedPanelInternal(*info, className, name);
+		}
+		return panel;
+	}
+
+	ActivePanel* findNamedPanel(char const* className, char const* name = nullptr)
+	{
+		EditorPanelInfo const* info = EditorPanelInfo::Find(className);
+		if (info == nullptr)
+		{
+			return nullptr;
+		}
+		return findNamedPanelInternal(*info, className, name);
+	}
+
+	ActivePanel* createNamedPanel(char const* className, char const* name = nullptr)
+	{
+		EditorPanelInfo const* info = EditorPanelInfo::Find(className);
+		if (info == nullptr)
+		{
+			return nullptr;
+		}
+		return createNamedPanelInternal(*info, className, name);
+	}
+
+	ActivePanel* findNamedPanelInternal(EditorPanelInfo const& info, char const* className, char const* name)
+	{
+		if (name)
+		{
+			for (auto& panel : mPanels)
+			{
+				if (panel.info == &info && panel.name == name)
+					return &panel;
+			}
+		}
+		else
+		{
+			for (auto& panel : mPanels)
+			{
+				if (panel.info == &info && panel.name == info.desc.name)
+					return &panel;
+			}
+		}
+		return nullptr;
+	}
+
+	ActivePanel* createNamedPanelInternal(EditorPanelInfo const& info, char const* className, char const* name = nullptr)
+	{
+		IEditorPanel* widget = info.factory->create();
+
+		ActivePanel newPanel;
+		newPanel.name = (name) ? name : info.desc.name;
+		newPanel.info = &info;
+		newPanel.widget = widget;
+		newPanel.bOpenRequest = true;
+		mPanels.push_back(std::move(newPanel));
+		return &mPanels.back();
+	}
 
 	LRESULT processWindowMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
@@ -709,6 +892,51 @@ public:
 	TArray< std::unique_ptr< EditorWindow > > mChildWindows;
 	std::unordered_map< HWND, EditorWindow* > mWindowMap;
 	PropertySet mSetttings;
+
+	IEditorDetailView* createDetailView(DetailViewConfig const& config) override
+	{
+		class EditorDetailView : public IEditorDetailView
+		{
+		public:
+			DetailViewPanel* panel;
+			void release() override
+			{
+				GEditor->destroyPanel(panel);
+				delete this;
+			}
+			void addPrimitive(Reflection::EPropertyType type, void* ptr)
+			{
+				panel->addPrimitive(type, ptr);
+			}
+			void addStruct(Reflection::StructType* structData, void* ptr)
+			{
+				panel->addStruct(structData, ptr);
+			}
+			void addEnum(Reflection::EnumType* enumData, void* ptr) override
+			{
+				panel->addEnum(enumData, ptr);
+			}
+			void clearProperties() override
+			{
+				panel->clearProperties();
+			}
+		};
+
+		ActivePanel* panel = findOrCreateNamedPanel(DetailViewPanel::ClassName, config.name);
+		if (panel)
+		{
+			if (config.name)
+			{
+				panel->name = config.name;
+			}
+			EditorDetailView* detailView = new EditorDetailView;
+			detailView->panel = (DetailViewPanel*)panel->widget;
+			detailView->panel->clearProperties();
+			return detailView;
+		}
+
+		return nullptr;
+	}
 
 };
 
@@ -921,6 +1149,7 @@ IEditor* IEditor::Create()
 
 	return editor;
 }
+
 
 
 RHIGraphics2D& EditorRenderGloabal::getGraphics()

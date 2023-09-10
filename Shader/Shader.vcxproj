@@ -207,6 +207,7 @@
     <None Include="..\TinyGame\out\Shader\LightParam.sgc" />
     <None Include="..\TinyGame\out\Shader\LightProbeVisualize.sgc" />
     <None Include="..\TinyGame\out\Shader\LocalVertexFactory.sgc" />
+    <None Include="..\TinyGame\out\Shader\Material.sgc" />
     <None Include="..\TinyGame\out\Shader\MaterialCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\MaterialProcess.sgc" />
     <None Include="..\TinyGame\out\Shader\MeshCulling.sgc" />
@@ -249,6 +250,7 @@
     <None Include="..\TinyGame\out\Shader\TiledLightCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\TiledLightInjection.sgc" />
     <None Include="..\TinyGame\out\Shader\Tonemap.sgc" />
+    <None Include="..\TinyGame\out\Shader\VertexFactory.sgc" />
     <None Include="..\TinyGame\out\Shader\VertexFactoryProcess.sgc" />
     <None Include="..\TinyGame\out\Shader\ViewParam.sgc" />
     <None Include="..\TinyGame\out\Shader\VolumetricLighting.sgc" />

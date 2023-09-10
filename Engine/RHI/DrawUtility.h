@@ -142,13 +142,24 @@ namespace Render
 	public:
 		static RHIInputLayoutRef CreateRHI()
 		{
+			InputLayoutDesc desc = GetSetupValue();
+			return RHICreateInputLayout(desc);
+		}
+
+		static InputLayoutDesc GetSetupValue()
+		{
 			InputLayoutDesc desc;
-			SetupRenderRTInputLayoutDesc< VertexFormat0 , VertexFormat1 >(0, desc);
+			SetupRenderRTInputLayoutDesc< VertexFormat0, VertexFormat1 >(0, desc);
 			if constexpr (VertexFormat1)
 			{
 				SetupRenderRTInputLayoutDesc< VertexFormat1 >(1, desc);
 			}
-			return RHICreateInputLayout(desc);
+			return desc;
+		}
+
+		static uint32 GetHashKey()
+		{
+			return GetSetupValue().getTypeHash();
 		}
 	};
 
@@ -158,9 +169,20 @@ namespace Render
 	public:
 		static RHIInputLayoutRef CreateRHI()
 		{
+			InputLayoutDesc desc = GetSetupValue();
+			return RHICreateInputLayout(desc);
+		}
+
+		static InputLayoutDesc GetSetupValue()
+		{
 			InputLayoutDesc desc;
 			SetupRenderRTInputLayoutDesc< VertexFormat0, VertexFormat1 >(0, desc);
-			return RHICreateInputLayout(desc);
+			return desc;
+		}
+
+		static uint32 GetHashKey()
+		{
+			return GetSetupValue().getTypeHash();
 		}
 	};
 
@@ -173,6 +195,10 @@ namespace Render
 		static_assert(TVertexElementOffset< RTVF_XY_CA8, RTS_MAX >::Result == 12);
 		static_assert(TVertexElementOffset< RTVF_XYZ_C8, RTS_MAX >::Result == 15);
 	}
+
+#undef VERTEX_ELEMENT_TYPE
+#undef VERTEX_ELEMENT_COUNT
+#undef USE_SEMANTIC
 
 	template < uint32 VertexFormat >
 	class TRenderRT
@@ -244,10 +270,6 @@ namespace Render
 			return (int)TVertexElementOffset< VertexFormat , RTS_MAX >::Result;
 		}
 	};
-
-#undef VERTEX_ELEMENT_TYPE
-#undef VERTEX_ELEMENT_COUNT
-#undef USE_SEMANTIC
 
 
 	enum class EScreenRenderMethod : uint8

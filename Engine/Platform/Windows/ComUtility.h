@@ -2,9 +2,19 @@
 #ifndef ComUtility_H_66793974_BDBF_45BB_BC40_E0A745733BD5
 #define ComUtility_H_66793974_BDBF_45BB_BC40_E0A745733BD5
 
-#define CHECK_RETRUN( EXPR , RT_VALUE )\
+#include "LogSystem.h"
+
+#define CHECK_RESULT_CODE( EXPR , CODE )\
 	if( HRESULT hr = (EXPR) < 0 )\
-		return RT_VALUE;
+	{\
+		CODE;\
+	}
+#define CHECK_RETURN( EXPR , RT_VALUE )\
+	if( HRESULT hr = (EXPR) < 0 )\
+	{\
+		::LogWarning(0, "hr = %d", hr);\
+		return RT_VALUE;\
+	}
 
 struct ReleaseDeleter
 {
@@ -12,7 +22,7 @@ struct ReleaseDeleter
 	static void Destroy(T* ptr) { ptr->Release(); }
 };
 
-template< class T, class Deleter = ReleaseDeleter >
+template< typename T, typename Deleter = ReleaseDeleter >
 class TComPtr
 {
 public:
@@ -35,6 +45,15 @@ public:
 		mPtr = other.mPtr;
 		other.mPtr = nullptr;
 	}
+#if 0
+	template< typename Q >
+	TComPtr(TComPtr<Q>&& other)
+	{
+		mPtr = other.mPtr;
+		other.mPtr = nullptr;
+	}
+#endif
+
 
 	TComPtr(TComPtr<T> const& other)
 	{
@@ -57,7 +76,7 @@ public:
 	TComPtr* address() { return this; }
 	T*   detach() { T* ptr = mPtr; mPtr = nullptr; return ptr; }
 
-	template<typename U>
+	template< typename U >
 	bool castTo( TComPtr<U>& p) const throw()
 	{
 		if (mPtr == nullptr)

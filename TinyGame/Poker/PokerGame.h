@@ -77,7 +77,7 @@ namespace Poker
 			}
 		}
 
-		bool setupRenderSystem(ERenderSystem systemName) override
+		bool setupRenderResource(ERenderSystem systemName) override
 		{
 			initializeResource();
 			if (mSetup)

@@ -5,6 +5,7 @@
 
 #include "Platform/Windows/ComUtility.h"
 #include "DataStructure/Array.h"
+#include "DataStructure/CycleQueue.h"
 
 struct VoiceDeleter
 {
@@ -38,9 +39,10 @@ public:
 
 
 	bool commitStreamingData( bool bInit = false);
-	// pos = -1 , no data need commit;
-	int64 mNextStreamSampleFrame = -1;
-	TArray< uint32 > mUsedSampleHandles;
+	// pos = INDEX_NONE, no data need commit;
+	int64 mNextStreamSampleFrame = INDEX_NONE;
+	TCycleQueue< uint32 > mUsedSampleHandles;
+	//TArray< uint32 > mUsedSampleHandles;
 };
 
 class XAudio2SourceCallback : public IXAudio2VoiceCallback
@@ -64,6 +66,8 @@ public:
 	virtual void shutdown() override;
 
 	bool bCoInitialized = false;
+
+	bool initializePlatform();
 
 	TComPtr<IXAudio2> pXAudio2;
 	TComPtr<IXAudio2MasteringVoice, VoiceDeleter > pMasterVoice;

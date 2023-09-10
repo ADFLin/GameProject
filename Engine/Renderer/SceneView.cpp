@@ -48,14 +48,14 @@ namespace Render
 			data.worldPos = worldPos;
 			data.direction = direction;
 			data.worldToView = worldToView;
-			data.worldToClip = worldToClip;
+			data.worldToClip = AdjProjectionMatrixForRHI(worldToClip);
 			data.viewToWorld = viewToWorld;
-			data.viewToClip = viewToClip;
-			data.clipToView = clipToView;
-			data.clipToWorld = clipToWorld;
-			data.translatedWorldToClip = translatedWorldToClip;
-			data.clipToTranslatedWorld = clipToTranslatedWorld;
-			data.worldToClipPrev = worldToClipPrev;
+			data.viewToClip = AdjProjectionMatrixForRHI(viewToClip);
+			data.clipToView = AdjProjectionMatrixInverseForRHI(clipToView);
+			data.clipToWorld = AdjProjectionMatrixInverseForRHI(clipToWorld);
+			data.translatedWorldToClip = AdjProjectionMatrixForRHI(translatedWorldToClip);
+			data.clipToTranslatedWorld = AdjProjectionMatrixInverseForRHI(clipToTranslatedWorld);
+			data.worldToClipPrev = AdjProjectionMatrixForRHI(worldToClipPrev);
 			data.gameTime = gameTime;
 			data.realTime = realTime;
 			for (int i = 0; i < 6; ++i)
@@ -88,7 +88,7 @@ namespace Render
 		viewToWorld = viewToTranslatedWorld * Matrix4::Translate(viewPos);
 
 		worldPos   = viewPos;
-		viewToClip = AdjProjectionMatrixForRHI(inProjectMatrix);
+		viewToClip = inProjectMatrix;
 		worldToClip = worldToView * viewToClip;
 
 		translatedWorldToClip = translatedWorldToView * viewToClip;
@@ -117,7 +117,7 @@ namespace Render
 
 		worldToView.inverse(viewToWorld, det);
 		worldPos = TransformPosition(Vector3(0, 0, 0), viewToWorld);
-		viewToClip = AdjProjectionMatrixForRHI(inProjectMatrix);
+		viewToClip = inProjectMatrix;
 		worldToClip = worldToView * viewToClip;
 
 		translatedWorldToClip = translatedWorldToView * viewToClip;
@@ -168,13 +168,13 @@ namespace Render
 	void ViewInfo::updateFrustumPlanes()
 	{
 #if 1
-		Vector3 centerNearPos = (Vector4(0, 0, GRHIClipZMin, 1) * clipToWorld).dividedVector();
-		Vector3 centerFarPos = (Vector4(0, 0, 1, 1) * clipToWorld).dividedVector();
+		Vector3 centerNearPos = (Vector4(0, 0, FRHIZBuffer::NearPlane, 1) * clipToWorld).dividedVector();
+		Vector3 centerFarPos = (Vector4(0, 0, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
 
-		Vector3 posRT = (Vector4(1, 1, 1, 1) * clipToWorld).dividedVector();
-		Vector3 posLB = (Vector4(-1, -1, 1, 1) * clipToWorld).dividedVector();
-		Vector3 posRB = (Vector4(1, -1, 1, 1) * clipToWorld).dividedVector();
-		Vector3 posLT = (Vector4(-1, 1, 1, 1) * clipToWorld).dividedVector();
+		Vector3 posRT = (Vector4(1, 1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 posLB = (Vector4(-1, -1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 posRB = (Vector4(1, -1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
+		Vector3 posLT = (Vector4(-1, 1, FRHIZBuffer::FarPlane, 1) * clipToWorld).dividedVector();
 
 		frustumPlanes[0] = Plane(-direction, centerNearPos); //ZFar;
 		frustumPlanes[1] = Plane(direction, centerFarPos); //ZNear
@@ -194,8 +194,17 @@ namespace Render
 		Vector4 col2 = clipToWorld.col(2);
 		Vector4 col3 = clipToWorld.col(3);
 
-		frustumPlanes[0] = Plane::FromVector4(col3 - col2);  //zFar
-		frustumPlanes[1] = Plane::FromVector4(col3 - GRHIClipZMin * col2);  //zNear
+		if (FRHIZBuffer::IsInverted)
+		{
+			frustumPlanes[1] = Plane::FromVector4(col3 - col2); //zNear
+			frustumPlanes[0] = Plane::FromVector4(col2);        //zFar
+		}
+		else
+		{
+			frustumPlanes[0] = Plane::FromVector4(col3 - col2);  //zFar
+			frustumPlanes[1] = Plane::FromVector4(col2);         //zNear
+		}
+
 		frustumPlanes[2] = Plane::FromVector4(col3 - col0);  //top
 		frustumPlanes[3] = Plane::FromVector4(col3 + col0);  //bottom
 		frustumPlanes[4] = Plane::FromVector4(col3 - col0);  //right
@@ -204,5 +213,39 @@ namespace Render
 #endif
 	}
 
+
+	void ViewInfo::GetFrustumVertices(Matrix4 const& projectionMatrixInverse, Vector3 outVertices[], bool bAdjRHI)
+	{
+		float nearDepth;
+		float farDepth;
+		if (bAdjRHI)
+		{
+			if (FRHIZBuffer::IsInverted)
+			{
+				nearDepth = 1.0;
+				farDepth = GRHIClipZMin;
+			}
+			else
+			{
+				nearDepth = GRHIClipZMin;
+				farDepth = 1.0;
+			}
+		}
+		else
+		{
+			nearDepth = FRHIZBuffer::NearPlane;
+			farDepth = FRHIZBuffer::FarPlane;
+		}
+
+		outVertices[0] = (Vector4(-1, -1, nearDepth, 1) * projectionMatrixInverse).dividedVector();
+		outVertices[1] = (Vector4(1, -1, nearDepth, 1) * projectionMatrixInverse).dividedVector();
+		outVertices[2] = (Vector4(1, 1, nearDepth, 1) * projectionMatrixInverse).dividedVector();
+		outVertices[3] = (Vector4(-1, 1, nearDepth, 1) * projectionMatrixInverse).dividedVector();
+
+		outVertices[4] = (Vector4(-1, -1, farDepth, 1) * projectionMatrixInverse).dividedVector();
+		outVertices[5] = (Vector4(1, -1, farDepth, 1) * projectionMatrixInverse).dividedVector();
+		outVertices[6] = (Vector4(1, 1, farDepth, 1) * projectionMatrixInverse).dividedVector();
+		outVertices[7] = (Vector4(-1, 1, farDepth, 1) * projectionMatrixInverse).dividedVector();
+	}
 
 }

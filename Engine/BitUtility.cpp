@@ -148,6 +148,17 @@ int FBitUtility::ToIndex8(unsigned bit)
 	if (bit & 0xf0) { result += 4; bit >>= 4; }
 	return result + gBitIndexMap[bit];
 }
+
+int FBitUtility::ToIndex16(unsigned bit)
+{
+	assert((bit & 0xffff) == bit);
+	assert(IsOneBitSet(bit));
+	int result = 0;
+	if (bit & 0x0000ff00) { result += 8; bit >>= 8; }
+	if (bit & 0x000000f0) { result += 4; bit >>= 4; }
+	return result + gBitIndexMap[bit];
+}
+
 int FBitUtility::ToIndex32(unsigned bit)
 {
 	assert((bit & 0xffffffff) == bit);

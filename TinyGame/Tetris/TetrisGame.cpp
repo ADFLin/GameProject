@@ -212,7 +212,7 @@ namespace Tetris
 
 	ERenderSystem GameModule::getDefaultRenderSystem()
 	{
-		return ERenderSystem::D3D11;
+		return ERenderSystem::OpenGL;
 	}
 
 	void GameModule::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
@@ -220,7 +220,7 @@ namespace Tetris
 		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
 
-	bool GameModule::setupRenderSystem(ERenderSystem systemName)
+	bool GameModule::setupRenderResource(ERenderSystem systemName)
 	{
 		
 

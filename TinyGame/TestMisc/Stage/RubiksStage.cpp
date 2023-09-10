@@ -12,7 +12,6 @@ namespace Rubiks
 		cleanup();
 		class FindRunable : public RunnableThreadT< FindRunable >
 		{
-
 		public:
 			unsigned run()
 			{

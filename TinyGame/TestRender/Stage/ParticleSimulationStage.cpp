@@ -214,7 +214,7 @@ namespace Render
 			return "Shader/Game/Spline";
 		}
 
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
 			if (UseTesselation)
 			{

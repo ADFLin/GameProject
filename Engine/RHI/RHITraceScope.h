@@ -1,6 +1,7 @@
 #ifndef RHI_TRACE_DEFINED
 #define RHI_TRACE_DEFINED
 
+#define RHICreateTexture1D(...) RHICreateTexture1DTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateTexture2D(...) RHICreateTexture2DTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateTexture3D(...) RHICreateTexture3DTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
 #define RHICreateTextureCube(...) RHICreateTextureCubeTrace( RHI_MAKE_TRACE_PARAM, ##__VA_ARGS__ )
@@ -19,6 +20,7 @@
 
 #undef RHI_TRACE_DEFINED
 
+#undef RHICreateTexture1D
 #undef RHICreateTexture2D
 #undef RHICreateTexture3D
 #undef RHICreateTextureCube

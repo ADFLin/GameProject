@@ -31,6 +31,9 @@
     <Filter Include="RHI\D3D">
       <UniqueIdentifier>{a37205ca-027a-47ea-a41f-6c3ed531befd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RHI\OpenGL">
+      <UniqueIdentifier>{429b8098-d0d8-438b-9d46-76fc982d682b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RHI\DrawUtility.cpp">
@@ -70,15 +73,6 @@
       <Filter>RHI</Filter>
     </ClCompile>
     <ClCompile Include="RHI\RHIGlobalResource.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\Scene.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\SceneObject.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
-    <ClCompile Include="RHI\SceneRenderer.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
     <ClCompile Include="RHI\ShaderFormat.cpp">
@@ -186,6 +180,18 @@
     <ClCompile Include="RHI\D3DSharedCommon.cpp">
       <Filter>RHI\D3D</Filter>
     </ClCompile>
+    <ClCompile Include="RHI\GLExtensions.cpp">
+      <Filter>RHI\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\SceneRenderer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\SceneObject.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\Scene.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RHI\RHITraceScope.h">
@@ -240,15 +246,6 @@
       <Filter>RHI</Filter>
     </ClInclude>
     <ClInclude Include="RHI\RHIGlobalResource.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\Scene.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\SceneObject.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\SceneRenderer.h">
       <Filter>RHI</Filter>
     </ClInclude>
     <ClInclude Include="RHI\ShaderManager.h">
@@ -360,6 +357,24 @@
       <Filter>RHI\D3D</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\TransformPushScope.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer\SceneDebug.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenGLHeader.h">
+      <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\GLExtensions.h">
+      <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\SceneRenderer.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\SceneObject.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\Scene.h">
       <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>

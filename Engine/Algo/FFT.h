@@ -43,7 +43,7 @@ struct Complex
 };
 
 
-#define FFT_METHOD 1
+#define FFT_METHOD 3
 
 class FFT
 {

@@ -80,14 +80,12 @@ public:
 	bool          isRHIEnabled() const { return mSystemName != ERenderSystem::None; }
 	ERenderSystem getSystemName() const { return mSystemName; }
 	TINY_API bool isUsageRHIGraphic2D() const;
-	TINY_API bool lockSystem(ERenderSystem systemLocked);
+	TINY_API bool lockSystem(ERenderSystem systemLocked, RenderSystemConfigs const& configs);
 
 	bool isInitialized() { return mbInitialized; }
 
 	TINY_API bool  startupSystem(ERenderSystem targetName , RenderSystemConfigs const& configs = RenderSystemConfigs() );
-
-
-	TINY_API bool  setupSystem();
+	TINY_API bool  setupRenderResource();
 	TINY_API void  shutdownSystem(bool bDeferred = true, bool bReInit = false);
 
 	TINY_API bool  beginFrame();

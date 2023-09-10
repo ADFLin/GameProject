@@ -73,9 +73,9 @@ namespace Render
 			return true;
 		}
 
-		virtual bool setupRenderSystem(ERenderSystem systemName) override
+		virtual bool setupRenderResource(ERenderSystem systemName) override
 		{
-			BaseClass::setupRenderSystem(systemName);
+			BaseClass::setupRenderResource(systemName);
 
 			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 			//VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());

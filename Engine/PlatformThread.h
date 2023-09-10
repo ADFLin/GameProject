@@ -5,6 +5,9 @@
 #include "CompilerConfig.h"
 
 #include "Core/IntegerType.h"
+#include "TemplateMisc.h"
+#include "Meta/Concept.h"
+#include "Meta/FunctionCall.h"
 
 #include <utility>
 
@@ -21,10 +24,13 @@ uint32 const WAIT_TIME_INFINITE = 0xffffffff;
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #include <process.h>
+#include <string>
+
+
 
 
 #define ERROR_THREAD_ID (-1)
-class WindowsThread
+class WindowsThread : public Noncopyable
 {
 public:
 	typedef unsigned (_stdcall *ThreadFunc)(void*);
@@ -49,7 +55,8 @@ public:
 	bool     isRunning(){ return mbRunning; }
 	void     setDisplayName(char const* name);
 
-	static void SetThreadName(uint32 ThreadID, LPCSTR ThreadName);
+	static void SetThreadName(uint32 threadID, char const* threadName);
+	static std::string GetThreadName(uint32 threadId);
 
 protected:
 	template< class T >
@@ -83,7 +90,7 @@ private:
 };
 
 
-class WindowsConditionVariable
+class WindowsConditionVariable : public Noncopyable
 {
 public:
 	WindowsConditionVariable()
@@ -131,10 +138,49 @@ private:
 	CONDITION_VARIABLE mCV;
 };
 
+class WindowsRWLock : public Noncopyable
+{
+public:
+	WindowsRWLock()
+	{
+		InitializeSRWLock(&mImpl);
+	}
 
-typedef WindowsThread PlatformThread;
-typedef WindowsMutex  PlatformMutex;
-typedef WindowsConditionVariable PlatformConditionVariable;
+	void readLock()
+	{
+		AcquireSRWLockShared(&mImpl);
+	}
+	void writeLock()
+	{
+		AcquireSRWLockExclusive(&mImpl);
+	}
+
+	bool tryReadLock()
+	{
+		return TryAcquireSRWLockShared(&mImpl);
+	}
+	bool tryWirteLock()
+	{
+		return TryAcquireSRWLockExclusive(&mImpl);
+	}
+
+	void readUnlock()
+	{
+		ReleaseSRWLockShared(&mImpl);
+	}
+	void writeUnlock()
+	{
+		ReleaseSRWLockExclusive(&mImpl);
+	}
+
+	SRWLOCK mImpl;
+};
+
+
+using PlatformThread = WindowsThread;
+using PlatformMutex = WindowsMutex;
+using PlatformConditionVariable = WindowsConditionVariable;
+using PlatformRWLock = WindowsRWLock;
 
 #elif SYS_SUPPORT_POSIX_THREAD
 
@@ -215,9 +261,9 @@ protected:
 	}
 };
 
-typedef PosixThread PlatformThread;
-typedef PosixMutex PlatformMutex;
-typedef PosixConditionVariable PlatformConditionVariable;
+using PlatformThread = PosixThread;
+using PlatformMutex = PosixMutex;
+using PlatformConditionVariable = PosixConditionVariable;
 
 #else
 #error "Thread Not Support!"
@@ -274,6 +320,41 @@ private:
 	TFunc mFunction;
 };
 
+template< typename TFunc >
+class TAsyncFuncThread : public RunnableThreadT<TAsyncFuncThread<TFunc>>
+{
+public:
+	TAsyncFuncThread(TFunc&& func)
+		:mFunc(std::forward<TFunc>(func))
+	{
+	}
+
+	unsigned run()
+	{
+		if constexpr (TCheckConcept< CFunctionCallable, TFunc, Thread* >::Value)
+		{
+			mFunc(this);
+		}
+		else
+		{
+			mFunc();
+		}
+		return 0;
+	}
+	void exit()
+	{
+		delete this;
+	}
+	TFunc mFunc;
+};
+
+template< typename TFunc >
+void Async(TFunc&& func)
+{
+	TAsyncFuncThread< TFunc >* thread = new TAsyncFuncThread< TFunc >(std::forward<TFunc>(func));
+	thread->start();
+}
+
 class Mutex : public PlatformMutex
 {
 public:
@@ -287,6 +368,32 @@ public:
 		Mutex& mMutex;
 	};
 private: 
+	friend class ConditionVariable;
+};
+
+class RWLock : public PlatformRWLock
+{
+public:
+	class ReadLocker
+	{
+	public:
+		ReadLocker(RWLock& lock) :mLock(lock) { mLock.readLock(); }
+		~ReadLocker() { mLock.readUnlock(); }
+	private:
+		friend class ConditionVariable;
+		RWLock& mLock;
+	};
+
+	class WriteLocker
+	{
+	public:
+		WriteLocker(RWLock& lock) :mLock(lock) { mLock.writeLock(); }
+		~WriteLocker() { mLock.writeUnlock(); }
+	private:
+		friend class ConditionVariable;
+		RWLock& mLock;
+	};
+private:
 	friend class ConditionVariable;
 };
 

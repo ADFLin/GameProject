@@ -374,7 +374,7 @@ public:
 	{
 		return ERenderSystem::OpenGL;
 	}
-	virtual bool setupRenderSystem(ERenderSystem systemName) override
+	virtual bool setupRenderResource(ERenderSystem systemName) override
 	{
 		VERIFY_RETURN_FALSE(mProgMandelbrot = ShaderManager::Get().getGlobalShaderT< MandelbrotProgram >(true));
 

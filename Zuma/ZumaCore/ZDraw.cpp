@@ -457,7 +457,6 @@ namespace Zuma
 
 		mLevel.render( RDSystem , mRenderParam );
 
-#if 1
 		RDSystem.setCurOrder( LRO_TEXT );
 
 		if ( mPauseGame )
@@ -511,7 +510,6 @@ namespace Zuma
 		RDSystem.setColor( 255 , 255 , 0 , 255 );
 		font->print(Vector2( 365 , 12 ), str , FF_ALIGN_RIGHT | FF_ALIGN_VCENTER );
 		RDSystem.setColor( 255 , 255 , 255 , 255 );
-#endif
 
 	}
 

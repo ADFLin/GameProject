@@ -1,14 +1,15 @@
-#include "VertexFactoryProcess.sgc"
-#include "MaterialProcess.sgc"
-
-#include "DeferredShadingCommon.sgc"
-#include "ViewParam.sgc"
 
 #ifndef FORWARD_SHADING
 #define FORWARD_SHADING 0
 #endif //FORWARD_SHADING
 
-#define PASS_HAVE_INTERPOLANTS 0
+
+#include "MaterialProcess.sgc"
+#include "VertexFactoryProcess.sgc"
+
+#include "DeferredShadingCommon.sgc"
+#include "ViewParam.sgc"
+
 
 struct VertexOutputParamVSToPS
 {

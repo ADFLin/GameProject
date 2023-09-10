@@ -45,6 +45,14 @@ namespace Render
 		static constexpr char* DefineName =  Name;\
 		Type value;\
 	};
+
+#define SHADER_PERMUTATION_TYPE_INT_COUNT( TypeName , Name , Count )\
+	struct TypeName : Render::TShaderPermutationInt< 0 , (Count) - 1 >\
+	{\
+		static constexpr char* DefineName =  Name;\
+		Type value;\
+	};
+
 	template< typename ...Ts >
 	class TShaderPermutationDomain;
 
@@ -171,6 +179,11 @@ namespace Render
 		{
 			static_assert(ContainPermutation<P>());
 			FShaderPermutation::GetPermutation<Type, P, Ts...>(*this).value = value;
+		}
+		template< typename P >
+		auto get() const
+		{
+			return FShaderPermutation::GetPermutation<Type, P, Ts...>(const_cast<TShaderPermutationDomain&>(*this)).value;
 		}
 
 		template< typename P >

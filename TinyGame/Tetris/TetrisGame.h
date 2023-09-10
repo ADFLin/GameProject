@@ -36,7 +36,7 @@ namespace Tetris
 
 		ERenderSystem getDefaultRenderSystem() override;
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
-		bool setupRenderSystem(ERenderSystem systemName) override;
+		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
 
 

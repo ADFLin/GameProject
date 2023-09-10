@@ -1,28 +1,13 @@
 #include "ImageMergeHelper.h"
 
-#include <cassert>
-
-
-ImageMergeHelper::Node* ImageMergeHelper::createNode(int x, int y, int w, int h)
-{
-	Node* node = new Node;
-	node->children[0] = node->children[1] = nullptr;
-	node->rect.x = x;
-	node->rect.y = y;
-	node->rect.w = w;
-	node->rect.h = h;
-	node->imageID = ErrorImageID;
-	return node;
-}
-
 ImageMergeHelper::ImageMergeHelper(int w, int h)
 {
-	mRoot = createNode(0, 0, w, h);
+	init(w, h);
 }
 
 ImageMergeHelper::ImageMergeHelper()
 {
-	mRoot = nullptr;
+
 }
 
 ImageMergeHelper::~ImageMergeHelper()
@@ -32,44 +17,31 @@ ImageMergeHelper::~ImageMergeHelper()
 
 void ImageMergeHelper::init(int w, int h)
 {
-	assert(mRoot == nullptr);
-	mRoot = createNode(0,0,w, h);
+	mSize = Vec2i(w, h);
+	createNode(0, 0, w, h)->linkHead(mFreeList);
 }
 
 void ImageMergeHelper::clear()
 {
-	if( mRoot )
-	{
-		destoryNode(mRoot);
-		mRoot = nullptr;
-	}
+	destroyList(mUsedList);
+	destroyList(mFreeList);
+	mUsedList = nullptr;
+	mFreeList = nullptr;
 	mImageNodeMap.clear();
+	mSize = Vec2i::Zero();
 }
 
-void ImageMergeHelper::destoryNode(Node* node)
-{
-	if( node->children[0] )
-		destoryNode(node->children[0]);
-	if( node->children[1] )
-		destoryNode(node->children[1]);
-	delete node;
-}
 
 bool ImageMergeHelper::addImage(int id, int w, int h)
 {
-	mRect.w = w;
-	mRect.h = h;
-	mRect.x = 0;
-	mRect.y = 0;
-
-	Node* node = insertNode(mRoot);
+	Node* node = insertNode(w, h);
 	if( !node )
 		return false;
 
 	if( id >= mImageNodeMap.size() )
 		mImageNodeMap.resize(id + 1, nullptr);
 
-	assert(node->imageID == ErrorImageID);
+	CHECK(node->imageID == ErrorImageID);
 	node->imageID = id;
 	mImageNodeMap[id] = node;
 	return true;
@@ -88,43 +60,72 @@ int ImageMergeHelper::calcUsageArea() const
 	return result;
 }
 
-ImageMergeHelper::Node* ImageMergeHelper::insertNode(Node* curNode)
+ImageMergeHelper::ImageMergeHelper::Node* ImageMergeHelper::insertNode(int w, int h)
 {
-	assert(curNode);
-
-	if( curNode->imageID != ErrorImageID )
-		return nullptr;
-
-	if( !curNode->isLeaf() )
+	Node* usedNode = nullptr;
+	for (auto node = mFreeList; node; node = node->mNextLink)
 	{
-		Node* newNode = insertNode(curNode->children[0]);
-		if( !newNode )
-			newNode = insertNode(curNode->children[1]);
-		return newNode;
+		if (w <= node->rect.w && h <= node->rect.h)
+		{
+			usedNode = node;
+			break;
+		}
 	}
 
-	Rect& curRect = curNode->rect;
-
-	if( mRect.w == curRect.w && mRect.h == curRect.h )
-		return curNode;
-
-	if( mRect.w > curRect.w || mRect.h > curRect.h )
-		return nullptr;
-
-	int dw = curRect.w - mRect.w;
-	int dh = curRect.h - mRect.h;
-
-	if( dw > dh )
+	if (usedNode)
 	{
-		curNode->children[0] = createNode(curRect.x, curRect.y, mRect.w, curRect.h);
-		curNode->children[1] = createNode(curRect.x + mRect.w, curRect.y, dw, curRect.h);
-	}
-	else
-	{
-		curNode->children[0] = createNode(curRect.x, curRect.y, curRect.w, mRect.h);
-		curNode->children[1] = createNode(curRect.x, curRect.y + mRect.h, curRect.w, dh);
+		auto& rect = usedNode->rect;
+		int dw = rect.w - w;
+		int dh = rect.h - h;
+		Node* left = nullptr;
+		Node* right = nullptr;
+		if (dh <= dw)
+		{
+			if (dh > 0)
+			{
+				left = createNode(rect.x, rect.y + h, w, dh);
+			}
+			right = createNode(rect.x + w, rect.y, dw, rect.h);
+		}
+		else
+		{
+			if (dw > 0)
+			{
+				left = createNode(rect.x + w, rect.y, dw, h);
+			}
+			right = createNode(rect.x, rect.y + h, rect.w, dh);
+		}
+
+		if (left)
+		{
+			left->linkReplace(usedNode);
+			right->linkAfter(left);
+		}
+		else
+		{
+			right->linkReplace(usedNode);
+		}
+
+		rect.w = w;
+		rect.h = h;
+		usedNode->linkHead(mUsedList);
 	}
 
-	return insertNode(curNode->children[0]);
+	return usedNode;
 }
 
+ImageMergeHelper::Node* ImageMergeHelper::createNode(int x, int y, int w, int h)
+{
+	Node* node = new Node;
+	node->rect.x = x;
+	node->rect.y = y;
+	node->rect.w = w;
+	node->rect.h = h;
+	node->imageID = ErrorImageID;
+	return node;
+}
+
+void ImageMergeHelper::destoryNode(Node* node)
+{
+	delete node;
+}

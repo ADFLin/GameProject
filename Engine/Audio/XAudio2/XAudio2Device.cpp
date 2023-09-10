@@ -4,18 +4,17 @@
 
 #include "XAudio2Device.h"
 #include "LogSystem.h"
+#include "ProfileSystem.h"
+#include "PlatformThread.h"
+
 
 float gStreamLockedDuration = 1;
 bool XAudio2Device::initialize()
 {
-
-
-	CHECK_RETRUN(CoInitializeEx(NULL , COINIT_MULTITHREADED ), false);
-	bCoInitialized = true;
-
-	CHECK_RETRUN(XAudio2Create(&pXAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR), false);
-
-	CHECK_RETRUN(pXAudio2->CreateMasteringVoice(&pMasterVoice), false);
+	Async([this]()
+	{
+		initializePlatform();
+	});
 
 	if( !BaseClass::initialize() )
 		return false;
@@ -34,6 +33,26 @@ void XAudio2Device::shutdown()
 		CoUninitialize();
 }
 
+bool XAudio2Device::initializePlatform()
+{
+	TIME_SCOPE("initializePlatform");
+	{
+		TIME_SCOPE("CoInitializeEx");
+		CHECK_RETURN(CoInitializeEx(NULL, COINIT_MULTITHREADED), false);
+		bCoInitialized = true;
+	}
+	{
+		TIME_SCOPE("XAudio2Create");
+		CHECK_RETURN(XAudio2Create(&pXAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR), false);
+	}
+
+	{
+		TIME_SCOPE("CreateMasteringVoice");
+		CHECK_RETURN(pXAudio2->CreateMasteringVoice(&pMasterVoice), false);
+	}
+	return true;
+}
+
 AudioSource* XAudio2Device::createSource()
 {
 	XAudio2Source* chennel = new XAudio2Source;
@@ -46,7 +65,7 @@ bool XAudio2Source::doInitialize(SoundInstance& instance)
 	pSourceVoice.reset();
 
 	instance.samplesPlayed = 0;
-	mNextStreamSampleFrame = -1;
+	mNextStreamSampleFrame = INDEX_NONE;
 	mUsedSampleHandles.clear();
 
 	WaveFormatInfo const& formatInfo = instance.soundwave->format;
@@ -59,7 +78,11 @@ bool XAudio2Source::doInitialize(SoundInstance& instance)
 	format.nAvgBytesPerSec = formatInfo.byteRate;
 	format.nBlockAlign = formatInfo.blockAlign;
 	format.cbSize = 0; //WAVE_FORMAT_PCM must be 0
-	CHECK_RETRUN(mDevice->pXAudio2->CreateSourceVoice(&pSourceVoice, &format, 0, 2.0f, &mDevice->sourceCallback), false);
+	CHECK_RESULT_CODE(
+		mDevice->pXAudio2->CreateSourceVoice(&pSourceVoice, &format, 0, 2.0f, &mDevice->sourceCallback),
+		LogWarning(0, "Can't Create SourceVoice");
+		return false;
+	);
 
 	if( instance.soundwave->streamSource )
 	{
@@ -72,7 +95,7 @@ bool XAudio2Source::doInitialize(SoundInstance& instance)
 	{
 		XAUDIO2_BUFFER buffer = { 0 };
 		buffer.Flags = XAUDIO2_END_OF_STREAM;
-		buffer.pAudioData = (BYTE*)&instance.soundwave->PCMData[0];
+		buffer.pAudioData = (BYTE*)instance.soundwave->PCMData.data();
 		buffer.AudioBytes = instance.soundwave->PCMData.size();
 		buffer.PlayBegin = 0;
 		buffer.PlayLength = 0;
@@ -80,10 +103,10 @@ bool XAudio2Source::doInitialize(SoundInstance& instance)
 		buffer.LoopCount = instance.activeSound->bLoop ? XAUDIO2_LOOP_INFINITE : 0;
 		buffer.LoopLength = 0;
 		buffer.pContext = this;
-		CHECK_RETRUN(pSourceVoice->SubmitSourceBuffer(&buffer), false);
+		CHECK_RETURN(pSourceVoice->SubmitSourceBuffer(&buffer), false);
 	}
 
-	CHECK_RETRUN(pSourceVoice->Start(0), false);
+	CHECK_RETURN(pSourceVoice->Start(0), false);
 	return true;
 }
 
@@ -101,11 +124,11 @@ bool XAudio2Source::commitStreamingData( bool bInit )
 
 	if( fetchResult == EAudioStreamStatus::Error )
 	{
-		mNextStreamSampleFrame = -1;
+		mNextStreamSampleFrame = INDEX_NONE;
 		return false;
 	}
 
-	if( sample.handle != -1 )
+	if( sample.handle != INDEX_NONE)
 	{
 		mUsedSampleHandles.push_back(sample.handle);
 	}
@@ -124,10 +147,10 @@ bool XAudio2Source::commitStreamingData( bool bInit )
 		buffer.LoopCount = instance.activeSound->bLoop ? XAUDIO2_LOOP_INFINITE : 0;
 	}
 	buffer.pContext = this;
-	CHECK_RETRUN(pSourceVoice->SubmitSourceBuffer(&buffer), false);
+	CHECK_RETURN(pSourceVoice->SubmitSourceBuffer(&buffer), false);
 	if( fetchResult == EAudioStreamStatus::Eof )
 	{
-		mNextStreamSampleFrame = -1;
+		mNextStreamSampleFrame = INDEX_NONE;
 	}
 	else
 	{
@@ -159,7 +182,7 @@ void XAudio2Source::update(float deltaT)
 
 	if( mInstance->soundwave->streamSource )
 	{
-		if ( mNextStreamSampleFrame != -1 )
+		if ( mNextStreamSampleFrame != INDEX_NONE )
 		{
 			if( state.BuffersQueued < 4 )
 			{
@@ -199,10 +222,12 @@ void XAudio2Source::pause()
 		pSourceVoice->Stop(0);
 	}
 }
+
 void XAudio2Source::notifyBufferStart()
 {
 
 }
+
 void XAudio2Source::notifyBufferEnd()
 {
 	if( mInstance->soundwave->isStreaming() )
@@ -210,13 +235,13 @@ void XAudio2Source::notifyBufferEnd()
 		if ( mUsedSampleHandles.size() )
 		{
 			uint32 handle = mUsedSampleHandles.front();
-			mUsedSampleHandles.erase(mUsedSampleHandles.begin());
+			mUsedSampleHandles.pop_front();
 			mInstance->soundwave->streamSource->releaseSampleData(handle);
 		}
-		else
-		{
-			mInstance->bPlaying = false;
-		}
+	}
+	else
+	{
+		mInstance->bPlaying = false;
 	}
 }
 

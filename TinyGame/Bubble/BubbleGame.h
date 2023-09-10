@@ -39,7 +39,7 @@ namespace Bubble
 		{
 			return ERenderSystem::OpenGL;
 		}
-		bool setupRenderSystem(ERenderSystem systemName);
+		bool setupRenderResource(ERenderSystem systemName);
 
 
 

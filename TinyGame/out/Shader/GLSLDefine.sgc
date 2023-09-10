@@ -131,7 +131,7 @@ DEFINE_VECTOR_FUNCTION(saturate, { return clamp(x, 0.0, 1.0); })
 VECTOR_TYPE_LIST(SincosT)
 #undef SincosT
 
-float BufferDepthToClipZ(float bufferDepth)
+float BufferToNDCDepth(float bufferDepth)
 {
 #if SYSTEM_VULKAN
 	return 2 * bufferDepth - 1;
@@ -140,6 +140,14 @@ float BufferDepthToClipZ(float bufferDepth)
 #endif
 }
 
+float NDCToBufferDepth(float ndcZ)
+{
+#if SYSTEM_VULKAN
+	return 0.5 * ( ndcZ + 1 );
+#else
+	return  0.5 * (ndcZ + 1) * gl_DepthRange.diff;
+#endif
+}
 
 #if PIXEL_SHADER
 

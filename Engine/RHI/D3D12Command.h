@@ -15,7 +15,7 @@
 #include "Core/ScopeGuard.h"
 #include "Core/TypeHash.h"
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 
@@ -624,8 +624,9 @@ namespace Render
 		~D3D12System();
 		RHISystemName getName() const { return RHISystemName::D3D12; }
 		bool initialize(RHISystemInitParams const& initParam);
-		void preShutdown();
 		void shutdown();
+		void clearResourceReference();
+
 		virtual ShaderFormat* createShaderFormat();
 
 		bool RHIBeginRender();
@@ -681,7 +682,7 @@ namespace Render
 		{
 
 		}
-
+		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 
@@ -845,7 +846,7 @@ namespace Render
 }//namespace Render
 
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 

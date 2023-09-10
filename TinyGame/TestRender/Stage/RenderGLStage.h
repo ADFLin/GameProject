@@ -34,6 +34,7 @@
 #include <typeindex>
 #include "PlatformThread.h"
 #include "Math/GeometryPrimitive.h"
+#include "Math/Curve.h"
 
 
 class Thread;
@@ -305,79 +306,10 @@ namespace Render
 		TileNode*  child[4];
 	};
 
-
-	class IValueModifier
-	{
-	public:
-		virtual bool isHook(void* ptr) { return false; }
-		virtual void update(float time) = 0;
-	};
-
-	template< class TrackType >
-	class TVectorTrackModifier : public IValueModifier
-	{
-	public:
-		TVectorTrackModifier(Vector3& value)
-			:mValue(value)
-		{
-
-		}
-		virtual void update(float time)
-		{
-			mValue = track.getValue(time);
-		}
-		virtual bool isHook(void* ptr) { return &mValue == ptr; }
-		TrackType track;
-	private:
-		Vector3&  mValue;
-	};
-
-
 	struct AABB
 	{
 		Vector3 min, max;
 	};
-
-
-	class DualQuat
-	{
-	public:
-		DualQuat( Quaternion const& InQr , Quaternion const& InQd )
-			:Qr(InQr), Qd(InQd){ }
-
-		DualQuat(Quaternion const& InQr, Vector3 const& InOrg )
-			:Qr(InQr), Qd(0.5 * InOrg.x , 0.5 *InOrg.y , 0.5 *InOrg.z , 0 )
-		{
-		}
-		DualQuat(Vector3 const& InOrg)
-			:Qr(Quaternion::Identity()), Qd(0.5 * InOrg.x, 0.5 *InOrg.y, 0.5 *InOrg.z, 0)
-		{
-		}
-
-		Quaternion Qr;
-		Quaternion Qd;
-
-		DualQuat operator + (DualQuat const& rhs)
-		{
-			return DualQuat(Qr + rhs.Qr, Qd + rhs.Qd);
-		}
-
-		DualQuat operator - (DualQuat const& rhs)
-		{
-			return DualQuat(Qr - rhs.Qr, Qd - rhs.Qd);
-		}
-
-		friend DualQuat operator * (float s, DualQuat const& DQ)
-		{
-			return DualQuat(s * DQ.Qr, s * DQ.Qd);
-		}
-
-		DualQuat operator * (DualQuat const& rhs)
-		{
-			return DualQuat(Qr * rhs.Qr, Qr * rhs.Qd + Qd * rhs.Qr);
-		}
-	};
-
 
 	class EnvTech
 	{
@@ -464,11 +396,6 @@ namespace Render
 		SampleStage();
 		~SampleStage();
 
-		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
-		{
-			systemConfigs.screenWidth = 1280;
-			systemConfigs.screenHeight = 720;
-		}
 
 		virtual bool onInit();
 		virtual void onInitFail();
@@ -565,6 +492,15 @@ namespace Render
 
 
 		virtual void onRemoveObject(SceneObject* object) override;
+
+		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+		{
+			systemConfigs.screenWidth = 1280;
+			systemConfigs.screenHeight = 720;
+		}
+
+		ERenderSystem getDefaultRenderSystem() override;
+
 
 	protected:
 		GLGpuSync   mGpuSync;

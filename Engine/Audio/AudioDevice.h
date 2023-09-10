@@ -2,27 +2,19 @@
 #ifndef AudioDevice_H_FE470721_C44B_48EC_A5C1_65B0EBE25937
 #define AudioDevice_H_FE470721_C44B_48EC_A5C1_65B0EBE25937
 
-#include "Core/IntegerType.h"
+#include "AudioTypes.h"
+#include "AudioStreamSource.h"
 
 #include "DataStructure/Array.h"
+
 #include <unordered_map>
 #include <cassert>
 #include <string>
 
 
+
 typedef uint32 AudioHandle;
 AudioHandle const ERROR_AUDIO_HANDLE = AudioHandle(0);
-
-
-struct WaveFormatInfo
-{
-	uint16 tag;
-	uint16 numChannels;
-	uint32 sampleRate;
-	uint32 byteRate;
-	uint16 blockAlign;
-	uint16 bitsPerSample;
-};
 
 
 bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, TArray< uint8 >& outSampleData);
@@ -164,32 +156,6 @@ public:
 	}
 };
 
-struct AudioStreamSample
-{
-	uint32 handle;
-	uint8* data;
-	int64  dataSize;
-};
-
-enum class EAudioStreamStatus
-{
-	Ok ,
-	Error ,
-	NoSample ,
-	Eof ,
-};
-
-class IAudioStreamSource
-{
-public:
-	virtual void  seekSamplePosition(int64 samplePos) = 0;
-	virtual void  getWaveFormat(WaveFormatInfo& outFormat) = 0;
-	virtual int64 getTotalSampleNum() = 0;
-	virtual EAudioStreamStatus  generatePCMData( int64 samplePos , AudioStreamSample& outSample , int requiredMinSameleNum ) = 0;
-	virtual void  releaseSampleData(uint32 sampleHadle){}
-};
-
-
 class SoundWave : public SoundBase
 {
 public:
@@ -204,14 +170,17 @@ public:
 		{
 			if( !LoadWaveFile(path, format, PCMData) )
 				return false;
+
+			bPCMDataCompleted = true;
 		}
 		return true;
 	}
 
-	void setupStream(IAudioStreamSource* inStreamSource)
+	void setupStream(IAudioStreamSource* inStreamSource, bool bCacheData = false)
 	{
 		streamSource = inStreamSource;
 		streamSource->getWaveFormat(format);
+		bSaveStreamingPCMData = bCacheData;
 		PCMData.clear();
 	}
 
@@ -235,6 +204,7 @@ public:
 	WaveFormatInfo format;
 
 	bool bSaveStreamingPCMData = false;
+	bool bPCMDataCompleted = false;
 	TArray< uint8 > PCMData;
 
 	IAudioStreamSource* streamSource = nullptr;
@@ -271,8 +241,8 @@ public:
 	virtual bool initialize();
 	virtual void shutdown();
 
-	AudioHandle playSound2D(SoundBase* sound, float volumeMultiplier = 1.0f , bool bLoop = false );
-	AudioHandle playSound3D(SoundBase* sound, float volumeMultiplier = 1.0f , bool bLoop = false );
+	AudioHandle playSound2D(SoundBase& sound, float volumeMultiplier = 1.0f , bool bLoop = false );
+	AudioHandle playSound3D(SoundBase& sound, float volumeMultiplier = 1.0f , bool bLoop = false );
 
 	void setAudioVolumeMultiplier(AudioHandle handle , float value);
 	void setAudioPitchMultiplier(AudioHandle handle, float value);
@@ -287,7 +257,7 @@ public:
 
 	int fetchIdleSource(SoundInstance& instance);
 
-
+	void stopSound(AudioHandle handle);
 	void stopAllSound();
 
 	ActiveSound* getActiveSound(AudioHandle handle);

@@ -64,6 +64,14 @@ namespace Render
 		virtual void postFileModify(EFileAction action) override;
 	};
 
+	struct MaterialLoadResult
+	{
+		MaterialShaderProgramClass* programClass;
+		VertexFactoryType*          factoryType;
+		MaterialShaderProgram*      program;
+		uint32  permutationId;
+	};
+
 	typedef TArray< std::pair< MaterialShaderProgramClass*, MaterialShaderProgram* > > MaterialShaderPairVec;
 
 	class ShaderManager : public SingletonT< ShaderManager >
@@ -108,9 +116,7 @@ namespace Render
 			return static_cast<TShaderType*>(constructShaderInternal(TShaderType::GetShaderClass(), permutationId, option, ShaderClassType::Common));
 		}
 
-		int loadMeshMaterialShaders(MaterialShaderCompileInfo const& info, VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
-
-		MaterialShaderProgram* loadMaterialShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& materialClass );
+		int loadMeshMaterialShaders(MaterialShaderCompileInfo const& info, TArray< MaterialLoadResult>& outShaders );
 
 		CORE_API ShaderObject* getGlobalShader(GlobalShaderObjectClass const& shaderObjectClass, uint32 permutationId, bool bForceLoad );
 		CORE_API void cleanupLoadedSource();

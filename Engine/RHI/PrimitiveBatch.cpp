@@ -120,6 +120,23 @@ namespace Render
 				SimpleElementRenderer::releaseRHI();
 			}
 		}
+#if 0
+
+		virtual void restoreRHI() override
+		{
+			if (mRefcount > 0)
+			{
+				SimpleElementRenderer::initializeRHI();
+			}
+		}
+		virtual void releaseRHI() override
+		{
+			if (mRefcount > 0)
+			{
+				SimpleElementRenderer::releaseRHI();
+			}
+		}
+#endif
 		TArray< SimpleVertex > cachedBuffer;
 		int mRefcount = 0;
 	};
@@ -128,9 +145,9 @@ namespace Render
 	GlobalSimpleElementRenderer GSimpleElementRender;
 
 
-	void PrimitivesCollection::initializeRHI()
+	bool PrimitivesCollection::initializeRHI()
 	{
-		GSimpleElementRender.initializeRHI();
+		return GSimpleElementRender.initializeRHI();
 	}
 
 	void PrimitivesCollection::releaseRHI()

@@ -209,7 +209,7 @@ namespace Render
 		LightInfo* PointLight(Vector3 const& pos, Vector3 const& color, float instensity, float radius, bool bCastShadow)
 		{
 			auto light = new SceneLight;
-			light->info.type = LightType::Point;
+			light->info.type = ELightType::Point;
 			light->info.pos = pos;
 			light->info.color = color;
 			light->info.intensity = instensity;

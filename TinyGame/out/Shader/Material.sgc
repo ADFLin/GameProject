@@ -1,0 +1,27 @@
+#pragma once
+
+#if !SHADER_COMPILING
+
+#include "MaterialCommon.sgc"
+#if VERTEX_SHADER
+
+void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
+{
+	outputVS.worldOffset = float3(0.0);
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+void CalcMaterialOutputPS(inout MaterialOutputPS outputPS, inout MaterialParametersPS parameters)
+{
+	outputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	outputPS.baseColor = 0;
+	outputPS.metallic = 0.2;
+	outputPS.roughness = 1;
+	outputPS.specular = 0.2;
+	//outputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
+}
+
+#endif

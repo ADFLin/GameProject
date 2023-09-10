@@ -19,6 +19,7 @@ namespace Render
 		if( !mTexture.isValid() )
 			return false;
 		mHelper.init(w, h);
+		mInvSize = Vector2(1.0 / w, 1.0 / h);
 		return true;
 	}
 
@@ -103,11 +104,11 @@ namespace Render
 
 		if( dataImageWidth )
 		{
-			mTexture->update(rect.x + mBorder, rect.y + mBorder, w, h, format, dataImageWidth, data);
+			RHIUpdateTexture(*mTexture, rect.x + mBorder, rect.y + mBorder, w, h, data, 0, dataImageWidth);
 		}
 		else
 		{
-			mTexture->update(rect.x + mBorder, rect.y + mBorder, w, h, format, data);
+			RHIUpdateTexture(*mTexture, rect.x + mBorder, rect.y + mBorder, w, h, data, 0);
 		}
 
 		return true;
@@ -118,23 +119,28 @@ namespace Render
 		auto* node = mHelper.getNode(id);
 		if (node)
 		{
-			auto rect = node->rect;
-			outMin.x = float(rect.x + mBorder) / mTexture->getSizeX();
-			outMin.y = float(rect.y + mBorder) / mTexture->getSizeY();
-			outMax.x = float(rect.x + rect.w - mBorder) / mTexture->getSizeX();
-			outMax.y = float(rect.y + rect.h - mBorder) / mTexture->getSizeY();
+			auto  const& rect = node->rect;
+			outMin = mInvSize.mul(Vector2(rect.x + mBorder, rect.y + mBorder));
+			outMax = mInvSize.mul(Vector2(rect.x + rect.w - mBorder, rect.y + rect.h - mBorder));
 		}
 	}
 
 	void TextureAtlas::getRectUVChecked(int id, Vector2& outMin, Vector2& outMax) const
 	{
-		auto* node = mHelper.getNode(id);
+		auto* node = mHelper.getNodeChecked(id);
 		assert(node);
 		auto const& rect = node->rect;
-		outMin.x = float(rect.x + mBorder) / mTexture->getSizeX();
-		outMin.y = float(rect.y + mBorder) / mTexture->getSizeY();
-		outMax.x = float(rect.x + rect.w - mBorder) / mTexture->getSizeX();
-		outMax.y = float(rect.y + rect.h - mBorder) / mTexture->getSizeY();
+		outMin = mInvSize.mul(Vector2(rect.x + mBorder, rect.y + mBorder));
+		outMax = mInvSize.mul(Vector2(rect.x + rect.w - mBorder, rect.y + rect.h - mBorder));
+	}
+
+	void TextureAtlas::getRectUVSizeChecked(int id, Vector2& outPos, Vector2& outSize) const
+	{
+		auto* node = mHelper.getNodeChecked(id);
+		CHECK(node);
+		auto const& rect = node->rect;
+		outPos = mInvSize.mul(Vector2(rect.x + mBorder, rect.y + mBorder));
+		outSize = mInvSize.mul(Vector2(rect.w - 2 * mBorder, rect.h - 2 * mBorder));
 	}
 
 	bool TextureAtlas::getRectSize(int id, IntVector2& outSize) const
@@ -150,7 +156,7 @@ namespace Render
 
 	IntVector2 TextureAtlas::getRectSizeChecked(int id) const
 	{
-		auto* node = mHelper.getNode(id);
+		auto* node = mHelper.getNodeChecked(id);
 		assert(node);
 		auto const& rect = node->rect;
 		return IntVector2(rect.w, rect.h);

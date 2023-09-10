@@ -329,7 +329,7 @@ namespace Chess
 
 		Mesh mChessMeshs[EChess::COUNT];
 
-		bool setupRenderSystem(ERenderSystem systemName) override
+		bool setupRenderResource(ERenderSystem systemName) override
 		{
 			VERIFY_RETURN_FALSE(mChessTex = RHIUtility::LoadTexture2DFromFile("texture/chess.png"));
 
@@ -449,12 +449,10 @@ namespace Chess
 			mView.setupTransform(mCamera.getPos(), mCamera.getRotation(), mViewFrustum.getPerspectiveMatrix());
 
 			RHISetFrameBuffer(commandList, nullptr);
-			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1, 0);
+			RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 			RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-			RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?
-				TStaticDepthStencilState< true, ECompareFunc::Greater >::GetRHI() :
-				TStaticDepthStencilState<>::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 

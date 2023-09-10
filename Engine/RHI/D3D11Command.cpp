@@ -5,9 +5,10 @@
 #include "LogSystem.h"
 #include "GpuProfiler.h"
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+#include "BitUtility.h"
 
 
 
@@ -54,10 +55,14 @@ namespace Render
 		}
 
 		bool init(TComPtr<ID3D11Device> const& device,
+			      TComPtr<ID3D11DeviceContext> const& deviceContextImmdiate,
 				  TComPtr<ID3D11DeviceContext> const& deviceContext)
 		{
 			mDevice = device;
 			mDeviceContext = deviceContext;
+			mDeviceContextImmdiate = deviceContextImmdiate;
+
+			bDeferredContext = mDeviceContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED;
 
 			D3D11_QUERY_DESC desc;
 			desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
@@ -68,24 +73,26 @@ namespace Render
 		}
 		virtual void beginFrame() override
 		{
-			mDeviceContext->Begin(mQueryDisjoint);
+			mDeviceContextImmdiate->Begin(mQueryDisjoint);
 		}
 
 		virtual bool endFrame() override
 		{
-			mDeviceContext->End(mQueryDisjoint);
-			while( mDeviceContext->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE )
-			{
-				SystemPlatform::Sleep(0); 
-			}
+			mDeviceContextImmdiate->End(mQueryDisjoint);
 
+			while (mDeviceContextImmdiate->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE)
+			{
+				SystemPlatform::Sleep(0);
+			}
 			D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
-			mDeviceContext->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
-			if( tsDisjoint.Disjoint )
+			mDeviceContextImmdiate->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
+			if (tsDisjoint.Disjoint)
 			{
 				return false;
 			}
 			tsDisjoint.Frequency;
+
+			
 			return true;
 		}
 
@@ -94,14 +101,17 @@ namespace Render
 			D3D11_QUERY_DESC desc;
 			desc.Query = D3D11_QUERY_TIMESTAMP;
 			desc.MiscFlags = 0;
-			TComPtr< ID3D11Query > startQuery;
-			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &startQuery), return RHI_ERROR_PROFILE_HANDLE;);
-			TComPtr< ID3D11Query > endQuery;
-			VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
+			//if (bDeferredContext)
+			{
+				TComPtr< ID3D11Query > startQuery;
+				VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &startQuery), return RHI_ERROR_PROFILE_HANDLE;);
+				TComPtr< ID3D11Query > endQuery;
+				VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &endQuery), return RHI_ERROR_PROFILE_HANDLE;);
 
-			uint32 result = mSamples.size();
-			mSamples.emplace_back(std::move(startQuery), std::move(endQuery));
-			return result;
+				uint32 result = mSamples.size();
+				mSamples.emplace_back(std::move(startQuery), std::move(endQuery));
+				return result;
+			}
 		}
 
 		virtual void startTiming(uint32 timingHandle) override
@@ -117,13 +127,13 @@ namespace Render
 		virtual bool getTimingDuration(uint32 timingHandle, uint64& outDuration) override
 		{
 			Sample& sample = mSamples[timingHandle];
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(sample.startQeury, NULL, 0, 0));
-			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContext->GetData(sample.endQuery, NULL, 0, 0));
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContextImmdiate->GetData(sample.startQeury, NULL, 0, 0));
+			VERIFY_D3D_RESULT_RETURN_FALSE(mDeviceContextImmdiate->GetData(sample.endQuery, NULL, 0, 0));
 
 			UINT64 startData;
-			mDeviceContext->GetData(sample.startQeury, &startData, sizeof(startData), 0);
+			mDeviceContextImmdiate->GetData(sample.startQeury, &startData, sizeof(startData), 0);
 			UINT64 endData;
-			mDeviceContext->GetData(sample.endQuery, &endData, sizeof(endData), 0);
+			mDeviceContextImmdiate->GetData(sample.endQuery, &endData, sizeof(endData), 0);
 			outDuration = endData - startData;
 			return true;
 		}
@@ -132,16 +142,21 @@ namespace Render
 		{
 			if( mCycleToMillisecond == 0 )
 			{
-				mDeviceContext->Begin(mQueryDisjoint);
-				mDeviceContext->End(mQueryDisjoint);
+				TComPtr< ID3D11Query > queryDisjoint;
+				D3D11_QUERY_DESC desc;
+				desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+				desc.MiscFlags = 0;
+				VERIFY_D3D_RESULT(mDevice->CreateQuery(&desc, &queryDisjoint), return 0.0;);
+				mDeviceContextImmdiate->Begin(queryDisjoint);
+				mDeviceContextImmdiate->End(queryDisjoint);
 
-				while( RESULT_FAILED( mDeviceContext->GetData(mQueryDisjoint, NULL, 0, 0) ) )
+				while( RESULT_FAILED(mDeviceContextImmdiate->GetData(queryDisjoint, NULL, 0, 0) ) )
 				{
 					SystemPlatform::Sleep(0);
 				}
 
 				D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
-				mDeviceContext->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
+				mDeviceContextImmdiate->GetData(queryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
 				mCycleToMillisecond = double(1000) / tsDisjoint.Frequency;
 			}
 
@@ -153,6 +168,7 @@ namespace Render
 			mQueryDisjoint.reset();
 			mSamples.clear();
 			mDeviceContext.reset();
+			mDeviceContextImmdiate.reset();
 			mDevice.reset();
 		}
 		double mCycleToMillisecond;
@@ -171,7 +187,10 @@ namespace Render
 		};
 		TArray< Sample > mSamples;
 
-		TComPtr<ID3D11DeviceContext> mDeviceContext;
+
+		bool bDeferredContext;
+		TComPtr<ID3D11DeviceContext> mDeviceContext; 
+		TComPtr<ID3D11DeviceContext> mDeviceContextImmdiate;
 		TComPtr<ID3D11Device> mDevice;
 	};
 
@@ -180,7 +199,20 @@ namespace Render
 		uint32 deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 		if ( initParam.bDebugMode )
 			deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-		VERIFY_D3D_RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, deviceFlags, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
+		VERIFY_D3D_RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, deviceFlags, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContextImmdiate));
+
+
+		D3D11_FEATURE_DATA_THREADING featureData;
+		mDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING, &featureData, sizeof(featureData));
+
+		if (initParam.bMultithreadingSupported)
+		{
+			mDevice->CreateDeferredContext(0, &mDeviceContext);
+		}
+		else
+		{
+			mDeviceContext = mDeviceContextImmdiate;
+		}
 
 		TComPtr< IDXGIDevice > pDXGIDevice;
 		VERIFY_D3D_RESULT_RETURN_FALSE(mDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice));
@@ -202,7 +234,7 @@ namespace Render
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 #if 1
 		D3D11ProfileCore* profileCore = new D3D11ProfileCore;
-		if( profileCore->init(mDevice, mDeviceContext) )
+		if( profileCore->init(mDevice, mDeviceContextImmdiate, mDeviceContext) )
 		{
 			GpuProfiler::Get().setCore(profileCore);
 		}
@@ -215,9 +247,9 @@ namespace Render
 		return true;
 	}
 
-	void D3D11System::preShutdown()
+	void D3D11System::clearResourceReference()
 	{
-		mDeviceContext->ClearState();
+		mDeviceContextImmdiate->ClearState();
 	}
 
 	void D3D11System::shutdown()
@@ -244,12 +276,37 @@ namespace Render
 		return new ShaderFormatHLSL(mDevice);
 	}
 
+	bool D3D11System::RHIBeginRender()
+	{
+		mRenderContext.markRenderStateDirty();
+		return true;
+	}
+
+	void D3D11System::RHIEndRender(bool bPresent)
+	{
+		if (mDeviceContextImmdiate.get() != mDeviceContext.get())
+		{
+			Mutex::Locker locker(mMutexContext);
+			ID3D11CommandList* pd3dCommandList = NULL;
+			HRESULT hr;
+			hr = mDeviceContext->FinishCommandList(FALSE, &pd3dCommandList);
+			mDeviceContext->Flush();
+			mDeviceContextImmdiate->ExecuteCommandList(pd3dCommandList, FALSE);
+			mDeviceContextImmdiate->Flush();
+		}
+
+		if (bPresent && mSwapChain)
+		{
+			mSwapChain->present(mbVSyncEnable);
+		}
+	}
+
 	bool CreateResourceView(ID3D11Device* device, DXGI_FORMAT format, int numSamples, uint32 creationFlags, Texture2DCreationResult& outResult)
 	{
 		if (creationFlags & TCF_CreateSRV)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
-
+			desc.Format = format;
 			switch (format)
 			{
 			case DXGI_FORMAT_D16_UNORM:
@@ -313,7 +370,7 @@ namespace Render
 		{
 			if (info.numSamples == 1)
 			{
-				swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
+				//swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
 			}
 		}
 
@@ -490,7 +547,7 @@ namespace Render
 	void* D3D11System::lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
 	{
 		D3D11_MAPPED_SUBRESOURCE mappedData;
-		HRESULT hr = mDeviceContext->Map(resource, 0, D3D11Translate::To(access), 0, &mappedData);
+		HRESULT hr = mDeviceContextImmdiate->Map(resource, 0, D3D11Translate::To(access), 0, &mappedData);
 		if( hr != S_OK )
 		{
 			return nullptr;
@@ -505,7 +562,7 @@ namespace Render
 
 	void D3D11System::RHIUnlockBuffer(RHIBuffer* buffer)
 	{
-		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
+		mDeviceContextImmdiate->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
 	void D3D11System::RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
@@ -521,12 +578,12 @@ namespace Render
 
 		TComPtr<ID3D11Texture2D> stagingTexture;
 		createStagingTexture(D3D11Cast::GetResource(texture), stagingTexture , level);
-		//mDeviceContext->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
-		mDeviceContext->CopySubresourceRegion(stagingTexture, 0 , 0 , 0 , 0 , D3D11Cast::GetResource(texture), level, nullptr);
+		//mDeviceContextImmdiate->CopyResource(stagingTexture, D3D11Cast::GetResource(texture));
+		mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0 , 0 , 0 , 0 , D3D11Cast::GetResource(texture), level, nullptr);
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		mDeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
+		mDeviceContextImmdiate->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
 		memcpy(outData.data(), mappedResource.pData, outData.size());
-		mDeviceContext->Unmap(stagingTexture, level);
+		mDeviceContextImmdiate->Unmap(stagingTexture, level);
 	}
 
 	void D3D11System::RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData)
@@ -557,16 +614,41 @@ namespace Render
 			for (int face = 0; face < ETexture::FaceCount; ++face)
 			{
 				UINT subresource = D3D11CalcSubresource(level, face, texture.getNumMipLevel());
-				mDeviceContext->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0,
+				mDeviceContextImmdiate->CopySubresourceRegion(stagingTexture, 0, 0, 0, 0,
 					D3D11Cast::GetResource(texture),
 					subresource, nullptr);
 				D3D11_MAPPED_SUBRESOURCE mappedResource;
-				mDeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
+				mDeviceContextImmdiate->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
 				memcpy(pData, mappedResource.pData, faceDataSize);
 				pData += faceDataSize;
-				mDeviceContext->Unmap(stagingTexture, 0);
+				mDeviceContextImmdiate->Unmap(stagingTexture, 0);
 			}
 		}
+	}
+
+	bool D3D11System::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		Mutex::Locker locker(mMutexContext);
+
+		auto& textureImpl = static_cast<D3D11Texture2D&>(texture);
+
+		D3D11_BOX box;
+		box.front = 0;
+		box.back = 1;
+		box.left = ox;
+		box.right = ox + w;
+		box.top = oy;
+		box.bottom = oy + h;
+		if (dataWidth)
+		{
+			mDeviceContextImmdiate->UpdateSubresource(textureImpl.mResource, level, &box, data, dataWidth * ETexture::GetFormatSize(texture.getFormat()), dataWidth * h * ETexture::GetFormatSize(texture.getFormat()));
+		}
+		else
+		{
+			mDeviceContextImmdiate->UpdateSubresource(textureImpl.mResource, level, &box, data, w * ETexture::GetFormatSize(texture.getFormat()), w * h * ETexture::GetFormatSize(texture.getFormat()));
+		}
+
+		return true;
 	}
 
 	RHIFrameBuffer* D3D11System::RHICreateFrameBuffer()
@@ -760,6 +842,9 @@ namespace Render
 
 	RHIShader* D3D11System::RHICreateShader(EShader::Type type)
 	{
+		if (type == EShader::Vertex)
+			return new D3D11VertexShader();
+
 		return new D3D11Shader(type);
 	}
 
@@ -770,11 +855,19 @@ namespace Render
 
 
 	template< class TD3D11_TEXTURE_DESC >
-	void SetupTextureDesc(TD3D11_TEXTURE_DESC& desc, uint32 creationFlags)
+	void SetupTextureDesc(TD3D11_TEXTURE_DESC& desc, uint32 creationFlags, bool bDepth = false)
 	{
 		desc.Usage = (creationFlags & TCF_AllowCPUAccess) ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
+
+		if (bDepth)
+		{
+			desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+		}
 		if (creationFlags & TCF_RenderTarget)
+		{
 			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		}
+			
 		if (creationFlags & TCF_CreateSRV)
 			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 		if (creationFlags & TCF_CreateUAV)
@@ -841,8 +934,8 @@ namespace Render
 		d3dDesc.Height = desc.dimension.y;
 		d3dDesc.MipLevels = desc.numMipLevel;
 		d3dDesc.ArraySize = 1;
-		d3dDesc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
-		SetupTextureDesc(d3dDesc, desc.creationFlags);
+		d3dDesc.BindFlags = 0;
+		SetupTextureDesc(d3dDesc, desc.creationFlags, bDepth);
 
 		HRESULT hr;
 		UINT maxQuality = 0;
@@ -855,6 +948,7 @@ namespace Render
 
 		if (desc.creationFlags & TCF_CreateSRV)
 		{
+#if 1
 			switch (d3dDesc.Format)
 			{
 			case DXGI_FORMAT_D16_UNORM:
@@ -870,12 +964,16 @@ namespace Render
 				d3dDesc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
 				break;
 			}
+#endif
 		}
 #if SYS_PLATFORM_WIN
 		if (desc.creationFlags & TCF_PlatformGraphicsCompatible)
 		{
 			d3dDesc.MiscFlags |= D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
-			d3dDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			if (!bDepth)
+			{
+				d3dDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			}
 		}
 #endif
 		TArray< D3D11_SUBRESOURCE_DATA > initDataList;
@@ -912,7 +1010,7 @@ namespace Render
 		if (desc.creationFlags & TCF_GenerateMips)
 		{
 			TComPtr<ID3D11ShaderResourceView> SRV = outResult.SRV;
-			mDeviceContext->GenerateMips(SRV);
+			mDeviceContextImmdiate->GenerateMips(SRV);
 		}
 		return true;
 	}
@@ -1195,13 +1293,10 @@ namespace Render
 		{
 			uint32 mask = mConstBufferValueDirtyMask;
 			mConstBufferValueDirtyMask = 0;
-			for( int index = 0; index < MaxConstBufferNum && mask; ++index )
+			int index;
+			while (FBitUtility::IterateMask< MaxConstBufferNum >(mask, index))
 			{
-				if( mask & BIT(index) )
-				{
-					mask &= ~BIT(index);
-					mConstBuffers[index].commit(context);
-				}
+				mConstBuffers[index].commit(context);
 			}
 		}
 
@@ -1209,13 +1304,10 @@ namespace Render
 		{
 			uint32 mask = mConstBufferDirtyMask;
 			mConstBufferDirtyMask = 0;
-			for( int index = 0; index < MaxSimulatedBoundedBufferNum && mask; ++index )
+			int index;
+			while (FBitUtility::IterateMask< MaxSimulatedBoundedBufferNum >(mask, index))
 			{
-				if( mask & BIT(index) )
-				{
-					mask &= ~BIT(index);	
-					D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, 1, mBoundedConstBuffers + index);
-				}
+				D3D11ShaderTraits<TypeValue>::SetConstBuffers(context, index, 1, mBoundedConstBuffers + index);
 			}
 		}
 
@@ -1231,13 +1323,10 @@ namespace Render
 		{
 			uint32 mask = mSamplerDirtyMask;
 			mSamplerDirtyMask = 0;
-			for( int index = 0; index < MaxSimulatedBoundedSamplerNum && mask; ++index )
+			int index;
+			while (FBitUtility::IterateMask< MaxSimulatedBoundedSamplerNum >(mask, index))
 			{
-				if( mask & BIT(index) )
-				{
-					mask &= ~BIT(index);
-					D3D11ShaderTraits<TypeValue>::SetSamplers(context, index, 1, mBoundedSamplers + index);
-				}
+				D3D11ShaderTraits<TypeValue>::SetSamplers(context, index, 1, mBoundedSamplers + index);
 			}
 		}
 	}
@@ -1301,13 +1390,10 @@ namespace Render
 		{
 			uint32 mask = mSRVDirtyMask;
 			mSRVDirtyMask = 0;
-			for (int index = 0; index <= mMaxSRVBoundIndex && mask; ++index)
+			int index;
+			while ( FBitUtility::IterateMask< MaxSimulatedBoundedSRVNum >(mask, index) )
 			{
-				if (mask & BIT(index))
-				{
-					mask &= ~BIT(index);
-					D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, 1, mBoundedSRVs + index);
-				}
+				D3D11ShaderTraits<TypeValue>::SetShaderResources(context, index, 1, mBoundedSRVs + index);
 			}
 		}
 	}
@@ -1318,13 +1404,10 @@ namespace Render
 		{
 			uint32 mask = mUAVDirtyMask;
 			mUAVDirtyMask = 0;
-			for (int index = 0; index < MaxSimulatedBoundedUAVNum && mask; ++index)
+			int index;
+			while ( FBitUtility::IterateMask< MaxSimulatedBoundedSRVNum >(mask, index) )
 			{
-				if (mask & BIT(index))
-				{
-					mask &= ~BIT(index);
-					context->CSSetUnorderedAccessViews(index, 1, mBoundedUAVs + index, nullptr);
-				}
+				context->CSSetUnorderedAccessViews(index, 1, mBoundedUAVs + index, nullptr);
 			}
 		}
 	}
@@ -1407,13 +1490,9 @@ namespace Render
 
 		rect.left = x;
 		rect.right = x + w;
-#if 1
-		rect.top = vp.Height - (y + h);
-		rect.bottom = vp.Height - (y);
-#else
 		rect.top = y;
 		rect.bottom = y + h;
-#endif
+
 		mDeviceContext->RSSetScissorRects(1, &rect);
 	}
 
@@ -2036,7 +2115,7 @@ namespace Render
 		mVertexShader = stateDesc.vertex;
 		if (mVertexShader)
 		{
-			mVertexShaderByteCode = &static_cast<D3D11Shader*>(mVertexShader)->byteCode;
+			mVertexShaderByteCode = &static_cast<D3D11VertexShader*>(mVertexShader)->byteCode;
 		}
 
 		SetupShader(EShader::Vertex, stateDesc.vertex);
@@ -2457,6 +2536,6 @@ namespace Render
 
 }//namespace Render
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif

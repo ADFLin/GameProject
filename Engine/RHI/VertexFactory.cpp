@@ -5,8 +5,8 @@ namespace Render
 {
 	
 #if CORE_SHARE_CODE
-	VertexFactoryType* VertexFactoryType::DefaultType = &LocalVertexFactory::StaticType;
-	TArray< VertexFactoryType* > VertexFactoryType::TypeList;
+	CORE_API VertexFactoryType* VertexFactoryType::DefaultType = &LocalVertexFactory::StaticType;
+	CORE_API TArray< VertexFactoryType* > VertexFactoryType::TypeList;
 
 	VertexFactoryType::VertexFactoryType(char const* inFileName, ModifyCompilationOptionFunc MCO)
 		:fileName(inFileName)
@@ -21,7 +21,9 @@ namespace Render
 
 	void VertexFactoryType::getCompileOption(ShaderCompileOption& opation)
 	{
-		opation.addInclude(fileName);
+		//opation.addInclude(fileName);
+		opation.addDefine(SHADER_PARAM(VEREX_FACTORY_FILENAME), ShaderCompileOption::GetIncludeFileName(fileName));
+
 		ModifyCompilationOption(opation);
 	}
 

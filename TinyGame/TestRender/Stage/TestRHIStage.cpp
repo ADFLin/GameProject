@@ -151,9 +151,9 @@ namespace Render
 		mCurExample = newExample;
 	}
 
-	bool TestRHIStage::setupRenderSystem(ERenderSystem systemName)
+	bool TestRHIStage::setupRenderResource(ERenderSystem systemName)
 	{
-		BaseClass::setupRenderSystem(systemName);
+		BaseClass::setupRenderResource(systemName);
 
 		VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 		VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());

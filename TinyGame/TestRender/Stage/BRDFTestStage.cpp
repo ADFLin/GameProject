@@ -35,9 +35,9 @@ namespace Render
 		return true;
 	}
 
-	bool BRDFTestStage::setupRenderSystem(ERenderSystem systemName)
+	bool BRDFTestStage::setupRenderResource(ERenderSystem systemName)
 	{
-		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
+		VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
 
 		VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 
@@ -130,7 +130,7 @@ namespace Render
 			GPU_PROFILE("Scene");
 			mSceneRenderTargets.attachDepthTexture();
 			RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
-			RHIClearRenderTargets(commandList, EClearBits::All , &LinearColor(0.2, 0.2, 0.2, 1), 1 , mViewFrustum.bUseReverse ? 0 : 1, 0);
+			RHIClearRenderTargets(commandList, EClearBits::All , &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 			{
 				GPU_PROFILE("SkyBox");

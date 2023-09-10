@@ -191,7 +191,7 @@ namespace Bloxorz
 		SHADER_PERMUTATION_TYPE_BOOL(UseDeferredRendering, SHADER_PARAM(USE_DEFERRED_RENDERING));
 		using PermutationDomain = TShaderPermutationDomain<UseBuiltinScene, UseDeferredRendering>;
 
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
 			static ShaderEntryInfo const entries[] =
 			{
@@ -337,7 +337,7 @@ namespace Bloxorz
 	}
 
 
-	bool TestStage::setupRenderSystem(ERenderSystem systemName)
+	bool TestStage::setupRenderResource(ERenderSystem systemName)
 	{
 		if (GRHISystem->getName() == RHISystemName::OpenGL)
 		{

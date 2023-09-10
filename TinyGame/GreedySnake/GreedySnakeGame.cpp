@@ -68,7 +68,7 @@ namespace GreedySnake
 		systemConfigs.bWasUsedPlatformGraphics = true;
 	}
 
-	bool GameModule::setupRenderSystem(ERenderSystem systemName)
+	bool GameModule::setupRenderResource(ERenderSystem systemName)
 	{
 		return true;
 	}

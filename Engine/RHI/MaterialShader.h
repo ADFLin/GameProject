@@ -43,8 +43,9 @@ namespace Render
 			CreateShaderObjectFunc inCreateShaderObject,
 			SetupShaderCompileOptionFunc inSetupShaderCompileOption,
 			GetShaderFileNameFunc inGetShaderFileName,
-			GetShaderEntriesFunc inGetShaderEntries);
-		using GlobalShaderProgramClass::GlobalShaderProgramClass;
+			GetShaderEntriesFunc inGetShaderEntries,
+			uint32 inPermutationCount);
+		//using GlobalShaderProgramClass::GlobalShaderProgramClass;
 		CORE_API static TArray< MaterialShaderProgramClass* > ClassList;
 	};
 

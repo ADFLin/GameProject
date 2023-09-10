@@ -285,11 +285,23 @@ namespace CPP
 		StringView pathText;
 		if (!mInput.tokenLineString(pathText))
 			PARSE_ERROR("Error include Format");
+
+		std::string expendText;
+		ExpandMarcoResult expandResult;
+		if (!expandMarco(pathText, expendText, expandResult))
+		{
+			return false;
+		}
+		if (expandResult.isExpanded())
+		{
+			pathText = expendText;
+		}
+
 		if (pathText.size() < 2)
 			PARSE_ERROR("Error include Format");
 
 		bool bSystemPath = false;
-		if (pathText[1] == '\"')
+		if (pathText[0] == '\"')
 		{
 			if (pathText[pathText.size() - 1] != '\"')
 				PARSE_ERROR("Error include Format");
@@ -301,6 +313,10 @@ namespace CPP
 
 			bSystemPath = true;
 		}
+		else
+		{
+			PARSE_ERROR("Error include Format");
+		}
 
 		StringView path{ pathText.data() + 1 , pathText.size() - 2 };
 		if (path.size() == 0)
@@ -308,9 +324,10 @@ namespace CPP
 			PARSE_ERROR("No include file Name");
 		}
 
+
 		std::string fullPath;
 		if (!findFile(path.toStdString(), fullPath))
-			PARSE_ERROR("Can't find include file : %s", fullPath.c_str() );
+			PARSE_ERROR("Can't find include file : %s", fullPath.c_str());
 
 		skipToNextLine();
 
@@ -343,13 +360,13 @@ namespace CPP
 			InputEntry entry;
 			entry.input = mInput;
 
-			entry.onChildFinish = [this,path]()
+			entry.onChildFinish = [this, savedPath = path.toStdString() ]()
 			{
 				mOutput->pushEoL();
 				if (bCommentIncludeFileName)
 				{
 					mOutput->push("//~Include ");
-					mOutput->push(path);
+					mOutput->push(savedPath);
 					mOutput->pushEoL();
 				}
 
@@ -1125,6 +1142,12 @@ namespace CPP
 		ExpandMarcoResult expandResult;
 		LineStringViewCode codeView(lineText);
 		return expandMarcoInternal(codeView, outText, expandResult);
+	}
+
+	bool Preprocessor::expandMarco(StringView const& lineText, std::string& outText, ExpandMarcoResult& outExpandResult)
+	{
+		LineStringViewCode codeView(lineText);
+		return expandMarcoInternal(codeView, outText, outExpandResult);
 	}
 
 	bool Preprocessor::checkIdentifierToExpand(StringView const& id, class LineStringViewCode& code, std::string& outText, ExpandMarcoResult& outResult)

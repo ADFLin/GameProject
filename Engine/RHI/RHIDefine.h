@@ -61,6 +61,13 @@ namespace Render
 		Back ,
 	};
 
+	struct FRHIZBuffer
+	{
+		static int constexpr FarPlane = 0;
+		static int constexpr NearPlane = 1;
+		static bool constexpr IsInverted = FarPlane < NearPlane;
+	};
+
 	enum class ECompareFunc
 	{
 		Never,
@@ -69,8 +76,14 @@ namespace Render
 		NotEqual,
 		LessEqual,
 		Greater,
-		GeraterEqual,
+		GreaterEqual,
 		Always,
+
+		DepthNear = FRHIZBuffer::IsInverted ? Greater : Less,
+		DepthNearEqual = FRHIZBuffer::IsInverted ? GreaterEqual : LessEqual,
+
+		DepthFarther = FRHIZBuffer::IsInverted ? Less : Greater,
+		DepthFartherEqual = FRHIZBuffer::IsInverted ? LessEqual : GreaterEqual,
 	};
 
 

@@ -9,6 +9,7 @@
 
 #include "Renderer/Mesh.h"
 #include "Renderer/BasePassRendering.h"
+#include "Renderer/ShadowDepthRendering.h"
 #include "Renderer/SceneLighting.h"
 
 //#REMOVE ME
@@ -29,23 +30,6 @@ namespace Render
 	class RenderContext;
 	struct LightInfo;
 
-
-
-	struct ShadowProjectParam
-	{
-		static int const MaxCascadeNum = 8;
-		LightInfo const*   light;
-		RHITextureBase* shadowTexture;
-		Matrix4      shadowMatrix[8];
-		Vector3      shadowParam;
-
-		int          numCascade;
-		float        cacadeDepth[MaxCascadeNum];
-
-		void setupLight(LightInfo const& inLight);
-
-		void setupShader(RHICommandList& commandList, ShaderProgram& program) const;
-	};
 
 
 
@@ -80,9 +64,9 @@ namespace Render
 		void renderShadowDepth(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene, ShadowProjectParam& shadowProjectParam);
 		void calcCascadeShadowProjectInfo(ViewInfo &view, LightInfo const &light, float depthParam[2], Matrix4 &worldToLight, Matrix4 &shadowProject);
 
-		static void determineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[]);
+		static void DetermineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[]);
 
-		void drawShadowTexture(RHICommandList& commandList, LightType type, Matrix4 const& porjectMatrix, IntVector2 const& pos, int length);
+		void drawShadowTexture(RHICommandList& commandList, ELightType type, Matrix4 const& porjectMatrix, IntVector2 const& pos, int length);
 		void reload();
 
 		//RenderTechnique
@@ -328,7 +312,7 @@ namespace Render
 		RHIFrameBufferRef   mLightingDepthBuffer;
 		class DeferredLightingProgram* mProgLightingScreenRect[3];
 		class DeferredLightingProgram* mProgLighting[3];
-		class DeferredLightingProgram* mProgLightingShowBound;
+		class LightingShowBoundProgram* mProgLightingShowBound;
 
 		FrameRenderTargets* mSceneRenderTargets;
 

@@ -783,7 +783,7 @@ namespace SBlocks
 		bool onWidgetEvent(int event, int id, GWidget* ui) override;
 	public:
 		ERenderSystem getDefaultRenderSystem() override;
-		bool setupRenderSystem(ERenderSystem systemName) override;
+		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
 
 		Tween::GroupTweener< float > mTweener;

@@ -146,7 +146,7 @@ namespace Render
 
 			void exit() 
 			{
-				exitFun();
+				exitFunc();
 				wglMakeCurrent(nullptr, nullptr);
 				wglDeleteContext(hLoadRC);
 
@@ -155,7 +155,7 @@ namespace Render
 			HDC   hDC;
 			HGLRC hLoadRC;
 			std::function< void() > loadingFunc;
-			std::function< void() > exitFun;
+			std::function< void() > exitFunc;
 		};
 
 		DrawEngine& de = ::Global::GetDrawEngine();
@@ -248,7 +248,7 @@ namespace Render
 			}
 
 		};
-		loadingTask->exitFun = [this]()
+		loadingTask->exitFunc = [this]()
 		{
 			mGpuSync.bUseFence = false;
 			mLoadingThread = nullptr;
@@ -562,8 +562,8 @@ namespace Render
 		for( int i = 0; i < num; ++i )
 		{
 			LightInfo light;
-			light.type = ( rand() % 2 ) ? LightType::Spot : LightType::Point;
-			light.type = LightType::Point;
+			light.type = ( rand() % 2 ) ? ELightType::Spot : ELightType::Point;
+			light.type = ELightType::Point;
 			light.pos = RandVector(Vector3(-68, -26, 0), Vector3(68, 26, 40));
 			light.color = RandVector();
 			light.intensity = RandFloat(50, 100);
@@ -602,7 +602,7 @@ namespace Render
 		for( int i = 0; i < LightNum; ++i )
 		{
 			LightInfo& light = mLights[i];
-			light.type = LightType::Point;
+			light.type = ELightType::Point;
 			light.pos = pos[i];
 			light.color = color[i];
 			light.intensity = intensity[i];
@@ -613,7 +613,7 @@ namespace Render
 
 		if(0)
 		{
-			mLights[0].type = LightType::Directional;
+			mLights[0].type = ELightType::Directional;
 			mLights[0].dir = Vector3(-1, 1, -1);
 			mLights[0].intensity = 3;
 			mLights[0].bCastShadow = false;
@@ -622,7 +622,7 @@ namespace Render
 		if(1)
 		{
 			LightInfo& light = mLights[0];
-			light.type = LightType::Spot;
+			light.type = ELightType::Spot;
 			light.dir = Vector3(0, 0.2, -1);
 			light.spotAngle.x = 45;
 			light.spotAngle.y = 45;

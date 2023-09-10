@@ -66,12 +66,27 @@ namespace Render
 			var.value = FStringConv::From(value);
 			mConfigVars.push_back(std::move(var));
 		}
+		void addDefine(char const* name, char const* value)
+		{
+			ConfigVar var;
+			var.name = name;
+			var.value = value;
+			mConfigVars.push_back(std::move(var));
+		}
+		void addDefine(char const* name, std::string const& value)
+		{
+			ConfigVar var;
+			var.name = name;
+			var.value = value;
+			mConfigVars.push_back(std::move(var));
+		}
 		void addDefine(char const* name)
 		{
 			ConfigVar var;
 			var.name = name;
 			mConfigVars.push_back(std::move(var));
 		}
+		
 		void addCode(char const* name)
 		{
 			mCodes.push_back(name);
@@ -111,6 +126,7 @@ namespace Render
 			return FCString::CompareIgnoreCase(str, value) == 0;
 		}
 
+		static std::string GetIncludeFileName(char const* name);
 		struct ConfigVar
 		{
 			std::string name;

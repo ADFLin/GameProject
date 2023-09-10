@@ -134,7 +134,7 @@ PS_ENTRY_END(MainPS)
 {
 	float3  cameraDir = normalize(VSOutput.cameraOffset);
 	float t;
-	if( !RaySphereTest(View.worldPos, cameraDir, Sphere.worldPos, Sphere.radius, t) )
+	if( RaySphereTest(View.worldPos, cameraDir, Sphere.worldPos, Sphere.radius, t) == 0 )
 	{
 #define USE_ALPHA_TO_COVERAGE 1
 		float alpha = saturate(Remap(abs(Sphere.radius - t), 0, 0.19, 1, 0));

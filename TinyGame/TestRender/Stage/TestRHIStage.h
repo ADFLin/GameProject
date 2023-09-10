@@ -68,7 +68,7 @@ namespace Render
 		void changeExample(HashString name);
 
 
-		virtual bool setupRenderSystem(ERenderSystem systemName) override;
+		virtual bool setupRenderResource(ERenderSystem systemName) override;
 
 		TestExample* mCurExample = nullptr;
 		

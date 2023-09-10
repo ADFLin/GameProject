@@ -432,38 +432,17 @@ namespace Go
 				{
 					mBot.reset(Zen::TBotCore<7>::Create<Zen::TBotCore<7>>());
 					mbWaitInitialize = true;
-					auto work = new InitializeWork(*this);
-					work->start();
+					Async([this]()
+					{
+						if (!mBot->initialize())
+						{
+							mBot.release();
+						}
+						mbWaitInitialize = false;
+					});
 				}
-
 				return !mbWaitInitialize;
 			}
-
-			struct InitializeWork : public RunnableThreadT<InitializeWork >
-			{
-			public:
-				InitializeWork(GameStatusQuery& query)
-					:mQuery(query)
-				{
-				}
-
-				unsigned run()
-				{
-					if( !mQuery.mBot->initialize() )
-					{
-						mQuery.mBot.release();
-					}
-					return 0;
-				}
-				void exit() 
-				{ 
-					mQuery.mbWaitInitialize = false;
-					delete this;
-				}
-
-				GameStatusQuery& mQuery;
-
-			};
 
 			volatile bool mbWaitInitialize = false;
 			Guid mLastQueryId;
@@ -537,7 +516,7 @@ namespace Go
 			systemConfigs.screenHeight = 720;
 			systemConfigs.numSamples = 1;
 		}
-		bool setupRenderSystem(ERenderSystem systemName);
+		bool setupRenderResource(ERenderSystem systemName);
 		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::OpenGL; }
 
 		void preShutdownRenderSystem(bool bReInit /*= false*/);

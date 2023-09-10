@@ -12,11 +12,13 @@
 #include "Asset.h"
 
 #include <cstdlib>
+#include "ProfileSystem.h"
 
 
 TINY_API IGameNetInterface* GGameNetInterfaceImpl = nullptr;
 TINY_API IDebugInterface* GDebugInterfaceImpl = nullptr;
 TINY_API uint32 GGameThreadId = 0;
+TINY_API IEditor* GEditor = nullptr;
 
 DataCacheInterface* GGameDataCache = nullptr;
 
@@ -39,7 +41,9 @@ static Well512 GWellRng;
 void Global::Initialize()
 {
 	GGameThreadId = PlatformThread::GetCurrentThreadId();
+	PlatformThread::SetThreadName(GGameThreadId, "GameThread");
 	GGameDataCache = DataCacheInterface::Create("DataCache");
+	ProfileSystem::Get().setThreadName(GGameThreadId, "GameThread");
 }
 
 void Global::Finalize()
@@ -124,6 +128,15 @@ GameModuleManager& Global::ModuleManager()
 IGameInstance* Global::GameInstacne()
 {
 	return nullptr;
+}
+
+IEditor* Global::Editor()
+{
+#if TINY_WITH_EDITOR
+	return GEditor;
+#else
+	return nullptr;
+#endif
 }
 
 AssetManager& Global::GetAssetManager()

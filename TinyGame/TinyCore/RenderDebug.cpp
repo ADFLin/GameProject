@@ -57,53 +57,33 @@ namespace Render
 	void TextureShowFrame::onRender()
 	{
 		RHIGraphics2D& g = Global::GetRHIGraphics2D();
+
 		if (handle && handle->texture.isValid())
 		{
 			updateSize();
 
 			Vec2i pos = getWorldPos();
 			Vec2i size = getSize();
-
-			auto VFlip = [](Vec2i& pos, Vec2i& size)
-			{
-				pos.y += size.y;
-				size.y = -size.y;
-			};
-
-			GrapthicStateScope Scope(g);
-			RHISetBlendState(g.getCommandList(), TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
-
 			switch (handle->texture->getType())
 			{
 			case ETexture::Type2D:
 				{
-					RHITexture2D* texture = static_cast< RHITexture2D*>( handle->texture.get() );
-
-					//VFlip(pos, size);
-#if 1
-					DrawUtility::DrawTexture(g.getCommandList(), g.getBaseTransform(), *texture, pos, size);
-#else
-					g.setBrush(Color3f::White());
-					g.setSampler(TStaticSamplerState<ESampler::Bilinear, ESampler::Clamp, ESampler::Clamp >::GetRHI());
-
-					if (1)
+					RHITexture2D* texture = static_cast<RHITexture2D*>(handle->texture.get());
+					g.drawCustomFunc([texture, pos, size, &g](RHICommandList& commandList, RenderBatchedElement& element)
 					{
-						g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, 0), Vec2i(1, 1));
-					}
-					else
-					{
-						g.drawTexture(*texture, getWorldPos(), getSize(), Vec2i(0, 1), Vec2i(1, -1));
-					}
-#endif
+						RHISetBlendState(g.getCommandList(), TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+						DrawUtility::DrawTexture(commandList, g.getBaseTransform(), *texture, pos, size);
+					});
 				}
 				break;
 			case ETexture::TypeCube:
 				{
 					RHITextureCube* texture = static_cast<RHITextureCube*>(handle->texture.get());
-					//VFlip(pos, size);
-
-					DrawUtility::DrawCubeTexture(g.getCommandList(), g.getBaseTransform(), *texture, pos, size);
-
+					g.drawCustomFunc([texture, pos, size, &g](RHICommandList& commandList, RenderBatchedElement& element)
+					{
+						RHISetBlendState(g.getCommandList(), TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+						DrawUtility::DrawCubeTexture(commandList, g.getBaseTransform(), *texture, pos, size);
+					});
 				}
 				break;
 			default:

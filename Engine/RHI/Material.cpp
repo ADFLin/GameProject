@@ -2,7 +2,6 @@
 
 #include "RHICommand.h"
 #include "ShaderManager.h"
-#include "VertexFactory.h"
 #include "FileSystem.h"
 
 namespace Render
@@ -136,9 +135,9 @@ namespace Render
 		cleanup();
 	}
 
-	MaterialShaderProgram* MaterialShaderMap::getShader(MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey )
+	MaterialShaderProgram* MaterialShaderMap::getShader(MaterialShaderProgramClass const& shaderClass, uintptr_t uniqueHashKey, uint32 permutationId)
 	{
-		MaterialShaderKey key{ &shaderClass , uniqueHashKey };
+		MaterialShaderKey key{ &shaderClass , uniqueHashKey, permutationId };
 		auto iter = mShaderMap.find(key);
 		if (iter == mShaderMap.end())
 		{
@@ -146,19 +145,6 @@ namespace Render
 		}
 
 		return iter->second;
-	}
-
-	MaterialShaderProgram* MaterialShaderMap::loadShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey)
-	{
-		MaterialShaderProgram* shaderProgram = ShaderManager::Get().loadMaterialShader(info, shaderClass);
-
-		if (shaderProgram)
-		{
-			MaterialShaderKey key{ &shaderClass , uniqueHashKey };
-			mShaderMap.emplace(key, shaderProgram);
-		}
-
-		return shaderProgram;
 	}
 
 	void MaterialShaderMap::cleanup()
@@ -178,27 +164,19 @@ namespace Render
 		return path;
 	}
 
-
 	bool MaterialShaderMap::load(MaterialShaderCompileInfo const& info)
 	{
 		cleanup();
 
-		for( auto pVertexFactoryType : VertexFactoryType::TypeList )
+		TArray<MaterialLoadResult> shaderResults;
+		int numShaders = ShaderManager::Get().loadMeshMaterialShaders(info, shaderResults);
+
+		if (numShaders == 0)
+			return false;
+
+		for (auto const& result : shaderResults)
 		{
-			if (pVertexFactoryType != &LocalVertexFactory::StaticType)
-			{
-				continue;
-			}
-			MaterialShaderPairVec shaderPairs;
-			int numShaders = ShaderManager::Get().loadMeshMaterialShaders(info , *pVertexFactoryType, shaderPairs);
-
-			if( numShaders == 0 )
-				return false;
-
-			for( auto pair : shaderPairs )
-			{
-				mShaderMap.emplace( MaterialShaderKey( pair.first , uint32(pVertexFactoryType) ) , pair.second);
-			}
+			mShaderMap.emplace(MaterialShaderKey(result.programClass, uintptr_t(result.factoryType), result.permutationId), result.program);
 		}
 
 		return true;

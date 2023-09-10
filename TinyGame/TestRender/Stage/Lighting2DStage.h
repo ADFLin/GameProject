@@ -122,7 +122,7 @@ namespace Render
 		{
 			return ERenderSystem::D3D11;
 		}
-		bool setupRenderSystem(ERenderSystem systemName) override;
+		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
 
 		void onUpdate( long time ) override;

@@ -63,8 +63,8 @@ namespace Render
 			mResource.release();
 		}
 
-		bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode);
-		bool initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode);
+		virtual bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode);
+		virtual bool initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode);
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) 
 		{ 
 			return outParam.bind(mParameterMap, name);
@@ -83,9 +83,32 @@ namespace Render
 		}
 
 		static bool GenerateParameterMap(TArrayView<uint8 const> const& byteCode, ShaderParameterMap& parameterMap, D3DShaderParamInfo& outParamInfo);
-		TArray< uint8 >      byteCode;
 		D3D11ShaderData      mResource;
 		ShaderParameterMap   mParameterMap;
+	};
+
+	class D3D11VertexShader : public D3D11Shader
+	{
+		using BaseClass = D3D11Shader;
+	public:
+		D3D11VertexShader(): D3D11Shader(EShader::Vertex){}
+
+		virtual bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode)
+		{
+			if (!BaseClass::initialize(device, inByteCode))
+				return false;
+			byteCode.assign((uint8*)inByteCode->GetBufferPointer(), (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
+		}
+
+		virtual bool initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode)
+		{
+			if (!BaseClass::initialize(device, std::move(inByteCode)))
+				return false;
+
+			byteCode = std::move(inByteCode);
+		}
+
+		TArray< uint8 >      byteCode;
 	};
 
 	class D3D11ShaderProgram : public TRefcountResource< RHIShaderProgram >

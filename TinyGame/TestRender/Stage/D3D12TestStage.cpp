@@ -127,7 +127,7 @@ namespace Render
 			return false;
 		}
 
-		virtual bool setupRenderSystem(ERenderSystem systemName) override
+		virtual bool setupRenderResource(ERenderSystem systemName) override
 		{
 			// Create the pipeline state, which includes compiling and loading shaders.
 			{

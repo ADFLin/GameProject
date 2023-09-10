@@ -43,7 +43,7 @@ namespace Literal
 	};
 }
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #define RHI_TRACE_FUNC_NAME(NAME) NAME##Trace
 #define RHI_TRACE_FUNC( NAME , ... ) RHI_TRACE_FUNC_NAME(NAME)(RHI_TRACE_PARAM_DESC, ##__VA_ARGS__)
 
@@ -84,6 +84,7 @@ namespace Render
 		int  numSamples;
 		bool bVSyncEnable;
 		bool bDebugMode;
+		bool bMultithreadingSupported;
 
 #if SYS_PLATFORM_WIN
 		HWND hWnd;
@@ -94,17 +95,18 @@ namespace Render
 			numSamples = 1;
 			bVSyncEnable = true;
 			bDebugMode = false;
+			bMultithreadingSupported = false;
 		}
 
 	};
 
 
 	RHI_API bool RHISystemInitialize(RHISystemName name , RHISystemInitParams const& initParam );
-	RHI_API void RHIPreSystemShutdown();
 	RHI_API void RHISystemShutdown();
 	RHI_API bool RHISystemIsSupported(RHISystemName name);
 	RHI_API bool RHIBeginRender();
 	RHI_API void RHIEndRender(bool bPresent);
+	RHI_API void RHIClearResourceReference();
 
 	struct SwapChainCreationInfo
 	{
@@ -185,6 +187,8 @@ namespace Render
 
 	RHI_API void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 	RHI_API void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
+
+	RHI_API bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level = 0, int dataWidth = 0);
 
 	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
@@ -275,7 +279,7 @@ namespace Render
 	FORCEINLINE EClearBits operator | (EClearBits a, EClearBits b) { return EClearBits(uint8(a) | uint8(b)); }
 	FORCEINLINE bool HaveBits( EClearBits a , EClearBits b ) { return !!(uint8(a) & uint8(b)); }
 
-	RHI_API void RHIClearRenderTargets(RHICommandList& commandList, EClearBits clearBits , LinearColor colors[] ,int numColor , float depth = 1.0 , uint8 stenceil = 0 );
+	RHI_API void RHIClearRenderTargets(RHICommandList& commandList, EClearBits clearBits , LinearColor colors[] ,int numColor , float depth = (float)FRHIZBuffer::FarPlane , uint8 stenceil = 0 );
 
 	RHI_API void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
@@ -362,7 +366,7 @@ namespace Render
 		virtual ~RHISystem(){}
 		virtual RHISystemName getName() const = 0;
 		virtual bool initialize(RHISystemInitParams const& initParam) { return true; }
-		virtual void preShutdown(){}
+		virtual void clearResourceReference(){}
 		virtual void shutdown(){}
 		virtual class ShaderFormat* createShaderFormat() { return nullptr; }
 		
@@ -386,6 +390,8 @@ namespace Render
 		RHI_FUNC(void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData));
 		RHI_FUNC(void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData));
 
+		RHI_FUNC(bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth));
+
 		//RHI_FUNC(void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset, uint32 size));
 		//RHI_FUNC(void  RHIUnlockTexture(RHITextureBase* texture));
 
@@ -403,7 +409,7 @@ namespace Render
 		RHI_FUNC(RHIShaderProgram* RHICreateShaderProgram());
 	};
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 

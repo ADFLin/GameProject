@@ -220,6 +220,8 @@
     <None Include="..\TinyGame\out\Shader\Game\ZumaShaders.sgc">
       <Filter>Game</Filter>
     </None>
+    <None Include="..\TinyGame\out\Shader\VertexFactory.sgc" />
+    <None Include="..\TinyGame\out\Shader\Material.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

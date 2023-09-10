@@ -19,9 +19,10 @@
 
 
 
-#define USE_RHI_RESOURCE_TRACE 0
+#define RHI_USE_RESOURCE_TRACE 1
+#define RHI_CHECK_RESOURCE_HASH 1
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #define TRACE_TYPE_NAME(str) str
 #else 
 #define TRACE_TYPE_NAME(...)
@@ -49,6 +50,7 @@ namespace Render
 	class RHIRasterizerState;
 	class RHIDepthStencilState;
 	class RHIBlendState;
+	class RHISamplerState;
 
 	class RHIShader;
 	class RHIShaderProgram;
@@ -151,24 +153,35 @@ namespace Render
 			SRGBA ,
 
 
+
+			DEPTH_STENCIL_FORMAT_START,
+			DEPTH_FORMAT_START = DEPTH_STENCIL_FORMAT_START,
+
+			ShadowDepth = DEPTH_FORMAT_START,
 			Depth16,
 			Depth24,
 			Depth32,
 			Depth32F,
 
-			D24S8,
+
+			STENCIL_FORMAT_START,
+
+			D24S8 = STENCIL_FORMAT_START,
 			D32FS8,
 
+			DEPTH_FORMAT_END = D32FS8,
+	
 			Stencil1,
 			Stencil4,
 			Stencil8,
 			Stencil16,
 
+			STENCIL_FORMAT_END = Stencil16,
+			DEPTH_STENCIL_FORMAT_END = STENCIL_FORMAT_END,
+
 			FloatRGBA = RGBA16F,
 		};
 
-		static constexpr int DepthStencilFormatStart = Depth16;
-		static constexpr int DepthStencilFormatEnd = Stencil16;
 		enum Face
 		{
 			FaceX    = 0,
@@ -191,22 +204,15 @@ namespace Render
 
 		static bool IsDepthStencil(Format format)
 		{
-			return DepthStencilFormatStart <= format && format <= DepthStencilFormatEnd;
+			return DEPTH_STENCIL_FORMAT_START <= format && format <= DEPTH_STENCIL_FORMAT_END;
 		}
 		static bool ContainDepth(Format format)
 		{
-			return format == Depth16 ||
-				   format == Depth24 ||
-				   format == Depth32 ||
-				   format == Depth32F ||
-				   format == D24S8    ||
-				   format == D32FS8;
-
+			return DEPTH_FORMAT_START <= format && format <= DEPTH_FORMAT_END;
 		}
 		static bool ContainStencil(Format format)
 		{
-			return format == D24S8 || format == D32FS8 || format == D32FS8 || 
-				   format == Stencil1 || format == Stencil8 || format == Stencil4 || format == Stencil16;
+			return STENCIL_FORMAT_START <= format && format <= STENCIL_FORMAT_END;
 		}
 	};
 
@@ -245,17 +251,6 @@ namespace Render
 		int  mLineNumber;
 	};
 
-	class IRHIResourceIdentify
-	{
-	public:
-		virtual uint32 getStateHash(RHIRasterizerState& state) = 0;
-		virtual uint32 getStateHash(RHIDepthStencilState& state) = 0;
-		virtual uint32 getStateHash(RHIBlendState& state) = 0;
-		virtual bool identifyState(RHIRasterizerState& stateA, RHIRasterizerState& stateB) = 0;
-		virtual bool identifyState(RHIDepthStencilState& stateA, RHIDepthStencilState& stateB) = 0;
-		virtual bool identifyState(RHIBlendState& stateA, RHIBlendState& stateB) = 0;
-	};
-
 	struct CORE_API FRHIResourceTable
 	{
 		static void Initialize();
@@ -267,25 +262,44 @@ namespace Render
 		static void Register(RHIRasterizerState& state);
 		static void Register(RHIDepthStencilState& state);
 		static void Register(RHIBlendState& state);
+
+		static void Register(RHIInputLayout& inputLayout, uint32 key);
+		static void Register(RHIRasterizerState& state, uint32 key);
+		static void Register(RHIDepthStencilState& state, uint32 key);
+		static void Register(RHIBlendState& state, uint32 key);
+		static void Register(RHISamplerState& state, uint32 key);
+
+		static RHIInputLayout* QueryResource(uint32 hash, RHIInputLayout*);
+		static RHIRasterizerState* QueryResource(uint32 hash, RHIRasterizerState*);
+		static RHIDepthStencilState* QueryResource(uint32 hash, RHIDepthStencilState*);
+		static RHIBlendState* QueryResource(uint32 hash, RHIBlendState*);
+		static RHISamplerState* QueryResource(uint32 hash, RHISamplerState*);
 	};
 
 	class RHIResource : public Noncopyable
 	{
 	public:
-#if USE_RHI_RESOURCE_TRACE
+		template< typename TRHIResource >
+		static TRHIResource* QueryResource(uint32 hash)
+		{
+			return FRHIResourceTable::QueryResource(hash, (TRHIResource*)0);
+		}
+
+
+#if RHI_USE_RESOURCE_TRACE
 		RHIResource(char const* typeName)
 			:mTypeName(typeName)
 #else
 		RHIResource()
 #endif
 		{
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 			RegisterResource(this);
 #endif
 		}
 		virtual ~RHIResource()
 		{
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 			UnregisterResource(this);
 #endif
 		}
@@ -304,7 +318,7 @@ namespace Render
 
 
 		static CORE_API void DumpResource();
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 		static CORE_API void SetNextResourceTag(char const* tag, int count);
 		static CORE_API void RegisterResource(RHIResource* resource);
 		static CORE_API void UnregisterResource(RHIResource* resource);
@@ -405,7 +419,7 @@ namespace Render
 	class RHITextureBase : public RHIResource
 	{
 	public:
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 		RHITextureBase(char const* name)
 			:RHIResource(name)
 #else
@@ -455,8 +469,10 @@ namespace Render
 		{
 		}
 
+#if 0
 		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
+#endif
 
 		int  getSizeX() const { return mDesc.dimension.x; }
 		int  getSizeY() const { return mDesc.dimension.y; }
@@ -748,6 +764,8 @@ namespace Render
 
 		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, EVertex::Format f, bool bNormailzed = false, bool bInstanceData = false, int instanceStepRate = 0);
 
+		InputLayoutDesc&   addElement(InputElementDesc const& element);
+
 		void setElementUnusable(uint8 attribute);
 
 		InputElementDesc const* findElementByAttribute(uint8 attribute) const;
@@ -837,6 +855,9 @@ namespace Render
 		}
 
 		uint32 mGUID;
+#if RHI_CHECK_RESOURCE_HASH
+		InputLayoutDesc mSetupValue;
+#endif
 	};
 
 
@@ -876,6 +897,31 @@ namespace Render
 		ESampler::AddressMode addressU;
 		ESampler::AddressMode addressV;
 		ESampler::AddressMode addressW;
+
+		bool operator == (SamplerStateInitializer const& rhs) const
+		{
+#define MEMBER_OP( M ) if ( M != rhs.M ) return false
+			MEMBER_OP(filter);
+			MEMBER_OP(addressU);
+			MEMBER_OP(addressV);
+			MEMBER_OP(addressW);
+#undef MEMBER_OP
+			return true;
+		}
+
+		bool operator != (SamplerStateInitializer const& rhs) const
+		{
+			return !this->operator==(rhs);
+		}
+
+		uint32 getTypeHash() const
+		{
+			uint32 hash = HashValue(filter);
+			hash = HashCombine(hash, addressU);
+			hash = HashCombine(hash, addressV);
+			hash = HashCombine(hash, addressW);
+			return hash;
+		}
 	};
 
 	class RHISamplerState : public RHIResource
@@ -883,6 +929,11 @@ namespace Render
 	public:
 		RHISamplerState() :RHIResource(TRACE_TYPE_NAME("SamplerState")) {}
 		uint32 mGUID = 0;
+
+
+#if RHI_CHECK_RESOURCE_HASH
+		SamplerStateInitializer mSetupValue;
+#endif
 	};
 
 
@@ -893,6 +944,23 @@ namespace Render
 		EFrontFace frontFace;
 		bool       bEnableScissor;
 		bool       bEnableMultisample;
+
+		bool operator == (RasterizerStateInitializer const& rhs) const
+		{
+#define MEMBER_OP( M ) if ( M != rhs.M ) return false
+			MEMBER_OP(fillMode);
+			MEMBER_OP(cullMode);
+			MEMBER_OP(frontFace);
+			MEMBER_OP(bEnableScissor);
+			MEMBER_OP(bEnableMultisample);
+#undef MEMBER_OP
+			return true;
+		}
+
+		bool operator != (RasterizerStateInitializer const& rhs) const
+		{
+			return !this->operator==(rhs);
+		}
 	};
 
 	class RHIRasterizerState : public RHIResource
@@ -903,6 +971,9 @@ namespace Render
 			FRHIResourceTable::Register(*this);
 		}
 		uint32 mGUID = 0;
+#if RHI_CHECK_RESOURCE_HASH
+		RasterizerStateInitializer mSetupValue;
+#endif
 	};
 
 
@@ -923,6 +994,31 @@ namespace Render
 		uint32 stencilWriteMask;
 		bool   bWriteDepth;
 
+		bool operator == (DepthStencilStateInitializer const& rhs) const
+		{
+#define MEMBER_OP( M ) if ( M != rhs.M ) return false
+			MEMBER_OP(depthFunc);
+			MEMBER_OP(bEnableStencilTest);
+			MEMBER_OP(stencilFunc);
+			MEMBER_OP(stencilFailOp);
+			MEMBER_OP(zFailOp);
+			MEMBER_OP(zPassOp);
+			MEMBER_OP(stencilFuncBack);
+			MEMBER_OP(stencilFailOpBack);
+			MEMBER_OP(zFailOpBack);
+			MEMBER_OP(zPassOpBack);
+			MEMBER_OP(stencilReadMask);
+			MEMBER_OP(stencilWriteMask);
+			MEMBER_OP(bWriteDepth);
+#undef MEMBER_OP
+			return true;
+		}
+
+		bool operator != (DepthStencilStateInitializer const& rhs) const
+		{
+			return !this->operator==(rhs);
+		}
+
 
 		bool isDepthEnable() const
 		{
@@ -939,6 +1035,9 @@ namespace Render
 			FRHIResourceTable::Register(*this);
 		}
 		uint32 mGUID = 0;
+#if RHI_CHECK_RESOURCE_HASH
+		DepthStencilStateInitializer mSetupValue;
+#endif
 	};
 
 	constexpr int MaxBlendStateTargetCount = 4;
@@ -954,6 +1053,20 @@ namespace Render
 			EBlend::Factor    srcAlpha;
 			EBlend::Factor    destAlpha;
 
+			bool operator == (TargetValue const& rhs) const
+			{
+#define MEMBER_OP( M ) if ( M != rhs.M ) return false
+				MEMBER_OP(writeMask);
+				MEMBER_OP(op);
+				MEMBER_OP(srcColor);
+				MEMBER_OP(destColor);
+				MEMBER_OP(opAlpha);
+				MEMBER_OP(srcAlpha);
+				MEMBER_OP(destAlpha);
+#undef MEMBER_OP
+				return true;
+			}
+
 			bool isEnabled() const
 			{
 				return (srcColor != EBlend::One) || (srcAlpha != EBlend::One) || (destColor != EBlend::Zero) || (destAlpha != EBlend::Zero);
@@ -962,6 +1075,20 @@ namespace Render
 		bool bEnableAlphaToCoverage;
 		bool bEnableIndependent;
 		TargetValue    targetValues[MaxBlendStateTargetCount];
+
+		bool operator == (BlendStateInitializer const& rhs) const
+		{
+#define MEMBER_OP( M ) if ( M != rhs.M ) return false
+			MEMBER_OP(bEnableAlphaToCoverage);
+			MEMBER_OP(bEnableIndependent);
+			for (int i = 0; i < MaxBlendStateTargetCount; ++i)
+			{
+				if (!(targetValues[i] == rhs.targetValues[i]))
+					return false;
+			}
+#undef MEMBER_OP
+			return true;
+		}
 	};
 
 	class RHIBlendState : public RHIResource
@@ -972,6 +1099,9 @@ namespace Render
 			FRHIResourceTable::Register(*this);
 		}
 		uint32 mGUID;
+#if RHI_CHECK_RESOURCE_HASH
+		BlendStateInitializer mSetupValue;
+#endif
 	};
 
 	class RHIPipelineState : public RHIResource
@@ -1158,7 +1288,7 @@ namespace Render
 }//namespace Render
 
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #define TRACE_RESOURCE_TAG( TAG ) ::Render::RHIResource::SetNextResourceTag( TAG , 1 )
 struct ScopedTraceTag
 {

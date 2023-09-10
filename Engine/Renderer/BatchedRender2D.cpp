@@ -18,6 +18,18 @@ namespace Render
 	constexpr int MaxIndicesCount = 4 * 2048 * 3;
 	constexpr uint32 TexVertexFormat = (Meta::IsSameType< ShapePaintArgs::Color4Type, Color4f >::Value) ? RTVF_XY_CA_T2 : RTVF_XY_CA8_T2;
 
+
+	static inline int GetCircleSemgmentNum(float r)
+	{
+#if 1
+		constexpr float Error = 0.3f;
+		constexpr int SegmentAlign = 4;
+		return Math::Max(32, SegmentAlign * ((Math::CeilToInt(Math::PI / Math::ACos(1 - Error / r)) + SegmentAlign - 1) / SegmentAlign));
+#else
+		return std::max(4 * (r / 2), 32.0f) * 10;
+#endif
+	}
+
 #if CORE_SHARE_CODE
 
 	CORE_API ShapeVertexCache& BatchedRender::GetShapeCache()
@@ -90,7 +102,7 @@ namespace Render
 
 	void ShapeVertexBuilder::buildRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleRadius)
 	{
-		int numSegment = calcCircleSemgmentNum((circleRadius.x + circleRadius.y) / 2);
+		int numSegment = GetCircleSemgmentNum((circleRadius.x + circleRadius.y) / 2);
 		float yFactor = float(circleRadius.y) / circleRadius.x;
 		int num = numSegment / 4;
 
@@ -242,10 +254,6 @@ namespace Render
 			Vector2(halfWidth,-halfWidth) 
 		};
 
-		int baseIndex;
-		TexVertex* pVertices = fetchVertex(4 * numV, baseIndex);
-		uint32* pIndices = fetchIndex(4 * 6 * numV);
-
 		for (int i = 0; i < numV; ++i)
 		{
 			EmitVertex(v[i] + offset[0]);
@@ -344,6 +352,24 @@ namespace Render
 		return *element;
 	}
 
+	RenderBatchedElement& RenderBatchedElementList::addCustomState(ICustomElementRenderer* renderer, EObjectManageMode mode)
+	{
+		TRenderBatchedElement<CustomRenderPayload>* element = addElement< CustomRenderPayload >();
+		element->type = RenderBatchedElement::CustomState;
+		element->payload.renderer = renderer;
+		element->payload.manageMode = mode;
+		return *element;
+	}
+
+	RenderBatchedElement& RenderBatchedElementList::addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode)
+	{
+		TRenderBatchedElement<CustomRenderPayload>* element = addElement< CustomRenderPayload >();
+		element->type = RenderBatchedElement::CustomRender;
+		element->payload.renderer = renderer;
+		element->payload.manageMode = mode;
+		return *element;
+	}
+
 	void RenderBatchedElementList::releaseElements()
 	{
 		mElements.clear();
@@ -371,17 +397,17 @@ namespace Render
 	void BatchedRender::emitPolygon(Vector2 v[], int numV, Color4Type const& color)
 	{
 		assert(numV > 2);
-		int baseIndex;
-		TexVertex* pVertices = fetchVertex(numV, baseIndex);
 		int numTriangle = (numV - 2);
-		uint32* pIndices = fetchIndex(3 * numTriangle);
+		FetchedData data = fetchBuffer(numV, 3 * numTriangle);
+		int baseIndex = data.base;
+		TexVertex* pVertices = data.vertices;
+		uint32* pIndices = data.indices;
 
 		for (int i = 0; i < numV; ++i)
 		{
-			TexVertex& vtx = pVertices[i];
-			pVertices->pos = v[i];
-			pVertices->color = color;
-			++pVertices;
+			TexVertex& vertex = pVertices[i];
+			vertex.pos = v[i];
+			vertex.color = color;
 		}
 
 		pIndices = FillPolygon(pIndices, baseIndex, numTriangle);
@@ -407,10 +433,12 @@ namespace Render
 		{
 			PROFILE_ENTRY("EmitCachedPolygon");
 			assert(cachedData.posList.size() > 2);
-			int baseIndex;
-			TexVertex* pVertices = fetchVertex(cachedData.posList.size(), baseIndex);
 			int numTriangle = (cachedData.posList.size() - 2);
-			uint32* pIndices = fetchIndex(3 * numTriangle);
+
+			FetchedData data = fetchBuffer(cachedData.posList.size(), 3 * numTriangle);
+			int baseIndex = data.base;
+			TexVertex* pVertices = data.vertices;
+			uint32* pIndices = data.indices;
 
 			for (int i = 0; i < cachedData.posList.size(); ++i)
 			{
@@ -430,9 +458,10 @@ namespace Render
 
 #if USE_POLYGON_LINE_NEW
 
-			int baseIndex;
-			TexVertex* pVertices = fetchVertex(2 * cachedData.posList.size(), baseIndex);
-			uint32* pIndices = fetchIndex(3 * 2 * cachedData.posList.size());
+			FetchedData data = fetchBuffer(2 * cachedData.posList.size(), 3 * 2 * cachedData.posList.size());
+			int baseIndex = data.base;
+			TexVertex* pVertices = data.vertices;
+			uint32* pIndices = data.indices;
 
 			float halfWidth = 0.5 * float(paintArgs.penWidth);
 			if ( xForm.isUniformScale())
@@ -461,9 +490,11 @@ namespace Render
 				}
 			}
 #else
-			int baseIndex;
-			TexVertex* pVertices = fetchVertex(4 * cachedData.posList.size(), baseIndex);
-			uint32* pIndices = fetchIndex(4 * 6 * cachedData.posList.size());
+			FetchedData data = fetchBuffer(4 * cachedData.posList.size(), 4 * 6 * cachedData.posList.size());
+			int baseIndex = data.base;
+			TexVertex* pVertices = data.vertices;
+			uint32* pIndices = data.indices;
+
 			for (int i = 0; i < lineData->posList.size(); i += 2)
 			{
 				pVertices[i].pos = xForm.transformPosition(lineData->posList[i]);
@@ -479,9 +510,10 @@ namespace Render
 	{
 		if (paintArgs.bUseBrush)
 		{
-			int baseIndex;
-			TexVertex* pVertices = fetchVertex(4, baseIndex);
-			uint32* pIndices = fetchIndex(3 * 2);
+			FetchedData data = fetchBuffer(4 , 3 * 2);
+			int baseIndex = data.base;
+			TexVertex* pVertices = data.vertices;
+			uint32* pIndices = data.indices;
 
 			pVertices[0] = { v[0] , paintArgs.brushColor };
 			pVertices[1] = { v[1] , paintArgs.brushColor };
@@ -494,9 +526,10 @@ namespace Render
 		if (paintArgs.bUsePen)
 		{
 			float halfWidth = 0.5 * float(paintArgs.penWidth);
-			int baseIndex;
-			TexVertex* pVertices = fetchVertex(4 * 2, baseIndex);
-			uint32* pIndices = fetchIndex(3 * 2 * 4);
+			FetchedData data = fetchBuffer(4 * 2, 3 * 2 * 4);
+			int baseIndex = data.base;
+			TexVertex* pVertices = data.vertices;
+			uint32* pIndices = data.indices;
 
 			for (int i = 0; i < 4; ++i)
 			{
@@ -537,13 +570,29 @@ namespace Render
 		return mIndexBuffer.fetch(size);
 	}
 
+	BatchedRender::FetchedData BatchedRender::fetchBuffer(int vSize, int iSize)
+	{
+		//CHECK(vSize > 0 && iSize > 0);
+		if (!mTexVertexBuffer.canFetch(vSize) ||
+			!mIndexBuffer.canFetch(iSize))
+		{
+			flushDrawCommand(false);
+		}
+		FetchedData data;
+		data.base = mTexVertexBuffer.usedCount;
+		data.vertices = mTexVertexBuffer.fetch(vSize);
+		data.indices = mIndexBuffer.fetch(iSize);
+		return data;
+	}
+
 	void BatchedRender::emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth)
 	{
 		float halfWidth = 0.5 * float(lineWidth);
 #if USE_POLYGON_LINE_NEW
-		int baseIndex;
-		TexVertex* pVertices = fetchVertex(numV * 2, baseIndex);
-		uint32* pIndices = fetchIndex(3 * 2 * numV);
+		FetchedData data = fetchBuffer(2 * numV, 3 * 2 * numV);
+		int baseIndex = data.base;
+		TexVertex* pVertices = data.vertices;
+		uint32* pIndices = data.indices;
 
 		int index = 0;
 		for (int i = 0; i < numV; ++i)
@@ -588,9 +637,10 @@ namespace Render
 
 		Vector2 offset[4] = { Vector2(-halfWidth,-halfWidth) , Vector2(-halfWidth,halfWidth)  , Vector2(halfWidth,halfWidth), Vector2(halfWidth,-halfWidth) };
 
-		int baseIndex;
-		TexVertex* pVertices = fetchVertex(4 * numV, baseIndex);
-		uint32* pIndices = fetchIndex(4 * 6 * numV);
+		FetchedData data = fetchBuffer(4 * numV, 4 * 6 * numV);
+		int baseIndex = data.base;
+		TexVertex* pVertices = data.vertices;
+		uint32* pIndices = data.indices;
 
 		for (int i = 0; i < numV; ++i)
 		{
@@ -607,6 +657,7 @@ namespace Render
 	void BatchedRender::beginRender(RHICommandList& commandList)
 	{
 		mCommandList = &commandList;
+		mProgramCur = nullptr;
 		setupInputState(commandList);
 		CHECK(mGroups.size() == 0);
 	}
@@ -628,7 +679,7 @@ namespace Render
 		}
 
 		updateRenderState(*mCommandList, renderState);
-		emitElements(elementList.mElements);
+		emitElements(elementList.mElements, renderState);
 		elementList.releaseElements();
 		flushDrawCommand(true);
 		elementList.mAllocator.clearFrame();
@@ -659,7 +710,7 @@ namespace Render
 			mIndexEmit = index;
 			RenderGroup& group = mGroups[index];
 			group.indexStart = mIndexBuffer.usedCount;
-			emitElements(group.elements);
+			emitElements(group.elements, group.state);
 			group.indexCount = mIndexBuffer.usedCount - group.indexStart;
 		}
 
@@ -703,15 +754,12 @@ namespace Render
 		}
 		else
 		{
-#if USE_BATCHED_GROUP
-			mGroups[mIndexEmit].indexStart = 0;
-#endif
 			mTexVertexBuffer.lock();
 			mIndexBuffer.lock();
 		}
 	}
 
-	void BatchedRender::emitElements(TArray<RenderBatchedElement* > const& elements)
+	void BatchedRender::emitElements(TArray<RenderBatchedElement* > const& elements, RenderState const& renderState)
 	{
 		for (RenderBatchedElement* element : elements)
 		{
@@ -739,13 +787,13 @@ namespace Render
 					PROFILE_ENTRY("Emit Circle");
 					RenderBatchedElementList::CirclePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CirclePayload >(element);
 #if USE_SHAPE_CACHE
-					ShapeCachedData* cachedData = GetShapeCache().getCircle(calcCircleSemgmentNum(payload.radius));
+					ShapeCachedData* cachedData = GetShapeCache().getCircle(GetCircleSemgmentNum(payload.radius));
 					RenderTransform2D xForm = RenderTransform2D(Vector2(payload.radius, payload.radius), payload.pos) * element->transform;
 					emitPolygon(*cachedData, xForm, payload.paintArgs);
 #else
 					ShapeVertexBuilder builder(mCachedPositionList);
 					builder.mTransform = element->transform;
-					builder.buildCircle(payload.pos, payload.radius, calcCircleSemgmentNum(payload.radius));
+					builder.buildCircle(payload.pos, payload.radius, GetCircleSemgmentNum(payload.radius));
 					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
 #endif
 				}
@@ -755,14 +803,14 @@ namespace Render
 					RenderBatchedElementList::EllipsePayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::EllipsePayload >(element);
 #if USE_SHAPE_CACHE
 					float yFactor = float(payload.size.y) / payload.size.x;
-					ShapeCachedData* cachedData = GetShapeCache().getEllipse(yFactor, calcCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
+					ShapeCachedData* cachedData = GetShapeCache().getEllipse(yFactor, GetCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
 					RenderTransform2D xForm = RenderTransform2D(Vector2(payload.size.x, payload.size.x), payload.pos) * element->transform;
 					emitPolygon(*cachedData, xForm, payload.paintArgs);
 #else
 					ShapeVertexBuilder builder(mCachedPositionList);
 					builder.mTransform = element->transform;
 					float yFactor = float(payload.size.y) / payload.size.x;
-					builder.buildEllipse(payload.pos, payload.size.x, yFactor, calcCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
+					builder.buildEllipse(payload.pos, payload.size.x, yFactor, GetCircleSemgmentNum((payload.size.x + payload.size.y) / 2));
 					emitPolygon(mCachedPositionList.data(), mCachedPositionList.size(), payload.paintArgs);
 #endif
 				}
@@ -787,9 +835,11 @@ namespace Render
 			case RenderBatchedElement::TextureRect:
 				{
 					RenderBatchedElementList::TextureRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::TextureRectPayload >(element);
-					int baseIndex;
-					TexVertex* pVertices = fetchVertex(4, baseIndex);
-					uint32* pIndices = fetchIndex(6);
+
+					FetchedData data = fetchBuffer(4, 6);
+					int baseIndex = data.base;
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
 
 					pVertices[0] = { element->transform.transformPosition(payload.min) , payload.color , payload.uvMin };
 					pVertices[1] = { element->transform.transformPosition(Vector2(payload.min.x, payload.max.y)), payload.color , Vector2(payload.uvMin.x , payload.uvMax.y) };
@@ -823,9 +873,10 @@ namespace Render
 					int index2 = (index0 + 2) % 4;
 					int index3 = (index0 + 3) % 4;
 
-					int baseIndex;
-					TexVertex* pVertices = fetchVertex(3 * 2, baseIndex);
-					uint32* pIndices = fetchIndex(4 * 3);
+					FetchedData data = fetchBuffer(3 * 2, 4 * 3);
+					int baseIndex = data.base;
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
 
 					pVertices[0] = { positions[0] + offset[index2] , payload.color };
 					pVertices[1] = { positions[0] + offset[index3] , payload.color };
@@ -838,8 +889,11 @@ namespace Render
 					pIndices = FillTriangle(pIndices, baseIndex, 3, 4, 5);
 					pIndices = FillQuad(pIndices, baseIndex, 2, 1, 5, 4);
 #else
-					int baseIndex;
-					TexVertex* pVertices = fetchVertex(4 * 2, baseIndex);
+					FetchedData data = fetchBuffer(4 * 2, 4 * 6);
+					int baseIndex = data.base;
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
+
 					for (int i = 0; i < 2; ++i)
 					{
 						pVertices[0] = { positions[i] + offset[0] , payload.color };
@@ -848,8 +902,6 @@ namespace Render
 						pVertices[3] = { positions[i] + offset[3] , payload.color };
 						pVertices += 4;
 					}
-
-					uint32* pIndices = fetchIndex(4 * 6);
 					FillLineShapeIndices(pIndices, baseIndex, baseIndex + 4);
 #endif
 				}
@@ -868,15 +920,14 @@ namespace Render
 						Vector2(halfWidth,halfWidth),
 						Vector2(halfWidth,-halfWidth)
 					};
-
 #if USE_NEW_LINE_IDNEX
-					int baseIndex;
-					TexVertex* pVertices = fetchVertex(3 * 2 * lineCount, baseIndex);
-					uint32* pIndices = fetchIndex(4 * 3 * lineCount);
+					FetchedData data = fetchBuffer(3 * 2 * lineCount, 4 * 3 * lineCount);
 #else
-					TexVertex* pVertices = fetchVertex(4 * 2, baseIndex);
-					uint32* pIndices = fetchIndex(4 * 6 * lineCount);
+					FetchedData data = fetchBuffer(4 * 2 * lineCount, 4 * 6 * lineCount);
 #endif
+					int baseIndex = data.base;
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
 
 					for (int i = 0; i < lineCount; ++i)
 					{
@@ -930,9 +981,11 @@ namespace Render
 					int numChar = payload.vertices.size() / 4;
 					FontVertex* pSrcVertices = payload.vertices.data();
 #endif
-					int baseIndex;
-					TexVertex* pVertices = fetchVertex(4 * numChar, baseIndex);
-					uint32* pIndices = fetchIndex(numChar * 6);
+					FetchedData data = fetchBuffer(4 * numChar, 6 * numChar);
+					int baseIndex = data.base;
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
+
 					for (int i = 0; i < numChar; ++i)
 					{
 						pVertices[0] = { element->transform.transformPosition(pSrcVertices[0].pos) , payload.color , pSrcVertices[0].uv };
@@ -952,9 +1005,10 @@ namespace Render
 				{
 					RenderBatchedElementList::GradientRectPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::GradientRectPayload >(element);
 
-					int baseIndex;
-					TexVertex* pVertices = fetchVertex(4, baseIndex);
-					uint32* pIndices = fetchIndex(6);
+					FetchedData data = fetchBuffer(4 , 6);
+					int baseIndex = data.base;
+					TexVertex* pVertices = data.vertices;
+					uint32* pIndices = data.indices;
 
 					pVertices[0] = { element->transform.transformPosition(payload.posLT) , payload.colorLT };
 					pVertices[1] = { element->transform.transformPosition(Vector2(payload.posLT.x, payload.posRB.y)), payload.bHGrad ? payload.colorLT : payload.colorRB };
@@ -963,6 +1017,37 @@ namespace Render
 
 					pIndices = FillQuad(pIndices, baseIndex, 0, 1, 2, 3);
 				}
+				break;
+			case RenderBatchedElement::CustomState:
+				{
+
+
+
+				}
+				break;
+			case RenderBatchedElement::CustomRender:
+				{
+					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
+
+					flushDrawCommand(false);
+					payload.renderer->render(*mCommandList, *element);
+					switch (payload.manageMode)
+					{
+					case EObjectManageMode::DestructOnly:
+						payload.renderer->~ICustomElementRenderer();
+						break;
+					case EObjectManageMode::Detete:
+						delete payload.renderer;
+						break;
+					default:
+						break;
+					}
+
+					setupInputState(*mCommandList);
+					commitRenderState(*mCommandList, renderState);
+				}
+				break;
+
 			}
 		}
 	}
@@ -973,29 +1058,7 @@ namespace Render
 		flushGroup();
 #endif
 	}
-
-	void BatchedRender::commitRenderState(RHICommandList& commandList, RenderState const& state)
-	{
-		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
-		RHISetBlendState(commandList, GetBlendState(state.blendMode));
-		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
-		if (state.bEnableScissor)
-		{
-			auto const& rect = state.scissorRect;
-			RHISetScissorRect(commandList, rect.pos.x, mHeight - rect.pos.y - rect.size.y, rect.size.x, rect.size.y);
-		}
-
-		uint32 const attributeMask = BIT(EVertex::ATTRIBUTE_COLOR) | BIT(EVertex::ATTRIBUTE_TEXCOORD);
-
-		SimplePipelineProgram* program = SimplePipelineProgram::Get(attributeMask, state.texture != nullptr);
-		RHISetShaderProgram(commandList, program->getRHI());
-		program->setParameters(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), state.texture, state.sampler);
-
-		setupInputState(commandList);
-
-	}
-
+	
 	void BatchedRender::setupInputState(RHICommandList& commandList)
 	{
 		InputStreamInfo inputStream;
@@ -1006,9 +1069,13 @@ namespace Render
 		RHISetIndexBuffer(commandList, &*mIndexBuffer);
 	}
 
-	void BatchedRender::updateRenderState(RHICommandList& commandList, RenderState const& state)
+	uint32 const AttributeMask = BIT(EVertex::ATTRIBUTE_COLOR) | BIT(EVertex::ATTRIBUTE_TEXCOORD);
+
+
+	void BatchedRender::commitRenderState(RHICommandList& commandList, RenderState const& state)
 	{
-		uint32 const attributeMask = BIT(EVertex::ATTRIBUTE_COLOR) | BIT(EVertex::ATTRIBUTE_TEXCOORD);
+		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
 
 		RHISetBlendState(commandList, GetBlendState(state.blendMode));
 		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
@@ -1018,8 +1085,31 @@ namespace Render
 			RHISetScissorRect(commandList, rect.pos.x, mHeight - rect.pos.y - rect.size.y, rect.size.x, rect.size.y);
 		}
 
-		SimplePipelineProgram* program = SimplePipelineProgram::Get(attributeMask, state.texture != nullptr);
+		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
 		RHISetShaderProgram(commandList, program->getRHI());
+		mProgramCur = program;
+		program->setParameters(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), state.texture, state.sampler);
+		setupInputState(commandList);
+	}
+
+	void BatchedRender::updateRenderState(RHICommandList& commandList, RenderState const& state)
+	{
+		RHISetBlendState(commandList, GetBlendState(state.blendMode));
+		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
+		if (state.bEnableScissor)
+		{
+			auto const& rect = state.scissorRect;
+			RHISetScissorRect(commandList, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+		}
+
+		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
+		if (program != mProgramCur)
+		{
+			RHISetShaderProgram(commandList, program->getRHI());
+			mProgramCur = program;
+			SET_SHADER_PARAM(commandList, *program, XForm, mBaseTransform);
+			SET_SHADER_PARAM(commandList, *program, Color, LinearColor(1, 1, 1, 1));
+		}
 		if (state.texture)
 		{
 			program->setTextureParam(commandList, state.texture, state.sampler);
@@ -1043,7 +1133,7 @@ namespace Render
 		return TStaticBlendState<>::GetRHI();
 	}
 
-	Render::RHIRasterizerState& GraphicsDefinition::GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample)
+	RHIRasterizerState& GraphicsDefinition::GetRasterizerState(bool bEnableScissor, bool bEnableMultiSample)
 	{
 		if (bEnableMultiSample)
 		{

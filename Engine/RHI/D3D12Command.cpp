@@ -10,7 +10,7 @@
 
 #pragma comment(lib , "DXGI.lib")
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 
@@ -308,7 +308,7 @@ namespace Render
 		return true;
 	}
 
-	void D3D12System::preShutdown()
+	void D3D12System::clearResourceReference()
 	{
 		mRenderContext.release();
 	}
@@ -663,6 +663,23 @@ namespace Render
 	{
 		D3D12_RANGE range = {};
 		static_cast<D3D12Buffer*>(buffer)->mResource->Unmap(0, nullptr);
+	}
+
+	bool D3D12System::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		D3D12Texture2D& textureImpl = static_cast<D3D12Texture2D&>(texture);
+		if (dataWidth)
+		{
+			return updateTexture2DSubresources(
+				textureImpl.mResource, texture.getFormat(), data, ox, oy, w, h, dataWidth * ETexture::GetFormatSize(texture.getFormat()), level
+			);
+		}
+		else
+		{
+			return updateTexture2DSubresources(
+				textureImpl.mResource, texture.getFormat(), data, ox, oy, w, h, w * ETexture::GetFormatSize(texture.getFormat()), level
+			);
+		}
 	}
 
 	RHIFrameBuffer* D3D12System::RHICreateFrameBuffer()
@@ -2589,6 +2606,6 @@ namespace Render
 
 }//namespace Render
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif

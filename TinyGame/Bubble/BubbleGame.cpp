@@ -236,7 +236,7 @@ namespace Bubble
 		::Global::GetDrawEngine().setupSystem(nullptr);
 	}
 
-	bool GameModule::setupRenderSystem(ERenderSystem systemName)
+	bool GameModule::setupRenderResource(ERenderSystem systemName)
 	{
 		return true;
 	}

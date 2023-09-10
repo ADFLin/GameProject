@@ -206,7 +206,7 @@ bool HLBspFileDataV30::load( char const* path )
 	mTexInfo = reinterpret_cast< BspV30::texinfo_t* >( getLumpData( BspV30::LUMP_TEXINFO ) );
 	mNodes   = reinterpret_cast< BspV30::node_t* >( getLumpData( BspV30::LUMP_NODES ) );
 	mLeaves  = reinterpret_cast< BspV30::leaf_t* >( getLumpData( BspV30::LUMP_LEAVES ) );
-	mLightMaps = reinterpret_cast< char* >( getLumpData( BspV30::LUMP_LIGHTING ) );
+	mLightMaps = reinterpret_cast< uint8* >( getLumpData( BspV30::LUMP_LIGHTING ) );
 	mModels  = reinterpret_cast< BspV30::model_t* >( getLumpData( BspV30::LUMP_MODELS ) );
 
 	mTexLumpHeader = reinterpret_cast< BspV30::texture_lump_header* >( getLumpData( BspV30::LUMP_TEXTURES ) );
@@ -658,17 +658,17 @@ Texture* BspLightMapMergeHelper::createTexture( World* world )
 {
 	return world->_getMaterialManager()->createTexture2D( 
 		"lightMap" , CF_TEX_FMT_ARGB32 , mLightMapData , 
-		mRoot->rect.w , mRoot->rect.h );
+		getSize().x , getSize().y );
 }
 
-void BspLightMapMergeHelper::convertTexcoord( int imageID , float& u , float& v )
+void BspLightMapMergeHelper::convertTexcoord( int imageID , float& u , float& v ) const
 {
-	Node* node = mImageNodeMap[ imageID ];
+	Node const* node = getNode(imageID);
 	if ( !node )
 		return;
 
-	u = ( node->rect.x + u * node->rect.w ) / mRoot->rect.w ;
-	v = ( node->rect.y + v * node->rect.h ) / mRoot->rect.h ;
+	u = ( node->rect.x + u * node->rect.w ) / getSize().x;
+	v = ( node->rect.y + v * node->rect.h ) / getSize().y;
 }
 
 void BspLightMapMergeHelper::bitBltRGBToARGB( uint8* src , uint8* dest , Rect const& rect , int destWidth , uint8 baseC )
@@ -695,11 +695,11 @@ void BspLightMapMergeHelper::bitBltRGBToARGB( uint8* src , uint8* dest , Rect co
 
 void BspLightMapMergeHelper::fillImageData( int imageId , uint8* data , uint8 baseC )
 {
-	Node* node = mImageNodeMap[ imageId ];
+	Node const* node = getNode(imageId);
 	if ( !node )
 		return;
 
-	bitBltRGBToARGB( data , mLightMapData , node->rect , mRoot->rect.w , baseC );
+	bitBltRGBToARGB( data , mLightMapData , node->rect , getSize().x , baseC );
 }
 
 

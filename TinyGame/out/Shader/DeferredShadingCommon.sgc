@@ -21,6 +21,7 @@ struct GBufferData
 	
 	float3 diffuseColor;
 	float3 specularColor;
+	float  sceneDepth;
 };
 
 
@@ -87,7 +88,7 @@ GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBuf
 	GBuffer.shadingModel = DecodeShadingModel(GBufferC.a);
 	GBuffer.specularColor = lerp( float(0.08 *GBuffer.specular).xxx , GBuffer.baseColor, GBuffer.metallic);
 	GBuffer.diffuseColor = GBuffer.baseColor - GBuffer.baseColor * GBuffer.metallic;
-
+	GBuffer.sceneDepth = BufferDepthToSceneDepth(bufferDepth);
 	return GBuffer;
 }
 

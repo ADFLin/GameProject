@@ -1,4 +1,11 @@
 #pragma once
+
+#ifndef MATERIAL_FILENAME
+#define MATERIAL_FILENAME "Material.sgc"
+#endif
+
+#include MATERIAL_FILENAME
+
 #include "MaterialCommon.sgc"
 #include "ViewParam.sgc"
 

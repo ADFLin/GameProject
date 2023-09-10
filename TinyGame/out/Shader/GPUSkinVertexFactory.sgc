@@ -222,9 +222,9 @@ float4 VertexFactory_GetInterpolants(out FactoryInterpolantsParam vertexFactoryO
 
 #if PIXEL_SHADER
 
-MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolantsParam vertexFactoryInput)
+MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolantsParam vertexFactoryInput, float4 svPosition)
 {
-	MaterialParametersPS parameters;
+	MaterialParametersPS parameters = (MaterialParametersPS)0;
 
 	float3x3  tangentToWorld;
 	float3 worldNormal = normalize(vertexFactoryInput.worldNormal.xyz);

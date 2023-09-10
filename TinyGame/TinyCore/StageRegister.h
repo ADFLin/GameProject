@@ -57,17 +57,15 @@ struct ExecutionEntryInfo
 	ExecutionEntryInfo(char const* inTitle, ExecuteFunc inExecFunc, EExecGroup inGroup, char const* categoryStr = nullptr)
 		:ExecutionEntryInfo(inTitle, inExecFunc, inGroup, 0, categoryStr)
 	{
-
+		AddCategories(categories, group);
+		ParseCategories(categories, categoryStr);
 	}
 	TINY_API static void ParseCategories(std::unordered_set< HashString >& inoutCategories, char const* categoryStr);
 	TINY_API static void AddCategories(std::unordered_set< HashString >& inoutCategories, EExecGroup group);
 };
 
-template<>
-struct TBitwiseReallocatable<ExecutionEntryInfo>
-{
-	static constexpr int Value = 0;
-};
+
+BITWISE_RELLOCATABLE_FAIL(ExecutionEntryInfo);
 
 
 class ExecutionRegisterCollection
@@ -134,5 +132,6 @@ FORCEINLINE ExecuteFunc MakeChangeSingleGame(char const* gameName)
 
 #define REGISTER_MISC_TEST_ENTRY( NAME , FUNC , ...)\
 	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , FUNC , EExecGroup::MiscTest , ##__VA_ARGS__ ) );
+
 
 #endif // StageRegister_h__

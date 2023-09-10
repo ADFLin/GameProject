@@ -198,7 +198,7 @@ namespace Render
 		mLights.resize(4);
 		{
 			auto& light = mLights[0];
-			light.type = LightType::Point;
+			light.type = ELightType::Point;
 			light.pos = Vector3(5, 5, 5);
 			light.color = Vector3(1, 0, 0);
 			light.radius = 50;
@@ -207,7 +207,7 @@ namespace Render
 
 		{
 			auto& light = mLights[1];
-			light.type = LightType::Point;
+			light.type = ELightType::Point;
 			light.pos = Vector3(5, -5, 5);
 			light.color = Vector3(0, 1, 0);
 			light.radius = 50;
@@ -216,7 +216,7 @@ namespace Render
 
 		{
 			auto& light = mLights[2];
-			light.type = LightType::Point;
+			light.type = ELightType::Point;
 			light.pos = Vector3(-5, 5, 5);
 			light.color = Vector3(0, 0, 1);
 			light.radius = 50;
@@ -224,7 +224,7 @@ namespace Render
 		}
 		{
 			auto& light = mLights[3];
-			light.type = LightType::Point;
+			light.type = ELightType::Point;
 			light.pos = Vector3(0, 0, -5);
 			light.color = Vector3(1, 1, 1);
 			light.radius = 50;
@@ -280,11 +280,9 @@ namespace Render
 		return true;
 	}
 
-	bool NoiseTestStage::setupRenderSystem(ERenderSystem systemName)
+	bool NoiseTestStage::setupRenderResource(ERenderSystem systemName)
 	{
-		VERIFY_RETURN_FALSE(BaseClass::setupRenderSystem(systemName));
-
-		mViewFrustum.bUseReverse = false;
+		VERIFY_RETURN_FALSE(BaseClass::setupRenderResource(systemName));
 
 		IntVector2 screenSize = ::Global::GetScreenSize();
 		VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
@@ -548,7 +546,7 @@ namespace Render
 
 				mFrameBuffer->setDepth(*mDepthBuffer);
 				RHISetFrameBuffer(commandList, mFrameBuffer);
-				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1);
+				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 

@@ -145,7 +145,7 @@ namespace Bloxorz
 			return ERenderSystem::D3D11;
 		}
 		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
-		virtual bool setupRenderSystem(ERenderSystem systemName) override;
+		virtual bool setupRenderResource(ERenderSystem systemName) override;
 
 		void updateSceneEnvBuffer();
 

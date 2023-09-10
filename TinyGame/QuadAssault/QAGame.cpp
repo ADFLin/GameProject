@@ -58,7 +58,7 @@ public:
 	}
 
 
-	bool setupRenderSystem(ERenderSystem systemName) override
+	bool setupRenderResource(ERenderSystem systemName) override
 	{
 		if (!mGame->initRenderSystem())
 			return false;

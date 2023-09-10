@@ -27,6 +27,10 @@ namespace Math
 			return TDualValue(mReal * rhs.mReal, mDual * rhs.mReal + mReal * rhs.mDual);
 		}
 
+		friend TDualValue operator * (float s, TDualValue const& DQ)
+		{
+			return TDualValue(s * DQ.Qr, s * DQ.Qd);
+		}
 	protected:
 		T mReal;
 		T mDual;

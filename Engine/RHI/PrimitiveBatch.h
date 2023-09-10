@@ -109,7 +109,7 @@ namespace Render
 		void drawDynamic(RHICommandList& commandList, ViewInfo& view);
 
 
-		void initializeRHI();
+		bool initializeRHI();
 		void releaseRHI();
 
 		TArray< MeshBatch > mMeshBatchs;

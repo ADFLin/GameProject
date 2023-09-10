@@ -9,6 +9,7 @@
 #include "RHI/RHIGraphics2D.h"
 #include "RenderDebug.h"
 #include "BitUtility.h"
+#include "ProfileSystem.h"
 
 
 namespace Rich
@@ -146,6 +147,8 @@ namespace Rich
 	bool Scene::initializeRHI()
 	{
 		using namespace Render;
+
+		TIME_SCOPE("Scene::initializeRHI");
 
 
 		VERIFY_RETURN_FALSE(mTextureAtlas.initialize(ETexture::RGBA8, 2048, 2048, 2));

@@ -63,16 +63,7 @@ namespace Render
 
 	void GBufferResource::drawTexture(RHICommandList& commandList, Matrix4 const& XForm, int x, int y, int width, int height, EGBuffer::Type bufferName, Vector4 const& colorMask)
 	{
-		int screenSizey = getResolvedTexture(bufferName).getSizeY();
-		if (GRHIVericalFlip > 0)
-		{
-			RHISetViewport(commandList, x, y, width, height);
-		}
-		else
-		{
-			RHISetViewport(commandList, x, screenSizey - y - height, width, height);
-		}
-		
+		RHISetViewport(commandList, x, y, width, height);
 		ShaderHelper::Get().copyTextureMaskToBuffer(commandList, getResolvedTexture(bufferName), colorMask);
 	}
 
@@ -89,7 +80,7 @@ namespace Render
 
 		drawTexture(commandList, XForm, 0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBuffer::A);
 		drawTexture(commandList, XForm, 1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBuffer::B);
-		drawTexture(commandList, XForm, 3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, EGBuffer::C, Vector4(1, 0, 0, 0));
+		drawTexture(commandList, XForm, 3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, EGBuffer::C, Vector4(1, 0, 0, 0));
 #if 0
 		{
 			RHISetViewport(commandList, 1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
@@ -170,7 +161,7 @@ namespace Render
 				return false;
 		}
 
-		mDepthTexture = RHICreateTextureDepth(ETexture::D24S8, size.x, size.y, 1, numSamples, TCF_CreateSRV);
+		mDepthTexture = RHICreateTextureDepth(ETexture::D32FS8, size.x, size.y, 1, numSamples, TCF_CreateSRV);
 		if (!mDepthTexture.isValid())
 			return false;
 

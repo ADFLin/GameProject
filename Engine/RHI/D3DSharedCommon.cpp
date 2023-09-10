@@ -74,6 +74,7 @@ namespace Render
 		//case ETexture::SRGB:
 		case ETexture::SRGBA:   return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
+		case ETexture::ShadowDepth:
 		case ETexture::Depth16:  return DXGI_FORMAT_D16_UNORM;
 		case ETexture::Depth32F: return DXGI_FORMAT_D32_FLOAT;
 		case ETexture::D24S8:    return DXGI_FORMAT_D24_UNORM_S8_UINT;

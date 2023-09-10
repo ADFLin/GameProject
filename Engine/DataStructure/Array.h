@@ -13,16 +13,16 @@ struct TBitwiseReallocatable
 	static constexpr int Value = 1;
 };
 
-template<>
-struct TBitwiseReallocatable<std::string>
-{
-	static constexpr int Value = 0;
-};
-template<>
-struct TBitwiseReallocatable<std::wstring>
-{
-	static constexpr int Value = 0;
-};
+#define BITWISE_RELLOCATABLE_FAIL(TYPE)\
+	template<>\
+	struct TBitwiseReallocatable<TYPE>\
+	{\
+		static constexpr int Value = 0;\
+	}
+
+
+BITWISE_RELLOCATABLE_FAIL(std::string);
+BITWISE_RELLOCATABLE_FAIL(std::wstring);
 
 template< class T >
 struct alignas(alignof(T)) TCompatibleByte
@@ -93,36 +93,38 @@ struct DefaultAllocator
 			}
 		}
 
-		void   alloc(size_t OldSize, size_t numNewElements)
+		bool   needAlloc(size_t OldSize, size_t numNewElements)
 		{
-			if (OldSize + numNewElements > mMaxSize)
+			return OldSize + numNewElements > mMaxSize;
+		}
+
+		void alloc(size_t OldSize, size_t numNewElements)
+		{
+			size_t growSize = OldSize + numNewElements;
+			growSize += (3 * growSize) / 8;
+
+			void* newAlloc;
+			if constexpr (TBitwiseReallocatable<T>::Value)
 			{
-				size_t growSize = OldSize + numNewElements;
-				growSize += (3 * growSize) / 8;
-
-				void* newAlloc;
-				if constexpr (TBitwiseReallocatable<T>::Value)
+				newAlloc = FMemory::Realloc(mStorage, sizeof(T) * growSize);
+				if (newAlloc == nullptr)
 				{
-					newAlloc = FMemory::Realloc(mStorage, sizeof(T) * growSize);
-					if (newAlloc == nullptr)
-					{
 
-					}
 				}
-				else
-				{
-					newAlloc = FMemory::Alloc(sizeof(T) * growSize);
-					if (newAlloc == nullptr)
-					{
-
-					}
-					FTypeMemoryOp::MoveSequence((T*)newAlloc, OldSize, (T*)mStorage);
-					FMemory::Free(mStorage);
-				}
-
-				mStorage = newAlloc;
-				mMaxSize = growSize;
 			}
+			else
+			{
+				newAlloc = FMemory::Alloc(sizeof(T) * growSize);
+				if (newAlloc == nullptr)
+				{
+
+				}
+				FTypeMemoryOp::MoveSequence((T*)newAlloc, OldSize, (T*)mStorage);
+				FMemory::Free(mStorage);
+			}
+
+			mStorage = newAlloc;
+			mMaxSize = growSize;
 		}
 
 		void reserve(size_t size)
@@ -171,9 +173,12 @@ struct DyanmicFixedAllocator
 	template< class T >
 	struct TArrayData
 	{
-		T* getHead() { return (T*)mStorage; }
-
-		T* alloc(int size)
+		T*     getAllocation() { return (T*)mStorage; }
+		bool   needAlloc(size_t OldSize, size_t numNewElements)
+		{
+			return false;
+		}
+		void   alloc(size_t OldSize, size_t numNewElements)
 		{
 
 		}
@@ -197,9 +202,13 @@ struct TFixedAllocator
 		{
 
 		}
-		void   alloc(size_t OldSize, size_t numNewElements)
+		bool   needAlloc(size_t OldSize, size_t numNewElements)
 		{
 			CHECK(OldSize + numNewElements <= TotalSize);
+			return false;
+		}
+		void   alloc(size_t OldSize, size_t numNewElements)
+		{
 		}
 		size_t getMaxSize() const { return TotalSize;  }
 		T*     getAllocation() const { return (T*)mStorage; }
@@ -671,7 +680,11 @@ public:
 
 	T* addUninitialized(size_t num = 1)
 	{
-		ArrayData::alloc(mNum, num);
+		if (ArrayData::needAlloc(mNum, num))
+		{
+			ArrayData::alloc(mNum, num);
+		}
+
 		T* result = getElement(mNum);
 		mNum += num;
 		return result;

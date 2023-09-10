@@ -2,65 +2,77 @@
 #define SHADOW_DEPTH_ONE_PASS 0
 #endif
 
+#ifndef SHADOW_DEPTH_POSITION_ONLY
+#define SHADOW_DEPTH_POSITION_ONLY 0
+#endif
+
 #if SHADOW_DEPTH_ONE_PASS
 #define VERTEX_FACTORY_USE_GEOMETRY_SHADER 1
 #endif
 
-#include "Common.sgc"
+#if SHADOW_DEPTH_POSITION_ONLY
+#define VERTEX_FACTORY_USE_POSITION_ONLY 1
+#endif
+
 #include "MaterialProcess.sgc"
 #include "VertexFactoryProcess.sgc"
-#include "ShadowCommon.sgc"
-#include "LightingCommon.sgc"
 
+#include "ShadowCommon.sgc"
 
 #ifndef SHADOW_LIGHT_TYPE
 #define SHADOW_LIGHT_TYPE LIGHTTYPE_POINT
 #endif
 
-#define VERTEX_FACTORY_NEED_INTERPOLANTS 1
-
-
-uniform mat4 DepthShadowMatrix;
-
+uniform mat4   DepthShadowMatrix;
+uniform float3 DepthShadowOffset;
 
 struct PassInterpolantsParam
 {
-	float4 worldPos;
+	float4 worldPos MEMBER_OUT(TEXCOORD10);
 };
 
+#if SHADOW_DEPTH_POSITION_ONLY
+
+#else
 struct VertexOutputParamVSToPS
 {
-#if VERTEX_FACTORY_NEED_INTERPOLANTS
+#if MATERIAL_USE_DEPTH_OFFSET
 	FactoryInterpolantsParam   factoryInterpolants;
 #endif
 	PassInterpolantsParam      passInterpolants;
 };
+#endif
 
 #if VERTEX_SHADER
 
 VS_ENTRY_START(MainVS)
 	VS_INPUT_PARAMETERS(VertexFactoryInputParameters VertexInput)
+#if !SHADOW_DEPTH_POSITION_ONLY && MATERIAL_USE_DEPTH_OFFSET
 	VS_OUTPUT_STRUCT(VertexOutputParameters OutputVS, 0)
+#endif
 VS_ENTRY_END(MainVS)
 {
 	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS(VERTEX_INPUT_PARAM(VertexInput));
 
 	float4 worldPosExcludingWPO = VertexFactory_GetWorldPosition(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates);
-
-	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(VERTEX_INPUT_PARAM_COMMA( VertexInput ) intermediates);
 	float4 worldPos = worldPosExcludingWPO;
+
+#if !SHADOW_DEPTH_POSITION_ONLY
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates, worldPos);
 
 	MaterialOutputVS materialOutput = Material_GetOutputVS(materialParameters);
 
 	worldPos.xyz += materialOutput.worldOffset;
-
+#if MATERIAL_USE_DEPTH_OFFSET
 	OutputVS.factoryInterpolants = VertexFactory_GetInterpolants(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates, materialParameters);
-	float4 outPosition = mul( DepthShadowMatrix , float4( VertexFactory_GetWorldPos(OutputVS.factoryInterpolants) , 1 ) );
-
 	OutputVS.passInterpolants.worldPos = worldPos;
-	SvPosition = outPosition;
+#endif
 
+#endif
+	float4 outPosition = mul(DepthShadowMatrix, float4(worldPos.xyz - DepthShadowOffset, 1));
+	SvPosition = outPosition;
 }
+
 #endif //VERTEX_SHADER
 
 #if SHADOW_DEPTH_ONE_PASS
@@ -83,22 +95,38 @@ void MainGS()
 
 #if PIXEL_SHADER
 
+#if SHADER_ENTRY(MainPS)
+
 PS_ENTRY_START(MainPS)
-	PS_INPUT_STRUCT(VertexOutputParamVSToPS InputPS, 0)
+
 #if MATERIAL_USE_DEPTH_OFFSET
+	PS_INPUT_STRUCT(VertexOutputParamVSToPS InputPS, 0)
 	PS_OUTPUT_DEPTH
 #endif
 PS_ENTRY_END(MainPS)
 {
-	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
-	float4 NDC = SvPositionToNDC(SvPosition);
+
+#if MATERIAL_USE_DEPTH_OFFSET
+	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants, SvPosition);
 	float3 worldPos = InputPS.passInterpolants.worldPos;
 	Material_CalcParametersPS(materialParameters, SvPosition, worldPos);
 	MaterialOutputPS materialOutput = Material_GetOutputPS(materialParameters);
-
-#if MATERIAL_USE_DEPTH_OFFSET
 	worldPos = Material_CorrectWorldPosByDepthOffset(materialOutput, materialParameters, SvDepth);
 #endif
 }
+
+#endif
+
+
+#if SHADER_ENTRY(NullPS)
+
+PS_ENTRY_START(NullPS)
+PS_ENTRY_END(NullPS)
+{
+
+}
+
+#endif
+
 
 #endif //PIXEL_SHADER

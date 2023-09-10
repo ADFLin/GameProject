@@ -67,22 +67,6 @@ namespace Render
 		return D3D12_FILL_MODE_SOLID;
 	}
 
-
-#if 0
-	D3D12_MAP D3D12Translate::To(ELockAccess access)
-	{
-		switch( access )
-		{
-		case ELockAccess::ReadOnly:  return D3D11_MAP_READ;
-		case ELockAccess::ReadWrite: return D3D11_MAP_READ_WRITE;
-		case ELockAccess::WriteOnly: return D3D11_MAP_WRITE;
-		case ELockAccess::WriteDiscard: return D3D11_MAP_WRITE_DISCARD;
-		}
-		return D3D12_MAP_READ_WRITE;
-	}
-#endif
-
-
 	D3D12_FILTER D3D12Translate::To(ESampler::Filter filter)
 	{
 		switch( filter )
@@ -123,7 +107,7 @@ namespace Render
 		case ECompareFunc::NotEqual:     return D3D12_COMPARISON_FUNC_NOT_EQUAL;
 		case ECompareFunc::LessEqual:    return D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		case ECompareFunc::Greater:      return D3D12_COMPARISON_FUNC_GREATER;
-		case ECompareFunc::GeraterEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		case ECompareFunc::GreaterEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
 		case ECompareFunc::Always:       return D3D12_COMPARISON_FUNC_ALWAYS;
 		}
 		return D3D12_COMPARISON_FUNC_NEVER;
@@ -331,27 +315,6 @@ namespace Render
 		mResource = resource.detach();
 	}
 
-	bool D3D12Texture2D::update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level)
-	{
-		if (getFormat() == format)
-		{
-			return static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
-				mResource, getFormat(), data, ox, oy, w, h, w * ETexture::GetFormatSize(getFormat()), level
-			);
-		}
-		return false;
-	}
-
-	bool D3D12Texture2D::update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level)
-	{
-		if (getFormat() == format)
-		{
-			return static_cast<D3D12System*>(GRHISystem)->updateTexture2DSubresources(
-				mResource, getFormat(), data, ox, oy, w, h, dataImageWidth * ETexture::GetFormatSize(getFormat()), level
-			);
-		}
-		return false;
-	}
 
 
 	D3D12SamplerState::D3D12SamplerState(SamplerStateInitializer const& initializer)

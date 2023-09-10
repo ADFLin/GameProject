@@ -30,6 +30,26 @@ public:
 	{
 	}
 
+	int findIndex(T const& value) const
+	{
+		for (int index = 0; index < mNum; ++index)
+		{
+			if (mData[index] == value)
+				return index;
+		}
+		return INDEX_NONE;
+	}
+
+	template< typename TFunc >
+	int findIndexPred(TFunc&& func) const
+	{
+		for (int index = 0; index < mNum; ++index)
+		{
+			if (func(mData[index]))
+				return index;
+		}
+		return INDEX_NONE;
+	}
 
 
 	operator T* () { return mData; }

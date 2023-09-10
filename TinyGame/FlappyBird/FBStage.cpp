@@ -473,7 +473,7 @@ namespace FlappyBird
 		return ERenderSystem::D3D11;
 	}
 
-	bool LevelStage::setupRenderSystem(ERenderSystem systemName)
+	bool LevelStage::setupRenderResource(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(loadResource());
 		return true;

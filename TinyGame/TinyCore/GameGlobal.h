@@ -61,6 +61,8 @@ struct UserProfile;
 class NetWorker;
 class DataCacheInterface;
 
+class IEditor;
+
 TINY_API uint64 GenerateRandSeed();
 
 
@@ -99,7 +101,7 @@ public:
 	static TINY_API AssetManager&      GetAssetManager();
 
 	static TINY_API IGameInstance*     GameInstacne();
-
+	static TINY_API IEditor*           Editor();
 
 	static TINY_API IGameNetInterface&   GameNet();
 	static TINY_API IDebugInterface&     Debug();

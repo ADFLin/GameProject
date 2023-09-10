@@ -5,6 +5,8 @@
 #include "RHI/RHIType.h"
 #include "RHI/LazyObject.h"
 
+#include "Math/Curve.h"
+
 namespace Render
 {
 	class Material;
@@ -12,8 +14,6 @@ namespace Render
 	class Texture2D;
 	class Mesh;
 	class Scene;
-	class CycleTrack;
-	class VectorCurveTrack;
 	class DebugGeometryObject;
 
 	class IAssetProvider

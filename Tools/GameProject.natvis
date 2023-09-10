@@ -32,16 +32,31 @@
   <Type Name="InlineString&lt;*&gt;" >
     <DisplayString>{mData}</DisplayString>
   </Type>
+    
+  <Type Name="TCycleQueue&lt;*,*&gt;">
+    <DisplayString>{{ size={mNum} }}</DisplayString>
+    <Expand>
+      <Item Name ="capacity">mMaxSize  </Item>
+      <Item Name ="start">   mIndexCur </Item>
+      <Item Name ="last">   mIndexNext </Item>
+      <ArrayItems>
+        <Size>mMaxSize</Size>
+        <ValuePointer>($T1*)mStorage</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  
   <Type Name="TArray&lt;*,*&gt;" >
     <DisplayString>{{ size={mNum} }}</DisplayString>
     <Expand>
       <Item Name ="capacity">mMaxSize</Item>
       <ArrayItems>
-        <Size>mNum</Size>
-        <ValuePointer>(value_type*)mStorage</ValuePointer>
+        <Size>mMaxSize</Size>
+        <ValuePointer>($T1*)mStorage</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>
+  
   <Type Name="HashString">
     <DisplayString>
       { ((EngineShare.dll!NameSlot*)(EngineShare.dll!HashStringInternal::sNameSlots.mChunkStorage[ ( mIndex &gt;&gt; 1 ) / EngineShare.dll!NameSlotChunkNum ]) + ( mIndex &gt;&gt; 1 ) % EngineShare.dll!NameSlotChunkNum)->str }
@@ -53,5 +68,5 @@
       {mData,[mNum]}
     </DisplayString>
   </Type>
-  
+
 </AutoVisualizer>

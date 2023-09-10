@@ -171,9 +171,26 @@ public:
 	virtual int	   getFrameCountSinceReset() = 0;
 	virtual double getDurationSinceReset() = 0;
 	virtual double getLastFrameDuration() = 0;
-	virtual ProfileSampleNode* getRootSample(uint32 ThreadId = 0) = 0;
+	virtual void   readLock() = 0;
+	virtual void   readUnlock() = 0;
+
+	virtual ProfileSampleNode* getRootSample(uint32 threadId = 0) = 0;
+	virtual void   setThreadName(uint32 threadId, char const* name) = 0;
+	virtual void   getAllThreadIds(TArray<uint32>& outIds) = 0;
 };
 
+class ProfileReadScope
+{
+public:
+	ProfileReadScope()
+	{
+		ProfileSystem::Get().readLock();
+	}
+	~ProfileReadScope()
+	{
+		ProfileSystem::Get().readUnlock();
+	}
+};
 class  ProfileSampleScope
 {
 public:

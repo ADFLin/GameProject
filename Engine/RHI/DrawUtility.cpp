@@ -71,7 +71,7 @@ namespace Render
 	static uint16 const GScreenIndices[] = { 0, 1 , 2 , 0 , 2 , 3 };
 	static uint32 const GScreenIndices32[] = { 0, 1 , 2 , 0 , 2 , 3 };
 
-	class ScreenRenderResoure : public IGlobalRenderResource
+	class ScreenRenderResource : public IGlobalRenderResource
 	{
 	public:
 		virtual void restoreRHI() override
@@ -120,7 +120,11 @@ namespace Render
 		RHIBufferRef  mQuadIndexBuffer;
 
 	};
-	ScreenRenderResoure GScreenRenderResoure;
+
+	extern CORE_API ScreenRenderResource GScreenRenderResoure;
+#if CORE_SHARE_CODE
+	CORE_API ScreenRenderResource GScreenRenderResoure;
+#endif
 
 	enum ETexturePreview
 	{
@@ -134,7 +138,7 @@ namespace Render
 	class TexturePreviewProgram : public GlobalShaderProgram
 	{
 	public:
-		SHADER_PERMUTATION_TYPE_INT(TextrueType, "TEX_PREVIEW", 0, TEX_PREVIEW_COUNT - 1);
+		SHADER_PERMUTATION_TYPE_INT(TextrueType, SHADER_PARAM(TEX_PREVIEW), 0, TEX_PREVIEW_COUNT - 1);
 		using PermutationDomain = TShaderPermutationDomain<TextrueType>;
 
 		DECLARE_SHADER_PROGRAM(TexturePreviewProgram, Global)
@@ -149,7 +153,7 @@ namespace Render
 
 		}
 
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
 			static ShaderEntryInfo const entries[] =
 			{
@@ -396,25 +400,16 @@ namespace Render
 
 	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
-#if 1
 		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, XForm, texture))
 			return;
-#else
-		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture);
-#endif
 
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
-
 	}
 
 	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
 	{
-#if 1
 		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, XForm, texture))
 			return;
-#else
-		RHISetFixedShaderPipelineState(commandList, XForm, color, &texture, &sampler);
-#endif
 		
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}

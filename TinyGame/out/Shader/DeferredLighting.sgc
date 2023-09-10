@@ -1,9 +1,8 @@
 #include "DeferredShadingCommon.sgc"
 #include "LightingCommon.sgc"
 
-#if COMPILER_HLSL == 0
+
 #include "ShadowCommon.sgc"
-#endif
 #include "MaterialCommon.sgc"
 
 #include "ViewParam.sgc"
@@ -12,6 +11,8 @@
 #ifndef DEFERRED_SHADING_USE_BOUND_SHAPE
 #define DEFERRED_SHADING_USE_BOUND_SHAPE 0
 #endif
+
+#define USE_SHADOW (COMPILER_HLSL == 0)
 
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 
@@ -30,7 +31,7 @@ void LightingPassVS()
 #include "ScreenVertexShader.sgc"
 
 #endif
-
+uniform float3 ProjectShadowOffset;
 uniform mat4 ProjectShadowMatrix[8];
 
 #ifndef DEFERRED_LIGHT_TYPE
@@ -50,7 +51,6 @@ PS_ENTRY_START(ShowBoundPS)
 #endif
 	PS_OUTPUT( float4 OutColor , 0)
 PS_ENTRY_END(ShowBoundPS)
-void ShowBoundPS()
 {
 	float2 ScreenUVs = (SvPosition.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 	OutColor = (1.0 / 100.0) * float4(0, 1, 1, 0);
@@ -58,6 +58,8 @@ void ShowBoundPS()
 
 #endif //SHADER_ENTRY(ShowBoundPS)
 
+
+#if SHADER_ENTRY(LightingPassPS)
 
 PS_ENTRY_START(LightingPassPS)
 #if DEFERRED_SHADING_USE_BOUND_SHAPE == 0
@@ -98,9 +100,10 @@ PS_ENTRY_START(LightingPassPS)
 #if DEFERRED_LIGHT_TYPE == LIGHTTYPE_DIRECTIONAL
 	{
 		L = -GLight.dir;
-		float4 shadowPos = ProjectShadowMatrix[0] * float4(worldPos, 1);
+#if USE_SHADOW
 		if (GLight.bCastShadow == 1)
 			shadow = CalcDirectionalLightShadow(worldPos, ProjectShadowMatrix);
+#endif
 	}
 #else
 	//else
@@ -114,10 +117,10 @@ PS_ENTRY_START(LightingPassPS)
 
 		//if( GLight.type == LIGHTTYPE_POINT )
 #if DEFERRED_LIGHT_TYPE == LIGHTTYPE_POINT
-#if COMPILER_HLSL == 0
+#if USE_SHADOW
 		{
 			if (GLight.bCastShadow == 1)
-				shadow = CalcPointLightShadow(GBuffer.worldPos, ProjectShadowMatrix, -lightVector);
+				shadow = CalcPointLightShadow(worldPos - ProjectShadowOffset, ProjectShadowMatrix, -lightVector);
 		}
 #endif
 #else
@@ -128,8 +131,11 @@ PS_ENTRY_START(LightingPassPS)
 			//cosTheta = -0.5;
 			if (cosTheta > GLight.spotParam.y)
 			{
+#if USE_SHADOW || 1
 				if (GLight.bCastShadow == 1)
-					shadow = CalcSpotLightShadow(worldPos, ProjectShadowMatrix[0]);
+					shadow = CalcSpotLightShadow(worldPos - ProjectShadowOffset, ProjectShadowMatrix[0]);
+				//shadow = worldPos;
+#endif
 			}
 
 			float fallOff = saturate((cosTheta - GLight.spotParam.y) / (GLight.spotParam.x - GLight.spotParam.y));
@@ -175,4 +181,7 @@ PS_ENTRY_START(LightingPassPS)
 
 	OutColor = float4(lighting, 1);
 }
+
+#endif
+
 #endif //PIXEL_SHADER

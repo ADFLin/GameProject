@@ -1,24 +1,11 @@
 #pragma once
 #include "Common.sgc"
 
-#if !SHADER_COMPILING
-
-
-struct VertexFactoryIntermediatesVS
-{
-
-};
-VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS();
-
-
-struct FactoryInterpolantsParam
-{
-};
-
-float3 VertexFactory_GetWorldPos(in FactoryInterpolantsParam Param);
+#ifndef VEREX_FACTORY_FILENAME
+#define VEREX_FACTORY_FILENAME "VertexFactory.sgc"
 #endif
 
-
+#include VEREX_FACTORY_FILENAME
 
 
 #if USE_TESSELLATION

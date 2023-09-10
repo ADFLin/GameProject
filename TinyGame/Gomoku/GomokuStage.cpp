@@ -68,7 +68,7 @@ namespace Gomoku
 		return BaseClass::onMouse(msg);
 	}
 
-	bool TestStage::setupRenderSystem(ERenderSystem systemName)
+	bool TestStage::setupRenderResource(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(mBoardRenderer.initializeRHI());
 		return true;

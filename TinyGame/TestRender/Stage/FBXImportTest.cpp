@@ -65,9 +65,9 @@ namespace Render
 		{
 			return ERenderSystem::D3D11;
 		}
-		virtual bool setupRenderSystem(ERenderSystem systemName) override
+		virtual bool setupRenderResource(ERenderSystem systemName) override
 		{
-			BaseClass::setupRenderSystem(systemName);
+			BaseClass::setupRenderResource(systemName);
 
 			{
 				TIME_SCOPE("EnvLightingTest Shader");
@@ -175,7 +175,7 @@ namespace Render
 				mSceneRenderTargets.attachDepthTexture();
 				RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());	
 				RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth | EClearBits::Stencil,
-					&LinearColor(0.2, 0.2, 0.2, 1), 1, mViewFrustum.bUseReverse ? 0 : 1, 0);
+					&LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 				{
 					GPU_PROFILE("SkyBox");

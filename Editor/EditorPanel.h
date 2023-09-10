@@ -40,7 +40,7 @@ struct WindowRenderParams
 class IEditorPanel
 {
 public:
-	virtual ~IEditorPanel(){}
+	virtual ~IEditorPanel() = default;
 	virtual void onOpen(){}
 	virtual void onClose(){}
 	virtual void onShow(){}
@@ -113,11 +113,11 @@ struct EditorPanelInfo
 		List.push_back(EditorPanelInfo(desc, MakeFactory<T>()));
 	}
 
-	static  EditorPanelInfo const* Find(char const* name)
+	static  EditorPanelInfo const* Find(char const* className)
 	{
 		for(auto const& info : List)
 		{
-			if (FCString::CompareIgnoreCase(info.desc.name, name) == 0)
+			if (FCString::CompareIgnoreCase(info.desc.name, className) == 0)
 				return &info;
 		}
 		return nullptr;

@@ -135,25 +135,28 @@ namespace Render
 
 	struct MaterialShaderKey
 	{
-		uint64         uniqueHash;
+		uintptr_t   uniqueHash;
+		uint32      permutationId;
 		MaterialShaderProgramClass const* shaderClass;
 
 		MaterialShaderKey() {}
-		MaterialShaderKey( MaterialShaderProgramClass const* inShaderClass, uint64 inUniqueHash)
+		MaterialShaderKey( MaterialShaderProgramClass const* inShaderClass, uintptr_t inUniqueHash , uint32 inPermutationId)
 			:shaderClass(inShaderClass)
+			,permutationId(inPermutationId)
 			,uniqueHash(inUniqueHash)
 		{
 		}
 
 		bool operator == (MaterialShaderKey const& rhs) const
 		{
-			return shaderClass == rhs.shaderClass && uniqueHash == rhs.uniqueHash;
+			return shaderClass == rhs.shaderClass && permutationId == rhs.permutationId && uniqueHash == rhs.uniqueHash;
 		}
 
 		uint32 getTypeHash() const
 		{
 			uint32 result = HashValue(shaderClass);
-			result = (result, uniqueHash);
+			result = CombineHash(result, permutationId);
+			result = CombineHash(result, uniqueHash);
 			return result;
 		}
 	};
@@ -169,16 +172,18 @@ namespace Render {
 	public:
 		~MaterialShaderMap();
 
-		MaterialShaderProgram* getShader(MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey);
-		MaterialShaderProgram* loadShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& shaderClass, uint64 uniqueHashKey);
+		MaterialShaderProgram* getShader(MaterialShaderProgramClass const& shaderClass, uintptr_t uniqueHashKey, uint32 permutationId = 0);
 
-
-		template< class ShaderType >
-		ShaderType* getShaderT(uint64 uniqueHashKey = 0)
+		template< typename TShaderType >
+		TShaderType* getShaderT(uintptr_t uniqueHashKey = 0)
 		{
-			return (ShaderType*)getShader(ShaderType::GetShaderClass(), uniqueHashKey);
+			return (TShaderType*)getShader(TShaderType::GetShaderClass(), uniqueHashKey);
 		}
-
+		template< typename TShaderType >
+		TShaderType* getShaderT(typename TShaderType::PermutationDomain const& domain, uintptr_t uniqueHashKey = 0)
+		{
+			return (TShaderType*)getShader(TShaderType::GetShaderClass(), uniqueHashKey, domain.getPermutationId());
+		}
 		void cleanup();
 
 		static std::string GetFilePath(char const* name);
@@ -218,13 +223,13 @@ namespace Render {
 		ShaderType* getShaderT(VertexFactory* vertexFactory)
 		{
 			VertexFactoryType* factoryType = (vertexFactory) ? &vertexFactory->getType() : VertexFactoryType::DefaultType;
-			return mShaderMap.getShaderT< ShaderType >(uint64(factoryType));
+			return mShaderMap.getShaderT< ShaderType >(uintptr_t(factoryType));
 		}
 
 		template< class ShaderType >
 		ShaderType* getShaderT()
 		{
-			return mShaderMap.getShaderT< ShaderType >(0);
+			return mShaderMap.getShaderT< ShaderType >(VertexFactoryType::DefaultType);
 		}
 
 		bool loadInternal()
@@ -234,6 +239,11 @@ namespace Render {
 			info.blendMode = blendMode;
 			info.tessellationMode = tessellationMode;
 			return mShaderMap.load(info);
+		}
+
+		bool isUseShadowPositionOnly() const
+		{
+			return blendMode != Blend_Masked;
 		}
 
 		BlendMode blendMode = Blend_Opaque;

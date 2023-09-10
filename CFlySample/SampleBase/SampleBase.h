@@ -47,7 +47,7 @@ class SampleBase : public GameLoopT< SampleBase , WindowsPlatform >
 public:
 	virtual bool onSetupSample(){ return true; }
 	virtual void onExitSample(){}
-	virtual bool handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
+	virtual MsgReply handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
 	virtual MsgReply handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE;
 	virtual long onUpdate( long time ){ return time; }
 

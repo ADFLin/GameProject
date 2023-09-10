@@ -20,6 +20,170 @@
 #include "RHI/ShaderManager.h"
 #include "ProfileSystem.h"
 
+#include "boost/thread.hpp"
+
+
+IMiscTestCore* GTestCore = nullptr;
+bool FMiscTestUtil::IsTesting()
+{
+	return !!GTestCore;
+}
+
+void FMiscTestUtil::PauseThread()
+{
+	if (GTestCore)
+	{
+		GTestCore->pauseThread(Thread::GetCurrentThreadId());
+	}
+}
+
+void FMiscTestUtil::RegisterRender(std::function< void(IGraphics2D&) > const& func)
+{
+	if (GTestCore)
+	{
+		GTestCore->registerRender(Thread::GetCurrentThreadId(), func);
+	}
+}
+
+bool MiscTestStage::onInit()
+{
+	::Global::GUI().cleanupWidget();
+
+	auto frame = WidgetUtility::CreateDevFrame();
+
+	auto const& entries = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTest);
+	for (auto const& entry : entries)
+	{
+		addTest(entry.title, entry.execFunc);
+	}
+	restart();
+
+	GTestCore = this;
+	return true;
+}
+
+
+void MiscTestStage::addTest(char const* name, TestFunc const& func)
+{
+	Vec2i pos;
+	pos.x = 20 + 120 * (mInfos.size() % 5);
+	pos.y = 20 + 30 * (mInfos.size() / 5);
+	GButton* button = new GButton(UI_TEST_BUTTON, pos, Vec2i(100, 20), nullptr);
+	button->setUserData(mInfos.size());
+	button->setTitle(name);
+	::Global::GUI().addWidget(button);
+
+	TestInfo info;
+	info.func = func;
+	mInfos.push_back(info);
+}
+
+
+void MiscTestStage::onRender(float dFrame)
+{
+	IGraphics2D& g = Global::GetIGraphics2D();
+
+	{
+		Mutex::Locker locker(mThreadDataMutex);
+		for (auto const& exec : mRunningExecutions)
+		{
+			if (exec.renderFunc)
+			{
+				g.pushXForm();
+				exec.renderFunc(g);
+				g.popXForm();
+			}
+		}
+	}
+}
+
+bool MiscTestStage::onWidgetEvent(int event, int id, GWidget* ui)
+{
+	switch (id)
+	{
+	case UI_TEST_BUTTON:
+		{
+			Async([this, func = mInfos[ui->getUserData()].func](Thread* thread)
+			{
+				if (GTestCore)
+				{
+					registerThread(thread);
+					func();
+					if (GTestCore)
+					{
+						unregisterThread(thread);
+					}
+				}
+			});
+		}
+		return false;
+	}
+	return BaseClass::onWidgetEvent(event, id, ui);
+}
+
+void MiscTestStage::pauseThread(uint32 threadId)
+{
+	Thread* curThread = nullptr;
+	{
+		Mutex::Locker locker(mThreadDataMutex);
+		for (auto const& exec : mRunningExecutions)
+		{
+			if (exec.thread->getID() == threadId && mPauseExecutions.findIndex(exec.thread) == INDEX_NONE)
+			{
+				curThread = exec.thread;
+				mPauseExecutions.push_back(exec.thread);
+				break;
+			}
+		}
+	}
+	if (curThread)
+	{
+		curThread->suspend();
+	}
+}
+
+void MiscTestStage::registerRender(uint32 threadId, std::function< void(IGraphics2D&) > const& func)
+{
+	Mutex::Locker locker(mThreadDataMutex);
+	for (auto& exec : mRunningExecutions)
+	{
+		if (exec.thread->getID() == threadId)
+		{
+			exec.renderFunc = func;
+			break;
+		}
+	}
+}
+
+void MiscTestStage::resumeAllThreads()
+{
+	Mutex::Locker locker(mThreadDataMutex);
+	for (auto thread : mPauseExecutions)
+	{
+		thread->resume();
+	}
+	mPauseExecutions.clear();
+}
+
+void MiscTestStage::registerThread(Thread* thread)
+{
+	Mutex::Locker locker(mThreadDataMutex);
+
+	ExecutionData data;
+	data.thread = thread;
+	mRunningExecutions.push_back(data);
+}
+
+void MiscTestStage::unregisterThread(Thread* thread)
+{
+	Mutex::Locker locker(mThreadDataMutex);
+	mRunningExecutions.removePred([thread](ExecutionData const& data)
+	{
+		return data.thread == thread;
+	});
+}
+
+
 namespace MRT
 {
 
@@ -803,7 +967,7 @@ void RHIGraphics2DTestStage::onRender(float dFrame)
 	g.endRender();
 }
 
-bool RHIGraphics2DTestStage::setupRenderSystem(ERenderSystem systemName)
+bool RHIGraphics2DTestStage::setupRenderResource(ERenderSystem systemName)
 {
 	using namespace Render;
 	VERIFY_RETURN_FALSE(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/Gird.png", TextureLoadOption().MipLevel(5) ));
@@ -1223,33 +1387,40 @@ void TestCycleQueue()
 	TCycleQueue< int > queue;
 
 	int i = 0;
-	for( ; i < 10; ++i )
-		queue.push_back(i);
+	for(int n = 0 ; n < 10; ++n )
+		queue.push_back(i++);
 
 	for( auto val : queue )
 	{
 		LogMsg("%d", val);
 	}
 
-	int value = queue.front();
+	int value;
+	value = queue.front();
+	LogMsg("%d", value);
 	queue.pop_front();
-	int value1 = queue.front();
+	value = queue.front();
+	LogMsg("%d", value);
 	queue.pop_front();
 
-	queue.push_back(i);
-	i = 0;
-	for( ; i < 10; ++i )
-		queue.push_back(i);
+	queue.push_back(i++);
+	queue.push_back(i++);
+	queue.push_back(i++);
+	for (int n = 0; n < 20; ++n)
+		queue.push_back(i++);
 
 
 	while( !queue.empty() )
 	{
-		int value = queue.front();
+		value = queue.front();
+		LogMsg("%d", value);
 		queue.pop_front();
 
 		if ( queue.empty() )
 			break;
-		int value1 = queue.front();
+
+		value = queue.front();
+		LogMsg("%d", value);
 		queue.pop_front();
 
 		queue.push_back(i);
@@ -1340,69 +1511,6 @@ namespace RenderTest
 #endif
 
 
-bool MiscTestStage::onInit()
-{
-	::Global::GUI().cleanupWidget();
-
-	auto frame = WidgetUtility::CreateDevFrame();
-
-	auto const& entries = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTest);
-	for( auto const& entry : entries )
-	{
-		addTest(entry.title, entry.execFunc);
-	}
-	restart();
-
-	return true;
-}
-
-
-void MiscTestStage::addTest(char const* name , TestFunc const& func)
-{
-	Vec2i pos;
-	pos.x = 20 + 120 * ( mInfos.size() % 5 );
-	pos.y = 20 + 30 * ( mInfos.size() / 5 );
-	GButton* button = new GButton( UI_TEST_BUTTON , pos , Vec2i(100,20) , nullptr );
-	button->setUserData( mInfos.size() );
-	button->setTitle( name );
-	::Global::GUI().addWidget( button );
-
-	TestInfo info;
-	info.func = func;
-	mInfos.push_back( info );
-}
-
-#include "PlatformThread.h"
-#include "boost/thread.hpp"
-bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
-{
-	class MyRunnable : public RunnableThreadT< MyRunnable >
-	{
-	public: 
-		unsigned run()
-		{
-			func();
-			return 0;
-		}
-		void exit(){ delete this; }
-		MiscTestStage::TestFunc func;
-	};
-
-	switch ( id )
-	{
-	case UI_TEST_BUTTON:
-		{
-			MyRunnable* t = new MyRunnable;
-			t->func = mInfos[ ui->getUserData() ].func;
-			t->start();
-		}
-		return false;
-	}
-	return BaseClass::onWidgetEvent(event , id , ui );
-}
-
-
-
 #include "Math/SIMD.h"
 #include "Math/Vector3.h"
 #include "Math/Vector2.h"
@@ -1484,3 +1592,82 @@ void SATTest()
 	}
 }
 REGISTER_MISC_TEST_ENTRY("SAT Test", SATTest);
+
+#include "Async/Coroutines.h"
+
+const int BlockCount = 8;
+class HanoiTowerSolver
+{
+public:
+	HanoiTowerSolver()
+	{
+		for (int i = 0; i < BlockCount; ++i)
+			state[i] = 0;
+	}
+
+	void solve()
+	{
+		moveRecursive(0, 2, 1);
+	}
+
+	void doMove(int index, int to)
+	{
+		FMiscTestUtil::PauseThread();
+		int from = state[index];
+		state[index] = to;
+		LogMsg("Move %d form %d to %d", index, from, to);
+	}
+
+	void moveRecursive(int index, int to, int other)
+	{
+		if (index >= BlockCount)
+			return;
+		int from = state[index];
+		CHECK(from != to);
+		int nextIndex = index + 1;
+		moveRecursive(nextIndex, other, to);
+		doMove(index , to);
+		moveRecursive(nextIndex, to, from);
+	}
+
+	int state[BlockCount];
+};
+
+void SolveHanoiTowerTest()
+{
+	HanoiTowerSolver solver;
+
+
+	FMiscTestUtil::RegisterRender([&solver](IGraphics2D& g)
+	{
+		int count[3] = { 0 , 0 , 0 };
+		g.setBrush(Color3f(1, 0, 0));
+		g.setPen(Color3f(0, 0, 0));
+
+		g.beginXForm();
+		g.translateXForm(200, 400);
+
+		float Offset = 200;
+		float BlockHeight = 20;
+		g.setBrush(Color3f(0, 1, 1));
+		for (int i = 0; i < 3; ++i)
+		{
+			float sizeX = 10;
+			g.drawRect(Vector2(i * Offset - sizeX / 2, -(BlockCount - 1) * BlockHeight), Vector2(sizeX, BlockCount * BlockHeight));
+		}
+		g.setBrush(Color3f(1, 0, 0));
+		for (int i = 0; i < BlockCount; ++i)
+		{
+			int state = solver.state[i];
+			float sizeX = (BlockCount - i) * 20;
+			g.drawRect(Vector2( state * Offset - sizeX / 2, -count[state] * BlockHeight), Vector2(sizeX, BlockHeight));
+			count[state] += 1;
+		}
+		g.finishXForm();
+	});
+
+	solver.solve();
+	FMiscTestUtil::PauseThread();
+}
+
+REGISTER_MISC_TEST_ENTRY("Hanoi Tower", SolveHanoiTowerTest);

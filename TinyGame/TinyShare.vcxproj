@@ -230,6 +230,7 @@
     <ClInclude Include="TinyCore\ComPacket.h" />
     <ClInclude Include="TinyCore\CPredictFrameManager.h" />
     <ClInclude Include="TinyCore\CSyncFrameManager.h" />
+    <ClInclude Include="TinyCore\DebugDraw.h" />
     <ClInclude Include="TinyCore\DrawEngine.h" />
     <ClInclude Include="TinyCore\GameClient.h" />
     <ClInclude Include="TinyCore\GameControl.h" />
@@ -263,6 +264,7 @@
     <ClCompile Include="TinyCore\CFrameActionNetEngine.cpp" />
     <ClCompile Include="TinyCore\ComPacket.cpp" />
     <ClCompile Include="TinyCore\CSyncFrameManager.cpp" />
+    <ClCompile Include="TinyCore\DebugDraw.cpp" />
     <ClCompile Include="TinyCore\DrawEngine.cpp" />
     <ClCompile Include="TinyCore\GameClient.cpp" />
     <ClCompile Include="TinyCore\GameControl.cpp" />

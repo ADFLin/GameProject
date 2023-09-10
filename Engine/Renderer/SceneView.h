@@ -55,15 +55,15 @@ namespace Render
 
 		Vector3 getViewForwardDir() const
 		{
-			return TransformVector(Vector3(0, 0, 1), viewToWorld);
+			return TransformVector(Vector3(0, 0, 1), viewToTranslatedWorld);
 		}
 		Vector3 getViewRightDir() const
 		{
-			return TransformVector(Vector3(1, 0, 0), viewToWorld);
+			return TransformVector(Vector3(1, 0, 0), viewToTranslatedWorld);
 		}
 		Vector3 getViewUpDir() const
 		{
-			return TransformVector(Vector3(0, 1, 0), viewToWorld);
+			return TransformVector(Vector3(0, 1, 0), viewToTranslatedWorld);
 		}
 
 		void updateRHIResource();
@@ -80,6 +80,8 @@ namespace Render
 
 
 		void updateFrustumPlanes();
+
+		static void GetFrustumVertices(Matrix4 const& projectionMatrixInverse, Vector3 outVertices[], bool bAdjRHI = false);
 	};
 
 }

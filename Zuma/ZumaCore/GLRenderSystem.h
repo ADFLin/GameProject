@@ -70,7 +70,6 @@ namespace Zuma
 		void  setMatrix( Vector2 const& pos , float c , float s );
 
 	public:
-		bool setContext( HGLRC hRC );
 		HDC  getHDC(){ return mhDC; }
 
 		bool    mNeedSweepBuffer;
@@ -85,10 +84,9 @@ namespace Zuma
 		int     mScreenWidth;
 		int     mScreenHeight;
 		
-		HGLRC   mhRCCur;
 		HWND    mhWnd;
 		HDC     mhDC;
-		HGLRC   mhRCTex;
+		HGLRC   mhRCLoad;
 		HGLRC   mhRCDraw;
 		bool    mEnableBlend;
 	public:

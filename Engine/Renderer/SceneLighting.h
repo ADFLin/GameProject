@@ -11,16 +11,24 @@ namespace Render
 {
 	struct ViewInfo;
 
-	enum class LightType
+	enum class ELightType
 	{
 		Spot,
 		Point,
 		Directional,
+
+		COUNT ,
 	};
+
+	REF_ENUM_BEGIN(ELightType)
+		REF_ENUM(Spot)
+		REF_ENUM(Point)
+		REF_ENUM(Directional)
+	REF_ENUM_END()
 
 	struct LightInfo
 	{
-		LightType type;
+		ELightType type;
 		Vector3   pos;
 		Vector3   color;
 		Vector3   dir;
@@ -35,7 +43,7 @@ namespace Render
 
 		bool testVisible(ViewInfo const& view) const;
 
-		REFLECT_OBJECT_BEGIN(LightInfo)
+		REFLECT_STRUCT_BEGIN(LightInfo)
 			REF_PROPERTY(type)
 			REF_PROPERTY(pos)
 			REF_PROPERTY(color)
@@ -44,10 +52,11 @@ namespace Render
 			REF_PROPERTY(intensity)
 			REF_PROPERTY(radius)
 			REF_PROPERTY(bCastShadow)
-		REFLECT_OBJECT_END()
+		REFLECT_STRUCT_END()
 	};
 
-	class DeferredLightingProgram : public GlobalShaderProgram
+
+	class DeferredLightingBaseProgram : public GlobalShaderProgram
 	{
 		using BaseClass = GlobalShaderProgram;
 	public:
@@ -90,15 +99,20 @@ namespace Render
 
 	};
 
-	template< LightType LIGHT_TYPE, bool bUseBoundShape = false >
-	class TDeferredLightingProgram : public DeferredLightingProgram
-	{
-		DECLARE_SHADER_PROGRAM(TDeferredLightingProgram, Global)
-		using BaseClass = DeferredLightingProgram;
 
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+	class DeferredLightingProgram : public DeferredLightingBaseProgram
+	{
+		DECLARE_SHADER_PROGRAM(DeferredLightingProgram, Global)
+		using BaseClass = DeferredLightingBaseProgram;
+
+		SHADER_PERMUTATION_TYPE_INT_COUNT(UseLightType, SHADER_PARAM(DEFERRED_LIGHT_TYPE) , (int)ELightType::COUNT );
+		SHADER_PERMUTATION_TYPE_BOOL(HaveBoundShape, SHADER_PARAM(DEFERRED_SHADING_USE_BOUND_SHAPE));
+
+		using PermutationDomain = TShaderPermutationDomain<UseLightType, HaveBoundShape>;
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
-			if (bUseBoundShape)
+			if (domain.get<HaveBoundShape>())
 			{
 				static ShaderEntryInfo const entriesUseBoundShape[] =
 				{
@@ -119,17 +133,15 @@ namespace Render
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
-			option.addDefine(SHADER_PARAM(DEFERRED_LIGHT_TYPE), (int)LIGHT_TYPE);
-			option.addDefine(SHADER_PARAM(DEFERRED_SHADING_USE_BOUND_SHAPE), bUseBoundShape);
 		}
 	};
 
 
 
-	class LightingShowBoundProgram : public DeferredLightingProgram
+	class LightingShowBoundProgram : public DeferredLightingBaseProgram
 	{
 		DECLARE_SHADER_PROGRAM(LightingShowBoundProgram, Global)
-		using BaseClass = DeferredLightingProgram;
+		using BaseClass = DeferredLightingBaseProgram;
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
@@ -148,12 +160,6 @@ namespace Render
 		}
 	};
 
-#define DECLARE_DEFERRED_SHADER( NAME )\
-	typedef TDeferredLightingProgram< LightType::NAME , true > DeferredLightingProgram##NAME;\
-
-	DECLARE_DEFERRED_SHADER(Spot);
-	DECLARE_DEFERRED_SHADER(Point);
-	DECLARE_DEFERRED_SHADER(Directional);
 
 }//namespace Render
 

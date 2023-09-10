@@ -112,6 +112,7 @@ namespace Render
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const& v);
 
+
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, LinearColor const& v);
 
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const& m);
@@ -139,6 +140,13 @@ namespace Render
 			setTexture(commandList, param, *texturePtr, paramSampler, sampler);
 		}
 
+		void clearTexture(RHICommandList& commandList, char const* name)
+		{
+			ShaderParameter param;
+			if (!getParameter(name, param))
+				return;
+			clearTexture(commandList, param);
+		}
 		void clearTexture(RHICommandList& commandList, ShaderParameter const& param);
 
 

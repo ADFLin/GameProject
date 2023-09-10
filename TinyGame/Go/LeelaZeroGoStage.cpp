@@ -188,7 +188,7 @@ namespace Go
 			return "Shader/Game/Spline";
 		}
 
-		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
 		{
 			if (UseTessellation)
 			{
@@ -2413,7 +2413,7 @@ namespace Go
 		return mGame.getInstance().saveSGF(path, &description);
 	}
 
-	bool LeelaZeroGoStage::setupRenderSystem(ERenderSystem systemName)
+	bool LeelaZeroGoStage::setupRenderResource(ERenderSystem systemName)
 	{
 		VERIFY_RETURN_FALSE(mBoardRenderer.initializeRHI());
 		return true;

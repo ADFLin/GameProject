@@ -138,10 +138,8 @@ namespace Zuma
 		showFPS = 0.9 * showFPS + 0.1 * FPS;
 		beforeTime = curTime;
 
-		ZFont* font;
-
+		ZFont* font = nullptr;
 		font = renderSys.getFontRes( FONT_BROWNTITLE );
-
 		if ( !font )
 			font = renderSys.getFontRes( FONT_PLAIN );
 

@@ -4,7 +4,7 @@
 #include "CoreShare.h"
 #include "VulkanShaderCommon.h"
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 
@@ -1035,6 +1035,19 @@ namespace Render
 	}
 
 
+	bool VulkanSystem::RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth)
+	{
+		auto& textureImpl = static_cast<VulkanTexture2D&>(texture);
+		if (dataWidth)
+		{
+			return textureImpl.update(ox, oy, w, h, texture.getDesc().format, dataWidth, data, level);
+		}
+		else
+		{
+			return textureImpl.update(ox, oy, w, h, texture.getDesc().format, data, level);
+		}
+	}
+
 	RHIInputLayout* VulkanSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
 		return new VulkanInputLayout(desc);
@@ -1192,6 +1205,6 @@ namespace Render
 }//namespace Render
 
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif

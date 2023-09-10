@@ -41,20 +41,7 @@ namespace Render
 		param.y = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, light.spotAngle.y)));
 	}
 
-	void LightInfo::setupShaderGlobalParam(RHICommandList& commandList, ShaderProgram& shader) const
-	{
-		shader.setParam(commandList, SHADER_PARAM(GLight.worldPosAndRadius), Vector4(pos, radius));
-		shader.setParam(commandList, SHADER_PARAM(GLight.color), intensity * color);
-		shader.setParam(commandList, SHADER_PARAM(GLight.type), int(type));
-		shader.setParam(commandList, SHADER_PARAM(GLight.bCastShadow), int(bCastShadow));
-		shader.setParam(commandList, SHADER_PARAM(GLight.dir), Math::GetNormal(dir));
 
-		Vector3 spotParam;
-		float angleInner = Math::Min(spotAngle.x, spotAngle.y);
-		spotParam.x = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, angleInner)));
-		spotParam.y = Math::Cos(Math::DegToRad(Math::Min<float>(89.9, spotAngle.y)));
-		shader.setParam(commandList, SHADER_PARAM(GLight.spotParam), spotParam);
-	}
 
 	bool ShadowDepthTech::init()
 	{
@@ -113,18 +100,18 @@ namespace Render
 		return true;
 	}
 
-	void ShadowDepthTech::drawShadowTexture(RHICommandList& commandList, LightType type , Matrix4 const& porjectMatrix , IntVector2 const& pos , int length )
+	void ShadowDepthTech::drawShadowTexture(RHICommandList& commandList, ELightType type , Matrix4 const& porjectMatrix , IntVector2 const& pos , int length )
 	{
 
 		switch( type )
 		{
-		case LightType::Spot:
+		case ELightType::Spot:
 			DrawUtility::DrawTexture(commandList, porjectMatrix, *mShadowMap2, pos, IntVector2(length, length));
 			break;
-		case LightType::Directional:
+		case ELightType::Directional:
 			DrawUtility::DrawTexture(commandList, porjectMatrix, *mCascadeTexture, pos, IntVector2(length * CascadedShadowNum, length));
 			break;
-		case LightType::Point:
+		case ELightType::Point:
 			DrawUtility::DrawCubeTexture(commandList, porjectMatrix, *mShadowMap, pos, length / 2);
 			//ShaderHelper::drawCubeTexture(commandList, GWhiteTextureCube, Vec2i(0, 0), length / 2);
 		default:
@@ -230,7 +217,7 @@ namespace Render
 
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-		if( light.type == LightType::Directional )
+		if( light.type == ELightType::Directional )
 		{
 			GPU_PROFILE("Shadow - Directional");
 			
@@ -240,7 +227,7 @@ namespace Render
 			Vector3 nearViewPos = (Vector4(0, 0, -1, 1) * view.clipToView).dividedVector();
 			float renderMaxDist = std::max(-mCascadeMaxDist - nearViewPos.z, farViewPos.z);
 
-			determineCascadeSplitDist(nearViewPos.z, renderMaxDist, CascadedShadowNum, 0.5, shadowProjectParam.cacadeDepth);
+			DetermineCascadeSplitDist(nearViewPos.z, renderMaxDist, CascadedShadowNum, 0.5, shadowProjectParam.cacadeDepth);
 
 			auto GetDepth = [&view](float value) ->float
 			{
@@ -294,7 +281,7 @@ namespace Render
 
 			RHISetFrameBuffer(commandList, nullptr);
 		}
-		else if( light.type == LightType::Spot )
+		else if( light.type == ELightType::Spot )
 		{
 			GPU_PROFILE("Shadow-Spot");
 			shadowProject = PerspectiveMatrix(Math::DegToRad(2.0 * Math::Min<float>(89.99, light.spotAngle.y)), 1.0, 0.01, light.radius);
@@ -322,7 +309,7 @@ namespace Render
 			scene.render( context );
 			RHISetFrameBuffer(commandList, nullptr);
 		}
-		else if( light.type == LightType::Point )
+		else if( light.type == ELightType::Point )
 		{
 			GPU_PROFILE("Shadow-Point");
 			shadowProject = PerspectiveMatrix(Math::DegToRad(90), 1.0, 0.01, light.radius);
@@ -383,7 +370,7 @@ namespace Render
 	}
 
 
-	void ShadowDepthTech::determineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[])
+	void ShadowDepthTech::DetermineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[])
 	{
 		for( int i = 1; i <= numCascade; ++i )
 		{
@@ -467,16 +454,23 @@ namespace Render
 		VERIFY_RETURN_FALSE(FMeshBuild::LightSphere(mSphereMesh));
 		VERIFY_RETURN_FALSE(FMeshBuild::LightCone(mConeMesh));
 
-#define GET_LIGHTING_SHADER( LIGHT_TYPE , NAME )\
-		VERIFY_RETURN_FALSE( mProgLightingScreenRect[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< TDeferredLightingProgram< LIGHT_TYPE > >(true) );\
-		VERIFY_RETURN_FALSE( mProgLighting[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< DeferredLightingProgram##NAME >(true) );
 
-		GET_LIGHTING_SHADER(LightType::Spot, Spot);
-		GET_LIGHTING_SHADER(LightType::Point , Point);
-		GET_LIGHTING_SHADER(LightType::Directional , Directional);
-		
+		auto GetLightingShader = [&](ELightType type)
+		{
 
-#undef GET_LIGHTING_SHADER
+			DeferredLightingProgram::PermutationDomain permutationVector;
+			permutationVector.set<DeferredLightingProgram::UseLightType>( (int)type );
+			permutationVector.set<DeferredLightingProgram::HaveBoundShape>(true);
+
+			mProgLighting[(int)type] = ShaderManager::Get().getGlobalShaderT< DeferredLightingProgram >(permutationVector, true);
+
+			permutationVector.set<DeferredLightingProgram::HaveBoundShape>(false);
+			mProgLightingScreenRect[(int)type] = ShaderManager::Get().getGlobalShaderT< DeferredLightingProgram >(permutationVector, true);
+		};
+
+		GetLightingShader(ELightType::Spot);
+		GetLightingShader(ELightType::Point);
+		GetLightingShader(ELightType::Directional);
 
 		VERIFY_RETURN_FALSE(mProgLightingShowBound = ShaderManager::Get().getGlobalShaderT< LightingShowBoundProgram >(true));
 		return true;
@@ -505,7 +499,7 @@ namespace Render
 	void DeferredShadingTech::renderLight(RHICommandList& commandList, ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam)
 	{
 
-		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](RHICommandList& commandList, DeferredLightingProgram& program)
+		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](RHICommandList& commandList, DeferredLightingBaseProgram& program)
 		{
 			program.setParamters(commandList, *mSceneRenderTargets);
 			shadowProjectParam.setupShader(commandList, program);
@@ -513,21 +507,28 @@ namespace Render
 			light.setupShaderGlobalParam(commandList, program);
 		};
 
-		if( boundMethod != LBM_SCREEN_RECT && light.type != LightType::Directional )
+		if( boundMethod != LBM_SCREEN_RECT && light.type != ELightType::Directional )
 		{
-			DeferredLightingProgram* lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
-
+			DeferredLightingBaseProgram* lightShader;
+			if (debugMode == DebugMode::eNone)
+			{
+				lightShader = mProgLighting[(int)light.type];
+			}
+			else
+			{
+				lightShader = mProgLightingShowBound;
+			}
 			mLightingBuffer->setTexture(0, mSceneRenderTargets->getFrameTexture());
 
 			Mesh* boundMesh;
 			Matrix4 lightXForm;
 			switch( light.type )
 			{
-			case LightType::Point:
+			case ELightType::Point:
 				lightXForm = Matrix4::Scale(light.radius) * Matrix4::Translate(light.pos) * view.worldToView;
 				boundMesh = &mSphereMesh;
 				break;
-			case LightType::Spot:
+			case ELightType::Spot:
 				{
 					float factor = Math::Tan( Math::DegToRad( light.spotAngle.y ) );
 					lightXForm = Matrix4::Scale(light.radius * Vector3( factor , factor , 1 ) ) * BasisMaterix::FromZ(light.dir) * Matrix4::Translate(light.pos) * view.worldToView;
@@ -587,7 +588,7 @@ namespace Render
 				{
 					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState<
-							bWriteDepth, ECompareFunc::GeraterEqual,
+							bWriteDepth, ECompareFunc::GreaterEqual,
 							bEnableStencilTest, ECompareFunc::Equal,
 							EStencil::Keep, EStencil::Keep, EStencil::Keep, 0x1
 						>::GetRHI(), 0x1);
@@ -602,7 +603,7 @@ namespace Render
 				}
 				else
 				{
-					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFunc::GeraterEqual >::GetRHI());
+					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFunc::GreaterEqual >::GetRHI());
 				}
 			}
 
@@ -812,53 +813,6 @@ namespace Render
 		ShaderManager::Get().reloadShader(*mProgAmbient);
 	}
 
-	void ShadowProjectParam::setupLight(LightInfo const& inLight)
-	{
-		light = &inLight;
-		switch( light->type )
-		{
-		case LightType::Spot:
-		case LightType::Point:
-			shadowParam.y = 1.0 / inLight.radius;
-			break;
-		case LightType::Directional:
-			//#TODO
-			shadowParam.y = 1.0;
-			break;
-		}
-	}
-
-	void ShadowProjectParam::setupShader(RHICommandList& commandList, ShaderProgram& program) const
-	{
-		program.setParam(commandList, SHADER_PARAM(ShadowParam), Vector2( shadowParam.x, shadowParam.y ));
-		switch( light->type )
-		{
-		case LightType::Spot:
-			program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 1);
-			if( light->bCastShadow )
-				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *(RHITexture2D*)shadowTexture);
-			else
-				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *GWhiteTexture2D);
-			break;
-		case LightType::Point:
-			program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 6);
-			if( light->bCastShadow )
-				program.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *(RHITextureCube*)shadowTexture);
-			else
-				program.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *GWhiteTextureCube);
-			break;
-		case LightType::Directional:
-			program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, numCascade);
-			if( light->bCastShadow )
-				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *(RHITexture2D*)shadowTexture);
-			else
-				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *GWhiteTexture2D);
-			program.setParam(commandList, SHADER_PARAM(NumCascade), numCascade);
-			program.setParam(commandList, SHADER_PARAM(CacadeDepth), cacadeDepth, numCascade);
-			break;
-		}
-	}
-
 	bool OITShaderData::init(int storageSize, IntVector2 const& screenSize)
 	{
 		colorStorageTexture = RHICreateTexture2D(ETexture::RGBA16F, storageSize, storageSize);
@@ -926,7 +880,7 @@ namespace Render
 
 		{
 			ShaderCompileOption option;
-			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
+			//option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 			option.bShowComplieInfo = true;
 			if( !ShaderManager::Get().loadFile(
 				mShaderBassPassTest, "Shader/OITRender",

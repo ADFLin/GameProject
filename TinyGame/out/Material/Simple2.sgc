@@ -4,7 +4,7 @@
 
 void CalcMaterialOutputVS(inout MaterialOutputVS outputVS, inout MaterialParametersVS parameters)
 {
-	outputVS.worldOffset = float3(0.0);
+	outputVS.worldOffset = float3(0, 0, 0);
 }
 
 #endif //VERTEX_SHADER

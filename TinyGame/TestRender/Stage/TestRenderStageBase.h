@@ -53,7 +53,7 @@ namespace Render
 			return mesh.save(serializer);
 		};
 
-		if(!::Global::DataCache().loadDelegate(key, MeshLoad) )
+		if(!::Global::DataCache().loadDelegate(key, MeshLoad) || true)
 		{
 			if( !FuncMeshCreate(mesh, std::forward<Args>(args)...) )
 			{
@@ -325,13 +325,12 @@ namespace Render
 	public:
 		Matrix4 getPerspectiveMatrix()
 		{
-			if( bUseReverse )
-				return ReverseZPerspectiveMatrix(mYFov, mAspect, mNear, mFar);
+			if(FRHIZBuffer::IsInverted)
+				return ReversedZPerspectiveMatrix(mYFov, mAspect, mNear, mFar);
 				       
 			return PerspectiveMatrix(mYFov, mAspect, mNear, mFar);
 		}
 
-		bool  bUseReverse = false;
 		bool  bLeftHandCoord = false;
 		float mNear;
 		float mFar;
@@ -441,6 +440,34 @@ namespace Render
 	};
 
 
+
+	class IValueModifier
+	{
+	public:
+		virtual bool isHook(void* ptr) { return false; }
+		virtual void update(float time) = 0;
+	};
+
+	template< class TrackType >
+	class TVectorTrackModifier : public IValueModifier
+	{
+	public:
+		TVectorTrackModifier(Vector3& value)
+			:mValue(value)
+		{
+
+		}
+		virtual void update(float time)
+		{
+			mValue = track.getValue(time);
+		}
+		virtual bool isHook(void* ptr) { return &mValue == ptr; }
+		TrackType track;
+	private:
+		Vector3&  mValue;
+	};
+
+
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
 		                               , public IGameRenderSetup
@@ -464,7 +491,7 @@ namespace Render
 		void onUpdate(long time) override;
 
 		//
-		virtual bool setupRenderSystem(ERenderSystem systemName)
+		virtual bool setupRenderResource(ERenderSystem systemName)
 		{
 			if ( systemName != ERenderSystem::D3D12 )
 			{

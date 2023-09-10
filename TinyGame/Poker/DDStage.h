@@ -79,7 +79,7 @@ namespace DouDizhu
 		RHITexture2DRef mUVTexture;
 		RHITexture2DRef mTestTexture;
 		ERenderSystem getDefaultRenderSystem();
-		bool setupRenderSystem(ERenderSystem systemName);
+		bool setupRenderResource(ERenderSystem systemName);
 		void preShutdownRenderSystem(bool bReInit = false);
 
 		ICardDraw* cardDraw = nullptr;

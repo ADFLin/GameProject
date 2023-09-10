@@ -196,6 +196,8 @@ namespace RT
 
 		int buildMeshData(MeshImportData& meshData)
 		{
+			TIME_SCOPE("BuildMeshData");
+
 			auto posReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_POSITION);
 			auto normalReader = meshData.makeAttributeReader(EVertex::ATTRIBUTE_NORMAL);
 
@@ -263,6 +265,7 @@ namespace RT
 
 		int loadMesh(char const* path)
 		{
+			TIME_SCOPE("LoadMesh");
 			MeshImportData meshData;
 			VERIFY_RETURN_FALSE(meshImporter->importFromFile(path, meshData));
 			return buildMeshData(meshData);
@@ -321,6 +324,8 @@ namespace RT
 
 		bool buildRHIResource()
 		{
+			TIME_SCOPE("BuildRHIResource");
+
 			{
 				VERIFY_RETURN_FALSE(mScene.mVertexBuffer.initializeResource(vertices.size(), EStructuredBufferType::Buffer));
 				mScene.mVertexBuffer.updateBuffer(vertices);
@@ -487,32 +492,26 @@ namespace RT
 	public:
 
 		SceneBuilderImpl* mBuilder;
+		Chai::ChaiScript script;
+		Chai::ModulePtr CommonModule;
+		SceneScriptImpl()
+		{
+			TIME_SCOPE("CommonModule Init");
+			CommonModule.reset(new Chai::Module);
+			FScriptCommon::RegisterMath(*CommonModule);
+			registerAssetId(*CommonModule);
+			registerSceneObject(*CommonModule);
+			script.add(CommonModule);
+			registerSceneFunc(script);
+		}
 
 		virtual bool setup(ISceneBuilder& builder, char const* fileName) override
 		{
 			mBuilder = (SceneBuilderImpl*)&builder;
-
-			struct Initializer
-			{
-				Initializer()
-				{
-					CommonModule.reset(new Chai::Module);
-					FScriptCommon::RegisterMath(*CommonModule);
-					registerAssetId(*CommonModule);
-					registerSceneObject(*CommonModule);
-				}
-
-				Chai::ModulePtr CommonModule;
-			};
-			static Initializer initializer;
-
-			std::string path = GetFilePath(fileName);
-
-			Chai::ChaiScript script;
-			script.add(initializer.CommonModule);
-			registerSceneFunc(script);
 			try
 			{
+				std::string path = GetFilePath(fileName);
+				TIME_SCOPE("Script Eval");
 				script.eval_file(path.c_str());
 			}
 			catch (const std::exception& e)
@@ -520,7 +519,6 @@ namespace RT
 				LogMsg("Load Scene Fail!! : %s", e.what());
 				return false;
 			}
-
 			return true;
 		}
 
@@ -542,14 +540,24 @@ namespace RT
 		void registerSceneFunc(Chai::ChaiScript& script)
 		{
 			script.add(Chai::fun(&SceneScriptImpl::Sphere, this), SCRIPT_NAME(Sphere));
+			script.add(Chai::fun(&SceneScriptImpl::Mesh, this), SCRIPT_NAME(Mesh));
 			script.add(Chai::fun(&SceneScriptImpl::Material, this), SCRIPT_NAME(Material));
 			script.add(Chai::fun(&SceneScriptImpl::LoadMesh, this), SCRIPT_NAME(LoadMesh));
 			script.add(Chai::fun(&SceneScriptImpl::AddDefaultObjects, this), SCRIPT_NAME(AddDefaultObjects));
 		}
 
-		void Sphere(Vector3 const& pos , float radius, int matId)
+		void Sphere(int matId, Vector3 const& pos , float radius)
 		{
 			mBuilder->objects.push_back(FObject::Sphere(radius, matId, pos));
+		}
+		void Mesh(int meshId, int matId, Vector3 const& pos, float scale)
+		{
+			mBuilder->objects.push_back(FObject::Mesh(meshId, scale, matId, pos));
+		}
+
+		void Box(int matId, Vector3 pos, Vector3 size)
+		{
+			mBuilder->objects.push_back(FObject::Box(size, matId, pos));
 		}
 
 		int LoadMesh(std::string const& path)
@@ -572,6 +580,19 @@ namespace RT
 		void AddDefaultObjects()
 		{
 			mBuilder->addDefaultObjects();
+
+			int id = mBuilder->meshes.size();
+			std::map<std::string, Chai::Boxed_Value> locals;
+			locals.emplace("DefMeshId_0", id - 3);
+			locals.emplace("DefMeshId_1", id - 2);
+			locals.emplace("DefMeshId_2", id - 1);	
+#if 0
+			id = mBuilder->materials.size();
+			locals.emplace("DefMatId_0", id - 3);
+			locals.emplace("DefMatId_1", id - 2);
+			locals.emplace("DefMatId_2", id - 1);
+#endif
+			script.set_locals(locals);
 		}
 	};
 
@@ -593,16 +614,18 @@ bool RayTracingTestStage::loadSceneRHIResource()
 {
 	TIME_SCOPE("LoadScene");
 	RT::SceneBuilderImpl builder(*this);
+	if (mScript == nullptr)
+	{
+		mScript = RT::ISceneScript::Create();
+	}
 
-	RT::ISceneScript* script = RT::ISceneScript::Create();
-	VERIFY_RETURN_FALSE(script->setup(builder, "TestA"));
+	VERIFY_RETURN_FALSE(mScript->setup(builder, "TestA"));
 	VERIFY_RETURN_FALSE(builder.buildRHIResource());
-	script->release();
-
+	
 	return true;
 }
 
-bool RayTracingTestStage::setupRenderSystem(ERenderSystem systemName)
+bool RayTracingTestStage::setupRenderResource(ERenderSystem systemName)
 {
 	VERIFY_RETURN_FALSE(ShaderHelper::Get().init());
 

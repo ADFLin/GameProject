@@ -3,8 +3,10 @@
 
 #include "PlatformConfig.h"
 #include "Core/IntegerType.h"
+#include "Meta/EnableIf.h"
 
 #include <cassert>
+
 
 class FBitUtility
 {
@@ -31,22 +33,41 @@ public:
 
 	static int ToIndex4(unsigned bit);
 	static int ToIndex8(unsigned bit);
+	static int ToIndex16(unsigned bit);
 	static int ToIndex32(unsigned bit);
 #if TARGET_PLATFORM_64BITS
 	static int ToIndex64(unsigned bit);
 #endif
 	static unsigned RotateRight(unsigned bits, unsigned offset, unsigned numBit);
 	static unsigned RotateLeft(unsigned bits, unsigned offset, unsigned numBit);
-
-	template< unsigned NumBits >
+	template< unsigned NumBits, TEnableIf_Type< NumBits <= 4, bool > = true >
+	static int ToIndex(unsigned bit)
+	{
+		return ToIndex4(bit);
+	}
+	template< unsigned NumBits, TEnableIf_Type< 4 < NumBits && NumBits <= 8, bool > = true >
+	static int ToIndex(unsigned bit) 
+	{ 
+		return ToIndex8(bit); 
+	}
+	template< unsigned NumBits, TEnableIf_Type< 8 < NumBits && NumBits <= 16, bool > = true >
+	static int ToIndex(unsigned bit)
+	{ 
+		return ToIndex16(bit); 
+	}
+	template< unsigned NumBits , TEnableIf_Type< 16 < NumBits && NumBits <= 32 , bool > = true >
 	static int ToIndex(unsigned bit)
 	{
 		return ToIndex32(bit);
 	}
-	template<>
-	static int ToIndex<4>(unsigned bit) { return ToIndex4(bit); }
-	template<>
-	static int ToIndex<8>(unsigned bit) { return ToIndex8(bit); }
+#if TARGET_PLATFORM_64BITS
+	template< unsigned NumBits , TEnableIf_Type< 32 < NumBits , bool > = true >
+	static int ToIndex(unsigned bit)
+	{
+		return ToIndex64(bit);
+	}
+#endif
+
 
 	template< unsigned NumBits >
 	static bool IterateMask(unsigned& mask, int& index)

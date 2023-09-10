@@ -87,6 +87,35 @@ namespace Render
 		drawWithColorInternal(commandList, mType, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), mIndexBuffer);
 	}
 
+	void Mesh::drawPositionOnly(RHICommandList& commandList)
+	{
+		if (!mInputLayoutPositionOnly.isValid())
+		{
+			InputElementDesc const* element = mInputLayoutDesc.findElementByAttribute(EVertex::ATTRIBUTE_POSITION);
+
+			InputLayoutDesc desc;
+			desc.addElement(*element);
+			desc.setVertexSize(element->streamIndex, mInputLayoutDesc.getVertexSize(element->streamIndex));
+
+			mInputLayoutPositionOnly = RHICreateInputLayout(desc);
+		}
+
+		assert(mVertexBuffer != nullptr);
+		InputStreamInfo inputStream;
+		inputStream.buffer = mVertexBuffer;
+		RHISetInputStream(commandList, mInputLayoutPositionOnly, &inputStream, 1);
+
+		if (mIndexBuffer.isValid())
+		{
+			RHISetIndexBuffer(commandList, mIndexBuffer);
+			RHIDrawIndexedPrimitive(commandList, mType, 0, mIndexBuffer->getNumElements());
+		}
+		else
+		{
+			RHIDrawPrimitive(commandList, mType, 0, mVertexBuffer->getNumElements());
+		}
+	}
+
 	void Mesh::drawAdj(RHICommandList& commandList)
 	{
 		if (mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr)

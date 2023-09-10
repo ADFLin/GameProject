@@ -265,7 +265,7 @@ namespace Transport
 		{
 			return true;
 		}
-		bool setupRenderSystem(ERenderSystem systemName) override
+		bool setupRenderResource(ERenderSystem systemName) override
 		{
 			return true;
 		}

@@ -27,6 +27,7 @@ namespace Render
 		void releaseRHIResource();
 		void draw(RHICommandList& commandList);
 		void draw(RHICommandList& commandList, LinearColor const& color);
+		void drawPositionOnly(RHICommandList& commandList);
 
 		void drawAdj(RHICommandList& commandList);
 		void drawAdj(RHICommandList& commandList, LinearColor const& color);
@@ -91,6 +92,7 @@ namespace Render
 
 			MOVE_MEMBER(mInputLayoutDesc);
 			MOVE_MEMBER(mInputLayout);
+			MOVE_MEMBER(mInputLayoutPositionOnly);
 			MOVE_MEMBER(mInputLayoutOverwriteColor);
 			MOVE_MEMBER(mVertexBuffer);
 			MOVE_MEMBER(mColorBuffer);
@@ -105,6 +107,7 @@ namespace Render
 		InputLayoutDesc     mInputLayoutDesc;
 		RHIInputLayoutRef   mInputLayout;
 		RHIInputLayoutRef   mInputLayoutOverwriteColor;
+		RHIInputLayoutRef   mInputLayoutPositionOnly;
 		RHIBufferRef  mVertexBuffer;
 		RHIBufferRef  mColorBuffer;
 		RHIBufferRef  mIndexBuffer;

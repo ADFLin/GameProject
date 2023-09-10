@@ -7,6 +7,8 @@
 #include "RHI/RHICommand.h"
 #include "RHI/GlobalShader.h"
 #include "RHI/ShaderManager.h"
+#include "ProfileSystem.h"
+#include "RenderDebug.h"
 
 namespace Zuma
 {
@@ -56,6 +58,9 @@ namespace Zuma
 		mGraphics = &graphics;
 		mBlendMode = ESimpleBlendMode::None;
 		shaderProgram = ShaderManager::Get().getGlobalShaderT<MaskShaderProgram>();
+		mTextrueAtlas.initialize(ETexture::RGBA8, 4096, 4096 , 2);
+
+		GTextureShowManager.registerTexture("Zuma", &mTextrueAtlas.getTexture());
 	}
 
 	void RenderSystemRHI::setColor(uint8 r, uint8 g, uint8 b, uint8 a /*= 255*/)
@@ -67,15 +72,26 @@ namespace Zuma
 	void RenderSystemRHI::drawBitmap(ITexture2D const& tex, unsigned flag /*= 0*/)
 	{
 		auto& textureImpl = CastImpl(tex);
-
 		setupBlend(textureImpl.ownAlpha(), flag);
 
 		Vector2 pos = Vector2::Zero();
+		Vector2 size = Vector2(tex.getWidth(), tex.getHeight());
 		if (flag & TBF_OFFSET_CENTER)
 		{
-			pos += -0.5 * Vector2(tex.getWidth(), tex.getHeight());
+			pos += -0.5 * size;
 		}
-		mGraphics->drawTexture(*textureImpl.mResource, pos);
+
+		if (textureImpl.mAtlasId != INDEX_NONE)
+		{
+			Vector2 uvPos;
+			Vector2 uvSize;
+			mTextrueAtlas.getRectUVSizeChecked(textureImpl.mAtlasId, uvPos, uvSize);
+			mGraphics->drawTexture(mTextrueAtlas.getTexture(), pos, size, uvPos, uvSize);
+		}
+		else
+		{
+			mGraphics->drawTexture(*textureImpl.mResource, pos);
+		}
 
 		enableBlendImpl(false);
 	}
@@ -83,7 +99,6 @@ namespace Zuma
 	void RenderSystemRHI::drawBitmap(ITexture2D const& tex, Vector2 const& texPos, Vector2 const& texSize, unsigned flag)
 	{
 		auto& textureImpl = CastImpl(tex);
-
 		setupBlend(textureImpl.ownAlpha(), flag);
 
 		Vector2 pos = Vector2::Zero();
@@ -92,59 +107,91 @@ namespace Zuma
 		{
 			pos += -0.5 * texSize;
 		}
-		mGraphics->drawTexture(*textureImpl.mResource, pos, texSize, texPos.div(size), texSize.div(size));
+
+		if (textureImpl.mAtlasId != INDEX_NONE)
+		{
+			Vector2 uvPos;
+			Vector2 uvSize;
+			mTextrueAtlas.getRectUVSizeChecked(textureImpl.mAtlasId, uvPos, uvSize);
+			
+			mGraphics->drawTexture(mTextrueAtlas.getTexture(), pos, texSize, uvPos + uvSize.mul(texPos.div(size)) , uvSize.mul(texSize.div(size)) );
+		}
+		else
+		{
+			mGraphics->drawTexture(*textureImpl.mResource, pos, texSize, texPos.div(size), texSize.div(size));
+		}
+
 		enableBlendImpl(false);
 	}
 
 	void RenderSystemRHI::drawBitmapWithinMask(ITexture2D const& tex, ITexture2D const& mask, Vector2 const& pos, unsigned flag)
 	{
-		auto& textureImpl = CastImpl(tex);
-		auto& maskImpl = CastImpl(mask);
-
-		float tx = pos.x / tex.getWidth();
-		float ty = pos.y / tex.getHeight();
-
-		float tw = tx + float(mask.getWidth()) / tex.getWidth();
-		float th = ty + float(mask.getHeight()) / tex.getHeight();
-
-		mGraphics->flush();
-
 		setupBlend(true, flag);
-		mGraphics->commitRenderState();
-
-		auto& commandList = mGraphics->getCommandList();
-		RHISetShaderProgram(commandList, shaderProgram->getRHI());
-		SET_SHADER_PARAM(commandList, *shaderProgram, Color, Vector4(Color4f(mGraphics->getBrushColor())));
-		SET_SHADER_PARAM(commandList, *shaderProgram, XForm, mGraphics->getBaseTransform());
-		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *shaderProgram, Texture, *textureImpl.mResource, TStaticSamplerState<>::GetRHI());
-		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *shaderProgram, TextureMask, *maskImpl.mResource, TStaticSamplerState<>::GetRHI());
-		struct Vertex
+		mGraphics->drawCustomFunc([this, &tex, &mask, pos, flag](RHICommandList& commandList, RenderBatchedElement& element)
 		{
-			Vector2 pos;
-			Vector4 uv;
-		};
+			PROFILE_ENTRY("drawBitmapWithinMask");
 
-		Vector2 offset = Vector2::Zero();
-		Vector2 size = Vector2(mask.getWidth(), mask.getHeight());
-		if (flag & TBF_OFFSET_CENTER)
-		{
-			offset += -0.5 * size;
-		}
+			auto& textureImpl = CastImpl(tex);
+			auto& maskImpl = CastImpl(mask);
 
-		Vertex vertices[] =
-		{
-			{ offset                       , { tx , ty , 0 , 0 } },
-			{ offset + Vector2(size.x , 0 ), { tw , ty , 1 , 0 } },
-			{ offset + size                , { tw , th , 1 , 1 } },
-			{ offset + Vector2(0 , size.y) , { tx , th , 0 , 1 } },
-		};
-		for (int i = 0; i < 4; ++i)
-		{
-			vertices[i].pos = mGraphics->getTransformStack().get().transformPosition(vertices[i].pos);
-		}
-		TRenderRT< RTVF_XY | RTVF_T4 >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
 
-		mGraphics->restoreRenderState();
+			Vector2 size = Vector2(tex.getWidth(), tex.getHeight());
+			Vector2 texSize = Vector2(mask.getWidth(), mask.getHeight());
+
+			RHISetShaderProgram(commandList, shaderProgram->getRHI());
+			SET_SHADER_PARAM(commandList, *shaderProgram, Color, Color4f(mGraphics->getBrushColor()));
+			RenderTransform2D transform = element.transform;
+			if (flag & TBF_OFFSET_CENTER)
+			{
+				transform.translateLocal(-0.5 * texSize);
+			}
+			SET_SHADER_PARAM(commandList, *shaderProgram, XForm, transform.toMatrix4() * mGraphics->getBaseTransform());
+
+			Vector2 uvLT;
+			Vector2 uvRB;
+			Vector2 maskLT = Vector2(0,0);
+			Vector2 maskRB = Vector2(1,1);
+			if (textureImpl.mAtlasId != INDEX_NONE)
+			{
+				Vector2 uvPos;
+				Vector2 uvSize;
+				mTextrueAtlas.getRectUVSizeChecked(textureImpl.mAtlasId, uvPos, uvSize);
+				uvLT = uvPos + uvSize.mul(pos.div(size));
+				uvRB = uvLT + uvSize.mul(texSize.div(size));
+
+				CHECK(maskImpl.mAtlasId != INDEX_NONE);
+				Vector2 uvPosMask;
+				Vector2 uvSizeMask;
+				mTextrueAtlas.getRectUVSizeChecked(maskImpl.mAtlasId, uvPosMask, uvSizeMask);
+				maskLT = uvPosMask + uvSizeMask.mul(maskLT);
+				maskRB = uvPosMask + uvSizeMask.mul(maskRB);
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *shaderProgram, Texture, mTextrueAtlas.getTexture(), TStaticSamplerState<>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *shaderProgram, TextureMask, mTextrueAtlas.getTexture(), TStaticSamplerState<>::GetRHI());
+			}
+			else
+			{
+				uvLT = pos.div(size);
+				uvRB = uvLT + texSize.div(size);
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *shaderProgram, Texture, *textureImpl.mResource, TStaticSamplerState<>::GetRHI());
+				SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *shaderProgram, TextureMask, *maskImpl.mResource, TStaticSamplerState<>::GetRHI());
+			}
+
+			struct Vertex
+			{
+				Vector2 pos;
+				Vector2 uv1;
+				Vector2 uv2;
+			};
+			Vertex vertices[] =
+			{
+				{ Vector2(0,0)           , uvLT , maskLT },
+				{ Vector2(texSize.x , 0) , Vector2(uvRB.x , uvLT.y) , Vector2(maskRB.x , maskLT.y) },
+				{ texSize                , uvRB,  maskRB },
+				{ Vector2(0 , texSize.y) , Vector2(uvLT.x , uvRB.y) , Vector2(maskLT.x , maskRB.y) },
+			};
+			TRenderRT< RTVF_XY | RTVF_T4 >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
+		});
+
 		enableBlendImpl(false);
 	}
 
@@ -199,6 +246,19 @@ namespace Zuma
 	{
 		auto& textureImpl = CastImpl(texture);
 
+		auto CreateTexture = [this, &textureImpl](void* data)
+		{
+			if (textureImpl.mWidth <= 512 || textureImpl.mHeight <= 512)
+			{
+				Mutex::Locker locker(mTextureMutex);
+				textureImpl.mAtlasId = mTextrueAtlas.addImage(textureImpl.mWidth, textureImpl.mHeight, ETexture::RGBA8, data);
+			}
+			if (textureImpl.mAtlasId == INDEX_NONE)
+			{
+				textureImpl.mResource = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, textureImpl.mWidth, textureImpl.mHeight), data);
+			}
+		};
+
 		if (IsEmptyPath(imagePath))
 		{
 			CHECK(!IsEmptyPath(alphaPath));
@@ -206,9 +266,10 @@ namespace Zuma
 			if (!alphaImage.load(alphaPath))
 				return false;
 
-			textureImpl.mResource = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, alphaImage.width, alphaImage.height), alphaImage.data);
 			textureImpl.mWidth = alphaImage.width;
 			textureImpl.mHeight = alphaImage.height;
+			CreateTexture(alphaImage.data);
+
 		}
 		else
 		{
@@ -221,7 +282,7 @@ namespace Zuma
 
 			if (IsEmptyPath(alphaPath))
 			{
-				textureImpl.mResource = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, image.width, image.height), image.data);
+				CreateTexture(image.data);
 				textureImpl.mOwnAlpha = false;
 			}
 			else
@@ -264,7 +325,8 @@ namespace Zuma
 						++pPixelAlpha;
 					}
 				}
-				textureImpl.mResource = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGBA8, image.width, image.height) , image.data);
+
+				CreateTexture(image.data);
 				textureImpl.mOwnAlpha = true;
 			}
 		}
@@ -313,15 +375,19 @@ namespace Zuma
 
 	ResBase* RenderSystemRHI::createResource(ResID id, ResInfo& info)
 	{
+#if 0
 		if (id == FONT_PLAIN)
 		{
 			int i = 1;
 		}
+#endif
 		return IRenderSystem::createResource(id, info);
 	}
 
 	bool RenderSystemRHI::prevRender()
 	{
+		mTextureMutex.lock();
+
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RHISetViewport(commandList, 0, 0, g_ScreenWidth, g_ScreenHeight);
@@ -331,12 +397,16 @@ namespace Zuma
 		mGraphics->beginRender();
 		mGraphics->setBrush(Color3ub(255, 255, 255));
 		mGraphics->enablePen(false);
+
+
 		return true;
 	}
 
 	void RenderSystemRHI::postRender()
 	{
+		PROFILE_ENTRY("PostRender");
 		mGraphics->endRender();
+		mTextureMutex.unlock();
 	}
 
 	void RenderSystemRHI::enableBlendImpl(bool beE)

@@ -14,7 +14,7 @@ namespace Render
 	DeviceVendorName GRHIDeviceVendorName = DeviceVendorName::Unknown;
 
 #if CORE_SHARE_CODE
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 	static std::unordered_set< RHIResource* > Resources;
 
 	struct TraceTagInfo
@@ -68,7 +68,7 @@ namespace Render
 	
 	void RHIResource::DumpResource()
 	{
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 		LogDevMsg(0, "RHI Resource Number = %u", Resources.size());
 		for (auto res : Resources)
 		{
@@ -96,22 +96,23 @@ namespace Render
 			RasterizerState ,
 			DepthStencilState,
 			BlendState,
+			Sampler,
 			Count ,
 		};
 	};
 
 	uint32 GShaderSerials[EShader::Count];
 	uint32 GTableResourceSerials[ETableID::Count];
-
-	struct  
-	{
-		//std::unordered_multimap< uint32 , 
-	};
+	std::unordered_map< uint32, RHIResource* > GTableResourceMaps[ETableID::Count];
 
 	void FRHIResourceTable::Initialize()
 	{
 		std::fill_n(GShaderSerials, EShader::Count, 0);
 		std::fill_n(GTableResourceSerials, ETableID::Count, 0);
+		for (int i = 0; i < ETableID::Count; ++i)
+		{
+			GTableResourceMaps[i].clear();
+		}
 	}
 
 	void FRHIResourceTable::Release()
@@ -153,6 +154,67 @@ namespace Render
 		RegisterInternal(state, ETableID::BlendState);
 	}
 
+	void RegisterInternal(RHIResource& resource, ETableID::Type id, uint32 key)
+	{
+		if (key == 0)
+			return;
+
+		if (!GTableResourceMaps[id].emplace(key, &resource).second)
+		{
+			LogError("Register resource Fail!");
+		}
+	}
+
+	void FRHIResourceTable::Register(RHIInputLayout& inputLayout, uint32 key)
+	{
+		RegisterInternal(inputLayout, ETableID::InputLayout, key);
+	}
+	void FRHIResourceTable::Register(RHIRasterizerState& state, uint32 key)
+	{
+		RegisterInternal(state, ETableID::RasterizerState, key);
+	}
+	void FRHIResourceTable::Register(RHIDepthStencilState& state, uint32 key)
+	{
+		RegisterInternal(state, ETableID::DepthStencilState, key);
+	}
+	void FRHIResourceTable::Register(RHIBlendState& state, uint32 key)
+	{
+		RegisterInternal(state, ETableID::BlendState, key);
+	}
+	void FRHIResourceTable::Register(RHISamplerState& state, uint32 key)
+	{
+		RegisterInternal(state, ETableID::Sampler, key);
+	}
+
+	RHIResource* QueryInternal(uint32 hash, ETableID::Type id)
+	{
+		auto iter = GTableResourceMaps[id].find(hash);
+		if (iter == GTableResourceMaps[id].end())
+			return nullptr;
+
+		return iter->second;
+	}
+	RHIInputLayout* FRHIResourceTable::QueryResource(uint32 hash, RHIInputLayout*)
+	{
+		return (RHIInputLayout*)QueryInternal(hash, ETableID::InputLayout);
+	}
+	RHIRasterizerState* FRHIResourceTable::QueryResource(uint32 hash, RHIRasterizerState*)
+	{
+		return (RHIRasterizerState*)QueryInternal(hash, ETableID::RasterizerState);
+	}
+	RHIDepthStencilState* FRHIResourceTable::QueryResource(uint32 hash, RHIDepthStencilState*)
+	{
+		return (RHIDepthStencilState*)QueryInternal(hash, ETableID::DepthStencilState);
+	}
+	RHIBlendState* FRHIResourceTable::QueryResource(uint32 hash, RHIBlendState*)
+	{
+		return (RHIBlendState*)QueryInternal(hash, ETableID::BlendState);
+	}
+	RHISamplerState* FRHIResourceTable::QueryResource(uint32 hash, RHISamplerState*)
+	{
+		return (RHISamplerState*)QueryInternal(hash, ETableID::Sampler);
+	}
+
 #endif
 
 	InputLayoutDesc::InputLayoutDesc()
@@ -179,6 +241,13 @@ namespace Render
 		mElements.push_back(element);
 
 		mVertexSizes[idxStream] += EVertex::GetFormatSize(format);
+		return *this;
+	}
+
+	InputLayoutDesc& InputLayoutDesc::addElement(InputElementDesc const& element)
+	{
+		mElements.push_back(element);
+		mVertexSizes[element.streamIndex] += EVertex::GetFormatSize((EVertex::Format) element.format);
 		return *this;
 	}
 

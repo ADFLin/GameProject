@@ -34,6 +34,7 @@ public:
 
 	void visitNodes(uint32 threadId = 0)
 	{
+		ProfileSystem::Get().readLock();
 		SampleNode* root = ProfileSystem::Get().getRootSample(threadId);
 
 		VisitContext context;
@@ -42,6 +43,7 @@ public:
 		_this()->onRoot(context);
 
 		visitChildren(context);
+		ProfileSystem::Get().readUnlock();
 	}
 
 	void visitChildren(VisitContext const& context)

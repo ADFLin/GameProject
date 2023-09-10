@@ -82,10 +82,10 @@
     <ClInclude Include="ShaderGraph\ShaderGraph.h">
       <Filter>ShaderGraph</Filter>
     </ClInclude>
-    <ClInclude Include="Widget\DetailPanel.h">
+    <ClInclude Include="Widget\ProfilerPanel.h">
       <Filter>Widget</Filter>
     </ClInclude>
-    <ClInclude Include="Widget\ProfilerPanel.h">
+    <ClInclude Include="Widget\DetailViewPanel.h">
       <Filter>Widget</Filter>
     </ClInclude>
   </ItemGroup>
@@ -141,10 +141,10 @@
     <ClCompile Include="ShaderGraph\ShaderGraph.cpp">
       <Filter>ShaderGraph</Filter>
     </ClCompile>
-    <ClCompile Include="Widget\DetailPanel.cpp">
+    <ClCompile Include="Widget\ProfilerPanel.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
-    <ClCompile Include="Widget\ProfilerPanel.cpp">
+    <ClCompile Include="Widget\DetailViewPanel.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
   </ItemGroup>

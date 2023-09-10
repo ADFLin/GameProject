@@ -130,6 +130,39 @@ public:
 	void  drawGradientRect(Vector2 const& posLT, Color3Type const& colorLT,
 		Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
+	template< typename TCustomRenderer , typename ...TArgs >
+	TCustomRenderer*  drawCustom(TArgs&& ...args)
+	{
+		void* ptr = mAllocator.alloc(sizeof(TCustomRenderer));
+		new (ptr) TCustomRenderer(std::forward<TArgs>(args)...);
+		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly);
+		setupElement(element);
+		return (ICustomElementRenderer*)ptr;
+	}
+
+
+	template< typename TFunc >
+	class TCustomFuncRenderer : public Render::ICustomElementRenderer
+	{
+	public:
+		TCustomFuncRenderer(TFunc&& func)
+			:mFunc(std::forward<TFunc>(func))
+		{
+		}
+		void render(Render::RHICommandList& commandList, Render::RenderBatchedElement& element) override
+		{
+			mFunc(commandList, element);
+		}
+		TFunc mFunc;
+	};
+	template< typename TFunc >
+	void  drawCustomFunc(TFunc&& func)
+	{
+		void* ptr = mAllocator.alloc(sizeof(TCustomFuncRenderer<TFunc>));
+		new (ptr) TCustomFuncRenderer<TFunc>(std::forward<TFunc>(func));
+		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly);
+		setupElement(element);
+	}
 
 	void  setTexture(RHITexture2D& texture);
 	void  setSampler(RHISamplerState& sampler);

@@ -47,9 +47,10 @@ struct MaterialOutputVS
 
 struct MaterialParametersPS
 {
-	float4 vectexColor;
 	float3 worldPos;
 	float4 svPosition;
+
+	float4 vectexColor;
 	float3 worldNormal;
 	mat3   tangentToWorld;
 #if MATERIAL_TEXCOORD_NUM

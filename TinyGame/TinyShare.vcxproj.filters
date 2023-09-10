@@ -119,6 +119,9 @@
     <ClInclude Include="Widget\ConsoleFrame.h">
       <Filter>GUI</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\DebugDraw.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -208,6 +211,9 @@
     </ClCompile>
     <ClCompile Include="Widget\ConsoleFrame.cpp">
       <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\DebugDraw.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

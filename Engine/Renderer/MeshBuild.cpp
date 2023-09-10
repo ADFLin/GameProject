@@ -8,6 +8,7 @@
 
 #include <map>
 #include <unordered_map>
+#include "LogSystem.h"
 
 
 namespace Render
@@ -571,6 +572,7 @@ namespace Render
 		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size(), true))
 			return false;
 
+		LogMsg("Doughnut = %u", indices.size() / 3);
 		return true;
 	}
 

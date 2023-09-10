@@ -618,7 +618,7 @@ namespace RenderVulkan
 			return ERenderSystem::Vulkan;
 		}
 
-		bool setupRenderSystem(ERenderSystem systemName) override
+		bool setupRenderResource(ERenderSystem systemName) override
 		{
 			::Global::GetDrawEngine().bUsePlatformBuffer = false;
 

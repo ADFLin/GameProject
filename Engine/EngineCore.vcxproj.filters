@@ -50,9 +50,6 @@
     <Filter Include="Core">
       <UniqueIdentifier>{e32d06ff-488f-4fe0-a5d2-1ea8492918fb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Opengl">
-      <UniqueIdentifier>{c89481b0-3990-48b5-8b09-37649027a60d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DataManage">
       <UniqueIdentifier>{bc8a8356-be00-4fe7-8da4-867ab7c56ba2}</UniqueIdentifier>
     </Filter>
@@ -325,9 +322,6 @@
     <ClCompile Include="WindowsProfileViewer.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\GLExtensions.cpp">
-      <Filter>Opengl</Filter>
-    </ClCompile>
     <ClCompile Include="AI\TrainManager.cpp">
       <Filter>AI</Filter>
     </ClCompile>
@@ -360,6 +354,9 @@
     </ClCompile>
     <ClCompile Include="Async\Coroutines.cpp">
       <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\XAudio2\MFDecoder.cpp">
+      <Filter>Audio\XAudio2</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -891,12 +888,6 @@
     <ClInclude Include="Core\HalfFlot.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="OpenGLHeader.h">
-      <Filter>Opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="RHI\GLExtensions.h">
-      <Filter>Opengl</Filter>
-    </ClInclude>
     <ClInclude Include="ScriptGraphs\SGNode.h">
       <Filter>ScriptGraphs</Filter>
     </ClInclude>
@@ -971,6 +962,21 @@
     </ClInclude>
     <ClInclude Include="Misc\CStringWrapper.h">
       <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\XAudio2\MFDecoder.h">
+      <Filter>Audio\XAudio2</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\AudioDecoder.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\AudioTypes.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\AudioStreamSource.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Curve.h">
+      <Filter>Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -189,12 +189,12 @@ void MainMenuStage::execEntry(ExecutionEntryInfo const& info)
 	char const* EntryName = "Entry";
 
 	int maxEntry = ::Global::GameConfig().getIntValue("MaxCount", SectionName, 10);
-	TArray< char const* > execHistroy;
+	TArray< std::string > execHistroy;
 	::Global::GameConfig().getStringValues(EntryName, SectionName, execHistroy);
 
-	int index = execHistroy.findIndexPred([&info](char const* name)
+	int index = execHistroy.findIndexPred([&info](std::string const& name)
 	{
-		return FCString::Compare(info.title, name) == 0;
+		return FCString::Compare(info.title, name.c_str()) == 0;
 	});
 
 	if (index != INDEX_NONE)

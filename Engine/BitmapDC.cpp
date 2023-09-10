@@ -93,10 +93,7 @@ void BitmapDC::clear()
 
 bool BitmapDC::initialize( HDC hDC , int w , int h )
 {
-	if ( mhBmp )
-		::DeleteObject(mhBmp);
-	if ( mhDC )
-		::DeleteDC(mhDC);
+	assert(mhDC == NULL);
 
 	if ( !constructBitmap( hDC , w , h ) )
 		return false;

@@ -4,9 +4,24 @@
 #include "FileSystem.h"
 #include "LogSystem.h"
 #include "ShaderFormat.h"
+#include "InlineString.h"
 
 namespace Render
 {
+
+	char const* const GShaderNames[] =
+	{
+		"VERTEX_SHADER" ,
+		"PIXEL_SHADER" ,
+		"GEOMETRY_SHADER" ,
+		"COMPUTE_SHADER" ,
+		"HULL_SHADER" ,
+		"DOMAIN_SHADER" ,
+		"TASK_SHADER" ,
+		"MESH_SHADER" ,
+	};
+
+
 	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
 	{
 #if SHADER_DEBUG
@@ -76,8 +91,16 @@ namespace Render
 		}
 	}
 
+	std::string GetFilePath(char const* name)
+	{
+		std::string path("Material/");
+		path += name;
+		return path;
+	}
+
 	void MaterialShaderCompileInfo::setup(ShaderCompileOption& option) const
 	{
+		option.addDefine(SHADER_PARAM(MATERIAL_FILENAME) , InlineString<>::Make("\"Material/%s%s\"" , name, SHADER_FILE_SUBNAME) );
 		switch (tessellationMode)
 		{
 		case ETessellationMode::Flat:
@@ -88,6 +111,61 @@ namespace Render
 			option.addDefine(SHADER_PARAM(USE_PN_TRIANGLE), true);
 			break;
 		}
+	}
+
+	std::string ShaderCompileOption::GetIncludeFileName(char const* name)
+	{
+		return InlineString<>::Make("\"%s%s\"", name, SHADER_FILE_SUBNAME);
+	}
+
+	std::string ShaderCompileOption::getCode(ShaderEntryInfo const& entry, char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
+	{
+		std::string result;
+		if (defCode)
+		{
+			result += defCode;
+		}
+
+		result += "#define SHADER_COMPILING 1\n";
+		result += InlineString<>::Make("#define SHADER_ENTRY_%s 1\n", entry.name);
+		result += InlineString<>::Make("#define %s 1\n", GShaderNames[entry.type]);
+		result += InlineString<>::Make("#define %s %d\n", SHADER_PARAM(USE_INVERSE_ZBUFFER) , (int)FRHIZBuffer::IsInverted);
+
+		for (auto const& var : mConfigVars)
+		{
+			result += "#define ";
+			result += var.name;
+			if (var.value.length())
+			{
+				result += " ";
+				result += var.value;
+			}
+			result += "\n";
+		}
+
+		result += "#include \"Common" SHADER_FILE_SUBNAME "\"\n";
+
+		if (addionalCode)
+		{
+			result += addionalCode;
+			result += '\n';
+		}
+
+		for (auto const& code : mCodes)
+		{
+			result += code;
+			result += '\n';
+		}
+
+		for (auto& name : mIncludeFiles)
+		{
+			result += "#include \"";
+			result += name;
+			result += SHADER_FILE_SUBNAME;
+			result += "\"\n";
+		}
+
+		return result;
 	}
 
 	void ShaderCompileOption::setup(ShaderFormat& shaderFormat) const

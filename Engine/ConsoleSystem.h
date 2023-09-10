@@ -28,6 +28,7 @@ enum EConsoleVariableFlag
 	CVF_CONFIG        = 1 << 0,
 	CVF_TOGGLEABLE    = 1 << 1,
 	CVF_ALLOW_IGNORE_ARGS = 1 << 2,
+	CVF_SECTION_GROUP = 1 << 3,
 };
 
 struct ConsoleArgTypeInfo
@@ -83,8 +84,8 @@ struct TCommandFuncTraints< RT(*)(Args...) >
 {
 	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
 	{
-		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< typename Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
-		return MakeView( sArgs );
+		static ConsoleArgTypeInfo const StaticArgs[] = { TCommandArgTypeTraits< typename Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
+		return MakeView(StaticArgs);
 	}
 };
 
@@ -102,8 +103,8 @@ struct TCommandFuncTraints< RT(T::*)(Args...) >
 {
 	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
 	{
-		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< typename Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
-		return MakeView(sArgs);
+		static ConsoleArgTypeInfo const StaticArgs[] = { TCommandArgTypeTraits< typename Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
+		return MakeView(StaticArgs);
 	}
 };
 

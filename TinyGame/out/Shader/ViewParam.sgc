@@ -36,14 +36,21 @@ layout(std140) cbuffer ViewBlock
 uniform ViewParameters View;
 #endif
 
+float BufferDepthToSceneDepth(mat4 viewToClip , float depth)
+{
+#if COMPILER_HLSL
+	return viewToClip[2][3] / (BufferToNDCDepth(depth) + viewToClip[2][2]);
+#else
+	return viewToClip[3][2] / (BufferToNDCDepth(depth) + viewToClip[2][2]);
+#endif
+}
 
 float BufferDepthToSceneDepth(float depth)
 {
 #if COMPILER_HLSL
-
-	return View.viewToClip[2][3] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
+	return View.viewToClip[2][3] / (BufferToNDCDepth(depth) + View.viewToClip[2][2]);
 #else
-	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
+	return View.viewToClip[3][2] / (BufferToNDCDepth(depth) + View.viewToClip[2][2]);
 #endif
 }
 
@@ -74,7 +81,7 @@ float3 NDCToWorldPos(float4 NDC)
 float3 StoreWorldPos(float2 screenUV, float bufferDepth)
 {
 	float2 screenPos = (2.0 * VFLIP(screenUV) - 1.0);
-	float4 NDC = float4(screenPos, BufferDepthToClipZ( bufferDepth ), 1);
+	float4 NDC = float4(screenPos, BufferToNDCDepth( bufferDepth ), 1);
 	return NDCToWorldPos(NDC);
 }
 

@@ -1,0 +1,22 @@
+#pragma once
+
+#if !SHADER_COMPILING
+
+struct VertexFactoryIntermediatesVS
+{
+
+};
+VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS();
+
+
+struct FactoryInterpolantsParam
+{
+};
+
+float3 VertexFactory_GetWorldPos(in FactoryInterpolantsParam Param)
+{
+
+	return float3(0, 0, 0);
+}
+
+#endif

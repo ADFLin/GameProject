@@ -24,13 +24,13 @@ namespace Rich
 		//IGameRenderSetup
 		ERenderSystem getDefaultRenderSystem()
 		{
-			return ERenderSystem::D3D11;
+			return ERenderSystem::OpenGL;
 		}
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{
 			systemConfigs.bWasUsedPlatformGraphics = true;
 		}
-		bool setupRenderSystem(ERenderSystem systemName) override
+		bool setupRenderResource(ERenderSystem systemName) override
 		{
 			return true;
 		}

@@ -19,7 +19,7 @@ void FCString::Stricpy(char * dest, char const* src)
 	}
 }
 
-template< class CharT >
+template< typename CharT >
 uint32 FCString::StriHash(CharT const* str)
 {
 	uint32 result = 5381;
@@ -32,7 +32,7 @@ uint32 FCString::StriHash(CharT const* str)
 	return result;
 }
 
-template< class CharT >
+template< typename CharT >
 uint32 FCString::StriHash(CharT const* str, int len)
 {
 	uint32 result = 5381;
@@ -46,7 +46,7 @@ uint32 FCString::StriHash(CharT const* str, int len)
 	return result;
 }
 
-template< class CharT >
+template< typename CharT >
 uint32 FCString::StrHash(CharT const* str)
 {
 	uint32 result = 5381;
@@ -59,7 +59,7 @@ uint32 FCString::StrHash(CharT const* str)
 	return result;
 }
 
-template< class CharT >
+template< typename CharT >
 uint32 FCString::StrHash(CharT const* str, int len)
 {
 	uint32 result = 5381;
@@ -138,7 +138,7 @@ bool FCString::IsConstSegment(void const* ptr)
 #endif
 }
 
-template< class CharT >
+template< typename CharT >
 CharT const* FCString::FindChar(CharT const* str, CharT c)
 {
 	while (*str != 0)
@@ -150,13 +150,27 @@ CharT const* FCString::FindChar(CharT const* str, CharT c)
 	return str;
 }
 
+template< typename CharT >
+CharT const* FCString::FindLastChar(CharT const* str, CharT c)
+{
+	CharT const* result = nullptr;
+	while (*str != 0)
+	{
+		if (*str == c)
+			result = str;
+		++str;
+	}
+	return result ? result : str;
+}
+
 #define FUNCTION_LIST( CharT )\
 	template CharT const* FCString::FindChar<CharT>(CharT const* str, CharT c);\
+	template CharT const* FCString::FindLastChar<CharT>(CharT const* str, CharT c);\
 	template uint32 FCString::StriHash<CharT>(CharT const* str);\
 	template uint32 FCString::StriHash<CharT>(CharT const* str, int len);\
 	template uint32 FCString::StrHash<CharT>(CharT const* str);\
-	template uint32 FCString::StrHash<CharT>(CharT const* str, int len);\
+	template uint32 FCString::StrHash<CharT>(CharT const* str, int len)
 
 
-FUNCTION_LIST(char)
-FUNCTION_LIST(wchar_t)
+FUNCTION_LIST(char);
+FUNCTION_LIST(wchar_t);

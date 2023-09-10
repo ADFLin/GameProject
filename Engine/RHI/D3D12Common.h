@@ -274,7 +274,7 @@ namespace Render
 			int count = mResource->Release();
 			if (count > 0)
 			{
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 				if (mTag)
 				{
 					LogDevMsg(0, "D3D12Resource: %p %p %d %s : %s , %s", this, mResource, count, mTypeName.c_str(), mTag, mTrace.toString().c_str());
@@ -524,9 +524,6 @@ namespace Render
 	{
 	public:
 		D3D12Texture2D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
-
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, void* data, int level);
-		virtual bool update(int ox, int oy, int w, int h, ETexture::Format format, int dataImageWidth, void* data, int level);
 	};
 
 	class D3D12Buffer : public TD3D12Resource< RHIBuffer >

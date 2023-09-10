@@ -23,13 +23,14 @@ struct ProfileFrameData
 
 int    GWriteIndex = 0;
 uint64 GFrameCount = 0;
+RWLock GDataIndexLock;
 
 class ThreadProfileData
 {
 public:
 	ThreadProfileData(char const* rootName);
 
-	std::atomic_bool          mResetRequest;
+	std::string               mName;
 	uint32                    mThreadId;
 	ProfileSampleNode*	      mCurSample;
 	unsigned                  mCurFlag;
@@ -40,7 +41,11 @@ public:
 	void resetSample(uint64 tick);
 	void tryStartTiming(const char * name, unsigned flag);
 	void stopTiming();
-
+	void setName(char const* name)
+	{
+		mName = name;
+		mRootSample->mName = mName.c_str();
+	}
 	void endFrame(ProfileFrameData const& frameData, uint64 tick)
 	{
 		ProfileSampleNode* node = mCurSample;
@@ -129,6 +134,7 @@ public:
 	void   resetSample() override;
 
 	void   incrementFrameCount() override;
+
 	int	   getFrameCountSinceReset() override { return GFrameCount; }
 	double getDurationSinceReset() override
 	{
@@ -141,11 +147,27 @@ public:
 		return mRecordFrames[ProfileSampleNode::GetReadIndex()].duration;
 	}
 
+
+
+	void   readLock() override
+	{
+		GDataIndexLock.readLock();
+	}
+
+	void   readUnlock() override
+	{
+		GDataIndexLock.readUnlock();
+	}
+
 	ProfileSampleNode* getRootSample(uint32 threadId = 0) override
 	{
 		if (threadId)
 		{
-			//#TODO:impl
+			auto threadData = GetThreadData(threadId);
+			if (threadData)
+			{
+				return threadData->getRootSample();
+			}
 			return nullptr;
 		}
 		else
@@ -153,10 +175,10 @@ public:
 			return GetCurrentThreadData()->getRootSample();
 		}
 	}
-
+	void   setThreadName(uint32 threadId, char const* name) override;
+	void   getAllThreadIds(TArray<uint32>& outIds) override;
 	bool   canSampling()
 	{
-		return true;
 		return bEnabled &&  !bFinalized;
 	}
 
@@ -272,34 +294,40 @@ ProfileSystemImpl::~ProfileSystemImpl()
 	cleanup();
 }
 
-std::unordered_map< uint32, ThreadProfileData* > ThreadDataMap;
+std::unordered_map< uint32, ThreadProfileData* > GThreadDataMap;
+Mutex GThreadDataMapMutex;
 
 void ProfileSystemImpl::cleanup()
 {
+	Mutex::Locker locker(GThreadDataMapMutex);
 	bFinalized = true;
-	for (auto& pair : ThreadDataMap)
+	for (auto& pair : GThreadDataMap)
 	{
 		pair.second->cleanup();
 		delete pair.second;
 	}
-	ThreadDataMap.clear();
+	GThreadDataMap.clear();
 }
 
 void ProfileSystemImpl::resetSample()
 {
+	Mutex::Locker locker(GThreadDataMapMutex);
+
 	GProfileClock.reset();
 	GFrameCount = 0;
 	GWriteIndex = 0;
 	Profile_GetTicks(&mResetTime);
 	//ThreadData reset
-	for (auto& pair : ThreadDataMap)
+	for (auto& pair : GThreadDataMap)
 	{
 		pair.second->resetSample(mResetTime);
 	}
 }
 
+
 void ProfileSystemImpl::incrementFrameCount()
 {
+	RWLock::WriteLocker locker(GDataIndexLock);
 
 	uint64 tick;
 	Profile_GetTicks(&tick);
@@ -307,7 +335,7 @@ void ProfileSystemImpl::incrementFrameCount()
 	auto& frameData = mRecordFrames[ProfileSampleNode::GetWriteIndex()];
 	frameData.durationSinceReset = double(tick - mResetTime) / Profile_GetTickRate();
 	frameData.duration = double(tick - mFrameStartTime) / Profile_GetTickRate();
-	for (auto& pair : ThreadDataMap)
+	for (auto& pair : GThreadDataMap)
 	{
 		pair.second->endFrame(frameData, tick);
 	}
@@ -316,9 +344,26 @@ void ProfileSystemImpl::incrementFrameCount()
 	GWriteIndex = 1 - GWriteIndex;
 	mFrameStartTime = tick;
 
-	for (auto& pair : ThreadDataMap)
+	for (auto& pair : GThreadDataMap)
 	{
 		pair.second->startFrame(tick);
+	}
+}
+void ProfileSystemImpl::setThreadName(uint32 threadId, char const* name)
+{
+	ThreadProfileData* threadData = GetThreadData(threadId);
+	if (threadData)
+	{
+		threadData->setName(name);
+	}
+}
+
+void ProfileSystemImpl::getAllThreadIds(TArray<uint32>& outIds)
+{
+	Mutex::Locker locker(GThreadDataMapMutex);
+	for (auto& pair : GThreadDataMap)
+	{
+		outIds.push_back(pair.first);
 	}
 }
 
@@ -328,17 +373,23 @@ ThreadProfileData* ProfileSystemImpl::GetCurrentThreadData()
 {
 	if( GThreadDataLocal == nullptr )
 	{
-		GThreadDataLocal = new ThreadProfileData("Root");
-		GThreadDataLocal->mThreadId = Thread::GetCurrentThreadId();
-		ThreadDataMap.insert({ GThreadDataLocal->mThreadId , GThreadDataLocal });
+		GThreadDataLocal = new ThreadProfileData(PlatformThread::GetThreadName(PlatformThread::GetCurrentThreadId()).c_str());
+		GThreadDataLocal->mThreadId = PlatformThread::GetCurrentThreadId();
+	
+		{
+			Mutex::Locker locker(GThreadDataMapMutex);
+			GThreadDataMap.insert({ GThreadDataLocal->mThreadId , GThreadDataLocal });
+		}
 	}
 	return GThreadDataLocal;
 }
 
 ThreadProfileData* ProfileSystemImpl::GetThreadData(uint32 threadId)
 {
-	auto iter = ThreadDataMap.find(threadId);
-	if (iter == ThreadDataMap.end())
+	Mutex::Locker locker(GThreadDataMapMutex);
+
+	auto iter = GThreadDataMap.find(threadId);
+	if (iter == GThreadDataMap.end())
 		return nullptr;
 
 	return iter->second;
@@ -405,7 +456,6 @@ void ProfileSampleNode::reset()
 	}
 }
 
-
 void ProfileSampleNode::resetFrame()
 {
 	auto const& readData = mRecoredData[GetReadIndex()];
@@ -418,7 +468,9 @@ void ProfileSampleNode::resetFrame()
 
 void ProfileSampleNode::notifyCall()
 {
-	auto& writeData = mRecoredData[GetWriteIndex()];
+	RWLock::ReadLocker locker(GDataIndexLock);
+
+	auto& writeData = mRecoredData[GWriteIndex];
 	if (mRecursionCounter == 0) 
 	{
 		if (mLastRecordFrame != GFrameCount)
@@ -450,12 +502,15 @@ bool ProfileSampleNode::notifyReturn()
 		uint64 tick;
 		Profile_GetTicks(&tick);	
 		double time = (tick - mStartTime ) / Profile_GetTickRate();
-		auto& writeData = mRecoredData[GetWriteIndex()];
+		{
+			RWLock::ReadLocker locker(GDataIndexLock);
+			auto& writeData = mRecoredData[GWriteIndex];
 
-		writeData.timestamps.back().end = tick;
+			writeData.timestamps.back().end = tick;
 
-		writeData.execTime += time;
-		writeData.execTimeTotal += time;
+			writeData.execTime += time;
+			writeData.execTimeTotal += time;
+		}
 	}
 	return true;
 }
@@ -499,10 +554,11 @@ void ProfileSampleNode::showAllChild( bool beShow )
 
 
 ThreadProfileData::ThreadProfileData(char const* rootName)
+	:mName(rootName)
 {
 	mCurFlag = 0;
 
-	mRootSample.reset(CreateNode(rootName, nullptr));
+	mRootSample.reset(CreateNode(mName.c_str(), nullptr));
 	mRootSample->mPrevFlag = 0;
 	mRootSample->mStackNum = 0;
 	for (int i = 0; i < 2; ++i)

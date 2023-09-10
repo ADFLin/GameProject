@@ -4,8 +4,9 @@
 
 #include "ZumaCore/IRenderSystem.h"
 
-
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/TextureAtlas.h"
+#include "PlatformThread.h"
 
 namespace Zuma
 {
@@ -17,6 +18,8 @@ namespace Zuma
 		{
 			mResource.release();
 		}
+
+		int mAtlasId = INDEX_NONE;
 		Render::RHITexture2DRef mResource;
 	};
 
@@ -74,6 +77,10 @@ namespace Zuma
 		class MaskShaderProgram* shaderProgram = nullptr;
 		RHIGraphics2D* mGraphics;
 		Render::ESimpleBlendMode mBlendMode;
+
+		Mutex mTextureMutex;
+		Render::TextureAtlas mTextrueAtlas;
+
 	};
 
 

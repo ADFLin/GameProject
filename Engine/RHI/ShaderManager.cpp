@@ -13,8 +13,6 @@
 #include "CPreprocessor.h"
 #include "ProfileSystem.h"
 
-#include <iterator>
-
 
 //#TODO remove
 #include "Renderer/BasePassRendering.h"
@@ -355,18 +353,6 @@ namespace Render
 		"MS" SHADER_FILE_SUBNAME ,
 	};
 
-	 char const* const gShaderNames[] =
-	{
-		"VERTEX_SHADER" ,
-		"PIXEL_SHADER" ,
-		"GEOMETRY_SHADER" ,
-		"COMPUTE_SHADER" ,
-		"HULL_SHADER" ,
-		"DOMAIN_SHADER" ,
-		"TASK_SHADER" ,
-		"MESH_SHADER" ,
-	};
-
 #if CORE_SHARE_CODE
 
 	ShaderManager& ShaderManager::Get()
@@ -465,70 +451,57 @@ namespace Render
 		}
 	}
 
-	//#TODO: Remove
-	std::string GetFilePath(char const* name)
+	int ShaderManager::loadMeshMaterialShaders(MaterialShaderCompileInfo const& info, TArray< MaterialLoadResult>& outShaders )
 	{
-		std::string path("Material/");
-		path += name;
-		return path;
-	}
+		int result = 0;
 
-	int ShaderManager::loadMeshMaterialShaders(
-		MaterialShaderCompileInfo const& info, 
-		VertexFactoryType& vertexFactoryType,
-		MaterialShaderPairVec& outShaders )
-	{
-		LogDevMsg( 0 , "VertexFactory Type : %s" ,  vertexFactoryType.fileName );
-		std::string path = GetFilePath(info.name);
+
 #if 0
 		TArray< std::string > classNames;
-		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
+		for (auto pShaderClass : MaterialShaderProgramClass::ClassList)
 		{
 			classNames.push_back((pShaderClass->GetShaderFileName)());
 		}
 #endif
-		int result = 0;
 
-		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
+		for (auto pVertexFactoryType : VertexFactoryType::TypeList)
 		{
-			//#REMOVE
-			//if (GRHISystem->getName() == RHISytemName::D3D11)
+			if (pVertexFactoryType != &LocalVertexFactory::StaticType)
 			{
-				if ( pShaderClass != &DeferredBasePassProgram::GetShaderClass() 
-					//&& pShaderClass != &ShadowDepthProgram::GetShaderClass() 
-					)
-					continue;
+				continue;
 			}
+			LogDevMsg(0, "VertexFactory Type : %s", pVertexFactoryType->fileName);
 
-			ShaderCompileOption option;
-			option.addInclude(path.c_str());
-			vertexFactoryType.getCompileOption(option);
-			info.setup(option);
-
-			option.addMeta("SourceFile", path.c_str());
-			uint32 permutationId = 0;
-			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, permutationId, option, ShaderClassType::Material);
-
-			if( shaderProgram )
+			for (auto pShaderClass : MaterialShaderProgramClass::ClassList)
 			{
-				outShaders.emplace_back(pShaderClass , shaderProgram);
-				++result;
+				//#REMOVE
+				//if (GRHISystem->getName() == RHISytemName::D3D11)
+				{
+					if (pShaderClass != &DeferredBasePassProgram::GetShaderClass()
+						&& pShaderClass != &ShadowDepthProgram::GetShaderClass()
+						&& pShaderClass != &ShadowDepthPositionOnlyProgram::GetShaderClass()
+						)
+						continue;
+				}
+
+				for (uint32 permutationId = 0; permutationId < pShaderClass->permutationCount; ++permutationId)
+				{
+					ShaderCompileOption option;
+					pVertexFactoryType->getCompileOption(option);
+					info.setup(option);
+					option.addMeta("SourceFile", info.name);
+					MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, permutationId, option, ShaderClassType::Material);
+
+					if (shaderProgram)
+					{
+						outShaders.push_back({ pShaderClass, pVertexFactoryType, shaderProgram, permutationId });
+						++result;
+					}
+				}
 			}
 		}
 
 		return result;
-	}
-
-	MaterialShaderProgram* ShaderManager::loadMaterialShader(MaterialShaderCompileInfo const& info, MaterialShaderProgramClass const& materialClass)
-	{
-		std::string materialPath = GetFilePath(info.name);
-
-		ShaderCompileOption option;
-		option.addInclude(info.name);
-		info.setup(option);
-		uint32 permutationId = 0;
-		option.addMeta("SourceFile", materialPath.c_str());
-		return (MaterialShaderProgram*)constructShaderInternal(materialClass, permutationId, option, ShaderClassType::Material);
 	}
 
 	bool ShaderManager::registerGlobalShader(GlobalShaderObjectClass& shaderClass, uint32 permutationCount)
@@ -585,7 +558,7 @@ namespace Render
 
 					ShaderProgramManagedData* mamagedData = loadInternal(
 						*shaderProgram, shaderProgramClass.GetShaderFileName(),
-						shaderProgramClass.GetShaderEntries(), option,
+						shaderProgramClass.GetShaderEntries(permutationId), option,
 						nullptr, true, classType);
 
 					if (mamagedData == nullptr)
@@ -637,6 +610,7 @@ namespace Render
 
 		if (result)
 		{
+
 			if (classType == ShaderClassType::Material)
 			{
 				removeFromShaderCompileMap(*result);
@@ -799,7 +773,7 @@ namespace Render
 			myClass.SetupShaderCompileOption(option, managedData->permutationId);
 
 			managedData->descList.clear();
-			setupManagedData(*managedData, myClass.GetShaderEntries(), option, nullptr,  myClass.GetShaderFileName(), true);
+			setupManagedData(*managedData, myClass.GetShaderEntries(managedData->permutationId), option, nullptr,  myClass.GetShaderFileName(), true);
 		}
 
 		return buildShader(shaderProgram, *managedData, true);
@@ -1177,7 +1151,7 @@ namespace Render
 		if (mAssetViewerReigster && CVarShaderDectectFileModify)
 		{
 			mAssetViewerReigster->registerViewer(&managedData);
-		}
+		}	
 	}
 
 	ShaderCache* ShaderManager::getCache()
@@ -1237,57 +1211,6 @@ namespace Render
 			ShaderManager::Get().cleanupLoadedSource();
 		}
 	}
-
-
-	std::string ShaderCompileOption::getCode( ShaderEntryInfo const& entry , char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
-	{
-		std::string result;
-		if( defCode )
-		{
-			result += defCode;
-		}
-
-		result += "#define SHADER_COMPILING 1\n";		
-		result += InlineString<>::Make("#define SHADER_ENTRY_%s 1\n", entry.name);
-		result += InlineString<>::Make("#define %s 1\n", gShaderNames[entry.type]);
-
-		for( auto const& var : mConfigVars )
-		{
-			result += "#define ";
-			result += var.name;
-			if( var.value.length() )
-			{
-				result += " ";
-				result += var.value;
-			}
-			result += "\n";
-		}
-
-		result += "#include \"Common" SHADER_FILE_SUBNAME "\"\n";
-
-		if( addionalCode )
-		{
-			result += addionalCode;
-			result += '\n';
-		}
-
-		for( auto const& code : mCodes )
-		{
-			result += code;
-			result += '\n';
-		}
-
-		for( auto& name : mIncludeFiles )
-		{
-			result += "#include \"";
-			result += name;
-			result += SHADER_FILE_SUBNAME;
-			result += "\"\n";
-		}
-
-		return result;
-	}
-
 
 }//namespace Render
 

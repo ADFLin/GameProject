@@ -217,7 +217,11 @@ namespace Zuma
 	{
 		numTotal = Global::getResManager().countResNum( loadID );
 		numCur   = numTotal;
+#if 0
 		mThreadLoading.start();
+#else
+		loadResFun();
+#endif
 	}
 
 	void LoadingStage::loadResFun()

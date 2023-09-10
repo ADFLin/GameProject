@@ -244,7 +244,7 @@ struct FCString
 	FORCEINLINE static bool    IsAlphaNumeric(char c) { return ::isalnum(c); }
 	FORCEINLINE static bool    IsAlphaNumeric(wchar_t c) { return ::iswalnum(c); }
 
-	template< class CharT >
+	template< typename CharT >
 	FORCEINLINE static constexpr CharT ToLower(CharT c)
 	{
 		if (STRING_LITERAL(CharT, 'A') <= c && c <= STRING_LITERAL(CharT, 'Z'))
@@ -252,7 +252,7 @@ struct FCString
 		return c;
 	}
 
-	template< class CharT >
+	template< typename CharT >
 	FORCEINLINE static constexpr CharT ToUpper(CharT c)
 	{
 		if (STRING_LITERAL(CharT, 'a') <= c && c <= STRING_LITERAL(CharT, 'z'))
@@ -260,25 +260,28 @@ struct FCString
 		return c;
 	}
 
-	template< class CharT >
+	template< typename CharT >
 	static CharT const* FindChar(CharT const* str, CharT c);
 
-	template< class CharT, class T >
+	template< typename CharT >
+	static CharT const* FindLastChar(CharT const* str, CharT c);
+
+	template< typename CharT, typename T >
 	static bool CheckForamtStringInternal(CharT const*& format, T&& t);
 
-	template< class CharT >
+	template< typename CharT >
 	static bool CheckForamtString(CharT const* format)
 	{
 		return true;
 	}
 
-	template< class CharT, class T >
+	template< typename CharT, typename T >
 	static bool CheckForamtString(CharT const* format, T&& t)
 	{
 		return CheckForamtStringInternal(format, std::forward<T>(t));
 	}
 
-	template< class CharT , class T, class ...Args >
+	template< typename CharT , typename T, typename ...Args >
 	static bool CheckForamtString(CharT const* format, T&& t , Args&& ...args )
 	{
 		if (!CheckForamtStringInternal(format, std::forward<T>(t)))
@@ -287,7 +290,7 @@ struct FCString
 		return CheckForamtString(format, std::forward<Args>(args)...);
 	}
 
-	template< class CharT , int N , class ...Args>
+	template< typename CharT , int N , typename ...Args>
 	FORCEINLINE static int  PrintfT(CharT(&str)[N], CharT const* fmt, Args&& ...args)
 	{
 		static_assert(Meta::And< TIsValidFormatType< Args >... >::Value == true , "Arg Type Error");
@@ -295,7 +298,7 @@ struct FCString
 		return FCString::PrintfImpl(str, N , fmt, args...);
 	}
 
-	template< class CharT >
+	template< typename CharT >
 	FORCEINLINE static int  PrintfImpl(CharT* str , int size , CharT const* fmt, ...)
 	{
 		va_list argptr;
@@ -307,13 +310,13 @@ struct FCString
 
 	static void Stricpy(char * dest, char const* src);
 
-	template< class CharT >
+	template< typename CharT >
 	static uint32 StriHash(CharT const* str);
-	template< class CharT >
+	template< typename CharT >
 	static uint32 StriHash(CharT const* str, int len);
-	template< class CharT >
+	template< typename CharT >
 	static uint32 StrHash(CharT const* str);
-	template< class CharT >
+	template< typename CharT >
 	static uint32 StrHash(CharT const* str, int len);
 
 	static std::wstring CharToWChar(const char *c);
@@ -322,7 +325,7 @@ struct FCString
 	static bool IsConstSegment(void const* ptr);
 };
 
-template< class CharT, class T >
+template< typename CharT, typename T >
 bool FCString::CheckForamtStringInternal(CharT const*& format, T&& t)
 {
 	format = FindChar(format, '%');

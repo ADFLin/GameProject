@@ -44,8 +44,12 @@ namespace CarTrain
 
 	class HitProxyManager
 	{
-
-
+	public:
+		HitProxyManager& Get()
+		{
+			static HitProxyManager StaticInstance;
+			return StaticInstance;
+		}
 
 		struct ProxyData
 		{

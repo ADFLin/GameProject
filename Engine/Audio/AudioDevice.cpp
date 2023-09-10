@@ -2,6 +2,7 @@
 
 #include "MarcoCommon.h"
 #include <cassert>
+#include "ProfileSystem.h"
 
 void SoundDSP::addInstance(uint64 hash, SoundWave& soundwave)
 {
@@ -35,10 +36,10 @@ void AudioDevice::shutdown()
 	mAudioSources.clear();
 }
 
-AudioHandle AudioDevice::playSound2D(SoundBase* sound, float volumeMultiplier , bool bLoop)
+AudioHandle AudioDevice::playSound2D(SoundBase& sound, float volumeMultiplier, bool bLoop)
 {
 	ActiveSound* activeSound = createAtiveSound();
-	activeSound->sound = sound;
+	activeSound->sound = &sound;
 	activeSound->volumeMultiplier = volumeMultiplier;
 	activeSound->bLoop = bLoop;
 	activeSound->bFinished = false;
@@ -47,10 +48,10 @@ AudioHandle AudioDevice::playSound2D(SoundBase* sound, float volumeMultiplier , 
 	return activeSound->handle;
 }
 
-AudioHandle AudioDevice::playSound3D(SoundBase* sound, float volumeMultiplier , bool bLoop)
+AudioHandle AudioDevice::playSound3D(SoundBase& sound, float volumeMultiplier, bool bLoop)
 {
 	ActiveSound* activeSound = createAtiveSound();
-	activeSound->sound = sound;
+	activeSound->sound = &sound;
 	activeSound->volumeMultiplier = volumeMultiplier;
 	activeSound->bLoop = bLoop;
 	activeSound->bFinished = false;
@@ -79,6 +80,8 @@ void AudioDevice::setAudioPitchMultiplier(AudioHandle handle, float value)
 
 void AudioDevice::update( float deltaT )
 {
+	PROFILE_ENTRY("AudioDevice Update");
+
 	++mSourceUsageFrame;
 	if( mSourceUsageFrame == 0 )
 	{
@@ -215,6 +218,20 @@ int AudioDevice::fetchIdleSource(SoundInstance& instance)
 }
 
 
+void AudioDevice::stopSound(AudioHandle handle)
+{
+	if (handle == ERROR_AUDIO_HANDLE)
+		return;
+
+	auto iter = mActiveSoundMap.find(handle);
+	if (iter != mActiveSoundMap.end())
+	{
+		ActiveSound* activeSound = iter->second;
+		destroyActiveSound(activeSound);
+		mActiveSoundMap.erase(iter);
+	}
+}
+
 void AudioDevice::stopAllSound()
 {
 	for( auto iter = mActiveSoundMap.begin(); iter != mActiveSoundMap.end(); )
@@ -265,7 +282,7 @@ void AudioDevice::destroyActiveSound(ActiveSound* activeSound)
 
 #include <fstream>
 
-bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, std::vector< uint8 >& outSampleData)
+bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, TArray< uint8 >& outSampleData)
 {
 	struct WaveChunkHeader
 	{

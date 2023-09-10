@@ -4,6 +4,8 @@
 #include "SystemPlatform.h"
 
 #include "Core/LockFreeList.h"
+#include "ProfileSystem.h"
+
 #define _ENABLE_ATOMIC_ALIGNMENT_FIX
 #include <atomic>
 
@@ -12,15 +14,19 @@ class TestListRunnable : public RunnableThreadT< TestListRunnable >
 public:
 	unsigned run() 
 	{
-		SystemPlatform::Sleep(20);
-		int const count = 100000;
-		for( int i = 0; i < count; ++i )
+		while(1)
 		{
-			list->push(idx * count + i);
-			//SystemPlatform::Sleep(rand() % 10);
-		}
-		SystemPlatform::AtomIncrement(pNumFinish);
-		LogMsg("%d Thead is finished", idx);
+			PROFILE_ENTRY("Test");
+			//SystemPlatform::Sleep(200);
+			int const count = 100;
+			for (int i = 0; i < count; ++i)
+			{
+				list->push(idx * count + i);
+				//SystemPlatform::Sleep(rand() % 10);
+			}
+			SystemPlatform::AtomIncrement(pNumFinish);
+			LogMsg("%d Thead is finished", idx);
+		};
 		return 0; 	
 	}
 
@@ -38,20 +44,23 @@ void printValues(int values[], int num)
 		str += " ";
 	}
 
-	LogMsg(str.c_str());
+	//LogMsg(str.c_str());
 }
 void LockFreeListTest()
 {
+
 	volatile int32 numFinish = 0;
 	TestListRunnable runnables[10];
 	TLockFreeFIFOList<int> list;
 	numFinish = 0;
 	for( int i = 0; i < ARRAY_SIZE(runnables); ++i )
 	{
-		runnables[i].idx = i;
-		runnables[i].list = &list;
-		runnables[i].pNumFinish = &numFinish;
-		runnables[i].start();
+		auto& rannable = runnables[i];
+		rannable.idx = i;
+		rannable.list = &list;
+		rannable.pNumFinish = &numFinish;
+		rannable.start();
+		rannable.setDisplayName(InlineString<>::Make("TestThread %d", i));
 	}
 
 	int savedValues[10];

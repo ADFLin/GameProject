@@ -4,49 +4,52 @@ namespace Render
 {
 
 #if CORE_SHARE_CODE
-	TArray< MaterialShaderProgramClass* > MaterialShaderProgramClass::ClassList;
+	CORE_API TArray< MaterialShaderProgramClass* > MaterialShaderProgramClass::ClassList;
 
-	MaterialShaderProgramClass::MaterialShaderProgramClass(
+	CORE_API MaterialShaderProgramClass::MaterialShaderProgramClass(
 		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption, 
 		GetShaderFileNameFunc inGetShaderFileName, 
-		GetShaderEntriesFunc inGetShaderEntries)
-		:GlobalShaderProgramClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName, inGetShaderEntries, 1)
+		GetShaderEntriesFunc inGetShaderEntries,
+		uint32 inPermutationCount)
+		:GlobalShaderProgramClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName, inGetShaderEntries, inPermutationCount)
 	{
 		ClassList.push_back(this);
 	}
 
-	GlobalShaderObjectClass::GlobalShaderObjectClass(
+	CORE_API GlobalShaderObjectClass::GlobalShaderObjectClass(
 		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption,
-		GetShaderFileNameFunc inGetShaderFileName)
+		GetShaderFileNameFunc inGetShaderFileName,
+		uint32 inPermutationCount)
 		: CreateShaderObject(inCreateShaderObject)
 		, SetupShaderCompileOption(inSetupShaderCompileOption)
 		, GetShaderFileName(inGetShaderFileName)
+		, permutationCount(inPermutationCount)
 	{
 
 	}
 
-	GlobalShaderProgramClass::GlobalShaderProgramClass(
+	CORE_API GlobalShaderProgramClass::GlobalShaderProgramClass(
 		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption,
 		GetShaderFileNameFunc inGetShaderFileName,
 		GetShaderEntriesFunc inGetShaderEntries,
 		uint32 inPermutationCount)
-		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName)
+		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName, inPermutationCount)
 		, GetShaderEntries(inGetShaderEntries)
 	{
 		ShaderManager::Get().registerGlobalShader(*this, inPermutationCount);
 	}
 
 
-	GlobalShaderClass::GlobalShaderClass(
+	CORE_API GlobalShaderClass::GlobalShaderClass(
 		CreateShaderObjectFunc inCreateShaderObject,
 		SetupShaderCompileOptionFunc inSetupShaderCompileOption, 
 		GetShaderFileNameFunc inGetShaderFileName,
 		ShaderEntryInfo inEntry,
 		uint32 inPermutationCount)
-		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName)
+		: GlobalShaderObjectClass(inCreateShaderObject, inSetupShaderCompileOption, inGetShaderFileName, inPermutationCount)
 		, entry(inEntry)
 	{
 		ShaderManager::Get().registerGlobalShader(*this, inPermutationCount);

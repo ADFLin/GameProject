@@ -27,7 +27,7 @@ namespace TripleTown
 			return ERenderSystem::D3D11;
 		}
 
-		bool setupRenderSystem(ERenderSystem systemName) override
+		bool setupRenderResource(ERenderSystem systemName) override
 		{
 			VERIFY_RETURN_FALSE( mScene.loadResource() );
 

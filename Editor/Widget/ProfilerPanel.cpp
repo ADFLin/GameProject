@@ -5,6 +5,7 @@
 
 #include "ImGui/imgui_internal.h"
 #include "InlineString.h"
+#include "PlatformThread.h"
 
 REGISTER_EDITOR_PANEL(ProfilerPanel, "Profiler", true, true);
 
@@ -71,10 +72,11 @@ public:
 		mScale = mMaxLength / mTotalTime;
 		mCurTime = 0;
 		mLevel = 0;
+		mMaxLevel = 0;
 		mLevelTimePos.push_back(mCurTime);
 		updateDisplayTime(context);
 		mGraphics2D.setBrush(Color3ub(255,255,255));
-		drawNode("Root", (bGrouped) ? context.displayTimeAcc : mCurTime, context.displayTime, 0);
+		drawNode(context.node->getName(), (bGrouped) ? context.displayTimeAcc : mCurTime, context.displayTime, 0);
 		++mLevel;
 	}
 
@@ -88,8 +90,11 @@ public:
 	{
 		Vector2 pos = mBasePos + Vector2(mScale * timePos, mLevel * offsetY);
 		Vector2 size = Vector2(Math::Max<float>(mScale * duration, 1.5f), offsetY);
+
+		mGraphics2D.enablePen(size.x > 1);
 		mGraphics2D.drawRect(pos, size);
-		if (size.x > 1.5)
+
+		if (size.x > 5)
 		{
 			InlineString<256> text;
 			if (callCount)
@@ -114,10 +119,10 @@ public:
 	{
 		NodeStat& stat = updateDisplayTime(context);
 
-		SampleNode* node = context.node;
 		int color = stat.id % ARRAY_SIZE(GColors);
-		mGraphics2D.setBrush(GColors[color]);
+		SampleNode* node = context.node;
 
+		mGraphics2D.setBrush(GColors[color]);
 		if ( bGrouped )
 		{
 			drawNode(node->getName(), mCurTime + context.displayTimeAcc, context.displayTime, node->getFrameCalls());
@@ -219,6 +224,8 @@ public:
 		mLevelTimePos.push_back(mCurTime);
 		mCurTime += context.displayTimeAcc;
 		++mLevel;
+		if (mLevel > mMaxLevel)
+			mMaxLevel = mLevel;
 		return true;
 	}
 	void onReturnParent(VisitContext const& context, VisitContext const& childContext)
@@ -234,6 +241,8 @@ public:
 
 	std::unordered_map< void*, NodeStat > nodeStatMap;
 	int mNextId = 0;
+	int mMaxLevel = 0;
+	uint32 mThreadId;
 
 	double mMaxLength = 600;
 	double offsetY = 20;
@@ -302,12 +311,19 @@ void ProfilerPanel::renderInternal(RenderData& data)
 	drawer.bPause = bPause;
 	drawer.bGrouped = bGrouped;
 	drawer.mMaxLength = data.clientSize.x;
-	drawer.mLevelTimePos.clear();
+
 	drawer.mRenderTexts.clear();
 
+	TArray< uint32 > threadIds;
+	ProfileSystem::Get().getAllThreadIds(threadIds);
+
+	for( uint32 threadId : threadIds )
 	{
 		PROFILE_ENTRY("DrawNodes");
-		drawer.visitNodes();
+		drawer.mLevelTimePos.clear();
+		drawer.mThreadId = threadId;
+		drawer.visitNodes(threadId);
+		drawer.mBasePos.y += drawer.mMaxLevel * drawer.offsetY + 10;
 	}
 	{
 		PROFILE_ENTRY("DrawTexts");

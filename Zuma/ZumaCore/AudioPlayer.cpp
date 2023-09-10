@@ -1,56 +1,25 @@
 #include "ZumaPCH.h"
 #include "AudioPlayer.h"
 
-#include "fmod.hpp"
-#include "fmod_errors.h"
-
-
-#define FMOD_CHECK( FUNC )\
-	{\
-	FMOD_RESULT  result = FUNC;\
-	ERRCHECK(result);\
-}\
+#include "Audio/XAudio2/MFDecoder.h"
+#include "minivorbis/minivorbis.h"
+#include "Core/ScopeGuard.h"
+#include "FileSystem.h"
 
 namespace Zuma
 {
 
-	static AudioPlayer* gAudioPlayer = NULL;
-	static FMOD_RESULT F_CALLBACK ChannelCallBack(
-		FMOD_CHANNELCONTROL *channelcontrol, FMOD_CHANNELCONTROL_TYPE controltype, 
-		FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype, void *commanddata1, void *commanddata2)
-	{
-		switch( callbacktype )
-		{
-		case FMOD_CHANNELCONTROL_CALLBACK_END:
-			break;
-		}
-
-		return FMOD_OK;
-	}
-
-	static void ERRCHECK(FMOD_RESULT result)
-	{
-		if (result != FMOD_OK)
-		{
-			assert( 0 );
-			printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
-			::exit(-1);
-		}
-	}
+	static AudioPlayer* GAudioPlayer = NULL;
 
 	void SoundRes::release()
 	{
-		FMOD_CHECK( FMOD_Sound_Release( sound ) );
-		sound = NULL;
+
 	}
 
 	AudioPlayer::AudioPlayer()
 	{
-		mFmodSys = nullptr;
-		gAudioPlayer = this;
+		GAudioPlayer = this;
 		mSoundVolume = 0.5f;
-
-		std::fill_n( mChannels , MaxNumChannel , (FMOD_CHANNEL*)0 );
 	}
 
 	AudioPlayer::~AudioPlayer()
@@ -60,47 +29,108 @@ namespace Zuma
 
 	bool AudioPlayer::init()
 	{
-		unsigned int version;
-		FMOD_SYSTEM* system;
-		FMOD_CHECK( FMOD_System_Create( &system) );
-		FMOD_CHECK( FMOD_System_GetVersion(system, &version ) );
-
-		if (version < FMOD_VERSION)
+		mDevice = AudioDevice::Create();
+		if (mDevice == nullptr)
 		{
-			LogError("Error!  You are using an old version of FMOD %08x.  This program requires %08x\n", version, FMOD_VERSION);
 			return false;
 		}
-
-		FMOD_CHECK( FMOD_System_Init(system, MaxNumChannel , FMOD_INIT_NORMAL, NULL ) );
-		FMOD_CHECK( FMOD_System_CreateChannelGroup(system, "Master", &mMasterGroup) );
-
-		mFmodSys = system;
 		return true;
 	}
 
 	void AudioPlayer::cleunup()
 	{
-		if ( mFmodSys )
+		delete mDevice;
+		mDevice = nullptr;
+	}
+
+	bool LoadOggFile(char const* path, WaveFormatInfo& outWaveFormat, TArray<uint8>& outSampleData)
+	{
+		FILE* fp = fopen(path, "rb");
+		if (!fp)
 		{
-			FMOD_CHECK( FMOD_System_Close( mFmodSys ) );
-			FMOD_CHECK( FMOD_System_Release( mFmodSys ) );
-			mFmodSys = NULL;
+			LogWarning(0, "Failed to open file '%s'.", path);
+			return false;
 		}
+
+		ON_SCOPE_EXIT
+		{
+			fclose(fp);
+		};
+		/* Open sound stream. */
+		OggVorbis_File vorbis;
+		if (ov_open_callbacks(fp, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0) 
+		{
+			LogWarning(0, "Invalid Ogg file '%s'.", path);
+			return false;
+		}
+
+		ON_SCOPE_EXIT
+		{
+			/* Close sound file */
+			ov_clear(&vorbis);
+		};
+
+		/* Print sound information. */
+		vorbis_info* info = ov_info(&vorbis, -1);
+		//LogMsg("Ogg file %d Hz, %d channels, %d kbit/s.\n", info->rate, info->channels, info->bitrate_nominal / 1024);
+
+		outWaveFormat.tag = WAVE_FORMAT_PCM;
+		outWaveFormat.numChannels = info->channels;
+		outWaveFormat.sampleRate  = info->rate;
+		outWaveFormat.bitsPerSample = 8 * sizeof(int16);
+		outWaveFormat.byteRate = outWaveFormat.bitsPerSample * outWaveFormat.sampleRate * outWaveFormat.numChannels / 8;
+		outWaveFormat.blockAlign = outWaveFormat.numChannels * outWaveFormat.bitsPerSample / 8;
+
+		/* Read the entire sound stream. */
+		unsigned char buf[4096];
+		for(;;)
+		{
+			int section = 0;
+			long bytes = ov_read(&vorbis,(char*)buf, sizeof(buf), 0, sizeof(int16), std::is_signed_v<int16>, &section);
+			if (bytes <= 0) /* end of file or error */
+				break;
+
+			outSampleData.append(buf, buf + bytes);
+		}
+
+		return true;
 	}
 
 
-	ResBase* AudioPlayer::createResource( ResID id , ResInfo& info )
+	bool loadResource(SoundRes* res, char const* path)
 	{
-		SoundResInfo& soundInfo = static_cast< SoundResInfo& >( info );
+		char const* ext = FFileUtility::GetExtension(path);
+
+		if (FCString::CompareIgnoreCase(ext, "ogg") == 0)
+		{
+			if (LoadOggFile(path, res->soundWave.format, res->soundWave.PCMData))
+				return true;
+
+			return true;
+		}
+		else if (FCString::CompareIgnoreCase(ext, "wav") == 0)
+		{
+			if (LoadWaveFile(path, res->soundWave.format, res->soundWave.PCMData))
+				return true;
+		}
+
+		if (!FMFDecodeUtil::LoadWaveFile(path, res->soundWave.format, res->soundWave.PCMData))
+		{
+			LogWarning(0, "Audio file load fail : %s", path);
+			return false;
+		}
+
+		return true;
+	}
+
+	ResBase* AudioPlayer::createResource(ResID id, ResInfo& info)
+	{
+		SoundResInfo& soundInfo = static_cast<SoundResInfo&>(info);
 		SoundRes* res = new SoundRes;
-
-		FMOD_CHECK( FMOD_System_CreateSound( mFmodSys , info.path.c_str() , FMOD_DEFAULT , 0 , &res->sound ) );
-
+		loadResource(res, info.path.c_str());
 		res->volume = soundInfo.volume;
-
 		return res;
 	}
-
 
 	SoundID AudioPlayer::playSound( ResID id , float volume , bool beLoop )
 	{
@@ -108,15 +138,7 @@ namespace Zuma
 		if ( res == NULL )
 			return ERROR_SOUND_ID;
 
-		FMOD_CHANNEL* channel;
-		FMOD_System_PlaySound( mFmodSys , res->sound , mMasterGroup, false , &channel );
-		FMOD_Channel_SetVolume( channel , volume * res->volume * mSoundVolume );
-		FMOD_Channel_SetCallback( channel ,ChannelCallBack );
-
-		if ( beLoop )
-			FMOD_Channel_SetMode( channel ,FMOD_LOOP_NORMAL );
-
-		return registerChannel( channel );
+		return mDevice->playSound2D(res->soundWave, res->volume * volume, beLoop);
 	}
 
 	SoundID AudioPlayer::playSound( ResID id , float volume , bool beLoop , float freqFactor )
@@ -125,19 +147,9 @@ namespace Zuma
 		if ( res == NULL )
 			return ERROR_SOUND_ID;
 
-		FMOD_CHANNEL* channel;
-		FMOD_System_PlaySound( mFmodSys , res->sound , mMasterGroup, false , &channel );
-		FMOD_Channel_SetVolume( channel , volume * res->volume * mSoundVolume );
-		FMOD_Channel_SetCallback( channel ,ChannelCallBack );
-
-		float freq;
-		FMOD_Channel_GetFrequency( channel , &freq );
-		FMOD_Channel_SetFrequency( channel , freqFactor * freq );
-
-		if ( beLoop )
-			FMOD_Channel_SetMode( channel ,FMOD_LOOP_NORMAL );
-
-		return registerChannel( channel );
+		SoundID handle = mDevice->playSound2D(res->soundWave, res->volume * volume, beLoop);
+		mDevice->setAudioPitchMultiplier(handle, freqFactor);
+		return handle;
 	}
 
 	SoundRes* AudioPlayer::getSound( ResID id )
@@ -149,23 +161,10 @@ namespace Zuma
 
 	void AudioPlayer::update( unsigned time )
 	{
-		if (mFmodSys == nullptr)
+		if (mDevice == nullptr)
 			return;
 
-		FMOD_CHECK( FMOD_System_Update( mFmodSys ) );
-
-		for( unsigned i = 0 ; i < MaxNumChannel ; ++i )
-		{
-			if ( mChannels[ i ] == NULL )
-				continue;
-
-			FMOD_BOOL isPlaying;
-			if ( FMOD_Channel_IsPlaying( mChannels[i] , &isPlaying ) == FMOD_OK )
-			{
-				if ( !isPlaying )
-					mChannels[i] = NULL;
-			}
-		}
+		mDevice->update(float(time) / 1000.0f);
 	}
 
 	void AudioPlayer::stopSound( SoundID sID )
@@ -173,11 +172,7 @@ namespace Zuma
 		if ( sID == ERROR_SOUND_ID )
 			return;
 
-		Channel* channel = getChannel( sID );
-		if ( !channel )
-			return;
-
-		FMOD_CHECK( FMOD_Channel_Stop( channel ) );
+		mDevice->stopSound(sID);
 	}
 
 	void AudioPlayer::setSoundFreq( SoundID sID , float freqFactor )
@@ -185,64 +180,8 @@ namespace Zuma
 		if ( sID == ERROR_SOUND_ID )
 			return;
 
-		Channel* channel = getChannel( sID );
-		if ( !channel )
-			return;
-
-		float freq;
-		FMOD_Channel_GetFrequency( channel , &freq );
-		FMOD_Channel_SetFrequency( channel , freqFactor * freq );
+		mDevice->setAudioPitchMultiplier(sID, freqFactor);
 	}
-
-
-
-	namespace
-	{
-		union SSID
-		{
-			struct
-			{
-				unsigned channel : 8;
-				unsigned serial  :24;
-			};
-			unsigned  value;
-		};
-
-		unsigned gSerialNumber = 0;
-	}
-
-
-
-	unsigned AudioPlayer::registerChannel( Channel* channel )
-	{
-
-		for( unsigned i = 0 ; i < MaxNumChannel ; ++i )
-		{
-			if ( mChannels[ i ] )
-				continue;
-
-			mChannels[i] = channel;
-			mChannelSerial[i] = gSerialNumber;
-			++gSerialNumber;
-
-			SSID id;
-			id.channel = i;
-			id.serial  = gSerialNumber;
-			return id.value;
-
-		}
-		return ERROR_SOUND_ID;
-	}
-
-	AudioPlayer::Channel* AudioPlayer::getChannel( unsigned sID )
-	{
-		SSID id;
-		id.value = sID;
-		if ( mChannelSerial[ id.channel ] != id.serial )
-			return NULL;
-		return mChannels[ id.channel ];
-	}
-
 
 	bool AudioPlayer::onEvent( int evtID , ZEventData const& data , ZEventHandler* sender )
 	{
@@ -251,17 +190,22 @@ namespace Zuma
 
 	SoundID playSound( ResID id , float volume , bool beLoop )
 	{
-		return gAudioPlayer->playSound( id , volume , beLoop );
+		return GAudioPlayer->playSound( id , volume , beLoop );
 	}
 
 	SoundID playSound( ResID id , float volume , bool beLoop , float freqFactor )
 	{
-		return gAudioPlayer->playSound( id , volume , beLoop ,freqFactor );
+		return GAudioPlayer->playSound( id , volume , beLoop ,freqFactor );
 	}
 
-	void stopSound( SoundID sID )
+	void setSoundFreq(SoundID sID, float freqFactor)
 	{
-		gAudioPlayer->stopSound( sID );
+		GAudioPlayer->setSoundFreq(sID, freqFactor);
+	}
+
+	void stopSound(SoundID sID)
+	{
+		GAudioPlayer->stopSound( sID );
 	}
 
 }//namespace Zuma

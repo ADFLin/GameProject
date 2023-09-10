@@ -16,9 +16,10 @@
 #include <D3D11Shader.h>
 #include <D3Dcompiler.h>
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
+#include "PlatformThread.h"
 
 
 
@@ -301,7 +302,7 @@ namespace Render
 
 		void RHIFlushCommand()
 		{
-			mDeviceContext->Flush();
+			//mDeviceContext->Flush();
 			mRenderTargetsState = nullptr;
 		}
 
@@ -425,24 +426,15 @@ namespace Render
 	public:
 		RHISystemName getName() const { return RHISystemName::D3D11; }
 		bool initialize(RHISystemInitParams const& initParam);
-		void preShutdown();
+		void clearResourceReference();
 		void shutdown();
 		virtual ShaderFormat* createShaderFormat();
 
-		bool RHIBeginRender()
-		{
-			mRenderContext.markRenderStateDirty();
+		bool RHIBeginRender();
 
-			return true;
-		}
+		Mutex mMutexContext;
 
-		void RHIEndRender(bool bPresent)
-		{
-			if ( bPresent && mSwapChain)
-			{
-				mSwapChain->present(mbVSyncEnable);
-			}
-		}
+		void RHIEndRender(bool bPresent);
 
 		RHICommandList&  getImmediateCommandList()
 		{
@@ -465,7 +457,7 @@ namespace Render
 		void RHIReadTexture(RHITexture2D& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 		void RHIReadTexture(RHITextureCube& texture, ETexture::Format format, int level, TArray< uint8 >& outData);
 
-
+		bool RHIUpdateTexture(RHITexture2D& texture, int ox, int oy, int w, int h, void* data, int level, int dataWidth);
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 
 		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
@@ -521,6 +513,7 @@ namespace Render
 		D3D11Context   mRenderContext;
 		TComPtr< ID3D11Device > mDevice;
 		TComPtr< ID3D11DeviceContext > mDeviceContext;
+		TComPtr< ID3D11DeviceContext > mDeviceContextImmdiate;
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 	};
 
@@ -529,7 +522,7 @@ namespace Render
 }//namespace Render
 
 
-#if USE_RHI_RESOURCE_TRACE
+#if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
 

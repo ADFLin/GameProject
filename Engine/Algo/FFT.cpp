@@ -5,6 +5,7 @@
 #include <complex>
 #include <vector>
 
+
 namespace kissfft_utils {
 
 	template <typename T_scalar>
@@ -44,7 +45,7 @@ namespace kissfft_utils {
 					default: p += 2; break;
 					}
 					if( p*p > n )
-						p = n;// no more factors
+						p = n;// no more twiddles
 				}
 				n /= p;
 				stageRadix.push_back(p);
@@ -317,18 +318,45 @@ private:
 };
 #include <complex.h>
 
+bool FFT::IsPowOf2(int num)
+{
+	return FBitUtility::IsOneBitSet(num);
+}
+
+
+void FFT::Context::set(int inSampleSize)
+{
+	sampleSize = inSampleSize;
+#if FFT_METHOD == 1
+	twiddles.resize(sampleSize / 2);
+	reverseIndices.resize(sampleSize);
+	uint32 count = FBitUtility::CountTrailingZeros(sampleSize);
+	uint32 offset = 32 - FBitUtility::CountTrailingZeros(sampleSize);
+
+	for (int i = 0; i < sampleSize / 2; ++i)
+	{
+		twiddles[i] = Complex::Expi(-2 * Math::PI * i / sampleSize);
+	}
+	for (int i = 0; i < sampleSize; ++i)
+	{
+		reverseIndices[i] = FBitUtility::Reverse(uint32(i)) >> offset;
+	}
+#else
+	twiddles.resize(sampleSize);
+	for (int i = 0; i < sampleSize; ++i)
+	{
+		twiddles[i] = Complex::Expi(-2 * Math::PI * i / sampleSize);
+	}
+#endif
+}
+
 void FFT::Transform(float data[], int numData, Complex outData[])
 {
 #if FFT_METHOD == 0
-	if( IsPowOf2(numData) )
-	{
-		Context context;
-		context.factors.resize(numData);
-		for( int i = 0; i < numData; ++i )
-		{
-			context.factors[i] = Complex::Expi(-2 * Math::PI * i / numData);
-		}
 
+	if( IsPowOf2(numData) && 0)
+	{
+		Context context(numData);
 		std::vector< Complex > tempData(numData);
 		for( uint32 i = 0; i < numData; ++i )
 		{
@@ -339,53 +367,78 @@ void FFT::Transform(float data[], int numData, Complex outData[])
 	}
 	else
 	{
-		Transform_G(data, numData, outData);
+		TransformKiss(data, numData, outData);
 	}
 #elif FFT_METHOD == 1
+	
 	if( IsPowOf2(numData) )
 	{
-		Context context;
-		context.factors.resize(numData);
-		context.reverseIndices.resize(numData);
-		context.sampleSize = numData;
-		uint32 count = FBitUtility::CountTrailingZeros(numData);
-		uint32 offset = 32 - FBitUtility::CountTrailingZeros(numData);
-		for( int i = 0; i < numData; ++i )
-		{
-			context.factors[i] = Complex::Expi(-2 * Math::PI * i / numData);
-			context.reverseIndices[i] = FBitUtility::Reverse(uint32(i)) >> offset;
-		}
-
+		Context context(numData);
 		for( uint32 i = 0; i < numData; ++i )
 		{
 			outData[i].r = data[context.reverseIndices[i]];
 			outData[i].i = 0;
 		}
-		Transform2_RA(context, numData, outData, 1);
+		TransformIter(context, outData);
 	}
 	else
 	{
-		Transform_G(data, numData, outData);
+		TransformKiss(data, numData, outData);
 	}
 #elif FFT_METHOD == 2
-	std::vector< Complex > tempData(numData);
-	for( int i = 0; i < numData; ++i )
-	{
-		tempData[i].r = data[i];
-		tempData[i].i = 0;
-
-		outData[i].r = data[i];
-		outData[i].i = 0;
-	}
-
-	_fft(outData, &tempData[0], numData, 1);
+	Context context(numData);
+	Transform_G(context, data, outData);
 #else
+	TransformKiss(data, numData, outData);
+#endif
+}
+
+void FFT::Transform(Context& context, float data[], int numData, Complex outData[])
+{
+#if FFT_METHOD == 0
+	if (IsPowOf2(numData))
+	{
+		std::vector< Complex > tempData(numData);
+		for (uint32 i = 0; i < numData; ++i)
+		{
+			tempData[i].r = data[i];
+			tempData[i].i = 0;
+		}
+		Transform2_R(context, &tempData[0], numData, outData, 1);
+	}
+	else
+	{
+		Transform_G(context, data, outData);
+	}
+#elif FFT_METHOD == 1
+	if (IsPowOf2(numData))
+	{
+		for (uint32 i = 0; i < numData; ++i)
+		{
+			outData[i].r = data[context.reverseIndices[i]];
+			outData[i].i = 0;
+		}
+		TransformIter(context, outData);
+	}
+	else
+	{
+		Transform_G(context, data, outData);
+	}
+#elif FFT_METHOD == 2
+	Transform_G(context, data, outData);
+#else
+	TransformKiss(data, numData, outData);
+#endif
+}
+
+void FFT::TransformKiss(float data[], int numData, Complex outData[])
+{
 	kissfft< float > fft{ numData , false };
 
 	typedef std::complex< float > ctype;
 	std::vector< ctype > inputs;
 	inputs.resize(numData);
-	for( int i = 0; i < numData; ++i )
+	for (int i = 0; i < numData; ++i)
 	{
 		inputs[i] = ctype(data[i], 0);
 	}
@@ -394,12 +447,11 @@ void FFT::Transform(float data[], int numData, Complex outData[])
 	outputs.resize(numData);
 	fft.transform(&inputs[0], &outputs[0]);
 
-	for( int i = 0; i < numData; ++i )
+	for (int i = 0; i < numData; ++i)
 	{
 		outData[i].r = outputs[i].real();
 		outData[i].i = outputs[i].imag();
 	}
-#endif
 }
 
 #define PLATFORM_CACHE_LINE_SIZE 64
@@ -408,132 +460,55 @@ FORCEINLINE static void Prefetch(void const* x, int32 offset = 0)
 	_mm_prefetch((char const*)(x)+offset, _MM_HINT_T0);
 }
 
-void FFT::Transform2_RA(Context& context, int numData, Complex outData[], uint stride)
+void FFT::TransformIter(Context& context, Complex outData[])
 {
-	assert(IsPowOf2(numData));
-#if 1
+	CHECK(IsPowOf2(context.sampleSize));
 
-#if 1
 	int  curStride = context.sampleSize / 2;
-	int  curNum = 1;
-
-	while( curNum < context.sampleSize )
+	for( int curNum = 1; curNum < context.sampleSize ; curNum *= 2)
 	{
-		int offset = 2 * curNum;
-		for( int n = 0; n < context.sampleSize; n += offset )
+		Complex* RESTRICT pData1 = outData;
+		Complex* RESTRICT pData2 = pData1 + curNum;
+		for( int n = 0; n < curStride; ++n )
 		{
-			Complex* RESTRICT pData1 = outData + n;
-			Complex* RESTRICT pData2 = pData1 + curNum;
-			Complex* RESTRICT pFactor = context.factors.data();
-			for( int i = 0; i < curNum; ++i )
-			{
-#if 0
-				Prefetch(pData1 + PLATFORM_CACHE_LINE_SIZE);
-				Prefetch(pData2 + PLATFORM_CACHE_LINE_SIZE);
+			Complex* RESTRICT pTwiddles = context.twiddles.data();
+#if 1
+			Prefetch(pData1 + PLATFORM_CACHE_LINE_SIZE);
+			Prefetch(pData2 + PLATFORM_CACHE_LINE_SIZE);
 #endif
+#if 0
+			for (int i = 0; i < curNum; ++i)
+			{
+				Complex temp = pTwiddles[curStride * i] * (*pData2);
+				*pData2 = *pData1 - temp;
+				*pData1 = *pData1 + temp;
 
-				Complex factor = *pFactor * (*pData2);
-				Complex temp = *pData1;
-
-				*pData1 = temp + factor;
-				*pData2 = temp - factor;
 				++pData1;
 				++pData2;
-				pFactor += curStride;
 			}
+#else
+			for( int i = 0; i < curNum; ++i )
+			{
+				Complex temp = *pTwiddles * (*pData2);
+				*pData2 = *pData1 - temp;
+				*pData1 = *pData1 + temp;
+
+				++pData1;
+				++pData2;
+				pTwiddles += curStride;
+			}
+#endif
+			pData1 += curNum;
+			pData2 += curNum;
 		}
 
 		curStride /= 2;
-		curNum *= 2;
 	}
-
-#else
-
-	int numSubData = numData / 2;
-	if( numSubData > 1 )
-	{
-		Transform2_RA(context, numSubData, outData, stride * 2);
-	}
-
-	for( int n = 0; n < context.sampleSize; n += numData )
-	{
-		Complex* RESTRICT pData1 = outData + n;
-		Complex* RESTRICT pData2 = pData1  + numSubData;
-		for( int i = 0; i < numSubData; ++i )
-		{
-#if 0
-			Prefetch(pData1 + PLATFORM_CACHE_LINE_SIZE);
-			Prefetch(pData2 + PLATFORM_CACHE_LINE_SIZE);
-#endif
-
-			Complex factor = context.factors[i * stride] * (*pData2);
-			Complex temp = *pData1;
-
-			*pData1 = temp + factor;
-			*pData2 = temp - factor;
-			++pData1;
-			++pData2;
-		}
-	}
-#endif
-
-#elif 0
-
-	int numSubData = numData / 2;
-	if( numSubData > 1 )
-	{
-		Transform2_RA(context, numSubData, outData, stride * 2);
-	}
-
-	for( int n = 0; n < stride; ++n )
-	{
-		Complex* RESTRICT pData1 = outData + n * numData;
-		Complex* RESTRICT pData2 = pData1 + numSubData;
-		for( int i = 0; i < numSubData; ++i )
-		{
-#if 0
-			Prefetch(pData1 + PLATFORM_CACHE_LINE_SIZE);
-			Prefetch(pData2 + PLATFORM_CACHE_LINE_SIZE);
-#endif
-
-			Complex factor = context.factors[i * stride] * (*pData2);
-			Complex temp = *pData1;
-
-			*pData1 = temp + factor;
-			*pData2 = temp - factor;
-			++pData1;
-			++pData2;
-		}
-	}
-
-#else
-
-	int numSubData = numData / 2;
-	if( numSubData > 1 )
-	{
-		Transform2_RA(context, numSubData, outData, stride * 2);
-		Transform2_RA(context, numSubData, outData + numSubData, stride * 2);
-	}
-
-
-	Complex* RESTRICT pData1 = outData;
-	Complex* RESTRICT pData2 = pData1 + numSubData;
-	for( int i = 0; i < numSubData; ++i )
-	{
-		Complex factor = context.factors[i * stride] * (*pData2);
-		Complex temp = *pData1;
-		*pData1 = temp + factor;
-		*pData2 = temp - factor;
-		++pData1;
-		++pData2;
-	}
-
-#endif
 }
 
-void FFT::Transform2_R(Context& context, Complex data[], int numData, Complex outData[], uint stride)
+void FFT::Transform2_R(Context& context, Complex data[], int numData, Complex outData[], int stride)
 {
-	assert(IsPowOf2(numData));
+	CHECK(IsPowOf2(numData));
 	if( numData == 1 )
 	{
 		outData[0] = data[0];
@@ -546,33 +521,89 @@ void FFT::Transform2_R(Context& context, Complex data[], int numData, Complex ou
 
 		Complex* RESTRICT pData1 = outData;
 		Complex* RESTRICT pData2 = outData + numSubData;
-		//Complex* RESTRICT pFactor = &context.factors[0];
+		//Complex* RESTRICT pTwiddles = &context.twiddles.data();
 		for( int i = 0; i < numSubData; ++i )
 		{
-			Complex factor = context.factors[i * stride] * (*pData2);
-			Complex temp = *pData1;
-			*pData1 = temp + factor;
-			*pData2 = temp - factor;
+			Complex temp = context.twiddles[stride * i] * (*pData2);
+			*pData2 = *pData1 - temp;
+			*pData1 = *pData1 + temp;
+
 			++pData1;
 			++pData2;
-			//pFactor += stride;
+			//pTwiddles += stride;
 		}
 	}
 }
 
-void FFT::Transform_G(float data[], int numData, Complex outData[])
+void FFT::Transform_G(Context& context, float data[], Complex outData[])
 {
-	for( int n = 0; n < numData; ++n )
+	for( int n = 0; n < context.sampleSize; ++n )
 	{
-		outData[n] = Complex{ 0 ,0 };
-
-		for( int k = 0; k < numData; ++k )
+		outData[n] = Complex{ 0,0 };
+		for( int k = 0; k < context.sampleSize; ++k )
 		{
-			float theta = 2 * Math::PI * k * n / numData;
-			float c, s;
-			Math::SinCos(theta, s, c);
-			outData[n].r += data[k] * c;
-			outData[n].i -= data[k] * s;
+			Complex const& twiddle = context.twiddles[k];
+			outData[n] += data[k] * twiddle;
 		}
+	}
+}
+
+
+void FFT::PrintIndex(int numData)
+{
+	CHECK(IsPowOf2(numData));
+
+	int numStep = FBitUtility::CountTrailingZeros(numData);
+
+	for (int step = 0; step < numStep; ++step)
+	{
+#if 1
+		PrintIndex(numData, step);
+#else
+		PrintIndex2(numData, 0, numStep - 1, step);
+#endif
+	}
+}
+
+void FFT::PrintIndex(int numTotalData, int step)
+{
+	int stride = numTotalData >> (step + 1);
+	for (int index = 0; index < (numTotalData / 2); ++index)
+	{
+		int n = index / stride;
+		int w = n * stride;
+		int i = index + w;
+		//Complex temp = context.twiddles[w] * (*pData2);
+		//*pData2 = *pData1 - temp;
+		//*pData1 = *pData1 + temp;
+		LogMsg("%d, [%d + %d] -> [%d]", step, i, i + stride, index);
+		LogMsg("%d, [%d - %d] -> [%d]", step, i, i + stride, index + numTotalData / 2);
+	}
+}
+
+void FFT::PrintIndex2(int numTotalData, int indexData, int step, int showStep)
+{
+	int stride = numTotalData >> (step + 1);
+	if (step != showStep)
+	{
+		PrintIndex2(numTotalData, indexData, step - 1, showStep);
+		PrintIndex2(numTotalData, indexData + stride, step - 1, showStep);
+	}
+	else
+	{
+
+		for (int n = 0; n < ( numTotalData / 2 ) / stride; ++n)
+		{
+			int w     = n * stride;
+			int index = indexData + w;
+			int i     = index + w;
+
+			//Complex temp = context.twiddles[w] * (*pData2);
+			//*pData2 = *pData1 - temp;
+			//*pData1 = *pData1 + temp;
+			LogMsg("%d %d, [%d + %d] -> [%d]", indexData, step, i, i + stride, index);
+			LogMsg("%d %d, [%d - %d] -> [%d]", indexData, step, i, i + stride, index + numTotalData / 2);
+		}
+		return;
 	}
 }

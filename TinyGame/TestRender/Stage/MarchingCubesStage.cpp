@@ -838,7 +838,7 @@ namespace Render
 			mMeshBuilder.generateMesh(mIsolevel, mChunkData, mMeshData);
 			MeshUtility::FillTriangleListNormal(mMesh.mInputLayoutDesc, mMeshData.vertices.data(), mMeshData.vertices.size(), mMeshData.indices.data(), mMeshData.indices.size());
 			//VoxelMeshBuilder::GenerateMeshNormal(mChunkData, mMeshData);
-			mMesh.createRHIResource(mMeshData.vertices.data(), mMeshData.vertices.size(), mMeshData.indices.data(), mMeshData.indices.size(), true);
+			mMesh.createRHIResource(mMeshData.vertices.data(), mMeshData.vertices.size(), mMeshData.indices.data(), mMeshData.indices.size());
 		}
 
 

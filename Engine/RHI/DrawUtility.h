@@ -304,10 +304,20 @@ namespace Render
 		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color, IntVector2 const& framePos, IntVector2 const& frameDim);
 		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, LinearColor const& color, Vector2 const& texPos, Vector2 const& texSize);
 
-		static void DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color = LinearColor(1, 1, 1, 1));
-		static void DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler , Vector2 const& pos, Vector2 const& size , LinearColor const& color = LinearColor(1,1,1,1));
-		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, float length);
-		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size);
+		static void DrawTexture(
+			RHICommandList& commandList, Matrix4 const& xForm, 
+			RHITexture2D& texture, Vector2 const& pos, Vector2 const& size);
+		static void DrawTexture(
+			RHICommandList& commandList, Matrix4 const& xForm, 
+			RHITexture2D& texture, RHISamplerState& sampler , 
+			Vector2 const& pos, Vector2 const& size);
+		static void DrawTexture(
+			RHICommandList& commandList, Matrix4 const& xForm, 
+			RHITexture2D& texture, RHISamplerState& sampler, 
+			Vector2 const& pos, Vector2 const& size, 
+			LinearColor const* colorMask, Vector3 const* mappingParams = nullptr);
+		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITextureCube& texCube, Vector2 const& pos, float length);
+		static void DrawCubeTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size);
 
 	};
 
@@ -378,7 +388,7 @@ namespace Render
 		SHADER_PERMUTATION_TYPE_BOOL(UseTexCoord, "USE_SCREEN_TEXCOORD");
 		using PermutationDomain = TShaderPermutationDomain<UseTexCoord>;
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
 		}
@@ -400,7 +410,7 @@ namespace Render
 		void copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask);
 		void copyTextureBiasToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2]);
 		void mapTextureColorToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
-		void copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture);
+		void copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture, bool bComputeShader = false);
 
 		void clearBuffer(RHICommandList& commandList, RHITexture2D& texture, float clearValue[]);
 		void clearBuffer(RHICommandList& commandList, RHITexture2D& texture, uint32 clearValue[]);

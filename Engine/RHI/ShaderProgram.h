@@ -280,6 +280,22 @@ namespace Render
 		shader.clearTexture(commandList, param);
 	}
 
+
+	template< class T >
+	class TStructuredBuffer;
+
+	template< typename TStruct, typename TShader >
+	static void SetStructuredStorageBuffer(RHICommandList& commandList, TShader& shader, TStructuredBuffer<TStruct>& buffer)
+	{
+		shader.setStructuredStorageBufferT< TStruct >(commandList, *buffer.getRHI());
+	}
+
+	template< typename TStruct, typename TShader >
+	static void SetStructuredUniformBuffer(RHICommandList& commandList, TShader& shader, TStructuredBuffer<TStruct>& buffer)
+	{
+		shader.setStructuredUniformBufferT< TStruct >(commandList, *buffer.getRHI());
+	}
+
 #define BIND_SHADER_PARAM( MAP , NAME ) SHADER_MEMBER_PARAM( NAME ).bind( MAP , SHADER_PARAM(NAME) )
 #define BIND_TEXTURE_PARAM( MAP , NAME ) BIND_SHADER_PARAM( MAP, NAME ); BIND_SHADER_PARAM( MAP, NAME##Sampler)
 

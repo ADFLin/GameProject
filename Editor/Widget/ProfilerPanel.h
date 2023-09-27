@@ -10,15 +10,6 @@ class ProfilerPanel : public IEditorPanel
 {
 public:
 
-	struct RenderData
-	{
-		ProfilerPanel* panel;
-		Math::Vector2 clientPos;
-		Math::Vector2 clientSize;
-		Math::Vector2 windowPos;
-		Math::Vector2 windowSize;
-		Math::Vector2 viewportSize;
-	};
 
 	float scale = 1.0f;
 	bool  bPause = false;
@@ -26,11 +17,6 @@ public:
 	bool  bGrouped = false;
 
 	void render();
-
-	void renderInternal(RenderData& data);
-
-	static void RenderCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd);
-
 	void getRenderParams(WindowRenderParams& params) const override;
 
 };

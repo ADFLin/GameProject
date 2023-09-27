@@ -16,3 +16,10 @@ float2 ComplexDiv(float2 a, float2 b)
 	float4 temp = a.xyxy * b.xyyx;
 	return float2(temp.x + temp.y, temp.w - temp.z ) / dot( b , b );
 }
+
+float2 ComplexExpi(float a)
+{
+	float s , c;
+	sincos(a, s, c);
+	return float2(c, s);
+}

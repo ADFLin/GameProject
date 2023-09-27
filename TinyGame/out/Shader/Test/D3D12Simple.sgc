@@ -29,11 +29,26 @@ PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_CO
 DEFINE_TEXTURE(Texture2D, BaseTexture);
 DEFINE_TEXTURE(Texture2D, BaseTexture1);
 
+struct ColourBuffer
+{
+	float red;
+	float green;
+	float blue;
+};
+
+cbuffer ColourBufferBlock
+{
+	ColourBuffer CBuffer;
+};
+
+
 float4 MainPS(PSInput input) : SV_TARGET0
 {
 	float4 tc = TEXTURE_SAMPLE(BaseTexture , input.uv);
 	float4 tc1 = TEXTURE_SAMPLE(BaseTexture1, input.uv);
 	float4 color = float4(tc.r,tc1.r, 1, 1);
+	float3 c = float3(CBuffer.red, CBuffer.green, 0 * CBuffer.blue);
+	return float4(c, 1);
 	return float4(color.rgb, 1);
 }
 

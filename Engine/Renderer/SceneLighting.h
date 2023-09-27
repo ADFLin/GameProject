@@ -130,7 +130,7 @@ namespace Render
 			return entries;
 		}
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
 		}

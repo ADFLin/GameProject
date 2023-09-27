@@ -72,7 +72,7 @@ namespace Bloxorz
 
 	struct GPU_ALIGN ObjectData
 	{
-		DECLARE_BUFFER_STRUCT(ObjectDataBlock, Objects);
+		DECLARE_BUFFER_STRUCT(Objects);
 
 		Matrix4 worldToLocal;
 		Vector4 typeParams;
@@ -82,7 +82,7 @@ namespace Bloxorz
 	};
 	struct GPU_ALIGN MaterialData
 	{
-		DECLARE_BUFFER_STRUCT(MaterialDataBlock, Materials);
+		DECLARE_BUFFER_STRUCT(Materials);
 
 		Color3f baseColor;
 		float   shininess;
@@ -92,7 +92,7 @@ namespace Bloxorz
 
 	struct GPU_ALIGN MapTileData
 	{
-		DECLARE_BUFFER_STRUCT(MapTileDataBlock, MapTiles);
+		DECLARE_BUFFER_STRUCT(MapTiles);
 
 		Vector4 posAndSize;
 	};

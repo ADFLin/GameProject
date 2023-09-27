@@ -13,25 +13,45 @@ public:
 	static constexpr char const* ClassName = "DetailView";
 
 	void render();
-	void clearProperties();
+
+	enum class EViewType
+	{
+		Primitive,
+		Struct,
+		Enum,
+		Property,
+	};
 
 	struct PropertyViewInfo
 	{
-		Reflection::EPropertyType type;
-		void* ptr;
-
+		PropertyViewHandle handle;
+		std::string name;
+		EViewType   type;
+		void*       ptr;
+		std::function<void(char const*)> callback;
 		union 
 		{
-			Reflection::StructType* structData;
-			Reflection::EnumType*   enumData;
+			Reflection::EPropertyType primitiveType;
+			Reflection::StructType*   structData;
+			Reflection::EnumType*     enumData;
+			Reflection::PropertyBase* property;
 		};
 	};
 
+	class RenderContext;
 	TArray< PropertyViewInfo > mPropertyViews;
+	uint32 mNextHandle = 0;
 
-	void addPrimitive(Reflection::EPropertyType type, void* ptr);
-	void addStruct(Reflection::StructType* structData, void* ptr);
-	void addEnum(Reflection::EnumType* enumData, void* ptr);
+	PropertyViewInfo* getViewInfo(PropertyViewHandle handle);
+
+	PropertyViewHandle addView(Reflection::EPropertyType type, void* ptr, char const* name);
+	PropertyViewHandle addView(Reflection::StructType* structData, void* ptr, char const* name);
+	PropertyViewHandle addView(Reflection::EnumType* enumData, void* ptr, char const* name);
+	PropertyViewHandle addView(Reflection::PropertyBase* property, void* ptr, char const* name);
+	void addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback);
+	void removeView(PropertyViewHandle handle);
+
+	void clearAllViews();
 };
 
 #endif // DetailPanel_H_B3999968_7BC2_4C9B_8C42_E43EF34171CA

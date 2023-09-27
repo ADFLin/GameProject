@@ -117,12 +117,9 @@ void StageManager::checkNewStage()
 {
 	if ( mNextStage )
 	{
-
-		mCurStage->onEnd();
-		postStageEnd(mCurStage);
+		finalizeStage(mCurStage);
+		
 		delete mCurStage;
-
-
 		mCurStage = mNextStage;
 		mNextStage = nullptr;
 		setupStage();
@@ -136,8 +133,7 @@ void StageManager::cleanup()
 
 	if ( mCurStage )
 	{
-		mCurStage->onEnd();
-		postStageEnd(mCurStage);
+		finalizeStage(mCurStage);
 
 		delete mCurStage;
 		mCurStage = nullptr;

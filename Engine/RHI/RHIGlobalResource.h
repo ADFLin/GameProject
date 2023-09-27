@@ -40,7 +40,7 @@ namespace Render
 		using PermutationDomain = TShaderPermutationDomain<HaveVertexColor, HaveTexcoord>;
 
 
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
 		{
 			return "Shader/SimplePipelineShader";
@@ -273,7 +273,7 @@ namespace Render
 	};
 
 
-	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode);
+	CORE_API RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode);
 
 	template 
 	<

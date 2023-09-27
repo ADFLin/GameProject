@@ -81,6 +81,7 @@ public:
 	ERenderSystem getSystemName() const { return mSystemName; }
 	TINY_API bool isUsageRHIGraphic2D() const;
 	TINY_API bool lockSystem(ERenderSystem systemLocked, RenderSystemConfigs const& configs);
+	TINY_API void unlockSystem();
 
 	bool isInitialized() { return mbInitialized; }
 

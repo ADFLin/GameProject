@@ -24,9 +24,8 @@
 
 #include "Widget/GameViewportPanel.h"
 #include "RHI/Font.h"
-#include "../TinyGame/TinyCore/RenderDebug.h"
 #include "Widget/DetailViewPanel.h"
-
+#include "Widget/TextureViewerPanel.h"
 
 
 
@@ -357,6 +356,15 @@ public:
 
 		importStyle();
 
+		for (auto& info : EditorPanelInfo::GetList())
+		{
+			if (info.desc.bAlwaysCreation)
+			{
+				ActivePanel& panel = findOrAddPanel(info);
+				panel.bOpenRequest = true;
+			}
+		}
+
 		return true;
 	}
 
@@ -389,20 +397,20 @@ public:
 
 	void render() override
 	{
-
 		mRenderer->beginFrame();
 		ImGui::NewFrame();
+		EditorRenderGloabal::Get().beginFrame();
 
 		if (bPanelInitialized == false)
 		{
 			bPanelInitialized = true;
 
-			for (auto& info : EditorPanelInfo::List)
+			for (auto& info : EditorPanelInfo::GetList())
 			{
 				if (info.desc.bAlwaysCreation)
 				{
-					ActivePanel& panel = findOrAddPanel(info);
-					panel.bOpenRequest = true;
+					//ActivePanel& panel = findOrAddPanel(info);
+					//panel.bOpenRequest = true;
 				}
 				else
 				{
@@ -483,13 +491,7 @@ public:
 
 	void addGameViewport(IEditorGameViewport* viewport) override
 	{
-		EditorPanelInfo const* info = EditorPanelInfo::Find("GameViewport");
-		if (info == nullptr)
-		{
-			return;
-		}
-
-		ActivePanel* newPanel = createNamedPanel("GameViewport");
+		ActivePanel* newPanel = createNamedPanel(GameViewportPanel::ClassName);
 		if (newPanel)
 		{
 			static_cast<GameViewportPanel*>(newPanel->widget)->mViewport = viewport;
@@ -504,13 +506,18 @@ public:
 
 	void setTextureShowManager(ITextureShowManager* manager) override
 	{
-		mTextureShowManager = manager;
+		ActivePanel* panel = findNamedPanel(TextureViewerPanel::ClassName);
+		if (panel)
+		{
+			static_cast<TextureViewerPanel*>(panel->widget)->mTextureShowManager = manager;
+		}
 	}
+
+	bool bShowEditorPreferences = true;
+	bool bShowDemoWindow = true;
+
 	void renderMainMenu()
 	{
-		static bool bShowTextureViewer = true;
-		static bool bShowEditorPreferences = true;
-		static bool showDemoWindow = true;
 
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -536,7 +543,7 @@ public:
 			};
 			if (ImGui::BeginMenu("Window"))
 			{
-				for (auto& info : EditorPanelInfo::List)
+				for (auto& info : EditorPanelInfo::GetList())
 				{
 					if ( !info.desc.bSingleton )
 						continue;
@@ -576,12 +583,7 @@ public:
 
 			if (ImGui::BeginMenu("Debug"))
 			{
-				if (ImGui::MenuItem("Show Atlas Texture", NULL , &bShowTextureViewer))
-				{
-
-				}
-
-				if (ImGui::MenuItem("Show ImGui Demo", NULL, &showDemoWindow))
+				if (ImGui::MenuItem("Show ImGui Demo", NULL, &bShowDemoWindow))
 				{
 
 				}
@@ -604,128 +606,9 @@ public:
 			ImGui::End();
 		}
 
-		if (bShowTextureViewer)
+		if (bShowDemoWindow)
 		{
-			int width = FImGui::mIconAtlas.getTexture().getSizeX();
-			int height = FImGui::mIconAtlas.getTexture().getSizeY();
-			ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_FirstUseEver);
-			if (ImGui::Begin("Texture Viewer", &bShowTextureViewer, ImGuiWindowFlags_HorizontalScrollbar))
-			{
-				RHITexture2D* texture = nullptr;
-				static int selection = 0;
-				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Type");
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(200);
-
-
-				char const* DefaultTextureNames[] =
-				{
-					"Icon", "Font",
-				};
-				char const* viewTextureName = "";
-				if (selection < ARRAY_SIZE(DefaultTextureNames))
-				{
-					viewTextureName = DefaultTextureNames[selection];
-				}
-				else if ( mTextureShowManager )
-				{
-					int index = ARRAY_SIZE(DefaultTextureNames);
-					for (auto const& pair : mTextureShowManager->getTextureMap())
-					{
-						if (index == selection)
-						{
-							viewTextureName = pair.first.c_str();
-							break;
-						}
-						++index;
-					}
-				}
-
-				if (ImGui::BeginCombo("##TextureList", viewTextureName))
-				{
-					int index = 0;
-					for (auto name : DefaultTextureNames)
-					{
-						const bool is_selected = (selection == index);
-						if (ImGui::Selectable(name, is_selected))
-							selection = index;
-
-						if (is_selected)
-							ImGui::SetItemDefaultFocus();
-						++index;
-
-					}
-					if (mTextureShowManager)
-					{
-						for (auto const& pair : mTextureShowManager->getTextureMap())
-						{
-							const bool is_selected = (selection == index);
-							if (ImGui::Selectable(pair.first.c_str(), is_selected))
-								selection = index;
-
-							if (is_selected)
-								ImGui::SetItemDefaultFocus();
-							++index;
-						}
-					}
-					ImGui::EndCombo();
-				}
-
-				static float scale = 1.0;
-				static bool  bUseAlpha = false;
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(200);
-				ImGui::Text("Scale");
-				ImGui::SameLine();
-				ImGui::Checkbox("UseAlpha", &bUseAlpha);
-				ImGui::SameLine();
-				ImGui::DragFloat("##Scale", &scale, 0.1 , 0.0f , 10.0f);
-				switch (selection)
-				{
-				case 0: texture = &FImGui::mIconAtlas.getTexture(); break;
-				case 1: texture = &Render::FontCharCache::Get().getTexture(); break;
-				default:
-					if (mTextureShowManager)
-					{
-						int index = ARRAY_SIZE(DefaultTextureNames);
-						for (auto& pair : mTextureShowManager->getTextureMap())
-						{
-							if (index == selection)
-							{
-								if (pair.second->texture.get())
-								{
-									texture = const_cast< Render::RHITextureBase*>( pair.second->texture.get() )->getTexture2D();
-								}
-								break;
-							}
-							++index;
-						}
-					}
-					break;
-				}
-
-				if (texture)
-				{
-					width = texture->getSizeX();
-					height = texture->getSizeY();
-					if (!bUseAlpha)
-					{
-						FImGui::DisableBlend();
-					}
-					ImGui::Image(FImGui::GetTextureID(*texture), ImVec2(scale * width, scale * height));
-					if (!bUseAlpha)
-					{
-						FImGui::RestoreBlend();
-					}
-				}
-			}
-			ImGui::End();
-		}
-
-		if (showDemoWindow)
-		{
-			ImGui::ShowDemoWindow(&showDemoWindow);
+			ImGui::ShowDemoWindow(&bShowDemoWindow);
 		}
 	}
 
@@ -774,8 +657,9 @@ public:
 	{
 		int index = mPanels.findIndexPred([widget](ActivePanel const& panel)
 		{
-			return panel.widget;
+			return panel.widget == widget;
 		});
+
 		if (index != INDEX_NONE)
 		{
 			mPanels.removeIndex(index);
@@ -899,39 +783,58 @@ public:
 		{
 		public:
 			DetailViewPanel* panel;
+			bool bDestroyPanel = false;
 			void release() override
 			{
-				GEditor->destroyPanel(panel);
+				if (bDestroyPanel)
+				{
+					GEditor->destroyPanel(panel);
+				}
+				else
+				{
+					panel->clearAllViews();
+				}
 				delete this;
 			}
-			void addPrimitive(Reflection::EPropertyType type, void* ptr)
+
+			PropertyViewHandle addView(Reflection::EPropertyType type, void* ptr, char const* name)
 			{
-				panel->addPrimitive(type, ptr);
+				return panel->addView(type, ptr, name);
 			}
-			void addStruct(Reflection::StructType* structData, void* ptr)
+			PropertyViewHandle addView(Reflection::StructType* structData, void* ptr, char const* name)
 			{
-				panel->addStruct(structData, ptr);
+				return panel->addView(structData, ptr, name);
 			}
-			void addEnum(Reflection::EnumType* enumData, void* ptr) override
+			PropertyViewHandle addView(Reflection::EnumType* enumData, void* ptr, char const* name)
 			{
-				panel->addEnum(enumData, ptr);
+				return panel->addView(enumData, ptr, name);
 			}
-			void clearProperties() override
+			PropertyViewHandle addView(Reflection::PropertyBase* property, void* ptr, char const* name)
 			{
-				panel->clearProperties();
+				return panel->addView(property, ptr, name);
+			}
+			void addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback)
+			{
+				panel->addCallback(handle, callback);
+			}
+			void removeView(PropertyViewHandle handle)
+			{
+				panel->removeView(handle);
+			}
+			void clearAllViews()
+			{
+				panel->clearAllViews();
 			}
 		};
 
 		ActivePanel* panel = findOrCreateNamedPanel(DetailViewPanel::ClassName, config.name);
 		if (panel)
 		{
-			if (config.name)
-			{
-				panel->name = config.name;
-			}
 			EditorDetailView* detailView = new EditorDetailView;
 			detailView->panel = (DetailViewPanel*)panel->widget;
-			detailView->panel->clearProperties();
+			detailView->panel->clearAllViews();
+			detailView->bDestroyPanel = panel->name != DetailViewPanel::ClassName;
+
 			return detailView;
 		}
 

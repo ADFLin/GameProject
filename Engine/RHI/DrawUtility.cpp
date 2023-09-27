@@ -139,7 +139,10 @@ namespace Render
 	{
 	public:
 		SHADER_PERMUTATION_TYPE_INT(TextrueType, SHADER_PARAM(TEX_PREVIEW), 0, TEX_PREVIEW_COUNT - 1);
-		using PermutationDomain = TShaderPermutationDomain<TextrueType>;
+		SHADER_PERMUTATION_TYPE_BOOL(UseColorMask, SHADER_PARAM(USE_COLOR_MASK));
+		SHADER_PERMUTATION_TYPE_BOOL(UseMappingParams, SHADER_PARAM(USE_MAPPING_PARAMS));
+
+		using PermutationDomain = TShaderPermutationDomain<TextrueType, UseColorMask, UseMappingParams >;
 
 		DECLARE_SHADER_PROGRAM(TexturePreviewProgram, Global)
 
@@ -148,7 +151,7 @@ namespace Render
 			return "Shader/TexturePreview";
 		}
 
-		static void SetupShaderCompileOption(ShaderCompileOption&)
+		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption&)
 		{
 
 		}
@@ -383,38 +386,64 @@ namespace Render
 	}
 
 	template< typename TRHITexture >
-	bool SetupPreviewTextureShader(RHICommandList& commandList, ETexturePreview id, Matrix4 const& XForm, TRHITexture& texture)
+	bool SetupPreviewTextureShader(RHICommandList& commandList, ETexturePreview id, Matrix4 const& xForm, TRHITexture& texture, RHISamplerState* sampler = nullptr, LinearColor const* colorMask = nullptr , Vector3 const* mappingParams = nullptr)
 	{
 		TexturePreviewProgram::PermutationDomain permutationVector;
 		permutationVector.set<TexturePreviewProgram::TextrueType>(id);
+		permutationVector.set<TexturePreviewProgram::UseColorMask>(colorMask != nullptr);
+		permutationVector.set<TexturePreviewProgram::UseMappingParams>(mappingParams != nullptr);
 		TexturePreviewProgram* shaderProgram = ShaderManager::Get().getGlobalShaderT< TexturePreviewProgram >(permutationVector);
 		if (shaderProgram == nullptr)
 			return false;
 
 		RHISetShaderProgram(commandList, shaderProgram->getRHI());
+		if (sampler)
+		{
+			shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture, SHADER_SAMPLER(Texture), *sampler);
+		}
+		else
+		{
+			shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture);
+		}
 		shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture);
-		shaderProgram->setParam(commandList, SHADER_PARAM(XForm), XForm);
+		shaderProgram->setParam(commandList, SHADER_PARAM(XForm), xForm);
 		shaderProgram->setParam(commandList, SHADER_PARAM(PreviewLevel), 0.0f);
+		if (colorMask)
+		{
+			shaderProgram->setParam(commandList, SHADER_PARAM(ColorMask), *colorMask);
+		}
+		if (mappingParams)
+		{
+			shaderProgram->setParam(commandList, SHADER_PARAM(MappingParams), *mappingParams);
+		}
 		return true;
 	}
 
-	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, Vector2 const& pos, Vector2 const& size)
 	{
-		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, XForm, texture))
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, xForm, texture))
 			return;
 
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}
 
-	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const& color)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size)
 	{
-		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, XForm, texture))
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, xForm, texture, &sampler))
 			return;
 		
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}
 
-	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, float length)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITexture2D& texture, RHISamplerState& sampler, Vector2 const& pos, Vector2 const& size, LinearColor const* colorMask, Vector3 const* mappingParams)
+	{
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_2D, xForm, texture, &sampler, colorMask, mappingParams ))
+			return;
+
+		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+	}
+
+	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITextureCube& texCube, Vector2 const& pos, float length)
 	{
 		int offset = 10;
 
@@ -485,7 +514,7 @@ namespace Render
 		//DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 
 #if 1
-		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE, XForm, texCube))
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE, xForm, texCube))
 			return;
 		TRenderRT< RTVF_XY | RTVF_T3 >::Draw(commandList, EPrimitive::Quad, vertices, ARRAY_SIZE(vertices));
 #else
@@ -507,9 +536,9 @@ namespace Render
 #endif
 	}
 
-	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& XForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size)
+	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, Matrix4 const& xForm, RHITextureCube& texCube, Vector2 const& pos, Vector2 const& size)
 	{
-		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE_PROJECTION, XForm, texCube))
+		if (!SetupPreviewTextureShader(commandList, TEX_PREVIEW_CUBE_PROJECTION, xForm, texCube))
 			return;
 		DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 	}
@@ -665,6 +694,25 @@ namespace Render
 	};
 
 	IMPLEMENT_SHADER(CopyTextureBiasPS, EShader::Pixel, SHADER_ENTRY(CopyTextureBiasPS));
+
+
+	class CopyTextureCS : public GlobalShader
+	{
+		using BaseClass = GlobalShader;
+		DECLARE_SHADER(CopyTextureCS, Global);
+
+	public:
+		static constexpr int GroupSize = 8;
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(GROUP_SIZE), GroupSize);
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/CopyTexture";
+		}
+	};
+	IMPLEMENT_SHADER(CopyTextureCS, EShader::Compute, SHADER_ENTRY(CopyTextureCS));
 
 	class MappingTextureColorProgram : public TCopyTextureBase< GlobalShaderProgram >
 	{
@@ -826,12 +874,26 @@ namespace Render
 		RHISetShaderProgram(commandList, nullptr);
 	}
 
-	void ShaderHelper::copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture)
+	void ShaderHelper::copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture, bool bComputeShader)
 	{
-		mFrameBuffer->setTexture(0, destTexture);
-		RHISetFrameBuffer(commandList, mFrameBuffer);
-		copyTextureToBuffer(commandList, srcTexture);
-		RHISetFrameBuffer(commandList, nullptr);
+		if (bComputeShader)
+		{
+			CopyTextureCS* shader = ShaderManager::Get().getGlobalShaderT<CopyTextureCS>();
+			RHISetComputeShader(commandList, shader->getRHI());
+			shader->setTexture(commandList, SHADER_PARAM(TexSource), srcTexture);
+			shader->setRWTexture(commandList, SHADER_PARAM(TexDest), destTexture);
+
+			int numGroupX = (destTexture.getSizeX() + CopyTextureCS::GroupSize - 1 ) / CopyTextureCS::GroupSize;
+			int numGroupY = (destTexture.getSizeY() + CopyTextureCS::GroupSize - 1) / CopyTextureCS::GroupSize;
+			RHIDispatchCompute(commandList, numGroupX, numGroupY, 1);
+		}
+		else
+		{
+			mFrameBuffer->setTexture(0, destTexture);
+			RHISetFrameBuffer(commandList, mFrameBuffer);
+			copyTextureToBuffer(commandList, srcTexture);
+			RHISetFrameBuffer(commandList, nullptr);
+		}
 	}
 
 	void ShaderHelper::reload()

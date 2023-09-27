@@ -283,6 +283,7 @@
     <ClCompile Include="TestRender\Stage\TemplateRenderTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\TestRHIStage.cpp" />
     <ClCompile Include="TestRender\Stage\VulkanTestStage.cpp" />
+    <ClCompile Include="TestRender\Stage\WaveRender.cpp" />
     <ClCompile Include="TestRender\TestRender.cpp" />
     <ClCompile Include="TestRender\TestRenderPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

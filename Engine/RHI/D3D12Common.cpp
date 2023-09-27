@@ -7,6 +7,31 @@
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
 
+#define STATIC_CHECK_DATA_MAP( NAME , DATA_MAP , MEMBER )\
+	constexpr bool Check##NAME##Valid_R(int i, int size)\
+	{\
+		return (i == size) ? true : ((i == (int)DATA_MAP[i].MEMBER) && Check##NAME##Valid_R(i + 1, size));\
+	}\
+	constexpr bool Check##NAME##Valid()\
+	{\
+		return Check##NAME##Valid_R(0, ARRAY_SIZE(DATA_MAP));\
+	}\
+	static_assert(Check##NAME##Valid(), "Check "#NAME" Failed")
+
+#if _DEBUG
+#define DATA_OP( S , D ) { S , D },
+#else
+#define DATA_OP( S , D ) { D },
+#endif
+
+#define DEFINE_DATA_MAP( TYPE , NAME , LIST )\
+	static constexpr TYPE NAME[]\
+	{\
+		LIST(DATA_OP)\
+	}
+
+
+
 namespace Render
 {
 	D3D12_BLEND D3D12Translate::To(EBlend::Factor factor)
@@ -42,16 +67,28 @@ namespace Render
 		return D3D12_BLEND_OP_ADD;
 	}
 
+	struct CullModeMapInfoD3D12
+	{
+#if _DEBUG
+		ECullMode src;
+#endif
+		D3D12_CULL_MODE   dest;
+	};
+
+
+#define CULL_MODE_LIST_D3D12( op )\
+	op(ECullMode::None, D3D12_CULL_MODE_NONE)\
+	op(ECullMode::Front, D3D12_CULL_MODE_FRONT)\
+	op(ECullMode::Back, D3D12_CULL_MODE_BACK)
+
+	DEFINE_DATA_MAP(CullModeMapInfoD3D12, GCullModeMapD3D12, CULL_MODE_LIST_D3D12);
+#if _DEBUG
+	STATIC_CHECK_DATA_MAP(CullModeMapValid, GCullModeMapD3D12, src);
+#endif
 
 	D3D12_CULL_MODE D3D12Translate::To(ECullMode mode)
 	{
-		switch( mode )
-		{
-		case ECullMode::Front: return D3D12_CULL_MODE_FRONT;
-		case ECullMode::Back:  return D3D12_CULL_MODE_BACK;
-		case ECullMode::None:  return D3D12_CULL_MODE_NONE;
-		}
-		return D3D12_CULL_MODE_NONE;
+		return GCullModeMapD3D12[int(mode)].dest;
 	}
 
 	D3D12_FILL_MODE D3D12Translate::To(EFillMode mode)

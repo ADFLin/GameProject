@@ -3,13 +3,14 @@
 
 #if COMPUTE_SHADER
 
+cbuffer MParamsBlock
+{
 uniform float4 CoordParam;  //xy = center pos , zw = min pos ;
 uniform float4 CoordParam2; //xy = dx dy , zw = rect rotation cos sin;
-
+uniform float4 ColorMapParam; // x = density , y = color rotation , bailoutSquare;
 uniform int   MaxIteration;
 uniform int2  ViewSize;
-uniform float4 ColorMapParam; // x = density , y = color rotation , bailoutSquare;
-
+}
 
 #if COMPILER_HLSL
 RWTexture2D< float4 > ColorRWTexture;
@@ -26,15 +27,11 @@ DEFINE_TEXTURE( Texture1D , ColorMapTexture );
 #define SIZE_Y 8
 #endif
 
-#if COMPILER_HLSL
-[numthreads(SIZE_X, SIZE_Y, 1)]
-void MainCS(uint3 SvDispatchThreadID : SV_DispatchThreadID)
-#else
-layout(local_size_x = SIZE_X, local_size_y = SIZE_Y, local_size_z = 1) in;
-void MainCS()
-#endif
+CS_NUM_THREADS(16, 16, 1)
+CS_ENTRY(MainCS)
 {
 	int2 pixelPos = int2(SvDispatchThreadID.xy);
+	float2 uv = float2(SvDispatchThreadID.xy) / ViewSize;
 	if( pixelPos.x >= ViewSize.x || pixelPos.y >= ViewSize.y )
 		return;
 
@@ -56,9 +53,12 @@ void MainCS()
 
 	//imageStore(IteratorRWTexture, pixelPos, uint4(iteration));
 	float3 color = (iteration == MaxIteration) ? float3(0,0,0) : TEXTURE_SAMPLE(ColorMapTexture, float(iteration) / float(MaxIteration) * ColorMapParam.x * 50 + ColorMapParam.y).rgb;
+
+
+	float d = float(iteration) / float(MaxIteration);
 #if COMPILER_HLSL
 	ColorRWTexture[pixelPos] = float4(color, 1);
-	//ColorRWTexture[pixelPos] = float4(1, 0, 0, 1);
+	//ColorRWTexture[pixelPos] = float4(Test, 1);
 #else
 	imageStore(ColorRWTexture, pixelPos, float4( color , 1 ) );
 	//imageStore(ColorRWTexture, pixelPos, float4( float(iteration) / float(100) ));

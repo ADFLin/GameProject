@@ -210,7 +210,7 @@ namespace Go
 			return entries;
 		}
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
 			option.addDefine(SHADER_PARAM(USE_TESSELLATION), UseTessellation);

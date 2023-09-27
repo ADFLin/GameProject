@@ -5,7 +5,6 @@
 #include "IntegerType.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
-#include "ReflectionCollect.h"
 
 class FColor
 {
@@ -136,13 +135,6 @@ public:
 	operator T*      () { return &r; }
 
 	uint32 toRGB() const { return FColor::ToRGB(r, g, b); }
-
-
-	REFLECT_STRUCT_BEGIN(TColor3)
-		REF_PROPERTY(r)
-		REF_PROPERTY(g)
-		REF_PROPERTY(b)
-	REFLECT_STRUCT_END()
 };
 
 template< class T >
@@ -197,13 +189,6 @@ public:
 	operator T*      () { return &r; }
 	uint32 toARGB() const { return FColor::ToARGB(r, g, b, a); }
 	uint32 toRGBA() const { return FColor::ToABGR(r, g, b, a); }
-
-	REFLECT_STRUCT_BEGIN(TColor4)
-		REF_PROPERTY(r)
-		REF_PROPERTY(g)
-		REF_PROPERTY(b)
-		REF_PROPERTY(a)
-	REFLECT_STRUCT_END()
 };
 
 

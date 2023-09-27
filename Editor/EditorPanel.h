@@ -18,6 +18,30 @@
 
 using ::Math::Vector2;
 
+template< typename TFunc >
+class TImGuiCustomRenderer
+{
+public:
+	TImGuiCustomRenderer(TFunc&& func)
+		:mFunc(std::forward<TFunc>(func))
+	{
+
+	}
+
+	void render(const ImDrawList* parentlist, const ImDrawCmd* cmd)
+	{
+		mFunc(parentlist, cmd);
+	}
+
+	static void Entry(const ImDrawList* parentlist, const ImDrawCmd* cmd)
+	{
+		TImGuiCustomRenderer* renderer = (TImGuiCustomRenderer*)cmd->UserCallbackData;
+		renderer->render(parentlist, cmd);
+		renderer->~TImGuiCustomRenderer();
+	}
+	TFunc mFunc;
+};
+
 class EditorRenderGloabal
 {
 public:
@@ -25,10 +49,36 @@ public:
 	void   saveRenderTarget();
 	void   resetRenderTarget();
 
+	template< typename TFunc >
+	void addCustomFunc(TFunc&& func)
+	{
+		void* ptr = mAllocator.alloc(sizeof(TImGuiCustomRenderer<TFunc>));
+		new (ptr) TImGuiCustomRenderer<TFunc>(std::forward<TFunc>(func));
+
+		ImGui::GetWindowDrawList()->AddCallback(TImGuiCustomRenderer<TFunc>::Entry, ptr);
+		ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+	}
+
+	void beginFrame()
+	{
+		mAllocator.clearFrame();
+	}
+
+	void endFrame()
+	{
+
+
+	}
+
 	static EditorRenderGloabal& Get();
 
 private:
-	EditorRenderGloabal(){}
+	FrameAllocator mAllocator;
+
+	EditorRenderGloabal()
+		:mAllocator(2048)
+	{
+	}
 };
 
 struct WindowRenderParams 
@@ -76,7 +126,7 @@ struct EditorPanelDesc
 		char const* name,
 		bool bSingleton,
 		bool bAlwaysCreation)
-		:name(name)
+		: name(name)
 		, bSingleton(bSingleton)
 		, bAlwaysCreation(bAlwaysCreation)
 	{
@@ -110,21 +160,21 @@ struct EditorPanelInfo
 	template< typename T >
 	static void Register(EditorPanelDesc const& desc)
 	{
-		List.push_back(EditorPanelInfo(desc, MakeFactory<T>()));
+		GetList().push_back(EditorPanelInfo(desc, MakeFactory<T>()));
 	}
 
 	static  EditorPanelInfo const* Find(char const* className)
 	{
-		for(auto const& info : List)
+		for(auto const& info : GetList())
 		{
-			if (FCString::CompareIgnoreCase(info.desc.name, className) == 0)
+			if ( info.desc.name == className ||
+			     FCString::CompareIgnoreCase(info.desc.name, className) == 0)
 				return &info;
 		}
 		return nullptr;
 	}
 
-	EDITOR_API static TArray< EditorPanelInfo > List;
-
+	static EDITOR_API TArray< EditorPanelInfo >& GetList();
 };
 
 struct EditorPanelRegister

@@ -14,7 +14,10 @@
 #else
 
 #define SV_POSITION
+#define SV_GroupID
+#define SV_GroupThreadID
 #define SV_DispatchThreadID
+#define SV_GroupIndex
 
 #define TEXCOORD0
 #define TEXCOORD1
@@ -50,6 +53,9 @@ struct Texture2D
 {
 	void GetDimensions(in uint MipLevel, out uint Width, out uint Height, out uint NumberOfLevels);
 };
+
+#define groupshared
+void GroupMemoryBarrierWithGroupSync();
 
 #endif
 
@@ -124,18 +130,33 @@ struct Texture2D
 	
 #endif //GEOMETRY_SHADER
 
+#if COMPUTE_SHADER
+
+#define CS_NUM_THREADS(X,Y,Z) [numthreads(X,Y,Z)]
+
+#define CS_ENTRY(NAME) void NAME(\
+	uint3 SvGroupID          : SV_GroupID,\
+	uint3 SvGroupThreadID    : SV_GroupThreadID,\
+	uint3 SvDispatchThreadID : SV_DispatchThreadID,\
+	uint  SvGroupIndex       : SV_GroupIndex)
+
+
+#define TEXTURE_SAMPLE( NAME , UV )\
+	NAME.SampleLevel(NAME##Sampler, UV, 0)
+
+#else //COMPUTE_SHADER
+
+#define TEXTURE_SAMPLE( NAME , UV )\
+	NAME.Sample(NAME##Sampler, UV)
+
+#endif //COMPUTE_SHADER
+
+#define DEFINE_STRUCTURED_BUFFER( TYPE , NAME ) StructuredBuffer< TYPE > NAME
+
 #define DEFINE_TEXTURE( TYPE , NAME )\
 	 uniform TYPE NAME;\
 	 uniform SamplerState NAME##Sampler;
 
-#if COMPUTE_SHADER
-
-#define TEXTURE_SAMPLE( NAME , UV )\
-	NAME.SampleLevel(NAME##Sampler, UV, 0)
-#else
-#define TEXTURE_SAMPLE( NAME , UV )\
-	NAME.Sample(NAME##Sampler, UV)
-#endif
 
 #define TEXTURE_SAMPLE_LEVEL( NAME , UV , LOD )\
 	NAME.SampleLevel(NAME##Sampler, UV , LOD )

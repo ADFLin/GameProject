@@ -10,6 +10,7 @@ class IEditorGameViewport;
 class GameViewportPanel : public IEditorPanel
 {
 public:
+	static constexpr char const* ClassName = "GameViewport";
 
 	IEditorGameViewport* mViewport = nullptr;
 	Render::RHITexture2DRef mTexture;

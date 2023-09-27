@@ -104,12 +104,12 @@ namespace Render
 			{
 				DetailViewConfig config;
 				config.name = "LightInfo";
-				IEditorDetailView* detailView = ::Global::Editor()->createDetailView(config);
-				detailView->addStruct(mLights[0].light);
+				mDetailView = ::Global::Editor()->createDetailView(config);
+				mDetailView->addStruct(mLights[0].light);
 			}
 			return true;
 		}
-
+		IEditorDetailView* mDetailView = nullptr;
 		bool mbPause = false;
 		CycleTrack mTrack;
 
@@ -144,8 +144,11 @@ namespace Render
 
 		void onEnd() override
 		{
-
-
+			if (mDetailView)
+			{
+				mDetailView->release();
+			}
+			BaseClass::onEnd();
 		}
 
 		void restart() override
@@ -188,6 +191,48 @@ namespace Render
 
 
 			}
+		};
+
+		struct MeshBatch
+		{
+
+
+
+
+		};
+
+		struct MeshProcesserHitProxy
+		{
+			MeshProcesserHitProxy(RHICommandList& commandList, ViewInfo& view)
+				:commandList(commandList)
+				, view(view)
+			{
+			}
+
+			void setupMaterial(MaterialMaster& material)
+			{
+				shaderProgram = material.getShaderT< DeferredBasePassProgram >(nullptr);
+				if (shaderProgram == nullptr)
+				{
+					return;
+				}
+				RHISetShaderProgram(commandList, shaderProgram->getRHI());
+				view.setupShader(commandList, *shaderProgram);
+			}
+
+			void process(Mesh& mesh, Matrix4 const& localToWorld)
+			{
+				Matrix4 worldToLocal;
+				float det;
+				localToWorld.inverseAffine(worldToLocal, det);
+				shaderProgram->setParam(commandList, SHADER_PARAM(Primitive.localToWorld), localToWorld);
+				shaderProgram->setParam(commandList, SHADER_PARAM(Primitive.worldToLocal), worldToLocal);
+				mesh.draw(commandList, LinearColor(1, 1, 1, 1));
+			}
+
+			ShaderProgram*  shaderProgram;
+			ViewInfo&       view;
+			RHICommandList& commandList;
 		};
 
 		struct MeshProcesserBasePass

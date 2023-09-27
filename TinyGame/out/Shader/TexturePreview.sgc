@@ -11,6 +11,14 @@
 #define TEX_PREVIEW TEX_PREVIEW_2D
 #endif
 
+#ifndef USE_COLOR_MASK
+#define USE_COLOR_MASK 0
+#endif
+
+#ifndef USE_MAPPING_PARAMS
+#define USE_MAPPING_PARAMS 0
+#endif
+
 #if TEX_PREVIEW == TEX_PREVIEW_1D
 #define UVType float2
 #define TextureType Texture1D
@@ -50,6 +58,9 @@ VS_ENTRY_END(MainVS)
 
 #if PIXEL_SHADER
 
+uniform float4 ColorMask;
+uniform float3 MappingParams;
+
 
 DEFINE_TEXTURE(TextureType, Texture);
 uniform float PreviewLevel;
@@ -66,9 +77,38 @@ PS_ENTRY_END(MainPS)
 #else
 	float4 color = TEXTURE_SAMPLE_LEVEL(Texture, VSOutput.UVs, PreviewLevel);
 #endif
+
+#if USE_MAPPING_PARAMS
+	color.rgb = pow(MappingParams.x * color.rgb + MappingParams.y, MappingParams.z);
+#endif
+
+#if USE_COLOR_MASK
+	if (ColorMask.a == 0)
+	{
+		color = float4(color.rgb * ColorMask.rgb, 1.0);
+	}
+	else
+	{
+		color = color * ColorMask;
+	}
+
+	uint4 MaskBits = ColorMask > 0;
+	uint coutMask = MaskBits.r + MaskBits.g + MaskBits.b + MaskBits.a;
+	if (coutMask == 1)
+	{
+		if (MaskBits.r)
+			color = float4(color.rrr, 1);
+		if (MaskBits.g)
+			color = float4(color.ggg, 1);
+		if (MaskBits.b)
+			color = float4(color.bbb, 1);
+		if (MaskBits.a)
+			color = float4(color.aaa, 1);
+	}
+#endif
 	//color.rgb = pow(color.rgb, 0.2);
-	OutColor = color;
 	//OutColor = float4(VSOutput.UVs, 0, 1);
+	OutColor = color;
 }
 
 #endif

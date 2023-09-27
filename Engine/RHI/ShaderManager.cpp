@@ -1181,7 +1181,7 @@ namespace Render
 
 	void ShaderProgramManagedData::postFileModify(EFileAction action)
 	{
-		if (action == EFileAction::Modify)
+		if (action == EFileAction::Modify || action == EFileAction::Rename)
 		{
 			ShaderManager::Get().buildShader(*shaderProgram, *this, true);
 			ShaderManager::Get().cleanupLoadedSource();
@@ -1205,7 +1205,7 @@ namespace Render
 
 	void ShaderManagedData::postFileModify(EFileAction action)
 	{
-		if (action == EFileAction::Modify)
+		if (action == EFileAction::Modify || action == EFileAction::Rename)
 		{
 			ShaderManager::Get().buildShader(*shader, *this, true);
 			ShaderManager::Get().cleanupLoadedSource();

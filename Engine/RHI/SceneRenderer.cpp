@@ -907,9 +907,9 @@ namespace Render
 			{
 				Vector4(1,1,0,1) , Vector4(-1,1,0,1) , Vector4(-1,-1,0,1) , Vector4(1,-1,0,1)
 			};
-			int indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
+			uint16 indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
 			mScreenMesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float4);
-			if( !mScreenMesh.createRHIResource(v, 4, indices, 6, true) )
+			if( !mScreenMesh.createRHIResource(v, 4, indices, 6) )
 				return false;
 		}
 

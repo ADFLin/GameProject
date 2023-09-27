@@ -34,10 +34,10 @@ int GetClampedIndex( int2 pos )
 
 #if COMPUTE_SHADER
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-void MainUpdateCS()
+CS_NUM_THREADS(1,1,1)
+CS_ENTRY(MainUpdateCS)
 {
-	int2 pos = int2( gl_GlobalInvocationID.xy );
+	int2 pos = int2(SvDispatchThreadID.xy );
 
 	int index = GetIndex(pos);
 	WaterVertexData data = WaterVertices[index];
@@ -61,10 +61,10 @@ void MainUpdateCS()
 	OutWaterVertices[index].h = h;
 }
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-void MainUpdateNormal()
+CS_NUM_THREADS(1, 1, 1)
+CS_ENTRY(MainUpdateNormal)
 {
-	int2 pos = int2(gl_GlobalInvocationID.xy);
+	int2 pos = int2(SvDispatchThreadID.xy);
 	int index = GetIndex(pos);
 	float hxp = OutWaterVertices[GetClampedIndex(pos + int2(1, 0))].h;
 	float hxn = OutWaterVertices[GetClampedIndex(pos + int2(-1, 0))].h;

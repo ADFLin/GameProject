@@ -1,5 +1,6 @@
 
 #include "DetailViewPanel.h"
+#include "InlineString.h"
 
 REGISTER_EDITOR_PANEL(DetailViewPanel, DetailViewPanel::ClassName, false, true);
 
@@ -21,8 +22,10 @@ enum class EDisplayType
 	Color4f,
 
 	Struct,
+	Array ,
 
 };
+
 
 static EDisplayType GetDisplayType(PropertyBase* property)
 {
@@ -43,7 +46,8 @@ static EDisplayType GetDisplayType(PropertyBase* property)
 
 	case EPropertyType::Enum:
 		return EDisplayType::Enum;
-
+	case EPropertyType::Array:
+		return EDisplayType::Array;
 	case EPropertyType::Struct:
 	case EPropertyType::UnformattedStruct:
 		{
@@ -79,7 +83,7 @@ static EDisplayType GetDisplayType(PropertyBase* property)
 	return EDisplayType::None;
 }
 
-int ToImGuiDataType(EPropertyType type)
+ImGuiDataType ToImGuiDataType(EPropertyType type)
 {
 	switch (type)
 	{
@@ -94,239 +98,462 @@ int ToImGuiDataType(EPropertyType type)
 	}
 }
 
-
-bool RenderPrimitivePropertyValue(Reflection::EPropertyType type, void* pData)
+template< typename T >
+ReflectionMeta::TSlider<T>* GetSliderMeta(Reflection::MetaData* metaData)
 {
-	using namespace Reflection;
-
-	bool bChanged = false;
-	switch (type)
+	if (metaData)
 	{
-	case EPropertyType::Uint8:
-	case EPropertyType::Uint16:
-	case EPropertyType::Uint32:
-	case EPropertyType::Uint64:
-	case EPropertyType::Int8:
-	case EPropertyType::Int16:
-	case EPropertyType::Int32:
-	case EPropertyType::Int64:
-		{
-			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-			bChanged = ImGui::InputScalar("##Property", ToImGuiDataType(type), pData, NULL, NULL, "%d", flags);
-		}
-		break;
-	case EPropertyType::Bool:
-		{
-			bChanged = ImGui::Checkbox("##Property", (bool*)pData);
-		}
-		break;
-	case EPropertyType::Float:
-		{
-			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-			bChanged = ImGui::InputFloat("##Property", (float*)pData, 0.0f, 0.0f, "%.3f", flags);
-		}
-		break;
-	case EPropertyType::Double:
-		{
-			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-			bChanged = ImGui::InputDouble("##Property", (double*)pData, 0.0f, 0.0f, "%.3f", flags);
-		}
-		break;
+		return metaData->find<ReflectionMeta::TSlider<T>>();
 	}
-	return bChanged;
+	return nullptr;
 }
 
-bool RenderEnumValue(EnumType* enumData, void* pData)
+struct DetailViewPanel::RenderContext
 {
-	bool bChanged = false;
-	auto values = enumData->values;
-	int64 curValue = enumData->getValue(pData);
-	int selection = values.findIndexPred([curValue](ReflectEnumValueInfo const& info)
+	RenderContext(PropertyViewInfo& propertyView)
+		:propertyView(propertyView)
 	{
-		return info.value == curValue;
-	});
-	if (ImGui::BeginCombo("##Property", selection == INDEX_NONE ? "" : values[selection].text))
-	{
-		int index = 0;
-		for (auto const& value : values)
-		{
-			const bool is_selected = (selection == index);
-			if (ImGui::Selectable(value.text, is_selected))
-			{
-				selection = index;
-				enumData->setValue(pData, value.value);
-				bChanged = true;
-			}
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
-			++index;
-		}
-		ImGui::EndCombo();
+
+
 	}
-	return bChanged;
-}
 
-bool RenderPropertyValue(EDisplayType displayType, void* pData, Reflection::PropertyBase* property = nullptr)
-{
-	bool bChanged = false;
-	switch (displayType)
+	PropertyViewInfo& propertyView;
+	char const* propertyName = nullptr;
+
+
+	void verify(bool bChanged)
 	{
-	case EDisplayType::Primitive:
+		if (bChanged)
 		{
-			bChanged = RenderPrimitivePropertyValue(property->getType(), pData);
-		}
-		break;
-	case EDisplayType::Vector2:
-		{
-			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-			bChanged = ImGui::InputFloat2("##Property", (float*)pData, "%.3f", flags);
-		}
-		break;
-	case EDisplayType::Vector3:
-		{
-			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
-			bChanged = ImGui::InputFloat3("##Property", (float*)pData, "%.3f", flags);
-		}
-		break;
-	case EDisplayType::Color3f:
-		{
-			ImGuiColorEditFlags flags =
-				ImGuiColorEditFlags_Float |
-				ImGuiColorEditFlags_InputRGB |
-				ImGuiColorEditFlags_DisplayRGB |
-				ImGuiColorEditFlags_PickerHueBar;
-			bChanged = ImGui::ColorEdit3("##Property", (float*)pData, flags);
-		}
-		break;
-	case EDisplayType::Color4f:
-		{
-			ImGuiColorEditFlags flags =
-				ImGuiColorEditFlags_Float |
-				ImGuiColorEditFlags_InputRGB |
-				ImGuiColorEditFlags_DisplayRGB |
-				ImGuiColorEditFlags_PickerHueBar;
-			bChanged = ImGui::ColorEdit4("##Property", (float*)pData, flags);
-		}
-		break;
-	case EDisplayType::Enum:
-		{
-			auto enumProperty = static_cast<EnumProperty*>(property);
-			if (enumProperty->enumData)
+			if (propertyView.callback)
 			{
-				bChanged = RenderEnumValue(enumProperty->enumData, pData);
-			}
-			else
-			{
-				bChanged = RenderPrimitivePropertyValue(enumProperty->underlyingType, pData);
+				propertyView.callback(propertyName);
 			}
 		}
-		break;
 	}
-	return bChanged;
-}
 
-bool RenderStruct(Reflection::StructType* structData, void* pData, int level = 0)
-{
-	bool bChanged = false;
 
-	ImGui::PushID(pData);
-
-	for (auto property : structData->properties)
+	template< typename T >
+	void renderScalarInput(ImGuiDataType ScalarType, void* pData, Reflection::MetaData* metaData)
 	{
-		ImGui::PushID(property);
-
-		ImGui::TableNextRow();
-		ImGui::TableSetColumnIndex(0);
-		ImGui::AlignTextToFramePadding();
-
-		EDisplayType displayType = GetDisplayType(property);
-
-		if (displayType == EDisplayType::Struct)
+		auto slider = GetSliderMeta< T>(metaData);
+		if (slider)
 		{
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
-			if (ImGui::TreeNodeEx(property->name, flags))
-			{
-				ImGui::TableSetColumnIndex(1);
-				ImGui::SetNextItemWidth(-FLT_MIN);
-				void* structPtr = property->getDataInStruct(pData);
-				auto structProperty = static_cast<StructProperty*>(property);
-				bChanged = RenderStruct(structProperty->structData, structPtr, level + 1);
-				ImGui::TreePop();
-			}
+			ImGuiSliderFlags flags = 0;
+			verify(ImGui::SliderScalar("##Property", ScalarType, pData, &slider->min, &slider->max, nullptr, flags));
 		}
 		else
 		{
-			ImGui::TextUnformatted(property->name);
-
-			ImGui::TableSetColumnIndex(1);
-			ImGui::SetNextItemWidth(-FLT_MIN);
-
-			RenderPropertyValue(displayType, property->getDataInStruct(pData), property);
+			ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
+			verify(ImGui::InputScalar("##Property", ScalarType, pData, NULL, NULL, "%d", flags));
 		}
+	}
 
-		ImGui::NextColumn();
+	void renderPrimitivePropertyValue(Reflection::EPropertyType type, void* pData, Reflection::MetaData* metaData = nullptr)
+	{
+		using namespace Reflection;
+		switch (type)
+		{
+		case EPropertyType::Uint8:
+			{
+				renderScalarInput<uint8>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Uint16:
+			{
+				renderScalarInput<uint16>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Uint32:
+			{
+				renderScalarInput<uint32>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Uint64:
+			{
+				renderScalarInput<uint64>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Int8:
+			{
+				renderScalarInput<int8>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Int16:
+			{
+				renderScalarInput<int16>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Int32:
+			{
+				renderScalarInput<int32>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Int64:
+			{
+				renderScalarInput<int64>(ToImGuiDataType(type), pData, metaData);
+			}
+			break;
+		case EPropertyType::Bool:
+			{
+				verify(ImGui::Checkbox("##Property", (bool*)pData));
+			}
+			break;
+		case EPropertyType::Float:
+			{
+				auto slider = GetSliderMeta<float>(metaData);
+				if (slider)
+				{
+					ImGuiSliderFlags flags = 0;
+					verify(ImGui::SliderFloat("##Property", (float*)pData, slider->min, slider->max, "%.3f", flags));
+				}
+				else
+				{
+					ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
+					verify(ImGui::InputFloat("##Property", (float*)pData, 0.0f, 0.0f, "%.3f", flags));
+				}
+			}
+			break;
+		case EPropertyType::Double:
+			{
+				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
+				verify(ImGui::InputDouble("##Property", (double*)pData, 0.0f, 0.0f, "%.3f", flags));
+			}
+			break;
+		}
+	}
+
+	void renderEnumValue(EnumType* enumData, void* pData)
+	{
+		auto values = enumData->values;
+		int64 curValue = enumData->getValue(pData);
+		int selection = values.findIndexPred([curValue](ReflectEnumValueInfo const& info)
+		{
+			return info.value == curValue;
+		});
+		if (ImGui::BeginCombo("##Property", selection == INDEX_NONE ? "" : values[selection].text))
+		{
+			int index = 0;
+			for (auto const& value : values)
+			{
+				const bool isSelected = (selection == index);
+				bool bChanged = ImGui::Selectable(value.text, isSelected);
+				verify(bChanged);
+				if (bChanged)
+				{
+					selection = index;
+					enumData->setValue(pData, value.value);
+					bChanged = true;
+				}
+
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+				++index;
+			}
+			ImGui::EndCombo();
+		}
+	}
+
+	void RenderPropertyValue(EDisplayType displayType, void* pData, Reflection::PropertyBase* property)
+	{
+		switch (displayType)
+		{
+		case EDisplayType::Primitive:
+			{
+				renderPrimitivePropertyValue(property->getType(), pData, &property->meta);
+			}
+			break;
+		case EDisplayType::Vector2:
+			{
+				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
+				verify(ImGui::InputFloat2("##Property", (float*)pData, "%.3f", flags));
+			}
+			break;
+		case EDisplayType::Vector3:
+			{
+				ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue;
+				verify(ImGui::InputFloat3("##Property", (float*)pData, "%.3f", flags));
+			}
+			break;
+		case EDisplayType::Color3f:
+			{
+				ImGuiColorEditFlags flags =
+					ImGuiColorEditFlags_Float |
+					ImGuiColorEditFlags_InputRGB |
+					ImGuiColorEditFlags_DisplayRGB |
+					ImGuiColorEditFlags_PickerHueBar;
+				verify(ImGui::ColorEdit3("##Property", (float*)pData, flags));
+			}
+			break;
+		case EDisplayType::Color4f:
+			{
+				ImGuiColorEditFlags flags =
+					ImGuiColorEditFlags_Float |
+					ImGuiColorEditFlags_InputRGB |
+					ImGuiColorEditFlags_DisplayRGB |
+					ImGuiColorEditFlags_PickerHueBar;
+				verify(ImGui::ColorEdit4("##Property", (float*)pData, flags));
+			}
+			break;
+		case EDisplayType::Enum:
+			{
+				auto enumProperty = static_cast<EnumProperty*>(property);
+				if (enumProperty->enumData)
+				{
+					renderEnumValue(enumProperty->enumData, pData);
+				}
+				else
+				{
+					renderPrimitivePropertyValue(enumProperty->underlyingType, pData);
+				}
+			}
+			break;
+		}
+	}
+
+	void renderStructRow(char const* name, StructType* structData, void* pData, int level)
+	{
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
+		bool bOpened = ImGui::TreeNodeEx(name, flags);
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		ImGui::Text("%u members", structData->properties.size());
+		if (bOpened)
+		{
+			renderStructContentRow(structData, pData, level + 1);
+			ImGui::TreePop();
+		}
+	}
+
+	void renderPropertyRow(char const* name, Reflection::PropertyBase* property, void* pData, int level)
+	{
+		EDisplayType displayType = GetDisplayType(property);
+
+		switch (displayType)
+		{
+		case EDisplayType::Struct:
+			{
+				void* structPtr = property->getDataInStruct(pData);
+				StructProperty* structProperty = static_cast<StructProperty*>(property);
+				renderStructRow(name, structProperty->structData, structPtr, level);
+			}
+			break;
+		case EDisplayType::Array:
+			{
+				ArrayPropertyBase* arrayProperty = static_cast<ArrayPropertyBase*>(property);
+				void* arrayPtr = arrayProperty->getDataInStruct(pData);
+				int count = arrayProperty->getElementCount(arrayPtr);
+
+				ImGuiTreeNodeFlags flags = 0;
+				bool bOpened = ImGui::TreeNodeEx(name, flags);
+
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(-FLT_MIN);
+				ImGui::Text("%d Array elements", count);
+
+				if (bOpened)
+				{
+					for (int index = 0; index < count; ++index)
+					{
+						ImGui::TableNextRow();
+
+						void* elementPtr = arrayProperty->getElement(arrayPtr, index);
+						ImGui::PushID(elementPtr);
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						InlineString<256> str;
+						str.format("index[%d]", index);
+						renderPropertyRow(str, arrayProperty->elementProperty, elementPtr, level + 1);
+						ImGui::PopID();
+					}
+
+					ImGui::TreePop();
+				}
+			}
+			break;
+		default:
+			{
+				ImGui::TextUnformatted(name);
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(-FLT_MIN);
+				RenderPropertyValue(displayType, property->getDataInStruct(pData), property);
+			}
+			break;
+		}
+	}
+
+	void renderStructContentRow(Reflection::StructType* structData, void* pData, int level = 0)
+	{
+		ImGui::PushID(pData);
+
+		for (auto property : structData->properties)
+		{
+			ImGui::TableNextRow();
+
+			ImGui::PushID(property);
+			ImGui::TableSetColumnIndex(0);
+			ImGui::AlignTextToFramePadding();
+			renderPropertyRow(property->name, property, pData, level);
+			ImGui::PopID();
+		}
 		ImGui::PopID();
 	}
-	ImGui::PopID();
-	return bChanged;
-}
+
+	void render()
+	{
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::AlignTextToFramePadding();
+		switch (propertyView.type)
+		{
+		case EViewType::Primitive:
+			if (propertyView.name.length())
+			{
+				ImGui::TextUnformatted(propertyView.name.c_str());
+			}
+
+			{
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(-FLT_MIN);
+				renderPrimitivePropertyValue(propertyView.primitiveType, propertyView.ptr);
+			}
+			break;
+		case EViewType::Struct:
+			{
+				if (propertyView.name.length())
+				{
+					renderStructRow(propertyView.name.c_str(), propertyView.structData, propertyView.ptr, 0);
+				}
+				else
+				{
+					renderStructContentRow(propertyView.structData, propertyView.ptr);
+				}
+			}
+			break;
+		case EViewType::Enum:
+			if (propertyView.name.length())
+			{
+				ImGui::TextUnformatted(propertyView.name.c_str());
+			}
+			{
+				ImGui::TableSetColumnIndex(1);
+				ImGui::SetNextItemWidth(-FLT_MIN);
+				renderEnumValue(propertyView.enumData, propertyView.ptr);
+			}
+			break;
+		case EViewType::Property:
+			{
+				renderPropertyRow(propertyView.name.c_str(), propertyView.property, propertyView.ptr, 0);
+			}
+			break;
+		}
+	}
+};
 
 void DetailViewPanel::render()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 	if (ImGui::BeginTable("split", 2, ImGuiTableFlags_Resizable))
 	{
-		for (auto const propertyView : mPropertyViews)
+		for (auto& propertyView : mPropertyViews)
 		{
-			switch (propertyView.type)
-			{
-			case EPropertyType::Struct:
-				{
-					RenderStruct(propertyView.structData, propertyView.ptr);
-				}
-				break;
-			case EPropertyType::Enum:
-				{
-					RenderEnumValue(propertyView.enumData, propertyView.ptr);
-				}
-				break;
-			default:
-				RenderPrimitivePropertyValue(propertyView.type, propertyView.ptr);
-				break;
-			}
+			RenderContext context(propertyView);
+			context.render();
 		}
 		ImGui::EndTable();
 	}
 	ImGui::PopStyleVar();
 }
 
-void DetailViewPanel::clearProperties()
+DetailViewPanel::PropertyViewInfo* DetailViewPanel::getViewInfo(PropertyViewHandle handle)
 {
-	mPropertyViews.clear();
+	int index = mPropertyViews.findIndexPred([handle](PropertyViewInfo const& info)
+	{
+		return info.handle == handle;
+	});
+	if (index == INDEX_NONE)
+		return nullptr;
+
+	return &mPropertyViews[index];
 }
 
-void DetailViewPanel::addPrimitive(Reflection::EPropertyType type, void* ptr)
+PropertyViewHandle DetailViewPanel::addView(Reflection::EPropertyType type, void* ptr, char const* name)
 {
 	PropertyViewInfo info;
-	info.type = type;
+	if (name)
+		info.name = name;
+
+	info.type = EViewType::Primitive;
 	info.ptr = ptr;
-	mPropertyViews.push_back(info);
+	info.primitiveType = type;
+	mPropertyViews.push_back(std::move(info));
+	return info.handle;
 }
 
-void DetailViewPanel::addStruct(Reflection::StructType* structData, void* ptr)
+PropertyViewHandle DetailViewPanel::addView(Reflection::StructType* structData, void* ptr, char const* name)
 {
 	PropertyViewInfo info;
-	info.type = EPropertyType::Struct;
+	if (name)
+		info.name = name;
+
+	info.handle = ++mNextHandle;
+	info.type = EViewType::Struct;
 	info.ptr = ptr;
 	info.structData = structData;
-	mPropertyViews.push_back(info);
+	mPropertyViews.push_back(std::move(info));
+	return info.handle;
 }
 
-void DetailViewPanel::addEnum(Reflection::EnumType* enumData, void* ptr)
+PropertyViewHandle DetailViewPanel::addView(Reflection::EnumType* enumData, void* ptr, char const* name)
 {
 	PropertyViewInfo info;
-	info.type = EPropertyType::Enum;
+	if (name)
+		info.name = name;
+
+	info.handle = ++mNextHandle;
+	info.type = EViewType::Enum;
 	info.ptr = ptr;
 	info.enumData = enumData;
-	mPropertyViews.push_back(info);
+	mPropertyViews.push_back(std::move(info));
+	return info.handle;
+}
+
+PropertyViewHandle DetailViewPanel::addView(Reflection::PropertyBase* property, void* ptr, char const* name)
+{
+	CHECK(property);
+
+	PropertyViewInfo info;
+	if (name)
+		info.name = name;
+
+	info.handle = ++mNextHandle;
+	info.type = EViewType::Property;
+	info.ptr = ptr;
+	info.property = property;
+	mPropertyViews.push_back(std::move(info));
+	return info.handle;
+}
+
+void DetailViewPanel::addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback)
+{
+	auto view = getViewInfo(handle);
+	if (view)
+	{
+		view->callback = callback;
+	}
+}
+
+void DetailViewPanel::removeView(PropertyViewHandle handle)
+{
+	mPropertyViews.removePred([handle](PropertyViewInfo const& info)
+	{
+		return info.handle == handle;
+	});
+}
+
+void DetailViewPanel::clearAllViews()
+{
+	mPropertyViews.clear();
 }

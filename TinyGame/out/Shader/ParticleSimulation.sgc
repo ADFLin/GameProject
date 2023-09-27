@@ -19,10 +19,7 @@
 #include "DeferredShadingCommon.sgc"
 #endif
 
-layout(std430) buffer ParticleDataBlock
-{
-	ParticleData Particles[];
-};
+DEFINE_STRUCTURED_BUFFER(ParticleData, Particles);
 
 struct ParticleParameters
 {

@@ -52,6 +52,7 @@
     <ClInclude Include="Widget\GameViewportPanel.h" />
     <ClInclude Include="Widget\ProfilerPanel.h" />
     <ClInclude Include="Widget\ShaderGraphPanel.h" />
+    <ClInclude Include="Widget\TextureViewerPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.cpp" />
@@ -75,6 +76,7 @@
     <ClCompile Include="Widget\GameViewportPanel.cpp" />
     <ClCompile Include="Widget\ProfilerPanel.cpp" />
     <ClCompile Include="Widget\ShaderGraphPanel.cpp" />
+    <ClCompile Include="Widget\TextureViewerPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\EngineCore.vcxproj">

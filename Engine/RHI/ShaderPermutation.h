@@ -3,6 +3,7 @@
 #define ShaderPermutation_H_33C8D6A9_E78B_49EC_A728_200A5CC9B2CE
 
 #include "ShaderCore.h"
+#include "Template/ArrayView.h"
 
 namespace Render
 {
@@ -32,6 +33,28 @@ namespace Render
 		}
 	};
 
+	template< int32 ...Values >
+	struct TShaderPermutationIntSelections : ShaderPermutationInt
+	{
+		constexpr static uint32 GetPermutationCount() { return sizeof...(Values); }
+		static TArrayView< int const > GetSelections()
+		{
+			static int StaticValues[] = { Values... };
+			return TArrayView< int const >( StaticValues , ARRAY_SIZE(StaticValues));
+		}
+		static Type   ToValue(uint32 id) { return GetSelections()[id]; }
+		static uint32 ToDimensionId(Type value)
+		{
+			auto selections = GetSelections();
+			for (int index = 0; index < selections.size(); ++index)
+			{
+				if (value == selections[index])
+					return index;
+			}
+			return 0;
+		}
+	};
+
 #define SHADER_PERMUTATION_TYPE_BOOL( TypeName , Name )\
 	struct TypeName : Render::ShaderPermutationBool\
 	{\
@@ -48,6 +71,13 @@ namespace Render
 
 #define SHADER_PERMUTATION_TYPE_INT_COUNT( TypeName , Name , Count )\
 	struct TypeName : Render::TShaderPermutationInt< 0 , (Count) - 1 >\
+	{\
+		static constexpr char* DefineName =  Name;\
+		Type value;\
+	};
+
+#define SHADER_PERMUTATION_TYPE_INT_SELECTIONS( TypeName , Name , ... )\
+	struct TypeName : Render::TShaderPermutationIntSelections< __VA_ARGS__ >\
 	{\
 		static constexpr char* DefineName =  Name;\
 		Type value;\

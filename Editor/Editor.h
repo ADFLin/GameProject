@@ -37,31 +37,57 @@ struct DetailViewConfig
 	char const* name = nullptr;
 };
 
-namespace Reflection
-{
-	class StructType;
-}
+typedef uint32 PropertyViewHandle;
 
 class IEditorDetailView
 {
 public:
 	virtual void release() = 0;
 
-	virtual void addPrimitive(Reflection::EPropertyType type, void* ptr) = 0;
-	virtual void addStruct(Reflection::StructType* structData, void* ptr) = 0;
-	virtual void addEnum(Reflection::EnumType* enumData, void* ptr) = 0;
-	virtual void clearProperties() = 0;
+	virtual PropertyViewHandle addView(Reflection::EPropertyType type, void* ptr, char const* name = nullptr) = 0;
+	virtual PropertyViewHandle addView(Reflection::StructType* structData, void* ptr, char const* name = nullptr) = 0;
+	virtual PropertyViewHandle addView(Reflection::EnumType* enumData, void* ptr, char const* name = nullptr) = 0;
+	virtual PropertyViewHandle addView(Reflection::PropertyBase* property, void* ptr, char const* name = nullptr) = 0;
+
+	virtual void addCallback(PropertyViewHandle handle, std::function<void(char const*)> const& callback) = 0;
+	virtual void removeView(PropertyViewHandle handle) = 0;
+	virtual void clearAllViews() = 0;
 
 	template< typename TStruct >
-	void addStruct(TStruct& data)
+	PropertyViewHandle addStruct(TStruct& data, char const* name = nullptr)
 	{
-		addStruct(Reflection::GetStructType<TStruct>(), &data);
+		return addView(Reflection::GetStructType<TStruct>(), &data, name);
 	}
+
 	template< typename T , TEnableIf_Type<Meta::IsPrimary<T>::Value , bool > = true >
-	void addValue(T& value)
+	PropertyViewHandle addValue(T& value, char const* name = nullptr)
 	{
-		addPrimitive(Reflection::PrimaryTypeTraits<T>::Type, &value);
+		return addView(Reflection::PrimaryTypeTraits<T>::Type, &value, name);
 	}
+
+	template< typename T, TEnableIf_Type<std::is_enum_v<T>, bool > = true >
+	PropertyViewHandle addValue(T& value, char const* name = nullptr)
+	{
+		return addView(Reflection::GetEnumType<T>(), &value, name);
+	}
+
+	template< typename T, TEnableIf_Type<!Meta::IsPrimary<T>::Value, bool > = true >
+	PropertyViewHandle addValue(T& value, char const* name = nullptr)
+	{
+		auto property = Reflection::PropertyCollector::CreateProperty<T>();
+		mProperties.push_back(property);
+		return addView(property, &value, name);
+	}
+
+	virtual ~IEditorDetailView()
+	{
+		for (auto property : mProperties)
+		{
+			delete property;
+		}
+	}
+
+	TArray< Reflection::PropertyBase* > mProperties;
 };
 
 class IEditor

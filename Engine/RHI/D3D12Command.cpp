@@ -2178,7 +2178,7 @@ namespace Render
 		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = resource;
 
 		mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0));
-		mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
+		//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
 
 		updateCSUHeapUsage(*handle);
 
@@ -2206,7 +2206,7 @@ namespace Render
 		ID3D12Resource* resource = mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource;
 		if (resource)
 		{
-			mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
+			//mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::UAVBarrier(resource));
 			mGraphicsCmdList->ResourceBarrier(1, &FD3D12Init::TransitionBarrier(resource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0));
 		}
 	}

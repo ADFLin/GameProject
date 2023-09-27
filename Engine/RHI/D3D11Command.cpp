@@ -10,10 +10,11 @@
 #endif
 #include "BitUtility.h"
 
-
-
 namespace Render
 {
+
+	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D11, D3D11System);
+
 	template< EShader::Type >
 	struct D3D11ShaderTraits {};
 
@@ -41,8 +42,6 @@ namespace Render
 	D3D11_SHADER_TRAITS(EShader::Domain, DS);
 	D3D11_SHADER_TRAITS(EShader::Compute, CS);
 #undef D3D11_SHADER_TRAITS
-
-	EXPORT_RHI_SYSTEM_MODULE(RHISystemName::D3D11, D3D11System);
 
 #define RESULT_FAILED( hr ) ( hr ) != S_OK
 	class D3D11ProfileCore : public RHIProfileCore
@@ -1147,6 +1146,18 @@ namespace Render
 		return false;
 	}
 
+	bool D3D11ResourceBoundState::clearUAV(ShaderParameter const& parameter)
+	{
+		if (mBoundedUAVs[parameter.mLoc] != nullptr)
+		{
+			--mUAVUsageCount;
+			mBoundedSRVs[parameter.mLoc] = nullptr;
+			mUAVDirtyMask |= BIT(parameter.mLoc);
+			return true;
+		}
+		return false;
+	}
+
 	void D3D11ResourceBoundState::setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
 	{
 		auto resViewImpl = static_cast<D3D11ShaderResourceView*>(texture.getBaseResourceView());
@@ -1409,6 +1420,19 @@ namespace Render
 			{
 				context->CSSetUnorderedAccessViews(index, 1, mBoundedUAVs + index, nullptr);
 			}
+		}
+	}
+
+	template< EShader::Type TypeValue >
+	void D3D11ResourceBoundState::clearContext(ID3D11DeviceContext* context)
+	{
+		ID3D11ShaderResourceView* EmptySRVs[MaxSimulatedBoundedSRVNum] = { nullptr };
+		D3D11ShaderTraits<TypeValue>::SetShaderResources(context, 0, MaxSimulatedBoundedSRVNum, EmptySRVs);
+
+		if (TypeValue == EShader::Compute)
+		{
+			ID3D11UnorderedAccessView* EmptyUAVs[MaxSimulatedBoundedSRVNum] = { nullptr };
+			context->CSSetUnorderedAccessViews(0, MaxSimulatedBoundedUAVNum, EmptyUAVs, nullptr);
 		}
 	}
 
@@ -2471,6 +2495,12 @@ namespace Render
 			mBoundedShaders[i].resource = nullptr;
 			mResourceBoundStates[i].clear();
 		}
+		mResourceBoundStates[EShader::Vertex].clearContext<EShader::Vertex>(mDeviceContext);
+		mResourceBoundStates[EShader::Pixel].clearContext<EShader::Pixel>(mDeviceContext);
+		mResourceBoundStates[EShader::Geometry].clearContext<EShader::Geometry>(mDeviceContext);
+		mResourceBoundStates[EShader::Compute].clearContext<EShader::Compute>(mDeviceContext);
+		mResourceBoundStates[EShader::Hull].clearContext<EShader::Hull>(mDeviceContext);
+		mResourceBoundStates[EShader::Domain].clearContext<EShader::Domain>(mDeviceContext);
 
 		bUseFixedShaderPipeline = false;
 		mVertexShader = nullptr;

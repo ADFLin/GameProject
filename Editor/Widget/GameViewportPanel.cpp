@@ -12,7 +12,7 @@
 
 using namespace Render;
 
-REGISTER_EDITOR_PANEL(GameViewportPanel, "GameViewport", false, false);
+REGISTER_EDITOR_PANEL(GameViewportPanel, GameViewportPanel::ClassName, false, false);
 
 class EditorRenderContext final : public IEditorRenderContext
 {

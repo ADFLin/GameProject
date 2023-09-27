@@ -9,8 +9,20 @@
 #include <typeindex>
 
 
+
 namespace Reflection
 {
+	using namespace ReflectionMeta;
+
+	template< typename T >
+	struct TMetaFactory
+	{
+		template< typename TMeta >
+		static TMeta Make(T&& data) { return TMeta(std::forward<TMeta>(data)); }
+
+		template< typename Q >
+		static TSlider<T> Make(TSlider<Q>&& data) { return TSlider<T>(std::forward<TSlider<Q>>(data)); }
+	};
 
 	enum class EPropertyType
 	{
@@ -27,9 +39,130 @@ namespace Reflection
 		Double,
 		Enum ,
 		UnformattedStruct,
+		Array,
+		StdVector,
+		StdMap,
+		StdUnorderedMap,
 		Struct,
 
 	};
+
+	class MetaDataElement
+	{
+	public:
+		template< typename T >
+		MetaDataElement( T&& data )
+			:mImpl(std::make_unique<TModel<T>>(std::forward<T>(data)))
+		{
+
+		}
+
+		template< typename T >
+		bool isA()
+		{
+			return mImpl->isA(typeid(T));
+		}
+		template< typename T >
+		T& get() { return *(T*)mImpl->getData(); }
+		template< typename T >
+		T const& get() const { return *(T const*)mImpl->getData(); }
+
+		struct IConcept
+		{
+			IConcept(std::type_info const& info)
+				:typeIndex(info)
+			{
+
+			}
+			virtual ~IConcept() = default;
+
+			bool  isA(std::type_info const& info) { return typeIndex == info; }
+			virtual void* getData() = 0;
+			std::type_index typeIndex;
+		};
+
+		template< typename T >
+		struct TModel : public IConcept
+		{
+		public:
+			TModel(T&& data)
+				:IConcept(typeid(T))
+				,mData(std::forward<T>(data))
+			{
+
+			}
+
+			void* getData() override { return &mData; }
+
+			T mData;
+		};
+		std::unique_ptr< IConcept > mImpl;
+	};
+
+	class MetaData
+	{
+	public:
+		template< typename T >
+		bool contain() const
+		{
+			for (auto const& element : mElements)
+			{
+				if (element.isA<T>())
+					return true;
+			}
+			return false;
+		}
+		template< typename T >
+		T const* find() const
+		{
+			for (auto const& element : mElements)
+			{
+				if (element.isA<T>())
+					return &element.get<T>();
+			}
+			return nullptr;
+		}
+		template< typename T >
+		T* find()
+		{
+			for (auto& element : mElements)
+			{
+				if (element.isA<T>())
+					return &element.get<T>();
+			}
+			return nullptr;
+		}
+
+		template< typename T >
+		void add(T&& data)
+		{
+			mElements.emplace_back(std::forward<T>(data));
+		}
+
+		template< typename T, typename ...TList >
+		void add(T&& data, TList&& ...dataList)
+		{
+			mElements.emplace_back(std::forward<T>(data));
+			add(std::forward<TList>(dataList)...);
+		}
+
+		template< typename TFactory, typename T >
+		void add(T&& data)
+		{
+			mElements.emplace_back(TFactory::Make(std::forward<T>(data)));
+		}
+
+		template< typename TFactory, typename T, typename ...TList >
+		void add(T&& data, TList&& ...dataList)
+		{
+			mElements.emplace_back(TFactory::Make(std::forward<T>(data)));
+			add<TFactory>(std::forward<TList>(dataList)...);
+		}
+
+
+		TArray<MetaDataElement> mElements;
+	};
+
 
 	class PropertyBase
 	{
@@ -40,9 +173,10 @@ namespace Reflection
 
 		}
 
-		char const* name;
-		uint32 offset;
+		char const* name = nullptr;
+		uint32 offset = 0;
 		std::type_index typeIndex;
+		MetaData meta;
 
 		virtual ~PropertyBase() = default;
 
@@ -54,8 +188,13 @@ namespace Reflection
 			offset = (uint8*)(&(ptr->*memberPtr)) - (uint8*)ptr;
 		}
 
+
 		void* getDataInStruct(void* ptr) { return (uint8*)(ptr)+offset; }
+		void* getDataInStruct(void* ptr, int index) { return ((uint8*)(ptr) + offset ) + index * getTypeSize(); }
 		virtual EPropertyType getType() = 0;
+		virtual int getTypeSize() = 0;
+		virtual void constructDefault(void* ptr) = 0;
+
 
 	};
 
@@ -85,6 +224,26 @@ namespace Reflection
 	DEF_PRIMARY_TYPE(double, Double);
 
 #undef DEF_PRIMARY_TYPE
+	struct ContainerTraitsBase
+	{
+		static constexpr int IsArray = 0;
+		static constexpr int IsStdVector = 0;
+	};
+	template< typename T >
+	struct TContainerTraits : public ContainerTraitsBase
+	{
+		static constexpr int IsArray = 0;
+		static constexpr int IsStdVector = 0;
+	};
+
+	template< typename T, typename A >
+	struct TContainerTraits< TArray< T, A > > : public ContainerTraitsBase
+	{
+		static constexpr int IsArray = 1;
+		using ElementType = T;
+		using AllocatorType = A;
+	};
+
 
 	template< typename T >
 	class TPrimaryTypePorperty : public PropertyBase
@@ -100,6 +259,8 @@ namespace Reflection
 		{
 			return PrimaryTypeTraits<T>::Type;
 		}
+		int  getTypeSize() override { return sizeof(T); }
+		void constructDefault(void* ptr) override {  *reinterpret_cast<T*>(ptr) = 0; }
 	};
 
 	class StructType
@@ -128,6 +289,7 @@ namespace Reflection
 	public:
 		EPropertyType underlyingType;
 		TArrayView< ReflectEnumValueInfo const > values;
+		MetaData meta;
 
 		int64 getValue(void* data)
 		{
@@ -193,7 +355,26 @@ namespace Reflection
 		{
 			return EPropertyType::Enum;
 		}
-
+		int getTypeSize() override 
+		{
+			switch (underlyingType)
+			{
+			case Reflection::EPropertyType::Uint8:
+			case Reflection::EPropertyType::Int8:
+				return sizeof(int8);
+			case Reflection::EPropertyType::Uint16:
+			case Reflection::EPropertyType::Int16:
+				return sizeof(int16);
+			case Reflection::EPropertyType::Uint32:
+			case Reflection::EPropertyType::Int32:
+				return sizeof(int32);
+			case Reflection::EPropertyType::Uint64:
+			case Reflection::EPropertyType::Int64:
+				return sizeof(int64);
+			}
+			NEVER_REACH("getTypeSize");
+			return 0; 
+		}
 		int64 getUnderlyingValue(void* data)
 		{
 			return EnumType::GetUnderlyingValue(data, underlyingType);
@@ -203,9 +384,10 @@ namespace Reflection
 		{
 			EnumType::SetUnderlyingValue(data, value, underlyingType);
 		}
-		
-
-
+		void constructDefault(void* ptr) override
+		{
+			EnumType::SetUnderlyingValue(ptr, 0, underlyingType);
+		}
 	};
 
 	class StructProperty : public PropertyBase
@@ -214,10 +396,62 @@ namespace Reflection
 		using PropertyBase::PropertyBase;
 
 		StructType*     structData;
+		MetaData meta;
+		int  size;
 
 		EPropertyType getType() override
 		{
 			return EPropertyType::Struct;
+		}
+
+
+	};
+
+	class ArrayPropertyBase : public PropertyBase
+	{
+	public:
+		PropertyBase* elementProperty;
+		using PropertyBase::PropertyBase;
+		
+		virtual int   getElementCount(void* ptr) = 0;
+		virtual void* getElement(void* ptr, int index) = 0;
+		EPropertyType getType() override
+		{
+			return EPropertyType::Array;
+		}
+	};
+
+	template< typename T >
+	class TArrayProperty : public ArrayPropertyBase
+	{
+	public:
+		TArrayProperty()
+			:ArrayPropertyBase(typeid(T))
+		{
+
+		}
+
+		virtual int   getElementCount(void* ptr)
+		{
+			return reinterpret_cast<T*>(ptr)->size();
+		}
+		virtual void* getElement(void* ptr, int index)
+		{
+			if (reinterpret_cast<T*>(ptr)->data())
+			{
+				return reinterpret_cast<T*>(ptr)->data() + index;
+			}
+			return nullptr;
+		}
+
+		int getTypeSize() override
+		{
+			return sizeof(T);
+		}
+
+		void constructDefault(void* ptr) override
+		{
+			new (ptr) T();
 		}
 	};
 
@@ -231,16 +465,50 @@ namespace Reflection
 		{
 			structData = GetStructType<TStruct>();
 		}
+
+		int getTypeSize() override
+		{
+			return sizeof(TStruct);
+		}
+
+		void constructDefault(void* ptr) override
+		{
+			new (ptr) TStruct();
+		}
 	};
+
 	class UnformattedStructProperty : public PropertyBase
 	{
 	public:
 		using PropertyBase::PropertyBase;
+
 		EPropertyType getType() override
 		{
 			return EPropertyType::UnformattedStruct;
 		}
 	};
+
+	template< typename TStruct >
+	class TUnformattedStructProperty : public UnformattedStructProperty
+	{
+	public:
+		TUnformattedStructProperty()
+			:UnformattedStructProperty(typeid(TStruct))
+		{
+
+		}
+
+		int getTypeSize() override
+		{
+			return sizeof(TStruct);
+		}
+
+		void constructDefault(void* ptr) override
+		{
+			new (ptr) TStruct();
+		}
+	};
+
 	template< typename T >
 	StructType* GetStructType();
 	class PropertyCollector;
@@ -276,10 +544,11 @@ namespace Reflection
 
 		}
 
-		template< class T, typename P >
-		void addProperty(P (T::*memberPtr), char const* name)
+		template< typename P >
+		static PropertyBase* CreateProperty()
 		{
 			PropertyBase* property = nullptr;
+
 			if constexpr (Meta::IsPrimary<P>::Value)
 			{
 				TPrimaryTypePorperty<P>* myProperty = new TPrimaryTypePorperty<P>;
@@ -296,6 +565,12 @@ namespace Reflection
 				}
 				property = myProperty;
 			}
+			else if constexpr (TContainerTraits<P>::IsArray)
+			{
+				TArrayProperty<P>* myProperty = new TArrayProperty<P>;
+				myProperty->elementProperty = CreateProperty< TContainerTraits<P>::ElementType >();
+				property = myProperty;
+			}
 			else if constexpr (TCheckConcept< CStructTypeAvailable, P >::Value)
 			{
 				StructProperty* myProperty = new TNativeStructProperty<P>;
@@ -303,14 +578,33 @@ namespace Reflection
 			}
 			else
 			{
-				UnformattedStructProperty* myProperty = new UnformattedStructProperty(typeid(P));
+				TUnformattedStructProperty<P>* myProperty = new TUnformattedStructProperty<P>();
 				property = myProperty;
 			}
-
+			return property;
+		}
+		
+		template< class T, typename P >
+		void addProperty(P (T::*memberPtr), char const* name)
+		{
+			PropertyBase* property = CreateProperty<P>();
 			if (property)
 			{
 				property->name = name;
 				property->setOffset(memberPtr);
+				mOwner->properties.push_back(property);
+			}
+		}
+
+		template< class T, typename P, typename ...TMeta >
+		void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta)
+		{
+			PropertyBase* property = CreateProperty<P>();
+			if (property)
+			{
+				property->name = name;
+				property->setOffset(memberPtr);
+				property->meta.add<TMetaFactory<P>>(std::forward<TMeta>(meta)...);
 				mOwner->properties.push_back(property);
 			}
 		}

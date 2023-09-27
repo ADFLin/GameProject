@@ -110,49 +110,15 @@ struct BVHNodeData
 	int right; // < 0 leaf
 };
 
-#if COMPILER_HLSL
-StructuredBuffer< MaterialData > Materials;
-StructuredBuffer< ObjectData > Objects;
-StructuredBuffer< MeshVertexData > MeshVertices;
-StructuredBuffer< MeshData > Meshes;
-StructuredBuffer< BVHNodeData > BVHNodes;
-StructuredBuffer< int > TriangleIds;
-StructuredBuffer< BVHNodeData > SceneBVHNodes;
-StructuredBuffer< int > ObjectIds;
-#else
-layout(std430) buffer MaterialDataBlock
-{
-	restrict readonly MaterialData Materials[];
-};
-layout(std430) buffer ObjectDataBlock
-{
-	restrict readonly ObjectData Objects[];
-};
-layout(std430) buffer MeshVertexDataBlock
-{
-	restrict readonly ObjectData MeshVertices[];
-};
-layout(std430) buffer MeshDataBlock
-{
-	restrict readonly MeshData Meshes[];
-};
-layout(std430) buffer BVHNodeDataBlock
-{
-	restrict readonly BVHNodeData BVHNodes[];
-};
-layout(std430) buffer SceneBVHNodeDataBlock
-{
-	restrict readonly BVHNodeData BVHNodes[];
-};
-layout(std430) buffer TriangleIdlock
-{
-	restrict readonly int TriangleIds[];
-};
-layout(std430) buffer ObjectIdBlock
-{
-	restrict readonly int ObjectIds[];
-};
-#endif
+
+DEFINE_STRUCTURED_BUFFER(MaterialData, Materials);
+DEFINE_STRUCTURED_BUFFER(ObjectData, Objects);
+DEFINE_STRUCTURED_BUFFER(MeshVertexData, MeshVertices);
+DEFINE_STRUCTURED_BUFFER(MeshData, Meshes);
+DEFINE_STRUCTURED_BUFFER(BVHNodeData, BVHNodes);
+DEFINE_STRUCTURED_BUFFER(int, TriangleIds);
+DEFINE_STRUCTURED_BUFFER(BVHNodeData, SceneBVHNodes);
+DEFINE_STRUCTURED_BUFFER(int, ObjectIds);
 
 int NumObjects;
 

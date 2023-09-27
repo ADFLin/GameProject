@@ -88,6 +88,9 @@
     <ClInclude Include="Widget\DetailViewPanel.h">
       <Filter>Widget</Filter>
     </ClInclude>
+    <ClInclude Include="Widget\TextureViewerPanel.h">
+      <Filter>Widget</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp">
@@ -145,6 +148,9 @@
       <Filter>Widget</Filter>
     </ClCompile>
     <ClCompile Include="Widget\DetailViewPanel.cpp">
+      <Filter>Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\TextureViewerPanel.cpp">
       <Filter>Widget</Filter>
     </ClCompile>
   </ItemGroup>

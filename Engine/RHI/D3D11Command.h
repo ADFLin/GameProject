@@ -81,6 +81,7 @@ namespace Render
 			mUAVDirtyMask = 0;
 		}
 
+
 		void bindShader(class D3D11ShaderData& shader);
 		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture);
 		bool clearTexture(ShaderParameter const& parameter);
@@ -103,6 +104,10 @@ namespace Render
 		template< EShader::Type TypeValue >
 		void clearSRVResource(ID3D11DeviceContext* context);
 
+
+		template< EShader::Type TypeValue >
+		void clearContext(ID3D11DeviceContext* context);
+
 		template< EShader::Type TypeValue >
 		void commitSAVState(ID3D11DeviceContext* context);
 
@@ -124,7 +129,7 @@ namespace Render
 		int32  mMaxSRVBoundIndex = INDEX_NONE;
 		uint32 mSRVDirtyMask;
 
-		static int constexpr MaxSimulatedBoundedUAVNum = 16;
+		static int constexpr MaxSimulatedBoundedUAVNum = 8;
 		ID3D11UnorderedAccessView* mBoundedUAVs[MaxSimulatedBoundedUAVNum];
 		uint32 mUAVDirtyMask;
 		uint32 mUAVUsageCount = 0;
@@ -134,7 +139,6 @@ namespace Render
 		uint32 mSamplerDirtyMask;
 
 	};
-
 
 
 	static constexpr uint32  D3D11BUFFER_ALIGN = 4;
@@ -315,7 +319,13 @@ namespace Render
 
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
-
+		void RHIClearSRVResource(RHIResource* resource)
+		{
+			if (resource)
+			{
+				clearSRVResource(*resource);
+			}
+		}
 
 
 		void commitGraphicsShaderState();

@@ -23,9 +23,6 @@ namespace CarTrain
 	struct HitProxyId
 	{
 
-
-
-
 		uint32 value;
 	};
 

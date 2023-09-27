@@ -53,8 +53,8 @@ namespace Render
 			}
 		}
 
-		TArray< int > idx(nI);
-		int* pIdx = &idx[0];
+		TArray< uint32 > idx(nI);
+		uint32* pIdx = &idx[0];
 		for (int j = 0; j < tileSize; ++j)
 		{
 			for (int i = 0; i < tileSize; ++i)
@@ -114,10 +114,10 @@ namespace Render
 			//        |                      |
 			//        |________|_____________| x
 			//       [0]      [i]             [vLen-1]
-			int* p0 = pIdx + 0 * (6 * tileSize);
-			int* p1 = pIdx + 1 * (6 * tileSize);
-			int* p2 = pIdx + 2 * (6 * tileSize);
-			int* p3 = pIdx + 3 * (6 * tileSize);
+			uint32* p0 = pIdx + 0 * (6 * tileSize);
+			uint32* p1 = pIdx + 1 * (6 * tileSize);
+			uint32* p2 = pIdx + 2 * (6 * tileSize);
+			uint32* p3 = pIdx + 3 * (6 * tileSize);
 			for (int i = 0; i < tileSize; ++i)
 			{
 				int vi = vLen * vLen + i;
@@ -146,7 +146,7 @@ namespace Render
 			}
 		}
 
-		if (!mesh.createRHIResource(&v[0], nV, &idx[0], nI, true))
+		if (!mesh.createRHIResource(&v[0], nV, &idx[0], nI))
 			return false;
 
 		return true;
@@ -238,8 +238,8 @@ namespace Render
 		}
 
 
-		TArray< int > indices((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
-		int* i = &indices[0];
+		TArray< uint32 > indices((rings - 1) * (sectors) * 6 + sectors * 2 * 3);
+		uint32* i = &indices[0];
 
 		int idxOffset = 0;
 		int idxDown = nV - 2 * sectors;
@@ -278,7 +278,7 @@ namespace Render
 		}
 
 		//FillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
-		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size(), true))
+		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size()))
 			return false;
 
 		return true;
@@ -314,7 +314,7 @@ namespace Render
 
 		if (0)
 		{
-			if (!mesh.createRHIResource(&vertices[0], 8, &indices[0], 4 * 6, true))
+			if (!mesh.createRHIResource(&vertices[0], 8, &indices[0], 4 * 6))
 				return false;
 
 			mesh.mType = EPrimitive::Quad;
@@ -324,7 +324,7 @@ namespace Render
 			TArray< uint32 > tempIndices;
 			int numTriangles;
 			MeshUtility::ConvertToTriangleListIndices(EPrimitive::Quad, indices, 4 * 6, tempIndices, numTriangles);
-			if (!mesh.createRHIResource(&vertices[0], 8, tempIndices.data(), tempIndices.size(), true))
+			if (!mesh.createRHIResource(&vertices[0], 8, tempIndices.data(), tempIndices.size()))
 				return false;
 
 			mesh.mType = EPrimitive::TriangleList;
@@ -373,7 +373,7 @@ namespace Render
 
 		MeshUtility::FillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
 		mesh.mType = EPrimitive::TriangleList;
-		if (!mesh.createRHIResource(&v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices), true))
+		if (!mesh.createRHIResource(&v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices)))
 			return false;
 		return true;
 	}
@@ -442,7 +442,7 @@ namespace Render
 
 		MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 6);
 		mesh.mType = EPrimitive::TriangleList;
-		if (!mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 6, true))
+		if (!mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 6))
 			return false;
 #else
 		uint32 indices[] =
@@ -457,7 +457,7 @@ namespace Render
 
 		MeshUtility::FillTangent_QuadList(mesh.mInputLayoutDesc, &vertices[0], 6 * 4, &indices[0], 6 * 4);
 		mesh.mType = EPrimitive::Quad;
-		if (!mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 4, true))
+		if (!mesh.createRHIResource(&vertices[0], 6 * 4, &indices[0], 6 * 4))
 			return false;
 #endif
 
@@ -569,7 +569,7 @@ namespace Render
 		i[4] = i[2];
 		i[5] = s;
 
-		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size(), true))
+		if (!mesh.createRHIResource(&vertex[0], nV, &indices[0], indices.size()))
 			return false;
 
 		LogMsg("Doughnut = %u", indices.size() / 3);
@@ -664,10 +664,10 @@ namespace Render
 			}
 		}
 
-		TArray< int > indices;
+		TArray< uint32 > indices;
 		indices.resize(6 * (nx - 1) * (ny - 1));
 
-		int* pIdx = &indices[0];
+		uint32* pIdx = &indices[0];
 
 		for (int i = 0; i < nx - 1; ++i)
 		{
@@ -683,7 +683,7 @@ namespace Render
 			}
 		}
 
-		if (!mesh.createRHIResource(&vertices[0], vertices.size(), &indices[0], indices.size(), true))
+		if (!mesh.createRHIResource(&vertices[0], vertices.size(), &indices[0], indices.size()))
 			return false;
 
 		return true;
@@ -695,7 +695,7 @@ namespace Render
 		TArray< int > idxMap;
 		idxMap.resize(maxNumVertex, -1);
 		TArray< float > vertices;
-		TArray< int > indices(data.numIndex);
+		TArray< uint32 > indices(data.numIndex);
 		vertices.reserve(maxNumVertex);
 
 		int numVertices = 0;
@@ -725,7 +725,7 @@ namespace Render
 		mesh.mInputLayoutDesc.clear();
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
 		mesh.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_NORMAL, EVertex::Float3);
-		if (!mesh.createRHIResource(&vertices[0], numVertices, &indices[0], data.numIndex, true))
+		if (!mesh.createRHIResource(vertices.data(), numVertices, indices.data(), data.numIndex))
 			return false;
 		return true;
 	}
@@ -976,7 +976,7 @@ namespace Render
 				MeshUtility::FillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertices, &indices[0], indices.size());
 			}
 		}
-		if (!mesh.createRHIResource(&vertices[0], numVertices, &indices[0], indices.size(), true))
+		if (!mesh.createRHIResource(&vertices[0], numVertices, indices.data(), indices.size()))
 			return false;
 
 		if (listener)
@@ -1113,18 +1113,18 @@ namespace Render
 			init(numDiv, radius);
 
 			int nIdx = 3 * IcoFaceNum * (1 << (2 * numDiv));
-			TArray< int > indices(2 * nIdx);
+			TArray< uint32 > indices(2 * nIdx);
 			std::copy(IcoIndex, IcoIndex + ARRAY_SIZE(IcoIndex), &indices[0]);
 
-			int* pIdx = &indices[0];
-			int* pIdxPrev = &indices[nIdx];
+			uint32* pIdx = &indices[0];
+			uint32* pIdxPrev = &indices[nIdx];
 			int numFace = IcoFaceNum;
 			for (int i = 0; i < numDiv; ++i)
 			{
 				std::swap(pIdx, pIdxPrev);
 
-				int* pTri = pIdxPrev;
-				int* pIdxFill = pIdx;
+				uint32* pTri = pIdxPrev;
+				uint32* pIdxFill = pIdx;
 				for (int n = 0; n < numFace; ++n)
 				{
 					int i0 = divVertex(pTri[1], pTri[2]);
@@ -1141,7 +1141,7 @@ namespace Render
 				numFace *= 4;
 			}
 
-			if (!mesh.createRHIResource(&mVertices[0], mNumV, pIdx, nIdx, true))
+			if (!mesh.createRHIResource(&mVertices[0], mNumV, pIdx, nIdx))
 				return false;
 
 			return true;
@@ -1391,8 +1391,8 @@ namespace Render
 
 			v += size;
 		}
-		TArray< int > indices(2 * numSide * 3);
-		int* idx = &indices[0];
+		TArray< uint32 > indices(2 * numSide * 3);
+		uint32* idx = &indices[0];
 
 		int idxPrev = numSide - 1;
 		int idxA = numSide;
@@ -1411,7 +1411,7 @@ namespace Render
 			idxPrev = i;
 		}
 
-		if (!mesh.createRHIResource(&vertices[0], nV, &indices[0], indices.size(), true))
+		if (!mesh.createRHIResource(&vertices[0], nV, &indices[0], indices.size()))
 			return false;
 
 		return true;

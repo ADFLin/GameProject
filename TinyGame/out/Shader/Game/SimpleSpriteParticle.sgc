@@ -10,10 +10,7 @@ struct OutputVSParam
 
 #if VERTEX_SHADER
 
-layout(std140) buffer ParticleDataBlock
-{
-	readonly ParticleData Particles[];
-};
+DEFINE_STRUCTURED_BUFFER(ParticleData, Particles);
 
 layout(location = ATTRIBUTE0) in float3 InPos;
 layout(location = ATTRIBUTE1) in float3 InColor;

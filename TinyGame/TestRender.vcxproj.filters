@@ -135,5 +135,8 @@
     <ClCompile Include="TestRender\Stage\RayTracingStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TestRender\Stage\WaveRender.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

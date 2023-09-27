@@ -66,6 +66,7 @@ namespace Render
 		return GRHISystemFactoryList[index].factory;
 	}
 
+
 	void RHIRegisterSystem(RHISystemName name, RHISystemFactory* factory)
 	{
 #if 0

@@ -129,6 +129,11 @@ namespace Render
 		void RHISetIndexBuffer(RHIBuffer* buffer);
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
+		void RHIClearSRVResource(RHIResource* resource)
+		{
+
+		}
+
 		void RHIFlushCommand();
 
 		//Shader

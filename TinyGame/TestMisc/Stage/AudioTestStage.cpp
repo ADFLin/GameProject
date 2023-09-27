@@ -64,11 +64,25 @@ bool CalcFrequencySpectrum(SoundWave& sound, float t, int samplesToRead, int num
 		}
 	}
 
+
 	std::vector< Complex > outFeq(samplesToRead);
 	{
-		//TIME_SCOPE("FFT Transform");
-		FFT::Transform(&data[0], samplesToRead, &outFeq[0]);
+		PROFILE_ENTRY("FFT Transform");
+		static FFT::Context context;
+		if (context.sampleSize != samplesToRead)
+		{
+			context.set(samplesToRead);
+		}
+		FFT::Transform(context, &data[0], samplesToRead, outFeq.data());
 	}
+	
+#if 0
+	std::vector< Complex > outFeqKiss(samplesToRead);
+	{
+		PROFILE_ENTRY("FFT Transform Kiss");
+		FFT::TransformKiss(&data[0], samplesToRead, outFeqKiss.data());
+	}
+#endif
 
 	int numSampleInGroup = samplesToRead / ( 2 * numFreqGroup );
 	int numSampleRes = samplesToRead % ( 2 * numFreqGroup );
@@ -364,6 +378,8 @@ bool AudioTestStage::onInit()
 	if( !BaseClass::onInit() )
 		return false;
 
+	FFT::PrintIndex(16);
+
 	{
 		TIME_SCOPE("AudioDevice Create");
 		mAudioDevice = AudioDevice::Create();
@@ -490,7 +506,7 @@ void AudioTestStage::onUpdate(long time)
 		//LogMsg("%lld", soundInstance->samplesPlayed);
 		mTimeWidget->setValue(timePos / soundInstance->soundwave->getDuration() * (mTimeWidget->getMaxValue() - mTimeWidget->getMinValue()));
 
-		if( CalcFrequencySpectrum(*soundInstance->soundwave, timePos, 1024 * 4, mNumFreqGroup, mFreqValues) )
+		if( CalcFrequencySpectrum(*soundInstance->soundwave, timePos, 1024 * 8, mNumFreqGroup, mFreqValues) )
 		{
 			if( mHistoryDatas.size() != mFreqValues.size() )
 			{

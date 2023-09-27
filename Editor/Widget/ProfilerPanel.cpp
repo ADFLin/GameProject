@@ -43,11 +43,12 @@ public:
 
 	void drawGird()
 	{
+		mGraphics2D.enablePen(true);
 		mGraphics2D.setPen(Color3ub(180, 180, 180));
 		for (float t = 0; t <= 120; t += 10)
 		{
 			Vector2 p1 = toRenderPos(t, 0);
-			Vector2 p2 = p1 + Vector2(0, 200);
+			Vector2 p2 = p1 + Vector2(0, 400);
 			mGraphics2D.drawLine(p1, p2);
 		}
 
@@ -58,7 +59,7 @@ public:
 		{
 			float time = 1000.0f / fps;
 			Vector2 p1 = toRenderPos(time, 0);
-			Vector2 p2 = p1 + Vector2(0, 200);
+			Vector2 p2 = p1 + Vector2(0, 400);
 			mGraphics2D.setPen(colors[index]);
 			mGraphics2D.drawLine(p1, p2);
 			++index;
@@ -254,7 +255,7 @@ public:
 void ProfilerPanel::render()
 {
 	PROFILE_ENTRY("Profiler.Render");
-	static RenderData data;
+
 	ImGui::Checkbox("Pause", &bPause);
 	ImGui::SameLine();
 	ImGui::Checkbox("Grouped", &bGrouped);
@@ -271,77 +272,75 @@ void ProfilerPanel::render()
 	auto viewport = ImGui::GetWindowViewport();
 	ImGuiWindow* window = ImGui::GetCurrentWindowRead();
 
-	data.panel = this;
+	struct RenderData
+	{
+		Math::Vector2 clientPos;
+		Math::Vector2 clientSize;
+		Math::Vector2 windowPos;
+		Math::Vector2 windowSize;
+		ImGuiViewport* viewport;
+	};
+	RenderData data;
 	data.clientPos = FImGuiConv::To(ImGui::GetCursorScreenPos() - ImGui::GetWindowViewport()->Pos);
 	data.clientSize = FImGuiConv::To(window->ContentSize);
 	data.windowPos = FImGuiConv::To(ImGui::GetWindowPos() - ImGui::GetWindowViewport()->Pos);
 	data.windowSize = FImGuiConv::To(ImGui::GetWindowSize());
-	data.viewportSize = FImGuiConv::To(ImGui::GetWindowViewport()->Size);
+	data.viewport = ImGui::GetWindowViewport();
 	
 	ImGui::SetCursorPosX(scale * 1000);
-	ImGui::GetWindowDrawList()->AddCallback(RenderCallback, &data);
-	ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+	EditorRenderGloabal::Get().addCustomFunc([data, this](const ImDrawList* parentlist, const ImDrawCmd* cmd)
+	{
+		ImDrawData* drawData = data.viewport->DrawData;
+		PROFILE_ENTRY("Profiler.RenderNodes");
+		using namespace Render;
+
+		RHIBeginRender();
+
+		RHIGraphics2D& g = EditorRenderGloabal::Get().getGraphics();
+
+		g.setViewportSize(drawData->DisplaySize.x, drawData->DisplaySize.y);
+		g.beginRender();
+
+		g.beginClip(data.windowPos - Vector2(1, 0), data.windowSize);
+
+		static ProfileFrameVisualizeDraw drawer(g);
+		drawer.mRenderTexts.clear();
+
+		drawer.mBasePos = data.clientPos;
+		drawer.bShowAvg = bShowAvg;
+		drawer.bPause = bPause;
+		drawer.bGrouped = bGrouped;
+		drawer.mMaxLength = data.clientSize.x;
+		drawer.drawGird();
+
+		g.setPen(Color3ub(0, 0, 0));
+		g.setFont(FImGui::mFont);
+
+
+		TArray< uint32 > threadIds;
+		ProfileSystem::Get().getAllThreadIds(threadIds);
+
+		for (uint32 threadId : threadIds)
+		{
+			PROFILE_ENTRY("DrawNodes");
+			drawer.mLevelTimePos.clear();
+			drawer.mThreadId = threadId;
+			drawer.visitNodes(threadId);
+			drawer.mBasePos.y += drawer.mMaxLevel * drawer.offsetY + 10;
+		}
+		{
+			PROFILE_ENTRY("DrawTexts");
+			drawer.drawTexts(data.windowPos);
+		}
+
+		g.endClip();
+		g.endRender();
+
+		RHIEndRender(false);
+	});
 	ImGui::EndChild();
-
 }
 
-void ProfilerPanel::renderInternal(RenderData& data)
-{
-	PROFILE_ENTRY("Profiler.RenderNodes");
-	using namespace Render;
-
-	RHIBeginRender();
-
-	RHIGraphics2D& g = EditorRenderGloabal::Get().getGraphics();
-	static ProfileFrameVisualizeDraw drawer(g);
-
-	g.setViewportSize(data.viewportSize.x, data.viewportSize.y);
-	g.beginRender();
-
-	g.beginClip(data.windowPos - Vector2(1,0), data.windowSize);
-
-
-	drawer.drawGird();
-
-	g.setPen(Color3ub(0, 0, 0));
-	g.setFont(FImGui::mFont);
-
-	drawer.mBasePos = data.clientPos;
-	drawer.bShowAvg = bShowAvg;
-	drawer.bPause = bPause;
-	drawer.bGrouped = bGrouped;
-	drawer.mMaxLength = data.clientSize.x;
-
-	drawer.mRenderTexts.clear();
-
-	TArray< uint32 > threadIds;
-	ProfileSystem::Get().getAllThreadIds(threadIds);
-
-	for( uint32 threadId : threadIds )
-	{
-		PROFILE_ENTRY("DrawNodes");
-		drawer.mLevelTimePos.clear();
-		drawer.mThreadId = threadId;
-		drawer.visitNodes(threadId);
-		drawer.mBasePos.y += drawer.mMaxLevel * drawer.offsetY + 10;
-	}
-	{
-		PROFILE_ENTRY("DrawTexts");
-		drawer.drawTexts(data.windowPos);
-	}
-
-	g.endClip();
-	g.endRender();
-
-	RHIEndRender(false);
-}
-
-void ProfilerPanel::RenderCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
-{
-	RenderData* renderData = (RenderData*)cmd->UserCallbackData;
-	ProfilerPanel* thisPanel = renderData->panel;
-	thisPanel->renderInternal(*renderData);
-}
 
 void ProfilerPanel::getRenderParams(WindowRenderParams& params) const
 {

@@ -78,7 +78,6 @@ public:
 	StageManager();
 	~StageManager();
 	virtual void        setTickTime( long time ) = 0;
-	virtual NetWorker*  getNetWorker() = 0;
 	virtual StageBase*  createStage( StageID stage ) = 0;
 
 	void                cleanup();
@@ -99,8 +98,9 @@ protected:
 	virtual StageBase* resolveChangeStageFail( FailReason reason ){  return nullptr;  }
 	virtual void       postStageChange(StageBase* stage) {}
 	virtual bool       initializeStage(StageBase* stage) { return stage->onInit(); }
+	virtual void       finalizeStage(StageBase* stage) { stage->onEnd(); }
 	virtual void       prevStageChange(){}
-	virtual void       postStageEnd(StageBase* stage){}
+
 protected:
 	void             checkNewStage();
 	void             setupStage();

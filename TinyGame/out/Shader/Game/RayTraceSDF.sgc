@@ -36,27 +36,9 @@ struct MapTileData
 	float4 posAndSize;
 };
 
-#if COMPILER_HLSL
-StructuredBuffer< ObjectData > Objects;
-StructuredBuffer< MaterialData > Materials;
-StructuredBuffer< MapTileData > MapTiles;
-#else
-
-layout(std430) buffer ObjectDataBlock
-{
-	restrict readonly ObjectData Objects[];
-};
-
-layout(std430) buffer MaterialDataBlock
-{
-	restrict readonly MaterialData Materials[];
-};
-
-layout(std430) buffer MapTileDataBlock
-{
-	restrict readonly MapTileData MapTiles[];
-};
-#endif
+DEFINE_STRUCTURED_BUFFER(ObjectData, Objects);
+DEFINE_STRUCTURED_BUFFER(MaterialData, Materials);
+DEFINE_STRUCTURED_BUFFER(MapTileData, MapTiles);
 
 struct SceneEnvData
 {

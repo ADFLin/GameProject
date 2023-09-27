@@ -34,7 +34,7 @@ public:
 
 struct GPU_ALIGN MaterialData
 {
-	DECLARE_BUFFER_STRUCT(MaterialDataBlock, Materials);
+	DECLARE_BUFFER_STRUCT(Materials);
 
 	Color3f baseColor;
 	float   roughness;
@@ -68,7 +68,7 @@ FORCEINLINE T AsValue(Q value)
 
 struct GPU_ALIGN ObjectData
 {
-	DECLARE_BUFFER_STRUCT(ObjectDataBlock, Objects);
+	DECLARE_BUFFER_STRUCT(Objects);
 
 	Vector3 pos;
 	int32   type;
@@ -126,7 +126,7 @@ struct FObject
 
 struct MeshVertexData
 {
-	DECLARE_BUFFER_STRUCT(MeshVertexDataBlock, MeshVertices);
+	DECLARE_BUFFER_STRUCT(MeshVertices);
 
 	Vector3 pos;
 	//float   dummy;
@@ -136,7 +136,7 @@ struct MeshVertexData
 
 struct GPU_ALIGN MeshData
 {
-	DECLARE_BUFFER_STRUCT(MeshDataBlock, Meshes);
+	DECLARE_BUFFER_STRUCT(Meshes);
 
 	Vector3 boundMin;
 	int32 startIndex;
@@ -150,17 +150,17 @@ struct GPU_ALIGN MeshData
 
 struct SceneBVHNodeData
 {
-	DECLARE_BUFFER_STRUCT(SceneBVHNodeDataBlock, SceneBVHNodes);
+	DECLARE_BUFFER_STRUCT(SceneBVHNodes);
 };
 
 struct PrimitiveIdData
 {
-	DECLARE_BUFFER_STRUCT(TriangleIdlock, TriangleIds);
+	DECLARE_BUFFER_STRUCT(TriangleIds);
 };
 
 struct ObjectIdData
 {
-	DECLARE_BUFFER_STRUCT(ObjectIdBlock, ObjectIds);
+	DECLARE_BUFFER_STRUCT(ObjectIds);
 };
 
 
@@ -421,7 +421,7 @@ public:
 
 struct GPU_ALIGN BVHNodeData
 {
-	DECLARE_BUFFER_STRUCT(BVHNodeDataBlock, BVHNodes);
+	DECLARE_BUFFER_STRUCT(BVHNodes);
 
 	Vector3 boundMin;
 	int32 left;
@@ -454,12 +454,6 @@ struct GPU_ALIGN BVHNodeData
 	}
 
 };
-
-template< typename TStruct, typename TShaderObject >
-static void SetStructuredStorageBuffer(RHICommandList& commandList, TShaderObject& shaderObject, TStructuredBuffer<TStruct>& buffer)
-{
-	shaderObject.setStructuredStorageBufferT< TStruct >(commandList, *buffer.getRHI());
-}
 
 namespace RT
 {

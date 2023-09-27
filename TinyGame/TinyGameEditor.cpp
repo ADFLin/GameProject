@@ -21,7 +21,6 @@ bool TinyGameApp::initializeEditor()
 	return true;
 }
 
-
 bool TinyGameApp::initializeEditorRender()
 {
 	char const* RHIModuleName = "D3D11RHI.dll";
@@ -48,6 +47,7 @@ void TinyGameApp::finalizeEditor()
 	{
 		mEditor->release();
 		mEditor = nullptr;
+		::Global::GetDrawEngine().unlockSystem();
 	}
 }
 

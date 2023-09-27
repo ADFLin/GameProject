@@ -7,9 +7,9 @@
 namespace Render
 {
 
-	struct GPU_ALIGN ParticleData
+	struct ParticleData
 	{
-		DECLARE_BUFFER_STRUCT(ParticleDataBlock, Particles);
+		DECLARE_BUFFER_STRUCT(Particles);
 
 		Vector3 pos;
 		float   lifeTime;
@@ -237,7 +237,7 @@ namespace Render
 		}
 
 
-		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		static void SetupShaderCompileOption(PermutationDomain const& domain, ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
 			option.addDefine(SHADER_PARAM(USE_TESSELLATION), UseTesselation);
@@ -599,9 +599,9 @@ namespace Render
 				Vector3(-1,-1,0),
 				Vector3(1,-1,0),
 			};
-			int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+			uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 			mSpherePlane.mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-			VERIFY_RETURN_FALSE(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6, true));
+			VERIFY_RETURN_FALSE(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6));
 
 			VERIFY_RETURN_FALSE(FMeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
 			VERIFY_RETURN_FALSE(FMeshBuild::Tile(mTilePlane, 4, 1, false));

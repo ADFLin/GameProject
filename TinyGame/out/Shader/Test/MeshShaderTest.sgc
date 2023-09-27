@@ -237,6 +237,7 @@ struct MeshVertexData
 	float4 tangent;
 };
 
+
 layout(std430) buffer MeshVertexDataBlock
 {
 	restrict readonly float MeshVertices[];

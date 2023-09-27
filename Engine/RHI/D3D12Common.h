@@ -526,6 +526,12 @@ namespace Render
 		D3D12Texture2D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
 	};
 
+
+	struct D3D12BufferHeap
+	{
+		TComPtr<ID3D12Resource>& resource;
+
+	};
 	class D3D12Buffer : public TD3D12Resource< RHIBuffer >
 	{
 	public:

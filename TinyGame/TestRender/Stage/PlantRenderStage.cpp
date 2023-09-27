@@ -54,7 +54,7 @@ namespace Render
 		}
 		mMeshOffsetData.unlock();
 		MeshUtility::FillTriangleListNormal(mMesh.mInputLayoutDesc, vertexData.data(), numVertices, mMeshData.indexData.data(), mMeshData.indexData.size(), EVertex::ATTRIBUTE_NORMAL, true);
-		VERIFY_RETURN_FALSE(mMesh.createRHIResource(vertexData.data(), numVertices, mMeshData.indexData.data(), mMeshData.indexData.size(), true));
+		VERIFY_RETURN_FALSE(mMesh.createRHIResource(vertexData.data(), numVertices, mMeshData.indexData.data(), mMeshData.indexData.size()));
 
 
 		return true;

@@ -25,7 +25,7 @@ namespace Render
 
 		virtual ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 
 		virtual void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
@@ -109,7 +109,7 @@ namespace Render
 		}
 	protected:
 	};
-
-	//REGISTER_STAGE("Template Render", TemplateRenderTestStage, EExecGroup::FeatureDev);
-
+#if 0
+	REGISTER_STAGE_ENTRY("Template Render", TemplateRenderTestStage, EExecGroup::FeatureDev);
+#endif
 }

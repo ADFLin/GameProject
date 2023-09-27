@@ -15,6 +15,9 @@ namespace Render
 	public:
 		static GlobalShaderProgram* CreateShader() { assert(0); return nullptr; }
 		static void SetupShaderCompileOption(ShaderCompileOption& option) {}
+		template< typename TDomain >
+		static void SetupShaderCompileOption(TDomain const& domain, ShaderCompileOption& option) {}
+
 		static char const* GetShaderFileName()
 		{
 			assert(0);
@@ -41,6 +44,9 @@ namespace Render
 	public:
 		static GlobalShader* CreateShader() { assert(0); return nullptr; }
 		static void SetupShaderCompileOption(ShaderCompileOption& option) {}
+		template< typename TDomain >
+		static void SetupShaderCompileOption(TDomain const& domain, ShaderCompileOption& option) {}
+
 		static char const* GetShaderFileName()
 		{
 			assert(0);
@@ -84,7 +90,7 @@ namespace Render
 				typename TShaderClass::PermutationDomain domain;
 				domain.setPermutationId(permutationId);
 				domain.setupShaderCompileOption(option);
-				TShaderClass::SetupShaderCompileOption(option);
+				TShaderClass::SetupShaderCompileOption(domain, option);
 			}
 			else
 			{

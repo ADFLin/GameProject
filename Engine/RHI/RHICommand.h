@@ -292,6 +292,8 @@ namespace Render
 
 	RHI_API void RHISetMeshShaderBoundState(RHICommandList& commandList, MeshShaderStateDesc const& stateDesc);
 
+	RHI_API void RHIClearSRVResource(RHICommandList& commandList, RHIResource* resource);
+
 
 	struct GraphicsRenderStateDesc
 	{
@@ -452,13 +454,29 @@ namespace Render
 			mResource.release();
 		}
 
-		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
+		uint32 getElementNum() 
+		{
+			if (mResource)
+			{
+				return mResource->getSize() / sizeof(T);
+			}
+			return 0;
+		}
 
 		RHIBuffer* getRHI() { return mResource; }
-
+		bool updateBuffer(T const& updatedData)
+		{
+			T* pData = lock();
+			if (pData == nullptr)
+				return false;
+			std::copy(&updatedData, &updatedData + 1, pData);
+			unlock();
+			return true;
+		}
 		bool updateBuffer(TArray<T> const& updatedData) { return updateBuffer(MakeConstView(updatedData)); }
 		bool updateBuffer(TArrayView<const T> const& updatedData)
 		{
+			CHECK(updatedData.size() <= getElementNum());
 			T* pData = lock();
 			if (pData == nullptr)
 				return false;

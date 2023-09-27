@@ -85,9 +85,9 @@ namespace Render
 			Vector3(-1,-1,0),
 			Vector3(1,-1,0),
 		};
-		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+		uint32 idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 		mSimpleMeshs[SimpleMeshId::SpherePlane].mInputLayoutDesc.addElement(0, EVertex::ATTRIBUTE_POSITION, EVertex::Float3);
-		if( !mSimpleMeshs[SimpleMeshId::SpherePlane].createRHIResource(&v[0], 4, &idx[0], 6, true) )
+		if( !mSimpleMeshs[SimpleMeshId::SpherePlane].createRHIResource(&v[0], 4, &idx[0], 6) )
 			return false;
 
 		return true;
@@ -197,10 +197,6 @@ namespace Render
 		}
 	}
 
-	void TestRenderStageBase::registerFrameREnderTargets(FrameRenderTargets const& frameRenderTargets)
-	{
-
-	}
 
 	MsgReply TestRenderStageBase::onMouse(MouseMsg const& msg)
 	{

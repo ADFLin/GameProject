@@ -1,0 +1,64 @@
+
+#include "MaterialProcess.sgc"
+#include "VertexFactoryProcess.sgc"
+#include "ViewParam.sgc"
+
+
+struct VertexOutputParamVSToPS
+{
+	FactoryInterpolantsParam   factoryInterpolants;
+};
+
+#if VERTEX_SHADER
+
+VS_ENTRY_START(BassPassVS)
+	VS_INPUT_PARAMETERS(VertexFactoryInputParameters VertexInput)
+	VS_OUTPUT_STRUCT(VertexOutputParameters OutputVS, 0)
+VS_ENTRY_END(BassPassVS)
+{
+	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS(VERTEX_INPUT_PARAM(VertexInput));
+
+	float4 worldPosExcludingWPO = VertexFactory_GetWorldPosition(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates);
+
+	float4 worldPos = worldPosExcludingWPO;
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates, worldPos);
+
+	MaterialOutputVS materialOutput = Material_GetOutputVS( materialParameters );
+
+	worldPos.xyz += materialOutput.worldOffset;
+
+	float4 clipPos = mul(View.worldToClip, worldPos);
+	SvPosition = clipPos;
+	OutputVS.factoryInterpolants = VertexFactory_GetInterpolants(VERTEX_INPUT_PARAM_COMMA(VertexInput) intermediates, materialParameters);
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+
+uniform float4 Color;
+
+PS_ENTRY_START(BasePassPS)
+	PS_INPUT_STRUCT(VertexOutputParamVSToPS InputPS , 0)
+	PS_OUTPUT(float4 OutColor,  0)
+#if MATERIAL_USE_DEPTH_OFFSET
+	PS_OUTPUT_DEPTH
+#endif
+PS_ENTRY_END(BasePassPS)
+{
+	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants, SvPosition);
+	float4 NDC = SvPositionToNDC(SvPosition);
+	float3 worldPos = NDCToWorldPos(NDC);
+	Material_CalcParametersPS(materialParameters, SvPosition , worldPos);
+	MaterialOutputPS materialOutput = Material_GetOutputPS(materialParameters);
+
+#if MATERIAL_USE_DEPTH_OFFSET
+	worldPos = Material_CorrectWorldPosByDepthOffset(materialOutput, materialParameters, SvDepth);
+#endif
+
+	OutColor = Color;
+}
+
+
+#endif //PIXEL_SHADER

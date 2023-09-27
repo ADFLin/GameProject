@@ -301,7 +301,7 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 		case FILE_ACTION_ADDED: action = EFileAction::Created; break;
 		case FILE_ACTION_MODIFIED: action = EFileAction::Modify; break;
 		case FILE_ACTION_REMOVED: action = EFileAction::Remove; break;
-		case FILE_ACTION_RENAMED_OLD_NAME: action = EFileAction::Rename; break;
+		case FILE_ACTION_RENAMED_OLD_NAME: action = EFileAction::RenameOld; break;
 		case FILE_ACTION_RENAMED_NEW_NAME: action = EFileAction::Rename; break;
 		}
 

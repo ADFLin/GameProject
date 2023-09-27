@@ -145,6 +145,7 @@ void WinGdiGraphics2D::beginBlend( Vec2i const& pos , Vec2i const& size , float 
 	if ( mBlendDC.getWidth() < size.x ||
 		 mBlendDC.getHeight() < size.y )
 	{
+		mBlendDC.release();
 		mBlendDC.initialize( mhDCTarget , size.x , size.y );
 		::SetBkMode(mBlendDC.getHandle(), TRANSPARENT);
 	}

@@ -1,0 +1,162 @@
+#include "Common.sgc"
+#include "ComplexCommon.sgc"
+
+#ifndef FFT_SIZE
+#define FFT_SIZE 512
+#endif
+#ifndef FFT_LOG_SIZE
+#define FFT_LOG_SIZE 9
+#endif
+
+#ifndef FFT_INVERSE
+#define FFT_INVERSE 0
+#endif
+
+// w[k,N] = exp(-i*2*pi*k/N)
+float2 GetTwiddle(int w)
+{
+	float2 result = ComplexExpi(-2 * PI * float(w) / FFT_SIZE);
+#if FFT_INVERSE
+	result.y = -result.y;
+#endif
+	return result;
+}
+
+int2  GetTwiddleIndices(int index, int stride)
+{
+	int n = index / stride;
+	int i = index + n * stride;
+	return int2(i, i + stride);
+}
+
+float2 GetTwiddleAndIndices(int index, int stride, out int2 outIndices)
+{
+	int n = index / stride;
+	int i = index + n * stride;
+	outIndices = int2(i, i + stride);
+	return GetTwiddle(n * stride);
+}
+
+#if COMPUTE_SHADER
+
+#ifndef FFT_ONE_PASS
+#define FFT_ONE_PASS 1
+#endif
+
+#if FFT_ONE_PASS
+
+groupshared float2 GroupValues[2][FFT_SIZE];
+void FFT(int index, inout float2 value1, inout float2 value2)
+{
+	int index2 = index + FFT_SIZE / 2;
+	GroupValues[0][index] = value1;
+	GroupValues[0][index2] = value2;
+
+	GroupMemoryBarrierWithGroupSync();
+
+	bool flag = false;
+	LOOP
+	for (int step = 0; step < FFT_LOG_SIZE; ++step )
+	{
+		int stride = FFT_SIZE >> (step + 1);
+
+		int2 indices;
+		float2 twiddle = GetTwiddleAndIndices(index, stride, indices);
+		float2 f0 = GroupValues[flag][indices.x];
+		float2 f1 = ComplexMul(twiddle, GroupValues[flag][indices.y]);
+
+		GroupValues[!flag][index] = f0 + f1;
+		GroupValues[!flag][index2] = f0 - f1;
+		flag = !flag;
+		GroupMemoryBarrierWithGroupSync();
+	}
+
+	value1 = GroupValues[flag][index];
+	value2 = GroupValues[flag][index2];
+#if FFT_INVERSE
+	value1 = value1 / FFT_SIZE;
+	value2 = value2 / FFT_SIZE;
+#endif
+}
+#else
+uniform int FFTStride;
+#endif
+
+Texture2D<float2>   TexIn;
+RWTexture2D<float2> TexOut;
+
+CS_NUM_THREADS(FFT_SIZE / 2, 1, 1)
+CS_ENTRY(MainFFTH)
+{
+#if FFT_ONE_PASS
+	uint2 pos1 = SvDispatchThreadID.xy;
+	uint2 pos2 = pos1 + uint2(FFT_SIZE / 2, 0);
+	FFT(SvDispatchThreadID.x, TexOut[pos1], TexOut[pos2]);
+#else
+	int2 indices;
+	float2 twiddle = GetTwiddleAndIndices(SvDispatchThreadID.x, FFTStride, indices);
+
+	float2 f0 = TexIn[int2(indices.x, SvDispatchThreadID.y)];
+	float2 f1 = ComplexMul(twiddle, TexIn[int2(indices.y, SvDispatchThreadID.y)]);
+
+	TexOut[SvDispatchThreadID.xy] = f0 + f1;
+	TexOut[SvDispatchThreadID.xy + int2(FFT_SIZE / 2, 0)] = f0 - f1;
+#endif
+}
+
+CS_NUM_THREADS(FFT_SIZE / 2, 1, 1)
+CS_ENTRY(MainFFTV)
+{
+#if FFT_ONE_PASS
+	uint2 pos1 = SvDispatchThreadID.yx;
+	uint2 pos2 = pos1 + uint2(0, FFT_SIZE / 2);
+	FFT(SvDispatchThreadID.x, TexOut[pos1], TexOut[pos2]);
+#else
+	int2 indices;
+	float2 twiddle = GetTwiddleAndIndices(SvDispatchThreadID.x, FFTStride, indices);
+
+	float2 f0 = TexIn[int2(SvDispatchThreadID.y, indices.x)];
+	float2 f1 = ComplexMul(twiddle, TexIn[int2(SvDispatchThreadID.y, indices.y)]);
+
+	TexOut[SvDispatchThreadID.yx] = f0 + f1;
+	TexOut[SvDispatchThreadID.yx + int2(0, FFT_SIZE / 2)] = f0 - f1;
+#endif
+}
+#endif
+
+
+#ifndef GROUP_SIZE
+#define GROUP_SIZE 8
+#endif
+
+Texture2D<float>    TexSource;
+RWTexture2D<float2> TexDest;
+float2 Scale;
+CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
+CS_ENTRY(ScaleValueCS)
+{
+	TexDest[SvDispatchThreadID.xy] = TexDest[SvDispatchThreadID.xy] * Scale;
+}
+
+CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
+CS_ENTRY(FillValueCS)
+{
+	float v = TexSource[SvDispatchThreadID.xy].r;
+	TexDest[SvDispatchThreadID.xy] = float2(v, 0);
+}
+
+RWTexture2D<float2> TexResult;
+int Size;
+CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
+CS_ENTRY(NormailizeCS)
+{
+	int2 p = SvDispatchThreadID.xy + int2(Size / 2, Size / 2);
+	p.x = p.x % Size;
+	p.y = p.y % Size;
+	float2 v = TexIn[SvDispatchThreadID.xy].rg;
+
+	//TexResult[p] = v;
+	TexResult[p] = float( dot(v,v) );
+}
+
+#endif

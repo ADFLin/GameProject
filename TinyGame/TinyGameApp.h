@@ -151,9 +151,9 @@ protected:
 	GameStageMode* createGameStageMode(StageID stageId);
 	StageBase*     resolveChangeStageFail( FailReason reason );
 	bool           initializeStage(StageBase* stage);
-	void           postStageChange( StageBase* stage );
+	void           finalizeStage(StageBase* stage);
+	void           postStageChange(StageBase* stage);
 	void           prevStageChange();
-	void           postStageEnd(StageBase* stage);
 	//~StageManager
 
 	void  importUserProfile();

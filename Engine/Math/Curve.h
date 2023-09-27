@@ -4,6 +4,7 @@
 
 #include "Quaternion.h"
 #include "DataStructure/Array.h"
+#include "ReflectionCollect.h"
 
 enum class TrackMode
 {

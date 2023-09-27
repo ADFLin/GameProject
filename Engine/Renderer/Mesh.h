@@ -23,7 +23,14 @@ namespace Render
 
 		Mesh(Mesh const& mesh) = default;
 
-		bool createRHIResource(void* pVertex, int nV, void* pIdx = nullptr, int nIndices = 0, bool bIntIndex = false);
+		bool createRHIResource(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex);
+
+		template< typename IndexType = uint16 >
+		bool createRHIResource(void* pVertex, int nV, IndexType* pIdx = nullptr, int nIndices = 0)
+		{
+			static_assert(sizeof(IndexType) == sizeof(uint16) || sizeof(IndexType) == sizeof(uint32));
+			return createRHIResource(pVertex, nV, pIdx, nIndices, sizeof(IndexType) == sizeof(uint32));
+		}
 		void releaseRHIResource();
 		void draw(RHICommandList& commandList);
 		void draw(RHICommandList& commandList, LinearColor const& color);
@@ -81,7 +88,6 @@ namespace Render
 		bool load(IStreamSerializer& serializer);
 
 		int getVertexCount() const { return mVertexBuffer->getNumElements(); }
-
 
 		Mesh& operator = (Mesh&& mesh)
 		{

@@ -82,3 +82,17 @@ PS_ENTRY_END(MappingTextureColorPS)
 #endif //SHADER_ENTRY(MappingTextureColorPS)
 
 #endif //PIXEL_SHADER
+
+
+
+#if SHADER_ENTRY(CopyTextureCS)
+
+Texture2D<float4>   TexSource;
+RWTexture2D<float4> TexDest;
+CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
+CS_ENTRY(CopyTextureCS)
+{
+	TexDest[SvDispatchThreadID.xy] = TexSource[SvDispatchThreadID.xy];
+}
+
+#endif

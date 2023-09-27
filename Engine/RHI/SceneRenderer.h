@@ -209,7 +209,7 @@ namespace Render
 
 	struct GPU_ALIGN TiledLightInfo
 	{
-		DECLARE_BUFFER_STRUCT(TiledLightBlock, TiledLightList);
+		DECLARE_BUFFER_STRUCT(TiledLightList);
 
 		Vector3 pos;
 		int32   type; 

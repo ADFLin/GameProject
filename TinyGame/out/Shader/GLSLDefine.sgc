@@ -225,7 +225,7 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define SvInstanceID gl_InstanceID
 #define SvPointSize gl_PointSize
 #define SvDepth     gl_FragDepth
-#define SvDispatchThreadID gl_GlobalInvocationID
+
 
 #define VFLIP(UV) UV
 
@@ -291,12 +291,27 @@ float3 InvTransformVector(float3 v, float3x3 m)
 
 #endif //GEOMETRY_SHADER
 
+#if COMPUTE_SHADER
+
+#define CS_NUM_THREADS(X,Y,Z) layout(local_size_x = X, local_size_y = Y, local_size_z = Z) in;
+#define SvGroupID          gl_WorkGroupID
+#define SvGroupThreadID    gl_LocalInvocationID
+#define SvDispatchThreadID gl_GlobalInvocationID
+#define SvGroupIndex       gl_LocalInvocationIndex
+#endif
+
 #define Texture1D sampler1D
 #define Texture2D sampler2D
 #define Texture3D sampler3D
 #define TextureCube samplerCube
 
 #define DEFINE_TEXTURE( TYPE , NAME ) uniform TYPE NAME
+#define DEFINE_STRUCTURED_BUFFER( TYPE , NAME )\
+	layout(std430) buffer NAME##Block\
+	{\
+		restrict TYPE NAME[];\
+	}
+	
 #define TEXTURE_SAMPLE( NAME , UV ) texture(NAME, UV)
 #define TEXTURE_SAMPLE_LEVEL( NAME , UV , LOD ) textureLod( NAME , UV , LOD )
 

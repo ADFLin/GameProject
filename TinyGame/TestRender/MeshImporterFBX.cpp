@@ -538,7 +538,7 @@ namespace Render
 		outMesh.mType = EPrimitive::TriangleList;
 		outMesh.mInputLayoutDesc = std::move(meshData.desc);
 		outMesh.mSections = std::move(meshData.sections);
-		bool result = outMesh.createRHIResource(meshData.vertices.data(), meshData.numVertices, meshData.indices.data(), meshData.indices.size(), true);
+		bool result = outMesh.createRHIResource(meshData.vertices.data(), meshData.numVertices, meshData.indices.data(), meshData.indices.size());
 		return result;
 	}
 

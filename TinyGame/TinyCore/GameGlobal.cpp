@@ -86,7 +86,6 @@ void Global::RandSeed(unsigned seed )
 	std::srand( seed );
 }
 
-
 Vec2i Global::GetScreenSize()
 {
 	return GetDrawEngine().getScreenSize();

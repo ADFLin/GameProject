@@ -60,6 +60,42 @@ struct MandelbrotParam
 };
 
 
+struct GPU_ALIGN MandelbrotParamData
+{
+	DECLARE_UNIFORM_BUFFER_STRUCT(MParamsBlock)
+
+	Vector4 CoordParam;  //xy = center pos , zw = min pos ;
+	Vector4 CoordParam2; //xy = dx dy , zw = rect rotation cos sin;
+	Vector4 ColorMapParam; // x = density , y = color rotation , bailoutSquare;
+	int         MaxIteration;
+	IntVector2  ViewSize;
+
+
+	void set(MandelbrotParam const& param)
+	{
+		Vector4 rectParam;
+		rectParam.x = param.center.x;
+		rectParam.y = param.center.y;
+		rectParam.z = param.center.x - 0.5 * param.viewSize.x * param.getRatioX();
+		rectParam.w = param.center.y - 0.5 * param.viewSize.y * param.getRatioY();
+		CoordParam = rectParam;
+
+		Vector4 rectParam2;
+		rectParam2.x = param.getRatioX();
+		rectParam2.y = param.getRatioY();
+		Math::SinCos(param.rotationAngle, rectParam2.w, rectParam2.z);
+
+		CoordParam2 = rectParam2;
+		ViewSize = param.viewSize;
+		MaxIteration = param.maxIteration;
+		ColorMapParam = Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0);
+
+		//CoordParam = Vector4(1, 1, 0, 1);
+
+	}
+};
+
+
 #if 0
 class MandelbrotProgram : public GlobalShaderProgram
 {
@@ -150,10 +186,12 @@ class MandelbrotProgram : public GlobalShader
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
+#if 0
 		BIND_SHADER_PARAM(parameterMap, CoordParam);
 		BIND_SHADER_PARAM(parameterMap, CoordParam2);
 		BIND_SHADER_PARAM(parameterMap, ViewSize);
 		BIND_SHADER_PARAM(parameterMap, MaxIteration);
+#endif
 		BIND_SHADER_PARAM(parameterMap, ColorMapParam);
 		BIND_SHADER_PARAM(parameterMap, ColorRWTexture);
 		BIND_TEXTURE_PARAM(parameterMap, ColorMapTexture);
@@ -161,6 +199,7 @@ class MandelbrotProgram : public GlobalShader
 
 	void setParameters(RHICommandList& commandList, MandelbrotParam const& param, RHITexture2D& colorTexture, RHITexture1D& colorMapTexture)
 	{
+#if 0
 		Vector4 rectParam;
 		rectParam.x = param.center.x;
 		rectParam.y = param.center.y;
@@ -177,8 +216,8 @@ class MandelbrotProgram : public GlobalShader
 		SET_SHADER_PARAM(commandList, *this, ViewSize, param.viewSize);
 		SET_SHADER_PARAM(commandList, *this, MaxIteration, param.maxIteration);
 		SET_SHADER_PARAM(commandList, *this, ColorMapParam, Vector4(1, 0, param.bailoutValue * param.bailoutValue, 0));
-
-		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
+#endif
+		setRWTexture(commandList, SHADER_MEMBER_PARAM(ColorRWTexture), colorTexture, AO_WRITE_ONLY);
 		auto& samplerState = TStaticSamplerState< ESampler::Bilinear, ESampler::Warp >::GetRHI();
 		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *this, ColorMapTexture, colorMapTexture, samplerState);
 	}
@@ -372,7 +411,7 @@ public:
 
 	virtual ERenderSystem getDefaultRenderSystem() override
 	{
-		return ERenderSystem::OpenGL;
+		return ERenderSystem::D3D12;
 	}
 	virtual bool setupRenderResource(ERenderSystem systemName) override
 	{
@@ -397,8 +436,12 @@ public:
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mParam.viewSize = screenSize;
-		VERIFY_RETURN_FALSE(mTexture = RHICreateTexture2D(ETexture::RGBA32F, screenSize.x, screenSize.y, 0, 1, TCF_CreateUAV | TCF_CreateSRV));
+		VERIFY_RETURN_FALSE(mTexture = RHICreateTexture2D( TextureDesc::Type2D(ETexture::RGBA32F, screenSize.x, screenSize.y).Flags(TCF_CreateUAV | TCF_CreateSRV | TCF_DefalutValue)) );
 		mTexture->setDebugName("RWTexture");
+
+
+		mMParamsBuffer.initializeResource(1);
+
 		return true;
 	}
 	virtual void preShutdownRenderSystem(bool bReInit) override
@@ -408,13 +451,23 @@ public:
 		mTexture.release();
 	}
 
+	TStructuredBuffer< MandelbrotParamData > mMParamsBuffer;
 
 	bool bNeedUpdateTexture = false;
 	void updateTexture()
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+		auto data = mMParamsBuffer.lock();
+		if (data)
+		{
+			data->set(mParam);
+			mMParamsBuffer.unlock();
+		}
 		//RHISetShaderProgram(commandList, mProgMandelbrot->getRHIResource());
 		RHISetComputeShader(commandList, mProgMandelbrot->getRHI());
+
+		SetStructuredUniformBuffer(commandList, *mProgMandelbrot, mMParamsBuffer);
 		mProgMandelbrot->setParameters(commandList, mParam, *mTexture, *mColorMap );
 		int nx = (mTexture->getSizeX() + MandelbrotProgram::SizeX - 1) / MandelbrotProgram::SizeX;
 		int ny = (mTexture->getSizeY() + MandelbrotProgram::SizeY - 1) / MandelbrotProgram::SizeY;
@@ -462,8 +515,8 @@ public:
 		if (bNeedUpdateTexture)
 		{
 			GPU_PROFILE("Update Texture");
-			updateTexture();
 			bNeedUpdateTexture = false;
+			updateTexture();
 		}
 
 		Matrix4 projectionMatrix = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, 1, -1));
@@ -473,8 +526,28 @@ public:
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI() );
-		
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+
+		Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1);
+
+#if 1
+		{
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix), LinearColor(1, 1, 1, 1), mTexture);
+			Vector2 v[] = 
+			{ 
+				Vector2(0,0), Vector2(0,0),
+				Vector2(screenSize.x,0) , Vector2(1,0),
+				Vector2(screenSize.x,screenSize.y),Vector2(1,1),
+				Vector2(0,screenSize.y), Vector2(0,1),
+			};
+			TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v) / 2);
+		}
+#else
+
 		DrawUtility::DrawTexture(commandList, projectionMatrix, *mTexture, Vec2i(0, 0), screenSize);
+#endif
+
+
 
 		g.beginRender();
 		mSelectRect.draw(g);

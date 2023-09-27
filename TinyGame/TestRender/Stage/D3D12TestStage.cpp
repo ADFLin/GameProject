@@ -23,13 +23,6 @@ namespace Render
 		float blue;
 	};
 
-
-	struct ConstBuffer
-	{
-		Vector4 value;
-	};
-
-
 	class SimpleD3D12Program : public GlobalShaderProgram
 	{
 		using BaseClass = GlobalShaderProgram;
@@ -67,15 +60,19 @@ namespace Render
 		RHIBufferRef  mIndexBuffer;
 		RHIInputLayoutRef  mInputLayout;
 
-		bool bUseProgram = false;
+		bool bUseProgram = true;
 
 		SimpleD3D12Program* mProgTriangle;
 		Shader mVertexShader;
 		Shader mPixelShader;
 	
+		TStructuredBuffer< ColorBuffer > mCBuffer;
+
 		static const UINT TextureWidth = 256;
 		static const UINT TextureHeight = 256;
 		static const UINT TexturePixelSize = 4;
+
+
 
 		std::vector<UINT8> GenerateTextureData(int cellSize = 3)
 		{
@@ -158,9 +155,9 @@ namespace Render
 				Vertex vertices[] =
 				{
 					{ { -0.25f, -0.25f , 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } , { 0.0f, 0.0f } },
-					{ {  0.25f, -0.25f , 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } , { 1.0f, 0.0f } },
+					{ { -0.25f,  0.25f , 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } , { 0.0f, 1.0f } },
 					{ {  0.25f,  0.25f , 0.0f }, { 0.0f, 1.0f, 1.0f, 1.0f } , { 1.0f, 1.0f } },
-					{ { -0.25f,  0.25f , 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } , { 0.0f, 1.0f } }
+					{ {  0.25f, -0.25f , 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } , { 1.0f, 0.0f } },
 				};
 				mVertexBuffer = RHICreateVertexBuffer(sizeof(Vertex) , ARRAY_SIZE(vertices) , BCF_DefalutValue , vertices);
 
@@ -175,6 +172,20 @@ namespace Render
 			{
 				std::vector<uint8> texData = GenerateTextureData(4);
 				mTexture1 = RHICreateTexture2D(ETexture::RGBA8, TextureWidth, TextureHeight, 5, 1, TCF_DefalutValue | TCF_GenerateMips, texData.data());
+			}
+
+
+			{
+				VERIFY_RETURN_FALSE(mCBuffer.initializeResource(1));
+				{
+					auto pData = mCBuffer.lock();
+
+					pData->red = 1;
+					pData->green = 0.5;
+					pData->blue = 0.5;
+
+					mCBuffer.unlock();
+				}
 			}
 
 			return true;
@@ -261,6 +272,7 @@ namespace Render
 
 			IntVector2 screenSize = ::Global::GetScreenSize();
 
+
 			RHISetFrameBuffer(commandList, nullptr);
 			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.0f, 0.2f, 0.4f, 1.0f), 1);
 
@@ -277,8 +289,9 @@ namespace Render
 				RHISetShaderProgram(commandList, mProgTriangle->getRHI());
 				mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
 				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
-				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), samplerState);
-				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), samplerState);
+				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_SAMPLER(BaseTexture), samplerState);
+				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_SAMPLER(BaseTexture1), samplerState);
+				SetStructuredUniformBuffer(commandList, *mProgTriangle , mCBuffer);
 				mView.setupShader(commandList, *mProgTriangle);
 			}
 			else
@@ -291,9 +304,13 @@ namespace Render
 				mView.setupShader(commandList, mVertexShader);
 
 				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
-				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_PARAM(BaseTextureSampler), samplerState);
-				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_PARAM(BaseTexture1Sampler), samplerState);
+				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_SAMPLER(BaseTexture), samplerState);
+				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_SAMPLER(BaseTexture1), samplerState);
 			}
+
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+
+
 
 			InputStreamInfo inputStream;
 			inputStream.buffer = mVertexBuffer;
@@ -301,11 +318,12 @@ namespace Render
 			RHISetIndexBuffer(commandList, mIndexBuffer);
 			RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, 4, 0);
 
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
+			DrawUtility::AixsLine(commandList, 10);
 
-			Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, -1, 1);
+
+			Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1);
 			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix), LinearColor(1, 0, 0, 1));
-
-
 			{
 
 				Vector2 v[] = { Vector2(1,1) , Vector2(100,100), Vector2(1,100), Vector2(100,1) };
@@ -324,19 +342,21 @@ namespace Render
 #if 1
 			g.beginRender();
 
-			g.beginBlend(0.5);
+			//g.beginBlend(0.5);
 
 			RenderUtility::SetPen(g, EColor::Red);
 			RenderUtility::SetBrush(g, EColor::White);
 			RenderUtility::SetFont(g, FONT_S12);
 			g.setTextColor(Color3f(1, 0, 0));
+			g.setBrush(Color3f(1, 1, 1));
 			g.drawTexture(*mTexture, Vector2(0, 0), Vector2(100, 100));
-			g.drawTexture(*mTexture1, Vector2(100, 100), Vector2(100, 100));
+			
+			//g.drawTexture(*mTexture1, Vector2(100, 100), Vector2(100, 100));
 
-			g.endBlend();
+			//g.endBlend();
 			//g.drawRect(Vector2(100, 100), Vector2(100, 100));
-			g.drawText(10, 10, "AVAVAVAVAVAVAYa");
-			g.drawGradientRect(Vector2(300, 0), Color3f(1, 0, 0), Vector2(400, 100), Color3f(0, 1, 0), true);
+			//g.drawText(10, 10, "AVAVAVAVAVAVAYa");
+			//g.drawGradientRect(Vector2(300, 0), Color3f(1, 0, 0), Vector2(400, 100), Color3f(0, 1, 0), true);
 			g.endRender();
 #endif
 

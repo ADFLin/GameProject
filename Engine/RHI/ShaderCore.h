@@ -316,10 +316,10 @@ namespace Render
 		return sMyStruct;\
 	}
 
-#define DECLARE_BUFFER_STRUCT( NAME , VAR )\
+#define DECLARE_BUFFER_STRUCT( VAR )\
 	static StructuredBufferInfo& GetStructInfo()\
 	{\
-		static StructuredBufferInfo sMyStruct( #NAME , #VAR );\
+		static StructuredBufferInfo sMyStruct( #VAR"_Block" , #VAR );\
 		return sMyStruct;\
 	}
 

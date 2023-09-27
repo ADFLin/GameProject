@@ -1143,6 +1143,7 @@ void TinyGameApp::render( float dframe )
 					mRenderEffect->onRender(dt);
 				}
 			}
+			if ( GRHISystem == nullptr || GRHISystem->getName() != RHISystemName::D3D12 )
 			{
 				PROFILE_ENTRY("GUIRender");
 				GPU_PROFILE("GUI");
@@ -1253,7 +1254,7 @@ void TinyGameApp::render( float dframe )
 					GpuProfiler::Get().endFrame();
 			}
 
-			if (CVarProfileGPU && RHIIsInitialized())
+			if (CVarProfileGPU && RHIIsInitialized() && 0)
 			{
 				SimpleTextLayout textlayout;
 				textlayout.offset = 15;
@@ -1468,6 +1469,8 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 			LogWarning(0, "Can't PostInit Stage");
 			return false;
 		}
+
+		setTickTime(gameStage->getTickTime());
 	}
 
 	stage->postInit();
@@ -1480,6 +1483,24 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 	//::ProfileSystem::Get().resetSample();
 	return true;
+}
+
+void TinyGameApp::finalizeStage(StageBase* stage)
+{
+	GameStageBase* gameStage = stage->getGameStage();
+
+	stage->onEnd();
+
+	if (gameStage)
+	{
+		setTickTime(gDefaultTickTime);
+	}
+
+	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
+	if (renderSetup)
+	{
+		Global::GetDrawEngine().setupSystem(nullptr);
+	}
 }
 
 void TinyGameApp::prevStageChange()
@@ -1499,15 +1520,6 @@ void TinyGameApp::prevStageChange()
 	if (game)
 	{
 		game->notifyStagePreExit(getCurStage());
-	}
-}
-
-void TinyGameApp::postStageEnd(StageBase* stage)
-{
-	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
-	if (renderSetup)
-	{
-		Global::GetDrawEngine().setupSystem(nullptr);
 	}
 }
 

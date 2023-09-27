@@ -1,0 +1,156 @@
+#include "Common.sgc"
+#include "PrimitiveParam.sgc"
+#include "ViewParam.sgc"
+#include "LightingCommon.sgc"
+
+struct VertexOutputParameters
+{
+	float3 normal MEMBER_OUT(TEXCOORD0);
+	float3 worldPos MEMBER_OUT(TEXCOORD1);
+};
+
+struct WaveParameters
+{
+	float2 direction;
+	float wavelength;
+	float steepness;
+};
+
+float3 GerstnerWave(WaveParameters params, float3 pos , float time, inout float3 tangentX, inout float3 tangentY)
+{
+	float g = 9.8;
+	float k = 2 * PI / params.wavelength;
+	float2 ek = normalize(params.direction);
+	float phaseSpeed = sqrt(g / k);
+	float f = k * (dot(ek, pos.xy) - phaseSpeed * time);
+	float a = params.steepness / k;
+
+	float cosF = cos(f);
+	float sinF = sin(f);
+
+	tangentX += float3(
+		1 - ek.x * ek.x * params.steepness * sinF, 
+		-ek.x * ek.y * params.steepness * sinF,
+		ek.x * params.steepness * cosF);
+	tangentY += float3(
+		-ek.y * ek.x * params.steepness * sinF, 
+		1 - ek.y * ek.y * params.steepness * sinF,
+		ek.y * params.steepness * cosF);
+	return a * float3(cosF * ek, sinF);
+}
+
+DEFINE_STRUCTURED_BUFFER(WaveParameters, WaveParams);
+
+uniform int NumWaveParams;
+
+#if VERTEX_SHADER
+
+DEFINE_TEXTURE(Texture2D, TexDisp);
+DEFINE_TEXTURE(Texture2D, TexDispDiff);
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPosition , ATTRIBUTE_POSITION)
+	VS_INPUT(float2 InUV , ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(VertexOutputParameters OutputVS, 0)
+VS_ENTRY_END(MainVS)
+{
+	float3 worldPos = mul( Primitive.localToWorld, float4(InPosition , 1) ).xyz;
+	float3 tangentX = 0;
+	float3 tangentY = 0;
+	float3 offset = 0;
+
+	offset += GerstnerWave(WaveParams[0], worldPos, View.gameTime, tangentX, tangentY);
+	offset = TEXTURE_SAMPLE_LEVEL(TexDisp, InUV, 0).rgb;
+	
+	float3 normal = normalize(cross(tangentX, tangentY));
+	normal = normalize(TEXTURE_SAMPLE_LEVEL(TexDispDiff, InUV, 0).rgb);
+
+	worldPos += offset;
+	float4 clipPos = mul(View.worldToClip, float4(worldPos, 1));
+	OutputVS.normal = normal;
+	OutputVS.worldPos = worldPos;
+	SvPosition = clipPos;
+}
+
+#endif //VERTEX_SHADER
+struct MaterialOutputPS
+{
+	float3 baseColor;
+	float3 normal;
+	float3 emissiveColor;
+	float  metallic;
+	float  specular;
+	float  roughness;
+	float  mask;
+	float  opacity;
+	float  depthOffset;
+	uint   shadingModel;
+};
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VertexOutputParameters InputPS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float3 L = normalize(float3(1, 1, 1));
+	float3 N = normalize(InputPS.normal);
+	float3 V = normalize(View.worldPos - InputPS.worldPos);
+	float NoL = saturate(dot(N, L));
+
+	MaterialOutputPS material;
+	material.baseColor = float3(1,1,0);
+	material.metallic = 0.2;
+	material.specular = 1;
+	material.roughness = 0.5;
+
+	float3 diffuseColor = material.baseColor * (1 - material.metallic);
+	float temp = 0.08 * material.specular;
+	float3 specularColor = lerp(temp.xxx, material.baseColor, material.metallic);
+
+	float3 roughness = float3(material.roughness, material.roughness, 1);
+	roughness = max(roughness, 0.04);
+
+	float3 shading = 5 * NoL * StandardShading(diffuseColor, specularColor, roughness, float3(1, 1, 1), L, V, N);
+
+	float3 radiance = 1 * float3(5, 5, 5);
+
+	//N = normalize(cross(tx, ty));
+	//N.z = 0;
+	//N = normalize(N);
+
+	OutColor = float4(NoL * shading, 1);
+	//OutColor = float4(0.5 * N + 0.5 , 1);
+}
+
+#endif //PIXEL_SHADER
+
+#if COMPUTE_SHADER
+
+#ifndef GROUP_SIZE
+#define GROUP_SIZE 8
+#endif
+RWTexture2D<float4> TexDisp;
+RWTexture2D<float4> TexDispDiff;
+uniform float LengthScale;
+
+CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE,1)
+CS_ENTRY(GenWaveCS)
+{
+	float3 pos = LengthScale * float3(SvDispatchThreadID.x, SvDispatchThreadID.y, 0);
+	float3 tangentX = 0;
+	float3 tangentY = 0;
+	float3 offset = 0;
+
+	for (int i = 0; i < NumWaveParams; ++i)
+	{
+		offset += GerstnerWave(WaveParams[i], pos, View.gameTime, tangentX, tangentY);
+	}
+
+	float3 normal = normalize(cross(tangentX, tangentY));
+
+	TexDisp[SvDispatchThreadID.xy] = float4(offset.x, offset.y, offset.z, 1);
+	TexDispDiff[SvDispatchThreadID.xy] = float4(normal.x, normal.y, normal.z, 1);
+}
+
+#endif

@@ -50,8 +50,8 @@
 #else
 
 #define SYSTEM_VULKAN 1
-#define COMPILER_GLSL 1
-#define COMPILER_HLSL 0
+#define COMPILER_GLSL 0
+#define COMPILER_HLSL 1
 #define VERTEX_SHADER 1
 #define PIXEL_SHADER 1
 #define GEOMETRY_SHADER 1

@@ -510,7 +510,6 @@ namespace Render
 
 		void initializeRenderState();
 		void bitBltToBackBuffer(RHICommandList& commandList, RHITexture2D& texture);
-		void registerFrameREnderTargets(FrameRenderTargets const& frameRenderTargets);
 
 		RHIFrameBufferRef mBitbltFrameBuffer;
 

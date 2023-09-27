@@ -43,10 +43,12 @@ namespace Render
 		}
 		else
 		{
-			result->texture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, desc.numSamples, desc.creationFlags | TCF_RenderTarget);
+			TextureDesc texDesc = TextureDesc::Type2D(desc.format, desc.size.x, desc.size.y).Samples(desc.numSamples).Flags(desc.creationFlags | TCF_RenderTarget);
+			result->texture = RHICreateTexture2D(texDesc);
 			if (desc.numSamples > 1)
 			{
-				result->resolvedTexture = RHICreateTexture2D(desc.format, desc.size.x, desc.size.y, 0, 1, desc.creationFlags | TCF_RenderTarget);
+				texDesc.Samples(1);
+				result->resolvedTexture = RHICreateTexture2D(texDesc);
 			}
 			else
 			{

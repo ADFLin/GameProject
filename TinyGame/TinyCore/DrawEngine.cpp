@@ -359,6 +359,11 @@ bool DrawEngine::lockSystem(ERenderSystem systemLocked, RenderSystemConfigs cons
 	return true;
 }
 
+void DrawEngine::unlockSystem()
+{
+	mSystemLocked = ERenderSystem::None;
+}
+
 bool DrawEngine::startupSystem(ERenderSystem systemName, RenderSystemConfigs const& configs)
 {
 	if( isRHIEnabled() )
@@ -458,33 +463,43 @@ void DrawEngine::shutdownSystem(bool bDeferred, bool bReInit)
 		mRenderSetup->preShutdownRenderSystem(bReInit);
 	}
 
+	bool bReconsructWindow = false;
 	if (mSystemLocked != ERenderSystem::None)
-		return;
-
-	RenderUtility::ReleaseRHI();
-	mRHIGraphics->releaseRHI();
-	bRHIGraphicsInitialized = false;
-
-	if(bReInit || bDeferred == false )
 	{
-		RHISystemShutdown();
+		bReconsructWindow = true;
 	}
 	else
 	{
-		bRHIShutdownDeferred = true;
+		RenderUtility::ReleaseRHI();
+		mRHIGraphics->releaseRHI();
+		bRHIGraphicsInitialized = false;
+
+		if (bReInit || bDeferred == false)
+		{
+			RHISystemShutdown();
+		}
+		else
+		{
+			bRHIShutdownDeferred = true;
+		}
+
+		if (mSystemName == ERenderSystem::D3D12)
+		{
+			bReconsructWindow = true;
+		}
+		mLastRHIName = mSystemName;
 	}
 
-	if (mSystemName == ERenderSystem::D3D12)
+	mSystemName = ERenderSystem::None;
+	bUsePlatformBuffer = true;
+
+	if (bReconsructWindow)
 	{
 		TGuardValue<bool> value(bBlockRender, true);
 		bHadUseRHI = false;
 		mWindowProvider->reconstructWindow(*mGameWindow);
 	}
 
-	mLastRHIName = mSystemName;
-	mSystemName = ERenderSystem::None;
-
-	bUsePlatformBuffer = true;
 	setupBuffer(getScreenWidth(), getScreenHeight());
 }
 

@@ -200,7 +200,7 @@ namespace Render
 
 		void updateConstantData( void const* pData , uint32 offset , uint32 size )
 		{
-			memcpy(mConstDataPtr + mConstDataOffset + offset, pData, size);
+			FMemory::Copy(mConstDataPtr + mConstDataOffset + offset, pData, size);
 			mCurrentUpdatedSize = Math::Max(mCurrentUpdatedSize, offset + size);
 		}
 
@@ -374,7 +374,13 @@ namespace Render
 
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
-	
+		void RHIClearSRVResource(RHIResource* resource)
+		{
+			if (resource)
+			{
+				clearSRVResource(*resource);
+			}
+		}
 
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim) { setShaderValueT(shaderProgram, param, val, dim); }
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shaderProgram, param, val, dim); }

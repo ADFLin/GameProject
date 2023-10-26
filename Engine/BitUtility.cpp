@@ -1,11 +1,20 @@
 #include "BitUtility.h"
 #include "CompilerConfig.h"
+#include "MarcoCommon.h"
+
 #if CPP_COMPILER_MSVC
 #include <intrin.h>
 #endif
 
 int FBitUtility::CountTrailingZeros(uint32 n)
 {
+#if CPP_COMPILER_MSVC
+	constexpr int TotalBitCount = sizeof(uint32) * 8;
+	unsigned long index = 0;
+	if (!_BitScanForward(&index, n))
+		return TotalBitCount;
+	return index;
+#else
 	int result = 0;
 	if( !(n & 0x0000ffff) ) { result += 16; n >>= 16; }
 	if( !(n & 0x000000ff) ) { result += 8; n >>= 8; }
@@ -13,17 +22,26 @@ int FBitUtility::CountTrailingZeros(uint32 n)
 	if( !(n & 0x00000003) ) { result += 2; n >>= 2; }
 	if( !(n & 0x00000001) ) { result += 1; n >>= 1; }
 	return result;
+#endif
 }
 
 int FBitUtility::CountLeadingZeros(uint32 n)
 {
+#if CPP_COMPILER_MSVC
+	constexpr int TotalBitCount = sizeof(uint32) * 8;
+	unsigned long index = 0;
+	if (!_BitScanReverse(&index, n))
+		return TotalBitCount;
+	return TotalBitCount - index - 1;
+#else
 	int result = 0;
-	if( (n & 0xffff0000) ) { result += 16; n <<= 16; }
-	if( (n & 0xff000000) ) { result += 8; n <<= 8; }
-	if( (n & 0xf0000000) ) { result += 4; n <<= 4; }
-	if( (n & 0xc0000000) ) { result += 2; n <<= 2; }
-	if( (n & 0x80000000) ) { result += 1; }
+	if( !(n & 0xffff0000) ) { result += 16; n <<= 16; }
+	if( !(n & 0xff000000) ) { result += 8; n <<= 8; }
+	if( !(n & 0xf0000000) ) { result += 4; n <<= 4; }
+	if( !(n & 0xc0000000) ) { result += 2; n <<= 2; }
+	if( !(n & 0x80000000) ) { result += 1; }
 	return result;
+#endif
 }
 
 
@@ -136,14 +154,14 @@ static int const gBitIndexMap[9] =
 
 int FBitUtility::ToIndex4(unsigned bit)
 {
-	assert((bit & 0xf) == bit);
-	assert(IsOneBitSet(bit));
+	CHECK((bit & 0xf) == bit);
+	CHECK(IsOneBitSet(bit));
 	return gBitIndexMap[bit];
 }
 int FBitUtility::ToIndex8(unsigned bit)
 {
-	assert((bit & 0xff) == bit);
-	assert(IsOneBitSet(bit));
+	CHECK((bit & 0xff) == bit);
+	CHECK(IsOneBitSet(bit));
 	int result = 0;
 	if (bit & 0xf0) { result += 4; bit >>= 4; }
 	return result + gBitIndexMap[bit];
@@ -151,8 +169,8 @@ int FBitUtility::ToIndex8(unsigned bit)
 
 int FBitUtility::ToIndex16(unsigned bit)
 {
-	assert((bit & 0xffff) == bit);
-	assert(IsOneBitSet(bit));
+	CHECK((bit & 0xffff) == bit);
+	CHECK(IsOneBitSet(bit));
 	int result = 0;
 	if (bit & 0x0000ff00) { result += 8; bit >>= 8; }
 	if (bit & 0x000000f0) { result += 4; bit >>= 4; }
@@ -161,8 +179,8 @@ int FBitUtility::ToIndex16(unsigned bit)
 
 int FBitUtility::ToIndex32(unsigned bit)
 {
-	assert((bit & 0xffffffff) == bit);
-	assert(IsOneBitSet(bit));
+	CHECK((bit & 0xffffffff) == bit);
+	CHECK(IsOneBitSet(bit));
 	int result = 0;
 	if (bit & 0xffff0000) { result += 16; bit >>= 16; }
 	if (bit & 0x0000ff00) { result += 8; bit >>= 8; }
@@ -173,8 +191,8 @@ int FBitUtility::ToIndex32(unsigned bit)
 #if TARGET_PLATFORM_64BITS
 int FBitUtility::ToIndex64(unsigned bit)
 {
-	assert((bit & 0xffffffffffffffffULL) == bit);
-	assert(IsOneBitSet(bit));
+	CHECK((bit & 0xffffffffffffffffULL) == bit);
+	CHECK(IsOneBitSet(bit));
 	int result = 0;
 	if (bit & 0xffffffff00000000ULL) { result += 32; bit >>= 32; }
 	if (bit & 0x00000000ffff0000ULL) { result += 16; bit >>= 16; }
@@ -186,14 +204,14 @@ int FBitUtility::ToIndex64(unsigned bit)
 
 unsigned FBitUtility::RotateRight(unsigned bits, unsigned offset, unsigned numBit)
 {
-	assert(offset <= numBit);
+	CHECK(offset <= numBit);
 	unsigned mask = (1 << numBit) - 1;
 	return ((bits >> offset) | (bits << (numBit - offset))) & mask;
 }
 
 unsigned FBitUtility::RotateLeft(unsigned bits, unsigned offset, unsigned numBit)
 {
-	assert(offset <= numBit);
+	CHECK(offset <= numBit);
 	unsigned mask = (1 << numBit) - 1;
 	return ((bits << offset) | (bits >> (numBit - offset))) & mask;
 }

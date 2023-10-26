@@ -403,9 +403,19 @@ namespace Render
 		}
 		else
 		{
-			shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture);
+			switch (id)
+			{
+			case Render::TEX_PREVIEW_1D:
+			case Render::TEX_PREVIEW_2D:
+			case Render::TEX_PREVIEW_CUBE:
+			case Render::TEX_PREVIEW_CUBE_PROJECTION:
+				shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture, SHADER_SAMPLER(Texture), TStaticSamplerState<ESampler::Bilinear>::GetRHI());
+				break;
+			case Render::TEX_PREVIEW_3D:
+				shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture, SHADER_SAMPLER(Texture), TStaticSamplerState<ESampler::Trilinear>::GetRHI());
+				break;
+			}
 		}
-		shaderProgram->setTexture(commandList, SHADER_PARAM(Texture), texture);
 		shaderProgram->setParam(commandList, SHADER_PARAM(XForm), xForm);
 		shaderProgram->setParam(commandList, SHADER_PARAM(PreviewLevel), 0.0f);
 		if (colorMask)

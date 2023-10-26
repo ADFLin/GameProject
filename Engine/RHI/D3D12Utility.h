@@ -11,16 +11,8 @@
 #include "CoreShare.h"
 #include "DataStructure/Array.h"
 
-#include <D3D12.h>
-#include <dxgi1_3.h>
-#include <dxgi1_4.h>
-#include <dxgi1_6.h>
+#include "D3D12Definations.h"
 
-
-
-
-#undef max
-#undef min
 
 namespace Render
 {
@@ -177,6 +169,7 @@ namespace Render
 		uint numElements;
 		uint numElementsUasge;
 		TArray< uint32 > mUsageMask;
+		static constexpr uint32 GroupSize = sizeof(uint32) * 8;
 
 		static constexpr D3D12HeapPoolChunk* NoLinkPtr = (D3D12HeapPoolChunk*)INT_PTR(-1);
 		D3D12HeapPoolChunk* next = NoLinkPtr;
@@ -201,8 +194,7 @@ namespace Render
 	{
 		D3D12PooledHeapHandle() { chunk = nullptr; }
 
-		D3D12HeapPoolChunk* chunk;
-		uint chunkSlot;
+
 		bool isValid() const { return !!chunk; }
 
 		D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle() const
@@ -215,6 +207,14 @@ namespace Render
 			CHECK(chunk);
 			return chunk->getGPUHandle(chunkSlot);
 		}
+
+		void reset()
+		{
+			chunk = nullptr;
+		}
+
+		D3D12HeapPoolChunk* chunk;
+		uint chunkSlot;
 
 	};
 
@@ -295,7 +295,13 @@ namespace Render
 		CORE_API static D3D12DescriptorHeapPool& Get();
 
 		void initialize(ID3D12DeviceRHI* device);
-
+		static void FreeHandle(D3D12PooledHeapHandle& handle)
+		{
+			if (handle.isValid())
+			{
+				D3D12DescriptorHeapPool::Get().freeHandle(handle);
+			}
+		}
 		void releaseRHI();
 		D3D12PooledHeapHandle allocSRV(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc);
 		D3D12PooledHeapHandle allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
@@ -305,6 +311,8 @@ namespace Render
 		D3D12PooledHeapHandle allocSampler(D3D12_SAMPLER_DESC const& desc);
 
 		void freeHandle(D3D12PooledHeapHandle& handle);
+
+
 
 		ID3D12DeviceRHI* mDevice;
 

@@ -127,6 +127,26 @@ FORCEINLINE ExecuteFunc MakeChangeSingleGame(char const* gameName)
 	};
 }
 
+
+class IGraphics2D;
+using MiscRenderFunc = std::function< void(IGraphics2D&) >;
+class IMiscTestCore
+{
+public:
+	TINY_API IMiscTestCore();
+	TINY_API virtual ~IMiscTestCore();
+
+	virtual void pauseThread(uint32 threadId) = 0;
+	virtual void registerRender(uint32 threadId, MiscRenderFunc const& func) = 0;
+};
+
+struct TINY_API FMiscTestUtil
+{
+	static bool IsTesting();
+	static void PauseThread();
+	static void RegisterRender(MiscRenderFunc const& func);
+};
+
 #define REGISTER_STAGE_ENTRY( NAME , CLASS , GROUP , ... )\
 	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , MakeChangeStageOperation< CLASS >() , GROUP , ##__VA_ARGS__) );
 

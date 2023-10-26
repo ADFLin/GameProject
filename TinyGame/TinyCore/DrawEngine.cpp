@@ -23,7 +23,7 @@
 
 using namespace Render;
 
-ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
+ERenderSystem GDefaultRHIName = ERenderSystem::D3D12;
 bool GbDefaultUsePlatformGraphic = false;
 
 namespace
@@ -109,6 +109,21 @@ class TGraphics2DProxy : public IGraphics2D
 public:
 	TGraphics2DProxy( T& g ):mImpl(&g){}
 
+	struct VRef
+	{
+		VRef(Vector2 const& v):v(v){ }
+		operator Vector2() { return v; }
+		operator Vec2i() { return Vec2i(Math::RoundToInt(v.x), Math::RoundToInt(v.y)); }
+		Vector2 const& v;
+	};
+
+	struct SRef
+	{
+		SRef(float const& v) :v(v) {}
+		operator float() { return v; }
+		operator int()   { return Math::RoundToInt(v); }
+		float const& v;
+	};
 	void beginFrame() override { mImpl->beginFrame(); }
 	void endFrame() override { mImpl->endFrame(); }
 	void beginRender() override { mImpl->beginRender(); }
@@ -121,16 +136,16 @@ public:
 	void setPen( Color3ub const& color, int width = 1) override { mImpl->setPen( color, width ); }
 	void setBrush( Color3ub const& color ) override { mImpl->setBrush( color ); }
 	void drawPixel  (Vector2 const& p , Color3ub const& color) override { mImpl->drawPixel( p , color ); }
-	void drawLine   (Vector2 const& p1 , Vector2 const& p2) override { mImpl->drawLine( p1 , p2 ); }
-	void drawRect   (Vector2 const& pos , Vector2 const& size) override { mImpl->drawRect( pos , size ); }
-	void drawCircle (Vector2 const& center , float radius) override { mImpl->drawCircle( center , radius); }
-	void drawEllipse(Vector2 const& pos , Vector2 const& size) override { mImpl->drawEllipse(  pos ,  size ); }
-	void drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize) override { mImpl->drawRoundRect( pos , rectSize , circleSize ); }
+	void drawLine   (Vector2 const& p1 , Vector2 const& p2) override { mImpl->drawLine(VRef(p1) , VRef(p2) ); }
+	void drawRect   (Vector2 const& pos , Vector2 const& size) override { mImpl->drawRect(VRef(pos) , VRef(size) ); }
+	void drawCircle (Vector2 const& center , float radius) override { mImpl->drawCircle(VRef(center) , SRef(radius)); }
+	void drawEllipse(Vector2 const& pos , Vector2 const& size) override { mImpl->drawEllipse(VRef(pos), VRef(size)); }
+	void drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize) override { mImpl->drawRoundRect(VRef(pos), VRef(rectSize), VRef(circleSize) ); }
 	void drawPolygon(Vector2 pos[], int num) override { mImpl->drawPolygon(pos, num); }
 
 	void setTextColor(Color3ub const& color) override { mImpl->setTextColor(color);  }
-	void drawText(Vector2 const& pos , char const* str ) override { mImpl->drawText( pos , str ); }
-	void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip) override { mImpl->drawText( pos , size , str , beClip  ); }
+	void drawText(Vector2 const& pos , char const* str ) override { mImpl->drawText(VRef(pos) , str ); }
+	void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip) override { mImpl->drawText(VRef(pos) , size , str , beClip  ); }
 
 	void  beginXForm() override { mImpl->beginXForm(); }
 	void  finishXForm() override { mImpl->finishXForm(); }

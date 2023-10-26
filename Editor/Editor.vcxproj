@@ -28,6 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.h" />
+    <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.h" />
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\OtherLib\ImGui\imconfig.h" />
     <ClInclude Include="..\OtherLib\ImGui\imgui.h" />
@@ -56,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.cpp" />
+    <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui_demo.cpp" />

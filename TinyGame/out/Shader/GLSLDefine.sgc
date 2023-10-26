@@ -2,6 +2,10 @@
 #define SHADER_COMPILING 0
 #endif
 
+#ifndef GLSL_VERSION
+#define GLSL_VERSION  430
+#endif
+
 #define float2 vec2
 #define float3 vec3
 #define float4 vec4
@@ -134,18 +138,18 @@ VECTOR_TYPE_LIST(SincosT)
 float BufferToNDCDepth(float bufferDepth)
 {
 #if SYSTEM_VULKAN
-	return 2 * bufferDepth - 1;
+	return 2.0 * bufferDepth - 1.0;
 #else
-	return 2 * bufferDepth / gl_DepthRange.diff - 1;
+	return 2.0 * bufferDepth / gl_DepthRange.diff - 1.0;
 #endif
 }
 
 float NDCToBufferDepth(float ndcZ)
 {
 #if SYSTEM_VULKAN
-	return 0.5 * ( ndcZ + 1 );
+	return 0.5 * ( ndcZ + 1.0);
 #else
-	return  0.5 * (ndcZ + 1) * gl_DepthRange.diff;
+	return  0.5 * (ndcZ + 1.0) * gl_DepthRange.diff;
 #endif
 }
 
@@ -236,12 +240,17 @@ float3 InvTransformVector(float3 v, float3x3 m)
 #define SHADER_ENTRY_END(NAME) void NAME()
 
 #if VERTEX_SHADER
-#define VS_ENTRY_START(NAME)
+
+#if GLSL_VERSION >= 150
+#define VS_ENTRY_START(NAME)\
 	out gl_PerVertex\
 	{\
 		float4 gl_Position;\
 	};\
 	SHADER_ENTRY_START(NAME)
+#else
+#define VS_ENTRY_START(NAME) SHADER_ENTRY_START(NAME)
+#endif
 
 #define VS_INPUT_VERTEXID
 #define VS_INPUT_INSTANCEID
@@ -317,10 +326,12 @@ float3 InvTransformVector(float3 v, float3x3 m)
 
 #define TEXTURE_FETCH( NAME , UV , LOD ) texelFetch(NAME, UV, LOD)
 
-uint2 TextureSize(sampler2D inTexture)
+#if GLSL_VERSION >= 130
+int2 TextureSize(sampler2D inTexture)
 {
 	return textureSize(inTexture, 0);
 }
+#endif
 
 float4x4 mul(float4x4 a, float4x4 b) { return a * b; }
 float3x3 mul(float3x3 a, float3x3 b) { return a * b; }

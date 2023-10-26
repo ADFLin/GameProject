@@ -28,20 +28,11 @@ IObjectRenderer::IObjectRenderer()
 	mRenderOrder = 0;
 }
 
-
-void IObjectRenderer::renderGroup( RenderPass pass , int numObj, LevelObject* object )
+void IObjectRenderer::renderGroup(PrimitiveDrawer& drawer, RenderPass pass , int numObj, LevelObject* object)
 {
 	for( ; object ; object = NextObject( object ) )
 	{
-		render( pass , object );
-	} 
-}
-
-void IObjectRenderer::renderGroupMRT( int numObj , LevelObject* object )
-{
-	for( ; object ; object = NextObject( object ) )
-	{
-		renderMRT( object );
+		render(drawer, pass , object);
 	} 
 }
 
@@ -65,36 +56,35 @@ public:
 		tracnica_normal = texMgr->getTexture("tracnicaNormal.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
 		Player* player = object->cast< Player >();
 
 		if( player->mIsDead )
 			return;
 
-		switch( pass )
+		if (pass == RP_BASE_PASS)
 		{
-		case RP_DIFFUSE:
-			//Shadow
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glPushMatrix();
-			glTranslatef(4,4,0);
-			glColor4f( 0.0, 0.0, 0.0, 0.5 );	
-			RenderPodlogu( pass , player );
-			RenderTrack( pass , player );
-			RenderTorzo( pass , player );	
-			glColor4f(1.0, 1.0, 1.0, 1.0);
-			glPopMatrix();
-			glDisable(GL_BLEND);
-			//
-		case RP_NORMAL:
-			glColor3f( 1.0, 1.0, 1.0 );	
-			RenderPodlogu( pass , player );
-			RenderTrack( pass , player );
-			RenderTorzo( pass , player );	
-			glColor3f(1.0, 1.0, 1.0 );
-			break;
+			{
+				//Shadow
+				drawer.beginTranslucent(0.5);
+				drawer.getStack().push();
+				drawer.getStack().translate(Vec2f(4, 4));
+
+				Color3f color = Color3f(0, 0, 0);
+				RenderPodlogu(drawer, color, player);
+				renderTrack(drawer, color, player);
+				renderTorso(drawer, color, player);
+
+				drawer.getStack().pop();
+				drawer.endTranslucent();
+			}
+			{
+				Color3f color = Color3f(1.0, 1.0, 1.0);
+				RenderPodlogu(drawer, color, player);
+				renderTrack(drawer, color, player);
+				renderTorso(drawer, color, player);
+			}
 		}
 
 
@@ -104,86 +94,64 @@ public:
 			if( weapon )
 			{
 				Vec2f centerPos = player->getPos();
-
-				glPushMatrix();
-				glTranslatef( centerPos.x,centerPos.y,0 );
-				glRotatef( Math::RadToDeg( player->rotationAim ) + 90 ,0,0,1 );
-				weapon->render( pass );
-				glPopMatrix();
+				drawer.getStack().push();
+				drawer.getStack().translate(centerPos);
+				drawer.getStack().rotate(player->rotationAim + Math::DegToRad(90));
+				weapon->render( pass, drawer );
+				drawer.getStack().pop();
 			}
 		}
 
 	}
 
-	void RenderPodlogu( RenderPass pass , Player* player )
+	void RenderPodlogu(PrimitiveDrawer& drawer, Color3f const& color, Player* player)
 	{
-		Texture* tex;
-		if(pass==RP_DIFFUSE)
-			tex=podloga_tex;
-		if(pass==RP_NORMAL)
-			tex=podloga_normal;
-
-		glPushMatrix();	
-		drawSprite( player->getRenderPos() , player->getSize() , player->getRotation() ,tex);	
-		glPopMatrix();
+		PrimitiveMat mat;
+		mat.baseTex = podloga_tex;
+		mat.normalTex = podloga_normal;
+		mat.color = color;
+		drawer.setMaterial(mat);
+		drawer.drawRect( player->getRenderPos() , player->getSize() , player->getRotation() );	
 	}
 
-	void RenderTorzo(RenderPass pass , Player* player )
+	void renderTorso(PrimitiveDrawer& drawer, Color3f const& color, Player* player)
 	{
-		Texture* tex;	
-		if(pass==RP_DIFFUSE)
-			tex = textura;	
-		if(pass==RP_NORMAL)
-			tex = texturaN;	
-		glPushMatrix();	
-		drawSprite( player->getRenderPos() , player->getSize(), player->rotationAim + Math::DegToRad(90) , tex );			
-		glPopMatrix();	
+		PrimitiveMat mat;
+		mat.baseTex = textura;
+		mat.normalTex = texturaN;
+		mat.color = color;
+		drawer.setMaterial(mat);
+		drawer.drawRect( player->getRenderPos() , player->getSize(), player->rotationAim + Math::DegToRad(90) );
 	}
 
-	void RenderTrack( RenderPass pass , Player* player )
+	void renderTrack(PrimitiveDrawer& drawer, Color3f const& color, Player* player)
 	{
 		float razmak_tracnica=8;
 		float odmak=24;
 
-		Texture* tex;
-		if(pass==RP_DIFFUSE)
-			tex=tracnica_tex;
-		if(pass==RP_NORMAL)
-			tex=tracnica_normal;
-
-		glEnable(GL_TEXTURE_2D);
-
-		tex->bind();
+		PrimitiveMat mat;
+		mat.baseTex = tracnica_tex;
+		mat.normalTex = tracnica_normal;
+		mat.color = color;
+		drawer.setMaterial(mat);
 
 		Vec2f centerPos = player->getPos();
 		float shift = player->shiftTrack;
 		Vec2f size = player->getSize();
 
-		glPushMatrix();
-		glTranslatef( centerPos.x, centerPos.y , 0 );
-		glRotatef(Math::RadToDeg( player->getRotation()),0,0,1);
-		glTranslatef( -odmak - razmak_tracnica, -size.y/2,0);
-		glBegin(GL_QUADS);
-		glTexCoord2f(0.0, shift); glVertex2f(0.0, 0.0);
-		glTexCoord2f(1.0, shift); glVertex2f(size.x/4, 0.0);
-		glTexCoord2f(1.0, shift + 1.0); glVertex2f(size.x/4, size.y);	
-		glTexCoord2f(0.0, shift + 1.0); glVertex2f(0.0, size.y);
-		glEnd();
-		glPopMatrix();
+		drawer.getStack().push();
+		drawer.getStack().translate(centerPos);
+		drawer.getStack().rotate(player->getRotation());
+		drawer.getStack().translate(Vec2f(-odmak - razmak_tracnica, -size.y / 2));
+		drawer.drawRect(Vec2f(0, 0), Vec2f(size.x / 4, size.y), Vec2f(0.0, shift), Vec2f(1.0, shift + 1.0));
+		drawer.getStack().pop();
 
-		glPushMatrix();
-		glTranslatef( centerPos.x, centerPos.y , 0 );
-		glRotatef(Math::RadToDeg( player->getRotation()),0,0,1);
-		glTranslatef( odmak - razmak_tracnica, -size.y/2,0);
-		glBegin(GL_QUADS);
-		glTexCoord2f(0.0, shift); glVertex2f(0.0, 0.0);
-		glTexCoord2f(1.0, shift); glVertex2f(size.x/4, 0.0);
-		glTexCoord2f(1.0, shift + 1.0); glVertex2f(size.x/4, size.y);	
-		glTexCoord2f(0.0, shift + 1.0); glVertex2f(0.0, size.y);
-		glEnd();
-		glPopMatrix();
-
-		glDisable(GL_TEXTURE_2D);
+		drawer.getStack().push();
+		drawer.getStack().translate(centerPos);
+		drawer.getStack().rotate(player->getRotation());
+		drawer.getStack().translate(Vec2f(odmak - razmak_tracnica, -size.y / 2));
+		drawer.drawRect(Vec2f(0, 0), Vec2f(size.x / 4, size.y), Vec2f(0.0, shift), Vec2f(1.0, shift + 1.0));
+		drawer.getStack().pop();
 	}
 
 	Texture* textura;
@@ -202,73 +170,74 @@ public:
 	{
 		mRenderOrder = 1;
 	}
-	virtual void render( RenderPass pass , LevelObject* object );
-	virtual void renderGroup( RenderPass pass , int numObj, LevelObject* object );
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object);
+	virtual void renderGroup(PrimitiveDrawer& drawer, RenderPass pass , int numObj, LevelObject* object);
 
 protected:
-	Texture* mTextures[ NUM_RENDER_PASS ];
+	Texture* mTextures[ TextureGroupCount ];
 };
 
 
-void MobRenderer::render( RenderPass pass , LevelObject* object )
+void MobRenderer::render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 {
 	Mob* mob = static_cast< Mob* >( object );
 
-	Texture* tex = mTextures[ pass ];
-
-	switch( pass )
+	if (pass == RP_BASE_PASS)
 	{
-	case RP_DIFFUSE: 
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glPushMatrix();		
-		glColor4f(0.0, 0.0, 0.0, 0.6);			
-		drawSprite( mob->getRenderPos() + Vec2f(5,5), mob->getSize() , mob->getRotation() , tex );	
-		glColor4f(1.0, 1.0, 1.0, 1.0);
-		glPopMatrix();
-		glDisable(GL_BLEND);
-		break;
+		PrimitiveMat mat;
+		mat.color = Color3f(0,0,0);
+		mat.baseTex = mTextures[TG_DIFFUSE];
+		mat.normalTex = mTextures[TG_NORMAL];
+		drawer.setMaterial(mat);
+		drawer.beginTranslucent(0.6);
+		drawer.drawRect(mob->getRenderPos() + Vec2f(5, 5), mob->getSize(), mob->getRotation());
+		drawer.endTranslucent();
+
+		mat.color = Color3f(1, 1, 1);
+		drawer.setMaterial(mat);
+		drawer.drawRect(mob->getRenderPos(), mob->getSize(), mob->getRotation());
 	}
-
-	glPushMatrix();	
-	drawSprite( mob->getRenderPos() , mob->getSize() , mob->getRotation() , tex );	
-	glPopMatrix();
-
-
+	else
+	{
+		drawer.setGlow(mTextures[TG_GLOW]);
+		drawer.drawRect(mob->getRenderPos(), mob->getSize(), mob->getRotation());
+	}
 }
 
-void MobRenderer::renderGroup( RenderPass pass , int numObj, LevelObject* object )
+void MobRenderer::renderGroup(PrimitiveDrawer& drawer, RenderPass pass , int numObj, LevelObject* object)
 {
-
-	Texture* tex = mTextures[ pass ];
-
-	switch( pass )
+	if (pass == RP_BASE_PASS)
 	{
-	case RP_DIFFUSE: 
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glPushMatrix();		
-		glColor4f(0.0, 0.0, 0.0, 0.6);
-
-		for( LevelObject* cur = object; cur ; cur = NextObject( cur ) )
+		PrimitiveMat mat;
+		mat.color = Color3f(0, 0, 0);
+		mat.baseTex = mTextures[TG_DIFFUSE];
+		mat.normalTex = mTextures[TG_NORMAL];
+		drawer.setMaterial(mat);
+		drawer.beginTranslucent(0.6);
+		for (LevelObject* cur = object; cur; cur = NextObject(cur))
 		{
-			Mob* mob = static_cast< Mob* >( cur );
-			drawSprite( mob->getRenderPos() + Vec2f(5,5), mob->getSize() , mob->getRotation() , tex );	
+			Mob* mob = static_cast<Mob*>(cur);
+			drawer.drawRect(mob->getRenderPos() + Vec2f(5, 5), mob->getSize(), mob->getRotation());
 		}
+		drawer.endTranslucent();
 
-		glColor4f(1.0, 1.0, 1.0, 1.0);
-		glPopMatrix();
-		glDisable(GL_BLEND);
-		break;
+		mat.color = Color3f(1, 1, 1);
+		drawer.setMaterial(mat);
+		for (LevelObject* cur = object; cur; cur = NextObject(cur))
+		{
+			Mob* mob = static_cast<Mob*>(cur);
+			drawer.drawRect(mob->getRenderPos(), mob->getSize(), mob->getRotation());
+		}
 	}
-
-	glPushMatrix();	
-	for( LevelObject* cur = object; cur ; cur = NextObject( cur ) )
+	else
 	{
-		Mob* mob = static_cast< Mob* >( cur );
-		drawSprite( mob->getRenderPos() , mob->getSize() , mob->getRotation() , tex );	
+		drawer.setGlow(mTextures[TG_GLOW]);		
+		for (LevelObject* cur = object; cur; cur = NextObject(cur))
+		{
+			Mob* mob = static_cast<Mob*>(cur);
+			drawer.drawRect(mob->getRenderPos(), mob->getSize(), mob->getRotation());
+		}
 	}
-	glPopMatrix();
 }
 
 class PlasmaMobRenderer : public MobRenderer
@@ -277,9 +246,9 @@ public:
 	virtual void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTextures[ RP_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
-		mTextures[ RP_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
-		mTextures[ RP_GLOW    ] = texMgr->getTexture("mob2Glow.tga");
+		mTextures[ TG_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
+		mTextures[ TG_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
+		mTextures[ TG_GLOW    ] = texMgr->getTexture("mob2Glow.tga");
 	}
 };
 
@@ -289,9 +258,9 @@ public:
 	virtual void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTextures[ RP_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
-		mTextures[ RP_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
-		mTextures[ RP_GLOW    ] = texMgr->getTexture("mob1Glow.tga");
+		mTextures[ TG_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
+		mTextures[ TG_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
+		mTextures[ TG_GLOW    ] = texMgr->getTexture("mob1Glow.tga");
 	}
 };
 
@@ -301,9 +270,9 @@ public:
 	virtual void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTextures[ RP_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
-		mTextures[ RP_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
-		mTextures[ RP_GLOW    ] = texMgr->getTexture("mob3Glow.tga");
+		mTextures[ TG_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
+		mTextures[ TG_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
+		mTextures[ TG_GLOW    ] = texMgr->getTexture("mob3Glow.tga");
 	}
 };
 
@@ -324,16 +293,16 @@ public:
 		texG = getRenderSystem()->getTextureMgr()->getTexture("laser1Glow.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		if( pass !=RP_GLOW )
+		if (pass != RP_GLOW)
 			return;
 
 		LaserBullet* bullet = object->cast< LaserBullet >();
-
-		Vec2f size = Vec2f(16,32);
-		float rot= Math::ATan2( bullet->mDir.y, bullet->mDir.x ) + Math::DegToRad( 90 );
-		drawSprite( bullet->getPos() - size / 2 , size , rot , texG );		
+		Vec2f size = Vec2f(16, 32);
+		float rot = Math::ATan2(bullet->mDir.y, bullet->mDir.x) + Math::DegToRad(90);
+		drawer.setGlow(texG);
+		drawer.drawRect(bullet->getPos() - size / 2, size, rot);
 	}
 	Texture* texG;
 };
@@ -347,17 +316,17 @@ public:
 		texG = getRenderSystem()->getTextureMgr()->getTexture("minigun1Glow.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		if( pass !=RP_GLOW )
+		
+		if (pass != RP_GLOW)
 			return;
-
+	
 		MinigunBullet* bullet = object->cast< MinigunBullet >();
-
-		Vec2f size = Vec2f(16,32);
-		float rot= Math::ATan2( bullet->mDir.y, bullet->mDir.x ) + Math::DegToRad( 90 );
-		drawSprite( bullet->getPos() - size / 2 , size , rot , texG );
-
+		Vec2f size = Vec2f(16, 32);
+		float rot = Math::ATan2(bullet->mDir.y, bullet->mDir.x) + Math::DegToRad(90);
+		drawer.setGlow(texG);
+		drawer.drawRect(bullet->getPos() - size / 2, size, rot);
 	}
 	Texture* texG;
 };
@@ -370,12 +339,18 @@ public:
 		tex = getRenderSystem()->getTextureMgr()->getTexture("granata1.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		if( pass !=RP_DIFFUSE )
-			return ;
-
-		drawSprite( object->getRenderPos() , object->getSize() ,0,tex);
+		if( pass != RP_BASE_PASS )
+			return;
+		
+		PrimitiveMat mat;
+		mat.baseTex = tex;
+		mat.normalTex = nullptr;
+		drawer.beginTranslucent(1.0);
+		drawer.setMaterial(mat);
+		drawer.drawRect(object->getRenderPos(), object->getSize());
+		drawer.endTranslucent();
 	}
 	Texture* tex;
 };
@@ -389,16 +364,17 @@ public:
 		texN= getRenderSystem()->getTextureMgr()->getTexture("Dim1Normal.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
+		return;
 		SmokeParticle* smoke = object->cast< SmokeParticle >();
 
-		if(pass==RP_DIFFUSE)// || pass==NORMAL)
+		if(pass==TG_DIFFUSE)// || pass==NORMAL)
 		{
 			Texture* t;
-			if(pass==RP_DIFFUSE)
+			if(pass==TG_DIFFUSE)
 				t=tex;
-			if(pass==RP_NORMAL)
+			if(pass==TG_NORMAL)
 				t=texN;	
 
 			float faktorSkaliranja = 0.5+ 0.5 * ( smoke->maxLife / smoke->life );
@@ -450,15 +426,16 @@ public:
 		texN= getRenderSystem()->getTextureMgr()->getTexture("Dim1Normal.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
+		return;
 		DebrisParticle* particle = object->cast< DebrisParticle >();
 		Texture* t;
-		if(pass==RP_DIFFUSE)
+		if(pass==TG_DIFFUSE)
 			t=tex;
-		if(pass==RP_NORMAL)
+		if(pass==TG_NORMAL)
 			t=texN;
-		if(pass==RP_DIFFUSE)// || pass==NORMAL)
+		if(pass==TG_DIFFUSE)// || pass==NORMAL)
 		{
 			float factor = particle->life / particle->maxLife;
 			glEnable(GL_BLEND);
@@ -470,14 +447,15 @@ public:
 		}
 	}
 
-	virtual void renderGroup( RenderPass pass , int numObj , LevelObject* object )
+	virtual void renderGroup(PrimitiveDrawer& drawer, RenderPass pass , int numObj , LevelObject* object)
 	{
+		return;
 		Texture* t;
-		if(pass==RP_DIFFUSE)
+		if(pass==TG_DIFFUSE)
 			t=tex;
-		if(pass==RP_NORMAL )
+		if(pass==TG_NORMAL )
 			t=texN;
-		if(pass==RP_DIFFUSE)// || pass==NORMAL)
+		if(pass==TG_DIFFUSE)// || pass==NORMAL)
 		{
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_ONE, GL_ONE);
@@ -508,20 +486,16 @@ public:
 		texN= getRenderSystem()->getTextureMgr()->getTexture("SmeceNormal.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
 		if( pass == RP_GLOW )
 			return;
 
-		Texture* t;
-		if(pass==RP_DIFFUSE)
-			t=tex;
-		else if(pass==RP_NORMAL)
-			t=texN;
-
-		glColor3f(1.0, 1.0, 1.0);
-		drawSprite( object->getRenderPos() , object->getSize() , 0 , t );
-		glColor3f(1.0, 1.0, 1.0);
+		PrimitiveMat mat;
+		mat.baseTex = tex;
+		mat.normalTex = texN;
+		drawer.setMaterial(mat);
+		drawer.drawRect( object->getRenderPos() , object->getSize() );
 	}
 
 	Texture* tex;
@@ -535,25 +509,39 @@ public:
 	virtual void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTex[ WEAPON_LASER ][ RP_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
-		mTex[ WEAPON_LASER ][ RP_NORMAL  ] = texMgr->getTexture("weapon1Normal.tga");
-		mTex[ WEAPON_LASER ][ RP_GLOW    ] = texMgr->getTexture("oruzje1Glow.tga");
+		mTex[ WEAPON_LASER ][ TG_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
+		mTex[ WEAPON_LASER ][ TG_NORMAL  ] = texMgr->getTexture("weapon1Normal.tga");
+		mTex[ WEAPON_LASER ][ TG_GLOW    ] = texMgr->getTexture("oruzje1Glow.tga");
 
-		mTex[ WEAPON_PLAZMA ][ RP_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
-		mTex[ WEAPON_PLAZMA ][ RP_NORMAL  ] = texMgr->getTexture("weapon1Normal.tga");
-		mTex[ WEAPON_PLAZMA ][ RP_GLOW    ] = texMgr->getTexture("oruzje2Glow.tga");
+		mTex[ WEAPON_PLAZMA ][ TG_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
+		mTex[ WEAPON_PLAZMA ][ TG_NORMAL  ] = texMgr->getTexture("weapon1Normal.tga");
+		mTex[ WEAPON_PLAZMA ][ TG_GLOW    ] = texMgr->getTexture("oruzje2Glow.tga");
 
-		mTex[ WEAPON_MINIGUN ][ RP_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
-		mTex[ WEAPON_MINIGUN ][ RP_NORMAL  ] = texMgr->getTexture("weapon1Normal.tga");
-		mTex[ WEAPON_MINIGUN ][ RP_GLOW    ] = texMgr->getTexture("oruzje3Glow.tga");
+		mTex[ WEAPON_MINIGUN ][ TG_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
+		mTex[ WEAPON_MINIGUN ][ TG_NORMAL  ] = texMgr->getTexture("weapon1Normal.tga");
+		mTex[ WEAPON_MINIGUN ][ TG_GLOW    ] = texMgr->getTexture("oruzje3Glow.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		WeaponPickup* pickup = static_cast< WeaponPickup* >( object );
-		drawSprite( pickup->getRenderPos() + Vec2f( pickup->getSize().x/2-8,0),Vec2f(16,32), pickup->mRotation , mTex[ pickup->mId ][ pass ] );
+		WeaponPickup* pickup = static_cast<WeaponPickup*>(object);
+
+		if (pass == RP_BASE_PASS)
+		{
+			PrimitiveMat mat;
+			mat.color = Color3f(1, 1, 1);
+			mat.baseTex = mTex[pickup->mId][TG_DIFFUSE];
+			mat.normalTex = mTex[pickup->mId][TG_NORMAL];
+			drawer.setMaterial(mat);
+			drawer.drawRect(pickup->getRenderPos() + Vec2f(pickup->getSize().x / 2 - 8, 0), Vec2f(16, 32), pickup->mRotation);
+		}
+		else
+		{
+			drawSprite(pickup->getRenderPos() + Vec2f(pickup->getSize().x / 2 - 8, 0), Vec2f(16, 32), pickup->mRotation, mTex[pickup->mId][TG_GLOW]);
+		}
+
 	}
-	Texture* mTex[ NUM_WEAPON_ID ][ NUM_RENDER_PASS ];
+	Texture* mTex[ NUM_WEAPON_ID ][ TextureGroupCount ];
 };
 
 
@@ -563,23 +551,30 @@ public:
 	virtual void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTex[ RP_DIFFUSE ] = texMgr->getTexture("KeyDiffuse.tga");
-		mTex[ RP_NORMAL  ] = texMgr->getTexture("KeyNormal.tga");	
-		mTex[ RP_GLOW    ] = texMgr->getTexture("KeyGlow.tga");
+		mTex[ TG_DIFFUSE ] = texMgr->getTexture("KeyDiffuse.tga");
+		mTex[ TG_NORMAL  ] = texMgr->getTexture("KeyNormal.tga");	
+		mTex[ TG_GLOW    ] = texMgr->getTexture("KeyGlow.tga");
 	}
 
-	virtual void render( RenderPass pass , LevelObject* object )
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		KeyPickup* myObj = static_cast< KeyPickup* >( object );
-		if ( pass == RP_GLOW )
+		KeyPickup* myObj = static_cast<KeyPickup*>(object);
+		if (pass == RP_BASE_PASS)
 		{
-			glColor3fv( getDoorColor( myObj->mId ) );
+			PrimitiveMat mat;
+			mat.baseTex = mTex[TG_DIFFUSE];
+			mat.normalTex = mTex[TG_NORMAL];
+			drawer.setMaterial(mat);
 		}
-		drawSprite(myObj->getRenderPos(),myObj->getSize(),myObj->mRotation, mTex[ pass ] );
-		glColor3f(1.0, 1.0, 1.0);
+		else
+		{
+			drawer.setGlow(mTex[TG_GLOW], GetDoorColor(myObj->mId));
+		}
+
+		drawer.drawRect(myObj->getRenderPos(),myObj->getSize(),myObj->mRotation);
 	}
 
-	Texture* mTex[ NUM_RENDER_PASS ];
+	Texture* mTex[ TextureGroupCount ];
 };
 
 

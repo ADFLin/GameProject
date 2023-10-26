@@ -667,15 +667,12 @@ namespace Render
 	class D3D11Buffer : public TD3D11Resource< RHIBuffer >
 	{
 	public:
-		D3D11Buffer(uint32 elementSize, uint32 numElements, D3D11BufferCreationResult& creationResult)
+		D3D11Buffer(BufferDesc const& desc, D3D11BufferCreationResult& creationResult)
 		{
-			mNumElements = numElements;
-			mElementSize = elementSize;
-
+			mDesc = desc;
 			mResource = creationResult.resource.detach();
 			mSRV = creationResult.SRV.detach();
 			mUAV = creationResult.UAV.detach();
-			mCreationFlags = creationResult.creationFlags;
 		}
 
 
@@ -708,8 +705,8 @@ namespace Render
 			device->GetImmediateContext(&context);
 
 			D3D11_BOX box = { 0 };
-			box.left  = start * mElementSize;
-			box.right = start + numElements * mElementSize;
+			box.left = start * mDesc.elementSize;
+			box.right = start + numElements * mDesc.elementSize;
 			context->UpdateSubresource(mResource, 0, &box, data, 0, 0);
 		}
 	};

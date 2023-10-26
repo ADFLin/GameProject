@@ -24,7 +24,7 @@ namespace Render
 	bool GForceInitState = false;
 	bool GbOpenglOutputDebugMessage = true;
 
-	TConsoleVariable<bool> CVarOpenGLFixedPiplineUseShader{ true , "r.OpenGLFixedPiplineUseShader", CVF_TOGGLEABLE };
+	TConsoleVariable<bool> CVarOpenGLFixedPiplineUseShader{ false , "r.OpenGLFixedPiplineUseShader", CVF_TOGGLEABLE };
 
 
 	template < class TFunc >
@@ -342,6 +342,10 @@ namespace Render
 
 	RHITexture2D* OpenGLSystem::RHICreateTexture2D(TextureDesc const& desc, void* data, int dataAlign)
 	{
+		if (ETexture::IsDepthStencil(desc.format))
+		{
+			return RHICreateTextureDepth(desc);
+		}
 		return CreateOpenGLResource1T< OpenGLTexture2D >(desc, data, dataAlign);
 	}
 
@@ -371,9 +375,9 @@ namespace Render
 		return result;
 	}
 
-	RHIBuffer* OpenGLSystem::RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
+	RHIBuffer* OpenGLSystem::RHICreateBuffer(BufferDesc const& desc, void* data)
 	{
-		return CreateOpenGLResourceT< OpenGLBuffer >(elementSize, numElements, creationFlags, data);
+		return CreateOpenGLResourceT< OpenGLBuffer >(desc, data);
 	}
 
 	void* OpenGLSystem::RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)

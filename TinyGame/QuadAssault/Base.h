@@ -72,10 +72,17 @@ class Texture;
 
 enum RenderPass
 {
-	RP_DIFFUSE ,
-	RP_NORMAL  ,
+	RP_BASE_PASS,
 	RP_GLOW    ,
-	NUM_RENDER_PASS ,
+};
+
+enum TextureGroup
+{
+	TG_DIFFUSE,
+	TG_NORMAL,
+	TG_GLOW,
+
+	TextureGroupCount,
 };
 
 enum

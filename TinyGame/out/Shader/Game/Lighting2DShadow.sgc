@@ -14,9 +14,10 @@ VS_ENTRY_END(MainVS)
 
 uniform float2 LightLocation;
 uniform float2 ScreenSize;
+uniform float4x4 XForm;
 float4 TransformToNDC(float2 pos)
 {
-	return float4(2 * (pos / ScreenSize) - 1, 0, 1);
+	return mul(XForm, float4(pos, 0, 1));
 }
 
 

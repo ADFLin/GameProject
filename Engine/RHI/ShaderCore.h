@@ -180,7 +180,11 @@ namespace Render
 		Uniform ,
 		Texture ,
 		Sampler ,
-		UniformBuffer,
+		UniformBuffer ,
+		TextureBuffer ,
+
+
+
 		StorageBuffer ,
 
 		Unknown,

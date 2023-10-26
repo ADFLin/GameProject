@@ -718,7 +718,7 @@ namespace Render
 		mGroups.clear();
 	}
 
-	void BatchedRender::flushDrawCommand(bool bEndRender)
+	void BatchedRender::flushDrawCommand(bool bEndRender, bool bForceUpdateState)
 	{
 		PROFILE_ENTRY("flushDrawCommand");
 
@@ -741,6 +741,10 @@ namespace Render
 			{
 				updateRenderState(*mCommandList, group.state);
 				RHIDrawIndexedPrimitive(*mCommandList, EPrimitive::TriangleList, group.indexStart, mIndexBuffer.usedCount - group.indexStart);
+			}
+			else if (bForceUpdateState)
+			{
+				updateRenderState(*mCommandList, group.state);
 			}
 			group.indexStart = 0;
 		}
@@ -1029,8 +1033,16 @@ namespace Render
 				{
 					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
 
-					flushDrawCommand(false);
+					flushDrawCommand(false, true);
+
+					//commitRenderState(*mCommandList, renderState);
+
 					payload.renderer->render(*mCommandList, *element);
+
+					if (payload.renderer->bChangeState)
+					{
+						commitRenderState(*mCommandList, renderState);
+					}
 					switch (payload.manageMode)
 					{
 					case EObjectManageMode::DestructOnly:
@@ -1043,8 +1055,6 @@ namespace Render
 						break;
 					}
 
-					setupInputState(*mCommandList);
-					commitRenderState(*mCommandList, renderState);
 				}
 				break;
 
@@ -1087,6 +1097,7 @@ namespace Render
 
 		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
 		RHISetShaderProgram(commandList, program->getRHI());
+
 		mProgramCur = program;
 		program->setParameters(commandList, mBaseTransform, LinearColor(1, 1, 1, 1), state.texture, state.sampler);
 		setupInputState(commandList);
@@ -1094,6 +1105,9 @@ namespace Render
 
 	void BatchedRender::updateRenderState(RHICommandList& commandList, RenderState const& state)
 	{
+		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
+
 		RHISetBlendState(commandList, GetBlendState(state.blendMode));
 		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
 		if (state.bEnableScissor)
@@ -1110,10 +1124,12 @@ namespace Render
 			SET_SHADER_PARAM(commandList, *program, XForm, mBaseTransform);
 			SET_SHADER_PARAM(commandList, *program, Color, LinearColor(1, 1, 1, 1));
 		}
+
 		if (state.texture)
 		{
 			program->setTextureParam(commandList, state.texture, state.sampler);
 		}
+		setupInputState(commandList);
 	}
 
 	RHIBlendState& GraphicsDefinition::GetBlendState(ESimpleBlendMode blendMode)
@@ -1126,6 +1142,8 @@ namespace Render
 			return TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI();
 		case ESimpleBlendMode::Multiply:
 			return TStaticBlendState< CWM_RGBA, EBlend::DestColor, EBlend::Zero >::GetRHI();
+		case ESimpleBlendMode::InvDestColor:
+			return TStaticBlendState< CWM_RGBA, EBlend::OneMinusDestColor, EBlend::Zero >::GetRHI();
 		case ESimpleBlendMode::None:
 			return TStaticBlendState<>::GetRHI();
 		}

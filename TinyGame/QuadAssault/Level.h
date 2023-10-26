@@ -25,6 +25,7 @@ class Sound;
 class Message;
 
 class TextureManager;
+class PrimitiveDrawer;
 
 struct LevelEvent
 {
@@ -98,7 +99,7 @@ public:
 
 	Message*          getTopMessage(){ return mTopMessage; }
 	
-	void              renderObjects( RenderPass pass );
+	void              renderObjects(PrimitiveDrawer& drawer, RenderPass pass);
 	void              renderDev( DevDrawMode mode );
 
 	void              addListerner( EventListener& listener );

@@ -1,8 +1,9 @@
 #include "ImageData.h"
 
-#include "stb/stb_image.h"
 #include "FileSystem.h"
-#include <vector>
+#include "DataStructure/Array.h"
+
+#include "stb/stb_image.h"
 
 ImageData::ImageData()
 {
@@ -34,7 +35,7 @@ bool ImageData::load(char const* path, ImageLoadOption const& option)
 {
 	if (option.bUpThreeComponentToFour)
 	{
-		std::vector<uint8> buffer;
+		TArray<uint8> buffer;
 		if (!FFileUtility::LoadToBuffer(path, buffer))
 			return false;
 

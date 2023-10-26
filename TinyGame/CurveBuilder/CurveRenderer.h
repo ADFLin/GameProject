@@ -10,7 +10,7 @@
 
 #include "RHI/RenderContext.h"
 #include "RHI/SceneRenderer.h"
-#include "FrameAllocator.h"
+#include "Memory/FrameAllocator.h"
 
 namespace CB
 {

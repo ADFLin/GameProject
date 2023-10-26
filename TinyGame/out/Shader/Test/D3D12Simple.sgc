@@ -10,13 +10,13 @@ struct PSInput
 
 #if VERTEX_SHADER
 float4 Values;
-PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_COLOR, float2 uv : ATTRIBUTE_TEXCOORD, uint intanceId : SV_InstanceID)
+PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_COLOR, float2 uv : ATTRIBUTE_TEXCOORD, uint SvIntanceID : SV_InstanceID)
 {
 	PSInput result;
 
-	//result.position = position + float4(0.2 * intanceId, 0, 0, 0);
+	//result.position = position + float4(0.2 * SvIntanceID, 0, 0, 0);
 
-	float3 pos = position + float3(Values.x * intanceId, 0, -0.1 * intanceId);
+	float3 pos = position + Values.xyz + float3(Values.w * SvIntanceID, 0, -0.1 * SvIntanceID);
 	result.position = mul( View.worldToClip , float4(pos, 1) );
 	result.color = color;
 	result.uv = uv;
@@ -34,6 +34,7 @@ struct ColourBuffer
 	float red;
 	float green;
 	float blue;
+	float dummy;
 };
 
 cbuffer ColourBufferBlock
@@ -42,14 +43,14 @@ cbuffer ColourBufferBlock
 };
 
 
-float4 MainPS(PSInput input) : SV_TARGET0
+void MainPS(PSInput input, out float4 ColorA : SV_TARGET0, out float4 ColorB : SV_TARGET1) 
 {
 	float4 tc = TEXTURE_SAMPLE(BaseTexture , input.uv);
 	float4 tc1 = TEXTURE_SAMPLE(BaseTexture1, input.uv);
 	float4 color = float4(tc.r,tc1.r, 1, 1);
-	float3 c = float3(CBuffer.red, CBuffer.green, 0 * CBuffer.blue);
-	return float4(c, 1);
-	return float4(color.rgb, 1);
+	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
+	ColorA = float4(c, 1);
+	ColorB = float4(1,0,0, 1);
 }
 
 #endif

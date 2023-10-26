@@ -69,7 +69,7 @@ PS_ENTRY_START(LightingPassPS)
 	PS_ENTRY_END(LightingPassPS)
 {
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
-	float2 ScreenUVs = (gl_FragCoord.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
+	float2 ScreenUVs = (SvPosition.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 #else
 	float2 ScreenUVs = VSOutput.UVs;
 #endif

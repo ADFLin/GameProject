@@ -32,6 +32,12 @@ public:
 		mPtr = nullptr;
 	}
 
+	explicit TComPtr(T* ptr)
+		:mPtr(ptr)
+	{
+
+	}
+
 	~TComPtr()
 	{
 		if( mPtr )
@@ -39,6 +45,7 @@ public:
 			Deleter::Destroy(mPtr);
 		}
 	}
+
 
 	TComPtr(TComPtr<T>&& other)
 	{
@@ -73,8 +80,21 @@ public:
 		}
 	}
 
-	TComPtr* address() { return this; }
-	T*   detach() { T* ptr = mPtr; mPtr = nullptr; return ptr; }
+	T**   address() { return &mPtr; }
+	T*    detach() { T* ptr = mPtr; mPtr = nullptr; return ptr; }
+
+	void assign(T* ptr)
+	{
+		if (mPtr)
+		{
+			Deleter::Destroy(mPtr);
+		}
+		mPtr = ptr;
+		if (mPtr)
+		{
+			mPtr->AddRef();
+		}
+	}
 
 	template< typename U >
 	bool castTo( TComPtr<U>& p) const throw()
@@ -115,7 +135,7 @@ public:
 		}
 		return 0;
 	}
-	T* get() { return mPtr; }
+	T*   get() { return mPtr; }
 	bool isValid() const { return !!mPtr; }
 
 	bool operator == (void* ptr) const { return mPtr == ptr; }

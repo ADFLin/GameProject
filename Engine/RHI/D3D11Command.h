@@ -304,6 +304,10 @@ namespace Render
 			}	
 		}
 
+		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition)
+		{
+
+		}
 		void RHIFlushCommand()
 		{
 			//mDeviceContext->Flush();
@@ -459,7 +463,7 @@ namespace Render
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data);
 		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc);
 
-		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+		RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data);
 
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);

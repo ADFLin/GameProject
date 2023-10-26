@@ -377,6 +377,9 @@
     <ClInclude Include="RHI\Scene.h">
       <Filter>Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="RHI\RHIRaytracingTypes.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\OtherLib\NvTriStrip\README.txt">

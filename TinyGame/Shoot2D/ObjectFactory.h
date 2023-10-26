@@ -6,7 +6,7 @@
 #include <cassert>
 #include <new>
 #include "Singleton.h"
-#include "CacheAllocator.h"
+#include "Memory/CacheAllocator.h"
 
 namespace Shoot2D
 {

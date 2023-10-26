@@ -7,6 +7,7 @@
 #include "Math/TVector2.h"
 
 class TextureManager;
+class RHIGraphics2D;
 
 class IFont
 {
@@ -27,8 +28,8 @@ public:
 	virtual void  setCharSize( int size ) = 0;
 	virtual void  release() = 0;
 public:
-	static IText* create( IFont* font , int size , Color4ub const& color );
-	static IText* create();
+	static IText* Create( IFont* font , int size , Color4ub const& color );
+	static IText* Create();
 };
 
 enum
@@ -54,23 +55,20 @@ public:
 	RenderSystem();
 	~RenderSystem();
 
-	bool init( PlatformWindow* window );
+	bool init( PlatformWindow* window, bool bInitGL = true);
 	void cleanup();
 	bool prevRender();
 	void postRender();
 
 	TextureManager* getTextureMgr(){ return mTextureMgr; }
-	void drawText(  IText* text , Vec2f const& pos ,unsigned sideFlag = 0 );
+	void drawText(IText* text, Vec2f const& pos, unsigned sideFlag = 0 );
+	void drawText(IFont* font, int fontSize, char const* str, Vec2f const& pos, Color4ub const& color, unsigned sideFlag = 0);
 
+	RHIGraphics2D*  mGraphics2D = nullptr;
 private:
 
 	TextureManager* mTextureMgr;
-
-#if USE_SFML_WINDOW
-	sf::RenderWindow* mRenderWindow;
-#else
 	PlatformWindow*   mRenderWindow;
-#endif
 	PlatformGLContext*  mContext;
 };
 

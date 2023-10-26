@@ -12,7 +12,7 @@
 #define STAGE_INFO( DECL , CLASS , ... )\
 	{ DECL , MakeChangeStageOperation< CLASS >() , __VA_ARGS__ } 
 
-ExecutionEntryInfo gPreRegisterStageGroup[] =
+ExecutionEntryInfo GPreRegisterStageGroup[] =
 {
 	STAGE_INFO("Misc Test" , MiscTestStage , EExecGroup::Main) ,
 	//STAGE_INFO("Cantan Test" , Cantan::LevelStage , EExecGroup::GraphicsTest) ,
@@ -45,7 +45,7 @@ void RegisterStageGlobal()
 
 	if( gbNeedRegisterStage )
 	{
-		for( auto& info : gPreRegisterStageGroup )
+		for( auto& info : GPreRegisterStageGroup )
 		{
 			ExecutionRegisterCollection::Get().registerExecution(info);
 		}

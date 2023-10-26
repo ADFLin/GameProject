@@ -33,7 +33,7 @@ void KeyPickup::onSpawn( unsigned flag )
 
 	mLight.host = this;
 	mLight.radius = 128;
-	mLight.setColorParam(getDoorColor( mId ) , 4 );
+	mLight.setColorParam(GetDoorColor( mId ) , 4 );
 	getLevel()->addLight( mLight );
 }
 
@@ -69,7 +69,7 @@ void KeyPickup::onPick( Player* player )
 
 			Explosion* e=getLevel()->createExplosion( Vec2f(x*BLOCK_SIZE+BLOCK_SIZE/2, y*BLOCK_SIZE+BLOCK_SIZE/2), 128 );
 			e->setParam(20,1000,50);
-			e->setColor( getDoorColor( mId ) );	
+			e->setColor( GetDoorColor( mId ) );	
 		}
 	}
 
@@ -85,5 +85,5 @@ void KeyPickup::setupDefault()
 void KeyPickup::updateEdit()
 {
 	BaseClass::updateEdit();
-	mLight.setColorParam(getDoorColor( mId ) ,4);
+	mLight.setColorParam(GetDoorColor( mId ) ,4);
 }

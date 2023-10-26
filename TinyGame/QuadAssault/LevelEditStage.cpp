@@ -151,12 +151,12 @@ void LevelEditStage::onRender()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-	mRenderParam.camera      = mCamera;
-	mRenderParam.level       = mLevel;
-	mRenderParam.scaleFactor = mWorldScaleFactor;
-	mRenderParam.mode        = RM_ALL;
+	mRenderConfig.camera      = mCamera;
+	mRenderConfig.level       = mLevel;
+	mRenderConfig.scaleFactor = mWorldScaleFactor;
+	mRenderConfig.mode        = RM_ALL;
 
-	renderEngine->renderScene( mRenderParam );
+	renderEngine->renderScene( mRenderConfig );
 
 
 	float factor = 1.0 / mWorldScaleFactor;
@@ -226,11 +226,13 @@ MsgReply LevelEditStage::onKey(KeyMsg const& msg)
 			break;
 		case EKeyCode::F4:
 			{
+#if 0
 				RenderEngine* renderEngine = getGame()->getRenderEenine();
 				if( renderEngine->getAmbientLight().x==0.1f)
-					renderEngine->setAmbientLight( Vec3f(0.8f, 0.8f, 0.8f) );
+					renderEngine->setAmbientLight(Color3f(0.8f, 0.8f, 0.8f) );
 				else
-					renderEngine->setAmbientLight( Vec3f(0.1f, 0.1f, 0.1f) );
+					renderEngine->setAmbientLight(Color3f(0.1f, 0.1f, 0.1f) );
+#endif
 			}
 			break;
 		case EKeyCode::F6:

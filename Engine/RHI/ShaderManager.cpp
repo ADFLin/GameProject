@@ -751,11 +751,8 @@ namespace Render
 			{ EShader::Vertex , entryVS ? entryVS : "main" },
 			{ EShader::Pixel ,  entryPS ? entryPS : "main" },
 		};
-		InlineString< 256 > paths[2];
-		paths[0].format("%s%s%s", mBaseDir.c_str(), fileNameVS, SHADER_FILE_SUBNAME);
-		paths[1].format("%s%s%s", mBaseDir.c_str(), fileNamePS, SHADER_FILE_SUBNAME);
-		char const* filePaths[2] = { paths[0] , paths[1] };
 
+		char const* filePaths[2] = { fileNameVS , fileNamePS };
 		return !!loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
@@ -1113,6 +1110,7 @@ namespace Render
 			{
 				managedData.descList.push_back({ entry.type , "" , std::move(headCode) , entry.name });
 			}
+			++index;
 		}
 	}
 

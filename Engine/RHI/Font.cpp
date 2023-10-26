@@ -534,6 +534,12 @@ namespace Render
 	template< typename CharT >
 	void FontDrawer::generateVerticesT( Vector2 const& pos , CharT const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)
 	{
+
+		if (outBoundSize)
+		{
+			*outBoundSize = calcTextExtentT(str, nullptr);
+		}
+
 		Vector2 curPos = pos;
 		wchar_t prevChar = 0;
 
@@ -580,6 +586,7 @@ namespace Render
 			bApplyKerning = !FCString::IsSpace(c);
 			prevChar = c;
 		}
+
 	}
 
 	void FontDrawer::generateVertices(Vector2 const& pos, char const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize)

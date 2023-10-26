@@ -96,7 +96,7 @@ namespace Zuma
 			if (CVarUseRHI)
 			{
 				RenderSystemConfigs config;
-				if (!drawEngine.startupSystem(ERenderSystem::D3D11, config))
+				if (!drawEngine.startupSystem(ERenderSystem::None, config))
 				{
 					return nullptr;
 				}

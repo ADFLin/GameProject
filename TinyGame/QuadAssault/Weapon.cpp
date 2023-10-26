@@ -51,9 +51,9 @@ void Weapon::onFireBullet( Bullet* p )
 	mOwner->loseEnergy(mEnergyCast);
 }
 
-void Weapon::render( RenderPass pass )
+void Weapon::render( RenderPass pass, PrimitiveDrawer& drawer)
 {
-	getRenderer()->render( pass , this );
+	getRenderer()->render( pass, this, drawer);
 }
 
 

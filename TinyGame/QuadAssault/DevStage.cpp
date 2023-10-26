@@ -226,10 +226,10 @@ public:
 		mTexBlock[0] = texMgr->getTexture( "Block.tga" );
 		mTexBlock[1] = texMgr->getTexture( "SqureN.tga" );
 
-		mTexObject[ RP_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
-		mTexObject[ RP_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
-		//mTexObject[ RP_NORMAL  ] = texMgr->getEmptyTexture();
-		mTexObject[ RP_GLOW    ] = texMgr->getTexture("mob1Glow.tga");
+		mTexObject[ TG_DIFFUSE ] = texMgr->getTexture("mob1Diffuse.tga");
+		mTexObject[ TG_NORMAL  ] = texMgr->getTexture("mob1Normal.tga");
+		//mTexObject[ TG_NORMAL  ] = texMgr->getEmptyTexture();
+		mTexObject[ TG_GLOW    ] = texMgr->getTexture("mob1Glow.tga");
 
 		Vec2i screenSize = getGame()->getScreenSize();
 		mGBuffer.reset( new GBuffer );
@@ -301,7 +301,7 @@ public:
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 		RHISetShaderProgram(commandList, mProgGeom.getRHI());
-		mProgGeom.setTextureParameters(commandList, mTexBlock[RP_DIFFUSE]->resource , mTexBlock[RP_NORMAL]->resource, nullptr );
+		mProgGeom.setTextureParameters(commandList, mTexBlock[TG_DIFFUSE]->resource , mTexBlock[TG_NORMAL]->resource, nullptr );
 
 		for( int j = 0 ; j < 10 ; ++j )
 		{
@@ -318,7 +318,7 @@ public:
 				glEnd();
 			}
 		}
-		mProgGeom.setTextureParameters(commandList, mTexObject[RP_DIFFUSE]->resource, mTexObject[RP_NORMAL]->resource, mTexObject[ RP_GLOW ]->resource);
+		mProgGeom.setTextureParameters(commandList, mTexObject[TG_DIFFUSE]->resource, mTexObject[TG_NORMAL]->resource, mTexObject[ TG_GLOW ]->resource);
 		mProgGeom.setMaterial(commandList, ( 0 ) % 4 );
 
 		drawSprite( Vec2f( 200 + 64 * 1 , 100 ) , Vec2f( 64 , 64 ) , 0.0f );	
@@ -440,7 +440,7 @@ DevStage::DevStage()
 bool DevStage::onInit()
 {
 	mTexCursor = getRenderSystem()->getTextureMgr()->getTexture("cursor.tga");
-	mDevMsg.reset( IText::create( getGame()->getFont( 0 ) , 18 , Color4ub(50,255,50) ) );
+	mDevMsg.reset( IText::Create( getGame()->getFont( 0 ) , 18 , Color4ub(50,255,50) ) );
 
 	GUISystem::Get().cleanupWidget();
 

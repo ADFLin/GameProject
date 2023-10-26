@@ -346,9 +346,6 @@
     <ClCompile Include="Launch\AppEntry.cpp">
       <Filter>Launch</Filter>
     </ClCompile>
-    <ClCompile Include="FrameAllocator.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="Async\AsyncWork.cpp">
       <Filter>Async</Filter>
     </ClCompile>
@@ -357,6 +354,12 @@
     </ClCompile>
     <ClCompile Include="Audio\XAudio2\MFDecoder.cpp">
       <Filter>Audio\XAudio2</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\FrameAllocator.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\BuddyAllocator.cpp">
+      <Filter>Memory</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -543,15 +546,6 @@
     <ClInclude Include="StdUtility.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="CacheAllocator.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="AllocFIFO.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameAllocator.h">
-      <Filter>Memory</Filter>
-    </ClInclude>
     <ClInclude Include="WidgetCore.h">
       <Filter>GUI</Filter>
     </ClInclude>
@@ -653,9 +647,6 @@
     </ClInclude>
     <ClInclude Include="SortFunction.h">
       <Filter>Algo</Filter>
-    </ClInclude>
-    <ClInclude Include="Alloc.h">
-      <Filter>Memory</Filter>
     </ClInclude>
     <ClInclude Include="ObjectHandle.h">
       <Filter>temp</Filter>
@@ -977,6 +968,21 @@
     </ClInclude>
     <ClInclude Include="Math\Curve.h">
       <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\BuddyAllocator.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\FrameAllocator.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\Alloc.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\AllocFIFO.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\CacheAllocator.h">
+      <Filter>Memory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

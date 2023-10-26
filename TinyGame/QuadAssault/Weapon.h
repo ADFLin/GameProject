@@ -29,6 +29,7 @@ public:
 };
 
 class WeaponRenderer;
+class PrimitiveDrawer;
 
 class Weapon : public Object
 {
@@ -36,7 +37,7 @@ public:
 	virtual void init( Player* player );
 	virtual void tick();
 
-	void render( RenderPass pass );
+	void render( RenderPass pass, PrimitiveDrawer& drawer);
 
 	virtual WeaponRenderer* getRenderer(){ return NULL; }
 	virtual void onFireBullet(Bullet* p);
@@ -50,7 +51,7 @@ protected:
 	virtual void doFire( FireHelper& helper ){}
 
 	friend class WeaponRenderer;
-	Texture* mTextues[ NUM_RENDER_PASS ];
+	Texture* mTextues[ TextureGroupCount ];
 
 	float   mCDTime, mFireTimer;
 	float   mCDSpeed;

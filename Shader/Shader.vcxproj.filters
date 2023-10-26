@@ -227,6 +227,10 @@
       <Filter>Game</Filter>
     </None>
     <None Include="..\TinyGame\out\Shader\FFT.sgc" />
+    <None Include="..\TinyGame\out\Shader\Test\D3D12Raytracing.sgc">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="..\TinyGame\out\Shader\DoubleSim.sgc" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

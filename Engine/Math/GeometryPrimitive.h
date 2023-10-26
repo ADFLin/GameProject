@@ -5,8 +5,9 @@
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
-
+#include "PrimitiveTest.h"
 #include <type_traits>
+
 
 namespace Math
 {

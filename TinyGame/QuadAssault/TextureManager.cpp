@@ -9,9 +9,11 @@
 #include "RHI/RHICommand.h"
 #include "RHI/OpenGLCommon.h"
 #include "ConsoleSystem.h"
+#include "RenderDebug.h"
+#include "RHI/RHIGlobalResource.h"
 
 
-Texture gEmptyTexture;
+Texture GEmptyTexture;
 
 #if USE_SFML
 
@@ -40,12 +42,13 @@ Texture::~Texture()
 
 TextureManager::TextureManager()
 {
-
+	GEmptyTexture.resource = Render::GBlackTexture2D;
 }
 
 TextureManager::~TextureManager()
 {
 	cleanup();
+	GEmptyTexture.resource = nullptr;
 }
 
 void TextureManager::cleanup()
@@ -95,8 +98,10 @@ void TextureManager::destroyTexture(HashString name)
 	}
 }
 
+
 Texture* TextureManager::loadTexture(char const* name)
 {	
+
 	String path = TEXTURE_DIR;
 	path += name;
 	Render::RHITexture2D* textureResource = Render::RHIUtility::LoadTexture2DFromFile(path.c_str());
@@ -106,16 +111,17 @@ Texture* TextureManager::loadTexture(char const* name)
 		Texture* tex = new Texture;
 		tex->fileName = name;
 		tex->resource = textureResource;
-		TextureShowManager::registerTexture(tex->fileName, textureResource);
+		Render::GTextureShowManager.registerTexture(tex->fileName, textureResource);
 		mTextures.push_back(tex);
 		QA_LOG("Textura loaded : %s", name);
 		return tex;
 	}
 	
-	return &gEmptyTexture;
+	QA_LOG("Textura load fail : %s", name);
+	return &GEmptyTexture;
 }
 
 Texture* TextureManager::getEmptyTexture()
 {
-	return &gEmptyTexture;
+	return &GEmptyTexture;
 }

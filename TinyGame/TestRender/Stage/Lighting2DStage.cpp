@@ -132,14 +132,16 @@ namespace Render
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 
-		Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, 0, screenSize.y, 1, -1);
+		Matrix4 projectMatrixRHI = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0,  -1, 1));
 
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
+		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 	
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
-		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
+		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 
+#if 1
 		int w = screenSize.x;
 		int h = screenSize.y;
 
@@ -175,6 +177,7 @@ namespace Render
 				if (bUseGeometryShader)
 				{
 					RHISetShaderProgram(commandList, mProgShadow.getRHI());
+					mProgShadow.setParam(commandList, SHADER_PARAM(XForm), projectMatrixRHI);
 					mProgShadow.setParameters(commandList, light.pos, ::Global::GetScreenSize());
 
 					if (!mBuffers.empty())
@@ -190,7 +193,7 @@ namespace Render
 						renderPolyShadow(light, block.pos, block.getVertices(), block.getVertexNum());
 					}
 
-					RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
+					RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 					if (!mBuffers.empty())
 					{
 						TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, &mBuffers[0], mBuffers.size());
@@ -216,18 +219,19 @@ namespace Render
 				{
 					RHISetShaderProgram(commandList, mProgLighting.getRHI());
 					mProgLighting.setParameters(commandList, light.pos, light.color);
-					DrawUtility::ScreenRect(commandList, w, h);
+					DrawUtility::ScreenRect(commandList);
 				}
 
 				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 1.0, 0);
 			}
 		}
+#endif
 
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 #if 1
-		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix));
+		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 		Vector2 vertices[] =
 		{
 			Vector2(100 , 100),
@@ -299,7 +303,7 @@ namespace Render
 	MsgReply Lighting2DTestStage::onMouse( MouseMsg const& msg )
 	{
 		Vec2i screenSize = ::Global::GetScreenSize();
-		Vector2 worldPos = Vector2(msg.getPos().x, screenSize.y - msg.getPos().y);
+		Vector2 worldPos = Vector2(msg.getPos().x, msg.getPos().y);
 		if ( msg.onLeftDown() )
 		{
 			Light light;

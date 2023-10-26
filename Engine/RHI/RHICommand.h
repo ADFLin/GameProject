@@ -120,6 +120,7 @@ namespace Render
 		ETexture::Format depthFormat;
 
 		uint32 textureCreationFlags = 0;
+		uint32 depthCreateionFlags = 0;
 		int numSamples;
 		int bufferCount;
 
@@ -134,6 +135,7 @@ namespace Render
 			numSamples = 1;
 			bufferCount = 2;
 			textureCreationFlags = 0;
+			depthCreateionFlags = 0;
 		}
 	};
 
@@ -163,7 +165,7 @@ namespace Render
 		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue, 
 		void* data = nullptr);
 
-	RHI_API RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth,
+	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTextureDepth,
 		ETexture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
 
 	RHI_API RHITexture1D*      RHI_TRACE_FUNC(RHICreateTexture1D, TextureDesc const& desc, void* data = nullptr);
@@ -175,6 +177,7 @@ namespace Render
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer,
 		uint32 elementSize, uint32 numElements, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, BufferDesc const& desc, void* data = nullptr);
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
 		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -192,6 +195,8 @@ namespace Render
 
 	//RHI_API void* RHILockTexture(RHITextureBase* texture, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	//RHI_API void  RHIUnlockTexture(RHITextureBase* texture);
+
+
 
 	RHI_API RHIFrameBuffer*  RHICreateFrameBuffer();
 
@@ -306,24 +311,10 @@ namespace Render
 
 		GraphicsRenderStateDesc()
 		{
-			::memset(this, 0, sizeof(*this));
+			FMemory::Set(this, 0, sizeof(*this));
 		}
 
 		GraphicsRenderStateDesc(ENoInit) {}
-	};
-
-	struct GraphicsPipelineStateDesc : GraphicsRenderStateDesc
-	{
-
-		GraphicsShaderStateDesc shaderBoundState;
-		RHIShaderProgram*   shaderProgram;
-
-
-		GraphicsPipelineStateDesc()
-			:GraphicsRenderStateDesc(NoInit)
-		{
-			::memset(this, 0, sizeof(*this));
-		}
 	};
 
 	struct MeshRenderStateDesc
@@ -334,29 +325,22 @@ namespace Render
 
 		MeshRenderStateDesc()
 		{
-			::memset(this, 0, sizeof(*this));
+			FMemory::Set(this, 0, sizeof(*this));
 		}
 		MeshRenderStateDesc(ENoInit) {}
 	};
 
-	struct MeshPipelineStateDesc : MeshRenderStateDesc
-	{
-		RHIRasterizerState*   rasterizerState;
-		RHIDepthStencilState* depthStencilState;
-		RHIBlendState*        blendState;
-
-		MeshShaderStateDesc shaderBoundState;
-		RHIShaderProgram*   shaderProgram;
-
-		MeshPipelineStateDesc()
-			:MeshRenderStateDesc(NoInit)
-		{
-			::memset(this, 0, sizeof(*this));
-		}
-	};
-
-
 	RHI_API void RHISetComputeShader(RHICommandList& commandList, RHIShader* shader);
+
+
+
+	enum class EResourceTransition
+	{
+		UAV,
+		SRV,
+		RenderTarget,
+	};
+	RHI_API void RHIResourceTransition(RHICommandList& commandList, TArrayView<RHIResource*> resources, EResourceTransition transition);
 
 	RHI_API void RHIFlushCommand(RHICommandList& commandList);
 
@@ -384,7 +368,7 @@ namespace Render
 		RHI_FUNC(RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data));
 		RHI_FUNC(RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc));
 		
-		RHI_FUNC(RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data));
+		RHI_FUNC(RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data));
 
 		RHI_FUNC(void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
 		RHI_FUNC(void  RHIUnlockBuffer(RHIBuffer* buffer));
@@ -442,7 +426,7 @@ namespace Render
 				break;
 			} 
 			if (bCPUAccessRead)
-				creationFlags |= BCF_CPUAccessRead;
+				creationFlags |= BCF_CpuAccessRead;
 			mResource = RHICreateBuffer(sizeof(T), numElement, creationFlags);
 			if( !mResource.isValid() )
 				return false;

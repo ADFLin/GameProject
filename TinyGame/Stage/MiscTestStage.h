@@ -38,21 +38,6 @@ class GSlider;
 struct Record;
 class TaskBase;
 
-class IMiscTestCore
-{
-public:
-	virtual ~IMiscTestCore() = default;
-	virtual void pauseThread(uint32 threadId) = 0;
-	virtual void registerRender(uint32 threadId, std::function< void(IGraphics2D&) > const& func) = 0;
-};
-
-struct FMiscTestUtil
-{
-	static bool IsTesting();
-	static void PauseThread();
-	static void RegisterRender(std::function< void(IGraphics2D&) > const& func);
-};
-
 class MiscTestStage : public StageBase
 	                , public IMiscTestCore
 {
@@ -143,7 +128,7 @@ public:
 	struct ExecutionData
 	{
 		Thread* thread;
-		std::function< void(IGraphics2D&) > renderFunc;
+		MiscRenderFunc renderFunc;
 	};
 
 	Mutex mThreadDataMutex;

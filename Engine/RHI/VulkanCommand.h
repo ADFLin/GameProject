@@ -130,9 +130,9 @@ namespace Render
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
 		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc) { return nullptr; }
 
-		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+		RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data);
 
-		bool initalizeBufferInternal(VulkanBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+		bool initalizeBufferInternal(VulkanBuffer* buffer, BufferDesc const& desc, void* data);
 
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size) { return nullptr; }
 		void  RHIUnlockBuffer(RHIBuffer* buffer) {}

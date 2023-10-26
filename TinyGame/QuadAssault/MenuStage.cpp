@@ -101,7 +101,7 @@ bool MenuStage::onInit()
 		"koristen scripting language GLSL. Not used outside engine, but it was written\n"
 		"own, special to the game.\n";
 
-	mTextAbout.reset( IText::create( font , 22 , Color4ub(50,255,25) ) );
+	mTextAbout.reset( IText::Create( font , 22 , Color4ub(50,255,25) ) );
 	mTextAbout->setString( text );
 	
 
@@ -249,8 +249,6 @@ void MenuStage::showStateWidget( State state , bool beShow )
 
 void MenuStage::onRender()
 {
-
-#if 1
 	RHIGraphics2D& g = getGame()->getGraphics2D();
 
 	g.beginRender();
@@ -278,39 +276,8 @@ void MenuStage::onRender()
 
 
 	//mScreenFade.render();
-
-
 	g.endRender();
-#else
 
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glLoadIdentity();	
-
-	GUISystem::Get().render();
-
-	switch (mState)
-	{
-	case MS_SELECT_LEVEL:
-		drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize()), texBG2);
-		break;
-	case MS_SELECT_MENU:
-		drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize()), texBG);
-		break;
-	case MS_ABOUT:
-		drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize()), texBG2);
-		getRenderSystem()->drawText(mTextAbout, Vec2i(32, 32), TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
-		break;
-	}
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
-	drawSprite(Vec2f(getGame()->getMousePos()) - Vec2f(16, 16), Vec2f(32, 32), texCursor);
-	glDisable(GL_BLEND);
-
-	mScreenFade.render();
-#endif
 }
 
 MsgReply MenuStage::onKey(KeyMsg const& msg)

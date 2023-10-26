@@ -6,6 +6,7 @@
 #include "GUISystem.h"
 #include "RenderSystem.h"
 #include "TextureManager.h"
+#include "Texture.h"
 
 #include "MenuStage.h"
 #include "LevelEditStage.h"
@@ -42,15 +43,20 @@
 #include "GameInterface.h"
 #include "SoundManager.h"
 
+//
+#include "RHI/RHICommand.h"
+#include "RHI/RHIGraphics2D.h"
+
 #include <fstream>
 #include <sstream>
-#include "RHI/RHICommand.h"
+
 
 
 void WorldData::build()
 {
+
 	Block::Initialize();
-	IRenderer::initialize();
+	IRenderer::Initialize();
 
 	mObjectCreator = new ObjectCreator;
 	mActionCreator = new ActionCreator;
@@ -103,7 +109,7 @@ bool LevelStageBase::onInit()
 	mPause    = false;
 	mTexCursor = getRenderSystem()->getTextureMgr()->getTexture("cursor.tga");
 
-	mDevMsg.reset( IText::create( getGame()->getFont( 0 ) , 18 , Color4ub(50,255,50) ) );
+	mDevMsg.reset( IText::Create( getGame()->getFont( 0 ) , 18 , Color4ub(50,255,50) ) );
 	return true;
 }
 
@@ -201,10 +207,10 @@ bool LevelStage::onInit()
 	Player* player = mLevel->getPlayer();
 	//player->addWeapon(new Plasma());
 	//player->addWeapon(new Laser());
-	//player->addWeapon(new Laser());
-	//player->addWeapon(new Plasma());
-	player->addWeapon(new Minigun());
-	player->addWeapon(new Minigun());
+	player->addWeapon(new Laser());
+	player->addWeapon(new Plasma());
+	//player->addWeapon(new Minigun());
+	//player->addWeapon(new Minigun());
 
 #if 0
 	for ( int i = 0 ; i < 20 ; ++i )
@@ -318,118 +324,144 @@ void LevelStage::updateRender( float dt )
 }
 
 
-void RenderBar( float len , float h , float flac , float alpha , float colorAT[] , float colorAD[] , float colorBT[] , float colorBD[] )
+void RenderBar(RHIGraphics2D& g, float len , float h , float frac , float alpha , Color3f const& colorAT , Color3f const& colorAD , Color3f const& colorBT , Color3f const& colorBD )
 {
-	glEnable(GL_BLEND);
-
-	if ( flac > 0 )
+	struct Vertex
 	{
-		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-		float temp = len * flac;
-		glBegin(GL_QUADS);
-		glColor4f(colorAT[0],colorAT[1],colorAT[2],alpha); 
-		glVertex2f( 0.0 , 0.0); glVertex2f( temp , 0.0);
-		glColor4f(colorAD[0],colorAD[1],colorAD[2],alpha);
-		glVertex2f( temp, h );  glVertex2f( 0.0  , h );
-		glEnd();	
+		Vec2f   pos;
+		Color4f color;
+	};
+
+	if ( frac > 0 )
+	{
+		g.beginBlend(alpha, ESimpleBlendMode::Translucent);
+		float temp = len * frac;
+		g.drawCustomFunc([=](RHICommandList& commandList, RenderBatchedElement& element)
+		{
+			Vertex v[] =
+			{
+				{Vec2f(0,0), Color4f(colorAT,alpha) },
+				{Vec2f(temp, 0), Color4f(colorAT,alpha) },
+				{Vec2f(temp, h), Color4f(colorAD,alpha) },
+				{Vec2f(0, h) , Color4f(colorAD,alpha) },
+			};
+			for (int i = 0; i < ARRAY_SIZE(v); ++i)
+			{
+				v[i].pos = element.transform.transformPosition(v[i].pos);
+			}
+			TRenderRT< RTVF_XY_CA >::Draw(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v));
+		});
+		g.endBlend();
 	}
 
-	glBlendFunc(GL_ONE, GL_ONE);
+	g.beginBlend(alpha, ESimpleBlendMode::Add);
+	g.drawCustomFunc([=](RHICommandList& commandList, RenderBatchedElement& element)
+	{
+		Vertex v[] =
+		{
+			{Vec2f(0,0), Color4f(colorBT,alpha) },
+			{Vec2f(len , 0.0), Color4f(colorBT,alpha) },
+			{Vec2f(len , h), Color4f(colorBD,alpha) },
+			{Vec2f(0.0 , h) , Color4f(colorBD,alpha) },
+		};
+		for (int i = 0; i < ARRAY_SIZE(v); ++i)
+		{
+			v[i].pos = element.transform.transformPosition(v[i].pos);
+		}
+		TRenderRT< RTVF_XY_CA >::Draw(commandList, EPrimitive::LineLoop, v, ARRAY_SIZE(v));
 
-	glBegin(GL_LINE_LOOP);
-	glColor3fv(colorBT); glVertex2f( 0.0 , 0.0 );glVertex2f( len , 0.0 );
-	glColor3fv(colorBD); glVertex2f( len , h );  glVertex2f( 0.0 , h );
-	glEnd();
+	});
+	g.endBlend();
 
-	glDisable(GL_BLEND);
-	glColor3f(1.0, 1.0, 1.0);
 }
 
 
 
 void LevelStage::onRender()
 {
+
 	RenderEngine* renderEngine = getGame()->getRenderEenine();
 
-#if QA_USE_RHI
 	using namespace Render;
 
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
-	RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth , &LinearColor(0,0,0,1) , 1 );
 
-#else
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	RHISetFrameBuffer(commandList, nullptr);
+	RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth , &LinearColor(0, 0, 0, 1) , 1 );
 
-#endif
 	//mWorldScaleFactor = 0.5f;
 
-	mRenderParam.camera      = mCamera;
-	mRenderParam.level       = mLevel;
-	mRenderParam.scaleFactor = mWorldScaleFactor;
-	mRenderParam.mode        = RM_ALL;
+	mRenderConfig.camera      = mCamera;
+	mRenderConfig.level       = mLevel;
+	mRenderConfig.scaleFactor = mWorldScaleFactor;
+	mRenderConfig.mode        = RM_ALL;
 
-	renderEngine->renderScene( mRenderParam );
-
-#if 0
-	Message* msg = mLevel->getTopMessage();
-	if ( msg )
-		msg->render();
+	renderEngine->renderScene( mRenderConfig );
 
 	Player* player = mLevel->getPlayer();
-	glLoadIdentity();
 
-	//Render HP Bar
-	glPushMatrix();
-	glTranslatef(32, getGame()->getScreenSize().y - 32 , 0);
-	{
-		float colorAT[] = { 0.0, 0.5, 0.0 };
-		float colorAD[] = { 0.0, 0.1, 0.0 };
-		float colorBT[] = { 0.0, 0.75, 0.0 };
-		float colorBD[] = {	0.0, 0.25, 0.0 };
-		float flac = player->getHP() / player->getMaxHP();
-		RenderBar( 200 , 16 , flac , 0.75 , colorAT , colorAD , colorBT , colorBD );
-	}
-	glPopMatrix();	
+	RHIGraphics2D& g = IGame::Get().getGraphics2D();
+	g.beginRender();
+
+	g.drawRect(Vector2(0, 0), Vector2(0, 0));
+	Message* msg = mLevel->getTopMessage();
+	if ( msg )
+		msg->render(g);
+
+
 
 	//Render Energy Bar
-	glPushMatrix();
-	glTranslatef( getGame()->getScreenSize().x -232, getGame()->getScreenSize().y - 32, 0);
+	g.pushXForm();
+	g.translateXForm(getGame()->getScreenSize().x - 232, getGame()->getScreenSize().y - 32);
 	{
 		float colorAT[] = { 0.2, 0.2, 0.5 };
 		float colorAD[] = { 0.05, 0.05, 0.1 };
 		float colorBT[] = { 0.2, 0.3, 0.75 };
-		float colorBD[] = {	0.1, 0.1, 0.25 };
-		float flac = player->getEnergy() / player->getMaxEnergy();
-		RenderBar( 200 , 16 , flac , 0.75 , colorAT , colorAD , colorBT , colorBD );
+		float colorBD[] = { 0.1, 0.1, 0.25 };
+		float frac = player->getEnergy() / player->getMaxEnergy();
+		RenderBar(g, 200, 16, frac, 0.75, colorAT, colorAD, colorBT, colorBD);
 	}
-	glPopMatrix();
+	g.popXForm();
 
+	//Render HP Bar
+	g.pushXForm();
+	g.translateXForm(32, getGame()->getScreenSize().y - 32);
+	{
+		float colorAT[] = { 0.0, 0.5, 0.0 };
+		float colorAD[] = { 0.0, 0.1, 0.0 };
+		float colorBT[] = { 0.0, 0.75, 0.0 };
+		float colorBD[] = { 0.0, 0.25, 0.0 };
+		float frac = player->getHP() / player->getMaxHP();
+		RenderBar(g, 200, 16, frac, 0.75, colorAT, colorAD, colorBT, colorBD);
+	}
+	g.popXForm();
 	if ( mPause )
 	{
-		glEnable(GL_BLEND);
-		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-		glColor4f( 0 , 0 , 0 , 0.8 );
-		drawRect( Vec2f(0.0, 0.0) , Vec2f( getGame()->getScreenSize() ) );
-		glDisable(GL_BLEND);
+		g.beginBlend(0.8, ESimpleBlendMode::Translucent);
+		g.setBrush(Color3f(0, 0, 0));
+		g.enablePen(false);
+		g.drawRect(Vec2f(0, 0), Vec2f(getGame()->getScreenSize()));
+		g.enablePen(true);
+		g.endBlend();
 	}
 
 	GUISystem::Get().render();
 
-
-	mScreenFade.render();
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
-	drawSprite( Vec2f( getGame()->getMousePos() ) - Vec2f(16,16) ,Vec2f(32,32), mTexCursor );
-	glDisable(GL_BLEND);
-
+	//mScreenFade.render();
+	g.beginBlend(1, ESimpleBlendMode::Add);
+	{
+		Vec2f size = Vec2f(32, 32);
+		g.setBrush(Color3f(1, 1, 1));
+		g.drawTexture(*mTexCursor->resource, Vec2f(getGame()->getMousePos()) - size / 2, size);
+	}
+	g.endBlend();
 
 	InlineString< 256 > str;
 	str.format( "x = %f , y = %f " , player->getPos().x , player->getPos().y );
 	mDevMsg->setString( str );
 	getRenderSystem()->drawText( mDevMsg , Vec2i( 10 , 10 ) , TEXT_SIDE_LEFT | TEXT_SIDE_RIGHT );
-#endif
+
+	g.endRender();
 }
 
 MsgReply LevelStage::onMouse( MouseMsg const& msg )
@@ -592,7 +624,7 @@ void LevelStage::loadLevel()
 
 					LightObject* light = mLevel->createLight( pos , radius );
 					light->setColorParam( color ,intensity);
-					//light->drawShadow = true;
+					light->drawShadow = true;
 				}
 			}
 		}
@@ -756,21 +788,22 @@ void LevelStage::loadLevel()
 
 void LevelStage::renderLoading()
 {
-	return;
 	Texture* texBG2 = getRenderSystem()->getTextureMgr()->getTexture("MenuLoading1.tga");		
 
+	RHIBeginRender();
 	getRenderSystem()->prevRender();
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glLoadIdentity();
-	drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize().x, getGame()->getScreenSize().y), texBG2 );	
+	RHIGraphics2D& g = IGame::Get().getGraphics2D();
+	g.beginRender();
 
-	IText* t = IText::create( getGame()->getFont(0) , 35 , Color4ub(50,255,50) );
-	t->setString( "Loading Data..." );
+	g.setBrush(Color3f(1, 1, 1));
+	g.drawTexture(*texBG2->resource, Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize().x, getGame()->getScreenSize().y));
+
 	Vec2i pos = getGame()->getScreenSize() / 2;
-	getRenderSystem()->drawText( t , pos );
-	t->release();
+	getRenderSystem()->drawText(getGame()->getFont(0), 35, "Loading Data..." , pos, Color4ub(50, 255, 50));
+	g.endRender();
 
 	getRenderSystem()->postRender();
+
+	RHIEndRender(true);
 }

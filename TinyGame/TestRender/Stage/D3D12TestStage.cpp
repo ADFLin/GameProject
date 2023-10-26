@@ -9,6 +9,7 @@
 #include "RHI/ShaderManager.h"
 #include "RHI/RenderContext.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/DrawUtility.h"
 
 
 
@@ -21,6 +22,7 @@ namespace Render
 		float red;
 		float green;
 		float blue;
+		float dummy;
 	};
 
 	class SimpleD3D12Program : public GlobalShaderProgram
@@ -124,8 +126,30 @@ namespace Render
 			return false;
 		}
 
+		RHITexture2DRef mTexRT;
+		RHITexture2DRef mTexRT2;
+		RHITexture2DRef mTexDepth;
+		RHIFrameBufferRef mFrameBuffer;
 		virtual bool setupRenderResource(ERenderSystem systemName) override
 		{
+
+			IntVector2 screenSize = ::Global::GetScreenSize();
+			{
+				mTexRT = RHICreateTexture2D(TextureDesc::Type2D(ETexture::FloatRGBA, screenSize.x, screenSize.y).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue).ClearColor(0.0f, 0.2f, 0.4f, 1.0f));
+				mTexRT2 = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGB10A2, screenSize.x, screenSize.y).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue).ClearColor(0.2f, 0.2f, 0.2f, 1.0f));
+				mTexRT->setDebugName("RT");
+				mTexRT2->setDebugName("RT2");
+				GTextureShowManager.registerTexture("TexRT", mTexRT);
+				GTextureShowManager.registerTexture("TexRT2", mTexRT2);
+				mTexDepth = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, screenSize.x, screenSize.y).Flags(0));
+
+				mFrameBuffer = RHICreateFrameBuffer();
+				mFrameBuffer->setTexture(0, *mTexRT);
+				mFrameBuffer->setTexture(1, *mTexRT2);
+				mFrameBuffer->setDepth(*mTexDepth);
+
+				ShaderHelper::Get().init();
+			}
 			// Create the pipeline state, which includes compiling and loading shaders.
 			{
 				char const* shaderPath = "Shader/Test/D3D12Simple";
@@ -262,7 +286,7 @@ namespace Render
 		}
 
 		float Offset;
-
+		bool bUseFrameBuffer = true;
 
 		void onRender(float dFrame) override
 		{
@@ -272,9 +296,18 @@ namespace Render
 
 			IntVector2 screenSize = ::Global::GetScreenSize();
 
+			if (bUseFrameBuffer)
+			{
+				RHIResourceTransition(commandList, { mTexRT , mTexRT2 }, EResourceTransition::RenderTarget);
+				RHISetFrameBuffer(commandList, mFrameBuffer);
+			}
+			else
+			{
+				RHISetFrameBuffer(commandList, nullptr);
+			}
 
-			RHISetFrameBuffer(commandList, nullptr);
-			RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.0f, 0.2f, 0.4f, 1.0f), 1);
+			LinearColor clearColors[2] = { mTexRT->getDesc().clearColor, mTexRT2->getDesc().clearColor };
+			RHIClearRenderTargets(commandList, EClearBits::Color|EClearBits::Depth, clearColors, 2);
 
 			ViewportInfo viewports[1];
 			for( int i = 0 ; i < ARRAY_SIZE(viewports); ++i )
@@ -287,11 +320,10 @@ namespace Render
 			if (bUseProgram)
 			{
 				RHISetShaderProgram(commandList, mProgTriangle->getRHI());
-				mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
+				mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(0, 0, 0, Offset));
 				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
 				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_SAMPLER(BaseTexture), samplerState);
 				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_SAMPLER(BaseTexture1), samplerState);
-				SetStructuredUniformBuffer(commandList, *mProgTriangle , mCBuffer);
 				mView.setupShader(commandList, *mProgTriangle);
 			}
 			else
@@ -300,7 +332,7 @@ namespace Render
 				stateDesc.vertex = mVertexShader.getRHI();
 				stateDesc.pixel = mPixelShader.getRHI();
 				RHISetGraphicsShaderBoundState(commandList, stateDesc);
-				mVertexShader.setParam(commandList, SHADER_PARAM(Values), Vector4(Offset, 0, 0, 0));
+				mVertexShader.setParam(commandList, SHADER_PARAM(Values), Vector4(0, 0, 0, Offset));
 				mView.setupShader(commandList, mVertexShader);
 
 				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
@@ -311,12 +343,31 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 
-
 			InputStreamInfo inputStream;
 			inputStream.buffer = mVertexBuffer;
 			RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 			RHISetIndexBuffer(commandList, mIndexBuffer);
+			{
+
+				auto pData = mCBuffer.lock();
+				pData->red = 1;
+				pData->green = 0;
+				pData->blue = 0;
+				mCBuffer.unlock();
+			}
+			SetStructuredUniformBuffer(commandList, *mProgTriangle, mCBuffer);
 			RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, 4, 0);
+
+			{
+				auto pData = mCBuffer.lock();
+				pData->red = 0;
+				pData->green = 0;
+				pData->blue = 1.0;
+				mCBuffer.unlock();
+			}
+			SetStructuredUniformBuffer(commandList, *mProgTriangle, mCBuffer);
+			mProgTriangle->setParam(commandList, SHADER_PARAM(Values), Vector4(0, 3, 0, Offset));
+			RHIDrawIndexedPrimitiveInstanced(commandList, EPrimitive::TriangleList, 0, 6, 4, 0, 4);
 
 			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(mView.worldToClip));
 			DrawUtility::AixsLine(commandList, 10);
@@ -337,6 +388,13 @@ namespace Render
 				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, v, ARRAY_SIZE(v), indices, ARRAY_SIZE(indices));
 			}
 
+			if (bUseFrameBuffer)
+			{
+				RHIResourceTransition(commandList, { mTexRT , mTexRT2 }, EResourceTransition::SRV);
+				RHISetFrameBuffer(commandList, nullptr);
+
+				ShaderHelper::Get().copyTextureToBuffer(commandList, *mTexRT);
+			}
 
 			RHIGraphics2D& g = ::Global::GetRHIGraphics2D();
 #if 1

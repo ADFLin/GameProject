@@ -17,6 +17,22 @@ float2 ComplexDiv(float2 a, float2 b)
 	return float2(temp.x + temp.y, temp.w - temp.z ) / dot( b , b );
 }
 
+float2 ComplexAdd(float2 a, float2 b)
+{
+	return a + b;
+}
+
+float2 ComplexSub(float2 a, float2 b)
+{
+	return a - b;
+}
+
+float ComplexAbsSquare(float2 a)
+{
+	return dot(a, a);
+}
+
+
 float2 ComplexExpi(float a)
 {
 	float s , c;

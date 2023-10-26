@@ -1,6 +1,9 @@
 #include "RenderEngine.h"
 
 #include "RenderSystem.h"
+#include "Texture.h"
+#include "TextureManager.h"
+
 #include "Level.h"
 #include "Light.h"
 #include "ObjectRenderer.h"
@@ -10,15 +13,27 @@
 #include "RHI/RHICommand.h"
 
 #include "RHI/OpenGLCommon.h"
+#include "RHI/OpenGLShaderCommon.h"
+#include "RHI/RHIGlobalResource.h"
+#include "RHI/DrawUtility.h"
+#include "RenderUtility.h"
+
+#include "RenderDebug.h"
+
 using namespace Render;
 
 #include <algorithm>
+#include "Math/GeometryPrimitive.h"
+
 
 bool gUseGroupRender = true;
 bool gUseMRT = true;
 
 
-IMPLEMENT_SHADER_PROGRAM(QBasePassBaseProgram);
+IMPLEMENT_SHADER_PROGRAM(QBasePassProgram);
+IMPLEMENT_SHADER_PROGRAM(QGlowProgram);
+IMPLEMENT_SHADER_PROGRAM(QLightingProgram);
+IMPLEMENT_SHADER_PROGRAM(QSceneProgram);
 
 RenderEngine::RenderEngine()
 	:mAllocator( 512 )
@@ -28,9 +43,9 @@ RenderEngine::RenderEngine()
 
 bool RenderEngine::init( int width , int height )
 {
-	mAmbientLight = Vec3f(0.1f, 0.1f, 0.1f);
-	//mAmbientLight = Vec3f( 0 , 0 , 0 );
-	//mAmbientLight = Vec3f(0.3f, 0.3f, 0.3f);
+	mAmbientLight = Color3f(0.1f, 0.1f, 0.1f);
+	mAmbientLight = Color3f( 0 , 0 , 0 );
+	//mAmbientLight = Color3f(0.3f, 0.3f, 0.3f);
 
 	mFrameWidth  = width;
 	mFrameHeight = height;
@@ -38,95 +53,93 @@ bool RenderEngine::init( int width , int height )
 	if ( !setupFBO( width , height ) )
 		return false;
 
+	mLightBuffer.initializeResource(1);
+	mViewBuffer.initializeResource(1);
 
-	VERIFY_RETURN_FALSE( mProgBasePass = ShaderManager::Get().getGlobalShaderT< QBasePassBaseProgram >() );
-	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderLighting ,"LightVS", "LightFS" ));
-	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderScene[ RM_ALL ] , "SceneVS", "SceneFS" ));
-	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderScene[ RM_GEOMETRY  ] , "SceneVS", "SceneGeometryFS" ));
-	VERIFY_RETURN_FALSE( ShaderManager::Get().loadSimple( mShaderScene[ RM_LINGHTING ] , "SceneVS", "SceneLightingFS" ));
+	ShaderManager::Get().setBaseDir("QuadAssault/shader/");
 
+	VERIFY_RETURN_FALSE(mProgBasePass = ShaderManager::Get().getGlobalShaderT< QBasePassProgram >());
+	VERIFY_RETURN_FALSE(mProgGlow = ShaderManager::Get().getGlobalShaderT< QGlowProgram >());
+	VERIFY_RETURN_FALSE(mProgLighting = ShaderManager::Get().getGlobalShaderT< QLightingProgram >());
+
+	for (int mode = 0; mode < NUM_RENDER_MODE; ++mode)
+	{
+		QSceneProgram::PermutationDomain domain;
+		domain.set<QSceneProgram::RenderMode>(mode);
+		VERIFY_RETURN_FALSE(mProgScenes[mode] = ShaderManager::Get().getGlobalShaderT< QSceneProgram >(domain));
+	}
+
+	ShaderManager::Get().setBaseDir("");
+	ShaderHelper::Get().init();
 	return true;
 }
 
 void RenderEngine::cleanup()
 {
-	glDeleteFramebuffers(1,&mFBO);
-	glDeleteFramebuffers(1,&mRBODepth );
+
 }
 
 bool RenderEngine::setupFBO( int width , int height )
 {
+	mTexLightmap  = RHICreateTexture2D(TextureDesc::Type2D(ETexture::FloatRGBA, width, height).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue));
+	mTexLightmap->setDebugName("TexLightmap");
+	mTexGeometry  = RHICreateTexture2D(TextureDesc::Type2D(ETexture::FloatRGBA, width, height).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue));
+	mTexGeometry->setDebugName("TexGeometry");
+	mTexNormalMap = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGB10A2, width, height).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue));
+	mTexNormalMap->setDebugName("TexNormalMap");
 
-#if QA_USE_RHI
-	mTexLightmap  = RHICreateTexture2D(ETexture::FloatRGBA, width, height);
-	mTexGeometry  = RHICreateTexture2D(ETexture::FloatRGBA, width, height);
-	mTexNormalMap = RHICreateTexture2D(ETexture::RGB10A2, width, height);
+	mTexDepth     = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, width, height).Flags(0));
 	mDeferredFrameBuffer = RHICreateFrameBuffer();
-	mDeferredFrameBuffer->setTexture(0, *mTexLightmap);
-	mDeferredFrameBuffer->setTexture(1, *mTexGeometry);
-	mDeferredFrameBuffer->setTexture(2, *mTexNormalMap);
-#else
-	glGenFramebuffers(1, &mFBO);
+	mDeferredFrameBuffer->setTexture(0, *mTexGeometry);
+	mDeferredFrameBuffer->setTexture(1, *mTexNormalMap);
 
+	mLightingFrameBuffer = RHICreateFrameBuffer();
+	mLightingFrameBuffer->setTexture(0, *mTexLightmap);
+	mLightingFrameBuffer->setDepth(*mTexDepth);
 
-	mTexLightmap = RHICreateTexture2D(ETexture::RGBA8, width, height);
-	Render::OpenGLCast::To(mTexLightmap)->bind();
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	Render::OpenGLCast::To(mTexLightmap)->unbind();
-
-
-	mTexNormalMap = RHICreateTexture2D(ETexture::RGBA8, width, height);
-	Render::OpenGLCast::To(mTexNormalMap)->bind();
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	Render::OpenGLCast::To(mTexNormalMap)->unbind();
-
-	mTexGeometry = RHICreateTexture2D(ETexture::RGBA8, width, height);
-	Render::OpenGLCast::To(mTexGeometry)->bind();
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	Render::OpenGLCast::To(mTexGeometry)->unbind();
-
-	glGenRenderbuffers(1, &mRBODepth);
-	glBindRenderbuffer(GL_RENDERBUFFER, mRBODepth);
-	//glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8 , width , height);  
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-
-
-#endif
-
+	GTextureShowManager.registerTexture("TexLightmap", mTexLightmap);
+	GTextureShowManager.registerTexture("TexGeom", mTexGeometry);
+	GTextureShowManager.registerTexture("TexNormal", mTexNormalMap);
 
 	return true;
 }
 
-void RenderEngine::renderScene( RenderParam& param )
+FORCEINLINE RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 const& upDir, float viewWidth)
 {
+	float zoom = screenSize.x / viewWidth;
+	RenderTransform2D result = RenderTransform2D::Translate(-lookPos);
+	result.scaleWorld(Vector2(zoom, zoom));
+	result.rotateWorld(Math::ACos(Vector2(0, -1).dot(upDir)));
+	result.translateWorld(0.5 * screenSize);
+
+	return result;
+}
+
+void RenderEngine::renderScene(RenderConfig const& config)
+{
+	RenderParam param;
+	static_cast< RenderConfig& >( param ) = config;
 	mAllocator.clearFrame();
 
 	param.renderWidth  = mFrameWidth * param.scaleFactor;
 	param.renderHeight = mFrameHeight * param.scaleFactor;
+	param.worldToView = LookAt(Vector2(mFrameWidth, mFrameHeight),
+		param.camera->getPos() + (0.5f * param.scaleFactor) * Vector2(mFrameWidth, mFrameHeight), Vector2(0, -1), param.renderWidth);
 
-#if QA_USE_RHI
-	mDrawer.mBaseTransform = OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1);
-#else
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0 , param.renderWidth , param.renderHeight  ,0,0,1);
-	glMatrixMode( GL_MODELVIEW );
-#endif
-	
+	ViewParams* viewParams = mViewBuffer.lock();
+	if (viewParams)
+	{
+		viewParams->rectPos = Vector2(0, 0);
+		viewParams->sizeInv = Vector2(1.0 / mFrameWidth, 1.0 / mFrameHeight);
+		mViewBuffer.unlock();
+	}
+	mDrawer.mBaseTransformRHI = AdjProjectionMatrixForRHI(param.worldToView.toMatrix4()  * OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1));
+
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+	RHISetViewport(commandList, 0, 0, mFrameWidth, mFrameHeight);
+
+	mDrawer.mStack.clear();
+	mDrawer.mCommandList = &commandList;
 
 	TileRange& renderRange = param.terrainRange;
 
@@ -142,362 +155,204 @@ void RenderEngine::renderScene( RenderParam& param )
 	renderRange.yMin = Math::Clamp( renderRange.yMin , 0 , terrain.getSizeY() );
 	renderRange.yMax = Math::Clamp( renderRange.yMax , 0 , terrain.getSizeY() );
 
+
 	if ( gUseGroupRender )
 		updateRenderGroup( param );
 
-#if QA_USE_RHI
+	renderBasePass(commandList, param);
+	renderLighting(commandList, param);
+	RHISetFrameBuffer(commandList, nullptr);
+	renderSceneFinal(commandList, param);
+}
 
-#else
-	switch( param.mode )
+void RenderEngine::renderBasePass(RHICommandList& commandList, RenderParam& param)
+{
+	RHIResourceTransition(commandList, { mTexGeometry , mTexNormalMap }, EResourceTransition::RenderTarget);
+
+	RHISetFrameBuffer(commandList, mDeferredFrameBuffer);
+	LinearColor clearColors[] =
 	{
-	case RM_ALL:
-		renderGeometryFBO( param );
-		renderLightingFBO( param );	
-		break;
-	case RM_GEOMETRY:
-		renderGeometryFBO( param );
-		break;
-	case RM_LINGHTING:
-		renderLightingFBO( param );
-		break;
-	case RM_NORMAL_MAP:
-		renderNormalFBO( param );
-
-		glMatrixMode(GL_PROJECTION);
-		glPopMatrix();
-		glMatrixMode( GL_MODELVIEW );
-
-		glEnable(GL_TEXTURE_2D);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexNormalMap) );
-
-		glBegin(GL_QUADS);
-		glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 0.0);
-		glTexCoord2f(1.0, 1.0); glVertex2f( mFrameWidth , 0.0);
-		glTexCoord2f(1.0, 0.0); glVertex2f( mFrameWidth , mFrameHeight );
-		glTexCoord2f(0.0, 0.0); glVertex2f(0.0 , mFrameHeight );
-		glEnd();
-
-		glActiveTexture(GL_TEXTURE0);
-		glDisable(GL_TEXTURE_2D);
-		return;
-	}
-
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode( GL_MODELVIEW );
-
-	renderSceneFinal( param );
-#endif
-}
-
-void RenderEngine::renderSceneFinal( RenderParam& param )
-{
-	RHICommandList& commandList = RHICommandList::GetImmediateList();
-	ShaderProgram& shader = mShaderScene[ param.mode ];
-
-	RHISetShaderProgram(commandList, shader.getRHI());
-
-	glEnable(GL_TEXTURE_2D);
-	shader.setTexture(commandList, SHADER_PARAM(texGeometry) , *mTexGeometry );
-	shader.setTexture(commandList, SHADER_PARAM(texLightmap) , *mTexLightmap );
-	shader.setParam(commandList, SHADER_PARAM(ambientLight) , mAmbientLight );
-
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 0.0);
-	glTexCoord2f(1.0, 1.0); glVertex2f( mFrameWidth , 0.0);
-	glTexCoord2f(1.0, 0.0); glVertex2f( mFrameWidth , mFrameHeight );
-	glTexCoord2f(0.0, 0.0); glVertex2f(0.0 , mFrameHeight );
-	glEnd();
-
-	RHISetShaderProgram(commandList, nullptr);
-
-	glActiveTexture(GL_TEXTURE0);
-	glDisable(GL_TEXTURE_2D);
-}
-
-void RenderEngine::renderTerrain( Level* level , TileRange const& range )
-{
-	TileMap& terrain = level->getTerrain();
-	for(int i = range.xMin; i < range.xMax ; ++i )
-	for(int j = range.yMin; j < range.yMax; ++j )
-	{
-		Tile const& tile = terrain.getData( i , j );
-		Block::Get( tile.id )->render( tile );
-	}
-}
-
-void RenderEngine::renderTerrainNormal( Level* level , TileRange const& range )
-{
-	TileMap& terrain = level->getTerrain();
-	for(int i = range.xMin; i < range.xMax ; ++i )
-	for(int j = range.yMin; j < range.yMax; ++j )
-	{		
-		Tile const& tile = terrain.getData( i , j );
-		Block::Get( tile.id )->renderNormal( tile );
-	}
-}
-
-void RenderEngine::renderTerrainGlow( Level* level , TileRange const& range )
-{
-	TileMap& terrain = level->getTerrain();
-	for(int i = range.xMin; i < range.xMax ; ++i )
-	for(int j = range.yMin; j < range.yMax; ++j )
-	{
-		Tile const& tile = terrain.getData( i , j );
-		Block::Get( tile.id )->renderGlow( tile );
-	}
-}
-
-
-void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Light* light )
-{
-	RHICommandList& commandList = RHICommandList::GetImmediateList();
-
-	Vec2f posLight = lightPos - param.camera->getPos();
-
-	RHISetShaderProgram(commandList, mShaderLighting.getRHI());
-	mShaderLighting.setTexture(commandList, SHADER_PARAM( texNormalMap ) , *mTexNormalMap );
-	//mShaderLighting->setParam( SHADER_PARAM(frameHeight), mFrameHeight );
-	//mShaderLighting->setParam( SHADER_PARAM(scaleFactor) , param.scaleFactor );
-	mShaderLighting.setParam(commandList, SHADER_PARAM(posLight) , posLight );
-	setupLightShaderParam( mShaderLighting , light );
-
-#if 1
-	Vec2f halfRange = param.scaleFactor * Vec2f( light->radius , light->radius ); 
-
-	Vec2f minRender = posLight - halfRange;
-	Vec2f maxRender = posLight + halfRange;
-
-	Vec2f minTex , maxTex;
-	minTex.x = minRender.x / param.renderWidth;
-	maxTex.x = maxRender.x / param.renderWidth;
-	minTex.y = 1 - minRender.y / param.renderHeight;
-	maxTex.y = 1 - maxRender.y / param.renderHeight;
-
-	glColor3f(1,1,1);
-
-	glBegin(GL_QUADS);
-	glTexCoord2f(minTex.x,minTex.y); glVertex2f( minRender.x , minRender.y );
-	glTexCoord2f(maxTex.x,minTex.y); glVertex2f( maxRender.x , minRender.y );
-	glTexCoord2f(maxTex.x,maxTex.y); glVertex2f( maxRender.x , maxRender.y );
-	glTexCoord2f(minTex.x,maxTex.y); glVertex2f( minRender.x , maxRender.y );
-	glEnd();	
-#else
-	glColor3f(1,1,1);
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 1.0); glVertex2f( 0.0, 0.0);
-	glTexCoord2f(1.0, 1.0); glVertex2f( param.renderWidth , 0.0);
-	glTexCoord2f(1.0, 0.0); glVertex2f( param.renderWidth , param.renderHeight );
-	glTexCoord2f(0.0, 0.0); glVertex2f( 0.0 , param.renderHeight );
-	glEnd();	
-#endif
-
-	RHISetShaderProgram(commandList, nullptr);
-	glActiveTexture(GL_TEXTURE0);
-}
-
-void RenderEngine::setupLightShaderParam(ShaderProgram& shader , Light* light )
-{
-	RHICommandList& commandList = RHICommandList::GetImmediateList();
-	shader.setParam(commandList, SHADER_PARAM(colorLight) , light->color );
-	shader.setParam(commandList, SHADER_PARAM(dir) , light->dir );
-	shader.setParam(commandList, SHADER_PARAM(angle) , light->angle );
-	shader.setParam(commandList, SHADER_PARAM(radius), light->radius );
-	shader.setParam(commandList, SHADER_PARAM(intensity) ,light->intensity );
-	shader.setParam(commandList, SHADER_PARAM(isExplosion) , ( light->isExplosion ) ? 1 : 0 );
-}
-
-void RenderEngine::renderGeometryFBO( RenderParam& param )
-{
-	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexGeometry), 0);
-	GLenum DrawBuffers[] =
-	{
-		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
-		GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
+		LinearColor(0,0,0,1),
+		LinearColor(0,0,0,1),
+		//LinearColor(0,0,0,1),
 	};
-	glDrawBuffers(1, DrawBuffers);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
-	glClearColor(0.0, 0.0, 0.0, 1.0f);
-	glLoadIdentity();	
+	RHIClearRenderTargets(commandList, EClearBits::Color, clearColors, ARRAY_SIZE(clearColors));
+	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-	glPushMatrix();
-	//Sprite(Vec2(0,0),Vec2(igra->DajRW()->getSize().x, igra->DajRW()->getSize().y),mt->DajTexturu(1)->id);
-	glTranslatef( - param.camera->getPos().x, - param.camera->getPos().y, 0);			
+	RHISetShaderProgram(commandList, mProgBasePass->getRHI());
 
-	renderTerrain( param.level , param.terrainRange );
-	renderObjects( RP_DIFFUSE , param.level );
+	mProgBasePass->setParam(commandList, SHADER_PARAM(WorldToClip), mDrawer.mBaseTransformRHI);
+	mProgBasePass->setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Identity());
+	mDrawer.mShader = mProgBasePass;
 
-	glPopMatrix();
-
-	glBindFramebuffer(GL_FRAMEBUFFER ,0);
-}
-
-void RenderEngine::renderNormalFBO( RenderParam& param )
-{
-	glBindFramebuffer( GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexNormalMap), 0 );
-	GLenum DrawBuffers[] =
+	visitTiles(param.level, param.terrainRange, [this](Tile const& tile)
 	{
-		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
-		GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
-	};
-	glDrawBuffers(1, DrawBuffers);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
-	glClearColor(0.0, 0.0, 0.0, 1.0f);
-	glLoadIdentity();
+		Block::Get(tile.id)->renderBasePass(mDrawer, tile);
+	});
 
-	glPushMatrix();	
-
-	glTranslatef( - param.camera->getPos().x, - param.camera->getPos().y, 0);
-
-	//Sprite(Vec2(0,0),Vec2(igra->DajRW()->getSize().x, igra->DajRW()->getSize().y),mt->DajTexturu(1)->id);
-	renderTerrainNormal( param.level , param.terrainRange );
-
-	renderObjects( RP_NORMAL , param.level );
-
-	glPopMatrix();
-	glBindFramebuffer(GL_FRAMEBUFFER ,0);
+	renderObjects(RP_BASE_PASS, param.level);
+	RHIResourceTransition(commandList, { mTexGeometry ,mTexNormalMap }, EResourceTransition::SRV);
 }
 
 
-
-void RenderEngine::renderBasePass(RenderParam& param)
+void RenderEngine::renderLighting(RHICommandList& commandList, RenderParam& param )
 {
+	RHIResourceTransition(commandList, { mTexLightmap }, EResourceTransition::RenderTarget);
 
-}
+	RHISetFrameBuffer(commandList, mLightingFrameBuffer);
+	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(mAmbientLight, 1.0), 1);
 
-void RenderEngine::renderLightingFBO( RenderParam& param )
-{
-	renderNormalFBO( param );
+	RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::One, EBlend::One>::GetRHI());
 
-	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, OpenGLCast::GetHandle(mTexLightmap), 0);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mRBODepth ); 
-	GLenum DrawBuffers[] =
-	{
-		GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
-		GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
-	};
-	glDrawBuffers(1, DrawBuffers);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glClearColor( mAmbientLight.x , mAmbientLight.y , mAmbientLight.z , 1.0f);
-	
-	glLoadIdentity();	
-
-	glEnable(GL_BLEND);	
-	glBlendFunc(GL_ONE,GL_ONE);
-
-	//RENDERIRA SE SVE GLOW
+	RHISetShaderProgram(commandList, mProgGlow->getRHI());
+	mProgGlow->setParam(commandList, SHADER_PARAM(XForm), mDrawer.mBaseTransformRHI);
+	mDrawer.mShader = mProgGlow;
+	visitTiles(param.level, param.terrainRange, 
+		[this](Tile const& tile)
+		{
+			Block::Get(tile.id)->renderGlow(mDrawer, tile);
+		}
+	);
+	renderObjects(RP_GLOW, param.level);
 
 	Object* camera = param.camera;
-
-
-	glPushMatrix();
-	glTranslatef(-camera->getPos().x, -camera->getPos().y, 0);
-
-	renderTerrainGlow( param.level , param.terrainRange );
-	renderObjects( RP_GLOW , param.level );
-
-	glPopMatrix();
 
 	float w = param.renderWidth;
 	float h = param.renderHeight;
 
-	ShaderProgram& shader = mShaderLighting;
-
 	RenderLightList& lights = param.level->getRenderLights();
 	TileMap& terrain = param.level->getTerrain();
-
-	for( RenderLightList::iterator iter = lights.begin() , itEnd = lights.end();
-		iter != itEnd ; ++iter )
-	{		
+	Vector2 screenCenter = param.worldToView.transformInvPosition(Vector2(mFrameWidth, mFrameHeight) / 2);
+	Vector2 screenHalfSize = param.worldToView.transformInvVector(Vector2(mFrameWidth, mFrameHeight) / 2);
+	for (RenderLightList::iterator iter = lights.begin(), itEnd = lights.end();
+		iter != itEnd; ++iter)
+	{
 		Light* light = *iter;
 		Vec2f const& lightPos = light->cachePos;
+#if 0
 
-		if( lightPos.x + light->radius < camera->getPos().x ||
-			lightPos.x - light->radius > camera->getPos().x + w ||
-			lightPos.y + light->radius < camera->getPos().y || 
-			lightPos.y - light->radius > camera->getPos().y + h )
+		if (!Math::BoxCircleTest(screenCenter, screenHalfSize, lightPos, light->radius))
 			continue;
-
-		if ( light->drawShadow )
-		{
-			glEnable( GL_STENCIL_TEST );
-			glClear(GL_STENCIL_BUFFER_BIT);
-
-#if 1
-			glColorMask(false, false, false, false);
-#else
-			glColor3f( 0.1 , 0.1 , 0.1 );
 #endif
-			glStencilFunc(GL_ALWAYS, 1, 1);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-			
-			glPushMatrix();
-			glTranslatef(-camera->getPos().x, -camera->getPos().y, 0);
+
+		bool bShowShadowRender = false;
+		if (light->drawShadow && false)
+		{
+			if (bShowShadowRender)
+			{
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One, EBlend::Add >::GetRHI());
+			}
+			else
+			{
+				RHIClearRenderTargets(commandList, EClearBits::Stencil, nullptr, 0, 1.0, 0);
+
+				RHISetDepthStencilState(commandList,
+					TStaticDepthStencilState<
+					true, ECompareFunc::Always,
+					true, ECompareFunc::Always,
+					EStencil::Keep, EStencil::Keep, EStencil::Replace, 0x1 >::GetRHI(), 0x1);
+
+				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
+			}
+
+			RHISetFixedShaderPipelineState(commandList, mDrawer.mBaseTransformRHI);
 
 			TileRange range = param.terrainRange;
 
-			int tx = int( lightPos.x / BLOCK_SIZE );
-			int ty = int( lightPos.y / BLOCK_SIZE );
+			int tx = int(lightPos.x / BLOCK_SIZE);
+			int ty = int(lightPos.y / BLOCK_SIZE);
 
-			if ( tx < range.xMin )
+			if (tx < range.xMin)
 				range.xMin = tx;
-			else if ( tx > range.xMax )
+			else if (tx > range.xMax)
 				range.yMax = tx + 1;
 
-			if ( ty < range.yMin )
+			if (ty < range.yMin)
 				range.yMin = ty;
-			else if ( ty > range.yMax )
+			else if (ty > range.yMax)
 				range.yMax = ty + 1;
 
-			range.xMin = Math::Clamp( range.xMin , 0 , terrain.getSizeX() );
-			range.xMax = Math::Clamp( range.xMax , 0 , terrain.getSizeX() );
-			range.yMin = Math::Clamp( range.yMin , 0 , terrain.getSizeY() );
-			range.yMax = Math::Clamp( range.yMax , 0 , terrain.getSizeY() );
+			range.xMin = Math::Clamp(range.xMin, 0, terrain.getSizeX());
+			range.xMax = Math::Clamp(range.xMax, 0, terrain.getSizeX());
+			range.yMin = Math::Clamp(range.yMin, 0, terrain.getSizeY());
+			range.yMax = Math::Clamp(range.yMax, 0, terrain.getSizeY());
 
-			renderTerrainShadow( param.level , lightPos , light , range );
+			renderTerrainShadow(commandList, param.level, lightPos, light, range);
 
-#if 1
-			glStencilFunc(GL_ALWAYS, 0, 1);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-			for(int i = param.terrainRange.xMin; i < param.terrainRange.xMax; ++i )
-			for(int j = param.terrainRange.yMin; j < param.terrainRange.yMax; ++j )
-			{
-				Tile const& tile = terrain.getData( i , j );
-				Block* block = Block::Get( tile.id );
-				if ( !block->checkFlag( BF_CAST_SHADOW ) )
-					continue;
-
-				block->renderNoTexture( tile );
-			}
-#endif
-
-			glPopMatrix();
-
-			glStencilFunc(GL_EQUAL, 0, 1);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-			glColorMask(true, true, true, true);
+			RHISetDepthStencilState(commandList,
+				TStaticDepthStencilState<
+				true, ECompareFunc::Always,
+				true, ECompareFunc::Equal,
+				EStencil::Keep, EStencil::Keep, EStencil::Keep, 0x1
+				>::GetRHI(), 0x0);
+			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
+			renderLight(commandList, param, lightPos, light);
 		}
 		else
 		{
-			glDisable( GL_STENCIL_TEST );
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			renderLight(commandList, param, lightPos, light);
 		}
 
-		renderLight( param , lightPos , light );
 	}
 
-	glDisable( GL_STENCIL_TEST );
-	glDisable(GL_BLEND);
+	RHIResourceTransition(commandList, { mTexLightmap }, EResourceTransition::SRV);
+}
 
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0 ); 
-	glBindFramebuffer( GL_FRAMEBUFFER ,0);
+void RenderEngine::renderLight(RHICommandList& commandList, RenderParam& param , Vec2f const& lightPos , Light* light )
+{
+	RHISetShaderProgram(commandList, mProgLighting->getRHI());
+
+	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
+
+	mProgLighting->setTexture(commandList, SHADER_PARAM(TexNormalMap), mTexNormalMap, SHADER_SAMPLER(TexNormalMap), samplerState);
+	mProgLighting->setTexture(commandList, SHADER_PARAM(TexBaseColor), mTexGeometry, SHADER_SAMPLER(TexBaseColor), samplerState);
+	mProgLighting->setParam(commandList, SHADER_PARAM(WorldToClip), mDrawer.mBaseTransformRHI);
+
+	LightParams* lightParams = mLightBuffer.lock();
+	if (lightParams)
+	{
+		lightParams->pos = lightPos;
+		lightParams->radius = light->radius;
+		lightParams->intensity = light->intensity;
+		lightParams->isExplosion = (light->isExplosion) ? 1 : 0;
+		lightParams->dir = light->dir;
+		lightParams->angle = light->angle;
+		lightParams->color = light->color;
+
+		mLightBuffer.unlock();
+	}
+
+	SetStructuredUniformBuffer(commandList, *mProgLighting, mLightBuffer);
+	SetStructuredUniformBuffer(commandList, *mProgLighting, mViewBuffer);
+
+	Vector2 size = Vector2(light->radius, light->radius);
+	mDrawer.drawRect(lightPos - size , 2 * size);
+}
+
+void RenderEngine::renderSceneFinal(RHICommandList& commandList, RenderParam& param)
+{
+	QSceneProgram* progScene = mProgScenes[param.mode];
+
+	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+	RHISetShaderProgram(commandList, progScene->getRHI());
+
+	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
+
+	progScene->setTexture(commandList, SHADER_PARAM(TexGeometry) , mTexGeometry , SHADER_SAMPLER(TexGeometry), samplerState);
+	progScene->setTexture(commandList, SHADER_PARAM(TexLightmap) , mTexLightmap, SHADER_SAMPLER(TexLightmap), samplerState);
+	progScene->setTexture(commandList, SHADER_PARAM(TexNormal), mTexNormalMap, SHADER_SAMPLER(TexNormal), samplerState);
+	progScene->setParam(commandList, SHADER_PARAM(ambientLight) , mAmbientLight );
+
+	DrawUtility::ScreenRect(commandList);
 }
 
 static int const offsetX[4] = {-1,0,1,0};
@@ -505,31 +360,31 @@ static int const offsetY[4] = { 0,-1,0,1};
 static Vec2f const tileVertex[4] = { Vec2f(0,0) , Vec2f(BLOCK_SIZE,0) , Vec2f(BLOCK_SIZE,BLOCK_SIZE ) , Vec2f(0,BLOCK_SIZE)   };
 static Vec2f const tileNormal[4] = { Vec2f(-1,0) , Vec2f(0,-1) , Vec2f(1,0) , Vec2f(0,1) };
 
-void RenderEngine::renderTerrainShadow( Level* level , Vec2f const& lightPos , Light* light , TileRange const& range )
+void RenderEngine::renderTerrainShadow(RHICommandList& commandList, Level* level , Vec2f const& lightPos , Light* light , TileRange const& range )
 {
 	TileMap& terrain = level->getTerrain();
 
-#if 1
-	Vec2i tpLight = Vec2i( Math::FloorToInt( lightPos.x / BLOCK_SIZE ) , Math::FloorToInt( lightPos.y / BLOCK_SIZE ) );
-	if ( terrain.checkRange( tpLight.x , tpLight.y ) )
+#if 0
+	Vec2i tpLight = Vec2i(Math::FloorToInt(lightPos.x / BLOCK_SIZE), Math::FloorToInt(lightPos.y / BLOCK_SIZE));
+	if (terrain.checkRange(tpLight.x, tpLight.y))
 	{
-		Tile const& tile = terrain.getData( tpLight.x , tpLight.y );
-		Block* block = Block::Get( tile.id );
-		if ( block->checkFlag( BF_CAST_SHADOW ) )
+		Tile const& tile = terrain.getData(tpLight.x, tpLight.y);
+		Block* block = Block::Get(tile.id);
+		if (block->checkFlag(BF_CAST_SHADOW))
 		{
-			if ( !block->checkFlag( BF_NONSIMPLE ) )
+			if (!block->checkFlag(BF_NONSIMPLE))
 				return;
 
 			Rect bBox;
-			bBox.min = lightPos - Vec2f(0.1,0.1);
-			bBox.max = lightPos + Vec2f(0.1,0.1);
-			if ( block->testIntersect( tile , bBox ) )
+			bBox.min = lightPos - Vec2f(0.1, 0.1);
+			bBox.max = lightPos + Vec2f(0.1, 0.1);
+			if (block->testIntersect(tile, bBox))
 				return;
 		}
 	}
 #endif
-	
-	
+
+
 	for(int i = range.xMin; i < range.xMax ; ++i )
 	{
 		for(int j = range.yMin; j < range.yMax; ++j )
@@ -542,7 +397,7 @@ void RenderEngine::renderTerrainShadow( Level* level , Vec2f const& lightPos , L
 
 			if ( block->checkFlag( BF_NONSIMPLE ) )
 			{
-				block->renderShadow( tile , lightPos , *light );
+				block->renderShadow(mDrawer, tile , lightPos , *light);
 			}
 			else
 			{
@@ -559,14 +414,14 @@ void RenderEngine::renderTerrainShadow( Level* level , Vec2f const& lightPos , L
 						Block* block = Block::Get( terrain.getData( nx , ny ).id );
 
 						if ( !block->checkFlag( BF_NONSIMPLE ) && 
-							block->checkFlag( BF_CAST_SHADOW ) )
+							  block->checkFlag( BF_CAST_SHADOW ) )
 							continue;
 
 					}
 #endif
 					Vec2f offsetCur  = tileVertex[ idxCur ]  + tileOffset;
 
-					if ( offsetCur.dot( tileNormal[ idxCur ] ) >= 0 )
+					if ( offsetCur.dot( tileNormal[ idxCur ] ) < 0 )
 						continue;
 	
 					Vec2f offsetPrev = tileVertex[ idxPrev ] + tileOffset;
@@ -577,13 +432,17 @@ void RenderEngine::renderTerrainShadow( Level* level , Vec2f const& lightPos , L
 					Vec2f v1 = lightPos + 5000 * offsetPrev;
 					Vec2f v2 = lightPos + 5000 * offsetCur;
 
-					glBegin( GL_QUADS );
-					glVertex2f( prev.x , prev.y );
-					glVertex2f( v1.x , v1.y );
-					glVertex2f( v2.x , v2.y  );
-					glVertex2f( cur.x , cur.y );
-					glEnd();
-	
+
+					Vector2 v[] =
+					{
+						prev,
+						v1,
+						v2,
+						cur,
+					};
+
+					TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v));
+
 				}
 			}
 		}
@@ -598,16 +457,14 @@ void RenderEngine::renderObjects( RenderPass pass , Level* level )
 			iter != itEnd ; ++iter )
 		{
 			RenderGroup* group = *iter;
-			group->renderer->renderGroup( pass , group->numObject , group->objectLists );
+			group->renderer->renderGroup(mDrawer, pass , group->numObject , group->objectLists);
 		}
 	}
 	else
 	{
-		level->renderObjects( pass );
+		level->renderObjects(mDrawer, pass);
 	}
 }
-
-
 
 void RenderEngine::updateRenderGroup( RenderParam& param )
 {
@@ -620,7 +477,8 @@ void RenderEngine::updateRenderGroup( RenderParam& param )
 	bBox.max = param.camera->getPos() + Vec2f( param.renderWidth  , param.renderHeight );
 	param.level->getColManager().findBody( bBox , COL_RENDER , mBodyList );
 
-	struct GroupCompFun
+
+	struct GroupCompFunc
 	{
 		bool operator()( RenderGroup* a , RenderGroup* b ) const 
 		{
@@ -642,7 +500,7 @@ void RenderEngine::updateRenderGroup( RenderParam& param )
 		RenderGroup testGroup;
 		testGroup.renderer = renderer;
 		testGroup.order    = renderer->getOrder();
-		RenderGroupVec::iterator iterGroup = std::lower_bound( mRenderGroups.begin() , mRenderGroups.end() , &testGroup , GroupCompFun() );
+		RenderGroupVec::iterator iterGroup = std::lower_bound( mRenderGroups.begin() , mRenderGroups.end() , &testGroup , GroupCompFunc() );
 		
 		RenderGroup* group;
 		if ( iterGroup != mRenderGroups.end() && (*iterGroup)->renderer == renderer )
@@ -666,4 +524,50 @@ void RenderEngine::updateRenderGroup( RenderParam& param )
 		}
 	}
 
+}
+
+void RenderPrimitiveDrawer::setGlow(Texture* texture, Color3f const& color)
+{
+	auto GetResource = [](Texture* texture) -> RHITexture2D&
+	{
+		if (texture)
+		{
+			return *texture->resource;
+		}
+		return *GBlackTexture2D.getResource();
+	};
+	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
+	mShader->setTexture(*mCommandList, SHADER_PARAM(Texture), GetResource(texture), SHADER_SAMPLER(Texture), samplerState);
+	mShader->setParam(*mCommandList, SHADER_PARAM(Color), Color4f(color, 1.0f));
+}
+
+void RenderPrimitiveDrawer::setMaterial(PrimitiveMat const& mat)
+{
+	auto GetResource = [](Texture* texture) -> RHITexture2D&
+	{
+		if (texture)
+		{
+			return *texture->resource;
+		}
+		return *GBlackTexture2D.getResource();
+	};
+
+	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
+	mShader->setTexture(*mCommandList, SHADER_PARAM(BaseTexture), GetResource(mat.baseTex), SHADER_SAMPLER(BaseTexture), samplerState);
+	mShader->setTexture(*mCommandList, SHADER_PARAM(NormalTexture), GetResource(mat.normalTex), SHADER_SAMPLER(NormalTexture), samplerState);
+	mShader->setParam(*mCommandList, SHADER_PARAM(Color), Color4f(mat.color, mAlpha));
+}
+
+void RenderPrimitiveDrawer::beginTranslucent(float alpha)
+{
+	auto& blendState = TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha , EBlend::Add, 
+		EBlend::One, EBlend::Zero, EBlend::Add, false , true , CWM_None >::GetRHI();
+	RHISetBlendState(*mCommandList, blendState);
+	mAlpha = alpha;
+}
+
+void RenderPrimitiveDrawer::endTranslucent()
+{
+	RHISetBlendState(*mCommandList, TStaticBlendState<>::GetRHI());
+	mAlpha = 1.0f;
 }

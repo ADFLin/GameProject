@@ -4,16 +4,16 @@
 #include "Renderer.h"
 #include "Object.h"
 
+
+class PrimitiveDrawer;
+
 class IObjectRenderer : public IRenderer
 {
 public:
 	IObjectRenderer();
 
-	virtual void render( RenderPass pass , LevelObject* object ) = 0;
-	virtual void renderGroup( RenderPass pass , int numObj , LevelObject* object );
-
-	virtual void renderMRT( LevelObject* object ){}
-	virtual void renderGroupMRT( int numObj , LevelObject* object );
+	virtual void render(PrimitiveDrawer& drawer, RenderPass pass, LevelObject* object) = 0;
+	virtual void renderGroup(PrimitiveDrawer& drawer, RenderPass pass , int numObj , LevelObject* object);
 
 	int    getOrder(){ return mRenderOrder; }
 	static LevelObject* NextObject( LevelObject* obj ){ return obj->renderLink; }

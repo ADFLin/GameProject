@@ -306,21 +306,44 @@ namespace Render
 	{
 		if (elementSize == 0 || numElements == 0)
 			return nullptr;
-		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBuffer(elementSize, numElements, creationFlags, data)));
+
+		BufferDesc desc;
+		desc.elementSize = elementSize;
+		desc.numElements = numElements;
+		desc.creationFlags = creationFlags | BCF_UsageIndex;
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data)));
+	}
+
+	RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, BufferDesc const& desc, void* data)
+	{
+		if (desc.elementSize == 0 || desc.numElements == 0)
+			return nullptr;
+
+		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data)));
 	}
 
 	RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer, uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
 		if (vertexSize == 0 || numVertices == 0)
 			return nullptr;
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(vertexSize, numVertices, creationFlags | BCF_UsageVertex, data) ) );
+
+		BufferDesc desc;
+		desc.elementSize = vertexSize;
+		desc.numElements = numVertices;
+		desc.creationFlags = creationFlags | BCF_UsageVertex;
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data) ) );
 	}
 
 	RHIBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer, uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
 		if (nIndices == 0)
 			return nullptr;
-		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(bIntIndex ? sizeof(uint32) : sizeof(uint16), nIndices, creationFlags | BCF_UsageIndex, data)) );
+
+		BufferDesc desc;
+		desc.elementSize = bIntIndex ? sizeof(uint32) : sizeof(uint16);
+		desc.numElements = nIndices;
+		desc.creationFlags = creationFlags | BCF_UsageIndex;
+		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data)) );
 	}
 
 	void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)

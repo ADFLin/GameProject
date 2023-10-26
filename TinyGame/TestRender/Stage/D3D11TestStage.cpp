@@ -100,7 +100,7 @@ namespace Render
 				desc.addElement(0, EVertex::ATTRIBUTE_TEXCOORD, EVertex::Float2);
 				VERIFY_RETURN_FALSE(mInputLayout = RHICreateInputLayout(desc));
 
-				int32 indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
+				uint32 indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
 				VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true, BCF_DefalutValue, indices));
 			}
 
@@ -202,7 +202,7 @@ namespace Render
 			mView.updateRHIResource();
 
 			RHISetFrameBuffer(commandList, nullptr);
-			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 
 		
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
@@ -229,7 +229,7 @@ namespace Render
 
 			}
 
-			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < ESampler::Trilinear >::GetRHI());
+			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_SAMPLER(Texture), TStaticSamplerState < ESampler::Trilinear >::GetRHI());
 			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
 			mProgTest.setStructuredUniformBufferT< ColorBuffer >(commandList, *mCBuffer.getRHI());
 			mView.setupShader(commandList, mProgTest);
@@ -323,6 +323,22 @@ namespace Render
 					TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::TriangleList, vetices, 3, Vector3(1, 0, 0));
 				}
 
+			}
+
+
+			Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1);
+			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix), LinearColor(1, 0, 0, 1));
+			{
+
+				Vector2 v[] = { Vector2(1,1) , Vector2(100,100), Vector2(1,100), Vector2(100,1) };
+				uint32 indices[] = { 0, 2, 2, 1,1,3,3,0 };
+				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, v, ARRAY_SIZE(v), indices, ARRAY_SIZE(indices));
+			}
+			{
+
+				Vector2 v[] = { Vector2(100,100) , Vector2(200,200), Vector2(100,200), Vector2(200,100) };
+				uint32 indices[] = { 0, 2, 2, 1,1,3,3,0 };
+				TRenderRT< RTVF_XY >::DrawIndexed(commandList, EPrimitive::LineList, v, ARRAY_SIZE(v), indices, ARRAY_SIZE(indices));
 			}
 
 			{

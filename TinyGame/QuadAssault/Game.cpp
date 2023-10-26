@@ -113,10 +113,12 @@ bool Game::initRenderSystem()
 {
 	QA_LOG("Build Render System...");
 	mRenderSystem.reset(new RenderSystem);
-	if (!mRenderSystem->init(mWindow))
+	if (!mRenderSystem->init(mWindow, false))
 	{
 		return false;
 	}
+	mRenderSystem->mGraphics2D = mGraphics2D;
+
 	QA_LOG("Initialize Render Engine...");
 	mRenderEngine.reset(new RenderEngine);
 	VERIFY_RETURN_FALSE(mRenderEngine->init(mScreenSize.x, mScreenSize.y));
@@ -245,7 +247,7 @@ void Game::run()
 	
 	timeFrame = Platform::GetTickCount();
 	frameCount = 0;
-	text = IText::create( mFonts[0] , 18 , Color4ub(255,255,25) );
+	text = IText::Create( mFonts[0] , 18 , Color4ub(255,255,25) );
 
 	std::fill_n( fpsSamples , NUM_FPS_SAMPLES , 60.0f );
 
@@ -299,7 +301,11 @@ MsgReply Game::onMouse( MouseMsg const& msg )
 		if ( !msg.onMoving() )
 			return MsgReply::Unhandled();
 	}
-	mStageStack.back()->onMouse( msg );
+	if (!mStageStack.empty())
+	{
+		mStageStack.back()->onMouse(msg);
+	}
+
 	return MsgReply::Unhandled();
 }
 
@@ -308,8 +314,11 @@ MsgReply Game::onKey(KeyMsg const& msg)
 	MsgReply reply = GUISystem::Get().mManager.procKeyMsg(msg);
 	if ( reply.isHandled() )
 		return reply;
-
-	return mStageStack.back()->onKey( msg );
+	if (!mStageStack.empty())
+	{
+		return mStageStack.back()->onKey(msg);
+	}
+	return MsgReply::Unhandled();
 }
 
 MsgReply Game::onChar( unsigned code )

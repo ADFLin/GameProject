@@ -157,6 +157,7 @@ namespace SBlocks
 		}
 
 		g.endRender();
+
 		RHIFlushCommand(commandList);
 	}
 
@@ -208,7 +209,7 @@ namespace SBlocks
 
 	ERenderSystem LevelStage::getDefaultRenderSystem()
 	{
-		return ERenderSystem::D3D11;
+		return ERenderSystem::None;
 	}
 
 	bool LevelStage::setupRenderResource(ERenderSystem systemName)

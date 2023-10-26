@@ -31,7 +31,7 @@
 namespace Render
 {
 
-	ShaderFormatHLSL_D3D12::ShaderFormatHLSL_D3D12(TComPtr< ID3D12Device8 >& inDevice) :mDevice(inDevice)
+	ShaderFormatHLSL_D3D12::ShaderFormatHLSL_D3D12(TComPtr< ID3D12DeviceRHI >& inDevice) :mDevice(inDevice)
 	{
 
 	}
@@ -194,6 +194,99 @@ namespace Render
 
 	}
 
+	void ShaderFormatHLSL_D3D12::compileRTCodeTest()
+	{
+#if TARGET_PLATFORM_64BITS && 0
+		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
+
+		bool bSuccess;
+		do
+		{
+			bSuccess = true;
+			TArray< uint8 > codeBuffer;
+			if (!loadCode(context, codeBuffer))
+				return false;
+
+
+			uint32_t codePage = CP_UTF8;
+			TComPtr<IDxcBlobEncoding> sourceBlob;
+			VERIFY_D3D_RESULT_RETURN_FALSE(mLibrary->CreateBlobWithEncodingFromPinned(codeBuffer.data(), (uint32)codeBuffer.size(), codePage, &sourceBlob));
+
+			wchar_t const* profileName = L"lib_6_1";
+
+			wchar_t const* args[16];
+			int numArgs = 0;
+			if (GRHIPrefEnabled)
+			{
+				args[numArgs++] = L"-Zi";
+			}
+			char const* fileName = FFileUtility::GetFileName(context.getPath());
+			TComPtr<IDxcOperationResult> compileResult;
+			HRESULT hr = mCompiler->Compile(
+				sourceBlob, // pSource
+				FCString::CharToWChar(fileName).c_str(), // pSourceName
+				FCString::CharToWChar(context.getEntry()).c_str(), // pEntryPoint
+				profileName, // pTargetProfile
+				args, numArgs, // pArguments, argCount
+				NULL, 0, // pDefines, defineCount
+				NULL, // pIncludeHandler
+				&compileResult); // ppResult
+			if (SUCCEEDED(hr))
+			{
+				compileResult->GetStatus(&hr);
+				if (FAILED(hr))
+				{
+					bSuccess = false;
+				}
+			}
+			else
+			{
+				bSuccess = false;
+			}
+
+			if (!bSuccess)
+			{
+				if (context.bUsePreprocess)
+				{
+					FFileUtility::SaveFromBuffer("temp" SHADER_FILE_SUBNAME, codeBuffer.data(), codeBuffer.size());
+				}
+
+				TComPtr<IDxcBlobEncoding> errorsBlob;
+				hr = compileResult->GetErrorBuffer(&errorsBlob);
+				emitCompileError(context, (LPCSTR)errorsBlob->GetBufferPointer());
+				continue;
+			}
+
+			TComPtr<IDxcBlob> shaderCode;
+			compileResult->GetResult(&shaderCode);
+
+			if (context.programSetupData)
+			{
+				D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*context.programSetupData->resource);
+				auto& shaderData = shaderProgramImpl.mShaderDatas[context.shaderIndex];
+
+				if (!shaderData.initialize(shaderCode))
+					return false;
+				shaderData.type = context.getType();
+			}
+			else
+			{
+				auto* shaderImpl = static_cast<D3D12Shader*>(RHICreateShader(context.getType()));
+				if (!shaderImpl->initialize(shaderCode))
+				{
+					LogWarning(0, "Can't create shader resource");
+					return false;
+				}
+				context.shaderSetupData->resource = shaderImpl;
+			}
+		} while (!bSuccess && context.bRecompile);
+
+		return bSuccess;
+#else
+
+#endif
+	}
+
 	bool ShaderFormatHLSL_D3D12::ensureDxcObjectCreation()
 	{
 #if TARGET_PLATFORM_64BITS
@@ -219,8 +312,7 @@ namespace Render
 
 		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
 
-		D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
-		D3D12Shader::SetupShader(shaderImpl.rootSignature, shaderImpl.mType);
+		D3D12Shader::GenerateParameterMap(shaderImpl.mType, shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
 		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
 #else
@@ -240,8 +332,7 @@ namespace Render
 		if (!shaderImpl.initialize(std::move(temp)))
 			return false;
 
-		D3D12Shader::GenerateParameterMap(shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
-		D3D12Shader::SetupShader(shaderImpl.rootSignature, shaderImpl.mType);
+		D3D12Shader::GenerateParameterMap(shaderImpl.mType, shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
 		shader.bindParameters(shaderImpl.mParameterMap);
 		return true;
 #else
@@ -298,8 +389,12 @@ namespace Render
 
 
 
-	bool D3D12Shader::GenerateParameterMap(TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature)
+	bool D3D12Shader::GenerateParameterMap(EShader::Type type, TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature)
 	{
+
+		auto visibility = D3D12Translate::ToVisibiltiy(type);
+		inOutSignature.visibility = visibility;
+
 #if TARGET_PLATFORM_64BITS
 		TComPtr<IDxcContainerReflection> containerReflection;
 		VERIFY_D3D_RESULT_RETURN_FALSE(DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&containerReflection)));
@@ -323,9 +418,27 @@ namespace Render
 			return param;
 		};
 
-		inOutSignature.globalCBRegister = INDEX_NONE;
 		D3D12_SHADER_DESC shaderDesc;
 		reflection->GetDesc(&shaderDesc);
+
+		int slotOffset = 0;
+		inOutSignature.globalCBRegister = INDEX_NONE;
+		for (int i = 0; i < shaderDesc.ConstantBuffers; ++i)
+		{
+			ID3D12ShaderReflectionConstantBuffer* buffer = reflection->GetConstantBufferByIndex(i);
+			assert(buffer);
+			D3D12_SHADER_BUFFER_DESC bufferDesc;
+			buffer->GetDesc(&bufferDesc);
+			if (FCString::Compare(bufferDesc.Name, "$Globals") == 0)
+			{
+				D3D12_ROOT_PARAMETER1 parameter = {};
+				inOutSignature.parameters.push_back(parameter);
+				++slotOffset;
+				break;
+			}
+		}
+
+
 		for (int i = 0; i < shaderDesc.BoundResources; ++i)
 		{
 			D3D12_SHADER_INPUT_BIND_DESC bindDesc;
@@ -334,21 +447,23 @@ namespace Render
 			switch (bindDesc.Type)
 			{
 			case D3D_SIT_CBUFFER:
-			case D3D_SIT_TBUFFER:
 				{
-
 					ID3D12ShaderReflectionConstantBuffer* buffer = reflection->GetConstantBufferByName(bindDesc.Name);
 					assert(buffer);
 					D3D12_SHADER_BUFFER_DESC bufferDesc;
 					buffer->GetDesc(&bufferDesc);
 					if (FCString::Compare(bufferDesc.Name, "$Globals") == 0)
 					{
-						ShaderParameterSlotInfo slot;
-						slot.slotOffset = 0;
-						//inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
-
 						inOutSignature.globalCBRegister = bindDesc.BindPoint;
 						inOutSignature.globalCBSize = bufferDesc.Size;
+
+						D3D12_ROOT_PARAMETER1& parameter = inOutSignature.parameters[0];
+						parameter.ShaderVisibility = visibility;
+						parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+						parameter.Descriptor.ShaderRegister = inOutSignature.globalCBRegister;
+
+						ShaderParameterSlotInfo slot;
+						slot.slotOffset = 0;
 
 						for (int idxVar = 0; idxVar < bufferDesc.Variables; ++idxVar)
 						{
@@ -398,20 +513,39 @@ namespace Render
 					else
 					{
 						ShaderParameterSlotInfo slot;
-						slot.slotOffset = inOutSignature.descRanges.size();
+						slot.slotOffset = slotOffset++;
+#if 0
+						slot.type = ShaderParameterSlotInfo::eDescriptorTable_CVB;
 						inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
-						//CBuffer TBuffer
+#else
 						slot.type = ShaderParameterSlotInfo::eCVB;
+						D3D12_ROOT_PARAMETER1 parameter = {};
+						parameter.ShaderVisibility = visibility;
+						parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+						parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
+						inOutSignature.parameters.push_back(parameter);
+#endif
+
 						auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if SHADER_DEBUG
 						param.mbindType = EShaderParamBindType::UniformBuffer;
 #endif
-					}
-
-					
+					}				
 				}
 				break;
-
+			case D3D_SIT_TBUFFER:
+				{
+					ShaderParameterSlotInfo slot;
+					slot.slotOffset = slotOffset++;
+					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
+					//TBuffer
+					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
+					auto& param = AddToParameterMap(bindDesc.Name, slot);
+#if SHADER_DEBUG
+					param.mbindType = EShaderParamBindType::TextureBuffer;
+#endif
+				}
+				break;
 			case D3D_SIT_SAMPLER:
 				{
 #if 0
@@ -431,11 +565,11 @@ namespace Render
 					sampler.MaxLOD = D3D12_FLOAT32_MAX;
 					sampler.ShaderRegister = bindDesc.BindPoint;
 					sampler.RegisterSpace = 0;
-					sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+					sampler.ShaderVisibility = visibility;
 					inOutSignature.samplers.push_back(sampler);
 #else
 					ShaderParameterSlotInfo slot;
-					slot.slotOffset = inOutSignature.descRanges.size();
+					slot.slotOffset = slotOffset++;
 					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eSampler;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
@@ -449,24 +583,36 @@ namespace Render
 			case D3D_SIT_TEXTURE:
 				{
 					ShaderParameterSlotInfo slot;
-					slot.slotOffset = inOutSignature.descRanges.size();
+					slot.slotOffset = slotOffset++;
 					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
-					slot.type = ShaderParameterSlotInfo::eSRV;
+					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::Texture;
-#endif
-					
+#endif			
 				}
 				break;
-			case D3D_SIT_UAV_RWTYPED:
-			case D3D_SIT_UAV_APPEND_STRUCTURED:
 			case D3D_SIT_STRUCTURED:
 				{
 					ShaderParameterSlotInfo slot;
-					slot.slotOffset = inOutSignature.descRanges.size();
+					slot.slotOffset = slotOffset++;
+					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
+					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
+					auto& param = AddToParameterMap(bindDesc.Name, slot);
+#if SHADER_DEBUG
+					param.mbindType = EShaderParamBindType::StorageBuffer;
+#endif			
+				}
+				break;
+
+				break;
+			case D3D_SIT_UAV_RWTYPED:
+			case D3D_SIT_UAV_APPEND_STRUCTURED:	
+				{
+					ShaderParameterSlotInfo slot;
+					slot.slotOffset = slotOffset++;
 					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
-					slot.type = ShaderParameterSlotInfo::eUAV;
+					slot.type = ShaderParameterSlotInfo::eDescriptorTable_UAV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::StorageBuffer;
@@ -475,31 +621,21 @@ namespace Render
 				break;
 			}
 		}
+
+		for (int index = 0; index < inOutSignature.descRanges.size(); ++index)
+		{
+			D3D12_ROOT_PARAMETER1 parameter;
+			parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			parameter.DescriptorTable.pDescriptorRanges = inOutSignature.descRanges.data() + index;
+			parameter.DescriptorTable.NumDescriptorRanges = 1;
+			parameter.ShaderVisibility = visibility;
+			inOutSignature.parameters.push_back(parameter);
+		}
+
 		return true;
 #else
 		return false;
 #endif
-	}
-
-	void D3D12Shader::SetupShader(ShaderRootSignature& inOutSignature, EShader::Type type)
-	{
-		auto visibility = D3D12Translate::ToVisibiltiy(type);
-		inOutSignature.visibility = visibility;
-		for (auto& sampler : inOutSignature.samplers)
-		{
-			sampler.ShaderVisibility = visibility;
-		}
-
-		if (inOutSignature.globalCBRegister != INDEX_NONE)
-		{
-			for (auto& slot : inOutSignature.slots)
-			{
-				if (slot.type != ShaderParameterSlotInfo::eGlobalValue)
-				{
-					slot.slotOffset += 1;	
-				}
-			}
-		}
 	}
 
 	bool D3D12ShaderData::initialize(TComPtr<IDxcBlob>& shaderCode)
@@ -513,16 +649,6 @@ namespace Render
 	{
 		code = std::move(binaryCode);
 		return true;
-	}
-
-	D3D12_ROOT_PARAMETER1 D3D12ShaderData::getRootParameter(int index, int num /*= 1*/) const
-	{
-		D3D12_ROOT_PARAMETER1 result;
-		result.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-		result.DescriptorTable.pDescriptorRanges = rootSignature.descRanges.data() + index;
-		result.DescriptorTable.NumDescriptorRanges = num;
-		result.ShaderVisibility = rootSignature.visibility;
-		return result;
 	}
 
 }//namespace Render

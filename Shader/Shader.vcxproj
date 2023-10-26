@@ -164,6 +164,7 @@
     <None Include="..\TinyGame\out\Shader\DFFTCommon.sgc" />
     <None Include="..\TinyGame\out\Shader\DistanceField.sgc" />
     <None Include="..\TinyGame\out\Shader\DOF.sgc" />
+    <None Include="..\TinyGame\out\Shader\DoubleSim.sgc" />
     <None Include="..\TinyGame\out\Shader\EnvLightTextureGen.sgc" />
     <None Include="..\TinyGame\out\Shader\FFT.sgc" />
     <None Include="..\TinyGame\out\Shader\Game\BumpMapTest.sgc" />
@@ -245,6 +246,7 @@
     <None Include="..\TinyGame\out\Shader\SSAO.sgc" />
     <None Include="..\TinyGame\out\Shader\Template\Test.sgc" />
     <None Include="..\TinyGame\out\Shader\Terrain.sgc" />
+    <None Include="..\TinyGame\out\Shader\Test\D3D12Raytracing.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\HLSLTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\MeshShaderTest.sgc" />
     <None Include="..\TinyGame\out\Shader\Test\D3D12Simple.sgc" />

@@ -16,6 +16,11 @@ struct FMemory
 		return ::memcpy(dest, src, size);
 	}
 
+	static void* Set(void* ptr, int val , size_t size)
+	{
+		return ::memset(ptr, val, size);
+	}
+
 	static void* Zero(void* ptr, size_t size)
 	{
 		return ::memset(ptr, 0, size);

@@ -8,19 +8,24 @@
 #define HAVE_TEXTCOORD 1
 #endif
 
+
+#if HAVE_VERTEX_COLOR || HAVE_TEXTCOORD
 struct OutputVSParam
 {
+#if HAVE_VERTEX_COLOR
 	float4 color MEMBER_OUT(TEXCOORD0);
+#endif
 #if HAVE_TEXTCOORD
 	float2 UV    MEMBER_OUT(TEXCOORD1);
 #endif
 };
+#endif
 
+uniform float4   Color;
 
 #if VERTEX_SHADER
 
 uniform float4x4 XForm;
-uniform float4   Color;
 
 VS_ENTRY_START(MainVS)
 	VS_INPUT(float4 InPos, ATTRIBUTE_POSITION)
@@ -30,14 +35,15 @@ VS_ENTRY_START(MainVS)
 #if HAVE_VERTEX_COLOR
 	VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
 #endif
+#if HAVE_VERTEX_COLOR || HAVE_TEXTCOORD
 	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
+#endif
 VS_ENTRY_END(MainVS)
 {
 	SvPosition = mul( XForm , InPos);
+	//SvPosition = float4(InPos / float2(800, 600) , 0 , 1);
 #if HAVE_VERTEX_COLOR
 	OutputVS.color = Color * InColor;
-#else
-	OutputVS.color = Color;
 #endif
 #if HAVE_TEXTCOORD
 	OutputVS.UV    = InUV;
@@ -51,18 +57,25 @@ VS_ENTRY_END(MainVS)
 DEFINE_TEXTURE( Texture2D , Texture );
 
 PS_ENTRY_START(MainPS)
+#if HAVE_VERTEX_COLOR || HAVE_TEXTCOORD
 	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
+#endif
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(MainPS)
 {
-#if HAVE_TEXTCOORD
-	float4 texColor = TEXTURE_SAMPLE(Texture, OutputVS.UV);
-	OutColor = texColor * OutputVS.color;
-	//OutColor = float4(OutputVS.UV, 0, 1);
+#if HAVE_VERTEX_COLOR
+	float4 color = OutputVS.color;
 #else
-	OutColor = OutputVS.color;
+	float4 color = Color;
 #endif
 
+#if HAVE_TEXTCOORD
+	float4 texColor = TEXTURE_SAMPLE(Texture, OutputVS.UV);
+	OutColor = texColor * color;
+	//OutColor = float4(OutputVS.UV, 0, 1);
+#else
+	OutColor = color;
+#endif
 }
 
 #endif //PIXEL_SHADER

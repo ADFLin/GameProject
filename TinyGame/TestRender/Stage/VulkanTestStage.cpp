@@ -256,19 +256,20 @@ namespace RenderVulkan
 			VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer(ARRAY_SIZE(indices), true , BCF_DefalutValue , indices));
 
 
-			GraphicsPipelineStateDesc graphicsState;
+			GraphicsRenderStateDesc graphicsState;
 			graphicsState.primitiveType = EPrimitive::TriangleList;
 			graphicsState.rasterizerState = &TStaticRasterizerState<ECullMode::None>::GetRHI();
 			graphicsState.depthStencilState = &TStaticDepthStencilState<>::GetRHI();
 			graphicsState.blendState = &TStaticBlendState<>::GetRHI();
 
 			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mShaderProgram, "Shader/Test/VulkanTest", "MainVS", "MainPS"));
-			graphicsState.shaderProgram = mShaderProgram.getRHI();
+
+			RHIShaderProgram* boundShaderProgram = mShaderProgram.getRHI();
 
 			setupDescriptorPool();
 
-			pipelineLayout = VulkanCast::To(graphicsState.shaderProgram)->mPipelineLayout;
-			descriptorSetLayout = VulkanCast::To(graphicsState.shaderProgram)->mDescriptorSetLayout;
+			pipelineLayout = VulkanCast::To(boundShaderProgram)->mPipelineLayout;
+			descriptorSetLayout = VulkanCast::To(boundShaderProgram)->mDescriptorSetLayout;
 
 			setupDescriptorSet();
 
@@ -324,12 +325,12 @@ namespace RenderVulkan
 
 				pipelineInfo.pMultisampleState = &multisampleState;
 
-				if (graphicsState.shaderProgram)
+				if (boundShaderProgram)
 				{
-					TArray< VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(graphicsState.shaderProgram)->mStages;
+					TArray< VkPipelineShaderStageCreateInfo > const& shaderStages = VulkanCast::To(boundShaderProgram)->mStages;
 					pipelineInfo.pStages = shaderStages.data();
 					pipelineInfo.stageCount = shaderStages.size();
-					pipelineInfo.layout = VulkanCast::To(graphicsState.shaderProgram)->mPipelineLayout;
+					pipelineInfo.layout = VulkanCast::To(boundShaderProgram)->mPipelineLayout;
 				}
 				else
 				{

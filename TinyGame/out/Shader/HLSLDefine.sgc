@@ -13,6 +13,7 @@
 
 #else
 
+#define SV_InstanceID
 #define SV_POSITION
 #define SV_GroupID
 #define SV_GroupThreadID

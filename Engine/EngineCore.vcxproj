@@ -238,7 +238,6 @@
     <ClCompile Include="DataCacheInterface.cpp" />
     <ClCompile Include="DataStructure\ClassTree.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
-    <ClCompile Include="FrameAllocator.cpp" />
     <ClCompile Include="GameFramework\EntityManager.cpp" />
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp" />
     <ClCompile Include="Image\GIFLoader.cpp" />
@@ -259,6 +258,8 @@
     <ClCompile Include="Math\PrimitiveTest.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Transform.cpp" />
+    <ClCompile Include="Memory\BuddyAllocator.cpp" />
+    <ClCompile Include="Memory\FrameAllocator.cpp" />
     <ClCompile Include="Misc\Guid.cpp" />
     <ClCompile Include="Misc\ImageMergeHelper.cpp" />
     <ClCompile Include="Module\ModularFeature.cpp" />
@@ -295,8 +296,6 @@
     <ClInclude Include="Algo\AStarDefultPolicy.h" />
     <ClInclude Include="Algo\Combination.h" />
     <ClInclude Include="Algo\IDAStar.h" />
-    <ClInclude Include="Alloc.h" />
-    <ClInclude Include="AllocFIFO.h" />
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="AssetViewer.h" />
@@ -336,7 +335,6 @@
     <ClInclude Include="BitmapDC.h" />
     <ClInclude Include="Bitset.h" />
     <ClInclude Include="BitUtility.h" />
-    <ClInclude Include="CacheAllocator.h" />
     <ClInclude Include="DataCacheInterface.h" />
     <ClInclude Include="DataStructure\Array.h" />
     <ClInclude Include="DataStructure\AVLTree.h" />
@@ -371,6 +369,11 @@
     <ClInclude Include="Math\TVector2.h" />
     <ClInclude Include="Math\TVector3.h" />
     <ClInclude Include="Math\TVector4.h" />
+    <ClInclude Include="Memory\Alloc.h" />
+    <ClInclude Include="Memory\AllocFIFO.h" />
+    <ClInclude Include="Memory\BuddyAllocator.h" />
+    <ClInclude Include="Memory\CacheAllocator.h" />
+    <ClInclude Include="Memory\FrameAllocator.h" />
     <ClInclude Include="Meta\EnableIf.h" />
     <ClInclude Include="Meta\FunctionCall.h" />
     <ClInclude Include="Meta\IndexList.h" />
@@ -400,7 +403,6 @@
     <ClInclude Include="InlineString.h" />
     <ClInclude Include="Flag.h" />
     <ClInclude Include="FlowSystem.h" />
-    <ClInclude Include="FrameAllocator.h" />
     <ClInclude Include="FunctionTraits.h" />
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameLoop.h" />

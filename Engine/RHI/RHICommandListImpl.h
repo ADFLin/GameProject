@@ -46,6 +46,9 @@ namespace Render
 		RHI_FUNC(void RHIClearSRVResource(RHIResource* resource));
 		RHI_FUNC(void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ));
 
+
+		RHI_FUNC(void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition));
+
 		RHI_FUNC(void RHIFlushCommand());
 
 		//Shader
@@ -102,7 +105,6 @@ namespace Render
 		RHI_FUNC(void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer));
 		RHI_FUNC(void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op));
 		RHI_FUNC(void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer));
-
 	};
 
 

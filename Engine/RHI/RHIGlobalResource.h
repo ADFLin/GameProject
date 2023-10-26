@@ -426,6 +426,9 @@ namespace Render
 				SET_TRAGET_VALUE(1);
 				SET_TRAGET_VALUE(2);
 				SET_TRAGET_VALUE(3);
+
+				for (int i = 4; i < ARRAY_SIZE(initializer.targetValues); ++i)
+					initializer.targetValues[i].setZero();
 			}
 #undef SET_TRAGET_VALUE
 			return initializer;

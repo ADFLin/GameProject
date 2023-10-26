@@ -14,9 +14,9 @@ namespace Bejeweled
 		mScene.setBoardPos( pos );
 
 		::Global::GUI().cleanupWidget();
-		WidgetUtility::CreateDevFrame();
 
 		restart();
+		WidgetUtility::CreateDevFrame();
 		return true;
 	}
 

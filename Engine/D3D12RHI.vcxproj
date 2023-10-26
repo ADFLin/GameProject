@@ -30,14 +30,17 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="RHI\D3D12Buffer.cpp" />
     <ClCompile Include="RHI\D3D12Command.cpp" />
     <ClCompile Include="RHI\D3D12Common.cpp" />
     <ClCompile Include="RHI\D3D12ShaderCommon.cpp" />
     <ClCompile Include="RHI\D3D12Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="RHI\D3D12Buffer.h" />
     <ClInclude Include="RHI\D3D12Command.h" />
     <ClInclude Include="RHI\D3D12Common.h" />
+    <ClInclude Include="RHI\D3D12Definations.h" />
     <ClInclude Include="RHI\D3D12ShaderCommon.h" />
     <ClInclude Include="RHI\D3D12Utility.h" />
   </ItemGroup>

@@ -196,7 +196,6 @@ namespace Render
 		case EPrimitive::LineList: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
 		case EPrimitive::LineStrip: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
 		case EPrimitive::TriangleAdjacency: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		case EPrimitive::PatchPoint1: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 		case EPrimitive::Polygon:
 		case EPrimitive::TriangleFan:
 		case EPrimitive::LineLoop:
@@ -222,11 +221,6 @@ namespace Render
 			state.colorBuffers[0].RTVHandle = D3D12DescriptorHeapPool::Get().allocRTV(state.colorBuffers[0].resource, nullptr);
 			D3D12_RESOURCE_DESC desc = state.colorBuffers[0].resource->GetDesc();
 			state.colorBuffers[0].format = desc.Format;
-
-			//#TODO:depth
-			state.depthBuffer.format;
-			state.depthBuffer.resource;
-			//state.depthBuffer.RTVHandle;
 		}
 
 		return true;
@@ -369,6 +363,74 @@ namespace Render
 
 		mDesc = desc;
 		mHandle = D3D12DescriptorHeapPool::Get().allocSampler(desc);
+	}
+
+
+	void D3D12Buffer::releaseResource()
+	{
+		if (mDynamicAllocation.ptr)
+		{
+			D3D12DynamicBufferManager::Get().dealloc(mDynamicAllocation.buddyInfo);
+		}
+		D3D12DescriptorHeapPool::FreeHandle(mCBV);
+		D3D12DescriptorHeapPool::FreeHandle(mSRV);
+		D3D12DescriptorHeapPool::FreeHandle(mUAV);
+
+		TD3D12Resource< RHIBuffer >::releaseResource();
+	}
+
+	int D3D12FrameBuffer::addTexture(RHITexture2D& target, int level /*= 0*/)
+	{
+		int index = getFreeSlot();
+		if (index != INDEX_NONE)
+		{
+			setTextureInternal(index, target, level);
+		}
+		return INDEX_NONE;
+	}
+
+	void D3D12FrameBuffer::setTextureInternal(int index, RHITexture2D& target, int level)
+	{
+		CHECK(level == 0);
+		auto& targetImpl = static_cast<D3D12Texture2D&>(target);
+		auto& bufferState = mRenderTargetsState.colorBuffers[index];
+		bufferState.resource.assign(targetImpl.getResource());
+		D3D12_RESOURCE_DESC desc = bufferState.resource->GetDesc();
+		bufferState.format = desc.Format;
+		bufferState.RTVHandle = targetImpl.mRTVorDSV;
+		bStateDirty = true;
+	}
+
+	void D3D12FrameBuffer::setDepth(RHITexture2D& target)
+	{
+		auto& targetImpl = static_cast<D3D12Texture2D&>(target);
+		auto& bufferState = mRenderTargetsState.depthBuffer;
+		bufferState.resource.assign(targetImpl.getResource());
+		D3D12_RESOURCE_DESC desc = bufferState.resource->GetDesc();
+		bufferState.format = desc.Format;
+		bufferState.DSVHandle = targetImpl.mRTVorDSV;
+		bStateDirty = true;
+	}
+
+	void D3D12FrameBuffer::removeDepth()
+	{
+		auto& bufferState = mRenderTargetsState.depthBuffer;
+		if (bufferState.resource.isValid())
+		{
+			bufferState.resource.reset();
+			bufferState.format = DXGI_FORMAT_UNKNOWN;
+			bufferState.DSVHandle.reset();
+		}
+	}
+
+	int D3D12FrameBuffer::getFreeSlot()
+	{
+		for (int i = 0; i < D3D12RenderTargetsState::MaxSimulationBufferCount; ++i)
+		{
+			if (!mRenderTargetsState.colorBuffers[i].resource.isValid())
+				return i;
+		}
+		return INDEX_NONE;
 	}
 
 

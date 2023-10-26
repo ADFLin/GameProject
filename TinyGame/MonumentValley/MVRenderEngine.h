@@ -14,7 +14,7 @@
 
 #include "Renderer/Mesh.h"
 
-#include "FrameAllocator.h"
+#include "Memory/FrameAllocator.h"
 
 namespace MV
 {

@@ -156,6 +156,11 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIClearSRVResource(resource));
 	}
 
+	void RHIResourceTransition(RHICommandList& commandList, TArrayView<RHIResource*> resources, EResourceTransition transition)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIResourceTransition(resources, transition));
+	}
+
 	void RHIFlushCommand(RHICommandList& commandList)
 	{
 		RHI_COMMAND_FUNC(commandList, RHIFlushCommand());

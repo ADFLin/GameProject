@@ -6,7 +6,7 @@
 #include "Phy2D/Collision.h"
 
 #include "DataStructure/IntrList.h"
-#include "FrameAllocator.h"
+#include "Memory/FrameAllocator.h"
 
 
 namespace Phy2D

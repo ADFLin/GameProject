@@ -243,7 +243,7 @@ namespace Render
 
 
 			RHISetFrameBuffer(commandList, mShadowBuffer);
-			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, 1);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, FRHIZBuffer::FarPlane);
 
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
@@ -302,7 +302,7 @@ namespace Render
 			ViewportSaveScope vpScope(commandList);
 			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
-			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, 1);
+			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, FRHIZBuffer::FarPlane);
 
 			lightView.setupTransform(worldToLight, shadowProject);
 			RenderContext context(commandList, lightView, *this);
@@ -350,7 +350,7 @@ namespace Render
 				RHISetFrameBuffer(commandList, mShadowBuffer);
 				{
 					//GPU_PROFILE("Clear");
-					RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, 1);
+					RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(1, 1, 1, 1), 1, FRHIZBuffer::FarPlane);
 				}
 
 				worldToLight = LookAtMatrix(light.pos, ETexture::GetFaceDir(ETexture::Face(i)), ETexture::GetFaceUpDir(ETexture::Face(i)));
@@ -480,7 +480,7 @@ namespace Render
 	{
 		mBassPassBuffer->setTexture(0, mSceneRenderTargets->getFrameTexture());
 		RHISetFrameBuffer(commandList, mBassPassBuffer);
-		float const depthValue = 1.0;
+		float const depthValue = FRHIZBuffer::FarPlane;
 		{
 			GPU_PROFILE("Clear Buffer");
 			RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 0), 1, depthValue);

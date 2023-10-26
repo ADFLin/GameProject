@@ -3,6 +3,7 @@
 #define D3D12Command_H_AE2B294E_ACAB_461C_99EA_AB1F1C47045C
 
 #include "D3D12ShaderCommon.h"
+#include "D3D12Buffer.h"
 
 #include "RHICommand.h"
 #include "RHICommandListImpl.h"
@@ -18,7 +19,6 @@
 #if RHI_USE_RESOURCE_TRACE
 #include "RHITraceScope.h"
 #endif
-
 
 
 
@@ -93,103 +93,16 @@ namespace Render
 		}
 	};
 
-	class D3D12DynamicBufferPool
-	{
-
-		struct PageInfo
-		{
-			uint32 size;
-			uint32 usageSize;
-			void*  cpuAddress;
-			TComPtr< ID3D12Resource > resource;
-		};
-
-		void* alloc(uint32 size, D3D12_GPU_VIRTUAL_ADDRESS& outAddress )
-		{
-			int usageIndex = INDEX_NONE;
-			for (uint32 index : mFreePageIndices)
-			{
-				auto& page = mAllocedPages[index];
-
-				if (page.usageSize + size < size)
-				{
-					usageIndex = index;
-					break;
-				}
-			}
-
-			if (usageIndex == INDEX_NONE)
-			{
-
-
-
-			}
-
-		}
-
-		void freeAll()
-		{
-
-			for (auto& page : mAllocedPages)
-			{
-				page.usageSize = 0;
-			}
-
-		}
-
-		bool allocNewBuffer(ID3D12DeviceRHI* device, uint32 size);
-
-		ID3D12DeviceRHI* mDevice;
-		TArray< PageInfo > mAllocedPages;
-		uint32 mPageSize;
-		TArray<uint32> mFreePageIndices;
-
-	};
-
 	class D3D12DynamicBuffer
 	{
 	public:
-		bool initialize(ID3D12DeviceRHI* device, uint32 bufferSizes[] , int numBuffers );
-		bool allocNewBuffer(uint32 size);
+		bool initialize();
 
-		void* lock(ID3D12GraphicsCommandListRHI* commandList, uint32 size);
-		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* commandList, D3D12_VERTEX_BUFFER_VIEW& bufferView);
-		ID3D12Resource*  unlock(ID3D12GraphicsCommandListRHI* commandList, D3D12_INDEX_BUFFER_VIEW& bufferView);
+		void* lock(uint32 size);
+		void  unlock(D3D12_VERTEX_BUFFER_VIEW& bufferView);
+		void  unlock(D3D12_INDEX_BUFFER_VIEW& bufferView);
 
-		void beginFrame()
-		{
-			for (auto& info : mAllocedBuffers)
-			{
-				info.indexNext = 0;
-			}
-		}
-		struct BufferInfo
-		{
-			uint32 size;
-			TArray< ID3D12Resource* > resources;
-			int indexNext = 0;
-
-			
-			ID3D12Resource* fetchResource(ID3D12DeviceRHI* device)
-			{
-				if (indexNext == resources.size())
-				{
-					return allocResource(device);
-				}
-				return resources[indexNext];
-			}
-			ID3D12Resource* allocResource(ID3D12DeviceRHI* device);
-		};
-
-		ID3D12DeviceRHI* mDevice;
-		TArray< BufferInfo > mAllocedBuffers;
-		D3D12_GPU_VIRTUAL_ADDRESS mLockedGPUAddress;
-		void*  mLockPtr;
-		uint32 mLockedSize;
-
-		int32  mLockedIndex = INDEX_NONE;
-		ID3D12Resource* mLockedResource = nullptr;
-		
+		D3D12BufferAllocation mLockedResource;	
 	};
 
 
@@ -198,30 +111,25 @@ namespace Render
 	public:
 		bool initialize( ID3D12DeviceRHI* device );
 
-		void updateConstantData( void const* pData , uint32 offset , uint32 size )
-		{
-			FMemory::Copy(mConstDataPtr + mConstDataOffset + offset, pData, size);
-			mCurrentUpdatedSize = Math::Max(mCurrentUpdatedSize, offset + size);
-		}
 
-		void restFrame()
+		void restState()
 		{
-			mConstDataOffset = 0;
-			mCurrentUpdatedSize = 0;
+			mGlobalConstAllocation.ptr = nullptr;
+			mShaderData = nullptr;
+			mbGlobalConstCommited = false;
 		}
 
 		void resetDrawCall()
 		{
-			if ( mCurrentUpdatedSize )
+			if (mGlobalConstAllocation.ptr)
 			{
-				mConstDataOffset += ConstBufferMultipleSize * ((mCurrentUpdatedSize + ConstBufferMultipleSize - 1) / ConstBufferMultipleSize);
-				mCurrentUpdatedSize = 0;
+				mbGlobalConstCommited = true;
 			}
 		}
 
 		D3D12_GPU_VIRTUAL_ADDRESS getConstantGPUAddress()
 		{
-			return mConstBuffer->GetGPUVirtualAddress() + mConstDataOffset;
+			return mGlobalConstAllocation.gpuAddress;
 		}
 
 		struct UAVBoundState
@@ -229,13 +137,37 @@ namespace Render
 			ID3D12Resource* resource = nullptr;
 		};
 		UAVBoundState mUAVStates[8];
-		
 
-		uint32 mBufferSize;
-		uint8* mConstDataPtr;
-		uint32 mConstDataOffset = 0;
-		uint32 mCurrentUpdatedSize = 0;
-		TComPtr< ID3D12Resource > mConstBuffer;
+		bool updateConstBuffer(D3D12ShaderData& shaderData)
+		{
+			if (mbGlobalConstCommited || mShaderData != &shaderData)
+			{
+				mbGlobalConstCommited = false;
+
+				uint32 bufferSize = shaderData.rootSignature.globalCBSize;
+				bufferSize = ConstBufferMultipleSize * ( ( bufferSize + ConstBufferMultipleSize - 1 ) / ConstBufferMultipleSize );
+
+				bool bCopyPrev = mShaderData == &shaderData;
+				void* prevData = bCopyPrev ? mGlobalConstAllocation.cpuAddress : nullptr;
+				D3D12DynamicBufferManager::Get().allocFrame(bufferSize, ConstBufferMultipleSize , mGlobalConstAllocation);
+				if (prevData)
+				{
+					FMemory::Copy(mGlobalConstAllocation.cpuAddress, prevData, shaderData.rootSignature.globalCBSize);
+				}
+				mShaderData = &shaderData;
+				return true;
+			}
+			return false;
+		}
+		void updateConstantData(void const* pData, uint32 offset, uint32 size)
+		{
+			FMemory::Copy(mGlobalConstAllocation.cpuAddress + offset, pData, size);
+		}
+
+		D3D12ShaderData* mShaderData = nullptr;
+		D3D12BufferAllocation   mGlobalConstAllocation;
+		bool   mbGlobalConstCommited = false;
+
 	};
 
 	class D3D12RenderStateCache
@@ -282,7 +214,7 @@ namespace Render
 		void RHISetViewports(ViewportInfo const viewports[], int numViewports);
 		void RHISetScissorRect(int x, int y, int w, int h);
 
-		bool determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, D3D12_INDEX_BUFFER_VIEW& outIndexBufferView, int& outIndexNum, ID3D12Resource*& outIndexResource);
+		bool determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, D3D12_INDEX_BUFFER_VIEW& outIndexBufferView, int& outIndexNum);
 		
 		void postDrawPrimitive() 
 		{
@@ -360,15 +292,14 @@ namespace Render
 
 		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer);
 
+
+
 		void RHIClearRenderTargets(EClearBits clearBits, LinearColor colors[], int numColor, float depth, uint8 stenceil);
 
 
 		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
 		void RHISetIndexBuffer(RHIBuffer* indexBuffer);
-
-		void RHIFlushCommand();
-
 
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
@@ -381,6 +312,12 @@ namespace Render
 				clearSRVResource(*resource);
 			}
 		}
+		void RHIResourceTransition(TArrayView<RHIResource*> resources, EResourceTransition transition);
+
+
+		void RHIFlushCommand();
+
+
 
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim) { setShaderValueT(shaderProgram, param, val, dim); }
 		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shaderProgram, param, val, dim); }
@@ -415,16 +352,18 @@ namespace Render
 		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
 		void clearShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param) {}
 
-		void clearShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param);
+
 		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer);
 
-		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op) {}
+		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIBuffer& buffer){}
+
+		void clearShaderRWTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param);
 
 		void setShaderTexture(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHITextureBase& texture);
 		void setShaderSampler(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHISamplerState& sampler);
 		void setShaderUniformBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIBuffer& buffer);
-
+		void setShaderStorageBuffer(EShader::Type shaderType, D3D12ShaderData& shaderData, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
 
 		void RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc);
 		void RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc);
@@ -491,10 +430,7 @@ namespace Render
 		void clearShaderRWTexture(RHIShader& shader, ShaderParameter const& param);
 		void setShaderUniformBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer);
 
-		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op)
-		{
-
-		}
+		void setShaderStorageBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer, EAccessOperator op);
 		void setShaderAtomicCounterBuffer(RHIShader& shader, ShaderParameter const& param, RHIBuffer& buffer)
 		{
 
@@ -510,11 +446,25 @@ namespace Render
 
 		}
 
-
+		void commitRenderTargetState();
 		void commitGraphicsPipelineState(EPrimitive type);
 		void commitMeshPipelineState();
 		void commitComputePipelineState();
 
+		void flushCommand()
+		{
+			mGraphicsCmdList->Close();
+			ID3D12CommandList* ppCommandLists[] = { mGraphicsCmdList };
+			mCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		}
+
+		void resetCommandList()
+		{
+			mFrameDataList[mFrameIndex].resetCommandList(mPiplineStateCommitted);
+			commitRenderTargetState();
+		}
+
+		ID3D12PipelineState*     mPiplineStateCommitted = nullptr;
 
 		D3D12RenderTargetsState* mRenderTargetsState;
 		D3D12ShaderBoundState*  mBoundState = nullptr;
@@ -525,9 +475,21 @@ namespace Render
 		RHIBlendStateRef        mBlendStateStatePending;
 
 
-		D3D12_RECT mScissorRects[8];
-		D3D12_RECT mViewportRects[8];
-		uint32 mNumViewports = 1;
+		static constexpr int MaxViewportCount = 8;
+		D3D12_RECT mScissorRects[MaxViewportCount];
+		D3D12_RECT mViewportRects[MaxViewportCount];
+		uint32     mNumViewports = 1;
+		static constexpr int MaxInputStream = 16;
+		InputStreamInfo mInputStreams[16];
+		int  mNumInputStream = 0;
+		bool mbInpuStreamDirty = false;
+
+		RHIBufferRef mIndexBufferState;
+		bool bIndexBufferStateDirty = false;
+
+
+		void commitInputStreams(bool bForce);
+		void commitInputBuffer(bool bForce);
 
 		void updateCSUHeapUsage(D3D12PooledHeapHandle const& handle)
 		{
@@ -535,6 +497,8 @@ namespace Render
 			{
 				return;
 			}
+			//mGraphicsCmdList->SetDescriptorHeaps(1, &handle.chunk->resource);
+			//return;
 			if (mUsedDescHeaps[0] != handle.chunk->resource)
 			{
 				if (mUsedDescHeaps[0] == nullptr)
@@ -550,6 +514,8 @@ namespace Render
 			{
 				return;
 			}
+			//mGraphicsCmdList->SetDescriptorHeaps(1, &handle.chunk->resource);
+			//return;
 			if (mUsedDescHeaps[1] != handle.chunk->resource)
 			{
 				if (mUsedDescHeaps[1] == nullptr)
@@ -557,9 +523,9 @@ namespace Render
 
 				mUsedDescHeaps[1] = handle.chunk->resource;
 				if (mNumUsedHeaps == 1)
-					mUsedDescHeaps[0] = mUsedDescHeaps[1];
-
-				mGraphicsCmdList->SetDescriptorHeaps(mNumUsedHeaps, mUsedDescHeaps);
+					mGraphicsCmdList->SetDescriptorHeaps(mNumUsedHeaps, mUsedDescHeaps + 1);
+				else
+					mGraphicsCmdList->SetDescriptorHeaps(mNumUsedHeaps, mUsedDescHeaps);
 			}
 		}
 		ID3D12DescriptorHeap* mUsedDescHeaps[2];
@@ -578,8 +544,8 @@ namespace Render
 		D3D12DynamicBuffer mIndexBufferUP;
 
 
-		TComPtr< ID3D12DeviceRHI > mDevice;
-		TComPtr< ID3D12CommandQueue >  mCommandQueue;
+		TComPtr< ID3D12DeviceRHI >         mDevice;
+		TComPtr< ID3D12CommandQueue >      mCommandQueue;
 		TComPtr< ID3D12CommandAllocator >  mCommandAllocator;
 		
 		ID3D12GraphicsCommandListRHI* mGraphicsCmdList;
@@ -598,11 +564,18 @@ namespace Render
 				fenceValue = 0;
 				return true;
 			}
-			bool reset()
+
+			bool beginFrame()
 			{
 				VERIFY_D3D_RESULT_RETURN_FALSE(cmdAllocator->Reset());
 				VERIFY_D3D_RESULT_RETURN_FALSE(graphicsCmdList->Reset(cmdAllocator, nullptr));
 
+				return true;
+			}
+
+			bool resetCommandList(ID3D12PipelineState* pInitialState)
+			{
+				VERIFY_D3D_RESULT_RETURN_FALSE(graphicsCmdList->Reset(cmdAllocator, pInitialState));
 				return true;
 			}
 
@@ -625,6 +598,7 @@ namespace Render
 
 
 	class D3D12System : public RHISystem
+		              , public ID3DErrorHandler
 	{
 	public:
 		~D3D12System();
@@ -651,7 +625,6 @@ namespace Render
 
 		RHISwapChain*    RHICreateSwapChain(SwapChainCreationInfo const& info);
 
-
 		TArray < TComPtr< ID3D12Resource > > mCopyResources;
 		TComPtr< ID3D12GraphicsCommandListRHI >   mCopyCmdList;
 		TComPtr< ID3D12CommandQueue > mCopyCmdQueue;
@@ -670,13 +643,14 @@ namespace Render
 		RHITexture3D*      RHICreateTexture3D(TextureDesc const& desc, void* data) { return nullptr; }
 		RHITextureCube*    RHICreateTextureCube(TextureDesc const& desc, void* data[]) { return nullptr; }
 		RHITexture2DArray* RHICreateTexture2DArray(TextureDesc const& desc, void* data) { return nullptr; }
-		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc) { return nullptr; }
+		RHITexture2D*      RHICreateTextureDepth(TextureDesc const& desc) { return RHICreateTexture2D(desc, nullptr, 0); }
 
 
-		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width , uint32 height, uint32 rowPatch, uint32 level = 0);
+		bool updateTexture2DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level = 0);
+		bool updateTexture2DSubresources(ID3D12Resource* textureResource, D3D12_RESOURCE_STATES states, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level = 0);
 		bool updateTexture1DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 offset, uint32 length, uint32 level = 0);
 
-		RHIBuffer*  RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+		RHIBuffer*  RHICreateBuffer(BufferDesc const& desc, void* data);
 		void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIBuffer* buffer);
 
@@ -728,15 +702,19 @@ namespace Render
 			}
 		}
 
-		ID3D12Resource* createDepthTexture2D(DXGI_FORMAT format, uint64 w , uint64 h, uint32 sampleCount)
+		ID3D12Resource* createDepthTexture2D(DXGI_FORMAT format, uint64 w , uint64 h, uint32 sampleCount, uint32 creationFlags)
 		{
 			D3D12_RESOURCE_DESC textureDesc = {};
 			textureDesc.MipLevels = 1;
 			textureDesc.Format = format;
 			textureDesc.Width = w;
 			textureDesc.Height = h;
-			textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
+			textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+			textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+			if (creationFlags & TCF_CreateUAV)
+			{
+				textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+			}
 			textureDesc.DepthOrArraySize = 1;
 			textureDesc.SampleDesc.Count = sampleCount;
 			textureDesc.SampleDesc.Quality = 0;
@@ -744,7 +722,7 @@ namespace Render
 
 			D3D12_CLEAR_VALUE optimizedClearValue = {};
 			optimizedClearValue.Format = format;
-			optimizedClearValue.DepthStencil = { 1.0f, 0 };
+			optimizedClearValue.DepthStencil = { FRHIZBuffer::FarPlane , 0 };
 
 			ID3D12Resource* textureResource;
 			VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
@@ -840,6 +818,8 @@ namespace Render
 		std::unordered_map< D3D12PipelineStateKey, TRefCountPtr< D3D12PipelineState >, MemberFuncHasher> mPipelineStateMap;
 
 
+		bool mbInRendering;
+
 		D3D12Context   mRenderContext;
 		TComPtr<ID3D12DeviceRHI> mDevice;
 
@@ -847,6 +827,11 @@ namespace Render
 		TRefCountPtr< D3D12SwapChain > mSwapChain;
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
+
+		void notifyFlushCommand();
+		//ID3DErrorHandler
+		void handleErrorResult(HRESULT errorResult) override;
+
 	};
 
 }//namespace Render

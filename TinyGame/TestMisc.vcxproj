@@ -475,8 +475,10 @@
     <ClCompile Include="TestMisc\Test\DrawCardTest.cpp" />
     <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp" />
     <ClCompile Include="TestMisc\Test\CurveFitTest.cpp" />
+    <ClCompile Include="TestMisc\Test\HanoiTowerTest.cpp" />
     <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp" />
+    <ClCompile Include="TestMisc\Test\MiscTest.cpp" />
     <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp" />
     <ClCompile Include="TestMisc\Test\PreprocessorTest.cpp" />
     <ClCompile Include="TestMisc\Test\PWTest.cpp" />

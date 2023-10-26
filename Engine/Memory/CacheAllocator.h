@@ -10,14 +10,14 @@ public:
 		:mNumCache(0)
 	{
 		mCache = (void**)malloc( maxCacheSize * sizeof( void* ) );
-		::memset( mCache , 0 , sizeof(mCache) * maxCacheSize );
+		FMemory::Zero( mCache , sizeof(mCache) * maxCacheSize );
 	}
 
 	~CacheAllocator()
 	{
 		for( int i = 0; i < mNumCache ; ++ i )
-			::free( mCache[i] );
-		::free( mCache );
+			FMemory::Free( mCache[i] );
+		FMemory::Free( mCache );
 	}
 
 	void*  alloc( size_t size )
@@ -34,11 +34,12 @@ public:
 		}
 		return ::malloc( size > sizeof( CacheInfo ) ? size : sizeof( CacheInfo ) );
 	}
+
 	void   dealloc( void* ptr )
 	{
 		if ( mNumCache >= mMaxCacheSize )
 		{
-			::free( ptr );
+			FMemory::Free( ptr );
 			return;
 		}
 
@@ -51,7 +52,7 @@ public:
 	void   clearCache()
 	{
 		for( int i = 0; i < mNumCache ; ++ i )
-			::free( mCache[i] );
+			FMemory::Free(mCache[i] );
 		mNumCache = 0;
 	}
 private:

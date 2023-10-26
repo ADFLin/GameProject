@@ -7,7 +7,7 @@ public:
 	IRenderer();
 	virtual void init() = 0;
 
-	static void initialize();
+	static void Initialize();
 	static void cleanup();
 	
 private:

@@ -24,7 +24,7 @@ namespace TripleTown
 		//IGameRenderSetup
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::D3D11;
+			return ERenderSystem::None;
 		}
 
 		bool setupRenderResource(ERenderSystem systemName) override

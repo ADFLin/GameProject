@@ -379,6 +379,9 @@
     <None Include="out\QuadAssault\shader\LightingPointFS.sgc" />
     <None Include="out\QuadAssault\shader\LightingPointVS.sgc" />
     <None Include="out\QuadAssault\shader\LightVS.sgc" />
+    <None Include="out\QuadAssault\shader\QGlow.sgc" />
+    <None Include="out\QuadAssault\shader\QLighting.sgc" />
+    <None Include="out\QuadAssault\shader\QScene.sgc" />
     <None Include="out\QuadAssault\shader\SceneFS.sgc" />
     <None Include="out\QuadAssault\shader\SceneGeometryFS.sgc" />
     <None Include="out\QuadAssault\shader\SceneLightingFS.sgc" />

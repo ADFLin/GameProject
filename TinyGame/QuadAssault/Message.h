@@ -8,6 +8,7 @@ class Level;
 class Sound;
 class Texture;
 class IText;
+class RHIGraphics2D;
 
 class Message
 {
@@ -20,8 +21,8 @@ public:
 	void updateRender( float dt );
 
 
-	void renderFrame();
-	void render();
+	void renderFrame(RHIGraphics2D& g);
+	void render(RHIGraphics2D& g);
 	bool needDestroy;
 private:	
 	FObjectPtr< IText >  p_text;

@@ -454,5 +454,14 @@
     <None Include="out\QuadAssault\shader\QBasePass.sgc">
       <Filter>Shader</Filter>
     </None>
+    <None Include="out\QuadAssault\shader\QLighting.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\QScene.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\QuadAssault\shader\QGlow.sgc">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

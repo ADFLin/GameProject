@@ -382,12 +382,12 @@ namespace Render
 		VERIFY_D3D_RESULT(swapChainResource->GetBuffer(0, IID_PPV_ARGS(&textureCreationResult.resource)), return nullptr;);
 		CreateResourceView(mDevice, DXColorFormat, info.numSamples, info.textureCreationFlags, textureCreationResult);
 
-		TextureDesc colorDesc = TextureDesc::Type2D(info.colorForamt, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(info.textureCreationFlags);
+		TextureDesc colorDesc = TextureDesc::Type2D(info.colorForamt, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(info.textureCreationFlags | TCF_RenderTarget);
 		TRefCountPtr< D3D11Texture2D > colorTexture = new D3D11Texture2D(colorDesc, textureCreationResult);
 		TRefCountPtr< D3D11Texture2D > depthTexture;
 		if (info.bCreateDepth)
 		{
-			TextureDesc depthDesc = TextureDesc::Type2D(info.depthFormat, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(0);
+			TextureDesc depthDesc = TextureDesc::Type2D(info.depthFormat, info.extent.x, info.extent.y).Samples(info.numSamples).Flags(info.depthCreateionFlags | TCF_RenderTarget);
 			depthTexture = (D3D11Texture2D*)RHICreateTextureDepth(depthDesc);
 		}
 		D3D11SwapChain* swapChain = new D3D11SwapChain(swapChainResource, *colorTexture, depthTexture);
@@ -480,56 +480,56 @@ namespace Render
 		return true;
 	}
 
-	RHIBuffer* D3D11System::RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
+	RHIBuffer* D3D11System::RHICreateBuffer(BufferDesc const& desc, void* data)
 	{
+
 		D3D11_SUBRESOURCE_DATA initData = { 0 };
 		initData.pSysMem = data;
 		initData.SysMemPitch = 0;
 		initData.SysMemSlicePitch = 0;
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
-		bufferDesc.ByteWidth = elementSize * numElements;
+		bufferDesc.ByteWidth = desc.getSize();
 		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-		if (creationFlags & BCF_CpuAccessWrite)
+		if (desc.creationFlags & BCF_CpuAccessWrite)
 			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		//if (creationFlags & BCF_CPUAccessRead)
+		//if (creationFlags & BCF_CpuAccessRead)
 		//	bufferDesc.Usage = D3D11_USAGE_STAGING;
 		bufferDesc.MiscFlags = 0;
 		{
-			if (creationFlags & BCF_CreateSRV)
+			if (desc.creationFlags & BCF_CreateSRV)
 				bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 
-			if (creationFlags & BCF_CreateUAV)
+			if (desc.creationFlags & BCF_CreateUAV)
 				bufferDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
 		}
 
-		if (creationFlags & BCF_UsageVertex)
+		if (desc.creationFlags & BCF_UsageVertex)
 		{
 			bufferDesc.BindFlags |= D3D11_BIND_VERTEX_BUFFER;
 		}
-		if (creationFlags & BCF_UsageIndex)
+		if (desc.creationFlags & BCF_UsageIndex)
 		{
 			bufferDesc.BindFlags |= D3D11_BIND_INDEX_BUFFER;
 		}
-		if (creationFlags & BCF_UsageConst)
+		if (desc.creationFlags & BCF_UsageConst)
 		{
 			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		}
-		if (creationFlags & BCF_Structured)
+		if (desc.creationFlags & BCF_Structured)
 		{
 			bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 			bufferDesc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-			bufferDesc.StructureByteStride = elementSize;
+			bufferDesc.StructureByteStride = desc.elementSize;
 		}
 
 
-		if (creationFlags & BCF_CpuAccessWrite)
+		if (desc.creationFlags & BCF_CpuAccessWrite)
 			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
-		if (creationFlags & BCF_CPUAccessRead)
+		if (desc.creationFlags & BCF_CpuAccessRead)
 			bufferDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
 
 		D3D11BufferCreationResult creationResult;
-		creationResult.creationFlags = creationFlags;
 		TComPtr<ID3D11Buffer> BufferResource;
 		VERIFY_D3D_RESULT(
 			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &creationResult.resource),
@@ -537,8 +537,10 @@ namespace Render
 				return nullptr;
 			}
 		);
-		CreateResourceView(mDevice, elementSize, numElements, creationFlags, creationResult);
-		D3D11Buffer* buffer = new D3D11Buffer(elementSize, numElements, creationResult);
+
+		CreateResourceView(mDevice, desc.elementSize, desc.numElements, desc.creationFlags, creationResult);
+		
+		D3D11Buffer* buffer = new D3D11Buffer(desc, creationResult);
 
 		return buffer;
 	}
@@ -862,7 +864,7 @@ namespace Render
 		{
 			desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
 		}
-		if (creationFlags & TCF_RenderTarget)
+		else if (creationFlags & TCF_RenderTarget)
 		{
 			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		}
@@ -1591,113 +1593,118 @@ namespace Render
 
 	bool D3D11Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
 	{
-		if(primitive == EPrimitive::Quad )
+		switch (primitive)
 		{
-			int numQuad = num / 4;
-			int indexBufferSize = sizeof(uint32) * numQuad * 6;
-			void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-			if( pIndexBufferData == nullptr )
-				return false;
-
-			uint32* pData = (uint32*)pIndexBufferData;
-			if( pIndices )
+		case EPrimitive::Quad:
 			{
-				for( int i = 0; i < numQuad; ++i )
-				{
-					pData[0] = pIndices[0];
-					pData[1] = pIndices[1];
-					pData[2] = pIndices[2];
-					pData[3] = pIndices[0];
-					pData[4] = pIndices[2];
-					pData[5] = pIndices[3];
-					pData += 6;
-					pIndices += 4;
-				}
-			}
-			else
-			{
-				for( int i = 0; i < numQuad; ++i )
-				{
-					int index = 4 * i;
-					pData[0] = index + 0;
-					pData[1] = index + 1;
-					pData[2] = index + 2;
-					pData[3] = index + 0;
-					pData[4] = index + 2;
-					pData[5] = index + 3;
-					pData += 6;
-				}
-			}
-			outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
-			outIndexNum = numQuad * 6;
-			return true;
-		}
-		else if( primitive == EPrimitive::LineLoop )
-		{
-			if( pIndices )
-			{
-				int indexBufferSize = sizeof(uint32) * (num + 1);
+				int numQuad = num / 4;
+				int indexBufferSize = sizeof(uint32) * numQuad * 6;
 				void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-				if( pIndexBufferData == nullptr )
+				if (pIndexBufferData == nullptr)
 					return false;
+
 				uint32* pData = (uint32*)pIndexBufferData;
-				for( int i = 0; i < num; ++i )
+				if (pIndices)
 				{
-					pData[i] = pIndices[i];
+					for (int i = 0; i < numQuad; ++i)
+					{
+						pData[0] = pIndices[0];
+						pData[1] = pIndices[1];
+						pData[2] = pIndices[2];
+						pData[3] = pIndices[0];
+						pData[4] = pIndices[2];
+						pData[5] = pIndices[3];
+						pData += 6;
+						pIndices += 4;
+					}
 				}
-				pData[num] = pIndices[0];
+				else
+				{
+					for (int i = 0; i < numQuad; ++i)
+					{
+						int index = 4 * i;
+						pData[0] = index + 0;
+						pData[1] = index + 1;
+						pData[2] = index + 2;
+						pData[3] = index + 0;
+						pData[4] = index + 2;
+						pData[5] = index + 3;
+						pData += 6;
+					}
+				}
+				outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 				*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
-				outIndexNum = num + 1;
-
+				outIndexNum = numQuad * 6;
+				return true;
 			}
-
-			outPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
-			return true;
-		}
-		else if (primitive == EPrimitive::Polygon)
-		{
-			if (num <= 2)
-				return false;
-
-			int numTriangle = ( num - 2 );
-
-			int indexBufferSize = sizeof(uint32) * numTriangle * 3;
-			void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
-			if (pIndexBufferData == nullptr)
-				return false;
-
-			uint32* pData = (uint32*)pIndexBufferData;
-			if (pIndices)
+			break;
+		case EPrimitive::LineLoop:
 			{
-				for (int i = 0; i < numTriangle; ++i)
+				if (pIndices)
 				{
-					pData[0] = pIndices[0];
-					pData[1] = pIndices[i + 1];
-					pData[2] = pIndices[i + 2];
-					pData += 3;
+					int indexBufferSize = sizeof(uint32) * (num + 1);
+					void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
+					if (pIndexBufferData == nullptr)
+						return false;
+					uint32* pData = (uint32*)pIndexBufferData;
+					for (int i = 0; i < num; ++i)
+					{
+						pData[i] = pIndices[i];
+					}
+					pData[num] = pIndices[0];
+					*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+					outIndexNum = num + 1;
+
 				}
+
+				outPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+				return true;
 			}
-			else
+			break;
+		case EPrimitive::Polygon:
 			{
-				for (int i = 0; i < numTriangle; ++i)
+				if (num <= 2)
+					return false;
+
+				int numTriangle = (num - 2);
+
+				int indexBufferSize = sizeof(uint32) * numTriangle * 3;
+				void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
+				if (pIndexBufferData == nullptr)
+					return false;
+
+				uint32* pData = (uint32*)pIndexBufferData;
+				if (pIndices)
 				{
-					pData[0] = 0;
-					pData[1] = i + 1;
-					pData[2] = i + 2;
-					pData += 3;
+					for (int i = 0; i < numTriangle; ++i)
+					{
+						pData[0] = pIndices[0];
+						pData[1] = pIndices[i + 1];
+						pData[2] = pIndices[i + 2];
+						pData += 3;
+					}
 				}
+				else
+				{
+					for (int i = 0; i < numTriangle; ++i)
+					{
+						pData[0] = 0;
+						pData[1] = i + 1;
+						pData[2] = i + 2;
+						pData += 3;
+					}
+				}
+				outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+				outIndexNum = numTriangle * 3;
+				return true;
 			}
-			outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
-			outIndexNum = numTriangle * 3;
-			return true;
+			break;
 		}
 
 		outPrimitiveTopology = D3D11Translate::To(primitive);
 		if (outPrimitiveTopology == D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
 			return false;
-
 
 		if (pIndices)
 		{
@@ -1723,12 +1730,21 @@ namespace Render
 		if( !determitPrimitiveTopologyUP(type, numVertices, nullptr, primitiveTopology, &indexBuffer, numDrawIndex) )
 			return;
 
-		if( type == EPrimitive::LineLoop )
-			++numVertices;
 		uint32 vertexBufferSize = 0;
-		for( int i = 0; i < numVertexData; ++i )
+		if (type == EPrimitive::LineLoop)
 		{
-			vertexBufferSize += (D3D11BUFFER_ALIGN * dataInfos[i].size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+			++numVertices;
+			for (int i = 0; i < numVertexData; ++i)
+			{
+				vertexBufferSize += (D3D11BUFFER_ALIGN * (dataInfos[i].size + dataInfos[i].stride) + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+			}
+		}
+		else
+		{
+			for (int i = 0; i < numVertexData; ++i)
+			{
+				vertexBufferSize += (D3D11BUFFER_ALIGN * dataInfos[i].size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+			}
 		}
 
 		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
@@ -1771,6 +1787,7 @@ namespace Render
 			}
 			else
 			{
+				mDeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
 				mDeviceContext->Draw(numVertices, 0);
 			}
 			postDrawPrimitive();
@@ -1884,7 +1901,10 @@ namespace Render
 				if (i >= mRenderTargetsState->numColorBuffers)
 					break;
 
-				mDeviceContext->ClearRenderTargetView(mRenderTargetsState->colorBuffers[i], (numColor == 1) ? colors[0] : colors[i]);
+				if (mRenderTargetsState->colorBuffers[i])
+				{
+					mDeviceContext->ClearRenderTargetView(mRenderTargetsState->colorBuffers[i], (numColor == 1) ? colors[0] : colors[i]);
+				}
 			}
 		}
 
@@ -1899,7 +1919,11 @@ namespace Render
 			{
 				clearFlag |= D3D11_CLEAR_STENCIL;
 			}
-			mDeviceContext->ClearDepthStencilView(mRenderTargetsState->depthBuffer, clearFlag, depth, stenceil);
+			if (mRenderTargetsState->depthBuffer)
+			{
+				mDeviceContext->ClearDepthStencilView(mRenderTargetsState->depthBuffer, clearFlag, depth, stenceil);
+			}
+
 		}
 	}
 

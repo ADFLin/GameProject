@@ -187,6 +187,24 @@ namespace Math
 		return  true;
 	}
 
+	bool BoxCircleTest(Vector2 const& boxCenter, Vector2 const& boxHalfSize, Vector2 const& circlePos, float circleRadius)
+	{
+		Vector2 offset = (boxCenter - circlePos).abs();
+
+		if (offset.x > boxHalfSize.x + circleRadius)
+			return false;
+		if (offset.y > boxHalfSize.y + circleRadius)
+			return false;
+		
+		if (offset.x > boxHalfSize.x && offset.y > boxHalfSize.y)
+		{
+			if ((offset - boxHalfSize).length2() > Math::Square(circleRadius))
+				return false;
+		}
+
+		return true;
+	}
+
 	Vector3 PointToTriangleClosestPoint(Vector3 const& p, Vector3 const& a, Vector3 const& b, Vector3 const& c, float& outSide)
 	{
 		Vector3 ab = b - a;

@@ -9,13 +9,6 @@
 class GameWindowWin;
 class GLContextWindows;
 
-#define USE_SFML_WINDOW  0
-
-#if USE_SFML_WINDOW
-#include "PlatformSFML.h"
-#endif
-
-
 class GameWindowWin
 {
 public:
@@ -65,13 +58,9 @@ private:
 	HGLRC mhRC;
 };
 
-#if USE_SFML_WINDOW
-typedef GameWindowSFML PlatformWindow;
-typedef GLContextSFML  PlatformGLContext;
-#else
+
 typedef GameWindowWin     PlatformWindow;
 typedef GLContextWindows  PlatformGLContext;
-#endif
 
 class PlatformWin
 {

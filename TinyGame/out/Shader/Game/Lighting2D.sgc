@@ -13,9 +13,9 @@ PS_ENTRY_START(LightingPS)
 	PS_OUTPUT(float4 OutColor, 0)
 PS_ENTRY_END(LightingPS)
 {
-	float distance = length(LightLocation -		VFLIP(VSOutput.UVs.xy));
+	float distance = length(LightLocation - SvPosition.xy);
 	float attenuation = 1.0 /( dot( LightAttenuation , float3( 1 , distance , distance*distance) ) );
-	OutColor = float4( attenuation * LightColor, 1);
+	OutColor = float4(attenuation * LightColor, 1);
 }
 
 #endif

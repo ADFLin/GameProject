@@ -23,24 +23,25 @@ namespace Render
 
 		numElements = inNumElements;
 		numElementsUasge = 0;
-		mUsageMask.resize(( numElements + 31 )/ 32, 0);
+		mUsageMask.resize(( numElements + GroupSize - 1 )/ GroupSize, 0);
 		return true;
 	}
+
 
 	bool D3D12HeapPoolChunk::fetchFreeSlot(uint& outSlotIndex)
 	{
 		if (numElementsUasge == numElements)
 			return false;
 
-		for (uint index = 0; index < (uint)mUsageMask.size(); ++index)
+		for (uint groupIndex = 0; groupIndex < (uint)mUsageMask.size(); ++groupIndex)
 		{
-			uint32 freeMask = ~mUsageMask[index];
+			uint32 freeMask = ~mUsageMask[groupIndex];
 
 			if (freeMask)
 			{
 				uint32 slotBit = FBitUtility::ExtractTrailingBit(freeMask);
-				mUsageMask[index] |= slotBit;
-				outSlotIndex = FBitUtility::ToIndex32(slotBit);
+				mUsageMask[groupIndex] |= slotBit;
+				outSlotIndex = GroupSize * groupIndex + FBitUtility::ToIndex32(slotBit);
 				++numElementsUasge;
 				break;
 			}
@@ -59,8 +60,8 @@ namespace Render
 
 	void D3D12HeapPoolChunk::freeSlot(uint slotIndex)
 	{
-		uint groupIndex = slotIndex / 32;
-		uint subIndex = slotIndex % 32;
+		uint groupIndex = slotIndex / GroupSize;
+		uint subIndex = slotIndex % GroupSize;
 		CHECK(mUsageMask[groupIndex] & BIT(subIndex));
 		mUsageMask[groupIndex] &= ~BIT(subIndex);
 
@@ -78,7 +79,7 @@ namespace Render
 		mDevice = device;
 		bInitialized = true;
 
-		mCSUData.chunkSize = 128;
+		mCSUData.chunkSize = 256;
 		mCSUData.type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		mCSUData.flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
@@ -184,7 +185,8 @@ namespace Render
 		if (!bInitialized)
 			return;
 
-		if (handle.isValid())
+		CHECK(handle.isValid());
+		//if (handle.isValid())
 		{
 			handle.chunk->owner->freeHandle(handle);
 		}

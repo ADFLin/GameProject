@@ -120,7 +120,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::D3D11;
+			return ERenderSystem::OpenGL;
 		}
 		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;

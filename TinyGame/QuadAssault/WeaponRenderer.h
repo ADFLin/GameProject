@@ -4,11 +4,13 @@
 #include "Renderer.h"
 
 class Weapon;
+class PrimitiveDrawer;
+
 class WeaponRenderer : public IRenderer
 {
 public:
-	virtual void render( RenderPass pass , Weapon* weapon );
-	Texture* mTextues[ NUM_RENDER_PASS ];
+	virtual void render( RenderPass pass , Weapon* weapon , PrimitiveDrawer& drawer);
+	Texture* mTextues[ TextureGroupCount ];
 };
 
 #define DEF_WEAPON_RENDERER( CLASS , RENDERER )\

@@ -133,6 +133,8 @@ public:
 	template< typename TCustomRenderer , typename ...TArgs >
 	TCustomRenderer*  drawCustom(TArgs&& ...args)
 	{
+		commitRenderState();
+
 		void* ptr = mAllocator.alloc(sizeof(TCustomRenderer));
 		new (ptr) TCustomRenderer(std::forward<TArgs>(args)...);
 		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly);
@@ -156,11 +158,14 @@ public:
 		TFunc mFunc;
 	};
 	template< typename TFunc >
-	void  drawCustomFunc(TFunc&& func)
+	void  drawCustomFunc(TFunc&& func, bool bChangeState = true)
 	{
+		commitRenderState();
+
 		void* ptr = mAllocator.alloc(sizeof(TCustomFuncRenderer<TFunc>));
 		new (ptr) TCustomFuncRenderer<TFunc>(std::forward<TFunc>(func));
-		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly);
+		static_cast<Render::ICustomElementRenderer*>(ptr)->bChangeState = bChangeState;
+		auto& element = mElementList.addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly);
 		setupElement(element);
 	}
 
@@ -222,6 +227,7 @@ public:
 	{
 		return mPaintArgs.brushColor;
 	}
+	void setTextureState(RHITexture2D* texture = nullptr);
 
 private:
 
@@ -234,7 +240,7 @@ private:
 
 	void flushBatchedElements();
 	void preModifyRenderState();
-	void setTextureState(RHITexture2D* texture = nullptr);
+
 
 
 	void setupElement(Render::RenderBatchedElement& element)

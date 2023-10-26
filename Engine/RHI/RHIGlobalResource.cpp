@@ -63,9 +63,7 @@ namespace Render
 
 		TRACE_RESOURCE_TAG_SCOPE("GlobalRHIResource");
 
-		if (GRHISystem->getName() == RHISystemName::OpenGL ||
-			GRHISystem->getName() == RHISystemName::D3D11)
-		{
+
 
 		uint32 colorW[] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[] = { 0, 0 , 0 , 0 , 0 , 0 , 0 , 0 };
@@ -73,35 +71,39 @@ namespace Render
 		{
 			TIME_SCOPE("GlobalTexture");
 
-			VERIFY_RETURN_FALSE(GWhiteTexture2D.initialize(RHICreateTexture2D(ETexture::RGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
-			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(ETexture::RGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
+			VERIFY_RETURN_FALSE(GWhiteTexture2D.initialize(RHICreateTexture2D(ETexture::RGBA8, 2, 2, 1, 1, TCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(ETexture::RGBA8, 2, 2, 1, 1, TCF_DefalutValue, colorB)));
 
-			VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, BCF_DefalutValue, colorW)));
-			VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, BCF_DefalutValue, colorB)));
-
-			VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
-			VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
-			void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };
-			VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize(RHICreateTextureCube(ETexture::RGBA8, 2, 0, BCF_DefalutValue, cubeWData)));
-			void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
-			VERIFY_RETURN_FALSE(GBlackTextureCube.initialize(RHICreateTextureCube(ETexture::RGBA8, 2, 0, BCF_DefalutValue, cubeBData)));
-
-			if( GRHISystem->getName() == RHISystemName::OpenGL )
+			if (GRHISystem->getName() == RHISystemName::OpenGL ||
+				GRHISystem->getName() == RHISystemName::D3D11)
 			{
-				OpenGLCast::To(GWhiteTextureCube.getResource())->bind();
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-				OpenGLCast::To(GWhiteTextureCube.getResource())->unbind();
+				VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, TCF_DefalutValue, colorW)));
+				VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, TCF_DefalutValue, colorB)));
 
-				OpenGLCast::To(GWhiteTexture2D.getResource())->bind();
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				OpenGLCast::To(GWhiteTexture2D.getResource())->unbind();
+				VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, TCF_DefalutValue, colorW)));
+				VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, TCF_DefalutValue, colorB)));
+				void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };
+				VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize(RHICreateTextureCube(ETexture::RGBA8, 2, 0, TCF_DefalutValue, cubeWData)));
+				void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
+				VERIFY_RETURN_FALSE(GBlackTextureCube.initialize(RHICreateTextureCube(ETexture::RGBA8, 2, 0, TCF_DefalutValue, cubeBData)));
+
+				if (GRHISystem->getName() == RHISystemName::OpenGL)
+				{
+					OpenGLCast::To(GWhiteTextureCube.getResource())->bind();
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+					OpenGLCast::To(GWhiteTextureCube.getResource())->unbind();
+
+					OpenGLCast::To(GWhiteTexture2D.getResource())->bind();
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+					OpenGLCast::To(GWhiteTexture2D.getResource())->unbind();
+				}
 			}
 		}
 
@@ -109,27 +111,26 @@ namespace Render
 		{
 			TIME_SCOPE("EmptyMaterial");
 			GDefalutMaterial = new MaterialMaster;
-			if( !GDefalutMaterial->loadFile("EmptyMaterial") )
+			if (!GDefalutMaterial->loadFile("EmptyMaterial"))
 				return false;
 		}
 
 		{
 			TIME_SCOPE("EmptyTexture");
 			GDefaultMaterialTexture2D.initialize(RHIUtility::LoadTexture2DFromFile("Texture/Gird.png"));
-			if( !GDefaultMaterialTexture2D.isValid() )
+			if (!GDefaultMaterialTexture2D.isValid())
 				return false;
 		}
 
-			TIME_SCOPE("SimpleBasePass");
-			ShaderCompileOption option;
-			VertexFactoryType::DefaultType->getCompileOption(option);
+		TIME_SCOPE("SimpleBasePass");
+		ShaderCompileOption option;
+		VertexFactoryType::DefaultType->getCompileOption(option);
 
-			if( !ShaderManager::Get().loadFile(
-				GSimpleBasePass,
-				"Shader/SimpleBasePass",
-				SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
-				return false;
-		}
+		if (!ShaderManager::Get().loadFile(
+			GSimpleBasePass,
+			"Shader/SimpleBasePass",
+			SHADER_ENTRY(BasePassVS), SHADER_ENTRY(BasePassPS), option, nullptr))
+			return false;
 
 		for (uint32 i = 0; i < SimplePipelineProgram::PermutationDomain::GetPermutationCount(); ++i)
 		{

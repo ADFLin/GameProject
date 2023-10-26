@@ -1007,10 +1007,10 @@ namespace Render
 		return true;
 	}
 
-	RHIBuffer* VulkanSystem::RHICreateBuffer(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
+	RHIBuffer* VulkanSystem::RHICreateBuffer(BufferDesc const& desc, void* data)
 	{
 		VulkanBuffer* buffer = new VulkanBuffer;
-		if (!initalizeBufferInternal(buffer, elementSize, numElements, creationFlags, data))
+		if (!initalizeBufferInternal(buffer, desc, data))
 		{
 			delete buffer;
 			return nullptr;
@@ -1018,16 +1018,14 @@ namespace Render
 		return buffer;
 	}
 
-	bool VulkanSystem::initalizeBufferInternal(VulkanBuffer* buffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
+	bool VulkanSystem::initalizeBufferInternal(VulkanBuffer* buffer, BufferDesc const& desc, void* data)
 	{
-		buffer->mCreationFlags = creationFlags;
-		buffer->mNumElements   = numElements;
-		buffer->mElementSize   = elementSize;
+		buffer->mDesc = desc;
 
-		VkDeviceSize bufferSize = elementSize * numElements;
+		VkDeviceSize bufferSize = desc.elementSize * desc.numElements;
 
 		VERIFY_RETURN_FALSE( mDevice->createBuffer(
-			FVulkanBuffer::TranslateUsage(creationFlags),
+			FVulkanBuffer::TranslateUsage(desc.creationFlags),
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			buffer->getBufferData(), bufferSize, data) );
 

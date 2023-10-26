@@ -337,9 +337,8 @@ public:
 			points[i] = localToWorldPos(points[i]);
 		}
 
-
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::OneMinusDestColor, EBlend::Zero >::GetRHI());
 		g.setBrush(Color3f(1, 1, 1));
+		g.setBlendState(ESimpleBlendMode::InvDestColor);
 		g.enablePen(false);
 		auto DrawLine = [&](Vector2 const& p1, Vector2 const& p2)
 		{
@@ -357,7 +356,7 @@ public:
 		}
 		DrawLine(points[4], points[5]);
 
-		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		g.setBlendState(ESimpleBlendMode::None);
 		g.enablePen(true);
 		g.setPen(Color3f(0, 0, 0));
 		g.setBrush(Color3f(1, 1, 1));
@@ -401,6 +400,7 @@ public:
 
 		::Global::GUI().cleanupWidget();
 
+		WidgetUtility::CreateDevFrame();
 		return true;
 	}
 
@@ -449,6 +449,7 @@ public:
 		mProgMandelbrot = nullptr;
 		mColorMap.release();
 		mTexture.release();
+		mMParamsBuffer.releaseResource();
 	}
 
 	TStructuredBuffer< MandelbrotParamData > mMParamsBuffer;
@@ -515,7 +516,7 @@ public:
 		if (bNeedUpdateTexture)
 		{
 			GPU_PROFILE("Update Texture");
-			bNeedUpdateTexture = false;
+			//bNeedUpdateTexture = false;
 			updateTexture();
 		}
 
@@ -525,31 +526,17 @@ public:
 		RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0.2, 0.2, 0.2, 1), 1);
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
+#if 1
 		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI() );
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 		Matrix4 projectMatrix = OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1);
-
-#if 1
-		{
-			RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(projectMatrix), LinearColor(1, 1, 1, 1), mTexture);
-			Vector2 v[] = 
-			{ 
-				Vector2(0,0), Vector2(0,0),
-				Vector2(screenSize.x,0) , Vector2(1,0),
-				Vector2(screenSize.x,screenSize.y),Vector2(1,1),
-				Vector2(0,screenSize.y), Vector2(0,1),
-			};
-			TRenderRT< RTVF_XY_T2 >::Draw(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v) / 2);
-		}
-#else
-
 		DrawUtility::DrawTexture(commandList, projectionMatrix, *mTexture, Vec2i(0, 0), screenSize);
 #endif
 
-
-
+#if 1
 		g.beginRender();
+
 		mSelectRect.draw(g);
 		InlineString<246> str;
 		str.format("%f %f", mPosOnMouse.x, mPosOnMouse.y);
@@ -561,7 +548,9 @@ public:
 			str.format("%f %f", mPosRectCenter.x, mPosRectCenter.y);
 			g.drawText(200, 10 + 15, str);
 		}
+
 		g.endRender();
+#endif
 	}
 
 	struct ZoomInfo
@@ -587,7 +576,7 @@ public:
 			zoom = 1 / zoom;
 		outInfo.zoomFactor = zoom;
 
-		float angle = SRect.getRotationAngle();
+		float angle = -SRect.getRotationAngle();
 		outInfo.angle = WrapZeroTo2PI(angle);
 	}
 

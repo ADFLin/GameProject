@@ -235,8 +235,12 @@ void main()
 		{
 			inoutCode += FStringConv::From(usageVersion);
 		}
-		inoutCode += " compatibility\n";
+		//inoutCode += " compatibility\n";
 
+		inoutCode += "\n";
+		inoutCode += "#define GLSL_VERSION ";
+		inoutCode += FStringConv::From(usageVersion);
+		inoutCode += "\n";
 
 		char const* extensionString = option.getMeta("GLSLExtensions");
 

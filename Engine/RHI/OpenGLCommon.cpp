@@ -993,7 +993,7 @@ namespace Render
 	{
 		if( creationFlags & BCF_CpuAccessWrite )
 			return GL_DYNAMIC_DRAW;
-		if (creationFlags & BCF_CPUAccessRead)
+		if (creationFlags & BCF_CpuAccessRead)
 			return GL_DYNAMIC_READ;
 		else if( creationFlags & BCF_UsageStage )
 			return GL_STREAM_COPY;

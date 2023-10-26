@@ -2,6 +2,8 @@
 
 namespace Render
 {
+	ID3DErrorHandler* ID3DErrorHandler::StaticInstance = nullptr;
+
 	D3D_PRIMITIVE_TOPOLOGY D3DTranslate::To(EPrimitive type)
 	{
 		if (type >= EPrimitive::PatchPoint1)
@@ -16,7 +18,6 @@ namespace Render
 		case EPrimitive::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 		case EPrimitive::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
 		case EPrimitive::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-		case EPrimitive::PatchPoint1: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
 		case EPrimitive::Polygon:
 		case EPrimitive::TriangleFan:
 		case EPrimitive::LineLoop:
@@ -152,6 +153,7 @@ namespace Render
 		}
 		return	DeviceVendorName::Unknown;
 	}
+
 
 }
 

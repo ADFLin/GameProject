@@ -9,8 +9,9 @@
 #include "Plasma.h"
 
 #include <algorithm>
+#include "RenderUtility.h"
 
-void WeaponRenderer::render( RenderPass pass , Weapon* weapon )
+void WeaponRenderer::render( RenderPass pass ,Weapon* weapon, PrimitiveDrawer& drawer)
 {
 	float factor = std::min( 1.0f , weapon->mFireTimer / weapon->mCDTime );
 
@@ -27,27 +28,29 @@ void WeaponRenderer::render( RenderPass pass , Weapon* weapon )
 		off = len * ( 1 - factor );
 	}
 
-	glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER,0.5f);
-	glEnable(GL_TEXTURE_2D);
+	if (pass == RP_BASE_PASS)
+	{
+		PrimitiveMat mat;
+		mat.baseTex = mTextues[TG_DIFFUSE];
+		mat.normalTex = mTextues[TG_NORMAL];
+		drawer.setMaterial(mat);
 
-	mTextues[ pass ]->bind();
-
-	glPushMatrix();
-	glTranslatef( rPos.x , rPos.y + off , 0 );
-
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 0.0); glVertex2f(0,0);	
-	glTexCoord2f(1.0, 0.0); glVertex2f(weapon->mSize.x,0);	
-	glTexCoord2f(1.0, 1.0); glVertex2f(weapon->mSize.x,weapon->mSize.y);	
-	glTexCoord2f(0.0, 1.0); glVertex2f(0,weapon->mSize.y);	
-	glEnd();
-
-	glPopMatrix();
-
-	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_ALPHA_TEST);
-
+		drawer.getStack().push();
+		drawer.getStack().translate(rPos + Vec2f(0, off));
+		drawer.drawRect(Vec2f::Zero(), weapon->mSize);
+		drawer.getStack().pop();
+	}
+	else
+	{
+		if (mTextues[TG_GLOW])
+		{
+			drawer.setGlow(mTextues[TG_GLOW]);
+			drawer.getStack().push();
+			drawer.getStack().translate(rPos + Vec2f(0, off));
+			drawer.drawRect(Vec2f::Zero(), weapon->mSize);
+			drawer.getStack().pop();
+		}
+	}
 }
 
 
@@ -57,9 +60,9 @@ public:
 	void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTextues[ RP_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
-		mTextues[ RP_NORMAL ]  = texMgr->getTexture("weapon1Normal.tga");
-		mTextues[ RP_GLOW ]    = texMgr->getTexture("oruzje1Glow.tga");
+		mTextues[ TG_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
+		mTextues[ TG_NORMAL ]  = texMgr->getTexture("weapon1Normal.tga");
+		mTextues[ TG_GLOW ]    = texMgr->getTexture("oruzje1Glow.tga");
 	}
 };
 
@@ -70,9 +73,9 @@ public:
 	void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTextues[ RP_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
-		mTextues[ RP_NORMAL ]  = texMgr->getTexture("weapon1Normal.tga");
-		mTextues[ RP_GLOW ]    = texMgr->getTexture("oruzje3Glow.tga");
+		mTextues[ TG_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
+		mTextues[ TG_NORMAL ]  = texMgr->getTexture("weapon1Normal.tga");
+		mTextues[ TG_GLOW ]    = texMgr->getTexture("oruzje3Glow.tga");
 	}
 };
 
@@ -82,9 +85,9 @@ public:
 	void init()
 	{
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-		mTextues[ RP_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
-		mTextues[ RP_NORMAL ]  = texMgr->getTexture("weapon1Normal.tga");
-		mTextues[ RP_GLOW ]    = texMgr->getTexture("oruzje2Glow.tga");
+		mTextues[ TG_DIFFUSE ] = texMgr->getTexture("weapon1.tga");
+		mTextues[ TG_NORMAL ]  = texMgr->getTexture("weapon1Normal.tga");
+		mTextues[ TG_GLOW ]    = texMgr->getTexture("oruzje2Glow.tga");
 	}
 };
 

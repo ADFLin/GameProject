@@ -25,14 +25,13 @@ class ProxyStage : public StageBase
 	typedef StageBase BaseClass;
 public:
 
-	Game* mGame;
+	Game* mGame = nullptr;
 
 	virtual bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
 
-		Render::ShaderManager::Get().setBaseDir("QuadAssault/shader/");
 		::Global::GUI().cleanupWidget();
 
 		Vec2i screenSize = ::Global::GetScreenSize();
@@ -54,9 +53,8 @@ public:
 
 	ERenderSystem getDefaultRenderSystem() override
 	{
-		return ERenderSystem::OpenGL;
+		return ERenderSystem::D3D12;
 	}
-
 
 	bool setupRenderResource(ERenderSystem systemName) override
 	{
@@ -70,31 +68,40 @@ public:
 	virtual void onEnd() override
 	{
 		mGame->exit();
-		Render::ShaderManager::Get().setBaseDir("");
 	}
 
 	virtual void onUpdate(long time) override
 	{
+		if (mGame == nullptr)
+			return;
 		mGame->tick(float(time) / 1000);
 	}
 
 	virtual void onRender(float dFrame) override
 	{
+		if (mGame == nullptr)
+			return;
 		mGame->render();
 	}
 
 	virtual MsgReply onChar(unsigned code) override
 	{
+		if (mGame == nullptr)
+			return MsgReply::Unhandled();
 		return mGame->onChar(code);
 	}
 
 	virtual MsgReply onMouse(MouseMsg const& msg) override
 	{
+		if (mGame == nullptr)
+			return MsgReply::Unhandled();
 		return mGame->onMouse(msg);
 	}
 
 	virtual MsgReply onKey(KeyMsg const& msg) override
 	{
+		if (mGame == nullptr)
+			return MsgReply::Unhandled();
 		return mGame->onKey(msg);
 	}
 };

@@ -4,6 +4,7 @@
 
 #include "RHICommon.h"
 #include "D3DSharedCommon.h"
+#include "D3D12Buffer.h"
 #include "D3D12Utility.h"
 
 #include "LogSystem.h"
@@ -15,17 +16,6 @@
 #include "TypeMemoryOp.h"
 
 
-#define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
-	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
-
-#define VERIFY_D3D12RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
-	{ HRESULT hr = CODE; if( hr != S_OK ){ ERROR_MSG_GENERATE( hr , CODE, FILE, LINE ); ERRORCODE } }
-
-#define VERIFY_D3D12RESULT( CODE , ERRORCODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
-#define VERIFY_D3D12RESULT_RETURN_FALSE( CODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
-
-
-#define SAFE_RELEASE( PTR ) if ( PTR ){ PTR->Release(); PTR = nullptr; }
 
 namespace Render
 {
@@ -110,32 +100,32 @@ namespace Render
 
 	template< D3D12_PIPELINE_STATE_SUBOBJECT_TYPE SubobjectID >
 	struct TPSSubobjectStreamTraits {};
-#define DEFINE_SUBOBJECT_STREAM_DATA( ID , DATA )\
+#define DEFINE_PS_SUBOBJECT_STREAM_DATA( ID , DATA )\
 	template<>\
 	struct TPSSubobjectStreamTraits<ID>\
 	{\
 		using DataType = DATA;\
 	};
 
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, ID3D12RootSignature*);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS, D3D12_RT_FORMAT_ARRAY);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT, DXGI_FORMAT);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS, D3D12_SHADER_BYTECODE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT, D3D12_INPUT_LAYOUT_DESC);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY, D3D12_PRIMITIVE_TOPOLOGY_TYPE);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING, D3D12_VIEW_INSTANCING_DESC);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER, D3D12_RASTERIZER_DESC);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_RHI, D3D12_DEPTH_STENCIL_DESC_RHI);
-	DEFINE_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND, D3D12_BLEND_DESC);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, ID3D12RootSignature*);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS, D3D12_RT_FORMAT_ARRAY);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT, DXGI_FORMAT);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS, D3D12_SHADER_BYTECODE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT, D3D12_INPUT_LAYOUT_DESC);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY, D3D12_PRIMITIVE_TOPOLOGY_TYPE);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING, D3D12_VIEW_INSTANCING_DESC);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER, D3D12_RASTERIZER_DESC);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_RHI, D3D12_DEPTH_STENCIL_DESC_RHI);
+	DEFINE_PS_SUBOBJECT_STREAM_DATA(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND, D3D12_BLEND_DESC);
 
-#undef DEFINE_SUBOBJECT_STREAM_DATA
+#undef DEFINE_PS_SUBOBJECT_STREAM_DATA
 
 	struct PSSubobjectStreamDataBase
 	{
@@ -180,6 +170,7 @@ namespace Render
 		template< D3D12_PIPELINE_STATE_SUBOBJECT_TYPE SubobjectID >
 		TPSSubobjectStreamData< SubobjectID >& addDataT()
 		{
+			static_assert(std::is_trivially_destructible_v<TPSSubobjectStreamData< SubobjectID >>);
 			size_t offset = mBuffer.size();
 			mBuffer.insert(mBuffer.end(), sizeof(TPSSubobjectStreamData< SubobjectID >), 0);
 
@@ -191,6 +182,7 @@ namespace Render
 		template< class T >
 		T& addDataT()
 		{
+			static_assert(std::is_trivially_destructible_v<T>);
 			size_t offset = mBuffer.size();
 			mBuffer.insert(mBuffer.end(), sizeof(T), 0);
 			void* ptr = mBuffer.data() + offset;
@@ -200,6 +192,99 @@ namespace Render
 
 		TArray< uint8 > mBuffer;
 	};
+
+	template< D3D12_STATE_SUBOBJECT_TYPE SubobjectID >
+	struct TSOSubobjectStreamTraits {};
+#define DEFINE_SO_SUBOBJECT_STREAM_DATA( ID , DATA )\
+	template<>\
+	struct TSOSubobjectStreamTraits<ID>\
+	{\
+		using DataType = DATA;\
+	};
+
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG, D3D12_STATE_OBJECT_CONFIG);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, D3D12_GLOBAL_ROOT_SIGNATURE);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE, D3D12_LOCAL_ROOT_SIGNATURE);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_NODE_MASK, D3D12_NODE_MASK);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, D3D12_DXIL_LIBRARY_DESC);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION, D3D12_EXISTING_COLLECTION_DESC);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION, D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, D3D12_RAYTRACING_SHADER_CONFIG);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, D3D12_RAYTRACING_PIPELINE_CONFIG);
+	DEFINE_SO_SUBOBJECT_STREAM_DATA(D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, D3D12_HIT_GROUP_DESC);
+
+#undef DEFINE_SO_SUBOBJECT_STREAM_DATA
+
+
+	class D3D12StateObjectDescBuilder
+	{
+	public:
+		D3D12_STATE_OBJECT_DESC getDesc(D3D12_STATE_OBJECT_TYPE type)
+		{
+			finalize();
+			D3D12_STATE_OBJECT_DESC result;
+			result.Type = type;
+			result.pSubobjects = mSubobjects.data();
+			result.NumSubobjects = mSubobjects.size();
+			return result;
+		}
+
+		template< D3D12_STATE_SUBOBJECT_TYPE SubobjectID >
+		TSOSubobjectStreamTraits< SubobjectID >& addDataT()
+		{
+			static_assert(std::is_trivially_destructible_v<TSOSubobjectStreamTraits< SubobjectID >>);
+			size_t offset = mBuffer.size();
+			mBuffer.insert(mBuffer.end(), sizeof(TSOSubobjectStreamTraits< SubobjectID >), 0);
+
+			void* ptr = mBuffer.data() + offset;
+			FTypeMemoryOp::Construct<TSOSubobjectStreamTraits< SubobjectID >>(ptr);
+
+			D3D12_STATE_SUBOBJECT subobject;
+			subobject.Type = SubobjectID;
+			subobject.pDesc = (void*)offset;
+			mSubobjects.push_back(subobject);
+			return *reinterpret_cast<TSOSubobjectStreamTraits< SubobjectID >*>(ptr);
+		}
+
+		void addString(WStringView const& str, LPCWSTR* pRef = nullptr)
+		{
+			size_t offset = mBuffer.size();
+			CHECK(str.length() > 0);
+			mBuffer.insert(mBuffer.end(), str.data() , str.data() + sizeof(*LPCWSTR(0)) * str.length());
+			mStrings.push_back(LPCWSTR(offset));
+
+			if (pRef)
+			{
+				*pRef = (LPCWSTR)(mStrings.size() - 1);
+				mStringRef.push_back(pRef);
+			}
+		}
+
+		void finalize()
+		{
+			for (auto& subobject : mSubobjects)
+			{
+				subobject.pDesc = mBuffer.data() + uint32(subobject.pDesc);
+			}
+			for (auto& ptr : mStrings)
+			{
+				ptr = LPCWSTR(mBuffer.data() + uint32(ptr));
+			}
+
+			for (auto pRef : mStringRef)
+			{
+				*pRef = *(mStrings.data() + uint32(*pRef));
+			}
+		}
+
+		TArray< LPCWSTR* > mStringRef;
+		TArray< LPCWSTR >  mStrings;
+		TArray< D3D12_STATE_SUBOBJECT> mSubobjects;
+		TArray< uint8 > mBuffer;
+	};
+
+
+
 
 #define USE_D3D12_RESOURCE_CUSTOM_COUNT 1
 
@@ -263,6 +348,8 @@ namespace Render
 		}
 		virtual void releaseResource()
 		{
+			if (mResource == nullptr)
+				return;
 #if _DEBUG
 			if (mCount != 0)
 			{
@@ -318,7 +405,7 @@ namespace Render
 #if _DEBUG || USE_D3D12_RESOURCE_CUSTOM_COUNT
 		int mCount = 0;
 #endif
-		ResourceType* mResource;
+		ResourceType* mResource = nullptr;
 	};
 
 
@@ -327,17 +414,30 @@ namespace Render
 		static constexpr int MaxSimulationBufferCount = 8;
 		struct BufferState
 		{
-			DXGI_FORMAT format;
+			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 			TComPtr< ID3D12Resource > resource;
 			D3D12PooledHeapHandle RTVHandle;
 		};
 
 		struct DepthBufferState
 		{
-			DXGI_FORMAT format;
+			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 			TComPtr< ID3D12Resource > resource;
 			D3D12PooledHeapHandle DSVHandle;
 		};
+
+		void updateState()
+		{
+			for (int i = 0; i < MaxSimulationBufferCount; ++i)
+			{
+				if (!colorBuffers[i].resource.isValid())
+				{
+					numColorBuffers = i;
+					break;
+				}
+			}
+			updateFormatGUID();
+		}
 
 
 		BufferState colorBuffers[MaxSimulationBufferCount];
@@ -413,10 +513,10 @@ namespace Render
 		{
 			for (int i = 0; i < MaxSimulationBufferCount; ++i)
 			{
-				D3D12DescriptorHeapPool::Get().freeHandle(colorBuffers[i].RTVHandle);
+				D3D12DescriptorHeapPool::FreeHandle(colorBuffers[i].RTVHandle);
 			}
 
-			D3D12DescriptorHeapPool::Get().freeHandle(depthBuffer.DSVHandle);
+			D3D12DescriptorHeapPool::FreeHandle(depthBuffer.DSVHandle);
 		}
 	};
 
@@ -425,15 +525,21 @@ namespace Render
 	public:
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0){}
 
-		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) { return INDEX_NONE; }
-		virtual int  addTexture(RHITexture2D& target, int level = 0) { return INDEX_NONE; }
+		virtual int  addTexture(RHITextureCube& target, ETexture::Face face, int level = 0) 
+		{ 
+			return INDEX_NONE;
+		}
+		virtual int  addTexture(RHITexture2D& target, int level = 0) override;
 		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) { return INDEX_NONE; }
-		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) {}
+		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) { setTextureInternal(idx, target, level); }
 		virtual void setTexture(int idx, RHITextureCube& target, ETexture::Face face, int level = 0) {  }
 		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) {  }
 
-		virtual void setDepth(RHITexture2D& target){}
-		virtual void removeDepth() {}
+		void setDepth(RHITexture2D& target) override;
+		virtual void removeDepth();
+
+		void setTextureInternal(int index, RHITexture2D& target, int level);
+		int getFreeSlot();
 
 		bool bStateDirty = false;
 		D3D12RenderTargetsState mRenderTargetsState;
@@ -503,11 +609,13 @@ namespace Render
 		virtual void releaseResource()
 		{
 			TD3D12Resource< TRHIResource >::releaseResource();
-			D3D12DescriptorHeapPool::Get().freeHandle(mSRV);
-			D3D12DescriptorHeapPool::Get().freeHandle(mRTVorDSV);
-			D3D12DescriptorHeapPool::Get().freeHandle(mUAV);
+			D3D12DescriptorHeapPool::FreeHandle(mSRV);
+			D3D12DescriptorHeapPool::FreeHandle(mRTVorDSV);
+			D3D12DescriptorHeapPool::FreeHandle(mUAV);
 		}
 
+
+		D3D12_RESOURCE_STATES mCurrentStates;
 		D3D12PooledHeapHandle mSRV;
 		D3D12PooledHeapHandle mRTVorDSV;
 		D3D12PooledHeapHandle mUAV;
@@ -526,31 +634,32 @@ namespace Render
 		D3D12Texture2D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
 	};
 
-
-	struct D3D12BufferHeap
-	{
-		TComPtr<ID3D12Resource>& resource;
-
-	};
 	class D3D12Buffer : public TD3D12Resource< RHIBuffer >
 	{
 	public:
-		bool initialize(TComPtr<ID3D12Resource>& resource, TComPtr<ID3D12DeviceRHI>& device, int elementSize, int numElements)
+		bool initialize(BufferDesc const& desc, TComPtr<ID3D12Resource>& resource)
 		{
-			mNumElements = numElements;
-			mElementSize = elementSize;
+			mDesc = desc;
 			mResource = resource.detach();
-
 			return true;
 		}
-
-		virtual void releaseResource()
+		bool initialize(BufferDesc const& desc)
 		{
-			TD3D12Resource< RHIBuffer >::releaseResource();
-			D3D12DescriptorHeapPool::Get().freeHandle(mSRV);
+			mDesc = desc;
+			return true;
+		}
+		virtual void releaseResource();
+
+		bool isDyanmic()
+		{
+			return !!(getDesc().creationFlags & BCF_CpuAccessWrite);
 		}
 
+		D3D12PooledHeapHandle mCBV;
 		D3D12PooledHeapHandle mSRV;
+		D3D12PooledHeapHandle mUAV;
+
+		D3D12BufferAllocation mDynamicAllocation;
 	};
 
 	class D3D12RasterizerState : public TRefcountResource< RHIRasterizerState >

@@ -25,8 +25,8 @@ public:
 	{
 	}
 
-	TArrayView(std::initializer_list<T> const& inList)
-		:mData(inList.begin()), mNum(inList.size())
+	TArrayView(std::initializer_list<T> inList)
+		:mData((T*)inList.begin()), mNum(inList.size())
 	{
 	}
 

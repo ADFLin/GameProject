@@ -47,7 +47,7 @@ void RayTracingTestStage::onRender(float dFrame)
 
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 	RHISetFrameBuffer(commandList, nullptr);
-	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1, 1.0f);
+	RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0, 0, 0, 1), 1, FRHIZBuffer::FarPlane);
 
 	if (mCamera.getPos() != mLastPos || mCamera.getRotation().getEulerZYX() != mLastRoation)
 	{

@@ -7,7 +7,7 @@
 #include "RHI/RHICommon.h"
 #include "Renderer/RenderTransform2D.h"
 
-#include "FrameAllocator.h"
+#include "Memory/FrameAllocator.h"
 #include "TypeMemoryOp.h"
 #include "RHI/Font.h"
 
@@ -181,6 +181,8 @@ namespace Render
 	public:
 		virtual ~ICustomElementRenderer() = default;
 		virtual void render(RHICommandList& commandList, RenderBatchedElement& element) = 0;
+		
+		bool bChangeState = true;
 	};
 
 	template< class TPayload >
@@ -495,6 +497,7 @@ namespace Render
 		Translucent,
 		Add,
 		Multiply,
+		InvDestColor,
 	};
 
 	class GraphicsDefinition
@@ -646,7 +649,7 @@ namespace Render
 		void emitPolygon(Vector2 v[], int numV, Color4Type const& color);
 		void emitPolygonLine(Vector2 v[], int numV, Color4Type const& color, int lineWidth);
 
-		void flushDrawCommand(bool bEndRender);
+		void flushDrawCommand(bool bEndRender, bool bForceUpdateState = false);
 
 		template< class T>
 		struct TBufferData

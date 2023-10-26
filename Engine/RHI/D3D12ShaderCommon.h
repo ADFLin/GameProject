@@ -11,6 +11,7 @@
 #include <d3d12.h>
 
 #include "RHICommand.h"
+#include "D3D12Utility.h"
 
 class IDxcLibrary;
 class IDxcCompiler;
@@ -28,6 +29,10 @@ namespace Render
 			eCVB ,
 			eSRV ,
 			eUAV ,
+
+			eDescriptorTable_CVB,
+			eDescriptorTable_SRV,
+			eDescriptorTable_UAV,
 			eSampler ,
 		};
 
@@ -43,9 +48,12 @@ namespace Render
 		D3D12_SHADER_VISIBILITY visibility;
 		int    globalCBRegister = INDEX_NONE;
 		uint32 globalCBSize = 0;
+
+		TArray< ShaderParameterSlotInfo >   slots;
+
+		TArray< D3D12_ROOT_PARAMETER1 >     parameters;
 		TArray< D3D12_DESCRIPTOR_RANGE1 >   descRanges;
 		TArray< D3D12_STATIC_SAMPLER_DESC > samplers;
-		TArray< ShaderParameterSlotInfo >   slots;
 	};
 
 	struct D3D12ShaderData
@@ -57,8 +65,6 @@ namespace Render
 		bool initialize(TArray<uint8>&& binaryCode);
 
 		D3D12_SHADER_BYTECODE getByteCode() { return { code.data() , code.size() }; }
-		D3D12_ROOT_PARAMETER1 getRootParameter(int index, int num = 1) const;
-
 	};
 
 	class D3D12Shader : public TRefcountResource< RHIShader >
@@ -71,8 +77,7 @@ namespace Render
 		}
 
 
-		static bool GenerateParameterMap(TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap , ShaderRootSignature& inOutSignature);
-		static void SetupShader(ShaderRootSignature& inOutSignature, EShader::Type type);
+		static bool GenerateParameterMap(EShader::Type type, TArray< uint8 > const& byteCode, TComPtr<IDxcLibrary>& library, ShaderParameterMap& parameterMap, ShaderRootSignature& inOutSignature);
 		
 		virtual bool getParameter(char const* name, ShaderParameter& outParam)
 		{
@@ -123,8 +128,7 @@ namespace Render
 			{
 				auto& shaderData = mShaderDatas[i];
 				ShaderParameterMap parameterMap;
-				D3D12Shader::GenerateParameterMap(shaderData.code, library, parameterMap, shaderData.rootSignature);
-				D3D12Shader::SetupShader(shaderData.rootSignature, shaderData.type);
+				D3D12Shader::GenerateParameterMap(shaderData.type, shaderData.code, library, parameterMap, shaderData.rootSignature);
 				mParameterMap.addShaderParameterMap(i, parameterMap);
 			}
 
@@ -167,7 +171,7 @@ namespace Render
 	class ShaderFormatHLSL_D3D12 final : public ShaderFormat
 	{
 	public:
-		ShaderFormatHLSL_D3D12(TComPtr< ID3D12Device8 >& inDevice);
+		ShaderFormatHLSL_D3D12(TComPtr< ID3D12DeviceRHI >& inDevice);
 		~ShaderFormatHLSL_D3D12();
 		virtual char const* getName() final { return "hlsl_dxc"; }
 		virtual void setupShaderCompileOption(ShaderCompileOption& option);
@@ -185,7 +189,7 @@ namespace Render
 		virtual bool doesSuppurtBinaryCode() const { return true; }
 		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode);
 		
-		TComPtr<ID3D12Device8> mDevice;
+		TComPtr<ID3D12DeviceRHI> mDevice;
 #if TARGET_PLATFORM_64BITS
 		TComPtr<IDxcLibrary>   mLibrary;
 		TComPtr<IDxcCompiler>  mCompiler;
@@ -207,6 +211,8 @@ namespace Render
 		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
 		virtual void precompileCode(ShaderSetupData& setupData) override;
 
+
+		void compileRTCodeTest();
 	};
 
 }//namespace Render

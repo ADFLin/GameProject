@@ -99,7 +99,7 @@ void PropFrame::addPorpWidget( char const* name , QWidget* widget )
 {
 	PropInfo data;
 	data.widget = widget;
-	data.name   = IText::create( getGame()->getFont(0) , 20 , Color4ub( 0 , 0 , 255 ) );
+	data.name   = IText::Create( getGame()->getFont(0) , 20 , Color4ub( 0 , 0 , 255 ) );
 	data.name->setString( name );
 	mPorps.push_back( data );
 }

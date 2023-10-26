@@ -10,7 +10,7 @@
 	{ DECL , MakeChangeStageOperation< CLASS >() , __VA_ARGS__ } 
 
 
-ExecutionEntryInfo gPreRegisterStageGroup[] =
+ExecutionEntryInfo GPreRegisterStageGroup[] =
 {
 	STAGE_INFO("Monument Valley"   , MV::TestStage , EExecGroup::Dev, "Game") ,
 	STAGE_INFO("Bejeweled Test"    , Bejeweled::TestStage , EExecGroup::Dev, "Game") ,
@@ -23,14 +23,14 @@ class TestMiscModule : public IModuleInterface
 public:
 	void startupModule() override
 	{
-		static bool gbNeedRegisterStage = true;
-		if( gbNeedRegisterStage )
+		static bool GbNeedRegisterStage = true;
+		CHECK(GbNeedRegisterStage);
 		{
-			for( auto& info : gPreRegisterStageGroup )
+			GbNeedRegisterStage = false;
+			for( auto const& info : GPreRegisterStageGroup )
 			{
 				ExecutionRegisterCollection::Get().registerExecution(info);
 			}
-			gbNeedRegisterStage = false;
 		}
 	}
 

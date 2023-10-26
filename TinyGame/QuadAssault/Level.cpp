@@ -218,37 +218,37 @@ int Level::random( int i1, int i2 )
 	return ::rand()%i2+i1;
 }
 
-void Level::renderObjects( RenderPass pass )
+void Level::renderObjects(PrimitiveDrawer& drawer, RenderPass pass)
 {
 	for( LevelObject* obj : mItems )
 	{
 		IObjectRenderer* renderer =  obj->getRenderer();
-		renderer->render( pass , obj );
+		renderer->render(drawer, pass , obj);
 	}
 
 
 	for( LevelObject* obj : mMobs )
 	{
 		IObjectRenderer* renderer =  obj->getRenderer();
-		renderer->render( pass , obj );
+		renderer->render(drawer, pass, obj);
 	}
 
 	for( Player* player : mPlayers )
 	{
 		IObjectRenderer* renderer = player->getRenderer();
-		renderer->render( pass , player );
+		renderer->render(drawer, pass, player);
 	}
 
 	for( LevelObject* obj : mBullets )
 	{
 		IObjectRenderer* renderer =  obj->getRenderer();
-		renderer->render( pass , obj );
+		renderer->render(drawer, pass, obj);
 	}
 
 	for( LevelObject* obj : mParticles )
 	{
 		IObjectRenderer* renderer =  obj->getRenderer();
-		renderer->render( pass , obj );
+		renderer->render(drawer, pass, obj);
 	}
 
 }
@@ -313,7 +313,7 @@ Tile* Level::getTile( Vec2f const& pos )
 
 void Level::addLight( Light& light )
 {
-	mRenderLights.push_back( &light );
+	mRenderLights.push_front( &light );
 }
 
 void Level::destroyAllObjectImpl()

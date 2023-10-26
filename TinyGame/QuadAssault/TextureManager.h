@@ -2,15 +2,13 @@
 #define TextureManager_h__
 
 #include "Singleton.h"
-
 #include "HashString.h"
-#include "RenderDebug.h"
 
 #include <map>
 
 class Texture;
 
-class TextureManager : public Render::TextureShowManager
+class TextureManager
 {
 private:
 	std::vector< Texture* > mTextures;

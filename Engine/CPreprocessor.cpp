@@ -243,6 +243,10 @@ namespace CPP
 
 
 				}
+				else
+				{
+					result = EControlPraseResult::RetainText;
+				}
 			}
 			break;
 		case HashValue("elif"):
@@ -687,7 +691,7 @@ namespace CPP
 			break;
 
 		default:
-			PARSE_ERROR("Unknown Param Command");
+			//PARSE_ERROR("Unknown Param Command");
 			return false;
 		}
 

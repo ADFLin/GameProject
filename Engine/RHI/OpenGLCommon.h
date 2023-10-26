@@ -415,27 +415,26 @@ namespace Render
 			glUnmapNamedBuffer(getHandle());
 		}
 
-		bool create(uint32 elementSize , uint32 numElements, uint32 creationFlags , void* initData)
+		bool create(BufferDesc const& desc , void* initData)
 		{
 			if( !mGLObject.fetchHandle() )
 				return false;
 
-			return resetData(elementSize, numElements, creationFlags, initData);
+			return resetData(desc, initData);
 		}
 
-		bool resetData(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* initData)
+		bool resetData(BufferDesc const& desc, void* initData)
 		{
-			glNamedBufferData(getHandle(), elementSize * numElements , initData, OpenGLTranslate::BufferUsageEnum(creationFlags));
-			mCreationFlags = creationFlags;
-			mNumElements = numElements;
-			mElementSize = elementSize;
+			mDesc = desc;
+			glNamedBufferData(getHandle(), mDesc.elementSize * mDesc.numElements, initData, OpenGLTranslate::BufferUsageEnum(mDesc.creationFlags));
+
 			return true;
 		}
 
 		void updateData(uint32 start, uint32 numElements, void* data)
 		{
-			assert((start + numElements) * mElementSize < getSize());
-			glNamedBufferSubData(getHandle(), start * mElementSize, mElementSize * numElements, data);
+			CHECK((start + numElements) * mDesc.elementSize < getSize());
+			glNamedBufferSubData(getHandle(), start * mDesc.elementSize, mDesc.elementSize * numElements, data);
 		}
 	};
 

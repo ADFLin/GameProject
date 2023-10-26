@@ -8,6 +8,7 @@
 #include "GameModuleManager.h"
 
 #include <algorithm>
+#include "PlatformThread.h"
 
 
 ExecutionRegisterCollection::ExecutionRegisterCollection()
@@ -145,4 +146,43 @@ void ExecutionEntryInfo::AddCategories(std::unordered_set< HashString >& inoutCa
 		break;
 	}
 
+}
+
+
+TINY_API IMiscTestCore* GTestCore = nullptr;
+bool FMiscTestUtil::IsTesting()
+{
+	return !!GTestCore;
+}
+
+void FMiscTestUtil::PauseThread()
+{
+	if (GTestCore)
+	{
+		GTestCore->pauseThread(Thread::GetCurrentThreadId());
+	}
+}
+
+void FMiscTestUtil::RegisterRender(MiscRenderFunc const& func)
+{
+	if (GTestCore)
+	{
+		GTestCore->registerRender(Thread::GetCurrentThreadId(), func);
+	}
+}
+
+IMiscTestCore::IMiscTestCore()
+{
+	if (GTestCore == nullptr)
+	{
+		GTestCore = this;
+	}
+}
+
+IMiscTestCore::~IMiscTestCore()
+{
+	if (GTestCore == this)
+	{
+		GTestCore = nullptr;
+	}
 }

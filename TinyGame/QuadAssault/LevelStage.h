@@ -82,7 +82,7 @@ protected:
 
 	FObjectPtr< IText >  mDevMsg;
 	Texture*       mTexCursor;
-	RenderParam    mRenderParam;
+	RenderConfig   mRenderConfig;
 	
 
 	bool        mPause;

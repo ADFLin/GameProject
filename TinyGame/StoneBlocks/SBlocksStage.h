@@ -619,7 +619,11 @@ namespace SBlocks
 			if (!BaseClass::onInit())
 				return false;
 			::Global::GUI().cleanupWidget();
+			
 			restart();
+
+			WidgetUtility::CreateDevFrame();
+
 
 			auto& console = ConsoleSystem::Get();
 #define REGISTER_COM( NAME , FUNC , ... )\

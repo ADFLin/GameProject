@@ -26,6 +26,8 @@ namespace Math
 	bool LineCircleTest(Vector2 const& rPos, Vector2 const& rDir,
 						Vector2 const& cPos, float cRadius, float t[]);
 
+	bool BoxCircleTest(Vector2 const& boxCenter, Vector2 const& boxHalfSize, Vector2 const& circlePos, float circleRadius);
+
 	Vector3 PointToTriangleClosestPoint(Vector3 const& p, Vector3 const& a, Vector3 const& b, Vector3 const& c, float& outSide);
 
 	bool SegmentInterection(Vector2 const& a1, Vector2 const& a2, Vector2 const& b1, Vector2 const& b2, float& fracA);

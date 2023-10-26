@@ -57,6 +57,13 @@ namespace Render
 
 	class RHIPipelineState;
 
+	enum class EResourceType
+	{
+		Unknown,
+		Buffer,
+		Texture,
+	};
+
 	enum EComponentType
 	{
 		CVT_Float,
@@ -328,9 +335,15 @@ namespace Render
 			mTrace = trace;
 		}
 
+		EResourceType getResourceType()
+		{
+			return mResourceType;
+		}
+
 		HashString   mTypeName;
 		char const*  mTag = nullptr;
 		ResTraceInfo mTrace;
+		EResourceType mResourceType = EResourceType::Unknown;
 #endif
 	};
 
@@ -368,6 +381,9 @@ namespace Render
 		int numMipLevel = 1;
 		uint32 creationFlags = TCF_DefalutValue;
 
+		LinearColor clearColor = LinearColor(0,0,0,1);
+		TextureDesc& ClearColor(float r, float g, float b, float a) { clearColor = LinearColor(r,g,b,a); return *this; }
+		TextureDesc& ClearColor(LinearColor const& inColor) { clearColor = inColor; return *this; }
 		TextureDesc& MipLevel(int value) { numMipLevel = Math::Max( 1, value ); return *this; }
 		TextureDesc& Samples(int value) { numSamples = Math::Max( 1, value ); return *this; }
 		TextureDesc& Flags(uint32 value) { creationFlags = value; return *this; }
@@ -426,6 +442,7 @@ namespace Render
 		RHITextureBase()
 #endif
 		{
+			mResourceType = EResourceType::Texture;
 		}
 		virtual ~RHITextureBase() {}
 		virtual RHITexture1D* getTexture1D() { return nullptr; }
@@ -670,24 +687,6 @@ namespace Render
 		};
 	};
 
-
-	enum BufferCreationFlag : uint32
-	{
-		BCF_CreateSRV = BIT(0),
-		BCF_CreateUAV = BIT(1),
-		BCF_CpuAccessWrite = BIT(2),
-		BCF_UsageVertex = BIT(3),
-		BCF_UsageIndex  = BIT(4),
-		BCF_UsageStage  = BIT(5),
-		BCF_UsageConst  = BIT(6),
-		BCF_Structured  = BIT(7),
-
-		BCF_CPUAccessRead = BIT(8),
-
-		BCF_DefalutValue = 0,
-	};
-
-
 	struct InputElementDesc
 	{
 		union
@@ -861,24 +860,46 @@ namespace Render
 	};
 
 
+	enum BufferCreationFlag : uint32
+	{
+		BCF_CreateSRV = BIT(0),
+		BCF_CreateUAV = BIT(1),
+		BCF_CpuAccessWrite = BIT(2),
+		BCF_UsageVertex = BIT(3),
+		BCF_UsageIndex = BIT(4),
+		BCF_UsageStage = BIT(5),
+		BCF_UsageConst = BIT(6),
+		BCF_Structured = BIT(7),
+
+		BCF_CpuAccessRead = BIT(8),
+
+		BCF_DefalutValue = 0,
+	};
+
+	struct BufferDesc
+	{
+		uint32 elementSize;
+		uint32 numElements;
+		uint32 creationFlags;
+
+		uint32 getSize() const { return elementSize * numElements; }
+	};
+
 	class RHIBuffer : public RHIResource
 	{
 	public:
-		RHIBuffer():RHIResource(TRACE_TYPE_NAME("Buffer"))
+		RHIBuffer()
+			:RHIResource(TRACE_TYPE_NAME("Buffer"))
 		{
-			mNumElements = 0;
-			mElementSize = 0;
-			mCreationFlags = 0;
+			mResourceType = EResourceType::Buffer;
 		}
 
-		uint32 getSize() const { return mElementSize * mNumElements; }
-		uint32 getElementSize() const { return mElementSize; }
-		uint32 getNumElements() const { return mNumElements; }
-
+		uint32 getSize() const { return mDesc.numElements * mDesc.elementSize; }
+		uint32 getElementSize() const { return mDesc.elementSize; }
+		uint32 getNumElements() const { return mDesc.numElements; }
+		BufferDesc const& getDesc() const { return mDesc; }
 	protected:
-		uint32 mCreationFlags;
-		uint32 mNumElements;
-		uint32 mElementSize;
+		BufferDesc mDesc;
 	};
 
 	class RHISwapChain : public RHIResource
@@ -1040,7 +1061,7 @@ namespace Render
 #endif
 	};
 
-	constexpr int MaxBlendStateTargetCount = 4;
+	constexpr int MaxBlendStateTargetCount = 8;
 	struct BlendStateInitializer
 	{
 		struct TargetValue
@@ -1070,6 +1091,11 @@ namespace Render
 			bool isEnabled() const
 			{
 				return (srcColor != EBlend::One) || (srcAlpha != EBlend::One) || (destColor != EBlend::Zero) || (destAlpha != EBlend::Zero);
+			}
+
+			void setZero()
+			{
+				FMemory::Zero(this, sizeof(*this));
 			}
 		};
 		bool bEnableAlphaToCoverage;

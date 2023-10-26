@@ -11,15 +11,15 @@
 static Block* gBlockMap[ 256 ] = { 0 };
 
 struct BlockInfo;
-typedef Block* (*CreateBlockFun)(BlockId type);
+typedef Block* (*CreateBlockFunc)(BlockId type);
 
 
 struct BlockInfo
 {
 	BlockId   type;
-	CreateBlockFun createFun;
+	CreateBlockFunc createFunc;
 	unsigned    colMask;
-	unsigned    flag;
+	unsigned    flags;
 	char const* texDiffuse;
 	char const* texNormal;
 	char const* texGlow;
@@ -53,43 +53,37 @@ public:
 
 };
 
-static Vec3f gDoorColor[ NUM_DOOR_TYPE ] =
+static Color3f gDoorColor[ NUM_DOOR_TYPE ] =
 {
-	Vec3f( 1.0, 0.1, 0.1 ) ,
-	Vec3f( 0.1, 0.25, 1.0 ) ,
-	Vec3f( 0.1, 1.0, 0.1 ) ,
+	Color3f( 1.0, 0.1, 0.1 ) ,
+	Color3f( 0.1, 0.25, 1.0 ) ,
+	Color3f( 0.1, 1.0, 0.1 ) ,
 };
 
-Vec3f const& getDoorColor( int type )
+Color3f const& GetDoorColor( int type )
 {
 	return gDoorColor[ type ];
 }
 
-void Block::renderBasePass(Tile const& tile, RenderContext& context)
+void Block::renderBasePass(PrimitiveDrawer& drawer, Tile const& tile)
+{
+	PrimitiveMat mat;
+	mat.color = Color3f(1, 1, 1);
+	mat.baseTex = mTex[TG_DIFFUSE];
+	mat.normalTex = mTex[TG_NORMAL];
+	drawer.setMaterial(mat);
+	drawer.drawRect(tile.pos, gSimpleBlockSize);
+}
+
+
+void Block::renderGlow(PrimitiveDrawer& drawer, Tile const& tile)
 {
 
 }
 
-void Block::render( Tile const& tile )
-{	
-	glColor3f(1,1,1);	
-	drawSprite( tile.pos , gSimpleBlockSize , mTex[ RP_DIFFUSE ] );
-}
-
-void Block::renderNormal( Tile const& tile )
-{	
-	glColor3f(1,1,1);
-	drawSprite( tile.pos , gSimpleBlockSize , mTex[ RP_NORMAL ] );	
-}
-
-void Block::renderGlow( Tile const& tile )
+void Block::renderNoTexture(PrimitiveDrawer& drawer, Tile const& tile)
 {
-
-}
-
-void Block::renderNoTexture( Tile const& tile )
-{
-	drawRect( tile.pos , gSimpleBlockSize );
+	drawer.drawRect(tile.pos, gSimpleBlockSize);
 }
 
 void Block::onCollision( Tile& tile , Bullet* bullet )
@@ -103,13 +97,21 @@ class RockBlock : public Block
 {
 public:
 	virtual void  onCollision( Tile& tile , Bullet* bullet );
-	void render( Tile const& tile );
+	void renderBasePass(PrimitiveDrawer& drawer, Tile const& tile)
+	{
+		PrimitiveMat mat;
+		mat.color = Color3f(1, 0, 0);
+		mat.baseTex = mTex[TG_DIFFUSE];
+		mat.normalTex = mTex[TG_NORMAL];
+		drawer.setMaterial(mat);
+		drawer.drawRect(tile.pos, gSimpleBlockSize);
+	}
 };
 
 class DoorBlock : public Block
 {
 public:
-	virtual void renderGlow( Tile const& tile );
+	virtual void renderGlow(PrimitiveDrawer& drawer, Tile const& tile);
 
 };
 
@@ -129,25 +131,20 @@ void RockBlock::onCollision( Tile& tile , Bullet* bullet )
 	bullet->destroy();
 }
 
-void RockBlock::render( Tile const& tile )
-{
-	glColor3f(1,0,0);	
-	drawSprite( tile.pos , gSimpleBlockSize , mTex[ RP_DIFFUSE ] );
-	glColor3f(1,1,1);
-}
 
-void DoorBlock::renderGlow( Tile const& tile )
+void DoorBlock::renderGlow(PrimitiveDrawer& drawer, Tile const& tile )
 {
+	Color3f color;
 	switch ( tile.meta )
 	{
-	case DOOR_RED:   glColor3f(1.0f, 0.2f, 0.2f); break;
-	case DOOR_BLUE:  glColor3f(0.2f, 0.2f, 1.0f); break;
-	case DOOR_GREEN: glColor3f(0.2f, 1.0f, 0.2f); break;
+	case DOOR_RED:   color = Color3f(1.0f, 0.2f, 0.2f); break;
+	case DOOR_BLUE:  color = Color3f(0.2f, 0.2f, 1.0f); break;
+	case DOOR_GREEN: color = Color3f(0.2f, 1.0f, 0.2f); break;
 	default:
-		glColor3f(1,1,1);
+		color = Color3f(1,1,1);
 	}
-	drawSprite( tile.pos, gSimpleBlockSize , mTex[ RP_GLOW ] );
-	glColor3f(1,1,1);
+	drawer.setGlow(mTex[TG_GLOW], color);
+	drawer.drawRect( tile.pos, gSimpleBlockSize);
 }
 
 
@@ -193,14 +190,14 @@ void Block::init(BlockId type)
 	assert(info.type == type);
 
 	mId = info.type;
-	mFlag = info.flag;
+	mFlags = info.flags;
 	mColMask = info.colMask;
 
 	TextureManager* texMgr = getRenderSystem()->getTextureMgr();
 
-	mTex[RP_DIFFUSE] = (info.texDiffuse) ? texMgr->getTexture(info.texDiffuse) : NULL;
-	mTex[RP_NORMAL] = (info.texNormal) ? texMgr->getTexture(info.texNormal) : NULL;
-	mTex[RP_GLOW] = (info.texGlow) ? texMgr->getTexture(info.texGlow) : NULL;
+	mTex[TG_DIFFUSE] = (info.texDiffuse) ? texMgr->getTexture(info.texDiffuse) : NULL;
+	mTex[TG_NORMAL] = (info.texNormal) ? texMgr->getTexture(info.texNormal) : NULL;
+	mTex[TG_GLOW] = (info.texGlow) ? texMgr->getTexture(info.texGlow) : NULL;
 }
 
 Block* Block::Get(BlockId id)
@@ -214,7 +211,7 @@ void Block::Initialize()
 	for( int i = 0; i < ARRAY_SIZE(gInfo); ++i )
 	{
 		auto const& info = gInfo[i];
-		gBlockMap[info.type] = (*info.createFun)(info.type);
+		gBlockMap[info.type] = (*info.createFunc)(info.type);
 	}
 }
 

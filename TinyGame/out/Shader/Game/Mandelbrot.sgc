@@ -1,5 +1,40 @@
 #include "Common.sgc"
+
+#pragma optionNV(fastmath off)
+#pragma optionNV(fastprecision off)
+
+#define USE_DOUBLE_SIM 0
+
+#if USE_DOUBLE_SIM
+#include "DoubleSim.sgc"
+#define ScalarType  float2
+#define ComplexType float4
+#else
 #include "ComplexCommon.sgc"
+#define ScalarType  float
+#define ComplexType float2
+void StoreValue(out float outValue, float s)
+{
+	outValue = s;
+}
+void StoreValue(out float2 outValue, float2 s)
+{
+	outValue = s;
+}
+float Compare(float a, float b)
+{
+	if (a < b)
+	{
+		return -1.;
+	}
+	if (a > b)
+	{
+		return 1.;
+	}
+	return 0.;
+}
+#endif
+
 
 #if COMPUTE_SHADER
 
@@ -27,28 +62,76 @@ DEFINE_TEXTURE( Texture1D , ColorMapTexture );
 #define SIZE_Y 8
 #endif
 
-CS_NUM_THREADS(16, 16, 1)
+#if USE_DOUBLE_SIM
+ComplexType Rotate(ScalarType c, ScalarType s, ComplexType v)
+{
+	float4 result;
+	result.xy = DSAdd(DSMul(c, v.xy), DSMul(s, v.zw));
+	result.zw = DSSub(DSMul(c, v.zw), DSMul(s, v.xy));
+	return result;
+}
+#endif
+
+float2 Rotate(float c, float s, float2 v)
+{
+	return float2(c * v.x + s * v.y, -s * v.x + c * v.y);
+}
+
+CS_NUM_THREADS(SIZE_X, SIZE_Y, 1)
 CS_ENTRY(MainCS)
 {
 	int2 pixelPos = int2(SvDispatchThreadID.xy);
-	float2 uv = float2(SvDispatchThreadID.xy) / ViewSize;
-	if( pixelPos.x >= ViewSize.x || pixelPos.y >= ViewSize.y )
+	if (pixelPos.x >= ViewSize.x || pixelPos.y >= ViewSize.y)
 		return;
 
-	float2 pos = CoordParam.zw + float2(pixelPos) * CoordParam2.xy;
-	float2x2 m = float2x2( CoordParam2.zw, float2(-CoordParam2.w, CoordParam2.z));
-	float2 z0 = CoordParam.xy + mul( m , ( pos - CoordParam.xy ));
+	//float2 pos = CoordParam.zw + float2(pixelPos) * CoordParam2.xy;
+	//float2 z0 = center + Rotate(rc, rs, ComplexSub(pos, center));
+#if 1
+	ComplexType pos;
+	StoreValue(pos, CoordParam.zw);
+	ComplexType delta;
+	StoreValue(delta, float2(pixelPos));
+#if USE_DOUBLE_SIM
+	ScalarType sx;
+	StoreValue(sx, CoordParam2.x);
+	ScalarType sy;
+	StoreValue(sy, CoordParam2.y);
+	delta.xy = DSMul(delta.xy, sx);
+	delta.zw = DSMul(delta.zw, sy);
+#else
+	delta *= CoordParam2.xy;
+#endif
+	pos = ComplexAdd(pos, delta);
 
-	float2 z = z0;
+
+	ComplexType center;
+	StoreValue(center, CoordParam.xy);
+	ScalarType rc;
+	StoreValue(rc, CoordParam2.z);
+	ScalarType rs;
+	StoreValue(rs, CoordParam2.w);
+	ComplexType z0 = center;
+	z0 = ComplexAdd(z0, Rotate(rc, rs, ComplexSub(pos, center)));
+#else
+	float2 pos = CoordParam.zw + float2(pixelPos) * CoordParam2.xy;
+	float2 z0f = CoordParam.xy + Rotate(CoordParam2.z, CoordParam2.w, pos - CoordParam.xy);
+	ComplexType z0;
+	StoreValue(z0, z0f);
+#endif
+
+	ScalarType threshold;
+	StoreValue(threshold, ColorMapParam.z);
+
+	ComplexType z = z0;
 	int iteration = 0;
-	float rSquare = 0;
 
 	LOOP
-	while( rSquare < ColorMapParam.z && iteration < MaxIteration )
+	for(; iteration < MaxIteration ; ++iteration )
 	{
-		z = ComplexMul(z, z) + z0;
-		rSquare = dot(z, z);
-		++iteration;
+		z = ComplexAdd(ComplexMul(z, z) , z0);
+		ScalarType rSquare = ComplexAbsSquare(z);
+		if ( Compare(rSquare, threshold) > 0)
+			break;
 	}
 
 	//imageStore(IteratorRWTexture, pixelPos, uint4(iteration));

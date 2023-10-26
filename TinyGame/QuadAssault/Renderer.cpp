@@ -20,7 +20,7 @@ void IRenderer::cleanup()
 
 }
 
-void IRenderer::initialize()
+void IRenderer::Initialize()
 {
 	if ( bInitialized )
 		return;

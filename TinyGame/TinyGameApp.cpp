@@ -1143,7 +1143,7 @@ void TinyGameApp::render( float dframe )
 					mRenderEffect->onRender(dt);
 				}
 			}
-			if ( GRHISystem == nullptr || GRHISystem->getName() != RHISystemName::D3D12 )
+
 			{
 				PROFILE_ENTRY("GUIRender");
 				GPU_PROFILE("GUI");
@@ -1254,11 +1254,11 @@ void TinyGameApp::render( float dframe )
 					GpuProfiler::Get().endFrame();
 			}
 
-			if (CVarProfileGPU && RHIIsInitialized() && 0)
+			if (CVarProfileGPU && RHIIsInitialized())
 			{
 				SimpleTextLayout textlayout;
 				textlayout.offset = 15;
-				textlayout.posX = 500;
+				textlayout.posX = ::Global::GetScreenSize().x - 250;
 				textlayout.posY = 10;
 
 				Vec2i rectPos;

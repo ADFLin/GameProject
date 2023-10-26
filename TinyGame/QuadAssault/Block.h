@@ -6,7 +6,7 @@
 #include "BlockId.h"
 
 Vec2f const gSimpleBlockSize = Vec2f( BLOCK_SIZE , BLOCK_SIZE );
-class RenderContext;
+class PrimitiveDrawer;
 
 enum DoorType
 {
@@ -17,7 +17,7 @@ enum DoorType
 	NUM_DOOR_TYPE ,
 };
 
-Vec3f const& getDoorColor( int type );
+Color3f const& GetDoorColor( int type );
 
 enum BlockFlag
 {
@@ -47,20 +47,18 @@ public:
 
 public:
 	virtual ~Block(){}
-	bool     checkFlag( unsigned checkBits ){ return ( mFlag & checkBits) != 0; }
+	bool     checkFlag( unsigned checkBits ){ return ( mFlags & checkBits) != 0; }
 	unsigned getColMask(){ return mColMask; }
 
 	virtual void  init( BlockId type );
 	virtual void  onCollision( Tile& tile , Bullet* bullet );
 
-	virtual void  renderBasePass(Tile const& tile, RenderContext& context);
-	virtual void  render( Tile const& tile );
-	virtual void  renderNormal( Tile const& tile );
-	virtual void  renderGlow( Tile const& tile );
-	virtual void  renderNoTexture( Tile const& tile );
+	virtual void  renderBasePass(PrimitiveDrawer& drawer, Tile const& tile);
+	virtual void  renderGlow(PrimitiveDrawer& drawer, Tile const& tile);
+	virtual void  renderNoTexture(PrimitiveDrawer& drawer, Tile const& tile);
 
 	//call when block is not simple
-	virtual void  renderShadow( Tile const& tile , Vec2f const& lightPos , Light& light ){}
+	virtual void  renderShadow(PrimitiveDrawer& drawer, Tile const& tile , Vec2f const& lightPos , Light& light){}
 	virtual bool  rayTest( Tile const& tile , Vec2f const& from , Vec2f const& to ){ return false; }
 	virtual bool  testIntersect( Tile const& tile , Rect const& bBox ){ return false; }
 
@@ -69,9 +67,9 @@ public:
 
 protected:
 	BlockId   mId;
-	unsigned  mFlag;
+	unsigned  mFlags;
 	unsigned  mColMask;
-	Texture*  mTex[ NUM_RENDER_PASS ];
+	Texture*  mTex[ TextureGroupCount ];
 };
 
 #endif

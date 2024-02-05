@@ -35,7 +35,7 @@ namespace MV
 		GrapthicStateScope scope(g);
 
 #if 1
-		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+		RHISetDepthStencilState(commandList, RenderDepthStencilState::GetRHI());
 		RHISetViewport(commandList, wPos.x, screenSize.y - size.y, size.x, size.y);
 
 		RenderEngine& re = getRenderEngine();

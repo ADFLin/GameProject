@@ -209,11 +209,7 @@ namespace Render
 			}
 		}
 		GShutdownEventList.clear();
-
-		//#FIXME
-		if( GRHISystem->getName() != RHISystemName::Vulkan ||
-			GRHISystem->getName() != RHISystemName::D3D12 )
-			ReleaseGlobalRenderResource();
+		ReleaseGlobalRenderResource();
 
 		ShaderManager::Get().clearnupRHIResouse();
 		IGlobalRenderResource::ReleaseAllResources();
@@ -241,9 +237,9 @@ namespace Render
 		return EXECUTE_RHI_FUNC( RHICreateSwapChain(info) );
 	}
 
-	RHITexture1D* RHI_TRACE_FUNC(RHICreateTexture1D, ETexture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data)
+	RHITexture1D* RHI_TRACE_FUNC(RHICreateTexture1D, ETexture::Format format, int length, int numMipLevel, int numSamples, TextureCreationFlags creationFlags, void* data)
 	{
-		TextureDesc desc = TextureDesc::Type1D(format, length).MipLevel(numMipLevel).Flags(creationFlags);
+		TextureDesc desc = TextureDesc::Type1D(format, length).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateTexture1D(desc, data) ) );
 	}
 
@@ -252,7 +248,7 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture1D(desc, data)));
 	}
 
-	RHITexture2D* RHI_TRACE_FUNC(RHICreateTexture2D , ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
+	RHITexture2D* RHI_TRACE_FUNC(RHICreateTexture2D , ETexture::Format format, int w, int h, int numMipLevel, int numSamples, TextureCreationFlags creationFlags, void* data , int dataAlign)
 	{
 		TextureDesc desc = TextureDesc::Type2D(format, w, h).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC( RHICreateTexture2D(desc, data, dataAlign) ) );
@@ -262,7 +258,7 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture2D(desc, data, dataAlign)));
 	}
 
-	RHITexture3D* RHI_TRACE_FUNC(RHICreateTexture3D ,ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	RHITexture3D* RHI_TRACE_FUNC(RHICreateTexture3D ,ETexture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, TextureCreationFlags creationFlags, void* data)
 	{
 		TextureDesc desc = TextureDesc::Type3D(format, sizeX, sizeY, sizeZ).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture3D(desc, data)) );
@@ -272,7 +268,7 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture3D(desc, data)));
 	}
 
-	RHITextureCube* RHI_TRACE_FUNC(RHICreateTextureCube, ETexture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	RHITextureCube* RHI_TRACE_FUNC(RHICreateTextureCube, ETexture::Format format, int size, int numMipLevel, TextureCreationFlags creationFlags, void* data[])
 	{
 		TextureDesc desc = TextureDesc::TypeCube(format, size).MipLevel(numMipLevel).Flags(creationFlags);
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureCube(desc, data)) );
@@ -282,7 +278,7 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTextureCube(desc, data)));
 	}
 
-	RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray, ETexture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, TextureCreationFlags creationFlags, void* data)
 	{
 		TextureDesc desc = TextureDesc::Type2DArray(format, w, h, layerSize).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTexture2DArray(desc, data)) );
@@ -292,7 +288,7 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTexture2DArray(desc, data)));
 	}
 
-	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, ETexture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags)
+	RHITexture2D* RHI_TRACE_FUNC(RHICreateTextureDepth, ETexture::Format format, int w, int h, int numMipLevel, int numSamples, TextureCreationFlags creationFlags)
 	{
 		TextureDesc desc = TextureDesc::Type2D(format, w, h).MipLevel(numMipLevel).Samples(numSamples).Flags(creationFlags);
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateTextureDepth(desc)) );
@@ -302,7 +298,7 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateTextureDepth(desc)));
 	}
 
-	RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
+	RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, uint32 elementSize, uint32 numElements, BufferCreationFlags creationFlags, void* data)
 	{
 		if (elementSize == 0 || numElements == 0)
 			return nullptr;
@@ -322,7 +318,7 @@ namespace Render
 		RHI_TRACE_CODE(EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data)));
 	}
 
-	RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer, uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+	RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer, uint32 vertexSize, uint32 numVertices, BufferCreationFlags creationFlags, void* data)
 	{
 		if (vertexSize == 0 || numVertices == 0)
 			return nullptr;
@@ -334,7 +330,7 @@ namespace Render
 		RHI_TRACE_CODE( EXECUTE_RHI_FUNC(RHICreateBuffer(desc, data) ) );
 	}
 
-	RHIBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer, uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
+	RHIBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer, uint32 nIndices, bool bIntIndex, BufferCreationFlags creationFlags, void* data)
 	{
 		if (nIndices == 0)
 			return nullptr;
@@ -542,7 +538,7 @@ namespace Render
 			pData = cachedImageData.data();
 		}
 
-		uint32 flags = option.creationFlags;
+		TextureCreationFlags flags = option.creationFlags;
 		if (bConvToHalf)
 		{
 			flags |= TCF_HalfData;
@@ -589,7 +585,7 @@ namespace Render
 			data[i] = imageDatas[i].data;
 		}
 
-		uint32 flags = option.creationFlags;
+		TextureCreationFlags flags = option.creationFlags;
 		if (option.bAutoMipMap)
 		{
 			option.numMipLevel;
@@ -615,7 +611,7 @@ namespace Render
 		bool bConvToHalf = option.isConvertFloatToHalf();
 
 
-		uint32 flags = option.creationFlags;
+		TextureCreationFlags flags = option.creationFlags;
 
 		int numMipLevel = option.numMipLevel;
 		if (option.bAutoMipMap)

@@ -29,7 +29,7 @@ namespace Math
 			return Math::BoxBoxTest(min, max, rhs.min, rhs.max);
 		}
 
-		bool isValid() const {  return min <= max;  }
+		bool isValid() const { return min <= max; }
 		bool isEmpty() const { return max <= min; }
 
 		bool isInside(VectorType const& p) const
@@ -134,12 +134,12 @@ namespace Math
 		VectorType getPosition(float dist) const { return pos + dist * dir; }
 		int     testIntersect(TAABBox<VectorType> const& bound, float outDists[2]) const
 		{
-			if( !Math::LineAABBTest(pos, dir, bound.min, bound.max, outDists) )
+			if (!Math::LineAABBTest(pos, dir, bound.min, bound.max, outDists))
 				return 0;
 
-			if( outDists[0] < 0 )
+			if (outDists[0] < 0)
 			{
-				if( outDists[1] < 0 )
+				if (outDists[1] < 0)
 					return 0;
 				outDists[0] = outDists[1];
 				return 1;

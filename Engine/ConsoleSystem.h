@@ -383,7 +383,7 @@ protected:
 	static int const NumMaxParams = 16;
 	struct ExecuteContext
 	{
-		char buffer[512];
+		TArray<char> buffer;
 		ConsoleCommandBase* command;
 
 		char const* text;
@@ -399,7 +399,7 @@ protected:
 	bool fillArgumentData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData, bool bAllowIgnoreArgs);
 	bool executeCommandImpl(ExecuteContext& context);
 #if 0
-	using CommandMap = std::map< TStringPtrWrapper<char, true> , ConsoleCommandBase* >;
+	using CommandMap = std::map< TCStringWrapper<char, true> , ConsoleCommandBase* >;
 #else
 	using CommandMap = std::unordered_map< TCStringWrapper<char, true>, ConsoleCommandBase*, MemberFuncHasher>;
 #endif

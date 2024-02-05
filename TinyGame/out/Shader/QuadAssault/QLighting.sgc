@@ -1,0 +1,123 @@
+#include "Common.sgc"
+
+#ifndef VERTEX_SHADER
+#define VERTEX_SHADER 1
+#endif
+#ifndef PIXEL_SHADER
+#define PIXEL_SHADER 1
+#endif
+
+struct VSOutputParameters
+{
+	float3 pos MEMBER_OUT(TEXCOORD0);
+};
+
+
+#if VERTEX_SHADER
+
+uniform float4x4 WorldToClip;
+
+VS_ENTRY_START(LightingVS)
+	VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float2 InUVww, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(LightingVS)
+{
+
+	float4 worldPos = float4(InPos,0, 1);
+	SvPosition = mul(WorldToClip, worldPos);
+	VSOutput.pos = worldPos.xyz;
+}
+
+#endif
+
+
+
+#if PIXEL_SHADER
+
+struct LightParams
+{
+	float2 pos;
+	float  angle;
+	float  radius;
+	float3 color;
+	float  intensity;
+	float2 dir;
+	int    isExplosion;
+	int    dummy;
+};
+
+struct ViewParams
+{
+	float4 rectPosAndSizeInv;
+
+};
+
+cbuffer LightParamsBlock
+{
+	LightParams Light;
+};
+cbuffer ViewParamsBlock
+{
+	ViewParams View;
+};
+//uniform float frameHeight;
+//uniform float scaleFactor;
+
+
+DEFINE_TEXTURE(Texture2D, TexNormalMap);
+DEFINE_TEXTURE(Texture2D, TexBaseColor);
+
+PS_ENTRY_START(LightingPS)
+	PS_INPUT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(LightingPS)
+
+{
+	//vec2 pixel=gl_FragCoord.xy;	
+	//pixel.y = frameHeight-pixel.y;
+	//pixel = pixel / scaleFactor;
+	//vec2 aux = posLight - scaleFactor * pixel;
+	float2 screenUVs = (SvPosition.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
+
+	float3 normal = TEXTURE_SAMPLE(TexNormalMap, screenUVs).rgb;
+	float3 N = 2 * normal - 1;
+	if (normal.z == 0.0)
+		N = float3(0, 0, 0);
+
+
+	float2 lightVector = Light.pos - VSOutput.pos.xy;
+	float d = length(lightVector);
+
+#if 1
+	if (d >= Light.radius)
+		discard;
+#endif
+
+	float3 L = float3(lightVector / d, 0.0);
+
+	float diffuseFactor = max(dot(L, N), 0.0);
+	diffuseFactor = max(dot(L, N), 0.0);
+
+	if (Light.isExplosion != 0)
+	{
+		diffuseFactor = 0.05 + 0.01 * diffuseFactor;
+	}
+
+	if (all(normal == float3(1.0, 1.0, 1.0)))
+		diffuseFactor = 0.05;
+
+#if 1
+	if (dot(L.xy, Light.dir) < Light.angle * d / Light.radius)
+		discard;
+#endif
+
+	float opad = 10 * Light.intensity / d;
+	float decay = clamp((1.0 - d / Light.radius), 0.0, 1.0);
+	float c = decay * opad * diffuseFactor;
+
+	OutColor = float4(c * Light.color, 1.0);
+	//OutColor = float4(1,0,0, 1.0);
+}
+
+#endif

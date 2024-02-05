@@ -39,8 +39,7 @@ namespace Render
 
 		int globalConstBufferSize;
 
-		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode);
-		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, uint32 codeSize);
+		bool initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TArrayView< uint8 const > code);
 		void release();
 	};
 
@@ -63,7 +62,7 @@ namespace Render
 			mResource.release();
 		}
 
-		virtual bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode);
+		virtual bool initialize(TComPtr<ID3D11Device>& device, TArrayView<uint8 const>& inByteCode);
 		virtual bool initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode);
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) 
 		{ 
@@ -93,20 +92,9 @@ namespace Render
 	public:
 		D3D11VertexShader(): D3D11Shader(EShader::Vertex){}
 
-		virtual bool initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode)
-		{
-			if (!BaseClass::initialize(device, inByteCode))
-				return false;
-			byteCode.assign((uint8*)inByteCode->GetBufferPointer(), (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
-		}
+		virtual bool initialize(TComPtr<ID3D11Device>& device, TArrayView<uint8 const>& inByteCode);
 
-		virtual bool initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode)
-		{
-			if (!BaseClass::initialize(device, std::move(inByteCode)))
-				return false;
-
-			byteCode = std::move(inByteCode);
-		}
+		virtual bool initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode);
 
 		TArray< uint8 >      byteCode;
 	};
@@ -162,23 +150,23 @@ namespace Render
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry) final;
 		virtual bool compileCode(ShaderCompileContext const& context) final;
 
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
 
-		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
+		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram) final;
 
 		virtual bool doesSuppurtBinaryCode() const final;
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
+		virtual bool getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
 
 		
 		TComPtr< ID3D11Device > mDevice;
 
-		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderSetupData& setupData) override;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
 
 
-		virtual void postShaderLoaded(Shader& shader) override;
-		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
+		virtual void postShaderLoaded(RHIShader& shader) override;
+		virtual bool getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
 
 
 		virtual void precompileCode(ShaderProgramSetupData& setupData) override;

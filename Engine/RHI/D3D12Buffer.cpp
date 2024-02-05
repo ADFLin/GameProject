@@ -157,6 +157,22 @@ namespace Render
 		return true;
 	}
 
+	bool D3D12DynamicBufferManager::addFrameAllocator(uint32 size)
+	{
+		D3D12FrameHeapAllocator allocator;
+		allocator.initialize(mDevice, size);
+		mFrameAllocators.push_back(std::move(allocator));
+		return true;
+	}
+
+	void D3D12DynamicBufferManager::markFence()
+	{
+		for (auto& allocator : mFrameAllocators)
+		{
+			allocator.markFence();
+		}
+	}
+
 	bool D3D12DynamicBufferManager::alloc(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation)
 	{
 		for (auto page : mHeapPages)
@@ -191,7 +207,6 @@ namespace Render
 
 	bool D3D12DynamicBufferManager::allocFrame(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation)
 	{
-
 		for (auto& allocator : mFrameAllocators)
 		{
 			if (allocator.alloc(size, alignment, outAllocation))

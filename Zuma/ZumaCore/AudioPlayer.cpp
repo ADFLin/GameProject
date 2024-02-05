@@ -2,7 +2,6 @@
 #include "AudioPlayer.h"
 
 #include "Audio/XAudio2/MFDecoder.h"
-#include "minivorbis/minivorbis.h"
 #include "Core/ScopeGuard.h"
 #include "FileSystem.h"
 
@@ -43,80 +42,25 @@ namespace Zuma
 		mDevice = nullptr;
 	}
 
-	bool LoadOggFile(char const* path, WaveFormatInfo& outWaveFormat, TArray<uint8>& outSampleData)
+	bool loadResource(SoundRes* res, SoundResInfo const& info)
 	{
-		FILE* fp = fopen(path, "rb");
-		if (!fp)
+
+		if (info.flag & SND_FMT_OGG)
 		{
-			LogWarning(0, "Failed to open file '%s'.", path);
-			return false;
-		}
-
-		ON_SCOPE_EXIT
-		{
-			fclose(fp);
-		};
-		/* Open sound stream. */
-		OggVorbis_File vorbis;
-		if (ov_open_callbacks(fp, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0) 
-		{
-			LogWarning(0, "Invalid Ogg file '%s'.", path);
-			return false;
-		}
-
-		ON_SCOPE_EXIT
-		{
-			/* Close sound file */
-			ov_clear(&vorbis);
-		};
-
-		/* Print sound information. */
-		vorbis_info* info = ov_info(&vorbis, -1);
-		//LogMsg("Ogg file %d Hz, %d channels, %d kbit/s.\n", info->rate, info->channels, info->bitrate_nominal / 1024);
-
-		outWaveFormat.tag = WAVE_FORMAT_PCM;
-		outWaveFormat.numChannels = info->channels;
-		outWaveFormat.sampleRate  = info->rate;
-		outWaveFormat.bitsPerSample = 8 * sizeof(int16);
-		outWaveFormat.byteRate = outWaveFormat.bitsPerSample * outWaveFormat.sampleRate * outWaveFormat.numChannels / 8;
-		outWaveFormat.blockAlign = outWaveFormat.numChannels * outWaveFormat.bitsPerSample / 8;
-
-		/* Read the entire sound stream. */
-		unsigned char buf[4096];
-		for(;;)
-		{
-			int section = 0;
-			long bytes = ov_read(&vorbis,(char*)buf, sizeof(buf), 0, sizeof(int16), std::is_signed_v<int16>, &section);
-			if (bytes <= 0) /* end of file or error */
-				break;
-
-			outSampleData.append(buf, buf + bytes);
-		}
-
-		return true;
-	}
-
-
-	bool loadResource(SoundRes* res, char const* path)
-	{
-		char const* ext = FFileUtility::GetExtension(path);
-
-		if (FCString::CompareIgnoreCase(ext, "ogg") == 0)
-		{
-			if (LoadOggFile(path, res->soundWave.format, res->soundWave.PCMData))
+			if (LoadOggFile(info.path.c_str(), res->soundWave.format, res->soundWave.PCMData))
 				return true;
 
 			return true;
 		}
-		else if (FCString::CompareIgnoreCase(ext, "wav") == 0)
+		else if (info.flag & SND_FMT_WAV)
 		{
-			if (LoadWaveFile(path, res->soundWave.format, res->soundWave.PCMData))
+			if (LoadWaveFile(info.path.c_str(), res->soundWave.format, res->soundWave.PCMData))
 				return true;
 		}
 
-		if (!FMFDecodeUtil::LoadWaveFile(path, res->soundWave.format, res->soundWave.PCMData))
+		if (!FMFDecodeUtil::LoadWaveFile(info.path.c_str(), res->soundWave.format, res->soundWave.PCMData))
 		{
-			LogWarning(0, "Audio file load fail : %s", path);
+			LogWarning(0, "Audio file load fail : %s", info.path.c_str());
 			return false;
 		}
 
@@ -127,7 +71,7 @@ namespace Zuma
 	{
 		SoundResInfo& soundInfo = static_cast<SoundResInfo&>(info);
 		SoundRes* res = new SoundRes;
-		loadResource(res, info.path.c_str());
+		loadResource(res, soundInfo);
 		res->volume = soundInfo.volume;
 		return res;
 	}

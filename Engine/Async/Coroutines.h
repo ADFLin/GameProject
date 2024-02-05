@@ -180,6 +180,7 @@ namespace Coroutines
 		operator T*() { return mPtr; }
 		T* operator->() { return mPtr; }
 
+
 		T*   mPtr = nullptr;
 		char mStorage[Size];
 	};
@@ -311,25 +312,9 @@ namespace Coroutines
 		{
 			return getExecutionOrderIndex(context) == INDEX_NONE;
 		}
-		int getExecutionOrderIndex(ExecutionHandle handle)
-		{
-			if (!handle.isValid())
-				return INDEX_NONE;
-			return getExecutionOrderIndex(handle.getPointer());
-		}
+		int getExecutionOrderIndex(ExecutionHandle handle);
 
-		int getExecutionOrderIndex(ExecutionContext* context)
-		{
-			int index = mExecutions.findIndex(context);
-
-			if (index == INDEX_NONE)
-				return INDEX_NONE;
-
-			if (mIndexCompleted.findIndex(index) != INDEX_NONE)
-				return INDEX_NONE;
-
-			return index;
-		}
+		int getExecutionOrderIndex(ExecutionContext* context);
 
 		void syncExecutions(std::initializer_list<ExecutionHandle> executions);
 		void raceExecutions(std::initializer_list<ExecutionHandle> executions);
@@ -357,7 +342,7 @@ namespace Coroutines
 		ExecutionHandle startInternal(std::function< void(ExecutionContext&) > entryFunc);
 		void executeContextInternal(ExecutionContext& context);
 		void postExecuteContext(ExecutionContext& context);
-		void cleaupCompletedExecutions();
+		void cleanupCompletedExecutions();
 
 
 		ExecutionContext* mExecutingContext = nullptr;

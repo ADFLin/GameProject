@@ -21,19 +21,36 @@ bool TinyGameApp::initializeEditor()
 	return true;
 }
 
+
 bool TinyGameApp::initializeEditorRender()
 {
-	char const* RHIModuleName = "D3D11RHI.dll";
-
-	FCString::IsConstSegment(RHIModuleName);
-
-	ModuleManager::Get().loadModule(RHIModuleName);
+	ERenderSystem renderSystem = ERenderSystem::D3D11;
+	char const* moduleName = "D3D11RHI.dll";
+	switch (renderSystem)
+	{
+	case ERenderSystem::OpenGL:
+		moduleName = "OpenGLRHI.dll";
+		break;
+	case ERenderSystem::D3D11:
+		moduleName = "D3D11RHI.dll";
+		break;
+	case ERenderSystem::D3D12:
+		moduleName = "D3D12RHI.dll";
+		break;
+	case ERenderSystem::Vulkan:
+		moduleName = "VulkanRHI.dll";
+		break;
+	}
+	if (ModuleManager::Get().loadModule(moduleName))
+	{
+		return false;
+	}
 
 	RenderSystemConfigs configs;
 	configs.bDebugMode = true;
 	configs.bVSyncEnable = true;
 	configs.numSamples = 1;
-	::Global::GetDrawEngine().lockSystem(ERenderSystem::D3D11, configs);
+	::Global::GetDrawEngine().lockSystem(renderSystem, configs);
 
 	mEditor->initializeRender();
 	mEditor->addGameViewport(this);

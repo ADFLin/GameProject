@@ -64,13 +64,13 @@ class AStartTest : public GameLoopT< AStartTest , WindowsPlatform >
 	             , public WindowsMessageHandlerT< AStartTest >
 {
 public:
-	void onIdle( long time ){ SystemPlatform::Sleep( time / 2 ); }
-	bool onInit()
+	void handleGameIdle( long time ){ SystemPlatform::Sleep( time / 2 ); }
+	bool initializeGame()
 	{ 
 		if ( !WinFrame::create( TEXT("Test") , 800 , 800 , WindowsMessageHandler::MsgProc ) )
 			return false;
 
-		mRenderSystem = ( new WinGDIRenderSystem( getHWnd() , getHDC() ) );
+		mRenderSystem = new WinGDIRenderSystem( getHWnd() , getHDC() );
 
 		//mRegionMgr.reset( new RegionManager( Vec2i( 64 , 64 ) ) );
 		//mRegionMgr = new RegionManager( Vec2i( 64 , 64 ) );
@@ -227,7 +227,7 @@ public:
 		return MsgReply::Unhandled();
 	}
 
-	bool handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
+	MsgReply handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
 	{ 
 		Vec2i mapPos = ( msg.getPos() - Vec2i( 20 , 20 ) ) / CellLength ;
 		if ( msg.onLeftDown() )
@@ -240,10 +240,10 @@ public:
 		{
 			curPos = mapPos;
 		}
-		return true; 
+		return MsgReply::Unhandled();
 	}
 
-	bool handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
+	MsgReply handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE
 	{
 		if (msg.isDown())
 		{
@@ -290,7 +290,7 @@ public:
 				break;
 			}
 		}
-		return true;
+		return MsgReply::Unhandled();
 	}
 
 

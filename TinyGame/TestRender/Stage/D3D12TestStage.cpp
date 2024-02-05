@@ -25,6 +25,14 @@ namespace Render
 		float dummy;
 	};
 
+
+	struct ColorBufferData
+	{
+		DECLARE_BUFFER_STRUCT(Colors);
+
+		Color3f color;
+	};
+
 	class SimpleD3D12Program : public GlobalShaderProgram
 	{
 		using BaseClass = GlobalShaderProgram;
@@ -69,7 +77,7 @@ namespace Render
 		Shader mPixelShader;
 	
 		TStructuredBuffer< ColorBuffer > mCBuffer;
-
+		TStructuredBuffer< ColorBufferData > mCBufferData;
 		static const UINT TextureWidth = 256;
 		static const UINT TextureHeight = 256;
 		static const UINT TexturePixelSize = 4;
@@ -141,7 +149,7 @@ namespace Render
 				mTexRT2->setDebugName("RT2");
 				GTextureShowManager.registerTexture("TexRT", mTexRT);
 				GTextureShowManager.registerTexture("TexRT2", mTexRT2);
-				mTexDepth = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, screenSize.x, screenSize.y).Flags(0));
+				mTexDepth = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, screenSize.x, screenSize.y).Flags(TCF_None));
 
 				mFrameBuffer = RHICreateFrameBuffer();
 				mFrameBuffer->setTexture(0, *mTexRT);
@@ -212,6 +220,11 @@ namespace Render
 				}
 			}
 
+			{
+				ColorBufferData colors[] = { Color3f(1,0,0) , Color3f(0,1,0) , Color3f(0,0,1) , Color3f(1,1,1) };
+				VERIFY_RETURN_FALSE(mCBufferData.initializeResource(ARRAY_SIZE(colors), EStructuredBufferType::Buffer));
+				mCBufferData.updateBuffer(colors);
+			}
 			return true;
 		}
 
@@ -324,6 +337,8 @@ namespace Render
 				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
 				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_SAMPLER(BaseTexture), samplerState);
 				mProgTriangle->setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_SAMPLER(BaseTexture1), samplerState);
+
+				SetStructuredStorageBuffer(commandList, *mProgTriangle, mCBufferData);
 				mView.setupShader(commandList, *mProgTriangle);
 			}
 			else
@@ -338,6 +353,8 @@ namespace Render
 				auto& samplerState = TStaticSamplerState<ESampler::Trilinear>::GetRHI();
 				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture), *mTexture, SHADER_SAMPLER(BaseTexture), samplerState);
 				mPixelShader.setTexture(commandList, SHADER_PARAM(BaseTexture1), *mTexture1, SHADER_SAMPLER(BaseTexture1), samplerState);
+
+				SetStructuredStorageBuffer(commandList, mVertexShader, mCBufferData);
 			}
 
 			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());

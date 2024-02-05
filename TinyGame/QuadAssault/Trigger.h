@@ -29,6 +29,14 @@ enum FireMode
 	FM_LOOP ,
 };
 
+REF_ENUM_BEGIN(FireMode)
+	REF_ENUM(FM_ONCE, "Once")
+	REF_ENUM(FM_DESTROY, "Destroy")
+	REF_ENUM(FM_ALWAYS, "Always")
+	REF_ENUM(FM_ON_TOUCH, "On Touch")
+	REF_ENUM(FM_LOOP, "Loop")
+REF_ENUM_END()
+
 typedef std::vector< Action* > ActionList;
 
 class TriggerBase
@@ -60,25 +68,26 @@ public:
 	AreaTrigger( Vec2f const& min , Vec2f const& max );
 	~AreaTrigger();
 
-	virtual void init();
-	virtual void onSpawn( unsigned flag );
-	virtual void onDestroy( unsigned flag );
-	virtual void tick();
-	virtual void setupDefault();
-	virtual void renderDev( DevDrawMode mode );
+	void init() override;
+	void onSpawn( unsigned flag ) override;
+	void onDestroy( unsigned flag ) override;
+	void tick() override;
+	void setupDefault() override;
+	void renderDev(RHIGraphics2D& g, DevDrawMode mode ) override;
 
 private:
 	ColBody mBody;
 	typedef std::vector< LevelObject* >  ObjectList;
 	ObjectList mTouchObjects;
 
-	BEGIN_CLASS_PROP()
-	MEMBER_PROP( "AreaSize" , mSize )
-	int const fireModeValue[] = { FM_ONCE , FM_ON_TOUCH , FM_ALWAYS , FM_DESTROY };
-	char const* fireModeStr[] = { "Once" , "On Touch" , "Always" , "Destroy" };
-	MENBER_ENUM_PROP( "FireMode" , mMode , ARRAY_SIZE( fireModeValue ) , fireModeValue , fireModeStr )
-	END_CLASS_PROP()
+	REFLECT_STRUCT_BEGIN(AreaTrigger)
+		REF_BASE_CLASS(LevelObject)
+		REF_PROPERTY(mSize, "AreaSize")
+		REF_PROPERTY(mMode, "FireMode")
+	REFLECT_STRUCT_END()
 };
+
+
 
 class SpawnAct : public Action
 {
@@ -89,7 +98,7 @@ public:
 	virtual void enumProp( IPropEditor& editor );
 	virtual void setupDefault();
 
-	String    className;
+	CRClassName className;
 	Vec2f     spawnPos;
 	String    spawnProperty;
 };

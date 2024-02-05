@@ -99,9 +99,6 @@
     <ClCompile Include="ZumaCore\CometZone.cpp">
       <Filter>Comet</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\minivorbis\minivorbis.c">
-      <Filter>OtherLib</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZumaCore\AudioPlayer.h">
@@ -211,9 +208,6 @@
     </ClInclude>
     <ClInclude Include="ZumaCore\CometZone.h">
       <Filter>Comet</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\minivorbis\minivorbis.h">
-      <Filter>OtherLib</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

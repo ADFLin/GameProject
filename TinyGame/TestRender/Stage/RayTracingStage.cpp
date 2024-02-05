@@ -33,7 +33,7 @@ bool RayTracingTestStage::onInit()
 	frame->addCheckBox("Draw Debug", mbDrawDebug);
 
 	Vector2 lookPos = Vector2(0, 0);
-	mWorldToScreen = LookAt(::Global::GetScreenSize(), lookPos, Vector2(0, 1), 800);
+	mWorldToScreen = RenderTransform2D::LookAt(::Global::GetScreenSize(), lookPos, Vector2(0, 1), ::Global::GetScreenSize().x / 800.0f);
 	mScreenToWorld = mWorldToScreen.inverse();
 	generatePath();
 
@@ -64,6 +64,8 @@ void RayTracingTestStage::onRender(float dFrame)
 	mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
 	mViewFrustum.mYFov = Math::DegToRad(90 / mViewFrustum.mAspect);
 
+	RHIResourceTransition(commandList, { &mSceneRenderTargets.getFrameTexture() }, EResourceTransition::RenderTarget);
+	RHIResourceTransition(commandList, { &mSceneRenderTargets.getPrevFrameTexture() }, EResourceTransition::SRV);
 	RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 	RHISetFrameBuffer(commandList, mSceneRenderTargets.getFrameBuffer());
 
@@ -95,10 +97,14 @@ void RayTracingTestStage::onRender(float dFrame)
 		mRayTracingPS->setStructuredStorageBufferT< ObjectIdData >(commandList, *mObjectIdBuffer.getRHI());
 
 		mRayTracingPS->setParam(commandList, SHADER_PARAM(NumObjects), mNumObjects);
-		SET_SHADER_TEXTURE(commandList, *mRayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture());
+		SET_SHADER_TEXTURE_AND_SAMPLER(commandList, *mRayTracingPS, HistoryTexture, mSceneRenderTargets.getPrevFrameTexture(), TStaticSamplerState<>::GetRHI());
 
 		DrawUtility::ScreenRect(commandList);
+
+
 	}
+
+	RHIResourceTransition(commandList, { &mSceneRenderTargets.getFrameTexture() }, EResourceTransition::SRV);
 
 	{
 		GPU_PROFILE("CopyToBackBuffer");
@@ -609,6 +615,7 @@ namespace RT
 	}
 
 }
+
 
 bool RayTracingTestStage::loadSceneRHIResource()
 {

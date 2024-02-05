@@ -1099,7 +1099,7 @@ namespace Render
 		{
 			GPU_PROFILE("Resolve");
 
-			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 			ViewportSaveScope vpScope(commandList);
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
@@ -1623,10 +1623,10 @@ namespace Render
 
 	struct VolumetricLightingParameter
 	{
-		RHITexture3D*     volumeBuffer[2];
-		RHITexture3D*     scatteringBuffer[2];
-		RHIBuffer*  lightBuffer;
-		int               numLights;
+		RHITexture3D*  volumeBuffer[2];
+		RHITexture3D*  scatteringBuffer[2];
+		RHIBuffer*     lightBuffer;
+		int            numLights;
 	};
 
 	class LightScatteringProgram : public GlobalShaderProgram

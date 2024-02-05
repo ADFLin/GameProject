@@ -23,11 +23,10 @@ public:
 
 	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
-		BIND_SHADER_PARAM(parameterMap, HistoryTexture);
+		BIND_TEXTURE_PARAM(parameterMap, HistoryTexture);
 	}
 
-	DEFINE_SHADER_PARAM(HistoryTexture);
-
+	DEFINE_TEXTURE_PARAM(HistoryTexture);
 };
 
 

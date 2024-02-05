@@ -12,7 +12,7 @@
 #define BIT( n ) ( 1 << ( n ) )
 #endif
 
-#define USE_SEPARATE_SHADER 0
+#define USE_SEPARATE_SHADER 1
 
 namespace Render
 {

@@ -99,11 +99,7 @@ TArray<KeyValue*> KeySection::getKeyValues(char const* keyName)
 	return result;
 }
 
-template<>
-struct TBitwiseReallocatable<KeySection::KeyValueMap::iterator>
-{
-	static constexpr int Value = 0;
-};
+BITWISE_RELLOCATABLE_FAIL(KeySection::KeyValueMap::iterator);
 
 PropertySet::PropertySet()
 {
@@ -203,11 +199,7 @@ bool PropertySet::getBoolValue(char const* keyName, char const* section, bool de
 	return getValueT(keyName, section, defaultValue);
 }
 
-template<>
-struct TBitwiseReallocatable<PropertySet::KeySectionMap::iterator>
-{
-	static constexpr int Value = 0;
-};
+BITWISE_RELLOCATABLE_FAIL(PropertySet::KeySectionMap::iterator);
 
 bool PropertySet::saveFile( char const* path )
 {

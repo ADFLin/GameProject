@@ -129,11 +129,13 @@ namespace Render
 		bool lockCurrentResource();
 
 		int mIndexCur = 0;
-		TArray< ID3D12Resource* > mResources;
+
 		ID3D12DeviceRHI* mDevice = nullptr;
 		uint32 mResourceSize = 0;
 		uint32 mSizeUsage = 0;
 		uint8* mCpuPtr = nullptr;
+
+		TArray< ID3D12Resource* > mResources;
 	};
 
 	class D3D12UploadHeapPage
@@ -223,21 +225,9 @@ namespace Render
 		}
 
 		bool isInitialized() { return !!mDevice; }
-		bool addFrameAllocator(uint32 size)
-		{
-			D3D12FrameHeapAllocator allocator;
-			allocator.initialize(mDevice, size);
-			mFrameAllocators.push_back(std::move(allocator));
-			return true;
-		}
+		bool addFrameAllocator(uint32 size);
 
-		void markFence()
-		{
-			for (auto& allocator : mFrameAllocators)
-			{
-				allocator.markFence();
-			}
-		}
+		void markFence();
 		bool alloc(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation);
 		bool allocFrame(uint32 size, uint32 alignment, D3D12BufferAllocation& outAllocation);
 		void dealloc(BuddyAllocationInfo const& info);

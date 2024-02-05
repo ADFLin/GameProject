@@ -59,7 +59,7 @@ namespace
 		}
 	}
 
-	TConsoleVariable< bool > CVarUseMultisample{ true , "g.UseMultisample", CVF_TOGGLEABLE };
+	TConsoleVariable< bool > CVarUseMultisample{ false , "g.UseMultisample", CVF_TOGGLEABLE };
 	TConsoleVariableDelegate< char const* > CVarDefalultRHISystem
 	{
 		&GetDefaultRHI, &SetDefaultRHI,
@@ -663,7 +663,10 @@ public:
 		--mLevel;
 	}
 
-
+	bool filterNode(SampleNode* node)
+	{
+		return node->getLastFrame() + 1 == ProfileSystem::Get().getFrameCountSinceReset();
+	}
 	float mMaxLength = 600;
 	float offsetY = 20;
 	Vector2      mBasePos;
@@ -733,7 +736,10 @@ public:
 
 		mTextPos += Vec2i(-OffsetX, 0);
 	}
-
+	bool filterNode(SampleNode* node)
+	{
+		return true;
+	}
 	static int const OffsetX = 20;
 	static int const OffsetY = 15;
 	Vec2i        mTextPos;

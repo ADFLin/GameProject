@@ -9,42 +9,56 @@
 namespace Render
 {
 
-#define STATIC_CHECK_DATA_MAP( NAME , DATA_MAP , MEMBER )\
-	constexpr bool Check##NAME##Valid_R(int i, int size)\
-	{\
-		return (i == size) ? true : ((i == (int)DATA_MAP[i].MEMBER) && Check##NAME##Valid_R(i + 1, size));\
-	}\
-	constexpr bool Check##NAME##Valid()\
-	{\
-		return Check##NAME##Valid_R(0, ARRAY_SIZE(DATA_MAP));\
-	}\
-	static_assert(Check##NAME##Valid(), "Check "#NAME" Failed")
+	template< typename TMapInfo, int Num >
+	constexpr bool CehckMapInfoVaild(TMapInfo(&infoList)[Num])
+	{
+		for (int i = 0; i < Num; ++i)
+		{
+			if ((int)infoList[i].src != i)
+				return false;
+		}
+		return true;
+	}
 
 #if _DEBUG
-#define DATA_OP( S , D ) { S , D },
-#else
-#define DATA_OP( S , D ) { D },
-#endif
 
+#define DEFINE_MAP_INFO(NAME, SRC , DST)\
+	struct NAME\
+	{\
+		SRC src;\
+		DST dest;\
+	};
+
+#define DATA_OP( S , D ) { S , D },
+#define DEFINE_DATA_MAP( TYPE , NAME , LIST )\
+	static constexpr TYPE NAME[]\
+	{\
+		LIST(DATA_OP)\
+	};\
+	static_assert(CehckMapInfoVaild(NAME), "Check "#NAME" Failed");
+
+#else
+
+#define DEFINE_MAP_INFO(NAME, SRC , DST)\
+	struct NAME\
+	{\
+		DST dest;\
+	};
+
+#define DATA_OP( S , D ) { D },
 #define DEFINE_DATA_MAP( TYPE , NAME , LIST )\
 	static constexpr TYPE NAME[]\
 	{\
 		LIST(DATA_OP)\
 	}
 
-
-
-	struct BlendFactorMapInfoD3D11
-	{
-#if _DEBUG
-		EBlend::Factor src;
 #endif
-		D3D11_BLEND   dest;
-	};
+
+	DEFINE_MAP_INFO(BlendFactorMapInfoD3D11, EBlend::Factor, D3D11_BLEND);
 
 #define BLEND_FACTOR_LIST_D3D11( op )\
-	op(EBlend::One, D3D11_BLEND_ONE)\
 	op(EBlend::Zero, D3D11_BLEND_ZERO)\
+	op(EBlend::One, D3D11_BLEND_ONE)\
 	op(EBlend::SrcAlpha, D3D11_BLEND_SRC_ALPHA)\
 	op(EBlend::OneMinusSrcAlpha, D3D11_BLEND_INV_SRC_ALPHA)\
 	op(EBlend::DestAlpha, D3D11_BLEND_DEST_ALPHA)\
@@ -55,22 +69,14 @@ namespace Render
 	op(EBlend::OneMinusDestColor, D3D11_BLEND_INV_DEST_COLOR)
 
 	DEFINE_DATA_MAP(BlendFactorMapInfoD3D11, GBlendFactorMapD3D11, BLEND_FACTOR_LIST_D3D11);
-#if _DEBUG
-	STATIC_CHECK_DATA_MAP(BlendFactorMapValid, GBlendFactorMapD3D11, src);
-#endif
+
 	D3D11_BLEND D3D11Translate::To(EBlend::Factor factor)
 	{
 		return GBlendFactorMapD3D11[factor].dest;
 	}
 
 
-	struct BlendOpMapInfoD3D11
-	{
-#if _DEBUG
-		EBlend::Operation src;
-#endif
-		D3D11_BLEND_OP   dest;
-	};
+	DEFINE_MAP_INFO(BlendOpMapInfoD3D11, EBlend::Operation, D3D11_BLEND_OP);
 
 #define BLEND_OP_LIST_D3D11( op )\
 	op(EBlend::Add, D3D11_BLEND_OP_ADD)\
@@ -80,22 +86,13 @@ namespace Render
 	op(EBlend::Min, D3D11_BLEND_OP_MIN)
 
 	DEFINE_DATA_MAP(BlendOpMapInfoD3D11, GBlendOpMapD3D11, BLEND_OP_LIST_D3D11);
-#if _DEBUG
-	STATIC_CHECK_DATA_MAP(BlendOpMapValid, GBlendOpMapD3D11, src);
-#endif
+
 	D3D11_BLEND_OP D3D11Translate::To(EBlend::Operation op)
 	{
 		return GBlendOpMapD3D11[op].dest;
 	}
 
-
-	struct CullModeMapInfoD3D11
-	{
-#if _DEBUG
-		ECullMode src;
-#endif
-		D3D11_CULL_MODE   dest;
-	};
+	DEFINE_MAP_INFO(CullModeMapInfoD3D11, ECullMode, D3D11_CULL_MODE);
 
 #define CULL_MODE_LIST_D3D11( op )\
 	op(ECullMode::None, D3D11_CULL_NONE)\
@@ -103,9 +100,7 @@ namespace Render
 	op(ECullMode::Back, D3D11_CULL_BACK)
 	
 	DEFINE_DATA_MAP(CullModeMapInfoD3D11, GCullModeMapD3D11, CULL_MODE_LIST_D3D11);
-#if _DEBUG
-	STATIC_CHECK_DATA_MAP(CullModeMapValid, GCullModeMapD3D11, src);
-#endif
+
 	D3D11_CULL_MODE D3D11Translate::To(ECullMode mode)
 	{
 		return GCullModeMapD3D11[int(mode)].dest;
@@ -124,13 +119,7 @@ namespace Render
 		return D3D11_FILL_SOLID;
 	}
 
-	struct LockAccessMapInfoD3D11
-	{
-#if _DEBUG
-		ELockAccess src;
-#endif
-		D3D11_MAP   dest;
-	};
+	DEFINE_MAP_INFO(LockAccessMapInfoD3D11, ELockAccess, D3D11_MAP);
 
 #define LOCK_ACCESS_LIST_D3D11( op )\
 	op(ELockAccess::ReadOnly, D3D11_MAP_READ)\
@@ -139,9 +128,7 @@ namespace Render
 	op(ELockAccess::WriteDiscard, D3D11_MAP_WRITE_DISCARD)
 
 	DEFINE_DATA_MAP(LockAccessMapInfoD3D11, GLockAccessMapD3D11, LOCK_ACCESS_LIST_D3D11);
-#if _DEBUG
-	STATIC_CHECK_DATA_MAP(LockAccessMapValid, GLockAccessMapD3D11, src);
-#endif
+
 	D3D11_MAP D3D11Translate::To(ELockAccess access)
 	{
 		return GLockAccessMapD3D11[int(access)].dest;
@@ -176,40 +163,26 @@ namespace Render
 		return D3D11_TEXTURE_ADDRESS_WRAP;
 	}
 
-	struct CompareFuncMapInfoD3D11
-	{
-#if _DEBUG
-		ECompareFunc src;
-#endif
-		D3D11_COMPARISON_FUNC dest;
-	};
+	DEFINE_MAP_INFO(CompareFuncMapInfoD3D11, ECompareFunc, D3D11_COMPARISON_FUNC);
 
 #define COMPAREFUNC_OP_LIST_D3D11( op )\
 	op(ECompareFunc::Never, D3D11_COMPARISON_NEVER)\
 	op(ECompareFunc::Less, D3D11_COMPARISON_LESS)\
 	op(ECompareFunc::Equal, D3D11_COMPARISON_EQUAL)\
-	op(ECompareFunc::NotEqual, D3D11_COMPARISON_NOT_EQUAL)\
 	op(ECompareFunc::LessEqual, D3D11_COMPARISON_LESS_EQUAL)\
 	op(ECompareFunc::Greater, D3D11_COMPARISON_GREATER)\
+	op(ECompareFunc::NotEqual, D3D11_COMPARISON_NOT_EQUAL)\
 	op(ECompareFunc::GreaterEqual, D3D11_COMPARISON_GREATER_EQUAL)\
 	op(ECompareFunc::Always, D3D11_COMPARISON_ALWAYS)
 	
 	DEFINE_DATA_MAP(CompareFuncMapInfoD3D11, GCompareFuncMapD3D11, COMPAREFUNC_OP_LIST_D3D11);
-#if _DEBUG
-	STATIC_CHECK_DATA_MAP(CompareFuncMapValid, GCompareFuncMapD3D11, src);
-#endif
+
 	D3D11_COMPARISON_FUNC D3D11Translate::To(ECompareFunc func)
 	{
 		return GCompareFuncMapD3D11[uint(func)].dest;
 	}
 
-	struct StencilOpMapInfoD3D11
-	{
-#if _DEBUG
-		EStencil src;
-#endif
-		D3D11_STENCIL_OP   dest;
-	};
+	DEFINE_MAP_INFO(StencilOpMapInfoD3D11, EStencil, D3D11_STENCIL_OP);
 
 #define STENCIL_OP_LIST_D3D11( op )\
 	op(EStencil::Keep, D3D11_STENCIL_OP_KEEP)\
@@ -222,9 +195,7 @@ namespace Render
 	op(EStencil::Invert, D3D11_STENCIL_OP_INVERT)
 
 	DEFINE_DATA_MAP(StencilOpMapInfoD3D11, GStencilOpMapD3D11, STENCIL_OP_LIST_D3D11);
-#if _DEBUG
-	STATIC_CHECK_DATA_MAP(StencilOpMapValid, GStencilOpMapD3D11, src);
-#endif
+
 	D3D11_STENCIL_OP D3D11Translate::To(EStencil op)
 	{
 		return GStencilOpMapD3D11[uint(op)].dest;

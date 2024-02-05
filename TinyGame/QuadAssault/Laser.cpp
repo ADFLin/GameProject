@@ -9,8 +9,8 @@ void Laser::init( Player* player )
 {
 	BaseClass::init( player );
 
-	mCDSpeed=600;
-	mEnergyCast=2;
+	mCDSpeed=1500;
+	mEnergyCast=0.1;
 }
 
 void Laser::tick()

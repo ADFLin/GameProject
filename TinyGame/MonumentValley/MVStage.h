@@ -126,6 +126,9 @@ namespace MV
 
 		void testRotation();
 
+
+		ERenderSystem getDefaultRenderSystem() override;
+
 	protected:
 
 		Render::SimpleCamera mCamera;

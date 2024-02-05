@@ -45,13 +45,13 @@ void LaserMob::tick()
 		Vec2f dir = mPosLastView - getPos();
 		if( dir.length2() < 300 * 300 )
 		{
-			mSpeed -= 100*TICK_TIME;
+			mSpeed -= mAcc * TICK_TIME;
 			if( mSpeed < 0 )
 				mSpeed = 0;
 		}
 		else
 		{
-			mSpeed += 100*TICK_TIME;
+			mSpeed += mAcc * TICK_TIME;
 			if( mSpeed > mMaxSpeed )
 				mSpeed = mMaxSpeed;
 		}

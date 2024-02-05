@@ -6,6 +6,8 @@ struct VSOutputParam
 	float2 uv    MEMBER_OUT(TEXCOORD1);
 };
 
+
+
 #if VERTEX_SHADER
 
 uniform float4x4 XForm;
@@ -21,6 +23,7 @@ VS_ENTRY_END(MainVS)
 	float4 worldPos = mul(XForm, float4(InPos.xyz, 1) );
 	SvPosition = mul( View.worldToClip , worldPos);
 	VSOutput.color = InColor;
+
 	VSOutput.uv = InUV;
 }
 
@@ -54,7 +57,6 @@ PS_ENTRY_END(MainPS)
 	float4 color = TEXTURE_SAMPLE(Texture, OutputVS.uv);
 	//OutColor = float4(c * Color * inputVS.color * color.rgb, 1);
 	OutColor = float4(OutputVS.color, 1);
-	//OutColor = float4(Color* inputVS.color, 1 );
 }
 
 #endif //#if PIXEL_SHADER

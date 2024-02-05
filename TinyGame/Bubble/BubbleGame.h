@@ -37,7 +37,7 @@ namespace Bubble
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::None;
 		}
 		bool setupRenderResource(ERenderSystem systemName);
 

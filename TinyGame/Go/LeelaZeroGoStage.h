@@ -517,7 +517,7 @@ namespace Go
 			systemConfigs.numSamples = 1;
 		}
 		bool setupRenderResource(ERenderSystem systemName);
-		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::OpenGL; }
+		ERenderSystem getDefaultRenderSystem() override { return ERenderSystem::D3D11; }
 
 		void preShutdownRenderSystem(bool bReInit /*= false*/);
 		bool onInit() override;

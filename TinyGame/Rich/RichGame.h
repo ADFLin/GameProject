@@ -24,7 +24,7 @@ namespace Rich
 		//IGameRenderSetup
 		ERenderSystem getDefaultRenderSystem()
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::None;
 		}
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
 		{

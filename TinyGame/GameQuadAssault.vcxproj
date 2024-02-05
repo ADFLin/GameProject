@@ -242,7 +242,6 @@
     <ClCompile Include="QuadAssault\GameEdit.cpp" />
     <ClCompile Include="QuadAssault\GameInput.cpp" />
     <ClCompile Include="QuadAssault\GameStage.cpp" />
-    <ClCompile Include="QuadAssault\GBuffer.cpp" />
     <ClCompile Include="QuadAssault\GlobalVariable.cpp" />
     <ClCompile Include="QuadAssault\GUISystem.cpp" />
     <ClCompile Include="QuadAssault\ItemPickup.cpp" />
@@ -268,7 +267,6 @@
     <ClCompile Include="QuadAssault\Plasma.cpp" />
     <ClCompile Include="QuadAssault\PlasmaBullet.cpp" />
     <ClCompile Include="QuadAssault\PlasmaMob.cpp" />
-    <ClCompile Include="QuadAssault\PlatformSFML.cpp" />
     <ClCompile Include="QuadAssault\PlatformWin.cpp" />
     <ClCompile Include="QuadAssault\Player.cpp" />
     <ClCompile Include="QuadAssault\QAGame.cpp" />
@@ -284,6 +282,7 @@
     <ClCompile Include="QuadAssault\RenderUtility.cpp" />
     <ClCompile Include="QuadAssault\SmokeParticle.cpp" />
     <ClCompile Include="QuadAssault\SoundManager.cpp" />
+    <ClCompile Include="QuadAssault\SurvivalMode.cpp" />
     <ClCompile Include="QuadAssault\TextureManager.cpp" />
     <ClCompile Include="QuadAssault\Trigger.cpp" />
     <ClCompile Include="QuadAssault\Weapon.cpp" />
@@ -311,7 +310,6 @@
     <ClInclude Include="QuadAssault\GameInput.h" />
     <ClInclude Include="QuadAssault\GameInterface.h" />
     <ClInclude Include="QuadAssault\GameStage.h" />
-    <ClInclude Include="QuadAssault\GBuffer.h" />
     <ClInclude Include="QuadAssault\GlobalVariable.h" />
     <ClInclude Include="QuadAssault\GUISystem.h" />
     <ClInclude Include="QuadAssault\ItemPickup.h" />
@@ -343,7 +341,6 @@
     <ClInclude Include="QuadAssault\PlasmaMob.h" />
     <ClInclude Include="QuadAssault\Platform.h" />
     <ClInclude Include="QuadAssault\PlatformBase.h" />
-    <ClInclude Include="QuadAssault\PlatformSFML.h" />
     <ClInclude Include="QuadAssault\PlatformWin.h" />
     <ClInclude Include="QuadAssault\Player.h" />
     <ClInclude Include="QuadAssault\PlayerSetting.h" />
@@ -356,6 +353,7 @@
     <ClInclude Include="QuadAssault\RenderUtility.h" />
     <ClInclude Include="QuadAssault\SmokeParticle.h" />
     <ClInclude Include="QuadAssault\SoundManager.h" />
+    <ClInclude Include="QuadAssault\SurvivalMode.h" />
     <ClInclude Include="QuadAssault\Texture.h" />
     <ClInclude Include="QuadAssault\TextureManager.h" />
     <ClInclude Include="QuadAssault\Trigger.h" />
@@ -364,28 +362,15 @@
     <ClInclude Include="QuadAssault\WeaponRenderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="out\QuadAssault\shader\NormalFS.txt" />
-    <Text Include="out\QuadAssault\shader\NormalVS.txt" />
     <Text Include="QuadAssault\GPL.txt" />
     <Text Include="QuadAssault\Readme.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="out\QuadAssault\shader\QBasePass.sgc" />
-    <None Include="out\QuadAssault\shader\GeomDefaultFS.sgc" />
-    <None Include="out\QuadAssault\shader\GeomDefaultVS.sgc" />
-    <None Include="out\QuadAssault\shader\LightFS.sgc" />
-    <None Include="out\QuadAssault\shader\LightingGlowFS.sgc" />
-    <None Include="out\QuadAssault\shader\LightingGlowVS.sgc" />
-    <None Include="out\QuadAssault\shader\LightingPointFS.sgc" />
-    <None Include="out\QuadAssault\shader\LightingPointVS.sgc" />
-    <None Include="out\QuadAssault\shader\LightVS.sgc" />
-    <None Include="out\QuadAssault\shader\QGlow.sgc" />
-    <None Include="out\QuadAssault\shader\QLighting.sgc" />
-    <None Include="out\QuadAssault\shader\QScene.sgc" />
-    <None Include="out\QuadAssault\shader\SceneFS.sgc" />
-    <None Include="out\QuadAssault\shader\SceneGeometryFS.sgc" />
-    <None Include="out\QuadAssault\shader\SceneLightingFS.sgc" />
-    <None Include="out\QuadAssault\shader\SceneVS.sgc" />
+    <None Include="out\Shader\QuadAssault\QBasePass.sgc" />
+    <None Include="out\Shader\QuadAssault\QGlow.sgc" />
+    <None Include="out\Shader\QuadAssault\QLighting.sgc" />
+    <None Include="out\Shader\QuadAssault\QScene.sgc" />
+    <None Include="out\Shader\QuadAssault\QShadow.sgc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

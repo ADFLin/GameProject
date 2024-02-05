@@ -1,0 +1,71 @@
+#include "Common.sgc"
+
+#if VERTEX_SHADER
+
+VS_ENTRY_START(MainVS)
+VS_INPUT(float2 InPos, ATTRIBUTE_POSITION)
+VS_ENTRY_END(MainVS)
+{
+	SvPosition = float4(InPos, 0, 1.0);
+}
+#endif //VERTEX_SHADER
+
+#if GEOMETRY_SHADER
+
+uniform float3   LightPosAndDist;
+uniform float4x4 XForm;
+float4 TransformToNDC(float2 pos)
+{
+	return mul(XForm, float4(pos, 0, 1));
+}
+
+
+#if COMPILER_GLSL
+in gl_PerVertex
+{
+	float4 gl_Position;
+}gl_in[];
+layout(lines) in;
+layout(triangle_strip, max_vertices = 4) out;
+void MainGS()
+{
+#else
+struct GSOutputParams
+{
+	GS_NO_MEMBER_PARAM
+	GS_SV_POSTITION_OUT
+};
+[instance(1)]
+[maxvertexcount(4)]
+void MainGS(line float4 SvPositions[2] : SV_POSITION, inout TriangleStream< GSOutputParams > OutputStream)
+{
+#endif
+
+	float2 cur = GS_SVPOSITION(1).xy;
+	float2 prev = GS_SVPOSITION(0).xy;
+	float2 edge = cur - prev;
+	float2 dirCur = cur - LightPosAndDist.xy;
+	float2 dirPrev = prev - LightPosAndDist.xy;
+	//if (dirCur.x * edge.y - dirCur.y * edge.x > 0)
+	{
+		GS_EMIT_VERTEX_NO_PARAMS(TransformToNDC(prev));
+		GS_EMIT_VERTEX_NO_PARAMS(TransformToNDC(cur));
+		GS_EMIT_VERTEX_NO_PARAMS(TransformToNDC(prev + LightPosAndDist.z * dirPrev));
+		GS_EMIT_VERTEX_NO_PARAMS(TransformToNDC(cur + LightPosAndDist.z  * dirCur));
+		GS_END_PRIMITIVE;
+	}
+}
+
+#endif //GEOMETRY_SHADER
+
+
+#if PIXEL_SHADER
+
+PS_ENTRY_START(MainPS)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	OutColor = float4(0.1, 0, 0, 1);
+}
+
+#endif //PIXEL_SHADER

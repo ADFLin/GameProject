@@ -13,9 +13,6 @@ public:
 	virtual void onSpawn( unsigned flag );
 	virtual IObjectRenderer* getRenderer();
 
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
-
 };
 
 #endif // SmokeParticle_h__

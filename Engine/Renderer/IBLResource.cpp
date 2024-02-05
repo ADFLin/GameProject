@@ -249,7 +249,7 @@ namespace Render
 
 	bool IBLResource::initializeRHI(IBLBuildSetting const& setting)
 	{
-		uint32 flags = TCF_DefalutValue | TCF_RenderTarget;
+		TextureCreationFlags flags = TCF_DefalutValue | TCF_RenderTarget;
 		VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(ETexture::FloatRGBA, setting.envSize, 0, flags));
 		VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.irradianceSize, 0, flags));
 		VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(ETexture::FloatRGBA, setting.perfilteredSize, NumPerFilteredLevel, flags));
@@ -258,7 +258,7 @@ namespace Render
 
 	bool IBLResource::InitializeBRDFTexture(void* data)
 	{
-		uint32 flags = TCF_DefalutValue;
+		TextureCreationFlags flags = TCF_DefalutValue;
 		if (data == nullptr)
 		{
 			flags |= TCF_RenderTarget;

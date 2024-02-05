@@ -11,9 +11,9 @@ IMPL_OBJECT_CLASS( LaserBullet , OT_BULLET , "Bullet.Laser" )
 void LaserBullet::init()
 {
 	BaseClass::init();
-	mSpeed   = 910;
-	mLifeTime= 0.6;
-	mDamage=4;
+	mSpeed = 910;
+	mLifeTime = 0.6;
+	mDamage = 4;
 }
 
 void LaserBullet::onSpawn( unsigned flag )

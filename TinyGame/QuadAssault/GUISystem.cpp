@@ -382,18 +382,20 @@ void QImageButton::onRender()
 {
 	auto& g = IGame::Get().getGraphics2D();
 
-	g.enablePen(false);
 
 	Vec2f pos = getWorldPos();
 	Vec2f size = getSize();
 
-	if (getButtonState() == BS_HIGHLIGHT)
-		g.setBrush(Color3f(0.25, 0.25, 0.25));
-	else
-		g.setBrush(Color3f(1.0, 1.0, 1.0));
-
+	g.setBrush(Color3f::White());
 	g.drawTexture(*texImag->resource, pos, size);
-	g.enablePen(true);
+
+	if (getButtonState() == BS_HIGHLIGHT)
+	{
+		g.enableBrush(false);
+		g.setPen(Color3f(0.8, 0.8, 0.8));
+		g.drawRect(pos, size);
+		g.enableBrush(true);
+	}
 }
 
 void QImageButton::setHelpText( char const* str )

@@ -25,8 +25,6 @@ void ImageMergeHelper::clear()
 {
 	destroyList(mUsedList);
 	destroyList(mFreeList);
-	mUsedList = nullptr;
-	mFreeList = nullptr;
 	mImageNodeMap.clear();
 	mSize = Vec2i::Zero();
 }
@@ -50,6 +48,7 @@ bool ImageMergeHelper::addImage(int id, int w, int h)
 int ImageMergeHelper::calcUsageArea() const
 {
 	int result = 0;
+#if 0
 	for( Node* node : mImageNodeMap )
 	{
 		if( node && node->imageID != ErrorImageID )
@@ -57,6 +56,12 @@ int ImageMergeHelper::calcUsageArea() const
 			result += node->rect.w * node->rect.h;
 		}
 	}
+#else
+	for (auto node = mUsedList; node; node = node->mNextLink)
+	{
+		result += node->rect.w * node->rect.h;
+	}
+#endif
 	return result;
 }
 
@@ -112,6 +117,18 @@ ImageMergeHelper::ImageMergeHelper::Node* ImageMergeHelper::insertNode(int w, in
 	}
 
 	return usedNode;
+}
+
+void ImageMergeHelper::destroyList(Node*& head)
+{
+	Node* node = head;
+	while (node)
+	{
+		Node* next = node->mNextLink;
+		destoryNode(node);
+		node = next;
+	}
+	head = nullptr;
 }
 
 ImageMergeHelper::Node* ImageMergeHelper::createNode(int x, int y, int w, int h)

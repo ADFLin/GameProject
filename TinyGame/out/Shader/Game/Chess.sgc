@@ -36,7 +36,7 @@ VS_ENTRY_END(MainVS)
 	//output.svPosition = mul(XForm, float4(inputVS.pos.xy, 0.5, 1));
 	float4 worldPos = mul(XForm, float4(InPos.xyz, 1));
 	SvPosition = mul(View.worldToClip, worldPos);
-	VSOutput.normal = mul( float3x3( XForm ) , InNoraml );
+	VSOutput.normal = mul( XForm , float4(InNoraml, 0) ).xyz;
 	VSOutput.worldPos = worldPos.xyz;
 	VSOutput.uv = InUV;
 #if DRAW_BOARD
@@ -103,7 +103,7 @@ PS_ENTRY_END(MainPS)
 	float3 color = radiance * NoL * shading + ambient;
 	OutColor = float4(color, 1);
 #if DRAW_BOARD || 1
-	OutColor = float4( VFLIP( OutputVS.uv2 ), 0 , 1 );
+	//OutColor = float4( VFLIP( OutputVS.uv2 ), 0 , 1 );
 #endif
 }
 

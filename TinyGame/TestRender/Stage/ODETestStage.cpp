@@ -462,9 +462,9 @@ namespace ODE
 		}
 
 
-		std::vector< Vector2 > mCurve;
-		std::vector< Vector2 > mCurveEular;
-		std::vector< Vector2 > mCurveRK4;
+		TArray< Vector2 > mCurve;
+		TArray< Vector2 > mCurveEular;
+		TArray< Vector2 > mCurveRK4;
 
 		void onRender(float dFrame) override
 		{

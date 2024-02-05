@@ -26,11 +26,11 @@ namespace Render
 		enum EType : uint8
 		{
 			eGlobalValue ,
-			eCVB ,
+			eCBV ,
 			eSRV ,
 			eUAV ,
 
-			eDescriptorTable_CVB,
+			eDescriptorTable_CBV,
 			eDescriptorTable_SRV,
 			eDescriptorTable_UAV,
 			eSampler ,
@@ -178,16 +178,16 @@ namespace Render
 		virtual void getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry);
 		virtual bool compileCode(ShaderCompileContext const& context);
 
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode);
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode);
 
-		virtual void postShaderLoaded(ShaderProgram& shaderProgram)
+		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram)
 		{
 
 		}
 
 		virtual bool doesSuppurtBinaryCode() const { return true; }
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode);
+		virtual bool getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode);
 		
 		TComPtr<ID3D12DeviceRHI> mDevice;
 #if TARGET_PLATFORM_64BITS
@@ -198,16 +198,16 @@ namespace Render
 		bool ensureDxcObjectCreation();
 
 
-		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderSetupData& setupData) override;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
 
 
-		virtual void postShaderLoaded(Shader& shader) override
+		virtual void postShaderLoaded(RHIShader& shader) override
 		{
 
 		}
 
-		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
+		virtual bool getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
 		virtual void precompileCode(ShaderProgramSetupData& setupData) override;
 		virtual void precompileCode(ShaderSetupData& setupData) override;
 

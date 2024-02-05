@@ -20,8 +20,6 @@ protected:
 	friend class SmokeRenderer;
 	friend class DebrisParticleRenderer;
 
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 

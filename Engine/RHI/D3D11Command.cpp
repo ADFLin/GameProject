@@ -305,23 +305,7 @@ namespace Render
 		if (creationFlags & TCF_CreateSRV)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
-			desc.Format = format;
-			switch (format)
-			{
-			case DXGI_FORMAT_D16_UNORM:
-				desc.Format = DXGI_FORMAT_R16_UNORM;
-				break;
-			case DXGI_FORMAT_D32_FLOAT:
-				desc.Format = DXGI_FORMAT_R32_FLOAT;
-				break;
-			case DXGI_FORMAT_D24_UNORM_S8_UINT:
-				desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-				break;
-			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
-				desc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
-				break;
-			}
-
+			desc.Format = D3D11Translate::ToSRV(format);
 			desc.ViewDimension = (numSamples > 1 ) ? D3D_SRV_DIMENSION_TEXTURE2DMS : D3D_SRV_DIMENSION_TEXTURE2D;
 			desc.Texture2D.MipLevels = -1;
 			desc.Texture2D.MostDetailedMip = 0;
@@ -340,7 +324,8 @@ namespace Render
 		TComPtr<IDXGIFactory> factory;
 		hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
 
-		DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+		DXGI_SWAP_CHAIN_DESC swapChainDesc; 
+		ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
 		swapChainDesc.OutputWindow = info.windowHandle;
 		swapChainDesc.Windowed = info.bWindowed;
 

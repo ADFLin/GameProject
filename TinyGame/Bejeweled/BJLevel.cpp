@@ -11,18 +11,17 @@ namespace Bejeweled
 
 	Level::Level( Listener* listener )
 	{
-		mDestroyRangeVec.reserve( 8 );
 		mNumGemType = 7; 
 		mListener = listener;
 	}
 
-	bool Level::swapSequence( int idx1 , int idx2 )
+	bool Level::swapSequence( ActionContext& context, bool bRequestFill )
 	{
-		stepSwap( idx1 , idx2 );
-		stepCheckSwap( idx1 , idx2 );
-		if ( mDestroyRangeVec.empty() )
+		stepSwap(context);
+		stepCheckSwap(context);
+		if ( context.actionCount == 0)
 		{
-			stepSwap( idx1 , idx2 );
+			stepSwap(context);
 			return false;
 		}
 		
@@ -30,11 +29,18 @@ namespace Bejeweled
 
 		for(;;)
 		{
-			stepDestroy();
-			stepFill();
-			setepCheckFill();
+			stepAction(context);
+			if ( bRequestFill )
+			{
+				stepFill(context);
+				stepCheckFill(context);
+			}
+			else
+			{
+				context.clearMark();
+			}
 
-			if ( mDestroyRangeVec.empty() )
+			if ( context.actionCount == 0)
 				break;
 
 			++combo;
@@ -43,33 +49,64 @@ namespace Bejeweled
 		return true;
 	}
 
-	void Level::stepSwap( int idx1 , int idx2 )
+	void Level::stepSwap(ActionContext& context)
 	{
-		assert( 0 <= idx1 && idx1 < BoardStorageSize );
-		assert( 0 <= idx2 && idx2 < BoardStorageSize );
-		assert( isNeighboring( idx1 , idx2 ) );
-
-		std::swap( mBoard[idx1] , mBoard[idx2] );
+		int idx1 = context.swapIndices[0];
+		int idx2 = context.swapIndices[1];
+		swapGeom(idx1, idx2);
 	}
 
-	size_t Level::stepCheckSwap( int idx1 , int idx2 )
+	size_t Level::stepCheckSwap(ActionContext& context)
 	{
+		context.clearMark();
+
 		mListener->prevCheckGems();
+		auto DoCheck = [this, &context](int index)
+		{
+			if (mBoard[index].type == GemData::eHypercube)
+			{
+				RemoveDesc desc;
+				desc.method = RemoveDesc::eTheSameId;
+				desc.index = context.swapIndices[0] == index ? context.swapIndices[1] : context.swapIndices[0];
+				markRemove(context, desc);
 
-		checkGemVertical( idx1 );
-		checkGemHorizontal( idx1 );
-		checkGemVertical( idx2 );
-		checkGemHorizontal( idx2 );
+				desc.method = RemoveDesc::eNormal;
+				desc.num = 1;
+				desc.index = index;
+				desc.bVertical = false;
 
+				markRemove(context, desc);
+				return;
+			}
+
+			int countA = checkGemVertical(context, index);
+			int countB = checkGemHorizontal(context, index);
+
+			if (countA >= 5 || countB >= 5)
+			{
+				context.actionMap[index] = EAction::BecomeHypercube;
+			}
+			else if (countA == 4 || countB == 4 || countA + countB == 6)
+			{
+				context.actionMap[index] = EAction::BecomePower;
+			}
+
+		};
+
+		DoCheck(context.swapIndices[0]);
+		DoCheck(context.swapIndices[1]);
 		mListener->postCheckGems();
 
-		return mDestroyRangeVec.size();
+		return context.actionCount;
 	}
 
 	bool Level::testRemoveGeom( int idx1 )
 	{
 		int idxStart;
 		int num;
+		if (mBoard[idx1].type == GemData::eHypercube)
+			return true;
+
 		num = countGemsHorizontal( idx1 , idxStart );
 		if ( num >= MinRmoveCount )
 			return true;
@@ -82,165 +119,229 @@ namespace Bejeweled
 
 	bool Level::testSwapPairHaveRemove(int idx1 , int idx2)
 	{
-		stepSwap( idx1 , idx2 );
+		swapGeom(idx1, idx2);
 		bool result = testRemoveGeom( idx1 ) || testRemoveGeom( idx2 );
-		stepSwap( idx1 , idx2 );
+		swapGeom(idx1, idx2);
 		return result;
 	}
 
-	void Level::checkGemVertical( int idx )
+	void Level::swapGeom(int idx1, int idx2)
 	{
-		LineRange range;
-		range.num = countGemsVertical( idx , range.idxStart );
-		if ( range.num >= MinRmoveCount )
-		{
-			range.beVertical = true;
-			range.method     = mListener->onFindSameGems( range.idxStart , range.num , range.beVertical );
+		assert(0 <= idx1 && idx1 < BoardStorageSize);
+		assert(0 <= idx2 && idx2 < BoardStorageSize);
+		assert(isNeighboring(idx1, idx2));
 
-			DBG_MSG( "add remove line %d %d %s" , range.idxStart , range.num , range.beVertical ? "Y" : "N" );
-			mDestroyRangeVec.push_back( range );
-		}
+		std::swap(mBoard[idx1], mBoard[idx2]);
 	}
 
-	void Level::checkGemHorizontal( int idx )
+	int Level::checkGemVertical(ActionContext& context, int idx)
 	{
-		LineRange range;
-		range.num = countGemsHorizontal( idx , range.idxStart );
-		if ( range.num >= MinRmoveCount )
+		RemoveDesc desc;
+		desc.num = countGemsVertical( idx , desc.index );
+		if ( desc.num >= MinRmoveCount )
 		{
-			range.beVertical = false;
-			range.method     = mListener->onFindSameGems( range.idxStart , range.num , range.beVertical );
+			desc.bVertical = true;
+			desc.method = RemoveDesc::eNormal;
 
-			DBG_MSG( "add remove line %d %d %s" , range.idxStart , range.num , range.beVertical ? "Y" : "N" );
-			mDestroyRangeVec.push_back( range );
+			DBG_MSG( "add remove line %d %d %s" , desc.index , desc.num , desc.bVertical ? "Y" : "N" );
+			markRemove(context, desc);
+			return desc.num;
 		}
+		return 0;
 	}
 
-	void Level::stepFill()
+	int Level::checkGemHorizontal(ActionContext& context, int idx )
+	{
+		RemoveDesc desc;
+		desc.num = countGemsHorizontal( idx , desc.index );
+		if ( desc.num >= MinRmoveCount )
+		{
+			desc.bVertical = false;
+			desc.method = RemoveDesc::eNormal;
+
+			DBG_MSG( "add remove line %d %d %s" , desc.index , desc.num , desc.bVertical ? "Y" : "N" );
+			markRemove(context, desc);
+			return desc.num;
+		}
+
+		return 0;
+	}
+
+	void Level::stepFill(ActionContext& context)
 	{
 		for( int i = 0 ; i < BoardSize ; ++i )
 		{
-			if ( mIndexMax[i] == INDEX_NONE )
+			if (context.removeIndexMax[i] == INDEX_NONE )
 				continue;
-			fillGem( i , mIndexMax[i] );
+			fillGem( i , context.removeIndexMax[i] );
 		}
 	}
 
-	size_t Level::setepCheckFill()
+	size_t Level::stepCheckFill(ActionContext& context)
 	{
+		context.clearMark();
 		mListener->prevCheckGems();
 
 		for( int i = 0 ; i < BoardSize ; ++ i )
 		{
-			if ( mIndexMax[i] == INDEX_NONE )
+			if (context.removeIndexMax[i] == INDEX_NONE )
 				continue;
 
-			checkFillGem( i , mIndexMax[i] );
+			checkFillGem(context, i , context.removeIndexMax[i] );
 		}
 
 		mListener->postCheckGems();
-		return mDestroyRangeVec.size();
+		return context.actionCount;
 	}
 
-	void Level::stepDestroy()
+	void Level::markRemoveGem(ActionContext& context, int index)
 	{
-		std::fill_n( mIndexMax , BoardSize , INDEX_NONE );
+		if (context.actionMap[index] != EAction::None)
+			return;
 
-		for ( LineRangeVec::iterator iter = mDestroyRangeVec.begin();
-			iter != mDestroyRangeVec.end() ; ++iter )
+		context.actionMap[index] = EAction::Destroy;
+		context.actionCount += 1;
+
+		switch (mBoard[index].type)
 		{
-			LineRange& range = *iter;
-
-			int idx = range.idxStart;
-			if ( range.beVertical )
+		case GemData::ePower:
 			{
-				int const offset = BoardSize;
-
-				for( int i = 0 ; i < range.num ; ++i  )
-				{
-					if ( mBoard[idx] )
-					{
-						int type = mBoard[idx];
-						mBoard[idx] = 0;
-						mListener->onDestroyGem( idx , type );
-					}
-					idx += offset;
-				}
-
-				idx -= offset;
-				int x = idx % BoardSize;
-				if ( idx > mIndexMax[x] )
-					mIndexMax[ x ] = idx;
+				RemoveDesc desc;
+				desc.method = RemoveDesc::eBomb;
+				desc.num = 1;
+				desc.bVertical = false;
+				desc.index = index;
+				markRemove(context, desc);
 			}
-			else
-			{
-				int const offset = 1;
-
-				for( int i = 0 ; i < range.num ; ++i  )
-				{
-					if ( mBoard[idx] )
-					{
-						int type = mBoard[idx];
-						mBoard[idx] = 0;
-						mListener->onDestroyGem( idx , type );
-
-						int x = idx % BoardSize;
-						if ( idx > mIndexMax[x] )
-							mIndexMax[ x ] = idx;
-					}
-					idx += offset;
-				}
-			}
-
+			break;
 		}
-		mDestroyRangeVec.clear();
 	}
 
-	void Level::checkFillGem( int x , int maxIdx )
+	void Level::markRemove(ActionContext& context, RemoveDesc const& desc)
 	{
-		for( int idx = maxIdx ; idx >= 0 ; idx -= BoardSize )
+		switch (desc.method)
 		{
-			LineRange range;
-			range.num = countGemsVertical( idx , range.idxStart );
-			if ( range.num < MinRmoveCount )
-				continue;
-
-			range.beVertical = true;
-			range.method     = mListener->onFindSameGems( range.idxStart , range.num , range.beVertical );
-			mDestroyRangeVec.push_back( range );
-			DBG_MSG( "add remove line %d %d %s" , range.idxStart , range.num , range.beVertical ? "Y" : "N" );
-
-			idx = range.idxStart;
-		}
-
-		for( int idx = maxIdx ; idx >= 0 ; idx -= BoardSize )
-		{
-			LineRange range;
-			range.num = countGemsHorizontal( idx , range.idxStart );
-			if ( range.num < MinRmoveCount )
-				continue;
-
-			bool beFound = false;
-			for( LineRangeVec::iterator iter = mDestroyRangeVec.begin();
-				iter != mDestroyRangeVec.end() ; ++iter )
+		case RemoveDesc::eNormal:
 			{
-				if ( iter->beVertical )
+				int indexOffset = desc.bVertical ? BoardSize : 1;
+				int index = desc.index;
+				for (int i = 0; i < desc.num; ++i)
+				{
+					markRemoveGem(context, index);
+					index += indexOffset;
+				}
+			}
+			break;
+		case RemoveDesc::eLine:
+			break;
+		case RemoveDesc::eBomb:
+			{
+				int x, y;
+				ToCell(desc.index, x, y);
+
+				for( int i = -desc.num; i <= desc.num; ++i )
+				{
+					for (int j = -desc.num; j <= desc.num; ++j)
+					{
+						int cx = x + i;
+						int cy = y + j;
+						if ( !IsVaildRange( cx , cy ) )
+							continue;
+
+						int index = ToIndex(cx , cy);
+						markRemoveGem(context, index);
+					}
+				}
+			}
+			break;
+		case RemoveDesc::eTheSameId:
+			{
+				GemData gem = mBoard[desc.index];
+
+				for (int index = 0; index < BoardStorageSize; ++index)
+				{
+					if (mBoard[index].isSameType(gem))
+					{
+						markRemoveGem(context, index);
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	void Level::destroyGem(int index)
+	{
+		GemData type = mBoard[index];
+		mBoard[index] = GemData::None();
+		mListener->onDestroyGem(index, type);
+
+	}
+
+	void Level::stepAction(ActionContext& context)
+	{
+		std::fill_n(context.removeIndexMax , BoardSize , INDEX_NONE );
+
+		for (int x = 0; x < BoardSize; ++x )
+		{
+			for (int y = 0; y < BoardSize; ++y)
+			{
+				int idx = ToIndex(x, y);
+				if ( !context.actionMap[idx] )
 					continue;
-				if ( iter->idxStart == range.idxStart )
+
+				switch (context.actionMap[idx])
 				{
-					assert( iter->num == range.num );
-					beFound = true;
+				case EAction::Destroy:
+					destroyGem(idx);
+					context.removeIndexMax[x] = idx;
+					break;
+
+				case EAction::BecomeHypercube:
+					{
+						mBoard[idx] = GemData::Hypercube();
+					}
+					break;
+				case EAction::BecomePower:
+					{
+						mBoard[idx] = GemData(GemData::ePower, mBoard[idx].meta);
+					}
 					break;
 				}
 			}
+		}
 
-			if ( beFound )
+	}
+
+	void Level::checkFillGem(ActionContext& context, int x , int maxIdx )
+	{
+		for( int idx = maxIdx ; idx >= 0 ; idx -= BoardSize )
+		{
+			RemoveDesc desc;
+			desc.num = countGemsVertical( idx , desc.index );
+			if (desc.num < MinRmoveCount )
 				continue;
 
-			range.beVertical = false;
-			range.method     = mListener->onFindSameGems( range.idxStart , range.num , range.beVertical );
-			mDestroyRangeVec.push_back( range );
+			desc.bVertical = true;
+			desc.method = RemoveDesc::eNormal;
+
+			markRemove(context, desc);
 			DBG_MSG( "add remove line %d %d %s" , range.idxStart , range.num , range.beVertical ? "Y" : "N" );
+
+			idx = desc.index;
+		}
+
+		for( int idx = maxIdx ; idx >= 0 ; idx -= BoardSize )
+		{
+			RemoveDesc desc;
+			desc.num = countGemsHorizontal( idx , desc.index );
+			if ( desc.num < MinRmoveCount )
+				continue;
+
+			desc.bVertical = false;
+			desc.method = RemoveDesc::eNormal;
+			markRemove(context, desc);
+			DBG_MSG( "add remove line %d %d %s" , desc.index , desc.num , desc.bVertical ? "Y" : "N" );
 		}
 	}
 
@@ -253,7 +354,7 @@ namespace Bejeweled
 		{
 			for( idxFind -= BoardSize ; idxFind >= 0 ; idxFind -= BoardSize )
 			{
-				if ( mBoard[ idxFind ] )
+				if ( mBoard[ idxFind ] != GemData::None() )
 					break;
 			}
 
@@ -261,31 +362,30 @@ namespace Bejeweled
 				break;
 
 			mBoard[ idx ] = mBoard[ idxFind ];
-			mBoard[ idxFind ] = 0;
+			mBoard[ idxFind ] = GemData::None();
 			mListener->onMoveDownGem( idxFind  , idx );
 
 		}
 
 		for( ; idx >= 0 ; idx -= BoardSize )
 		{
-			assert( mBoard[idx] == 0 );
-			int type = produceGem( idx );
+			CHECK( mBoard[idx] == GemData::None() );
+			GemData type = produceGem( idx );
 			mListener->onFillGem( idx , type );
 		}
 	}
 
-	int Level::produceGem( int idx )
+	GemData Level::produceGem( int idx )
 	{
-		GemType test[ MaxGemTypeNum ];
-		std::fill_n( test , MaxGemTypeNum , 0 );
-		for( int i = 0 ; i < MaxGemTypeNum ; ++i )
-			test[i] = i + 1;
+		GemData test[ MaxGemTypeNum ];
+		for (int i = 0; i < MaxGemTypeNum; ++i)
+			test[i] = GemData::Normal(i);
 
 		int numUnTested = MaxGemTypeNum;
 		while( numUnTested )
 		{
 			int idxTest = Global::RandomNet() % numUnTested;
-			GemType type = test[ idxTest ] ? test[ idxTest ] : ( idxTest + 1 );
+			GemData type = test[ idxTest ];
 
 			mBoard[ idx ] = type;
 			int idxStart;
@@ -295,26 +395,42 @@ namespace Bejeweled
 			{
 				return type;
 			}
-
-			test[ idxTest ] = numUnTested;
 			--numUnTested;
+			if (idxTest != numUnTested)
+			{
+				test[idxTest] = test[numUnTested];
+			}
 		}
 
-		mBoard[ idx ] = 0;
-		return 0;
+		mBoard[ idx ] = GemData::None();
+		return mBoard[idx];
+	}
+
+	bool CanCountGem(GemData const& gem)
+	{
+		return gem.type == GemData::eNormal || gem.type == GemData::ePower;
+	}
+	bool CanCountGem(GemData const& gem, GemData const& testGem)
+	{
+		CHECK(CanCountGem(gem));
+
+		if (!CanCountGem(testGem))
+			return false;
+		return testGem.meta == gem.meta;
 	}
 
 	int Level::countGemsVertical( int idx , int& idxStart )
 	{
-		int const offset = BoardSize;
+		GemData gem = mBoard[idx];
+		if (!CanCountGem(gem))
+			return 0;
 
+		int const offset = BoardSize;
 		int count = 1;
 		int idxTest = idx - offset;
-
-		GemType gem = mBoard[ idx ];
 		for(  ; idxTest >= 0 ; idxTest -= offset )
 		{
-			if ( mBoard[ idxTest ] != gem )
+			if (!CanCountGem(gem , mBoard[idxTest]))
 				break;
 			++count;
 		}
@@ -322,7 +438,7 @@ namespace Bejeweled
 		idxTest = idx + offset ; 
 		for( ; idxTest < BoardSize * BoardSize ; idxTest += offset )
 		{
-			if ( mBoard[ idxTest ] != gem )
+			if (!CanCountGem(gem, mBoard[idxTest]))
 				break;
 			++count;
 		}
@@ -331,18 +447,20 @@ namespace Bejeweled
 
 	int Level::countGemsHorizontal( int idx , int& idxStart )
 	{
+		GemData gem = mBoard[ idx ];
+		if (!CanCountGem(gem))
+			return 0;
+
 		int const offset = 1;
 		int count = 1;
 
 		int y = idx / BoardSize;
 		int endIdx = y * BoardSize;
 
-		GemType gem = mBoard[ idx ];
-
 		int idxTest = idx - offset;
 		for(  ; idxTest >= endIdx ; idxTest -= offset )
 		{
-			if ( mBoard[ idxTest ] != gem )
+			if (!CanCountGem(gem, mBoard[idxTest]))
 				break;
 			++count;
 		}
@@ -352,7 +470,7 @@ namespace Bejeweled
 		idxTest = idx + offset ; 
 		for( ; idxTest < endIdx ; idxTest += offset )
 		{
-			if ( mBoard[ idxTest ] != gem )
+			if (!CanCountGem(gem, mBoard[idxTest]))
 				break;
 			++count;
 		}
@@ -361,7 +479,7 @@ namespace Bejeweled
 
 	void Level::generateRandGems()
 	{
-		std::fill_n( mBoard , BoardStorageSize , 0 );
+		std::fill_n( mBoard , BoardStorageSize , GemData::None() );
 		for( int i = 0 ; i < BoardStorageSize ; ++i )
 		{
 			produceGem( i );

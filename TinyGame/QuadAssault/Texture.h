@@ -11,8 +11,6 @@ class Texture
 public:
 	Texture();
 	~Texture();
-	void bind();
-	GLuint getHandle();
 
 	Render::RHITexture2DRef resource;
 	HashString fileName;	

@@ -591,7 +591,7 @@ namespace Render
 							vertices[i] = worldPosH.dividedVector();
 						}
 
-						RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA , EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
+						RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 						RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 						RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 						RHISetFixedShaderPipelineState(commandList, mView.worldToClip, LinearColor(1, 0, 0, 0.15));

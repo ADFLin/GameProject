@@ -5,9 +5,11 @@
 #include "ShaderCore.h"
 
 #include "HashString.h"
+#include "Template/ArrayView.h"
 
 #include <string>
 #include <unordered_set>
+
 
 #define SHADER_FILE_SUBNAME ".sgc"
 
@@ -18,8 +20,6 @@ namespace CPP
 
 namespace Render
 {
-	class Shader;
-	class ShaderProgram;
 	class ShaderManagedData;
 	class ShaderProgramManagedData;
 
@@ -65,9 +65,7 @@ namespace Render
 	struct ShaderProgramSetupData
 	{
 		RHIShaderProgramRef       resource;
-		ShaderProgramManagedData* managedData;
-
-		int getShaderCount() const;
+		TArrayView<ShaderCompileDesc const> descList;
 
 		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
 	};
@@ -75,7 +73,7 @@ namespace Render
 	struct ShaderSetupData
 	{
 		RHIShaderRef         resource;
-		ShaderManagedData*   managedData;
+		ShaderCompileDesc const* desc;
 
 		std::unique_ptr<ShaderCompileIntermediates>  intermediateData;
 		ShaderResourceInfo   shaderResource;
@@ -86,9 +84,10 @@ namespace Render
 		bool bOuputPreprocessedCode = true;
 		bool bUsePreprocess = true;
 		bool bUseShaderConductor = false;
-		bool bRecompile = true;
+		bool bAllowRecompile = true;
 		int  shaderIndex;
 		ShaderCompileDesc* desc;
+		std::unordered_set<HashString>* includeFiles;
 
 		bool haveFile() const { return desc->filePath.empty() == false; }
 		EShader::Type getType() const { return desc->type; }
@@ -130,21 +129,20 @@ namespace Render
 
 		virtual bool compileCode(ShaderCompileContext const& context) = 0;
 		virtual void precompileCode(ShaderProgramSetupData& setupData){}
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) = 0;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) = 0;
-		virtual void postShaderLoaded(ShaderProgram& shaderProgram){}
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) = 0;
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) = 0;
+		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram){}
 		
 		virtual void precompileCode(ShaderSetupData& setupData) {}
-		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) { return false; }
-		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) { return false; }
-		virtual void postShaderLoaded(Shader& shader) {}
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderSetupData& setupData) { return false; }
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) { return false; }
+		virtual void postShaderLoaded(RHIShader& shader) {}
 
 		virtual bool doesSuppurtBinaryCode() const { return false; }
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) = 0;
-		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
-		{
-			return false;
-		}
+		virtual bool getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) = 0;
+		virtual bool getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode){ return false; }
+
+
 		bool preprocessCode(char const* path, ShaderCompileDesc* compileDesc, StringView const& definition, CPP::CodeSourceLibrary* sourceLibrary, TArray<uint8>& inoutCodes, std::unordered_set<HashString>* outIncludeFiles, bool bOuputPreprocessedCode);
 		bool loadCode(ShaderCompileContext const& context, TArray<uint8>& outCodes);
 

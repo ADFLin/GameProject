@@ -41,6 +41,7 @@ protected:
 
 	//NASLIJED:
 	float   mSpeed;
+	float   mAcc = 100.0f;
 	float   mMaxSpeed;
 	float   mHP;
 	float   chargingRate;

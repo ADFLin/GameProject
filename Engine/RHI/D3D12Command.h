@@ -110,22 +110,17 @@ namespace Render
 	{
 	public:
 		bool initialize( ID3D12DeviceRHI* device );
-
-
-		void restState()
+		void restState();
+		void posetDrawCall()
 		{
-			mGlobalConstAllocation.ptr = nullptr;
-			mShaderData = nullptr;
-			mbGlobalConstCommited = false;
+			postDrawOrDispatchCall();
+		}
+		void posetDispatchCall()
+		{
+			postDrawOrDispatchCall();
 		}
 
-		void resetDrawCall()
-		{
-			if (mGlobalConstAllocation.ptr)
-			{
-				mbGlobalConstCommited = true;
-			}
-		}
+		void postDrawOrDispatchCall();
 
 		D3D12_GPU_VIRTUAL_ADDRESS getConstantGPUAddress()
 		{
@@ -138,31 +133,8 @@ namespace Render
 		};
 		UAVBoundState mUAVStates[8];
 
-		bool updateConstBuffer(D3D12ShaderData& shaderData)
-		{
-			if (mbGlobalConstCommited || mShaderData != &shaderData)
-			{
-				mbGlobalConstCommited = false;
-
-				uint32 bufferSize = shaderData.rootSignature.globalCBSize;
-				bufferSize = ConstBufferMultipleSize * ( ( bufferSize + ConstBufferMultipleSize - 1 ) / ConstBufferMultipleSize );
-
-				bool bCopyPrev = mShaderData == &shaderData;
-				void* prevData = bCopyPrev ? mGlobalConstAllocation.cpuAddress : nullptr;
-				D3D12DynamicBufferManager::Get().allocFrame(bufferSize, ConstBufferMultipleSize , mGlobalConstAllocation);
-				if (prevData)
-				{
-					FMemory::Copy(mGlobalConstAllocation.cpuAddress, prevData, shaderData.rootSignature.globalCBSize);
-				}
-				mShaderData = &shaderData;
-				return true;
-			}
-			return false;
-		}
-		void updateConstantData(void const* pData, uint32 offset, uint32 size)
-		{
-			FMemory::Copy(mGlobalConstAllocation.cpuAddress + offset, pData, size);
-		}
+		bool updateConstBuffer(D3D12ShaderData& shaderData);
+		void updateConstantData(void const* pData, uint32 offset, uint32 size);
 
 		D3D12ShaderData* mShaderData = nullptr;
 		D3D12BufferAllocation   mGlobalConstAllocation;
@@ -195,21 +167,8 @@ namespace Render
 		void release();
 
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
-		void RHISetBlendState(RHIBlendState& blendState) 
-		{
-			if (mBlendStateStatePending != &blendState)
-			{
-				mBlendStateStatePending = &blendState;
-			}
-		}
-		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef) 
-		{
-			if (mDepthStencilStatePending != &depthStencilState)
-			{
-				mDepthStencilStatePending = &depthStencilState;
-			}
-			mGraphicsCmdList->OMSetStencilRef(stencilRef);
-		}
+		void RHISetBlendState(RHIBlendState& blendState);
+		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
 		void RHISetViewport(float x, float y, float w, float h, float zNear, float zFar);
 		void RHISetViewports(ViewportInfo const viewports[], int numViewports);
 		void RHISetScissorRect(int x, int y, int w, int h);
@@ -218,11 +177,16 @@ namespace Render
 		
 		void postDrawPrimitive() 
 		{
-			for (auto & shader : mBoundState->mShaders)
+			for (auto & shader : mGfxBoundState->mShaders)
 			{
-				mResourceBoundStates[shader.type].resetDrawCall();
+				mResourceBoundStates[shader.type].posetDrawCall();
 			}
 		}
+		void postDispatchCompute()
+		{
+			mResourceBoundStates[EShader::Compute].posetDispatchCall();
+		}
+
 		void RHIDrawPrimitive(EPrimitive type, int start, int nv)
 		{
 			commitGraphicsPipelineState(type);
@@ -285,7 +249,7 @@ namespace Render
 			mFixedShaderParams.color = color;
 			mFixedShaderParams.texture = texture;
 			mFixedShaderParams.sampler = sampler;
-			mBoundState = nullptr;
+			mGfxBoundState = nullptr;
 		}
 
 		SimplePipelineParamValues mFixedShaderParams;
@@ -370,7 +334,8 @@ namespace Render
 		void RHISetComputeShader(RHIShader* shader);
 
 
-		void setShaderBoundState(D3D12ShaderBoundState* newState);
+		void setGfxShaderBoundState(D3D12ShaderBoundState* newState);
+		void setComputeShaderBoundState(D3D12ShaderBoundState* newState);
 
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, int32 const val[], int dim) { setShaderValueT(shader, param, val, dim); }
 		void setShaderValue(RHIShader& shader, ShaderParameter const& param, float const val[], int dim) { setShaderValueT(shader, param, val, dim); }
@@ -467,7 +432,7 @@ namespace Render
 		ID3D12PipelineState*     mPiplineStateCommitted = nullptr;
 
 		D3D12RenderTargetsState* mRenderTargetsState;
-		D3D12ShaderBoundState*  mBoundState = nullptr;
+		D3D12ShaderBoundState*  mGfxBoundState = nullptr;
 		D3D12ShaderBoundState*  mComputeBoundState = nullptr;
 		RHIInputLayoutRef       mInputLayoutPending;
 		RHIRasterizerStateRef   mRasterizerStatePending;

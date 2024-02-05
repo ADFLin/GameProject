@@ -42,9 +42,11 @@ protected:
 
 	friend class WeaponPickupRenderer;
 
-	BEGIN_CLASS_PROP()
-	MEMBER_PROP( "WeaponId" , mId )
-	END_CLASS_PROP()
+	REFLECT_STRUCT_BEGIN(WeaponPickup)
+		REF_BASE_CLASS(ItemPickup)
+		REF_PROPERTY(mId, "WeaponId")
+	REFLECT_STRUCT_END()
+
 };
 
 #endif // WeaponPickup_h__

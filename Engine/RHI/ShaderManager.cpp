@@ -13,7 +13,6 @@
 #include "CPreprocessor.h"
 #include "ProfileSystem.h"
 
-
 //#TODO remove
 #include "Renderer/BasePassRendering.h"
 #include "Renderer/ShadowDepthRendering.h"
@@ -93,10 +92,13 @@ namespace Render
 					return false;
 			}
 
-			if( !format.initializeProgram(shaderProgram, shaderCompiles , codeBuffer) )
+			ShaderParameterMap* parameterMap = format.initializeProgram(*shaderProgram.mRHIResource, shaderCompiles, codeBuffer);
+			if (parameterMap == nullptr)
+			{
+				shaderProgram.mRHIResource.release();
 				return false;
-
-
+			}
+			shaderProgram.bindParameters(*parameterMap);
 			return true;
 		}
 
@@ -112,10 +114,13 @@ namespace Render
 					return false;
 			}
 
-			if (!format.initializeShader(shader, shaderCompile, codeBuffer))
+			ShaderParameterMap* parameterMap = format.initializeShader(*shader.mRHIResource, shaderCompile, codeBuffer);
+			if (parameterMap == nullptr)
+			{
+				shader.mRHIResource.release();
 				return false;
-
-
+			}
+			shader.bindParameters(*parameterMap);
 			return true;
 		}
 
@@ -198,19 +203,20 @@ namespace Render
 		
 		}
 
-		bool saveCacheData( ShaderFormat& format, ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
+		bool saveCacheData( ShaderFormat& format, ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, ShaderProgramManagedData const& managedData)
 		{
 			if( !format.doesSuppurtBinaryCode() )
 				return false;
+
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
-			GetShaderCacheKey(format, *setupData.managedData, key);
-			bool result = mDataCache->saveDelegate(key, [&shaderProgram,&setupData,&binaryData,&format](IStreamSerializer& serializer)
+			GetShaderCacheKey(format, managedData, key);
+			bool result = mDataCache->saveDelegate(key, [&setupData,&binaryData,&format,&managedData](IStreamSerializer& serializer)
 			{			
-				if (!format.getBinaryCode(shaderProgram, setupData, binaryData.codeBuffer))
+				if (!format.getBinaryCode(setupData, binaryData.codeBuffer))
 					return false;
 
-				if (!binaryData.addFileDependences(*setupData.managedData))
+				if (!binaryData.addFileDependences(managedData))
 					return false;
 
 				serializer << binaryData;
@@ -231,19 +237,19 @@ namespace Render
 			return result;
 		}
 
-		bool saveCacheData(ShaderFormat& format, Shader& shader, ShaderSetupData& setupData)
+		bool saveCacheData(ShaderFormat& format, Shader& shader, ShaderSetupData& setupData, ShaderManagedData const& managedData)
 		{
 			if (!format.doesSuppurtBinaryCode())
 				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
-			GetShaderCacheKey(format, *setupData.managedData, key);
-			bool result = mDataCache->saveDelegate(key, [&shader, &setupData, &binaryData, &format](IStreamSerializer& serializer)
+			GetShaderCacheKey(format, managedData, key);
+			bool result = mDataCache->saveDelegate(key, [&setupData, &binaryData, &format,&managedData](IStreamSerializer& serializer)
 			{
-				if (!format.getBinaryCode(shader, setupData, binaryData.codeBuffer))
+				if (!format.getBinaryCode(setupData, binaryData.codeBuffer))
 					return false;
 
-				if (!binaryData.addFileDependences(*setupData.managedData))
+				if (!binaryData.addFileDependences(managedData))
 					return false;
 
 				serializer << binaryData;
@@ -561,16 +567,16 @@ namespace Render
 						shaderProgramClass.GetShaderEntries(permutationId), option,
 						nullptr, true, classType);
 
-					if (mamagedData == nullptr)
+					if ( mamagedData )
+					{
+						mamagedData->shaderClass = &shaderObjectClass;
+						mamagedData->permutationId = permutationId;
+					}
+					else
 					{
 						LogWarning(0, "Can't Load Shader %s", shaderProgramClass.GetShaderFileName());
 						delete result;
 						result = nullptr;
-					}
-					else
-					{
-						mamagedData->shaderClass = &shaderObjectClass;
-						mamagedData->permutationId = permutationId;
 					}
 				}
 				break;
@@ -584,21 +590,22 @@ namespace Render
 					ShaderManagedData* mamagedData = loadInternal(
 						*shader, shaderClass.GetShaderFileName(), shaderClass.entry, option, nullptr, classType);
 
-					if ( mamagedData == nullptr )
+					if ( mamagedData )
+					{
+						mamagedData->shaderClass = &shaderObjectClass;
+						mamagedData->permutationId = permutationId;
+					}
+					else
 					{
 						LogWarning(0, "Can't Load Shader %s", shaderClass.GetShaderFileName());
 						delete result;
 						result = nullptr;
 					}
-					else
-					{
-						mamagedData->shaderClass = &shaderObjectClass;
-						mamagedData->permutationId = permutationId;
-					}
 				}
 				break;
 
 			default:
+				NEVER_REACH("");
 				break;
 			}
 		}
@@ -610,7 +617,6 @@ namespace Render
 
 		if (result)
 		{
-
 			if (classType == ShaderClassType::Material)
 			{
 				removeFromShaderCompileMap(*result);
@@ -856,7 +862,6 @@ namespace Render
 		}
 		else
 		{
-
 			if (!managedData.sourceFile.empty())
 			{
 				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.descList[0].filePath.c_str(), managedData.sourceFile.c_str());
@@ -873,21 +878,23 @@ namespace Render
 			if (!setupData.resource.isValid())
 				return false;
 	
-			setupData.managedData = &managedData;
+			setupData.descList = MakeConstView(managedData.descList);
 			mShaderFormat->precompileCode(setupData);
 
 			ShaderResourceInfo shaders[EShader::MaxStorageSize];
 			int shaderIndex = 0;
 			bool bFailed = false;
-			ShaderCompileContext  context;
+
 
 			for (ShaderCompileDesc& desc : managedData.descList)
 			{
+				ShaderCompileContext  context;
+				context.programSetupData = &setupData;
 				context.shaderIndex = shaderIndex;
 				context.desc = &desc;
-				context.programSetupData = &setupData;
-				context.bRecompile = context.haveFile();
-				if (context.bRecompile)
+				context.bAllowRecompile = context.haveFile();
+				context.includeFiles = &managedData.includeFiles;
+				if (context.bAllowRecompile)
 				{
 					if (mSourceLibrary == nullptr)
 					{
@@ -917,19 +924,22 @@ namespace Render
 	
 			shaderProgram.mRHIResource = setupData.resource;
 			shaderProgram.preInitialize();
-			if (!mShaderFormat->initializeProgram(shaderProgram, setupData))
+
+			ShaderParameterMap* parameterMap = mShaderFormat->initializeProgram(*shaderProgram.mRHIResource, setupData);
+			if (parameterMap == nullptr)
 			{
 				shaderProgram.mRHIResource.release();
 				return false;
 			}
+			shaderProgram.bindParameters(*parameterMap);
 
-			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shaderProgram, setupData))
+			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shaderProgram, setupData, managedData))
 			{
 				LogWarning(0, "Can't Save ShaderProgram Cache");
 			}
 		}
 
-		mShaderFormat->postShaderLoaded(shaderProgram);
+		mShaderFormat->postShaderLoaded(*shaderProgram.mRHIResource);
 		return true;
 	}
 
@@ -955,8 +965,6 @@ namespace Render
 		}
 		else
 		{
-
-
 			if (!managedData.sourceFile.empty())
 			{
 				LogDevMsg(0, "Recompile shader : %s , source file : %s ", managedData.desc.filePath.c_str(), managedData.sourceFile.c_str());
@@ -972,35 +980,37 @@ namespace Render
 			if (!setupData.resource.isValid())
 				return false;
 
-			setupData.managedData = &managedData;
+			setupData.desc = &managedData.desc;
 
 			mShaderFormat->precompileCode(setupData);
 
 			bool bFailed = false;
-			ShaderCompileDesc& compileDesc = managedData.desc;
 
-			ShaderCompileContext  context;
-			context.shaderIndex = 0;
-			context.desc = &compileDesc;
-			context.shaderSetupData = &setupData;
-			context.bRecompile = context.haveFile();
-			if (context.bRecompile)
 			{
-				if (mSourceLibrary == nullptr)
+				ShaderCompileContext  context;
+				context.shaderSetupData = &setupData;
+				context.shaderIndex = 0;
+				context.desc = &managedData.desc;
+				context.includeFiles = &managedData.includeFiles;
+				context.bAllowRecompile = context.haveFile();
+				if (context.bAllowRecompile)
 				{
-					mSourceLibrary = new CPP::CodeSourceLibrary;
+					if (mSourceLibrary == nullptr)
+					{
+						mSourceLibrary = new CPP::CodeSourceLibrary;
+					}
+					context.sourceLibrary = mSourceLibrary;
 				}
-				context.sourceLibrary = mSourceLibrary;
-			}
 
-			if (!mShaderFormat->compileCode(context))
-			{
-				bFailed = true;
-			}
+				if (!mShaderFormat->compileCode(context))
+				{
+					bFailed = true;
+				}
 
-			if (managedData.bShowComplieInfo)
-			{
+				if (managedData.bShowComplieInfo)
+				{
 
+				}
 			}
 
 			if (bFailed)
@@ -1010,18 +1020,21 @@ namespace Render
 
 			shader.mRHIResource = setupData.resource;
 			shader.preInitialize();
-			if (!mShaderFormat->initializeShader(shader, setupData))
+
+			ShaderParameterMap* parameterMap = mShaderFormat->initializeShader(*shader.mRHIResource, setupData);
+			if (parameterMap == nullptr)
 			{
 				shader.mRHIResource.release();
 				return false;
 			}
+			shader.bindParameters(*parameterMap);
 
-			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shader, setupData))
+			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shader, setupData, managedData))
 			{
 				LogWarning(0, "Can't Save Shader Cache");
 			}
 
-			mShaderFormat->postShaderLoaded(shader);
+			mShaderFormat->postShaderLoaded(*shader.mRHIResource);
 		}
 
 		return true;

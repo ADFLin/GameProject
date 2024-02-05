@@ -223,6 +223,11 @@ namespace TripleTown
 			return true;
 		}
 
+		static ECActor* Get(ActorData& e)
+		{
+			assert(OBJ_ACTOR_START <= e.id && e.id < OBJ_ACTOR_START + NUM_ACTOR);
+			return static_cast<ECActor*>(gObjectInfo[e.id].typeClass);
+		}
 		static ECActor* FromId( ObjectId id )
 		{
 			assert( OBJ_ACTOR_START <= id && id < OBJ_ACTOR_START + NUM_ACTOR );
@@ -236,15 +241,8 @@ namespace TripleTown
 
 		bool  effect( Level& level , Tile& tile , TilePos const& pos ) override
 		{
-			ActorData& e = level.getActor( tile );
-			if ( level.updateActorState( e ) && e.state == STATE_DEAD )
-			{
-				ECActor::FromId( e.id )->evolve( level , e );
-				return true;
-			}
 			return false;
 		}
-
 	};
 
 	class ECBearBase : public ECActor
@@ -271,13 +269,15 @@ namespace TripleTown
 			return false;
 		}
 
-		void die( Level& level , ActorData& e )
+
+		void die(Level& level, ActorData& e)
 		{
-			unsigned mask = ACTOR_MASK( OBJ_BEAR ) | ACTOR_MASK( OBJ_NINJA );
+			unsigned mask = ACTOR_MASK(OBJ_BEAR) | ACTOR_MASK(OBJ_NINJA);
 			TilePos posNew;
-			level.killConnectActor( e , mask , posNew );
-			level.checkEffect( posNew );
+			level.killConnectActor(e, mask, posNew);
+			level.checkEffect(posNew);
 		}
+
 	};
 
 	class ECNinja : public ECBearBase 
@@ -637,6 +637,9 @@ namespace TripleTown
 			pInfo  = infoDangerous;
 			numInfo = sizeof( infoDangerous ) / sizeof( infoDangerous[0] );
 			break;
+		case LT_TEST:
+			mMap.resize(3, 3);
+			break;
 		}
 
 		getListener().postSetupMap();
@@ -696,6 +699,9 @@ namespace TripleTown
 		resetObjectQueue();
 
 		getListener().notifyWorldRestore();
+
+		mIndexLastStepState = -1;
+		recordStepState();
 	}
 
 	void Level::setTerrain( TilePos const& pos , TerrainType type )
@@ -806,7 +812,14 @@ namespace TripleTown
 	bool Level::useObjectImpl( Tile& tile , TilePos const& pos , ObjectId id )
 	{
 		assert( id != OBJ_STOREHOUSE );
-		return GetInfo( id ).typeClass->use( *this , tile , pos , id );
+		bool bChanged = GetInfo( id ).typeClass->use( *this , tile , pos , id );
+		if (bChanged)
+		{
+
+
+
+		}
+		return bChanged;
 	}
 
 	void Level::addObject( TilePos const& pos , ObjectId id , bool bInit )
@@ -839,53 +852,36 @@ namespace TripleTown
 			checkEffect( nPos );
 		}
 
-		unsigned idxCheck = 0;
-		while( idxCheck < mIdxUpdateQueue.size() )
+
+		for (int iter : mIdxUpdateQueue)
 		{
-			ActorData& e = mActorStorage[ mIdxUpdateQueue[ idxCheck ] ];
-
-			if ( updateActorState( e ) && e.state == STATE_DEAD )
-			{
-				ECActor::FromId( e.id )->evolve( *this , e );
-				idxCheck = 0;		
-			}
-			else
-			{
-				++idxCheck;
-			}
+			ActorData& e = mActorStorage[iter];
+			ECActor::Get(e)->evalState(*this, e);
 		}
-	
-		for(int & iter : mIdxUpdateQueue)
+
+		updateActors([this](ActorData& e)
 		{
-			ActorData& e = mActorStorage[ iter ];
-			assert( getTile( e.pos ).meta == iter );
-			ECActor::FromId( e.id )->evolve( *this , e  );
-		}
-	}
-
-	void Level::checkActor( Tile& tile , TilePos const& pos )
-	{
-		assert( &tile == &getTile( pos ) );
-		if ( !tile.haveActor() )
-			return;
-
-		ActorData& e = getActor( tile );
-		if ( updateActorState( e ) && e.state == STATE_DEAD )
-			ECActor::FromId( e.id )->evolve( *this , e );
-	}
-
-	bool Level::updateActorState( ActorData& e )
-	{
-		Tile& tile = getTile( e.pos );
-		//Entity have updated state
-		if ( e.stepUpdate == mStep )
+			if (e.state == STATE_DEAD && e.stepEvolve != mStep)
+			{
+				e.stepEvolve = mStep;
+				ECActor::Get(e)->evolve(*this, e);
+				return true;
+			}
 			return false;
+		});
 
-		e.stepUpdate = mStep;
-		ECActor* actorClass = ECActor::FromId( e.id );
-		actorClass->evalState( *this , e );
+		updateActors([this](ActorData& e)
+		{
+			if (e.state != STATE_DEAD && e.stepEvolve != mStep)
+			{
+				e.stepEvolve = mStep;
+				ECActor::Get(e)->evolve(*this, e);
+				return true;
+			}
+			return false;
+		});
 
-		return true;
+		recordStepState();
 	}
 
 	int Level::peekObject( TilePos const& pos , ObjectId id , TilePos posRemove[] )
@@ -1247,7 +1243,7 @@ namespace TripleTown
 		pEntity->id  = id;
 		pEntity->pos = pos;
 		pEntity->stepBorn   = mStep;
-		pEntity->stepUpdate = mStep;
+		pEntity->stepEvolve = mStep;
 		pEntity->state = STATE_ALIVE;
 
 		--mNumEmptyTile;
@@ -1274,8 +1270,8 @@ namespace TripleTown
 		e.stepBorn = mIdxFreeEntity;
 		mIdxFreeEntity = idx;
 
-		mIdxUpdateQueue.erase(
-			std::find( mIdxUpdateQueue.begin() , mIdxUpdateQueue.end() , idx ) );
+		mIdxUpdateQueue.remove(idx);
+		mbIdxUpdateQueueModified = true;
 
 		tile.id   = OBJ_NULL;
 		tile.meta = 0;
@@ -1340,8 +1336,8 @@ namespace TripleTown
 		assert( ( bitMask & ACTOR_MASK( e.id ) ) != 0 );
 
 		KillInfo info;
-		info.pos = e.pos;
-		info.step  = e.stepBorn;
+		info.pos  = e.pos;
+		info.step = e.stepBorn;
 		killActor( tile , e );
 
 		int num = 1;
@@ -1352,7 +1348,28 @@ namespace TripleTown
 		return num;
 	}
 
-	int Level::killConnectActor_R( TilePos const& pos , unsigned bitMask , KillInfo& info )
+	int Level::killAllActors(unsigned bitMask)
+	{
+		int num = 0;
+		for (auto& tile : mMap)
+		{
+			if (tile.haveActor())
+			{
+				ActorData& e = getActor(tile);
+				if (bitMask & ACTOR_MASK(e.id))
+				{
+					KillInfo info;
+					info.pos = e.pos;
+					info.step = e.stepBorn;
+					killActor(tile, e);
+					++num;
+				}
+			}
+		}
+		return num;
+	}
+
+	int Level::killConnectActor_R(TilePos const& pos, unsigned bitMask, KillInfo& info)
 	{
 		if ( !isMapRange( pos ) )
 			return 0;

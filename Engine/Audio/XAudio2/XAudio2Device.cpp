@@ -79,7 +79,7 @@ bool XAudio2Source::doInitialize(SoundInstance& instance)
 	format.nBlockAlign = formatInfo.blockAlign;
 	format.cbSize = 0; //WAVE_FORMAT_PCM must be 0
 	CHECK_RESULT_CODE(
-		mDevice->pXAudio2->CreateSourceVoice(&pSourceVoice, &format, 0, 2.0f, &mDevice->sourceCallback),
+		mDevice->pXAudio2->CreateSourceVoice(&pSourceVoice, &format, 0, 10.0f, &mDevice->sourceCallback),
 		LogWarning(0, "Can't Create SourceVoice");
 		return false;
 	);

@@ -10,6 +10,19 @@
 
 class LightObject;
 
+class PlayerStart : public Actor
+{
+public:
+	DECLARE_OBJECT_CLASS(PlayerStart, Actor)
+
+	PlayerStart()
+	{
+		mSize = Vec2f(100, 100);
+	}
+
+	void renderDev(RHIGraphics2D& g, DevDrawMode mode);
+};
+
 class Player : public Actor
 {
 	DECLARE_OBJECT_CLASS( Player , Actor )
@@ -76,9 +89,6 @@ private:
 
 	friend class PlayerRenderer;
 
-
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 

@@ -1,30 +1,31 @@
-#ifndef FixNumber_h__
-#define FixNumber_h__
-
+#pragma once
+#ifndef FixNumber_H_68F5D9AD_4125_4F3E_92C2_584B8C055082
+#define FixNumber_H_68F5D9AD_4125_4F3E_92C2_584B8C055082
 
 template< class IntType , IntType SCALE >
-class FixNumber
+class TFixedValue
 {
 public:
 
-	float operator (){ return static_cast< float >( mValue ) / SCALE;  }
+	double operator (){ return static_cast<double>( mValue ) / SCALE;  }
 
-	FixNumber operator + ( FixNumber const& rhs ) const
+	TFixedValue operator + ( TFixedValue const& rhs ) const
 	{
-		return FixNumber( mValue + rhs.mValue );
+		return TFixedValue( mValue + rhs.mValue );
 	}
-	FixNumber operator - ( FixNumber const& rhs ) const
+	TFixedValue operator - ( TFixedValue const& rhs ) const
 	{
-		return FixNumber( mValue - rhs.mValue );
+		return TFixedValue( mValue - rhs.mValue );
 	}
-	FixNumber operator * ( FixNumber const& rhs ) const
+	TFixedValue operator * ( TFixedValue const& rhs ) const
 	{
-		return FixNumber( ( mValue * rhs.mValue ) / SCALE );
+		return TFixedValue( ( mValue * rhs.mValue ) / SCALE );
 	}
-	FixNumber operator / ( FixNumber const& rhs ) const
+	TFixedValue operator / ( TFixedValue const& rhs ) const
 	{
-		return FixNumber( ( mValue / rhs.mValue ) * SCALE );
+		return TFixedValue( ( mValue / rhs.mValue ) * SCALE );
 	}
 	IntType mValue;
 };
-#endif // FixNumber_h__
+
+#endif // FixNumber_H_68F5D9AD_4125_4F3E_92C2_584B8C055082

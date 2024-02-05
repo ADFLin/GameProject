@@ -449,7 +449,7 @@ namespace Render
 					dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 					dsvDesc.Texture2D.MipSlice = 0;
 				}
-				RTState.depthBuffer.DSVHandle = D3D12DescriptorHeapPool::Get().allocDSV(RTState.depthBuffer.resource, &dsvDesc);
+				RTState.depthBuffer.DSVHandle = D3D12DescriptorHeapPool::Alloc(RTState.depthBuffer.resource, &dsvDesc);
 			}
 
 		}
@@ -511,7 +511,7 @@ namespace Render
 			//#TODO
 			srvDesc.Texture1D.MipLevels = 1;
 
-			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
+			texture->mSRV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &srvDesc);
 		}
 		if (desc.creationFlags & TCF_CreateUAV)
 		{
@@ -519,7 +519,7 @@ namespace Render
 			uavDesc.Format = textureDesc.Format;
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
 			uavDesc.Texture1D.MipSlice = 0;
-			texture->mUAV = D3D12DescriptorHeapPool::Get().allocUAV(texture->mResource, &uavDesc);
+			texture->mUAV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &uavDesc);
 		}
 
 		return texture;
@@ -596,13 +596,13 @@ namespace Render
 			// Describe and create a SRV for the texture.
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			srvDesc.Format = formatD3D;
+			srvDesc.Format = D3D12Translate::ToSRV(formatD3D);
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 
 			//#TODO
 			srvDesc.Texture2D.MipLevels = 1;
 
-			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
+			texture->mSRV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &srvDesc);
 		}
 
 		if (desc.creationFlags & TCF_CreateUAV)
@@ -612,7 +612,7 @@ namespace Render
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 			uavDesc.Texture2D.MipSlice = 0;
 			uavDesc.Texture2D.PlaneSlice = 0;
-			texture->mUAV = D3D12DescriptorHeapPool::Get().allocUAV(texture->mResource, &uavDesc);
+			texture->mUAV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &uavDesc);
 		}
 
 		if (bDepthStencilFormat)
@@ -629,11 +629,121 @@ namespace Render
 				dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 				dsvDesc.Texture2D.MipSlice = 0;
 			}
-			texture->mRTVorDSV = D3D12DescriptorHeapPool::Get().allocDSV(texture->mResource, &dsvDesc);
+			texture->mRTVorDSV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &dsvDesc);
 		}
 		if (desc.creationFlags & TCF_RenderTarget)
 		{
 
+			{
+				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+				if (desc.numSamples > 1)
+				{
+					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+					rtvDesc.Format = formatD3D;
+				}
+				else
+				{
+					rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+					rtvDesc.Format = formatD3D;
+					rtvDesc.Texture2D.MipSlice = 0;
+					rtvDesc.Texture2D.PlaneSlice = 0;
+				}
+
+				texture->mRTVorDSV = D3D12DescriptorHeapPool::Alloc(texture->mResource, &rtvDesc);
+			}
+		}
+
+		return texture;
+	}
+
+	RHITexture3D* RHISystem::RHICreateTexture3D(TextureDesc const& desc, void* data)
+	{
+		return nullptr;
+	}
+
+	RHITextureCube* RHISystem::RHICreateTextureCube(TextureDesc const& desc, void* data[])
+	{
+#if 0
+		TComPtr<ID3D12Resource> textureResource;
+
+		DXGI_FORMAT formatD3D = D3D12Translate::To(desc.format);
+		D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_COMMON;
+
+		{
+			// Describe and create a Texture2D.
+			D3D12_RESOURCE_DESC textureDesc = {};
+			textureDesc.MipLevels = desc.numMipLevel;
+			textureDesc.Format = formatD3D;
+			textureDesc.Width = desc.dimension.x;
+			textureDesc.Height = desc.dimension.y;
+			textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+			D3D12_CLEAR_VALUE clearValue;
+
+			if (desc.creationFlags & TCF_CreateUAV)
+				textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+			if (desc.creationFlags & TCF_RenderTarget)
+			{
+				clearValue.Format = formatD3D;
+				clearValue.Color[0] = desc.clearColor.r;
+				clearValue.Color[1] = desc.clearColor.g;
+				clearValue.Color[2] = desc.clearColor.b;
+				clearValue.Color[3] = desc.clearColor.a;
+				textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+				resourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+			}
+
+			textureDesc.DepthOrArraySize = 1;
+			textureDesc.SampleDesc.Count = desc.numSamples;
+			textureDesc.SampleDesc.Quality = 0;
+			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+
+			VERIFY_D3D_RESULT(mDevice->CreateCommittedResource(
+				&FD3D12Init::HeapProperrties(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&textureDesc,
+				resourceState,
+				(desc.creationFlags & TCF_RenderTarget) ? &clearValue : nullptr,
+				IID_PPV_ARGS(&textureResource)), return nullptr;);
+
+			if (data)
+			{
+				if (!updateTexture2DSubresources(textureResource, desc.format, data, 0, 0, desc.dimension.x, desc.dimension.y,
+					desc.dimension.x * ETexture::GetFormatSize(desc.format), 0))
+					return nullptr;
+			}
+
+		}
+
+		D3D12Texture2D* texture = new D3D12Texture2D(desc, textureResource);
+		texture->mCurrentStates = resourceState;
+
+		if (desc.creationFlags & TCF_CreateSRV)
+		{
+			// Describe and create a SRV for the texture.
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = formatD3D;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+
+			//#TODO
+			srvDesc.Texture2D.MipLevels = 1;
+
+			texture->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(texture->mResource, &srvDesc);
+		}
+
+		if (desc.creationFlags & TCF_CreateUAV)
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+			uavDesc.Format = formatD3D;
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+			texture->mUAV = D3D12DescriptorHeapPool::Get().allocUAV(texture->mResource, &uavDesc);
+		}
+
+		if (desc.creationFlags & TCF_RenderTarget)
+		{
 			{
 				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
 				if (desc.numSamples > 1)
@@ -654,6 +764,9 @@ namespace Render
 		}
 
 		return texture;
+#else
+		return nullptr;
+#endif
 	}
 
 	RHIBuffer* D3D12System::RHICreateBuffer(BufferDesc const& desc, void* data)
@@ -718,12 +831,12 @@ namespace Render
 				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 				cbvDesc.BufferLocation = result->mResource->GetGPUVirtualAddress();
 				cbvDesc.SizeInBytes = bufferSize;
-				result->mCBV = D3D12DescriptorHeapPool::Get().allocCBV(resource, &cbvDesc);
+				result->mCBV = D3D12DescriptorHeapPool::Alloc(resource, &cbvDesc);
 			}
 			else if (desc.creationFlags & BCF_CreateSRV)
 			{
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = FD3D12Init::BufferViewDesc(desc.elementSize);
-				result->mSRV = D3D12DescriptorHeapPool::Get().allocSRV(resource, &srvDesc);
+				result->mSRV = D3D12DescriptorHeapPool::Alloc(resource, &srvDesc);
 			}
 			return result;
 		}
@@ -1075,6 +1188,8 @@ namespace Render
 
 	bool D3D12System::updateTexture2DSubresources(ID3D12Resource* textureResource, D3D12_RESOURCE_STATES states, ETexture::Format format, void* data, uint32 ox, uint32 oy, uint32 width, uint32 height, uint32 rowPatch, uint32 level /*= 0*/)
 	{
+		mRenderContext.waitForGpu();
+
 		auto Desc = textureResource->GetDesc();
 		Desc.Width = width;
 		Desc.Height = height;
@@ -1146,6 +1261,8 @@ namespace Render
 
 	bool D3D12System::updateTexture1DSubresources(ID3D12Resource* textureResource, ETexture::Format format, void* data, uint32 offset, uint32 length, uint32 level /*= 0*/)
 	{
+		mRenderContext.waitForGpu();
+
 		auto Desc = textureResource->GetDesc();
 		Desc.Width = length;
 		uint64 RequiredSize = 0;
@@ -1370,7 +1487,6 @@ namespace Render
 		}
 		else
 		{
-			GraphicsShaderStateDesc stateDesc;
 			flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 		}
 
@@ -1453,18 +1569,18 @@ namespace Render
 
 			if (renderState.rasterizerState)
 			{
-				auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER>();
-				data = static_cast<D3D12RasterizerState*>(renderState.rasterizerState)->mDesc;
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER>(
+					static_cast<D3D12RasterizerState*>(renderState.rasterizerState)->mDesc);
 			}
 			if (renderState.depthStencilState)
 			{
-				auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_RHI>();
-				data = static_cast<D3D12DepthStencilState*>(renderState.depthStencilState)->mDesc;
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_RHI>(
+					static_cast<D3D12DepthStencilState*>(renderState.depthStencilState)->mDesc);
 			}
 			if (renderState.blendState)
 			{
-				auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND>();
-				data = static_cast<D3D12BlendState*>(renderState.blendState)->mDesc;
+				stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND>(
+					static_cast<D3D12BlendState*>(renderState.blendState)->mDesc);
 			}
 		}
 
@@ -1507,32 +1623,27 @@ namespace Render
 			{
 			case EShader::Vertex:
 				{
-					auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>();
-					data = shaderInfo.data->getByteCode();
+					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>(shaderInfo.data->getByteCode());
 				}
 				break;
 			case EShader::Pixel:
 				{
-					auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>();
-					data = shaderInfo.data->getByteCode();
+					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>(shaderInfo.data->getByteCode());
 				}
 				break;
 			case EShader::Geometry:
 				{
-					auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS>();
-					data = shaderInfo.data->getByteCode();
+					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS>(shaderInfo.data->getByteCode());
 				}
 				break;
 			case EShader::Hull:
 				{
-					auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS>();
-					data = shaderInfo.data->getByteCode();
+					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS>(shaderInfo.data->getByteCode());
 				}
 				break;
 			case EShader::Domain:
 				{
-					auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS>();
-					data = shaderInfo.data->getByteCode();
+					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS>(shaderInfo.data->getByteCode());
 				}
 				break;
 			}
@@ -1540,8 +1651,8 @@ namespace Render
 
 		if (renderState.inputLayout)
 		{
-			auto& inputLayout = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT>();
-			inputLayout = static_cast<D3D12InputLayout*>(renderState.inputLayout)->getDesc();
+			stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT>(
+				static_cast<D3D12InputLayout*>(renderState.inputLayout)->getDesc());
 		}
 
 
@@ -1587,14 +1698,12 @@ namespace Render
 			{
 			case EShader::Mesh:
 				{
-					auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS>();
-					data = shaderInfo.data->getByteCode();
+					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS>(shaderInfo.data->getByteCode());
 				}
 				break;
 			case EShader::Task:
 				{
-					auto& data = stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS>();
-					data = shaderInfo.data->getByteCode();
+					stateStream.addDataT<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS>(shaderInfo.data->getByteCode());
 				}
 				break;
 			default:
@@ -1774,6 +1883,23 @@ namespace Render
 		}
 	}
 
+	void D3D12Context::RHISetBlendState(RHIBlendState& blendState)
+	{
+		if (mBlendStateStatePending != &blendState)
+		{
+			mBlendStateStatePending = &blendState;
+		}
+	}
+
+	void D3D12Context::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
+	{
+		if (mDepthStencilStatePending != &depthStencilState)
+		{
+			mDepthStencilStatePending = &depthStencilState;
+		}
+		mGraphicsCmdList->OMSetStencilRef(stencilRef);
+	}
+
 	void D3D12Context::RHISetViewport(float x, float y, float w, float h, float zNear, float zFar)
 	{
 		mGraphicsCmdList->RSSetViewports(1, &FD3D12Init::Viewport(x, y, w, h, zNear, zFar));
@@ -1792,17 +1918,11 @@ namespace Render
 	{
 		D3D12_VIEWPORT viewportsD3D[MaxViewportCount];
 		D3D12_RECT scissorRects[MaxViewportCount];
-		assert(numViewports < ARRAY_SIZE(viewportsD3D));
+		CHECK(numViewports < ARRAY_SIZE(viewportsD3D));
 		for (int i = 0; i < numViewports; ++i)
 		{
 			ViewportInfo const& vp = viewports[i];
-			D3D12_VIEWPORT& viewport = viewportsD3D[i];
-			viewport.TopLeftX = vp.x;
-			viewport.TopLeftY = vp.y;
-			viewport.Width = vp.w;
-			viewport.Height = vp.h;
-			viewport.MinDepth = vp.zNear;
-			viewport.MaxDepth = vp.zFar;
+			viewportsD3D[i] = FD3D12Init::Viewport(vp.x, vp.y, vp.w, vp.h, vp.zNear, vp.zFar);;
 
 			D3D12_RECT& scissorRect = mViewportRects[i];
 			scissorRect.left = vp.x;
@@ -1830,129 +1950,166 @@ namespace Render
 		mGraphicsCmdList->RSSetScissorRects(mNumViewports, mScissorRects);
 	}
 
-	bool D3D12Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, D3D12_INDEX_BUFFER_VIEW& outIndexBufferView, int& outIndexNum)
+	template< typename TBuffer >
+	bool DetermitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, TBuffer& buffer, EPrimitive& outPrimitiveDetermited, int& outIndexNum)
 	{
-		if (primitive == EPrimitive::Quad)
+		switch (primitive)
 		{
-			int numQuad = num / 4;
-			int indexBufferSize = sizeof(uint32) * numQuad * 6;
-			void* pIndexBufferData = mIndexBufferUP.lock(indexBufferSize);
-			if (pIndexBufferData == nullptr)
-				return false;
+		case EPrimitive::Quad:
+			{
+				int numQuad = num / 4;
+				int indexBufferSize = sizeof(uint32) * numQuad * 6;
+				void* pIndexBufferData = buffer.lock(indexBufferSize);
+				if (pIndexBufferData == nullptr)
+					return false;
 
-			uint32* pData = (uint32*)pIndexBufferData;
-			if (pIndices)
-			{
-				for (int i = 0; i < numQuad; ++i)
+				uint32* pData = (uint32*)pIndexBufferData;
+				if (pIndices)
 				{
-					pData[0] = pIndices[0];
-					pData[1] = pIndices[1];
-					pData[2] = pIndices[2];
-					pData[3] = pIndices[0];
-					pData[4] = pIndices[2];
-					pData[5] = pIndices[3];
-					pData += 6;
-					pIndices += 4;
+					for (int i = 0; i < numQuad; ++i)
+					{
+						pData[0] = pIndices[0];
+						pData[1] = pIndices[1];
+						pData[2] = pIndices[2];
+						pData[3] = pIndices[0];
+						pData[4] = pIndices[2];
+						pData[5] = pIndices[3];
+						pData += 6;
+						pIndices += 4;
+					}
 				}
-			}
-			else
-			{
-				for (int i = 0; i < numQuad; ++i)
+				else
 				{
-					int index = 4 * i;
-					pData[0] = index + 0;
-					pData[1] = index + 1;
-					pData[2] = index + 2;
-					pData[3] = index + 0;
-					pData[4] = index + 2;
-					pData[5] = index + 3;
-					pData += 6;
+					for (int i = 0; i < numQuad; ++i)
+					{
+						int index = 4 * i;
+						pData[0] = index + 0;
+						pData[1] = index + 1;
+						pData[2] = index + 2;
+						pData[3] = index + 0;
+						pData[4] = index + 2;
+						pData[5] = index + 3;
+						pData += 6;
+					}
 				}
+				outPrimitiveDetermited = EPrimitive::TriangleList;
+				buffer.unlock();
+				outIndexNum = numQuad * 6;
+				return true;
 			}
-			outPrimitiveDetermited = EPrimitive::TriangleList;
-			mIndexBufferUP.unlock(outIndexBufferView);
-			outIndexNum = numQuad * 6;
-			return true;
-		}
-		else if (primitive == EPrimitive::LineLoop)
-		{
-			if (pIndices)
+			break;
+		case EPrimitive::LineLoop:
 			{
 				int indexBufferSize = sizeof(uint32) * (num + 1);
-				void* pIndexBufferData = mIndexBufferUP.lock(indexBufferSize);
+				void* pIndexBufferData = buffer.lock(indexBufferSize);
 				if (pIndexBufferData == nullptr)
 					return false;
 				uint32* pData = (uint32*)pIndexBufferData;
-				for (int i = 0; i < num; ++i)
+
+				if (pIndices)
 				{
-					pData[i] = pIndices[i];
+					for (int i = 0; i < num; ++i)
+					{
+						pData[i] = pIndices[i];
+					}
+					pData[num] = pIndices[0];
 				}
-				pData[num] = pIndices[0];
-				mIndexBufferUP.unlock(outIndexBufferView);
+				else
+				{
+					for (int i = 0; i < num; ++i)
+					{
+						pData[i] = i;
+					}
+					pData[num] = 0;
+				}
+
+				buffer.unlock();
 				outIndexNum = num + 1;
-
+				outPrimitiveDetermited = EPrimitive::LineStrip;
+				return true;
 			}
-			outPrimitiveDetermited = EPrimitive::LineStrip;
-			return true;
-		}
-		else if (primitive == EPrimitive::Polygon)
-		{
-			if (num <= 2)
-				return false;
-
-			int numTriangle = (num - 2);
-
-			int indexBufferSize = sizeof(uint32) * numTriangle * 3;
-			void* pIndexBufferData = mIndexBufferUP.lock(indexBufferSize);
-			if (pIndexBufferData == nullptr)
-				return false;
-
-			uint32* pData = (uint32*)pIndexBufferData;
-			if (pIndices)
+			break;
+		case EPrimitive::Polygon:
 			{
-				for (int i = 0; i < numTriangle; ++i)
+				if (num <= 2)
+					return false;
+
+				int numTriangle = (num - 2);
+
+				int indexBufferSize = sizeof(uint32) * numTriangle * 3;
+				void* pIndexBufferData = buffer.lock(indexBufferSize);
+				if (pIndexBufferData == nullptr)
+					return false;
+
+				uint32* pData = (uint32*)pIndexBufferData;
+				if (pIndices)
 				{
-					pData[0] = pIndices[0];
-					pData[1] = pIndices[i + 1];
-					pData[2] = pIndices[i + 2];
-					pData += 3;
+					for (int i = 0; i < numTriangle; ++i)
+					{
+						pData[0] = pIndices[0];
+						pData[1] = pIndices[i + 1];
+						pData[2] = pIndices[i + 2];
+						pData += 3;
+					}
 				}
-			}
-			else
-			{
-				for (int i = 0; i < numTriangle; ++i)
+				else
 				{
-					pData[0] = 0;
-					pData[1] = i + 1;
-					pData[2] = i + 2;
-					pData += 3;
+					for (int i = 0; i < numTriangle; ++i)
+					{
+						pData[0] = 0;
+						pData[1] = i + 1;
+						pData[2] = i + 2;
+						pData += 3;
+					}
 				}
+				outPrimitiveDetermited = EPrimitive::TriangleList;
+				buffer.unlock();
+				outIndexNum = numTriangle * 3;
+				return true;
 			}
-			outPrimitiveDetermited = EPrimitive::TriangleList;
-			mIndexBufferUP.unlock(outIndexBufferView);
-			outIndexNum = numTriangle * 3;
-			return true;
+			break;
 		}
 
-		
 		if (D3D12Translate::To(primitive) == D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
 			return false;
-
-		outPrimitiveDetermited = primitive;
 
 		if (pIndices)
 		{
 			uint32 indexBufferSize = num * sizeof(uint32);
-			void* pIndexBufferData = mIndexBufferUP.lock(indexBufferSize);
+			void* pIndexBufferData = buffer.lock(indexBufferSize);
 			if (pIndexBufferData == nullptr)
 				return false;
 
-			memcpy(pIndexBufferData, pIndices, indexBufferSize);
-			mIndexBufferUP.unlock(outIndexBufferView);
+			FMemory::Copy(pIndexBufferData, pIndices, indexBufferSize);
+			buffer.unlock();
 			outIndexNum = num;
-
 		}
+
+		outPrimitiveDetermited = primitive;
 		return true;
+	}
+
+	bool D3D12Context::determitPrimitiveTopologyUP(EPrimitive primitive, int num, uint32 const* pIndices, EPrimitive& outPrimitiveDetermited, D3D12_INDEX_BUFFER_VIEW& outIndexBufferView, int& outIndexNum)
+	{
+		struct MyBuffer
+		{
+			MyBuffer(D3D12DynamicBuffer& buffer, D3D12_INDEX_BUFFER_VIEW& bufferView)
+				:mBuffer(buffer),mBufferView(bufferView)
+			{
+			}
+			void* lock(uint32 size)
+			{
+				return mBuffer.lock(size);
+			}
+			void unlock()
+			{
+				mBuffer.unlock(mBufferView);
+			}
+			D3D12DynamicBuffer& mBuffer;
+			D3D12_INDEX_BUFFER_VIEW& mBufferView;
+		};
+
+		return DetermitPrimitiveTopologyUP(primitive, num, pIndices,  MyBuffer(mIndexBufferUP, outIndexBufferView), outPrimitiveDetermited, outIndexNum);
 	}
 
 	void D3D12Context::RHIDrawPrimitiveUP(EPrimitive type, int numVertices, VertexDataInfo dataInfos[], int numVertexData)
@@ -1964,7 +2121,6 @@ namespace Render
 		int numDrawIndex;
 		if (!determitPrimitiveTopologyUP(type, numVertices, nullptr, determitedPrimitive, indexBufferView, numDrawIndex))
 			return;
-
 
 		uint32 vertexBufferSize = 0;
 		if (type == EPrimitive::LineLoop)
@@ -1999,13 +2155,13 @@ namespace Render
 				offsets[i] = dataOffset;
 				if (type == EPrimitive::LineLoop)
 				{
-					memcpy(pVBufferData + dataOffset, info.ptr, info.size);
-					memcpy(pVBufferData + dataOffset + info.size, info.ptr, info.stride);
+					FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size);
+					FMemory::Copy(pVBufferData + dataOffset + info.size, info.ptr, info.stride);
 					dataOffset += (D3D12_BUFFER_SIZE_ALIGN * (info.size + info.stride) + D3D12_BUFFER_SIZE_ALIGN - 1) / D3D12_BUFFER_SIZE_ALIGN;
 				}
 				else
 				{
-					memcpy(pVBufferData + dataOffset, info.ptr, info.size);
+					FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size);
 					dataOffset += (D3D12_BUFFER_SIZE_ALIGN * info.size + D3D12_BUFFER_SIZE_ALIGN - 1) / D3D12_BUFFER_SIZE_ALIGN;
 				}
 			}
@@ -2066,7 +2222,7 @@ namespace Render
 			{
 				auto const& info = dataInfos[i];
 				offsets[i] = dataOffset;
-				memcpy(pVBufferData + dataOffset, info.ptr, info.size);
+				FMemory::Copy(pVBufferData + dataOffset, info.ptr, info.size);
 				dataOffset += (D3D12_BUFFER_SIZE_ALIGN * info.size + D3D12_BUFFER_SIZE_ALIGN - 1) / D3D12_BUFFER_SIZE_ALIGN;
 			}
 
@@ -2264,19 +2420,19 @@ namespace Render
 	{
 		commitComputePipelineState();
 		mGraphicsCmdList->Dispatch(numGroupX, numGroupY, numGroupZ);
-		postDrawPrimitive();
+		postDispatchCompute();
 	}
 
 	void D3D12Context::RHISetGraphicsShaderBoundState(GraphicsShaderStateDesc const& stateDesc)
 	{
 		auto newState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(stateDesc);
-		setShaderBoundState(newState);
+		setGfxShaderBoundState(newState);
 	}
 
 	void D3D12Context::RHISetMeshShaderBoundState(MeshShaderStateDesc const& stateDesc)
 	{
 		auto newState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(stateDesc);
-		setShaderBoundState(newState);
+		setGfxShaderBoundState(newState);
 	}
 
 	void D3D12Context::RHISetComputeShader(RHIShader* shader)
@@ -2284,11 +2440,11 @@ namespace Render
 		if (shader)
 		{
 			auto newState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(*shader);
-			setShaderBoundState(newState);
+			setComputeShaderBoundState(newState);
 		}
 		else
 		{
-			setShaderBoundState(nullptr);
+			setComputeShaderBoundState(nullptr);
 		}
 	}
 
@@ -2296,7 +2452,7 @@ namespace Render
 	{
 		if (shaderProgram == nullptr)
 		{
-			mBoundState = nullptr;
+			mGfxBoundState = nullptr;
 			return;
 		}
 
@@ -2307,33 +2463,45 @@ namespace Render
 			shaderProgramImpl->cachedState = static_cast<D3D12System*>(GRHISystem)->getShaderBoundState(*shaderProgramImpl);
 		}
 
-		setShaderBoundState(shaderProgramImpl->cachedState);
+		if (shaderProgramImpl->cachedState->mShaders[0].type == EShader::Compute)
+		{
+			setComputeShaderBoundState(shaderProgramImpl->cachedState);
+		}
+		else
+		{
+			setGfxShaderBoundState(shaderProgramImpl->cachedState);
+		}
 	}
 
-	void D3D12Context::setShaderBoundState(D3D12ShaderBoundState* newState)
+	void D3D12Context::setGfxShaderBoundState(D3D12ShaderBoundState* newState)
 	{
-		mBoundState = newState;
+		mGfxBoundState = newState;
 		if (newState)
 		{
-			if (newState->mShaders[0].type == EShader::Compute)
-			{
-				mGraphicsCmdList->SetComputeRootSignature(mBoundState->mRootSignature);
-			}
-			else
-			{
-				mGraphicsCmdList->SetGraphicsRootSignature(mBoundState->mRootSignature);
-			}
-
+			mGraphicsCmdList->SetGraphicsRootSignature(mGfxBoundState->mRootSignature);
 			mNumUsedHeaps = 0;
 			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
 
-			for (auto& shaderInfo : mBoundState->mShaders)
+			for (auto& shaderInfo : mGfxBoundState->mShaders)
 			{
 				mRootSlotStart[shaderInfo.type] = shaderInfo.rootSlotStart;
 			}
 		}
 	}
 
+	void D3D12Context::setComputeShaderBoundState(D3D12ShaderBoundState* newState)
+	{
+		mComputeBoundState = newState;
+		if (newState)
+		{
+			mGraphicsCmdList->SetComputeRootSignature(mComputeBoundState->mRootSignature);
+			mNumUsedHeaps = 0;
+			mUsedDescHeaps[0] = mUsedDescHeaps[1] = nullptr;
+
+			auto& shaderInfo = mComputeBoundState->mShaders[0];
+			mRootSlotStart[shaderInfo.type] = shaderInfo.rootSlotStart;
+		}
+	}
 
 	void D3D12Context::setShaderValueInternal(EShader::Type shaderType , D3D12ShaderData& shaderData, ShaderParameter const& param, uint8 const* pData, uint32 size)
 	{
@@ -2473,6 +2641,12 @@ namespace Render
 			handle = &static_cast<D3D12Texture2D&>(texture).mUAV; 
 			resource = static_cast<D3D12Texture2D&>(texture).getResource(); 
 			break;
+#if 0
+		case ETexture::Type3D:
+			handle = &static_cast<D3D12Texture3D&>(texture).mUAV;
+			resource = static_cast<D3D12Texture3D&>(texture).getResource();
+			break;
+#endif
 		}
 
 		mResourceBoundStates[shaderType].mUAVStates[param.bindIndex].resource = resource;
@@ -2525,7 +2699,7 @@ namespace Render
 		auto& bufferImpl = static_cast<D3D12Buffer&>(buffer);
 		auto const& slotInfo = shaderData.rootSignature.slots[param.bindIndex];
 		uint32 rootSlot = mRootSlotStart[shaderType] + slotInfo.slotOffset;
-		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_CVB)
+		if (slotInfo.type == ShaderParameterSlotInfo::eDescriptorTable_CBV)
 		{
 			auto const& handle = bufferImpl.mCBV;
 			updateCSUHeapUsage(handle);
@@ -2760,7 +2934,7 @@ namespace Render
 
 	void D3D12Context::commitGraphicsPipelineState(EPrimitive type)
 	{
-		if (mBoundState == nullptr)
+		if (mGfxBoundState == nullptr)
 		{
 			if (mInputLayoutPending)
 			{
@@ -2783,7 +2957,7 @@ namespace Render
 		stateDesc.depthStencilState = mDepthStencilStatePending;
 		stateDesc.blendState = mBlendStateStatePending;
 
-		auto pipelineState = static_cast<D3D12System*>(GRHISystem)->getPipelineState(stateDesc, mBoundState, mRenderTargetsState);
+		auto pipelineState = static_cast<D3D12System*>(GRHISystem)->getPipelineState(stateDesc, mGfxBoundState, mRenderTargetsState);
 		if (pipelineState)
 		{
 			mGraphicsCmdList->SetPipelineState(pipelineState->mResource);
@@ -2796,7 +2970,7 @@ namespace Render
 
 	void D3D12Context::commitMeshPipelineState()
 	{
-		if (mBoundState == nullptr)
+		if (mGfxBoundState == nullptr)
 		{
 			return;
 		}
@@ -2809,7 +2983,7 @@ namespace Render
 		stateDesc.depthStencilState = mDepthStencilStatePending;
 		stateDesc.blendState = mBlendStateStatePending;
 
-		auto pipelineState = static_cast<D3D12System*>(GRHISystem)->getPipelineState(stateDesc, mBoundState, mRenderTargetsState);
+		auto pipelineState = static_cast<D3D12System*>(GRHISystem)->getPipelineState(stateDesc, mGfxBoundState, mRenderTargetsState);
 		if (pipelineState)
 		{
 			mGraphicsCmdList->SetPipelineState(pipelineState->mResource);
@@ -2822,7 +2996,7 @@ namespace Render
 
 	void D3D12Context::commitComputePipelineState()
 	{
-		auto pipelineState = static_cast<D3D12System*>(GRHISystem)->getPipelineState(mBoundState);
+		auto pipelineState = static_cast<D3D12System*>(GRHISystem)->getPipelineState(mComputeBoundState);
 		if (pipelineState)
 		{
 			mGraphicsCmdList->SetPipelineState(pipelineState->mResource);
@@ -2975,27 +3149,72 @@ namespace Render
 		return true;
 	}
 
+	void D3D12ResourceBoundState::restState()
+	{
+		mGlobalConstAllocation.ptr = nullptr;
+		mShaderData = nullptr;
+		mbGlobalConstCommited = false;
+	}
+
+	void D3D12ResourceBoundState::postDrawOrDispatchCall()
+	{
+		if (mGlobalConstAllocation.ptr)
+		{
+			mbGlobalConstCommited = true;
+		}
+	}
+
+	bool D3D12ResourceBoundState::updateConstBuffer(D3D12ShaderData& shaderData)
+	{
+		if (mbGlobalConstCommited || mShaderData != &shaderData)
+		{
+			mbGlobalConstCommited = false;
+
+			uint32 bufferSize = shaderData.rootSignature.globalCBSize;
+			bufferSize = ConstBufferMultipleSize * ((bufferSize + ConstBufferMultipleSize - 1) / ConstBufferMultipleSize);
+
+			bool bCopyPrev = mShaderData == &shaderData;
+			void* prevData = bCopyPrev ? mGlobalConstAllocation.cpuAddress : nullptr;
+			D3D12DynamicBufferManager::Get().allocFrame(bufferSize, ConstBufferMultipleSize, mGlobalConstAllocation);
+			if (prevData)
+			{
+				FMemory::Copy(mGlobalConstAllocation.cpuAddress, prevData, shaderData.rootSignature.globalCBSize);
+			}
+			mShaderData = &shaderData;
+			return true;
+		}
+		return false;
+	}
+
+	void D3D12ResourceBoundState::updateConstantData(void const* pData, uint32 offset, uint32 size)
+	{
+		FMemory::Copy(mGlobalConstAllocation.cpuAddress + offset, pData, size);
+	}
+
+	template< typename T >
+	uint32 GetGUID(T* ptr) { return ptr ? ptr->mGUID : 0; }
+
+	uint32 GetGUID(D3D12RenderTargetsState* ptr) { return ptr ? ptr->formatGUID : 0; }
+
 	void D3D12PipelineStateKey::initialize(GraphicsRenderStateDesc const& renderState, D3D12ShaderBoundState* boundState, D3D12RenderTargetsState* renderTargetsState)
 	{
 		boundStateKey = boundState->cachedKey;
-		rasterizerID = renderState.rasterizerState ? renderState.rasterizerState->mGUID : 0;
-		depthStenceilID = renderState.depthStencilState ? renderState.depthStencilState->mGUID : 0;
-		blendID = renderState.blendState ? renderState.blendState->mGUID : 0;
+		rasterizerID = GetGUID(renderState.rasterizerState);
+		depthStenceilID = GetGUID(renderState.depthStencilState);
+		blendID = GetGUID(renderState.blendState); 
+		renderTargetFormatID = GetGUID(renderTargetsState);
 
-		renderTargetFormatID = renderTargetsState->formatGUID;
-
-		inputLayoutID = renderState.inputLayout ? renderState.inputLayout->mGUID : 0;
+		inputLayoutID = GetGUID(renderState.inputLayout);
 		primitiveType = (uint32)renderState.primitiveType;
 	}
 
 	void D3D12PipelineStateKey::initialize(MeshRenderStateDesc const& renderState, D3D12ShaderBoundState* boundState, D3D12RenderTargetsState* renderTargetsState)
 	{
 		boundStateKey = boundState->cachedKey;
-		rasterizerID = renderState.rasterizerState ? renderState.rasterizerState->mGUID : 0;
-		depthStenceilID = renderState.depthStencilState ? renderState.depthStencilState->mGUID : 0;
-		blendID = renderState.blendState ? renderState.blendState->mGUID : 0;
-
-		renderTargetFormatID = renderTargetsState->formatGUID;
+		rasterizerID = GetGUID(renderState.rasterizerState);
+		depthStenceilID = GetGUID(renderState.depthStencilState);
+		blendID = GetGUID(renderState.blendState); 
+		renderTargetFormatID = GetGUID(renderTargetsState);
 
 		inputLayoutID = 0;
 		primitiveType = 0;

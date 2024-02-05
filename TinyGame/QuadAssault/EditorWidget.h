@@ -22,6 +22,8 @@ enum
 	UI_OBJECT_EDIT ,
 	UI_TILE_EDIT ,
 
+	UI_TRY_PLAY,
+
 	UI_TILE_SELECT ,
 	UI_ACTION_SELECT ,
 
@@ -45,13 +47,29 @@ private:
 	PropData mPorpData;
 };
 
+class StrPropChioce : public QChoice
+{
+	typedef QChoice BaseClass;
+public:
+	StrPropChioce(int id, Vec2i const& pos, Vec2i const& size, QWidget* parent);
+
+	void     init(int numSet, char const* const strSet[]);
+	void     inputData();
+	void     outputData();
+	void     setData(String& str) { mData = &str; }
+
+	String* mData;
+};
+
+
 class IntPropChioce : public QChoice
 {
 	typedef QChoice BaseClass;
 public:
 	IntPropChioce( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
 
-	void     init( int numSet , int const valueSet[] , char const* strSet[] );
+	void     init( int numSet , int const valueSet[] , char const* const strSet[] );
+	void     init(TArrayView< ReflectEnumValueInfo const > valueSet);
 	void     inputData();
 	void     outputData();
 	void     setData( void* data , int dataSize ){ mData = data; mDataSize = dataSize; }
@@ -71,7 +89,8 @@ public:
 	enum 
 	{
 		UI_PROP_TEXTCTRL = UI_WIDGET_ID ,
-		UI_INT_PROP_CHIOCE ,
+		UI_INT_PROP_CHOICE,
+		UI_STR_PROP_CHOICE,
 	};
 
 	void   changeEdit( IEditable& obj );
@@ -82,7 +101,8 @@ public:
 
 	using IPropEditor::addProp;
 	virtual void addPropData( char const* name , PropData const& data , unsigned flag );
-	virtual void addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* strSet[] , unsigned flag );
+	virtual void addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* const strSet[] , unsigned flag );
+	virtual void addProp(char const* name, void* value, int sizeValue, TArrayView< ReflectEnumValueInfo const > valueSet, unsigned flag);
 
 	void addPorpWidget( char const* name , QWidget* widget );
 
@@ -92,6 +112,7 @@ public:
 	virtual bool onChildEvent( int event , int id , QWidget* ui );
 	virtual void onRender();
 
+	ObjectCreator* mObjectCreator;
 private:
 	void     cleanupAllPorp();
 

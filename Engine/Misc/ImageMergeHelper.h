@@ -115,15 +115,7 @@ protected:
 private:
 
 	Node* insertNode(int w, int h);
-	void destroyList(Node* node)
-	{
-		while (node)
-		{
-			Node* next = node->mNextLink;
-			destoryNode(node);
-			node = next;
-		}
-	}
+	void destroyList(Node*& head);
 	Node* mUsedList = nullptr;
 	Node* mFreeList = nullptr;
 

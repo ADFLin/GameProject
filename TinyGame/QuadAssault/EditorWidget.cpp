@@ -36,16 +36,24 @@ IntPropChioce::IntPropChioce( int id , Vec2i const& pos , Vec2i const& size , QW
 	:BaseClass( id , pos , size , parent )
 {
 	mDataSize = 0;
-	mData = NULL;
-
+	mData = nullptr;
 }
 
-void IntPropChioce::init( int numSet , int const valueSet[] , char const* strSet[] )
+void IntPropChioce::init( int numSet , int const valueSet[] , char const* const strSet[] )
 {
 	for( int i = 0 ; i < numSet ; ++i )
 	{
 		unsigned pos = addItem( strSet[i] );
 		setItemData( pos , (void*)valueSet[i] );
+	}
+}
+
+void IntPropChioce::init(TArrayView< ReflectEnumValueInfo const > valueSet)
+{
+	for (int i = 0; i < valueSet.size(); ++i)
+	{
+		unsigned pos = addItem(valueSet[i].text);
+		setItemData(pos, (void*)valueSet[i].value);
 	}
 }
 
@@ -89,6 +97,42 @@ void IntPropChioce::outputData()
 	}
 }
 
+StrPropChioce::StrPropChioce(int id, Vec2i const& pos, Vec2i const& size, QWidget* parent)
+	:BaseClass(id, pos, size, parent)
+{
+	mData = nullptr;
+}
+
+void StrPropChioce::init(int numSet, char const* const strSet[])
+{
+	for (int i = 0; i < numSet; ++i)
+	{
+		unsigned pos = addItem(strSet[i]);
+	}
+}
+
+void StrPropChioce::inputData()
+{
+	int index = findItem(mData->c_str());
+	if ( index != INDEX_NONE)
+	{
+		setSelection(index);
+	}
+}
+
+void StrPropChioce::outputData()
+{
+	if (!mData)
+		return;
+
+	int pos = getSelection();
+	if (pos == -1)
+		return;
+
+	*mData = getSelectValue();
+}
+
+
 PropFrame::PropFrame( int id , Vec2i const& pos , QWidget* parent ) 
 	:BaseClass( id , pos , Vec2f( 250 , 400 ) , parent )
 {
@@ -108,7 +152,8 @@ bool PropFrame::onChildEvent( int event , int id , QWidget* ui )
 {
 	switch( id )
 	{
-	case UI_INT_PROP_CHIOCE:
+	case UI_STR_PROP_CHOICE:
+	case UI_INT_PROP_CHOICE:
 		if ( event == EVT_CHOICE_SELECT )
 		{
 			ui->outputData();
@@ -152,12 +197,9 @@ void PropFrame::onRender()
 
 	Vec2i pos = getWorldPos();
 	int i = 0;
-	for( PropInfoVec::iterator iter= mPorps.begin() , itEnd = mPorps.end();
-		iter != itEnd ; ++iter )
+	for (PropInfo& prop : mPorps)
 	{
-		PropInfo& data = *iter;
-
-		getRenderSystem()->drawText( data.name , 
+		getRenderSystem()->drawText(prop.name ,
 			pos + Vec2i( 5 , TopSideHeight + 5 + i * ( getWidgetSize().y + 5 ) + getWidgetSize().y / 2 ) , 
 			TEXT_SIDE_LEFT );
 
@@ -167,21 +209,17 @@ void PropFrame::onRender()
 
 void PropFrame::inputData()
 {
-	for( PropInfoVec::iterator iter= mPorps.begin() , itEnd = mPorps.end();
-		iter != itEnd ; ++iter )
+	for(PropInfo& prop : mPorps )
 	{
-		PropInfo& data = *iter;
-		data.widget->inputData();
+		prop.widget->inputData();
 	}
 }
 
 void PropFrame::outputData()
 {
-	for( PropInfoVec::iterator iter= mPorps.begin() , itEnd = mPorps.end();
-		iter != itEnd ; ++iter )
+	for (PropInfo& prop : mPorps)
 	{
-		PropInfo& data = *iter;
-		data.widget->outputData();
+		prop.widget->outputData();
 	}
 }
 
@@ -234,6 +272,19 @@ void PropFrame::addPropData(char const* name , PropData const& data , unsigned f
 			addEnumProp( name , data.cast< bool >() , 2 , valueSet , strSet );
 		}
 		break;
+	case PROP_CLASSNAME:
+		{
+			TArray< char const* > classNames;
+			for (auto const& pair : mObjectCreator->getFactoryMap())
+			{
+				classNames.push_back(pair.first);
+			}
+			StrPropChioce* chioce = new StrPropChioce(UI_STR_PROP_CHOICE, calcWidgetPos(), getWidgetSize(), this);
+			chioce->init(classNames.size(), classNames.data());
+			chioce->setData(data.cast<CRClassName>().name);
+			addPorpWidget(name, chioce);
+		}
+		break;
 	default:
 		{
 			PorpTextCtrl* textCtrl = new PorpTextCtrl( UI_PROP_TEXTCTRL , calcWidgetPos() , getWidgetSize() , this );
@@ -243,12 +294,20 @@ void PropFrame::addPropData(char const* name , PropData const& data , unsigned f
 	}
 }
 
-void PropFrame::addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* strSet[] , unsigned flag )
+void PropFrame::addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* const strSet[] , unsigned flag )
 {
-	IntPropChioce* chioce = new IntPropChioce( UI_INT_PROP_CHIOCE , calcWidgetPos() , getWidgetSize() , this );
+	IntPropChioce* chioce = new IntPropChioce( UI_INT_PROP_CHOICE , calcWidgetPos() , getWidgetSize() , this );
 	chioce->init( numSet , valueSet , strSet );
 	chioce->setData( value , sizeValue );
 	addPorpWidget( name , chioce );
+}
+
+void PropFrame::addProp(char const* name, void* value, int sizeValue, TArrayView< ReflectEnumValueInfo const > valueSet, unsigned flag)
+{
+	IntPropChioce* chioce = new IntPropChioce(UI_INT_PROP_CHOICE, calcWidgetPos(), getWidgetSize(), this);
+	chioce->init(valueSet);
+	chioce->setData(value, sizeValue);
+	addPorpWidget(name, chioce);
 }
 
 void PropFrame::removeEdit()
@@ -309,7 +368,7 @@ void ObjectEditFrame::setupObjectList( ObjectCreator& creator )
 	{
 
 		unsigned idx = mObjectListCtrl->addItem( iter->first );
-		mObjectListCtrl->setItemData( idx , (void*)iter->first );
+		mObjectListCtrl->setItemData( idx , (void*)iter->first.str );
 		++num;
 	}
 
@@ -369,3 +428,4 @@ void ActionEditFrame::setTrigger( TriggerBase* trigger )
 	mTrigger = trigger;
 	refreshList();
 }
+

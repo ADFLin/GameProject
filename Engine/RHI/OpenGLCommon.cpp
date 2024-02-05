@@ -966,6 +966,7 @@ namespace Render
 		case ESampler::Clamp:  return GL_CLAMP_TO_EDGE;
 		case ESampler::Mirror: return GL_MIRRORED_REPEAT;
 		case ESampler::Border: return GL_CLAMP_TO_BORDER;
+		case ESampler::MirrorOnce: return GL_MIRROR_CLAMP_TO_EDGE;
 		}
 		return GL_REPEAT;
 	}

@@ -162,6 +162,7 @@ namespace Render
 			GradientRect,
 			CustomState,
 			CustomRender,
+			CustomRenderAndState,
 		};
 
 		EType type;
@@ -176,13 +177,30 @@ namespace Render
 		None,
 	};
 
+	struct FObjectManage
+	{
+		template< typename T >
+		static void Release(T* ptr, EObjectManageMode manageMode)
+		{
+			switch (manageMode)
+			{
+			case EObjectManageMode::DestructOnly:
+				ptr->~T();
+				break;
+			case EObjectManageMode::Detete:
+				delete ptr;
+				break;
+			default:
+				break;
+			}
+		}
+	};
+
 	class ICustomElementRenderer
 	{
 	public:
 		virtual ~ICustomElementRenderer() = default;
 		virtual void render(RHICommandList& commandList, RenderBatchedElement& element) = 0;
-		
-		bool bChangeState = true;
 	};
 
 	template< class TPayload >
@@ -395,7 +413,7 @@ namespace Render
 		RenderBatchedElement& addGradientRect(Vector2 const& posLT, Color3Type const& colorLT, Vector2 const& posRB, Color3Type const& colorRB, bool bHGrad);
 
 		RenderBatchedElement& addCustomState(ICustomElementRenderer* renderer, EObjectManageMode mode);
-		RenderBatchedElement& addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode);
+		RenderBatchedElement& addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode, bool bChangeState);
 
 		template< class TPayload >
 		TRenderBatchedElement<TPayload>* addElement()
@@ -657,7 +675,7 @@ namespace Render
 			T*  dataPtr = nullptr;
 			int usedCount = 0;
 
-			bool initialize(int num, uint32 flags)
+			bool initialize(int num, BufferCreationFlags flags)
 			{
 				VERIFY_RETURN_FALSE(buffer = RHICreateBuffer(sizeof(T), num, flags));
 				return true;

@@ -12,7 +12,7 @@ public:
 	LinkHook childHook;
 };
 #else
-#include <vector>
+#include "DataStructure/Array.h"
 #endif
 
 class ClassTree;

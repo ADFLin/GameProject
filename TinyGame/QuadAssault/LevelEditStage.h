@@ -31,7 +31,7 @@ public:
 	virtual MsgReply onKey(KeyMsg const& msg){ return MsgReply::Unhandled(); }
 	virtual MsgReply onMouse( MouseMsg const& msg ){ return MsgReply::Unhandled(); }
 	virtual void onWidgetEvent( int event , int id , QWidget* sender ){}
-	virtual void render(){}
+	virtual void render(RHIGraphics2D& g){}
 
 	EditWorldData& getWorld(){ return *mWorldData; }
 	static EditWorldData* mWorldData;
@@ -57,7 +57,7 @@ public:
 
 	virtual MsgReply onMouse( MouseMsg const& msg );
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
-	virtual void render();
+	virtual void render(RHIGraphics2D& g);
 
 	void changeObject( LevelObject* object );
 
@@ -90,7 +90,7 @@ public:
 	virtual MsgReply onKey(KeyMsg const& msg);
 	virtual MsgReply onMouse( MouseMsg const& msg );
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
-	virtual void render();
+	virtual void render(RHIGraphics2D& g);
 	virtual void enumProp( IPropEditor& editor );
 
 };

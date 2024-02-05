@@ -4,8 +4,6 @@
 #include "D3D12Common.h"
 #include "D3DSharedCommon.h"
 
-#include "ShaderManager.h"
-#include "ShaderProgram.h"
 #include "RHICommand.h"
 
 #include "InlineString.h"
@@ -68,7 +66,7 @@ namespace Render
 
 			uint32_t codePage = CP_UTF8;
 			TComPtr<IDxcBlobEncoding> sourceBlob;
-			VERIFY_D3D_RESULT_RETURN_FALSE( mLibrary->CreateBlobWithEncodingFromPinned( codeBuffer.data() , (uint32)codeBuffer.size(), codePage, &sourceBlob) );
+			VERIFY_D3D_RESULT_RETURN_FALSE(mLibrary->CreateBlobWithEncodingFromPinned(codeBuffer.data(), (uint32)codeBuffer.size(), codePage, &sourceBlob));
 
 			wchar_t const* profileName;
 			switch (context.getType())
@@ -95,9 +93,9 @@ namespace Render
 			TComPtr<IDxcOperationResult> compileResult;
 			HRESULT hr = mCompiler->Compile(
 				sourceBlob, // pSource
-				FCString::CharToWChar( fileName ).c_str(), // pSourceName
-				FCString::CharToWChar( context.getEntry() ).c_str(), // pEntryPoint
-				profileName , // pTargetProfile
+				FCString::CharToWChar(fileName).c_str(), // pSourceName
+				FCString::CharToWChar(context.getEntry()).c_str(), // pEntryPoint
+				profileName, // pTargetProfile
 				args, numArgs, // pArguments, argCount
 				NULL, 0, // pDefines, defineCount
 				NULL, // pIncludeHandler
@@ -133,25 +131,23 @@ namespace Render
 
 			if (context.programSetupData)
 			{
-				D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*context.programSetupData->resource);
+				auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*context.programSetupData->resource);
 				auto& shaderData = shaderProgramImpl.mShaderDatas[context.shaderIndex];
-			
+
 				if (!shaderData.initialize(shaderCode))
 					return false;
 				shaderData.type = context.getType();
 			}
 			else
 			{
-				auto* shaderImpl = static_cast<D3D12Shader*>(RHICreateShader(context.getType()));
-				if (!shaderImpl->initialize(shaderCode))
+				auto& shaderImpl = static_cast<D3D12Shader&>(*context.shaderSetupData->resource);
+				if (!shaderImpl.initialize(shaderCode))
 				{
 					LogWarning(0, "Can't create shader resource");
 					return false;
 				}
-				context.shaderSetupData->resource = shaderImpl;
 			}
-		} 
-		while (!bSuccess && context.bRecompile);
+		} while (!bSuccess && context.bAllowRecompile );
 
 		return bSuccess;
 #else
@@ -159,16 +155,16 @@ namespace Render
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL_D3D12::getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
-		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
+		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*setupData.resource);
 		outBinaryCode = shaderImpl.code;
 		return true;
 	}
 
-	bool ShaderFormatHLSL_D3D12::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL_D3D12::getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
-		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
+		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*setupData.resource);
 		auto serializer = CreateBufferSerializer<ArrayWriteBuffer>(outBinaryCode);
 		uint8 numShaders = shaderProgramImpl.mNumShaders;
 		serializer.write(numShaders);
@@ -186,7 +182,7 @@ namespace Render
 	void ShaderFormatHLSL_D3D12::precompileCode(ShaderProgramSetupData& setupData)
 	{
 		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*setupData.resource);
-		shaderProgramImpl.initializeData(setupData.getShaderCount());
+		shaderProgramImpl.initializeData(setupData.descList.size());
 	}
 
 	void ShaderFormatHLSL_D3D12::precompileCode(ShaderSetupData& setupData)
@@ -262,7 +258,7 @@ namespace Render
 
 			if (context.programSetupData)
 			{
-				D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*context.programSetupData->resource);
+				auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*context.programSetupData->resource);
 				auto& shaderData = shaderProgramImpl.mShaderDatas[context.shaderIndex];
 
 				if (!shaderData.initialize(shaderCode))
@@ -271,15 +267,14 @@ namespace Render
 			}
 			else
 			{
-				auto* shaderImpl = static_cast<D3D12Shader*>(RHICreateShader(context.getType()));
-				if (!shaderImpl->initialize(shaderCode))
+				auto& shaderImpl = static_cast<D3D12Shader&>(*context.shaderSetupData->resource);
+				if (!shaderImpl.initialize(shaderCode))
 				{
 					LogWarning(0, "Can't create shader resource");
 					return false;
 				}
-				context.shaderSetupData->resource = shaderImpl;
 			}
-		} while (!bSuccess && context.bRecompile);
+		} while (!bSuccess && context.bAllowRecompile);
 
 		return bSuccess;
 #else
@@ -305,63 +300,57 @@ namespace Render
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::initializeShader(Shader& shader, ShaderSetupData& setupData)
+	ShaderParameterMap* ShaderFormatHLSL_D3D12::initializeShader(RHIShader& shader, ShaderSetupData& setupData)
 	{
 #if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
-		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
+		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(shader);
 
 		D3D12Shader::GenerateParameterMap(shaderImpl.mType, shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
-		shader.bindParameters(shaderImpl.mParameterMap);
-		return true;
+		return &shaderImpl.mParameterMap;
 #else
-		return false;
+		return nullptr;
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
+	ShaderParameterMap* ShaderFormatHLSL_D3D12::initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
 	{
 #if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
-		shader.mRHIResource = RHICreateShader(desc.type);
-
-		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(*shader.mRHIResource);
+		D3D12Shader& shaderImpl = static_cast<D3D12Shader&>(shader);
 		TArray<uint8> temp = binaryCode;
 		if (!shaderImpl.initialize(std::move(temp)))
-			return false;
+			return nullptr;
 
 		D3D12Shader::GenerateParameterMap(shaderImpl.mType, shaderImpl.code, mLibrary, shaderImpl.mParameterMap, shaderImpl.rootSignature);
-		shader.bindParameters(shaderImpl.mParameterMap);
-		return true;
+		return &shaderImpl.mParameterMap;;
 #else
-		return false;
+		return nullptr;
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
+	ShaderParameterMap* ShaderFormatHLSL_D3D12::initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
 #if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
-		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
+		auto& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.mParameterMap.clear();
 		shaderProgramImpl.initializeParameterMap(mLibrary);
-		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
-
-		return true;
+		return &shaderProgramImpl.mParameterMap;
 #else
-		return false;
+		return nullptr;
 #endif
 	}
 
-	bool ShaderFormatHLSL_D3D12::initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
+	ShaderParameterMap* ShaderFormatHLSL_D3D12::initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
 	{
 #if TARGET_PLATFORM_64BITS
 		VERIFY_RETURN_FALSE(ensureDxcObjectCreation());
 
-		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(*shaderProgram.mRHIResource);
+		D3D12ShaderProgram& shaderProgramImpl = static_cast<D3D12ShaderProgram&>(shaderProgram);
 
 		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeConstView(binaryCode));
 		uint8 numShaders = 0;
@@ -380,10 +369,9 @@ namespace Render
 		}
 
 		shaderProgramImpl.initializeParameterMap(mLibrary);
-		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
-		return true;
+		return &shaderProgramImpl.mParameterMap;
 #else
-		return false;
+		return nullptr;
 #endif
 	}
 
@@ -403,19 +391,31 @@ namespace Render
 		VERIFY_D3D_RESULT_RETURN_FALSE(library->CreateBlobWithEncodingFromPinned(byteCode.data(), byteCode.size(), 0, &byteCodeBlob));
 
 		VERIFY_D3D_RESULT_RETURN_FALSE(containerReflection->Load(byteCodeBlob));
-		
+
 		UINT32 Part;
 		VERIFY_D3D_RESULT_RETURN_FALSE(containerReflection->FindFirstPartKind(MAKEFOURCC('D', 'X', 'I', 'L'), &Part));
 
 		TComPtr<ID3D12ShaderReflection> reflection;
 		VERIFY_D3D_RESULT_RETURN_FALSE(containerReflection->GetPartReflection(Part, IID_PPV_ARGS(&reflection)));
 
-		auto AddToParameterMap = [&](char const* name , ShaderParameterSlotInfo const& slot) -> ShaderParameter&
+		auto AddToParameterMap = [&](char const* name, ShaderParameterSlotInfo const& slot) -> ShaderParameter&
 		{
 			uint8 slotIndex = inOutSignature.slots.size();
 			inOutSignature.slots.push_back(slot);
 			auto& param = parameterMap.addParameter(name, slotIndex, 0, 0);
 			return param;
+		};
+
+		auto AddDescRange = [&](D3D12_DESCRIPTOR_RANGE1 const& descRange)
+		{
+			inOutSignature.descRanges.push_back(descRange);
+
+			D3D12_ROOT_PARAMETER1 parameter;
+			parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			parameter.DescriptorTable.pDescriptorRanges = nullptr;
+			parameter.DescriptorTable.NumDescriptorRanges = 1;
+			parameter.ShaderVisibility = visibility;
+			inOutSignature.parameters.push_back(parameter);
 		};
 
 		D3D12_SHADER_DESC shaderDesc;
@@ -515,10 +515,10 @@ namespace Render
 						ShaderParameterSlotInfo slot;
 						slot.slotOffset = slotOffset++;
 #if 0
-						slot.type = ShaderParameterSlotInfo::eDescriptorTable_CVB;
-						inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
+						slot.type = ShaderParameterSlotInfo::eDescriptorTable_CBV;
+						AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
 #else
-						slot.type = ShaderParameterSlotInfo::eCVB;
+						slot.type = ShaderParameterSlotInfo::eCBV;
 						D3D12_ROOT_PARAMETER1 parameter = {};
 						parameter.ShaderVisibility = visibility;
 						parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -537,7 +537,7 @@ namespace Render
 				{
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = slotOffset++;
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
+					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC));
 					//TBuffer
 					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
@@ -568,11 +568,18 @@ namespace Render
 					sampler.ShaderVisibility = visibility;
 					inOutSignature.samplers.push_back(sampler);
 #else
+
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = slotOffset++;
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
+					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eSampler;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
+
+
+					if (slot.slotOffset == 9)
+					{
+						int i = 1;
+					}
 #endif
 
 #if SHADER_DEBUG
@@ -584,9 +591,15 @@ namespace Render
 				{
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = slotOffset++;
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
+					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
+
+
+					if (slot.slotOffset == 9)
+					{
+						int i = 1;
+					}
 #if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::Texture;
 #endif			
@@ -596,22 +609,31 @@ namespace Render
 				{
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = slotOffset++;
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
+
+#if 0
+					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
+#else
+					slot.type = ShaderParameterSlotInfo::eSRV;
+					D3D12_ROOT_PARAMETER1 parameter = {};
+					parameter.ShaderVisibility = visibility;
+					parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+					parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
+					inOutSignature.parameters.push_back(parameter);
+#endif
+
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::StorageBuffer;
 #endif			
 				}
 				break;
-
-				break;
 			case D3D_SIT_UAV_RWTYPED:
 			case D3D_SIT_UAV_APPEND_STRUCTURED:	
 				{
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = slotOffset++;
-					inOutSignature.descRanges.push_back(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
+					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eDescriptorTable_UAV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if SHADER_DEBUG
@@ -622,16 +644,16 @@ namespace Render
 			}
 		}
 
-		for (int index = 0; index < inOutSignature.descRanges.size(); ++index)
+		int indexRange = 0;
+		for (int index = 0; index < inOutSignature.parameters.size(); ++index)
 		{
-			D3D12_ROOT_PARAMETER1 parameter;
-			parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			parameter.DescriptorTable.pDescriptorRanges = inOutSignature.descRanges.data() + index;
-			parameter.DescriptorTable.NumDescriptorRanges = 1;
-			parameter.ShaderVisibility = visibility;
-			inOutSignature.parameters.push_back(parameter);
+			D3D12_ROOT_PARAMETER1& parameter = inOutSignature.parameters[index];
+			if (parameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+			{
+				parameter.DescriptorTable.pDescriptorRanges = inOutSignature.descRanges.data() + indexRange;
+				++indexRange;
+			}
 		}
-
 		return true;
 #else
 		return false;

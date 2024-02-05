@@ -209,6 +209,14 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\minivorbis\minivorbis.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="AI\GeneticAlgorithm.cpp" />
     <ClCompile Include="AI\NeuralNetwork.cpp" />
     <ClCompile Include="AI\TrainManager.cpp" />
@@ -289,6 +297,7 @@
     <ClCompile Include="WinGDIRenderSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\OtherLib\minivorbis\minivorbis.h" />
     <ClInclude Include="AI\GeneticAlgorithm.h" />
     <ClInclude Include="AI\NeuralNetwork.h" />
     <ClInclude Include="AI\TrainManager.h" />
@@ -299,6 +308,7 @@
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="AssetViewer.h" />
+    <ClInclude Include="Asset\AssetDefitions.h" />
     <ClInclude Include="AStarTile2D.h" />
     <ClInclude Include="Async\AsyncWork.h" />
     <ClInclude Include="Async\Coroutines.h" />
@@ -470,7 +480,6 @@
     <ClInclude Include="WindowsMessageHandler.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="CycleValue.h" />
-    <ClInclude Include="TGrid2D.h" />
     <ClInclude Include="Holder.h" />
     <ClInclude Include="PlatformThread.h" />
     <ClInclude Include="TileRegion.h" />

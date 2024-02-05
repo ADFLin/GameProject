@@ -20,10 +20,6 @@ public:
 private:
 	Light mLight;
 	float  dimTimer; //dok ostvari 10, ostavlja cesticu dima
-
-
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 #endif // PlasmaBullet_h__

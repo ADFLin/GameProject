@@ -7,6 +7,7 @@
 #include <cstring>
 #include <algorithm>
 
+
 #if USE_LOG
 
 class LogManager : public SingletonT< LogManager >
@@ -43,11 +44,24 @@ public:
 		}
 	}
 
+	void   sendMessage(LogChannel channel, int level, StringView const& str)
+	{
+		LogOutputList& outputList = chanelListenerList[channel];
+
+		for (LogOutput* output : outputList)
+		{
+			if (!output->filterLog(channel, level))
+				continue;
+
+			output->receiveLog(channel, str);
+		}
+	}
+
 	void   sendMessageV( LogChannel channel , char const* format, int level , va_list argptr  )
 	{
 		char buffer[10240];
-		FCString::PrintfV(buffer, format, argptr);
-		sendMessage(channel, level , buffer);
+		int len = FCString::PrintfV(buffer, format, argptr);
+		sendMessage(channel, level , StringView(buffer, len));
 	}
 };
 
@@ -78,6 +92,26 @@ void LogDevMsgImpl(int level, char const* str)
 }
 
 void LogWarningImpl(int level, char const* str)
+{
+	LogManager::Get().sendMessage(LOG_WARNING, level, str);
+}
+
+void LogMsgImpl(StringView const& str)
+{
+	LogManager::Get().sendMessage(LOG_MSG, 0, str);
+}
+
+void LogErrorImpl(StringView const& str)
+{
+	LogManager::Get().sendMessage(LOG_ERROR, 0, str);
+}
+
+void LogDevMsgImpl(int level, StringView const& str)
+{
+	LogManager::Get().sendMessage(LOG_DEV, level, str);
+}
+
+void LogWarningImpl(int level, StringView const& str)
 {
 	LogManager::Get().sendMessage(LOG_WARNING, level, str);
 }

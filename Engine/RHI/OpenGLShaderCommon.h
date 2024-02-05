@@ -129,21 +129,22 @@ namespace Render
 		virtual bool compileCode(ShaderCompileContext const& context);
 
 		virtual void precompileCode(ShaderProgramSetupData& setupData) final;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData) final;
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
 		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
 
 		virtual void precompileCode(ShaderSetupData& setupData) final;
-		virtual bool initializeShader(Shader& shader, ShaderSetupData& setupData) override;
-		virtual bool initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
-		virtual void postShaderLoaded(Shader& shader) final;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderSetupData& setupData) override;
+		virtual ShaderParameterMap* initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode) override;
+		virtual void postShaderLoaded(RHIShader& shader) final;
 
 		virtual bool doesSuppurtBinaryCode() const final;
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
-		virtual bool getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
+		virtual bool getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
+		virtual bool getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode) override;
 
 		virtual ShaderPreprocessSettings getPreprocessSettings();
 
+		ShaderParameterMap mTempParameterMap;
 		uint32  mDefaultVersion;
 
 	};

@@ -17,8 +17,6 @@ public:
 private:
 	Light light;
 
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 #endif // MinigunBullet_h__

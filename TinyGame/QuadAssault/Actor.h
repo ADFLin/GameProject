@@ -5,6 +5,7 @@
 
 class Actor : public LevelObject
 {
+
 	DECLARE_OBJECT_CLASS( Actor , LevelObject )
 public:
 
@@ -28,9 +29,10 @@ protected:
 
 	float rotation;
 
-	BEGIN_CLASS_PROP()
-	MEMBER_PROP( "Rotation" , rotation  )
-	END_CLASS_PROP()
+	REFLECT_STRUCT_BEGIN(Actor)
+		REF_BASE_CLASS(LevelObject)
+		REF_PROPERTY(rotation, "Rotation")
+	REFLECT_STRUCT_END()
 
 };
 

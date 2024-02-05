@@ -5,7 +5,6 @@
 
 #include "EditorWidget.h"
 
-#include "GBuffer.h"
 #include "Texture.h"
 #include "Renderer.h"
 #include "RenderUtility.h"
@@ -15,9 +14,9 @@
 #include "RHI/ShaderCore.h"
 #include "RHI/RHICommand.h"
 #include "RHI/ShaderManager.h"
+
 #include "RHI/RHIGlobalResource.h"
-//#REMOVE
-#include "RHI/OpenGLCommon.h"
+#include "RHI/RHIGraphics2D.h"
 
 class WidgetTest : public TestBase
 {
@@ -99,13 +98,6 @@ public:
 			paramAmbIntensity.bind(parameterMap, SHADER_PARAM(gLight.ambIntensity));
 			paramDifIntensity.bind(parameterMap, SHADER_PARAM(gLight.difIntensity));
 			paramSpeIntensity.bind(parameterMap, SHADER_PARAM(gLight.speIntensity));
-		}
-
-		void setTextureParameters(Render::RHICommandList& commandList, GBuffer* buffer , Render::RHITexture1D& texMat )
-		{
-			setTexture(commandList, paramTexMaterial , texMat );
-			setTexture(commandList, paramTexBaseColor , *buffer->getTexture( GBuffer::eBASE_COLOR ) );
-			setTexture(commandList, paramTexNormal , *buffer->getTexture( GBuffer::eNORMAL ) );
 		}
 
 		void setLightParameters(Render::RHICommandList& commandList, Light& light )
@@ -202,7 +194,7 @@ public:
 			ptr += 4;
 		}
 
-		Render::RHITexture1DRef result = Render::RHICreateTexture1D(Render::ETexture::FloatRGBA, MaxRegMaterialNum, 0, Render::TCF_DefalutValue, &buf[0]);
+		Render::RHITexture1DRef result = Render::RHICreateTexture1D(Render::ETexture::FloatRGBA, MaxRegMaterialNum, 0, 1, Render::TCF_DefalutValue, &buf[0]);
 		Render::OpenGLCast::To(result)->bind();
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
@@ -232,9 +224,6 @@ public:
 		mTexObject[ TG_GLOW    ] = texMgr->getTexture("mob1Glow.tga");
 
 		Vec2i screenSize = getGame()->getScreenSize();
-		mGBuffer.reset( new GBuffer );
-		if ( !mGBuffer->create( screenSize.x , screenSize.y ) )
-			return false;
 
 		mLights[0].pos = Vec2f( 30 , 30 );
 		mLights[0].color = Vec3f( 1 , 1 , 1 );
@@ -292,128 +281,6 @@ public:
 	virtual void onRender()
 	{
 		
-		mGBuffer->bind();
-
-		Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
-
-		//glDepthMask(GL_TRUE);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-		RHISetShaderProgram(commandList, mProgGeom.getRHI());
-		mProgGeom.setTextureParameters(commandList, mTexBlock[TG_DIFFUSE]->resource , mTexBlock[TG_NORMAL]->resource, nullptr );
-
-		for( int j = 0 ; j < 10 ; ++j )
-		{
-			for( int i = 0 ; i < 20 ; ++i )
-			{
-				mProgGeom.setMaterial(commandList, ( i ) % 4 );
-				Vec2f pos( 10 + BLOCK_SIZE * i , 10 + BLOCK_SIZE * j );
-				Vec2f size( BLOCK_SIZE , BLOCK_SIZE );
-				glBegin(GL_QUADS);
-				glTexCoord2f(0.0, 0.0); glVertex2f(pos.x, pos.y);
-				glTexCoord2f(1.0, 0.0); glVertex2f(pos.x+size.x, pos.y);
-				glTexCoord2f(1.0, 1.0); glVertex2f(pos.x+size.x, pos.y+size.y);
-				glTexCoord2f(0.0, 1.0); glVertex2f(pos.x, pos.y+size.y);
-				glEnd();
-			}
-		}
-		mProgGeom.setTextureParameters(commandList, mTexObject[TG_DIFFUSE]->resource, mTexObject[TG_NORMAL]->resource, mTexObject[ TG_GLOW ]->resource);
-		mProgGeom.setMaterial(commandList, ( 0 ) % 4 );
-
-		drawSprite( Vec2f( 200 + 64 * 1 , 100 ) , Vec2f( 64 , 64 ) , 0.0f );	
-		drawSprite( Vec2f( 300 + 64 * 2 , 210 ) , Vec2f( 64 , 64 ) , 0.0f );
-
-		RHISetShaderProgram(commandList, nullptr);
-		mGBuffer->unbind();
-
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-		glEnable( GL_BLEND );
-		glBlendFunc( GL_ONE , GL_ONE );
-
-		Vec2i size = getGame()->getScreenSize();
-
-		RHISetShaderProgram(commandList, mProgLightingGlow.getRHI());
-		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texBaseColor ) , *mGBuffer->getTexture( GBuffer::eBASE_COLOR ) );
-		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texGlow ) , *mGBuffer->getTexture( GBuffer::eLIGHTING ) );
-
-		glBegin(GL_QUADS);
-		glTexCoord2f(0.0, 1.0); glVertex2f(0, 0);
-		glTexCoord2f(1.0, 1.0); glVertex2f(size.x, 0);
-		glTexCoord2f(1.0, 0.0); glVertex2f(size.x, size.y);
-		glTexCoord2f(0.0, 0.0); glVertex2f(0, size.y);
-		glEnd();
-
-		RHISetShaderProgram(commandList, mProgLighting.getRHI());
-		mProgLighting.setTextureParameters(commandList, mGBuffer , *mTexMaterial );
-
-		for( int i = 0 ; i < ARRAY_SIZE( mLights ) ; ++i )
-		{
-			Light& light = mLights[i];
-
-			mProgLighting.setLightParameters(commandList, light );
-
-			Vec2f halfRange =  Vec2f( light.radius , light.radius ); 
-
-			Vec2f minRender = light.pos - halfRange;
-			Vec2f maxRender = light.pos + halfRange;
-
-			Vec2f minTex , maxTex;
-			minTex.x = minRender.x / size.x;
-			maxTex.x = maxRender.x / size.x;
-			minTex.y = 1 - minRender.y / size.y;
-			maxTex.y = 1 - maxRender.y / size.y;
-
-			glColor3f(1,1,1);
-
-			glBegin(GL_QUADS);
-			glTexCoord2f(minTex.x,minTex.y); glVertex2f( minRender.x , minRender.y );
-			glTexCoord2f(maxTex.x,minTex.y); glVertex2f( maxRender.x , minRender.y );
-			glTexCoord2f(maxTex.x,maxTex.y); glVertex2f( maxRender.x , maxRender.y );
-			glTexCoord2f(minTex.x,maxTex.y); glVertex2f( minRender.x , maxRender.y );
-			glEnd();	
-
-		}
-		RHISetShaderProgram(commandList, nullptr);
-
-		glDisable( GL_BLEND );
-
-
-#if 0
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glEnable( GL_TEXTURE_2D );
-
-		{
-			Vec2i pos( 50 , 50 );
-			Vec2i size( 200 , 100 );
-			glBindTexture( GL_TEXTURE_2D ,  Render::OpenGLCast::GetHandle( mGBuffer->getTexture( GBuffer::eBASE_COLOR) ) );
-			glBegin(GL_QUADS);
-			glTexCoord2f(0.0, 0.0); glVertex2f(pos.x, pos.y);
-			glTexCoord2f(1.0, 0.0); glVertex2f(pos.x+size.x, pos.y);
-			glTexCoord2f(1.0, 1.0); glVertex2f(pos.x+size.x, pos.y+size.y);
-			glTexCoord2f(0.0, 1.0); glVertex2f(pos.x, pos.y+size.y);
-			glEnd();
-		}
-
-
-		{
-			Vec2i pos( 50 + 200 , 50 );
-			Vec2i size( 200 , 100 );
-			glEnable( GL_TEXTURE_2D );
-			glBindTexture( GL_TEXTURE_2D , Render::OpenGLCast::GetHandle( mGBuffer->getTexture( GBuffer::eNORMAL ) ) );
-			glBegin(GL_QUADS);
-			glTexCoord2f(0.0, 0.0); glVertex2f(pos.x, pos.y);
-			glTexCoord2f(1.0, 0.0); glVertex2f(pos.x+size.x, pos.y);
-			glTexCoord2f(1.0, 1.0); glVertex2f(pos.x+size.x, pos.y+size.y);
-			glTexCoord2f(0.0, 1.0); glVertex2f(pos.x, pos.y+size.y);
-			glEnd();
-		}
-#endif
-
-
 
 	}
 
@@ -426,7 +293,6 @@ public:
 	Render::RHITexture1DRef mTexMaterial;
 	Light     mLights[ 3 ];
 
-	FPtr< GBuffer >  mGBuffer;
 	Render::ShaderProgram  mProgLightingGlow;
 	GeomShaderProgram      mProgGeom;
 	LightingShaderProgram  mProgLighting;
@@ -457,28 +323,38 @@ void DevStage::onExit()
 
 void DevStage::onUpdate(float deltaT)
 {
-	getGame()->procSystemEvent();
 	mTest->onUpdate( deltaT );
 }
 
 void DevStage::onRender()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	using namespace Render;
 
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+	RHISetFrameBuffer(commandList, nullptr);
+	RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 1), 1);
+
+	RHIGraphics2D& g = IGame::Get().getGraphics2D();
+
+	g.beginRender();
 	mTest->onRender();
 
 	GUISystem::Get().render();
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
-	drawSprite( Vec2f( getGame()->getMousePos() ) - Vec2f(16,16) ,Vec2f(32,32), mTexCursor );
-	glDisable(GL_BLEND);
+	g.beginBlend(1, ESimpleBlendMode::Add);
+	{
+		Vec2f size = Vec2f(32, 32);
+		g.setBrush(Color3f(1, 1, 1));
+		g.drawTexture(*mTexCursor->resource, Vec2f(getGame()->getMousePos()) - size / 2, size);
+	}
+	g.endBlend();
 
 	FString str;
 	mTest->setDevMsg( str );
 	mDevMsg->setString( str );
 	getRenderSystem()->drawText( mDevMsg , Vec2f( 5 ,5 ) , TEXT_SIDE_LEFT | TEXT_SIDE_TOP );
+	g.endRender();
 }
 
 MsgReply DevStage::onKey(KeyMsg const& msg)

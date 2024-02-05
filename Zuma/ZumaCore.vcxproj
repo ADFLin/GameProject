@@ -175,10 +175,6 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\OtherLib\minivorbis\minivorbis.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="ZumaCore\AudioPlayer.cpp" />
     <ClCompile Include="ZumaCore\CometAction.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -275,7 +271,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\OtherLib\minivorbis\minivorbis.h" />
     <ClInclude Include="GdiRenderSystem.h" />
     <ClInclude Include="ZumaCore\AudioPlayer.h" />
     <ClInclude Include="ZumaCore\Comet.h" />

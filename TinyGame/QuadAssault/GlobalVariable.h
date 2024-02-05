@@ -5,8 +5,5 @@
 #define MAX_LEVEL_NUM 4
 
 extern String gLevelFileName;
-extern String gMapFileName;
-extern bool   gLevelEnabled[MAX_LEVEL_NUM];
-extern int    gIdxCurLevel;
 
 #endif // GlobalVariable_h__

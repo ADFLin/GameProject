@@ -80,7 +80,7 @@ namespace Render
 			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 			//VERIFY_RETURN_FALSE(SharedAssetData::loadCommonShader());
 			VERIFY_RETURN_FALSE(mProgFieldRender = ShaderManager::Get().getGlobalShaderT< GravityFieldProgram >());
-			VERIFY_RETURN_FALSE(mPlantDataTexture = RHICreateTexture1D(ETexture::RGB32F, mPlantList.size(), 0, TCF_DefalutValue, mPlantList.data()));
+			VERIFY_RETURN_FALSE(mPlantDataTexture = RHICreateTexture1D(ETexture::RGB32F, mPlantList.size(), 0, 1, TCF_DefalutValue, mPlantList.data()));
 
 			return true;
 
@@ -151,7 +151,7 @@ namespace Render
 				data.y = msg.y();
 				data.z = 500;
 				mPlantList.push_back(data);
-				mPlantDataTexture = RHICreateTexture1D(ETexture::RGB32F, mPlantList.size(), 0, TCF_DefalutValue, mPlantList.data());
+				mPlantDataTexture = RHICreateTexture1D(ETexture::RGB32F, mPlantList.size(), 0, 1, TCF_DefalutValue, mPlantList.data());
 			}
 			return BaseClass::onMouse(msg);
 		}

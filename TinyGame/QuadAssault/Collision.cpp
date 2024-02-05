@@ -59,10 +59,8 @@ bool CollisionManager::testCollision( ColInfo& info , Vec2f const& offset , ColB
 	if ( colMask & COL_OBJECT )
 	{
 		//Test Global Object
-		for ( CellBodyList::iterator iter = mGlobalBodies.begin() , itEnd = mGlobalBodies.end();
-			iter != itEnd ; ++iter )
+		for (ColBody& bodyTest : mGlobalBodies)
 		{
-			ColBody& bodyTest = *iter;
 
 			if ( &bodyTest == &body )
 				continue;
@@ -111,11 +109,8 @@ bool CollisionManager::testCollision( ColInfo& info , Vec2f const& offset , ColB
 
 				CellBodyList& bodyList = cell.bodies;
 
-				for ( CellBodyList::iterator iter = bodyList.begin() , itEnd = bodyList.end();
-					iter != itEnd ; ++iter )
+				for ( ColBody& bodyTest : bodyList )
 				{
-					ColBody& bodyTest = *iter;
-
 					if ( &bodyTest == &body )
 						continue;
 
@@ -155,11 +150,8 @@ bool CollisionManager::checkCollision( ColBody& body )
 
 	if ( body.colMask & COL_OBJECT )
 	{
-		for ( CellBodyList::iterator iter = mGlobalBodies.begin() , itEnd = mGlobalBodies.end();
-			iter != itEnd ; ++iter )
+		for (ColBody& bodyTest : mGlobalBodies)
 		{
-			ColBody& bodyTest = *iter;
-
 			if ( &bodyTest == &body )
 				continue;
 
@@ -205,12 +197,8 @@ bool CollisionManager::checkCollision( ColBody& body )
 
 				Cell& cell = mCellMap[ idxCell ];
 
-
-				for ( CellBodyList::iterator iter = cell.bodies.begin() , itEnd = cell.bodies.end();
-					iter != itEnd ; ++iter )
+				for (ColBody& bodyTest : cell.bodies)
 				{
-					ColBody& bodyTest = *iter;
-
 					if ( &bodyTest == &body )
 						continue;
 
@@ -330,17 +318,13 @@ bool CollisionManager::updateBodySize( ColBody& body )
 
 void CollisionManager::update()
 {
-	for( BodyList::iterator iter = mBodies.begin() , itEnd = mBodies.end(); 
-		iter != itEnd ; ++iter )
+	for(ColBody& body : mBodies)
 	{
-		ColBody& body = *iter;
 		updateBody( body );
 	}
 
-	for( BodyList::iterator iter = mBodies.begin() , itEnd = mBodies.end(); 
-		iter != itEnd ; ++iter )
+	for (ColBody& body : mBodies)
 	{
-		ColBody& body = *iter;
 		checkCollision( body );
 	}
 }
@@ -493,47 +477,17 @@ Tile* CollisionManager::testTerrainCollision( Rect const& bBox , unsigned typeMa
 
 void CollisionManager::findBody( Rect const& bBox , unsigned colMask , ColBodyVec& out )
 {
-	for ( CellBodyList::iterator iter = mGlobalBodies.begin() , itEnd = mGlobalBodies.end();
-		iter != itEnd ; ++iter )
-	{
-		ColBody& bodyTest = *iter;
-
-		if ( ( colMask & bodyTest.typeMask ) == 0 )
-			continue;
-
-		if ( !bBox.hitTest( bodyTest.cachePos ) )
-			continue;
-
-		out.push_back( &bodyTest );
-
-	}
-
-	int xMin , xMax , yMin , yMax;
-	xMin = Math::Clamp( Math::FloorToInt( bBox.min.x / mCellLength ) - 1 , 0 , mCellMap.getSizeX() - 1 );
-	xMax = Math::Clamp( Math::FloorToInt( bBox.max.x / mCellLength ) + 1 , 0 , mCellMap.getSizeX() - 1 );
-	yMin = Math::Clamp( Math::FloorToInt( bBox.min.y / mCellLength ) - 1 , 0 , mCellMap.getSizeY() - 1 );
-	yMax = Math::Clamp( Math::FloorToInt( bBox.max.y / mCellLength ) + 1 , 0 , mCellMap.getSizeY() - 1 );
-
-	for( int i = xMin ; i <= xMax ; ++i )
-	{
-		for( int j = yMin ; j <= yMax ; ++j )
+	visitBodies(bBox.min, bBox.max, 
+		[&bBox, colMask, &out](ColBody& bodyTest)
 		{
-			Cell& cell = mCellMap.getData( i , j );
+			if ((colMask & bodyTest.typeMask) == 0)
+				return false;
 
-			for ( CellBodyList::iterator iter = cell.bodies.begin() , itEnd = cell.bodies.end();
-				iter != itEnd ; ++iter )
-			{
-				ColBody& bodyTest = *iter;
+			if (!bBox.hitTest(bodyTest.cachePos))
+				return false;
 
-				if ( ( colMask & bodyTest.typeMask ) == 0 )
-					continue;
-
-				if ( !bBox.hitTest( bodyTest.cachePos ) )
-					continue;
-
-				out.push_back( &bodyTest );
-			}
+			out.push_back(&bodyTest);
+			return false;
 		}
-	}
-
+	);
 }

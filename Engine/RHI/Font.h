@@ -201,7 +201,7 @@ namespace Render
 		void draw(RHICommandList& commandList, Vector2 const& pos, Matrix4 const& transform, LinearColor const& color, wchar_t const* str);
 		void draw(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, TArray< FontVertex > const& buffer);
 
-		int  getFontHeight() const { return mCharDataSet->getFontHeight(); }
+		int     getFontHeight() const { return mCharDataSet->getFontHeight(); }
 		int     getCharCount(wchar_t const* str);
 		int     getCharCount(char const* str);
 		Vector2 calcTextExtent(wchar_t const* str, int* outCharCount = nullptr);
@@ -221,6 +221,8 @@ namespace Render
 		void generateVerticesT(Vector2 const& pos, CharT const* str, TArray< FontVertex >& outVertices, Vector2* outBoundSize);
 		template< typename CharT >
 		void generateVerticesT(Vector2 const& pos, CharT const* str, FontVertex* outVertices, Vector2* outBoundSize);
+		template< typename CharT, typename TAddQuad >
+		void generateVerticesT(Vector2 const& pos, CharT const* str, TAddQuad& addQuad, Vector2* outBoundSize);
 
 		template< typename CharT >
 		int getCharCountT(CharT const* str);

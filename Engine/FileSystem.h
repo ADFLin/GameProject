@@ -28,7 +28,11 @@ public:
 	static bool LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterLoad = false, bool bAppendToBuffer = false);
 	static bool LoadToBuffer(CharT const* path, TArray< uint8 >& outBuffer, bool bAppendZeroAfterLoad = false, bool bAppendToBuffer = false);
 	static bool SaveFromBuffer(CharT const* path, uint8 const* data, uint32 dataSize);
+
+
+
 };
+
 
 
 class FFileUtility : public TFileUtility<char> 
@@ -51,6 +55,8 @@ public:
 
 #undef FUNC_LIST
 #undef USING_OP
+
+	static bool LoadLines(char const* path, std::vector< std::string >& outLineList);
 };
 
 template< class CharT >

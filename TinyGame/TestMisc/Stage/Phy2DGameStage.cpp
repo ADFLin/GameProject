@@ -47,7 +47,7 @@ namespace P2G
 				mWorld.getPhysicsScene()->createBox(def, XForm2D(Vector2(-(length + width) / 2, (length - width) / 2)));
 			}
 			Vector2 lookPos = Vector2(0, length / 2);
-			mWorldToScreen = LookAt(::Global::GetScreenSize(), lookPos, Vector2(0,1), 400);
+			mWorldToScreen = RenderTransform2D::LookAt(::Global::GetScreenSize(), lookPos, Vector2(0,1), ::Global::GetScreenSize().x / 400.0f);
 			mScreenToWorld = mWorldToScreen.inverse();
 			::Global::GUI().cleanupWidget();
 

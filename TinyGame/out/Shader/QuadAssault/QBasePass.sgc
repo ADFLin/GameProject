@@ -1,0 +1,67 @@
+#include "Common.sgc"
+
+#ifndef VERTEX_SHADER
+#define VERTEX_SHADER 1
+#endif
+#ifndef PIXEL_SHADER
+#define PIXEL_SHADER 1
+#endif
+
+struct VSOutputParameters
+{
+	float3 pos   MEMBER_OUT(TEXCOORD0);
+	float2 UV    MEMBER_OUT(TEXCOORD1);
+	//float4 color MEMBER_OUT(TEXCOORD2);
+};
+
+#if VERTEX_SHADER
+
+
+uniform float4x4 LocalToWorld;
+uniform float4x4 WorldToClip;
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float3 InPos, ATTRIBUTE_POSITION)
+	//VS_INPUT(float4 InColor, ATTRIBUTE_COLOR)
+	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(VSOutputParameters VSOutput, 0)
+VS_ENTRY_END(MainVS)
+{
+
+	float4 worldPos = mul(LocalToWorld, float4(InPos, 1));
+	SvPosition = mul(WorldToClip, worldPos);
+
+	VSOutput.UV = InUV;
+	VSOutput.pos = worldPos.xyz;
+	//VSOutput.color = InColor;
+}
+
+
+#endif
+
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, BaseTexture);
+DEFINE_TEXTURE(Texture2D, NormalTexture);
+
+uniform float4 Color;
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor0, 0)
+	PS_OUTPUT(float4 OutColor1, 1)
+PS_ENTRY_END(MainPS)
+{
+#if 1
+	if(TEXTURE_SAMPLE(BaseTexture, VSOutput.UV).a < 1.0)
+	{
+		discard;
+	}
+#endif
+
+	OutColor0 = float4(Color.rgb * TEXTURE_SAMPLE(BaseTexture, VSOutput.UV).rgb , Color.a);
+	OutColor1 = float4(TEXTURE_SAMPLE(NormalTexture, VSOutput.UV).rgb, 1);
+}
+
+#endif

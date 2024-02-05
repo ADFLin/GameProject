@@ -37,15 +37,16 @@ public:
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mGame = new Game();
 		mGame->mGraphics2D = &::Global::GetRHIGraphics2D();
-		if( !mGame->init("config.txt" , screenSize , false ) )
+		if( !mGame->init("config.txt" , screenSize) )
 			return false;
 
 #if 1
 		mGame->addStage(new MenuStage(), false);
 #else
-		gLevelFileName = "test.lv";
-		gMapFileName = "test.map";
-		gIdxCurLevel = 0;
+		auto& levelInfo = mGame->getPlayingLevel();
+		levelInfo.mapFile = "test.map";
+		levelInfo.level.fileName = "test.lv";
+		levelInfo.levelIndex = 0;
 		mGame->addStage(new LevelStage(), false);
 #endif
 		return true;
@@ -53,7 +54,7 @@ public:
 
 	ERenderSystem getDefaultRenderSystem() override
 	{
-		return ERenderSystem::D3D12;
+		return ERenderSystem::None;
 	}
 
 	bool setupRenderResource(ERenderSystem systemName) override
@@ -63,7 +64,6 @@ public:
 
 		return true;
 	}
-
 
 	virtual void onEnd() override
 	{
@@ -104,6 +104,13 @@ public:
 			return MsgReply::Unhandled();
 		return mGame->onKey(msg);
 	}
+
+	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override
+	{		
+		systemConfigs.screenWidth = 1024;
+		systemConfigs.screenHeight = 768;
+	}
+
 };
 
 char const* QuadAssaultModule::getName()

@@ -26,6 +26,16 @@ void PlasmaMob::onSpawn( unsigned flag )
 	BaseClass::onSpawn( flag );
 }
 
+void PlasmaMob::onDestroy(unsigned flag)
+{
+	if (flag & SDF_CAST_EFFECT)
+	{
+		getLevel()->playSound("explosion1.wav");
+	}
+	BaseClass::onDestroy(flag);
+}
+
+
 void PlasmaMob::tick()
 {
 	BaseClass::tick();
@@ -37,27 +47,19 @@ void PlasmaMob::tick()
 		Vec2f dir = mPosLastView - getPos();
 		if( dir.length2() < 300 * 300 )
 		{
-			mSpeed -= 100*TICK_TIME;
+			mSpeed -= mAcc * TICK_TIME;
 			if( mSpeed < 0 )
 				mSpeed = 0;
 		}
 		else
 		{
-			mSpeed += 100*TICK_TIME;
+			mSpeed += mAcc * TICK_TIME;
 			if( mSpeed > mMaxSpeed )
 				mSpeed = mMaxSpeed;
 		}
 	}
 }
 
-void PlasmaMob::onDestroy( unsigned flag )
-{
-	if ( flag & SDF_CAST_EFFECT )
-	{
-		getLevel()->playSound("explosion1.wav");
-	}
-	BaseClass::onDestroy( flag );
-}
 
 void PlasmaMob::takeDamage(Bullet* bullet)
 {

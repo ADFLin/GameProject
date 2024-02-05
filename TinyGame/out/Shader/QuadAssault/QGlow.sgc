@@ -1,0 +1,41 @@
+#include "Common.sgc"
+
+struct OutputVSParam
+{
+	float2 UV    MEMBER_OUT(TEXCOORD1);
+};
+
+uniform float4   Color;
+
+#if VERTEX_SHADER
+
+uniform float4x4 XForm;
+
+VS_ENTRY_START(MainVS)
+	VS_INPUT(float4 InPos, ATTRIBUTE_POSITION)
+	VS_INPUT(float2 InUV, ATTRIBUTE_TEXCOORD)
+	VS_OUTPUT_STRUCT(OutputVSParam OutputVS, 0)
+VS_ENTRY_END(MainVS)
+{
+	SvPosition = mul( XForm , InPos);
+	OutputVS.UV    = InUV;
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE( Texture2D , Texture );
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(OutputVSParam OutputVS, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+	float4 color = Color;
+	float4 texColor = TEXTURE_SAMPLE(Texture, OutputVS.UV);
+	OutColor = texColor * color;
+	OutColor.rgb = OutColor.rgb * texColor.a;
+}
+
+#endif //PIXEL_SHADER

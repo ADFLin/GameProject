@@ -428,7 +428,7 @@ namespace Chess
 
 		}
 
-		bool bShow2D = false;
+		bool bShow2D = true;
 
 		void onRender(float dFrame) override
 		{
@@ -754,6 +754,12 @@ namespace Chess
 			}
 
 			return BaseClass::onWidgetEvent(event, id, ui);
+		}
+
+
+		ERenderSystem getDefaultRenderSystem() override
+		{
+			return ERenderSystem::D3D11;
 		}
 
 	protected:

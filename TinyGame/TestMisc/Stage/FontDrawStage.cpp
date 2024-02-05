@@ -64,7 +64,7 @@ public:
 			Color4f(0,0,0) ,Color4f(1,0,0) ,
 			Color4f(0,1,0) ,Color4f(1,1,1) ,
 		};
-		VERIFY_RETURN_FALSE( mTexture = RHICreateTexture2D(ETexture::FloatRGBA, 2, 2, 1, 1, BCF_DefalutValue, colors) );
+		VERIFY_RETURN_FALSE( mTexture = RHICreateTexture2D(ETexture::FloatRGBA, 2, 2, 1, 1, TCF_DefalutValue, colors) );
 
 		charData = mCharDataSet->findOrAddChar(L'籖');
 		charData = mCharDataSet->findOrAddChar(L'H');
@@ -122,7 +122,7 @@ public:
 		}
 		if( !mBuffer.empty() )
 		{
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 			{
 				glEnable(GL_TEXTURE_2D);
 				GL_SCOPED_BIND_OBJECT(mCharDataSet->getTexture());
@@ -174,17 +174,21 @@ public:
 				Color4ub color;
 			};
 
-			Vertex_XY_C vetices[] =
-			{
-				{ Vector2(0,0) , Color4f(1,0,0) },
-				{ Vector2(100,0) , Color4f(0,1,0) },
-				{ Vector2(100,100) , Color4f(1,1,1) },
-				{ Vector2(0,100) , Color4f(0,0,1) },
-			};
 
 			g.beginRender();
-			g.commitRenderState();
-			TRenderRT< RTVF_XY_CA8 >::Draw(commandList, EPrimitive::Quad, vetices, 4);
+			g.drawCustomFunc([](RHICommandList& commandList, RenderBatchedElement& element)
+			{
+				Vertex_XY_C vetices[] =
+				{
+					{ Vector2(0,0) , Color4f(1,0,0) },
+					{ Vector2(100,0) , Color4f(0,1,0) },
+					{ Vector2(100,100) , Color4f(1,1,1) },
+					{ Vector2(0,100) , Color4f(0,0,1) },
+				};
+
+				TRenderRT< RTVF_XY_CA8 >::Draw(commandList, EPrimitive::Quad, vetices, 4);
+			}, false);
+
 			g.endRender();
 		}
 
@@ -227,7 +231,7 @@ public:
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
 #if 0
 		glColor4f(1, 0.5, 0, 1);
-		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha >::GetRHI());
+		RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 		drawText(commandList, Vec2i(100, 50), (const wchar_t*)( textBuffer.data()));
 
 #else
@@ -240,7 +244,6 @@ public:
 		g.drawRect(Vec2i(0, 0), ::Global::GetScreenSize());
 		g.endClip();
 
-		glColor3f(1, 1, 1);
 		Vector2 vertices[] =
 		{
 			Vector2(100 , 100),

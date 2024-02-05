@@ -22,6 +22,8 @@
 #include "MinigunMob.h"
 #include "PlasmaMob.h"
 
+#include "ProfileSystem.h"
+
 
 Level::Level() 
 {
@@ -58,15 +60,15 @@ void Level::cleanup()
 
 void Level::tick()
 {
-	for( ObjectList::iterator iter = mObjects.begin() , itEnd = mObjects.end(); 
-		  iter != itEnd; ++iter )
+	for(LevelObject* obj : mObjects)
 	{
-		LevelObject* obj = *iter;
 		obj->tick();
 	}
 
-	mColManager.update();
-	
+	{
+		PROFILE_ENTRY("Collision Update");
+		mColManager.update();
+	}
 	for( ObjectList::iterator iter = mObjects.begin() , itEnd = mObjects.end(); 
 		  iter != itEnd; )
 	{
@@ -126,20 +128,19 @@ void Level::setupTerrain( int w , int h )
 
 void Level::updateRender( float dt )
 {
-	for( ObjectList::iterator iter = mObjects.begin() ; iter != mObjects.end(); ++iter )
+	for(LevelObject* obj : mObjects)
 	{
-		LevelObject* obj = *iter;
 		obj->updateRender( dt );
 	}
 
 	RenderLightList& lights = getRenderLights();
-	for( RenderLightList::iterator iter = lights.begin() , itEnd = lights.end();
-		iter != itEnd ; ++iter )
+	for(Light* light : lights )
 	{		
-		Light* light = *iter;
-		light->cachePos = light->offset;
-		if ( light->host )
-			light->cachePos += light->host->getPos();
+		light->cachedPos = light->offset;
+		if (light->host)
+		{
+			light->cachedPos += light->host->getPos();
+		}
 	}
 
 	if ( mTopMessage )
@@ -152,6 +153,10 @@ void Level::addObjectInternal( LevelObject* obj )
 	mObjects.push_front( obj );
 
 	obj->mLevel = this;
+	if (mSpwanDestroyFlag & (SDF_LOAD_LEVEL | SDF_EDIT))
+	{
+		obj->mbTransient = false;
+	}
 	obj->onSpawn( mSpwanDestroyFlag );
 }
 
@@ -255,7 +260,7 @@ void Level::renderObjects(PrimitiveDrawer& drawer, RenderPass pass)
 
 Sound* Level::playSound( char const* name , bool canRepeat /*= false */ )
 {
-	Sound* sound = getGame()->getSoundMgr()->addSound( name , canRepeat );
+	SoundPtr sound = getGame()->getSoundMgr()->addSound( name , canRepeat );
 	if ( sound )
 		sound->play();
 
@@ -287,12 +292,18 @@ Message* Level::addMessage( Message* msg )
 	return mMsgQueue.back();
 }
 
+Message* Level::addMessage(String const& sender, String const& content, float duration, String const& soundName)
+{
+	Message* msg = new Message();
+	msg->init(sender, content, duration, soundName);
+	return addMessage(msg);
+}
+
 void Level::sendEvent( LevelEvent const& event )
 {
-	for( ListenerList::iterator iter = mListeners.begin() , itEnd = mListeners.end();
-		iter != itEnd ; ++iter )
+	for( auto lister : mListeners)
 	{
-		(*iter)->onLevelEvent( event );
+		lister->onLevelEvent( event );
 	}
 }
 
@@ -331,10 +342,8 @@ void Level::destroyAllObject( bool skipPlayer )
 {
 	if ( skipPlayer )
 	{
-		for( PlayerVec::iterator iter = mPlayers.begin();
-			iter != mPlayers.end() ; ++iter )
+		for(Player* player : mPlayers)
 		{
-			Player* player = *iter;
 			player->baseHook.unlink();
 		}
 	}
@@ -343,10 +352,8 @@ void Level::destroyAllObject( bool skipPlayer )
 
 	if ( skipPlayer )
 	{
-		for( PlayerVec::iterator iter = mPlayers.begin();
-			iter != mPlayers.end() ; ++iter )
+		for (Player* player : mPlayers)
 		{
-			Player* player = *iter;
 			mObjects.push_back( player );
 		}
 	}
@@ -361,11 +368,11 @@ void Level::addObject( LevelObject* object )
 	assert( object );
 	switch( object->getType() )
 	{
-	case OT_MOB:    mMobs.push_back( object->cast< Mob >() ); break;
-	case OT_BULLET: mBullets.push_back( object->cast< Bullet >() ); break;
-	case OT_LIGHT:  mLights.push_back( object->cast< LightObject >() ); break;
-	case OT_PARTICLE:  mParticles.push_back( object->cast< Particle >() ); break;
-	case OT_ITEM:   mItems.push_back( object->cast< ItemPickup >() ); break;
+	case OT_MOB:    mMobs.push_back( object->castChecked< Mob >() ); break;
+	case OT_BULLET: mBullets.push_back( object->castChecked< Bullet >() ); break;
+	case OT_LIGHT:  mLights.push_back( object->castChecked< LightObject >() ); break;
+	case OT_PARTICLE:  mParticles.push_back( object->castChecked< Particle >() ); break;
+	case OT_ITEM:   mItems.push_back( object->castChecked< ItemPickup >() ); break;
 	case OT_PLAYER: 
 		{
 			return;
@@ -392,28 +399,23 @@ LevelObject* Level::spawnObjectByName( char const* name , Vec2f const& pos  )
 
 LevelObject* Level::hitObjectTest( Vec2f const& pos )
 {
-	for( ObjectList::iterator iter = mObjects.begin() , itEnd = mObjects.end() ;
-		 iter != itEnd ; ++iter )
+	for(LevelObject* obj : mObjects)
 	{
-		LevelObject* obj = *iter;
-
 		Rect bBox;
 		obj->calcBoundBox( bBox );
 
 		if ( bBox.hitTest( pos ) )
 			return obj;
 	}
-	return NULL;
 
+	return NULL;
 }
 
-void Level::renderDev( DevDrawMode mode )
+void Level::renderDev(RHIGraphics2D& g, DevDrawMode mode)
 {
-	for( ObjectList::iterator iter = mObjects.begin() , itEnd = mObjects.end() ;
-		iter != itEnd ; ++iter )
+	for(LevelObject* obj : mObjects)
 	{
-		LevelObject* obj = *iter;
-		obj->renderDev( mode );
+		obj->renderDev(g, mode);
 	}
 }
 

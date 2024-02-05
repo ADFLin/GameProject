@@ -1,304 +1,23 @@
 #include "Editor.h"
 
-
-#include "WindowsMessageHandler.h"
-#include "WindowsPlatform.h"
-#include "Platform/Windows/ComUtility.h"
-#include "LogSystem.h"
-
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 
-#include <D3D11.h>
-#include "ImGui/backends/imgui_impl_win32.h"
-#include "ImGui/backends/imgui_impl_dx11.h"
 #include "EditorPanel.h"
-
-#include "RHI/RHICommand.h"
-#include "RHI/D3D11Command.h"
-#include "RHI/TextureAtlas.h"
+#include "EditorRender.h"
 #include "EditorUtils.h"
-#include "PropertySet.h"
-#include "Renderer/SceneDebug.h"
 
 #include "Widget/GameViewportPanel.h"
-#include "RHI/Font.h"
 #include "Widget/DetailViewPanel.h"
 #include "Widget/TextureViewerPanel.h"
 
-
-
-using namespace Render;
-
-#pragma comment(lib , "D3D11.lib")
-#pragma comment(lib , "DXGI.lib")
-#pragma comment(lib , "dxguid.lib")
-
-
-#define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
-	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
-
-#define VERIFY_D3D_RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
-	{ HRESULT hResult = CODE; if( FAILED(hResult) ){ ERROR_MSG_GENERATE( hResult , CODE, FILE, LINE ); ERRORCODE } }
-
-#define VERIFY_D3D_RESULT( CODE , ERRORCODE ) VERIFY_D3D_RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
-#define VERIFY_D3D_RESULT_RETURN_FALSE( CODE ) VERIFY_D3D_RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
-
+#include "LogSystem.h"
+#include "InlineString.h"
+#include "PropertySet.h"
+#include "Renderer/SceneDebug.h"
 
 #define EDITOR_INI "Editor.ini"
-
-IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-static class Editor* GEditor = nullptr;
-
-
-class EditorWindow;
-class IEditorRenderer
-{
-public:
-	~IEditorRenderer() = default;
-	virtual bool initialize(EditorWindow& mainWindow){ return true; }
-	virtual void shutdown() {}
-	virtual void beginFrame() {}
-	virtual void endFrame() {}
-
-	virtual bool initializeWindowRenderData(EditorWindow& window) { return true; }
-	virtual void renderWindow(EditorWindow& window) {}
-
-	virtual void saveRenderTarget() = 0;
-	virtual void resetRenderTarget() = 0;
-
-	virtual void notifyWindowResize(EditorWindow& window, int width, int height) {}
-};
-
-class IEditorWindowRenderData
-{
-public:
-	virtual ~IEditorWindowRenderData() = default;
-};
-
-class EditorWindow : public WinFrameT< EditorWindow >
-{
-public:
-
-	EditorWindow()
-	{
-		mGuiContext = ImGui::CreateContext();
-	}
-
-	~EditorWindow()
-	{
-		ImGui::DestroyContext(mGuiContext);
-	}
-
-	LPTSTR getWinClassName() { return TEXT("EditorWindow"); }
-	DWORD  getWinStyle() { return WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_BORDER; }
-	DWORD  getWinExtStyle() { return WS_EX_OVERLAPPEDWINDOW; }
-
-
-	void beginRender()
-	{
-		ImGui::SetCurrentContext(mGuiContext);
-	}
-	void endRender()
-	{
-
-	}
-
-	LRESULT processMessage(IEditorRenderer& renderer , HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-	{
-
-		ImGui::SetCurrentContext(mGuiContext);
-
-		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-			return true;
-
-		switch (msg)
-		{
-		case WM_SIZE:
-			if (wParam != SIZE_MINIMIZED)
-			{
-				renderer.notifyWindowResize(*this, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
-			}
-			break;
-		case WM_SYSCOMMAND:
-			if ((wParam & 0xfff0) == SC_KEYMENU)
-				return 0;
-			break;
-		case WM_ENTERSIZEMOVE:
-			bSizeMove = true;
-			break;
-
-		case WM_EXITSIZEMOVE:
-			bSizeMove = false;
-			break;
-		case WM_DESTROY:
-			::PostQuitMessage(0);
-			return 0;
-
-#if 0
-		case WM_PAINT:
-			if (bSizeMove)
-			{
-				render();
-			}
-			else
-			{
-				PAINTSTRUCT ps;
-				BeginPaint(hWnd, &ps);
-				EndPaint(hWnd, &ps);
-			}
-			break;
-#endif
-		}
-		return ::DefWindowProc(hWnd, msg, wParam, lParam);
-	}
-
-	template< typename RenderData >
-	RenderData* getRenderData() { return static_cast<RenderData*>(mRenderData.get()); }
-
-	std::unique_ptr< IEditorWindowRenderData > mRenderData;
-
-	ImGuiContext* mGuiContext;
-
-	bool bSizeMove = false;
-
-};
-
-
-
-class EditorRendererD3D11 : public IEditorRenderer
-{
-public:
-
-	class WindowRenderData : public IEditorWindowRenderData
-	{
-	public:
-		bool initRenderResource(EditorWindow& window, ID3D11Device* device)
-		{
-
-			HRESULT hr;
-			TComPtr<IDXGIFactory> factory;
-			hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
-
-			UINT quality = 0;
-			DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-			swapChainDesc.OutputWindow = window.getHWnd();
-			swapChainDesc.Windowed = true;
-			swapChainDesc.SampleDesc.Count = 1;
-			swapChainDesc.SampleDesc.Quality = quality;
-			swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			swapChainDesc.BufferDesc.Width = window.getWidth();
-			swapChainDesc.BufferDesc.Height = window.getHeight();
-			swapChainDesc.BufferCount = 2;
-			swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-			swapChainDesc.Flags = 0;
-			VERIFY_D3D_RESULT_RETURN_FALSE(factory->CreateSwapChain(device, &swapChainDesc, &mSwapChain));
-
-			createRenderTarget(device);
-
-			return true;
-		}
-
-		bool createRenderTarget(ID3D11Device* device)
-		{
-			ID3D11Texture2D* pBackBuffer;
-			mSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-			if (pBackBuffer)
-			{
-				device->CreateRenderTargetView(pBackBuffer, NULL, &mRenderTargetView);
-				pBackBuffer->Release();
-			}
-			else
-			{
-				LogWarning(0, "Can't Get BackBuffer");
-				return false;
-			}
-
-
-			return true;
-		}
-
-		void cleanupRenderTarget()
-		{
-			mRenderTargetView.reset();
-		}
-
-		TComPtr< IDXGISwapChain > mSwapChain;
-		TComPtr< ID3D11RenderTargetView > mRenderTargetView;
-
-	};
-	virtual bool initialize(EditorWindow& mainWindow)
-	{
-		mDevice = static_cast<D3D11System*>(GRHISystem)->mDevice;
-		mDeviceContext = static_cast<D3D11System*>(GRHISystem)->mDeviceContext;
-
-		VERIFY_RETURN_FALSE(ImGui_ImplWin32_Init(mainWindow.getHWnd()));
-		VERIFY_RETURN_FALSE(ImGui_ImplDX11_Init(mDevice, mDeviceContext));
-		VERIFY_RETURN_FALSE(initializeWindowRenderData(mainWindow));
-
-		return true;
-	}
-	virtual void shutdown() 
-	{
-		ImGui_ImplDX11_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-	}
-
-	void beginFrame() 
-	{
-		ImGui_ImplDX11_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-	}
-	TComPtr< ID3D11Device > mDevice;
-	TComPtr< ID3D11DeviceContext > mDeviceContext;
-
-
-	ID3D11RenderTargetView* mSavedRenderTarget[8];
-	ID3D11DepthStencilView* mSavedDepth;
-
-	void saveRenderTarget() override
-	{
-		mDeviceContext->OMGetRenderTargets(ARRAY_SIZE(mSavedRenderTarget),
-			mSavedRenderTarget, &mSavedDepth);
-	}
-	void resetRenderTarget() override
-	{
-		mDeviceContext->OMSetRenderTargets(1, mSavedRenderTarget, mSavedDepth);
-	}
-
-
-	bool initializeWindowRenderData(EditorWindow& window) override
-	{
-		auto renderData = std::make_unique<WindowRenderData>();
-		VERIFY_RETURN_FALSE(renderData->initRenderResource(window, mDevice));
-		window.mRenderData = std::move(renderData);
-		return true;
-	}
-
-	void renderWindow(EditorWindow& window)
-	{
-		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
-
-		const float clear_color_with_alpha[4] = { 0,0,0,1 };
-		mDeviceContext->OMSetRenderTargets(1, &renderData->mRenderTargetView, NULL);
-		mDeviceContext->ClearRenderTargetView(renderData->mRenderTargetView, clear_color_with_alpha);
-		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-		renderData->mSwapChain->Present(1, 0);
-	}
-
-	void notifyWindowResize(EditorWindow& window, int width, int height) override
-	{
-		WindowRenderData* renderData = window.getRenderData<WindowRenderData>();
-		if (renderData->mSwapChain.isValid())
-		{
-			renderData->cleanupRenderTarget();
-			renderData->mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-			renderData->createRenderTarget(mDevice);
-		}
-	}
-};
 
 
 class Editor : public IEditor
@@ -338,15 +57,11 @@ public:
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-		switch (GRHISystem->getName())
+		mRenderer.reset( IEditorRenderer::Create() );
+		if (mRenderer == nullptr)
 		{
-		case RHISystemName::D3D11:
-			mRenderer = std::make_unique<EditorRendererD3D11>();
-			break;
-		default:
-			LogWarning(0, "Editor can't supported %s", Literal::ToString(GRHISystem->getName()));
 			return false;
-		} 
+		}
 		
 		VERIFY_RETURN_FALSE(mRenderer->initialize(mMainWindow));
 
@@ -504,7 +219,7 @@ public:
 
 	Render::ITextureShowManager* mTextureShowManager = nullptr;
 
-	void setTextureShowManager(ITextureShowManager* manager) override
+	void setTextureShowManager(Render::ITextureShowManager* manager) override
 	{
 		ActivePanel* panel = findNamedPanel(TextureViewerPanel::ClassName);
 		if (panel)
@@ -599,7 +314,7 @@ public:
 			{
 				if (ImGui::Button("Save Style"))
 				{
-					exprotStyle();
+					exportStyle();
 					saveSettings();
 				}
 			}
@@ -762,7 +477,7 @@ public:
 	}
 
 	void importStyle();
-	void exprotStyle();
+	void exportStyle();
 
 	void saveSettings()
 	{
@@ -1003,7 +718,7 @@ public:
 
 
 
-void Editor::exprotStyle()
+void Editor::exportStyle()
 {
 	ImGuiStyle& style = ImGui::GetStyle();
 	FImGuiSettingHelper helper;
@@ -1058,16 +773,6 @@ IEditor* IEditor::Create()
 RHIGraphics2D& EditorRenderGloabal::getGraphics()
 {
 	return *GEditor->mGraphics;
-}
-
-void EditorRenderGloabal::saveRenderTarget()
-{
-	GEditor->mRenderer->saveRenderTarget();
-}
-
-void EditorRenderGloabal::resetRenderTarget()
-{
-	GEditor->mRenderer->resetRenderTarget();
 }
 
 EditorRenderGloabal& EditorRenderGloabal::Get()

@@ -1,8 +1,5 @@
 #include "OpenGLShaderCommon.h"
 
-#include "ShaderCore.h"
-#include "ShaderProgram.h"
-#include "ShaderManager.h"
 #include "RHICommand.h"
 
 #include "FileSystem.h"
@@ -45,6 +42,7 @@ void main()
 		static TestHelper helper;
 		return helper.result;
 	}
+
 	bool OpenGLShaderObject::compile(EShader::Type type, char const* src[], int num)
 	{
 		if (!fetchHandle(OpenGLTranslate::To(type)))
@@ -60,7 +58,6 @@ void main()
 
 		return true;
 	}
-
 
 	bool OpenGLShaderObject::loadFile(EShader::Type type, char const* path, char const* def)
 	{
@@ -282,6 +279,7 @@ void main()
 			}
 		}
 		TArray< OpenGLShaderObject > shaders;
+		ShaderParameterMap parameterMap;
 	};
 
 	void ShaderFormatGLSL::precompileCode(ShaderProgramSetupData& setupData)
@@ -364,42 +362,40 @@ void main()
 			}
 			else
 			{
-				auto* shaderImpl = static_cast<OpenGLShader*>(RHICreateShader(context.getType()));
-				if (!shaderImpl->attach(shaderObject))
+				auto& shaderImpl = static_cast<OpenGLShader&>(*context.shaderSetupData->resource);
+				if (!shaderImpl.attach(shaderObject))
 				{
 					LogWarning(0, "Can't create shader resource");
 					return false;
 				}
-				context.shaderSetupData->resource = shaderImpl;
 			}
 
-		} while( !bSuccess && context.bRecompile );
+		} while( !bSuccess && context.bAllowRecompile );
 
 		return bSuccess;
 	}
 
-	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
+	ShaderParameterMap* ShaderFormatGLSL::initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
-		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
 		if (!shaderProgramImpl.initialize())
-			return false;
+			return nullptr;
 
-		ShaderParameterMap parameterMap;
-		shaderProgramImpl.generateParameterMap(parameterMap);
-		shaderProgram.bindParameters(parameterMap);
-		return true;
+		auto& intermediatesImpl = static_cast<GLSLCompileIntermediates&>(*setupData.intermediateData);
+
+		shaderProgramImpl.generateParameterMap(intermediatesImpl.parameterMap);
+		return &intermediatesImpl.parameterMap;
 	}
 
-	bool ShaderFormatGLSL::initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
+	ShaderParameterMap* ShaderFormatGLSL::initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
 	{
-		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
 		if (!shaderProgramImpl.initialize(binaryCode))
-			return false;
+			return nullptr;
 
-		ShaderParameterMap parameterMap;
-		shaderProgramImpl.generateParameterMap(parameterMap);
-		shaderProgram.bindParameters(parameterMap);
-		return true;
+		mTempParameterMap.clear();
+		shaderProgramImpl.generateParameterMap(mTempParameterMap);
+		return &mTempParameterMap;
 	}
 
 	void ShaderFormatGLSL::postShaderLoaded(ShaderProgram& shaderProgram)
@@ -407,41 +403,37 @@ void main()
 
 	}
 
-	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
+	ShaderParameterMap* ShaderFormatGLSL::initializeShader(RHIShader& shader, ShaderSetupData& setupData)
 	{
-		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
 
-		ShaderParameterMap parameterMap;
-		shaderImpl.generateParameterMap(parameterMap);
-		shader.bindParameters(parameterMap);
+		auto& intermediatesImpl = static_cast<GLSLCompileIntermediates&>(*setupData.intermediateData);
 
-		return true;
+		shaderImpl.generateParameterMap(intermediatesImpl.parameterMap);
+		return &intermediatesImpl.parameterMap;
 	}
 
-	bool ShaderFormatGLSL::initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
+	ShaderParameterMap* ShaderFormatGLSL::initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
 	{
-		shader.mRHIResource = RHICreateShader(desc.type);
-		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
+		auto& shaderImpl = static_cast<OpenGLShader&>(shader);
 
 		GLenum format = *(GLenum*)binaryCode.data();
 		glProgramBinary(shaderImpl.getHandle(), format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
 		if (!VerifyOpenGLStatus())
 		{
-			return false;
+			return nullptr;
 		}
 		if (!shaderImpl.validate())
 		{
-			return false;
+			return nullptr;
 		}
 
-		ShaderParameterMap parameterMap;
-		shaderImpl.generateParameterMap(parameterMap);
-		shader.bindParameters(parameterMap);
-
-		return true;
+		mTempParameterMap.clear();
+		shaderImpl.generateParameterMap(mTempParameterMap);
+		return &mTempParameterMap;
 	}
 
-	void ShaderFormatGLSL::postShaderLoaded(Shader& shader)
+	void ShaderFormatGLSL::postShaderLoaded(RHIShader& shader)
 	{
 
 	}
@@ -453,19 +445,19 @@ void main()
 		return numFormat != 0;
 	}
 
-	bool ShaderFormatGLSL::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
+	bool ShaderFormatGLSL::getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
-		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*setupData.resource);
 		return FOpenGLShader::GetProgramBinary(shaderProgramImpl.getHandle(), outBinaryCode);
 	}
 
-	bool ShaderFormatGLSL::getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
+	bool ShaderFormatGLSL::getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
-		auto& shaderImpl = static_cast<OpenGLShader&>(*shader.mRHIResource);
+		auto& shaderImpl = static_cast<OpenGLShader&>(*setupData.resource);
 		return FOpenGLShader::GetProgramBinary(shaderImpl.getHandle(), outBinaryCode);
 	}
 
-	Render::ShaderPreprocessSettings ShaderFormatGLSL::getPreprocessSettings()
+	ShaderPreprocessSettings ShaderFormatGLSL::getPreprocessSettings()
 	{
 		ShaderPreprocessSettings result;
 		result.bSupportLineFilePath = IsLineFilePathSupported();

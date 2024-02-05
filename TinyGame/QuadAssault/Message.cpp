@@ -15,12 +15,12 @@ Message::~Message()
 
 }
 
-void Message::init( String const& sender, String const& content, float durstion, String const& soundName )
+void Message::init( String const& sender, String const& content, float duration, String const& soundName )
 {	
 	mPos.x=64;
 	mPos.y=64;
 	mSoundName = soundName;
-	mDurstion  = durstion;
+	mDuration  = duration;
 	timer=0.0;
 	needDestroy = false;
 
@@ -42,7 +42,7 @@ void Message::nodifyShow()
 
 void Message::tick()
 {
-	if( timer < mDurstion )
+	if( timer < mDuration )
 	{
 		timer += TICK_TIME;
 	}
@@ -51,7 +51,7 @@ void Message::tick()
 		if( sound )
 			sound->stop();
 		needDestroy=true;		
-		sound=NULL;
+		sound.release();
 	}
 }
 void Message::updateRender( float dt )
@@ -68,53 +68,18 @@ void Message::renderFrame(RHIGraphics2D& g)
 	g.setBrush(Color3f(0.0, 0.25, 0.0));
 	g.enablePen(false);
 	g.beginBlend(1, ESimpleBlendMode::Add);
-	g.drawRect(mPos + Vec2f(32,48) , Vec2f( width + 48 , 64 ));
+	g.drawRect(mPos + Vec2f(32,0) , Vec2f(width+48 ,64));
 	g.endBlend();
 	g.enablePen(true);
 
-	g.setPen(Color3f(0.1, 1.0, 0.1));
+	g.setBrush(Color3f::White());
+	g.drawTexture(*portrait->resource, mPos - Vec2f(32, 0), Vec2f(64, 64));
+
 	g.enableBrush(false);
-	//g.drawRect(mPos + Vec2f(32, 48), Vec2f(width + 48, 64));
+	g.setPen(Color3f(0.1, 1.0, 0.1));
+	g.drawRect(mPos - Vec2f(32, 0), Vec2f(width + 112, 64));
 	g.enableBrush(true);
 
-
-	//g.drawTexture(*portrait->resource, )
-#if 0
-	glColor3f(0.0, 0.25, 0.0);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);		
-	glBegin(GL_QUADS); //PUNI KVADRAT PO CIJELOM
-	glTexCoord2f(0.0, 0.0); glVertex2f(mPos.x+32,mPos.y);
-	glTexCoord2f(1.0, 0.0); glVertex2f(mPos.x+32+width+48,mPos.y);
-	glTexCoord2f(1.0, 1.0); glVertex2f(mPos.x+32+width+48,mPos.y+64);
-	glTexCoord2f(0.0, 1.0);	glVertex2f(mPos.x+32,mPos.y+64);
-	glEnd();
-	glDisable(GL_BLEND);
-
-	glColor3f(1.0, 1.0, 1.0);	
-
-	glEnable(GL_TEXTURE_2D);//portrait
-
-	portrait->bind();
-	glBegin(GL_QUADS); 
-	glTexCoord2f(0.0, 0.0); glVertex2f(mPos.x-32,mPos.y);
-	glTexCoord2f(1.0, 0.0); glVertex2f(mPos.x+32,mPos.y);
-	glTexCoord2f(1.0, 1.0); glVertex2f(mPos.x+32,mPos.y+64);
-	glTexCoord2f(0.0, 1.0);	glVertex2f(mPos.x-32,mPos.y+64);
-	glEnd();
-	glDisable(GL_TEXTURE_2D);
-
-	glColor3f(0.1, 1.0, 0.1);	
-
-	glBegin(GL_LINE_LOOP); //ZELENI OBRUB
-	glTexCoord2f(0.0, 0.0); glVertex2f(mPos.x-32,mPos.y);
-	glTexCoord2f(1.0, 0.0); glVertex2f(mPos.x-32+width+112,mPos.y);
-	glTexCoord2f(1.0, 1.0); glVertex2f(mPos.x-32+width+112,mPos.y+64);
-	glTexCoord2f(0.0, 1.0);	glVertex2f(mPos.x-32,mPos.y+64);
-	glEnd();
-	glColor3f(1.0, 1.0, 1.0);	
-#endif
 }
 
 void Message::render(RHIGraphics2D& g)

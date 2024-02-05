@@ -44,7 +44,30 @@ namespace Life
 		restart();
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
-		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Run"), bRunEvolate);
+		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Run"), bRunEvolate, [this](bool v)
+		{
+			if (bResotoreState)
+			{ 
+				if (bRunEvolate)
+				{
+					restoreState.cellList.clear();
+					mAlgorithm->getPattern(restoreState.cellList);
+				}
+				else
+				{
+					mAlgorithm->clearCell();
+					for (auto const& pos : restoreState.cellList)
+					{
+						mAlgorithm->setCell(pos.x, pos.y, 1);
+					}
+				}
+			}
+		});
+
+		FWidgetProperty::Bind(devFrame->addCheckBox(UI_ANY, "Restore State"), bResotoreState, [this](bool v)
+		{
+
+		});
 		devFrame->addButton("Step", [this](int event, GWidget*)
 		{
 			if (bRunEvolate == false)
@@ -54,14 +77,12 @@ namespace Life
 			}
 			return false;
 		});
-		devFrame->addText("Evolate Time Rate");
-		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), evolateTimeRate, 0.5, 100, 2, [this](float v)
+		FWidgetProperty::Bind(devFrame->addSlider("Evolate Time Rate"), evolateTimeRate, 0.5, 100, 2, [this](float v)
 		{
 
 		});
 
-		devFrame->addText("Zoom Out");
-		FWidgetProperty::Bind(devFrame->addSlider(UI_ANY), mViewport.zoomOut, 0.25, 25.0, 2, [this](float v)
+		FWidgetProperty::Bind(devFrame->addSlider("Zoom Out"), mViewport.zoomOut, 0.25, 25.0, 2, [this](float v)
 		{
 			mViewport.updateTransform();
 		});
@@ -95,18 +116,6 @@ namespace Life
 		});
 		return true;
 	}
-
-
-	struct PatternData
-	{
-		TArray< Vec2i > cellList;
-
-		template< class OP >
-		void serialize(OP&& op)
-		{
-			op & cellList;
-		}
-	};
 
 	void TestStage::restart()
 	{
@@ -772,6 +781,7 @@ namespace Life
 	bool TestStage::setupRenderResource(ERenderSystem systemName)
 	{
 		Vec2i screenSize = ::Global::GetScreenSize();
+
 		mTexture = RHICreateTexture2D(ETexture::RGBA8, screenSize.x, screenSize.y, 1, 1);
 
 		mBuffer.resize(screenSize.x * screenSize.y);
@@ -781,6 +791,11 @@ namespace Life
 	void TestStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
 		mTexture.release();
+	}
+
+	ERenderSystem TestStage::getDefaultRenderSystem()
+	{
+		return ERenderSystem::D3D12;
 	}
 
 }//namespace Life

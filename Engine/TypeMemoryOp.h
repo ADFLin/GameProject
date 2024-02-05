@@ -79,7 +79,7 @@ public:
 		{
 			for (; itBegin != itEnd; ++itBegin)
 			{
-				FTypeMemoryOp::Construct(ptr, *itBegin);
+				Construct(ptr, *itBegin);
 				++ptr;
 			}
 		}

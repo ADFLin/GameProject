@@ -20,13 +20,14 @@ public:
 	virtual void tick();
 	virtual void setupDefault();
 
-	BEGIN_CLASS_PROP()
-	MEMBER_PROP( "Radius" , radius )
-	MEMBER_PROP( "Color" , color )
-	MEMBER_PROP( "Intensity" , intensity )
-	MEMBER_PROP( "DrawShadow" , drawShadow )
-	END_CLASS_PROP()
 
+	REFLECT_STRUCT_BEGIN(LightObject)
+		REF_BASE_CLASS(LevelObject)
+		REF_PROPERTY(radius, "Radius")
+		REF_PROPERTY(color, "Color")
+		REF_PROPERTY(intensity, "Intensity")
+		REF_PROPERTY(drawShadow, "DrawShadow")
+	REFLECT_STRUCT_END()
 };
 
 

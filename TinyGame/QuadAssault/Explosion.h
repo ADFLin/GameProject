@@ -39,8 +39,6 @@ protected:
 	// light color
 	Vec3f  color;
 
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 

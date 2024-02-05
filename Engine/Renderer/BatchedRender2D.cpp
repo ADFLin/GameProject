@@ -361,10 +361,10 @@ namespace Render
 		return *element;
 	}
 
-	RenderBatchedElement& RenderBatchedElementList::addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode)
+	RenderBatchedElement& RenderBatchedElementList::addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode, bool bChangeState)
 	{
 		TRenderBatchedElement<CustomRenderPayload>* element = addElement< CustomRenderPayload >();
-		element->type = RenderBatchedElement::CustomRender;
+		element->type = bChangeState ? RenderBatchedElement::CustomRenderAndState : RenderBatchedElement::CustomRender;
 		element->payload.renderer = renderer;
 		element->payload.manageMode = mode;
 		return *element;
@@ -463,13 +463,15 @@ namespace Render
 			TexVertex* pVertices = data.vertices;
 			uint32* pIndices = data.indices;
 
+
 			float halfWidth = 0.5 * float(paintArgs.penWidth);
+			Vector2 scale = Vector2(halfWidth, halfWidth).div( xForm.getScale() );
 			if ( xForm.isUniformScale())
 			{
 				for (int i = 0; i < lineData->posList.size(); i += 2)
 				{
 					Vector2 pos = xForm.transformPosition(lineData->posList[i]);
-					Vector2 offset = halfWidth * xForm.transformVector(lineData->posList[i + 1]);
+					Vector2 offset = scale * xForm.transformVector(lineData->posList[i + 1]);
 					pVertices[i].pos = pos + offset;
 					pVertices[i].color = paintArgs.penColor;
 					pVertices[i + 1].pos = pos - offset;
@@ -482,7 +484,7 @@ namespace Render
 				for (int i = 0; i < lineData->posList.size(); i += 2)
 				{
 					Vector2 pos = xForm.transformPosition(lineData->posList[i]);
-					Vector2 offset = halfWidth * xForm.transformVector(lineData->posList[i + 1]);
+					Vector2 offset = scale * xForm.transformVector(lineData->posList[i + 1]);
 					pVertices[i].pos = pos + offset;
 					pVertices[i].color = paintArgs.penColor;
 					pVertices[i + 1].pos = pos - offset;
@@ -1024,36 +1026,36 @@ namespace Render
 				break;
 			case RenderBatchedElement::CustomState:
 				{
+					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
 
+					flushDrawCommand(false, false);
 
-
+					if (payload.renderer)
+					{
+						payload.renderer->render(*mCommandList, *element);
+						FObjectManage::Release(payload.renderer, payload.manageMode);
+					}
+					else
+					{
+						commitRenderState(*mCommandList, renderState);
+					}
 				}
 				break;
 			case RenderBatchedElement::CustomRender:
+			case RenderBatchedElement::CustomRenderAndState:
 				{
 					RenderBatchedElementList::CustomRenderPayload& payload = RenderBatchedElementList::GetPayload< RenderBatchedElementList::CustomRenderPayload >(element);
 
 					flushDrawCommand(false, true);
 
-					//commitRenderState(*mCommandList, renderState);
-
 					payload.renderer->render(*mCommandList, *element);
 
-					if (payload.renderer->bChangeState)
+					if (element->type == RenderBatchedElement::CustomRenderAndState)
 					{
 						commitRenderState(*mCommandList, renderState);
 					}
-					switch (payload.manageMode)
-					{
-					case EObjectManageMode::DestructOnly:
-						payload.renderer->~ICustomElementRenderer();
-						break;
-					case EObjectManageMode::Detete:
-						delete payload.renderer;
-						break;
-					default:
-						break;
-					}
+
+					FObjectManage::Release(payload.renderer, payload.manageMode);
 
 				}
 				break;
@@ -1137,7 +1139,7 @@ namespace Render
 		switch (blendMode)
 		{
 		case ESimpleBlendMode::Translucent:
-			return TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI();
+			return StaticTranslucentBlendState::GetRHI();
 		case ESimpleBlendMode::Add:
 			return TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI();
 		case ESimpleBlendMode::Multiply:

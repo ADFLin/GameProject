@@ -3,10 +3,12 @@
 #include "Player.h"
 #include "Level.h"
 
+#include "SoundManager.h"
 #include "Message.h"
 #include "Mob.h"
 
 #include "RenderUtility.h"
+#include "RHI/RHIGraphics2D.h"
 
 IMPL_OBJECT_CLASS( AreaTrigger , OT_TRIGGER , "Trigger.Area" )
 
@@ -77,9 +79,8 @@ void AreaTrigger::onSpawn( unsigned flag )
 }
 
 void AreaTrigger::onDestroy( unsigned flag )
-{
-	
-	BaseClass::onSpawn( flag );
+{	
+	BaseClass::onDestroy( flag );
 }
 
 
@@ -152,20 +153,23 @@ void AreaTrigger::tick()
 	}
 }
 
-void AreaTrigger::renderDev( DevDrawMode mode )
+void AreaTrigger::renderDev(RHIGraphics2D& g,  DevDrawMode mode)
 {
 	if ( mode == DDM_EDIT )
 	{
 		Vec2f pos  = getRenderPos();
 		Vec2f size = getSize();
 
-		glEnable( GL_BLEND );
-		glBlendFunc( GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA );
-		glColor4f( 1 , 0.4 , 0.4 , 0.2 );
-		drawRect( pos , size );
-		glDisable( GL_BLEND );
-		glColor3f( 1 , 0.2 , 0.2 );
-		drawRectLine( pos , size );
+		g.beginBlend(0.2);
+		g.setBrush(Color3f(1, 0.4, 0.4));
+		g.enablePen(false);
+		g.drawRect( pos , size );
+		g.enablePen(true);
+		g.endBlend();
+		g.enableBrush(false);
+		g.setPen(Color3f(1, 0.2, 0.2));
+		g.drawRect( pos , size );
+		g.enableBrush(true);
 	}
 }
 
@@ -180,7 +184,7 @@ void SpawnAct::fire( Level* level )
 {
 	unsigned flag = level->getSpawnDestroyFlag();
 	flag = level->setSpwanDestroyFlag( flag | SDF_SETUP_DEFAULT );
-	LevelObject* object = level->spawnObjectByName( className.c_str() , spawnPos );
+	LevelObject* object = level->spawnObjectByName( className.name.c_str() , spawnPos );
 	level->setSpwanDestroyFlag( flag );
 	//#TODO
 	if ( object )
@@ -201,15 +205,13 @@ void SpawnAct::enumProp( IPropEditor& editor )
 
 void SpawnAct::setupDefault()
 {
-	className = "Mob.Minigun";
+	className.name = "Mob.Minigun";
 	spawnPos = Vec2i( 100 , 100 );
 }
 
 void MessageAct::fire( Level* level )
 {
-	Message* msg = new Message();
-	msg->init( sender , content , duration , soundName );
-	level->addMessage( msg );
+	level->addMessage(sender, content, duration, soundName);
 }
 
 void MessageAct::enumProp( IPropEditor& editor )

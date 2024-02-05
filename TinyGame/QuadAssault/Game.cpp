@@ -13,9 +13,12 @@
 #include "MarcoCommon.h"
 #include "ColorName.h"
 
+#include "RHI/RHIGraphics2D.h"
+
 #include <cassert>
 #include <ctime>
 #include <iostream>
+
 
 
 static IGame* GGameInstance = nullptr;
@@ -38,13 +41,11 @@ IGame::~IGame()
 
 }
 
-bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreateWindow )
+bool Game::init( char const* pathConfig , Vec2i const& screenSize)
 {
 	 // This falls under the config ***
 	int width=800;
 	int height=600;
-	//width=1024;
-	//height=800;
 
 	if( screenSize.x != 0 && screenSize.y != 0 )
 	{
@@ -58,24 +59,6 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 	QA_LOG("----QuadAssault----");
 	QA_LOG("*******************");
 
-	if( bCreateWindow )
-	{
-		QA_LOG("Setting Window...");
-	
-		char const* tile = "QuadAssault";
-
-		mWindow.reset(Platform::CreateWindow(tile, mScreenSize, 32, false));
-		if( !mWindow )
-		{
-			QA_ERROR("ERROR: Can't create window !");
-			return false;
-		}
-
-		mWindow->setSystemListener(*this);
-		mWindow->showCursor(false);
-	}
-
-
 	IFont* font = IFont::loadFont( DATA_DIR"Fragile Bombers.TTF" );
 	//IFont* font = IFont::loadFont("Bitwise");
 	//IFont* font = NULL;
@@ -85,25 +68,14 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 	}
 
 	mSoundMgr.reset( new SoundManager );
+	if (!mSoundMgr->initialize())
+		return false;
 
-		
+	
 	mNeedEnd=false;
 	srand(time(NULL));
-		
-#if 0
-	QA_LOG("Setting OpenGL...");
-	glViewport(0,0,(GLsizei)width,(GLsizei)height);
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0,width,height,0,0,1);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();	
-	glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_LIGHTING_BIT );
-	glDisable( GL_DEPTH_TEST );
-	//glDisable( GL_LIGHTING );	
-#endif
-	
+
+	std::fill_n(fpsSamples, NUM_FPS_SAMPLES, 0);
 
 	QA_LOG("Game Init!");
 	return true;
@@ -113,7 +85,7 @@ bool Game::initRenderSystem()
 {
 	QA_LOG("Build Render System...");
 	mRenderSystem.reset(new RenderSystem);
-	if (!mRenderSystem->init(mWindow, false))
+	if (!mRenderSystem->init())
 	{
 		return false;
 	}
@@ -144,8 +116,6 @@ void Game::exit()
 	mSoundMgr->cleanup();
 	mRenderEngine->cleanup();
 	mRenderSystem->cleanup();
-
-	mWindow.clear();
 
 	QA_LOG( "Game End !!" );
 	QA_LOG( "*******************" );
@@ -226,16 +196,18 @@ void Game::render()
 #endif
 	}
 
-	if ( text )
-	{
-		InlineString< 256 > str;
-		str.format("FPS = %f", mFPS);
-		text->setString(str.c_str());
 
-		mRenderSystem->drawText(text,
-								Vec2i(getGame()->getScreenSize().x - 100, 10),
-								TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
-	}
+	mGraphics2D->beginRender();
+
+	InlineString< 256 > str;
+	str.format("FPS = %.2f", mFPS);
+
+	mRenderSystem->drawText(
+		mFonts[0], 18, str,
+		Vec2i(getGame()->getScreenSize().x - 100, 30), Color4ub(255,255,25),
+		TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
+
+	mGraphics2D->endRender();
 
 	mRenderSystem->postRender();
 
@@ -247,8 +219,6 @@ void Game::run()
 	
 	timeFrame = Platform::GetTickCount();
 	frameCount = 0;
-	text = IText::Create( mFonts[0] , 18 , Color4ub(255,255,25) );
-
 	std::fill_n( fpsSamples , NUM_FPS_SAMPLES , 60.0f );
 
 	while( !mNeedEnd )
@@ -261,7 +231,6 @@ void Game::run()
 		prevTime = curTime;
 	}
 
-	text->release();
 }
 
 void Game::addStage( GameStage* stage, bool removePrev )
@@ -285,18 +254,12 @@ void Game::procWidgetEvent( int event , int id , QWidget* sender )
 	mStageStack.back()->onWidgetEvent( event , id , sender );
 }
 
-void Game::procSystemEvent()
-{
-	if ( mWindow )
-		mWindow->procSystemMessage();
-}
-
 MsgReply Game::onMouse( MouseMsg const& msg )
 {
 	mMousePos = msg.getPos();
 
 	MsgReply reply = GUISystem::Get().mManager.procMouseMsg(msg);
-	if ( !reply.isHandled() )
+	if ( reply.isHandled() )
 	{
 		if ( !msg.onMoving() )
 			return MsgReply::Unhandled();

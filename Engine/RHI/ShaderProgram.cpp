@@ -62,7 +62,7 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper< RHIResourceType>::setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op /*= AO_READ_AND_WRITE*/)
+	void TShaderFuncHelper< RHIResourceType>::setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op)
 	{
 		ShaderParameter param;
 		if( !getParameter(name, param) )
@@ -71,7 +71,7 @@ namespace Render
 	}
 
 	template< class RHIResourceType >
-	void TShaderFuncHelper< RHIResourceType>::setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op /*= AO_READ_AND_WRITE*/, int idx /*= -1*/)
+	void TShaderFuncHelper< RHIResourceType>::setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderRWTexture(*mRHIResource, param, texture, op);
@@ -248,7 +248,7 @@ namespace Render
 		ShaderParameter param;
 		if (!mRHIResource->getResourceParameter(EShaderResourceType::Uniform, name, param))
 			return;
-		setUniformBuffer(commandList, param, buffer);
+		GetContext(commandList).setShaderUniformBuffer(*mRHIResource, param, buffer);
 	}
 
 	template< class RHIResourceType >
@@ -264,7 +264,7 @@ namespace Render
 		ShaderParameter param;
 		if (!mRHIResource->getResourceParameter(EShaderResourceType::Storage, name, param))
 			return;
-		setStorageBuffer(commandList, param, buffer);
+		GetContext(commandList).setShaderStorageBuffer(*mRHIResource, param, buffer, op);
 	}
 
 	template< class RHIResourceType >
@@ -287,7 +287,7 @@ namespace Render
 		ShaderParameter param;
 		if( !mRHIResource->getResourceParameter(EShaderResourceType::AtomicCounter, name, param) )
 			return;
-		setAtomicCounterBuffer(commandList, param, buffer);
+		GetContext(commandList).setShaderAtomicCounterBuffer(*mRHIResource, param, buffer);
 	}
 
 	template< class RHIResourceType >

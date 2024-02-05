@@ -119,8 +119,8 @@ namespace Render
 		bool bCreateDepth;
 		ETexture::Format depthFormat;
 
-		uint32 textureCreationFlags = 0;
-		uint32 depthCreateionFlags = 0;
+		TextureCreationFlags textureCreationFlags;
+		TextureCreationFlags depthCreateionFlags;
 		int numSamples;
 		int bufferCount;
 
@@ -134,8 +134,8 @@ namespace Render
 			depthFormat = ETexture::D24S8;
 			numSamples = 1;
 			bufferCount = 2;
-			textureCreationFlags = 0;
-			depthCreateionFlags = 0;
+			textureCreationFlags = TCF_None;
+			depthCreateionFlags = TCF_None;
 		}
 	};
 
@@ -143,30 +143,36 @@ namespace Render
 
 	RHI_API RHITexture1D* RHI_TRACE_FUNC(RHICreateTexture1D,
 		ETexture::Format format, int length ,
-		int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,
+		int numMipLevel = 0, int numSamples = 1,
+		TextureCreationFlags creationFlags = TCF_DefalutValue,
 		void* data = nullptr);
 
 	RHI_API RHITexture2D*   RHI_TRACE_FUNC(RHICreateTexture2D,
 		ETexture::Format format, int w, int h,
-		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue,
+		int numMipLevel = 0, int numSamples = 1, 
+		TextureCreationFlags creationFlags = TCF_DefalutValue,
 		void* data = nullptr, int dataAlign = 0);
 
 	RHI_API RHITexture3D*    RHI_TRACE_FUNC(RHICreateTexture3D,
 		ETexture::Format format, int sizeX, int sizeY, int sizeZ , 
-		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue , 
+		int numMipLevel = 0, int numSamples = 1, 
+		TextureCreationFlags creationFlags = TCF_DefalutValue ,
 		void* data = nullptr);
 
 	RHI_API RHITextureCube*  RHI_TRACE_FUNC(RHICreateTextureCube,
-		ETexture::Format format, int size, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue, 
+		ETexture::Format format, int size, int numMipLevel = 0, 
+		TextureCreationFlags creationFlags = TCF_DefalutValue,
 		void* data[] = nullptr);
 
 	RHI_API RHITexture2DArray* RHI_TRACE_FUNC(RHICreateTexture2DArray,
 		ETexture::Format format, int w, int h, int layerSize,
-		int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue, 
+		int numMipLevel = 0, int numSamples = 1, 
+		TextureCreationFlags creationFlags = TCF_DefalutValue,
 		void* data = nullptr);
 
 	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTextureDepth,
-		ETexture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, uint32 creationFlags = 0);
+		ETexture::Format format, int w, int h , int numMipLevel = 1 , int numSamples = 1, 
+		TextureCreationFlags creationFlags = TCF_None);
 
 	RHI_API RHITexture1D*      RHI_TRACE_FUNC(RHICreateTexture1D, TextureDesc const& desc, void* data = nullptr);
 	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTexture2D, TextureDesc const& desc, void* data = nullptr, int dataAlign = 0);
@@ -176,14 +182,14 @@ namespace Render
 	RHI_API RHITexture2D*      RHI_TRACE_FUNC(RHICreateTextureDepth,TextureDesc const& desc);
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer,
-		uint32 elementSize, uint32 numElements, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+		uint32 elementSize, uint32 numElements, BufferCreationFlags creationFlags = BCF_DefalutValue, void* data = nullptr);
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateBuffer, BufferDesc const& desc, void* data = nullptr);
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateVertexBuffer,
-		uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+		uint32 vertexSize, uint32 numVertices, BufferCreationFlags creationFlags = BCF_DefalutValue, void* data = nullptr);
 
 	RHI_API RHIBuffer* RHI_TRACE_FUNC(RHICreateIndexBuffer,
-		uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+		uint32 nIndices, bool bIntIndex, BufferCreationFlags creationFlags = BCF_DefalutValue, void* data = nullptr);
 
 	RHI_API void* RHILockBuffer(RHIBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
 	RHI_API void  RHIUnlockBuffer(RHIBuffer* buffer);
@@ -281,8 +287,7 @@ namespace Render
 		All     = 0xff,
 	};
 
-	FORCEINLINE EClearBits operator | (EClearBits a, EClearBits b) { return EClearBits(uint8(a) | uint8(b)); }
-	FORCEINLINE bool HaveBits( EClearBits a , EClearBits b ) { return !!(uint8(a) & uint8(b)); }
+	SUPPORT_ENUM_FLAGS_OPERATION(EClearBits);
 
 	RHI_API void RHIClearRenderTargets(RHICommandList& commandList, EClearBits clearBits , LinearColor colors[] ,int numColor , float depth = (float)FRHIZBuffer::FarPlane , uint8 stenceil = 0 );
 
@@ -412,7 +417,7 @@ namespace Render
 	public:
 		bool initializeResource(uint32 numElement, EStructuredBufferType type = EStructuredBufferType::Const, bool bCPUAccessRead = false )
 		{
-			uint32 creationFlags = 0;
+			BufferCreationFlags creationFlags = BCF_None;
 			switch (type)
 			{
 			case EStructuredBufferType::Const:
@@ -489,7 +494,7 @@ namespace Render
 		bool   bFlipV = false;
 		bool   bAutoMipMap = false;
 		int    numMipLevel = 0;
-		uint32 creationFlags = TCF_DefalutValue;
+		TextureCreationFlags creationFlags = TCF_DefalutValue;
 
 
 		ETexture::Format getFormat( int numComponent ) const;

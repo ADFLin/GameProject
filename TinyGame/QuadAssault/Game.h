@@ -9,10 +9,9 @@
 #include "Dependence.h"
 #include "GameStage.h"
 
-
 #include "Core/IntegerType.h"
+#include "DataStructure/Array.h"
 
-#include <vector>
 
 class IFont;
 class RenderSystem;
@@ -22,7 +21,7 @@ class Game : public IGame
 {
 public:
 	Game();
-	bool init(char const* pathConfig, Vec2i const& screenSize = Vec2i(0, 0), bool bCreateWindow = true);
+	bool init(char const* pathConfig, Vec2i const& screenSize = Vec2i(0, 0));
 
 	bool initRenderSystem();
 	void tick( float deltaT );
@@ -33,7 +32,6 @@ public:
 	virtual void  addStage( GameStage* stage, bool removePrev );
 	virtual void  stopPlay(){ mNeedEnd = true; }
 	virtual void  procWidgetEvent( int event , int id , QWidget* sender );
-	virtual void  procSystemEvent();
 
 	IFont*        getFont( int idx ){  return mFonts[idx]; }
 
@@ -44,10 +42,9 @@ public:
 
 private:
 	GameStage* mRunningStage = nullptr;
-	int frameCount = 0;
-	class IText* text = nullptr;
+	int   frameCount = 0;
 	int   NumFramePerSample = 10;
-	int  idxSample = 0;
+	int   idxSample = 0;
 	int64 timeFrame;
 
 	static int const NUM_FPS_SAMPLES = 12;
@@ -60,9 +57,8 @@ private:
 	unsigned mMouseState;
 	bool     mNeedEnd;
 	FPtr< RenderSystem > mRenderSystem;
-	std::vector< GameStage* > mStageStack;
-	std::vector< IFont* >     mFonts;
-	FObjectPtr< PlatformWindow >  mWindow;
+	TArray< GameStage* > mStageStack;
+	TArray< IFont* >     mFonts;
 
 };
 

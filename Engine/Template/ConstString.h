@@ -2,7 +2,7 @@
 #ifndef ConstString_H_4619B714_A202_464F_A699_E7D7CCA85A48
 #define ConstString_H_4619B714_A202_464F_A699_E7D7CCA85A48
 
-template< class TChar >
+template< class CharT >
 class TConstString
 {
 public:
@@ -17,15 +17,15 @@ public:
 		return mSize;
 	}
 
-	constexpr const TChar *c_str() const
+	constexpr const CharT *c_str() const
 	{
 		return mData;
 	}
 
-	constexpr TChar operator[](int index) const { return mData[index]; }
+	constexpr CharT operator[](int index) const { return mData[index]; }
 
-	const size_t mSize;
-	const TChar *mData = nullptr;
+	size_t const mSize;
+	CharT const *mData;
 };
 
 using ConstString = TConstString< char >;

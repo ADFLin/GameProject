@@ -5,22 +5,34 @@
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
 
+#include "RHI/RHICommand.h"
+
 namespace Bejeweled
 {
+	using namespace Render;
+
 	bool TestStage::onInit()
 	{
 		int len = Scene::CellLength * Scene::BoardSize;
 		Vec2i pos = ( ::Global::GetScreenSize() - Vec2i( len , len ) ) / 2;
+		pos.y -= 15;
 		mScene.setBoardPos( pos );
 
 		::Global::GUI().cleanupWidget();
 
-		restart();
-		WidgetUtility::CreateDevFrame();
+		auto frame = WidgetUtility::CreateDevFrame();
+		frame->addButton(UI_RESTART_GAME, "Restart");
+		frame->addCheckBox("Auto Play", mScene.bAutoPlay);
+		frame->addCheckBox("Draw Debug", mScene.bDrawDebugForce);
 		return true;
 	}
 
-	void TestStage::onUpdate( long time )
+	void TestStage::postInit()
+	{
+		restart();
+	}
+
+	void TestStage::onUpdate(long time)
 	{
 		BaseClass::onUpdate( time );
 
@@ -33,8 +45,10 @@ namespace Bejeweled
 
 	void TestStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::GetGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
+		g.beginRender();
 		mScene.render( g );
+		g.endRender();
 	}
 
 	void TestStage::restart()
@@ -73,6 +87,25 @@ namespace Bejeweled
 			}
 		}
 		return BaseClass::onKey(msg);
+	}
+
+	bool TestStage::onWidgetEvent(int event, int id, GWidget* ui)
+	{
+		if (!BaseClass::onWidgetEvent(event, id, ui))
+			return false;
+		switch (id)
+		{
+		case UI_RESTART_GAME:
+			restart();
+			return false;
+		}
+		return true;
+	}
+
+	bool TestStage::setupRenderResource(ERenderSystem systemName)
+	{
+		mScene.initializeRHI();
+		return true;
 	}
 
 }//namespace Bejeweled

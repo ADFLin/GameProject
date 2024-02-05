@@ -144,49 +144,56 @@ namespace Render
 
 	};
 
-	class D3D12HeapPoolData;
+	class D3D12DescHeapAllocator;
 
-	class D3D12HeapPoolChunk
+	class D3D12HeapPoolChunkBase
 	{
 	public:
-		D3D12HeapPoolChunk()
+
+		void release()
 		{
+			resource.reset();
 			numElements = 0;
+			numElementsUasge = 0;
+			elementSize = 0;
+			mUsageMask.clear();
 		}
 
-		bool initialize(ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, uint32 inNumElements, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
-
-
+		bool initialize(uint inNumElements, ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
 		bool fetchFreeSlot(uint& outSlotIndex);
-		uint fetchFreeSlotFirstTime();
-
 		void freeSlot(uint slotIndex);
 
-		D3D12HeapPoolData* owner = nullptr;
-		
+		D3D12DescHeapAllocator* owner = nullptr;
 		TComPtr< ID3D12DescriptorHeap > resource;
-		uint elementSize;
-		uint numElements;
-		uint numElementsUasge;
-		TArray< uint32 > mUsageMask;
-		static constexpr uint32 GroupSize = sizeof(uint32) * 8;
+		uint elementSize = 0;
+		uint numElements = 0;
+		uint numElementsUasge = 0;
 
-		static constexpr D3D12HeapPoolChunk* NoLinkPtr = (D3D12HeapPoolChunk*)INT_PTR(-1);
-		D3D12HeapPoolChunk* next = NoLinkPtr;
+		static constexpr uint32 GroupSize = sizeof(uint32) * 8;
+		TArray< uint32 > mUsageMask;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(uint chunkSlot)
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE result = resource->GetCPUDescriptorHandleForHeapStart();
+			D3D12_CPU_DESCRIPTOR_HANDLE result = mCachedCPUHandle;
 			result.ptr += chunkSlot * elementSize;
 			return result;
 		}
 
 		D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(uint chunkSlot)
 		{
-			D3D12_GPU_DESCRIPTOR_HANDLE result = resource->GetGPUDescriptorHandleForHeapStart();
+			D3D12_GPU_DESCRIPTOR_HANDLE result = mCachedGPUHandle;
 			result.ptr += chunkSlot * elementSize;
 			return result;
 		}
+	protected:
+		void cacheHandle()
+		{
+			mCachedCPUHandle = resource->GetCPUDescriptorHandleForHeapStart();
+			mCachedGPUHandle = resource->GetGPUDescriptorHandleForHeapStart();
+		}
+
+		D3D12_GPU_DESCRIPTOR_HANDLE mCachedGPUHandle;
+		D3D12_CPU_DESCRIPTOR_HANDLE mCachedCPUHandle;
 	};
 
 
@@ -213,13 +220,34 @@ namespace Render
 			chunk = nullptr;
 		}
 
-		D3D12HeapPoolChunk* chunk;
+		D3D12HeapPoolChunkBase* chunk;
 		uint chunkSlot;
 
 	};
 
+	class D3D12HeapPoolChunk : public D3D12HeapPoolChunkBase
+	{
+	public:
+		uint fetchFreeSlotFirstTime();
 
-	class D3D12HeapPoolData
+		static constexpr D3D12HeapPoolChunk* NoLinkPtr = (D3D12HeapPoolChunk*)INT_PTR(-1);
+		D3D12HeapPoolChunk* next = NoLinkPtr;
+	};
+
+	class D3D12HeapPoolChunkGrowable : public D3D12HeapPoolChunkBase
+	{
+	public:
+		bool initialize(uint inNumElements, ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
+		bool grow(uint numElementsNew, ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, D3D12_DESCRIPTOR_HEAP_FLAGS flags);
+
+		template< typename TFunc >
+		void initSlot(ID3D12DeviceRHI* device, D3D12_DESCRIPTOR_HEAP_TYPE inType, uint slot, TFunc&& func);
+
+		TComPtr< ID3D12DescriptorHeap > mResourceCopy;
+		D3D12_CPU_DESCRIPTOR_HANDLE     mCachedCPUHandleCopy;
+	};
+
+	class D3D12DescHeapAllocator
 	{
 	public:
 		TArray< D3D12HeapPoolChunk* > chunks;
@@ -229,63 +257,31 @@ namespace Render
 		D3D12_DESCRIPTOR_HEAP_FLAGS flags;
 		uint32 chunkSize;
 
-		bool fetchFreeHandle(ID3D12DeviceRHI* device, D3D12PooledHeapHandle& outHandle)
-		{
-			if (availableChunk)
-			{
-				availableChunk->fetchFreeSlot(outHandle.chunkSlot);
-				outHandle.chunk = availableChunk;
-				updateAvailableChunk();
-			}
-			else
-			{
-				D3D12HeapPoolChunk* chunk = new D3D12HeapPoolChunk;
-				if (!chunk->initialize(device, type, chunkSize, flags))
-				{
-					delete chunk;
-					return false;
-				}
+		bool fetchFreeHandle(ID3D12DeviceRHI* device, D3D12PooledHeapHandle& outHandle);
 
-				chunk->owner = this;
-				outHandle.chunkSlot = chunk->fetchFreeSlotFirstTime();
-				outHandle.chunk = chunk;
-				availableChunk = chunk;
-			}
-			return true;
-		}
-		void freeHandle(D3D12PooledHeapHandle& handle)
-		{
-			handle.chunk->freeSlot(handle.chunkSlot);
-			if (handle.chunk->next == D3D12HeapPoolChunk::NoLinkPtr)
-			{
-				handle.chunk->next = availableChunk;
-				availableChunk = handle.chunk;
-			}
-			handle.chunk = nullptr;
-			handle.chunkSlot = INDEX_NONE;
-		}
-		void updateAvailableChunk()
-		{
-			while (availableChunk)
-			{
-				if (availableChunk->numElements != availableChunk->numElementsUasge)
-					break;
-				D3D12HeapPoolChunk* nextChunk = availableChunk->next;
-				availableChunk->next = (D3D12HeapPoolChunk*)INT_PTR(-1);
-				availableChunk = nextChunk;
-			}
-		}
+		void freeHandle(D3D12PooledHeapHandle& handle);
+
+		void updateAvailableChunk();
+
+		void release();
+	};
+
+	class D3D12DescHeapGrowable
+	{
+	public:
+		D3D12HeapPoolChunkGrowable availableChunk;
+
+		D3D12_DESCRIPTOR_HEAP_TYPE type;
+		D3D12_DESCRIPTOR_HEAP_FLAGS flags;
+
+		bool initialize(uint size, ID3D12DeviceRHI* device);
+
+		template< typename TFunc >
+		bool fetchFreeHandle(ID3D12DeviceRHI* device, D3D12PooledHeapHandle& outHandle, TFunc&& func);
 
 		void release()
 		{
-			for (auto chunk : chunks)
-			{
-				delete chunk;
-			}
-			chunks.clear();
-			chunks.shrink_to_fit();
-
-			availableChunk = nullptr;
+			availableChunk.release();
 		}
 	};
 
@@ -295,6 +291,17 @@ namespace Render
 		CORE_API static D3D12DescriptorHeapPool& Get();
 
 		void initialize(ID3D12DeviceRHI* device);
+		template< typename TDesc >
+		static D3D12PooledHeapHandle Alloc(ID3D12Resource* resource, TDesc const* desc)
+		{
+			return D3D12DescriptorHeapPool::Get().alloc(resource, desc);
+		}
+
+		static D3D12PooledHeapHandle Alloc(D3D12_SAMPLER_DESC const& desc)
+		{
+			return D3D12DescriptorHeapPool::Get().alloc(desc);
+		}
+
 		static void FreeHandle(D3D12PooledHeapHandle& handle)
 		{
 			if (handle.isValid())
@@ -303,12 +310,13 @@ namespace Render
 			}
 		}
 		void releaseRHI();
-		D3D12PooledHeapHandle allocSRV(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle allocCBV(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle allocUAV(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle allocRTV(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle allocDSV(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc);
-		D3D12PooledHeapHandle allocSampler(D3D12_SAMPLER_DESC const& desc);
+
+		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_SHADER_RESOURCE_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_CONSTANT_BUFFER_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_UNORDERED_ACCESS_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle alloc(ID3D12Resource* resource, D3D12_DEPTH_STENCIL_VIEW_DESC const* desc);
+		D3D12PooledHeapHandle alloc(D3D12_SAMPLER_DESC const& desc);
 
 		void freeHandle(D3D12PooledHeapHandle& handle);
 
@@ -318,10 +326,11 @@ namespace Render
 
 		bool bInitialized = false;
 
-		D3D12HeapPoolData mCSUData;
-		D3D12HeapPoolData mRTVData;
-		D3D12HeapPoolData mDSVData;
-		D3D12HeapPoolData mSamplerData;
+		D3D12DescHeapGrowable mCSUData;
+		D3D12DescHeapGrowable mSamplerData;
+		D3D12DescHeapAllocator mRTVData;
+		D3D12DescHeapAllocator mDSVData;
+
 	};
 
 

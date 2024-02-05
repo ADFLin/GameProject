@@ -94,26 +94,25 @@ namespace TripleTown
 	{
 	public:
 		Scene();
-
-
 		~Scene();
 
 		bool loadResource();
-
 		void releaseResource();
 
 		bool init();
-
 		void click( Vec2i const& pos );
-
-	
 
 		ObjectId getObjectId(Vec2i const& pos);
 		void setupLevel(Level& level);
 
 		void updateFrame( int frame );
 
+
 		void  peekObject( Vec2i const& pos );
+
+		void  pickObjectInternal(TilePos const& tPos);
+
+		void  repeekObject();
 		void  setLastMousePos( Vec2i const& pos ){  mLastMousePos = pos; }
 
 		void  render();
@@ -234,6 +233,7 @@ namespace TripleTown
 		void notifyObjectMerged(){}
 		void notifyActorMoved(ObjectId id, TilePos const& posFrom, TilePos const& posTo) override;
 		void notifyWorldRestore() override;
+		void notifyStateChanged() override;
 		//
 		void markTileDirty(TilePos const& pos);
 

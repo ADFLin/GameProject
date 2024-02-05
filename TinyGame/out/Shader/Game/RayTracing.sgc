@@ -631,22 +631,26 @@ PS_ENTRY_END(MainPS)
 	return;
 #endif
 
+	
+
+#if 1
 	float4 rayOffset =  mul(View.clipToTranslatedWorld, float4(2 * VFLIP(VSOutput.UVs) - 1, 1, 1));
 	float3 rayDir = normalize(rayOffset.xyz);
 	float3 rayPos = View.worldPos;
-
 	float3 totalLighting = 0;
 	int NumRaysPerPixel = 6;
 	for (int index = 0; index < NumRaysPerPixel; ++index)
 	{
 		totalLighting += TraceLighting(rayPos, rayDir, randState);
 	}
-	
-	float weight = 1.0 / View.frameCount;
 	//weight = 1;
-	float3 oldColor = TEXTURE_SAMPLE(HistoryTexture, VSOutput.UVs).rgb;
-	float3 color = totalLighting / NumRaysPerPixel;
 
+	float3 color = totalLighting / NumRaysPerPixel;
+#endif
+
+	//float3 color = float3(VSOutput.UVs, 0);
+	float weight = 1.0 / View.frameCount;
+	float3 oldColor = TEXTURE_SAMPLE(HistoryTexture, VSOutput.UVs).rgb;
 	OutColor = float4(lerp(oldColor, color, weight), 1);
 }
 

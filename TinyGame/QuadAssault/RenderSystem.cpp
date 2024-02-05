@@ -28,7 +28,7 @@ public:
 		if (!FFileSystem::IsExist(path))
 			return false;
 
-		int numFonts = AddFontResourceEx(path, FR_PRIVATE, NULL);
+		int numFonts = AddFontResourceExA(path, FR_PRIVATE, NULL);
 		if (numFonts == 0)
 		{
 			return false;
@@ -102,7 +102,7 @@ public:
 		{
 			if (mDrawer == nullptr || mDrawer->owner != font)
 			{
-				mDrawer = mDrawer->owner->fetchDrawer(mSize);
+				mDrawer = static_cast<CFont*>(font)->fetchDrawer(mSize);
 				updateVertices();
 			}
 		}
@@ -131,9 +131,9 @@ public:
 		if (mDrawer)
 		{
 			g.drawCustomFunc(
-				[pos = pos, this, &g](Render::RHICommandList& commandList, Render::RenderBatchedElement& element)
+				[pos, this, &g](Render::RHICommandList& commandList, Render::RenderBatchedElement& element)
 				{
-					RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+					RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 					mDrawer->draw(commandList, Matrix4::Translate(pos.x, pos.y, 0) * g.getBaseTransform(), mColor, mTextVertices);
 				}
 			);
@@ -154,7 +154,7 @@ public:
 	TArray< FontVertex > mTextVertices;
 	
 	Vec2f  mBoundSize = Vec2f::Zero();
-	CFont::Drawer* mDrawer;
+	CFont::Drawer* mDrawer = nullptr;
 	std::string mString;
 	LinearColor mColor;
 	int mSize = 12;
@@ -191,7 +191,6 @@ RenderSystem::RenderSystem()
 	assert( gSystem == NULL );
 	gSystem = this;
 	mTextureMgr = NULL;
-	mContext = nullptr;
 }
 
 RenderSystem::~RenderSystem()
@@ -199,31 +198,8 @@ RenderSystem::~RenderSystem()
 	delete mTextureMgr;
 }
 
-bool RenderSystem::init( PlatformWindow* window , bool bInitGL )
+bool RenderSystem::init()
 {
-	if ( window )
-	{
-		if (bInitGL)
-		{
-			GLConfig config;
-			config.colorBits = 32;
-			mContext = Platform::CreateGLContext(*window, config);
-
-			if (!mContext)
-				return false;
-
-			QA_LOG("initialize glew...");
-			GLenum result = glewInit();
-			if (result != GLEW_OK)
-			{
-				QA_ERROR("ERROR: Impossible to initialize Glew. Your graphics card probably does not support Shader Model 2.0.");
-				return false;
-			}
-		}
-
-		mRenderWindow = window;
-	}
-
 	mTextureMgr   = new TextureManager;
 	return true;
 }
@@ -271,15 +247,12 @@ void RenderSystem::drawText(IFont* font, int fontSize, char const* str, Vec2f co
 
 	mGraphics2D->setFont(*static_cast<CFont*>(font)->fetchDrawer(fontSize));
 	mGraphics2D->setBlendAlpha(color.a / 255.0f);
-	mGraphics2D->setBrush(color);
+	mGraphics2D->setTextColor(color);
 	mGraphics2D->drawText(pos, Vector2::Zero(), str, hAlign, vAlign);
 }
 
 bool RenderSystem::prevRender()
 {
-	if ( mContext && !mContext->setCurrent() )
-		return false;
-
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 	RHISetFrameBuffer(commandList, nullptr);
 	RHIClearRenderTargets(commandList, EClearBits::All, &LinearColor(0, 0, 0, 1), 1);
@@ -289,8 +262,6 @@ bool RenderSystem::prevRender()
 
 void RenderSystem::postRender()
 {
-	if ( mContext )
-		mContext->swapBuffers();
 
 }
 
@@ -298,6 +269,4 @@ void RenderSystem::cleanup()
 {
 	mTextureMgr->cleanup();
 
-	if (mContext)
-		mContext->release();
 }

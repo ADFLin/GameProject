@@ -175,7 +175,7 @@ void Mob::onBodyCollision( ColBody& self , ColBody& other )
 	{
 	case OT_BULLET:
 		{
-			Bullet* bullet = obj->cast< Bullet >();
+			Bullet* bullet = obj->castChecked< Bullet >();
 			if ( bullet->team == TEAM_PLAYER )
 			{
 				takeDamage( bullet );

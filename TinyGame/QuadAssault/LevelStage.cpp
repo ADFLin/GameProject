@@ -11,6 +11,8 @@
 #include "MenuStage.h"
 #include "LevelEditStage.h"
 
+#include "SurvivalMode.h"
+
 #include "GlobalVariable.h"
 #include "DataPath.h"
 #include "RenderUtility.h"
@@ -27,6 +29,7 @@
 
 #include "KeyPickup.h"
 #include "WeaponPickup.h"
+
 
 #include "LaserMob.h"
 #include "PlasmaMob.h"
@@ -49,6 +52,8 @@
 
 #include <fstream>
 #include <sstream>
+
+
 
 
 
@@ -86,6 +91,7 @@ void WorldData::reigsterObject()
 	mObjectCreator->registerClass< WeaponPickup >();
 	mObjectCreator->registerClass< LightObject >();
 	mObjectCreator->registerClass< AreaTrigger >();
+	mObjectCreator->registerClass< PlayerStart >();
 
 #define REG_ACTION( ACTION )\
 	mActionCreator->registerClass< ACTION >( ACTION::StaticName() )
@@ -201,31 +207,43 @@ bool LevelStage::onInit()
 	mLevel->addListerner( *this );
 
 	unsigned flag = getLevel()->setSpwanDestroyFlag( SDF_LOAD_LEVEL );
-	
 	loadLevel();
+	getLevel()->setSpwanDestroyFlag( flag );
+
 
 	Player* player = mLevel->getPlayer();
 	//player->addWeapon(new Plasma());
-	//player->addWeapon(new Laser());
 	player->addWeapon(new Laser());
-	player->addWeapon(new Plasma());
+	player->addWeapon(new Laser());
+	//player->addWeapon(new Plasma());
 	//player->addWeapon(new Minigun());
 	//player->addWeapon(new Minigun());
 
 #if 0
-	for ( int i = 0 ; i < 20 ; ++i )
+	for (int i = 0; i < 20; ++i)
 	{
-		mLevel->spawnObjectByName( "Mob.Laser" , Vec2f( 300 + i * 100 , 1000 ) );
-		mLevel->spawnObjectByName( "Mob.Minigun" , Vec2f( 300 + i * 100 , 1200 ) );
+		mLevel->spawnObjectByName("Mob.Laser", Vec2f(300 + i * 100, 1000));
+		mLevel->spawnObjectByName("Mob.Minigun", Vec2f(300 + i * 100, 1200));
 	}
 #endif
-	getLevel()->setSpwanDestroyFlag( flag );
+
+#if 0
+	Message* gameOverMsg = new Message();
+	gameOverMsg->init("Base", "Level Load", 4, "blip.wav");
+	getLevel()->addMessage(gameOverMsg);
+#endif
+
 
 	mScreenFade.setColor( 0 );
 	mScreenFade.fadeIn();
 
-	mGameOverTimer =3;
+	mGameOverTimer = 3;
 	mTickTimer     = 0.0f;
+
+	if (mMode)
+	{
+		mMode->beginPlay();
+	}
 
 
 	return true;
@@ -234,10 +252,19 @@ bool LevelStage::onInit()
 
 void LevelStage::onExit()
 {
+	if (mMode)
+	{
+		mMode->endPlay();
+		mMode.release();
+	}
+
 	mLevel->cleanup();
-#if USE_SFML
-	mMusic.stop();
-#endif
+
+	if (mMusic)
+	{
+		mMusic->stop();
+		mMusic.release();
+	}
 	delete mLevel;
 	delete mCamera;
 
@@ -246,7 +273,6 @@ void LevelStage::onExit()
 
 void LevelStage::onUpdate(float deltaT)
 {	
-	
 	mTickTimer += deltaT;
 	int numFrame = mTickTimer / TICK_TIME;
 
@@ -256,7 +282,6 @@ void LevelStage::onUpdate(float deltaT)
 		int nFrame = 0;
 		for ( ; nFrame < numFrame ; ++nFrame )
 		{
-			getGame()->procSystemEvent();
 			if ( mPause )
 				break;
 
@@ -266,7 +291,7 @@ void LevelStage::onUpdate(float deltaT)
 	}
 	else
 	{
-		getGame()->procSystemEvent();
+
 	}
 
 	mScreenFade.update( deltaT );
@@ -285,6 +310,10 @@ void LevelStage::changeMenuStage()
 
 void LevelStage::tick()
 {
+	if (mMode)
+	{
+		mMode->tick(TICK_TIME);
+	}
 
 	Vec2f wPosMouse = convertToWorldPos( getGame()->getMousePos() );
 
@@ -336,21 +365,7 @@ void RenderBar(RHIGraphics2D& g, float len , float h , float frac , float alpha 
 	{
 		g.beginBlend(alpha, ESimpleBlendMode::Translucent);
 		float temp = len * frac;
-		g.drawCustomFunc([=](RHICommandList& commandList, RenderBatchedElement& element)
-		{
-			Vertex v[] =
-			{
-				{Vec2f(0,0), Color4f(colorAT,alpha) },
-				{Vec2f(temp, 0), Color4f(colorAT,alpha) },
-				{Vec2f(temp, h), Color4f(colorAD,alpha) },
-				{Vec2f(0, h) , Color4f(colorAD,alpha) },
-			};
-			for (int i = 0; i < ARRAY_SIZE(v); ++i)
-			{
-				v[i].pos = element.transform.transformPosition(v[i].pos);
-			}
-			TRenderRT< RTVF_XY_CA >::Draw(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v));
-		});
+		g.drawGradientRect(Vec2f(0, 0), colorAT, Vec2f(temp, h), colorAD, false);
 		g.endBlend();
 	}
 
@@ -447,7 +462,7 @@ void LevelStage::onRender()
 
 	GUISystem::Get().render();
 
-	//mScreenFade.render();
+	mScreenFade.render(g);
 	g.beginBlend(1, ESimpleBlendMode::Add);
 	{
 		Vec2f size = Vec2f(32, 32);
@@ -538,14 +553,17 @@ void LevelStage::onLevelEvent( LevelEvent const& event )
 	case LevelEvent::eCHANGE_STATE:
 		if ( event.intVal == Level::eFINISH )
 		{
-			//SPREMANJE INFORMACIJA O OTKLJUCAVANJU				
-			if(gIdxCurLevel<MAX_LEVEL_NUM-1)
-				gLevelEnabled[gIdxCurLevel+1]=true;
+			auto& levelInfo = IGame::Get().getPlayingLevel();
 
+			levelInfo.levelStates[levelInfo.levelIndex] = PlayLevelInfo::ePlayed;
+			if (levelInfo.levelIndex < MAX_LEVEL_NUM - 1)
+			{
+				levelInfo.levelStates[levelInfo.levelIndex + 1] = PlayLevelInfo::eOpen;
+			}
 			std::ofstream of( LEVEL_DIR LEVEL_LOCK_FILE );	
 			for(int i=0; i<MAX_LEVEL_NUM; i++)
 			{
-				of << gLevelEnabled[i] << " ";	
+				of << levelInfo.levelStates[i] << " ";
 			}
 			of.close();
 		}
@@ -558,8 +576,9 @@ void LevelStage::loadLevel()
 	int mapWidth  = 128;
 	int mapHeight = 128;
 
+	auto& levelInfo = IGame::Get().getPlayingLevel();
 	String mapPath = LEVEL_DIR;
-	mapPath += gMapFileName;
+	mapPath += levelInfo.mapFile;
 
 	std::ifstream mapFS( mapPath.c_str() , std::ios::in );
 
@@ -571,16 +590,14 @@ void LevelStage::loadLevel()
 
 	mLevel->setupTerrain( mapWidth , mapHeight );
 
-	Player* player = mLevel->createPlayer();
-
 	TileMap& terrain = mLevel->getTerrain();
 
 	if ( mapFS.good() )
 	{
-		std::string linija_;
-		while(getline(mapFS,linija_))
+		std::string line;
+		while(getline(mapFS,line))
 		{
-			std::istringstream lstring(linija_,std::ios::in);
+			std::istringstream lstring(line,std::ios::in);
 			std::string token;
 			while( getline(lstring,token,' ') )
 			{
@@ -595,36 +612,25 @@ void LevelStage::loadLevel()
 					getline(lstring,token,' ');
 					int meta = atoi(token.c_str());
 
-					if ( terrain.checkRange( x , y ) )
+					if (Block::IsVaild(type) && terrain.checkRange( x , y ) )
 					{
 						Tile& tile = terrain.getData( x , y ); 
 						tile.id = type;
 						tile.meta = meta;
 					}
 				}
-				else if(token=="light")
+				else if (token == "object")
 				{
-					Vec2f pos;
-					Vec3f color;
-
-					getline(lstring,token,' ');
-					pos.x = atof(token.c_str());
-					getline(lstring,token,' ');
-					pos.y = atof(token.c_str());
-					getline(lstring,token,' ');
-					float radius=atof(token.c_str());
-					getline(lstring,token,' ');
-					float intensity=atof(token.c_str());
-					getline(lstring,token,' ');
-					color.x = atof(token.c_str());
-					getline(lstring,token,' ');
-					color.y = atof(token.c_str());
-					getline(lstring,token,' ');
-					color.z = atof(token.c_str());
-
-					LightObject* light = mLevel->createLight( pos , radius );
-					light->setColorParam( color ,intensity);
-					light->drawShadow = true;
+					getline(lstring, token, ' ');
+					LevelObject* obj = mLevel->spawnObjectByName(token.c_str(), Vec2f::Zero());
+					if (obj)
+					{
+						std::istreambuf_iterator<char> it(lstring) , end;
+						std::string propertyStr = { it , end };
+						TextPropEditor editor;
+						editor.setupPorp(*obj);
+						editor.importString(propertyStr.c_str());
+					}
 				}
 			}
 		}
@@ -632,16 +638,19 @@ void LevelStage::loadLevel()
 	}
 
 
+	Player* player = mLevel->createPlayer();
+
 	Vec2f posPlayer = Vec2f(0,0);
 
 	String levelPath = LEVEL_DIR;
-	levelPath += gLevelFileName;
+	levelPath += levelInfo.levelFile;
 
+#if 1
 	std::ifstream levelFS( levelPath.c_str() ,std::ios::in);
-	std::string linija;
-	while(getline(levelFS,linija))
+	std::string line;
+	while(getline(levelFS,line))
 	{
-		std::istringstream lstring(linija,std::ios::in);
+		std::istringstream lstring(line,std::ios::in);
 		std::string token;
 		while(getline(lstring,token,' '))
 		{			
@@ -653,7 +662,15 @@ void LevelStage::loadLevel()
 				float y=atof(token.c_str());
 				posPlayer=Vec2f(x,y);
 				player->setPos( posPlayer );
-			}	
+			}
+			else if (token == "Mode")
+			{
+				getline(lstring, token, ' ');
+				if (token == "Survival")
+				{
+					mMode.reset(new SurvivalMode);
+				}
+			}
 			else if(token=="weapon")
 			{
 				Vec2f pos;
@@ -689,13 +706,12 @@ void LevelStage::loadLevel()
 			}
 			else if(token=="music")
 			{
-				getline(lstring,token,' ');			
-#if USE_SFML
-				mMusic.openFromFile( token.c_str() );	
-				mMusic.setVolume(25);
-				mMusic.setLoop(true);
-				mMusic.play();
-#endif
+				getline(lstring,token,' ');
+				mMusic = getGame()->getSoundMgr()->addSound(token.c_str(), true);
+				if (mMusic)
+				{
+					mMusic->play(0.15 , true);
+				}
 			}
 			else if(token=="mob" || token == "object")
 			{
@@ -728,7 +744,7 @@ void LevelStage::loadLevel()
 				getline(lstring,token,' ');
 				act->spawnPos.y =atof(token.c_str());
 				getline(lstring,token,' ');	
-				act->className = token;
+				act->className.name = token;
 				trigger->addAction( act );
 
 				mLevel->addObject( trigger );
@@ -783,6 +799,7 @@ void LevelStage::loadLevel()
 		}
 	}
 	levelFS.close();
+#endif
 
 }
 

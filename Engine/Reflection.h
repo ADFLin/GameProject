@@ -525,20 +525,20 @@ namespace Reflection
 		template< typename T >
 		static auto Requires(T&) -> decltype
 		(
-			::TReflectEnumValueTraits<T>::GetValues()
+			REF_GET_ENUM_VALUES(T)
 		);
 	};
 
 	class PropertyCollector
 	{
 	public:
-		template< class T >
+		template< typename T >
 		void beginClass(char const* name)
 		{
 			mOwner->name = name;
 		}
 
-		template< typename T, typename Base >
+		template< typename T, typename TBase >
 		void addBaseClass()
 		{
 
@@ -584,7 +584,7 @@ namespace Reflection
 			return property;
 		}
 		
-		template< class T, typename P >
+		template< typename T, typename P >
 		void addProperty(P (T::*memberPtr), char const* name)
 		{
 			PropertyBase* property = CreateProperty<P>();
@@ -596,7 +596,7 @@ namespace Reflection
 			}
 		}
 
-		template< class T, typename P, typename ...TMeta >
+		template< typename T, typename P, typename ...TMeta >
 		void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta)
 		{
 			PropertyBase* property = CreateProperty<P>();
@@ -626,7 +626,7 @@ namespace Reflection
 		{
 			PropertyCollector collector;
 			collector.mOwner = &mStruct;
-			T::CollectReflection(collector);
+			REF_COLLECT_TYPE(T, collector);
 		}
 		StructType* getStruct() { return &mStruct; }
 		StructType mStruct;
@@ -647,7 +647,7 @@ namespace Reflection
 		{
 			using UnderlyingType = std::underlying_type_t<T>;
 			mEnum.underlyingType = PrimaryTypeTraits<UnderlyingType>::Type;
-			mEnum.values = TReflectEnumValueTraits<T>::GetValues();
+			mEnum.values = REF_GET_ENUM_VALUES(T);
 		}
 		EnumType* getEnum() { return &mEnum; }
 		EnumType mEnum;

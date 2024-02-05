@@ -1,0 +1,43 @@
+#include "ScreenVertexShader.sgc"
+
+#define RM_ALL        0
+#define RM_GEOMETRY   1
+#define RM_LINGHTING  2
+#define RM_NORMAL_MAP 3
+
+#ifndef RENDER_MODE
+#define RENDER_MODE RM_ALL
+#endif
+
+#if PIXEL_SHADER
+
+DEFINE_TEXTURE(Texture2D, TexGeometry);
+DEFINE_TEXTURE(Texture2D, TexLightmap);
+DEFINE_TEXTURE(Texture2D, TexNormal);
+
+uniform float3 ambientLight;
+
+PS_ENTRY_START(MainPS)
+	PS_INPUT_STRUCT(VSOutputParameters VSOutput, 0)
+	PS_OUTPUT(float4 OutColor, 0)
+PS_ENTRY_END(MainPS)
+{
+
+#if RENDER_MODE == RM_ALL
+	float3 baseColor = TEXTURE_SAMPLE(TexGeometry, VSOutput.UVs).rgb;
+	float3 lignting = TEXTURE_SAMPLE(TexLightmap, VSOutput.UVs).rgb;
+	float3 color = baseColor * (4 * lignting);
+	OutColor = float4(color, 1 );
+#elif RENDER_MODE == RM_GEOMETRY
+	OutColor = TEXTURE_SAMPLE(TexGeometry, VSOutput.UVs);
+#elif RENDER_MODE == RM_LINGHTING
+	OutColor = TEXTURE_SAMPLE(TexLightmap, VSOutput.UVs);
+#elif RENDER_MODE == RM_NORMAL_MAP
+	OutColor = TEXTURE_SAMPLE(TexNormal, VSOutput.UVs);
+#endif
+
+
+
+}
+
+#endif // PIXEL_SHADER

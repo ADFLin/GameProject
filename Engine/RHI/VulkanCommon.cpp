@@ -272,6 +272,7 @@ namespace Render
 		case ESampler::Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		case ESampler::Mirror: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 		case ESampler::Border: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		case ESampler::MirrorOnce: return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
 		}
 
 		return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -313,9 +314,9 @@ namespace Render
 	VkImageUsageFlags FVulkanTexture::TranslateUsage(uint32 createFlags)
 	{
 		VkImageUsageFlags result = VK_IMAGE_USAGE_SAMPLED_BIT;
-		if (createFlags & TextureCreationFlag::TCF_RenderTarget)
+		if (createFlags & TCF_RenderTarget)
 			result |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		if (createFlags & TextureCreationFlag::TCF_CreateUAV)
+		if (createFlags & TCF_CreateUAV)
 			result |= VK_IMAGE_USAGE_STORAGE_BIT;
 
 		return result;

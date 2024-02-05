@@ -3,8 +3,6 @@
 namespace Life
 {
 	constexpr int LINESIZE = 20000;
-	constexpr int CR = 13;
-	constexpr int LF = 10;
 	constexpr int MAXRULESIZE = 2000; // maximum number of characters in a rule
 
 	const char *SETCELLERROR = "Impossible; set cell error for state 1";
@@ -19,14 +17,14 @@ namespace Life
 				return NULL;
 			switch (ch)
 			{
-			case CR:
-				prevchar = CR;
+			case '\r':
+				prevchar = '\r';
 				line[i] = 0;
 				return line;
-			case LF:
-				if (prevchar != CR)
+			case '\n':
+				if (prevchar != '\r')
 				{
-					prevchar = LF;
+					prevchar = '\n';
 					line[i] = 0;
 					return line;
 				}

@@ -7,74 +7,92 @@
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
 
-#define STATIC_CHECK_DATA_MAP( NAME , DATA_MAP , MEMBER )\
-	constexpr bool Check##NAME##Valid_R(int i, int size)\
-	{\
-		return (i == size) ? true : ((i == (int)DATA_MAP[i].MEMBER) && Check##NAME##Valid_R(i + 1, size));\
-	}\
-	constexpr bool Check##NAME##Valid()\
-	{\
-		return Check##NAME##Valid_R(0, ARRAY_SIZE(DATA_MAP));\
-	}\
-	static_assert(Check##NAME##Valid(), "Check "#NAME" Failed")
+
+namespace Render
+{
+	template< typename TMapInfo , int Num >
+	constexpr bool CheckMapInfoVaild(TMapInfo (&infoList)[Num])
+	{
+		for (int i = 0; i < Num; ++i)
+		{
+			if ((int)infoList[i].src != i)
+				return false;
+		}
+		return true;
+	}
 
 #if _DEBUG
-#define DATA_OP( S , D ) { S , D },
-#else
-#define DATA_OP( S , D ) { D },
-#endif
 
+#define DEFINE_MAP_INFO(NAME, SRC , DST)\
+	struct NAME\
+	{\
+		SRC src;\
+		DST dest;\
+	};
+
+#define DATA_OP( S , D ) { S , D },
+#define DEFINE_DATA_MAP( TYPE , NAME , LIST )\
+	static constexpr TYPE NAME[]\
+	{\
+		LIST(DATA_OP)\
+	};\
+	static_assert(CheckMapInfoVaild(NAME), "Check "#NAME" Failed");
+
+#else
+
+#define DEFINE_MAP_INFO(NAME, SRC , DST)\
+	struct NAME\
+	{\
+		DST dest;\
+	};
+
+#define DATA_OP( S , D ) { D },
 #define DEFINE_DATA_MAP( TYPE , NAME , LIST )\
 	static constexpr TYPE NAME[]\
 	{\
 		LIST(DATA_OP)\
 	}
 
+#endif
 
+	DEFINE_MAP_INFO(BlendFactorMapInfoD3D12, EBlend::Factor, D3D12_BLEND);
 
-namespace Render
-{
+#define BLEND_FACTOR_LIST_D3D12( op )\
+	op(EBlend::Zero, D3D12_BLEND_ZERO)\
+	op(EBlend::One, D3D12_BLEND_ONE)\
+	op(EBlend::SrcAlpha, D3D12_BLEND_SRC_ALPHA)\
+	op(EBlend::OneMinusSrcAlpha, D3D12_BLEND_INV_SRC_ALPHA)\
+	op(EBlend::DestAlpha, D3D12_BLEND_DEST_ALPHA)\
+	op(EBlend::OneMinusDestAlpha, D3D12_BLEND_INV_DEST_ALPHA)\
+	op(EBlend::SrcColor, D3D12_BLEND_SRC_COLOR)\
+	op(EBlend::OneMinusSrcColor, D3D12_BLEND_INV_SRC_COLOR)\
+	op(EBlend::DestColor, D3D12_BLEND_DEST_COLOR)\
+	op(EBlend::OneMinusDestColor, D3D12_BLEND_INV_DEST_COLOR)
+
+	DEFINE_DATA_MAP(BlendFactorMapInfoD3D12, GBlendFactorMapD3D12, BLEND_FACTOR_LIST_D3D12);
+
 	D3D12_BLEND D3D12Translate::To(EBlend::Factor factor)
 	{
-		switch( factor )
-		{
-		case EBlend::One: return D3D12_BLEND_ONE;
-		case EBlend::Zero: return D3D12_BLEND_ZERO;
-		case EBlend::SrcAlpha: return D3D12_BLEND_SRC_ALPHA;
-		case EBlend::OneMinusSrcAlpha: return D3D12_BLEND_INV_SRC_ALPHA;
-		case EBlend::DestAlpha: return D3D12_BLEND_DEST_ALPHA;
-		case EBlend::OneMinusDestAlpha: return D3D12_BLEND_INV_DEST_ALPHA;
-		case EBlend::SrcColor: return  D3D12_BLEND_SRC_COLOR;
-		case EBlend::OneMinusSrcColor: return D3D12_BLEND_INV_SRC_COLOR;
-		case EBlend::DestColor: return D3D12_BLEND_DEST_COLOR;
-		case EBlend::OneMinusDestColor: return D3D12_BLEND_INV_DEST_COLOR;
-		default:
-			break;
-		}
-		return D3D12_BLEND_ONE;
+		return GBlendFactorMapD3D12[factor].dest;
 	}
+
+	DEFINE_MAP_INFO(BlendOpMapInfoD3D12, EBlend::Operation, D3D12_BLEND_OP);
+
+#define BLEND_OP_LIST_D3D12( op )\
+	op(EBlend::Add, D3D12_BLEND_OP_ADD)\
+	op(EBlend::Sub, D3D12_BLEND_OP_SUBTRACT)\
+	op(EBlend::ReverseSub, D3D12_BLEND_OP_REV_SUBTRACT)\
+	op(EBlend::Max, D3D12_BLEND_OP_MAX)\
+	op(EBlend::Min, D3D12_BLEND_OP_MIN)
+
+	DEFINE_DATA_MAP(BlendOpMapInfoD3D12, GBlendOpMapD3D12, BLEND_OP_LIST_D3D12);
 
 	D3D12_BLEND_OP D3D12Translate::To(EBlend::Operation op)
 	{
-		switch( op )
-		{
-		case EBlend::Add: return D3D12_BLEND_OP_ADD;
-		case EBlend::Sub: return D3D12_BLEND_OP_SUBTRACT;
-		case EBlend::ReverseSub: return D3D12_BLEND_OP_REV_SUBTRACT;
-		case EBlend::Max: return D3D12_BLEND_OP_MAX;
-		case EBlend::Min: return D3D12_BLEND_OP_MIN;
-		}
-		return D3D12_BLEND_OP_ADD;
+		return GBlendOpMapD3D12[op].dest;
 	}
 
-	struct CullModeMapInfoD3D12
-	{
-#if _DEBUG
-		ECullMode src;
-#endif
-		D3D12_CULL_MODE   dest;
-	};
-
+	DEFINE_MAP_INFO(CullModeMapInfoD3D12, ECullMode, D3D12_CULL_MODE);
 
 #define CULL_MODE_LIST_D3D12( op )\
 	op(ECullMode::None, D3D12_CULL_MODE_NONE)\
@@ -82,9 +100,7 @@ namespace Render
 	op(ECullMode::Back, D3D12_CULL_MODE_BACK)
 
 	DEFINE_DATA_MAP(CullModeMapInfoD3D12, GCullModeMapD3D12, CULL_MODE_LIST_D3D12);
-#if _DEBUG
-	STATIC_CHECK_DATA_MAP(CullModeMapValid, GCullModeMapD3D12, src);
-#endif
+
 
 	D3D12_CULL_MODE D3D12Translate::To(ECullMode mode)
 	{
@@ -121,49 +137,59 @@ namespace Render
 		return D3D12_FILTER_MIN_MAG_MIP_POINT;
 	}
 
+	DEFINE_MAP_INFO(AddressModeMapInfoD3D12, ESampler::AddressMode, D3D12_TEXTURE_ADDRESS_MODE);
+
+#define TEX_ADDRESS_MODE_LIST_D3D12( op )\
+	op(ESampler::Warp, D3D12_TEXTURE_ADDRESS_MODE_WRAP)\
+	op(ESampler::Mirror, D3D12_TEXTURE_ADDRESS_MODE_MIRROR)\
+	op(ESampler::Clamp, D3D12_TEXTURE_ADDRESS_MODE_CLAMP)\
+	op(ESampler::Border, D3D12_TEXTURE_ADDRESS_MODE_BORDER)\
+	op(ESampler::MirrorOnce, D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE)
+
+	DEFINE_DATA_MAP(AddressModeMapInfoD3D12, GAddressModeMapInfoD3D12, TEX_ADDRESS_MODE_LIST_D3D12);
 
 	D3D12_TEXTURE_ADDRESS_MODE D3D12Translate::To(ESampler::AddressMode mode)
 	{
-		switch( mode )
-		{
-		case ESampler::Warp:   return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		case ESampler::Clamp:  return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-		case ESampler::Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-		case ESampler::Border: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		}
-		return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		return GAddressModeMapInfoD3D12[mode].dest;
 	}
+
+	DEFINE_MAP_INFO(ComparisonFuncMapInfoD3D12, ECompareFunc, D3D12_COMPARISON_FUNC);
+
+#define COMPARISON_FUNC_LIST_D3D12( op )\
+	op(ECompareFunc::Never, D3D12_COMPARISON_FUNC_NEVER)\
+	op(ECompareFunc::Less, D3D12_COMPARISON_FUNC_LESS)\
+	op(ECompareFunc::Equal, D3D12_COMPARISON_FUNC_EQUAL)\
+	op(ECompareFunc::LessEqual, D3D12_COMPARISON_FUNC_LESS_EQUAL)\
+	op(ECompareFunc::Greater, D3D12_COMPARISON_FUNC_GREATER)\
+	op(ECompareFunc::NotEqual, D3D12_COMPARISON_FUNC_NOT_EQUAL)\
+	op(ECompareFunc::GreaterEqual, D3D12_COMPARISON_FUNC_GREATER_EQUAL)\
+	op(ECompareFunc::Always, D3D12_COMPARISON_FUNC_ALWAYS)
+
+	DEFINE_DATA_MAP(ComparisonFuncMapInfoD3D12, GComparisonFuncMapInfoD3D12, COMPARISON_FUNC_LIST_D3D12);
+
 
 	D3D12_COMPARISON_FUNC D3D12Translate::To(ECompareFunc func)
 	{
-		switch( func )
-		{
-		case ECompareFunc::Never:        return D3D12_COMPARISON_FUNC_NEVER;
-		case ECompareFunc::Less:         return D3D12_COMPARISON_FUNC_LESS;
-		case ECompareFunc::Equal:        return D3D12_COMPARISON_FUNC_EQUAL;
-		case ECompareFunc::NotEqual:     return D3D12_COMPARISON_FUNC_NOT_EQUAL;
-		case ECompareFunc::LessEqual:    return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-		case ECompareFunc::Greater:      return D3D12_COMPARISON_FUNC_GREATER;
-		case ECompareFunc::GreaterEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-		case ECompareFunc::Always:       return D3D12_COMPARISON_FUNC_ALWAYS;
-		}
-		return D3D12_COMPARISON_FUNC_NEVER;
+		return GComparisonFuncMapInfoD3D12[uint(func)].dest;
 	}
+
+	DEFINE_MAP_INFO(StencilOpMapInfoD3D12, EStencil, D3D12_STENCIL_OP);
+
+#define STENCIL_OP_LIST_D3D11( op )\
+	op(EStencil::Keep, D3D12_STENCIL_OP_KEEP)\
+	op(EStencil::Zero, D3D12_STENCIL_OP_ZERO)\
+	op(EStencil::Replace, D3D12_STENCIL_OP_REPLACE)\
+	op(EStencil::Incr, D3D12_STENCIL_OP_INCR_SAT)\
+	op(EStencil::IncrWarp, D3D12_STENCIL_OP_INCR)\
+	op(EStencil::Decr, D3D12_STENCIL_OP_DECR_SAT)\
+	op(EStencil::DecrWarp, D3D12_STENCIL_OP_DECR)\
+	op(EStencil::Invert, D3D12_STENCIL_OP_INVERT)
+
+	DEFINE_DATA_MAP(StencilOpMapInfoD3D12, GStencilOpMapD3D12, STENCIL_OP_LIST_D3D11);
 
 	D3D12_STENCIL_OP D3D12Translate::To(EStencil op)
 	{
-		switch( op )
-		{
-		case EStencil::Keep:    return D3D12_STENCIL_OP_KEEP;
-		case EStencil::Zero:    return D3D12_STENCIL_OP_ZERO;
-		case EStencil::Replace: return D3D12_STENCIL_OP_REPLACE;
-		case EStencil::Incr:    return D3D12_STENCIL_OP_INCR_SAT;
-		case EStencil::IncrWarp:return D3D12_STENCIL_OP_INCR;
-		case EStencil::Decr:    return D3D12_STENCIL_OP_DECR_SAT;
-		case EStencil::DecrWarp:return D3D12_STENCIL_OP_DECR;
-		case EStencil::Invert:  return D3D12_STENCIL_OP_INVERT;
-		}
-		return D3D12_STENCIL_OP_KEEP;
+		return GStencilOpMapD3D12[uint(op)].dest;
 	}
 
 	D3D12_SHADER_VISIBILITY D3D12Translate::ToVisibiltiy(EShader::Type type)
@@ -218,7 +244,7 @@ namespace Render
 			auto& state = mRenderTargetsStates[i];
 			state.numColorBuffers = 1;
 			VERIFY_D3D_RESULT_RETURN_FALSE(mResource->GetBuffer(i, IID_PPV_ARGS(&state.colorBuffers[0].resource)));
-			state.colorBuffers[0].RTVHandle = D3D12DescriptorHeapPool::Get().allocRTV(state.colorBuffers[0].resource, nullptr);
+			state.colorBuffers[0].RTVHandle = D3D12DescriptorHeapPool::Alloc<D3D12_RENDER_TARGET_VIEW_DESC>(state.colorBuffers[0].resource, nullptr);
 			D3D12_RESOURCE_DESC desc = state.colorBuffers[0].resource->GetDesc();
 			state.colorBuffers[0].format = desc.Format;
 		}
@@ -346,7 +372,17 @@ namespace Render
 		mResource = resource.detach();
 	}
 
+	D3D12Texture3D::D3D12Texture3D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource)
+		:TD3D12Texture< RHITexture3D >(desc)
+	{
+		mResource = resource.detach();
+	}
 
+	D3D12TextureCube::D3D12TextureCube(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource)
+		:TD3D12Texture< RHITextureCube >(desc)
+	{
+		mResource = resource.detach();
+	}
 
 	D3D12SamplerState::D3D12SamplerState(SamplerStateInitializer const& initializer)
 	{
@@ -362,7 +398,7 @@ namespace Render
 		desc.MaxLOD = D3D12_FLOAT32_MAX;
 
 		mDesc = desc;
-		mHandle = D3D12DescriptorHeapPool::Get().allocSampler(desc);
+		mHandle = D3D12DescriptorHeapPool::Alloc(desc);
 	}
 
 

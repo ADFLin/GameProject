@@ -274,6 +274,16 @@ namespace Life
 		};
 	};
 
+	struct PatternData
+	{
+		TArray< Vec2i > cellList;
+
+		template< class OP >
+		void serialize(OP&& op)
+		{
+			op & cellList;
+		}
+	};
 
 	class TestStage : public StageBase
 		            , public IGameRenderSetup
@@ -286,6 +296,8 @@ namespace Life
 		float accEvolateCount = 0.0;
 		IAlgorithm* mAlgorithm = nullptr;
 		bool bRunEvolate = false;
+		bool bResotoreState = false;
+		PatternData restoreState;
 		Viewport mViewport;
 
 
@@ -388,6 +400,9 @@ namespace Life
 
 
 		void preShutdownRenderSystem(bool bReInit = false) override;
+
+
+		ERenderSystem getDefaultRenderSystem() override;
 
 	protected:
 	};

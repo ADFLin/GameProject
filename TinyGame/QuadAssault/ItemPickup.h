@@ -22,9 +22,6 @@ public:
 
 protected:
 	ColBody mBody;
-
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 

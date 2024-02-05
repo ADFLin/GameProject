@@ -58,7 +58,7 @@ public:
 		if( !fs.open(filePath) )
 		{
 			auto dirView = FFileUtility::GetDirectory(filePath);
-			if( !FFileSystem::CreateDirectorySequence(dirView.toCString()) )
+			if( !FFileSystem::CreateDirectorySequence(dirView.toMutableCString()) )
 			{
 				return false;
 			}
@@ -88,7 +88,7 @@ public:
 		if( !fs.open(filePath) )
 		{
 			auto dirView = FFileUtility::GetDirectory(filePath);
-			if( !FFileSystem::CreateDirectorySequence(dirView.toCString()) )
+			if( !FFileSystem::CreateDirectorySequence(dirView.toMutableCString()) )
 			{
 				return false;
 			}

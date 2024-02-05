@@ -712,12 +712,6 @@ namespace CPP
 
 }
 
-
-template<>
-struct TBitwiseReallocatable<CPP::Preprocessor::InputEntry>
-{
-	static constexpr int Value = 0;
-};
-
+BITWISE_RELLOCATABLE_FAIL(CPP::Preprocessor::InputEntry);
 
 #endif // CPreprocessor_H_09DCE0C0_9F70_44E8_A8B4_1C2DF2BC8685

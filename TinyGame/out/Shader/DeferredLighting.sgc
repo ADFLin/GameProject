@@ -180,6 +180,8 @@ PS_ENTRY_START(LightingPassPS)
 	//OutColor = float4(shadow, 1);
 
 	OutColor = float4(lighting, 1);
+	float d = GBuffer.sceneDepth / 1000;
+	OutColor = float4(d, d, d, 1);
 }
 
 #endif

@@ -90,6 +90,24 @@ namespace Render
 			return  result;
 		}
 
+		static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, float theta, float zoom, bool bFlipX = false)
+		{
+			if (bFlipX)
+				return TranslateThenScale(-lookPos, Vector2(-zoom, zoom)) * RenderTransform2D(theta, 0.5 * screenSize);
+			else
+				return TranslateThenScale(-lookPos, Vector2(zoom, zoom)) * RenderTransform2D(theta, 0.5 * screenSize);
+		}
+
+		static RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 const& upDir, float zoom, bool bFlipX = false)
+		{
+			Vector2 const screenUpDir = Vector2(0, -1);
+			float theta = Math::ACos(screenUpDir.dot(upDir));
+			if (screenUpDir.cross(upDir) < 0)
+				theta = -theta;
+
+			return LookAt(screenSize, lookPos, theta, zoom, bFlipX);
+		}
+
 		FORCEINLINE RenderTransform2D operator * (RenderTransform2D const& rhs) const
 		{
 			//[ M  0 ] [ Mr 0 ]  =  [ M * Mr        0 ]
@@ -128,13 +146,17 @@ namespace Render
 
 		FORCEINLINE Vector2 transformInvVectorAssumeNoScale(Vector2 const& v) const
 		{
+			CHECK(!hadSacled());
 			return M.mul(v);
 		}
 
 		FORCEINLINE Vector2 transformInvPositionAssumeNoScale(Vector2 const& pos) const
 		{
+			CHECK(!hadSacled());
 			return M.mul(pos - P);
 		}
+
+
 
 		RenderTransform2D inverse() const
 		{
@@ -148,10 +170,16 @@ namespace Render
 			return result;
 		}
 
-		bool   isUniformScale() const
+		bool isUniformScale() const
 		{
 			Vector2 scale = getScale();
 			return Math::Abs(1 - (scale.x / scale.y)) < 1.0e-5;
+		}
+
+		bool hadSacled() const
+		{
+			Vector2 scale = getScale();
+			return Math::Abs(scale.x - 1) > 1e-5 || Math::Abs(scale.x - 1) > 1e-5;
 		}
 
 		Vector2 getScale() const

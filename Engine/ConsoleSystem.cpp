@@ -410,16 +410,19 @@ bool ConsoleSystem::ExecuteContext::parseText()
 {
 	numArgs = 0;
 	numArgUsed = 0;
-	StringView token;
+
+	buffer.resize(FCString::Strlen(text) + 1);
 
 	char const* tempText = text;
+	StringView token;
 	if (!FStringParse::StringToken(tempText, " ", token))
 		return false;
 
-	FCString::CopyN_Unsafe(buffer, token.data(), token.length());
+	FCString::CopyN_Unsafe(buffer.data(), token.data(), token.length());
 	buffer[token.length()] = 0;
-	name = buffer;
-	numArgs = FCommandLine::Parse(tempText, buffer + token.length() + 1, args, ARRAY_SIZE(args));
+	name = buffer.data();
+	int offset = token.length() + 1;
+	numArgs = FCommandLine::Parse(tempText, buffer.data() + offset, buffer.size() - offset, args, ARRAY_SIZE(args));
 
 	if (numArgs < 0)
 		return false;

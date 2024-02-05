@@ -42,9 +42,6 @@ protected:
 	float   mDamage;
 	float   mSpeed;
 	ColBody mBody;
-
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 

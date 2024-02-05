@@ -132,11 +132,12 @@ bool MenuStage::onInit()
 	}
 	file.close();
 
+	auto& levelInfo = IGame::Get().getPlayingLevel();
 
 	std::ifstream fs( LEVEL_DIR LEVEL_LOCK_FILE );	
-	for(int i=0; i<MAX_LEVEL_NUM; i++)
+	for(int i=0; i< MAX_LEVEL_NUM; i++)
 	{
-		fs >> gLevelEnabled[i];	
+		fs >> levelInfo.levelStates[i];
 	}
 	fs.close();
 	for(int i=0; i<mLevels.size(); i++)
@@ -178,10 +179,8 @@ void MenuStage::onExit()
 
 void MenuStage::onUpdate(float deltaT)
 {
-	getGame()->procSystemEvent();
 	mScreenFade.update( deltaT );
 }
-
 
 void MenuStage::onWidgetEvent( int event , int id , QWidget* sender )
 {
@@ -190,9 +189,12 @@ void MenuStage::onWidgetEvent( int event , int id , QWidget* sender )
 	case UI_LEVEL:
 		{
 			LevelInfo* info = static_cast< LevelInfo* >( sender->getUserData() );
-			gLevelFileName   = info->levelFile;
-			gMapFileName     = info->mapFile;
-			gIdxCurLevel     = info->index;
+
+			auto& levelInfo = IGame::Get().getPlayingLevel();
+
+			levelInfo.mapFile    = info->mapFile;
+			levelInfo.levelFile  = info->levelFile;
+			levelInfo.levelIndex = info->index;
 			getGame()->addStage(new LevelStage(), true);
 		}
 		break;
@@ -264,7 +266,7 @@ void MenuStage::onRender()
 		break;
 	case MS_ABOUT:
 		g.drawTexture(*texBG2->resource, Vec2f(0, 0), getGame()->getScreenSize());
-		//getRenderSystem()->drawText(mTextAbout, Vec2i(32, 32), TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
+		getRenderSystem()->drawText(mTextAbout, Vec2i(32, 32), TEXT_SIDE_LEFT | TEXT_SIDE_TOP);
 		break;
 	}
 
@@ -275,7 +277,7 @@ void MenuStage::onRender()
 	g.endBlend();
 
 
-	//mScreenFade.render();
+	mScreenFade.render(g);
 	g.endRender();
 
 }

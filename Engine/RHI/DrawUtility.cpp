@@ -223,9 +223,9 @@ namespace Render
 	{
 		static Vector3 const v[12] =
 		{
-			Vector3(0,0,0),Vector3(length,0,0), Vector3(1,0,0),Vector3(1,0,0),
-			Vector3(0,0,0),Vector3(0,length,0), Vector3(0,1,0),Vector3(0,1,0),
-			Vector3(0,0,0),Vector3(0,0,length), Vector3(0,0,1),Vector3(0,0,1),
+			Vector3(0,0,0),Vector3(1,0,0), Vector3(length,0,0),Vector3(1,0,0),
+			Vector3(0,0,0),Vector3(0,1,0), Vector3(0,length,0),Vector3(0,1,0),
+			Vector3(0,0,0),Vector3(0,0,1), Vector3(0,0,length),Vector3(0,0,1),
 		};
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, EPrimitive::LineList, v, 6, 2 * sizeof(Vector3));
 	}
@@ -251,10 +251,10 @@ namespace Render
 		float y2 = y + height;
 		VertexXY_T1 vertices[] =
 		{
-			{ Vector2(x , y ) , Vector2(0,0) },
-			{ Vector2(x2 , y ) , Vector2(1,0) },
-			{ Vector2(x2 , y2 ) , Vector2(1,1) },
-			{ Vector2(x , y2 ) , Vector2(0,1) },
+			{ Vector2(x, y)   ,Vector2(0,0) },
+			{ Vector2(x2, y)  ,Vector2(1,0) },
+			{ Vector2(x2, y2) ,Vector2(1,1) },
+			{ Vector2(x, y2)  ,Vector2(0,1) },
 		};
 
 		TRenderRT< RTVF_XY_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, GScreenIndices32, 6);
@@ -264,10 +264,10 @@ namespace Render
 	{
 		VertexXY_T1 vertices[] =
 		{
-			{ Vector2(0 , 0) , Vector2(0,0) },
-			{ Vector2(width , 0) , Vector2(1,0) },
-			{ Vector2(width , height) , Vector2(1,1) },
-			{ Vector2(0 , height) , Vector2(0,1) },
+			{ Vector2(0, 0)          ,Vector2(0,0) },
+			{ Vector2(width, 0)      ,Vector2(1,0) },
+			{ Vector2(width, height) ,Vector2(1,1) },
+			{ Vector2(0, height)     ,Vector2(0,1) },
 		};
 		TRenderRT< RTVF_XY_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, vertices, 4, GScreenIndices32, 6);
 	}
@@ -305,10 +305,10 @@ namespace Render
 	{
 		VertexXYZW_T1 screenVertices[] =
 		{
-			{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
-			{ Vector4(-1, 1, 0 , 1) , Vector2(0,vSize) },
-			{ Vector4(1, 1 , 0 , 1) , Vector2(uSize,vSize) },
-			{ Vector4(1 , -1 , 0 , 1) , Vector2(uSize,0) },
+			{ Vector4(-1 ,-1 ,0 ,1), Vector2(0,0) },
+			{ Vector4(-1 ,1 ,0 ,1), Vector2(0,vSize) },
+			{ Vector4(1 ,1 ,0 ,1), Vector2(uSize,vSize) },
+			{ Vector4(1 ,-1 ,0 ,1), Vector2(uSize,0) },
 		};
 		TRenderRT< RTVF_XYZW_T2 >::DrawIndexed(commandList, EPrimitive::TriangleList, screenVertices, 4, GScreenIndices32, 6);
 	}
@@ -769,7 +769,9 @@ namespace Render
 	{
 		TIME_SCOPE("ShaderHelper Init");
 #if USE_SEPARATE_SHADER
-		VERIFY_RETURN_FALSE(mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(true));
+		ScreenVS::PermutationDomain domainVector;
+		domainVector.set<ScreenVS::UseTexCoord>(true);
+		VERIFY_RETURN_FALSE(mScreenVS = ShaderManager::Get().getGlobalShaderT<ScreenVS>(domainVector, true));
 		VERIFY_RETURN_FALSE(mCopyTexturePS = ShaderManager::Get().getGlobalShaderT<CopyTexturePS>(true));
 		VERIFY_RETURN_FALSE(mCopyTextureMaskPS = ShaderManager::Get().getGlobalShaderT<CopyTextureMaskPS>(true));
 		VERIFY_RETURN_FALSE(mCopyTextureBiasPS = ShaderManager::Get().getGlobalShaderT<CopyTextureBiasPS>(true));
@@ -781,7 +783,7 @@ namespace Render
 		
 		VERIFY_RETURN_FALSE(mProgMappingTextureColor = ShaderManager::Get().getGlobalShaderT<MappingTextureColorProgram>(true));
 		mFrameBuffer = RHICreateFrameBuffer();
-
+		CopyTextureCS* shader = ShaderManager::Get().getGlobalShaderT<CopyTextureCS>();
 		return true;
 	}
 

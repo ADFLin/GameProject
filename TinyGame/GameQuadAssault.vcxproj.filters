@@ -47,9 +47,6 @@
     <ClCompile Include="QuadAssault\PlatformWin.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
-    <ClCompile Include="QuadAssault\PlatformSFML.cpp">
-      <Filter>Platform</Filter>
-    </ClCompile>
     <ClCompile Include="QuadAssault\RenderEngine.cpp">
       <Filter>Render</Filter>
     </ClCompile>
@@ -69,14 +66,8 @@
     <ClCompile Include="QuadAssault\DevStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="QuadAssault\GBuffer.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
     <ClCompile Include="QuadAssault\GameStage.cpp">
       <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadAssault\Laser.cpp">
-      <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="QuadAssault\LaserBullet.cpp">
       <Filter>Game</Filter>
@@ -85,9 +76,6 @@
       <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="QuadAssault\Particle.cpp">
-      <Filter>Game</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadAssault\Plasma.cpp">
       <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="QuadAssault\PlasmaBullet.cpp">
@@ -112,9 +100,6 @@
       <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="QuadAssault\LightObject.cpp">
-      <Filter>Game</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadAssault\Minigun.cpp">
       <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="QuadAssault\MinigunBullet.cpp">
@@ -164,6 +149,18 @@
     </ClCompile>
     <ClCompile Include="QuadAssault\BlockRender.cpp">
       <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\SurvivalMode.cpp">
+      <Filter>Game\Mode</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Plasma.cpp">
+      <Filter>Game\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Minigun.cpp">
+      <Filter>Game\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\Laser.cpp">
+      <Filter>Game\Weapon</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -255,9 +252,6 @@
     <ClInclude Include="QuadAssault\PlatformWin.h">
       <Filter>Platform</Filter>
     </ClInclude>
-    <ClInclude Include="QuadAssault\PlatformSFML.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
     <ClInclude Include="QuadAssault\RenderEngine.h">
       <Filter>Render</Filter>
     </ClInclude>
@@ -280,14 +274,8 @@
     <ClInclude Include="QuadAssault\DevStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
-    <ClInclude Include="QuadAssault\GBuffer.h">
-      <Filter>Render</Filter>
-    </ClInclude>
     <ClInclude Include="QuadAssault\GameStage.h">
       <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadAssault\Laser.h">
-      <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="QuadAssault\LaserBullet.h">
       <Filter>Game</Filter>
@@ -296,9 +284,6 @@
       <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="QuadAssault\Particle.h">
-      <Filter>Game</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadAssault\Plasma.h">
       <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="QuadAssault\PlasmaBullet.h">
@@ -323,9 +308,6 @@
       <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="QuadAssault\LightObject.h">
-      <Filter>Game</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadAssault\Minigun.h">
       <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="QuadAssault\MinigunMob.h">
@@ -376,6 +358,18 @@
     <ClInclude Include="QuadAssault\EditorWidget.h">
       <Filter>Editor</Filter>
     </ClInclude>
+    <ClInclude Include="QuadAssault\SurvivalMode.h">
+      <Filter>Game\Mode</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Plasma.h">
+      <Filter>Game\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Minigun.h">
+      <Filter>Game\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadAssault\Laser.h">
+      <Filter>Game\Weapon</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="QuadAssault\GPL.txt">
@@ -383,12 +377,6 @@
     </Text>
     <Text Include="QuadAssault\Readme.txt">
       <Filter>Core</Filter>
-    </Text>
-    <Text Include="out\QuadAssault\shader\NormalFS.txt">
-      <Filter>Shader</Filter>
-    </Text>
-    <Text Include="out\QuadAssault\shader\NormalVS.txt">
-      <Filter>Shader</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
@@ -413,54 +401,27 @@
     <Filter Include="Editor">
       <UniqueIdentifier>{3d116533-b682-4ea3-8949-6c7eb3282cd0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Game\Mode">
+      <UniqueIdentifier>{c515797a-5d5d-4c77-8e89-4a5433be9689}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game\Weapon">
+      <UniqueIdentifier>{697e70d8-bbbd-49a9-872b-ba723f5bcec9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="out\QuadAssault\shader\GeomDefaultVS.sgc">
+    <None Include="out\Shader\QuadAssault\QBasePass.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\QuadAssault\shader\SceneFS.sgc">
+    <None Include="out\Shader\QuadAssault\QGlow.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\QuadAssault\shader\LightFS.sgc">
+    <None Include="out\Shader\QuadAssault\QLighting.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\QuadAssault\shader\LightVS.sgc">
+    <None Include="out\Shader\QuadAssault\QScene.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\QuadAssault\shader\SceneGeometryFS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\SceneLightingFS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\SceneVS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\GeomDefaultFS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\LightingPointVS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\LightingPointFS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\LightingGlowVS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\LightingGlowFS.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\QBasePass.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\QLighting.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\QScene.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\QuadAssault\shader\QGlow.sgc">
+    <None Include="out\Shader\QuadAssault\QShadow.sgc">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

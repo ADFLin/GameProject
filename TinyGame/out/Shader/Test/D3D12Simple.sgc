@@ -8,6 +8,13 @@ struct PSInput
 	float2 uv : TEXCOORD1;
 };
 
+struct ColorBufferData
+{
+	float3 color;
+};
+
+DEFINE_STRUCTURED_BUFFER(ColorBufferData, Colors);
+
 #if VERTEX_SHADER
 float4 Values;
 PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_COLOR, float2 uv : ATTRIBUTE_TEXCOORD, uint SvIntanceID : SV_InstanceID)
@@ -20,7 +27,7 @@ PSInput MainVS(float3 position : ATTRIBUTE_POSITION, float4 color : ATTRIBUTE_CO
 	result.position = mul( View.worldToClip , float4(pos, 1) );
 	result.color = color;
 	result.uv = uv;
-
+	result.color = float4( Colors[0].color , 1);
 	return result;
 }
 #endif
@@ -50,6 +57,7 @@ void MainPS(PSInput input, out float4 ColorA : SV_TARGET0, out float4 ColorB : S
 	float4 color = float4(tc.r,tc1.r, 1, 1);
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
 	ColorA = float4(c, 1);
+	ColorA = float4(input.color);
 	ColorB = float4(1,0,0, 1);
 }
 

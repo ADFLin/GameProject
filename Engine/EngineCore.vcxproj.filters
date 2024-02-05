@@ -125,6 +125,9 @@
     <Filter Include="Async">
       <UniqueIdentifier>{917e15b1-2fb6-4360-bcc5-479b80506252}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib">
+      <UniqueIdentifier>{2d3332b8-0cc0-456d-8556-f665aa37009a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConsoleSystem.cpp">
@@ -361,6 +364,9 @@
     <ClCompile Include="Memory\BuddyAllocator.cpp">
       <Filter>Memory</Filter>
     </ClCompile>
+    <ClCompile Include="..\OtherLib\minivorbis\minivorbis.c">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -409,9 +415,6 @@
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="StackParam.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="TGrid2D.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Tween.h">
@@ -523,9 +526,6 @@
       <Filter>Algo\AStar</Filter>
     </ClInclude>
     <ClInclude Include="AStarTile2D.h">
-      <Filter>Algo\AStar</Filter>
-    </ClInclude>
-    <ClInclude Include="MortonCode.h">
       <Filter>Algo\AStar</Filter>
     </ClInclude>
     <ClInclude Include="TileRegion.h">
@@ -983,6 +983,15 @@
     </ClInclude>
     <ClInclude Include="Memory\CacheAllocator.h">
       <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Asset\AssetDefitions.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\minivorbis\minivorbis.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="MortonCode.h">
+      <Filter>Algo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

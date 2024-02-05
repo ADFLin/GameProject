@@ -22,6 +22,7 @@ typedef std::string String;
 typedef InlineString< 512 > FString;
 
 #include "Holder.h"
+#include "RefCount.h"
 
 #include "Rect.h"
 #include "Core/Color.h"
@@ -69,6 +70,9 @@ class Block;
 class AreaTrigger;
 
 class Texture;
+
+class Sound;
+using SoundPtr = TRefCountPtr<Sound>;
 
 enum RenderPass
 {

@@ -143,6 +143,7 @@ void DoorBlock::renderGlow(PrimitiveDrawer& drawer, Tile const& tile )
 	default:
 		color = Color3f(1,1,1);
 	}
+
 	drawer.setGlow(mTex[TG_GLOW], color);
 	drawer.drawRect( tile.pos, gSimpleBlockSize);
 }
@@ -203,6 +204,15 @@ void Block::init(BlockId type)
 Block* Block::Get(BlockId id)
 {
 	return gBlockMap[id];
+}
+
+bool Block::IsVaild(BlockId id)
+{
+	if (0 <= id && id < ARRAY_SIZE(gBlockMap))
+	{
+		return gBlockMap[id] != nullptr;
+	}
+	return false;
 }
 
 void Block::Initialize()

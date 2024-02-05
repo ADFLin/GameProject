@@ -50,7 +50,8 @@ public:
 			mHook.unlink();
 	}
 private:
-	Vec2f    cachePos;
+	bool     bHadRendered;
+	Vec2f    cachedPos;
 	LinkHook mHook;
 	friend class Level;
 	friend class RenderEngine;	

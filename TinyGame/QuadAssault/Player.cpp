@@ -10,10 +10,32 @@
 
 #include "Message.h"
 #include "RenderUtility.h"
+#include "RHI/RHIGraphics2D.h"
 
 bool gPlayerGodPower = true;
+IMPL_OBJECT_CLASS(PlayerStart, OT_PLAYER_START, "PlayerStart")
 
-IMPL_OBJECT_CLASS( Player , OT_PLAYER , "Player" )
+void PlayerStart::renderDev(RHIGraphics2D& g, DevDrawMode mode)
+{
+	if (mode == DDM_EDIT)
+	{
+		Vec2f pos = getRenderPos();
+		Vec2f size = getSize();
+
+		g.beginBlend(0.2);
+		g.setBrush(Color3f(1, 0.4, 0.4));
+		g.enablePen(false);
+		g.drawRect(pos, size);
+		g.enablePen(true);
+		g.endBlend();
+		g.enableBrush(false);
+		g.setPen(Color3f(1, 0.2, 0.2));
+		g.drawRect(pos, size);
+		g.enableBrush(true);
+	}
+}
+
+IMPL_OBJECT_CLASS(Player, OT_PLAYER ,"Player")
 
 Vec2f const gWeaponSlotOffset[] = 
 {
@@ -67,6 +89,15 @@ void Player::onSpawn( unsigned flag )
 	mHeadLight.setColorParam(Vec3f(1.0, 1.0, 1.0), 16);
 	mHeadLight.drawShadow = true;
 	getLevel()->addLight( mHeadLight );
+
+
+	auto playerStart = getLevel()->findObjectFromClass<PlayerStart>();
+	if (playerStart)
+	{
+		setPos(playerStart->getPos());
+		setRotation(playerStart->getRotation());
+	}
+
 }
 
 void Player::onDestroy( unsigned flag )
@@ -121,9 +152,7 @@ void Player::update( Vec2f const& aimPos )
 
 		if( !haveShoot )
 		{
-			mEnergy += 10* TICK_TIME;
-			if(mEnergy>100.0)
-				mEnergy=100.0;		
+			mEnergy = Math::Min(mEnergy + 50 * TICK_TIME , getMaxEnergy());
 		}
 		haveShoot=false;
 
@@ -135,10 +164,7 @@ void Player::update( Vec2f const& aimPos )
 			e->setParam(256,3000,200);
 
 			getLevel()->playSound("explosion1.wav");		
-
-			Message* gameOverMsg = new Message();
-			gameOverMsg->init("Base", "All units lost, mission Failed." , 4, "blip.wav" );
-			getLevel()->addMessage( gameOverMsg );
+			getLevel()->addMessage("Base", "All units lost, mission Failed.", 4, "blip.wav");
 
 			mHeadLight.setColorParam(Vec3f(0,0,0), 0);
 
@@ -158,7 +184,7 @@ void Player::onBodyCollision( ColBody& self , ColBody& other )
 	{
 	case OT_BULLET:
 		{
-			Bullet* bullet = obj->cast< Bullet >();
+			Bullet* bullet = obj->castChecked< Bullet >();
 			if ( bullet->team == TEAM_EMPTY )
 			{
 				takeDamage( bullet );
@@ -196,7 +222,7 @@ void Player::shoot( Vec2f const& posTaget )
 		if( !mWeaponSlot[i] )
 			continue;
 
-		if( mEnergy >= mWeaponSlot[i]->getEnergyCast() )
+		if( mEnergy >= mWeaponSlot[i]->getEnergyCast() || 1 )
 		{
 			Vec2f offset = mWeaponSlot[i]->getPos();
 
@@ -225,7 +251,7 @@ void Player::takeDamage(Bullet* p)
 
 void Player::addWeapon( Weapon* weapon )
 {
-	for(int i=0; i<4; i++ )
+	for(int i=0; i< ARRAY_SIZE(mWeaponSlot); ++i)
 	{
 		if( mWeaponSlot[i] )
 			continue;

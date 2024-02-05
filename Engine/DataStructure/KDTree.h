@@ -379,8 +379,8 @@ public:
 	static bool IsLeaf(int nodeId) { return nodeId < 0; }
 	static bool IsEmptyLeaf(int nodeId) { return nodeId == EMPTY_LEAF_ID; }
 
-	template< class DistFun >
-	int  findNearst(VectorType const& pos, DistFun& distFun , float& outDistSqr )
+	template< class DistFunc >
+	int  findNearst(VectorType const& pos, DistFunc& distFunc , float& outDistSqr )
 	{
 		struct StackData
 		{
@@ -412,7 +412,7 @@ public:
 					for( auto index : leaf.dataIndices )
 					{
 						auto& data = mDataVec[index];
-						float distSqr = distFun(data, pos, minDistSqr);
+						float distSqr = distFunc(data, pos, minDistSqr);
 
 						if( minDistSqr > distSqr )
 						{

@@ -30,7 +30,7 @@ void FCommandLine::Initialize(TChar const* initStr)
 		LogWarning(0, "CommandLine lenght large than CmdArgBuffer %d", ARRAY_SIZE(GCmdArgBuffer));
 		return;
 	}
-	GArgc = Parse(initStr, GCmdArgBuffer, GArgv, ARRAY_SIZE(GArgv));
+	GArgc = Parse(initStr, GCmdArgBuffer, ARRAY_SIZE(GCmdArgBuffer), GArgv, ARRAY_SIZE(GArgv));
 	if (GArgc == -1)
 	{
 		LogWarning(0, "CommandLine Args Count large than MaxArgv %d", ARRAY_SIZE(GArgv));
@@ -57,38 +57,42 @@ TChar const** FCommandLine::GetArgs(int& outNumArg)
 #endif
 
 
-int FCommandLine::Parse(char const* content, char buffer[],char const* outArgs[], int maxNumArgs)
+int FCommandLine::Parse(TChar const* content, TChar buffer[], int bufferLen, TChar const* outArgs[], int maxNumArgs)
 {
 	TChar* cmdStart = buffer;
 	TChar* cmdCur = cmdStart;
+
+#define WRITE_BUFFER(c)\
+	if (cmdCur - buffer >= bufferLen)\
+		return -1;\
+	*(cmdCur++) = c;
+
 	bool bInQuote = false;
 	int argc = 0;
 	for (TChar const* token = content; *token != 0; ++token)
 	{
-		switch (*token)
+		char c = *token;
+		switch (c)
 		{
 		case TSTR(' '):
-			if (bInQuote == false)
+			if (bInQuote)
 			{
-				if (cmdCur != cmdStart)
-				{
-					*(cmdCur++) = 0;
-					if (argc >= maxNumArgs)
-						return -1;
-					
-					outArgs[argc++] = cmdStart;
-					cmdStart = cmdCur;
-				}
+				WRITE_BUFFER(c);
 			}
-			else
+			else if (cmdCur != cmdStart)
 			{
-				*(cmdCur++) = *token;
+				if (argc >= maxNumArgs)
+					return -1;
+
+				WRITE_BUFFER(0);
+				outArgs[argc++] = cmdStart;
+				cmdStart = cmdCur;
 			}
 			break;
 		case TSTR('\"'):
 			if (token[1] == TSTR('\"'))
 			{
-				*(cmdCur++) = *token;
+				WRITE_BUFFER('\"');
 				++token;
 			}
 			else
@@ -98,7 +102,7 @@ int FCommandLine::Parse(char const* content, char buffer[],char const* outArgs[]
 			break;
 		default:
 			{
-				*(cmdCur++) = *token;
+				WRITE_BUFFER(c);
 			}
 			break;
 		}
@@ -109,9 +113,11 @@ int FCommandLine::Parse(char const* content, char buffer[],char const* outArgs[]
 		if (argc >= maxNumArgs)
 			return -1;
 
-		*(cmdCur++) = 0;
+		WRITE_BUFFER(0);
 		outArgs[argc++] = cmdStart;
 	}
 
 	return argc;
+
+#undef WRITE_BUFFER
 }

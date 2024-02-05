@@ -157,7 +157,7 @@ namespace Life
 			return Vec2i(ToChunkValue(x), ToChunkValue(y));
 		}
 
-		bool CheckChunkPos()
+		static bool CheckChunkPos()
 		{
 			static_assert(ToChunkPos(0, ChunkLength - 1) == Vec2i(0, 0));
 			static_assert(ToChunkPos(ChunkLength, 2 * ChunkLength - 1) == Vec2i(1, 1));
@@ -186,7 +186,7 @@ namespace Life
 		{
 
 			Chunk* chunk = new Chunk;
-			memset(chunk, 0, sizeof(Chunk));
+			FMemory::Set(chunk, 0, sizeof(Chunk));
 			//std::fill_n(chunk->data[0], ARRAY_SIZE(chunk->data[0]), 0);
 			//std::fill_n(chunk->data[1], ARRAY_SIZE(chunk->data[1]), 0);
 			chunk->pos = cPos;

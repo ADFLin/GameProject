@@ -28,11 +28,11 @@ private:
 	FObjectPtr< IText >  p_text;
 	FObjectPtr< IText >  text;
 	Vec2f   mPos;
-	float   mDurstion;
+	float   mDuration;
 	float    timer;	
 	Texture* portrait;
 	String   mSoundName;	
-	Sound*   sound;
+	SoundPtr  sound;
 
 };
 

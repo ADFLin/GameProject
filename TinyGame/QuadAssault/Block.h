@@ -44,6 +44,7 @@ public:
 	static void   Initialize();
 	static void   Cleanup();
 	static Block* Get(BlockId id);
+	static bool   IsVaild(BlockId id);
 
 public:
 	virtual ~Block(){}

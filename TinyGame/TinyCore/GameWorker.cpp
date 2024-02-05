@@ -186,6 +186,9 @@ void NetWorker::closeNetwork()
 void NetWorker::sendUdpCmd( NetSocket& socket )
 {
 	NET_MUTEX_LOCK( mMutexUdpCmdList );
+	if (mUdpCmdList.empty())
+		return;
+	
 	UdpCmdList::iterator iter = mUdpCmdList.begin();
 	for( ; iter != mUdpCmdList.end() ; ++iter )
 	{
@@ -209,8 +212,8 @@ void NetWorker::sendUdpCmd( NetSocket& socket )
 			return;
 		}
 	}
-
-	mUdpCmdList.erase( mUdpCmdList.begin() , iter );
+	
+	mUdpCmdList.erase(mUdpCmdList.begin(), iter);
 	mUdpSendBuffer.removeUsedData();
 }
 

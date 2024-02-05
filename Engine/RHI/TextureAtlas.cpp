@@ -48,7 +48,7 @@ namespace Render
 			result = addImage(imageData.width, imageData.height, ETexture::RGBA8, imageData.data);
 			break;
 		}
-		//glGenerateMipmap( texType);
+
 		return result;
 	}
 

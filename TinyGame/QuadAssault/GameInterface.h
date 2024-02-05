@@ -12,12 +12,32 @@ class IFont;
 
 class RHIGraphics2D;
 
+
+#define MAX_LEVEL_NUM 4
+
+struct PlayLevelInfo
+{
+	String  mapFile;
+	String  levelFile;
+	int     levelIndex;
+	enum ELevelState
+	{
+		eClose,
+		eOpen,
+		ePlayed,
+	};
+
+	bool levelStates[MAX_LEVEL_NUM];
+};
+
 class IGame
 {
 public:
 	virtual ~IGame();
 
 	static IGame& Get();
+
+	PlayLevelInfo&  getPlayingLevel(){  return mPlayingLevel;  }
 
 	RenderEngine*   getRenderEenine(){ return mRenderEngine; }
 	SoundManager*   getSoundMgr(){ return mSoundMgr; }
@@ -34,7 +54,6 @@ public:
 
 
 	virtual void  procWidgetEvent( int event , int id , QWidget* sender ) = 0;
-	virtual void  procSystemEvent() = 0;
 
 	virtual IFont* getFont( int idx ) = 0;
 
@@ -42,7 +61,7 @@ public:
 protected:
 	Vec2i           mScreenSize;
 	Vec2i           mMousePos;
-
+	PlayLevelInfo     mPlayingLevel;
 	FPtr< RenderEngine >  mRenderEngine;
 	FPtr< SoundManager >  mSoundMgr;
 	

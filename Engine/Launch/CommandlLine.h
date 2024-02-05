@@ -13,7 +13,7 @@ public:
 	CORE_API static TChar const*  Get();
 	CORE_API static TChar const** GetArgs(int& outNumArg);
 
-	static int Parse(char const* content, char buffer[], char const* outArgs[], int maxNumArgs);
+	static int Parse(TChar const* content, TChar buffer[], int bufferLen, TChar const* outArgs[], int maxNumArgs);
 };
 
 

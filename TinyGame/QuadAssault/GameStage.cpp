@@ -2,6 +2,7 @@
 
 #include "GameInterface.h"
 #include "RenderUtility.h"
+#include "RHI/RHIGraphics2D.h"
 
 SrceenFade::SrceenFade()
 {
@@ -10,15 +11,15 @@ SrceenFade::SrceenFade()
 	mColor     = 0;
 }
 
-void SrceenFade::render()
+void SrceenFade::render(RHIGraphics2D& g)
 {
 	if ( mColor != 1.0 )
 	{
-		glEnable(GL_BLEND);
-		glBlendFunc( GL_DST_COLOR, GL_ZERO );
-		glColor3f( mColor, mColor , mColor );
-		drawRect( Vec2f(0.0, 0.0) , Vec2f( getGame()->getScreenSize() ) );
-		glDisable(GL_BLEND);	
+		using namespace Render;
+		g.setBlendState(ESimpleBlendMode::Multiply);
+		g.setBrush(Color3f(mColor, mColor, mColor));
+		g.drawRect(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize()));
+		g.setBlendState(ESimpleBlendMode::None);
 	}
 }
 

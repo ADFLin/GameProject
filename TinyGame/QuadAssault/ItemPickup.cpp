@@ -48,11 +48,12 @@ void ItemPickup::onPick(Player* player)
 void ItemPickup::onBodyCollision( ColBody& self , ColBody& other )
 {
 	LevelObject* obj = other.getClient();
+
 	switch( obj->getType() )
 	{
 	case OT_PLAYER:
 		{
-			onPick( obj->cast< Player >() );
+			onPick( obj->castChecked< Player >() );
 		}
 		break;
 	}

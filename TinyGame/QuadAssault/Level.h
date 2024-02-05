@@ -9,9 +9,7 @@
 
 #include "DataStructure/Grid2D.h"
 #include "DataStructure/IntrList.h"
-
-#include <list>
-#include <vector>
+#include "DataStructure/Array.h"
 
 class LevelObject;
 class Mob;
@@ -26,6 +24,7 @@ class Message;
 
 class TextureManager;
 class PrimitiveDrawer;
+class RHIGraphics2D;
 
 struct LevelEvent
 {
@@ -95,12 +94,13 @@ public:
 	void              destroyObject( LevelObject* object );
 
 	Sound*            playSound( char const* name , bool canRepeat = false );
+	Message*          addMessage(String const& sender, String const& content, float duration, String const& soundName);
 	Message*          addMessage(Message* msg );
 
 	Message*          getTopMessage(){ return mTopMessage; }
 	
 	void              renderObjects(PrimitiveDrawer& drawer, RenderPass pass);
-	void              renderDev( DevDrawMode mode );
+	void              renderDev(RHIGraphics2D& g, DevDrawMode mode);
 
 	void              addListerner( EventListener& listener );
 	void              sendEvent( LevelEvent const& event );
@@ -134,6 +134,19 @@ public:
 	RenderLightList& getRenderLights(){ return mRenderLights; }
 	ObjectList&      getObjects(){ return mObjects; }
 
+	template< typename TObject >
+	TObject* findObjectFromClass()
+	{
+		for (auto object : mObjects)
+		{
+			if (TObject* objCasted = object->cast<TObject>())
+			{
+				return  objCasted;
+			}
+		}
+		return nullptr;
+	}
+
 protected:
 	
 	typedef TIntrList< ItemPickup  , TypeHook , PointerType > ItemList;
@@ -144,7 +157,7 @@ protected:
 
 	RenderLightList mRenderLights;
 
-	typedef std::vector< Message* > MessageVec;
+	typedef TArray< Message* > MessageVec;
 
 	ObjectCreator*   mObjectCreator;
 	MessageVec       mMsgQueue;
@@ -158,7 +171,7 @@ protected:
 	LightList        mLights;
 	ParticleList     mParticles;
 	
-	typedef std::vector< Player* > PlayerVec;
+	typedef TArray< Player* > PlayerVec;
 	PlayerVec        mPlayers;
 	TileMap          mTerrain;
 	CollisionManager mColManager;
@@ -166,7 +179,7 @@ protected:
 	unsigned         mSpwanDestroyFlag;
 
 
-	typedef std::vector< EventListener* > ListenerList;
+	typedef TArray< EventListener* > ListenerList;
 	ListenerList     mListeners;
 };
 

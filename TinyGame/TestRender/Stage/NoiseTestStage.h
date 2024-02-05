@@ -560,7 +560,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 		void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
 		{

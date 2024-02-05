@@ -27,6 +27,7 @@ void LightObject::tick()
 
 void LightObject::onSpawn( unsigned flag )
 {
+	BaseClass::onSpawn(flag);
 	host = this;
 	getLevel()->addLight( *this );
 }
@@ -34,6 +35,7 @@ void LightObject::onSpawn( unsigned flag )
 void LightObject::onDestroy( unsigned flag )
 {
 	Light::remove();
+	BaseClass::onDestroy(flag);
 }
 
 void LightObject::setupDefault()

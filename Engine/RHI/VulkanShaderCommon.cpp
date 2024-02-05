@@ -1,8 +1,5 @@
 #include "VulkanShaderCommon.h"
 
-#include "ShaderProgram.h"
-#include "ShaderManager.h"
-
 #include "InlineString.h"
 #include "SystemPlatform.h"
 #include "Platform/Windows/WindowsProcess.h"
@@ -251,9 +248,8 @@ namespace Render
 		{
 			SpirvShaderCode code;
 			code.codeBuffer.assign(pCodeText, pCodeText + codeLength);
-			auto* shaderImpl = static_cast<VulkanShader*>(RHICreateShader(context.getType()));
-			VERIFY_RETURN_FALSE(shaderImpl->initialize(mDevice, context.getType(), code));
-			context.shaderSetupData->resource = shaderImpl;
+			auto& shaderImpl = static_cast<VulkanShader&>(*context.shaderSetupData->resource);
+			VERIFY_RETURN_FALSE(shaderImpl.initialize(mDevice, context.getType(), code));
 		}
 
 		return true;
@@ -328,8 +324,8 @@ namespace Render
 		{
 			SpirvShaderCode code;
 			VERIFY_RETURN_FALSE(FFileUtility::LoadToBuffer(pathSpv.c_str(), code.codeBuffer));
-			auto* shaderImpl = static_cast<VulkanShader*>(RHICreateShader(context.type));
-			VERIFY_RETURN_FALSE(shaderImpl->initialize(mDevice, context.type, code));
+			auto& shaderImpl = static_cast<VulkanShader&>(*context.shaderSetupData->resource);
+			VERIFY_RETURN_FALSE(shaderImpl.initialize(mDevice, context.type, code));
 
 			context.shaderSetupData->resource = shaderImpl;
 		}
@@ -342,19 +338,19 @@ namespace Render
 
 
 
-	bool ShaderFormatSpirv::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
+	ShaderParameterMap* ShaderFormatSpirv::initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
-		auto& shaderProgramImpl = static_cast<VulkanShaderProgram&>(*shaderProgram.mRHIResource);
+		auto& shaderProgramImpl = static_cast<VulkanShaderProgram&>(shaderProgram);
 		auto* intermediates = static_cast<VulkanShaderCompileIntermediates*>(setupData.intermediateData.get());
-		if (!shaderProgramImpl.setupShaders(mDevice, setupData.managedData->descList, intermediates->shaderCodes))
-			return false;
+		if (!shaderProgramImpl.setupShaders(mDevice, setupData.descList, intermediates->shaderCodes))
+			return nullptr;
 
-		return true;
+		return nullptr;
 	}
 
-	bool ShaderFormatSpirv::initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
+	ShaderParameterMap* ShaderFormatSpirv::initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
 	{
-		VulkanShaderProgram& shaderProgramImpl = static_cast<VulkanShaderProgram&>(*shaderProgram.mRHIResource);
+		VulkanShaderProgram& shaderProgramImpl = static_cast<VulkanShaderProgram&>(shaderProgram);
 
 		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeConstView(binaryCode));
 		uint8 numShaders = 0;
@@ -368,14 +364,14 @@ namespace Render
 			serializer.read(shaderCodes[i].codeBuffer);
 		}
 
-		if (!shaderProgramImpl.setupShaders(mDevice, descList, shaderCodes))
-			return false;
+		if (!shaderProgramImpl.setupShaders(mDevice, MakeConstView(descList) , shaderCodes))
+			return nullptr;
 
 
-		return true;
+		return nullptr;
 	}
 
-	void ShaderFormatSpirv::postShaderLoaded(ShaderProgram& shaderProgram)
+	void ShaderFormatSpirv::postShaderLoaded(RHIShaderProgram& shaderProgram)
 	{
 
 	}
@@ -386,7 +382,7 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatSpirv::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
+	bool ShaderFormatSpirv::getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
 		auto* intermediates = static_cast<VulkanShaderCompileIntermediates*>(setupData.intermediateData.get());
 
@@ -396,7 +392,7 @@ namespace Render
 		for (int i = 0; i < numShaders; ++i)
 		{
 			SpirvShaderCode& shaderCode = intermediates->shaderCodes[i];
-			uint8 shaderType = setupData.managedData->descList[i].type;
+			uint8 shaderType = setupData.descList[i].type;
 			serializer.write(shaderType);
 			serializer.write(shaderCode.codeBuffer);
 		}
@@ -419,7 +415,7 @@ namespace Render
 		return true;
 	}
 
-	bool VulkanShaderProgram::setupShaders(VkDevice device, TArray< ShaderCompileDesc > const& descList, SpirvShaderCode shaderCodes[])
+	bool VulkanShaderProgram::setupShaders(VkDevice device, TArrayView< ShaderCompileDesc const >& descList, SpirvShaderCode shaderCodes[])
 	{
 		mDevice = device;
 		assert( mNumShaders == 0);

@@ -1,8 +1,13 @@
 #include "AudioDevice.h"
 
 #include "MarcoCommon.h"
-#include <cassert>
+
 #include "ProfileSystem.h"
+#include "Core/ScopeGuard.h"
+
+#include <cassert>
+
+#include "minivorbis/minivorbis.h"
 
 void SoundDSP::addInstance(uint64 hash, SoundWave& soundwave)
 {
@@ -78,6 +83,16 @@ void AudioDevice::setAudioPitchMultiplier(AudioHandle handle, float value)
 	}
 }
 
+bool AudioDevice::isPlaying(AudioHandle handle)
+{
+	ActiveSound* activeSound = getActiveSound(handle);
+	if (activeSound)
+	{
+		return activeSound->isPlaying();
+	}
+	return false;
+}
+
 void AudioDevice::update( float deltaT )
 {
 	PROFILE_ENTRY("AudioDevice Update");
@@ -107,7 +122,7 @@ void AudioDevice::update( float deltaT )
 
 		if( instance->usageFrame != mSourceUsageFrame || instance->activeSound == nullptr )
 		{
-			if( instance->sourceId != -1 )
+			if( instance->sourceId != INDEX_NONE )
 			{
 				mAudioSources[instance->sourceId]->endPlay();
 				mIdleSources.push_back(instance->sourceId);
@@ -122,12 +137,12 @@ void AudioDevice::update( float deltaT )
 		}
 		else
 		{
-			if( instance->sourceId == -1 )
+			if( instance->sourceId == INDEX_NONE)
 			{
 				instance->bPlaying = false;
 				instance->sourceId = fetchIdleSource(*instance);
 
-				if( instance->sourceId != -1 )
+				if( instance->sourceId != INDEX_NONE)
 				{
 					if( mAudioSources[instance->sourceId]->initialize(*instance) )
 					{
@@ -144,7 +159,7 @@ void AudioDevice::update( float deltaT )
 			}
 			else
 			{
-				if( instance->sourceId != -1 )
+				if( instance->sourceId != INDEX_NONE)
 				{
 					mIdleSources.push_back(instance->sourceId);
 				}
@@ -193,11 +208,6 @@ SoundInstance* AudioDevice::findInstance(uint64 hash)
 	return iter->second;
 }
 
-AudioSource* AudioDevice::createSource()
-{
-	return nullptr;
-}
-
 int AudioDevice::fetchIdleSource(SoundInstance& instance)
 {
 	if( !mIdleSources.empty() )
@@ -209,14 +219,20 @@ int AudioDevice::fetchIdleSource(SoundInstance& instance)
 
 	if( mAudioSources.size() < mMaxChannelNum )
 	{
-		int channelId = mAudioSources.size();
-		mAudioSources.push_back(createSource());
-		return channelId;
+		AudioSource* source = createSource();
+		if (source)
+		{
+			int channelId = mAudioSources.size();
+			mAudioSources.push_back(createSource());
+			return channelId;
+		}
+		else
+		{
+			LogWarning(0, "Can't Create Audio Source");
+		}
 	}
-
-	return -1;
+	return INDEX_NONE;
 }
-
 
 void AudioDevice::stopSound(AudioHandle handle)
 {
@@ -328,6 +344,62 @@ bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, TArray< uint8 >& o
 	fs.read((char*)&outSampleData[0], outSampleData.size());
 	if( fs.bad() )
 		return false;
+
+	return true;
+}
+
+
+
+bool LoadOggFile(char const* path, WaveFormatInfo& outWaveFormat, TArray<uint8>& outSampleData)
+{
+	FILE* fp = fopen(path, "rb");
+	if (!fp)
+	{
+		LogWarning(0, "Failed to open file '%s'.", path);
+		return false;
+	}
+
+	ON_SCOPE_EXIT
+	{
+		fclose(fp);
+	};
+	/* Open sound stream. */
+	OggVorbis_File vorbis;
+	if (ov_open_callbacks(fp, &vorbis, NULL, 0, OV_CALLBACKS_DEFAULT) != 0)
+	{
+		LogWarning(0, "Invalid Ogg file '%s'.", path);
+		return false;
+	}
+
+	ON_SCOPE_EXIT
+	{
+		/* Close sound file */
+		ov_clear(&vorbis);
+	};
+
+	/* Print sound information. */
+	vorbis_info* info = ov_info(&vorbis, -1);
+	//LogMsg("Ogg file %d Hz, %d channels, %d kbit/s.\n", info->rate, info->channels, info->bitrate_nominal / 1024);
+#define WAVE_FORMAT_PCM 1
+
+	outWaveFormat.tag = WAVE_FORMAT_PCM;
+	outWaveFormat.numChannels = info->channels;
+	outWaveFormat.sampleRate = info->rate;
+	outWaveFormat.bitsPerSample = 8 * sizeof(int16);
+	outWaveFormat.byteRate = outWaveFormat.bitsPerSample * outWaveFormat.sampleRate * outWaveFormat.numChannels / 8;
+	outWaveFormat.blockAlign = outWaveFormat.numChannels * outWaveFormat.bitsPerSample / 8;
+
+	/* Read the entire sound stream. */
+	unsigned char buf[4096];
+	for (;;)
+	{
+		int section = 0;
+		long bytes = ov_read(&vorbis, (char*)buf, sizeof(buf), 0, sizeof(int16), std::is_signed_v<int16>, &section);
+		if (bytes <= 0) /* end of file or error */
+			break;
+
+		outSampleData.append(buf, buf + bytes);
+	}
 
 	return true;
 }

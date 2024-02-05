@@ -1,13 +1,12 @@
 #include "ShaderFormat.h"
 
-#include "ShaderManager.h"
-
 #include "CPreprocessor.h"
 #include "FileSystem.h"
-
-#include <sstream>
 #include "ProfileSystem.h"
 #include "InlineString.h"
+
+
+#include <sstream>
 
 namespace Render
 {
@@ -123,10 +122,7 @@ namespace Render
 					return false;
 				}
 			}
-			ShaderManagedData* managedData = context.shaderSetupData ? 
-				(ShaderManagedData*)context.shaderSetupData->managedData:
-				(ShaderManagedData*)context.programSetupData->managedData;
-			return preprocessCode(context.haveFile() ? context.getPath() : nullptr, context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes, &managedData->includeFiles, context.bOuputPreprocessedCode);
+			return preprocessCode(context.haveFile() ? context.getPath() : nullptr, context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes, context.includeFiles, context.bOuputPreprocessedCode);
 		}
 		else
 		{
@@ -152,7 +148,7 @@ namespace Render
 
 	void ShaderFormat::emitCompileError(ShaderCompileContext const& context, char const* errorCode)
 	{
-		if (context.bRecompile)
+		if (context.bAllowRecompile)
 		{
 			std::string title;
 			title += FFileUtility::GetBaseFileName(context.getPath()).toCString();
@@ -176,11 +172,6 @@ namespace Render
 #if SYS_PLATFORM_WIN
 		::MessageBoxA(NULL, text, (title) ? InlineString<256>::Make("Shader Compile Error : %s", title ).c_str() :"Shader Compile Error" , 0);
 #endif
-	}
-
-	int ShaderProgramSetupData::getShaderCount() const
-	{
-		return managedData->descList.size();
 	}
 
 }//namespace Render

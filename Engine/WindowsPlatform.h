@@ -45,11 +45,6 @@ public:
 				       bool fullscreen = false , 
 					   unsigned colorBits = 32 );
 	void      destroy();
-	HDC       getHDC() const { return mhDC; }
-	HWND      getHWnd() const { return mhWnd; }
-
-	int       getWidth(){ return mWidth; }
-	int       getHeight(){ return mHeight; }
 
 	void      resize( int w , int h )
 	{

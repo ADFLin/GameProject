@@ -429,6 +429,11 @@ public:
 		return true;
 	}
 
+	void append(std::initializer_list<T> list)
+	{
+		addRange(list.begin(), list.end());
+	}
+
 	void append(TArray const& rhs)
 	{
 		addRange(rhs.begin(), rhs.end());

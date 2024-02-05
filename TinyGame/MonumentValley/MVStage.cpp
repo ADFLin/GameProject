@@ -33,8 +33,6 @@ namespace MV
 	};
 
 
-
-
 	bool TestStage::onInit()
 	{
 		::Global::GUI().cleanupWidget();
@@ -584,13 +582,16 @@ namespace MV
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		RHISetFrameBuffer(commandList, nullptr);
-		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1.0);
+		RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0.2, 0.2, 0.2, 1), 1, 1);
 
 		float width = mViewWidth;
 		float height = width * screenSize.y / screenSize.x;
-		RHISetFixedShaderPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(width, height, -100, 100)));
-		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
+		//Matrix4  projectMatrix = ReversedZOrthoMatrix(width, height, -100, 100);
 		Matrix4  projectMatrix = OrthoMatrix(width, height, -100, 100);
+		Matrix4  projectMatrixRHI = AdjProjectionMatrixForRHI(projectMatrix);
+		RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
+		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
+
 
 		Vec3f viewPos = getViewPos();
 		
@@ -621,7 +622,7 @@ namespace MV
 			
 				projectMatrix = OrthoMatrix(0 , screenSize.x , 0 , screenSize.y , -1 , 1 );
 
-				RHISetFixedShaderPipelineState(commandList, projectMatrix);
+				RHISetFixedShaderPipelineState(commandList, projectMatrixRHI);
 				glBegin( GL_LINES );
 				glVertex2i( width , 0 ); glVertex2i( width , 2 * height );
 				glVertex2i( 0 , height ); glVertex2i( 2 * width , height );
@@ -776,7 +777,7 @@ namespace MV
 			context.stack.pop();
 
 			//glDisable( GL_POLYGON_OFFSET_LINE );
-			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+			RHISetDepthStencilState(commandList, RenderDepthStencilState::GetRHI());
 
 			float len = 50;
 
@@ -812,7 +813,7 @@ namespace MV
 			case eEditBlock:
 				{
 					BlockModel& model = gModels[editModelId];
-					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
+					RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 
 					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
 
@@ -837,7 +838,7 @@ namespace MV
 				break;
 			case eEditMesh:
 				{
-					RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha >::GetRHI());
+					RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 
 					context.setColor( LinearColor( 1 , 1 , 1 , 0.75 ) );
 
@@ -1058,7 +1059,7 @@ namespace MV
 	bool TestStage::loadLevel(char const* path)
 	{
 		InputFileSerializer sf;
-		if ( !sf.open( path ) )
+		if ( !sf.open( path , true) )
 			return false;
 
 		Level::load(sf);
@@ -1161,6 +1162,11 @@ namespace MV
 		Dir d2 = r.toLocal( Dir::Y );
 		r.rotate( Dir::Y );
 		Dir d3 = r.toLocal( Dir::Z );
+	}
+
+	ERenderSystem TestStage::getDefaultRenderSystem()
+	{
+		return ERenderSystem::OpenGL;
 	}
 
 }//namespace MV

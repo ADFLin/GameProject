@@ -96,3 +96,15 @@ CS_ENTRY(CopyTextureCS)
 }
 
 #endif
+
+#if SHADER_ENTRY(ClearTextureCS)
+
+RWTexture2D<float4> TexDest;
+float4 ClearValue;
+CS_NUM_THREADS(GROUP_SIZE, GROUP_SIZE, 1)
+CS_ENTRY(ClearTextureCS)
+{
+	TexDest[SvDispatchThreadID.xy] = ClearValue;
+}
+
+#endif

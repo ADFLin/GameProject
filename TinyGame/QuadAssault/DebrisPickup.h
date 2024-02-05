@@ -25,8 +25,6 @@ protected:
 	float cesticaTimer; //dok dosegne 0, spawna cesticu
 	Light mLight;
 
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 

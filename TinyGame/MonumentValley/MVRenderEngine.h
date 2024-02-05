@@ -22,6 +22,9 @@ namespace MV
 	using Render::ViewInfo;
 	using Render::RHICommandList;
 
+	using RenderDepthStencilState = Render::TStaticDepthStencilState<true, Render::ECompareFunc::Less >;
+
+
 #define USE_RENDER_CONTEXT 1
 
 	struct RenderContext : public SimpleRenderState

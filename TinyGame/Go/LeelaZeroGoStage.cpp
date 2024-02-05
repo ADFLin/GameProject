@@ -1154,7 +1154,7 @@ namespace Go
 				{
 					if( i == 0 )
 					{
-						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI());
+						RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 					}
 					else
 					{

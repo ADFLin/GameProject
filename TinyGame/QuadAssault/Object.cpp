@@ -43,7 +43,7 @@ ObjectClass* LevelObject::StaticClass()
 
 void LevelObject::enumProp(IPropEditor& editor)
 {
-	ClassEditReigster reg( editor );
-	reigsterContext( reg );
+	ClassEditReigster reg( this , editor);
+	REF_COLLECT_TYPE(LevelObject, reg);
 }
 

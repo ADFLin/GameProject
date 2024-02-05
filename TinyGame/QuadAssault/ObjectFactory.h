@@ -2,8 +2,9 @@
 #define ObjectFactory_h__
 
 #include "Base.h"
-#include <map>
+#include "Misc/CStringWrapper.h"
 
+#include <unordered_map>
 
 template< class T >
 class IFactoryT
@@ -73,15 +74,7 @@ public:
 		return true;
 	}
 
-	struct StrCmp
-	{
-		bool operator()( char const* a , char const* b ) const
-		{
-			return strcmp( a , b ) < 0;
-		}
-	};
-
-	typedef std::map< char const* , FactoryType* , StrCmp > FactoryMap;
+	using FactoryMap = std::unordered_map< TCStringWrapper< char, true >, FactoryType*, MemberFuncHasher >;
 	FactoryMap& getFactoryMap(){ return mNameMap; }
 protected:
 	FactoryMap mNameMap;

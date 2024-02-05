@@ -154,11 +154,15 @@ namespace Render
 	bool FrameRenderTargets::createBufferRHIResource(IntVector2 const& size, int numSamples /*= 1*/)
 	{
 		mIdxRenderFrameTexture = 0;
+		int index = 0;
 		for (auto& frameTexture : mFrameTextures)
 		{
 			frameTexture = RHICreateTexture2D(ETexture::FloatRGBA, size.x, size.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget);
 			if (!frameTexture.isValid())
 				return false;
+
+			frameTexture->setDebugName(InlineString<256>::Make("FrameTexture(%d)", index));
+			++index;
 		}
 
 		mDepthTexture = RHICreateTextureDepth(ETexture::D32FS8, size.x, size.y, 1, numSamples, TCF_CreateSRV);

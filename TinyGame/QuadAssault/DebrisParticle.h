@@ -14,8 +14,6 @@ public:
 
 	virtual IObjectRenderer* getRenderer();
 
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 #endif // DebrisParticle_h__

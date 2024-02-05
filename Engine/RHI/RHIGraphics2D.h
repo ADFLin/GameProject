@@ -139,7 +139,7 @@ public:
 		new (ptr) TCustomRenderer(std::forward<TArgs>(args)...);
 		auto& element = mElementList.addCustomRender((Render::ICustomElementRenderer*)ptr, Render::EObjectManageMode::DestructOnly);
 		setupElement(element);
-		return (ICustomElementRenderer*)ptr;
+		return (TCustomRenderer*)ptr;
 	}
 
 
@@ -164,8 +164,7 @@ public:
 
 		void* ptr = mAllocator.alloc(sizeof(TCustomFuncRenderer<TFunc>));
 		new (ptr) TCustomFuncRenderer<TFunc>(std::forward<TFunc>(func));
-		static_cast<Render::ICustomElementRenderer*>(ptr)->bChangeState = bChangeState;
-		auto& element = mElementList.addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly);
+		auto& element = mElementList.addCustomRender(static_cast<Render::ICustomElementRenderer*>(ptr), Render::EObjectManageMode::DestructOnly, bChangeState);
 		setupElement(element);
 	}
 

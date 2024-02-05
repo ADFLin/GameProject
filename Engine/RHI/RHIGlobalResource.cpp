@@ -77,8 +77,8 @@ namespace Render
 			if (GRHISystem->getName() == RHISystemName::OpenGL ||
 				GRHISystem->getName() == RHISystemName::D3D11)
 			{
-				VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, TCF_DefalutValue, colorW)));
-				VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, TCF_DefalutValue, colorB)));
+				VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, 1, TCF_DefalutValue, colorW)));
+				VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(ETexture::RGBA8, 2, 1, 1, TCF_DefalutValue, colorB)));
 
 				VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, TCF_DefalutValue, colorW)));
 				VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(ETexture::RGBA8, 2, 2, 2, 1, 1, TCF_DefalutValue, colorB)));
@@ -141,6 +141,9 @@ namespace Render
 
 	void ReleaseGlobalRenderResource()
 	{
+		if (GRHISystem->getName() == RHISystemName::Vulkan)
+			return;
+
 		if ( GDefalutMaterial )
 		{
 			GDefalutMaterial->releaseRHI();

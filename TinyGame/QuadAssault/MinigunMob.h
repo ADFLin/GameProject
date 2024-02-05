@@ -15,9 +15,6 @@ public:
 
 	virtual void takeDamage(Bullet* p);
 	void shoot( IBulletFactory const& creator );
-
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 #endif // MinigunMob_h__

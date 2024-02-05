@@ -4,6 +4,7 @@
 #include "GameInput.h"
 #include "RenderSystem.h"
 #include "TextureManager.h"
+#include "Texture.h"
 
 #include "GUISystem.h"
 #include "EditorWidget.h"
@@ -21,9 +22,12 @@
 #include "InlineString.h"
 #include "HashString.h"
 
+#include "RHI/RHIGraphics2D.h"
 
 #include <iostream>
 #include <fstream>
+#include "ConsoleSystem.h"
+
 
 
 EditWorldData* EditMode::mWorldData = NULL;
@@ -40,7 +44,7 @@ bool LevelEditStage::onInit()
 
 	EditMode::mWorldData = this;
 
-	unsigned const EDIT_SPAWNDESTROY_FLAG = SDF_SETUP_DEFAULT;
+	unsigned const EDIT_SPAWNDESTROY_FLAG = SDF_SETUP_DEFAULT | SDF_EDIT;
 
 	mSDFlagPrev = getLevel()->setSpwanDestroyFlag( EDIT_SPAWNDESTROY_FLAG );
 
@@ -69,14 +73,19 @@ bool LevelEditStage::onInit()
 			button->texImag = getRenderSystem()->getTextureMgr()->getTexture("button_save.tga");
 			pos.x += offset;
 
+			button = new QImageButton(UI_TRY_PLAY, pos, size, frame);
+			button->setHelpText("Try Play");
+			button->texImag = getRenderSystem()->getTextureMgr()->getTexture("button_save.tga");
+			pos.x += offset;
+
 			
 #if 0
-			button = new GImageButton( UI_CREATE_LIGHT , pos , size , frame );
+			button = new QImageButton( UI_CREATE_LIGHT , pos , size , frame );
 			button->setHelpText( "Create Light" );
 			button->texImag = getRenderSystem()->getTextureMgr()->getTexture("button_light.tga");
 			pos.x += offset;
 
-			button = new GImageButton( UI_CREATE_TRIGGER , pos , size  , frame );
+			button = new QImageButton( UI_CREATE_TRIGGER , pos , size  , frame );
 			button->setHelpText( "Create Trigger" );
 			button->texImag = getRenderSystem()->getTextureMgr()->getTexture("button_light.tga");
 			pos.x += offset;
@@ -103,7 +112,17 @@ bool LevelEditStage::onInit()
 	}
 
 
+	{
+		auto& console = ConsoleSystem::Get();
+
+
+
+
+	}
+
+
 	mPropFrame = new PropFrame( UI_PROP_FRAME , Vec2i( 10 , 120 ) , NULL );
+	mPropFrame->mObjectCreator = mObjectCreator;
 	mPropFrame->setTile( "Property" );
 	GUISystem::Get().addWidget( mPropFrame );
 
@@ -137,7 +156,6 @@ void LevelEditStage::onUpdate( float deltaT )
 	if( Input::isKeyPressed( EKeyCode::Down ) || Input::isKeyPressed( EKeyCode::S ) )
 		mCamera->setPos(mCamera->getPos()+Vec2f(0, speed*deltaT));
 
-	getGame()->procSystemEvent();
 	mLevel->updateRender( deltaT );
 }
 
@@ -148,8 +166,13 @@ void LevelEditStage::onRender()
 
 	RenderEngine* renderEngine = getGame()->getRenderEenine();
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	using namespace Render;
+
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+	RHISetFrameBuffer(commandList, nullptr);
+	RHIClearRenderTargets(commandList, EClearBits::Color | EClearBits::Depth, &LinearColor(0, 0, 0, 1), 1);
+
 
 	mRenderConfig.camera      = mCamera;
 	mRenderConfig.level       = mLevel;
@@ -158,37 +181,40 @@ void LevelEditStage::onRender()
 
 	renderEngine->renderScene( mRenderConfig );
 
+	RHIGraphics2D& g = IGame::Get().getGraphics2D();
+	Player* player = mLevel->getPlayer();
 
 	float factor = 1.0 / mWorldScaleFactor;
 	Vec2f camPos = getCamera()->getPos();
-	glPushMatrix();
-	glScalef( factor , factor , factor );
-	glTranslatef( -camPos.x , -camPos.y , 0 );
-	
-	getLevel()->renderDev( DDM_EDIT );
-	mMode->render();
-	glPopMatrix();
 
-	Player* player = mLevel->getPlayer();
-	glLoadIdentity();
+	g.pushXForm();
+	g.scaleXForm(factor, factor);
+	g.translateXForm(-camPos.x, -camPos.y);
+	getLevel()->renderDev(g, DDM_EDIT);
+	mMode->render(g);
+	g.popXForm();
 
-	if ( mPause )
+	if (mPause)
 	{
-		glEnable(GL_BLEND);
-		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-		glColor4f( 0 , 0 , 0 , 0.8 );
-		drawRect( Vec2f(0.0, 0.0) , Vec2f( getGame()->getScreenSize() ) );
-		glDisable(GL_BLEND);
+		g.beginBlend(0.8, ESimpleBlendMode::Translucent);
+		g.setBrush(Color3f(0, 0, 0));
+		g.enablePen(false);
+		g.drawRect(Vec2f(0, 0), Vec2f(getGame()->getScreenSize()));
+		g.enablePen(true);
+		g.endBlend();
 	}
 
 
 	GUISystem::Get().render();
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
-	drawSprite( Vec2f( getGame()->getMousePos() ) - Vec2f(16,16) ,Vec2f(32,32), mTexCursor );
-	glDisable(GL_BLEND);
 
+	g.beginBlend(1, ESimpleBlendMode::Add);
+	{
+		Vec2f size = Vec2f(32, 32);
+		g.setBrush(Color3f(1, 1, 1));
+		g.drawTexture(*mTexCursor->resource, Vec2f(getGame()->getMousePos()) - size / 2, size);
+	}
+	g.endBlend();
 
 	Vec2f posCursor = convertToWorldPos( getGame()->getMousePos() );
 	
@@ -198,6 +224,7 @@ void LevelEditStage::onRender()
 	mDevMsg->setString( str );
 	getRenderSystem()->drawText( mDevMsg , Vec2i( 10 , 10 ) , TEXT_SIDE_LEFT | TEXT_SIDE_RIGHT );
 
+	g.endRender();
 }
 
 MsgReply LevelEditStage::onMouse( MouseMsg const& msg )
@@ -209,8 +236,6 @@ MsgReply LevelEditStage::onMouse( MouseMsg const& msg )
 	return BaseClass::onMouse(msg);
 }
 
-
-
 MsgReply LevelEditStage::onKey(KeyMsg const& msg)
 {
 	MsgReply replay = mMode->onKey(msg);
@@ -221,10 +246,10 @@ MsgReply LevelEditStage::onKey(KeyMsg const& msg)
 	{
 		switch( msg.getCode() )
 		{
-		case EKeyCode::F1:
+		case EKeyCode::F4:
 			stop();
 			break;
-		case EKeyCode::F4:
+		case EKeyCode::F5:
 			{
 #if 0
 				RenderEngine* renderEngine = getGame()->getRenderEenine();
@@ -237,8 +262,9 @@ MsgReply LevelEditStage::onKey(KeyMsg const& msg)
 			break;
 		case EKeyCode::F6:
 			{
+				auto& levelInfo = IGame::Get().getPlayingLevel();
 				String path = LEVEL_DIR;
-				path += gMapFileName;
+				path += levelInfo.mapFile;
 				saveLevel( path.c_str() );				
 			}
 			break;
@@ -263,8 +289,10 @@ void LevelEditStage::onWidgetEvent( int event , int id , QWidget* sender )
 	{
 	case UI_SAVE_MAP:
 		{
+			auto& levelInfo = IGame::Get().getPlayingLevel();
+
 			String path = LEVEL_DIR;
-			path += gMapFileName;
+			path += levelInfo.mapFile;
 			saveLevel( path.c_str() );
 		}
 		break;
@@ -303,61 +331,34 @@ bool LevelEditStage::saveLevel( char const* path )
 	of << terrain.getSizeX() << " " << terrain.getSizeY() << "\n";
 
 	for(int i=0; i< terrain.getSizeX(); i++)
-	for(int j=0; j< terrain.getSizeY(); j++)
 	{
-		Tile& tile = terrain.getData( i , j );
-		if ( tile.id == BID_FLAT && tile.meta == 0 )
-			continue;
+		for (int j = 0; j < terrain.getSizeY(); j++)
+		{
+			Tile& tile = terrain.getData(i, j);
+			if (tile.id == BID_FLAT && tile.meta == 0)
+				continue;
 
-		of << "block" << " "  
-		   << i << " "  << j << " " 
-		   << (int)tile.id << " " 
-		   << (int)tile.meta << "\n";		
+			of << "block" << " "
+				<< i << " " << j << " "
+				<< (int)tile.id << " "
+				<< (int)tile.meta << "\n";
+		}
 	}
 
 
 	ObjectList& objects = mLevel->getObjects();
-	for( ObjectList::iterator iter = objects.begin() , itEnd = objects.end();
-		 iter != itEnd ; ++iter )
+	for(LevelObject* obj : objects)
 	{
-		LevelObject* obj = *iter;
+		if (obj->isTransient())
+			continue;
 
-		switch( obj->getType() )
-		{
-		case OT_LIGHT:
-		case OT_MOB:
-		case OT_TRIGGER:
-		case OT_ITEM:
-			{
-				of << obj->getClass()->getName() << " ";
-				TextPropEditor editor;
-				editor.setupPorp( *obj );
-				String str;
-				editor.exportString( str );
-				of << str << "\n";
-			}
-			
-		}
+		of << "object " << obj->getClass()->getName() << " ";
+		TextPropEditor editor;
+		editor.setupPorp(*obj);
+		String str;
+		editor.exportString(str);
+		of << str << "\n";
 	}
-
-#if 0
-	LightList& lights = mLevel->getLights();
-	for( LightList::iterator iter = lights.begin() , itEnd = lights.end();
-		iter != itEnd ; ++iter )
-	{
-		LightObject* light = *iter;
-
-		of << "light " 
-			<< light->getPos().x << " " 
-			<< light->getPos().y << " " 
-			<< light->radius << " " 
-			<< light->intensity << " " 
-			<< light->color.x << " " 
-			<< light->color.y << " " 
-			<< light->color.z << "\n";
-
-	}
-#endif
 
 	of.close();
 
@@ -455,13 +456,14 @@ void TileEditMode::setEditType( BlockId type )
 	}
 }
 
-void TileEditMode::render()
+void TileEditMode::render(RHIGraphics2D& g)
 {
 	if (  mTile  )
 	{
-		glColor3f( 0 , 1 , 0 );
-		drawRectLine( mTile->pos , gSimpleBlockSize );
-		glColor3f( 1 , 1 , 1 );
+		g.setPen(Color3f(0, 1, 0));
+		g.enableBrush(false);
+		g.drawRect( mTile->pos , gSimpleBlockSize );
+		g.enableBrush(true);
 	}
 }
 
@@ -633,7 +635,7 @@ MsgReply ObjectEditMode::onMouse( MouseMsg const& msg )
 			}
 			else if ( Input::isKeyPressed( EKeyCode::LControl ) )
 			{
-				Actor* actor = mObject->tryCast< Actor >();
+				Actor* actor = mObject->cast< Actor >();
 				if ( actor )
 				{
 					Vec2f dir = wPos - mObject->getPos();
@@ -675,7 +677,7 @@ void ObjectEditMode::onWidgetEvent( int event , int id , QWidget* sender )
 			ActionCreator::FactoryType* factory = static_cast< ActionCreator::FactoryType*>( sender->getUserData() );
 			Action* action = factory->create();
 			action->setupDefault();
-			mObject->cast< AreaTrigger >()->addAction( action );
+			mObject->castChecked< AreaTrigger >()->addAction( action );
 			mActFrame->refreshList();
 			getWorld().mPropFrame->changeEdit( *action );
 		}
@@ -693,13 +695,14 @@ void ObjectEditMode::onWidgetEvent( int event , int id , QWidget* sender )
 	}
 }
 
-void ObjectEditMode::render()
+void ObjectEditMode::render(RHIGraphics2D& g)
 {
 	if ( mObject )
 	{
-		glColor3f( 0 , 1 , 0 );
-		drawRectLine( mObject->getRenderPos() , mObject->getSize() );
-		glColor3f( 1 , 1 , 1 );
+		g.setPen(Color3f(0, 1, 0));
+		g.enableBrush(false);
+		g.drawRect(mObject->getRenderPos(), mObject->getSize());
+		g.enableBrush(true);
 	}
 }
 
@@ -714,7 +717,7 @@ void ObjectEditMode::changeObject( LevelObject* object )
 		getWorld().mPropFrame->changeEdit( *mObject );
 		if ( mObject->getType() == OT_TRIGGER )
 		{
-			mActFrame->setTrigger( mObject->cast< AreaTrigger >() );
+			mActFrame->setTrigger( mObject->castChecked< AreaTrigger >() );
 			mActFrame->show( true );
 		}
 		else

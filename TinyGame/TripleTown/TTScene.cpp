@@ -533,48 +533,57 @@ namespace TripleTown
 			return OBJ_NULL;
 		return mLevel->getObjectId(mLevel->getTile(tPos));
 	}
+
 	void Scene::peekObject( Vec2i const& pos )
 	{
 		TilePos tPos = calcTilePos( pos );
-
 		if ( mPosPeek == tPos )
 			return;
 
-		if ( !mLevel->isMapRange( tPos ) )
+		pickObjectInternal(tPos);
+	}
+
+	void Scene::pickObjectInternal(TilePos const& tPos)
+	{
+		if (!mLevel->isMapRange(tPos))
 			return;
 
-		if ( mMouseAnim )
+		if (mMouseAnim)
 		{
-			mTweener.remove( mMouseAnim );
+			mTweener.remove(mMouseAnim);
 			mMouseAnim = nullptr;
-			for( int i = 0 ; i < mNumPosRemove ; ++i )
+			for (int i = 0; i < mNumPosRemove; ++i)
 			{
 				TilePos& pos = mRemovePos[i];
-				TileData& tile = mMap.getData( pos.x , pos.y );
-				tile.pos = float( TileImageLength ) * Vector2( pos );
+				TileData& tile = mMap.getData(pos.x, pos.y);
+				tile.pos = float(TileImageLength) * Vector2(pos);
 			}
 		}
 
-
-		mNumPosRemove = mLevel->peekObject( tPos , mLevel->getQueueObject() , mRemovePos );
+		mNumPosRemove = mLevel->peekObject(tPos, mLevel->getQueueObject(), mRemovePos);
 		CHECK(ARRAY_SIZE(mRemovePos) >= mNumPosRemove);
 		mPosPeek = tPos;
 
-		if ( mNumPosRemove )
+		if (mNumPosRemove)
 		{
-			Tweener::CMultiTween& tween = mTweener.tweenMulti( 1 ).cycle();
-			for( int i = 0 ; i < mNumPosRemove ; ++i )
+			Tweener::CMultiTween& tween = mTweener.tweenMulti(1).cycle();
+			for (int i = 0; i < mNumPosRemove; ++i)
 			{
 				TilePos& pos = mRemovePos[i];
-				TileData& tile = mMap.getData( pos.x , pos.y );
-				Vector2 from = float( TileImageLength ) * Vector2( pos );
-				Vector2 offset = Vector2( mPosPeek - pos );
-				offset *= ( 0.15f * TileImageLength );
+				TileData& tile = mMap.getData(pos.x, pos.y);
+				Vector2 from = float(TileImageLength) * Vector2(pos);
+				Vector2 offset = Vector2(mPosPeek - pos);
+				offset *= (0.15f * TileImageLength);
 				Vector2 to = from + offset;
-				tween.addValue< Easing::CLinear >( tile.pos , from , to );
+				tween.addValue< Easing::CLinear >(tile.pos, from, to);
 			}
 			mMouseAnim = &tween;
 		}
+	}
+
+	void Scene::repeekObject()
+	{
+		pickObjectInternal(mPosPeek);
 	}
 
 	void Scene::render()
@@ -643,7 +652,7 @@ namespace TripleTown
 
 		submitRenderCommand(commandList);
 
-		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha >::GetRHI());
+		RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 
 		TilePos posTileMouse = calcTilePos( mLastMousePos );
 		bool renderQueue = true;
@@ -926,6 +935,14 @@ namespace TripleTown
 	void Scene::notifyWorldRestore()
 	{
 		postSetupMap();
+	}
+
+	void Scene::notifyStateChanged()
+	{
+		for (auto& tile : mMap)
+		{
+			tile.bTexDirty = true;
+		}
 	}
 
 	void Scene::postSetupLand()

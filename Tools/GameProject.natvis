@@ -51,7 +51,7 @@
     <Expand>
       <Item Name ="capacity">mMaxSize</Item>
       <ArrayItems>
-        <Size>mMaxSize</Size>
+        <Size>mNum</Size>
         <ValuePointer>($T1*)mStorage</ValuePointer>
       </ArrayItems>
     </Expand>

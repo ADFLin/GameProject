@@ -2,6 +2,7 @@
 #define RenderUtility_h__
 
 #include "MathCore.h"
+#include "Renderer/BatchedRender2D.h"
 #include "Renderer/RenderTransform2D.h"
 #include "Math/Matrix4.h"
 
@@ -24,8 +25,8 @@ public:
 	virtual void setGlow(Texture* texture , Color3f const& color = Color3f::White()) {}
 	virtual void setMaterial(PrimitiveMat const& mat) {}
 	virtual void setWriteMask(uint32 masks){}
-	virtual void beginTranslucent(float alpha){}
-	virtual void endTranslucent(){}
+	virtual void beginBlend(float alpha, Render::ESimpleBlendMode mode = Render::ESimpleBlendMode::Translucent){}
+	virtual void endBlend(){}
 
 	void drawRect(Vec2f const& pos, Vec2f const& size);
 
@@ -41,16 +42,12 @@ public:
 
 	Render::TransformStack2D& getStack() { return mStack; }
 
+	float time;
+
 	Math::Matrix4 mBaseTransformRHI;
 	Render::RHICommandList* mCommandList;
 	Render::TransformStack2D mStack;
 };
 
-
-void drawRect( Vec2f const& pos , Vec2f const& size );
-void drawSprite( Vec2f const& pos , Vec2f const& size , Texture* tex);
-void drawSprite( Vec2f const& pos , Vec2f const& size , float rot, Texture* tex);
-void drawSprite(Vec2f const& pos, Vec2f const& size, float rot );
-void drawRectLine( Vec2f const& pos , Vec2f const size );
 
 #endif // RenderUtility_h__

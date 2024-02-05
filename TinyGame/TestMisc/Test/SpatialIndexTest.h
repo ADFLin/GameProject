@@ -128,7 +128,7 @@ public:
 
 			mRayResult.indexData = INDEX_NONE;
 			mTree.raycast(mTestRay, mRayResult);
-			struct DistFun
+			struct DistFunc
 			{
 				float operator()(KDTree::PrimitiveData const& data, Vector2 const& p , float) const
 				{
@@ -136,7 +136,7 @@ public:
 				}
 			};
 			float distSqr;
-			mIndexNearset = mTree.findNearst(worldPos, DistFun(), distSqr);
+			mIndexNearset = mTree.findNearst(worldPos, DistFunc(), distSqr);
 		}
 		else if( msg.onRightDown() )
 		{

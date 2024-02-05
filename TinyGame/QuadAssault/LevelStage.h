@@ -18,6 +18,15 @@ class SoundManager;
 class GUIManager;
 class IText;
 
+class LevelMode
+{
+public:
+	virtual void beginPlay() {}
+	virtual void endPlay() {}
+	virtual void tick(float deltaTime) {}
+};
+
+
 class WorldData
 {
 public:
@@ -83,7 +92,8 @@ protected:
 	FObjectPtr< IText >  mDevMsg;
 	Texture*       mTexCursor;
 	RenderConfig   mRenderConfig;
-	
+	FPtr< LevelMode > mMode;
+
 
 	bool        mPause;
 };
@@ -121,9 +131,8 @@ private:
 
 	void changeMenuStage();
 
-#if USE_SFML
-	sf::Music  mMusic;
-#endif
+	SoundPtr   mMusic;
+
 
 	typedef Tween::GroupTweener< float > CTweener;
 

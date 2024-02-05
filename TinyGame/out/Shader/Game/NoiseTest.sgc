@@ -347,9 +347,8 @@ PS_ENTRY_END(SmokeRenderPS)
 
 
 	float3 worldPosDepth = View.worldPos + sceneDepth * cameraDir;
-	//distDepth = 1000000;
+	distDepth = 1000000;
 	
-
 
 	float distStart = max(0, intersection.x);
 	float distEnd = max( distStart , intersection.y );
@@ -445,7 +444,7 @@ PS_ENTRY_END(SmokeRenderPS)
 
 	OutColor = float4(inScatter, transmittance);
 	OutDepth = (stepNum > 0) ? distStart : 0;
-	//OutColor = float4(worldPosDepth, 1);
+	//OutColor = float4(inScatter, 1);
 	//OutColor = float4(stepNum.xxx / 100 , 0);
 	//OutColor = float4(IndexStep.xxx / 300 , 0);
 }

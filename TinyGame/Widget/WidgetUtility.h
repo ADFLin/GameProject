@@ -154,7 +154,12 @@ struct FWidgetProperty
 		};
 		widget->onEvent = [&valueRef, min, max](int event, GWidget* widget)
 		{
-			valueRef = Math::Clamp(  FWidgetProperty::Get<T>(widget->cast<GTextCtrl>()) , min , max );
+			T value = FWidgetProperty::Get<T>(widget->cast<GTextCtrl>());
+			valueRef = Math::Clamp(value, min , max );
+			if (value != valueRef)
+			{
+				FWidgetProperty::Set(widget->cast<GTextCtrl>(), valueRef);
+			}
 			return false;
 		};
 	}

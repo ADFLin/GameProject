@@ -122,7 +122,7 @@ public:
 		char const* p2 = other;
 		for( int i = size(); i; --i, ++p1, ++p2 )
 		{
-			assert(*p1 != 0);
+			CHECK(*p1 != 0);
 			if( *p2 == 0 )
 				return 1;
 			if( *p1 != *p2 )
@@ -150,7 +150,7 @@ public:
 				}
 				else
 				{
-					assert(ARRAY_SIZE(mBuffer) > num + 1);
+					CHECK(ARRAY_SIZE(mBuffer) > num + 1);
 					FCString::CopyN(mBuffer, data, num);
 					mBuffer[num] = 0;
 					mPtr = mBuffer;
@@ -219,12 +219,12 @@ protected:
 
 	int compareInternal(CharT const* other, int numOhter) const
 	{
-		assert(size() <= numOhter);
+		CHECK(size() <= numOhter);
 		CharT const* p1 = data();
 		CharT const* p2 = other;
 		for( int i = 0; i < size(); ++i, ++p1, ++p2 )
 		{
-			assert(*p1 != 0 && *p2 != 0);
+			CHECK(*p1 != 0 && *p2 != 0);
 			if( *p1 != *p2 )
 				return (*p1 > *p2) ? 1 : -1;
 		}

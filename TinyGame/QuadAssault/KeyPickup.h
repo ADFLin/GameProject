@@ -33,9 +33,11 @@ protected:
 	
 	friend class KeyPickupRenderer;
 
-	BEGIN_CLASS_PROP()
-	MEMBER_PROP( "DoorId" , mId )
-	END_CLASS_PROP()
+	REFLECT_STRUCT_BEGIN(KeyPickup)
+		REF_BASE_CLASS(ItemPickup)
+		REF_PROPERTY(mId, "DoorId")
+	REFLECT_STRUCT_END()
+
 };
 
 #endif // KeyPickup_h__

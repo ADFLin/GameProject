@@ -58,7 +58,7 @@ public:
 
 	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		Player* player = object->cast< Player >();
+		Player* player = object->castChecked< Player >();
 
 		if( player->mIsDead )
 			return;
@@ -67,7 +67,7 @@ public:
 		{
 			{
 				//Shadow
-				drawer.beginTranslucent(0.5);
+				drawer.beginBlend(0.5);
 				drawer.getStack().push();
 				drawer.getStack().translate(Vec2f(4, 4));
 
@@ -77,7 +77,7 @@ public:
 				renderTorso(drawer, color, player);
 
 				drawer.getStack().pop();
-				drawer.endTranslucent();
+				drawer.endBlend();
 			}
 			{
 				Color3f color = Color3f(1.0, 1.0, 1.0);
@@ -189,9 +189,9 @@ void MobRenderer::render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject*
 		mat.baseTex = mTextures[TG_DIFFUSE];
 		mat.normalTex = mTextures[TG_NORMAL];
 		drawer.setMaterial(mat);
-		drawer.beginTranslucent(0.6);
+		drawer.beginBlend(0.6);
 		drawer.drawRect(mob->getRenderPos() + Vec2f(5, 5), mob->getSize(), mob->getRotation());
-		drawer.endTranslucent();
+		drawer.endBlend();
 
 		mat.color = Color3f(1, 1, 1);
 		drawer.setMaterial(mat);
@@ -213,13 +213,13 @@ void MobRenderer::renderGroup(PrimitiveDrawer& drawer, RenderPass pass , int num
 		mat.baseTex = mTextures[TG_DIFFUSE];
 		mat.normalTex = mTextures[TG_NORMAL];
 		drawer.setMaterial(mat);
-		drawer.beginTranslucent(0.6);
+		drawer.beginBlend(0.6);
 		for (LevelObject* cur = object; cur; cur = NextObject(cur))
 		{
 			Mob* mob = static_cast<Mob*>(cur);
 			drawer.drawRect(mob->getRenderPos() + Vec2f(5, 5), mob->getSize(), mob->getRotation());
 		}
-		drawer.endTranslucent();
+		drawer.endBlend();
 
 		mat.color = Color3f(1, 1, 1);
 		drawer.setMaterial(mat);
@@ -298,7 +298,7 @@ public:
 		if (pass != RP_GLOW)
 			return;
 
-		LaserBullet* bullet = object->cast< LaserBullet >();
+		LaserBullet* bullet = object->castChecked< LaserBullet >();
 		Vec2f size = Vec2f(16, 32);
 		float rot = Math::ATan2(bullet->mDir.y, bullet->mDir.x) + Math::DegToRad(90);
 		drawer.setGlow(texG);
@@ -322,7 +322,7 @@ public:
 		if (pass != RP_GLOW)
 			return;
 	
-		MinigunBullet* bullet = object->cast< MinigunBullet >();
+		MinigunBullet* bullet = object->castChecked< MinigunBullet >();
 		Vec2f size = Vec2f(16, 32);
 		float rot = Math::ATan2(bullet->mDir.y, bullet->mDir.x) + Math::DegToRad(90);
 		drawer.setGlow(texG);
@@ -347,10 +347,10 @@ public:
 		PrimitiveMat mat;
 		mat.baseTex = tex;
 		mat.normalTex = nullptr;
-		drawer.beginTranslucent(1.0);
+		drawer.beginBlend(1.0);
 		drawer.setMaterial(mat);
 		drawer.drawRect(object->getRenderPos(), object->getSize());
-		drawer.endTranslucent();
+		drawer.endBlend();
 	}
 	Texture* tex;
 };
@@ -366,48 +366,27 @@ public:
 
 	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		return;
-		SmokeParticle* smoke = object->cast< SmokeParticle >();
+		SmokeParticle* smoke = object->castChecked< SmokeParticle >();
 
-		if(pass==TG_DIFFUSE)// || pass==NORMAL)
+		if(pass == RP_BASE_PASS)
 		{
-			Texture* t;
-			if(pass==TG_DIFFUSE)
-				t=tex;
-			if(pass==TG_NORMAL)
-				t=texN;	
+			float scale = Math::Min(2.0f, 0.5f + 0.5f * (smoke->maxLife / smoke->life));
+			float gray = smoke->life / smoke->maxLife;
 
-			float faktorSkaliranja = 0.5+ 0.5 * ( smoke->maxLife / smoke->life );
-			if( faktorSkaliranja > 2 )
-				faktorSkaliranja = 2;
-
-			float faktorBoje=smoke->life/smoke->maxLife;
+			PrimitiveMat mat;
+			mat.baseTex = tex;
+			mat.normalTex = texN;
+			mat.color = Color3f(gray, gray, gray);
 
 			Vec2f center = smoke->getPos();
-			glPushMatrix();
-			glTranslatef( center.x , center.y , 0);	
-			glScalef(faktorSkaliranja,faktorSkaliranja,0);
-			glTranslatef( -smoke->getSize().x ,-smoke->getSize().y ,0 );	
-
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
-			glColor3f(faktorBoje,faktorBoje,faktorBoje);
-
-			glEnable(GL_TEXTURE_2D);
-			t->bind();
-			glBegin(GL_QUADS);
-			glTexCoord2f(0.0, 0.0); glVertex2f(0.0, 0.0);
-			glTexCoord2f(1.0, 0.0); glVertex2f(smoke->getSize().x, 0.0);
-			glTexCoord2f(1.0, 1.0); glVertex2f(smoke->getSize().x, smoke->getSize().y);
-			glTexCoord2f(0.0, 1.0); glVertex2f(0.0, smoke->getSize().y);
-			glEnd();
-			glBindTexture(GL_TEXTURE_2D,0);
-			glDisable(GL_TEXTURE_2D);	
-
-			glDisable(GL_BLEND);
-			glPopMatrix();	
-
-			glColor3f(1.0, 1.0, 1.0);	
+			drawer.getStack().push();
+			drawer.getStack().translate(center);
+			drawer.getStack().scale(Vec2f(scale, scale));
+			drawer.getStack().translate(-smoke->getSize());
+			drawer.beginBlend(1.0, Render::ESimpleBlendMode::Add);
+			drawer.drawRect(Vec2f::Zero(), smoke->getSize());
+			drawer.endBlend();
+			drawer.getStack().pop();
 		}
 	}
 
@@ -428,48 +407,47 @@ public:
 
 	virtual void render(PrimitiveDrawer& drawer, RenderPass pass , LevelObject* object)
 	{
-		return;
-		DebrisParticle* particle = object->cast< DebrisParticle >();
-		Texture* t;
-		if(pass==TG_DIFFUSE)
-			t=tex;
-		if(pass==TG_NORMAL)
-			t=texN;
-		if(pass==TG_DIFFUSE)// || pass==NORMAL)
+		DebrisParticle* particle = object->castChecked< DebrisParticle >();
+		if(pass==RP_BASE_PASS)
 		{
 			float factor = particle->life / particle->maxLife;
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
-			glColor3f( factor , factor , factor );
-			drawSprite( particle->getRenderPos() , particle->getSize() , 0 ,t );
-			glColor3f(1.0, 1.0, 1.0);
-			glDisable(GL_BLEND);
+
+			PrimitiveMat mat;
+			mat.baseTex   = tex;
+			mat.normalTex = texN;
+			mat.color = Color3f(factor, factor, factor);
+			drawer.setMaterial(mat);
+
+			drawer.beginBlend(1.0f, Render::ESimpleBlendMode::Add);
+
+			drawer.drawRect(particle->getRenderPos(), particle->getSize());
+			drawer.endBlend();
 		}
 	}
 
 	virtual void renderGroup(PrimitiveDrawer& drawer, RenderPass pass , int numObj , LevelObject* object)
 	{
-		return;
-		Texture* t;
-		if(pass==TG_DIFFUSE)
-			t=tex;
-		if(pass==TG_NORMAL )
-			t=texN;
-		if(pass==TG_DIFFUSE)// || pass==NORMAL)
+		if (pass == RP_BASE_PASS)
 		{
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
+			drawer.beginBlend(1.0f, Render::ESimpleBlendMode::Add);
+
+			PrimitiveMat mat;
+			mat.baseTex = tex;
+			mat.normalTex = texN;
+
 			for( ; object ; object = NextObject( object ) )
 			{
-				DebrisParticle* particle = object->cast< DebrisParticle >();
-				float factor = particle->life / particle->maxLife;
-				glColor3f( factor , factor , factor );
-				drawSprite( particle->getRenderPos() , particle->getSize() , 0 ,t );
+				DebrisParticle* particle = object->castChecked< DebrisParticle >();
+				if (pass == RP_BASE_PASS)
+				{
+					float factor = particle->life / particle->maxLife;
+					mat.color = Color3f(factor, factor, factor);
+					drawer.setMaterial(mat);
+					drawer.drawRect(particle->getRenderPos(), particle->getSize());
+				}
 			}
-			glColor3f(1.0, 1.0, 1.0);
-			glDisable(GL_BLEND);
+			drawer.endBlend();
 		}
-
 	}
 
 	Texture* tex;
@@ -537,7 +515,8 @@ public:
 		}
 		else
 		{
-			drawSprite(pickup->getRenderPos() + Vec2f(pickup->getSize().x / 2 - 8, 0), Vec2f(16, 32), pickup->mRotation, mTex[pickup->mId][TG_GLOW]);
+			drawer.setGlow(mTex[pickup->mId][TG_GLOW]);
+			drawer.drawRect(pickup->getRenderPos() + Vec2f(pickup->getSize().x / 2 - 8, 0), Vec2f(16, 32), pickup->mRotation);
 		}
 
 	}

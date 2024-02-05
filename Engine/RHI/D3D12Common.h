@@ -72,6 +72,20 @@ namespace Render
 	};
 
 	template<>
+	struct TD3D12TypeTraits< RHITexture3D >
+	{
+		typedef ID3D12Resource ResourceType;
+		typedef D3D12Texture3D ImplType;
+	};
+
+	template<>
+	struct TD3D12TypeTraits< RHITextureCube >
+	{
+		typedef ID3D12Resource ResourceType;
+		typedef D3D12TextureCube ImplType;
+	};
+
+	template<>
 	struct TD3D12TypeTraits< RHIPipelineState >
 	{
 		typedef ID3D12PipelineState ResourceType;
@@ -153,6 +167,9 @@ namespace Render
 	struct alignas(void*) TPSSubobjectStreamData : PSSubobjectStreamDataBase , TPSSubobjectStreamDataHelper< SubobjectID >::DataType
 	{
 		TPSSubobjectStreamData() : TPSSubobjectStreamDataHelper< SubobjectID >::DataType() { ID = SubobjectID; }
+		template<typename T>
+		explicit TPSSubobjectStreamData(T&& value) : TPSSubobjectStreamDataHelper< SubobjectID >::DataType(std::forward<T>(value)) { ID = SubobjectID; }
+
 		using TPSSubobjectStreamDataHelper< SubobjectID >::DataType::operator =;
 	};
 
@@ -170,13 +187,27 @@ namespace Render
 		template< D3D12_PIPELINE_STATE_SUBOBJECT_TYPE SubobjectID >
 		TPSSubobjectStreamData< SubobjectID >& addDataT()
 		{
-			static_assert(std::is_trivially_destructible_v<TPSSubobjectStreamData< SubobjectID >>);
+			using StreamDataType = TPSSubobjectStreamData< SubobjectID >;
+			static_assert(std::is_trivially_destructible_v<StreamDataType>);
 			size_t offset = mBuffer.size();
-			mBuffer.insert(mBuffer.end(), sizeof(TPSSubobjectStreamData< SubobjectID >), 0);
+			mBuffer.insert(mBuffer.end(), sizeof(StreamDataType), 0);
 
 			void* ptr = mBuffer.data() + offset;
-			FTypeMemoryOp::Construct<TPSSubobjectStreamData< SubobjectID >>(ptr);
-			return *reinterpret_cast<TPSSubobjectStreamData< SubobjectID >*>(ptr);
+			FTypeMemoryOp::Construct<StreamDataType>(ptr);
+			return *reinterpret_cast<StreamDataType*>(ptr);
+		}
+
+		template< D3D12_PIPELINE_STATE_SUBOBJECT_TYPE SubobjectID, typename T >
+		TPSSubobjectStreamData< SubobjectID >& addDataT(T&& value)
+		{
+			using StreamDataType = TPSSubobjectStreamData< SubobjectID >;
+			static_assert(std::is_trivially_destructible_v<StreamDataType>);
+			size_t offset = mBuffer.size();
+			mBuffer.insert(mBuffer.end(), sizeof(StreamDataType), 0);
+
+			void* ptr = mBuffer.data() + offset;
+			FTypeMemoryOp::Construct<StreamDataType>(ptr, std::forward<T>(value));
+			return *reinterpret_cast<StreamDataType*>(ptr);
 		}
 
 		template< class T >
@@ -632,6 +663,18 @@ namespace Render
 	{
 	public:
 		D3D12Texture2D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
+	};
+
+	class D3D12Texture3D : public TD3D12Texture< RHITexture3D >
+	{
+	public:
+		D3D12Texture3D(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
+	};
+
+	class D3D12TextureCube : public TD3D12Texture< RHITextureCube >
+	{
+	public:
+		D3D12TextureCube(TextureDesc const& desc, TComPtr< ID3D12Resource >& resource);
 	};
 
 	class D3D12Buffer : public TD3D12Resource< RHIBuffer >

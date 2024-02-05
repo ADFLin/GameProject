@@ -122,7 +122,7 @@ namespace Render
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const v[], int num);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const v[], int num);
 
-		void setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1);
+		void setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE);
 		void clearRWTexture(RHICommandList& commandList, ShaderParameter const& param);
 
 		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture);

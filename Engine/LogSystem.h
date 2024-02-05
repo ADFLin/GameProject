@@ -6,6 +6,7 @@
 
 #include "CoreShare.h"
 #include "CString.h"
+#include "Template/StringView.h"
 
 #ifndef USE_LOG
 #define USE_LOG 1
@@ -18,38 +19,43 @@ CORE_API void LogErrorImpl(char const* str);
 CORE_API void LogDevMsgImpl (int level, char const* str);
 CORE_API void LogWarningImpl(int level, char const* str);
 
+CORE_API void LogMsgImpl(StringView const& str);
+CORE_API void LogErrorImpl(StringView const& str);
+CORE_API void LogDevMsgImpl(int level, StringView const& str);
+CORE_API void LogWarningImpl(int level, StringView const& str);
+
 #define LOG_BUFFER_SIZE 102400
 
 template< class ...Arg >
 FORCEINLINE void LogMsgImpl(char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
-	FCString::PrintfT(buffer, format, arg...);
-	LogMsgImpl(buffer);
+	int len = FCString::PrintfT(buffer, format, arg...);
+	LogMsgImpl(StringView( buffer, len ));
 }
 
 template< class ...Arg >
 FORCEINLINE void LogErrorImpl(char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
-	FCString::PrintfT(buffer, format, arg...);
-	LogErrorImpl(buffer);
+	int len = FCString::PrintfT(buffer, format, arg...);
+	LogErrorImpl(StringView(buffer, len));
 }
 
 template< class ...Arg >
 FORCEINLINE void LogDevMsgImpl(int level, char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
-	FCString::PrintfT(buffer, format, arg...);
-	LogDevMsgImpl(level, buffer);
+	int len = FCString::PrintfT(buffer, format, arg...);
+	LogDevMsgImpl(level, StringView(buffer, len));
 }
 
 template< class ...Arg >
 FORCEINLINE void LogWarningImpl(int level, char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
-	FCString::PrintfT(buffer, format, arg...);
-	LogWarningImpl(level, buffer);
+	int len = FCString::PrintfT(buffer, format, arg...);
+	LogWarningImpl(level, StringView(buffer, len));
 }
 
 CORE_API void LogMsgVImpl( char const* format , va_list argptr );
@@ -108,7 +114,10 @@ public:
 
 	virtual bool filterLog(LogChannel channel, int level) { return true; }
 	virtual void receiveLog(LogChannel channel, char const* str) = 0;
-
+	virtual void receiveLog(LogChannel channel, StringView const& str)
+	{
+		receiveLog(channel, str.data());
+	}
 protected:
 	friend class LogManager;
 };

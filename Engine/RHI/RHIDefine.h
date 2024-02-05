@@ -12,6 +12,15 @@
 
 #define RHI_API CORE_API
 
+#define SUPPORT_ENUM_FLAGS_OPERATION(TYPE)\
+	FORCEINLINE TYPE operator | (TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return TYPE(T(a) | T(b)); }\
+	FORCEINLINE TYPE operator & (TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return TYPE(T(a) & T(b)); }\
+	FORCEINLINE TYPE operator ^ (TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return TYPE(T(a) ^ T(b)); }\
+	FORCEINLINE TYPE& operator |= (TYPE& a, TYPE b) { using T = std::underlying_type_t<TYPE>; a = a | b; return a; }\
+	FORCEINLINE TYPE& operator &= (TYPE& a, TYPE b) { using T = std::underlying_type_t<TYPE>; a = a & b; return a; }\
+	FORCEINLINE TYPE& operator ^= (TYPE& a, TYPE b) { using T = std::underlying_type_t<TYPE>; a = a ^ b; return a; }\
+	FORCEINLINE bool HaveBits(TYPE a, TYPE b) { using T = std::underlying_type_t<TYPE>; return !!(T(a) & T(b)); }
+
 namespace Render
 {
 	extern RHI_API float GRHIClipZMin;
@@ -73,9 +82,9 @@ namespace Render
 		Never,
 		Less,
 		Equal,
-		NotEqual,
 		LessEqual,
 		Greater,
+		NotEqual,
 		GreaterEqual,
 		Always,
 
@@ -91,8 +100,8 @@ namespace Render
 	{
 		enum Factor
 		{
-			One,
 			Zero,
+			One,	
 			SrcAlpha,
 			OneMinusSrcAlpha,
 			DestAlpha,
@@ -230,9 +239,10 @@ namespace Render
 		enum AddressMode
 		{
 			Warp,
-			Clamp,
 			Mirror,
+			Clamp,
 			Border,
+			MirrorOnce,
 		};
 
 		enum Filter

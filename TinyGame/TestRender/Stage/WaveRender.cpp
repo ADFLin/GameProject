@@ -187,7 +187,6 @@ namespace Render
 				config.name = "Wave Params";
 				mDetailView = ::Global::Editor()->createDetailView(config);
 				mDetailView->addStruct(mWaveParams, "Wave");
-				auto property = Reflection::PropertyCollector::CreateProperty<decltype(mTests)>();
 				mDetailView->addValue(mTests, "test");
 				mDetailView->addValue(bOnepassFFT, "FFT OnePass");
 

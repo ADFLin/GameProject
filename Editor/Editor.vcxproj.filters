@@ -94,6 +94,10 @@
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.h">
       <Filter>OtherLib\ImGui\Backends</Filter>
     </ClInclude>
+    <ClInclude Include="EditorRender.h" />
+    <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_opengl3.h">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp">
@@ -157,6 +161,10 @@
       <Filter>Widget</Filter>
     </ClCompile>
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.cpp">
+      <Filter>OtherLib\ImGui\Backends</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorRender.cpp" />
+    <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_opengl3.cpp">
       <Filter>OtherLib\ImGui\Backends</Filter>
     </ClCompile>
   </ItemGroup>

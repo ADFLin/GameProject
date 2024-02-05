@@ -23,6 +23,26 @@ namespace Coroutines
 		cleanup();
 	}
 
+	int ThreadContext::getExecutionOrderIndex(ExecutionContext* context)
+	{
+		int index = mExecutions.findIndex(context);
+
+		if (index == INDEX_NONE)
+			return INDEX_NONE;
+
+		if (mIndexCompleted.findIndex(index) != INDEX_NONE)
+			return INDEX_NONE;
+
+		return index;
+	}
+
+	int ThreadContext::getExecutionOrderIndex(ExecutionHandle handle)
+	{
+		if (!handle.isValid())
+			return INDEX_NONE;
+		return getExecutionOrderIndex(handle.getPointer());
+	}
+
 	void ThreadContext::syncExecutions(std::initializer_list<ExecutionHandle> executions)
 	{
 		TArray<ExecutionContext*> activeExecutions;
@@ -124,7 +144,7 @@ namespace Coroutines
 		postExecuteContext(*context);
 
 		bool bEnd = context->mYeild == nullptr;
-		cleaupCompletedExecutions();
+		cleanupCompletedExecutions();
 		if (bEnd)
 		{
 			return ExecutionHandle::Completed(context);
@@ -154,7 +174,6 @@ namespace Coroutines
 					CHECK(context.mParent->mInstruction == nullptr);
 					executeContextInternal(*context.mParent);
 					mIndexCompleted.push_back(mExecutions.findIndex(&context));
-
 				}
 				else
 				{
@@ -213,7 +232,7 @@ namespace Coroutines
 				checkExecution(*execution);
 			}
 		}
-		cleaupCompletedExecutions();
+		cleanupCompletedExecutions();
 	}
 
 	void ThreadContext::stopExecution(ExecutionHandle handle)
@@ -228,7 +247,7 @@ namespace Coroutines
 			}
 			else if (mExecutingContext == nullptr)
 			{
-				cleaupCompletedExecutions();
+				cleanupCompletedExecutions();
 			}
 		}
 	}
@@ -252,7 +271,7 @@ namespace Coroutines
 		}
 		else if (mExecutingContext == nullptr)
 		{
-			cleaupCompletedExecutions();
+			cleanupCompletedExecutions();
 		}
 	}
 
@@ -270,7 +289,7 @@ namespace Coroutines
 				}
 				else if (mExecutingContext == nullptr)
 				{
-					cleaupCompletedExecutions();
+					cleanupCompletedExecutions();
 				}
 				return;
 			}
@@ -306,7 +325,7 @@ namespace Coroutines
 		return true;
 	}
 
-	void ThreadContext::cleaupCompletedExecutions()
+	void ThreadContext::cleanupCompletedExecutions()
 	{
 		CHECK(bUseExecutions == false);
 		if (mIndexCompleted.empty())

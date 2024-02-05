@@ -6,6 +6,8 @@
 #include "GameEdit.h"
 #include "ClassReflection.h"
 
+class RHIGraphics2D;
+
 inline Vec2f GetDirection(float angle)
 {
 	Vec2f dir;
@@ -41,6 +43,7 @@ enum ObjectType
 	OT_ITEM ,
 	OT_PARTICLE ,
 	OT_TRIGGER ,
+	OT_PLAYER_START,
 };
 
 class IObjectRenderer;
@@ -53,18 +56,13 @@ public:
 	ObjectClass( ObjectClass* inParent , char const* inName , ObjectType inType )
 		:CRClass( inParent , inName ),type( inType )
 	{
-		typeBits = BIT( inType );
-		if ( inParent )
-			typeBits |= inParent->typeBits ;
+
 	}
 
 	ObjectType  getType(){ return type; }
 
 private:
-	friend class LevelObject;
 	ObjectType   type;
-	unsigned     typeBits;
-
 };
 
 
@@ -79,6 +77,7 @@ enum SpawnDestroyFlag
 	SDF_SETUP_DEFAULT = BIT(0),
 	SDF_CAST_EFFECT   = BIT(1),
 	SDF_LOAD_LEVEL    = BIT(2),
+	SDF_EDIT          = BIT(3),
 };
 
 class LevelObject : public Object
@@ -95,33 +94,36 @@ public:
 	virtual void enumProp( IPropEditor& editor );
 
 	virtual void init(){}
-	virtual void onSpawn( unsigned flag ){}
+	virtual void onSpawn( unsigned flag )
+	{
+
+	}
 	virtual void onDestroy( unsigned flag ){}
 	virtual void tick(){}
 	virtual void postTick(){}
 	virtual void updateRender( float dt ){}
 	
-	virtual void renderDev( DevDrawMode mode ){}
+	virtual void renderDev(RHIGraphics2D& g, DevDrawMode mode ){}
 
 	virtual void onTileCollision( ColBody& self , Tile& tile ){}
 	virtual void onBodyCollision( ColBody& self , ColBody& other ){}
 
-	virtual IObjectRenderer* getRenderer(){ return NULL; }
+	virtual IObjectRenderer* getRenderer(){ return nullptr; }
 
 	Level* getLevel(){ return mLevel; }
 	void   destroy(){ mNeedDestroy = true; }
 
 	template< class T >
-	T* tryCast()
-	{ 
-		if ( getClass()->typeBits & BIT( T::StaticClass()->getType() ) )
-			return static_cast< T* >( this );
-		return NULL;
-	}
-	template< class T >
 	T* cast()
 	{ 
-		assert( dynamic_cast< T* >( this ) );
+		if ( getClass()->isChildOf( T::StaticClass() ) )
+			return static_cast< T* >( this );
+		return nullptr;
+	}
+	template< class T >
+	T* castChecked()
+	{ 
+		CHECK(getClass()->isChildOf(T::StaticClass()));
 		return static_cast< T* >( this );
 	}
 
@@ -131,10 +133,15 @@ public:
 
 	void         calcBoundBox( Rect& bBox );
 
+
+	//Edit
+	bool    isTransient() const { return mbTransient; }
+
 protected:
 	Vec2f    mSize;
 	Level*   mLevel;
 	bool     mNeedDestroy;
+	bool     mbTransient = true;
 
 private:
 	friend class Level;
@@ -146,9 +153,9 @@ private:
 	friend class IObjectRenderer;
 	LevelObject* renderLink;
 
-	BEGIN_CLASS_PROP_NOBASE()
-	MEMBER_PROP( "Pos" , mPos )
-	END_CLASS_PROP()
+	REFLECT_STRUCT_BEGIN(LevelObject)
+		REF_PROPERTY(mPos, "Pos")
+	REFLECT_STRUCT_END()
 };
 
 
@@ -160,17 +167,17 @@ public:\
 	static ObjectClass* StaticClass();\
 	virtual ObjectClass* getClass(){ return ThisClass::StaticClass(); }\
 	virtual void enumProp( IPropEditor& editor )\
-{\
-	ClassEditReigster reg( editor );\
-	reigsterContext( reg );\
-}
+	{\
+		ClassEditReigster reg( static_cast<ThisClass*>(this), editor );\
+		REF_COLLECT_TYPE(ThisClass, reg );\
+	}
 
 #define IMPL_OBJECT_CLASS( CLASS , TYPE , NAME )\
 	ObjectClass* CLASS::StaticClass()\
-{\
-	static ObjectClass myClass( BaseClass::StaticClass() , NAME , TYPE );\
-	return &myClass;\
-}
+	{\
+		static ObjectClass myClass( BaseClass::StaticClass() , NAME , TYPE );\
+		return &myClass;\
+	}
 
 
 #endif // Object_h__

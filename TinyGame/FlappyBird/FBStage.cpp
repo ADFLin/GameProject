@@ -644,7 +644,7 @@ namespace FlappyBird
 		Vec2i screenSize = ::Global::GetScreenSize();
 		RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 
-		mBaseTransform = OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1);
+		mBaseTransform = AdjProjectionMatrixForRHI(OrthoMatrix(0, screenSize.x, screenSize.y, 0, -1, 1));
 
 		if ( mbDebugDraw )
 		{
@@ -849,7 +849,7 @@ namespace FlappyBird
 			if( frame >= frameNum )
 				frame = frameNum - frame + 1;
 			
-			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+			RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 			mXFormStack.push();
 			{
 				mXFormStack.translate(rPos);
@@ -889,7 +889,7 @@ namespace FlappyBird
 				texPos.y += texSize.y;
 				texSize.y = -texSize.y;
 			}
-			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha>::GetRHI());
+			RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 			drawTexture(TextureID::Pipe, rPos , rSize, Vector2(0, 0), texPos, texSize);
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
@@ -912,7 +912,7 @@ namespace FlappyBird
 
 		Vector2 size = Vector2(width, 10 * width / getImageSizeRatio(TextureID::Number));
 
-		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>::GetRHI());
+		RHISetBlendState(commandList, StaticTranslucentBlendState::GetRHI());
 		for( int i = 0; i < numDigial; ++i )
 		{
 			drawTexture(TextureID::Number, Vector2(offset - i * width , 0 ),  size, 

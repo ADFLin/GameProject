@@ -1,9 +1,7 @@
 #include "D3D11ShaderCommon.h"
-
 #include "D3D11Common.h"
 
 #include "RHICommand.h"
-#include "ShaderProgram.h"
 
 #include "FileSystem.h"
 #include "CPreprocessor.h"
@@ -12,8 +10,14 @@
 
 #include <D3D11.h>
 
+
 namespace Render
 {
+
+	TArrayView< uint8 const > MakeConstView(TComPtr< ID3DBlob >& blob)
+	{
+		return TArrayView< uint8 const >((uint8 const*)blob->GetBufferPointer(), blob->GetBufferSize());
+	}
 
 	class D3D11ShaderCompileIntermediates : public ShaderCompileIntermediates
 	{
@@ -96,7 +100,7 @@ namespace Render
 				auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*context.programSetupData->intermediateData.get());
 				shaderIntermediates.codeList.push_back(byteCode);
 
-				if (!shaderProgramImpl.mShaderDatas[context.shaderIndex].initialize(context.getType(), mDevice, byteCode))
+				if (!shaderProgramImpl.mShaderDatas[context.shaderIndex].initialize(context.getType(), mDevice, MakeConstView(byteCode) ))
 				{
 					return false;
 				}
@@ -112,9 +116,8 @@ namespace Render
 				auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*context.shaderSetupData->intermediateData.get());
 				shaderIntermediates.codeList.push_back(byteCode);
 
-				context.shaderSetupData->resource = RHICreateShader(context.getType());
-				auto* shaderImpl = static_cast<D3D11Shader*>(context.shaderSetupData->resource.get());
-				if (!shaderImpl->initialize(mDevice, byteCode))
+				auto& shaderImpl = static_cast<D3D11Shader&>(*context.shaderSetupData->resource);
+				if (!shaderImpl.initialize(mDevice, MakeConstView(byteCode)))
 				{
 					LogWarning(0, "Can't create shader resource");
 					return false;
@@ -122,14 +125,14 @@ namespace Render
 			}
 
 
-		} while( !bSuccess && context.bRecompile );
+		} while( !bSuccess && context.bAllowRecompile );
 
 		return bSuccess;
 	}
 
-	bool ShaderFormatHLSL::initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
+	ShaderParameterMap* ShaderFormatHLSL::initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData)
 	{
-		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.mParameterMap.clear();
 		auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*setupData.intermediateData.get());
 		for (int i = 0; i < shaderProgramImpl.mNumShaders; ++i)
@@ -142,13 +145,12 @@ namespace Render
 			shaderProgramImpl.mShaderDatas[i].globalConstBufferSize = paramInfo.globalConstBufferSize;
 		}
 		shaderProgramImpl.mParameterMap.finalizeParameterMap();
-		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
-		return true;
+		return &shaderProgramImpl.mParameterMap;
 	}
 
-	bool ShaderFormatHLSL::initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
+	ShaderParameterMap* ShaderFormatHLSL::initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode)
 	{
-		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
 		shaderProgramImpl.mParameterMap.clear();
 
 		auto serializer = CreateBufferSerializer<SimpleReadBuffer>(MakeConstView(binaryCode));
@@ -162,7 +164,7 @@ namespace Render
 			TArray< uint8 > byteCode;
 			serializer.read(byteCode);
 
-			if (!shaderProgramImpl.mShaderDatas[i].initialize(EShader::Type(shaderType), mDevice, byteCode.data(), byteCode.size()))
+			if (!shaderProgramImpl.mShaderDatas[i].initialize(EShader::Type(shaderType), mDevice, MakeConstView(byteCode) ))
 				return false;
 
 			ShaderParameterMap parameterMap;
@@ -179,8 +181,7 @@ namespace Render
 		}
 
 		shaderProgramImpl.mParameterMap.finalizeParameterMap();
-		shaderProgram.bindParameters(shaderProgramImpl.mParameterMap);
-		return true;
+		return &shaderProgramImpl.mParameterMap;
 	}
 
 	bool ShaderFormatHLSL::doesSuppurtBinaryCode() const
@@ -188,11 +189,12 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatHLSL::getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL::getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
+		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*setupData.resource);
+
 		auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*setupData.intermediateData.get());
 
-		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram.mRHIResource);
 		auto serializer = CreateBufferSerializer<ArrayWriteBuffer>(outBinaryCode);
 		uint8 numShaders = shaderProgramImpl.mNumShaders;
 		serializer.write(numShaders);
@@ -210,11 +212,12 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderFormatHLSL::getBinaryCode(Shader& shader, ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
+	bool ShaderFormatHLSL::getBinaryCode(ShaderSetupData& setupData, TArray<uint8>& outBinaryCode)
 	{
+		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*setupData.resource);
+
 		auto& shaderIntermediates = static_cast<D3D11ShaderCompileIntermediates&>(*setupData.intermediateData.get());
 		TComPtr<ID3DBlob>& byteCode = shaderIntermediates.codeList[0];
-		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
 		outBinaryCode.assign((uint8*)byteCode->GetBufferPointer(), (uint8*)(byteCode->GetBufferPointer()) + byteCode->GetBufferSize());
 		return true;
 	}
@@ -224,7 +227,7 @@ namespace Render
 		setupData.intermediateData = std::make_unique<D3D11ShaderCompileIntermediates>();
 
 		D3D11ShaderProgram& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*setupData.resource);
-		shaderProgramImpl.initializeData(setupData.getShaderCount());
+		shaderProgramImpl.initializeData(setupData.descList.size());
 		
 	}
 
@@ -233,54 +236,50 @@ namespace Render
 		setupData.intermediateData = std::make_unique<D3D11ShaderCompileIntermediates>();
 	}
 
-	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderSetupData& setupData)
+	ShaderParameterMap* ShaderFormatHLSL::initializeShader(RHIShader& shader, ShaderSetupData& setupData)
 	{
-		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
+		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(shader);
 		D3D11ShaderCompileIntermediates* intermediateData = static_cast<D3D11ShaderCompileIntermediates*>(setupData.intermediateData.get());
 
 		TComPtr<ID3DBlob>& code = intermediateData->codeList[0];
 
 		D3DShaderParamInfo paramInfo;
 		if (!D3D11Shader::GenerateParameterMap(TArrayView<uint8 const>((uint8*)code->GetBufferPointer(), code->GetBufferSize()), shaderImpl.mParameterMap, paramInfo))
-			return false;
+			return nullptr;
 
-		shader.bindParameters(shaderImpl.mParameterMap);
+
 		shaderImpl.mResource.globalConstBufferSize = paramInfo.globalConstBufferSize;
-		return true;
+		return &shaderImpl.mParameterMap;
 	}
 
-	bool ShaderFormatHLSL::initializeShader(Shader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
+	ShaderParameterMap* ShaderFormatHLSL::initializeShader(RHIShader& shader, ShaderCompileDesc const& desc, TArray<uint8> const& binaryCode)
 	{
-		shader.mRHIResource = RHICreateShader(desc.type);
-
-		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(*shader.mRHIResource);
-		//#TODO:
-		TArray<uint8> temp{ binaryCode.begin() , binaryCode.end() };
-		if (!shaderImpl.initialize(mDevice, std::move(temp)))
+		D3D11Shader& shaderImpl = static_cast<D3D11Shader&>(shader);
+		
+		if (!shaderImpl.initialize(mDevice, MakeConstView(binaryCode)))
 			return false;
 
 		D3DShaderParamInfo paramInfo;
 		if (!D3D11Shader::GenerateParameterMap(MakeConstView(binaryCode), shaderImpl.mParameterMap, paramInfo))
 			return false;
 
-		shader.bindParameters(shaderImpl.mParameterMap);
 		shaderImpl.mResource.globalConstBufferSize = paramInfo.globalConstBufferSize;
-		return true;
+		return &shaderImpl.mParameterMap;
 	}
 
-	void ShaderFormatHLSL::postShaderLoaded(ShaderProgram& shaderProgram)
+	void ShaderFormatHLSL::postShaderLoaded(RHIShaderProgram& shaderProgram)
 	{
 
 	}
 
-	void ShaderFormatHLSL::postShaderLoaded(Shader& shader)
+	void ShaderFormatHLSL::postShaderLoaded(RHIShader& shader)
 	{
 
 	}
 
-	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode)
+	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, TArrayView<uint8 const>& inByteCode)
 	{
-		if (!mResource.initialize(mType, device, (uint8*)inByteCode->GetBufferPointer(), inByteCode->GetBufferSize()))
+		if (!mResource.initialize(mType, device, inByteCode))
 			return false;
 
 		return true;
@@ -288,7 +287,7 @@ namespace Render
 
 	bool D3D11Shader::initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode)
 	{
-		if (!mResource.initialize(mType, device, inByteCode.data(), inByteCode.size()))
+		if (!mResource.initialize(mType, device, MakeConstView(inByteCode)))
 			return false;
 
 		return true;
@@ -309,7 +308,6 @@ namespace Render
 			switch( bindDesc.Type )
 			{
 			case D3D_SIT_CBUFFER:
-			case D3D_SIT_TBUFFER:
 				{
 					ID3D11ShaderReflectionConstantBuffer* buffer = reflection->GetConstantBufferByName(bindDesc.Name);
 					assert(buffer);
@@ -355,7 +353,7 @@ namespace Render
 					}
 					else
 					{
-						//CBuffer TBuffer
+						//CBuffer
 						auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
 #if SHADER_DEBUG
 						param.mbindType = EShaderParamBindType::UniformBuffer;
@@ -363,7 +361,14 @@ namespace Render
 					}
 				}
 				break;
-
+			case D3D_SIT_TBUFFER:
+				{
+					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
+#if SHADER_DEBUG
+					param.mbindType = EShaderParamBindType::TextureBuffer;
+#endif
+				}
+				break;
 			case D3D_SIT_SAMPLER:
 				{
 					auto& param = parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
@@ -396,6 +401,21 @@ namespace Render
 		return true;
 	}
 
+	bool D3D11VertexShader::initialize(TComPtr<ID3D11Device>& device, TArrayView<uint8 const>& inByteCode)
+	{
+		if (!BaseClass::initialize(device, inByteCode))
+			return false;
+		byteCode.assign(inByteCode.data(), inByteCode.data() + inByteCode.size());
+	}
+
+	bool D3D11VertexShader::initialize(TComPtr<ID3D11Device>& device, TArray<uint8>&& inByteCode)
+	{
+		if (!BaseClass::initialize(device, std::move(inByteCode)))
+			return false;
+
+		byteCode = std::move(inByteCode);
+	}
+
 	bool D3D11ShaderProgram::getParameter(char const* name, ShaderParameter& outParam)
 	{
 		return outParam.bind(mParameterMap, name);
@@ -417,29 +437,21 @@ namespace Render
 		mNumShaders = 0;
 	}
 
-	bool D3D11ShaderData::initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TComPtr<ID3DBlob>& inByteCode)
-	{
-		auto pCode = (uint8 const*)inByteCode->GetBufferPointer();
-		auto codeSize = inByteCode->GetBufferSize();
-
-		return initialize(inType, device, pCode, codeSize);
-	}
-
-	bool D3D11ShaderData::initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, uint8 const* pCode, uint32 codeSize )
+	bool D3D11ShaderData::initialize(EShader::Type inType, TComPtr<ID3D11Device>& device, TArrayView< uint8 const > code)
 	{
 		switch (inType)
 		{
 #define CASE_SHADER(  TYPE , FUNC ,VAR )\
-			case TYPE:\
-				VERIFY_D3D_RESULT_RETURN_FALSE( device->FUNC(pCode, codeSize, NULL, &VAR) );\
-				break;
+		case TYPE:\
+			VERIFY_D3D_RESULT_RETURN_FALSE( device->FUNC(code.data(), code.size(), NULL, &VAR) );\
+			break;
 
-			CASE_SHADER(EShader::Vertex, CreateVertexShader, vertex);
-			CASE_SHADER(EShader::Pixel, CreatePixelShader, pixel);
-			CASE_SHADER(EShader::Geometry, CreateGeometryShader, geometry);
-			CASE_SHADER(EShader::Compute, CreateComputeShader, compute);
-			CASE_SHADER(EShader::Hull, CreateHullShader, hull);
-			CASE_SHADER(EShader::Domain, CreateDomainShader, domain);
+		CASE_SHADER(EShader::Vertex, CreateVertexShader, vertex);
+		CASE_SHADER(EShader::Pixel, CreatePixelShader, pixel);
+		CASE_SHADER(EShader::Geometry, CreateGeometryShader, geometry);
+		CASE_SHADER(EShader::Compute, CreateComputeShader, compute);
+		CASE_SHADER(EShader::Hull, CreateHullShader, hull);
+		CASE_SHADER(EShader::Domain, CreateDomainShader, domain);
 
 #undef CASE_SHADER
 		default:

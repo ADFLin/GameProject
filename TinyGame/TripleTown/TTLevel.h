@@ -75,6 +75,7 @@ namespace TripleTown
 		LT_PEACEFUL  ,
 		LT_DANGERUOS ,
 		LT_LAKE      ,
+		LT_TEST      ,
 	};
 
 	enum TerrainType
@@ -107,7 +108,7 @@ namespace TripleTown
 		intptr_t    userData;
 		ObjectState state;
 		int         stepBorn;
-		int         stepUpdate;
+		int         stepEvolve;
 	};
 
 	struct Tile
@@ -192,6 +193,8 @@ namespace TripleTown
 
 		virtual void notifyAddPoints( int points ){}
 		virtual void notifyAddCoins(int coins) {}
+
+		virtual void notifyStateChanged(){}
 	};
 
 	struct ObjectInfo
@@ -215,29 +218,30 @@ namespace TripleTown
 	{
 	public:
 
+		TileMap     mMap;
+		int         mNumEmptyTile;
+		int         mStep;
 
-		void importState( DataStreamBuffer& dataBuffer )
-		{
-			auto serializer = CreateSerializer(dataBuffer);
-			IStreamSerializer::ReadOp op(serializer);
-			serialize(op);
-		}
 
-		void exportState( DataStreamBuffer& dataBuffer)
-		{
-			auto serializer = CreateSerializer(dataBuffer);
-			IStreamSerializer::WriteOp op(serializer);
-			serialize(op);
-		}
+		static int const ObjQueueSize = 5;
+		ObjectId    mObjQueue[ObjQueueSize];
+		int         mIdxNextUse;
+
+
+		typedef TArray< int >       IdxList;
+		typedef TArray< ActorData > EntityMap;
+		EntityMap  mActorStorage;
+		IdxList    mIdxUpdateQueue;
+		int        mIdxFreeEntity;
 
 		template< class OP >
-		void serialize( OP& op)
+		void serialize(OP& op)
 		{
 			uint32 version = 0;
 			op & version;
 
 			uint8 sizeX, sizeY;
-			if( OP::IsSaving )
+			if (OP::IsSaving)
 			{
 				sizeX = mMap.getSizeX();
 				sizeY = mMap.getSizeY();
@@ -254,21 +258,6 @@ namespace TripleTown
 			op & mObjQueue & mIdxNextUse;
 			op & mActorStorage & mIdxUpdateQueue & mIdxFreeEntity;
 		}
-		TileMap     mMap;
-		int         mNumEmptyTile;
-		int         mStep;
-
-
-		static int const ObjQueueSize = 5;
-		ObjectId    mObjQueue[ObjQueueSize];
-		int         mIdxNextUse;
-
-
-		typedef std::vector< int >       IdxList;
-		typedef std::vector< ActorData > EntityMap;
-		EntityMap  mActorStorage;
-		IdxList    mIdxUpdateQueue;
-		int        mIdxFreeEntity;
 
 	};
 	struct PlayerData
@@ -349,8 +338,6 @@ namespace TripleTown
 
 		void    rebuildLink( TilePos const& pos , ObjectId id );
 		int     relink_R( TilePos const& pos , ObjectId id , int idxRoot );
-		
-		void   checkActor( Tile& tile , TilePos const& pos );
 
 		int    getConnectObjectPos( TilePos const& pos , ObjectId id , TilePos posConnect[] );
 		int    getConnectObjectPos_R( TilePos const& pos , ObjectId id , TilePos posConnect[] );
@@ -369,8 +356,8 @@ namespace TripleTown
 			return getTile( pos ).getTerrain();
 		}
 		void    setTerrain( TilePos const& pos , TerrainType type );
-		bool    updateActorState( ActorData& e );
 		int     killConnectActor( Tile& tile , TilePos const& pos , unsigned bitMask , TilePos& posNew );
+		int     killAllActors(unsigned bitMask);
 
 		struct KillInfo
 		{
@@ -397,6 +384,71 @@ namespace TripleTown
 		void    removeActor( Tile& tile );
 		void    moveActor( Tile& tile , ActorData& e , TilePos const& toPos );
 	
+	public:
+		bool redo()
+		{
+			int index = mIndexLastStepState + 1;
+			if (index == ARRAY_SIZE(mStepStaes))
+			{
+				index = 0;
+			}
+			auto& state = mStepStaes[index];
+			if (state.step != mStep + 1)
+				return false;
+
+			loadState(state);
+			mIndexLastStepState = index;
+			return true;
+		}
+
+		bool undo()
+		{
+			int index = mIndexLastStepState - 1;
+			if (index < 0)
+			{
+				index += ARRAY_SIZE(mStepStaes);
+			}
+			auto& state = mStepStaes[index];
+			if (state.step != mStep - 1)
+				return false;
+
+			loadState(state);
+			mIndexLastStepState = index;
+			return true;
+		}
+
+		struct  StateData
+		{
+			int step;
+			TArray<uint8> buffer;
+		};
+
+		void recordStepState()
+		{
+			++mIndexLastStepState;
+			if (mIndexLastStepState == ARRAY_SIZE(mStepStaes))
+				mIndexLastStepState = 0;
+
+			saveState(mStepStaes[mIndexLastStepState]);
+		}
+		void saveState(StateData& state)
+		{
+			state.step = mStep;
+			state.buffer.clear();
+			auto bufferSerializer = CreateBufferSerializer<ArrayWriteBuffer>(state.buffer);
+			serialize( IStreamSerializer::WriteOp(bufferSerializer));
+		}
+
+		void loadState(StateData& state)
+		{
+			auto bufferSerializer = CreateBufferSerializer<SimpleReadBuffer>(MakeConstView(state.buffer));
+			serialize(IStreamSerializer::ReadOp(bufferSerializer));
+
+			mListener->notifyStateChanged();
+		}
+
+		int mIndexLastStepState = 0;
+		StateData mStepStaes[32];
 
 
 		struct ProduceInfo
@@ -420,7 +472,36 @@ namespace TripleTown
 		bool        testCheckCount(Tile& tile);
 		void        increaseCheckCount();
 		unsigned    mCheckCount;
+		bool        mbIdxUpdateQueueModified;
 
+		template< typename TFunc >
+		void updateActors(TFunc func)
+		{
+			mbIdxUpdateQueueModified = false;
+			unsigned idxCheck = 0;
+			while (idxCheck < mIdxUpdateQueue.size())
+			{
+				ActorData& e = mActorStorage[mIdxUpdateQueue[idxCheck]];
+
+				if (func(e))
+				{
+					if (mbIdxUpdateQueueModified == true)
+					{
+						idxCheck = 0;
+						mbIdxUpdateQueueModified = false;
+					}
+					else
+					{
+						++idxCheck;
+					}
+				}
+				else
+				{
+					++idxCheck;
+				}
+			}
+
+		}
 		static ObjectInfo const& GetInfo( ObjectId id );
 		
 
@@ -433,6 +514,7 @@ namespace TripleTown
 		friend class ECToolBase;
 		friend class ECCrystal;
 		friend class ECBear;
+		friend class ECNinja;
 	};
 
 }

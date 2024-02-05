@@ -194,7 +194,7 @@ void TextureViewerPanel::render()
 				RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None, EFillMode::Solid, EFrontFace::Default, true >::GetRHI());
 
 				RHISetBlendState(commandList,
-					bMaskA ? TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha >::GetRHI() : TStaticBlendState<>::GetRHI()
+					bMaskA ? StaticTranslucentBlendState::GetRHI() : TStaticBlendState<>::GetRHI()
 				);
 
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());

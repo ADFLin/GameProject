@@ -18,6 +18,7 @@ AudioHandle const ERROR_AUDIO_HANDLE = AudioHandle(0);
 
 
 bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, TArray< uint8 >& outSampleData);
+bool LoadOggFile(char const* path, WaveFormatInfo& outWaveFormat, TArray<uint8>& outSampleData);
 
 class SoundWave;
 class SoundBase;
@@ -92,7 +93,7 @@ struct SoundInstance
 		startSamplePos = 0;
 		bUsed = false;
 		bPlaying = false;
-		sourceId = -1;
+		sourceId = INDEX_NONE;
 		soundwave = nullptr;
 		activeSound = nullptr;
 		usageFrame = 0;
@@ -253,10 +254,11 @@ public:
 
 	SoundInstance* findInstance(uint64 hash);
 
-	virtual AudioSource* createSource();
+	virtual AudioSource* createSource() = 0;
 
 	int fetchIdleSource(SoundInstance& instance);
 
+	bool isPlaying(AudioHandle handle);
 	void stopSound(AudioHandle handle);
 	void stopAllSound();
 
@@ -271,7 +273,7 @@ protected:
 
 	TArray< AudioSource* > mAudioSources;
 	TArray< int > mIdleSources;
-	int mMaxChannelNum = 10;
+	int mMaxChannelNum = 128;
 
 	uint32 mNextHandleId = 1;
 	TArray< ActiveSound* > mActiveSounds;

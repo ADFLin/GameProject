@@ -43,7 +43,7 @@ public:
 	void     setData( Color4ub&  data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_COLOR; }
 	void     setData( String& data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_STRING; }
 	void     setData( bool&   data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_BOOL; }
-
+	void     setData( CRClassName&   data){ mData = &data; mDataSize = sizeof(data); mType = PROP_CLASSNAME; }
 	void     setEnumData( void* data , int dataSize )
 	{
 		mData = data;
@@ -68,7 +68,8 @@ class IPropEditor
 {
 public:
 	virtual void addPropData( char const* name , PropData const& data , unsigned flag ) = 0;
-	virtual void addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* strSet[] , unsigned flag ) = 0;
+	virtual void addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* const strSet[] , unsigned flag ) = 0;
+	virtual void addProp(char const* name, void* value, int sizeValue, TArrayView< ReflectEnumValueInfo const > valueSet, unsigned flag) = 0;
 
 	template< class T >
 	void addProp( char const* name , T& value , unsigned flag = 0 )
@@ -76,9 +77,15 @@ public:
 		addPropData( name , PropData( value ) , flag );
 	}
 	template< class T >
-	void addEnumProp( char const* name , T& value , int numSet , int const valueSet[] , char const* strSet[], unsigned flag = 0  )
+	void addEnumProp( char const* name , T& value , int numSet , int const valueSet[] , char const* const strSet[], unsigned flag = 0  )
 	{
 		addProp( name , &value , sizeof( T ) , numSet , valueSet , strSet , flag );
+	}
+
+	template< class T >
+	void addEnumProp(char const* name, T& value, TArrayView< ReflectEnumValueInfo const > valueSet, unsigned flag = 0)
+	{
+		addProp(name, &value, sizeof(T), valueSet, flag);
 	}
 };
 
@@ -103,10 +110,71 @@ public:
 		mEditor.addProp( name , var , flag );
 	}
 	template< class T >
-	void addEnumMember( char const* name , T& var , int numSet , int const valueSet[] , char const* strSet[] , unsigned flag = 0 )
+	void addEnumMember( char const* name , T& var , int numSet , int const valueSet[] , char const* const strSet[] , unsigned flag = 0 )
 	{
 		mEditor.addEnumProp( name , var , numSet , valueSet , strSet , flag );
 	}
+
+	template< typename T >
+	ClassEditReigster(T* ptr, IPropEditor& editor) :mPtr(ptr), mEditor(editor) {}
+
+	template< typename T >
+	void beginClass(char const* name)
+	{
+
+	}
+
+	template< typename T, typename TBase >
+	void addBaseClass()
+	{
+		TBase* basePtr = static_cast<TBase*>((T*)mPtr);
+		ClassEditReigster baseRegister(basePtr, mEditor);
+		REF_COLLECT_TYPE(TBase, baseRegister);
+	}
+
+	template< class T, typename P >
+	static intptr_t GetOffset(P(T::*memberPtr))
+	{
+		T* ptr = (T*)(0);
+		return (uint8*)(&(ptr->*memberPtr)) - (uint8*)ptr;
+	}
+
+	template< typename T, typename P >
+	void addProperty(P(T::*memberPtr), char const* name)
+	{
+		intptr_t offset = GetOffset(memberPtr);
+
+		if constexpr (std::is_enum_v<P>)
+		{
+			auto values = REF_GET_ENUM_VALUES(P);
+			mEditor.addEnumProp(name, getPropertyRef(memberPtr), values, 0);
+		}
+		else
+		{
+			mEditor.addProp(name, getPropertyRef(memberPtr), 0);
+		}
+	}
+
+	template< typename T, typename P, typename ...TMeta >
+	void addProperty(P(T::*memberPtr), char const* name, TMeta&& ...meta)
+	{
+		addProperty(memberPtr, name);
+	}
+
+	void endClass()
+	{
+
+	}
+
+
+	template< typename T, typename P >
+	P& getPropertyRef(P (T::*memberPtr))
+	{
+		return static_cast<T*>(mPtr)->*memberPtr;
+	}
+
+
+	void* mPtr;
 	IPropEditor& mEditor;
 };
 
@@ -121,7 +189,9 @@ public:
 	Prop* findProp( char const* name );
 	void  setupPorp( IEditable& editable );
 	virtual void addPropData(char const* name , PropData const& data , unsigned flag );
-	virtual void addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* strSet[] , unsigned flag );
+	virtual void addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* const strSet[] , unsigned flag );
+	virtual void addProp(char const* name, void* value, int sizeValue, TArrayView< ReflectEnumValueInfo const > valueSet, unsigned flag);
+
 	void  exportString( String& out );
 	void  importString( char const* str );
 

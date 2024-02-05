@@ -432,7 +432,7 @@ public:
 			colorMap.getColor(float(i) / 1024, color);
 			colors[i] = color;
 		}
-		VERIFY_RETURN_FALSE(mColorMap = RHICreateTexture1D(ETexture::RGBA32F, 1024, 0, TCF_DefalutValue, colors));
+		VERIFY_RETURN_FALSE(mColorMap = RHICreateTexture1D(ETexture::RGBA32F, 1024, 0, 1, TCF_DefalutValue, colors));
 
 		Vec2i screenSize = ::Global::GetScreenSize();
 		mParam.viewSize = screenSize;

@@ -84,7 +84,7 @@ namespace Render
 	{
 	public:
 
-		bool setupShaders(VkDevice device, TArray< ShaderCompileDesc > const& descList, SpirvShaderCode shaderCodes[]);
+		bool setupShaders(VkDevice device, TArrayView< ShaderCompileDesc const >& descList, SpirvShaderCode shaderCodes[]);
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) override
 		{
 			return false;
@@ -125,13 +125,13 @@ namespace Render
 
 		virtual bool compileCode(ShaderCompileContext const& context) final;
 		virtual void precompileCode(ShaderProgramSetupData& setupData);
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
-		virtual bool initializeProgram(ShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, ShaderProgramSetupData& setupData);
+		virtual ShaderParameterMap* initializeProgram(RHIShaderProgram& shaderProgram, TArray< ShaderCompileDesc > const& descList, TArray<uint8> const& binaryCode) final;
 
-		virtual void postShaderLoaded(ShaderProgram& shaderProgram) final;
+		virtual void postShaderLoaded(RHIShaderProgram& shaderProgram) final;
 
 		virtual bool doesSuppurtBinaryCode() const final;
-		virtual bool getBinaryCode(ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
+		virtual bool getBinaryCode(ShaderProgramSetupData& setupData, TArray<uint8>& outBinaryCode) final;
 
 
 

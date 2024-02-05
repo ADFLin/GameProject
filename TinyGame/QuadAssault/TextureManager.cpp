@@ -7,7 +7,6 @@
 #include <iostream>
 
 #include "RHI/RHICommand.h"
-#include "RHI/OpenGLCommon.h"
 #include "ConsoleSystem.h"
 #include "RenderDebug.h"
 #include "RHI/RHIGlobalResource.h"
@@ -15,28 +14,12 @@
 
 Texture GEmptyTexture;
 
-#if USE_SFML
-
-#endif
-
 Texture::Texture()
 {
 
 }	
-
-void Texture::bind()
-{
-	Render::OpenGLCast::To(resource)->bind();
-}
-
-GLuint Texture::getHandle()
-{
-	return Render::OpenGLCast::To(resource)->getHandle();
-}
-
 Texture::~Texture()
 {
-
 
 }
 
@@ -48,7 +31,6 @@ TextureManager::TextureManager()
 TextureManager::~TextureManager()
 {
 	cleanup();
-	GEmptyTexture.resource = nullptr;
 }
 
 void TextureManager::cleanup()
@@ -60,6 +42,7 @@ void TextureManager::cleanup()
 		delete mTextures[i];
 	}
 	mTextures.clear();
+	GEmptyTexture.resource.release();
 }
 
 Texture* TextureManager::getTextureByIndex(int index)

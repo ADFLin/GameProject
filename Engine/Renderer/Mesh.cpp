@@ -294,7 +294,7 @@ namespace Render
 			break;
 		}
 
-		outIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, 0, &adjIndices[0]);
+		outIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, BCF_None, &adjIndices[0]);
 		return outIndexBuffer.isValid();
 	}
 

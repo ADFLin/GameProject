@@ -871,6 +871,12 @@ namespace Render
 			createInfo.blendConstants[2] = 0.0f;
 			createInfo.blendConstants[3] = 0.0f;
 
+			static_assert(
+				(VK_COLOR_COMPONENT_R_BIT == CWM_R) &&
+				(VK_COLOR_COMPONENT_G_BIT == CWM_G) &&
+				(VK_COLOR_COMPONENT_B_BIT == CWM_B) &&
+				(VK_COLOR_COMPONENT_A_BIT == CWM_A));
+
 			for (int i = 0; i < createInfo.attachmentCount; ++i)
 			{
 				VkPipelineColorBlendAttachmentState& state = colorAttachmentStates[i];
@@ -883,16 +889,7 @@ namespace Render
 				state.srcAlphaBlendFactor = VulkanTranslate::To(targetValue.srcAlpha);
 				state.dstAlphaBlendFactor = VulkanTranslate::To(targetValue.destAlpha);
 				state.alphaBlendOp = VulkanTranslate::To(targetValue.opAlpha);
-
-				state.colorWriteMask = 0;
-				if (targetValue.writeMask & CWM_R)
-					state.colorWriteMask |= VK_COLOR_COMPONENT_R_BIT;
-				if (targetValue.writeMask & CWM_G)
-					state.colorWriteMask |= VK_COLOR_COMPONENT_G_BIT;
-				if (targetValue.writeMask & CWM_B)
-					state.colorWriteMask |= VK_COLOR_COMPONENT_B_BIT;
-				if (targetValue.writeMask & CWM_A)
-					state.colorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
+				state.colorWriteMask = (VkColorComponentFlagBits)targetValue.writeMask;
 			}
 
 			alphaToCoverageEnable = initializer.bEnableAlphaToCoverage;

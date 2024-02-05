@@ -24,7 +24,12 @@ using namespace Render;
 
 #include <algorithm>
 #include "Math/GeometryPrimitive.h"
+#include "Renderer/BatchedRender2D.h"
 
+static int const offsetX[4] = { -1,0,1,0 };
+static int const offsetY[4] = { 0,-1,0,1 };
+static Vec2f const tileVertex[4] = { Vec2f(0,0) , Vec2f(BLOCK_SIZE,0) , Vec2f(BLOCK_SIZE,BLOCK_SIZE) , Vec2f(0,BLOCK_SIZE) };
+static Vec2f const tileNormal[4] = { Vec2f(-1,0) , Vec2f(0,-1) , Vec2f(1,0) , Vec2f(0,1) };
 
 bool gUseGroupRender = true;
 bool gUseMRT = true;
@@ -32,6 +37,7 @@ bool gUseMRT = true;
 
 IMPLEMENT_SHADER_PROGRAM(QBasePassProgram);
 IMPLEMENT_SHADER_PROGRAM(QGlowProgram);
+IMPLEMENT_SHADER_PROGRAM(QShadowProgram);
 IMPLEMENT_SHADER_PROGRAM(QLightingProgram);
 IMPLEMENT_SHADER_PROGRAM(QSceneProgram);
 
@@ -50,16 +56,15 @@ bool RenderEngine::init( int width , int height )
 	mFrameWidth  = width;
 	mFrameHeight = height;
 
-	if ( !setupFBO( width , height ) )
+	if ( !setupFrameBuffer( width , height ) )
 		return false;
 
 	mLightBuffer.initializeResource(1);
 	mViewBuffer.initializeResource(1);
 
-	ShaderManager::Get().setBaseDir("QuadAssault/shader/");
-
 	VERIFY_RETURN_FALSE(mProgBasePass = ShaderManager::Get().getGlobalShaderT< QBasePassProgram >());
 	VERIFY_RETURN_FALSE(mProgGlow = ShaderManager::Get().getGlobalShaderT< QGlowProgram >());
+	VERIFY_RETURN_FALSE(mProgShadow = ShaderManager::Get().getGlobalShaderT< QShadowProgram >());
 	VERIFY_RETURN_FALSE(mProgLighting = ShaderManager::Get().getGlobalShaderT< QLightingProgram >());
 
 	for (int mode = 0; mode < NUM_RENDER_MODE; ++mode)
@@ -68,8 +73,6 @@ bool RenderEngine::init( int width , int height )
 		domain.set<QSceneProgram::RenderMode>(mode);
 		VERIFY_RETURN_FALSE(mProgScenes[mode] = ShaderManager::Get().getGlobalShaderT< QSceneProgram >(domain));
 	}
-
-	ShaderManager::Get().setBaseDir("");
 	ShaderHelper::Get().init();
 	return true;
 }
@@ -79,7 +82,7 @@ void RenderEngine::cleanup()
 
 }
 
-bool RenderEngine::setupFBO( int width , int height )
+bool RenderEngine::setupFrameBuffer( int width , int height )
 {
 	mTexLightmap  = RHICreateTexture2D(TextureDesc::Type2D(ETexture::FloatRGBA, width, height).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue));
 	mTexLightmap->setDebugName("TexLightmap");
@@ -88,7 +91,7 @@ bool RenderEngine::setupFBO( int width , int height )
 	mTexNormalMap = RHICreateTexture2D(TextureDesc::Type2D(ETexture::RGB10A2, width, height).Flags(TCF_CreateSRV | TCF_RenderTarget | TCF_DefalutValue));
 	mTexNormalMap->setDebugName("TexNormalMap");
 
-	mTexDepth     = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, width, height).Flags(0));
+	mTexDepth     = RHICreateTextureDepth(TextureDesc::Type2D(ETexture::D24S8, width, height).Flags(TCF_None));
 	mDeferredFrameBuffer = RHICreateFrameBuffer();
 	mDeferredFrameBuffer->setTexture(0, *mTexGeometry);
 	mDeferredFrameBuffer->setTexture(1, *mTexNormalMap);
@@ -104,17 +107,6 @@ bool RenderEngine::setupFBO( int width , int height )
 	return true;
 }
 
-FORCEINLINE RenderTransform2D LookAt(Vector2 screenSize, Vector2 const& lookPos, Vector2 const& upDir, float viewWidth)
-{
-	float zoom = screenSize.x / viewWidth;
-	RenderTransform2D result = RenderTransform2D::Translate(-lookPos);
-	result.scaleWorld(Vector2(zoom, zoom));
-	result.rotateWorld(Math::ACos(Vector2(0, -1).dot(upDir)));
-	result.translateWorld(0.5 * screenSize);
-
-	return result;
-}
-
 void RenderEngine::renderScene(RenderConfig const& config)
 {
 	RenderParam param;
@@ -123,9 +115,9 @@ void RenderEngine::renderScene(RenderConfig const& config)
 
 	param.renderWidth  = mFrameWidth * param.scaleFactor;
 	param.renderHeight = mFrameHeight * param.scaleFactor;
-	param.worldToView = LookAt(Vector2(mFrameWidth, mFrameHeight),
-		param.camera->getPos() + (0.5f * param.scaleFactor) * Vector2(mFrameWidth, mFrameHeight), Vector2(0, -1), param.renderWidth);
-
+	param.worldToView = RenderTransform2D::LookAt(Vector2(mFrameWidth, mFrameHeight),
+		param.camera->getPos() + (0.5f * param.scaleFactor) * Vector2(mFrameWidth, mFrameHeight), Vector2(0, -1), mFrameWidth / param.renderWidth);
+	param.worldToClipRHI = AdjProjectionMatrixForRHI(param.worldToView.toMatrix4()  * OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1));
 	ViewParams* viewParams = mViewBuffer.lock();
 	if (viewParams)
 	{
@@ -133,7 +125,7 @@ void RenderEngine::renderScene(RenderConfig const& config)
 		viewParams->sizeInv = Vector2(1.0 / mFrameWidth, 1.0 / mFrameHeight);
 		mViewBuffer.unlock();
 	}
-	mDrawer.mBaseTransformRHI = AdjProjectionMatrixForRHI(param.worldToView.toMatrix4()  * OrthoMatrix(0, param.renderWidth, param.renderHeight, 0, 0, 1));
+	mDrawer.mBaseTransformRHI = param.worldToClipRHI;
 
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 	RHISetViewport(commandList, 0, 0, mFrameWidth, mFrameHeight);
@@ -183,7 +175,7 @@ void RenderEngine::renderBasePass(RHICommandList& commandList, RenderParam& para
 
 	RHISetShaderProgram(commandList, mProgBasePass->getRHI());
 
-	mProgBasePass->setParam(commandList, SHADER_PARAM(WorldToClip), mDrawer.mBaseTransformRHI);
+	mProgBasePass->setParam(commandList, SHADER_PARAM(WorldToClip), param.worldToClipRHI);
 	mProgBasePass->setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Identity());
 	mDrawer.mShader = mProgBasePass;
 
@@ -207,7 +199,7 @@ void RenderEngine::renderLighting(RHICommandList& commandList, RenderParam& para
 	RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, EBlend::One, EBlend::One>::GetRHI());
 
 	RHISetShaderProgram(commandList, mProgGlow->getRHI());
-	mProgGlow->setParam(commandList, SHADER_PARAM(XForm), mDrawer.mBaseTransformRHI);
+	mProgGlow->setParam(commandList, SHADER_PARAM(XForm), param.worldToClipRHI);
 	mDrawer.mShader = mProgGlow;
 	visitTiles(param.level, param.terrainRange, 
 		[this](Tile const& tile)
@@ -226,20 +218,15 @@ void RenderEngine::renderLighting(RHICommandList& commandList, RenderParam& para
 	TileMap& terrain = param.level->getTerrain();
 	Vector2 screenCenter = param.worldToView.transformInvPosition(Vector2(mFrameWidth, mFrameHeight) / 2);
 	Vector2 screenHalfSize = param.worldToView.transformInvVector(Vector2(mFrameWidth, mFrameHeight) / 2);
-	for (RenderLightList::iterator iter = lights.begin(), itEnd = lights.end();
-		iter != itEnd; ++iter)
+	for (Light* light : lights)
 	{
-		Light* light = *iter;
-		Vec2f const& lightPos = light->cachePos;
-#if 0
+		Vec2f const& lightPos = light->cachedPos;
 
 		if (!Math::BoxCircleTest(screenCenter, screenHalfSize, lightPos, light->radius))
 			continue;
-#endif
-
 
 		bool bShowShadowRender = false;
-		if (light->drawShadow && false)
+		if (light->drawShadow)
 		{
 			if (bShowShadowRender)
 			{
@@ -259,29 +246,7 @@ void RenderEngine::renderLighting(RHICommandList& commandList, RenderParam& para
 				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
 			}
 
-			RHISetFixedShaderPipelineState(commandList, mDrawer.mBaseTransformRHI);
-
-			TileRange range = param.terrainRange;
-
-			int tx = int(lightPos.x / BLOCK_SIZE);
-			int ty = int(lightPos.y / BLOCK_SIZE);
-
-			if (tx < range.xMin)
-				range.xMin = tx;
-			else if (tx > range.xMax)
-				range.yMax = tx + 1;
-
-			if (ty < range.yMin)
-				range.yMin = ty;
-			else if (ty > range.yMax)
-				range.yMax = ty + 1;
-
-			range.xMin = Math::Clamp(range.xMin, 0, terrain.getSizeX());
-			range.xMax = Math::Clamp(range.xMax, 0, terrain.getSizeX());
-			range.yMin = Math::Clamp(range.yMin, 0, terrain.getSizeY());
-			range.yMax = Math::Clamp(range.yMax, 0, terrain.getSizeY());
-
-			renderTerrainShadow(commandList, param.level, lightPos, light, range);
+			renderTerrainShadow(commandList, param, light);
 
 			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState<
@@ -291,12 +256,12 @@ void RenderEngine::renderLighting(RHICommandList& commandList, RenderParam& para
 				>::GetRHI(), 0x0);
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One >::GetRHI());
-			renderLight(commandList, param, lightPos, light);
+			renderLight(commandList, param, light);
 		}
 		else
 		{
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-			renderLight(commandList, param, lightPos, light);
+			renderLight(commandList, param, light);
 		}
 
 	}
@@ -304,15 +269,15 @@ void RenderEngine::renderLighting(RHICommandList& commandList, RenderParam& para
 	RHIResourceTransition(commandList, { mTexLightmap }, EResourceTransition::SRV);
 }
 
-void RenderEngine::renderLight(RHICommandList& commandList, RenderParam& param , Vec2f const& lightPos , Light* light )
+void RenderEngine::renderLight(RHICommandList& commandList, RenderParam& param , Light* light)
 {
 	RHISetShaderProgram(commandList, mProgLighting->getRHI());
-
+	Vec2f const& lightPos = light->cachedPos;
 	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
 
 	mProgLighting->setTexture(commandList, SHADER_PARAM(TexNormalMap), mTexNormalMap, SHADER_SAMPLER(TexNormalMap), samplerState);
 	mProgLighting->setTexture(commandList, SHADER_PARAM(TexBaseColor), mTexGeometry, SHADER_SAMPLER(TexBaseColor), samplerState);
-	mProgLighting->setParam(commandList, SHADER_PARAM(WorldToClip), mDrawer.mBaseTransformRHI);
+	mProgLighting->setParam(commandList, SHADER_PARAM(WorldToClip), param.worldToClipRHI);
 
 	LightParams* lightParams = mLightBuffer.lock();
 	if (lightParams)
@@ -331,38 +296,47 @@ void RenderEngine::renderLight(RHICommandList& commandList, RenderParam& param ,
 	SetStructuredUniformBuffer(commandList, *mProgLighting, mLightBuffer);
 	SetStructuredUniformBuffer(commandList, *mProgLighting, mViewBuffer);
 
-	Vector2 size = Vector2(light->radius, light->radius);
-	mDrawer.drawRect(lightPos - size , 2 * size);
+	Vector2 halfSize = Vector2(light->radius, light->radius);
+	mDrawer.drawRect(lightPos - halfSize , 2 * halfSize);
 }
 
-void RenderEngine::renderSceneFinal(RHICommandList& commandList, RenderParam& param)
+void RenderEngine::renderTerrainShadow(RHICommandList& commandList, RenderParam& param, Light* light)
 {
-	QSceneProgram* progScene = mProgScenes[param.mode];
+	TileMap& terrain = param.level->getTerrain();
+	TileRange range = param.terrainRange;
+	Vec2f const& lightPos = light->cachedPos;
 
-	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
-	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
-	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+	int tx = Math::FloorToInt(Math::ToTileValue(lightPos.x, float(BLOCK_SIZE)));
+	int ty = Math::FloorToInt(Math::ToTileValue(lightPos.y, float(BLOCK_SIZE)));
 
-	RHISetShaderProgram(commandList, progScene->getRHI());
+	if (tx < range.xMin)
+		range.xMin = tx;
+	else if (tx > range.xMax)
+		range.yMax = tx + 1;
 
-	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
+	if (ty < range.yMin)
+		range.yMin = ty;
+	else if (ty > range.yMax)
+		range.yMax = ty + 1;
 
-	progScene->setTexture(commandList, SHADER_PARAM(TexGeometry) , mTexGeometry , SHADER_SAMPLER(TexGeometry), samplerState);
-	progScene->setTexture(commandList, SHADER_PARAM(TexLightmap) , mTexLightmap, SHADER_SAMPLER(TexLightmap), samplerState);
-	progScene->setTexture(commandList, SHADER_PARAM(TexNormal), mTexNormalMap, SHADER_SAMPLER(TexNormal), samplerState);
-	progScene->setParam(commandList, SHADER_PARAM(ambientLight) , mAmbientLight );
+	range.xMin = Math::Clamp(range.xMin, 0, terrain.getSizeX());
+	range.xMax = Math::Clamp(range.xMax, 0, terrain.getSizeX());
+	range.yMin = Math::Clamp(range.yMin, 0, terrain.getSizeY());
+	range.yMax = Math::Clamp(range.yMax, 0, terrain.getSizeY());
 
-	DrawUtility::ScreenRect(commandList);
-}
 
-static int const offsetX[4] = {-1,0,1,0};
-static int const offsetY[4] = { 0,-1,0,1};
-static Vec2f const tileVertex[4] = { Vec2f(0,0) , Vec2f(BLOCK_SIZE,0) , Vec2f(BLOCK_SIZE,BLOCK_SIZE ) , Vec2f(0,BLOCK_SIZE)   };
-static Vec2f const tileNormal[4] = { Vec2f(-1,0) , Vec2f(0,-1) , Vec2f(1,0) , Vec2f(0,1) };
+	if (bUseGeometryShader)
+	{
+		RHISetShaderProgram(commandList, mProgShadow->getRHI());
+		mProgShadow->setParam(commandList, SHADER_PARAM(XForm), param.worldToClipRHI);
+		mProgShadow->setParam(commandList, SHADER_PARAM(LightPosAndDist), Vector3(lightPos.x, lightPos.y, light->radius));
+	}
+	else
+	{
+		RHISetFixedShaderPipelineState(commandList, param.worldToClipRHI);
+	}
 
-void RenderEngine::renderTerrainShadow(RHICommandList& commandList, Level* level , Vec2f const& lightPos , Light* light , TileRange const& range )
-{
-	TileMap& terrain = level->getTerrain();
+	TArray< Vector2 > buffer;
 
 #if 0
 	Vec2i tpLight = Vec2i(Math::FloorToInt(lightPos.x / BLOCK_SIZE), Math::FloorToInt(lightPos.y / BLOCK_SIZE));
@@ -383,7 +357,6 @@ void RenderEngine::renderTerrainShadow(RHICommandList& commandList, Level* level
 		}
 	}
 #endif
-
 
 	for(int i = range.xMin; i < range.xMax ; ++i )
 	{
@@ -416,37 +389,64 @@ void RenderEngine::renderTerrainShadow(RHICommandList& commandList, Level* level
 						if ( !block->checkFlag( BF_NONSIMPLE ) && 
 							  block->checkFlag( BF_CAST_SHADOW ) )
 							continue;
-
 					}
-#endif
-					Vec2f offsetCur  = tileVertex[ idxCur ]  + tileOffset;
 
-					if ( offsetCur.dot( tileNormal[ idxCur ] ) < 0 )
+					Vec2f const& cur = tile.pos + tileVertex[idxCur];
+					Vec2f const& prev = tile.pos + tileVertex[idxPrev];
+
+					Vec2f offsetCur = tileVertex[idxCur] + tileOffset;
+					if (offsetCur.dot(tileNormal[idxCur]) < 0)
 						continue;
-	
-					Vec2f offsetPrev = tileVertex[ idxPrev ] + tileOffset;
 
-					Vec2f const& cur  = tile.pos + tileVertex[ idxCur ];
-					Vec2f const& prev = tile.pos + tileVertex[ idxPrev ];
-
-					Vec2f v1 = lightPos + 5000 * offsetPrev;
-					Vec2f v2 = lightPos + 5000 * offsetCur;
-
-
-					Vector2 v[] =
+#endif
+					if (bUseGeometryShader)
 					{
-						prev,
-						v1,
-						v2,
-						cur,
-					};
+						buffer.append({ prev, cur });
+					}
+					else
+					{
+						Vec2f offsetPrev = tileVertex[idxPrev] + tileOffset;
 
-					TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, v, ARRAY_SIZE(v));
-
+						Vec2f v1 = lightPos + light->radius * offsetPrev;
+						Vec2f v2 = lightPos + light->radius * offsetCur;
+						buffer.append({ prev, v1, v2, cur });
+					}
 				}
 			}
 		}
 	}
+
+	if (buffer.size())
+	{
+		if (bUseGeometryShader)
+		{
+			TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::LineList, buffer.data(), buffer.size());
+		}
+		else
+		{
+			TRenderRT< RTVF_XY >::Draw(commandList, EPrimitive::Quad, buffer.data(), buffer.size());
+		}
+	}
+}
+
+void RenderEngine::renderSceneFinal(RHICommandList& commandList, RenderParam& param)
+{
+	QSceneProgram* progScene = mProgScenes[param.mode];
+
+	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+	RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+
+	RHISetShaderProgram(commandList, progScene->getRHI());
+
+	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
+
+	progScene->setTexture(commandList, SHADER_PARAM(TexGeometry) , mTexGeometry , SHADER_SAMPLER(TexGeometry), samplerState);
+	progScene->setTexture(commandList, SHADER_PARAM(TexLightmap) , mTexLightmap, SHADER_SAMPLER(TexLightmap), samplerState);
+	progScene->setTexture(commandList, SHADER_PARAM(TexNormal), mTexNormalMap, SHADER_SAMPLER(TexNormal), samplerState);
+	progScene->setParam(commandList, SHADER_PARAM(ambientLight) , mAmbientLight );
+
+	DrawUtility::ScreenRect(commandList);
 }
 
 void RenderEngine::renderObjects( RenderPass pass , Level* level )
@@ -526,16 +526,17 @@ void RenderEngine::updateRenderGroup( RenderParam& param )
 
 }
 
+RHITexture2D& GetResource(Texture* texture)
+{
+	if (texture)
+	{
+		return *texture->resource;
+	}
+	return *GBlackTexture2D.getResource();
+}
+
 void RenderPrimitiveDrawer::setGlow(Texture* texture, Color3f const& color)
 {
-	auto GetResource = [](Texture* texture) -> RHITexture2D&
-	{
-		if (texture)
-		{
-			return *texture->resource;
-		}
-		return *GBlackTexture2D.getResource();
-	};
 	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
 	mShader->setTexture(*mCommandList, SHADER_PARAM(Texture), GetResource(texture), SHADER_SAMPLER(Texture), samplerState);
 	mShader->setParam(*mCommandList, SHADER_PARAM(Color), Color4f(color, 1.0f));
@@ -543,30 +544,40 @@ void RenderPrimitiveDrawer::setGlow(Texture* texture, Color3f const& color)
 
 void RenderPrimitiveDrawer::setMaterial(PrimitiveMat const& mat)
 {
-	auto GetResource = [](Texture* texture) -> RHITexture2D&
-	{
-		if (texture)
-		{
-			return *texture->resource;
-		}
-		return *GBlackTexture2D.getResource();
-	};
-
 	auto& samplerState = TStaticSamplerState<ESampler::Bilinear>::GetRHI();
 	mShader->setTexture(*mCommandList, SHADER_PARAM(BaseTexture), GetResource(mat.baseTex), SHADER_SAMPLER(BaseTexture), samplerState);
 	mShader->setTexture(*mCommandList, SHADER_PARAM(NormalTexture), GetResource(mat.normalTex), SHADER_SAMPLER(NormalTexture), samplerState);
 	mShader->setParam(*mCommandList, SHADER_PARAM(Color), Color4f(mat.color, mAlpha));
 }
 
-void RenderPrimitiveDrawer::beginTranslucent(float alpha)
+RHIBlendState& GetBlendState(ESimpleBlendMode mode)
 {
-	auto& blendState = TStaticBlendState< CWM_RGBA , EBlend::SrcAlpha , EBlend::OneMinusSrcAlpha , EBlend::Add, 
-		EBlend::One, EBlend::Zero, EBlend::Add, false , true , CWM_None >::GetRHI();
-	RHISetBlendState(*mCommandList, blendState);
+#define BLEND_ARGS EBlend::One, EBlend::Zero, EBlend::Add, false, true, CWM_None
+
+	switch (mode)
+	{
+	case ESimpleBlendMode::Translucent:
+		return TStaticBlendState< CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha, EBlend::Add, BLEND_ARGS >::GetRHI();
+	case ESimpleBlendMode::Add:
+		return TStaticBlendState< CWM_RGBA, EBlend::One, EBlend::One, EBlend::Add, BLEND_ARGS >::GetRHI();
+	default:
+		break;
+	}
+
+
+	return TStaticBlendState<>::GetRHI();
+#undef BLEND_ARGS
+
+}
+
+
+void RenderPrimitiveDrawer::beginBlend(float alpha, Render::ESimpleBlendMode mode)
+{
+	RHISetBlendState(*mCommandList, GetBlendState(mode));
 	mAlpha = alpha;
 }
 
-void RenderPrimitiveDrawer::endTranslucent()
+void RenderPrimitiveDrawer::endBlend()
 {
 	RHISetBlendState(*mCommandList, TStaticBlendState<>::GetRHI());
 	mAlpha = 1.0f;

@@ -91,7 +91,7 @@ namespace TripleTown
 		{
 			mPlayerCoins = 0;
 			mPlayerPoints = 0;
-			mLevel.setupLand(LT_DANGERUOS, false);
+			mLevel.setupLand(LT_TEST, false);
 		}
 		else
 		{
@@ -129,14 +129,20 @@ namespace TripleTown
 
 	MsgReply LevelStage::onKey(KeyMsg const& msg)
 	{
+		auto SetQueueObject = [&](ObjectId id)
+		{
+			mLevel.setQueueObject(id);
+			mScene.repeekObject();
+		};
 		if( msg.isDown() )
 		{
 			switch (msg.getCode())
 			{
-			case EKeyCode::S: mLevel.setQueueObject(OBJ_BEAR); return MsgReply::Handled();
-			case EKeyCode::A: mLevel.setQueueObject(OBJ_GRASS); return MsgReply::Handled();
-			case EKeyCode::Q: mLevel.setQueueObject(OBJ_CRYSTAL); return MsgReply::Handled();
-			case EKeyCode::W: mLevel.setQueueObject(OBJ_ROBOT); return MsgReply::Handled();
+			case EKeyCode::S: SetQueueObject(OBJ_BEAR); return MsgReply::Handled();
+			case EKeyCode::A: SetQueueObject(OBJ_GRASS); return MsgReply::Handled();
+			case EKeyCode::Q: SetQueueObject(OBJ_CRYSTAL); return MsgReply::Handled();
+			case EKeyCode::W: SetQueueObject(OBJ_ROBOT); return MsgReply::Handled();
+			case EKeyCode::E: SetQueueObject(OBJ_NINJA); return MsgReply::Handled();
 			case EKeyCode::X:
 				if (mFileIterator.haveMore())
 				{
@@ -144,6 +150,8 @@ namespace TripleTown
 					mScene.loadPreviewTexture(mFileIterator.getFileName());
 				}
 				break;
+			case EKeyCode::Up:   mLevel.undo(); return MsgReply::Handled();
+			case EKeyCode::Down: mLevel.redo(); return MsgReply::Handled();
 			case EKeyCode::N:
 			case EKeyCode::M:
 				{
@@ -164,7 +172,7 @@ namespace TripleTown
 					int index = FindIndex(items, items + ARRAY_SIZE(items), mLevel.getQueueObject());
 					if (index == INDEX_NONE)
 					{
-						mLevel.setQueueObject((msg.getCode() == EKeyCode::N) ? OBJ_GRASS : OBJ_TRIPLE_CASTLE );
+						SetQueueObject((msg.getCode() == EKeyCode::N) ? OBJ_GRASS : OBJ_TRIPLE_CASTLE );
 					}
 					else
 					{
@@ -177,7 +185,7 @@ namespace TripleTown
 							index = (index + 1) % ARRAY_SIZE(items);
 						}
 
-						mLevel.setQueueObject(items[index]);
+						SetQueueObject(items[index]);
 					}
 				}
 				break;

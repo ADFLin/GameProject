@@ -10,6 +10,8 @@ class QWidget;
 class MouseMsg;
 class KeyMsg;
 
+class RHIGraphics2D;
+
 enum StateTransition
 {
 	ST_NONE    ,
@@ -27,7 +29,7 @@ public:
 	void fadeIn( Callback const& cb = NULL ) {  mFunFisish = cb ; mState = eIN;  }
 	void fadeOut( Callback const& cb = NULL ){  mFunFisish = cb ; mState = eOUT; }
 	void setColor( float c ){ mColor = c; }
-	void render();
+	void render(RHIGraphics2D& g);
 	void update( float dt );
 
 private:

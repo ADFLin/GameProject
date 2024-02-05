@@ -47,11 +47,7 @@ float BufferDepthToSceneDepth(mat4 viewToClip , float depth)
 
 float BufferDepthToSceneDepth(float depth)
 {
-#if COMPILER_HLSL
-	return View.viewToClip[2][3] / (BufferToNDCDepth(depth) + View.viewToClip[2][2]);
-#else
-	return View.viewToClip[3][2] / (BufferToNDCDepth(depth) + View.viewToClip[2][2]);
-#endif
+	return BufferDepthToSceneDepth(View.viewToClip, depth);
 }
 
 DEFINE_TEXTURE( Texture2D , FrameDepthTexture );

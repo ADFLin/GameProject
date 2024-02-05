@@ -3,48 +3,49 @@
 
 #include "Dependence.h"
 
+#include "Audio/AudioDevice.h"
+
 #include "HashString.h"
+#include "RefCount.h"
+
 struct SoundData
 {
 	HashString name;
-#if USE_SFML
-	sf::SoundBuffer buffer;
-#endif
+	SoundWave  soundWave;
 };
 
-class Sound
+class Sound : public RefCountedObjectT<Sound>
 {
 public:
 	Sound( SoundData* data )
 		:mData( data )
 	{
-#if USE_SFML
-		mSoundImpl.setBuffer( mData->buffer );
-#endif
+
 	}
-#if USE_SFML
-	void play(){ mSoundImpl.play(); }
-	void stop(){ mSoundImpl.stop(); }
-	bool isPlaying()
-	{ 
-		return mSoundImpl.getStatus() == sf::Sound::Playing; 
+	void play(float volumeMultiplier = 1.0f, bool bLoop = false)
+	{
+		mHandle = mDevice->playSound2D(mData->soundWave, volumeMultiplier, bLoop);
 	}
-#else
-	void play() { }
-	void stop() { }
+	void stop() 
+	{
+		mDevice->stopSound(mHandle);
+
+	}
 	bool isPlaying()
 	{
-		return false;
+		return mDevice->isPlaying(mHandle);
 	}
-#endif
+
 	SoundData* getData(){ return mData; }
 
 private:
-#if USE_SFML
-	sf::Sound  mSoundImpl;
-#endif
-	SoundData* mData;
+	friend class SoundManager;
+	AudioDevice* mDevice = nullptr;
+	AudioHandle mHandle = ERROR_AUDIO_HANDLE;
+	SoundData*  mData;
 };
+
+using SoundPtr = TRefCountPtr<Sound>;
 
 class SoundManager
 {
@@ -52,16 +53,20 @@ public:
 	SoundManager();
 	~SoundManager();
 
+	bool initialize();
+
 	SoundData* getData(char const* name );
-	Sound*     addSound( char const* name , bool canRepeat = false );
+	SoundPtr   addSound( char const* name , bool canRepeat = false );
 	void       update( float dt );
 	bool       loadSound(char const* name );
 	void       cleanup();
 
 private:
-	typedef std::vector< Sound* > SoundList;
+	AudioDevice* mDevice = nullptr;
 
-	std::vector<SoundData> mDataStorage;
+	typedef std::vector< SoundPtr > SoundList;
+
+	TArray< std::unique_ptr<SoundData> > mDataStorage;
 	SoundList mSounds;
 };
 

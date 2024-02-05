@@ -10,11 +10,12 @@
 #include "RHI/RHICommand.h"
 #include "Memory/FrameAllocator.h"
 
+#include "DataStructure/Array.h"
+
 using namespace Render;
-#define QA_USE_RHI 1
 
 class ColBody;
-typedef std::vector< ColBody* > ColBodyVec;
+using ColBodyVec = TArray< ColBody* >;
 
 class Level;
 class Object;
@@ -50,6 +51,7 @@ struct RenderConfig
 
 struct RenderParam : RenderConfig
 {
+	Math::Matrix4     worldToClipRHI;
 	RenderTransform2D worldToView;
 	TileRange  terrainRange;
 	float      renderWidth;
@@ -66,7 +68,7 @@ public:
 
 	static char const* GetShaderFileName()
 	{
-		return "QBasePass";
+		return "Shader/QuadAssault/QBasePass";
 	}
 
 	static TArrayView< ShaderEntryInfo const > GetShaderEntries()
@@ -89,7 +91,7 @@ public:
 
 	static char const* GetShaderFileName()
 	{
-		return "QGlow";
+		return "Shader/QuadAssault/QGlow";
 	}
 
 	static TArrayView< ShaderEntryInfo const > GetShaderEntries()
@@ -111,7 +113,7 @@ public:
 
 	static char const* GetShaderFileName()
 	{
-		return "QLighting";
+		return "Shader/QuadAssault/QLighting";
 	}
 
 	static TArrayView< ShaderEntryInfo const > GetShaderEntries()
@@ -125,6 +127,43 @@ public:
 	}
 };
 
+class QShadowProgram : public GlobalShaderProgram
+{
+public:
+	using BaseClass = GlobalShaderProgram;
+	DECLARE_SHADER_PROGRAM(QShadowProgram, Global);
+
+	static char const* GetShaderFileName()
+	{
+		return "Shader/QuadAssault/QShadow";
+	}
+	static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+	{
+		static ShaderEntryInfo const entries[] =
+		{
+			{ EShader::Vertex , SHADER_ENTRY(MainVS) },
+			{ EShader::Geometry , SHADER_ENTRY(MainGS) },
+			{ EShader::Pixel , SHADER_ENTRY(MainPS) } ,
+		};
+		return entries;
+	}
+
+	void bindParameters(ShaderParameterMap const& parameterMap)
+	{
+		BIND_SHADER_PARAM(parameterMap, LightPosAndDist);
+		BIND_SHADER_PARAM(parameterMap, ScreenSize);
+	}
+
+	void setParameters(RHICommandList& commandList, Vector2 const& lightPos, float castDist, Vector2 const& screenSize)
+	{
+		SET_SHADER_PARAM(commandList, *this, LightPosAndDist, Vector3(lightPos.x, lightPos.y, castDist));
+		SET_SHADER_PARAM(commandList, *this, ScreenSize, screenSize);
+	}
+
+	DEFINE_SHADER_PARAM(LightPosAndDist);
+	DEFINE_SHADER_PARAM(ScreenSize);
+};
+
 class QSceneProgram : public GlobalShaderProgram
 {
 public:
@@ -135,7 +174,7 @@ public:
 	using PermutationDomain = TShaderPermutationDomain<RenderMode>;
 	static char const* GetShaderFileName()
 	{
-		return "QScene";
+		return "Shader/QuadAssault/QScene";
 	}
 
 	static TArrayView< ShaderEntryInfo const > GetShaderEntries(PermutationDomain const& domain)
@@ -148,6 +187,7 @@ public:
 		return entries;
 	}
 };
+
 struct GPU_ALIGN LightParams
 {
 	DECLARE_UNIFORM_BUFFER_STRUCT(LightParamsBlock);
@@ -187,8 +227,8 @@ public:
 
 	void setGlow(Texture* texture, Color3f const& color) override;
 	void setMaterial(PrimitiveMat const& mat) override;
-	void beginTranslucent(float alpha) override;
-	void endTranslucent() override;
+	void beginBlend(float alpha, Render::ESimpleBlendMode mode) override;
+	void endBlend() override;
 
 	float mAlpha;
 
@@ -210,10 +250,10 @@ private:
 	void   renderLighting(RHICommandList& commandList, RenderParam& param );
 	void   renderSceneFinal(RHICommandList& commandList, RenderParam& param );
 
-	void   renderTerrainShadow(RHICommandList& commandList, Level* level , Vec2f const& lightPos , Light* light , TileRange const& range );
-	void   renderLight(RHICommandList& commandList, RenderParam& param , Vec2f const& lightPos , Light* light );
+	void   renderLight(RHICommandList& commandList, RenderParam& param, Light* light);
+	void   renderTerrainShadow(RHICommandList& commandList, RenderParam& param, Light* light);
 
-	bool   setupFBO( int width , int height );
+	bool   setupFrameBuffer( int width , int height );
 	void   updateRenderGroup( RenderParam& param );
 
 
@@ -259,9 +299,10 @@ private:
 	TStructuredBuffer<ViewParams>   mViewBuffer;
 	class QBasePassProgram* mProgBasePass;
 	class QGlowProgram*     mProgGlow;
+	class QShadowProgram*   mProgShadow;
 	class QLightingProgram* mProgLighting;
 	class QSceneProgram*    mProgScenes[NUM_RENDER_MODE];
-
+	bool bUseGeometryShader = true;
 	Color3f  mAmbientLight = Color3f(0,0,0);
 
 };

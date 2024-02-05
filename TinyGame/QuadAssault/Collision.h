@@ -6,8 +6,7 @@
 #include "Block.h"
 
 #include "DataStructure/IntrList.h"
-
-#include <vector>
+#include "DataStructure/Array.h"
 
 struct ColInfo
 {
@@ -19,7 +18,7 @@ struct ColInfo
 	};
 };
 
-typedef std::vector< ColBody* > ColBodyVec;
+using ColBodyVec = TArray< ColBody* >;
 
 class CollisionManager
 {
@@ -48,6 +47,36 @@ private:
 
 	Tile* rayBlockTest( Vec2i const& tPos , Vec2f const& from , Vec2f const& to , unsigned typeMask );
 	
+	template< typename TFunc >
+	bool visitBodies( Vec2f const& boxMin , Vec2f const& boxMax, TFunc&& func )
+	{
+		for (ColBody& bodyTest : mGlobalBodies)
+		{
+			if (func(bodyTest))
+				return true;
+		}
+
+		int xMin, xMax, yMin, yMax;
+		xMin = Math::Clamp(Math::FloorToInt(boxMin.x / mCellLength) - 1, 0, mCellMap.getSizeX() - 1);
+		xMax = Math::Clamp(Math::FloorToInt(boxMax.x / mCellLength) + 1, 0, mCellMap.getSizeX() - 1);
+		yMin = Math::Clamp(Math::FloorToInt(boxMin.y / mCellLength) - 1, 0, mCellMap.getSizeY() - 1);
+		yMax = Math::Clamp(Math::FloorToInt(boxMax.y / mCellLength) + 1, 0, mCellMap.getSizeY() - 1);
+
+		for (int i = xMin; i <= xMax; ++i)
+		{
+			for (int j = yMin; j <= yMax; ++j)
+			{
+				Cell& cell = mCellMap.getData(i, j);
+
+				for (ColBody& bodyTest : cell.bodies)
+				{
+					if (func(bodyTest))
+						return true;
+				}
+			}
+		}
+		return false;
+	}
 	
 	typedef TIntrList< ColBody , MemberHook< ColBody , &ColBody::cellHook > >    CellBodyList;
 	typedef TIntrList< ColBody , MemberHook< ColBody , &ColBody::managerHook > > BodyList;

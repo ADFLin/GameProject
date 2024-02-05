@@ -18,8 +18,6 @@ public:
 private:
 	Light mLight;
 
-	BEGIN_CLASS_PROP()
-	END_CLASS_PROP()
 };
 
 

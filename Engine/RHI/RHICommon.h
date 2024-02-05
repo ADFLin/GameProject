@@ -357,20 +357,23 @@ namespace Render
 	using RHIShaderResourceViewRef = TRefCountPtr< RHIShaderResourceView >;
 
 
-	enum TextureCreationFlag : uint32
+	enum TextureCreationFlags : uint32
 	{
-		TCF_CreateSRV = BIT(0),
-		TCF_CreateUAV = BIT(1),
-		TCF_RenderTarget = BIT(2),
-		TCF_RenderOnly = BIT(3),
+		TCF_None           = 0,
+		TCF_CreateSRV      = BIT(0),
+		TCF_CreateUAV      = BIT(1),
+		TCF_RenderTarget   = BIT(2),
+		TCF_RenderOnly     = BIT(3),
 		TCF_AllowCPUAccess = BIT(4),
 
-		TCF_GenerateMips = BIT(5),
-		TCF_HalfData = BIT(6),
+		TCF_GenerateMips   = BIT(5),
+		TCF_HalfData       = BIT(6),
 
 		TCF_PlatformGraphicsCompatible = BIT(7),
 		TCF_DefalutValue = TCF_CreateSRV,
 	};
+	SUPPORT_ENUM_FLAGS_OPERATION(TextureCreationFlags);
+
 	struct TextureDesc
 	{
 		IntVector3       dimension;
@@ -379,14 +382,14 @@ namespace Render
 
 		int numSamples = 1;
 		int numMipLevel = 1;
-		uint32 creationFlags = TCF_DefalutValue;
+		TextureCreationFlags creationFlags = TCF_DefalutValue;
 
 		LinearColor clearColor = LinearColor(0,0,0,1);
 		TextureDesc& ClearColor(float r, float g, float b, float a) { clearColor = LinearColor(r,g,b,a); return *this; }
 		TextureDesc& ClearColor(LinearColor const& inColor) { clearColor = inColor; return *this; }
 		TextureDesc& MipLevel(int value) { numMipLevel = Math::Max( 1, value ); return *this; }
 		TextureDesc& Samples(int value) { numSamples = Math::Max( 1, value ); return *this; }
-		TextureDesc& Flags(uint32 value) { creationFlags = value; return *this; }
+		TextureDesc& Flags(TextureCreationFlags value) { creationFlags = value; return *this; }
 
 		static TextureDesc Type1D(ETexture::Format format, int sizeX)
 		{
@@ -860,27 +863,27 @@ namespace Render
 	};
 
 
-	enum BufferCreationFlag : uint32
+	enum BufferCreationFlags : uint32
 	{
-		BCF_CreateSRV = BIT(0),
-		BCF_CreateUAV = BIT(1),
+		BCF_None           = 0,
+		BCF_CreateSRV      = BIT(0),
+		BCF_CreateUAV      = BIT(1),
 		BCF_CpuAccessWrite = BIT(2),
-		BCF_UsageVertex = BIT(3),
-		BCF_UsageIndex = BIT(4),
-		BCF_UsageStage = BIT(5),
-		BCF_UsageConst = BIT(6),
-		BCF_Structured = BIT(7),
+		BCF_UsageVertex    = BIT(3),
+		BCF_UsageIndex     = BIT(4),
+		BCF_UsageStage     = BIT(5),
+		BCF_UsageConst     = BIT(6),
+		BCF_Structured     = BIT(7),
+		BCF_CpuAccessRead  = BIT(8),
 
-		BCF_CpuAccessRead = BIT(8),
-
-		BCF_DefalutValue = 0,
+		BCF_DefalutValue   = 0,
 	};
-
+	SUPPORT_ENUM_FLAGS_OPERATION(BufferCreationFlags);
 	struct BufferDesc
 	{
 		uint32 elementSize;
 		uint32 numElements;
-		uint32 creationFlags;
+		BufferCreationFlags creationFlags;
 
 		uint32 getSize() const { return elementSize * numElements; }
 	};
@@ -1064,6 +1067,11 @@ namespace Render
 	constexpr int MaxBlendStateTargetCount = 8;
 	struct BlendStateInitializer
 	{
+		BlendStateInitializer()
+		{
+			FMemory::Zero(this, sizeof(*this));
+		}
+
 		struct TargetValue
 		{
 			ColorWriteMask   writeMask;
@@ -1107,9 +1115,17 @@ namespace Render
 #define MEMBER_OP( M ) if ( M != rhs.M ) return false
 			MEMBER_OP(bEnableAlphaToCoverage);
 			MEMBER_OP(bEnableIndependent);
-			for (int i = 0; i < MaxBlendStateTargetCount; ++i)
+			if (bEnableIndependent)
 			{
-				if (!(targetValues[i] == rhs.targetValues[i]))
+				for (int i = 0; i < MaxBlendStateTargetCount; ++i)
+				{
+					if (!(targetValues[i] == rhs.targetValues[i]))
+						return false;
+				}
+			}
+			else
+			{
+				if (!(targetValues[0] == rhs.targetValues[0]))
 					return false;
 			}
 #undef MEMBER_OP

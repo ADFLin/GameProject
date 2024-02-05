@@ -384,7 +384,35 @@ namespace Render
 		EBlend::Operation ColorOp3 = EBlend::Add,
 		EBlend::Factor SrcAlphaFactor3 = EBlend::One,
 		EBlend::Factor DestAlphaFactor3 = EBlend::Zero,
-		EBlend::Operation AlphaOp3 = EBlend::Add
+		EBlend::Operation AlphaOp3 = EBlend::Add,
+		ColorWriteMask WriteColorMask4 = CWM_RGBA,
+		EBlend::Factor SrcColorFactor4 = EBlend::One,
+		EBlend::Factor DestColorFactor4 = EBlend::Zero,
+		EBlend::Operation ColorOp4 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor4 = EBlend::One,
+		EBlend::Factor DestAlphaFactor4 = EBlend::Zero,
+		EBlend::Operation AlphaOp4 = EBlend::Add,
+		ColorWriteMask WriteColorMask5 = CWM_RGBA,
+		EBlend::Factor SrcColorFactor5 = EBlend::One,
+		EBlend::Factor DestColorFactor5 = EBlend::Zero,
+		EBlend::Operation ColorOp5 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor5 = EBlend::One,
+		EBlend::Factor DestAlphaFactor5 = EBlend::Zero,
+		EBlend::Operation AlphaOp5 = EBlend::Add,
+		ColorWriteMask WriteColorMask6 = CWM_RGBA,
+		EBlend::Factor SrcColorFactor6 = EBlend::One,
+		EBlend::Factor DestColorFactor6 = EBlend::Zero,
+		EBlend::Operation ColorOp6 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor6 = EBlend::One,
+		EBlend::Factor DestAlphaFactor6 = EBlend::Zero,
+		EBlend::Operation AlphaOp6 = EBlend::Add, 
+		ColorWriteMask WriteColorMask7 = CWM_RGBA,
+		EBlend::Factor SrcColorFactor7 = EBlend::One,
+		EBlend::Factor DestColorFactor7 = EBlend::Zero,
+		EBlend::Operation ColorOp7 = EBlend::Add,
+		EBlend::Factor SrcAlphaFactor7 = EBlend::One,
+		EBlend::Factor DestAlphaFactor7 = EBlend::Zero,
+		EBlend::Operation AlphaOp7 = EBlend::Add
 	>
 	class TStaticBlendState : public StaticRHIResourceT
 		<
@@ -394,7 +422,11 @@ namespace Render
 				bEnableAlphaToCoverage, bEnableIndependent,
 				WriteColorMask1, SrcColorFactor1, DestColorFactor1, ColorOp1, SrcAlphaFactor1, DestAlphaFactor1, AlphaOp1, 
 				WriteColorMask2, SrcColorFactor2, DestColorFactor2, ColorOp2, SrcAlphaFactor2, DestAlphaFactor2, AlphaOp2, 
-				WriteColorMask3, SrcColorFactor3, DestColorFactor3, ColorOp3, SrcAlphaFactor3, DestAlphaFactor3, AlphaOp3 
+				WriteColorMask3, SrcColorFactor3, DestColorFactor3, ColorOp3, SrcAlphaFactor3, DestAlphaFactor3, AlphaOp3,
+				WriteColorMask4, SrcColorFactor4, DestColorFactor4, ColorOp4, SrcAlphaFactor4, DestAlphaFactor4, AlphaOp4,
+				WriteColorMask5, SrcColorFactor5, DestColorFactor5, ColorOp5, SrcAlphaFactor5, DestAlphaFactor5, AlphaOp5,
+				WriteColorMask6, SrcColorFactor6, DestColorFactor6, ColorOp6, SrcAlphaFactor6, DestAlphaFactor6, AlphaOp6,
+				WriteColorMask7, SrcColorFactor7, DestColorFactor7, ColorOp7, SrcAlphaFactor7, DestAlphaFactor7, AlphaOp7
 			>,
 			RHIBlendState
 		>
@@ -426,8 +458,12 @@ namespace Render
 				SET_TRAGET_VALUE(1);
 				SET_TRAGET_VALUE(2);
 				SET_TRAGET_VALUE(3);
+				SET_TRAGET_VALUE(4);
+				SET_TRAGET_VALUE(5);
+				SET_TRAGET_VALUE(6);
+				SET_TRAGET_VALUE(7);
 
-				for (int i = 4; i < ARRAY_SIZE(initializer.targetValues); ++i)
+				for (int i = 8; i < ARRAY_SIZE(initializer.targetValues); ++i)
 					initializer.targetValues[i].setZero();
 			}
 #undef SET_TRAGET_VALUE
@@ -447,6 +483,8 @@ namespace Render
 	{
 
 	};
+
+	using StaticTranslucentBlendState = TStaticBlendState<CWM_RGBA, EBlend::SrcAlpha, EBlend::OneMinusSrcAlpha>;
 
 }//namespace Render
 

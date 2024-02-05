@@ -42,7 +42,7 @@ namespace Render
 
 		ERenderSystem getDefaultRenderSystem() override
 		{
-			return ERenderSystem::OpenGL;
+			return ERenderSystem::D3D11;
 		}
 
 		struct MyVertex
@@ -320,7 +320,7 @@ namespace Render
 						{ Vector3(0,2,0) },
 						{ Vector3(0,0,2) },
 					};
-					TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::TriangleList, vetices, 3, Vector3(1, 0, 0));
+					TRenderRT< RTVF_XYZ >::Draw(commandList, EPrimitive::TriangleList, vetices, 3, LinearColor(1, 0, 0));
 				}
 
 			}

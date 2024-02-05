@@ -241,9 +241,6 @@ public:
 	using TColor4<uint8>::TColor4;
 
 	Color4ub() = default;
-	Color4ub(uint8 cr, uint8 cg, uint8 cb, uint8 ca = 0xff)
-		:TColor4< uint8 >(cr, cg, cb, ca) {}
-
 
 	static Color4ub FromRGBA(uint32 rgba)
 	{

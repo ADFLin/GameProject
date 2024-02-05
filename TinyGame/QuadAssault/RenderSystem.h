@@ -55,7 +55,7 @@ public:
 	RenderSystem();
 	~RenderSystem();
 
-	bool init( PlatformWindow* window, bool bInitGL = true);
+	bool init();
 	void cleanup();
 	bool prevRender();
 	void postRender();

@@ -262,7 +262,7 @@ public:
 	}
 
 
-	char const* GetChannelPrefixStr(LogChannel channel)
+	StringView GetChannelPrefixStr(LogChannel channel)
 	{
 		switch (channel)
 		{
@@ -272,42 +272,69 @@ public:
 		case LOG_ERROR: return "Error: ";
 		}
 		return "";
-
 	}
 
-	static void OutputConsoleString(char const* prefixStr, char const* text, EOutputColor::Type prefixStrColor, EOutputColor::Type textColor)
+	static void OutputConsoleString(StringView const& prefixStr, StringView const& text, EOutputColor::Type prefixStrColor, EOutputColor::Type textColor)
 	{
 #if SYS_PLATFORM_WIN
 		auto hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 		SetConsoleTextAttribute(hConsole, prefixStrColor);
-		WriteConsoleA(hConsole, prefixStr, FCString::Strlen(prefixStr), NULL , NULL);
+		WriteConsoleA(hConsole, prefixStr.data(), prefixStr.size(), NULL, NULL);
 		//std::cout << prefixStr;
 		SetConsoleTextAttribute(hConsole, textColor);
-		WriteConsoleA(hConsole, text, FCString::Strlen(text), NULL, NULL);
-		WriteConsoleA(hConsole, "\n", FCString::Strlen("\n"), NULL, NULL);
+		WriteConsoleA(hConsole, text.data(), text.size(), NULL, NULL);
+		WriteConsoleA(hConsole, "\n", 1, NULL, NULL);
 		//std::cout << text << std::endl;
 #else
-		std::cout << prefixStr << text << std::endl;
+		std::cout << prefixStr.data() << text.data() << std::endl;
 #endif
 	}
 
-
-	void receiveLog( LogChannel channel , char const* str ) override
+	void receiveLog(LogChannel channel, StringView const& str) override
 	{
 		Mutex::Locker locker(mMutex);
-
+		StringView prefixStr = GetChannelPrefixStr(channel);
 		switch (channel)
 		{
-		case LOG_MSG:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::White, EOutputColor::Gray); break;
-		case LOG_DEV:     OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Blue, EOutputColor::Blue); break;
-		case LOG_WARNING: OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Yellow , EOutputColor::Yellow); break;
-		case LOG_ERROR:   OutputConsoleString(GetChannelPrefixStr(channel), str, EOutputColor::Red, EOutputColor::Red); break;
+		case LOG_MSG:     OutputConsoleString(prefixStr, str, EOutputColor::White, EOutputColor::Gray); break;
+		case LOG_DEV:     OutputConsoleString(prefixStr, str, EOutputColor::Blue, EOutputColor::Blue); break;
+		case LOG_WARNING: OutputConsoleString(prefixStr, str, EOutputColor::Yellow, EOutputColor::Yellow); break;
+		case LOG_ERROR:   OutputConsoleString(prefixStr, str, EOutputColor::Red, EOutputColor::Red); break;
 		}
 
 #if SYS_PLATFORM_WIN
 		if (IsDebuggerPresent())
 		{
-			std::string outText = GetChannelPrefixStr(channel);
+			std::string outText{ prefixStr.data() , prefixStr.size() };
+			outText += str.data();
+			outText += "\n";
+			OutputDebugString(outText.c_str());
+		}
+#endif
+		if (mLogTextList.size() > MaxLineNum)
+			mLogTextList.pop_front();
+
+		mLogTextList.emplace(str.data());
+		if (mLogTextList.size() == 1)
+			mTime = 0;
+	}
+
+	void receiveLog( LogChannel channel , char const* str ) override
+	{
+		Mutex::Locker locker(mMutex);
+		StringView prefixStr = GetChannelPrefixStr(channel);
+		switch (channel)
+		{
+		case LOG_MSG:     OutputConsoleString(prefixStr, str, EOutputColor::White, EOutputColor::Gray); break;
+		case LOG_DEV:     OutputConsoleString(prefixStr, str, EOutputColor::Blue, EOutputColor::Blue); break;
+		case LOG_WARNING: OutputConsoleString(prefixStr, str, EOutputColor::Yellow , EOutputColor::Yellow); break;
+		case LOG_ERROR:   OutputConsoleString(prefixStr, str, EOutputColor::Red, EOutputColor::Red); break;
+		}
+
+#if SYS_PLATFORM_WIN
+		if (IsDebuggerPresent())
+		{
+			std::string outText{ prefixStr.data() , prefixStr.size() };
 			outText += str;
 			outText += "\n";
 			OutputDebugString(outText.c_str());
@@ -458,9 +485,13 @@ char const* GetBuildVersion()
 		int sec;
 		int year;
 
-		InlineString<> build()
+		BuildVersionBuilder()
 		{
 			sscanf(__TIMESTAMP__, "%s %s %d %d:%d:%d %d", dayOfTheWeek, mouth, &date, &hr, &min, &sec, &year);
+		}
+
+		InlineString<> build()
+		{
 			return InlineString<>::Make(
 				"%d-%s-%d-%02d:%02d:%02d-%s",
 				year, mouth, date , hr , min , sec , 
@@ -530,16 +561,16 @@ void RunArrayTest()
 
 bool TinyGameApp::initializeGame()
 {
+	CreateConsole();
+	gLogPrinter.addDefaultChannels();
+
+	LogMsg("Game Initialize");
 	TIME_SCOPE("Game Initialize");
 	
 	{
 		TIME_SCOPE("Global Initialize");
 		::Global::Initialize();
 	}
-
-	CreateConsole();
-
-	gLogPrinter.addDefaultChannels();
 
 #if SYS_PLATFORM_WIN && 0
 	{
@@ -850,14 +881,17 @@ void TinyGameApp::loadModules()
 
 	}
 
+#define GAME_PREFIX "Game"
+#define TEST_PREFEX "Test"
+
 	FileIterator fileIter;
 	if (FFileSystem::FindFiles(moduleDir, ".dll", fileIter))
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{
 			char const* fileName = fileIter.getFileName();
-			if ( FCString::CompareN(fileName, "Game", 4 ) != 0 &&
-				 FCString::CompareN(fileName, "Test", 4) != 0 )
+			if ( FCString::CompareN(fileName, GAME_PREFIX, ARRAY_SIZE(GAME_PREFIX) - 1) != 0 &&
+				 FCString::CompareN(fileName, TEST_PREFEX, ARRAY_SIZE(TEST_PREFEX) - 1) != 0 )
 				continue;
 #if _DEBUG
 			if ( fileName[ FCString::Strlen( fileName ) - 5 ] != 'D' )
@@ -1243,6 +1277,8 @@ void TinyGameApp::render( float dframe )
 
 		if (CVarShowProifle)
 		{
+			IGraphics2D& g = ::Global::GetIGraphics2D();
+			RenderUtility::SetFont(g, FONT_S10);
 			::Global::GetDrawEngine().drawProfile(Vec2i(10, 10));
 		}
 
@@ -1272,7 +1308,6 @@ void TinyGameApp::render( float dframe )
 				g.setTextColor(Color3ub(255, 0, 0));
 				RenderUtility::SetFont(g, FONT_S10);
 
-				InlineString< 512 > str;
 				InlineString< 512 > temp;
 				int curLevel = 0;
 				for (int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i)
@@ -1429,7 +1464,6 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 {
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
 	GameStageBase* gameStage = stage->getGameStage();
-
 
 	IGameRenderSetup* renderSetup = dynamic_cast<IGameRenderSetup*>(stage);
 	if (renderSetup)

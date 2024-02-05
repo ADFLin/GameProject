@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.h" />
+    <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="..\OtherLib\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\OtherLib\ImGui\imconfig.h" />
     <ClInclude Include="..\OtherLib\ImGui\imgui.h" />
@@ -44,6 +45,7 @@
     <ClInclude Include="..\OtherLib\ImNodeEditor\imgui_node_editor_internal.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="EditorConfig.h" />
+    <ClInclude Include="EditorRender.h" />
     <ClInclude Include="EditorUtils.h" />
     <ClInclude Include="EditorPanel.h" />
     <ClInclude Include="ShaderGraph\ShaderGraph.h" />
@@ -58,6 +60,7 @@
   <ItemGroup>
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui.cpp" />
     <ClCompile Include="..\OtherLib\ImGui\imgui_demo.cpp" />
@@ -69,6 +72,7 @@
     <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor.cpp" />
     <ClCompile Include="..\OtherLib\ImNodeEditor\imgui_node_editor_api.cpp" />
     <ClCompile Include="Editor.cpp" />
+    <ClCompile Include="EditorRender.cpp" />
     <ClCompile Include="EditorUtils.cpp" />
     <ClCompile Include="EditorPanel.cpp" />
     <ClCompile Include="ShaderGraph\ShaderGraph.cpp" />

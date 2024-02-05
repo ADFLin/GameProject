@@ -451,6 +451,7 @@
     <ClCompile Include="TestMisc\Stage\DeviceInfoStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FileNameConvStage.cpp" />
     <ClCompile Include="TestMisc\Stage\FontDrawStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\FractialRenderStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
     <ClCompile Include="TestMisc\Stage\Phy2DGameStage.cpp" />

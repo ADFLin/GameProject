@@ -3,6 +3,8 @@
 #include "DataPath.h"
 
 #include <iostream>
+#include "Audio/XAudio2/MFDecoder.h"
+#include "FileSystem.h"
 
 static int SoundPlayMaxNum = 16;
 
@@ -13,73 +15,111 @@ SoundManager::SoundManager()
 SoundManager::~SoundManager()
 {
 	mDataStorage.clear();
+	delete mDevice;
 }
 
 
-SoundData* SoundManager::getData(char const* ime)
+bool SoundManager::initialize()
 {
-	HashString findName = ime;
+	mDevice = AudioDevice::Create();
+	if (mDevice == nullptr)
+		return false;
+
+	if (!mDevice->initialize())
+		return false;
+	
+	return true;
+}
+
+SoundData* SoundManager::getData(char const* name)
+{
+	HashString findName = name;
 	for(int i=0; i<mDataStorage.size(); i++)
 	{
-		if(mDataStorage[i].name== findName )
+		if(mDataStorage[i]->name == findName )
 		{
-			return &mDataStorage[i];
+			return mDataStorage[i].get();
 		}
 	}
 
-	if ( !loadSound(ime) )
+	if ( !loadSound(name) )
 		return NULL;
 
-	return &mDataStorage.back();
+	return mDataStorage.back().get();
 }
 
 bool SoundManager::loadSound(char const* name)
 {
-#if USE_SFML
-	sf::SoundBuffer buffer;
-
 	String path = SOUND_DIR;
 	path += name;
-	if ( !buffer.loadFromFile( path.c_str() ) )
+
+	std::unique_ptr<SoundData> soundData = std::make_unique< SoundData >();
+
+	auto LoadRes = [&]()
 	{
-		MessageBox(NULL,TEXT("Greska kod ucitavanja zvukova."),TEXT("Error."),MB_OK);
+		char const* ext = FFileUtility::GetExtension(path.c_str());
+
+		if (FCString::CompareIgnoreCase(ext, "ogg") == 0)
+		{
+			if (LoadOggFile(path.c_str(), soundData->soundWave.format, soundData->soundWave.PCMData))
+				return true;
+
+			return false;
+		}
+
+		if (FCString::CompareIgnoreCase(ext, "wav") == 0)
+		{
+			if (LoadWaveFile(path.c_str(), soundData->soundWave.format, soundData->soundWave.PCMData))
+				return true;
+		}
+
+		if (!FMFDecodeUtil::LoadWaveFile(path.c_str(), soundData->soundWave.format, soundData->soundWave.PCMData))
+		{
+			LogWarning(0, "Audio file load fail : %s", path.c_str());
+			return false;
+		}
+
 		return false;
-	}
-	SoundData z;
-	z.name   = name;
-	z.buffer = buffer;	
-	mDataStorage.push_back(z);
+
+	};
+	if (!LoadRes())
+		return false;
+
+
+	soundData->name   = name;
+	mDataStorage.push_back(std::move(soundData));
 	QA_LOG("Sound loaded : %s", name);
 	return true;
-#else
-	return false;
-#endif
-
 }
+
 void SoundManager::cleanup()
 {
-	for( SoundList::iterator iter = mSounds.begin() , itEnd = mSounds.end();
-		 iter != itEnd ; ++iter )	
+	if (mDevice)
 	{
-		Sound* sound = *iter;
+		mDevice->shutdown();
+	}
+	for(Sound* sound : mSounds )	
+	{
 		if ( sound->isPlaying() )
 			sound->stop();
-		delete sound;
 	}
 	mSounds.clear();
-
 	mDataStorage.clear();
 }
 
 void SoundManager::update( float dt )
 {
+	if (mDevice)
+	{
+		mDevice->update(dt);
+	}
+
 	for( SoundList::iterator iter = mSounds.begin();
 		iter != mSounds.end(); )
 	{
 		Sound* sound = *iter;
 		if( !sound->isPlaying() )
 		{
-			delete sound;
 			iter = mSounds.erase( iter );				
 		}
 		else
@@ -89,7 +129,7 @@ void SoundManager::update( float dt )
 	}
 }
 
-Sound* SoundManager::addSound( char const* name , bool canRepeat )
+SoundPtr SoundManager::addSound( char const* name , bool canRepeat )
 {
 	if ( mSounds.size() >= SoundPlayMaxNum )
 		return NULL;
@@ -112,7 +152,8 @@ Sound* SoundManager::addSound( char const* name , bool canRepeat )
 		}
 	}
 
-	Sound* sound = new Sound( data );
+	SoundPtr sound = new Sound( data );
+	sound->mDevice = mDevice;
 	mSounds.push_back(sound);		
 	return sound;
 }

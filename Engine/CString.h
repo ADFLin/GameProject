@@ -10,9 +10,15 @@
 #include <string>
 #include <cassert>
 #include <stdarg.h>
+#define USE_UNICODE 0
 
+#if USE_UNICODE
+typedef wchar_t TChar;
+#define TSTR( str ) L##str
+#else
 typedef char TChar;
 #define TSTR( str ) str
+#endif
 
 template < class CharT >
 class TStringTraits {};
@@ -21,16 +27,15 @@ template <>
 class TStringTraits< char >
 {
 public:
-	typedef char CharT;
-	typedef std::string StdString;
-
+	using CharT = char;
+	using StdString = std::string;
 };
 
 template<>
 struct TStringTraits< wchar_t >
 {
-	typedef wchar_t CharT;
-	typedef std::wstring StdString;
+	using CharT = wchar_t;
+	using StdString = std::wstring;
 };
 
 template <class CharT>

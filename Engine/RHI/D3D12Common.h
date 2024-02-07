@@ -645,7 +645,6 @@ namespace Render
 			D3D12DescriptorHeapPool::FreeHandle(mUAV);
 		}
 
-
 		D3D12_RESOURCE_STATES mCurrentStates;
 		D3D12PooledHeapHandle mSRV;
 		D3D12PooledHeapHandle mRTVorDSV;
@@ -693,7 +692,7 @@ namespace Render
 		}
 		virtual void releaseResource();
 
-		bool isDyanmic()
+		bool isDyanmic() const
 		{
 			return !!(getDesc().creationFlags & BCF_CpuAccessWrite);
 		}

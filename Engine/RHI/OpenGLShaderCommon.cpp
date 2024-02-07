@@ -271,25 +271,17 @@ void main()
 	class GLSLCompileIntermediates : public ShaderCompileIntermediates
 	{
 	public:
-		~GLSLCompileIntermediates()
-		{
-			for (int i = 0; i < shaders.size(); ++i)
-			{
-				shaders[i].destroyHandle();
-			}
-		}
-		TArray< OpenGLShaderObject > shaders;
 		ShaderParameterMap parameterMap;
 	};
 
 	void ShaderFormatGLSL::precompileCode(ShaderProgramSetupData& setupData)
 	{
-
+		setupData.intermediateData = std::make_unique<GLSLCompileIntermediates>();
 	}
 
 	void ShaderFormatGLSL::precompileCode(ShaderSetupData& setupData)
 	{
-
+		setupData.intermediateData = std::make_unique<GLSLCompileIntermediates>();
 	}
 
 	bool ShaderFormatGLSL::compileCode(ShaderCompileContext const& context)

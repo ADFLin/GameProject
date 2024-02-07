@@ -80,7 +80,7 @@ public:
 			return ::wcscmp(s1, s2) < 0;
 		}
 	};
-	typedef std::map< wchar_t const*, DirMonitorInfo*, StrCmp> WatchDirMap;
+	typedef std::unordered_map< WCStringWrapper, DirMonitorInfo*, MemberFuncHasher> WatchDirMap;
 
 	DWORD       mLastError;
 	WatchDirMap mDirMap;

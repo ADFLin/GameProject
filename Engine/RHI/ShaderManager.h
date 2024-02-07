@@ -201,8 +201,8 @@ namespace Render
 			std::string filePath;
 			std::string define;
 		};
-		bool buildShader(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload = false );
-		bool buildShader(Shader& shader, ShaderManagedData& managedData, bool bForceReload = false);
+		bool buildShader(ShaderProgramManagedData& managedData, bool bForceReload = false );
+		bool buildShader(ShaderManagedData& managedData, bool bForceReload = false);
 
 		void removeFromShaderCompileMap(ShaderObject& shader);
 

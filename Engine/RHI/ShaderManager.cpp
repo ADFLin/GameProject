@@ -691,7 +691,7 @@ namespace Render
 		managedData->shaderProgram = &shaderProgram;
 		setupManagedData(*managedData, entries, option, additionalCode, fileName, bSingleFile );
 
-		if( !buildShader(shaderProgram, *managedData) )
+		if( !buildShader(*managedData) )
 		{
 			delete managedData;
 			return nullptr;
@@ -719,7 +719,7 @@ namespace Render
 		managedData->shader = &shader;
 		setupManagedData(*managedData, entry, option, additionalCode, fileName);
 
-		if (!buildShader(shader, *managedData))
+		if (!buildShader(*managedData))
 		{
 			delete managedData;
 			return nullptr;
@@ -740,7 +740,7 @@ namespace Render
 		ShaderCompileOption option;
 		setupManagedData(*managedData, entries, option, additionalCode, filePaths);
 
-		if( !buildShader(shaderProgram, *managedData) )
+		if( !buildShader(*managedData) )
 		{
 			delete managedData;
 			return nullptr;
@@ -779,7 +779,7 @@ namespace Render
 			setupManagedData(*managedData, myClass.GetShaderEntries(managedData->permutationId), option, nullptr,  myClass.GetShaderFileName(), true);
 		}
 
-		return buildShader(shaderProgram, *managedData, true);
+		return buildShader(*managedData, true);
 	}
 
 
@@ -799,7 +799,7 @@ namespace Render
 			setupManagedData(*managedData, myClass.entry , option, nullptr, myClass.GetShaderFileName());
 		}
 
-		return buildShader(shader, *managedData, true);
+		return buildShader(*managedData, true);
 
 	}
 
@@ -841,12 +841,14 @@ namespace Render
 		}
 	}
 
-	bool ShaderManager::buildShader(ShaderProgram& shaderProgram, ShaderProgramManagedData& managedData, bool bForceReload)
+	bool ShaderManager::buildShader(ShaderProgramManagedData& managedData, bool bForceReload)
 	{
 		if ( !RHIIsInitialized() )
 			return false;
 
 		TIME_SCOPE("Build Shader Program");
+		
+		ShaderProgram& shaderProgram = *managedData.shaderProgram;
 
 		//bForceReload = true;
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData) )
@@ -944,13 +946,15 @@ namespace Render
 	}
 
 
-	bool ShaderManager::buildShader(Shader& shader, ShaderManagedData& managedData, bool bForceReload)
+	bool ShaderManager::buildShader(ShaderManagedData& managedData, bool bForceReload)
 	{
 		if (!RHIIsInitialized())
 			return false;
 
 
 		TIME_SCOPE("Build Shader");
+
+		Shader& shader = *managedData.shader;
 
 		if (!bForceReload && getCache()->loadCacheData(*mShaderFormat, managedData))
 		{
@@ -1194,7 +1198,7 @@ namespace Render
 	{
 		if (action == EFileAction::Modify || action == EFileAction::Rename)
 		{
-			ShaderManager::Get().buildShader(*shaderProgram, *this, true);
+			ShaderManager::Get().buildShader(*this, true);
 			ShaderManager::Get().cleanupLoadedSource();
 		}
 	}
@@ -1218,7 +1222,7 @@ namespace Render
 	{
 		if (action == EFileAction::Modify || action == EFileAction::Rename)
 		{
-			ShaderManager::Get().buildShader(*shader, *this, true);
+			ShaderManager::Get().buildShader(*this, true);
 			ShaderManager::Get().cleanupLoadedSource();
 		}
 	}

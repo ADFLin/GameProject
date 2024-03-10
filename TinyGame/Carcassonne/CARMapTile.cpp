@@ -32,7 +32,7 @@ namespace CAR
 				}
 				else
 				{
-					node.type = ESide::Type::Empty;
+					node.type = ESide::Empty;
 					node.linkMask = 0;
 				}
 			}
@@ -352,7 +352,7 @@ namespace CAR
 	bool TilePiece::isSemiCircularCity(int lDir) const
 	{
 		SideData const& sideData = sides[lDir];
-		assert(sideData.linkType == ESide::Type::City);
+		assert(sideData.linkType == ESide::City);
 		return (sideData.linkDirMask == FBitUtility::ExtractTrailingBit(sideData.linkDirMask)) &&
 			((sideData.contentFlag & BIT(SideContent::eNotSemiCircularCity)) == 0);
 	}

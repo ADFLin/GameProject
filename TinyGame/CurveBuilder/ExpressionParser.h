@@ -79,40 +79,38 @@ inline uint32 GetLayoutSize(ValueLayout layout)
 	return 0;
 }
 
-template< class T >
-struct TTypeToValueLayout {};
-template<>
-struct TTypeToValueLayout< double >
-{
-	static const ValueLayout Result = ValueLayout::Double;
-};
-template<>
-struct TTypeToValueLayout< float >
-{
-	static const ValueLayout Result = ValueLayout::Float;
-};
-template<>
-struct TTypeToValueLayout< int32 >
-{
-	static const ValueLayout Result = ValueLayout::Int32;
-};
 
-template<>
-struct TTypeToValueLayout< double* >
+template< typename T >
+constexpr ValueLayout GetValueLayout()
 {
-	static const ValueLayout Result = ValueLayout::DoublePtr;
-};
-template<>
-struct TTypeToValueLayout< float* >
-{
-	static const ValueLayout Result = ValueLayout::FloatPtr;
-};
-template<>
-struct TTypeToValueLayout< int32* >
-{
-	static const ValueLayout Result = ValueLayout::Int32Ptr;
-};
+	if constexpr (Meta::IsSameType< T, double >::Value)
+	{
+		return ValueLayout::Double;
+	}
+	if constexpr (Meta::IsSameType< T, double* >::Value)
+	{
+		return ValueLayout::DoublePtr;
+	}
+	if constexpr (Meta::IsSameType< T, float >::Value)
+	{
+		return ValueLayout::Float;
+	}
+	if constexpr (Meta::IsSameType< T, float* >::Value)
+	{
+		return ValueLayout::FloatPtr;
+	}
+	if constexpr (Meta::IsSameType< T, int32 >::Value)
+	{
+		return ValueLayout::Int32;
+	}
+	if constexpr (Meta::IsSameType< T, int32* >::Value)
+	{
+		return ValueLayout::Int32Ptr;
+	}
 
+	static_assert("No ValueLayout");
+	return ValueLayout::Int32;
+}
 
 enum class EFuncCall
 {
@@ -148,7 +146,7 @@ struct TGetFuncSignature< RT (*)() >
 {
 	static FuncSignatureInfo const& Result()
 	{
-		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , nullptr , 0 };
+		static FuncSignatureInfo sResult{ GetValueLayout<RT>(), nullptr , 0 };
 		return sResult;
 	}
 };
@@ -158,8 +156,8 @@ struct TGetFuncSignature< RT (*)(Args...) >
 {
 	static FuncSignatureInfo const& Result()
 	{
-		static ValueLayout const sArgs[] = { TTypeToValueLayout<Args>::Result... };
-		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , sizeof...(Args) };
+		static ValueLayout const sArgs[] = { GetValueLayout<Args>()... };
+		static FuncSignatureInfo sResult{ GetValueLayout<RT>() , sArgs , sizeof...(Args) };
 		return sResult;
 	}
 };
@@ -362,7 +360,7 @@ public:
 	};
 
 	
-	using UnitCodes = std::vector<Unit>;
+	using UnitCodes = TArray<Unit>;
 	static void print( Unit const& unit , SymbolTable const& table );
 	static void print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket );
 
@@ -441,11 +439,11 @@ class SymbolTable
 public:
 	// can redefine
 	template< class T >
-	void            defineConst(char const* name, T val) { mNameToEntryMap[name] = ConstValueInfo(val); }
+	void            defineConst(char const* name, T val) { mNameToEntryMap[name] = ConstValueInfo{ val }; }
 	template< class T >
-	void            defineVar( char const* name , T* varPtr){  mNameToEntryMap[name] = VariableInfo(varPtr); }
+	void            defineVar(char const* name, T* varPtr) { mNameToEntryMap[name] = VariableInfo{ varPtr }; }
 	template< class T>
-	void            defineFunc(char const* name, T func ) { mNameToEntryMap[name] = FuncInfo(func); }
+	void            defineFunc(char const* name, T func) { mNameToEntryMap[name] = FuncInfo{ func }; }
 
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = InputInfo{ inputIndex }; }
 	
@@ -454,11 +452,11 @@ public:
 	VariableInfo const*   findVar(char const* name) const;
 	InputInfo const*      findInput(char const* name) const;
 
-	char const*     getFuncName( FuncInfo const& info ) const;
-	char const*     getVarName( void* var ) const;
+	char const*     getFuncName(FuncInfo const& info) const;
+	char const*     getVarName(void* varPtr) const;
 	char const*     getInputName(int index) const;
 
-	bool            isFuncDefined(char const* name) const{  return isDefinedInternal( name , SymbolEntry::eFunction ); }
+	bool            isFuncDefined(char const* name) const{  return isDefinedInternal(name , SymbolEntry::eFunction ); }
 	bool            isVarDefined(char const* name) const{ return isDefinedInternal(name, SymbolEntry::eVariable ); }
 	bool            isConstDefined(char const* name) const{ return isDefinedInternal(name, SymbolEntry::eConstValue); }
 
@@ -536,17 +534,17 @@ public:
 private:
 
 	Node& getNode( int idx ){ return mTreeNodes[ idx ]; }
-	void  printSpace( int num );
-	void  printTree_R( int idxNode , int depth );
-	int   buildTree_R( int idxParent , int idxStart , int idxEnd , bool funcDef );
+	void  printSpace(int num);
+	void  printTree_R(int idxNode, int depth);
+	int   buildTree_R(int idxParent, int idxStart, int idxEnd, bool bFuncDef);
 	void  convertPostfixCode_R( UnitCodes& codes , int idxNode );
 	ErrorCode   checkTreeError_R( int idxNode );
 	int   optimizeNodeOrder_R( int idxNode );
 
 	bool  canExchangeNode( int idxNode , TokenType type )
 	{
-		assert( idxNode < 0 );
-		assert( CanExchange( type ) );
+		CHECK( idxNode < 0 );
+		CHECK( CanExchange( type ) );
 		Unit& unit = mExprCodes[ LEAF_UNIT_INDEX( idxNode ) ];
 
 		if ( !IsBinaryOperator( unit.type ) )
@@ -559,7 +557,7 @@ private:
 
 	unsigned haveConstValueChild( int idxNode )
 	{
-		assert( idxNode > 0 );
+		CHECK( idxNode > 0 );
 		Node& node = mTreeNodes[ idxNode ];
 		int result = 0;
 		if ( isConstValueNode( node.children[ CN_LEFT ] ) )
@@ -579,7 +577,7 @@ private:
 		return true;
 	}
 
-	std::vector< int > mIdxOpNext;
+	TArray< int > mIdxOpNext;
 	SymbolTable const* mTable;
 	Node*    mTreeNodes;
 	int      mNumNodes;
@@ -591,7 +589,7 @@ class ParseResult : public ExprParse
 public:
 	using Unit = ExprParse::Unit;
 
-	bool   isUsingVar( char const* name ) const;
+	bool   isUsingVar(char const* name) const;
 	bool   isUsingInput(char const* name) const;
 	void   optimize();
 
@@ -731,7 +729,6 @@ protected:
 
 	bool analyzeTokenUnit( char const* expr , SymbolTable const& table , UnitCodes& infixCode );
 	void convertCode( UnitCodes& infixCode , UnitCodes& postfixCode );
-	bool testTokenValid(int bToken,int cToken);
 
 	std::string  mErrorMsg;
 };

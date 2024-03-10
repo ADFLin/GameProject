@@ -77,7 +77,7 @@ namespace CB
 		bool    mbDynamic;
 	};
 
-	enum RenderUpdateFlag
+	enum RenderUpdateFlags
 	{
 		RUF_FUNCTION = 1 << 0,
 		RUF_DATA_SAMPLE = 1 << 1,
@@ -89,7 +89,7 @@ namespace CB
 	struct ShapeUpdateContext
 	{
 		RenderData*    data;
-		unsigned       flag;
+		unsigned       flags;
 		ShapeFuncBase* func;
 		Color4f        color;
 	};

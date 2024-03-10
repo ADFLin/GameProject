@@ -35,6 +35,40 @@ namespace SBlocks
 		},
 	};
 
+
+	LevelDesc DebugLevel =
+	{
+		//map
+		{
+			{
+				3 ,
+				{
+					M(0,0,0),
+					M(1,0,0),
+					M(1,1,0),
+				}
+			}
+		},
+
+		//shape
+		{
+			{
+				3,
+				{
+					M(1,0,0),
+					M(1,1,0),
+					M(1,1,1),
+				},
+				true, {1 , 1},
+			}
+		},
+
+		//piece
+		{
+			{0},
+		},
+	};
+
 	LevelDesc TestLv =
 	{
 		//map

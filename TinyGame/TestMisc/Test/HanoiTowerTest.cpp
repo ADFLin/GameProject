@@ -28,6 +28,7 @@ public:
 	{
 		if (index >= BlockCount)
 			return;
+
 		int from = state[index];
 		CHECK(from != to);
 		int nextIndex = index + 1;

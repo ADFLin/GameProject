@@ -141,7 +141,6 @@ CS_ENTRY(MainCS)
 	float d = float(iteration) / float(MaxIteration);
 #if COMPILER_HLSL
 	ColorRWTexture[pixelPos] = float4(color, 1);
-	//ColorRWTexture[pixelPos] = float4(Test, 1);
 #else
 	imageStore(ColorRWTexture, pixelPos, float4( color , 1 ) );
 	//imageStore(ColorRWTexture, pixelPos, float4( float(iteration) / float(100) ));

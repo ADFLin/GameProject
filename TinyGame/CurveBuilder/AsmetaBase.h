@@ -28,10 +28,10 @@ namespace Asmeta
 
 	enum FPMemFormat
 	{
-		FPMF_Real32     = 0x0,
-		FPMF_Integer32  = 0x1,
-		FPMF_eReal64    = 0x2,
-		FPMF_eInteger16 = 0x3,
+		FPMF_Real32    = 0x0,
+		FPMF_Integer32 = 0x1,
+		FPMF_Real64    = 0x2,
+		FPMF_Integer16 = 0x3,
 	};
 
 	template< int Size >
@@ -39,7 +39,7 @@ namespace Asmeta
 	template<>
 	struct SPFMap< 2 >
 	{ 
-		static FPMemFormat constexpr IntFormat = FPMF_eInteger16;
+		static FPMemFormat constexpr IntFormat = FPMF_Integer16;
 	};
 	template<>
 	struct SPFMap< 4 >
@@ -50,7 +50,7 @@ namespace Asmeta
 	template<>
 	struct SPFMap< 8 >
 	{
-		static FPMemFormat constexpr RealFormat = FPMF_eReal64;
+		static FPMemFormat constexpr RealFormat = FPMF_Real64;
 	};
 
 	enum FlagModRM
@@ -294,7 +294,7 @@ namespace Asmeta
 	public:
 		typedef typename Ref::RefType RefType;
 		RefMem( RefType ref ):mRef( ref ){}
-		RefType reference() const { return mRef ; }
+		RefType reference() const { return mRef; }
 	private:
 		RefType mRef; 
 	};

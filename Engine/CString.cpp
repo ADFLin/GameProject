@@ -123,7 +123,7 @@ bool FCString::IsConstSegment(void const* ptr)
 			::GetModuleInformation(GetCurrentProcess(), GetCurrentModuleHandle(), &moduleInfo, sizeof(moduleInfo));
 		}
 
-		bool Test(void const* ptr)
+		bool test(void const* ptr)
 		{
 			return uintptr_t(moduleInfo.lpBaseOfDll) < uintptr_t(ptr) && uintptr_t(ptr) < uintptr_t(moduleInfo.lpBaseOfDll) + uintptr_t(moduleInfo.SizeOfImage);
 		}
@@ -131,7 +131,7 @@ bool FCString::IsConstSegment(void const* ptr)
 	};
 
 	static Local StaticLocal;
-	return StaticLocal.Test(ptr);
+	return StaticLocal.test(ptr);
 #else
 	static char const* Test = "TestAddr";
 	return Math::Abs(intptr_t(ptr) - intptr_t(Test)) < 1 * 1024 * 1024;

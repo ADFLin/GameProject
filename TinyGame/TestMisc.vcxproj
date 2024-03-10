@@ -474,7 +474,9 @@
     <ClCompile Include="TestMisc\Test\CriminalTest.cpp" />
     <ClCompile Include="TestMisc\Test\DelegateTest.cpp" />
     <ClCompile Include="TestMisc\Test\DrawCardTest.cpp" />
-    <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp" />
+    <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp">
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotSet</EnableEnhancedInstructionSet>
+    </ClCompile>
     <ClCompile Include="TestMisc\Test\CurveFitTest.cpp" />
     <ClCompile Include="TestMisc\Test\HanoiTowerTest.cpp" />
     <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />

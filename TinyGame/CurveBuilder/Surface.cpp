@@ -11,9 +11,9 @@
 namespace CB
 {
 	ShapeBase::ShapeBase()
-		: mShapeFun(nullptr)
+		: mShapeFunc(nullptr)
 		, mbVisible(true)
-		, mUpdateBit(RUF_ALL_UPDATE_BIT)
+		, mUpdateBits(RUF_ALL_UPDATE_BIT)
 		, mColor(Color4f(1, 0, 0, 0.5f))
 		, mRenderData()
 	{
@@ -25,39 +25,39 @@ namespace CB
 		, mbVisible(rhs.mbVisible)
 		, mRenderData()
 	{
-		mShapeFun = rhs.mShapeFun->clone();
-		mUpdateBit = RUF_ALL_UPDATE_BIT;
+		mShapeFunc = rhs.mShapeFunc->clone();
+		mUpdateBits = RUF_ALL_UPDATE_BIT;
 	}
 
 	ShapeBase::~ShapeBase()
 	{
-		delete mShapeFun;
+		delete mShapeFunc;
 	}
 
 	void ShapeBase::setFunctionInternal(ShapeFuncBase* FunData)
 	{
-		delete mShapeFun;
-		mShapeFun = FunData;
-		mUpdateBit |= RUF_FUNCTION;
+		delete mShapeFunc;
+		mShapeFunc = FunData;
+		mUpdateBits |= RUF_FUNCTION;
 	}
 
 	void ShapeBase::setColor(Color4f const& color)
 	{
 		mColor = color;
-		addUpdateBit(RUF_COLOR);
+		addUpdateBits(RUF_COLOR);
 	}
 
 	bool ShapeBase::update(IShapeMeshBuilder& builder)
 	{
-		if( mUpdateBit & RUF_FUNCTION )
+		if( mUpdateBits & RUF_FUNCTION )
 		{
 			TIME_SCOPE("Pares Shape Function");
-			mUpdateBit &= ~RUF_FUNCTION;
+			mUpdateBits &= ~RUF_FUNCTION;
 			if( !getFunction()->isParsed() )
 			{
 				if( !builder.parseFunction(*getFunction()) )
 					return false;
-				mUpdateBit |= RUF_GEOM;
+				mUpdateBits |= RUF_GEOM;
 			}
 		}
 
@@ -66,18 +66,18 @@ namespace CB
 
 		if( getFunction()->isDynamic() && isVisible() )
 		{
-			mUpdateBit |= RUF_GEOM;
+			mUpdateBits |= RUF_GEOM;
 		}
 
-		if( mUpdateBit )
+		if( mUpdateBits )
 		{
 			ShapeUpdateContext context;
 			context.color = getColor();
 			context.data  = &mRenderData;
-			context.flag  = mUpdateBit;
+			context.flags  = mUpdateBits;
 			context.func   = getFunction();
 
-			mUpdateBit = 0;
+			mUpdateBits = 0;
 			updateRenderData(builder, context);
 
 			return true;
@@ -123,7 +123,7 @@ namespace CB
 		int newNumData = nu * nv;
 		mParamU.numData = nu;
 		mParamV.numData = nv;
-		addUpdateBit(RUF_DATA_SAMPLE);
+		addUpdateBits(RUF_DATA_SAMPLE);
 	}
 
 	Surface3D* Surface3D::clone()
@@ -182,7 +182,7 @@ namespace CB
 	void Curve3D::setNumData(int n)
 	{
 		mParamS.numData = n;
-		addUpdateBit(RUF_DATA_SAMPLE);
+		addUpdateBits(RUF_DATA_SAMPLE);
 	}
 
 	Curve3D* Curve3D::clone()

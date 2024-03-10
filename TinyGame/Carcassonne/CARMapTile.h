@@ -52,7 +52,7 @@ namespace CAR
 		bool     isSemiCircularCity( int lDir ) const;
 		bool     isHalflingType() const {  return !!(contentFlag & BIT(TileContent::eHalfling));  }
 		bool     haveSideType( ESide::Type type ) const;
-		bool     haveRiver() const { return haveSideType( ESide::Type::River ); }
+		bool     haveRiver() const { return haveSideType( ESide::River ); }
 
 
 		static bool CanLink( ESide::Type typeA , ESide::Type typeB );
@@ -64,30 +64,30 @@ namespace CAR
 
 		static bool CanLinkCity(ESide::Type type)
 		{
-			return type == ESide::Type::City;
+			return type == ESide::City;
 		}
 		static bool CanLinkRiver(ESide::Type type)
 		{
-			return type == ESide::Type::River;
+			return type == ESide::River;
 		}
 		static bool CanLinkRoad(ESide::Type type)
 		{
-			return type == ESide::Type::Road;
+			return type == ESide::Road;
 		}
 		static bool CanLinkFarm( ESide::Type type )
 		{
-			unsigned const FarmLinkMask = BIT( ESide::Type::Field ) | BIT( ESide::Type::Road ) | BIT( ESide::Type::River ) | BIT( ESide::Type::InsideLink );
+			unsigned const FarmLinkMask = BIT( ESide::Field ) | BIT( ESide::Road ) | BIT( ESide::River ) | BIT( ESide::InsideLink );
 			return !!( FarmLinkMask & BIT( type ) );
 		}
 
 		static bool CanRemoveFarm(ESide::Type type)
 		{
-			return !!(BIT(type) & (BIT(ESide::Type::City) | BIT(ESide::Type::InsideLink)));
+			return !!(BIT(type) & (BIT(ESide::City) | BIT(ESide::InsideLink)));
 		}
 
 		static bool CanLinkBridge( ESide::Type type )
 		{
-			return !!(BIT(type) & (BIT(ESide::Type::Field) | BIT(ESide::Type::Road)));
+			return !!(BIT(type) & (BIT(ESide::Field) | BIT(ESide::Road)));
 		}
 
 		static int FarmSideDir( int idx ){ return idx / 2; }

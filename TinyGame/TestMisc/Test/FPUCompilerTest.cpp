@@ -60,6 +60,25 @@ __declspec(noinline) double FooTest2(double x, double y, float z)
 }
 
 
+__declspec(noinline) int64 IntTest(int64 x)
+{
+	return x + x;
+}
+
+__declspec(noinline) double DoubleTest(double x)
+{
+	return x + x;
+}
+void AsmTest()
+{
+	DoubleTest(100.0);
+	IntTest(100);
+
+
+
+}
+REGISTER_MISC_TEST_ENTRY("Asm Test", AsmTest);
+
 void TestFPUCompile()
 {
 	double x = 1;

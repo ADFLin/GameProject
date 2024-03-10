@@ -27,7 +27,12 @@ bool MiscTestStage::onInit()
 	::Global::GUI().cleanupWidget();
 
 	auto frame = WidgetUtility::CreateDevFrame();
-
+	ExecutionRegisterCollection::Get().sortGroup(EExecGroup::MiscTest,
+		[](ExecutionEntryInfo const& a, ExecutionEntryInfo const& b) -> bool
+		{
+			return FCString::CompareIgnoreCase(a.title, b.title) < 0;
+		}
+	);
 	auto const& entries = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTest);
 	for (auto const& entry : entries)
 	{
@@ -39,7 +44,7 @@ bool MiscTestStage::onInit()
 }
 
 
-void MiscTestStage::addTest(char const* name, TestFunc const& func)
+void MiscTestStage::addTest(char const* name, ExecuteFunc const& func)
 {
 	Vec2i pos;
 	pos.x = 20 + 120 * (mInfos.size() % 5);
@@ -85,7 +90,14 @@ bool MiscTestStage::onWidgetEvent(int event, int id, GWidget* ui)
 				if (GTestCore)
 				{
 					registerThread(thread);
-					func();
+					class EmptyContext : public IGameExecutionContext
+					{
+					public:
+						virtual void changeStage(StageBase* stage) {}
+						virtual void playSingleGame(char const* name) {}
+					};
+
+					func(EmptyContext());
 					if (GTestCore)
 					{
 						unregisterThread(thread);

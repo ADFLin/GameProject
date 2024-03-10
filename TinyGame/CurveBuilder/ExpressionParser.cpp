@@ -863,7 +863,7 @@ void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*t
 	mExprCodes = exprCode;
 
 	mIdxOpNext.resize( numUnit );
-	std::vector< int > idxDepthStack;
+	TArray< int > idxDepthStack;
 
 	int numNode = 0;
 	int idxNext = numUnit;
@@ -916,7 +916,7 @@ void ExprTreeBuilder::build( NodeVec& nodes , Unit* exprCode , int numUnit ) /*t
 	node.children[ CN_RIGHT ]  = 0;
 }
 
-int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , bool funcDef )
+int ExprTreeBuilder::buildTree_R( int idxParent, int idxStart, int idxEnd, bool bFuncDef)
 {	
 	if ( idxEnd == idxStart )
 		return 0;
@@ -962,11 +962,11 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 	if ( idxOp != -1 )
 	{
 		Unit& opUnit = mExprCodes[ idxOp ];
-		if ( funcDef )
+		if ( bFuncDef )
 		{
 			if ( opUnit.type != BOP_COMMA )
 			{
-				funcDef = false;
+				bFuncDef = false;
 			}
 			else
 			{
@@ -976,8 +976,8 @@ int ExprTreeBuilder::buildTree_R( int idxParent , int idxStart , int idxEnd  , b
 
 		int idxNode = mNumNodes++;
 
-		int idxLeft  = buildTree_R( idxNode , idxStart , idxOp , funcDef );
-		int idxRight = buildTree_R( idxNode , idxOp + 1 , idxEnd , funcDef );
+		int idxLeft  = buildTree_R( idxNode , idxStart , idxOp , bFuncDef );
+		int idxRight = buildTree_R( idxNode , idxOp + 1 , idxEnd , bFuncDef );
 
 		Node& node = mTreeNodes[ idxNode ];
 		node.parent  = idxParent;
@@ -1384,7 +1384,7 @@ void ExprTreeBuilder::printTree_R( int idxNode , int depth )
 	}
 }
 
-void ExprTreeBuilder::printSpace( int num )
+void ExprTreeBuilder::printSpace(int num)
 {
 	for ( int i = 0 ; i < num ; ++i )
 	{
@@ -1392,7 +1392,7 @@ void ExprTreeBuilder::printSpace( int num )
 	}
 }
 
-void ExprTreeBuilder::printTree( SymbolTable const& table )
+void ExprTreeBuilder::printTree(SymbolTable const& table)
 {
 	mTable = &table;
 	if ( mNumNodes != 0 )
@@ -1402,7 +1402,7 @@ void ExprTreeBuilder::printTree( SymbolTable const& table )
 	}
 }
 
-char const* SymbolTable::getFuncName( FuncInfo const& info ) const
+char const* SymbolTable::getFuncName(FuncInfo const& info) const
 {
 	for( auto const& pair : mNameToEntryMap )
 	{
@@ -1413,12 +1413,12 @@ char const* SymbolTable::getFuncName( FuncInfo const& info ) const
 	return nullptr;
 }
 
-char const* SymbolTable::getVarName( void* var ) const
+char const* SymbolTable::getVarName(void* varPtr) const
 {
 	for( auto const& pair : mNameToEntryMap )
 	{
 		if( pair.second.type == SymbolEntry::eVariable &&
-		    pair.second.varValue.ptr == var )
+		    pair.second.varValue.ptr == varPtr)
 			return pair.first.c_str();
 	}
 	return nullptr;
@@ -1498,7 +1498,7 @@ int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 				varVal[index] = *(int32*)pair.second.varValue.ptr;
 				break;
 			default:
-				assert(0);
+				NEVER_REACH("SymbolTable::getVarTable");
 			}
 			
 		}

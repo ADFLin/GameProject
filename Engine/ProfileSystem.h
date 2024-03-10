@@ -39,7 +39,7 @@ inline double Profile_GetTickRate()
 	//	return 1000000.f;
 	return 1000.f;
 }
-
+CORE_API void Profile_GetTicks(uint64* ticks);
 class ProfileSystem;
 
 

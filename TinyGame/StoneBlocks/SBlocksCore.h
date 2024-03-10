@@ -131,10 +131,12 @@ namespace SBlocks
 		bool	bUseCustomPivot;
 		Vector2 customPivot;
 
+		static constexpr uint8 BLOCK_BIT = 0x1;
+
 		void toggleValue(Vec2i const& pos)
 		{
 			int index = pos.x + sizeX * pos.y;
-			data[index] ^= 0x1;
+			data[index] ^= BLOCK_BIT;
 		}
 
 		Vec2i getBoundSize() const
@@ -159,14 +161,12 @@ namespace SBlocks
 
 	using AABB = ::Math::TAABBox< Int16Point2D >;
 
-#define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 0
-	struct PieceShapeData
+	struct BlockCollection
 	{
-		Vec2i boundSize;
 		struct Block
 		{
 			Block() = default;
-			Block(Int16Point2D const& inPos, uint8 inType):pos(inPos), type(inType){}
+			Block(Int16Point2D const& inPos, uint8 inType) :pos(inPos), type(inType) {}
 
 			bool operator == (Block const& rhs) const
 			{
@@ -182,7 +182,14 @@ namespace SBlocks
 			uint8 type;
 			operator Int16Point2D() const { return pos; }
 		};
+
 		TArray< Block > blocks;
+	};
+
+#define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 0
+	struct PieceShapeData : BlockCollection
+	{
+		Int16Point2D boundSize;
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
 		uint32 blockHash;
 		uint32 blockHashNoType;
@@ -191,6 +198,7 @@ namespace SBlocks
 
 		void standardizeBlocks();
 
+		bool isSubset(PieceShapeData const& rhs) const;
 
 		bool compareBlockPos(PieceShapeData const& rhs) const;
 		bool operator == (PieceShapeData const& rhs) const;
@@ -202,7 +210,16 @@ namespace SBlocks
 		};
 
 		void generateOuterConPosList(TArray< Int16Point2D >& outPosList) const;
-		void generateOutline(TArray<Line>& outlines);
+		void generateOutline(TArray<Line>& outlines) const;
+	
+	private:
+		int getStartIndex(int y) const
+		{
+			return blocks.findIndexPred([y](Block const& block)
+			{
+				return block.pos.y == y;
+			});
+		}
 	};
 
 	namespace EMirrorOp
@@ -210,8 +227,8 @@ namespace SBlocks
 		enum Type
 		{
 			None ,
-			X ,
-			Y ,
+			X  ,
+			Y  ,
 
 			COUNT,
 		};
@@ -223,16 +240,19 @@ namespace SBlocks
 
 		Vector2 pivot;
 
-		TArray< PieceShapeData::Line > outlines;
+		TArray< TArray<PieceShapeData::Line> > outlines;
 
 		int indexSolve;
 
+		uint8 getDataIndex(DirType const& dir, EMirrorOp::Type op = EMirrorOp::None) const
+		{
+			return mDataIndexMap[op][dir];
+		}
 		PieceShapeData const& getData(DirType const& dir, EMirrorOp::Type op = EMirrorOp::None) const
 		{
-			int index = mDataIndexMap[dir][op];
+			uint8 index = mDataIndexMap[op][dir];
 			return mDataStorage[index];
 		}
-
 		PieceShapeData const& getDataByIndex(int index) const
 		{
 			return mDataStorage[index];
@@ -240,27 +260,15 @@ namespace SBlocks
 
 		struct OpState
 		{
-			int dir;
+			uint8 dir;
 			EMirrorOp::Type mirror;
 		};
 
-		OpState getOpState(int index)
-		{
-			for( int mirrorOp = 0 ; mirrorOp < EMirrorOp::COUNT; ++mirrorOp)
-			{
-				for (int dir = 0; dir < DirType::RestValue; ++dir)
-				{
-					if (mDataIndexMap[dir][mirrorOp] == index)
-					{
-						return { dir , EMirrorOp::Type(mirrorOp) };
-					}
-				}
-			}
-			return { INDEX_NONE , EMirrorOp::None };
-		}
+		OpState getOpState(int index) const;
 
-		int findSameShape(PieceShapeData const& data);
-		int findSameShapeIgnoreBlockType(PieceShapeData const& data);
+		int findSameShape(PieceShapeData const& data) const;
+		int findSameShapeIgnoreBlockType(PieceShapeData const& data) const;
+		int findSubset(PieceShapeData const& data) const;
 		int getBlockCount() const
 		{
 			return mDataStorage[0].blocks.size();
@@ -297,16 +305,21 @@ namespace SBlocks
 			Vector2 lPos = getCornerPos(inDir);
 			return pivot + GetRotation(inDir).leftMul(lPos - pivot);
 		}
+
+		void registerMirrorData();
 	private:
+		int addNewData(PieceShapeData& data, int dir, EMirrorOp::Type op = EMirrorOp::None);
+		int registerData(PieceShapeData& data, int dir, EMirrorOp::Type op = EMirrorOp::None);
 		TArray<PieceShapeData> mDataStorage;
-		int mDataIndexMap[DirType::RestValue][EMirrorOp::COUNT];
+		uint8 mDataIndexMap[EMirrorOp::COUNT][DirType::RestValue];
 	};
 
 	struct Piece
 	{
 		PieceShape* shape;
 		DirType dir;
-		bool bCanRoate;
+		EMirrorOp::Type mirror = EMirrorOp::None;
+		bool bCanOperate;
 
 		int index = 0;
 		Int16Point2D mapPosLocked;
@@ -325,19 +338,28 @@ namespace SBlocks
 			return pos + offset;
 		}
 
+
+		void move(Vector2 const& offset)
+		{
+			pos += offset;
+			renderXForm.translateWorld(offset);
+		}
 		void updateTransform()
 		{
-			renderXForm.setIdentity();
-			renderXForm.translateWorld(-shape->pivot);
-			renderXForm.rotateWorld(angle);
+			renderXForm = RenderTransform2D::TranslateThenRotate(-shape->pivot, angle);
 			renderXForm.translateWorld(pos + shape->pivot);
+		}
+
+		PieceShapeData const& getShapeData() const
+		{
+			return shape->getData(dir, mirror);
 		}
 
 		bool hitTest(Vector2 const& pos, Vector2& outHitLocalPos)
 		{
 			Vector2 lPos = renderXForm.transformInvPositionAssumeNoScale(pos);
 
-			auto const& shapeData = shape->getData(DirType::ValueChecked(0));
+			auto const& shapeData = shape->getData(DirType::ValueChecked(0), mirror);
 			for (auto const& block : shapeData.blocks)
 			{
 				if (block.pos.x < lPos.x && lPos.x < block.pos.x + 1 &&
@@ -378,7 +400,7 @@ namespace SBlocks
 			LOCK_MASK  = BIT(0),
 			BLOCK_MASK = BIT(1),
 			MASK_BITS = 2,
-
+			ALL_MASK = BIT(MASK_BITS) - 1,
 #define MAKE_MAP_DATA(TYPE, v) (((TYPE) << MASK_BITS ) | v)
 
 			MAP_BLOCK = MAKE_MAP_DATA(EBlock::Normal, BLOCK_MASK),
@@ -402,6 +424,7 @@ namespace SBlocks
 		static void  AddLock(uint8& value)  { value |= LOCK_MASK; }
 		static void  RemoveLock(uint8& value) { value &= ~LOCK_MASK; }
 		static uint8 GetType(uint8 value)   { return value >> MASK_BITS; }
+		static void  SetType(uint8& value, uint8 type) { value = (type << MASK_BITS) | (value & ALL_MASK); }
 		bool isInBound(Vec2i const& pos)
 		{
 			return IsInBound(pos, getBoundSize());
@@ -419,6 +442,8 @@ namespace SBlocks
 		void lockChecked(Vec2i const& pos, PieceShapeData const& shapeData);
 		bool canLock(Vec2i const& pos, PieceShapeData const& shapeData);
 
+		bool checkBound(Vec2i const &pos, PieceShapeData const &shapeData) const;
+
 		bool isFinish() const { return numTotalBlocks == numBlockLocked; }
 
 		void importDesc(MapDesc const& desc);
@@ -429,6 +454,8 @@ namespace SBlocks
 
 		void copyFrom(MarkMap const& rhs, bool bInitState = false);
 
+		bool isSymmetry() const;
+
 		Vector2 mPos = Vector2::Zero();
 		int numBlockLocked;
 		int numTotalBlocks;
@@ -437,17 +464,18 @@ namespace SBlocks
 
 	struct PieceDesc
 	{
-		uint16  id;
+		uint16  shapeId;
 		Vector2 pos;
 		union
 		{
 			struct
 			{
 				uint8   dir : 2;
-				uint8   bLockRotation : 1;
-				uint8   dummy : 5;
+				uint8   bLockOperation : 1;
+				uint8   mirror : 2;
+				uint8   dummy : 3;
 			};
-			uint8 dirAndFlags;
+			uint8 stateAndFlags;
 		};
 
 		template< class OP >
@@ -456,7 +484,7 @@ namespace SBlocks
 
 	struct LevelDesc
 	{
-		TArray< MapDesc > maps;
+		TArray<MapDesc> maps;
 		TArray<PieceShapeDesc> shapes;
 		TArray<PieceDesc> pieces;
 
@@ -484,11 +512,13 @@ namespace SBlocks
 		void removePieceShape(PieceShape* shape);
 
 		bool tryLockPiece(Piece& piece);
+		bool tryLockPiece(Piece& piece, int mapIndex, Vec2i const& mapPos);
 		void unlockPiece(Piece& piece);
 
 		void unlockAllPiece();
 
-		Vector2 calcPiecePos(Piece& piece, int indexMap, Vec2i const& mapPos , DirType dir );
+		Vector2 calcPiecePos(Piece const& piece, int indexMap, Vec2i const& mapPos , DirType dir );
+
 		TArray< std::unique_ptr< Piece > > mPieces;
 		TArray< std::unique_ptr< PieceShape > > mShapes;
 		TArray< MarkMap > mMaps;

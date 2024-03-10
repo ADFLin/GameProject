@@ -52,6 +52,16 @@ namespace SBlocks
 			shadowOffset = Vector2(0.2, 0.2);
 		}
 
+		template< class OP >
+		void serialize(OP& op)
+		{
+			op & pieceBlockColor & pieceBlockLockedColor;
+			op & mapEmptyColor & mapEmptyColor & mapBlockColor & mapOuterColor;
+			op & mapFrameColor;
+			op & backgroundColor;
+			op & shadowColor & shadowOpacity & shadowOffset;
+		}
+
 	};
 
 	struct GameData
@@ -180,18 +190,20 @@ namespace SBlocks
 		int  usageCount;
 	};
 
+	extern class Editor* GEditor;
 	class Editor
 	{
 	public:
 
 		void initEdit()
 		{
+			GEditor = this;
 			loadShapeLibrary();
 		}
 
 		void cleanup()
 		{
-
+			GEditor = nullptr;
 		}
 
 		void startEdit();
@@ -216,7 +228,6 @@ namespace SBlocks
 							return MsgReply::Handled();
 						}
 					}
-
 				}
 			}
 
@@ -244,6 +255,7 @@ namespace SBlocks
 		void saveLevel(char const* name);
 		void newLevel();
 
+		void setAllowMirrorOp(bool bAllow);
 
 		void setMapSize(int id, int x, int y)
 		{
@@ -282,20 +294,14 @@ namespace SBlocks
 		}
 
 		void addPieceCmd(int id);
-
 		void addPiece(EditPieceShape &editShape);
-
 		void removePiece(int id);
 
+
 		void addEditPieceShape(int sizeX, int sizeY);
-
 		void removeEditPieceShape(int id);
-
 		void copyEditPieceShape(int id);
-
-
 		void editEditPieceShapeCmd(int id);
-
 		void editEditPieceShape(EditPieceShape& editShape);
 
 		void notifyLevelChanged();
@@ -383,7 +389,6 @@ namespace SBlocks
 		}
 
 		void saveShapeLibrary();
-
 		void loadShapeLibrary();
 
 		TArray< EditPieceShape > mPieceShapeLibrary;
@@ -391,7 +396,6 @@ namespace SBlocks
 		bool      mbEnabled = false;
 		GameData* mGame;
 	};
-
 
 	class ShapeListPanel : public GFrame
 	{
@@ -414,21 +418,42 @@ namespace SBlocks
 		{
 			mShapeList.clear();
 
-			Vector2 pos = { 10 , 10 };
+			Vector2 pos = { 5 , 5 };
 			float scale = 20.0;
-
-			for (auto& editShape : mEditor->mPieceShapeLibrary)
+			float maxYSize = 0;
+			Vec2i widgetSize = getSize();
+			for (auto& editShape : GEditor->mPieceShapeLibrary)
 			{
+				Vec2i boundSize = editShape.desc.getBoundSize();
+				float xSize = boundSize.x * scale;
+				float ySize = boundSize.y * scale;
+
+				if (pos.x + xSize + 5 > widgetSize.x)
+				{
+					pos.y += maxYSize + 15;
+					pos.x = 5;
+					maxYSize = 0;
+				}
+
 				ShapeInfo shapeInfo;
 				shapeInfo.editShape = &editShape;
 				shapeInfo.localToFrame.setIdentity();
 				shapeInfo.localToFrame.translateLocal(pos);
 				shapeInfo.localToFrame.scaleLocal(Vector2(scale, scale));
 				shapeInfo.FrameToLocal = shapeInfo.localToFrame.inverse();
-				Vec2i boundSize = editShape.desc.getBoundSize();
-
 				mShapeList.push_back(std::move(shapeInfo));
-				pos.x += boundSize.x * scale + 5;
+
+				pos.x += xSize + 5;
+				if (maxYSize < ySize)
+				{
+					maxYSize = ySize;
+				}
+
+			}
+
+			if (pos.y + maxYSize + 15 + 5 > widgetSize.y)
+			{
+				setSize(Vec2i(widgetSize.x, pos.y + maxYSize + 15 + 5));
 			}
 		}
 
@@ -456,7 +481,7 @@ namespace SBlocks
 				RenderUtility::SetPen(g, shapeInfo.editShape->bMarkSave ? EColor::Orange : EColor::Gray);
 				g.enableBrush(false);
 				g.drawRect(-Vector2(border, border) , boundSize + 2 * Vector2(border, border));
-				Editor::Draw(g, mEditor->mGame->mTheme, *shapeInfo.editShape);
+				Editor::Draw(g, GEditor->mGame->mTheme, *shapeInfo.editShape);
 				g.popXForm();
 
 				Vector2 pos = shapeInfo.localToFrame.transformPosition(Vector2(0, boundSize.y));
@@ -501,7 +526,7 @@ namespace SBlocks
 
 				if (clickShape)
 				{
-					mEditor->editEditPieceShape(*clickShape->editShape);
+					GEditor->editEditPieceShape(*clickShape->editShape);
 					return MsgReply::Handled();
 				}
 			}
@@ -511,15 +536,13 @@ namespace SBlocks
 
 				if (clickShape)
 				{
-					mEditor->addPiece(*clickShape->editShape);
+					GEditor->addPiece(*clickShape->editShape);
 					return MsgReply::Handled();
 				}
 			}
 
 			return BaseClass::onMouseMsg(msg);
 		}
-
-		Editor* mEditor;
 	};
 
 
@@ -533,8 +556,9 @@ namespace SBlocks
 
 		}
 
-		void init()
+		void setup(EditPieceShape& shape)
 		{
+			mShape = &shape;
 			mLocalToFrame.setIdentity();
 			float scale = 20.0;
 			Vector2 offset = Vector2(getSize()) - scale * Vector2(mShape->desc.getBoundSize());
@@ -556,7 +580,7 @@ namespace SBlocks
 			g.pushXForm();
 			g.translateXForm(screenPos.x, screenPos.y);
 			g.transformXForm(mLocalToFrame, true);
-			Editor::Draw(g, editor->mGame->mTheme, *mShape);
+			Editor::Draw(g, GEditor->mGame->mTheme, *mShape);
 			g.popXForm();
 		}
 
@@ -572,7 +596,7 @@ namespace SBlocks
 					mShape->desc.toggleValue(localPos);
 					if (mShape->ptr)
 					{
-						mShape->ptr->importDesc(mShape->desc, editor->mGame->mLevel.bAllowMirrorOp);
+						mShape->ptr->importDesc(mShape->desc, GEditor->mGame->mLevel.bAllowMirrorOp);
 					}
 					return MsgReply::Handled();
 				}
@@ -580,8 +604,8 @@ namespace SBlocks
 
 			return BaseClass::onMouseMsg(msg);
 		}
+
 		RenderTransform2D mLocalToFrame;
-		Editor* editor;
 		EditPieceShape* mShape;
 	};
 
@@ -599,7 +623,7 @@ namespace SBlocks
 
 		Editor*  mEditor = nullptr;
 
-		bool IsEditEnabled() const { return mEditor && mEditor->mbEnabled; }
+		bool isEditEnabled() const { return mEditor && mEditor->mbEnabled; }
 
 		std::unique_ptr< Solver > mSolver;
 
@@ -614,27 +638,11 @@ namespace SBlocks
 			}
 		}
 
-		bool onInit() override
-		{
-			if (!BaseClass::onInit())
-				return false;
-			::Global::GUI().cleanupWidget();
-			
-			restart();
-
-			WidgetUtility::CreateDevFrame();
-
-
-			auto& console = ConsoleSystem::Get();
-#define REGISTER_COM( NAME , FUNC , ... )\
-			console.registerCommand("SBlocks."NAME, &LevelStage::FUNC, this , ##__VA_ARGS__ )
-			REGISTER_COM("Solve", solveLevel, CVF_ALLOW_IGNORE_ARGS);
-			REGISTER_COM("Load", loadLevel);
-#undef REGISTER_COM
-			return true;
-		}
+		bool onInit() override;
 
 		void loadLevel(char const* name);
+
+		void loadTestLevel(int index);
 
 
 		void onEnd() override
@@ -687,100 +695,10 @@ namespace SBlocks
 			bPiecesOrderDirty = true;
 		}
 
-		MsgReply onMouse(MouseMsg const& msg) override
-		{
-			Vector2 worldPos = mScreenToWorld.transformPosition(msg.getPos());
-			Vector2 hitLocalPos;
-			Piece* piece = getPiece(worldPos, hitLocalPos);
-
-			if (IsEditEnabled())
-			{
-				MsgReply reply = mEditor->onMouse(msg, worldPos, piece);
-				if ( reply.isHandled() )
-					return reply;
-			}
-
-
-			if (msg.onLeftDown())
-			{
-				if (selectedPiece != piece)
-				{
-					updatePieceClickFrame(*piece);
-				}
-				selectedPiece = piece;
-				if (selectedPiece)
-				{
-					lastHitLocalPos = hitLocalPos;
-					bStartDragging = true;
-					if (selectedPiece->isLocked())
-					{
-						mLevel.unlockPiece(*piece);
-						bPiecesOrderDirty = true;
-					}
-				}
-			}
-			if (msg.onLeftUp())
-			{
-				if (selectedPiece)
-				{
-					bStartDragging = false;
-					if (IsEditEnabled() == false)
-					{
-						if (mLevel.tryLockPiece(*selectedPiece))
-						{
-							notifyPieceLocked();
-							bPiecesOrderDirty = true;
-						}
-					}
-
-					selectedPiece = nullptr;
-				}
-			}
-			if (msg.onRightDown())
-			{
-				if (piece && piece->bCanRoate)
-				{
-					if (piece->isLocked())
-					{
-						mLevel.unlockPiece(*piece);
-						bPiecesOrderDirty = true;
-					}
-
-					updatePieceClickFrame(*piece);
-					struct PieceAngle
-					{
-						using DataType = Piece&;
-						using ValueType = float;
-						void operator()(DataType& data, ValueType const& value)			
-						{ 
-							data.angle = value;
-							data.updateTransform();
-						}
-					};
-					mTweener.tween< Easing::IOBounce, PieceAngle >(*piece, int(piece->dir) * Math::PI / 2, (int(piece->dir) + 1) * Math::PI / 2, 0.1, 0);
-					piece->dir += 1;
-					//piece->angle = piece->dir * Math::PI / 2;
-					piece->updateTransform();
-
-					//mLevel.tryLockPiece(*piece);
-				}
-			}
-			if (msg.onMoving())
-			{
-				if (bStartDragging)
-				{
-					Vector2 pinPos = selectedPiece->renderXForm.transformPosition(lastHitLocalPos);
-					Vector2 offset = worldPos - pinPos;
-
-					selectedPiece->pos += offset;
-					selectedPiece->updateTransform();
-				}
-			}
-
-			return BaseClass::onMouse(msg);
-		}
-
+		MsgReply onMouse(MouseMsg const& msg) override;
 		MsgReply onKey(KeyMsg const& msg) override;
+
+		void toggleEditor();
 
 
 

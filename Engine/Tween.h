@@ -44,15 +44,14 @@ namespace Tween
 		}
 	};
 
-	template< class Access , bool BE_REF = true , class FunParam = NullParam >
-	struct PropDataT : public FunParam
+	template< class Access , class FuncParam = NullParam , bool bHoldRef = true >
+	struct TPropData : public FuncParam
 	{
-		typedef PropDataT< Access , BE_REF , FunParam > PropData;
-		typedef typename Access::ValueType ValueType;
-		typedef typename Access::DataType  DataType;
+		using PropData = TPropData< Access, FuncParam, bHoldRef >;
+		using ValueType = typename Access::ValueType;
+		using DataType  = typename Access::DataType;
 
-
-		PropDataT( DataType& data , ValueType const& from , ValueType const& to )
+		TPropData( DataType& data , ValueType const& from , ValueType const& to )
 			:mData( data )
 			,mFrom( from )
 			,mDiff( to - from )
@@ -60,8 +59,8 @@ namespace Tween
 
 		}
 
-		PropDataT( DataType& data , ValueType const& from , ValueType const& to , FunParam const& param )
-			:FunParam( param )
+		TPropData( DataType& data , ValueType const& from , ValueType const& to , FuncParam const& param )
+			:FuncParam( param )
 			,mData( data )
 			,mFrom( from )
 			,mDiff( to - from )
@@ -72,10 +71,10 @@ namespace Tween
 		template< class TFunc , class TimeType >
 		void update( TimeType t , TimeType duration )
 		{
-			Access()( mData  , FunParam::operator()< TFunc >( t , mFrom , mDiff , duration ) );
+			Access()( mData  , FuncParam::operator()< TFunc >( t , mFrom , mDiff , duration ) );
 		}
 
-		typedef typename TSelect< BE_REF , DataType& , DataType >::Type HoldType;
+		using HoldType = typename TSelect< bHoldRef , DataType& , DataType >::Type;
 		HoldType  mData;
 		ValueType mFrom;
 		ValueType mDiff;
@@ -245,8 +244,8 @@ namespace Tween
 
 			}
 
-			template< class DataType , class ValueType , class FunParam >
-			TweenCoreT( DataType& data , ValueType const& from , ValueType const& to , TimeType duration , TimeType delay , FunParam const& param )
+			template< class DataType , class ValueType , class FuncParam >
+			TweenCoreT( DataType& data , ValueType const& from , ValueType const& to , TimeType duration , TimeType delay , FuncParam const& param )
 				:TweenBase( duration , delay )
 				,PropData( data , from , to , param )
 			{
@@ -299,8 +298,8 @@ namespace Tween
 				CPropValue( DataType& data , ValueType const& from , ValueType const& to )
 					:PropData( data , from , to ){}
 
-				template< class DataType , class ValueType , class FunParam >
-				CPropValue( DataType& data , ValueType const& from , ValueType const& to , FunParam const& param )
+				template< class DataType , class ValueType , class FuncParam >
+				CPropValue( DataType& data , ValueType const& from , ValueType const& to , FuncParam const& param )
 					:PropData( data , from , to , param ){}
 
 				void update( TimeType t , TimeType duration )
@@ -312,17 +311,17 @@ namespace Tween
 			template< class TFunc , class T >
 			Impl& addValue( T& data , T const& from , T const& to )
 			{  
-				typedef CPropValue< TFunc , PropDataT< ValueAccess< T > >  > MyProp;
+				typedef CPropValue< TFunc , TPropData< ValueAccess< T > >  > MyProp;
 				MyProp* prop = new MyProp( data , from , to );
 				mProps.push_back( prop );
 				return *_this();
 			}
 
 
-			template< class TFunc , class T , class FunParam >
-			Impl& addValue( T& data , T const& from , T const& to , FunParam const& param )
+			template< class TFunc , class T , class FuncParam >
+			Impl& addValue( T& data , T const& from , T const& to , FuncParam const& param )
 			{  
-				typedef CPropValue< TFunc , PropDataT< ValueAccess< T > , FunParam >  > MyProp;
+				typedef CPropValue< TFunc , TPropData< ValueAccess< T > , FuncParam >  > MyProp;
 				MyProp* prop = new MyProp( data , from , to , param );
 				mProps.push_back( prop );
 				return *_this();
@@ -333,20 +332,20 @@ namespace Tween
 				typename Access::ValueType const& from , 
 				typename Access::ValueType const& to )
 			{  
-				typedef CPropValue< TFunc , PropDataT< Access >  > MyProp;
+				typedef CPropValue< TFunc , TPropData< Access >  > MyProp;
 				MyProp* prop = new MyProp( data , from , to );
 				mProps.push_back( prop );
 				return *_this();
 			}
 
 
-			template< class TFunc , class Access , class FunParam >
+			template< class TFunc , class Access , class FuncParam >
 			Impl& add( typename Access::DataType& data , 
 				typename Access::ValueType const& from , 
 				typename Access::ValueType const& to ,
-				FunParam const& param )
+				FuncParam const& param )
 			{  
-				typedef CPropValue< TFunc , PropDataT< Access , FunParam >  > MyProp;
+				typedef CPropValue< TFunc , TPropData< Access , FuncParam >  > MyProp;
 				MyProp* prop = new MyProp( data , from , to , param );
 				mProps.push_back( prop );
 				return *_this();
@@ -368,20 +367,20 @@ namespace Tween
 		};
 
 
-		template< class TFunc , class Access , class FunParam = NullParam >
+		template< class TFunc , class Access , class FuncParam = NullParam >
 		class CTween : public IComponent
-			         , public TweenCoreT< CTween< TFunc , Access , FunParam > ,  PropDataT< Access , true , FunParam > , TFunc >
+			         , public TweenCoreT< CTween< TFunc , Access , FuncParam > ,  TPropData< Access, FuncParam > , TFunc >
 		{
 		public:
-			typedef TweenCoreT< CTween< TFunc , Access , FunParam > , PropDataT< Access , true , FunParam > , TFunc > Core;
+			using Core = TweenCoreT< CTween< TFunc, Access, FuncParam >, TPropData< Access, FuncParam>, TFunc >;
 
-			typedef typename Access::DataType DataType;
-			typedef typename Access::ValueType ValueType;
+			using DataType = typename Access::DataType;
+			using ValueType = typename Access::ValueType;
 
 			CTween( DataType& data , ValueType const& from , ValueType const& to , TimeType duration , TimeType delay )
 				:Core( data ,from , to , duration , delay ){}
 
-			CTween( DataType& data , ValueType const& from , ValueType const& to , TimeType duration , TimeType delay , FunParam const& param )
+			CTween( DataType& data , ValueType const& from , ValueType const& to , TimeType duration , TimeType delay , FuncParam const& param )
 				:Core( data ,from , to , duration , delay , param ){}
 
 			void     modify( TimeType dt ){ Core::doModify( dt ); }
@@ -394,7 +393,7 @@ namespace Tween
 			              , public MultiTweenCoreT< CMultiTween >
 		{
 		public:
-			typedef MultiTweenCoreT< CMultiTween > Core;
+			using Core = MultiTweenCoreT< CMultiTween >;
 
 			CMultiTween( TimeType duration , TimeType delay )
 				:Core( duration , delay ){}
@@ -412,8 +411,8 @@ namespace Tween
 		public:
 			Impl* _this(){ return static_cast< Impl* >( this ); }
 
-			typedef typename Access::DataType DataType;
-			typedef typename Access::ValueType ValueType;
+			using DataType = typename Access::DataType;
+			using ValueType = typename Access::ValueType;
 
 			template< class TFunc , class T >
 			CTween< TFunc , ValueAccess< T > >&
@@ -441,11 +440,11 @@ namespace Tween
 				return createAndAddComponent< MyTween >(data, from, to, duration, delay);
 			}
 
-			template< class TFunc , class T , class FunParam >
-			CTween< TFunc , ValueAccess< T > , FunParam >&
-				tweenValue( T& data , T const& from , T const& to  , TimeType duration , TimeType delay  , FunParam const& param )
+			template< class TFunc , class T , class FuncParam >
+			CTween< TFunc , ValueAccess< T > , FuncParam >&
+				tweenValue( T& data , T const& from , T const& to  , TimeType duration , TimeType delay  , FuncParam const& param )
 			{
-				typedef CTween< TFunc , ValueAccess< T > , FunParam  > MyTween;
+				typedef CTween< TFunc , ValueAccess< T > , FuncParam  > MyTween;
 				return createAndAddComponent< MyTween >(data, from, to, duration, delay , param);
 			}
 
@@ -460,14 +459,14 @@ namespace Tween
 				return createAndAddComponent< MyTween >(data, from, to, duration, delay);
 			}
 
-			template< class TFunc , class Access , class FunParam >
-			inline CTween< TFunc , Access , FunParam >&
+			template< class TFunc , class Access , class FuncParam >
+			inline CTween< TFunc , Access , FuncParam >&
 				tween( typename Access::DataType& data , 
 				typename Access::ValueType const& from , 
 				typename Access::ValueType const& to , 
-				TimeType duration , TimeType delay , FunParam const& param )
+				TimeType duration , TimeType delay , FuncParam const& param )
 			{
-				typedef CTween< TFunc , Access , FunParam > MyTween;
+				typedef CTween< TFunc , Access , FuncParam > MyTween;
 				return createAndAddComponent< MyTween >(data, from, to, duration, delay, param);
 			}
 
@@ -540,8 +539,8 @@ namespace Tween
 			{  return makeBuilder( mCur.addValue< TFunc >( data , from , to ) );  }
 
 
-			template< class TFunc , class T , class FunParam >
-			inline ThisType& addValue( T& data , T const& from , T const& to , FunParam const& param )
+			template< class TFunc , class T , class FuncParam >
+			inline ThisType& addValue( T& data , T const& from , T const& to , FuncParam const& param )
 			{  return makeBuilder( mCur.addValue< TFunc >( data , from , to , param ) );  }
 
 			template< class TFunc , class Access >
@@ -551,11 +550,11 @@ namespace Tween
 			{  return makeBuilder( mCur.add< TFunc , Access >( data , from , to ) );  }
 
 
-			template< class TFunc , class Access , class FunParam >
+			template< class TFunc , class Access , class FuncParam >
 			inline ThisType& add( typename Access::DataType& data , 
 				typename Access::ValueType const& from , 
 				typename Access::ValueType const& to ,
-				FunParam const& param )
+				FuncParam const& param )
 			{  return makeBuilder( mCur.add< TFunc , Access >( data , from , to , param ) );  }
 
 			//Tweener func
@@ -564,9 +563,9 @@ namespace Tween
 				tweenValue( T& data , T const& from , T const& to , TimeType duration , TimeType delay = 0 )
 			{  return makeBuilder( mCur.tweenValue< TFunc >( data , from , to , duration , delay ) );  }
 
-			template< class TFunc , class T , class FunParam >
-			inline Builder< ThisType , CTween< TFunc , ValueAccess< T > , FunParam > >
-				tweenValue( T& data , T const& from , T const& to , TimeType duration , TimeType delay , FunParam const& param )
+			template< class TFunc , class T , class FuncParam >
+			inline Builder< ThisType , CTween< TFunc , ValueAccess< T > , FuncParam > >
+				tweenValue( T& data , T const& from , T const& to , TimeType duration , TimeType delay , FuncParam const& param )
 			{  return makeBuilder( mCur.tweenValue< TFunc >( data , from , to , duration , delay , param ) );  }
 
 			template< class TFunc  , class Access >
@@ -578,12 +577,12 @@ namespace Tween
 			{  return makeBuilder( mCur.tween< TFunc , Access >( data , from , to , duration , delay ) );  }
 
 
-			template< class TFunc , class Access , class FunParam >
-			inline Builder< ThisType , CTween< TFunc , Access , FunParam > >
+			template< class TFunc , class Access , class FuncParam >
+			inline Builder< ThisType , CTween< TFunc , Access , FuncParam > >
 				tween(  typename Access::DataType& data , 
 				typename Access::ValueType const& from , 
 				typename Access::ValueType const& to , 
-				TimeType duration , TimeType delay , FunParam const& param )
+				TimeType duration , TimeType delay , FuncParam const& param )
 			{  return makeBuilder( mCur.tween< TFunc , Access >( data , from , to , duration , delay , param ) );  }
 
 
@@ -621,12 +620,11 @@ namespace Tween
 	class GroupTweener : public Detail< TimeType , CallbackPolicy >::template TweenerT< GroupTweener< TimeType , CallbackPolicy >  >
 		               , public Define< TimeType , CallbackPolicy >
 	{
-		typedef GroupTweener< TimeType , CallbackPolicy > ThisType;
-
+		using ThisType = GroupTweener< TimeType , CallbackPolicy >;
 	public:
 
-		typedef typename Detail< TimeType, CallbackPolicy >::CMultiTween CMultiTween;
-		typedef IComponentT< TimeType > IComponent;
+		using CMultiTween = typename Detail< TimeType, CallbackPolicy >::CMultiTween;
+		using IComponent = IComponentT< TimeType >;
 
 		GroupTweener( bool beRM = true )
 		{
@@ -641,10 +639,8 @@ namespace Tween
 		void modify( TimeType dt )
 		{
 			int size = (int)mActiveComps.size();
-			for( CompVec::iterator iter = mStorage.begin() , end = mStorage.end();
-				iter != end; ++iter )
+			for (IComponent* comp : mStorage)
 			{
-				IComponent* comp = *iter;
 				comp->modify( dt );
 			}
 		}
@@ -655,26 +651,27 @@ namespace Tween
 
 		void remove( IComponent* comp )
 		{
-			CompVec::iterator iter = std::find( mStorage.begin() , mStorage.end() , comp );
-			if ( iter == mStorage.end() )
-				return;
+			{
+				int index = mStorage.findIndex(comp);
+				if (index == INDEX_NONE)
+					return;
 
-			mStorage.erase( iter );
-			destroyComponent( comp );
-
-			iter = std::find( mActiveComps.begin() , mActiveComps.end() , comp );
-			if ( iter == mActiveComps.end() )
-				return;
-			mActiveComps.erase( iter );
+				mStorage.removeIndex(index);
+				destroyComponent(comp);
+			}
+			{
+				int index = mActiveComps.findIndex(comp);
+				if (index == INDEX_NONE)
+					return;
+				mActiveComps.removeIndex(index);
+			}
 		}
 
 		void reset()
 		{
 			mActiveComps.assign( mStorage.begin() , mStorage.end() );
-			for( CompVec::iterator iter = mStorage.begin() , end = mStorage.end();
-				iter != end; ++iter )
+			for (IComponent* comp : mStorage)
 			{
-				IComponent* comp = *iter;
 				comp->reset();
 			}
 		}
@@ -707,14 +704,14 @@ namespace Tween
 			return 0;
 		}
 
-		void cleanup( bool beDestroy )
+		void cleanup( bool bDestroy )
 		{
-			for( CompVec::iterator iter = mStorage.begin() , end = mStorage.end();
-				  iter != end; ++iter )
+			for (IComponent* comp : mStorage)
 			{
-				destroyComponent( *iter );
+				destroyComponent(comp);
 			}
-			if ( !beDestroy )
+
+			if ( !bDestroy )
 			{
 				mStorage.clear();
 				mActiveComps.clear();
@@ -741,12 +738,10 @@ namespace Tween
 	template< class TimeType , template< class > class CallbackPolicy = StdFunCallback >
 	class SquenceTweener : public Detail< TimeType , CallbackPolicy >::template TweenerT< SquenceTweener< TimeType , CallbackPolicy > >
 	{
-		typedef SquenceTweener< TimeType , CallbackPolicy > ThisType;
-
+		using ThisType = SquenceTweener< TimeType, CallbackPolicy >;
 	public:
-
-		typedef typename Detail< TimeType, CallbackPolicy >::CMultiTween CMultiTween;
-		typedef IComponentT< TimeType > IComponent;
+		using CMultiTween = typename Detail< TimeType, CallbackPolicy >::CMultiTween;
+		using IComponent = IComponentT< TimeType >;
 
 		SquenceTweener()
 		{
@@ -766,10 +761,8 @@ namespace Tween
 		}
 		void reset()
 		{
-			for( CompVec::iterator iter = mStorage.begin() , end = mStorage.end();
-				iter != end; ++iter )
+			for (IComponent* comp : mStorage)
 			{
-				IComponent* comp = *iter;
 				comp->reset();
 			}
 
@@ -779,14 +772,8 @@ namespace Tween
 
 		void remove( IComponent* comp )
 		{
-			int idx = 0;
-			for( ; idx < (int)mStorage.size() ; ++idx )
-			{
-				if ( mStorage[ idx ] == comp )
-					break;
-			}
-
-			if ( idx >= (int)mStorage.size() )
+			int idx = mStorage.findIndex(comp);
+			if ( idx == INDEX_NONE )
 				return;
 
 			destroyComponent( mStorage[idx] );
@@ -845,20 +832,19 @@ namespace Tween
 			mStorage.push_back( comp ); 
 		}
 
-
-		void cleanup( bool beDestroy )
+		void cleanup( bool bDestroy )
 		{
-			for( CompVec::iterator iter = mStorage.begin() , end = mStorage.end();
-				iter != end; ++iter )
+			for (IComponent* comp : mStorage)
 			{
-				destroyComponent( *iter );
+				destroyComponent(comp);
 			}
-			if ( !beDestroy )
+			if ( !bDestroy )
 			{
 				mStorage.clear();
 				mNumFinished = 0;
 			}
 		}
+
 		int mNumFinished;
 		int mTotalRepeat;
 		int mRepeat;

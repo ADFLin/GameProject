@@ -622,7 +622,6 @@ bool TinyGameApp::initializeGame()
 	{
 		TIME_SCOPE("Console Initialize");
 		ConsoleSystem::Get().initialize();
-		ExecutionRegisterHelper::Manager = this;
 		{
 			TIME_SCOPE("Import Config");
 			FConsoleConfigUtilities::Import(Global::GameConfig(), CONFIG_SECTION, cmdVarSet);

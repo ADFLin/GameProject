@@ -119,7 +119,7 @@ struct FCString
 	}
 
 	template< int N >
-	FORCEINLINE static void   CopyN(char(&dst)[N], char const* src, int num) 
+	FORCEINLINE static void   CopyN(char(&dst)[N], char const* src, size_t num)
 	{
 #if STRING_FUNC_S_SUPPORTED
 		::strncpy_s(dst, src, num);
@@ -128,7 +128,7 @@ struct FCString
 #endif
 	}
 	template< int N >
-	FORCEINLINE static void   CopyN(wchar_t(&dst)[N], wchar_t const* src, int num)
+	FORCEINLINE static void   CopyN(wchar_t(&dst)[N], wchar_t const* src, size_t num)
 	{ 
 #if STRING_FUNC_S_SUPPORTED
 		::wcsncpy_s(dst, src, num); 
@@ -137,12 +137,61 @@ struct FCString
 #endif
 	}
 
-	FORCEINLINE static void   CopyN_Unsafe(char* dst, char const* src, int num)
+
+	template< int N >
+	FORCEINLINE static void   Copy(char* dst, size_t dstSize, char const* src)
+	{
+#if STRING_FUNC_S_SUPPORTED
+		::strcpy_s(dst, dstSize, src);
+#else
+		::strcpy(dst, src);
+#endif
+	}
+	template< int N >
+	FORCEINLINE static void   Copy(wchar_t* dst, size_t dstSize, wchar_t const* src)
+	{
+#if STRING_FUNC_S_SUPPORTED
+		::wcscpy_s(dst, dstSize, src);
+#else
+		::wcscpy(dst, src);
+#endif
+	}
+
+	template< int N >
+	FORCEINLINE static void   CopyN(char* dst, size_t dstSize, char const* src, size_t num)
+	{
+#if STRING_FUNC_S_SUPPORTED
+		::strncpy_s(dst, dstSize, src, num);
+#else
+		::strncpy(dst, src, num);
+#endif
+	}
+	template< int N >
+	FORCEINLINE static void   CopyN(wchar_t* dst, size_t dstSize, wchar_t const* src, size_t num)
+	{
+#if STRING_FUNC_S_SUPPORTED
+		::wcsncpy_s(dst, dstSize, src, num);
+#else
+		::wcsncpy(dst, src, num);
+#endif
+	}
+
+	FORCEINLINE static void   Copy_Unsafe(char* dst, char const* src)
+	{
+		::strcpy(dst, src);
+	}
+
+	FORCEINLINE static void   Copy_Unsafe(wchar_t* dst, wchar_t const* src)
+	{
+		::wcscpy(dst, src);
+	}
+
+	FORCEINLINE static void   CopyN_Unsafe(char* dst, char const* src, size_t num)
 	{
 		::strncpy(dst, src, num);
 	}
 
-	FORCEINLINE static void   CopyN_Unsafe(wchar_t* dst, wchar_t const* src, int num)
+	FORCEINLINE static void   CopyN_Unsafe(wchar_t* dst, wchar_t const* src, size_t num)
 	{
 		::wcsncpy(dst, src, num);
 	}
@@ -167,7 +216,7 @@ struct FCString
 	}
 
 	template< int N >
-	FORCEINLINE static void   CatN(char(&dst)[N], char const* src, int num)
+	FORCEINLINE static void   CatN(char(&dst)[N], char const* src, size_t num)
 	{
 #if STRING_FUNC_S_SUPPORTED
 		::strncat_s(dst, src, num);
@@ -176,7 +225,7 @@ struct FCString
 #endif
 	}
 	template< int N >
-	FORCEINLINE static void   CatN(wchar_t(&dst)[N], wchar_t const* src, int num)
+	FORCEINLINE static void   CatN(wchar_t(&dst)[N], wchar_t const* src, size_t num)
 	{
 #if STRING_FUNC_S_SUPPORTED
 		::wcsncat_s(dst, src, num);

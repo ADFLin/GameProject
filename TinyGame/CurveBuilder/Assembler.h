@@ -560,7 +560,7 @@ namespace Asmeta
 		template< class Ref ,int Size >
 		ASMETA_INLINE void xchg( RegX86< Size > const& reg , RefMem< Ref , Size > const& mem ){  encodeIntInistWRM< Size >( 0x86 , mem , reg.code() );  }
 		template< class Ref ,int Size >
-		ASMETA_INLINE void xchg(  RefMem< Ref , Size > const& mem , RegX86< Size > const& reg ){ xchg( reg , mem ); }
+		ASMETA_INLINE void xchg( RefMem< Ref , Size > const& mem , RegX86< Size > const& reg ){ xchg( reg , mem ); }
 
 		template< int Size >
 		ASMETA_INLINE void xadd( RegX86< Size > const& reg1 , RegX86< Size > const& reg2 )     {  encodeByteInist( 0x0f ); encodeIntInistWRM< Size >( 0xc0 , reg2 , reg1.code() );  }
@@ -730,11 +730,15 @@ namespace Asmeta
 		ASMETA_INLINE void encodeIntInistW( uint8 op )
 		{
 			encodeInt16Prefix< Size >();
-			encodeIntInistWImpl( op , Int2Type< Size >() );
+			if constexpr (Size == 1)
+			{
+				_this()->emitByte(op);
+			}
+			else
+			{
+				_this()->emitByte(op | 0x01);
+			}
 		}
-		template< int Size >
-		ASMETA_INLINE void encodeIntInistWImpl( uint8 op  , Int2Type< Size > ){	_this()->emitByte( op | 0x01 );  }
-		ASMETA_INLINE void encodeIntInistWImpl( uint8 op  , Int2Type< 1 > )   { _this()->emitByte( op );  }
 
 		template< int Size , class RMType >
 		ASMETA_INLINE void encodeIntInist4( uint8 opA , uint8 opB , RMType const& rm , uint8 reg )
@@ -761,10 +765,13 @@ namespace Asmeta
 		}
 
 		template< int Size >
-		ASMETA_INLINE void encodeInt16Prefix(){ encodeInt16PrefixImpl( Int2Type< Size >() ); }
-		template< int Size >
-		ASMETA_INLINE void encodeInt16PrefixImpl( Int2Type< Size > ){}
-		ASMETA_INLINE void encodeInt16PrefixImpl( Int2Type< 2 > ){ _this()->emitByte( 0x66 ); }
+		ASMETA_INLINE void encodeInt16Prefix()
+		{ 
+			if constexpr (Size == 2)
+			{
+				_this()->emitByte(0x66);
+			}
+		}
 
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void encodeAccumInist( uint8 opA , Immediate< ImmSize > const& imm )
@@ -788,7 +795,7 @@ namespace Asmeta
 			static_assert( Size >= ImmSize );
 			encodeIntInistSW< Size >( INT_INIST_OPB( code ) , imm );
 			encodeModRM( rm , INT_INIST_OPR( code ) );
-			encodeImmediateNoForce( imm );
+			encodeImmediateNotForce( imm );
 		}
 
 		template< int Size , class RMType , int ImmSize >
@@ -797,7 +804,7 @@ namespace Asmeta
 			static_assert( Size >= ImmSize );
 			encodeIntInistW< Size >( INT_INIST_OPB( code ) );
 			encodeModRM( rm , INT_INIST_OPR( code ) );
-			encodeImmediateNoForce( imm );
+			encodeImmediateNotForce( imm );
 		}
 
 		template< int Size , class RMType , int ImmSize >
@@ -1020,12 +1027,12 @@ namespace Asmeta
 			}
 			else
 			{
-				encodeImmediateNoForce( imm );
+				encodeImmediateNotForce( imm );
 			}
 		}
 
 		template< int ImmSize >
-		ASMETA_INLINE void encodeImmediateNoForce( Immediate< ImmSize > const& imm )
+		ASMETA_INLINE void encodeImmediateNotForce( Immediate< ImmSize > const& imm )
 		{
 			switch( imm.size() )
 			{
@@ -1038,17 +1045,30 @@ namespace Asmeta
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void encodeImmediateForce( Immediate< ImmSize > const& imm )
 		{
-			encodeValueImpl( imm.value() , Int2Type< Size >() );
+			encodeValue<Size>( imm.value() );
 		}
 
 		template< int DispSize  >
-		ASMETA_INLINE void encodeDisp( Disp< DispSize > const& disp ){  encodeValueImpl( disp.value() , Int2Type< DispSize >() );  }
+		ASMETA_INLINE void encodeDisp( Disp< DispSize > const& disp ){  encodeValue< DispSize >( disp.value() );  }
 		template< int DispSize  >
-		ASMETA_INLINE void encodeDisp( SysInt value ){ encodeValueImpl( value , Int2Type< DispSize >() ); }
+		ASMETA_INLINE void encodeDisp( SysInt value ){ encodeValue< DispSize >( value ); }
 
-		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 1 > ){  _this()->emitByte( value );  }
-		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 2 > ){  _this()->emitWord( value );  }
-		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 4 > ){  _this()->emitDWord( value );  }
+		template< int Size >
+		ASMETA_INLINE void encodeValue(SysInt value) 
+		{ 
+			if constexpr (Size == 1)
+			{
+				_this()->emitByte(value);
+			}
+			else if constexpr (Size == 2)
+			{
+				_this()->emitWord(value);
+			}
+			else if constexpr (Size == 4)
+			{
+				_this()->emitDWord(value);
+			}
+		}
 
 		template< class Ref , int Size >
 		ASMETA_INLINE void encodeModRM( RefMem< Ref , Size > const& ptr , uint8 reg )

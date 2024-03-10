@@ -69,10 +69,13 @@ bool MainMenuStage::onInit()
 		if (IsIncludeDev(game->getName()))
 			continue;
 
-		ExecutionRegisterCollection::Get().registerExecution({ game->getName(), [game]()
-		{
-			ExecutionRegisterHelper::ChangeSingleGame(game->getName());
-		}, EExecGroup::SingleGame });
+		ExecutionRegisterCollection::Get().registerExecution({ 
+			game->getName(), 
+			[game](IGameExecutionContext& context)
+			{
+				context.playSingleGame(game->getName());
+			}, EExecGroup::SingleGame 
+		});
 	}
 
 	for (auto const& info : GSingleDev)
@@ -183,7 +186,7 @@ bool MainMenuStage::onInit()
 
 void MainMenuStage::execEntry(ExecutionEntryInfo const& info)
 {
-	info.execFunc();
+	info.execFunc(*this);
 
 	char const* SectionName = "ExecHistory";
 	char const* EntryName = "Entry";
@@ -218,6 +221,20 @@ void MainMenuStage::execEntry(ExecutionEntryInfo const& info)
 	::Global::GameConfig().setStringValues(EntryName, SectionName, execHistroy, true);
 }
 
+
+void MainMenuStage::changeStage(StageBase* stage)
+{
+	getManager()->setNextStage(stage);
+}
+
+void MainMenuStage::playSingleGame(char const* name)
+{
+	IGameModule* game = Global::ModuleManager().changeGame(name);
+	if (game)
+	{
+		game->beginPlay(*getManager(), EGameStageMode::Single);
+	}
+}
 
 class MainOptionBook : public GNoteBook
 {

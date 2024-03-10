@@ -14,16 +14,20 @@ namespace SBlocks
 	{
 		bool bEnableSortPiece;
 		bool bEnableRejection;
+		bool bUseSubsetCheck;
 		bool bTestConnectTilesCount;
 		bool bTestConnectTileShape;
 		bool bEnableIdenticalShapeCombination;
+		bool bCheckMapSymmetry;
 
 		SolveOption()
 		{
 			bEnableRejection = true;
+			bUseSubsetCheck = false;
 			bTestConnectTilesCount = true;
 			bTestConnectTileShape = true;
 			bEnableIdenticalShapeCombination = true;
+			bCheckMapSymmetry = false;
 		}
 	};
 
@@ -32,17 +36,18 @@ namespace SBlocks
 	{
 		int   mapIndex;
 		Vec2i pos;
-		uint8 dir;
+		PieceShape::OpState op;
+		uint8 indexData;
 	};
 
 	struct ShapeSolveData;
 	struct PieceSolveData
 	{
-		Piece* piece;
-		PieceShape* shape;
-		ShapeSolveData* shapeSaveData;
+		Piece*          piece;
+		PieceShape*     shape;
+		ShapeSolveData* shapeSolveData;
 
-		PieceSolveData* link;
+		PieceSolveData* sizeLink;
 	};
 
 	struct StateCombination
@@ -103,11 +108,11 @@ namespace SBlocks
 		int indexCombination;
 		TArray< PieceSolveData* > pieces;
 		TArray< PieceSolveState > states;
-		TArray< Int16Point2D > outerConPosListMap[DirType::RestValue];
+		TArray< TArray< Int16Point2D > > outerConPosListMap;
 
 		PieceShapeData const& getShapeData( PieceSolveState const& state ) const
 		{ 
-			return shape->getData(DirType::ValueChecked(state.dir));
+			return shape->getDataByIndex(state.indexData);
 		}
 
 		bool checkFixedRotation(int* outRotation)
@@ -115,7 +120,7 @@ namespace SBlocks
 			int rotation = INDEX_NONE;
 			for (auto pieceData : pieces)
 			{
-				if (pieceData->piece->bCanRoate)
+				if (pieceData->piece->bCanOperate)
 					return false;
 				if (rotation == INDEX_NONE)
 					rotation = pieceData->piece->dir;
@@ -147,6 +152,9 @@ namespace SBlocks
 		int mMaxShapeBlockCount;
 
 		SolveOption mUsedOption;
+
+		uint64      mTimeStart;
+		bool        bLogProgress = false;
 	};
 
 
@@ -159,10 +167,11 @@ namespace SBlocks
 			uint32 sub;
 		};
 
+		bool    bSymmetry = false;
 		TGrid2D<TestFrame> mTestFrameMap;
 		uint32  mSubTestFrame = 0;
 		uint32* mTestFramePtr;
-		int  mMaxCount;
+		int     mMaxCount;
 		PieceShapeData mCachedShapeData;
 
 		void setup(MarkMap const& map, SolveOption const& option);
@@ -195,6 +204,7 @@ namespace SBlocks
 			MapSolveData* mapData;
 		};
 		TArray< ShapeTest > mCachedPendingTests;
+		int mMaxTestShapeSize;
 
 		void setup(Level& level);
 		bool advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
@@ -202,19 +212,17 @@ namespace SBlocks
 
 		int getPieceStateCount(int indexPiece);
 
-		template< typename TFunc >
+		template< bool bUseSubsetCheck, typename TFunc >
 		ERejectResult::Type testRejection(
-			MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList,
-			int maxCompareShapeSize, TFunc& CheckPieceFunc);
+			MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList, TFunc& CheckPieceFunc);
 
-		template< typename TFunc >
+		template< bool bUseSubsetCheck, typename TFunc >
 		ERejectResult::Type testRejection(
-			ShapeSolveData& shapeSolveData, int indexPiece,
-			int maxCompareShapeSize, TFunc& CheckPieceFunc);
+			ShapeSolveData& shapeSolveData, int indexPiece, TFunc& CheckPieceFunc);
 
-		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos, int maxCompareShapeSize);
+		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos);
 
-		template< typename TFunc >
+		template< bool bUseSubsetCheck, typename TFunc >
 		ERejectResult::Type runPendingShapeTest(TFunc& CheckPieceFunc);
 	};
 
@@ -234,28 +242,10 @@ namespace SBlocks
 		}
 
 		void setup(Level& level, SolveOption const& option = SolveOption());
-		bool solve()
-		{
-			return solveImpl(mSolveData, 0) >= 0;
-		}
-		bool solveNext()
-		{
-			return solveImpl(mSolveData, mPieceList.size() - 1) >= 0;
-		}
+		bool solve();
+		bool solveNext();
 
-		int  solveAll()
-		{
-			int numSolution = 0;
-			if (!solve())
-				return 0;
-
-			++numSolution;
-			while (solveNext())
-			{
-				++numSolution;
-			}
-			return numSolution;
-		}
+		int  solveAll();
 
 		struct PartWorkInfo
 		{
@@ -265,15 +255,14 @@ namespace SBlocks
 			int numStatesUsed;
 		};
 
-
 		int  solveImpl(SolveData& solveData, int indexPiece);
 
 		int  solvePart(SolveData& solveData, int indexPiece, PartWorkInfo& partWork);
 
 
-		template< bool bEnableRejection , bool bEnableIdenticalShapeCombination, bool bHavePartWork >
+		template< bool bEnableRejection , bool bEnableIdenticalShapeCombination, bool bUseSubsetCheck, bool bHavePartWork >
 		static int  SolveImplT(SolveData& solveData, int indexPiece, PartWorkInfo* partWork);
-		using SolveFunc = decltype(&Solver::SolveImplT<false,false,false>);
+		using SolveFunc = decltype(&Solver::SolveImplT<false,false,false,false>);
 
 
 		void getSolvedStates(TArray< PieceSolveState >& outStates) const
@@ -287,9 +276,11 @@ namespace SBlocks
 		SolveData   mSolveData;
 		SolveFunc   mUsedSolveFunc;
 		SolveFunc   mUsedSolvePartFunc;
-
 		TArray< SolveWork* > mParallelWorks;
 		TLockFreeFIFOList<TArray< PieceSolveState > > mSolutionList;
+		int         mSolutionCount = 0;
+
+		void handleWorkFinish(SolveWork* work);
 
 		void cleanupSolveWork()
 		{

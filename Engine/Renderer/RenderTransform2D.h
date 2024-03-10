@@ -63,7 +63,13 @@ namespace Render
 		{
 			return RenderTransform2D(scale, scale * offset);
 		}
-
+		static RenderTransform2D TranslateThenRotate(Vector2 const& offset, float angle)
+		{
+			RenderTransform2D result;
+			result.M = Matrix2::Rotate(angle);
+			result.P = offset * result.M;
+			return result;
+		}
 		static RenderTransform2D Transform(Vector2 const& pos, Vector2 const& dir)
 		{
 			RenderTransform2D result;

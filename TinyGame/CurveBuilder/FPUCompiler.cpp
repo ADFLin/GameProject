@@ -42,6 +42,7 @@ public:
 
 	HANDLE mHandle;
 };
+
 static void* AllocExecutableMemory(size_t size)
 {
 	return ExecutableHeapManager::Get().alloc(size);
@@ -108,10 +109,10 @@ public:
 		ValueLayout layout;
 		int32       offset;
 	};
-	std::vector< StackValue >  mInputStack;
-	std::vector< StackValue >  mConstStack;
+	TArray< StackValue >  mInputStack;
+	TArray< StackValue >  mConstStack;
 	Asmeta::Label           mConstLabel;
-	std::vector< uint8 >    mConstStorage;
+	TArray< uint8 >    mConstStorage;
 
 	int addConstValue(ConstValueInfo const& val)
 	{
@@ -530,7 +531,7 @@ public:
 			case VALUE_INPUT:
 				{
 					StackValue& inputValue = mInputStack[mPrevValue.input->index];
-					if ( !IsPointer( inputValue.layout) )
+					if ( !IsPointer(inputValue.layout) )
 					{
 						throw ExprParseException(EExprErrorCode::eGenerateCodeFailed, "Input value layout is not pointer when assign");
 					}
@@ -633,7 +634,7 @@ public:
 
 		Asm::bind(&mConstLabel);
 
-		int   num = mData->getCodeLength();
+		int num = mData->getCodeLength();
 		if( !mConstStorage.empty() )
 		{
 			mData->pushCode(&mConstStorage[0], mConstStorage.size());
@@ -672,7 +673,7 @@ protected:
 
 	ValueInfo     mPrevValue;
 	int           mNumVarStack;
-	std::vector< ValueInfo >    mRegStack;
+	TArray< ValueInfo >    mRegStack;
 
 	int findStack(ValueInfo const& value)
 	{
@@ -795,8 +796,6 @@ public:
 				}
 			}
 		}
-
-
 	}
 	void codeUnaryOp(TokenType type);
 	void codeEnd()
@@ -904,7 +903,7 @@ void ExecutableCode::pushCode( uint8 byte1,uint8 byte2,uint8 byte3 )
 void ExecutableCode::pushCode(uint8 const* data, int size)
 {
 	checkCodeSize(size);
-	memcpy(mCodeEnd, data, size);
+	FMemory::Copy(mCodeEnd, data, size);
 	mCodeEnd += size;
 }
 
@@ -970,6 +969,6 @@ void ExecutableCode::checkCodeSize( int freeSize )
 
 void ExecutableCode::clearCode()
 {
-	memset(mCode,0,mMaxCodeSize );
+	FMemory::Set(mCode, 0, mMaxCodeSize);
 	mCodeEnd = mCode;
 }

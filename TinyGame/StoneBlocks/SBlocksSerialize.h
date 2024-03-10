@@ -16,6 +16,7 @@ namespace SBlocks
 			AutoConvertBitGird,
 			MapSizeXIntToUint16,
 			MirrorOpSupported,
+			PieceOwnMirror,
 
 			//-----------------------
 			LastVersionPlusOne,
@@ -122,7 +123,11 @@ namespace SBlocks
 	template< class OP >
 	void PieceDesc::serialize(OP& op)
 	{
-		op & id & pos & dirAndFlags;
+		op & shapeId & pos & stateAndFlags;
+		if (OP::IsLoading && op.version() < ELevelSaveVersion::PieceOwnMirror)
+		{
+			mirror = EMirrorOp::None;
+		}
 	}
 
 	template< class OP >

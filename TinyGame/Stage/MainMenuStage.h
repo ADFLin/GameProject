@@ -6,6 +6,7 @@
 #include "StageRegister.h"
 
 class MainMenuStage : public GameMenuStage
+	                , public IGameExecutionContext
 {
 	typedef GameMenuStage BaseClass;
 public:
@@ -55,6 +56,10 @@ public:
 
 
 	std::vector< GWidget* > mHistoryWidgets;
+
+	void changeStage(StageBase* stage) override;
+	void playSingleGame(char const* name) override;
+
 };
 
 

@@ -35,7 +35,14 @@ enum class EExecGroup
 	NumGroup ,
 };
 
-using ExecuteFunc = std::function< void() >;
+class IGameExecutionContext
+{
+public:
+	virtual void changeStage(StageBase* stage) = 0;
+	virtual void playSingleGame(char const* name) = 0;
+};
+
+using ExecuteFunc = std::function< void(IGameExecutionContext&) >;
 
 struct ExecutionEntryInfo
 {
@@ -79,6 +86,14 @@ public:
 	TINY_API static ExecutionRegisterCollection& Get();
 
 	TArray< ExecutionEntryInfo > const& getGroupExecutions(EExecGroup group) { return mGroupMap[group]; }
+
+	template< typename TFunc >
+	void sortGroup(EExecGroup group, TFunc&& func)
+	{
+		auto& execInfoList = mGroupMap[group];
+		std::sort(execInfoList.begin(), execInfoList.end(), std::forward<TFunc>(func));
+	}
+
 	TINY_API TArray< ExecutionEntryInfo const* > getExecutionsByCategory(HashString category);
 
 	TINY_API ExecutionEntryInfo const* findExecutionByTitle(char const* title);
@@ -97,33 +112,39 @@ private:
 	std::unordered_set< HashString > mCategories;
 };
 
-
 struct ExecutionRegisterHelper
 {
-	TINY_API ExecutionRegisterHelper(ExecutionEntryInfo const& info);
-
-	TINY_API static void ChangeStage(StageBase* stage);
-	TINY_API static void ChangeSingleGame(char const* name);
-
-	static TINY_API StageManager* Manager;
+	ExecutionRegisterHelper(ExecutionEntryInfo const& info)
+	{
+		ExecutionRegisterCollection::Get().registerExecution(info);
+	}
 };
 
 
 template< class T, TEnableIf_Type< TIsBaseOf< T, StageBase >::Value, bool > = true >
 ExecuteFunc MakeChangeStageOperation()
 {
-	return []
+	return [](IGameExecutionContext& context)
 	{
 		StageBase* stage = new T();
-		ExecutionRegisterHelper::ChangeStage(stage);
+		context.changeStage(stage);
 	};
 }
 
 FORCEINLINE ExecuteFunc MakeChangeSingleGame(char const* gameName)
 {
-	return [gameName]
+	return [gameName](IGameExecutionContext& context)
 	{
-		ExecutionRegisterHelper::ChangeSingleGame(gameName);
+		context.playSingleGame(gameName);
+	};
+}
+
+template< class TFunc >
+ExecuteFunc MakeSimpleExection(TFunc&& func)
+{
+	return [func](IGameExecutionContext&)
+	{
+		func();
 	};
 }
 
@@ -151,7 +172,7 @@ struct TINY_API FMiscTestUtil
 	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , MakeChangeStageOperation< CLASS >() , GROUP , ##__VA_ARGS__) );
 
 #define REGISTER_MISC_TEST_ENTRY( NAME , FUNC , ...)\
-	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , FUNC , EExecGroup::MiscTest , ##__VA_ARGS__ ) );
+	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , MakeSimpleExection(FUNC) , EExecGroup::MiscTest , ##__VA_ARGS__ ) );
 
 
 #endif // StageRegister_h__

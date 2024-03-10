@@ -3223,7 +3223,7 @@ namespace CAR
 			{
 				if ( mask & BIT(i) )
 					continue;
-				if ( mapTile.getLinkType(i) != ESide::Type::Field )
+				if ( mapTile.getLinkType(i) != ESide::Field )
 					continue;
 				int group = mapTile.farmNodes[ TilePiece::DirToFarmIndexFirst( i ) + 1 ].group;
 				

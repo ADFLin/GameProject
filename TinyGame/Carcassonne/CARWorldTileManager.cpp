@@ -106,8 +106,8 @@ namespace CAR
 		int deltaDir = 0;
 		if( tile.isHalflingType() )
 		{
-			assert(tile.sides[IndexHalflingSide].linkType != ESide::Type::Abbey &&
-				   tile.sides[IndexHalflingSide].linkType != ESide::Type::Empty);
+			assert(tile.sides[IndexHalflingSide].linkType != ESide::Abbey &&
+				   tile.sides[IndexHalflingSide].linkType != ESide::Empty);
 
 			MapTile* mapTile = findMapTile(pos);
 			if( mapTile )
@@ -142,7 +142,7 @@ namespace CAR
 
 			if ( param.checkRiverConnect )
 			{
-				if ( tile.getLinkType(lDir) == ESide::Type::River )
+				if ( tile.getLinkType(lDir) == ESide::River )
 				{
 					checkRiverConnect = true;
 				}
@@ -161,8 +161,8 @@ namespace CAR
 						if ( !tileCheck.canLinkRoad( lDirCheck ) )
 							return false;
 
-						if ( tile.getLinkType(lDirCheck) != ESide::Type::Field ||
-							tile.getLinkType(lDir) == ESide::Type::Field  )
+						if ( tile.getLinkType(lDirCheck) != ESide::Field ||
+							tile.getLinkType(lDir) == ESide::Field  )
 							return false;
 
 						param.dirNeedUseBridge = dir;
@@ -357,7 +357,7 @@ namespace CAR
 				assert( TilePiece::CanLink( tile , lDir , *mapTileCheck->mTile , 
 					    FDir::ToLocal( FDir::Inverse(dir) , mapTileCheck->rotation ) ) );
 
-				if ( tile.getLinkType(lDir) != ESide::Type::Empty )
+				if ( tile.getLinkType(lDir) != ESide::Empty )
 				{
 					mapTilePlace->connectSide(dir, *mapTileCheck);
 

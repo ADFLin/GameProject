@@ -9,13 +9,13 @@ namespace CAR
 {
 
 
-#define LF ESide::Type::Field
-#define LC ESide::Type::City
-#define LR ESide::Type::Road
-#define LS ESide::Type::River
-#define LA ESide::Type::Abbey
-#define LI ESide::Type::InsideLink
-#define LE ESide::Type::Empty
+#define LF ESide::Field
+#define LC ESide::City
+#define LR ESide::Road
+#define LS ESide::River
+#define LA ESide::Abbey
+#define LI ESide::InsideLink
+#define LE ESide::Empty
 
 #define SPE BIT(SideContent::ePennant)
 #define SIN BIT(SideContent::eInn)

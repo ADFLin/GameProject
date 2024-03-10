@@ -51,6 +51,10 @@ public:
 		return INDEX_NONE;
 	}
 
+	bool isValidIndex(int index) const
+	{
+		return 0 <= index && (size_t)index < mNum;
+	}
 
 	operator T* () { return mData; }
 	operator T const* () const { return mData; }

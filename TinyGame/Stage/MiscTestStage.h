@@ -67,12 +67,11 @@ public:
 		updateFrame( frame );
 	}
 
-	using TestFunc = std::function< void() >; 
-	void addTest( char const* name , TestFunc const& func );
+	void addTest( char const* name , ExecuteFunc const& func );
 
 	struct TestInfo
 	{
-		TestFunc func;
+		ExecuteFunc func;
 	};
 	TArray< TestInfo > mInfos;
 
@@ -117,7 +116,7 @@ public:
 	bool onWidgetEvent(int event , int id , GWidget* ui) override;
 
 	void pauseThread(uint32 threadId) override;
-	void registerRender(uint32 threadId, std::function< void(IGraphics2D&) > const& func) override;
+	void registerRender(uint32 threadId, MiscRenderFunc const& func) override;
 
 	void resumeAllThreads();
 

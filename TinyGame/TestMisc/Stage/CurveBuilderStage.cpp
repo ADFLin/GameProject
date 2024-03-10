@@ -102,7 +102,7 @@ namespace CB
 					{
 						SurfaceXYFunc* func = (SurfaceXYFunc*)surface->getFunction();
 						func->setExpr(widget->cast<GTextCtrl>()->getValue());
-						surface->addUpdateBit(RUF_FUNCTION);
+						surface->addUpdateBits(RUF_FUNCTION);
 					}
 					return false;
 				};
@@ -135,7 +135,7 @@ namespace CB
 			surface->setDataSampleNum(NumX, NumY);
 			surface->setColor(color);
 			surface->visible(true);
-			surface->addUpdateBit(RUF_ALL_UPDATE_BIT);
+			surface->addUpdateBits(RUF_ALL_UPDATE_BIT);
 			mSurfaceList.push_back(surface);
 
 			return surface;

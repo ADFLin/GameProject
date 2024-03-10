@@ -55,15 +55,13 @@ namespace CB
 		color[2] = b;
 	}
 
-
-
 	void ShapeMeshBuilder::updateCurveData(ShapeUpdateContext const& context, SampleParam const& paramS)
 	{
 		assert(context.func->getFuncType() == TYPE_CURVE_3D);
 
 		RenderData* data = context.data;
 
-		unsigned flag = context.flag;
+		unsigned flag = context.flags;
 
 		if( flag & RUF_DATA_SAMPLE )
 		{
@@ -107,24 +105,24 @@ namespace CB
 	{
 		PROFILE_ENTRY("UpdateSurfaceData");
 
-		assert(isSurface(context.func->getFuncType()));
+		CHECK(isSurface(context.func->getFuncType()));
 
 		RenderData* data = context.data;
-		unsigned flag = context.flag;
+		unsigned flags = context.flags;
 		int vertexNum = paramU.numData * paramV.numData;
 		int indexNum = 6 * (paramU.numData - 1) * (paramV.numData - 1);
 
-		if( flag & RUF_DATA_SAMPLE )
+		if( flags & RUF_DATA_SAMPLE )
 		{
 			if( data->getVertexNum() != vertexNum || data->getIndexNum() != indexNum )
 			{
 				data->release();
 				data->create(vertexNum, indexNum, true);
 			}
-			flag |= (RUF_GEOM | RUF_COLOR);
+			flags |= (RUF_GEOM | RUF_COLOR);
 		}
 
-		if( flag & RUF_GEOM )
+		if( flags & RUF_GEOM )
 		{
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
 
@@ -352,7 +350,7 @@ namespace CB
 
 		}
 
-		if( flag & RUF_COLOR )
+		if( flags & RUF_COLOR )
 		{
 			uint8* colorData = data->getVertexData() + data->getColorOffset();
 			for( int i = 0; i < vertexNum; ++i )

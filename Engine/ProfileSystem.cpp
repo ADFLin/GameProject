@@ -7,20 +7,13 @@
 
 #include <atomic>
 
-
-CORE_API HighResClock  GProfileClock;
-inline void Profile_GetTicks(uint64 * ticks)
-{
-	*ticks = GProfileClock.getTimeMicroseconds();
-}
-
-
 struct ProfileFrameData
 {
 	double durationSinceReset;
 	double duration;
 };
 
+HighResClock  GProfileClock;
 int    GWriteIndex = 0;
 uint64 GFrameCount = 0;
 RWLock GDataIndexLock;
@@ -233,6 +226,11 @@ struct TimeScopeResult
 
 
 #if CORE_SHARE_CODE
+
+void Profile_GetTicks(uint64 * ticks)
+{
+	*ticks = GProfileClock.getTimeMicroseconds();
+}
 
 static ProfileSystemImpl GSystem;
 thread_local TArray< TimeScopeResult* > GTimeScopeStacks;

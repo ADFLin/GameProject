@@ -7,6 +7,7 @@
 
 #include <unordered_map>
 
+#define USE_DYNAMIC_MODULE 1
 
 
 

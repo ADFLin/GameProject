@@ -90,7 +90,7 @@ public:
 	{ 
 #if INLINE_STRING_USE_LENGTH_MEMBER
 		FCString::Cat(mData + mLength, str); 
-		mLength = FCString::Strlen(str);
+		mLength += FCString::Strlen(str);
 #else
 		FCString::Cat(mData, str);
 #endif
@@ -126,10 +126,21 @@ public:
 #endif
 	}
 
+	FORCEINLINE void append(CharT const* str)
+	{
+#if INLINE_STRING_USE_LENGTH_MEMBER
+		FCString::Copy(mData + mLength, CHAR_COUNT - mLength, str);
+		mLength += num;
+		mData[mLength] = 0;
+#else
+		FCString::CatN(mData, str, num);
+#endif
+	}
+
 	FORCEINLINE void append(CharT const* str, int num)
 	{
 #if INLINE_STRING_USE_LENGTH_MEMBER
-		FCString::CopyN_Unsafe(mData + mLength, str, num);
+		FCString::CopyN(mData + mLength, CHAR_COUNT - mLength, str, num);
 		mLength += num;
 		mData[mLength] = 0;
 #else

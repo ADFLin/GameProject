@@ -8,8 +8,6 @@
 
 #include <typeindex>
 
-
-
 namespace Reflection
 {
 	using namespace ReflectionMeta;
@@ -18,7 +16,7 @@ namespace Reflection
 	struct TMetaFactory
 	{
 		template< typename TMeta >
-		static TMeta Make(T&& data) { return TMeta(std::forward<TMeta>(data)); }
+		static TMeta Make(TMeta&& data) { return std::forward<TMeta>(data); }
 
 		template< typename Q >
 		static TSlider<T> Make(TSlider<Q>&& data) { return TSlider<T>(std::forward<TSlider<Q>>(data)); }
@@ -147,16 +145,16 @@ namespace Reflection
 		}
 
 		template< typename TFactory, typename T >
-		void add(T&& data)
+		void addWithFactory(T&& data)
 		{
 			mElements.emplace_back(TFactory::Make(std::forward<T>(data)));
 		}
 
 		template< typename TFactory, typename T, typename ...TList >
-		void add(T&& data, TList&& ...dataList)
+		void addWithFactory(T&& data, TList&& ...dataList)
 		{
 			mElements.emplace_back(TFactory::Make(std::forward<T>(data)));
-			add<TFactory>(std::forward<TList>(dataList)...);
+			addWithFactory<TFactory>(std::forward<TList>(dataList)...);
 		}
 
 
@@ -604,7 +602,7 @@ namespace Reflection
 			{
 				property->name = name;
 				property->setOffset(memberPtr);
-				property->meta.add<TMetaFactory<P>>(std::forward<TMeta>(meta)...);
+				property->meta.addWithFactory<TMetaFactory<P>>(std::forward<TMeta>(meta)...);
 				mOwner->properties.push_back(property);
 			}
 		}

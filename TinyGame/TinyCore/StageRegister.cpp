@@ -27,14 +27,14 @@ void ExecutionRegisterCollection::registerExecution(ExecutionEntryInfo const& in
 	{
 		int i = 1;
 	}
-	auto& stageInfoList = mGroupMap[info.group];
+	auto& execInfoList = mGroupMap[info.group];
 
-	auto iter = std::upper_bound(stageInfoList.begin(), stageInfoList.end(), info, 
+	auto iter = std::upper_bound(execInfoList.begin(), execInfoList.end(), info, 
 		[](ExecutionEntryInfo const& lhs, ExecutionEntryInfo const& rhs) -> bool
 		{
 			return lhs.priority > rhs.priority;
 		});
-	stageInfoList.insert(iter, info);
+	execInfoList.insert(iter, info);
 	mCategories.insert(info.categories.begin(), info.categories.end());
 }
 
@@ -74,32 +74,6 @@ ExecutionEntryInfo const* ExecutionRegisterCollection::findExecutionByTitle(char
 	return nullptr;
 }
 
-ExecutionRegisterHelper::ExecutionRegisterHelper(ExecutionEntryInfo const& info)
-{
-	ExecutionRegisterCollection::Get().registerExecution(info);
-}
-
-void ExecutionRegisterHelper::ChangeStage(StageBase* stage)
-{
-	if (Manager)
-	{
-		Manager->setNextStage(stage);
-	}
-}
-
-void ExecutionRegisterHelper::ChangeSingleGame(char const* name)
-{
-	if (Manager)
-	{
-		IGameModule* game = Global::ModuleManager().changeGame(name);
-		if (game)
-		{
-			game->beginPlay(*Manager, EGameStageMode::Single);
-		}
-	}
-}
-
-StageManager* ExecutionRegisterHelper::Manager = nullptr;
 
 void ExecutionEntryInfo::ParseCategories(std::unordered_set< HashString >& inoutCategories, char const* categoryStr)
 {

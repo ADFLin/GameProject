@@ -636,10 +636,10 @@ namespace CAR
 					int color = EColor::White;
 					switch( tile.getLinkType(i) )
 					{
-					case ESide::Type::City:   color = EColor::Orange; break;
-					case ESide::Type::Field:  color = EColor::Green; break;
-					case ESide::Type::River:  color = EColor::Blue; break;
-					case ESide::Type::Road:   color = EColor::Yellow; break;
+					case ESide::City:   color = EColor::Orange; break;
+					case ESide::Field:  color = EColor::Green; break;
+					case ESide::River:  color = EColor::Blue; break;
+					case ESide::Road:   color = EColor::Yellow; break;
 					}
 
 					RenderUtility::SetBrush(g, color, COLOR_NORMAL);
@@ -1340,7 +1340,7 @@ namespace CAR
 		case ActorPos::eSideNode:
 			switch ( mapTile.getLinkType( pos.meta ) )
 			{
-			case ESide::Type::City:
+			case ESide::City:
 				{
 					Vector2 offset = Vector2(0,0);
 					unsigned mask = mapTile.getSideLinkMask( pos.meta );
@@ -1353,7 +1353,7 @@ namespace CAR
 					result += offset / count;
 				}
 				break;
-			case ESide::Type::Road:
+			case ESide::Road:
 				result += SidePos[pos.meta] / 2;
 				break;
 			}

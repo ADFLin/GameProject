@@ -71,9 +71,9 @@ public:
 	{
 		return mResult.isUsingVar(varName);
 	}
-	bool isUsingInput( char const* varName ) const
+	bool isUsingInput(char const* varName) const
 	{
-		return mResult.isUsingInput( varName );
+		return mResult.isUsingInput(varName);
 	}
 protected:
 	ParseResult  mResult;

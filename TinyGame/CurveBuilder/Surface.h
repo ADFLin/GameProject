@@ -27,11 +27,11 @@ namespace CB
 		bool               update(IShapeMeshBuilder& builder);
 		void               visible(bool visable) { mbVisible = visable; }
 		bool               isVisible() { return mbVisible; }
-		ShapeFuncBase*     getFunction() const { return mShapeFun; }
+		ShapeFuncBase*     getFunction() const { return mShapeFunc; }
 		void               setColor(Color4f const& color);
 		Color4f const&     getColor() const { return mColor; }
 		RenderData*        getRenderData() { return &mRenderData; }
-		void               addUpdateBit(unsigned bit) { mUpdateBit |= bit; }
+		void               addUpdateBits(unsigned bits) { mUpdateBits |= bits; }
 
 	public:
 		virtual int        getShapeType() = 0;
@@ -45,11 +45,11 @@ namespace CB
 		void    setFunctionInternal(ShapeFuncBase* FunData);
 		ShapeBase(ShapeBase const& rhs);
 	private:
-		ShapeFuncBase*  mShapeFun;
+		ShapeFuncBase*  mShapeFunc;
 		bool           mbVisible;
 		Color4f        mColor;
 		RenderData     mRenderData;
-		unsigned       mUpdateBit;
+		unsigned       mUpdateBits;
 
 	};
 
@@ -77,7 +77,7 @@ namespace CB
 		float getMeshLineDensity() const { return mMeshLineDensity; }
 
 
-		void setMeshLineDensity(float density) { mMeshLineDensity = density; addUpdateBit(RUF_COLOR); }
+		void setMeshLineDensity(float density) { mMeshLineDensity = density; addUpdateBits(RUF_COLOR); }
 
 		void setIncrement(float incrementU, float incrementV);
 

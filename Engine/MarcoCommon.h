@@ -11,6 +11,9 @@
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif 
+#ifndef BIT64
+#define BIT64( n ) ( 1ULL << ( n ) )
+#endif 
 
 #define INDEX_NONE (-1)
 

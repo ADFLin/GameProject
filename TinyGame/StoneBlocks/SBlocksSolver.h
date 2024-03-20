@@ -5,6 +5,7 @@
 #include "SBlocksCore.h"
 #include "Algo/Combination.h"
 #include "Core/LockFreeList.h"
+#include "Bitset.h"
 
 namespace SBlocks
 {
@@ -19,6 +20,8 @@ namespace SBlocks
 		bool bTestConnectTileShape;
 		bool bEnableIdenticalShapeCombination;
 		bool bCheckMapSymmetry;
+		bool bReserveLockedPiece;
+		bool bUseMapMask;
 
 		SolveOption()
 		{
@@ -28,14 +31,48 @@ namespace SBlocks
 			bTestConnectTileShape = true;
 			bEnableIdenticalShapeCombination = true;
 			bCheckMapSymmetry = false;
+			bReserveLockedPiece = false;
+			bUseMapMask = true;
 		}
 	};
 
+#if 1
+	using MapMask = uint64;
+	FORCEINLINE MapMask IndexMask(int index)
+	{
+		return BIT64(index);
+	}
+	FORCEINLINE bool Intersection(MapMask const& lhs, MapMask const& rhs)
+	{
+		return !!(lhs & rhs);
+	}
+	FORCEINLINE bool IsSet(MapMask const& lhs, int index)
+	{
+		return !!(lhs & IndexMask(index));
+	}
+#else
+	using MapMask = TBitSet<1 , uint64>;
+	FORCEINLINE MapMask IndexMask(int index)
+	{
+		return MapMask::FromIndex(index);
+	}
+	FORCEINLINE bool Intersection(MapMask const& lhs, MapMask const& rhs)
+	{
+		return lhs.testIntersection(rhs);
+	}
+
+	FORCEINLINE bool IsSet(MapMask const& lhs, int index)
+	{
+		return lhs.test(index);
+	}
+#endif
 
 	struct PieceSolveState
 	{
-		int   mapIndex;
-		Vec2i pos;
+		int    mapIndex;
+		int    posIndex;
+		Vec2i  pos;
+		MapMask mapMask;
 		PieceShape::OpState op;
 		uint8 indexData;
 	};
@@ -43,6 +80,8 @@ namespace SBlocks
 	struct ShapeSolveData;
 	struct PieceSolveData
 	{
+		int             index;
+		int             lockedIndexData;
 		Piece*          piece;
 		PieceShape*     shape;
 		ShapeSolveData* shapeSolveData;
@@ -115,19 +154,21 @@ namespace SBlocks
 			return shape->getDataByIndex(state.indexData);
 		}
 
-		bool checkFixedRotation(int* outRotation)
+		bool checkFixedState(PieceShape::OpState& outState)
 		{
-			int rotation = INDEX_NONE;
+			bool bOutStateSetted = false;
 			for (auto pieceData : pieces)
 			{
 				if (pieceData->piece->bCanOperate)
 					return false;
-				if (rotation == INDEX_NONE)
-					rotation = pieceData->piece->dir;
-				else if (rotation != pieceData->piece->dir)
+				if (!bOutStateSetted)
+				{
+					outState.dir = pieceData->piece->dir;
+					outState.mirror = pieceData->piece->mirror;
+				}
+				else if (outState.dir != pieceData->piece->dir || outState.mirror != pieceData->piece->mirror)
 					return false;
 			}
-			*outRotation = rotation;
 			return true;
 		}
 	};
@@ -157,10 +198,10 @@ namespace SBlocks
 		bool        bLogProgress = false;
 	};
 
-
 	struct MapSolveData
 	{
 		MarkMap mMap;
+		MapMask mMapMask = 0;
 		struct TestFrame
 		{
 			uint32 master;
@@ -173,25 +214,28 @@ namespace SBlocks
 		uint32* mTestFramePtr;
 		int     mMaxCount;
 		PieceShapeData mCachedShapeData;
+		TArray<Vec2i, FixedSizeAllocator> mCachedQueryList;
 
 		void setup(MarkMap const& map, SolveOption const& option);
 		void copyFrom(MapSolveData const& rhs);
-		int countConnectTiles(Vec2i const& pos);
-
-		int countConnectTilesRec(Vec2i const& pos);
+		int countConnectedTiles(Vec2i const& pos);
+		int countConnectedTilesMask(Vec2i const& pos);
+		int countConnectedTilesRec(Vec2i const& pos);
 
 		void getConnectedTilePosList(Vec2i const& pos);
-
-
+		void getConnectedTilePosListMask(Vec2i const& pos);
+		MapMask calcMapMask() const;
+		MapMask calcMask(PieceShape* shape, PieceSolveState const& state) const;
 	};
+
 	struct SolveData
 	{
 		GlobalSolveData* globalData;
 		uint32 mTestFrame = 0;
 
 		TArray<int> stateIndices;
-		TArray< MapSolveData > mMaps;
-		TArray< StateCombination > mCombinations;
+		TArray<MapSolveData> mMaps;
+		TArray<StateCombination> mCombinations;
 
 		void getSolvedStates(TArray< PieceSolveState >& outStates) const;
 
@@ -203,26 +247,35 @@ namespace SBlocks
 			int   index;
 			MapSolveData* mapData;
 		};
-		TArray< ShapeTest > mCachedPendingTests;
+		TArray<ShapeTest> mCachedPendingTests;
 		int mMaxTestShapeSize;
+		int mMaxRejectTestIndex;
+
+		void setMaxTestShapeSize(int size)
+		{
+			mMaxTestShapeSize = size;
+			for (auto& map : mMaps)
+			{
+				map.mMaxCount = mMaxTestShapeSize;
+			}
+		}
 
 		void setup(Level& level);
+		template< bool bUseMapMask >
 		bool advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
+		template< bool bUseMapMask >
 		bool advanceCombinedState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount);
 
 		int getPieceStateCount(int indexPiece);
 
-		template< bool bUseSubsetCheck, typename TFunc >
-		ERejectResult::Type testRejection(
-			MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList, TFunc& CheckPieceFunc);
-
-		template< bool bUseSubsetCheck, typename TFunc >
-		ERejectResult::Type testRejection(
-			ShapeSolveData& shapeSolveData, int indexPiece, TFunc& CheckPieceFunc);
-
+		template< bool bUseMapMask >
+		ERejectResult::Type testRejection(MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList);
+		template< bool bUseMapMask >
+		ERejectResult::Type testRejection(ShapeSolveData& shapeSolveData, int indexPiece);
+		template< bool bUseMapMask >
 		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos);
 
-		template< bool bUseSubsetCheck, typename TFunc >
+		template< bool bUseSubsetCheck, bool bUseMapMask, typename TFunc >
 		ERejectResult::Type runPendingShapeTest(TFunc& CheckPieceFunc);
 	};
 
@@ -247,6 +300,8 @@ namespace SBlocks
 
 		int  solveAll();
 
+		int  solveDLX(bool bRecursive);
+
 		struct PartWorkInfo
 		{
 			int indexPieceWork;
@@ -260,22 +315,25 @@ namespace SBlocks
 		int  solvePart(SolveData& solveData, int indexPiece, PartWorkInfo& partWork);
 
 
-		template< bool bEnableRejection , bool bEnableIdenticalShapeCombination, bool bUseSubsetCheck, bool bHavePartWork >
+		template< bool bEnableRejection , bool bEnableIdenticalShapeCombination, bool bUseSubsetCheck, bool bUseMapMask, bool bHavePartWork >
 		static int  SolveImplT(SolveData& solveData, int indexPiece, PartWorkInfo* partWork);
-		using SolveFunc = decltype(&Solver::SolveImplT<false,false,false,false>);
+		template< bool bEnableRejection, bool bEnableIdenticalShapeCombination, bool bUseSubsetCheck, bool bUseMapMask >
+		static void SolveAllImplT(Solver& solver, SolveData& solveData);
 
+		using SolveFunc = decltype(&Solver::SolveImplT<false,false,false, false, false>);
+		using SolveAllFunc = decltype(&Solver::SolveAllImplT<false, false, false, false>);
 
 		void getSolvedStates(TArray< PieceSolveState >& outStates) const
 		{
 			return mSolveData.getSolvedStates(outStates);
 		}
 
-		template< bool bHavePartWork >
-		static SolveFunc GetSolveFunc(SolveOption const& option);
-
+		static SolveFunc GetSolveFunc(SolveOption const& option, bool bHavePartWork);
+		static SolveAllFunc GetSolveAllFunc(SolveOption const& option);
 		SolveData   mSolveData;
 		SolveFunc   mUsedSolveFunc;
 		SolveFunc   mUsedSolvePartFunc;
+		SolveAllFunc   mUsedSolveAllFunc;
 		TArray< SolveWork* > mParallelWorks;
 		TLockFreeFIFOList<TArray< PieceSolveState > > mSolutionList;
 		int         mSolutionCount = 0;

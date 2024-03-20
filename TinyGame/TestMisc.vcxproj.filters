@@ -183,9 +183,6 @@
     <ClCompile Include="TestMisc\Test\PreprocessorTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
-    <ClCompile Include="TestMisc\Stage\TMechineStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="TestMisc\Test\CriminalTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
@@ -240,6 +237,12 @@
     </ClCompile>
     <ClCompile Include="TestMisc\Stage\FractialRenderStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Stage\TMachineStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestMisc\Test\DLXTest.cpp">
+      <Filter>Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -409,9 +412,6 @@
     <ClInclude Include="Minesweeper\MineDefines.h">
       <Filter>GameMinesweeper</Filter>
     </ClInclude>
-    <ClInclude Include="TestMisc\Stage\TMechineStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
     <ClInclude Include="Minesweeper\GameController_Windows7.h">
       <Filter>GameMinesweeper</Filter>
     </ClInclude>
@@ -429,6 +429,9 @@
       <Filter>GameTripleTown</Filter>
     </ClInclude>
     <ClInclude Include="TestMisc\Stage\AStarStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestMisc\Stage\TMachineStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,6 +8,8 @@
 #include "InlineString.h"
 #include "TemplateMisc.h"
 
+#include "Algo/DLX.h"
+
 #define SBLOCK_LOG_SOLVE_INFO 0
 
 namespace SBlocks
@@ -15,7 +17,7 @@ namespace SBlocks
 
 	void MapSolveData::setup(MarkMap const& map, SolveOption const& option)
 	{
-		mMap.copyFrom(map, true);
+		mMap.copyFrom(map, !option.bReserveLockedPiece);
 		bSymmetry = map.isSymmetry();
 		if (option.bTestConnectTilesCount)
 		{
@@ -23,6 +25,9 @@ namespace SBlocks
 			mTestFrameMap.fillValue({ 0,0 });
 			mSubTestFrame = 0;
 		}
+
+		mCachedQueryList.reserve(mTestFrameMap.getRawDataSize());
+		mCachedShapeData.blocks.reserve(mTestFrameMap.getRawDataSize());
 	}
 
 	void MapSolveData::copyFrom(MapSolveData const& rhs)
@@ -32,9 +37,13 @@ namespace SBlocks
 		mTestFrameMap.fillValue({ 0,0 });
 		mSubTestFrame = 0;
 		bSymmetry = rhs.bSymmetry;
+		mMapMask = rhs.mMapMask;
+
+		mCachedQueryList.reserve(mTestFrameMap.getRawDataSize());
+		mCachedShapeData.blocks.reserve(mTestFrameMap.getRawDataSize());
 	}
 
-	int MapSolveData::countConnectTiles(Vec2i const& pos)
+	int MapSolveData::countConnectedTiles(Vec2i const& pos)
 	{
 		if (!mMap.isInBound(pos))
 			return 0;
@@ -50,17 +59,108 @@ namespace SBlocks
 		frame.sub = mSubTestFrame;
 
 		int result = 1;
+#if 1
+		mCachedQueryList.clear();
+		TArray< Vec2i , FixedSizeAllocator >& queryList = mCachedQueryList;
+		queryList.push_back(pos);
+
+		while (!queryList.empty())
+		{
+			Vec2i tPos = queryList.back();
+			queryList.pop_back();
+
+			for (int i = 0; i < 4; ++i)
+			{
+				Vec2i testPos = tPos + GConsOffsets[i];
+
+				if (!mMap.isInBound(testPos))
+					continue;
+
+				uint8 data = mMap.getValue(testPos);
+				if (!MarkMap::CanLock(data))
+					continue;
+
+				auto& frame = mTestFrameMap(testPos.x, testPos.y);
+				if (frame.sub == mSubTestFrame)
+					continue;
+
+				frame.master = *mTestFramePtr;
+				frame.sub = mSubTestFrame;
+
+				++result;
+				queryList.push_back(testPos);
+				if (result >= mMaxCount)
+					return result;
+			}
+		}
+#else
 		for (int i = 0; i < 4; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
-			result += countConnectTilesRec(testPos);
+			result += countConnectedTilesRec(testPos);
 			if (result >= mMaxCount)
 				break;
 		}
+#endif
 		return result;
 	}
 
-	int MapSolveData::countConnectTilesRec(Vec2i const& pos)
+	int MapSolveData::countConnectedTilesMask(Vec2i const& pos)
+	{
+		if (!mMap.isInBound(pos))
+			return 0;
+
+		{
+			int index = mMap.toIndex(pos);
+			if (IsSet(mMapMask, index))
+				return 0;
+		}
+
+		auto& frame = mTestFrameMap(pos.x, pos.y);
+		if (frame.master == *mTestFramePtr)
+			return 0;
+		frame.master = *mTestFramePtr;
+		frame.sub = mSubTestFrame;
+
+		int result = 1;
+		mCachedQueryList.clear();
+		TArray< Vec2i, FixedSizeAllocator >& queryList = mCachedQueryList;
+		queryList.push_back(pos);
+
+		while (!queryList.empty())
+		{
+			Vec2i tPos = queryList.back();
+			queryList.pop_back();
+
+			for (int i = 0; i < 4; ++i)
+			{
+				Vec2i testPos = tPos + GConsOffsets[i];
+
+				if (!mMap.isInBound(testPos))
+					continue;
+
+				int index = mMap.toIndex(testPos);
+				if (IsSet(mMapMask, index))
+					continue;
+
+				auto& frame = mTestFrameMap[index];
+				if (frame.sub == mSubTestFrame)
+					continue;
+
+				frame.master = *mTestFramePtr;
+				frame.sub = mSubTestFrame;
+
+				++result;
+				queryList.push_back(testPos);
+				if (result >= mMaxCount)
+					return result;
+			}
+		}
+
+		return result;
+	}
+
+	int MapSolveData::countConnectedTilesRec(Vec2i const& pos)
 	{
 		if (!mMap.isInBound(pos))
 			return 0;
@@ -79,7 +179,7 @@ namespace SBlocks
 		for (int i = 0; i < 4; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
-			result += countConnectTilesRec(testPos);
+			result += countConnectedTilesRec(testPos);
 			if (result >= mMaxCount)
 				break;
 		}
@@ -100,12 +200,127 @@ namespace SBlocks
 			return;
 
 		frame.master = *mTestFramePtr;
-		mCachedShapeData.blocks.push_back(PieceShapeData::Block( pos , MarkMap::GetType(data)));
+		mCachedShapeData.blocks.push_back(PieceShapeData::Block(pos, MarkMap::GetType(data)));
+#if 1
+		mCachedQueryList.clear();
+		TArray< Vec2i, FixedSizeAllocator >& queryList = mCachedQueryList;
+		queryList.push_back(pos);
+		while (!queryList.empty())
+		{
+			Vec2i tPos = queryList.back();
+			queryList.pop_back();
+
+			for (int i = 0; i < 4; ++i)
+			{
+				Vec2i testPos = tPos + GConsOffsets[i];
+
+				if (!mMap.isInBound(testPos))
+					continue;
+
+				uint8 data = mMap.getValue(testPos);
+				if (!MarkMap::CanLock(data))
+					continue;
+
+				auto& frame = mTestFrameMap(testPos.x, testPos.y);
+				if (frame.master == *mTestFramePtr)
+					continue;
+
+				frame.master = *mTestFramePtr;
+				mCachedShapeData.blocks.push_back(PieceShapeData::Block(testPos, MarkMap::GetType(data)));
+				queryList.push_back(testPos);
+			}
+		}
+#else
 		for (int i = 0; i < 4; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
 			getConnectedTilePosList(testPos);
 		}
+#endif
+	}
+
+	void MapSolveData::getConnectedTilePosListMask(Vec2i const& pos)
+	{
+		if (!mMap.isInBound(pos))
+			return;
+
+		{
+			int index = mMap.toIndex(pos);
+			if (IsSet(mMapMask , index))
+				return;
+		}
+
+		auto& frame = mTestFrameMap(pos.x, pos.y);
+		if (frame.master == *mTestFramePtr)
+			return;
+
+		frame.master = *mTestFramePtr;
+		uint8 data = mMap.getValue(pos);
+		mCachedShapeData.blocks.push_back(PieceShapeData::Block(pos, MarkMap::GetType(data)));
+#if 1
+		mCachedQueryList.clear();
+		TArray< Vec2i , FixedSizeAllocator >& queryList = mCachedQueryList;
+		queryList.push_back(pos);
+		while (!queryList.empty())
+		{
+			Vec2i tPos = queryList.back();
+			queryList.pop_back();
+
+			for (int i = 0; i < 4; ++i)
+			{
+				Vec2i testPos = tPos + GConsOffsets[i];
+
+				if (!mMap.isInBound(testPos))
+					continue;
+
+				int index = mMap.toIndex(testPos);
+				if (IsSet(mMapMask, index))
+					continue;
+
+				auto& frame = mTestFrameMap[index];
+				if (frame.master == *mTestFramePtr)
+					continue;
+
+				frame.master = *mTestFramePtr;
+				uint8 data = mMap.getValue(testPos);
+				mCachedShapeData.blocks.push_back(PieceShapeData::Block(testPos, MarkMap::GetType(data)));
+				queryList.push_back(testPos);
+			}
+		}
+#else
+		for (int i = 0; i < 4; ++i)
+		{
+			Vec2i testPos = pos + GConsOffsets[i];
+			getConnectedTilePosListMask(testPos);
+		}
+#endif
+	}
+
+	MapMask MapSolveData::calcMapMask() const
+	{
+		MapMask result = 0;
+		for (int index = 0; index < mMap.mData.getRawDataSize(); ++index)
+		{
+			auto data = mMap.mData[index];
+			if (!MarkMap::CanLock(data))
+			{
+				result |= IndexMask(index);
+			}
+		}
+		return result;
+	}
+
+	MapMask MapSolveData::calcMask(PieceShape* shape, PieceSolveState const& state) const
+	{
+		auto const& shapeData = shape->getDataByIndex(state.indexData);
+
+		MapMask result = 0;
+		for (auto const& block : shapeData.blocks)
+		{
+			int index = state.posIndex + mMap.toIndex(block.pos);
+			result |= IndexMask(index);
+		}
+		return result;
 	}
 
 	void SolveData::getSolvedStates(TArray< PieceSolveState >& outStates) const
@@ -144,17 +359,26 @@ namespace SBlocks
 			mMaps[i].mTestFramePtr = &mTestFrame;
 		}
 		mCombinations = rhs.mCombinations;
-		mMaxTestShapeSize = rhs.mMaxTestShapeSize;
+		mMaxRejectTestIndex = rhs.mMaxRejectTestIndex;
+		setMaxTestShapeSize(rhs.mMaxTestShapeSize);
 	}
 
-	bool SolveData::advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount )
+	template< bool bUseMapMask >
+	bool SolveData::advanceState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount)
 	{
-		int& indexState = stateIndices[indexPiece];
-
+		TGuardLoadStore indexState = { stateIndices[indexPiece] };
 		if (indexState >= 0)
 		{
 			PieceSolveState const& state = shapeSolveData.states[indexState];
-			mMaps[state.mapIndex].mMap.unlock(state.pos, shapeSolveData.getShapeData(state));
+			auto& mapData = mMaps[state.mapIndex];
+			if constexpr (bUseMapMask)
+			{
+				mapData.mMapMask &= ~state.mapMask;
+			}
+			else
+			{
+				mapData.mMap.unlock(state.posIndex, shapeSolveData.getShapeData(state));
+			}
 
 			++indexState;
 		}
@@ -162,19 +386,34 @@ namespace SBlocks
 		{
 			indexState = -indexState - 1;
 		}
-	
+
+		CHECK(indexState >= 0);
+		PieceSolveData& pieceData = globalData->mPieceList[indexPiece];
 		while (indexState != shapeSolveData.states.size())
 		{
 			++outUsedStateCount;
 			PieceSolveState const& state = shapeSolveData.states[indexState];
-			Piece* piece = globalData->mPieceList[indexPiece].piece;
-			if ( piece->bCanOperate || state.indexData == piece->shape->getDataIndex(piece->dir, piece->mirror) )
+			if (LIKELY(pieceData.lockedIndexData == INDEX_NONE || pieceData.lockedIndexData == state.indexData))
 			{
-				if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.getShapeData(state)))
+				auto& mapData = mMaps[state.mapIndex];
+				if constexpr (bUseMapMask)
 				{
-					return true;
+					bool canLock = !Intersection(mapData.mMapMask, state.mapMask);
+					if (canLock)
+					{
+						mapData.mMapMask |= state.mapMask;
+						return true;
+					}
+				}
+				else
+				{
+					if (mapData.mMap.tryLockAssumeInBound(state.posIndex, shapeSolveData.getShapeData(state)))
+					{
+						return true;
+					}
 				}
 			}
+
 			++indexState;
 		}
 
@@ -182,9 +421,10 @@ namespace SBlocks
 		return false;
 	}
 
+	template< bool bUseMapMask >
 	bool SolveData::advanceCombinedState(ShapeSolveData& shapeSolveData, int indexPiece, int& outUsedStateCount)
 	{
-		CHECK(indexPiece == shapeSolveData.pieces.front()->piece->indexSolve);
+		CHECK(indexPiece == shapeSolveData.pieces.front()->index);
 
 		StateCombination& sc = mCombinations[shapeSolveData.indexCombination];
 
@@ -196,7 +436,17 @@ namespace SBlocks
 				if (indexState >= 0)
 				{
 					PieceSolveState const& state = shapeSolveData.states[indexState];
-					mMaps[state.mapIndex].mMap.unlock(state.pos, shapeSolveData.getShapeData(state));
+
+					auto& mapData = mMaps[state.mapIndex];
+					if constexpr (bUseMapMask)
+					{
+						mapData.mMapMask &= ~state.mapMask;
+					}
+					else
+					{
+						mapData.mMap.unlock(state.posIndex, shapeSolveData.getShapeData(state));
+					}
+
 					indexState = INDEX_NONE;
 				}
 			}
@@ -214,18 +464,35 @@ namespace SBlocks
 			{
 				int indexState = pStateIndices[i];
 				PieceSolveState const& state = shapeSolveData.states[indexState];
-
-				Piece* piece = globalData->mPieceList[indexPiece + i].piece;
-				if (piece->bCanOperate || state.indexData == piece->shape->getDataIndex(piece->dir, piece->mirror))
+				PieceSolveData& pieceData = globalData->mPieceList[indexPiece + i];
+				if (pieceData.lockedIndexData == INDEX_NONE || pieceData.lockedIndexData == state.indexData)
 				{
-					if (mMaps[state.mapIndex].mMap.tryLockAssumeInBound(state.pos, shapeSolveData.getShapeData(state)))
+					auto& mapData = mMaps[state.mapIndex];
+					if constexpr (bUseMapMask)
 					{
-						stateIndices[indexPiece + i] = indexState;
+						bool canLock = !Intersection(mapData.mMapMask, state.mapMask);
+						if (canLock)
+						{
+							mapData.mMapMask |= state.mapMask;
+							stateIndices[indexPiece + i] = indexState;
+						}
+						else
+						{
+							UnlockUsedStates();
+							break;
+						}
 					}
 					else
 					{
-						UnlockUsedStates();
-						break;
+						if (mapData.mMap.tryLockAssumeInBound(state.posIndex, shapeSolveData.getShapeData(state)))
+						{
+							stateIndices[indexPiece + i] = indexState;
+						}
+						else
+						{
+							UnlockUsedStates();
+							break;
+						}
 					}
 				}
 			}
@@ -245,7 +512,7 @@ namespace SBlocks
 	{
 		auto const& pieceData = globalData->mPieceList[indexPiece];
 		auto const& shapeSolveData = *pieceData.shapeSolveData;
-		if (globalData->mUsedOption.bEnableIdenticalShapeCombination && shapeSolveData.indexCombination != INDEX_NONE)
+		if (shapeSolveData.indexCombination != INDEX_NONE)
 		{
 			return mCombinations[shapeSolveData.indexCombination].getStateNum();
 		}
@@ -255,33 +522,26 @@ namespace SBlocks
 		}
 	}
 
-	template< bool bUseSubsetCheck, typename TFunc >
-	ERejectResult::Type SolveData::testRejection(MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList, TFunc& CheckPieceFunc)
+	template< bool bUseMapMask >
+	ERejectResult::Type SolveData::testRejection(MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList)
 	{
 		mCachedPendingTests.clear();
 		++mTestFrame;
 		CHECK(mTestFrame != 0);
-		mapData.mMaxCount = mMaxTestShapeSize;
 		for (auto const& outerPos : outerConPosList)
 		{
 			Vec2i testPos = pos + outerPos;
 			++mapData.mSubTestFrame;
 			CHECK(mapData.mSubTestFrame != 0);
-			auto testResult = testRejectionInternal(mapData, testPos);
+			auto testResult = testRejectionInternal<bUseMapMask>(mapData, testPos);
 			if (testResult != ERejectResult::None)
 				return testResult;
 		}
-
-		if (globalData->mUsedOption.bTestConnectTileShape)
-		{
-			return runPendingShapeTest<bUseSubsetCheck>(CheckPieceFunc);
-		}
-
 		return ERejectResult::None;
 	}
 
-	template< bool bUseSubsetCheck, typename TFunc >
-	ERejectResult::Type SolveData::testRejection(ShapeSolveData& shapeSolveData, int indexPiece, TFunc& CheckPieceFunc)
+	template< bool bUseMapMask >
+	ERejectResult::Type SolveData::testRejection(ShapeSolveData& shapeSolveData, int indexPiece)
 	{
 		mCachedPendingTests.clear();
 		++mTestFrame;
@@ -296,23 +556,26 @@ namespace SBlocks
 				Vec2i testPos = state.pos + outerPos;
 				++mapData.mSubTestFrame;
 				CHECK(mapData.mSubTestFrame != 0);
-				auto testResult = testRejectionInternal(mapData, testPos);
+				auto testResult = testRejectionInternal<bUseMapMask>(mapData, testPos);
 				if (testResult != ERejectResult::None)
 					return testResult;
 			}
 		}
-
-		if (globalData->mUsedOption.bTestConnectTileShape)
-		{
-			return runPendingShapeTest<bUseSubsetCheck>(CheckPieceFunc);
-		}
-
 		return ERejectResult::None;
 	}
 
+	template< bool bUseMapMask >
 	ERejectResult::Type SolveData::testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos)
 	{
-		int count = mapData.countConnectTiles(testPos);
+		int count;
+		if constexpr (bUseMapMask)
+		{
+			count = mapData.countConnectedTilesMask(testPos);
+		}
+		else
+		{
+			count = mapData.countConnectedTiles(testPos);
+		}
 
 		if (count != 0)
 		{
@@ -343,7 +606,7 @@ namespace SBlocks
 		return ERejectResult::None;
 	}
 
-	template< bool bUseSubsetCheck, typename TFunc >
+	template< bool bUseSubsetCheck, bool bUseMapMask, typename TFunc >
 	ERejectResult::Type SolveData::runPendingShapeTest(TFunc& CheckPieceFunc)
 	{
 		for (auto const& test : mCachedPendingTests)
@@ -353,8 +616,14 @@ namespace SBlocks
 			mapData.mCachedShapeData.blocks.clear();
 			++mTestFrame;
 			CHECK(mTestFrame != 0);
-			mapData.getConnectedTilePosList(test.pos);
-
+			if constexpr (bUseMapMask)
+			{
+				mapData.getConnectedTilePosListMask(test.pos);
+			}
+			else
+			{
+				mapData.getConnectedTilePosList(test.pos);
+			}
 			mapData.mCachedShapeData.standardizeBlocks();
 
 			PieceSolveData* pieceData = nullptr;
@@ -403,6 +672,11 @@ namespace SBlocks
 		for (int index = 0; index < level.mPieces.size(); ++index)
 		{
 			Piece* piece = level.mPieces[index].get();
+			if (mUsedOption.bReserveLockedPiece && piece->isLocked())
+			{
+				continue;
+			}
+
 			sortedPieces.push_back(piece);
 		}
 
@@ -413,6 +687,8 @@ namespace SBlocks
 			auto& shapeSolveData = mShapeList[index];
 			shapeSolveData.shape = shape;
 			shapeSolveData.pieces.clear();
+			shapeSolveData.indexCombination = INDEX_NONE;
+
 			shape->indexSolve = index;
 		}
 
@@ -445,6 +721,9 @@ namespace SBlocks
 			});
 		}
 
+		mSolveData.setup(level);
+		mPieceList.resize(sortedPieces.size());
+
 		if (mUsedOption.bEnableRejection)
 		{
 			mMinShapeBlockCount = MaxInt32;
@@ -462,52 +741,133 @@ namespace SBlocks
 			mMinShapeBlockCount = 0;
 		}
 
-		mSolveData.setup(level);
-
-		mPieceList.resize(level.mPieces.size());
-		if (mUsedOption.bUseSubsetCheck)
+		auto GetMaxTestShapeSize = [this](bool bUseSubsetCheck)
 		{
-			mSolveData.mMaxTestShapeSize = mMaxShapeBlockCount + 1;
-		}
-		else
-		{
-			mSolveData.mMaxTestShapeSize = 2 * mMinShapeBlockCount;
-		}
+			if (bUseSubsetCheck)
+			{
+				return mMaxShapeBlockCount + 1;
+			}
+			else
+			{
+				return 2 * mMinShapeBlockCount;
+			}
+		};
 
-		TGuardValue<int> ScopedValue(mSolveData.mMaxTestShapeSize, mMaxShapeBlockCount + 1);
-
+		constexpr bool bSetupUseSubsetCheck = true;
+		mSolveData.setMaxTestShapeSize(GetMaxTestShapeSize(bSetupUseSubsetCheck));
 		for (int indexPiece = 0; indexPiece < sortedPieces.size(); ++indexPiece)
 		{
 			Piece* piece = sortedPieces[indexPiece];
-			piece->indexSolve = indexPiece;
 
 			PieceSolveData& pieceData = mPieceList[indexPiece];
+			pieceData.index = indexPiece;
 			pieceData.piece = piece;
 			pieceData.shape = piece->shape;
-			pieceData.sizeLink = nullptr;
+			if (piece->bCanOperate)
+				pieceData.lockedIndexData = INDEX_NONE;
+			else
+				pieceData.lockedIndexData = pieceData.shape->getDataIndex(piece->dir, piece->mirror);
 
+			pieceData.sizeLink = nullptr;
 			ShapeSolveData& shapeSolveData = mShapeList[piece->shape->indexSolve];
 			shapeSolveData.pieces.push_back(&pieceData);
 			pieceData.shapeSolveData = &shapeSolveData;
 		}
 
-		if (mUsedOption.bEnableRejection && mUsedOption.bTestConnectTilesCount)
+		if (mUsedOption.bEnableRejection)
 		{
-			mPieceSizeMap.resize(mMaxShapeBlockCount - mMinShapeBlockCount + 1, nullptr);
-
-			for (int indexPiece = 0; indexPiece < sortedPieces.size(); ++indexPiece)
+			if (mUsedOption.bTestConnectTilesCount)
 			{
-				PieceSolveData& pieceData = mPieceList[indexPiece];
+				mPieceSizeMap.resize(mMaxShapeBlockCount - mMinShapeBlockCount + 1, nullptr);
 
-				int mapIndex = pieceData.shape->getBlockCount()- mMinShapeBlockCount;
-				PieceSolveData* linkedDataPrev = mPieceSizeMap[mapIndex];
+				for (int indexPiece = 0; indexPiece < sortedPieces.size(); ++indexPiece)
+				{
+					PieceSolveData& pieceData = mPieceList[indexPiece];
 
-				pieceData.sizeLink = linkedDataPrev;
-				mPieceSizeMap[mapIndex] = &pieceData;
+					int mapIndex = pieceData.shape->getBlockCount() - mMinShapeBlockCount;
+					PieceSolveData* linkedDataPrev = mPieceSizeMap[mapIndex];
+
+					pieceData.sizeLink = linkedDataPrev;
+					mPieceSizeMap[mapIndex] = &pieceData;
+				}
+			}
+			if (mUsedOption.bTestConnectTileShape)
+			{
+				mSolveData.mMaxRejectTestIndex = mPieceList.size() - 3;
+				if (mSolveData.mMaxRejectTestIndex <= 1)
+				{
+					mUsedOption.bTestConnectTileShape = false;
+				}
 			}
 		}
 
-		int indexFixedPiece = INDEX_NONE;
+		if (mUsedOption.bUseMapMask)
+		{
+			auto TestCanUseMapMask = [&]()
+			{
+				for (auto const& map : level.mMaps)
+				{
+					if (map.getBoundSize().x * map.getBoundSize().y > sizeof(MapMask) * 8)
+					{
+						return false;
+					}
+
+					if (!map.isAllNormalType())
+					{
+						return false;
+					}
+				}
+
+				for (auto piece : sortedPieces)
+				{
+					if (!piece->shape->getDataByIndex(0).isNormal())
+						return false;
+				}
+
+				return true;
+			};
+
+			if (TestCanUseMapMask())
+			{
+				for (int indexMap = 0; indexMap < mSolveData.mMaps.size(); ++indexMap)
+				{
+					MapSolveData& mapData = mSolveData.mMaps[indexMap];
+					mapData.mMapMask = mapData.calcMapMask();
+				}
+			}
+			else
+			{
+				mUsedOption.bUseMapMask = false;
+			}
+		}
+
+		int indexSymmetryFixedShape = INDEX_NONE;
+		if (mUsedOption.bCheckMapSymmetry)
+		{
+			int indexShape = 0;
+			for (ShapeSolveData& shapeSolveData : mShapeList)
+			{
+				PieceShape* shape = shapeSolveData.shape;
+				PieceShape::OpState stateFixed;
+				bool bFixedState = shapeSolveData.checkFixedState(stateFixed);
+				if (bFixedState)
+				{
+					mUsedOption.bCheckMapSymmetry = false;
+					break;
+				}
+
+				if (shapeSolveData.pieces.size() == 1)
+				{
+					if (indexSymmetryFixedShape == INDEX_NONE ||
+						shape->getDifferentShapeNum() > mShapeList[indexSymmetryFixedShape].shape->getDifferentShapeNum())
+					{
+						indexSymmetryFixedShape = indexShape;
+					}
+				}
+
+				++indexShape;
+			}
+		}
 
 		//generate possible states
 		int indexShape = 0;
@@ -539,27 +899,18 @@ namespace SBlocks
 				return shapeSolveData.pieces.size() > 1;
 			};
 
-			int dirFixed;
-			bool bFixRotation = shapeSolveData.checkFixedRotation(&dirFixed);
-			if (mUsedOption.bCheckMapSymmetry && indexFixedPiece == INDEX_NONE )
-			{
-				if (!bFixRotation && shapeSolveData.pieces.size() == 1 && shapeSolveData.shape->getDifferentShapeNum() == 8)
-				{
-					indexFixedPiece = indexShape;
-				}
-			}
-
-			int numDifferences = bFixRotation ? 1 : shape->getDifferentShapeNum();
+			PieceShape::OpState stateFixed;
+			bool bFixedState = shapeSolveData.checkFixedState(stateFixed);
+			int numDifferences = bFixedState ? 1 : shape->getDifferentShapeNum();
 			for (int i = 0; i < numDifferences; ++i)
 			{
 				int indexData = i;
 				PieceShape::OpState opState;
-				PieceShapeData const& shapeData = (bFixRotation) ? shape->getData(DirType::ValueChecked(dirFixed)) : shape->getDataByIndex( i );
-				if (bFixRotation)
+				PieceShapeData const& shapeData = (bFixedState) ? shape->getData(DirType::ValueChecked(stateFixed.dir), stateFixed.mirror) : shape->getDataByIndex( i );
+				if (bFixedState)
 				{
-					opState.dir = dirFixed;
-					opState.mirror = EMirrorOp::None;
-					indexData = shape->getDataIndex(DirType::ValueChecked(dirFixed));
+					opState = stateFixed;
+					indexData = shape->getDataIndex(DirType::ValueChecked(stateFixed.dir), stateFixed.mirror);
 				}
 				else
 				{
@@ -570,9 +921,9 @@ namespace SBlocks
 				{
 					MapSolveData& mapData = mSolveData.mMaps[indexMap];
 
-					if (mUsedOption.bCheckMapSymmetry && mapData.bSymmetry )
+					if (mUsedOption.bCheckMapSymmetry && mapData.bSymmetry)
 					{
-						if ( indexFixedPiece == indexShape && indexData != 0)
+						if ( indexSymmetryFixedShape == indexShape && indexData != 0)
 							continue;
 					}
 
@@ -594,8 +945,15 @@ namespace SBlocks
 								{
 									mapData.mMap.lockChecked(pos, shapeData);
 
-									ERejectResult::Type result = mSolveData.testRejection<true>(
-										mapData, pos, shapeSolveData.outerConPosListMap[indexData], CheckPieceFunc);
+									ERejectResult::Type result = mSolveData.testRejection<false>(mapData, pos, shapeSolveData.outerConPosListMap[indexData]);
+
+									if (result == ERejectResult::None)
+									{
+										if (mUsedOption.bTestConnectTileShape)
+										{
+											result = mSolveData.runPendingShapeTest<true, false>(CheckPieceFunc);
+										}
+									}
 
 									mapData.mMap.unlock(pos, shapeData);
 
@@ -619,9 +977,13 @@ namespace SBlocks
 								PieceSolveState lockState;
 								lockState.mapIndex = indexMap;
 								lockState.pos = pos;
+								lockState.posIndex = mapData.mMap.toIndex(pos);
 								lockState.op  = opState;
 								lockState.indexData = indexData;
-
+								if (mUsedOption.bUseMapMask)
+								{
+									lockState.mapMask = mapData.calcMask(shape, lockState);
+								}
 								shapeSolveData.states.push_back(lockState);
 
 							} while (0);
@@ -639,6 +1001,11 @@ namespace SBlocks
 			++indexShape;
 		}
 
+		if (bSetupUseSubsetCheck != mUsedOption.bUseSubsetCheck)
+		{
+			mSolveData.setMaxTestShapeSize(GetMaxTestShapeSize(mUsedOption.bUseSubsetCheck));
+		}
+
 		if (mUsedOption.bEnableIdenticalShapeCombination)
 		{
 			mUsedOption.bEnableIdenticalShapeCombination = false;
@@ -652,20 +1019,18 @@ namespace SBlocks
 					mSolveData.mCombinations.push_back(std::move(sc));
 					mUsedOption.bEnableIdenticalShapeCombination = true;
 				}
-				else
-				{
-					shapeSolveData.indexCombination = INDEX_NONE;
-				}
 			}
 		}
 
-		mUsedSolveFunc = GetSolveFunc< false >(mUsedOption);
-		mUsedSolvePartFunc = GetSolveFunc< true >(mUsedOption);
+		mUsedSolveFunc = GetSolveFunc(mUsedOption, false);
+		mUsedSolvePartFunc = GetSolveFunc(mUsedOption, true);
+		mUsedSolveAllFunc = GetSolveAllFunc(mUsedOption);
 	}
 
 	int Solver::solveAll()
 	{
 		Profile_GetTicks(&mTimeStart);
+#if 0
 		if (solve())
 		{
 			while (solveNext())
@@ -673,6 +1038,9 @@ namespace SBlocks
 
 			}
 		}
+#else
+		mUsedSolveAllFunc(*this, mSolveData);
+#endif
 		return mSolutionCount;
 	}
 
@@ -707,15 +1075,22 @@ namespace SBlocks
 		return (mUsedSolvePartFunc)(solveData, indexPiece, &partWork);
 	}
 
-	template< bool bEnableRejection, bool bEnableIdenticalShapeCombination, bool bUseSubsetCheck, bool bHavePartWork >
+	template< bool bEnableRejection, bool bEnableIdenticalShapeCombination, bool bUseSubsetCheck, bool bUseMapMask, bool bHavePartWork >
 	int Solver::SolveImplT(SolveData& solveData, int indexPiece, PartWorkInfo* partWork)
 	{
 		auto CheckPieceFunc = [&indexPiece](PieceSolveData& testPieceData)
 		{
-			return testPieceData.piece->indexSolve > indexPiece;
+			return testPieceData.index > indexPiece;
 		};
 
 		GlobalSolveData& globalData = *solveData.globalData;
+
+		CHECK(
+			globalData.mUsedOption.bEnableRejection == bEnableRejection &&
+			globalData.mUsedOption.bEnableIdenticalShapeCombination == bEnableIdenticalShapeCombination &&
+			globalData.mUsedOption.bUseSubsetCheck == bUseSubsetCheck &&
+			(partWork != nullptr) == bHavePartWork
+		);
 
 #if SBLOCK_LOG_SOLVE_INFO
 		struct IndexCountData
@@ -742,14 +1117,14 @@ namespace SBlocks
 
 			auto LogProgress = [&]()
 			{
-				if (solveData.globalData->bLogProgress && indexPiece == 0)
+				if (globalData.bLogProgress && indexPiece == 0)
 				{
 					uint64 timeEnd;
 					Profile_GetTicks(&timeEnd);
-					double time = double(timeEnd - solveData.globalData->mTimeStart) / Profile_GetTickRate();
+					double time = double(timeEnd - globalData.mTimeStart) / Profile_GetTickRate();
 
-					float pct = (100.0f * (solveData.stateIndices[0] + 1)) / shapeSolveData.states.size();
-					LogMsg("Solve progress = %.2f%% , Duration = %.2lf", pct, time);
+					float pct = (100.0f * float(solveData.stateIndices[0] + 1)) / globalData.mPieceList[0].shapeSolveData->states.size();
+					LogMsg("Solve progress = %3.2f%% , Duration = %.2lf", pct, time);
 				}
 			};
 
@@ -760,9 +1135,9 @@ namespace SBlocks
 				if (shapeSolveData.indexCombination == INDEX_NONE)
 					goto NoCombineSolve;
 
-				indexPiece = shapeSolveData.pieces.front()->piece->indexSolve;
+				indexPiece = shapeSolveData.pieces.front()->index;
 
-				if (solveData.advanceCombinedState(shapeSolveData, indexPiece, stateUsedCount))
+				if (solveData.advanceCombinedState<bUseMapMask>(shapeSolveData, indexPiece, stateUsedCount))
 				{
 					if constexpr (bHavePartWork)
 					{
@@ -779,10 +1154,16 @@ namespace SBlocks
 
 					if constexpr (bEnableRejection)
 					{
-						if (1 <= indexPiece && indexPiece < 2 * globalData.mPieceList.size() / 3)
+						if (1 <= indexPiece && indexPiece <= solveData.mMaxRejectTestIndex)
 						{
-							auto result = solveData.testRejection< bUseSubsetCheck >(
-								shapeSolveData, indexPiece, CheckPieceFunc);
+							auto result = solveData.testRejection<bUseMapMask>(shapeSolveData, indexPiece);
+							if (result == ERejectResult::None)
+							{
+								if (globalData.mUsedOption.bTestConnectTileShape)
+								{
+									result = solveData.runPendingShapeTest<bUseSubsetCheck, bUseMapMask>(CheckPieceFunc);
+								}
+							}
 
 							if (result != ERejectResult::None)
 							{
@@ -817,7 +1198,7 @@ namespace SBlocks
 
 NoCombineSolve:
 			{
-				if (solveData.advanceState(shapeSolveData, indexPiece, stateUsedCount))
+				if (solveData.advanceState<bUseMapMask>(shapeSolveData, indexPiece, stateUsedCount))
 				{
 					if constexpr (bHavePartWork)
 					{
@@ -834,15 +1215,20 @@ NoCombineSolve:
 
 					if constexpr (bEnableRejection)
 					{
-						if (1 <= indexPiece && indexPiece < 2 * globalData.mPieceList.size() / 3)
+						if (1 <= indexPiece && indexPiece <= solveData.mMaxRejectTestIndex)
 						{
 							PieceSolveState const& state = shapeSolveData.states[solveData.stateIndices[indexPiece]];
 
 							auto& mapData = solveData.mMaps[state.mapIndex];
 
-							auto result = solveData.testRejection< bUseSubsetCheck >(
-								mapData, state.pos, shapeSolveData.outerConPosListMap[state.indexData],
-								CheckPieceFunc);
+							auto result = solveData.testRejection<bUseMapMask>(mapData, state.pos, shapeSolveData.outerConPosListMap[state.indexData]);
+							if (result == ERejectResult::None)
+							{
+								if (globalData.mUsedOption.bTestConnectTileShape)
+								{
+									result = solveData.runPendingShapeTest<bUseSubsetCheck, bUseMapMask>(CheckPieceFunc);
+								}
+							}
 
 							if (result != ERejectResult::None)
 							{
@@ -880,40 +1266,86 @@ NoCombineSolve:
 		return indexPiece;
 	}
 
-	template< bool bHavePartWork >
-	Solver::SolveFunc Solver::GetSolveFunc(SolveOption const& option)
+
+	template< bool bEnableRejection, bool bEnableIdenticalShapeCombination, bool bUseSubsetCheck, bool bUseMapMask >
+	void Solver::SolveAllImplT(Solver& solver, SolveData& solveData)
 	{
-		if (option.bUseSubsetCheck)
+		//using SolveImpl = Solver::SolveImplT<bEnableRejection, bEnableIdenticalShapeCombination, bUseSubsetCheck, bUseMapMask, bHavePartWork>;
+
+		solver.mSolutionCount = 0;
+		if (Solver::SolveImplT<bEnableRejection, bEnableIdenticalShapeCombination, bUseSubsetCheck, bUseMapMask, false>(solveData, 0, nullptr) < 0)
+			return;
+
+		++solver.mSolutionCount;
+		while (Solver::SolveImplT<bEnableRejection, bEnableIdenticalShapeCombination, bUseSubsetCheck, bUseMapMask, false>(solveData, solver.mPieceList.size() - 1, nullptr) >= 0)
 		{
-			if (option.bEnableRejection)
-			{
-				if (option.bEnableIdenticalShapeCombination)
-					return &Solver::SolveImplT< true, true, true, bHavePartWork>;
-				else
-					return &Solver::SolveImplT< true, false, true, bHavePartWork>;
-			}
+			++solver.mSolutionCount;
+		}
+	}
 
-			if (option.bEnableIdenticalShapeCombination)
-				return &Solver::SolveImplT< false, true, true, bHavePartWork>;
+	template< bool... Is>
+	struct TBoolList {};
 
-			return &Solver::SolveImplT< false, false, true, bHavePartWork>;
-
+	template< typename TFunc, bool ...Is , typename ...Args >
+	FORCEINLINE auto BoolBranch(TBoolList<Is...>, bool p0, Args... args)
+	{
+		if (p0)
+		{
+			return BoolBranch<TFunc>(TBoolList<Is..., true>(), args...);
 		}
 		else
 		{
-			if (option.bEnableRejection)
-			{
-				if (option.bEnableIdenticalShapeCombination)
-					return &Solver::SolveImplT< true, true, false, bHavePartWork>;
-				else
-					return &Solver::SolveImplT< true, false, false, bHavePartWork>;
-			}
-
-			if (option.bEnableIdenticalShapeCombination)
-				return &Solver::SolveImplT< false, true, false, bHavePartWork>;
-
-			return &Solver::SolveImplT< false, false, false, bHavePartWork>;
+			return BoolBranch<TFunc>(TBoolList<Is..., false>(), args...);
 		}
+	}
+
+	template< typename TFunc, bool ...Is >
+	FORCEINLINE auto BoolBranch(TBoolList<Is...>)
+	{
+		return TFunc::template Exec<Is...>();
+	}	
+
+	template< typename TFunc, typename ...Args >
+	FORCEINLINE auto BoolBranch(Args... args)
+	{
+		return BoolBranch<TFunc>(TBoolList<>(), args...);
+	}
+
+	struct FSolveImpl
+	{
+		template< bool ...Is >
+		static auto Exec()
+		{
+			return &Solver::SolveImplT<Is...>;
+		}
+	};
+	Solver::SolveFunc Solver::GetSolveFunc(SolveOption const& option, bool bHavePartWork)
+	{
+		return BoolBranch< FSolveImpl >(
+			option.bEnableRejection,
+			option.bEnableIdenticalShapeCombination,
+			option.bUseSubsetCheck,
+			option.bUseMapMask,
+			bHavePartWork
+		);
+	}
+
+	struct FSolveAllImpl
+	{
+		template< bool ...Is >
+		static auto Exec()
+		{
+			return &Solver::SolveAllImplT<Is...>;
+		}
+	};
+	Solver::SolveAllFunc Solver::GetSolveAllFunc(SolveOption const& option)
+	{
+		return BoolBranch< FSolveAllImpl >(
+			option.bEnableRejection,
+			option.bEnableIdenticalShapeCombination,
+			option.bUseSubsetCheck,
+			option.bUseMapMask
+		);
 	}
 
 	class SolveWork : public RunnableThreadT< SolveWork >
@@ -938,7 +1370,7 @@ NoCombineSolve:
 			auto const& workPiece = solver->mPieceList[partWork.indexPieceWork];
 			ShapeSolveData const& workShapeSolveData = *workPiece.shapeSolveData;
 
-			if (solver->mUsedOption.bEnableIdenticalShapeCombination && workShapeSolveData.indexCombination != INDEX_NONE)
+			if (workShapeSolveData.indexCombination != INDEX_NONE)
 			{
 				mCombinations[workShapeSolveData.indexCombination].advance(partWork.indexStateStart);
 			}
@@ -1006,7 +1438,6 @@ NoCombineSolve:
 			double time = double(timeEnd - mTimeStart) / Profile_GetTickRate();
 			LogMsg("SolveParallel finish !! Total Solutions = %u , Duration = %lf", mSolutionCount, time);
 		}
-
 	}
 
 	void Solver::solveParallel(int numThreads)
@@ -1042,6 +1473,128 @@ NoCombineSolve:
 		{
 			work->join();
 		}
+	}
+
+	int SolveDLX(GlobalSolveData& globalData, SolveData& solveData, bool bRecursive)
+	{
+		TArray<uint8> data;
+		int numCol, numRow;
+		{
+			TIME_SCOPE("DLX Matrix Data");
+
+			int mapBlockCount = 0;
+			TArray< int > mapDataOffsets;
+			mapDataOffsets.resize(solveData.mMaps.size());
+			for (int indexMap = 0; indexMap < solveData.mMaps.size(); ++indexMap)
+			{
+				mapDataOffsets[indexMap] = mapBlockCount;
+				mapBlockCount += solveData.mMaps[indexMap].mMap.mData.getRawDataSize();
+			}
+
+			TArray< PieceSolveData* > sortedPieceDatas;
+			for (int index = 0; index < globalData.mPieceList.size(); ++index)
+			{
+				sortedPieceDatas.push_back(&globalData.mPieceList[index]);
+			}
+
+			std::sort(sortedPieceDatas.begin(), sortedPieceDatas.end(),
+				[](PieceSolveData* a, PieceSolveData* b)
+			{
+				return a->shapeSolveData->states.size() < b->shapeSolveData->states.size();
+			}
+			);
+
+			numRow = 0;
+			TArray< int > pieceDataOffsets;
+			pieceDataOffsets.resize(globalData.mPieceList.size());
+			for (int index = 0; index < globalData.mPieceList.size(); ++index)
+			{
+				auto const& pieceData = globalData.mPieceList[index];
+				//auto const& pieceData = *sortedPieceDatas[index];
+
+				pieceDataOffsets[index] = numRow;
+
+				if (pieceData.lockedIndexData != INDEX_NONE)
+				{
+					for (int indexState = 0; indexState < pieceData.shapeSolveData->states.size(); ++indexState)
+					{
+						auto const& state = pieceData.shapeSolveData->states[indexState];
+						if (pieceData.lockedIndexData != state.indexData)
+							continue;
+
+						numRow += 1;
+					}
+				}
+				else
+				{
+					numRow += pieceData.shapeSolveData->states.size();
+				}
+			}
+			numCol = globalData.mPieceList.size() + mapBlockCount;
+			data.resize(numRow * numCol, 0);
+
+			auto FillRowData = [&](uint8 data[], PieceSolveData const& pieceData, PieceSolveState const& state)
+			{
+				auto const& shapeData = pieceData.shapeSolveData->getShapeData(state);
+
+				data[pieceData.index] = 1;
+
+				uint8* dataMap = data + mapDataOffsets[state.mapIndex] + state.posIndex + globalData.mPieceList.size();
+				for (auto const& block : shapeData.blocks)
+				{
+					int offset = solveData.mMaps[state.mapIndex].mMap.toIndex(block.pos);
+					dataMap[offset] = 1;
+				}
+			};
+
+			for (int index = 0; index < globalData.mPieceList.size(); ++index)
+			{
+				auto const& pieceData = globalData.mPieceList[index];
+				//auto const& pieceData = *sortedPieceDatas[index];
+				uint8* dataPiece = data.data() + pieceDataOffsets[index] * numCol;
+				if (pieceData.lockedIndexData != INDEX_NONE)
+				{
+					for (int indexState = 0; indexState < pieceData.shapeSolveData->states.size(); ++indexState)
+					{
+						auto const& state = pieceData.shapeSolveData->states[indexState];
+						if (pieceData.lockedIndexData != state.indexData)
+							continue;
+
+						FillRowData(dataPiece, pieceData, state);
+						dataPiece += numCol;
+					}
+				}
+				else
+				{
+					for (int indexState = 0; indexState < pieceData.shapeSolveData->states.size(); ++indexState)
+					{
+						FillRowData(dataPiece, pieceData, pieceData.shapeSolveData->states[indexState]);
+						dataPiece += numCol;
+					}
+				}
+			}
+		}
+
+
+		DLX::Matrix matrix;
+		{
+			TIME_SCOPE("DLX Matrix Build");
+			matrix.build(numRow, numCol, data.data());
+			matrix.removeUnsedColumns();
+		}
+		DLX::Solver solver(matrix);
+		{
+			TIME_SCOPE("DLX Solve");
+			solver.bRecursive = bRecursive;
+			solver.mSolution.reserve(numRow);
+			solver.solveAll();
+		}
+		return solver.mSolutionCount;
+	}
+
+	int Solver::solveDLX(bool bRecursive)
+	{
+		return SolveDLX(*this, mSolveData, bRecursive);
 	}
 
 }//namespace SBlocks

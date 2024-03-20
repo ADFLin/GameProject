@@ -7,14 +7,14 @@
 #include "Array.h"
 
 template< class T, size_t N >
-using TFixedArray = TArray< T, TFixedAllocator<N> >;
+using TInlineArray = TArray< T, TInlineAllocator<N> >;
 
 #else
 
 #include "TypeMemoryOp.h"
 
 template< class T, size_t N >
-class TFixedArray
+class TInlineArray
 {
 public:
 	typedef T*        iterator;
@@ -25,17 +25,17 @@ public:
 	typedef T*        pointer;
 	typedef T const*  const_pointer;
 
-	TFixedArray()
+	TInlineArray()
 	{  
 		mNext = mEle; 
 	}
 
-	TFixedArray( size_t num , T val = T() )
+	TInlineArray( size_t num , T val = T() )
 	{
 		FTypeMemoryOp::ConstructSequence((T*)mEle, num, val);
 		mNext = mEle + num;
 	}
-	~TFixedArray(){  clear();  }
+	~TInlineArray(){  clear();  }
 
 	bool     empty()    const { return mEle == mNext; }
 	size_t   size()     const { return mNext - mEle; }
@@ -121,7 +121,7 @@ private:
 
 
 template< class T , size_t N >
-void  TFixedArray< T , N >::resize( size_t num )
+void  TInlineArray< T , N >::resize( size_t num )
 { 
 	CHECK( num < N  ); 
 	if ( num < size() )
@@ -137,7 +137,7 @@ void  TFixedArray< T , N >::resize( size_t num )
 
 
 template< class T , size_t N >
-void  TFixedArray< T , N >::resize( size_t num , value_type const& value )
+void  TInlineArray< T , N >::resize( size_t num , value_type const& value )
 {
 	CHECK( num < N  );
 	if ( num < size() )

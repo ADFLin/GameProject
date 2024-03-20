@@ -124,8 +124,8 @@ void ConsoleSystem::unregisterCommandByName(char const* name)
 	if( iter != mNameMap.end() )
 	{
 		delete iter->second;
+		mNameMap.erase(iter);
 	}
-	mNameMap.erase(iter);
 }
 
 void ConsoleSystem::unregisterAllCommandsByObject(void* objectPtr)
@@ -137,6 +137,7 @@ void ConsoleSystem::unregisterAllCommandsByObject(void* objectPtr)
 
 		if (command->isHoldObject(objectPtr))
 		{
+			delete command;
 			iter = mNameMap.erase(iter);
 		}
 		else
@@ -313,6 +314,17 @@ bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo
 					case 'f': context.errorMsg += "#float"; break;
 					case 's': context.errorMsg += "#String"; break;
 					case 'u': context.errorMsg += "#uint"; break;
+					case 'c': context.errorMsg += "#char"; break;
+					case 'h':
+						if (format[2] == 'u')
+						{
+							context.errorMsg += "#uint16";
+						}
+						else if (format[2] == 'd')
+						{
+							context.errorMsg += "#int16";
+						}
+						break;
 					case 'l':
 						if (pStr[2] == 'f')
 							context.errorMsg += "#double";
@@ -386,13 +398,35 @@ bool ConsoleSystem::fillArgumentData(ExecuteContext& context, ConsoleArgTypeInfo
 		case 'f': elementSize = sizeof(float); break;
 		case 's': elementSize = sizeof(char*); break;
 		case 'u': elementSize = sizeof(uint32); break;
+		case 'c': elementSize = sizeof(char); break;
 		case 'l':
 			if ( format[2] == 'f')
 				elementSize = sizeof(double);
 			break;
 		case 'h':
-			if (format[2] == 'u')
-				elementSize = sizeof(uint16); 
+
+			if (format[2] == 'h')
+			{
+				if (format[3] == 'u')
+				{
+					elementSize = sizeof(uint8);
+				}
+				else if (format[3] == 'd')
+				{
+					elementSize = sizeof(int8);
+				}
+			}
+			else
+			{
+				if (format[2] == 'u')
+				{
+					elementSize = sizeof(uint16);
+				}
+				else if (format[2] == 'd')
+				{
+					elementSize = sizeof(int16);
+				}
+			}
 			break;
 		}
 

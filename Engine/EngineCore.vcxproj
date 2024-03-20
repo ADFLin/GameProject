@@ -220,6 +220,7 @@
     <ClCompile Include="AI\GeneticAlgorithm.cpp" />
     <ClCompile Include="AI\NeuralNetwork.cpp" />
     <ClCompile Include="AI\TrainManager.cpp" />
+    <ClCompile Include="Algo\DLX.cpp" />
     <ClCompile Include="Asset.cpp" />
     <ClCompile Include="Async\AsyncWork.cpp" />
     <ClCompile Include="Async\Coroutines.cpp" />
@@ -304,6 +305,7 @@
     <ClInclude Include="Algo\AStar.h" />
     <ClInclude Include="Algo\AStarDefultPolicy.h" />
     <ClInclude Include="Algo\Combination.h" />
+    <ClInclude Include="Algo\DLX.h" />
     <ClInclude Include="Algo\IDAStar.h" />
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
@@ -350,7 +352,7 @@
     <ClInclude Include="DataStructure\AVLTree.h" />
     <ClInclude Include="DataStructure\ClassTree.h" />
     <ClInclude Include="DataStructure\CycleQueue.h" />
-    <ClInclude Include="DataStructure\FixedArray.h" />
+    <ClInclude Include="DataStructure\InlineArray.h" />
     <ClInclude Include="DataStructure\HashMap.h" />
     <ClInclude Include="DataStructure\Heap.h" />
     <ClInclude Include="DataStructure\IntrList.h" />
@@ -392,6 +394,7 @@
     <ClInclude Include="Meta\MetaFunction.h" />
     <ClInclude Include="Meta\MetaTypeList.h" />
     <ClInclude Include="Meta\Select.h" />
+    <ClInclude Include="Meta\Unroll.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
     <ClInclude Include="Misc\CStringWrapper.h" />

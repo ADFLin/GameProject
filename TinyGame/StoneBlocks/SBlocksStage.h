@@ -250,8 +250,6 @@ namespace SBlocks
 		void registerCommand();
 		void unregisterCommand();
 
-		void runScript();
-
 		void saveLevel(char const* name);
 		void newLevel();
 
@@ -641,9 +639,8 @@ namespace SBlocks
 		bool onInit() override;
 
 		void loadLevel(char const* name);
-
 		void loadTestLevel(int index);
-
+		void runScript(int index);
 
 		void onEnd() override
 		{
@@ -680,8 +677,7 @@ namespace SBlocks
 		}
 
 		void onRender(float dFrame) override;
-
-		void solveLevel(int option);
+		void solveLevel(int option, char const* params);
 
 		Piece* selectedPiece = nullptr;
 		bool bStartDragging = false;
@@ -707,6 +703,7 @@ namespace SBlocks
 		ERenderSystem getDefaultRenderSystem() override;
 		bool setupRenderResource(ERenderSystem systemName) override;
 		void preShutdownRenderSystem(bool bReInit = false) override;
+
 
 		Tween::GroupTweener< float > mTweener;
 

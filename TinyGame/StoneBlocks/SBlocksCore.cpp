@@ -20,6 +20,7 @@ namespace SBlocks
 	void PieceShapeData::initialize(PieceShapeDesc const& desc)
 	{
 		blocks.clear();
+		blocks.reserve(desc.data.size());
 
 		for (int index = 0; index < desc.data.size(); ++index)
 		{
@@ -72,12 +73,12 @@ namespace SBlocks
 		blockHashNoType = 0xcab129de1;
 		for (auto const& block : blocks)
 		{
-			blockHash = HashCombine(blockHash, block.x);
-			blockHash = HashCombine(blockHash, block.y);
+			blockHash = HashCombine(blockHash, block.pos.x);
+			blockHash = HashCombine(blockHash, block.pos.y);
 			blockHash = HashCombine(blockHash, block.type);
 
-			blockHashNoType = HashCombine(blockHashNoType, block.x);
-			blockHashNoType = HashCombine(blockHashNoType, block.y);
+			blockHashNoType = HashCombine(blockHashNoType, block.pos.x);
+			blockHashNoType = HashCombine(blockHashNoType, block.pos.y);
 		}
 #endif
 	}
@@ -86,13 +87,12 @@ namespace SBlocks
 	{
 		for (auto const& block : blocks)
 		{
-			for (int i = 0; i < 4; ++i)
+			for (int i = 0; i < DirType::RestValue; ++i)
 			{
 				Int16Point2D pos = block.pos + GConsOffsets[i];
-				int index = blocks.findIndexPred([&pos](auto const& block) { return block.pos == pos; });
-				if (index == INDEX_NONE)
+				if (!haveBlock(pos))
 				{
-					outPosList.push_back(pos);
+					outPosList.addUnique(pos);
 				}
 			}
 		}
@@ -152,6 +152,16 @@ namespace SBlocks
 			}
 		}
 		return false;
+	}
+
+	bool PieceShapeData::isNormal() const
+	{
+		for (auto const& block : blocks)
+		{
+			if (block.type != 0)
+				return false;
+		}
+		return true;
 	}
 
 	bool PieceShapeData::compareBlockPos(PieceShapeData const& rhs) const
@@ -391,6 +401,7 @@ namespace SBlocks
 			auto const& shapeDataPrev = getData(DirType::ValueChecked(dir - 1));
 
 			PieceShapeData shapeData;
+			shapeData.blocks.reserve(shapeDataPrev.blocks.size());
 			for (auto const& block : shapeDataPrev.blocks)
 			{
 				PieceShapeData::Block blockAdd;
@@ -415,6 +426,7 @@ namespace SBlocks
 		{
 			auto const& shapeDataOriginal = getData(DirType::ValueChecked(0));
 			PieceShapeData shapeData;
+			shapeData.blocks.reserve(shapeDataOriginal.blocks.size());
 			switch (op)
 			{
 			case EMirrorOp::X:
@@ -446,6 +458,7 @@ namespace SBlocks
 				auto const& shapeDataPrev = getData(DirType::ValueChecked(dir - 1), EMirrorOp::Type(op));
 
 				PieceShapeData shapeData;
+				shapeData.blocks.reserve(shapeDataPrev.blocks.size());
 				for (auto const& block : shapeDataPrev.blocks)
 				{
 					PieceShapeData::Block blockAdd;
@@ -488,8 +501,24 @@ namespace SBlocks
 		return tryLockAssumeInBound(pos, shapeData);
 	}
 
+	void MarkMap::unlock(int posIndex, PieceShapeData const& shapeData)
+	{
+		for (auto const& block : shapeData.blocks)
+		{
+			int index = posIndex + mData.toIndex(block.pos.x, block.pos.y);
+			uint8& data = mData[index];
+			CHECK(IsLocked(data));
+			RemoveLock(data);
+		}
+		numBlockLocked -= shapeData.blocks.size();
+	}
+
 	void MarkMap::unlock(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
+#if 1
+		int posIndex = mData.toIndex(pos.x, pos.y);
+		unlock(posIndex, shapeData);
+#else
 		for (auto const& block : shapeData.blocks)
 		{
 			Vec2i mapPos = pos + block.pos;
@@ -497,13 +526,23 @@ namespace SBlocks
 			CHECK(IsLocked(data));
 			RemoveLock(data);
 		}
-
 		numBlockLocked -= shapeData.blocks.size();
+#endif
 	}
+	bool MarkMap::tryLockAssumeInBound(int posIndex, PieceShapeData const& shapeData)
+	{
+		if (!canLockAssumeInBound(posIndex, shapeData))
+			return false;
 
+		lockChecked(posIndex, shapeData);
+		return true;
+	}
 	bool MarkMap::tryLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
 #if 1
+		int posIndex = mData.toIndex(pos.x, pos.y);
+		return tryLockAssumeInBound(posIndex, shapeData);
+#else
 		int index = 0;
 		for (; index < shapeData.blocks.size(); ++index)
 		{
@@ -528,17 +567,29 @@ namespace SBlocks
 
 		numBlockLocked += shapeData.blocks.size();
 		return true;
-#else
-		if (!canLockAssumeInBound(pos, shapeData))
-			return false;
-
-		lockChecked(pos, shapeData);
-		return true;
 #endif
+	}
+
+	bool MarkMap::canLockAssumeInBound(int posIndex, PieceShapeData const& shapeData)
+	{
+		for (auto const& block : shapeData.blocks)
+		{
+			int index = posIndex + mData.toIndex(block.pos.x, block.pos.y);
+			uint8 data = mData[index];
+			if (!CanLock(data))
+				return false;
+			if (GetType(data) != block.type)
+				return false;
+		}
+		return true;
 	}
 
 	bool MarkMap::canLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
+#if 1
+		int posIndex = mData.toIndex(pos.x, pos.y);
+		return canLockAssumeInBound(posIndex, shapeData);
+#else
 		for (auto const& block : shapeData.blocks)
 		{
 			Vec2i mapPos = pos + block.pos;
@@ -550,10 +601,26 @@ namespace SBlocks
 				return false;
 		}
 		return true;
+#endif
 	}
 
+	void MarkMap::lockChecked(int posIndex, PieceShapeData const& shapeData)
+	{
+		for (auto const& block : shapeData.blocks)
+		{
+			int index = posIndex + mData.toIndex(block.pos.x, block.pos.y);
+			uint8& data = mData[index];
+			CHECK(CanLock(data));
+			AddLock(data);
+		}
+		numBlockLocked += shapeData.blocks.size();
+	}
 	void MarkMap::lockChecked(Vec2i const& pos, PieceShapeData const& shapeData)
 	{
+#if 1
+		int posIndex = mData.toIndex(pos.x, pos.y);
+		lockChecked(posIndex, shapeData);
+#else
 		for (auto const& block : shapeData.blocks)
 		{
 			Vec2i mapPos = pos + block.pos;
@@ -562,6 +629,7 @@ namespace SBlocks
 			AddLock(data);
 		}
 		numBlockLocked += shapeData.blocks.size();
+#endif
 	}
 
 	bool MarkMap::canLock(Vec2i const& pos, PieceShapeData const& shapeData)
@@ -581,6 +649,17 @@ namespace SBlocks
 		if (maxPos.x > mData.getSizeX() || maxPos.y > mData.getSizeY())
 			return false;
 
+		return true;
+	}
+
+	bool MarkMap::isAllNormalType() const
+	{
+		for (int i = 0; i < mData.getRawDataSize(); ++i)
+		{
+			uint8 data = mData[i];
+			if (GetType(data) != EBlock::Normal)
+				return false;
+		}
 		return true;
 	}
 
@@ -628,7 +707,7 @@ namespace SBlocks
 
 	void MarkMap::resize(int sizeX, int sizeY)
 	{
-		TGrid2D< uint8 > oldData = std::move(mData);
+		TGrid2D<uint8> oldData = std::move(mData);
 		mData.resize(sizeX, sizeY);
 
 		numTotalBlocks = 0;
@@ -677,7 +756,7 @@ namespace SBlocks
 		{
 			for (int i = 0; i < mData.getRawDataSize(); ++i)
 			{
-				mData[i] &= ~LOCK_MASK;
+				RemoveLock(mData[i]);
 			}
 			numBlockLocked = 0;
 		}
@@ -826,7 +905,7 @@ namespace SBlocks
 		piece->dir = dir;
 		piece->angle = 0;
 		piece->bCanOperate = true;
-		piece->indexMapLocked = INDEX_NONE;
+		piece->mapIndexLocked = INDEX_NONE;
 		piece->pos = Vector2::Zero();
 		piece->updateTransform();
 		piece->index = mPieces.size();
@@ -847,7 +926,7 @@ namespace SBlocks
 		piece->dir.setValue(desc.dir);
 		piece->bCanOperate = desc.bLockOperation == 0;
 		piece->angle = desc.dir * Math::PI / 2;
-		piece->indexMapLocked = INDEX_NONE;
+		piece->mapIndexLocked = INDEX_NONE;
 		piece->pos = desc.pos;
 		piece->updateTransform();
 		piece->index = mPieces.size();
@@ -925,7 +1004,7 @@ namespace SBlocks
 		if (!map.tryLock(mapPos, piece.getShapeData()))
 			return false;
 
-		piece.indexMapLocked = mapIndex;
+		piece.mapIndexLocked = mapIndex;
 		piece.mapPosLocked = mapPos;
 		piece.pos   = calcPiecePos(piece, mapIndex, mapPos, piece.dir);
 		piece.angle = piece.dir * Math::PI / 2;
@@ -936,8 +1015,8 @@ namespace SBlocks
 	void Level::unlockPiece(Piece& piece)
 	{
 		CHECK(piece.isLocked() == true);
-		mMaps[piece.indexMapLocked].unlock(piece.mapPosLocked, piece.getShapeData());
-		piece.indexMapLocked = INDEX_NONE;
+		mMaps[piece.mapIndexLocked].unlock(piece.mapPosLocked, piece.getShapeData());
+		piece.mapIndexLocked = INDEX_NONE;
 	}
 
 	void Level::unlockAllPiece()

@@ -3,7 +3,7 @@
 
 #include "PokerBase.h"
 #include "DataTransfer.h"
-#include "DataStructure/FixedArray.h"
+#include "DataStructure/InlineArray.h"
 
 namespace Holdem {
 
@@ -185,7 +185,7 @@ namespace Holdem {
 		void procRecvData( int recvId , int dataId , void* data , int dataSize );
 
 		Listener* mListener;
-		TFixedArray< char , 52 > mDecks;
+		TInlineArray< char , 52 > mDecks;
 		int   mNumBet;
 		int   mNumFinishBet;
 		int   mNumCall;

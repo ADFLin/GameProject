@@ -35,7 +35,7 @@ struct FileVersionData
 };
 
 template< class TStreamType >
-class TFileFileSerializer : public IStreamSerializer
+class TFileStreamSerializer : public IStreamSerializer
 {
 public:
 	bool isValid() const { return mFS.good(); }
@@ -113,10 +113,9 @@ protected:
 	std::unique_ptr< FileVersionData > mVersionData;
 	int mMasterVersion = 0;
 	TStreamType mFS;
-
 };
 
-class InputFileSerializer : public TFileFileSerializer< std::ifstream >
+class InputFileSerializer : public TFileStreamSerializer< std::ifstream >
 {
 public:
 	bool open(char const* path, bool bCheckLegacy = false);
@@ -131,7 +130,7 @@ public:
 
 };
 
-class OutputFileSerializer : public TFileFileSerializer< std::ofstream >
+class OutputFileSerializer : public TFileStreamSerializer< std::ofstream >
 {
 public:
 	~OutputFileSerializer();
@@ -149,7 +148,7 @@ private:
 };
 
 #if 0
-class IOFileSerializer : public TFileFileSerializer< std::fstream >
+class IOFileSerializer : public TFileStreamSerializer< std::fstream >
 {
 public:
 	bool open(char const* path, bool bRemoveOldData = false);

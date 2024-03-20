@@ -183,7 +183,7 @@ namespace SBlocks
 			operator Int16Point2D() const { return pos; }
 		};
 
-		TArray< Block > blocks;
+		TArray< Block , FixedSizeAllocator > blocks;
 	};
 
 #define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 0
@@ -200,6 +200,7 @@ namespace SBlocks
 
 		bool isSubset(PieceShapeData const& rhs) const;
 
+		bool isNormal() const;
 		bool compareBlockPos(PieceShapeData const& rhs) const;
 		bool operator == (PieceShapeData const& rhs) const;
 
@@ -210,6 +211,12 @@ namespace SBlocks
 		};
 
 		void generateOuterConPosList(TArray< Int16Point2D >& outPosList) const;
+
+		bool haveBlock(Int16Point2D const& pos) const
+		{
+			return blocks.findIndexPred([&pos](auto const& block) { return block.pos == pos; }) != INDEX_NONE; 
+		}
+
 		void generateOutline(TArray<Line>& outlines) const;
 	
 	private:
@@ -329,8 +336,7 @@ namespace SBlocks
 		RenderTransform2D renderXForm;
 		int clickFrame = 0;
 
-		int indexSolve;
-		bool isLocked() const { return indexMapLocked != INDEX_NONE; }
+		bool isLocked() const { return mapIndexLocked != INDEX_NONE; }
 
 		Vector2 getLTCornerPos() const
 		{
@@ -374,7 +380,7 @@ namespace SBlocks
 
 	private:
 		friend class Level;
-		int indexMapLocked = INDEX_NONE;
+		int mapIndexLocked = INDEX_NONE;
 	};
 
 	struct MapDesc
@@ -435,14 +441,24 @@ namespace SBlocks
 			return Vec2i(mData.getSizeX(), mData.getSizeY());
 		}
 
+		int  toIndex(Vec2i const& pos) const
+		{
+			return mData.toIndex(pos.x, pos.y);
+		}
+
 		bool tryLock(Vec2i const& pos, PieceShapeData const& shapeData);
 		void unlock(Vec2i const& pos, PieceShapeData const& shapeData);
+		void unlock(int posIndex, PieceShapeData const& shapeData);
 		bool tryLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData);
+		bool tryLockAssumeInBound(int posIndex, PieceShapeData const& shapeData);
 		bool canLockAssumeInBound(Vec2i const& pos, PieceShapeData const& shapeData);
+		bool canLockAssumeInBound(int posIndex, PieceShapeData const& shapeData);
 		void lockChecked(Vec2i const& pos, PieceShapeData const& shapeData);
+		void lockChecked(int posIndex, PieceShapeData const& shapeData);
 		bool canLock(Vec2i const& pos, PieceShapeData const& shapeData);
 
 		bool checkBound(Vec2i const &pos, PieceShapeData const &shapeData) const;
+		bool isAllNormalType() const;
 
 		bool isFinish() const { return numTotalBlocks == numBlockLocked; }
 

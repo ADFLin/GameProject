@@ -4,7 +4,7 @@
 #include "PokerBase.h"
 #include "Big2Utility.h"
 
-#include "DataStructure/FixedArray.h"
+#include "DataStructure/InlineArray.h"
 #include "Core/IntegerType.h"
 #include "DataTransfer.h"
 
@@ -17,7 +17,7 @@ namespace Big2 {
 	int const MaxPlayerCardNum = 26;
 	int const PlayerCardNum = 13;
 
-	typedef TFixedArray< Card , 13 > CardDeck;
+	typedef TInlineArray< Card , 13 > CardDeck;
 	inline void RemoveCards( CardDeck& cards , int* pIndex , int num )
 	{
 		int temp[ 52 ];

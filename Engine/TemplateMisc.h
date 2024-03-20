@@ -34,6 +34,33 @@ private:
 };
 
 template< class T >
+class TGuardLoadStore : public Noncopyable
+{
+public:
+	TGuardLoadStore(T& valueRef)
+		:mRef(valueRef)
+	{
+		mValue = valueRef;
+	}
+
+	~TGuardLoadStore()
+	{
+		mRef = mValue;
+	}
+
+	operator T& (){ return mValue; }
+	TGuardLoadStore& operator = (T const& rhs)
+	{
+		mValue = rhs;
+		return *this;
+	}
+private:
+
+	T& mRef;
+	T  mValue;
+};
+
+template< class T >
 class TRef
 {
 public:

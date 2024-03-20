@@ -4,7 +4,7 @@
 
 #include "Math/Base.h"
 #include "Math/Math2D.h"
-#include "DataStructure/FixedArray.h"
+#include "DataStructure/InlineArray.h"
 #include "Tween.h"
 
 

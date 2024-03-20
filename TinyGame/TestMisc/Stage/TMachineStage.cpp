@@ -1,6 +1,6 @@
-#include "TMechineStage.h"
+#include "TMachineStage.h"
 
-namespace TMechine
+namespace TMachine
 {
 	REGISTER_STAGE_ENTRY("TuningMechine", TestStage, EExecGroup::Dev4);
 
@@ -53,12 +53,12 @@ LevelData const gLevels[] =
 #undef RO_DATA
 #undef RO_OP
 
-	Mechine::Mechine()
+	Machine::Machine()
 	{
 
 	}
 
-	void Mechine::reset(TArrayView< DataType const > initValues , int memoryOffset /*= 0*/, int codeEntryLoc /*= 0*/)
+	void Machine::reset(TArrayView< DataType const > initValues , int memoryOffset /*= 0*/, int codeEntryLoc /*= 0*/)
 	{
 		std::fill_n(memory.data(), memory.size(), NullValue);
 
@@ -70,7 +70,7 @@ LevelData const gLevels[] =
 		mCurMem = memory + baseOffset + memoryOffset;
 	}
 
-	bool Mechine::runStep()
+	bool Machine::runStep()
 	{
 		if( mCurOP->code == OP_STOP )
 			return false;
@@ -83,7 +83,7 @@ LevelData const gLevels[] =
 		return true;
 	}
 
-	bool Mechine::executeOperation(Operator const& op)
+	bool Machine::executeOperation(Operator const& op)
 	{
 		switch( op.code )
 		{
@@ -253,4 +253,4 @@ LevelData const gLevels[] =
 		return (sPos - OpPosStart).div(OpSizeOffset);
 	}
 
-}//namespace TMechine
+}//namespace TMachine

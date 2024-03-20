@@ -66,129 +66,140 @@ void MoveValue(T& lhs, T& rhs, T reset = T())
 	rhs = reset;
 }
 
-struct DefaultAllocator
+template< class T >
+struct TDynamicArrayData
 {
-
-	template< class T >
-	struct TArrayData
+	TDynamicArrayData()
 	{
-		TArrayData()
+		mStorage = nullptr;
+		mMaxSize = 0;
+	}
+
+	~TDynamicArrayData()
+	{
+		cleanup();
+	}
+
+	void cleanup()
+	{
+		if (mStorage)
 		{
+			FMemory::Free(mStorage);
 			mStorage = nullptr;
 			mMaxSize = 0;
 		}
+	}
 
-		~TArrayData()
+	void grow(size_t oldSize, size_t newSize)
+	{
+		void* newAlloc;
+		if constexpr (TBitwiseReallocatable<T>::Value)
 		{
-			cleanup();
+			newAlloc = FMemory::Realloc(mStorage, sizeof(T) * newSize);
+			if (newAlloc == nullptr)
+			{
+
+			}
 		}
-
-		void cleanup()
+		else
 		{
+			newAlloc = FMemory::Alloc(sizeof(T) * newSize);
+			if (newAlloc == nullptr)
+			{
+
+			}
+
 			if (mStorage)
 			{
+				if (oldSize)
+				{
+					FTypeMemoryOp::MoveSequence((T*)newAlloc, oldSize, (T*)mStorage);
+
+				}
 				FMemory::Free(mStorage);
-				mStorage = nullptr;
-				mMaxSize = 0;
 			}
 		}
 
-		bool   needAlloc(size_t OldSize, size_t numNewElements)
+		mStorage = newAlloc;
+		mMaxSize = newSize;
+	}
+
+	void reserve(size_t oldSize, size_t size)
+	{
+		if (size > mMaxSize)
+		{
+			grow(oldSize, size);
+		}
+	}
+
+	void swap(TDynamicArrayData& other)
+	{
+		using std::swap;
+		swap(mStorage, other.mStorage);
+		swap(mMaxSize, other.mMaxSize);
+	}
+
+
+	void  shrinkTofit(size_t size)
+	{
+
+	}
+
+	size_t getMaxSize() const { return mMaxSize; }
+	T*     getAllocation() const { return (T*)mStorage; }
+
+	TDynamicArrayData& operator = (TDynamicArrayData&& rhs)
+	{
+		cleanup();
+		MoveValue(mStorage, rhs.mStorage);
+		MoveValue(mMaxSize, rhs.mMaxSize);
+		return *this;
+	}
+
+	void*  mStorage;
+	size_t mMaxSize;
+};
+
+
+struct DefaultAllocator
+{
+	template< class T >
+	struct TArrayData : TDynamicArrayData<T>
+	{
+		bool needAlloc(size_t OldSize, size_t numNewElements)
 		{
 			return OldSize + numNewElements > mMaxSize;
 		}
 
-		void alloc(size_t OldSize, size_t numNewElements)
+		void alloc(size_t oldSize, size_t numNewElements)
 		{
-			size_t growSize = OldSize + numNewElements;
+			size_t growSize = oldSize + numNewElements;
 			growSize += (3 * growSize) / 8;
-
-			void* newAlloc;
-			if constexpr (TBitwiseReallocatable<T>::Value)
-			{
-				newAlloc = FMemory::Realloc(mStorage, sizeof(T) * growSize);
-				if (newAlloc == nullptr)
-				{
-
-				}
-			}
-			else
-			{
-				newAlloc = FMemory::Alloc(sizeof(T) * growSize);
-				if (newAlloc == nullptr)
-				{
-
-				}
-				FTypeMemoryOp::MoveSequence((T*)newAlloc, OldSize, (T*)mStorage);
-				FMemory::Free(mStorage);
-			}
-
-			mStorage = newAlloc;
-			mMaxSize = growSize;
+			grow(oldSize, growSize);
 		}
-
-		void reserve(size_t size)
-		{
-			if (size > mMaxSize)
-			{
-				void* newAlloc = FMemory::Realloc(mStorage, sizeof(T) * size);
-				mStorage = newAlloc;
-				mMaxSize = size;
-			}
-		}
-
-		void  shrinkTofit(size_t size)
-		{
-
-		}
-
-		void swap(TArrayData& other)
-		{
-			using std::swap;
-			swap(mStorage, other.mStorage);
-			swap(mMaxSize, other.mMaxSize);
-		}
-
-		size_t getMaxSize() const { return mMaxSize; }
-		T*     getAllocation() const { return (T*)mStorage; }
-
-		TArrayData& operator = (TArrayData&& rhs)
-		{
-			cleanup();
-			MoveValue(mStorage, rhs.mStorage);
-			MoveValue(mMaxSize, rhs.mMaxSize);
-			return *this;
-		}
-
-		void*  mStorage;
-		size_t mMaxSize;
 	};
-
-
 };
 
-struct DyanmicFixedAllocator
+struct FixedSizeAllocator
 {
-
 	template< class T >
-	struct TArrayData
+	struct TArrayData : TDynamicArrayData<T>
 	{
-		T*     getAllocation() { return (T*)mStorage; }
-		bool   needAlloc(size_t OldSize, size_t numNewElements)
+		bool needAlloc(size_t OldSize, size_t numNewElements)
 		{
+			CHECK(OldSize + numNewElements <= mMaxSize);
 			return false;
 		}
-		void   alloc(size_t OldSize, size_t numNewElements)
+
+		void alloc(size_t OldSize, size_t numNewElements)
 		{
 
 		}
-
-		TCompatibleByte< T >* mStorage;
 	};
 };
 
 template < size_t TotalSize >
-struct TFixedAllocator
+struct TInlineAllocator
 {
 	enum 
 	{
@@ -348,7 +359,7 @@ public:
 
 	void reserve(size_t size)
 	{
-		ArrayData::reserve(size);
+		ArrayData::reserve(mNum, size);
 	}
 
 	template< typename ...TArgs >

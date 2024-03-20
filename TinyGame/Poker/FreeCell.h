@@ -3,7 +3,7 @@
 
 #include "PokerBase.h"
 
-#include "DataStructure/FixedArray.h"
+#include "DataStructure/InlineArray.h"
 
 #include <vector>
 #include <cstdlib>

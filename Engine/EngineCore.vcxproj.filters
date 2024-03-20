@@ -367,6 +367,9 @@
     <ClCompile Include="..\OtherLib\minivorbis\minivorbis.c">
       <Filter>OtherLib</Filter>
     </ClCompile>
+    <ClCompile Include="Algo\DLX.cpp">
+      <Filter>Algo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -915,9 +918,6 @@
     <ClInclude Include="WindowsMessageHandler.h">
       <Filter>Platform</Filter>
     </ClInclude>
-    <ClInclude Include="DataStructure\FixedArray.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
     <ClInclude Include="Platform\PlatformModule.h">
       <Filter>Platform</Filter>
     </ClInclude>
@@ -992,6 +992,15 @@
     </ClInclude>
     <ClInclude Include="MortonCode.h">
       <Filter>Algo</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\InlineArray.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Algo\DLX.h">
+      <Filter>Algo</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta\Unroll.h">
+      <Filter>Meta</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -48,6 +48,7 @@ namespace SBlocks
 		REGISTER_COM("Solve", solveLevel, CVF_ALLOW_IGNORE_ARGS);
 		REGISTER_COM("Load", loadLevel);
 		REGISTER_COM("LoadTest", loadTestLevel);
+		REGISTER_COM("RunScript", runScript);
 #undef REGISTER_COM
 		return true;
 	}
@@ -249,21 +250,29 @@ namespace SBlocks
 
 	}
 
-	void LevelStage::solveLevel(int option)
+	void LevelStage::solveLevel(int option, char const* params)
 	{
 		bool bForceReset = option == 1;
 		bool bFullSolve = option == 2;
 		bool bParallelSolve = option == 3;
+		bool bDLXSolve = option == 4;
 		TIME_SCOPE("Solve Level");
 
+		auto FindOption = [params](char const* option)
+		{
+			return FCString::StrStr(params, option) != nullptr;
+		};
+
 		bool bFirstSolve = false;
-		if (bFullSolve || bParallelSolve || bForceReset || mSolver == nullptr)
+		if (bFullSolve || bParallelSolve || bDLXSolve || bForceReset || mSolver == nullptr)
 		{
 			SolveOption option;
 			option.bEnableSortPiece = CVarSolverEnableSortPiece;
 			option.bEnableRejection = CVarSolverEnableRejection;
 			option.bEnableIdenticalShapeCombination = CVarSolverEnableIdenticalShapeCombination;
 			option.bCheckMapSymmetry = true;
+			option.bUseMapMask = true;
+			option.bReserveLockedPiece = FindOption("RLP");
 
 			TIME_SCOPE("Solver Setup");
 			mSolver = std::make_unique< Solver >();
@@ -299,7 +308,13 @@ namespace SBlocks
 #endif
 			return;
 		}
-
+		else if (bDLXSolve)
+		{ 
+			bool bRecursive = FindOption("Rec");
+			int numSolutions = mSolver->solveDLX(bRecursive);
+			LogMsg("Solve level %d Solution !", numSolutions);
+			return;
+		}
 
 		bool bSuccess;
 		if (bFirstSolve)
@@ -317,18 +332,33 @@ namespace SBlocks
 			TArray<PieceSolveState> sovledStates;
 			mSolver->getSolvedStates(sovledStates);
 
-			mLevel.unlockAllPiece();
-			for (int i = 0; i < mLevel.mPieces.size(); ++i)
+			if (mSolver->mUsedOption.bReserveLockedPiece)
 			{
-				Piece* piece = mLevel.mPieces[i].get();
-				auto const& state = sovledStates[piece->indexSolve];
+				for (auto const& solveData : mSolver->mPieceList)
+				{
+					Piece* piece = solveData.piece;
+					if (piece->isLocked())
+					{
+						mLevel.unlockPiece(*piece);
+					}
+				}
+			}
+			else
+			{
+				mLevel.unlockAllPiece();
+			}
+
+			for (auto const& solveData : mSolver->mPieceList)
+			{
+				Piece* piece = solveData.piece;
+				auto const& state = sovledStates[solveData.index];
 				if (mLevel.bAllowMirrorOp)
 				{
-					LogMsg("%d = [%d](%d, %d) dir = %d mirror = %d", i, state.mapIndex, state.pos.x, state.pos.y, state.op.dir, (int)state.op.mirror);
+					LogMsg("%d = [%d](%d, %d) dir = %d mirror = %d", piece->index, state.mapIndex, state.pos.x, state.pos.y, state.op.dir, (int)state.op.mirror);
 				}
 				else
 				{
-					LogMsg("%d = [%d](%d, %d) dir = %d", i, state.mapIndex, state.pos.x, state.pos.y, state.op.dir);
+					LogMsg("%d = [%d](%d, %d) dir = %d", piece->index, state.mapIndex, state.pos.x, state.pos.y, state.op.dir);
 				}
 
 				PieceShape::OpState opState = piece->shape->getOpState(state.indexData);
@@ -388,6 +418,35 @@ namespace SBlocks
 		{
 			mLevel.importDesc(*TestLevels[index]);
 			initializeGame();
+		}
+	}
+
+
+	char const* BatchScript[] =
+	{
+		"Load lv05",
+	};
+
+	char const* BatchScript2[] =
+	{
+		"Load STest",
+		"Solve 2",
+	};
+	using ScriptData = TArrayView< char const* >;
+	TArrayView< ScriptData const > ScriptList = ARRAY_VIEW_REAONLY_DATA(ScriptData, MakeView(BatchScript2), MakeView(BatchScript) );
+
+	void LevelStage::runScript(int index)
+	{
+		if (ScriptList.isValidIndex(index))
+		{
+			auto const& script = ScriptList[index];
+
+			for (int i = 0; i < script.size(); ++i)
+			{
+				std::string cmd = "SBlocks.";
+				cmd += script[i];
+				ConsoleSystem::Get().executeCommand(cmd.c_str());
+			}
 		}
 	}
 
@@ -596,7 +655,6 @@ namespace SBlocks
 		REGISTER_COM("CopyShape", copyEditPieceShape);
 		REGISTER_COM("EditShape", editEditPieceShapeCmd);
 
-		REGISTER_COM("RunScript", runScript);
 #undef REGISTER_COM
 	}
 
@@ -604,21 +662,6 @@ namespace SBlocks
 	{
 		auto& console = ConsoleSystem::Get();
 		console.unregisterAllCommandsByObject(this);
-	}
-
-	char const* BatchScript[] =
-	{
-		"Load lv05",
-	};
-
-	void Editor::runScript()
-	{
-		for (int i = 0; i < ARRAY_SIZE(BatchScript); ++i)
-		{
-			std::string cmd = "SBlocks.";
-			cmd += BatchScript[i];
-			ConsoleSystem::Get().executeCommand(cmd.c_str());
-		}
 	}
 
 

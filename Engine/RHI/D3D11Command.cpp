@@ -198,6 +198,7 @@ namespace Render
 		uint32 deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 		if ( initParam.bDebugMode )
 			deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+	
 		VERIFY_D3D_RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, deviceFlags, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContextImmdiate));
 
 

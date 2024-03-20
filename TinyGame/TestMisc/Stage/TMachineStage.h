@@ -6,7 +6,7 @@
 #include "Template/ArrayView.h"
 #include "MarcoCommon.h"
 
-namespace TMechine
+namespace TMachine
 {
 	typedef int32 DataType;
 	DataType const NullValue = 0xdddddddd;
@@ -41,10 +41,10 @@ namespace TMechine
 		TArrayView< Operator const > data;
 	};
 
-	class Mechine
+	class Machine
 	{
 	public:
-		Mechine();
+		Machine();
 
 		void reset( TArrayView< DataType const > initValues , int memoryOffset = 0, int codeEntryLoc = 0);
 
@@ -107,7 +107,7 @@ namespace TMechine
 		TestStage() {}
 
 		std::vector< Operator > opCodes;
-		Mechine  mechine;
+		Machine  mechine;
 		DataType memory[256];
 		LevelData const* curLevel = nullptr;
 		bool bExecuting = false;
@@ -250,6 +250,6 @@ namespace TMechine
 
 
 
-}//namespace TMechine
+}//namespace TMachine
 
 #endif // TMechineStage_H_CD5B0DFC_4BF1_44BD_AC6F_FC622344621E

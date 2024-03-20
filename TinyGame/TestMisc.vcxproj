@@ -292,7 +292,7 @@
     <ClInclude Include="TestMisc\Stage\GGJStage.h" />
     <ClInclude Include="TestMisc\Stage\RubiksStage.h" />
     <ClInclude Include="TestMisc\Stage\StickMoveStage.h" />
-    <ClInclude Include="TestMisc\Stage\TMechineStage.h" />
+    <ClInclude Include="TestMisc\Stage\TMachineStage.h" />
     <ClInclude Include="TestMisc\TestMiscPCH.h" />
     <ClInclude Include="TestMisc\Test\SpatialIndexTest.h" />
     <ClInclude Include="TripleTown\TTResource.h" />
@@ -458,7 +458,7 @@
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StackStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />
-    <ClCompile Include="TestMisc\Stage\TMechineStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\TMachineStage.cpp" />
     <ClCompile Include="TestMisc\Stage\TypeReflectTest.cpp" />
     <ClCompile Include="TestMisc\TestMisc.cpp" />
     <ClCompile Include="TestMisc\TestMiscPCH.cpp">
@@ -473,6 +473,7 @@
     <ClCompile Include="TestMisc\Test\CoroutineTest.cpp" />
     <ClCompile Include="TestMisc\Test\CriminalTest.cpp" />
     <ClCompile Include="TestMisc\Test\DelegateTest.cpp" />
+    <ClCompile Include="TestMisc\Test\DLXTest.cpp" />
     <ClCompile Include="TestMisc\Test\DrawCardTest.cpp" />
     <ClCompile Include="TestMisc\Test\FPUCompilerTest.cpp">
       <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotSet</EnableEnhancedInstructionSet>

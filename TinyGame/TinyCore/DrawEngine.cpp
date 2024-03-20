@@ -23,7 +23,7 @@
 
 using namespace Render;
 
-ERenderSystem GDefaultRHIName = ERenderSystem::D3D12;
+ERenderSystem GDefaultRHIName = ERenderSystem::D3D11;
 bool GbDefaultUsePlatformGraphic = false;
 
 namespace

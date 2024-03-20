@@ -98,7 +98,7 @@ public:
 
 #if CPP_RVALUE_REFENCE_SUPPORT
 	TGrid2D( TGrid2D&& rhs )
-		:MP( rhs )
+		:MP( std::move(rhs) )
 		,mStorage( rhs.mStorage )
 		,mSize( rhs.mSize )
 	{

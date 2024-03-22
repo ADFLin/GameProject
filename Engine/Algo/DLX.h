@@ -80,10 +80,11 @@ namespace DLX
 
 	struct MatrixColumn
 	{
-		int col;
-		int count;
 		NodeLink colLink;
 		NodeLink rowLink;
+
+		int count;
+		int col;
 #if _DEBUG
 		bool bCovered = false;
 #endif
@@ -95,10 +96,11 @@ namespace DLX
 
 	struct Node
 	{
+		NodeLink colLink;
+		NodeLink rowLink;
+
 		int col;
 		int row;
-		NodeLink rowLink;
-		NodeLink colLink;
 
 		static Node& GetFromRow(NodeLink& nodeLink)
 		{
@@ -181,7 +183,7 @@ namespace DLX
 		};
 
 		void solveRec(MatrixColumn* curCol);
-		void solveStack(MatrixColumn* startCol);
+		void solveStack(MatrixColumn* curCol);
 
 		void handleSolutionFound()
 		{

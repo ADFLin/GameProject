@@ -6,6 +6,23 @@
 
 namespace DLX
 {
+	template< typename T >
+	struct TReverseView
+	{
+		TReverseView(T& t)
+			:mT(t){}
+
+		auto begin() { return mT.rbegin(); }
+		auto end() { return mT.rend(); }
+		T& mT;
+	};
+
+	template< typename T >
+	auto MakeReverseView(T& t)
+	{
+		return TReverseView<T>(t);
+	}
+
 	void Matrix::build(int nRow, int nCol, uint8 data[])
 	{
 		header.initHeader();
@@ -77,12 +94,12 @@ namespace DLX
 		CHECK(matCol.bCovered == true);
 		matCol.bCovered = false;
 #endif
-		for (auto it = matCol.rowLink.rbegin(); it != matCol.rowLink.rend(); ++it)
+		for (NodeLink& linkRow : MakeReverseView(matCol.rowLink))
 		{
-			Node& node = Node::GetFromRow(*it);
-			for (auto it = node.colLink.rbegin(); it != node.colLink.rend(); ++it)
+			Node& node = Node::GetFromRow(linkRow);
+			for (NodeLink& linkCol : MakeReverseView(node.colLink))
 			{
-				Node& nodeCol = Node::GetFromCol(*it);
+				Node& nodeCol = Node::GetFromCol(linkCol);
 				nodeCol.rowLink.relink();
 				mCols[nodeCol.col].count += 1;
 			}
@@ -101,34 +118,29 @@ namespace DLX
 
 	void Matrix::uncover(Node& selectedNode)
 	{
-		for (auto it = selectedNode.colLink.rbegin(); it != selectedNode.colLink.rend(); ++it)
+		for (NodeLink& linkCol : MakeReverseView(selectedNode.colLink))
 		{
-			Node& nodeCol = Node::GetFromCol(*it);
+			Node& nodeCol = Node::GetFromCol(linkCol);
 			uncover(mCols[nodeCol.col]);
 		}
 	}
 
 	void Matrix::removeUnsedColumns()
 	{
-		for (NodeLink* colLink = header.next; colLink != &header; )
+		for (NodeLink& linkCol : header)
 		{
-			MatrixColumn& matCol = MatrixColumn::GetFromCol(*colLink);
+			MatrixColumn& matCol = MatrixColumn::GetFromCol(linkCol);
 			if (matCol.count == 0)
 			{
-				colLink = colLink->next;
 				matCol.colLink.unlink();
-			}
-			else
-			{
-				colLink = colLink->next;
 			}
 		}
 	}
 
 	MatrixColumn* Solver::selectColumn()
 	{
+#if 1
 		NodeLink* colLink = mMat.header.next;
-
 		MatrixColumn* result;
 		int minCount;
 		{
@@ -152,6 +164,22 @@ namespace DLX
 				minCount = matCol.count;
 			}
 		}
+#else
+		MatrixColumn* result = nullptr;
+		int minCount = std::numeric_limits<int>::max();
+		for (NodeLink& linkCol : mMat.header)
+		{
+			MatrixColumn& matCol = MatrixColumn::GetFromCol(linkCol);
+			if (matCol.count == 0)
+				return nullptr;
+
+			if (matCol.count < minCount)
+			{
+				result = &matCol;
+				minCount = matCol.count;
+			}
+		}
+#endif
 		return result;
 	}
 

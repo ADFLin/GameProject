@@ -50,6 +50,20 @@ namespace SBlocks
 	{
 		return !!(lhs & IndexMask(index));
 	}
+	FORCEINLINE void SetIndex(MapMask& lhs, int index)
+	{
+		lhs |= IndexMask(index);
+	}
+
+	FORCEINLINE bool TestAndSet(MapMask const& test, MapMask& set, int index)
+	{
+		uint64 mask = IndexMask(index);
+		if (test & mask)
+			return false;
+
+		set |= mask;
+		return true;
+	}
 #else
 	using MapMask = TBitSet<1 , uint64>;
 	FORCEINLINE MapMask IndexMask(int index)
@@ -64,6 +78,15 @@ namespace SBlocks
 	FORCEINLINE bool IsSet(MapMask const& lhs, int index)
 	{
 		return lhs.test(index);
+	}
+
+	FORCEINLINE bool TestAndSet(MapMask const& test, MapMask& set, int index)
+	{
+		if (test.test(index))
+			return false;
+
+		set.add(index);
+		return true;
 	}
 #endif
 
@@ -220,6 +243,7 @@ namespace SBlocks
 		void copyFrom(MapSolveData const& rhs);
 		int countConnectedTiles(Vec2i const& pos);
 		int countConnectedTilesMask(Vec2i const& pos);
+		int countConnectedTilesMask(Vec2i const& pos, MapMask const& visitedMask, MapMask& outMask);
 		int countConnectedTilesRec(Vec2i const& pos);
 
 		void getConnectedTilePosList(Vec2i const& pos);
@@ -246,6 +270,7 @@ namespace SBlocks
 			Vec2i pos;
 			int   index;
 			MapSolveData* mapData;
+			MapMask mask;
 		};
 		TArray<ShapeTest> mCachedPendingTests;
 		int mMaxTestShapeSize;
@@ -270,10 +295,14 @@ namespace SBlocks
 
 		template< bool bUseMapMask >
 		ERejectResult::Type testRejection(MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList);
+
+		ERejectResult::Type testRejectionMask(MapSolveData& mapData, Vec2i const pos, TArray< Int16Point2D > const& outerConPosList);
 		template< bool bUseMapMask >
 		ERejectResult::Type testRejection(ShapeSolveData& shapeSolveData, int indexPiece);
 		template< bool bUseMapMask >
 		ERejectResult::Type testRejectionInternal(MapSolveData &mapData, Vec2i const& testPos);
+
+		ERejectResult::Type testRejectionMaskInternal(MapSolveData &mapData, Vec2i const& testPos, MapMask& visitedMask);
 
 		template< bool bUseSubsetCheck, bool bUseMapMask, typename TFunc >
 		ERejectResult::Type runPendingShapeTest(TFunc& CheckPieceFunc);

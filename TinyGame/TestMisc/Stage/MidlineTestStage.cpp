@@ -24,6 +24,23 @@ public:
 		return true;
 	}
 
+	struct DebugInfo
+	{
+		Vector2 pos;
+		Vector2 normal;
+		Vector2 centerPos;
+		float   distNormal;
+		float   dist;
+
+		void draw(RHIGraphics2D& g, Vector2 const& testPos)
+		{
+			Vector2 rPos = centerPos + (distNormal + 10) * normal;
+			g.drawLine(pos, testPos);
+			g.drawLine(centerPos, rPos);
+			g.drawText(rPos, InlineString<>::Make("%.2f", dist));
+		}
+	};
+
 	struct Point
 	{
 		Vector2 pos;
@@ -31,11 +48,19 @@ public:
 		float   length;
 		float   distance;
 
-		Vector2 getDebugPos(float dotDist, Vector2 const& offset) const
+		DebugInfo getDebugPos(float dotDist, Vector2 const& offset) const
 		{
+			DebugInfo result;
+			float sign = Math::Sign(offset.cross(dir));
+			Vector2 normal = sign * Vector2(dir.y, -dir.x);
 			float distNormal = Math::Sqrt(offset.length2() - Math::Square(dotDist));
-			float sign = Math::Sign( offset.cross(dir));
-			return pos + ( sign * distNormal ) * Vector2(dir.y, -dir.x) + (0.5 * length) * dir;
+
+			result.normal = normal;
+			result.centerPos = pos + (0.5 * length) * dir;
+			result.pos = result.centerPos + distNormal * normal;
+			result.distNormal = distNormal;
+			result.dist = distance + 0.5 * length;
+			return result;
 		}
 	};
 
@@ -136,25 +161,28 @@ public:
 		if (bHavePos)
 		{
 			RenderUtility::SetPen(g, EColor::Blue);
+			RenderUtility::SetFontColor(g, EColor::Cyan);
 			if (debugMask & BIT(0))
-				g.drawLine(debugPos[0], testPos);
+			{
+				debugPos[0].draw(g, testPos);
+			}
 			if (debugMask & BIT(1))
-				g.drawLine(debugPos[1], testPos);
+			{
+				debugPos[1].draw(g, testPos);
+			}
 			RenderUtility::SetPen(g, EColor::Null);
 			RenderUtility::SetBrush(g, EColor::Yellow);
 			Vector2 size = Vector2(5, 5);
 			g.drawRect(testPos - 0.5 * size, size);
 			RenderUtility::SetFontColor(g, EColor::Yellow);
 			g.drawText(testPos, InlineString<>::Make("%.2f", mDistance));
-
-
 		}
 		g.endRender();
 	}
 
 
-	Vector2 debugPos[2];
-	uint32  debugMask = 0;
+	DebugInfo debugPos[2];
+	uint32    debugMask = 0;
 
 
 

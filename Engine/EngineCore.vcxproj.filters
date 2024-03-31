@@ -1002,6 +1002,9 @@
     <ClInclude Include="Meta\Unroll.h">
       <Filter>Meta</Filter>
     </ClInclude>
+    <ClInclude Include="Misc\ReferenceWarpper.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

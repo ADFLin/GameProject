@@ -179,11 +179,12 @@ void RenderEngine::renderBasePass(RHICommandList& commandList, RenderParam& para
 	mProgBasePass->setParam(commandList, SHADER_PARAM(LocalToWorld), Matrix4::Identity());
 	mDrawer.mShader = mProgBasePass;
 
-	visitTiles(param.level, param.terrainRange, [this](Tile const& tile)
-	{
-		Block::Get(tile.id)->renderBasePass(mDrawer, tile);
-	});
-
+	visitTiles(param.level, param.terrainRange,
+		[this](Tile const& tile)
+		{
+			Block::Get(tile.id)->renderBasePass(mDrawer, tile);
+		}
+	);
 	renderObjects(RP_BASE_PASS, param.level);
 	RHIResourceTransition(commandList, { mTexGeometry ,mTexNormalMap }, EResourceTransition::SRV);
 }

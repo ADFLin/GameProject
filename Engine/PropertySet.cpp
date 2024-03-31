@@ -1,13 +1,12 @@
 #include "PropertySet.h"
+
 #include "Core/StringConv.h"
 #include "StringParse.h"
+#include "DataStructure/Array.h"
+#include "TemplateMisc.h"
 
 #include <fstream>
 #include <algorithm>
-#include "DataStructure/Array.h"
-
-
-
 
 float KeyValue::getFloat() const
 {
@@ -521,23 +520,12 @@ bool PropertyFile::visit(char const* sectionName, char const* keyName, TFunc&& f
 	return false;
 }
 
-
-template< typename ...TFunc >
-struct Overloaded : public TFunc...
-{
-	using TFunc::operator()...;
-};
-
-template< typename ...TFunc >
-Overloaded(TFunc ...func)->Overloaded< TFunc... >;
-
-
 void PropertyFile::setKeyValue(char const* sectionName, char const* keyName, char const* value)
 {
 	TArray< Element >* firstElements = nullptr;
 	bool bSetted = false;
 
-	visit(sectionName, keyName, Overloaded
+	visit(sectionName, keyName, TOverloaded
 		{
 			[&](Element& element)
 			{
@@ -587,7 +575,7 @@ void PropertyFile::setKeyValues(char const* sectionName, char const* keyName, TA
 	TArray< bool > indicesSetted( values.size(), false );
 	int indexCheckSort = 0;
 
-	visit(sectionName, keyName, Overloaded
+	visit(sectionName, keyName, TOverloaded
 		{
 			[&](Element& element)
 			{
@@ -657,7 +645,7 @@ void PropertyFile::setKeyValues(char const* sectionName, char const* keyName, TA
 	TArray< bool > indicesSetted(values.size(), false);
 	int indexCheckSort = 0;
 
-	visit(sectionName, keyName, Overloaded
+	visit(sectionName, keyName, TOverloaded
 		{
 			[&](Element& element)
 			{

@@ -87,5 +87,13 @@ TRef< T >      ref(T& val) { return TRef< T >(val); }
 template< class T >
 TConstRef< T > ref(T const& val) { return TConstRef< T >(val); }
 
+template< typename ...TFunc >
+struct TOverloaded : public TFunc...
+{
+	using TFunc::operator()...;
+};
+
+template< typename ...TFunc >
+TOverloaded(TFunc ...func)->TOverloaded< TFunc... >;
 
 #endif // TemplateMisc_H_89EFA76B_D261_47AE_83A7_DE05B2C8EA0D

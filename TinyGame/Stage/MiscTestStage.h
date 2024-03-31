@@ -40,6 +40,7 @@ class TaskBase;
 
 class MiscTestStage : public StageBase
 	                , public IMiscTestCore
+	                , public IGameRenderSetup
 {
 	using BaseClass = StageBase;
 public:
@@ -47,7 +48,8 @@ public:
 
 	enum 
 	{
-		UI_TEST_BUTTON = BaseClass::NEXT_UI_ID ,
+		UI_TEST_FUNC_BUTTON = BaseClass::NEXT_UI_ID ,
+		UI_TEST_STAGE_BUTTON,
 	};
 	bool onInit() override;
 
@@ -67,7 +69,8 @@ public:
 		updateFrame( frame );
 	}
 
-	void addTest( char const* name , ExecuteFunc const& func );
+	void addTestFunc( char const* name , ExecuteFunc const& func );
+	void addTestStage(char const* name, ExecuteFunc const& func);
 
 	struct TestInfo
 	{
@@ -85,7 +88,7 @@ public:
 
 	void tick()
 	{
-
+		processGameThreadCommnads();
 	}
 
 	void updateFrame( int frame )
@@ -115,26 +118,41 @@ public:
 
 	bool onWidgetEvent(int event , int id , GWidget* ui) override;
 
-	void pauseThread(uint32 threadId) override;
-	void registerRender(uint32 threadId, MiscRenderFunc const& func) override;
+	void pauseExecution(uint32 threadId) override;
 
+
+
+	MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size) override;
+	void terminateThread(Thread* thread);
+	void resumeThread(Thread* thread);
 	void resumeAllThreads();
-
-	void registerThread(Thread* thread);
-	void unregisterThread(Thread* thread);
 
 
 	struct ExecutionData
 	{
 		Thread* thread;
-		MiscRenderFunc renderFunc;
+		class ExecutionPanel* panel = nullptr;
+
 	};
+	ExecutionData* findExecutionAssumeLocked(uint32 threadId);
+	ExecutionData& registerThread(Thread* thread);
+	void unregisterThread(Thread* thread);
+
+	template< class TFunc >
+	void addGameThreadCommnad(TFunc&& func)
+	{
+		Mutex::Locker locker(mMutexGameThreadCommands);
+		mGameThreadCommands.push_back(std::forward<TFunc>(func));
+	}
+	void processGameThreadCommnads();
 
 	Mutex mThreadDataMutex;
-
+	Mutex mMutexGameThreadCommands;
+	TArray< std::function< void() > > mGameThreadCommands;
 	TArray< ExecutionData > mRunningExecutions;
-	TArray< Thread* > mPauseExecutions;
 
+
+	void configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs) override;
 
 protected:
 
@@ -142,7 +160,7 @@ protected:
 
 BITWISE_RELLOCATABLE_FAIL(MiscTestStage::TestInfo);
 BITWISE_RELLOCATABLE_FAIL(MiscTestStage::ExecutionData);
-
+BITWISE_RELLOCATABLE_FAIL(std::function< void() >);
 
 template< class T >
 class TQBezierSpline
@@ -735,7 +753,7 @@ namespace MRT
 		{
 
 		}
-		Station* mShowStation;
+		Station*  mShowStation;
 		LinkInfo* mShowLinkInfo;
 	};
 

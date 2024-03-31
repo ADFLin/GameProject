@@ -14,7 +14,7 @@ class IFont
 public:
 	virtual void release() = 0;
 public:
-	static IFont* loadFont( char const* path );
+	static IFont* LoadFile( char const* path );
 };
 
 

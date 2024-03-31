@@ -46,6 +46,9 @@ namespace Poker
 		virtual void beginPlay( StageManager& manger, EGameStageMode modeType ) override;
 		
 		virtual void notifyStageInitialized(StageBase* stage);
+
+		virtual ERenderSystem getDefaultRenderSystem() override;
+
 	public:
 		virtual char const*           getName(){ return POKER_GAME_NAME; }
 		virtual InputControl&         getInputControl(){ return IGameModule::getInputControl(); }

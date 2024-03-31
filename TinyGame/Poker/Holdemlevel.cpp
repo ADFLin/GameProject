@@ -31,7 +31,7 @@ namespace Holdem {
 		}
 		int calcPower( Card sortedCards[] , int numCard , int idxCardTake[] );
 	private:
-		static int const MaxCardNum = 7;
+		static int const MaxCardNum = CommunityCardNum + PocketCardNum;
 		struct FaceGroup
 		{
 			int idx;

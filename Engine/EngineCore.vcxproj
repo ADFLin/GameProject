@@ -398,6 +398,7 @@
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
     <ClInclude Include="Misc\CStringWrapper.h" />
+    <ClInclude Include="Misc\ReferenceWarpper.h" />
     <ClInclude Include="ModuleInterface.h" />
     <ClInclude Include="Module\ModularFeature.h" />
     <ClInclude Include="Module\ModuleInterface.h" />

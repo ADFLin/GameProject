@@ -1311,7 +1311,7 @@ namespace Render
 
 		GraphicsShaderStateDesc()
 		{
-			::memset(this, 0, sizeof(*this));
+			::FMemory::Zero(this, sizeof(*this));
 		}
 	};
 

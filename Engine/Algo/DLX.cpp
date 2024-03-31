@@ -25,6 +25,7 @@ namespace DLX
 
 	void Matrix::build(int nRow, int nCol, uint8 data[])
 	{
+		mRowCount = nRow;
 		header.initHeader();
 
 		int numNode = std::count_if(data, data + nRow * nCol, [](uint8 a) { return !!a; });
@@ -140,7 +141,7 @@ namespace DLX
 	MatrixColumn* Solver::selectColumn()
 	{
 #if 1
-		NodeLink* colLink = mMat.header.next;
+		NodeLink* colLink = mMat->header.next;
 		MatrixColumn* result;
 		int minCount;
 		{
@@ -152,7 +153,7 @@ namespace DLX
 			minCount = matCol.count;
 		}
 
-		for (; colLink != &mMat.header; colLink = colLink->next)
+		for (; colLink != &mMat->header; colLink = colLink->next)
 		{
 			MatrixColumn& matCol = MatrixColumn::GetFromCol(*colLink);
 			if (matCol.count == 0)
@@ -167,7 +168,7 @@ namespace DLX
 #else
 		MatrixColumn* result = nullptr;
 		int minCount = std::numeric_limits<int>::max();
-		for (NodeLink& linkCol : mMat.header)
+		for (NodeLink& linkCol : mMat->header)
 		{
 			MatrixColumn& matCol = MatrixColumn::GetFromCol(linkCol);
 			if (matCol.count == 0)
@@ -187,8 +188,9 @@ namespace DLX
 	{
 		Profile_GetTicks(&timeStart);
 		mSolutionCount = 0;
+		mSolution.reserve(mMat->getColSize());
 
-		if (mMat.isEmpty())
+		if (mMat->isEmpty())
 			return;
 
 		MatrixColumn* selectedCol = selectColumn();
@@ -200,7 +202,7 @@ namespace DLX
 			}
 			else
 			{
-				mLevelStack.reserve(mMat.getColSize());
+				mLevelStack.reserve(mMat->getColSize());
 				solveInternal<false>(selectedCol);
 			}
 		}
@@ -210,15 +212,15 @@ namespace DLX
 	template< bool bRecursive>
 	void Solver::solveInternal(MatrixColumn* startCol)
 	{
-		mMat.cover(*startCol);
+		mMat->cover(*startCol);
 		int index = 0;
 		for (NodeLink& rowLink : startCol->rowLink)
 		{
 			Node& node = Node::GetFromRow(rowLink);
 			mSolution.push_back(node.row);
-			mMat.cover(node);
+			mMat->cover(node);
 
-			if (mMat.isEmpty())
+			if (mMat->isEmpty())
 			{
 				handleSolutionFound();
 			}
@@ -234,7 +236,7 @@ namespace DLX
 				}			
 			}
 
-			mMat.uncover(node);
+			mMat->uncover(node);
 			mSolution.pop_back();
 
 			++index;
@@ -244,20 +246,20 @@ namespace DLX
 			double time = double(timeEnd - timeStart) / Profile_GetTickRate();
 			LogMsg("Solve progress = %03.2f%% , Duration = %.2lf", pct, time);
 		}
-		mMat.uncover(*startCol);
+		mMat->uncover(*startCol);
 	}
 
 
 	void Solver::solveRec(MatrixColumn* curCol)
 	{
-		mMat.cover(*curCol);
+		mMat->cover(*curCol);
 		for (NodeLink& rowLink : curCol->rowLink)
 		{
 			Node& node = Node::GetFromRow(rowLink);
 			mSolution.push_back(node.row);
-			mMat.cover(node);
+			mMat->cover(node);
 
-			if (mMat.isEmpty())
+			if (mMat->isEmpty())
 			{
 				handleSolutionFound();
 			}
@@ -266,15 +268,15 @@ namespace DLX
 				solveRec(selectedCol);
 			}
 
-			mMat.uncover(node);
+			mMat->uncover(node);
 			mSolution.pop_back();
 		}
-		mMat.uncover(*curCol);
+		mMat->uncover(*curCol);
 	}
 
 	void Solver::solveStack(MatrixColumn* curCol)
 	{
-		mMat.cover(*curCol);
+		mMat->cover(*curCol);
 		NodeLink* curLink = curCol->rowLink.next;
 		for (;;)
 		{
@@ -282,9 +284,9 @@ namespace DLX
 			{
 				Node& node = Node::GetFromRow(*curLink);
 				mSolution.push_back(node.row);
-				mMat.cover(node);
+				mMat->cover(node);
 
-				if (mMat.isEmpty())
+				if (mMat->isEmpty())
 				{
 					handleSolutionFound();
 				}
@@ -292,14 +294,14 @@ namespace DLX
 				{
 					mLevelStack.push_back({ curCol , curLink });
 					curCol = selectedCol;
-					mMat.cover(*curCol);
+					mMat->cover(*curCol);
 					curLink = curCol->rowLink.next;
 					continue;
 				}
 			}
 			else
 			{
-				mMat.uncover(*curCol);
+				mMat->uncover(*curCol);
 				if (mLevelStack.empty())
 					break;
 
@@ -310,7 +312,7 @@ namespace DLX
 			}
 
 			Node& node = Node::GetFromRow(*curLink);
-			mMat.uncover(node);
+			mMat->uncover(node);
 			mSolution.pop_back();
 			curLink = curLink->next;
 		}

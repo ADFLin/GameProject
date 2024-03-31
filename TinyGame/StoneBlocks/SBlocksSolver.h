@@ -311,11 +311,24 @@ namespace SBlocks
 	class ISolver
 	{
 	public:
-		virtual ~ISolver() {};
+		virtual ~ISolver() = default;
+		virtual void setup(Level& level, SolveOption const& option){}
+		virtual bool solve() { return false; }
+		virtual bool solveNext() { return false; }
+		virtual int  solveAll() { return 0; }
+		virtual void solveParallel(int numThreads) {}
+
+		enum EType
+		{
+			eDFS,
+			eDLX,
+		};
+		ISolver* Create(EType type);
 	};
 
 
-	class Solver : public GlobalSolveData
+	class Solver : public ISolver
+		         , public GlobalSolveData
 	{
 	public:
 		~Solver()

@@ -160,7 +160,7 @@ public:
 	int mSize = 12;
 };
 
-IFont* IFont::loadFont( char const* path )
+IFont* IFont::LoadFile( char const* path )
 {
 	CFont* font = new CFont;
 	if ( !font->load( path ) )

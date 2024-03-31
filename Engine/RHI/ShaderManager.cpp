@@ -203,7 +203,7 @@ namespace Render
 		
 		}
 
-		bool saveCacheData( ShaderFormat& format, ShaderProgram& shaderProgram, ShaderProgramSetupData& setupData, ShaderProgramManagedData const& managedData)
+		bool saveCacheData( ShaderFormat& format, ShaderProgramSetupData& setupData, ShaderProgramManagedData const& managedData)
 		{
 			if( !format.doesSuppurtBinaryCode() )
 				return false;
@@ -237,7 +237,7 @@ namespace Render
 			return result;
 		}
 
-		bool saveCacheData(ShaderFormat& format, Shader& shader, ShaderSetupData& setupData, ShaderManagedData const& managedData)
+		bool saveCacheData(ShaderFormat& format, ShaderSetupData& setupData, ShaderManagedData const& managedData)
 		{
 			if (!format.doesSuppurtBinaryCode())
 				return false;
@@ -935,7 +935,7 @@ namespace Render
 			}
 			shaderProgram.bindParameters(*parameterMap);
 
-			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shaderProgram, setupData, managedData))
+			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, setupData, managedData))
 			{
 				LogWarning(0, "Can't Save ShaderProgram Cache");
 			}
@@ -1033,7 +1033,7 @@ namespace Render
 			}
 			shader.bindParameters(*parameterMap);
 
-			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, shader, setupData, managedData))
+			if (CVarShaderUseCache && !getCache()->saveCacheData(*mShaderFormat, setupData, managedData))
 			{
 				LogWarning(0, "Can't Save Shader Cache");
 			}

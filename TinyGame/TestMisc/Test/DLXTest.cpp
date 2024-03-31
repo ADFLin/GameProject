@@ -15,46 +15,47 @@ void DLXTest()
 
 	DLX::Matrix mat;
 	mat.build(6, 7, data);
-
-	FMiscTestUtil::RegisterRender([&mat](IGraphics2D& g)
+	static const float Length = 50;
+	static const float Border = 5;
+	auto renderScope = FMiscTestUtil::RegisterRender([&mat](IGraphics2D& g)
 	{
-		float len = 50;
-
 		g.setTextColor(Color3f(1, 1, 0));
-		for (auto const& matCol : mat.mCols)
-		{
-			g.drawText(len * Vector2(matCol.col, 0) ,InlineString<>::Make("%d", matCol.count));
-		}
+		g.translateXForm(Border, Border + 20);
+		mat.visitNode(
+			TOverloaded
+			{
+				[&](DLX::MatrixColumn& matCol)
+				{
+					g.setBrush(Color3f(1, 0, 0));
+					g.setPen(Color3f(0, 0, 0));
+					g.drawText(Length * Vector2(matCol.col, 0) - Vector2(0,20), InlineString<>::Make("%d", matCol.count));
+				},
+				[&](DLX::Node& node)
+				{
+					g.setBrush(Color3f(1, 0, 0));
+					g.setPen(Color3f(0, 0, 0));
+					g.drawRect(Length * Vector2(node.col, node.row), Vector2(Length - 5, Length - 5));
+				},
+			}
+		);
+	}, Vec2i(mat.getColSize() * Length + 2 * Border, mat.getRowSize() * Length + 2 * Border + 20) );
 
-		g.beginXForm();
-
-		g.translateXForm(200, 200);
-		mat.visitNode([&](DLX::MatrixColumn& matCol, DLX::Node& node)
-		{
-			g.setBrush(Color3f(1, 0, 0));
-			g.setPen(Color3f(0, 0, 0));
-			g.drawRect(len * Vector2(matCol.col, node.row), Vector2(len - 5, len - 5));
-		});
-
-		g.finishXForm();
-	});
-
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 	mat.cover(mat.mCols[0]);
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 	DLX::Node& node = DLX::Node::GetFromRow(*mat.mCols[0].rowLink.next);
 	mat.cover(node);
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 
 	mat.uncover(node);
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 
 	mat.uncover(mat.mCols[0]);
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 
 	DLX::Solver solver(mat);
 	solver.solveAll();
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 
 }
 

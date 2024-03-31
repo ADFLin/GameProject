@@ -1,6 +1,7 @@
 #include "PlatformThread.h"
 #include "CString.h"
 #include "Core/ScopeGuard.h"
+#include "SystemPlatform.h"
 
 #if SYS_PLATFORM_WIN
 
@@ -52,10 +53,10 @@ void WindowsThread::detach()
 
 bool WindowsThread::suspend()
 {
+	SystemPlatform::AtomIncrement(&mSupendTimes);
 	DWORD reault = SuspendThread(mhThread);
 	if ( reault != -1 ) 
 	{
-		++mSupendTimes;
 		return true;
 	}
 	return false;
@@ -63,10 +64,10 @@ bool WindowsThread::suspend()
 
 bool WindowsThread::resume()
 {
+	SystemPlatform::AtomDecrement(&mSupendTimes);
 	DWORD reault = ResumeThread(mhThread);
 	if ( reault != -1 ) 
 	{
-		--mSupendTimes;
 		return true;
 	}
 	return false;
@@ -175,6 +176,11 @@ bool WindowsThread::kill()
 		}
 	}
 	return false;
+}
+
+bool WindowsThread::hadSuspended() const
+{
+	return !!mSupendTimes;
 }
 
 #else

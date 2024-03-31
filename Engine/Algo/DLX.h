@@ -21,7 +21,7 @@ namespace DLX
 		}
 
 		template< class T, NodeLink T::*Member >
-		static T* Cast(NodeLink& link) { return FTypeCast::MemberToClass(&link, Member); }
+		static T& Cast(NodeLink& link) { return *FTypeCast::MemberToClass(&link, Member); }
 
 		void unlink()
 		{
@@ -90,7 +90,7 @@ namespace DLX
 #endif
 		static MatrixColumn& GetFromCol(NodeLink& nodeLink)
 		{
-			return *NodeLink::Cast<MatrixColumn, &MatrixColumn::colLink>(nodeLink);
+			return NodeLink::Cast<MatrixColumn, &MatrixColumn::colLink>(nodeLink);
 		}
 	};
 
@@ -104,12 +104,12 @@ namespace DLX
 
 		static Node& GetFromRow(NodeLink& nodeLink)
 		{
-			return *NodeLink::Cast<Node, &Node::rowLink>(nodeLink);
+			return NodeLink::Cast<Node, &Node::rowLink>(nodeLink);
 		}
 
 		static Node& GetFromCol(NodeLink& nodeLink)
 		{
-			return *NodeLink::Cast<Node, &Node::colLink>(nodeLink);
+			return NodeLink::Cast<Node, &Node::colLink>(nodeLink);
 		}
 	};
 
@@ -129,10 +129,14 @@ namespace DLX
 			for (NodeLink& colLink : header)
 			{
 				MatrixColumn& matCol = MatrixColumn::GetFromCol(colLink);
+				if constexpr (TCheckConcept< CFunctionCallable, TFunc, MatrixColumn >::Value)
+				{
+					func(matCol);
+				}
 				for (NodeLink& rowLink : matCol.rowLink)
 				{
 					Node& node = Node::GetFromRow(rowLink);
-					func(matCol, node);
+					func(node);
 				}
 			}
 		}
@@ -150,18 +154,26 @@ namespace DLX
 			return header.next == &header;
 		}
 
-		int getColSize() { return mCols.size(); }
+		int getColSize() const { return mCols.size(); }
+		int getRowSize() const { return mRowCount; }
 		NodeLink header;
 		TArray< MatrixColumn > mCols;
 		TArray< Node, FixedSizeAllocator > mNodes;
+		int mRowCount;
 	};
 
 
 	class Solver
 	{
 	public:
+		Solver()
+			:mMat(nullptr)
+		{
+
+		}
+
 		Solver(Matrix& mat)
-			:mMat(mat)
+			:mMat(&mat)
 		{
 
 		}
@@ -194,10 +206,9 @@ namespace DLX
 
 		int mSolutionCount = 0;
 		TArray< int , FixedSizeAllocator > mSolution;
-		Matrix& mMat;
+		Matrix* mMat;
 	};
 
 }//namespace DLX
 
-#endif 
-//DLX_H_744134D9_7239_4D7F_BB2C_587E565EF220
+#endif //DLX_H_744134D9_7239_4D7F_BB2C_587E565EF220

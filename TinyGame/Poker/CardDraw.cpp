@@ -197,6 +197,7 @@ namespace Poker {
 					for (int i = 0; i < bmp.bmWidth; ++i)
 					{
 						uint8 a = *pSrcMask;
+						a = 0xff;
 						*pPixel = Color4ub(pSrc[2], pSrc[1], pSrc[0], a);
 
 						++pPixel;

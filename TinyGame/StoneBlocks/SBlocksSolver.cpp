@@ -402,7 +402,7 @@ namespace SBlocks
 			auto data = mMap.mData[index];
 			if (!MarkMap::CanLock(data))
 			{
-				result |= IndexMask(index);
+				SetIndex(result, index);
 			}
 		}
 		return result;
@@ -416,7 +416,7 @@ namespace SBlocks
 		for (auto const& block : shapeData.blocks)
 		{
 			int index = state.posIndex + mMap.toIndex(block.pos);
-			result |= IndexMask(index);
+			SetIndex(result, index);
 		}
 		return result;
 	}
@@ -893,6 +893,15 @@ namespace SBlocks
 		mSolveData.setup(level);
 		mPieceList.resize(sortedPieces.size());
 
+		std::string str;
+		for (int indexPiece = 0; indexPiece < sortedPieces.size(); ++indexPiece)
+		{
+			str += FStringConv::From(sortedPieces[indexPiece]->index);
+			str += " ";
+		}
+		LogMsg("Sorted Piece : %s", str.c_str());
+
+
 		if (mUsedOption.bEnableRejection)
 		{
 			mMinShapeBlockCount = MaxInt32;
@@ -1073,9 +1082,8 @@ namespace SBlocks
 			int numDifferences = bFixedState ? 1 : shape->getDifferentShapeNum();
 			for (int i = 0; i < numDifferences; ++i)
 			{
-				int indexData = i;
+				int indexData;
 				PieceShape::OpState opState;
-				PieceShapeData const& shapeData = (bFixedState) ? shape->getData(DirType::ValueChecked(stateFixed.dir), stateFixed.mirror) : shape->getDataByIndex( i );
 				if (bFixedState)
 				{
 					opState = stateFixed;
@@ -1084,8 +1092,10 @@ namespace SBlocks
 				else
 				{
 					opState = shape->getOpState(i);
+					indexData = i;
 				}
 
+				PieceShapeData const& shapeData = shape->getDataByIndex(indexData);
 				for (int indexMap = 0; indexMap < mSolveData.mMaps.size(); ++indexMap)
 				{
 					MapSolveData& mapData = mSolveData.mMaps[indexMap];
@@ -1676,6 +1686,16 @@ NoCombineSolve:
 		}
 	}
 
+
+	class SolverDLX : public  ISolver
+		            , private DLX::Solver
+	{
+	public:
+
+
+
+	};
+
 	int SolveDLX(GlobalSolveData& globalData, SolveData& solveData, bool bRecursive)
 	{
 		TArray<uint8> data;
@@ -1700,20 +1720,16 @@ NoCombineSolve:
 
 			std::sort(sortedPieceDatas.begin(), sortedPieceDatas.end(),
 				[](PieceSolveData* a, PieceSolveData* b)
-			{
-				return a->shapeSolveData->states.size() < b->shapeSolveData->states.size();
-			}
+				{
+					return a->shapeSolveData->states.size() < b->shapeSolveData->states.size();
+				}
 			);
 
 			numRow = 0;
-			TArray< int > pieceDataOffsets;
-			pieceDataOffsets.resize(globalData.mPieceList.size());
 			for (int index = 0; index < globalData.mPieceList.size(); ++index)
 			{
 				auto const& pieceData = globalData.mPieceList[index];
 				//auto const& pieceData = *sortedPieceDatas[index];
-
-				pieceDataOffsets[index] = numRow;
 
 				if (pieceData.lockedIndexData != INDEX_NONE)
 				{
@@ -1733,7 +1749,6 @@ NoCombineSolve:
 			}
 			numCol = globalData.mPieceList.size() + mapBlockCount;
 			data.resize(numRow * numCol, 0);
-
 			auto FillRowData = [&](uint8 data[], PieceSolveData const& pieceData, PieceSolveState const& state)
 			{
 				auto const& shapeData = pieceData.shapeSolveData->getShapeData(state);
@@ -1748,11 +1763,19 @@ NoCombineSolve:
 				}
 			};
 
+			struct RowState
+			{
+				int indexPiece;
+				int indexState;
+			};
+			TArray< RowState > rowStateMap;
+			rowStateMap.resize(numRow);
+			auto rowStatePtr = rowStateMap.data();
+			uint8* dataPiece = data.data();
 			for (int index = 0; index < globalData.mPieceList.size(); ++index)
 			{
 				auto const& pieceData = globalData.mPieceList[index];
 				//auto const& pieceData = *sortedPieceDatas[index];
-				uint8* dataPiece = data.data() + pieceDataOffsets[index] * numCol;
 				if (pieceData.lockedIndexData != INDEX_NONE)
 				{
 					for (int indexState = 0; indexState < pieceData.shapeSolveData->states.size(); ++indexState)
@@ -1763,19 +1786,25 @@ NoCombineSolve:
 
 						FillRowData(dataPiece, pieceData, state);
 						dataPiece += numCol;
+						rowStatePtr->indexPiece = index;
+						rowStatePtr->indexState = indexState;
+						++rowStatePtr;
 					}
 				}
 				else
 				{
 					for (int indexState = 0; indexState < pieceData.shapeSolveData->states.size(); ++indexState)
 					{
-						FillRowData(dataPiece, pieceData, pieceData.shapeSolveData->states[indexState]);
+						auto const& state = pieceData.shapeSolveData->states[indexState];
+						FillRowData(dataPiece, pieceData, state);
 						dataPiece += numCol;
+						rowStatePtr->indexPiece = index;
+						rowStatePtr->indexState = indexState;
+						++rowStatePtr;
 					}
 				}
 			}
 		}
-
 
 		DLX::Matrix matrix;
 		{
@@ -1787,7 +1816,6 @@ NoCombineSolve:
 		{
 			TIME_SCOPE("DLX Solve");
 			solver.bRecursive = bRecursive;
-			solver.mSolution.reserve(numRow);
 			solver.solveAll();
 		}
 		return solver.mSolutionCount;
@@ -1796,6 +1824,18 @@ NoCombineSolve:
 	int Solver::solveDLX(bool bRecursive)
 	{
 		return SolveDLX(*this, mSolveData, bRecursive);
+	}
+
+	ISolver* ISolver::Create(EType type)
+	{
+		switch (type)
+		{
+		case SBlocks::ISolver::eDFS:
+			return new Solver;
+		case SBlocks::ISolver::eDLX:
+			return new SolverDLX;
+		}
+		return nullptr;
 	}
 
 }//namespace SBlocks

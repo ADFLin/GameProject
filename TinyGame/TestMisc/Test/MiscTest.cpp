@@ -7,9 +7,9 @@ void AllocatorTest()
 	BuddyAllocatorBase allocator;
 	allocator.initialize(256, 16);
 
-	FMiscTestUtil::RegisterRender([&](IGraphics2D& g)
+	auto renderScope = FMiscTestUtil::RegisterRender([&](IGraphics2D& g)
 	{
-		Vector2 basePos = Vector2(20, 300);
+		Vector2 basePos = Vector2(20, 20);
 		float   blockSize = float(760) / (float(allocator.mSize) / allocator.mBlockSize);
 
 		RenderUtility::SetPen(g, EColor::Black);
@@ -33,10 +33,10 @@ void AllocatorTest()
 				g.drawRect(pos, size);
 			}
 		}
-	});
+	}, Vec2i(800,60));
 
 
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 
 	TArray<BuddyAllocatorBase::Allocation> allocations;
 
@@ -54,14 +54,14 @@ void AllocatorTest()
 		{
 			LogMsg("allocate fail");
 		}
-		FMiscTestUtil::PauseThread();
+		FMiscTestUtil::Pause();
 	}
 
 	while (!allocations.empty())
 	{
 		int index = rand() % allocations.size();
 		allocator.deallocate(allocations[index]);
-		FMiscTestUtil::PauseThread();
+		FMiscTestUtil::Pause();
 		allocations.removeIndexSwap(index);
 	}
 }

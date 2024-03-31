@@ -55,7 +55,7 @@ namespace SBlocks
 
 	void LevelStage::restart()
 	{
-		loadTestLevel(2);
+		loadTestLevel(3);
 	}
 
 	void LevelStage::onRender(float dFrame)
@@ -407,6 +407,7 @@ namespace SBlocks
 	{
 		TArrayView< LevelDesc* const > TestLevels =
 		{
+			&ClassicalLevel,
 			&TestLv,
 			&TestLv2,
 			&TestLv3,

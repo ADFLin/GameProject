@@ -23,7 +23,7 @@ namespace Poker
 
 	GameModule::GameModule()
 	{
-		mRule = RULE_Big2;
+		mRule = RULE_FreeCell;
 	}
 
 	GameModule::~GameModule()
@@ -99,6 +99,11 @@ namespace Poker
 		{
 			mSetup->setupCardDraw(mCardDraw);
 		}
+	}
+
+	ERenderSystem GameModule::getDefaultRenderSystem()
+	{
+		return ERenderSystem::None;
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

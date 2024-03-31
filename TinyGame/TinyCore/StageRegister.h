@@ -7,12 +7,12 @@
 #include "Meta/IsBaseOf.h"
 #include "Meta/EnableIf.h"
 #include "DataStructure/Array.h"
+#include "Math/TVector2.h"
 
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
-
-
+#include "SystemPlatform.h"
 
 class StageBase;
 class StageManager;
@@ -29,6 +29,7 @@ enum class EExecGroup
 	Main ,
 
 	MiscTest ,
+	MiscTestFunc,
 
 	SingleDev,
 	SingleGame,
@@ -151,28 +152,56 @@ ExecuteFunc MakeSimpleExection(TFunc&& func)
 
 class IGraphics2D;
 using MiscRenderFunc = std::function< void(IGraphics2D&) >;
+
+struct MiscRenderScope
+{
+	MiscRenderScope()
+	{
+		flag = nullptr;
+	}
+
+	MiscRenderScope(volatile int32* inFlag)
+		:flag(inFlag)
+	{
+		if (flag)
+		{
+			SystemPlatform::AtomIncrement(flag);
+		}
+	}
+
+	~MiscRenderScope()
+	{
+		if (flag)
+		{
+			SystemPlatform::AtomDecrement(flag);
+		}
+	}
+
+	volatile int32* flag;
+};
+
 class IMiscTestCore
 {
 public:
 	TINY_API IMiscTestCore();
 	TINY_API virtual ~IMiscTestCore();
 
-	virtual void pauseThread(uint32 threadId) = 0;
-	virtual void registerRender(uint32 threadId, MiscRenderFunc const& func) = 0;
+	virtual void pauseExecution(uint32 threadId) = 0;
+	virtual MiscRenderScope registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size) = 0;
 };
 
 struct TINY_API FMiscTestUtil
 {
 	static bool IsTesting();
-	static void PauseThread();
-	static void RegisterRender(MiscRenderFunc const& func);
+	static void Pause();
+	static MiscRenderScope RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size);
 };
 
 #define REGISTER_STAGE_ENTRY( NAME , CLASS , GROUP , ... )\
 	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , MakeChangeStageOperation< CLASS >() , GROUP , ##__VA_ARGS__) );
 
 #define REGISTER_MISC_TEST_ENTRY( NAME , FUNC , ...)\
-	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , MakeSimpleExection(FUNC) , EExecGroup::MiscTest , ##__VA_ARGS__ ) );
+	static ExecutionRegisterHelper ANONYMOUS_VARIABLE(GExecutionRegister)( ExecutionEntryInfo( NAME , MakeSimpleExection(FUNC) , EExecGroup::MiscTestFunc , ##__VA_ARGS__ ) );
 
 
 #endif // StageRegister_h__

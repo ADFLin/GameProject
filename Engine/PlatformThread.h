@@ -44,6 +44,7 @@ public:
 	void detach();
 
 	bool     kill();
+	bool     hadSuspended() const;
 	bool     suspend();
 	bool     resume();
 	void     join();
@@ -68,7 +69,7 @@ protected:
 		return result;
 	}
 
-	DWORD    mSupendTimes;
+	volatile int32 mSupendTimes = 0;
 	DWORD    mPriorityLevel;
 	HANDLE   mhThread;
 	unsigned mThreadID;

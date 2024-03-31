@@ -2,8 +2,7 @@
 #include "MiscTestStage.h"
 #include "DrawEngine.h"
 #include "Stage/TestStageHeader.h"
-
-#include <cmath>
+#include "MarcoCommon.h"
 
 #include "TaskBase.h"
 #include "GameWidget.h"
@@ -22,21 +21,34 @@
 
 #include "boost/thread.hpp"
 
+#include <cmath>
+
+extern TINY_API IMiscTestCore* GTestCore;
+
 bool MiscTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();
 
 	auto frame = WidgetUtility::CreateDevFrame();
-	ExecutionRegisterCollection::Get().sortGroup(EExecGroup::MiscTest,
+	ExecutionRegisterCollection::Get().sortGroup(EExecGroup::MiscTestFunc,
 		[](ExecutionEntryInfo const& a, ExecutionEntryInfo const& b) -> bool
 		{
 			return FCString::CompareIgnoreCase(a.title, b.title) < 0;
 		}
 	);
-	auto const& entries = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTest);
-	for (auto const& entry : entries)
 	{
-		addTest(entry.title, entry.execFunc);
+		auto const& entries = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTestFunc);
+		for (auto const& entry : entries)
+		{
+			addTestFunc(entry.title, entry.execFunc);
+		}
+	}
+	{
+		auto const& entries = ExecutionRegisterCollection::Get().getGroupExecutions(EExecGroup::MiscTest);
+		for (auto const& entry : entries)
+		{
+			addTestStage(entry.title, entry.execFunc);
+		}
 	}
 	restart();
 
@@ -44,12 +56,27 @@ bool MiscTestStage::onInit()
 }
 
 
-void MiscTestStage::addTest(char const* name, ExecuteFunc const& func)
+void MiscTestStage::addTestFunc(char const* name, ExecuteFunc const& func)
 {
 	Vec2i pos;
 	pos.x = 20 + 120 * (mInfos.size() % 5);
 	pos.y = 20 + 30 * (mInfos.size() / 5);
-	GButton* button = new GButton(UI_TEST_BUTTON, pos, Vec2i(100, 20), nullptr);
+	GButton* button = new GButton(UI_TEST_FUNC_BUTTON, pos, Vec2i(100, 20), nullptr);
+	button->setUserData(mInfos.size());
+	button->setTitle(name);
+	::Global::GUI().addWidget(button);
+
+	TestInfo info;
+	info.func = func;
+	mInfos.push_back(info);
+}
+
+void MiscTestStage::addTestStage(char const* name, ExecuteFunc const& func)
+{
+	Vec2i pos;
+	pos.x = 20 + 120 * (mInfos.size() % 5);
+	pos.y = 20 + 30 * (mInfos.size() / 5);
+	GButton* button = new GButton(UI_TEST_STAGE_BUTTON, pos, Vec2i(100, 20), nullptr);
 	button->setUserData(mInfos.size());
 	button->setTitle(name);
 	::Global::GUI().addWidget(button);
@@ -62,41 +89,85 @@ void MiscTestStage::addTest(char const* name, ExecuteFunc const& func)
 
 void MiscTestStage::onRender(float dFrame)
 {
-	IGraphics2D& g = Global::GetIGraphics2D();
+	processGameThreadCommnads();
 
-	{
-		Mutex::Locker locker(mThreadDataMutex);
-		for (auto const& exec : mRunningExecutions)
-		{
-			if (exec.renderFunc)
-			{
-				g.pushXForm();
-				exec.renderFunc(g);
-				g.popXForm();
-			}
-		}
-	}
+	IGraphics2D& g = Global::GetIGraphics2D();
+#if 0
+	g.beginRender();
+	g.endRender();
+#endif
 }
+
+class ExecutionPanel : public GFrame
+{
+public:
+	using BaseClass = GFrame;
+
+	ExecutionPanel(int id, Vec2i const& pos, Vec2i const size, GWidget* parent)
+		:GFrame(id, pos, size, parent)
+	{
+		GButton* button;
+		button = new GButton(UI_ANY, Vec2i(5, 5), Vec2i(100, 20), this);
+		button->setTitle("Step");
+		button->onEvent = [this](int event, GWidget* ui)-> bool
+		{
+			static_cast<MiscTestStage*>(GTestCore)->resumeThread(thread);
+			return false;
+		};
+
+		button = new GButton(UI_ANY, Vec2i(110, 5), Vec2i(100, 20), this);
+		button->setTitle("Terminate");
+		button->onEvent = [this](int event, GWidget* ui)-> bool
+		{
+			static_cast<MiscTestStage*>(GTestCore)->terminateThread(thread);
+			return false;
+		};
+	}
+	void setRenderSize(Vec2i const& size)
+	{
+		setSize(Vec2i(5, 25) + size);
+	}
+	void onRender() override
+	{
+		if (SystemPlatform::AtomicRead(&renderFlag) == 0)
+			return;
+
+		Vec2i pos = getWorldPos();
+		IGraphics2D& g = Global::GetIGraphics2D();
+		Vec2i size = getSize();
+		BaseClass::onRender();
+		g.pushXForm();
+		g.translateXForm(pos.x, pos.y + 25);
+		renderFunc(g);
+		g.popXForm();
+	}
+	Thread* thread;
+	MiscRenderFunc renderFunc;
+	volatile int32 renderFlag;
+};
+
+
 
 bool MiscTestStage::onWidgetEvent(int event, int id, GWidget* ui)
 {
 	switch (id)
 	{
-	case UI_TEST_BUTTON:
+	case UI_TEST_FUNC_BUTTON:
 		{
-			Async([this, func = mInfos[ui->getUserData()].func](Thread* thread)
+			char const* name =  ui->cast<GButton>()->mTitle.c_str();
+			Async([this, name, func = mInfos[ui->getUserData()].func](Thread* thread)
 			{
-				extern TINY_API IMiscTestCore* GTestCore;
+				thread->setDisplayName(InlineString<>::Make("%s Thread", name));
 				if (GTestCore)
 				{
 					registerThread(thread);
+					
 					class EmptyContext : public IGameExecutionContext
 					{
 					public:
 						virtual void changeStage(StageBase* stage) {}
 						virtual void playSingleGame(char const* name) {}
 					};
-
 					func(EmptyContext());
 					if (GTestCore)
 					{
@@ -106,72 +177,149 @@ bool MiscTestStage::onWidgetEvent(int event, int id, GWidget* ui)
 			});
 		}
 		return false;
+	case UI_TEST_STAGE_BUTTON:
+		{
+			class MyContext : public IGameExecutionContext
+			{
+			public:
+				virtual void changeStage(StageBase* stage) { manager->setNextStage(stage); }
+				virtual void playSingleGame(char const* name) {}
+
+				StageManager* manager;
+			};
+			MyContext context;
+			context.manager = getManager();
+			mInfos[ui->getUserData()].func(context);
+		}
+		return false;
 	}
 	return BaseClass::onWidgetEvent(event, id, ui);
 }
 
-void MiscTestStage::pauseThread(uint32 threadId)
+void MiscTestStage::pauseExecution(uint32 threadId)
 {
-	Thread* curThread = nullptr;
+	ExecutionData* exec;
 	{
 		Mutex::Locker locker(mThreadDataMutex);
-		for (auto const& exec : mRunningExecutions)
-		{
-			if (exec.thread->getID() == threadId && mPauseExecutions.findIndex(exec.thread) == INDEX_NONE)
-			{
-				curThread = exec.thread;
-				mPauseExecutions.push_back(exec.thread);
-				break;
-			}
-		}
+		exec = findExecutionAssumeLocked(threadId);
 	}
-	if (curThread)
+	if (exec && !exec->thread->hadSuspended())
 	{
-		curThread->suspend();
+		exec->thread->suspend();
 	}
 }
 
-void MiscTestStage::registerRender(uint32 threadId, MiscRenderFunc const& func)
+MiscRenderScope MiscTestStage::registerRender(uint32 threadId, MiscRenderFunc const& func, TVector2<int> const& size)
 {
 	Mutex::Locker locker(mThreadDataMutex);
 	for (auto& exec : mRunningExecutions)
 	{
 		if (exec.thread->getID() == threadId)
 		{
-			exec.renderFunc = func;
-			break;
+			auto panel = new ExecutionPanel(UI_ANY, Vec2i(0, 0), Vec2i(600, 600), nullptr);
+			panel->thread = exec.thread;
+			panel->renderFunc = func;
+			panel->setRenderSize(size);
+			panel->renderFlag = 0;
+			exec.panel = panel;
+
+			addGameThreadCommnad([panel]
+			{
+				::Global::GUI().addWidget(panel);
+			});
+			return MiscRenderScope(&panel->renderFlag);
 		}
+	}
+
+	return MiscRenderScope();
+}
+
+void MiscTestStage::terminateThread(Thread* thread)
+{
+	unregisterThread(thread);
+	thread->kill();
+}
+
+void MiscTestStage::resumeThread(Thread* thread)
+{
+	Mutex::Locker locker(mThreadDataMutex);
+	if (thread->hadSuspended())
+	{
+		thread->resume();
 	}
 }
 
 void MiscTestStage::resumeAllThreads()
 {
 	Mutex::Locker locker(mThreadDataMutex);
-	for (auto thread : mPauseExecutions)
+	for (auto& exec : mRunningExecutions)
 	{
-		thread->resume();
+		if (exec.thread->hadSuspended())
+		{
+			exec.thread->resume();
+			break;
+		}
 	}
-	mPauseExecutions.clear();
 }
 
-void MiscTestStage::registerThread(Thread* thread)
+MiscTestStage::ExecutionData* MiscTestStage::findExecutionAssumeLocked(uint32 threadId)
+{
+	for (auto& exec : mRunningExecutions)
+	{
+		if (exec.thread->getID() == threadId)
+		{
+			return &exec;
+		}
+	}
+
+	return nullptr;
+}
+
+MiscTestStage::ExecutionData& MiscTestStage::registerThread(Thread* thread)
 {
 	Mutex::Locker locker(mThreadDataMutex);
 
 	ExecutionData data;
 	data.thread = thread;
 	mRunningExecutions.push_back(data);
+
+	return mRunningExecutions.back();
 }
 
 void MiscTestStage::unregisterThread(Thread* thread)
 {
 	Mutex::Locker locker(mThreadDataMutex);
-	mRunningExecutions.removePred([thread](ExecutionData const& data)
+	mRunningExecutions.removePred([this,thread](ExecutionData const& data)
 	{
-		return data.thread == thread;
+		if (data.thread == thread)
+		{
+			if (data.panel)
+			{
+				addGameThreadCommnad([panel = data.panel]
+				{
+					panel->destroy();
+				});
+			}
+			return true;
+		}
+		return false;
 	});
 }
 
+void MiscTestStage::processGameThreadCommnads()
+{
+	Mutex::Locker locker(mMutexGameThreadCommands);
+	for (auto const& command : mGameThreadCommands)
+	{
+		command();
+	}
+	mGameThreadCommands.clear();
+}
+
+void MiscTestStage::configRenderSystem(ERenderSystem systenName, RenderSystemConfigs& systemConfigs)
+{
+	systemConfigs.bWasUsedPlatformGraphics = true;
+}
 
 namespace MRT
 {

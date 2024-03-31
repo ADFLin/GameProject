@@ -59,7 +59,7 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize)
 	QA_LOG("----QuadAssault----");
 	QA_LOG("*******************");
 
-	IFont* font = IFont::loadFont( DATA_DIR"Fragile Bombers.TTF" );
+	IFont* font = IFont::LoadFile( DATA_DIR"Fragile Bombers.TTF" );
 	//IFont* font = IFont::loadFont("Bitwise");
 	//IFont* font = NULL;
 	if (font)

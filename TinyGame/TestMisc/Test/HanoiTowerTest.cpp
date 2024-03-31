@@ -18,7 +18,7 @@ public:
 
 	void doMove(int index, int to)
 	{
-		FMiscTestUtil::PauseThread();
+		FMiscTestUtil::Pause();
 		int from = state[index];
 		state[index] = to;
 		LogMsg("Move %d form %d to %d", index, from, to);
@@ -44,17 +44,17 @@ void SolveHanoiTowerTest()
 {
 	HanoiTowerSolver solver;
 
-	FMiscTestUtil::RegisterRender([&solver](IGraphics2D& g)
+	static const float Offset = 200;
+	static const float BlockHeight = 20;
+	static const float Border = 10;
+
+	auto renderScope = FMiscTestUtil::RegisterRender([&solver](IGraphics2D& g)
 	{
 		int count[3] = { 0 , 0 , 0 };
 		g.setBrush(Color3f(1, 0, 0));
 		g.setPen(Color3f(0, 0, 0));
 
-		g.beginXForm();
-		g.translateXForm(200, 400);
-
-		float Offset = 200;
-		float BlockHeight = 20;
+		g.translateXForm(Border + Offset / 2, Border + ( BlockCount - 1 ) * BlockHeight);
 		g.setBrush(Color3f(0, 1, 1));
 		for (int i = 0; i < 3; ++i)
 		{
@@ -69,11 +69,10 @@ void SolveHanoiTowerTest()
 			g.drawRect(Vector2(state * Offset - sizeX / 2, -count[state] * BlockHeight), Vector2(sizeX, BlockHeight));
 			count[state] += 1;
 		}
-		g.finishXForm();
-	});
+	}, Vec2i(Border * 2 + Offset * 3, BlockCount * BlockHeight + Border * 2));
 
 	solver.solve();
-	FMiscTestUtil::PauseThread();
+	FMiscTestUtil::Pause();
 }
 
 REGISTER_MISC_TEST_ENTRY("Hanoi Tower", SolveHanoiTowerTest);

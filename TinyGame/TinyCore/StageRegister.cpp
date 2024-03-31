@@ -129,20 +129,22 @@ bool FMiscTestUtil::IsTesting()
 	return !!GTestCore;
 }
 
-void FMiscTestUtil::PauseThread()
+void FMiscTestUtil::Pause()
 {
 	if (GTestCore)
 	{
-		GTestCore->pauseThread(Thread::GetCurrentThreadId());
+		GTestCore->pauseExecution(Thread::GetCurrentThreadId());
 	}
 }
 
-void FMiscTestUtil::RegisterRender(MiscRenderFunc const& func)
+MiscRenderScope FMiscTestUtil::RegisterRender(MiscRenderFunc const& func, TVector2<int> const& size)
 {
 	if (GTestCore)
 	{
-		GTestCore->registerRender(Thread::GetCurrentThreadId(), func);
+		return GTestCore->registerRender(Thread::GetCurrentThreadId(), func, size);
 	}
+
+	return MiscRenderScope{};
 }
 
 IMiscTestCore::IMiscTestCore()

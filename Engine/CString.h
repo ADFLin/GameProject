@@ -24,9 +24,8 @@ template < class CharT >
 class TStringTraits {};
 
 template <>
-class TStringTraits< char >
+struct TStringTraits< char >
 {
-public:
 	using CharT = char;
 	using StdString = std::string;
 };

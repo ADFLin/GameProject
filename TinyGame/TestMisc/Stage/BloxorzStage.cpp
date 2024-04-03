@@ -17,6 +17,7 @@
 
 #include "FileSystem.h"
 #include "ConsoleSystem.h"
+#include "Misc/Format.h"
 
 namespace Bloxorz
 {
@@ -392,6 +393,7 @@ namespace Bloxorz
 			mNumMapTile = 0;
 			std::string code;
 
+#if 0
 			code += "SDFSceneOut SDFSceneBuiltin(float3 pos)\n";
 			code += "{\n";
 			code += "\tSDFSceneOut data; data.dist = 1e10; data.id = 0;\n";
@@ -407,6 +409,33 @@ namespace Bloxorz
 				str.format("\tdata = SDF_Union(data, 0 , SDF_Box(pos - float3( %g , %g , -0.25), float3( %g ,  %g , 0.25)));\n", pos.x, pos.y, halfSize.x, halfSize.y);
 				code += str;
 			}
+
+			code += "\treturn data;\n";
+			code += "}\n";
+
+#else
+			std::vector<uint8> codeTemplate;
+			if (!FFileUtility::LoadToBuffer("Shader/Game/SDFSceneTemplate.sgc", codeTemplate, true))
+			{
+				LogWarning(0, "Can't load SDFSceneTemplate file");
+				return false;
+			}
+
+			std::string codeBlock;
+			for (Region* region : manager.mRegionList)
+			{
+				Vector2 halfSize = 0.5 * Vector2(region->rect.getSize());
+				Vector2 pos = Vector2(region->rect.getMin()) + halfSize;
+				pData->posAndSize = Vector4(pos.x, pos.y, halfSize.x, halfSize.y);
+				++mNumMapTile;
+				++pData;
+
+				InlineString<512> str;
+				str.format("\tSDF_BOX(float3( %g , %g , -0.25), float3( %g ,  %g , 0.25));\r\n", pos.x, pos.y, halfSize.x, halfSize.y);
+				codeBlock += str;
+			}
+			Text::Format((char const*)codeTemplate.data(), TArrayView<std::string const>(&codeBlock, 1) , code);
+#endif
 
 			mMapTileBuffer.unlock();
 
@@ -426,9 +455,6 @@ namespace Bloxorz
 				code += str;
 			}
 #endif
-
-			code += "\treturn data;\n";
-			code += "}\n";
 
 			FFileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", (uint8* const)code.data(), code.length());
 

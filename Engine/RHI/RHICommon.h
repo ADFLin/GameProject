@@ -1311,7 +1311,7 @@ namespace Render
 
 		GraphicsShaderStateDesc()
 		{
-			::FMemory::Zero(this, sizeof(*this));
+			FMemory::Zero(this, sizeof(*this));
 		}
 	};
 
@@ -1323,7 +1323,7 @@ namespace Render
 
 		MeshShaderStateDesc()
 		{
-			::memset(this, 0, sizeof(*this));
+			FMemory::Zero(this, sizeof(*this));
 		}
 	};
 

@@ -104,7 +104,7 @@ namespace Render
 		case EVertex::Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case EVertex::Half1:  return DXGI_FORMAT_R16_FLOAT;
 		case EVertex::Half2:  return DXGI_FORMAT_R16G16_FLOAT;
-			//case EVertex::eHalf3:  return DXGI_FORMAT_R16G16B16_FLOAT;
+		//case EVertex::Half3:  return DXGI_FORMAT_R16G16B16_FLOAT;
 		case EVertex::Half4: return DXGI_FORMAT_R16G16B16A16_FLOAT;
 		case EVertex::UInt1: return DXGI_FORMAT_R32_UINT;
 		case EVertex::UInt2: return DXGI_FORMAT_R32G32_UINT;
@@ -117,19 +117,19 @@ namespace Render
 
 		case EVertex::UShort1: return (bNormalized) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
 		case EVertex::UShort2: return (bNormalized) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
-			//case EVertex::eUShort3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_UNORM : DXGI_FORMAT_R16G16B16_UINT;
+			//case EVertex::UShort3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_UNORM : DXGI_FORMAT_R16G16B16_UINT;
 		case EVertex::UShort4: return (bNormalized) ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
 		case EVertex::Short1: return (bNormalized) ? DXGI_FORMAT_R16_SNORM : DXGI_FORMAT_R16_SINT;
 		case EVertex::Short2: return (bNormalized) ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
-			//case EVertex::eShort3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_SNORM : DXGI_FORMAT_R16G16B16_SINT;
+			//case EVertex::Short3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_SNORM : DXGI_FORMAT_R16G16B16_SINT;
 		case EVertex::Short4: return (bNormalized) ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
 		case EVertex::UByte1: return (bNormalized) ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
 		case EVertex::UByte2: return (bNormalized) ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
-			//case EVertex::eUByte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_UNORM : DXGI_FORMAT_R8G8B8_UINT;
+			//case EVertex::UByte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_UNORM : DXGI_FORMAT_R8G8B8_UINT;
 		case EVertex::UByte4: return (bNormalized) ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
 		case EVertex::Byte1: return (bNormalized) ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
 		case EVertex::Byte2: return (bNormalized) ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
-			//case EVertex::eByte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_SNORM : DXGI_FORMAT_R8G8B8_SINT;
+			//case EVertex::Byte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_SNORM : DXGI_FORMAT_R8G8B8_SINT;
 		case EVertex::Byte4: return (bNormalized) ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
 		}
 		return DXGI_FORMAT_UNKNOWN;

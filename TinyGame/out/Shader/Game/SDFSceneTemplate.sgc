@@ -1,0 +1,10 @@
+SDFSceneOut SDFSceneBuiltin(float3 pos)
+{
+	SDFSceneOut data; data.dist = 1e10; data.id = 0;
+#define SDF_BOX( POS , SIZE ) data = SDF_Union(data, 0, SDF_Box(pos - POS, SIZE));
+
+%s
+
+#undef SDF_BOX
+	return data;
+}

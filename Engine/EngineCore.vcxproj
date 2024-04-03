@@ -395,6 +395,7 @@
     <ClInclude Include="Meta\MetaTypeList.h" />
     <ClInclude Include="Meta\Select.h" />
     <ClInclude Include="Meta\Unroll.h" />
+    <ClInclude Include="Misc\Format.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
     <ClInclude Include="Misc\CStringWrapper.h" />

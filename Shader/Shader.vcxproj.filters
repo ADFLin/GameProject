@@ -231,6 +231,9 @@
       <Filter>Test</Filter>
     </None>
     <None Include="..\TinyGame\out\Shader\DoubleSim.sgc" />
+    <None Include="..\TinyGame\out\Shader\Game\SDFSceneTemplate.sgc">
+      <Filter>Game</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

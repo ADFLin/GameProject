@@ -28,9 +28,6 @@ public:
 	static bool LoadToBuffer(CharT const* path, std::vector< uint8 >& outBuffer, bool bAppendZeroAfterLoad = false, bool bAppendToBuffer = false);
 	static bool LoadToBuffer(CharT const* path, TArray< uint8 >& outBuffer, bool bAppendZeroAfterLoad = false, bool bAppendToBuffer = false);
 	static bool SaveFromBuffer(CharT const* path, uint8 const* data, uint32 dataSize);
-
-
-
 };
 
 

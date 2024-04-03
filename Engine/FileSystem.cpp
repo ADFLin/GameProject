@@ -615,7 +615,7 @@ template < class CharT >
 bool TFileUtility<CharT>::SaveFromBuffer(CharT const* path, uint8 const* data, uint32 dataSize)
 {
 #if SYS_PLATFORM_WIN
-	HANDLE hFile = FWinApi::CreateFile(path, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE hFile = FWinApi::CreateFile(path, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return false;
 

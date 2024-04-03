@@ -2,13 +2,17 @@
 #ifndef ArrayView_H_90099AAD_213F_44A6_8A18_900243D39026
 #define ArrayView_H_90099AAD_213F_44A6_8A18_900243D39026
 
-#include <vector>
 #include "DataStructure/Array.h"
+
+#include <type_traits>
+#include <vector>
 
 template< class T >
 class TArrayView
 {
 public:
+	using BaseType = std::remove_const_t<T>;
+
 	TArrayView()
 		:mData(0), mNum(0)
 	{
@@ -23,6 +27,13 @@ public:
 	TArrayView(T(&inData)[N])
 		: mData(inData), mNum(N)
 	{
+	}
+
+	template< typename A >
+	TArrayView(TArray<BaseType, A> const& inArray)
+		: mData(inArray.data()), mNum(inArray.size())
+	{
+
 	}
 
 	TArrayView(std::initializer_list<T> inList)
@@ -60,11 +71,12 @@ public:
 	operator T const* () const { return mData; }
 
 
-	typedef T* iterator;
+	using iterator = T*;
+	using const_iterator = T const*;
+
 	iterator begin() { return mData; }
 	iterator end()   { return mData + mNum; }
 
-	typedef T const* const_iterator;
 	const_iterator begin() const { return mData; }
 	const_iterator end() const { return mData + mNum; }
 

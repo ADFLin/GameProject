@@ -3,6 +3,7 @@
 #include "FileSystem.h"
 #include "StringParse.h"
 #include "LogSystem.h"
+#include "Misc/Format.h"
 
 #define DEFINE_VISIT_NODE(NODE)\
 	void SGNodeVisitor::visit(NODE& node){ visitDefault(node); }
@@ -11,43 +12,6 @@ DEFINE_VISIT_NODE(SGNodeConst);
 DEFINE_VISIT_NODE(SGNodeCustom);
 
 #undef DEFINE_VISIT_NODE
-
-static int Printf(char const* format, TArray< std::string > const& strList, std::string& outString)
-{
-	int index = 0;
-	char const* cur = format;
-	if (strList.size() > 0)
-	{
-		while (*cur != 0)
-		{
-			char const* next = FStringParse::FindChar(cur, '%');
-			if (next[0] == '%' && next[1] == 's')
-			{
-				CHECK(cur != next);
-				
-				outString.append(cur, next - cur);
-				cur = next + 2;
-				
-				outString += strList[index];
-				++index;
-				if (!strList.isValidIndex(index))
-				{
-					break;
-				}
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
-
-	if (*cur != 0)
-	{
-		outString.append(cur);
-	}
-	return index;
-}
 
 int32 SGNodeInput::compile(SGCompiler& compiler)
 {
@@ -121,7 +85,7 @@ bool SGCompilerCodeGen::generate(ShaderGraph& graph, std::string& outCode)
 		}
 	}
 
-	int count = Printf((char const*)codeTemplate.data(), mCodeSegments, outCode);
+	int count = Text::Format((char const*)codeTemplate.data(), mCodeSegments, outCode);
 	if (count != mCodeSegments.size())
 	{
 		LogWarning(0, "%s file args is not match with domainInput %d", templateFile, mCodeSegments.size());

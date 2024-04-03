@@ -7,7 +7,7 @@
 using namespace Render;
 
 class MidlineTestStage : public StageBase
-	                   , public IGameRenderSetup
+					   , public IGameRenderSetup
 {
 	using BaseClass = StageBase;
 public:
@@ -19,22 +19,25 @@ public:
 			return false;
 		::Global::GUI().cleanupWidget();
 
-		
+
+		auto frame = WidgetUtility::CreateDevFrame();
+
 		restart();
 		return true;
 	}
 
+	struct Point;
 	struct DebugInfo
 	{
 		Vector2 pos;
+		Vector2 dir;
 		Vector2 normal;
 		Vector2 centerPos;
 		float   distNormal;
 		float   dist;
-
 		void draw(RHIGraphics2D& g, Vector2 const& testPos)
 		{
-			Vector2 rPos = centerPos + (distNormal + 10) * normal;
+			Vector2 rPos = centerPos + (distNormal ) * normal;
 			g.drawLine(pos, testPos);
 			g.drawLine(centerPos, rPos);
 			g.drawText(rPos, InlineString<>::Make("%.2f", dist));
@@ -48,18 +51,15 @@ public:
 		float   length;
 		float   distance;
 
-		DebugInfo getDebugPos(float dotDist, Vector2 const& offset) const
+		DebugInfo getDebugInfo(float dotDist, Vector2 const& offset) const
 		{
 			DebugInfo result;
-			float sign = Math::Sign(offset.cross(dir));
-			Vector2 normal = sign * Vector2(dir.y, -dir.x);
-			float distNormal = Math::Sqrt(offset.length2() - Math::Square(dotDist));
-
-			result.normal = normal;
+			result.normal = Math::Sign(offset.cross(dir)) * Vector2(dir.y, -dir.x);
+			result.distNormal = Math::Sqrt(offset.length2() - Math::Square(dotDist));
 			result.centerPos = pos + (0.5 * length) * dir;
-			result.pos = result.centerPos + distNormal * normal;
-			result.distNormal = distNormal;
+			result.pos  = result.centerPos + result.distNormal * result.normal;
 			result.dist = distance + 0.5 * length;
+			result.dir  = dir;
 			return result;
 		}
 	};
@@ -104,9 +104,9 @@ public:
 		BaseClass::onEnd();
 	}
 
-	void restart() 
+	void restart()
 	{
-		buildMidline(mPosList);
+		rebuildMidline();
 	}
 
 	void tick() {}
@@ -125,7 +125,13 @@ public:
 
 	bool    bHavePos = false;
 	Vector2 testPos;
+	int     mIndexPoint = INDEX_NONE;
 	float   mDistance;
+
+	bool    mbInFrist;
+	float   mP1;
+	float   mP2;
+	float   mAlpha;
 
 	void onRender(float dFrame) override
 	{
@@ -164,27 +170,62 @@ public:
 			RenderUtility::SetFontColor(g, EColor::Cyan);
 			if (debugMask & BIT(0))
 			{
-				debugPos[0].draw(g, testPos);
+				debugInfos[0].draw(g, testPos);
 			}
 			if (debugMask & BIT(1))
 			{
-				debugPos[1].draw(g, testPos);
+				debugInfos[1].draw(g, testPos);
 			}
+
+			if (debugMask == (BIT(0) | BIT(1)))
+			{
+				if (mbInFrist)
+				{
+					Vector2 p1 = testPos + debugInfos[0].dir * mP1;
+					Vector2 p2 = p1 + debugInfos[1].dir * mP2;
+					RenderUtility::SetPen(g, EColor::Blue);
+					g.drawLine(p2, debugInfos[1].centerPos);
+					RenderUtility::SetPen(g, EColor::Orange);
+					g.drawLine(testPos, p1);
+					g.drawLine(p1, p2);
+				}
+				else
+				{
+					Vector2 p1 = testPos - debugInfos[1].dir * mP1;
+					Vector2 p2 = p1 - debugInfos[0].dir * mP2;
+					RenderUtility::SetPen(g, EColor::Blue);
+					g.drawLine(p2, debugInfos[0].centerPos);
+					RenderUtility::SetPen(g, EColor::Orange);
+					g.drawLine(testPos, p1);
+					g.drawLine(p1, p2);
+				}
+			}
+
 			RenderUtility::SetPen(g, EColor::Null);
 			RenderUtility::SetBrush(g, EColor::Yellow);
 			Vector2 size = Vector2(5, 5);
 			g.drawRect(testPos - 0.5 * size, size);
 			RenderUtility::SetFontColor(g, EColor::Yellow);
 			g.drawText(testPos, InlineString<>::Make("%.2f", mDistance));
+
+			if (debugMask == (BIT(0) | BIT(1)))
+			{
+				g.drawText(testPos + Vector2(0, 15), InlineString<>::Make("%.2f , %.2f , %.2f", mAlpha, mP1, mP2));
+			}
 		}
 		g.endRender();
 	}
 
 
-	DebugInfo debugPos[2];
+	DebugInfo debugInfos[2];
 	uint32    debugMask = 0;
 
 
+	void rebuildMidline()
+	{
+		buildMidline(mPosList);
+		mIndexPoint = INDEX_NONE;
+	}
 
 	MsgReply onMouse(MouseMsg const& msg) override
 	{
@@ -192,7 +233,7 @@ public:
 		{
 			Vector2 pos = Vector2(msg.getPos());
 			mPosList.push_back(pos);
-			buildMidline(mPosList);
+			rebuildMidline();
 		}
 		else if (msg.onRightDown())
 		{
@@ -210,6 +251,8 @@ public:
 					minDistSq = distSq;
 				}
 			}
+
+			mIndexPoint = indexPoint;
 			auto const& point = mPoints[indexPoint];
 			Vector2 offset = testPos - point.pos;
 			float dotOffset = point.dir.dot(offset);
@@ -219,7 +262,7 @@ public:
 				mDistance = point.distance + dotOffset;
 
 				debugMask = BIT(1);
-				debugPos[1] = point.getDebugPos(dotOffset, offset);
+				debugInfos[1] = point.getDebugInfo(dotOffset, offset);
 			}
 			else
 			{
@@ -230,18 +273,47 @@ public:
 					mDistance = point.distance + dotOffsetPrev;
 
 					debugMask = BIT(0);
-					debugPos[0] = prevPoint.getDebugPos(dotOffsetPrev, offset);
+					debugInfos[0] = prevPoint.getDebugInfo(dotOffsetPrev, offset);
 				}
 				else
 				{
-					float totalDist = 0.5 * (prevPoint.length + point.length);
-					float prevLengthHalf = 0.5 * prevPoint.length;
-					float alpha = (prevLengthHalf + dotOffsetPrev) / (totalDist + dotOffsetPrev - dotOffset);
-					mDistance = prevPoint.distance + prevLengthHalf + alpha * totalDist;
+
+					float cos = point.dir.dot(prevPoint.dir);
+					float sin2 = 1 - cos * cos;
+
+					float d1 = 0.5 * prevPoint.length;
+					float d2 = 0.5 * point.length;
+					float p1 = d1 + dotOffsetPrev;
+					float p2 = d2 - dotOffset;
+					float det = d2 * p1 - d1 * p2;
+
+					float alpha;
+					if (det > 0)
+					{
+						float x = det / (d1 + d2 * cos);
+						float y = p1 - x * cos;
+						//alpha = 1 - p2 / (p2 + x + y);
+						alpha = 1 - p2 / (p1 + p2 + x * (1 - cos));
+						mP1 = x;
+						mP2 = y;
+						mbInFrist = false;
+					}
+					else
+					{
+						float x = -det / (d2 + d1 * cos);
+						float y = p2 - x * cos;
+						//alpha = p1 / (p1 + x + y);
+						alpha = p1 / (p1 + p2 + x * (1 - cos));
+						mP1 = x;
+						mP2 = y;
+						mbInFrist = true;
+					}
+					mDistance = prevPoint.distance + d1 + alpha * (d1 + d2);
+					mAlpha = alpha;
 
 					debugMask = BIT(0) | BIT(1);
-					debugPos[0] = prevPoint.getDebugPos(dotOffsetPrev, offset);
-					debugPos[1] = point.getDebugPos(dotOffset, offset);
+					debugInfos[0] = prevPoint.getDebugInfo(dotOffsetPrev, offset);
+					debugInfos[1] = point.getDebugInfo(dotOffset, offset);
 				}
 			}
 		}
@@ -256,9 +328,10 @@ public:
 			{
 			case EKeyCode::R: restart(); break;
 			case EKeyCode::Z:
+				if (!mPosList.empty())
 				{
 					mPosList.pop_back();
-					buildMidline(mPosList);
+					rebuildMidline();
 				}
 				break;
 			}

@@ -4,18 +4,118 @@
 #include "Core/TypeHash.h"
 #include "StdUtility.h"
 
+#include <unordered_map>
+
 namespace SBlocks
 {
 	class PieceShapeRegister
 	{
 	public:
-		int registerShape(PieceShapeData const& data)
+
+		struct Hasher
 		{
+			uint32 operator()(BlockCollection* bc) const
+			{
+				uint32 blockHash = 0xcab129de1;
+				for (auto const& block : bc->blocks)
+				{
+					blockHash = HashCombine(blockHash, block.pos.x);
+					blockHash = HashCombine(blockHash, block.pos.y);
+					blockHash = HashCombine(blockHash, block.type);
+				}
+				return blockHash;
+			}
+		};
+
+		struct EquFunc
+		{
+			bool operator()(BlockCollection* lhs, BlockCollection* rhs) const
+			{
+				return *lhs == *rhs;
+			}
+		};
 
 
+		std::unordered_map< BlockCollection*, PieceShapeData*, Hasher , EquFunc > mMap;
 
+		PieceShapeData* findData(BlockCollection& data)
+		{
+			auto iter = mMap.find(&data);
+			if (iter != mMap.end())
+				return iter->second;
+
+			return nullptr;
 		}
+
+		PieceShapeData* getOrRegisterData(BlockCollection& data)
+		{
+			auto iter = mMap.find(&data);
+			if (iter != mMap.end())
+				return iter->second;
+
+			return registerData(data);
+		}
+
+		PieceShapeData* registerData(BlockCollection& data)
+		{
+			PieceShapeData* newData = new PieceShapeData(data);
+			++mLastUsedId;
+			newData->id = mLastUsedId;
+			mMap.emplace(newData , newData);
+			return newData;
+		}
+
+		int mLastUsedId = 0;
 	};
+
+	PieceShapeRegister GShapeRegister;
+
+	void BlockCollection::standardize(Int16Point2D& outBoundSize)
+	{
+		AABB bound;
+		bound.invalidate();
+		for (auto const& block : blocks)
+		{
+			bound.addPoint(block);
+		}
+
+		if (!bound.isValid())
+		{
+			LogWarning(0, "Piece Shape no block");
+		}
+
+		outBoundSize = bound.max - bound.min + Vec2i(1, 1);
+		if (bound.min != Int16Point2D::Zero())
+		{
+			for (auto& block : blocks)
+			{
+				block.pos -= bound.min;
+			}
+		}
+
+		std::sort(blocks.begin(), blocks.end(), [](Int16Point2D const& lhs, Int16Point2D const& rhs)
+		{
+			if (lhs.y != rhs.y)
+				return lhs.y < rhs.y;
+
+			return lhs.x < rhs.x;
+		});
+	}
+
+	bool BlockCollection::operator==(BlockCollection const& rhs) const
+	{
+		if (blocks.size() != rhs.blocks.size())
+			return false;
+
+		for (int i = 0; i < blocks.size(); ++i)
+		{
+			if (blocks[i] != rhs.blocks[i])
+			{
+				return false;
+			}
+		}
+		return true;
+	}
 
 	void PieceShapeData::initialize(PieceShapeDesc const& desc)
 	{
@@ -39,34 +139,7 @@ namespace SBlocks
 
 	void PieceShapeData::standardizeBlocks()
 	{
-		AABB bound;
-		bound.invalidate();
-		for (auto const& block : blocks)
-		{
-			bound.addPoint(block);
-		}
-
-		if (!bound.isValid())
-		{
-			LogWarning(0, "Piece Shape no block");
-		}
-
-		boundSize = bound.max - bound.min + Vec2i(1, 1);
-		if (bound.min != Int16Point2D::Zero())
-		{
-			for (auto& block : blocks)
-			{
-				block.pos -= bound.min;
-			}
-		}
-
-		std::sort(blocks.begin(), blocks.end(), [](Int16Point2D const& lhs, Int16Point2D const& rhs)
-		{
-			if (lhs.y != rhs.y)
-				return lhs.y < rhs.y;
-
-			return lhs.x < rhs.x;
-		});
+		BlockCollection::standardize(boundSize);
 
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
 		blockHash = 0xcab129de1;
@@ -198,22 +271,15 @@ namespace SBlocks
 		if (blockHash != rhs.blockHash)
 			return false;
 #endif
-
-		if (blocks.size() != rhs.blocks.size())
-			return false;
-
 		if (boundSize != rhs.boundSize)
 			return false;
 
-		for (int i = 0; i < blocks.size(); ++i)
+		if ( !BlockCollection::operator == (rhs) )
 		{
-			if (blocks[i] != rhs.blocks[i])
-			{
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
-				LogWarning(0, "PieceShapeData of BlockHash work fail");
+			LogWarning(0, "PieceShapeData of BlockHash work fail");
 #endif
-				return false;
-			}
+			return false;
 		}
 
 		return true;

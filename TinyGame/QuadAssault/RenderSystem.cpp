@@ -25,20 +25,21 @@ class CFont : public IFont
 public:
 	bool load(char const* path)
 	{
-		if (!FFileSystem::IsExist(path))
-			return false;
-
-		int numFonts = AddFontResourceExA(path, FR_PRIVATE, NULL);
-		if (numFonts == 0)
+		if (FFileSystem::IsExist(path))
 		{
-			return false;
+			bHadAddFontRes = true;
+			int numFonts = AddFontResourceExA(path, FR_PRIVATE, NULL);
+			if (numFonts == 0)
+			{
+				return false;
+			}
 		}
 		mFontPath = path;
 		return true;
 	}
 	virtual void release()
 	{
-		if (mFontPath.length())
+		if (bHadAddFontRes)
 		{
 			RemoveFontResourceExA(mFontPath.c_str(), FR_PRIVATE, NULL);
 		}
@@ -68,6 +69,7 @@ public:
 		return result;
 	}
 
+	bool bHadAddFontRes = false;
 	std::string mFontPath;
 	std::unordered_map<int, std::unique_ptr< Drawer > > mDrawerMap;
 };
@@ -81,7 +83,10 @@ public:
 	}
 	CText(IFont* font, int size, Color4ub const& color)
 	{
-		mDrawer = static_cast<CFont*>(font)->fetchDrawer(size);
+		if (font)
+		{
+			mDrawer = static_cast<CFont*>(font)->fetchDrawer(size);
+		}
 		mSize = size;
 		mColor = color;
 	}

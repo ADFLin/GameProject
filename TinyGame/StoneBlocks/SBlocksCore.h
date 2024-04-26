@@ -184,14 +184,20 @@ namespace SBlocks
 		};
 
 		TArray< Block , FixedSizeAllocator > blocks;
+
+		void standardize(Int16Point2D& outBoundSize);
+
+		bool operator == (BlockCollection const& rhs) const;
 	};
 
 #define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 0
+
 	struct PieceShapeData : BlockCollection
 	{
 		Int16Point2D boundSize;
+		int id;
+
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
-		uint32 blockHash;
 		uint32 blockHashNoType;
 #endif
 		void initialize(PieceShapeDesc const& desc);

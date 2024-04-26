@@ -23,7 +23,7 @@ namespace Render
 		{
 			texture = nullptr;
 			sampler = nullptr;
-			transform == Matrix4::Identity();
+			transform = Matrix4::Identity();
 			color = LinearColor(1, 1, 1, 1);
 		}
 	};

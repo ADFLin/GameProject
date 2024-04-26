@@ -344,10 +344,10 @@ namespace CAR
 			Vec2i pos = Vec2i( 300 , 20 );
 			for(int i = 0 ; i < mGameLogic.mFeatureMap.size() ; ++i )
 			{
-				FeatureBase* build = mGameLogic.mFeatureMap[i];
-				if ( build->group == INDEX_NONE )
+				FeatureBase* feature = mGameLogic.mFeatureMap[i];
+				if (feature->group == ERROR_GROUP_ID)
 					continue;
-				pos = showBuildInfo( g , pos , build , 12 );
+				pos = showFeatureInfo( g , pos , feature, 12 );
 				pos.y += 2;
 			}
 #endif
@@ -359,7 +359,7 @@ namespace CAR
 				Vec2i pos = Vec2i( 300 , 20 );
 				showFeatureInfo( g , pos , feature , 12 );
 
-				if ( feature->group != INDEX_NONE )
+				if (feature->group != ERROR_GROUP_ID)
 				{
 					for(auto mapTile : feature->mapTiles)
 					{

@@ -52,7 +52,7 @@ namespace Render
 			{
 				codeBuffer.pop_back();
 				std::string pathGLSL = "Temp/Temp.glsl";
-				if (!FileUtility::SaveFromBuffer(pathGLSL.c_str(), codeBuffer.data(), codeBuffer.size()))
+				if (!FFileUtility::SaveFromBuffer(pathGLSL.c_str(), codeBuffer.data(), codeBuffer.size()))
 				{
 					return false;
 				}

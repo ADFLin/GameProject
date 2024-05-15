@@ -182,9 +182,7 @@ namespace Render
 		Sampler ,
 		UniformBuffer ,
 		TextureBuffer ,
-
-
-
+		AtomCounter ,
 		StorageBuffer ,
 
 		Unknown,
@@ -334,14 +332,20 @@ namespace Render
 		AtomicCounter ,
 	};
 
-	class RHIShader : public RHIResource
+	class RHIShaderObject : public RHIResource
 	{
 	public:
-		RHIShader():RHIResource(TRACE_TYPE_NAME("Shader")){}
+		using RHIResource::RHIResource;
 
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
+	};
+
+	class RHIShader : public RHIShaderObject
+	{
+	public:
+		RHIShader():RHIShaderObject(TRACE_TYPE_NAME("Shader")){}
 
 		void initType(EShader::Type type)
 		{
@@ -350,24 +354,19 @@ namespace Render
 		}
 
 		EShader::Type getType() const { return mType; }
-
 		EShader::Type mType = EShader::Empty;
 		uint32 mGUID = 0;
 	};
 
 	using RHIShaderRef = TRefCountPtr< RHIShader >;
 	
-	class RHIShaderProgram : public RHIResource
+	class RHIShaderProgram : public RHIShaderObject
 	{
 	public:
-		RHIShaderProgram() :RHIResource(TRACE_TYPE_NAME("ShaderProgram")) 
+		RHIShaderProgram() :RHIShaderObject(TRACE_TYPE_NAME("ShaderProgram"))
 		{
 			FRHIResourceTable::Register(*this);
 		}
-
-		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
-		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
-		virtual char const* getStructParameterName(EShaderResourceType resourceType, StructuredBufferInfo const& structInfo) { return structInfo.blockName; }
 
 		uint32 mGUID = 0;
 	};

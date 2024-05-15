@@ -492,7 +492,7 @@ void RHIGraphics2D::flushBatchedElements()
 {
 	if ( !mElementList.isEmpty() )
 	{
-		mBatchedRender.render( mRenderStateCommitted, mElementList);
+		mBatchedRender.render(mRenderStateCommitted, mElementList);
 		mNextLayer = 0;
 	}
 }

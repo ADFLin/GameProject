@@ -222,7 +222,8 @@ public:
 	bool        tryGetCharValue  ( char const* keyName , char const* section , char& value );
 	bool        tryGetIntValue   ( char const* keyName , char const* section , int& value );
 	bool        tryGetFloatValue ( char const* keyName , char const* section , float& value );
-	bool        tryGetStringValue( char const* keyName , char const* section , char const*& value );
+	bool        tryGetStringValue( char const* keyName , char const* section , char const*& value);
+	bool        tryGetStringValue(char const* keyName, char const* section, StringView& value);
 	bool        tryGetBoolValue(char const* keyName, char const* section, bool& value);
 
 	bool        saveFile( char const* path );

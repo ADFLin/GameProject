@@ -577,13 +577,16 @@ public:
 		CHECK(index != INDEX_NONE);
 		removeIndex(index);
 	}
-	void removeSwap(T const& value)
+
+	bool removeSwap(T const& value)
 	{
 		int index = findIndex(value);
 		if (index != INDEX_NONE)
 		{
 			removeIndexSwap(index);
+			return true;
 		}
+		return false;
 	}
 
 	bool isUnique() const

@@ -568,18 +568,11 @@ namespace Render
 					sampler.ShaderVisibility = visibility;
 					inOutSignature.samplers.push_back(sampler);
 #else
-
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = slotOffset++;
 					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eSampler;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
-
-
-					if (slot.slotOffset == 9)
-					{
-						int i = 1;
-					}
 #endif
 
 #if SHADER_DEBUG
@@ -594,12 +587,6 @@ namespace Render
 					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
-
-
-					if (slot.slotOffset == 9)
-					{
-						int i = 1;
-					}
 #if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::Texture;
 #endif			
@@ -609,7 +596,6 @@ namespace Render
 				{
 					ShaderParameterSlotInfo slot;
 					slot.slotOffset = slotOffset++;
-
 #if 0
 					AddDescRange(FD3D12Init::DescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bindDesc.BindPoint, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE));
 					slot.type = ShaderParameterSlotInfo::eDescriptorTable_SRV;
@@ -621,7 +607,6 @@ namespace Render
 					parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
 					inOutSignature.parameters.push_back(parameter);
 #endif
-
 					auto& param = AddToParameterMap(bindDesc.Name, slot);
 #if SHADER_DEBUG
 					param.mbindType = EShaderParamBindType::StorageBuffer;

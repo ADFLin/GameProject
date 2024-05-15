@@ -60,8 +60,9 @@ namespace SBlocks
 
 	Stat StatRejectCount("RejectCount");
 	Stat StatRejectShape("RejectShape");
+	Stat StatFindShape("FindShape");
 	Stat StatAdvance("Advance");
-	Stat* ReportedStatList[] = { &StatAdvance, &StatRejectCount, &StatRejectShape };
+	Stat* ReportedStatList[] = { &StatAdvance, &StatRejectCount, &StatRejectShape , &StatFindShape };
 
 	void MapSolveData::setup(MarkMap const& map, SolveOption const& option)
 	{
@@ -117,7 +118,7 @@ namespace SBlocks
 			Vec2i tPos = queryList.back();
 			queryList.pop_back();
 
-			for (int i = 0; i < 4; ++i)
+			for (int i = 0; i < DirType::RestValue; ++i)
 			{
 				Vec2i testPos = tPos + GConsOffsets[i];
 
@@ -142,7 +143,7 @@ namespace SBlocks
 			}
 		}
 #else
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < DirType::RestValue; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
 			result += countConnectedTilesRec(testPos);
@@ -178,7 +179,7 @@ namespace SBlocks
 		Vec2i curPos = pos;
 		for(;;)
 		{
-			for (int i = 0; i < 4; ++i)
+			for (int i = 0; i < DirType::RestValue; ++i)
 			{
 				Vec2i testPos = curPos + GConsOffsets[i];
 
@@ -283,7 +284,7 @@ namespace SBlocks
 		frame.sub = mSubTestFrame;
 
 		int result = 1;
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < DirType::RestValue; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
 			result += countConnectedTilesRec(testPos);
@@ -317,7 +318,7 @@ namespace SBlocks
 			Vec2i tPos = queryList.back();
 			queryList.pop_back();
 
-			for (int i = 0; i < 4; ++i)
+			for (int i = 0; i < DirType::RestValue; ++i)
 			{
 				Vec2i testPos = tPos + GConsOffsets[i];
 
@@ -338,7 +339,7 @@ namespace SBlocks
 			}
 		}
 #else
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < DirType::RestValue; ++i)
 		{
 			Vec2i testPos = pos + GConsOffsets[i];
 			getConnectedTilePosList(testPos);
@@ -772,16 +773,15 @@ namespace SBlocks
 
 			if constexpr (bUseMapMask)
 			{
-#if 0
-				for (int i = 0; i < mapData.mMap.mData.getRawDataSize(); ++i)
+#if 1
+				MapMask mask = test.mask;
+				int index;
+				while (Extract(mask, index))
 				{
-					if (IsSet(test.mask, i))
-					{
-						Int16Point2D pos;
-						pos.x = i % mapData.mMap.mData.getSizeX();
-						pos.y = i / mapData.mMap.mData.getSizeX();
-						mapData.mCachedShapeData.blocks.push_back(PieceShapeData::Block(pos, MarkMap::Normal));
-					}
+					Int16Point2D pos;
+					pos.x = index % mapData.mMap.mData.getSizeX();
+					pos.y = index / mapData.mMap.mData.getSizeX();
+					mapData.mCachedShapeData.blocks.push_back(PieceShapeData::Block(pos, MarkMap::Normal));
 				}
 #else
 				mapData.getConnectedTilePosListMask(test.pos);
@@ -793,6 +793,8 @@ namespace SBlocks
 				CHECK(mTestFrame != 0);
 				mapData.getConnectedTilePosList(test.pos);
 			}
+
+
 			mapData.mCachedShapeData.standardizeBlocks();
 
 			PieceSolveData* pieceData = nullptr;
@@ -812,6 +814,22 @@ namespace SBlocks
 			}
 			else
 			{
+				STAT_SCOPE(StatFindShape);
+
+#if USE_SHAPE_REGISTER
+				PieceShapeData* shapeData = PieceShape::FindData(mapData.mCachedShapeData);
+				if (shapeData == nullptr)
+					return ERejectResult::ConnectTileShape;
+
+				pieceData = globalData->mPieceSizeMap[test.index];
+				for (; pieceData; pieceData = pieceData->sizeLink)
+				{
+					if (CheckPieceFunc(*pieceData) && pieceData->shape->findShapeData(shapeData) != INDEX_NONE)
+					{
+						break;
+					}
+				}
+#else
 				pieceData = globalData->mPieceSizeMap[test.index];
 				for (; pieceData; pieceData = pieceData->sizeLink)
 				{
@@ -820,6 +838,7 @@ namespace SBlocks
 						break;
 					}
 				}
+#endif
 			}
 
 		Found:
@@ -1292,7 +1311,7 @@ namespace SBlocks
 			int rejection;
 		};
 		TArray<IndexCountData> indexCounts;
-		indexCounts.resize(mPieceList.size(), { 0, 0 });
+		indexCounts.resize(globalData.mPieceList.size(), { 0, 0 });
 		int solvingRejectionCount = 0;
 #endif
 

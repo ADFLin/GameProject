@@ -24,7 +24,6 @@ struct TCStringWrapper
 		{
 			return FCString::Compare(str, rhs.str) == 0;
 		}
-
 	}
 
 	bool operator < (TCStringWrapper const& rhs) const
@@ -61,3 +60,5 @@ using WCStringWrapper = TCStringWrapper<wchar_t>;
 
 EXPORT_MEMBER_HASH_TO_STD(CStringWrapper);
 EXPORT_MEMBER_HASH_TO_STD(WCStringWrapper);
+EXPORT_MEMBER_HASH_TO_STD(COMMA_SEPARATED(TCStringWrapper<char, true>));
+EXPORT_MEMBER_HASH_TO_STD(COMMA_SEPARATED(TCStringWrapper<wchar_t, true>));

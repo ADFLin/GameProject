@@ -38,9 +38,12 @@ public:
 	void drawRect(Vec2f const& pos, Vec2f const& size, Vec2f const& uvMin, Vec2f const& uvMax);
 	void drawRect(Vec2f const& pos, Vec2f const& size, Vec2f const& pivot);
 	void drawRect(Vec2f const& pos, Vec2f const& size, float rot, Vec2f const& pivot);
-	void drawRectLine(Vec2f const& pos, Vec2f const size);
 
 	Render::TransformStack2D& getStack() { return mStack; }
+	Vec2f transformPos(Vec2f const& pos) const
+	{
+		return mStack.get().transformPosition(pos);
+	}
 
 	float time;
 

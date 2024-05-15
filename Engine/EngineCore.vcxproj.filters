@@ -370,6 +370,9 @@
     <ClCompile Include="Algo\DLX.cpp">
       <Filter>Algo</Filter>
     </ClCompile>
+    <ClCompile Include="Core\DateTime.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -1007,6 +1010,9 @@
     </ClInclude>
     <ClInclude Include="Misc\Format.h">
       <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\DateTime.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

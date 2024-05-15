@@ -66,7 +66,6 @@ namespace Go
 				if( !LeelaWeightTable::IsOfficialFormat( fileIter.getFileName(), subName ) )
 					continue;
 
-
 				InlineString< 32 > weightName;
 				weightName.assign(fileIter.getFileName(), LeelaWeightInfo::DefaultNameLength);
 

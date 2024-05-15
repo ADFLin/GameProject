@@ -7,6 +7,7 @@
 #include "PlatformConfig.h"
 #include "SystemPlatform.h"
 #include "Core/IntegerType.h"
+#include "Core/DateTime.h"
 #include "Template/StringView.h"
 #include "DataStructure/Array.h"
 
@@ -81,12 +82,7 @@ public:
 	~FileIterator();
 
 	char const* getFileName() const { return mFindData.cFileName; }
-	DateTime getLastModifyDate() const
-	{
-		SYSTEMTIME systemTime = { 0 };
-		::FileTimeToSystemTime(&mFindData.ftLastWriteTime, &systemTime);
-		return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
-	}
+	DateTime getLastModifyDate() const;
 	bool   isDirectory() const;
 	bool   haveMore(){ return mHaveMore; }
 	void   goNext();

@@ -54,6 +54,12 @@
     <ClCompile Include="TestMisc\Stage\AgarStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="StoneBlocks\SBlocksLevel.cpp">
+      <Filter>GameStoneBlocks</Filter>
+    </ClCompile>
+    <ClCompile Include="StoneBlocks\SBlocksEditor.cpp">
+      <Filter>GameStoneBlocks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
@@ -113,6 +119,12 @@
     </ClInclude>
     <ClInclude Include="TestMisc\Stage\AgarStage.h">
       <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="StoneBlocks\SBlocksEditor.h">
+      <Filter>GameStoneBlocks</Filter>
+    </ClInclude>
+    <ClInclude Include="StoneBlocks\SBlocksLevel.h">
+      <Filter>GameStoneBlocks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

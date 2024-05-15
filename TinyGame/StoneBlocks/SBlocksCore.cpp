@@ -5,16 +5,18 @@
 #include "StdUtility.h"
 
 #include <unordered_map>
+#include <stack>
 
 namespace SBlocks
 {
+#if USE_SHAPE_REGISTER
 	class PieceShapeRegister
 	{
 	public:
 
 		struct Hasher
 		{
-			uint32 operator()(BlockCollection* bc) const
+			uint32 operator()(BlockCollection const* bc) const
 			{
 				uint32 blockHash = 0xcab129de1;
 				for (auto const& block : bc->blocks)
@@ -29,16 +31,16 @@ namespace SBlocks
 
 		struct EquFunc
 		{
-			bool operator()(BlockCollection* lhs, BlockCollection* rhs) const
+			bool operator()(BlockCollection const* lhs, BlockCollection const* rhs) const
 			{
 				return *lhs == *rhs;
 			}
 		};
 
+		std::deque< PieceShapeData > mStorage;
+		std::unordered_map< BlockCollection const*, PieceShapeData*, Hasher , EquFunc > mMap;
 
-		std::unordered_map< BlockCollection*, PieceShapeData*, Hasher , EquFunc > mMap;
-
-		PieceShapeData* findData(BlockCollection& data)
+		PieceShapeData* findData(PieceShape::InitData const& data)
 		{
 			auto iter = mMap.find(&data);
 			if (iter != mMap.end())
@@ -47,28 +49,59 @@ namespace SBlocks
 			return nullptr;
 		}
 
-		PieceShapeData* getOrRegisterData(BlockCollection& data)
+		PieceShapeData* getOrRegisterData(PieceShape::InitData& data)
 		{
-			auto iter = mMap.find(&data);
-			if (iter != mMap.end())
-				return iter->second;
+			PieceShapeData* find = findData(data);
+			if (find)
+				return find;
 
 			return registerData(data);
 		}
 
-		PieceShapeData* registerData(BlockCollection& data)
+		PieceShapeData* registerData(PieceShape::InitData& data)
 		{
-			PieceShapeData* newData = new PieceShapeData(data);
+#if 1
+			mStorage.emplace_back(std::move(data));
+			PieceShapeData* newData = &mStorage.back();
+#else
+			PieceShapeData* newData = new PieceShapeData(std::move(data));
+#endif
+			newData->boundSize = data.boundSize;
 			++mLastUsedId;
 			newData->id = mLastUsedId;
-			mMap.emplace(newData , newData);
+			auto pair = mMap.emplace(newData , newData);
 			return newData;
+		}
+
+		void cleanup()
+		{
+			mMap.clear();
+			mStorage.clear();
+			mLastUsedId = 0;
 		}
 
 		int mLastUsedId = 0;
 	};
-
 	PieceShapeRegister GShapeRegister;
+#endif
+
+	void BlockCollection::initialize(PieceShapeDesc const& desc)
+	{
+		blocks.clear();
+		blocks.reserve(desc.data.size());
+
+		for (int index = 0; index < desc.data.size(); ++index)
+		{
+			uint8 data = desc.data[index];
+			if (data & PieceShapeDesc::BLOCK_BIT)
+			{
+				Int16Point2D pos;
+				pos.x = index % desc.sizeX;
+				pos.y = index / desc.sizeX;
+				blocks.push_back(PieceShapeData::Block(pos, data >> 1));
+			}
+		}
+	}
 
 	void BlockCollection::standardize(Int16Point2D& outBoundSize)
 	{
@@ -119,21 +152,7 @@ namespace SBlocks
 
 	void PieceShapeData::initialize(PieceShapeDesc const& desc)
 	{
-		blocks.clear();
-		blocks.reserve(desc.data.size());
-
-		for (int index = 0; index < desc.data.size(); ++index)
-		{
-			uint8 data = desc.data[index];
-			if ( data & PieceShapeDesc::BLOCK_BIT )
-			{
-				Int16Point2D pos;
-				pos.x = index % desc.sizeX;
-				pos.y = index / desc.sizeX;
-				blocks.push_back(PieceShapeData::Block(pos, data >> 1));
-			}
-		}
-
+		BlockCollection::initialize(desc);
 		standardizeBlocks();
 	}
 
@@ -237,12 +256,10 @@ namespace SBlocks
 		return true;
 	}
 
-	bool PieceShapeData::compareBlockPos(PieceShapeData const& rhs) const
+	bool PieceShapeData::compareIgnoreBlockType(PieceShapeData const& rhs) const
 	{
-
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
-		if (blockHashNoType != rhs.blockHashNoType)
-			return false;
+		return blockHashNoType == rhs.blockHashNoType;
 #endif
 
 		if (blocks.size() != rhs.blocks.size())
@@ -268,9 +285,9 @@ namespace SBlocks
 	bool PieceShapeData::operator==(PieceShapeData const& rhs) const
 	{
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
-		if (blockHash != rhs.blockHash)
-			return false;
+		return blockHash == rhs.blockHash;
 #endif
+
 		if (boundSize != rhs.boundSize)
 			return false;
 
@@ -383,6 +400,13 @@ namespace SBlocks
 		outlines.insert(outlines.end(), VLines.begin(), VLines.end());
 	}
 
+#if USE_SHAPE_REGISTER
+	PieceShapeData* PieceShape::FindData(InitData const& data)
+	{
+		return GShapeRegister.findData(data);
+	}
+#endif
+
 	PieceShape::OpState PieceShape::getOpState(int index) const
 	{
 		CHECK(mDataStorage.isValidIndex(index));
@@ -400,13 +424,29 @@ namespace SBlocks
 		return { (uint8)INDEX_NONE , EMirrorOp::None };
 	}
 
-	int PieceShape::findSameShape(PieceShapeData const& data) const
+	int PieceShape::findShapeData(PieceShapeData* shapeData) const
 	{
+#if USE_SHAPE_REGISTER
+		return mDataStorage.findIndex(shapeData);
+#endif
+		return INDEX_NONE;
+	}
+
+	int PieceShape::findSameShape(InitData const& data) const
+	{
+#if USE_SHAPE_REGISTER
+		PieceShapeData* shapeData = GShapeRegister.findData(data);
+		if (shapeData == nullptr)
+			return INDEX_NONE;
+
+		return findShapeData(shapeData);
+#else
 		for (int i = 0; i < (int)mDataStorage.size(); ++i)
 		{
 			if (mDataStorage[i] == data)
 				return i;
 		}
+#endif
 		return INDEX_NONE;
 	}
 
@@ -414,7 +454,7 @@ namespace SBlocks
 	{
 		for (int i = 0; i < (int)mDataStorage.size(); ++i)
 		{
-			if (mDataStorage[i].compareBlockPos(data))
+			if (getDataByIndex(i).compareIgnoreBlockType(data))
 				return i;
 		}
 		return INDEX_NONE;
@@ -424,7 +464,7 @@ namespace SBlocks
 	{
 		for (int i = 0; i < (int)mDataStorage.size(); ++i)
 		{
-			if (data.isSubset(mDataStorage[i]))
+			if (data.isSubset(getDataByIndex(i)))
 				return i;
 		}
 		return INDEX_NONE;
@@ -442,7 +482,7 @@ namespace SBlocks
 		outDesc.sizeX = boundSize.x;
 
 		outDesc.data.resize(boundSize.x * boundSize.y, 0);
-		for (auto block : mDataStorage[0].blocks)
+		for (auto block : getDataByIndex(0).blocks)
 		{
 			int index = boundSize.x * block.pos.y + block.pos.x;
 			outDesc.data[index] = ( block.type << 1 ) | PieceShapeDesc::BLOCK_BIT;
@@ -456,17 +496,21 @@ namespace SBlocks
 
 		mDataStorage.clear();
 		{
-			PieceShapeData shapeData;
+			PieceShape::InitData shapeData;
 			shapeData.initialize(desc);
-			boundSize = shapeData.boundSize;
-			shapeData.generateOutline(outlines[EMirrorOp::None]);
+#if USE_SHAPE_REGISTER
+			registerData(shapeData, 0);
+#else
 			addNewData(shapeData, 0);
+#endif
+			boundSize = getDataByIndex(0).boundSize;
+			getDataByIndex(0).generateOutline(outlines[EMirrorOp::None]);
 		}
 		for (int dir = 1; dir < DirType::RestValue; ++dir)
 		{
 			auto const& shapeDataPrev = getData(DirType::ValueChecked(dir - 1));
 
-			PieceShapeData shapeData;
+			PieceShape::InitData shapeData;
 			shapeData.blocks.reserve(shapeDataPrev.blocks.size());
 			for (auto const& block : shapeDataPrev.blocks)
 			{
@@ -491,7 +535,7 @@ namespace SBlocks
 		for (int op = 1; op < EMirrorOp::COUNT; ++op)
 		{
 			auto const& shapeDataOriginal = getData(DirType::ValueChecked(0));
-			PieceShapeData shapeData;
+			PieceShape::InitData shapeData;
 			shapeData.blocks.reserve(shapeDataOriginal.blocks.size());
 			switch (op)
 			{
@@ -523,7 +567,7 @@ namespace SBlocks
 			{
 				auto const& shapeDataPrev = getData(DirType::ValueChecked(dir - 1), EMirrorOp::Type(op));
 
-				PieceShapeData shapeData;
+				PieceShape::InitData shapeData;
 				shapeData.blocks.reserve(shapeDataPrev.blocks.size());
 				for (auto const& block : shapeDataPrev.blocks)
 				{
@@ -539,17 +583,37 @@ namespace SBlocks
 
 	}
 
-	int PieceShape::addNewData(PieceShapeData& data, int dir, EMirrorOp::Type op)
+	int PieceShape::addNewData(InitData& data, int dir, EMirrorOp::Type op)
 	{
 		int index = mDataStorage.size();
 		mDataIndexMap[op][dir] = index;
+#if USE_SHAPE_REGISTER
+		PieceShapeData* shapeData = GShapeRegister.registerData(data);
+		mDataStorage.push_back(shapeData);
+#else
 		mDataStorage.push_back(std::move(data));
+#endif
 		return index;
 	}
 
-	int PieceShape::registerData(PieceShapeData& data, int dir, EMirrorOp::Type op)
+	int PieceShape::registerData(InitData& data, int dir, EMirrorOp::Type op)
 	{
 		data.standardizeBlocks();
+
+#if USE_SHAPE_REGISTER
+		PieceShapeData* shapeData = GShapeRegister.findData(data);
+		if (shapeData == nullptr)
+			return addNewData(data, dir, op);
+
+		int index = findShapeData(shapeData);
+		if (index == INDEX_NONE)
+		{
+			index = mDataStorage.size();
+			mDataStorage.push_back(shapeData);
+		}
+		mDataIndexMap[op][dir] = index;
+		return index;
+#else
 		int index = findSameShape(data);
 		if (index != INDEX_NONE)
 		{
@@ -557,6 +621,7 @@ namespace SBlocks
 			return index;
 		}
 		return addNewData(data, dir, op);
+#endif
 	}
 
 	bool MarkMap::tryLock(Vec2i const& pos, PieceShapeData const& shapeData)
@@ -906,6 +971,9 @@ namespace SBlocks
 
 	void Level::importDesc(LevelDesc const& desc)
 	{
+#if USE_SHAPE_REGISTER
+		GShapeRegister.cleanup();
+#endif
 		bAllowMirrorOp = desc.bAllowMirrorOp;
 
 		mShapes.clear();
@@ -1014,7 +1082,7 @@ namespace SBlocks
 
 	PieceShape* Level::findPieceShape(PieceShapeDesc const& desc, int& outDir)
 	{
-		PieceShapeData shapeData;
+		PieceShape::InitData shapeData;
 		shapeData.initialize(desc);
 		for (int index = 0; index < mShapes.size(); ++index)
 		{

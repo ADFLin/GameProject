@@ -8,8 +8,10 @@
 
 #include "Delegate.h"
 #include "DataStructure/Array.h"
+#include "Misc/CStringWrapper.h"
 
 #include <unordered_map>
+
 
 DECLARE_DELEGATE(FileNotifyCallback, void(wchar_t const* path, EFileAction action));
 
@@ -55,15 +57,16 @@ public:
 			return ::wcscmp( s1 , s2 ) < 0;
 		}
 	};
-	typedef TArray< IAssetViewer* > AssetList;
-	typedef std::unordered_map< std::wstring , AssetList >  AssetMap;
-	AssetMap mAssetMap;
 
-	struct FileModifyInfo
+	struct MonitorEntry 
 	{
 		std::wstring path;
-		EFileAction  action;
+		std::wstring dir;
+		TArray<IAssetViewer*> viewers;
 	};
+
+	using AssetMonitorMap = std::unordered_map< TCStringWrapper<wchar_t, true > , MonitorEntry* >;
+	AssetMonitorMap mAssetMonitorMap;
 
 	IPlatformFileMonitor* mFileModifyMonitor;
 	void handleDirectoryModify(wchar_t const* path, EFileAction action);

@@ -238,6 +238,7 @@
     <ClCompile Include="CoreShare.cpp" />
     <ClCompile Include="Core\Color.cpp" />
     <ClCompile Include="Core\CRC.cpp" />
+    <ClCompile Include="Core\DateTime.cpp" />
     <ClCompile Include="Core\MD5.cpp" />
     <ClCompile Include="Core\StringConv.cpp" />
     <ClCompile Include="Core\Tickable.cpp" />
@@ -331,6 +332,7 @@
     <ClInclude Include="Core\Color.h" />
     <ClInclude Include="Core\CRC.h" />
     <ClInclude Include="Core\CRTPCheck.h" />
+    <ClInclude Include="Core\DateTime.h" />
     <ClInclude Include="Core\FNV1a.h" />
     <ClInclude Include="Core\HalfFlot.h" />
     <ClInclude Include="Core\LockFreeList.h" />

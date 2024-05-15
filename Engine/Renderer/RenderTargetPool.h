@@ -68,7 +68,7 @@ namespace Render
 	};
 
 
-	class GlobalRenderTargetTool : public RenderTargetPool
+	class GlobalRenderTargetPool : public RenderTargetPool
 		                         , public IGlobalRenderResource
 	{
 	public:
@@ -76,7 +76,7 @@ namespace Render
 		void releaseRHI() override;
 
 	};
-	extern CORE_API GlobalRenderTargetTool GRenderTargetPool;
+	extern CORE_API GlobalRenderTargetPool GRenderTargetPool;
 
 }//namespace Render
 

@@ -232,7 +232,7 @@ public:
 					StringView section;
 					if (SpiltSection(name, section))
 					{
-						char const* valueStr;
+						StringView valueStr;
 						if (configs.tryGetStringValue(name, section.toMutableCString(), valueStr))
 						{
 							var->setFromString(valueStr);
@@ -561,6 +561,17 @@ void RunArrayTest()
 
 bool TinyGameApp::initializeGame()
 {
+	{
+		DateTime appStartTime = SystemPlatform::GetLocalTime();
+
+		EDayOfWeek dayOfWeek = appStartTime.getDayOfWeek();
+		int year = appStartTime.getYear();
+		int month = appStartTime.getMonth();
+		int day = appStartTime.getDay();
+		int hour = appStartTime.getHour();
+		int min = appStartTime.getMinute();
+	}
+
 	CreateConsole();
 	gLogPrinter.addDefaultChannels();
 

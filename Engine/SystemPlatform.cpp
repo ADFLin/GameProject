@@ -2,6 +2,10 @@
 
 #include "MarcoCommon.h"
 
+#include "Core/DateTime.h"
+#include "Core/ScopeGuard.h"
+#include "CString.h"
+
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #include <Commdlg.h>
@@ -14,10 +18,6 @@
 #include <ctime>
 #include "MemorySecurity.h"
 #endif
-#include "Core/ScopeGuard.h"
-#include "CString.h"
-
-
 
 int SystemPlatform::GetProcessorNumber()
 {

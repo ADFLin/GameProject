@@ -208,7 +208,6 @@ namespace DLX
 		}
 	}
 
-
 	template< bool bRecursive>
 	void Solver::solveInternal(MatrixColumn* startCol)
 	{

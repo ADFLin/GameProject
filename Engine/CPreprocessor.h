@@ -99,6 +99,7 @@ namespace CPP
 			for( int i = 0; i < num; ++i )
 				push(' ');
 		}
+		//void push(ConstString const& str) { push(str.c_str(), str.size()); }
 		void push(StringView const& str) { push(str.data(), str.size()); }
 		void push(char c)
 		{
@@ -109,8 +110,8 @@ namespace CPP
 		{
 			mStream.write(str, num);
 		}
-		std::ostream& mStream;
 
+		std::ostream& mStream;
 	};
 
 	class FExpressionUitlity
@@ -349,10 +350,9 @@ namespace CPP
 			}
 		}
 
-
 		void advanceNoEoL(int offset)
 		{
-			assert(FStringParse::CountChar(mCur, mCur + offset, '\n') == 0);
+			CHECK(FStringParse::CountChar(mCur, mCur + offset, '\n') == 0);
 
 			mCur += offset;
 			if (SkipConcat(mCur))
@@ -376,12 +376,9 @@ namespace CPP
 			}
 		}
 
-
-
 		char operator [](int index) const { return mCur[index]; }
 
-
-		StringView getDifference(CodeLoc const& start)
+		StringView getDifference(CodeLoc const& start) const
 		{
 			return StringView(start.mCur, mCur - start.mCur);
 		}
@@ -553,7 +550,7 @@ namespace CPP
 				numRefMarcoWithArgs = 0;
 			}
 
-			void add(ExpandMarcoResult const& other)
+			void append(ExpandMarcoResult const& other)
 			{
 				numRefMarco += other.numRefMarco;
 				numRefMarcoWithArgs += other.numRefMarcoWithArgs;
@@ -675,7 +672,7 @@ namespace CPP
 
 		CodeOutput* mOutput;
 
-		std::unordered_set< HashString >  mParamOnceSet;
+		std::unordered_set< HashString >  mPragmaOnceSet;
 		TArray< std::string > mFileSreachDirs;
 		std::unordered_set< HashString >  mUsedFiles;
 		EOperator::Type mParsedCachedOP = EOperator::None;

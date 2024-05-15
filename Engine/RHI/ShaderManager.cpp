@@ -345,18 +345,9 @@ namespace Render
 		DataCacheInterface* mDataCache;
 	};
 
-
-
 	char const* const ShaderPosfixNames[] =
 	{
-		"VS" SHADER_FILE_SUBNAME ,
-		"PS" SHADER_FILE_SUBNAME ,
-		"GS" SHADER_FILE_SUBNAME ,
-		"CS" SHADER_FILE_SUBNAME ,
-		"HS" SHADER_FILE_SUBNAME ,
-		"DS" SHADER_FILE_SUBNAME ,
-		"TS" SHADER_FILE_SUBNAME ,
-		"MS" SHADER_FILE_SUBNAME ,
+		"VS", "PS", "GS", "CS", "HS", "DS", "TS", "MS",
 	};
 
 #if CORE_SHARE_CODE
@@ -1086,7 +1077,7 @@ namespace Render
 				}
 				else
 				{
-					path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
+					path.format("%s%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type], SHADER_FILE_SUBNAME);
 				}
 				managedData.descList.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
 			}

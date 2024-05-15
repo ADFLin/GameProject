@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SBlocksLevelData_H_9D7C7557_7763_4853_BC6B_304EFFDDE3A1
+#define SBlocksLevelData_H_9D7C7557_7763_4853_BC6B_304EFFDDE3A1
+
 #include "SBlocksCore.h"
 
 namespace SBlocks
@@ -8,7 +12,7 @@ namespace SBlocks
 
 #define M(...) __VA_ARGS__
 
-	LevelDesc DefautlNewLevel =
+	inline LevelDesc DefautlNewLevel =
 	{
 		//map
 		{
@@ -36,7 +40,7 @@ namespace SBlocks
 	};
 
 #if 1
-	LevelDesc ClassicalLevel =
+	inline LevelDesc ClassicalLevel =
 	{
 		//map
 		{
@@ -179,7 +183,7 @@ namespace SBlocks
 	};
 #else
 
-	LevelDesc ClassicalLevel =
+	inline LevelDesc ClassicalLevel =
 	{
 		//map
 		{
@@ -328,7 +332,7 @@ namespace SBlocks
 	};
 #endif
 
-	LevelDesc DebugLevel =
+	inline LevelDesc DebugLevel =
 	{
 		//map
 		{
@@ -361,7 +365,7 @@ namespace SBlocks
 		},
 	};
 
-	LevelDesc TestLv =
+	inline LevelDesc TestLv =
 	{
 		//map
 		{
@@ -447,7 +451,7 @@ namespace SBlocks
 		}
 	};
 
-	LevelDesc TestLv2 =
+	inline LevelDesc TestLv2 =
 	{
 		//map
 		{
@@ -543,7 +547,7 @@ namespace SBlocks
 		}
 	};
 
-	LevelDesc TestLv3 =
+	inline LevelDesc TestLv3 =
 	{
 		//map
 		{
@@ -642,7 +646,7 @@ namespace SBlocks
 		}
 	};
 
-	LevelDesc TestLv4 =
+	inline LevelDesc TestLv4 =
 	{
 		//map
 		{
@@ -689,3 +693,5 @@ namespace SBlocks
 
 #undef M
 }
+
+#endif // SBlocksLevelData_H_9D7C7557_7763_4853_BC6B_304EFFDDE3A1

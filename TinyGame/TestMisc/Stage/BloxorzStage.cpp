@@ -457,12 +457,7 @@ namespace Bloxorz
 #endif
 
 			FFileUtility::SaveFromBuffer("Shader/Game/SDFSceneBuiltin.sgc", (uint8* const)code.data(), code.length());
-
 			VERIFY_RETURN_FALSE(mProgRayTraceLighting = ShaderManager::Get().getGlobalShaderT< RayTraceLightingProgram >());
-
-
-
-
 		}
 
 

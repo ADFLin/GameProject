@@ -123,8 +123,8 @@ void ConsoleSystem::unregisterCommandByName(char const* name)
 	CommandMap::iterator iter = mNameMap.find(name);
 	if( iter != mNameMap.end() )
 	{
-		delete iter->second;
 		mNameMap.erase(iter);
+		delete iter->second;
 	}
 }
 
@@ -137,8 +137,8 @@ void ConsoleSystem::unregisterAllCommandsByObject(void* objectPtr)
 
 		if (command->isHoldObject(objectPtr))
 		{
-			delete command;
 			iter = mNameMap.erase(iter);
+			delete command;
 		}
 		else
 		{

@@ -59,8 +59,8 @@ public:
 
 	FileNotifyCallback onNotify;
 
-	EFileMonitorStatus::Type addDirectoryPath(wchar_t const* pPath, bool bIncludeChildDir);
-	bool   removeDirectoryPath(wchar_t const* pPath, bool bCheckReference);
+	EFileMonitorStatus::Type addDirectoryPath(wchar_t const* pPath, bool bIncludeChildDir) final;
+	bool removeDirectoryPath(wchar_t const* pPath, bool bCheckReference) final;
 	EFileMonitorStatus::Type  checkDirectoryStatus(uint32 timeout);
 
 	static int EnablePrivilegeValue(TCHAR const* valueNames[], int numValue);
@@ -80,17 +80,17 @@ public:
 			return ::wcscmp(s1, s2) < 0;
 		}
 	};
-	typedef std::unordered_map< WCStringWrapper, DirMonitorInfo*, MemberFuncHasher> WatchDirMap;
 
-	DWORD       mLastError;
+	using WatchDirMap = std::unordered_map< TCStringWrapper< wchar_t , true >, DirMonitorInfo* >;
+
 	WatchDirMap mDirMap;
+	DWORD       mLastError;
 	HANDLE      mhIOCP;
 
 	void tick(long time) override
 	{
 		checkDirectoryStatus(0);
 	}
-
 
 	void setFileNotifyCallback(FileNotifyCallback callback) override
 	{
@@ -151,7 +151,6 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 	if( !mhIOCP )
 		return EFileMonitorStatus::IOError;
 
-
 	std::unique_ptr< DirMonitorInfo > info = std::make_unique<DirMonitorInfo>();
 	const DWORD notifyFilters =
 		FILE_NOTIFY_CHANGE_FILE_NAME |
@@ -161,16 +160,14 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 	info->notifyFilters = notifyFilters;
 	info->bIncludeChildDir = bIncludeChildDir;
 
-	///////////////////////////////////////////////////////////////////////
 	// Open handle to the directory to be monitored, note the FILE_FLAG_OVERLAPPED
-
-	info->handle = CreateFileW(pPath,
-							   FILE_LIST_DIRECTORY,
-							   FILE_SHARE_READ | FILE_SHARE_DELETE | FILE_SHARE_WRITE,
-							   NULL,
-							   OPEN_EXISTING,
-							   FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-							   NULL);
+	info->handle = CreateFileW(
+		pPath, FILE_LIST_DIRECTORY,
+		FILE_SHARE_READ | FILE_SHARE_DELETE | FILE_SHARE_WRITE,
+		NULL, OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+		NULL
+	);
 	if(info->handle == INVALID_HANDLE_VALUE )
 	{
 		return EFileMonitorStatus::OpenDirFail;
@@ -184,29 +181,21 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 		}
 	};
 
-	///////////////////////////////////////////////////////////////////////
-
 	// Allocate notification buffers (will be filled by the system when a
 	// notification occurs
-	memset(&info->overlap, 0, sizeof(info->overlap));
-	///////////////////////////////////////////////////////////////////////
+	FMemory::Zero(&info->overlap, sizeof(info->overlap));
 
 	// Associate directory handle with the IO completion port
-
 	if( ::CreateIoCompletionPort(info->handle, mhIOCP, (ULONG_PTR)info->handle, 0) == NULL )
 	{
 		return EFileMonitorStatus::IOError;
 	}
 
-
-	///////////////////////////////////////////////////////////////////////
-
 	// Start monitoring for changes
-
 	DWORD dwBytesReturned = 0;
 	info->dirPath = pPath;
 
-	if( !ReadDirectoryChangesW(
+	if (!ReadDirectoryChangesW(
 		info->handle,
 		info->buf,
 		sizeof(info->buf),
@@ -214,14 +203,13 @@ EFileMonitorStatus::Type WinodwsFileMonitor::addDirectoryPath(wchar_t const* pPa
 		notifyFilters,
 		&dwBytesReturned,
 		&info->overlap,
-		NULL) )
+		NULL))
 	{
 		return EFileMonitorStatus::ReadDirError;
 	}
 
-	auto pDirPath = info->dirPath.c_str();
-	///////////////////////////////////////////////////
-	mDirMap.emplace(pDirPath, info.release());
+	auto dirPath = info->dirPath.c_str();
+	mDirMap.emplace(dirPath, info.release());
 	return EFileMonitorStatus::OK;
 }
 
@@ -232,25 +220,24 @@ bool WinodwsFileMonitor::removeDirectoryPath(wchar_t const* pPath, bool bCheckRe
 		return false;
 
 	DirMonitorInfo* dmInfo = iter->second;
-	dmInfo->refcount -= 1;
-	
-	if ( !bCheckReference || dmInfo->refcount <= 0 )
+	if (bCheckReference)
 	{
-		destroyInfo(dmInfo);
-		mDirMap.erase(iter);
-		return true;
+		dmInfo->refcount -= 1;
+		if (dmInfo->refcount > 0)
+			return false;
 	}
-	return false;
+
+	mDirMap.erase(iter);
+	destroyInfo(dmInfo);
+	return true;
 }
 
 EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeout)
 {
-
 	DWORD		dwBytesXFered = 0;
 	ULONG_PTR	ulKey = 0;
-	OVERLAPPED*	pOl;
-	///////////////////////////////////////////////////////
-	if( !GetQueuedCompletionStatus(mhIOCP, &dwBytesXFered, &ulKey, &pOl, 0) )
+	OVERLAPPED*	pOverlap;
+	if( !GetQueuedCompletionStatus(mhIOCP, &dwBytesXFered, &ulKey, &pOverlap, 0) )
 	{
 		if( GetLastError() == WAIT_TIMEOUT )
 			return EFileMonitorStatus::OK;
@@ -316,11 +303,7 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 		pIter = (PFILE_NOTIFY_INFORMATION)((LPBYTE)pIter + pIter->NextEntryOffset);
 	}
 
-
-	//////////////////////////////////////////////////////
-
 	// Continue reading for changes
-
 	DWORD dwBytesReturned = 0;
 
 	if( !ReadDirectoryChangesW(
@@ -333,9 +316,7 @@ EFileMonitorStatus::Type  WinodwsFileMonitor::checkDirectoryStatus(uint32 timeou
 		&pDirFind->overlap,
 		NULL) )
 	{
-		mDirMap.erase(mDirMap.find(pDirFind->dirPath.c_str()));
-		CloseHandle(pDirFind->handle);
-		delete pDirFind;
+		removeDirectoryPath(pDirFind->dirPath.c_str(), false);
 		return EFileMonitorStatus::ReadDirError;
 	}
 
@@ -367,7 +348,6 @@ int WinodwsFileMonitor::EnablePrivilegeValue(TCHAR const* valueNames[], int numV
 	return result;
 }
 
-
 #endif //SYS_PLATFORM_WIN
 
 bool AssetManager::init()
@@ -385,7 +365,11 @@ bool AssetManager::init()
 
 void AssetManager::cleanup()
 {
-	mAssetMap.clear();
+	for (auto& pair : mAssetMonitorMap)
+	{
+		delete pair.second;
+	}
+	mAssetMonitorMap.clear();
 	mFileModifyMonitor->release();
 }
 
@@ -394,10 +378,9 @@ void AssetManager::tick(long time)
 	mFileModifyMonitor->tick(time);
 }
 
-
 bool AssetManager::registerViewer(IAssetViewer* asset)
 {
-	assert(asset);
+	CHECK(asset);
 
 	TArray< std::wstring > paths;
 	asset->getDependentFilePaths(paths);
@@ -405,13 +388,25 @@ bool AssetManager::registerViewer(IAssetViewer* asset)
 	for ( auto const& path : paths )
 	{
 		std::wstring fullPath = FFileSystem::ConvertToFullPath(path.c_str());
-		AssetList& assetList = mAssetMap[fullPath];
-		assert(std::find(assetList.begin(), assetList.end(), asset) == assetList.end());
-		assetList.push_back(asset);
 
-		wchar_t const* pathPos = FFileUtility::GetFileName(fullPath.c_str());
-		std::wstring dir = pathPos ? std::wstring(fullPath.c_str(),pathPos - fullPath.c_str()) : std::wstring();
-		mFileModifyMonitor->addDirectoryPath(dir.c_str(), false);
+		auto iter = mAssetMonitorMap.find(fullPath.c_str());
+		MonitorEntry* entry;
+		if (iter == mAssetMonitorMap.end())
+		{
+			entry = new MonitorEntry;
+			entry->path = std::move(fullPath);
+			wchar_t const* pathPos = FFileUtility::GetFileName(entry->path.c_str());
+			entry->dir = pathPos ? std::wstring(entry->path.c_str(), pathPos - entry->path.c_str()) : std::wstring();
+			mAssetMonitorMap.emplace(entry->path.c_str(), entry);
+			mFileModifyMonitor->addDirectoryPath(entry->dir.c_str(), false);
+		}
+		else
+		{
+			entry = iter->second;
+		}
+
+		CHECK(entry->viewers.findIndex(asset) == INDEX_NONE);
+		entry->viewers.push_back(asset);
 	}
 	return true;
 }
@@ -424,33 +419,37 @@ void AssetManager::unregisterViewer(IAssetViewer* asset)
 	for( auto& path : paths )
 	{
 		std::wstring fullPath = FFileSystem::ConvertToFullPath(path.c_str());
-		auto iter = mAssetMap.find(fullPath);
-		if( iter == mAssetMap.end() )
+		auto iter = mAssetMonitorMap.find(fullPath.c_str());
+		if( iter == mAssetMonitorMap.end() )
 			continue;
 
-		auto assetIter = std::find(iter->second.begin(), iter->second.end(), asset);
-		if( assetIter != iter->second.end() )
+		MonitorEntry* entry = iter->second;
+		if(entry->viewers.removeSwap(asset))
 		{
-			iter->second.erase(assetIter);
-			wchar_t const* pathPos = FFileUtility::GetFileName(fullPath.c_str());
-			std::wstring dir = pathPos ? std::wstring(fullPath.c_str(), pathPos - fullPath.c_str()) : std::wstring();
-			mFileModifyMonitor->removeDirectoryPath(dir.c_str(), true);
+			if (entry->viewers.empty())
+			{
+				mFileModifyMonitor->removeDirectoryPath(entry->dir.c_str(), false);
+				mAssetMonitorMap.erase(iter);
+				delete entry;
+			}
 		}
 	}
 }
 
 void AssetManager::handleDirectoryModify(wchar_t const* path, EFileAction action)
 {
-	auto iter = mAssetMap.find(path);
+	auto iter = mAssetMonitorMap.find(path);
 
-	if( iter != mAssetMap.end() )
+	if( iter != mAssetMonitorMap.end() )
 	{
+		MonitorEntry* entry = iter->second;
+
 		if (action == EFileAction::Modify)
 		{
-			LogMsg("Asset File Changed : %s", FCString::WCharToChar(path).c_str());
+			LogMsg("Asset File Changed : %s", entry->path.c_str());
 		}
 
-		for( IAssetViewer* asset : iter->second )
+		for( IAssetViewer* asset : entry->viewers )
 		{
 			asset->postFileModify(action);
 		}
@@ -466,10 +465,8 @@ IPlatformFileMonitor* IPlatformFileMonitor::Create()
 		delete monitor;
 		return nullptr;
 	}
-	else
-	{
-		return monitor;
-	}
-#endif
+	return monitor;
+#else
 	return nullptr;
+#endif
 }

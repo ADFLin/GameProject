@@ -9,14 +9,14 @@
 #include "FileSystem.h"
 #include "Widget/ConsoleFrame.h"
 
+#define SBLOCKS_DIR "SBlocks"
+
 namespace SBlocks
 {
 	REGISTER_STAGE_ENTRY("Stone Blocks", LevelStage, EExecGroup::Dev4, "Game");
 
-#define SBLOCKS_DIR "SBlocks"
-
-
-	TConsoleVariable< bool > CVarDevMode{false, "SBlocks.DevMode", CVF_TOGGLEABLE};
+	TConsoleVariable< bool > CVarDevMode{ false, "SBlocks.DevMode", CVF_TOGGLEABLE };
+	TConsoleVariable< bool > CVarShowShape{ false, "SBlocks.ShowShape", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarSolverEnableRejection{ true, "SBlocks.SolverEnableRejection", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarSolverEnableSortPiece{ true, "SBlocks.SolverEnableSortPiece", CVF_TOGGLEABLE };
 	TConsoleVariable< bool > CVarSolverEnableIdenticalShapeCombination{ true, "SBlocks.SolverEnableIdenticalShapeCombination", CVF_TOGGLEABLE };
@@ -71,13 +71,15 @@ namespace SBlocks
 		RHISetFrameBuffer(commandList, nullptr);
 		RHIClearRenderTargets(commandList, EClearBits::Color, &LinearColor(0.8, 0.8, 0.8, 0), 1);
 
+		auto const& theme = mLevel.mTheme;
+
 		g.beginRender();
 
 		RenderUtility::SetPen(g, EColor::Null);
-		g.setBrush(mTheme.backgroundColor);	
+		g.setBrush(theme.backgroundColor);
 		g.drawRect(Vec2i(0, 0), ::Global::GetScreenSize());
 
-		g.transformXForm(mWorldToScreen, true);
+		g.transformXForm(mLevel.mWorldToScreen, true);
 
 		float const MapBorder = 0.3;
 		float const MapFrameWidth = 0.3;
@@ -94,7 +96,7 @@ namespace SBlocks
 			Vec2i mapSize = map.getBoundSize();
 
 			RenderUtility::SetPen(g, EColor::Null);
-			g.setBrush(mTheme.mapOuterColor);
+			g.setBrush(theme.mapOuterColor);
 			g.drawRect(-Vector2(RenderBorder, RenderBorder), Vector2(mapSize) + 2.0 * Vector2(RenderBorder, RenderBorder));
 
 			float MapOffset = MapFrameWidth + MapBorder;
@@ -113,15 +115,15 @@ namespace SBlocks
 					Vector2(MapFrameWidth, float(mapSize.y) + 2 * MapBorder));
 			};
 
-			g.setBrush(mTheme.shadowColor);
-			g.beginBlend(mTheme.shadowOpacity);
+			g.setBrush(theme.shadowColor);
+			g.beginBlend(theme.shadowOpacity);
 			g.pushXForm();
-			g.translateXForm(0.5 * mTheme.shadowOffset.x, 0.5 * mTheme.shadowOffset.y);
+			g.translateXForm(0.5 * theme.shadowOffset.x, 0.5 * theme.shadowOffset.y);
 			DrawMapFrame();
 			g.popXForm();
 			g.endBlend();
 
-			g.setBrush(mTheme.mapFrameColor);
+			g.setBrush(theme.mapFrameColor);
 			DrawMapFrame();
 
 			RenderUtility::SetPen(g, EColor::Black);
@@ -135,11 +137,11 @@ namespace SBlocks
 					RenderUtility::SetPen(g, EColor::Null);
 					if (MarkMap::HaveBlock(value))
 					{
-						g.setBrush(mTheme.mapBlockColor);
+						g.setBrush(theme.mapBlockColor);
 					}
 					else
 					{
-						g.setBrush(mTheme.mapEmptyColor);
+						g.setBrush(theme.mapEmptyColor);
 					}
 
 					float border = 0.025;
@@ -149,11 +151,11 @@ namespace SBlocks
 					{
 						g.pushXForm();
 						g.identityXForm();
-						Vector2 pos = mWorldToScreen.transformPosition(Vector2(i + border, j + border));
-						g.drawText(pos, InlineString<>::Make("%d-%d-%d", 
-							value ,
+						Vector2 pos = mLevel.mWorldToScreen.transformPosition(Vector2(i + border, j + border));
+						g.drawText(pos, InlineString<>::Make("%d-%d-%d",
+							value,
 							(int)MarkMap::IsLocked(value),
-							(int)MarkMap::GetType(value)) );
+							(int)MarkMap::GetType(value)));
 						g.popXForm();
 					}
 				}
@@ -161,10 +163,10 @@ namespace SBlocks
 
 			g.popXForm();
 		}
-	
+
 #if 1
-		validatePiecesOrder();
-		for (Piece* piece : mSortedPieces )
+		mLevel.validatePiecesOrder();
+		for (Piece* piece : mLevel.mSortedPieces)
 		{
 			drawPiece(g, *piece, selectedPiece == piece);
 			if (CVarDevMode)
@@ -172,22 +174,26 @@ namespace SBlocks
 				g.pushXForm();
 				g.identityXForm();
 
-				Vector2 pos = mWorldToScreen.transformPosition( piece->renderXForm.transformPosition(piece->shape->pivot) );
-				g.drawText(pos, InlineString<>::Make( "%d %d %d", piece->index, (int)piece->dir, (int)piece->mirror) );
+				Vector2 pos = mLevel.mWorldToScreen.transformPosition(piece->renderXForm.transformPosition(piece->shape->pivot));
+				g.drawText(pos, InlineString<>::Make("%d %d %d", piece->index, (int)piece->dir, (int)piece->mirror));
 				g.popXForm();
 			}
 		}
 #endif
 
-		if ( CVarDevMode)
+		if (CVarDevMode)
 		{
 			RenderUtility::SetPen(g, EColor::Red);
 			RenderUtility::SetBrush(g, EColor::Null);
 			g.drawRect(DebugPos, Vector2(0.1, 0.1));
 		}
 
-		g.endRender();
+		if (CVarShowShape)
+		{
+			drawShapeDebug(g);
+		}
 
+		g.endRender();
 		RHIFlushCommand(commandList);
 	}
 
@@ -195,6 +201,7 @@ namespace SBlocks
 	void LevelStage::drawPiece(RHIGraphics2D& g, Piece const& piece, bool bSelected)
 	{
 		auto const& shapeData = piece.shape->getData(DirType::ValueChecked(0), piece.mirror);
+		auto const& theme = mLevel.mTheme;
 
 		RenderUtility::SetPen(g, EColor::Null);
 
@@ -208,30 +215,63 @@ namespace SBlocks
 			}
 		};
 
-		if ( piece.isLocked() == false )
+		if (piece.isLocked() == false)
 		{
-			g.setBrush(mTheme.shadowColor);
-			g.beginBlend(mTheme.shadowOpacity);
+			g.setBrush(theme.shadowColor);
+			g.beginBlend(theme.shadowOpacity);
 
 			g.pushXForm();
-			Vector2 offset = piece.renderXForm.transformInvVectorAssumeNoScale(mTheme.shadowOffset);
+			Vector2 offset = piece.renderXForm.transformInvVectorAssumeNoScale(theme.shadowOffset);
 			g.translateXForm(offset.x, offset.y);
 			DrawPiece();
 			g.popXForm();
 			g.endBlend();
 		}
-		
-		g.setBrush(piece.isLocked() ? mTheme.pieceBlockLockedColor : mTheme.pieceBlockColor);
+
+		g.setBrush(piece.isLocked() ? theme.pieceBlockLockedColor : theme.pieceBlockColor);
 		DrawPiece();
 
-		
-		RenderUtility::SetPen(g, piece.isLocked() ? EColor::Red : bSelected ? EColor::Yellow : piece.bCanOperate ? EColor::Gray : EColor::Black );
+
+		RenderUtility::SetPen(g, piece.isLocked() ? EColor::Red : bSelected ? EColor::Yellow : piece.bCanOperate ? EColor::Gray : EColor::Black);
 		g.setPenWidth(3);
 		for (auto const& line : piece.shape->outlines[piece.mirror])
 		{
 			g.drawLine(line.start, line.end);
 		}
 		g.setPenWidth(1);
+		g.popXForm();
+	}
+
+	void LevelStage::drawShapeDebug(RHIGraphics2D& g)
+	{
+		auto const& theme = mLevel.mTheme;
+		RenderUtility::SetPen(g, EColor::Black);
+		g.setBrush(theme.pieceBlockColor);
+
+		g.pushXForm();
+		g.identityXForm();
+		g.translateXForm(10, 10);
+		for (auto const& shape : mLevel.mShapes)
+		{
+			int maxBoundY = 0;
+			float len = 8;
+
+			g.pushXForm();
+			for (int i = 0; i < shape->getDifferentShapeNum(); ++i)
+			{
+				auto const& shapeData = shape->getDataByIndex(i);
+				if (maxBoundY < shapeData.boundSize.y)
+					maxBoundY = shapeData.boundSize.y;
+
+				for (auto const& block : shapeData.blocks)
+				{
+					g.drawRect(len * block.pos, Vector2(len, len));
+				}
+				g.translateXForm((float(mMaxBound.x) + 1 ) * len, 0);
+			}
+			g.popXForm();
+			g.translateXForm(0, (float(maxBoundY) + 1) * len);
+		}
 		g.popXForm();
 	}
 
@@ -248,6 +288,12 @@ namespace SBlocks
 	void LevelStage::preShutdownRenderSystem(bool bReInit /*= false*/)
 	{
 
+	}
+
+	void LevelStage::onNewLevel()
+	{
+		mSolver.reset();
+		mClickFrame = 0;
 	}
 
 	void LevelStage::solveLevel(int option, char const* params)
@@ -309,7 +355,7 @@ namespace SBlocks
 			return;
 		}
 		else if (bDLXSolve)
-		{ 
+		{
 			bool bRecursive = FindOption("Rec");
 			int numSolutions = mSolver->solveDLX(bRecursive);
 			LogMsg("Solve level %d Solution !", numSolutions);
@@ -434,7 +480,7 @@ namespace SBlocks
 		"Solve 2",
 	};
 	using ScriptData = TArrayView< char const* >;
-	TArrayView< ScriptData const > ScriptList = ARRAY_VIEW_REAONLY_DATA(ScriptData, MakeView(BatchScript2), MakeView(BatchScript) );
+	TArrayView< ScriptData const > ScriptList = ARRAY_VIEW_REAONLY_DATA(ScriptData, MakeView(BatchScript2), MakeView(BatchScript));
 
 	void LevelStage::runScript(int index)
 	{
@@ -464,9 +510,9 @@ namespace SBlocks
 			}
 		};
 
-		Vector2 worldPos = mScreenToWorld.transformPosition(msg.getPos());
+		Vector2 worldPos = mLevel.mScreenToWorld.transformPosition(msg.getPos());
 		Vector2 hitLocalPos;
-		Piece* piece = getPiece(worldPos, hitLocalPos);
+		Piece* piece = mLevel.getPiece(worldPos, hitLocalPos);
 
 		if (isEditEnabled())
 		{
@@ -485,11 +531,11 @@ namespace SBlocks
 			if (selectedPiece)
 			{
 				lastHitLocalPos = hitLocalPos;
-				bStartDragging = true;
+				bDraggingPiece = true;
 				if (selectedPiece->isLocked())
 				{
 					mLevel.unlockPiece(*piece);
-					bPiecesOrderDirty = true;
+					mLevel.bPiecesOrderDirty = true;
 				}
 			}
 		}
@@ -497,13 +543,13 @@ namespace SBlocks
 		{
 			if (selectedPiece)
 			{
-				bStartDragging = false;
+				bDraggingPiece = false;
 				if (isEditEnabled() == false)
 				{
 					if (mLevel.tryLockPiece(*selectedPiece))
 					{
-						notifyPieceLocked();
-						bPiecesOrderDirty = true;
+						mLevel.notifyPieceLocked();
+						mLevel.bPiecesOrderDirty = true;
 					}
 				}
 
@@ -517,13 +563,12 @@ namespace SBlocks
 				if (piece->isLocked())
 				{
 					mLevel.unlockPiece(*piece);
-					bPiecesOrderDirty = true;
+					mLevel.bPiecesOrderDirty = true;
 				}
 
 				updatePieceClickFrame(*piece);
-	
 
-				mTweener.tween< Easing::IOBounce, PieceAngle >(*piece, int(piece->dir) * Math::PI / 2, (int(piece->dir) + 1) * Math::PI / 2, 0.1, 0);
+				mTweener.tween< Easing::OCubic, PieceAngle >(*piece, int(piece->dir) * Math::PI / 2, (int(piece->dir) + 1) * Math::PI / 2, 0.15, 0);
 				piece->dir += 1;
 				//piece->angle = piece->dir * Math::PI / 2;
 				piece->updateTransform();
@@ -537,12 +582,12 @@ namespace SBlocks
 				if (piece->isLocked())
 				{
 					mLevel.unlockPiece(*piece);
-					bPiecesOrderDirty = true;
+					mLevel.bPiecesOrderDirty = true;
 				}
 
 				updatePieceClickFrame(*piece);
 
-				piece->mirror = (EMirrorOp::Type)((piece->mirror + 1 ) % EMirrorOp::COUNT);
+				piece->mirror = (EMirrorOp::Type)((piece->mirror + 1) % EMirrorOp::COUNT);
 				//piece->angle = piece->dir * Math::PI / 2;
 				piece->updateTransform();
 				//mLevel.tryLockPiece(*piece);
@@ -550,11 +595,16 @@ namespace SBlocks
 		}
 		if (msg.onMoving())
 		{
-			if (bStartDragging)
+			if (bDraggingPiece)
 			{
 				Vector2 pinPos = selectedPiece->renderXForm.transformPosition(lastHitLocalPos);
-				Vector2 offset = worldPos - pinPos;
-				selectedPiece->move(offset);
+#if 1
+				Vector2 posClamped = Math::Clamp(msg.getPos(), Vector2::Zero(), ::Global::GetScreenSize());
+				Vector2 worldPosClamped = mLevel.mScreenToWorld.transformPosition(posClamped);
+				selectedPiece->move(worldPosClamped - pinPos);
+#else
+				selectedPiece->move(worldPos - pinPos);
+#endif
 			}
 		}
 
@@ -626,362 +676,11 @@ namespace SBlocks
 			if (mEditor == nullptr)
 			{
 				mEditor = new Editor;
-				mEditor->mGame = this;
+				mEditor->mLevel = &mLevel;
+				mEditor->mEventHandler = this;
 				mEditor->initEdit();
 			}
 			mEditor->startEdit();
 		}
 	}
-
-	void Editor::registerCommand()
-	{
-		auto& console = ConsoleSystem::Get();
-#define REGISTER_COM( NAME , FUNC )\
-		console.registerCommand("SBlocks."##NAME, &Editor::FUNC, this)
-
-		REGISTER_COM("Save", saveLevel);
-		REGISTER_COM("New", newLevel);
-		REGISTER_COM("SetAllowMirrorOp", setAllowMirrorOp);
-
-		REGISTER_COM("SetMapSize", setMapSize);
-		REGISTER_COM("SetMapPos", setMapPos);
-		REGISTER_COM("AddMap", addMap);
-		REGISTER_COM("RemoveMap", removeMap);
-
-		REGISTER_COM("AddPiece", addPieceCmd);
-		REGISTER_COM("RemovePiece", removePiece);
-
-		REGISTER_COM("AddShape", addEditPieceShape);
-		REGISTER_COM("RemoveShape", addEditPieceShape);
-		REGISTER_COM("CopyShape", copyEditPieceShape);
-		REGISTER_COM("EditShape", editEditPieceShapeCmd);
-
-#undef REGISTER_COM
-	}
-
-	void Editor::unregisterCommand()
-	{
-		auto& console = ConsoleSystem::Get();
-		console.unregisterAllCommandsByObject(this);
-	}
-
-
-	void Editor::saveLevel(char const* name)
-	{
-
-		if (!FFileSystem::IsExist(SBLOCKS_DIR"/levels"))
-		{
-			FFileSystem::CreateDirectorySequence(SBLOCKS_DIR"/levels");
-		}
-
-		OutputFileSerializer serializer;
-		serializer.registerVersion(EName::None, ELevelSaveVersion::LastVersion);
-
-		if (serializer.open(InlineString<>::Make(SBLOCKS_DIR"/levels/%s.lv", name)))
-		{
-			LevelDesc desc;
-			mGame->mLevel.exportDesc(desc);
-			serializer.write(desc);
-			LogMsg("Save Level %s Success", name);
-		}
-		else
-		{
-			LogMsg("Save Level %s Fail", name);
-		}
-	}
-
-
-	void Editor::newLevel()
-	{
-		mGame->mLevel.importDesc(DefautlNewLevel);
-		mGame->initializeGame();
-	}
-
-
-	void Editor::setAllowMirrorOp(bool bAllow)
-	{
-		mGame->mLevel.bAllowMirrorOp = bAllow;
-		if (mGame->mLevel.bAllowMirrorOp)
-		{
-			for (auto& editShape : mPieceShapeLibrary)
-			{
-				if (editShape.ptr)
-				{
-					editShape.ptr->registerMirrorData();
-				}
-			}
-		}
-	}
-
-	void Editor::editEditPieceShapeCmd(int id)
-	{
-		if (!mPieceShapeLibrary.isValidIndex(id))
-			return;
-
-		EditPieceShape& editShape = mPieceShapeLibrary[id];
-		editEditPieceShape(editShape);
-
-	}
-
-	void Editor::editEditPieceShape(EditPieceShape& editShape)
-	{
-		if (mShapeEditPanel == nullptr)
-		{
-			mShapeEditPanel = new ShapeEditPanel(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
-			::Global::GUI().addWidget(mShapeEditPanel);
-		}
-
-		mShapeEditPanel->setup(editShape);
-		mShapeEditPanel->show();
-	}
-
-	void Editor::registerGamePieces()
-	{
-		for (int indexPiece = 0; indexPiece < mGame->mLevel.mPieces.size(); ++indexPiece)
-		{
-			Piece* piece = mGame->mLevel.mPieces[indexPiece].get();
-			EditPieceShape* editShape = registerEditShape(piece->shape);
-			editShape->usageCount += 1;
-		}
-	}
-
-	EditPieceShape* Editor::registerEditShape(PieceShape* shape)
-	{
-		for (EditPieceShape& editShape : mPieceShapeLibrary)
-		{
-			if (editShape.ptr == shape)
-				return &editShape;
-		}
-
-		for (EditPieceShape& editShape : mPieceShapeLibrary)
-		{
-			PieceShapeData shapeData;
-			shapeData.initialize(editShape.desc);
-			int index = shape->findSameShape(shapeData);
-
-			if (index != INDEX_NONE)
-			{
-				auto opState = shape->getOpState(index);
-				if (opState.mirror == EMirrorOp::None)
-				{
-					editShape.ptr = shape;
-					editShape.rotation = opState.dir;
-					return &editShape;
-				}
-			}
-		}
-
-		EditPieceShape editShape;
-		editShape.bMarkSave = false;
-		editShape.usageCount = 0;
-		editShape.ptr = shape;
-		editShape.rotation = 0;
-		shape->exportDesc(editShape.desc);
-
-		mPieceShapeLibrary.push_back(std::move(editShape));
-		return &mPieceShapeLibrary.back();
-	}
-
-	void Editor::saveShapeLibrary()
-	{
-		OutputFileSerializer serializer;
-		if (!FFileSystem::IsExist(SBLOCKS_DIR))
-		{
-			FFileSystem::CreateDirectorySequence(SBLOCKS_DIR);
-		}
-
-		if (serializer.open(SBLOCKS_DIR"/ShapeLib.bin"))
-		{
-			serializer.registerVersion("LevelVersion", ELevelSaveVersion::LastVersion);
-			serializeShapeLibrary(IStreamSerializer::WriteOp(serializer));
-		}
-	}
-
-	void Editor::loadShapeLibrary()
-	{
-		InputFileSerializer serializer;
-		if (serializer.open(SBLOCKS_DIR"/ShapeLib.bin"))
-		{
-			serializeShapeLibrary(IStreamSerializer::ReadOp(serializer));
-		}
-	}
-
-	void Editor::startEdit()
-	{
-		LogMsg("Edit Start");
-
-		mbEnabled = true;
-
-		registerCommand();
-		mGame->mLevel.unlockAllPiece();
-
-		registerGamePieces();
-
-		mShapeLibraryPanel = new ShapeListPanel(UI_ANY, Vec2i(10, 10), Vec2i(::Global::GetScreenSize().x - 20, 120), nullptr);
-		::Global::GUI().addWidget(mShapeLibraryPanel);
-
-		mShapeLibraryPanel->refreshShapeList();
-	}
-
-	void Editor::endEdit()
-	{
-		LogMsg("Edit End");
-
-		if (mShapeEditPanel)
-		{
-			mShapeEditPanel->destroy();
-			mShapeEditPanel = nullptr;
-		}
-
-		if (mShapeLibraryPanel)
-		{
-			mShapeLibraryPanel->destroy();
-			mShapeLibraryPanel = nullptr;
-		}
-
-		saveShapeLibrary();
-		unregisterCommand();
-
-		mbEnabled = false;
-	}
-
-	void Editor::notifyLevelChanged()
-	{
-		mPieceShapeLibrary.removeAllPred( [](auto& value)
-		{
-			return value.bMarkSave == false;
-		});
-
-		for (EditPieceShape& editShape : mPieceShapeLibrary)
-		{
-			editShape.ptr = nullptr;
-			editShape.usageCount = 0;
-		}
-
-		if (mShapeEditPanel)
-		{
-			mShapeEditPanel->destroy();
-			mShapeEditPanel = nullptr;
-		}
-
-		if (mbEnabled)
-		{
-			registerGamePieces();
-		}
-
-		if (mShapeLibraryPanel)
-		{
-			mShapeLibraryPanel->refreshShapeList();
-		}
-	}
-
-	void Editor::addEditPieceShape(int sizeX, int sizeY)
-	{
-		EditPieceShape editShape;
-		editShape.bMarkSave = false;
-		editShape.usageCount = 0;
-		editShape.ptr = nullptr;
-		editShape.desc.bUseCustomPivot = false;
-		editShape.desc.customPivot = 0.5 * Vector2(sizeX, sizeY);
-		editShape.desc.sizeX = sizeX;
-		editShape.desc.data.resize(sizeX * sizeY, 1);
-		mPieceShapeLibrary.push_back(std::move(editShape));
-
-		mShapeLibraryPanel->refreshShapeList();
-
-		editEditPieceShape(mPieceShapeLibrary.back());
-	}
-
-	void Editor::removeEditPieceShape(int id)
-	{
-		if (!mPieceShapeLibrary.isValidIndex(id))
-			return;
-
-		EditPieceShape& shape = mPieceShapeLibrary[id];
-		if (shape.ptr)
-		{
-			if (shape.usageCount != 0)
-				return;
-
-			mGame->mLevel.removePieceShape(shape.ptr);
-		}
-
-		mPieceShapeLibrary.erase(mPieceShapeLibrary.begin() + id);
-
-		mShapeLibraryPanel->refreshShapeList();
-	}
-
-	void Editor::copyEditPieceShape(int id)
-	{
-		if (!mPieceShapeLibrary.isValidIndex(id))
-			return;
-
-		EditPieceShape editShape = mPieceShapeLibrary[id];
-		editShape.bMarkSave = false;
-		editShape.ptr = nullptr;
-		editShape.rotation = 0;
-		editShape.usageCount = 0;
-		mPieceShapeLibrary.push_back(std::move(editShape));
-
-		mShapeLibraryPanel->refreshShapeList();
-	}
-
-	void Editor::addPieceCmd(int id)
-	{
-		if (!mPieceShapeLibrary.isValidIndex(id))
-			return;
-
-		EditPieceShape& editShape = mPieceShapeLibrary[id];
-
-		addPiece(editShape);
-	}
-
-	void Editor::addPiece(EditPieceShape &editShape)
-	{
-		if (editShape.ptr == nullptr)
-		{
-			editShape.ptr = mGame->mLevel.findPieceShape(editShape.desc, editShape.rotation);
-			if (editShape.ptr == nullptr)
-			{
-				editShape.ptr = mGame->mLevel.createPieceShape(editShape.desc);
-				editShape.rotation = 0;
-			}
-		}
-
-		Piece* piece = mGame->mLevel.createPiece(*editShape.ptr, DirType::ValueChecked(editShape.rotation));
-		editShape.usageCount += 1;
-		mGame->refreshPieceList();
-	}
-
-	void Editor::removePiece(int id)
-	{
-		auto& piecesList = mGame->mLevel.mPieces;
-		if (!piecesList.isValidIndex(id))
-			return;
-
-		Piece* piece = piecesList[id].get();
-		int index = mPieceShapeLibrary.findIndexPred(
-			[piece](auto const& value)
-			{
-				return value.ptr == piece->shape;
-			}
-		);
-		CHECK(index != INDEX_NONE);
-
-		auto& editShape = mPieceShapeLibrary[index];
-		if (editShape.ptr)
-		{
-			editShape.usageCount -= 1;
-			if (editShape.usageCount <= 0)
-			{
-				mGame->mLevel.removePieceShape(editShape.ptr);
-				editShape.ptr = nullptr;
-				editShape.rotation = 0;
-			}
-		}
-
-		piecesList.removeIndex(id);
-		mGame->refreshPieceList();
-	}
-
 }

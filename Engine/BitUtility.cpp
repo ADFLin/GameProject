@@ -156,51 +156,79 @@ int FBitUtility::ToIndex4(unsigned bit)
 {
 	CHECK((bit & 0xf) == bit);
 	CHECK(IsOneBitSet(bit));
+#if CPP_COMPILER_MSVC
+	unsigned long index;
+	_BitScanForward(&index, bit);
+	return index;
+#else
 	return gBitIndexMap[bit];
+#endif
 }
 int FBitUtility::ToIndex8(unsigned bit)
 {
 	CHECK((bit & 0xff) == bit);
 	CHECK(IsOneBitSet(bit));
+#if CPP_COMPILER_MSVC
+	unsigned long index;
+	_BitScanForward(&index, bit);
+	return index;
+#else
 	int result = 0;
 	if (bit & 0xf0) { result += 4; bit >>= 4; }
 	return result + gBitIndexMap[bit];
+#endif
 }
 
 int FBitUtility::ToIndex16(unsigned bit)
 {
 	CHECK((bit & 0xffff) == bit);
 	CHECK(IsOneBitSet(bit));
+#if CPP_COMPILER_MSVC
+	unsigned long index;
+	_BitScanForward(&index, bit);
+	return index;
+#else
 	int result = 0;
 	if (bit & 0x0000ff00) { result += 8; bit >>= 8; }
 	if (bit & 0x000000f0) { result += 4; bit >>= 4; }
 	return result + gBitIndexMap[bit];
+#endif
 }
 
 int FBitUtility::ToIndex32(unsigned bit)
 {
 	CHECK((bit & 0xffffffff) == bit);
 	CHECK(IsOneBitSet(bit));
+#if CPP_COMPILER_MSVC
+	unsigned long index;
+	_BitScanForward(&index, bit);
+	return index;
+#else
 	int result = 0;
 	if (bit & 0xffff0000) { result += 16; bit >>= 16; }
 	if (bit & 0x0000ff00) { result += 8; bit >>= 8; }
 	if (bit & 0x000000f0) { result += 4; bit >>= 4; }
 	return result + gBitIndexMap[bit];
+#endif
 }
 
-#if TARGET_PLATFORM_64BITS
-int FBitUtility::ToIndex64(unsigned bit)
+int FBitUtility::ToIndex64(uint64 bit)
 {
 	CHECK((bit & 0xffffffffffffffffULL) == bit);
 	CHECK(IsOneBitSet(bit));
+#if CPP_COMPILER_MSVC
+	unsigned long index;
+	_BitScanForward64(&index, bit);
+	return index;
+#else
 	int result = 0;
 	if (bit & 0xffffffff00000000ULL) { result += 32; bit >>= 32; }
 	if (bit & 0x00000000ffff0000ULL) { result += 16; bit >>= 16; }
 	if (bit & 0x000000000000ff00ULL) { result += 8; bit >>= 8; }
 	if (bit & 0x00000000000000f0ULL) { result += 4; bit >>= 4; }
 	return result + gBitIndexMap[bit];
-}
 #endif
+}
 
 unsigned FBitUtility::RotateRight(unsigned bits, unsigned offset, unsigned numBit)
 {

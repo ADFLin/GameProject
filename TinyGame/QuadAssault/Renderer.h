@@ -11,6 +11,7 @@ public:
 	static void cleanup();
 	
 private:
+	friend class RendererList;
 	IRenderer* mLink;
 };
 

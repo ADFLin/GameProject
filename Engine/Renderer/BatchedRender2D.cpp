@@ -122,7 +122,7 @@ namespace Render
 			{ float(pos.x + rectSize.x - circleRadius.x) , float(pos.y + rectSize.y - circleRadius.y) },
 			{ float(pos.x + circleRadius.x)              , float(pos.y + rectSize.y - circleRadius.y) },
 			{ float(pos.x + circleRadius.x)              , float(pos.y + circleRadius.y) },
-			{ float(pos.x + rectSize.x - circleRadius.x), float(pos.y + circleRadius.y) },
+			{ float(pos.x + rectSize.x - circleRadius.x) , float(pos.y + circleRadius.y) },
 		};
 
 		Vector2 v;
@@ -1087,14 +1087,14 @@ namespace Render
 	void BatchedRender::commitRenderState(RHICommandList& commandList, RenderState const& state)
 	{
 		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
 
+		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
 		RHISetBlendState(commandList, GetBlendState(state.blendMode));
 		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
 		if (state.bEnableScissor)
 		{
 			auto const& rect = state.scissorRect;
-			RHISetScissorRect(commandList, rect.pos.x, mHeight - rect.pos.y - rect.size.y, rect.size.x, rect.size.y);
+			RHISetScissorRect(commandList, rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
 		}
 
 		SimplePipelineProgram* program = SimplePipelineProgram::Get(AttributeMask, state.texture != nullptr);
@@ -1108,8 +1108,8 @@ namespace Render
 	void BatchedRender::updateRenderState(RHICommandList& commandList, RenderState const& state)
 	{
 		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
-		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
 
+		RHISetDepthStencilState(commandList, GraphicsDepthState::GetRHI());
 		RHISetBlendState(commandList, GetBlendState(state.blendMode));
 		RHISetRasterizerState(commandList, GetRasterizerState(state.bEnableScissor, state.bEnableMultiSample));
 		if (state.bEnableScissor)

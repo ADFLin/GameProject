@@ -457,6 +457,13 @@ FileIterator::~FileIterator()
 		::FindClose( mhFind );
 }
 
+DateTime FileIterator::getLastModifyDate() const
+{
+	SYSTEMTIME systemTime = { 0 };
+	::FileTimeToSystemTime(&mFindData.ftLastWriteTime, &systemTime);
+	return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
+}
+
 bool FileIterator::isDirectory() const
 {
 	return ( mFindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;

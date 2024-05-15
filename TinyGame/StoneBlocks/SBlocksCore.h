@@ -16,6 +16,8 @@
 #include <memory>
 #include <algorithm>
 
+#define USE_SHAPE_REGISTER 0
+
 namespace SBlocks
 {
 	using DirType = TCycleValue< 4, uint8 >;
@@ -45,6 +47,18 @@ namespace SBlocks
 		return Matrix2::Identity();
 	}
 
+	FORCEINLINE Vector2 RotateVector(DirType dir, Vector2 const& v)
+	{
+		switch (dir)
+		{
+		case 0: return v;
+		case 1: return Vector2(-v.y, v.x);
+		case 2: return -v;
+		case 3: return Vector2(v.y, -v.x);
+		}
+		NEVER_REACH("GetRotation");
+		return v;
+	}
 
 	class FBitGird
 	{
@@ -185,21 +199,31 @@ namespace SBlocks
 
 		TArray< Block , FixedSizeAllocator > blocks;
 
+		void initialize(PieceShapeDesc const& desc);
 		void standardize(Int16Point2D& outBoundSize);
 
 		bool operator == (BlockCollection const& rhs) const;
 	};
 
-#define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 0
+#define SBLOCK_SHPAEDATA_USE_BLOCK_HASH 1
 
 	struct PieceShapeData : BlockCollection
 	{
-		Int16Point2D boundSize;
-		int id;
+		PieceShapeData() = default;
+		PieceShapeData(BlockCollection&& data)
+			:BlockCollection(std::move(data))
+		{
 
+		}
+#if USE_SHAPE_REGISTER
+		int id;
+#endif
+		Int16Point2D boundSize;
 #if SBLOCK_SHPAEDATA_USE_BLOCK_HASH
+		uint32 blockHash;
 		uint32 blockHashNoType;
 #endif
+
 		void initialize(PieceShapeDesc const& desc);
 
 		void standardizeBlocks();
@@ -207,7 +231,7 @@ namespace SBlocks
 		bool isSubset(PieceShapeData const& rhs) const;
 
 		bool isNormal() const;
-		bool compareBlockPos(PieceShapeData const& rhs) const;
+		bool compareIgnoreBlockType(PieceShapeData const& rhs) const;
 		bool operator == (PieceShapeData const& rhs) const;
 
 		struct Line
@@ -249,6 +273,10 @@ namespace SBlocks
 
 	struct PieceShape
 	{
+		using InitData = PieceShapeData;
+#if USE_SHAPE_REGISTER
+		static PieceShapeData* FindData(InitData const& data);
+#endif
 		Int16Point2D boundSize;
 
 		Vector2 pivot;
@@ -264,11 +292,19 @@ namespace SBlocks
 		PieceShapeData const& getData(DirType const& dir, EMirrorOp::Type op = EMirrorOp::None) const
 		{
 			uint8 index = mDataIndexMap[op][dir];
+#if USE_SHAPE_REGISTER
+			return *mDataStorage[index];
+#else
 			return mDataStorage[index];
+#endif
 		}
 		PieceShapeData const& getDataByIndex(int index) const
 		{
+#if USE_SHAPE_REGISTER
+			return *mDataStorage[index];
+#else
 			return mDataStorage[index];
+#endif
 		}
 
 		struct OpState
@@ -279,12 +315,13 @@ namespace SBlocks
 
 		OpState getOpState(int index) const;
 
-		int findSameShape(PieceShapeData const& data) const;
+		int findShapeData(PieceShapeData* shapeData) const;
+		int findSameShape(InitData const& data) const;
 		int findSameShapeIgnoreBlockType(PieceShapeData const& data) const;
 		int findSubset(PieceShapeData const& data) const;
 		int getBlockCount() const
 		{
-			return mDataStorage[0].blocks.size();
+			return getDataByIndex(0).blocks.size();
 		}
 
 		int getDifferentShapeNum() const;
@@ -316,14 +353,19 @@ namespace SBlocks
 		Vector2 getLTCornerOffset(DirType inDir) const
 		{
 			Vector2 lPos = getCornerPos(inDir);
-			return pivot + GetRotation(inDir).leftMul(lPos - pivot);
+			return pivot + RotateVector(inDir, lPos - pivot);
 		}
 
 		void registerMirrorData();
 	private:
-		int addNewData(PieceShapeData& data, int dir, EMirrorOp::Type op = EMirrorOp::None);
-		int registerData(PieceShapeData& data, int dir, EMirrorOp::Type op = EMirrorOp::None);
+		int addNewData(InitData& data, int dir, EMirrorOp::Type op = EMirrorOp::None);
+		int registerData(InitData& data, int dir, EMirrorOp::Type op = EMirrorOp::None);
+
+#if USE_SHAPE_REGISTER
+		TArray<PieceShapeData*> mDataStorage;
+#else
 		TArray<PieceShapeData> mDataStorage;
+#endif
 		uint8 mDataIndexMap[EMirrorOp::COUNT][DirType::RestValue];
 	};
 
@@ -358,8 +400,7 @@ namespace SBlocks
 		}
 		void updateTransform()
 		{
-			renderXForm = RenderTransform2D::TranslateThenRotate(-shape->pivot, angle);
-			renderXForm.translateWorld(pos + shape->pivot);
+			renderXForm = RenderTransform2D::Sprite(pos, shape->pivot, angle);
 		}
 
 		PieceShapeData const& getShapeData() const

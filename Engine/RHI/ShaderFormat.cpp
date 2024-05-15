@@ -122,7 +122,7 @@ namespace Render
 					return false;
 				}
 			}
-			return preprocessCode(context.haveFile() ? context.getPath() : nullptr, context.desc, context.getDefinition().data(), context.sourceLibrary, outCodes, context.includeFiles, context.bOuputPreprocessedCode);
+			return preprocessCode(context.haveFile() ? context.getPath() : nullptr, context.desc, context.getDefinition(), context.sourceLibrary, outCodes, context.includeFiles, context.bOuputPreprocessedCode);
 		}
 		else
 		{

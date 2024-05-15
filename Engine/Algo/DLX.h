@@ -20,9 +20,6 @@ namespace DLX
 			prev = this;
 		}
 
-		template< class T, NodeLink T::*Member >
-		static T& Cast(NodeLink& link) { return *FTypeCast::MemberToClass(&link, Member); }
-
 		void unlink()
 		{
 			next->prev = prev;
@@ -90,7 +87,7 @@ namespace DLX
 #endif
 		static MatrixColumn& GetFromCol(NodeLink& nodeLink)
 		{
-			return NodeLink::Cast<MatrixColumn, &MatrixColumn::colLink>(nodeLink);
+			return *FTypeCast::MemberToClass(&nodeLink, &MatrixColumn::colLink);
 		}
 	};
 
@@ -104,12 +101,12 @@ namespace DLX
 
 		static Node& GetFromRow(NodeLink& nodeLink)
 		{
-			return NodeLink::Cast<Node, &Node::rowLink>(nodeLink);
+			return *FTypeCast::MemberToClass(&nodeLink, &Node::rowLink);
 		}
 
 		static Node& GetFromCol(NodeLink& nodeLink)
 		{
-			return NodeLink::Cast<Node, &Node::colLink>(nodeLink);
+			return *FTypeCast::MemberToClass(&nodeLink, &Node::colLink);
 		}
 	};
 
@@ -121,7 +118,6 @@ namespace DLX
 		void uncover(MatrixColumn& matCol);
 		void cover(Node& selectedNode);
 		void uncover(Node& selectedNode);
-
 
 		template< typename TFunc >
 		void visitNode(TFunc&& func)

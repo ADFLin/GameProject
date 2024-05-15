@@ -416,13 +416,14 @@ namespace Render
 		RenderBatchedElement& addCustomRender(ICustomElementRenderer* renderer, EObjectManageMode mode, bool bChangeState);
 
 		template< class TPayload >
-		TRenderBatchedElement<TPayload>* addElement()
+		auto addElement()
 		{
-			TRenderBatchedElement<TPayload>* ptr = (TRenderBatchedElement<TPayload>*)mAllocator.alloc(sizeof(TRenderBatchedElement<TPayload>));
+			using ElementType = TRenderBatchedElement<TPayload>;
+			ElementType* ptr = (ElementType*)mAllocator.alloc(sizeof(ElementType));
 			FTypeMemoryOp::Construct(ptr);
 			mElements.push_back(ptr);
 
-			static_assert(std::is_trivially_destructible_v<RenderBatchedElement>);
+			static_assert(std::is_trivially_destructible_v< RenderBatchedElement >);
 			static_assert(std::is_trivially_destructible_v< TPayload >);
 
 			return ptr;

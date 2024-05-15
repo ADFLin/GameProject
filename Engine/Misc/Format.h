@@ -12,7 +12,7 @@ namespace Text
 	using TStdString = typename TStringTraits< CharT >::StdString;
 
 	template< typename CharT >
-	static int Format(CharT const* format, TArrayView< TStdString< CharT > const > strList, TStdString< CharT >& outString)
+	static int Format(CharT const* format, TArrayView< TStdString< CharT > const > const& strList, TStdString< CharT >& outString)
 	{
 		int index = 0;
 		char const* cur = format;
@@ -30,6 +30,16 @@ namespace Text
 
 					outString += strList[index];
 					++index;
+
+					if (cur[0] == '\n')
+					{
+						cur += 1;
+					}
+					else if (cur[0] == '\r' && cur[1] == '\n')
+					{
+						cur += 2;
+					}
+
 					if (!strList.isValidIndex(index))
 					{
 						break;

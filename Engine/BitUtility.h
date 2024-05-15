@@ -35,9 +35,7 @@ public:
 	static int ToIndex8(unsigned bit);
 	static int ToIndex16(unsigned bit);
 	static int ToIndex32(unsigned bit);
-#if TARGET_PLATFORM_64BITS
-	static int ToIndex64(unsigned bit);
-#endif
+	static int ToIndex64(uint64 bit);
 	static unsigned RotateRight(unsigned bits, unsigned offset, unsigned numBit);
 	static unsigned RotateLeft(unsigned bits, unsigned offset, unsigned numBit);
 	template< unsigned NumBits, TEnableIf_Type< NumBits <= 4, bool > = true >
@@ -62,7 +60,7 @@ public:
 	}
 #if TARGET_PLATFORM_64BITS
 	template< unsigned NumBits , TEnableIf_Type< 32 < NumBits , bool > = true >
-	static int ToIndex(unsigned bit)
+	static int ToIndex(uint64 bit)
 	{
 		return ToIndex64(bit);
 	}
@@ -75,6 +73,17 @@ public:
 		if (mask == 0)
 			return false;
 		unsigned bit = FBitUtility::ExtractTrailingBit(mask);
+		index = FBitUtility::ToIndex< NumBits >(bit);
+		mask &= ~bit;
+		return true;
+	}
+
+	template< unsigned NumBits >
+	static bool IterateMask64(uint64& mask, int& index)
+	{
+		if (mask == 0)
+			return false;
+		uint64 bit = FBitUtility::ExtractTrailingBit(mask);
 		index = FBitUtility::ToIndex< NumBits >(bit);
 		mask &= ~bit;
 		return true;

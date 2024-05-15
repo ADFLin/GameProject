@@ -23,7 +23,7 @@ protected:
 };
 
 #define DEF_OBJ_RENDERER( CLASS , RENDERER )\
-	static RENDERER g##CLASS##Renderer;\
-	IObjectRenderer* CLASS::getRenderer(){ return &g##CLASS##Renderer; }
+	static RENDERER G##CLASS##Renderer;\
+	IObjectRenderer* CLASS::getRenderer(){ return &G##CLASS##Renderer; }
 
 #endif // ObjectRenderer_h__

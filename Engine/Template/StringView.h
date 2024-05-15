@@ -16,7 +16,7 @@ public:
 	using StdString = typename TStringTraits<CharT>::StdString;
 
 	TStringView() = default;
-	TStringView( EForceInit ):mData(nullptr),mNum(0){}
+	explicit TStringView( EForceInit ):mData(nullptr),mNum(0){}
 
 	template< typename Q, TEnableIf_Type< Meta::IsSameType< CharT const*, Q >::Value , bool > = true >
 	TStringView(Q str)

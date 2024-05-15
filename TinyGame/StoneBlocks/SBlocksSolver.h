@@ -6,6 +6,7 @@
 #include "Algo/Combination.h"
 #include "Core/LockFreeList.h"
 #include "Bitset.h"
+#include "BitUtility.h"
 
 namespace SBlocks
 {
@@ -54,7 +55,10 @@ namespace SBlocks
 	{
 		lhs |= IndexMask(index);
 	}
-
+	FORCEINLINE bool Extract(MapMask& lhs, int& outIndex)
+	{
+		return FBitUtility::IterateMask64<64>(lhs, outIndex);
+	}
 	FORCEINLINE bool TestAndSet(MapMask const& test, MapMask& set, int index)
 	{
 		uint64 mask = IndexMask(index);
@@ -74,12 +78,10 @@ namespace SBlocks
 	{
 		return lhs.testIntersection(rhs);
 	}
-
 	FORCEINLINE bool IsSet(MapMask const& lhs, int index)
 	{
 		return lhs.test(index);
 	}
-
 	FORCEINLINE bool TestAndSet(MapMask const& test, MapMask& set, int index)
 	{
 		if (test.test(index))
@@ -236,7 +238,7 @@ namespace SBlocks
 		uint32  mSubTestFrame = 0;
 		uint32* mTestFramePtr;
 		int     mMaxCount;
-		PieceShapeData mCachedShapeData;
+		PieceShape::InitData mCachedShapeData;
 		TArray<Vec2i, FixedSizeAllocator> mCachedQueryList;
 
 		void setup(MarkMap const& map, SolveOption const& option);

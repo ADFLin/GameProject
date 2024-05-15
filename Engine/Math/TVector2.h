@@ -103,9 +103,14 @@ private:
 
 };
 
+template< class T >
+FORCEINLINE TVector2<T>  Clamp(TVector2<T> const& v, TVector2<T> const& min, TVector2<T> const& max)
+{
+	return TVector2<T>(Math::Clamp(v.x, min.x, max.x), Math::Clamp(v.y, min.y, max.y));
+}
 
 template< class T >
-T  TaxicabDistance(TVector2<T> const& v1 , TVector2<T> const& v2)
+FORCEINLINE T  TaxicabDistance(TVector2<T> const& v1 , TVector2<T> const& v2)
 {
 	TVector2<T> dAbs = Abs(v2 - v1);
 	return dAbs.x + dAbs.y;

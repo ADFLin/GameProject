@@ -6,43 +6,10 @@
 
 using namespace Render;
 
-class MidlineTestStage : public StageBase
-					   , public IGameRenderSetup
+
+struct MidlineData
 {
-	using BaseClass = StageBase;
-public:
-	MidlineTestStage() {}
-
-	bool onInit() override
-	{
-		if (!BaseClass::onInit())
-			return false;
-		::Global::GUI().cleanupWidget();
-
-
-		auto frame = WidgetUtility::CreateDevFrame();
-
-		restart();
-		return true;
-	}
-
 	struct Point;
-	struct DebugInfo
-	{
-		Vector2 pos;
-		Vector2 dir;
-		Vector2 normal;
-		Vector2 centerPos;
-		float   distNormal;
-		float   dist;
-		void draw(RHIGraphics2D& g, Vector2 const& testPos)
-		{
-			Vector2 rPos = centerPos + (distNormal ) * normal;
-			g.drawLine(pos, testPos);
-			g.drawLine(centerPos, rPos);
-			g.drawText(rPos, InlineString<>::Make("%.2f", dist));
-		}
-	};
 
 	struct Point
 	{
@@ -50,30 +17,40 @@ public:
 		Vector2 dir;
 		float   length;
 		float   distance;
+	};
 
-		DebugInfo getDebugInfo(float dotDist, Vector2 const& offset) const
+
+	struct DebugPoint
+	{
+		Vector2 projectPos;
+		Vector2 centerPos;
+		Vector2 rPos;
+		Vector2 dir;
+		float   dist;
+
+		void init(Point const& point, Vector2 const& offset, float dotDist)
 		{
-			DebugInfo result;
-			result.normal = Math::Sign(offset.cross(dir)) * Vector2(dir.y, -dir.x);
-			result.distNormal = Math::Sqrt(offset.length2() - Math::Square(dotDist));
-			result.centerPos = pos + (0.5 * length) * dir;
-			result.pos  = result.centerPos + result.distNormal * result.normal;
-			result.dist = distance + 0.5 * length;
-			result.dir  = dir;
-			return result;
+			Vector2 normal = Math::Sign(offset.cross(point.dir)) * Vector2(point.dir.y, -point.dir.x);
+			float distNormal = Math::Sqrt(offset.length2() - Math::Square(dotDist));
+			
+			centerPos = point.pos + (0.5 * point.length) * point.dir;
+			projectPos  = centerPos + distNormal * normal;
+			dist = point.distance + 0.5 * point.length;
+			dir  = point.dir;
+		}
+
+		void draw(RHIGraphics2D& g, Vector2 const& testPos)
+		{
+			g.drawLine(projectPos, testPos);
+			g.drawLine(centerPos, projectPos);
+			g.drawText(projectPos, InlineString<>::Make("%.2f", dist));
 		}
 	};
 
-	TArray<Point>   mPoints;
-	TArray<Vector2> mPosList =
-	{
-		Vector2(200, 200),
-		Vector2(300, 200),
-		Vector2(400, 300),
-		Vector2(400, 400),
-	};
 
-	void buildMidline(TArray<Vector2> const& posList)
+	TArray<Point>   mPoints;
+
+	void build(TArray<Vector2> const& posList)
 	{
 		mPoints.clear();
 
@@ -96,8 +73,57 @@ public:
 				point->length = 0;
 			}
 		}
-
 	}
+
+	int32 findNearestPoint(Vector2 const& pos)
+	{
+		int indexPoint = INDEX_NONE;
+		float minDistSq = Math::MaxFloat;
+		for (int index = 0; index < mPoints.size(); ++index)
+		{
+			float distSq = (pos - mPoints[index].pos).length2();
+
+			if (distSq < minDistSq)
+			{
+				indexPoint = index;
+				minDistSq = distSq;
+			}
+		}
+		return indexPoint;
+	}
+};
+
+class MidlineTestStage : public StageBase
+	                   , public MidlineData
+					   , public IGameRenderSetup
+{
+	using BaseClass = StageBase;
+public:
+	MidlineTestStage() {}
+
+	bool onInit() override
+	{
+		if (!BaseClass::onInit())
+			return false;
+		::Global::GUI().cleanupWidget();
+
+
+		auto frame = WidgetUtility::CreateDevFrame();
+
+		restart();
+		return true;
+	}
+
+
+	TArray<Vector2> mPosList =
+	{
+		Vector2(200, 200),
+		Vector2(300, 200),
+		Vector2(400, 300),
+		Vector2(400, 400),
+	};
+
+
 
 	void onEnd() override
 	{
@@ -128,10 +154,18 @@ public:
 	int     mIndexPoint = INDEX_NONE;
 	float   mDistance;
 
+	struct Debug
+	{
+
+
+
+
+	};
 	bool    mbInFrist;
-	float   mP1;
-	float   mP2;
+	float   mPx;
+	float   mPy;
 	float   mAlpha;
+	float   mDelta;
 
 	void onRender(float dFrame) override
 	{
@@ -170,31 +204,31 @@ public:
 			RenderUtility::SetFontColor(g, EColor::Cyan);
 			if (debugMask & BIT(0))
 			{
-				debugInfos[0].draw(g, testPos);
+				debugPoints[0].draw(g, testPos);
 			}
 			if (debugMask & BIT(1))
 			{
-				debugInfos[1].draw(g, testPos);
+				debugPoints[1].draw(g, testPos);
 			}
 
 			if (debugMask == (BIT(0) | BIT(1)))
 			{
 				if (mbInFrist)
 				{
-					Vector2 p1 = testPos + debugInfos[0].dir * mP1;
-					Vector2 p2 = p1 + debugInfos[1].dir * mP2;
+					Vector2 p1 = testPos + debugPoints[0].dir * mPx;
+					Vector2 p2 = p1 + debugPoints[1].dir * mPy;
 					RenderUtility::SetPen(g, EColor::Blue);
-					g.drawLine(p2, debugInfos[1].centerPos);
+					g.drawLine(p2, debugPoints[1].centerPos);
 					RenderUtility::SetPen(g, EColor::Orange);
 					g.drawLine(testPos, p1);
 					g.drawLine(p1, p2);
 				}
 				else
 				{
-					Vector2 p1 = testPos - debugInfos[1].dir * mP1;
-					Vector2 p2 = p1 - debugInfos[0].dir * mP2;
+					Vector2 p1 = testPos - debugPoints[1].dir * mPx;
+					Vector2 p2 = p1 - debugPoints[0].dir * mPy;
 					RenderUtility::SetPen(g, EColor::Blue);
-					g.drawLine(p2, debugInfos[0].centerPos);
+					g.drawLine(p2, debugPoints[0].centerPos);
 					RenderUtility::SetPen(g, EColor::Orange);
 					g.drawLine(testPos, p1);
 					g.drawLine(p1, p2);
@@ -210,20 +244,20 @@ public:
 
 			if (debugMask == (BIT(0) | BIT(1)))
 			{
-				g.drawText(testPos + Vector2(0, 15), InlineString<>::Make("%.2f , %.2f , %.2f", mAlpha, mP1, mP2));
+				g.drawText(testPos + Vector2(0, 15), InlineString<>::Make("%.2f , %.2f , %.2f , %.2f", mAlpha, mDelta, mPx, mPy));
 			}
 		}
 		g.endRender();
 	}
 
 
-	DebugInfo debugInfos[2];
-	uint32    debugMask = 0;
+	DebugPoint debugPoints[2];
+	uint32     debugMask = 0;
 
 
 	void rebuildMidline()
 	{
-		buildMidline(mPosList);
+		MidlineData::build(mPosList);
 		mIndexPoint = INDEX_NONE;
 	}
 
@@ -239,19 +273,8 @@ public:
 		{
 			bHavePos = true;
 			testPos = Vector2(msg.getPos());
-			int indexPoint = INDEX_NONE;
-			float minDistSq = Math::MaxFloat;
-			for (int index = 0; index < mPoints.size(); ++index)
-			{
-				float distSq = (testPos - mPoints[index].pos).length2();
 
-				if (distSq < minDistSq)
-				{
-					indexPoint = index;
-					minDistSq = distSq;
-				}
-			}
-
+			int32 indexPoint = findNearestPoint(testPos);
 			mIndexPoint = indexPoint;
 			auto const& point = mPoints[indexPoint];
 			Vector2 offset = testPos - point.pos;
@@ -262,7 +285,7 @@ public:
 				mDistance = point.distance + dotOffset;
 
 				debugMask = BIT(1);
-				debugInfos[1] = point.getDebugInfo(dotOffset, offset);
+				debugPoints[1].init(point, offset, dotOffset);
 			}
 			else
 			{
@@ -273,52 +296,55 @@ public:
 					mDistance = point.distance + dotOffsetPrev;
 
 					debugMask = BIT(0);
-					debugInfos[0] = prevPoint.getDebugInfo(dotOffsetPrev, offset);
+					debugPoints[0].init(prevPoint, offset, dotOffsetPrev);
 				}
 				else
 				{
 
-					float cos = point.dir.dot(prevPoint.dir);
-					float sin2 = 1 - cos * cos;
-
+					float cos =  point.dir.dot(prevPoint.dir);
 					float d1 = 0.5 * prevPoint.length;
 					float d2 = 0.5 * point.length;
 					float p1 = d1 + dotOffsetPrev;
 					float p2 = d2 - dotOffset;
+
 					float det = d2 * p1 - d1 * p2;
+					//float det = d2 * dotOffsetPrev + d1 * dotOffset;
 
 					float alpha;
-					if (det > 0)
-					{
-						float x = det / (d1 + d2 * cos);
-						float y = p1 - x * cos;
-						//alpha = 1 - p2 / (p2 + x + y);
-						alpha = 1 - p2 / (p1 + p2 + x * (1 - cos));
-						mP1 = x;
-						mP2 = y;
-						mbInFrist = false;
-					}
-					else
+					if (det < 0)
 					{
 						float x = -det / (d2 + d1 * cos);
 						float y = p2 - x * cos;
-						//alpha = p1 / (p1 + x + y);
-						alpha = p1 / (p1 + p2 + x * (1 - cos));
-						mP1 = x;
-						mP2 = y;
+						alpha = p1 / (p1 + x + y);
+						//alpha = p1 / (p1 + p2 + x * (1 - cos));
+						mPx = x;
+						mPy = y;
 						mbInFrist = true;
 					}
+					else
+					{
+						float x = det / (d1 + d2 * cos);
+						float y = p1 - x * cos;
+						alpha = 1 - p2 / (p2 + x + y);
+						//alpha = 1 - p2 / (p1 + p2 + x * (1 - cos));
+						mPx = x;
+						mPy = y;
+						mbInFrist = false;
+					}
+
 					mDistance = prevPoint.distance + d1 + alpha * (d1 + d2);
 					mAlpha = alpha;
+					mDelta = mAlpha - p1 / (p1 + p2);
 
 					debugMask = BIT(0) | BIT(1);
-					debugInfos[0] = prevPoint.getDebugInfo(dotOffsetPrev, offset);
-					debugInfos[1] = point.getDebugInfo(dotOffset, offset);
+					debugPoints[0].init(prevPoint, offset, dotOffsetPrev);
+					debugPoints[1].init(point, offset, dotOffset);
 				}
 			}
 		}
 		return BaseClass::onMouse(msg);
 	}
+
 
 	MsgReply onKey(KeyMsg const& msg) override
 	{

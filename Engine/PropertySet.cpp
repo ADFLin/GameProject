@@ -168,6 +168,11 @@ bool PropertySet::tryGetStringValue( char const* keyName , char const* section ,
 	return tryGetValueT( keyName , section , value );
 }
 
+bool PropertySet::tryGetStringValue(char const* keyName, char const* section, StringView& value)
+{
+	return tryGetValueT(keyName, section, value);
+}
+
 bool PropertySet::tryGetBoolValue(char const* keyName, char const* section, bool& value)
 {
 	return tryGetValueT(keyName, section, value);

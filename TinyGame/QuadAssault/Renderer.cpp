@@ -1,18 +1,40 @@
 #include "Renderer.h"
 
-static IRenderer* gLink;
-static bool bInitialized  = false;
-
-struct RendererInitHelper
+struct RendererList
 {
-	RendererInitHelper(){ gLink = NULL; }
+	IRenderer* head = nullptr;
+	bool bInitialized = false;
+
+	void add(IRenderer* renderer)
+	{
+		renderer->mLink = head;
+		head = renderer;
+	}
+
+	void initRenderers()
+	{
+		if (bInitialized)
+			return;
+
+		IRenderer* link = head;
+		while (link)
+		{
+			link->init();
+			link = link->mLink;
+		}
+		bInitialized = true;
+	}
+
+	static RendererList& Get()
+	{
+		static RendererList StaticList;
+		return StaticList;
+	}
 };
 
 IRenderer::IRenderer()
 {
-	static RendererInitHelper helper;
-	mLink = gLink;
-	gLink = this;
+	RendererList::Get().add(this);
 }
 
 void IRenderer::cleanup()
@@ -22,14 +44,5 @@ void IRenderer::cleanup()
 
 void IRenderer::Initialize()
 {
-	if ( bInitialized )
-		return;
-
-	IRenderer* link = gLink;
-	while( link )
-	{
-		link->init();
-		link = link->mLink;
-	}
-	bInitialized = true;
+	RendererList::Get().initRenderers();
 }

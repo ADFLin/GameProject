@@ -7,7 +7,6 @@
 #include <iostream>
 
 #include "RHI/RHICommand.h"
-#include "ConsoleSystem.h"
 #include "RenderDebug.h"
 #include "RHI/RHIGlobalResource.h"
 
@@ -35,8 +34,6 @@ TextureManager::~TextureManager()
 
 void TextureManager::cleanup()
 {
-	ConsoleSystem::Get().unregisterCommandByName("ShowTexture");
-
 	for(int i=0; i<mTextures.size(); i++)
 	{
 		delete mTextures[i];

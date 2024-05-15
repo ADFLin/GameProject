@@ -405,7 +405,7 @@ protected:
 #if 0
 	using CommandMap = std::map< TCStringWrapper<char, true> , ConsoleCommandBase* >;
 #else
-	using CommandMap = std::unordered_map< TCStringWrapper<char, true>, ConsoleCommandBase*, MemberFuncHasher>;
+	using CommandMap = std::unordered_map< TCStringWrapper<char, true>, ConsoleCommandBase* >;
 #endif
 	CommandMap   mNameMap;
 	bool         mbInitialized = false;

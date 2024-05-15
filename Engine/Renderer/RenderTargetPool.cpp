@@ -7,7 +7,7 @@
 namespace Render
 {
 #if CORE_SHARE_CODE
-	CORE_API GlobalRenderTargetTool GRenderTargetPool;
+	CORE_API GlobalRenderTargetPool GRenderTargetPool;
 #endif
 	PooledRenderTargetRef RenderTargetPool::fetchElement(RenderTargetDesc const& desc)
 	{
@@ -62,23 +62,12 @@ namespace Render
 
 	void RenderTargetPool::freeUsedElement(PooledRenderTargetRef const& freeRT)
 	{
-		for (auto iter = mUsedRTs.begin(); iter != mUsedRTs.end(); ++iter)
-		{
-			auto& rt = *iter;
-			if (rt == freeRT)
-			{
-				if (&rt != &mUsedRTs.back())
-				{
-					rt = mUsedRTs.back();
-					mUsedRTs.pop_back();
-				}
-			}
-		}
+		mUsedRTs.removeSwap(freeRT);
 	}
 
 	void RenderTargetPool::freeAllUsedElements()
 	{
-		mFreeRTs.insert(mFreeRTs.end(), mUsedRTs.begin(), mUsedRTs.end());
+		mFreeRTs.append(mUsedRTs);
 		mUsedRTs.clear();
 		for (auto& rt : mFreeRTs)
 		{
@@ -86,11 +75,11 @@ namespace Render
 		}
 	}
 
-	void GlobalRenderTargetTool::restoreRHI()
+	void GlobalRenderTargetPool::restoreRHI()
 	{
 	}
 
-	void GlobalRenderTargetTool::releaseRHI()
+	void GlobalRenderTargetPool::releaseRHI()
 	{
 		RenderTargetPool::releaseRHI();
 	}

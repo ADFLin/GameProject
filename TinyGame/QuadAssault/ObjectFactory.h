@@ -37,6 +37,11 @@ class TObjectCreator
 public:
 	typedef IFactoryT< BaseType > FactoryType;
 	
+	~TObjectCreator()
+	{
+		cleanup();
+	}
+
 	template< class T >
 	class CFactory : public FactoryType
 	{
@@ -74,8 +79,17 @@ public:
 		return true;
 	}
 
-	using FactoryMap = std::unordered_map< TCStringWrapper< char, true >, FactoryType*, MemberFuncHasher >;
+	using FactoryMap = std::unordered_map< TCStringWrapper< char, true >, FactoryType*>;
 	FactoryMap& getFactoryMap(){ return mNameMap; }
+
+	void cleanup()
+	{
+		for (auto const& pair : mNameMap)
+		{
+			delete pair.second;
+		}
+		mNameMap.clear();
+	}
 protected:
 	FactoryMap mNameMap;
 };

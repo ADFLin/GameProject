@@ -338,50 +338,48 @@ namespace CPP
 		HashString fullPathHS = HashString(fullPath.c_str());
 
 		mUsedFiles.insert(fullPathHS);
-		if (mParamOnceSet.find(fullPathHS) == mParamOnceSet.end())
+		if (mPragmaOnceSet.find(fullPathHS) != mPragmaOnceSet.end())
+			return true;
+
+		if (mSourceLibrary == nullptr)
 		{
-			if (mSourceLibrary == nullptr)
-			{
-				mSourceLibrary = new CodeSourceLibrary;
-				mbSourceLibraryManaged = true;
-			}
+			mSourceLibrary = new CodeSourceLibrary;
+			mbSourceLibraryManaged = true;
+		}
 
-			CHECK(mSourceLibrary);
+		CHECK(mSourceLibrary);
+		CodeSource* includeSource = mSourceLibrary->FindOrLoadSource(fullPathHS);
+		if (includeSource == nullptr)
+		{
+			PARSE_ERROR("Can't load include file : %s" , fullPath.c_str());
+		}
 
-			CodeSource* includeSource = mSourceLibrary->FindOrLoadSource(fullPathHS);
-			if (includeSource == nullptr)
-			{
-				PARSE_ERROR("Can't load include file : %s" , fullPath.c_str());
-			}
+		if (bCommentIncludeFileName)
+		{
+			mOutput->push("//Include ");
+			mOutput->push(path);
+			mOutput->pushEoL();
+		}
 
+		InputEntry entry;
+		entry.input = mInput;
+		entry.onChildFinish = [this, savedPath = path.toStdString() ]()
+		{
+			mOutput->pushEoL();
 			if (bCommentIncludeFileName)
 			{
-				mOutput->push("//Include ");
-				mOutput->push(path);
+				mOutput->push("//~Include ");
+				mOutput->push(savedPath);
 				mOutput->pushEoL();
 			}
 
-			InputEntry entry;
-			entry.input = mInput;
-
-			entry.onChildFinish = [this, savedPath = path.toStdString() ]()
-			{
-				mOutput->pushEoL();
-				if (bCommentIncludeFileName)
-				{
-					mOutput->push("//~Include ");
-					mOutput->push(savedPath);
-					mOutput->pushEoL();
-				}
-
-				bRequestSourceLine = true;
-			};
-
-			mInputStack.push_back(entry);
-			mInput.source = includeSource;
-			mInput.resetSeek();
 			bRequestSourceLine = true;
-		}
+		};
+
+		mInputStack.push_back(entry);
+		mInput.source = includeSource;
+		mInput.resetSeek();
+		bRequestSourceLine = true;
 
 		return true;
 	}
@@ -685,7 +683,7 @@ namespace CPP
 			{
 				if (mInput.source && !mInput.source->filePath.empty())
 				{
-					mParamOnceSet.insert(mInput.source->filePath);
+					mPragmaOnceSet.insert(mInput.source->filePath);
 				}
 			}
 			break;
@@ -1303,7 +1301,7 @@ namespace CPP
 			if (!expandMarcoInternal(tempCode, outText, childResult))
 				return false;
 
-			outResult.add(childResult);
+			outResult.append(childResult);
 			return true;
 		}
 
@@ -1570,7 +1568,7 @@ namespace CPP
 		return 0;
 	}
 
-	const OperationInfo OpInfos[] =
+	constexpr OperationInfo OpInfos[] =
 	{
 #define OPINFO_OP( NAME , OP , P ) { EOperator::NAME , #OP , P } ,
 				BINARY_OPERATOR_LIST(OPINFO_OP)
@@ -1581,7 +1579,6 @@ namespace CPP
 	{
 		return OpInfos[type];
 	}
-
 
 	CodeSourceLibrary::~CodeSourceLibrary()
 	{

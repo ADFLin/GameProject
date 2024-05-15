@@ -114,6 +114,14 @@ namespace Render
 			return LookAt(screenSize, lookPos, theta, zoom, bFlipX);
 		}
 
+		static RenderTransform2D Sprite(Vector2 const& pos, Vector2 const& pivotOffset, float rotation)
+		{
+			RenderTransform2D result;
+			result.M = Matrix2::Rotate(rotation);
+			result.P = MulOffset( -pivotOffset , result.M , pos + pivotOffset );
+			return result;
+		}
+
 		FORCEINLINE RenderTransform2D operator * (RenderTransform2D const& rhs) const
 		{
 			//[ M  0 ] [ Mr 0 ]  =  [ M * Mr        0 ]
@@ -161,8 +169,6 @@ namespace Render
 			CHECK(!hadSacled());
 			return M.mul(pos - P);
 		}
-
-
 
 		RenderTransform2D inverse() const
 		{
@@ -274,7 +280,6 @@ namespace Render
 				 P.x,  P.y, 0, 1);
 		}
 
-
 		static Vector2 MulOffset(Vector2 const& v, Matrix2 const& m, Vector2 const& offset)
 		{
 #if USE_MATH_SIMD
@@ -285,7 +290,6 @@ namespace Render
 			__m128 resultV = _mm_add_ps(_mm_add_ps(xv, yv), _mm_setr_ps(offset.x, offset.y, 0, 0));
 			return Vector2(resultV.m128_f32[0], resultV.m128_f32[1]);
 #else
-
 			return v * m + offset;
 #endif
 		}
